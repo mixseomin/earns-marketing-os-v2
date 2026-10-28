@@ -5,12 +5,16 @@
 // verified with tsx at build time; no test runner wired in this app).
 
 export const COL_FILTER_OPS = [
-  '=', '!=', '<', '>', '<=', '>=',
+  'KHOẢNG', '=', '!=', '<', '>', '<=', '>=',
   'LIKE', 'LIKE %%', 'NOT LIKE', 'REGEXP', 'NOT REGEXP',
   'IN', 'NOT IN', 'FIND_IN_SET', 'IS NULL', 'IS NOT NULL',
 ] as const;
 export type ColFilterOp = (typeof COL_FILTER_OPS)[number];
 
+// KHOẢNG SỐ (anh 29/10/2026 "upgrade DataTable để filter thêm khoảng số"): val = "từ..đến", bỏ trống một đầu = khoảng hở (">= từ" / "<= đến"); hai đầu tính cả biên
+export const isRangeOp = (op: string) => op === 'KHOẢNG';
+export const khoangTach = (val: string): [string, string] => { const i = val.indexOf('..'); return i < 0 ? [val.trim(), ''] : [val.slice(0, i).trim(), val.slice(i + 2).trim()]; };
+export const khoangGhep = (tu: string, den: string) => (tu.trim() || den.trim() ? `${tu.trim()}..${den.trim()}` : '');
 export const isNullaryOp = (op: string) => op === 'IS NULL' || op === 'IS NOT NULL';   // no value input
 const NEGATIONS = new Set(['!=', 'NOT LIKE', 'NOT REGEXP', 'NOT IN']);
 
@@ -59,6 +63,11 @@ export function matchColFilter(raw: string | number | null | undefined, op: stri
     case 'NOT IN': return !v.split(',').map((x) => x.trim().toLowerCase()).filter(Boolean).includes(sl);
     // Chọn nhiều giá trị ở thanh lọc trên bảng (loc-tu-dong.ts): val = mảng JSON — giá trị có dấu phẩy vẫn khớp đúng (IN tách theo phẩy).
     case 'IN LIST': { try { const ds = JSON.parse(v) as unknown[]; return Array.isArray(ds) && ds.some((x) => String(x).toLowerCase() === sl); } catch { return false; } }
+    case 'KHOẢNG': {
+      const a = asNum(raw); if (a == null) return false;
+      const [tu, den] = khoangTach(v).map(asNum) as [number | null, number | null];
+      return (tu == null || a >= tu) && (den == null || a <= den);
+    }
     case 'FIND_IN_SET': return sl.split(',').map((x) => x.trim()).includes(vl);   // raw is the set, val a member
     default: return true;
   }

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode, type CSSPropertie
 import { batDauKeo, docRongCot, ghiRongCot } from './keo-rong';
 import { useTableSort, type SortSpec, type ThSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
-import { COL_FILTER_OPS, isNullaryOp, matchColFilter } from './col-filter';
+import { COL_FILTER_OPS, isNullaryOp, isRangeOp, khoangTach, khoangGhep, matchColFilter } from './col-filter';
 import { usePaged, Pager } from './phan-trang';
 import { useTablePref, writeTablePref } from './table-prefs';
 import { readShallowParam, writeShallowParam } from './url-shallow';
@@ -733,7 +733,9 @@ export function DataTable<T>({
         const key = searchCol;
         if (key == null) return null;                 // narrow: searchCol string trong nhánh này
         const col = columns.find((c) => c.key === key);
-        const cur = colFilters[key] ?? { op: 'LIKE %%', val: '' };   // mặc định "chứa" (contains) — hợp lọc text, ý định phổ biến nhất
+        // mặc định theo LOẠI cột: cột số (đa số ô là số) → KHOẢNG từ–đến; cột chữ → "chứa"
+        const laSo = (() => { const sv = col?.sortValue; if (!sv) return false; let so = 0, co = 0; for (const r of rows.slice(0, 200)) { const x = sv(r); if (x == null || x === '') continue; co++; if (typeof x === 'number') so++; } return co > 0 && so > co / 2; })();
+        const cur = colFilters[key] ?? { op: laSo ? 'KHOẢNG' : 'LIKE %%', val: '' };
         return (
           <AnchoredPopover anchorRef={searchAnchor} open onClose={() => setSearchCol(null)} align="left" zIndex={1100}>
             <ColFilterBox colLabel={col?.header ?? key} value={cur}
@@ -773,7 +775,14 @@ function ColFilterBox({ colLabel, value, onApply, onClear, onCancel }: {
         <select value={op} onChange={(e) => setOp(e.target.value)} style={{ ...ctrl, cursor: 'pointer', flexShrink: 0 }}>
           {COL_FILTER_OPS.map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
-        {!nullary && (
+        {isRangeOp(op) ? (() => { const [tu, den] = khoangTach(val); const o = (t: string, d: string) => setVal(khoangGhep(t, d));
+          return <span style={{ display: 'flex', gap: 4, alignItems: 'center', flex: 1, minWidth: 0 }}>
+            <input autoFocus value={tu} onChange={(e) => o(e.target.value, den)} placeholder="từ" inputMode="decimal" autoComplete="off"
+                   onKeyDown={(e) => { if (e.key === 'Enter') onApply({ op, val }); }} style={{ ...ctrl, flex: 1, minWidth: 0, width: 60 }} />
+            <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>–</span>
+            <input value={den} onChange={(e) => o(tu, e.target.value)} placeholder="đến" inputMode="decimal" autoComplete="off"
+                   onKeyDown={(e) => { if (e.key === 'Enter') onApply({ op, val }); }} style={{ ...ctrl, flex: 1, minWidth: 0, width: 60 }} />
+          </span>; })() : !nullary && (
           <input autoFocus value={val} onChange={(e) => setVal(e.target.value)} placeholder="giá trị…"
                  autoComplete="off" spellCheck={false}
                  onKeyDown={(e) => { if (e.key === 'Enter') onApply({ op, val }); }}

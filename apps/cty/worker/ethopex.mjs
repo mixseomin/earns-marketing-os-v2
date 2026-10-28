@@ -312,7 +312,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const topic = await topicPhong('ethopex', '📂 Ethopex', tg, { duocTao: true });   // anh lập phòng 21/10/2026 = cho tạo chủ đề
   await gomTin(tg); let nut = 0;
   for (const x of moHop('ethopex')) if ((await xuChuBoPhim(tg, x)) || (await xuNut(tg, x))) nut++;
-  const kq = boPhimLoc(JSON.parse((await chay(LUAT, ['--json'])).trim().split('\n').pop()));   // phim anh đã bỏ: không báo, không tự tăng
+  const kq = boPhimLoc(JSON.parse((await chay(LUAT, ['--json'], 540)).trim().split('\n').pop()));   // phim anh đã bỏ: không báo, không tự tăng
   // BÁO LÊN etp.on.tc (anh 24/10/2026 "báo trên etp nữa"): ghi đè etp.bao bằng đúng các nhóm luật của nhịp này — trang etp tab Luật đọc
   try {
     // MỌI danh sách luật của nhịp (anh 27/10/2026: etp.on.tc "cần show được camp đang chạm luật nào (chưa chạy), chuẩn bị chạm") — cả luật máy tự làm

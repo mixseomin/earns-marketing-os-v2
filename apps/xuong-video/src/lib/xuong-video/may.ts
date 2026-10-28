@@ -112,6 +112,12 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
   }
   // BÀI VIẾT (Quora / Substack / Medium…, 28/10/2026): chữ dài, không dựng ffmpeg — "xuất" = chốt bản để Phòng Nội dung (kiem-bai) chấm đúng bản; ảnh bìa = nen_url nạp sẵn
   if ((r.de as { loai?: string } | null)?.loai === 'bai-viet') {
+    const truyBai = (r.de as { truy?: string }).truy;   // chưa nạp ảnh bìa → ảnh thật Pexels theo de.truy, không trùng trong máy (như video)
+    if (!r.nen_url && truyBai) {
+      const daDung = new Set(((await db.execute(sql`SELECT nen_url FROM xv_may_video WHERE may_id = ${Number(r.may_id)} AND nen_url IS NOT NULL`)) as unknown as Row[]).map((x) => idPexels(x.nen_url as string)).filter((x): x is number => x != null));
+      try { r.nen_url = await timAnhNen(truyBai, daDung); } catch (e) { return { ok: false, loi: `ảnh bìa: ${(e as Error).message}` }; }
+      await db.execute(sql`UPDATE xv_may_video SET nen_url = ${r.nen_url as string}, updated_at = now() WHERE id = ${videoId}`);
+    }
     await db.execute(sql`UPDATE xv_may_video SET video_url = NULL, khung = '[]'::jsonb, anh = ${JSON.stringify(r.nen_url ? [r.nen_url] : [])}::jsonb, giay = NULL, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
     return { ok: true, url: `bai:${String(r.slug)}` };
   }

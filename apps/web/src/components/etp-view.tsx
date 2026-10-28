@@ -581,7 +581,8 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
   const [nhom, setNhom] = useState('tang'); useEffect(() => { try { const v = localStorage.getItem('etp-luat-nhom'); if (v) setNhom(v); } catch { /* */ } }, []);   // đọc sau khi nạp: tránh lệch SSR
   const chon = (k: string) => { setNhom(k); try { localStorage.setItem('etp-luat-nhom', k); } catch { /* */ } };
   const ds = (NHOM.find(([k]) => k === nhom) ?? NHOM[0]!)[2].map((m) => theo.get(m)).filter((x): x is SoLuat => !!x);
-  const chay = ds.filter((l) => !l.dung), dung = ds.filter((l) => l.dung);
+  const gap = (l: SoLuat) => l.dung && !l.so.lan && !l.de_xuat.length;   // chỉ gập luật tạm dừng KHÔNG có số / đề xuất — luật dừng mà số cho thấy đang mất tiền thì phải thấy
+  const chay = ds.filter((l) => !gap(l)), dung = ds.filter(gap);
   const LUOI = 'minmax(260px, 1.1fr) minmax(260px, 1fr) minmax(260px, 1.1fr)';
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
     <div style={{ fontSize: 12.5, color: 'var(--fg-2)' }}>Mỗi luật: <b>điều kiện máy đang chạy</b> (đọc từ lượt xét mới nhất) · <b>số thật</b> {du.soLuat[0]?.so.ngay ?? 14} ngày qua (sau mỗi lần máy làm, camp lãi hơn hay kém) · <b>đề xuất</b> có số.

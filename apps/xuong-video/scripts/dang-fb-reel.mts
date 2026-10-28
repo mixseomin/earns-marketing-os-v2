@@ -35,11 +35,14 @@ export async function kiemTrang(pageId: string, ten: string): Promise<Trang> {
 }
 
 /** Reel 3 pha: start → rupload bằng file_url (R2 công khai) → finish PUBLISHED; đợi xử lý xong rồi lấy permalink. */
-async function dangReel(pageId: string, token: string, videoUrl: string, moTa: string): Promise<{ url: string; video_id: string }> {
+// hen = unix giây → Reel HẸN GIỜ (video_state SCHEDULED + scheduled_publish_time — anh 29/10 "xem có đăng bài hẹn qua API được không"): trả ngay
+// sau khi Facebook nhận lịch (url 'fb-hen-api:<video_id>:<iso>'), không chờ xuất bản.
+async function dangReel(pageId: string, token: string, videoUrl: string, moTa: string, hen?: number): Promise<{ url: string; video_id: string }> {
   const s = await goi(`${G}/${pageId}/video_reels`, { method: 'POST', body: new URLSearchParams({ upload_phase: 'start', access_token: token }) });
   const vid = String(s.video_id);
   await goi(`https://rupload.facebook.com/video-upload/${V}/${vid}`, { method: 'POST', headers: { Authorization: `OAuth ${token}`, file_url: videoUrl } });
-  await goi(`${G}/${pageId}/video_reels`, { method: 'POST', body: new URLSearchParams({ upload_phase: 'finish', video_id: vid, video_state: 'PUBLISHED', description: moTa, access_token: token }) });
+  await goi(`${G}/${pageId}/video_reels`, { method: 'POST', body: new URLSearchParams({ upload_phase: 'finish', video_id: vid, video_state: hen ? 'SCHEDULED' : 'PUBLISHED', ...(hen ? { scheduled_publish_time: String(hen) } : {}), description: moTa, access_token: token }) });
+  if (hen) return { url: `fb-hen-api:${vid}:${new Date(hen * 1000).toISOString()}`, video_id: vid };
   for (let i = 0; i < 40; i++) {   // ≤ 10 phút
     await sleep(15);
     const st = await goi(`${G}/${vid}?${qs({ fields: 'status,permalink_url', access_token: token })}`);
@@ -83,11 +86,12 @@ if (a[0] === '--so') {
   process.stdout.write(JSON.stringify(ra)); process.exit(0);
 }
 let raw = ''; for await (const c of process.stdin) raw += c;
-const x = JSON.parse(raw) as { page_id: string; ten: string; video_url?: string; anh?: string[]; mo_ta: string; binh_luan?: string };
+const x = JSON.parse(raw) as { page_id: string; ten: string; video_url?: string; anh?: string[]; mo_ta: string; binh_luan?: string; hen?: number };
 const t = await kiemTrang(x.page_id, x.ten);
 if (x.anh) { process.stdout.write(JSON.stringify({ ...(await dangAnh(x.page_id, t.token, x.anh, x.mo_ta)), binh_luan: false })); process.exit(0); }
 if (!x.video_url) { console.error('thiếu video_url (hoặc anh cho bài ảnh)'); process.exit(1); }
-const r = await dangReel(x.page_id, t.token, x.video_url, x.mo_ta);
+const r = await dangReel(x.page_id, t.token, x.video_url, x.mo_ta, x.hen);
+if (x.hen) { process.stdout.write(JSON.stringify({ url: r.url, post_id: r.video_id, binh_luan: false })); process.exit(0); }
 let binh = false;
 if (x.binh_luan) {
   try {

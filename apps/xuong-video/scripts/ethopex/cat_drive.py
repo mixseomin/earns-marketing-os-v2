@@ -13,6 +13,7 @@ GOC = os.path.expanduser("~/.cache/ethopex")
 DICH = "gdrive:ethopex-cache"
 DUOI = ("mp4", "mov", "mkv", "webm", "wav", "m4a", "mp3", "aac")
 LOG = os.path.join(GOC, "cat-drive.log")
+# 8 luồng · mảnh 64 MB · ≤ 8 lệnh/giây (đo 28/10/2026: 4 luồng mảnh 8 MB chỉ ~13 Mbit/s trên mạng 254 Mbps, client_id dùng chung của rclone còn bị 403 "Quota exceeded … per minute")
 
 
 def co_rclone():
@@ -23,7 +24,7 @@ def cat(min_age="24h", giu=()):
     """cất mọi tệp nặng đã nằm yên ≥ min_age; giu = thư mục tương đối (vd 'ra/pm-26101408') còn đang dùng → không đụng. Trả số GB trống sau khi cất."""
     if not co_rclone():
         print("cất Drive: chưa có rclone remote 'gdrive' — bỏ qua (máy giữ nguyên tệp)", flush=True); return shutil.disk_usage(os.path.expanduser("~")).free / 1e9
-    lenh = ["taskpolicy", "-b", "rclone", "move", GOC, DICH, "--min-age", min_age, "--transfers", "4", "--log-file", LOG, "--log-level", "INFO",
+    lenh = ["taskpolicy", "-b", "rclone", "move", GOC, DICH, "--min-age", min_age, "--transfers", "8", "--drive-chunk-size", "64M", "--tpslimit", "8", "--log-file", LOG, "--log-level", "INFO",
             "--stats-one-line", "--stats", "0"]
     for d in giu: lenh += ["--exclude", f"/{d.strip('/')}/**"]
     for e in DUOI: lenh += ["--include", f"*.{e}", "--include", f"*.{e.upper()}"]

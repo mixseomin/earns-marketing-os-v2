@@ -86,8 +86,10 @@ if (a.includes('--nap')) {
   else {
     if (!x.cau_hoi) { console.error('--viet-bai cần cau_hoi'); process.exit(1); }
     // link đích dựng MỘT chỗ ở đây: trang đích của máy (spCua) + UTM theo slug bài — người gọi không tự ghép
-    const link = x.link ?? `${sp.link}${sp.link.includes('?') ? '&' : '?'}utm_source=quora&utm_medium=answer&utm_campaign=${encodeURIComponent(x.slug ?? 'quora')}`;
-    console.log(JSON.stringify({ link, ...(await vietBai({ sp, goc: x.goc, cauHoi: x.cau_hoi, link })) }));
+    const utm = `utm_source=quora&utm_medium=answer&utm_campaign=${encodeURIComponent(x.slug ?? 'quora')}`, link = x.link ?? `${sp.link}${sp.link.includes('?') ? '&' : '?'}${utm}`;
+    // tệp SỰ THẬT đã kiểm của máy (apps/xuong-video/su-that/<máy>.md) — có thì mô hình chỉ dùng số liệu trong đó + chọn trang đích trong danh sách của nó
+    const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
+    console.log(JSON.stringify(await vietBai({ sp, goc: x.goc, cauHoi: x.cau_hoi, link, utm, suThat })));
   }
 } else if (lay('--sinh-de') != null) {
   // MÁY SINH ĐỀ THEO GÓC (bước 3, 27/10/2026): ô kế hoạch của máy ngày đó chưa có bài DUYỆT đúng góc + dạng → sinh đề bằng chữ AI rẻ (may-de.ts) → nạp (→ --va-xuat dựng luôn; không dùng chữ --xuat vì nhánh --xuat <slug> đứng trước trong chuỗi lệnh).

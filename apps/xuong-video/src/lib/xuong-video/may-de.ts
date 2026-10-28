@@ -203,7 +203,8 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
 // Máy chỉ VIẾT chữ; tìm câu hỏi thật (br, iMac) + nạp (nap-bai.mjs dungDong → studio --nap) + chấm (Phòng Nội dung kiem-bai) + đăng (dang-may) là các khâu sẵn có.
 export const TuKhoaSchema = z.object({ tu_khoa: z.array(z.string().describe('a short English Quora search query (3-7 words) a real person in this angle would type')).min(2).max(3) });
 export const VietBaiSchema = z.object({
-  tra_loi: z.string().describe('The Quora answer, English, 1200-2200 characters, plain human voice. Open with the direct answer in one sentence, then 3-5 short paragraphs or a short numbered list with concrete specifics, one round-number worked example if numbers matter, a 3-4 item "quick self-check" list, and a natural closing sentence that contains the destination link exactly as given. No em dashes, no hashtags, no headings, no made-up statistics.'),
+  tra_loi: z.string().describe('The Quora answer, English, 1200-2200 characters, plain human voice. Open with the direct answer in one sentence, then 3-5 short paragraphs or a short numbered list with concrete specifics, one round-number worked example if numbers matter, a 3-4 item "quick self-check" list, and a natural closing sentence that contains the token {LINK} exactly once (the machine replaces it with the destination URL). No em dashes, no hashtags, no headings, no made-up statistics.'),
+  trang: z.string().describe('the ONE site page URL from the list given that best fits this answer, copied exactly; empty string if no list was given'),
   truy: z.string().describe('3-6 English words for a real stock photo that fits the answer (Pexels search), no brand names'),
 });
 /** Kiểm câu trả lời trước khi nạp (đúng các chặn cứng của Phòng Nội dung + link đích). Thuần. */
@@ -226,21 +227,30 @@ export async function tuKhoaQuora(o: { sp: SanPhamDe; goc: GocDe }): Promise<{ o
 }
 const sp_ten = (sp: SanPhamDe) => sp.nhan || sp.ten;
 /** Viết câu trả lời Quora cho câu hỏi thật + góc; sai luật thì viết lại một lần. */
-export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; link: string }): Promise<{ ok: true; tra_loi: string; truy: string; vnd: number; model: string } | { ok: false; loi: string; vnd: number }> {
+/** Trang đích các trang của site khai trong tệp sự thật (dòng "- https://… — …" dưới "## Site pages"). Thuần. */
+export const trangSuThat = (suThat: string | null) => (suThat?.split(/^## Site pages/m)[1] ?? '').split('\n').map((l) => l.match(/^- (https?:\/\/\S+)/)?.[1]).filter((x): x is string => !!x);
+/** Gắn UTM của bài vào một trang (giữ query sẵn có). Thuần. */
+export const ganUtm = (trang: string, utm: string) => `${trang}${trang.includes('?') ? '&' : '?'}${utm}`;
+/** Viết câu trả lời Quora. suThat = tệp sự thật đã kiểm của máy (apps/xuong-video/su-that/<máy>.md): mô hình CHỈ dùng số liệu / quy định trong đó, thiếu thì chỉ cách tra — mô hình rẻ viết số liệu sai (28/10: trần Legacy '75% sau 30 năm'). */
+export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; link: string; utm?: string; suThat?: string | null }): Promise<{ ok: true; tra_loi: string; truy: string; link: string; vnd: number; model: string } | { ok: false; loi: string; vnd: number }> {
   const { sinhJson } = await import('./claude');
   const system = [`You answer Quora questions as an experienced, helpful person who also runs "${sp_ten(o.sp)}" (${o.sp.mo_ta}). Audience: US, English.`,
     'Rules (hard): answer the question first and fully, be concrete and accurate, never invent statistics, prices, laws or testimonials; if a number depends on the reader, explain how to work it out with a round-number example labelled as an example.',
     'Cover every major variant that changes the answer (old vs new system, with vs without dependents, by state or country…) — leaving one out makes readers calculate wrong. State deadlines and conditions exactly; if unsure of an exact rule, say what to check and where instead of guessing.',
     'Plain human voice, no hype, no em dashes (— or –), no hashtags, no headings, never these words: ' + TU_MAY.join(', ') + '.',
-    `Mention the destination exactly once, near the end, as this exact URL: ${o.link}`].join('\n');
+    'Put the token {LINK} exactly once near the end where the destination link goes (do not write any URL yourself).',
+    ...(o.suThat ? ['VERIFIED FACTS (use ONLY these for rules, rates, numbers and deadlines; if the question needs something not listed, tell the reader where to check it officially instead of stating it):', o.suThat] : [])].join('\n');
+  const trangs = trangSuThat(o.suThat ?? null);
   let vnd = 0, loiCu: string[] = [];
   for (let lan = 0; lan < 2; lan++) {
     const r = await sinhJson({ schema: VietBaiSchema, ten: 'viet_bai', max_tokens: 1100, system,   // ~2.200 ký tự ≈ 600 token + JSON; trần token là giá ước của cổng tiền
-      user: `Quora question: "${o.cauHoi}"\nAngle to lean on (internal label, may be Vietnamese): "${o.goc.ten}".${loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''}\nReturn the JSON now.` });
+      user: `Quora question: "${o.cauHoi}"\nAngle to lean on (internal label, may be Vietnamese): "${o.goc.ten}".${trangs.length ? `\nSite pages to choose from for "trang": ${trangs.join(' | ')}` : ''}${loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''}\nReturn the JSON now.` });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += giaVnd(r);
-    loiCu = kiemBaiViet(r.data.tra_loi.trim(), o.link);
-    if (!loiCu.length) return { ok: true, tra_loi: r.data.tra_loi.trim(), truy: r.data.truy, vnd, model: r.model };
+    const link = trangs.includes(r.data.trang) && o.utm ? ganUtm(r.data.trang, o.utm) : o.link;   // trang mô hình chọn phải nằm trong danh sách, không thì trang đích mặc định
+    const chu = r.data.tra_loi.trim().split('{LINK}').join(link);
+    loiCu = [...kiemBaiViet(chu, link), ...(r.data.tra_loi.split('{LINK}').length !== 2 ? ['token {LINK} phải có đúng một lần'] : [])];
+    if (!loiCu.length) return { ok: true, tra_loi: chu, truy: r.data.truy, link, vnd, model: r.model };
   }
   return { ok: false, loi: `câu trả lời sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };
 }

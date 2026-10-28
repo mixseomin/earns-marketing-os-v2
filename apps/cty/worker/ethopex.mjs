@@ -246,11 +246,29 @@ export function bangViec(ds, nhanKy = 'Kỳ') {
   const loi = ds.filter((x) => x.loi).map(({ m, loi }) => `⚠ #${m.id}: ${esc(String(loi).slice(0, 160))}`);
   return [`<pre>${bang}</pre>`, ...loi].join('\n');
 }
+/** BẢNG THEO NGƯỜI (anh 28/10/2026: report Telegram theo hiện trạng nhiều tài khoản người quản lý): view etp.so_nguoi — hôm nay + hôm qua mỗi người, nhà đứng đầu.
+ *  ds = [{ nguoi, nha, c0, t0, c1, t1, camp }] → <pre> ≤ 30 ký tự/dòng. Máy luật chỉ làm trên tài khoản nhà; người khác chỉ để so. */
+export function bangNguoi(ds) {
+  if (!ds?.length) return '';
+  const lai = (c, t) => { const x = Math.round(t - c); return `${x < 0 ? '-' : '+'}${Math.abs(x)}`; };
+  const roi = (c, t) => (c >= 0.3 ? `${Math.round(((t - c) / c) * 100)}%` : '—');
+  const ten = (x) => { const t = String(x.nguoi || '?').split(' ').slice(-1)[0] + (x.nha ? '*' : ''); return t.length > 7 ? t.slice(0, 7) : t; };
+  const hang = (a, b, c, d, e) => `${a.padEnd(7)}${b.padStart(6)}${c.padStart(5)}${d.padStart(6)}${e.padStart(5)}`;
+  return [hang('Người', 'Nay', 'ROI', 'Qua', 'ROI'), ...ds.map((x) => hang(ten(x), lai(x.c0, x.t0), roi(x.c0, x.t0), lai(x.c1, x.t1), roi(x.c1, x.t1)))].map(esc).join('\n');
+}
+export async function docNguoi() {
+  const r = (await chayPsql(`select coalesce(json_agg(x order by x.nha desc, x.nguoi), '[]') from (select nguoi, nha,
+      coalesce(sum(chi) filter (where ngay = (now() at time zone 'utc')::date), 0) c0, coalesce(sum(thu) filter (where ngay = (now() at time zone 'utc')::date), 0) t0,
+      coalesce(sum(chi) filter (where ngay = (now() at time zone 'utc')::date - 1), 0) c1, coalesce(sum(thu) filter (where ngay = (now() at time zone 'utc')::date - 1), 0) t1
+      from etp.so_nguoi where ngay >= (now() at time zone 'utc')::date - 1 group by nguoi, nha) x`)).trim();
+  return JSON.parse(r || '[]').map((x) => ({ ...x, c0: Number(x.c0), t0: Number(x.t0), c1: Number(x.c1), t1: Number(x.t1) }));
+}
 export function tinBang(t) {
   const dong = (nhan, a) => `<b>${nhan}</b>: lãi <b>${tienUsd(a.lai)}</b> · ROI <b>${roiChu(a.roi)}</b> · chi $${a.chi.toFixed(2)}`;
   return [`📊 <b>ETHOPEX hôm nay</b> · cập nhật ${esc(t.luc)}${t.chot_toi ? `\n<i>ngày Ethopex 07:00–07:00 VN · chi ghi tới ${esc(t.chot_toi)} (doanh thu còn về thêm)</i>` : ''}`,
     `<pre>${bangNoiDung(t.noi_dung ?? [], t.hom)}</pre>`,
     `${t.hom.camp} camp chạy · ngân sách $${t.hom.budget}/ngày`, dong('Hôm qua', t.qua), dong('Tháng này', t.thang),
+    ...(t.nguoi?.length ? [`\n<b>THEO NGƯỜI</b> (lãi $ · * = nhà, luật chỉ áp ở nhà)\n<pre>${bangNguoi(t.nguoi)}</pre>`] : []),
     `<i>Tự cập nhật mỗi ${BANG_MOI_PHUT} phút · bấm 🔄 để lấy số ngay</i>`].join('\n');
 }
 const NUT_BANG = { inline_keyboard: [[{ text: '🔄 Làm mới', callback_data: 'eb:moi' }]] };
@@ -260,7 +278,7 @@ export async function bangEthopex(tg, { ep = false, doc = async () => JSON.parse
   const st = docJ(TEP_BANG(), {}); if (!ep && st.luc && Date.now() - Date.parse(st.luc) < (BANG_MOI_PHUT * 60 - 10) * 1000) return null;
   const topic = await topicPhong('ethopex', '📂 Ethopex', tg); if (!topic) return null;
   fs.writeFileSync(TEP_BANG(), JSON.stringify({ ...st, luc: new Date().toISOString() }));   // ghi hẹn trước: API Ethopex hỏng thì thử lại sau 5 phút, không mỗi vòng
-  let text; try { text = tinBang(await doc()); } catch (e) { text = null; if (!ep) throw e; await tg('sendMessage', { message_thread_id: topic, text: `⚠️ Chưa lấy được số Ethopex: ${esc(e.message.slice(0, 200))}` }); }
+  let text; try { const t = await doc(); t.nguoi = await docNguoi().catch(() => []); text = tinBang(t); } catch (e) { text = null; if (!ep) throw e; await tg('sendMessage', { message_thread_id: topic, text: `⚠️ Chưa lấy được số Ethopex: ${esc(e.message.slice(0, 200))}` }); }
   if (!text) return null;
   if (st.mid) { const r = await tg('editMessageText', { message_id: st.mid, text, parse_mode: 'HTML', reply_markup: NUT_BANG, link_preview_options: { is_disabled: true } });
     if (r.ok || /not modified/.test(r.description || '')) { if (!r.ok) await tg('editMessageReplyMarkup', { message_id: st.mid, reply_markup: NUT_BANG }); return 'sua'; } }

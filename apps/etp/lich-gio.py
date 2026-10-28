@@ -280,6 +280,17 @@ def lap_bao_cao(vn, gio_cuoi=None):
         dam.add(len(b)); b.append(f"NS camp bật ${sc} · {nc} camp" + (f" (+{nl} dừng lịch)" if nl != "0" else ""))
     if n_r or c_r:
         b.append(f"{'★ROAS':<6}{c_r:>5.0f}{t_r:>5.0f}{roi(c_r, t_r):>6}"); nhat.add(len(b)); b.append(f"{int(n_r)} camp ROAS đang bật")
+    # THEO NGƯỜI (anh 28/10/2026: report theo hiện trạng nhiều tài khoản người quản lý) — view etp.so_nguoi; * = nhà (luật chỉ áp ở nhà), người khác chỉ để so
+    try:
+        ng = [l.split("|") for l in q(f"""select nguoi, nha, coalesce(sum(chi) filter (where ngay = '{ngay}'), 0), coalesce(sum(thu) filter (where ngay = '{ngay}'), 0),
+            coalesce(sum(chi) filter (where ngay = date '{ngay}' - 1), 0), coalesce(sum(thu) filter (where ngay = date '{ngay}' - 1), 0)
+            from etp.so_nguoi where ngay >= date '{ngay}' - 1 group by 1, 2 order by nha desc, 1""").splitlines() if "|" in l]
+        if len(ng) > 1:
+            lai = lambda c, t: f"{round(float(t) - float(c)):+d}"; ro = lambda c, t: f"{(float(t) - float(c)) / float(c) * 100:.0f}%" if float(c) >= 0.3 else "—"
+            b.append(""); dam |= {len(b), len(b) + 1}; b.append("THEO NGƯỜI (lãi $)")
+            b.append(f"{'Người':<7}{'Nay':>6}{'ROI':>5}{'Qua':>6}{'ROI':>5}")
+            b += [f"{(n.split(' ')[-1] + ('*' if h == 't' else ''))[:7]:<7}{lai(c0, t0):>6}{ro(c0, t0):>5}{lai(c1, t1):>6}{ro(c1, t1):>5}" for n, h, c0, t0, c1, t1 in ng]
+    except Exception as e: print(f"theo người lỗi: {e}", file=sys.stderr)
     if het:
         b.append(""); dam |= {len(b), len(b) + 1}
         b += [f"HẾT NGÂN SÁCH: {len(het)} camp", f"{'Camp':<8}{'Chi/NS':>11}{'ROI':>8}"] + [f"#{c:<7}{f'{float(x):.2f}/{float(n):g}':>11}{roi(float(x), float(t)):>8}" for c, x, n, t in het[:8]] + (["…"] if len(het) > 8 else [])

@@ -87,7 +87,7 @@ async function kiemBaiViet(v) {
   const { ketKhoa, nopBai } = await import('./kiem-bai.mjs'), { createHash } = await import('node:crypto');
   const html = htmlBaiViet(v.dang, v.nen_url, v.de?.truy), khoa = createHash('md5').update(html).digest('hex'), url = `bai://${v.ma}/${v.slug}`, k = ketKhoa(url, khoa);
   if (k) return k;
-  try { nopBai({ url, tu: 'claude', html, loai: v.dang.loai_bai ?? (v.dang.cau_hoi ? 'bai-dang-mxh' : 'bai-dich-mxh'), khoa }); return 'CHO'; }
+  try { nopBai({ url, tu: 'claude', html, loai: v.dang.loai_bai ?? (v.dang.cau_hoi ? 'tra-loi-hoi-dap' : 'bai-dich-mxh'), khoa }); return 'CHO'; }
   catch (e) { return `không nộp được: ${String(e.message).slice(0, 120)}`; }   // hết lượt sửa → SỬA LẠI kèm lý do, anh mở khoá trên Telegram
 }
 

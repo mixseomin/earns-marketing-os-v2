@@ -9,6 +9,7 @@
     "trang-dich-qc": { "ten": "Trang đích cho quảng cáo trả tiền", "chuan": "chuan-duyet-bai.md#2", "ky_nang": ["cro", "ads", "copywriting"], "chan": "chung", "muc_dich": "chuyen-doi" },
     "lead-magnet": { "ten": "Trang / quà đổi email (lead magnet, quiz)", "chuan": "chuan-duyet-bai.md#2", "ky_nang": ["lead-magnets", "copywriting", "cro"], "chan": "chung", "muc_dich": "thu-email" },
     "email": { "ten": "Email (chuỗi chăm khách / outreach)", "chuan": "chuan-duyet-bai.md#2", "ky_nang": ["emails", "cold-email", "copy-editing"], "chan": "chung", "muc_dich": "chuyen-doi" },
+    "tra-loi-hoi-dap": { "ten": "Trả lời hỏi đáp (Quora / Reddit / diễn đàn)", "chuan": "chuan-tra-loi-hoi-dap.md", "ky_nang": ["community-marketing", "copywriting", "copy-editing"], "chan": "chung", "muc_dich": "tin-cay", "bi_danh": ["quora", "tra-loi"] },
     "bai-dang-mxh": { "ten": "Bài đăng mạng xã hội (X / FB / Pinterest / Threads)", "chuan": "chuan-bai-dang.md", "ky_nang": ["social", "image", "copy-editing"], "chan": "chung", "muc_dich": "giu-chan" },
     "quang-cao": { "ten": "Mẫu quảng cáo (chữ + hình)", "chuan": "chuan-duyet-bai.md#2", "ky_nang": ["ad-creative", "ads", "marketing-psychology"], "chan": "chung", "muc_dich": "chuyen-doi" },
     "kich-ban-video": { "ten": "Kịch bản video ngắn", "chuan": "chuan-bai-dang.md", "ky_nang": ["video", "social", "marketing-psychology"], "chan": "chung", "muc_dich": "giu-chan" }

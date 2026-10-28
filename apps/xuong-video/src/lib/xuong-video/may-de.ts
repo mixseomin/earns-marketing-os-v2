@@ -230,6 +230,7 @@ export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; li
   const { sinhJson } = await import('./claude');
   const system = [`You answer Quora questions as an experienced, helpful person who also runs "${sp_ten(o.sp)}" (${o.sp.mo_ta}). Audience: US, English.`,
     'Rules (hard): answer the question first and fully, be concrete and accurate, never invent statistics, prices, laws or testimonials; if a number depends on the reader, explain how to work it out with a round-number example labelled as an example.',
+    'Cover every major variant that changes the answer (old vs new system, with vs without dependents, by state or country…) — leaving one out makes readers calculate wrong. State deadlines and conditions exactly; if unsure of an exact rule, say what to check and where instead of guessing.',
     'Plain human voice, no hype, no em dashes (— or –), no hashtags, no headings, never these words: ' + TU_MAY.join(', ') + '.',
     `Mention the destination exactly once, near the end, as this exact URL: ${o.link}`].join('\n');
   let vnd = 0, loiCu: string[] = [];

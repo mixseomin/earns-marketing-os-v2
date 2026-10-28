@@ -12,7 +12,7 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const SPY_ENV = '/root/.secrets/spy.env';
 /** Làn → khoá 2proxy dùng (tên biến trong spy.env). Một chỗ khai; làn mới thêm vào đây. */
 export const KHOA_LAN = { TWOPROXY_KEY_XOAY: 'cao_chinh', TWOPROXY_KEYS_SONG_SONG: 'cao_chinh', TWOPROXY_KEY_DT: 'doi_thu', TWOPROXY_KEY_UU: 'goc_uu' };
-export const NGUONG = { lanDungGio: 2, spyproDungGio: 3, khoaConNgay: 3, cpuBan: 85, ramMB: 1200, nhacLaiGio: 6, taiSanConNgay: 5, ckeyDungGio: 13 };
+export const NGUONG = { lanDungGio: 2, spyproDungGio: 3, khoaConNgay: 3, cpuBan: 85, ramMB: 1200, nhacLaiGio: 6, taiSanConNgay: 5, ckeyDungGio: 13, vpsRamMB: 400, diaPt: 85 };
 // QUÁ TẢI = % CPU BẬN THẬT trung bình giữa hai nhịp (~30 phút, /proc/stat; chờ đĩa/mạng tính là rỗi) — KHÔNG dùng load average 1 phút: nó đếm cả
 // tiến trình ngồi chờ mạng/đĩa và một phút nhói là kêu (22/10/2026: box3 "thỉnh thoảng quá tải" theo nhịp deploy spy; VPS CPU rỗi 97% mà tải 4).
 // Báo kèm 3 tiến trình nặng nhất lúc chụp → biết nghẽn ở đâu, không đoán.
@@ -69,6 +69,8 @@ export function xetCanhBao(s, bayGio = Date.now()) {
     const coLan = s.lan.some((l) => l.may === v.ten);
     if (!v.toi) { if (coLan) ra.push({ khoa: `vps:${v.ten}:toi`, chu: `VPS <b>${v.ten}</b> không ssh vào được — làn cào giao cho nó đang đứng` }); continue; }
     if (coLan && !v.daemon) ra.push({ khoa: `vps:${v.ten}:daemon`, chu: `VPS <b>${v.ten}</b>: trình duyệt máy cào không chạy trong khi có làn giao cho nó` });
+    if (v.ramMB != null && v.ramMB < NGUONG.vpsRamMB) ra.push({ khoa: `vps:${v.ten}:ram`, chu: `VPS <b>${v.ten}</b> thiếu RAM: còn ${v.ramMB} MB trống, swap đang dùng ${v.swapMB ?? '?'} MB` });
+    if (v.dia >= NGUONG.diaPt) ra.push({ khoa: `vps:${v.ten}:dia`, chu: `VPS <b>${v.ten}</b> ổ cứng đầy ${v.dia}%` });
     if (v.ban >= NGUONG.cpuBan) ra.push({ khoa: `vps:${v.ten}:tai`, chu: `VPS <b>${v.ten}</b> quá tải: CPU bận ${v.ban}% suốt ${v.phut} phút qua${nang(v)}` });
   }
   return ra;
@@ -137,7 +139,9 @@ export async function chupTaiNguyen() {
     try {
       const ssh = (c) => execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=8', v.ssh, c], { encoding: 'utf8', timeout: 20000 }).trim();
       const d = ssh(`systemctl is-active ${v.daemon} || true`);
-      return { ten, toi: true, daemon: d === 'active', ...doCpu(ten, ssh) };
+      // RAM / swap / ổ cứng VPS (anh 28/10/2026: VPS cạn RAM — 286 MB trống, swap 2,2 GB — mà không ai báo; trước chỉ canh RAM box3)
+      const [ramMB, swapMB, dia] = ssh(`awk '/^MemAvailable:/{a=$2}/^SwapTotal:/{t=$2}/^SwapFree:/{f=$2}END{print int(a/1024), int((t-f)/1024)}' /proc/meminfo; df --output=pcent / | tail -1 | tr -dc 0-9`).split(/\s+/).map(Number);
+      return { ten, toi: true, daemon: d === 'active', ramMB, swapMB, dia, ...doCpu(ten, ssh) };
     } catch { return { ten, toi: false }; }
   });
   fs.mkdirSync(DATA(), { recursive: true }); fs.writeFileSync(tepCpu, JSON.stringify(cpu));
@@ -213,6 +217,11 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     assert.deepStrictEqual(k(ckT(1, { opus: ['ckey:x/o'] }, { opus: [{ id: 't/o', song: false, loi: 'The price of this model has changed. Accept the new price in the dashboard' }] })), ['ckey-gia:t/o'], 'người bán đổi giá → anh quyết');
     assert.deepStrictEqual(k(ckT(1, { haiku: ['ckey:b/h', 'ckey:a/h'] }, {}, { haiku: ['ckey:a/h', 'ckey:c/h'] })).map((x) => x.split(':').slice(0, 2).join(':')), ['ckey-doi:haiku'], 'danh sách đổi → báo một lần');
     assert.deepStrictEqual(k({ lan: [], khoa: [], may }), [], 'ảnh chụp cũ không có trường ckey: không báo bừa');
+    const vpsT = (x) => k({ lan: lanVps, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: true, daemon: true, ban: 40, phut: 30, nang: [], ...x }] });
+    assert.deepStrictEqual(vpsT({ ramMB: 286, swapMB: 2200, dia: 60 }), ['vps:may-cao-vn:ram'], 'VPS còn 286 MB (28/10/2026): báo thiếu RAM');
+    assert.deepStrictEqual(vpsT({ ramMB: 850, swapMB: 2200, dia: 60 }), [], 'VPS còn 850 MB: im');
+    assert.deepStrictEqual(vpsT({ ramMB: 850, dia: 91 }), ['vps:may-cao-vn:dia'], 'ổ 91%: báo');
+    assert.deepStrictEqual(vpsT({}), [], 'ảnh chụp cũ chưa có RAM / ổ: không báo bừa');
     console.log('tai-nguyen tu-kiem ok');
   } else if (process.argv.includes('--in')) {
     const s = await chupTaiNguyen(); console.log(JSON.stringify(s, null, 1)); console.log(xetCanhBao(s));

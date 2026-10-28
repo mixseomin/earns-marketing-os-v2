@@ -905,20 +905,34 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
   const nhan = (kk: string, v: string) => NHAN_DC[`${kk}=${v}`]?.[0] ?? v;
   const lp = (r: DongDc) => (r.lechW ? r.lech / r.lechW : null), ctr = (r: DongDc) => (r.h ? r.n / r.h : null), cvr = (r: DongDc) => (r.sn ? r.sv / r.sn : null);
   const duMau = (r: DongDc) => r.n >= 100 && r.chi >= 30 && r.cr >= 5;   // ≥ 5 creative: 2 creative thắng có thể chỉ là may của một đoạn phim (90–120s 28/10)
-  const khoi = useMemo(() => DIEM_CHAM.map((d) => { const rs = bang(d.k).filter((x) => x.v !== '(chưa ghi)'); const ls = rs.map(lp).filter((x): x is number => x != null);
-    return { ...d, rs, lech: ls.length > 1 ? Math.max(...ls) - Math.min(...ls) : 0 }; }), [tinh, du.diemCham]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const coSo = khoi.filter((d) => d.rs.length > 1).sort((a, b) => b.lech - a.lech), mot = khoi.filter((d) => d.rs.length <= 1);
+  // HAI BẪY PHÂN XỬ (28/10/2026): (1) điểm chạm mà trong CÙNG PHIM luôn cùng giá trị (ngôn ngữ) → ± phim luôn 0, vô nghĩa → phân xử bằng ROI;
+  // (2) hai điểm chạm chia creative Y HỆT nhau (giọng CTA George = tiếng Anh, Aria = Tây Ban Nha) → không phải phép thử riêng, ghi "trùng với …"
+  const khoi = useMemo(() => {
+    const crs = [...tinh.so.keys()].filter((cr) => du.diemCham[cr] && (tinh.so.get(cr)?.chi ?? 0) > 0);
+    const ds = DIEM_CHAM.map((d) => { const rs = bang(d.k).filter((x) => x.v !== '(chưa ghi)');
+      const theoPhim = new Map<number, Set<string>>(); for (const cr of crs) { const v = giaTri(cr, d.k); if (v === '(chưa ghi)') continue; const p = tinh.phimCua.get(cr) ?? 0; (theoPhim.get(p) ?? theoPhim.set(p, new Set()).get(p)!).add(v); }
+      const truPhim = [...theoPhim.values()].some((x) => x.size > 1);
+      const diem = (r: DongDc) => (truPhim ? lp(r) : roiOf(r));
+      const ls = rs.map(diem).filter((x): x is number => x != null);
+      return { ...d, rs, truPhim, diem, lech: ls.length > 1 ? Math.max(...ls) - Math.min(...ls) : 0, trung: null as string | null }; });
+    for (const a of ds) { if (a.rs.length < 2) continue;
+      for (const b of ds) { if (b === a || b.rs.length < 2 || b.trung || DIEM_CHAM.indexOf(b) > DIEM_CHAM.indexOf(a)) continue;
+        const cap = new Set<string>(), va = new Set<string>(), vb = new Set<string>(); let n = 0;
+        for (const cr of crs) { const x = giaTri(cr, a.k), y = giaTri(cr, b.k); if (x === '(chưa ghi)' || y === '(chưa ghi)') continue; cap.add(`${x}|${y}`); va.add(x); vb.add(y); n++; }
+        if (n > 10 && cap.size === va.size && cap.size === vb.size) { a.trung = b.ten; break; } } }
+    return ds; }, [tinh, du.diemCham]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const coSo = khoi.filter((d) => d.rs.length > 1 && !d.trung).sort((a, b) => b.lech - a.lech), mot = khoi.filter((d) => d.rs.length <= 1), trung = khoi.filter((d) => d.rs.length > 1 && d.trung);
   const pc = (v: number | null) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`);
   const dLech = (v: number | null, b: number | null, don = ' điểm') => (v == null || b == null ? '' : `${v - b >= 0 ? '+' : ''}${Math.round(v - b)}${don}`);
   const mauD = (v: number | null, b: number | null) => (v == null || b == null ? 'var(--fg-3)' : v - b >= 0 ? '#4ade80' : '#f87171');
   const ketLuan = (d: (typeof khoi)[number]) => {
-    const base = d.rs[0]!; const ung = d.rs.filter(duMau); const best = (ung.length ? ung : d.rs).reduce((a, b) => ((lp(b) ?? -1e9) > (lp(a) ?? -1e9) ? b : a));
+    const base = d.rs[0]!; const ung = d.rs.filter(duMau); const best = (ung.length ? ung : d.rs).reduce((a, b) => ((d.diem(b) ?? -1e9) > (d.diem(a) ?? -1e9) ? b : a));
     const wb = wilson(best.n, best.h), wa = wilson(base.n, base.h); const tachCtr = !!(wb && wa && (wb[0]! > wa[1]! || wb[1]! < wa[0]!));
     // chắc = cả hai bản đủ mẫu VÀ (± phim hơn ≥ 15 điểm, HOẶC ± phim hơn + CTR tách rõ CÙNG CHIỀU) — CTR tách ngược chiều không phải bằng chứng thắng (≥ 120s 28/10: CTR thấp hơn mà bị chấm chắc)
-    const dl = (lp(best) ?? 0) - (lp(base) ?? 0);
-    const chac = best !== base && duMau(best) && duMau(base) && (dl >= 15 || (dl > 0 && tachCtr && (ctr(best) ?? 0) > (ctr(base) ?? 0)));
+    const dl = (d.diem(best) ?? 0) - (d.diem(base) ?? 0);
+    const chac = best !== base && duMau(best) && duMau(base) && (dl >= 15 || (dl >= 5 && tachCtr && (ctr(best) ?? 0) > (ctr(base) ?? 0)));
     const chu = best === base ? `${nhan(d.k, base.v)} (đối chứng) đang tốt nhất`
-      : `${nhan(d.k, best.v)} hơn ${nhan(d.k, base.v)}: ± phim ${dLech(lp(best), 0, '')} so với ${dLech(lp(base), 0, '')} điểm · CTR ${pc(ctr(best))} so với ${pc(ctr(base))} · ROI ${roiOf(best) ?? '—'}% so với ${roiOf(base) ?? '—'}%`;
+      : `${nhan(d.k, best.v)} hơn ${nhan(d.k, base.v)}: ${d.truPhim ? `± phim ${dLech(lp(best), 0, '')} so với ${dLech(lp(base), 0, '')} điểm · ` : ''}ROI ${roiOf(best) ?? '—'}% so với ${roiOf(base) ?? '—'}% · CTR ${pc(ctr(best))} so với ${pc(ctr(base))}`;
     return { best, chu, chac };
   };
   const o: React.CSSProperties = { padding: '6px 8px', borderTop: '1px solid var(--line)', verticalAlign: 'middle', fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' };
@@ -930,6 +944,7 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
         return <div key={d.k} style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
           <div style={{ padding: '8px 12px', background: 'var(--bg-1, #111)' }}>
             <div style={{ fontSize: 13 }}><span style={{ color: 'var(--fg-3, #777)' }}>{d.nhom} · </span><b>{d.ten}</b> <span style={{ color: 'var(--fg-2)' }}>— {MO_TA_DC[d.k] ?? ''}</span></div>
+            {d.truPhim ? null : <div style={{ fontSize: 11, color: 'var(--fg-3, #777)', marginTop: 2 }}>cùng một phim luôn cùng giá trị này → không trừ phim được, phân xử bằng ROI (phim khác nhau nên còn lẫn ảnh hưởng của phim)</div>}
             <div style={{ fontSize: 12.5, marginTop: 3 }}><b style={{ color: kl.chac ? '#4ade80' : '#f59e0b' }}>{kl.chac ? '✓ chắc' : '◌ chưa chắc'}</b> · {kl.chu}
               {kl.chac ? null : <span style={{ color: 'var(--fg-3, #777)' }}> — cần thêm mẫu (mỗi bản ≥ 5 creative, ≥ 100 nhấp, chi ≥ $30) hoặc chênh chưa đủ lớn</span>}</div>
           </div>
@@ -943,8 +958,8 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
                   {nh?.[1] ? <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.35 }}>{nh[1]}</div> : null}</td>
                 <td style={{ ...o, textAlign: 'left' }}><span style={{ display: 'inline-flex', gap: 3 }}>{r.mau.map((m) => nho(m.cr, d.k))}</span></td>
                 <td style={o}>{r.cr}</td><td style={o}>{usd(r.chi)}</td><td style={o}><Roi s={r} /></td>
-                <td style={{ ...o, color: (lp(r) ?? 0) >= 0 ? '#4ade80' : '#f87171' }}>{lp(r) == null ? '—' : dLech(lp(r), 0)}</td>
-                <td style={{ ...o, color: la ? 'var(--fg-3)' : mauD(lp(r), lp(base)) }}>{la ? '—' : dLech(lp(r), lp(base))}</td>
+                <td style={{ ...o, color: (lp(r) ?? 0) >= 0 ? '#4ade80' : '#f87171' }}>{lp(r) == null || !d.truPhim ? '—' : dLech(lp(r), 0)}</td>
+                <td style={{ ...o, color: la ? 'var(--fg-3)' : mauD(d.diem(r), d.diem(base)) }}>{la ? '—' : d.truPhim ? dLech(lp(r), lp(base)) : `ROI ${dLech(roiOf(r), roiOf(base), '%')}`}</td>
                 <td style={o}>{pc(ctr(r))}{(() => { const w = wilson(r.n, r.h); return w ? <span style={{ color: 'var(--fg-3, #777)', fontSize: 10 }}> ({(w[0]! * 100).toFixed(0)}–{(w[1]! * 100).toFixed(0)})</span> : null; })()}</td>
                 <td style={{ ...o, color: la ? 'var(--fg-3)' : mauD(ctr(r), ctr(base)) }}>{la || ctr(r) == null || ctr(base) == null ? '—' : `${ctr(r)! - ctr(base)! >= 0 ? '+' : ''}${((ctr(r)! - ctr(base)!) * 100).toFixed(1)} điểm`}</td>
                 <td style={o}>{pc(cvr(r))}</td>
@@ -952,6 +967,10 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
                 <td style={o}>{duMau(r) ? <span style={{ color: '#4ade80' }}>đủ</span> : <span style={{ color: 'var(--fg-3, #777)' }}>{r.cr < 5 ? `${r.cr} creative` : `${r.n} nhấp`}</span>}</td>
               </tr>; })}</tbody></table></div>
         </div>; })}
+      {trung.length ? <div style={{ border: '1px dashed var(--line)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
+        <b>Trùng với điểm chạm khác — chưa tách được</b> <span style={{ color: 'var(--fg-2)' }}>— hai điểm chạm chia creative y hệt nhau nên không biết cái nào tạo ra chênh lệch; muốn đo phải dựng bản đổi riêng một cái:</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', marginTop: 6 }}>{trung.map((d) => <span key={d.k}><b>{d.ten}</b> <span style={{ color: 'var(--fg-3, #777)' }}>trùng với</span> {d.trung} <span style={{ color: 'var(--fg-3, #777)' }}>({d.rs.map((x) => nhan(d.k, x.v)).join(' / ')})</span></span>)}</div>
+      </div> : null}
       {mot.length ? <div style={{ border: '1px dashed var(--line)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
         <b>Chưa có bản để so</b> <span style={{ color: 'var(--fg-2)' }}>— mọi creative đang dùng cùng một kiểu; muốn đo phải dựng bản thử đổi riêng điểm chạm đó:</span>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', marginTop: 6 }}>{mot.map((d) => <span key={d.k}><span style={{ color: 'var(--fg-3, #777)' }}>{d.ten}:</span> {d.rs[0] ? nhan(d.k, d.rs[0].v) : 'chưa ghi'}</span>)}</div>

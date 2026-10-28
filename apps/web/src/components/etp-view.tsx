@@ -390,12 +390,31 @@ const ba3 = (du: DuLieuEtp, c: CampEtpKho) => { const d1 = new Date(Date.parse(d
 // THẺ LUẬT ĐANG HIỆN của một camp — MỘT nguồn cho ô Luật (Cây / Bảng) và bộ lọc Luật (anh 28/10/2026 "cần có bộ lọc theo các luật này"): lọc theo đúng chữ trên thẻ
 const chipCamp = (du: DuLieuEtp, c: CampEtpKho, bao?: { nhom: string; chu: string }[]) => (du.nguoi.ngoai ? null : tinhLuat({ c, ba: ba3(du, c), bao, ...soThang(du), xet: du.xetLuat?.[c.camp_id] }).chinh);
 const KHONG_LUAT = '__khong';
+// LÝ DO MÁY CHẤM CHẶN — đọc chuỗi etp.cham_cong.chan_boi ("meta.bao_luc 2, afs.cta 4" / "chờ người duyệt (5 điểm: meta.ngon_tu 5)") thành danh sách
+// { tên tiêu chí tiếng Việt (etp.tieu_chi — một nguồn với máy chấm), nhóm, điểm }, điểm thấp (nặng) trước (anh 29/10/2026 "trình bày lại cho dễ hiểu")
+type TieuChi = DuLieuEtp['tieuChi'][number];
+const lyDoChan = (chan: string | null | undefined, tc: TieuChi[]) => {
+  const ds = [...(chan ?? '').matchAll(/(meta|afs)\.(\w+)\s+(\d+)/g)].map(([, nhom, ma, d]) => ({ nhom: nhom!, ten: tc.find((t) => t.nhom === nhom && t.ma === ma)?.ten ?? ma!.replace(/_/g, ' '), diem: Number(d) }));
+  return { ds: ds.sort((a, b) => a.diem - b.diem), cho: /chờ người duyệt/.test(chan ?? '') };
+};
+const chuChan = (chan: string | null | undefined, tc: TieuChi[]) => { const x = lyDoChan(chan, tc); return x.ds.length ? `${x.cho ? 'chờ người duyệt — ' : 'bị chặn: '}${x.ds.map((d) => `${d.ten} ${d.diem}/10 (${d.nhom === 'afs' ? 'AFS' : 'Meta'})`).join(' · ')}` : chan ?? ''; };
+function LyDoChan({ chan, tc }: { chan: string; tc: TieuChi[] }) {
+  const x = lyDoChan(chan, tc);
+  if (!x.ds.length) return <div>{chan}</div>;
+  return <div style={{ margin: '2px 0' }}>
+    <div style={{ color: x.cho ? '#f59e0b' : '#f87171', fontWeight: 600 }}>{x.cho ? 'Chờ người duyệt — điểm sát ngưỡng:' : 'Máy chấm chặn vì:'}</div>
+    {x.ds.map((d, i) => <div key={i} style={{ display: 'flex', gap: 6, paddingLeft: 8 }}><b style={{ color: mauDiem(d.diem), minWidth: 34, fontVariantNumeric: 'tabular-nums' }}>{d.diem}/10</b>
+      <span style={{ color: 'var(--fg-1, #eee)' }}>{d.ten}</span><span style={{ color: 'var(--fg-3, #777)' }}>{d.nhom === 'afs' ? 'AFS' : 'Meta'}</span></div>)}
+    <div style={{ color: 'var(--fg-3, #777)', fontSize: 10, paddingLeft: 8 }}>điểm /10, cao = an toàn · dưới 5 là chặn</div>
+  </div>;
+}
 // THẺ CREATIVE — MỘT khuôn cho thẻ rê chuột (máy tính) và ngăn camp (điện thoại)
-function TheCr({ r, ch, k, khTen }: { r: CreativeEtpKho; ch?: ChamCr; k?: SoTien; khTen?: string }) {
+function TheCr({ r, ch, k, khTen, tc }: { r: CreativeEtpKho; ch?: ChamCr; k?: SoTien; khTen?: string; tc: TieuChi[] }) {
   return <div style={{ fontSize: 11, lineHeight: 1.45, color: 'var(--fg-2)' }}>
     <div style={{ color: 'var(--fg-1, #eee)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><b>cr #{r.creative_id}</b> <BadgeDangNgan d={r.dang} /> · {r.phim ?? '—'}</div>
     <div>đoạn {r.tu != null ? `${Math.round(r.tu)}–${Math.round(r.den ?? 0)}s` : '?'} · {r.lang ?? ''} · {r.cta_dat ? 'CTA đạt' : 'CTA cũ'} · camp chạy {r.chay}/{r.camp}{r.cung_doan > 1 ? ` · cùng đoạn ${r.cung_doan}` : ''}</div>
-    <div>chấm: {ch ? <><span style={{ color: mauDiem(ch.meta) }}>Meta {ch.meta ?? '–'}</span> · <span style={{ color: mauDiem(ch.afs) }}>AFS {ch.afs ?? '–'}</span> · {ch.duyet === false ? 'người Loại' : ch.duyet ? 'người Đạt' : ch.chan_boi ? `chặn: ${ch.chan_boi}` : ch.duoc_len ? 'được lên' : ''}</> : 'chưa chấm'}{r.tu_choi ? <span style={{ color: '#f87171' }}> · Meta từ chối</span> : null}</div>
+    <div>chấm: {ch ? <><span style={{ color: mauDiem(ch.meta) }}>Meta {ch.meta ?? '–'}</span> · <span style={{ color: mauDiem(ch.afs) }}>AFS {ch.afs ?? '–'}</span> · {ch.duyet === false ? 'người Loại' : ch.duyet ? 'người Đạt' : ch.chan_boi ? null : ch.duoc_len ? 'được lên' : ''}</> : 'chưa chấm'}{r.tu_choi ? <span style={{ color: '#f87171' }}> · Meta từ chối</span> : null}</div>
+    {ch && ch.duyet == null && ch.chan_boi ? <LyDoChan chan={ch.chan_boi} tc={tc} /> : null}
     <div>hôm nay <Lai s={r.nay} /> · hôm qua <Lai s={r.qua} />{k && khTen ? <> · {khTen.toLowerCase()} <Lai s={k} /></> : null}</div>
   </div>;
 }
@@ -1234,7 +1253,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
           { key: 'duyet', header: 'Duyệt', align: 'center', width: 120, title: 'creative có tiêu chí 5 điểm — rê vào ảnh / điểm để xem video + lý do, rồi bấm: Đạt = được lên camp mới / clone, camp đang chạy giữ nguyên · Loại = chặn lên + máy tắt mọi camp đang dùng trong ≤ 10 phút', cell: (x) => {
             const d = dangDuyet[x.r.creative_id] ?? x.c?.duyet;
             if (d != null) return <span style={{ color: d ? DAU_MAU.ok : DAU_MAU.loi, fontWeight: 600, whiteSpace: 'nowrap' }}>{d ? '✓ Đạt' : '✕ Loại'}</span>;
-            if (le4(x)) return <span title={`máy chặn + tự tắt: ${x.c?.chan_boi ?? ''}`} style={{ color: DAU_MAU.loi, fontSize: 12, whiteSpace: 'nowrap' }}>chặn ≤ 4</span>;
+            if (le4(x)) return <span title={`máy chặn + tự tắt — ${chuChan(x.c?.chan_boi, du.tieuChi)}`} style={{ color: DAU_MAU.loi, fontSize: 12, whiteSpace: 'nowrap' }}>chặn ≤ 4</span>;
             if (!canXem(x)) return <span style={{ color: DAU_MAU.chua }}>–</span>;
             const nut = { border: '1px solid var(--line)', background: 'transparent', borderRadius: 5, padding: '2px 8px', fontSize: 12, cursor: 'pointer' } as const;
             return <span title={x.c!.cho_duyet ? `5 điểm (đang chặn lên tới khi Đạt): ${x.c!.cho_duyet}` : 'máy kết cần người xem (đang được lên) — Đạt để xác nhận, Loại để chặn + tắt'} style={{ display: 'inline-flex', gap: 4, whiteSpace: 'nowrap' }}>
@@ -1244,7 +1263,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
           { key: 'ket', header: 'Máy', group: 'kq', title: 'kết luận bộ chấm', cell: (x) => (x.c?.ket ? <span style={{ color: KET[x.c.ket]?.[1], fontWeight: 600, whiteSpace: 'nowrap' }}>{KET[x.c.ket]?.[0] ?? x.c.ket}</span> : <span style={{ color: DAU_MAU.chua }}>–</span>), sortValue: (x) => x.muc },
           { key: 'len', header: 'Lên camp', group: 'kq', align: 'center', title: 'cổng lên camp (anh 26/10/2026): chặn khi bất kỳ tiêu chí Meta / AFS ≤ 4 (máy tự tắt camp đang chạy); có tiêu chí 5 → chờ người duyệt',
             cell: (x) => (x.c?.duoc_len == null ? <span style={{ color: DAU_MAU.chua }}>–</span> : x.c.duoc_len ? <span title="được lên camp / clone" style={{ color: DAU_MAU.ok }}>✓</span>
-              : <span title={`bị chặn: ${x.c.chan_boi ?? ''}`} style={{ color: DAU_MAU.loi, fontWeight: 700 }}>✕</span>), sortValue: (x) => (x.c?.duoc_len == null ? 2 : x.c.duoc_len ? 1 : 0) },
+              : <span title={chuChan(x.c.chan_boi, du.tieuChi)} style={{ color: DAU_MAU.loi, fontWeight: 700 }}>✕</span>), sortValue: (x) => (x.c?.duoc_len == null ? 2 : x.c.duoc_len ? 1 : 0) },
           { key: 'meta_that', header: 'Meta thật', group: 'kq', title: 'Meta duyệt hay từ chối', cell: (x) => (x.metaLoi ? <span title={loiMeta(x.r.tu_choi ?? photCr.get(x.r.creative_id) ?? '')} style={{ color: DAU_MAU.loi, fontWeight: 700 }}>✕</span> : x.r.giao.includes('ACTIVE') ? <span title="Meta đã duyệt, đang phát" style={{ color: DAU_MAU.ok }}>✓</span> : <span title="Meta đang duyệt" style={{ color: DAU_MAU.cho }}>…</span>), sortValue: (x) => (x.metaLoi ? 0 : 1) },
           { key: 'nut', header: 'Chấm', group: 'kq', align: 'center', title: 'chấm creative này ngay (Cloudflare nhận trong ~1 phút)', cell: (x) => {
             const h = du.chamHang?.[x.r.creative_id];
@@ -1971,7 +1990,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
               <O ten={`bậc ${b!.bac + 1}/${BAC_NS.length}`}>${c.ngan_sach}</O><O ten="ROI nay"><Roi s={c.nay} /></O><O ten="ROI qua"><Roi s={c.qua} /></O><O ten={khNay ? 'lãi nay' : `lãi ${khNhan.toLowerCase()}`}><Lai s={khNay ? c.nay : ckh(c.camp_id)} /></O></div>
             <BieuNgay ngay={ngay6} sd={ngay6.map((d) => soCamp(c.camp_id, d))} nay={c.nay} />
             <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px' }}>{tl!.chinh ? <div style={{ marginBottom: 6 }}><ChipO chinh={tl!.chinh} /></div> : null}<ThanLuat t={tl!} gon /></div>
-            {r ? <TheCr r={r} ch={ch} k={crKh.get(r.creative_id)} khTen={khNay ? undefined : khNhan} /> : null}
+            {r ? <TheCr r={r} ch={ch} k={crKh.get(r.creative_id)} khTen={khNay ? undefined : khNhan} tc={du.tieuChi} /> : null}
             {r?.video || r?.anh ? <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', maxHeight: '58dvh', background: '#000', borderRadius: 8, overflow: 'hidden' }}>
               {r.video ? <video src={r.video} poster={r.anh ?? undefined} autoPlay muted loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
                 : <img src={r.anh!} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />}</div> : null}
@@ -1983,7 +2002,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
         const r = xem.cr ? crAnh.get(xem.cr) : undefined, ch = xem.cr ? du.cham[xem.cr] : undefined, k = xem.cr ? crKh.get(xem.cr) : undefined, CAO = r ? 600 : 480;
         // dải thông tin TỰ CAO theo chữ (lỗi 27/10/2026: cao cố định 92px, dòng "chặn" xuống hàng làm dòng lãi bị video che) — video lấp phần còn lại
         return <KhungNoi x={xem.x} y={xem.y} rong={270} cao={CAO} noi={noiAnh} style={{ width: 270, height: CAO, overflow: 'hidden', background: '#000', display: 'flex', flexDirection: 'column' }}>
-          {r ? <div style={{ flex: 'none', padding: '6px 30px 6px 8px', background: 'var(--bg-1, #111)' }}><TheCr r={r} ch={ch} k={k} khTen={khNay ? undefined : khNhan} /></div> : null}
+          {r ? <div style={{ flex: 'none', padding: '6px 30px 6px 8px', background: 'var(--bg-1, #111)' }}><TheCr r={r} ch={ch} k={k} khTen={khNay ? undefined : khNhan} tc={du.tieuChi} /></div> : null}
           <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>
             <img src={xem.anh} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />
             {xem.video ? <video src={xem.video} autoPlay muted loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} /> : null}

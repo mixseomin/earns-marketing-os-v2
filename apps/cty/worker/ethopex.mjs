@@ -18,7 +18,8 @@ const THE_LOAI = path.join(REPO, 'apps/xuong-video/scripts/ethopex/the-loai.py')
 const SO_NGAY = path.join(REPO, 'apps/xuong-video/scripts/ethopex/so-ngay.py');
 const TEP = () => path.join(DATA(), 'ethopex-da-bao.json');
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
-const chayPsql = (cau) => new Promise((ok, hong) => execFile('psql', [process.env.DATABASE_URL, '-qtA', '-c', cau], { timeout: 30_000, env: process.env }, (e, out, err) => (e ? hong(new Error((err || e.message).slice(-300))) : ok(out))));
+// câu SQL đi qua STDIN (-f -), không qua tham số dòng lệnh: một tham số tối đa 128 KB (E2BIG) — 29/10/2026 etp.bao gãy khi máy luật đọc đủ mọi trang (anh: "sau này sẽ có 1 tỷ camp")
+const chayPsql = (cau) => new Promise((ok, hong) => { const p = execFile('psql', [process.env.DATABASE_URL, '-qtA', '-v', 'ON_ERROR_STOP=1', '-f', '-'], { timeout: 60_000, maxBuffer: 64 << 20, env: process.env }, (e, out, err) => (e ? hong(new Error((err || e.message).slice(-300))) : ok(out))); p.stdin.end(cau); });
 const chay = (tep, args, giay = 240) => new Promise((ok, hong) => execFile('python3', [tep, ...args], { timeout: giay * 1000, maxBuffer: 8 << 20, env: process.env }, (e, out, err) => (e ? hong(new Error((err || e.message).slice(-300))) : ok(out))));
 const docJ = (f, mac) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return mac; } };
 

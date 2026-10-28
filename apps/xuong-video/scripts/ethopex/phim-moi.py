@@ -101,23 +101,14 @@ def poster(n=60):
     print("→ Claude xem (kèm thể loại máy đoán dưới mã, sai thì ssh box3: the-loai.py --gan <id>=<thể loại>): phim-moi.py poster-ok <id…> · phim-moi.py poster-loai <id…> --ghi '<lý do>'   (mã:", " ".join(str(p["id"]) for p, _ in o) + ")")
 
 def don_mac():
-    """PHIM XONG LÀ XOÁ TRÊN iMAC (23/10/2026: ổ iMac đầy còn 183 MB → ffmpeg chết giữa lô; anh đã duyệt luật này cho box3): xoá tập tải về / tệp ghép
-    của mọi phim KHÔNG còn chờ (poster_ok · da_cat · cat_loi giữ lại) + đoạn cắt của các lô đã lên. Giữ poster, tap.json, bản chữ. Tải lại được từ site."""
-    import glob, shutil
-    tt = khoa(KTT); cho = {k for k, v in tt.items() if v["tt"] in ("poster_ok", "da_cat", "cat_loi")}; N = os.path.join(C, "nguon"); xoa = 0
-    for d in os.listdir(N):
-        p = os.path.join(N, d)
-        if os.path.isdir(p) and d not in cho:
-            for f in os.listdir(p):
-                if f.endswith(".mp4"): xoa += os.path.getsize(os.path.join(p, f)); os.remove(os.path.join(p, f))
+    """PHIM XONG LÀ DỌN KHỎI iMAC (23/10/2026: ổ iMac đầy còn 183 MB → ffmpeg chết giữa lô). Từ 28/10/2026 (anh: "phải lưu lên drive chứ?") KHÔNG XOÁ nữa mà
+    CẤT LÊN DRIVE htuan82 (cat_drive.py, rclone move — xoá bản máy chỉ sau khi Drive nhận đủ): tập tải về / tệp ghép của mọi phim KHÔNG còn chờ
+    (poster_ok · da_cat · cat_loi giữ trên máy) + đoạn cắt của các lô đã lên (lô pm-* còn đoạn chờ lên giữ trên máy). Poster, tap.json, bản chữ ở lại."""
+    sys.path.insert(0, D); import cat_drive as CD
+    tt = khoa(KTT); cho = {k for k, v in tt.items() if v["tt"] in ("poster_ok", "da_cat", "cat_loi")}
     dang = {v.get("ghi") for v in tt.values() if v["tt"] == "da_cat"}   # lô còn đoạn chờ lên
-    for f in glob.glob(os.path.join(C, "ra", "*", "c-*.mp4")) + glob.glob(os.path.join(C, "ra", "*", "p-*", "c-*.mp4")):   # lô cũ + lô qua hàng đợi (p-<phim>/)
-        lo_ = os.path.basename(os.path.dirname(f)); lo_ = os.path.basename(os.path.dirname(os.path.dirname(f))) if lo_.startswith("p-") else lo_
-        # CHỈ dọn lô CỦA quy trình phim mới (pm-*) đã lên — 27/10/2026 xoá nhầm cả lô thay-26101700 (cắt thay creative spy, chưa lên) vì nó không nằm trong sổ phim mới
-        if lo_.startswith("pm-") and lo_ not in dang: xoa += os.path.getsize(f); os.remove(f)
-    trong = shutil.disk_usage(os.path.expanduser("~")).free / 1e9
-    print(f"dọn iMac: {xoa / 1e9:.1f} GB · ổ còn trống {trong:.0f} GB", flush=True)
-    return trong
+    giu = [f"nguon/{k}" for k in cho] + [f"ra/{l}" for l in dang if l]
+    return CD.cat("6h", giu)   # 6 giờ: tệp một luồng khác (sửa CTA, thay creative) vừa cắt chưa kịp lên vẫn ở máy
 
 def cat_hang(phim, ten, so_tho=2):
     """CẮT QUA HÀNG ĐỢI etp.viec (bước 5, 24/10/2026): mỗi phim một việc → thợ apps/etp/tho.py trên iMac (so_tho luồng) — máy khác muốn góp sức chỉ cần
@@ -193,6 +184,7 @@ if __name__ == "__main__":
     a = sys.argv[1:] or ["tinh"]; g = a[a.index("--ghi") + 1] if "--ghi" in a else ""
     ids = [x for x in a[1:] if x.isdigit()]
     if a[0] == "tinh": tinh()
+    elif a[0] == "don": don_mac()   # cất tay lên Drive (giữ phim / lô đang chờ trên máy)
     elif a[0] == "them": them(int(ids[0]) if ids else len(khoa(KDS, "[]")) + 200)
     elif a[0] == "poster": poster(int(ids[0]) if ids else 60)
     elif a[0] == "poster-ok": ghi({i: ("poster_ok", g) for i in ids})

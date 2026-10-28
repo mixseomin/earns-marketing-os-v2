@@ -13,10 +13,11 @@ import importlib.util as _iu2
 _c2 = _iu2.spec_from_file_location("cta_qc", os.path.join(D, "cta_qc.py")); CQ = _iu2.module_from_spec(_c2); _c2.loader.exec_module(CQ); A = os.path.join(D, "..", "..", "assets", "ethopex")
 _s = importlib.util.spec_from_file_location("dl", os.path.join(D, "dung-lo-dai.py")); DL = importlib.util.module_from_spec(_s); _s.loader.exec_module(DL)
 DAI_MIN, DAI_MAX, QUET = 65, 85, 420
-sys.path.insert(0, D); import loi_ky_thuat as LK
+sys.path.insert(0, D); import loi_ky_thuat as LK; import cat_drive as CD
 
 def ghep_mo(tm):
     """ghép các tập còn mở (tập ≤ 20s là bản cụt của tập khoá — DramaBox trả 15s)"""
+    CD.keo_thu_muc(tm, "tap*.mp4")   # tập đã cất lên Drive (cat_drive.py) → kéo về trước khi liệt kê
     taps = sorted(f for f in os.listdir(tm) if f.startswith("tap") and f.endswith(".mp4"))
     taps = [t for t in taps if DL.giay(os.path.join(tm, t)) > 20]
     ds = os.path.join(tm, "ds-cuoi.txt"); ra = os.path.join(tm, "ghep-cuoi.mp4")

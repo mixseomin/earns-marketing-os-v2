@@ -11,7 +11,7 @@ Dùng: len-creative.py <lo.json (lam-lai-cta: content_id, lang, ten, tu, den, fi
   --da-soat: lô đã soát tờ khung TỪNG ĐOẠN trước khi gọi (đợt phim mới). Không có cờ: đoạn chưa soát bị giữ lại (soat_doan.py)."""
 import csv, json, os, subprocess, sys, time, unicodedata, re
 from concurrent.futures import ThreadPoolExecutor
-import sys as _s; _s.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import xuong as XG
+import sys as _s; _s.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import xuong as XG; import cat_drive as CD
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 GOC = "https://img.on.tc/kho/ethopex/thanh-pham/2026-10"
@@ -37,6 +37,7 @@ def main(lo_f, ma, dang):
     # lô 72 đoạn đẩy tuần tự mất ~5 giờ; 8–12 luồng cùng lúc đo được ~2 MB/s (gấp ~20). Đoạn cắt trên box3 ("box3:/đường") chép tại chỗ (23/10/2026).
     from concurrent.futures import ThreadPoolExecutor
     def day(x):
+        if not x["file"].startswith("box3:"): CD.dam_bao(x["file"])   # đoạn đã cất lên Drive (cat_drive.py) → kéo về trước khi đẩy
         lenh = (["ssh", B, f"cp '{x['file'][5:]}' /var/lib/ethopex/creative/{ma}/{x['ten_tep']}"] if x["file"].startswith("box3:")
                 else ["rsync", "-a", "--partial", x["file"], f"{B}:/var/lib/ethopex/creative/{ma}/{x['ten_tep']}"])
         for lan in range(3):   # sshd box3 bỏ bớt kết nối khi mở dồn (MaxStartups) — 27/10/2026 một luồng rớt làm gãy cả lô → thử lại
@@ -131,6 +132,10 @@ EOF'""", timeout=3600)
         f = f"{ra}/review-cta-{k // 16 + 1}.jpg"; subprocess.run(["ffmpeg", "-v", "error", "-y"] + sum([["-i", p] for p in t], []) + ["-filter_complex", fc, f], check=True)
         print("TỜ REVIEW (iMac):", f)
     for o in out: print(o["ok"], o["creative_id"], o["camp_cu"], o["ten"][:70], o["loi"] or "")
+    # CẤT LÊN DRIVE (anh 28/10/2026 "phải lưu lên drive chứ? Sao cứ lưu hết ở iMac"): lô vừa lên xong = sự kiện cất — mọi tệp video / tiếng đã nằm yên ≥ 24 giờ
+    # trong ~/.cache/ethopex chuyển sang Drive htuan82 (gdrive:ethopex-cache), giữ đường dẫn; cần lại thì dam_bao / keo_thu_muc tự kéo về. Mọi luồng (phim mới, sửa CTA,
+    # thay creative bị từ chối, đợt phim mới) đều lên qua đây → một chỗ cất, không dựng vòng chạy theo giờ.
+    CD.cat("24h")
 
 if __name__ == "__main__":
     main(*sys.argv[1:4])

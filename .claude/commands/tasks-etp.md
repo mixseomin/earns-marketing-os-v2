@@ -29,6 +29,11 @@ Nhiều phiên cùng sửa `etp-view.tsx` / `luat-ethopex.py` → đọc lại t
 
 ## Luật riêng etp (Ethopex — tiền QC thật)
 
+- **Sửa xong card nào = thêm điều kiện cho card đó vào `/Users/htuan/Me/GitHub/earns-marketing-os-v2/scripts/check-etp-gop-y.mjs`** (mot / co / cam, ghi số card),
+  chạy `node scripts/check-etp-gop-y.mjs --tu-kiem && node scripts/check-etp-gop-y.mjs` rồi mới submit. CI + deploy.sh chạy tệp này: bản nào đưa lại dạng cũ
+  thì không lên. Anh 29/10/2026 sau #1476 (đổi Cây sang DataTable chép lại ô creative cũ): "lần sau tao không để ý mày lại khôi phục cái cũ thì sao?".
+  Viết lại / chuyển khối giao diện thì DÙNG LẠI hàm đang có (oCr, BacCamp, ChipLuat…), không chép tay.
+
 - **Cấm tự lên / bật / tăng ngân sách camp** khi góp ý không ra lệnh rõ; góp ý về luật máy = sửa luật, không tay bấm camp.
 - Không đụng camp ROAS ★ trừ khi card nói đích danh. Không chấm lại hàng loạt creative khi anh chưa cho.
 - Chụp kiểm giao diện: phiên tạm `auth_sessions` + đường hầm `ssh -f -N -L 13821:127.0.0.1:3821 root@167.233.241.16` + Playwright cục bộ

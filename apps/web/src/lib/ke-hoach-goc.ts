@@ -50,8 +50,10 @@ async function dangCoBai(d: NonNullable<ReturnType<typeof getDb>>, ma: string): 
 export async function sinhTuan(tuan: string): Promise<number> {
   const d = getDb(); if (!d) return 0;
   const may = (await d.execute(sql`SELECT m.ma, m.goc_sp, coalesce(m.ngach, '{}') AS ngach, array(SELECT t.dang FROM dang_tat t WHERE t.may = m.ma) AS tat,
+      -- nơi đăng: đã đăng 14 ngày qua ∪ nơi máy KHAI trong xv_may.dang (28/10/2026: máy mới militarycalc chưa đăng bài nào → 0 ô kế hoạch → không bao giờ có bài)
       array(SELECT DISTINCT e.key FROM xv_may_video v CROSS JOIN LATERAL jsonb_each(v.da_dang) e
-      WHERE v.may_id = m.id AND e.key NOT LIKE '%:%' AND e.value->>'url' IS NOT NULL AND e.value->>'ngay' >= to_char(${tuan}::date - 14, 'YYYY-MM-DD')) AS nen
+      WHERE v.may_id = m.id AND e.key NOT LIKE '%:%' AND e.value->>'url' IS NOT NULL AND e.value->>'ngay' >= to_char(${tuan}::date - 14, 'YYYY-MM-DD')
+      UNION SELECT n->>'nen' FROM jsonb_array_elements(m.dang) n WHERE n->>'nen' NOT LIKE '%:%') AS nen
     FROM xv_may m WHERE m.chay AND m.goc_sp IS NOT NULL AND cardinality(m.goc_sp) > 0
       AND NOT EXISTS (SELECT 1 FROM ke_hoach_goc k WHERE k.may = m.ma AND k.tuan = ${tuan}::date)`)) as unknown as { ma: string; goc_sp: number[]; ngach: string[]; tat: string[]; nen: string[] }[];
   const so = Math.round(Date.parse(`${tuan}T00:00:00Z`) / (7 * 864e5));   // số thứ tự tuần → dịch góc mỗi tuần

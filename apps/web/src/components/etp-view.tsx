@@ -305,6 +305,8 @@ function BangXet({ xet }: { xet: XetLuat[] }) {
   const ds = [...xet].sort((a, b) => thu[a.ket] - thu[b.ket]);
   const o: React.CSSProperties = { padding: '3px 6px', borderTop: '1px solid var(--line)', verticalAlign: 'top' };
   return (
+    // khung cuộn ngang: ngăn điện thoại hẹp hơn bảng (cột điều kiện không gãy dòng) — trước bảng tràn mép phải, mất cột Giá trị / Ngưỡng
+    <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
     <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>
       <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}><th style={o}>Luật</th><th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>
       <tbody>{ds.map((l) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);
@@ -316,6 +318,7 @@ function BangXet({ xet }: { xet: XetLuat[] }) {
           <td style={{ ...o, color: ok ? '#4ade80' : '#f87171', fontWeight: 700 }}>{ok ? '✓' : '✗'}</td></tr>)
           : <tr key={l.ma}>{dau}<td colSpan={4} style={{ ...o, color: 'var(--fg-2)' }}>{l.mo_ta}</td></tr>; })}</tbody>
     </table>
+    </div>
   );
 }
 function ThanLuat({ t }: { t: ReturnType<typeof tinhLuat> }) {

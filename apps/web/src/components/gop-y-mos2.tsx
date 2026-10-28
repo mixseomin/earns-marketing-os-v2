@@ -22,7 +22,8 @@ const Khung: KhungHom = ({ onClose, tieuDe, dau, children }) => (
 );
 
 /** hom = hòm nhận góp ý: 'mos2' (mặc định) · 'city' (city.on.tc — card về plays project city, xử bằng /tasks-city). */
-export function GopYMos2({ hom = 'mos2' }: { hom?: 'mos2' | 'city' }) {
+/** tren = nút ở góc phải TRÊN (etp.on.tc: hàng tiêu đề trống, bảng camp chiếm hết mép phải + dòng tổng dính chân — anh 29/10/2026 "nút này để chỗ khác") */
+export function GopYMos2({ hom = 'mos2', tren = false }: { hom?: 'mos2' | 'city'; tren?: boolean }) {
   const hd: HanhDongGopY = {
     guiGopY: (i) => guiGopYMos2({ ...i, hom }),
     dsGopYCuaToi: () => dsGopYCuaToi(hom),
@@ -34,5 +35,5 @@ export function GopYMos2({ hom = 'mos2' }: { hom?: 'mos2' | 'city' }) {
   // City: trái cụm nút điều hướng, nổi trên cảnh 3D. (mos2 cũ: right 60 tránh nút ⚙ Tweaks góc phải-dưới — 05/10/2026)
   return <HomGopY ten={hom === 'city' ? 'Thành phố' : 'MOS2'} khoa={hom === 'city' ? 'city' : 'mos2'} hd={hd} Khung={Khung} chonNgan='[data-comp="ui.Drawer"]' chonLoi="[data-loi]"
     // mos2: tab nhỏ ở MÉP PHẢI GIỮA MÀN (anh 29/10/2026 etp "nút này để chỗ khác") — góc phải-dưới đè dòng tổng dính chân của mọi DataTable (+ nút ⚙ Tweaks)
-    nutStyle={hom === 'city' ? { right: 112, zIndex: 10000 } : { right: 0, bottom: 'auto', top: '50%', transform: 'translateY(-50%)', minWidth: 30, width: 30, height: 44, borderRadius: '10px 0 0 10px', borderRight: 'none', fontSize: 15 }} />;
+    nutStyle={hom === 'city' ? { right: 112, zIndex: 10000 } : tren ? { right: 16, top: 12, bottom: 'auto', minWidth: 32, height: 32, fontSize: 14 } : { right: 0, bottom: 'auto', top: '50%', transform: 'translateY(-50%)', minWidth: 30, width: 30, height: 44, borderRadius: '10px 0 0 10px', borderRight: 'none', fontSize: 15 }} />;
 }

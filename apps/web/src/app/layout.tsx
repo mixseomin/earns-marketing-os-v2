@@ -81,7 +81,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <RootProviders>
             {children}
             {/* Hòm góp ý của chính MOS2 — admin mới thấy (kênh của người chủ; nhân sự có 🚩 blocker). city.on.tc: hòm riêng 'city' (/tasks-city). */}
-            {u?.role === 'admin' && <GopYMos2 hom={host === 'city.on.tc' ? 'city' : 'mos2'} />}
+            {u?.role === 'admin' && <GopYMos2 hom={host === 'city.on.tc' ? 'city' : 'mos2'} tren={host === 'etp.on.tc'} />}
           </RootProviders>
         </TablePrefsProvider>
       </body>

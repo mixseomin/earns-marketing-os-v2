@@ -63,6 +63,12 @@ def main():
         ghi("camp_ngoai", [{"camp_id": c["id"], "ten": re.sub(r"^\d+:\s*", "", c.get("name", "")), "ad_account_id": c.get("ad_account_id"), "trang_thai": c.get("state"),
                             "ngan_sach": c.get("budget_daily"), "tao": c.get("created_at"), "cap_nhat_etp": c.get("updated_at")} for c in ngoai], ["camp_id"],
             {"camp_id": "int", "ten": "text", "ad_account_id": "bigint", "trang_thai": "text", "ngan_sach": "numeric", "tao": "timestamptz", "cap_nhat_etp": "timestamptz"})
+        # tài khoản → người dùng (report theo người trên etp.on.tc, anh 28/10/2026)
+        try:
+            ghi("tai_khoan", [{"ad_account_id": int(x["id"]), "nguoi_id": x.get("used_by_user_id"), "nguoi": x.get("used_by_user_name") or x.get("user_name") or None, "nha": int(x["id"]) in EA.TK}
+                              for x in (EA._goi("/api/v1/ad-accounts?page_size=500").get("data") or [])], ["ad_account_id"],
+                {"ad_account_id": "bigint", "nguoi_id": "int", "nguoi": "text", "nha": "boolean"})
+        except Exception as e: loi.append(f"tai_khoan: {e}")
         # TRẠNG THÁI + NGÂN SÁCH của MỌI camp từ danh sách mỗi lượt (26/10/2026: lệnh bật / tắt / đổi ngân sách qua API control KHÔNG đổi updated_at → camp không
         # vào nhánh "đổi" bên dưới, kho giữ ACTIVE cũ cho camp đã tắt; lượt lịch giờ 12h sẽ ghi camp vừa tắt theo T7 vào sổ lịch rồi 20h bật lại)
         _tt = json.dumps([{"id": c["id"], "tt": c.get("state"), "ns": c.get("budget_daily")} for c in ds])
@@ -114,11 +120,17 @@ def main():
     try:
         tu = "2026-10-19" if day_du or q("select count(*) from etp.so_ngay") == "0" else (nay - dt.timedelta(days=3)).isoformat()
         g, gn = {}, {}
-        for x in bc(["campaign_name", "date", "cost", "revenue"], ["campaign_name", "date"], tu, nay.isoformat()):
-            k = (x["campaign_id"], str(x["report_date"])[:10]); e = (g if str(x.get("external_account_id") or "") in EA.EXT else gn).setdefault(k, [0.0, 0.0])
+        phim_ngoai = {}   # camp ngoài → (content_id, tên phim) cho cây phim theo người
+        for x in bc(["campaign_name", "content_name", "date", "cost", "revenue"], ["campaign_name", "content_name", "date"], tu, nay.isoformat()):
+            nha = str(x.get("external_account_id") or "") in EA.EXT
+            if not nha and x.get("content_group_id"): phim_ngoai[x["campaign_id"]] = (x["content_group_id"], x.get("content_group_name"))
+            k = (x["campaign_id"], str(x["report_date"])[:10]); e = (g if nha else gn).setdefault(k, [0.0, 0.0])
             e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
         kq["so_dong_ngay"] = ghi("so_ngay", [{"camp_id": c, "ngay": d, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, d), v in g.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "chi": "numeric", "thu": "numeric"})
         ghi("so_ngay_ngoai", [{"camp_id": c, "ngay": d, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, d), v in gn.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "chi": "numeric", "thu": "numeric"})
+        if phim_ngoai:
+            _pn = json.dumps([{"id": c, "ct": p[0], "ten": p[1]} for c, p in phim_ngoai.items()], ensure_ascii=False).replace("$J$", "")
+            q(f"update etp.camp_ngoai n set content_id = x.ct, phim_ten = x.ten from jsonb_to_recordset($J${_pn}$J$::jsonb) as x(id int, ct int, ten text) where n.camp_id = x.id")
         # ngân sách + trạng thái của camp cho NGÀY HÔM NAY (giá trị lượt cuối ngày thắng) — lịch sử cho chạy thử luật (bước 3c)
         # + ns_max / bat: ngân sách CAO NHẤT trong ngày lúc camp bật, camp có lúc nào bật (migration 0340 — cột ngân sách theo ngày trên etp.on.tc)
         q(f"insert into etp.so_ngay (camp_id, ngay, ngan_sach, trang_thai, ns_max, bat) select camp_id, '{nay.isoformat()}', ngan_sach, trang_thai, "

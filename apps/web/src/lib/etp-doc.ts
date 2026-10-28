@@ -33,6 +33,9 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   /** số camp × ngày (lọc khoảng thời gian ở client) · đếm theo ngày: camp mới lên, creative mới, camp tắt · thông tin bộ tài khoản (khối lục giác) */
   soNgay: { c: number; d: string; chi: number; thu: number }[]; demNgay: Record<string, { camp_moi: number; cr_moi: number; tat: number }>;
   boTk: Record<string, { ten: string; tk: string; page: string; tk_id: number; page_id: number; chi_phim_moi?: boolean; mui_gio?: string }>;
+  /** REPORT THEO NGƯỜI (anh 28/10/2026): người dùng Ethopex của từng tài khoản QC (etp.tai_khoan) · người đang xem (?ng=) · người nhà (tài khoản bộ 1/2/3 — luật chỉ áp ở đây).
+   *  Xem người khác: camp + số từ etp.camp_ngoai / so_ngay_ngoai (chỉ xem, máy luật không đụng) */
+  nguoi: { ds: { id: number; ten: string; tk: number; nha: boolean }[]; dang: number | null; nha: number | null; ngoai: boolean };
   /** LỊCH SỬ BẬC NGÂN SÁCH từng camp (anh 27/10/2026 "show danh sách thay đổi bậc khi hover vào, ghi chi tiết dạng timeline"): tạo / nhân bản / thang / ROAS / sang bộ / tăng / giảm đã làm được (ok), 30 ngày */
   /** XÉT LUẬT TỪNG CAMP của máy luật (etp.xet_luat, luat-ethopex.py --json, anh 28/10/2026): luật → điều kiện [tên, giá trị, ngưỡng, đạt], kết đạt/gần/xa/khong_ap, máy có xếp */
   xetLuat: Record<number, XetLuat[]>; xetLuc: string | null;
@@ -90,19 +93,31 @@ function gonLop(v: unknown): ChamCr['lop'] {
 }
 const st = (c: unknown, t: unknown): SoTien => ({ chi: n(c), thu: n(t) });
 
-export async function docEtp(): Promise<DuLieuEtp> {
+export async function docEtp(ng?: string): Promise<DuLieuEtp> {
   const db = getDb()!;
   const nay = new Date().toISOString().slice(0, 10), qua = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10), dauThang = `${nay.slice(0, 8)}01`;
   const run = async <T,>(q: ReturnType<typeof sql>) => (await db.execute(q)) as unknown as T[];
+  // NGƯỜI ĐANG XEM: mặc định người nhà; ?ng=<id người khác> → mọi số camp / ngày đọc từ bảng *_ngoai của các tài khoản người đó
+  const nguoiDs = (await run<{ id: number; ten: string; tk: string; nha: boolean }>(sql`select nguoi_id id, max(nguoi) ten, count(*) tk, bool_or(nha) nha from etp.tai_khoan
+      where nguoi_id is not null group by nguoi_id order by bool_or(nha) desc, max(nguoi)`).catch(() => [])).map((r) => ({ id: n(r.id), ten: String(r.ten ?? `#${r.id}`), tk: n(r.tk), nha: !!r.nha }));
+  const nhaId = nguoiDs.find((x) => x.nha)?.id ?? null;
+  const dangId = Number(ng) > 0 && nguoiDs.some((x) => x.id === Number(ng)) ? Number(ng) : nhaId;
+  const ngoai = dangId != null && dangId !== nhaId;
+  // bảng số theo ngày + bảng camp của người đang xem (alias giữ tên so_ngay / c để các câu dưới dùng chung)
+  const SN = ngoai ? sql`(select x.* from etp.so_ngay_ngoai x join etp.camp_ngoai k using (camp_id) join etp.tai_khoan t on t.ad_account_id = k.ad_account_id where t.nguoi_id = ${dangId}) so_ngay` : sql`etp.so_ngay`;
   // số mỗi camp: tháng / hôm qua / hôm nay
   const soCamp = sql`select camp_id,
       sum(chi) filter (where ngay >= ${dauThang}::date) tc, sum(thu) filter (where ngay >= ${dauThang}::date) tt,
       sum(chi) filter (where ngay = ${qua}::date) qc, sum(thu) filter (where ngay = ${qua}::date) qt,
       sum(chi) filter (where ngay = ${nay}::date) nc, sum(thu) filter (where ngay = ${nay}::date) nt, min(ngay) filter (where chi > 0) ngay_dau
-    from etp.so_ngay group by camp_id`;
+    from ${SN} group by camp_id`;
   const [ngay, camps, cauHinh, nhatKy, xetR, lsBacR, canhBao, dongBo, tl] = await Promise.all([   // thứ tự PHẢI khớp các câu bên dưới (xet_luat trước lịch sử bậc)
-    run<{ ngay: string; chi: string; thu: string; camp: string; ns: string | null }>(sql`select ngay::text ngay, sum(chi) chi, sum(thu) thu, count(*) filter (where chi > 0) camp, sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0) ns from etp.so_ngay group by ngay having sum(chi) > 0 or sum(thu) > 0 order by ngay`),
-    run<Record<string, unknown>>(sql`with s as (${soCamp}),
+    run<{ ngay: string; chi: string; thu: string; camp: string; ns: string | null }>(sql`select ngay::text ngay, sum(chi) chi, sum(thu) thu, count(*) filter (where chi > 0) camp, ${ngoai ? sql`null::numeric` : sql`sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0)`} ns from ${SN} group by ngay having sum(chi) > 0 or sum(thu) > 0 order by ngay`),
+    ngoai ? run<Record<string, unknown>>(sql`with s as (${soCamp})
+      select c.camp_id, c.ten, null bo, c.trang_thai, null giao, c.ngan_sach, c.creative_id, c.content_id, null goc, null lich, c.tao::text tao, null loi, null roas, null chien_luoc,
+        coalesce(p.ten, c.phim_ten) phim, p.the_loai, null dang, null doan, 0 cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, false lich_tat
+      from etp.camp_ngoai c join etp.tai_khoan t on t.ad_account_id = c.ad_account_id left join etp.phim p on p.content_id = c.content_id left join s on s.camp_id = c.camp_id
+      where t.nguoi_id = ${dangId} and c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`) : run<Record<string, unknown>>(sql`with s as (${soCamp}),
         cd as (select cr.doan, count(*) filter (where c.trang_thai = 'ACTIVE') chay from etp.camp c join etp.creative cr on cr.creative_id = c.creative_id where cr.doan is not null group by cr.doan)
       select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.ngan_sach, c.creative_id, c.content_id, c.goc, c.lich::text lich, c.tao::text tao, c.loi, c.roas, c.chien_luoc,
         p.ten phim, p.the_loai, cr.dang, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat
@@ -155,7 +170,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
   }
   const phims = [...phMap.values()].map(({ _cr, ...p }) => ({ ...p, creative: _cr.size }));
   const [soNgay, tatNgay, boRow] = await Promise.all([
-    run<{ c: number; d: string; chi: string; thu: string }>(sql`select camp_id c, ngay::text d, chi, thu from etp.so_ngay where chi > 0 or thu > 0`),
+    run<{ c: number; d: string; chi: string; thu: string }>(sql`select camp_id c, ngay::text d, chi, thu from ${SN} where chi > 0 or thu > 0`),
     run<{ d: string; n: string }>(sql`select (luc at time zone 'UTC')::date::text d, count(distinct camp_id) n from etp.nhat_ky where viec = 'tat' and ok group by 1`),
     run<{ gia_tri: Record<string, { ten: string; tk: number; ext: string; page: number; chi_phim_moi?: boolean; mui_gio?: string }> | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_bo_tk'`),
   ]);
@@ -223,7 +238,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
       tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) ?? null, anh: (i.anh as string) ?? null, camp: 0, chay: 0, cung_doan: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 },
       ngay_dau: null, s18: null, sd: null, sd_cho: false, giao: [] });
   }
-  return { luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, creatives: [...crMap.values()], phims,
+  return { nguoi: { ds: nguoiDs, dang: dangId, nha: nhaId, ngoai }, luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, creatives: [...crMap.values()], phims,
     cauHinh, nhatKy, xetLuat: Object.fromEntries(xetR.map((r) => [Number(r.camp_id), r.xet])), xetLuc: xetR.reduce<string | null>((m, r) => (!m || r.luc > m ? r.luc : m), null), lsBac: lsBacR.reduce<DuLieuEtp['lsBac']>((m, r) => { (m[r.camp_id] ??= []).push({ luc: r.luc, viec: r.viec, truoc: r.truoc, sau: r.sau, luat: r.luat, ai: r.ai }); return m; }, {}), canhBao, dongBo: dongBo[0] ?? null, theLoai: tl[0]?.gia_tri?.the_loai ?? {}, soNgay: soNgay.map((r) => ({ c: n(r.c), d: r.d, chi: n(r.chi), thu: n(r.thu) })), demNgay, boTk,
     taiNguyen, mayTho: mayTho.map((r) => ({ may: String(r.may), xong: n(r.xong), loi: n(r.loi), dang: n(r.dang), cuoi: (r.cuoi as string) ?? null, giay_tb: r.giay_tb == null ? null : n(r.giay_tb) })),
     hangDoi: { cho: n(hd[0]?.cho), dang: n(hd[0]?.dang), xong: n(hd[0]?.xong), loi: n(hd[0]?.loi) },

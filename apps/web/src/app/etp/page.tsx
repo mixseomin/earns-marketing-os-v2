@@ -18,5 +18,5 @@ export default async function EtpPage({ searchParams }: { searchParams: Promise<
   if (!me) redirect(`/login?next=${encodeURIComponent(`/etp?${new URLSearchParams(Object.entries(q).filter(([, v]) => typeof v === 'string') as [string, string][]).toString()}`)}`);
   if (me.role !== 'admin') redirect('/');
   const mot = (k: string) => (typeof q[k] === 'string' ? (q[k] as string) : undefined);
-  return <EtpView du={await docEtp()} dauVao={{ t: mot('t'), v: mot('v'), l: mot('l'), p: mot('p'), lu: mot('lu'), d: mot('d'), b: mot('b'), ll: mot('ll'), ngan: mot('ngan') }} />;
+  return <EtpView du={await docEtp(mot('ng'))} dauVao={{ t: mot('t'), v: mot('v'), l: mot('l'), p: mot('p'), lu: mot('lu'), d: mot('d'), b: mot('b'), ll: mot('ll'), ngan: mot('ngan') }} />;
 }

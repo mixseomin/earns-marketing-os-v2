@@ -164,20 +164,19 @@ function TongPhim({ du, ckh, anh, tl, khTen, chon, onChon }: { du: DuLieuEtp; ck
 
 // DẢI TÓM TẮT LUẬT trên bảng Camp (anh 27/10/2026 "ko thấy" — cột Luật trống ở các camp mới đầu bảng): số camp đang chạm / sắp chạm từng luật,
 // bấm = lọc đúng luật đó (bỏ lọc Đang chạy để thấy cả camp chờ giờ / tạm dừng lịch), bấm lại = bỏ lọc
-function DaiLuat({ du, baoCampBang, chon, onChon }: { du: DuLieuEtp; baoCampBang: Map<number, { nhom: string; chu: string }[]>; chon: string; onChon: (t: string) => void }) {
-  const dem = new Map<string, number>();
-  for (const c of du.camps) for (const t of new Set((baoCampBang.get(c.camp_id) ?? []).filter((b) => LUAT_NHAN[b.nhom]).map((b) => LUAT_NHAN[b.nhom]![1]))) dem.set(t, (dem.get(t) ?? 0) + 1);
-  const ds = Object.values(LUAT_NHAN).filter((x, i, a) => a.findIndex((y) => y[1] === x[1]) === i && dem.get(x[1]));
-  if (!ds.length) return <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px' }}>Máy luật nhịp này không xếp camp nào.</div>;
-  const nut = ([kh, ten, mau, loai]: [string, string, string, 'dang' | 'gan']) => (
-    <button key={ten} type="button" onClick={() => onChon(chon === ten ? '' : ten)} title={chon === ten ? 'bỏ lọc' : `lọc camp ${loai === 'gan' ? 'sắp chạm' : 'đang chạm'} luật ${ten}`}
+function DaiLuat({ opts, chon, onChon }: { opts: { value: string; label: string; nhom: string; dem: number }[]; chon: string; onChon: (t: string) => void }) {
+  const ds = opts.filter((o) => o.value !== KHONG_LUAT);
+  if (!ds.length) return <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px' }}>Không camp nào chạm luật.</div>;
+  const mauCua = (t: string) => Object.values(XET_CHIP).find((x) => x[0] === t)?.[1] ?? Object.values(LUAT_NHAN).find((x) => `${x[0]} ${x[1]}` === t)?.[2] ?? '#94a3b8';
+  const nut = (o: (typeof ds)[number]) => { const mau = mauCua(o.value), gan = o.nhom !== 'Đang chạm';
+    return <button key={o.value} type="button" onClick={() => onChon(chon === o.value ? '' : o.value)} title={chon === o.value ? 'bỏ lọc' : `lọc camp ${gan ? 'sắp chạm' : 'đang chạm'} ${o.label}`}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, padding: '3px 9px', borderRadius: 14, cursor: 'pointer', color: 'inherit',
-        border: `1px ${loai === 'gan' ? 'dashed' : 'solid'} ${mau}`, background: chon === ten ? `${mau}33` : 'transparent', fontWeight: chon === ten ? 600 : 400 }}>
-      <b style={{ color: mau, fontVariantNumeric: 'tabular-nums' }}>{dem.get(ten)}</b><span style={{ color: mau }}>{kh}</span>{ten}</button>);
+        border: `1px ${gan ? 'dashed' : 'solid'} ${mau}`, background: chon === o.value ? `${mau}33` : 'transparent', fontWeight: chon === o.value ? 600 : 400 }}>
+      <b style={{ color: mau, fontVariantNumeric: 'tabular-nums' }}>{o.dem}</b><span style={{ color: mau }}>{o.label}</span></button>; };
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', margin: '0 0 10px' }}>
-      <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>Đang chạm luật</span>{ds.filter((x) => x[3] === 'dang').map(nut)}
-      {ds.some((x) => x[3] === 'gan') ? <><span style={{ fontSize: 12, color: 'var(--fg-2)', marginLeft: 8 }}>Sắp chạm</span>{ds.filter((x) => x[3] === 'gan').map(nut)}</> : null}
+      <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>Đang chạm luật</span>{ds.filter((o) => o.nhom === 'Đang chạm').map(nut)}
+      {ds.some((o) => o.nhom !== 'Đang chạm') ? <><span style={{ fontSize: 12, color: 'var(--fg-2)', marginLeft: 8 }}>Sắp chạm</span>{ds.filter((o) => o.nhom !== 'Đang chạm').map(nut)}</> : null}
       {chon ? <button type="button" onClick={() => onChon('')} style={{ fontSize: 12, border: 'none', background: 'transparent', color: 'var(--fg-2)', cursor: 'pointer', textDecoration: 'underline' }}>bỏ lọc</button> : null}
     </div>);
 }
@@ -369,6 +368,9 @@ const soThang = (du: DuLieuEtp) => ({ boThang: ((du.cauHinh.find((k) => k.khoa =
 // số "3 ngày gần" cho luật giảm bậc sáng: 2 ngày trọn gần nhất + hôm nay (cùng cửa sổ ô chip trên Cây)
 const ba3 = (du: DuLieuEtp, c: CampEtpKho) => { const d1 = new Date(Date.parse(du.nay) - 86_400_000).toISOString().slice(0, 10), d2 = new Date(Date.parse(du.nay) - 2 * 86_400_000).toISOString().slice(0, 10);
   return du.soNgay.filter((r) => r.c === c.camp_id && (r.d === d1 || r.d === d2)).reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: c.nay.chi, thu: c.nay.thu }); };
+// THẺ LUẬT ĐANG HIỆN của một camp — MỘT nguồn cho ô Luật (Cây / Bảng) và bộ lọc Luật (anh 28/10/2026 "cần có bộ lọc theo các luật này"): lọc theo đúng chữ trên thẻ
+const chipCamp = (du: DuLieuEtp, c: CampEtpKho, bao?: { nhom: string; chu: string }[]) => (du.nguoi.ngoai ? null : tinhLuat({ c, ba: ba3(du, c), bao, ...soThang(du), xet: du.xetLuat?.[c.camp_id] }).chinh);
+const KHONG_LUAT = '__khong';
 // THẺ CREATIVE — MỘT khuôn cho thẻ rê chuột (máy tính) và ngăn camp (điện thoại)
 function TheCr({ r, ch, k, khTen }: { r: CreativeEtpKho; ch?: ChamCr; k?: SoTien; khTen?: string }) {
   return <div style={{ fontSize: 11, lineHeight: 1.45, color: 'var(--fg-2)' }}>
@@ -1360,8 +1362,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
           <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">{ds.length ? '▸' : ''}</span> <Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} /></span>
           <span data-cot="tuoi" data-cot-can="phai" title={c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : ''} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tuoi(c) == null ? '' : <>{tuoiChu(tuoi(c))} <span style={{ fontSize: 10 }}>ngày</span></>}</span>
           <span data-cot="ngan-sach"><BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} /></span>
-          <span data-cot="luat" style={{ minWidth: 0 }}>{du.nguoi.ngoai ? <span title="camp người khác — chỉ xem, luật không áp" style={{ color: 'var(--fg-3, #777)' }}>—</span> : null}{du.nguoi.ngoai ? null : <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]}
-            ba={ngay.slice(-2).reduce((a, d) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: c.nay.chi, thu: c.nay.thu })} />}</span>
+          <span data-cot="luat" style={{ minWidth: 0 }}>{du.nguoi.ngoai ? <span title="camp người khác — chỉ xem, luật không áp" style={{ color: 'var(--fg-3, #777)' }}>—</span> : null}{du.nguoi.ngoai ? null : <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} />}</span>
           <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? (e) => moCr(c.creative_id!, e) : undefined} onMouseLeave={dongCr} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
             {cr?.anh ? <img src={cr.anh} alt="" style={{ width: 14, height: 24, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: 14, height: 24, background: 'var(--line)' }} />}
             cr #{c.creative_id ?? '?'} · {c.doan?.split(':')[1] ?? ''}s</span>
@@ -1606,6 +1607,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   const campRoas = useMemo(() => du.camps.filter((c) => laRoas(c.ten)), [du.camps]);
   const roasTong = useMemo(() => new Map(du.roasChay.map((r) => [r.camp_id, r])), [du.roasChay]);
   const baoCampBang = useMemo(() => { const m = new Map<number, { nhom: string; chu: string }[]>(); for (const b of du.bao) m.set(b.camp_id, [...(m.get(b.camp_id) ?? []), b]); return m; }, [du.bao]);
+  const chipMap = useMemo(() => new Map(du.camps.map((c) => [c.camp_id, chipCamp(du, c, baoCampBang.get(c.camp_id))])), [du, baoCampBang]);
+  const hopLuat = useCallback((c: CampEtpKho) => { if (!luatLoc) return true; const ch = chipMap.get(c.camp_id); return luatLoc === KHONG_LUAT ? !ch : ch?.chip === luatLoc; }, [luatLoc, chipMap]);
   // gần tăng / giảm / tắt (anh 26/10/2026: "muốn lọc để xem các camp gần tăng/giảm") — chỉ camp đang chạy thật, gồm cả camp máy luật đã đánh dấu cùng hướng
   const ganMap = useMemo(() => new Map(du.camps.filter(dangChay).map((c) => [c.camp_id, ganCamp(c, baoCampBang.get(c.camp_id))])), [du.camps, baoCampBang]);
   const demGan = (k: 'tang' | 'giam' | 'tat') => [...ganMap.values()].filter((g) => g[k]).length;
@@ -1627,8 +1630,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   const camps = useMemo(() => du.camps.filter((c) => loc === 'all' || (loc === 'chay' ? dangChay(c) : loc === 'cho' ? choGio(c) : loc === 'tat' ? c.trang_thai !== 'ACTIVE' : loc === 'roas' ? roasDat.has(c.camp_id)
     : loc === 'luat' ? (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')
     : loc === 'ganluat' ? (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')
-    : loc === 'gtang' ? !!ganMap.get(c.camp_id)?.tang : loc === 'ggiam' ? !!ganMap.get(c.camp_id)?.giam : loc === 'gtat' ? !!ganMap.get(c.camp_id)?.tat : c.cung_doan > tranT)).filter((c) => !luatLoc || (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[1] === luatLoc))
-    .filter((c) => !phimLoc || xemCamp !== 'bang' || c.content_id === phimLoc).filter((c) => !dangLoc || c.dang === dangLoc).filter((c) => !boLoc || c.bo === boLoc).filter(locLai), [du.camps, loc, roasDat, ganMap, baoCampBang, luatLoc, phimLoc, xemCamp, dangLoc, boLoc, locLai]);
+    : loc === 'gtang' ? !!ganMap.get(c.camp_id)?.tang : loc === 'ggiam' ? !!ganMap.get(c.camp_id)?.giam : loc === 'gtat' ? !!ganMap.get(c.camp_id)?.tat : c.cung_doan > tranT)).filter(hopLuat)
+    .filter((c) => !phimLoc || xemCamp !== 'bang' || c.content_id === phimLoc).filter((c) => !dangLoc || c.dang === dangLoc).filter((c) => !boLoc || c.bo === boLoc).filter(locLai), [du.camps, loc, roasDat, ganMap, baoCampBang, hopLuat, phimLoc, xemCamp, dangLoc, boLoc, locLai]);
 
   const soLoc = tab === 'camp' && camps.length !== du.camps.length ? camps : tab === 'roas' ? campRoas : null;   // null = không lọc → dải số tính cả kho
   const nguon = soLoc ?? du.camps;
@@ -1675,9 +1678,11 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   })();
 
   // ô chọn lọc camp — MỘT bản cho máy tính (cùng hàng chip) và điện thoại (bảng Lọc, ba ô một hàng)
-  const demLuat = (t: string) => du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[1] === t)).length;
-  const luatSel = () => <Chon2 value={luatLoc} onChange={(v) => doi({ luat: v }, () => setLuatLoc(v))} nhan="Luật" title="lọc camp theo một luật (đang chạm hoặc sắp chạm)"
-    options={Object.values(LUAT_NHAN).filter((x, i, a) => a.findIndex((y) => y[1] === x[1]) === i).map((x) => ({ value: x[1], label: `${x[0]} ${x[1]}`, nhom: x[3] === 'gan' ? 'Sắp chạm' : 'Đang chạm', dem: demLuat(x[1]) })).filter((o) => o.dem).sort((a, b) => (a.nhom === b.nhom ? 0 : a.nhom === 'Đang chạm' ? -1 : 1))} />;
+  const luatOpts = useMemo(() => { const m = new Map<string, { dac: boolean; dem: number }>(); let khong = 0;
+    for (const c of du.camps) { const ch = chipMap.get(c.camp_id); if (!ch) { khong++; continue; } const x = m.get(ch.chip); if (x) x.dem++; else m.set(ch.chip, { dac: ch.dac, dem: 1 }); }
+    return [...[...m].map(([chip, x]) => ({ value: chip, label: chip, nhom: x.dac ? 'Đang chạm' : 'Sắp chạm', dem: x.dem })).sort((a, b) => (a.nhom === b.nhom ? b.dem - a.dem : a.nhom === 'Đang chạm' ? -1 : 1)),
+      ...(khong ? [{ value: KHONG_LUAT, label: 'Không chạm luật', nhom: 'Khác', dem: khong }] : [])]; }, [du.camps, chipMap]);
+  const luatSel = () => <Chon2 value={luatLoc} onChange={(v) => doi({ luat: v }, () => setLuatLoc(v))} nhan="Luật" title="lọc camp theo thẻ luật đang hiện ở cột Luật (đang chạm: viền liền · sắp chạm: viền nét đứt)" options={luatOpts} />;
   const dangSel = () => <Chon2 value={dangLoc} onChange={(v) => doi({ dang: v }, () => setDangLoc(v))} nhan="Loại" title="lọc camp theo loại creative"
     options={Object.entries(MA_DANG).map(([d, m]) => ({ value: d, label: `${m} · ${d}`, dem: du.camps.filter((c) => c.dang === d).length })).filter((o) => o.dem)} />;
   const laiSel = () => <Chon2 value={laiLoc} onChange={(v) => doi({ ll: v }, () => setLaiLoc(v))} nhan="Lãi/lỗ" title="lọc camp lãi / lỗ — theo kỳ đang chọn, hoặc lỗ N ngày đã khép gần nhất"
@@ -1798,7 +1803,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
       ) : tab === 'camp' ? (
         <>
         <TongPhim du={du} ckh={ckh} anh={anh} tl={tl} khTen={khNhan} chon={phimLoc} onChon={doiPhim} />
-        <DaiLuat du={du} baoCampBang={baoCampBang} chon={luatLoc} onChon={(t) => { doi({ luat: t, ...(t ? { loc: 'all' as const } : {}) }, () => { setLuatLoc(t); if (t) setLoc('all'); }); }} />
+        <DaiLuat opts={luatOpts} chon={luatLoc} onChon={(t) => { doi({ luat: t, ...(t ? { loc: 'all' as const } : {}) }, () => { setLuatLoc(t); if (t) setLoc('all'); }); }} />
         <DataTable rows={camps} columns={cotCamp} groups={NHOM} groupHeader rowStyle={(c) => (hetNs(c) ? { opacity: 0.5 } : undefined)} rowTitle={(c) => (hetNs(c) ? `đã tiêu $${c.nay.chi.toFixed(2)} ≥ ngân sách $${c.ngan_sach}/ngày — Meta gần như ngừng chi tới 07:00` : undefined)} defaultSort={[{ key: 'tao', dir: 'desc' }]} getRowKey={(c) => String(c.camp_id)} persistKey="etp-camp" minWidth={1400} pageSize={100}
           searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tl(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…" />
         </>

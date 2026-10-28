@@ -58,7 +58,7 @@ const docJson = (d) => (fs.existsSync(d) ? fs.readdirSync(d).filter((f) => f.end
 export function soLuot(url, ds = docJson(XONG())) {
   let n = 0; for (const x of ds.filter((x) => x.url === url)) n = x.ket === 'DUYET' || x.ket === 'MO_KHOA' ? 0 : n + 1; return n;
 }
-/** BÀI VIẾT CỦA MÁY ĐĂNG (cham-dang.mjs, 28/10/2026): kết quả phòng cho đúng BẢN `khoa` (md5 chữ đăng) của url `bai://<máy>/<slug>` —
+/** BÀI VIẾT CỦA MÁY ĐĂNG (cham-dang.mjs, 28/10/2026): kết quả phòng cho đúng BẢN `khoa` (md5 của bản HTML gửi phòng — cham-dang htmlBaiViet) của url `bai://<máy>/<slug>` —
  *  'CHO' khi bản đó đang trong hàng chờ, null khi chưa nộp. Khác `ban` (mã commit site → hàng cho-dang): bài nền ngoài do máy đăng đưa lên. */
 export function ketKhoa(url, khoa, xong = docJson(XONG()), cho = docJson(CHO())) {
   if (cho.some((x) => x.url === url && x.khoa === khoa)) return 'CHO';

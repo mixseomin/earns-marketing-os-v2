@@ -560,11 +560,10 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
       <div>Trước khi tắt: ROI 3 ngày {pc(s.roi_3_ngay_truoc)} · lãi mỗi camp mỗi ngày <b style={{ color: mauV(s.lo_ngay_truoc) }}>{usd2(s.lo_ngay_truoc)}</b></div></>;
     return null; };
   const the = (l: SoLuat) => { const s = l.so, d = s.dang;
-    return <div key={l.ma} style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1.1fr) minmax(260px, 1fr) minmax(260px, 1.1fr)', gap: 14, padding: '12px 14px', borderTop: '1px solid var(--line)', opacity: l.dung ? 0.6 : 1 }}>
+    return <div key={l.ma} style={{ display: 'grid', gridTemplateColumns: LUOI, gap: 14, padding: '10px 14px', borderTop: '1px solid var(--line)' }}>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13.5 }}><b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> {l.dung ? <span style={{ fontSize: 11, color: '#f59e0b' }}>· đang tạm dừng</span> : null}</div>
-        {l.mo_ta ? <div style={{ fontSize: 11.5, color: 'var(--fg-2)', margin: '3px 0 6px', lineHeight: 1.4 }}>{l.mo_ta}</div> : null}
-        {l.dk.length ? <table style={{ fontSize: 11.5, borderCollapse: 'collapse' }}><tbody>{l.dk.map(([ten, ng]) => <tr key={ten}><td style={{ padding: '1px 10px 1px 0', color: 'var(--fg-2)' }}>{ten}</td><td style={{ whiteSpace: 'nowrap' }}><b>{ng}</b></td></tr>)}</tbody></table> : null}
+        <div style={{ fontSize: 13.5 }} title={l.mo_ta ?? undefined}><b style={{ cursor: l.mo_ta ? 'help' : undefined }}>{l.ten}</b>{l.dung ? <span style={{ fontSize: 11, color: 'var(--fg-3, #777)' }}> · tạm dừng</span> : null}</div>
+        {l.dk.length ? <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 3, lineHeight: 1.5 }}>{l.dk.map(([ten, ng], i) => <span key={ten}>{i ? ' · ' : ''}{ten} <b style={{ color: 'var(--fg-1, #ddd)', whiteSpace: 'nowrap' }}>{ng}</b></span>)}</div> : null}
       </div>
       <div style={{ fontSize: 12, lineHeight: 1.55, minWidth: 0 }}>
         <div><b>{s.lan}</b> lần làm · {s.camp} camp <span style={{ color: 'var(--fg-3, #777)' }}>({s.ngay} ngày qua)</span></div>
@@ -577,15 +576,23 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
       </div>
     </div>; };
   const khac = du.soLuat.filter((l) => !NHOM_LUAT.some(([, , ds]) => ds.includes(l.ma)));
-  return <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+  const NHOM = [...NHOM_LUAT, ...(khac.length ? [['khac', 'Luật khác', khac.map((l) => l.ma)] as [string, string, string[]]] : [])];
+  // MỘT MÀN, CHIA TAB (YDNI): 16 luật chồng dọc = cuộn mấy màn → mỗi nhóm một tab, nhớ tab vừa xem
+  const [nhom, setNhom] = useState('tang'); useEffect(() => { try { const v = localStorage.getItem('etp-luat-nhom'); if (v) setNhom(v); } catch { /* */ } }, []);   // đọc sau khi nạp: tránh lệch SSR
+  const chon = (k: string) => { setNhom(k); try { localStorage.setItem('etp-luat-nhom', k); } catch { /* */ } };
+  const ds = (NHOM.find(([k]) => k === nhom) ?? NHOM[0]!)[2].map((m) => theo.get(m)).filter((x): x is SoLuat => !!x);
+  const chay = ds.filter((l) => !l.dung), dung = ds.filter((l) => l.dung);
+  const LUOI = 'minmax(260px, 1.1fr) minmax(260px, 1fr) minmax(260px, 1.1fr)';
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
     <div style={{ fontSize: 12.5, color: 'var(--fg-2)' }}>Mỗi luật: <b>điều kiện máy đang chạy</b> (đọc từ lượt xét mới nhất) · <b>số thật</b> {du.soLuat[0]?.so.ngay ?? 14} ngày qua (sau mỗi lần máy làm, camp lãi hơn hay kém) · <b>đề xuất</b> có số.
       {luc ? <> Số tính lúc {vn(luc)}, máy tính lại mỗi giờ.</> : <> Chưa có số — máy tính lần đầu ở nhịp đồng bộ kế.</>} Đề xuất là gợi ý — đổi luật thì anh chốt.</div>
-    {[...NHOM_LUAT, ...(khac.length ? [['khac', 'Luật khác', khac.map((l) => l.ma)] as [string, string, string[]]] : [])].map(([k, ten, ds]) => { const ls = ds.map((m) => theo.get(m)).filter((x): x is SoLuat => !!x); if (!ls.length) return null;
-      return <div key={k} style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1.1fr) minmax(260px, 1fr) minmax(260px, 1.1fr)', gap: 14, padding: '8px 14px', background: 'var(--bg-1, #111)', fontSize: 11, color: 'var(--fg-3, #777)' }}>
-          <span style={{ fontSize: 13.5, color: 'var(--fg-1, #eee)', fontWeight: 700 }}>{ten}</span><span>Số thật</span><span>Đề xuất tối ưu lợi nhuận</span></div>
-        {ls.map(the)}
-      </div>; })}
+    <Segmented value={nhom} onChange={chon} options={NHOM.map(([k, ten, ms]) => ({ value: k, label: ten.split(' — ')[0]!, title: `${ten} · ${ms.filter((m) => theo.has(m)).length} luật` }))} />
+    <div style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: LUOI, gap: 14, padding: '7px 14px', background: 'var(--bg-1, #111)', fontSize: 11, color: 'var(--fg-3, #777)' }}>
+        <span>Luật · điều kiện đang chạy</span><span>Số thật</span><span>Đề xuất tối ưu lợi nhuận</span></div>
+      {chay.map(the)}
+      {dung.length ? <details style={{ borderTop: '1px solid var(--line)' }}><summary style={{ cursor: 'pointer', padding: '8px 14px', fontSize: 12, color: 'var(--fg-3, #777)' }}>Luật đang tạm dừng: {dung.map((l) => l.ten).join(' · ')}</summary>{dung.map(the)}</details> : null}
+    </div>
   </div>;
 }
 function BaoLuat({ du }: { du: DuLieuEtp }) {

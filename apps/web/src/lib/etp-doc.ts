@@ -155,7 +155,7 @@ export async function docEtp(ng?: string): Promise<DuLieuEtp> {
   // gộp creative / phim từ camp (cùng nguồn số)
   const cong = (a: SoTien, b: SoTien) => ({ chi: a.chi + b.chi, thu: a.thu + b.thu });
   const crMap = new Map<number, CreativeEtpKho>();
-  const [sKhoa] = await Promise.all([run<{ ten: string; gia_tri: Record<string, { ok?: boolean; ghi?: string; luc?: string }> | null }>(sql`select ten, gia_tri from xv_khoa_ngoai where ten in ('ethopex_soat_18', 'ethopex_soat_doan', 'ethopex_cho_soat', 'ethopex_quet', 'ethopex_can_goc_moi', 'ethopex_cho_dung_lai')`)]);
+  const [sKhoa] = await Promise.all([run<{ ten: string; gia_tri: Record<string, { ok?: boolean; ghi?: string; luc?: string }> | null }>(sql`select ten, gia_tri from xv_khoa_ngoai where ten in ('ethopex_soat_18', 'ethopex_soat_doan', 'ethopex_cho_soat', 'ethopex_quet', 'ethopex_can_goc_moi', 'ethopex_cho_dung_lai', 'ethopex_xuong')`)]);
   const khoaS = (t: string) => sKhoa.find((r) => r.ten === t)?.gia_tri ?? {};
   const s18 = khoaS('ethopex_soat_18'), sDoan = khoaS('ethopex_soat_doan'), choSoat = khoaS('ethopex_cho_soat');
   const dongS = (v?: { ok?: boolean; ghi?: string; luc?: string }) => (v && typeof v.ok === 'boolean' ? { ok: v.ok, ghi: String(v.ghi ?? ''), luc: String(v.luc ?? '') } : null);
@@ -274,8 +274,15 @@ export async function docEtp(ng?: string): Promise<DuLieuEtp> {
         content_id: Number(k) || null, creative_id: null, phim: v.ten ?? null, lo: null, may: null, luc: v.luc ?? null, ghi: v.goc ? `cho camp #${v.goc} (hết creative sạch chưa dùng)` : null, loi: false })),
       ...Object.entries(khoaS('ethopex_cho_dung_lai') as Record<string, { goc?: number; content?: number; ten?: string; luc?: string; tu_choi?: boolean }>).map(([k, v]) => ({ khoa: `cta-${k}`, buoc: v.tu_choi ? 'Dựng góc thay bị Meta từ chối' : 'Chờ dựng lại CTA', thu_tu: 2,
         content_id: v.content ?? null, creative_id: Number(k) || null, phim: v.ten ?? null, lo: null, may: null, luc: v.luc ?? null, ghi: v.goc ? `camp #${v.goc}` : null, loi: false })),
-      ...choCamp.map((r) => ({ khoa: `camp-${r.creative_id}`, buoc: 'Chờ lên camp', thu_tu: 5, content_id: r.content_id == null ? null : n(r.content_id), creative_id: n(r.creative_id),
-        phim: (r.ten as string) ?? null, lo: null, may: null, luc: (r.luc as string) ?? null, ghi: 'chấm Sạch — chờ len-sau-cham lên camp', loi: false })),
+      // LÔ CẮT CHẠY THẲNG TRÊN iMAC (cat-cuoi-lo / phim-moi gọi xuong.bao → studio 'ethopex_xuong', anh 28/10/2026 "tất cả ở đây đúng ko"): lượt gần nhất còn chạy (< 15 phút, chưa xong)
+      ...(() => { const x = khoaS('ethopex_xuong') as unknown as { buoc?: string; lo?: string; phim?: string; xong?: number; tong?: number; loi?: string; bat_dau?: string; luc?: string } | null;
+        const moi = x?.luc ? Date.now() - Date.parse(x.luc) < 15 * 60_000 : false;
+        return x && moi && !(x.tong && x.xong != null && x.xong >= x.tong) ? [{ khoa: `xuong-${x.lo ?? ''}`, buoc: x.buoc === 'cat' ? 'Đang cắt (iMac)' : `Đang ${x.buoc ?? 'làm'} (iMac)`, thu_tu: 1,
+          content_id: null, creative_id: null, phim: x.phim ?? null, lo: x.lo ?? null, may: 'iMac', luc: x.bat_dau ?? x.luc ?? null,
+          ghi: [x.tong ? `${x.xong ?? 0}/${x.tong} phim` : '', x.loi ?? ''].filter(Boolean).join(' · ') || null, loi: !!x.loi }] : []; })(),
+      // KHO GÓC SẠCH CHƯA DÙNG: creative chấm Sạch mà chưa có camp — góc cắt sẵn cho clone đổi creative; KHÔNG có máy nào tự lên camp cho chúng (trước ghi nhầm "chờ len-sau-cham")
+      ...choCamp.map((r) => ({ khoa: `camp-${r.creative_id}`, buoc: 'Kho góc sạch chưa dùng', thu_tu: 5, content_id: r.content_id == null ? null : n(r.content_id), creative_id: n(r.creative_id),
+        phim: (r.ten as string) ?? null, lo: null, may: null, luc: (r.luc as string) ?? null, ghi: 'chấm Sạch, chưa có camp — chỉ dùng khi clone cần đổi creative (đoạn đủ trần) hoặc anh cho lên', loi: false })),
       ...chamHang.filter((r) => r.trang_thai === 'cho' || r.trang_thai === 'dang').map((r) => ({ khoa: `cham-${r.creative_id}`, buoc: r.trang_thai === 'dang' ? 'Đang chấm (Cloudflare)' : (r.buoc === 'chờ thử lại' ? 'Chờ chấm lại' : 'Chờ chấm'), thu_tu: 4,
         content_id: null, creative_id: n(r.creative_id), phim: null, lo: null, may: r.trang_thai === 'dang' ? 'Cloudflare' : null, luc: String((r.bat_dau as string) ?? r.luc), ghi: (r.buoc as string) ?? null, loi: false })),
     ],

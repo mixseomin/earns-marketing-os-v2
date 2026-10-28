@@ -1934,7 +1934,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
               <button key={nhan} onClick={() => doiXemCamp(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
                 background: xemCamp === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCamp === v ? 600 : 400 }}>{gon ? nhan.split(' ')[0] : nhan}</button>))}
           </span>) : null}
-        {gon && tab === 'camp' && xemCamp !== 'lich' ? (() => { const coLoc = loc !== 'chay' || !!luatLoc || !!dangLoc || !!boLoc || !!laiLoc || !!tuoiChon;
+        {gon && tab === 'camp' && xemCamp !== 'lich' ? (() => { const coLoc = (loc !== 'chay' && loc !== 'all') || !!luatLoc || !!dangLoc || !!boLoc || !!laiLoc || !!tuoiChon;
           return <button onClick={() => setMoLoc((v) => !v)} title={coLoc ? 'đang có lọc' : 'mở bộ lọc'} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', color: coLoc ? '#60a5fa' : 'inherit',
             border: `1px solid ${coLoc ? '#60a5fa' : 'var(--line)'}`, background: moLoc || coLoc ? 'var(--accent-soft, rgba(59,130,246,.18))' : 'transparent', fontWeight: coLoc ? 600 : 400 }}>{moLoc ? '▴' : '▾'} Lọc{coLoc ? ' •' : ''}</button>; })() : null}
         {tab === 'creative' ? (

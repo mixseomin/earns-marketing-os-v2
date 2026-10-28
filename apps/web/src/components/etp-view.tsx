@@ -9,7 +9,7 @@ import { DataTable, Drawer, FilterChips, Segmented, StatsStrip, type DataColumn 
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
-import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoTien, XetLuat } from '@/lib/etp-doc';
+import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoLuat, SoTien, XetLuat } from '@/lib/etp-doc';
 
 type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -535,33 +535,64 @@ function TabTaiNguyen({ du, khCamp }: { du: DuLieuEtp; kh: Kh; khCamp: Map<numbe
 
 // MÁY LUẬT ĐANG BÁO (anh 24/10/2026 "báo trên etp nữa"): cùng các nhóm gửi Telegram (etp.bao, ghi mỗi nhịp) + bid ROAS đủ / sắp đủ.
 // Nhóm = biểu tượng + tên ngắn, luật đầy đủ ở hover (YDNI: dấu hiệu thay chữ).
-const NHOM_BAO: [string, string, string, string][] = [
-  ['tu_choi', '⛔', 'Meta từ chối', 'Ad bị Meta từ chối — máy tự thay creative sạch cùng phim rồi bật lại'],
-  ['tat', '⏹', 'Cần tắt', '≥ 7 ngày, tiêu > $10 từ trước tới nay, ROI < −50% — chờ anh duyệt'],
-  ['ha', '↘', 'Giảm bậc', 'Sáng: hôm qua ROI < 0% và 3 ngày < 20% · mọi nhịp: camp ≥ $15 tiêu đều, ROI 1–2 ngày < 30%, $20 vừa tăng mà hôm nay âm · luôn từng bậc $20 → $15 → $10; hồi lại (ROI từ ngày giảm ≥ 50%) thì sau 6 giờ được tăng lại'],
-  ['tang', '↑', 'Tăng bậc', 'ROI 30 ngày (camp mới: từ lúc lên) ≥ 50%, spending > 50%, hôm nay không âm — máy tự tăng tới $20'],
-  ['dau_phien', '⇑', 'Lãi đầu phiên', 'ROI hôm nay > 50% → $2 / $3'],
-  ['tang30', '⇈', 'Lên $30', 'Camp $20, ≥ 2/3 ngày tiêu > 80% ngân sách, ROI các ngày đó > 80% — chờ anh duyệt'],
-  ['giam', '↓', 'ROI tụt', 'Phim down trend / creative bão hoà — xem giảm hoặc tắt'],
-  ['dong', '⏸', 'Đã đóng', 'Ethopex dừng camp (chạm rule hoặc tắt tay)'],
-  ['loi_may', '⚙️', 'Lỗi máy', 'Đọc API Ethopex lỗi sau 3 lần thử — nhịp sau tự đọc lại'],
+// BẢN LUẬT (anh 29/10/2026: "page ?t=luat phải thiết kế lại chỉ có 1 bản luật với các điều kiện hiện tại và số liệu thực tế + đề xuất thay đổi để tối ưu hoá lợi nhuận"):
+// điều kiện + ngưỡng đọc THẲNG từ lượt xét của máy luật (etp.xet_luat — không chép tay), số thật từ apps/etp/so-luat.py (nhật ký máy + số ngày Ethopex, mỗi giờ)
+const NHOM_LUAT: [string, string, string[]][] = [
+  ['tang', 'Tăng chi — tăng bậc, nhân bản', ['tang', 'tang_ngay', 'dau_phien', 't30', 'nb', 'thang_nb', 'roas']],
+  ['giam', 'Giảm chi — giảm bậc', ['gb', 'giam_ngay', 'giam_som', 'roi_tut']],
+  ['tat', 'Tắt camp', ['t2', 'off', 't7', 'd24', 'dung_dem']],
 ];
+function BanLuat({ du }: { du: DuLieuEtp }) {
+  const theo = new Map(du.soLuat.map((l) => [l.ma, l])); const luc = du.soLuat.reduce<string | null>((m, l) => (!m || l.luc > m ? l.luc : m), null);
+  const usd2 = (v: number | null | undefined) => (v == null ? '—' : `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`);
+  const mauV = (v: number | null | undefined) => (v == null ? 'var(--fg-2)' : v >= 0 ? '#4ade80' : '#f87171');
+  const pc = (v: number | null | undefined) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v}%`);
+  const So = ({ l }: { l: SoLuat }) => { const s = l.so;
+    if (s.tat_ca) { const H = ({ t, x }: { t: string; x?: SoLuat['so']['tat_ca'] }) => x && x.n ? <div>{t}: <b>{x.n}</b> bản · lãi <b style={{ color: mauV(x.lai) }}>{usd2(x.lai)}</b> · ROI <b style={{ color: mauV(x.roi) }}>{pc(x.roi)}</b> · {x.lai_n} bản có lãi</div> : null;
+      return <><H t="Tất cả clone" x={s.tat_ca} /><H t="Cùng creative (giống hệt)" x={s.cung_cr} /><H t="Creative khác" x={s.khac_cr} />
+        {Object.entries(s.theo_goc ?? {}).map(([k, x]) => <H key={k} t={k} x={x} />)}</>; }
+    if (s.lai_ngay_truoc !== undefined) return <>
+      <div>Lãi mỗi camp mỗi ngày: <b style={{ color: mauV(s.lai_ngay_truoc) }}>{usd2(s.lai_ngay_truoc)}</b> → <b style={{ color: mauV(s.lai_ngay_sau) }}>{usd2(s.lai_ngay_sau)}</b> <span style={{ color: 'var(--fg-3, #777)' }}>(2 ngày trước → 2 ngày sau khi máy làm)</span></div>
+      <div>ROI: {pc(s.roi_truoc)} → {pc(s.roi_sau)} · chi/ngày {usd2(s.chi_ngay_truoc)} → {usd2(s.chi_ngay_sau)}{s.ti_le_tot != null ? <> · {s.ti_le_tot}% lần lãi tăng lên</> : null}</div>
+      <div style={{ color: 'var(--fg-3, #777)' }}>{s.do_duoc ?? 0} lần đo được (lần mới làm hôm nay / hôm qua chưa có ngày sau)</div></>;
+    if (s.dang_lai !== undefined) return <>
+      <div>Camp bị tắt đang lãi 3 ngày trước đó: <b style={{ color: s.dang_lai ? '#f87171' : '#4ade80' }}>{s.dang_lai}/{s.do_duoc ?? 0}</b>{s.lai_bi_tat ? <> (lãi {usd2(s.lai_bi_tat)})</> : null}</div>
+      <div>Trước khi tắt: ROI 3 ngày {pc(s.roi_3_ngay_truoc)} · lãi mỗi camp mỗi ngày <b style={{ color: mauV(s.lo_ngay_truoc) }}>{usd2(s.lo_ngay_truoc)}</b></div></>;
+    return null; };
+  const the = (l: SoLuat) => { const s = l.so, d = s.dang;
+    return <div key={l.ma} style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1.1fr) minmax(260px, 1fr) minmax(260px, 1.1fr)', gap: 14, padding: '12px 14px', borderTop: '1px solid var(--line)', opacity: l.dung ? 0.6 : 1 }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 13.5 }}><b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> {l.dung ? <span style={{ fontSize: 11, color: '#f59e0b' }}>· đang tạm dừng</span> : null}</div>
+        {l.mo_ta ? <div style={{ fontSize: 11.5, color: 'var(--fg-2)', margin: '3px 0 6px', lineHeight: 1.4 }}>{l.mo_ta}</div> : null}
+        {l.dk.length ? <table style={{ fontSize: 11.5, borderCollapse: 'collapse' }}><tbody>{l.dk.map(([ten, ng]) => <tr key={ten}><td style={{ padding: '1px 10px 1px 0', color: 'var(--fg-2)' }}>{ten}</td><td style={{ whiteSpace: 'nowrap' }}><b>{ng}</b></td></tr>)}</tbody></table> : null}
+      </div>
+      <div style={{ fontSize: 12, lineHeight: 1.55, minWidth: 0 }}>
+        <div><b>{s.lan}</b> lần làm · {s.camp} camp <span style={{ color: 'var(--fg-3, #777)' }}>({s.ngay} ngày qua)</span></div>
+        <So l={l} />
+        {d ? <div style={{ marginTop: 4 }}>Bây giờ: <b style={{ color: '#4ade80' }}>{d.dat}</b> camp đạt · <b>{d.gan}</b> gần đạt{s.ket_o?.length ? <span style={{ color: 'var(--fg-3, #777)' }}> · hay kẹt ở “{s.ket_o[0]![0]}” ({s.ket_o[0]![1]})</span> : null}</div> : null}
+      </div>
+      <div style={{ fontSize: 12, lineHeight: 1.5, minWidth: 0 }}>
+        {l.de_xuat.length ? l.de_xuat.map((x, i) => <div key={i} style={{ padding: '4px 8px', marginBottom: 4, borderLeft: '3px solid #f59e0b', background: 'rgba(245,158,11,.07)', borderRadius: 3 }}>{x}</div>)
+          : <div style={{ color: 'var(--fg-3, #777)' }}>Chưa đủ số để đề xuất (cần ≥ 10 lần đo được).</div>}
+      </div>
+    </div>; };
+  const khac = du.soLuat.filter((l) => !NHOM_LUAT.some(([, , ds]) => ds.includes(l.ma)));
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div style={{ fontSize: 12.5, color: 'var(--fg-2)' }}>Mỗi luật: <b>điều kiện máy đang chạy</b> (đọc từ lượt xét mới nhất) · <b>số thật</b> {du.soLuat[0]?.so.ngay ?? 14} ngày qua (sau mỗi lần máy làm, camp lãi hơn hay kém) · <b>đề xuất</b> có số.
+      {luc ? <> Số tính lúc {vn(luc)}, máy tính lại mỗi giờ.</> : <> Chưa có số — máy tính lần đầu ở nhịp đồng bộ kế.</>} Đề xuất là gợi ý — đổi luật thì anh chốt.</div>
+    {[...NHOM_LUAT, ...(khac.length ? [['khac', 'Luật khác', khac.map((l) => l.ma)] as [string, string, string[]]] : [])].map(([k, ten, ds]) => { const ls = ds.map((m) => theo.get(m)).filter((x): x is SoLuat => !!x); if (!ls.length) return null;
+      return <div key={k} style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 1.1fr) minmax(260px, 1fr) minmax(260px, 1.1fr)', gap: 14, padding: '8px 14px', background: 'var(--bg-1, #111)', fontSize: 11, color: 'var(--fg-3, #777)' }}>
+          <span style={{ fontSize: 13.5, color: 'var(--fg-1, #eee)', fontWeight: 700 }}>{ten}</span><span>Số thật</span><span>Đề xuất tối ưu lợi nhuận</span></div>
+        {ls.map(the)}
+      </div>; })}
+  </div>;
+}
 function BaoLuat({ du }: { du: DuLieuEtp }) {
   const the = { border: '1px solid var(--line)', borderRadius: 10, padding: 12, background: 'var(--bg-1, transparent)' } as const;
-  const theo = new Map<string, DuLieuEtp['bao']>(); for (const b of du.bao) { const a = theo.get(b.nhom) ?? []; a.push(b); theo.set(b.nhom, a); }
   const pct = (x: { chi: number; thu: number }) => (x.chi > 0 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : 0);
-  const luc = du.bao[0]?.luc;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12, marginBottom: 16 }}>
-      <div style={the}>
-        <h3 style={{ fontSize: 14, margin: '0 0 8px' }} title={luc ? `nhịp luật lúc ${vn(luc)}` : ''}>Máy luật đang báo</h3>
-        {NHOM_BAO.filter(([k]) => theo.has(k)).map(([k, ic, ten, luat]) => (
-          <details key={k} style={{ borderTop: '1px solid var(--line)', padding: '6px 0' }}>
-            <summary style={{ cursor: 'pointer', fontSize: 13 }} title={luat}><span style={{ display: 'inline-block', width: 22 }}>{ic}</span>{ten} <b>{theo.get(k)!.length}</b></summary>
-            {theo.get(k)!.map((b) => <div key={b.camp_id} style={{ fontSize: 11, padding: '3px 0 3px 22px', color: 'var(--fg-2)' }}>{b.chu.replace(/^#\d+:\s*/, `#${b.camp_id} `)}</div>)}
-          </details>))}
-        {!du.bao.length ? <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>—</div> : null}
-      </div>
       <div style={the}>
         <h3 style={{ fontSize: 14, margin: '0 0 8px' }} title="Nhiều camp cùng phim giành cùng tệp người xem → ROI cả phim tụt. ⚠ = > 10 camp, ROI giảm 2 ngày liền · ⏸ = máy dừng nhân bản (ROI phim hôm qua < 50%, hoặc tụt > 20% so với hôm kia dù vẫn > 100%, hoặc đang bão hoà); đoạn > 3 camp được dọn sang góc mới 3 giờ/lần">Phim bão hoà</h3>
         {du.baoHoa.map((p) => (
@@ -1940,6 +1971,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
           searchText={(p) => `${p.content_id} ${p.ten ?? ''} ${tl(p.the_loai)}`} searchPlaceholder="Tìm phim, thể loại…" />
       ) : (
         <>
+        <BanLuat du={du} />
+        <details style={{ marginTop: 16 }}><summary style={{ cursor: 'pointer', fontSize: 13, color: 'var(--fg-2)', padding: '6px 0' }}>Chi tiết máy: phim bão hoà · ứng viên ROAS · rào chắn · cảnh báo · nhật ký từng lần làm</summary>
         <BaoLuat du={du} />
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(280px, 1fr) minmax(320px, 2fr)', gap: 16 }}>
           <div>
@@ -1958,6 +1991,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
               searchText={(r) => `${r.camp_id ?? ''} ${r.viec} ${r.luat ?? ''}`} searchPlaceholder="Tìm camp, việc, luật…" />
           </div>
         </div>
+        </details>
         </>
       )}
       {nganPhim && !nganCamp ? (() => { const ds = du.camps.filter((x) => String(x.content_id ?? 0) === nganPhim); const dong = () => doi({ ngan: '' }, () => setNganPhim(null));

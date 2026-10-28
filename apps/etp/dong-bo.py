@@ -269,5 +269,11 @@ def main():
     except Exception as e: print(f"cham-nhe: {e}")
     r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "canh-bao.py")], capture_output=True, text=True, timeout=120)   # bước 3: cảnh báo bất thường
     print((r.stdout or r.stderr).strip()[-300:])
+    # ── SỐ THẬT TỪNG LUẬT (trang ?t=luat, anh 29/10/2026 "luật cũng cần định kỳ review lại dựa vào số liệu thực tế") — mỗi giờ một lần, ~1 giây
+    try:
+        if q("select coalesce(max(luc), 'epoch') < now() - interval '55 minutes' from etp.so_luat") == "t":
+            r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "so-luat.py")], capture_output=True, text=True, timeout=180)
+            print((r.stdout or r.stderr).strip()[-300:])
+    except Exception as e: print(f"so-luat: {e}")
 
 if __name__ == "__main__": main()

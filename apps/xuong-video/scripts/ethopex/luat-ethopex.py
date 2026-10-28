@@ -463,6 +463,7 @@ try:
             tang30.append((cid, f"#{a['ten'][:70]} · $20 → $30 · {len(du)}/3 ngày tiêu > {T30_SP}% ngân sách · ROI các ngày đó {r:+.0f}% · {rd(cid)} {roi(a):+.0f}%"))
 except Exception as e:
     loi_may.append((0, f"luật T30 lỗi: {str(e)[:80]}"))
+_tang30_goc = list(tang30)   # trước khi lọc bộ 2 / ROAS — camp ★ ROAS thắng dùng lại (xem dưới luật ROAS)
 tang30 = [x for x in tang30 if int(x[0] or 0) not in bo2]
 # DỪNG ĐÊM — CAMP ÂM TĂNG NHANH (anh 25/10/2026: "Trong phiên 9h tối đến 5h sáng mà các camp âm tăng nhanh hơn thì phải chủ động dừng luôn"):
 # 21h–5h VN là giờ Mỹ mua mạnh, camp âm tiêu rất nhanh — chờ giảm bậc sáng mai là mất cả đêm. Camp đang bật, hôm nay (số đã chốt chi) chi ≥ 30% ngân sách,
@@ -504,6 +505,9 @@ try: _ROAS = CONG.camp_roas() | {int(c["id"]) for c in ds_camp if CONG.la_roas(c
 except Exception as e: _ROAS = {int(c["id"]) for c in ds_camp if CONG.la_roas(c.get("name"))}; loi_may.append((0, f"không đọc được danh sách camp ROAS trong kho: {str(e)[:80]}"))
 _bo_roas = lambda ds: [x for x in ds if int(x[0] or 0) not in _ROAS]
 tat_l, tat7, tat2, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7 = map(_bo_roas, (tat_l, tat7, tat2, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7))
+# ★ ROAS THẮNG → $30 (anh 28/10/2026 "thêm rule tăng roas thắng lên $30"): camp ROAS vẫn miễn mọi luật khác, riêng T30 áp cùng ngưỡng —
+# đang $20, ≥ 2/3 ngày đã khép tiêu > 80% ngân sách, ROI các ngày đó > 80% → máy tự tăng $20 → $30 (cùng đường tang30 của worker)
+tang30 += [(cid, "★ ROAS thắng · " + s_) for cid, s_ in _tang30_goc if int(cid or 0) in _ROAS]
 tat_roas = []
 try:
     if _ROAS & _bat:
@@ -540,7 +544,12 @@ def _xet_luat():
         tuoi = (dt.datetime.now(dt.timezone.utc) - _tao[cid]).days if cid in _tao else None
         b2 = int(cid) in bo2; ls = []
         if int(cid) in _ROAS:
-            ls.append(L("roas", "Luật ROAS (camp ★)", "Camp ROAS miễn mọi luật khác; chỉ báo riêng khi 2 ngày đã khép ĐỀU lỗ và cộng 2 ngày chi > $20 mà ROI < 0%.", [], "tat_roas" if int(cid) in vao["tat_roas"] else None))
+            ls.append(L("roas", "Luật ROAS (camp ★)", "Camp ROAS miễn mọi luật khác (trừ ★ ROAS thắng → $30); chỉ báo riêng khi 2 ngày đã khép ĐỀU lỗ và cộng 2 ngày chi > $20 mà ROI < 0%.", [], "tat_roas" if int(cid) in vao["tat_roas"] else None))
+            ns = float(a.get("budget") or 0); du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
+            r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None
+            ls.append(L("t30", "★ ROAS thắng · $20 → $30", f"Camp ROAS đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách ($16), ROI các ngày đó > {T30_ROI}% → máy tự tăng $30 (cùng ngưỡng T30).",
+                [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], ["Ngày tiêu > $16", f"{len(du30)}/3", f"≥ {T30_NGAY}", len(du30) >= T30_NGAY], ["ROI các ngày đó", f(r30, "%"), f"> {T30_ROI}%", r30 is not None and r30 > T30_ROI]],
+                "tang30" if int(cid) in vao["tang30"] else None, tien=1))
             ra[int(cid)] = ls; continue
         # T2 — tắt sau 2 ngày có chi đầu tiên
         ds2 = _n2.get(int(cid), [None, []])[1] if "_n2" in globals() else []

@@ -1131,7 +1131,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
     const vach = mau ? <span title={yNghia} style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 8, cursor: 'help', zIndex: 1 }} /> : null;
     const laiC = laiKy(c);
     const bamDong = (e: React.MouseEvent) => {   // điện thoại: dòng lá bấm đâu cũng mở ngăn; dòng có bản nhân thì bấm số camp mở ngăn, chỗ khác gập/mở cây
-      if (!moCamp || (ds.length && !(e.target as HTMLElement).closest('[data-cot="camp"] b'))) return; e.preventDefault(); e.stopPropagation(); moCamp(c.camp_id); };
+      if (!moCamp || (ds.length && !(e.target as HTMLElement).closest('[data-cot="camp"] b,[data-cot^="roi-"],[data-cot="lai"]'))) return;   // ô số (ROI · lãi) cũng mở ngăn có biểu đồ ngày (anh 28/10/2026) e.preventDefault(); e.stopPropagation(); moCamp(c.camp_id); };
     const hang = hep ? (
       <div className="dong" onClick={bamDong} style={{ cursor: moCamp ? 'pointer' : undefined, display: 'grid', gridTemplateColumns: LUOI_CAY_HEP, columnGap: 4, alignItems: 'center', padding: '5px 0 5px 4px', fontSize: 12, borderTop: '1px solid var(--line)',
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined, position: 'relative' }}>{vach}

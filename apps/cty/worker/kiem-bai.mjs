@@ -125,7 +125,7 @@ export function chuBai(html) {
 export function mayDo(html, loai = 'bai-dich-mxh') {
   loai = chuanLoai(loai) ?? 'bai-dich-mxh'; const chan = BANG.loai[loai].chan;
   const chu = chuBai(html), thuong = chu.toLowerCase(), dong = chu.split('\n');
-  const tuMay = TU_MAY.filter((w) => thuong.includes(w));
+  const tuMay = TU_MAY.filter((w) => new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`).test(thuong));   // nguyên từ: 'vital' không khớp tên người 'Vitaly' (28/10/2026)
   const gachDai = (chu.match(/[—–]/g) || []).length, h = thanBai(html);   // hình đếm trong thân bài — icon logo / ô tìm kiếm ở đầu trang không phải hình của bài
   // HÌNH THỨC (17/10/2026: bài 1.835 chữ chấm 10/10 mà anh vẫn "không đạt" — mô hình chỉ đọc chữ nên mù phần hình): đếm khối nhìn được
   // CHUẨN SEO (anh 17/10/2026: "bài SEO phải có đủ hình ảnh, video, FAQ minh hoạ"): ảnh thật + video + FAQ là chặn cứng, khung ví dụ không thay được ảnh

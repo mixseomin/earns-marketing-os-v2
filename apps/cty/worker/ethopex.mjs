@@ -342,9 +342,9 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const tt = docJ(path.join(DATA(), 'ethopex-tu-tang.json'), null);
   const tuTang = tt && Date.now() < Date.parse(tt.den) ? Number(tt.tran) || 0 : 0;
   const daTu = []; const lamRoi = new Set();
-  // LUẬT TẮT ĐI TRƯỚC (29/10/2026: #65656 chạm D24 mà không tắt — bước giảm bậc chạy trước, ghi lamRoi, bước tắt bỏ qua): camp trong danh sách tắt hẳn
-  // (T2 · D24) thì các bước giảm / tăng bậc trong nhịp KHÔNG đụng — để bước tắt bên dưới làm
-  const seTat = new Set(['tat2', 'tat_d24'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
+  // Một camp một quyết định: máy luật (luat-ethopex.py _SE_TAT) đã gỡ camp trong danh sách tắt khỏi mọi danh sách tăng / giảm / nhân bản —
+  // seTat ở đây chỉ là lưới đỡ khi máy luật bản cũ trả về (29/10/2026 #65656)
+  const seTat = new Set(['tat2', 'tat_d24', 'dung_dem', 'tat', 'thang_tat'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
   const { tinNhanh } = await import('./tg-phong.mjs');
   const guiNhanh = async (b) => { const j = await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...b }); tinNhanh(j?.result?.message_id); return j; };
   // MÁY TỰ GIẢM BẬC (luật GB, chỉ khi anh đã duyệt "gb_tu_giam" trên Telegram): camp chạm GB → lam-ethopex giam (vẫn chặn đổi < 6 giờ, camp phải bật,
@@ -410,7 +410,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   } catch (e) { console.error('canh-bao etp:', e.message); }
   // AD BỊ META TỪ CHỐI → MÁY TỰ THAY CREATIVE NGAY (anh 23/10/2026: "vào xem nguyên nhân fix rồi tự replace creative ngay"): thay-tu-choi.py đọc lý do,
   // thay bằng creative sạch cùng phim đạt CTA (chưa bị từ chối) qua Update camp; chưa có thì xếp hàng dựng góc mới (sua-cta.py iMac). Không tắt / xoá camp.
-  const tc = (kq.tu_choi || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id));
+  const tc = (kq.tu_choi || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id));
   if (tc.length) {
     let ra = []; try { ra = (await chay(THAY, ['--camp', ...tc.map((m) => String(m.id))], 600)).trim().split('\n').filter((l) => l.startsWith('{')).map((l) => JSON.parse(l)); } catch (e) { ra = tc.map((m) => ({ camp: m.id, ok: false, loi: e.message })); }
     const xong = new Set(ra.filter((r) => r.ok).map((r) => r.camp));
@@ -464,6 +464,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // chặn 30 camp đang chạy / phim), giờ yên thì báo im lặng; bản lịch Today trong khung 21h–5h (giờ Mỹ đang mua), ngoài khung để Tomorrow.
   const daNb = [];
   for (const m of kq.nb || []) {
+    if (seTat.has(m.id)) continue;   // không nhân bản camp đang trong danh sách tắt
     const lich = 'today';   // anh 22/10/2026: "camp dạng này đang lãi to thì hãy ưu tiên bật sớm" — bản nhân bản camp thắng chạy luôn, không để sang ngày mai
     let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--lich', lich, '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', 'máy tự nhân bản (anh cho phép 22/10/2026)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
     daNb.push({ m, r, lich });
@@ -501,7 +502,9 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     if (tat.length) {   // MỘT lệnh bulk cho cả danh sách (anh 26/10/2026: "sao ko gửi hàng loạt"); T7 tắt đủ, không giữ camp "hôm nay đang lãi" (anh 26/10/2026)
       for (const m of tat) { lamRoi.add(m.id); delete cho[m.id]; }
       let r; try { r = JSON.parse((await chay(LAM, ['tat-loat', tat.map((m) => m.id).join(','), '--t7', '--ep', '--luat', LT.luat, '--ai', LT.ai], 300)).trim().split('\n').pop()); } catch (e) { r = { loi: e.message } }
-      for (const m of tat) { const ok = (r.da_tat || []).includes(m.id) || (r.lich || []).includes(m.id); if (!ok) giu.ds[m.id] = String(r.loi || r.giu?.[m.id] || 'chưa tắt').slice(0, 80); daT7.push({ m, r: { ok, loi: ok ? null : giu.ds[m.id] } }); }
+      for (const m of tat) { const ok = (r.da_tat || []).includes(m.id) || (r.lich || []).includes(m.id), ly = r.giu?.[m.id];
+        // chỉ camp lam-ethopex TỪ CHỐI có lý do mới giữ tới hết ngày; hỏng vì lỗi máy (mạng / Ethopex chậm) thì KHÔNG ghi sổ → nhịp sau thử lại (29/10/2026 /audit)
+        if (!ok && ly) giu.ds[m.id] = String(ly).slice(0, 80); daT7.push({ m, r: { ok, loi: ok ? null : String(ly || r.loi || 'chưa tắt — nhịp sau thử lại').slice(0, 80) } }); }
     }
     fs.writeFileSync(TEP, JSON.stringify({ ...cho, _giu: giu }));
     if (daT7.length) {

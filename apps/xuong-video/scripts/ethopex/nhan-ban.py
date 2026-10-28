@@ -7,7 +7,7 @@ Chặn: camp gốc phải đang bật; phim đã có ≥ TRAN_PHIM camp ĐANG CH
 Chạy trên box3 (khoá ở studio):
   python3 nhan-ban.py <camp_gốc>            → in payload (chạy khô, không tạo gì)
   python3 nhan-ban.py <camp_gốc> --that [--lich today|tomorrow] [--luat "…"] [--ai "…"]   → tạo, đọc lại, ghi nhật ký (ethopex_nhat_ky)
-    Clone luôn dùng creative KHÁC creative gốc + chưa có camp chạy; mọi camp mới / clone chỉ dùng creative máy chấm SẠCH; chỉ clone camp gốc
+    Clone GIỮ NGUYÊN creative gốc tới trần tran_trung camp chạy / đoạn (28/10/2026), đủ trần mới đổi creative khác cùng phim; mọi camp mới / clone chỉ dùng creative máy chấm SẠCH; chỉ clone camp gốc
     đã chạm trần ngân sách (etp.cau_hinh.tran_camp, $30) (anh 25/10/2026).
   python3 nhan-ban.py <camp_khuôn> --creative <id> --content <id> --ten "<tên>" [--that …]   → camp MỚI cho creative khác trên khuôn camp đó
     (creative phải qua trước kiem-studio.sh + kiem-thoai-creative.sh; khuôn phải cùng ngôn ngữ với phim)

@@ -10,7 +10,9 @@ Nguồn: etp.nhat_ky (máy luật đã làm gì, lúc nào, camp nào) + etp.so_
 import json, os, re, subprocess, sys, collections
 
 NGAY = 14   # cửa sổ đo
-DA_BO = {"gb", "giam_ngay", "giam_som", "roi_tut"}   # luật đã bỏ khỏi máy (anh 29/10/2026 "làm 1+2") — dòng xét cũ còn trong etp.xet_luat tới 3 giờ, không đưa lên bản luật
+DA_BO = {"gb", "giam_ngay", "giam_som", "roi_tut"}
+DA_AP_CUNG_CR = True
+DA_AP_ROI_DAI = True   # luat-ethopex.py tăng trong ngày đòi ROI khung dài ≥ 0% từ 29/10/2026   # nhan-ban.py giữ nguyên creative gốc khi clone từ 28/10/2026 (commit 3cf79748) — số 14 ngày còn lẫn clone đổi creative trước đó   # luật đã bỏ khỏi máy (anh 29/10/2026 "làm 1+2") — dòng xét cũ còn trong etp.xet_luat tới 3 giờ, không đưa lên bản luật
 DB = os.environ.get("DATABASE_URL")
 def q(s):
     r = subprocess.run(["psql", DB, "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=s, capture_output=True, text=True, timeout=180)
@@ -93,7 +95,7 @@ def main():
                                   else DX("Giữ", f"tăng xong lãi mỗi camp tăng thêm ${ls_ - lt:.2f}/ngày.", None))
                     if len(am) >= 5:
                         ra_am = [a for a in am if a["sau"][2]]; ac, at = sum(a["sau"][0] for a in ra_am), sum(a["sau"][1] for a in ra_am)
-                        dx.append(DX("Thêm điều kiện ROI khung dài ≥ 0%", f"{len(am)} lần tăng khi ROI khung dài đang âm; sau đó ROI {roi(ac, at)}%.", "tăng trong ngày chỉ khi ROI khung dài ≥ 0%."))
+                        dx.append(DX("Giữ — đã áp 29/10", f"đã thêm ROI khung dài ≥ 0% cho tăng trong ngày ({len(am)} lần tăng cũ khi khung dài âm, sau đó ROI {roi(ac, at)}%).", None) if DA_AP_ROI_DAI else DX("Thêm điều kiện ROI khung dài ≥ 0%", f"{len(am)} lần tăng khi ROI khung dài đang âm; sau đó ROI {roi(ac, at)}%.", "tăng trong ngày chỉ khi ROI khung dài ≥ 0%."))
                 elif lt is not None and ls_ is not None:
                     mat = (lt - ls_) * len(do) * 2
                     dx.append(DX("Giữ", "giảm cắt được lỗ.", None) if lt < 0 and ls_ > lt
@@ -120,7 +122,9 @@ def main():
                 g["gốc tiêu ≥ $14/ngày" if gc >= 14 else "gốc tiêu $6–14/ngày" if gc >= 6 else "gốc tiêu < $6/ngày"].append(a)
             so_["theo_goc"] = {k: nhom(v) for k, v in sorted(g.items())}
             if len(co) >= 10:
-                if len(cung) >= 5 and len(khac) >= 5 and (so_["cung_cr"]["roi"] or 0) - (so_["khac_cr"]["roi"] or 0) >= 20:
+                if m == "nb" and len(cung) >= 5 and len(khac) >= 5 and (so_["cung_cr"]["roi"] or 0) - (so_["khac_cr"]["roi"] or 0) >= 20 and DA_AP_CUNG_CR:
+                    dx.append(DX("Giữ — đã áp từ 28/10", f"clone giống hệt ROI {so_['cung_cr']['roi']}%, đổi creative chỉ {so_['khac_cr']['roi']}% — đúng hướng máy nhân bản đang chạy.", None))
+                elif len(cung) >= 5 and len(khac) >= 5 and (so_["cung_cr"]["roi"] or 0) - (so_["khac_cr"]["roi"] or 0) >= 20:
                     dx.append(DX("Clone giữ nguyên creative", f"clone giống hệt ROI {so_['cung_cr']['roi']}%, clone đổi creative chỉ {so_['khac_cr']['roi']}%.", "nhân bản camp thắng bằng chính creative đó; đổi creative khi đã bão hoà."))
                 elif (so_["tat_ca"]["roi"] or 0) < 0:
                     dx.append(DX("Siết điều kiện nhân bản", f"clone đang lỗ (ROI {so_['tat_ca']['roi']}%).", "chỉ nhân bản camp gốc lãi đều hơn."))

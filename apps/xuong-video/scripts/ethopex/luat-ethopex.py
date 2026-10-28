@@ -306,7 +306,8 @@ except Exception as e:
 # 3 bản / ngày. Bản nhân bản do nhan-ban.py tạo (tên "(nhan ban N cua <gốc>)"), Phòng Ethopex tự chạy + báo 🧬.
 # NỚI (anh 23/10/2026: "còn nhiều camp thắng mà sao không tự clone… tất cả chỗ này lên full là có $1000"): ROI tháng ≥ 50%, tiêu ≥ $3, ROI 3 ngày ≥ 20%,
 # mỗi phim 6 bản/ngày, mỗi camp gốc 1 bản / 6 giờ (cũ 100% · $10 · 50% · 3/ngày · 24 giờ — Step Back +206% tiêu $6 không được nhân bản)
-NB_ROI, NB_CHI, NB_ROI3, NB_PHIM_NGAY, TRAN_PHIM_CHAY = 50, 3, 20, 6, 30
+NB_ROI, NB_CHI, NB_ROI3, NB_PHIM_NGAY = 50, 3, 20, 6
+TRAN_PHIM_CHAY = int(float(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'tran_phim'), '0')") or 0)) or 10**6   # bỏ trần 30 camp/phim (anh 28/10/2026) — cùng khoá với nhan-ban.py
 TRAN_NB = float(q("select coalesce((select gia_tri::text::numeric from etp.cau_hinh where khoa = 'tran_camp'), 30)") or 30)   # = nhan-ban.py: chỉ clone camp đã chạm trần
 nb = []
 try:

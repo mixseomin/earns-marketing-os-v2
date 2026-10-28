@@ -27,8 +27,10 @@ import datetime as dt, importlib.util, json, os, re, subprocess, sys, time, urll
 # RÀO CHẮN etp (etp.on.tc bước 3, 24/10/2026): dừng khẩn / trần camp / trần ngày / trần bộ — apps/etp/cong.py
 import importlib.util as _iuc
 _sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
-TRAN_PHIM = 30
+# TRẦN CAMP / PHIM: BỎ (anh 28/10/2026: "ko set tối đa … vì có rule tắt và giảm bậc rồi" — trần 30 từ 22/10 bỏ cùng trần 3 camp/đoạn; giới hạn còn lại = trần camp trùng đoạn
+# tran_trung (điểm bão hoà) + cổng bão hoà phim). etp.cau_hinh.tran_phim > 0 thì đặt lại trần; 0 / không có = không trần
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
+TRAN_PHIM = int(float(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'tran_phim'), '0')") or 0)) or 10**6
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ethopex_api as EA   # cổng chung: chỉ tài khoản nhà (anh 28/10/2026)
 def api(duong, body=None):

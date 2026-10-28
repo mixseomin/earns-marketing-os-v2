@@ -1408,6 +1408,9 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const moBang = useMemo(() => new Set([...moCay].map((k) => (k[0] === 'p' ? `g:${k.slice(1)}` : k.slice(1)))), [moCay]);
   const phimMap = useMemo(() => new Map(phim.map((p) => [p.k, p])), [phim]);
   const sd7 = (c: CampEtpKho) => ngay.map((d) => so.get(c.camp_id)?.get(d));
+  // tổng 6 ngày trọn + hôm nay (chỉ số 7) của một nhóm camp — dòng phim / dòng tổng của bảng
+  const tongNgay = (rs: CampEtpKho[]): SoTien[] => [...ngay.map((d) => rs.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 })),
+    rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })];
   const cotCay: DataColumn<CampEtpKho>[] = [
     { key: 'camp', header: 'Phim → camp gốc → bản nhân', align: 'left', width: 190, cellTitle: (c) => c.ten ?? undefined, sortValue: (c) => c.camp_id,
       cell: (c) => { const l = loiNb.get(c.camp_id), n = dem(c); return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
@@ -1426,8 +1429,10 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
     { key: 'loai', header: 'Loại', align: 'left', cell: (c) => <BadgeDang d={c.dang} ngan />, sortValue: (c) => c.dang ?? '' },
     ...(coLich ? [{ key: 'lich', header: 'Lịch giờ', align: 'left' as const, cell: (c: CampEtpKho) => <LichCamp c={c} du={du} tl={tlC} gon />, sortValue: (c: CampEtpKho) => tlC(c.the_loai) }] : []),
     ...ngay.map((d, i): DataColumn<CampEtpKho> => ({ key: `roi${i}`, header: `${d.slice(8, 10)}/${d.slice(5, 7)}`, align: 'center', width: 46, title: `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)} — lọc 🔍 theo %`,
-      cell: (c) => { const sd = sd7(c); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={maxLai([...sd, c.nay])} />; }, sortValue: (c) => roi(sd7(c)[i]) })),
-    { key: 'nay', header: 'nay', align: 'center', width: 46, title: 'ROI hôm nay — lọc 🔍 theo %', cell: (c) => <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={maxLai([...sd7(c), c.nay])} mo />, sortValue: (c) => roi(c.nay) },
+      cell: (c) => { const sd = sd7(c); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={maxLai([...sd, c.nay])} />; }, sortValue: (c) => roi(sd7(c)[i]),
+      total: (rs) => { const sd = tongNgay(rs); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả nhóm ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i]} max={maxLai(sd)} />; } })),
+    { key: 'nay', header: 'nay', align: 'center', width: 46, title: 'ROI hôm nay — lọc 🔍 theo %', cell: (c) => <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={maxLai([...sd7(c), c.nay])} mo />, sortValue: (c) => roi(c.nay),
+      total: (rs) => { const sd = tongNgay(rs); return <O cot="roi-nay" v={roi(sd[7])} t="ROI cả nhóm hôm nay" s={sd[7]} max={maxLai(sd)} mo />; } },
     { key: 'lai', header: `Lãi ${tenKy.toLowerCase()}`, title: `lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <LaiCot s={laiKy(c)} />, sortValue: (c) => Math.round(laiDai(c) * 100) / 100,
       total: (rs) => <LaiCot s={rs.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /> },
   ];

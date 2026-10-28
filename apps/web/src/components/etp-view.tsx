@@ -704,11 +704,15 @@ function useNoi<T>() {
   const [v, setV] = useState<(T & { x: number; y: number }) | null>(null);
   const hen = useRef<number | undefined>(undefined);
   const dangMo = useRef(false); dangMo.current = !!v;
+  // TÔ DÒNG ĐANG MỞ THẺ (anh 28/10/2026 "highlight dòng khi đang hover của nó"): rời chuột sang thẻ nổi thì :hover của dòng mất — giữ lớp .dang-noi trên dòng chứa ô đã rê
+  // (dòng Cây .dong / dòng phim summary / dòng Bảng tr) suốt lúc thẻ mở; một chỗ cho mọi thẻ nổi dùng useNoi
+  const hang = useRef<Element | null>(null);
+  useEffect(() => { const el = hang.current; if (!v || !el) return; el.classList.add('dang-noi'); return () => el.classList.remove('dang-noi'); }, [v]);
   const giu = useCallback(() => { if (hen.current) window.clearTimeout(hen.current); }, []);
   const dongTre = useCallback(() => { giu(); hen.current = window.setTimeout(() => setV(null), 300); }, [giu]);
   const dong = useCallback(() => { giu(); setV(null); }, [giu]);
   const mo = useCallback((x: T, e: React.MouseEvent) => {
-    giu(); const toaDo = { x: e.clientX, y: e.clientY };
+    giu(); const toaDo = { x: e.clientX, y: e.clientY }; hang.current = (e.currentTarget as Element | null)?.closest?.('.dong, summary, tr') ?? null;
     if (dangMo.current) setV({ ...x, ...toaDo }); else hen.current = window.setTimeout(() => setV({ ...x, ...toaDo }), TRE_MO);
   }, [giu]);
   useEffect(() => { if (!v) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') dong(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [v, dong]);
@@ -724,14 +728,16 @@ function KhungNoi({ x, y, rong, cao, noi, children, style }: { x: number; y: num
   useLayoutEffect(() => { const el = ref.current; if (!el) return; const f = () => setH(el.offsetHeight); f(); const ro = new ResizeObserver(f); ro.observe(el); return () => ro.disconnect(); }, []);
   const top = y + 12 + h <= H - 8 ? y + 12 : y - 12 - h >= 8 ? y - 12 - h : Math.max(8, H - h - 8);
   if (typeof document === 'undefined') return null;
-  return createPortal((
+  return createPortal((<>
+    {/* lớp tô dòng đang mở thẻ (useNoi) — đặt cùng thẻ nên có ở mọi màn (Cây, Bảng, ROAS) */}
+    <style>{'.dang-noi,.dang-noi>td{background:var(--hover,rgba(255,255,255,.09))!important;box-shadow:inset 2px 0 0 #60a5fa}'}</style>
     <div ref={ref} onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left: Math.max(8, Math.min(x + 14, W - rong - 16)), top,
       background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', ...style }}>
       <button type="button" onClick={noi.dong} aria-label="Đóng" title="Đóng (Esc)" style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: 12, border: '1px solid var(--line)',
         background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: '20px' }}>✕</button>
       {children}
     </div>
-  ), document.body);
+  </>), document.body);
 }
 /** danh sách URL khung của lớp ảnh — máy chủ gửi gọn mẫu '{n}' + số khung (etp-doc gonLop), bản cũ gửi thẳng danh sách */
 const khungUrl = (a?: ChamCr['lop']['anh']) => (a?.khung_mau && a.so_khung ? Array.from({ length: a.so_khung }, (_, i) => a.khung_mau!.replace('{n}', String(i + 1))) : a?.khung_url);

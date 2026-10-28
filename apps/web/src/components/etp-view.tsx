@@ -1186,7 +1186,9 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp 
             {p.sut ? <span title={`${p.sut} camp lãi giảm 2 ngày liền`} style={{ color: '#f87171' }}>↘{p.sut}</span> : null}
             </span>
             {/* tổng ngân sách/ngày camp đang bật — mép phải trùng mép phải $ của camp (điện thoại: ô 30px canh phải; máy tính: ô $ 26px đầu BacCamp) */}
-            <span title="tổng ngân sách/ngày các camp đang bật (ACTIVE) của phim" style={{ display: 'flex', justifyContent: 'flex-end', width: hep ? undefined : 26, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>${p.all.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)}</span>
+            {/* $0 = phim không còn camp chạy → mờ; ≥ $20 → đậm + sáng (anh 28/10/2026) */}
+            {(() => { const t = p.all.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0);
+              return <span title="tổng ngân sách/ngày các camp đang bật (ACTIVE) của phim" style={{ display: 'flex', justifyContent: 'flex-end', width: hep ? undefined : 26, color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : undefined, opacity: t > 0 ? 1 : 0.35, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>${t}</span>; })()}
             {hep ? null : <span style={{ gridColumn: '6 / -1', display: 'flex', gap: 4, overflow: 'hidden' }}><LoaiPhim ds={p.all} lai={laiDai} /></span>}
             </span>
             {(() => { const sd = ngay.map((d) => p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }));

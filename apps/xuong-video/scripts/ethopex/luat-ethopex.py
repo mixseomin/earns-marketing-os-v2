@@ -611,7 +611,7 @@ def _xet_luat():
         _th = [x for x in ([_g[0][0] + dt.timedelta(days=i) for i in range((_hq - _g[0][0]).days + 1)] if _g else []) if x not in {y[0] for y in _g}]
         ls.append(L("d24", "D24 · dừng > 24 giờ", "Từ ngày chi đầu tiên tới hôm qua có một ngày trọn không chi (camp đã đứng ≥ 24 giờ: tắt rồi bật lại, hoặc Meta ngừng phân phối) → máy tắt hẳn, không xét lãi lỗ.",
             [["Ngày có chi (đã khép)", f"{len(_g)} ngày", "≥ 1", bool(_g)], ["Ngày trọn không chi sau ngày chi đầu", ", ".join(f"{x:%d/%m}" for x in _th[:4]) or "không", "≥ 1 ngày", bool(_th)]],
-            "tat_d24" if int(cid) in vao["tat_d24"] else None, tien=1))
+            "tat_d24" if int(cid) in vao["tat_d24"] else None, tien=2))   # cả hai là tiền đề: chưa có khoảng nghỉ = KHÔNG ÁP, không có "sắp chạm D24" (anh 29/10/2026: thẻ D24 nét đứt trên camp chưa từng nghỉ)
         # OFF — tắt camp lỗ lâu
         ls.append(L("off", "OFF · tắt camp lỗ lâu", "Camp đủ 7 ngày tuổi, tiêu > $10 từ trước tới nay mà ROI < −50% → đề xuất tắt.",
             [["Tuổi", f"{tuoi} ngày" if tuoi is not None else "—", f"≥ {TUOI_TAT} ngày", tuoi is not None and tuoi >= TUOI_TAT], ["Chi từ trước tới nay", f(tr["chi"] if tr else 0, "$"), "> $10", bool(tr and tr["chi"] > 10)],

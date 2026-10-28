@@ -151,6 +151,18 @@ def main():
           f"on conflict (camp_id, ngay) do update set ngan_sach = excluded.ngan_sach, trang_thai = excluded.trang_thai, "
           f"ns_max = greatest(so_ngay.ns_max, excluded.ns_max), bat = so_ngay.bat or excluded.bat")
     except Exception as e: loi.append(f"so_ngay: {e}")
+    # ── PHỄU camp × ngày (đo điểm chạm creative, anh 28/10/2026) — bảng riêng etp.so_pheu, không đụng chi/thu ở trên; 3 ngày gần nhất ghi đè (số về trễ)
+    try:
+        tu_p = "2026-10-19" if day_du or q("select count(*) from etp.so_pheu") == "0" else (nay - dt.timedelta(days=3)).isoformat()
+        cot_p = ["impressions", "clicks", "conversions", "supply_impressions", "supply_clicks", "supply_conversions", "supply_conversion_value"]
+        gp = {}
+        for x in bc(["campaign_name", "date"] + cot_p, ["campaign_name", "date"], tu_p, nay.isoformat()):
+            if not x.get("campaign_id"): continue
+            e = gp.setdefault((x["campaign_id"], str(x["report_date"])[:10]), [0.0] * len(cot_p))
+            for i, c in enumerate(cot_p): e[i] += float(x.get(c) or 0)
+        kq["so_dong_pheu"] = ghi("so_pheu", [{"camp_id": c, "ngay": d, "hien": int(v[0]), "nhap": int(v[1]), "chuyen": int(v[2]), "s_hien": int(v[3]), "s_nhap": int(v[4]), "s_chuyen": int(v[5]), "s_gt": round(v[6], 4)}
+            for (c, d), v in gp.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "hien": "int", "nhap": "int", "chuyen": "int", "s_hien": "int", "s_nhap": "int", "s_chuyen": "int", "s_gt": "numeric"})
+    except Exception as e: loi.append(f"so_pheu: {e}")
     # ── số theo giờ (phim × giờ) hôm qua + hôm nay
     try:
         for d in ([(nay - dt.timedelta(days=i)).isoformat() for i in range((nay - dt.date(2026, 10, 20)).days, -1, -1)] if day_du else [(nay - dt.timedelta(days=1)).isoformat(), nay.isoformat()]):

@@ -1,4 +1,4 @@
-// Bấm kèm ⌘/Ctrl (hoặc chuột giữa) lên một bộ lọc = MỞ TAB MỚI với URL đã áp bộ lọc đó, thay vì đổi tab đang xem
+// Bấm kèm ⌘/Ctrl/⇧ (hoặc chuột giữa) lên một bộ lọc = MỞ TAB MỚI với URL đã áp bộ lọc đó, thay vì đổi tab đang xem
 // (anh chốt 20/09/2026, áp cho mọi bộ lọc). Dùng chung cho Segmented / FilterChips / ViewToggle.
 import type { MouseEvent } from 'react';
 
@@ -11,7 +11,7 @@ export function urlVoiParam(key: string, value: string | null | undefined): stri
 
 /** true nếu đã xử lý (mở tab mới) — caller return ngay, không đổi state. */
 export function moTabNeuModifier(e: MouseEvent, href: string | null | undefined): boolean {
-  if (!href || !(e.metaKey || e.ctrlKey || e.button === 1)) return false;
+  if (!href || !(e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1)) return false;   // ⇧-click cũng mở tab mới (anh 28/10/2026 etp #1472)
   e.preventDefault(); e.stopPropagation();
   window.open(href, '_blank', 'noopener');
   return true;

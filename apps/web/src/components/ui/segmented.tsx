@@ -19,7 +19,7 @@ export interface SegmentedOption<T> {
    * rê vào lựa chọn → thả danh sách ngay dưới nó; bấm chính lựa chọn vẫn gọi onChange như cũ. */
   menu?: SegmentedMenuItem[];
 }
-export interface SegmentedMenuItem { key: string; label: ReactNode; title?: string; active?: boolean; onPick: () => void }
+export interface SegmentedMenuItem { key: string; label: ReactNode; title?: string; active?: boolean; onPick: () => void; /** URL của mục — ⇧/⌘/Ctrl-click hoặc chuột giữa mở TAB MỚI */ href?: () => string }
 
 /** menu con thả dưới một nút: portal ra <body> (thanh công cụ cuộn ngang không cắt), trễ đóng 200ms để kịp rê chuột xuống */
 function MenuCon({ menu, children }: { menu?: SegmentedMenuItem[]; children: (p: { ref: React.RefObject<HTMLButtonElement | null>; mo: () => void; dong: () => void }) => ReactNode }) {
@@ -33,7 +33,7 @@ function MenuCon({ menu, children }: { menu?: SegmentedMenuItem[]; children: (p:
     {toaDo && menu?.length && typeof document !== 'undefined' ? createPortal(
       <div data-comp="ui.Segmented.menu" onMouseEnter={giu} onMouseLeave={dong} style={{ position: 'fixed', left: toaDo.x, top: toaDo.y, zIndex: 80, minWidth: 150, padding: 4,
         background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column', gap: 1 }}>
-        {menu.map((m) => <button key={m.key} type="button" title={m.title} onClick={() => { setToaDo(null); m.onPick(); }}
+        {menu.map((m) => <button key={m.key} type="button" title={m.title} onClick={(e) => { setToaDo(null); if (moTabNeuModifier(e, m.href?.())) return; m.onPick(); }} onAuxClick={(e) => { if (m.href) moTabNeuModifier(e, m.href()); }}
           style={{ textAlign: 'left', padding: '5px 10px', fontSize: 12, borderRadius: 5, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
             background: m.active ? 'var(--accent-soft)' : 'transparent', color: m.active ? 'var(--accent)' : 'var(--fg-1)', fontWeight: m.active ? 600 : 400 }}
           onMouseEnter={(e) => { if (!m.active) e.currentTarget.style.background = 'var(--hover, rgba(255,255,255,.07))'; }}

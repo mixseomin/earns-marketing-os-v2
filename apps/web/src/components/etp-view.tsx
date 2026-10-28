@@ -519,7 +519,7 @@ function BaoLuat({ du }: { du: DuLieuEtp }) {
       </div>
       <div style={the}>
         <h3 style={{ fontSize: 14, margin: '0 0 8px' }} title="Support 24/10/2026: chi ≥ ~$100 mà ROI > 50% ổn định 2–3 ngày → áp dụng bid ROAS. Thanh = đã chi / $100; ô = ROI từng ngày trọn">★ Bid ROAS</h3>
-        {du.roasChay.length ? <div style={{ fontSize: 11, color: 'var(--fg-2)', margin: '2px 0 2px' }} title="camp chạy bid ROAS (nhan-ban.py --roas) — dạng riêng, miễn mọi luật; luật tắt ROAS: chi > $20 mà ROI < 30% trong 1–2 ngày đã khép → báo riêng trên Telegram">Đang chạy</div> : null}
+        {du.roasChay.length ? <div style={{ fontSize: 11, color: 'var(--fg-2)', margin: '2px 0 2px' }} title="camp chạy bid ROAS (nhan-ban.py --roas) — dạng riêng, miễn mọi luật; luật tắt ROAS: chi > $20 mà lỗ (ROI < 0%) trong 1–2 ngày đã khép → báo riêng trên Telegram">Đang chạy</div> : null}
         {du.roasChay.map((r) => {
           const m = (r.ten ?? '').match(/roas ([\d.]+) duplicate by (\d+)/), roi = r.chi ? Math.round((r.thu - r.chi) / r.chi * 100) : null;
           return (
@@ -595,11 +595,11 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
     ...cot.slice(1).filter((k) => k.key !== 'tuoi'),
     { key: 'tuchi', header: 'Chi từ lúc lên', cell: (c) => <Tien v={tu(c).chi} />, sortValue: (c) => tu(c).chi, total: (rs) => <KeToan v={rs.reduce((a, c) => a + tu(c).chi, 0)} /> },
     { key: 'tuthu', header: 'Thu từ lúc lên', cell: (c) => <Tien v={tu(c).thu} />, sortValue: (c) => tu(c).thu, total: (rs) => <KeToan v={rs.reduce((a, c) => a + tu(c).thu, 0)} /> },
-    { key: 'turoi', header: 'ROI từ lúc lên', title: 'luật tắt ROAS (Support): chi > $20 mà ROI < 30% trong 1–2 ngày đã khép → báo riêng anh trên Telegram', cell: (c) => <Roi s={tu(c)} />, sortValue: (c) => roiOf(tu(c)) ?? -1e9 },
+    { key: 'turoi', header: 'ROI từ lúc lên', title: 'luật tắt ROAS: chi > $20 mà lỗ (ROI < 0%) trong 1–2 ngày đã khép → báo riêng anh trên Telegram', cell: (c) => <Roi s={tu(c)} />, sortValue: (c) => roiOf(tu(c)) ?? -1e9 },
   ];
   return (
     <div>
-      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px' }}>Camp bid ROAS là dạng riêng: miễn mọi luật tăng / giảm / tắt / lịch giờ. Chỉ một luật: chi &gt; $20 mà ROI &lt; 30% trong 1–2 ngày đã khép → báo riêng anh trên Telegram (nút Tắt / Giữ), máy không tự tắt.</div>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px' }}>Camp bid ROAS là dạng riêng: miễn mọi luật tăng / giảm / tắt / lịch giờ. Chỉ một luật: chi &gt; $20 mà lỗ (ROI &lt; 0%) trong 1–2 ngày đã khép → báo riêng anh trên Telegram (nút Tắt / Giữ), máy không tự tắt.</div>
       <DataTable rows={camps} columns={cotRoas} groups={nhom} groupHeader getRowKey={(c) => String(c.camp_id)} persistKey="etp-roas" minWidth={1300} defaultSort={[{ key: 'tao', dir: 'desc' }]}
         searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''}`} searchPlaceholder="Tìm camp ROAS, phim…" />
       {noi.v && dang ? (

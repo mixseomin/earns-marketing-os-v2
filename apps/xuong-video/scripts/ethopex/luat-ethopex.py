@@ -493,7 +493,7 @@ if vn.hour >= 21 or vn.hour < 5:
 # "camp tiêu > $20 mà ROI < 30%, 1–2 ngày thì off" = ngày đã khép hôm qua, hoặc cộng 2 ngày đã khép, chi > $20 và ROI < 30% → báo riêng anh trên Telegram (nút Tắt / Giữ), máy không tự tắt (anh 26/10/2026).
 import importlib.util as _iuc
 _sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
-ROAS_CHI, ROAS_ROI = 20, 30
+ROAS_CHI, ROAS_ROI = 20, 0   # anh 28/10/2026: "camp lãi sao lại đòi tắt" — chỉ báo khi LỖ (ROI < 0%); bản Support 26/10 là < 30% báo cả camp đang lãi
 try: _ROAS = CONG.camp_roas() | {int(c["id"]) for c in ds_camp if CONG.la_roas(c.get("name"))}
 except Exception as e: _ROAS = {int(c["id"]) for c in ds_camp if CONG.la_roas(c.get("name"))}; loi_may.append((0, f"không đọc được danh sách camp ROAS trong kho: {str(e)[:80]}"))
 _bo_roas = lambda ds: [x for x in ds if int(x[0] or 0) not in _ROAS]
@@ -533,7 +533,7 @@ def _xet_luat():
         tuoi = (dt.datetime.now(dt.timezone.utc) - _tao[cid]).days if cid in _tao else None
         b2 = int(cid) in bo2; ls = []
         if int(cid) in _ROAS:
-            ls.append(L("roas", "Luật ROAS (camp ★)", "Camp ROAS miễn mọi luật khác; chỉ báo riêng khi 1–2 ngày đã khép chi > $20 mà ROI < 30%.", [], "tat_roas" if int(cid) in vao["tat_roas"] else None))
+            ls.append(L("roas", "Luật ROAS (camp ★)", "Camp ROAS miễn mọi luật khác; chỉ báo riêng khi 1–2 ngày đã khép chi > $20 mà LỖ (ROI < 0%).", [], "tat_roas" if int(cid) in vao["tat_roas"] else None))
             ra[int(cid)] = ls; continue
         # T2 — tắt sau 2 ngày có chi đầu tiên
         ds2 = _n2.get(int(cid), [None, []])[1] if "_n2" in globals() else []

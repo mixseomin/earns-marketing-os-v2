@@ -476,7 +476,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       + (Number(p.chi) > 0 ? `\nCả phim 2 ngày khép: ${p.n} camp · chi $${Number(p.chi).toFixed(2)} · ROI ${r(Number(p.chi), Number(p.thu))}` : '')
       + `\n<a href="https://etp.on.tc/?t=camp&amp;v=cay&amp;ngan=camp:${Number(id)}">Xem camp trên etp.on.tc</a>`;
   }
-  // ★ CAMP ROAS CHẠM LUẬT TẮT (tài liệu Support 26/10/2026: chi > $20 mà ROI < 30% trong 1–2 ngày đã khép; anh 26/10/2026: "Luật tắt thì khi chạm báo cho tao riêng
+  // ★ CAMP ROAS CHẠM LUẬT TẮT (chi > $20 mà LỖ trong 1–2 ngày đã khép — anh 28/10/2026 bỏ ngưỡng ROI < 30% của Support vì báo cả camp lãi; anh 26/10/2026: "Luật tắt thì khi chạm báo cho tao riêng
   // trên tele"): MỖI CAMP MỘT TIN RIÊNG, có chuông, nút ⏹ Tắt (et:tatr → lam-ethopex tat --ep: anh bấm = lệnh đích danh) / Giữ. Máy KHÔNG tự tắt. Mỗi camp báo một lần mỗi ngày.
   {
     const TEP = path.join(DATA(), 'ethopex-roas-bao.json'), homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
@@ -484,7 +484,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     for (const m of kq.tat_roas || []) {
       if (da[m.id]) continue; da[m.id] = homNay;
       const hs = await hieuSuatCamp(m.id).catch((e) => `<i>không đọc được hiệu suất: ${esc(e.message.slice(0, 80))}</i>`);
-      await guiNhanh({ message_thread_id: topic, text: `★ <b>CAMP ROAS CHẠM LUẬT TẮT</b> — chi &gt; $20 mà ROI &lt; 30% trong 1–2 ngày đã khép (Support 26/10/2026)\n${esc(m.chu)}\n${hs}\n<i>Máy không tự tắt — anh quyết.</i>`.slice(0, 4000),
+      await guiNhanh({ message_thread_id: topic, text: `★ <b>CAMP ROAS CHẠM LUẬT TẮT</b> — chi &gt; $20 mà LỖ (ROI &lt; 0%) trong 1–2 ngày đã khép\n${esc(m.chu)}\n${hs}\n<i>Máy không tự tắt — anh quyết.</i>`.slice(0, 4000),
         reply_markup: { inline_keyboard: [[{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tatr:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]] } });
       gui++;
     }

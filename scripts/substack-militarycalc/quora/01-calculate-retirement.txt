@@ -1,0 +1,26 @@
+You need three numbers: your High-3, your years of service, and your multiplier.
+
+1. High-3 is the average of your highest 36 months of basic pay. Basic pay only. BAH, BAS, special pays and bonuses don't count, so start from the basic pay line on your LES, not the total deposit.
+
+2. Years of service is your creditable service on the day you retire, months included. 20 years and 6 months counts as 20.5.
+
+3. The multiplier depends on your system. Legacy High-3 is 2.5% per year. Blended Retirement (BRS, anyone who joined after January 1, 2018 or opted in) is 2.0% per year.
+
+Monthly pension = High-3 x years x multiplier.
+
+Round-number example: if your top 36 months averaged $5,267 of basic pay, 20 years under legacy is 50%, about $2,633 a month. Under BRS it's 40%, about $2,107.
+
+The mistake I see most often is using the last paycheck. Take $5,600 x 50% and you get $2,800, which is $167 a month too high for legacy in this example and almost $700 too high under BRS. People size a mortgage on that number and find out at their first official estimate.
+
+Quick self-check before you trust your number:
+- Did I use basic pay, not the total deposit?
+- Is it my highest 36 months, not my last check?
+- Did I count months of service, not just whole years?
+- Is my multiplier 2.5% (legacy) or 2.0% (BRS)?
+If any answer is "not sure", that is the line to fix first.
+
+Two more things come out of the gross: federal tax withholding, and the Survivor Benefit Plan premium if you elect it. Plan on the net.
+
+If you want to skip the napkin math, this free calculator takes your pay history and system and shows the monthly figure: https://militarycalc.com/retirement?utm_source=quora&utm_medium=answer&utm_campaign=quora-01-calculate-retirement
+
+Before you separate, request your official estimate from your branch or DFAS and compare it with your own number. If they differ, ask why before your date, not after.

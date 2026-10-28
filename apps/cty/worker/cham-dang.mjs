@@ -35,8 +35,8 @@ export async function kiemGoc(ds) {
 /** Máy đo một bài đăng. v = { nen_url, xuat_luc, video_url, dang: { title, description, link } }, ten = tên kênh / thương hiệu (câu móc không được mở bằng tên kênh). */
 export function doBaiDang(v, ten = '') {
   const chan = [], canh = [], d = v.dang ?? {}, title = String(d.title ?? ''), mo = String(d.description ?? ''), chu = `${title}\n${mo}`, thuong = chu.toLowerCase();
-  // 1 · ảnh thật — poll (X) không có media; câu trả lời Quora (bài viết có dang.cau_hoi, 28/10/2026) là chữ trả lời, ảnh không bắt buộc
-  const khongAnh = d.loai === 'poll' || (d.loai === 'bai' && !!d.cau_hoi);
+  // 1 · ảnh thật — poll (X) không có media; bài viết (Quora / Substack…) cũng phải có ảnh thật (Phòng Nội dung chặn câu trả lời Quora không ảnh, 28/10/2026)
+  const khongAnh = d.loai === 'poll';
   if (!v.nen_url && !khongAnh) chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');
   else if (v.nen_url && d.loai !== 'poll' && !NGUON_ANH.test(v.nen_url)) chan.push(`ảnh nền không từ Pexels / Pixabay / Unsplash / Wikimedia Commons (${String(v.nen_url).slice(0, 60)})`);
   for (const u of [v.nen_url, ...(v.nen_them ?? [])]) if (/wikimedia\.org/i.test(u ?? '') && !/Wikimedia Commons/.test(String(d.description ?? ''))) { chan.push('ảnh Wikimedia Commons chưa ghi công tác giả + giấy phép trong chữ đăng'); break; }
@@ -70,12 +70,12 @@ export function doBaiDang(v, ten = '') {
 }
 
 /** HTML gửi kiem-bai cho một bài viết: có html (Substack / Medium) thì dùng; câu trả lời Quora chỉ có chữ → bọc đoạn. */
-export const htmlBaiViet = (d) => d.html || `<article><h1>${String(d.title ?? '').replace(/</g, '&lt;')}</h1>${String(d.description ?? '').split(/\n\s*\n/).map((p) => `<p>${p.replace(/</g, '&lt;')}</p>`).join('')}</article>`;
+export const htmlBaiViet = (d, anh = null) => d.html || `<article><h1>${String(d.title ?? '').replace(/</g, '&lt;')}</h1>${anh ? `<img src="${anh}" alt="${String(d.title ?? '').replace(/"/g, '')}">` : ''}${String(d.description ?? '').split(/\n\s*\n/).map((p) => `<p>${p.replace(/</g, '&lt;')}</p>`).join('')}</article>`;
 /** Kết quả kiem-bai cho đúng bản của bài viết: 'DUYET' | 'SUA_LAI' | 'KHONG_DUYET' | 'CHO'. Chưa nộp thì nộp (url bai://<máy>/<slug>, khoa = md5 chữ đăng). */
 async function kiemBaiViet(v) {
   const { ketKhoa, nopBai } = await import('./kiem-bai.mjs'), url = `bai://${v.ma}/${v.slug}`, k = ketKhoa(url, v.dang_md5);
   if (k) return k;
-  try { nopBai({ url, tu: 'claude', html: htmlBaiViet(v.dang), loai: v.dang.loai_bai ?? (v.dang.cau_hoi ? 'bai-dang-mxh' : 'bai-dich-mxh'), khoa: v.dang_md5 }); return 'CHO'; }
+  try { nopBai({ url, tu: 'claude', html: htmlBaiViet(v.dang, v.nen_url), loai: v.dang.loai_bai ?? (v.dang.cau_hoi ? 'bai-dang-mxh' : 'bai-dich-mxh'), khoa: v.dang_md5 }); return 'CHO'; }
   catch (e) { return `không nộp được: ${String(e.message).slice(0, 120)}`; }   // hết lượt sửa → SỬA LẠI kèm lý do, anh mở khoá trên Telegram
 }
 
@@ -243,14 +243,16 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   const pc = vanDeMay([{ ma: 'fp', ten: 'FP', nen: 'facebook:580', acct: '580', tran: 1, cuoi: '2026-10-17', con: 99 }, { ma: 'fp', ten: 'FP', nen: 'facebook:589', acct: '589', tran: 1, cuoi: '2026-10-15', con: 99 }], '2026-10-17');
   t.deepEqual(pc.map((x) => x.khoa), ['lo|fp|facebook:589'], 'họ nền xét theo tài khoản');
   t.equal(hoNen('facebook:580'), 'fb'); t.equal(hoNen('fb_link'), 'fb'); t.equal(hoNen('facebook'), 'fb'); t.equal(hoNen('x_anh'), 'x'); t.equal(hoNen('x'), 'x'); t.equal(hoNen('youtube'), 'youtube');
-  // bài viết (28/10/2026): câu trả lời Quora không cần ảnh, cần kiem-bai DUYỆT đúng bản; bài Substack cần ảnh
+  // bài viết (28/10/2026): mọi bài viết cần ảnh thật, cần kiem-bai DUYỆT đúng bản; bài Substack cần ảnh
   const qa = { ...tot, nen_url: null, video_url: null, dang: { ...tot.dang, loai: 'bai', cau_hoi: 'https://www.quora.com/x' } };
-  t.equal(doBaiDang({ ...qa, kiem: 'DUYET' }).ket, 'DUYET', 'câu trả lời Quora đã kiem-bai DUYỆT');
+  t.equal(doBaiDang({ ...qa, nen_url: tot.nen_url, kiem: 'DUYET' }).ket, 'DUYET', 'câu trả lời Quora có ảnh + kiem-bai DUYỆT');
+  t.ok(doBaiDang({ ...qa, kiem: 'DUYET' }).chan_cung.some((x) => x.includes('ảnh thật')), 'câu trả lời Quora không ảnh = chặn');
   t.ok(doBaiDang(qa).chan_cung.some((x) => x.includes('kiem-bai')), 'chưa kiem-bai = chặn');
   t.ok(doBaiDang({ ...qa, kiem: 'SUA_LAI' }).chan_cung.some((x) => x.includes('SUA_LAI')), 'kiem-bai SỬA LẠI = chặn');
   t.ok(doBaiDang({ ...qa, kiem: 'DUYET', dang: { ...qa.dang, cau_hoi: null } }).chan_cung.some((x) => x.includes('ảnh thật')), 'bài Substack thiếu ảnh = chặn');
   t.equal(doBaiDang({ ...qa, kiem: 'DUYET', dang: { ...qa.dang, cau_hoi: null, description: 'x', html: `<p>${tot.dang.description}</p>` }, nen_url: tot.nen_url }).chan_cung.filter((x) => x.includes('link')).length, 0, 'link nằm trong html cũng tính');
   t.ok(htmlBaiViet({ title: 'Q', description: 'a\n\nb' }).includes('<p>b</p>'), 'bọc đoạn cho kiem-bai');
+  t.ok(htmlBaiViet({ title: 'Q', description: 'a' }, 'https://images.pexels.com/x.jpg').includes('<img src="https://images.pexels.com/x.jpg"'), 'ảnh bìa vào bản gửi kiem-bai');
   console.log('✓ cham-dang: 13 ca đạt (+ tiêu đề trùng ×2, lỡ lượt / kho sắp cạn, họ nền xoay vòng, dừng vì cảnh báo tài khoản) · (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
 }
 if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--chay')) { console.log(await nhipChamDang()); process.exit(0); }

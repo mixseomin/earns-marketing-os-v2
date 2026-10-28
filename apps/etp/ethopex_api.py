@@ -15,7 +15,10 @@ import json, os, re, subprocess, urllib.request
 class NgoaiNha(RuntimeError): pass
 
 def _q(s):
-    r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-c", s], capture_output=True, text=True, timeout=30)
+    # trên box3 đọc thẳng DATABASE_URL; trên iMac (the-loai / phim-moi… nạp module này) đọc qua ssh box3 — 28/10/2026 gãy phim-moi poster vì thiếu DATABASE_URL
+    lenh = ["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-c", s] if os.environ.get("DATABASE_URL") else \
+        ["ssh", "-o", "ConnectTimeout=15", "root@167.233.241.16", 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -qtA -v ON_ERROR_STOP=1 -f -']
+    r = subprocess.run(lenh, input=None if os.environ.get("DATABASE_URL") else s, capture_output=True, text=True, timeout=60)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-200:])
     return r.stdout.strip()
 

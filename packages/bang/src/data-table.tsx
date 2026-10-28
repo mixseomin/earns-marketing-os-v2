@@ -737,7 +737,7 @@ export function DataTable<T>({
         const col = columns.find((c) => c.key === key);
         // mặc định theo LOẠI cột: cột số (đa số ô là số) → KHOẢNG từ–đến; cột chữ → "chứa"
         // anh 29/10/2026: "cột dạng text thì không chọn Khoảng là default, chọn Like %" — cột canh trái (tên, mã camp / creative sắp theo số) là cột chữ
-        const laSo = col?.loc ? col.loc === 'so' : (col?.align ?? 'right') !== 'left' && (() => { const sv = col?.sortValue; if (!sv) return false; let so = 0, co = 0; for (const r of rows.slice(0, 200)) { const x = sv(r); if (x == null || x === '') continue; co++; if (typeof x === 'number') so++; } return co > 0 && so > co / 2; })();
+        const laSo = col?.loc ? col.loc === 'so' : (col?.align ?? 'right') !== 'left' && (() => { const sv = col?.sortValue; if (!sv) return false; let so = 0, co = 0; for (const r of rows) { const x = sv(r); if (x == null || x === '') continue; co++; if (typeof x === 'number') so++; if (co >= 200) break; } return co === 0 || so > co / 2; })();   // cột số đo toàn ô trống (ROI ngày chưa chi) vẫn là cột số
         const cur = colFilters[key] ?? { op: laSo ? 'KHOẢNG' : 'LIKE %%', val: '' };
         return (
           <AnchoredPopover anchorRef={searchAnchor} open onClose={() => setSearchCol(null)} align="left" zIndex={1100}>

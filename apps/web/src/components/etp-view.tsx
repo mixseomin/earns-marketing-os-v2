@@ -943,9 +943,10 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
     const thieu = d.rs.filter((r) => !duMau(r)).map((r) => `${nhan(d.k, r.v)} mới có ${r.cr < 5 ? `${r.cr} creative (cần 5)` : r.n < 100 ? `${r.n} lượt bấm (cần 100)` : `chi ${usd(r.chi)} (cần $30)`}`);
     const chu = chac ? `Nên dùng ${nhan(d.k, best.v)} — lãi hơn ${nhan(d.k, base.v)} ${Math.round(dl)}%${d.truPhim ? ' khi so trên cùng phim' : ''}.`
       : best === base ? `Chưa thấy kiểu nào hơn ${nhan(d.k, base.v)} (kiểu đang dùng nhiều nhất).${thieu.length ? ` ${thieu.join('; ')}.` : ''}`
-      : thieu.length ? `Chưa kết luận được: ${thieu.join('; ')}.`
-      : `Chưa kết luận được: ${nhan(d.k, best.v)} đang nhỉnh hơn ${Math.round(dl)}%, phải hơn rõ (≥ 15%) mới chốt.`;
-    return { best, chu, chac };
+      : `Chưa kết luận được: ${nhan(d.k, best.v)} đang nhỉnh hơn ${nhan(d.k, base.v)} ${Math.round(dl)}%${d.truPhim ? ' khi so trên cùng phim' : ''}, phải hơn rõ (≥ 15%) mới chốt.${thieu.length ? ` Còn thiếu mẫu: ${thieu.join('; ')}.` : ''}`;
+    // kiểu thắng mà đã bị cấm (CTA cũ có "Tap" + mũi tên — Support 22/10) → nói luôn, kẻo đọc "nên dùng" rồi dựng lại cái bị cấm
+    const cam = /CẤM/.test(NHAN_DC[`${d.k}=${best.v}`]?.[1] ?? '') ? ` Nhưng kiểu này Support đã cấm — phải dựng kiểu mới hợp luật mà giữ cái hay của nó.` : '';
+    return { best, chu: chu + (best !== base ? cam : ''), chac };
   };
   const o: React.CSSProperties = { padding: '6px 8px', borderTop: '1px solid var(--line)', verticalAlign: 'middle', fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' };
   return (

@@ -41,6 +41,13 @@ const Den = ({ mau, t, song, rong }: { mau: string; t: string; song?: boolean; r
 const MAU_DEN = { chay: '#22c55e', cho: '#f59e0b', loi: '#ef4444', tat: '#6b7280', phong: '#9ecbff' };
 // camp ACTIVE mà lịch bắt đầu còn ở tương lai = CHỜ GIỜ, chưa chạy (anh 26/10/2026: lọc "Đang chạy" lẫn camp chấm cam) — một định nghĩa cho chấm, bộ lọc, ô số
 const choGio = (c: Pick<CampEtpKho, 'trang_thai' | 'lich'>) => c.trang_thai === 'ACTIVE' && !!c.lich && Date.parse(c.lich) > Date.now();
+// CHỮ TRẠNG THÁI MỘT CHỖ (anh 29/10/2026: camp hẹn lịch hiện 'chạy' — phải là "chờ 2h nữa"): chấm TT + cột Trạng thái cùng đọc hàm này
+const conLai = (iso: string) => { const p = Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 60000)); return p >= 60 ? `${Math.floor(p / 60)}h${p % 60 >= 10 ? `${p % 60}p` : ''}` : `${p}p`; };
+const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean }): { chu: string; mau: string; t: string } =>
+  c.giao === 'DISAPPROVED' ? { chu: 'Meta từ chối', mau: '#f87171', t: 'Meta từ chối' }
+  : c.lich_tat ? { chu: 'dừng theo giờ', mau: '#f59e0b', t: 'tạm dừng theo lịch giờ — máy tự bật lại khi tới khung BẬT' }
+  : choGio(c) ? { chu: `chờ ${conLai(c.lich!)} nữa`, mau: '#f59e0b', t: `hẹn chạy từ ${vn(c.lich)}` }
+  : c.trang_thai === 'ACTIVE' ? { chu: 'chạy', mau: '#4ade80', t: 'đang chạy' } : { chu: 'dừng', mau: 'var(--fg-2)', t: 'tắt' };
 const dangChay = (c: Pick<CampEtpKho, 'trang_thai' | 'lich'>) => c.trang_thai === 'ACTIVE' && !choGio(c);
 // CAMP ROAS ★ (nhan-ban.py --roas: "★ … roas X duplicate by <gốc>") — cùng cách nhận với apps/etp/cong.py la_roas
 const MAU_ROAS = '#facc15';   // camp ROAS ★ tô vàng ở cây / bảng camp (anh 27/10/2026)
@@ -593,7 +600,7 @@ function CotCampNoi({ c, nhan, du, bid, anh }: { c: CampEtpKho | undefined; nhan
     <div style={{ flex: 1, minWidth: 0, fontSize: 12 }}>
       <div style={{ fontSize: 11, color: 'var(--fg-2)', textTransform: 'uppercase', letterSpacing: '.04em' }}>{nhan}</div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '4px 0 6px' }}>{anh(c.creative_id)}
-        <div style={{ minWidth: 0 }}><b>#{c.camp_id}</b> <span style={{ color: c.trang_thai === 'ACTIVE' ? (choGio(c) ? '#f59e0b' : '#4ade80') : 'var(--fg-2)' }}>{c.trang_thai !== 'ACTIVE' ? 'Đã tắt' : choGio(c) ? `Chờ giờ · ${vn(c.lich)}` : 'Đang chạy'}</span>
+        <div style={{ minWidth: 0 }}><b>#{c.camp_id}</b> <span style={{ color: c.trang_thai === 'ACTIVE' ? (choGio(c) ? '#f59e0b' : '#4ade80') : 'var(--fg-2)' }}>{c.trang_thai !== 'ACTIVE' ? 'Đã tắt' : choGio(c) ? `Chờ ${conLai(c.lich!)} nữa · ${vn(c.lich)}` : 'Đang chạy'}</span>
           <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={c.ten}>{c.ten}</div></div></div>
       <div style={{ color: 'var(--fg-2)', marginBottom: 6 }}>${c.ngan_sach}/ngày · {bid ?? (c.chien_luoc ? c.chien_luoc.replace('LOWEST_COST_', '').toLowerCase() : 'bid thường')} · bộ {c.bo ?? '—'} · tạo {vn(c.tao)}{c.phim ? ` · ${c.phim}` : ''}</div>
       <table style={{ width: '100%', borderCollapse: 'collapse', fontVariantNumeric: 'tabular-nums', fontSize: 11 }}>
@@ -612,7 +619,7 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
   const noi = useNoi<{ id: number }>();
   const reCamp = (c: CampEtpKho, nd: React.ReactNode) => <span onMouseEnter={(e) => noi.mo({ id: c.camp_id }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help' }}>{nd}</span>;
   const dang = noi.v ? theoId.get(noi.v.id) : undefined, gocId = dang ? Number(muc(dang)?.[2] ?? 0) : 0;
-  const tt = (c: CampEtpKho) => (c.trang_thai !== 'ACTIVE' ? 'Đã tắt' : choGio(c) ? `Chờ giờ · ${vn(c.lich)}` : 'Đang chạy');
+  const tt = (c: CampEtpKho) => (c.trang_thai !== 'ACTIVE' ? 'Đã tắt' : choGio(c) ? `Chờ ${conLai(c.lich!)} nữa · ${vn(c.lich)}` : 'Đang chạy');
   const tu = (c: CampEtpKho) => tong.get(c.camp_id) ?? { chi: 0, thu: 0 };
   const cotRoas: DataColumn<CampEtpKho>[] = [
     { ...cot[0]!, cell: (c, i) => reCamp(c, cot[0]!.cell(c, i)) },
@@ -1426,7 +1433,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       cell: (c) => { const l = loiNb.get(c.camp_id), n = dem(c); return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
         <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} />
         {l ? <span style={{ color: '#f87171', fontSize: 11 }} title={`nhân bản lỗi ${l.lan} lần / 24h: ${loiThuong(l.loi)}`}>⚠{l.lan}</span> : n ? <span style={{ color: 'var(--fg-2)', fontSize: 11 }} title={`${n} bản nhân`}>x{n}</span> : null}</span>; } },
-    { key: 'tt', header: 'Trạng thái', align: 'left', title: 'trạng thái camp trên Ethopex', cell: (c) => <span style={{ fontSize: 11, color: c.trang_thai === 'ACTIVE' ? '#4ade80' : 'var(--fg-2)' }}>{c.trang_thai === 'ACTIVE' ? 'chạy' : 'dừng'}</span>, sortValue: (c) => (c.trang_thai === 'ACTIVE' ? 'chạy' : 'dừng') },
+    { key: 'tt', header: 'Trạng thái', align: 'left', title: 'trạng thái camp trên Ethopex', cell: (c) => { const x = ttCamp(c); return <span title={x.t} style={{ fontSize: 11, color: x.mau }}>{x.chu}</span>; }, sortValue: (c) => ttCamp(c).chu },
     { key: 'tuoi', header: 'Tuổi', title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: (c) => (c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : undefined), cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)) },
     { key: 'ns', header: 'Ngân sách · ROI nay', align: 'left', loc: 'so', title: 'ngân sách $/ngày · thước ROI hôm nay · dấu máy luật', cell: (c) => <BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach,
       total: (rs) => { const t = rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0);   // $0 mờ · ≥ $20 đậm sáng (anh 28/10/2026)

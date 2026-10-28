@@ -25,6 +25,8 @@ export type ChamCr = { luc: string; may: string | null; ket: string | null; meta
   lop: { chu?: { luc: string; noi_dung: string; loi: string[]; cta: string[] }; giong?: { luc: string; noi_dung: string; ngon_ngu: string | null; loi: string[] };
     anh?: { luc: string; url?: string; giay?: number; khung_url?: string[] /* các khung Worker cắt (Cloudflare); url = tờ khung bản cũ */; khung_mau?: string /* gọn: mẫu '{n}' + so_khung thay danh sách — dựng lại bằng khungUrl() ở etp-view */; so_khung?: number }; noi_dung?: { luc: string; tom_tat: string } };
   diem: Record<string, number>; ly_do: Record<string, string>; khung: Record<string, number[]>; duoc_len: boolean | null; chan_boi: string | null; cho_duyet: string | null; duyet: boolean | null };
+/** sổ điểm chạm một creative (etp.diem_cham, apps/xuong-video/scripts/ethopex/diem_cham.py): nhóm → khoá → giá trị gom nhóm */
+export type DiemCham = Record<string, Record<string, string | number | null>>;
 export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[];
   cauHinh: { khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }[];
   nhatKy: { luc: string; viec: string; camp_id: number | null; truoc: string | null; sau: string | null; ok: boolean | null; loi: string | null; luat: string | null; ai: string | null }[];
@@ -39,6 +41,8 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   /** LỊCH SỬ BẬC NGÂN SÁCH từng camp (anh 27/10/2026 "show danh sách thay đổi bậc khi hover vào, ghi chi tiết dạng timeline"): tạo / nhân bản / thang / ROAS / sang bộ / tăng / giảm đã làm được (ok), 30 ngày */
   /** XÉT LUẬT TỪNG CAMP của máy luật (etp.xet_luat, luat-ethopex.py --json, anh 28/10/2026): luật → điều kiện [tên, giá trị, ngưỡng, đạt], kết đạt/gần/xa/khong_ap, máy có xếp */
   xetLuat: Record<number, XetLuat[]>; xetLuc: string | null;
+  // ĐO ĐIỂM CHẠM (anh 28/10/2026): phễu camp × ngày (h/n/v = impressions/clicks/conversions · sh/sn/sv/sg = supply_*) + sổ điểm chạm mỗi creative — chỉ nhà
+  pheu: { c: number; d: string; h: number; n: number; v: number; sh: number; sn: number; sv: number; sg: number }[]; diemCham: Record<number, DiemCham>;
   lsBac: Record<number, { luc: string; viec: string; truoc: string | null; sau: string | null; luat: string | null; ai: string | null }[]>;
   /** tab Tài nguyên: tài khoản QC · Page · pixel · tên miền (Ethopex) + máy thợ (hàng đợi etp.viec) */
   taiNguyen: { loai: string; id: number; external_id: string | null; ten: string | null; trang_thai: string | null; them: Record<string, unknown> }[];
@@ -184,6 +188,10 @@ export async function docEtp(ng?: string): Promise<DuLieuEtp> {
     run<{ d: string; n: string }>(sql`select (luc at time zone 'UTC')::date::text d, count(distinct camp_id) n from etp.nhat_ky where viec = 'tat' and ok group by 1`),
     run<{ gia_tri: Record<string, { ten: string; tk: number; ext: string; page: number; chi_phim_moi?: boolean; mui_gio?: string }> | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_bo_tk'`),
   ]);
+  const [pheuR, dcR] = await Promise.all([
+    runNha<{ c: number; d: string; h: number; n: number; v: number; sh: number; sn: number; sv: number; sg: string }>(sql`select camp_id c, ngay::text d, hien h, nhap n, chuyen v, s_hien sh, s_nhap sn, s_chuyen sv, s_gt sg from etp.so_pheu where hien > 0 or s_hien > 0 or nhap > 0`).catch(() => []),
+    runNha<{ creative_id: number; cham: DiemCham }>(sql`select creative_id, cham from etp.diem_cham`).catch(() => []),
+  ]);
   const demNgay: DuLieuEtp['demNgay'] = {};
   const dn = (d: string) => (demNgay[d] ??= { camp_moi: 0, cr_moi: 0, tat: 0 });
   for (const c of cs) if (c.tao) dn(c.tao.slice(0, 10)).camp_moi++;   // tao là timestamptz UTC → ngày Ethopex
@@ -249,6 +257,7 @@ export async function docEtp(ng?: string): Promise<DuLieuEtp> {
       ngay_dau: null, s18: null, sd: null, sd_cho: false, giao: [] });
   }
   return { nguoi: { ds: nguoiDs, dang: dangId, nha: nhaId, ngoai }, luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, creatives: [...crMap.values()], phims,
+    pheu: pheuR.map((r) => ({ c: n(r.c), d: r.d, h: n(r.h), n: n(r.n), v: n(r.v), sh: n(r.sh), sn: n(r.sn), sv: n(r.sv), sg: n(r.sg) })), diemCham: Object.fromEntries(dcR.map((r) => [n(r.creative_id), r.cham])),
     cauHinh, nhatKy, xetLuat: Object.fromEntries(xetR.map((r) => [Number(r.camp_id), r.xet])), xetLuc: xetR.reduce<string | null>((m, r) => (!m || r.luc > m ? r.luc : m), null), lsBac: lsBacR.reduce<DuLieuEtp['lsBac']>((m, r) => { (m[r.camp_id] ??= []).push({ luc: r.luc, viec: r.viec, truoc: r.truoc, sau: r.sau, luat: r.luat, ai: r.ai }); return m; }, {}), canhBao, dongBo: dongBo[0] ?? null, theLoai: tl[0]?.gia_tri?.the_loai ?? {}, soNgay: soNgay.map((r) => ({ c: n(r.c), d: r.d, chi: n(r.chi), thu: n(r.thu) })), demNgay, boTk,
     taiNguyen, mayTho: mayTho.map((r) => ({ may: String(r.may), xong: n(r.xong), loi: n(r.loi), dang: n(r.dang), cuoi: (r.cuoi as string) ?? null, giay_tb: r.giay_tb == null ? null : n(r.giay_tb) })),
     hangDoi: { cho: n(hd[0]?.cho), dang: n(hd[0]?.dang), xong: n(hd[0]?.xong), loi: n(hd[0]?.loi) },

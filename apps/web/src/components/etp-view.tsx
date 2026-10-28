@@ -827,6 +827,88 @@ type LocSoat = (typeof LOC_SOAT)[number];
 const Tde = ({ t }: { t: string }) => <span style={{ display: 'inline-block', whiteSpace: 'normal', lineHeight: 1.15, width: 66, textAlign: 'center' }}>{t}</span>;
 // TAB 🏭 ĐANG SX: một bảng mọi món đang làm dở trước khi thành creative chạy (etp-doc dangSx) — bước, phim, lô, máy, từ lúc, ghi chú; lỗi lên đầu
 const MAU_SX: Record<string, string> = { 'Lỗi cắt góc': '#f87171', 'Đang cắt góc': '#9ecbff', 'Đang chấm (Cloudflare)': '#9ecbff' };
+// ĐIỂM CHẠM CREATIVE (anh 28/10/2026: "creative cũng cần thử với các dạng CTA khác nhau, màu sắc nút, style… đoạn hook — đo đếm cho hoàn chỉnh, có insight tốt";
+// "cần đo về số điểm chạm như voice, text, hình, nội dung"). Sổ etp.diem_cham (máy xưởng ghi lúc lên, diem_cham.py) × phễu etp.so_pheu × chi/thu theo kỳ đang chọn.
+// Phễu theo định nghĩa trên Ethopex (anh chỉ): CTR = clicks / impressions · CPM = cost / S impressions × 1000 · S CTR = S clicks / S impressions · S CVR = S conversions / S clicks.
+// "± phim" = ROI creative trừ ROI cả phim của nó, trung bình theo chi — gỡ nhiễu lớn nhất (phim mạnh thì CTA nào cũng thắng). Đủ mẫu: ≥ 100 nhấp và chi ≥ $30.
+const DIEM_CHAM: { k: string; ten: string; nhom: string; xo?: (v: number) => string }[] = [
+  { k: 'hook.dang', ten: 'Loại creative (kiểu hook)', nhom: 'Hình · nội dung' },
+  { k: 'hook.giay_vao_phim', ten: 'Hook: đoạn bắt đầu ở giây thứ', nhom: 'Hình · nội dung', xo: (v) => (v < 120 ? '< 2 phút' : v < 600 ? '2–10 phút' : v < 1800 ? '10–30 phút' : '≥ 30 phút') },
+  { k: 'noi_dung.giay', ten: 'Độ dài creative', nhom: 'Hình · nội dung', xo: (v) => (v < 60 ? '< 60s' : v < 90 ? '60–90s' : v < 120 ? '90–120s' : '≥ 120s') },
+  { k: 'noi_dung.lang', ten: 'Ngôn ngữ', nhom: 'Hình · nội dung' },
+  { k: 'anh_dau.khung', ten: 'Ảnh đầu', nhom: 'Hình · nội dung' },
+  { k: 'voice.thoai', ten: 'Thoại', nhom: 'Voice' },
+  { k: 'voice.giong_cta', ten: 'Giọng đọc CTA', nhom: 'Voice' },
+  { k: 'chu_video.bo_cuc', ten: 'Bố cục chữ trên video', nhom: 'Chữ' },
+  { k: 'chu_video.phu_de', ten: 'Phụ đề', nhom: 'Chữ' },
+  { k: 'chu_qc.so_cau', ten: 'Số câu chữ QC (Meta xoay)', nhom: 'Chữ' },
+  { k: 'cta.mau', ten: 'Mẫu CTA', nhom: 'CTA' },
+  { k: 'cta.nut_mau', ten: 'Màu nút CTA', nhom: 'CTA' },
+  { k: 'cta.nut_kieu', ten: 'Kiểu nút CTA', nhom: 'CTA' },
+  { k: 'cta.the_cuoi', ten: 'Thẻ cuối', nhom: 'CTA' },
+];
+type DongDc = { v: string; cr: number; camp: number; chi: number; thu: number; h: number; n: number; sh: number; sn: number; sv: number; sg: number; lech: number; lechW: number };
+const wilson = (k: number, n: number) => { if (!n) return null; const z = 1.96, p = k / n, d = 1 + (z * z) / n, c = (p + (z * z) / (2 * n)) / d, w = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / d; return [Math.max(0, c - w), c + w]; };
+function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string) => boolean; khNhan: string }) {
+  const [k, setK] = useState('cta.mau');
+  const tinh = useMemo(() => {
+    const campCr = new Map(du.camps.map((c) => [c.camp_id, c]));
+    const so = new Map<number, { chi: number; thu: number; h: number; n: number; sh: number; sn: number; sv: number; sg: number; camp: Set<number> }>();   // theo creative
+    const g = (cr: number) => { let x = so.get(cr); if (!x) so.set(cr, (x = { chi: 0, thu: 0, h: 0, n: 0, sh: 0, sn: 0, sv: 0, sg: 0, camp: new Set() })); return x; };
+    for (const r of du.soNgay) { if (!ngayKh(r.d)) continue; const cr = campCr.get(r.c)?.creative_id; if (!cr) continue; const x = g(cr); x.chi += r.chi; x.thu += r.thu; x.camp.add(r.c); }
+    for (const r of du.pheu) { if (!ngayKh(r.d)) continue; const cr = campCr.get(r.c)?.creative_id; if (!cr) continue; const x = g(cr); x.h += r.h; x.n += r.n; x.sh += r.sh; x.sn += r.sn; x.sv += r.sv; x.sg += r.sg; x.camp.add(r.c); }
+    const phimCua = new Map(du.creatives.map((x) => [x.creative_id, x.content_id]));
+    const phim = new Map<number, SoTien>();
+    for (const [cr, x] of so) { const p = phimCua.get(cr) ?? 0; const a = phim.get(p) ?? { chi: 0, thu: 0 }; a.chi += x.chi; a.thu += x.thu; phim.set(p, a); }
+    return { so, phimCua, phim };
+  }, [du.camps, du.soNgay, du.pheu, du.creatives, ngayKh]);
+  const giaTri = (cr: number, kk: string) => { const [n1, n2] = kk.split('.'); const v = du.diemCham[cr]?.[n1!]?.[n2!]; const d = DIEM_CHAM.find((x) => x.k === kk); return v == null || v === '' ? '(chưa ghi)' : d?.xo && typeof v === 'number' ? d.xo(v) : String(v); };
+  const bang = (kk: string): DongDc[] => {
+    const m = new Map<string, DongDc>();
+    for (const [cr, x] of tinh.so) {
+      if (!du.diemCham[cr] || x.chi <= 0) continue;
+      const v = giaTri(cr, kk); const a = m.get(v) ?? { v, cr: 0, camp: 0, chi: 0, thu: 0, h: 0, n: 0, sh: 0, sn: 0, sv: 0, sg: 0, lech: 0, lechW: 0 };
+      a.cr++; a.camp += x.camp.size; a.chi += x.chi; a.thu += x.thu; a.h += x.h; a.n += x.n; a.sh += x.sh; a.sn += x.sn; a.sv += x.sv; a.sg += x.sg;
+      const p = tinh.phim.get(tinh.phimCua.get(cr) ?? 0); if (p && p.chi >= 1 && x.chi >= 0.3) { a.lech += (((x.thu - x.chi) / x.chi) - ((p.thu - p.chi) / p.chi)) * 100 * x.chi; a.lechW += x.chi; }
+      m.set(v, a);
+    }
+    return [...m.values()].sort((a, b) => b.chi - a.chi);
+  };
+  const tongQuan = useMemo(() => DIEM_CHAM.map((d) => ({ ...d, so: bang(d.k).filter((x) => x.v !== '(chưa ghi)').length })), [tinh, du.diemCham]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const rows = useMemo(() => bang(k), [k, tinh, du.diemCham]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const pc = (a: number, b: number) => (b ? `${((a / b) * 100).toFixed(1)}%` : '—');
+  const cot: DataColumn<DongDc>[] = [
+    { key: 'v', header: 'Giá trị', align: 'left', cell: (r) => <b>{r.v}</b>, sortValue: (r) => r.v },
+    { key: 'cr', header: 'Creative', cell: (r) => r.cr, sortValue: (r) => r.cr }, { key: 'camp', header: 'Camp', cell: (r) => r.camp, sortValue: (r) => r.camp },
+    { key: 'chi', header: 'Chi', cell: (r) => <Tien v={r.chi} />, sortValue: (r) => r.chi }, { key: 'thu', header: 'Thu', cell: (r) => <Tien v={r.thu} />, sortValue: (r) => r.thu },
+    { key: 'roi', header: 'ROI', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 },
+    { key: 'lech', header: '± phim', title: 'ROI creative trừ ROI cả phim của nó, trung bình theo chi — gỡ nhiễu phim mạnh / yếu',
+      cell: (r) => (r.lechW ? <span style={{ color: r.lech / r.lechW >= 0 ? '#4ade80' : '#f87171' }}>{`${r.lech / r.lechW >= 0 ? '+' : ''}${Math.round(r.lech / r.lechW)} điểm`}</span> : '—'), sortValue: (r) => (r.lechW ? r.lech / r.lechW : -1e9) },
+    { key: 'ctr', header: 'CTR', title: 'clicks / impressions (phía Meta) — hook + ảnh đầu + CTA kéo bấm; ngoặc = khoảng tin cậy 95%',
+      cell: (r) => { const w = wilson(r.n, r.h); return <span>{pc(r.n, r.h)}{w ? <span style={{ color: 'var(--fg-3, #777)', fontSize: 10 }}> ({(w[0]! * 100).toFixed(0)}–{(w[1]! * 100).toFixed(0)})</span> : null}</span>; }, sortValue: (r) => (r.h ? r.n / r.h : -1) },
+    { key: 'cpc', header: 'CPC', cell: (r) => (r.n ? usd(r.chi / r.n) : '—'), sortValue: (r) => (r.n ? r.chi / r.n : 1e9) },
+    { key: 'cpm', header: 'CPM', title: 'cost / S impressions × 1000 (định nghĩa Ethopex)', cell: (r) => (r.sh ? usd((r.chi / r.sh) * 1000) : '—'), sortValue: (r) => (r.sh ? r.chi / r.sh : 1e9) },
+    { key: 'sctr', header: 'S CTR', title: 'S clicks / S impressions — người vào trang có bấm tiếp', cell: (r) => pc(r.sn, r.sh), sortValue: (r) => (r.sh ? r.sn / r.sh : -1) },
+    { key: 'scvr', header: 'S CVR', title: 'S conversions / S clicks × 100 (định nghĩa Ethopex) — nội dung có khớp kỳ vọng hook không', cell: (r) => pc(r.sv, r.sn), sortValue: (r) => (r.sn ? r.sv / r.sn : -1) },
+    { key: 'sgt', header: 'S giá trị / S nhấp', title: 'S conversion value / S clicks', cell: (r) => (r.sn ? usd(r.sg / r.sn) : '—'), sortValue: (r) => (r.sn ? r.sg / r.sn : -1) },
+    { key: 'du', header: 'Mẫu', title: 'đủ mẫu: ≥ 100 nhấp và chi ≥ $30 — dưới ngưỡng thì chênh lệch có thể chỉ là may rủi',
+      cell: (r) => (r.n >= 100 && r.chi >= 30 ? <span style={{ color: '#4ade80' }}>đủ</span> : <span style={{ color: 'var(--fg-3, #777)' }}>{r.n} nhấp</span>), sortValue: (r) => r.n },
+  ];
+  const dang = DIEM_CHAM.find((d) => d.k === k)!; const motGT = rows.filter((x) => x.v !== '(chưa ghi)').length <= 1;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>Mỗi creative mang sổ điểm chạm (hook · nội dung · voice · chữ · CTA) do máy xưởng ghi lúc dựng; số lấy theo kỳ <b>{khNhan.toLowerCase()}</b>.
+        Chốt bằng ROI và <b>± phim</b>; CTR / S CVR để đọc nhanh tầng nào kéo. Điểm chạm chỉ có một giá trị = chưa có biến thể để so (cần dựng bản thử).</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {tongQuan.map((d) => <button key={d.k} onClick={() => setK(d.k)} title={`${d.nhom} · ${d.so} giá trị có số`} style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', color: 'inherit',
+          border: `1px solid ${k === d.k ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, background: k === d.k ? 'var(--accent-soft, rgba(59,130,246,.18))' : 'transparent', opacity: d.so > 1 ? 1 : 0.55 }}>
+          <span style={{ color: 'var(--fg-3, #777)' }}>{d.nhom} · </span>{d.ten}{d.so > 1 ? '' : ' · 1 giá trị'}</button>)}
+      </div>
+      {motGT ? <div style={{ fontSize: 12, color: '#f59e0b' }}>{dang.ten}: mọi creative đang cùng một giá trị — chưa so được. Muốn đo thì dựng bản thử đổi riêng điểm chạm này.</div> : null}
+      <DataTable rows={rows} columns={cot} getRowKey={(r) => r.v} persistKey="etp-diem-cham" minWidth={1100} pageSize={50} />
+    </div>
+  );
+}
 function TabDangSx({ du }: { du: DuLieuEtp }) {
   const router = useRouter();
   useEffect(() => { const t = setInterval(() => router.refresh(), 15_000); return () => clearInterval(t); }, [router]);   // việc máy đang chạy — làm mới 15 giây
@@ -1360,7 +1442,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   const [moLoc, setMoLoc] = useState(false);   // điện thoại: bảng lọc gập sau nút Lọc (anh 27/10/2026 "trên mobile không thể cứ xuống dòng liên tục — tổ chức lại")   // ?b= lọc theo bộ tài khoản QC (anh 27/10/2026 "thêm bộ lọc theo tk")   // lọc theo loại creative (KT/CC/CT…) — anh 27/10/2026 "thêm bộ lọc chi tiết như danh sách camp KT"   // lọc theo MỘT luật (cột Luật bảng Camp)
   const [loc, setLoc] = useState<(typeof LOC_CAMP)[number]>(LOC_CAMP.includes(dauVao?.l as (typeof LOC_CAMP)[number]) ? (dauVao!.l as (typeof LOC_CAMP)[number]) : 'chay');   // ?l= lọc camp
   // tab Creative: Hiệu quả | 🛡 Quét nội dung (?v=soat) | 🏭 Đang sx (?v=sx — anh 26/10/2026 "Thêm 1 tab là Đang sx")
-  const [xemCr, setXemCr] = useState<'hq' | 'soat' | 'sx'>(dauVao?.v === 'soat' || dauVao?.v === 'sx' ? dauVao.v : 'hq'); const xemSoat = xemCr === 'soat';
+  const [xemCr, setXemCr] = useState<'hq' | 'soat' | 'sx' | 'dc'>(dauVao?.v === 'soat' || dauVao?.v === 'sx' || dauVao?.v === 'dc' ? dauVao.v : 'hq'); const xemSoat = xemCr === 'soat';
   const [xemCamp, setXemCamp] = useState<'cay' | 'bang' | 'lich'>(dauVao?.v === 'bang' || dauVao?.v === 'lich' ? dauVao.v : 'cay');   // + Lịch giờ (anh 25/10/2026)   // tab Camp: MẶC ĐỊNH cây phim → camp gốc → bản nhân (anh 25/10/2026 "đéo thấy" — nút 🌳 nhỏ bị bỏ qua); nhớ lựa chọn + ?v=cay|bang
   const [phimLoc, setPhimLoc] = useState<number | null>(Number(dauVao?.p) > 0 ? Number(dauVao!.p) : null);   // Camp › Bảng: lọc về một phim (bấm thẻ phim, ?p=)
   const [hep, setHep] = useState(false);   // màn hẹp (điện thoại): đầu trang gọn — 3 số chính, còn lại ở hover (anh 24/10/2026 "phần hero chiếm hết màn hình")
@@ -1388,7 +1470,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   const doi = (x: Partial<typeof hienTai>, lam: () => void) => { urlTu({ ...hienTai, ...x }); startTransition(lam); };
   const doiTab = (t: Tab) => doi({ tab: t }, () => setTab(t));
   const doiXemCamp = (v: 'cay' | 'bang' | 'lich') => doi({ xemCamp: v }, () => setXemCamp(v));
-  const doiXemCr = (v: 'hq' | 'soat' | 'sx') => doi({ xemCr: v }, () => setXemCr(v));
+  const doiXemCr = (v: 'hq' | 'soat' | 'sx' | 'dc') => doi({ xemCr: v }, () => setXemCr(v));
   const doiLoc = (l: (typeof LOC_CAMP)[number]) => doi({ loc: l }, () => setLoc(l));
   const doiPhim = (id: number | null) => doi({ phim: id, ...(id ? { loc: 'all' as const } : {}) }, () => { setPhimLoc(id); if (id) setLoc('all'); });   // chọn phim = thấy mọi camp của phim (cả tạm dừng)
   useEffect(() => { if (!daDoc) return; if (!ghiLanDau.current) { ghiLanDau.current = true; if (new URL(location.href).searchParams.get('v')) return; } urlTu(hienTai);
@@ -1571,7 +1653,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
             border: `1px solid ${coLoc ? '#60a5fa' : 'var(--line)'}`, background: moLoc || coLoc ? 'var(--accent-soft, rgba(59,130,246,.18))' : 'transparent', fontWeight: coLoc ? 600 : 400 }}>{moLoc ? '▴' : '▾'} Lọc{coLoc ? ' •' : ''}</button>; })() : null}
         {tab === 'creative' ? (
           <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-            {([['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm']] as const).map(([v, nhan, t]) => (
+            {([['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm'], ['dc', 'Điểm chạm', 'hook · nội dung · voice · chữ · CTA — giá trị nào kéo CTR / S CVR / ROI']] as const).map(([v, nhan, t]) => (
               <button key={nhan} onClick={() => doiXemCr(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
                 background: xemCr === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCr === v ? 600 : 400 }}>{nhan}</button>))}
           </span>) : null}
@@ -1623,6 +1705,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
         <TabSoat du={du} anh={anh} />
       ) : tab === 'creative' && xemCr === 'sx' ? (
         <TabDangSx du={du} />
+      ) : tab === 'creative' && xemCr === 'dc' ? (
+        <TabDiemCham du={du} ngayKh={ngayKh} khNhan={khNhan} />
       ) : tab === 'creative' ? (
         <DataTable rows={du.creatives} columns={cotCr} groups={NHOM} groupHeader getRowKey={(r) => String(r.creative_id)} persistKey="etp-creative" minWidth={1400} pageSize={100}
           searchText={(r) => `${r.creative_id} ${r.phim ?? ''} ${r.dang ?? ''} ${tl(r.the_loai)}`} searchPlaceholder="Tìm creative, phim, dạng…" />

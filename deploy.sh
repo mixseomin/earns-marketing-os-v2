@@ -117,6 +117,7 @@ else
     node scripts/check-replace-state.mjs || { echo "✗ replaceState guard failed — abort deploy"; exit 1; }
     node scripts/check-chu-ui.mjs || { echo "✗ chữ giao diện còn mã nội bộ (luật anh 25/10/2026) — abort deploy"; exit 1; }
     node scripts/check-etp-gop-y.mjs || { echo "✗ góp ý etp đã sửa bị quay về bản cũ (anh 29/10/2026) — abort deploy"; exit 1; }
+    node scripts/check-ethopex-cong.mjs || { echo "✗ có chỗ gọi Ethopex không qua cổng chung (đọc thiếu trang) — abort deploy"; exit 1; }
     # Guard: behavioral-canon single-source (account slug must canon, selector_overrides one write-path).
     # Stops the 3 P0 drift classes from recurring in a brand-new chat. See lib/canon + decision 2026-06-25.
     node scripts/check-canon.mjs || { echo "✗ Behavioral-canon guard failed — abort deploy"; exit 1; }

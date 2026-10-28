@@ -477,13 +477,15 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const LUAT_TAT = [
     { khoa: 'tat2', tep: 'ethopex-tat2.json', ten: 'LUẬT T2', mo_ta: 'luật T2: 2 ngày có chi đầu tiên đã khép ROI &lt; −20% (anh 27/10), chi ≥ $2.5',
       cot: 'Lãi 2n', luat: 'T2 (2 ngày đầu ROI < −20%, chi ≥ $2.5)', ai: 'anh (chat 27/10/2026: đặt luật mới T2 — 2 ngày đầu ROI < −20% — và dừng T7) — máy chạy' },
+    { khoa: 'tat_d24', tep: 'ethopex-tat-d24.json', ten: 'LUẬT D24', mo_ta: 'luật D24: camp có khoảng dừng &gt; 24 giờ (một ngày trọn không chi sau ngày chi đầu) — tắt ngay, không xét lãi lỗ (anh 29/10)',
+      cot: 'Lãi', luat: 'D24 (khoảng dừng > 24 giờ)', ai: 'anh (chat 29/10/2026: camp bị 1 khoảng dừng > 24h cũng dừng ngay lập tức) — máy chạy', ngay: true },
   ];
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);
     const giu = cho._giu?.ngay === homNay ? cho._giu : { ngay: homNay, ds: {} }; delete cho._giu;   // camp lam-ethopex từ chối tắt (đang lãi) — không báo / thử lại trong ngày
     const ds = (kq[LT.khoa] || []).filter((m) => !lamRoi.has(m.id) && !giu.ds[m.id]);
     for (const k of Object.keys(cho)) if (!ds.some((m) => String(m.id) === k)) delete cho[k];   // hết chạm luật → bỏ khỏi sổ chờ
-    for (const m of ds) { if (!cho[m.id]) { cho[m.id] = bayGio; moi.push(m); } else if (bayGio - cho[m.id] >= 25 * 60_000) tat.push(m); }
+    for (const m of ds) { if (LT.ngay) { tat.push(m); continue; } if (!cho[m.id]) { cho[m.id] = bayGio; moi.push(m); } else if (bayGio - cho[m.id] >= 25 * 60_000) tat.push(m); }   // ngay: tắt luôn nhịp này, không chờ (D24 — anh "dừng ngay lập tức")
     if (moi.length) {
       const lo = moi.reduce((a, m) => a + Number((String(m.chu).match(/lãi \$([+-]?[\d.]+)/) || [])[1] || 0), 0);
       await guiNhanh({ message_thread_id: topic, text: `⏳ <b>SẮP TẮT ${moi.length} CAMP</b> ở nhịp kế (~30 phút) — ${LT.mo_ta} · tổng lãi $${lo.toFixed(2)}\n`

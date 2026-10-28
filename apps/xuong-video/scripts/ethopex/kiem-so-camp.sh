@@ -15,7 +15,8 @@ q = lambda s: subprocess.run(["psql", DB, "-tAc", s], capture_output=True, text=
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 cfg = json.loads(q("select gia_tri::text from xv_khoa_ngoai where ten='ethopex_phim_thang'") or '{"content":[]}'); thang = cfg.get("content", [])
 tran = int((cfg.get("tran") or {}).get(str(cid)) or 30)   # anh 22/10/2026: "camp cùng phim thì chủ động thêm góc khác ok, ko limit để còn tìm hướng sớm" — phim test cũng trần 30 camp ĐANG CHẠY như phim thắng   # phim thắng: tối đa 30 camp ĐANG CHẠY (anh 22/10/2026)   # anh nới trần riêng một phim: ethopex_phim_thang.tran["<id>"]
-api = lambda p: json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev" + p, headers={"authorization": "Bearer " + T, "user-agent": "mos2-kiem"}), timeout=30))
+sys.path.insert(0, "/opt/earns-marketing-os-v2/apps/etp"); import ethopex_api as EA
+api = EA.api   # cổng chung: danh sách camp ĐỦ MỌI TRANG + chỉ tài khoản nhà (trước đây 1 trang 500 camp — anh 29/10/2026 "sau này sẽ có 1 tỷ camp")
 n = 0
 for c in api("/api/v1/campaigns?page_size=500")["data"]:
     if c.get("state") != "ACTIVE" and c.get("sync_status") == "done": continue   # chỉ đếm camp ĐANG CHẠY (anh 22/10/2026: camp thua tắt thì nhường chỗ cho creative mới)

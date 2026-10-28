@@ -27,7 +27,8 @@ def api(p, b=None):
             if (isinstance(e, urllib.error.HTTPError) and e.code < 500) or i == 2: raise
             time.sleep(5 * (i + 1))
 def bc(cols, gb, tu, den):
-    return api("/api/v1/report", {"columns": cols, "group_by": gb, "filters": {}, "metric_conditions": [], "limit": 50000, "page": 1, "page_size": 50000, "date_from": tu, "date_to": den})["rows"]
+    # đủ mọi trang qua cổng chung (máy chủ cắt 10.000 dòng / trang — xin 50.000 một lượt là mất dòng khi kho lớn); dong-bo cần cả camp ngoài nên dùng doc_het (không lọc nhà)
+    return EA.doc_het("/api/v1/report", {"columns": cols, "group_by": gb, "filters": {}, "metric_conditions": [], "limit": 10000, "page": 1, "page_size": 10000, "date_from": tu, "date_to": den}, 120)["rows"]
 
 def _roas(sp):
     """ROAS goal đang đặt ở Ad Set (bid_constraints.roas_average_floor; Meta có lúc trả ×10000) — None khi camp không bid ROAS"""
@@ -79,7 +80,7 @@ def main():
         # tài khoản → người dùng (report theo người trên etp.on.tc, anh 28/10/2026)
         try:
             ghi("tai_khoan", [{"ad_account_id": int(x["id"]), "nguoi_id": x.get("used_by_user_id"), "nguoi": x.get("used_by_user_name") or x.get("user_name") or None, "nha": int(x["id"]) in EA.TK}
-                              for x in (EA._goi("/api/v1/ad-accounts?page_size=500").get("data") or [])], ["ad_account_id"],
+                              for x in (EA.doc_het("/api/v1/ad-accounts?page_size=500").get("data") or [])], ["ad_account_id"],
                 {"ad_account_id": "bigint", "nguoi_id": "int", "nguoi": "text", "nha": "boolean"})
         except Exception as e: loi.append(f"tai_khoan: {e}")
         # TRẠNG THÁI + NGÂN SÁCH của MỌI camp từ danh sách mỗi lượt (26/10/2026: lệnh bật / tắt / đổi ngân sách qua API control KHÔNG đổi updated_at → camp không
@@ -235,7 +236,7 @@ def main():
     try:
         rows = []
         for loai, duong in (("tk_qc", "/api/v1/ad-accounts?page_size=200"), ("page", "/api/v1/facebook-pages?page_size=200"), ("pixel", "/api/v1/my-asset-groups/pixels"), ("ten_mien", "/api/v1/my-asset-groups/domains")):
-            d = api(duong); ds = d.get("data", d) if isinstance(d, dict) else d
+            d = EA.doc_het(duong); ds = d.get("data", d) if isinstance(d, dict) else d
             for x in ds or []:
                 rows.append({"loai": loai, "id": x.get("id"), "external_id": str(x.get("external_id") or ""), "ten": x.get("display_name") or x.get("name"), "trang_thai": x.get("status"),
                              "them": {k: x.get(k) for k in ("account_controls_status", "ads_restricted", "picture_url", "link", "available", "facebook_bm_id", "is_published", "used_by_asset_group", "cache_status") if x.get(k) is not None}})

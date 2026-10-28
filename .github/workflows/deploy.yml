@@ -96,6 +96,7 @@ jobs:
           node scripts/check-canon.mjs
           node scripts/check-gop-y-surface.mjs
           node scripts/check-etp-gop-y.mjs --tu-kiem && node scripts/check-etp-gop-y.mjs
+          node scripts/check-ethopex-cong.mjs --tu-kiem && node scripts/check-ethopex-cong.mjs
           node scripts/check-mos2-host.mjs --tu-kiem && node scripts/check-mos2-host.mjs
           node scripts/check-tab-trang.mjs --tu-kiem && node scripts/check-tab-trang.mjs
           node scripts/check-client-db.mjs --tu-kiem && node scripts/check-client-db.mjs

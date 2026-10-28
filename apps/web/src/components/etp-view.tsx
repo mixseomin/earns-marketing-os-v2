@@ -98,7 +98,7 @@ function ganLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'thang' | 'tao' | 'qua' | 'na
 // 'dang' = máy luật đã xếp làm ở nhịp này (chưa chạy / chờ anh duyệt / báo trước) · 'gan' = sắp chạm, chỉ theo dõi
 const LUAT_NHAN: Record<string, [string, string, string, 'dang' | 'gan']> = {   // nhóm etp.bao → [ký hiệu, tên, màu, loại]
   tat2: ['✕', 'T2 sắp tắt', '#f87171', 'dang'], tat7: ['✕', 'T7 sắp tắt', '#f87171', 'dang'], tat: ['✕', 'Cần tắt', '#f87171', 'dang'], dung_dem: ['☾', 'Dừng đêm', '#f87171', 'dang'], thang_tat: ['✕', 'Bản thang lỗ', '#f87171', 'dang'],
-  tat_roas: ['✕', 'ROAS chạm tắt', '#f87171', 'dang'], tu_choi: ['⛔', 'Meta từ chối', '#f87171', 'dang'],
+  tat_roas: ['✕', 'ROAS chạm tắt', '#f87171', 'dang'], tat_d24: ['✕', 'Dừng > 24h', '#f87171', 'dang'], tu_choi: ['⛔', 'Meta từ chối', '#f87171', 'dang'],
   ha: ['↓', 'Giảm bậc', '#fb923c', 'dang'], giam: ['↘', 'ROI tụt', '#f59e0b', 'dang'],
   tang: ['↑', 'Tăng bậc', '#4ade80', 'dang'], dau_phien: ['↑', 'Lãi đầu phiên', '#4ade80', 'dang'], tang30: ['⇈', 'Lên $30', '#4ade80', 'dang'],
   nb: ['⧉', 'Nhân bản', '#60a5fa', 'dang'], thang_nb: ['⧉', 'Mở bản thang', '#60a5fa', 'dang'], moc30: ['★', 'Đủ bid ROAS', '#facc15', 'dang'],
@@ -300,7 +300,7 @@ function tinhLuat({ c, ba, bao, boThang, thangMuc, xet }: VaoLuat) {
 const ChipO = ({ chinh }: { chinh: { chip: string; mau: string; dac: boolean } }) => <span style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   fontSize: 11, padding: '0 6px', borderRadius: 9, color: chinh.mau, border: `1px ${chinh.dac ? 'solid' : 'dashed'} ${chinh.mau}${chinh.dac ? '' : '99'}`, background: chinh.dac ? `${chinh.mau}22` : 'transparent' }}>{chinh.chip}</span>;
 // nhãn chip theo mã luật máy xét (luat-ethopex.py _xet_luat)
-const XET_CHIP: Record<string, [string, string]> = { t2: ['✕ T2', '#f87171'], off: ['✕ OFF', '#f87171'], t7: ['✕ T7', '#f87171'], tang: ['↑ Tăng bậc', '#4ade80'], thang_nb: ['⧉ Thang', '#60a5fa'],
+const XET_CHIP: Record<string, [string, string]> = { t2: ['✕ T2', '#f87171'], d24: ['✕ D24', '#f87171'], off: ['✕ OFF', '#f87171'], t7: ['✕ T7', '#f87171'], tang: ['↑ Tăng bậc', '#4ade80'], thang_nb: ['⧉ Thang', '#60a5fa'],
   tang_ngay: ['↑ Tăng trong ngày', '#4ade80'], gb: ['↓ Giảm bậc', '#fb923c'], giam_ngay: ['↓ Giảm trong ngày', '#fb923c'], giam_som: ['↓ Giảm sớm', '#fb923c'], roi_tut: ['↘ ROI tụt', '#fb923c'],
   nb: ['🧬 Nhân bản', '#a78bfa'], t30: ['⇈ $30', '#4ade80'], roas: ['★ ROAS', '#facc15'] };
 const KET_XET: Record<XetLuat['ket'], [string, string]> = { dat: ['Đạt', '#4ade80'], gan: ['Gần', '#facc15'], xa: ['Xa', 'var(--fg-3, #777)'], khong_ap: ['Không áp', 'var(--fg-3, #777)'] };

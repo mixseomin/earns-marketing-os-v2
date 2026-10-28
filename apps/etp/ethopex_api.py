@@ -53,6 +53,21 @@ def _ds_nha(qs="", nha=True):
         if trang >= int((d.get("meta") or {}).get("total_pages") or 1) or not d.get("data"): return ra
         trang += 1
 
+def doc_het(duong, body=None, timeout=90):
+    """ĐỦ MỌI TRANG cho MỌI danh sách Ethopex, KHÔNG lọc tài khoản (anh 29/10/2026: "sao lại limit theo trang được? Sau này sẽ có 1 tỷ camp").
+    Máy chủ tự cắt: report tối đa 10.000 dòng / trang (xin 50.000 vẫn chỉ trả 10.000), danh sách GET tối đa 1.000 / trang — số người gọi xin KHÔNG
+    phải trần. POST report: lật theo total_pages; GET có '?': lật theo meta.total_pages. Không còn trang nào bị bỏ, bất kể bao nhiêu camp."""
+    if body is not None:
+        b = {**body, "page": 1}; d = _goi(duong, b, timeout); rows = list(d.get("rows") or [])
+        for tr in range(2, int(d.get("total_pages") or 1) + 1): rows += _goi(duong, {**b, "page": tr}, timeout).get("rows") or []
+        d["rows"] = rows; return d
+    if "?" not in duong: return _goi(duong, None, timeout)
+    goc = re.sub(r"([?&])page=\d+", r"\1", duong).replace("?&", "?").replace("&&", "&").rstrip("&")
+    d = _goi(goc + "&page=1", None, timeout); data = list(d.get("data") or [])
+    for tr in range(2, int((d.get("meta") or {}).get("total_pages") or 1) + 1): data += _goi(goc + f"&page={tr}", None, timeout).get("data") or []
+    if isinstance(d.get("data"), list): d["data"] = data
+    return d
+
 def loc_report(rows):
     return [x for x in rows or [] if str(x.get("external_account_id") or "") in EXT or (not x.get("external_account_id") and int(x.get("campaign_id") or 0) in camp_nha())]
 
@@ -75,12 +90,7 @@ def api(duong, body=None, timeout=90):
     if duong.startswith("/api/v1/report"):
         # ĐỦ MỌI TRANG (29/10/2026: report tách dòng theo camp × phim — khung 9 ngày 1818 dòng / 2 trang; chỉ đọc trang 1 thì camp ở trang 2 thành $0,
         # máy luật không xét nhân bản / T30 cho #65722 $20 đang lãi). Mọi caller đi qua đây — không tự gọi report thẳng.
-        d = _goi(duong, body, timeout); rows = list(d.get("rows") or [])
-        if isinstance(body, dict):
-            tr = 1
-            while tr < int(d.get("total_pages") or 1):
-                tr += 1; rows += _goi(duong, {**body, "page": tr}, timeout).get("rows") or []
-        d["rows"] = loc_report(rows); return d
+        d = doc_het(duong, body if isinstance(body, dict) else None, timeout); d["rows"] = loc_report(d.get("rows")); return d
     if body is not None and isinstance(body, dict) and body.get("ads"):   # thay creative: {"ads": [{"ad_id"}]} → camp của ad
         nha_ad = {int(c.get("ad_id") or 0) for c in camp_nha().values()} | {int(x) for x in _q("select ad_id from etp.camp where ad_id is not null and bo is not null").split() if x.isdigit()}
         la = [int(a.get("ad_id") or 0) for a in body["ads"] if int(a.get("ad_id") or 0) not in nha_ad]
@@ -93,6 +103,7 @@ def api(duong, body=None, timeout=90):
         moi = d.get("id") or (d.get("data") or {}).get("id") or (d.get("campaign") or {}).get("id") if isinstance(d, dict) else None
         if moi and str(moi).isdigit(): _TAO.add(int(moi))
         return d
+    if body is None and "?" in duong: return doc_het(duong, None, timeout)   # mọi danh sách GET khác (tài khoản QC, Page, pixel, creative…) cũng đủ mọi trang
     ngoai = [i for i in ids if i > 1000 and i not in _TAO and i not in camp_nha()] if body is not None else []   # chỉ lệnh GHI mới gác
     if ngoai:
         # camp vừa tạo chưa kịp vào danh sách đã nạp → đọc lại một lần

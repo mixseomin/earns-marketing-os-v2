@@ -465,6 +465,25 @@ try:
     tat2.sort(key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))
 except Exception as e:
     loi_may.append((0, f"luật T2 lỗi: {str(e)[:80]}"))
+# D24 — CAMP CÓ KHOẢNG DỪNG > 24 GIỜ → TẮT NGAY (anh 29/10/2026 "camp bị 1 khoảng dừng > 24h cũng dừng ngay lập tức"): từ ngày chi đầu tiên tới hôm qua
+# (ngày đã khép, kho etp.so_ngay) có ít nhất MỘT ngày trọn không chi = camp đã đứng ≥ 24 giờ (tắt rồi bật lại, hoặc Meta ngừng phân phối) → tắt hẳn như T2,
+# không xét lãi lỗ (anh lệnh). Đo 29/10: 11/326 camp đang chạy dính, cùng nghỉ 23–25/10. Camp ROAS không áp (_bo_roas).
+tat_d24 = []
+try:
+    _hq = dt.date.fromisoformat(d(1)); _ng = {}
+    for _l in q(f"select s.camp_id, s.ngay, s.chi, s.thu, coalesce(c.ten, '') from etp.so_ngay s left join etp.camp c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
+        _p = _l.split("|", 4)
+        if len(_p) == 5 and _p[0].isdigit(): _ng.setdefault(int(_p[0]), [_p[4], []])[1].append((dt.date.fromisoformat(_p[1]), float(_p[2]), float(_p[3])))
+    for _c, (_ten, _ds) in _ng.items():
+        if _c not in _dc: continue
+        _co = {x[0] for x in _ds}; _thieu = [_ds[0][0] + dt.timedelta(days=i) for i in range((_hq - _ds[0][0]).days + 1)]; _thieu = [x for x in _thieu if x not in _co]
+        if not _thieu: continue
+        _ca, _ta = sum(x[1] for x in _ds), sum(x[2] for x in _ds)
+        tat_d24.append((_c, f"#{_ten[:70]} · không chi {len(_thieu)} ngày ({', '.join(f'{x:%d/%m}' for x in _thieu[:4])}{'…' if len(_thieu) > 4 else ''}) · cả {len(_ds)} ngày có chi: chi ${_ca:.2f} · lãi ${_ta - _ca:+.2f} · ROI {(_ta - _ca) / _ca * 100:+.0f}% → TẮT (luật D24: có khoảng dừng > 24 giờ)"))
+    tat_d24.sort(key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))
+except Exception as e:
+    loi_may.append((0, f"luật D24 lỗi: {str(e)[:80]}"))
+_D24 = {x[0]: x for x in tat_d24}
 # ROI TỤT chỉ đi đường GIẢM BẬC (anh 26/10/2026 "ds này chỉ cần giảm bậc"): kèm "$ns → $đích" một bậc để Telegram ra nút giảm thay nút tắt; camp $1 (đáy thang) chỉ báo
 _dich_tut = lambda cid: (lambda ns: (ns, NT.xuong(ns, 1)) if ns else (None, None))(float((thang.get(cid) or {}).get("budget") or 0))
 giam = [(cid, s + (lambda nd: f" · ${nd[0]:g} → ${nd[1]:g}" if nd[1] else " · đang ở đáy thang $1, không giảm được nữa")(_dich_tut(cid))) for cid, s in giam]
@@ -526,7 +545,7 @@ ROAS_CHI, ROAS_ROI = 20, 0   # anh 28/10/2026: "camp lãi sao lại đòi tắt"
 try: _ROAS = CONG.camp_roas() | {int(c["id"]) for c in ds_camp if CONG.la_roas(c.get("name"))}
 except Exception as e: _ROAS = {int(c["id"]) for c in ds_camp if CONG.la_roas(c.get("name"))}; loi_may.append((0, f"không đọc được danh sách camp ROAS trong kho: {str(e)[:80]}"))
 _bo_roas = lambda ds: [x for x in ds if int(x[0] or 0) not in _ROAS]
-tat_l, tat7, tat2, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7 = map(_bo_roas, (tat_l, tat7, tat2, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7))
+tat_d24, tat_l, tat7, tat2, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7 = map(_bo_roas, (tat_d24, tat_l, tat7, tat2, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7))
 # ★ ROAS THẮNG → $30 (anh 28/10/2026 "thêm rule tăng roas thắng lên $30"): camp ROAS vẫn miễn mọi luật khác, riêng T30 áp cùng ngưỡng —
 # đang $20, ≥ 2/3 ngày đã khép tiêu > 80% ngân sách, ROI các ngày đó > 80% → máy tự tăng $20 → $30 (cùng đường tang30 của worker)
 tang30 += [(cid, "★ ROAS thắng · " + s_) for cid, s_ in _tang30_goc if int(cid or 0) in _ROAS]
@@ -547,7 +566,7 @@ except Exception as e:
 # kết: 'dat' (đủ mọi điều kiện) · 'gan' (thiếu đúng một) · 'xa'; 'vao' = máy có xếp camp vào danh sách làm ở nhịp này không (khác 'dat' thì do cổng phụ:
 # nhịp tăng 3 giờ, đổi < 6 giờ, khung giờ, bộ…). Ghi etp.xet_luat (migration 0350) ở lượt --json; trang etp hiện khi rê vào camp.
 def _xet_luat():
-    vao = {k: {int(x[0] or 0) for x in v} for k, v in (("tat2", tat2), ("tat", tat_l), ("tang", dat), ("dau_phien", dau_phien), ("ha", ha), ("giam", giam), ("nb", nb),
+    vao = {k: {int(x[0] or 0) for x in v} for k, v in (("tat_d24", tat_d24), ("tat2", tat2), ("tat", tat_l), ("tang", dat), ("dau_phien", dau_phien), ("ha", ha), ("giam", giam), ("nb", nb),
            ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("dung_dem", dung_dem), ("tat_roas", tat_roas))}
     giam_tu = q("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'") != "false"
     f = lambda v, dv="": "—" if v is None else (f"{v:+.0f}%" if dv == "%" else f"${v:.2f}" if dv == "$" else f"{v:g}{dv}")
@@ -581,6 +600,12 @@ def _xet_luat():
             [["Số ngày đã khép có chi", f"{len(ds2)} ngày", "2–3 ngày", 2 <= len(ds2) <= 3], ["Chi 2 ngày đầu", f(c2, "$"), f"≥ ${T2_CHI:g}", c2 >= T2_CHI],
              ["ROI 2 ngày đầu", f(r2, "%"), f"< {T2_ROI}%", r2 is not None and r2 < T2_ROI], ["ROI mọi ngày đã khép", f(ra_, "%"), f"< {T2_ROI}%", ra_ is not None and ra_ < T2_ROI]],
             "tat2" if int(cid) in vao["tat2"] else None, tien=1))
+        # D24 — khoảng dừng > 24 giờ
+        _g = _ng.get(int(cid), [None, []])[1] if "_ng" in globals() else []
+        _th = [x for x in ([_g[0][0] + dt.timedelta(days=i) for i in range((_hq - _g[0][0]).days + 1)] if _g else []) if x not in {y[0] for y in _g}]
+        ls.append(L("d24", "D24 · dừng > 24 giờ", "Từ ngày chi đầu tiên tới hôm qua có một ngày trọn không chi (camp đã đứng ≥ 24 giờ: tắt rồi bật lại, hoặc Meta ngừng phân phối) → máy tắt hẳn, không xét lãi lỗ.",
+            [["Ngày có chi (đã khép)", f"{len(_g)} ngày", "≥ 1", bool(_g)], ["Ngày trọn không chi sau ngày chi đầu", ", ".join(f"{x:%d/%m}" for x in _th[:4]) or "không", "≥ 1 ngày", bool(_th)]],
+            "tat_d24" if int(cid) in vao["tat_d24"] else None, tien=1))
         # OFF — tắt camp lỗ lâu
         ls.append(L("off", "OFF · tắt camp lỗ lâu", "Camp đủ 7 ngày tuổi, tiêu > $10 từ trước tới nay mà ROI < −50% → đề xuất tắt.",
             [["Tuổi", f"{tuoi} ngày" if tuoi is not None else "—", f"≥ {TUOI_TAT} ngày", tuoi is not None and tuoi >= TUOI_TAT], ["Chi từ trước tới nay", f(tr["chi"] if tr else 0, "$"), "> $10", bool(tr and tr["chi"] > 10)],
@@ -645,7 +670,7 @@ if JSON:
         if _p.returncode: loi_may.append((0, f"ghi xét luật lỗi: {_p.stderr.strip()[:80]}"))
     except Exception as e:
         loi_may.append((0, f"xét luật lỗi: {str(e)[:80]}"))
-    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat_roas": m(tat_roas), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7)}, ensure_ascii=False))
+    print(json.dumps({"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat_roas": m(tat_roas), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7)}, ensure_ascii=False))
     sys.exit(0)
 gio = vn.hour + vn.minute / 60
 moc = min([21, 24, 32], key=lambda m: (m - gio) % 24)   # 21h · 24h · 8h (=32 ⇒ 8h sáng hôm sau)

@@ -326,7 +326,7 @@ function BangXet({ xet, gon }: { xet: XetLuat[]; gon?: boolean }) {
   return (
     // khung cuộn ngang: ngăn điện thoại hẹp hơn bảng (cột điều kiện không gãy dòng) — trước bảng tràn mép phải, mất cột Giá trị / Ngưỡng
     <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
-    <style>{'.bx-khoi>tr>td{background:color-mix(in srgb,var(--bx) var(--bx-a),transparent);transition:background .12s}.bx-khoi:hover>tr>td{background:color-mix(in srgb,var(--bx) 18%,transparent)}'}</style>
+    <style>{'.bx-khoi>tr>td{background:color-mix(in srgb,var(--bx) var(--bx-a),transparent);transition:background .12s}.bx-khoi:hover>tr>td{background:color-mix(in srgb,var(--bx) 10%,transparent)}'}</style>
     <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>
       <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}>{gon ? null : <th style={o}>Luật</th>}<th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>
       {(() => { const ve = (l: XetLuat, vi: number) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);
@@ -338,7 +338,7 @@ function BangXet({ xet, gon }: { xet: XetLuat[]; gon?: boolean }) {
           {l.ghi ? <div style={{ color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}{l.dk.length ? null : <div style={{ color: 'var(--fg-2)' }}>{l.mo_ta}</div>}</td></tr>;
         // MỖI LUẬT MỘT KHỐI (anh 29/10/2026 "background khác nhau giữa các khối màu của bậc · hover thì highlight nhẹ bg"): <tbody> riêng, nền nhạt theo màu
         // luật, khối chẵn / lẻ đậm nhạt khác nhau (hai luật cùng màu đứng cạnh vẫn tách được), rê vào khối → nền đậm hơn
-        const khoi = (con: React.ReactNode) => <tbody key={l.ma} className="bx-khoi" style={{ ['--bx' as string]: XET_CHIP[l.ma]?.[1] ?? '#94a3b8', ['--bx-a' as string]: vi % 2 ? '5%' : '10%' } as React.CSSProperties}>{con}</tbody>;
+        const khoi = (con: React.ReactNode) => <tbody key={l.ma} className="bx-khoi" style={{ ['--bx' as string]: XET_CHIP[l.ma]?.[1] ?? '#94a3b8', ['--bx-a' as string]: vi % 2 ? '2.5%' : '5%' } as React.CSSProperties}>{con}</tbody>;
         if (gon) return khoi(<>{dauGon}{l.dk.map(([ten, gt, ng, ok], i) => <tr key={`${l.ma}${i}`} style={{ opacity: mo ? 0.6 : 1 }}>
           <td style={o}>{ten}</td><td style={{ ...o, textAlign: 'right', whiteSpace: 'nowrap', color: ok ? 'var(--fg-1)' : '#f87171' }}><ChuCamp t={gt} /></td><td style={{ ...o, color: 'var(--fg-2)' }}>{ng}</td>
           <td style={{ ...o, color: ok ? '#4ade80' : '#f87171', fontWeight: 700 }}>{ok ? '✓' : '✗'}</td></tr>)}</>);
@@ -1537,6 +1537,9 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       total: (rs) => { const sd = tongNgay(rs); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả nhóm ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i]} max={maxLai(sd)} />; } })),
     { key: 'nay', header: 'nay', align: 'center', width: 46, title: 'ROI hôm nay — lọc 🔍 theo %', cell: (c) => <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={maxLai([...sd7(c), c.nay])} mo />, sortValue: (c) => roi(c.nay),
       total: (rs) => { const sd = tongNgay(rs); return <O cot="roi-nay" v={roi(sd[7])} t="ROI cả nhóm hôm nay" s={sd[7]} max={maxLai(sd)} mo />; } },
+    // TỔNG CHI TRONG KHUNG THỜI GIAN đang chọn (anh 29/10/2026) — cùng nguồn laiKy với cột lãi; dòng phim / dòng tổng cộng lại
+    { key: 'chi', header: `Chi ${tenKy.toLowerCase()}`, title: `tổng chi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <Tien v={laiKy(c).chi} />, sortValue: (c) => Math.round(laiKy(c).chi * 100) / 100,
+      total: (rs) => <Tien v={rs.reduce((a, c) => a + laiKy(c).chi, 0)} /> },
     { key: 'lai', header: `Lãi ${tenKy.toLowerCase()}`, title: `lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <LaiCot s={laiKy(c)} />, sortValue: (c) => Math.round(laiDai(c) * 100) / 100,
       total: (rs) => <LaiCot s={rs.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /> },
   ];

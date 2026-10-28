@@ -272,7 +272,7 @@ function dieuKienLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' 
     { ten: `tuổi ${tuoi.toFixed(1)} ≥ 7 ngày`, dat: tuoi >= 7 }] });
   return ra;
 }
-type VaoLuat = { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao' | 'ten' | 'bo'>; ba: SoTien; bao?: { nhom: string; chu: string }[]; boThang: string[]; thangMuc: number[]; xet?: XetLuat[] };
+type VaoLuat = { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao' | 'ten' | 'bo' | 'camp_id' | 'phim'>; ba: SoTien; bao?: { nhom: string; chu: string }[]; boThang: string[]; thangMuc: number[]; xet?: XetLuat[] };
 // MỘT chỗ tính luật cho chip (Cây) và ngăn camp (điện thoại) — THỨ TỰ NGUỒN: máy luật đã xếp (etp.bao 'dang', chip đặc) → luật đủ điều kiện theo số trang →
 // máy luật báo GẦN (etp.bao 'gan', vd Gần T7 — nét đứt) → luật thiếu điều kiện theo số trang (nét đứt). Sổ máy luật là nguồn thật; bảng điều kiện của trang chỉ bù khi máy chưa ghi.
 function tinhLuat({ c, ba, bao, boThang, thangMuc, xet }: VaoLuat) {
@@ -352,7 +352,11 @@ function ChipLuat(p: VaoLuat) {
   return (
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', maxWidth: '100%' }}>
       {t.chinh ? <ChipO chinh={t.chinh} /> : <span style={{ color: 'var(--fg-3, #777)', padding: '0 6px' }}>…</span>}
-      {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ width: R, maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}><ThanLuat t={t} /></div></KhungNoi> : null}
+      {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ width: R, maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
+        {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, minWidth: 0 }}><b style={{ fontSize: 13, color: laRoas(p.c.ten) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
+          <span style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.phim ?? p.c.ten} · ${p.c.ngan_sach}</span></div>
+        <ThanLuat t={t} /></div></KhungNoi> : null}
     </span>
   );
 }

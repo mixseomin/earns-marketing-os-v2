@@ -357,6 +357,7 @@ dat, dau_phien, nb = ([x for x in ds if int(x[0] or 0) not in bo2] for ds in (da
 _id_thang = {int(c["id"]) for c in ds_camp if la_thang(c)}
 ha = [x for x in ha if int(x[0] or 0) not in _id_thang]
 thang_nb, thang_tat = [], []
+_thang_ly = {}   # cổng mở bản thang chặn camp nào, vì sao — hiện trong bảng xét (anh 28/10/2026 "camp này phải đủ tăng trong ngày chứ?": trước cổng chặn ngầm)
 _bo_chan = {b: q(f"select etp.bo_chan_mo('{b}')") for b in BO_THANG}
 try:
     _con = {}
@@ -367,17 +368,20 @@ try:
     _chan_phim, _loi6 = locals().get("chan_phim") or {}, locals().get("loi6") or set()
     for cid, a in thang.items():
         if int(cid) not in _tang_bo2 or cid not in _bat: continue
-        if _bo_chan.get(str(_bo_c.get(int(cid)) or "2")): continue   # bộ lỗ 3 ngày khép → không mở bản thang (etp.bo_chan_mo, anh 26/10/2026)
+        if _bo_chan.get(str(_bo_c.get(int(cid)) or "2")): _thang_ly[int(cid)] = f"bộ {_bo_c.get(int(cid)) or '2'} đang chặn mở bản mới: {str(_bo_chan.get(str(_bo_c.get(int(cid)) or '2')))[:60]}"; continue   # bộ lỗ 3 ngày khép → không mở bản thang (etp.bo_chan_mo, anh 26/10/2026)
         # THANG ĐI TỪ ĐÁY (anh 27/10/2026: "nhân bản này sai rule rồi. Phải nhân từ $1 - $3... lên cơ mà?" — #68835 $10 mở thẳng bản $15 #71957):
         # camp gốc THƯỜNG (đã được tăng bậc kiểu cũ tới $5–$20) → bản thang đầu tiên tối đa bậc thứ hai ($3); chỉ bản nhân của chính một BẢN THANG
         # mới lên bậc kế ($3 → $7 → $15 → $30)
         ns = a["budget"]; dich = next((b for b in THANG_NB if b > ns + 1e-9), None)
         if dich and not _la_ban_thang(cid): dich = min(dich, THANG_NB[1] if len(THANG_NB) > 1 else THANG_NB[0])
-        if not dich: continue
+        if not dich: _thang_ly[int(cid)] = "hết bậc thang trên"; continue
         con = _con.get(int(cid), [])
-        if len(con) >= THANG_CON or any(x.get("state") == "ACTIVE" or (x.get("sync_status") or "done") not in ("done", "synced", "error") for x in con): continue
+        if len(con) >= THANG_CON: _thang_ly[int(cid)] = f"đã có {len(con)} bản thang (trần {THANG_CON})"; continue
+        _dang = [x for x in con if x.get("state") == "ACTIVE" or (x.get("sync_status") or "done") not in ("done", "synced", "error")]
+        if _dang: _thang_ly[int(cid)] = "bản thang #" + ", #".join(str(x.get("id")) for x in _dang) + " đang chạy / đang dựng — chờ nó xong"; continue
         h = hom.get(cid, {"chi": 0.0, "thu": 0.0}); y = hqua.get(cid) or {"chi": 0.0, "thu": 0.0}
-        if int(phim_cua.get(cid) or 0) in _chan_phim or cid in _loi6: continue
+        if int(phim_cua.get(cid) or 0) in _chan_phim: _thang_ly[int(cid)] = f"phim đang bị chặn nhân bản: {str(_chan_phim.get(int(phim_cua.get(cid) or 0)))[:60]}"; continue
+        if cid in _loi6: _thang_ly[int(cid)] = "nhân bản camp này lỗi gần đây"; continue
         thang_nb.append((cid, f"#{a['ten'][:70]} · ${ns:g} đủ luật tăng · ROI hôm nay {(roi(h) if h.get('chi', 0) >= 0.3 else 0):+.0f}% (chi ${h.get('chi', 0):.2f})" + (f" · hôm qua {roi(y):+.0f}%" if y["chi"] >= 0.3 else "") + f" · {rd(cid)} {roi(a):+.0f}% → ${dich:g} bản mới (creative khác cùng phim; camp này giữ nguyên ngân sách)" + (f" · bản con thứ {len(con) + 1}" if con else "")))
     for c in ds_camp:
         if not la_thang(c) or c.get("state") != "ACTIVE": continue
@@ -558,12 +562,14 @@ def _xet_luat():
         dk_tang = [["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), f"≥ {ROI_TANG}%", r is not None and r >= ROI_TANG],
                    ["Spending " + ("hôm qua" if KHUNG_DEM else "hôm nay"), f"{spv:.0f}%", f"> {sp_min:g}%", spv > sp_min],
                    ["ROI hôm nay (tới đợt chi gần nhất, chi ≥ $0.3)", f(rh, "%"), "≥ 0%", rh is None or rh >= 0], ["Còn bậc trên", f"${ns:g}", "< $20", bool(ke(ns))]]
+        cong_b2 = ["Cổng mở bản thang (bộ 2)", _thang_ly.get(int(cid), "mở được"), "mở được", int(cid) not in _thang_ly]
+        if b2: dk_tang = dk_tang + [cong_b2]
         ls.append(L("thang_nb" if b2 else "tang", "Thang nhân bản (bộ 2)" if b2 else "Tăng bậc",
             ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại.",
             dk_tang, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None)))
         ls.append(L("tang_ngay", "Tăng trong ngày", "ROI hôm nay (chỉ cộng các giờ tới đợt chi gần nhất) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không âm (hôm qua âm mà chi hôm qua < max($2, 50% ngân sách) thì bỏ qua — luật B1). ROI chỉ tính khi chi ≥ $0.3.",
             [["ROI hôm nay", f(rh, "%"), "≥ 50%", rh is not None and rh >= 50], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 30%", bool(ns and h.get("chi", 0) >= 0.3 * ns)],
-             ["ROI hôm qua", f(ry, "%") + (f" · chi ${y['chi']:.2f}" if y else ""), f"≥ 0% · bỏ qua khi chi < ${max(HQ_NHO_MIN, HQ_NHO * ns):g}", bool(ry is None or ry >= 0 or (y and y["chi"] < max(HQ_NHO_MIN, HQ_NHO * ns)))]], ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None)))
+             ["ROI hôm qua", f(ry, "%") + (f" · chi ${y['chi']:.2f}" if y else ""), f"≥ 0% · bỏ qua khi chi < ${max(HQ_NHO_MIN, HQ_NHO * ns):g}", bool(ry is None or ry >= 0 or (y and y["chi"] < max(HQ_NHO_MIN, HQ_NHO * ns)))]] + ([cong_b2] if b2 else []), ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None)))
         # GIẢM BẬC
         ghi_g = None if giam_tu else "máy tự giảm đang TẠM DỪNG (giam_tu_dong = false) — chỉ báo + nút ↓"
         r3 = rg if rg is not None else ry

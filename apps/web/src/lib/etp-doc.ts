@@ -92,6 +92,14 @@ function gonLop(v: unknown): ChamCr['lop'] {
   return l;
 }
 const st = (c: unknown, t: unknown): SoTien => ({ chi: n(c), thu: n(t) });
+/** TÊN PHIM ĐỌC TỪ TÊN CAMP (camp ngoài mà studio / spy không có phim, anh 28/10/2026): "S_FB_No-Escape-as-the-Dragon-Kings-Mate_22058_EN_V5" → "No Escape as the Dragon Kings Mate",
+ *  "FB - Star Core Rush_94343_EN_EP1" → "Star Core Rush", "S_2110 Number One Nobody EN - ke chuyen" → "Number One Nobody" */
+export function phimTuTenCamp(ten: string): string | null {
+  let t = ten.replace(/^(S_)?(FB[_ -]+)?(-\s*)?(\d{3,4}m?\s+)?/i, '');
+  t = t.split(/_\d{3,}|_(?:EN|ES|PT|FR|DE)(?:_|$)| (?:EN|ES|PT|FR|DE) - | - /)[0] ?? '';
+  t = t.replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return t.length >= 3 && !/^dup by/i.test(t) ? t : null;
+}
 
 export async function docEtp(ng?: string): Promise<DuLieuEtp> {
   const db = getDb()!;
@@ -136,7 +144,7 @@ export async function docEtp(ng?: string): Promise<DuLieuEtp> {
   ]);
   const cs: CampEtpKho[] = camps.map((r) => ({ camp_id: n(r.camp_id), ten: String(r.ten ?? ''), bo: (r.bo as string) ?? null, trang_thai: String(r.trang_thai ?? ''), giao: (r.giao as string) ?? null, ngan_sach: n(r.ngan_sach),
     creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id), goc: r.goc == null ? null : n(r.goc), lich: (r.lich as string) ?? null, tao: (r.tao as string) ?? null,
-    loi: (r.loi as string) ?? null, phim: (r.phim as string) ?? null, the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, doan: (r.doan as string) ?? null, cung_doan: n(r.cung_doan),
+    loi: (r.loi as string) ?? null, phim: (r.phim as string) ?? (ngoai ? phimTuTenCamp(String(r.ten ?? '')) : null), the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, doan: (r.doan as string) ?? null, cung_doan: n(r.cung_doan),
     thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), lich_tat: !!r.lich_tat, roas: r.roas == null ? null : n(r.roas), chien_luoc: (r.chien_luoc as string) ?? null }));
   // gộp creative / phim từ camp (cùng nguồn số)
   const cong = (a: SoTien, b: SoTien) => ({ chi: a.chi + b.chi, thu: a.thu + b.thu });

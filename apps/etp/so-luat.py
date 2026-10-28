@@ -10,6 +10,7 @@ Nguồn: etp.nhat_ky (máy luật đã làm gì, lúc nào, camp nào) + etp.so_
 import json, os, re, subprocess, sys, collections
 
 NGAY = 14   # cửa sổ đo
+DA_BO = {"gb", "giam_ngay", "giam_som", "roi_tut"}   # luật đã bỏ khỏi máy (anh 29/10/2026 "làm 1+2") — dòng xét cũ còn trong etp.xet_luat tới 3 giờ, không đưa lên bản luật
 DB = os.environ.get("DATABASE_URL")
 def q(s):
     r = subprocess.run(["psql", DB, "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=s, capture_output=True, text=True, timeout=180)
@@ -74,7 +75,7 @@ def main():
             for d in r["dk"]:
                 if not d[3]: L["ket_o"][d[0]] += 1
     out = {}
-    for m in sorted(set(luat) | set(ra)):
+    for m in sorted((set(luat) | set(ra)) - DA_BO):
         L = luat.get(m, {}); x = ra.get(m, {"lan": 0, "camp": set(), "mau": []}); mau = x["mau"]; dx = []
         so_ = {"lan": x["lan"], "camp": len(x["camp"]), "ngay": NGAY}
         if m in ("tang", "dau_phien", "t30"):

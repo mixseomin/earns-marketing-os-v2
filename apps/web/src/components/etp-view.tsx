@@ -420,9 +420,9 @@ const khKhoang = (kh: Kh, homNay: string) => { if (kh === 'tat_ca') return { tu:
 const khNhanCua = (kh: Kh) => (kh === 'tat_ca' ? 'Tất cả' : kh.includes('~') ? kh.split('~').map((d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`).join(' – ') : nhanCuaMoc(kh));
 // KHỐI LỤC GIÁC BỘ TÀI KHOẢN (giống extension): số bộ trong khối, rê vào ra tài khoản QC + Page
 const MAU_BO: Record<string, string> = { '1': '#3b82f6', '2': '#a855f7', '3': '#f59e0b', '4': '#10b981', '5': '#ef4444' };
-function Hex({ bo, info }: { bo: string | null; info?: { ten: string; tk: string; page: string; chi_phim_moi?: boolean } }) {
+function Hex({ bo, info, co = 14 }: { bo: string | null; info?: { ten: string; tk: string; page: string; chi_phim_moi?: boolean }; co?: number }) {   // co = rộng px (anh 28/10/2026 "icon nhỏ hơn": 18 → 14, dòng camp 12)
   if (!bo) return null;
-  return <svg width="18" height="20" viewBox="0 0 18 20" style={{ verticalAlign: 'middle', flex: 'none' }}><title>{`Bộ ${bo}${info ? ` · ${info.ten} · tài khoản QC ${info.tk} · Page #${info.page}${info.chi_phim_moi ? ' · chỉ phim mới' : ''}` : ''}`}</title>
+  return <svg width={co} height={(co * 20) / 18} viewBox="0 0 18 20" style={{ verticalAlign: 'middle', flex: 'none' }}><title>{`Bộ ${bo}${info ? ` · ${info.ten} · tài khoản QC ${info.tk} · Page #${info.page}${info.chi_phim_moi ? ' · chỉ phim mới' : ''}` : ''}`}</title>
     <polygon points="9,1 17,5.5 17,14.5 9,19 1,14.5 1,5.5" fill={MAU_BO[bo] ?? '#64748b'} /><text x="9" y="13.5" textAnchor="middle" fontSize="10" fontWeight="700" fill="#fff">{bo}</text></svg>;
 }
 
@@ -1164,7 +1164,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined, position: 'relative' }}>{vach}
         <span style={{ display: 'grid', gridTemplateColumns: LUOI_CAMP_HEP, columnGap: 6, alignItems: 'center', minWidth: 0, whiteSpace: 'nowrap' }}>
           <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span>
-          <span data-cot="camp" style={{ paddingLeft: (cap - 1) * 12, overflow: 'hidden', textOverflow: 'ellipsis' }}><span className="mui">{ds.length ? '▸' : ''}</span><b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} /></span>
+          <span data-cot="camp" style={{ paddingLeft: (cap - 1) * 12, overflow: 'hidden', textOverflow: 'ellipsis' }}><span className="mui">{ds.length ? '▸' : ''}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} /></span>
           <span data-cot="ngan-sach" data-cot-can="phai" style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>${c.ngan_sach}</span>
           <span data-cot="dau-hieu" style={{ fontSize: 11, overflow: 'hidden' }}>{l ? <span style={{ color: '#f87171' }} title={`nhân bản lỗi ${l.lan} lần / 24h`}>⚠{l.lan}</span> : n ? <span title={`${n} bản nhân`}>x{n}</span> : null}</span>
         </span>
@@ -1176,7 +1176,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       <div className="dong" style={{ display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, alignItems: 'center', padding: '3px 0 3px 12px', fontSize: 12, borderTop: '1px solid var(--line)',
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined, position: 'relative' }}>{vach}
         <span style={{ display: 'grid', gridTemplateColumns: LT, columnGap: 8, alignItems: 'center', minWidth: 0 }}>
-          <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">{ds.length ? '▸' : ''}</span> <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} /></span>
+          <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">{ds.length ? '▸' : ''}</span> <Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} /></span>
           <span data-cot="tuoi" data-cot-can="phai" title={c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : ''} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tuoi(c) == null ? '' : <>{tuoiChu(tuoi(c))} <span style={{ fontSize: 10 }}>ngày</span></>}</span>
           <span data-cot="ngan-sach"><BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} /></span>
           <span data-cot="luat" style={{ minWidth: 0 }}>{du.nguoi.ngoai ? <span title="camp người khác — chỉ xem, luật không áp" style={{ color: 'var(--fg-3, #777)' }}>—</span> : null}{du.nguoi.ngoai ? null : <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]}

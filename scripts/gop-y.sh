@@ -27,6 +27,11 @@ set -a; . /opt/earns-marketing-os-v2/.env.production 2>/dev/null; set +a
 P="${GOPY_PROJECT:-mos2}"
 [[ "$P" =~ ^[a-z0-9_-]+$ ]] || { echo "GOPY_PROJECT sai: $P" >&2; exit 1; }
 SCOPE="project_id = '$P' AND prep_payload->>'source_platform' = 'feedback'"
+# GOPY_TRANG=etp.on.tc → chỉ card gửi từ trang đó (etp dùng chung hòm mos2, nhận ra bằng source_url) — lệnh /tasks-etp
+if [ -n "${GOPY_TRANG:-}" ]; then
+  [[ "$GOPY_TRANG" =~ ^[a-z0-9.-]+$ ]] || { echo "GOPY_TRANG sai: $GOPY_TRANG" >&2; exit 1; }
+  SCOPE="$SCOPE AND prep_payload->>'source_url' LIKE 'https://$GOPY_TRANG/%'"
+fi
 NGUOI="${GOPY_NGUOI:-claude}"
 cmd="${1:-list}"
 

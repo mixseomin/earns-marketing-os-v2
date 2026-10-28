@@ -910,8 +910,11 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
   const khoi = useMemo(() => {
     const crs = [...tinh.so.keys()].filter((cr) => du.diemCham[cr] && (tinh.so.get(cr)?.chi ?? 0) > 0);
     const ds = DIEM_CHAM.map((d) => { const rs = bang(d.k).filter((x) => x.v !== '(chưa ghi)');
-      const theoPhim = new Map<number, Set<string>>(); for (const cr of crs) { const v = giaTri(cr, d.k); if (v === '(chưa ghi)') continue; const p = tinh.phimCua.get(cr) ?? 0; (theoPhim.get(p) ?? theoPhim.set(p, new Set()).get(p)!).add(v); }
-      const truPhim = [...theoPhim.values()].some((x) => x.size > 1);
+      // trừ phim chỉ khi các phim có ≥ 2 giá trị chiếm ≥ 30% chi (ngôn ngữ: vài phim lồng tiếng có cả EN + ES, chi nhỏ → ± phim ~0 cả hai bản, bốc nhầm bản thắng)
+      const theoPhim = new Map<number, { v: Set<string>; chi: number }>(); let tong = 0;
+      for (const cr of crs) { const v = giaTri(cr, d.k); if (v === '(chưa ghi)') continue; const p = tinh.phimCua.get(cr) ?? 0, c = tinh.so.get(cr)?.chi ?? 0; tong += c;
+        const x = theoPhim.get(p) ?? theoPhim.set(p, { v: new Set(), chi: 0 }).get(p)!; x.v.add(v); x.chi += c; }
+      const truPhim = tong > 0 && [...theoPhim.values()].filter((x) => x.v.size > 1).reduce((a, x) => a + x.chi, 0) / tong >= 0.3;
       const diem = (r: DongDc) => (truPhim ? lp(r) : roiOf(r));
       const ls = rs.map(diem).filter((x): x is number => x != null);
       return { ...d, rs, truPhim, diem, lech: ls.length > 1 ? Math.max(...ls) - Math.min(...ls) : 0, trung: null as string | null }; });
@@ -944,7 +947,7 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
         return <div key={d.k} style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
           <div style={{ padding: '8px 12px', background: 'var(--bg-1, #111)' }}>
             <div style={{ fontSize: 13 }}><span style={{ color: 'var(--fg-3, #777)' }}>{d.nhom} · </span><b>{d.ten}</b> <span style={{ color: 'var(--fg-2)' }}>— {MO_TA_DC[d.k] ?? ''}</span></div>
-            {d.truPhim ? null : <div style={{ fontSize: 11, color: 'var(--fg-3, #777)', marginTop: 2 }}>cùng một phim luôn cùng giá trị này → không trừ phim được, phân xử bằng ROI (phim khác nhau nên còn lẫn ảnh hưởng của phim)</div>}
+            {d.truPhim ? null : <div style={{ fontSize: 11, color: 'var(--fg-3, #777)', marginTop: 2 }}>phần lớn phim chỉ có một giá trị này → không trừ phim được, phân xử bằng ROI (còn lẫn ảnh hưởng của phim)</div>}
             <div style={{ fontSize: 12.5, marginTop: 3 }}><b style={{ color: kl.chac ? '#4ade80' : '#f59e0b' }}>{kl.chac ? '✓ chắc' : '◌ chưa chắc'}</b> · {kl.chu}
               {kl.chac ? null : <span style={{ color: 'var(--fg-3, #777)' }}> — cần thêm mẫu (mỗi bản ≥ 5 creative, ≥ 100 nhấp, chi ≥ $30) hoặc chênh chưa đủ lớn</span>}</div>
           </div>

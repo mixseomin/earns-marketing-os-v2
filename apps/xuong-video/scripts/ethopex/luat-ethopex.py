@@ -272,8 +272,29 @@ phim_cua, ds_camp = {}, []   # camp → content_id (camp đang chạy / đang đ
 # Kho etp (đồng bộ 10 phút, giao = delivery_status của ad) cho biết camp nào đang DISAPPROVED mà không phải gọi chi tiết từng camp tắt.
 tc_kho = set(q("select camp_id from etp.camp where giao = 'DISAPPROVED' and coalesce(trang_thai, '') <> 'ARCHIVED'").split())
 lich_tat = set(q("select camp_id from etp.lich_tat").split())   # camp tạm dừng vì LỊCH GIỜ (apps/etp/lich-gio.py) — không phải bị đóng, không báo
+# ĐỌC SONG SONG (28/10/2026: đọc đủ 703 camp nhà → 765 lượt gọi API nối đuôi × 0,33s = 4m48s, vượt giới hạn nhịp 240s → cả nhịp Ethopex gãy 57 lượt):
+# lịch sử camp đóng + chi tiết camp đang chạy nạp trước bằng 12 luồng vào _NAP; vòng dưới đọc từ đó (thiếu thì gọi như cũ)
+_NAP = {}
+def _nap_truoc(ds):
+    from concurrent.futures import ThreadPoolExecutor
+    can = []
+    for c in ds:
+        if c.get("state") == "ARCHIVED" or (c.get("state") == "PAUSED" and c.get("sync_status") == "error"): continue
+        if c.get("state") == "PAUSED":
+            if str(c["id"]) in tc_kho or str(c["id"]) in lich_tat or (c.get("sync_status") or "done") not in ("done", "synced"): continue
+            can.append(f"/api/v1/campaigns/{c['id']}/history")
+        else: can.append(f"/api/v1/campaigns/{c['id']}")
+    def lay(p):
+        try: return p, api(p)
+        except Exception as e: return p, None
+    with ThreadPoolExecutor(12) as ex:
+        for p, d in ex.map(lay, can):
+            if d is not None: _NAP[p] = d
+_api_goc = api
+api = lambda p, b=None: _NAP.pop(p) if b is None and p in _NAP else _api_goc(p, b)
 try:
-    for c in api("/api/v1/campaigns?page_size=500")["data"]:
+    _ds = api("/api/v1/campaigns?page_size=500")["data"]; _nap_truoc(_ds)
+    for c in _ds:
         ds_camp.append(c)
         if c.get("state") == "ARCHIVED": continue
         # sync_status 'error' KHÔNG phải "đang đồng bộ": Ethopex dừng camp kèm lỗi (Meta từ chối, lỗi đẩy FB). Trước 24/10/2026 nhánh dưới coi mọi

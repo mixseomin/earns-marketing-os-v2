@@ -76,7 +76,9 @@ export const htmlBaiViet = (d, anh = null, taAnh = '') => {
   // câu trả lời Quora: câu hỏi là của người hỏi, không phải câu móc của mình → ghi "Trả lời cho" chứ không đặt làm tiêu đề; alt ảnh tả ẢNH (de.truy), không lặp câu hỏi
   // (28/10/2026: Phòng Nội dung đọc alt = câu hỏi thành "ảnh chỉ là chữ", đọc câu hỏi trong <h1> thành câu móc khô — chấm SỬA LẠI oan cả hai bài BAH)
   const dau = d.cau_hoi ? `<p>Answer to the Quora question: <em>${e(d.title)}</em></p>` : `<h1>${e(d.title)}</h1>`;
-  const hinh = anh ? `<img src="${e(anh)}" alt="${e(taAnh ? `Photo: ${taAnh}` : 'Photo')}">` : '';
+  // nguồn ảnh ghi rõ dưới ảnh (Phòng Nội dung đòi biết ảnh từ kho nào — chuẩn mục 1), đọc từ tên miền ảnh
+  const kho = anh ? ({ pexels: 'Pexels', pixabay: 'Pixabay', unsplash: 'Unsplash', wikimedia: 'Wikimedia Commons' })[String(anh).match(/(pexels|pixabay|unsplash|wikimedia)\./i)?.[1]?.toLowerCase()] : null;
+  const hinh = anh ? `<figure><img src="${e(anh)}" alt="${e(taAnh ? `Photo: ${taAnh}` : 'Photo')}"><figcaption>${e(taAnh ? `Real photo: ${taAnh}` : 'Real photo')}${kho ? ` (via ${kho})` : ''}</figcaption></figure>` : '';
   return `<article>${dau}${hinh}${String(d.description ?? '').split(/\n\s*\n/).map((p) => `<p>${e(p)}</p>`).join('')}</article>`;
 };
 /** Kết quả kiem-bai cho đúng bản của bài viết: 'DUYET' | 'SUA_LAI' | 'KHONG_DUYET' | 'CHO'. Chưa nộp thì nộp (url bai://<máy>/<slug>, khoa = md5 chữ đăng). */
@@ -266,6 +268,8 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   t.ok(htmlBaiViet({ title: 'Q', description: 'a' }, 'https://images.pexels.com/x.jpg').includes('<img src="https://images.pexels.com/x.jpg"'), 'ảnh bìa vào bản gửi kiem-bai');
   { const h = htmlBaiViet({ title: 'How is BAH calculated?', description: 'a', cau_hoi: 'https://www.quora.com/q' }, 'https://images.pexels.com/x.jpg', 'moving boxes');
     t.ok(h.includes('alt="Photo: moving boxes"') && !h.includes('<h1>') && h.includes('Answer to the Quora question'), 'Quora: alt tả ảnh, câu hỏi không làm tiêu đề'); }
+  t.ok(htmlBaiViet({ title: 'Q', description: 'a' }, 'https://images.pexels.com/photos/1/x.jpg', 'desk').includes('(via Pexels)'), 'ghi nguồn ảnh theo tên miền');
+  t.ok(!htmlBaiViet({ title: 'Q', description: 'a' }, 'https://example.com/x.jpg').includes('via'), 'tên miền lạ không bịa nguồn');
   console.log('✓ cham-dang: 13 ca đạt (+ tiêu đề trùng ×2, lỡ lượt / kho sắp cạn, họ nền xoay vòng, dừng vì cảnh báo tài khoản) · (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
 }
 if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--chay')) { console.log(await nhipChamDang()); process.exit(0); }

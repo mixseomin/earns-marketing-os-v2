@@ -16,6 +16,7 @@
 //   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }] } → trạng thái máy đăng thời gian thực (mos2 Lịch đăng › ⚡ Máy đăng)
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
+//   --sinh-kho <N>                 lấp kho VIDEO cho máy: N đề theo góc spy chưa dùng, dạng ra MP4 xoay vòng → nạp + dựng (TỐN TIỀN chữ AI — lô lớn duyệt qua Telegram)
 //   --tu-khoa | --viet-bai           stdin { goc [, cau_hoi, slug] } → JSON câu tìm Quora / câu trả lời (chữ AI rẻ ~1¢; nạp vẫn qua nap-bai.mjs) — puzzle-books sinh-bai.mjs gọi
 //   --ke-hoach <YYYY-MM-DD>        in JSON ô KẾ HOẠCH GÓC của máy ngày đó [{ ho, nen, format, dang, goc, dich }] (ke_hoach_goc — mos2 tự sinh hằng tuần); máy đăng ưu tiên bài đúng góc + dùng link đích
 import { getDb } from '@mos2/db';
@@ -77,6 +78,35 @@ if (a.includes('--nap')) {
   console.log(`✓ sổ đăng ${slug} · ${nen}`);
 } else if (a.includes('--nhat-ky')) {
   await ghiNhatKy(db, ma, await docStdin()); console.log('✓ nhật ký');
+} else if (lay('--sinh-kho') != null) {
+  // LẤP KHO VIDEO cho máy (anh 29/10/2026: Page cũ #625 hết bài DUYỆT để hẹn — --sinh-de chỉ sinh theo ô kế hoạch tuần, Page cũ không có ô): N đề VIDEO
+  // (dạng ra MP4 — Reel lên Page được), góc spy CHƯA DÙNG của máy trước, dạng xoay vòng; nạp + dựng; Phòng Nội dung chấm như mọi bài. TỐN TIỀN (chữ AI ckey,
+  // sinhJson tự gác ngưỡng) — chạy lô lớn qua nút ✅ Duyệt trên Telegram (worker/duyet-chi.mjs) hoặc DUYET_SINH_1_LAN=1 ngay sau khi anh duyệt.
+  const N = Math.max(1, Math.min(40, Number(lay('--sinh-kho')) || 10)), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
+  const { sinhDe } = await import('../src/lib/xuong-video/may-de');
+  const sp = await spCua(ma), dl = (sp.ngach ?? []).includes('du-lich');
+  const DANG_VIDEO = ['lam-tuong', 'dung-sai', 'top-n', 'so-sanh', 'spot-the-fake', 'cau-do-meo', 'vat-lac-loai', 'canh-dong', ...(dl ? ['cau-noi-theo-nuoc'] : [])];
+  const nhom = (((await db.execute(sql`SELECT goc_sp FROM xv_may WHERE ma = ${ma}`)) as unknown as { goc_sp: number[] | null }[])[0]?.goc_sp ?? []).map(Number);
+  if (!nhom.length) { console.error(`máy ${ma} chưa gắn nhóm góc spy (goc_sp)`); process.exit(1); }
+  const fs = await import('node:fs'), url = process.env.SPY_DATABASE_URL ?? fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13);
+  const spy = (await import('postgres')).default(url!, { max: 1, prepare: false });
+  const gocs = (await spy`select sp_id as sp, id, loai, ten from goc where sp_id = any(${nhom}) order by id`) as unknown as { sp: number; id: number; loai: string; ten: string }[]; await spy.end();
+  const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.dang->>'title' AS title FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; title: string | null }[];
+  const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);
+  const thuTu = [...gocs].sort((g1, g2) => (dem.get(g1.id) ?? 0) - (dem.get(g2.id) ?? 0));   // góc chưa dùng trước, rồi góc dùng ít
+  const daDung = daCo.map((x) => x.title ?? '').filter(Boolean);
+  let vnd = 0, n = 0, i = 0; const ra: string[] = [];
+  for (const g of thuTu) {
+    if (n >= N) break;
+    const d = DANG_VIDEO[i++ % DANG_VIDEO.length]!;
+    const kq = await sinhDe({ sp, goc: g, dang_bai: d, daDung }); vnd += kq.vnd;
+    if (!kq.ok) { ra.push(`✗ #${g.id} ${d}: ${kq.loi}`); if (/TỐN TIỀN/.test(kq.loi)) break; continue; }
+    await napVideo(db, ma, [kq.de]); daDung.push(kq.de.dang.title ?? '');
+    const v = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${kq.de.slug}`)) as unknown as { id: number }[])[0];
+    const x = v ? await xuatVideo(db, Number(v.id)) : { ok: false as const, loi: 'không thấy dòng vừa nạp' };
+    ra.push(`${x.ok ? '✓' : '⚠'} #${g.id} ${d} → ${kq.de.slug} (${Math.round(kq.vnd)}₫)${x.ok ? '' : ` · dựng ✗ ${x.loi}`}`); n++;
+  }
+  console.log(ra.join('\n')); console.log(`sinh kho ${ma}: ${n}/${N} đề, ${Math.round(vnd)}₫`);
 } else if (a.includes('--tu-khoa') || a.includes('--viet-bai')) {
   // BÀI VIẾT bằng chữ AI rẻ (followup #1470): stdin { goc: { sp, id, loai, ten } [, cau_hoi, link] } → JSON. Một bài ~1¢ trở xuống (Haiku qua ckey) — dưới ngưỡng tự chạy;
   // máy gọi: puzzle-books scripts/sinh-bai.mjs (tìm câu hỏi Quora thật bằng br → --viet-bai → nap-bai.mjs). Không nạp ở đây: nạp chỉ một đường (nap-bai.mjs).

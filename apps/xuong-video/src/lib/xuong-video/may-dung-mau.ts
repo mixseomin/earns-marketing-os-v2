@@ -8,6 +8,7 @@ export const MAU_MAY_DUNG = {
   'canh-dong': { ten: 'Cảnh động thả hồn' },
   'bai-anh': { ten: 'Bài ảnh (thẻ chữ · nhận ra · đoán · hai lựa chọn)' },
   'top-n': { ten: 'Top 3/5 đếm ngược' },
+  'carousel': { ten: 'Carousel 5–7 trang (chỉ ảnh 4:5)' },   // trang móc + 3–5 trang ý + trang chốt, mỗi trang một ảnh thật — bước 4, 28/10/2026
   'binh-chon': { ten: 'Bình chọn (X poll — không tệp)' },   // đường đăng poll: câu hỏi + 2–4 lựa chọn, không dựng gì — bước 4, 27/10/2026
   'lac-loai': { ten: 'Vật lạc loài (lưới ô chữ, một ô khác)' },   // lưới 3×3–5×5 trên ảnh thật, đếm 7s, khoanh — bước 3, 27/10/2026
   'cai-nao-gia': { ten: 'Cái nào giả? (hai mẫu cạnh nhau)' },   // hai thẻ chữ A/B trên ảnh thật mờ, đếm 7s, lộ FAKE/REAL + khoanh dấu hiệu — bước 3, 27/10/2026

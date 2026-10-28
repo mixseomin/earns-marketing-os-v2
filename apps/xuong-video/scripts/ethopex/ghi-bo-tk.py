@@ -9,7 +9,9 @@ BO = {"1": {"tk": 11183179, "ext": "1675072414209076", "page": 1295495, "ten": "
       "2": {"tk": 11183178, "ext": "2270047060456855", "page": 1295499, "ten": "ETP_441 · Argo Love Tyrell", "chi_phim_moi": True}}
 q(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_bo_tk', '{json.dumps(BO, ensure_ascii=False)}'::jsonb) on conflict (ten) do update set gia_tri = excluded.gia_tri")
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
+import sys; sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ethopex_api as EA   # cổng chung: chỉ tài khoản nhà (anh 28/10/2026)
 api = lambda p: json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev" + p, headers={"authorization": "Bearer " + T, "user-agent": "mos2-bo-tk"}), timeout=90))
+api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 bo_cua = {b["tk"]: k for k, b in BO.items()}
 def ct(c):
     try: return api(f"/api/v1/campaigns/{c['id']}")["ad_groups"][0]["ads"][0].get("content_id"), bo_cua.get(int(c.get("ad_account_id") or 0))

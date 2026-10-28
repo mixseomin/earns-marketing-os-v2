@@ -8,6 +8,7 @@ và có báo cáo"). Chạy trên box3.
   3. Ghi studio ['ethopex_the_loai_thu'] (tab Ethopex mos2 › Thể loại đọc) · --tg in tóm tắt HTML cho Telegram (phòng Ethopex gửi sáng thứ Hai).
 Dùng: the-loai.py [--tg] · the-loai.py --gan 94344=vo_danh 92980=vo_danh"""
 import datetime as dt, json, os, re, subprocess, sys, urllib.request
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ethopex_api as EA   # cổng chung: chỉ tài khoản nhà (anh 28/10/2026)
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 TL = {"ty_phu": "Tỷ phú / CEO / thừa kế", "vo_danh": "Kẻ vô danh lật ngược", "hoi_han": "Gia đình hối hận / phản bội", "me_con": "Mẹ – con / em bé / bảo mẫu",
       "soi": "Alpha / sói / Luna", "fantasy": "Rồng / phép thuật / thần", "vien_tuong": "Viễn tưởng / siêu anh hùng", "he_thong": "Hệ thống / trùng sinh / dị năng",
@@ -41,9 +42,9 @@ def main():
         return print("đã gắn", len(a) - a.index("--gan") - 1, "phim")
     T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
     nay = dt.datetime.now(dt.timezone.utc).date()
-    b = json.dumps({"columns": ["content_name", "date", "cost", "revenue"], "group_by": ["content_name", "date"], "filters": {}, "metric_conditions": [], "limit": 20000, "page": 1, "page_size": 20000,
+    b = json.dumps({"columns": ["campaign_name", "content_name", "date", "cost", "revenue"], "group_by": ["campaign_name", "content_name", "date"], "filters": {}, "metric_conditions": [], "limit": 20000, "page": 1, "page_size": 20000,
                     "date_from": "2026-10-20", "date_to": (nay - dt.timedelta(days=1)).isoformat()}).encode()   # bỏ hôm nay (chưa khép, doanh thu còn về)
-    rows = json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=b, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-the-loai"}), timeout=180))["rows"]
+    rows = EA.loc_report(json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=b, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-the-loai"}), timeout=180))["rows"])
     moi = 0
     for x in rows:
         i = str(x.get("content_group_id"))
@@ -66,8 +67,9 @@ def main():
         for th, x in ds.items(): x["lech"] = (x["roi"] - rt) if (x["roi"] is not None and rt is not None and th != "*") else None
     # ── 3 BẢNG THÊM (anh 24/10/2026 "làm luôn"): GIỜ × thể loại · VÒNG ĐỜI (ROI theo ngày tuổi camp) × thể loại · DẠNG creative × thể loại
     def rp(cols, gb):
+        if "campaign_name" not in gb: cols, gb = ["campaign_name"] + cols, ["campaign_name"] + gb   # nhóm theo camp để lọc tài khoản nhà (28/10/2026)
         bb = json.dumps({"columns": cols, "group_by": gb, "filters": {}, "metric_conditions": [], "limit": 50000, "page": 1, "page_size": 50000, "date_from": "2026-10-20", "date_to": (nay - dt.timedelta(days=1)).isoformat()}).encode()
-        return json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=bb, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-the-loai"}), timeout=240))["rows"]
+        return EA.loc_report(json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=bb, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-the-loai"}), timeout=240))["rows"])
     def gop(dst, tl, cot, c, r, mau_ngay, mau_phim):
         for k in ((tl, cot), (tl, "*"), ("*", cot), ("*", "*")):
             e = dst.setdefault(k, [0.0, 0.0, set(), set()]); e[0] += c; e[1] += r; e[2].add(mau_ngay); e[3].add(mau_phim)
@@ -84,7 +86,7 @@ def main():
         if c == 0 and r == 0: continue
         i = str(x.get("content_group_id")); tl = so.get(i, {}).get("tl") or doan(x.get("content_group_name")); h = f"{(int(x['hour']) + 7) % 24:02d}"
         gop(g, tl, h, c, r, h, i)
-    camps = {c["id"]: c for c in json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/campaigns?page_size=1000", headers={"authorization": "Bearer " + T, "user-agent": "mos2-the-loai"}), timeout=120))["data"]}
+    camps = EA.camp_nha()
     vd, dg = {}, {}
     DANG = [("ke chuyen", "Kể chuyện"), ("canh that", "Cảnh thật"), ("canh cuoi", "Cảnh cuối"), ("phim dai", "Phim dài"), ("lam moi", "Làm mới")]
     for x in rp(["campaign_name", "content_name", "date", "cost", "revenue"], ["campaign_name", "content_name", "date"]):

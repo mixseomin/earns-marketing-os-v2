@@ -10,11 +10,13 @@ import collections, datetime as dt, json, os, re, subprocess, sys, urllib.reques
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 LO_ROI, LO_CHI = -20, 2.0
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ethopex_api as EA   # cổng chung: chỉ tài khoản nhà (anh 28/10/2026)
 def api(p, b=None):
     T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
     return json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev" + p, data=json.dumps(b).encode() if b else None, method="POST" if b else "GET",
                      headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-kiem"}), timeout=60))
 
+api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 def tach(ten):
     """tên camp → (dạng, tu, den): '2010 Number One Nobody EN - canh that 84-141s' → ('canh that', 84, 141)"""
     t = ten.split(": ", 1)[-1].lower()

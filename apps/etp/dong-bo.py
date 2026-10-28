@@ -10,6 +10,7 @@ Ghi bằng psql + jsonb_to_recordset (không cần thư viện ngoài). Lỗi m�
 Dùng: dong-bo.py [--day-du]   (--day-du = kéo lại chi tiết mọi camp + số từ 19/10)"""
 import datetime as dt, json, os, re, subprocess, sys, time, urllib.error, urllib.request
 from concurrent.futures import ThreadPoolExecutor
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import ethopex_api as EA   # cổng chung: tài khoản nhà / ngoài (anh 28/10/2026)
 DB = os.environ["DATABASE_URL"]
 SPY = subprocess.run(["bash", "-c", ". /root/.secrets/spy.env; echo $DATABASE_URL"], capture_output=True, text=True).stdout.strip()
 def q(s, db=DB):
@@ -56,7 +57,12 @@ def main():
     except Exception as e: loi.append(f"lich_gio: {e}")
     # ── camp
     try:
-        ds = api("/api/v1/campaigns?page_size=2000")["data"]; kq["so_camp"] = len(ds)
+        # TÀI KHOẢN NHÀ / NGOÀI (anh 28/10/2026): danh sách đủ mọi trang (tối đa 1.000/trang); camp tài khoản nhà vào kho luật như cũ, camp tài khoản
+        # khác htuan82 được xem → etp.camp_ngoai (chỉ để theo dõi / học, không luật nào đọc)
+        tat_ca = EA.ds_tat_ca(); ds = [c for c in tat_ca if EA.la_nha(c)]; ngoai = [c for c in tat_ca if not EA.la_nha(c)]; kq["so_camp"] = len(ds)
+        ghi("camp_ngoai", [{"camp_id": c["id"], "ten": re.sub(r"^\d+:\s*", "", c.get("name", "")), "ad_account_id": c.get("ad_account_id"), "trang_thai": c.get("state"),
+                            "ngan_sach": c.get("budget_daily"), "tao": c.get("created_at"), "cap_nhat_etp": c.get("updated_at")} for c in ngoai], ["camp_id"],
+            {"camp_id": "int", "ten": "text", "ad_account_id": "bigint", "trang_thai": "text", "ngan_sach": "numeric", "tao": "timestamptz", "cap_nhat_etp": "timestamptz"})
         # TRẠNG THÁI + NGÂN SÁCH của MỌI camp từ danh sách mỗi lượt (26/10/2026: lệnh bật / tắt / đổi ngân sách qua API control KHÔNG đổi updated_at → camp không
         # vào nhánh "đổi" bên dưới, kho giữ ACTIVE cũ cho camp đã tắt; lượt lịch giờ 12h sẽ ghi camp vừa tắt theo T7 vào sổ lịch rồi 20h bật lại)
         _tt = json.dumps([{"id": c["id"], "tt": c.get("state"), "ns": c.get("budget_daily")} for c in ds])
@@ -107,10 +113,12 @@ def main():
     # ── số theo ngày (camp × ngày)
     try:
         tu = "2026-10-19" if day_du or q("select count(*) from etp.so_ngay") == "0" else (nay - dt.timedelta(days=3)).isoformat()
-        g = {}
+        g, gn = {}, {}
         for x in bc(["campaign_name", "date", "cost", "revenue"], ["campaign_name", "date"], tu, nay.isoformat()):
-            k = (x["campaign_id"], str(x["report_date"])[:10]); e = g.setdefault(k, [0.0, 0.0]); e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
+            k = (x["campaign_id"], str(x["report_date"])[:10]); e = (g if str(x.get("external_account_id") or "") in EA.EXT else gn).setdefault(k, [0.0, 0.0])
+            e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
         kq["so_dong_ngay"] = ghi("so_ngay", [{"camp_id": c, "ngay": d, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, d), v in g.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "chi": "numeric", "thu": "numeric"})
+        ghi("so_ngay_ngoai", [{"camp_id": c, "ngay": d, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, d), v in gn.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "chi": "numeric", "thu": "numeric"})
         # ngân sách + trạng thái của camp cho NGÀY HÔM NAY (giá trị lượt cuối ngày thắng) — lịch sử cho chạy thử luật (bước 3c)
         # + ns_max / bat: ngân sách CAO NHẤT trong ngày lúc camp bật, camp có lúc nào bật (migration 0340 — cột ngân sách theo ngày trên etp.on.tc)
         q(f"insert into etp.so_ngay (camp_id, ngay, ngan_sach, trang_thai, ns_max, bat) select camp_id, '{nay.isoformat()}', ngan_sach, trang_thai, "
@@ -121,9 +129,15 @@ def main():
     # ── số theo giờ (phim × giờ) hôm qua + hôm nay
     try:
         for d in ([(nay - dt.timedelta(days=i)).isoformat() for i in range((nay - dt.date(2026, 10, 20)).days, -1, -1)] if day_du else [(nay - dt.timedelta(days=1)).isoformat(), nay.isoformat()]):
-            ghi("so_gio", [{"content_id": x.get("content_group_id"), "ngay": d, "gio": int(x["hour"]), "chi": float(x.get("cost") or 0), "thu": float(x.get("revenue") or 0)}
-                           for x in bc(["content_name", "hour", "cost", "revenue"], ["content_name", "hour"], d, d) if x.get("content_group_id") is not None],
-                ["content_id", "ngay", "gio"], {"content_id": "int", "ngay": "date", "gio": "smallint", "chi": "numeric", "thu": "numeric"})
+            # tách nhà / ngoài theo tài khoản: report phim × giờ không mang tài khoản → nhóm thêm theo camp (dòng có external_account_id) rồi cộng lại theo phim × giờ
+            gg = {True: {}, False: {}}
+            for x in bc(["content_name", "hour", "campaign_name", "cost", "revenue"], ["content_name", "hour", "campaign_name"], d, d):
+                if x.get("content_group_id") is None: continue
+                e = gg[str(x.get("external_account_id") or "") in EA.EXT].setdefault((x["content_group_id"], int(x["hour"])), [0.0, 0.0]); e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
+            q(f"update etp.so_gio set chi = 0, thu = 0, cap_nhat = now() where ngay = '{d}'")   # số cũ của ngày này có thể lẫn tài khoản ngoài → tính lại từ đầu
+            for nha, bang in ((True, "so_gio"), (False, "so_gio_ngoai")):
+                ghi(bang, [{"content_id": c, "ngay": d, "gio": h, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, h), v in gg[nha].items()],
+                    ["content_id", "ngay", "gio"], {"content_id": "int", "ngay": "date", "gio": "smallint", "chi": "numeric", "thu": "numeric"})
     except Exception as e: loi.append(f"so_gio: {e}")
     # ── LUẬT TỪ CẤM / CTA cho Worker chấm creative (anh 25/10/2026: một nguồn — danh sách gốc ở kiem-thoai.py / cta_qc.py) → xv_khoa_ngoai['ethopex_mau_cam']
     try:

@@ -55,7 +55,9 @@ from concurrent.futures import ThreadPoolExecutor
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 H = {"authorization": "Bearer " + T, "user-agent": "mos2-sua-cta", "content-type": "application/json"}
+import sys; sys.path.insert(0, "/opt/earns-marketing-os-v2/apps/etp"); import ethopex_api as EA   # cổng chung: chỉ tài khoản nhà (anh 28/10/2026) — đoạn này chạy trên box3 qua ssh, không có __file__
 api = lambda p, b=None: json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev" + p, data=b, method="POST" if b else "GET", headers=H), timeout=90))
+api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 dat = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_dat'") or "{}")
 thay = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_thay'") or "{}")
 nay = dt.datetime.now(dt.timezone.utc).date()

@@ -8,6 +8,7 @@ Chạy trên box3 (khoá ở studio):
   python3 so-ngay.py --chup     → chụp một điểm cộng dồn (Phòng Ethopex gọi mỗi nhịp 30 phút)
   python3 so-ngay.py --json     → {luc, theo_ngay:[{ngay, chi, thu, lai, roi}], tien_moi:[{ngay, chi, thu, lai, du}], hom_nay:{…}}"""
 import datetime as dt, json, os, subprocess, sys, urllib.request
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ethopex_api as EA   # cổng chung: chỉ tài khoản nhà (anh 28/10/2026)
 
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
@@ -18,13 +19,16 @@ def bc(body):
     body = {"filters": {}, "metric_conditions": [], "limit": 1000, "page": 1, "page_size": 1000, **body}
     r = urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=json.dumps(body).encode(), method="POST",
                                headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-so-ngay"})
-    return json.load(urllib.request.urlopen(r, timeout=60)).get("rows", [])
+    return EA.loc_report(json.load(urllib.request.urlopen(r, timeout=60)).get("rows", []))
 
 def theo_ngay():
     ra = []
-    for x in bc({"columns": ["date", "cost", "revenue"], "group_by": ["date"], "date_from": BAT_DAU, "date_to": vn.date().isoformat()}):
-        chi, thu = float(x.get("cost") or 0), float(x.get("revenue") or 0)
-        ra.append({"ngay": str(x.get("report_date"))[:10], "chi": round(chi, 2), "thu": round(thu, 2), "lai": round(thu - chi, 2), "roi": round((thu - chi) / chi * 100, 1) if chi else None})
+    # nhóm thêm theo camp để lọc tài khoản nhà (dòng report theo ngày không mang tài khoản — 28/10/2026 htuan82 được xem thêm 3 tài khoản ngoài) rồi cộng lại theo ngày
+    g = {}
+    for x in bc({"columns": ["campaign_name", "date", "cost", "revenue"], "group_by": ["campaign_name", "date"], "limit": 50000, "page_size": 50000, "date_from": BAT_DAU, "date_to": vn.date().isoformat()}):
+        e = g.setdefault(str(x.get("report_date"))[:10], [0.0, 0.0]); e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
+    for d, (chi, thu) in g.items():
+        ra.append({"ngay": d, "chi": round(chi, 2), "thu": round(thu, 2), "lai": round(thu - chi, 2), "roi": round((thu - chi) / chi * 100, 1) if chi else None})
     return sorted(ra, key=lambda r: r["ngay"])
 
 def chup():

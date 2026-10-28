@@ -10,6 +10,7 @@ Ghi một dòng tóm tắt mỗi lượt có việc vào etp.nhat_ky (viec lich_
 Chạy tay (box3, đã nạp .env.production):  python3 lich-gio.py [--thu] [--luc HH:MM] | --tu-kiem
   --thu: chỉ in sẽ làm gì · --luc (chỉ đi cùng --thu): mô phỏng giờ VN đó trên camp hiện tại — liệt kê số camp sẽ tạm dừng / bật lại theo thể loại"""
 import datetime as dt, json, os, subprocess, sys, urllib.request
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 TRUOC_PHUT = 15   # tắt sớm tối đa 15 phút trước khung TẮT (lượt chạy 10 phút/lần) — kịp chặn cú xả lúc 07:00
 THU = "--thu" in sys.argv
 LUC = sys.argv[sys.argv.index("--luc") + 1] if "--luc" in sys.argv else None
@@ -24,10 +25,9 @@ def dieu_khien(ids, trang_thai):
     xong = []
     for i in range(0, len(ids), 50):
         lo = ids[i:i + 50]
-        r = urllib.request.Request("https://api.ethopex.dev/api/v1/campaigns/control/batch/bulk", data=json.dumps([{"entity_type": "campaign", "entity_ids": lo, "status": trang_thai}]).encode(),
-                                   method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "etp-lich-gio"})
         try:
-            d = json.load(urllib.request.urlopen(r, timeout=60)); d0 = (d.get("data") or [{}])[0] if isinstance(d, dict) else {}
+            import ethopex_api as EA   # cổng chung: lệnh vào camp ngoài tài khoản nhà bị chặn (anh 28/10/2026)
+            d = EA.api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": lo, "status": trang_thai}], 60); d0 = (d.get("data") or [{}])[0] if isinstance(d, dict) else {}
             if d0.get("ok") is False: print(f"Ethopex từ chối {trang_thai} {lo[:5]}…: {d0.get('error')}", file=sys.stderr); continue
             xong += lo
         except Exception as e: print(f"lỗi gọi {trang_thai}: {e}", file=sys.stderr)

@@ -15,7 +15,9 @@ SPY = next((l.split("=", 1)[1].strip().strip('"') for l in open("/root/.secrets/
 T = q(os.environ["DATABASE_URL"], "select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 H = {"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-kiem"}
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ethopex_api as EA   # cổng chung: chỉ tài khoản nhà (anh 28/10/2026)
 api = lambda p, b=None: json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev" + p, data=json.dumps(b).encode() if b else None, method="POST" if b else "GET", headers=H), timeout=60))
+api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 nay = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).date()
 tu = sys.argv[1] if len(sys.argv) > 1 else nay.replace(day=1).isoformat(); den = sys.argv[2] if len(sys.argv) > 2 else nay.isoformat()
 

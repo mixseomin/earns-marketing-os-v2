@@ -7,9 +7,11 @@ import json, os, re, subprocess, urllib.request
 DB = os.environ["DATABASE_URL"]
 q = lambda s: subprocess.run(["psql", DB, "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
+import sys; sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ethopex_api as EA   # cổng chung: chỉ tài khoản nhà (anh 28/10/2026)
 def api(p):
     r = urllib.request.Request("https://api.ethopex.dev" + p, headers={"authorization": "Bearer " + T, "user-agent": "mos2-soat"})
     return json.load(urllib.request.urlopen(r, timeout=30))
+api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 studio = {}
 for l in q("select (kinh_thanh->'ethopex'->>'creative_id'), kinh_thanh->'ethopex'->>'content_id', kinh_thanh->>'ngon_ngu', id from xv_phim where project='ethopex' and kinh_thanh->'ethopex' ? 'creative_id'").splitlines():
     cr, ct, nn, pid = l.split("|"); studio[int(cr)] = (int(ct) if ct else None, nn, int(pid))

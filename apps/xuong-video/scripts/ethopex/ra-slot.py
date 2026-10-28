@@ -9,11 +9,13 @@ q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], ca
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 TRAN = 30
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ethopex_api as EA   # cổng chung: chỉ tài khoản nhà (anh 28/10/2026)
 def api(p, b=None):
     r = urllib.request.Request("https://api.ethopex.dev" + p, data=json.dumps(b).encode() if b else None, method="POST" if b else "GET",
                                headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-ra-slot"})
     return json.load(urllib.request.urlopen(r, timeout=90))
 
+api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 def bc(tu, den):
     m = {}
     for x in api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue"], "filters": {}, "metric_conditions": [], "limit": 3000, "page": 1, "page_size": 3000, "date_from": tu, "date_to": den})["rows"]:

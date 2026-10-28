@@ -851,6 +851,10 @@ const DIEM_CHAM: { k: string; ten: string; nhom: string; xo?: (v: number) => str
   { k: 'noi_dung.giay', ten: 'Độ dài creative', nhom: 'Hình · nội dung', xo: (v) => (v < 60 ? '< 60s' : v < 90 ? '60–90s' : v < 120 ? '90–120s' : '≥ 120s') },
   { k: 'noi_dung.lang', ten: 'Ngôn ngữ', nhom: 'Hình · nội dung' },
   { k: 'anh_dau.khung', ten: 'Ảnh đầu', nhom: 'Hình · nội dung' },
+  // máy đọc video (doc_video.py, 29/10/2026): khác nhau SẴN giữa các creative đang chạy → đo được ngay, không cần dựng bản thử
+  { k: 'video.tieng_3s', ten: 'Tiếng 3 giây đầu', nhom: 'Voice' },
+  { k: 'video.nhip_cat_10s', ten: 'Nhịp cắt cảnh 10 giây đầu', nhom: 'Hình · nội dung' },
+  { k: 'video.sang_khung_dau', ten: 'Độ sáng khung đầu', nhom: 'Hình · nội dung' },
   { k: 'voice.thoai', ten: 'Thoại', nhom: 'Voice' },
   { k: 'voice.giong_cta', ten: 'Giọng đọc CTA', nhom: 'Voice' },
   { k: 'chu_video.bo_cuc', ten: 'Bố cục chữ trên video', nhom: 'Chữ' },
@@ -872,11 +876,14 @@ const NHAN_DC: Record<string, [string, string]> = {
   'voice.thoai=goc': ['Thoại gốc phim', 'giữ nguyên tiếng thoại của phim'], 'chu_video.bo_cuc=giu_bo_cuc_app_goc': ['Giữ bố cục app gốc', 'tên phim trên đầu, phụ đề giữa, tóm tắt dưới đáy như QC của app'],
   'chu_video.phu_de=goc': ['Phụ đề gốc', 'phụ đề có sẵn trong video app'], 'anh_dau.khung=giay_2': ['Khung giây thứ 2', 'ảnh đầu (thumbnail) lấy ở giây 2 của video'],
   'noi_dung.lang=en': ['Tiếng Anh', ''], 'noi_dung.lang=es': ['Tây Ban Nha', ''],
+  'video.tieng_3s=im': ['Im lặng', '3 giây đầu gần như không có tiếng'], 'video.tieng_3s=nho': ['Tiếng nhỏ', '3 giây đầu có tiếng nhưng nhỏ (nhạc nền / nói nhỏ)'], 'video.tieng_3s=to': ['Tiếng to', '3 giây đầu có thoại / tiếng rõ'],
+  'video.sang_khung_dau=tối': ['Tối', 'khung giây 2 tối'], 'video.sang_khung_dau=vừa': ['Vừa', 'khung giây 2 sáng vừa'], 'video.sang_khung_dau=sáng': ['Sáng', 'khung giây 2 sáng'],
 };
 const MO_TA_DC: Record<string, string> = {
   'cta.mau': 'Cả bộ CTA cuối video (chữ nút, mũi tên, thẻ cuối, giọng đọc) — mỗi bản là một mẫu dựng', 'cta.nut_mau': 'Màu nút CTA chồng trên video', 'cta.nut_kieu': 'Nút xuất hiện / chuyển động thế nào',
   'cta.the_cuoi': 'Khung kết video trước khi hết', 'voice.giong_cta': 'Giọng đọc câu kêu gọi ở cuối video', 'voice.thoai': 'Tiếng thoại trong phần phim', 'hook.dang': 'Kiểu cắt creative — quyết định 3 giây đầu người xem thấy gì',
   'hook.giay_vao_phim': 'Đoạn cắt lấy từ phút thứ mấy của phim (đầu phim / giữa / cao trào cuối)', 'noi_dung.giay': 'Creative dài bao lâu', 'noi_dung.lang': 'Ngôn ngữ phim', 'anh_dau.khung': 'Ảnh bìa Meta hiện trước khi video chạy',
+  'video.tieng_3s': '3 giây đầu có tiếng nói / tiếng to hay im', 'video.nhip_cat_10s': 'Số lần chuyển cảnh trong 10 giây đầu', 'video.sang_khung_dau': 'Khung đầu (giây 2) sáng hay tối',
   'chu_video.bo_cuc': 'Cách đặt chữ trên video', 'chu_video.phu_de': 'Phụ đề thoại', 'chu_qc.so_cau': 'Số câu chữ QC đưa Meta tự xoay',
 };
 type DongDc = { v: string; mau: { cr: number; chi: number }[]; cr: number; camp: number; chi: number; thu: number; h: number; n: number; sh: number; sn: number; sv: number; sg: number; lech: number; lechW: number };

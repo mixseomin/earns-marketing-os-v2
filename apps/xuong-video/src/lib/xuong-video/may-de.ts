@@ -198,3 +198,48 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   }
   return { ok: false, loi: `đề sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };
 }
+
+// ── BÀI VIẾT (Quora trả lời…, followup #1470 — anh 28/10/2026 "không tốn token gọi mày"): cùng đường chữ AI rẻ (sinhJson, ckey Haiku) như đề video.
+// Máy chỉ VIẾT chữ; tìm câu hỏi thật (br, iMac) + nạp (nap-bai.mjs dungDong → studio --nap) + chấm (Phòng Nội dung kiem-bai) + đăng (dang-may) là các khâu sẵn có.
+export const TuKhoaSchema = z.object({ tu_khoa: z.array(z.string().describe('a short English Quora search query (3-7 words) a real person in this angle would type')).min(2).max(3) });
+export const VietBaiSchema = z.object({
+  tra_loi: z.string().describe('The Quora answer, English, 1200-2200 characters, plain human voice. Open with the direct answer in one sentence, then 3-5 short paragraphs or a short numbered list with concrete specifics, one round-number worked example if numbers matter, a 3-4 item "quick self-check" list, and a natural closing sentence that contains the destination link exactly as given. No em dashes, no hashtags, no headings, no made-up statistics.'),
+  truy: z.string().describe('3-6 English words for a real stock photo that fits the answer (Pexels search), no brand names'),
+});
+/** Kiểm câu trả lời trước khi nạp (đúng các chặn cứng của Phòng Nội dung + link đích). Thuần. */
+export function kiemBaiViet(chu: string, link: string): string[] {
+  const loi: string[] = [], t = chu.toLowerCase();
+  if (chu.length < 1100 || chu.length > 2600) loi.push(`độ dài ${chu.length} ký tự (cần 1100-2600)`);
+  if (!chu.includes(link)) loi.push('thiếu link đích đúng như đưa (kèm UTM)');
+  if (/[—–]/.test(chu)) loi.push('có gạch ngang dài');
+  const tm = TU_MAY.filter((w) => new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`).test(t)); if (tm.length) loi.push(`từ máy: ${tm.join(', ')}`);
+  if (/(^|\s)#\w+/.test(chu)) loi.push('có hashtag');
+  return loi;
+}
+const giaVnd = (r: { model: string; tokens: { in: number; out: number; vnd?: number } }) => r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260;
+/** 2-3 câu tìm Quora cho một góc (một lượt mô hình). */
+export async function tuKhoaQuora(o: { sp: SanPhamDe; goc: GocDe }): Promise<{ ok: true; tu_khoa: string[]; vnd: number } | { ok: false; loi: string; vnd: number }> {
+  const { sinhJson } = await import('./claude');
+  const r = await sinhJson({ schema: TuKhoaSchema, ten: 'tu_khoa', max_tokens: 300, system: `You help "${sp_ten(o.sp)}" find real Quora questions its US audience asks.`,
+    user: `ANGLE (${LOAI_VI[o.goc.loai] ?? o.goc.loai}): "${o.goc.ten}" (internal label, may be Vietnamese). Topic of the product: ${o.sp.mo_ta}. Give 2-3 English search queries.` });
+  return r.ok ? { ok: true, tu_khoa: r.data.tu_khoa, vnd: giaVnd(r) } : { ok: false, loi: r.loi, vnd: 0 };
+}
+const sp_ten = (sp: SanPhamDe) => sp.nhan || sp.ten;
+/** Viết câu trả lời Quora cho câu hỏi thật + góc; sai luật thì viết lại một lần. */
+export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; link: string }): Promise<{ ok: true; tra_loi: string; truy: string; vnd: number; model: string } | { ok: false; loi: string; vnd: number }> {
+  const { sinhJson } = await import('./claude');
+  const system = [`You answer Quora questions as an experienced, helpful person who also runs "${sp_ten(o.sp)}" (${o.sp.mo_ta}). Audience: US, English.`,
+    'Rules (hard): answer the question first and fully, be concrete and accurate, never invent statistics, prices, laws or testimonials; if a number depends on the reader, explain how to work it out with a round-number example labelled as an example.',
+    'Plain human voice, no hype, no em dashes (— or –), no hashtags, no headings, never these words: ' + TU_MAY.join(', ') + '.',
+    `Mention the destination exactly once, near the end, as this exact URL: ${o.link}`].join('\n');
+  let vnd = 0, loiCu: string[] = [];
+  for (let lan = 0; lan < 2; lan++) {
+    const r = await sinhJson({ schema: VietBaiSchema, ten: 'viet_bai', max_tokens: 1500, system,
+      user: `Quora question: "${o.cauHoi}"\nAngle to lean on (internal label, may be Vietnamese): "${o.goc.ten}".${loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''}\nReturn the JSON now.` });
+    if (!r.ok) return { ok: false, loi: r.loi, vnd };
+    vnd += giaVnd(r);
+    loiCu = kiemBaiViet(r.data.tra_loi.trim(), o.link);
+    if (!loiCu.length) return { ok: true, tra_loi: r.data.tra_loi.trim(), truy: r.data.truy, vnd, model: r.model };
+  }
+  return { ok: false, loi: `câu trả lời sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };
+}

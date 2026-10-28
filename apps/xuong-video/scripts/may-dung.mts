@@ -16,6 +16,7 @@
 //   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }] } → trạng thái máy đăng thời gian thực (mos2 Lịch đăng › ⚡ Máy đăng)
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
+//   --tu-khoa | --viet-bai           stdin { goc [, cau_hoi, slug] } → JSON câu tìm Quora / câu trả lời (chữ AI rẻ ~1¢; nạp vẫn qua nap-bai.mjs) — puzzle-books sinh-bai.mjs gọi
 //   --ke-hoach <YYYY-MM-DD>        in JSON ô KẾ HOẠCH GÓC của máy ngày đó [{ ho, nen, format, dang, goc, dich }] (ke_hoach_goc — mos2 tự sinh hằng tuần); máy đăng ưu tiên bài đúng góc + dùng link đích
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
@@ -27,6 +28,15 @@ const a = process.argv.slice(2), lay = (k: string) => { const i = a.indexOf(k); 
 const db = getDb(); if (!db) { console.error('thiếu DATABASE_URL'); process.exit(1); }
 const ma = lay('--may') ?? 'front-porch-only-one';
 const docStdin = async () => { let raw = ''; for await (const c of process.stdin) raw += c; return JSON.parse(raw); };
+/** Sản phẩm của máy cho chữ AI (sinh đề video + viết bài): tên, ngách, site, link đích, nhãn, mô tả — MỘT chỗ dựng cho cả hai lệnh. */
+async function spCua(ma: string) {
+  const r = (await db.execute(sql`SELECT ma, ten, coalesce(ngach, '{}') AS ngach, site_dich, muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { ten: string; ngach: string[]; site_dich: string | null; muc_dich: string }[];
+  const LINK_MAY: Record<string, { link: string; nhan: string; book?: string }> = { 'front-porch-only-one': { link: 'https://pickjot.com/printables/large-print-word-search/', nhan: 'Front Porch Puzzles', book: 'nostalgia' },
+    'ratesbyroom-scam-or-real': { link: 'https://ratesbyroom.com/hotel-scam-check/', nhan: 'ratesbyroom.com' }, 'esimfares-before-you-land': { link: 'https://esimfares.com/', nhan: 'esimfares.com' }, 'militarycalc': { link: 'https://militarycalc.com/', nhan: 'MilitaryCalc' }, 'giochap-van-khan': { link: 'https://giochap.com/van-khan', nhan: 'Giỗ Chạp' } };
+  const lm = LINK_MAY[ma] ?? { link: `https://${r[0]?.site_dich ?? ''}/`, nhan: r[0]?.ten ?? ma };
+  const sp = { ma, ten: r[0]!.ten, ngach: r[0]!.ngach, site: r[0]!.site_dich, link: lm.link, nhan: lm.nhan, mo_ta: r[0]!.muc_dich, ...(lm.book ? { book: lm.book } : {}) };
+  return sp;
+}
 
 if (a.includes('--nap')) {
   const ds = await docStdin();
@@ -67,6 +77,19 @@ if (a.includes('--nap')) {
   console.log(`✓ sổ đăng ${slug} · ${nen}`);
 } else if (a.includes('--nhat-ky')) {
   await ghiNhatKy(db, ma, await docStdin()); console.log('✓ nhật ký');
+} else if (a.includes('--tu-khoa') || a.includes('--viet-bai')) {
+  // BÀI VIẾT bằng chữ AI rẻ (followup #1470): stdin { goc: { sp, id, loai, ten } [, cau_hoi, link] } → JSON. Một bài ~1¢ trở xuống (Haiku qua ckey) — dưới ngưỡng tự chạy;
+  // máy gọi: puzzle-books scripts/sinh-bai.mjs (tìm câu hỏi Quora thật bằng br → --viet-bai → nap-bai.mjs). Không nạp ở đây: nạp chỉ một đường (nap-bai.mjs).
+  const { tuKhoaQuora, vietBai } = await import('../src/lib/xuong-video/may-de');
+  const { chotTien } = await import('../src/lib/xuong-video/chot-tien');
+  const x = await docStdin(), sp = await spCua(ma);
+  if (a.includes('--tu-khoa')) { chotTien(`từ khoá Quora #${x.goc?.id}`, { cents: 0.1 }); console.log(JSON.stringify(await tuKhoaQuora({ sp, goc: x.goc }))); }
+  else {
+    if (!x.cau_hoi) { console.error('--viet-bai cần cau_hoi'); process.exit(1); }
+    // link đích dựng MỘT chỗ ở đây: trang đích của máy (spCua) + UTM theo slug bài — người gọi không tự ghép
+    const link = x.link ?? `${sp.link}${sp.link.includes('?') ? '&' : '?'}utm_source=quora&utm_medium=answer&utm_campaign=${encodeURIComponent(x.slug ?? 'quora')}`;
+    chotTien(`viết bài #${x.goc?.id}`, { cents: 0.8 }); console.log(JSON.stringify({ link, ...(await vietBai({ sp, goc: x.goc, cauHoi: x.cau_hoi, link })) }));
+  }
 } else if (lay('--sinh-de') != null) {
   // MÁY SINH ĐỀ THEO GÓC (bước 3, 27/10/2026): ô kế hoạch của máy ngày đó chưa có bài DUYỆT đúng góc + dạng → sinh đề bằng chữ AI rẻ (may-de.ts) → nạp (→ --va-xuat dựng luôn; không dùng chữ --xuat vì nhánh --xuat <slug> đứng trước trong chuỗi lệnh).
   // TỐN TIỀN (vài chục đồng / đề qua ckey): chạy bằng script cần DUYET_SINH_1_LAN=1 khi quá ngưỡng tự chạy (chot-tien.ts); --toi-da N giới hạn số đề một lượt.
@@ -74,11 +97,7 @@ if (a.includes('--nap')) {
   const { sinhDe, MAU_CUA_DANG, MAU_SINH } = await import('../src/lib/xuong-video/may-de');
   const { chotTien } = await import('../src/lib/xuong-video/chot-tien');
   const toiDa = Number(lay('--toi-da') ?? 50), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
-  const r = (await db.execute(sql`SELECT ma, ten, coalesce(ngach, '{}') AS ngach, site_dich, muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { ten: string; ngach: string[]; site_dich: string | null; muc_dich: string }[];
-  const LINK_MAY: Record<string, { link: string; nhan: string; book?: string }> = { 'front-porch-only-one': { link: 'https://pickjot.com/printables/large-print-word-search/', nhan: 'Front Porch Puzzles', book: 'nostalgia' },
-    'ratesbyroom-scam-or-real': { link: 'https://ratesbyroom.com/hotel-scam-check/', nhan: 'ratesbyroom.com' }, 'esimfares-before-you-land': { link: 'https://esimfares.com/', nhan: 'esimfares.com' }, 'militarycalc': { link: 'https://militarycalc.com/', nhan: 'MilitaryCalc' }, 'giochap-van-khan': { link: 'https://giochap.com/van-khan', nhan: 'Giỗ Chạp' } };
-  const lm = LINK_MAY[ma] ?? { link: `https://${r[0]?.site_dich ?? ''}/`, nhan: r[0]?.ten ?? ma };
-  const sp = { ma, ten: r[0]!.ten, ngach: r[0]!.ngach, site: r[0]!.site_dich, link: lm.link, nhan: lm.nhan, mo_ta: r[0]!.muc_dich, ...(lm.book ? { book: lm.book } : {}) };
+  const sp = await spCua(ma);
   const o = (await db.execute(sql`SELECT k.nen, k.dang, k.goc, k.dich FROM ke_hoach_goc k WHERE k.may = ${ma} AND k.ngay = ${ngay}::date AND k.dang IS NOT NULL`)) as unknown as { nen: string; dang: string; goc: { sp: number; id: number; loai: string; ten: string }; dich: string | null }[];
   const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.dang->>'dang_bai' AS dang, v.dang->>'title' AS title FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; dang: string | null; title: string | null }[];
   const daDung = daCo.map((x) => x.title ?? '').filter(Boolean);

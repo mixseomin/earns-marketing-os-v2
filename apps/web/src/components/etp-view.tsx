@@ -847,6 +847,23 @@ const DIEM_CHAM: { k: string; ten: string; nhom: string; xo?: (v: number) => str
   { k: 'cta.nut_kieu', ten: 'Kiểu nút CTA', nhom: 'CTA' },
   { k: 'cta.the_cuoi', ten: 'Thẻ cuối', nhom: 'CTA' },
 ];
+// NHÃN GIÁ TRỊ ĐIỂM CHẠM (anh 28/10/2026 "ko hiểu gì cả" — bảng hiện mã v2 / cu): mã trong sổ → [tên đọc được, bản này khác gì]. Mã mới chưa có nhãn thì hiện mã.
+const NHAN_DC: Record<string, [string, string]> = {
+  'cta.mau=v2': ['CTA mới (từ 22/10)', 'nút đỏ "WATCH FREE · LEARN MORE" (ES "MÍRALA GRATIS · MÁS INFORMACIÓN"), thẻ cuối poster + "WHAT HAPPENS NEXT?", KHÔNG mũi tên, giọng đọc không chữ "Tap" — theo luật Support 22/10'],
+  'cta.mau=cu': ['CTA cũ (trước 22/10)', 'nút "WATCH FREE · TAP LEARN MORE" + 2 mũi tên vàng chỉ xuống nút + giọng đọc có chữ "Tap" — Support đã CẤM, không dựng lại được'],
+  'cta.nut_mau=do': ['Nút đỏ', 'nút CTA nền đỏ'], 'cta.nut_kieu=nhun_nhe': ['Nhún nhẹ từ giây 3', 'nút hiện từ giây 3, nhún nhẹ tới hết video'],
+  'cta.the_cuoi=poster_sach+hoi_vang': ['Poster + câu hỏi vàng', 'thẻ cuối = poster sạch của phim + dòng vàng "WHAT HAPPENS NEXT?"'],
+  'voice.giong_cta=george_v2': ['Giọng George (EN)', 'giọng nam ElevenLabs đọc câu CTA, bản không "Tap"'], 'voice.giong_cta=aria_v2': ['Giọng Aria (ES)', 'giọng nữ ElevenLabs đọc câu CTA tiếng Tây Ban Nha, bản không "Toca"'],
+  'voice.thoai=goc': ['Thoại gốc phim', 'giữ nguyên tiếng thoại của phim'], 'chu_video.bo_cuc=giu_bo_cuc_app_goc': ['Giữ bố cục app gốc', 'tên phim trên đầu, phụ đề giữa, tóm tắt dưới đáy như QC của app'],
+  'chu_video.phu_de=goc': ['Phụ đề gốc', 'phụ đề có sẵn trong video app'], 'anh_dau.khung=giay_2': ['Khung giây thứ 2', 'ảnh đầu (thumbnail) lấy ở giây 2 của video'],
+  'noi_dung.lang=en': ['Tiếng Anh', ''], 'noi_dung.lang=es': ['Tây Ban Nha', ''],
+};
+const MO_TA_DC: Record<string, string> = {
+  'cta.mau': 'Cả bộ CTA cuối video (chữ nút, mũi tên, thẻ cuối, giọng đọc) — mỗi bản là một mẫu dựng', 'cta.nut_mau': 'Màu nút CTA chồng trên video', 'cta.nut_kieu': 'Nút xuất hiện / chuyển động thế nào',
+  'cta.the_cuoi': 'Khung kết video trước khi hết', 'voice.giong_cta': 'Giọng đọc câu kêu gọi ở cuối video', 'voice.thoai': 'Tiếng thoại trong phần phim', 'hook.dang': 'Kiểu cắt creative — quyết định 3 giây đầu người xem thấy gì',
+  'hook.giay_vao_phim': 'Đoạn cắt lấy từ phút thứ mấy của phim (đầu phim / giữa / cao trào cuối)', 'noi_dung.giay': 'Creative dài bao lâu', 'noi_dung.lang': 'Ngôn ngữ phim', 'anh_dau.khung': 'Ảnh bìa Meta hiện trước khi video chạy',
+  'chu_video.bo_cuc': 'Cách đặt chữ trên video', 'chu_video.phu_de': 'Phụ đề thoại', 'chu_qc.so_cau': 'Số câu chữ QC đưa Meta tự xoay',
+};
 type DongDc = { v: string; mau: { cr: number; chi: number }[]; cr: number; camp: number; chi: number; thu: number; h: number; n: number; sh: number; sn: number; sv: number; sg: number; lech: number; lechW: number };
 const wilson = (k: number, n: number) => { if (!n) return null; const z = 1.96, p = k / n, d = 1 + (z * z) / n, c = (p + (z * z) / (2 * n)) / d, w = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / d; return [Math.max(0, c - w), c + w]; };
 function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string) => boolean; khNhan: string }) {
@@ -888,7 +905,9 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
   const rows = useMemo(() => bang(k), [k, tinh, du.diemCham]);   // eslint-disable-line react-hooks/exhaustive-deps
   const pc = (a: number, b: number) => (b ? `${((a / b) * 100).toFixed(1)}%` : '—');
   const cot: DataColumn<DongDc>[] = [
-    { key: 'v', header: 'Giá trị', align: 'left', cell: (r) => <b>{r.v}</b>, sortValue: (r) => r.v },
+    { key: 'v', header: 'Giá trị', align: 'left', cell: (r) => { const nh = NHAN_DC[`${k}=${r.v}`];
+      return <div style={{ maxWidth: 300, whiteSpace: 'normal' }}><b>{nh?.[0] ?? (r.v === '(chưa ghi)' ? 'Chưa ghi' : r.v)}</b>
+        <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.35 }}>{nh?.[1] ?? (r.v === '(chưa ghi)' ? 'creative cũ không có dữ liệu điểm chạm này' : '')}</div></div>; }, sortValue: (r) => r.v },
     { key: 'mau', header: 'Mẫu nhìn', align: 'left', title: 'creative chi nhiều nhất của giá trị này — CTA: khung cuối; còn lại: ảnh đầu · rê vào xem video', cell: (r) => <span style={{ display: 'inline-flex', gap: 3 }}>{r.mau.map((m) => nho(m.cr))}</span> },
     { key: 'cr', header: 'Creative', cell: (r) => r.cr, sortValue: (r) => r.cr }, { key: 'camp', header: 'Camp', cell: (r) => r.camp, sortValue: (r) => r.camp },
     { key: 'chi', header: 'Chi', cell: (r) => <Tien v={r.chi} />, sortValue: (r) => r.chi }, { key: 'thu', header: 'Thu', cell: (r) => <Tien v={r.thu} />, sortValue: (r) => r.thu },
@@ -915,6 +934,7 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
           border: `1px solid ${k === d.k ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, background: k === d.k ? 'var(--accent-soft, rgba(59,130,246,.18))' : 'transparent', opacity: d.so > 1 ? 1 : 0.55 }}>
           <span style={{ color: 'var(--fg-3, #777)' }}>{d.nhom} · </span>{d.ten}{d.so > 1 ? '' : ' · 1 giá trị'}</button>)}
       </div>
+      <div style={{ fontSize: 13 }}><b>{dang.ten}</b> <span style={{ color: 'var(--fg-2)' }}>— {MO_TA_DC[k] ?? ''}</span></div>
       {motGT ? <div style={{ fontSize: 12, color: '#f59e0b' }}>{dang.ten}: mọi creative đang cùng một giá trị — chưa so được. Muốn đo thì dựng bản thử đổi riêng điểm chạm này.</div> : null}
       <DataTable rows={rows} columns={cot} getRowKey={(r) => r.v} persistKey="etp-diem-cham" minWidth={1100} pageSize={50} />
       {noiV.v ? (() => { const x = crTheoId.get(noiV.v.cr); if (!x) return null; const d = daiCr(noiV.v.cr), bd = laCta && d > 8 ? d - 6 : 0;

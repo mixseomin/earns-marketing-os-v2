@@ -20,7 +20,9 @@ const usd = (v: number) => `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`;
 const roiOf = (s: SoTien) => (s.chi >= 0.3 ? Math.round(((s.thu - s.chi) / s.chi) * 100) : null);
 // số 0 ($0.00, 0%) hiện MỜ; ROI âm càng sâu càng đậm — −100% đỏ đậm in đậm, −5% đỏ nhạt (anh 26/10/2026)
 const MO = 'var(--fg-3)';
-const Roi = ({ s }: { s: SoTien }) => { const r = roiOf(s);
+const Roi = ({ s }: { s: SoTien }) => <RoiSo r={roiOf(s)} />;
+/** ô ROI từ con số % sẵn có (bản luật, số đã tính ở máy) — cùng màu / độ đậm với Roi */
+const RoiSo = ({ r }: { r: number | null | undefined }) => {
   const am = r != null && r < 0 ? Math.min(1, -r / 100) : 0;
   return <span style={{ color: r == null || r === 0 ? MO : r > 0 ? 'var(--neon-lime, #4ade80)' : `rgba(248,113,113,${(0.45 + 0.55 * am).toFixed(2)})`, fontWeight: r != null && r <= -90 ? 800 : r != null && r <= -50 ? 600 : 400, fontVariantNumeric: 'tabular-nums' }}>{r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`}</span>; };
 // CỘT TIỀN KIỂU KẾ TOÁN (anh 26/10/2026, luật YDNI): "$" dính mép trái ô, số dính mép phải, có dấu phẩy nghìn, số âm trong ngoặc (1.10) — cột thẳng hàng dấu thập phân; 0 thì mờ
@@ -544,56 +546,57 @@ const NHOM_LUAT: [string, string, string[]][] = [
 ];
 function BanLuat({ du }: { du: DuLieuEtp }) {
   const theo = new Map(du.soLuat.map((l) => [l.ma, l])); const luc = du.soLuat.reduce<string | null>((m, l) => (!m || l.luc > m ? l.luc : m), null);
-  const usd2 = (v: number | null | undefined) => (v == null ? '—' : `${v < 0 ? '−' : ''}$${Math.abs(v).toFixed(2)}`);
-  const mauV = (v: number | null | undefined) => (v == null ? 'var(--fg-2)' : v >= 0 ? '#4ade80' : '#f87171');
-  const pc = (v: number | null | undefined) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v}%`);
-  const So = ({ l }: { l: SoLuat }) => { const s = l.so;
-    if (s.tat_ca) { const H = ({ t, x }: { t: string; x?: SoLuat['so']['tat_ca'] }) => x && x.n ? <div>{t}: <b>{x.n}</b> bản · lãi <b style={{ color: mauV(x.lai) }}>{usd2(x.lai)}</b> · ROI <b style={{ color: mauV(x.roi) }}>{pc(x.roi)}</b> · {x.lai_n} bản có lãi</div> : null;
-      return <><H t="Tất cả clone" x={s.tat_ca} /><H t="Cùng creative (giống hệt)" x={s.cung_cr} /><H t="Creative khác" x={s.khac_cr} />
-        {Object.entries(s.theo_goc ?? {}).map(([k, x]) => <H key={k} t={k} x={x} />)}</>; }
-    if (s.lai_ngay_truoc !== undefined) return <>
-      <div>Lãi mỗi camp mỗi ngày: <b style={{ color: mauV(s.lai_ngay_truoc) }}>{usd2(s.lai_ngay_truoc)}</b> → <b style={{ color: mauV(s.lai_ngay_sau) }}>{usd2(s.lai_ngay_sau)}</b> <span style={{ color: 'var(--fg-3, #777)' }}>(2 ngày trước → 2 ngày sau khi máy làm)</span></div>
-      <div>ROI: {pc(s.roi_truoc)} → {pc(s.roi_sau)} · chi/ngày {usd2(s.chi_ngay_truoc)} → {usd2(s.chi_ngay_sau)}{s.ti_le_tot != null ? <> · {s.ti_le_tot}% lần lãi tăng lên</> : null}</div>
-      <div style={{ color: 'var(--fg-3, #777)' }}>{s.do_duoc ?? 0} lần đo được (lần mới làm hôm nay / hôm qua chưa có ngày sau)</div></>;
-    if (s.dang_lai !== undefined) return <>
-      <div>Camp bị tắt đang lãi 3 ngày trước đó: <b style={{ color: s.dang_lai ? '#f87171' : '#4ade80' }}>{s.dang_lai}/{s.do_duoc ?? 0}</b>{s.lai_bi_tat ? <> (lãi {usd2(s.lai_bi_tat)})</> : null}</div>
-      <div>Trước khi tắt: ROI 3 ngày {pc(s.roi_3_ngay_truoc)} · lãi mỗi camp mỗi ngày <b style={{ color: mauV(s.lo_ngay_truoc) }}>{usd2(s.lo_ngay_truoc)}</b></div></>;
-    return null; };
-  const the = (l: SoLuat) => { const s = l.so, d = s.dang;
-    return <div key={l.ma} style={{ display: 'grid', gridTemplateColumns: LUOI, gap: 14, padding: '10px 14px', borderTop: '1px solid var(--line)' }}>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13.5 }} title={l.mo_ta ?? undefined}><b style={{ cursor: l.mo_ta ? 'help' : undefined }}>{l.ten}</b>{l.dung ? <span style={{ fontSize: 11, color: 'var(--fg-3, #777)' }}> · tạm dừng</span> : null}</div>
-        {l.dk.length ? <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 3, lineHeight: 1.5 }}>{l.dk.map(([ten, ng], i) => <span key={ten}>{i ? ' · ' : ''}{ten} <b style={{ color: 'var(--fg-1, #ddd)', whiteSpace: 'nowrap' }}>{ng}</b></span>)}</div> : null}
-      </div>
-      <div style={{ fontSize: 12, lineHeight: 1.55, minWidth: 0 }}>
-        <div><b>{s.lan}</b> lần làm · {s.camp} camp <span style={{ color: 'var(--fg-3, #777)' }}>({s.ngay} ngày qua)</span></div>
-        <So l={l} />
-        {d ? <div style={{ marginTop: 4 }}>Bây giờ: <b style={{ color: '#4ade80' }}>{d.dat}</b> camp đạt · <b>{d.gan}</b> gần đạt{s.ket_o?.length ? <span style={{ color: 'var(--fg-3, #777)' }}> · hay kẹt ở “{s.ket_o[0]![0]}” ({s.ket_o[0]![1]})</span> : null}</div> : null}
-      </div>
-      <div style={{ fontSize: 12, lineHeight: 1.5, minWidth: 0 }}>
-        {l.de_xuat.length ? l.de_xuat.map((x, i) => <div key={i} style={{ padding: '4px 8px', marginBottom: 4, borderLeft: '3px solid #f59e0b', background: 'rgba(245,158,11,.07)', borderRadius: 3 }}>{x}</div>)
-          : <div style={{ color: 'var(--fg-3, #777)' }}>Chưa đủ số để đề xuất (cần ≥ 10 lần đo được).</div>}
-      </div>
-    </div>; };
   const khac = du.soLuat.filter((l) => !NHOM_LUAT.some(([, , ds]) => ds.includes(l.ma)));
   const NHOM = [...NHOM_LUAT, ...(khac.length ? [['khac', 'Luật khác', khac.map((l) => l.ma)] as [string, string, string[]]] : [])];
-  // MỘT MÀN, CHIA TAB (YDNI): 16 luật chồng dọc = cuộn mấy màn → mỗi nhóm một tab, nhớ tab vừa xem
+  // MỘT MÀN, CHIA TAB (YDNI) · MỖI SỐ MỘT CỘT (anh 29/10/2026 "dùng dạng ui.DataTable, các số nào vào cột được thì ra cột riêng")
   const [nhom, setNhom] = useState('tang'); useEffect(() => { try { const v = localStorage.getItem('etp-luat-nhom'); if (v) setNhom(v); } catch { /* */ } }, []);   // đọc sau khi nạp: tránh lệch SSR
   const chon = (k: string) => { setNhom(k); try { localStorage.setItem('etp-luat-nhom', k); } catch { /* */ } };
   const ds = (NHOM.find(([k]) => k === nhom) ?? NHOM[0]!)[2].map((m) => theo.get(m)).filter((x): x is SoLuat => !!x);
-  const gap = (l: SoLuat) => l.dung && !l.so.lan && !l.de_xuat.length;   // chỉ gập luật tạm dừng KHÔNG có số / đề xuất — luật dừng mà số cho thấy đang mất tiền thì phải thấy
-  const chay = ds.filter((l) => !gap(l)), dung = ds.filter(gap);
-  const LUOI = 'minmax(260px, 1.1fr) minmax(260px, 1fr) minmax(260px, 1.1fr)';
+  const T = ({ v }: { v: number | null | undefined }) => (v == null ? <span style={{ color: MO }}>—</span> : <KeToan v={v} mau={v ? mauLai(v) : undefined} />);
+  const N = ({ v }: { v: number | null | undefined }) => <span style={{ color: !v ? MO : undefined, fontVariantNumeric: 'tabular-nums' }}>{v ?? '—'}</span>;
+  const so = (v: number | null | undefined) => v ?? -1e9;
+  const c = (key: string, header: string, group: string | undefined, get: (l: SoLuat) => number | null | undefined, kieu: 'tien' | 'roi' | 'so' | 'pct', title: string): DataColumn<SoLuat> =>
+    ({ key, header, group, title, cell: (l) => { const v = get(l); return kieu === 'tien' ? <T v={v} /> : kieu === 'roi' ? <RoiSo r={v} /> : kieu === 'pct' ? <N v={v == null ? null : Math.round(v)} /> : <N v={v} />; }, sortValue: (l) => so(get(l)) });
+  const lai = (l: SoLuat) => (l.so.lai_ngay_sau != null && l.so.lai_ngay_truoc != null ? Math.round((l.so.lai_ngay_sau - l.so.lai_ngay_truoc) * 100) / 100 : null);
+  const cotDau: DataColumn<SoLuat>[] = [
+    { key: 'ten', header: 'Luật', align: 'left', width: 230, cell: (l) => <span title={`${l.mo_ta ?? ''}\n\nĐiều kiện đang chạy:\n${l.dk.map(([t, n]) => `· ${t} ${n}`).join('\n')}`} style={{ cursor: 'help' }}>
+      <b>{l.ten}</b>{l.dung ? <span style={{ color: MO }}> · tạm dừng</span> : null}<div style={{ fontSize: 10.5, color: 'var(--fg-2)', whiteSpace: 'normal', lineHeight: 1.35 }}>{l.dk.map(([t, n]) => `${t} ${n}`).join(' · ')}</div></span>, sortValue: (l) => l.ten },
+    c('lan', 'Lần làm', '14', (l) => l.so.lan, 'so', 'số lần máy luật đã làm trong 14 ngày'), c('camp', 'Camp', '14', (l) => l.so.camp, 'so', 'số camp khác nhau'),
+    c('do', 'Đo được', '14', (l) => l.so.do_duoc, 'so', 'số lần có đủ ngày trước + sau để đo (lần mới làm hôm nay / hôm qua chưa có ngày sau)'),
+  ];
+  const cotSau: DataColumn<SoLuat>[] = [
+    c('lt', 'Lãi/ngày trước', 'kq', (l) => l.so.lai_ngay_truoc, 'tien', 'lãi mỗi camp mỗi ngày, 2 ngày trước khi máy làm'), c('ls', 'Lãi/ngày sau', 'kq', (l) => l.so.lai_ngay_sau, 'tien', 'lãi mỗi camp mỗi ngày, 2 ngày sau khi máy làm'),
+    c('dl', 'Chênh lãi/ngày', 'kq', lai, 'tien', 'sau − trước'), c('rt', 'ROI trước', 'kq', (l) => l.so.roi_truoc, 'roi', 'ROI 2 ngày trước'), c('rs', 'ROI sau', 'kq', (l) => l.so.roi_sau, 'roi', 'ROI 2 ngày sau'),
+    c('ct', 'Chi/ngày trước', 'kq', (l) => l.so.chi_ngay_truoc, 'tien', 'chi mỗi camp mỗi ngày trước'), c('cs', 'Chi/ngày sau', 'kq', (l) => l.so.chi_ngay_sau, 'tien', 'chi mỗi camp mỗi ngày sau'),
+    c('tot', '% lần lãi tăng', 'kq', (l) => l.so.ti_le_tot, 'pct', 'phần trăm số lần lãi/ngày sau cao hơn trước'),
+  ];
+  const nb = (k: 'tat_ca' | 'cung_cr' | 'khac_cr', f: 'n' | 'lai' | 'roi') => (l: SoLuat) => l.so[k]?.[f];
+  const goc = (k: string, f: 'n' | 'roi') => (l: SoLuat) => l.so.theo_goc?.[k]?.[f];
+  const cotNb: DataColumn<SoLuat>[] = [
+    c('nb_n', 'Clone', 'nb', nb('tat_ca', 'n'), 'so', 'số bản clone đo được'), c('nb_lai', 'Lãi clone', 'nb', nb('tat_ca', 'lai'), 'tien', 'tổng lãi các bản clone từ lúc lên'), c('nb_roi', 'ROI clone', 'nb', nb('tat_ca', 'roi'), 'roi', 'ROI các bản clone'),
+    c('cc_n', 'Cùng cr', 'nb', nb('cung_cr', 'n'), 'so', 'clone giữ nguyên creative camp gốc (giống hệt)'), c('cc_roi', 'ROI cùng cr', 'nb', nb('cung_cr', 'roi'), 'roi', 'ROI clone giống hệt'),
+    c('kc_n', 'Khác cr', 'nb', nb('khac_cr', 'n'), 'so', 'clone đổi sang creative khác cùng phim'), c('kc_roi', 'ROI khác cr', 'nb', nb('khac_cr', 'roi'), 'roi', 'ROI clone đổi creative'),
+    c('g6_roi', 'ROI gốc < $6', 'nb', goc('gốc tiêu < $6/ngày', 'roi'), 'roi', 'ROI clone khi camp gốc tiêu < $6/ngày lúc clone'), c('g14_roi', 'ROI gốc $6–14', 'nb', goc('gốc tiêu $6–14/ngày', 'roi'), 'roi', 'ROI clone khi camp gốc tiêu $6–14/ngày'),
+    c('g20_roi', 'ROI gốc ≥ $14', 'nb', goc('gốc tiêu ≥ $14/ngày', 'roi'), 'roi', 'ROI clone khi camp gốc tiêu ≥ $14/ngày'),
+  ];
+  const cotTat: DataColumn<SoLuat>[] = [
+    c('nham', 'Tắt nhầm', 'tat', (l) => l.so.dang_lai, 'so', 'camp bị tắt mà 3 ngày trước đó đang LÃI'), c('lai_tat', 'Lãi bị tắt', 'tat', (l) => l.so.lai_bi_tat, 'tien', 'tổng lãi 3 ngày của các camp tắt nhầm'),
+    c('r3', 'ROI 3 ngày trước', 'tat', (l) => l.so.roi_3_ngay_truoc, 'roi', 'ROI 3 ngày trước khi tắt'), c('lo', 'Lãi/ngày trước', 'tat', (l) => l.so.lo_ngay_truoc, 'tien', 'lãi mỗi camp mỗi ngày trước khi tắt (âm = lỗ được cắt)'),
+  ];
+  const cotNay: DataColumn<SoLuat>[] = [
+    c('dat', 'Đạt', 'nay', (l) => l.so.dang?.dat, 'so', 'camp đang đủ mọi điều kiện (lượt xét mới nhất)'), c('gan', 'Gần đạt', 'nay', (l) => l.so.dang?.gan, 'so', 'camp còn thiếu đúng một điều kiện'),
+    { key: 'ket', header: 'Hay kẹt ở', group: 'nay', align: 'left', width: 150, title: 'điều kiện camp gần đạt hay thiếu nhất', cell: (l) => (l.so.ket_o?.[0] ? <span style={{ fontSize: 11 }}>{l.so.ket_o[0][0]} <span style={{ color: MO }}>({l.so.ket_o[0][1]})</span></span> : <span style={{ color: MO }}>—</span>), sortValue: (l) => l.so.ket_o?.[0]?.[1] ?? 0 },
+  ];
+  const cotDx: DataColumn<SoLuat> = { key: 'dx', header: 'Đề xuất', align: 'left', width: 420, cell: (l) => (l.de_xuat.length ? <div style={{ whiteSpace: 'normal', fontSize: 11.5, lineHeight: 1.4 }}>{l.de_xuat.map((x, i) => <div key={i} style={{ paddingLeft: 6, borderLeft: '2px solid #f59e0b', marginBottom: 3 }}>{x}</div>)}</div> : <span style={{ color: MO, fontSize: 11 }}>chưa đủ số (cần ≥ 10 lần đo)</span>), sortValue: (l) => l.de_xuat.length };
+  const cot = [...cotDau, ...(nhom === 'tat' ? cotTat : nhom === 'tang' ? [...cotSau, ...cotNb] : cotSau), ...cotNay, cotDx];
+  const NHOM_COT = [{ key: '14', label: '14 ngày qua', color: '#94a3b8' }, { key: 'kq', label: '2 ngày trước → 2 ngày sau khi máy làm', color: '#22d3ee' }, { key: 'nb', label: 'Bản nhân bản (từ lúc lên)', color: '#a78bfa' },
+    { key: 'tat', label: 'Camp bị tắt', color: '#f87171' }, { key: 'nay', label: 'Bây giờ', color: '#fbbf24' }];
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-    <div style={{ fontSize: 12.5, color: 'var(--fg-2)' }}>Mỗi luật: <b>điều kiện máy đang chạy</b> (đọc từ lượt xét mới nhất) · <b>số thật</b> {du.soLuat[0]?.so.ngay ?? 14} ngày qua (sau mỗi lần máy làm, camp lãi hơn hay kém) · <b>đề xuất</b> có số.
-      {luc ? <> Số tính lúc {vn(luc)}, máy tính lại mỗi giờ.</> : <> Chưa có số — máy tính lần đầu ở nhịp đồng bộ kế.</>} Đề xuất là gợi ý — đổi luật thì anh chốt.</div>
-    <Segmented value={nhom} onChange={chon} options={NHOM.map(([k, ten, ms]) => ({ value: k, label: ten.split(' — ')[0]!, title: `${ten} · ${ms.filter((m) => theo.has(m)).length} luật` }))} />
-    <div style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: LUOI, gap: 14, padding: '7px 14px', background: 'var(--bg-1, #111)', fontSize: 11, color: 'var(--fg-3, #777)' }}>
-        <span>Luật · điều kiện đang chạy</span><span>Số thật</span><span>Đề xuất tối ưu lợi nhuận</span></div>
-      {chay.map(the)}
-      {dung.length ? <details style={{ borderTop: '1px solid var(--line)' }}><summary style={{ cursor: 'pointer', padding: '8px 14px', fontSize: 12, color: 'var(--fg-3, #777)' }}>Luật đang tạm dừng: {dung.map((l) => l.ten).join(' · ')}</summary>{dung.map(the)}</details> : null}
+    <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+      <Segmented value={nhom} onChange={chon} options={NHOM.map(([k, ten, ms]) => ({ value: k, label: ten.split(' — ')[0]!, title: `${ten} · ${ms.filter((m) => theo.has(m)).length} luật` }))} />
+      <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{luc ? `số tính lúc ${vn(luc)} · máy tính lại mỗi giờ` : 'chưa có số — máy tính ở nhịp đồng bộ kế'} · rê tên luật xem điều kiện đầy đủ · đề xuất là gợi ý, đổi luật anh chốt</span>
     </div>
+    <DataTable rows={ds} columns={cot} groups={NHOM_COT.filter((g) => cot.some((x) => x.group === g.key))} groupHeader getRowKey={(l) => l.ma} persistKey={`etp-luat-${nhom}`} minWidth={nhom === 'tang' ? 2300 : 1600} />
   </div>;
 }
 function BaoLuat({ du }: { du: DuLieuEtp }) {

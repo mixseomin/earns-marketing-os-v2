@@ -7,8 +7,8 @@ Luật: mọi đoạn đi qua len-creative.py phải có MỘT trong ba:
   (b) lô đã soát tờ khung từng đoạn trước khi lên (dot-phim-moi / phim-moi gọi len-creative --da-soat) → ghi luôn (a)
   (c) đúng đoạn đó đang có creative Meta đã duyệt và đang giao (dựng lại CTA cùng đoạn)
 Không có → GIỮ LẠI, không đẩy: tờ khung 30 ô ~/.cache/ethopex/cho-soat/<content>-<tu>-<den>.jpg (iMac) + hàng studio ['ethopex_cho_soat'].
-Máy soát ngay bằng Claude API (anh duyệt 24/10/2026): ok → đẩy, cam → bỏ, không chắc → giữ cho Claude trong phiên / anh. Tiêu chí CẤM: khoả thân / gợi dục, ĐỤNG CHẠM / CƯỠNG ÉP TÌNH DỤC (kéo áo, đè, "Stop!", nạn nhân
-khóc sau cảnh giằng co), bạo lực máu me, vũ khí chĩa người, tự hại. Một khung dính là cấm cả đoạn.
+Máy soát ngay bằng Claude API (anh duyệt 24/10/2026): ok → đẩy, cam → bỏ, không chắc → giữ cho Claude trong phiên / anh. Đoạn cấm → cắt bỏ khung dính rồi soát lại (cat_bo, anh 28/10/2026). Tiêu chí CẤM: khoả thân / gợi dục, ĐỤNG CHẠM / CƯỠNG ÉP TÌNH DỤC (kéo áo, đè, "Stop!", nạn nhân
+khóc sau cảnh giằng co), bạo lực máu me, vũ khí chĩa người, tự hại. Một khung dính → cắt bỏ khoảng đó (không cần liền mạch), không cắt được mới cấm cả đoạn.
   python3 soat_doan.py ds                          → đoạn đang chờ soát + đường tờ khung
   python3 soat_doan.py ok|cam <khoá> … [--ghi "…"]  → ghi kết quả (cam: đoạn này không bao giờ được cắt lại — goc_moi / sua-cta tránh)
   python3 soat_doan.py lo <thư mục lô>             → soát cả lô bằng máy (Claude, chuỗi rẻ): in đoạn cấm / cần người xem kèm tờ 30 khung
@@ -75,7 +75,8 @@ HOI = ("You review a contact sheet (30 frames, in order) cut from a short drama,
        "sheer / see-through / lingerie-like clothing in close-up; "
        "blood, gore, injuries; a weapon pointed at a person or used; self-harm; drug use. "
        "Ordinary drama (arguments, slaps without blood, kneeling, crying from sadness, kissing fully clothed, business suits, parties) is OK. "
-       "If unsure, answer 'xem'. Reply ONLY JSON: {\"ket\": \"ok\"|\"cam\"|\"xem\", \"ly\": \"<short reason in Vietnamese, name the frame>\"}")
+       "If unsure, answer 'xem'. Frames are numbered 1–30 left to right, top to bottom. "
+       "Reply ONLY JSON: {\"ket\": \"ok\"|\"cam\"|\"xem\", \"ly\": \"<short reason in Vietnamese, name the frame>\", \"khung\": [<numbers of EVERY banned frame when ket is cam>]}")
 
 def goi_claude(jpg, hoi, max_tokens=300, kiem=None):   # jpg: một đường dẫn hoặc danh sách (nhiều tờ khung)
     """chạy TRÊN BOX3: một tờ khung + câu hỏi → (JSON trả về, đường đã dùng) qua chuỗi rẻ ckey → ShopAIKey → Anthropic.
@@ -106,7 +107,43 @@ def ai_box(jpg):
         if j.get("ket") not in ("ok", "cam", "xem"): raise ValueError(f"khuôn sai: {str(j)[:80]}")
     try: j, d = goi_claude(jpg, HOI, 300, kiem)
     except RuntimeError as e: return {"ket": "xem", "ly": str(e), "duong": None}
-    return {"ket": j["ket"], "ly": str(j.get("ly", ""))[:200], "duong": d}
+    kh = sorted({int(x) for x in (j.get("khung") or []) if str(x).isdigit() and 1 <= int(x) <= 30})
+    return {"ket": j["ket"], "ly": str(j.get("ly", ""))[:200], "duong": d, "khung": kh}
+
+# CẮT BỎ ĐOẠN VI PHẠM (anh 28/10/2026: "khi cắt cảnh video, đoạn nào vi phạm chủ động cắt bỏ luôn. Ko cần phải liền mạch"): đoạn bị cấm mà máy soát chỉ được
+# khung dính → bỏ khoảng quanh các khung đó (mỗi khung ±1 bước của tờ 30 ô) khỏi video thành phẩm, giữ phần còn lại (nhảy cảnh cũng được), soát lại tờ mới.
+# Còn ≥ 40% thời lượng và soát lại "ok" mới đẩy; không thì bỏ cả đoạn như cũ. Bản trước khi cắt giữ cạnh tệp (.goc.mp4).
+GIU_TOI_THIEU, LUOT_CAT = 0.4, 2
+def cat_bo(f, khung):
+    d = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f], capture_output=True, text=True).stdout.strip() or 0)
+    if not d or not khung: return None
+    b = d / 30; kh = []
+    for i in sorted(khung):
+        a, z = max(0.0, (i - 1.5) * b), min(d, (i + 0.5) * b)
+        if kh and a <= kh[-1][1]: kh[-1][1] = max(kh[-1][1], z)
+        else: kh.append([a, z])
+    if d - sum(z - a for a, z in kh) < GIU_TOI_THIEU * d: return None
+    dk = "+".join(f"between(t,{a:.2f},{z:.2f})" for a, z in kh)
+    goc = f[:-4] + ".goc.mp4"   # bản gốc giữ một lần; lượt cắt thứ hai cắt trên bản ĐÃ cắt (khung soát lại đánh số theo bản đó)
+    nguon = goc if not os.path.exists(goc) else f[:-4] + ".truoc.mp4"; os.replace(f, nguon)
+    ma = ["-c:v", "h264_videotoolbox", "-b:v", "3M"] if sys.platform == "darwin" else ["-c:v", "libx264", "-crf", "23"]
+    r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", nguon, "-vf", f"select='not({dk})',setpts=N/FRAME_RATE/TB", "-af", f"aselect='not({dk})',asetpts=N/SR/TB",
+                        *ma, "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", f], capture_output=True, text=True)
+    if r.returncode or not os.path.exists(f): os.replace(nguon, f); return None
+    if nguon != goc: os.remove(nguon)
+    return kh
+
+def soat_cat(x, k, kq):
+    """kq cam có khung → cắt bỏ rồi soát lại (tối đa LUOT_CAT lượt) → kq cuối (thêm 'cat': khoảng đã bỏ)"""
+    da = []
+    for _ in range(LUOT_CAT):
+        if kq["ket"] != "cam" or not kq.get("khung") or x["file"].startswith("box3:"): break
+        kh = cat_bo(x["file"], kq["khung"])
+        if not kh: break
+        da += [f"{a:.1f}–{z:.1f}s" for a, z in kh]
+        kq = ai(to_khung(x["file"], k)); print(f"SOÁT ĐOẠN: {k} đã cắt bỏ {', '.join(da)} → soát lại: {kq['ket']} · {kq['ly'][:100]}", flush=True)
+    if da: kq = {**kq, "cat": da, "ly": f"{kq['ly']} (đã cắt bỏ {', '.join(da)})"}
+    return kq
 
 def ai(to):
     """từ iMac: gửi tờ khung sang box3, gọi ai_box → {ket, ly}; lỗi thì 'xem' (giữ lại)"""
@@ -133,6 +170,7 @@ def loc(lo, ma, dang, da_soat=False):
         else: giu[k] = {"x": x, "ma": ma, "dang": dang, "to": to_khung(x["file"], k), "luc": vn()}
     for k in list(giu):   # máy soát ngay: ok → đẩy luôn lượt này, cam → bỏ, xem → giữ chờ người
         kq = ai(giu[k]["to"]); print(f"SOÁT ĐOẠN (Claude {kq.get('duong')}): {k} → {kq['ket']} · {kq['ly']}", flush=True)
+        kq = soat_cat(giu[k]["x"], k, kq)
         if kq["ket"] == "xem": giu[k]["may"] = kq["ly"]; continue
         ghi[k] = {"ok": kq["ket"] == "ok", "luc": vn(), "ghi": f"máy soát Claude: {kq['ly']}"}
         if kq["ket"] == "ok": di.append(giu[k]["x"])
@@ -151,7 +189,7 @@ def main(a):
         lo_dir = a[1]; lo = [x for x in json.load(open(os.path.join(lo_dir, "lo.json"))) if x.get("file") and not x.get("loi") and os.path.exists(x["file"])]
         s = khoa("ethopex_soat_doan"); viec = [x for x in lo if not s.get(khoa_doan(x))]
         def mot(x):
-            k = khoa_doan(x); kq = ai(to_khung(x["file"], k)); return k, kq, x
+            k = khoa_doan(x); kq = soat_cat(x, k, ai(to_khung(x["file"], k))); return k, kq, x
         kq_all = list(ThreadPoolExecutor(4).map(mot, viec)); ghi = {}; tong = {"ok": 0, "cam": 0, "xem": 0}
         for k, kq, x in kq_all:
             tong[kq["ket"]] += 1

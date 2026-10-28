@@ -2,6 +2,8 @@
 // nội dung"; "page này phải nâng cấp để mô tả hết những gì plan theo từng bước, sau đó mới triển khai"). Đây là SỔ kế hoạch: mô tả, việc con,
 // trạng thái từng bước — tab Social › Góc › Kế hoạch đọc sổ này + số thật (kho dạng, máy, góc spy). Làm xong bước nào đổi trạng thái ở đây
 // trong cùng commit. Trạng thái: cho (chờ) · dang (đang làm) · xong · duyet (chờ anh duyệt).
+import soNen from '../../../xuong-video/nen-dang.json';
+
 export type TtBuoc = 'cho' | 'dang' | 'xong' | 'duyet';
 export interface ViecCon { ten: string; tt: TtBuoc; ghi?: string }
 export interface Buoc { so: number; ma: string; ten: string; tt: TtBuoc; muc_dich: string; cach: string[]; viec: ViecCon[]; hien: 'kho' | 'ghep' | 'mau' | 'duong' | 'san-pham' | 'giong' | 'do' }
@@ -42,14 +44,9 @@ export const KE_HOACH: Buoc[] = [
     viec: [{ ten: 'Số bài theo dạng × góc', tt: 'cho' }, { ten: 'Luật dạng yếu trong kế hoạch tuần', tt: 'cho' }] },
 ];
 
-/** Đường đăng của máy đăng (puzzle-books dang-br.mjs / dang-may.mjs): co = đã có hàm đăng. Dạng trong kho cần đường chưa có → ô "cần dựng". */
-export const DUONG_DANG: { nen: string; ho: string; ten: string; co: boolean }[] = [
-  { nen: 'facebook', ho: 'facebook', ten: 'Facebook Reel (Graph API)', co: true }, { nen: 'fb_anh', ho: 'facebook', ten: 'Facebook bài ảnh / album', co: true }, { nen: 'fb_link', ho: 'facebook', ten: 'Facebook bài link', co: true },
-  { nen: 'x', ho: 'x', ten: 'X video', co: true }, { nen: 'x_anh', ho: 'x', ten: 'X bài ảnh (1–4 ảnh)', co: true }, { nen: 'x_link', ho: 'x', ten: 'X bài link', co: true }, { nen: 'x_poll', ho: 'x', ten: 'X bình chọn', co: true },
-  { nen: 'instagram', ho: 'instagram', ten: 'Instagram Reel', co: true }, { nen: 'ig_carousel', ho: 'instagram', ten: 'Instagram carousel', co: false }, { nen: 'ig_story_poll', ho: 'instagram', ten: 'Instagram Story bình chọn', co: false },
-  { nen: 'tiktok', ho: 'tiktok', ten: 'TikTok video (máy ảo Android)', co: true }, { nen: 'tiktok_anh', ho: 'tiktok', ten: 'TikTok bài ảnh trượt', co: false },
-  { nen: 'youtube', ho: 'youtube', ten: 'YouTube Shorts', co: true }, { nen: 'dailymotion', ho: 'dailymotion', ten: 'Dailymotion (API)', co: true },
-];
+/** Đường đăng: đọc từ SỔ NỀN ĐĂNG chung (apps/xuong-video/nen-dang.json — cùng nguồn với máy đăng puzzle-books + cham-dang), không khai tay ở đây.
+ *  co = đã có đường đăng chạy được. Dạng trong kho cần đường chưa có → ô "cần dựng". */
+export const DUONG_DANG: { nen: string; ho: string; ten: string; co: boolean }[] = Object.entries(soNen.nen as Record<string, { ho: string; ten: string; co: boolean }>).map(([nen, v]) => ({ nen, ho: v.ho, ten: v.ten, co: v.co }));
 
 /** Sản phẩm / dịch vụ ứng viên cho bước 5: đã có nhóm góc trên spy (id nhóm = goc_sp.id) nhưng chưa có máy studio. */
 export const UNG_VIEN: { ma: string; ten: string; du_an: string; goc_sp: number[]; site: string | null; ngach: string[]; ghi: string }[] = [

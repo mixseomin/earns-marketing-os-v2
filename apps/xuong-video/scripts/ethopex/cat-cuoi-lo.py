@@ -13,6 +13,10 @@ import importlib.util as _iu2
 _c2 = _iu2.spec_from_file_location("cta_qc", os.path.join(D, "cta_qc.py")); CQ = _iu2.module_from_spec(_c2); _c2.loader.exec_module(CQ); A = os.path.join(D, "..", "..", "assets", "ethopex")
 _s = importlib.util.spec_from_file_location("dl", os.path.join(D, "dung-lo-dai.py")); DL = importlib.util.module_from_spec(_s); _s.loader.exec_module(DL)
 DAI_MIN, DAI_MAX, QUET = 65, 85, 420
+# KIỂU "TẬP NGUYÊN" (anh 28/10/2026 "thử thêm cách của Kiên"): ETP_KIEU=tap → mỗi khung là MỘT TẬP TRỌN (đầu tập → hết tập, 45–160s), không nút CTA giữa
+# video, thẻ tên phim + WATCH NOW chỉ ở 3 giây cuối (cat-canh.py dung_tap). Mẫu đo từ creative thắng của Kim Kiên 22–27/10 (#54757, #53591, #54460: 53–150s)
+KIEU = os.environ.get("ETP_KIEU", "")
+TAP_MIN, TAP_MAX = 45, 160
 sys.path.insert(0, D); import loi_ky_thuat as LK; import cat_drive as CD
 
 def ghep_mo(tm):
@@ -54,6 +58,13 @@ def chon(src, moc, so_ban=1):
     cam = [g for g, c in DL.KT.doc(src, tu0, moc[-1]) if DL.KT.soat(c)]
     sach = lambda a, b: not any(a - 2 <= g <= b + 2 for g in cam)
     ra = []
+    if KIEU == "tap":   # một tập trọn: (mốc trước, mốc này), muộn nhất trước, sạch thoại cấm
+        bd = [0.0] + moc
+        for i in range(len(moc) - 1, -1, -1):
+            s, e = bd[i], moc[i]
+            if len(ra) >= so_ban: break
+            if TAP_MIN <= e - s <= TAP_MAX and s >= tu0 and sach(s, e): ra.append((s, e))   # chỉ trong vùng đã đọc chữ (QUET giây cuối)
+        return ra, cam   # lô kiểu tập nguyên không lùi về kiểu cũ — phim không có tập vừa độ dài thì báo không có khung
     for e in reversed(moc):
         if e - DAI_MIN < tu0 or len(ra) >= so_ban: break
         if ra and e > ra[-1][0]: continue   # không chồng khung đã chọn
@@ -74,9 +85,9 @@ def lam(p, goc, ra_dir, so_ban=1):
 
 def cat1(cid, loc, ten, src, moc, pst, tu, den, ra_dir):
     try:
-        ra = os.path.join(ra_dir, f"c-{cid}-{int(tu)}.mp4")
+        ra = os.path.join(ra_dir, f"{'t' if KIEU == 'tap' else 'c'}-{cid}-{int(tu)}.mp4")
         c = CQ.CTA["es" if loc == "es" else "en"]; args = [c["nut"], ra, c["giong"], c["hoi"]]   # CTA chung (cta_qc.py)
-        r = subprocess.run(["python3", os.path.join(D, "cat-canh.py"), src, str(tu), str(den), pst, "-"] + args, capture_output=True, text=True)
+        r = subprocess.run(["python3", os.path.join(D, "cat-canh.py"), src, str(tu), str(den), pst, "-"] + args, capture_output=True, text=True, env={**os.environ, "ETP_TEN": ten})
         if r.returncode != 0: return {"content_id": int(cid), "ten": ten, "loi": (r.stdout + r.stderr)[-300:]}
         g = DL.giay(ra)
         if g < den - tu: return {"content_id": int(cid), "ten": ten, "loi": f"đoạn ra {g:.1f}s ngắn hơn khung {den - tu:.0f}s"}

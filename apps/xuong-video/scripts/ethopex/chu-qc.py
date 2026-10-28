@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""CHỮ QC CHO LÔ CREATIVE (anh: chữ QC lấy từ QC spy xếp theo số Page). Ra mảng item cho POST /api/v1/creatives/bulk-jobs.
+"""CHỮ QC CHO LÔ CREATIVE (nút CTA theo lô: ETP_CTA=WATCH_MORE… — anh 28/10/2026 "thử CTA khác"; mặc định LEARN_MORE) (anh: chữ QC lấy từ QC spy xếp theo số Page). Ra mảng item cho POST /api/v1/creatives/bulk-jobs.
 Lọc (21/10/2026): bỏ câu nhắc app khác / tên miền (NetShort, DramaBox, ReelShort, H5SHORT…), bỏ chữ không khớp tên phim (QC spy ghép nhầm phim),
 cho mọi câu qua CỔNG THOẠI (kiem-thoai.soat — Meta đọc cả chữ QC), thiếu chữ thì dùng câu mở bằng tên phim; kèm câu chung EN / ES.
 Dùng: chu-qc.py <lo.json của dung-lo-dai> <chu.tsv: qc-spy-phim.sql> <lô (vd 2110ns)> <url gốc video R2> <ra.json> [ten.tsv: id..ten ở cột 6 | -] [dạng, mặc định "phim dai"]"""
@@ -51,7 +51,7 @@ def main(lo, tsv, ma_lo, goc_url, ra, ten_tsv=None, dang="phim dai"):
         pt = (ds[:2] or [mo]) + CHUNG[nn]
         f = x.get("ten_tep") or os.path.basename(x["file"])   # tên tệp trên kho có thể khác tệp máy (kho phat <tep> … <ten>)
         items.append({"name": f"{ma_lo} {ten} {nn.upper()} - {dang} {int(x['tu'])}-{int(x['den'])}s", "content_id": int(cid), "creative_type": "single_video", "traffic_source": "facebook",
-                      "status": "active", "call_to_action": "LEARN_MORE", "link_url": "search.com", "image_url": [], "video_url": [f"{goc_url.rstrip('/')}/{f}"],
+                      "status": "active", "call_to_action": os.environ.get("ETP_CTA", "LEARN_MORE"), "link_url": "search.com", "image_url": [], "video_url": [f"{goc_url.rstrip('/')}/{f}"],
                       "asset_spec": {"primaryTexts": pt[:5], "headlines": [ten], "descriptions": ["Episodios completos gratis" if nn == "es" else "Watch Full Episodes!"]}})
     json.dump(items, open(ra, "w"), ensure_ascii=False, indent=1)
     for i in items: print(i["content_id"], "|", i["asset_spec"]["primaryTexts"][0][:110])

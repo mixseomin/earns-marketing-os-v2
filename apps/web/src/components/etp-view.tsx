@@ -1051,9 +1051,9 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
 // ĐIỆN THOẠI (anh 25/10/2026 "tối ưu trên mobile"): dòng = chấm · camp · ngân sách · dải lịch · ROI hôm nay · lãi 7 ngày; ẩn 6 ô ngày, ô bậc, ô creative; chú giải gập sau nút
 // điện thoại (anh 27/10/2026 "trên mobile ẩn cái này đi, bố cục lại cho thẳng cột"): bỏ dải lịch giờ; ô camp chia lưới cố định chấm · ▸#id (thụt theo cấp) · $ngân sách · xN/⚠ — mọi dòng cùng mép
 // LOẠI CREATIVE dạng badge (anh 27/10/2026 "loại creative: kể chuyện, cảnh thật… dạng badge") — giá trị etp.creative.dang
-const MAU_DANG: Record<string, string> = { 'cảnh cuối': '#60a5fa', 'cảnh thật': '#4ade80', 'kể chuyện': '#c084fc', 'phim dài': '#f59e0b', 'làm mới': '#22d3ee' };
+const MAU_DANG: Record<string, string> = { 'tập nguyên': '#fb7185', 'cảnh cuối': '#60a5fa', 'cảnh thật': '#4ade80', 'kể chuyện': '#c084fc', 'phim dài': '#f59e0b', 'làm mới': '#22d3ee' };
 // MÃ NGẮN loại creative (anh 27/10/2026 "thêm loại creative badge như KT, CC") — một sổ cho badge cạnh số camp + bộ lọc Loại
-const MA_DANG: Record<string, string> = { 'kể chuyện': 'KT', 'cảnh cuối': 'CC', 'cảnh thật': 'CT', 'phim dài': 'PD', 'làm mới': 'LM' };
+const MA_DANG: Record<string, string> = { 'tập nguyên': 'TN', 'kể chuyện': 'KT', 'cảnh cuối': 'CC', 'cảnh thật': 'CT', 'phim dài': 'PD', 'làm mới': 'LM' };
 const BadgeDangNgan = ({ d }: { d: string | null }) => (d ? <span title={`loại creative: ${d}`} style={{ fontSize: 9, fontWeight: 700, padding: '0 4px', borderRadius: 4, marginLeft: 5, letterSpacing: '0.03em', color: MAU_DANG[d] ?? 'var(--fg-2)', border: `1px solid ${(MAU_DANG[d] ?? '#888')}66` }}>{MA_DANG[d] ?? d.slice(0, 2).toUpperCase()}</span> : null);
 // LOẠI CREATIVE ĐANG ÁP DỤNG CỦA PHIM (anh 27/10/2026: "thêm badge các loại hình creative đang áp dụng! Cái nào dương thì bo viền sáng hơn"):
 // mỗi loại có camp ACTIVE một badge; lãi 7 ngày của các camp loại đó > 0 → viền đậm sáng + chữ đậm, ≤ 0 → viền mờ; hover = số camp + lãi

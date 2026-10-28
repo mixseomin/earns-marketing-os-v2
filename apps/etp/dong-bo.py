@@ -45,7 +45,7 @@ def ghi(bang, rows, khoa_, cot):
     q(f"insert into etp.{bang} ({cs}) select {cs} from jsonb_to_recordset($J${j}$J$::jsonb) as x({dk}) on conflict ({', '.join(khoa_)}) do update set {cap}")
     return len(rows)
 
-DANG = [("ke chuyen", "kể chuyện"), ("canh that", "cảnh thật"), ("canh cuoi", "cảnh cuối"), ("phim dai", "phim dài"), ("lam moi", "làm mới")]
+DANG = [("tap nguyen", "tập nguyên"), ("ke chuyen", "kể chuyện"), ("canh that", "cảnh thật"), ("canh cuoi", "cảnh cuối"), ("phim dai", "phim dài"), ("lam moi", "làm mới")]
 def main():
     day_du = "--day-du" in sys.argv
     lan = q("insert into etp.dong_bo default values returning lan"); loi = []; kq = {"so_camp": 0, "so_chi_tiet": 0, "so_dong_ngay": 0}

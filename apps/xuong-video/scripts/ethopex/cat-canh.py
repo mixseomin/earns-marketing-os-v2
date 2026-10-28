@@ -48,6 +48,37 @@ def dung(nguon, tu, den, poster, cfg, cta, out, giong=None, hoi="WHAT HAPPENS NE
         _dung1(doan, 0.0, gx.dur(doan), tmp, cta, out, giong)
         os.remove(doan)
 
+# KIỂU "TẬP NGUYÊN" (anh 28/10/2026 "thử thêm cách của Kiên"): một tập trọn, KHÔNG nút CTA giữa video, KHÔNG giọng CTA; 3 giây cuối hiện ô tên phim (vàng)
+# + nút đỏ "WATCH NOW" góc dưới phải — đúng mẫu creative thắng của Kim Kiên (#54757 / #53591 / #54460 / #53830, xem tờ khung 28/10/2026). Chữ qua luật CTA.
+O_CUOI = 3.0
+def the_ten(ten, nut, ra):
+    from PIL import ImageFont
+    im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im, "RGBA")
+    ft, fn = ImageFont.truetype(gx.FA, 44), ImageFont.truetype(gx.FA, 34)
+    dong = gx.ngat_can(ten, 22)[:2]; rong = max(max(d.textlength(x, font=ft) for x in dong), d.textlength(nut, font=fn) + 80) + 60
+    cao = 40 + 54 * len(dong) + 84; x0, y0 = W - 40 - rong, H - 300 - cao
+    d.rounded_rectangle([x0, y0, x0 + rong, y0 + cao], 22, fill=(20, 20, 20, 215))
+    y = y0 + 26
+    for x in dong: d.text((x0 + rong / 2, y), x, font=ft, fill=gx.VANG, anchor="ma"); y += 54
+    bw = d.textlength(nut, font=fn) + 80; bx = x0 + (rong - bw) / 2
+    d.rounded_rectangle([bx, y + 10, bx + bw, y + 70], 30, fill=(229, 57, 53, 255)); d.text((bx + bw / 2, y + 40), nut, font=fn, fill=(255, 255, 255), anchor="mm")
+    im.save(ra)
+
+def dung_tap(nguon, tu, den, ten, out, nut="WATCH NOW"):
+    if CQ.sai_luat(nut): raise SystemExit(f"CTA CHAN: chữ '{nut}' dính '{CQ.sai_luat(nut)}'")
+    tmp = os.path.splitext(out)[0]; the_ten(ten, nut, tmp + "-the-ten.png"); L = den - tu
+    loc = (f"[0:v]trim={tu}:{den},setpts=PTS-STARTPTS,scale={W}:{H}:flags=lanczos:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1[c];"
+           f"[1:v]format=rgba,fade=in:st={L - O_CUOI}:d=0.3:alpha=1[o];[c][o]overlay=0:0:enable='gte(t,{L - O_CUOI})'[v];"
+           f"[0:a]atrim={tu}:{den},asetpts=PTS-STARTPTS,afade=in:d=0.2,afade=out:st={L - 0.6}:d=0.6[a]")
+    gx.sh("ffmpeg", "-v", "error", "-y", "-i", nguon, "-loop", "1", "-t", f"{L}", "-i", tmp + "-the-ten.png", "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{L}",
+          *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out, han=3600)
+    dv, da = gx.dur_luong(out)
+    if abs(dv - L) > 1.5 or abs(da - L) > 1.5: raise RuntimeError(f"đoạn ra hình {dv:.1f}s / tiếng {da:.1f}s khác độ dài tính {L:.1f}s — nguồn lỗi mối nối, bỏ đoạn")
+    for p in (tmp + "-the-ten.png",):
+        try: os.remove(p)
+        except OSError: pass
+    print(out, round(dv, 1))
+
 def _dung1(nguon, tu, den, tmp, cta, out, giong):
     L = den - tu
     V = gx.dur(giong) / TOC_GIONG if giong else 0
@@ -76,5 +107,7 @@ if __name__ == "__main__":
     # đe doạ lột đồ → KHÔNG cắt (kiem-thoai.py đọc chữ mỗi giây bằng Vision macOS)
     k = __import__("subprocess").run(["python3", os.path.join(D, "kiem-thoai.py"), a[0], a[1], a[2]], capture_output=True, text=True)
     if k.returncode != 0: sys.exit(k.stdout.strip() or k.stderr.strip() or "THOAI CHAN: không đọc được phụ đề")
+    if os.environ.get("ETP_KIEU") == "tap":   # kiểu tập nguyên: tên phim từ ETP_TEN (cat-cuoi-lo truyền), ra = a[6]
+        dung_tap(a[0], float(a[1]), float(a[2]), os.environ.get("ETP_TEN") or "Watch the full story", a[6]); sys.exit(0)
     dung(a[0], float(a[1]), float(a[2]), a[3], json.load(open(a[4])) if a[4] != "-" else None, a[5], a[6],
          a[7] if len(a) > 7 and a[7] != "-" else None, a[8] if len(a) > 8 else "WHAT HAPPENS NEXT?")

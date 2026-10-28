@@ -175,7 +175,7 @@ def main():
     # ── phim + creative (studio + spy)
     try:
         tl, ptk = khoa("ethopex_the_loai"), khoa("ethopex_phim_tk")
-        ids = sorted({int(x) for x in q("select distinct content_id from etp.camp where content_id is not null").split()} | {int(i) for i in tl if i.isdigit()})
+        ids = sorted({int(x) for x in q("select distinct content_id from etp.camp where content_id is not null union select distinct content_id from etp.camp_ngoai where content_id > 0").split()} | {int(i) for i in tl if i.isdigit()})   # + phim camp ngoài (tên phim cho report theo người, 28/10/2026)
         spy = {}
         for l in q(f"select id, coalesce(locale,''), coalesce(nguon,''), coalesce(url,''), coalesce(ten,'') from ethopex_content where id in ({','.join(map(str, ids)) or '0'})", SPY).splitlines():
             p = l.split("|", 4)

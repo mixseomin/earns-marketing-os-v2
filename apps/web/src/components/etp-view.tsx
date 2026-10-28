@@ -1468,7 +1468,12 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
     if (u.href !== location.href) history.replaceState(null, '', u); };
   const hienTai = { tab, xemCamp, xemCr, loc, phim: phimLoc, luat: luatLoc, dang: dangLoc, bo: boLoc, ll: laiLoc, ngan: nganCamp ? `camp:${nganCamp}` : nganPhim ? `phim:${nganPhim}` : '' };
   const doi = (x: Partial<typeof hienTai>, lam: () => void) => { urlTu({ ...hienTai, ...x }); startTransition(lam); };
-  const doiTab = (t: Tab) => doi({ tab: t }, () => setTab(t));
+  // BẤM TAB CHÍNH = VÀO KIỂU XEM ĐẦU TIÊN (anh 28/10/2026 "nếu bấm ngay vẫn vào cái đầu tiên như bình thường"); rê chuột = menu con chọn thẳng kiểu xem
+  const doiTab = (t: Tab) => doi({ tab: t, ...(t === 'camp' ? { xemCamp: 'cay' } : t === 'creative' ? { xemCr: 'hq' } : {}) }, () => { setTab(t); if (t === 'camp') setXemCamp('cay'); if (t === 'creative') setXemCr('hq'); });
+  const XEM_CAMP = [['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN']] as const;
+  const XEM_CR = [['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm'], ['dc', 'Điểm chạm', 'hook · nội dung · voice · chữ · CTA — giá trị nào kéo CTR / S CVR / ROI']] as const;
+  const menuCamp = XEM_CAMP.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'camp' && xemCamp === v, onPick: () => doi({ tab: 'camp', xemCamp: v }, () => { setTab('camp'); setXemCamp(v); }) }));
+  const menuCr = XEM_CR.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'creative' && xemCr === v, onPick: () => doi({ tab: 'creative', xemCr: v }, () => { setTab('creative'); setXemCr(v); }) }));
   const doiXemCamp = (v: 'cay' | 'bang' | 'lich') => doi({ xemCamp: v }, () => setXemCamp(v));
   const doiXemCr = (v: 'hq' | 'soat' | 'sx' | 'dc') => doi({ xemCr: v }, () => setXemCr(v));
   const doiLoc = (l: (typeof LOC_CAMP)[number]) => doi({ loc: l }, () => setLoc(l));
@@ -1636,7 +1641,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
       </div> : null}
       <div className={gon ? 'etp-dk' : undefined} style={{ display: 'flex', gap: gon ? 6 : 8, alignItems: 'center', flexWrap: !gon || (thap && !moLoc) ? 'nowrap' : 'wrap', overflowX: !gon || (thap && !moLoc) ? 'auto' : undefined, scrollbarWidth: 'none', margin: '8px 0', position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0' }}>
         <Segmented<Tab> value={tab} onChange={doiTab} options={[
-          { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp` }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative` },
+          { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
           { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }]} />
         {/* ĐIỆN THOẠI: hàng 1 = tab (cuộn ngang) · hàng 2 = kiểu xem (biểu tượng) + kỳ (ô chọn) + nút Lọc; bảng lọc chỉ mở khi bấm Lọc */}
         {tab !== 'luat' && tab !== 'tn' ? (gon
@@ -1644,7 +1649,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
           : <ChonKhoang tu={khK.tu} den={khK.den} ma={kh.includes('~') ? null : kh} homNay={du.nay} mocThem={[{ ma: 'tat_ca', nhan: 'Tất cả' }]} title="kỳ số liệu (ngày Ethopex 07:00–07:00 VN)" onDoi={(v) => setKh('ma' in v ? v.ma : `${v.tu}~${v.den}`)} />) : null}
         {tab === 'camp' ? (
           <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-            {([['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN']] as const).map(([v, nhan, t]) => (
+            {XEM_CAMP.map(([v, nhan, t]) => (
               <button key={nhan} onClick={() => doiXemCamp(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
                 background: xemCamp === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCamp === v ? 600 : 400 }}>{gon ? nhan.split(' ')[0] : nhan}</button>))}
           </span>) : null}
@@ -1653,7 +1658,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
             border: `1px solid ${coLoc ? '#60a5fa' : 'var(--line)'}`, background: moLoc || coLoc ? 'var(--accent-soft, rgba(59,130,246,.18))' : 'transparent', fontWeight: coLoc ? 600 : 400 }}>{moLoc ? '▴' : '▾'} Lọc{coLoc ? ' •' : ''}</button>; })() : null}
         {tab === 'creative' ? (
           <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
-            {([['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm'], ['dc', 'Điểm chạm', 'hook · nội dung · voice · chữ · CTA — giá trị nào kéo CTR / S CVR / ROI']] as const).map(([v, nhan, t]) => (
+            {XEM_CR.map(([v, nhan, t]) => (
               <button key={nhan} onClick={() => doiXemCr(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
                 background: xemCr === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCr === v ? 600 : 400 }}>{nhan}</button>))}
           </span>) : null}

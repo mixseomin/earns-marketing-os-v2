@@ -457,6 +457,25 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       gui++;
   }
   }
+  // HIỆU SUẤT ĐỦ ĐỂ QUYẾT (anh 28/10/2026: "show đủ thông tin hiệu suất thì mới qđịnh đc"): ngân sách · tuổi · bộ · goal, bảng từng ngày (ngày Ethopex 07h–07h,
+  // "nay" = đang chạy dở) + cộng dồn, và cả phim 2 ngày đã khép để so camp với phim. ROI một số lẻ — ngưỡng 30% hay rơi sát mép (+29,8% làm tròn thành +30%).
+  async function hieuSuatCamp(id) {
+    const j = JSON.parse((await chayPsql(`select json_build_object(
+      'c', (select json_build_object('ns', ngan_sach, 'bo', bo, 'tt', trang_thai, 'roas', roas, 'tuoi', floor(extract(epoch from now() - tao) / 86400), 'cid', content_id) from etp.camp where camp_id = ${Number(id)}),
+      'd', (select coalesce(json_agg(json_build_object('n', to_char(ngay, 'DD/MM'), 'nay', ngay = (now() at time zone 'utc')::date, 'chi', chi, 'thu', thu) order by ngay), '[]') from etp.so_ngay where camp_id = ${Number(id)} and (chi > 0 or thu > 0)),
+      'p', (select json_build_object('n', count(distinct s.camp_id), 'chi', coalesce(sum(s.chi), 0), 'thu', coalesce(sum(s.thu), 0)) from etp.so_ngay s join etp.camp c using (camp_id)
+            where c.content_id = (select content_id from etp.camp where camp_id = ${Number(id)}) and s.ngay between (now() at time zone 'utc')::date - 2 and (now() at time zone 'utc')::date - 1 and s.chi > 0))`)).trim());
+    const r = (c, t) => (c >= 0.3 ? `${(((t - c) / c) * 100).toFixed(1)}%` : '—'), c = j.c || {}, ds = j.d || [];
+    const tong = ds.reduce((a, x) => ({ chi: a.chi + Number(x.chi), thu: a.thu + Number(x.thu) }), { chi: 0, thu: 0 });
+    const dong = [`${'Ngày'.padEnd(7)}${'Chi'.padStart(7)}${'Thu'.padStart(7)}${'Lãi'.padStart(7)}${'ROI'.padStart(8)}`,
+      ...ds.slice(-10).map((x) => `${(x.nay ? 'nay' : x.n).padEnd(7)}${Number(x.chi).toFixed(2).padStart(7)}${Number(x.thu).toFixed(2).padStart(7)}${(Number(x.thu) - Number(x.chi)).toFixed(2).padStart(7)}${r(Number(x.chi), Number(x.thu)).padStart(8)}`),
+      '-'.repeat(36), `${'Cộng'.padEnd(7)}${tong.chi.toFixed(2).padStart(7)}${tong.thu.toFixed(2).padStart(7)}${(tong.thu - tong.chi).toFixed(2).padStart(7)}${r(tong.chi, tong.thu).padStart(8)}`];
+    const p = j.p || {};
+    return `NS $${c.ns ?? '?'}/ngày · ${c.tt === 'ACTIVE' ? 'đang bật' : esc(c.tt || '?')} · bộ ${esc(c.bo || '?')} · goal ${c.roas ?? '?'} · ${c.tuoi ?? '?'} ngày tuổi\n`
+      + dong.map((d, i) => (i === 0 || i === dong.length - 1 ? `<b><code>${esc(d)}</code></b>` : `<code>${esc(d)}</code>`)).join('\n')
+      + (Number(p.chi) > 0 ? `\nCả phim 2 ngày khép: ${p.n} camp · chi $${Number(p.chi).toFixed(2)} · ROI ${r(Number(p.chi), Number(p.thu))}` : '')
+      + `\n<a href="https://etp.on.tc/?t=camp&amp;v=cay&amp;ngan=camp:${Number(id)}">Xem camp trên etp.on.tc</a>`;
+  }
   // ★ CAMP ROAS CHẠM LUẬT TẮT (tài liệu Support 26/10/2026: chi > $20 mà ROI < 30% trong 1–2 ngày đã khép; anh 26/10/2026: "Luật tắt thì khi chạm báo cho tao riêng
   // trên tele"): MỖI CAMP MỘT TIN RIÊNG, có chuông, nút ⏹ Tắt (et:tatr → lam-ethopex tat --ep: anh bấm = lệnh đích danh) / Giữ. Máy KHÔNG tự tắt. Mỗi camp báo một lần mỗi ngày.
   {
@@ -464,7 +483,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     const da = docJ(TEP, {}); for (const k of Object.keys(da)) if (da[k] !== homNay) delete da[k];
     for (const m of kq.tat_roas || []) {
       if (da[m.id]) continue; da[m.id] = homNay;
-      await guiNhanh({ message_thread_id: topic, text: `★ <b>CAMP ROAS CHẠM LUẬT TẮT</b> — chi &gt; $20 mà ROI &lt; 30% trong 1–2 ngày đã khép (Support 26/10/2026)\n${esc(m.chu)}\n<i>Máy không tự tắt — anh quyết.</i>`,
+      const hs = await hieuSuatCamp(m.id).catch((e) => `<i>không đọc được hiệu suất: ${esc(e.message.slice(0, 80))}</i>`);
+      await guiNhanh({ message_thread_id: topic, text: `★ <b>CAMP ROAS CHẠM LUẬT TẮT</b> — chi &gt; $20 mà ROI &lt; 30% trong 1–2 ngày đã khép (Support 26/10/2026)\n${esc(m.chu)}\n${hs}\n<i>Máy không tự tắt — anh quyết.</i>`.slice(0, 4000),
         reply_markup: { inline_keyboard: [[{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tatr:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]] } });
       gui++;
     }

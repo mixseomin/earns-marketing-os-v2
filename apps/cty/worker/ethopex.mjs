@@ -342,6 +342,9 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const tt = docJ(path.join(DATA(), 'ethopex-tu-tang.json'), null);
   const tuTang = tt && Date.now() < Date.parse(tt.den) ? Number(tt.tran) || 0 : 0;
   const daTu = []; const lamRoi = new Set();
+  // LUẬT TẮT ĐI TRƯỚC (29/10/2026: #65656 chạm D24 mà không tắt — bước giảm bậc chạy trước, ghi lamRoi, bước tắt bỏ qua): camp trong danh sách tắt hẳn
+  // (T2 · D24) thì các bước giảm / tăng bậc trong nhịp KHÔNG đụng — để bước tắt bên dưới làm
+  const seTat = new Set(['tat2', 'tat_d24'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
   const { tinNhanh } = await import('./tg-phong.mjs');
   const guiNhanh = async (b) => { const j = await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...b }); tinNhanh(j?.result?.message_id); return j; };
   // MÁY TỰ GIẢM BẬC (luật GB, chỉ khi anh đã duyệt "gb_tu_giam" trên Telegram): camp chạm GB → lam-ethopex giam (vẫn chặn đổi < 6 giờ, camp phải bật,
@@ -353,7 +356,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   if (duyet.gb_tu_giam && giamTu) {
     const daGiam = [];
     for (const m of kq.ha || []) {
-      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id)) continue; lamRoi.add(m.id);
+      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id)) continue; lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `giảm bậc (GB) · ${m.chu}`.slice(0, 400), '--ai', `máy tự giảm (anh duyệt luật GB tự giảm ${duyet.gb_tu_giam.luc.slice(0, 10)})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daGiam.push({ m, d, r });
     }
@@ -369,7 +372,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     const daGiam = [];
     for (const m of kq.giam || []) {
       const rg = Number((String(m.chu).match(/3 ngày gần ([+-]?\d+)%/) || [])[1]); const d = Number(dichCua(m));
-      if (!(rg < 0) || !d || lamRoi.has(m.id)) continue; lamRoi.add(m.id);
+      if (!(rg < 0) || !d || lamRoi.has(m.id) || seTat.has(m.id)) continue; lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `ROI tụt + đang âm (3 ngày gần ${rg}%) · ${m.chu}`.slice(0, 400), '--ai', 'máy tự giảm (anh duyệt 26/10/2026: ROI tụt mà đang âm)'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daGiam.push({ m, d, r });
     }
@@ -382,7 +385,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // T30 TỰ ĐỘNG (anh 28/10/2026: "bật rule cho phép tăng lên $30 tự động ko cần xin nữa"): camp đủ luật T30 lên $30 ngay, không chờ nút; ngoài trần tự tăng thường
   if (tuTang || (kq.tang30 || []).length) {
     for (const k of ['dau_phien', 'tang', 'tang30']) for (const m of kq[k] || []) {
-      const d = Number(dichCua(m)); if (!d || (k === 'tang30' ? d !== 30 : !tuTang || d > tuTang) || lamRoi.has(m.id)) continue;
+      const d = Number(dichCua(m)); if (!d || (k === 'tang30' ? d !== 30 : !tuTang || d > tuTang) || lamRoi.has(m.id) || seTat.has(m.id)) continue;
       lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), '--luat', `${TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', k === 'tang30' ? 'máy tự tăng T30 (anh chat 28/10/2026: bật rule cho phép tăng lên $30 tự động ko cần xin nữa)' : `máy tự tăng (anh cho phép ${Date.parse(tt?.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daTu.push({ k, m, d, r });

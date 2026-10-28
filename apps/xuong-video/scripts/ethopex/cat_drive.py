@@ -7,7 +7,7 @@ Cần lại một tệp đã cất: dam_bao(<đường dẫn tuyệt đối>) k�
   cat_drive.py cat [--min-age 24h] [--giu <thư mục tương đối>…]   → cất (chạy nền taskpolicy -b)
   cat_drive.py lay <đường dẫn>                                        → kéo một tệp / thư mục về
   cat_drive.py xem                                                    → dung lượng trên máy vs Drive"""
-import os, shutil, subprocess, sys
+import fcntl, os, shutil, subprocess, sys
 
 GOC = os.path.expanduser("~/.cache/ethopex")
 DICH = "gdrive:ethopex-cache"
@@ -24,9 +24,14 @@ def cat(min_age="24h", giu=()):
     """cất mọi tệp nặng đã nằm yên ≥ min_age; giu = thư mục tương đối (vd 'ra/pm-26101408') còn đang dùng → không đụng. Trả số GB trống sau khi cất."""
     if not co_rclone():
         print("cất Drive: chưa có rclone remote 'gdrive' — bỏ qua (máy giữ nguyên tệp)", flush=True); return shutil.disk_usage(os.path.expanduser("~")).free / 1e9
+    khoa = open(os.path.join(GOC, ".cat-drive.lock"), "w")
+    try: fcntl.flock(khoa, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:   # một lượt cất khác đang chạy (phim-moi don + len-creative cùng gọi) → nó cất luôn phần này, không chạy chồng
+        print("cất Drive: lượt khác đang chạy — bỏ qua", flush=True); return shutil.disk_usage(os.path.expanduser("~")).free / 1e9
+    giu = [d.strip("/") for d in giu if d and os.path.isdir(os.path.join(GOC, d.strip("/")))]   # chỉ thư mục có thật (trường 'ghi' của da_cat đôi khi là câu báo lỗi, không phải tên lô)
     lenh = ["taskpolicy", "-b", "rclone", "move", GOC, DICH, "--min-age", min_age, "--transfers", "8", "--drive-chunk-size", "64M", "--tpslimit", "8", "--log-file", LOG, "--log-level", "INFO",
             "--stats-one-line", "--stats", "0"]
-    for d in giu: lenh += ["--exclude", f"/{d.strip('/')}/**"]
+    for d in giu: lenh += ["--exclude", f"/{d}/**"]
     for e in DUOI: lenh += ["--include", f"*.{e}", "--include", f"*.{e.upper()}"]
     r = subprocess.run(lenh, capture_output=True, text=True)
     trong = shutil.disk_usage(os.path.expanduser("~")).free / 1e9

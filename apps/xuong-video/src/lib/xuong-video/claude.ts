@@ -131,7 +131,7 @@ const duongChu = async (model: string): Promise<DuongChu[]> => {
   const ds: DuongChu[] = [];
   const kc = process.env.CKEY_API_KEY, ks = process.env.SHOPAIKEY_API_KEY, ka = process.env.ANTHROPIC_API_KEY;
   const ke = (key: string, baseURL: string) => new Anthropic({ apiKey: key, baseURL, defaultHeaders: { authorization: `Bearer ${key}` }, maxRetries: 1 });
-  if (kc) { const co = CKEY_CLAUDE[model] ?? [], them = (await nguoiBanCkey(kc, model)).filter((m) => !co.includes(m)); for (const m of [...co, ...them]) ds.push({ ten: 'ckey', c: ke(kc, 'https://api.xah.io'), model: m, jsonTay: false }); }
+  if (kc) { const co = CKEY_CLAUDE[model] ?? [], them = (await nguoiBanCkey(kc, model)).filter((m) => !co.includes(m)); for (const m of [...co, ...them]) ds.push({ ten: 'ckey', c: ke(kc, 'https://api.xah.io'), model: m, jsonTay: true }); }   // jsonTay: ckey trả JSON hỏng với output_config từ 28/10 ("Unterminated fractional number…") → mọi lượt rơi sang Anthropic ~7× giá; dặn khuôn trong system như ShopAIKey
   if (ks && /^claude-/.test(model)) ds.push({ ten: 'shopaikey', c: ke(ks, 'https://api.shopaikey.com'), model, jsonTay: true });
   if (ka) ds.push({ ten: 'anthropic', c: new Anthropic({ apiKey: ka }), model, jsonTay: false });
   return ds;

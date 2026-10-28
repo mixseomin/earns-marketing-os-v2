@@ -416,6 +416,30 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     kq.tu_choi = (kq.tu_choi || []).filter((m) => !xong.has(Number(m.id)));
     for (const id of xong) lamRoi.add(id);
   }
+  // PHIM MỚI CHẤM SẠCH → LÊN CAMP NGAY (anh 28/10/2026: "Xong phim nào thì lên camp luôn phim đó"): trước đây len-sau-cham.py chỉ chạy tay trên iMac → creative chấm Sạch
+  // nằm im (kho 51 góc). Mỗi nhịp: creative chấm Sạch, chưa có camp, PHIM CHƯA TỪNG CÓ CAMP (phim mới) → nhan-ban.py --creative trên khuôn cùng tiếng, ở bộ của phim
+  // (sổ ethopex_phim_tk; phim mới → bộ 2), lịch today, $1. Tối đa 4 creative / nhịp (mỗi lần tạo chờ Ethopex đồng bộ ~1 phút). Cổng thật vẫn ở nhan-ban (chấm, rào chắn, 18+, CTA).
+  try {
+    const KHUON = { en: 65110, es: 65734 };
+    const ds = JSON.parse((await chayPsql(`select coalesce(json_agg(x), '[]') from (select r.creative_id, r.content_id, coalesce(r.lang, 'en') lang, coalesce(r.lo, '') lo, coalesce(p.ten, '') ten,
+        coalesce(r.dang, '') dang, coalesce(r.tu, 0) tu, coalesce(r.den, 0) den, coalesce((select gia_tri->>(r.content_id::text) from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2') bo
+      from etp.creative r join etp.cham_cong g using (creative_id) left join etp.phim p using (content_id) left join etp.cham h using (creative_id)
+      where g.duoc_len and r.tu_choi is null and r.content_id is not null and h.luc > now() - interval '3 days'
+        and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
+        and not exists (select 1 from etp.camp c where c.content_id = r.content_id)   -- phim CHƯA TỪNG có camp (phim có camp đã bị luật tắt vì lỗ thì không tự lên lại)
+      order by h.luc limit 4) x`)).trim() || '[]');
+    const da = [];
+    for (const x of ds) {
+      const a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();
+      const ten = `${x.lo} ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ${a_(x.dang).toLowerCase()} ${Math.round(x.tu)}-${Math.round(x.den)}s`.trim();
+      let r; try { r = JSON.parse((await chay(NB, [String(KHUON[x.lang] ?? KHUON.en), '--bo', String(x.bo), '--creative', String(x.creative_id), '--content', String(x.content_id), '--ten', ten,
+        '--that', '--lich', 'today', '--luat', 'phim mới chấm sạch → lên camp ngay', '--ai', 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy'], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      da.push({ x, r });
+    }
+    const ok = da.filter((d) => d.r.ok);
+    if (ok.length) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🎬 <b>PHIM MỚI LÊN CAMP</b> — chấm Sạch xong lên luôn ($1, lịch hôm nay)\n` + ok.map((d) => `#${d.r.moi} · bộ ${esc(d.x.bo)} · ${esc(d.x.ten || 'phim ' + d.x.content_id)} (cr #${d.x.creative_id})`).join('\n') }); gui++; }
+    for (const d of da.filter((d) => !d.r.ok && d.r.ok !== null)) console.error(`lên camp phim mới #${d.x.creative_id}: ${String(d.r.loi).slice(0, 160)}`);
+  } catch (e) { console.error('phim mới lên camp:', e.message); }
   // DỌN ĐOẠN QUÁ TẢI (A, anh duyệt 25/10/2026): 3 giờ / lần — đoạn > trần camp trùng (etp.cau_hinh.tran_trung, 20 từ 28/10/2026): camp dư không lãi thay sang góc khác cùng phim (thay-tu-choi.py --don-doan).
   // Không tắt camp, không đụng camp lãi; hết góc thì xếp hàng cắt góc mới. Báo một tin khi có thay đổi.
   try {

@@ -16,7 +16,7 @@ Chạy trên box3 (khoá ở studio):
   python3 nhan-ban.py <camp_gốc> --bo <bộ> --ep --that [--lich today]   → CLONE SANG BỘ KHÁC theo lệnh đích danh của anh (anh 27/10/2026: "clone 1 camp tốt
     nhất sang bộ tk 03"): giữ NGUYÊN creative camp gốc (bản CTA sửa nếu có), bỏ qua 4 cổng chỉ dành cho nhân camp trong cùng bộ — mỗi phim một bộ, chạm trần $30,
     bão hoà phim, buộc đổi creative khác (và trần 30 camp/phim); vẫn qua cổng chấm sạch + rào chắn etp. --ep chỉ dùng khi anh ra lệnh trong lượt đó.
-  python3 nhan-ban.py <camp_gốc> --roas <1.0–1.4> [--ns 20] [--tam-dung] [--nhan "chay ngay"] --that …   → CAMP ROAS (tài liệu Support 26/10/2026, anh duyệt 26/10/2026):
+  python3 nhan-ban.py <camp_gốc> --roas <1.0–1.4> [--ns 20] [--tam-dung] [--nhan "chay ngay"] [--mien-cham] --that …   → CAMP ROAS (tài liệu Support 26/10/2026, anh duyệt 26/10/2026):
     nhân bản camp gốc (chi all time > $100, ROI > 50%) với bid ROAS goal (LOWEST_COST_WITH_MIN_ROAS + roas_average_floor ở Ad Set),
     ad = BÀI ĐĂNG CŨ của camp gốc (use existing post — giữ tương tác), ngân sách $15–20, lịch tomorrow, tên "… roas X duplicate by <gốc>".
     Camp ROAS là loại riêng: KHÔNG qua luật clone-khác-creative / cổng chấm / chạm trần / bão hoà (dùng lại đúng bài cũ); vẫn qua cổng etp; miễn trần 30 camp/phim và không chiếm chỗ camp thường (anh 26/10/2026).
@@ -247,7 +247,7 @@ def main(a):
     if roas is not None:
         if moi or thang: raise SystemExit("--roas không đi kèm --creative / --thang")
         if not ROAS_MIN <= roas <= ROAS_MAX: raise SystemExit(f"--roas phải trong {ROAS_MIN}–{ROAS_MAX} (Support 26/10/2026)")
-        return roas_main(goc, roas, int(float(lay("--ns", "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"))
+        return roas_main(goc, roas, int(float(lay("--ns", "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a)
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang); kq["ten"] = ten; bo = pl.pop("bo")
@@ -325,7 +325,7 @@ def main(a):
     if that: ghi_nhat_ky(kq, luat, ai)
     print(json.dumps(kq, ensure_ascii=False))
 
-def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None):
+def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False):
     """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim + mỗi phim một bộ."""
     kq = {"ok": False, "viec": "roas", "goc": goc, "moi": None, "ten": None, "roas": roas, "loi": None}
     try:
@@ -337,7 +337,10 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None):
         # ad ROAS = bài đăng của camp gốc → creative của camp gốc phải sạch
         cr_goc = q(f"select creative_id from etp.camp where camp_id = {int(goc)}")
         if not cr_goc.isdigit() or int(cr_goc) <= 0: raise ValueError(f"camp gốc #{goc} không rõ creative trong kho — không qua được cổng chấm")
+        # --mien-cham: CHỈ khi anh lệnh đích danh trong lượt đó (anh 28/10/2026: lên ROAS cho camp gốc lãi mà creative bị chấm ≤ 4) — ghi vào luật nhật ký,
+        # camp mới vào etp.cau_hinh 'cham_mien' để luật chấm (lich-gio tat_cham) không tắt nó
         ly = cham_sach(int(cr_goc))
+        if ly and mien_cham: kq["mien_cham"] = ly; ly = None
         if ly: raise ValueError(ly)
         # camp ROAS là dạng riêng, miễn mọi luật (anh 26/10/2026) — kể cả trần 30 camp/phim: không bị chặn, cũng không chiếm chỗ camp thường (dem_dang_chay bỏ ★)
         if any(x.get("name") == ten for x in api("/api/v1/campaigns?page_size=500")["data"]): raise ValueError(f"đã có camp '{ten}' — không tạo trùng")
@@ -352,6 +355,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None):
             time.sleep(3); moi = next((x["id"] for x in api("/api/v1/campaigns?page_size=20")["data"] if x.get("name") == ten), None)
         if not moi: raise ValueError(f"Ethopex không trả camp mới: {str(r)[:160]}")
         kq["moi"] = moi
+        if mien_cham: q(f"update etp.cau_hinh set gia_tri = gia_tri || to_jsonb({int(moi)}), luc = now() where khoa = 'cham_mien' and not gia_tri @> to_jsonb({int(moi)})")
         # ĐỢI ĐỒNG BỘ XONG HẲN (#70162, 26/10/2026: lệnh tạm dừng gửi lúc còn 'creating_adset' bị Ethopex đè — đồng bộ xong camp tự về ACTIVE)
         for _ in range(150):   # Meta kiểm ad (checking_ads) có lúc > 15 phút (#70162, #70174 26/10/2026) — chờ tới 20 phút
             time.sleep(8); d2 = api(f"/api/v1/campaigns/{moi}"); c = d2["campaign"]

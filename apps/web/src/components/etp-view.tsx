@@ -300,7 +300,8 @@ const XET_CHIP: Record<string, [string, string]> = { t2: ['✕ T2', '#f87171'], 
 const KET_XET: Record<XetLuat['ket'], [string, string]> = { dat: ['Đạt', '#4ade80'], gan: ['Gần', '#facc15'], xa: ['Xa', 'var(--fg-3, #777)'], khong_ap: ['Không áp', 'var(--fg-3, #777)'] };
 // BẢNG XÉT LUẬT (anh 28/10/2026: "Cần xem mức độ liên quan của từng camp với các luật khi hover vào" · "show dạng table là dễ hiểu nhất"): mỗi luật một nhóm dòng —
 // Luật (kết đạt / gần / xa, máy có xếp) · Điều kiện · Giá trị thật · Ngưỡng · ✓/✗; số từ CHÍNH máy luật (etp.xet_luat), rê tên luật xem luật đó làm gì
-function BangXet({ xet }: { xet: XetLuat[] }) {
+// gon = ngăn điện thoại (anh 28/10/2026): tên luật thành một dòng riêng trọn bề ngang, điều kiện bên dưới được gãy dòng → Giá trị · Ngưỡng · ✓ luôn trong màn, không phải vuốt ngang
+function BangXet({ xet, gon }: { xet: XetLuat[]; gon?: boolean }) {
   const thu = { dat: 0, gan: 1, xa: 2, khong_ap: 3 } as const;
   const ds = [...xet].sort((a, b) => thu[a.ket] - thu[b.ket]);
   const o: React.CSSProperties = { padding: '3px 6px', borderTop: '1px solid var(--line)', verticalAlign: 'top' };
@@ -308,11 +309,17 @@ function BangXet({ xet }: { xet: XetLuat[] }) {
     // khung cuộn ngang: ngăn điện thoại hẹp hơn bảng (cột điều kiện không gãy dòng) — trước bảng tràn mép phải, mất cột Giá trị / Ngưỡng
     <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
     <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>
-      <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}><th style={o}>Luật</th><th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>
+      <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}>{gon ? null : <th style={o}>Luật</th>}<th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>
       <tbody>{ds.map((l) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);
         const dau = <td rowSpan={n} title={l.mo_ta} style={{ ...o, cursor: 'help', minWidth: 130, opacity: mo ? 0.6 : 1 }}>
           <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div><b style={{ color: km }}>{kt}</b>{l.vao ? <span style={{ color: '#4ade80' }}> · máy đã xếp làm</span> : null}</div>
           {l.ghi ? <div style={{ color: '#fb923c', fontSize: 10.5 }}>{l.ghi}</div> : null}</td>;
+        const dauGon = <tr key={`${l.ma}-t`} style={{ opacity: mo ? 0.6 : 1 }}><td colSpan={4} title={l.mo_ta} style={{ ...o, paddingTop: 8, borderTop: '1px solid var(--fg-3, #555)' }}>
+          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> · <b style={{ color: km }}>{kt}</b>{l.vao ? <span style={{ color: '#4ade80' }}> · máy đã xếp làm</span> : null}
+          {l.ghi ? <div style={{ color: '#fb923c', fontSize: 10.5 }}>{l.ghi}</div> : null}{l.dk.length ? null : <div style={{ color: 'var(--fg-2)' }}>{l.mo_ta}</div>}</td></tr>;
+        if (gon) return <Fragment key={l.ma}>{dauGon}{l.dk.map(([ten, gt, ng, ok], i) => <tr key={`${l.ma}${i}`} style={{ opacity: mo ? 0.6 : 1 }}>
+          <td style={o}>{ten}</td><td style={{ ...o, textAlign: 'right', whiteSpace: 'nowrap', color: ok ? 'var(--fg-1)' : '#f87171' }}>{gt}</td><td style={{ ...o, color: 'var(--fg-2)' }}>{ng}</td>
+          <td style={{ ...o, color: ok ? '#4ade80' : '#f87171', fontWeight: 700 }}>{ok ? '✓' : '✗'}</td></tr>)}</Fragment>;
         return l.dk.length ? l.dk.map(([ten, gt, ng, ok], i) => <tr key={`${l.ma}${i}`} style={{ opacity: mo ? 0.6 : 1 }}>{i === 0 ? dau : null}
           <td style={{ ...o, minWidth: 190 }}>{ten}</td><td style={{ ...o, textAlign: 'right', whiteSpace: 'nowrap', color: ok ? 'var(--fg-1)' : '#f87171' }}>{gt}</td><td style={{ ...o, whiteSpace: 'nowrap', color: 'var(--fg-2)' }}>{ng}</td>
           <td style={{ ...o, color: ok ? '#4ade80' : '#f87171', fontWeight: 700 }}>{ok ? '✓' : '✗'}</td></tr>)
@@ -321,11 +328,11 @@ function BangXet({ xet }: { xet: XetLuat[] }) {
     </div>
   );
 }
-function ThanLuat({ t }: { t: ReturnType<typeof tinhLuat> }) {
+function ThanLuat({ t, gon }: { t: ReturnType<typeof tinhLuat>; gon?: boolean }) {
   if (t.xet) return <>
     {[...t.daXep, ...t.ganBao].map((b, i) => <div key={i} style={{ marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật {LUAT_NHAN[b.nhom]![3] === 'dang' ? 'đã xếp' : 'báo gần'}: {LUAT_NHAN[b.nhom]?.[1]}</b>
       <div style={{ color: 'var(--fg-2)' }}>{luatThuong(b.chu.replace(/^#\d+:[^·]*·\s*/, '').replace(/^#\S*\s*/, ''))}</div></div>)}
-    <BangXet xet={t.xet} />
+    <BangXet xet={t.xet} gon={gon} />
   </>;
   return <>
     {[...t.daXep, ...t.ganBao].map((b, i) => <div key={i} style={{ marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật {LUAT_NHAN[b.nhom]![3] === 'dang' ? 'đã xếp' : 'báo gần'}: {LUAT_NHAN[b.nhom]?.[1]}</b>
@@ -1643,7 +1650,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
               <O ten={`bậc ${b!.bac + 1}/${BAC_NS.length}`}>${c.ngan_sach}</O><O ten="ROI nay"><Roi s={c.nay} /></O><O ten="ROI qua"><Roi s={c.qua} /></O><O ten={khNay ? 'lãi nay' : `lãi ${khNhan.toLowerCase()}`}><Lai s={khNay ? c.nay : ckh(c.camp_id)} /></O></div>
             <BieuNgay ngay={ngay6} sd={ngay6.map((d) => soCamp(c.camp_id, d))} nay={c.nay} />
-            <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px' }}>{tl!.chinh ? <div style={{ marginBottom: 6 }}><ChipO chinh={tl!.chinh} /></div> : null}<ThanLuat t={tl!} /></div>
+            <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px' }}>{tl!.chinh ? <div style={{ marginBottom: 6 }}><ChipO chinh={tl!.chinh} /></div> : null}<ThanLuat t={tl!} gon /></div>
             {r ? <TheCr r={r} ch={ch} k={crKh.get(r.creative_id)} khTen={khNay ? undefined : khNhan} /> : null}
             {r?.video || r?.anh ? <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', maxHeight: '58dvh', background: '#000', borderRadius: 8, overflow: 'hidden' }}>
               {r.video ? <video src={r.video} poster={r.anh ?? undefined} autoPlay muted loop playsInline controls style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain' }} />

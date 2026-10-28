@@ -896,9 +896,11 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
   const crTheoId = useMemo(() => new Map(du.creatives.map((x) => [x.creative_id, x])), [du.creatives]);
   const noiV = useNoi<{ cr: number; k: string }>();
   const daiCr = (cr: number) => Number(du.diemCham[cr]?.noi_dung?.giay ?? 0) || ((crTheoId.get(cr)?.den ?? 0) - (crTheoId.get(cr)?.tu ?? 0)) || 0;
+  // tua tới cuối THEO ĐỘ DÀI THẬT của video (đọc lúc nạp) — trước tính từ độ dài đoạn phim, video có thêm thẻ cuối nên ảnh "khung cuối" rơi vào giữa cảnh
+  const cuoiVideo = (giay: number) => (e: React.SyntheticEvent<HTMLVideoElement>) => { const v = e.currentTarget; if (v.duration > giay) v.currentTime = v.duration - giay; };
   const nho = (cr: number, kk: string) => { const x = crTheoId.get(cr); if (!x) return null; const d = daiCr(cr), cta = kk.startsWith('cta.');
     return <span key={cr} onMouseEnter={(e) => noiV.mo({ cr, k: kk }, e)} onMouseLeave={noiV.dongTre} style={{ width: 30, height: 53, borderRadius: 3, overflow: 'hidden', background: '#000', display: 'inline-block', cursor: 'zoom-in', flex: 'none' }}>
-      {cta && x.video && d > 2 ? <video src={`${x.video}#t=${(d - 1.2).toFixed(1)}`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      {cta && x.video && d > 2 ? <video src={x.video} muted playsInline preload="metadata" onLoadedMetadata={cuoiVideo(0.4)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         : x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}</span>; };
   // SO SÁNH THEO KHỐI (anh 28/10/2026 "mỗi kiểu test phải có cái so sánh chứ"): mỗi điểm chạm có ≥ 2 bản = một khối A/B — bản chi nhiều nhất làm ĐỐI CHỨNG,
   // các bản khác có Δ so với đối chứng, bản thắng viền xanh, câu kết luận đầu khối + cờ chắc / chưa chắc; khối chênh nhiều nhất lên đầu.
@@ -958,7 +960,7 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
             {d.rs.map((r) => { const cr = r.mau[0]?.cr, x = cr ? crTheoId.get(cr) : undefined, cta = d.k.startsWith('cta.'), dai = cr ? daiCr(cr) : 0, thang = r === kl.best, la = r === base;
               return <div key={r.v} style={{ flex: 'none', width: 132, border: `2px solid ${thang ? '#4ade80' : 'var(--line)'}`, borderRadius: 8, overflow: 'hidden', background: 'var(--bg-1, #111)' }}>
                 <div onMouseEnter={cr ? (e) => noiV.mo({ cr, k: d.k }, e) : undefined} onMouseLeave={noiV.dongTre} style={{ width: '100%', aspectRatio: '9 / 16', background: '#000', cursor: cr ? 'zoom-in' : undefined }}>
-                  {x ? (cta && x.video && dai > 2 ? <video src={`${x.video}#t=${(dai - 1.2).toFixed(1)}`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  {x ? (cta && x.video && dai > 2 ? <video src={x.video} muted playsInline preload="metadata" onLoadedMetadata={cuoiVideo(0.4)} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                     : x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null) : null}</div>
                 <div style={{ padding: '5px 7px', fontSize: 11, lineHeight: 1.35 }}>
                   <div style={{ fontWeight: 700, fontSize: 12 }}>{nhan(d.k, r.v)}</div>
@@ -997,7 +999,7 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
       {noiV.v ? (() => { const x = crTheoId.get(noiV.v.cr); if (!x) return null; const cta = noiV.v.k.startsWith('cta.'), d = daiCr(noiV.v.cr), bd = cta && d > 8 ? d - 6 : 0;
         return <KhungNoi x={noiV.v.x} y={noiV.v.y} rong={300} cao={560} noi={noiV} style={{ width: 300, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ fontSize: 12, paddingRight: 26 }}><b>cr #{x.creative_id}</b> · {x.phim ?? ''} <span style={{ color: 'var(--fg-2)' }}>· {nhan(noiV.v.k, giaTri(x.creative_id, noiV.v.k))}{cta ? ' · đang xem 6 giây cuối' : ''}</span></div>
-          {x.video ? <video key={`${x.video}#${bd}`} src={`${x.video}#t=${bd.toFixed(1)}`} autoPlay muted loop playsInline controls={!cta} style={{ width: '100%', height: 500, objectFit: 'contain', background: '#000', borderRadius: 6 }} />
+          {x.video ? <video key={`${x.video}#${cta}`} src={x.video} onLoadedMetadata={cta ? cuoiVideo(6) : undefined} autoPlay muted loop playsInline controls={!cta} style={{ width: '100%', height: 500, objectFit: 'contain', background: '#000', borderRadius: 6 }} />
             : x.anh ? <img src={x.anh} alt="" style={{ width: '100%', borderRadius: 6 }} /> : null}
         </KhungNoi>; })() : null}
     </div>

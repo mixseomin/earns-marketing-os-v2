@@ -1114,7 +1114,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const tuoi = (c: CampEtpKho) => tuoiNgay(c.tao);
   const ngay = [6, 5, 4, 3, 2, 1].map((k) => new Date(Date.parse(du.nay) - k * 86_400_000).toISOString().slice(0, 10));
   const soN = hep ? Math.max(1, Math.min(6, Math.floor(((rong || 360) - 330) / 42))) : 6;
-  const coQua = hep && soN === 1;   // đứng dọc: nay + qua (giữ thứ tự cũ); đủ chỗ: các ngày theo thứ tự thời gian + nay
+  const coQua = hep && soN === 1;   // đứng dọc: qua → nay (anh 28/10/2026: cùng chiều thời gian với biểu đồ ngăn chi tiết); đủ chỗ: các ngày theo thứ tự thời gian + nay
   const ngayHien = coQua ? [] : ngay.slice(-soN);
   const LUOI_CAY_HEP = `1fr repeat(${ngayHien.length + (coQua ? 2 : 1)}, 38px) 86px`;
   const so = useMemo(() => { const m = new Map<number, Map<string, SoTien>>(); for (const r of du.soNgay) { let x = m.get(r.c); if (!x) m.set(r.c, (x = new Map())); x.set(r.d, { chi: r.chi, thu: r.thu }); } return m; }, [du.soNgay]);
@@ -1153,7 +1153,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         </span>
         {(() => { const sd = ngayHien.map((d) => so.get(c.camp_id)?.get(d)), mx = coQua ? undefined : maxLai([...sd, c.nay]);
           return <>{ngayHien.map((d, i) => <O key={d} cot={`roi-${ngay.indexOf(d)}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={mx} />)}
-            <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={mx} mo={!coQua} />{coQua ? <O cot="roi-qua" v={roi(c.qua)} t="ROI hôm qua" s={c.qua} /> : null}</>; })()}
+            {coQua ? <O cot="roi-qua" v={roi(c.qua)} t="ROI hôm qua" s={c.qua} /> : null}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={mx} mo={!coQua} /></>; })()}
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={laiC} /></span>
       </div>) : (
       <div className="dong" style={{ display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, alignItems: 'center', padding: '3px 0 3px 12px', fontSize: 12, borderTop: '1px solid var(--line)',
@@ -1203,8 +1203,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
             <span /><span>Phim → camp gốc → bản nhân</span><span style={{ textAlign: 'right' }} title="tuổi camp tính bằng ngày từ lúc tạo">tuổi</span><span>ngân sách · ROI nay</span><span title="luật camp sắp chạm — chip đặc: máy luật đã xếp làm · viền nét đứt: sắp chạm · rê vào xem điều kiện">luật</span><span>creative · đoạn</span><span>loại</span>
             {coLich ? <span title="lịch giờ 07h · 08h–12h · 13h–19h · 20h–06h (xanh chạy, đỏ tắt, ⏸ đang dừng theo lịch)">lịch giờ</span> : null}<span />
           </span>)}
-        {ngayHien.map((d) => <span key={d} data-cot={`roi-${ngay.indexOf(d)}`} data-cot-can="giua" style={{ textAlign: 'center' }} title={`ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`}>{d.slice(8, 10)}/{d.slice(5, 7)}</span>)}<span data-cot="roi-nay" data-cot-can="giua" style={{ textAlign: 'center', color: '#60a5fa', fontWeight: 600, background: hep ? undefined : 'rgba(59,130,246,.12)', borderRadius: '4px 4px 0 0' }} title="ROI hôm nay">nay</span>
-        {coQua ? <span data-cot="roi-qua" data-cot-can="giua" style={{ textAlign: 'center' }} title="ROI hôm qua">qua</span> : null}
+        {ngayHien.map((d) => <span key={d} data-cot={`roi-${ngay.indexOf(d)}`} data-cot-can="giua" style={{ textAlign: 'center' }} title={`ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`}>{d.slice(8, 10)}/{d.slice(5, 7)}</span>)}{coQua ? <span data-cot="roi-qua" data-cot-can="giua" style={{ textAlign: 'center' }} title="ROI hôm qua">qua</span> : null}<span data-cot="roi-nay" data-cot-can="giua" style={{ textAlign: 'center', color: '#60a5fa', fontWeight: 600, background: hep ? undefined : 'rgba(59,130,246,.12)', borderRadius: '4px 4px 0 0' }} title="ROI hôm nay">nay</span>
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }} title={`lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`}>lãi {tenKy.toLowerCase()}</span>
       </div>
       {phim.map((p) => (
@@ -1233,8 +1232,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
             {(() => { const sd = ngay.map((d) => p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }));
               const sn = p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }), mx = coQua ? undefined : maxLai([...ngayHien.map((d) => sd[ngay.indexOf(d)]), sn]);
               return <>{ngayHien.map((d) => ngay.indexOf(d)).map((i) => <O key={i} cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả phim ${ngay[i]!.slice(8, 10)}/${ngay[i]!.slice(5, 7)}`} s={sd[i]} max={mx} />)}
-                <O cot="roi-nay" v={roi(sn)} t="ROI cả phim hôm nay" s={coQua ? undefined : sn} max={mx} mo /></>; })()}
-            {coQua ? <O cot="roi-qua" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.qua.chi, thu: a.thu + c.qua.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm qua" /> : null}
+                {coQua ? <O cot="roi-qua" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.qua.chi, thu: a.thu + c.qua.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm qua" /> : null}<O cot="roi-nay" v={roi(sn)} t="ROI cả phim hôm nay" s={coQua ? undefined : sn} max={mx} mo /></>; })()}
             <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={p.all.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /></span>
           </summary>
           {/* NHANH (anh 27/10/2026 "load chậm quá"): phần gập KHÔNG dựng — trước dựng sẵn mọi camp của mọi phim = 9 MB HTML, 776 biểu đồ */}
@@ -1480,7 +1478,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
       ...[3, 5, 7].map((n) => ({ value: `g${n}`, label: `Lãi ${n} ngày liên tiếp`, nhom: 'Liên tiếp từng ngày (ngày đã khép)', title: `${n} ngày trọn gần nhất ngày nào cũng có chi và đều lãi`, tim: `lai lien tiep ${n} ngay` })),
       ...[2, 3, 5, 7].map((n) => ({ value: `l${n}`, label: `Lỗ ${n} ngày liên tiếp`, nhom: 'Liên tiếp từng ngày (ngày đã khép)', title: `${n} ngày trọn gần nhất ngày nào cũng có chi và đều âm`, tim: `lo lien tiep ${n} ngay` }))]} />;
   const boSel = () => <Chon2 value={boLoc} onChange={(v) => doi({ bo: v }, () => setBoLoc(v))} nhan="TK" align="right" title="lọc camp theo bộ tài khoản QC (tài khoản + Page)"
-    options={[...new Set(du.camps.map((c) => c.bo).filter((b): b is string => !!b))].sort((a, b) => Number(a) - Number(b) || a.localeCompare(b)).map((b) => ({ value: b, label: `Bộ ${b}${gon ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''}`, ngan: `Bộ ${b}`, tim: `bộ ${b} ${du.boTk[b]?.ten ?? ''}`, dem: du.camps.filter((c) => c.bo === b && c.trang_thai === 'ACTIVE').length }))} />;
+    options={[...new Set(du.camps.map((c) => c.bo).filter((b): b is string => !!b))].sort((a, b) => Number(a) - Number(b) || a.localeCompare(b)).map((b) => ({ value: b, label: `Bộ ${b}${gon ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''} · ${du.boTk[b]?.mui_gio ?? 'múi giờ ?'}`, ngan: `Bộ ${b}`, tim: `bộ ${b} ${du.boTk[b]?.ten ?? ''}`, dem: du.camps.filter((c) => c.bo === b && c.trang_thai === 'ACTIVE').length }))} />;
   return (
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex

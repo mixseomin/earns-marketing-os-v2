@@ -32,7 +32,7 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   theLoai: Record<string, string>;
   /** số camp × ngày (lọc khoảng thời gian ở client) · đếm theo ngày: camp mới lên, creative mới, camp tắt · thông tin bộ tài khoản (khối lục giác) */
   soNgay: { c: number; d: string; chi: number; thu: number }[]; demNgay: Record<string, { camp_moi: number; cr_moi: number; tat: number }>;
-  boTk: Record<string, { ten: string; tk: string; page: string; tk_id: number; page_id: number; chi_phim_moi?: boolean }>;
+  boTk: Record<string, { ten: string; tk: string; page: string; tk_id: number; page_id: number; chi_phim_moi?: boolean; mui_gio?: string }>;
   /** LỊCH SỬ BẬC NGÂN SÁCH từng camp (anh 27/10/2026 "show danh sách thay đổi bậc khi hover vào, ghi chi tiết dạng timeline"): tạo / nhân bản / thang / ROAS / sang bộ / tăng / giảm đã làm được (ok), 30 ngày */
   /** XÉT LUẬT TỪNG CAMP của máy luật (etp.xet_luat, luat-ethopex.py --json, anh 28/10/2026): luật → điều kiện [tên, giá trị, ngưỡng, đạt], kết đạt/gần/xa/khong_ap, máy có xếp */
   xetLuat: Record<number, XetLuat[]>; xetLuc: string | null;
@@ -157,14 +157,14 @@ export async function docEtp(): Promise<DuLieuEtp> {
   const [soNgay, tatNgay, boRow] = await Promise.all([
     run<{ c: number; d: string; chi: string; thu: string }>(sql`select camp_id c, ngay::text d, chi, thu from etp.so_ngay where chi > 0 or thu > 0`),
     run<{ d: string; n: string }>(sql`select (luc at time zone 'UTC')::date::text d, count(distinct camp_id) n from etp.nhat_ky where viec = 'tat' and ok group by 1`),
-    run<{ gia_tri: Record<string, { ten: string; tk: number; ext: string; page: number; chi_phim_moi?: boolean }> | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_bo_tk'`),
+    run<{ gia_tri: Record<string, { ten: string; tk: number; ext: string; page: number; chi_phim_moi?: boolean; mui_gio?: string }> | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_bo_tk'`),
   ]);
   const demNgay: DuLieuEtp['demNgay'] = {};
   const dn = (d: string) => (demNgay[d] ??= { camp_moi: 0, cr_moi: 0, tat: 0 });
   for (const c of cs) if (c.tao) dn(c.tao.slice(0, 10)).camp_moi++;   // tao là timestamptz UTC → ngày Ethopex
   for (const x of crMap.values()) if (x.ngay_dau) dn(x.ngay_dau.slice(0, 10)).cr_moi++;
   for (const r of tatNgay) dn(r.d).tat = n(r.n);
-  const boTk = Object.fromEntries(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [k, { ten: b.ten, tk: b.ext, page: String(b.page), tk_id: Number(b.tk), page_id: Number(b.page), chi_phim_moi: b.chi_phim_moi }]));
+  const boTk = Object.fromEntries(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [k, { ten: b.ten, tk: b.ext, page: String(b.page), tk_id: Number(b.tk), page_id: Number(b.page), chi_phim_moi: b.chi_phim_moi, mui_gio: b.mui_gio }]));   // mui_gio: múi giờ tài khoản FB Ads — Ethopex API không trả, ghi tay trong sổ ethopex_bo_tk
   // LỊCH GIỜ — không .catch: đọc lỗi mà trả rỗng thì bảng hiện toàn BẬT trong khi máy đang tạm dừng camp (audit 25/10/2026)
   const [lichGio, khungSo, lichTat, khungGio, khungNay] = await Promise.all([
     run<DuLieuEtp['lichGio'][number]>(sql`select the_loai, khung, bat, ai, luc::text luc from etp.lich_gio order by the_loai, khung`),

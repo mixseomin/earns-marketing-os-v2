@@ -847,7 +847,7 @@ const DIEM_CHAM: { k: string; ten: string; nhom: string; xo?: (v: number) => str
   { k: 'cta.nut_kieu', ten: 'Kiểu nút CTA', nhom: 'CTA' },
   { k: 'cta.the_cuoi', ten: 'Thẻ cuối', nhom: 'CTA' },
 ];
-type DongDc = { v: string; cr: number; camp: number; chi: number; thu: number; h: number; n: number; sh: number; sn: number; sv: number; sg: number; lech: number; lechW: number };
+type DongDc = { v: string; mau: { cr: number; chi: number }[]; cr: number; camp: number; chi: number; thu: number; h: number; n: number; sh: number; sn: number; sv: number; sg: number; lech: number; lechW: number };
 const wilson = (k: number, n: number) => { if (!n) return null; const z = 1.96, p = k / n, d = 1 + (z * z) / n, c = (p + (z * z) / (2 * n)) / d, w = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / d; return [Math.max(0, c - w), c + w]; };
 function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string) => boolean; khNhan: string }) {
   const [k, setK] = useState('cta.mau');
@@ -867,18 +867,29 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
     const m = new Map<string, DongDc>();
     for (const [cr, x] of tinh.so) {
       if (!du.diemCham[cr] || x.chi <= 0) continue;
-      const v = giaTri(cr, kk); const a = m.get(v) ?? { v, cr: 0, camp: 0, chi: 0, thu: 0, h: 0, n: 0, sh: 0, sn: 0, sv: 0, sg: 0, lech: 0, lechW: 0 };
-      a.cr++; a.camp += x.camp.size; a.chi += x.chi; a.thu += x.thu; a.h += x.h; a.n += x.n; a.sh += x.sh; a.sn += x.sn; a.sv += x.sv; a.sg += x.sg;
+      const v = giaTri(cr, kk); const a = m.get(v) ?? { v, mau: [], cr: 0, camp: 0, chi: 0, thu: 0, h: 0, n: 0, sh: 0, sn: 0, sv: 0, sg: 0, lech: 0, lechW: 0 };
+      a.cr++; a.mau.push({ cr, chi: x.chi }); a.camp += x.camp.size; a.chi += x.chi; a.thu += x.thu; a.h += x.h; a.n += x.n; a.sh += x.sh; a.sn += x.sn; a.sv += x.sv; a.sg += x.sg;
       const p = tinh.phim.get(tinh.phimCua.get(cr) ?? 0); if (p && p.chi >= 1 && x.chi >= 0.3) { a.lech += (((x.thu - x.chi) / x.chi) - ((p.thu - p.chi) / p.chi)) * 100 * x.chi; a.lechW += x.chi; }
       m.set(v, a);
     }
-    return [...m.values()].sort((a, b) => b.chi - a.chi);
+    return [...m.values()].map((a) => ({ ...a, mau: a.mau.sort((p, q) => q.chi - p.chi).slice(0, 4) })).sort((a, b) => b.chi - a.chi);
   };
+  // MẪU NHÌN (anh 28/10/2026 "cần nhìn thay đổi cụ thể khác nhau thế nào trực quan bằng hình ảnh trên creative"): 4 creative chi nhiều nhất của mỗi giá trị —
+  // điểm chạm CTA hiện KHUNG CUỐI (nút + thẻ cuối nằm ở đó), còn lại hiện ảnh đầu; rê vào = video lớn (CTA tua tới 6 giây cuối)
+  const crTheoId = useMemo(() => new Map(du.creatives.map((x) => [x.creative_id, x])), [du.creatives]);
+  const noiV = useNoi<{ cr: number }>();
+  const laCta = k.startsWith('cta.');
+  const daiCr = (cr: number) => Number(du.diemCham[cr]?.noi_dung?.giay ?? 0) || ((crTheoId.get(cr)?.den ?? 0) - (crTheoId.get(cr)?.tu ?? 0)) || 0;
+  const nho = (cr: number) => { const x = crTheoId.get(cr); if (!x) return null; const d = daiCr(cr);
+    return <span key={cr} onMouseEnter={(e) => noiV.mo({ cr }, e)} onMouseLeave={noiV.dongTre} title={`cr #${cr}${x.phim ? ` · ${x.phim}` : ''}`} style={{ width: 30, height: 53, borderRadius: 3, overflow: 'hidden', background: '#000', display: 'inline-block', cursor: 'zoom-in', flex: 'none' }}>
+      {laCta && x.video && d > 2 ? <video src={`${x.video}#t=${(d - 1.2).toFixed(1)}`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        : x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}</span>; };
   const tongQuan = useMemo(() => DIEM_CHAM.map((d) => ({ ...d, so: bang(d.k).filter((x) => x.v !== '(chưa ghi)').length })), [tinh, du.diemCham]);   // eslint-disable-line react-hooks/exhaustive-deps
   const rows = useMemo(() => bang(k), [k, tinh, du.diemCham]);   // eslint-disable-line react-hooks/exhaustive-deps
   const pc = (a: number, b: number) => (b ? `${((a / b) * 100).toFixed(1)}%` : '—');
   const cot: DataColumn<DongDc>[] = [
     { key: 'v', header: 'Giá trị', align: 'left', cell: (r) => <b>{r.v}</b>, sortValue: (r) => r.v },
+    { key: 'mau', header: 'Mẫu nhìn', align: 'left', title: 'creative chi nhiều nhất của giá trị này — CTA: khung cuối; còn lại: ảnh đầu · rê vào xem video', cell: (r) => <span style={{ display: 'inline-flex', gap: 3 }}>{r.mau.map((m) => nho(m.cr))}</span> },
     { key: 'cr', header: 'Creative', cell: (r) => r.cr, sortValue: (r) => r.cr }, { key: 'camp', header: 'Camp', cell: (r) => r.camp, sortValue: (r) => r.camp },
     { key: 'chi', header: 'Chi', cell: (r) => <Tien v={r.chi} />, sortValue: (r) => r.chi }, { key: 'thu', header: 'Thu', cell: (r) => <Tien v={r.thu} />, sortValue: (r) => r.thu },
     { key: 'roi', header: 'ROI', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 },
@@ -906,6 +917,12 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
       </div>
       {motGT ? <div style={{ fontSize: 12, color: '#f59e0b' }}>{dang.ten}: mọi creative đang cùng một giá trị — chưa so được. Muốn đo thì dựng bản thử đổi riêng điểm chạm này.</div> : null}
       <DataTable rows={rows} columns={cot} getRowKey={(r) => r.v} persistKey="etp-diem-cham" minWidth={1100} pageSize={50} />
+      {noiV.v ? (() => { const x = crTheoId.get(noiV.v.cr); if (!x) return null; const d = daiCr(noiV.v.cr), bd = laCta && d > 8 ? d - 6 : 0;
+        return <KhungNoi x={noiV.v.x} y={noiV.v.y} rong={300} cao={560} noi={noiV} style={{ width: 300, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ fontSize: 12, paddingRight: 26 }}><b>cr #{x.creative_id}</b> · {x.phim ?? ''} <span style={{ color: 'var(--fg-2)' }}>· {giaTri(x.creative_id, k)}{laCta ? ' · đang xem 6 giây cuối' : ''}</span></div>
+          {x.video ? <video key={`${x.video}#${bd}`} src={`${x.video}#t=${bd.toFixed(1)}`} autoPlay muted loop playsInline controls style={{ width: '100%', height: 500, objectFit: 'contain', background: '#000', borderRadius: 6 }} />
+            : x.anh ? <img src={x.anh} alt="" style={{ width: '100%', borderRadius: 6 }} /> : null}
+        </KhungNoi>; })() : null}
     </div>
   );
 }

@@ -283,7 +283,7 @@ def lap_bao_cao(vn, gio_cuoi=None):
     if het:
         b.append(""); dam |= {len(b), len(b) + 1}
         b += [f"HẾT NGÂN SÁCH: {len(het)} camp", f"{'Camp':<8}{'Chi/NS':>11}{'ROI':>8}"] + [f"#{c:<7}{f'{float(x):.2f}/{float(n):g}':>11}{roi(float(x), float(t)):>8}" for c, x, n, t in het[:8]] + (["…"] if len(het) > 8 else [])
-    canh = (f"\n⚠️ <b>Đang hút nhanh</b>: chưa tới 13h đã chi {ty * 100:.0f}% ngân sách ngày — còn {(1 - ty) * 100:.0f}% cho khung tối 20h–06h" if 7 <= vn.hour < 13 and ty >= NGUONG_HUT else "")
+    canh = (f"\n⚠️ <b>Đang hút nhanh</b>: chưa tới 13h đã chi {ty * 100:.0f}% ngân sách ngày — còn {(1 - ty) * 100:.0f}% cho khung tối 20h–06h" if int(gio[-1][0]) < 6 and ty >= NGUONG_HUT else "")   # theo GIỜ CUỐI CỦA SỐ trong báo cáo (UTC 0–5 = 07h–12h VN), không theo đồng hồ: 07:06 báo trọn ngày hôm trước từng kêu nhầm (anh 28/10/2026)
     return bang(b, dam, nhat) + f"<i>ngày {ngay[8:10]}/{ngay[5:7]} (07h–07h) · số kho etp tới {moi_nhat}</i>" + canh, int(gio[-1][0])
 
 def bao_chi_gio(vn):

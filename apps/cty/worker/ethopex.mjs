@@ -33,7 +33,7 @@ const NHOM = [
   ['tang', '↑ <b>ĐỦ ĐIỀU KIỆN TĂNG BẬC</b> — ROI 30 ngày (camp mới: từ lúc lên) ≥ 50%, Spending > 50%', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
   ['ha', '↓ <b>GIẢM BẬC</b> — sáng: hôm qua ROI < 0% và 3 ngày < 20% (vừa tăng thì bỏ điều kiện 3 ngày) · mọi nhịp: camp ≥ $15 tiêu đều, ROI 1–2 ngày < 30% (Support) · $20 vừa tăng mà hôm nay âm cũng giảm · luôn từng bậc $20 → $15 → $10; sau giảm khoá tăng 6 giờ, hồi lại thì lên lại', (m) => (m.dich ? [{ text: `↓ #${m.id} về $${m.dich}`, callback_data: `et:giam:${m.id}:${m.dich}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }] : null)],
   ['giam', '↘ <b>ROI TỤT</b> — phim down trend / creative bão hoà → giảm một bậc (camp $1 ở đáy thang chỉ báo)', (m) => (m.dich ? [{ text: `↓ #${m.id} về $${m.dich}`, callback_data: `et:giam:${m.id}:${m.dich}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }] : null)],
-  ['tang30', '⇈ <b>T30 — LÊN $30</b> — camp $20, ≥ 2/3 ngày tiêu > 80% ngân sách, ROI các ngày đó > 80% (Support 23/10)', (m) => [{ text: `✅ #${m.id} lên $30`, callback_data: `et:tang:${m.id}:30` }, { text: 'Giữ $20', callback_data: `et:bo:${m.id}` }]],
+  ['tang30', '⇈ <b>T30 — LÊN $30</b> — camp $20, ≥ 2/3 ngày tiêu > 80% ngân sách, ROI các ngày đó > 80% (Support 23/10) · máy tự tăng, không chờ nút (anh 28/10/2026)', null],
   ['moc30', '★ <b>ĐỦ TIÊU CHÍ BID ROAS</b> — chi ≥ $100, ROI ≥ 50% ổn định 2–3 ngày trọn (Support 24/10/2026)', null],
   ['dong', '⏸ <b>CAMP ĐÃ BỊ ĐÓNG</b> — Ethopex dừng (chạm rule hoặc tắt tay); báo MỘT lần mỗi lần dừng', null],
   ['loi_may', '⚙️ <b>LỖI MÁY</b> — đọc API Ethopex vẫn lỗi sau 3 lần thử; nhịp sau tự đọc lại, anh không cần làm gì (tin tự xoá)', null],
@@ -360,16 +360,17 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       gui++;
     }
   }
-  if (tuTang) {
-    for (const k of ['dau_phien', 'tang']) for (const m of kq[k] || []) {
-      const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id)) continue;
+  // T30 TỰ ĐỘNG (anh 28/10/2026: "bật rule cho phép tăng lên $30 tự động ko cần xin nữa"): camp đủ luật T30 lên $30 ngay, không chờ nút; ngoài trần tự tăng thường
+  if (tuTang || (kq.tang30 || []).length) {
+    for (const k of ['dau_phien', 'tang', 'tang30']) for (const m of kq[k] || []) {
+      const d = Number(dichCua(m)); if (!d || (k === 'tang30' ? d !== 30 : !tuTang || d > tuTang) || lamRoi.has(m.id)) continue;
       lamRoi.add(m.id);
-      let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), '--luat', `${TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', `máy tự tăng (anh cho phép ${Date.parse(tt.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), '--luat', `${TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', k === 'tang30' ? 'máy tự tăng T30 (anh chat 28/10/2026: bật rule cho phép tăng lên $30 tự động ko cần xin nữa)' : `máy tự tăng (anh cho phép ${Date.parse(tt?.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daTu.push({ k, m, d, r });
     }
     if (daTu.length) {
       const dong = bangViec(daTu.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), 'Kỳ');
-      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép ${Date.parse(tt.den) > Date.parse('2090-01-01') ? 'tới khi anh rút lại' : `tới hết ${esc(tt.den.slice(0, 10))}`}, trần $${tuTang}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ TĂNG</b> — ${tt && tuTang ? `anh cho phép ${Date.parse(tt.den) > Date.parse('2090-01-01') ? 'tới khi anh rút lại' : `tới hết ${esc(tt.den.slice(0, 10))}`}, trần $${tuTang}` : ''}${daTu.some((x) => x.k === 'tang30') ? `${tt && tuTang ? ' · ' : ''}T30 lên $30 tự động (anh 28/10)` : ''}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
       gui++;
     }
   }

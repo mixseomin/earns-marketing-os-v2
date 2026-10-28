@@ -13,7 +13,7 @@ _s = importlib.util.spec_from_file_location("nhip_tang", os.path.join(os.path.di
 # RÀO CHẮN etp (etp.on.tc bước 3, 24/10/2026): dừng khẩn / trần camp / trần ngày / trần bộ — apps/etp/cong.py
 import importlib.util as _iuc
 _sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
-MUC = {2, 3, 5, 7, 10, 15, 20, 30}   # $30 chỉ qua luật T30 (camp $20 tiêu đủ + ROI cao 2–3 ngày, Support 23/10/2026), anh duyệt nút
+MUC = {2, 3, 5, 7, 10, 15, 20, 30}   # $30 chỉ qua luật T30 (camp $20 tiêu đủ + ROI cao 2–3 ngày, Support 23/10/2026) — máy tự tăng từ 28/10/2026 (anh: "ko cần xin nữa")
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 

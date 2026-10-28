@@ -435,15 +435,15 @@ export function DataTable<T>({
       while (sc && !/(auto|scroll)/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement;
       let tren = 0;
       if (sc && thanRef.current) for (const el of Array.from(sc.querySelectorAll<HTMLElement>('[data-comp="ui.Tabs"],[data-comp="ui.StickyBar"]'))) {
-        const cs = getComputedStyle(el);
+        const cs = getComputedStyle(el); if (!dinhDo.has(el)) { dinhDo.add(el); ro.observe(el); }   // thanh dính đổi cao (etp: dải số gọn hiện khi cuộn qua hero) → đo lại
         if (cs.position === 'sticky' && !el.contains(thanRef.current) && (el.compareDocumentPosition(thanRef.current) & Node.DOCUMENT_POSITION_FOLLOWING)) tren = Math.max(tren, (parseFloat(cs.top) || 0) + el.getBoundingClientRect().height);
       }
       setDinhTren((o) => (Math.abs(o - tren) < 0.5 ? o : tren));
       const le = sc ? parseFloat(getComputedStyle(sc).paddingBottom) || 0 : 0;
       setLeDuoi((o) => (Math.abs(o - le) < 0.5 ? o : le));
     };
+    const ro = new ResizeObserver(() => doNgay()), dinhDo = new Set<HTMLElement>();
     doNgay();
-    const ro = new ResizeObserver(() => doNgay());
     if (bangRef.current) ro.observe(bangRef.current);
     if (doRef.current) ro.observe(doRef.current);
     window.addEventListener('resize', doNgay);

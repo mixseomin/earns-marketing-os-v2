@@ -8,7 +8,7 @@ import { COL_FILTER_OPS, isNullaryOp, matchColFilter } from './col-filter';
 import { usePaged, Pager } from './phan-trang';
 import { useTablePref, writeTablePref } from './table-prefs';
 import { readShallowParam, writeShallowParam } from './url-shallow';
-import { cotDanhMuc, chuoiTim, gomNhom, locChon, docChon } from './loc-tu-dong';
+import { cotDanhMuc, chuoiTim, gomNhom, locChon, docChon, type CotLoc } from './loc-tu-dong';
 import { LocChonNhieu, ChonGomNhom } from './thanh-loc';
 
 // DataTable — the house pattern for "a LOT of columns without overflowing the layout".
@@ -144,6 +144,16 @@ interface DataTableProps<T> {
    * "học cách scroll của họ khi full màn hình"). Bật lại cho bảng nhỏ nằm giữa các khối khác cần giới hạn chiều cao.
    */
   hopCuon?: boolean;
+  /**
+   * CÂY (etp Camp › Cây, anh 29/10/2026 "dùng lại DataTable để có bộ filter full chi tiết hơn"): dòng con lồng dưới dòng cha — `parent` trả getRowKey
+   * của cha. Lọc / tìm / sắp xếp chạy trên MỌI dòng như bảng thường, rồi mới xếp lại theo cây (anh em giữ thứ tự đã sắp); cha bị lọc mất thì con
+   * nổi lên làm gốc. Mở / gập do người gọi giữ (`open` = key dòng đang mở, kèm 'g:<nhóm>' khi có groupBy) — để đưa vào nút "Mở hết" / lưu máy.
+   */
+  tree?: { parent: (row: T) => string | null | undefined; open: Set<string>; onOpen: (keys: string[], open: boolean) => void };
+  /** GOM CỐ ĐỊNH theo một giá trị (không qua ô "nhóm theo", không trần số nhóm): `label` = ô đầu dòng nhóm. Có `tree` thì nhóm mở / gập theo tree.open 'g:<v>' (mặc định gập). */
+  groupBy?: { value: (row: T) => string; label?: (v: string, rows: T[]) => ReactNode };
+  /** thuộc tính data-* gắn lên <tr> của dòng (vd etp `data-camp-dong` để rê mã camp ở chỗ khác tô sáng đúng dòng) */
+  rowData?: (row: T) => Record<string, string | number>;
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
@@ -164,7 +174,7 @@ export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
   stickyFirst = true, stickyCols, fixedLayout = false,
-  serverSort, serverFilter, hopCuon = false,
+  serverSort, serverFilter, hopCuon = false, tree, groupBy, rowData,
 }: DataTableProps<T>) {
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
   // KÉO GIÃN CỘT (keo-rong.ts — 17/10/2026, anh: "dùng DataTable mà không resize được"): mép phải mỗi tiêu đề có tay nắm; bề ngang nhớ theo
@@ -307,7 +317,7 @@ export function DataTable<T>({
   const [gom, setGomTho] = useState(() => pref.g ?? '');
   useEffect(() => { const u = gUrlKey ? readShallowParam(gUrlKey) : null; if (u != null) setGomTho(u); }, [gUrlKey]);
   const setGom = (k: string) => { setGomTho(k); writeTablePref(persistKey, { g: k || undefined }); if (gUrlKey) writeShallowParam(gUrlKey, k || null); };
-  const cotGom = danhMuc.some((c) => c.key === gom) ? columns.find((c) => c.key === gom) : undefined;
+  const cotGom: CotLoc | undefined = groupBy ? { key: '__nhom', header: '', sortValue: groupBy.value } as CotLoc : danhMuc.some((c) => c.key === gom) ? columns.find((c) => c.key === gom) : undefined;
   const [dongNhom, setDongNhom] = useState<string[]>([]);   // nhóm đang gập (chỉ là cách xem)
 
   // Cột đang lọc thật sự (có sortValue + có giá trị hoặc là toán tử IS NULL/IS NOT NULL).
@@ -375,6 +385,19 @@ export function DataTable<T>({
   useEffect(() => { setPage(0); }, [q, activeFilters.length, rows.length, setPage]);
   const pageRows = pageSize ? paged.pageItems : sortedRows;
   const viTriDong = useMemo(() => new Map(pageRows.map((r, i) => [r, i] as const)), [pageRows]);   // chỉ số gốc của dòng khi vẽ theo nhóm
+  // xếp một tập dòng (đã lọc + sắp) thành cây: { dòng, cấp, số dòng con cháu } theo thứ tự duyệt sâu, chỉ đi vào nhánh đang mở
+  const cayHoa = (rs: T[]): { row: T; sau: number; con: number }[] => {
+    if (!tree) return rs.map((row) => ({ row, sau: 0, con: 0 }));
+    const khoa = (r: T) => getRowKey(r, viTriDong.get(r) ?? 0);
+    const co = new Set(rs.map(khoa)), conCua = new Map<string, T[]>(), goc: T[] = [];
+    for (const r of rs) { const p = tree.parent(r); if (p != null && p !== khoa(r) && co.has(p)) { const a = conCua.get(p); if (a) a.push(r); else conCua.set(p, [r]); } else goc.push(r); }
+    const daDi = new Set<string>(), out: { row: T; sau: number; con: number }[] = [];
+    const dem = (k: string, seen = new Set<string>()): number => (seen.has(k) ? 0 : (seen.add(k), (conCua.get(k) ?? []).reduce((a, x) => a + 1 + dem(khoa(x), seen), 0)));
+    const di = (r: T, sau: number) => { const k = khoa(r); if (daDi.has(k)) return; daDi.add(k); const ds = conCua.get(k) ?? [];
+      out.push({ row: r, sau, con: ds.length ? dem(k) : 0 }); if (ds.length && tree.open.has(k)) ds.forEach((x) => di(x, sau + 1)); };
+    goc.forEach((r) => di(r, 0));
+    return out;
+  };
 
   // Ô ghim phải có nền ĐỤC, không thì cột cuộn phía dưới nhìn xuyên qua thành chữ chồng chữ.
   // ghim(i): cột i có ghim không + mép trái. Cột ≥ 2 cần bề rộng đo (cotDo) — chưa đo xong thì chỉ ghim cột đầu.
@@ -544,7 +567,7 @@ export function DataTable<T>({
             </>
           )}
           {danhMuc.map((c) => <LocChonNhieu key={c.key} cot={c} chon={docChon(colFilters[c.key])} onDoi={(ds) => setColFilter(c.key, locChon(ds))} />)}
-          {danhMuc.length > 0 && <ChonGomNhom ds={danhMuc} value={cotGom ? gom : ''} onDoi={setGom} />}
+          {danhMuc.length > 0 && !groupBy && <ChonGomNhom ds={danhMuc} value={cotGom ? gom : ''} onDoi={setGom} />}
           {/* Lọc · tìm · nhóm bên TRÁI (chỗ mắt đọc trước); cột / thẻ-bảng (chỉnh cách vẽ) dạt PHẢI. */}
           <span style={{ flex: 1 }} />
           {effView === 'table' && groups && groups.length > 0 && (
@@ -644,21 +667,24 @@ export function DataTable<T>({
             : <thead>{hangNhom()}{hangDau(true)}</thead>)}
           <tbody>
             {gomNhom(pageRows, cotGom).flatMap((nh) => {
-              const gap = dongNhom.includes(nh.v);
+              const gap = tree && groupBy ? !tree.open.has(`g:${nh.v}`) : dongNhom.includes(nh.v);
+              const doiNhom = () => (tree && groupBy ? tree.onOpen([`g:${nh.v}`], gap) : setDongNhom((d) => (gap ? d.filter((x) => x !== nh.v) : [...d, nh.v])));
               const dau = cotGom ? [
-                <tr key={`g:${nh.v}`} className="dt-nhom" onClick={() => setDongNhom((d) => (gap ? d.filter((x) => x !== nh.v) : [...d, nh.v]))} style={{ cursor: 'pointer', background: 'var(--bg-2)' }}>
+                <tr key={`g:${nh.v}`} className="dt-nhom" onClick={doiNhom} style={{ cursor: 'pointer', background: 'var(--bg-2)' }}>
                   {visible.map((c, ci) => (
                     <td key={c.key} style={cellStyle(c, { fontWeight: 700, background: 'var(--bg-2)', ...(ci === 0 ? { textAlign: 'left', color: 'var(--fg-1)' } : {}) }, ci)}>
-                      {ci === 0 ? <>{gap ? '▸' : '▾'} {nh.v} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {nh.rows.length}</span></> : c.total ? c.total(nh.rows) : null}
+                      {ci === 0 ? (groupBy?.label ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%' }}><span style={{ width: 12, flex: 'none', color: 'var(--fg-3)' }}>{gap ? '▸' : '▾'}</span>{groupBy.label(nh.v, nh.rows)}</span>
+                        : <>{gap ? '▸' : '▾'} {nh.v} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {nh.rows.length}</span></>) : c.total ? c.total(nh.rows) : null}
                     </td>
                   ))}
                 </tr>,
               ] : [];
-              return [...dau, ...(gap ? [] : nh.rows.map((row) => {
+              return [...dau, ...(gap ? [] : cayHoa(nh.rows).map(({ row, sau, con }) => {
               const i = viTriDong.get(row) ?? 0;
+              const k = getRowKey(row, i), mo = !!tree?.open.has(k);
               const extra = renderExpanded?.(row, i);
               return [
-                <tr key={getRowKey(row, i)} className="dt-row"
+                <tr key={k} className="dt-row" {...(rowData ? Object.fromEntries(Object.entries(rowData(row)).map(([a, v]) => [`data-${a}`, v])) : {})}
                     style={{ ...(onRowClick ? { cursor: 'pointer' } : undefined), ...rowStyle?.(row, i) }}
                     onClick={onRowClick ? () => onRowClick(row, i) : undefined}
                     title={rowTitle?.(row)}>
@@ -667,7 +693,12 @@ export function DataTable<T>({
                         style={cellStyle(c, c.onCellClick ? { cursor: 'pointer' } : undefined, ci)}
                         title={c.cellTitle?.(row, i)}
                         onClick={c.onCellClick ? (e) => { e.stopPropagation(); c.onCellClick!(row, i); } : undefined}>
-                      {c.cell(row, i)}
+                      {tree && ci === 0 ? (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', paddingLeft: sau * 14, maxWidth: '100%' }}>
+                          <span className="dt-cay-mui" title={con ? `${mo ? 'gập' : 'mở'} ${con} dòng con` : undefined} onClick={con ? (e) => { e.stopPropagation(); tree.onOpen([k], !mo); } : undefined}
+                            style={{ width: 14, flex: 'none', textAlign: 'center', color: 'var(--fg-3)', cursor: con ? 'pointer' : undefined }}>{con ? (mo ? '▾' : '▸') : ''}</span>
+                          {c.cell(row, i)}
+                        </span>) : c.cell(row, i)}
                     </td>
                   ))}
                 </tr>,

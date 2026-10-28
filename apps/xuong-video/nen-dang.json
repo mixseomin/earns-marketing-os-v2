@@ -1,0 +1,21 @@
+{
+  "_ve": "SỔ NỀN ĐĂNG — MỘT NGUỒN cho mọi đường đăng bài (anh 28/10/2026: 'không được tách ra lắm phiên bản đăng bài… lưu vào luật để không phải sinh lại'). Đọc bởi: puzzle-books scripts/nhip-an-toan.mjs (trần, loại nền → hopNen, máy đăng dang-may + dang-short) và mos2 apps/cty/worker/cham-dang.mjs (kho theo loại nền). Thêm nền = MỘT dòng ở đây + MỘT hàm trong puzzle-books scripts/dang-br.mjs (bảng DANG của dang-may.mjs) hoặc một đường API trên box3 + một mục kênh trong xv_may.dang. CẤM viết script / playbook đăng riêng.",
+  "_truong": "loai: video | anh | link | poll | bai (khớp loại dòng studio, nhip-an-toan hopNen) · tran: trần bài/ngày theo 3 mốc tuổi kênh · duong: br (trình duyệt, dang-br.mjs) | api (box3) | br+api · dieu_phoi: dang-may (máy chung) | dang-short (máy Front Porch đăng youtube/facebook/instagram/tiktok của chính nó qua dang-short.mjs — cùng lõi dang-br, cùng nhip-an-toan) | pin-hang (ghim hẹn giờ Front Porch) · ham: tên hàm trong dang-br.mjs / đường API",
+  "nen": {
+    "youtube":     { "loai": "video", "tran": [1, 2, 3], "duong": "br",     "dieu_phoi": "dang-may", "ham": "dangYouTube" },
+    "facebook":    { "loai": "video", "tran": [1, 2, 3], "duong": "br+api", "dieu_phoi": "dang-may", "ham": "dangFacebook | api dang-fb-reel.mts" },
+    "fb_anh":      { "loai": "anh",   "tran": [1, 1, 2], "duong": "api",    "dieu_phoi": "dang-may", "ham": "api dang-fb-reel.mts --anh" },
+    "fb_link":     { "loai": "link",  "tran": [1, 1, 1], "duong": "api",    "dieu_phoi": "dang-may", "ham": "api dang-fb-reel.mts --anh (ảnh đơn + link)" },
+    "instagram":   { "loai": "video", "tran": [1, 1, 2], "duong": "br",     "dieu_phoi": "dang-may", "ham": "dangInstagram" },
+    "x":           { "loai": "video", "tran": [1, 2, 3], "duong": "br",     "dieu_phoi": "dang-may", "ham": "dangX" },
+    "x_anh":       { "loai": "anh",   "tran": [1, 1, 2], "duong": "br",     "dieu_phoi": "dang-may", "ham": "dangX" },
+    "x_link":      { "loai": "link",  "tran": [1, 1, 1], "duong": "br",     "dieu_phoi": "dang-may", "ham": "dangX" },
+    "x_poll":      { "loai": "poll",  "tran": [1, 1, 1], "duong": "br",     "dieu_phoi": "dang-may", "ham": "dangXPoll" },
+    "dailymotion": { "loai": "video", "tran": [1, 2, 3], "duong": "api",    "dieu_phoi": "dang-may", "ham": "api dang-dailymotion.mts" },
+    "tiktok":      { "loai": "video", "tran": [1, 2, 3], "duong": "os",     "dieu_phoi": "dang-short", "ham": "dang-short.mjs dangTikTok (máy ảo Android os tiktok1)" },
+    "quora":       { "loai": "bai",   "tran": [1, 1, 2], "duong": "br",     "dieu_phoi": "dang-may", "ham": "dangQuora" },
+    "substack":    { "loai": "bai",   "tran": [1, 1, 1], "duong": "br",     "dieu_phoi": "dang-may", "ham": "dangSubstack" },
+    "medium":      { "loai": "bai",   "tran": [1, 1, 1], "duong": "br",     "dieu_phoi": "dang-may", "ham": "dangMedium (chưa có đường: #193 mất proxy)" },
+    "pinterest":   { "loai": "anh",   "tran": [1, 2, 3], "duong": "br",     "dieu_phoi": "pin-hang", "ham": "pin-hang.mjs + playbook pinterest.nap-ghim-hen (ghim hẹn giờ theo CSV, Front Porch)" }
+  }
+}

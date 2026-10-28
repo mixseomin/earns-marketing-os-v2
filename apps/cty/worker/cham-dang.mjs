@@ -128,7 +128,10 @@ export async function chamMoi(sql) {
 // (bài DUYỆT chưa đăng lên nền đó < KHO_TOI_THIEU ngày theo trần mỗi ngày). Chỉ báo khi vấn đề MỚI xuất hiện (tệp trạng thái), hết vấn đề thì xoá khỏi sổ —
 // không nhắc lại cùng một chuyện mỗi ngày.
 export const KHO_TOI_THIEU = 7;
-const NEN_ANH = new Set(['x_anh', 'fb_anh']), NEN_LINK = new Set(['x_link', 'fb_link']), NEN_POLL = new Set(['x_poll']), NEN_BAI = new Set(['quora', 'substack', 'medium']);   // nền bài link: dòng dang.loai 'link', không video · nền poll: dang.loai 'poll', không tệp
+// loại nền đọc từ SỔ NỀN ĐĂNG chung (apps/xuong-video/nen-dang.json — cùng nguồn với máy đăng puzzle-books nhip-an-toan.mjs), không khai tay ở đây
+const NEN_DANG = JSON.parse((await import('node:fs')).readFileSync(new URL('../../xuong-video/nen-dang.json', import.meta.url), 'utf8')).nen;
+const nenLoai = (l) => new Set(Object.entries(NEN_DANG).filter(([, v]) => v.loai === l).map(([k]) => k));
+const NEN_ANH = nenLoai('anh'), NEN_LINK = nenLoai('link'), NEN_POLL = nenLoai('poll'), NEN_BAI = nenLoai('bai');   // nền bài link: dòng dang.loai 'link', không video · nền poll: dang.loai 'poll', không tệp
 // HỌ NỀN (25/10/2026): máy đăng chống spam xoay vòng các nền cùng một tài khoản (facebook / fb_anh / fb_link chung trần ngày Facebook, x / x_anh / x_link chung X —
 // nhip-an-toan.mjs › hopNen + xepXoay) → một nền đứng chờ lượt KHÔNG phải lỡ lượt. Chỉ báo lỡ khi CẢ HỌ hôm qua không có bài nào.
 // Page cũ 'facebook:<acct>' (S06): họ theo phần trước dấu ':'; mỗi Page một TÀI KHOẢN nên họ xét theo máy + tài khoản (Page A có bài không che Page B lỡ lượt)

@@ -326,24 +326,28 @@ function BangXet({ xet, gon }: { xet: XetLuat[]; gon?: boolean }) {
   return (
     // khung cuộn ngang: ngăn điện thoại hẹp hơn bảng (cột điều kiện không gãy dòng) — trước bảng tràn mép phải, mất cột Giá trị / Ngưỡng
     <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+    <style>{'.bx-khoi>tr>td{background:color-mix(in srgb,var(--bx) var(--bx-a),transparent);transition:background .12s}.bx-khoi:hover>tr>td{background:color-mix(in srgb,var(--bx) 18%,transparent)}'}</style>
     <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>
       <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}>{gon ? null : <th style={o}>Luật</th>}<th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>
-      <tbody>{(() => { const ve = (l: XetLuat) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);
+      {(() => { const ve = (l: XetLuat, vi: number) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);
         const dau = <td rowSpan={n} title={l.mo_ta} style={{ ...o, cursor: 'help', minWidth: 130, opacity: mo ? 0.6 : 1 }}>
           <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div><b style={{ color: km }}>{kt}</b>{l.vao ? <span style={{ color: '#4ade80' }}> · máy đã xếp làm</span> : null}</div>
           {l.ghi ? <div style={{ color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}</td>;
         const dauGon = <tr key={`${l.ma}-t`} style={{ opacity: mo ? 0.6 : 1 }}><td colSpan={4} title={l.mo_ta} style={{ ...o, paddingTop: 8, borderTop: '1px solid var(--fg-3, #555)' }}>
           <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> · <b style={{ color: km }}>{kt}</b>{l.vao ? <span style={{ color: '#4ade80' }}> · máy đã xếp làm</span> : null}
           {l.ghi ? <div style={{ color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}{l.dk.length ? null : <div style={{ color: 'var(--fg-2)' }}>{l.mo_ta}</div>}</td></tr>;
-        if (gon) return <Fragment key={l.ma}>{dauGon}{l.dk.map(([ten, gt, ng, ok], i) => <tr key={`${l.ma}${i}`} style={{ opacity: mo ? 0.6 : 1 }}>
+        // MỖI LUẬT MỘT KHỐI (anh 29/10/2026 "background khác nhau giữa các khối màu của bậc · hover thì highlight nhẹ bg"): <tbody> riêng, nền nhạt theo màu
+        // luật, khối chẵn / lẻ đậm nhạt khác nhau (hai luật cùng màu đứng cạnh vẫn tách được), rê vào khối → nền đậm hơn
+        const khoi = (con: React.ReactNode) => <tbody key={l.ma} className="bx-khoi" style={{ ['--bx' as string]: XET_CHIP[l.ma]?.[1] ?? '#94a3b8', ['--bx-a' as string]: vi % 2 ? '5%' : '10%' } as React.CSSProperties}>{con}</tbody>;
+        if (gon) return khoi(<>{dauGon}{l.dk.map(([ten, gt, ng, ok], i) => <tr key={`${l.ma}${i}`} style={{ opacity: mo ? 0.6 : 1 }}>
           <td style={o}>{ten}</td><td style={{ ...o, textAlign: 'right', whiteSpace: 'nowrap', color: ok ? 'var(--fg-1)' : '#f87171' }}><ChuCamp t={gt} /></td><td style={{ ...o, color: 'var(--fg-2)' }}>{ng}</td>
-          <td style={{ ...o, color: ok ? '#4ade80' : '#f87171', fontWeight: 700 }}>{ok ? '✓' : '✗'}</td></tr>)}</Fragment>;
-        return l.dk.length ? l.dk.map(([ten, gt, ng, ok], i) => <tr key={`${l.ma}${i}`} style={{ opacity: mo ? 0.6 : 1 }}>{i === 0 ? dau : null}
+          <td style={{ ...o, color: ok ? '#4ade80' : '#f87171', fontWeight: 700 }}>{ok ? '✓' : '✗'}</td></tr>)}</>);
+        return khoi(l.dk.length ? l.dk.map(([ten, gt, ng, ok], i) => <tr key={`${l.ma}${i}`} style={{ opacity: mo ? 0.6 : 1 }}>{i === 0 ? dau : null}
           <td style={{ ...o, minWidth: 190 }}>{ten}</td><td style={{ ...o, textAlign: 'right', whiteSpace: 'nowrap', color: ok ? 'var(--fg-1)' : '#f87171' }}><ChuCamp t={gt} /></td><td style={{ ...o, whiteSpace: 'nowrap', color: 'var(--fg-2)' }}>{ng}</td>
           <td style={{ ...o, color: ok ? '#4ade80' : '#f87171', fontWeight: 700 }}>{ok ? '✓' : '✗'}</td></tr>)
-          : <tr key={l.ma}>{dau}<td colSpan={4} style={{ ...o, color: 'var(--fg-2)' }}>{l.mo_ta}</td></tr>; };
-        return <>{chay.map(ve)}{dung.length ? <tr key="dung"><td colSpan={gon ? 4 : 5} onClick={() => setMoDung((x) => !x)} style={{ ...o, cursor: 'pointer', color: 'var(--fg-3, #777)', paddingTop: 6 }}>
-          {moDung ? '▾' : '▸'} Luật đang tạm dừng / không áp ({dung.length}): {dung.map((l) => l.ten).join(' · ')}</td></tr> : null}{moDung ? dung.map(ve) : null}</>; })()}</tbody>
+          : <tr key={l.ma}>{dau}<td colSpan={4} style={{ ...o, color: 'var(--fg-2)' }}>{l.mo_ta}</td></tr>); };
+        return <>{chay.map(ve)}{dung.length ? <tbody key="dung"><tr><td colSpan={gon ? 4 : 5} onClick={() => setMoDung((x) => !x)} style={{ ...o, cursor: 'pointer', color: 'var(--fg-3, #777)', paddingTop: 6 }}>
+          {moDung ? '▾' : '▸'} Luật đang tạm dừng / không áp ({dung.length}): {dung.map((l) => l.ten).join(' · ')}</td></tr></tbody> : null}{moDung ? dung.map((l, i) => ve(l, chay.length + i)) : null}</>; })()}
     </table>
     </div>
   );

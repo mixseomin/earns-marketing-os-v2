@@ -609,11 +609,16 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
           <CotCampNoi c={theoId.get(gocId)} nhan={`Camp gốc #${gocId}`} du={du} anh={anh} />
         </KhungNoi>) : null}
       <h3 style={{ fontSize: 14, margin: '20px 0 8px' }} title="Support: chi ≥ $100 mà ROI > 50% ổn định 2–3 ngày → nhân bản 2–3 camp bid ROAS">Ứng viên lên ROAS</h3>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '-4px 0 8px' }}>Camp thường đang bật, 30 ngày chi ≥ $30 và ROI ≥ 50%, 2–3 ngày đã khép gần nhất ngày nào cũng ROI ≥ 50%. ★ = chi ≥ $100 (đủ chuẩn Support).</div>
       <DataTable rows={ungVien} getRowKey={(r) => String(r.camp_id)} persistKey="etp-roas-uv" minWidth={700} defaultSort={[{ key: 'chi', dir: 'desc' }]} columns={[
         { key: 'id', header: 'Camp', align: 'left', cell: (r) => <span>{r.chi >= 100 ? '★ ' : ''}#{r.camp_id} {(r.ten ?? '').replace(/^\d{4}\w* /, '').slice(0, 60)}</span>, sortValue: (r) => r.camp_id },
         { key: 'ns', header: 'Ngân sách', cell: (r) => `$${r.ngan_sach}`, sortValue: (r) => r.ngan_sach },
         { key: 'chi', header: 'Chi 30 ngày', title: 'đủ khi ≥ $100', cell: (r) => <span style={{ color: r.chi >= 100 ? '#4ade80' : r.chi >= 70 ? '#f59e0b' : undefined }}><Tien v={r.chi} /></span>, sortValue: (r) => r.chi },
-        { key: 'roi', header: 'ROI 30 ngày', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 }]} />
+        { key: 'roi', header: 'ROI 30 ngày', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 },
+        // lên được chưa (anh 28/10/2026 "Đây là cái gì"): đã có camp ★ đang chạy · creative bị cổng chấm chặn (không lên được) · sẵn sàng
+        { key: 'tt', header: 'Lên ROAS', align: 'left', title: 'đã lên = số camp ★ ROAS đang chạy nhân từ camp này · chặn chấm = creative ≤ 4 điểm, cổng chấm không cho lên (rê xem lý do)',
+          cell: (r) => (r.da_len ? <span style={{ color: '#4ade80' }}>đã lên {r.da_len}</span> : r.chan ? <span style={{ color: '#f87171' }} title={r.chan}>chặn chấm</span> : <span style={{ color: '#60a5fa' }}>sẵn sàng</span>),
+          sortValue: (r) => (r.da_len ? 2 : r.chan ? 1 : 0) }]} />
     </div>
   );
 }

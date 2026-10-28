@@ -43,7 +43,7 @@ export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: 
   hangDoi: { cho: number; dang: number; xong: number; loi: number };
   /** máy luật đang báo (etp.bao — cty ethopex.mjs ghi mỗi nhịp, cùng nhóm với Telegram) · bid ROAS: camp ROI ≥ 50% mọi ngày trọn (3 ngày, ≥ 2 ngày có chi) — đủ khi chi ≥ $100 */
   bao: { nhom: string; camp_id: number; chu: string; luc: string }[];
-  roas: { camp_id: number; ten: string | null; ngan_sach: number; chi: number; thu: number; ngay: { d: string; chi: number; thu: number }[] }[];
+  roas: { camp_id: number; ten: string | null; ngan_sach: number; chi: number; thu: number; ngay: { d: string; chi: number; thu: number }[]; da_len: number; chan: string | null }[];
   /** camp ROAS ★ đang theo dõi (nhan-ban.py --roas, tên "★ … roas X duplicate by <gốc>" — anh 26/10/2026 "lưu vào etp để theo dõi cùng"): số từ lúc lên */
   roasChay: { camp_id: number; ten: string | null; trang_thai: string | null; ngan_sach: number; chi: number; thu: number; ngay: { d: string; chi: number; thu: number }[] }[];
   /** phim bão hoà / dừng nhân bản (etp.phim_bao_hoa — canh-bao.py, anh 25/10/2026) */
@@ -189,7 +189,10 @@ export async function docEtp(): Promise<DuLieuEtp> {
     run<Record<string, unknown>>(sql`with t as (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay where ngay >= ${nay}::date - 29 group by 1 having sum(chi) >= 30 and sum(thu) >= 1.5 * sum(chi)),
         d as (select camp_id, json_agg(json_build_object('d', ngay::text, 'chi', chi, 'thu', thu) order by ngay) ngay, bool_and(thu >= 1.5 * chi) on_dinh, count(*) so
               from etp.so_ngay where ngay between ${nay}::date - 3 and ${nay}::date - 1 and chi >= 1 group by 1)
-      select c.camp_id, c.ten, c.ngan_sach, t.chi, t.thu, d.ngay from t join d using (camp_id) join etp.camp c using (camp_id)
+      select c.camp_id, c.ten, c.ngan_sach, t.chi, t.thu, d.ngay,
+        (select count(*) from etp.camp x where x.ten like '%roas % duplicate by ' || c.camp_id and x.trang_thai = 'ACTIVE') da_len,
+        (select case when g.duoc_len then null else coalesce(g.chan_boi, 'chưa chấm') end from etp.cham_cong g where g.creative_id = c.creative_id) chan
+      from t join d using (camp_id) join etp.camp c using (camp_id)
       where d.on_dinh and d.so >= 2 and c.trang_thai = 'ACTIVE' order by t.chi desc`),
     run<DuLieuEtp['baoHoa'][number]>(sql`select content_id, ten, so_camp, roi, chan_nb, bao_hoa from etp.phim_bao_hoa where chan_nb is not null or bao_hoa is not null order by so_camp desc`).catch(() => [] as DuLieuEtp['baoHoa']),
     // ⚠ nhân bản lỗi = số LƯỢT hỏng thật (phút khác nhau) — luật chặn ghi ok NULL không tính; dòng chép trùng cũ (cùng phút) gộp một (anh 27/10/2026)
@@ -249,7 +252,7 @@ export async function docEtp(): Promise<DuLieuEtp> {
     phot: phot.map((r) => ({ id: n(r.id), luc: String(r.luc), camp_id: n(r.camp_id), creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id),
       bo: (r.bo as string) ?? null, ad_account_id: r.ad_account_id == null ? null : n(r.ad_account_id), page_id: r.page_id == null ? null : n(r.page_id), nhom: String(r.nhom ?? 'khac'), ly_do: (r.ly_do as string) ?? null })),
     bao, baoHoa, nbLoi: nbLoi.map((r) => ({ camp_id: n(r.camp_id), lan: n(r.lan), luc: String(r.luc), loi: (r.loi as string) ?? null })), roas: roas.map((r) => ({ camp_id: n(r.camp_id), ten: (r.ten as string) ?? null, ngan_sach: n(r.ngan_sach), chi: n(r.chi), thu: n(r.thu),
-      ngay: ((r.ngay as { d: string; chi: unknown; thu: unknown }[]) ?? []).map((x) => ({ d: x.d, chi: n(x.chi), thu: n(x.thu) })) })),
+      ngay: ((r.ngay as { d: string; chi: unknown; thu: unknown }[]) ?? []).map((x) => ({ d: x.d, chi: n(x.chi), thu: n(x.thu) })), da_len: n(r.da_len), chan: (r.chan as string) ?? null })),
     roasChay: roasChay.map((r) => ({ camp_id: n(r.camp_id), ten: (r.ten as string) ?? null, trang_thai: (r.trang_thai as string) ?? null, ngan_sach: n(r.ngan_sach), chi: n(r.chi), thu: n(r.thu),
       ngay: ((r.ngay as { d: string; chi: unknown; thu: unknown }[]) ?? []).map((x) => ({ d: x.d, chi: n(x.chi), thu: n(x.thu) })) })) };
 }

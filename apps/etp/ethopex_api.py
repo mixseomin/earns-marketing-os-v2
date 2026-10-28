@@ -68,6 +68,13 @@ def doc_het(duong, body=None, timeout=90):
     if isinstance(d.get("data"), list): d["data"] = data
     return d
 
+# CAMP GỐC ĐỌC TỪ TÊN — MỘT chỗ cho mọi kiểu tên máy đặt (29/10/2026 anh: "bản thang sinh ra từ 1 camp gốc thì phải show cho đúng tree"):
+# dong-bo.py chỉ nhận "(nhan ban N cua X)" + "duplicate by X" → bản thang "(thang $N cua X)" mất gốc, nằm ngang hàng trên cây etp
+_GOC_TEN = re.compile(r"\((?:nhan ban \d+|thang \$\d+) cua (\d+)\)\s*$|\sduplicate by (\d+)\s*$")
+def goc_tu_ten(ten):
+    m = _GOC_TEN.search(ten or "")
+    return int(m.group(1) or m.group(2)) if m else None
+
 def loc_report(rows):
     return [x for x in rows or [] if str(x.get("external_account_id") or "") in EXT or (not x.get("external_account_id") and int(x.get("campaign_id") or 0) in camp_nha())]
 

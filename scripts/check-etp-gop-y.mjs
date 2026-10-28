@@ -48,6 +48,8 @@ const LUAT = [
   { card: 0, tep: 'packages/bang/src/data-table.tsx', co: 'Tổng <span style={{ color: \'var(--fg-3)\', fontWeight: 400 }}>· {shownRows.length} dòng</span>', vi: 'dòng tổng có nhãn Tổng · N dòng' },
   { card: 0, tep: 'packages/bang/src/data-table.tsx', co: '<tr className="dt-tong" style={{ background: TONG_BG }}>', vi: 'dòng tổng nền riêng' },
   { card: 0, tep: 'apps/web/src/components/gop-y-mos2.tsx', co: "top: '50%', transform: 'translateY(-50%)'", vi: 'nút góp ý mos2 ở mép phải giữa, không đè dòng tổng' },
+  { card: 0, tep: 'apps/etp/dong-bo.py', co: 'goc = EA.goc_tu_ten(c.get("name"))', vi: 'camp gốc đọc từ tên qua hàm chung (nhân bản · bản thang · ROAS)' },
+  { card: 0, tep: 'apps/etp/ethopex_api.py', co: '(?:nhan ban \\d+|thang \\$\\d+) cua', vi: 'hàm camp gốc nhận cả bản thang' },
   // 28–29/10/2026 — bộ lọc trang Camp (chat): Luật theo đúng thẻ đang hiện, Tuổi, Cây dùng DataTable
   { card: 0, tep: V, mot: 'const chipCamp = (du: DuLieuEtp', vi: 'thẻ luật và bộ lọc Luật cùng một nguồn' },
   { card: 0, tep: V, co: '.filter(hopLuat)', vi: 'bộ lọc Luật áp lên danh sách camp' },

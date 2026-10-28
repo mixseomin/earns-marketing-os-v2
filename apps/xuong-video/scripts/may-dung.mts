@@ -81,21 +81,19 @@ if (a.includes('--nap')) {
   // BÀI VIẾT bằng chữ AI rẻ (followup #1470): stdin { goc: { sp, id, loai, ten } [, cau_hoi, link] } → JSON. Một bài ~1¢ trở xuống (Haiku qua ckey) — dưới ngưỡng tự chạy;
   // máy gọi: puzzle-books scripts/sinh-bai.mjs (tìm câu hỏi Quora thật bằng br → --viet-bai → nap-bai.mjs). Không nạp ở đây: nạp chỉ một đường (nap-bai.mjs).
   const { tuKhoaQuora, vietBai } = await import('../src/lib/xuong-video/may-de');
-  const { chotTien } = await import('../src/lib/xuong-video/chot-tien');
-  const x = await docStdin(), sp = await spCua(ma);
-  if (a.includes('--tu-khoa')) { chotTien(`từ khoá Quora #${x.goc?.id}`, { cents: 0.1 }); console.log(JSON.stringify(await tuKhoaQuora({ sp, goc: x.goc }))); }
+  const x = await docStdin(), sp = await spCua(ma);   // tiền: sinhJson (claude.ts) tự gác theo giá thật mỗi lượt — không gác thêm ở đây (gác hai lần = cộng dồn sai, chặn oan 28/10)
+  if (a.includes('--tu-khoa')) { console.log(JSON.stringify(await tuKhoaQuora({ sp, goc: x.goc }))); }
   else {
     if (!x.cau_hoi) { console.error('--viet-bai cần cau_hoi'); process.exit(1); }
     // link đích dựng MỘT chỗ ở đây: trang đích của máy (spCua) + UTM theo slug bài — người gọi không tự ghép
     const link = x.link ?? `${sp.link}${sp.link.includes('?') ? '&' : '?'}utm_source=quora&utm_medium=answer&utm_campaign=${encodeURIComponent(x.slug ?? 'quora')}`;
-    chotTien(`viết bài #${x.goc?.id}`, { cents: 0.8 }); console.log(JSON.stringify({ link, ...(await vietBai({ sp, goc: x.goc, cauHoi: x.cau_hoi, link })) }));
+    console.log(JSON.stringify({ link, ...(await vietBai({ sp, goc: x.goc, cauHoi: x.cau_hoi, link })) }));
   }
 } else if (lay('--sinh-de') != null) {
   // MÁY SINH ĐỀ THEO GÓC (bước 3, 27/10/2026): ô kế hoạch của máy ngày đó chưa có bài DUYỆT đúng góc + dạng → sinh đề bằng chữ AI rẻ (may-de.ts) → nạp (→ --va-xuat dựng luôn; không dùng chữ --xuat vì nhánh --xuat <slug> đứng trước trong chuỗi lệnh).
   // TỐN TIỀN (vài chục đồng / đề qua ckey): chạy bằng script cần DUYET_SINH_1_LAN=1 khi quá ngưỡng tự chạy (chot-tien.ts); --toi-da N giới hạn số đề một lượt.
   const ngay = lay('--sinh-de')!; if (!/^\d{4}-\d{2}-\d{2}$/.test(ngay)) { console.error('--sinh-de cần ngày YYYY-MM-DD'); process.exit(1); }
   const { sinhDe, MAU_CUA_DANG, MAU_SINH } = await import('../src/lib/xuong-video/may-de');
-  const { chotTien } = await import('../src/lib/xuong-video/chot-tien');
   const toiDa = Number(lay('--toi-da') ?? 50), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
   const sp = await spCua(ma);
   const o = (await db.execute(sql`SELECT k.nen, k.dang, k.goc, k.dich FROM ke_hoach_goc k WHERE k.may = ${ma} AND k.ngay = ${ngay}::date AND k.dang IS NOT NULL`)) as unknown as { nen: string; dang: string; goc: { sp: number; id: number; loai: string; ten: string }; dich: string | null }[];
@@ -106,7 +104,7 @@ if (a.includes('--nap')) {
     if (n >= toiDa) break;
     const mau = MAU_CUA_DANG[oKe.dang]; if (!mau || !MAU_SINH.has(mau)) { ra.push(`· ${oKe.nen} ${oKe.dang}: dạng chưa có mẫu sinh đề — máy đăng dùng bài kho`); continue; }
     if (daCo.some((x) => Number(x.goc) === Number(oKe.goc?.id) && x.dang === oKe.dang)) { ra.push(`· ${oKe.nen} ${oKe.dang} #${oKe.goc.id}: đã có bài đúng góc + dạng`); continue; }
-    chotTien(`sinh đề ${oKe.dang} #${oKe.goc.id}`, { cents: 0.4 });   // ~13₫ ước theo ckey Haiku; quá ngưỡng cộng dồn thì cần DUYET_SINH_1_LAN=1
+    // tiền: sinhJson (claude.ts) gác từng lượt mô hình theo giá thật, cộng dồn cả lượt chạy — quá ngưỡng tự chạy thì cần DUYET_SINH_1_LAN=1 (trước 28/10 gác thêm 0,4¢ ở đây = tính hai lần)
     const kq = await sinhDe({ sp, goc: oKe.goc, dang_bai: oKe.dang, dich: oKe.dich, daDung });
     vnd += kq.vnd; n++;
     if (!kq.ok) { ra.push(`✗ ${oKe.nen} ${oKe.dang} #${oKe.goc.id}: ${kq.loi}`); continue; }

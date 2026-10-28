@@ -234,7 +234,7 @@ export async function vietBai(o: { sp: SanPhamDe; goc: GocDe; cauHoi: string; li
     `Mention the destination exactly once, near the end, as this exact URL: ${o.link}`].join('\n');
   let vnd = 0, loiCu: string[] = [];
   for (let lan = 0; lan < 2; lan++) {
-    const r = await sinhJson({ schema: VietBaiSchema, ten: 'viet_bai', max_tokens: 1500, system,
+    const r = await sinhJson({ schema: VietBaiSchema, ten: 'viet_bai', max_tokens: 1100, system,   // ~2.200 ký tự ≈ 600 token + JSON; trần token là giá ước của cổng tiền
       user: `Quora question: "${o.cauHoi}"\nAngle to lean on (internal label, may be Vietnamese): "${o.goc.ten}".${loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''}\nReturn the JSON now.` });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += giaVnd(r);

@@ -24,11 +24,11 @@ def _mo(*a, **k):
             time.sleep(5 * (i + 1))
 urllib.request.urlopen = _mo
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
+BC = lambda body, t=90: EA.api("/api/v1/report", json.loads(body), t)["rows"]   # report qua cổng chung: ĐỦ MỌI TRANG + lọc tài khoản nhà (29/10/2026)
 def bc(tu, den):
     body = json.dumps({"columns": ["campaign_name", "daily_budget", "spending", "roi", "profit", "cost", "revenue"], "filters": {}, "metric_conditions": [], "limit": 1000, "page": 1, "page_size": 1000, "date_from": tu, "date_to": den}).encode()
-    r = urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=body, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-kiem"})
     g = {}
-    for x in EA.loc_report(json.load(urllib.request.urlopen(r, timeout=60)).get("rows", [])):   # report tách dòng theo content → cộng theo camp
+    for x in BC(body, 60):   # report tách dòng theo content → cộng theo camp
         a = g.setdefault(x["campaign_id"], {"ten": x["campaign_name"], "budget": float(x.get("daily_budget") or 0), "chi": 0.0, "thu": 0.0})
         a["chi"] += float(x.get("cost") or 0); a["thu"] += float(x.get("revenue") or 0); a["budget"] = max(a["budget"], float(x.get("daily_budget") or 0))
     return g
@@ -45,7 +45,7 @@ def chot_chi():
     """SỐ HÔM NAY ĐÃ CHỐT CHI: Ethopex ghi tiền chi theo ĐỢT (giờ 14 UTC 22/10: chi $0 thu $55, giờ 15: chi $46) còn doanh thu ghi liên tục → chỉ cộng
     các giờ tới giờ cuối cùng đã có đợt chi (toàn tài khoản). → (giờ chốt UTC | None, {camp: {chi, thu}})"""
     body = json.dumps({"columns": ["hour", "campaign_name", "cost", "revenue"], "filters": {}, "metric_conditions": [], "limit": 10000, "page": 1, "page_size": 10000, "date_from": d(0), "date_to": d(0)}).encode()
-    rows = EA.loc_report(json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=body, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-kiem"}), timeout=90)).get("rows", []))
+    rows = BC(body, 90)
     co = [int(x.get("hour") or 0) for x in rows if float(x.get("cost") or 0) > 0]
     if not co: return None, {}
     H = max(co); g = {}
@@ -61,7 +61,7 @@ if '--tong' in sys.argv:   # bảng số rút gọn (cty ethopex.mjs bangEthopex
     co.sort(key=lambda x: -x["lai"])
     # bảng theo NỘI DUNG (phim) như màn Report Ethopex nhóm "Content": group_by content_name, xếp ROI giảm dần (anh 21/10/2026: "trình bày được kiểu này không")
     body = json.dumps({"columns": ["content_name", "roi", "profit", "cost", "revenue"], "group_by": ["content_name"], "filters": {}, "metric_conditions": [], "limit": 1000, "page": 1, "page_size": 1000, "date_from": d(0), "date_to": d(0)}).encode()
-    nd = EA.loc_report(json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=body, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-kiem"}), timeout=60)).get("rows", []))
+    nd = BC(body, 60)
     nd = sorted([dict(ten=x.get("content_group_name") or "?", roi=round(x["roi"]) if x.get("roi") is not None else None, lai=round(float(x.get("profit") or 0), 2), chi=round(float(x.get("cost") or 0), 2)) for x in nd if float(x.get("cost") or 0) > 0], key=lambda x: -(x["roi"] if x["roi"] is not None else -1e9))
     if HIEN_CHOT:
         try: _H, _ = chot_chi()
@@ -427,7 +427,7 @@ def _bc7():
     body = json.dumps({"columns": ["campaign_name", "active_day", "cost", "revenue", "profit"], "filters": {}, "metric_conditions": [], "limit": 2000, "page": 1, "page_size": 2000,
                        "date_from": (dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=7)).isoformat(), "date_to": (dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=1)).isoformat()}).encode()
     g = {}
-    for x in EA.loc_report(json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=body, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-kiem"}), timeout=90)).get("rows", [])):
+    for x in BC(body, 90):
         a = g.setdefault(int(x["campaign_id"]), {"ten": x.get("campaign_name") or "", "chi": 0.0, "lai": 0.0, "ad": 0})
         a["chi"] += float(x.get("cost") or 0); a["lai"] += float(x.get("profit") or 0); a["ad"] = max(a["ad"], int(x.get("active_day") or 0))
     return g

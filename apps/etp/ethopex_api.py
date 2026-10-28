@@ -73,7 +73,14 @@ def api(duong, body=None, timeout=90):
     if duong.startswith("/api/v1/campaigns?") and body is None:
         return {"data": _ds_nha(duong.split("?", 1)[1]) if duong != "/api/v1/campaigns?" else _ds_nha()}
     if duong.startswith("/api/v1/report"):
-        d = _goi(duong, body, timeout); d["rows"] = loc_report(d.get("rows")); return d
+        # ĐỦ MỌI TRANG (29/10/2026: report tách dòng theo camp × phim — khung 9 ngày 1818 dòng / 2 trang; chỉ đọc trang 1 thì camp ở trang 2 thành $0,
+        # máy luật không xét nhân bản / T30 cho #65722 $20 đang lãi). Mọi caller đi qua đây — không tự gọi report thẳng.
+        d = _goi(duong, body, timeout); rows = list(d.get("rows") or [])
+        if isinstance(body, dict):
+            tr = 1
+            while tr < int(d.get("total_pages") or 1):
+                tr += 1; rows += _goi(duong, {**body, "page": tr}, timeout).get("rows") or []
+        d["rows"] = loc_report(rows); return d
     if body is not None and isinstance(body, dict) and body.get("ads"):   # thay creative: {"ads": [{"ad_id"}]} → camp của ad
         nha_ad = {int(c.get("ad_id") or 0) for c in camp_nha().values()} | {int(x) for x in _q("select ad_id from etp.camp where ad_id is not null and bo is not null").split() if x.isdigit()}
         la = [int(a.get("ad_id") or 0) for a in body["ads"] if int(a.get("ad_id") or 0) not in nha_ad]

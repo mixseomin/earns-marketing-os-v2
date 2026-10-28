@@ -17,9 +17,7 @@ vn = dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)
 
 def bc(body):
     body = {"filters": {}, "metric_conditions": [], "limit": 1000, "page": 1, "page_size": 1000, **body}
-    r = urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=json.dumps(body).encode(), method="POST",
-                               headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-so-ngay"})
-    return EA.loc_report(json.load(urllib.request.urlopen(r, timeout=60)).get("rows", []))
+    return EA.api("/api/v1/report", body, 60)["rows"]   # cổng chung: đủ mọi trang + lọc tài khoản nhà (29/10/2026)
 
 def theo_ngay():
     ra = []

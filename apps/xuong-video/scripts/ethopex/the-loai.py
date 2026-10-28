@@ -44,7 +44,7 @@ def main():
     nay = dt.datetime.now(dt.timezone.utc).date()
     b = json.dumps({"columns": ["campaign_name", "content_name", "date", "cost", "revenue"], "group_by": ["campaign_name", "content_name", "date"], "filters": {}, "metric_conditions": [], "limit": 20000, "page": 1, "page_size": 20000,
                     "date_from": "2026-10-20", "date_to": (nay - dt.timedelta(days=1)).isoformat()}).encode()   # bỏ hôm nay (chưa khép, doanh thu còn về)
-    rows = EA.loc_report(json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=b, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-the-loai"}), timeout=180))["rows"])
+    rows = EA.api("/api/v1/report", b, 180)["rows"]
     moi = 0
     for x in rows:
         i = str(x.get("content_group_id"))
@@ -69,7 +69,7 @@ def main():
     def rp(cols, gb):
         if "campaign_name" not in gb: cols, gb = ["campaign_name"] + cols, ["campaign_name"] + gb   # nhóm theo camp để lọc tài khoản nhà (28/10/2026)
         bb = json.dumps({"columns": cols, "group_by": gb, "filters": {}, "metric_conditions": [], "limit": 50000, "page": 1, "page_size": 50000, "date_from": "2026-10-20", "date_to": (nay - dt.timedelta(days=1)).isoformat()}).encode()
-        return EA.loc_report(json.load(urllib.request.urlopen(urllib.request.Request("https://api.ethopex.dev/api/v1/report", data=bb, method="POST", headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-the-loai"}), timeout=240))["rows"])
+        return EA.api("/api/v1/report", bb, 240)["rows"]
     def gop(dst, tl, cot, c, r, mau_ngay, mau_phim):
         for k in ((tl, cot), (tl, "*"), ("*", cot), ("*", "*")):
             e = dst.setdefault(k, [0.0, 0.0, set(), set()]); e[0] += c; e[1] += r; e[2].add(mau_ngay); e[3].add(mau_phim)

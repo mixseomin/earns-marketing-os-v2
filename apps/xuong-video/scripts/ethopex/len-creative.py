@@ -79,6 +79,13 @@ EOF'""", timeout=3600)
         q = CQ.CTA[x["lang"]]
         st.append({"content_id": x["content_id"], "tu": x["tu"], "den": x["den"], "nguon_qc": x.get("nguon_qc"), "creative_id": c, "camp_id": None, "lang": x["lang"], "url": a[2],
                    "giay": round(float(a[1]), 1), "lo": ma, "anh": a[3], "anh_cuoi": a[4], "chu_cuoi": q["hoi"] + "\n" + q["nut"], "giong_cta": {"url": giong[x["lang"]], "loi": q["loi_giong"]}})
+    # SỔ ĐIỂM CHẠM (anh 28/10/2026 "đo số điểm chạm như voice, text, hình, nội dung"): mỗi creative vừa tạo ghi hook · nội dung · voice · chữ video · CTA · ảnh đầu
+    # · chữ QC vào etp.diem_cham (diem_cham.py) — chữ QC lấy theo phim từ creative.json (chu-qc.py)
+    try:
+        import diem_cham as DC
+        _cq = json.load(open(cr_f)) if os.path.exists(cr_f) else []
+        print("sổ điểm chạm:", DC.ghi([(x.get("creative_id"), DC.ban(x, dang, next((it.get("asset_spec") for it in _cq if str(it.get("content_id")) == str(x["content_id"])), None), CQ)) for x in lo if not x.get("loi")], SD.sql), "creative")
+    except Exception as e: print("sổ điểm chạm lỗi:", e)
     r = sh(f"""ssh {B} '. /root/.secrets/spy.env; psql "$DATABASE_URL" -tA -F"\t" -c "select id, ten, url from ethopex_content where id in ({ids})"'""")
     for l in r.stdout.splitlines():
         i, t, u = l.split("\t"); pm[i] = {"ten": t.replace("（DUBBED）", "").replace("(Doblado)", "").strip(), "link": u}

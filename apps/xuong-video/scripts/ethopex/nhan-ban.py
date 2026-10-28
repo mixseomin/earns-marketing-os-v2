@@ -63,7 +63,9 @@ def dem_dang_chay(content_id):
 # MỘT ĐOẠN VIDEO TỐI ĐA 3 CAMP ĐANG CHẠY (anh duyệt 23/10/2026 sau Step Back: 12 camp cùng đoạn 692–757s tự đấu giá với nhau, ROI +199% → −11% trong một ngày).
 # Nhân bản mà creative đã đủ 3 camp → tự đổi sang creative khác CÙNG PHIM (đạt CTA, chưa bị Meta từ chối, còn < 3 camp, mới nhất trước);
 # phim chưa có creative nào như vậy → xếp hàng cắt GÓC MỚI ['ethopex_can_goc_moi'] (sua-cta.py trên iMac cắt + đẩy, rồi nhân bản lại) và dừng.
-TRAN_DOAN = 3
+# 28/10/2026 anh: "ko nhất thiết phải cắt bản mới và ko set tối đa 3 camp mỗi đoạn nữa vì có rule tắt và giảm bậc rồi. Tuy nhiên tìm điểm bão hoà hợp lý để set max camp trùng"
+# → trần = etp.cau_hinh.tran_trung (mặc định 20): đo 22–27/10 trên creative thắng (nhà + team), bản 1–20 ROI +58…+72% tiêu ~$30/camp, bản 21–30 chỉ tiêu $13, 31+ $5 / ROI +28% — Meta hết phân phối
+TRAN_DOAN = int(float(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'tran_trung'), '20')") or 20))
 def doan_cua():
     """creative → đoạn (content, tu, den) từ studio — hai creative cùng mốc là CÙNG ĐOẠN (bản CTA cũ + bản sửa CTA của Step Back #52951 / #53594, 24/10/2026)"""
     m = {}
@@ -281,14 +283,15 @@ def main(a):
             if bh: raise ChanLuat(f"phim {cid} đang bão hoà — {bh} → không nhân bản thêm (dồn tiền sang phim khác)")
         ad0 = pl["campaign"]["ad_groups"][0]["ads"][0]; cr = ad0["creative_id"]
         if ep: kq["viec"] = "sang_bo"
-        elif not moi:   # clone: luôn đổi sang creative KHÁC (anh 25/10/2026)
-            khac = creative_clone(cid, cr)
-            if not khac:
-                xep_goc_moi(goc, cid, ten)
-                raise ChanLuat(f"clone phải khác creative — phim chưa có creative khác sạch, chưa dùng (creative gốc #{cr}) — đã xếp hàng cắt góc mới")
-            chan = cong(cid, khac, ten)
-            if chan: raise ChanLuat(chan)
-            ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}; cr = khac
+        elif not moi:   # clone GIỮ NGUYÊN creative gốc tới trần TRAN_DOAN camp chạy / đoạn (anh 28/10/2026); đoạn đã đủ trần → creative khác cùng phim
+            if dem_doan(cr) >= TRAN_DOAN:
+                khac = creative_clone(cid, cr)
+                if not khac:
+                    xep_goc_moi(goc, cid, ten)
+                    raise ChanLuat(f"đoạn creative #{cr} đã {dem_doan(cr)} camp chạy (trần {TRAN_DOAN}, điểm bão hoà) và phim chưa có creative khác sạch — đã xếp hàng cắt góc mới")
+                chan = cong(cid, khac, ten)
+                if chan: raise ChanLuat(chan)
+                ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}; cr = khac
         elif dem_doan(cr) >= TRAN_DOAN:
             khac = creative_khac(cid, {cr})
             if not khac:

@@ -362,6 +362,8 @@ function ChipLuat(p: VaoLuat) {
 }
 // đầu thẻ bậc ngân sách — MỘT chỗ dựng cho ô $ (Cây / Bảng) và ngăn camp trên điện thoại
 // bộ dùng thang + các bậc thang — đọc đúng sổ máy luật dùng (etp.cau_hinh thang_bo / thang_muc, migration 0333)
+/** trần camp chạy cùng một đoạn = điểm bão hoà (etp.cau_hinh.tran_trung, anh 28/10/2026 bỏ trần 3 → đo ra 20) */
+const tranTrung = (du: DuLieuEtp) => Number(du.cauHinh.find((k) => k.khoa === 'tran_trung')?.gia_tri ?? 20) || 20;
 const soThang = (du: DuLieuEtp) => ({ boThang: ((du.cauHinh.find((k) => k.khoa === 'thang_bo')?.gia_tri as unknown[]) ?? ['2']).map(String),
   thangMuc: ((du.cauHinh.find((k) => k.khoa === 'thang_muc')?.gia_tri as unknown[]) ?? [1, 3, 7, 15, 30]).map(Number).sort((a, b) => a - b) });
 // số "3 ngày gần" cho luật giảm bậc sáng: 2 ngày trọn gần nhất + hôm nay (cùng cửa sổ ô chip trên Cây)
@@ -639,7 +641,7 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
 
 // CÂY CAMP (anh 25/10/2026 "trình bày dạng tree để xem chi tiết camp nào đang nhân bản, bị nhân bản lỗi, hiệu suất giảm"):
 // phim → camp gốc → bản nhân bản (theo goc). Dấu hiệu thay chữ: chấm trạng thái · xN số bản nhân · ⚠ nhân bản lỗi 24h (hover lý do) · ↘ ROI giảm 2 ngày ·
-// ⚔ đoạn > 3 camp · ô ROI 3 ngày trọn + hôm nay. Phim có cảnh báo (bão hoà / dừng nhân bản / camp lỗi) xếp đầu; mỗi phim gập, bấm mới bung.
+// ⚔ đoạn > trần camp trùng (tran_trung) · ô ROI 3 ngày trọn + hôm nay. Phim có cảnh báo (bão hoà / dừng nhân bản / camp lỗi) xếp đầu; mỗi phim gập, bấm mới bung.
 const LUOI_CAY = '1fr repeat(7, 38px) 86px';   // ROI 6 ngày trọn + hôm nay ngay trên dòng (anh 25/10/2026: xoá ngăn chữ, ít chữ)
 // lưới trong dòng camp — anh 27/10/2026 "bỏ 3 cột này vô nghĩa": bỏ cột nhân · ⚠ lỗi · ↘ · đoạn (dòng lỗi / ROI giảm vẫn có vạch màu mép trái)
 // anh 27/10/2026 "Ẩn cột Lịch giờ đến khi mở lại chức năng này. Ở danh sách loại thì chọn badge dạng KT, CC…": cột loại 44px (mã ngắn); cột lịch giờ chỉ có khi etp.cau_hinh.lich_gio = true
@@ -1343,6 +1345,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   // tab + kiểu xem lấy từ URL ngay lần vẽ đầu (máy chủ truyền vào) — F5 giữ nguyên chỗ đang xem
   // NGĂN CAMP (anh 27/10/2026 "trên mobile bấm vào phải giống hover ra creative chi tiết… tối ưu tốt cho mobile"): bấm dòng camp trên điện thoại → <Drawer> chi tiết,
   // khoá ?ngan=camp:<id> trên URL (F5 mở lại — chuẩn ngăn kéo)
+  const tranT = tranTrung(du);
   const [nganCamp, setNganCamp] = useState<number | null>(Number(/^camp:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1]) || null);
   const [nganPhim, setNganPhim] = useState<string | null>(/^phim:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1] ?? null);   // ngăn biểu đồ cả phim (điện thoại)
   const [tab, setTab] = useState<Tab>(TABS.includes(dauVao?.t as Tab) ? (dauVao!.t as Tab) : 'tong');
@@ -1440,7 +1443,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   const camps = useMemo(() => du.camps.filter((c) => loc === 'all' || (loc === 'chay' ? dangChay(c) : loc === 'cho' ? choGio(c) : loc === 'tat' ? c.trang_thai !== 'ACTIVE' : loc === 'roas' ? roasDat.has(c.camp_id)
     : loc === 'luat' ? (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')
     : loc === 'ganluat' ? (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')
-    : loc === 'gtang' ? !!ganMap.get(c.camp_id)?.tang : loc === 'ggiam' ? !!ganMap.get(c.camp_id)?.giam : loc === 'gtat' ? !!ganMap.get(c.camp_id)?.tat : c.cung_doan > 3)).filter((c) => !luatLoc || (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[1] === luatLoc))
+    : loc === 'gtang' ? !!ganMap.get(c.camp_id)?.tang : loc === 'ggiam' ? !!ganMap.get(c.camp_id)?.giam : loc === 'gtat' ? !!ganMap.get(c.camp_id)?.tat : c.cung_doan > tranT)).filter((c) => !luatLoc || (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[1] === luatLoc))
     .filter((c) => !phimLoc || xemCamp !== 'bang' || c.content_id === phimLoc).filter((c) => !dangLoc || c.dang === dangLoc).filter((c) => !boLoc || c.bo === boLoc).filter(locLai), [du.camps, loc, roasDat, ganMap, baoCampBang, luatLoc, phimLoc, xemCamp, dangLoc, boLoc, locLai]);
 
   const soLoc = tab === 'camp' && camps.length !== du.camps.length ? camps : tab === 'roas' ? campRoas : null;   // null = không lọc → dải số tính cả kho
@@ -1462,7 +1465,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
     { key: 'id', header: 'Creative', align: 'left', cell: (r) => <span style={{ whiteSpace: 'nowrap' }}>#{r.creative_id} <span style={{ fontSize: 11, color: r.cta_dat ? 'var(--neon-lime,#4ade80)' : '#ffb74d' }}>{r.cta_dat ? 'CTA đạt' : 'CTA cũ'}</span>{r.tu_choi ? <span style={{ fontSize: 11, color: '#f87171' }}> · Meta từ chối</span> : null}</span>, sortValue: (r) => r.creative_id },
     { key: 'phim', header: 'Phim · đoạn', align: 'left', width: 260, cell: (r) => <PhimO anh={anh(r.creative_id)} ten={r.phim ?? '—'} phu={`${r.dang ?? ''} ${r.tu != null ? `${Math.round(r.tu)}–${Math.round(r.den ?? 0)}s` : ''}`} video={r.video} />, sortValue: (r) => r.phim ?? '' },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (r) => <span style={{ fontSize: 12 }}>{tl(r.the_loai)}</span>, sortValue: (r) => r.the_loai ?? '' },
-    { key: 'camp', header: 'Camp chạy', title: '⚔ = số camp đang chạy cùng ĐOẠN (gộp bản CTA cũ + bản sửa) — trần 3', cell: (r) => <span>{r.chay}/{r.camp}{r.cung_doan > 1 ? <span style={{ marginLeft: 4, color: r.cung_doan > 3 ? '#ffb74d' : 'var(--fg-2)' }}>⚔{r.cung_doan}</span> : null}</span>, sortValue: (r) => r.chay },
+    { key: 'camp', header: 'Camp chạy', title: `⚔ = số camp đang chạy cùng ĐOẠN (gộp bản CTA cũ + bản sửa) — trần ${tranT} (điểm bão hoà)`, cell: (r) => <span>{r.chay}/{r.camp}{r.cung_doan > 1 ? <span style={{ marginLeft: 4, color: r.cung_doan > tranT ? '#ffb74d' : 'var(--fg-2)' }}>⚔{r.cung_doan}</span> : null}</span>, sortValue: (r) => r.chay },
     ...soCot<CreativeEtpKho>('nay', (r) => r.nay), ...soCot<CreativeEtpKho>('qua', (r) => r.qua), ...(khNay ? [] : soCot<CreativeEtpKho>('kh', (r) => crKh.get(r.creative_id) ?? KHONG)),
     { key: 'tuoi', header: 'Tuổi (ngày)', title: 'số NGÀY từ camp đầu tiên dùng creative — bão hoà thường sau vài ngày · lọc 🔍 > 2 = hơn 2 ngày', cell: (r) => tuoiChu(tuoiNgay(r.ngay_dau)), sortValue: (r) => tuoiLoc(tuoiNgay(r.ngay_dau)) },
   ];
@@ -1522,7 +1525,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
       </div>
       <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0' }}>
         {gon ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }} title={`Camp chạy ${chay.length} · ngân sách $${chay.reduce((a, c) => a + c.ngan_sach, 0)}/ngày · đoạn vượt 3 camp ${new Set(du.camps.filter((c) => c.cung_doan > 3).map((c) => c.doan)).size} · cảnh báo 24h ${du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length}`}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }} title={`Camp chạy ${chay.length} · ngân sách $${chay.reduce((a, c) => a + c.ngan_sach, 0)}/ngày · đoạn vượt 3 camp ${new Set(du.camps.filter((c) => c.cung_doan > tranT).map((c) => c.doan)).size} · cảnh báo 24h ${du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length}`}>
             {([['H.nay', nay], ['H.qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, s]) => (
               <div key={ten} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px' }}>
                 <div style={{ fontSize: 10, color: 'var(--fg-2)' }}>{ten} · <Roi s={s} /></div>
@@ -1536,7 +1539,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
           { key: 'camp', label: 'Camp chạy', value: chay.length, sub: `${choChay.length ? `${choChay.length} chờ giờ · ` : ''}${nguon.filter((c) => c.trang_thai !== 'ACTIVE').length} đã tắt` },
           // TỔNG NGÂN SÁCH (anh 27/10/2026 "thêm hero tổng ngân sách"): mọi camp ACTIVE (đang chạy + chờ giờ), theo bộ lọc đang chọn như các ô khác
           { key: 'ns', label: 'Tổng ngân sách', value: `$${[...chay, ...choChay].reduce((a, c) => a + c.ngan_sach, 0)}/ngày`, sub: `đang chạy $${chay.reduce((a, c) => a + c.ngan_sach, 0)}${choChay.length ? ` · chờ giờ $${choChay.reduce((a, c) => a + c.ngan_sach, 0)}` : ''} · đã chi hôm nay ${usd(nay.chi)}` },
-          { key: 'cung', label: 'Đoạn vượt 3 camp', value: new Set(du.camps.filter((c) => c.cung_doan > 3).map((c) => c.doan)).size, color: '#ffb74d' },
+          { key: 'cung', label: `Đoạn vượt ${tranT} camp`, value: new Set(du.camps.filter((c) => c.cung_doan > tranT).map((c) => c.doan)).size, color: '#ffb74d' },
           { key: 'cb', label: 'Cảnh báo 24h', value: du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length, color: du.canhBao.some((c) => c.muc === 'do' && Date.now() - Date.parse(c.luc) < 86_400_000) ? '#f87171' : undefined },
         ]} />}
       </div>
@@ -1572,14 +1575,14 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
                 background: xemCr === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCr === v ? 600 : 400 }}>{nhan}</button>))}
           </span>) : null}
         {tab === 'camp' && xemCamp !== 'lich' && (!gon || moLoc) ? <div style={gon ? { display: 'flex', flexDirection: 'column', gap: 6, width: '100%' } : { display: 'contents' }}>
-        {(() => { const dem: Record<string, number> = { all: du.camps.length, chay: chay.length, cho: choChay.length, tat: du.camps.filter((c) => c.trang_thai !== 'ACTIVE').length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), cung: du.camps.filter((c) => c.cung_doan > 3).length, roas: roasDat.size, luat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
+        {(() => { const dem: Record<string, number> = { all: du.camps.length, chay: chay.length, cho: choChay.length, tat: du.camps.filter((c) => c.trang_thai !== 'ACTIVE').length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), cung: du.camps.filter((c) => c.cung_doan > tranT).length, roas: roasDat.size, luat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
           const m = (value: string, label: string, nhom: string, title?: string): Chon2Muc => ({ value, label, nhom, dem: dem[value], title });
           return <Chon2 value={loc} onChange={(v) => doiLoc(v as (typeof LOC_CAMP)[number])} nhan="Lọc" anRong title="lọc camp theo trạng thái / luật / ngưỡng" options={[
             { value: 'all', label: 'Tất cả', dem: dem.all },   // "Tất cả" luôn đứng ĐẦU, cùng chữ với mọi ô lọc (anh 27/10/2026)
             m('chay', 'Đang chạy', 'Trạng thái'), m('cho', 'Chờ giờ chạy', 'Trạng thái'), m('tat', 'Đã tắt', 'Trạng thái'),
             m('luat', '⚑ Chạm luật', 'Luật máy', 'luật đang xếp làm ở nhịp này'), m('ganluat', '◌ Sắp chạm luật', 'Luật máy'),
             m('gtang', '⇡ Gần tăng', 'Gần ngưỡng'), m('ggiam', '⇣ Gần giảm', 'Gần ngưỡng'), m('gtat', '✕ Gần tắt', 'Gần ngưỡng'),
-            m('cung', 'Đoạn > 3 camp', 'Khác'), m('roas', '★ Đủ bid ROAS', 'Khác')]} />; })()}
+            m('cung', `Đoạn > ${tranT} camp`, 'Khác'), m('roas', '★ Đủ bid ROAS', 'Khác')]} />; })()}
         {gon ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }} className="etp-loc3">
           <style>{'.etp-loc3 select{width:100%;min-width:0}'}</style>
           {laiSel()}{luatSel()}{dangSel()}{boSel()}</div> : null}

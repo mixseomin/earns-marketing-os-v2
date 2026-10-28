@@ -398,7 +398,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     kq.tu_choi = (kq.tu_choi || []).filter((m) => !xong.has(Number(m.id)));
     for (const id of xong) lamRoi.add(id);
   }
-  // DỌN ĐOẠN QUÁ TẢI (A, anh duyệt 25/10/2026): 3 giờ / lần — đoạn > 3 camp: camp dư không lãi thay sang góc khác cùng phim (thay-tu-choi.py --don-doan).
+  // DỌN ĐOẠN QUÁ TẢI (A, anh duyệt 25/10/2026): 3 giờ / lần — đoạn > trần camp trùng (etp.cau_hinh.tran_trung, 20 từ 28/10/2026): camp dư không lãi thay sang góc khác cùng phim (thay-tu-choi.py --don-doan).
   // Không tắt camp, không đụng camp lãi; hết góc thì xếp hàng cắt góc mới. Báo một tin khi có thay đổi.
   try {
     const tepDd = path.join(DATA(), 'ethopex-don-doan.json'), dd = docJ(tepDd, {});
@@ -406,7 +406,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       fs.writeFileSync(tepDd, JSON.stringify({ luc: new Date().toISOString() }));
       const ra = (await chay(THAY, ['--don-doan'], 900)).trim().split('\n').filter((l) => l.startsWith('{')).map((l) => JSON.parse(l));
       const dong = ra.map((r) => (r.viec === 'thay' ? (r.ok ? `🔀 #${r.camp} creative #${r.creative_cu} → <b>#${r.creative_moi}</b>` : `⚠️ #${r.camp} chưa thay được: ${esc(r.loi || '?')}`) : `⏳ #${r.camp}: hết góc khác — đã xếp cắt góc mới`) + ` · ROI 3 ngày ${r.roi3}% · đoạn ${esc(r.doan)}`).join('\n');
-      if (dong) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>DỌN ĐOẠN QUÁ TẢI</b> — đoạn > 3 camp: giữ 3 camp tốt nhất, camp dư không lãi sang góc khác cùng phim (không tắt, không đụng camp lãi)\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` }); gui++; }
+      if (dong) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>DỌN ĐOẠN QUÁ TẢI</b> — đoạn vượt trần camp trùng (điểm bão hoà, 20): giữ số camp tốt nhất bằng trần, camp dư không lãi sang góc khác cùng phim (không tắt, không đụng camp lãi)\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` }); gui++; }
     }
   } catch (e) { console.error('don-doan:', e.message); }
   // NHÂN BẢN CAMP THẮNG (luật NB, anh 22/10/2026: tự động + "nhân bản thì cũng báo lên tele"): máy tạo bản $1 qua nhan-ban.py (khuôn của camp gốc,

@@ -9,7 +9,7 @@ Mỗi ad bị từ chối (delivery_status DISAPPROVED / error có DISAPPROVED):
   4. Update → đọc lại camp: creative đã đổi = xong; ghi nhật ký luật (ethopex_nhat_ky); in một dòng JSON mỗi camp
   5. camp bị Ethopex dừng vì từ chối → bật lại ngay sau khi thay (anh 24/10/2026 "bật sau khi thay đi"), qua lam-ethopex.py bat + rào chắn etp
 Chạy trên box3: thay-tu-choi.py [--camp <id> …]   (không --camp = quét mọi camp đang chạy).
-  thay-tu-choi.py --don-doan [--thu]   → dọn đoạn quá tải (> 3 camp): camp dư không lãi thay sang góc khác cùng phim (--thu: chỉ in, không làm) Phòng Ethopex (cty ethopex.mjs) gọi khi luật báo tu_choi."""
+  thay-tu-choi.py --don-doan [--thu]   → dọn đoạn quá tải (> trần tran_trung camp, mặc định 20): camp dư không lãi thay sang góc khác cùng phim (--thu: chỉ in, không làm) Phòng Ethopex (cty ethopex.mjs) gọi khi luật báo tu_choi."""
 import datetime as dt, json, os, subprocess, sys, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
@@ -99,7 +99,8 @@ def cung_creative(camps, tu_choi):
     r = q(f"select camp_id from etp.camp where creative_id in ({','.join(bad)}) and coalesce(trang_thai, '') <> 'ARCHIVED'")
     return [int(x) for x in r.split() if int(x) not in camps]
 
-GIU_DOAN, ROI_DU = 3, 30
+GIU_DOAN = int(float(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'tran_trung'), '20')") or 20))   # trần camp trùng đoạn = điểm bão hoà (anh 28/10/2026: bỏ trần 3)
+ROI_DU = 30
 def don_doan(that=True):
     """DỌN ĐOẠN QUÁ TẢI (A, anh duyệt 25/10/2026: camp tự giành cùng tệp người xem làm ROI cả phim tụt). Đoạn có > GIU_DOAN camp đang chạy:
     giữ GIU_DOAN camp tốt nhất (ROI 3 ngày trọn), camp DƯ mà không lãi (ROI 3 ngày < ROI_DU% và hôm nay < ROI_DU%, đã chạy ≥ 2 ngày) → thay creative sang

@@ -411,7 +411,7 @@ function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qu
   return (
     <span aria-label={t} onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', cursor: 'help' }}>
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={400} cao={420} noi={noi}><TheBac ls={ls ?? []} d={d} /></KhungNoi> : null}
-      <span style={{ fontVariantNumeric: 'tabular-nums', color: `rgba(103,232,249,${(0.35 + 0.65 * (bac / (BAC_NS.length - 1))).toFixed(2)})`, fontWeight: bac >= 4 ? 700 : 500, width: 26, textAlign: 'right' }}>${c.ngan_sach}</span>{/* bậc càng cao chữ càng sáng (anh 26/10/2026) */}
+      <span style={{ fontVariantNumeric: 'tabular-nums', color: `rgba(103,232,249,${(0.35 + 0.65 * (bac / (BAC_NS.length - 1))).toFixed(2)})`, fontWeight: bac >= 4 ? 700 : 500, width: 30, flex: 'none', textAlign: 'right' }}>${c.ngan_sach}</span>{/* bậc càng cao chữ càng sáng (anh 26/10/2026) */}
       <span style={{ position: 'relative', width: W, height: 8, borderRadius: 4, overflow: 'hidden', background: 'rgba(148,163,184,.25)', flex: 'none' }}>
         <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: x0, background: 'rgba(239,68,68,.45)' }} />
         <span style={{ position: 'absolute', left: x50, top: 0, bottom: 0, right: 0, background: 'rgba(34,197,94,.45)' }} />
@@ -747,7 +747,7 @@ function KhungNoi({ x, y, rong, cao, noi, children, style }: { x: number; y: num
   if (typeof document === 'undefined') return null;
   return createPortal((<>
     {/* lớp tô dòng đang mở thẻ (useNoi) — đặt cùng thẻ nên có ở mọi màn (Cây, Bảng, ROAS) */}
-    <style>{'.dang-noi,.dang-noi>td{background:var(--hover,rgba(255,255,255,.09))!important;box-shadow:inset 2px 0 0 #60a5fa}'}</style>
+    <style>{'.dang-noi,.dang-noi>td{background:var(--hover,rgba(255,255,255,.09))!important}.dang-noi:not(tr),.dang-noi>td:first-child{box-shadow:inset 2px 0 0 #60a5fa}'}</style>
     <div ref={ref} onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left: Math.max(8, Math.min(x + 14, W - rong - 16)), top,
       background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', ...style }}>
       <button type="button" onClick={noi.dong} aria-label="Đóng" title="Đóng (Esc)" style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: 12, border: '1px solid var(--line)',
@@ -1352,6 +1352,14 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   // SỐ LẦN NHÂN BẢN GIỐNG HỆT (anh 28/10/2026 #1474 "x10 hiểu là được nhân bản 10 lần (giống hệt)"): mọi camp con / cháu cùng creative với camp này
   const conHet = useMemo(() => { const m = new Map<number, CampEtpKho[]>(); for (const c of du.camps) if (c.goc) m.set(c.goc, [...(m.get(c.goc) ?? []), c]); return m; }, [du.camps]);   // đếm cả bản đã tắt / bị bộ lọc giấu
   const giongHet = (c: CampEtpKho): number => { let n = 0; const di = (id: number) => { for (const x of conHet.get(id) ?? []) { if (x.creative_id === c.creative_id) n++; di(x.camp_id); } }; di(c.camp_id); return n; };
+  // Ô CREATIVE — MỘT bản cho dòng cây điện thoại / lưới cũ và cột Creative của bảng (anh 29/10/2026 #1476: bản chép tay ở bảng mất mã + điểm chấm + ×N đã sửa ở #1465 #1474)
+  const oCr = (c: CampEtpKho) => { const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined; return (
+          <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? (e) => moCr(c.creative_id!, e) : undefined} onMouseLeave={dongCr} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+            {cr?.anh ? <img src={cr.anh} alt="" style={{ width: 14, height: 24, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: 14, height: 24, background: 'var(--line)' }} />}
+            {/* chỉ mã + điểm chấm (anh 28/10/2026 #1465 "chỉ cần ID đủ… show thêm điểm số"); đoạn giây ở hover */}
+            <span title={c.doan ? `đoạn ${c.doan.split(':')[1] ?? ''}s` : undefined}>cr #{c.creative_id ?? '?'}</span>
+            {(() => { const n = giongHet(c); return n ? <span title={`camp này được nhân bản GIỐNG HỆT ${n} lần (cùng creative cr #${c.creative_id}, mọi cấp con, kể cả bản đã tắt)`} style={{ order: 9, marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'var(--fg-1, #eee)' }}>×{n}</span> : null; })()}
+            {(() => { const ch = c.creative_id ? du.cham[c.creative_id] : undefined; return ch ? <span title="điểm chấm nội dung Meta · AFS (thang 10, cao = an toàn; xanh ≥ 8, vàng 5–7, đỏ < 5)" style={{ fontSize: 10.5 }}><span style={{ color: mauDiem(ch.meta) }}>M{ch.meta ?? '–'}</span> <span style={{ color: mauDiem(ch.afs) }}>A{ch.afs ?? '–'}</span></span> : <span style={{ fontSize: 10.5, color: 'var(--fg-3, #777)' }}>chưa chấm</span>; })()}</span>)); };
   const Dong = ({ c, cap }: { c: CampEtpKho; cap: number }) => {
     const ds = con.m.get(c.camp_id) ?? []; const l = loiNb.get(c.camp_id); const n = dem(c); const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined;
     const mau = l ? '#ef4444' : giam(c) ? '#f59e0b' : null;   // dòng cảnh báo: vạch mép trái + nền nhạt — đỏ nhân bản lỗi, cam ROI giảm 2 ngày
@@ -1384,12 +1392,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
           <span data-cot="tuoi" data-cot-can="phai" title={c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : ''} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tuoi(c) == null ? '' : <>{tuoiChu(tuoi(c))} <span style={{ fontSize: 10 }}>ngày</span></>}</span>
           <span data-cot="ngan-sach"><BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} /></span>
           <span data-cot="luat" style={{ minWidth: 0 }}>{du.nguoi.ngoai ? <span title="camp người khác — chỉ xem, luật không áp" style={{ color: 'var(--fg-3, #777)' }}>—</span> : null}{du.nguoi.ngoai ? null : <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} />}</span>
-          <span data-cot="creative" onMouseEnter={c.creative_id && moCr ? (e) => moCr(c.creative_id!, e) : undefined} onMouseLeave={dongCr} style={{ cursor: c.creative_id ? 'zoom-in' : undefined,  display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-            {cr?.anh ? <img src={cr.anh} alt="" style={{ width: 14, height: 24, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: 14, height: 24, background: 'var(--line)' }} />}
-            {/* chỉ mã + điểm chấm (anh 28/10/2026 #1465 "chỉ cần ID đủ… show thêm điểm số"); đoạn giây ở hover */}
-            <span title={c.doan ? `đoạn ${c.doan.split(':')[1] ?? ''}s` : undefined}>cr #{c.creative_id ?? '?'}</span>
-            {(() => { const n = giongHet(c); return n ? <span title={`camp này được nhân bản GIỐNG HỆT ${n} lần (cùng creative cr #${c.creative_id}, mọi cấp con, kể cả bản đã tắt)`} style={{ order: 9, marginLeft: 'auto', fontSize: 11, fontWeight: 700, color: 'var(--fg-1, #eee)' }}>×{n}</span> : null; })()}
-            {(() => { const ch = c.creative_id ? du.cham[c.creative_id] : undefined; return ch ? <span title="điểm chấm nội dung Meta · AFS (thang 10, cao = an toàn; xanh ≥ 8, vàng 5–7, đỏ < 5)" style={{ fontSize: 10.5 }}><span style={{ color: mauDiem(ch.meta) }}>M{ch.meta ?? '–'}</span> <span style={{ color: mauDiem(ch.afs) }}>A{ch.afs ?? '–'}</span></span> : <span style={{ fontSize: 10.5, color: 'var(--fg-3, #777)' }}>chưa chấm</span>; })()}</span>
+          {oCr(c)}
           <span data-cot="loai-cr"><BadgeDang d={c.dang} ngan /></span>
           {coLich ? <span data-cot="lich" style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}><LichCamp c={c} du={du} tl={tlC} gon /></span> : null}
         </span>
@@ -1420,12 +1423,10 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
     { key: 'tuoi', header: 'Tuổi', title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: (c) => (c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : undefined), cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)) },
     { key: 'ns', header: 'Ngân sách · ROI nay', align: 'left', title: 'ngân sách $/ngày · thước ROI hôm nay · dấu máy luật', cell: (c) => <BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach,
       total: (rs) => { const t = rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0);   // $0 mờ · ≥ $20 đậm sáng (anh 28/10/2026)
-        return <span title="tổng ngân sách/ngày camp đang bật" style={{ color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : 400, opacity: t ? 1 : 0.45 }}>${t}</span>; } },
+        return <span title="tổng ngân sách/ngày camp đang bật" style={{ display: 'inline-block', width: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : 400, opacity: t ? 1 : 0.45 }}>${t}</span>; } },   // cùng ô 30px canh phải với $ của camp (anh 29/10/2026 #1476 "thò thụt")
     { key: 'luat', header: 'Luật', align: 'left', width: 96, title: 'thẻ luật đang hiện — lọc chọn nhiều theo đúng chữ trên thẻ', sortValue: (c) => chipCamp(du, c, baoCamp.get(c.camp_id))?.chip ?? '',
       cell: (c) => (du.nguoi.ngoai ? <span title="camp người khác — chỉ xem, luật không áp" style={{ color: 'var(--fg-3, #777)' }}>—</span> : <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} />) },
-    { key: 'cr', header: 'Creative', align: 'left', title: 'creative camp đang chạy — rê xem video + điểm chấm', sortValue: (c) => c.creative_id ?? 0,
-      cell: (c) => { const cr = c.creative_id ? anhCr.get(c.creative_id) : undefined; return <span onMouseEnter={c.creative_id && moCr ? (e) => moCr(c.creative_id!, e) : undefined} onMouseLeave={dongCr} style={{ cursor: c.creative_id ? 'zoom-in' : undefined, display: 'inline-flex', gap: 4, alignItems: 'center', padding: '0 6px 0 0', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>
-        {cr?.anh ? <img src={cr.anh} alt="" style={{ width: 14, height: 24, objectFit: 'cover', borderRadius: '3px 0 0 3px' }} /> : <span style={{ width: 14, height: 24, background: 'var(--line)' }} />}cr #{c.creative_id ?? '?'} · {c.doan?.split(':')[1] ?? ''}s</span>; } },
+    { key: 'cr', header: 'Creative · điểm chấm', align: 'left', title: 'creative camp đang chạy (mã + điểm chấm Meta · AFS, ×N = số lần nhân bản giống hệt) — rê xem video', sortValue: (c) => c.creative_id ?? 0, cell: (c) => oCr(c) },
     { key: 'loai', header: 'Loại', align: 'left', cell: (c) => <BadgeDang d={c.dang} ngan />, sortValue: (c) => c.dang ?? '' },
     ...(coLich ? [{ key: 'lich', header: 'Lịch giờ', align: 'left' as const, cell: (c: CampEtpKho) => <LichCamp c={c} du={du} tl={tlC} gon />, sortValue: (c: CampEtpKho) => tlC(c.the_loai) }] : []),
     ...ngay.map((d, i): DataColumn<CampEtpKho> => ({ key: `roi${i}`, header: `${d.slice(8, 10)}/${d.slice(5, 7)}`, align: 'center', width: 46, title: `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)} — lọc 🔍 theo %`,

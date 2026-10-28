@@ -88,6 +88,10 @@ def main():
         _tt = json.dumps([{"id": c["id"], "tt": c.get("state"), "ns": c.get("budget_daily")} for c in ds])
         q(f"""update etp.camp c set trang_thai = x.tt, ngan_sach = coalesce(x.ns, c.ngan_sach), cap_nhat = now() from jsonb_to_recordset($J${_tt}$J$::jsonb) as x(id int, tt text, ns numeric)
             where c.camp_id = x.id and (c.trang_thai is distinct from x.tt or (x.ns is not null and c.ngan_sach is distinct from x.ns))""")
+        # CAMP GỐC đọc từ TÊN cho MỌI camp mỗi lượt (không chỉ camp vừa đổi trên Ethopex): bản thang / nhân bản cũ đã có trước khi hàm nhận kiểu tên đó
+        # vẫn được gắn đúng cây (29/10/2026: 40/41 bản thang trống camp gốc vì không đổi gì nên không được đọc lại chi tiết)
+        _goc = json.dumps([{"id": c["id"], "g": EA.goc_tu_ten(c.get("name"))} for c in ds])
+        q(f"""update etp.camp c set goc = x.g from jsonb_to_recordset($J${_goc}$J$::jsonb) as x(id int, g int) where c.camp_id = x.id and c.goc is distinct from x.g""")
         bo_tk = {int(v["tk"]): k for k, v in khoa("ethopex_bo_tk").items()}
         cu = {} if day_du else {int(l.split("|")[0]): l.split("|", 1)[1] for l in q("select camp_id || '|' || coalesce(cap_nhat_etp::text, '') from etp.camp").splitlines() if l}
         doi = [c for c in ds if day_du or c["id"] not in cu or str(c.get("updated_at") or "")[:19] != (cu.get(c["id"]) or "")[:19].replace(" ", "T")]

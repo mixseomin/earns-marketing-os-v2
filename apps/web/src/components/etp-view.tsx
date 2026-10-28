@@ -445,7 +445,7 @@ function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qu
         <span style={{ position: 'absolute', left: x50, top: 0, bottom: 0, right: 0, background: 'rgba(34,197,94,.45)' }} />
         {x != null ? <span style={{ position: 'absolute', left: Math.max(0, x - 3), top: 1, width: 6, height: 6, borderRadius: 3, background: du ? '#fff' : 'transparent', border: '1.5px solid #fff', boxSizing: 'border-box' }} /> : null}
       </span>
-      <span style={{ width: 24, display: 'inline-flex', gap: 2 }}>{dau.slice(0, 2).map((b) => <b key={b.nhom} style={{ color: b.d[1] }}>{b.d[0]}</b>)}{gan.slice(0, 2 - Math.min(2, dau.length)).map((g) => <b key={g[0]} style={{ color: g[1], opacity: 0.6 }}>{g[0]}</b>)}</span>
+      {/* bỏ dấu luật ↑ ↓ ✕ sau thước (anh 29/10/2026 "ẩn cái này đi. Vướng + khó nhìn") — luật đã có cột Luật riêng; dấu vẫn ở đầu thẻ khi rê */}
     </span>
   );
 }

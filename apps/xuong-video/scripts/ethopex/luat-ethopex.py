@@ -501,12 +501,13 @@ tat_l, tat7, tat2, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, d
 tat_roas = []
 try:
     if _ROAS & _bat:
-        _r1, _r2 = bc(d(1), d(1)), bc(d(2), d(1))
+        # anh 28/10/2026 (góp ý #1460 "mới chạy 1 hôm bị âm đã đòi tắt. Hôm sau lại dương"): bỏ nhánh MỘT ngày — chỉ báo khi 2 ngày đã khép
+        # ĐỀU có chi và ĐỀU lỗ, cộng 2 ngày chi > $20 mà ROI < 0%. Một ngày âm rồi ngày sau dương = không báo.
+        _r1, _r2, _rg = bc(d(1), d(1)), bc(d(2), d(2)), bc(d(2), d(1))
         for cid in sorted(_ROAS & _bat):
-            for so, ky in ((_r1, "hôm qua"), (_r2, "2 ngày đã khép")):
-                a = so.get(cid) or so.get(str(cid))
-                if a and a["chi"] > ROAS_CHI and roi(a) < ROAS_ROI:
-                    tat_roas.append((cid, f"#{a['ten'][:80]} · {ky}: chi ${a['chi']:.2f} · thu ${a['thu']:.2f} · lãi ${a['thu'] - a['chi']:+.2f} · ROI {roi(a):+.0f}% → TẮT (luật ROAS)")); break
+            a1, a2, a = (x.get(cid) or x.get(str(cid)) for x in (_r1, _r2, _rg))
+            if a and a1 and a2 and a1["chi"] > 0 and a2["chi"] > 0 and a["chi"] > ROAS_CHI and roi(a) < ROAS_ROI and roi(a1) < 0 and roi(a2) < 0:
+                tat_roas.append((cid, f"#{a['ten'][:80]} · 2 ngày đã khép ({d(2)[8:10]}/{d(2)[5:7]} {roi(a2):+.0f}% · {d(1)[8:10]}/{d(1)[5:7]} {roi(a1):+.0f}%): chi ${a['chi']:.2f} · thu ${a['thu']:.2f} · lãi ${a['thu'] - a['chi']:+.2f} · ROI {roi(a):+.0f}% → TẮT (luật ROAS)"))
 except Exception as e:
     loi_may.append((0, f"luật ROAS không đọc được Report: {str(e)[:80]}"))
 # XÉT LUẬT TỪNG CAMP (anh 28/10/2026: "Cần xem mức độ liên quan của từng camp với các luật khi hover vào … để biết tính có đúng không + hiểu rõ hơn
@@ -533,7 +534,7 @@ def _xet_luat():
         tuoi = (dt.datetime.now(dt.timezone.utc) - _tao[cid]).days if cid in _tao else None
         b2 = int(cid) in bo2; ls = []
         if int(cid) in _ROAS:
-            ls.append(L("roas", "Luật ROAS (camp ★)", "Camp ROAS miễn mọi luật khác; chỉ báo riêng khi 1–2 ngày đã khép chi > $20 mà LỖ (ROI < 0%).", [], "tat_roas" if int(cid) in vao["tat_roas"] else None))
+            ls.append(L("roas", "Luật ROAS (camp ★)", "Camp ROAS miễn mọi luật khác; chỉ báo riêng khi 2 ngày đã khép ĐỀU lỗ và cộng 2 ngày chi > $20 mà ROI < 0%.", [], "tat_roas" if int(cid) in vao["tat_roas"] else None))
             ra[int(cid)] = ls; continue
         # T2 — tắt sau 2 ngày có chi đầu tiên
         ds2 = _n2.get(int(cid), [None, []])[1] if "_n2" in globals() else []
@@ -612,7 +613,7 @@ trong = any(abs(((gio - m + 12) % 24) - 12) <= 1 for m in (21, 0, 8))
 in_ = lambda tieu, ds, rong="(không)": (print(tieu), print("\n".join("  " + s for _, s in ds) or "  " + rong))
 print(f"Giờ VN {vn:%H:%M %d/%m} · khung tăng ngân sách ~21h / ~24h / 8h: " + ("ĐANG TRONG KHUNG" if trong else f"mốc kế ~{int(moc) % 24}h") + " (ngân sách còn thấp $1–3 thì chưa cần canh giờ; không thu lại sau khung)")
 in_("CẦN TẮT (camp ≥ 7 ngày, tiêu > $10 từ trước tới nay, ROI < −50%) — CHỜ ANH TẮT:", tat_l)
-in_(f"LUẬT ROAS (camp ★, chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}% trong 1–2 ngày đã khép) — BÁO RIÊNG ANH TRÊN TELEGRAM, MÁY KHÔNG TỰ TẮT:", tat_roas, "(không)")
+in_(f"LUẬT ROAS (camp ★, 2 ngày đã khép đều lỗ, cộng chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}%) — BÁO RIÊNG ANH TRÊN TELEGRAM, MÁY KHÔNG TỰ TẮT:", tat_roas, "(không)")
 in_("AD BỊ META TỪ CHỐI — thay creative sạch:", tu_choi)
 in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):", dau_phien, "(chưa có)")
 in_("THANG NHÂN BẢN BỘ 2 — MỞ BẢN MỚI Ở BẬC KẾ (không đổi ngân sách camp đang chạy):", thang_nb, "(chưa có)")

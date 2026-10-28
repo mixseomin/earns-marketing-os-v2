@@ -30,7 +30,8 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
     else if (e.key === 'Enter') { e.preventDefault(); const m = loc[tro]; if (m) chon(m.value); }
     else if (e.key === 'Escape') setMo(false);
   };
-  const coLoc = value !== '' && !anRong;
+  // SÁNG KHI KHÁC "TẤT CẢ" (anh 28/10/2026 góp ý #1457): mọi ô — kể cả ô có mục tất cả riêng (anRong, vd Lọc 'all') — đang chọn mục không phải "Tất cả" thì viền + nền nhấn
+  const coLoc = !!dang && dang.value !== '' && (dang.ngan ?? dang.label) !== rong;
   return (
     <>
       <button ref={ref} type="button" data-comp="ui.Chon2" title={title} onClick={() => setMo((v) => !v)}

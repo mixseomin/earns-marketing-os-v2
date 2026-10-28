@@ -484,7 +484,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     for (const m of kq.tat_roas || []) {
       if (da[m.id]) continue; da[m.id] = homNay;
       const hs = await hieuSuatCamp(m.id).catch((e) => `<i>không đọc được hiệu suất: ${esc(e.message.slice(0, 80))}</i>`);
-      await guiNhanh({ message_thread_id: topic, text: `★ <b>CAMP ROAS CHẠM LUẬT TẮT</b> — chi &gt; $20 mà LỖ (ROI &lt; 0%) trong 1–2 ngày đã khép\n${esc(m.chu)}\n${hs}\n<i>Máy không tự tắt — anh quyết.</i>`.slice(0, 4000),
+      await guiNhanh({ message_thread_id: topic, text: `★ <b>CAMP ROAS CHẠM LUẬT TẮT</b> — 2 ngày đã khép ĐỀU lỗ, cộng chi &gt; $20 mà ROI &lt; 0%\n${esc(m.chu)}\n${hs}\n<i>Máy không tự tắt — anh quyết.</i>`.slice(0, 4000),
         reply_markup: { inline_keyboard: [[{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tatr:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]] } });
       gui++;
     }

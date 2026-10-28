@@ -22,6 +22,10 @@ export type CauHinhHom = {
   /** vị trí / lớp riêng của nút 💬 nổi (mos2 đứng trái nút ⚙, city đứng trên cảnh 3D) — gộp đè lên mặc định góc phải-dưới */
   nutStyle?: CSSProperties;
 };
+const GY_CSS = `.gy-btn{appearance:none;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;font-family:inherit;font-size:12px;font-weight:500;line-height:1.2;cursor:pointer;
+background:var(--bg-2,#1a1d24);color:var(--fg-1,#e5e7eb);border:1px solid var(--line,#2a2f3a)}
+.gy-btn:hover{background:var(--bg-3,#242833)}.gy-btn:disabled{opacity:.5;cursor:default}
+.gy-btn.chinh{background:var(--accent-soft,rgba(59,130,246,.2));color:var(--accent,#60a5fa);border-color:var(--accent,#60a5fa);font-weight:600}`;
 type Cfg = { khoa: string; hd: HanhDongGopY; xemAnh?: (url: string) => void; nut: { thuong: string; chinh: string }; chonNgan: string; chonLoi: string };
 const Ctx = createContext<Cfg | null>(null);
 
@@ -513,6 +517,8 @@ export function HomGopY(p: CauHinhHom) {
   const daGui = (id: number) => { setVuaGui(id); setMo(false); nap(); };
   return (
     <Ctx.Provider value={cfg}>
+      {/* nút mặc định gy-btn TỰ MANG KIỂU (góp ý #1458, 28/10/2026): trước không có CSS nào cho class này → nút trình duyệt nền trắng, chữ mất màu trên trang không có .btn (etp.on.tc) */}
+      <style>{GY_CSS}</style>
       {!mo && <button type="button" aria-label="Góp ý / báo lỗi" title={vuaGui ? `Đã gửi card #${vuaGui}` : 'Góp ý / báo lỗi về màn đang xem'} onClick={() => setMo((v) => !v)}
         style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 60, minWidth: 40, height: 40, padding: vuaGui ? '0 12px' : 0, borderRadius: 999, border: `1px solid ${vuaGui ? 'var(--lime)' : 'var(--line)'}`, background: 'var(--bg-2)', color: vuaGui ? 'var(--lime)' : 'var(--fg-2)', cursor: 'pointer', boxShadow: '0 4px 14px rgba(0,0,0,.35)', fontSize: vuaGui ? 12 : 17, transition: 'all .2s', ...p.nutStyle }}>{vuaGui ? `✓ đã gửi #${vuaGui}` : '💬'}</button>}
       {mo && (

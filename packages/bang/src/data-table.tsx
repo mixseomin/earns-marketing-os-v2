@@ -171,6 +171,7 @@ const STICKY_MAX = '33vw';
 const band = (hex: string | undefined) => (hex ? `${hex}38` : undefined);
 const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 
+const TONG_BG = 'color-mix(in srgb, var(--accent, #60a5fa) 14%, var(--bg-2))';   // nền dòng tổng
 const RONG_MAC_DINH = 96;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
 export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
@@ -537,9 +538,10 @@ export function DataTable<T>({
   // thấy và trông như một dòng dữ liệu. Giờ ô đầu ghi "Tổng · N dòng" (khi cột đầu không có total riêng) và — bảng cuộn theo trang — dính MÉP DƯỚI
   // màn như tiêu đề dính mép trên: bảng riêng cùng bề rộng cột đo được, cuộn ngang đồng bộ với thân bảng
   const hangTong = () => (
-    <tr className="dt-tong" style={{ background: 'var(--bg-2)' }}>
+    // nền riêng (anh 29/10/2026 "dòng tổng cần có bg khác"): pha màu nhấn vào nền + viền trên — không lẫn với dòng dữ liệu / dòng nhóm
+    <tr className="dt-tong" style={{ background: TONG_BG }}>
       {visible.map((c, ci) => (
-        <td key={c.key} style={cellStyle(c, { fontWeight: 700, background: 'var(--bg-2)', color: c.group ? groupMeta.get(c.group)?.color : undefined, ...(ci === 0 && !c.total ? { textAlign: 'left', color: 'var(--fg-1)' } : {}) }, ci)}>
+        <td key={c.key} style={cellStyle(c, { fontWeight: 700, background: TONG_BG, borderTop: '2px solid color-mix(in srgb, var(--accent, #60a5fa) 55%, transparent)', color: c.group ? groupMeta.get(c.group)?.color : undefined, ...(ci === 0 && !c.total ? { textAlign: 'left', color: 'var(--fg-1)' } : {}) }, ci)}>
           {c.total ? c.total(shownRows) : ci === 0 ? <>Tổng <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {shownRows.length} dòng</span></> : null}
         </td>
       ))}

@@ -31,7 +31,8 @@ export function GopYMos2({ hom = 'mos2' }: { hom?: 'mos2' | 'city' }) {
     taiAnhGopY: (du) => uploadImage(du, 'gop-y'),
     xoaAnhGopY: deleteImage,
   };
-  // right 60 (mos2): góc phải-dưới là nút ⚙ Tweaks (z 2147483645) — trùng chỗ thì ⚙ che kín 💬 (05/10/2026). City: trái cụm nút điều hướng, nổi trên cảnh 3D.
+  // City: trái cụm nút điều hướng, nổi trên cảnh 3D. (mos2 cũ: right 60 tránh nút ⚙ Tweaks góc phải-dưới — 05/10/2026)
   return <HomGopY ten={hom === 'city' ? 'Thành phố' : 'MOS2'} khoa={hom === 'city' ? 'city' : 'mos2'} hd={hd} Khung={Khung} chonNgan='[data-comp="ui.Drawer"]' chonLoi="[data-loi]"
-    nutStyle={hom === 'city' ? { right: 112, zIndex: 10000 } : { right: 60 }} />;
+    // mos2: tab nhỏ ở MÉP PHẢI GIỮA MÀN (anh 29/10/2026 etp "nút này để chỗ khác") — góc phải-dưới đè dòng tổng dính chân của mọi DataTable (+ nút ⚙ Tweaks)
+    nutStyle={hom === 'city' ? { right: 112, zIndex: 10000 } : { right: 0, bottom: 'auto', top: '50%', transform: 'translateY(-50%)', minWidth: 30, width: 30, height: 44, borderRadius: '10px 0 0 10px', borderRight: 'none', fontSize: 15 }} />;
 }

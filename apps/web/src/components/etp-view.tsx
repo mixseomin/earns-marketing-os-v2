@@ -867,7 +867,6 @@ const MO_TA_DC: Record<string, string> = {
 type DongDc = { v: string; mau: { cr: number; chi: number }[]; cr: number; camp: number; chi: number; thu: number; h: number; n: number; sh: number; sn: number; sv: number; sg: number; lech: number; lechW: number };
 const wilson = (k: number, n: number) => { if (!n) return null; const z = 1.96, p = k / n, d = 1 + (z * z) / n, c = (p + (z * z) / (2 * n)) / d, w = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / d; return [Math.max(0, c - w), c + w]; };
 function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string) => boolean; khNhan: string }) {
-  const [k, setK] = useState('cta.mau');
   const tinh = useMemo(() => {
     const campCr = new Map(du.camps.map((c) => [c.camp_id, c]));
     const so = new Map<number, { chi: number; thu: number; h: number; n: number; sh: number; sn: number; sv: number; sg: number; camp: Set<number> }>();   // theo creative
@@ -894,53 +893,71 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
   // MẪU NHÌN (anh 28/10/2026 "cần nhìn thay đổi cụ thể khác nhau thế nào trực quan bằng hình ảnh trên creative"): 4 creative chi nhiều nhất của mỗi giá trị —
   // điểm chạm CTA hiện KHUNG CUỐI (nút + thẻ cuối nằm ở đó), còn lại hiện ảnh đầu; rê vào = video lớn (CTA tua tới 6 giây cuối)
   const crTheoId = useMemo(() => new Map(du.creatives.map((x) => [x.creative_id, x])), [du.creatives]);
-  const noiV = useNoi<{ cr: number }>();
-  const laCta = k.startsWith('cta.');
+  const noiV = useNoi<{ cr: number; k: string }>();
   const daiCr = (cr: number) => Number(du.diemCham[cr]?.noi_dung?.giay ?? 0) || ((crTheoId.get(cr)?.den ?? 0) - (crTheoId.get(cr)?.tu ?? 0)) || 0;
-  const nho = (cr: number) => { const x = crTheoId.get(cr); if (!x) return null; const d = daiCr(cr);
-    return <span key={cr} onMouseEnter={(e) => noiV.mo({ cr }, e)} onMouseLeave={noiV.dongTre} title={`cr #${cr}${x.phim ? ` · ${x.phim}` : ''}`} style={{ width: 30, height: 53, borderRadius: 3, overflow: 'hidden', background: '#000', display: 'inline-block', cursor: 'zoom-in', flex: 'none' }}>
-      {laCta && x.video && d > 2 ? <video src={`${x.video}#t=${(d - 1.2).toFixed(1)}`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+  const nho = (cr: number, kk: string) => { const x = crTheoId.get(cr); if (!x) return null; const d = daiCr(cr), cta = kk.startsWith('cta.');
+    return <span key={cr} onMouseEnter={(e) => noiV.mo({ cr, k: kk }, e)} onMouseLeave={noiV.dongTre} style={{ width: 30, height: 53, borderRadius: 3, overflow: 'hidden', background: '#000', display: 'inline-block', cursor: 'zoom-in', flex: 'none' }}>
+      {cta && x.video && d > 2 ? <video src={`${x.video}#t=${(d - 1.2).toFixed(1)}`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         : x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}</span>; };
-  const tongQuan = useMemo(() => DIEM_CHAM.map((d) => ({ ...d, so: bang(d.k).filter((x) => x.v !== '(chưa ghi)').length })), [tinh, du.diemCham]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const rows = useMemo(() => bang(k), [k, tinh, du.diemCham]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const pc = (a: number, b: number) => (b ? `${((a / b) * 100).toFixed(1)}%` : '—');
-  const cot: DataColumn<DongDc>[] = [
-    { key: 'v', header: 'Giá trị', align: 'left', cell: (r) => { const nh = NHAN_DC[`${k}=${r.v}`];
-      return <div style={{ maxWidth: 300, whiteSpace: 'normal' }}><b>{nh?.[0] ?? (r.v === '(chưa ghi)' ? 'Chưa ghi' : r.v)}</b>
-        <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.35 }}>{nh?.[1] ?? (r.v === '(chưa ghi)' ? 'creative cũ không có dữ liệu điểm chạm này' : '')}</div></div>; }, sortValue: (r) => r.v },
-    { key: 'mau', header: 'Mẫu nhìn', align: 'left', title: 'creative chi nhiều nhất của giá trị này — CTA: khung cuối; còn lại: ảnh đầu · rê vào xem video', cell: (r) => <span style={{ display: 'inline-flex', gap: 3 }}>{r.mau.map((m) => nho(m.cr))}</span> },
-    { key: 'cr', header: 'Creative', cell: (r) => r.cr, sortValue: (r) => r.cr }, { key: 'camp', header: 'Camp', cell: (r) => r.camp, sortValue: (r) => r.camp },
-    { key: 'chi', header: 'Chi', cell: (r) => <Tien v={r.chi} />, sortValue: (r) => r.chi }, { key: 'thu', header: 'Thu', cell: (r) => <Tien v={r.thu} />, sortValue: (r) => r.thu },
-    { key: 'roi', header: 'ROI', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 },
-    { key: 'lech', header: '± phim', title: 'ROI creative trừ ROI cả phim của nó, trung bình theo chi — gỡ nhiễu phim mạnh / yếu',
-      cell: (r) => (r.lechW ? <span style={{ color: r.lech / r.lechW >= 0 ? '#4ade80' : '#f87171' }}>{`${r.lech / r.lechW >= 0 ? '+' : ''}${Math.round(r.lech / r.lechW)} điểm`}</span> : '—'), sortValue: (r) => (r.lechW ? r.lech / r.lechW : -1e9) },
-    { key: 'ctr', header: 'CTR', title: 'clicks / impressions (phía Meta) — hook + ảnh đầu + CTA kéo bấm; ngoặc = khoảng tin cậy 95%',
-      cell: (r) => { const w = wilson(r.n, r.h); return <span>{pc(r.n, r.h)}{w ? <span style={{ color: 'var(--fg-3, #777)', fontSize: 10 }}> ({(w[0]! * 100).toFixed(0)}–{(w[1]! * 100).toFixed(0)})</span> : null}</span>; }, sortValue: (r) => (r.h ? r.n / r.h : -1) },
-    { key: 'cpc', header: 'CPC', cell: (r) => (r.n ? usd(r.chi / r.n) : '—'), sortValue: (r) => (r.n ? r.chi / r.n : 1e9) },
-    { key: 'cpm', header: 'CPM', title: 'cost / S impressions × 1000 (định nghĩa Ethopex)', cell: (r) => (r.sh ? usd((r.chi / r.sh) * 1000) : '—'), sortValue: (r) => (r.sh ? r.chi / r.sh : 1e9) },
-    { key: 'sctr', header: 'S CTR', title: 'S clicks / S impressions — người vào trang có bấm tiếp', cell: (r) => pc(r.sn, r.sh), sortValue: (r) => (r.sh ? r.sn / r.sh : -1) },
-    { key: 'scvr', header: 'S CVR', title: 'S conversions / S clicks × 100 (định nghĩa Ethopex) — nội dung có khớp kỳ vọng hook không', cell: (r) => pc(r.sv, r.sn), sortValue: (r) => (r.sn ? r.sv / r.sn : -1) },
-    { key: 'sgt', header: 'S giá trị / S nhấp', title: 'S conversion value / S clicks', cell: (r) => (r.sn ? usd(r.sg / r.sn) : '—'), sortValue: (r) => (r.sn ? r.sg / r.sn : -1) },
-    { key: 'du', header: 'Mẫu', title: 'đủ mẫu: ≥ 100 nhấp và chi ≥ $30 — dưới ngưỡng thì chênh lệch có thể chỉ là may rủi',
-      cell: (r) => (r.n >= 100 && r.chi >= 30 ? <span style={{ color: '#4ade80' }}>đủ</span> : <span style={{ color: 'var(--fg-3, #777)' }}>{r.n} nhấp</span>), sortValue: (r) => r.n },
-  ];
-  const dang = DIEM_CHAM.find((d) => d.k === k)!; const motGT = rows.filter((x) => x.v !== '(chưa ghi)').length <= 1;
+  // SO SÁNH THEO KHỐI (anh 28/10/2026 "mỗi kiểu test phải có cái so sánh chứ"): mỗi điểm chạm có ≥ 2 bản = một khối A/B — bản chi nhiều nhất làm ĐỐI CHỨNG,
+  // các bản khác có Δ so với đối chứng, bản thắng viền xanh, câu kết luận đầu khối + cờ chắc / chưa chắc; khối chênh nhiều nhất lên đầu.
+  // Điểm chạm mới một bản KHÔNG phải phép thử → gom một dòng "chưa có bản để so".
+  const nhan = (kk: string, v: string) => NHAN_DC[`${kk}=${v}`]?.[0] ?? v;
+  const lp = (r: DongDc) => (r.lechW ? r.lech / r.lechW : null), ctr = (r: DongDc) => (r.h ? r.n / r.h : null), cvr = (r: DongDc) => (r.sn ? r.sv / r.sn : null);
+  const duMau = (r: DongDc) => r.n >= 100 && r.chi >= 30;
+  const khoi = useMemo(() => DIEM_CHAM.map((d) => { const rs = bang(d.k).filter((x) => x.v !== '(chưa ghi)'); const ls = rs.map(lp).filter((x): x is number => x != null);
+    return { ...d, rs, lech: ls.length > 1 ? Math.max(...ls) - Math.min(...ls) : 0 }; }), [tinh, du.diemCham]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const coSo = khoi.filter((d) => d.rs.length > 1).sort((a, b) => b.lech - a.lech), mot = khoi.filter((d) => d.rs.length <= 1);
+  const pc = (v: number | null) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`);
+  const dLech = (v: number | null, b: number | null, don = ' điểm') => (v == null || b == null ? '' : `${v - b >= 0 ? '+' : ''}${Math.round(v - b)}${don}`);
+  const mauD = (v: number | null, b: number | null) => (v == null || b == null ? 'var(--fg-3)' : v - b >= 0 ? '#4ade80' : '#f87171');
+  const ketLuan = (d: (typeof khoi)[number]) => {
+    const base = d.rs[0]!; const ung = d.rs.filter(duMau); const best = (ung.length ? ung : d.rs).reduce((a, b) => ((lp(b) ?? -1e9) > (lp(a) ?? -1e9) ? b : a));
+    const wb = wilson(best.n, best.h), wa = wilson(base.n, base.h); const tachCtr = !!(wb && wa && (wb[0]! > wa[1]! || wb[1]! < wa[0]!));
+    const chac = duMau(best) && duMau(base) && (tachCtr || Math.abs((lp(best) ?? 0) - (lp(base) ?? 0)) >= 15);
+    const chu = best === base ? `${nhan(d.k, base.v)} (đối chứng) đang tốt nhất`
+      : `${nhan(d.k, best.v)} hơn ${nhan(d.k, base.v)}: ± phim ${dLech(lp(best), 0, '')} so với ${dLech(lp(base), 0, '')} điểm · CTR ${pc(ctr(best))} so với ${pc(ctr(base))} · ROI ${roiOf(best) ?? '—'}% so với ${roiOf(base) ?? '—'}%`;
+    return { best, chu, chac };
+  };
+  const o: React.CSSProperties = { padding: '6px 8px', borderTop: '1px solid var(--line)', verticalAlign: 'middle', fontVariantNumeric: 'tabular-nums', textAlign: 'right', whiteSpace: 'nowrap' };
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>Mỗi creative mang sổ điểm chạm (hook · nội dung · voice · chữ · CTA) do máy xưởng ghi lúc dựng; số lấy theo kỳ <b>{khNhan.toLowerCase()}</b>.
-        Chốt bằng ROI và <b>± phim</b>; CTR / S CVR để đọc nhanh tầng nào kéo. Điểm chạm chỉ có một giá trị = chưa có biến thể để so (cần dựng bản thử).</div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {tongQuan.map((d) => <button key={d.k} onClick={() => setK(d.k)} title={`${d.nhom} · ${d.so} giá trị có số`} style={{ fontSize: 11.5, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', color: 'inherit',
-          border: `1px solid ${k === d.k ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, background: k === d.k ? 'var(--accent-soft, rgba(59,130,246,.18))' : 'transparent', opacity: d.so > 1 ? 1 : 0.55 }}>
-          <span style={{ color: 'var(--fg-3, #777)' }}>{d.nhom} · </span>{d.ten}{d.so > 1 ? '' : ' · 1 giá trị'}</button>)}
-      </div>
-      <div style={{ fontSize: 13 }}><b>{dang.ten}</b> <span style={{ color: 'var(--fg-2)' }}>— {MO_TA_DC[k] ?? ''}</span></div>
-      {motGT ? <div style={{ fontSize: 12, color: '#f59e0b' }}>{dang.ten}: mọi creative đang cùng một giá trị — chưa so được. Muốn đo thì dựng bản thử đổi riêng điểm chạm này.</div> : null}
-      <DataTable rows={rows} columns={cot} getRowKey={(r) => r.v} persistKey="etp-diem-cham" minWidth={1100} pageSize={50} />
-      {noiV.v ? (() => { const x = crTheoId.get(noiV.v.cr); if (!x) return null; const d = daiCr(noiV.v.cr), bd = laCta && d > 8 ? d - 6 : 0;
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>Mỗi khối là một phép so: các bản của cùng một điểm chạm đặt cạnh nhau, bản chi nhiều nhất làm <b>đối chứng</b>, Δ = chênh so với đối chứng.
+        Số theo kỳ <b>{khNhan.toLowerCase()}</b>. Chốt bằng <b>± phim</b> (ROI creative trừ ROI cả phim — gỡ nhiễu phim mạnh/yếu); CTR = người thấy QC bấm vào; S CVR = người vào trang chuyển đổi. Rê ảnh để xem video.</div>
+      {coSo.map((d) => { const base = d.rs[0]!; const kl = ketLuan(d);
+        return <div key={d.k} style={{ border: '1px solid var(--line)', borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ padding: '8px 12px', background: 'var(--bg-1, #111)' }}>
+            <div style={{ fontSize: 13 }}><span style={{ color: 'var(--fg-3, #777)' }}>{d.nhom} · </span><b>{d.ten}</b> <span style={{ color: 'var(--fg-2)' }}>— {MO_TA_DC[d.k] ?? ''}</span></div>
+            <div style={{ fontSize: 12.5, marginTop: 3 }}><b style={{ color: kl.chac ? '#4ade80' : '#f59e0b' }}>{kl.chac ? '✓ chắc' : '◌ chưa chắc'}</b> · {kl.chu}
+              {kl.chac ? null : <span style={{ color: 'var(--fg-3, #777)' }}> — cần thêm mẫu (≥ 100 nhấp, chi ≥ $30 mỗi bản) hoặc chênh chưa đủ lớn</span>}</div>
+          </div>
+          <div style={{ overflowX: 'auto' }}><table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
+            <thead><tr style={{ color: 'var(--fg-3, #777)', fontSize: 10.5 }}>{['Bản', 'Mẫu nhìn', 'Creative', 'Chi', 'ROI', '± phim', 'Δ ± phim', 'CTR', 'Δ CTR', 'S CVR', 'Δ S CVR', 'Mẫu'].map((h, i) => <th key={h} style={{ ...o, textAlign: i < 2 ? 'left' : 'right', fontWeight: 500 }}>{h}</th>)}</tr></thead>
+            <tbody>{d.rs.map((r) => { const la = r === base, thang = r === kl.best; const nh = NHAN_DC[`${d.k}=${r.v}`];
+              return <tr key={r.v} title={`CPC ${r.n ? usd(r.chi / r.n) : '—'} · CPM ${r.sh ? usd((r.chi / r.sh) * 1000) : '—'} · S CTR ${pc(r.sh ? r.sn / r.sh : null)} · S giá trị/nhấp ${r.sn ? usd(r.sg / r.sn) : '—'} · ${r.camp} camp`}
+                style={{ boxShadow: thang ? 'inset 3px 0 #4ade80' : undefined, background: thang ? 'rgba(74,222,128,.06)' : undefined }}>
+                <td style={{ ...o, textAlign: 'left', whiteSpace: 'normal', maxWidth: 340, paddingLeft: 12 }}><b>{nh?.[0] ?? r.v}</b>{la ? <span style={{ fontSize: 10, marginLeft: 6, padding: '0 5px', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-2)' }}>đối chứng</span> : null}
+                  {thang && !la ? <span style={{ fontSize: 10, marginLeft: 6, padding: '0 5px', border: '1px solid #4ade80', borderRadius: 4, color: '#4ade80' }}>thắng</span> : null}
+                  {nh?.[1] ? <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.35 }}>{nh[1]}</div> : null}</td>
+                <td style={{ ...o, textAlign: 'left' }}><span style={{ display: 'inline-flex', gap: 3 }}>{r.mau.map((m) => nho(m.cr, d.k))}</span></td>
+                <td style={o}>{r.cr}</td><td style={o}>{usd(r.chi)}</td><td style={o}><Roi s={r} /></td>
+                <td style={{ ...o, color: (lp(r) ?? 0) >= 0 ? '#4ade80' : '#f87171' }}>{lp(r) == null ? '—' : dLech(lp(r), 0)}</td>
+                <td style={{ ...o, color: la ? 'var(--fg-3)' : mauD(lp(r), lp(base)) }}>{la ? '—' : dLech(lp(r), lp(base))}</td>
+                <td style={o}>{pc(ctr(r))}{(() => { const w = wilson(r.n, r.h); return w ? <span style={{ color: 'var(--fg-3, #777)', fontSize: 10 }}> ({(w[0]! * 100).toFixed(0)}–{(w[1]! * 100).toFixed(0)})</span> : null; })()}</td>
+                <td style={{ ...o, color: la ? 'var(--fg-3)' : mauD(ctr(r), ctr(base)) }}>{la || ctr(r) == null || ctr(base) == null ? '—' : `${ctr(r)! - ctr(base)! >= 0 ? '+' : ''}${((ctr(r)! - ctr(base)!) * 100).toFixed(1)} điểm`}</td>
+                <td style={o}>{pc(cvr(r))}</td>
+                <td style={{ ...o, color: la ? 'var(--fg-3)' : mauD(cvr(r), cvr(base)) }}>{la || cvr(r) == null || cvr(base) == null ? '—' : `${cvr(r)! - cvr(base)! >= 0 ? '+' : ''}${((cvr(r)! - cvr(base)!) * 100).toFixed(1)} điểm`}</td>
+                <td style={o}>{duMau(r) ? <span style={{ color: '#4ade80' }}>đủ</span> : <span style={{ color: 'var(--fg-3, #777)' }}>{r.n} nhấp</span>}</td>
+              </tr>; })}</tbody></table></div>
+        </div>; })}
+      {mot.length ? <div style={{ border: '1px dashed var(--line)', borderRadius: 10, padding: '8px 12px', fontSize: 12 }}>
+        <b>Chưa có bản để so</b> <span style={{ color: 'var(--fg-2)' }}>— mọi creative đang dùng cùng một kiểu; muốn đo phải dựng bản thử đổi riêng điểm chạm đó:</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px', marginTop: 6 }}>{mot.map((d) => <span key={d.k}><span style={{ color: 'var(--fg-3, #777)' }}>{d.ten}:</span> {d.rs[0] ? nhan(d.k, d.rs[0].v) : 'chưa ghi'}</span>)}</div>
+      </div> : null}
+      {noiV.v ? (() => { const x = crTheoId.get(noiV.v.cr); if (!x) return null; const cta = noiV.v.k.startsWith('cta.'), d = daiCr(noiV.v.cr), bd = cta && d > 8 ? d - 6 : 0;
         return <KhungNoi x={noiV.v.x} y={noiV.v.y} rong={300} cao={560} noi={noiV} style={{ width: 300, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 12, paddingRight: 26 }}><b>cr #{x.creative_id}</b> · {x.phim ?? ''} <span style={{ color: 'var(--fg-2)' }}>· {giaTri(x.creative_id, k)}{laCta ? ' · đang xem 6 giây cuối' : ''}</span></div>
-          {x.video ? <video key={`${x.video}#${bd}`} src={`${x.video}#t=${bd.toFixed(1)}`} autoPlay muted loop playsInline controls={!laCta} style={{ width: '100%', height: 500, objectFit: 'contain', background: '#000', borderRadius: 6 }} />
+          <div style={{ fontSize: 12, paddingRight: 26 }}><b>cr #{x.creative_id}</b> · {x.phim ?? ''} <span style={{ color: 'var(--fg-2)' }}>· {nhan(noiV.v.k, giaTri(x.creative_id, noiV.v.k))}{cta ? ' · đang xem 6 giây cuối' : ''}</span></div>
+          {x.video ? <video key={`${x.video}#${bd}`} src={`${x.video}#t=${bd.toFixed(1)}`} autoPlay muted loop playsInline controls={!cta} style={{ width: '100%', height: 500, objectFit: 'contain', background: '#000', borderRadius: 6 }} />
             : x.anh ? <img src={x.anh} alt="" style={{ width: '100%', borderRadius: 6 }} /> : null}
         </KhungNoi>; })() : null}
     </div>

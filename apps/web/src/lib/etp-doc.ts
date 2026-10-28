@@ -28,7 +28,8 @@ export type ChamCr = { luc: string; may: string | null; ket: string | null; meta
 /** sổ điểm chạm một creative (etp.diem_cham, apps/xuong-video/scripts/ethopex/diem_cham.py): nhóm → khoá → giá trị gom nhóm */
 export type DiemCham = Record<string, Record<string, string | number | null>>;
 /** SỐ THẬT TỪNG LUẬT (apps/etp/so-luat.py → etp.so_luat, mỗi giờ) — trang ?t=luat: điều kiện đang chạy (từ etp.xet_luat) + kết quả sau mỗi lần máy làm + đề xuất có số */
-export type SoLuat = { ma: string; luc: string; ten: string; mo_ta: string | null; dk: [string, string][]; dung: boolean; de_xuat: string[];
+export type DeXuat = { lam: string; vi: string; cach: string | null };
+export type SoLuat = { ma: string; luc: string; ten: string; mo_ta: string | null; dk: [string, string][]; dung: boolean; de_xuat: DeXuat[];
   so: { lan: number; camp: number; ngay: number; do_duoc?: number; lai_ngay_truoc?: number | null; lai_ngay_sau?: number | null; roi_truoc?: number | null; roi_sau?: number | null;
     chi_ngay_truoc?: number | null; chi_ngay_sau?: number | null; ti_le_tot?: number | null; roi_3_ngay_truoc?: number | null; lo_ngay_truoc?: number | null; dang_lai?: number; lai_bi_tat?: number;
     tat_ca?: NhomClone; cung_cr?: NhomClone; khac_cr?: NhomClone; theo_goc?: Record<string, NhomClone>; dang?: { dat: number; gan: number; xa: number; khong_ap: number }; ket_o?: [string, number][] } };

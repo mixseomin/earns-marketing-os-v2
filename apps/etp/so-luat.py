@@ -22,6 +22,10 @@ MA = [("tang", r"^lãi đầu phiên", "dau_phien"), ("tang", r"^t30|\$20 → \$
       ("giam", r"trong ngày", "giam_ngay"), ("giam", r"^giảm sớm", "giam_som"), ("giam", r"ROI T[ỤU]T", "roi_tut"), ("giam", r"^giảm bậc \(GB\)", "gb"),
       ("tat", r"^T2 ", "t2"), ("tat", r"^T7 \(", "t7"), ("tat", r"^OFF|lỗ lâu", "off"), ("tat", r"^D24|dừng > 24", "d24"), ("tat", r"dừng đêm", "dung_dem"),
       ("nhan_ban", r"^thang nhân bản", "thang_nb"), ("nhan_ban", r"^nhân bản camp thắng · ", "nb")]
+def DX(lam, vi, cach):
+    """một đề xuất = LÀM GÌ (vài chữ, hiện trong ô) · VÌ SAO (một câu) · CÁCH (một câu) — số chi tiết đã có ở cột, không chép lại (anh 29/10/2026 \"khó đọc quá\")"""
+    return {"lam": lam, "vi": vi, "cach": cach}
+
 def ma_cua(viec, luat):
     for v, re_, m in MA:
         if v == viec and re.search(re_, luat or ""): return m
@@ -81,29 +85,28 @@ def main():
             so_.update(do_duoc=len(do), lai_ngay_truoc=round((tt - tc) / tn, 2) if tn else None, lai_ngay_sau=round((st - sc) / sn, 2) if sn else None,
                        roi_truoc=roi(tc, tt), roi_sau=roi(sc, st), chi_ngay_truoc=round(tc / tn, 2) if tn else None, chi_ngay_sau=round(sc / sn, 2) if sn else None, ti_le_tot=round(tot / len(do) * 100) if do else None)
             if len(do) >= 10:
+                lt, ls_ = so_["lai_ngay_truoc"], so_["lai_ngay_sau"]
                 if m in ("tang", "dau_phien", "t30"):
                     am = [a for a in mau if a["roi_dai"] is not None and a["roi_dai"] < 0]
-                    if so_["lai_ngay_sau"] is not None and so_["lai_ngay_truoc"] is not None and so_["lai_ngay_sau"] < so_["lai_ngay_truoc"]:
-                        dx.append(f"Sau khi tăng, lãi mỗi camp mỗi ngày giảm ${so_['lai_ngay_truoc']:.2f} → ${so_['lai_ngay_sau']:.2f} (ROI {so_['roi_truoc']}% → {so_['roi_sau']}%, {len(do)} lần đo) — tăng đang mua thêm chi mà không thêm lãi.")
-                    else:
-                        dx.append(f"Sau khi tăng, lãi mỗi camp mỗi ngày ${so_['lai_ngay_truoc']:.2f} → ${so_['lai_ngay_sau']:.2f} ({len(do)} lần đo, {so_['ti_le_tot']}% lần lãi tăng) — luật đang ra tiền, giữ.")
+                    if lt is not None and ls_ is not None:
+                        dx.append(DX("Siết điều kiện tăng", f"tăng xong lãi mỗi camp giảm ${lt - ls_:.2f}/ngày.", "thêm điều kiện ROI khung dài cao hơn trước khi tăng.") if ls_ < lt
+                                  else DX("Giữ", f"tăng xong lãi mỗi camp tăng thêm ${ls_ - lt:.2f}/ngày.", None))
                     if len(am) >= 5:
                         ra_am = [a for a in am if a["sau"][2]]; ac, at = sum(a["sau"][0] for a in ra_am), sum(a["sau"][1] for a in ra_am)
-                        dx.append(f"{len(am)}/{len(mau)} lần tăng khi ROI khung dài đang ÂM (chỉ nhờ ROI hôm nay) — sau đó ROI {roi(ac, at)}% trên ${ac:.0f} chi. Đề xuất: tăng trong ngày phải kèm ROI khung dài ≥ 0%.")
-                else:
-                    if so_["lai_ngay_sau"] is not None and so_["lai_ngay_truoc"] is not None:
-                        lt, ls_ = so_["lai_ngay_truoc"], so_["lai_ngay_sau"]
-                        ket = ("giảm cắt được lỗ, giữ." if lt < 0 and ls_ > lt else "giảm KHÔNG cứu được: vẫn lỗ như cũ → tắt thay vì giảm từng bậc." if lt < 0
-                               else f"camp bị giảm đang LÃI trong 2 ngày trước → giảm làm mất ${lt - ls_:.2f}/camp/ngày (≈ ${(lt - ls_) * len(do) * 2:.0f} trên {len(do)} lần × 2 ngày đo; chưa có nhóm đối chứng): luật bắt camp quá sớm — nới (vd xét 2 ngày khép thay vì 1 ngày)." if ls_ < lt
-                               else "giảm không làm mất lãi, giữ.")
-                        dx.append(f"Sau khi giảm, lãi mỗi camp mỗi ngày ${lt:.2f} → ${ls_:.2f}, chi/ngày ${so_['chi_ngay_truoc']:.2f} → ${so_['chi_ngay_sau']:.2f} ({len(do)} lần đo) — " + ket)
+                        dx.append(DX("Thêm điều kiện ROI khung dài ≥ 0%", f"{len(am)} lần tăng khi ROI khung dài đang âm; sau đó ROI {roi(ac, at)}%.", "tăng trong ngày chỉ khi ROI khung dài ≥ 0%."))
+                elif lt is not None and ls_ is not None:
+                    mat = (lt - ls_) * len(do) * 2
+                    dx.append(DX("Giữ", "giảm cắt được lỗ.", None) if lt < 0 and ls_ > lt
+                              else DX("Tắt thay vì giảm", "camp bị giảm vẫn lỗ như cũ.", "camp lỗ thì tắt luôn, không giảm từng bậc.") if lt < 0
+                              else DX("Nới điều kiện giảm", f"camp bị giảm đang lãi; giảm làm mất ≈ ${mat:.0f} trong {NGAY} ngày.", "chỉ giảm khi 2 ngày đã khép cùng lỗ (thay vì 1 ngày).") if ls_ < lt
+                              else DX("Giữ", "giảm không làm mất lãi.", None))
         elif m in ("t2", "t7", "off", "d24", "dung_dem"):
             co = [a for a in mau if a["truoc"][2]]; lai = [a for a in co if a["truoc"][1] > a["truoc"][0]]
             tc, tt, tn = (sum(a["truoc"][i] for a in co) for i in range(3))
             so_.update(do_duoc=len(co), roi_3_ngay_truoc=roi(tc, tt), lo_ngay_truoc=round((tt - tc) / tn, 2) if tn else None, dang_lai=len(lai), lai_bi_tat=round(sum(a["truoc"][1] - a["truoc"][0] for a in lai), 2))
             if len(co) >= 5:
-                dx.append(f"{len(lai)}/{len(co)} camp bị tắt đang LÃI trong 3 ngày trước đó (lãi ${so_['lai_bi_tat']:.2f})" + (" — tắt nhầm nhiều, nới điều kiện." if len(lai) / len(co) > 0.2 else " — tắt đúng phần lớn, giữ.")
-                          + (f" Phần còn lại lỗ ${-so_['lo_ngay_truoc']:.2f}/camp/ngày trước khi tắt." if so_["lo_ngay_truoc"] is not None and so_["lo_ngay_truoc"] < 0 else ""))
+                dx.append(DX("Nới điều kiện tắt", f"{len(lai)}/{len(co)} camp bị tắt đang lãi.", "bỏ điều kiện bắt camp đang lãi.") if len(lai) / len(co) > 0.2
+                          else DX("Giữ", f"tắt đúng: {len(co) - len(lai)}/{len(co)} camp đang lỗ khi bị tắt.", None))
         elif m in ("nb", "thang_nb"):
             def nhom(ds):
                 c, t = sum(a["sau"][0] for a in ds), sum(a["sau"][1] for a in ds)
@@ -117,18 +120,19 @@ def main():
                 g["gốc tiêu ≥ $14/ngày" if gc >= 14 else "gốc tiêu $6–14/ngày" if gc >= 6 else "gốc tiêu < $6/ngày"].append(a)
             so_["theo_goc"] = {k: nhom(v) for k, v in sorted(g.items())}
             if len(co) >= 10:
-                dx.append(f"Clone ra: {so_['tat_ca']['n']} bản, lãi ${so_['tat_ca']['lai']:.2f} (ROI {so_['tat_ca']['roi']}%), {so_['tat_ca']['lai_n']} bản có lãi.")
                 if len(cung) >= 5 and len(khac) >= 5 and (so_["cung_cr"]["roi"] or 0) - (so_["khac_cr"]["roi"] or 0) >= 20:
-                    dx.append(f"Clone CÙNG creative (giống hệt) ROI {so_['cung_cr']['roi']}% ({len(cung)} bản) so với creative KHÁC ROI {so_['khac_cr']['roi']}% ({len(khac)} bản) → đề xuất: nhân bản camp thắng giữ nguyên creative trước, đổi creative chỉ khi creative đã bão hoà.")
-                for k, v in so_["theo_goc"].items():
-                    if v["n"] >= 8: dx.append(f"{k}: {v['n']} clone, ROI {v['roi']}%, lãi ${v['lai']:.2f}.")
+                    dx.append(DX("Clone giữ nguyên creative", f"clone giống hệt ROI {so_['cung_cr']['roi']}%, clone đổi creative chỉ {so_['khac_cr']['roi']}%.", "nhân bản camp thắng bằng chính creative đó; đổi creative khi đã bão hoà."))
+                elif (so_["tat_ca"]["roi"] or 0) < 0:
+                    dx.append(DX("Siết điều kiện nhân bản", f"clone đang lỗ (ROI {so_['tat_ca']['roi']}%).", "chỉ nhân bản camp gốc lãi đều hơn."))
+                else:
+                    dx.append(DX("Giữ", f"clone lãi (ROI {so_['tat_ca']['roi']}%).", None))
         if L:
             so_["dang"] = {k: L.get(k, 0) for k in ("dat", "gan", "xa", "khong_ap")}
             kt = L["ket_o"].most_common(2)
             if kt: so_["ket_o"] = kt
-            if m == "tang_ngay": dx.append("Lần làm của luật này ghi chung trong nhật ký với Tăng bậc (cùng việc 'tang') — kết quả sau khi tăng xem ở luật Tăng bậc.")
+            if m == "tang_ngay": dx.append(DX("Xem ở Tăng bậc", "nhật ký ghi chung với Tăng bậc.", None))
             elif not x["lan"] and L.get("gan", 0) >= 5 and not L["dung"] and m in ("nb", "t30", "tang", "thang_nb"):
-                dx.append(f"Luật không chạm lần nào trong {NGAY} ngày dù {L['gan']} camp đang gần đạt — kẹt nhiều nhất ở '{kt[0][0]}' ({kt[0][1]} camp). Xem lại ngưỡng điều kiện này.")
+                dx.append(DX("Xem lại ngưỡng", f"không chạm lần nào; {L['gan']} camp gần đạt.", f"xét lại ngưỡng '{kt[0][0]}' ({kt[0][1]} camp kẹt ở đó)."))
         out[m] = {"ten": L.get("ten") or {"dau_phien": "Lãi đầu phiên", "dung_dem": "Dừng đêm", "d24": "D24 · dừng > 24 giờ"}.get(m, m), "mo_ta": L.get("mo_ta"), "dk": L.get("dk", []),
                   "dung": L.get("dung", False), "so": so_, "de_xuat": dx}
     if "--in" in sys.argv: print(json.dumps(out, ensure_ascii=False, indent=1)); return

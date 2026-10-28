@@ -1,6 +1,6 @@
 {
   "_ve": "SỔ NỀN ĐĂNG — MỘT NGUỒN cho mọi đường đăng bài (anh 28/10/2026: 'không được tách ra lắm phiên bản đăng bài… lưu vào luật để không phải sinh lại'). Đọc bởi: puzzle-books scripts/nhip-an-toan.mjs (trần, loại nền → hopNen, máy đăng dang-may + dang-short) mos2 apps/cty/worker/cham-dang.mjs (kho theo loại nền) và apps/web/src/lib/ke-hoach-dang-goc.ts (DUONG_DANG — trang Kế hoạch, ô 'cần dựng'). Thêm nền = MỘT dòng ở đây + MỘT hàm trong puzzle-books scripts/dang-br.mjs (bảng DANG của dang-may.mjs) hoặc một đường API trên box3 + một mục kênh trong xv_may.dang. CẤM viết script / playbook đăng riêng.",
-  "_truong": "loai: video | anh | link | poll | bai (khớp loại dòng studio, nhip-an-toan hopNen) · tran: trần bài/ngày theo 3 mốc tuổi kênh · duong: br (trình duyệt, dang-br.mjs) | api (box3) | br+api · dieu_phoi: dang-may (máy chung) | dang-short (máy Front Porch đăng youtube/facebook/instagram/tiktok của chính nó qua dang-short.mjs — cùng lõi dang-br, cùng nhip-an-toan) | pin-hang (ghim hẹn giờ Front Porch) · ham: tên hàm trong dang-br.mjs / đường API · ho: họ nền (kế hoạch tuần) · ten: tên hiện ở trang Kế hoạch · co: đã có đường đăng chạy được (false = 'cần dựng', máy không đăng)",
+  "_truong": "loai: video | anh | link | poll | bai (khớp loại dòng studio, nhip-an-toan hopNen) · tran: trần bài/ngày theo 3 mốc tuổi kênh · duong: br (trình duyệt, dang-br.mjs) | api (box3) | br+api · dieu_phoi: dang-may (máy chung) | dang-short (máy Front Porch đăng youtube/facebook/instagram/tiktok của chính nó qua dang-short.mjs — cùng lõi dang-br, cùng nhip-an-toan) | pin-hang (ghim hẹn giờ Front Porch) · ham: tên hàm trong dang-br.mjs / đường API · ho: họ nền (kế hoạch tuần) · ten: tên hiện ở trang Kế hoạch · co: đã có đường đăng chạy được (false = 'cần dựng', máy không đăng) · anh_toi_thieu: số ảnh tối thiểu của dòng (carousel 2)",
   "nen": {
     "youtube": {
       "loai": "video",
@@ -217,8 +217,15 @@
       "ho": "instagram",
       "ten": "Instagram carousel",
       "co": false,
-      "dieu_phoi": null,
-      "ham": "chưa dựng (bước 4)"
+      "dieu_phoi": "dang-may",
+      "ham": "dangInstagram (mảng ảnh) — chưa chạy thật: chờ MacBook (IG Front Porch #508)",
+      "tran": [
+        1,
+        1,
+        2
+      ],
+      "duong": "br",
+      "anh_toi_thieu": 2
     },
     "ig_story_poll": {
       "loai": "poll",
@@ -234,7 +241,7 @@
       "ten": "TikTok bài ảnh trượt",
       "co": false,
       "dieu_phoi": null,
-      "ham": "chưa dựng (bước 4)"
+      "ham": "tạm bỏ (anh 28/10/2026)"
     }
   }
 }

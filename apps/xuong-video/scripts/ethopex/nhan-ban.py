@@ -173,13 +173,14 @@ def _cau_hinh(khoa, mac):   # một sổ với luat-ethopex.py: etp.cau_hinh tha
 THANG_BO = [str(x) for x in _cau_hinh("thang_bo", ["2"])]
 THANG_MUC = {float(x) for x in _cau_hinh("thang_muc", [1, 3, 7, 15, 30]) if float(x) > 1}   # bậc mở bản mới (trừ bậc đầu $1)
 ROAS_MIN, ROAS_MAX = 1.0, 1.4
-def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None):
+def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
     — anh 22/10/2026 "camp cùng phim thì chủ động thêm góc khác"; trước đó phải đi br form (dung-camp.sh)."""
     d = api(f"/api/v1/campaigns/{goc_id}"); c = d["campaign"]; g = (d.get("ad_groups") or [{}])[0]; a = (g.get("ads") or [{}])[0]
     # ROAS: chọn theo số all time, camp gốc tắt rồi vẫn dùng được bài đăng. moi (--creative): camp gốc chỉ là KHUÔN cấu hình (Ad Set, pixel, nước, ngôn ngữ),
     # creative thay hẳn → khuôn tạm dừng vẫn dùng được (26/10/2026: khuôn #65110 / #65734 bị tắt vì creative QC spy → mọi lượt lên camp mới gãy "camp gốc đang PAUSED")
-    if c.get("state") != "ACTIVE" and not roas and not moi: raise ValueError(f"camp gốc đang {c.get('state')}")
+    # ep (sang bộ khác theo lệnh anh, 28/10/2026 "lên bộ 3 như bộ 1"): camp thắng bộ 1 đã bị luật chấm tắt vẫn là khuôn + bài đăng dùng được
+    if c.get("state") != "ACTIVE" and not roas and not moi and not ep: raise ValueError(f"camp gốc đang {c.get('state')}")
     if len(d.get("ad_groups") or []) != 1 or len(g.get("ads") or []) != 1: raise ValueError("camp gốc không đúng khuôn 1 nhóm 1 ad")
     if roas:
         # mức ROAS ĐẦU tên (anh 26/10/2026 "đặt thêm chỉ số ROAS vào tên camp để kiểm tra cho tiện" — bảng Ethopex cắt mất đuôi); đuôi "roas X duplicate by <gốc>" giữ cho máy đọc
@@ -239,7 +240,7 @@ def main(a):
     lay = lambda k, md=None: next((a[i + 1] for i, x in enumerate(a[:-1]) if x == k), md)
     lich, luat, ai = lay("--lich", "tomorrow"), lay("--luat"), lay("--ai")
     moi = {"creative": int(lay("--creative")), "content": int(lay("--content")), "ten": lay("--ten")} if lay("--creative") else None
-    ep = "--ep" in a and bool(lay("--bo"))   # clone sang bộ khác theo lệnh anh — xem docstring
+    ep = "--ep" in a and bool(lay("--bo")); mien_cham = "--mien-cham" in a   # clone sang bộ khác theo lệnh anh — xem docstring
     bo = lay("--bo"); thang = float(lay("--thang")) if lay("--thang") else None
     if thang and (moi or thang not in THANG_MUC): raise SystemExit(f"--thang phải là một trong {sorted(THANG_MUC)} và không đi kèm --creative")
     if moi and not (moi["content"] and moi["ten"]): raise SystemExit("--creative cần kèm --content và --ten")
@@ -250,7 +251,7 @@ def main(a):
         return roas_main(goc, roas, int(float(lay("--ns", "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a)
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None}
     try:
-        d, ten, cid, pl = payload(goc, lich, moi, bo, thang); kq["ten"] = ten; bo = pl.pop("bo")
+        d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep); kq["ten"] = ten; bo = pl.pop("bo")
         ly = (None if ep else chan_bo(cid, bo)) or (None if moi or ep else q(f"select etp.bo_chan_mo('{bo}')"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (migration 0339, anh 26/10/2026)
         if ly: raise ChanLuat(ly)
         if moi: kq["viec"] = "tao_camp"
@@ -296,6 +297,7 @@ def main(a):
             ad0["creative_id"] = khac; kq["doi_creative"] = {"tu": cr, "sang": khac}
         kq["content"], kq["creative"] = cid, ad0["creative_id"]   # nhật ký mang phim + creative → dem_dang_chay đếm được camp vừa tạo chưa vào kho
         ly = cham_sach(ad0["creative_id"])   # cổng chấm: creative cuối cùng phải SẠCH
+        if ly and ep and mien_cham: kq["mien_cham"] = ly; ly = None   # --mien-cham chỉ đi cùng --ep (lệnh đích danh của anh)
         if ly: raise ChanLuat(ly)
         kq["phim_dang_chay"] = n
         ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None)
@@ -311,6 +313,7 @@ def main(a):
             time.sleep(5); c = api(f"/api/v1/campaigns/{moi}")["campaign"]
             if c.get("sync_status") in ("done", "synced") or c.get("error"): break
         kq.update(ok=not c.get("error"), moi=moi, dong_bo=c.get("sync_status"), loi=c.get("error") or None, bo=bo, ns=c.get("budget_daily"))
+        if mien_cham and ep: q(f"update etp.cau_hinh set gia_tri = gia_tri || to_jsonb({int(moi)}), luc = now() where khoa = 'cham_mien' and not gia_tri @> to_jsonb({int(moi)})")
         if thang and kq["ok"] and float(c.get("budget_daily") or 0) != thang:   # Ethopex không nhận ngân sách lúc tạo → đặt lại ngay (camp mới chưa học gì)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(thang)}}}); time.sleep(8)
             kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")

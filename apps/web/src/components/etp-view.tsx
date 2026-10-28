@@ -920,7 +920,7 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
       {noiV.v ? (() => { const x = crTheoId.get(noiV.v.cr); if (!x) return null; const d = daiCr(noiV.v.cr), bd = laCta && d > 8 ? d - 6 : 0;
         return <KhungNoi x={noiV.v.x} y={noiV.v.y} rong={300} cao={560} noi={noiV} style={{ width: 300, padding: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
           <div style={{ fontSize: 12, paddingRight: 26 }}><b>cr #{x.creative_id}</b> · {x.phim ?? ''} <span style={{ color: 'var(--fg-2)' }}>· {giaTri(x.creative_id, k)}{laCta ? ' · đang xem 6 giây cuối' : ''}</span></div>
-          {x.video ? <video key={`${x.video}#${bd}`} src={`${x.video}#t=${bd.toFixed(1)}`} autoPlay muted loop playsInline controls style={{ width: '100%', height: 500, objectFit: 'contain', background: '#000', borderRadius: 6 }} />
+          {x.video ? <video key={`${x.video}#${bd}`} src={`${x.video}#t=${bd.toFixed(1)}`} autoPlay muted loop playsInline controls={!laCta} style={{ width: '100%', height: 500, objectFit: 'contain', background: '#000', borderRadius: 6 }} />
             : x.anh ? <img src={x.anh} alt="" style={{ width: '100%', borderRadius: 6 }} /> : null}
         </KhungNoi>; })() : null}
     </div>

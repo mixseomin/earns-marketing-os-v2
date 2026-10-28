@@ -1119,7 +1119,8 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   // (tiện ích riêng mỗi người, đọc sau khi gắn trang để không lệch hydrate; hỏng / bị chặn thì coi như gập hết)
   const [moCay, setMoCay] = useState<Set<string>>(new Set());
   useEffect(() => { try { setMoCay(new Set(JSON.parse(localStorage.getItem('etp-cay-mo') ?? '[]') as string[])); } catch { /* không có localStorage */ } }, []);
-  const doiMo = (k: string, mo: boolean) => setMoCay((cu) => { if (cu.has(k) === mo) return cu; const n = new Set(cu); if (mo) n.add(k); else n.delete(k);
+  // ks: nhiều khoá một lần — MỞ PHIM = MỞ HẾT CÁC TẦNG CAMP BÊN TRONG (anh 28/10/2026 "khi mở thì mở hết các level camp ra luôn"); gập phim chỉ gập phim
+  const doiMo = (k: string | string[], mo: boolean) => setMoCay((cu) => { const ks = Array.isArray(k) ? k : [k]; if (ks.every((x) => cu.has(x) === mo)) return cu; const n = new Set(cu); for (const x of ks) { if (mo) n.add(x); else n.delete(x); }
     try { localStorage.setItem('etp-cay-mo', JSON.stringify([...n])); } catch { /* bỏ qua */ } return n; });
   const tuoi = (c: CampEtpKho) => tuoiNgay(c.tao);
   const ngay = [6, 5, 4, 3, 2, 1].map((k) => new Date(Date.parse(du.nay) - k * 86_400_000).toISOString().slice(0, 10));
@@ -1217,7 +1218,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }} title={`lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`}>lãi {tenKy.toLowerCase()}</span>
       </div>
       {phim.map((p) => (
-        <details key={p.k} open={moCay.has(`p${p.k}`)} onToggle={(e) => doiMo(`p${p.k}`, e.currentTarget.open)} style={{ borderTop: '1px solid var(--line)' }}>
+        <details key={p.k} open={moCay.has(`p${p.k}`)} onToggle={(e) => { const mo = e.currentTarget.open; doiMo(mo ? [`p${p.k}`, ...p.all.filter((c) => con.m.has(c.camp_id)).map((c) => `c${c.camp_id}`)] : `p${p.k}`, mo); }} style={{ borderTop: '1px solid var(--line)' }}>
           <summary className="dong-phim" onClick={(e) => { if (!hep || !moPhim || !(e.target as HTMLElement).closest('[data-cot^="roi-"],[data-cot="lai"]')) return; e.preventDefault(); moPhim(p.k); }} style={{ cursor: 'pointer', padding: '6px 0', fontSize: 13, display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, rowGap: 2, alignItems: 'center' }}>
             {/* điện thoại (anh 27/10/2026 "đéo đọc được tên phim"): tên phim một dòng riêng trọn bề ngang, không cắt …; dòng dưới là số camp + ký hiệu + cột số */}
             {hep ? <span style={{ gridColumn: '1 / -1', display: 'flex', gap: 6, minWidth: 0, alignItems: 'flex-start' }}><span className="mui">▸</span><b style={{ whiteSpace: 'normal', lineHeight: 1.3 }}>{p.all[0]?.phim ?? `#${p.k}`}</b>

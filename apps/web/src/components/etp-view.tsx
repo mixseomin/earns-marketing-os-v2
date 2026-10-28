@@ -559,8 +559,8 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
     ({ key, header, group, title, cell: (l) => { const v = get(l); return kieu === 'tien' ? <T v={v} /> : kieu === 'roi' ? <RoiSo r={v} /> : kieu === 'pct' ? <N v={v == null ? null : Math.round(v)} /> : <N v={v} />; }, sortValue: (l) => so(get(l)) });
   const lai = (l: SoLuat) => (l.so.lai_ngay_sau != null && l.so.lai_ngay_truoc != null ? Math.round((l.so.lai_ngay_sau - l.so.lai_ngay_truoc) * 100) / 100 : null);
   const cotDau: DataColumn<SoLuat>[] = [
-    { key: 'ten', header: 'Luật', align: 'left', width: 230, cell: (l) => <span title={`${l.mo_ta ?? ''}\n\nĐiều kiện đang chạy:\n${l.dk.map(([t, n]) => `· ${t} ${n}`).join('\n')}`} style={{ cursor: 'help' }}>
-      <b>{l.ten}</b>{l.dung ? <span style={{ color: MO }}> · tạm dừng</span> : null}<div style={{ fontSize: 10.5, color: 'var(--fg-2)', whiteSpace: 'normal', lineHeight: 1.35 }}>{l.dk.map(([t, n]) => `${t} ${n}`).join(' · ')}</div></span>, sortValue: (l) => l.ten },
+    { key: 'ten', header: 'Luật', align: 'left', width: 220, cell: (l) => <span title={`${l.mo_ta ?? ''}\n\nĐiều kiện đang chạy:\n${l.dk.map(([t, n]) => `· ${t} ${n}`).join('\n')}`} style={{ cursor: 'help' }}>
+      <b style={{ textDecoration: 'underline dotted' }}>{l.ten}</b>{l.dung ? <span style={{ color: MO }}> · tạm dừng</span> : null}</span>, sortValue: (l) => l.ten },
     c('lan', 'Lần làm', '14', (l) => l.so.lan, 'so', 'số lần máy luật đã làm trong 14 ngày'), c('camp', 'Camp', '14', (l) => l.so.camp, 'so', 'số camp khác nhau'),
     c('do', 'Đo được', '14', (l) => l.so.do_duoc, 'so', 'số lần có đủ ngày trước + sau để đo (lần mới làm hôm nay / hôm qua chưa có ngày sau)'),
   ];
@@ -587,7 +587,7 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
     c('dat', 'Đạt', 'nay', (l) => l.so.dang?.dat, 'so', 'camp đang đủ mọi điều kiện (lượt xét mới nhất)'), c('gan', 'Gần đạt', 'nay', (l) => l.so.dang?.gan, 'so', 'camp còn thiếu đúng một điều kiện'),
     { key: 'ket', header: 'Hay kẹt ở', group: 'nay', align: 'left', width: 150, title: 'điều kiện camp gần đạt hay thiếu nhất', cell: (l) => (l.so.ket_o?.[0] ? <span style={{ fontSize: 11 }}>{l.so.ket_o[0][0]} <span style={{ color: MO }}>({l.so.ket_o[0][1]})</span></span> : <span style={{ color: MO }}>—</span>), sortValue: (l) => l.so.ket_o?.[0]?.[1] ?? 0 },
   ];
-  const cotDx: DataColumn<SoLuat> = { key: 'dx', header: 'Đề xuất', align: 'left', width: 420, cell: (l) => (l.de_xuat.length ? <div style={{ whiteSpace: 'normal', fontSize: 11.5, lineHeight: 1.4 }}>{l.de_xuat.map((x, i) => <div key={i} style={{ paddingLeft: 6, borderLeft: '2px solid #f59e0b', marginBottom: 3 }}>{x}</div>)}</div> : <span style={{ color: MO, fontSize: 11 }}>chưa đủ số (cần ≥ 10 lần đo)</span>), sortValue: (l) => l.de_xuat.length };
+  const cotDx: DataColumn<SoLuat> = { key: 'dx', header: 'Đề xuất', align: 'left', width: 520, title: 'rê vào đọc đủ mọi đề xuất', cell: (l) => (l.de_xuat.length ? <span title={l.de_xuat.join('\n\n')} style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 11.5, paddingLeft: 6, borderLeft: '2px solid #f59e0b', cursor: 'help' }}>{l.de_xuat[l.de_xuat.length > 1 && /^Clone ra:|^Sau khi tăng, lãi mỗi camp mỗi ngày \$.*giữ\.$/.test(l.de_xuat[0]!) ? 1 : 0]}{l.de_xuat.length > 1 ? <span style={{ color: MO }}> · +{l.de_xuat.length - 1}</span> : null}</span> : <span style={{ color: MO, fontSize: 11 }}>chưa đủ số (cần ≥ 10 lần đo)</span>), sortValue: (l) => l.de_xuat.length };
   const cot = [...cotDau, ...(nhom === 'tat' ? cotTat : nhom === 'tang' ? [...cotSau, ...cotNb] : cotSau), ...cotNay, cotDx];
   const NHOM_COT = [{ key: '14', label: '14 ngày qua', color: '#94a3b8' }, { key: 'kq', label: '2 ngày trước → 2 ngày sau khi máy làm', color: '#22d3ee' }, { key: 'nb', label: 'Bản nhân bản (từ lúc lên)', color: '#a78bfa' },
     { key: 'tat', label: 'Camp bị tắt', color: '#f87171' }, { key: 'nay', label: 'Bây giờ', color: '#fbbf24' }];

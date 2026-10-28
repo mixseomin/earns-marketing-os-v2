@@ -851,7 +851,8 @@ const DIEM_CHAM: { k: string; ten: string; nhom: string; xo?: (v: number) => str
 const NHAN_DC: Record<string, [string, string]> = {
   'cta.mau=v2': ['CTA mới (từ 22/10)', 'nút đỏ "WATCH FREE · LEARN MORE" (ES "MÍRALA GRATIS · MÁS INFORMACIÓN"), thẻ cuối poster + "WHAT HAPPENS NEXT?", KHÔNG mũi tên, giọng đọc không chữ "Tap" — theo luật Support 22/10'],
   'cta.mau=cu': ['CTA cũ (trước 22/10)', 'nút "WATCH FREE · TAP LEARN MORE" + 2 mũi tên vàng chỉ xuống nút + giọng đọc có chữ "Tap" — Support đã CẤM, không dựng lại được'],
-  'cta.nut_mau=do': ['Nút đỏ', 'nút CTA nền đỏ'], 'cta.nut_kieu=nhun_nhe': ['Nhún nhẹ từ giây 3', 'nút hiện từ giây 3, nhún nhẹ tới hết video'],
+  'cta.nut_mau=do': ['Nút đỏ', 'nút CTA nền đỏ'], 'cta.nut_mau=xanh': ['Nút xanh lá', 'bản thử: nút CTA nền xanh lá, chữ + viền vàng giữ nguyên'],
+  'cta.the_cuoi=khung_cuoi+hoi_vang': ['Khung cuối cảnh + câu hỏi vàng', 'bản thử: thẻ cuối là khung treo cuối cảnh phim thay poster, giữ dải tối + "WHAT HAPPENS NEXT?"'], 'cta.nut_kieu=nhun_nhe': ['Nhún nhẹ từ giây 3', 'nút hiện từ giây 3, nhún nhẹ tới hết video'],
   'cta.the_cuoi=poster_sach+hoi_vang': ['Poster + câu hỏi vàng', 'thẻ cuối = poster sạch của phim + dòng vàng "WHAT HAPPENS NEXT?"'],
   'voice.giong_cta=george_v2': ['Giọng George (EN)', 'giọng nam ElevenLabs đọc câu CTA, bản không "Tap"'], 'voice.giong_cta=aria_v2': ['Giọng Aria (ES)', 'giọng nữ ElevenLabs đọc câu CTA tiếng Tây Ban Nha, bản không "Toca"'],
   'voice.thoai=goc': ['Thoại gốc phim', 'giữ nguyên tiếng thoại của phim'], 'chu_video.bo_cuc=giu_bo_cuc_app_goc': ['Giữ bố cục app gốc', 'tên phim trên đầu, phụ đề giữa, tóm tắt dưới đáy như QC của app'],
@@ -950,6 +951,21 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
             {d.truPhim ? null : <div style={{ fontSize: 11, color: 'var(--fg-3, #777)', marginTop: 2 }}>phần lớn phim chỉ có một giá trị này → không trừ phim được, phân xử bằng ROI (còn lẫn ảnh hưởng của phim)</div>}
             <div style={{ fontSize: 12.5, marginTop: 3 }}><b style={{ color: kl.chac ? '#4ade80' : '#f59e0b' }}>{kl.chac ? '✓ chắc' : '◌ chưa chắc'}</b> · {kl.chu}
               {kl.chac ? null : <span style={{ color: 'var(--fg-3, #777)' }}> — cần thêm mẫu (mỗi bản ≥ 5 creative, ≥ 100 nhấp, chi ≥ $30) hoặc chênh chưa đủ lớn</span>}</div>
+          </div>
+          {/* HÌNH ĐẠI DIỆN MỖI BẢN (anh 28/10/2026 "phải có hình đại diện mỗi loại test để so sánh ngay"): creative chi nhiều nhất của từng bản, đặt cạnh nhau —
+              CTA: khung cuối (nút + thẻ cuối) · còn lại: ảnh đầu; dưới ảnh = số chốt; bản thắng viền xanh; rê vào xem video */}
+          <div style={{ display: 'flex', gap: 12, padding: '10px 12px', overflowX: 'auto', borderTop: '1px solid var(--line)' }}>
+            {d.rs.map((r) => { const cr = r.mau[0]?.cr, x = cr ? crTheoId.get(cr) : undefined, cta = d.k.startsWith('cta.'), dai = cr ? daiCr(cr) : 0, thang = r === kl.best, la = r === base;
+              return <div key={r.v} style={{ flex: 'none', width: 132, border: `2px solid ${thang ? '#4ade80' : 'var(--line)'}`, borderRadius: 8, overflow: 'hidden', background: 'var(--bg-1, #111)' }}>
+                <div onMouseEnter={cr ? (e) => noiV.mo({ cr, k: d.k }, e) : undefined} onMouseLeave={noiV.dongTre} style={{ width: '100%', aspectRatio: '9 / 16', background: '#000', cursor: cr ? 'zoom-in' : undefined }}>
+                  {x ? (cta && x.video && dai > 2 ? <video src={`${x.video}#t=${(dai - 1.2).toFixed(1)}`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    : x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null) : null}</div>
+                <div style={{ padding: '5px 7px', fontSize: 11, lineHeight: 1.35 }}>
+                  <div style={{ fontWeight: 700, fontSize: 12 }}>{nhan(d.k, r.v)}</div>
+                  <div style={{ color: la ? 'var(--fg-2)' : thang ? '#4ade80' : 'var(--fg-3, #777)' }}>{la ? 'đối chứng' : thang ? 'thắng' : ' '}</div>
+                  <div>ROI <Roi s={r} />{d.truPhim && lp(r) != null ? <span style={{ color: (lp(r) ?? 0) >= 0 ? '#4ade80' : '#f87171' }}> · {dLech(lp(r), 0, '')} phim</span> : null}</div>
+                  <div style={{ color: 'var(--fg-2)' }}>CTR {pc(ctr(r))} · {r.cr} cr</div>
+                </div></div>; })}
           </div>
           <div style={{ overflowX: 'auto' }}><table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12 }}>
             <thead><tr style={{ color: 'var(--fg-3, #777)', fontSize: 10.5 }}>{['Bản', 'Mẫu nhìn', 'Creative', 'Chi', 'ROI', '± phim', 'Δ ± phim', 'CTR', 'Δ CTR', 'S CVR', 'Δ S CVR', 'Mẫu'].map((h, i) => <th key={h} style={{ ...o, textAlign: i < 2 ? 'left' : 'right', fontWeight: 500 }}>{h}</th>)}</tr></thead>

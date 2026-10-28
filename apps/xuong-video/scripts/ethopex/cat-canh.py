@@ -36,7 +36,12 @@ def dung(nguon, tu, den, poster, cfg, cta, out, giong=None, hoi="WHAT HAPPENS NE
     for chu in (cta, hoi):
         if CQ.sai_luat(chu): raise SystemExit(f"CTA CHAN: chữ '{chu}' dính '{CQ.sai_luat(chu)}' — luật CTA (cta_qc.py): không Tap/Click/Toca, không mũi tên")
     tmp = os.path.splitext(out)[0]; cta, hoi = [x.replace("\n", " ") for x in gb.chu_studio(cta, hoi)]
-    gb.lop_nut(cta, cfg, tmp + "-nut.png"); the_cuoi_anh(poster, hoi, tmp + "-the-cuoi.png")
+    # BIẾN THỂ ĐO ĐIỂM CHẠM (anh 28/10/2026): ETP_NUT_MAU = do | xanh · ETP_THE_CUOI = poster | canh (khung cuối cảnh phim thay poster) — cat-cuoi-lo ghi vào lo.json, diem_cham.py ghi sổ
+    the = os.environ.get("ETP_THE_CUOI", "poster")
+    if the == "canh":   # khung ngay trước cú cắt (cảnh treo) làm nền thẻ cuối, cùng dải tối + câu hỏi vàng
+        gx.sh("ffmpeg", "-v", "error", "-y", "-ss", f"{max(0.0, den - 0.15)}", "-i", nguon, "-frames:v", "1", "-vf", f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H}", tmp + "-khung-cuoi.png")
+        poster = tmp + "-khung-cuoi.png"
+    gb.lop_nut(cta, cfg, tmp + "-nut.png", os.environ.get("ETP_NUT_MAU", "do")); the_cuoi_anh(poster, hoi, tmp + "-the-cuoi.png")
     try: _dung1(nguon, tu, den, tmp, cta, out, giong)
     except gx.Treo as e:
         # TREO (25/10/2026, phim 166083 đoạn 477: ffmpeg 9 kẹt sch_wait 0% CPU, 3 lần): người gác giết rồi dựng lại HAI LƯỢT —

@@ -23,7 +23,9 @@ def ban(x, dang, chu_qc, CQ):
         "noi_dung": {"content_id": x.get("content_id"), "giay": x.get("giay") or round(den - tu, 1), "lang": lang},
         "voice": {"thoai": "goc", "giong_cta": GIONG.get(lang), "cau_cta": c.get("loi_giong")},
         "chu_video": {"bo_cuc": BO_CUC, "phu_de": "goc"},
-        "cta": {"mau": MAU_CTA, "nut_chu": c.get("nut"), "hoi": c.get("hoi"), **NUT, **THE_CUOI},
+        "cta": {"mau": MAU_CTA, "nut_chu": c.get("nut"), "hoi": c.get("hoi"), **NUT, **THE_CUOI,
+                **({"nut_mau": (x.get("bien") or {}).get("nut_mau")} if (x.get("bien") or {}).get("nut_mau") else {}),
+                **({"the_cuoi": "khung_cuoi+hoi_vang"} if (x.get("bien") or {}).get("the_cuoi") == "canh" else {})},   # biến thể lúc cắt (cat-cuoi-lo → lo.json "bien")
         "anh_dau": {"khung": "giay_2"},                                            # len-creative.py: ảnh đầu = khung giây 2
         "chu_qc": {"so_cau": len((chu_qc or {}).get("primaryTexts") or []), "cau_1": ((chu_qc or {}).get("primaryTexts") or [None])[0],
                    "headline": ((chu_qc or {}).get("headlines") or [None])[0], "mo_ta": ((chu_qc or {}).get("descriptions") or [None])[0]},

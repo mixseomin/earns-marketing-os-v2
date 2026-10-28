@@ -57,7 +57,9 @@ def chu_studio(*cau):
                    check=True, cwd=os.path.join(goc, "apps/xuong-video"), env={**os.environ, "NODE_OPTIONS": "--conditions=react-server"}, capture_output=True)
     return [r["chu"] for r in json.load(open(o.name))]
 
-def lop_nut(cta, cfg, ra):
+# mau: biến thể màu nút để đo điểm chạm (anh 28/10/2026) — 'do' mặc định (đỏ chuyển sắc), 'xanh' xanh lá chuyển sắc; viền vàng + chữ trắng giữ nguyên
+NUT_MAU = {'do': ((235, 40, 45), (90, 25, 25), (90, 0, 0)), 'xanh': ((40, 190, 90), (25, 95, 45), (0, 60, 20))}
+def lop_nut(cta, cfg, ra, mau='do'):
     im = Image.new("RGBA", (W, 300), (0, 0, 0, 0)); d = ImageDraw.Draw(im); fs = 54
     while fs > 32 and d.textlength(cta, font=gx.font_poster(cfg, fs, True)[0]) > W - 260: fs -= 2
     fc = gx.font_poster(cfg, fs, True)[0]; rong = d.textlength(cta, font=fc)
@@ -65,13 +67,14 @@ def lop_nut(cta, cfg, ra):
     bong = Image.new("RGBA", im.size, (0, 0, 0, 0)); ImageDraw.Draw(bong).rounded_rectangle([x0 + 6, y0 + 12, x1 + 6, y1 + 12], radius=r, fill=(0, 0, 0, 170))
     im.alpha_composite(bong.filter(ImageFilter.GaussianBlur(10)))
     nen = Image.new("RGBA", im.size, (0, 0, 0, 0)); dn = ImageDraw.Draw(nen)
-    for i in range(y1 - y0):   # đỏ chuyển sắc: trên sáng, dưới thẫm
-        t = i / (y1 - y0); dn.line([(x0, y0 + i), (x1, y0 + i)], fill=(int(235 - 90 * t), int(40 - 25 * t), int(45 - 25 * t), 255))
+    (r0, g0, b0), (dr, dg, db), vien_chu = NUT_MAU.get(mau, NUT_MAU['do'])
+    for i in range(y1 - y0):   # chuyển sắc: trên sáng, dưới thẫm
+        t = i / (y1 - y0); dn.line([(x0, y0 + i), (x1, y0 + i)], fill=(int(r0 - dr * t), int(g0 - dg * t), int(b0 - db * t), 255))
     m = Image.new("L", im.size, 0); ImageDraw.Draw(m).rounded_rectangle([x0, y0, x1, y1], radius=r, fill=255); nen.putalpha(m)
     im.alpha_composite(nen); d = ImageDraw.Draw(im)
     d.rounded_rectangle([x0, y0, x1, y1], radius=r, outline=(250, 205, 90, 255), width=6)
     d.rounded_rectangle([x0 + 18, y0 + 8, x1 - 18, y0 + int((y1 - y0) * 0.42)], radius=r // 2, fill=(255, 255, 255, 40))   # bóng kính
-    d.text(((W - rong) / 2, y0 + 28), cta, font=fc, fill=(255, 255, 255), stroke_width=2, stroke_fill=(90, 0, 0))
+    d.text(((W - rong) / 2, y0 + 28), cta, font=fc, fill=(255, 255, 255), stroke_width=2, stroke_fill=vien_chu)
     im.save(ra)
 
 def dung(doan, nhac, ten, cta, cfg, out):

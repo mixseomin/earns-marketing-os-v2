@@ -92,7 +92,8 @@ def cat1(cid, loc, ten, src, moc, pst, tu, den, ra_dir):
         if r.returncode != 0: return {"content_id": int(cid), "ten": ten, "loi": (r.stdout + r.stderr)[-300:]}
         g = DL.giay(ra)
         if g < (den - tu) * (0.5 if KIEU == "tap" else 1) - (1 if KIEU == "tap" else 0): return {"content_id": int(cid), "ten": ten, "loi": f"đoạn ra {g:.1f}s ngắn hơn khung {den - tu:.0f}s"}   # tập nguyên: không thẻ cuối + có thể đã bỏ giây cấm
-        return {"content_id": int(cid), "lang": loc, "ten": ten, "tu": tu, "den": den, "het_tap": len(moc), "moc_tap": moc, "file": ra, "giay": round(DL.giay(ra), 1)}
+        bien = {"nut_mau": os.environ.get("ETP_NUT_MAU", "do"), "the_cuoi": os.environ.get("ETP_THE_CUOI", "poster")}   # biến thể đo điểm chạm (cat-canh.py) → sổ diem_cham
+        return {"content_id": int(cid), "lang": loc, "ten": ten, "tu": tu, "den": den, "het_tap": len(moc), "moc_tap": moc, "file": ra, "giay": round(DL.giay(ra), 1), "bien": bien}
     except Exception as e:
         return {"content_id": int(cid), "ten": ten, "loi": str(e)[-300:]}
 

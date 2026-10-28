@@ -916,7 +916,7 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
       const ls = rs.map(diem).filter((x): x is number => x != null);
       return { ...d, rs, truPhim, diem, lech: ls.length > 1 ? Math.max(...ls) - Math.min(...ls) : 0, trung: null as string | null }; });
     for (const a of ds) { if (a.rs.length < 2) continue;
-      for (const b of ds) { if (b === a || b.rs.length < 2 || b.trung || DIEM_CHAM.indexOf(b) > DIEM_CHAM.indexOf(a)) continue;
+      for (const b of ds) { if (b === a || b.rs.length < 2 || b.trung || ds.indexOf(b) > ds.indexOf(a)) continue;   // giữ điểm chạm đứng TRƯỚC (gốc hơn: ngôn ngữ trước giọng CTA)
         const cap = new Set<string>(), va = new Set<string>(), vb = new Set<string>(); let n = 0;
         for (const cr of crs) { const x = giaTri(cr, a.k), y = giaTri(cr, b.k); if (x === '(chưa ghi)' || y === '(chưa ghi)') continue; cap.add(`${x}|${y}`); va.add(x); vb.add(y); n++; }
         if (n > 10 && cap.size === va.size && cap.size === vb.size) { a.trung = b.ten; break; } } }

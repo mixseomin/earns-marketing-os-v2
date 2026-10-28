@@ -438,18 +438,12 @@ function dauBac(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao
 function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao'>; bao?: { nhom: string; chu: string }[]; ls?: DuLieuEtp['lsBac'][number] }) {
   // thẻ nổi theo KHUÔN CHUNG của trang (useNoi + KhungNoi: trễ mở, ✕ + Esc, giữ khi rê vào) — trước dùng AnchoredPopover riêng: mở ngay, không ✕, rời chuột không tắt
   const noi = useNoi<{ id: 0 }>();
-  const { d, t, bac, r, du, dau, gan } = dauBac(c, bao);
-  const W = 46, x = r == null ? null : ((Math.max(-50, Math.min(100, r)) + 50) / 150) * W, x0 = (45 / 150) * W, x50 = (100 / 150) * W;
+  const { d, t, bac } = dauBac(c, bao);
   return (
     <span aria-label={t} onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', cursor: 'help' }}>
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={400} cao={420} noi={noi}><TheBac ls={ls ?? []} d={d} /></KhungNoi> : null}
       <span style={{ fontVariantNumeric: 'tabular-nums', color: `rgba(103,232,249,${(0.35 + 0.65 * (bac / (BAC_NS.length - 1))).toFixed(2)})`, fontWeight: bac >= 4 ? 700 : 500, width: 30, flex: 'none', textAlign: 'right' }}>${c.ngan_sach}</span>{/* bậc càng cao chữ càng sáng (anh 26/10/2026) */}
-      <span style={{ position: 'relative', width: W, height: 8, borderRadius: 4, overflow: 'hidden', background: 'rgba(148,163,184,.25)', flex: 'none' }}>
-        <span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: x0, background: 'rgba(239,68,68,.45)' }} />
-        <span style={{ position: 'absolute', left: x50, top: 0, bottom: 0, right: 0, background: 'rgba(34,197,94,.45)' }} />
-        {x != null ? <span style={{ position: 'absolute', left: Math.max(0, x - 3), top: 1, width: 6, height: 6, borderRadius: 3, background: du ? '#fff' : 'transparent', border: '1.5px solid #fff', boxSizing: 'border-box' }} /> : null}
-      </span>
-      {/* bỏ dấu luật ↑ ↓ ✕ sau thước (anh 29/10/2026 "ẩn cái này đi. Vướng + khó nhìn") — luật đã có cột Luật riêng; dấu vẫn ở đầu thẻ khi rê */}
+      {/* bỏ thước ROI + dấu luật sau số $ (anh 29/10/2026 "ẩn cái này đi. Vướng + khó nhìn", rồi "bỏ cái này đi cơ mà?" — là cả cái thước): ROI hôm nay đã có cột 'nay', luật có cột Luật */}
     </span>
   );
 }
@@ -1524,7 +1518,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         {l ? <span style={{ color: '#f87171', fontSize: 11 }} title={`nhân bản lỗi ${l.lan} lần / 24h: ${loiThuong(l.loi)}`}>⚠{l.lan}</span> : n ? <span style={{ color: 'var(--fg-2)', fontSize: 11 }} title={`${n} bản nhân`}>x{n}</span> : null}</span>; } },
     { key: 'tt', header: 'Trạng thái', align: 'left', title: 'trạng thái camp trên Ethopex', cell: (c) => { const x = ttCamp(c); return <span title={x.t} style={{ fontSize: 11, color: x.mau }}>{x.chu}</span>; }, sortValue: (c) => ttCamp(c).chu },
     { key: 'tuoi', header: 'Tuổi', title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: (c) => (c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : undefined), cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)) },
-    { key: 'ns', header: 'Ngân sách · ROI nay', align: 'left', loc: 'so', title: 'ngân sách $/ngày · thước ROI hôm nay · dấu máy luật', cell: (c) => <BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach,
+    { key: 'ns', header: 'Ngân sách', align: 'left', loc: 'so', title: 'ngân sách $/ngày — rê xem lịch sử bậc', cell: (c) => <BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach,
       total: (rs) => { const t = rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0);   // $0 mờ · ≥ $20 đậm sáng (anh 28/10/2026)
         return <span title="tổng ngân sách/ngày camp đang bật" style={{ display: 'inline-block', width: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : 400, opacity: t ? 1 : 0.45 }}>${t}</span>; } },   // cùng ô 30px canh phải với $ của camp (anh 29/10/2026 #1476 "thò thụt")
     { key: 'luat', header: 'Luật', align: 'left', width: 96, title: 'thẻ luật đang hiện — lọc chọn nhiều theo đúng chữ trên thẻ', sortValue: (c) => chipCamp(du, c, baoCamp.get(c.camp_id))?.chip ?? '',
@@ -1584,7 +1578,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       <div style={{ position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 2, background: 'var(--bg-0, #0b0b0c)', display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, fontSize: 11, color: 'var(--fg-2)', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
         {hep ? <span>Phim → camp</span> : (
           <span style={{ display: 'grid', gridTemplateColumns: LT, columnGap: 8, alignItems: 'center', paddingLeft: 12, whiteSpace: 'nowrap' }}>
-            <span /><span>Phim → camp gốc → bản nhân</span><span style={{ textAlign: 'right' }} title="tuổi camp tính bằng ngày từ lúc tạo">tuổi</span><span>ngân sách · ROI nay</span><span title="luật camp sắp chạm — chip đặc: máy luật đã xếp làm · viền nét đứt: sắp chạm · rê vào xem điều kiện">luật</span><span>creative · điểm chấm</span><span>loại</span>
+            <span /><span>Phim → camp gốc → bản nhân</span><span style={{ textAlign: 'right' }} title="tuổi camp tính bằng ngày từ lúc tạo">tuổi</span><span>ngân sách</span><span title="luật camp sắp chạm — chip đặc: máy luật đã xếp làm · viền nét đứt: sắp chạm · rê vào xem điều kiện">luật</span><span>creative · điểm chấm</span><span>loại</span>
             {coLich ? <span title="lịch giờ 07h · 08h–12h · 13h–19h · 20h–06h (xanh chạy, đỏ tắt, ⏸ đang dừng theo lịch)">lịch giờ</span> : null}<span />
           </span>)}
         {ngayHien.map((d) => <span key={d} data-cot={`roi-${ngay.indexOf(d)}`} data-cot-can="giua" style={{ textAlign: 'center' }} title={`ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`}>{d.slice(8, 10)}/{d.slice(5, 7)}</span>)}{coQua ? <span data-cot="roi-qua" data-cot-can="giua" style={{ textAlign: 'center' }} title="ROI hôm qua">qua</span> : null}<span data-cot="roi-nay" data-cot-can="giua" style={{ textAlign: 'center', color: '#60a5fa', fontWeight: 600, background: hep ? undefined : 'rgba(59,130,246,.12)', borderRadius: '4px 4px 0 0' }} title="ROI hôm nay">nay</span>

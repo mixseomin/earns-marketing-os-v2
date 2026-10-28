@@ -42,6 +42,8 @@ const LUAT = [
   { card: 0, tep: V, cam: "<span style={{ width: 24, display: 'inline-flex', gap: 2 }}>{dau.slice(0, 2)", vi: 'ô ngân sách không còn dấu luật ↑ ↓ ✕ sau thước (anh 29/10/2026)' },
   { card: 0, tep: V, co: "{ key: 'chi', header: `Chi ${tenKy.toLowerCase()}`", vi: 'bảng Cây có cột tổng chi theo khung thời gian (anh 29/10/2026)' },
   { card: 0, tep: V, cam: "<span style={{ position: 'relative', width: W, height: 8, borderRadius: 4", vi: 'ô ngân sách không còn thước ROI (anh 29/10/2026 "bỏ cái này đi cơ mà?")' },
+  { card: 0, tep: 'packages/bang/src/data-table.tsx', co: 'className="dt-chan"', vi: 'DataTable dòng tổng dính chân màn (anh 29/10/2026)' },
+  { card: 0, tep: 'packages/bang/src/data-table.tsx', co: 'Tổng <span style={{ color: \'var(--fg-3)\', fontWeight: 400 }}>· {shownRows.length} dòng</span>', vi: 'dòng tổng có nhãn Tổng · N dòng' },
   // 28–29/10/2026 — bộ lọc trang Camp (chat): Luật theo đúng thẻ đang hiện, Tuổi, Cây dùng DataTable
   { card: 0, tep: V, mot: 'const chipCamp = (du: DuLieuEtp', vi: 'thẻ luật và bộ lọc Luật cùng một nguồn' },
   { card: 0, tep: V, co: '.filter(hopLuat)', vi: 'bộ lọc Luật áp lên danh sách camp' },

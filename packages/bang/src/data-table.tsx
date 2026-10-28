@@ -533,9 +533,23 @@ export function DataTable<T>({
               })}
             </tr>
   );
+  // DÒNG TỔNG — MỘT cách dựng (anh 29/10/2026 etp "thiếu 1 dòng tổng của table ở dưới chân"): trước nằm cuối thân bảng, không nhãn, phải cuộn hết mới
+  // thấy và trông như một dòng dữ liệu. Giờ ô đầu ghi "Tổng · N dòng" (khi cột đầu không có total riêng) và — bảng cuộn theo trang — dính MÉP DƯỚI
+  // màn như tiêu đề dính mép trên: bảng riêng cùng bề rộng cột đo được, cuộn ngang đồng bộ với thân bảng
+  const hangTong = () => (
+    <tr className="dt-tong" style={{ background: 'var(--bg-2)' }}>
+      {visible.map((c, ci) => (
+        <td key={c.key} style={cellStyle(c, { fontWeight: 700, background: 'var(--bg-2)', color: c.group ? groupMeta.get(c.group)?.color : undefined, ...(ci === 0 && !c.total ? { textAlign: 'left', color: 'var(--fg-1)' } : {}) }, ci)}>
+          {c.total ? c.total(shownRows) : ci === 0 ? <>Tổng <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {shownRows.length} dòng</span></> : null}
+        </td>
+      ))}
+    </tr>
+  );
+  const chanRef = useRef<HTMLDivElement>(null);
   const dongCuon = (tu: 'than' | 'dau') => () => {
     const a = tu === 'than' ? thanRef.current : dauRef.current, b = tu === 'than' ? dauRef.current : thanRef.current;
     if (a && b && Math.abs(b.scrollLeft - a.scrollLeft) > 0.5) b.scrollLeft = a.scrollLeft;
+    if (tu === 'than' && a && chanRef.current) chanRef.current.scrollLeft = a.scrollLeft;
   };
 
   return (
@@ -716,15 +730,7 @@ export function DataTable<T>({
                 {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : anyColFilter ? 'Không dòng nào khớp bộ lọc — sửa/xoá ở thanh lọc trên bảng hoặc nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
               </td></tr>
             )}
-            {hasTotals && sortedRows.length > 0 && (
-              <tr style={{ background: 'var(--bg-2)' }}>
-                {visible.map((c, ci) => (
-                  <td key={c.key} style={cellStyle(c, { fontWeight: 700, color: c.group ? groupMeta.get(c.group)?.color : undefined }, ci)}>
-                    {c.total ? c.total(shownRows) : null}
-                  </td>
-                ))}
-              </tr>
-            )}
+            {hasTotals && sortedRows.length > 0 && !(theoTrang && cotDo.w.length) && hangTong()}
           </tbody>
         </table>
       </div>
@@ -748,9 +754,16 @@ export function DataTable<T>({
           </AnchoredPopover>
         );
       })()}
-      {pager && (theoTrang && effView === 'table'
-        ? <div className="dt-trang" style={{ position: 'sticky', bottom: -leDuoi, zIndex: 6, background: 'var(--bg-0)', boxShadow: '0 -1px 0 var(--line)', paddingTop: 2 }}>{pager}</div>
-        : pager)}
+      {(() => { const chan = hasTotals && sortedRows.length > 0 && theoTrang && effView === 'table' && cotDo.w.length > 0;
+        // chân dính MỘT khối: dòng tổng (nếu có) + thanh trang — hai thứ sticky riêng thì chồng lên nhau
+        if (!chan && !(pager && theoTrang && effView === 'table')) return pager;
+        return <div className="dt-trang" style={{ position: 'sticky', bottom: -leDuoi, zIndex: 6, background: 'var(--bg-0)', boxShadow: '0 -1px 0 var(--line), 0 -6px 12px rgba(0,0,0,.25)', paddingTop: chan ? 0 : 2 }}>
+          {chan ? <div ref={chanRef} className="dt-chan" style={{ overflowX: 'hidden', margin: '0 -8px', background: 'var(--bg-2)' }}>
+            <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: cotDo.bang || '100%' }}>
+              <colgroup>{cotDo.w.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup>
+              <tbody>{hangTong()}</tbody>
+            </table>
+          </div> : null}{pager}</div>; })()}
     </div>
   );
 }

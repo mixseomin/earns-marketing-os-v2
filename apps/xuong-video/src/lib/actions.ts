@@ -1975,3 +1975,14 @@ export async function bocTachCanh(canhId: number): Promise<{ ok: boolean; boc_ta
   await db.execute(sql`UPDATE xv_canh SET boc_tach = ${JSON.stringify(boc_tach)}::jsonb WHERE id = ${canhId}`);
   return { ok: true, boc_tach };
 }
+
+// ⚖️ Lấy dữ liệu đối chiếu của một shot cho NGĂN RỘNG (DoiChieuNgan) — boc_tach + keyframe đầu/cuối + nhân vật (để BangBocTach so tóc). Chỉ đọc, không tốn tiền.
+export async function layBocTachCanh(canhId: number): Promise<{ ok: boolean; ten?: string; keyframe_url?: string | null; keyframe_ket?: string | null; boc_tach?: BocTachCanh | null; nhanVat?: NhanVat[]; loi?: string }> {
+  const db = getDb();
+  if (!db) return { ok: false, loi: 'không có DB' };
+  const row = ((await db.execute(sql`SELECT c.*, t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${canhId}`)) as unknown as Row[])[0];
+  if (!row) return { ok: false, loi: 'không thấy cảnh' };
+  const c = mapCanh(row);
+  const nhanVat = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(row.phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
+  return { ok: true, ten: `#${c.thu_tu} ${c.canh ?? ''}`.trim(), keyframe_url: c.keyframe_url, keyframe_ket: c.keyframe_ket ?? null, boc_tach: c.boc_tach ?? null, nhanVat };
+}

@@ -8,6 +8,7 @@ import { ThuVienNoiDung, ChiTietKyThuatNgan } from './thu-vien';
 import { SoChiPhi } from './so-chi-phi';
 import { KhoNoiDung, maDich, docDich, type DichKho } from './kho';
 import { NguonShotNoiDung } from './nguon-shot';
+import { DoiChieuNgan } from './canh';
 import { NoiKhungTap } from './noi-khung';
 import { BoSetXem } from './bo-set-xem';
 import { SoNguonAi } from './nguon-ai-ui';
@@ -15,7 +16,7 @@ import { ThuVienDien } from './thu-vien-dien-ui';
 import { SoLienMachXem } from './so-lien-mach-ui';
 import { ghiThamSoUrl } from '@/lib/ghi-url';
 
-export type YeuCauNgan = { loai: 'lien-mach'; tapId: number; canh?: string } | { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'bo-set'; setId: number; tapId?: undefined; canhId?: undefined } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' } | { loai: 'thu-vien-dien' };
+export type YeuCauNgan = { loai: 'lien-mach'; tapId: number; canh?: string } | { loai: 'thu-vien'; tl?: string } | { loai: 'so-chi-phi'; phim?: number } | { loai: 'xem'; url: string; ten?: string } | { loai: 'kho'; dich?: DichKho } | { loai: 'nguon'; canhId: number } | { loai: 'noi-khung'; tapId: number } | { loai: 'bo-set'; tapId: number; canhId?: number | null } | { loai: 'bo-set'; setId: number; tapId?: undefined; canhId?: undefined } | { loai: 'ky-thuat'; ma: string } | { loai: 'nguon-ai' } | { loai: 'thu-vien-dien' } | { loai: 'doi-chieu'; canhId: number };
 const SU_KIEN = 'xv-ngan';
 export function moNgan(y: YeuCauNgan): void { window.dispatchEvent(new CustomEvent<YeuCauNgan>(SU_KIEN, { detail: y })); }
 /** Link tải tệp R2 qua proxy cùng nguồn (Content-Disposition: attachment) — tải về, không mở trang. */
@@ -29,6 +30,7 @@ function lopCua(y: YeuCauNgan): Lop {
     case 'xem': return { loai: 'xem', id: y.url, ten: y.ten };
     case 'kho': return { loai: 'kho', id: maDich(y.dich ?? {}) || '' };
     case 'nguon': return { loai: 'nguon', id: String(y.canhId) };
+    case 'doi-chieu': return { loai: 'doi-chieu', id: String(y.canhId) };
     case 'ky-thuat': return { loai: 'ky-thuat', id: y.ma };
     case 'noi-khung': return { loai: 'noi-khung', id: String(y.tapId) };
     case 'bo-set': return { loai: 'bo-set', id: 'setId' in y && y.setId ? `s${y.setId}` : `${y.tapId}.${y.canhId ?? 0}` };
@@ -77,6 +79,7 @@ function TangNgan({ l, onClose }: { l: Lop; onClose: () => void }) {
       return <Ngan onClose={onClose} tieuDe={`📒 Sổ liền mạch${canh ? ` · ${canh}` : ''}`}><SoLienMachXem tapId={Number(t)} canh={canh || undefined} /></Ngan>; }
     case 'ky-thuat': return <Ngan nho onClose={onClose} tieuDe="🎬 Kỹ thuật điện ảnh"><ChiTietKyThuatNgan ma={l.id} /></Ngan>;
     case 'nguon': return <Ngan onClose={onClose} tieuDe="🔗 Nguồn của shot"><NguonShotNoiDung canhId={n} /></Ngan>;
+    case 'doi-chieu': return <Ngan onClose={onClose} tieuDe="⚖️ Đối chiếu bóc tách ↔ dự kiến"><DoiChieuNgan canhId={n} /></Ngan>;
     case 'nguon-ai': return <Ngan onClose={onClose} tieuDe="🔌 Sổ nguồn AI"><SoNguonAi /></Ngan>;
     case 'thu-vien-dien': return <Ngan onClose={onClose} tieuDe="📚 Bối cảnh · diễn viên"><ThuVienDien /></Ngan>;
     case 'so-chi-phi': return <Ngan onClose={onClose} tieuDe="💰 Sổ chi phí"><SoChiPhi phimDau={l.id ? n : undefined} /></Ngan>;

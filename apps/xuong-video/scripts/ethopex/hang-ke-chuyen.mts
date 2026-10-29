@@ -33,12 +33,18 @@ const kc = new Map((await q<{ content_id: number; thang: number; thua: number }>
   FROM etp.creative cr JOIN s ON s.cr = cr.creative_id WHERE cr.dang = 'kể chuyện' GROUP BY 1`)).map((r) => [Number(r.content_id), r]));
 // 'loi_may' = máy sinh hỏng vì lỗi MÁY (br / mạng), không phải phim hỏng → không chặn 3 ngày (29/10/2026: br chưa gắn profile làm bỏ oan 2 phim)
 const cho = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.thu_vien WHERE (trang_thai IN ('dang_sinh', 'san_sang') AND creative_id IS NULL) OR (tao > now() - interval '3 days' AND trang_thai <> 'loi_may')`)).map((r) => Number(r.content_id)));
+// CỔNG 18+ CỦA PHIM (kiem-phim-18.py — nhan-ban chặn lên camp theo đúng sổ này): phim trong danh sách cấm / soát hình không đạt / chưa từng soát mà chưa có camp
+// thì KHÔNG sinh KT (29/10/2026: máy sinh làm KT cho phim 164995 đã cấm "mặt dính máu" → creative #61967 chấm sạch mà không lên được camp, phí cả lượt)
+const cam18 = ((await q<{ gia_tri: Record<string, { ly_do?: string }> }>(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_phim_cam'`))[0]?.gia_tri ?? {});
+const soat18 = ((await q<{ gia_tri: Record<string, { ok?: boolean; ghi?: string }> }>(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_soat_18'`))[0]?.gia_tri ?? {});
+const coCamp = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.camp WHERE content_id IS NOT NULL`)).map((r) => Number(r.content_id)));
+const chan18 = (id: number) => cam18[id] ? `cấm 18+ (${cam18[id].ly_do ?? '?'})` : soat18[id] && !soat18[id].ok ? `soát hình 18+ không đạt (${soat18[id].ghi ?? '?'})` : !soat18[id] && !coCamp.has(id) ? 'chưa soát hình 18+' : null;
 const live = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.camp WHERE trang_thai = 'ACTIVE' AND content_id IS NOT NULL`)).map((r) => Number(r.content_id)));
 const coKt = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.creative WHERE dang = 'kể chuyện' AND tu_choi IS NULL AND content_id IS NOT NULL`)).map((r) => Number(r.content_id)));
 const thay = new Set((await q<{ content_id: number }>(sql`SELECT content_id FROM etp.thay_the WHERE buoc NOT IN ('chay', 'huy')`).catch(() => [])).map((r) => Number(r.content_id)));
 const hang = ds.map((p, i) => {
   const id = Number(p.id), s = so14.get(id), k = kc.get(id), lai = s ? s.thu - s.chi : 0;
-  const bo = cho.has(id) ? 'đã có bản chờ chạy / vừa sinh' : tt[p.id]?.tt === 'poster_loai' ? 'poster bị loại (soát phim mới)' : k && k.thua >= 2 && !k.thang ? `kể chuyện đã thua ${k.thua} lần, chưa thắng` : !p.url ? 'thiếu link trang phim' : null;
+  const bo = chan18(id) ?? (cho.has(id) ? 'đã có bản chờ chạy / vừa sinh' : tt[p.id]?.tt === 'poster_loai' ? 'poster bị loại (soát phim mới)' : k && k.thua >= 2 && !k.thang ? `kể chuyện đã thua ${k.thua} lần, chưa thắng` : !p.url ? 'thiếu link trang phim' : null);
   const diem = !coKt.has(id) && thay.has(id) ? 3000 + lai : !coKt.has(id) && live.has(id) ? 2000 + lai : !s ? 500 - Math.min(i, 399) : lai > 0 ? 1000 + lai : 100 + lai;
   return { content_id: id, ten: p.ten, url: p.url, nguon: p.nguon, lang: p.locale?.startsWith('es') ? 'es' : 'en', diem: Math.round(diem * 100) / 100, lai14: Math.round(lai * 100) / 100, chi14: Math.round((s?.chi ?? 0) * 100) / 100, kc: k ?? null, bo };
 }).filter((x) => !x.bo).sort((a, b) => b.diem - a.diem).slice(0, so);

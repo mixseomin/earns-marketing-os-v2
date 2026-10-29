@@ -39,6 +39,7 @@ RULES (winning template + Meta/AFS ad policy):
 - "anh" = one film still: the place + ONLY the characters present, named in CAPS exactly as in "nhan_vat", what each is doing, where they stand. One location per scene. 1–2 sentences.
 - "dong" = the single motion that happens in a 4-second clip + one camera move. Restrained, realistic acting. Nobody speaks on screen (the lines are voice-over).
 - NEVER: weapons, blood, injuries, violence, sexual content, kissing, nudity, lingerie, bed scenes; everyone fully and modestly dressed. No text, logos or app names in images.
+- Lines must be clean for Meta ads: no words about prostitution / escorts / sex / sleeping with someone / seduction, death / killing / murder / suicide, drugs, swearing or insults, and no "tap / click" calls to action — retell such plot points in safe words ("a cruel rumor", "they ruined my name").
 - "nhan_vat": "NAME = short visual description; NAME = …" for every character used (narrator first, mark "(narrator)").
 - "nguoi_ke": the narrator's gender, "nu" or "nam".`;
 const SCHEMA = { type: 'object', required: ['nhan_vat', 'nguoi_ke', 'boi_canh', 'canh'], properties: {
@@ -56,7 +57,11 @@ for (const model of TUYEN) {
     chi += Number(j.usage?.x_ckey?.cost ?? 0);
     const a = j.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
     const x = a ? JSON.parse(a) : null;
-    if (x?.canh?.length === 6 && x.nhan_vat) { kq = x; break; }
+    // CỔNG CHỮ = đúng danh sách từ cấm cat-canh / kiem-thoai.py dùng (một nguồn): câu nào dính thì thử tuyến kế, không để tới bước dựng mới bị chặn
+    const dinh = x?.canh?.length === 6 ? (JSON.parse(execFileSync('python3', ['-c', `import importlib.util as u,json,sys;s=u.spec_from_file_location('k','scripts/ethopex/kiem-thoai.py');m=u.module_from_spec(s);s.loader.exec_module(m);print(json.dumps([m.soat(c) for c in json.load(sys.stdin)]))`],
+      { input: JSON.stringify(x.canh.map((c: { loi: string }) => c.loi)), encoding: 'utf8' }).trim().split('\n').pop()!) as (string | null)[]).map((w, i) => (w ? `#${i + 1} "${w}"` : '')).filter(Boolean) : [];
+    if (x?.canh?.length === 6 && x.nhan_vat && !dinh.length) { kq = x; break; }
+    if (dinh.length) { loi = `${model}: lời dính từ cấm ${dinh.join(', ')}`; continue; }
     loi = `${model}: ${JSON.stringify(j.error ?? 'sai khuôn').slice(0, 160)}`;
   } catch (e) { loi = `${model}: ${String(e).slice(0, 160)}`; }
 }

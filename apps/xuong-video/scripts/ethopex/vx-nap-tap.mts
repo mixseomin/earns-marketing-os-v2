@@ -21,7 +21,7 @@ const tapId = Number(process.argv[2]); const D = process.argv[3]!;
 if (!tapId || !D || !existsSync(`${D}/so.json`)) { console.error('cần <tap_id> <thư mục có so.json>'); process.exit(1); }
 const db = getDb()!;
 const so = JSON.parse(readFileSync(`${D}/so.json`, 'utf8')) as { giong?: string; canh: Record<string, { anhUuid?: string; vidUuid?: string; amGiay?: number }> };
-const canh = (await db.execute(sql`SELECT id, thu_tu, thoai, loi_thoai FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as { id: number; thu_tu: number; thoai: { loi: string; nhan_vat?: string }[] | null; loi_thoai: string }[];
+const canh = (await db.execute(sql`SELECT id, thu_tu, thoai, loi_thoai FROM xv_canh WHERE tap_id = ${tapId} AND coalesce(phan_doan, '') <> 'cta' ORDER BY thu_tu, id`)) as unknown as { id: number; thu_tu: number; thoai: { loi: string; nhan_vat?: string }[] | null; loi_thoai: string }[];
 const giay = (f: string) => Number(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 ${JSON.stringify(f)}`, { encoding: 'utf8' }).trim());
 const thieu = canh.filter((c) => !['am', 'anh', 'vid'].every((k) => existsSync(`${D}/${k}-${c.thu_tu}.${k === 'am' ? 'mp3' : k === 'anh' ? 'jpg' : 'mp4'}`)));
 if (thieu.length) { console.error(`thiếu tệp cho cảnh ${thieu.map((c) => `#${c.thu_tu}`).join(' ')} — chạy lại vx-ke-chuyen.mts trên iMac`); process.exit(1); }
@@ -58,7 +58,7 @@ if (!coNhac) {
 const b = (await boiCanhTap(db, tapId))!; const kt = docKinhThanh(b.kt);
 const job = await taoJob(db, { phim_id: b.tap.phim_id, nhan: `Xuất bản · tập ${b.tap.so} (VideoExpress)`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: 'A' } });
 const x = await chayXuat({ loai: b.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip_stop_motion, look: lookPhim(kt), canh: ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu`)) as unknown as Row[]).map(mapCanh),
-  nhanVat: b.nhanVat, tap: b.tap, qc: kt.qc, nhanh: 'A', choThieuNhac: true, boQuaSoi: true });
+  nhanVat: b.nhanVat, tap: b.tap, qc: kt.qc, nhanh: 'A', choThieuNhac: true, boQuaSoi: true, chiThuTu: canh.map((c) => c.thu_tu) });   // chỉ thân phim — thẻ cuối do bước CTA v2 (cat-canh) dựng
 if (!x.ok) { await db.execute(sql`UPDATE xv_job SET trang_thai = 'loi', loi = ${x.loi} WHERE id = ${job}`); console.error(`✗ xuất: ${x.loi}`); process.exit(1); }
 await ghiBanXuat(db, { tapId, job, nhanh: 'A', kq: x });
 // CỔNG KHÔNG CÂM (anh 29/10/2026 "sao ko có tiếng?" rồi "lần sau… lặp lại lỗi này?"): bản xuất đầu tiên −91 dB vì giọng không vào thoai[] — đo mức tiếng cả bản, câm thì ĐỎ

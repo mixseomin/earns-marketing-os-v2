@@ -33,6 +33,8 @@ if (!existsSync(tepTap)) {
   writeFileSync(tepTap, JSON.stringify({ meta, canh }, null, 1));
 }
 const { meta, canh } = JSON.parse(readFileSync(tepTap, 'utf8')) as { meta: { phim: number; poster_url: string; lang: string; cast_: string }; canh: Canh[] };
+// CHỈ SINH THÂN PHIM: cảnh thẻ cuối của studio (phan_doan 'cta') bị bước CTA v2 thay bằng poster thật — sinh ảnh / clip / giọng cho nó là phí một chỗ render (tối ưu 29/10)
+const canhSinh = canh.filter((c) => c.pd !== 'cta');
 const tepSo = `${D}/so.json`;
 const so: { poster?: number; giong?: string; canh: Record<string, Ghi> } = existsSync(tepSo) ? JSON.parse(readFileSync(tepSo, 'utf8')) : { canh: {} };
 so.giong = GIONG;   // vx-nap-tap ghi tên giọng vào thoai[].giong
@@ -56,7 +58,7 @@ const tai = (url: string, f: string) => execFileSync('curl', ['-sSfL', '-o', f, 
 // --cta=<url bản xuất studio> (in ra ở vx-nap-tap.mts): lấy thân phim = mọi cảnh trừ cảnh thẻ cuối, ghép CTA v2 → <thư mục>/<tập>-cta-v2.mp4 (bản để lên creative)
 const urlXuat = gia('cta');
 if (urlXuat) {
-  const than = canh.slice(0, -1).reduce((a, c) => a + Math.round(Math.min(g(c).vidGiay ?? c.giay, (g(c).amGiay ?? c.giay) + 0.35) * 10) / 10, 0);   // cùng công thức phat_s của vx-nap-tap
+  const than = canhSinh.reduce((a, c) => a + Math.round(Math.min(g(c).vidGiay ?? c.giay, (g(c).amGiay ?? c.giay) + 0.35) * 10) / 10, 0);   // cùng công thức phat_s của vx-nap-tap
   const nguon = `${D}/xuat-studio.mp4`, ra = `${D}/${tap}-cta-v2.mp4`, E = new URL('.', import.meta.url).pathname;
   tai(urlXuat, nguon);
   const [nut, giong] = execFileSync('python3', ['-c', `import importlib.util as u,json;s=u.spec_from_file_location('c',${JSON.stringify(`${E}cta_qc.py`)});m=u.module_from_spec(s);s.loader.exec_module(m);c=m.CTA[${JSON.stringify(meta.lang === 'es' ? 'es' : 'en')}];print(json.dumps([c['nut'],c['giong']]))`], { encoding: 'utf8' }).trim().split('\n').map((x) => x).slice(-1).map((x) => JSON.parse(x) as string[])[0]!;
@@ -68,7 +70,7 @@ if (urlXuat) {
   const loi: string[] = [];
   const db = (t0: number, t1: number) => Number(/mean_volume: (-?[\d.]+) dB/.exec(execSync(`ffmpeg -hide_banner -ss ${t0} -t ${t1 - t0} -i ${JSON.stringify(ra)} -af volumedetect -f null - 2>&1`, { encoding: 'utf8' }))?.[1] ?? -99);
   for (let t = 0; t + 1 <= than; t += 1) { const v = db(t, t + 1); if (v < -45) loi.push(`câm ở ${t}–${t + 1}s (${v} dB)`); }
-  const cuoi = canh[canh.length - 2]!, phatCuoi = Math.round(Math.min(g(cuoi).vidGiay ?? cuoi.giay, (g(cuoi).amGiay ?? cuoi.giay) + 0.35) * 10) / 10;
+  const cuoi = canhSinh[canhSinh.length - 1]!, phatCuoi = Math.round(Math.min(g(cuoi).vidGiay ?? cuoi.giay, (g(cuoi).amGiay ?? cuoi.giay) + 0.35) * 10) / 10;
   if ((g(cuoi).amGiay ?? 0) > phatCuoi) loi.push(`câu kể cảnh #${cuoi.so} (${g(cuoi).amGiay!.toFixed(1)}s) dài hơn giây phát ${phatCuoi}s — sẽ đè giọng CTA`);
   if (loi.length) { console.error(`✗ CỔNG BẢN CTA — không dùng tệp này:\n  ${loi.join('\n  ')}`); execSync(`mv ${JSON.stringify(ra)} ${JSON.stringify(ra.replace(/\.mp4$/, '.LOI.mp4'))}`); process.exit(1); }
   console.log(`✓ bản CTA v2 (thân ${than.toFixed(1)}s, qua cổng: có tiếng suốt thân, giọng CTA không đè): ${ra}`);
@@ -88,7 +90,7 @@ async function cho(uuids: string[], phut: number) {
 }
 
 // ── 1. GIỌNG kể từng cảnh (biết độ dài giọng trước → đặt độ dài clip) ──
-const chuaAm = canh.filter((c) => !g(c).am);
+const chuaAm = canhSinh.filter((c) => !g(c).am);
 for (const c of chuaAm) {
   const r = gui('/import/text_to_speech', { text: c.loi, lang: meta.lang === 'es' ? 'es-MX' : 'en-US', voice: GIONG, emotion: '', translate: '0', project_id: '0', gender: '', type: 'microsoft', option_speed: TOC, option_pitch: '0' });
   if (!r.uuid) { console.log(`✗ giọng #${c.so}: ${r.msg ?? r.message ?? JSON.stringify(r)}`); continue; }
@@ -111,7 +113,7 @@ if (!so.poster) {
 // CHỈ nhân vật cảnh này gọi tên (VIẾT HOA trong prompt_anh) — nhét cả dàn vai vào mọi cảnh thì cảnh nào cũng ra cả đoàn như poster, còn nhân đôi nhân vật (lần chạy đầu 29/10)
 const VAI = meta.cast_.replace(/^[^:]*:\s*/, '').split(/;\s*/).map((x) => { const i = x.indexOf('='); return { ten: x.slice(0, i).trim(), ta: x.slice(i + 1).trim() }; }).filter((v) => v.ten);
 const vaiCua = (c: Canh) => VAI.filter((v) => new RegExp(`\\b${v.ten}\\b`).test(c.anh));
-const chuaAnh = canh.filter((c) => !g(c).anh);
+const chuaAnh = canhSinh.filter((c) => !g(c).anh);
 for (const c of chuaAnh) {
   const prompt = `Photorealistic cinematic vertical short-drama film still, real actors, dramatic warm lighting, shallow depth of field, glossy high-end color grade. ${vaiCua(c).length ? `Only these people appear, each exactly once (match the reference photo faces, hair and wardrobe): ${vaiCua(c).map((v) => `${v.ten} = ${v.ta}`).join('; ')}. Other background people are strangers, not from the reference. ` : ''}Scene: ${c.anh} No text, no captions, no logo, no watermark.`.slice(0, 1800);
   const r = gui('/ai/api/generate_image_consistent_character', { prompt, type: 'photorealistic', mediaId: String(so.poster), mediaId2: '0', aspect: '9:16', generatorName: 'consistent_character' });
@@ -130,7 +132,7 @@ if (process.argv.includes('--chi-anh')) { console.log(`ảnh + giọng xong ở 
 
 // ── 3. CLIP từ ảnh: không tiếng (giọng kể lồng sau), dài = giọng + 0,8s, trong 4–8s; tối đa 5 render song song ──
 const VID = catId('my_ai_videos');
-const doiClip = () => canh.filter((c) => g(c).anhUuid && g(c).anh && !g(c).vid);
+const doiClip = () => canhSinh.filter((c) => g(c).anhUuid && g(c).anh && !g(c).vid);
 for (let nhip = 0; nhip < 40 && doiClip().length; nhip++) {
   const ds = getMedia(VID, 60).results;
   for (const c of doiClip().filter((c) => g(c).vidUuid)) {
@@ -148,6 +150,6 @@ for (let nhip = 0; nhip < 40 && doiClip().length; nhip++) {
   luu();
   if (doiClip().length) await ngu(40_000);
 }
-const thieu = canh.filter((c) => !g(c).am || !g(c).anh || !g(c).vid).map((c) => `#${c.so}`);
-console.log(thieu.length ? `chưa đủ: ${thieu.join(' ')} — chạy lại lệnh để làm tiếp` : `✓ đủ ${canh.length} cảnh ở ${D} — nạp + xuất: scripts/ethopex/vx-nap-tap.mts trên box3`);
+const thieu = canhSinh.filter((c) => !g(c).am || !g(c).anh || !g(c).vid).map((c) => `#${c.so}`);
+console.log(thieu.length ? `chưa đủ: ${thieu.join(' ')} — chạy lại lệnh để làm tiếp` : `✓ đủ ${canhSinh.length} cảnh ở ${D} — nạp + xuất: scripts/ethopex/vx-nap-tap.mts trên box3`);
 process.exit(thieu.length ? 1 : 0);

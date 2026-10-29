@@ -26,6 +26,8 @@ export const docTam = (s = '0.5,0.5'): [number, number] => {
 /** Lọc ffmpeg cắt ảnh về đúng W×H quanh tâm (phủ kín, không méo). */
 export const catPhu = (W: number, H: number, [x, y]: [number, number]) =>
   `scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H}:(iw-${W})*${x}:(ih-${H})*${y}`;
+/** Mép phải ước của khối chữ bìa (x bắt đầu 300; Montserrat Black 84px ~52px/ký tự, Atkinson Bold 40px ~21px/ký tự). */
+export const mepChu = (chu: string, phu: string) => 300 + Math.max(chu.length * 52, phu.length * 21);
 /** Chữ an toàn cho drawtext (bỏ ký tự ffmpeg hiểu là cú pháp). */
 const chuFf = (s: string) => s.replace(/\\/g, '').replace(/'/g, '\u2019').replace(/:/g, '\\:').replace(/%/g, '\\%');
 
@@ -47,8 +49,9 @@ export function dungDaiDien(goc: string, ra: string, tam: [number, number]) {
 }
 export function dungBia(goc: string, ra: string, tam: [number, number], chu: string, phu: string, mau: string) {
   const tep = path.join(ra, 'bia.jpg'), [r, g, b] = [0, 2, 4].map((i) => parseInt(mau.slice(i, i + 2), 16));
-  // lớp màu thương hiệu: đặc 90% bên trái, tan dần về 0 ở x = 1150 — ảnh thật lộ rõ nửa phải, chữ đọc rõ nửa trái
-  const lop = `color=c=black:s=1640x624,format=rgba,geq=r=${r}:g=${g}:b=${b}:a='230*clip(1-(X-250)/900\\,0\\,1)'`;
+  // lớp màu thương hiệu: đặc 90% bên trái, tan dần theo MÉP PHẢI CỦA CHỮ (đặc tới mép − 500, hết ở mép + 200) — chữ dài vẫn nằm trên màu,
+  // ảnh thật lộ rõ phần còn lại (29/10/2026: cố định tan ở x 1150 làm "Healthcare Exam Prep" rơi chữ cuối ra nền sáng)
+  const mep = mepChu(chu, phu), lop = `color=c=black:s=1640x624,format=rgba,geq=r=${r}:g=${g}:b=${b}:a='230*clip(1-(X-${mep - 500})/700\\,0\\,1)'`;
   const vf = [`[0:v]${catPhu(1640, 624, tam)}[nen]`, `${lop}[lop]`, '[nen][lop]overlay=0:0[x]',
     `[x]drawtext=fontfile='${FONT}/Montserrat-Black.ttf':text='${chuFf(chu)}':fontsize=84:fontcolor=white:x=300:y=(h/2)-90:shadowcolor=black@0.35:shadowx=2:shadowy=2,` +
     `drawtext=fontfile='${FONT}/AtkinsonHyperlegible-Bold.ttf':text='${chuFf(phu)}':fontsize=40:fontcolor=white:x=304:y=(h/2)+18[ra]`].join(';');
@@ -60,7 +63,8 @@ if (a[0] === '--tu-kiem') {
   t.deepEqual(docTam(), [0.5, 0.5]); t.deepEqual(docTam('0.2,0.8'), [0.2, 0.8]); t.throws(() => docTam('2,0.5'), /0–1/);
   t.equal(catPhu(960, 960, [0.5, 0.5]), 'scale=960:960:force_original_aspect_ratio=increase,crop=960:960:(iw-960)*0.5:(ih-960)*0.5');
   t.equal(chuFf("EMT: 100% it's"), 'EMT\\: 100\\% it\u2019s');
-  console.log('trang-diem-page: 5/5 ok'); process.exit(0);
+  t.equal(mepChu('EMT Exam Prep', ''), 976); t.ok(mepChu('Healthcare Exam Prep', 'NREMT · PTCB · TEAS practice questions, explained') > 1300, 'chữ dài kéo lớp màu');
+  console.log('trang-diem-page: 7/7 ok'); process.exit(0);
 }
 if (a[0] === '--kiem') {
   const k = await kiemAnhPage(a[1]!); console.log(JSON.stringify(k));

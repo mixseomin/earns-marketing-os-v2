@@ -450,10 +450,12 @@ export function DataTable<T>({
   const gapNhom = (v: string) => (tree && groupBy ? !tree.open.has(`g:${v}`) : dongNhom.includes(v));
   const dongNhomTr = (nh: { v: string; rows: T[] }, dinh = false) => {
     const gap = gapNhom(nh.v);
+    // TÊN NHÓM TRÀN SANG các cột liền sau không có số tổng (anh 29/10/2026 etp "dòng tên phim thì gộp với cột trạng thái + tuổi cho rộng ra"): ô đầu colSpan tới cột có total đầu tiên
+    let gop = 1; while (gop < visible.length && !visible[gop]!.total) gop++;
     const doiNhom = () => (tree && groupBy ? tree.onOpen([`g:${nh.v}`], gap) : setDongNhom((d) => (gap ? d.filter((x) => x !== nh.v) : [...d, nh.v])));
     return <tr key={`g:${nh.v}`} className={dinh ? 'dt-nhom dt-nhom-dinh' : 'dt-nhom'} data-nhom={dinh ? undefined : nh.v} onClick={doiNhom} style={{ cursor: 'pointer', background: 'var(--bg-2)' }}>
-      {visible.map((c, ci) => (
-        <td key={c.key} style={cellStyle(c, { fontWeight: 700, background: 'var(--bg-2)', ...(ci === 0 ? { textAlign: 'left', color: 'var(--fg-1)' } : {}) }, ci)}>
+      {visible.map((c, ci) => (ci > 0 && ci < gop ? null :
+        <td key={c.key} colSpan={ci === 0 && gop > 1 ? gop : undefined} style={{ ...cellStyle(c, { fontWeight: 700, background: 'var(--bg-2)', ...(ci === 0 ? { textAlign: 'left', color: 'var(--fg-1)' } : {}) }, ci), ...(ci === 0 && gop > 1 ? { width: undefined, maxWidth: undefined } : {}) }}>
           {ci === 0 ? (groupBy?.label ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%' }}><span style={{ width: 12, flex: 'none', color: 'var(--fg-3)' }}>{gap ? '▸' : '▾'}</span>{groupBy.label(nh.v, nh.rows)}</span>
             : <>{gap ? '▸' : '▾'} {nh.v} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {nh.rows.length}</span></>) : c.total ? c.total(nh.rows) : null}
         </td>

@@ -40,7 +40,7 @@ for (const so of ds) {
   const duKien = [...thanhPhanDuKien(c, nv, null, 'dau'), { thanh_phan: 'Hành động', du_kien: dien }, ...(daoCu.length ? [{ thanh_phan: 'Đạo cụ cảnh', du_kien: daoCu.join(', ') }] : [])];
   const url = await uploadToR2(`xuong-video/thu/soat-${so}-${randomUUID()}.png`, readFileSync(f), 'image/png');
   if (!url) { console.log(`#${so}: không tải ảnh lên được`); continue; }
-  const r = await bocTachKhung(db, phim, url);
+  const r = await bocTachKhung(db, phim, url, nv.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
   if (!r) { console.log(`#${so}: bóc tách hỏng`); continue; }
   const chieu = await doiChieuKhung(db, phim, duKien, r as BocTachKhung);
   ra[so] = { dien, co: s.co, chieu };

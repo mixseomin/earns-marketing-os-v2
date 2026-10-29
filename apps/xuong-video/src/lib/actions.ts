@@ -1964,7 +1964,7 @@ export async function bocTachCanh(canhId: number): Promise<{ ok: boolean; boc_ta
   const out: { dau?: BocTachKhung; cuoi?: BocTachKhung } = {}; const dc: { dau?: DongDoiChieu[]; cuoi?: DongDoiChieu[] } = {};
   for (const [luc, url] of [['dau', c.keyframe_url], ['cuoi', c.keyframe_ket]] as const) {
     if (!url) continue;
-    const r = await bocTachKhung(db, phimId, url);
+    const r = await bocTachKhung(db, phimId, url, nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
     if (!r) continue;
     out[luc] = r;
     const chieu = await doiChieuKhung(db, phimId, thanhPhanDuKien(c, nhanVat, kg, luc), r);

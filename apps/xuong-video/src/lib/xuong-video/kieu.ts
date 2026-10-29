@@ -620,8 +620,10 @@ export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoMode
 /** Ô thẻ shot BẮT BUỘC trước keyframe (motif + điểm nhấn tuỳ shot — điểm nhấn bắt buộc ở shot có cú bùng của gag, ho-so.ts › kiemHoSo). */
 export const O_DAN_DUNG_BAT_BUOC = O_DAN_DUNG.filter((o) => o.key !== 'motif' && o.key !== 'nhan');
 // 🧩 CON BÓC TÁCH KHUNG — thành phần THẬT đọc được từ một keyframe (boc-tach-khung.ts). Mỗi đối tượng: đặc điểm + vị trí TƯƠNG ĐỐI (cạnh ai/vật gì).
-export type NguoiKhung = { ai: string; dac_diem: string; vi_tri: string; ao: string; toc: string; trang_suc: string; bieu_cam: string; huong_nhin: string; dang: string; do_cam: string };
-export type DoKhung = { ten: string; dac_diem: string; trang_thai: string; vi_tri: string };
+export type NguoiKhung = { ai: string; dac_diem: string; vi_tri: string; ao: string; toc: string; trang_suc: string; bieu_cam: string; huong_nhin: string; dang: string; do_cam: string;
+  /** 🧬 lá nguyên tử enum (mức 2) — máy đọc ảnh điền theo từ khóa chuẩn, để chấm SO BẰNG; cũ không có thì bỏ qua. */ vi_tri_man?: string; huong_man?: string; toc_kieu?: string };
+export type DoKhung = { ten: string; dac_diem: string; trang_thai: string; vi_tri: string;
+  /** 🧬 lá nguyên tử enum: ai giữ (tên nhân vật / "không ai"), cách giữ, vị trí màn. */ nguoi_giu?: string; cach_giu?: string; vi_tri_man?: string };
 export type BocTachKhung = { boi_canh: string; vat_co_dinh: string[]; anh_sang: string; khung_hinh: string; goc_may: string; bo_cuc: string; nguoi: NguoiKhung[]; dao_cu: DoKhung[]; chu_tren_hinh: string; ghi_chu: string };
 // ⚖️ Một dòng đối chiếu dự kiến ↔ bóc-từ-ảnh (doi-chieu-khung.ts). muc: khớp | gần | lệch | thiếu (dự kiến có, ảnh không) | thừa (ảnh có, dự kiến không).
 export type DongDoiChieu = { thanh_phan: string; du_kien: string; thuc_te: string; muc: 'khớp' | 'gần' | 'lệch' | 'thiếu' | 'thừa'; ghi_chu: string };

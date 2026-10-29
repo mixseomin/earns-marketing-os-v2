@@ -8,6 +8,7 @@ import { ghiTienChu } from './doc-db';
 import { readFile } from 'node:fs/promises';
 import type { Db } from './doc-db';
 import type { BocTachKhung } from './kieu';
+import { VI_TRI_MAN, HUONG_NHIN, TOC_KIEU, CACH_GIU } from './thuoc-tinh';
 export type { BocTachKhung, NguoiKhung, DoKhung } from './kieu';
 
 const SCHEMA = { type: 'OBJECT', properties: {
@@ -16,8 +17,13 @@ const SCHEMA = { type: 'OBJECT', properties: {
   nguoi: { type: 'ARRAY', items: { type: 'OBJECT', properties: {
     ai: { type: 'STRING' }, dac_diem: { type: 'STRING' }, vi_tri: { type: 'STRING' }, ao: { type: 'STRING' }, toc: { type: 'STRING' }, trang_suc: { type: 'STRING' },
     bieu_cam: { type: 'STRING' }, huong_nhin: { type: 'STRING' }, dang: { type: 'STRING' }, do_cam: { type: 'STRING' },
-  }, required: ['ai', 'dac_diem', 'vi_tri', 'ao', 'toc', 'bieu_cam', 'huong_nhin', 'dang', 'do_cam', 'trang_suc'] } },
-  dao_cu: { type: 'ARRAY', items: { type: 'OBJECT', properties: { ten: { type: 'STRING' }, dac_diem: { type: 'STRING' }, trang_thai: { type: 'STRING' }, vi_tri: { type: 'STRING' } }, required: ['ten', 'dac_diem', 'trang_thai', 'vi_tri'] } },
+    // 🧬 lá nguyên tử enum — điền theo đúng từ khóa chuẩn để chấm SO BẰNG
+    vi_tri_man: { type: 'STRING', enum: [...VI_TRI_MAN] }, huong_man: { type: 'STRING', enum: [...HUONG_NHIN] }, toc_kieu: { type: 'STRING', enum: [...TOC_KIEU] },
+  }, required: ['ai', 'dac_diem', 'vi_tri', 'ao', 'toc', 'bieu_cam', 'huong_nhin', 'dang', 'do_cam', 'trang_suc', 'vi_tri_man', 'huong_man', 'toc_kieu'] } },
+  dao_cu: { type: 'ARRAY', items: { type: 'OBJECT', properties: { ten: { type: 'STRING' }, dac_diem: { type: 'STRING' }, trang_thai: { type: 'STRING' }, vi_tri: { type: 'STRING' },
+    // 🧬 lá nguyên tử: ai giữ (tên nhân vật hoặc "không ai"), cách giữ, vị trí màn
+    nguoi_giu: { type: 'STRING' }, cach_giu: { type: 'STRING', enum: [...CACH_GIU] }, vi_tri_man: { type: 'STRING', enum: [...VI_TRI_MAN] },
+  }, required: ['ten', 'dac_diem', 'trang_thai', 'vi_tri', 'nguoi_giu', 'cach_giu', 'vi_tri_man'] } },
   chu_tren_hinh: { type: 'STRING' }, ghi_chu: { type: 'STRING' },
 }, required: ['boi_canh', 'vat_co_dinh', 'anh_sang', 'khung_hinh', 'goc_may', 'bo_cuc', 'nguoi', 'dao_cu', 'chu_tren_hinh', 'ghi_chu'] };
 
@@ -27,12 +33,15 @@ const LENH = [
   'For EVERY person visible (including background extras): ai (who/role if identifiable, else "vai phụ / người qua lại"), dac_diem (distinguishing traits: tuổi áng chừng, dáng, nét mặt riêng), vi_tri (RELATIVE position as above), ao (garment + colour + distinctive marks e.g. a coffee stain), toc (hairstyle: xõa/đuôi ngựa/búi thấp/ngắn…, and colour), trang_suc (jewellery/accessories, or "không"), bieu_cam (facial expression), huong_nhin (gaze direction + who/what they look at), dang (body pose / action), do_cam (what they hold or wear on the body).',
   'For EVERY prop/object of story importance (dao_cu): ten, dac_diem (màu, chất liệu, chữ in…), trang_thai (its state: lanyard intact / snapped, box closed…), vi_tri (RELATIVE position — who holds it, on whose body part, next to what).',
   'bo_cuc = one sentence giving the overall spatial layout (ai/vật ở đâu so với nhau, ai gần máy, ai xa). boi_canh = setting in one phrase; vat_co_dinh = fixed set pieces (elevator doors, marble wall, floor indicator, lamp…); anh_sang = lighting; khung_hinh = shot size (CU/MCU/MS/WS/insert); goc_may = camera angle; chu_tren_hinh = any text visible in frame (signs, badge text), or "không"; ghi_chu = anything else notable.',
+  // 🧬 lá nguyên tử: điền ĐÚNG một từ khóa trong enum, để máy chấm bằng SO BẰNG (không để model phán khớp/lệch sau này)
+  'ATOMIC ENUM LEAVES — fill from the image using EXACTLY one allowed keyword each: for each person vi_tri_man (vị trí ngang trên màn: trái/giữa/phải/ngoài khung), huong_man (hướng mặt so với màn), toc_kieu (kiểu tóc). For each prop nguoi_giu (TÊN người đang cầm/đeo nó — dùng đúng tên nhân vật nếu nhận ra, nếu không ai cầm ghi "không ai"), cach_giu (cách giữ), vi_tri_man. These must be consistent with the free-text vi_tri you wrote.',
 ].join('\n');
 
-/** Bóc tách MỘT keyframe (url hoặc path). db+phimId để ghi tiền; truyền null/null nếu chạy rời. */
-export async function bocTachKhung(db: Db | null, phimId: number | null, anh: string): Promise<BocTachKhung | null> {
+/** Bóc tách MỘT keyframe (url hoặc path). tenNhanVat: danh sách tên nhân vật để ánh xạ "ai" + "nguoi_giu". db+phimId để ghi tiền; null/null nếu chạy rời. */
+export async function bocTachKhung(db: Db | null, phimId: number | null, anh: string, tenNhanVat?: string[]): Promise<BocTachKhung | null> {
   const b = /^https?:/.test(anh) ? Buffer.from(await (await fetch(anh)).arrayBuffer()) : await readFile(anh);
-  const r = await goiGeminiJson<BocTachKhung>([{ text: LENH }, { inlineData: { mimeType: 'image/jpeg', data: b.toString('base64') } }], SCHEMA, 'MEDIA_RESOLUTION_HIGH');
+  const lenh = LENH + (tenNhanVat?.length ? `\nDANH SÁCH NHÂN VẬT trong phim (ánh xạ "ai" và "nguoi_giu" về đúng MỘT tên trong đây khi nhận ra, dựa áo/tóc/vai): ${tenNhanVat.join(', ')}.` : '');
+  const r = await goiGeminiJson<BocTachKhung>([{ text: lenh }, { inlineData: { mimeType: 'image/jpeg', data: b.toString('base64') } }], SCHEMA, 'MEDIA_RESOLUTION_HIGH');
   if (!r) return null;
   if (db) await ghiTienChu(db, phimId, 'bóc tách khung', MO_HINH_BD, r.tk, 'google');
   return r.data;

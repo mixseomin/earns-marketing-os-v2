@@ -31,7 +31,7 @@ const kg = kgt;   // khongGianTap đã trả KhongGian của đúng phân đoạ
 const out: Record<string, unknown> = {}; const dc: { dau?: DongDoiChieu[]; cuoi?: DongDoiChieu[] } = {};
 for (const [luc, url] of [['dau', c.keyframe_url], ['cuoi', c.keyframe_ket]] as const) {
   if (!url) { console.log(`#${canhId} ${luc}: chưa có keyframe`); continue; }
-  const r = await bocTachKhung(db, phimId, url as string);
+  const r = await bocTachKhung(db, phimId, url as string, nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
   if (!r) { console.log(`#${canhId} ${luc}: bóc tách hỏng`); continue; }
   out[luc] = r;
   // ⚖️ đối chiếu với dự kiến tại khung đó

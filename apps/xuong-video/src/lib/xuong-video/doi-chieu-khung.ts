@@ -6,6 +6,7 @@ import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
 import { ghiTienChu, type Db } from './doc-db';
 import { bieuCam } from './qc-cam-xuc';
 import { doCam, dang, nguoiKhung, viTri, nhinCan, type KhongGian } from './khong-gian';
+import { chuanEnum } from './thuoc-tinh';
 import type { BocTachKhung, Canh, NhanVat, DongDoiChieu } from './kieu';
 
 const tuToc = (s: string) => (s.match(/đuôi ngựa|ponytail|búi (thấp|cao)|low bun|high bun|bun|xõa|loose|tóc dài|long hair|tóc ngắn|short hair|straight|thẳng|tết|braid/i)?.[0] ?? '');
@@ -76,4 +77,39 @@ export async function doiChieuKhung(db: Db | null, phimId: number | null, duKien
   if (!r) return null;
   if (db) await ghiTienChu(db, phimId, 'đối chiếu khung', MO_HINH_BD, r.tk, 'google');
   return r.data.doi_chieu ?? null;
+}
+
+/** mô tả tóc (DB) → một trị TOC_KIEU để so bằng. */
+function tocEnum(moTa: string): string {
+  const t = (moTa || '').toLowerCase();
+  if (/búi|bun|chignon/.test(t)) return 'búi thấp';
+  if (/đuôi ngựa|ponytail|pigtail/.test(t)) return 'đuôi ngựa';
+  if (/tết|braid/.test(t)) return 'tết';
+  if (/\bngắn\b|short|bob|crop|buzz/.test(t)) return 'tóc ngắn';
+  if (/dài|long|straight|thẳng|xõa|loose|wavy|flowing/.test(t)) return 'xõa dài';
+  return '';
+}
+
+// ⚖️ B4: ĐÈ phán của model bằng SO BẰNG MÁY cho các lá ENUM sạch (vị trí màn · kiểu tóc · NGƯỜI GIỮ đạo cụ) — đây là chỗ model hay chấm ẩu nhất.
+// Dự kiến (B3) lấy thẳng từ DB/sổ đồ vật; thực tế lấy lá enum bóc tách; khác trị = LỆCH dứt khoát, không cần model. Các lá còn lại giữ nguyên phán của model.
+export function apDungSoBang(chieu: DongDoiChieu[], c: Canh, nhanVat: NhanVat[], kg: KhongGian | null | undefined, luc: 'dau' | 'cuoi', k: BocTachKhung): DongDoiChieu[] {
+  const lucKg = luc === 'cuoi' ? 'ket' : 'dau';
+  const khop = (a: string, b: string) => (b.includes(a) || a.includes(b));   // tên gần đúng (ai của ảnh đã map về tên nhân vật)
+  const nguoiTT = (ten: string) => k.nguoi.find((n) => khop(ten, n.ai));
+  const doTT = (ten: string) => k.dao_cu.find((d) => khop(ten, d.ten));
+  const viTriMan = (ten: string) => { if (!kg) return ''; const x = viTri(kg, c, ten, lucKg); return x == null ? '' : x < -0.33 ? 'trái' : x > 0.33 ? 'phải' : 'giữa'; };
+  const nguoiGiu = (prop: string) => kg ? (nhanVat.find((p) => p.loai === 'nhan_vat' && doCam(kg, c.thu_tu, p.ten, lucKg).some((x) => khop(prop, x.mon)))?.ten ?? '') : '';
+  return chieu.map((row) => {
+    let dk = '', tt = '', nhan = '';
+    const mVi = row.thanh_phan.match(/^Vị trí (.+)$/);
+    const mToc = row.thanh_phan.match(/^Tóc (.+)$/);
+    const mGiu = row.thanh_phan.match(/^Đạo cụ (.+?) \+ vị trí$/i);
+    if (mVi) { dk = viTriMan(mVi[1]!); tt = nguoiTT(mVi[1]!)?.vi_tri_man ?? ''; nhan = 'vị trí màn'; }
+    else if (mToc) { dk = tocEnum(nhanVat.find((v) => v.ten === mToc[1])?.mo_ta ?? ''); tt = nguoiTT(mToc[1]!)?.toc_kieu ?? ''; nhan = 'kiểu tóc'; }
+    else if (mGiu) { dk = nguoiGiu(mGiu[1]!); tt = doTT(mGiu[1]!)?.nguoi_giu ?? ''; nhan = 'người giữ'; }
+    else return row;
+    if (!dk || !tt) return row;   // thiếu một vế → để nguyên phán của model
+    const m: DongDoiChieu['muc'] = chuanEnum(dk) === chuanEnum(tt) ? 'khớp' : 'lệch';
+    return { ...row, muc: m, du_kien: dk, thuc_te: tt, ghi_chu: `[máy so bằng] ${nhan}: dự kiến "${dk}" ${m === 'khớp' ? '=' : '≠'} ảnh "${tt}"` };
+  });
 }

@@ -5,7 +5,7 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { bocTachKhung } from '../src/lib/xuong-video/boc-tach-khung';
-import { thanhPhanDuKien, doiChieuKhung } from '../src/lib/xuong-video/doi-chieu-khung';
+import { thanhPhanDuKien, doiChieuKhung, apDungSoBang } from '../src/lib/xuong-video/doi-chieu-khung';
 import { mapCanh, mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
 import { khongGianTap } from './phieu-shot.mts';
 import type { BocTachKhung, DongDoiChieu } from '../src/lib/xuong-video/kieu';
@@ -35,7 +35,8 @@ for (const [luc, url] of [['dau', c.keyframe_url], ['cuoi', c.keyframe_ket]] as 
   if (!r) { console.log(`#${canhId} ${luc}: bóc tách hỏng`); continue; }
   out[luc] = r;
   // ⚖️ đối chiếu với dự kiến tại khung đó
-  const chieu = await doiChieuKhung(db, phimId, thanhPhanDuKien(c, nhanVat, kg, luc), r as BocTachKhung);
+  const chieu0 = await doiChieuKhung(db, phimId, thanhPhanDuKien(c, nhanVat, kg, luc), r as BocTachKhung);
+  const chieu = chieu0 ? apDungSoBang(chieu0, c, nhanVat, kg, luc, r as BocTachKhung) : chieu0;
   if (chieu) { dc[luc] = chieu; console.log(`  ⚖️ đối chiếu ${luc}: ${chieu.length} mục · lệch/thiếu/thừa: ${chieu.filter((x) => x.muc !== 'khớp' && x.muc !== 'gần').map((x) => `${x.thanh_phan}(${x.muc})`).join(', ') || 'không'}`); }
   console.log(`\n=== #${canhId} · khung ${luc.toUpperCase()} ===`);
   console.log(`bối cảnh: ${r.boi_canh} | ánh sáng: ${r.anh_sang} | khung: ${r.khung_hinh} · ${r.goc_may}`);

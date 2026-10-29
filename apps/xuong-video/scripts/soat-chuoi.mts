@@ -8,7 +8,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
 import { bocTachKhung } from '../src/lib/xuong-video/boc-tach-khung';
-import { thanhPhanDuKien, doiChieuKhung } from '../src/lib/xuong-video/doi-chieu-khung';
+import { thanhPhanDuKien, doiChieuKhung, apDungSoBang } from '../src/lib/xuong-video/doi-chieu-khung';
 import { uploadToR2 } from '../src/lib/r2';
 import type { BangShot } from './phieu-shot.mts';
 import type { Canh, BocTachKhung, DongDoiChieu } from '../src/lib/xuong-video/kieu';
@@ -42,7 +42,8 @@ for (const so of ds) {
   if (!url) { console.log(`#${so}: không tải ảnh lên được`); continue; }
   const r = await bocTachKhung(db, phim, url, nv.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
   if (!r) { console.log(`#${so}: bóc tách hỏng`); continue; }
-  const chieu = await doiChieuKhung(db, phim, duKien, r as BocTachKhung);
+  const chieu0 = await doiChieuKhung(db, phim, duKien, r as BocTachKhung);
+  const chieu = chieu0 ? apDungSoBang(chieu0, c, nv, null, 'dau', r as BocTachKhung) : chieu0;
   ra[so] = { dien, co: s.co, chieu };
   console.log(`\n===== SHOT #${so} · ${s.co} · ${dien} =====`);
   if (!chieu) { console.log('  đối chiếu hỏng'); continue; }

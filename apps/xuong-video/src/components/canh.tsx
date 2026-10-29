@@ -62,7 +62,7 @@ const MUC_NHAN: Record<string, string> = { 'khớp': '✓ khớp', 'gần': '≈
 // Tách "Thành phần" → (đối tượng → thuộc tính) để dựng cây. "Áo Lâm Hạ"→{Lâm Hạ, Áo}; "Đạo cụ Thẻ + vị trí"→{🧸 Thẻ, Vị trí}; "Đạo cụ Thẻ + trạng thái"→{🧸 Thẻ, Trạng thái}.
 const THUOC_TINH = ['Áo', 'Tóc', 'Biểu cảm', 'Vị trí', 'Dáng', 'Hướng nhìn', 'Ánh nhìn', 'Nhìn', 'Trang sức', 'Hành động', 'Đồ cầm', 'Cầm', 'Trang điểm', 'Makeup'];
 function tachTP(tp: string): { obj: string; attr: string | null } {
-  const md = tp.match(/^Đạo cụ\s+(.+?)\s*[+·\-–]\s*(vị trí|trạng thái)\b.*$/i);
+  const md = tp.match(/^Đạo cụ\s+(.+?)\s*[+·\-–]\s*(vị trí|trạng thái).*$/i);
   if (md?.[1]) return { obj: `🧸 ${md[1].trim()}`, attr: md[2]!.toLowerCase().startsWith('vị') ? 'Vị trí' : 'Trạng thái' };
   const md2 = tp.match(/^Đạo cụ\s+(.+)$/i);
   if (md2?.[1]) return { obj: `🧸 ${md2[1].trim()}`, attr: null };

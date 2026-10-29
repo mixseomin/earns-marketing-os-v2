@@ -23,7 +23,10 @@ const html = execFileSync('curl', ['-sL', '-A', 'Mozilla/5.0', '--max-time', '30
 const meta = (k: string) => new RegExp(`<meta[^>]+(?:property|name)="${k}"[^>]+content="([^"]*)"`, 'i').exec(html)?.[1] ?? '';
 const tomTat = [...new Set([meta('og:description'), meta('description'), ...[...html.matchAll(/"(?:special_desc|introduce|shortPlayIntroduce|synopsis)"\s*:\s*"((?:[^"\\]|\\.){40,2000})"/g)].map((m) => m[1]!)]
   .map(giaiMa).filter((x) => x.length > 30))].join('\n').slice(0, 3000);
-const poster = meta('og:image');
+// POSTER: kho Ethopex trước (ethopex_content.anh → acdn.dofez.com, CDN mở) — og:image của app gốc có CDN chặn bot bằng trang JavaScript (ReelShort crazymaplestudios:
+// curl nhận về HTML thay ảnh, lần chạy đầu máy sinh 29/10 hỏng ở bước sinh). og:image chỉ là dự phòng khi kho chưa có.
+const anhKho = (() => { try { return execFileSync('bash', ['-c', `. /root/.secrets/spy.env; psql "$DATABASE_URL" -tAc "select anh from ethopex_content where id = ${Number(p.content_id)}"`], { encoding: 'utf8' }).trim(); } catch { return ''; } })();
+const poster = anhKho ? (/^https?:/.test(anhKho) ? anhKho : `https://acdn.dofez.com/${anhKho}`) : meta('og:image');
 if (!tomTat || !poster) { console.error(`✗ trang phim thiếu ${!tomTat ? 'tóm tắt' : 'poster'}: ${p.url}`); process.exit(3); }
 
 // ── 2. mô hình viết (ép khuôn bằng công cụ — cùng cách spy) ──

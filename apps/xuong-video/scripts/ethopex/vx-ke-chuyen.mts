@@ -61,7 +61,17 @@ if (urlXuat) {
   tai(urlXuat, nguon);
   const [nut, giong] = execFileSync('python3', ['-c', `import importlib.util as u,json;s=u.spec_from_file_location('c',${JSON.stringify(`${E}cta_qc.py`)});m=u.module_from_spec(s);s.loader.exec_module(m);c=m.CTA[${JSON.stringify(meta.lang === 'es' ? 'es' : 'en')}];print(json.dumps([c['nut'],c['giong']]))`], { encoding: 'utf8' }).trim().split('\n').map((x) => x).slice(-1).map((x) => JSON.parse(x) as string[])[0]!;
   console.log(execFileSync('python3', [`${E}cat-canh.py`, nguon, '0', than.toFixed(1), `${D}/poster.png`, '-', nut!, ra, giong!], { encoding: 'utf8', env: { ...process.env, ETP_LOI_DAN: '1' } }).trim());
-  console.log(`✓ bản CTA v2 (thân ${than.toFixed(1)}s): ${ra}`);
+  // CỔNG KẾT QUẢ (anh 29/10/2026 "lần sau kiểu đéo gì mày cũng lặp lại lỗi này?") — đo bản ra, sai thì ĐỎ, không đưa tệp đi lên creative:
+  // (1) không câm: mọi giây của thân phim phải có tiếng (giọng kể / nhạc) — lần đầu bộ xuất bỏ giọng, cả MP4 −91 dB mà không ai đo
+  // (2) giọng CTA không đè câu kể cuối: câu cuối dứt trước cú cắt (giọng cảnh cuối ngắn hơn giây phát), cat-canh chạy ETP_LOI_DAN=1 (vào sau cú cắt)
+  // (3) thẻ cuối không kéo méo poster: cat-canh giữ tỉ lệ khi poster khác 9:16 — kiểm mã ở scripts/check-etp-gop-y.mjs
+  const loi: string[] = [];
+  const db = (t0: number, t1: number) => Number(/mean_volume: (-?[\d.]+) dB/.exec(execSync(`ffmpeg -hide_banner -ss ${t0} -t ${t1 - t0} -i ${JSON.stringify(ra)} -af volumedetect -f null - 2>&1`, { encoding: 'utf8' }))?.[1] ?? -99);
+  for (let t = 0; t + 1 <= than; t += 1) { const v = db(t, t + 1); if (v < -45) loi.push(`câm ở ${t}–${t + 1}s (${v} dB)`); }
+  const cuoi = canh[canh.length - 2]!, phatCuoi = Math.round(Math.min(g(cuoi).vidGiay ?? cuoi.giay, (g(cuoi).amGiay ?? cuoi.giay) + 0.35) * 10) / 10;
+  if ((g(cuoi).amGiay ?? 0) > phatCuoi) loi.push(`câu kể cảnh #${cuoi.so} (${g(cuoi).amGiay!.toFixed(1)}s) dài hơn giây phát ${phatCuoi}s — sẽ đè giọng CTA`);
+  if (loi.length) { console.error(`✗ CỔNG BẢN CTA — không dùng tệp này:\n  ${loi.join('\n  ')}`); execSync(`mv ${JSON.stringify(ra)} ${JSON.stringify(ra.replace(/\.mp4$/, '.LOI.mp4'))}`); process.exit(1); }
+  console.log(`✓ bản CTA v2 (thân ${than.toFixed(1)}s, qua cổng: có tiếng suốt thân, giọng CTA không đè): ${ra}`);
   process.exit(0);
 }
 

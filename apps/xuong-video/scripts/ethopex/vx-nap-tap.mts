@@ -61,5 +61,8 @@ const x = await chayXuat({ loai: b.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip
   nhanVat: b.nhanVat, tap: b.tap, qc: kt.qc, nhanh: 'A', choThieuNhac: true, boQuaSoi: true });
 if (!x.ok) { await db.execute(sql`UPDATE xv_job SET trang_thai = 'loi', loi = ${x.loi} WHERE id = ${job}`); console.error(`✗ xuất: ${x.loi}`); process.exit(1); }
 await ghiBanXuat(db, { tapId, job, nhanh: 'A', kq: x });
+// CỔNG KHÔNG CÂM (anh 29/10/2026 "sao ko có tiếng?" rồi "lần sau… lặp lại lỗi này?"): bản xuất đầu tiên −91 dB vì giọng không vào thoai[] — đo mức tiếng cả bản, câm thì ĐỎ
+const muc = Number(/mean_volume: (-?[\d.]+) dB/.exec(execSync(`ffmpeg -hide_banner -i ${JSON.stringify(x.url)} -af volumedetect -f null - 2>&1`, { encoding: 'utf8' }))?.[1] ?? -99);
+if (muc < -45) { console.error(`✗ bản xuất CÂM (${muc} dB) — giọng không vào bản dựng, kiểm thoai[].url của các cảnh: ${x.url}`); process.exit(1); }
 console.log(`✓ MP4 ${x.giay}s → ${x.url}`); console.log(`  bước kế (iMac): vx-ke-chuyen.mts --tap=${tapId} --cta=${x.url}  → thẻ cuối mẫu CTA v2`); for (const c of x.canhBao) console.log(`  ⚠ ${c}`);
 process.exit(0);

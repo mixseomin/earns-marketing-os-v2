@@ -160,6 +160,9 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'tuoi', header: 'Tuổi', width: 52,", vi: 'cột Tuổi Cây hẹp cố định (không ăn khoảng thừa)' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: 'persistKey="etp-cay" minWidth={1100} fixedLayout', vi: 'Cây table-layout fixed: bề rộng cột theo khai báo, máy nào cũng như nhau' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'dem', header: '', align: 'left', cell: () => null },", vi: 'Cây: cột đệm cuối nhận khoảng thừa, không hở giữa bảng' },
+  // anh 30/10/2026 "?ng=115…&b=2 sao ko thấy data": ?b= còn sót lọc camp người khác (không thuộc bộ nào) ra 0 dòng
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: ".filter((c) => !boHieu || c.bo === boHieu)", vi: 'lọc bộ chỉ áp khi bộ có trong dữ liệu đang xem' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', cam: ".filter((c) => !boLoc || c.bo === boLoc)", vi: 'không lọc bộ thẳng theo URL' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

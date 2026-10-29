@@ -95,7 +95,7 @@ dat, theo, giam, dau_phien, moc30 = [], [], [], [], []
 KHUNG_DEM = 0 <= vn.hour < 5 and not TANG_CHOT   # ngày UTC (tang_chot) thì 0–5h VN số hôm nay đã có thật, không cần mượn hôm qua
 LD_SIET = bool(DUYET.get("ld_siet"))
 hqua = bc(d(1), d(1))
-ROAS_CHI = 100; _ngay3 = {1: hqua, 2: bc(d(2), d(2)), 3: bc(d(3), d(3))}   # ngày trọn D−1..D−3 cho tiêu chí bid ROAS
+ROAS_LAI = 75; _ngay3 = {1: hqua, 2: bc(d(2), d(2)), 3: bc(d(3), d(3))}   # lãi 30 ngày tối thiểu để lên ROAS (anh 29/10/2026) · ngày trọn D−1..D−3 chỉ để hiện
 for cid, a in sorted(thang.items()):
     h = hom.get(cid, {"chi": 0.0, "budget": a["budget"]}); r = roi(a)
     if KHUNG_DEM:
@@ -128,12 +128,12 @@ for cid, a in sorted(thang.items()):
         rh = (h.get("thu", 0) - h["chi"]) / h["chi"] * 100
         dich = 3 if rh >= 100 else 2
         if rh > 50 and dich > a["budget"]: dau_phien.append((cid, f"#{a['ten'][:70]} · ${a['budget']:g} → ${dich} · ROI hôm nay {rh:+.0f}% · lãi hôm nay ${h.get('thu', 0) - h['chi']:+.2f}"))
-    # ĐỦ TIÊU CHÍ BID ROAS (Support Dol 24/10/2026, anh chuyển: "camp tiêu cost ~ > $100 mà ROI > 50% ổn định 2–3 ngày có thể áp dụng ROAS; mốc $30 chưa
-    # phải đủ tiêu chí"): chi 30 ngày ≥ $100 · mọi ngày TRỌN có chi ≥ $1 trong 3 ngày gần nhất ROI ≥ 50%, tối thiểu 2 ngày như vậy · ROI 30 ngày ≥ 50%
-    _ng = [(n, (_ngay3[n].get(cid) or {"chi": 0.0, "thu": 0.0})) for n in (1, 2, 3)]
-    _co = [(n, x) for n, x in _ng if x["chi"] >= 1]
-    if a["chi"] >= ROAS_CHI and r is not None and r >= 50 and len(_co) >= 2 and all(roi(x) >= 50 for n, x in _co):
-        moc30.append((cid, f"#{a['ten'][:70]} · ${a['budget']:g}/ngày · chi ${a['chi']:.2f}, lãi ${a['thu'] - a['chi']:+.2f}, {rd(cid)} {r:+.0f}% · " + " · ".join(f"{d(n)[8:10]}/{d(n)[5:7]} {roi(x):+.0f}%" for n, x in _co) + " → đủ tiêu chí bid ROAS"))
+    # ĐỦ TIÊU CHÍ LÊN ROAS — anh 29/10/2026: "Các camp đủ điều kiện lên roas thì lên luôn. Nới điều kiện lên roas là ROI >= 75$": MỘT điều kiện, lãi 30 ngày
+    # (camp mới: từ lúc lên) ≥ $75. Thay chuẩn Support 24/10 (chi ≥ $100 · ROI ≥ 50% · ổn định 2–3 ngày trọn). Worker tự lên ROAS (cty ethopex.mjs, khối ★ LÊN ROAS);
+    # gốc đã có camp ★ thì không vào lại (lọc dưới luật ROAS). 3 ngày trọn gần nhất chỉ để hiện.
+    _co = [(n, x) for n, x in ((n, (_ngay3[n].get(cid) or {"chi": 0.0, "thu": 0.0})) for n in (1, 2, 3)) if x["chi"] >= 1]
+    if a["thu"] - a["chi"] >= ROAS_LAI:
+        moc30.append((cid, f"#{a['ten'][:70]} · ${a['budget']:g}/ngày · chi ${a['chi']:.2f}, lãi ${a['thu'] - a['chi']:+.2f}, {rd(cid)} {r:+.0f}% · " + " · ".join(f"{d(n)[8:10]}/{d(n)[5:7]} {roi(x):+.0f}%" for n, x in _co) + f" → lãi ≥ ${ROAS_LAI}: lên ROAS"))
     g2, t2 = gan.get(cid), truoc.get(cid)
     if g2 and t2 and g2["chi"] >= 1.5 and t2["chi"] >= 1.5 and (g2["chi"] + t2["chi"]) >= 3:
         rg, rt = roi(g2), roi(t2)
@@ -567,12 +567,15 @@ try: _ROAS = CONG.camp_roas() | {int(c["id"]) for c in ds_camp if CONG.la_roas(c
 except Exception as e: _ROAS = {int(c["id"]) for c in ds_camp if CONG.la_roas(c.get("name"))}; loi_may.append((0, f"không đọc được danh sách camp ROAS trong kho: {str(e)[:80]}"))
 _bo_roas = lambda ds: [x for x in ds if int(x[0] or 0) not in _ROAS]
 tat_l3, tat_d24, tat_l, tat7, tat2, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7 = map(_bo_roas, (tat_l3, tat_d24, tat_l, tat7, tat2, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7))
+# gốc đã có camp ★ ROAS (tên "… duplicate by <gốc>", đọc thẳng danh sách camp Ethopex — camp vừa tạo chưa cần chờ kho) → không lên ROAS lại
+_goc_roas = {int(m_.group(1)) for c in ds_camp if (m_ := re.search(r" duplicate by (\d+)", c.get("name") or ""))}
+moc30 = [x for x in moc30 if int(x[0] or 0) not in _goc_roas]
 # LUẬT TẮT THẮNG MỌI LUẬT KHÁC — xếp ở NGUỒN (anh 29/10/2026 "các luật khác thì sao? đã fix triệt để chưa?"): #65656 chạm D24 mà không tắt vì
 # cùng lúc nằm trong danh sách giảm bậc, bước giảm của nhịp chạy trước giành camp. Một camp chỉ mang MỘT quyết định: camp trong danh sách tắt
 # (tự tắt: T2 · D24 · dừng đêm; chờ anh duyệt: OFF · bản thang lỗ) bị gỡ khỏi mọi danh sách tăng / giảm / nhân bản / thay creative — worker,
 # Telegram, thẻ etp đều đọc cùng một quyết định, không còn phụ thuộc thứ tự bước trong nhịp.
 _SE_TAT = {int(x[0] or 0) for v in (tat2, tat_d24, tat_l3, dung_dem, tat_l, thang_tat) for x in v}
-tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, tang30 = ([x for x in v if int(x[0] or 0) not in _SE_TAT] for v in (tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, tang30))
+tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, tang30, moc30 = ([x for x in v if int(x[0] or 0) not in _SE_TAT] for v in (tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, tang30, moc30))
 # ★ ROAS THẮNG → $30 (anh 28/10/2026 "thêm rule tăng roas thắng lên $30"): camp ROAS vẫn miễn mọi luật khác, riêng T30 áp cùng ngưỡng —
 # đang $20, ≥ 2/3 ngày đã khép tiêu > 80% ngân sách, ROI các ngày đó > 80% → máy tự tăng $20 → $30 (cùng đường tang30 của worker)
 tang30 += [(cid, "★ ROAS thắng · " + s_) for cid, s_ in _tang30_goc if int(cid or 0) in _ROAS]
@@ -700,7 +703,7 @@ in_("THANG NHÂN BẢN BỘ 2 — MỞ BẢN MỚI Ở BẬC KẾ (không đổi
 in_("DỪNG ĐÊM (21h–5h, camp âm, lỗ tăng nhanh) — MÁY TẮT:", dung_dem, "(không)")
 in_("BẢN THANG LỖ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%) — CHỜ ANH TẮT:", thang_tat, "(không)")
 in_("T30 — CAMP $20 TIÊU ĐỦ + ROI > 80% TRONG 2–3 NGÀY → LÊN $30 (MÁY TỰ TĂNG — anh 28/10/2026):", tang30, "(chưa có)")
-in_("ĐỦ TIÊU CHÍ BID ROAS (chi ≥ $100, ROI ≥ 50% ổn định 2–3 ngày trọn):", moc30, "(chưa có)")
+in_(f"ĐỦ TIÊU CHÍ LÊN ROAS (lãi 30 ngày ≥ ${ROAS_LAI}, chưa có camp ★) — MÁY TỰ LÊN:", moc30, "(chưa có)")
 in_(f"ĐỦ ĐIỀU KIỆN TĂNG (ROI 30 ngày / từ lúc lên ≥ {roi_min:g}% và spending hôm nay > {sp_min:g}%) — CHỜ ANH DUYỆT:", dat, "(chưa có)")
 in_("CẦN XEM GIẢM / TẮT (ROI tụt — phim down trend hoặc creative bão hoà, CPC/CPA tăng) — CHỜ ANH QUYẾT:", giam)
 in_("GẦN ĐẠT (theo dõi tiếp):", theo)

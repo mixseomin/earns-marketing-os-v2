@@ -35,7 +35,7 @@ const NHOM = [
   ['ha', '↓ <b>GIẢM BẬC</b> — sáng: hôm qua ROI < 0% và 3 ngày < 20% (vừa tăng thì bỏ điều kiện 3 ngày) · mọi nhịp: camp ≥ $15 tiêu đều, ROI 1–2 ngày < 30% (Support) · $20 vừa tăng mà hôm nay âm cũng giảm · luôn từng bậc $20 → $15 → $10; sau giảm khoá tăng 6 giờ, hồi lại thì lên lại', (m) => (m.dich ? [{ text: `↓ #${m.id} về $${m.dich}`, callback_data: `et:giam:${m.id}:${m.dich}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }] : null)],
   ['giam', '↘ <b>ROI TỤT</b> — phim down trend / creative bão hoà → giảm một bậc (camp $1 ở đáy thang chỉ báo)', (m) => (m.dich ? [{ text: `↓ #${m.id} về $${m.dich}`, callback_data: `et:giam:${m.id}:${m.dich}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }] : null)],
   ['tang30', '⇈ <b>T30 — LÊN $30</b> — camp $20, ≥ 2/3 ngày tiêu > 80% ngân sách, ROI các ngày đó > 80% (Support 23/10) · máy tự tăng, không chờ nút (anh 28/10/2026)', null],
-  ['moc30', '★ <b>ĐỦ TIÊU CHÍ BID ROAS</b> — chi ≥ $100, ROI ≥ 50% ổn định 2–3 ngày trọn (Support 24/10/2026)', null],
+  // moc30 (đủ tiêu chí lên ROAS) không còn là nhóm báo: máy tự lên ROAS cuối nhịp và gửi tin ★ MÁY TỰ LÊN ROAS (anh 29/10/2026)
   ['dong', '⏸ <b>CAMP ĐÃ BỊ ĐÓNG</b> — Ethopex dừng (chạm rule hoặc tắt tay); báo MỘT lần mỗi lần dừng', null],
   ['loi_may', '⚙️ <b>LỖI MÁY</b> — đọc API Ethopex vẫn lỗi sau 3 lần thử; nhịp sau tự đọc lại, anh không cần làm gì (tin tự xoá)', null],
 ];
@@ -305,7 +305,9 @@ export async function nhipEthopex(nguoi, { ten = nguoi } = {}) {
   // khoá kẹt > 15 phút (nhịp trước chết giữa chừng) thì gỡ.
   const khoa = path.join(DATA(), 'ethopex-nhip.khoa');
   try { fs.mkdirSync(khoa); } catch { try { if (Date.now() - fs.statSync(khoa).mtimeMs < 15 * 60_000) return { gui: 0, nut: 0, bo: 'nhịp khác đang chạy' }; fs.rmSync(khoa, { recursive: true, force: true }); fs.mkdirSync(khoa); } catch { return { gui: 0, nut: 0, bo: 'không lấy được khoá' }; } }
-  try { return await nhipEthopexTrong(nguoi, { ten }); } finally { fs.rmSync(khoa, { recursive: true, force: true }); }
+  // khoá có NHỊP TIM: nhịp dài (★ lên ROAS chờ Ethopex đồng bộ nhiều camp, có thể > 15 phút) vẫn giữ khoá — chỉ khoá không được chạm 15 phút mới coi là kẹt
+  const tim = setInterval(() => { try { const t = new Date(); fs.utimesSync(khoa, t, t); } catch {} }, 60_000);
+  try { return await nhipEthopexTrong(nguoi, { ten }); } finally { clearInterval(tim); fs.rmSync(khoa, { recursive: true, force: true }); }
 }
 async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const { tgNoiDung } = await import('./kiem-bai.mjs'); const { gomTin, moHop, topicPhong } = await import('./tg-phong.mjs');
@@ -611,6 +613,29 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     } catch (e) { console.error('báo cáo ngày:', e.message); }
   }
   fs.writeFileSync(TEP(), JSON.stringify({ ngay: homNay, da: [...da], dong: [...dongNay] }));
+  // ★ LÊN ROAS TỰ ĐỘNG (anh 29/10/2026: "Các camp đủ điều kiện lên roas thì lên luôn. Nới điều kiện lên roas là ROI >= 75$"): camp gốc trong moc30
+  // (máy luật: lãi 30 ngày ≥ $75, đang bật, chưa có camp ★, không trong danh sách tắt) → nhan-ban.py --roas, rải ROAS_MUC · $20 · lịch hôm nay (khuôn anh duyệt
+  // 28/10/2026). Cổng chấm + rào chắn etp vẫn ở nhan-ban (không --mien-cham — mở cổng chấm chỉ khi anh lệnh đích danh). Mỗi lần tạo chờ Ethopex đồng bộ
+  // 2–4 phút → chạy song song 4 tiến trình, đặt CUỐI nhịp để tắt / tăng / giảm không phải chờ. Gốc bị nhan-ban TỪ CHỐI có lý do (chặn chấm…) → không thử lại
+  // trong ngày; hỏng vì lỗi máy (hết giờ, mạng) → nhịp sau thử lại (mức đã tạo được thì nhan-ban chặn trùng tên).
+  {
+    const ROAS_MUC = [1, 1.1, 1.2, 1.3], TEP_R = path.join(DATA(), 'ethopex-roas-len.json');
+    const so = docJ(TEP_R, {}); const giu = so.ngay === homNay ? so.giu || {} : {};
+    const goc = (kq.moc30 || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id) && !giu[m.id]);
+    const viec = goc.flatMap((m) => ROAS_MUC.map((muc) => ({ m, muc })));
+    for (let i = 0; i < viec.length; i += 4) await Promise.all(viec.slice(i, i + 4).map(async (v) => {
+      try { v.r = JSON.parse((await chay(NB, [String(v.m.id), '--roas', String(v.muc), '--ns', '20', '--lich', 'today', '--that', '--luat', `lên ROAS · ${v.m.chu}`.slice(0, 400), '--ai', 'máy tự lên ROAS (anh chat 29/10/2026: các camp đủ điều kiện lên roas thì lên luôn — lãi ≥ $75)'], 1500)).trim().split('\n').pop()); }
+      catch (e) { v.r = { ok: false, loi: e.message, may: true }; }
+    }));
+    for (const m of goc) { const ds = viec.filter((v) => v.m === m); if (!ds.some((v) => v.r.ok) && ds.every((v) => !v.r.may && v.r.loi)) giu[m.id] = String(ds[0].r.loi).slice(0, 120); }
+    fs.writeFileSync(TEP_R, JSON.stringify({ ngay: homNay, giu }));
+    if (viec.length) {
+      const ok = viec.filter((v) => v.r.ok).length;
+      const dong = bangViec(viec.map(({ m, muc, r }) => ({ m, doi: `${muc}→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '30 ng');
+      await guiNhanh({ message_thread_id: topic, text: `★ <b>MÁY TỰ LÊN ROAS</b> — ${goc.length} camp gốc lãi 30 ngày ≥ $75 (anh 29/10/2026); mỗi gốc ${ROAS_MUC.length} mức ${ROAS_MUC.join(' · ')}, $20/ngày, chạy hôm nay — tạo được ${ok}/${viec.length}\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
+      gui++;
+    }
+  }
   return { gui, nut };
 }
 

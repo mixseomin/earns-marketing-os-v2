@@ -634,7 +634,7 @@ function BaoLuat({ du }: { du: DuLieuEtp }) {
         {!du.baoHoa.length ? <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>—</div> : null}
       </div>
       <div style={the}>
-        <h3 style={{ fontSize: 14, margin: '0 0 8px' }} title="Support 24/10/2026: chi ≥ ~$100 mà ROI > 50% ổn định 2–3 ngày → áp dụng bid ROAS. Thanh = đã chi / $100; ô = ROI từng ngày trọn">★ Bid ROAS</h3>
+        <h3 style={{ fontSize: 14, margin: '0 0 8px' }} title="anh 29/10/2026: lãi 30 ngày ≥ $75 → máy tự lên ROAS (4 mức 1.0–1.3, $20). Thanh = lãi / $75; ô = ROI từng ngày trọn">★ Bid ROAS</h3>
         {du.roasChay.length ? <div style={{ fontSize: 11, color: 'var(--fg-2)', margin: '2px 0 2px' }} title="camp chạy bid ROAS (nhan-ban.py --roas) — dạng riêng, miễn mọi luật; luật tắt ROAS: chi > $20 mà lỗ (ROI < 0%) trong 1–2 ngày đã khép → báo riêng trên Telegram">Đang chạy</div> : null}
         {du.roasChay.map((r) => {
           const m = (r.ten ?? '').match(/roas ([\d.]+) duplicate by (\d+)/), roi = r.chi ? Math.round((r.thu - r.chi) / r.chi * 100) : null;
@@ -649,12 +649,12 @@ function BaoLuat({ du }: { du: DuLieuEtp }) {
         })}
         {du.roasChay.length && du.roas.length ? <div style={{ fontSize: 11, color: 'var(--fg-2)', margin: '8px 0 2px' }}>Ứng viên</div> : null}
         {du.roas.map((r) => {
-          const du100 = r.chi >= 100;
+          const lai = r.thu - r.chi;
           return (
             <div key={r.camp_id} style={{ display: 'grid', gridTemplateColumns: '1fr 90px auto', gap: 8, alignItems: 'center', padding: '5px 0', borderTop: '1px solid var(--line)', fontSize: 12 }}>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.ten ?? ''}>{du100 ? '★ ' : r.chi >= 70 ? <span title="sắp đủ: chi ≥ $70 — đã báo cảnh báo" style={{ color: '#f59e0b' }}>⚠ </span> : ''}#{r.camp_id} {(r.ten ?? '').replace(/^\d{4}\w* /, '').slice(0, 40)}</span>
-              <span title={`đã chi $${r.chi.toFixed(2)} / $100 · ROI ${pct(r)}% · $${r.ngan_sach}/ngày`} style={{ height: 8, borderRadius: 4, background: 'var(--line)', position: 'relative', overflow: 'hidden' }}>
-                <span style={{ position: 'absolute', inset: 0, width: `${Math.min(100, r.chi)}%`, background: du100 ? '#22c55e' : r.chi >= 70 ? '#f59e0b' : '#9ca3af' }} /></span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.ten ?? ''}>{r.du ? '★ ' : <span title="sắp đủ: lãi 30 ngày ≥ $50, đủ khi ≥ $75" style={{ color: '#f59e0b' }}>⚠ </span>}#{r.camp_id} {(r.ten ?? '').replace(/^\d{4}\w* /, '').slice(0, 40)}</span>
+              <span title={`lãi 30 ngày $${lai.toFixed(2)} / $75 · chi $${r.chi.toFixed(2)} · ROI ${pct(r)}% · $${r.ngan_sach}/ngày`} style={{ height: 8, borderRadius: 4, background: 'var(--line)', position: 'relative', overflow: 'hidden' }}>
+                <span style={{ position: 'absolute', inset: 0, width: `${Math.min(100, lai / 75 * 100)}%`, background: r.du ? '#22c55e' : '#f59e0b' }} /></span>
               <span style={{ display: 'flex', gap: 3 }}>{r.ngay.map((x) => <span key={x.d} title={`${x.d.slice(8, 10)}/${x.d.slice(5, 7)} · chi $${x.chi.toFixed(2)}`} style={{ fontSize: 10, padding: '0 4px', borderRadius: 4, background: 'rgba(34,197,94,.15)', color: '#4ade80', fontVariantNumeric: 'tabular-nums' }}>{pct(x)}%</span>)}</span>
             </div>);
         })}
@@ -724,12 +724,13 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
           <div style={{ width: 1, background: 'var(--line)' }} />
           <CotCampNoi c={theoId.get(gocId)} nhan={`Camp gốc #${gocId}`} du={du} anh={anh} />
         </KhungNoi>) : null}
-      <h3 style={{ fontSize: 14, margin: '20px 0 8px' }} title="Support: chi ≥ $100 mà ROI > 50% ổn định 2–3 ngày → nhân bản 2–3 camp bid ROAS">Ứng viên lên ROAS</h3>
-      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '-4px 0 8px' }}>Camp thường đang bật, 30 ngày chi ≥ $30 và ROI ≥ 50%, 2–3 ngày đã khép gần nhất ngày nào cũng ROI ≥ 50%. ★ = chi ≥ $100 (đủ chuẩn Support).</div>
-      <DataTable rows={ungVien} getRowKey={(r) => String(r.camp_id)} persistKey="etp-roas-uv" minWidth={700} defaultSort={[{ key: 'chi', dir: 'desc' }]} columns={[
-        { key: 'id', header: 'Camp', align: 'left', cell: (r) => <span>{r.chi >= 100 ? '★ ' : ''}#{r.camp_id} {(r.ten ?? '').replace(/^\d{4}\w* /, '').slice(0, 60)}</span>, sortValue: (r) => r.camp_id },
+      <h3 style={{ fontSize: 14, margin: '20px 0 8px' }} title="anh 29/10/2026: lãi 30 ngày ≥ $75 → máy tự lên ROAS (4 mức 1.0–1.3, $20, chạy hôm nay)">Ứng viên lên ROAS</h3>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '-4px 0 8px' }}>Camp thường đang bật, lãi 30 ngày ≥ $50. ★ = lãi ≥ $75: máy tự lên ROAS ở nhịp kế (4 mức 1.0–1.3, $20); chặn chấm thì không lên.</div>
+      <DataTable rows={ungVien} getRowKey={(r) => String(r.camp_id)} persistKey="etp-roas-uv" minWidth={700} defaultSort={[{ key: 'lai', dir: 'desc' }]} columns={[
+        { key: 'id', header: 'Camp', align: 'left', cell: (r) => <span>{r.du ? '★ ' : ''}#{r.camp_id} {(r.ten ?? '').replace(/^\d{4}\w* /, '').slice(0, 60)}</span>, sortValue: (r) => r.camp_id },
         { key: 'ns', header: 'Ngân sách', cell: (r) => `$${r.ngan_sach}`, sortValue: (r) => r.ngan_sach },
-        { key: 'chi', header: 'Chi 30 ngày', title: 'đủ khi ≥ $100', cell: (r) => <span style={{ color: r.chi >= 100 ? '#4ade80' : r.chi >= 70 ? '#f59e0b' : undefined }}><Tien v={r.chi} /></span>, sortValue: (r) => r.chi },
+        { key: 'chi', header: 'Chi 30 ngày', cell: (r) => <Tien v={r.chi} />, sortValue: (r) => r.chi },
+        { key: 'lai', header: 'Lãi 30 ngày', title: 'đủ lên ROAS khi ≥ $75', cell: (r) => <span style={{ color: r.du ? '#4ade80' : '#f59e0b' }}><Tien v={r.thu - r.chi} /></span>, sortValue: (r) => r.thu - r.chi },
         { key: 'roi', header: 'ROI 30 ngày', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 },
         // lên được chưa (anh 28/10/2026 "Đây là cái gì"): đã có camp ★ đang chạy · creative bị cổng chấm chặn (không lên được) · sẵn sàng
         { key: 'tt', header: 'Lên ROAS', align: 'left', title: 'đã lên = số camp ★ ROAS đang chạy nhân từ camp này · chặn chấm = creative ≤ 4 điểm, cổng chấm không cho lên (rê xem lý do)',
@@ -1776,8 +1777,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   // camp mà dải số đầu trang cộng: tab Camp / ★ ROAS có lọc → CHỈ phần đã lọc (anh 27/10/2026 "khi có lọc thì con số phải là của riêng phần đã lọc"), còn lại = mọi camp (khai sau `camps`)
   const nay0 = cong(du.camps.map((c) => c.nay)), qua0 = cong(du.camps.map((c) => c.qua));
   const dk = du.cauHinh.find((c) => c.khoa === 'dung_khan')?.gia_tri === true;
-  // ĐỦ BID ROAS (anh 24/10/2026: "đạt thì cho vào 1 danh sách riêng (filter)"): chi 30 ngày ≥ $100 + ROI ≥ 50% ổn định 2–3 ngày trọn (etp-doc roas)
-  const roasDat = useMemo(() => new Set(du.roas.filter((r) => r.chi >= 100).map((r) => r.camp_id)), [du.roas]);
+  // ĐỦ LÊN ROAS (anh 24/10/2026: "đạt thì cho vào 1 danh sách riêng (filter)"; 29/10/2026: lãi 30 ngày ≥ $75 — etp-doc roas.du)
+  const roasDat = useMemo(() => new Set(du.roas.filter((r) => r.du).map((r) => r.camp_id)), [du.roas]);
   // TAB ★ ROAS (anh 26/10/2026 "Tạo 1 tab riêng cho loại camp này"): mọi camp ROAS, mọi trạng thái (đang chạy · chờ giờ · đã tắt), số từ lúc lên
   const campRoas = useMemo(() => du.camps.filter((c) => laRoas(c.ten)), [du.camps]);
   const roasTong = useMemo(() => new Map(du.roasChay.map((r) => [r.camp_id, r])), [du.roasChay]);

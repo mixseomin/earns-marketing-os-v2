@@ -8,7 +8,7 @@ import { dichNhin, doCam, nguoiKhung, nhinCan, thayMat, viTri, type KhongGian } 
 import type { Canh, NhanVat } from './kieu';
 
 export type VeNguoi = { ten: string; x: number; lung?: boolean; quay?: number; nhin_vao?: string | null; nhin_huong?: -1 | 0 | 1 | 'len' | 'xuong' | null;
-  mat?: [string, string]; ao: string; toc?: 'dai' | 'ngan' | 'duoi_ngua'; do?: { mon: string; cam: boolean }[];
+  mat?: [string, string]; ao: string; toc?: 'dai' | 'ngan' | 'duoi_ngua' | 'bui'; do?: { mon: string; cam: boolean }[];
   /** cuối shot nối động tác sang shot sau: đầu đã bắt đầu quay về phía này (−1 trái màn, +1 phải màn) — vẽ mũi tên cong */ bat_dau_quay?: -1 | 1 };
 export type VeShot = { so?: number | string; co: string; goc?: string; nguoi: VeNguoi[]; khai?: string[]; dien?: string; thoai?: string; /** khung nào của shot */ luc?: 'dau' | 'ket' };
 
@@ -70,6 +70,7 @@ export function svgSoDoShot(s: VeShot, o: { W?: number; H?: number; sach?: boole
       : `<path d="M${f(cx - 2.6 * r)} ${H}L${f(cx - 2.2 * r)} ${f(cy + 1.7 * r)}L${f(cx - 0.5 * r)} ${f(cy + 1.1 * r)}H${f(cx + 0.5 * r)}L${f(cx + 2.2 * r)} ${f(cy + 1.7 * r)}L${f(cx + 2.6 * r)} ${H}Z" fill="${n.ao}"/>`;
     g += `<ellipse cx="${f(cx)}" cy="${f(cy)}" rx="${f(r)}" ry="${f(1.1 * r)}" fill="${n.lung ? TOC : DA}"/><path d="M${f(cx - 1.05 * r)} ${f(cy - 0.5 * r)}A${f(1.05 * r)} ${f(0.7 * r)} 0 0 1 ${f(cx + 1.05 * r)} ${f(cy - 0.5 * r)}Z" fill="${TOC}"/>`;
     if (n.toc === 'duoi_ngua') { const hb = (n.quay ?? 0) < 0 ? 1 : -1; g += `<circle cx="${f(cx + hb * 0.95 * r)}" cy="${f(cy - 0.55 * r)}" r="${f(0.35 * r)}" fill="${TOC}"/>`; }
+    if (n.toc === 'bui') g += `<circle cx="${f(cx)}" cy="${f(cy - 1.0 * r)}" r="${f(0.42 * r)}" fill="${TOC}"/>`;   // búi (bun) — nắm tóc gọn trên/sau gáy, KHÁC đuôi ngựa (chấm lệch bên)
     if (!n.lung) {
       const nx = typeof n.nhin_huong === 'number' ? n.nhin_huong : 0, ny = n.nhin_huong === 'xuong' ? 1 : n.nhin_huong === 'len' ? -1 : 0;
       g += mat(cx, ey, r, n.mat?.[0] ?? 'binh_thuong', n.quay ?? 0, nx, ny);
@@ -111,7 +112,18 @@ export function svgSoDoShot(s: VeShot, o: { W?: number; H?: number; sach?: boole
 /** Sơ đồ của một shot studio từ sổ không gian của cảnh (sơ đồ 2D + sổ đồ vật) + kế hoạch biểu cảm. null = shot không có sơ đồ cảnh.
  *  luc = khung ĐẦU / CUỐI. Khung cuối của shot nối động tác (dan_dung.noi = 'dong_tac' — cùng điều kiện sinh-video.ts › catDongTac) mà shot SAU người đó
  *  quay đầu: đầu đã quay một phần (~1/3) về hướng mới + mũi tên "bắt đầu quay" — cắt giữa động tác, xem được trên sơ đồ trước khi sinh ảnh / video. */
-export function veShotTuCanh(c: Canh, kg: KhongGian | null | undefined, nhanVat: Pick<NhanVat, 'id' | 'ten' | 'loai'>[] = [], o: { luc?: 'dau' | 'ket'; sau?: Canh | null } = {}): VeShot | null {
+/** Kiểu tóc (glyph sơ đồ) SUY TỪ mô tả DB xv_nhan_vat — MỘT NGUỒN cho tóc: sơ đồ, prompt, đối chiếu đều lấy từ đây, không gõ tay song song.
+ *  bun/búi (kể cả low/high bun) → bui; ponytail/đuôi ngựa → duoi_ngua; short/ngắn/bob → ngan; long/dài/straight/xõa → dai; không rõ → undefined (không vẽ tóc đoán bừa). */
+export function tocGlyph(moTa: string | null | undefined): VeNguoi['toc'] {
+  const s = (moTa ?? '').toLowerCase();
+  if (/\bbun\b|búi|low bun|high bun|chignon/.test(s)) return 'bui';
+  if (/ponytail|đuôi ngựa|duoi ngua|pigtail/.test(s)) return 'duoi_ngua';
+  if (/\bshort\b|ngắn|\bbob\b|buzz|crew cut|side-parted|cropped/.test(s)) return 'ngan';
+  if (/\blong\b|dài|straight|xõa|loose|wavy|flowing/.test(s)) return 'dai';
+  return undefined;
+}
+
+export function veShotTuCanh(c: Canh, kg: KhongGian | null | undefined, nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai'> & { mo_ta?: string | null })[] = [], o: { luc?: 'dau' | 'ket'; sau?: Canh | null } = {}): VeShot | null {
   const luc = o.luc ?? 'dau';
   if (!kg) return null; const ai = nguoiKhung(kg, c, luc); if (!ai) return null;
   const bc = (c.bieu_cam ?? []) as { nv: string; dau: string; cuoi: string }[];
@@ -128,6 +140,7 @@ export function veShotTuCanh(c: Canh, kg: KhongGian | null | undefined, nhanVat:
     }
     return { ten, x: v == null ? 0.5 : Math.max(0.08, Math.min(0.92, (v + 1) / 2)), lung, quay, nhin_vao: dich && !kg.nguoi.includes(dich) ? kg.so_do.ten?.[dich] ?? dich : dich, nhin_huong: h,
       mat: b ? (luc === 'ket' ? [b.cuoi, b.cuoi] : [b.dau, b.cuoi]) : undefined, ao: MAU_AO[Math.max(0, kg.nguoi.indexOf(ten)) % MAU_AO.length]!,
+      toc: tocGlyph(nhanVat.find((x) => x.ten === ten)?.mo_ta),   // tóc theo DB (một nguồn) — không còn gõ tay trên bảng/sơ đồ
       do: doCam(kg, c.thu_tu, ten, luc).map((d) => ({ mon: d.mon, cam: !!d.tay })), bat_dau_quay: bat };
   });
   const khai = (c.nhan_vat ?? []).map((id) => nhanVat.find((x) => x.id === id)).filter((x) => x && (x.loai === 'dao_cu' || x.loai === 'san_pham')).map((x) => x!.ten);   // đạo cụ gắn vào shot

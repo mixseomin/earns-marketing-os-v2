@@ -6,7 +6,7 @@
 //   cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/ve-so-do.mts --bang=scripts/so-do/thang-may-356.json --ra=/tmp/so-do.jpg
 import { mkdirSync, readFileSync } from 'node:fs';
 import sharp from 'sharp';
-import { svgSoDoShot, veShotTuCanh, type VeShot } from '../src/lib/xuong-video/so-do-shot';
+import { svgSoDoShot, veShotTuCanh, tocGlyph, type VeShot } from '../src/lib/xuong-video/so-do-shot';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 type O = { so: number | string; ve: VeShot; giay?: number; co: string; dien?: string; thoai?: string; ke?: string };
@@ -24,20 +24,34 @@ async function tuTap(tap: number, pd: string): Promise<{ ten: string; ds: O[] }>
   // chú thích dưới khung: bỏ câu trạng thái dài của prompt (OBJECT STATE / BODY POSE)
   return { ten: `Tập ${tap} · ${pd} — sơ đồ shot (từ studio)`, ds: canh.flatMap((c) => { const ve = veShotTuCanh(c, kgCua(t.khong_gian, c), nv); return ve ? [{ so: c.thu_tu, ve, giay: Number(c.phat_s || c.thoi_luong_s), co: ve.co, dien: (c.dan_dung?.dien ?? c.hanh_dong ?? '').split(/ (?:OBJECT STATE|BODY POSE)/)[0], thoai: (c.thoai ?? []).map((x) => x.loi).filter(Boolean).join(' / ') }] : []; }) };
 }
-function tuBang(tep: string): { ten: string; ds: O[] } {
+function tuBang(tep: string, ngoaiHinh?: Record<string, string>): { ten: string; ds: O[] } {
   type N = { ma: string; x: number; lung?: boolean; quay?: number; nhin_vao?: string; nhin_huong?: string; mat?: [string, string]; cam?: string[]; deo?: string[] };
-  const b = JSON.parse(readFileSync(tep, 'utf8')) as { ten: string; vat_so?: Record<string, string>; ten_vat_vi?: Record<string, string>; nhan_vat: Record<string, { ao: string; toc?: string; ten_db?: string }>;
+  const b = JSON.parse(readFileSync(tep, 'utf8')) as { ten: string; vat_so?: Record<string, string>; ten_vat_vi?: Record<string, string>; nhan_vat: Record<string, { ao: string; toc?: string; nhan?: string; ten_db?: string }>;
     shot: { so: number; giay: number; co: string; goc?: string; nguoi?: N[]; do?: { loai: string }[]; dien?: string; thoai?: string; ke?: string }[] };
   const ten = (m: string) => b.nhan_vat[m]?.ten_db ?? b.vat_so?.[m] ?? b.ten_vat_vi?.[m] ?? m;
   const mon = (k: string) => b.vat_so?.[k.split('_')[0]!] ?? b.ten_vat_vi?.[k] ?? k;
+  // MỘT NGUỒN tóc: có DB (--phim) thì tóc suy từ mô tả DB, bảng gõ tay chỉ còn là dự phòng + cảnh báo khi lệch (đúng tinh thần "sổ thắng nháp" của phieu-shot)
+  const tocMa: Record<string, VeShot['nguoi'][number]['toc']> = {};
+  for (const [ma, nv] of Object.entries(b.nhan_vat)) {
+    const td = nv.ten_db, moTa = td ? ngoaiHinh?.[td] : undefined;
+    if (moTa) { const g = tocGlyph(moTa); if (nv.toc && nv.toc !== g) console.error(`LỆCH NGOẠI HÌNH: bảng vẽ ${nv.nhan ?? ma} tóc "${nv.toc}" nhưng DB mô tả "${moTa}" (→ ${g ?? 'không rõ'}); DB thắng`); tocMa[ma] = g; }
+    else tocMa[ma] = nv.toc as VeShot['nguoi'][number]['toc'];
+  }
   return { ten: b.ten, ds: b.shot.map((s) => ({ so: s.so, giay: s.giay, co: s.co, dien: s.dien, thoai: s.thoai, ke: s.ke, ve: { so: s.so, co: s.co, goc: s.goc, khai: (s.do ?? []).map((o) => mon(o.loai)),
-    nguoi: (s.nguoi ?? []).map((n) => ({ ten: ten(n.ma), x: n.x, lung: n.lung, quay: n.quay, mat: n.mat, ao: b.nhan_vat[n.ma]?.ao ?? '#888', toc: b.nhan_vat[n.ma]?.toc as never,
+    nguoi: (s.nguoi ?? []).map((n) => ({ ten: ten(n.ma), x: n.x, lung: n.lung, quay: n.quay, mat: n.mat, ao: b.nhan_vat[n.ma]?.ao ?? '#888', toc: tocMa[n.ma],
       nhin_vao: n.nhin_vao === 'phia_truoc' ? null : n.nhin_vao ? ten(n.nhin_vao) : null,
       nhin_huong: ({ trai: -1, phai: 1, len: 'len', xuong: 'xuong' } as Record<string, -1 | 1 | 'len' | 'xuong'>)[n.nhin_huong ?? ''] ?? (n.quay ? (n.quay > 0 ? 1 : -1) : 0),
       do: [...(n.deo ?? []).map((k) => ({ mon: mon(k), cam: false })), ...(n.cam ?? []).map((k) => ({ mon: mon(k), cam: true }))] })) } })) };
 }
 
-const nguon = gia('tap') ? await tuTap(Number(gia('tap')), gia('phan-doan') ?? '') : gia('bang') ? tuBang(gia('bang')!) : null;
+// --bang kèm --phim: nạp mô tả ngoại hình từ DB (ten_db → mo_ta) để tóc trên sơ đồ khớp DB, không lệ thuộc trường gõ tay trong bảng
+async function ngoaiHinhDb(phim: number): Promise<Record<string, string>> {
+  const { sql } = await import('drizzle-orm'); const { getDb } = await import('@mos2/db');
+  const rs = (await getDb()!.execute(sql`SELECT ten, mo_ta FROM xv_nhan_vat WHERE phim_id = ${phim} AND loai = 'nhan_vat'`)) as unknown as { ten: string; mo_ta: string }[];
+  return Object.fromEntries(rs.map((r) => [r.ten, r.mo_ta]));
+}
+const nguon = gia('tap') ? await tuTap(Number(gia('tap')), gia('phan-doan') ?? '')
+  : gia('bang') ? tuBang(gia('bang')!, gia('phim') ? await ngoaiHinhDb(Number(gia('phim'))) : undefined) : null;
 if (!nguon) { console.error('cần --tap + --phan-doan hoặc --bang'); process.exit(1); }
 const W = 360, H = 640, CH = 170, G = 12, COT = Number(gia('cot') || (process.argv.includes('--noi') ? 8 : 6));
 const TEN_CO: Record<string, string> = { ws: 'Toàn', ms: 'Trung', two: 'Trung đôi', mcu: 'Trung cận', cu: 'Cận', ecu: 'Đặc tả', ots: 'Qua vai', insert: 'Cận đồ', pov: 'Chủ quan' };

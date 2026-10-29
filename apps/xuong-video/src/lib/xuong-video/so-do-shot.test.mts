@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/so-do-shot.test.mts
 import assert from 'node:assert';
-import { svgSoDoShot, veShotTuCanh } from './so-do-shot';
+import { svgSoDoShot, veShotTuCanh, tocGlyph } from './so-do-shot';
 import type { KhongGian } from './khong-gian';
 import type { Canh } from './kieu';
 
@@ -33,4 +33,17 @@ const kgL = { ...kg, so_do: { ...kg.so_do, moc: { ...kg.so_do.moc, thang: [-1, 9
 const c1 = { ...c(1, 'ws'), phan_doan: 'A', dan_dung: { noi: 'dong_tac' }, ky_thuat: { co_canh: 'ws', sd: { may: 'm', o: { 'Hạ': 'ha' }, nhin: { 'Hạ': 'thang' } } } } as unknown as Canh;
 const c2 = { ...c(2, 'cu'), phan_doan: 'A', ky_thuat: { co_canh: 'cu', sd: { may: 'm', o: { 'Hạ': 'ha' }, nhin: { 'Hạ': 'thang' } }, sd_ket: { nhin: { 'Hạ': 'vi' } } } } as unknown as Canh;
 assert.equal(veShotTuCanh(c1, kgL, [], { luc: 'ket', sau: c2 })!.nguoi[0]!.bat_dau_quay, 1, 'quay lưng → shot sau quay phải: mũi tên phải');
+
+// MỘT NGUỒN tóc: tocGlyph suy đúng từ mô tả DB thật của #353 (nguồn gây trôi tóc Vivian)
+assert.equal(tocGlyph('East Asian woman, 32, 168 cm, sharp arched brows, sleek low bun'), 'bui', 'Vivian DB low bun → búi (KHÔNG phải đuôi ngựa của bảng nháp)');
+assert.equal(tocGlyph('East Asian woman, 24, long straight black hair'), 'dai', 'Hạ DB long → dài');
+assert.equal(tocGlyph('East Asian man, 30, short side-parted black hair'), 'ngan', 'Lục Thần DB short → ngắn');
+assert.equal(tocGlyph('woman with glossy hair in a ponytail'), 'duoi_ngua', 'ponytail → đuôi ngựa');
+assert.equal(tocGlyph('bald'), undefined, 'không nhận ra → undefined (không vẽ tóc đoán bừa)');
+// phá thử: nếu tocGlyph bắt nhầm "low bun" thành đuôi ngựa thì cả hệ lại lệch như cũ → phải KHÁC duoi_ngua
+assert.notEqual(tocGlyph('sleek low bun'), 'duoi_ngua', 'búi không được suy thành đuôi ngựa');
+// sơ đồ từ DB: veShotTuCanh lấy tóc theo mô tả DB truyền vào, không còn phụ thuộc trường gõ tay
+const vToc = veShotTuCanh(c(5, 'ms'), kg, [{ id: 9, ten: 'Hạ', loai: 'nhan_vat', mo_ta: 'long straight black hair' }, { id: 10, ten: 'Vivian', loai: 'nhan_vat', mo_ta: 'sleek low bun' }])!;
+assert.equal(vToc.nguoi.find((n) => n.ten === 'Hạ')!.toc, 'dai', 'sơ đồ DB: Hạ tóc dài');
+assert.equal(vToc.nguoi.find((n) => n.ten === 'Vivian')!.toc, 'bui', 'sơ đồ DB: Vivian tóc búi');
 console.log('so-do-shot.test: ok');

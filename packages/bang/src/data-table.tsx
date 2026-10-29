@@ -445,6 +445,21 @@ export function DataTable<T>({
   // ── CUỘN THEO TRANG (mặc định, hopCuon=false) ── học bảng Content của Ethopex (22/10/2026): một thanh cuộn (khung cuộn của trang), hàng tiêu đề
   // là bảng RIÊNG nằm trong khối dính mép trên (position:sticky không dính theo trang được khi nằm trong hộp overflow-x của thân bảng), cuộn ngang
   // đồng bộ với thân bảng; bề rộng cột lấy từ hàng tiêu đề ẩn trong thân bảng (đo bằng ResizeObserver) → hai bảng luôn thẳng cột.
+  // DÒNG NHÓM (groupBy / cột gom): một hàm vẽ cho cả thân bảng lẫn bản DÍNH trong khối tiêu đề (anh 29/10/2026 etp #1485 "sticky dòng phim khi scroll xuống")
+  const cacNhom = cotGom ? gomNhom(pageRows, cotGom) : [{ v: '', rows: pageRows }];
+  const gapNhom = (v: string) => (tree && groupBy ? !tree.open.has(`g:${v}`) : dongNhom.includes(v));
+  const dongNhomTr = (nh: { v: string; rows: T[] }, dinh = false) => {
+    const gap = gapNhom(nh.v);
+    const doiNhom = () => (tree && groupBy ? tree.onOpen([`g:${nh.v}`], gap) : setDongNhom((d) => (gap ? d.filter((x) => x !== nh.v) : [...d, nh.v])));
+    return <tr key={`g:${nh.v}`} className={dinh ? 'dt-nhom dt-nhom-dinh' : 'dt-nhom'} data-nhom={dinh ? undefined : nh.v} onClick={doiNhom} style={{ cursor: 'pointer', background: 'var(--bg-2)' }}>
+      {visible.map((c, ci) => (
+        <td key={c.key} style={cellStyle(c, { fontWeight: 700, background: 'var(--bg-2)', ...(ci === 0 ? { textAlign: 'left', color: 'var(--fg-1)' } : {}) }, ci)}>
+          {ci === 0 ? (groupBy?.label ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%' }}><span style={{ width: 12, flex: 'none', color: 'var(--fg-3)' }}>{gap ? '▸' : '▾'}</span>{groupBy.label(nh.v, nh.rows)}</span>
+            : <>{gap ? '▸' : '▾'} {nh.v} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {nh.rows.length}</span></>) : c.total ? c.total(nh.rows) : null}
+        </td>
+      ))}
+    </tr>;
+  };
   const theoTrang = !hopCuon && !hideHeader;
   const thanRef = useRef<HTMLDivElement>(null), dauRef = useRef<HTMLDivElement>(null), bangRef = useRef<HTMLTableElement>(null), doRef = useRef<HTMLTableSectionElement>(null);
   const [cotDo, setCotDo] = useState<{ w: number[]; bang: number; cao: number }>({ w: [], bang: 0, cao: 0 });
@@ -475,6 +490,29 @@ export function DataTable<T>({
     window.addEventListener('resize', doNgay);
     return () => { ro.disconnect(); window.removeEventListener('resize', doNgay); };
   }, [theoTrang, effView, visible.length, rong, pageRows.length]);
+  // NHÓM DÍNH: dòng nhóm đã cuộn qua mép dưới khối tiêu đề mà nhóm vẫn còn dòng dưới → chép dòng nhóm đó vào khối tiêu đề dính (thân bảng nằm trong
+  // hộp overflow-x nên position:sticky của chính <tr> không dính theo trang được — cùng lý do tiêu đề là bảng riêng)
+  const [nhomDinh, setNhomDinh] = useState<string | null>(null);
+  useEffect(() => {
+    if (!theoTrang || effView !== 'table' || !cotGom) { setNhomDinh(null); return; }
+    let sc: HTMLElement | null = thanRef.current?.parentElement ?? null;
+    while (sc && !/(auto|scroll)/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement;
+    const nguon: HTMLElement | Window = sc ?? window;
+    let hen = 0;
+    const xet = () => {
+      hen = 0;
+      const day = dauRef.current?.querySelector('thead')?.getBoundingClientRect().bottom, bang = bangRef.current;   // đo mép dưới hàng tiêu đề (không tính dòng nhóm đang dính)
+      if (day == null || !bang) return;
+      let v: string | null = null, cuoi: HTMLTableRowElement | null = null;
+      for (const tr of Array.from(bang.querySelectorAll<HTMLTableRowElement>('tr.dt-nhom[data-nhom]'))) { if (tr.getBoundingClientRect().top < day - 1) { v = tr.dataset.nhom ?? null; cuoi = tr; } else break; }
+      if (v != null && (gapNhom(v) || bang.getBoundingClientRect().bottom <= day + (cuoi?.getBoundingClientRect().height ?? 0))) v = null;   // nhóm gập hoặc bảng đã cuộn hết
+      setNhomDinh((o) => (o === v ? o : v));
+    };
+    const nghe = () => { if (!hen) hen = requestAnimationFrame(xet); };
+    nguon.addEventListener('scroll', nghe, { passive: true }); window.addEventListener('resize', nghe); xet();
+    return () => { nguon.removeEventListener('scroll', nghe); window.removeEventListener('resize', nghe); if (hen) cancelAnimationFrame(hen); };
+  });
+  const nhDinh = nhomDinh != null ? cacNhom.find((x) => x.v === nhomDinh) : undefined;
   // hàng tiêu đề: dao=true là bản bấm được (sort / lọc / kéo giãn); dao=false là bản ĐO bề rộng nằm ẩn trong thân bảng (cùng nội dung, không tay cầm)
   // hàng nhãn nhóm (groupHeader): dải cột liền nhau cùng group → một ô colSpan; cột không nhóm → ô trống
   const hangNhom = () => {
@@ -674,6 +712,7 @@ export function DataTable<T>({
           <table style={{ borderCollapse: 'collapse', tableLayout: 'fixed', width: cotDo.bang || '100%', minWidth: cotDo.bang ? undefined : minWidth }}>
             {groupHeader && cotDo.w.length ? <colgroup>{cotDo.w.map((w, i) => <col key={i} style={{ width: w }} />)}</colgroup> : null}{/* table-layout:fixed lấy bề rộng theo HÀNG ĐẦU — hàng nhãn nhóm có ô gộp nên khai bề rộng bằng colgroup, không thì cột tiêu đề lệch thân bảng */}
             <thead>{hangNhom()}{hangDau(true)}</thead>
+            {nhDinh ? <tbody>{dongNhomTr(nhDinh, true)}</tbody> : null}
           </table>
         </div>
       )}
@@ -684,19 +723,9 @@ export function DataTable<T>({
             ? <thead ref={doRef} style={{ visibility: 'hidden' }}>{hangNhom()}{hangDau(false)}</thead>
             : <thead>{hangNhom()}{hangDau(true)}</thead>)}
           <tbody>
-            {gomNhom(pageRows, cotGom).flatMap((nh) => {
-              const gap = tree && groupBy ? !tree.open.has(`g:${nh.v}`) : dongNhom.includes(nh.v);
-              const doiNhom = () => (tree && groupBy ? tree.onOpen([`g:${nh.v}`], gap) : setDongNhom((d) => (gap ? d.filter((x) => x !== nh.v) : [...d, nh.v])));
-              const dau = cotGom ? [
-                <tr key={`g:${nh.v}`} className="dt-nhom" onClick={doiNhom} style={{ cursor: 'pointer', background: 'var(--bg-2)' }}>
-                  {visible.map((c, ci) => (
-                    <td key={c.key} style={cellStyle(c, { fontWeight: 700, background: 'var(--bg-2)', ...(ci === 0 ? { textAlign: 'left', color: 'var(--fg-1)' } : {}) }, ci)}>
-                      {ci === 0 ? (groupBy?.label ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%' }}><span style={{ width: 12, flex: 'none', color: 'var(--fg-3)' }}>{gap ? '▸' : '▾'}</span>{groupBy.label(nh.v, nh.rows)}</span>
-                        : <>{gap ? '▸' : '▾'} {nh.v} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {nh.rows.length}</span></>) : c.total ? c.total(nh.rows) : null}
-                    </td>
-                  ))}
-                </tr>,
-              ] : [];
+            {cacNhom.flatMap((nh) => {
+              const gap = gapNhom(nh.v);
+              const dau = cotGom ? [dongNhomTr(nh)] : [];
               return [...dau, ...(gap ? [] : cayHoa(nh.rows).map(({ row, sau, con }) => {
               const i = viTriDong.get(row) ?? 0;
               const k = getRowKey(row, i), mo = !!tree?.open.has(k);

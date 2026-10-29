@@ -1374,13 +1374,14 @@ const O0 = ({ v, t, cot, s }: { v: number | null; t: string; cot: string; s?: So
 // nhom = dòng PHIM / dòng tổng (góp ý #1484 anh 29/10/2026 "đổi cách trình bày chart của Phim để phân biệt với chart của camp"): cột rỗng viền màu + số đậm, camp giữ cột đặc
 const O = ({ v, t, cot, s, max, mo, nhom }: { v: number | null; t: string; cot: string; s?: SoTien; max?: { p: number; n: number }; mo?: boolean; nhom?: boolean }) => {
   if (s == null || max == null) return <O0 v={v} t={t} cot={cot} s={s} />;
-  const H = 22, tong = max.p + max.n, y0 = tong > 0 ? Math.round((H * max.p) / tong) : H;   // y0 = khoảng từ đỉnh xuống đường 0
+  // cột camp NHỎ hơn cột phim (góp ý #1485 anh 29/10/2026 "cột ROI của camp bé hơn cột ROI của phim"): phim cao 22 · rộng đủ ô, camp cao 15 · hẹp hơn
+  const H = nhom ? 22 : 15, le = nhom ? 3 : 8, tong = max.p + max.n, y0 = tong > 0 ? Math.round((H * max.p) / tong) : H;   // y0 = khoảng từ đỉnh xuống đường 0
   const lai = s.thu - s.chi, h = tong > 0 ? Math.max(lai ? 2 : 0, Math.round((Math.abs(lai) / tong) * H)) : 0, mau = v == null ? 'var(--fg-3)' : v >= 50 ? '#4ade80' : v >= 0 ? '#f59e0b' : '#f87171';
   return <span data-cot={cot} data-cot-can="giua" title={`${t}${s.chi ? ` · chi ${usd(s.chi)} · lãi ${usd(lai)}` : ' · chưa chi'}`} style={{ width: 38, alignSelf: 'stretch', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     background: mo ? 'rgba(59,130,246,.12)' : undefined, boxShadow: mo ? 'inset 1px 0 rgba(59,130,246,.35), inset -1px 0 rgba(59,130,246,.35)' : undefined }}>
     <span style={{ position: 'relative', width: 30, height: H }}>
       <span style={{ position: 'absolute', left: 0, right: 0, top: Math.min(y0, H - 1), height: 1, background: 'var(--line)' }} />
-      {h ? <span style={{ position: 'absolute', left: 3, right: 3, borderRadius: 2, ...(nhom ? { background: `${lai >= 0 ? '#4ade80' : '#f87171'}26`, border: `1.5px solid ${lai >= 0 ? '#4ade80' : '#f87171'}`, boxSizing: 'border-box' as const } : { background: lai >= 0 ? '#4ade80' : '#f87171' }), ...(lai >= 0 ? { top: Math.max(0, y0 - h), height: Math.min(h, y0) } : { top: y0, height: Math.min(h, H - y0) }) }} /> : null}
+      {h ? <span style={{ position: 'absolute', left: le, right: le, borderRadius: 2, ...(nhom ? { background: `${lai >= 0 ? '#4ade80' : '#f87171'}26`, border: `1.5px solid ${lai >= 0 ? '#4ade80' : '#f87171'}`, boxSizing: 'border-box' as const } : { background: lai >= 0 ? '#4ade80' : '#f87171' }), ...(lai >= 0 ? { top: Math.max(0, y0 - h), height: Math.min(h, y0) } : { top: y0, height: Math.min(h, H - y0) }) }} /> : null}
     </span>
     <span data-cot={`${cot}-so`} style={{ fontSize: 10.5, lineHeight: '12px', marginTop: 2, color: mau, fontVariantNumeric: 'tabular-nums', fontWeight: nhom ? 700 : undefined }}>{soO(v, s, '')}</span></span>;
 };

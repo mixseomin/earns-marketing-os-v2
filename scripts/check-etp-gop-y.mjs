@@ -111,6 +111,9 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/vx-ke-chuyen.mts', co: 'vaiCua(c)', vi: 'ảnh cảnh chỉ tả nhân vật cảnh gọi tên (không cả dàn vai)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/vx-nap-tap.mts', co: 'thoai = ${JSON.stringify(thoai)}', vi: 'giọng nạp vào thoai[].url — chỉ thoai_url thì MP4 câm' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/vx-nap-tap.mts', co: 'bản xuất CÂM', vi: 'vx-nap-tap đo bản xuất, câm thì đỏ' },
+  { card: 1485, tep: 'packages/bang/src/data-table.tsx', co: '{nhDinh ? <tbody>{dongNhomTr(nhDinh, true)}</tbody> : null}', vi: 'dòng phim (dòng nhóm) dính trong khối tiêu đề khi cuộn qua' },
+  { card: 1485, tep: 'packages/bang/src/data-table.tsx', mot: "className={dinh ? 'dt-nhom dt-nhom-dinh' : 'dt-nhom'}", vi: 'dòng nhóm vẽ một chỗ (dongNhomTr), không chép tay thêm bản thứ hai' },
+  { card: 1485, tep: 'apps/web/src/components/etp-view.tsx', co: 'const H = nhom ? 22 : 15', vi: 'cột ROI camp nhỏ hơn cột ROI phim' },
   // anh 29/10/2026 "mày đc tự nâng đến $30 rồi nên gộp lại": một quyền tự tăng trần $30, không tách nhánh T30 riêng
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: "k === 'tang30' ? d !== 30", vi: 'tự tăng một quyền một trần (T30 không còn nhánh riêng ngoài trần)' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: 'if (!d || d > tuTang ||', vi: 'mọi lần tự tăng (bậc + T30) đều xét chung trần tuTang' },

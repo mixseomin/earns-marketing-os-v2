@@ -1,0 +1,31 @@
+{
+  "content_id": 94344, "ten": "Number One, Nobody", "lang": "en",
+  "nguon": "~/.cache/ethopex/nguon/94344/ghep.mp4", "poster": "~/.cache/ethopex/nguon/94344/poster-1080.png", "ra": "~/.cache/ethopex/kieu-moi/94344",
+  "_ghi": "8 tập miễn phí ReelShort ghép (tai-tap.py), giây trên ghep.mp4. Cốt: Malik nghèo, mẹ Denise làm ba việc; ký hợp đồng Skyflyers; về Drywell thấy mẹ bị dì Peggy + mục sư + em họ Chase làm nhục ở nhà thờ. Bỏ 114–129 (chửi thề).",
+  "chon_phe": {
+    "hook": "His mom was humiliated in front of the whole church…",
+    "doan": [[1053, 1060], [1152, 1176]],
+    "dung_hinh": [1176, 1180], "giu": 4.0,
+    "hoi": "If you were Malik, what would you do?",
+    "chon": ["😡 Make them pay", "🙏 Forgive and walk away"]
+  },
+  "binh_luan": {
+    "doan": [[1026, 1060]],
+    "binh_luan": [["Brenda K.", "Wait… a PASTOR said that?? 😳", "2.1K", 3.5], ["Tasha M.", "Her own family is watching and nobody helps her 😭", "1.4K", 13], ["Jordan P.", "Malik is going to walk in and end ALL of them 🔥", "3.8K", 24]]
+  },
+  "top3": {
+    "hook": "3 moments that had everyone screaming",
+    "khoanh_khac": [[3, "The insult", 105, 113], [2, "The shot", 474, 489], [1, "The return", 1160, 1180]]
+  },
+  "truoc_sau": {
+    "tren": [1137, 1150], "duoi": [536, 549], "lech_tren": 0.18, "lech_duoi": 0.2,
+    "nhan_tren": "They called him a nobody", "nhan_duoi": "Now he's worth $20M",
+    "sau": [[1174, 1182]]
+  },
+  "tin_nhan": {
+    "ten_chat": "Mom ❤️",
+    "tin": [["ho", "Baby, don't come to church on Sunday."], ["ho", "Your aunt is telling everyone you're in jail."], ["toi", "Mom, I just signed with the Skyflyers."], ["toi", "I'm coming home."], ["ho", "Please don't make a scene…"], ["toi", "Too late. I'm outside."]],
+    "nhip": 1.7, "giu": 2.4,
+    "doan": [[1131, 1136], [1152, 1180]]
+  }
+}

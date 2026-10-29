@@ -13,30 +13,34 @@ def sql(q):
 
 ids = [int(x) for x in sys.argv[1:] if x.isdigit()]
 if not ids: sys.exit(__doc__)
-rows = json.loads(sql(f"select coalesce(json_agg(row_to_json(v)), '[]') from (select id, content_id, lang, ten, video, giay, creative_id, trang_thai from etp.thu_vien where id in ({','.join(map(str, ids))})) v") or "[]")
+rows = json.loads(sql(f"select coalesce(json_agg(row_to_json(v)), '[]') from (select id, content_id, dang, lang, ten, video, giay, creative_id, trang_thai from etp.thu_vien where id in ({','.join(map(str, ids))})) v") or "[]")
 lo, tm = [], os.path.join(C, "thu-vien"); os.makedirs(tm, exist_ok=True)
 for r in rows:
     if r["creative_id"]: print(f"tv{r['id']}: đã là creative #{r['creative_id']} — bỏ qua"); continue
     if r["trang_thai"] != "san_sang" or not r["video"]: print(f"tv{r['id']}: trạng thái {r['trang_thai']} — chỉ đưa bản sẵn sàng"); continue
     f = os.path.join(tm, f"tv{r['id']}.mp4")
     subprocess.run(["curl", "-sSfL", "-o", f, r["video"]], check=True)
-    lo.append({"tv": r["id"], "content_id": r["content_id"], "lang": r["lang"] or "en", "ten": r["ten"], "tu": 0, "den": round(float(r["giay"] or 0), 1), "file": f, "lo": "tv"})
+    lo.append({"tv": r["id"], "content_id": r["content_id"], "lang": r["lang"] or "en", "ten": r["ten"], "tu": 0, "den": round(float(r["giay"] or 0), 1), "file": f, "lo": "tv", "dang": r["dang"] or "kể chuyện"})
 if not lo: sys.exit("không có bản nào để đưa lên")
-ma = "tv" + time.strftime("%d%m%H%M")
-lf = os.path.join(tm, f"lo-{ma}.json"); json.dump(lo, open(lf, "w"), ensure_ascii=False, indent=1)
-# --da-soat: người đã xem video ở tab Thư viện trước khi chọn đưa lên (đúng nghĩa cờ của len-creative — soát từng đoạn trước khi gọi)
-r_ = subprocess.run(["python3", os.path.join(D, "len-creative.py"), lf, ma, "kể chuyện", "--da-soat"], env={**os.environ, "ETP_KHONG_CAT": "1"})
-# đọc len.json kể cả khi len-creative trả mã lỗi ở bước phụ sau cùng (tờ review…): creative đã tạo thì phải ghi vào thư viện, không để nhịp sau tạo trùng
-if not os.path.exists(os.path.join(C, "ra", ma, "len.json")): sys.exit(f"len-creative không ra len.json (mã {r_.returncode})")
-kq = json.load(open(os.path.join(C, "ra", ma, "len.json")))
-# khớp theo PHIM (29/10/2026: len.json KHÔNG có trường den → khớp theo độ dài luôn trượt, tạo được creative mà báo "không tạo được" → nhịp sau tạo trùng);
-# mỗi phim một bản trong lô thì chỉ cần phim; nhiều bản cùng phim thì lấy lần lượt theo thứ tự, không dùng lại một dòng kết quả hai lần
-da = set()
-for x in lo:
-    l = next((k for i, k in enumerate(kq) if i not in da and str(k.get("content_id")) == str(x["content_id"])), {})
-    if l: da.add(kq.index(l))
-    cr = l.get("creative_id")
-    if cr and l.get("ok", True) and not l.get("loi"):
-        sql(f"update etp.thu_vien set creative_id = {int(cr)}, trang_thai = 'da_len', cap_nhat = now() where id = {x['tv']}")
-        print(f"✓ tv{x['tv']} → creative #{cr} (chấm Sạch thì nhịp ethopex tự lên camp KT $1 — anh 29/10/2026)")
-    else: print(f"✗ tv{x['tv']}: {l.get('loi') or 'không tạo được creative'}")
+# MỖI DẠNG MỘT LÔ (29/10/2026: thư viện có thêm kiểu dựng 0đ kieu-moi.py — "chọn phe", "bình luận"…): len-creative ghi dạng cho cả lô → tách lô theo dạng của từng bản
+nhom = {}
+for x in lo: nhom.setdefault(x["dang"], []).append(x)
+for gi, (dang, lo) in enumerate(nhom.items()):
+    ma = "tv" + time.strftime("%d%m%H%M") + (f"-{gi}" if gi else "")
+    lf = os.path.join(tm, f"lo-{ma}.json"); json.dump(lo, open(lf, "w"), ensure_ascii=False, indent=1)
+    # --da-soat: người đã xem video ở tab Thư viện trước khi chọn đưa lên (đúng nghĩa cờ của len-creative — soát từng đoạn trước khi gọi)
+    r_ = subprocess.run(["python3", os.path.join(D, "len-creative.py"), lf, ma, dang, "--da-soat"], env={**os.environ, "ETP_KHONG_CAT": "1"})
+    # đọc len.json kể cả khi len-creative trả mã lỗi ở bước phụ sau cùng (tờ review…): creative đã tạo thì phải ghi vào thư viện, không để nhịp sau tạo trùng
+    if not os.path.exists(os.path.join(C, "ra", ma, "len.json")): print(f"✗ {dang}: len-creative không ra len.json (mã {r_.returncode})"); continue
+    kq = json.load(open(os.path.join(C, "ra", ma, "len.json")))
+    # khớp theo PHIM (29/10/2026: len.json KHÔNG có trường den → khớp theo độ dài luôn trượt, tạo được creative mà báo "không tạo được" → nhịp sau tạo trùng);
+    # mỗi phim một bản trong lô thì chỉ cần phim; nhiều bản cùng phim thì lấy lần lượt theo thứ tự, không dùng lại một dòng kết quả hai lần
+    da = set()
+    for x in lo:
+        l = next((k for i, k in enumerate(kq) if i not in da and str(k.get("content_id")) == str(x["content_id"])), {})
+        if l: da.add(kq.index(l))
+        cr = l.get("creative_id")
+        if cr and l.get("ok", True) and not l.get("loi"):
+            sql(f"update etp.thu_vien set creative_id = {int(cr)}, trang_thai = 'da_len', cap_nhat = now() where id = {x['tv']}")
+            print(f"✓ tv{x['tv']} → creative #{cr} (chấm Sạch thì nhịp ethopex tự lên camp KT $1 — anh 29/10/2026)")
+        else: print(f"✗ tv{x['tv']}: {l.get('loi') or 'không tạo được creative'}")

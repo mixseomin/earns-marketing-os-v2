@@ -15,7 +15,8 @@ GIONG = {"en": "george_v2", "es": "aria_v2"}                                 # a
 BO_CUC = "giu_bo_cuc_app_goc"                                                # tên phim trên đầu, phụ đề thoại giữa, tóm tắt dưới đáy (bản B cảnh phim thật)
 
 
-DANG_CHUAN = {"ke chuyen": "kể chuyện", "canh that": "cảnh thật", "canh cuoi": "cảnh cuối", "phim dai": "phim dài", "lam moi": "làm mới", "tap nguyen": "tập nguyên"}   # len-creative nhận mã không dấu; kho etp.creative lưu có dấu — sổ phải cùng một nhãn, không thì một loại tách hai nhóm (29/10/2026)
+DANG_CHUAN = {"ke chuyen": "kể chuyện", "canh that": "cảnh thật", "canh cuoi": "cảnh cuối", "phim dai": "phim dài", "lam moi": "làm mới", "tap nguyen": "tập nguyên",
+              "chon phe": "chọn phe", "binh luan": "bình luận", "ba khoanh khac": "ba khoảnh khắc", "truoc sau": "trước sau", "tin nhan": "tin nhắn"}   # len-creative nhận mã không dấu; kho etp.creative lưu có dấu — sổ phải cùng một nhãn, không thì một loại tách hai nhóm (29/10/2026)
 
 
 def ban(x, dang, chu_qc, CQ):

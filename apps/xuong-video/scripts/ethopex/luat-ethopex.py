@@ -509,7 +509,9 @@ except Exception as e:
 # L7 — LỖ ĐỀU 7 NGÀY → TẮT (anh 29/10/2026 "làm luôn đi", sau #68738: $1/ngày lỗ 5/6 ngày, ROI −51%, lọt mọi luật — L3 đòi chi ≥ $1 mỗi ngày,
 # T2 đòi 2 ngày đầu ≥ $2.5, OFF đòi tiêu > $10): 7 ngày đã khép (D−1..D−7) chi ≥ L7_CHI, ≥ L7_NGAY ngày có chi, ROI < L7_ROI% → tắt hẳn.
 # Đo 29/10: 26 camp đang chạy dính, 7 ngày chi $164 · lãi −$75 · ROI −46%. Camp ROAS không áp (_bo_roas).
-L7_CHI, L7_NGAY, L7_ROI = 5.0, 5, -30
+# L7 → L4 (anh 29/10/2026 "L4 bật đi", sau #68970 lọt ở −29%): ≥ 4 ngày có chi, ROI < −20%. Đo camp $1: 130 camp lỗ < −20% sau 4 ngày có chi,
+# phần chạy tiếp chi $149 lãi −$38 (ROI −25%), 12 camp gỡ được cộng chỉ +$9.5, không camp nào thành camp thắng. Mã nội bộ giữ l7 / tat_l7 (sổ cũ).
+L7_CHI, L7_NGAY, L7_ROI = 5.0, 4, -20
 tat_l7 = []
 try:
     _d7 = {dt.date.fromisoformat(d(i)) for i in range(1, 8)}
@@ -519,10 +521,10 @@ try:
         _x = [x for x in _ds if x[0] in _d7]
         _ca, _ta = sum(x[1] for x in _x), sum(x[2] for x in _x)
         if len(_x) < L7_NGAY or _ca < L7_CHI or (_ta - _ca) / _ca * 100 >= L7_ROI: continue
-        tat_l7.append((_c, f"#{_ten[:70]} · 7 ngày đã khép: {len(_x)} ngày có chi, {sum(1 for x in _x if x[2] < x[1])} ngày lỗ · chi ${_ca:.2f} · lãi ${_ta - _ca:+.2f} · ROI {(_ta - _ca) / _ca * 100:+.0f}% → TẮT (luật L7: ROI 7 ngày < {L7_ROI}%, chi ≥ ${L7_CHI:g}, ≥ {L7_NGAY} ngày có chi)"))
+        tat_l7.append((_c, f"#{_ten[:70]} · 7 ngày đã khép: {len(_x)} ngày có chi, {sum(1 for x in _x if x[2] < x[1])} ngày lỗ · chi ${_ca:.2f} · lãi ${_ta - _ca:+.2f} · ROI {(_ta - _ca) / _ca * 100:+.0f}% → TẮT (luật L4: ROI 7 ngày < {L7_ROI}%, chi ≥ ${L7_CHI:g}, ≥ {L7_NGAY} ngày có chi)"))
     tat_l7.sort(key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))
 except Exception as e:
-    loi_may.append((0, f"luật L7 lỗi: {str(e)[:80]}"))
+    loi_may.append((0, f"luật L4 lỗi: {str(e)[:80]}"))
 # ROI TỤT chỉ đi đường GIẢM BẬC (anh 26/10/2026 "ds này chỉ cần giảm bậc"): kèm "$ns → $đích" một bậc để Telegram ra nút giảm thay nút tắt; camp $1 (đáy thang) chỉ báo
 _dich_tut = lambda cid: (lambda ns: (ns, NT.xuong(ns, 1)) if ns else (None, None))(float((thang.get(cid) or {}).get("budget") or 0))
 giam = [(cid, s + (lambda nd: f" · ${nd[0]:g} → ${nd[1]:g}" if nd[1] else " · đang ở đáy thang $1, không giảm được nữa")(_dich_tut(cid))) for cid, s in giam]
@@ -635,9 +637,9 @@ def _xet_luat():
         ls.append(L("l3", "L3 · lỗ 3 ngày liền", f"3 ngày đã khép gần nhất ngày nào cũng chi ≥ ${L3_CHI:g} và lỗ → máy tắt hẳn (thay cho giảm bậc — anh 29/10/2026).",
             [[f"Ngày {k:%d/%m}", (f"chi ${x[1]:.2f} · lãi ${x[2] - x[1]:+.2f}" if x else "không chi"), f"chi ≥ ${L3_CHI:g} và lỗ", bool(x and x[1] >= L3_CHI and x[2] < x[1])] for k, x in zip(_d3 if "_d3" in globals() else [], _l3)],
             "tat_l3" if int(cid) in vao["tat_l3"] else None))
-        # L7 — lỗ đều 7 ngày đã khép
+        # L4 (mã l7) — lỗ đều ≥ 4 ngày trong 7 ngày đã khép
         _x7 = [x for x in _g if x[0] in _d7] if "_d7" in globals() else []; _c7, _t7_ = sum(x[1] for x in _x7), sum(x[2] for x in _x7); _r7 = (_t7_ - _c7) / _c7 * 100 if _c7 >= 0.3 else None
-        ls.append(L("l7", "L7 · lỗ đều 7 ngày", f"7 ngày đã khép: chi ≥ ${L7_CHI:g}, ≥ {L7_NGAY} ngày có chi, ROI < {L7_ROI}% → máy tắt hẳn (bắt camp $1 lỗ đều mà L3 / T2 / OFF bỏ lọt — anh 29/10/2026).",
+        ls.append(L("l7", "L4 · lỗ đều ≥ 4 ngày", f"7 ngày đã khép: chi ≥ ${L7_CHI:g}, ≥ {L7_NGAY} ngày có chi, ROI < {L7_ROI}% → máy tắt hẳn (bắt camp $1 lỗ đều mà L3 / T2 / OFF bỏ lọt — anh 29/10/2026; từ L7 hạ còn 4 ngày, ngưỡng −20% cùng T2).",
             [["Ngày có chi (7 ngày đã khép)", f"{len(_x7)} ngày", f"≥ {L7_NGAY}", len(_x7) >= L7_NGAY], ["Chi 7 ngày", f(_c7, "$"), f"≥ ${L7_CHI:g}", _c7 >= L7_CHI], ["ROI 7 ngày", f(_r7, "%"), f"< {L7_ROI}%", _r7 is not None and _r7 < L7_ROI]],
             "tat_l7" if int(cid) in vao["tat_l7"] else None))
         # OFF — tắt camp lỗ lâu

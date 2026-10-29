@@ -485,8 +485,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       cot: 'Lãi', luat: 'D24 (khoảng dừng > 24 giờ)', ai: 'anh (chat 29/10/2026: camp bị 1 khoảng dừng > 24h cũng dừng ngay lập tức) — máy chạy', ngay: true },
     { khoa: 'tat_l3', tep: 'ethopex-tat-l3.json', ten: 'LUẬT L3', mo_ta: 'luật L3: lỗ 3 ngày đã khép liền, mỗi ngày chi ≥ $1 — thay cho giảm bậc (anh 29/10)',
       cot: 'Lãi 3n', luat: 'L3 (lỗ 3 ngày đã khép liền, chi ≥ $1/ngày)', ai: 'anh (chat 29/10/2026: bỏ giảm bậc, ROI âm liên tục thì tắt — làm 1+2) — máy chạy' },
-    { khoa: 'tat_l7', tep: 'ethopex-tat-l7.json', ten: 'LUẬT L7', mo_ta: 'luật L7: 7 ngày đã khép ROI &lt; −30%, chi ≥ $5, ≥ 5 ngày có chi — camp lỗ đều mà L3 / T2 / OFF bỏ lọt (anh 29/10)',
-      cot: 'Lãi 7n', luat: 'L7 (7 ngày ROI < −30%, chi ≥ $5, ≥ 5 ngày có chi)', ai: 'anh (chat 29/10/2026: thêm L7 — làm luôn đi) — máy chạy' },
+    { khoa: 'tat_l7', tep: 'ethopex-tat-l7.json', ten: 'LUẬT L4', mo_ta: 'luật L4: 7 ngày đã khép ROI &lt; −20%, chi ≥ $5, ≥ 4 ngày có chi — camp lỗ đều mà L3 / T2 / OFF bỏ lọt (anh 29/10)',
+      cot: 'Lãi 7n', luat: 'L4 (7 ngày ROI < −20%, chi ≥ $5, ≥ 4 ngày có chi)', ai: 'anh (chat 29/10/2026: thêm L7 — làm luôn đi; L4 bật đi) — máy chạy' },
     // OFF + BẢN THANG LỖ trước chờ anh bấm nút Tắt trên Telegram — anh 29/10/2026: "rule tạo ra để nó tự vận hành", nên đi cùng đường báo trước một nhịp rồi máy tắt
     { khoa: 'tat', tep: 'ethopex-tat-off.json', ten: 'LUẬT OFF', mo_ta: 'luật OFF: camp ≥ 7 ngày, tiêu &gt; $10 từ trước tới nay, ROI &lt; −50%',
       cot: 'Lãi', luat: 'OFF (≥ 7 ngày, tiêu > $10, ROI < −50%)', ai: 'anh (chat 29/10/2026: rule phải tự vận hành, không chờ anh tắt) — máy chạy' },

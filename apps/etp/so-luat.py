@@ -23,7 +23,7 @@ def qj(s): return json.loads(q(f"select coalesce(json_agg(t), '[]') from ({s}) t
 
 # nhật ký máy luật → mã luật (cùng mã etp.xet_luat). Lệnh tay của anh / sửa CTA / dọn lỗi KHÔNG tính vào luật nào.
 MA = [("tang", r"^lãi đầu phiên", "dau_phien"), ("tang", r"^t30|\$20 → \$30", "t30"), ("tang", r"(đủ điều kiện tăng bậc|ĐỦ ĐIỀU KIỆN TĂNG BẬC|^TB tăng bậc)", "tang"),
-      ("tat", r"^L3 ", "l3"), ("tat", r"^L7 ", "l7"), ("tat", r"^T2 ", "t2"), ("tat", r"^T7 \(", "t7"), ("tat", r"^OFF|lỗ lâu", "off"), ("tat", r"^D24|dừng > 24", "d24"), ("tat", r"dừng đêm", "dung_dem"),
+      ("tat", r"^L3 ", "l3"), ("tat", r"^L[47] ", "l7"), ("tat", r"^T2 ", "t2"), ("tat", r"^T7 \(", "t7"), ("tat", r"^OFF|lỗ lâu", "off"), ("tat", r"^D24|dừng > 24", "d24"), ("tat", r"dừng đêm", "dung_dem"),
       ("nhan_ban", r"^thang nhân bản", "thang_nb"), ("nhan_ban", r"^nhân bản camp thắng · ", "nb")]
 def DX(lam, vi, cach):
     """một đề xuất = LÀM GÌ (vài chữ, hiện trong ô) · VÌ SAO (một câu) · CÁCH (một câu) — số chi tiết đã có ở cột, không chép lại (anh 29/10/2026 \"khó đọc quá\")"""

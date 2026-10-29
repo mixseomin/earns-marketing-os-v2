@@ -141,10 +141,10 @@ export async function docEtp(ng?: string): Promise<DuLieuEtp> {
         coalesce(p.ten, c.phim_ten) phim, p.the_loai, null dang, null doan, 0 cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, false lich_tat
       from etp.camp_ngoai c join etp.tai_khoan t on t.ad_account_id = c.ad_account_id left join etp.phim p on p.content_id = c.content_id left join s on s.camp_id = c.camp_id
       where t.nguoi_id = ${dangId} and c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`) : run<Record<string, unknown>>(sql`with s as (${soCamp}),
-        cd as (select cr.doan, count(*) filter (where c.trang_thai = 'ACTIVE') chay from etp.camp c join etp.creative cr on cr.creative_id = c.creative_id where cr.doan is not null group by cr.doan)
-      select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.ngan_sach, c.creative_id, c.content_id, c.goc, c.lich::text lich, c.tao::text tao, c.loi, c.roas, c.chien_luoc,
+        cd as (select cr.doan, count(*) filter (where c.trang_thai = 'ACTIVE') chay from etp.camp c join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) where cr.doan is not null group by cr.doan)
+      select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.ngan_sach, etp.creative_cua(c.creative_id, c.ten) creative_id, c.content_id, c.goc, c.lich::text lich, c.tao::text tao, c.loi, c.roas, c.chien_luoc,
         p.ten phim, p.the_loai, cr.dang, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat
-      from etp.camp c left join etp.creative cr on cr.creative_id = c.creative_id left join etp.phim p on p.content_id = c.content_id left join etp.lich_tat lt on lt.camp_id = c.camp_id
+      from etp.camp c left join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) left join etp.phim p on p.content_id = c.content_id left join etp.lich_tat lt on lt.camp_id = c.camp_id
         left join cd on cd.doan = cr.doan left join s on s.camp_id = c.camp_id
       where c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`),
     run<{ khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }>(sql`select khoa, gia_tri, ghi, ai, luc::text luc from etp.cau_hinh order by khoa`),

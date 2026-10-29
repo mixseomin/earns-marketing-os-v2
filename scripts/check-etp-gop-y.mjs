@@ -67,6 +67,11 @@ const LUAT = [
   { card: 0, tep: 'packages/bang/src/col-filter.ts', co: "case 'KHOẢNG':", vi: 'DataTable lọc khoảng số từ–đến (29/10/2026)' },
   { card: 0, tep: 'packages/bang/src/data-table.tsx', co: "op: laSo ? 'KHOẢNG' : 'LIKE %%'", vi: 'cột số mở lọc mặc định là khoảng' },
   { card: 0, tep: 'packages/bang/src/data-table.tsx', co: "(col?.align ?? 'right') !== 'left'", vi: 'cột chữ / mã (canh trái) mặc định LIKE %%, không KHOẢNG (anh 29/10/2026)' },
+  { card: 1477, tep: 'apps/web/src/components/etp-view.tsx', cam: "d.canh.map((x, i)", vi: 'thẻ hover ngân sách không lặp dòng luật (cột Luật đã có)' },
+  { card: 1477, tep: 'apps/web/src/components/etp-view.tsx', cam: "'→ vùng giảm'", vi: 'thẻ hover ngân sách không còn chữ vùng giảm / tăng' },
+  { card: 1479, tep: 'apps/web/src/lib/etp-doc.ts', co: "etp.creative_cua(c.creative_id, c.ten) creative_id", vi: 'camp ROAS (creative 0) lấy creative của camp gốc' },
+  { card: 1480, tep: 'apps/web/src/components/etp-view.tsx', cam: "{ds.length ? '▸' : ''}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan", vi: 'dòng camp điện thoại không có nhãn loại CT/CC' },
+  { card: 1481, tep: 'apps/web/src/components/etp-view.tsx', co: "tatCa.every((k) => moCay.has(k))", vi: 'Mở hết xét cả camp có bản nhân, không chỉ phim' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

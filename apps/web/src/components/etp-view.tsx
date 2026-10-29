@@ -207,7 +207,8 @@ const VIEC_BAC: Record<string, [string, string]> = { tao_camp: ['Tạo camp', '#
 const gioVn = (iso: string) => { const d = new Date(Date.parse(iso) + 7 * 3600_000); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
 // chữ luật cho người đọc: bỏ mã lô nội bộ (pm-24100745, thay-26101700…) — mã vẫn nằm trong nhật ký (YDNI 9a, anh 27/10/2026 "YDNI cái này")
 const luatThuong = (t: string) => t.replace(/(#\d+): [^·]*· /, '$1 · ').replace(/\s*[—-]?\s*(quy trình phim mới\s*|lô\s+)?\b[a-z]{1,6}-?\d{4,}[a-z0-9-]*/gi, '').replace(/\s*—\s*$/, '').trim();
-type DauBac = { bac: number; so: number; ns: number; nay: SoTien; qua: SoTien; vung: string; canh: { k: string; mau: string; chu: string; mo?: boolean }[] };
+// chỉ bậc + ROI + lịch sử bậc — dòng luật (gần tắt / máy luật sắp làm / vùng tăng-giảm) đã bỏ: cột Luật có đủ (anh 29/10/2026 #1477 "đã có cột Luật chi tiết thì ko cần show thêm")
+type DauBac = { bac: number; so: number; ns: number; nay: SoTien; qua: SoTien };
 function TheBac({ ls, d }: { ls: DuLieuEtp['lsBac'][number]; d: DauBac }) {
   return (
     <div style={{ width: 400, maxWidth: '92vw', maxHeight: 420, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
@@ -215,9 +216,7 @@ function TheBac({ ls, d }: { ls: DuLieuEtp['lsBac'][number]; d: DauBac }) {
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <b style={{ fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>${d.ns}</b><span style={{ color: 'var(--fg-3, #777)' }} title="bậc ngân sách hiện tại / số bậc">bậc {d.bac}/{d.so}</span>
         <span style={{ color: 'var(--fg-2)' }}>nay <Roi s={d.nay} /></span><span style={{ color: 'var(--fg-2)' }}>qua <Roi s={d.qua} /></span>
-        <span style={{ color: 'var(--fg-3, #777)', fontSize: 11 }}>{d.vung}</span>
       </div>
-      {d.canh.map((x, i) => <div key={i} style={{ marginTop: 4, color: 'var(--fg-2)', opacity: x.mo ? 0.75 : 1 }}><b style={{ color: x.mau, marginRight: 4 }}>{x.k}</b>{x.chu}</div>)}
       <div style={{ fontSize: 11, color: 'var(--fg-3, #777)', margin: '10px 0 6px' }} title="mới nhất ở trên">Lịch sử bậc · 30 ngày</div>
       {ls.length ? <div style={{ position: 'relative', paddingLeft: 16 }}>
         <span style={{ position: 'absolute', left: 4, top: 4, bottom: 4, width: 2, background: 'var(--line)' }} />
@@ -424,12 +423,10 @@ function TheCr({ r, ch, k, khTen, tc }: { r: CreativeEtpKho; ch?: ChamCr; k?: So
 function dauBac(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao'>, bao?: { nhom: string; chu: string }[]) {
   const i = BAC_NS.findIndex((b) => b >= c.ngan_sach - 1e-9), bac = i < 0 ? BAC_NS.length - 1 : i;
   const r = roiOf(c.nay), du = c.nay.chi >= Math.max(0.3 * c.ngan_sach, 0.3);
-  const vung = r == null ? 'chưa có số hôm nay' : !du ? `mới chi ${Math.round((c.nay.chi / Math.max(c.ngan_sach, 0.01)) * 100)}% ngân sách — luật chưa xét` : r <= -5 ? '→ vùng giảm' : r >= 50 ? '→ vùng tăng' : '→ vùng giữ';
   const gan = ganCamp(c, bao).gan;
   const dau = (bao ?? []).map((b) => DAU_LUAT[b.nhom] ? { ...b, d: DAU_LUAT[b.nhom]! } : null).filter((b): b is { nhom: string; chu: string; d: [string, string, string] } => !!b);
   const t = [`Bậc $${c.ngan_sach} (${bac + 1}/${BAC_NS.length})`, ...dau.map((b) => `${b.d[2]}: ${b.chu.replace(/^#\S*\s*/, '')}`), ...gan.map((g) => `${g[0]} ${g[2]}`)].join(' · ');
-  const d: DauBac = { bac: bac + 1, so: BAC_NS.length, ns: c.ngan_sach, nay: c.nay, qua: c.qua, vung,
-    canh: [...dau.map((b) => ({ k: b.d[0], mau: b.d[1], chu: `${b.d[2]}: ${b.chu.replace(/^#\S*\s*/, '').slice(0, 160)}` })), ...gan.map((g) => ({ k: g[0], mau: g[1], chu: g[2], mo: true }))] };
+  const d: DauBac = { bac: bac + 1, so: BAC_NS.length, ns: c.ngan_sach, nay: c.nay, qua: c.qua };
   return { d, t, bac, r, du, dau, gan };
 }
 function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao'>; bao?: { nhom: string; chu: string }[]; ls?: DuLieuEtp['lsBac'][number] }) {
@@ -1470,7 +1467,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined, position: 'relative' }}>{vach}
         <span style={{ display: 'grid', gridTemplateColumns: LUOI_CAMP_HEP, columnGap: 6, alignItems: 'center', minWidth: 0, whiteSpace: 'nowrap' }}>
           <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span>
-          <span data-cot="camp" style={{ paddingLeft: (cap - 1) * 12, overflow: 'hidden', textOverflow: 'ellipsis' }}><span className="mui">{ds.length ? '▸' : ''}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} /></span>
+          <span data-cot="camp" style={{ paddingLeft: (cap - 1) * 12, overflow: 'hidden', textOverflow: 'ellipsis' }}><span className="mui">{ds.length ? '▸' : ''}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b></span>{/* điện thoại không có nhãn loại CT/CC sau số camp (anh 29/10/2026 #1480 "bỏ nút này trên mobile" — ô hẹp cắt thành "…") */}
           <span data-cot="ngan-sach" data-cot-can="phai" style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>${c.ngan_sach}</span>
           <span data-cot="dau-hieu" style={{ fontSize: 11, overflow: 'hidden' }}>{l ? <span style={{ color: '#f87171' }} title={`nhân bản lỗi ${l.lan} lần / 24h`}>⚠{l.lan}</span> : n ? <span title={`${n} bản nhân`}>x{n}</span> : null}</span>
         </span>
@@ -1559,7 +1556,8 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         </span> : null}
         {/* MỞ / GẬP HẾT (anh 28/10/2026): mọi phim + mọi camp có bản nhân trong danh sách đang lọc */}
         {(() => { const tatCa = [...phim.map((p) => `p${p.k}`), ...phim.flatMap((p) => p.all.filter((c) => con.m.has(c.camp_id)).map((c) => `c${c.camp_id}`))];
-          const moHet = phim.length > 0 && phim.every((p) => moCay.has(`p${p.k}`));
+          // "đã mở hết" = mọi phim VÀ mọi camp có bản nhân đều mở (anh 29/10/2026 #1481): trước chỉ xét phim → bản nhân mới mọc sau lần mở vẫn gập mà nút đã báo Gập hết
+          const moHet = phim.length > 0 && tatCa.every((k) => moCay.has(k));
           return <button onClick={() => doiMo(tatCa, !moHet)} title={moHet ? 'gập mọi phim' : 'mở mọi phim + bản nhân bản'} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: 'inherit', cursor: 'pointer' }}>{moHet ? '⊟ Gập hết' : '⊞ Mở hết'}</button>; })()}
         {<button onClick={() => setGiai((v) => !v)} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: 'inherit', cursor: 'pointer' }}>{giai ? 'Ẩn chú giải' : 'Chú giải'}</button>}
         {!giai ? null : <>

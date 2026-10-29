@@ -4,7 +4,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import { banLuu, moHinhMoi } from '@/lib/thanh-pho-ban-luu';
+import { banLuu, moHinhNhanh } from '@/lib/thanh-pho-ban-luu';
 import { SocialThanhPho } from '@/components/social-thanh-pho';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +14,6 @@ export default async function CityPage() {
   const me = await getCurrentUser();
   if (!me) redirect('/login?next=/city');
   if (me.role !== 'admin') redirect('/');
-  const luu = banLuu(), ban = luu ?? (await moHinhMoi());
+  const luu = banLuu(), ban = luu ?? (await moHinhNhanh());
   return <SocialThanhPho mh={ban.mh} luc={ban.luc} toanTrang lamMoiNgay={!!luu} />;
 }

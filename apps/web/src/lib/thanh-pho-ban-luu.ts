@@ -19,3 +19,16 @@ export async function moHinhMoi(): Promise<BanThanhPho> {
 export function banLuu(): BanThanhPho | null {
   try { return JSON.parse(readFileSync(TEP, 'utf8')) as BanThanhPho; } catch { return null; }
 }
+
+// TRẢ NGAY, TÍNH Ở NỀN (anh 30/10/2026 "page đó đang load chậm vãi"): /api/social/thanh-pho trước đây gọi moHinhMoi() mỗi lần → đo 23,3 giây một lượt, tab Thành phố
+// (mặc định của Social) và city.on.tc gọi lại mỗi phút nên các lượt tính còn chồng lên nhau. Giờ: có bản lưu thì trả luôn; cũ hơn TUOI_MOI thì khởi một lượt tính nền
+// (một lượt một lúc — lượt sau gắn vào lượt đang chạy), lần gọi kế lấy số mới. Chưa có bản lưu (máy mới) mới phải chờ tính.
+const TUOI_MOI = 60_000;
+let dangTinh: Promise<BanThanhPho> | null = null;
+const tinhMotLuot = () => (dangTinh ??= moHinhMoi().finally(() => { dangTinh = null; }));
+export async function moHinhNhanh(): Promise<BanThanhPho> {
+  const luu = banLuu();
+  if (!luu) return tinhMotLuot();
+  if (Date.now() - Date.parse(luu.luc) > TUOI_MOI) void tinhMotLuot().catch((e: Error) => console.error('thanh-pho: tính nền hỏng', e.message));
+  return luu;
+}

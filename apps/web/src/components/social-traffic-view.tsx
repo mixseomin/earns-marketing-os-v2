@@ -22,11 +22,11 @@ import { SucKhoeDang } from './social-suc-khoe';
 import { SocialTrucTiep } from '@/components/social-truc-tiep';
 import { SocialThanhPho } from './social-thanh-pho';
 
-type Muc = 'tong' | 'pho' | 'goc' | 'sx' | 'kenh' | 'lich' | 'landing' | 'trang' | 'tien';
+type Muc = 'tong' | 'pho' | 'goc' | 'sx' | 'kenh' | 'lich' | 'landing' | 'trang' | 'email' | 'tien';
 const MUC: { key: Muc; label: string }[] = [
   // Icon trước chữ (card #1407, YDNI "trực quan trước chữ"): nhận ra mục bằng mắt, chữ để xác nhận.
   { key: 'tong', label: '📊 Tổng quan' }, { key: 'pho', label: '🏙 Thành phố' }, { key: 'goc', label: '🎯 Góc' }, { key: 'sx', label: '🎬 Sản xuất' },
-  { key: 'kenh', label: '📺 Kênh' }, { key: 'lich', label: '🗓 Lịch đăng' }, { key: 'landing', label: '🛬 Landing' }, { key: 'trang', label: '🟢 Trực tiếp' }, { key: 'tien', label: '💰 Sổ tiền' },
+  { key: 'kenh', label: '📺 Kênh' }, { key: 'lich', label: '🗓 Lịch đăng' }, { key: 'landing', label: '🛬 Landing' }, { key: 'trang', label: '🟢 Trực tiếp' }, { key: 'email', label: '📧 Email' }, { key: 'tien', label: '💰 Sổ tiền' },
 ];
 const TT_GOC = { chua: ['var(--fg-3)', '○ Chưa làm'], dang: ['var(--accent)', '🧪 Đang thử'], thang: ['var(--ok)', '💰 Ra tiền'], chet: ['var(--bad)', '⏹ Dừng'] } as const;
 const TT_KENH = { song: ['var(--ok)', '✅ Sống'], co: ['var(--warn)', '🚩 Dính cờ'], khoa: ['var(--bad)', '🔒 Bị khoá'], dung: ['var(--fg-3)', '✂️ Đã cắt'] } as const;
@@ -71,7 +71,8 @@ function ThanhPhoTai() {
   if (!ban) return <div style={{ padding: 16, color: 'var(--fg-2)' }}>Đang dựng thành phố…</div>;
   return <SocialThanhPho mh={ban.mh} luc={ban.luc} />;
 }
-export function SocialTrafficView({ live }: { live: SocialLive }) {
+/** email: bảng list MailWizz dựng sẵn ở server (MailwizzListsPanel — cùng bảng tab Email trang chủ, chỉ xem; anh 29/10/2026 "vào MailWizz cho tập trung, thêm một bản ở đây để view"). */
+export function SocialTrafficView({ live, email }: { live: SocialLive; email?: React.ReactNode }) {
   const [cheDo, setCheDo] = useShallowParam('stm', 'live')   // LIVE mặc định (card #1408);
   const [muc, setMuc] = useShallowParam('sts', 'pho');   // mặc định thành phố (anh 22/10/2026 — màn chính của hệ sinh thái)
   const [locGoc, setLocGoc] = useShallowParam('stg', 'all');
@@ -362,6 +363,7 @@ export function SocialTrafficView({ live }: { live: SocialLive }) {
           ? <><DataTable rows={live.landing} columns={cotLanding} getRowKey={(x) => x.url} persistKey="st_landing" minWidth={980} searchText={(x) => `${x.url} ${x.nguon}`} searchPlaceholder="Tìm trang / máy / kênh…" />
               <span style={nho}>Trang đích tự hiện khi một máy hay một kênh trỏ link tới nó. Số đọc từ page-events trên site (trang khách vào, 7 ngày, bỏ lượt đội nhà): đọc = cuộn ≥ 50%, bấm ra = bấm sang trang đối tác.</span></>
           : trong('Chưa có trang đích', 'Chưa máy / kênh nào trỏ link tới trang nào.'))}
+      {muc === 'email' && (email ?? <span style={nho}>Danh sách email nằm ở MailWizz (mail.on.tc) — bảng chỉ hiện khi trang tải từ máy chủ.</span>)}
       {muc === 'trang' && laLive && <SocialTrucTiep />}
       {muc === 'trang' && laLive && <h3 style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--fg-2)' }}>Trang đích các kênh đang trỏ tới</h3>}
       {muc === 'trang' && !laLive && <span style={nho}>Khách trực tiếp trên site aff (phễu, bảng phiên, dòng thời gian từng khách) là số thật — bật LIVE để xem.</span>}

@@ -142,7 +142,9 @@ EOF'""", timeout=3600)
     # CẤT LÊN DRIVE (anh 28/10/2026 "phải lưu lên drive chứ? Sao cứ lưu hết ở iMac"): lô vừa lên xong = sự kiện cất — mọi tệp video / tiếng đã nằm yên ≥ 24 giờ
     # trong ~/.cache/ethopex chuyển sang Drive htuan82 (gdrive:ethopex-cache), giữ đường dẫn; cần lại thì dam_bao / keo_thu_muc tự kéo về. Mọi luồng (phim mới, sửa CTA,
     # thay creative bị từ chối, đợt phim mới) đều lên qua đây → một chỗ cất, không dựng vòng chạy theo giờ.
-    CD.cat("24h")
+    # thu-vien-len (máy sinh KT, mỗi nhịp 5 phút) đặt ETP_KHONG_CAT=1: lượt quét Drive chạy > 36 phút giữ chân máy sinh (29/10/2026 — El gran tạo xong creative 16:06 mà
+    # bị cắt ở 40 phút, chưa ghi vào thư viện). Không mất gì: mọi lô cắt khác vẫn quét tệp ≥ 24 giờ lên Drive ở lượt của chúng.
+    if os.environ.get("ETP_KHONG_CAT") != "1": CD.cat("24h")
 
 if __name__ == "__main__":
     main(*sys.argv[1:4])

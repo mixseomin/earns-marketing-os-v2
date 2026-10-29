@@ -56,20 +56,21 @@ const SCHEMA = { type: 'OBJECT', properties: { doi_chieu: { type: 'ARRAY', items
   muc: { type: 'STRING', enum: ['khớp', 'gần', 'lệch', 'thiếu', 'thừa'] }, ghi_chu: { type: 'STRING' },
 }, required: ['thanh_phan', 'du_kien', 'thuc_te', 'muc', 'ghi_chu'] } } }, required: ['doi_chieu'] };
 
-/** So TỪNG thành phần quan trọng: dự kiến vs bóc-từ-ảnh → mức khớp (khớp/gần/lệch/thiếu/thừa) + ghi chú. 0,3¢. */
-export async function doiChieuKhung(db: Db | null, phimId: number | null, duKien: string, k: BocTachKhung): Promise<DongDoiChieu[] | null> {
+/** Chấm TỪNG thành phần dự kiến (có cấu trúc) với ảnh thực tế → mức khớp + ghi chú. Chấm THEO KHÓA: máy phải trả đúng-đủ mỗi mục dự kiến, không tự bịa/bỏ dòng → giảm sai sót nhận định. 0,3¢. */
+export async function doiChieuKhung(db: Db | null, phimId: number | null, duKien: MucDuKien[], k: BocTachKhung): Promise<DongDoiChieu[] | null> {
   const thuc = [
-    `Khung: ${k.khung_hinh} · ${k.goc_may}`, `Bối cảnh: ${k.boi_canh} · ánh sáng ${k.anh_sang}`, `Bố cục: ${k.bo_cuc}`,
+    `Khung hình: ${k.khung_hinh} · ${k.goc_may}`, `Bối cảnh: ${k.boi_canh} · ánh sáng ${k.anh_sang}`, `Bố cục: ${k.bo_cuc}`,
     ...k.nguoi.map((n) => `Người "${n.ai}" (${n.dac_diem}) — vị trí: ${n.vi_tri} · áo: ${n.ao} · tóc: ${n.toc} · trang sức: ${n.trang_suc} · biểu cảm: ${n.bieu_cam} · nhìn: ${n.huong_nhin} · dáng: ${n.dang} · cầm: ${n.do_cam}`),
     ...k.dao_cu.map((d) => `Đạo cụ "${d.ten}" (${d.dac_diem}): ${d.trang_thai} — ${d.vi_tri}`),
     k.chu_tren_hinh && k.chu_tren_hinh !== 'không' ? `Chữ trên hình: ${k.chu_tren_hinh}` : '',
   ].filter(Boolean).join('\n');
+  const dkList = duKien.map((m, i) => `${i + 1}. "${m.thanh_phan}" — dự kiến: ${m.du_kien}`).join('\n');
   const text = [
-    'So sánh THÀNH PHẦN DỰ KIẾN của một khung phim với THÀNH PHẦN THỰC TẾ bóc ra từ ảnh đã sinh. Trả về bảng đối chiếu TỪNG thành phần quan trọng, bằng tiếng Việt.',
-    'Dùng ĐÚNG các tên thanh_phan này (để ghép cây theo đối tượng): "Khung hình", "Bối cảnh", "Nhân vật có mặt"; mỗi nhân vật <tên>: "Vị trí <tên>", "Áo <tên>", "Tóc <tên>", "Biểu cảm <tên>", "Dáng <tên>", "Đồ cầm <tên>"; mỗi đạo cụ <tên>: "Đạo cụ <tên> + vị trí", "Đạo cụ <tên> + trạng thái". du_kien (giá trị dự kiến, hoặc "—"), thuc_te (giá trị bóc từ ảnh, hoặc "—"), muc (khớp = đúng ý; gần = gần đúng/khác nhỏ; lệch = khác rõ; thiếu = dự kiến có mà ảnh KHÔNG có; thừa = ảnh có mà dự kiến không nhắc), ghi_chu (nói RÕ khác chỗ nào, vd "dự kiến búi thấp nhưng ảnh xõa").',
-    'BẮT BUỘC: MỖI nhân vật VÀ MỖI đạo cụ đều phải có dòng Vị trí ("Vị trí <nhân vật>" hoặc "Đạo cụ <đạo cụ> + vị trí") tả vị trí TƯƠNG QUAN so với các thành phần khác (trái/giữa/phải màn, trước/sau, cạnh ai, trong tay ai, gần vật nào) — kể cả thẻ, thùng đồ. Ngoài ra so đủ: đủ/thiếu/thừa nhân vật, áo + màu + vết đặc trưng, KIỂU TÓC, biểu cảm, dáng, đạo cụ + trạng thái (thẻ còn/đứt, ai cầm), khung hình, bối cảnh. Bỏ qua chi tiết nền vụn không ảnh hưởng truyện.',
-    'CHẤM NGHIÊM, KHÔNG dễ dãi — đây là điểm quyết định cho phép ráp clip hay không: muc="khớp" CHỈ khi gần như trùng khít. SAI NGƯỜI GIỮ / SAI VỊ TRÍ phải chấm "lệch", TUYỆT ĐỐI không phải "khớp": nếu đạo cụ do NGƯỜI KHÁC cầm/đeo so với dự kiến (vd dự kiến "Hạ đeo trên cổ" nhưng ảnh "Vivian cầm trên tay") = LỆCH; nếu ở khác bên màn / khác người / khác tầm tay = LỆCH. Biểu cảm khác mức rõ (vd dự kiến "sốc" nhưng ảnh "hơi bối rối") = lệch. Chỉ "gần" khi khác nhỏ không đổi bản chất; "khớp" khi đúng cả người giữ lẫn vị trí.',
-    '', '=== DỰ KIẾN ===', duKien, '', '=== THỰC TẾ (bóc từ ảnh) ===', thuc,
+    'Bạn CHẤM NGHIỆM THU một khung phim: với TỪNG thành phần trong DANH SÁCH DỰ KIẾN, đọc phần THỰC TẾ (bóc từ ảnh) rồi chấm mức khớp. Trả JSON { doi_chieu: [...] } bằng tiếng Việt.',
+    'QUY TẮC OUTPUT (bắt buộc): trả về ĐÚNG và ĐỦ mỗi mục trong DANH SÁCH DỰ KIẾN, GIỮ NGUYÊN y hệt chuỗi thanh_phan và đúng thứ tự; mỗi dòng: thanh_phan (copy), du_kien (copy), thuc_te (giá trị đọc từ THỰC TẾ cho ĐÚNG đối tượng+thuộc tính đó, "—" nếu ảnh không có), muc, ghi_chu. KHÔNG gộp, KHÔNG bỏ sót, KHÔNG đổi tên mục. Sau cùng, nếu THỰC TẾ có đối tượng/đạo cụ QUAN TRỌNG không nằm trong danh sách, thêm dòng muc="thừa".',
+    'ÁNH XẠ ĐÚNG NGƯỜI trước khi điền: THỰC TẾ gọi người theo ngoại hình (vd "người phụ nữ áo đỏ"); hãy ánh xạ về đúng TÊN nhân vật trong danh sách dự kiến (dựa áo/tóc/vai trò) — tuyệt đối không lẫn thuộc tính của người này sang người kia.',
+    'RUBRIC NGHIÊM (gate cho phép ráp clip phụ thuộc kết quả này — cấm dễ dãi): muc="khớp" CHỈ khi trùng khít cả bản chất. SAI NGƯỜI GIỮ đạo cụ / SAI VỊ TRÍ = "lệch", KHÔNG phải khớp (vd dự kiến "Hạ đeo thẻ trên cổ" nhưng ảnh "Vivian cầm thẻ trên tay" = lệch). Khác bên màn / khác người / khác tầm tay = lệch. Biểu cảm khác mức rõ (sốc vs bối rối) = lệch. "gần" chỉ cho khác nhỏ KHÔNG đổi bản chất; "thiếu" = dự kiến có mà ảnh không có.',
+    '', '=== DANH SÁCH THÀNH PHẦN DỰ KIẾN (chấm từng mục, giữ nguyên thanh_phan) ===', dkList, '', '=== THỰC TẾ (bóc từ ảnh) ===', thuc,
   ].join('\n');
   const r = await goiGeminiJson<{ doi_chieu?: DongDoiChieu[] }>([{ text }], SCHEMA, undefined);
   if (!r) return null;

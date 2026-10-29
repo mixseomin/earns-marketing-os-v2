@@ -8,7 +8,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
 import { bocTachKhung } from '../src/lib/xuong-video/boc-tach-khung';
-import { duKienKhung, doiChieuKhung } from '../src/lib/xuong-video/doi-chieu-khung';
+import { thanhPhanDuKien, doiChieuKhung } from '../src/lib/xuong-video/doi-chieu-khung';
 import { uploadToR2 } from '../src/lib/r2';
 import type { BangShot } from './phieu-shot.mts';
 import type { Canh, BocTachKhung, DongDoiChieu } from '../src/lib/xuong-video/kieu';
@@ -37,7 +37,7 @@ for (const so of ds) {
   // đạo cụ dự kiến lấy thẳng từ bảng (đồ cầm/đeo + đồ bày) để không báo "thừa" oan khi ảnh có thùng/thẻ đúng cảnh
   const mon = (k: string) => bang.vat_so?.[k.split('_')[0]!] ?? k;
   const daoCu = [...new Set([...(s.do ?? []).map((o) => mon(o.loai)), ...(s.nguoi ?? []).flatMap((n) => [...(n.deo ?? []), ...(n.cam ?? [])].map(mon))])];
-  const duKien = `${duKienKhung(c, nv, null, 'dau')}\nHành động dự kiến: ${dien}${daoCu.length ? `\nĐạo cụ dự kiến trong cảnh: ${daoCu.join(', ')}` : ''}`;
+  const duKien = [...thanhPhanDuKien(c, nv, null, 'dau'), { thanh_phan: 'Hành động', du_kien: dien }, ...(daoCu.length ? [{ thanh_phan: 'Đạo cụ cảnh', du_kien: daoCu.join(', ') }] : [])];
   const url = await uploadToR2(`xuong-video/thu/soat-${so}-${randomUUID()}.png`, readFileSync(f), 'image/png');
   if (!url) { console.log(`#${so}: không tải ảnh lên được`); continue; }
   const r = await bocTachKhung(db, phim, url);

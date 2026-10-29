@@ -74,6 +74,7 @@ function BadgeMuc({ muc }: { muc: string }) { return <span style={{ color: MUC_M
 
 // Một dòng bảng: dự kiến LUÔN có; thuc_te/muc/ghi_chu chỉ có khi đã bóc ảnh.
 type RowDC = { thanh_phan: string; du_kien: string; thuc_te?: string; muc?: string; ghi_chu?: string };
+const dongLoi = (r: RowDC) => { const { obj, attr } = tachTP(r.thanh_phan); return attr ? `${obj} · ${attr}` : obj; };
 
 // Bảng dạng CÂY: đối tượng là nút cha, thuộc tính là con; lưới tự xuống dòng khít bề ngang. coAnh=false → chỉ Thành phần + Dự kiến (shot chưa bóc); coAnh=true → thêm Khớp (giữa) + Bóc ảnh.
 function DoiChieuTable({ rows, coAnh }: { rows: RowDC[]; coAnh: boolean }) {
@@ -149,6 +150,7 @@ export function DoiChieuNgan({ canhId }: { canhId: number }) {
   const [d, setD] = useState<Awaited<ReturnType<typeof layThanhPhanCanh>> | null>(null);
   const [dangBoc, setDangBoc] = useState(false);
   const [loiBoc, setLoiBoc] = useState('');
+  const [moDayDu, setMoDayDu] = useState<Record<string, boolean>>({});
   const tai = async () => setD(await layThanhPhanCanh(canhId));
   useEffect(() => { void tai(); }, [canhId]);
   const chayBoc = async () => {
@@ -179,16 +181,36 @@ export function DoiChieuNgan({ canhId }: { canhId: number }) {
         const rows = ghepDC(d.duKien?.[luc] ?? [], bt?.doi_chieu?.[luc]);
         const coAnh = !!u;
         const daChieu = (bt?.doi_chieu?.[luc]?.length ?? 0) > 0;
-        const xau = rows.filter((r) => r.muc === 'lệch' || r.muc === 'thiếu' || r.muc === 'thừa').length;
+        const loi = rows.filter((r) => r.muc === 'lệch' || r.muc === 'thiếu' || r.muc === 'thừa');
+        const gan = rows.filter((r) => r.muc === 'gần');
+        const moDD = moDayDu[luc] ?? !daChieu;   // chưa đối chiếu → mở sẵn danh mục dự kiến; đã đối chiếu → gập, chỉ hiện khối lỗi
         return (
           <div key={luc} style={{ display: 'grid', gap: 6 }}>
-            <div style={{ ...mono, fontSize: 11, color: 'var(--cyan)', textTransform: 'uppercase' }}>🎬 Khung {ten} · {rows.length} thành phần{coAnh ? (daChieu ? (xau ? ` · ⚠ ${xau} lệch` : ' · ✓ khớp') : ' · chưa đối chiếu, bấm ⟳') : ' · chưa có ảnh (chỉ dự kiến)'}</div>
+            <div style={{ ...mono, fontSize: 11, color: 'var(--cyan)', textTransform: 'uppercase' }}>🎬 Khung {ten} · {rows.length} thành phần{coAnh ? (daChieu ? (loi.length ? ` · ⚠ ${loi.length} lỗi${gan.length ? ` · ${gan.length} gần` : ''}` : ' · ✓ khớp dự kiến') : ' · chưa đối chiếu, bấm ⟳ Bóc tách') : ' · chưa có ảnh (chỉ dự kiến)'}</div>
             <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
               {u && <img src={anhNho(u, 640)} alt="" style={{ width: 200, aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 6, background: '#000', flexShrink: 0, position: 'sticky', top: 0 }} />}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <DoiChieuTable rows={rows} coAnh={coAnh} />
+              <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 8 }}>
+                {daChieu && loi.length > 0 && (
+                  <div style={{ border: '1px solid var(--red)', borderRadius: 6, padding: '6px 8px' }}>
+                    <div style={{ ...mono, fontSize: 10, color: 'var(--red)', fontWeight: 700, marginBottom: 4 }}>⚠ {loi.length} LỖI SO VỚI DỰ KIẾN — cần sửa trước khi ráp clip</div>
+                    {loi.map((r, i) => (
+                      <div key={i} style={{ fontSize: 11, lineHeight: 1.5, marginTop: i ? 4 : 0, paddingTop: i ? 4 : 0, borderTop: i ? '1px solid var(--line)' : 'none' }}>
+                        <b style={{ color: 'var(--red)' }}>{dongLoi(r)}</b> <span style={{ ...mono, fontSize: 9, color: 'var(--red)' }}>{MUC_NHAN[r.muc!] ?? r.muc}</span>
+                        <div><span style={{ color: 'var(--fg-3)' }}>dự kiến:</span> <span style={{ color: 'var(--fg-2)' }}>{r.du_kien || '—'}</span> <span style={{ color: 'var(--fg-3)' }}>→ thực tế:</span> <span style={{ color: 'var(--fg-1)' }}>{r.thuc_te || '—'}</span></div>
+                        {r.ghi_chu ? <div style={{ color: 'var(--amber)', fontSize: 10.5 }}>↳ {r.ghi_chu}</div> : null}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {daChieu && loi.length === 0 && <div style={{ ...mono, fontSize: 11, color: 'var(--green)' }}>✓ Mọi thành phần khớp dự kiến ({rows.length})</div>}
+                {coAnh ? (
+                  <div>
+                    <button type="button" className="xv-lienket xv-mono" style={{ fontSize: 10 }} onClick={() => setMoDayDu((m) => ({ ...m, [luc]: !moDD }))}>{moDD ? '▾ Ẩn' : '▸ Xem'} đầy đủ danh mục ({rows.length} thành phần{gan.length ? `, ${gan.length} gần` : ''})</button>
+                    {moDD && <div style={{ marginTop: 4 }}><DoiChieuTable rows={rows} coAnh={coAnh} /></div>}
+                  </div>
+                ) : <DoiChieuTable rows={rows} coAnh={coAnh} />}
                 {luc === 'dau' && d.boSung && d.boSung.muc.length > 0 && (
-                  <div style={{ marginTop: 10, border: '1px dashed var(--amber)', borderRadius: 6, padding: '6px 8px' }}>
+                  <div style={{ border: '1px dashed var(--amber)', borderRadius: 6, padding: '6px 8px' }}>
                     <div style={{ ...mono, fontSize: 10, color: 'var(--amber)', textTransform: 'uppercase', marginBottom: 4 }}>➕ Dự kiến bổ sung — nối tiếp từ shot {d.boSung.tuShot} (trạng thái cuối cần giữ sang đầu shot này)</div>
                     <DoiChieuTable rows={d.boSung.muc.map((m) => ({ thanh_phan: m.thanh_phan, du_kien: m.du_kien }))} coAnh={false} />
                   </div>

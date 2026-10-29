@@ -50,7 +50,7 @@ import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-vi
 import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { kgCua } from '@/lib/xuong-video/khong-gian';
 import { bocTachKhung } from '@/lib/xuong-video/boc-tach-khung';
-import { duKienKhung, doiChieuKhung, thanhPhanDuKien, type MucDuKien } from '@/lib/xuong-video/doi-chieu-khung';
+import { doiChieuKhung, thanhPhanDuKien, type MucDuKien } from '@/lib/xuong-video/doi-chieu-khung';
 import type { BocTachCanh, BocTachKhung, DongDoiChieu } from '@/lib/xuong-video/kieu';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb, sinhAnhBienTheDb } from '@/lib/xuong-video/sinh-anh';
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
@@ -1967,7 +1967,7 @@ export async function bocTachCanh(canhId: number): Promise<{ ok: boolean; boc_ta
     const r = await bocTachKhung(db, phimId, url);
     if (!r) continue;
     out[luc] = r;
-    const chieu = await doiChieuKhung(db, phimId, duKienKhung(c, nhanVat, kg, luc), r);
+    const chieu = await doiChieuKhung(db, phimId, thanhPhanDuKien(c, nhanVat, kg, luc), r);
     if (chieu) dc[luc] = chieu;
   }
   if (!out.dau && !out.cuoi) return { ok: false, loi: 'bóc tách hỏng (cổng ảnh không trả kết quả)' };

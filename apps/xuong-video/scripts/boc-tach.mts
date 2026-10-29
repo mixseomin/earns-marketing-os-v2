@@ -5,9 +5,8 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { bocTachKhung } from '../src/lib/xuong-video/boc-tach-khung';
-import { duKienKhung, doiChieuKhung } from '../src/lib/xuong-video/doi-chieu-khung';
+import { thanhPhanDuKien, doiChieuKhung } from '../src/lib/xuong-video/doi-chieu-khung';
 import { mapCanh, mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
-import { kgCua } from '../src/lib/xuong-video/khong-gian';
 import { khongGianTap } from './phieu-shot.mts';
 import type { BocTachKhung, DongDoiChieu } from '../src/lib/xuong-video/kieu';
 
@@ -28,7 +27,7 @@ if (!row) { console.error(`không thấy canh ${canhId}`); process.exit(1); }
 const c = mapCanh(row); const phimId = Number(row.phim_id);
 const nhanVat = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
 const kgt = await khongGianTap(c.tap_id, c.phan_doan ?? '').catch(() => null);
-const kg = kgt ? kgCua(kgt, c) : null;
+const kg = kgt;   // khongGianTap đã trả KhongGian của đúng phân đoạn (không kgCua lần nữa)
 const out: Record<string, unknown> = {}; const dc: { dau?: DongDoiChieu[]; cuoi?: DongDoiChieu[] } = {};
 for (const [luc, url] of [['dau', c.keyframe_url], ['cuoi', c.keyframe_ket]] as const) {
   if (!url) { console.log(`#${canhId} ${luc}: chưa có keyframe`); continue; }
@@ -36,8 +35,7 @@ for (const [luc, url] of [['dau', c.keyframe_url], ['cuoi', c.keyframe_ket]] as 
   if (!r) { console.log(`#${canhId} ${luc}: bóc tách hỏng`); continue; }
   out[luc] = r;
   // ⚖️ đối chiếu với dự kiến tại khung đó
-  const duKien = duKienKhung(c, nhanVat, kg, luc);
-  const chieu = await doiChieuKhung(db, phimId, duKien, r as BocTachKhung);
+  const chieu = await doiChieuKhung(db, phimId, thanhPhanDuKien(c, nhanVat, kg, luc), r as BocTachKhung);
   if (chieu) { dc[luc] = chieu; console.log(`  ⚖️ đối chiếu ${luc}: ${chieu.length} mục · lệch/thiếu/thừa: ${chieu.filter((x) => x.muc !== 'khớp' && x.muc !== 'gần').map((x) => `${x.thanh_phan}(${x.muc})`).join(', ') || 'không'}`); }
   console.log(`\n=== #${canhId} · khung ${luc.toUpperCase()} ===`);
   console.log(`bối cảnh: ${r.boi_canh} | ánh sáng: ${r.anh_sang} | khung: ${r.khung_hinh} · ${r.goc_may}`);

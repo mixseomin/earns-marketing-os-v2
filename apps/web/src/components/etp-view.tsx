@@ -1761,6 +1761,8 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
             {xMo.camp ? <>14 ngày: {xMo.chay}/{xMo.camp} camp đang chạy · chi <Tien v={xMo.chi} /> · lãi <LaiCot s={xMo} /> · ROI <Roi s={xMo} /></> : 'Chưa chạy camp nào.'}
             {xMo.meta != null ? <> · chấm <span style={{ color: mauDiem(xMo.meta) }}>Meta {xMo.meta}</span> <span style={{ color: mauDiem(xMo.afs) }}>AFS {xMo.afs ?? '–'}</span></> : null}
             {xMo.nguon === 'videoexpress' ? <> · máy sinh kể chuyện VideoExpress ($0)</> : null}</div>
+          {!xMo.creative_id && !du.nguoi.ngoai ? <div style={{ fontSize: 11, color: 'var(--fg-3, #777)' }} title="đưa bản này thành creative Ethopex (kho + chữ QC + cổng chữ) — lên camp vẫn chờ lệnh anh">
+            mã thư viện <b style={{ userSelect: 'all' }}>{xMo.k}</b> · đưa lên Ethopex (iMac): <code style={{ userSelect: 'all' }}>python3 apps/xuong-video/scripts/ethopex/thu-vien-len.py {xMo.k.slice(2)}</code></div> : null}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {xMo.video ? <a href={xMo.video} download target="_blank" rel="noreferrer" className="btn">⬇ Tải MP4</a> : null}
             <button type="button" className="btn" onClick={() => chepChu(xMo)}>{chep === xMo.k ? '✓ Đã chép' : '⧉ Chép chữ QC'}</button>

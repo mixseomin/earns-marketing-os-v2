@@ -134,7 +134,9 @@ if (process.argv.includes('--chi-anh')) { console.log(`ảnh + giọng xong ở 
 const VID = catId('my_ai_videos');
 const doiClip = () => canhSinh.filter((c) => g(c).anhUuid && g(c).anh && !g(c).vid);
 for (let nhip = 0; nhip < 40 && doiClip().length; nhip++) {
-  const ds = getMedia(VID, 60).results;
+  // VideoExpress thỉnh thoảng trả trang HTML (lỗi / đăng nhập lại) thay JSON — một lần hỏi hỏng KHÔNG làm ngã lượt (máy sinh 29/10 ngã ở đây khi 5 clip đang render): chờ rồi hỏi lại
+  let ds: ReturnType<typeof getMedia>['results'] = [];
+  try { ds = getMedia(VID, 60).results ?? []; } catch (e) { console.log(`  ! hỏi danh sách video hỏng (${String(e).slice(0, 80)}) — hỏi lại nhịp sau`); await ngu(30_000); continue; }
   for (const c of doiClip().filter((c) => g(c).vidUuid)) {
     const m = ds.find((x) => x.uuid === g(c).vidUuid);
     if (m && !m.isPending && m.mediaPath) { const f = `${D}/vid-${c.so}.mp4`; tai(m.mediaPath, f); g(c).vid = f; g(c).vidGiay = giayTep(f); console.log(`✓ clip #${c.so} ${g(c).vidGiay!.toFixed(1)}s`); }

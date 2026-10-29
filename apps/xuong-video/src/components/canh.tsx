@@ -192,26 +192,25 @@ export function DoiChieuNgan({ canhId }: { canhId: number }) {
               <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 8 }}>
                 {daChieu && loi.length > 0 && (
                   <div style={{ border: '1px solid var(--red)', borderRadius: 6, overflow: 'hidden' }}>
-                    <div style={{ ...mono, fontSize: 11, color: '#fff', fontWeight: 700, background: 'var(--red)', padding: '4px 8px' }}>⚠ {loi.length} LỖI — SỬA TRƯỚC KHI RÁP CLIP</div>
-                    <div style={{ padding: '2px 8px 6px' }}>
+                    <div style={{ ...mono, fontSize: 10.5, color: '#fff', fontWeight: 700, background: 'var(--red)', padding: '3px 8px' }}>⚠ {loi.length} LỖI — rê xem đủ</div>
+                    <div style={{ padding: '3px 8px 4px' }}>
                       {loi.map((r, i) => {
                         const may = (r.ghi_chu ?? '').startsWith('[máy');
                         return (
-                          <div key={i} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '1px 8px', borderLeft: '3px solid var(--red)', paddingLeft: 8, marginTop: 8 }}>
-                            <div style={{ gridColumn: '1 / -1', fontSize: 11.5, fontWeight: 700, color: 'var(--fg-1)' }}>
-                              {dongLoi(r)} <span style={{ ...mono, fontSize: 9, padding: '0 4px', borderRadius: 3, background: may ? 'var(--green)' : 'var(--amber)', color: '#000' }}>{may ? '✓ máy so' : '👁 AI xem'}</span>
-                            </div>
-                            <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase' }}>Cần</div>
-                            <div style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{r.du_kien || '—'}</div>
-                            <div style={{ ...mono, fontSize: 9.5, color: 'var(--red)', textTransform: 'uppercase' }}>Ảnh ra</div>
-                            <div style={{ fontSize: 11, color: 'var(--red)', fontWeight: 600, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{r.thuc_te || '—'}</div>
+                          <div key={i} title={`${dongLoi(r)}\nCần: ${r.du_kien || '—'}\nẢnh ra: ${r.thuc_te || '—'}${r.ghi_chu ? `\n${r.ghi_chu}` : ''}`}
+                            style={{ display: 'flex', alignItems: 'baseline', gap: 6, fontSize: 11, lineHeight: 1.8, whiteSpace: 'nowrap', overflow: 'hidden' }}>
+                            <span style={{ flexShrink: 0, fontWeight: 700, color: 'var(--fg-1)' }}>{dongLoi(r)}</span>
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--fg-3)' }}>
+                              <span style={{ color: 'var(--fg-2)' }}>{r.du_kien || '—'}</span> → <span style={{ color: 'var(--red)', fontWeight: 600 }}>{r.thuc_te || '—'}</span>
+                            </span>
+                            <span style={{ ...mono, flexShrink: 0, fontSize: 8.5, padding: '0 3px', borderRadius: 3, background: may ? 'var(--green)' : 'var(--amber)', color: '#000' }}>{may ? 'máy' : 'AI'}</span>
                           </div>
                         );
                       })}
                     </div>
                   </div>
                 )}
-                {daChieu && loi.length === 0 && <div style={{ ...mono, fontSize: 12, color: '#fff', fontWeight: 700, background: 'var(--green)', borderRadius: 6, padding: '4px 8px' }}>✓ KHỚP DỰ KIẾN — {rows.length} thành phần, 0 lỗi</div>}
+                {daChieu && loi.length === 0 && <div style={{ ...mono, fontSize: 11, color: '#fff', fontWeight: 700, background: 'var(--green)', borderRadius: 6, padding: '3px 8px' }}>✓ KHỚP DỰ KIẾN — 0 lỗi</div>}
                 {coAnh ? (
                   <div>
                     <button type="button" className="xv-lienket xv-mono" style={{ fontSize: 10 }} onClick={() => setMoDayDu((m) => ({ ...m, [luc]: !moDD }))}>{moDD ? '▾ Ẩn' : '▸ Xem'} đầy đủ danh mục ({rows.length} thành phần{gan.length ? `, ${gan.length} gần` : ''})</button>

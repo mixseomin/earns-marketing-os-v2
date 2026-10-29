@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoang';
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
-import { DataTable, Drawer, FilterChips, Segmented, StatsStrip, type DataColumn } from '@/components/ui';
+import { DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Segmented, StatsStrip, usePaged, type DataColumn } from '@/components/ui';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
-import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoLuat, SoTien, XetLuat } from '@/lib/etp-doc';
+import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoLuat, SoTien, ThuVienMuc, XetLuat } from '@/lib/etp-doc';
 
-type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'tn' | 'luat';
+type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'tv' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
 const tuoiNgay = (iso: string | null | undefined) => (iso ? Math.max(0, (Date.now() - Date.parse(iso)) / 86_400_000) : null);
 const tuoiChu = (d: number | null) => (d == null ? '—' : d < 10 ? d.toFixed(1) : String(Math.floor(d)));
@@ -1689,7 +1689,88 @@ function LichGio({ du, tl, hep }: { du: DuLieuEtp; tl: (k: string | null) => str
   );
 }
 
-const TABS: Tab[] = ['tong', 'camp', 'roas', 'creative', 'phim', 'tn', 'luat'];
+// THƯ VIỆN CREATIVE (anh 29/10/2026 "xây dựng thư viện creative cho các film để sau này chia sẻ cho mọi người dùng"): mọi creative của kho nhà theo PHIM —
+// đã lên Ethopex (số chạy 14 ngày của camp nhà) + bản chưa lên (kể chuyện VideoExpress $0, etp.thu_vien). Ai xem etp cũng thấy cùng một thư viện (du.thuVien đọc kho nhà).
+// Mỗi phim một khối: tên, thể loại, lãi 14 ngày của các creative; trong khối là thẻ creative xếp theo hiệu quả. Bấm thẻ = ngăn xem video + tải + chép chữ QC.
+// Trạng thái creative: Thắng / Thua = chi 14 ngày ≥ $5 và ROI ≥ 0 / < 0 · Đang chạy · Chưa chạy (chưa có camp) · Đang sinh (máy sinh kể chuyện đang làm).
+// Bộ lọc nằm trên URL (?tvq tìm · ?tvd dạng · ?tvt trạng thái · ?tvl ngôn ngữ · ?tvx creative đang mở) — F5 / gửi link giữ nguyên.
+const TT_TV = { thang: ['Thắng', '#4ade80'], thua: ['Thua', '#f87171'], chay: ['Đang chạy', '#60a5fa'], it: ['Ít số', 'var(--fg-2)'], chua: ['Chưa chạy', '#facc15'], dang_sinh: ['Đang sinh', '#c084fc'] } as const;
+type TtTv = keyof typeof TT_TV;
+const ttTv = (x: ThuVienMuc): TtTv => (x.tv === 'dang_sinh' ? 'dang_sinh' : x.camp === 0 ? 'chua' : x.chi >= 5 ? (x.thu >= x.chi ? 'thang' : 'thua') : x.chay > 0 ? 'chay' : 'it');
+const THU_TT: TtTv[] = ['thang', 'chua', 'chay', 'it', 'thua', 'dang_sinh'];
+function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => string }) {
+  const [q, setQ] = useState(''), [dang, setDang] = useState('all'), [tt, setTt] = useState('all'), [lang, setLang] = useState('all'), [mo, setMo] = useState<string | null>(null);
+  const [daDoc, setDaDoc] = useState(false), [chep, setChep] = useState('');
+  useEffect(() => { const u = new URLSearchParams(location.search); setQ(u.get('tvq') ?? ''); setDang(u.get('tvd') ?? 'all'); setTt(u.get('tvt') ?? 'all'); setLang(u.get('tvl') ?? 'all'); setMo(u.get('tvx')); setDaDoc(true); }, []);
+  useEffect(() => { if (!daDoc) return; const u = new URL(location.href);
+    for (const [k, v] of [['tvq', q], ['tvd', dang === 'all' ? '' : dang], ['tvt', tt === 'all' ? '' : tt], ['tvl', lang === 'all' ? '' : lang], ['tvx', mo ?? '']] as const) { if (v) u.searchParams.set(k, v); else u.searchParams.delete(k); }
+    if (u.href !== location.href) history.replaceState(null, '', u); }, [q, dang, tt, lang, mo, daDoc]);
+  const ds = du.thuVien;
+  const loc = ds.filter((x) => (dang === 'all' || x.dang === dang) && (tt === 'all' || ttTv(x) === tt) && (lang === 'all' || x.lang === lang)
+    && (!q || `${x.phim ?? ''} ${x.content_id} ${x.creative_id ?? ''} ${tl(x.the_loai)}`.toLowerCase().includes(q.toLowerCase())));
+  const phim = useMemo(() => { const m = new Map<number, ThuVienMuc[]>(); for (const x of loc) m.set(x.content_id, [...(m.get(x.content_id) ?? []), x]);
+    return [...m.entries()].map(([k, xs]) => ({ k, xs: xs.sort((a, b) => THU_TT.indexOf(ttTv(a)) - THU_TT.indexOf(ttTv(b)) || (b.thu - b.chi) - (a.thu - a.chi)), ten: xs.find((x) => x.phim)?.phim ?? `phim #${k}`, the_loai: xs[0]!.the_loai,
+      s: xs.reduce((a, x) => ({ chi: a.chi + x.chi, thu: a.thu + x.thu }), { chi: 0, thu: 0 }) }))
+      .sort((a, b) => (b.s.thu - b.s.chi) - (a.s.thu - a.s.chi) || b.xs.length - a.xs.length); }, [loc]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const { pageItems, ...pager } = usePaged(phim, 20);
+  const dem = <K extends string>(f: (x: ThuVienMuc) => K) => ds.reduce<Partial<Record<K, number>>>((m, x) => { const k = f(x); m[k] = (m[k] ?? 0) + 1; return m; }, {});
+  const demDang = dem((x) => (x.dang ?? '') as string), demTt = dem(ttTv), demLang = dem((x) => (x.lang ?? '') as string);
+  const xMo = mo ? ds.find((x) => x.k === mo) : undefined;
+  const chepChu = (x: ThuVienMuc) => { const t = `${x.phim ?? ''}\n${x.lang === 'es' ? 'Episodios completos gratis' : 'Watch Full Episodes!'}`;
+    navigator.clipboard?.writeText(t).then(() => { setChep(x.k); setTimeout(() => setChep(''), 1500); }).catch(() => undefined); };
+  return (
+    <div>
+      <StatsStrip cards={[{ key: 'p', label: 'Phim', value: new Set(ds.map((x) => x.content_id)).size }, { key: 'c', label: 'Creative', value: ds.length },
+        { key: 't', label: 'Thắng (14 ngày)', value: demTt.thang ?? 0, color: '#4ade80', onClick: () => setTt('thang') },
+        { key: 's', label: 'Sẵn, chưa chạy', value: demTt.chua ?? 0, color: '#facc15', sub: 'bản kể chuyện máy sinh $0 + creative chưa lên camp', onClick: () => setTt('chua') }]} />
+      <ListToolbar search={q} onSearch={setQ} searchPlaceholder="Tìm phim, mã creative, thể loại…">
+        <FilterChips urlKey="tvt" value={tt} onChange={setTt} counts={{ all: ds.length, ...demTt }} options={[{ value: 'all', label: 'Tất cả' }, ...THU_TT.map((k) => ({ value: k, label: TT_TV[k][0] }))]} />
+        <FilterChips urlKey="tvd" value={dang} onChange={setDang} counts={{ all: ds.length, ...demDang }} options={[{ value: 'all', label: 'Mọi dạng' }, ...Object.keys(demDang).filter(Boolean).map((k) => ({ value: k, label: k }))]} />
+        <FilterChips urlKey="tvl" value={lang} onChange={setLang} counts={{ all: ds.length, ...demLang }} options={[{ value: 'all', label: 'Mọi tiếng' }, ...Object.keys(demLang).filter(Boolean).map((k) => ({ value: k, label: k.toUpperCase() }))]} />
+      </ListToolbar>
+      {!pageItems.length ? <EmptyState compact icon="🎞" title={q ? `Không có creative nào khớp “${q}”` : 'Không có creative nào khớp bộ lọc'} /> : null}
+      {pageItems.map((p) => (
+        <div key={p.k} style={{ borderTop: '1px solid var(--line)', padding: '10px 0' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+            <b style={{ fontSize: 14 }}>{p.ten}</b><span style={{ fontSize: 11, color: 'var(--fg-3, #777)' }}>{tl(p.the_loai)} · {p.xs.length} creative</span>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--fg-2)' }} title="lãi 14 ngày của mọi creative phim này trên camp nhà">lãi 14 ngày <LaiCot s={p.s} /></span>
+          </div>
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+            {p.xs.map((x) => { const [chuTt, mauTt] = TT_TV[ttTv(x)];
+              return <button key={x.k} type="button" onClick={() => setMo(x.k)} title={`${x.creative_id ? `cr #${x.creative_id}` : 'chưa lên Ethopex'} · ${x.dang ?? ''} · bấm xem video`}
+                style={{ flex: 'none', width: 104, padding: 0, border: `1px solid ${mo === x.k ? '#38bdf8' : 'var(--line)'}`, borderRadius: 6, background: 'var(--bg-1)', color: 'inherit', cursor: 'pointer', textAlign: 'left', overflow: 'hidden' }}>
+                <div style={{ position: 'relative', width: 104, height: 185, background: 'var(--line)' }}>
+                  {x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                  <span style={{ position: 'absolute', left: 4, top: 4 }}><BadgeDang d={x.dang} ngan /></span>
+                  <span style={{ position: 'absolute', right: 4, top: 4, fontSize: 10, padding: '0 4px', borderRadius: 4, background: 'rgba(0,0,0,.6)' }}>{(x.lang ?? '').toUpperCase()}{x.giay ? ` · ${Math.round(x.giay)}s` : ''}</span>
+                </div>
+                <div style={{ padding: '4px 6px', fontSize: 11, lineHeight: 1.35 }}>
+                  <div style={{ color: mauTt, fontWeight: 600 }}>{chuTt}</div>
+                  <div style={{ color: 'var(--fg-2)' }}>{x.camp ? <>ROI <Roi s={x} /> · {usd(x.chi)}</> : x.nguon === 'videoexpress' ? 'kể chuyện $0' : x.creative_id ? `cr #${x.creative_id}` : '—'}</div>
+                </div>
+              </button>; })}
+          </div>
+        </div>))}
+      <Pager {...pager} onPage={pager.setPage} />
+      {xMo ? <Drawer onClose={() => setMo(null)} width={460}>
+        <div style={{ display: 'grid', gap: 10 }}>
+          <div><b style={{ fontSize: 15 }}>{xMo.phim ?? `phim #${xMo.content_id}`}</b><div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 2 }}>
+            <BadgeDang d={xMo.dang} /> {(xMo.lang ?? '').toUpperCase()} · {xMo.giay ? `${xMo.giay.toFixed(1)}s` : ''} · {xMo.creative_id ? `cr #${xMo.creative_id}` : 'chưa lên Ethopex'} · <span style={{ color: TT_TV[ttTv(xMo)][1] }}>{TT_TV[ttTv(xMo)][0]}</span></div></div>
+          {xMo.video ? <video key={xMo.video} src={xMo.video} controls playsInline style={{ width: '100%', maxHeight: '70vh', background: '#000', borderRadius: 6 }} /> : <EmptyState compact icon="🎞" title="Chưa có video" />}
+          <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>
+            {xMo.camp ? <>14 ngày: {xMo.chay}/{xMo.camp} camp đang chạy · chi <Tien v={xMo.chi} /> · lãi <LaiCot s={xMo} /> · ROI <Roi s={xMo} /></> : 'Chưa chạy camp nào.'}
+            {xMo.meta != null ? <> · chấm <span style={{ color: mauDiem(xMo.meta) }}>Meta {xMo.meta}</span> <span style={{ color: mauDiem(xMo.afs) }}>AFS {xMo.afs ?? '–'}</span></> : null}
+            {xMo.nguon === 'videoexpress' ? <> · máy sinh kể chuyện VideoExpress ($0)</> : null}</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {xMo.video ? <a href={xMo.video} download target="_blank" rel="noreferrer" className="btn">⬇ Tải MP4</a> : null}
+            <button type="button" className="btn" onClick={() => chepChu(xMo)}>{chep === xMo.k ? '✓ Đã chép' : '⧉ Chép chữ QC'}</button>
+          </div>
+        </div>
+      </Drawer> : null}
+    </div>
+  );
+}
+const TABS: Tab[] = ['tong', 'camp', 'roas', 'creative', 'phim', 'tv', 'tn', 'luat'];
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'cung', 'roas'] as const;
 export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string } }) {
   const router = useRouter();
@@ -1922,7 +2003,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
       <div className={gon ? 'etp-dk' : undefined} style={{ display: 'flex', gap: gon ? 6 : 8, alignItems: 'center', flexWrap: !gon || (thap && !moLoc) ? 'nowrap' : 'wrap', overflowX: !gon || (thap && !moLoc) ? 'auto' : undefined, scrollbarWidth: 'none', margin: '8px 0', position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0' }}>
         <Segmented<Tab> value={tab} onChange={doiTab} hrefFor={(t) => urlCua({ ...hienTai, tab: t, xemCamp: 'cay', xemCr: 'hq' }).href} options={[
           { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
-          { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }]} />
+          { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }]} />
         {/* ĐIỆN THOẠI: hàng 1 = tab (cuộn ngang) · hàng 2 = kiểu xem (biểu tượng) + kỳ (ô chọn) + nút Lọc; bảng lọc chỉ mở khi bấm Lọc */}
         {tab !== 'luat' && tab !== 'tn' ? (gon
           ? <ChonKhoang tu={khK.tu} den={khK.den} ma={kh.includes('~') ? null : kh} homNay={du.nay} mocThem={[{ ma: 'tat_ca', nhan: 'Tất cả' }]} title="kỳ số liệu (ngày Ethopex 07:00–07:00 VN)" onDoi={(v) => setKh('ma' in v ? v.ma : `${v.tu}~${v.den}`)} />
@@ -1995,6 +2076,8 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
       ) : tab === 'creative' ? (
         <DataTable rows={du.creatives} columns={cotCr} groups={NHOM} groupHeader getRowKey={(r) => String(r.creative_id)} persistKey="etp-creative" minWidth={1400} pageSize={100}
           searchText={(r) => `${r.creative_id} ${r.phim ?? ''} ${r.dang ?? ''} ${tl(r.the_loai)}`} searchPlaceholder="Tìm creative, phim, dạng…" />
+      ) : tab === 'tv' ? (
+        <TabThuVien du={du} tl={tl} />
       ) : tab === 'tn' ? (
         <TabTaiNguyen du={du} kh={kh} khCamp={khCamp} />
       ) : tab === 'phim' ? (

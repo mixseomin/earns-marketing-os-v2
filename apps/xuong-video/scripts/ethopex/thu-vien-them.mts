@@ -31,6 +31,6 @@ const co = (await db.execute(sql`SELECT id FROM etp.thu_vien WHERE tap_id = ${ta
 if (co.length) await db.execute(sql`UPDATE etp.thu_vien SET video = ${video}, anh = ${anh}, giay = ${giay}, ten = ${ten}, lang = ${lang}, chu_qc = ${JSON.stringify(chuQc)}::jsonb,
   trang_thai = ${tt}, chi_vnd = coalesce(${gia('chi-vnd') ? Number(gia('chi-vnd')) : null}, chi_vnd), ghi = coalesce(${gia('ghi') ?? null}, ghi), cap_nhat = now() WHERE id = ${co[0]!.id}`);
 else await db.execute(sql`INSERT INTO etp.thu_vien (content_id, dang, lang, ten, video, anh, giay, nguon, tap_id, chu_qc, trang_thai, chi_vnd, ghi)
-  VALUES (${content}, 'ke_chuyen_vx', ${lang}, ${ten}, ${video}, ${anh}, ${giay}, 'videoexpress', ${tapId}, ${JSON.stringify(chuQc)}::jsonb, ${tt}, ${Number(gia('chi-vnd') ?? 0)}, ${gia('ghi') ?? null})`);
+  VALUES (${content}, 'kể chuyện', ${lang}, ${ten}, ${video}, ${anh}, ${giay}, 'videoexpress', ${tapId}, ${JSON.stringify(chuQc)}::jsonb, ${tt}, ${Number(gia('chi-vnd') ?? 0)}, ${gia('ghi') ?? null})`);
 console.log(`✓ thư viện: ${ten} (${lang}, ${giay.toFixed(1)}s, ${tt}) → ${video}`);
 process.exit(0);

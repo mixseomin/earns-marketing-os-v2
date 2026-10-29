@@ -149,7 +149,7 @@ export function tuNguonThi(x: DeThi & { slug: string; nhom?: string }) {
     title: title.slice(0, 110),
     description: `Answer: ${de.dung}. ${de.lua[de.dung]}. ${de.giai} Free ${TEN_KY[de.ky]} practice test, weighted like the real exam: ${link}`,
     link, nhom: nhom ?? `${de.ky} · ${de.mang}`,
-  }, nen_url: null };
+  } };   // KHÔNG gửi nen_url: gửi null là 'ảnh nền đổi' → napVideo bỏ bản xuất (29/10/2026 nạp lại nguồn xoá video cả 120 bài ExamWeight)
 }
 
 /** Kịch bản 3 shot (tab Mẫu / ngăn video của máy). */

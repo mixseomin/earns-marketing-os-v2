@@ -135,7 +135,8 @@ async function EthopexTab() {
 async function SocialTab() {
   // tab Social gửi số thô xuống trình duyệt; phần HỆ SINH THÁI (~820 KB, chỉ city dùng) bỏ lại — tab 🏙 Thành phố tự lấy mô hình dựng sẵn qua /api/social/thanh-pho
   // (anh 25/10/2026: trang Social › Lịch đăng 1,9 MB, "tối ưu cho load nhanh hơn")
-  const { heSinhThai: _bo, ...nhe } = await getSocialLive({ hst: false });
+  // lưới lịch đăng (~750 KB) cũng bỏ: tab Lịch đăng tự tải khi mở (anh 30/10/2026: trang 1,87 MB "load chậm vãi")
+  const { heSinhThai: _bo, ...nhe } = await getSocialLive({ hst: false, luoi: false });
   return <SocialTrafficView live={{ ...nhe, heSinhThai: undefined as never }} email={<Suspense fallback={<div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Đang đọc MailWizz…</div>}><MailwizzListsPanel /></Suspense>} />;
 }
 

@@ -159,3 +159,26 @@ export async function mailwizzAllLists(): Promise<MailwizzSnapshot> {
     return { lists, people, confirmedRows, blocked, readAt: new Date().toISOString() };
   } finally { await conn?.end().catch(() => {}); }
 }
+
+export type MailwizzNguoi = { email: string; status: string; source: string; added: string | null };
+/**
+ * Người đăng ký của MỘT list — cho ngăn kéo xem danh sách (anh 30/10/2026: "cần xem danh sách email thì sao ?"). Chỉ đọc, mới nhất trước,
+ * trần 2.000 dòng (list lớn nhất của nhà ~11k là rác nhập cũ; xem đủ thì mở MailWizz). Ném lỗi thay vì trả rỗng, như mailwizzAllLists.
+ */
+export async function mailwizzNguoiDangKy(listUid: string, tran = 2000): Promise<{ nguoi: MailwizzNguoi[]; tong: number }> {
+  if (!PASS) throw new Error('chưa cấu hình MailWizz');
+  if (!/^[a-z0-9]{13}$/.test(listUid)) throw new Error('mã list sai khuôn');
+  let conn: mysql.Connection | null = null;
+  try {
+    conn = await mysql.createConnection({ host: HOST, port: PORT, user: USER, password: PASS, database: NAME, connectTimeout: 4000 });
+    const [rows] = await conn.execute(
+      `SELECT s.email, s.status, s.source, s.date_added AS added FROM mw_list_subscriber s JOIN mw_list l ON l.list_id = s.list_id
+       WHERE l.list_uid = ? ORDER BY s.date_added DESC, s.subscriber_id DESC LIMIT ${Math.max(1, Math.min(5000, Math.floor(tran)))}`, [listUid]);
+    const [dem] = await conn.execute(`SELECT COUNT(*) AS n FROM mw_list_subscriber s JOIN mw_list l ON l.list_id = s.list_id WHERE l.list_uid = ?`, [listUid]);
+    const nguoi = (rows as Array<Record<string, unknown>>).map((r) => ({
+      email: String(r.email ?? ''), status: String(r.status ?? ''), source: String(r.source ?? ''),
+      added: r.added instanceof Date ? r.added.toISOString() : (r.added ? String(r.added) : null),
+    }));
+    return { nguoi, tong: Number((dem as Array<{ n: number }>)[0]?.n ?? 0) };
+  } finally { await conn?.end().catch(() => {}); }
+}

@@ -27,7 +27,7 @@ const SPY = process.env.SPY_URL || 'http://127.0.0.1:3850';
 const GOC_MOI_NHOM = 8;
 const LOAI: Record<string, string> = { ai_chan_dung: 'Chân dung', ai_tinh_huong: 'Tình huống', ai_noi_dau: 'Nỗi đau', ai_vi_sao: 'Vì sao', ai_phan_doi: 'Phản đối' };
 
-export interface SocialLive { /** bảng nội dung Page cũ (city) */ keHoach?: VaoKeHoach; luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[]; lich: StLich[]; luoi: StLuoi; suc: StSucKhoe;
+export interface SocialLive { /** true = trang chưa kèm lưới lịch đăng (luoi rỗng), tab Lịch đăng tự tải */ luoiTre?: boolean; /** bảng nội dung Page cũ (city) */ keHoach?: VaoKeHoach; luc: string; goc: StGoc[]; nhom: number; loi: string[]; kenh: StKenh[]; trang: StTrang[]; ban: StBan[]; lo: StLo[]; landing: StLanding[]; lich: StLich[]; luoi: StLuoi; suc: StSucKhoe;
   /** favicon thật của từng site đích (data URI; null = site chưa có favicon riêng) — thành phố Social dán lên nóc toà, không gọi ra ngoài từ trình duyệt */
   fav: Record<string, string | null>;
   /** mọi site có mã theo dõi: phiên 30 ngày + phiên từ từng máy tìm kiếm (khoá MAY_TIM) — thành phố Social dựng cả site chưa có nguồn */
@@ -91,11 +91,16 @@ const SONG_SONG = 4;   // 27 lượt cùng lúc làm spy nghẽn (đo 16/10/2026
 /** Đo từng phần (anh 18/10/2026: "tab social chậm quá") — mỗi lần dựng in MỘT dòng nhật ký `social: góc 120ms · kênh 640ms …` để biết phần nào nặng. */
 const doGio = async <T,>(ten: string, ghi: string[], f: () => Promise<T>): Promise<T> => { const t = Date.now(); try { return await f(); } finally { ghi.push(`${ten} ${Date.now() - t}ms`); } };
 /** hst=false: bỏ HỆ SINH THÁI (chỉ thành phố dùng, đo 25/10/2026 chiếm 20–22 giây trong 21–24 giây tải tab Social — trang Social bỏ nó đi mà vẫn chờ nó) */
-export async function getSocialLive({ hst = true }: { hst?: boolean } = {}): Promise<SocialLive> {
+/** Lưới lịch đăng một mình (tab 🗓 Lịch đăng tự tải khi mở — actions/social-traffic.ts › taiLuoiSocial). */
+export async function docLuoiSocial(): Promise<{ luoi: StLuoi; loi: string[] }> { const loi: string[] = []; return { luoi: await docLuoi(loi), loi }; }
+const LUOI_TRONG: StLuoi = { hom: '', tinhLuc: null, o: [], kho: [] };
+// luoi=false: bỏ lưới lịch đăng (~750 KB, phần dựng chậm nhất) khỏi trang — anh 30/10/2026 "page đó đang load chậm vãi": trang Social 1,87 MB thì 752 KB là lưới,
+// mà chỉ tab Lịch đăng dùng. Trả luoiTre = true để view tự tải khi mở tab đó. City (thanh-pho-ban-luu) vẫn gọi mặc định, đủ lưới.
+export async function getSocialLive({ hst = true, luoi: coLuoi = true }: { hst?: boolean; luoi?: boolean } = {}): Promise<SocialLive> {
   const luc = new Date().toISOString(), loi: string[] = [], gio: string[] = [], t0 = Date.now();
   // CHẠY SONG SONG: góc spy, kênh + landing, lò studio, lịch đăng không phụ thuộc nhau (trước 18/10 chạy nối đuôi — cộng dồn thời gian từng phần)
   const [goc, kenh, lo, lich, luoi, suc, nguonSite, heSinhThai] = await Promise.all([doGio('góc', gio, () => docGocSpy(loi)), doGio('kênh+landing', gio, () => docKenhThatVaLanding(loi)),
-    doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi)), doGio('lưới', gio, () => docLuoi(loi)), doGio('sức khoẻ', gio, () => docSucKhoe(loi)),
+    doGio('lò', gio, () => docLoStudio(loi)), doGio('lịch', gio, () => docLich(loi)), (coLuoi ? doGio('lưới', gio, () => docLuoi(loi)) : Promise.resolve(LUOI_TRONG)), doGio('sức khoẻ', gio, () => docSucKhoe(loi)),
     doGio('nguồn site', gio, () => docNguonSite().catch((e: Error) => { loi.push(`nguồn site (adfond): ${e.message}`); return []; })),
     hst ? doGio('hệ sinh thái', gio, () => docHeSinhThai(loi)) : Promise.resolve({ duAn: [], duAnSite: [], sanPham: [], app: [], tkCua: [] } as VaoHeSinhThai)]);
   const keHoach = await doGio('bảng nội dung', gio, () => docKeHoach(loi));
@@ -104,7 +109,7 @@ export async function getSocialLive({ hst = true }: { hst?: boolean } = {}): Pro
   // avatar Page Facebook của các kênh (khoá 'fbp:<mã>' — linkKenh) chung bảng fav: city dán lên nóc toà, trình duyệt không gọi ra ngoài
   await Promise.all([...new Set(kenh.kenh.map((x) => x.anh).filter((x): x is string => !!x?.startsWith('fbp:')))].map(async (k) => { fav[k] = await anhPageMot(k.slice(4)).catch(() => null); }));
   console.log(`social: ${gio.join(' · ')} · tổng ${Date.now() - t0}ms`);
-  return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc, fav, nguonSite, heSinhThai, keHoach };
+  return { luc, ...goc, loi, ...kenh, lo, lich, luoi, suc, fav, nguonSite, heSinhThai, keHoach, ...(coLuoi ? {} : { luoiTre: true }) };
 }
 /** HỆ SINH THÁI (thành phố): dự án (host của projects.website, ngung_luc), sổ du_an_site, sản phẩm mọi cửa bán (kho products Directus — cùng nguồn tab
  *  Tài sản, số 30 ngày), app_ung_dung, tài khoản cửa bán trong vault. Phần nào lỗi thì phần đó rỗng, ghi lỗi, không chặn trang. */

@@ -4,8 +4,12 @@
 // component: không thể truyền `columns` (chứa hàm `cell`) qua ranh giới RSC. Panel chỉ đẩy sang đây
 // dữ liệu serializable (rows + products + showOther); cột dựng TẠI ĐÂY, port nguyên markup từ SimpleTable.
 
+import { useEffect, useState } from 'react';
 import { DataTable, type DataColumn } from './ui/data-table';
-import { type MailwizzList } from '@/lib/mailwizz';
+import { Drawer } from './ui/drawer';
+import type { MailwizzList, MailwizzNguoi } from '@/lib/mailwizz';
+import { xemNguoiDangKy } from '@/lib/actions/mailwizz-xem';
+import { useModalParam } from '@/lib/use-modal-param';
 
 const num = (n: number) => n.toLocaleString('en-US');
 const daysAgo = (iso: string | null) => {
@@ -67,15 +71,50 @@ export function MailwizzListsTable({
     },
   ];
 
+  // Bấm một list → ngăn kéo người đăng ký (chỉ xem). Khoá URL riêng ?mw=list&mwId=<uid> để không đụng ?m= của trang chứa (trang chủ / Social Traffic).
+  const ngan = useModalParam('mw');
+  const moUid = ngan.is('list') ? ngan.id : null;
   return (
-    <DataTable
-      rows={rows}
-      columns={cols}
-      getRowKey={(l) => l.uid}
-      card
-      defaultView="table"
-      persistKey={persistKey}
-      pageSize={25}
-    />
+    <>
+      <DataTable
+        rows={rows}
+        columns={cols}
+        getRowKey={(l) => l.uid}
+        card
+        defaultView="table"
+        persistKey={persistKey}
+        pageSize={25}
+        onRowClick={(l) => ngan.open('list', l.uid)}
+      />
+      {moUid && <NganNguoiDangKy uid={moUid} ten={rows.find((l) => l.uid === moUid)?.name} onClose={() => ngan.close()} />}
+    </>
+  );
+}
+
+const NHAN_TT: Record<string, [string, string]> = { confirmed: ['var(--ok)', 'gửi được'], unsubscribed: ['var(--fg-3)', 'đã huỷ'], unconfirmed: ['var(--warn)', 'chưa xác nhận'], blacklisted: ['var(--bad)', 'chặn'], disabled: ['var(--fg-3)', 'tắt'] };
+
+/** Ngăn kéo người đăng ký của một list — tự tải theo uid (F5 mở lại được), lỗi hiện trong ngăn. */
+function NganNguoiDangKy({ uid, ten, onClose }: { uid: string; ten?: string; onClose: () => void }) {
+  const [kq, setKq] = useState<Awaited<ReturnType<typeof xemNguoiDangKy>> | null>(null);
+  useEffect(() => { let song = true; setKq(null); xemNguoiDangKy(uid).then((r) => song && setKq(r)).catch((e) => song && setKq({ ok: false, loi: String(e?.message ?? e) })); return () => { song = false; }; }, [uid]);
+  const cot: DataColumn<MailwizzNguoi>[] = [
+    { key: 'email', header: 'Email', align: 'left', sortValue: (n) => n.email, cell: (n) => <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{n.email}</span> },
+    { key: 'tt', header: 'Trạng thái', sortValue: (n) => n.status, cell: (n) => { const [mau, chu] = NHAN_TT[n.status] ?? ['var(--fg-3)', n.status]; return <span style={{ color: mau, fontSize: 12 }}>{chu}</span>; } },
+    { key: 'nguon', header: 'Nguồn', sortValue: (n) => n.source, cell: (n) => <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>{n.source || '—'}</span> },
+    { key: 'them', header: 'Ngày thêm', align: 'right', sortValue: (n) => n.added, cell: (n) => <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>{n.added ? `${n.added.slice(0, 10)} · ${daysAgo(n.added)}` : '—'}</span> },
+  ];
+  return (
+    <Drawer onClose={onClose} width={900}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+          <h2 style={{ margin: 0, fontSize: 18 }}>{ten ?? uid}</h2>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-3)' }}>{uid}</span>
+          {kq?.ok && <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>{num(kq.tong)} người{kq.tong > kq.nguoi.length ? ` · hiện ${num(kq.nguoi.length)} mới nhất` : ''}</span>}
+        </div>
+        {!kq ? <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Đang tải…</div>
+          : !kq.ok ? <div style={{ fontSize: 12, color: 'var(--bad)' }}>Không đọc được MailWizz: {kq.loi}</div>
+          : <DataTable rows={kq.nguoi} columns={cot} getRowKey={(n) => n.email} persistKey="mw_nguoi" pageSize={50} searchText={(n) => `${n.email} ${n.status} ${n.source}`} searchPlaceholder="Tìm email…" />}
+      </div>
+    </Drawer>
   );
 }

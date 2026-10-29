@@ -2,7 +2,7 @@
 // SOCIAL TRAFFIC — thao tác từ màn (tab trang chủ Social Traffic). Chỉ admin. Hiện chỉ đọc: phiên khách trực tiếp trên site aff.
 import { getCurrentUser } from '@/lib/auth';
 import { docKenh } from '@/lib/tai-san/kenh';
-import { dsTrangDich } from '@/lib/social-traffic';
+import { docLuoiSocial, dsTrangDich } from '@/lib/social-traffic';
 import { docPhienAff, docSuKienAff, siteCoMa } from '@/lib/social-truc-tiep';
 import type { CuaSoAff } from '@/lib/social-traffic-demo';
 
@@ -29,4 +29,11 @@ export async function socialPhien(cuaSo: CuaSoAff) {
 export async function socialSuKien(id: string) {
   await admin();
   return docSuKienAff(String(id).slice(0, 80), await siteAff());
+}
+
+/** Lưới lịch đăng cho tab 🗓 Lịch đăng — trang Social không kèm sẵn (getSocialLive luoi:false), mở tab mới tải. */
+export async function taiLuoiSocial() {
+  const me = await getCurrentUser();
+  if (!me || me.role !== 'admin') return { ok: false as const, loi: 'Chỉ admin' };
+  try { return { ok: true as const, ...(await docLuoiSocial()) }; } catch (e) { return { ok: false as const, loi: (e as Error).message }; }
 }

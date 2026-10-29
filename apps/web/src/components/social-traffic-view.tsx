@@ -5,7 +5,7 @@
 // LIVE = số thật — góc đọc spy (lib/social-traffic.ts), phần còn lại rỗng tới khi mô hình chạy, nút tốn tiền / ghi thật bị gác.
 // Mục con (URL ?sts) và bộ lọc góc (?stg) ghi URL shallow như mọi bộ lọc khác.
 import { useEffect, useMemo, useState } from 'react';
-import { socialPhien } from '@/lib/actions/social-traffic';
+import { socialPhien, taiLuoiSocial } from '@/lib/actions/social-traffic';
 import { DataTable, EmptyState, FilterChips, GuardedButton, MultiSelect, Panel, Pill, Segmented, SimpleTable, StatsStrip, Tabs, type DataColumn } from '@/components/ui';
 import { DaiLuong, type NutLuong } from '@/components/ui/dai-luong';
 import { SiteFavicon } from '@/components/ui/site-favicon';
@@ -13,7 +13,7 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { pkCua } from '@/lib/ho-nen';
 import { todayInAppTz } from '@/lib/local-day';
 import { ST_BUOC, ST_CAT_NGAY, ST_CAT_TRUNG_VI, ST_DEMO, ST_GIA_MAC, type StDuLieu, type StGoc, type StKenh, type StLanding, type StTrang } from '@/lib/social-traffic-demo';
-import type { SocialLive, StLich } from '@/lib/social-traffic';
+import type { SocialLive, StLich, StLuoi } from '@/lib/social-traffic';
 import { BangNoiDung, BangSoBai, LichLuoi, LichThangTuan } from './social-lich-luoi';
 import { GocTaiSan } from './social-goc-tai-san';
 import { MayDang } from './social-may-dang';
@@ -87,6 +87,15 @@ export function SocialTrafficView({ live, email }: { live: SocialLive; email?: R
   const [gopKenh, setGopKenh] = useShallowParam('skb', 'khong');
   const [kieuLich, setKieuLich] = useShallowParam('slv', 'may');   // lịch: ⚡ máy đăng thời gian thực (mặc định, anh 27/10/2026) / bảng nội dung / lưới giờ / tuần / tháng
   const laLive = cheDo === 'live';
+  // Lưới lịch đăng không đi kèm trang (live.luoiTre — ~750 KB): chỉ tải khi mở đúng chế độ xem cần nó (bảng nội dung / số bài / lưới giờ / tuần / tháng)
+  const canLuoi = laLive && muc === 'lich' && !['may', 'noi'].includes(kieuLich);
+  const [luoiTai, setLuoiTai] = useState<StLuoi | string | null>(live.luoiTre ? null : live.luoi);
+  useEffect(() => {
+    if (!canLuoi || luoiTai !== null) return;
+    let song = true;
+    taiLuoiSocial().then((r) => song && setLuoiTai(r.ok ? r.luoi : `Không tải được lưới lịch đăng: ${r.loi}`)).catch((e: Error) => song && setLuoiTai(`Không tải được lưới lịch đăng: ${e.message}`));
+    return () => { song = false; };
+  }, [canLuoi, luoiTai]);
   // Số người đang trên site aff — badge trên tab Trực tiếp (card #1411), gọi lại mỗi 10 giây khi trang đang hiện, chỉ ở LIVE.
   const [online, setOnline] = useState<number | null>(null);
   useEffect(() => {
@@ -352,9 +361,9 @@ export function SocialTrafficView({ live, email }: { live: SocialLive; email?: R
         : live.lich.length
           ? <><div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0 8px' }}><Segmented<string> options={[{ value: 'may', label: '⚡ Máy đăng', title: 'máy đăng đang làm gì lúc này: lượt 10 phút gần nhất, từng kênh vì sao chờ, bài lên / hỏng 24h, bật tắt máy, cho nền nghỉ' }, { value: 'noidung', label: '🧩 Bảng nội dung', title: 'kênh × ngày, ảnh thật từng bài: kiểu bài, format, có link' }, { value: 'sobai', label: '📊 Số bài', title: 'số bài đã đăng theo thương hiệu × nền tảng × format, chọn khung 7 / 14 / 30 / 42 ngày' }, { value: 'gio', label: '🕐 Lưới giờ', title: '10 ngày quanh hôm nay, hàng = giờ' }, { value: 'tuan', label: '📅 Tuần' }, { value: 'thang', label: '🗓 Tháng' }, { value: 'noi', label: '📋 Nơi đăng', title: 'Mỗi dòng = một nơi đăng của một máy studio (cấu hình máy + sổ đăng), thêm nền hoặc máy mới là tự hiện. Giờ GMT+7. Lượt chạy: máy đăng chung iMac 02:00 · 08:00 · 20:00 + chạy bù 21:00, mỗi lượt hỏi nhịp an toàn (trần theo tuổi kênh, cách ≥ 3 giờ); Front Porch có lượt riêng.' }]} value={kieuLich} onChange={setKieuLich} /></div>
             {/* YDNI một màn: mỗi chế độ xem một bề mặt — bảng nơi đăng là chế độ riêng, không chồng dưới (25/10/2026) */}
-            {kieuLich === 'may' ? <MayDang /> : kieuLich === 'noidung' ? <BangNoiDung luoi={live.luoi} /> : kieuLich === 'sobai' ? <BangSoBai luoi={live.luoi} /> : kieuLich === 'gio' ? <LichLuoi luoi={live.luoi} /> : kieuLich === 'noi'
+            {kieuLich === 'may' ? <MayDang /> : kieuLich !== 'noi' && (luoiTai === null || typeof luoiTai === 'string') ? <span style={{ ...nho, ...(luoiTai ? { color: 'var(--bad)' } : {}) }}>{luoiTai ?? 'Đang tải lưới lịch đăng…'}</span> : kieuLich === 'noidung' ? <BangNoiDung luoi={luoiTai as StLuoi} /> : kieuLich === 'sobai' ? <BangSoBai luoi={luoiTai as StLuoi} /> : kieuLich === 'gio' ? <LichLuoi luoi={luoiTai as StLuoi} /> : kieuLich === 'noi'
               ? <DataTable rows={live.lich} columns={COT_LICH} getRowKey={(l) => `${l.mayMa}|${l.nen}`} persistKey="st_lich" minWidth={1100} searchText={(l) => `${l.may} ${l.nenTen} ${l.tk} ${l.ke ?? ''}`} searchPlaceholder="Tìm máy / nơi đăng / tài khoản…" />
-              : <LichThangTuan key={kieuLich} luoi={live.luoi} kieu={kieuLich === 'tuan' ? 'tuan' : 'thang'} />}</>
+              : <LichThangTuan key={kieuLich} luoi={luoiTai as StLuoi} kieu={kieuLich === 'tuan' ? 'tuan' : 'thang'} />}</>
           : trong('Chưa có lịch đăng', 'Lịch hiện khi một máy studio (studio.on.tc › Máy) có nơi đăng.'))}
 
       {muc === 'landing' && (!laLive

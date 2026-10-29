@@ -6,7 +6,8 @@
 import json, sys, shutil, time, urllib.request, urllib.parse
 
 APP = '1850293666145431'
-CAN = {'pages_show_list', 'pages_read_engagement', 'pages_manage_posts', 'read_insights'}
+# pages_manage_metadata: đặt ảnh đại diện / ảnh bìa Page (apps/xuong-video/scripts/trang-diem-page.mts, 29/10/2026)
+CAN = {'pages_show_list', 'pages_read_engagement', 'pages_manage_posts', 'read_insights', 'pages_manage_metadata'}
 SO, USER = '/root/.secrets/fb-pages.json', '/root/.secrets/fb-user-dai.token'
 G = 'https://graph.facebook.com/v21.0'
 def get(path, **q):

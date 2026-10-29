@@ -216,9 +216,9 @@
       "loai": "anh",
       "ho": "instagram",
       "ten": "Instagram carousel",
-      "co": false,
+      "co": true,
       "dieu_phoi": "dang-may",
-      "ham": "dangInstagram (mảng ảnh) — chưa chạy thật: chờ MacBook (IG Front Porch #508)",
+      "ham": "dangInstagram (mảng ảnh) — Front Porch #508 trên MacBook",
       "tran": [
         1,
         1,

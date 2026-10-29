@@ -34,7 +34,10 @@ for (const so of ds) {
   // Canh ảo từ shot bảng → dùng lại duKienKhung (kg=null: bỏ vị trí màn, giữ áo/tóc/biểu cảm/khung)
   const c = { thu_tu: so, nhan_vat: ids, bien_the: btIds, bieu_cam, ky_thuat: { co_canh: s.co }, phan_doan: bang.phan_doan, canh: bang.phan_doan, trang_phuc: null } as unknown as Canh;
   const dien = (s as { dien?: string }).dien ?? s.dien_en ?? '';
-  const duKien = `${duKienKhung(c, nv, null, 'dau')}\nHành động dự kiến: ${dien}`;
+  // đạo cụ dự kiến lấy thẳng từ bảng (đồ cầm/đeo + đồ bày) để không báo "thừa" oan khi ảnh có thùng/thẻ đúng cảnh
+  const mon = (k: string) => bang.vat_so?.[k.split('_')[0]!] ?? k;
+  const daoCu = [...new Set([...(s.do ?? []).map((o) => mon(o.loai)), ...(s.nguoi ?? []).flatMap((n) => [...(n.deo ?? []), ...(n.cam ?? [])].map(mon))])];
+  const duKien = `${duKienKhung(c, nv, null, 'dau')}\nHành động dự kiến: ${dien}${daoCu.length ? `\nĐạo cụ dự kiến trong cảnh: ${daoCu.join(', ')}` : ''}`;
   const url = await uploadToR2(`xuong-video/thu/soat-${so}-${randomUUID()}.png`, readFileSync(f), 'image/png');
   if (!url) { console.log(`#${so}: không tải ảnh lên được`); continue; }
   const r = await bocTachKhung(db, phim, url);

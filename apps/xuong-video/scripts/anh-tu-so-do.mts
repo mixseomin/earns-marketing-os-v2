@@ -38,7 +38,10 @@ const vatTa = Object.fromEntries(khac.filter((x) => x.loai === 'dao_cu' && x.mo_
 const len = async (f: string, k: string) => { const jpg = f.endsWith('.jpg'); const u = await uploadToR2(`xuong-video/thu/so-do-${k}-${randomUUID()}.${jpg ? 'jpg' : 'png'}`, readFileSync(f), jpg ? 'image/jpeg' : 'image/png'); if (!u) throw new Error(`không tải lên được ${f}`); return u; };
 
 const BO_CUC = 'Image 1 is a flat schematic storyboard diagram, NOT a style reference: use it ONLY for the layout — the framing and crop, who stands where (screen left / right), which way each body and head turns, where the props are. '
-  + 'Everything must look like a real photograph from a live-action drama: real people with natural skin, real hair, real fabric, real anatomy and hands. Never draw flat shapes, outlines, arrows, symbols or any diagram graphics.';
+  + 'Match image 1\'s crop closely: if image 1 frames a close-up or a medium shot, do NOT pull the camera wider. '
+  + 'Everything must look like a real photograph from a live-action drama: real people with natural skin, real hair, real fabric, real anatomy and hands. Never draw flat shapes, outlines, arrows, symbols or any diagram graphics. '
+  // chặn LỚP lỗi lẫn đặc điểm giữa các nhân vật (vd vết cà phê của Hạ in sang đầm Vivian ở shot ots)
+  + 'Each person keeps ONLY their own clothing, colours, stains, badges, lanyards, hairstyle and accessories exactly as described for them — never copy one person\'s stain, mark, badge or item onto another person. Anyone whose description does not mention a stain or mark wears clean, unmarked clothing.';
 // TRẦN ẢNH MẪU của cổng (ckey: 3 — cong-ai.ts chặn trước khi gửi). Ưu tiên: sơ đồ (bố cục) → ô ảnh chung (đồng nhất cả cảnh — đã chứa mặt / đồ / nền)
 // → nhân vật → đạo cụ → bối cảnh; câu prompt chỉ nhắc đúng những ảnh được gửi.
 const TRAN_MAU = Number(gia('tran-mau') || 3);

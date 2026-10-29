@@ -315,6 +315,8 @@ function ChuCamp({ t }: { t: string }) {
   const ps = t.split(/(#\d{4,7})/);
   return <>{ps.map((p, i) => (/^#\d{4,7}$/.test(p) ? <span key={i} onMouseEnter={() => sangCamp(p.slice(1))} onMouseLeave={() => sangCamp(null)} style={{ textDecoration: 'underline dotted', cursor: 'crosshair' }}>{p}</span> : p))}</>;
 }
+// CHỮ DÀI KHÔNG ĐẨY BỀ RỘNG (anh 30/10/2026 #1487 "thu gọn đoạn này lại"): bọc mô tả / ghi chú bằng khối này → bảng rộng theo các cột số liệu, chữ dài xuống dòng theo đó
+const KHONG_GIAN: React.CSSProperties = { width: 0, minWidth: '100%' };
 function BangXet({ xet, gon }: { xet: XetLuat[]; gon?: boolean }) {
   const thu = { dat: 0, gan: 1, xa: 2, khong_ap: 3 } as const;
   const ds = [...xet].sort((a, b) => thu[a.ket] - thu[b.ket]);
@@ -326,15 +328,15 @@ function BangXet({ xet, gon }: { xet: XetLuat[]; gon?: boolean }) {
     // khung cuộn ngang: ngăn điện thoại hẹp hơn bảng (cột điều kiện không gãy dòng) — trước bảng tràn mép phải, mất cột Giá trị / Ngưỡng
     <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
     <style>{'.bx-khoi>tr>td{background:color-mix(in srgb,var(--bx) var(--bx-a),transparent);transition:background .12s}.bx-khoi:hover>tr>td{background:color-mix(in srgb,var(--bx) 10%,transparent)}'}</style>
-    <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>
+    <table style={{ borderCollapse: 'collapse', width: gon ? '100%' : 'auto', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>
       <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}>{gon ? null : <th style={o}>Luật</th>}<th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>
       {(() => { const ve = (l: XetLuat, vi: number) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);
         const dau = <td rowSpan={n} title={l.mo_ta} style={{ ...o, cursor: 'help', minWidth: 130, opacity: mo ? 0.6 : 1 }}>
           <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div><b style={{ color: km }}>{kt}</b>{l.vao ? <span style={{ color: '#4ade80' }}> · máy đã xếp làm</span> : null}</div>
-          {l.ghi ? <div style={{ color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}</td>;
+          {l.ghi ? <div style={{ ...KHONG_GIAN, color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}</td>;
         const dauGon = <tr key={`${l.ma}-t`} style={{ opacity: mo ? 0.6 : 1 }}><td colSpan={4} title={l.mo_ta} style={{ ...o, paddingTop: 8, borderTop: '1px solid var(--fg-3, #555)' }}>
           <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> · <b style={{ color: km }}>{kt}</b>{l.vao ? <span style={{ color: '#4ade80' }}> · máy đã xếp làm</span> : null}
-          {l.ghi ? <div style={{ color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}{l.dk.length ? null : <div style={{ color: 'var(--fg-2)' }}>{l.mo_ta}</div>}</td></tr>;
+          {l.ghi ? <div style={{ ...KHONG_GIAN, color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}{l.dk.length ? null : <div style={{ ...KHONG_GIAN, color: 'var(--fg-2)' }}>{l.mo_ta}</div>}</td></tr>;
         // MỖI LUẬT MỘT KHỐI (anh 29/10/2026 "background khác nhau giữa các khối màu của bậc · hover thì highlight nhẹ bg"): <tbody> riêng, nền nhạt theo màu
         // luật, khối chẵn / lẻ đậm nhạt khác nhau (hai luật cùng màu đứng cạnh vẫn tách được), rê vào khối → nền đậm hơn
         const khoi = (con: React.ReactNode) => <tbody key={l.ma} className="bx-khoi" style={{ ['--bx' as string]: XET_CHIP[l.ma]?.[1] ?? '#94a3b8', ['--bx-a' as string]: vi % 2 ? '2.5%' : '5%' } as React.CSSProperties}>{con}</tbody>;
@@ -344,16 +346,16 @@ function BangXet({ xet, gon }: { xet: XetLuat[]; gon?: boolean }) {
         return khoi(l.dk.length ? l.dk.map(([ten, gt, ng, ok], i) => <tr key={`${l.ma}${i}`} style={{ opacity: mo ? 0.6 : 1 }}>{i === 0 ? dau : null}
           <td style={{ ...o, minWidth: 190 }}>{ten}</td><td style={{ ...o, textAlign: 'right', whiteSpace: 'nowrap', color: ok ? 'var(--fg-1)' : '#f87171' }}><ChuCamp t={gt} /></td><td style={{ ...o, whiteSpace: 'nowrap', color: 'var(--fg-2)' }}>{ng}</td>
           <td style={{ ...o, color: ok ? '#4ade80' : '#f87171', fontWeight: 700 }}>{ok ? '✓' : '✗'}</td></tr>)
-          : <tr key={l.ma}>{dau}<td colSpan={4} style={{ ...o, color: 'var(--fg-2)' }}>{l.mo_ta}</td></tr>); };
+          : <tr key={l.ma}>{dau}<td colSpan={4} style={{ ...o, color: 'var(--fg-2)' }}><div style={KHONG_GIAN}>{l.mo_ta}</div></td></tr>); };
         return <>{chay.map(ve)}{dung.length ? <tbody key="dung"><tr><td colSpan={gon ? 4 : 5} onClick={() => setMoDung((x) => !x)} style={{ ...o, cursor: 'pointer', color: 'var(--fg-3, #777)', paddingTop: 6 }}>
-          {moDung ? '▾' : '▸'} Luật đang tạm dừng / không áp ({dung.length}): {dung.map((l) => l.ten).join(' · ')}</td></tr></tbody> : null}{moDung ? dung.map((l, i) => ve(l, chay.length + i)) : null}</>; })()}
+          <div style={KHONG_GIAN}>{moDung ? '▾' : '▸'} Luật đang tạm dừng / không áp ({dung.length}): {dung.map((l) => l.ten).join(' · ')}</div></td></tr></tbody> : null}{moDung ? dung.map((l, i) => ve(l, chay.length + i)) : null}</>; })()}
     </table>
     </div>
   );
 }
 function ThanLuat({ t, gon }: { t: ReturnType<typeof tinhLuat>; gon?: boolean }) {
   if (t.xet) return <>
-    {[...t.daXep, ...t.ganBao].map((b, i) => <div key={i} style={{ marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật {LUAT_NHAN[b.nhom]![3] === 'dang' ? 'đã xếp' : 'báo gần'}: {LUAT_NHAN[b.nhom]?.[1]}</b>
+    {[...t.daXep, ...t.ganBao].map((b, i) => <div key={i} style={{ ...(gon ? {} : KHONG_GIAN), marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật {LUAT_NHAN[b.nhom]![3] === 'dang' ? 'đã xếp' : 'báo gần'}: {LUAT_NHAN[b.nhom]?.[1]}</b>
       <div style={{ color: 'var(--fg-2)' }}>{luatThuong(b.chu.replace(/^#\d+:[^·]*·\s*/, '').replace(/^#\S*\s*/, ''))}</div></div>)}
     <BangXet xet={t.xet} gon={gon} />
   </>;
@@ -375,9 +377,9 @@ function ChipLuat(p: VaoLuat) {
   return (
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', maxWidth: '100%' }}>
       {t.chinh ? <ChipO chinh={t.chinh} /> : <span style={{ color: 'var(--fg-3, #777)', padding: '0 6px' }}>…</span>}
-      {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ width: R, maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
+      {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ ...(t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R } : { width: R }), maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, minWidth: 0 }}><b style={{ fontSize: 13, color: laRoas(p.c.ten) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c.ten) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
           <span style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.phim ?? p.c.ten} · ${p.c.ngan_sach}</span></div>
         <ThanLuat t={t} /></div></KhungNoi> : null}
     </span>
@@ -1612,7 +1614,8 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   return (
     <div ref={gocCay} className="etp-cay" style={{ padding: '0 4px' }}>
       <style>{CSS_CAY}</style>
-      <div style={{ fontSize: 11, color: 'var(--fg-2)', display: 'flex', flexWrap: 'wrap', gap: 12, padding: '6px 0', alignItems: 'center' }}>
+      {/* HÀNG NÚT DÍNH (anh 30/10/2026 #1488 "hiện sticky cả lúc đang kéo xuống dưới"): dính dưới thanh tab (máy tính — điện thoại có đầu cây dính riêng); ui.StickyBar → tiêu đề bảng cây tự dính ngay dưới hàng này. Chú giải tách khối riêng, không dính */}
+      <div data-comp={hep ? undefined : 'ui.StickyBar'} style={{ fontSize: 11, color: 'var(--fg-2)', display: 'flex', flexWrap: 'wrap', gap: 12, padding: '6px 0', alignItems: 'center', ...(hep ? {} : { position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 5, background: 'var(--bg-0, #0b0b0c)' }) }}>
         {hep ? <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }} title="xếp camp trong mỗi phim">
           {([['lai', 'xếp: lãi'], ['tuoi', 'xếp: tuổi']] as const).map(([k, t]) => <button key={k} onClick={() => setXep(k)} style={{ border: 'none', padding: '1px 8px', fontSize: 11, cursor: 'pointer', color: 'inherit', background: xep === k ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent' }}>{t}</button>)}
         </span> : null}
@@ -1622,15 +1625,17 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
           const moHet = phim.length > 0 && tatCa.every((k) => moCay.has(k));
           return <button onClick={() => doiMo(tatCa, !moHet)} title={moHet ? 'gập mọi phim' : 'mở mọi phim + bản nhân bản'} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: 'inherit', cursor: 'pointer' }}>{moHet ? '⊟ Gập hết' : '⊞ Mở hết'}</button>; })()}
         {<button onClick={() => setGiai((v) => !v)} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: 'inherit', cursor: 'pointer' }}>{giai ? 'Ẩn chú giải' : 'Chú giải'}</button>}
-        {!giai ? null : <>
+      </div>
+      {!giai ? null : <div style={{ fontSize: 11, color: 'var(--fg-2)', display: 'flex', flexWrap: 'wrap', gap: 12, padding: '0 0 6px', alignItems: 'center' }}>
+        <>
         <span>Mỗi dòng = một <b>camp</b> · <b>Nn</b> = tuổi · ô viền <b>cr #</b> = creative camp đang chạy (ảnh + điểm chấm Meta·AFS; đoạn giây ở hover) · thụt vào = bản nhân bản của camp trên</span>
         <span title="$ = bậc ngân sách/ngày · thước ROI hôm nay: đỏ ≤ −5% giảm, xám giữ, xanh ≥ +50% tăng · chấm rỗng = chưa chi đủ 30%">$ bậc ngân sách · <span style={{ color: '#f87171' }}>▬</span><span style={{ color: '#94a3b8' }}>▬</span><span style={{ color: '#4ade80' }}>▬</span> ROI hôm nay</span>
         <span><b style={{ color: '#4ade80' }}>↑</b> sắp tăng · <b style={{ color: '#fb923c' }}>↓</b> sắp giảm · <b style={{ color: '#f87171' }}>✕</b> đề xuất tắt · <b style={{ color: '#facc15' }}>★</b> bid ROAS</span>
         <span style={{ opacity: 0.75 }}><b style={{ color: '#4ade80' }}>⇡</b> gần tăng · <b style={{ color: '#f87171' }}>✕</b> mờ gần tắt</span><span>x2 = số bản nhân</span><span style={{ color: '#f87171' }}>⚠ nhân bản lỗi 24h</span><span style={{ color: '#f87171' }}>↘ ROI giảm 2 ngày</span><span style={{ color: '#f59e0b' }}><span style={{ border: '1px solid #f59e0b66', borderRadius: 4, padding: '0 4px' }}>8/3</span> camp cùng đoạn / trần</span>
         <span><span style={{ display: 'inline-block', width: 3, height: 10, background: '#ef4444', marginRight: 4 }} />dòng nhân bản lỗi</span><span><span style={{ display: 'inline-block', width: 3, height: 10, background: '#f59e0b', marginRight: 4 }} />dòng ROI giảm</span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ display: 'inline-flex', gap: 1 }}>{([[3, 0], [15, 1], [21, 0], [33, 1]] as const).map(([w, b], i) => <span key={i} style={{ width: Math.max(w, 6), height: 10, borderRadius: 2, boxSizing: 'border-box', background: b ? '#4ade80' : 'rgba(239,68,68,.35)', border: b ? 'none' : '1px solid #ef4444' }} />)}</span> lịch giờ 07h · 08h–12h · 13h–19h · 20h–06h (xanh chạy, đỏ tắt)</span>
-        </>}
-      </div>
+        </>
+      </div>}
       {bangCay ?? <>
       <div style={{ position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 2, background: 'var(--bg-0, #0b0b0c)', display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, fontSize: 11, color: 'var(--fg-2)', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
         {hep ? <span>Phim → camp</span> : (

@@ -35,6 +35,9 @@ const taCua = (s: { bien_the?: Record<string, number> }) => Object.fromEntries(O
 const anhCua = (s: { bien_the?: Record<string, number> }, ten: string) => { const ma = Object.keys(bang.nhan_vat).find((m) => bang.nhan_vat[m]?.ten_db === ten); const { v, bt } = ma ? btCua(s, ma) : { v: undefined, bt: undefined };
   return bt?.anh_url ?? (v?.bien_the ?? []).find((b) => b.anh_url && bt && b.mo_ta.length > 20 && bt.mo_ta.startsWith(b.mo_ta.slice(0, 60)))?.anh_url ?? anhMau(ten); };
 const vatTa = Object.fromEntries(khac.filter((x) => x.loai === 'dao_cu' && x.mo_ta).map((x) => [x.ten, x.mo_ta]));
+// 💇 TÓC bằng CHỮ, đích danh từng người — glyph búi trên sơ đồ quá nhỏ ở cảnh rộng nên model thả về tóc xõa mặc định (drift #5). Lấy đoạn tả tóc trong mô tả DB.
+const TOC_TU = /\b(bun|búi|ponytail|pigtail|đuôi ngựa|bob|braid|tết|straight|wavy|curly|cropped|buzz|crew cut|side-parted|loose|hair|tóc)\b/i;
+const tocCua = (ten: string) => (nv.find((x) => x.ten === ten)?.mo_ta ?? '').split(/[;,]/).map((s) => s.trim()).filter((s) => TOC_TU.test(s)).join(', ');
 const len = async (f: string, k: string) => { const jpg = f.endsWith('.jpg'); const u = await uploadToR2(`xuong-video/thu/so-do-${k}-${randomUUID()}.${jpg ? 'jpg' : 'png'}`, readFileSync(f), jpg ? 'image/jpeg' : 'image/png'); if (!u) throw new Error(`không tải lên được ${f}`); return u; };
 
 const BO_CUC = 'Image 1 is a flat schematic storyboard diagram, NOT a style reference: use it ONLY for the layout — the framing and crop, who stands where (screen left / right), which way each body and head turns, where the props are. '
@@ -65,7 +68,9 @@ async function motKhung(so: number, prevSo?: number) {
     ds2.splice(TRAN_MAU - 1);   // giữ trần ảnh mẫu của cổng (sơ đồ + TRAN_MAU-1)
   }
   const u1 = xem ? '(sơ đồ)' : await len(`${thu}/so-${so}.png`, `${so}`);
-  const p = `${BO_CUC}\n${phieuShot(bang, s, kg, { ta: taCua(s), vat_ta: vatTa })}\n${ds2.map((m, k) => m.cau(k + 2)).join(' ')}`;
+  const tocCau = co.map((t) => { const h = tocCua(t); return h ? `${t}: ${h}` : ''; }).filter(Boolean).join('; ');
+  const p = `${BO_CUC}\n${phieuShot(bang, s, kg, { ta: taCua(s), vat_ta: vatTa })}\n${ds2.map((m, k) => m.cau(k + 2)).join(' ')}`
+    + (tocCau ? `\nHAIR — each person's hairstyle MUST be exactly this in EVERY shot, including wide and full shots; never loosen, untie, let down or restyle it: ${tocCau}.` : '');
   if (xem) return console.log(`---- #${so} (${ds2.length + 1} ảnh mẫu)\n${p}`);   // xem prompt, 0đ
   const a = await sinhAnhQuaCong('nano-banana-2', { prompt: p, thamChieuUrl: [u1, ...ds2.map((m) => m.url)], tiLe: '9:16' });   // chuỗi cổng có fallback: ckey timeout → plenxai → shopaikey → google
   if (!a.anh) return console.log(`#${so}: ảnh hỏng — ${a.thu?.map((x) => x.loi).filter(Boolean).join(' | ') ?? '?'}`);

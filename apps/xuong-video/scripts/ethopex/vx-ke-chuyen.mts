@@ -20,6 +20,7 @@ const GIONG = gia('giong') ?? 'en-US-AvaMultilingualNeural';
 // tốc độ đọc: thanh của VideoExpress 0,5–2, mặc định 1 — gửi 0 bị kẹp về 0,5 (đọc chậm gấp đôi, lỗi lần chạy đầu 29/10); QC kể chuyện đọc nhanh hơn thường một chút
 const TOC = gia('toc') ?? '1.1';
 const SONG_SONG = 5;
+const KHONG_CHO = process.argv.includes('--khong-cho');
 const D = `${process.env.HOME}/.cache/ethopex/vx-kc/${tap}`; mkdirSync(D, { recursive: true });
 type Canh = { id: number; so: number; giay: number; loi: string; anh: string; dong: string; chu: string; pd: string };
 type Ghi = { tts?: string; am?: string; amGiay?: number; anhUuid?: string; anh?: string; vidUuid?: string; vid?: string; vidGiay?: number };
@@ -150,6 +151,9 @@ for (let nhip = 0; nhip < 40 && doiClip().length; nhip++) {
     g(c).vidUuid = r.uuid; console.log(`→ gửi clip #${c.so} (${dai}s)`);
   }
   luu();
+  // --khong-cho (máy sinh, anh 29/10/2026 "khi đợi có thể đóng br lại cho nhẹ"): render chạy trên máy chủ VideoExpress — gửi / thu xong một lượt là THOÁT,
+  // máy sinh đóng Chrome, nhịp sau mở lại thu clip. Chạy tay (không cờ) vẫn ngồi chờ tới khi đủ như cũ.
+  if (KHONG_CHO) break;
   if (doiClip().length) await ngu(40_000);
 }
 const thieu = canhSinh.filter((c) => !g(c).am || !g(c).anh || !g(c).vid).map((c) => `#${c.so}`);

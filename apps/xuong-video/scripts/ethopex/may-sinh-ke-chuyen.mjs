@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // MÁY SINH KỂ CHUYỆN THEO NHỊP (anh 29/10/2026 duyệt: kịch bản bằng ckey + tiến trình nền launchd có tên). iMac — br giữ phiên VideoExpress (tk #677 htuan82).
-// Mỗi nhịp (launchd com.htuan.ethopex-may-sinh-ke-chuyen, 30 phút; launchd không chạy chồng hai lượt) làm TIẾP đúng một phim, theo sổ ~/.cache/ethopex/vx-kc/may.json:
+// Mỗi nhịp (launchd com.htuan.ethopex-may-sinh-ke-chuyen, 5 phút — nhịp chờ render thoát ngay, không mở Chrome; launchd không chạy chồng hai lượt) làm TIẾP đúng một phim, theo sổ ~/.cache/ethopex/vx-kc/may.json:
 //   chon  hàng đợi hiệu quả (box3 hang-ke-chuyen.mts) → viết kịch bản ckey + tạo tập studio (box3 viet-ke-chuyen.mts, ~25₫)
 //   sinh  giọng + ảnh + clip trên VideoExpress ($0, ≤ 5 clip song song — vx-ke-chuyen.mts; chưa xong thì nhịp sau làm tiếp)
 //   nap   box3 nạp R2 + xuất thân phim (vx-nap-tap.mts, cổng không câm) → cta  thẻ cuối mẫu CTA v2 (vx-ke-chuyen --cta, cổng câm / giọng đè)
@@ -64,10 +64,15 @@ try {
     ghi(`  kịch bản xong (${r.chi_vnd}₫) → tập #${r.tap}`);
   }
   if (d.buoc === 'sinh') {
+    // CHỜ RENDER KHÔNG MỞ CHROME (anh 29/10/2026 "khi đợi có thể đóng br lại cho nhẹ"): đợt clip vừa gửi chưa đủ ~4,5 phút (VideoExpress render ~4 phút) → nhịp này bỏ qua
+    if (d.gui_luc && Date.now() - d.gui_luc < 270e3) { ghi(`  đang render (gửi ${Math.round((Date.now() - d.gui_luc) / 60e3)} phút trước) — không mở trình duyệt`); try { unlinkSync(KHOA); } catch { /* */ } process.exit(0); }
     await moPhien();
-    const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--giong=${d.giong}`], 50 * 60);
-    ghi(`  sinh: ${(r.stdout || '').trim().split('\n').slice(-1)[0] ?? ''}`);
-    if (r.status === 0) { d.buoc = 'nap'; d.lan = 0; luu(); } else if (/chưa đủ/.test(r.stdout || '')) { ghi('  chưa đủ clip — nhịp sau làm tiếp'); luu(); dong(); process.exit(0); } else throw new Error((r.stderr || r.stdout || 'vx-ke-chuyen lỗi').slice(-400));
+    const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--giong=${d.giong}`, '--khong-cho'], 20 * 60);
+    dongPhien();   // gửi / thu xong là đóng Chrome ngay — không giữ trình duyệt trong lúc chờ render
+    const out = r.stdout || '';
+    ghi(`  sinh: ${out.trim().split('\n').filter((l) => /✓|→|✗|chưa đủ/.test(l)).slice(-4).join(' · ')}`);
+    if (/→ gửi clip/.test(out)) d.gui_luc = Date.now();
+    if (r.status === 0) { d.buoc = 'nap'; d.lan = 0; delete d.gui_luc; luu(); } else if (/chưa đủ/.test(out)) { ghi('  chưa đủ clip — nhịp sau thu tiếp'); luu(); dong(); process.exit(0); } else throw new Error((r.stderr || out || 'vx-ke-chuyen lỗi').slice(-400));
   }
   if (d.buoc === 'nap') {
     execFileSync('ssh', [B, `mkdir -p /var/tmp/vx-kc/${d.tap}`]);

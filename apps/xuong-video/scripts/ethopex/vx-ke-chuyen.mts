@@ -7,6 +7,7 @@
 // Ghép MP4 = scripts/ethopex/vx-nap-tap.mts trên box3 (nạp R2 + ghi xv_canh + chayXuat của studio, 0đ).
 //   ~/bin/br use 677 && ~/bin/br goto https://app.videoexpress.ai/
 //   cd /Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video && ../../node_modules/.bin/tsx scripts/ethopex/vx-ke-chuyen.mts --tap=646 [--giong=en-US-AvaMultilingualNeural] [--toc=1.1]
+//   xuất xong trên box3 → ../../node_modules/.bin/tsx scripts/ethopex/vx-ke-chuyen.mts --tap=646 --cta=<url MP4 vx-nap-tap in ra>  → bản CTA v2 để lên creative
 // VideoExpress chỉ cho 5 clip render song song và giữ file 40 ngày → gửi theo nhịp ≤ 5, tải về ngay.
 import { execFileSync, execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -48,6 +49,20 @@ luu();
 const g = (c: Canh) => (so.canh[c.so] ??= {});
 const giayTep = (f: string) => Number(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 ${JSON.stringify(f)}`, { encoding: 'utf8' }).trim());
 const tai = (url: string, f: string) => execFileSync('curl', ['-sSfL', '-o', f, url]);
+
+// ── 4. THẺ CUỐI = MẪU ĐIỂM CHẠM CTA v2 (anh 29/10/2026 "Cta đang theo mẫu điểm chạm nào nhìn lởm thế?"): thẻ cuối của studio (ảnh AI + chữ trắng) KHÔNG phải mẫu
+// đang chạy — mọi creative Ethopex (cả bản kể chuyện thắng #55604) kết bằng cat-canh.py: nút đỏ nhún từ giây 3 + poster SẠCH + "WHAT HAPPENS NEXT?" + giọng CTA v2 (cta_qc.py).
+// --cta=<url bản xuất studio> (in ra ở vx-nap-tap.mts): lấy thân phim = mọi cảnh trừ cảnh thẻ cuối, ghép CTA v2 → <thư mục>/<tập>-cta-v2.mp4 (bản để lên creative)
+const urlXuat = gia('cta');
+if (urlXuat) {
+  const than = canh.slice(0, -1).reduce((a, c) => a + Math.round(Math.min(g(c).vidGiay ?? c.giay, (g(c).amGiay ?? c.giay) + 0.35) * 10) / 10, 0);   // cùng công thức phat_s của vx-nap-tap
+  const nguon = `${D}/xuat-studio.mp4`, ra = `${D}/${tap}-cta-v2.mp4`, E = new URL('.', import.meta.url).pathname;
+  tai(urlXuat, nguon);
+  const [nut, giong] = execFileSync('python3', ['-c', `import importlib.util as u,json;s=u.spec_from_file_location('c',${JSON.stringify(`${E}cta_qc.py`)});m=u.module_from_spec(s);s.loader.exec_module(m);c=m.CTA[${JSON.stringify(meta.lang === 'es' ? 'es' : 'en')}];print(json.dumps([c['nut'],c['giong']]))`], { encoding: 'utf8' }).trim().split('\n').map((x) => x).slice(-1).map((x) => JSON.parse(x) as string[])[0]!;
+  console.log(execFileSync('python3', [`${E}cat-canh.py`, nguon, '0', than.toFixed(1), `${D}/poster.png`, '-', nut!, ra, giong!], { encoding: 'utf8' }).trim());
+  console.log(`✓ bản CTA v2 (thân ${than.toFixed(1)}s): ${ra}`);
+  process.exit(0);
+}
 
 if (!trenApp()) { console.error('br chưa ở app.videoexpress.ai — chạy: ~/bin/br use 677 && ~/bin/br goto https://app.videoexpress.ai/'); process.exit(2); }
 const HDR = `{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8","X-Requested-With":"XMLHttpRequest"}`;

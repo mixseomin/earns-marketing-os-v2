@@ -45,5 +45,5 @@ const x = await chayXuat({ loai: b.loai, tiLe: kt.ti_le, nhipStopMotion: kt.nhip
   nhanVat: b.nhanVat, tap: b.tap, qc: kt.qc, nhanh: 'A', choThieuNhac: true, boQuaSoi: true });
 if (!x.ok) { await db.execute(sql`UPDATE xv_job SET trang_thai = 'loi', loi = ${x.loi} WHERE id = ${job}`); console.error(`✗ xuất: ${x.loi}`); process.exit(1); }
 await ghiBanXuat(db, { tapId, job, nhanh: 'A', kq: x });
-console.log(`✓ MP4 ${x.giay}s → ${x.url}`); for (const c of x.canhBao) console.log(`  ⚠ ${c}`);
+console.log(`✓ MP4 ${x.giay}s → ${x.url}`); console.log(`  bước kế (iMac): vx-ke-chuyen.mts --tap=${tapId} --cta=${x.url}  → thẻ cuối mẫu CTA v2`); for (const c of x.canhBao) console.log(`  ⚠ ${c}`);
 process.exit(0);

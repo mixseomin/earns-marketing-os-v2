@@ -532,36 +532,8 @@ except Exception as e:
     loi_may.append((0, f"luật T30 lỗi: {str(e)[:80]}"))
 _tang30_goc = list(tang30)   # trước khi lọc bộ 2 / ROAS — camp ★ ROAS thắng dùng lại (xem dưới luật ROAS)
 tang30 = [x for x in tang30 if int(x[0] or 0) not in bo2]
-# DỪNG ĐÊM — CAMP ÂM TĂNG NHANH (anh 25/10/2026: "Trong phiên 9h tối đến 5h sáng mà các camp âm tăng nhanh hơn thì phải chủ động dừng luôn"):
-# 21h–5h VN là giờ Mỹ mua mạnh, camp âm tiêu rất nhanh — chờ giảm bậc sáng mai là mất cả đêm. Camp đang bật, hôm nay (số đã chốt chi) chi ≥ 30% ngân sách,
-# ROI ≤ −50%, và khoản LỖ vẫn đang tăng so với lượt chấm trước (≤ 90 phút) → máy TẮT luôn (lam-ethopex vẫn chặn camp ROI cộng dồn > 20%).
-# Ngưỡng chọn bằng mô phỏng hai đêm 23–24/10 (scripts mo-phong theo đường giờ phim): 40%/−40%/lỗ +15% cắt ~$0; 30%/−50%/lỗ tăng cắt $4–6 mỗi đêm,
-# dừng 21–33 camp, mất doanh thu ít nhất; 20%/−20% dừng 37–67 camp, có đêm lỗ còn tăng vì mất doanh thu về trễ.
-# CHỈ CAMP CLONE Y NGUYÊN CREATIVE (anh 25/10/2026: "luật dừng này chỉ áp dụng cho camp là clone lại hoàn toàn creative. Còn camp creative mới vẫn duy trì
-# theo dõi thêm"): camp mà creative của nó đã có camp khác tạo TRƯỚC (kho etp.camp) — camp đầu tiên của một creative không bao giờ bị dừng đêm.
-# Ảnh chụp lỗ từng camp lưu xv_khoa_ngoai['ethopex_lo_dem'], chỉ ghi ở lượt --json (Phòng Ethopex ~35 phút/lượt).
-DEM_ROI, DEM_CHI, DEM_TANG, DEM_PHUT = -50, 0.3, 0.01, 90   # DEM_TANG: lỗ tăng tối thiểu (tỷ lệ ngân sách) — chỉ cần còn đang tăng
+# DỪNG ĐÊM — ĐÃ BỎ (anh 29/10/2026 "bỏ luôn luật dừng đêm đó"): từ 25/10 tới 29/10 chưa tắt được camp nào (cổng tuổi 7 ngày chặn 45.098 lần); mã cũ xem git log.
 dung_dem = []
-if vn.hour >= 21 or vn.hour < 5:
-    try:
-        _truoc = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_lo_dem'") or "{}")
-        _bay = dt.datetime.now(dt.timezone.utc); _anh = {}
-        _clone_y = {int(x) for x in q("""select c.camp_id from etp.camp c where c.creative_id is not null and exists (select 1 from etp.camp o where o.creative_id = c.creative_id
-                                          and o.camp_id <> c.camp_id and (o.tao, o.camp_id) < (c.tao, c.camp_id))""").split() if x.isdigit()}
-        for cid, a in thang.items():
-            h = hom.get(cid) or {"chi": 0.0, "thu": 0.0}; ns = a["budget"] or 0
-            if not ns or h.get("chi", 0) <= 0: continue
-            lo = h["chi"] - h.get("thu", 0.0); _anh[str(cid)] = [round(lo, 2), _bay.isoformat()]
-            if int(cid) not in _clone_y or (_bat and cid not in _bat) or h["chi"] < DEM_CHI * ns or roi(h) > DEM_ROI: continue
-            p0 = _truoc.get(str(cid))
-            if not p0 or (_bay - dt.datetime.fromisoformat(p0[1])).total_seconds() > DEM_PHUT * 60: continue
-            if lo - p0[0] >= DEM_TANG * ns:
-                dung_dem.append((cid, f"#{a['ten'][:70]} · ${ns:g} · hôm nay chi ${h['chi']:.2f} ({h['chi'] / ns * 100:.0f}% ngân sách), ROI {roi(h):+.0f}% · lỗ ${p0[0]:.2f} → ${lo:.2f} sau {(_bay - dt.datetime.fromisoformat(p0[1])).total_seconds() / 60:.0f} phút · clone y nguyên creative → DỪNG ĐÊM"))
-        _dd = {int(x[0]) for x in dung_dem}   # camp sắp tắt thì không giảm / mở bản thang trong cùng lượt
-        ha, thang_nb = [x for x in ha if int(x[0] or 0) not in _dd], [x for x in thang_nb if int(x[0] or 0) not in _dd]
-        if JSON: q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_lo_dem', '" + json.dumps(_anh).replace("'", "''") + "'::jsonb) on conflict (ten) do update set gia_tri = excluded.gia_tri")
-    except Exception as e:
-        loi_may.append((0, f"luật dừng đêm lỗi: {str(e)[:80]}"))   # bộ 2 đi thang nhân bản, không lên $30 bằng đổi ngân sách
 # CAMP ROAS — DẠNG RIÊNG (tài liệu Support 26/10/2026; anh: "Camp ROAS là 1 dạng riêng, miễn hết các luật"): camp ★ … duplicate by <gốc> (nhan-ban.py --roas)
 # ra khỏi MỌI danh sách luật ở trên (tắt / T7 / tăng / giảm / hạ / nhân bản / thang / dừng đêm / T30 / thay creative) — chỉ còn luật tắt ROAS của Support:
 # "camp tiêu > $20 mà ROI < 30%, 1–2 ngày thì off" = ngày đã khép hôm qua, hoặc cộng 2 ngày đã khép, chi > $20 và ROI < 30% → báo riêng anh trên Telegram (nút Tắt / Giữ), máy không tự tắt (anh 26/10/2026).

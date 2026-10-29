@@ -536,7 +536,7 @@ function TabTaiNguyen({ du, khCamp }: { du: DuLieuEtp; kh: Kh; khCamp: Map<numbe
 // điều kiện + ngưỡng đọc THẲNG từ lượt xét của máy luật (etp.xet_luat — không chép tay), số thật từ apps/etp/so-luat.py (nhật ký máy + số ngày Ethopex, mỗi giờ)
 const NHOM_LUAT: [string, string, string[]][] = [
   ['tang', 'Tăng chi — tăng bậc, nhân bản', ['tang', 'tang_ngay', 'dau_phien', 't30', 'nb', 'thang_nb', 'roas']],
-  ['tat', 'Tắt camp', ['l3', 't2', 'off', 't7', 'd24', 'dung_dem']],   // giảm bậc đã bỏ (anh 29/10/2026) — camp lỗ liền đi L3
+  ['tat', 'Tắt camp', ['l3', 't2', 'off', 't7', 'd24']],   // giảm bậc đã bỏ (anh 29/10/2026) — camp lỗ liền đi L3
 ];
 function BanLuat({ du }: { du: DuLieuEtp }) {
   const theo = new Map(du.soLuat.map((l) => [l.ma, l])); const luc = du.soLuat.reduce<string | null>((m, l) => (!m || l.luc > m ? l.luc : m), null);

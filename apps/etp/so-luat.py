@@ -10,7 +10,7 @@ Nguồn: etp.nhat_ky (máy luật đã làm gì, lúc nào, camp nào) + etp.so_
 import json, os, re, subprocess, sys, collections
 
 NGAY = 14   # cửa sổ đo
-DA_BO = {"gb", "giam_ngay", "giam_som", "roi_tut"}
+DA_BO = {"gb", "giam_ngay", "giam_som", "roi_tut", "dung_dem"}   # dừng đêm bỏ 29/10/2026
 DA_AP_CUNG_CR = True
 DA_AP_CHI_GOC = True   # luat-ethopex.py: bản thang bộ 2 chỉ mở khi camp gốc tiêu TB ≥ $6/ngày 3 ngày đã khép (anh 29/10/2026)
 DA_AP_ROI_DAI = True   # luat-ethopex.py tăng trong ngày đòi ROI khung dài ≥ 0% từ 29/10/2026   # nhan-ban.py giữ nguyên creative gốc khi clone từ 28/10/2026 (commit 3cf79748) — số 14 ngày còn lẫn clone đổi creative trước đó   # luật đã bỏ khỏi máy (anh 29/10/2026 "làm 1+2") — dòng xét cũ còn trong etp.xet_luat tới 3 giờ, không đưa lên bản luật

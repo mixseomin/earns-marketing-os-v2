@@ -186,7 +186,7 @@ def main(a):
                 raise ValueError(f"camp đã {truoc['tt']}")
             # CHẶN TẮT CAMP LÃI (anh 22/10/2026: "luật vẫn là luật. Camp nào lãi hơn 20% thì bật lại" — con tắt nhầm #66052/#66055/#65714 vì phân loại
             # theo số chụp lúc 09:50, doanh thu về trễ). Đọc ROI cộng dồn MỚI NHẤT ngay lúc tắt; > 20% thì từ chối, trừ --ep (anh lệnh đích danh).
-            lai = None if ep else dang_lai(cid, t7=(luat or "").startswith(("T7", "dừng đêm")))   # dừng đêm chỉ nhắm camp clone (luôn < 7 ngày) — cổng tuổi / $10 chặn 100% từ 25/10 (45.098 lần, 0 lần tắt) → bỏ như T7 (anh 29/10/2026 "làm đi"); cổng camp đang lãi giữ
+            lai = None if ep else dang_lai(cid, t7=(luat or "").startswith("T7"))
             if lai: raise ValueError(f"không tắt: {lai}")
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "paused"}])
             d0 = (r.get("data") or [{}])[0]

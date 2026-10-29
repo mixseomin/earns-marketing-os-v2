@@ -6,13 +6,13 @@
 //   nap   box3 nạp R2 + xuất thân phim (vx-nap-tap.mts, cổng không câm) → cta  thẻ cuối mẫu CTA v2 (vx-ke-chuyen --cta, cổng câm / giọng đè)
 //   xong  đưa vào thư viện etp (thu-vien-them.mts, trạng thái "sẵn sàng" — người chọn lên camp; máy KHÔNG tự lên camp)
 // TÀI NGUYÊN: trần TRAN phim/ngày (giờ VN) — mặc định 12; một phim hỏng 3 lần thì bỏ (ghi dòng "loai" vào thư viện để hàng đợi không chọn lại trong 3 ngày).
-// Dọn: xong mỗi nhịp đóng phiên br của profile htuan82 (không để cửa sổ Chrome treo).
+// Phiên VideoExpress = scripts/videoexpress.mjs (profile RIÊNG htuan82-vx, không đụng htuan82 chính); xong mỗi nhịp đóng phiên đó.
 //   node /Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs [--tran=12] [--xem]   (--xem: chỉ in sổ + hàng đợi)
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { moPhien, dongPhien } from '../videoexpress.mjs';   // phiên VideoExpress: MỘT tệp nền tảng, profile riêng htuan82-vx (anh 29/10/2026)
 
 const XV = '/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video', B = 'root@167.233.241.16', HOME = process.env.HOME;
-const BR = `${HOME}/bin/br`, PROFILE = '/Users/htuan/Me/Earns/courseforge-demo/.capture-profile-htuan82';
 const BOX = 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx';
 const TRAN = Number(process.argv.find((a) => a.startsWith('--tran='))?.slice(7) ?? 12);
 const C = `${HOME}/.cache/ethopex/vx-kc`; mkdirSync(C, { recursive: true });
@@ -30,7 +30,7 @@ if (process.argv.includes('--xem')) { console.log(JSON.stringify(so, null, 1)); 
 // một lượt một lúc (launchd đã không chạy chồng; khoá này đỡ thêm khi chạy tay)
 if (existsSync(KHOA)) { const pid = Number(readFileSync(KHOA, 'utf8')); try { process.kill(pid, 0); ghi(`lượt ${pid} đang chạy — bỏ nhịp này`); process.exit(0); } catch { /* khoá cũ */ } }
 writeFileSync(KHOA, String(process.pid));
-const dong = () => { try { unlinkSync(KHOA); } catch { /* */ } try { execFileSync(BR, ['close', PROFILE], { stdio: 'ignore', timeout: 60e3 }); } catch { /* */ } };
+const dong = () => { try { unlinkSync(KHOA); } catch { /* */ } dongPhien(); };
 
 function hong(loi) {
   const d = so.dang; d.lan = (d.lan ?? 0) + 1; d.loi = String(loi).slice(0, 400);
@@ -45,12 +45,6 @@ function hong(loi) {
   }
   luu();
 }
-function moVx() {
-  execFileSync(BR, ['open', PROFILE], { stdio: 'ignore', timeout: 120e3 });
-  execFileSync(BR, ['use', '677'], { stdio: 'ignore', timeout: 60e3 });
-  execFileSync(BR, ['goto', 'https://app.videoexpress.ai/'], { stdio: 'ignore', timeout: 120e3 });
-}
-
 try {
   // ── chọn phim mới khi không có phim dở ──
   if (!so.dang) {
@@ -70,7 +64,7 @@ try {
     ghi(`  kịch bản xong (${r.chi_vnd}₫) → tập #${r.tap}`);
   }
   if (d.buoc === 'sinh') {
-    moVx();
+    await moPhien();
     const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--giong=${d.giong}`], 50 * 60);
     ghi(`  sinh: ${(r.stdout || '').trim().split('\n').slice(-1)[0] ?? ''}`);
     if (r.status === 0) { d.buoc = 'nap'; d.lan = 0; luu(); } else if (/chưa đủ/.test(r.stdout || '')) { ghi('  chưa đủ clip — nhịp sau làm tiếp'); luu(); dong(); process.exit(0); } else throw new Error((r.stderr || r.stdout || 'vx-ke-chuyen lỗi').slice(-400));

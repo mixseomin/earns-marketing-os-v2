@@ -65,6 +65,25 @@ async function dangAnh(pageId: string, token: string, anh: string[], moTa: strin
   return { url: String(l.permalink_url ?? `https://www.facebook.com/${p.id}`), post_id: String(p.id) };
 }
 
+/** ẢNH PAGE (trang-diem-page.mts, 29/10/2026): ảnh đại diện + ảnh bìa từ tệp trên box3. Ảnh tải lên chưa xuất bản (/photos published=false, không
+ *  lên bảng tin) → đặt làm ảnh đại diện (/picture photo=<id>) và ảnh bìa (cover=<id>, no_feed_story). Kiểm danh tính token ↔ Page như lượt đăng. */
+export async function datAnhPage(pageId: string, tep: { daiDien?: string; bia?: string }): Promise<{ dai_dien?: string; bia?: string }> {
+  const ten = docSo()[pageId]?.ten; if (!ten) throw new Error(`không có Page ${pageId} trong sổ token`);
+  const t = await kiemTrang(pageId, ten), ra: { dai_dien?: string; bia?: string } = {};
+  const taiLen = async (f: string) => { const fd = new FormData(); fd.set('published', 'false'); fd.set('access_token', t.token); fd.set('source', new Blob([readFileSync(f)], { type: 'image/jpeg' }), 'anh.jpg'); return String((await goi(`${G}/${pageId}/photos`, { method: 'POST', body: fd })).id); };
+  if (tep.daiDien) { const id = await taiLen(tep.daiDien); await goi(`${G}/${pageId}/picture`, { method: 'POST', body: new URLSearchParams({ photo: id, access_token: t.token }) }); ra.dai_dien = id; }
+  if (tep.bia) { const id = await taiLen(tep.bia); await goi(`${G}/${pageId}`, { method: 'POST', body: new URLSearchParams({ cover: id, no_feed_story: 'true', access_token: t.token }) }); ra.bia = id; }
+  return ra;
+}
+/** Page đã có ảnh đại diện (không phải hình bóng mặc định) và ảnh bìa chưa. */
+export async function kiemAnhPage(pageId: string): Promise<{ ten: string; co_dai_dien: boolean; co_bia: boolean; dai_dien?: string; bia?: string }> {
+  const t = docSo()[pageId]; if (!t?.token) throw new Error(`không có Page ${pageId} trong sổ token`);
+  const j = await goi(`${G}/${pageId}?${qs({ fields: 'name,picture.type(large){is_silhouette,url},cover{source}', access_token: t.token })}`) as { name: string; picture?: { data?: { is_silhouette?: boolean; url?: string } }; cover?: { source?: string } };
+  return { ten: j.name, co_dai_dien: j.picture?.data?.is_silhouette === false, co_bia: !!j.cover?.source, dai_dien: j.picture?.data?.url, bia: j.cover?.source };
+}
+
+// CLI chỉ khi chạy thẳng tệp này — trang-diem-page.mts import datAnhPage / kiemAnhPage, không được rơi vào nhánh đọc stdin rồi đăng
+if (process.argv[1]?.endsWith('dang-fb-reel.mts')) {
 const a = process.argv.slice(2);
 if (a[0] === '--kiem') {
   const id = a[1]!, t = docSo()[id]; if (!t) { console.error(`không có Page ${id} trong sổ`); process.exit(1); }
@@ -103,3 +122,4 @@ if (x.binh_luan) {
 }
 process.stdout.write(JSON.stringify({ url: r.url, post_id: r.video_id, binh_luan: binh }));
 process.exit(0);
+}

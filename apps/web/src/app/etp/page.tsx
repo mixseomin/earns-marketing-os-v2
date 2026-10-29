@@ -19,5 +19,5 @@ export default async function EtpPage({ searchParams }: { searchParams: Promise<
   // admin, hoặc khách một trang của etp (users.chi_host = 'etp.on.tc' — anh 29/10/2026 "chỉ view": action etp đều đòi admin)
   if (me.role !== 'admin' && me.chiHost !== 'etp.on.tc') redirect('/');
   const mot = (k: string) => (typeof q[k] === 'string' ? (q[k] as string) : undefined);
-  return <EtpView chiXem={me.role !== 'admin'} du={await docEtp(mot('ng'))} dauVao={{ t: mot('t'), v: mot('v'), l: mot('l'), p: mot('p'), lu: mot('lu'), d: mot('d'), b: mot('b'), ll: mot('ll'), tu: mot('tu'), ngan: mot('ngan') }} />;
+  return <EtpView chiXem={me.role !== 'admin'} du={await docEtp(mot('ng'), true)} dauVao={{ t: mot('t'), v: mot('v'), l: mot('l'), p: mot('p'), lu: mot('lu'), d: mot('d'), b: mot('b'), ll: mot('ll'), tu: mot('tu'), ngan: mot('ngan') }} />;
 }

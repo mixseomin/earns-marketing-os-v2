@@ -11,7 +11,8 @@ import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 // CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
 const ChiXem = createContext(false);
-import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoLuat, SoTien, ThayThe, ThuVienMuc, XetLuat } from '@/lib/etp-doc';
+import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhanNang, PhimEtpKho, SoLuat, SoTien, ThayThe, ThuVienMuc, XetLuat } from '@/lib/etp-doc';
+import { taiNangEtp } from '@/lib/actions/etp-nang';
 
 type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'tv' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -1837,8 +1838,15 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
 }
 const TABS: Tab[] = ['tong', 'camp', 'roas', 'creative', 'phim', 'tv', 'tn', 'luat'];
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'cung', 'roas'] as const;
-export function EtpView({ du, dauVao, chiXem = false }: { du: DuLieuEtp; chiXem?: boolean; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string } }) {
+// ghép phần nặng tải bù vào bản nhẹ (PhanNang ở etp-doc) — component đọc du.* như cũ
+const ghepNang = (d: DuLieuEtp, x: PhanNang): DuLieuEtp => ({ ...d, nhe: false, pheu: x.pheu, diemCham: x.diemCham, thuVien: x.thuVien,
+  cham: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { ...c, ...(x.chamCt[Number(k)] ?? {}) }])) });
+
+export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; chiXem?: boolean; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string } }) {
   const router = useRouter();
+  // TẢI THEO TAB (anh 30/10/2026 "làm tối ưu triệt để đi"): máy chủ gửi bản nhẹ; Creative › Quét / Điểm chạm và Thư viện cần phần nặng → tải bù rồi ghép
+  const [nang, setNang] = useState<PhanNang | null>(null);
+  const du = useMemo(() => (duGoc.nhe && nang ? ghepNang(duGoc, nang) : duGoc), [duGoc, nang]);
   // tab + kiểu xem lấy từ URL ngay lần vẽ đầu (máy chủ truyền vào) — F5 giữ nguyên chỗ đang xem
   // NGĂN CAMP (anh 27/10/2026 "trên mobile bấm vào phải giống hover ra creative chi tiết… tối ưu tốt cho mobile"): bấm dòng camp trên điện thoại → <Drawer> chi tiết,
   // khoá ?ngan=camp:<id> trên URL (F5 mở lại — chuẩn ngăn kéo)
@@ -1866,6 +1874,12 @@ export function EtpView({ du, dauVao, chiXem = false }: { du: DuLieuEtp; chiXem?
   const [thap, setThap] = useState(false);
   useEffect(() => { const mq = window.matchMedia('(max-height: 500px)'); const f = () => setThap(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
   const gon = hep || thap;
+  const canNang = (tab === 'creative' && (xemCr === 'soat' || xemCr === 'dc')) || tab === 'tv';
+  // tải lại mỗi lần bản nhẹ đổi (tự làm mới / router.refresh sau thao tác) để phần nặng không cũ; bản cũ vẫn hiện trong lúc chờ
+  useEffect(() => { if (!duGoc.nhe || !canNang) return; let huy = false;
+    taiNangEtp(duGoc.nguoi.ngoai && duGoc.nguoi.dang != null ? String(duGoc.nguoi.dang) : undefined).then((r) => { if (!huy && !('loi' in r)) setNang(r); }).catch(() => {});
+    return () => { huy = true; }; }, [duGoc, canNang]);
+  const choNang = canNang && duGoc.nhe && !nang;
   useEffect(() => { const t = setInterval(() => router.refresh(), 60_000); return () => clearInterval(t); }, [router]);
   // URL không ghi kiểu xem cây/bảng → dùng lựa chọn đã nhớ (localStorage). Cờ daDoc: lượt ghi URL / nhớ chỉ chạy SAU khi đã đọc xong — không đè bằng giá trị mặc định
   const [daDoc, setDaDoc] = useState(false);
@@ -2134,6 +2148,8 @@ export function EtpView({ du, dauVao, chiXem = false }: { du: DuLieuEtp; chiXem?
         <DataTable rows={camps} columns={cotCamp} groups={NHOM} groupHeader rowStyle={(c) => (hetNs(c) ? { opacity: 0.5 } : undefined)} rowTitle={(c) => (hetNs(c) ? `đã tiêu $${c.nay.chi.toFixed(2)} ≥ ngân sách $${c.ngan_sach}/ngày — Meta gần như ngừng chi tới 07:00` : undefined)} defaultSort={[{ key: 'tao', dir: 'desc' }]} getRowKey={(c) => String(c.camp_id)} persistKey="etp-camp" minWidth={1400} pageSize={100}
           searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tl(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…" />
         </>
+      ) : choNang ? (
+        <div style={{ padding: 24, color: 'var(--fg-2)', fontSize: 12 }}>Đang tải dữ liệu tab…</div>
       ) : tab === 'creative' && xemSoat ? (
         <TabSoat du={du} anh={anh} />
       ) : tab === 'creative' && xemCr === 'sx' ? (

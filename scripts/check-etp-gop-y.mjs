@@ -146,6 +146,10 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thu-vien-len.py', co: 'lf, ma, dang, "--da-soat"]', vi: 'đưa lên giữ đúng dạng của bản thư viện' },
   // anh 29/10/2026 "cột trạng thái cho gọn lại … hạn chế phải scroll ngang": cột TT của Cây có bề rộng cố định, không ăn khoảng thừa
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'tt', header: 'TT', align: 'left', width: 74,", vi: 'cột trạng thái Cây hẹp cố định' },
+  // anh 30/10/2026 "chậm quá" → "làm tối ưu triệt để đi": trang gửi bản nhẹ, phần nặng tải theo tab
+  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "du={await docEtp(mot('ng'), true)}", vi: 'trang etp gửi bản nhẹ' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "const canNang = (tab === 'creative' && (xemCr === 'soat' || xemCr === 'dc')) || tab === 'tv';", vi: 'tab cần phần nặng mới tải bù' },
+  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'with g as (select coalesce(p.the_loai', vi: 'câu khung giờ gộp theo giờ trước khi gọi khung_vn' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

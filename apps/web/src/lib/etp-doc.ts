@@ -45,7 +45,7 @@ export type NhomClone = { n: number; chi: number; lai: number; roi: number | nul
 export type ThuVienMuc = { k: string; creative_id: number | null; content_id: number; phim: string | null; the_loai: string | null; dang: string | null; lang: string | null;
   video: string | null; anh: string | null; giay: number | null; nguon: string; tv: string | null; camp: number; chay: number; chi: number; thu: number; meta: number | null; afs: number | null; tao: string | null;
   /** ghi chú dòng thư viện — bản ĐANG SINH: bước máy sinh đang làm (giọng / ảnh / clip x/6, xuất, CTA) */ ghi: string | null };
-export type DuLieuEtp = { luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[]; thuVien: ThuVienMuc[];
+export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt — etp-view tải bù khi tab cần (taiNangEtp) */; luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[]; thuVien: ThuVienMuc[];
   cauHinh: { khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }[];
   nhatKy: { luc: string; viec: string; camp_id: number | null; truoc: string | null; sau: string | null; ok: boolean | null; loi: string | null; luat: string | null; ai: string | null }[];
   canhBao: { luc: string; muc: string; noi_dung: string; da_gui: string | null }[]; dongBo: { lan: number; bat_dau: string; xong: string | null; so_camp: number | null; loi: string | null } | null;
@@ -127,7 +127,21 @@ export function phimTuTenCamp(ten: string): string | null {
   return t.length >= 3 && !/^dup by/i.test(t) ? t : null;
 }
 
-export async function docEtp(ng?: string): Promise<DuLieuEtp> {
+// TẢI THEO TAB (anh 30/10/2026 "chậm quá" → "làm tối ưu triệt để đi"): trang nặng 5,9MB / 711KB nén, đường box3 → VN ~1 Mbit/s nên mở trang mất 5–6 giây.
+// Lần vẽ đầu (và mỗi lượt tự làm mới) chỉ mang phần tab Camp / Tổng quan / ROAS cần; bốn phần nặng dưới đây chỉ màn Creative › Quét · Điểm chạm và Thư viện dùng
+// → cắt khỏi bản nhẹ, etp-view gọi taiNangEtp khi mở đúng tab rồi ghép lại (ghepNang ở etp-view) — component đọc du.* như cũ.
+export type PhanNang = { chamCt: Record<number, Pick<ChamCr, 'lop' | 'diem' | 'ly_do' | 'khung'>>; pheu: DuLieuEtp['pheu']; diemCham: DuLieuEtp['diemCham']; thuVien: ThuVienMuc[] };
+// Cây chỉ cần bản thư viện CHƯA lên đang sinh / sẵn sàng (dòng mờ dưới phim) — giữ đúng lọc với CayCamp
+const tvCay = (v: ThuVienMuc) => !v.creative_id && (v.tv === 'dang_sinh' || v.tv === 'san_sang');
+export const phanNang = (d: DuLieuEtp): PhanNang => ({ chamCt: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { lop: c.lop, diem: c.diem, ly_do: c.ly_do, khung: c.khung }])),
+  pheu: d.pheu, diemCham: d.diemCham, thuVien: d.thuVien });
+export async function docEtp(ng?: string, nhe = false): Promise<DuLieuEtp> {
+  const d = await docEtpDu(ng);
+  if (!nhe) return d;
+  return { ...d, nhe: true, pheu: [], diemCham: {}, thuVien: d.thuVien.filter(tvCay),
+    cham: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { ...c, lop: {}, diem: {}, ly_do: {}, khung: {} }])) };
+}
+async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const db = getDb()!;
   const nay = new Date().toISOString().slice(0, 10), qua = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10), dauThang = `${nay.slice(0, 8)}01`;
   const run = async <T,>(q: ReturnType<typeof sql>) => (await db.execute(q)) as unknown as T[];

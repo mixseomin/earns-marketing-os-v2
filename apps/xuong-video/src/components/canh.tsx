@@ -1,7 +1,7 @@
 'use client';
 // Một shot trên storyboard: thẻ cảnh, keyframe/clip, form sửa 3 tab.
 import { KhungDauKet } from './khung-dau-ket';
-import { useContext, useEffect, useState, type CSSProperties } from 'react';
+import { Fragment, useContext, useEffect, useState, type CSSProperties } from 'react';
 import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, type TheLoai } from '@/lib/xuong-video/dien-anh';
@@ -59,6 +59,30 @@ export function TrangPhucShot({ c, onLuu }: { c: Canh; onLuu: (t: string) => voi
 // 🧩 BÓC TÁCH TỪ ẢNH: ảnh keyframe đầu/cuối THẬT + danh sách thành phần CON BÓC TÁCH đọc ra (không phải dự kiến) để đối chiếu. Cờ đỏ chỗ tóc lệch spec.
 const tuToc = (s: string) => (s.match(/đuôi ngựa|ponytail|búi (thấp|cao)|low bun|high bun|bun|xõa|loose|tóc dài|long hair|tóc ngắn|short hair|straight|thẳng|tết|braid/i)?.[0] ?? '').toLowerCase();
 const tocHop = (that: string, spec: string) => { const a = tuToc(that), b = tuToc(spec); if (!a || !b) return true; const nh = (x: string) => /búi|bun/.test(x) ? 'bui' : /đuôi ngựa|ponytail/.test(x) ? 'duoi' : /xõa|loose|dài|long|thẳng|straight/.test(x) ? 'xoa' : /ngắn|short/.test(x) ? 'ngan' : x; return nh(a) === nh(b); };
+// ⚖️ Bảng đối chiếu Dự kiến ↔ Bóc-từ-ảnh (3 cột + mức khớp). khớp=xanh · gần=hổ phách · lệch/thiếu/thừa=đỏ.
+const MUC_MAU: Record<string, string> = { 'khớp': 'var(--green)', 'gần': 'var(--amber)', 'lệch': 'var(--red)', 'thiếu': 'var(--red)', 'thừa': 'var(--red)' };
+function DoiChieuTable({ rows }: { rows: import('@/lib/xuong-video/kieu').DongDoiChieu[] }) {
+  const xau = rows.filter((r) => r.muc !== 'khớp' && r.muc !== 'gần').length;
+  return (
+    <div style={{ fontSize: 10.5, lineHeight: 1.4 }}>
+      <div style={{ ...mono, fontSize: 9.5, color: xau ? 'var(--red)' : 'var(--green)', marginBottom: 4 }}>{xau ? `⚠ ${xau} chi tiết lệch/thiếu/thừa` : '✓ mọi chi tiết khớp'} · {rows.length} mục đối chiếu</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(80px,auto) 1fr 1fr auto', gap: '2px 8px', alignItems: 'start' }}>
+        <div style={{ ...mono, fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase' }}>Thành phần</div>
+        <div style={{ ...mono, fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase' }}>Dự kiến</div>
+        <div style={{ ...mono, fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase' }}>Bóc từ ảnh</div>
+        <div style={{ ...mono, fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase' }}>Khớp</div>
+        {rows.map((r, i) => (
+          <Fragment key={i}>
+            <div style={{ fontWeight: 600, color: 'var(--fg-1)', borderTop: '1px solid var(--line)', paddingTop: 3 }}>{r.thanh_phan}</div>
+            <div style={{ color: 'var(--fg-2)', borderTop: '1px solid var(--line)', paddingTop: 3 }}>{r.du_kien || '—'}</div>
+            <div style={{ color: 'var(--fg-1)', borderTop: '1px solid var(--line)', paddingTop: 3 }}>{r.thuc_te || '—'}{r.ghi_chu && r.muc !== 'khớp' ? <span style={{ color: MUC_MAU[r.muc], display: 'block', fontSize: 9.5 }}>↳ {r.ghi_chu}</span> : ''}</div>
+            <div style={{ borderTop: '1px solid var(--line)', paddingTop: 3 }}><span style={{ color: MUC_MAU[r.muc] ?? 'var(--fg-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{r.muc === 'khớp' ? '✓ khớp' : r.muc === 'gần' ? '≈ gần' : r.muc === 'thiếu' ? '✗ thiếu' : r.muc === 'thừa' ? '＋ thừa' : '✗ lệch'}</span></div>
+          </Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
 function BangBocTach({ k, nhanVat }: { k: import('@/lib/xuong-video/kieu').BocTachKhung; nhanVat: NhanVat[] }) {
   return (
     <div style={{ flex: 1, minWidth: 0, fontSize: 11, lineHeight: 1.5 }}>
@@ -98,13 +122,16 @@ export function BocTachShot({ c, nhanVat }: { c: Canh; nhanVat: NhanVat[] }) {
         </button>))}</div>
       {mo && (
         <div style={{ border: '1px solid var(--cyan)', borderRadius: 6, padding: 8 }}>
-          <div style={{ ...mono, color: 'var(--cyan)', textTransform: 'uppercase', marginBottom: 6, fontSize: 10 }}>🧩 Bóc TỪ ẢNH THẬT — khung {mo === 'dau' ? 'ĐẦU' : 'CUỐI'} (không phải dự kiến)</div>
+          <div style={{ ...mono, color: 'var(--cyan)', textTransform: 'uppercase', marginBottom: 6, fontSize: 10 }}>🧩 Khung {mo === 'dau' ? 'ĐẦU' : 'CUỐI'} — đối chiếu Bóc-từ-ảnh ↔ Dự kiến</div>
           {kMo ? (
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-              <img src={anhNho(urlMo as string, 320)} alt="" style={{ width: 150, aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, background: '#000', flexShrink: 0 }} />
-              <BangBocTach k={kMo} nhanVat={nhanVat} />
+              <img src={anhNho(urlMo as string, 320)} alt="" style={{ width: 150, aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, background: '#000', flexShrink: 0, position: 'sticky', top: 0 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {bt?.doi_chieu?.[mo]?.length ? <DoiChieuTable rows={bt.doi_chieu[mo]!} /> : <div style={{ fontSize: 10.5, color: 'var(--amber)', marginBottom: 6 }}>⚖️ chưa đối chiếu dự kiến — chạy lại boc-tach.mts (bản mới tự đối chiếu). Dưới là thành phần bóc từ ảnh:</div>}
+                {!bt?.doi_chieu?.[mo]?.length && <BangBocTach k={kMo} nhanVat={nhanVat} />}
+              </div>
             </div>
-          ) : <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Khung này chưa bóc tách. Chạy <code>boc-tach.mts --canh={c.id} --ghi</code> để đọc thành phần từ ảnh.</div>}
+          ) : <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Khung này chưa bóc tách. Chạy <code>boc-tach.mts --canh={c.id} --ghi</code> để đọc thành phần từ ảnh + đối chiếu dự kiến.</div>}
         </div>
       )}
     </div>

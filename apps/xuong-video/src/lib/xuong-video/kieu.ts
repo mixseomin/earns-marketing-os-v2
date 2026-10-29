@@ -623,7 +623,9 @@ export const O_DAN_DUNG_BAT_BUOC = O_DAN_DUNG.filter((o) => o.key !== 'motif' &&
 export type NguoiKhung = { ai: string; dac_diem: string; vi_tri: string; ao: string; toc: string; trang_suc: string; bieu_cam: string; huong_nhin: string; dang: string; do_cam: string };
 export type DoKhung = { ten: string; dac_diem: string; trang_thai: string; vi_tri: string };
 export type BocTachKhung = { boi_canh: string; vat_co_dinh: string[]; anh_sang: string; khung_hinh: string; goc_may: string; bo_cuc: string; nguoi: NguoiKhung[]; dao_cu: DoKhung[]; chu_tren_hinh: string; ghi_chu: string };
-export type BocTachCanh = { dau?: BocTachKhung; cuoi?: BocTachKhung; luc_boc: string; tren: { dau: string | null; cuoi: string | null } };
+// ⚖️ Một dòng đối chiếu dự kiến ↔ bóc-từ-ảnh (doi-chieu-khung.ts). muc: khớp | gần | lệch | thiếu (dự kiến có, ảnh không) | thừa (ảnh có, dự kiến không).
+export type DongDoiChieu = { thanh_phan: string; du_kien: string; thuc_te: string; muc: 'khớp' | 'gần' | 'lệch' | 'thiếu' | 'thừa'; ghi_chu: string };
+export type BocTachCanh = { dau?: BocTachKhung; cuoi?: BocTachKhung; doi_chieu?: { dau?: DongDoiChieu[]; cuoi?: DongDoiChieu[] }; luc_boc: string; tren: { dau: string | null; cuoi: string | null } };
 
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; /** mô tả tiếng Việt của hành động (#1397) — đọc qua moTaVi */ hanh_dong_vi: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;

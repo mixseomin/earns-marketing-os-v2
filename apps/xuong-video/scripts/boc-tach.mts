@@ -5,7 +5,11 @@
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { bocTachKhung } from '../src/lib/xuong-video/boc-tach-khung';
-import type { Row } from '../src/lib/xuong-video/doc-db';
+import { duKienKhung, doiChieuKhung } from '../src/lib/xuong-video/doi-chieu-khung';
+import { mapCanh, mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
+import { kgCua } from '../src/lib/xuong-video/khong-gian';
+import { khongGianTap } from './phieu-shot.mts';
+import type { BocTachKhung, DongDoiChieu } from '../src/lib/xuong-video/kieu';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const ghi = process.argv.includes('--ghi');
@@ -19,15 +23,22 @@ if (anhRoi) {
 }
 if (!canhId) { console.error('cần --canh=<id> hoặc --anh=<url>'); process.exit(1); }
 
-const c = ((await db.execute(sql`SELECT c.id, c.keyframe_url, c.keyframe_ket, t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${canhId}`)) as unknown as Row[])[0];
-if (!c) { console.error(`không thấy canh ${canhId}`); process.exit(1); }
-const phimId = Number(c.phim_id);
-const out: Record<string, unknown> = {};
+const row = ((await db.execute(sql`SELECT c.*, t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${canhId}`)) as unknown as Row[])[0];
+if (!row) { console.error(`không thấy canh ${canhId}`); process.exit(1); }
+const c = mapCanh(row); const phimId = Number(row.phim_id);
+const nhanVat = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
+const kgt = await khongGianTap(c.tap_id, c.phan_doan ?? '').catch(() => null);
+const kg = kgt ? kgCua(kgt, c) : null;
+const out: Record<string, unknown> = {}; const dc: { dau?: DongDoiChieu[]; cuoi?: DongDoiChieu[] } = {};
 for (const [luc, url] of [['dau', c.keyframe_url], ['cuoi', c.keyframe_ket]] as const) {
   if (!url) { console.log(`#${canhId} ${luc}: chưa có keyframe`); continue; }
   const r = await bocTachKhung(db, phimId, url as string);
   if (!r) { console.log(`#${canhId} ${luc}: bóc tách hỏng`); continue; }
   out[luc] = r;
+  // ⚖️ đối chiếu với dự kiến tại khung đó
+  const duKien = duKienKhung(c, nhanVat, kg, luc);
+  const chieu = await doiChieuKhung(db, phimId, duKien, r as BocTachKhung);
+  if (chieu) { dc[luc] = chieu; console.log(`  ⚖️ đối chiếu ${luc}: ${chieu.length} mục · lệch/thiếu/thừa: ${chieu.filter((x) => x.muc !== 'khớp' && x.muc !== 'gần').map((x) => `${x.thanh_phan}(${x.muc})`).join(', ') || 'không'}`); }
   console.log(`\n=== #${canhId} · khung ${luc.toUpperCase()} ===`);
   console.log(`bối cảnh: ${r.boi_canh} | ánh sáng: ${r.anh_sang} | khung: ${r.khung_hinh} · ${r.goc_may}`);
   console.log(`vật cố định: ${r.vat_co_dinh.join(', ')}`);
@@ -36,7 +47,7 @@ for (const [luc, url] of [['dau', c.keyframe_url], ['cuoi', c.keyframe_ket]] as 
   if (r.chu_tren_hinh && r.chu_tren_hinh !== 'không') console.log(`  chữ trên hình: ${r.chu_tren_hinh}`);
 }
 if (ghi && Object.keys(out).length) {
-  await db.execute(sql`UPDATE xv_canh SET boc_tach = ${JSON.stringify({ ...out, luc_boc: new Date().toISOString(), tren: { dau: c.keyframe_url, cuoi: c.keyframe_ket } })}::jsonb WHERE id = ${canhId}`);
+  await db.execute(sql`UPDATE xv_canh SET boc_tach = ${JSON.stringify({ ...out, doi_chieu: dc, luc_boc: new Date().toISOString(), tren: { dau: c.keyframe_url, cuoi: c.keyframe_ket } })}::jsonb WHERE id = ${canhId}`);
   console.log(`\n✓ đã ghi boc_tach cho canh ${canhId}`);
 }
 process.exit(0);

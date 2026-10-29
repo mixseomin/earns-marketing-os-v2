@@ -113,6 +113,9 @@ def _dung1(nguon, tu, den, tmp, cta, out, giong):
     VAO_TRUOC = 0.0 if os.environ.get("ETP_LOI_DAN") else globals()["VAO_TRUOC"]
     V = gx.dur(giong) / TOC_GIONG if giong else 0
     TC = max(2.5, V - VAO_TRUOC + 0.5); T = L + TC
+    # NÚT TỪ GIÂY NÀO (ETP_NUT_TU, 29/10/2026 — KT #62014 El gran: chấm AFS / Meta coi nút "MÍRALA GRATIS" gắn suốt thân phim là NÚT GIẢ, chấm lại vẫn 4):
+    # mặc định giây 3 như mọi creative; "cuoi" = nút chỉ hiện ở THẺ CUỐI (từ cú cắt sang poster), số = giây cụ thể
+    _nt = os.environ.get("ETP_NUT_TU", "3"); nut_tu = L if _nt == "cuoi" else float(_nt)
     vao = ["-i", nguon, "-loop", "1", "-t", f"{T}", "-i", tmp + "-nut.png", "-loop", "1", "-t", f"{TC}", "-i", tmp + "-the-cuoi.png"]
     am = f"[0:a]atrim={tu}:{den},asetpts=PTS-STARTPTS,afade=in:d=0.3,afade=out:st={L - VAO_TRUOC - 0.2 if giong else L - 0.3}:d={VAO_TRUOC + 0.2 if giong else 0.3},apad=pad_dur={TC}[nen]"
     if giong:
@@ -122,7 +125,7 @@ def _dung1(nguon, tu, den, tmp, cta, out, giong):
     loc = (f"[0:v]trim={tu}:{den},setpts=PTS-STARTPTS,scale={W}:{H}:flags=lanczos:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1[c];"
            f"[2:v]scale={W}:{H},zoompan=z='1+0.03*on/{int(TC * 30)}':d=1:s={W}x{H}:fps=30,setsar=1,trim=0:{TC}[tc];"
            f"[c][tc]concat=n=2:v=1:a=0[cv];"
-           f"[1:v]format=rgba,fade=in:st=3:d=0.4:alpha=1[nut];[cv][nut]overlay=0:'{Y_NUT}+8*sin(2*PI*1.6*t)':shortest=1[v];" + am)
+           f"[1:v]format=rgba,fade=in:st={nut_tu:.2f}:d=0.4:alpha=1[nut];[cv][nut]overlay=0:'{Y_NUT}+8*sin(2*PI*1.6*t)':enable='gte(t,{nut_tu:.2f})':shortest=1[v];" + am)
     gx.sh("ffmpeg", "-v", "error", "-y", *vao, "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{T}",
           *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out, han=3600)
     # KIỂM ĐỘ DÀI (25/10/2026, phim 166083: nguồn lỗi mốc khung → video 173s trên 89s tiếng mà vẫn ra tệp): lệch > 1,5s với độ dài tính = tệp hỏng, không cho lên

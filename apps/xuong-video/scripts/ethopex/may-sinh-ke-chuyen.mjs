@@ -25,7 +25,7 @@ const ghi = (s) => console.log(`[${gio()} VN] ${s}`);
 const so = existsSync(SO) ? JSON.parse(readFileSync(SO, 'utf8')) : { dang: null, ngay: {}, bo: [], xong: [] };
 const luu = () => writeFileSync(SO, JSON.stringify(so, null, 1));
 const ssh = (lenh, han = 900) => execFileSync('ssh', [B, `${BOX} ${lenh}`], { encoding: 'utf8', timeout: han * 1000, maxBuffer: 64 << 20 }).trim();
-const tsx = (args, han = 3600) => spawnSync(`${XV}/../../node_modules/.bin/tsx`, args, { cwd: XV, encoding: 'utf8', timeout: han * 1000, maxBuffer: 64 << 20 });
+const tsx = (args, han = 3600, env = {}) => spawnSync(`${XV}/../../node_modules/.bin/tsx`, args, { cwd: XV, encoding: 'utf8', timeout: han * 1000, maxBuffer: 64 << 20, env: { ...process.env, ...env } });
 const q = (s) => JSON.stringify(s);
 
 if (process.argv.includes('--xem')) { console.log(JSON.stringify(so, null, 1)); console.log(ssh('scripts/ethopex/hang-ke-chuyen.mts --so=5')); process.exit(0); }
@@ -78,6 +78,9 @@ try {
 } catch (e) { ghi(`✗ đưa lên creative: ${String(e?.message ?? e).slice(0, 200)}`); }
 try {
   // ── chọn phim mới khi không có phim dở ──
+  // LÀM LẠI (29/10/2026 — KT bị cổng chấm chặn: nút giả / khoả thân): bản trong so.lam_lai [{tap, content_id, ten, lang, giong, env, ly}] chạy TRƯỚC phim mới, từ bước sinh
+  // (ảnh / clip đã xoá trong so.json của tập), env = biến dựng CTA (ETP_NUT_TU / ETP_THE_CUOI); xong thì thư viện về "sẵn sàng" + bỏ creative cũ để đưa lên lại
+  if (!so.dang && so.lam_lai?.length) { so.dang = { ...so.lam_lai.shift(), buoc: 'sinh', lan: 0, bat_dau: gio(), lam_lai: true }; luu(); ghi(`làm lại ${so.dang.ten} (tập #${so.dang.tap}): ${so.dang.ly ?? ''}`); }
   if (!so.dang) {
     const n = so.ngay[ngay()] ?? 0;
     if (n >= TRAN) { ghi(`đủ trần ${TRAN} phim hôm nay — nghỉ`); dong(); process.exit(0); }
@@ -98,7 +101,7 @@ try {
     // CHỜ RENDER KHÔNG MỞ CHROME (anh 29/10/2026 "khi đợi có thể đóng br lại cho nhẹ"): đợt clip vừa gửi chưa đủ ~4,5 phút (VideoExpress render ~4 phút) → nhịp này bỏ qua
     if (d.gui_luc && Date.now() - d.gui_luc < 270e3) { ghi(`  đang render (gửi ${Math.round((Date.now() - d.gui_luc) / 60e3)} phút trước) — không mở trình duyệt`); try { unlinkSync(KHOA); } catch { /* */ } process.exit(0); }
     await moPhien();
-    const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--giong=${d.giong}`, '--khong-cho'], 20 * 60);
+    const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--giong=${d.giong}`, '--khong-cho'], 20 * 60, d.env ?? {});
     dongPhien();   // gửi / thu xong là đóng Chrome ngay — không giữ trình duyệt trong lúc chờ render
     const out = r.stdout || '';
     ghi(`  sinh: ${out.trim().split('\n').filter((l) => /✓|→|✗|chưa đủ/.test(l)).slice(-8).join(' · ')}`);   // 8 dòng: 4 dòng cuối từng che lỗi giọng #1–3 (29/10/2026)
@@ -115,12 +118,13 @@ try {
     Object.assign(d, { url, buoc: 'cta', lan: 0 }); luu(); ghi(`  xuất thân phim: ${url}`); dongTv(d, 'dang_sinh', buocChu(d));
   }
   if (d.buoc === 'cta') {
-    const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--cta=${d.url}`], 15 * 60);
+    const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--cta=${d.url}`], 15 * 60, d.env ?? {});
     if (r.status !== 0) throw new Error((r.stderr || r.stdout || 'CTA lỗi').slice(-400));
     const tep = `${C}/${d.tap}/${d.tap}-cta-v2.mp4`;
     execFileSync('rsync', ['-a', tep, `${B}:/var/tmp/vx-kc/${d.tap}/`], { timeout: 600e3 });
     const ra = ssh(`scripts/ethopex/thu-vien-them.mts ${d.tap} /var/tmp/vx-kc/${d.tap}/${d.tap}-cta-v2.mp4 --chi-vnd=${d.chi_vnd ?? 0} --ghi=${q(`máy sinh ${d.bat_dau} → ${gio()}`)}`, 600);
     ghi(`  ${ra.split('\n').pop()}`);
+    if (d.lam_lai) { psql(`update etp.thu_vien set creative_id = null, trang_thai = 'san_sang', ghi = ${lit(`làm lại: ${d.ly ?? ''}`)}, cap_nhat = now() where tap_id = ${Number(d.tap)};`); ghi('  làm lại xong → thư viện "sẵn sàng", nhịp sau đưa lên creative mới'); }
     so.ngay[ngay()] = (so.ngay[ngay()] ?? 0) + 1;
     so.xong.push({ content_id: d.content_id, ten: d.ten, tap: d.tap, luc: gio(), chi_vnd: d.chi_vnd ?? 0 }); so.xong = so.xong.slice(-200);
     so.dang = null; luu();

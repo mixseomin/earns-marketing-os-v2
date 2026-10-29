@@ -120,7 +120,8 @@ const VAI = meta.cast_.replace(/^[^:]*:\s*/, '').split(/;\s*/).map((x) => { cons
 const vaiCua = (c: Canh) => VAI.filter((v) => new RegExp(`\\b${v.ten}\\b`).test(c.anh));
 const chuaAnh = canhSinh.filter((c) => !g(c).anh);
 for (const c of chuaAnh) {
-  const prompt = `Photorealistic cinematic vertical short-drama film still, real actors, dramatic warm lighting, shallow depth of field, glossy high-end color grade. ${vaiCua(c).length ? `Only these people appear, each exactly once (match the reference photo faces, hair and wardrobe): ${vaiCua(c).map((v) => `${v.ten} = ${v.ta}`).join('; ')}. Other background people are strangers, not from the reference. ` : ''}Scene: ${c.anh} No text, no captions, no logo, no watermark.`.slice(0, 1800);
+  // MẶC KÍN (29/10/2026 KT #62014 El gran bị chấm khoả thân 4: lệnh cũ bảo giữ cả TRANG PHỤC của poster → poster cởi trần thì mọi cảnh cởi trần): chỉ giữ mặt + tóc
+  const prompt = `Photorealistic cinematic vertical short-drama film still, real actors, dramatic warm lighting, shallow depth of field, glossy high-end color grade. ${vaiCua(c).length ? `Only these people appear, each exactly once (match the reference photo faces and hair ONLY — not the poster's outfits): ${vaiCua(c).map((v) => `${v.ten} = ${v.ta}`).join('; ')}. Other background people are strangers, not from the reference. ` : ''}Scene: ${c.anh} Everyone fully and modestly dressed: shirts buttoned, no bare chest, no cleavage, no low-cut or strappy dresses, no kissing, no lingerie. No text, no captions, no logo, no watermark.`.slice(0, 1800);
   const r = gui('/ai/api/generate_image_consistent_character', { prompt, type: 'photorealistic', mediaId: String(so.poster), mediaId2: '0', aspect: '9:16', generatorName: 'consistent_character' });
   if (!r.uuid) { console.log(`✗ ảnh #${c.so}: ${r.msg ?? r.message ?? JSON.stringify(r)}`); continue; }
   g(c).anhUuid = r.uuid;

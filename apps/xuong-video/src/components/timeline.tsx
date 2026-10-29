@@ -65,6 +65,21 @@ export type SinhTaiCho = {
   giong: (canhId: number, tuy: TuyGiong) => void; sfx: (canhId: number, tuy: TuyAm) => void; nhac: (phanDoan: string | undefined, model: string, moTa: string) => void;
   mhNhac: string; ban: (k: string) => boolean; dangPhanDoan: string[]; dangCaTap: boolean;
 };
+// 🧩 Trạng thái bóc tách của một shot cho làn 🎬 Hình — nhìn timeline biết ngay shot nào đã sinh keyframe + bóc tách + đối chiếu ĐẦY ĐỦ.
+//   ✓ xanh = bóc tách + đối chiếu xong, khớp · ✕ đỏ = đã bóc nhưng CÓ lệch · ◐ = đã bóc, chưa đối chiếu · ◌ = mới có keyframe, chưa bóc · ⟳ = bóc tách CŨ (ảnh đã sinh lại sau khi bóc)
+function trangThaiBoc(c: Canh): { ky: string; mau: string; title: string } | null {
+  if (!c.keyframe_url) return null;   // chưa có keyframe → không gắn dấu, ô trống đã rõ
+  const bt = c.boc_tach;
+  if (!bt || (!bt.dau && !bt.cuoi)) return { ky: '◌', mau: '#9ca3af', title: 'Đã có keyframe · CHƯA bóc tách' };
+  if (bt.tren?.dau && bt.tren.dau !== c.keyframe_url) return { ky: '⟳', mau: '#f59e0b', title: 'Bóc tách CŨ — keyframe đã sinh lại sau khi bóc, cần bóc lại' };
+  const dc = [...(bt.doi_chieu?.dau ?? []), ...(bt.doi_chieu?.cuoi ?? [])];
+  if (!dc.length) return { ky: '◐', mau: '#9ca3af', title: 'Đã bóc tách · chưa đối chiếu với dự kiến' };
+  const lech = dc.filter((x) => x.muc === 'lệch' || x.muc === 'thiếu' || x.muc === 'thừa');
+  return lech.length
+    ? { ky: '✕', mau: '#ef4444', title: `Bóc tách + đối chiếu xong · ${lech.length} chỗ lệch: ${lech.map((x) => x.thanh_phan).join(', ')}` }
+    : { ky: '✓', mau: '#4ade80', title: `Bóc tách + đối chiếu xong · khớp (${dc.length} mục)` };
+}
+
 export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDoiGiay, onXep, onToanManHinh, sinh, qc, laQc, onDoiCta, onDoiChuyenCanh, onDoiKyThuat, onDoiKhungLai, onKhopNhip, onKhopGiong, theShot, onMoShot, theLoai, onDoiKhuon, goi }: {
   /** thẻ shot đang chọn (CanhRow) — hiện ở panel THUỘC TÍNH khi không chọn lớp nào, như panel Properties của After Effects */ theShot?: ReactNode;
   /** bấm một khối của shot trên bất kỳ làn nào → mở ngăn chi tiết shot (anh 18/10/2026: cuộn xuống các làn dưới thì không kéo lên xem panel được) */ onMoShot?: (id: number) => void;
@@ -689,7 +704,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
           </div>
           {/* Làn 🎬 Hình dính ngay dưới thước (#1418) — cuộn xuống các làn đối tượng vẫn thấy shot nào đang ở đâu. */}
           <div style={{ position: 'sticky', top: 24, zIndex: 8, background: 'var(--bg-1)', paddingBottom: 3, boxShadow: '0 1px 0 var(--line)' }}>
-          {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây', canh.map((cc, i) => {
+          {track('🎬 Hình', 'Mỗi cảnh một clip, dài đúng số giây\nDấu góc phải: ✓ bóc tách+đối chiếu khớp · ✕ có lệch · ◐ đã bóc chưa đối chiếu · ◌ mới có keyframe chưa bóc · ⟳ bóc tách cũ (ảnh đã sinh lại)', canh.map((cc, i) => {
             const x = batDau[i]! * pps; const w = dur(cc) * pps; const anh = anhNho(cc.keyframe_url, 160);
             const dangChon = chon === cc.id; const coVid = !!(cc.video_cuoi_url || cc.video_url);
             return (
@@ -702,6 +717,7 @@ export function Timeline({ canh, nhanVat, tap, tiLe, ngonNgu, chon, onChon, onDo
                   background: anh ? `url(${anh}) left center / auto 100% repeat-x, #111` : 'var(--bg-2)', opacity: keo === cc.id ? 0.4 : 1 }}>
                 {(cc.dang_sinh_anh || cc.trang_thai === 'dang_sinh') && <div className="xv-dang"><span>⏳ {cc.dang_sinh_anh ? 'ảnh' : 'video'}</span></div>}
                 <span style={{ position: 'absolute', left: 3, top: 2, fontSize: 10, color: '#fff', textShadow: '0 1px 3px #000', whiteSpace: 'nowrap', zIndex: 2 }}>{coVid ? '▶ ' : ''}#{cc.thu_tu} · {dur(cc)}s</span>
+                {(() => { const tb = trangThaiBoc(cc); return tb ? <span title={tb.title} style={{ position: 'absolute', right: 10, top: 1, fontSize: 12, fontWeight: 700, lineHeight: '13px', color: tb.mau, textShadow: '0 1px 3px #000', zIndex: 3, pointerEvents: 'none' }}>{tb.ky}</span> : null; })()}
                 {/* Hai chip điểm chung MỘT hàng (viTri 'dong'): đặt tuyệt đối trái / phải thì clip hẹp chip P đè lên M, bấm M trúng P. */}
                 <div style={{ position: 'absolute', left: 3, right: 10, bottom: 2, display: 'flex', gap: 3, overflow: 'hidden', zIndex: 2 }}>
                   <ChipMurch d={diemM[cc.id]} canh={tbM.canh[cc.phan_doan]} tap={tbM.tap} soShot={cc.thu_tu} viTri="dong" may={mayClip(cc)} />

@@ -56,6 +56,50 @@ export function TrangPhucShot({ c, onLuu }: { c: Canh; onLuu: (t: string) => voi
   );
 }
 
+// 🧩 BÓC TÁCH TỪ ẢNH: ảnh keyframe đầu/cuối THẬT + danh sách thành phần CON BÓC TÁCH đọc ra (không phải dự kiến) để đối chiếu. Cờ đỏ chỗ tóc lệch spec.
+const tuToc = (s: string) => (s.match(/đuôi ngựa|ponytail|búi (thấp|cao)|low bun|high bun|bun|xõa|loose|tóc dài|long hair|tóc ngắn|short hair|straight|thẳng|tết|braid/i)?.[0] ?? '').toLowerCase();
+const tocHop = (that: string, spec: string) => { const a = tuToc(that), b = tuToc(spec); if (!a || !b) return true; const nh = (x: string) => /búi|bun/.test(x) ? 'bui' : /đuôi ngựa|ponytail/.test(x) ? 'duoi' : /xõa|loose|dài|long|thẳng|straight/.test(x) ? 'xoa' : /ngắn|short/.test(x) ? 'ngan' : x; return nh(a) === nh(b); };
+export function BocTachShot({ c, nhanVat }: { c: Canh; nhanVat: NhanVat[] }) {
+  const [mo, setMo] = useState(false);
+  const bt = c.boc_tach;
+  if (!c.keyframe_url && !c.keyframe_ket && !bt) return null;
+  const anh: [string, string | null | undefined][] = [['đầu', c.keyframe_url], ['cuối', c.keyframe_ket]];
+  return (
+    <div style={{ marginTop: 6, display: 'grid', gap: 3 }}>
+      {anh.some(([, u]) => u) && <>
+        <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase' }}>🎬 Keyframe đầu · cuối (ảnh thật)</span>
+        <div style={{ display: 'flex', gap: 6 }}>{anh.filter(([, u]) => u).map(([l, u]) => (
+          <button key={l} type="button" onClick={() => moNgan({ loai: 'xem', url: u as string, ten: `#${c.thu_tu} keyframe ${l}` })} style={{ padding: 0, border: 'none', background: 'none', cursor: 'pointer', display: 'grid', gap: 1, justifyItems: 'center' }}>
+            <img src={anhNho(u as string, 200)} alt="" style={{ width: 92, aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, background: '#000' }} />
+            <span style={{ ...mono, fontSize: 9, color: 'var(--fg-3)' }}>{l}</span>
+          </button>))}</div>
+      </>}
+      <button type="button" className="xv-lienket" style={{ fontSize: 11, textAlign: 'left', justifySelf: 'start' }} onClick={() => setMo(!mo)}>
+        🧩 {mo ? 'Ẩn' : 'Xem'} bóc tách từ ảnh {bt ? '(đọc từ ảnh thật, không phải dự kiến)' : '— chưa bóc'}
+      </button>
+      {mo && bt && (['dau', 'cuoi'] as const).map((luc) => { const k = bt[luc]; if (!k) return null; return (
+        <div key={luc} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: 8, fontSize: 11, lineHeight: 1.5 }}>
+          <div style={{ ...mono, color: 'var(--cyan)', textTransform: 'uppercase', marginBottom: 4 }}>🧩 Bóc từ ảnh — khung {luc === 'dau' ? 'ĐẦU' : 'CUỐI'}</div>
+          <div style={{ color: 'var(--fg-2)' }}>📍 {k.boi_canh} · 💡 {k.anh_sang} · 🎞 {k.khung_hinh} · {k.goc_may}</div>
+          <div style={{ color: 'var(--fg-2)' }}>🧭 Bố cục: {k.bo_cuc}</div>
+          {k.vat_co_dinh.length > 0 && <div style={{ color: 'var(--fg-3)' }}>🏛 Vật cố định: {k.vat_co_dinh.join(', ')}</div>}
+          {k.nguoi.map((n, i) => { const spec = nhanVat.find((v) => n.ai.includes(v.ten) || v.ten.includes(n.ai)); const lech = spec ? !tocHop(n.toc, spec.mo_ta) : false;
+            return (
+              <div key={i} style={{ marginTop: 4, paddingLeft: 6, borderLeft: '2px solid var(--line)' }}>
+                <b>👤 {n.ai}</b> <span style={{ color: 'var(--fg-3)' }}>— {n.dac_diem}</span>
+                <div style={{ color: 'var(--fg-2)' }}>📍 {n.vi_tri}</div>
+                <div>👗 {n.ao} · 💇 <span style={{ color: lech ? 'var(--red)' : 'inherit', fontWeight: lech ? 700 : 400 }}>{n.toc}{lech && spec ? ` ⚠ dự kiến: ${tuToc(spec.mo_ta) || spec.mo_ta.slice(0, 40)}` : ''}</span> · 💍 {n.trang_suc}</div>
+                <div>😐 {n.bieu_cam} · 👁 {n.huong_nhin} · 🧍 {n.dang} · ✋ {n.do_cam}</div>
+              </div>);
+          })}
+          {k.dao_cu.map((d, i) => <div key={i} style={{ marginTop: 3, color: 'var(--fg-2)' }}>🧸 <b>{d.ten}</b> ({d.dac_diem}): {d.trang_thai} — 📍 {d.vi_tri}</div>)}
+          {k.chu_tren_hinh && k.chu_tren_hinh !== 'không' && <div style={{ color: 'var(--fg-3)' }}>🔤 Chữ trên hình: {k.chu_tren_hinh}</div>}
+        </div>);
+      })}
+    </div>
+  );
+}
+
 /** chiTiet: đang nằm trong ngăn chi tiết shot — cột trái rộng hơn, khung 3D nhúng bộ xem xoay được (#1365). */
 export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, chiTiet, kg, sau }: { kg?: KhongGian | null; sau?: Canh | null; c: Canh; nhanVat: NhanVat[]; kt: Required<KinhThanh>; khoa: Khoa; phimLoai: LoaiPhim; ban: (k: string) => boolean; chay: (ten: string, fn: () => Promise<KqChay>, taiCho?: boolean) => Promise<string>; chiTiet?: boolean }) {
   // Lỗi của MỌI nút trong thẻ shot hiện ngay trên hàng nút của chính shot đó (không phải đầu tập).
@@ -175,6 +219,8 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
           {nhanVat.some((v) => v.loai === 'nhan_vat' && c.nhan_vat.includes(v.id)) && (
             <TrangPhucShot c={c} onLuu={(t) => void chay(k, () => suaCanh(c.id, { trang_phuc: t }))} />
           )}
+          <BocTachShot c={c} nhanVat={nhanVat} />
+
           {phimLoai === 'quang_cao' && <BieuCamShot c={c} nhanVat={nhanVat} onDoi={async () => { await chay(k, async () => ({ ok: true as const, data: undefined })); }} />}
           {dongThoai(c, nhanVat).length > 0 && (
             <div style={{ marginTop: 4, padding: '4px 8px', borderLeft: '2px solid var(--line)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>

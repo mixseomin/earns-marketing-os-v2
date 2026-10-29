@@ -619,6 +619,12 @@ export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoMode
 ];
 /** Ô thẻ shot BẮT BUỘC trước keyframe (motif + điểm nhấn tuỳ shot — điểm nhấn bắt buộc ở shot có cú bùng của gag, ho-so.ts › kiemHoSo). */
 export const O_DAN_DUNG_BAT_BUOC = O_DAN_DUNG.filter((o) => o.key !== 'motif' && o.key !== 'nhan');
+// 🧩 CON BÓC TÁCH KHUNG — thành phần THẬT đọc được từ một keyframe (boc-tach-khung.ts). Mỗi đối tượng: đặc điểm + vị trí TƯƠNG ĐỐI (cạnh ai/vật gì).
+export type NguoiKhung = { ai: string; dac_diem: string; vi_tri: string; ao: string; toc: string; trang_suc: string; bieu_cam: string; huong_nhin: string; dang: string; do_cam: string };
+export type DoKhung = { ten: string; dac_diem: string; trang_thai: string; vi_tri: string };
+export type BocTachKhung = { boi_canh: string; vat_co_dinh: string[]; anh_sang: string; khung_hinh: string; goc_may: string; bo_cuc: string; nguoi: NguoiKhung[]; dao_cu: DoKhung[]; chu_tren_hinh: string; ghi_chu: string };
+export type BocTachCanh = { dau?: BocTachKhung; cuoi?: BocTachKhung; luc_boc: string; tren: { dau: string | null; cuoi: string | null } };
+
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; /** mô tả tiếng Việt của hành động (#1397) — đọc qua moTaVi */ hanh_dong_vi: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;
   /** Giây thực phát (cắt từ đầu clip); null = phát cả clip. chu_man = chữ trên màn. nhanh = '' thân chung | 'A'/'B'/'C' biến thể hook. */
@@ -631,6 +637,7 @@ export type Canh = {
   dan_dung?: DanDung;
   kiem_khung?: KiemKhung | null; /** điểm prompt (diem-prompt.ts) */ diem_prompt?: DiemPrompt | null;
   soi_mat?: SoiMat | null;
+  /** 🧩 Con bóc tách (boc-tach-khung.ts): thành phần THẬT bóc ra từ keyframe đã sinh (đầu/cuối) — để đối chiếu với dự kiến. */ boc_tach?: BocTachCanh | null;
   /** máy soi clip (soi-clip.ts) — chỉ áp khi url trùng clip đang dùng */ soi_clip?: SoiClip | null;
   /** MURCH QC (qc-cam-xuc.ts): kế hoạch biểu cảm từng nhân vật (đầu → cuối, cấm) · khung đầu = khung cuối clip shot trước · kết quả soát thật */
   bieu_cam?: import('./qc-cam-xuc').BieuCamNv[]; noi_lien?: boolean; soat?: import('./qc-cam-xuc').SoatShot | null;

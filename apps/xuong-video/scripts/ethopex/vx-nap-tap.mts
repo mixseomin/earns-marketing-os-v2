@@ -20,8 +20,8 @@ import { docKinhThanh } from '../../src/lib/xuong-video/kieu';
 const tapId = Number(process.argv[2]); const D = process.argv[3]!;
 if (!tapId || !D || !existsSync(`${D}/so.json`)) { console.error('cần <tap_id> <thư mục có so.json>'); process.exit(1); }
 const db = getDb()!;
-const so = JSON.parse(readFileSync(`${D}/so.json`, 'utf8')) as { canh: Record<string, { anhUuid?: string; vidUuid?: string; amGiay?: number }> };
-const canh = (await db.execute(sql`SELECT id, thu_tu FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as { id: number; thu_tu: number }[];
+const so = JSON.parse(readFileSync(`${D}/so.json`, 'utf8')) as { giong?: string; canh: Record<string, { anhUuid?: string; vidUuid?: string; amGiay?: number }> };
+const canh = (await db.execute(sql`SELECT id, thu_tu, thoai, loi_thoai FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu, id`)) as unknown as { id: number; thu_tu: number; thoai: { loi: string; nhan_vat?: string }[] | null; loi_thoai: string }[];
 const giay = (f: string) => Number(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 ${JSON.stringify(f)}`, { encoding: 'utf8' }).trim());
 const thieu = canh.filter((c) => !['am', 'anh', 'vid'].every((k) => existsSync(`${D}/${k}-${c.thu_tu}.${k === 'am' ? 'mp3' : k === 'anh' ? 'jpg' : 'mp4'}`)));
 if (thieu.length) { console.error(`thiếu tệp cho cảnh ${thieu.map((c) => `#${c.thu_tu}`).join(' ')} — chạy lại vx-ke-chuyen.mts trên iMac`); process.exit(1); }
@@ -34,8 +34,11 @@ for (const c of canh) {
   if (!kf || !vid || !am) { console.error(`✗ nạp R2 hỏng ở cảnh #${n}`); process.exit(1); }
   const gv = giay(`${D}/vid-${n}.mp4`), ga = so.canh[n]?.amGiay ?? giay(`${D}/am-${n}.mp3`);
   const phat = Math.round(Math.min(gv, ga + 0.35) * 10) / 10;
-  await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['keyframe_url', 'video_url', 'thoai_url', 'phat_s', 'nguon_video'], moTa: '🎬 nạp ảnh / clip / giọng VideoExpress', nguoi: '', nhom });
-  await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${kf}, video_url = ${vid}, thoai_url = ${am}, phat_s = ${phat},
+  await chupTruoc(db, { bang: 'xv_canh', id: c.id, cot: ['keyframe_url', 'video_url', 'thoai_url', 'thoai', 'phat_s', 'nguon_video'], moTa: '🎬 nạp ảnh / clip / giọng VideoExpress', nguoi: '', nhom });
+  // giọng phải nằm ở thoai[].url — bộ xuất đọc dòng thoại (am-thanh.ts › dongThoai), thoai_url chỉ dùng cho cảnh cũ chưa có mảng thoai: chỉ ghi thoai_url thì MP4 câm (lần xuất đầu 29/10)
+  const dong = c.thoai?.length ? c.thoai : [{ loi: c.loi_thoai, nhan_vat: '' }];
+  const thoai = dong.map((d, i) => (i === 0 ? { ...d, url: am, dai: ga, gon: true, giong: `videoexpress|${so.giong ?? 'tts'}` } : d));
+  await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${kf}, video_url = ${vid}, thoai_url = ${am}, thoai = ${JSON.stringify(thoai)}::jsonb, phat_s = ${phat},
     nguon_video = ${JSON.stringify({ model: 'videoexpress', giay: gv, uuid: so.canh[n]?.vidUuid, anh_uuid: so.canh[n]?.anhUuid, khung_dau: kf })}::jsonb, updated_at = now() WHERE id = ${c.id}`);
   console.log(`✓ #${n}: clip ${gv.toFixed(1)}s · giọng ${ga.toFixed(1)}s · phát ${phat}s`);
 }

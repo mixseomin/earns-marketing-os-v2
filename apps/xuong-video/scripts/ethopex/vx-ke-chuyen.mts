@@ -34,7 +34,8 @@ if (!existsSync(tepTap)) {
 }
 const { meta, canh } = JSON.parse(readFileSync(tepTap, 'utf8')) as { meta: { phim: number; poster_url: string; lang: string; cast_: string }; canh: Canh[] };
 const tepSo = `${D}/so.json`;
-const so: { poster?: number; canh: Record<string, Ghi> } = existsSync(tepSo) ? JSON.parse(readFileSync(tepSo, 'utf8')) : { canh: {} };
+const so: { poster?: number; giong?: string; canh: Record<string, Ghi> } = existsSync(tepSo) ? JSON.parse(readFileSync(tepSo, 'utf8')) : { canh: {} };
+so.giong = GIONG;   // vx-nap-tap ghi tên giọng vào thoai[].giong
 const luu = () => writeFileSync(tepSo, JSON.stringify(so, null, 1));
 // SỬA TỪNG CẢNH sau khi soát: <thư mục>/sua.json {"<số cảnh>": {"anh"?: "...", "dong"?: "..."}} ghi đè prompt_anh / prompt_video của studio;
 // --lai=1,3 làm lại các cảnh đó (có "anh" trong sua.json thì sinh lại cả ảnh, không thì chỉ sinh lại clip từ ảnh cũ)

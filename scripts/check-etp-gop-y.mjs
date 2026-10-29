@@ -85,6 +85,9 @@ const LUAT = [
   { card: 1480, tep: 'apps/web/src/components/etp-view.tsx', cam: "{ds.length ? '▸' : ''}</span><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan", vi: 'dòng camp điện thoại không có nhãn loại CT/CC' },
   { card: 1481, tep: 'apps/web/src/components/etp-view.tsx', co: "tatCa.every((k) => moCay.has(k))", vi: 'Mở hết xét cả camp có bản nhân, không chỉ phim' },
   { card: 1482, tep: 'apps/web/src/components/etp-view.tsx', co: "color: `rgba(196,181,253,${(0.55 + 0.45 * (bac / (BAC_NS.length - 1))).toFixed(2)})`", cam: 'rgba(103,232,249,${(0.35', vi: 'số ngân sách cột bậc màu tím nhẹ, bậc $1 không chìm' },
+  { card: 1483, tep: 'apps/web/src/components/etp-view.tsx', co: "const top = y - CHONG + h <= H - 8 ? y - CHONG", cam: 'const top = y + 12 + h <= H - 8', vi: 'thẻ nổi đè lên con trỏ, không còn khe phải băng qua dòng khác' },
+  { card: 1483, tep: 'apps/web/src/components/etp-view.tsx', co: "window.addEventListener('mousemove', (e) => { CHUOT.x = e.clientX; CHUOT.y = e.clientY; }", vi: 'thẻ đặt theo vị trí chuột lúc mở' },
+  { card: 1484, tep: 'apps/web/src/components/etp-view.tsx', co: "max={maxLai(sd)} mo nhom />", vi: 'biểu đồ dòng phim (tổng) vẽ cột rỗng viền màu, khác cột đặc của camp' },
   // phim QC kể chuyện VideoExpress (chat 29/10/2026 — anh: "lần sau kiểu đéo gì mày cũng lặp lại lỗi này?")
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', cam: 'Image.open(poster).convert("RGBA").resize((W, H))', vi: 'thẻ cuối không kéo méo poster khác 9:16 (mất tên phim)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'abs(goc.width / goc.height - W / H)', vi: 'thẻ cuối giữ tỉ lệ poster' },

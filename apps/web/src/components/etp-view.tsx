@@ -801,6 +801,10 @@ const loiMeta = (g: string) => `Meta từ chối: ${META_VI.find(([re]) => re.te
 // TRỄ MỞ (anh 25/10/2026: "không cho hiện ngay, phải để một lúc mới hiện tránh hover nhầm"): dừng chuột TRE_MO ms mới mở; lướt qua thì không mở;
 // đang có thẻ mở mà rê sang ô khác thì đổi ngay. Luật chung: ~/.claude/skills/design/ydni/SKILL.md (THẺ NỔI KHI RÊ CHUỘT).
 const TRE_MO = 450;
+// VỊ TRÍ CHUỘT MỚI NHẤT (góp ý #1483 anh 29/10/2026 "Hover ở đâu thì bản phải ở đó để còn kéo chuột sang"): thẻ mở sau TRE_MO ms → đặt theo chỗ con trỏ LÚC MỞ,
+// không phải lúc vừa rê vào ô (chuột đã đi tiếp trong ô). Một bộ nghe cho cả trang, không gắn theo từng ô.
+const CHUOT = { x: 0, y: 0 };
+if (typeof window !== 'undefined') window.addEventListener('mousemove', (e) => { CHUOT.x = e.clientX; CHUOT.y = e.clientY; }, { passive: true });
 function useNoi<T>() {
   const [v, setV] = useState<(T & { x: number; y: number }) | null>(null);
   const hen = useRef<number | undefined>(undefined);
@@ -814,7 +818,7 @@ function useNoi<T>() {
   const dong = useCallback(() => { giu(); setV(null); }, [giu]);
   const mo = useCallback((x: T, e: React.MouseEvent) => {
     giu(); const toaDo = { x: e.clientX, y: e.clientY }; hang.current = (e.currentTarget as Element | null)?.closest?.('.dong, summary, tr') ?? null;
-    if (dangMo.current) setV({ ...x, ...toaDo }); else hen.current = window.setTimeout(() => setV({ ...x, ...toaDo }), TRE_MO);
+    if (dangMo.current) setV({ ...x, ...toaDo }); else hen.current = window.setTimeout(() => setV({ ...x, ...(CHUOT.x || CHUOT.y ? { x: CHUOT.x, y: CHUOT.y } : toaDo) }), TRE_MO);
   }, [giu]);
   useEffect(() => { if (!v) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') dong(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [v, dong]);
   return { v, mo, giu, dongTre, dong };
@@ -827,12 +831,15 @@ function KhungNoi({ x, y, rong, cao, noi, children, style }: { x: number; y: num
   // ở nửa dưới màn bị đẩy lên xa) — đủ chỗ thì nằm ngay dưới con trỏ, không đủ thì lật lên trên con trỏ, chỉ kẹp mép khi cao hơn cả hai phía
   const ref = useRef<HTMLDivElement>(null); const [h, setH] = useState(cao);
   useLayoutEffect(() => { const el = ref.current; if (!el) return; const f = () => setH(el.offsetHeight); f(); const ro = new ResizeObserver(f); ro.observe(el); return () => ro.disconnect(); }, []);
-  const top = y + 12 + h <= H - 8 ? y + 12 : y - 12 - h >= 8 ? y - 12 - h : Math.max(8, H - h - 8);
+  // ĐÈ LÊN CON TRỎ (góp ý #1483 anh 29/10/2026): trước cách con trỏ 12–14px → kéo chuột sang thẻ phải đi qua ô / thẻ luật của dòng khác, thẻ nhảy sang camp đó.
+  // Nay mép thẻ lấn qua con trỏ CHONG px: thẻ mở ra là con trỏ đã nằm trong thẻ, không còn khe phải băng qua
+  const CHONG = 8;
+  const top = y - CHONG + h <= H - 8 ? y - CHONG : y + CHONG - h >= 8 ? y + CHONG - h : Math.max(8, H - h - 8);
   if (typeof document === 'undefined') return null;
   return createPortal((<>
     {/* lớp tô dòng đang mở thẻ (useNoi) — đặt cùng thẻ nên có ở mọi màn (Cây, Bảng, ROAS) */}
     <style>{'.dang-noi,.dang-noi>td{background:var(--hover,rgba(255,255,255,.09))!important}.dang-noi:not(tr),.dang-noi>td:first-child{box-shadow:inset 2px 0 0 #60a5fa}'}</style>
-    <div ref={ref} onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left: Math.max(8, Math.min(x + 14, W - rong - 16)), top,
+    <div ref={ref} onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left: Math.max(8, Math.min(x - CHONG, W - rong - 16)), top,
       background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', ...style }}>
       <button type="button" onClick={noi.dong} aria-label="Đóng" title="Đóng (Esc)" style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: 12, border: '1px solid var(--line)',
         background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: '20px' }}>✕</button>
@@ -1363,7 +1370,8 @@ const O0 = ({ v, t, cot, s }: { v: number | null; t: string; cot: string; s?: So
 // GỘP BIỂU ĐỒ VÀO NHÓM NGÀY (anh 27/10/2026 "gộp sang 1 nhóm"): mỗi ô ROI ngày mang luôn cột lãi/lỗ của chính ngày đó (trên dương, dưới âm, cao theo ngày lớn nhất của dòng) —
 // bỏ cột biểu đồ riêng; s = số ngày đó, max = |lãi| lớn nhất của dòng, mo = hôm nay (đang chạy, nhạt)
 // anh 27/10/2026 "khoảng cách gọn lại cho chart cao hơn": đường 0 dịch theo dòng — dòng toàn lãi thì 0 nằm đáy, cột dùng trọn 22px; dòng có lỗ chia theo tỉ lệ lãi lớn nhất / lỗ lớn nhất
-const O = ({ v, t, cot, s, max, mo }: { v: number | null; t: string; cot: string; s?: SoTien; max?: { p: number; n: number }; mo?: boolean }) => {
+// nhom = dòng PHIM / dòng tổng (góp ý #1484 anh 29/10/2026 "đổi cách trình bày chart của Phim để phân biệt với chart của camp"): cột rỗng viền màu + số đậm, camp giữ cột đặc
+const O = ({ v, t, cot, s, max, mo, nhom }: { v: number | null; t: string; cot: string; s?: SoTien; max?: { p: number; n: number }; mo?: boolean; nhom?: boolean }) => {
   if (s == null || max == null) return <O0 v={v} t={t} cot={cot} s={s} />;
   const H = 22, tong = max.p + max.n, y0 = tong > 0 ? Math.round((H * max.p) / tong) : H;   // y0 = khoảng từ đỉnh xuống đường 0
   const lai = s.thu - s.chi, h = tong > 0 ? Math.max(lai ? 2 : 0, Math.round((Math.abs(lai) / tong) * H)) : 0, mau = v == null ? 'var(--fg-3)' : v >= 50 ? '#4ade80' : v >= 0 ? '#f59e0b' : '#f87171';
@@ -1371,9 +1379,9 @@ const O = ({ v, t, cot, s, max, mo }: { v: number | null; t: string; cot: string
     background: mo ? 'rgba(59,130,246,.12)' : undefined, boxShadow: mo ? 'inset 1px 0 rgba(59,130,246,.35), inset -1px 0 rgba(59,130,246,.35)' : undefined }}>
     <span style={{ position: 'relative', width: 30, height: H }}>
       <span style={{ position: 'absolute', left: 0, right: 0, top: Math.min(y0, H - 1), height: 1, background: 'var(--line)' }} />
-      {h ? <span style={{ position: 'absolute', left: 3, right: 3, borderRadius: 2, background: lai >= 0 ? '#4ade80' : '#f87171', ...(lai >= 0 ? { top: Math.max(0, y0 - h), height: Math.min(h, y0) } : { top: y0, height: Math.min(h, H - y0) }) }} /> : null}
+      {h ? <span style={{ position: 'absolute', left: 3, right: 3, borderRadius: 2, ...(nhom ? { background: `${lai >= 0 ? '#4ade80' : '#f87171'}26`, border: `1.5px solid ${lai >= 0 ? '#4ade80' : '#f87171'}`, boxSizing: 'border-box' as const } : { background: lai >= 0 ? '#4ade80' : '#f87171' }), ...(lai >= 0 ? { top: Math.max(0, y0 - h), height: Math.min(h, y0) } : { top: y0, height: Math.min(h, H - y0) }) }} /> : null}
     </span>
-    <span data-cot={`${cot}-so`} style={{ fontSize: 10.5, lineHeight: '12px', marginTop: 2, color: mau, fontVariantNumeric: 'tabular-nums' }}>{soO(v, s, '')}</span></span>;
+    <span data-cot={`${cot}-so`} style={{ fontSize: 10.5, lineHeight: '12px', marginTop: 2, color: mau, fontVariantNumeric: 'tabular-nums', fontWeight: nhom ? 700 : undefined }}>{soO(v, s, '')}</span></span>;
 };
 const maxLai = (ds: (SoTien | undefined)[]) => { const l = ds.map((x) => (x ? x.thu - x.chi : 0)); return { p: Math.max(0, ...l), n: Math.max(0, ...l.map((x) => -x)) }; };
 // BIỂU ĐỒ NGÀY TRONG NGĂN ĐIỆN THOẠI (anh 28/10/2026 "bấm vào đây trên mobile thì cho xem chart chi tiết như trên pc"): 6 ngày trọn + hôm nay,
@@ -1536,9 +1544,9 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
     ...(coLich ? [{ key: 'lich', header: 'Lịch giờ', align: 'left' as const, cell: (c: CampEtpKho) => <LichCamp c={c} du={du} tl={tlC} gon />, sortValue: (c: CampEtpKho) => tlC(c.the_loai) }] : []),
     ...ngay.map((d, i): DataColumn<CampEtpKho> => ({ key: `roi${i}`, header: `${d.slice(8, 10)}/${d.slice(5, 7)}`, align: 'center', width: 46, title: `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)} — lọc 🔍 theo %`,
       cell: (c) => { const sd = sd7(c); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={maxLai([...sd, c.nay])} />; }, sortValue: (c) => roi(sd7(c)[i]),
-      total: (rs) => { const sd = tongNgay(rs); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả nhóm ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i]} max={maxLai(sd)} />; } })),
+      total: (rs) => { const sd = tongNgay(rs); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả nhóm ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i]} max={maxLai(sd)} nhom />; } })),
     { key: 'nay', header: 'nay', align: 'center', width: 46, title: 'ROI hôm nay — lọc 🔍 theo %', cell: (c) => <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={maxLai([...sd7(c), c.nay])} mo />, sortValue: (c) => roi(c.nay),
-      total: (rs) => { const sd = tongNgay(rs); return <O cot="roi-nay" v={roi(sd[7])} t="ROI cả nhóm hôm nay" s={sd[7]} max={maxLai(sd)} mo />; } },
+      total: (rs) => { const sd = tongNgay(rs); return <O cot="roi-nay" v={roi(sd[7])} t="ROI cả nhóm hôm nay" s={sd[7]} max={maxLai(sd)} mo nhom />; } },
     // TỔNG CHI TRONG KHUNG THỜI GIAN đang chọn (anh 29/10/2026) — cùng nguồn laiKy với cột lãi; dòng phim / dòng tổng cộng lại
     { key: 'chi', header: `Chi ${tenKy.toLowerCase()}`, title: `tổng chi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <Tien v={laiKy(c).chi} />, sortValue: (c) => Math.round(laiKy(c).chi * 100) / 100,
       total: (rs) => <Tien v={rs.reduce((a, c) => a + laiKy(c).chi, 0)} /> },

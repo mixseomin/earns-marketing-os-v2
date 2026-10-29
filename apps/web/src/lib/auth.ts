@@ -31,6 +31,13 @@ export interface AuthUser {
   role: 'admin' | 'operator' | 'viewer';
   specialty: string;
   active: boolean;
+  /** Khách một trang (users.chi_host): phiên chỉ sống trên đúng host này, mọi host khác coi như chưa đăng nhập. */
+  chiHost: string | null;
+}
+
+/** Host của request đang xử lý (nginx đặt Host = host thật cho trang + cổng auth_request của host khách). */
+async function hostHienTai(): Promise<string> {
+  return ((await headers()).get('host') || '').split(':')[0]!.toLowerCase();
 }
 
 // ── Password login ──────────────────────────────────────────────────
@@ -166,7 +173,7 @@ export function docTraLoiCong(body: string): string | null {
 
 /** Có cookie SSO hợp lệ + email ứng với một tài khoản MOS2 đang hoạt động → cấp phiên luôn.
  *  Gọi ở /login: mọi trang chưa đăng nhập đều rơi về đó, nên một chỗ là đủ. */
-export async function loginWithOnTcSso(): Promise<{ ok: boolean; error?: string }> {
+export async function loginWithOnTcSso(): Promise<{ ok: boolean; error?: string; chiHost?: string | null }> {
   const cfg = await ssoCfg();
   if (!cfg) return { ok: false };
   const raw = (await headers()).get('cookie') || '';
@@ -177,17 +184,17 @@ export async function loginWithOnTcSso(): Promise<{ ok: boolean; error?: string 
   const db = getDb();
   if (!db) return { ok: false, error: 'DB not available' };
   const rows = await db.execute(sql`
-    SELECT u.id, COALESCE(m.active, TRUE) AS active
+    SELECT u.id, u.chi_host, COALESCE(m.active, TRUE) AS active
     FROM users u LEFT JOIN members m ON m.user_id = u.id AND m.project_id IS NULL
     WHERE u.tenant_id = ${TENANT} AND lower(u.email) = ${ssoAlias(cfg, email)}
     LIMIT 1
   `);
-  const r = (rows as unknown as Array<{ id: number; active: boolean }>)[0];
+  const r = (rows as unknown as Array<{ id: number; active: boolean; chi_host: string | null }>)[0];
   if (!r) return { ok: false, error: `${email} chưa có tài khoản trên MOS2` };
   if (!r.active) return { ok: false, error: 'Tài khoản đã bị khoá' };
   await createSession(Number(r.id));
   await db.execute(sql`UPDATE users SET last_login_at = NOW() WHERE id = ${r.id}`);
-  return { ok: true };
+  return { ok: true, chiHost: r.chi_host };
 }
 
 // ── Set / reset password (admin sets for member, or self) ──────────
@@ -265,7 +272,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   if (!db) return null;
   for (const token of tokens) {
     const rows = await db.execute(sql`
-      SELECT s.user_id, u.email, u.name,
+      SELECT s.user_id, u.email, u.name, u.chi_host,
              m.display_name, m.role, m.specialty, m.active
       FROM auth_sessions s
       JOIN users u ON u.id = s.user_id
@@ -275,6 +282,8 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     `);
     const r = (rows as unknown as Array<Record<string, unknown>>)[0];
     if (!r) continue;
+    // Khách một trang: ngoài đúng host của họ thì phiên này không tồn tại (gác ở GỐC — mọi trang, action, API đọc qua đây)
+    if (r.chi_host && String(r.chi_host).toLowerCase() !== await hostHienTai()) continue;
     // Touch last_seen_at (best-effort)
     db.execute(sql`UPDATE auth_sessions SET last_seen_at = NOW() WHERE session_token = ${token}`).catch(() => {});
     return {
@@ -285,6 +294,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       role: (String(r.role ?? 'viewer') as AuthUser['role']),
       specialty: String(r.specialty ?? 'other'),
       active: Boolean(r.active),
+      chiHost: r.chi_host ? String(r.chi_host) : null,
     };
   }
   return null;
@@ -306,7 +316,7 @@ export async function getEffectiveUser(): Promise<AuthUser | null> {
   const db = getDb();
   if (!db) return real;
   const rows = await db.execute(sql`
-    SELECT u.id, u.email, u.name, m.display_name, m.role, m.specialty, m.active
+    SELECT u.id, u.email, u.name, u.chi_host, m.display_name, m.role, m.specialty, m.active
     FROM users u
     LEFT JOIN members m ON m.user_id = u.id AND m.project_id IS NULL AND m.tenant_id = ${TENANT}
     WHERE u.id = ${Number(viewAsId)} AND u.tenant_id = ${TENANT}
@@ -322,6 +332,7 @@ export async function getEffectiveUser(): Promise<AuthUser | null> {
     role: String(r.role ?? 'viewer') as AuthUser['role'],
     specialty: String(r.specialty ?? 'other'),
     active: Boolean(r.active),
+    chiHost: r.chi_host ? String(r.chi_host) : null,
   };
 }
 

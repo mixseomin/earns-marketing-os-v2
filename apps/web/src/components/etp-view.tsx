@@ -1,6 +1,6 @@
 'use client';
 // etp.on.tc — QUẢN LÝ CAMP / CREATIVE / ROI TẬP TRUNG (anh 24/10/2026). Đọc kho `etp` (lib/etp-doc), làm mới mỗi phút; ngày = ngày Ethopex (07:00–07:00 VN).
-import { Fragment, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { createContext, Fragment, startTransition, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoang';
@@ -9,6 +9,8 @@ import { DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Segment
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
+// CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
+const ChiXem = createContext(false);
 import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhimEtpKho, SoLuat, SoTien, ThayThe, ThuVienMuc, XetLuat } from '@/lib/etp-doc';
 
 type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'tv' | 'tn' | 'luat';
@@ -1151,6 +1153,7 @@ function TabDangSx({ du }: { du: DuLieuEtp }) {
 // TIÊU CHÍ CHẤM — THÊM / SỬA BẰNG CHỮ (anh 27/10/2026: "nếu tao thêm 1 tiêu chí = text …" · "Chỉ thêm và ko chấm lại hàng loạt nếu tao ko cho phép.
 // Chỉ áp dụng cho lượt chấm mới!"). Lưu = ghi etp.tieu_chi, máy chấm đọc ở lượt kế. KHÔNG có nút chấm lại hàng loạt ở đây.
 function TieuChiCham({ du }: { du: DuLieuEtp }) {
+  const xem = useContext(ChiXem);
   const router = useRouter();
   const [mo, setMo] = useState(false);
   const [sua, setSua] = useState<string | null>(null);   // 'nhom.ma' đang sửa · 'moi' = thêm mới
@@ -1185,18 +1188,19 @@ function TieuChiCham({ du }: { du: DuLieuEtp }) {
                   <div style={{ display: 'flex', gap: 10, alignItems: 'baseline' }}>
                     <b style={{ fontSize: 13, minWidth: 180 }}>{t.ten}</b>
                     <span style={{ fontSize: 12, color: 'var(--fg-2)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.mo_ta}>{t.mo_ta}</span>
-                    {sua === k ? null : <button onClick={() => { setNhap({ nhom: t.nhom, ten: t.ten, mo_ta: t.mo_ta }); setSua(k); }} style={nut()}>Sửa</button>}
+                    {sua === k || xem ? null : <button onClick={() => { setNhap({ nhom: t.nhom, ten: t.ten, mo_ta: t.mo_ta }); setSua(k); }} style={nut()}>Sửa</button>}
                   </div>
                   {sua === k ? form(t.ma) : null}
                 </div>); })}
             </div>))}
-          {sua === 'moi' ? form() : <button onClick={() => { setNhap({ nhom: 'meta', ten: '', mo_ta: '' }); setSua('moi'); }} style={nut('#60a5fa')}>+ Thêm tiêu chí</button>}
+          {sua === 'moi' ? form() : xem ? null : <button onClick={() => { setNhap({ nhom: 'meta', ten: '', mo_ta: '' }); setSua('moi'); }} style={nut('#60a5fa')}>+ Thêm tiêu chí</button>}
         </div>) : null}
     </div>
   );
 }
 
 function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React.ReactNode }) {
+  const xem = useContext(ChiXem);
   // ô lọc lên URL (anh 26/10/2026 "tab này cũng phải cho lên url"): ?t=creative&v=soat&l=<lọc> — mặc định 'loi' thì bỏ khỏi URL; link Telegram ?l=duyet vẫn chạy
   const [loc, setLoc] = useState<LocSoat>(() => { const l = typeof location !== 'undefined' ? new URL(location.href).searchParams.get('l') : null; return (LOC_SOAT as readonly string[]).includes(l ?? '') ? (l as LocSoat) : 'loi'; });
   useEffect(() => { const u = new URL(location.href); if (loc === 'loi') u.searchParams.delete('l'); else u.searchParams.set('l', loc); history.replaceState(null, '', u); }, [loc]);
@@ -1314,13 +1318,13 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
             // KHÔNG BẬT TỪ ĐÂY (anh 26/10/2026: "không nên cho bật lại camp từ đây vì còn nhiều rule xung quanh. Chỉ cho duyệt Creative là đủ") — camp tắt chỉ có đèn xám
             if (!bat) return <Den mau={MAU_DEN.tat} t={`${x.r.camp} camp đã tắt`} />;
             return <span className="etp-chay"><span className="den"><Den mau={MAU_DEN.chay} song t={`${x.r.chay}/${x.r.camp} camp đang chạy`} /></span>
-              <button className="nut" onClick={() => tat(x.r.creative_id, x.r.chay)}
-                style={{ border: `1px solid ${DAU_MAU.loi}`, color: DAU_MAU.loi, background: 'transparent', borderRadius: 5, padding: '1px 8px', fontSize: 11, cursor: 'pointer' }}>Tắt</button></span>; }, sortValue: (x) => (x.r.chay > 0 ? 0 : 1) },
+              {xem ? null : <button className="nut" onClick={() => tat(x.r.creative_id, x.r.chay)}
+                style={{ border: `1px solid ${DAU_MAU.loi}`, color: DAU_MAU.loi, background: 'transparent', borderRadius: 5, padding: '1px 8px', fontSize: 11, cursor: 'pointer' }}>Tắt</button>}</span>; }, sortValue: (x) => (x.r.chay > 0 ? 0 : 1) },
           { key: 'duyet', header: 'Duyệt', align: 'center', width: 120, title: 'creative có tiêu chí 5 điểm — rê vào ảnh / điểm để xem video + lý do, rồi bấm: Đạt = được lên camp mới / clone, camp đang chạy giữ nguyên · Loại = chặn lên + máy tắt mọi camp đang dùng trong ≤ 10 phút', cell: (x) => {
             const d = dangDuyet[x.r.creative_id] ?? x.c?.duyet;
             if (d != null) return <span style={{ color: d ? DAU_MAU.ok : DAU_MAU.loi, fontWeight: 600, whiteSpace: 'nowrap' }}>{d ? '✓ Đạt' : '✕ Loại'}</span>;
             if (le4(x)) return <span title={`máy chặn + tự tắt — ${chuChan(x.c?.chan_boi, du.tieuChi)}`} style={{ color: DAU_MAU.loi, fontSize: 12, whiteSpace: 'nowrap' }}>chặn ≤ 4</span>;
-            if (!canXem(x)) return <span style={{ color: DAU_MAU.chua }}>–</span>;
+            if (!canXem(x) || xem) return <span style={{ color: DAU_MAU.chua }}>–</span>;
             const nut = { border: '1px solid var(--line)', background: 'transparent', borderRadius: 5, padding: '2px 8px', fontSize: 12, cursor: 'pointer' } as const;
             return <span title={x.c!.cho_duyet ? `5 điểm (đang chặn lên tới khi Đạt): ${x.c!.cho_duyet}` : 'máy kết cần người xem (đang được lên) — Đạt để xác nhận, Loại để chặn + tắt'} style={{ display: 'inline-flex', gap: 4, whiteSpace: 'nowrap' }}>
               <button title="Đạt: được lên camp mới / clone; camp đang chạy giữ nguyên" onClick={() => duyet(x.r.creative_id, true)} style={{ ...nut, color: DAU_MAU.ok, borderColor: DAU_MAU.ok }}>✓ Đạt</button>
@@ -1336,7 +1340,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
             if (h?.trang_thai === 'dang') return <span style={{ whiteSpace: 'nowrap', fontSize: 12, color: DAU_MAU.cho }}><Den mau="#9ecbff" t="đang chấm" song /> đang chấm</span>;
             if (h?.trang_thai === 'cho' || bam.has(x.r.creative_id)) return <span style={{ whiteSpace: 'nowrap', fontSize: 12, color: 'var(--fg-2)' }}><Den mau="#f59e0b" t="đang chờ Cloudflare nhận" /> chờ</span>;
             return <span style={{ whiteSpace: 'nowrap' }}>{h?.trang_thai === 'loi' ? <span title={`Lần chấm trước lỗi: ${h.loi ?? ''}`} style={{ color: DAU_MAU.loi, marginRight: 4 }}>✕</span> : null}
-              <button onClick={() => chamNgay(x.r.creative_id)} style={{ border: '1px solid var(--line)', background: 'transparent', color: 'inherit', borderRadius: 5, padding: '2px 8px', fontSize: 12, cursor: 'pointer' }}>{x.c ? 'Chấm lại' : 'Chấm'}</button></span>; } },
+              {xem ? null : <button onClick={() => chamNgay(x.r.creative_id)} style={{ border: '1px solid var(--line)', background: 'transparent', color: 'inherit', borderRadius: 5, padding: '2px 8px', fontSize: 12, cursor: 'pointer' }}>{x.c ? 'Chấm lại' : 'Chấm'}</button>}</span>; } },
           { key: 'luc', header: 'Chấm lúc', group: 'kq', cell: (x) => <span style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{x.c ? vn(x.c.luc) : '—'}</span>, sortValue: (x) => x.c?.luc ?? '' },
         ]} />
       <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 6 }}>Điểm 0–10 (10 = sạch): <span style={{ color: DAU_MAU.ok }}>8–10</span> · <span style={{ color: DAU_MAU.vua }}>5 chờ người duyệt · 6–7 cần xem</span> · <span style={{ color: DAU_MAU.loi }}>0–4 chặn lên + tự tắt camp</span> · rê chuột vào ô để xem khung hình, video và lý do</div>
@@ -1699,6 +1703,7 @@ function LichCamp({ c, du, tl, gon }: { c: CampEtpKho; du: DuLieuEtp; tl: (k: st
   );
 }
 function LichGio({ du, tl, hep }: { du: DuLieuEtp; tl: (k: string | null) => string; hep?: boolean }) {
+  const xem = useContext(ChiXem);
   const router = useRouter();
   const [dang, setDang] = useState<string | null>(null);
   const tong = du.cauHinh.find((c) => c.khoa === 'lich_gio')?.gia_tri === true;
@@ -1716,7 +1721,7 @@ function LichGio({ du, tl, hep }: { du: DuLieuEtp; tl: (k: string | null) => str
     <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: 12 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
         <b>⏱ Lịch giờ bật / tắt camp theo thể loại</b>
-        <button onClick={doiTong} disabled={dang === 'tong'} style={{ ...nut(tong), width: 'auto', padding: '3px 12px' }} title="công tắc tổng — TẮT: máy bật lại mọi camp đang tạm dừng vì lịch, không tắt thêm">{tong ? 'Lịch đang BẬT' : 'Lịch đang TẮT'}</button>
+        <button onClick={doiTong} disabled={xem || dang === 'tong'} style={{ ...nut(tong), width: 'auto', padding: '3px 12px' }} title="công tắc tổng — TẮT: máy bật lại mọi camp đang tạm dừng vì lịch, không tắt thêm">{tong ? 'Lịch đang BẬT' : 'Lịch đang TẮT'}</button>
         <span style={{ fontSize: 12, color: 'var(--fg-2)' }} title="máy áp ở lượt đồng bộ kế (≤ 10 phút) · tắt sớm tối đa 15 phút trước khung TẮT · ngày ngân sách reset 07:00 VN · chỉ bật lại camp do lịch tạm dừng">{hep ? `${du.lichTat.length} camp tạm dừng` : <>{du.lichTat.length} camp đang tạm dừng theo lịch · khung đang chạy: <b>{KHUNG_GIO.find((k) => k.k === kn)?.ten}</b> giờ VN</>}</span>
         {hep ? null : <span style={{ fontSize: 11, color: 'var(--fg-3, #888)' }}>máy áp ở lượt đồng bộ kế (≤ 10 phút) · tắt sớm tối đa 15 phút trước khung TẮT · ngày ngân sách reset 07:00 VN · chỉ bật lại camp do lịch tạm dừng</span>}
       </div>
@@ -1733,7 +1738,7 @@ function LichGio({ du, tl, hep }: { du: DuLieuEtp; tl: (k: string | null) => str
               {hep ? null : <td style={{ padding: '6px 8px', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{c.chay} · <span style={{ color: c.tam ? MAU_DEN.phong : undefined }}>{c.tam}</span></td>}
               {KHUNG_GIO.map((k) => { const r = o.get(`${t}|${k.k}`); const s = so.get(`${t}|${k.k}`) ?? { chi: 0, thu: 0 }; const bat = r?.bat ?? true; return (
                 <td key={k.k} style={{ padding: hep ? '6px 1px' : '6px 8px', textAlign: 'center', background: k.k === kn ? 'var(--accent-soft, rgba(59,130,246,.08))' : undefined }}>
-                  <button disabled={dang === `${t}|${k.k}`} onClick={() => doi(t, k.k, !bat)} style={{ ...nut(bat), width: hep ? '100%' : 64, maxWidth: 64, padding: hep ? '6px 0' : '3px 0' }} title={`${r?.ai ?? ''} ${r ? vn(r.luc) : ''} — bấm để ${bat ? 'TẮT' : 'BẬT'}`}>{dang === `${t}|${k.k}` ? '…' : bat ? 'BẬT' : 'TẮT'}</button>
+                  <button disabled={xem || dang === `${t}|${k.k}`} onClick={() => doi(t, k.k, !bat)} style={{ ...nut(bat), width: hep ? '100%' : 64, maxWidth: 64, padding: hep ? '6px 0' : '3px 0' }} title={`${r?.ai ?? ''} ${r ? vn(r.luc) : ''} — bấm để ${bat ? 'TẮT' : 'BẬT'}`}>{dang === `${t}|${k.k}` ? '…' : bat ? 'BẬT' : 'TẮT'}</button>
                   <div style={{ fontSize: 10, marginTop: 3, color: 'var(--fg-2)' }}>{s.chi >= 5 ? <><Roi s={s} />{hep ? null : <> · {usd(s.chi)}</>}</> : s.chi > 0 ? (hep ? 'ít' : `chi ${usd(s.chi)} (ít)`) : '—'}</div>
                 </td>); })}
             </tr>); })}</tbody>
@@ -1830,7 +1835,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
 }
 const TABS: Tab[] = ['tong', 'camp', 'roas', 'creative', 'phim', 'tv', 'tn', 'luat'];
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'cung', 'roas'] as const;
-export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string } }) {
+export function EtpView({ du, dauVao, chiXem = false }: { du: DuLieuEtp; chiXem?: boolean; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string } }) {
   const router = useRouter();
   // tab + kiểu xem lấy từ URL ngay lần vẽ đầu (máy chủ truyền vào) — F5 giữ nguyên chỗ đang xem
   // NGĂN CAMP (anh 27/10/2026 "trên mobile bấm vào phải giống hover ra creative chi tiết… tối ưu tốt cho mobile"): bấm dòng camp trên điện thoại → <Drawer> chi tiết,
@@ -2018,6 +2023,7 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
   return (
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
+    <ChiXem.Provider value={chiXem}>
     <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > h.offsetTop + h.offsetHeight; if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
     {/* TRÀN HẾT BỀ NGANG MÀN (anh 29/10/2026 "tại sao màn hình ko tràn hết sang 2 bên"): trước khoá maxWidth 1600 căn giữa — màn 1930px thừa hai lề trống, bảng Cây bị cắt cột phải */}
@@ -2217,5 +2223,6 @@ export function EtpView({ du, dauVao }: { du: DuLieuEtp; dauVao?: { t?: string; 
         </KhungNoi>; })() : null}
     </div>
     </div>
+    </ChiXem.Provider>
   );
 }

@@ -10,7 +10,7 @@ import { spawn } from 'node:child_process';
 // tab Quét nội dung gọi một lần lúc mở, cắt 900 ký tự như thẻ hover
 export async function chuCham(): Promise<Record<number, { chu: string; giong: string; tom_tat: string }>> {
   const me = await getCurrentUser();
-  if (!me || me.role !== 'admin') return {};
+  if (!me || (me.role !== 'admin' && me.chiHost !== 'etp.on.tc')) return {};   // chỉ ĐỌC chữ chấm — khách chỉ-xem etp cũng được
   const ds = (await getDb()!.execute(sql`select creative_id, left(lop->'chu'->>'noi_dung', 900) chu, left(lop->'giong'->>'noi_dung', 900) giong, left(lop->'noi_dung'->>'tom_tat', 900) tom_tat
     from etp.cham where lop is not null`)) as unknown as { creative_id: number; chu: string | null; giong: string | null; tom_tat: string | null }[];
   return Object.fromEntries(ds.map((r) => [Number(r.creative_id), { chu: r.chu ?? '', giong: r.giong ?? '', tom_tat: r.tom_tat ?? '' }]));

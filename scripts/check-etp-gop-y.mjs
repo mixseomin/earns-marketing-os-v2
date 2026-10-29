@@ -130,6 +130,12 @@ const LUAT = [
   // anh 29/10/2026 "mày đc tự nâng đến $30 rồi nên gộp lại": một quyền tự tăng trần $30, không tách nhánh T30 riêng
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: "k === 'tang30' ? d !== 30", vi: 'tự tăng một quyền một trần (T30 không còn nhánh riêng ngoài trần)' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: 'if (!d || d > tuTang ||', vi: 'mọi lần tự tăng (bậc + T30) đều xét chung trần tuTang' },
+  // anh 29/10/2026 "sso thêm 1 người nữa chỉ vào đc riêng page này … chỉ view": khách một trang = users.chi_host, gác ở getCurrentUser
+  { card: 0, tep: 'apps/web/src/lib/auth.ts', mot: 'if (r.chi_host && String(r.chi_host).toLowerCase() !== await hostHienTai()) continue;', vi: 'phiên khách một trang chỉ sống trên đúng host của họ' },
+  { card: 0, tep: 'apps/web/src/app/api/auth/verify/route.ts', co: "if (u.role === 'viewer' && !u.chiHost) return", vi: 'cổng SSO cho khách một trang qua, viewer thường vẫn 403' },
+  { card: 0, tep: 'apps/etp/deploy/etp.on.tc.nginx', co: 'proxy_set_header Cookie $http_cookie; proxy_set_header Host $host; }', vi: 'cổng auth_request etp gửi Host thật (khách etp mới qua được)' },
+  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: '<EtpView chiXem={me.role !== \'admin\'}', vi: 'khách etp chỉ xem — ẩn nút ghi' },
+  { card: 0, tep: 'apps/web/src/lib/actions/etp-lich.ts', co: "me.role === 'admin' ? me.email : null", vi: 'đặt lịch giờ chỉ admin' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

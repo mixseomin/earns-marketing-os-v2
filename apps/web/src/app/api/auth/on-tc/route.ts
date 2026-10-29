@@ -20,8 +20,9 @@ function safeNext(raw: string | null): string {
 export async function GET(req: NextRequest) {
   const next = safeNext(req.nextUrl.searchParams.get('next'));
   const r = await loginWithOnTcSso();
+  // Khách một trang (users.chi_host) luôn về đúng trang của họ — next trỏ host khác thì phiên ở đó không sống, sẽ vòng lại /login mãi
   const dest = r.ok
-    ? next
+    ? (r.chiHost ? `https://${r.chiHost}/` : next)
     : '/login?error=' + encodeURIComponent(r.error || 'Cổng SSO chưa nhận ra tài khoản — đăng nhập bằng mật khẩu.');
   return NextResponse.redirect(duongVe(dest, req.url));
 }

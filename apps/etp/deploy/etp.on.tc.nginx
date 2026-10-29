@@ -11,7 +11,7 @@ server {
   add_header X-Robots-Tag "noindex, nofollow" always;
   auth_request /_mos2auth;
   error_page 401 = @login;
-  location = /_mos2auth { internal; proxy_pass http://127.0.0.1:3821/api/auth/verify; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header Cookie $http_cookie; proxy_set_header Host mos2.on.tc; }
+  location = /_mos2auth { internal; proxy_pass http://127.0.0.1:3821/api/auth/verify; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header Cookie $http_cookie; proxy_set_header Host $host; }   # Host thật: khách một trang (users.chi_host = etp.on.tc) chỉ qua cổng ở đúng host này
   location @login { return 302 https://mos2.on.tc/login?next=https://etp.on.tc/; }
   location = /robots.txt { auth_request off; default_type text/plain; return 200 "User-agent: *\nDisallow: /\n"; }
   location = / { proxy_pass http://127.0.0.1:3821/etp$is_args$args; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto https; proxy_read_timeout 120s; }

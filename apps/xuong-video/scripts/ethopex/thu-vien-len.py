@@ -27,8 +27,12 @@ lf = os.path.join(tm, f"lo-{ma}.json"); json.dump(lo, open(lf, "w"), ensure_asci
 # --da-soat: người đã xem video ở tab Thư viện trước khi chọn đưa lên (đúng nghĩa cờ của len-creative — soát từng đoạn trước khi gọi)
 subprocess.run(["python3", os.path.join(D, "len-creative.py"), lf, ma, "kể chuyện", "--da-soat"], check=True)
 kq = json.load(open(os.path.join(C, "ra", ma, "len.json")))
-for x in lo:   # khớp theo phim + độ dài (len.json không giữ thứ tự khi cổng soát giữ lại đoạn)
-    l = next((k for k in kq if str(k.get("content_id")) == str(x["content_id"]) and abs(float(k.get("den") or 0) - x["den"]) < 0.3), {})
+# khớp theo PHIM (29/10/2026: len.json KHÔNG có trường den → khớp theo độ dài luôn trượt, tạo được creative mà báo "không tạo được" → nhịp sau tạo trùng);
+# mỗi phim một bản trong lô thì chỉ cần phim; nhiều bản cùng phim thì lấy lần lượt theo thứ tự, không dùng lại một dòng kết quả hai lần
+da = set()
+for x in lo:
+    l = next((k for i, k in enumerate(kq) if i not in da and str(k.get("content_id")) == str(x["content_id"])), {})
+    if l: da.add(kq.index(l))
     cr = l.get("creative_id")
     if cr and l.get("ok", True) and not l.get("loi"):
         sql(f"update etp.thu_vien set creative_id = {int(cr)}, trang_thai = 'da_len', cap_nhat = now() where id = {x['tv']}")

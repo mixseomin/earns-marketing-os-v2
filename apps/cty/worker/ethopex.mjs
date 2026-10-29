@@ -343,7 +343,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const daTu = []; const lamRoi = new Set();
   // Một camp một quyết định: máy luật (luat-ethopex.py _SE_TAT) đã gỡ camp trong danh sách tắt khỏi mọi danh sách tăng / giảm / nhân bản —
   // seTat ở đây chỉ là lưới đỡ khi máy luật bản cũ trả về (29/10/2026 #65656)
-  const seTat = new Set(['tat2', 'tat_d24', 'tat_l3', 'dung_dem', 'tat', 'thang_tat'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
+  const seTat = new Set(['tat2', 'tat_d24', 'tat_l3', 'tat_l7', 'tat', 'thang_tat'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
   const { tinNhanh } = await import('./tg-phong.mjs');
   const guiNhanh = async (b) => { const j = await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...b }); tinNhanh(j?.result?.message_id); return j; };
   // MÁY TỰ GIẢM BẬC (luật GB, chỉ khi anh đã duyệt "gb_tu_giam" trên Telegram): camp chạm GB → lam-ethopex giam (vẫn chặn đổi < 6 giờ, camp phải bật,
@@ -485,6 +485,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       cot: 'Lãi', luat: 'D24 (khoảng dừng > 24 giờ)', ai: 'anh (chat 29/10/2026: camp bị 1 khoảng dừng > 24h cũng dừng ngay lập tức) — máy chạy', ngay: true },
     { khoa: 'tat_l3', tep: 'ethopex-tat-l3.json', ten: 'LUẬT L3', mo_ta: 'luật L3: lỗ 3 ngày đã khép liền, mỗi ngày chi ≥ $1 — thay cho giảm bậc (anh 29/10)',
       cot: 'Lãi 3n', luat: 'L3 (lỗ 3 ngày đã khép liền, chi ≥ $1/ngày)', ai: 'anh (chat 29/10/2026: bỏ giảm bậc, ROI âm liên tục thì tắt — làm 1+2) — máy chạy' },
+    { khoa: 'tat_l7', tep: 'ethopex-tat-l7.json', ten: 'LUẬT L7', mo_ta: 'luật L7: 7 ngày đã khép ROI &lt; −30%, chi ≥ $5, ≥ 5 ngày có chi — camp lỗ đều mà L3 / T2 / OFF bỏ lọt (anh 29/10)',
+      cot: 'Lãi 7n', luat: 'L7 (7 ngày ROI < −30%, chi ≥ $5, ≥ 5 ngày có chi)', ai: 'anh (chat 29/10/2026: thêm L7 — làm luôn đi) — máy chạy' },
     // OFF + BẢN THANG LỖ trước chờ anh bấm nút Tắt trên Telegram — anh 29/10/2026: "rule tạo ra để nó tự vận hành", nên đi cùng đường báo trước một nhịp rồi máy tắt
     { khoa: 'tat', tep: 'ethopex-tat-off.json', ten: 'LUẬT OFF', mo_ta: 'luật OFF: camp ≥ 7 ngày, tiêu &gt; $10 từ trước tới nay, ROI &lt; −50%',
       cot: 'Lãi', luat: 'OFF (≥ 7 ngày, tiêu > $10, ROI < −50%)', ai: 'anh (chat 29/10/2026: rule phải tự vận hành, không chờ anh tắt) — máy chạy' },

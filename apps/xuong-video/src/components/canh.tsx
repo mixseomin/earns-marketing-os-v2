@@ -62,27 +62,59 @@ const tocHop = (that: string, spec: string) => { const a = tuToc(that), b = tuTo
 // ⚖️ Bảng đối chiếu Dự kiến ↔ Bóc-từ-ảnh (3 cột + mức khớp). khớp=xanh · gần=hổ phách · lệch/thiếu/thừa=đỏ.
 const MUC_MAU: Record<string, string> = { 'khớp': 'var(--green)', 'gần': 'var(--amber)', 'lệch': 'var(--red)', 'thiếu': 'var(--red)', 'thừa': 'var(--red)' };
 const MUC_NHAN: Record<string, string> = { 'khớp': '✓ khớp', 'gần': '≈ gần', 'thiếu': '✗ thiếu', 'thừa': '＋ thừa', 'lệch': '✗ lệch' };
-// Bảng lưới tự XUỐNG DÒNG, vừa khít bề ngang ngăn (fr) → KHÔNG scroll ngang (anh 30/10/2026). Thành phần tô màu theo khớp; cột Khớp nằm GIỮA Dự kiến và Bóc ảnh.
+// Tách "Thành phần" của một dòng đối chiếu thành (đối tượng → thuộc tính) để dựng cây. vd "Áo Lâm Hạ"→{Lâm Hạ, Áo}; "Đạo cụ Thẻ + trạng thái"→{🧸 Thẻ, Trạng thái}.
+const THUOC_TINH = ['Áo', 'Tóc', 'Biểu cảm', 'Vị trí', 'Dáng', 'Hướng nhìn', 'Ánh nhìn', 'Nhìn', 'Trang sức', 'Hành động', 'Đồ cầm', 'Cầm', 'Trang điểm', 'Makeup'];
+function tachTP(tp: string): { obj: string; attr: string | null } {
+  const md = tp.match(/^Đạo cụ\s+(.+?)(?:\s*[+·\-–]\s*trạng thái.*)?$/i);
+  if (md?.[1]) return { obj: `🧸 ${md[1].trim()}`, attr: 'Trạng thái' };
+  for (const a of THUOC_TINH) if (tp.startsWith(`${a} `)) return { obj: tp.slice(a.length + 1).trim(), attr: a };
+  return { obj: tp, attr: null };
+}
+const mucXauNhat = (ms: string[]): string => ms.some((m) => m === 'lệch' || m === 'thiếu' || m === 'thừa') ? 'lệch' : ms.some((m) => m === 'gần') ? 'gần' : 'khớp';
+function BadgeMuc({ muc }: { muc: string }) { return <span style={{ color: MUC_MAU[muc] ?? 'var(--fg-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{MUC_NHAN[muc] ?? muc}</span>; }
+function OThuc({ r }: { r: DongDoiChieu }) { return <>{r.thuc_te || '—'}{r.ghi_chu && r.muc !== 'khớp' ? <span style={{ color: MUC_MAU[r.muc], display: 'block', fontSize: 10 }}>↳ {r.ghi_chu}</span> : null}</>; }
+
+// Bảng đối chiếu dạng CÂY: đối tượng (nhân vật / đạo cụ) là nút cha, thuộc tính là nút con; lưới tự xuống dòng khít bề ngang (không scroll ngang),
+// Thành phần tô màu theo khớp, cột Khớp giữa Dự kiến và Bóc ảnh (anh 30/10/2026).
 function DoiChieuTable({ rows }: { rows: DongDoiChieu[] }) {
   const xau = rows.filter((r) => r.muc !== 'khớp' && r.muc !== 'gần').length;
+  const nhom: { obj: string; con: { r: DongDoiChieu; attr: string | null }[] }[] = [];
+  for (const r of rows) { const { obj, attr } = tachTP(r.thanh_phan); const g = nhom.find((x) => x.obj === obj); if (g) g.con.push({ r, attr }); else nhom.push({ obj, con: [{ r, attr }] }); }
   const oT: CSSProperties = { ...mono, fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', paddingBottom: 2 };
   const o: CSSProperties = { borderTop: '1px solid var(--line)', paddingTop: 4, whiteSpace: 'normal', overflowWrap: 'anywhere', lineHeight: 1.45 };
   return (
     <div style={{ fontSize: 11 }}>
-      <div style={{ ...mono, fontSize: 9.5, color: xau ? 'var(--red)' : 'var(--green)', marginBottom: 4 }}>{xau ? `⚠ ${xau} chi tiết lệch/thiếu/thừa` : '✓ mọi chi tiết khớp'} · {rows.length} mục đối chiếu</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(84px,0.8fr) minmax(0,1.5fr) max-content minmax(0,1.5fr)', columnGap: 10, alignItems: 'start' }}>
+      <div style={{ ...mono, fontSize: 9.5, color: xau ? 'var(--red)' : 'var(--green)', marginBottom: 4 }}>{xau ? `⚠ ${xau} chi tiết lệch/thiếu/thừa` : '✓ mọi chi tiết khớp'} · {rows.length} mục · {nhom.length} đối tượng</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(96px,0.85fr) minmax(0,1.5fr) max-content minmax(0,1.5fr)', columnGap: 10, alignItems: 'start' }}>
         <div style={oT}>Thành phần</div>
         <div style={oT}>Dự kiến</div>
         <div style={oT}>Khớp</div>
         <div style={oT}>Bóc từ ảnh</div>
-        {rows.map((r, i) => (
-          <Fragment key={i}>
-            <div style={{ ...o, fontWeight: 700, color: MUC_MAU[r.muc] ?? 'var(--fg-1)' }}>{r.thanh_phan}</div>
-            <div style={{ ...o, color: 'var(--fg-2)' }}>{r.du_kien || '—'}</div>
-            <div style={o}><span style={{ color: MUC_MAU[r.muc] ?? 'var(--fg-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{MUC_NHAN[r.muc] ?? r.muc}</span></div>
-            <div style={{ ...o, color: 'var(--fg-1)' }}>{r.thuc_te || '—'}{r.ghi_chu && r.muc !== 'khớp' ? <span style={{ color: MUC_MAU[r.muc], display: 'block', fontSize: 10 }}>↳ {r.ghi_chu}</span> : null}</div>
-          </Fragment>
-        ))}
+        {nhom.map((g, gi) => {
+          // nút đơn (không thuộc tính) → một dòng thường; nút có thuộc tính → dòng cha (span) + các dòng con thụt vào
+          if (g.con.length === 1 && g.con[0]!.attr === null) { const r = g.con[0]!.r; return (
+            <Fragment key={gi}>
+              <div style={{ ...o, fontWeight: 700, color: MUC_MAU[r.muc] ?? 'var(--fg-1)' }}>{g.obj}</div>
+              <div style={{ ...o, color: 'var(--fg-2)' }}>{r.du_kien || '—'}</div>
+              <div style={o}><BadgeMuc muc={r.muc} /></div>
+              <div style={{ ...o, color: 'var(--fg-1)' }}><OThuc r={r} /></div>
+            </Fragment>
+          ); }
+          const worst = mucXauNhat(g.con.map((x) => x.r.muc));
+          return (
+            <Fragment key={gi}>
+              <div style={{ ...o, gridColumn: '1 / -1', borderTop: '2px solid var(--line)', fontWeight: 700, fontSize: 11.5, color: MUC_MAU[worst] ?? 'var(--fg-1)' }}>▸ {g.obj}</div>
+              {g.con.map((x, xi) => (
+                <Fragment key={xi}>
+                  <div style={{ ...o, paddingLeft: 16, borderTop: xi === 0 ? 'none' : o.borderTop, color: MUC_MAU[x.r.muc] ?? 'var(--fg-2)' }}>↳ {x.attr ?? x.r.thanh_phan}</div>
+                  <div style={{ ...o, borderTop: xi === 0 ? 'none' : o.borderTop, color: 'var(--fg-2)' }}>{x.r.du_kien || '—'}</div>
+                  <div style={{ ...o, borderTop: xi === 0 ? 'none' : o.borderTop }}><BadgeMuc muc={x.r.muc} /></div>
+                  <div style={{ ...o, borderTop: xi === 0 ? 'none' : o.borderTop, color: 'var(--fg-1)' }}><OThuc r={x.r} /></div>
+                </Fragment>
+              ))}
+            </Fragment>
+          );
+        })}
       </div>
     </div>
   );

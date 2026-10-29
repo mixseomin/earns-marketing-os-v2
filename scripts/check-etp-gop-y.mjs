@@ -120,6 +120,8 @@ const LUAT = [
   { card: 1485, tep: 'packages/bang/src/data-table.tsx', mot: "className={dinh ? 'dt-nhom dt-nhom-dinh' : 'dt-nhom'}", vi: 'dòng nhóm vẽ một chỗ (dongNhomTr), không chép tay thêm bản thứ hai' },
   // anh 29/10/2026: cờ nước giao trên camp + nhóm gốc phim (Trung / Ấn / hoạt hình…) — hoạt hình chỉ khi nhìn ra tranh vẽ
   { card: 0, tep: 'apps/etp/cong.py', co: "if ng and ng != 'au_my': return", vi: 'cổng chung chặn tăng chi / lên camp cho phim ngoài Âu-Mỹ (anh 29/10/2026)' },
+  { card: 0, tep: 'apps/etp/cong.py', co: 'if ct and not ng:', vi: 'phim chưa chấm nhóm gốc thì cổng chấm ngay, không chấm được thì chặn (làm cho kín)' },
+  { card: 0, tep: 'apps/etp/nhom_goc.py', co: 'if a.get("kieu_anh") == "tranh_ve": a["nhom"] = "hoat_hinh"', vi: 'tranh vẽ → hoạt hình (Haiku đọc tranh fantasy thành ảnh chụp nếu không hỏi riêng)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'str(bo) if bo else None, content_id=cid)', vi: 'nhân bản / tạo camp truyền phim vào cổng chặn nhóm gốc' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '<CoNuoc nuoc={c.nuoc ?? []} />', vi: 'camp hiện cờ nước giao nhiều chi nhất' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '<NhomGoc g={nhomCua.get(Number(k))} />', vi: 'dòng phim hiện nhóm gốc' },

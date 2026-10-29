@@ -47,7 +47,11 @@ import { chupTruoc, ganNhat, hoanTacGanNhat, type MucHoanTac } from '@/lib/xuong
 import { apCtaPhim } from '@/lib/xuong-video/cta-db';
 import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-phim';
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
-import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
+import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
+import { kgCua } from '@/lib/xuong-video/khong-gian';
+import { bocTachKhung } from '@/lib/xuong-video/boc-tach-khung';
+import { duKienKhung, doiChieuKhung } from '@/lib/xuong-video/doi-chieu-khung';
+import type { BocTachCanh, BocTachKhung, DongDoiChieu } from '@/lib/xuong-video/kieu';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb, sinhAnhBienTheDb } from '@/lib/xuong-video/sinh-anh';
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
 import { docGocSpy, xepGocSpy, nhomCuaGoc, type GocSpy } from '@/lib/xuong-video/goc-spy';
@@ -1941,4 +1945,31 @@ export async function taoPhimTuLo(loId: number, ten: string, gt: Record<string, 
   await db.execute(sql`UPDATE xv_phim SET goc_spy = ${JSON.stringify(g)}::jsonb, updated_at = now() WHERE id = ${r.data.phimId}`);
   await db.execute(sql`UPDATE xv_lo SET phim_id = ${r.data.phimId}, trang_thai = 'da_tao' WHERE id = ${loId}`);
   return r;
+}
+
+// 🧩 BÓC TÁCH một shot từ UI (bấm nút trong ngăn chi tiết) — chạy y boc-tach.mts --ghi cho khung đầu + cuối: bóc thành phần thật từ keyframe rồi đối chiếu dự kiến, ghi xv_canh.boc_tach.
+export async function bocTachCanh(canhId: number): Promise<{ ok: boolean; boc_tach?: BocTachCanh; loi?: string }> {
+  const me = await getCurrentUser();
+  if (!me) return { ok: false, loi: 'chưa đăng nhập' };
+  const db = getDb();
+  if (!db) return { ok: false, loi: 'không có DB' };
+  const row = ((await db.execute(sql`SELECT c.*, t.phim_id, t.khong_gian FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${canhId}`)) as unknown as Row[])[0];
+  if (!row) return { ok: false, loi: 'không thấy cảnh' };
+  const c = mapCanh(row); const phimId = Number(row.phim_id);
+  if (!c.keyframe_url && !c.keyframe_ket) return { ok: false, loi: 'chưa có keyframe để bóc tách' };
+  const nhanVat = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
+  const kg = kgCua(row.khong_gian as never, c);
+  const out: { dau?: BocTachKhung; cuoi?: BocTachKhung } = {}; const dc: { dau?: DongDoiChieu[]; cuoi?: DongDoiChieu[] } = {};
+  for (const [luc, url] of [['dau', c.keyframe_url], ['cuoi', c.keyframe_ket]] as const) {
+    if (!url) continue;
+    const r = await bocTachKhung(db, phimId, url);
+    if (!r) continue;
+    out[luc] = r;
+    const chieu = await doiChieuKhung(db, phimId, duKienKhung(c, nhanVat, kg, luc), r);
+    if (chieu) dc[luc] = chieu;
+  }
+  if (!out.dau && !out.cuoi) return { ok: false, loi: 'bóc tách hỏng (cổng ảnh không trả kết quả)' };
+  const boc_tach: BocTachCanh = { ...out, doi_chieu: dc, luc_boc: new Date().toISOString(), tren: { dau: c.keyframe_url, cuoi: c.keyframe_ket ?? null } };
+  await db.execute(sql`UPDATE xv_canh SET boc_tach = ${JSON.stringify(boc_tach)}::jsonb WHERE id = ${canhId}`);
+  return { ok: true, boc_tach };
 }

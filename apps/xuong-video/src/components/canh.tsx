@@ -7,7 +7,8 @@ import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, type TheLoai } from '@/lib/xuong-video/dien-anh';
 import { KyThuatTheoNhom } from './thu-vien';
 import { BoSetXem } from './bo-set-xem';
-import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, sinhVideoThu, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho } from '@/lib/actions';
+import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, sinhVideoThu, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho, bocTachCanh } from '@/lib/actions';
+import { useRouter } from 'next/navigation';
 import { O_DAN_DUNG, moTaVi, chuManHien, tenPhanDoan, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { BieuCamShot } from './bieu-cam-ui';
@@ -104,21 +105,42 @@ function BangBocTach({ k, nhanVat }: { k: import('@/lib/xuong-video/kieu').BocTa
   );
 }
 export function BocTachShot({ c, nhanVat }: { c: Canh; nhanVat: NhanVat[] }) {
-  // Bấm ảnh ĐẦU / CUỐI → hiện ảnh THẬT + thành phần CON BÓC TÁCH đọc từ chính ảnh đó (không phải dự kiến), ảnh + bảng cạnh nhau.
+  // Bấm ảnh ĐẦU / CUỐI → hiện ảnh THẬT + thành phần CON BÓC TÁCH đọc từ chính ảnh đó; nút 🧩 Bóc tách = chạy bóc tách + đối chiếu NGAY (bocTachCanh), không phải gõ CLI tay.
+  const router = useRouter();
   const [mo, setMo] = useState<'dau' | 'cuoi' | null>(null);
-  const bt = c.boc_tach;
+  const [btMoi, setBtMoi] = useState<typeof c.boc_tach>(null);
+  const [dangBoc, setDangBoc] = useState(false);
+  const [loiBoc, setLoiBoc] = useState('');
+  const bt = btMoi ?? c.boc_tach;
   const khung = ([['dau', 'đầu', c.keyframe_url], ['cuoi', 'cuối', c.keyframe_ket]] as const).filter(([, , u]) => !!u);
   if (!khung.length) return null;
   const urlMo = khung.find(([l]) => l === mo)?.[2];
   const kMo = mo ? bt?.[mo] : null;
+  const cu = !!(bt?.tren?.dau && bt.tren.dau !== c.keyframe_url);   // keyframe đã sinh lại sau khi bóc → bóc tách cũ, cần bóc lại
+  const chayBoc = async () => {
+    if (dangBoc) return;
+    setDangBoc(true); setLoiBoc('');
+    const r = await bocTachCanh(c.id);
+    if (r.ok && r.boc_tach) { setBtMoi(r.boc_tach); setMo((m) => m ?? khung[0]![0]); router.refresh(); }
+    else setLoiBoc(r.loi || 'bóc tách hỏng');
+    setDangBoc(false);
+  };
   return (
     <div style={{ marginTop: 6, display: 'grid', gap: 4 }}>
-      <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase' }}>🎬 Keyframe đầu · cuối — bấm để xem thành phần bóc ra từ ảnh</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase' }}>🎬 Keyframe đầu · cuối — bấm ảnh để xem thành phần bóc ra</span>
+        <button type="button" onClick={chayBoc} disabled={dangBoc}
+          title="Bóc thành phần thật từ keyframe (đầu + cuối) rồi đối chiếu với dự kiến. Tốn ~0,6¢/khung (bóc + đối chiếu)."
+          style={{ ...mono, fontSize: 10, padding: '2px 8px', borderRadius: 5, border: `1px solid ${cu ? 'var(--amber)' : 'var(--cyan)'}`, background: 'var(--bg-1)', color: cu ? 'var(--amber)' : 'var(--cyan)', cursor: dangBoc ? 'wait' : 'pointer' }}>
+          {dangBoc ? '⏳ đang bóc tách…' : bt ? (cu ? '⟳ Bóc tách lại (ảnh đã đổi)' : '⟳ Bóc tách lại') : '🧩 Bóc tách khung này'}
+        </button>
+        {loiBoc && <span style={{ ...mono, fontSize: 10, color: 'var(--red)' }}>⚠ {loiBoc}</span>}
+      </div>
       <div style={{ display: 'flex', gap: 8 }}>{khung.map(([luc, ten, u]) => (
         <button key={luc} type="button" onClick={() => setMo(mo === luc ? null : luc)} title={`Khung ${ten} — bấm xem thành phần bóc tách${bt?.[luc] ? '' : ' (chưa bóc)'}`}
           style={{ padding: 2, border: `2px solid ${mo === luc ? 'var(--cyan)' : 'var(--line)'}`, borderRadius: 6, background: 'var(--bg-1)', cursor: 'pointer', display: 'grid', gap: 2, justifyItems: 'center' }}>
           <img src={anhNho(u as string, 320)} alt="" style={{ width: 86, aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 3, background: '#000' }} />
-          <span style={{ ...mono, fontSize: 9, color: mo === luc ? 'var(--cyan)' : 'var(--fg-3)' }}>🧩 {ten}{bt?.[luc] ? '' : ' · chưa bóc'}</span>
+          <span style={{ ...mono, fontSize: 9, color: mo === luc ? 'var(--cyan)' : 'var(--fg-3)' }}>🧩 {ten}{bt?.[luc] ? (cu ? ' · cũ' : '') : ' · chưa bóc'}</span>
         </button>))}</div>
       {mo && (
         <div style={{ border: '1px solid var(--cyan)', borderRadius: 6, padding: 8 }}>
@@ -127,11 +149,11 @@ export function BocTachShot({ c, nhanVat }: { c: Canh; nhanVat: NhanVat[] }) {
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
               <img src={anhNho(urlMo as string, 320)} alt="" style={{ width: 150, aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, background: '#000', flexShrink: 0, position: 'sticky', top: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                {bt?.doi_chieu?.[mo]?.length ? <DoiChieuTable rows={bt.doi_chieu[mo]!} /> : <div style={{ fontSize: 10.5, color: 'var(--amber)', marginBottom: 6 }}>⚖️ chưa đối chiếu dự kiến — chạy lại boc-tach.mts (bản mới tự đối chiếu). Dưới là thành phần bóc từ ảnh:</div>}
+                {bt?.doi_chieu?.[mo]?.length ? <DoiChieuTable rows={bt.doi_chieu[mo]!} /> : <div style={{ fontSize: 10.5, color: 'var(--amber)', marginBottom: 6 }}>⚖️ chưa đối chiếu dự kiến — bấm ⟳ Bóc tách lại để đối chiếu. Dưới là thành phần bóc từ ảnh:</div>}
                 {!bt?.doi_chieu?.[mo]?.length && <BangBocTach k={kMo} nhanVat={nhanVat} />}
               </div>
             </div>
-          ) : <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Khung này chưa bóc tách. Chạy <code>boc-tach.mts --canh={c.id} --ghi</code> để đọc thành phần từ ảnh + đối chiếu dự kiến.</div>}
+          ) : <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Khung {mo === 'dau' ? 'đầu' : 'cuối'} chưa bóc tách — bấm <b>🧩 Bóc tách khung này</b> ở trên để đọc thành phần từ ảnh + đối chiếu dự kiến (~0,6¢).</div>}
         </div>
       )}
     </div>

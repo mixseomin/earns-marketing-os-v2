@@ -33,7 +33,7 @@ export const KE_HOACH: Buoc[] = [
   { so: 5, ma: 'san-pham', ten: 'Mọi sản phẩm vào máy', tt: 'cho', hien: 'san-pham',
     muc_dich: 'Mỗi dự án / sản phẩm / dịch vụ có nhóm góc trên spy thành một máy studio: nhóm góc + site đích + kênh → tự vào kế hoạch tuần.',
     cach: ['Máy = một dòng xv_may (ma, goc_sp, site_dich, dang[] nơi đăng). Thiếu kênh: đổi tên Page cũ (luật 18/10/2026) hoặc lập tài khoản mới có proxy.', 'Sản phẩm chưa có nhóm góc trên spy: cào spy trước rồi mới lập máy.', 'Thứ tự: sản phẩm đã có site + kênh trước (ExamWeight bật lại, Wordfrost, MilitaryCalc, Giỗ Chạp đã có), rồi sản phẩm cần lập kênh.'],
-    viec: [{ ten: 'Bật lại máy ExamWeight', tt: 'cho' }, { ten: 'Máy Wordfrost · MilitaryCalc', tt: 'cho' }, { ten: 'Máy cho app Clane (Foldwell, Milkline, Final Tin, Light-House, Route Planner, Tâm ngắm, Saidly, Teleprompter)', tt: 'cho' }, { ten: 'Máy Bra / Orabra · Astrolas · Mellowstep', tt: 'cho' }] },
+    viec: [{ ten: 'Bật lại máy ExamWeight', tt: 'xong', ghi: 'Page Trust Reviews #626 (ảnh thật, Graph), bài đầu 29/10, hẹn 19:00 tới 04/11, xoay 3 loại đề' }, { ten: 'Máy Wordfrost · MilitaryCalc', tt: 'cho' }, { ten: 'Máy cho app Clane (Foldwell, Milkline, Final Tin, Light-House, Route Planner, Tâm ngắm, Saidly, Teleprompter)', tt: 'cho' }, { ten: 'Máy Bra / Orabra · Astrolas · Mellowstep', tt: 'cho' }] },
   { so: 6, ma: 'giong', ten: 'Giọng AI cho dạng cần giọng', tt: 'cho', hien: 'giong',
     muc_dich: 'Kể chuyện, lồng tiếng giải thích, từ đọc sai, 10 câu theo chủ đề — bốn dạng cần giọng đọc.',
     cach: ['Báo giá THẬT của đường sẽ đi (cổng API rẻ đã có ở vault) trước, anh gật mới chạy; dưới $0,01 / video thì tự chạy theo luật 16/10/2026.', 'Giọng lưu cùng video trong studio, tái dùng khi dựng lại.'],
@@ -50,7 +50,7 @@ export const DUONG_DANG: { nen: string; ho: string; ten: string; co: boolean }[]
 
 /** Sản phẩm / dịch vụ ứng viên cho bước 5: đã có nhóm góc trên spy (id nhóm = goc_sp.id) nhưng chưa có máy studio. */
 export const UNG_VIEN: { ma: string; ten: string; du_an: string; goc_sp: number[]; site: string | null; ngach: string[]; ghi: string }[] = [
-  { ma: 'examweight', ten: 'ExamWeight', du_an: 'examweight', goc_sp: [], site: 'examweight.com', ngach: ['hoc'], ghi: 'máy examweight-cau-hoi đang tắt, chưa gán nhóm góc' },
+  { ma: 'examweight', ten: 'ExamWeight', du_an: 'examweight', goc_sp: [], site: 'examweight.com', ngach: ['hoc'], ghi: 'máy examweight-cau-hoi chạy từ 29/10 (Page Trust Reviews #626); chưa gán nhóm góc' },
   { ma: 'wordfrost', ten: 'Wordfrost', du_an: 'wordfrost', goc_sp: [1559], site: null, ngach: ['hoc', 'san-pham'], ghi: 'app iOS, cần kênh' },
   { ma: 'militarycalc', ten: 'MilitaryCalc', du_an: 'militarycalc', goc_sp: [1553], site: 'militarycalc.com', ngach: ['san-pham'], ghi: 'có site, cần kênh' },
   { ma: 'astrolas', ten: 'Astrolas', du_an: 'astrolas', goc_sp: [9], site: 'astrolas.com', ngach: ['san-pham'], ghi: 'dịch vụ chiêm tinh; không dùng br htuan82' },

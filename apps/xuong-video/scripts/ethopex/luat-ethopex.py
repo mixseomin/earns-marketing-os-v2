@@ -536,7 +536,7 @@ giam = [(cid, s + (lambda nd: f" · ${nd[0]:g} → ${nd[1]:g}" if nd[1] else " �
 ha, giam = [], []
 # LUẬT T30 (Support 23/10/2026: "$20 mà 2, 3 ngày spending > 80% và ROI vẫn cao > 80% thì tăng lên"; anh: "thêm rule này để có điều kiện tăng camp lên $30"):
 # camp đang bật ở trần $20, trong 3 ngày ĐÃ KHÉP gần nhất (D−1..D−3) có ≥ 2 ngày tiêu > 80% ngân sách, ROI cộng các ngày đó > 80% → đề xuất $20 → $30, anh duyệt nút.
-T30_SP, T30_ROI, T30_NGAY = 80, 80, 2   # ngưỡng cũ — nay CHỈ còn cho ★ ROAS thắng → $30
+T30_SP, T30_ROI, T30_NGAY = 80, 50, 2   # nay CHỈ còn cho ★ ROAS thắng → $30 · ROI 80 → 50% (anh 30/10/2026 "vậy điều chỉnh đi": 80% không camp ★ nào qua; 50% = ngang luật nới camp thường T30N_ROI)
 # NỚI T30 CHO CAMP THƯỜNG (anh 29/10/2026 "ok. Nới đi", sau khi so tk Nguyễn Sơn: 9 camp $30 tiêu 40–80% ngân sách, ROI 37–84% — luật cũ không
 # camp nào của Sơn qua được): camp thường $20, 5 ngày đã khép (D−1..D−5) ROI ≥ T30N_ROI% và chi TB ≥ T30N_SP% ngân sách ($12/ngày) → máy lên $30.
 T30N_ROI, T30N_SP, T30N_NGAY = 50, 60, 5
@@ -626,7 +626,7 @@ def _xet_luat():
             ls.append(L("roas", "Luật ROAS (camp ★)", "Camp ROAS miễn mọi luật khác (trừ ★ ROAS thắng → $30); chỉ báo riêng khi 2 ngày đã khép ĐỀU lỗ và cộng 2 ngày chi > $20 mà ROI < 0%.", [], "tat_roas" if int(cid) in vao["tat_roas"] else None))
             ns = float(a.get("budget") or 0); du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
             r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None
-            ls.append(L("t30", "★ ROAS thắng · $20 → $30", f"Camp ROAS đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách ($16), ROI các ngày đó > {T30_ROI}% → máy tự tăng $30 (cùng ngưỡng T30).",
+            ls.append(L("t30", "★ ROAS thắng · $20 → $30", f"Camp ROAS đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách ($16), ROI các ngày đó > {T30_ROI}% → máy tự tăng $30.",
                 [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], ["Ngày tiêu > $16", f"{len(du30)}/3", f"≥ {T30_NGAY}", len(du30) >= T30_NGAY], ["ROI các ngày đó", f(r30, "%"), f"> {T30_ROI}%", r30 is not None and r30 > T30_ROI]],
                 "tang30" if int(cid) in vao["tang30"] else None, tien=1))
             ra[int(cid)] = ls; continue

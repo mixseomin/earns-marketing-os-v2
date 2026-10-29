@@ -152,6 +152,8 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "du={await docEtp(mot('ng'), true)}", vi: 'trang etp gửi bản nhẹ' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "const canNang = (tab === 'creative' && (xemCr === 'soat' || xemCr === 'dc')) || tab === 'tv';", vi: 'tab cần phần nặng mới tải bù' },
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'with g as (select coalesce(p.the_loai', vi: 'câu khung giờ gộp theo giờ trước khi gọi khung_vn' },
+  // anh 30/10/2026 "vậy điều chỉnh đi": ★ ROAS thắng $20 → $30 cần ROI các ngày tiêu > $16 trên 50% (trước 80%)
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'T30_SP, T30_ROI, T30_NGAY = 80, 50, 2', vi: '★ ROAS thắng: ngưỡng ROI 50%' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

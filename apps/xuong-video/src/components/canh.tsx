@@ -191,18 +191,27 @@ export function DoiChieuNgan({ canhId }: { canhId: number }) {
               {u && <img src={anhNho(u, 640)} alt="" style={{ width: 200, aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 6, background: '#000', flexShrink: 0, position: 'sticky', top: 0 }} />}
               <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 8 }}>
                 {daChieu && loi.length > 0 && (
-                  <div style={{ border: '1px solid var(--red)', borderRadius: 6, padding: '6px 8px' }}>
-                    <div style={{ ...mono, fontSize: 10, color: 'var(--red)', fontWeight: 700, marginBottom: 4 }}>⚠ {loi.length} LỖI SO VỚI DỰ KIẾN — cần sửa trước khi ráp clip</div>
-                    {loi.map((r, i) => (
-                      <div key={i} style={{ fontSize: 11, lineHeight: 1.5, marginTop: i ? 4 : 0, paddingTop: i ? 4 : 0, borderTop: i ? '1px solid var(--line)' : 'none' }}>
-                        <b style={{ color: 'var(--red)' }}>{dongLoi(r)}</b> <span style={{ ...mono, fontSize: 9, color: 'var(--red)' }}>{MUC_NHAN[r.muc!] ?? r.muc}</span>
-                        <div><span style={{ color: 'var(--fg-3)' }}>dự kiến:</span> <span style={{ color: 'var(--fg-2)' }}>{r.du_kien || '—'}</span> <span style={{ color: 'var(--fg-3)' }}>→ thực tế:</span> <span style={{ color: 'var(--fg-1)' }}>{r.thuc_te || '—'}</span></div>
-                        {r.ghi_chu ? <div style={{ color: 'var(--amber)', fontSize: 10.5 }}>↳ {r.ghi_chu}</div> : null}
-                      </div>
-                    ))}
+                  <div style={{ border: '1px solid var(--red)', borderRadius: 6, overflow: 'hidden' }}>
+                    <div style={{ ...mono, fontSize: 11, color: '#fff', fontWeight: 700, background: 'var(--red)', padding: '4px 8px' }}>⚠ {loi.length} LỖI — SỬA TRƯỚC KHI RÁP CLIP</div>
+                    <div style={{ padding: '2px 8px 6px' }}>
+                      {loi.map((r, i) => {
+                        const may = (r.ghi_chu ?? '').startsWith('[máy');
+                        return (
+                          <div key={i} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '1px 8px', borderLeft: '3px solid var(--red)', paddingLeft: 8, marginTop: 8 }}>
+                            <div style={{ gridColumn: '1 / -1', fontSize: 11.5, fontWeight: 700, color: 'var(--fg-1)' }}>
+                              {dongLoi(r)} <span style={{ ...mono, fontSize: 9, padding: '0 4px', borderRadius: 3, background: may ? 'var(--green)' : 'var(--amber)', color: '#000' }}>{may ? '✓ máy so' : '👁 AI xem'}</span>
+                            </div>
+                            <div style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase' }}>Cần</div>
+                            <div style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{r.du_kien || '—'}</div>
+                            <div style={{ ...mono, fontSize: 9.5, color: 'var(--red)', textTransform: 'uppercase' }}>Ảnh ra</div>
+                            <div style={{ fontSize: 11, color: 'var(--red)', fontWeight: 600, whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{r.thuc_te || '—'}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
-                {daChieu && loi.length === 0 && <div style={{ ...mono, fontSize: 11, color: 'var(--green)' }}>✓ Mọi thành phần khớp dự kiến ({rows.length})</div>}
+                {daChieu && loi.length === 0 && <div style={{ ...mono, fontSize: 12, color: '#fff', fontWeight: 700, background: 'var(--green)', borderRadius: 6, padding: '4px 8px' }}>✓ KHỚP DỰ KIẾN — {rows.length} thành phần, 0 lỗi</div>}
                 {coAnh ? (
                   <div>
                     <button type="button" className="xv-lienket xv-mono" style={{ fontSize: 10 }} onClick={() => setMoDayDu((m) => ({ ...m, [luc]: !moDD }))}>{moDD ? '▾ Ẩn' : '▸ Xem'} đầy đủ danh mục ({rows.length} thành phần{gan.length ? `, ${gan.length} gần` : ''})</button>

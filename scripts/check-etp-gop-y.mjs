@@ -88,6 +88,7 @@ const LUAT = [
   { card: 1483, tep: 'apps/web/src/components/etp-view.tsx', co: "const top = y - CHONG + h <= H - 8 ? y - CHONG", cam: 'const top = y + 12 + h <= H - 8', vi: 'thẻ nổi đè lên con trỏ, không còn khe phải băng qua dòng khác' },
   { card: 1483, tep: 'apps/web/src/components/etp-view.tsx', co: "window.addEventListener('mousemove', (e) => { CHUOT.x = e.clientX; CHUOT.y = e.clientY; }", vi: 'thẻ đặt theo vị trí chuột lúc mở' },
   { card: 1484, tep: 'apps/web/src/components/etp-view.tsx', co: "max={maxLai(sd)} mo nhom />", vi: 'biểu đồ dòng phim (tổng) vẽ cột rỗng viền màu, khác cột đặc của camp' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '.etp-cay tr.dt-nhom>td::after{content:', vi: 'dòng phim sáng hơn + bóng mờ dưới chân (anh chat 29/10/2026)' },
   // phim QC kể chuyện VideoExpress (chat 29/10/2026 — anh: "lần sau kiểu đéo gì mày cũng lặp lại lỗi này?")
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', cam: 'Image.open(poster).convert("RGBA").resize((W, H))', vi: 'thẻ cuối không kéo méo poster khác 9:16 (mất tên phim)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'abs(goc.width / goc.height - W / H)', vi: 'thẻ cuối giữ tỉ lệ poster' },

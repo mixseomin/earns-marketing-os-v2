@@ -136,8 +136,10 @@ export const truyVanThi = (de: DeThi) => { const ds = TRUY[de.ky]; return ds[[..
 export function mocThi(de: DeThi): string {
   const t = de.hoi.replace(/\s+/g, ' ').trim();
   if (t.length <= 60) return t;
-  let r = ''; for (const w of t.split(' ')) { if (`${r} ${w}`.trim().length > 57) break; r = `${r} ${w}`.trim(); }
-  return `${r}...`;
+  // giữ PHẦN CUỐI: câu cùng mẫu có đầu giống nhau ("Which of the following is the correct brand name for…") — chỗ khác nhau (tên thuốc, tình huống)
+  // nằm ở cuối câu; cắt giữ đầu làm 3 video PTCB trùng tiêu đề, Phòng Nội dung chặn (29/10/2026)
+  let r = ''; for (const w of t.split(' ').reverse()) { if (`${w} ${r}`.trim().length > 57) break; r = `${w} ${r}`.trim(); }
+  return `...${r}`;
 }
 /** Một dòng nguồn (mau/may/cau-hoi-thi.json) → dòng nạp máy: đề + chữ đăng tiếng Anh. Tiêu đề mỗi video một khác (câu hỏi của chính video). */
 export function tuNguonThi(x: DeThi & { slug: string; nhom?: string }) {

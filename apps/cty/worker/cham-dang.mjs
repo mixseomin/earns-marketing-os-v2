@@ -62,7 +62,8 @@ export function doBaiDang(v, ten = '') {
   if (d.loai === 'bai') { if (!d.html && !mo) chan.push('bài viết không có nội dung'); if (v.kiem !== 'DUYET') chan.push(`Phòng Nội dung (kiem-bai) chưa DUYỆT bản này: ${v.kiem ?? 'chưa nộp'}`); }
   // 5 · giọng văn
   const gach = (chu.match(/[—–]/g) || []).length; if (gach) chan.push(`${gach} gạch ngang dài`);
-  const tm = TU_MAY.filter((w) => thuong.includes(w)); if (tm.length) chan.push(`từ máy: ${tm.join(', ')}`);
+  // 'vital signs' là thuật ngữ y khoa (đề NREMT / EMT — 29/10/2026 chặn oan), không phải từ máy 'vital'
+  const tm = TU_MAY.filter((w) => thuong.replace(/vital signs?/g, '').includes(w)); if (tm.length) chan.push(`từ máy: ${tm.join(', ')}`);
   const tag = (chu.match(/(^|\s)#\w+/g) || []).length; if (tag > 3) canh.push(`${tag} hashtag (tối đa 3)`);
   if (mo.length < 80) canh.push('chữ đăng quá mỏng, chưa cho người xem điều gì dùng được');
   const diem = chan.length ? Math.min(6, 10 - canh.length) : Math.max(0, 10 - canh.length);
@@ -273,6 +274,8 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
     t.ok(h.includes('alt="Photo: moving boxes"') && !h.includes('<h1>') && h.includes('Answer to the Quora question'), 'Quora: alt tả ảnh, câu hỏi không làm tiêu đề'); }
   t.ok(htmlBaiViet({ title: 'Q', description: 'a' }, 'https://images.pexels.com/photos/1/x.jpg', 'desk').includes('(via Pexels)'), 'ghi nguồn ảnh theo tên miền');
   t.ok(!htmlBaiViet({ title: 'Q', description: 'a' }, 'https://example.com/x.jpg').includes('via'), 'tên miền lạ không bịa nguồn');
+  t.ok(!doBaiDang({ ...tot, dang: { ...tot.dang, description: tot.dang.description + ' Check vital signs first.' } }).chan_cung.some((x) => x.includes('từ máy')), 'vital signs không phải từ máy');
+  t.ok(doBaiDang({ ...tot, dang: { ...tot.dang, description: tot.dang.description + ' This is vital.' } }).chan_cung.some((x) => x.includes('từ máy')), 'vital trơn vẫn là từ máy');
   console.log('✓ cham-dang: 13 ca đạt (+ tiêu đề trùng ×2, lỡ lượt / kho sắp cạn, họ nền xoay vòng, dừng vì cảnh báo tài khoản) · (DUYỆT, ảnh thật ×3, tên kênh, gạch dài, link, bản xuất, trần điểm, thoát HTML)'); process.exit(0);
 }
 if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--chay')) { console.log(await nhipChamDang()); process.exit(0); }

@@ -20,3 +20,6 @@ assert.ok(r.dang.link === 'https://examweight.com/ptcb/practice-test' && r.dang.
 assert.ok(!r.dang.title.includes('Lipitor') && r.dang.title.length <= 110 && r.dang.title.length >= 25, 'tiêu đề không lộ đáp án, độ dài hợp lệ');
 assert.ok(!/[—–]/.test(r.dang.title + r.dang.description), 'không gạch ngang dài');
 console.log('✓ may-dung-thi: luật đọc · bố cục câu dài không tràn · ASS đủ khối · thiếu ảnh thì dừng · link + tiêu đề không lộ đáp án');
+// tiêu đề câu dài giữ phần cuối: hai câu cùng mẫu khác tên thuốc ra hai tiêu đề khác (29/10/2026 — 3 video PTCB trùng tiêu đề)
+{ const { mocThi } = await import('./may-dung-thi'); const a1 = mocThi({ hoi: 'Which of the following is the correct brand name for azithromycin in the United States?' } as never), a2 = mocThi({ hoi: 'Which of the following is the correct brand name for atorvastatin in the United States?' } as never);
+  if (a1 === a2 || !a1.includes('azithromycin') || a1.length > 61) throw new Error(`mocThi giữ phần cuối hỏng: ${a1} | ${a2}`); console.log('✓ mocThi: câu cùng mẫu ra tiêu đề khác'); }

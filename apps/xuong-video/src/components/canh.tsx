@@ -59,43 +59,54 @@ export function TrangPhucShot({ c, onLuu }: { c: Canh; onLuu: (t: string) => voi
 // 🧩 BÓC TÁCH TỪ ẢNH: ảnh keyframe đầu/cuối THẬT + danh sách thành phần CON BÓC TÁCH đọc ra (không phải dự kiến) để đối chiếu. Cờ đỏ chỗ tóc lệch spec.
 const tuToc = (s: string) => (s.match(/đuôi ngựa|ponytail|búi (thấp|cao)|low bun|high bun|bun|xõa|loose|tóc dài|long hair|tóc ngắn|short hair|straight|thẳng|tết|braid/i)?.[0] ?? '').toLowerCase();
 const tocHop = (that: string, spec: string) => { const a = tuToc(that), b = tuToc(spec); if (!a || !b) return true; const nh = (x: string) => /búi|bun/.test(x) ? 'bui' : /đuôi ngựa|ponytail/.test(x) ? 'duoi' : /xõa|loose|dài|long|thẳng|straight/.test(x) ? 'xoa' : /ngắn|short/.test(x) ? 'ngan' : x; return nh(a) === nh(b); };
-export function BocTachShot({ c, nhanVat }: { c: Canh; nhanVat: NhanVat[] }) {
-  const [mo, setMo] = useState(false);
-  const bt = c.boc_tach;
-  if (!c.keyframe_url && !c.keyframe_ket && !bt) return null;
-  const anh: [string, string | null | undefined][] = [['đầu', c.keyframe_url], ['cuối', c.keyframe_ket]];
+function BangBocTach({ k, nhanVat }: { k: import('@/lib/xuong-video/kieu').BocTachKhung; nhanVat: NhanVat[] }) {
   return (
-    <div style={{ marginTop: 6, display: 'grid', gap: 3 }}>
-      {anh.some(([, u]) => u) && <>
-        <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase' }}>🎬 Keyframe đầu · cuối (ảnh thật)</span>
-        <div style={{ display: 'flex', gap: 6 }}>{anh.filter(([, u]) => u).map(([l, u]) => (
-          <button key={l} type="button" onClick={() => moNgan({ loai: 'xem', url: u as string, ten: `#${c.thu_tu} keyframe ${l}` })} style={{ padding: 0, border: 'none', background: 'none', cursor: 'pointer', display: 'grid', gap: 1, justifyItems: 'center' }}>
-            <img src={anhNho(u as string, 200)} alt="" style={{ width: 92, aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, background: '#000' }} />
-            <span style={{ ...mono, fontSize: 9, color: 'var(--fg-3)' }}>{l}</span>
-          </button>))}</div>
-      </>}
-      <button type="button" className="xv-lienket" style={{ fontSize: 11, textAlign: 'left', justifySelf: 'start' }} onClick={() => setMo(!mo)}>
-        🧩 {mo ? 'Ẩn' : 'Xem'} bóc tách từ ảnh {bt ? '(đọc từ ảnh thật, không phải dự kiến)' : '— chưa bóc'}
-      </button>
-      {mo && bt && (['dau', 'cuoi'] as const).map((luc) => { const k = bt[luc]; if (!k) return null; return (
-        <div key={luc} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: 8, fontSize: 11, lineHeight: 1.5 }}>
-          <div style={{ ...mono, color: 'var(--cyan)', textTransform: 'uppercase', marginBottom: 4 }}>🧩 Bóc từ ảnh — khung {luc === 'dau' ? 'ĐẦU' : 'CUỐI'}</div>
-          <div style={{ color: 'var(--fg-2)' }}>📍 {k.boi_canh} · 💡 {k.anh_sang} · 🎞 {k.khung_hinh} · {k.goc_may}</div>
-          <div style={{ color: 'var(--fg-2)' }}>🧭 Bố cục: {k.bo_cuc}</div>
-          {k.vat_co_dinh.length > 0 && <div style={{ color: 'var(--fg-3)' }}>🏛 Vật cố định: {k.vat_co_dinh.join(', ')}</div>}
-          {k.nguoi.map((n, i) => { const spec = nhanVat.find((v) => n.ai.includes(v.ten) || v.ten.includes(n.ai)); const lech = spec ? !tocHop(n.toc, spec.mo_ta) : false;
-            return (
-              <div key={i} style={{ marginTop: 4, paddingLeft: 6, borderLeft: '2px solid var(--line)' }}>
-                <b>👤 {n.ai}</b> <span style={{ color: 'var(--fg-3)' }}>— {n.dac_diem}</span>
-                <div style={{ color: 'var(--fg-2)' }}>📍 {n.vi_tri}</div>
-                <div>👗 {n.ao} · 💇 <span style={{ color: lech ? 'var(--red)' : 'inherit', fontWeight: lech ? 700 : 400 }}>{n.toc}{lech && spec ? ` ⚠ dự kiến: ${tuToc(spec.mo_ta) || spec.mo_ta.slice(0, 40)}` : ''}</span> · 💍 {n.trang_suc}</div>
-                <div>😐 {n.bieu_cam} · 👁 {n.huong_nhin} · 🧍 {n.dang} · ✋ {n.do_cam}</div>
-              </div>);
-          })}
-          {k.dao_cu.map((d, i) => <div key={i} style={{ marginTop: 3, color: 'var(--fg-2)' }}>🧸 <b>{d.ten}</b> ({d.dac_diem}): {d.trang_thai} — 📍 {d.vi_tri}</div>)}
-          {k.chu_tren_hinh && k.chu_tren_hinh !== 'không' && <div style={{ color: 'var(--fg-3)' }}>🔤 Chữ trên hình: {k.chu_tren_hinh}</div>}
-        </div>);
+    <div style={{ flex: 1, minWidth: 0, fontSize: 11, lineHeight: 1.5 }}>
+      <div style={{ color: 'var(--fg-2)' }}>📍 {k.boi_canh} · 💡 {k.anh_sang} · 🎞 {k.khung_hinh} · {k.goc_may}</div>
+      <div style={{ color: 'var(--fg-2)' }}>🧭 Bố cục: {k.bo_cuc}</div>
+      {k.vat_co_dinh.length > 0 && <div style={{ color: 'var(--fg-3)' }}>🏛 Vật cố định: {k.vat_co_dinh.join(', ')}</div>}
+      {k.nguoi.map((n, i) => { const spec = nhanVat.find((v) => n.ai.includes(v.ten) || v.ten.includes(n.ai)); const lech = spec ? !tocHop(n.toc, spec.mo_ta) : false;
+        return (
+          <div key={i} style={{ marginTop: 4, paddingLeft: 6, borderLeft: '2px solid var(--line)' }}>
+            <b>👤 {n.ai}</b> <span style={{ color: 'var(--fg-3)' }}>— {n.dac_diem}</span>
+            <div style={{ color: 'var(--fg-2)' }}>📍 {n.vi_tri}</div>
+            <div>👗 {n.ao} · 💇 <span style={{ color: lech ? 'var(--red)' : 'inherit', fontWeight: lech ? 700 : 400 }}>{n.toc}{lech && spec ? ` ⚠ dự kiến: ${tuToc(spec.mo_ta) || spec.mo_ta.slice(0, 40)}` : ''}</span> · 💍 {n.trang_suc}</div>
+            <div>😐 {n.bieu_cam} · 👁 {n.huong_nhin} · 🧍 {n.dang} · ✋ {n.do_cam}</div>
+          </div>);
       })}
+      {k.dao_cu.map((d, i) => <div key={i} style={{ marginTop: 3, color: 'var(--fg-2)' }}>🧸 <b>{d.ten}</b> ({d.dac_diem}): {d.trang_thai} — 📍 {d.vi_tri}</div>)}
+      {k.chu_tren_hinh && k.chu_tren_hinh !== 'không' && <div style={{ color: 'var(--fg-3)' }}>🔤 Chữ trên hình: {k.chu_tren_hinh}</div>}
+    </div>
+  );
+}
+export function BocTachShot({ c, nhanVat }: { c: Canh; nhanVat: NhanVat[] }) {
+  // Bấm ảnh ĐẦU / CUỐI → hiện ảnh THẬT + thành phần CON BÓC TÁCH đọc từ chính ảnh đó (không phải dự kiến), ảnh + bảng cạnh nhau.
+  const [mo, setMo] = useState<'dau' | 'cuoi' | null>(null);
+  const bt = c.boc_tach;
+  const khung = ([['dau', 'đầu', c.keyframe_url], ['cuoi', 'cuối', c.keyframe_ket]] as const).filter(([, , u]) => !!u);
+  if (!khung.length) return null;
+  const urlMo = khung.find(([l]) => l === mo)?.[2];
+  const kMo = mo ? bt?.[mo] : null;
+  return (
+    <div style={{ marginTop: 6, display: 'grid', gap: 4 }}>
+      <span style={{ ...mono, fontSize: 9.5, color: 'var(--fg-3)', textTransform: 'uppercase' }}>🎬 Keyframe đầu · cuối — bấm để xem thành phần bóc ra từ ảnh</span>
+      <div style={{ display: 'flex', gap: 8 }}>{khung.map(([luc, ten, u]) => (
+        <button key={luc} type="button" onClick={() => setMo(mo === luc ? null : luc)} title={`Khung ${ten} — bấm xem thành phần bóc tách${bt?.[luc] ? '' : ' (chưa bóc)'}`}
+          style={{ padding: 2, border: `2px solid ${mo === luc ? 'var(--cyan)' : 'var(--line)'}`, borderRadius: 6, background: 'var(--bg-1)', cursor: 'pointer', display: 'grid', gap: 2, justifyItems: 'center' }}>
+          <img src={anhNho(u as string, 320)} alt="" style={{ width: 86, aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 3, background: '#000' }} />
+          <span style={{ ...mono, fontSize: 9, color: mo === luc ? 'var(--cyan)' : 'var(--fg-3)' }}>🧩 {ten}{bt?.[luc] ? '' : ' · chưa bóc'}</span>
+        </button>))}</div>
+      {mo && (
+        <div style={{ border: '1px solid var(--cyan)', borderRadius: 6, padding: 8 }}>
+          <div style={{ ...mono, color: 'var(--cyan)', textTransform: 'uppercase', marginBottom: 6, fontSize: 10 }}>🧩 Bóc TỪ ẢNH THẬT — khung {mo === 'dau' ? 'ĐẦU' : 'CUỐI'} (không phải dự kiến)</div>
+          {kMo ? (
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+              <img src={anhNho(urlMo as string, 320)} alt="" style={{ width: 150, aspectRatio: '9 / 16', objectFit: 'cover', borderRadius: 4, background: '#000', flexShrink: 0 }} />
+              <BangBocTach k={kMo} nhanVat={nhanVat} />
+            </div>
+          ) : <div style={{ fontSize: 11, color: 'var(--fg-3)' }}>Khung này chưa bóc tách. Chạy <code>boc-tach.mts --canh={c.id} --ghi</code> để đọc thành phần từ ảnh.</div>}
+        </div>
+      )}
     </div>
   );
 }

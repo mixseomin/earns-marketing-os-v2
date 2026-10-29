@@ -677,7 +677,6 @@ in_(f"LUẬT ROAS (camp ★, 2 ngày đã khép đều lỗ, cộng chi > ${ROAS
 in_("AD BỊ META TỪ CHỐI — thay creative sạch:", tu_choi)
 in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):", dau_phien, "(chưa có)")
 in_("THANG NHÂN BẢN BỘ 2 — MỞ BẢN MỚI Ở BẬC KẾ (không đổi ngân sách camp đang chạy):", thang_nb, "(chưa có)")
-in_("DỪNG ĐÊM (21h–5h, camp âm, lỗ tăng nhanh) — MÁY TẮT:", dung_dem, "(không)")
 in_("BẢN THANG LỖ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%) — CHỜ ANH TẮT:", thang_tat, "(không)")
 in_("T30 — CAMP $20 TIÊU ĐỦ + ROI > 80% TRONG 2–3 NGÀY → LÊN $30 (MÁY TỰ TĂNG — anh 28/10/2026):", tang30, "(chưa có)")
 in_(f"ĐỦ TIÊU CHÍ LÊN ROAS (lãi 30 ngày ≥ ${ROAS_LAI}, chưa có camp ★) — MÁY TỰ LÊN:", moc30, "(chưa có)")

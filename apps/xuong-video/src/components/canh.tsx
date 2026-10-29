@@ -183,7 +183,7 @@ export function DoiChieuNgan({ canhId }: { canhId: number }) {
         const daChieu = (bt?.doi_chieu?.[luc]?.length ?? 0) > 0;
         const loi = rows.filter((r) => r.muc === 'lệch' || r.muc === 'thiếu' || r.muc === 'thừa');
         const gan = rows.filter((r) => r.muc === 'gần');
-        const moDD = moDayDu[luc] ?? !daChieu;   // chưa đối chiếu → mở sẵn danh mục dự kiến; đã đối chiếu → gập, chỉ hiện khối lỗi
+        const moDD = moDayDu[luc] ?? true;   // bảng so sánh chi tiết mở SẴN (dễ hiểu — anh 30/10); khối lỗi gọn ở trên để liếc nhanh, bấm để gập bảng nếu muốn
         return (
           <div key={luc} style={{ display: 'grid', gap: 6 }}>
             <div style={{ ...mono, fontSize: 11, color: 'var(--cyan)', textTransform: 'uppercase' }}>🎬 Khung {ten} · {rows.length} thành phần{coAnh ? (daChieu ? (loi.length ? ` · ⚠ ${loi.length} lỗi${gan.length ? ` · ${gan.length} gần` : ''}` : ' · ✓ khớp dự kiến') : ' · chưa đối chiếu, bấm ⟳ Bóc tách') : ' · chưa có ảnh (chỉ dự kiến)'}</div>

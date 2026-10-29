@@ -1781,7 +1781,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
                 </div>
                 <div style={{ padding: '4px 6px', fontSize: 11, lineHeight: 1.35 }}>
                   <div style={{ color: mauTt, fontWeight: 600 }}>{chuTt}</div>
-                  <div style={{ color: 'var(--fg-2)' }}>{x.camp ? <>ROI <Roi s={x} /> · {usd(x.chi)}</> : x.nguon === 'videoexpress' ? 'kể chuyện $0' : x.creative_id ? `cr #${x.creative_id}` : '—'}</div>
+                  <div style={{ color: 'var(--fg-2)' }} title={x.ghi ?? undefined}>{ttTv(x) === 'dang_sinh' ? (x.ghi ?? 'máy đang làm') : x.camp ? <>ROI <Roi s={x} /> · {usd(x.chi)}</> : x.nguon === 'videoexpress' ? 'kể chuyện $0' : x.creative_id ? `cr #${x.creative_id}` : '—'}</div>
                 </div>
               </button>; })}
           </div>
@@ -1791,6 +1791,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
         <div style={{ display: 'grid', gap: 10 }}>
           <div><b style={{ fontSize: 15 }}>{xMo.phim ?? `phim #${xMo.content_id}`}</b><div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 2 }}>
             <BadgeDang d={xMo.dang} /> {(xMo.lang ?? '').toUpperCase()} · {xMo.giay ? `${xMo.giay.toFixed(1)}s` : ''} · {xMo.creative_id ? `cr #${xMo.creative_id}` : 'chưa lên Ethopex'} · <span style={{ color: TT_TV[ttTv(xMo)][1] }}>{TT_TV[ttTv(xMo)][0]}</span></div></div>
+          {ttTv(xMo) === 'dang_sinh' ? <div style={{ fontSize: 12, color: TT_TV.dang_sinh[1] }}>Máy sinh đang làm: {xMo.ghi ?? '…'} — tab tự làm mới mỗi phút</div> : null}
           {xMo.video ? <video key={xMo.video} src={xMo.video} controls playsInline style={{ width: '100%', maxHeight: '70vh', background: '#000', borderRadius: 6 }} /> : <EmptyState compact icon="🎞" title="Chưa có video" />}
           <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>
             {xMo.camp ? <>14 ngày: {xMo.chay}/{xMo.camp} camp đang chạy · chi <Tien v={xMo.chi} /> · lãi <LaiCot s={xMo} /> · ROI <Roi s={xMo} /></> : 'Chưa chạy camp nào.'}

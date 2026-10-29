@@ -32,17 +32,35 @@ if (existsSync(KHOA)) { const pid = Number(readFileSync(KHOA, 'utf8')); try { pr
 writeFileSync(KHOA, String(process.pid));
 const dong = () => { try { unlinkSync(KHOA); } catch { /* */ } dongPhien(); };
 
+// DÒNG "ĐANG SINH" TRÊN THƯ VIỆN (anh 29/10/2026: "nếu đang tạo video cho phim nào thì show ở etp.on.tc/?t=tv&tvt=dang_sinh"): có tập là ghi một dòng etp.thu_vien
+// theo tap_id, mỗi nhịp cập nhật bước + ảnh bìa (khung cảnh 1 VideoExpress vừa sinh); xong thì thu-vien-them.mts đổi chính dòng đó sang "sẵn sàng", hỏng 3 lần → "loai"
+const lit = (x) => `'${String(x ?? '').replace(/'/g, "''")}'`;
+const psql = (cau) => execFileSync('ssh', [B, 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -q'], { timeout: 60e3, input: cau });
+function tienDo(d) {
+  try { const x = JSON.parse(readFileSync(`${C}/${d.tap}/so.json`, 'utf8')).canh ?? {}; const v = Object.values(x);
+    return { am: v.filter((c) => c.am).length, anh: v.filter((c) => c.anh).length, vid: v.filter((c) => c.vid).length, bia: x['1']?.anhUuid ? `https://user-assets.renderplatform.com/preview/${x['1'].anhUuid}.jpg` : null }; }
+  catch { return { am: 0, anh: 0, vid: 0, bia: null }; }
+}
+function dongTv(d, tt, ghiChu) {
+  if (!d.tap) return;
+  const t = tienDo(d);
+  try { psql(`update etp.thu_vien set trang_thai = ${lit(tt)}, ghi = ${lit(ghiChu)}, anh = coalesce(${t.bia ? lit(t.bia) : 'null'}, anh), cap_nhat = now() where tap_id = ${Number(d.tap)};
+insert into etp.thu_vien (content_id, dang, lang, ten, tap_id, nguon, trang_thai, ghi, anh, chi_vnd) select ${Number(d.content_id)}, 'kể chuyện', ${lit(d.lang)}, ${lit(d.ten)}, ${Number(d.tap)}, 'videoexpress', ${lit(tt)}, ${lit(ghiChu)}, ${t.bia ? lit(t.bia) : 'null'}, ${Number(d.chi_vnd ?? 0)}
+  where not exists (select 1 from etp.thu_vien where tap_id = ${Number(d.tap)});`); }
+  catch (e) { ghi(`  không ghi được dòng thư viện: ${String(e).slice(0, 120)}`); }
+}
+const buocChu = (d) => { const t = tienDo(d); return d.buoc === 'sinh' ? `giọng ${t.am}/6 · ảnh ${t.anh}/6 · clip ${t.vid}/6` : d.buoc === 'nap' ? 'xuất thân phim' : d.buoc === 'cta' ? 'gắn thẻ cuối CTA v2' : d.buoc; };
+
 function hong(loi) {
   const d = so.dang; d.lan = (d.lan ?? 0) + 1; d.loi = String(loi).slice(0, 400);
   ghi(`✗ ${d.ten} bước ${d.buoc} (lần ${d.lan}): ${d.loi}`);
   if (d.lan >= 3) {
     so.bo.push({ content_id: d.content_id, ten: d.ten, loi: d.loi, luc: gio() });
-    const lit = (x) => `'${String(x ?? '').replace(/'/g, "''")}'`;
-    try { execFileSync('ssh', [B, 'cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -q'], { timeout: 60e3,
-      input: `insert into etp.thu_vien (content_id, dang, ten, tap_id, nguon, trang_thai, ghi) values (${Number(d.content_id)}, 'kể chuyện', ${lit(d.ten)}, ${d.tap ? Number(d.tap) : 'null'}, 'videoexpress', 'loai', ${lit(`máy sinh bỏ sau 3 lần hỏng: ${d.loi.slice(0, 200)}`)});` }); }
-    catch (e) { ghi(`  không ghi được dòng loai: ${e}`); }
+    if (d.tap) dongTv(d, 'loai', `máy sinh bỏ sau 3 lần hỏng (bước ${d.buoc}): ${d.loi.slice(0, 200)}`);
+    else { try { psql(`insert into etp.thu_vien (content_id, dang, ten, nguon, trang_thai, ghi) values (${Number(d.content_id)}, 'kể chuyện', ${lit(d.ten)}, 'videoexpress', 'loai', ${lit(`máy sinh bỏ sau 3 lần hỏng (bước ${d.buoc}): ${d.loi.slice(0, 200)}`)});`); } catch (e) { ghi(`  không ghi được dòng loai: ${e}`); } }
     ghi(`  bỏ phim ${d.ten} sau 3 lần hỏng`); so.dang = null;
   }
+  else if (d.tap) dongTv(d, 'dang_sinh', `${buocChu(d)} · lỗi lần ${d.lan}, nhịp sau thử lại`);
   luu();
 }
 try {
@@ -61,7 +79,7 @@ try {
   if (d.buoc === 'viet') {
     const r = JSON.parse(ssh(`scripts/ethopex/viet-ke-chuyen.mts ${q(JSON.stringify(d.phim))}`, 900).split('\n').pop());
     Object.assign(d, { tap: r.tap, giong: r.giong, chi_vnd: r.chi_vnd, buoc: 'sinh', lan: 0 }); luu();
-    ghi(`  kịch bản xong (${r.chi_vnd}₫) → tập #${r.tap}`);
+    ghi(`  kịch bản xong (${r.chi_vnd}₫) → tập #${r.tap}`); dongTv(d, 'dang_sinh', 'kịch bản xong · bắt đầu sinh giọng / ảnh / clip');
   }
   if (d.buoc === 'sinh') {
     // CHỜ RENDER KHÔNG MỞ CHROME (anh 29/10/2026 "khi đợi có thể đóng br lại cho nhẹ"): đợt clip vừa gửi chưa đủ ~4,5 phút (VideoExpress render ~4 phút) → nhịp này bỏ qua
@@ -72,6 +90,7 @@ try {
     const out = r.stdout || '';
     ghi(`  sinh: ${out.trim().split('\n').filter((l) => /✓|→|✗|chưa đủ/.test(l)).slice(-4).join(' · ')}`);
     if (/→ gửi clip/.test(out)) d.gui_luc = Date.now();
+    dongTv(d, 'dang_sinh', r.status === 0 ? 'đủ 6 cảnh · xuất thân phim' : buocChu(d));
     if (r.status === 0) { d.buoc = 'nap'; d.lan = 0; delete d.gui_luc; luu(); } else if (/chưa đủ/.test(out)) { ghi('  chưa đủ clip — nhịp sau thu tiếp'); luu(); dong(); process.exit(0); } else throw new Error((r.stderr || out || 'vx-ke-chuyen lỗi').slice(-400));
   }
   if (d.buoc === 'nap') {
@@ -80,7 +99,7 @@ try {
     const ra = ssh(`scripts/ethopex/vx-nap-tap.mts ${d.tap} /var/tmp/vx-kc/${d.tap} 2>&1`, 1500);
     const url = /✓ MP4 [\d.]+s → (\S+)/.exec(ra)?.[1];
     if (!url) throw new Error(`xuất không ra MP4: ${ra.slice(-300)}`);
-    Object.assign(d, { url, buoc: 'cta', lan: 0 }); luu(); ghi(`  xuất thân phim: ${url}`);
+    Object.assign(d, { url, buoc: 'cta', lan: 0 }); luu(); ghi(`  xuất thân phim: ${url}`); dongTv(d, 'dang_sinh', buocChu(d));
   }
   if (d.buoc === 'cta') {
     const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--cta=${d.url}`], 15 * 60);

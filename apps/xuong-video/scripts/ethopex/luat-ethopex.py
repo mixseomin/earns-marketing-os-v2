@@ -605,10 +605,13 @@ def _xet_luat():
            ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("dung_dem", dung_dem), ("tat_roas", tat_roas))}
     giam_tu = q("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'") != "false"
     f = lambda v, dv="": "—" if v is None else (f"{v:+.0f}%" if dv == "%" else f"${v:.2f}" if dv == "$" else f"{v:g}{dv}")
-    def L(ma, ten, mo_ta, dk, vao_ds=None, ghi=None, ap=True, tien=0):
+    def L(ma, ten, mo_ta, dk, vao_ds=None, ghi=None, ap=True, tien=0, lo=None):
         # tien = số điều kiện TIỀN ĐỀ đứng đầu dk (camp có thuộc diện luật không: đáy $1 không giảm được, đã qua 2 ngày đầu…) — hỏng một cái là 'khong_ap', không gọi là 'gần'
         ap = ap and all(x[3] for x in dk[:tien]); thieu = sum(1 for x in dk if not x[3])
-        return {"ma": ma, "ten": ten, "mo_ta": mo_ta, "dk": dk, "ket": ("khong_ap" if not ap else "dat" if thieu == 0 else "gan" if thieu == 1 else "xa"), "vao": vao_ds, "ghi": ghi}
+        # lo = camp có đang LỖ trong khung của luật tắt không (anh 29/10/2026 sau L4: camp lãi +177% hiện thẻ "L4 gần chạm" vì đủ ngày + đủ chi, chỉ thiếu điều kiện ROI
+        # — rồi máy thay camp coi là sắp tắt). Luật tắt: camp đang lãi thì KHÔNG bao giờ là 'gần', chỉ 'xa'
+        ket = "khong_ap" if not ap else "dat" if thieu == 0 else "gan" if thieu == 1 and lo is not False else "xa"
+        return {"ma": ma, "ten": ten, "mo_ta": mo_ta, "dk": dk, "ket": ket, "vao": vao_ds, "ghi": ghi}
     ra = {}
     for cid in sorted(_dc):
         a = thang.get(cid) or thang.get(str(cid)) or {"chi": 0.0, "thu": 0.0, "budget": 0.0}
@@ -634,7 +637,7 @@ def _xet_luat():
         ls.append(L("t2", "T2 · tắt sau 2 ngày đầu", f"Camp vừa hết 2 ngày có chi đầu tiên (2–3 ngày đã khép có chi), 2 ngày đầu chi ≥ ${T2_CHI:g} và ROI < {T2_ROI}%, mọi ngày đã khép vẫn < {T2_ROI}% → máy tắt hẳn.",
             [["Số ngày đã khép có chi", f"{len(ds2)} ngày", "2–3 ngày", 2 <= len(ds2) <= 3], ["Chi 2 ngày đầu", f(c2, "$"), f"≥ ${T2_CHI:g}", c2 >= T2_CHI],
              ["ROI 2 ngày đầu", f(r2, "%"), f"< {T2_ROI}%", r2 is not None and r2 < T2_ROI], ["ROI mọi ngày đã khép", f(ra_, "%"), f"< {T2_ROI}%", ra_ is not None and ra_ < T2_ROI]],
-            "tat2" if int(cid) in vao["tat2"] else None, tien=1))
+            "tat2" if int(cid) in vao["tat2"] else None, tien=1, lo=(r2 is not None and r2 < 0) or (ra_ is not None and ra_ < 0)))
         # D24 — khoảng dừng > 24 giờ
         _g = _ng.get(int(cid), [None, []])[1] if "_ng" in globals() else []
         _th = [x for x in ([_g[0][0] + dt.timedelta(days=i) for i in range((_hq - _g[0][0]).days + 1)] if _g else []) if x not in {y[0] for y in _g}]
@@ -650,7 +653,7 @@ def _xet_luat():
         _x7 = [x for x in _g if x[0] in _d7] if "_d7" in globals() else []; _c7, _t7_ = sum(x[1] for x in _x7), sum(x[2] for x in _x7); _r7 = (_t7_ - _c7) / _c7 * 100 if _c7 >= 0.3 else None
         ls.append(L("l4", "L4 · lỗ đều ≥ 4 ngày", f"7 ngày đã khép: chi ≥ ${L4_CHI:g}, ≥ {L4_NGAY} ngày có chi, ROI < {L4_ROI}% → máy tắt hẳn (bắt camp $1 lỗ đều mà L3 / T2 / OFF bỏ lọt — anh 29/10/2026, thay L7).",
             [["Ngày có chi (7 ngày đã khép)", f"{len(_x7)} ngày", f"≥ {L4_NGAY}", len(_x7) >= L4_NGAY], ["Chi 7 ngày", f(_c7, "$"), f"≥ ${L4_CHI:g}", _c7 >= L4_CHI], ["ROI 7 ngày", f(_r7, "%"), f"< {L4_ROI}%", _r7 is not None and _r7 < L4_ROI]],
-            "tat_l4" if int(cid) in vao["tat_l4"] else None))
+            "tat_l4" if int(cid) in vao["tat_l4"] else None, lo=_r7 is not None and _r7 < 0))
         # L7 — ĐANG DỪNG (thay bằng L4 29/10/2026), số chỉ để đối chiếu
         ls.append(L("l7", "L7 · lỗ đều 7 ngày (ĐANG DỪNG)", f"Đã dừng từ 29/10, thay bằng L4. Số chỉ để đối chiếu: chi ≥ ${L7_CHI:g}, ≥ {L7_NGAY} ngày có chi, ROI < {L7_ROI}%.",
             [["Ngày có chi (7 ngày đã khép)", f"{len(_x7)} ngày", f"≥ {L7_NGAY}", len(_x7) >= L7_NGAY], ["Chi 7 ngày", f(_c7, "$"), f"≥ ${L7_CHI:g}", _c7 >= L7_CHI], ["ROI 7 ngày", f(_r7, "%"), f"< {L7_ROI}%", _r7 is not None and _r7 < L7_ROI]],
@@ -658,7 +661,7 @@ def _xet_luat():
         # OFF — tắt camp lỗ lâu
         ls.append(L("off", "OFF · tắt camp lỗ lâu", "Camp đủ 7 ngày tuổi, tiêu > $10 từ trước tới nay mà ROI < −50% → máy tắt (báo Telegram trước một nhịp).",
             [["Tuổi", f"{tuoi} ngày" if tuoi is not None else "—", f"≥ {TUOI_TAT} ngày", tuoi is not None and tuoi >= TUOI_TAT], ["Chi từ trước tới nay", f(tr["chi"] if tr else 0, "$"), "> $10", bool(tr and tr["chi"] > 10)],
-             ["ROI từ trước tới nay", f(rtr, "%"), "< −50%", rtr is not None and rtr < -50]], "tat" if int(cid) in vao["tat"] else None))
+             ["ROI từ trước tới nay", f(rtr, "%"), "< −50%", rtr is not None and rtr < -50]], "tat" if int(cid) in vao["tat"] else None, lo=rtr is not None and rtr < 0))
         # T7 — đang dừng
         a7 = _r7.get(int(cid)) if isinstance(_r7, dict) else None
         ls.append(L("t7", "T7 · lãi 7 ngày (ĐANG DỪNG)", "Đã dừng từ 27/10, thay bằng T2. Số chỉ để đối chiếu: 7 ngày đã khép lãi < −$1, chi > $5, > 3 ngày bật.",

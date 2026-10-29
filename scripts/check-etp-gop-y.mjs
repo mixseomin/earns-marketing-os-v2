@@ -56,6 +56,8 @@ const LUAT = [
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "{ khoa: 'tat_l4', tep: 'ethopex-tat-l4.json'", cam: "khoa: 'tat_l7'", vi: 'worker tắt theo L4, không còn đường tắt L7' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'T30N_ROI, T30N_SP, T30N_NGAY = 50, 60, 5', vi: 'T30 camp thường nới (anh 29/10/2026 "Nới đi"): 5 ngày ROI ≥ 50%, chi TB ≥ 60% ngân sách' },
   // CAMP THAY THẾ (anh 29/10/2026): phim còn 1 camp sắp tắt → lên camp thay ngay, rút kinh nghiệm, lên theo bộ định dạng, dòng mờ trên Cây
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'else "gan" if thieu == 1 and lo is not False else "xa"', vi: 'luật tắt: camp đang lãi không bao giờ "gần chạm" (L4 hiện trên camp +177%, 29/10/2026)' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'ghi="camp cũ không còn sắp tắt"', vi: 'camp thay tự huỷ khi camp cũ hết sắp tắt' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'TAT_MA = ("l3", "l4", "t2", "off", "d24")', vi: 'camp thay: sắp tắt = luật tắt hẳn đạt / gần chạm' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'for x in ung_vien(content, c0.get("creative_id"), bh["huong"])', vi: 'camp thay chọn creative theo hướng rút kinh nghiệm (chẩn đoán camp cũ)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'nhom.setdefault(x.get("dang") or "?", [])', vi: 'camp thay lên theo bộ: mỗi dạng một camp' },

@@ -31,6 +31,7 @@ s_ = lambda t: str(t or "").replace("'", "''")
 def _nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(D, tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 
+SAP = set()
 def can_thay():
     """phim chỉ còn 1 camp chạy + camp đó sắp tắt → [{content_id, camp_id, ly}]"""
     ds = qj("""select c.content_id, c.camp_id from etp.camp c where c.trang_thai = 'ACTIVE' and coalesce(c.content_id, 0) > 0 and c.ten not like '★%'
@@ -84,6 +85,10 @@ def ung_vien(content, cr_cu, huong):
     elif huong == "giu": ds.sort(key=lambda x: (float(x.get("tu") or 0) > tu0, float(x.get("tu") or 0)), reverse=True)
     else: ds.sort(key=lambda x: int(x["creative_id"]), reverse=True)
     return ds
+
+def bo_hang_cat(content):
+    """dòng thay bị huỷ → gỡ luôn khỏi hàng cắt góc mới nếu do máy thay xếp (cờ thay) — iMac khỏi cắt góc cho phim không còn cần"""
+    if THAT: q(f"update xv_khoa_ngoai set gia_tri = gia_tri - '{int(content)}' where ten='ethopex_can_goc_moi' and (gia_tri->'{int(content)}'->>'thay')::boolean is true")
 
 def ghi(id_, **k):
     sets = ", ".join(f"{c} = " + ("null" if v is None else f"'{s_(json.dumps(v, ensure_ascii=False))}'::jsonb" if c in ("bai_hoc", "bo_camp") else str(int(v)) if c in ("creative_id", "camp_moi") else f"'{s_(v)}'") for c, v in k.items())
@@ -144,22 +149,26 @@ def lam(r, NB):
 def main():
     NB = _nap("nb", "nhan-ban.py")
     bao, moi = [], 0
+    global SAP; CAN = can_thay(); SAP = {int(x["camp_id"]) for x in CAN}
     # 4. camp thay đã chạy → xong; phim đã có camp khác chạy (ngoài camp cũ) → huỷ
     for r in qj("select id, content_id, camp_cu, buoc, camp_moi, ghi from etp.thay_the where buoc not in ('chay', 'huy')"):
         # xong khi camp thay đầu tiên đã có chi VÀ không còn dạng nào đang chờ chấm (ghi rỗng) — còn chờ thì nhịp sau vẫn thử lên nốt dạng đó
         if r.get("camp_moi") and not (r.get("ghi") or "").strip() and q(f"select 1 from etp.camp c join etp.so_ngay n using (camp_id) where c.camp_id = {int(r['camp_moi'])} and n.chi > 0 limit 1"):
             ghi(r["id"], buoc="chay"); continue
         if r["buoc"] != "len_lich" and q(f"select count(*) from etp.camp where trang_thai = 'ACTIVE' and content_id = {int(r['content_id'])} and camp_id <> {int(r['camp_cu'])}") not in ("", "0"):
-            ghi(r["id"], buoc="huy", ghi="phim đã có camp khác đang chạy")
+            ghi(r["id"], buoc="huy", ghi="phim đã có camp khác đang chạy"); bo_hang_cat(r["content_id"]); continue
+        # camp cũ vẫn chạy mà không còn sắp tắt (luật hết 'gần' — vd sửa 29/10/2026: camp lãi bị xếp "L4 gần chạm") và chưa lên camp thay nào → huỷ
+        if r["buoc"] != "len_lich" and int(r["camp_cu"]) not in SAP and q(f"select 1 from etp.camp where camp_id = {int(r['camp_cu'])} and trang_thai = 'ACTIVE'"):
+            ghi(r["id"], buoc="huy", ghi="camp cũ không còn sắp tắt"); bo_hang_cat(r["content_id"])
     # 1. phim mới cần thay
-    for x in can_thay():
+    for x in CAN:
         if q(f"select 1 from etp.thay_the where content_id = {int(x['content_id'])} and buoc not in ('chay', 'huy')"): continue
         moi += 1
         if THAT: q(f"insert into etp.thay_the (content_id, camp_cu, ghi) values ({int(x['content_id'])}, {int(x['camp_id'])}, '{s_(x['ly'])}') on conflict do nothing")
         else: bao.append(f"[khô] mở dòng thay phim {x['content_id']} (#{x['camp_id']}: {x['ly']})")
     # 2–3. mọi dòng chưa xong: còn dạng chưa lên (theo bộ) / chờ chấm / chờ cắt
     ds = qj("select id, content_id, camp_cu, buoc, bai_hoc, bo_camp from etp.thay_the where buoc in ('chuan_bi', 'cat_goc', 'cho_cham', 'len_lich') order by id")
-    if not THAT: ds += [{"id": 0, "content_id": x["content_id"], "camp_cu": x["camp_id"], "buoc": "chuan_bi", "bai_hoc": {}, "bo_camp": []} for x in can_thay()
+    if not THAT: ds += [{"id": 0, "content_id": x["content_id"], "camp_cu": x["camp_id"], "buoc": "chuan_bi", "bai_hoc": {}, "bo_camp": []} for x in CAN
                         if not any(int(d["content_id"]) == int(x["content_id"]) for d in ds)]
     for r in ds:
         try: bao.append(lam(r, NB))

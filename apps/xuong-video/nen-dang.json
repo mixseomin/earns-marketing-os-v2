@@ -150,8 +150,8 @@
         3
       ],
       "duong": "os",
-      "dieu_phoi": "dang-short",
-      "ham": "dang-short.mjs dangTikTok (máy ảo Android os tiktok1)",
+      "dieu_phoi": "dang-may",
+      "ham": "dang-br.mjs dangTikTok (máy ảo Android os theo cấu hình kênh avd + handle; Front Porch gọi qua dang-short.mjs)",
       "ho": "tiktok",
       "ten": "TikTok video (máy ảo Android)",
       "co": true

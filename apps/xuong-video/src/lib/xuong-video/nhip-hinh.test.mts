@@ -83,4 +83,10 @@ const { KET_SAU_KHI } = await import('./ho-so');
 assert.equal(moTaNuocDoi('a flat orange card / card holder lying on the desk'), 'orange card / card holder');
 assert.equal(moTaNuocDoi('an orange leather card holder with a pale blue card in its window'), null);
 assert.ok(KET_SAU_KHI.test('Tango and Lint after a high-five') && KET_SAU_KHI.test('sau khi đập tay') && !KET_SAU_KHI.test('rolling on into the dark after the gummy'));
+{ // CẮT KHỚP HÌNH: trùng cỡ + trùng chuyển động là cố ý → không báo, không đổi máy
+  const ds = [{ id: 1, thu_tu: 1, ky_thuat: { co_canh: 'cu', chuyen_dong: 'day_vao' } }, { id: 2, thu_tu: 2, ky_thuat: { co_canh: 'cu', chuyen_dong: 'day_vao', chuyen_canh: 'cat_khop' } }];
+  assert.deepEqual(kiemNhipHinh(ds), []);
+  assert.deepEqual(daDangMay(ds), []);
+  assert.equal(kiemNhipHinh([ds[0]!, { ...ds[1]!, ky_thuat: { co_canh: 'cu', chuyen_dong: 'day_vao' } }]).length, 1, 'không cắt khớp thì vẫn báo');
+}
 console.log('nhip-hinh.test: ok');

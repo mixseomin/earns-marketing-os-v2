@@ -1,0 +1,1980 @@
+{
+ "tomTat": "Đêm lũ ở miền Trung, bé Na cùng ông nội cứu lúa, cứu gà và chặn nước ở cửa; mỗi hành động của Na cắt khớp sang Sơn Tinh dâng núi chặn Thủy Tinh. Bình minh nước rút, gà gáy trên nóc nhà như gà chín cựa, bóng Sơn Tinh hiện trong vũng nước.",
+ "ho_so": {
+  "thoi_gian": "Một đêm mùa lũ: chiều 17:00 nắng vàng → tối 19:30 mưa xanh lạnh → đêm 21:00 đỉnh lũ dưới đèn dầu → bình minh 5:45 vàng. Truyền thuyết luôn ở bình minh / bão.",
+  "duong_di": "Đất Văn Lang (truyền thuyết) ↔ Nhà ông Bảy: sân → cửa → gác → sân",
+  "motif": "Mắt Sơn Tinh = mắt Na · gà chín cựa = gà Cựa · dâng núi = đặt gạch / núi đá · dải lụa vàng = áo mưa vàng · nước luôn tràn trái → phải, rút phải → trái",
+  "cung": "Tò mò (2) → lo (-2) → đỉnh hồi hộp (-3) → thắng (3) → ấm (4) → tự hào (5)"
+ },
+ "beats": [
+  {
+   "ten": "Hook",
+   "mo_ta": "Truyền thuyết mở: hai thần, gà chín cựa, Thủy Tinh dâng nước",
+   "cam_xuc": 2
+  },
+  {
+   "ten": "Setup",
+   "mo_ta": "Cắt khớp mặt: Na chơi làm Sơn Tinh, xếp núi đá; ông thấy sông lên",
+   "cam_xuc": 1
+  },
+  {
+   "ten": "Inciting",
+   "mo_ta": "Đêm, nước tràn sân; cứu lúa, cứu gà",
+   "cam_xuc": -2
+  },
+  {
+   "ten": "Climax",
+   "mo_ta": "Ông kiệt sức; Na chặn nước — mỗi hành động khớp với Sơn Tinh dâng núi",
+   "cam_xuc": 3
+  },
+  {
+   "ten": "Low",
+   "mo_ta": "Khoảng lặng trên gác, ấm lại",
+   "cam_xuc": 4
+  },
+  {
+   "ten": "Resolution",
+   "mo_ta": "Bình minh: nước rút, gà gáy, núi đá còn, bóng Sơn Tinh trong vũng nước",
+   "cam_xuc": 5
+  }
+ ],
+ "phanCanh": [
+  {
+   "ten": "Truyền thuyết: hai thần",
+   "beat": "Hook",
+   "muc_tieu": "Sơn Tinh cưới được Mỵ Nương",
+   "xung_dot": "Thủy Tinh đến muộn, dâng nước báo thù",
+   "an_y": "",
+   "nhip": "nhanh",
+   "cam_xuc_dau": 1,
+   "cam_xuc_cuoi": 2,
+   "intro": false,
+   "gag": [],
+   "noi": "Đất Văn Lang",
+   "luc": "Truyền thuyết – bình minh thời Hùng Vương",
+   "gia_tri_doi": "yên → chiến tranh nước và núi",
+   "diem_xoay": "Thủy Tinh không chịu thua, dâng nước",
+   "nhip_hd": [
+    "hai thần cầu hôn",
+    "Sơn Tinh dâng gà chín cựa",
+    "Thủy Tinh dâng lũ",
+    "Sơn Tinh nhìn thẳng"
+   ],
+   "hieu_ung": [],
+   "anh_sang": "tia_sang",
+   "mau": "teal_cam",
+   "mau_mo_ta": "Xanh ngọc bão + vàng nắng; khung 2.39 viền đen = thế giới truyền thuyết",
+   "nhac": "trailer_epic"
+  },
+  {
+   "ten": "Sân nhà: Na làm Sơn Tinh",
+   "beat": "Setup",
+   "muc_tieu": "Na chơi làm Sơn Tinh, xếp núi đá thật cao",
+   "xung_dot": "Sông sau nhà đang lên",
+   "an_y": "Ông lo nhưng không muốn cháu sợ",
+   "nhip": "vua",
+   "cam_xuc_dau": 2,
+   "cam_xuc_cuoi": 0,
+   "intro": false,
+   "gag": [],
+   "noi": "Nhà ông Bảy",
+   "luc": "CHIỀU – 17:00, trước lũ",
+   "gia_tri_doi": "vô tư chơi → biết lũ sắp tới",
+   "diem_xoay": "Ông nói nước tới tối nay",
+   "nhip_hd": [
+    "mặt Sơn Tinh → mặt Na",
+    "xếp núi đá",
+    "ông nhìn sông",
+    "Na quyết tâm"
+   ],
+   "hieu_ung": [],
+   "anh_sang": "hoang_hon",
+   "mau": "am",
+   "mau_mo_ta": "Nắng chiều vàng ấm rồi lạnh dần khi mây kéo tới",
+   "nhac": "guitar_moc"
+  },
+  {
+   "ten": "Nước lên",
+   "beat": "Inciting",
+   "muc_tieu": "Cứu lúa và gà khỏi nước",
+   "xung_dot": "Nước tràn sân, ông già yếu",
+   "an_y": "",
+   "nhip": "nhanh",
+   "cam_xuc_dau": -1,
+   "cam_xuc_cuoi": -2,
+   "intro": false,
+   "gag": [],
+   "noi": "Nhà ông Bảy",
+   "luc": "TỐI – 19:30, mưa to, nước tràn sân",
+   "gia_tri_doi": "an toàn → nước vào nhà",
+   "diem_xoay": "Nước nuốt chân núi đá của Na",
+   "nhip_hd": [
+    "nước bò qua sân = sóng Thủy Tinh",
+    "ông vác lúa",
+    "Na ôm gà = gà chín cựa"
+   ],
+   "hieu_ung": [],
+   "anh_sang": "gio_xanh",
+   "mau": "lanh",
+   "mau_mo_ta": "Xanh lạnh của mưa đêm, một đốm đèn dầu ấm",
+   "nhac": "drone"
+  },
+  {
+   "ten": "Na dâng núi",
+   "beat": "Climax",
+   "muc_tieu": "Chặn nước ở cửa",
+   "xung_dot": "Ông hết sức, nước liếm mép hàng bao",
+   "an_y": "",
+   "nhip": "nhanh",
+   "cam_xuc_dau": -3,
+   "cam_xuc_cuoi": 3,
+   "intro": false,
+   "gag": [],
+   "noi": "Nhà ông Bảy",
+   "luc": "ĐÊM – 21:00, nước lên đỉnh",
+   "gia_tri_doi": "sắp mất nhà → giữ được",
+   "diem_xoay": "Người lớn gục, đứa trẻ đứng lên",
+   "nhip_hd": [
+    "ông rơi bao lúa",
+    "Na xắn tay",
+    "đặt gạch = dâng núi",
+    "xếp bao = sóng đập vách",
+    "nước dừng (lặng)",
+    "nâng bao vàng = vác đồi",
+    "ngồi phịch xuống"
+   ],
+   "hieu_ung": [],
+   "anh_sang": "den_thuc",
+   "mau": "lanh",
+   "mau_mo_ta": "Cắt xen nhanh dần giữa lạnh-xanh (thật) và vàng-ngọc (truyền thuyết); kết bằng lặng",
+   "nhac": "trailer_epic"
+  },
+  {
+   "ten": "Đêm trên gác",
+   "beat": "Low",
+   "muc_tieu": "Nghỉ sau trận",
+   "xung_dot": "Mệt, ướt lạnh",
+   "an_y": "",
+   "nhip": "cham",
+   "cam_xuc_dau": 3,
+   "cam_xuc_cuoi": 4,
+   "intro": false,
+   "gag": [],
+   "noi": "Nhà ông Bảy",
+   "luc": "KHUYA – trên gác, mưa nhỏ dần",
+   "gia_tri_doi": "kiệt sức → ấm áp tự hào",
+   "diem_xoay": "Ông gọi cháu là Sơn Tinh",
+   "nhip_hd": [
+    "quấn khăn",
+    "Na cười tựa vai",
+    "đèn dầu"
+   ],
+   "hieu_ung": [],
+   "anh_sang": "den_thuc",
+   "mau": "am",
+   "mau_mo_ta": "Chuyển hẳn sang ấm: đèn dầu",
+   "nhac": "piano"
+  },
+  {
+   "ten": "Bình minh: gà gáy",
+   "beat": "Resolution",
+   "muc_tieu": "Thấy mình đã thắng",
+   "xung_dot": "—",
+   "an_y": "",
+   "nhip": "vua",
+   "cam_xuc_dau": 4,
+   "cam_xuc_cuoi": 5,
+   "intro": false,
+   "gag": [],
+   "noi": "Nhà ông Bảy",
+   "luc": "BÌNH MINH – 5:45, nước rút",
+   "gia_tri_doi": "sau lũ → huyền thoại riêng của Na",
+   "diem_xoay": "Bóng Sơn Tinh hiện trong vũng nước",
+   "nhip_hd": [
+    "nước rút, núi đá còn",
+    "gà gáy = gà chín cựa gáy",
+    "Na chạy ra núi",
+    "vũng nước phản chiếu",
+    "toàn cảnh + tựa"
+   ],
+   "hieu_ung": [],
+   "anh_sang": "hoang_hon",
+   "mau": "am",
+   "mau_mo_ta": "Vàng bình minh ở cả hai thế giới — lần đầu hai bảng màu trùng nhau",
+   "nhac": "trailer_epic"
+  }
+ ],
+ "canh": [
+  {
+   "canh": "[Truyền thuyết] Biển mây, núi đá vôi",
+   "goc_may": "EWS, máy cẩu chậm lên qua biển mây",
+   "hanh_dong": "Dãy núi đá vôi nhô khỏi biển mây và biển bão, mở thế giới truyền thuyết.",
+   "loi_thoai": "",
+   "am_thanh": "deep wind, distant rolling thunder, low choir drone",
+   "thoi_luong_s": 6,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Đất Văn Lang"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Extreme wide shot: jagged limestone peaks rising out of a sea of clouds above an endless stormy ocean, a tiny stilt palace far away, first gold light breaking through teal storm clouds.",
+   "prompt_video": "Slow crane up over the sea of clouds, mist rolling between peaks, distant thunder; no characters.",
+   "phan_doan": "Truyền thuyết: hai thần",
+   "cam_xuc": 1,
+   "ky_thuat": {
+    "luat": [
+     "dan_khong_gian",
+     "dan_thoi_gian"
+    ],
+    "vai": "thiet_lap",
+    "co_canh": "ews",
+    "goc": "ngang",
+    "chuyen_dong": "cau",
+    "ong_kinh": "anamorphic",
+    "anh_sang": "tia_sang",
+    "mau": "teal_cam",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "gio",
+     "sam"
+    ],
+    "nhac": "trailer_epic",
+    "hook": "am_thanh_mo"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, low female storyteller voice, unhurried, like a grandmother telling a legend",
+     "loi": "Long ago, the Mountain God and the Water God both asked for the king's daughter."
+    }
+   ],
+   "dan_dung": {
+    "bo_cuc": "foreground: drifting cloud; midground: limestone peaks; background: stormy sea and gold light",
+    "mo": "empty legend landscape at first light",
+    "ket": "same, camera higher, more peaks revealed",
+    "huong": "camera rises, no screen direction",
+    "muc_dich": "Mở thế giới truyền thuyết: rộng, cổ, hùng vĩ — khán giả biết đây là chuyện kể.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Truyền thuyết] Thủy Tinh cưỡi sóng",
+   "goc_may": "WS góc thấp, máy cầm tay rung nhẹ",
+   "hanh_dong": "Thủy Tinh cưỡi đỉnh sóng khổng lồ lao sang phải khung, rắn biển cuộn dưới chân.",
+   "loi_thoai": "",
+   "am_thanh": "crashing surf, thunder crack",
+   "thoi_luong_s": 4,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Thủy Tinh",
+    "Đất Văn Lang"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Wide low-angle shot: the Water God in blue-green fish-scale armor stands on the crest of a giant storm wave, hair flowing like water, a sea serpent coiled beneath, lightning behind, wave surging toward screen-right.",
+   "prompt_video": "The wave surges toward screen-right, spray and rain whip across frame, the Water God raises one arm; handheld shake.",
+   "phan_doan": "Truyền thuyết: hai thần",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "luat": [
+     "gioi_thieu"
+    ],
+    "vai": "hanh_dong",
+    "co_canh": "ws",
+    "goc": "thap",
+    "chuyen_dong": "cam_tay",
+    "ong_kinh": "anamorphic",
+    "anh_sang": "tuong_phan",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua",
+     "sam"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: spray; midground: Water God on wave crest; background: lightning sky",
+    "mo": "wave rising, Water God crouched",
+    "ket": "wave cresting, arm raised",
+    "huong": "wave and god move screen-right",
+    "muc_dich": "Giới thiệu đối thủ: nước, giận, mạnh.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Truyền thuyết] Sơn Tinh dâng gà chín cựa",
+   "goc_may": "MS góc thấp, đẩy vào chậm",
+   "hanh_dong": "Bình minh, Sơn Tinh quỳ một gối dâng sính lễ: con gà chín cựa đứng trên găng tay đồng.",
+   "loi_thoai": "",
+   "am_thanh": "wind on the ledge, a single rooster cluck",
+   "thoi_luong_s": 4,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Sơn Tinh",
+    "Gà Cựa",
+    "Đất Văn Lang"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Medium low-angle shot at dawn: the young Mountain God in bronze Dong Son armor with a golden-yellow sash kneels on one knee on a mountain ledge, a proud red-and-gold rooster with nine spurs standing on his bronze gauntlet held to his chest, sunrise behind him.",
+   "prompt_video": "Slow push in; the rooster lifts its head and fluffs its feathers, the golden sash lifts in the wind.",
+   "phan_doan": "Truyền thuyết: hai thần",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "luat": [
+     "gioi_thieu",
+     "motif"
+    ],
+    "vai": "thiet_lap",
+    "co_canh": "ms",
+    "goc": "thap",
+    "chuyen_dong": "day_vao",
+    "ong_kinh": "anamorphic",
+    "anh_sang": "nguoc",
+    "mau": "teal_cam",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "gio"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, low female storyteller voice, unhurried, like a grandmother telling a legend",
+     "loi": "The Mountain God came first, with a rooster of nine spurs."
+    }
+   ],
+   "dan_dung": {
+    "bo_cuc": "foreground: rooster on gauntlet; midground: kneeling Mountain God; background: sunrise over peaks",
+    "mo": "Mountain God kneeling, rooster on gauntlet at chest",
+    "ket": "same, rooster head raised",
+    "huong": "Mountain God faces screen-left toward the unseen king",
+    "muc_dich": "Gài motif con gà: sính lễ thắng cuộc của Sơn Tinh.",
+    "motif": "gà chín cựa (gài)",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Truyền thuyết] Cựa gà lấp lánh",
+   "goc_may": "ECU insert",
+   "hanh_dong": "Cận cựa gà sáng lên dưới nắng sớm.",
+   "loi_thoai": "",
+   "am_thanh": "metal creak, feather rustle",
+   "thoi_luong_s": 4,
+   "phat_s": 2,
+   "nhan_vat": [
+    "Gà Cựa",
+    "Sơn Tinh"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Extreme close-up insert: the rooster's sharp golden spurs gripping a bronze gauntlet engraved with sun-star patterns, sunrise glint.",
+   "prompt_video": "The rooster's foot tightens on the gauntlet, a glint of light slides along the spur.",
+   "phan_doan": "Truyền thuyết: hai thần",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "luat": [
+     "motif"
+    ],
+    "vai": "chi_tiet",
+    "co_canh": "ecu",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "ong_kinh": "macro",
+    "anh_sang": "nguoc",
+    "mau": "teal_cam",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "foley"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: spurs and gauntlet fill frame",
+    "mo": "rooster foot on gauntlet",
+    "ket": "foot tightened, glint passed",
+    "huong": "static",
+    "muc_dich": "Khắc chi tiết cựa gà để cuối phim nhận ra.",
+    "motif": "cựa gà (gài)",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Truyền thuyết] Thủy Tinh dâng nước",
+   "goc_may": "WS, quét ngang sang phải",
+   "hanh_dong": "Đến muộn, Thủy Tinh nổi giận dâng nước đánh vào núi, sóng tràn sang phải khung.",
+   "loi_thoai": "",
+   "am_thanh": "roaring flood, impact boom",
+   "thoi_luong_s": 4,
+   "phat_s": 3,
+   "nhan_vat": [
+    "Thủy Tinh",
+    "Đất Văn Lang"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Wide shot: a wall of storm water rolling across a valley toward limestone mountains, the Water God riding its crest, rain and lightning, water moving screen-right.",
+   "prompt_video": "The flood wall rolls screen-right and slams into the foot of the mountains, spray exploding upward.",
+   "phan_doan": "Truyền thuyết: hai thần",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "luat": [
+     "chenh_thong_tin"
+    ],
+    "vai": "hanh_dong",
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "truot_ngang",
+    "ong_kinh": "anamorphic",
+    "anh_sang": "tuong_phan",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua",
+     "dap"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "",
+     "dien_xuat": "warm, low female storyteller voice, unhurried, like a grandmother telling a legend",
+     "loi": "The Water God came too late — and raised the floods against him."
+    }
+   ],
+   "dan_dung": {
+    "bo_cuc": "foreground: rain; midground: flood wall; background: mountains",
+    "mo": "flood rolling in from screen-left",
+    "ket": "flood hits the mountains",
+    "huong": "water moves screen-right (the direction floods move all film)",
+    "muc_dich": "Mối đe doạ: nước luôn tràn từ trái sang phải — quy ước hướng cả phim.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Truyền thuyết] Mặt Sơn Tinh",
+   "goc_may": "CU chính diện, đẩy vào",
+   "hanh_dong": "Cận mặt Sơn Tinh, mưa trên mũ đồng, ánh mắt kiên định — mắt ở giữa khung (điểm khớp cho shot sau).",
+   "loi_thoai": "",
+   "am_thanh": "rain on metal, music hits and cuts",
+   "thoi_luong_s": 4,
+   "phat_s": 3,
+   "nhan_vat": [
+    "Sơn Tinh"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Close-up, frontal, eyes on the horizontal center line of the frame: the young Mountain God's determined face under a bronze helmet, rain beading on the metal, gold light on one cheek.",
+   "prompt_video": "Slow push in; he narrows his eyes and breathes out, rain running down the helmet.",
+   "phan_doan": "Truyền thuyết: hai thần",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "luat": [
+     "eye_trace"
+    ],
+    "vai": "phan_ung",
+    "co_canh": "cu",
+    "goc": "ngang",
+    "chuyen_dong": "day_vao",
+    "ong_kinh": "chan_dung",
+    "anh_sang": "tuong_phan",
+    "mau": "teal_cam",
+    "chuyen_canh": "cat_khop",
+    "am_thanh": [
+     "mua"
+    ],
+    "nhac": "trailer_epic",
+    "dien_xuat": "dong_cung"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "single face, eyes centered horizontally, helmet rim at top third",
+    "mo": "face calm, eyes forward",
+    "ket": "eyes narrowed, determined",
+    "huong": "looking straight at lens",
+    "muc_dich": "Cắt khớp MẶT sang Na: cùng cỡ, cùng vị trí mắt — người xem hiểu Na là 'Sơn Tinh nhỏ'.",
+    "motif": "mắt (cầu nối hai thế giới)",
+    "dien": "eyes narrow slightly, slow breath out, then hold",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Mặt Na",
+   "goc_may": "CU chính diện, khớp cỡ shot trước",
+   "hanh_dong": "Cùng khung, cùng ánh mắt: mặt Na dưới mũ áo mưa vàng, nắng chiều.",
+   "loi_thoai": "",
+   "am_thanh": "music drops to soft acoustic guitar, birds, chickens",
+   "thoi_luong_s": 4,
+   "phat_s": 2.5,
+   "nhan_vat": [
+    "Na",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Close-up, frontal, eyes on the horizontal center line of the frame (exact match of previous shot): eight-year-old girl with a short black bob under the hood of an oversized yellow raincoat, determined squint, warm late-afternoon light, banana leaves soft behind.",
+   "prompt_video": "She holds the same determined squint, then breaks into a small proud grin.",
+   "phan_doan": "Sân nhà: Na làm Sơn Tinh",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "luat": [
+     "eye_trace",
+     "muon_gi_5s"
+    ],
+    "vai": "phan_ung",
+    "co_canh": "cu",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "ong_kinh": "chan_dung",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat_khop",
+    "am_thanh": [
+     "nen_phong"
+    ],
+    "nhac": "guitar_moc"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "single face, eyes centered horizontally, yellow hood at top third",
+    "mo": "squint, same as the god's",
+    "ket": "small proud grin",
+    "huong": "looking straight at lens",
+    "muc_dich": "Hé lộ: 'Sơn Tinh' là một bé gái đang chơi — tò mò + mỉm cười.",
+    "motif": "mắt (cầu nối)",
+    "dien": "hold the squint one beat, then a grin spreads",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Na xếp núi đá",
+   "goc_may": "MS, ngang tầm trẻ",
+   "hanh_dong": "Na ngồi xổm xếp sỏi sông thành 'ngọn núi' trên sân gạch; gà Cựa mổ thóc gần đó; ông Bảy vá chuồng gà phía sau.",
+   "loi_thoai": "",
+   "am_thanh": "pebbles clicking, rooster clucks",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Na",
+    "Gà Cựa",
+    "Ông Bảy",
+    "Núi đá của Na",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Medium shot at a child's eye level: the girl in the yellow raincoat squats on a swept brick yard stacking smooth grey river pebbles into a knee-high pointed cairn; a red-and-gold rooster pecks rice nearby; her thin grandfather in a conical hat repairs a bamboo chicken coop in the background; banana trees, golden afternoon.",
+   "prompt_video": "She adds a pebble, the cairn wobbles, she steadies it with both hands; the rooster hops closer.",
+   "phan_doan": "Sân nhà: Na làm Sơn Tinh",
+   "cam_xuc": 1,
+   "ky_thuat": {
+    "luat": [
+     "dan_khong_gian",
+     "gioi_thieu",
+     "motif"
+    ],
+    "vai": "tong_the",
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "truot_ngang",
+    "ong_kinh": "chuan",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "foley",
+     "nen_phong"
+    ],
+    "nhac": "guitar_moc"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Na",
+     "dien_xuat": "whispering to herself, playing a game",
+     "loi": "Higher... higher."
+    }
+   ],
+   "dan_dung": {
+    "bo_cuc": "foreground: pebble cairn; midground: Na squatting, rooster at right; background: grandfather at the coop",
+    "mo": "cairn half built",
+    "ket": "cairn taller, steadied",
+    "huong": "Na faces screen-right toward the cairn",
+    "muc_dich": "Thế giới thật: ai, ở đâu, đang chơi gì — trò 'dâng núi'.",
+    "motif": "núi đá (gài) · gà Cựa",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Viên đá đỉnh",
+   "goc_may": "ECU insert, máy theo tay lên",
+   "hanh_dong": "Tay nhỏ đặt viên đá trắng dẹt lên đỉnh — chuyển động đi LÊN.",
+   "loi_thoai": "",
+   "am_thanh": "soft click of stone",
+   "thoi_luong_s": 4,
+   "phat_s": 2.5,
+   "nhan_vat": [
+    "Na",
+    "Núi đá của Na"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Extreme close-up insert: a small hand placing one flat white stone on top of a pointed cairn of grey river pebbles, warm backlight.",
+   "prompt_video": "The hand rises and sets the white stone on the very top; the camera tilts up with it; the cairn holds.",
+   "phan_doan": "Sân nhà: Na làm Sơn Tinh",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "luat": [
+     "motif"
+    ],
+    "vai": "chi_tiet",
+    "co_canh": "insert",
+    "goc": "ngang",
+    "chuyen_dong": "nghieng_len",
+    "ong_kinh": "macro",
+    "anh_sang": "nguoc",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "foley"
+    ],
+    "nhac": "guitar_moc"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: hand and stone; background: soft yard",
+    "mo": "hand lifting the stone",
+    "ket": "stone set on top",
+    "huong": "movement upward",
+    "muc_dich": "Hành động LÊN — gài cho cú khớp 'dâng núi'.",
+    "motif": "viên đá đỉnh (gài)",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Ông nhìn sông",
+   "goc_may": "WS, qua vai ông về phía sông",
+   "hanh_dong": "Ông Bảy đứng dậy nhìn con sông sau nhà đã đỏ ngầu và dâng cao; mây đen tụ trên núi.",
+   "loi_thoai": "",
+   "am_thanh": "rising wind, rushing river",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Ông Bảy",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Wide over-the-shoulder shot from behind the grandfather in a conical hat: the brown river behind the house swollen and fast, black clouds gathering over green mountains, the light turning cold.",
+   "prompt_video": "He straightens his sore back slowly and watches the river; wind bends the banana leaves.",
+   "phan_doan": "Sân nhà: Na làm Sơn Tinh",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "luat": [
+     "nhan_qua_huong_nhin",
+     "chenh_thong_tin"
+    ],
+    "vai": "nguoi_thu_ba",
+    "co_canh": "ots",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "ong_kinh": "chuan",
+    "anh_sang": "tuong_phan",
+    "mau": "tu_nhien",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "gio",
+     "pho"
+    ],
+    "nhac": "drone"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Ông Bảy",
+     "dien_xuat": "quiet, worried, not wanting to scare her",
+     "loi": "The water's coming tonight, Na."
+    }
+   ],
+   "dan_dung": {
+    "bo_cuc": "foreground: grandfather's shoulder and hat; midground: swollen river; background: storm over mountains",
+    "mo": "grandfather bending at the coop",
+    "ket": "grandfather upright, staring at river",
+    "huong": "grandfather looks screen-right to the river",
+    "muc_dich": "Đe doạ thật xuất hiện: nước sông lên — nhịp nhạc đổi lạnh.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Na nhìn sông rồi nhìn núi đá",
+   "goc_may": "MCU, ngang tầm",
+   "hanh_dong": "Na nhìn theo ông ra sông, rồi quay xuống ngọn núi đá của mình — quyết tâm.",
+   "loi_thoai": "",
+   "am_thanh": "wind",
+   "thoi_luong_s": 4,
+   "phat_s": 3,
+   "nhan_vat": [
+    "Na",
+    "Núi đá của Na",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Medium close-up: the girl in the yellow raincoat looks up toward the river off screen-right, wind blowing her hair, the pebble cairn just visible at the bottom of frame.",
+   "prompt_video": "She looks at the river, then down at her pebble mountain, sets her jaw.",
+   "phan_doan": "Sân nhà: Na làm Sơn Tinh",
+   "cam_xuc": 0,
+   "ky_thuat": {
+    "luat": [
+     "giu_phan_ung",
+     "nhan_qua_huong_nhin"
+    ],
+    "vai": "phan_ung",
+    "co_canh": "mcu",
+    "goc": "ngang",
+    "chuyen_dong": "day_vao",
+    "ong_kinh": "chan_dung",
+    "anh_sang": "tuong_phan",
+    "mau": "tu_nhien",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "gio"
+    ],
+    "nhac": "drone",
+    "dien_xuat": "nhan_ra"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "Na center-left, cairn bottom-right",
+    "mo": "looking screen-right toward river",
+    "ket": "looking down at cairn, jaw set",
+    "huong": "eyeline screen-right then down",
+    "muc_dich": "Na hiểu chuyện thật — muốn làm Sơn Tinh 'thật'.",
+    "motif": "núi đá",
+    "dien": "look, register, look down, set the jaw",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Nước bò qua sân",
+   "goc_may": "Insert sát đất, tĩnh",
+   "hanh_dong": "Chập tối, nước đục bò qua sân gạch từ trái sang phải, nuốt chân ngọn núi đá.",
+   "loi_thoai": "",
+   "am_thanh": "rain, lapping water",
+   "thoi_luong_s": 4,
+   "phat_s": 3,
+   "nhan_vat": [
+    "Núi đá của Na",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Ground-level insert at dusk in cold blue light and rain: muddy floodwater creeping across the brick yard from screen-left, reaching the base of the pebble cairn.",
+   "prompt_video": "The water slides screen-right and swallows the lowest pebbles; rain rings on its surface.",
+   "phan_doan": "Nước lên",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "luat": [
+     "dan_thoi_gian",
+     "motif"
+    ],
+    "vai": "thoi_gian",
+    "co_canh": "insert",
+    "goc": "sat_dat",
+    "chuyen_dong": "tinh",
+    "ong_kinh": "rong",
+    "anh_sang": "gio_xanh",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua"
+    ],
+    "nhac": "drone"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: water edge; midground: cairn; background: dark yard",
+    "mo": "dry bricks, water edge at frame left",
+    "ket": "water around the cairn base",
+    "huong": "water moves screen-right (same as the legend flood)",
+    "muc_dich": "Thời gian nhảy sang tối; nước tới — cùng hướng với lũ Thủy Tinh.",
+    "motif": "núi đá bị nước nuốt chân",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Truyền thuyết] Sóng Thủy Tinh nuốt thung lũng",
+   "goc_may": "WS, cùng hướng trái → phải",
+   "hanh_dong": "Cắt khớp hướng: sóng Thủy Tinh tràn qua thung lũng cùng chiều với nước trên sân.",
+   "loi_thoai": "",
+   "am_thanh": "flood roar",
+   "thoi_luong_s": 4,
+   "phat_s": 2.5,
+   "nhan_vat": [
+    "Thủy Tinh",
+    "Đất Văn Lang"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Wide shot: dark storm water racing across a legendary valley from screen-left to screen-right, swallowing trees and rocks, lightning flashes.",
+   "prompt_video": "The water races screen-right, same speed and direction as the yard water.",
+   "phan_doan": "Nước lên",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "luat": [
+     "khop_hanh_dong"
+    ],
+    "vai": "xen_canh",
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "truot_ngang",
+    "ong_kinh": "anamorphic",
+    "anh_sang": "nhap_nhay",
+    "mau": "lanh",
+    "chuyen_canh": "cat_khop",
+    "am_thanh": [
+     "mua",
+     "sam"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: flooded rocks; midground: racing water; background: lightning",
+    "mo": "water entering from left",
+    "ket": "valley drowned",
+    "huong": "water moves screen-right",
+    "muc_dich": "Đối chiếu: nước trên sân = cơn giận của Thủy Tinh.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Ông vác bao lúa",
+   "goc_may": "WS, máy theo",
+   "hanh_dong": "Ông Bảy vác bao lúa lội nước ngang mắt cá về phía thang gác.",
+   "loi_thoai": "",
+   "am_thanh": "splashing steps, rain on tiles",
+   "thoi_luong_s": 4,
+   "phat_s": 3,
+   "nhan_vat": [
+    "Ông Bảy",
+    "Bao lúa",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Wide tracking shot showing the whole flooded front room at night in cold blue light, rain: the thin grandfather carries a white woven rice sack on his shoulder through ankle-deep floodwater inside the doorway toward a bamboo ladder, an oil lamp glowing warm.",
+   "prompt_video": "He wades screen-left toward the ladder, staggers once, keeps going.",
+   "phan_doan": "Nước lên",
+   "cam_xuc": -2,
+   "ky_thuat": {
+    "luat": [
+     "thay_tung_buoc"
+    ],
+    "vai": "tong_the",
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "theo",
+    "ong_kinh": "chuan",
+    "anh_sang": "den_thuc",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua",
+     "buoc_chan"
+    ],
+    "nhac": "drone"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: water; midground: grandfather with sack; background: ladder and lamp",
+    "mo": "grandfather lifting sack at the door",
+    "ket": "grandfather at the ladder foot",
+    "huong": "moves screen-left, against the water",
+    "muc_dich": "Cứu lúa — ông già yếu, việc nặng.",
+    "motif": "bao lúa",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Na cứu gà",
+   "goc_may": "MS, cầm tay",
+   "hanh_dong": "Na lội vào chuồng gà ngập, ôm gà Cựa ra, giấu dưới áo mưa vàng.",
+   "loi_thoai": "",
+   "am_thanh": "rooster squawk, splashing",
+   "thoi_luong_s": 4,
+   "phat_s": 3,
+   "nhan_vat": [
+    "Na",
+    "Gà Cựa",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Medium handheld shot at night in rain: the girl in the yellow raincoat reaches into the flooded bamboo chicken coop and lifts out the red-and-gold rooster, hugging it to her chest under the raincoat.",
+   "prompt_video": "She pulls the flapping rooster out, hugs it tight to her chest; it calms.",
+   "phan_doan": "Nước lên",
+   "cam_xuc": -1,
+   "ky_thuat": {
+    "luat": [
+     "motif",
+     "khop_hanh_dong"
+    ],
+    "vai": "hanh_dong",
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "cam_tay",
+    "ong_kinh": "chuan",
+    "anh_sang": "gio_xanh",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua",
+     "foley"
+    ],
+    "nhac": "drone"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: coop bars; midground: Na and rooster; background: dark yard",
+    "mo": "Na reaching into the coop",
+    "ket": "rooster hugged to her chest",
+    "huong": "Na turns screen-left with the rooster",
+    "muc_dich": "Na cứu gà — khớp với gà chín cựa trên ngực Sơn Tinh.",
+    "motif": "gà Cựa (trả lần 1)",
+    "dien": "reach, struggle, hug, the bird settles",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Truyền thuyết] Gà chín cựa trên ngực Sơn Tinh",
+   "goc_may": "Insert, khớp tư thế",
+   "hanh_dong": "Cắt khớp: gà chín cựa áp trên ngực giáp đồng, cùng tư thế ôm.",
+   "loi_thoai": "",
+   "am_thanh": "wind, armor creak",
+   "thoi_luong_s": 4,
+   "phat_s": 2,
+   "nhan_vat": [
+    "Sơn Tinh",
+    "Gà Cựa"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Insert: the nine-spurred red-and-gold rooster held against bronze Dong Son chest armor by a bronze gauntlet, same framing as a child hugging a rooster, rain and gold rim light.",
+   "prompt_video": "The rooster settles against the armor, feathers lifting in wind.",
+   "phan_doan": "Nước lên",
+   "cam_xuc": 0,
+   "ky_thuat": {
+    "luat": [
+     "motif",
+     "khop_hanh_dong"
+    ],
+    "vai": "xen_canh",
+    "co_canh": "insert",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "ong_kinh": "anamorphic",
+    "anh_sang": "vien",
+    "mau": "teal_cam",
+    "chuyen_canh": "cat_khop",
+    "am_thanh": [
+     "gio"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "rooster center against the chest, same position as previous shot",
+    "mo": "rooster held at chest",
+    "ket": "rooster settled",
+    "huong": "static",
+    "muc_dich": "Cùng một con gà ở hai thế giới.",
+    "motif": "gà Cựa = gà chín cựa",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Nước tới bậc cửa",
+   "goc_may": "MS, ngang tầm",
+   "hanh_dong": "Nước liếm bậc cửa; ông Bảy đau lưng làm rơi bao lúa.",
+   "loi_thoai": "",
+   "am_thanh": "water spilling, a groan",
+   "thoi_luong_s": 4,
+   "phat_s": 3,
+   "nhan_vat": [
+    "Ông Bảy",
+    "Bao lúa",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Medium shot at the doorway at night: floodwater lapping over the doorstep, the grandfather bent over with a hand on his back, a rice sack dropped at his feet in the water, oil lamp behind.",
+   "prompt_video": "Water spills over the step; he winces and cannot lift the sack again.",
+   "phan_doan": "Na dâng núi",
+   "cam_xuc": -3,
+   "ky_thuat": {
+    "luat": [
+     "gia_tri_doi"
+    ],
+    "vai": "hanh_dong",
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "day_vao",
+    "ong_kinh": "chuan",
+    "anh_sang": "den_thuc",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua"
+    ],
+    "nhac": "day_cang",
+    "dien_xuat": "rung_minh"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: water over step; midground: grandfather bent; background: lamp",
+    "mo": "grandfather reaching for sack",
+    "ket": "grandfather bent, sack in water",
+    "huong": "grandfather faces screen-left",
+    "muc_dich": "Điểm xoay: người lớn hết sức — đến lượt Na.",
+    "motif": "bao lúa",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Na đặt gà lên gác, xắn tay",
+   "goc_may": "MCU, góc thấp",
+   "hanh_dong": "Na đặt gà lên gác, quay lại, xắn tay áo mưa.",
+   "loi_thoai": "",
+   "am_thanh": "sharp breath",
+   "thoi_luong_s": 4,
+   "phat_s": 2.5,
+   "nhan_vat": [
+    "Na",
+    "Gà Cựa",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Medium close-up, low angle: the girl in the yellow raincoat sets the rooster on the wooden loft edge, turns back toward the water and rolls up her sleeves, lamp light on her face.",
+   "prompt_video": "She places the rooster, turns, rolls up her sleeves with a sharp breath.",
+   "phan_doan": "Na dâng núi",
+   "cam_xuc": 1,
+   "ky_thuat": {
+    "luat": [
+     "muon_gi_5s"
+    ],
+    "vai": "phan_ung",
+    "co_canh": "mcu",
+    "goc": "thap",
+    "chuyen_dong": "nghieng_len",
+    "ong_kinh": "chan_dung",
+    "anh_sang": "den_thuc",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua"
+    ],
+    "nhac": "day_cang",
+    "dien_xuat": "nhan_ra"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "Na center, rooster top-left on loft edge",
+    "mo": "Na lifting rooster to loft",
+    "ket": "Na turned to the door, sleeves rolled",
+    "huong": "turns from screen-left to screen-right (toward the water)",
+    "muc_dich": "Na nhận vai: lấy đà cho chuỗi cao trào.",
+    "motif": "gà Cựa",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Na nâng viên gạch",
+   "goc_may": "MS góc thấp, tĩnh",
+   "hanh_dong": "Na nâng viên gạch lên đặt vào hàng chắn ngang cửa — chuyển động LÊN, giữa khung.",
+   "loi_thoai": "",
+   "am_thanh": "grunt, brick thud",
+   "thoi_luong_s": 4,
+   "phat_s": 2,
+   "nhan_vat": [
+    "Na",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Medium low-angle shot at the doorway: the girl in the yellow raincoat lifts a heavy red brick with both hands above waist height to place it on a low row of bricks blocking the doorway, water behind her.",
+   "prompt_video": "She heaves the brick upward and sets it on the row, centered in frame.",
+   "phan_doan": "Na dâng núi",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "luat": [
+     "khop_hanh_dong",
+     "eye_trace"
+    ],
+    "vai": "hanh_dong",
+    "co_canh": "ms",
+    "goc": "thap",
+    "chuyen_dong": "day_vao",
+    "ong_kinh": "chuan",
+    "anh_sang": "den_thuc",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "dap"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "Na center, brick rising through frame center",
+    "mo": "brick at knee height",
+    "ket": "brick placed on the row",
+    "huong": "upward motion in frame center",
+    "muc_dich": "Hành động LÊN ở giữa khung — cắt khớp sang Sơn Tinh dâng núi.",
+    "motif": "viên gạch = núi",
+    "dien": "anticipation: crouch; action: heave up; settle: brick lands",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Truyền thuyết] Sơn Tinh dâng núi",
+   "goc_may": "WS góc thấp, cẩu lên",
+   "hanh_dong": "Cắt khớp: Sơn Tinh giơ hai tay, một dãy núi trồi lên giữa khung cùng nhịp lên.",
+   "loi_thoai": "",
+   "am_thanh": "earth rumble, boom",
+   "thoi_luong_s": 4,
+   "phat_s": 2,
+   "nhan_vat": [
+    "Sơn Tinh",
+    "Đất Văn Lang"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Wide low-angle shot: the Mountain God raises both arms and a ridge of limestone rock surges up from the ground in the center of the frame, his golden-yellow sash whipping, storm water at its foot.",
+   "prompt_video": "Both arms lift and the mountain ridge rises upward in the center of frame, rocks raining off it.",
+   "phan_doan": "Na dâng núi",
+   "cam_xuc": 3,
+   "ky_thuat": {
+    "luat": [
+     "khop_hanh_dong",
+     "eye_trace"
+    ],
+    "vai": "xen_canh",
+    "co_canh": "ws",
+    "goc": "thap",
+    "chuyen_dong": "cau",
+    "ong_kinh": "anamorphic",
+    "anh_sang": "tia_sang",
+    "mau": "teal_cam",
+    "chuyen_canh": "cat_khop",
+    "am_thanh": [
+     "dap",
+     "rung"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "Mountain God foreground-left, rising ridge center",
+    "mo": "ground flat, arms low",
+    "ket": "ridge risen, arms high",
+    "huong": "upward motion in frame center",
+    "muc_dich": "Bé đặt gạch = thần dâng núi — khán giả thấy Na qua mắt huyền thoại.",
+    "motif": "dâng núi",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Hai ông cháu xếp bao cát",
+   "goc_may": "MS, cầm tay",
+   "hanh_dong": "Na và ông chèn bao lúa, bao đất vào chân hàng gạch, nước đẩy vào.",
+   "loi_thoai": "",
+   "am_thanh": "splash, effort breaths",
+   "thoi_luong_s": 4,
+   "phat_s": 2.5,
+   "nhan_vat": [
+    "Na",
+    "Ông Bảy",
+    "Bao lúa",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Medium handheld shot in rain at night: the girl and her grandfather pushing sacks against the low brick wall at the doorway, muddy water pressing against it from outside.",
+   "prompt_video": "They shove the sacks together, water slaps against them.",
+   "phan_doan": "Na dâng núi",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "luat": [
+     "khop_hanh_dong"
+    ],
+    "vai": "hanh_dong",
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "cam_tay",
+    "ong_kinh": "chuan",
+    "anh_sang": "den_thuc",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua",
+     "foley"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: sacks; midground: Na and grandfather side by side; background: rain",
+    "mo": "sacks loose",
+    "ket": "sacks packed against the bricks",
+    "huong": "water pushes from screen-left",
+    "muc_dich": "Hai ông cháu cùng giữ — nhịp nhanh dần.",
+    "motif": "bao lúa",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Truyền thuyết] Sóng đập vách núi",
+   "goc_may": "EWS",
+   "hanh_dong": "Sóng Thủy Tinh đập vào vách, núi cao thêm sau mỗi đợt.",
+   "loi_thoai": "",
+   "am_thanh": "wave impact, thunder",
+   "thoi_luong_s": 4,
+   "phat_s": 2,
+   "nhan_vat": [
+    "Sơn Tinh",
+    "Thủy Tinh",
+    "Đất Văn Lang"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Extreme wide shot: towering storm waves crashing against limestone cliffs that keep rising, the tiny figure of the Mountain God on top, lightning.",
+   "prompt_video": "A wave slams the cliff, the cliff grows another step higher.",
+   "phan_doan": "Na dâng núi",
+   "cam_xuc": 3,
+   "ky_thuat": {
+    "luat": [
+     "khop_hanh_dong"
+    ],
+    "vai": "xen_canh",
+    "co_canh": "ews",
+    "goc": "ngang",
+    "chuyen_dong": "day_vao",
+    "ong_kinh": "anamorphic",
+    "anh_sang": "nhap_nhay",
+    "mau": "teal_cam",
+    "chuyen_canh": "xen_ke",
+    "am_thanh": [
+     "dap",
+     "sam"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: waves; midground: cliffs; background: lightning",
+    "mo": "wave rising",
+    "ket": "cliff higher after impact",
+    "huong": "water moves screen-right into the cliff",
+    "muc_dich": "Nước càng dâng núi càng cao — nhịp đỉnh.",
+    "motif": "dâng núi",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Nước dừng ở mép bao",
+   "goc_may": "Insert sát đất",
+   "hanh_dong": "Nước liếm tới mép trên hàng bao — và dừng.",
+   "loi_thoai": "",
+   "am_thanh": "music stops, only lapping water",
+   "thoi_luong_s": 4,
+   "phat_s": 2,
+   "nhan_vat": [
+    "Bao lúa",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Ground-level insert: muddy water lapping at the very top edge of a row of rice sacks and bricks at a doorway, lamp light reflected, rain.",
+   "prompt_video": "The water rises to the top edge, trembles, and stops.",
+   "phan_doan": "Na dâng núi",
+   "cam_xuc": 2,
+   "ky_thuat": {
+    "luat": [
+     "khoang_lang"
+    ],
+    "vai": "chi_tiet",
+    "co_canh": "insert",
+    "goc": "sat_dat",
+    "chuyen_dong": "cau",
+    "ong_kinh": "macro",
+    "anh_sang": "den_thuc",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua"
+    ],
+    "nhac": "day_cang"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "water line across top third, sacks below",
+    "mo": "water rising",
+    "ket": "water still at the top edge",
+    "huong": "static",
+    "muc_dich": "Hồi hộp nhất: nước có tràn không — nhạc nín.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": "nhạc ngắt hẳn ở giây 1,5; chỉ còn tiếng nước"
+   }
+  },
+  {
+   "canh": "[Đời thật] Na nâng bao lúa cuối",
+   "goc_may": "MCU góc thấp",
+   "hanh_dong": "Na nâng bao lúa nhỏ cuối cùng qua đầu lên bậc thang — vệt áo mưa VÀNG.",
+   "loi_thoai": "",
+   "am_thanh": "music returns on the lift",
+   "thoi_luong_s": 4,
+   "phat_s": 1.5,
+   "nhan_vat": [
+    "Na",
+    "Bao lúa",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Medium close-up, low angle: the girl in the bright yellow raincoat lifts a small rice sack over her head onto a bamboo ladder rung, yellow raincoat flaring, lamp light.",
+   "prompt_video": "She lifts the sack overhead, the yellow raincoat swings across frame.",
+   "phan_doan": "Na dâng núi",
+   "cam_xuc": 3,
+   "ky_thuat": {
+    "luat": [
+     "khop_hanh_dong"
+    ],
+    "vai": "hanh_dong",
+    "co_canh": "mcu",
+    "goc": "thap",
+    "chuyen_dong": "tinh",
+    "ong_kinh": "chuan",
+    "anh_sang": "den_thuc",
+    "mau": "lanh",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "foley"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "Na center, sack above head, yellow raincoat filling lower frame",
+    "mo": "sack at chest",
+    "ket": "sack overhead on the rung",
+    "huong": "upward, yellow swings screen-right",
+    "muc_dich": "Cú khớp MÀU vàng sang dải lụa của Sơn Tinh.",
+    "motif": "màu vàng (cầu nối)",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Truyền thuyết] Sơn Tinh vác cả ngọn đồi",
+   "goc_may": "MCU góc thấp",
+   "hanh_dong": "Cắt khớp màu: Sơn Tinh vác cả ngọn đồi trên vai, dải lụa vàng bay ngang khung.",
+   "loi_thoai": "",
+   "am_thanh": "choir peak",
+   "thoi_luong_s": 4,
+   "phat_s": 1.5,
+   "nhan_vat": [
+    "Sơn Tinh",
+    "Đất Văn Lang"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Medium close-up, low angle: the Mountain God lifts an entire forested hill on his shoulders, his golden-yellow sash swinging across the frame, storm and gold light.",
+   "prompt_video": "He heaves the hill higher, the yellow sash swings across frame the same way as the raincoat.",
+   "phan_doan": "Na dâng núi",
+   "cam_xuc": 4,
+   "ky_thuat": {
+    "luat": [
+     "khop_hanh_dong"
+    ],
+    "vai": "xen_canh",
+    "co_canh": "mcu",
+    "goc": "thap",
+    "chuyen_dong": "tinh",
+    "ong_kinh": "anamorphic",
+    "anh_sang": "tia_sang",
+    "mau": "teal_cam",
+    "chuyen_canh": "cat_khop",
+    "am_thanh": [
+     "rung"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "Mountain God center, hill above, yellow sash lower frame",
+    "mo": "hill at shoulder",
+    "ket": "hill raised",
+    "huong": "upward, sash swings screen-right",
+    "muc_dich": "Đỉnh cao trào — hai thế giới hoà làm một nhịp.",
+    "motif": "màu vàng",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Nước đứng ngoài cửa",
+   "goc_may": "WS trong nhà, tĩnh",
+   "hanh_dong": "Trong nhà: nước dừng ngoài hàng gạch, Na ngồi phịch xuống bậc thang thở, ông nhìn cháu.",
+   "loi_thoai": "",
+   "am_thanh": "rain softening, breathing",
+   "thoi_luong_s": 4,
+   "phat_s": 3,
+   "nhan_vat": [
+    "Na",
+    "Ông Bảy",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Wide shot inside the small house at night: the floodwater stopped outside the low brick-and-sack wall at the doorway, the girl in the yellow raincoat sitting exhausted on the bottom rung of the bamboo ladder, her grandfather standing looking at her, one oil lamp.",
+   "prompt_video": "She drops onto the rung breathing hard; he slowly turns to look at her.",
+   "phan_doan": "Na dâng núi",
+   "cam_xuc": 3,
+   "ky_thuat": {
+    "luat": [
+     "khoang_lang",
+     "giu_phan_ung"
+    ],
+    "vai": "tong_the",
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "zoom_cham",
+    "ong_kinh": "rong",
+    "anh_sang": "den_thuc",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua",
+     "im_lang"
+    ],
+    "nhac": "khong"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: lamp; midground: Na on ladder left, grandfather right; background: doorway with stopped water",
+    "mo": "Na standing, breathing",
+    "ket": "Na sitting, grandfather looking at her",
+    "huong": "grandfather looks screen-left at Na",
+    "muc_dich": "Khoảng lặng sau cao trào: thắng rồi.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": "im nhạc 3 giây, chỉ mưa nhỏ dần"
+   }
+  },
+  {
+   "canh": "[Đời thật] Trên gác",
+   "goc_may": "MS, đèn dầu",
+   "hanh_dong": "Hai ông cháu ngồi trên gác giữa bao lúa, gà ngủ trong lòng Na; ông quấn khăn cho cháu.",
+   "loi_thoai": "",
+   "am_thanh": "rain on tiles, soft piano",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Na",
+    "Ông Bảy",
+    "Gà Cựa",
+    "Bao lúa",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Medium shot on a low wooden loft under a tiled roof at night: grandfather wraps a towel around the girl's shoulders among rice sacks, the rooster asleep in her lap, warm oil lamp light, rain on tiles.",
+   "prompt_video": "He wraps the towel around her and pats her head.",
+   "phan_doan": "Đêm trên gác",
+   "cam_xuc": 4,
+   "ky_thuat": {
+    "luat": [
+     "ket_ro"
+    ],
+    "vai": "tong_the",
+    "co_canh": "two",
+    "goc": "ngang",
+    "chuyen_dong": "day_vao",
+    "ong_kinh": "chuan",
+    "anh_sang": "den_thuc",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua"
+    ],
+    "nhac": "piano"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [
+    {
+     "nhan_vat": "Ông Bảy",
+     "dien_xuat": "soft, proud, half joking",
+     "loi": "You held the water like Sơn Tinh tonight."
+    }
+   ],
+   "dan_dung": {
+    "bo_cuc": "Na left, grandfather right, lamp between them, rooster in her lap",
+    "mo": "towel in his hands",
+    "ket": "towel around her shoulders",
+    "huong": "grandfather looks screen-right at Na",
+    "muc_dich": "Ấm lại: màu chuyển từ lạnh sang ấm.",
+    "motif": "gà Cựa ngủ yên",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Na cười, tựa vai ông",
+   "goc_may": "CU",
+   "hanh_dong": "Na cười ngái ngủ, tựa đầu vào vai ông.",
+   "loi_thoai": "",
+   "am_thanh": "",
+   "thoi_luong_s": 4,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Na",
+    "Ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Close-up: the girl's sleepy smile in warm lamp light, wet hair, leaning her head on her grandfather's shoulder.",
+   "prompt_video": "She smiles, eyes closing, leans in.",
+   "phan_doan": "Đêm trên gác",
+   "cam_xuc": 4,
+   "ky_thuat": {
+    "luat": [
+     "giu_phan_ung"
+    ],
+    "vai": "phan_ung",
+    "co_canh": "cu",
+    "goc": "ngang",
+    "chuyen_dong": "day_vao",
+    "ong_kinh": "chan_dung",
+    "anh_sang": "den_thuc",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "mua"
+    ],
+    "nhac": "piano",
+    "dien_xuat": "chop_mat_cham"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "Na face center, grandfather shoulder frame-right",
+    "mo": "smiling",
+    "ket": "eyes closed, head on shoulder",
+    "huong": "leans screen-right",
+    "muc_dich": "Giữ phản ứng đủ lâu để khán giả ấm lòng.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Ngọn đèn dầu",
+   "goc_may": "Insert, tĩnh",
+   "hanh_dong": "Ngọn đèn dầu cháy đều; tiếng mưa nhỏ dần — thời gian trôi.",
+   "loi_thoai": "",
+   "am_thanh": "rain fading to drips",
+   "thoi_luong_s": 4,
+   "phat_s": 2.5,
+   "nhan_vat": [
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Insert: an oil lamp flame burning steady on a wooden loft beam, rain drops sliding down a dark window behind.",
+   "prompt_video": "The flame burns steady; the rain outside slows.",
+   "phan_doan": "Đêm trên gác",
+   "cam_xuc": 3,
+   "ky_thuat": {
+    "luat": [
+     "dan_thoi_gian",
+     "khoang_lang"
+    ],
+    "vai": "tam_trang",
+    "co_canh": "insert",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "ong_kinh": "macro",
+    "anh_sang": "den_thuc",
+    "mau": "am",
+    "chuyen_canh": "toi_den",
+    "am_thanh": [
+     "mua"
+    ],
+    "nhac": "piano"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "flame center, window behind",
+    "mo": "flame steady",
+    "ket": "flame steady, rain thinner",
+    "huong": "static",
+    "muc_dich": "Cầu thời gian sang sáng.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Bình minh, nước rút",
+   "goc_may": "WS",
+   "hanh_dong": "Sáng: nước rút khỏi sân, vệt bùn trên tường; ngọn núi đá của Na vẫn đứng, viên đá trắng trên đỉnh nhô khỏi nước.",
+   "loi_thoai": "",
+   "am_thanh": "birds, dripping eaves",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Núi đá của Na",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Wide shot at golden sunrise: floodwater draining out of the brick yard, a mud line on the house wall, the knee-high pebble cairn still standing with its flat white stone above the shallow water, mountains glowing behind.",
+   "prompt_video": "Water drains slowly, sunlight spreads across the yard.",
+   "phan_doan": "Bình minh: gà gáy",
+   "cam_xuc": 4,
+   "ky_thuat": {
+    "luat": [
+     "dan_thoi_gian",
+     "motif"
+    ],
+    "vai": "tong_the",
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "lui_ra",
+    "ong_kinh": "rong",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "nen_phong"
+    ],
+    "nhac": "guitar_moc"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: cairn above water; midground: yard; background: house and mountains",
+    "mo": "water still covering the yard",
+    "ket": "water lower, cairn top dry",
+    "huong": "water drains screen-left (the flood retreats the opposite way)",
+    "muc_dich": "Trả motif: núi của Na không đổ — nước đi ngược chiều lúc đến.",
+    "motif": "núi đá (trả)",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Gà Cựa gáy trên nóc",
+   "goc_may": "MS góc thấp",
+   "hanh_dong": "Gà Cựa nhảy lên nóc nhà, vươn cổ gáy, mặt trời lên sau núi.",
+   "loi_thoai": "",
+   "am_thanh": "rooster crow",
+   "thoi_luong_s": 4,
+   "phat_s": 3,
+   "nhan_vat": [
+    "Gà Cựa",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Medium low-angle shot: the red-and-gold rooster standing on the ridge of a red tiled roof, chest out, crowing toward the sunrise over green mountains.",
+   "prompt_video": "The rooster hops onto the ridge, stretches its neck and crows.",
+   "phan_doan": "Bình minh: gà gáy",
+   "cam_xuc": 5,
+   "ky_thuat": {
+    "luat": [
+     "motif",
+     "khop_hanh_dong"
+    ],
+    "vai": "he_lo",
+    "co_canh": "ms",
+    "goc": "thap",
+    "chuyen_dong": "nghieng_len",
+    "ong_kinh": "chuan",
+    "anh_sang": "nguoc",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "nen_phong"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "rooster center on roof ridge, sun behind",
+    "mo": "rooster landing on the ridge",
+    "ket": "rooster crowing, chest out",
+    "huong": "rooster faces screen-left",
+    "muc_dich": "Trả motif: gà gáy = bình minh thắng cuộc như trong truyền thuyết.",
+    "motif": "gà Cựa (trả)",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Truyền thuyết] Sơn Tinh trên đỉnh núi, gà gáy",
+   "goc_may": "MS góc thấp, khớp bố cục",
+   "hanh_dong": "Cắt khớp bố cục: Sơn Tinh đứng trên đỉnh núi lúc bình minh, gà chín cựa gáy trên vai.",
+   "loi_thoai": "",
+   "am_thanh": "crow echoes",
+   "thoi_luong_s": 4,
+   "phat_s": 3,
+   "nhan_vat": [
+    "Sơn Tinh",
+    "Gà Cựa",
+    "Đất Văn Lang"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, epic mythic Dong Son era, deep teal-and-jade storm palette with molten gold highlights, volumetric mist, low heroic angle. Medium low-angle shot with the same composition as the previous rooster shot: the Mountain God standing on a mountain summit at sunrise, the nine-spurred rooster crowing on his shoulder, the defeated sea calm below.",
+   "prompt_video": "The rooster crows; the Mountain God lifts his chin toward the sun.",
+   "phan_doan": "Bình minh: gà gáy",
+   "cam_xuc": 5,
+   "ky_thuat": {
+    "luat": [
+     "motif",
+     "khop_hanh_dong"
+    ],
+    "vai": "xen_canh",
+    "co_canh": "ms",
+    "goc": "thap",
+    "chuyen_dong": "tinh",
+    "ong_kinh": "anamorphic",
+    "anh_sang": "nguoc",
+    "mau": "teal_cam",
+    "chuyen_canh": "cat_khop",
+    "am_thanh": [
+     "gio"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "rooster center-top, Mountain God below, sun behind (same as previous)",
+    "mo": "rooster crowing",
+    "ket": "chin lifted to the sun",
+    "huong": "faces screen-left",
+    "muc_dich": "Hai bình minh là một.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Na chạy ra núi đá",
+   "goc_may": "MS, máy theo",
+   "hanh_dong": "Na chân trần chạy ra sân lội nước nông tới ngọn núi đá, cười lớn.",
+   "loi_thoai": "",
+   "am_thanh": "splashing, laughter",
+   "thoi_luong_s": 4,
+   "phat_s": 3,
+   "nhan_vat": [
+    "Na",
+    "Núi đá của Na",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Medium tracking shot at sunrise: the barefoot girl in the yellow raincoat runs splashing through shallow water across the yard to her pebble cairn, laughing.",
+   "prompt_video": "She splashes to the cairn and crouches beside it, laughing.",
+   "phan_doan": "Bình minh: gà gáy",
+   "cam_xuc": 5,
+   "ky_thuat": {
+    "luat": [
+     "ket_ro"
+    ],
+    "vai": "hanh_dong",
+    "co_canh": "ms",
+    "goc": "ngang",
+    "chuyen_dong": "theo",
+    "ong_kinh": "chuan",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "foley"
+    ],
+    "nhac": "guitar_moc"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "foreground: splashes; midground: Na running; background: house",
+    "mo": "Na at the doorstep",
+    "ket": "Na crouched by the cairn",
+    "huong": "runs screen-right",
+    "muc_dich": "Vui: Na giữ được cả 'núi' của mình.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật/Truyền thuyết] Vũng nước phản chiếu",
+   "goc_may": "Insert nhìn xuống vũng nước",
+   "hanh_dong": "Vũng nước phản chiếu dãy núi thật — và bóng Sơn Tinh đứng trên đó; chân Na khuấy gợn làm bóng tan.",
+   "loi_thoai": "",
+   "am_thanh": "single water drop, music swell",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Na",
+    "Sơn Tinh",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Top-down insert into a still flood puddle at sunrise: the reflection shows the real green mountains and, standing on the ridge, the faint silhouette of the Mountain God with a streaming sash; the edge of a small bare foot enters frame.",
+   "prompt_video": "The reflection holds, then a small foot touches the water and ripples break the silhouette.",
+   "phan_doan": "Bình minh: gà gáy",
+   "cam_xuc": 5,
+   "ky_thuat": {
+    "luat": [
+     "motif",
+     "ket_ro"
+    ],
+    "vai": "ket_canh",
+    "co_canh": "phan_chieu",
+    "goc": "tren_xuong",
+    "chuyen_dong": "tinh",
+    "ong_kinh": "chuan",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "cat",
+    "am_thanh": [
+     "nen_phong"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "reflection fills frame, mountains along the middle, foot enters bottom-left",
+    "mo": "still reflection with the god's silhouette",
+    "ket": "ripples, silhouette dissolved",
+    "huong": "foot enters screen-left",
+    "muc_dich": "Hai thế giới gặp nhau trong một khung — kết bằng hình, không nói bài học.",
+    "motif": "Sơn Tinh trong vũng nước (trả cuối)",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  },
+  {
+   "canh": "[Đời thật] Toàn cảnh làng, tựa phim",
+   "goc_may": "EWS, drone lùi",
+   "hanh_dong": "Làng sau lũ dưới nắng sớm; hai ông cháu nhỏ xíu trên bậc cửa; dãy núi sau lưng. Tựa phim.",
+   "loi_thoai": "",
+   "am_thanh": "music resolves",
+   "thoi_luong_s": 6,
+   "phat_s": 5,
+   "nhan_vat": [
+    "Na",
+    "Ông Bảy",
+    "Gà Cựa",
+    "Nhà ông Bảy"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Full-frame 16:9 photoreal, Central Vietnam village in flood season, camera at a child's eye level, natural light. Extreme wide drone shot pulling back at sunrise: a small Central Vietnam village drying after the flood, a tiny girl in a yellow raincoat and her grandfather sitting on their doorstep, a rooster on the roof, green mountains glowing behind.",
+   "prompt_video": "Slow drone pull-back revealing the whole valley and the mountains.",
+   "phan_doan": "Bình minh: gà gáy",
+   "cam_xuc": 4,
+   "ky_thuat": {
+    "luat": [
+     "ket_ro"
+    ],
+    "vai": "ket_canh",
+    "co_canh": "ews",
+    "goc": "tren_xuong",
+    "chuyen_dong": "drone_lui",
+    "ong_kinh": "rong",
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "chuyen_canh": "toi_den",
+    "am_thanh": [
+     "gio"
+    ],
+    "nhac": "trailer_epic"
+   },
+   "trang_phuc": "",
+   "chu_man": "LITTLE SƠN TINH",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "tiny figures center-low, mountains filling top half",
+    "mo": "close on the house",
+    "ket": "whole valley and mountains",
+    "huong": "camera retreats upward",
+    "muc_dich": "Kết rộng: chuyện nhỏ trong một thung lũng lớn — thành truyền thuyết của riêng Na.",
+    "motif": "",
+    "dien": "hold the action clear and readable, settle at the end",
+    "nhan": ""
+   }
+  }
+ ]
+}

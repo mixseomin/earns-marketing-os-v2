@@ -12,6 +12,10 @@ export const TIEN_TO_NHIP_HINH = 'nhịp hình: ';
 export const TI_LE_TINH_TOI_DA = 0.4;
 const TINH = (k?: KyThuatShot) => !k?.chuyen_dong || k.chuyen_dong === 'tinh';
 
+/** Hai shot liền nhau trùng cỡ cảnh + chuyển động máy (nhìn như một shot kéo dài). Trừ khi shot sau là CẮT KHỚP HÌNH (chuyen_canh 'cat_khop'):
+ *  trùng cỡ + trùng chuyển động ở đó là CỐ Ý — hai hình khác nhau đặt cùng khuôn để nối ý (mặt Gióng → mặt cậu bé, phim mẫu tham-khao/thanh-giong);
+ *  đổi chuyển động máy của nó là phá cú khớp (anh 30/10/2026, phim mẫu Little Sơn Tinh). */
+const trungCo = (a: KyThuatShot, b: KyThuatShot) => !!a.co_canh && a.co_canh === b.co_canh && (a.chuyen_dong ?? 'tinh') === (b.chuyen_dong ?? 'tinh') && b.chuyen_canh !== 'cat_khop';
 /** tranh_day = không chọn chuyển động đẩy vào (san-pham-shot.ts › tranhDayVao: sản phẩm mặc trên người ở cỡ có người). */
 type ShotNhip = { id?: number; thu_tu: number; ky_thuat?: KyThuatShot | null; tranh_day?: boolean };
 
@@ -20,7 +24,7 @@ export function kiemNhipHinh(ds: ShotNhip[]): string[] {
   const out: string[] = [];
   for (let i = 1; i < ds.length; i++) {
     const a = ds[i - 1]!.ky_thuat ?? {}; const b = ds[i]!.ky_thuat ?? {};
-    if (a.co_canh && a.co_canh === b.co_canh && (a.chuyen_dong ?? 'tinh') === (b.chuyen_dong ?? 'tinh'))
+    if (trungCo(a, b))
       out.push(`${TIEN_TO_NHIP_HINH}#${ds[i - 1]!.thu_tu}–#${ds[i]!.thu_tu} cùng cỡ cảnh + cùng chuyển động máy (nhìn như một shot kéo dài)`);
   }
   const tinh = ds.filter((c) => TINH(c.ky_thuat ?? undefined)).length;
@@ -48,8 +52,7 @@ export function daDangMay<T extends ShotNhip & { id: number }>(ds: T[]): { id: n
     kt[i]!.chuyen_dong = m; doi.add(i);
   };
   for (let i = 1; i < kt.length; i++) {
-    const a = kt[i - 1]!, b = kt[i]!;
-    if (a.co_canh && a.co_canh === b.co_canh && (a.chuyen_dong ?? 'tinh') === (b.chuyen_dong ?? 'tinh')) chon(i);
+    if (trungCo(kt[i - 1]!, kt[i]!)) chon(i);
   }
   const tran = Math.floor(kt.length * TI_LE_TINH_TOI_DA);
   const tinh = () => kt.map((k, i) => (TINH(k) ? i : -1)).filter((i) => i >= 0);

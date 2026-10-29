@@ -1,0 +1,68 @@
+{
+ "project": "studio",
+ "loai": "phim",
+ "ten": "Phim mẫu · Little Sơn Tinh — hai thế giới, cắt khớp (tham khảo, không sinh video)",
+ "mo_ta": "PHIM MẪU THAM KHẢO dựng theo cách phim 'Thánh Gióng' (Seedance 2.5, tham-khao/thanh-giong/README.md): truyền thuyết và đời thật chạy song song, nối bằng cắt khớp hành động / hướng / màu / hình; mỗi thế giới một vỏ hình (truyền thuyết khung 2.39 viền đen, xanh ngọc + vàng; đời thật đầy khung, tầm mắt trẻ con); motif con gà nối hai thế giới. CHỈ kịch bản + bảng shot, không sinh ảnh / video.",
+ "kinh_thanh": {
+  "phong_cach": "Photoreal cinematic live-action short film, natural film grain, shallow depth of field, rich but believable color. Two visual worlds that never mix: LEGEND world: epic mythic Dong Son bronze-age Vietnam, anamorphic 2.39:1 letterboxed frame with solid black bars top and bottom, deep teal-and-jade storm palette with molten gold highlights, low heroic camera, volumetric mist. REAL world: full-frame 16:9, photoreal Central Vietnam village during flood season, camera at a child's eye level, natural light. Clean frames with no text, letters or logos.",
+  "chat_lieu": "nguoi_that",
+  "ti_le": "16:9",
+  "do_phan_giai": "720p",
+  "ngon_ngu": "en",
+  "the_loai": "phieu_luu",
+  "logline": "On the night the river floods her grandfather's house, eight-year-old Na — who plays at being the Mountain God — has to hold back the water for real.",
+  "chu_de": "Legends are what ordinary people do when the water rises",
+  "luu_tru": false
+ },
+ "nhan_vat": [
+  {
+   "loai": "nhan_vat",
+   "ten": "Na",
+   "mo_ta": "Eight-year-old Vietnamese girl from Central Vietnam, short black bob with a few wet strands, round face, bright stubborn eyes, slightly chipped front tooth; faded sky-blue cotton shirt and dark shorts under an oversized bright YELLOW plastic raincoat with hood; barefoot. Her raincoat yellow is the same yellow as the Mountain God's sash."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Ông Bảy",
+   "mo_ta": "Na's grandfather, about 72, thin and wiry, sun-dark skin, short white stubble, kind deep wrinkles; faded brown collarless shirt, black trousers rolled to the knee, old conical leaf hat; moves slowly with a sore back but strong hands."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Sơn Tinh",
+   "mo_ta": "LEGEND: the Mountain God as a young Dong Son warrior-king, about 25, calm determined face, long black hair tied high; bronze scale armor engraved with Dong Son drum patterns (sun star, flying cranes), a long GOLDEN-YELLOW sash streaming from the waist, jade staff; moves the earth with his hands. Same eyes and face shape as Na (match cut)."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Thủy Tinh",
+   "mo_ta": "LEGEND: the Water God, tall and furious, armor of blue-green fish scales that shine wet, long hair flowing like waves, rides the crest of giant storm waves with a sea serpent coiled beneath; surrounded by rain and lightning."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Gà Cựa",
+   "mo_ta": "Na's rooster: a proud red-and-golden village rooster with a tall red comb, glossy dark-green tail feathers and long sharp spurs. In the LEGEND world the same rooster appears as the nine-spurred rooster (gà chín cựa) on the Mountain God's gauntlet."
+  },
+  {
+   "loai": "dao_cu",
+   "ten": "Núi đá của Na",
+   "mo_ta": "A knee-high cairn of smooth grey river pebbles Na stacks in the yard into a little pointed 'mountain', topped by one flat white stone."
+  },
+  {
+   "loai": "dao_cu",
+   "ten": "Bao lúa",
+   "mo_ta": "Woven white polypropylene rice sacks, half full, tied with red plastic string."
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Nhà ông Bảy",
+   "mo_ta": "A small one-storey Central Vietnam brick house with a red tiled roof and a wooden loft (gác lửng) under the roof reached by a bamboo ladder; a swept brick front yard, a bamboo chicken coop, banana trees, a low wall; a brown river 30 meters behind; green Truong Son mountains on the horizon. Day: warm afternoon gold. Night: cold blue rain, one oil lamp inside."
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Đất Văn Lang",
+   "mo_ta": "LEGEND landscape: jagged limestone peaks rising out of a sea of clouds and an endless stormy sea, ancient Dong Son era, no buildings except a distant stilt palace; teal storm sky broken by gold light."
+  }
+ ],
+ "tap": {
+  "ten": "Tập 1 · Little Sơn Tinh",
+  "brief": "Phim mẫu 2 phút: đêm lũ, Na (8 tuổi) cùng ông nội cứu lúa, cứu gà, chặn nước ở cửa — mỗi hành động của Na cắt khớp sang Sơn Tinh dâng núi chặn Thủy Tinh. Bình minh: nước rút, gà gáy trên nóc nhà, núi đá của Na còn đứng; vũng nước phản chiếu bóng Sơn Tinh trên dãy núi thật."
+ }
+}

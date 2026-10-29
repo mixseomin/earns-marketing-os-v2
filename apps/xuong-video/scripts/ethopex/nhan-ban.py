@@ -307,7 +307,7 @@ def main(a):
         if ly and ep and mien_cham: kq["mien_cham"] = ly; ly = None   # --mien-cham chỉ đi cùng --ep (lệnh đích danh của anh)
         if ly: raise ChanLuat(ly)
         kq["phim_dang_chay"] = n
-        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None)
+        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None, content_id=cid)
         if ly: raise ChanLuat(ly)
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
@@ -350,7 +350,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
         if ly: kq["mien_cham"] = ly
         # camp ROAS là dạng riêng, miễn mọi luật (anh 26/10/2026) — kể cả trần 30 camp/phim: không bị chặn, cũng không chiếm chỗ camp thường (dem_dang_chay bỏ ★)
         if any(x.get("name") == ten for x in api("/api/v1/campaigns?page_size=500")["data"]): raise ValueError(f"đã có camp '{ten}' — không tạo trùng")
-        ly = CONG.kiem("nhan_ban", None, ns, 0, str(bo) if bo else None)
+        ly = CONG.kiem("nhan_ban", None, ns, 0, str(bo) if bo else None, content_id=cid)
         if ly: raise ValueError(ly)
         kq["content"] = cid
         if not that:

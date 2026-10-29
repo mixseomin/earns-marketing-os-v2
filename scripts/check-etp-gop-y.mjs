@@ -119,6 +119,8 @@ const LUAT = [
   { card: 1485, tep: 'packages/bang/src/data-table.tsx', co: '{nhDinh ? <tbody>{dongNhomTr(nhDinh, true)}</tbody> : null}', vi: 'dòng phim (dòng nhóm) dính trong khối tiêu đề khi cuộn qua' },
   { card: 1485, tep: 'packages/bang/src/data-table.tsx', mot: "className={dinh ? 'dt-nhom dt-nhom-dinh' : 'dt-nhom'}", vi: 'dòng nhóm vẽ một chỗ (dongNhomTr), không chép tay thêm bản thứ hai' },
   // anh 29/10/2026: cờ nước giao trên camp + nhóm gốc phim (Trung / Ấn / hoạt hình…) — hoạt hình chỉ khi nhìn ra tranh vẽ
+  { card: 0, tep: 'apps/etp/cong.py', co: "if ng and ng != 'au_my': return", vi: 'cổng chung chặn tăng chi / lên camp cho phim ngoài Âu-Mỹ (anh 29/10/2026)' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'str(bo) if bo else None, content_id=cid)', vi: 'nhân bản / tạo camp truyền phim vào cổng chặn nhóm gốc' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '<CoNuoc nuoc={c.nuoc ?? []} />', vi: 'camp hiện cờ nước giao nhiều chi nhất' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '<NhomGoc g={nhomCua.get(Number(k))} />', vi: 'dòng phim hiện nhóm gốc' },
   { card: 0, tep: 'apps/etp/dong-bo.py', co: '"group_by": ["campaign_name", "geo"]', vi: 'đồng bộ nước giao theo camp (gom geo trần không tách được nhà)' },

@@ -71,6 +71,8 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs', co: "scripts/ethopex/thu-vien-len.py`, ...tv]", vi: 'máy sinh tự đưa bản sẵn sàng lên creative' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs', co: "dongTv(d, mayLoi ? 'loi_may' : 'loai'", vi: 'lỗi máy không bỏ oan phim' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/ghi-studio-canh-that.mts', co: "the_loai: THE_LOAI, qc,", cam: "the_loai: 'qc_canh_that', qc,", vi: 'studio ghi đúng dạng (KT không bị xếp cảnh thật)' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/vx-ke-chuyen.mts', co: 'if (r.data?.mediaPath) {', vi: 'giọng VideoExpress trả thẳng tệp (data.mediaPath) — không kẹt chờ websocket' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/vx-ke-chuyen.mts', co: 'g(c).anhUuid && g(c).anh && g(c).am && !g(c).vid', vi: 'chỉ dựng clip khi đã có giọng' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thu-vien-len.py', co: 'l = next((k for i, k in enumerate(kq) if i not in da and str(k.get("content_id")) == str(x["content_id"])), {})', vi: 'thư viện → creative khớp theo phim (len.json không có den — khớp độ dài làm tạo trùng)' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "or (r.dang = 'kể chuyện' and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')", vi: 'nhịp ethopex lên camp KT cho phim đang chạy' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ROAS_LAI = 75;', vi: 'ngưỡng lên ROAS = lãi 30 ngày $75 (máy luật)' },

@@ -101,7 +101,7 @@ try {
     const r = tsx(['scripts/ethopex/vx-ke-chuyen.mts', `--tap=${d.tap}`, `--giong=${d.giong}`, '--khong-cho'], 20 * 60);
     dongPhien();   // gửi / thu xong là đóng Chrome ngay — không giữ trình duyệt trong lúc chờ render
     const out = r.stdout || '';
-    ghi(`  sinh: ${out.trim().split('\n').filter((l) => /✓|→|✗|chưa đủ/.test(l)).slice(-4).join(' · ')}`);
+    ghi(`  sinh: ${out.trim().split('\n').filter((l) => /✓|→|✗|chưa đủ/.test(l)).slice(-8).join(' · ')}`);   // 8 dòng: 4 dòng cuối từng che lỗi giọng #1–3 (29/10/2026)
     if (/→ gửi clip/.test(out)) d.gui_luc = Date.now();
     dongTv(d, 'dang_sinh', r.status === 0 ? 'đủ 6 cảnh · xuất thân phim' : buocChu(d));
     if (r.status === 0) { d.buoc = 'nap'; d.lan = 0; delete d.gui_luc; luu(); } else if (/chưa đủ/.test(out)) { ghi('  chưa đủ clip — nhịp sau thu tiếp'); luu(); dong(); process.exit(0); } else throw new Error((r.stderr || out || 'vx-ke-chuyen lỗi').slice(-400));

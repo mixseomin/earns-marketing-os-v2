@@ -81,7 +81,7 @@ if (urlXuat) {
 if (!trenApp()) { console.error('br chưa ở app.videoexpress.ai — chạy: ~/bin/br use 677 && ~/bin/br goto https://app.videoexpress.ai/'); process.exit(2); }
 const HDR = `{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8","X-Requested-With":"XMLHttpRequest"}`;
 // gửi + đăng ký websocket TRONG CÙNG một lượt eval (kết quả ảnh / giọng chỉ đẩy qua websocket lúc vừa xong — đăng ký muộn là mất)
-const gui = (duong: string, du: Record<string, string>): { success?: boolean; uuid?: string; msg?: string; message?: string } => brEval(`(async()=>{window.__vx=window.__vx||{};
+const gui = (duong: string, du: Record<string, string>): { success?: boolean; uuid?: string; msg?: string; message?: string; data?: { mediaPath?: string; uuid?: string | null } } => brEval(`(async()=>{window.__vx=window.__vx||{};
   const r=await (await fetch(${JSON.stringify(duong)},{method:"POST",headers:${HDR},body:${JSON.stringify(new URLSearchParams(du).toString())}})).json().catch(e=>({success:false,msg:String(e)}));
   if(r.uuid)app.createSubscription(r.uuid,(u,x)=>{window.__vx[u]=x});return r})()`);
 const ketQua = (): Record<string, string> => { const x = brEval<unknown>(`JSON.stringify(window.__vx||{})`); return typeof x === 'string' ? JSON.parse(x) : (x as Record<string, string>); };
@@ -94,13 +94,17 @@ async function cho(uuids: string[], phut: number) {
 const chuaAm = canhSinh.filter((c) => !g(c).am);
 for (const c of chuaAm) {
   const r = gui('/import/text_to_speech', { text: c.loi, lang: meta.lang === 'es' ? 'es-MX' : 'en-US', voice: GIONG, emotion: '', translate: '0', project_id: '0', gender: '', type: 'microsoft', option_speed: TOC, option_pitch: '0' });
-  if (!r.uuid) { console.log(`✗ giọng #${c.so}: ${r.msg ?? r.message ?? JSON.stringify(r)}`); continue; }
+  // VideoExpress ĐỔI CÁCH TRẢ GIỌNG (29/10/2026 ~14:40): trả THẲNG tệp trong data.mediaPath (uuid null), không còn đẩy qua websocket → máy sinh kẹt
+  // "giọng chưa về" cả tiếng (phim El gran). Có tệp ngay thì tải luôn; vẫn giữ đường uuid + websocket nếu họ đổi lại.
+  if (r.data?.mediaPath) { const f = `${D}/am-${c.so}.mp3`; tai(r.data.mediaPath, f); g(c).am = f; g(c).amGiay = giayTep(f); delete g(c).tts; console.log(`✓ giọng #${c.so} ${g(c).amGiay!.toFixed(1)}s`); continue; }
+  if (!r.uuid) { console.log(`✗ giọng #${c.so}: ${r.msg ?? r.message ?? JSON.stringify(r).slice(0, 200)}`); continue; }
   g(c).tts = r.uuid;
 }
 luu();
-if (chuaAm.length) {
-  const k = await cho(chuaAm.map((c) => g(c).tts!).filter(Boolean), 5);
-  for (const c of chuaAm) { const x = k[g(c).tts!]; if (!x) { console.log(`✗ giọng #${c.so}: chưa về`); continue; }
+const choAm = chuaAm.filter((c) => !g(c).am && g(c).tts);
+if (choAm.length) {
+  const k = await cho(choAm.map((c) => g(c).tts!), 5);
+  for (const c of choAm) { const x = k[g(c).tts!]; if (!x) { console.log(`✗ giọng #${c.so}: chưa về`); continue; }
     const f = `${D}/am-${c.so}.mp3`; tai((JSON.parse(x) as { mediaUrl: string }).mediaUrl, f); g(c).am = f; g(c).amGiay = giayTep(f); console.log(`✓ giọng #${c.so} ${g(c).amGiay!.toFixed(1)}s`); }
   luu();
 }
@@ -133,7 +137,11 @@ if (process.argv.includes('--chi-anh')) { console.log(`ảnh + giọng xong ở 
 
 // ── 3. CLIP từ ảnh: không tiếng (giọng kể lồng sau), dài = giọng + 0,8s, trong 4–8s; tối đa 5 render song song ──
 const VID = catId('my_ai_videos');
-const doiClip = () => canhSinh.filter((c) => g(c).anhUuid && g(c).anh && !g(c).vid);
+// clip dựng TRƯỚC khi có giọng (lỗi 29/10/2026) mà ngắn hơn giọng + 0,35s → bỏ clip đó, dựng lại theo độ dài giọng ($0)
+for (const c of canhSinh) if (g(c).vid && g(c).amGiay && g(c).vidGiay && Number(g(c).amGiay) + 0.35 > Number(g(c).vidGiay)) { console.log(`↺ clip #${c.so} ${Number(g(c).vidGiay).toFixed(1)}s ngắn hơn giọng ${Number(g(c).amGiay).toFixed(1)}s — dựng lại`); delete g(c).vid; delete g(c).vidUuid; delete g(c).vidGiay; }
+luu();
+// CHỈ dựng clip khi đã có GIỌNG (29/10/2026 phim El gran: giọng hỏng mà clip vẫn dựng ở độ dài mặc định 5s → giọng thật dài hơn clip, câu kể bị cắt / đè CTA)
+const doiClip = () => canhSinh.filter((c) => g(c).anhUuid && g(c).anh && g(c).am && !g(c).vid);
 for (let nhip = 0; nhip < 40 && doiClip().length; nhip++) {
   // VideoExpress thỉnh thoảng trả trang HTML (lỗi / đăng nhập lại) thay JSON — một lần hỏi hỏng KHÔNG làm ngã lượt (máy sinh 29/10 ngã ở đây khi 5 clip đang render): chờ rồi hỏi lại
   let ds: ReturnType<typeof getMedia>['results'] = [];

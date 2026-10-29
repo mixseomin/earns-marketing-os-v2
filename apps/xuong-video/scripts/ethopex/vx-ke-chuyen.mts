@@ -60,7 +60,7 @@ if (urlXuat) {
   const nguon = `${D}/xuat-studio.mp4`, ra = `${D}/${tap}-cta-v2.mp4`, E = new URL('.', import.meta.url).pathname;
   tai(urlXuat, nguon);
   const [nut, giong] = execFileSync('python3', ['-c', `import importlib.util as u,json;s=u.spec_from_file_location('c',${JSON.stringify(`${E}cta_qc.py`)});m=u.module_from_spec(s);s.loader.exec_module(m);c=m.CTA[${JSON.stringify(meta.lang === 'es' ? 'es' : 'en')}];print(json.dumps([c['nut'],c['giong']]))`], { encoding: 'utf8' }).trim().split('\n').map((x) => x).slice(-1).map((x) => JSON.parse(x) as string[])[0]!;
-  console.log(execFileSync('python3', [`${E}cat-canh.py`, nguon, '0', than.toFixed(1), `${D}/poster.png`, '-', nut!, ra, giong!], { encoding: 'utf8' }).trim());
+  console.log(execFileSync('python3', [`${E}cat-canh.py`, nguon, '0', than.toFixed(1), `${D}/poster.png`, '-', nut!, ra, giong!], { encoding: 'utf8', env: { ...process.env, ETP_LOI_DAN: '1' } }).trim());
   console.log(`✓ bản CTA v2 (thân ${than.toFixed(1)}s): ${ra}`);
   process.exit(0);
 }

@@ -25,7 +25,18 @@ TOC_GIONG, VAO_TRUOC, Y_NUT = 1.15, 1.0, 1600
 
 def the_cuoi_anh(poster, hoi, ra):
     """poster sạch + dòng hỏi vàng (nút chồng riêng để nhún). 22/10/2026 bỏ 2 mũi tên vàng chỉ xuống nút — Meta coi là icon dụ nhấp."""
-    im = Image.open(poster).convert("RGBA").resize((W, H)); d = ImageDraw.Draw(im, "RGBA")
+    goc = Image.open(poster).convert("RGBA")
+    if abs(goc.width / goc.height - W / H) <= 0.03 * W / H: im = goc.resize((W, H))
+    else:
+        # POSTER KHÁC 9:16 (anh 29/10/2026 "ảnh thì méo… mất cả tên phim": poster 3:4 bị kéo thẳng về 9:16, tên phim rơi vào dải tối): GIỮ TỈ LỆ —
+        # nền = chính poster phủ kín + mờ + tối, trên = cả poster vừa khung phía trên (đủ tên phim), câu hỏi + nút ở phần dưới như cũ
+        from PIL import ImageFilter, ImageEnhance
+        k = max(W / goc.width, H / goc.height); nen = goc.resize((round(goc.width * k), round(goc.height * k)))
+        nen = nen.crop(((nen.width - W) // 2, (nen.height - H) // 2, (nen.width - W) // 2 + W, (nen.height - H) // 2 + H)).filter(ImageFilter.GaussianBlur(28))
+        im = ImageEnhance.Brightness(nen).enhance(0.45)
+        k = min(W / goc.width, 1420 / goc.height); tren = goc.resize((round(goc.width * k), round(goc.height * k)))
+        im.alpha_composite(tren, ((W - tren.width) // 2, 1420 - tren.height))
+    d = ImageDraw.Draw(im, "RGBA")
     for i in range(120): d.line([(0, 1430 + i), (W, 1430 + i)], fill=(0, 0, 0, int(150 * i / 120)))   # dải tối mờ dần, không che logo poster
     d.rectangle([0, 1550, W, H], fill=(0, 0, 0, 150))
     f = gx.ImageFont.truetype(gx.FA, 72); y = 1470
@@ -98,6 +109,8 @@ def dung_tap(nguon, tu, den, ten, out, nut="WATCH NOW", cam=()):
 
 def _dung1(nguon, tu, den, tmp, cta, out, giong):
     L = den - tu
+    # THÂN PHIM CÓ LỜI DẪN (ETP_LOI_DAN=1 — phim kể chuyện, anh 29/10/2026 "voice thì đè cả lên giọng chính"): giọng CTA vào SAU cú cắt, không chen 1s vào câu kể cuối
+    VAO_TRUOC = 0.0 if os.environ.get("ETP_LOI_DAN") else globals()["VAO_TRUOC"]
     V = gx.dur(giong) / TOC_GIONG if giong else 0
     TC = max(2.5, V - VAO_TRUOC + 0.5); T = L + TC
     vao = ["-i", nguon, "-loop", "1", "-t", f"{T}", "-i", tmp + "-nut.png", "-loop", "1", "-t", f"{TC}", "-i", tmp + "-the-cuoi.png"]

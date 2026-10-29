@@ -144,6 +144,8 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/kieu-moi.py', co: 'os.environ["ETP_NUT_TU"] = "cuoi"', vi: 'kiểu mới: nút CTA chỉ ở thẻ cuối (bài học #62014)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/kieu-moi.py', co: 'kiem_thoai(src, cac_doan(kh[kieu]))', vi: 'kiểu mới qua cổng thoại' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thu-vien-len.py', co: 'lf, ma, dang, "--da-soat"]', vi: 'đưa lên giữ đúng dạng của bản thư viện' },
+  // anh 29/10/2026 "cột trạng thái cho gọn lại … hạn chế phải scroll ngang": cột TT của Cây có bề rộng cố định, không ăn khoảng thừa
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'tt', header: 'TT', align: 'left', width: 74,", vi: 'cột trạng thái Cây hẹp cố định' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

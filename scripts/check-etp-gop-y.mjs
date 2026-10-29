@@ -65,6 +65,12 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/sua-cta.py', co: 'if m.get("thay"):', vi: 'góc mới cho camp thay không nhân bản camp cũ đang lỗ' },
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "from etp.thay_the where buoc not in ('chay', 'huy')", vi: 'trang etp đọc camp thay đang chuẩn bị' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "return { opacity: THAY_BUOC[t?.buoc ?? '']?.[1] ?? 0.3", vi: 'dòng camp thay mờ, đậm dần theo bước' },
+  // KT CHO PHIM ĐANG CHẠY (anh 29/10/2026 "làm đi"): máy sinh VideoExpress → creative → chấm → camp
+  { card: 0, tep: 'apps/xuong-video/scripts/videoexpress.mjs', co: 'process.env.BR_PROFILE ||= PROFILE;', vi: 'máy sinh KT gắn profile br riêng (không phụ thuộc br use dùng chung)' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/hang-ke-chuyen.mts', co: "!coKt.has(id) && live.has(id) ? 2000 + lai", vi: 'hàng KT ưu tiên phim đang chạy chưa có KT' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs', co: "scripts/ethopex/thu-vien-len.py`, ...tv]", vi: 'máy sinh tự đưa bản sẵn sàng lên creative' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs', co: "dongTv(d, mayLoi ? 'loi_may' : 'loai'", vi: 'lỗi máy không bỏ oan phim' },
+  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "or (r.dang = 'kể chuyện' and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')", vi: 'nhịp ethopex lên camp KT cho phim đang chạy' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ROAS_LAI = 75;', vi: 'ngưỡng lên ROAS = lãi 30 ngày $75 (máy luật)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if a["thu"] - a["chi"] >= ROAS_LAI:', vi: 'đủ lên ROAS chỉ xét lãi 30 ngày' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'moc30 = [x for x in moc30 if int(x[0] or 0) not in _goc_roas]', vi: 'gốc đã có camp ★ không lên ROAS lại' },

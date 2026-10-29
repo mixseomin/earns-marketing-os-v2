@@ -10,6 +10,9 @@ import { execFileSync } from 'node:child_process';
 export const PROFILE = '/Users/htuan/Me/Earns/courseforge-demo/.capture-profile-htuan82-vx';
 export const ACCT = '677';
 export const APP = 'https://app.videoexpress.ai/';
+// GẮN PROFILE CHO MỌI LỆNH br (29/10/2026: máy sinh gãy "br: TU CHOI 'eval' — chua gan profile cu the" từ phim thứ hai): lệnh eval của vx-br.mts / vx-ke-chuyen
+// dựa vào trạng thái `br use` DÙNG CHUNG — phiên Claude khác đổi / đóng là mất. BR_PROFILE đi theo tiến trình này và mọi tiến trình con → luôn đúng profile riêng.
+process.env.BR_PROFILE ||= PROFILE;
 const BR = `${process.env.HOME}/bin/br`;
 const br = (...a) => execFileSync(BR, a, { encoding: 'utf8', timeout: 180e3 }).trim();
 const evalMain = (js) => { const o = br('eval', '--main', js).split('\n').pop(); try { return JSON.parse(o); } catch { return o; } };

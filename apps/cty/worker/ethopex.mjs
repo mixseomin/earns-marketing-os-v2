@@ -433,14 +433,18 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       from etp.creative r join etp.cham_cong g using (creative_id) left join etp.phim p using (content_id) left join etp.cham h using (creative_id)
       where g.duoc_len and r.tu_choi is null and r.content_id is not null and h.luc > now() - interval '3 days' and r.creative_id not in (${boQua})
         and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
-        and not exists (select 1 from etp.camp c where c.content_id = r.content_id)   -- phim CHƯA TỪNG có camp (phim có camp đã bị luật tắt vì lỗ thì không tự lên lại)
+        and (not exists (select 1 from etp.camp c where c.content_id = r.content_id)   -- phim CHƯA TỪNG có camp (phim có camp đã bị luật tắt vì lỗ thì không tự lên lại)
+          -- hoặc KT cho phim ĐANG CHẠY chưa có camp kể chuyện (anh 29/10/2026 "sx loại video KT cho các phim chưa có nhưng đang lên camp live triệt để … làm đi")
+          or (r.dang = 'kể chuyện' and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')
+              and not exists (select 1 from etp.camp c join etp.creative k on k.creative_id = c.creative_id where c.content_id = r.content_id and k.dang = 'kể chuyện')))
       order by h.luc limit 4) x`)).trim() || '[]');
     const da = [];
     for (const x of ds) {
       const a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();
       const ten = `${x.lo} ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ${a_(x.dang).toLowerCase()} ${Math.round(x.tu)}-${Math.round(x.den)}s`.trim();
       let r; try { r = JSON.parse((await chay(NB, [String(KHUON[x.lang] ?? KHUON.en), '--bo', String(x.bo), '--creative', String(x.creative_id), '--content', String(x.content_id), '--ten', ten,
-        '--that', '--lich', 'today', '--luat', 'phim mới chấm sạch → lên camp ngay', '--ai', 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy'], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+        '--that', '--lich', 'today', '--luat', x.dang === 'kể chuyện' ? 'KT (kể chuyện VideoExpress) chấm sạch → lên camp cho phim đang chạy' : 'phim mới chấm sạch → lên camp ngay',
+        '--ai', x.dang === 'kể chuyện' ? 'anh (chat 29/10/2026: sx KT cho phim đang chạy chưa có — làm đi) — máy chạy' : 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy'], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       da.push({ x, r });
     }
     const ok = da.filter((d) => d.r.ok);

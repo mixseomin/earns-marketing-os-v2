@@ -4,7 +4,9 @@
 //   chon  hàng đợi hiệu quả (box3 hang-ke-chuyen.mts) → viết kịch bản ckey + tạo tập studio (box3 viet-ke-chuyen.mts, ~25₫)
 //   sinh  giọng + ảnh + clip trên VideoExpress ($0, ≤ 5 clip song song — vx-ke-chuyen.mts; chưa xong thì nhịp sau làm tiếp)
 //   nap   box3 nạp R2 + xuất thân phim (vx-nap-tap.mts, cổng không câm) → cta  thẻ cuối mẫu CTA v2 (vx-ke-chuyen --cta, cổng câm / giọng đè)
-//   xong  đưa vào thư viện etp (thu-vien-them.mts, trạng thái "sẵn sàng" — người chọn lên camp; máy KHÔNG tự lên camp)
+//   xong  đưa vào thư viện etp (thu-vien-them.mts, trạng thái "sẵn sàng")
+//   len   TỰ ĐƯA LÊN THÀNH CREATIVE (anh 29/10/2026 "làm đi" — kế hoạch KT cho phim đang chạy): mỗi nhịp, bản "sẵn sàng" chưa có creative → thu-vien-len.py
+//         (len-creative: kho + chữ QC + chấm Meta/AFS). Chấm Sạch rồi thì nhịp ethopex của cty lên camp KT $1 cho phim (worker ethopex.mjs, khối PHIM MỚI / KT).
 // TÀI NGUYÊN: trần TRAN phim/ngày (giờ VN) — mặc định 12; một phim hỏng 3 lần thì bỏ (ghi dòng "loai" vào thư viện để hàng đợi không chọn lại trong 3 ngày).
 // Phiên VideoExpress = scripts/videoexpress.mjs (profile RIÊNG htuan82-vx, không đụng htuan82 chính); xong mỗi nhịp đóng phiên đó.
 //   node /Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/may-sinh-ke-chuyen.mjs [--tran=12] [--xem]   (--xem: chỉ in sổ + hàng đợi)
@@ -55,14 +57,25 @@ function hong(loi) {
   const d = so.dang; d.lan = (d.lan ?? 0) + 1; d.loi = String(loi).slice(0, 400);
   ghi(`✗ ${d.ten} bước ${d.buoc} (lần ${d.lan}): ${d.loi}`);
   if (d.lan >= 3) {
-    so.bo.push({ content_id: d.content_id, ten: d.ten, loi: d.loi, luc: gio() });
-    if (d.tap) dongTv(d, 'loai', `máy sinh bỏ sau 3 lần hỏng (bước ${d.buoc}): ${d.loi.slice(0, 200)}`);
+    // LỖI MÁY ≠ PHIM HỎNG (29/10/2026: "br: TU CHOI 'eval' — chua gan profile" làm bỏ oan Atrás + Step Back, chặn 3 ngày): lỗi br / mạng / hết giờ → 'loi_may'
+    // (hàng đợi chọn lại ngay khi máy lành, không vào sổ bỏ); chỉ lỗi của chính phim (kịch bản, cổng, xuất) mới 'loai'
+    const mayLoi = /br: TU CHOI|\/bin\/br |ECONN|ETIMEDOUT|timed out|Connection (reset|closed)|ssh:/i.test(d.loi);
+    if (!mayLoi) so.bo.push({ content_id: d.content_id, ten: d.ten, loi: d.loi, luc: gio() });
+    if (d.tap) dongTv(d, mayLoi ? 'loi_may' : 'loai', `máy sinh ${mayLoi ? 'dừng vì LỖI MÁY' : 'bỏ'} sau 3 lần hỏng (bước ${d.buoc}): ${d.loi.slice(0, 200)}`);
     else { try { psql(`insert into etp.thu_vien (content_id, dang, ten, nguon, trang_thai, ghi) values (${Number(d.content_id)}, 'kể chuyện', ${lit(d.ten)}, 'videoexpress', 'loai', ${lit(`máy sinh bỏ sau 3 lần hỏng (bước ${d.buoc}): ${d.loi.slice(0, 200)}`)});`); } catch (e) { ghi(`  không ghi được dòng loai: ${e}`); } }
     ghi(`  bỏ phim ${d.ten} sau 3 lần hỏng`); so.dang = null;
   }
   else if (d.tap) dongTv(d, 'dang_sinh', `${buocChu(d)} · lỗi lần ${d.lan}, nhịp sau thử lại`);
   luu();
 }
+// ── ĐƯA BẢN SẴN SÀNG LÊN CREATIVE (tối đa 2 / nhịp, trước khi làm phim dở — bản xong không nằm chờ người chọn) ──
+try {
+  const tv = execFileSync('ssh', [B, `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -tAc "select id from etp.thu_vien where trang_thai = 'san_sang' and creative_id is null and nguon = 'videoexpress' order by id limit 2"`], { encoding: 'utf8', timeout: 60e3 }).trim().split(/\s+/).filter(Boolean);
+  if (tv.length) {
+    const r = spawnSync('python3', [`${XV}/scripts/ethopex/thu-vien-len.py`, ...tv], { cwd: XV, encoding: 'utf8', timeout: 40 * 60e3, maxBuffer: 64 << 20 });
+    ghi(`đưa lên creative tv${tv.join(', tv')}: ${(r.stdout || r.stderr || '').trim().split('\n').filter((l) => /^[✓✗]|tv\d+:/.test(l)).slice(-3).join(' · ') || `mã thoát ${r.status}`}`);
+  }
+} catch (e) { ghi(`✗ đưa lên creative: ${String(e?.message ?? e).slice(0, 200)}`); }
 try {
   // ── chọn phim mới khi không có phim dở ──
   if (!so.dang) {

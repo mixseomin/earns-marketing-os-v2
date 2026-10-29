@@ -211,7 +211,7 @@ export async function docEtp(ng?: string): Promise<DuLieuEtp> {
     runNha<{ creative_id: number; cham: DiemCham }>(sql`select creative_id, cham from etp.diem_cham`).catch(() => []),
     runNha<{ ma: string; luc: string; so: Omit<SoLuat, 'ma' | 'luc'> }>(sql`select ma, luc::text luc, so from etp.so_luat`).catch(() => []),
     run<Record<string, unknown>>(sql`select v.id, v.content_id, v.creative_id, v.dang, v.lang, coalesce(p.ten, v.ten) phim, p.the_loai, v.video, v.anh, v.giay, v.nguon, v.trang_thai, v.ghi, v.tao::text tao
-      from etp.thu_vien v left join etp.phim p using (content_id) where v.trang_thai <> 'loai'`).catch(() => [] as Record<string, unknown>[]),
+      from etp.thu_vien v left join etp.phim p using (content_id) where v.trang_thai not in ('loai', 'loi_may')`).catch(() => [] as Record<string, unknown>[]),
     run<Record<string, unknown>>(sql`with s as (select etp.creative_cua(c.creative_id, c.ten) cr, count(*) camp, count(*) filter (where c.trang_thai = 'ACTIVE') chay, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu
         from etp.camp c left join lateral (select sum(x.chi) chi, sum(x.thu) thu from etp.so_ngay x where x.camp_id = c.camp_id and x.ngay >= current_date - 14) n on true group by 1)
       select cr.creative_id, cr.content_id, p.ten phim, p.the_loai, cr.dang, cr.lang, cr.video, cr.anh, cr.den - cr.tu giay, coalesce(s.camp, 0) camp, coalesce(s.chay, 0) chay, coalesce(s.chi, 0) chi, coalesce(s.thu, 0) thu,

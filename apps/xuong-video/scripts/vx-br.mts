@@ -7,6 +7,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
+import './videoexpress.mjs';   // gắn BR_PROFILE = profile riêng VideoExpress cho mọi lệnh br (chạy riêng vx-ke-chuyen cũng không phụ thuộc `br use` dùng chung)
 const BR = `${process.env.HOME}/bin/br`;
 export const ngu = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export function brEval<T = unknown>(js: string): T {
@@ -46,11 +47,15 @@ export async function napKhung(file: string, catDefault: number): Promise<number
 
 // GỬI image2video qua fetch. prompt = chỉ đạo chuyển động (+ lời thoại VN cho shot thoại — VideoExpress TỰ sinh tiếng, $0). Trả uuid. isShared=0, aspect 9:16.
 // enhance=false cho shot THOẠI: giữ nguyên câu tiếng Việt, không để máy tự viết lại prompt (anh chốt 27/10 dùng native speech).
-export function guiShot(mediaId: number, prompt: string, enhance = true): string | null {
+// lastMediaId (anh 29/10 "tập trung vào ảnh cuối shot và đầu shot sau"): có khung CUỐI → generator first_last_frame, clip chạy từ khung đầu → khung cuối.
+//   Nối mạch: đặt khung cuối shot N = khung đầu shot N+1 → cú cắt liền, động tác không giật. (field bundle: mediaId + lastFrameMediaId + generatorName=first_last_frame)
+export function guiShot(mediaId: number, prompt: string, enhance = true, lastMediaId = 0): string | null {
+  const noi = lastMediaId > 0;
   const body = [
     'type=human', 'imagePrompt=', `prompt=${encodeURIComponent(prompt)}`, 'uuid=', `mediaId=${mediaId}`,
+    'lastFrameUuid=', `lastFrameMediaId=${noi ? lastMediaId : 0}`,
     'audioMediaId=0', 'isShared=0', 'aspect=9%3A16', 'enhanceHumanFace=0', 'isTalkingVideoFromText=0',
-    'isNarrationVideo=0', `enhanceVideoPrompt=${enhance ? 1 : 0}`, 'videoOnly=0', 'speed=', 'generatorName=create_from_prompt',
+    'isNarrationVideo=0', `enhanceVideoPrompt=${enhance ? 1 : 0}`, 'videoOnly=0', 'speed=', `generatorName=${noi ? 'first_last_frame' : 'create_from_prompt'}`,
     'faceImageMediaId=0', 'faceSwap=0', 'mode=',
   ].join('&');
   const r = brEval<{ success?: boolean; uuid?: string; message?: string }>(

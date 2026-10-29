@@ -42,7 +42,7 @@ const BO_CUC = 'Image 1 is a flat schematic storyboard diagram, NOT a style refe
 // TRẦN ẢNH MẪU của cổng (ckey: 3 — cong-ai.ts chặn trước khi gửi). Ưu tiên: sơ đồ (bố cục) → ô ảnh chung (đồng nhất cả cảnh — đã chứa mặt / đồ / nền)
 // → nhân vật → đạo cụ → bối cảnh; câu prompt chỉ nhắc đúng những ảnh được gửi.
 const TRAN_MAU = Number(gia('tran-mau') || 3);
-async function motKhung(so: number) {
+async function motKhung(so: number, prevSo?: number) {
   const s = bang.shot.find((x) => x.so === so); if (!s) return console.log(`#${so}: không có trong bảng`);
   const xem = process.argv.includes('--xem');
   const co = (s.nguoi ?? []).filter((n) => !n.lung).map((n) => bang.nhan_vat[n.ma]?.ten_db ?? '').filter((t) => t && anhCua(s, t));
@@ -55,6 +55,12 @@ async function motKhung(so: number) {
     ...doTrong.map((t) => khac.find((x) => x.ten === t && x.anh_ref[0])).filter((x): x is NonNullable<typeof x> => !!x).map((x) => ({ url: x.anh_ref[0]!, cau: (k: number) => `Reference image ${k} shows ${x.ten} — draw it exactly like this.` })),
     ...[khac.find((x) => x.loai === 'boi_canh' && x.anh_ref[0])].filter((x): x is NonNullable<typeof x> => !!x).map((x) => ({ url: x.anh_ref[0]!, cau: (k: number) => `Reference image ${k} is the location — match its walls, doors, materials and warm lighting (not its framing).` })),
   ].slice(0, TRAN_MAU - 1);
+  // 🔗 NỐI CHUỖI (Bước 2): shot sau nhận khung CUỐI shot trước làm ảnh mẫu — giữ người/đồ/ánh sáng + nối liền động tác, chỉ đổi khung hình
+  if (process.argv.includes('--chuoi') && prevSo != null && existsSync(`${thu}/so-${prevSo}-that.png`)) {
+    ds2.unshift({ url: xem ? '(khung cuối shot trước)' : await len(`${thu}/so-${prevSo}-that.png`, `${so}-noi`),
+      cau: (k: number) => `Reference image ${k} is the LAST FRAME of the immediately preceding shot #${prevSo}, the moment just before this one. This shot is the next instant of the SAME continuous take: keep the same people with the exact same faces, hair, make-up, outfits, the same lighting and the same location as that frame, and continue their ongoing action and body positions smoothly from it — do NOT reset poses or re-stage. Only the camera framing changes, and it follows image 1.` });
+    ds2.splice(TRAN_MAU - 1);   // giữ trần ảnh mẫu của cổng (sơ đồ + TRAN_MAU-1)
+  }
   const u1 = xem ? '(sơ đồ)' : await len(`${thu}/so-${so}.png`, `${so}`);
   const p = `${BO_CUC}\n${phieuShot(bang, s, kg, { ta: taCua(s), vat_ta: vatTa })}\n${ds2.map((m, k) => m.cau(k + 2)).join(' ')}`;
   if (xem) return console.log(`---- #${so} (${ds2.length + 1} ảnh mẫu)\n${p}`);   // xem prompt, 0đ
@@ -85,7 +91,11 @@ if (process.argv.includes('--chung')) {
 }
 // song song có trần (anh 24/10/2026: sinh AI song song mặc định) — 6 ảnh một lúc
 // --song=N: số ảnh cùng lúc (mặc định 6; cổng chợ ckey trả chậm khi dồn — 26/10/2026 19/29 hết giờ 180 s ở mức 6)
-const hang = [...ds]; await Promise.all(Array.from({ length: Math.min(Number(gia('song') || 6), hang.length) }, async () => { for (let so = hang.shift(); so != null; so = hang.shift()) await motKhung(so); }));
+if (process.argv.includes('--chuoi')) {   // nối chuỗi: sinh TUẦN TỰ để shot sau nhận khung cuối shot trước (Bước 2)
+  for (let i = 0; i < ds.length; i++) await motKhung(ds[i]!, i > 0 ? ds[i - 1] : undefined);
+} else {
+  const hang = [...ds]; await Promise.all(Array.from({ length: Math.min(Number(gia('song') || 6), hang.length) }, async () => { for (let so = hang.shift(); so != null; so = hang.shift()) await motKhung(so); }));
+}
 // bảng duyệt: các khung đã có, đánh số #N
 const sharp = (await import('sharp')).default;
 const co2 = bang.shot.filter((x) => existsSync(`${thu}/so-${x.so}-that.png`)); const C = 8, W = 270, H = 480;

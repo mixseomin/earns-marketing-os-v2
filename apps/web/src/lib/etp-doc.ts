@@ -245,8 +245,10 @@ export async function docEtp(ng?: string): Promise<DuLieuEtp> {
   // LỊCH GIỜ — không .catch: đọc lỗi mà trả rỗng thì bảng hiện toàn BẬT trong khi máy đang tạm dừng camp (audit 25/10/2026)
   const [lichGio, khungSo, lichTat, khungGio, khungNay] = await Promise.all([
     run<DuLieuEtp['lichGio'][number]>(sql`select the_loai, khung, bat, ai, luc::text luc from etp.lich_gio order by the_loai, khung`),
-    run<{ the_loai: string; khung: string; chi: string; thu: string }>(sql`select coalesce(p.the_loai, '_khac') the_loai, etp.khung_vn((s.gio + 7) % 24) khung, sum(s.chi) chi, sum(s.thu) thu
-      from etp.so_gio s left join etp.phim p using (content_id) where s.ngay between ${nay}::date - 7 and ${nay}::date - 1 group by 1, 2`),
+    // gộp theo giờ TRƯỚC rồi mới gọi khung_vn: ≤ 24 lần mỗi thể loại thay vì mỗi dòng so_gio (127 → 14 ms; anh 30/10/2026 "chậm quá")
+    run<{ the_loai: string; khung: string; chi: string; thu: string }>(sql`with g as (select coalesce(p.the_loai, '_khac') the_loai, (s.gio + 7) % 24 h, sum(s.chi) chi, sum(s.thu) thu
+      from etp.so_gio s left join etp.phim p using (content_id) where s.ngay between ${nay}::date - 7 and ${nay}::date - 1 group by 1, 2)
+      select the_loai, etp.khung_vn(h) khung, sum(chi) chi, sum(thu) thu from g group by 1, 2`),
     run<DuLieuEtp['lichTat'][number]>(sql`select camp_id, the_loai, khung, luc::text luc from etp.lich_tat order by luc desc`),
     run<{ khung: string; gio_tu: number; so_gio: number; ten: string; ghi: string | null }>(sql`select khung, gio_tu, so_gio, ten, ghi from etp.khung_gio order by (gio_tu + 17) % 24`),
     run<{ k: string }>(sql`select etp.khung_vn(extract(hour from now() at time zone 'Asia/Ho_Chi_Minh')::int) k`),

@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
-import { sinhAnhMotCong } from '../src/lib/xuong-video/cong-ai';
+import { sinhAnhQuaCong } from '../src/lib/xuong-video/cong-ai';
 import { uploadToR2 } from '../src/lib/r2';
 import { phieuShot, khongGianTap, lechSo, type BangShot } from './phieu-shot.mts';
 
@@ -58,8 +58,8 @@ async function motKhung(so: number) {
   const u1 = xem ? '(sơ đồ)' : await len(`${thu}/so-${so}.png`, `${so}`);
   const p = `${BO_CUC}\n${phieuShot(bang, s, kg, { ta: taCua(s), vat_ta: vatTa })}\n${ds2.map((m, k) => m.cau(k + 2)).join(' ')}`;
   if (xem) return console.log(`---- #${so} (${ds2.length + 1} ảnh mẫu)\n${p}`);   // xem prompt, 0đ
-  const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: p, thamChieuUrl: [u1, ...ds2.map((m) => m.url)], tiLe: '9:16' });
-  if (!a.anh) return console.log(`#${so}: ảnh hỏng — ${a.loi}`);
+  const a = await sinhAnhQuaCong('nano-banana-2', { prompt: p, thamChieuUrl: [u1, ...ds2.map((m) => m.url)], tiLe: '9:16' });   // chuỗi cổng có fallback: ckey timeout → plenxai → shopaikey → google
+  if (!a.anh) return console.log(`#${so}: ảnh hỏng — ${a.thu?.map((x) => x.loi).filter(Boolean).join(' | ') ?? '?'}`);
   writeFileSync(`${thu}/so-${so}-that.png`, a.anh.data); console.log(`#${so}: ${await len(`${thu}/so-${so}-that.png`, `${so}-that`)}`);
 }
 // ẢNH CHUNG CẢ CẢNH (--chung, anh 26/10/2026 — gộp tầng 1 của bang-gom.mts với sơ đồ shot): lưới 3×3 khung sơ đồ trơn → MỘT ảnh người thật cho cả lưới
@@ -75,8 +75,8 @@ if (process.argv.includes('--chung')) {
     const tung = nhom.map((so, k) => { const s = bang.shot.find((x) => x.so === so)!; return `Panel ${k + 1} (row ${Math.floor(k / 3) + 1}, column ${(k % 3) + 1}): ${s.co} — ${s.dien_en ?? ''}`; }).join('\n');
     const p = `Image 1 is a 3×3 storyboard GRID of flat schematic diagrams (white gutters between panels). Redraw the SAME 3×3 grid as nine photoreal live-action film stills of one scene — keep the grid, the panel order, every panel's framing and who stands where; the white gutters stay. The same people must look IDENTICAL in every panel (same face, hair, makeup, outfit details) and one consistent lighting setup runs through all panels. ${bang.canh_en} No text, no captions, no panel numbers.\n${tung}\n${Object.values(taCua(sMau)).filter((t) => ai.some((a) => t.startsWith(a))).join('\n')}\n${ai.map((t, k) => `${t} looks exactly like reference image ${k + 2}.`).join(' ')}`;
     if (process.argv.includes('--xem')) { console.log(`---- lưới ${i / 9}: ${nhom.join(', ')}\n${p}`); continue; }
-    const a = await sinhAnhMotCong('ckey', 'wowztools/nano-banana-2', { prompt: p, thamChieuUrl: [await len(`${thu}/luoi-${i / 9}.png`, `luoi-${i / 9}`), ...ai.map((t) => anhCua(sMau as never, t))], tiLe: '9:16' });
-    if (!a.anh) { console.log(`ảnh chung ${i / 9}: hỏng — ${a.loi}`); continue; }
+    const a = await sinhAnhQuaCong('nano-banana-2', { prompt: p, thamChieuUrl: [await len(`${thu}/luoi-${i / 9}.png`, `luoi-${i / 9}`), ...ai.map((t) => anhCua(sMau as never, t))], tiLe: '9:16' });
+    if (!a.anh) { console.log(`ảnh chung ${i / 9}: hỏng — ${a.thu?.map((x) => x.loi).filter(Boolean).join(' | ') ?? '?'}`); continue; }
     writeFileSync(`${thu}/chung-${i / 9}.png`, a.anh.data); const m = await sharp(a.anh.data).metadata(); const kx = (m.width ?? W) / W, ky = (m.height ?? H) / H;
     for (const [k, so] of nhom.entries()) { const q = o(k); await sharp(a.anh.data).extract({ left: Math.round(q.left * kx), top: Math.round(q.top * ky), width: Math.round(CW * kx), height: Math.round(CH * ky) }).png().toFile(`${thu}/so-${so}-chung.png`); }
     console.log(`ảnh chung ${i / 9} (${nhom.join(', ')}): ${await len(`${thu}/chung-${i / 9}.png`, `chung-${i / 9}`)}`);

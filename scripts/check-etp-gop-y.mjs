@@ -118,6 +118,10 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/vx-nap-tap.mts', co: 'bản xuất CÂM', vi: 'vx-nap-tap đo bản xuất, câm thì đỏ' },
   { card: 1485, tep: 'packages/bang/src/data-table.tsx', co: '{nhDinh ? <tbody>{dongNhomTr(nhDinh, true)}</tbody> : null}', vi: 'dòng phim (dòng nhóm) dính trong khối tiêu đề khi cuộn qua' },
   { card: 1485, tep: 'packages/bang/src/data-table.tsx', mot: "className={dinh ? 'dt-nhom dt-nhom-dinh' : 'dt-nhom'}", vi: 'dòng nhóm vẽ một chỗ (dongNhomTr), không chép tay thêm bản thứ hai' },
+  // anh 29/10/2026: cờ nước giao trên camp + nhóm gốc phim (Trung / Ấn / hoạt hình…) — hoạt hình chỉ khi nhìn ra tranh vẽ
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '<CoNuoc nuoc={c.nuoc ?? []} />', vi: 'camp hiện cờ nước giao nhiều chi nhất' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '<NhomGoc g={nhomCua.get(Number(k))} />', vi: 'dòng phim hiện nhóm gốc' },
+  { card: 0, tep: 'apps/etp/dong-bo.py', co: '"group_by": ["campaign_name", "geo"]', vi: 'đồng bộ nước giao theo camp (gom geo trần không tách được nhà)' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', cam: "maxWidth: 1600, margin: '0 auto'", vi: 'trang etp tràn hết bề ngang màn, không khoá 1600px (anh chat 29/10/2026)' },
   { card: 0, tep: 'packages/bang/src/data-table.tsx', co: 'colSpan={ci === 0 && gop > 1 ? gop : undefined}', vi: 'tên phim (dòng nhóm) tràn sang cột Trạng thái + Tuổi (anh chat 29/10/2026)' },
   { card: 1485, tep: 'apps/web/src/components/etp-view.tsx', co: 'const H = nhom ? 22 : 15', vi: 'cột ROI camp nhỏ hơn cột ROI phim' },

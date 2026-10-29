@@ -1385,6 +1385,20 @@ const O = ({ v, t, cot, s, max, mo, nhom }: { v: number | null; t: string; cot: 
     </span>
     <span data-cot={`${cot}-so`} style={{ fontSize: 10.5, lineHeight: '12px', marginTop: 2, color: mau, fontVariantNumeric: 'tabular-nums', fontWeight: nhom ? 700 : undefined }}>{soO(v, s, '')}</span></span>;
 };
+// CỜ NƯỚC GIAO + NHÓM GỐC PHIM (anh 29/10/2026 "các camp hãy thêm icon quốc gia target … phim Ấn, Tàu, Âu… phải tách"): camp đều nhắm cùng 39 nước,
+// cờ = nước nhận nhiều chi nhất 7 ngày (etp.camp_nuoc); nhóm gốc chấm trên poster (etp.phim.nhom_goc — hoạt hình chỉ khi nhìn ra tranh vẽ, AI nhìn thật xếp theo ngoại hình)
+const coNuoc = (g: string) => String.fromCodePoint(...[...g.toUpperCase()].map((x) => 127397 + x.charCodeAt(0)));
+function CoNuoc({ nuoc }: { nuoc: { g: string; c: number; t: number }[] }) {
+  const tc = nuoc.reduce((a, x) => a + x.c, 0); if (!tc) return null;
+  const pt = (x: { c: number }) => Math.round((x.c / tc) * 100), top = nuoc[0]!;
+  const t = `Nước giao 7 ngày (camp nhắm 39 nước):\n${nuoc.slice(0, 6).map((x) => `${coNuoc(x.g)} ${x.g} ${pt(x)}% chi · ROI ${x.c ? Math.round((x.t / x.c - 1) * 100) : 0}%`).join('\n')}${nuoc.length > 6 ? `\n… +${nuoc.length - 6} nước` : ''}`;
+  return <span title={t} style={{ fontSize: 12, cursor: 'help', opacity: pt(top) >= 80 ? 1 : 0.75 }}>{coNuoc(top.g)}{pt(top) < 80 ? <span style={{ fontSize: 10, color: 'var(--fg-2)', marginLeft: 2 }}>{pt(top)}%</span> : null}</span>;
+}
+const NHOM_GOC: Record<string, [string, string, string]> = {   // [chữ, màu, giải thích]
+  au_my: ['Âu-Mỹ', 'var(--fg-3)', 'diễn viên Âu-Mỹ'], trung: ['🇨🇳 Trung', '#f87171', 'diễn viên Trung Quốc'], an: ['🇮🇳 Ấn', '#fb923c', 'diễn viên Ấn Độ'],
+  latin: ['Latin', '#fbbf24', 'diễn viên Latin'], dong_a: ['Đông Á', '#f472b6', 'diễn viên Hàn / Nhật / Đông Nam Á'], da_mau: ['Da màu', '#a78bfa', 'diễn viên da màu'],
+  hoat_hinh: ['🎨 Hoạt hình', '#60a5fa', 'nhìn như tranh vẽ / hoạt hình (không tính phim AI nhìn như người thật)'] };
+const NhomGoc = ({ g }: { g: string | null | undefined }) => { const x = g ? NHOM_GOC[g] : undefined; return x ? <span title={`Nhóm gốc phim: ${x[2]} — chấm trên poster`} style={{ fontSize: 10.5, fontWeight: 500, color: x[1], border: `1px solid ${x[1]}55`, borderRadius: 4, padding: '0 4px', whiteSpace: 'nowrap' }}>{x[0]}</span> : null; };
 const maxLai = (ds: (SoTien | undefined)[]) => { const l = ds.map((x) => (x ? x.thu - x.chi : 0)); return { p: Math.max(0, ...l), n: Math.max(0, ...l.map((x) => -x)) }; };
 // BIỂU ĐỒ NGÀY TRONG NGĂN ĐIỆN THOẠI (anh 28/10/2026 "bấm vào đây trên mobile thì cho xem chart chi tiết như trên pc"): 6 ngày trọn + hôm nay,
 // cột lãi/lỗ cùng cách vẽ ô O của cây trên máy tính (đường 0 theo tỉ lệ lãi lớn nhất / lỗ lớn nhất), dưới mỗi cột ROI · chi · lãi của ngày
@@ -1532,7 +1546,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const cotCay: DataColumn<CampEtpKho>[] = [
     { key: 'camp', header: 'Phim → camp gốc → bản nhân', align: 'left', width: 190, cellTitle: (c) => c.ten ?? undefined, sortValue: (c) => c.camp_id,
       cell: (c) => { const l = loiNb.get(c.camp_id), n = dem(c); return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
-        <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} />
+        <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><CoNuoc nuoc={c.nuoc ?? []} /><BadgeDangNgan d={c.dang} />
         {l ? <span style={{ color: '#f87171', fontSize: 11 }} title={`nhân bản lỗi ${l.lan} lần / 24h: ${loiThuong(l.loi)}`}>⚠{l.lan}</span> : n ? <span style={{ color: 'var(--fg-2)', fontSize: 11 }} title={`${n} bản nhân`}>x{n}</span> : null}</span>; } },
     { key: 'tt', header: 'Trạng thái', align: 'left', title: 'trạng thái camp trên Ethopex', cell: (c) => { const x = ttCamp(c); return <span title={x.t} style={{ fontSize: 11, color: x.mau }}>{x.chu}</span>; }, sortValue: (c) => ttCamp(c).chu },
     { key: 'tuoi', header: 'Tuổi', title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: (c) => (c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : undefined), cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)) },
@@ -1557,9 +1571,10 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   ];
   // KT ĐANG SINH / SẴN SÀNG theo phim (anh 29/10/2026 kế hoạch KT cho phim đang chạy): bản kể chuyện VideoExpress trong etp.thu_vien chưa thành creative
   const ktCua = useMemo(() => new Map((du.thuVien ?? []).filter((v) => !v.creative_id && (v.tv === 'dang_sinh' || v.tv === 'san_sang')).map((v) => [v.content_id, v.tv as string])), [du.thuVien]);
+  const nhomCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x.nhom_goc])), [du.phims]);
   const nhanPhim = (k: string) => { const p = phimMap.get(k); if (!p) return `#${k}`;
     return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}
-      <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }} title={p.all[0]?.phim ?? ''}>{p.all[0]?.phim ?? `#${k}`}</b>
+      <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }} title={p.all[0]?.phim ?? ''}>{p.all[0]?.phim ?? `#${k}`}</b><NhomGoc g={nhomCua.get(Number(k))} />
       <span title="camp đang chạy / tổng" style={{ color: 'var(--fg-2)', fontWeight: 400 }}>{p.all.filter((c) => c.trang_thai === 'ACTIVE').length}/{p.all.length}</span>
       {(() => { const kt = ktCua.get(Number(k)); return kt ? <span title={kt === 'dang_sinh' ? 'máy đang sinh bản kể chuyện (KT) VideoExpress cho phim này — xong tự lên creative, chấm Sạch thì lên camp' : 'bản kể chuyện (KT) đã xong, đang lên creative / chờ chấm'} style={{ color: '#a78bfa', fontWeight: 400, opacity: kt === 'dang_sinh' ? 0.6 : 0.9, fontSize: 11 }}>◌ KT {kt === 'dang_sinh' ? 'đang sinh' : 'sẵn sàng'}</span> : null; })()}
       {p.b?.bao_hoa ? <span title={p.b.bao_hoa} style={{ color: '#f59e0b', fontWeight: 400 }}>⚠ bão hoà</span> : null}
@@ -1572,7 +1587,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const thayRows = useMemo(() => { const coPhim = new Set(camps.map((c) => c.content_id));
     return (du.thayThe ?? []).filter((t) => coPhim.has(t.content_id)).map((t): CampEtpKho => ({ camp_id: -t.id, ten: `camp thay #${t.camp_cu}`, bo: null, trang_thai: 'THAY', giao: null, ngan_sach: 0,
       creative_id: t.creative_id, content_id: t.content_id, goc: null, lich: null, tao: t.tao, loi: null, phim: null, the_loai: null, dang: null, doan: null, cung_doan: 0,
-      thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, lich_tat: false, roas: null, chien_luoc: null })); }, [camps, du.thayThe]);
+      thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, lich_tat: false, roas: null, chien_luoc: null, nuoc: [] })); }, [camps, du.thayThe]);
   const thayCua = useMemo(() => new Map((du.thayThe ?? []).map((t) => [-t.id, t])), [du.thayThe]);
   const cotCayThay: DataColumn<CampEtpKho>[] = cotCay.map((col) => ({ ...col,
     cell: (c: CampEtpKho, i: number) => { const t = c.camp_id < 0 ? thayCua.get(c.camp_id) : undefined; return t ? oThay(col.key, t) : col.cell(c, i); },

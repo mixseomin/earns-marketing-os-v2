@@ -1,0 +1,807 @@
+{
+ "_luat": "Chấm bằng mắt trên poster 29/10/2026 (lưới apps/etp/phan-tich/luoi-poster.py, 200 phim có chi 14 ngày). Nhóm theo NGOẠI HÌNH diễn viên: au_my · trung · an · latin · dong_a · da_mau · hoat_hinh. hoat_hinh CHỈ khi nhìn ra tranh vẽ / hoạt hình 2D-3D (mẫu anh chỉ: Giving My Sacred Husband to My Sister); phim AI nhìn như người thật xếp theo ngoại hình, không vào hoat_hinh.",
+ "phim": {
+  "94344": {
+   "nhom": "au_my",
+   "ten": "Number One, Nobody"
+  },
+  "92980": {
+   "nhom": "au_my",
+   "ten": "¡Atrás! No te metas con ese vagabundo"
+  },
+  "82923": {
+   "nhom": "au_my",
+   "ten": "Step Back! That Homeless Man Is Not to be Messed with"
+  },
+  "125094": {
+   "nhom": "au_my",
+   "ten": "Dear Brother, Your Regret Came Too Late"
+  },
+  "156393": {
+   "nhom": "au_my",
+   "ten": "The Rejected Luna Claimed by the Alpha King"
+  },
+  "149304": {
+   "nhom": "au_my",
+   "ten": "Runaway Single Mom and Her Billionaire Hubby"
+  },
+  "80386": {
+   "nhom": "au_my",
+   "ten": "El gran y poderoso genio"
+  },
+  "81104": {
+   "nhom": "au_my",
+   "ten": "Phantom Returns"
+  },
+  "156354": {
+   "nhom": "au_my",
+   "ten": "The Billionaire in the Doghouse"
+  },
+  "70634": {
+   "nhom": "au_my",
+   "ten": "Votos destrozados"
+  },
+  "150301": {
+   "nhom": "au_my",
+   "ten": "Athena’s Chosen Queen"
+  },
+  "152051": {
+   "nhom": "au_my",
+   "ten": "The Mafia Bosses' Max-Level Nanny"
+  },
+  "134720": {
+   "nhom": "au_my",
+   "ten": "The Discarded Wife Is the Queen of Luxury"
+  },
+  "153582": {
+   "nhom": "au_my",
+   "ten": "I'm Straight, Mr. Voss!"
+  },
+  "156666": {
+   "nhom": "au_my",
+   "ten": "Oops! The 5-Year-Old Dud Saved the Pack!"
+  },
+  "157015": {
+   "nhom": "au_my",
+   "ten": "Called Me a Gold Digger? So Why Is He Begging?"
+  },
+  "158419": {
+   "nhom": "au_my",
+   "ten": "Atravesando el infierno contigo (Doblado)"
+  },
+  "49743": {
+   "nhom": "au_my",
+   "ten": "Zero to Alpha: Return of the Wolf King"
+  },
+  "156988": {
+   "nhom": "au_my",
+   "ten": "The Wingless Dragon: Rise of Queen"
+  },
+  "150450": {
+   "nhom": "au_my",
+   "ten": "Out of Your League: The Billionaire Wife's Revenge"
+  },
+  "158863": {
+   "nhom": "trung",
+   "ten": "El último suspiro del amor (Doblado)"
+  },
+  "165702": {
+   "nhom": "au_my",
+   "ten": "The Sea God's Disguise: Fishing for Love"
+  },
+  "94345": {
+   "nhom": "au_my",
+   "ten": "The Rejected Lycan Queen Returns"
+  },
+  "156278": {
+   "nhom": "au_my",
+   "ten": "The Lost Galactic Son"
+  },
+  "104148": {
+   "nhom": "au_my",
+   "ten": "The Mage King Is Back"
+  },
+  "156720": {
+   "nhom": "au_my",
+   "ten": "Satan's Successor: Don't Mess With That Homeless Man!"
+  },
+  "101767": {
+   "nhom": "au_my",
+   "ten": "My 100x Cashback Life"
+  },
+  "165321": {
+   "nhom": "au_my",
+   "ten": "The Homeless Heir I Sponsored"
+  },
+  "88370": {
+   "nhom": "hoat_hinh",
+   "ten": "Prep School Pop Star!"
+  },
+  "165174": {
+   "nhom": "au_my",
+   "ten": "Contracted to the Billionaire I Once Saved"
+  },
+  "158377": {
+   "nhom": "trung",
+   "ten": "Mi divorcio me hizo heredera multimillonaria"
+  },
+  "156581": {
+   "nhom": "au_my",
+   "ten": "All the Chefs Quit, and I Got Rich"
+  },
+  "60350": {
+   "nhom": "au_my",
+   "ten": "Acting for Real-He Fell First"
+  },
+  "156881": {
+   "nhom": "trung",
+   "ten": "They Called Her Fool, She Saved Their Fortune（DUBBED）"
+  },
+  "158400": {
+   "nhom": "au_my",
+   "ten": "Perdón, aquí no hay heredera de dragones (Doblado)"
+  },
+  "156318": {
+   "nhom": "au_my",
+   "ten": "Move Aside, I'm the True Dragon Awakener"
+  },
+  "90680": {
+   "nhom": "au_my",
+   "ten": "The Triplets' Final Regret"
+  },
+  "157799": {
+   "nhom": "au_my",
+   "ten": "Regret It, Ex-Wife! Your Parents Died Because Of You"
+  },
+  "70341": {
+   "nhom": "au_my",
+   "ten": "The Alpha and His Nanny Luna"
+  },
+  "84045": {
+   "nhom": "au_my",
+   "ten": "The Alpha's Broken Mate"
+  },
+  "156921": {
+   "nhom": "au_my",
+   "ten": "The Heiress Speaks, Fate Obeys"
+  },
+  "156548": {
+   "nhom": "au_my",
+   "ten": "The Forsaken Mecha King: Back for Reckoning"
+  },
+  "156388": {
+   "nhom": "au_my",
+   "ten": "Kicked Out by My Brother's Fiancée? I'm the Real Owner!"
+  },
+  "157402": {
+   "nhom": "au_my",
+   "ten": "The Alpha's Runaway Luna"
+  },
+  "157385": {
+   "nhom": "au_my",
+   "ten": "CEO Daddy, Break My Mommy Out!"
+  },
+  "156722": {
+   "nhom": "au_my",
+   "ten": "No Longer Your Super-Powered Husband"
+  },
+  "102995": {
+   "nhom": "au_my",
+   "ten": "SIMP NO MORE"
+  },
+  "165319": {
+   "nhom": "au_my",
+   "ten": "The 50-Year-Old Billionaire Wants Me"
+  },
+  "158511": {
+   "nhom": "au_my",
+   "ten": "Destruyó a la mujer que le salvó la vida (Doblado)"
+  },
+  "100197": {
+   "nhom": "au_my",
+   "ten": "Kiss the Princess Rule the Empire"
+  },
+  "158482": {
+   "nhom": "au_my",
+   "ten": "Rango SSS: el dios del trueno del barrio (Doblado)"
+  },
+  "158695": {
+   "nhom": "au_my",
+   "ten": "¡Atención! Soy la jefa"
+  },
+  "92961": {
+   "nhom": "au_my",
+   "ten": "Loved Me Most, Betrayed Me Worst"
+  },
+  "107547": {
+   "nhom": "an",
+   "ten": "Poor Guests? Wrong Billionaires."
+  },
+  "157013": {
+   "nhom": "au_my",
+   "ten": "My Copycat Roommate Stole My Appetite"
+  },
+  "158530": {
+   "nhom": "au_my",
+   "ten": "Cleopatra: la reina dorada de Egipto (Doblado)"
+  },
+  "165173": {
+   "nhom": "au_my",
+   "ten": "Not a Scandal. An Heiress"
+  },
+  "152221": {
+   "nhom": "hoat_hinh",
+   "ten": "Fire & Ice: Return of the Alpha Queen's Sister"
+  },
+  "158999": {
+   "nhom": "au_my",
+   "ten": "La Cenicienta fea y su multimillonario vagabundo"
+  },
+  "163612": {
+   "nhom": "au_my",
+   "ten": "I Married a Poor Bodyguard, Only to Discover He’s a Billionaire CEO"
+  },
+  "157887": {
+   "nhom": "au_my",
+   "ten": "Hearing Thoughts The Billionaire Family Spoils Me"
+  },
+  "158475": {
+   "nhom": "au_my",
+   "ten": "¿A quién extrañan ahora? (Doblado)"
+  },
+  "158528": {
+   "nhom": "au_my",
+   "ten": "El Herrero Invencible (Doblado)"
+  },
+  "166131": {
+   "nhom": "hoat_hinh",
+   "ten": "(Doblado) Casada con el mendigo emperador"
+  },
+  "159989": {
+   "nhom": "trung",
+   "ten": "Poder Oculto: El Magnate Misterioso"
+  },
+  "163519": {
+   "nhom": "au_my",
+   "ten": "She Returned Home with Her New Flame, And I Came Clean About My Identity as the Heir"
+  },
+  "162981": {
+   "nhom": "au_my",
+   "ten": "The Duke’s Lost Little Heiress"
+  },
+  "153583": {
+   "nhom": "au_my",
+   "ten": "Lulu the Little Goddess"
+  },
+  "159675": {
+   "nhom": "au_my",
+   "ten": "Capturando Su Corazón con Mis Gemelos (Doblado)"
+  },
+  "165300": {
+   "nhom": "au_my",
+   "ten": "Mommy, the Don Wants You Back!"
+  },
+  "166087": {
+   "nhom": "au_my",
+   "ten": "Cold CEO’s Wolf King Bodyguard"
+  },
+  "159340": {
+   "nhom": "latin",
+   "ten": "¡Papá, no te vayas! ¡Salva a mamá! (Doblado)"
+  },
+  "100001": {
+   "nhom": "au_my",
+   "ten": "Don's Back: No One Touches His Daughter"
+  },
+  "156572": {
+   "nhom": "au_my",
+   "ten": "Reborn To Win What They Stole"
+  },
+  "153801": {
+   "nhom": "au_my",
+   "ten": "El número uno, un don nadie"
+  },
+  "157728": {
+   "nhom": "hoat_hinh",
+   "ten": "The Ruthless Heir And His Runaway Maid"
+  },
+  "61486": {
+   "nhom": "au_my",
+   "ten": "I Became the CEO's Most Beloved"
+  },
+  "56255": {
+   "nhom": "trung",
+   "ten": "My Homeless Bride Is a Culinary Legend"
+  },
+  "158630": {
+   "nhom": "au_my",
+   "ten": "¡Atrás! Soy el rey oculto (Doblado)"
+  },
+  "157282": {
+   "nhom": "au_my",
+   "ten": "My Janitor Billionaire Husband"
+  },
+  "165585": {
+   "nhom": "trung",
+   "ten": "El niño ciego salvó el imperio familiar"
+  },
+  "158745": {
+   "nhom": "trung",
+   "ten": "Cuando el amor traiciona a la sangre (Doblado)"
+  },
+  "156883": {
+   "nhom": "au_my",
+   "ten": "Your Loser Husband is The Supreme King"
+  },
+  "156343": {
+   "nhom": "au_my",
+   "ten": "From Broke Loser to Billionaire Sea God"
+  },
+  "158420": {
+   "nhom": "hoat_hinh",
+   "ten": "La niñera sin talento crió reyes bestia (Doblado)"
+  },
+  "156582": {
+   "nhom": "au_my",
+   "ten": "Tamed By The Savage Heiress"
+  },
+  "113751": {
+   "nhom": "trung",
+   "ten": "(Doblado) Mi matrimonio relámpago con la CEO"
+  },
+  "153301": {
+   "nhom": "au_my",
+   "ten": "300-Year Nap: My Pets Rule"
+  },
+  "157130": {
+   "nhom": "hoat_hinh",
+   "ten": "My Sister Stole My Potion, I Stole Her Dream"
+  },
+  "160016": {
+   "nhom": "trung",
+   "ten": "Nadie Como Ella en Este Mundo"
+  },
+  "158395": {
+   "nhom": "trung",
+   "ten": "La tonta que salvó a su familia"
+  },
+  "60655": {
+   "nhom": "au_my",
+   "ten": "The Alpha Princess Is Gone for Good"
+  },
+  "158503": {
+   "nhom": "au_my",
+   "ten": "Mi destino siempre fuiste tú (Doblado)"
+  },
+  "158978": {
+   "nhom": "au_my",
+   "ten": "En la riqueza, en la pobreza (Doblado)"
+  },
+  "70534": {
+   "nhom": "au_my",
+   "ten": "You Can't Stop My Super X-Ray Vision"
+  },
+  "160022": {
+   "nhom": "au_my",
+   "ten": "Matrimonio instantáneo con mi marido hombre lobo"
+  },
+  "165163": {
+   "nhom": "trung",
+   "ten": "My Heiress Wife Won't Let Go"
+  },
+  "165815": {
+   "nhom": "au_my",
+   "ten": "La niña que me hizo millonario"
+  },
+  "160005": {
+   "nhom": "trung",
+   "ten": "Mimada por el Multimillonario Amigo de Mi Exmarido"
+  },
+  "82331": {
+   "nhom": "au_my",
+   "ten": "Tit for Tat"
+  },
+  "101552": {
+   "nhom": "au_my",
+   "ten": "Mess With Her? Seven Five‑Star Generals Are Her Dads!"
+  },
+  "165337": {
+   "nhom": "au_my",
+   "ten": "The Luna He Craves Too Late"
+  },
+  "166081": {
+   "nhom": "trung",
+   "ten": "My Wife Chose Her Coach Over Her Sister"
+  },
+  "157674": {
+   "nhom": "au_my",
+   "ten": "Reborn Sisters: The Heiress Wins"
+  },
+  "152266": {
+   "nhom": "au_my",
+   "ten": "One Good Deed, One Great Fortune"
+  },
+  "92958": {
+   "nhom": "au_my",
+   "ten": "Roaming the World Untamed"
+  },
+  "156574": {
+   "nhom": "hoat_hinh",
+   "ten": "The Weakest Null Commands the Devil King!"
+  },
+  "165394": {
+   "nhom": "latin",
+   "ten": "Mi mamá pasante es la reina de la belleza​"
+  },
+  "158837": {
+   "nhom": "trung",
+   "ten": "Adiós al Pasado: No Estará Ciego por el Amor (Doblado)"
+  },
+  "158118": {
+   "nhom": "au_my",
+   "ten": "Don't Worry Mommy, Daddy is the Secret Boss"
+  },
+  "158481": {
+   "nhom": "au_my",
+   "ten": "La falsa mamá de los gemelos del millonario"
+  },
+  "166083": {
+   "nhom": "trung",
+   "ten": "My Family Vanished to Banish Me"
+  },
+  "166196": {
+   "nhom": "au_my",
+   "ten": "Magic Unleashed: Outcast Heir to Ultimate Wizard"
+  },
+  "159645": {
+   "nhom": "au_my",
+   "ten": "Condenado por los recuerdos"
+  },
+  "158028": {
+   "nhom": "au_my",
+   "ten": "Hooking A CEO Daddy for Mommy"
+  },
+  "156726": {
+   "nhom": "au_my",
+   "ten": "Knock, Knock, CEO Daddy, It's Your Baby"
+  },
+  "103739": {
+   "nhom": "au_my",
+   "ten": "The Billionaire's Illegal Obsession"
+  },
+  "159068": {
+   "nhom": "au_my",
+   "ten": "Tu esposo es el rey tecnológico (Doblado)"
+  },
+  "156714": {
+   "nhom": "au_my",
+   "ten": "Chosen by the Dragon Baby: His Human Mate"
+  },
+  "156385": {
+   "nhom": "au_my",
+   "ten": "My Heart Goes On Without You"
+  },
+  "61978": {
+   "nhom": "latin",
+   "ten": "Sí a primera vista"
+  },
+  "157695": {
+   "nhom": "au_my",
+   "ten": "The Luna's Return: Daddy Is An Alpha King"
+  },
+  "159260": {
+   "nhom": "trung",
+   "ten": "El segundo matrimonio del limpiador"
+  },
+  "165288": {
+   "nhom": "au_my",
+   "ten": "Choosing Between Two Brothers"
+  },
+  "103669": {
+   "nhom": "au_my",
+   "ten": "My Cheating Wife's Downfall"
+  },
+  "106412": {
+   "nhom": "trung",
+   "ten": "Time Travel: Her Majesty’s MVP!"
+  },
+  "165759": {
+   "nhom": "trung",
+   "ten": "The Vampire Prince's Runaway Wife"
+  },
+  "159986": {
+   "nhom": "trung",
+   "ten": "Gemelos Afortunados: El Amor del Padre Misterioso"
+  },
+  "157976": {
+   "nhom": "trung",
+   "ten": "I Left as a Nobody, Returned as a CEO"
+  },
+  "159291": {
+   "nhom": "au_my",
+   "ten": "La mujer destinada para mí"
+  },
+  "100016": {
+   "nhom": "au_my",
+   "ten": "The Prison Baby's Billionaire Daddy"
+  },
+  "108619": {
+   "nhom": "au_my",
+   "ten": "Mi esposo me creyó ciega"
+  },
+  "157198": {
+   "nhom": "au_my",
+   "ten": "True Heiress Returns: Twins for My Sightless Billionaire"
+  },
+  "166204": {
+   "nhom": "au_my",
+   "ten": "Married My Ex-Fiancé’s Mafia Daddy"
+  },
+  "165575": {
+   "nhom": "au_my",
+   "ten": "Mi compañero millonario es un perro"
+  },
+  "162994": {
+   "nhom": "au_my",
+   "ten": "My Royal Rival Is My Baby's Daddy"
+  },
+  "159000": {
+   "nhom": "au_my",
+   "ten": "Demasiado tarde, Alfas"
+  },
+  "157870": {
+   "nhom": "trung",
+   "ten": "Loser Husband Is a Hidden Heir"
+  },
+  "159942": {
+   "nhom": "trung",
+   "ten": "Magnate Enmascarado: El Yerno Dominante"
+  },
+  "157066": {
+   "nhom": "au_my",
+   "ten": "Stubborn Fiancée：The Billionaire's Ultimate Chase"
+  },
+  "165570": {
+   "nhom": "au_my",
+   "ten": "¿Mi esposo ranchero es multimillonario?"
+  },
+  "159117": {
+   "nhom": "au_my",
+   "ten": "Fui con el jefe de la mafia por un bebé"
+  },
+  "165578": {
+   "nhom": "au_my",
+   "ten": "Destruí a mi exesposo millonario"
+  },
+  "158569": {
+   "nhom": "au_my",
+   "ten": "La mamá del bebé del CEO"
+  },
+  "166013": {
+   "nhom": "au_my",
+   "ten": "The Billionaire Tiny Secret Wife"
+  },
+  "165518": {
+   "nhom": "trung",
+   "ten": "My Family Wants My Baby Gone"
+  },
+  "156671": {
+   "nhom": "au_my",
+   "ten": "Daddy, Please Save My Frozen Mommy!"
+  },
+  "159086": {
+   "nhom": "trung",
+   "ten": "Renací y soy la consentida de mi hermano heredero"
+  },
+  "158597": {
+   "nhom": "latin",
+   "ten": "Mi Barco del Amor Zarpó sin Ti"
+  },
+  "163486": {
+   "nhom": "au_my",
+   "ten": "Hiding the Mafia Boss's Billionaire Heir"
+  },
+  "159495": {
+   "nhom": "au_my",
+   "ten": "Embarazada del vagabundo multimillonario"
+  },
+  "165740": {
+   "nhom": "au_my",
+   "ten": "My Sister Took My Husband, So I Saved Hers"
+  },
+  "156584": {
+   "nhom": "au_my",
+   "ten": "The Alpha's Runaway Bride"
+  },
+  "158985": {
+   "nhom": "au_my",
+   "ten": "Mis tres hermanos multimillonarios me encontraron"
+  },
+  "156897": {
+   "nhom": "au_my",
+   "ten": "The \"Gold-Digging\" Wife Saved the Billionaire Family!"
+  },
+  "88265": {
+   "nhom": "au_my",
+   "ten": "My Trash Pup Is Fenrir"
+  },
+  "156833": {
+   "nhom": "au_my",
+   "ten": "My Beggar Husband Is a Billionaire Heir"
+  },
+  "165799": {
+   "nhom": "au_my",
+   "ten": "Mi hermano debe enamorar al dragón"
+  },
+  "159878": {
+   "nhom": "trung",
+   "ten": "Nadie se Mete con Mamá"
+  },
+  "157625": {
+   "nhom": "trung",
+   "ten": "For Richer, For Poorer, Regret Hits Harder（DUBBED）"
+  },
+  "159748": {
+   "nhom": "au_my",
+   "ten": "El Alfa Multimillonario No Me Deja Ir"
+  },
+  "165224": {
+   "nhom": "trung",
+   "ten": "Divorced Today, Married to a Tycoon"
+  },
+  "165762": {
+   "nhom": "trung",
+   "ten": "A True Heiress in the Butcher's House"
+  },
+  "158194": {
+   "nhom": "trung",
+   "ten": "From Underdog Fisherman to Ocean Tycoon"
+  },
+  "158014": {
+   "nhom": "au_my",
+   "ten": "Burned as a Witch, Chosen by the Prince"
+  },
+  "70549": {
+   "nhom": "au_my",
+   "ten": "Big Molly The Billionaire's Only Cure"
+  },
+  "159001": {
+   "nhom": "au_my",
+   "ten": "Embarazada de los gemelos del CEO en coma"
+  },
+  "160013": {
+   "nhom": "trung",
+   "ten": "Lazo Inesperado: Mi Esposo Es un Magnate"
+  },
+  "165194": {
+   "nhom": "hoat_hinh",
+   "ten": "Giving My Sacred Husband to My Sister",
+   "ve_kieu": "trung"
+  },
+  "156908": {
+   "nhom": "au_my",
+   "ten": "I'm the Heiress My Roommate Pretended to Be"
+  },
+  "157751": {
+   "nhom": "au_my",
+   "ten": "My Janitor dad is the Alpha"
+  },
+  "94571": {
+   "nhom": "au_my",
+   "ten": "I Married This Dragon King Instead of My Sister"
+  },
+  "156740": {
+   "nhom": "au_my",
+   "ten": "They Bullied a Vegetarian, But I'm a Vampire"
+  },
+  "165034": {
+   "nhom": "au_my",
+   "ten": "Disobey My Command: My Captain Boyfriend Regrets It"
+  },
+  "166082": {
+   "nhom": "trung",
+   "ten": "From Betrayed Dad to Billionaire"
+  },
+  "159439": {
+   "nhom": "au_my",
+   "ten": "Cuidado, Soy la Jefa (Doblado)"
+  },
+  "155414": {
+   "nhom": "au_my",
+   "ten": "The Outcast Returns: Supreme Wolf God"
+  },
+  "156692": {
+   "nhom": "au_my",
+   "ten": "Sorry Sister, I'm the True Mate of the Super Warrior"
+  },
+  "165595": {
+   "nhom": "au_my",
+   "ten": "Casada con demonios gemelos"
+  },
+  "165011": {
+   "nhom": "hoat_hinh",
+   "ten": "After I Left, I Bore the Elf King’s Twins"
+  },
+  "165528": {
+   "nhom": "hoat_hinh",
+   "ten": "The Thunder Heir Awakens"
+  },
+  "165796": {
+   "nhom": "au_my",
+   "ten": "Mis hermanos me cambiaron por otra"
+  },
+  "165219": {
+   "nhom": "au_my",
+   "ten": "That Beggar Won a Billion-Lottery"
+  },
+  "165293": {
+   "nhom": "au_my",
+   "ten": "Secretamente enamorada de su hermano"
+  },
+  "156958": {
+   "nhom": "au_my",
+   "ten": "Daddy, Why Doesn't Mommy Love Us Anymore?"
+  },
+  "165360": {
+   "nhom": "trung",
+   "ten": "The Prank Show Targeted a Secret Heir"
+  },
+  "163667": {
+   "nhom": "trung",
+   "ten": "Lullabies for the Broken Family"
+  },
+  "165027": {
+   "nhom": "au_my",
+   "ten": "My House, Their Grave"
+  },
+  "165742": {
+   "nhom": "au_my",
+   "ten": "Pharaoh's Contract: After Divorce, All American Tycoons Kneel"
+  },
+  "165519": {
+   "nhom": "trung",
+   "ten": "Lost Heir, Found Love"
+  },
+  "165806": {
+   "nhom": "au_my",
+   "ten": "La esposa del Rey Alfa"
+  },
+  "156719": {
+   "nhom": "au_my",
+   "ten": "The Lycan King's Runaway Luna And His Cursed Twins"
+  },
+  "158824": {
+   "nhom": "trung",
+   "ten": "Sorpresa millonaria: mi familia y mi esposa son magnates"
+  },
+  "100137": {
+   "nhom": "au_my",
+   "ten": "Claimed by Three Mafia Heirs"
+  },
+  "156282": {
+   "nhom": "au_my",
+   "ten": "Alpha Single Daddy's Unwanted Nanny"
+  },
+  "101562": {
+   "nhom": "au_my",
+   "ten": "Basketball 1 vs 5"
+  },
+  "112614": {
+   "nhom": "hoat_hinh",
+   "ten": "(Doblado)Camino de Gloria Celestial",
+   "ve_kieu": "trung"
+  },
+  "106092": {
+   "nhom": "au_my",
+   "ten": "The Godfather's Secret Lover"
+  },
+  "133972": {
+   "nhom": "au_my",
+   "ten": "The Hidden Plus-Sized Luna Queen"
+  },
+  "166314": {
+   "nhom": "trung",
+   "ten": "Mis pensamientos salvaron a mamá"
+  }
+ }
+}

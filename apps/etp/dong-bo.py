@@ -168,6 +168,19 @@ def main():
         kq["so_dong_pheu"] = ghi("so_pheu", [{"camp_id": c, "ngay": d, "hien": int(v[0]), "nhap": int(v[1]), "chuyen": int(v[2]), "s_hien": int(v[3]), "s_nhap": int(v[4]), "s_chuyen": int(v[5]), "s_gt": round(v[6], 4)}
             for (c, d), v in gp.items()], ["camp_id", "ngay"], {"camp_id": "int", "ngay": "date", "hien": "int", "nhap": "int", "chuyen": "int", "s_hien": "int", "s_nhap": "int", "s_chuyen": "int", "s_gt": "numeric"})
     except Exception as e: loi.append(f"so_pheu: {e}")
+    # ── NƯỚC GIAO THẬT của camp, 7 ngày gần nhất (anh 29/10/2026 "các camp hãy thêm icon quốc gia target"): camp đều nhắm cùng 39 nước, nước GIAO mới cho biết
+    # camp chạy ở đâu. Report gom campaign_name + geo (gom geo trần trả 1 dòng / nước cho mọi team, không tách được nhà) → etp.camp_nuoc, ghi đè cả bảng mỗi lượt
+    try:
+        gn_ = {}
+        for x in EA.api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue"], "group_by": ["campaign_name", "geo"], "filters": {}, "metric_conditions": [], "limit": 10000, "page": 1, "page_size": 10000,
+                                           "date_from": (nay - dt.timedelta(days=7)).isoformat(), "date_to": nay.isoformat()})["rows"]:
+            m = re.match(r"\(([A-Z]{2})\)", str(x.get("geo") or ""))
+            if not x.get("campaign_id") or not m: continue
+            e = gn_.setdefault((int(x["campaign_id"]), m.group(1)), [0.0, 0.0]); e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
+        if gn_:
+            q("delete from etp.camp_nuoc")
+            kq["so_dong_nuoc"] = ghi("camp_nuoc", [{"camp_id": c, "geo": g, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, g), v in gn_.items() if v[0] or v[1]], ["camp_id", "geo"], {"camp_id": "int", "geo": "text", "chi": "numeric", "thu": "numeric"})
+    except Exception as e: loi.append(f"camp_nuoc: {e}")
     # ── số theo giờ (phim × giờ) hôm qua + hôm nay
     try:
         for d in ([(nay - dt.timedelta(days=i)).isoformat() for i in range((nay - dt.date(2026, 10, 20)).days, -1, -1)] if day_du else [(nay - dt.timedelta(days=1)).isoformat(), nay.isoformat()]):

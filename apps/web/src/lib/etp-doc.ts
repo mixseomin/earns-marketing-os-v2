@@ -13,6 +13,8 @@ export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; tran
   thang: SoTien; qua: SoTien; nay: SoTien;
   /** đang tạm dừng vì LỊCH GIỜ (etp.lich_tat — apps/etp/lich-gio.py tự bật lại khi tới khung BẬT) */
   lich_tat: boolean;
+  /** nước GIAO thật 7 ngày (etp.camp_nuoc, migration 0368) — g mã nước, c chi, t thu; nhiều chi nhất trước */
+  nuoc: { g: string; c: number; t: number }[];
   /** ROAS goal thật đang đặt trên Ethopex (Ad Set) + bid strategy cấp campaign — camp ROAS ★ (migration 0339) */
   roas: number | null; chien_luoc: string | null };
 export type CreativeEtpKho = { creative_id: number; content_id: number | null; phim: string | null; the_loai: string | null; dang: string | null; doan: string | null; tu: number | null; den: number | null;
@@ -20,7 +22,9 @@ export type CreativeEtpKho = { creative_id: number; content_id: number | null; p
   /** tab Creative › Soát (anh 25/10/2026: "chỉ số review từng creative về mọi tiêu chí"): soát 18+ cả phim · soát từng đoạn (máy / người, chờ soát) · trạng thái phát của Meta ở các camp */
   s18: { ok: boolean; ghi: string; luc: string } | null; sd: { ok: boolean; ghi: string; luc: string } | null; sd_cho: boolean; giao: string[] };
 export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: string | null; bo: string | null; locale: string | null; nguon: string | null; creative: number; camp: number; chay: number;
-  thang: SoTien; qua: SoTien; nay: SoTien };
+  thang: SoTien; qua: SoTien; nay: SoTien;
+  /** nhóm gốc phim chấm trên poster (migration 0368): au_my · trung · an · latin · dong_a · da_mau · hoat_hinh */
+  nhom_goc: string | null };
 export type ChamCr = { luc: string; may: string | null; ket: string | null; meta: number | null; afs: number | null; loi: string | null;
   lop: { chu?: { luc: string; noi_dung: string; loi: string[]; cta: string[] }; giong?: { luc: string; noi_dung: string; ngon_ngu: string | null; loi: string[] };
     anh?: { luc: string; url?: string; giay?: number; khung_url?: string[] /* các khung Worker cắt (Cloudflare); url = tờ khung bản cũ */; khung_mau?: string /* gọn: mẫu '{n}' + so_khung thay danh sách — dựng lại bằng khungUrl() ở etp-view */; so_khung?: number }; noi_dung?: { luc: string; tom_tat: string } };
@@ -147,12 +151,13 @@ export async function docEtp(ng?: string): Promise<DuLieuEtp> {
     run<{ ngay: string; chi: string; thu: string; camp: string; ns: string | null }>(sql`select ngay::text ngay, sum(chi) chi, sum(thu) thu, count(*) filter (where chi > 0) camp, ${ngoai ? sql`null::numeric` : sql`sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0)`} ns from ${SN} group by ngay having sum(chi) > 0 or sum(thu) > 0 order by ngay`),
     ngoai ? run<Record<string, unknown>>(sql`with s as (${soCamp})
       select c.camp_id, c.ten, null bo, c.trang_thai, null giao, c.ngan_sach, c.creative_id, c.content_id, null goc, null lich, c.tao::text tao, null loi, null roas, null chien_luoc,
-        coalesce(p.ten, c.phim_ten) phim, p.the_loai, null dang, null doan, 0 cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, false lich_tat
+        coalesce(p.ten, c.phim_ten) phim, p.the_loai, null dang, null doan, 0 cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, false lich_tat, null nuoc
       from etp.camp_ngoai c join etp.tai_khoan t on t.ad_account_id = c.ad_account_id left join etp.phim p on p.content_id = c.content_id left join s on s.camp_id = c.camp_id
       where t.nguoi_id = ${dangId} and c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`) : run<Record<string, unknown>>(sql`with s as (${soCamp}),
         cd as (select cr.doan, count(*) filter (where c.trang_thai = 'ACTIVE') chay from etp.camp c join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) where cr.doan is not null group by cr.doan)
       select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.ngan_sach, etp.creative_cua(c.creative_id, c.ten) creative_id, c.content_id, c.goc, c.lich::text lich, c.tao::text tao, c.loi, c.roas, c.chien_luoc,
-        p.ten phim, p.the_loai, cr.dang, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat
+        p.ten phim, p.the_loai, cr.dang, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat,
+        (select json_agg(json_build_object('g', cn.geo, 'c', round(cn.chi, 2), 't', round(cn.thu, 2)) order by cn.chi desc) from etp.camp_nuoc cn where cn.camp_id = c.camp_id) nuoc
       from etp.camp c left join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) left join etp.phim p on p.content_id = c.content_id left join etp.lich_tat lt on lt.camp_id = c.camp_id
         left join cd on cd.doan = cr.doan left join s on s.camp_id = c.camp_id
       where c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`),
@@ -169,7 +174,8 @@ export async function docEtp(ng?: string): Promise<DuLieuEtp> {
   const cs: CampEtpKho[] = camps.map((r) => ({ camp_id: n(r.camp_id), ten: String(r.ten ?? ''), bo: (r.bo as string) ?? null, trang_thai: String(r.trang_thai ?? ''), giao: (r.giao as string) ?? null, ngan_sach: n(r.ngan_sach),
     creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id), goc: r.goc == null ? null : n(r.goc), lich: (r.lich as string) ?? null, tao: (r.tao as string) ?? null,
     loi: (r.loi as string) ?? null, phim: (r.phim as string) ?? (ngoai ? phimTuTenCamp(String(r.ten ?? '')) : null), the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, doan: (r.doan as string) ?? null, cung_doan: n(r.cung_doan),
-    thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), lich_tat: !!r.lich_tat, roas: r.roas == null ? null : n(r.roas), chien_luoc: (r.chien_luoc as string) ?? null }));
+    thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), lich_tat: !!r.lich_tat, roas: r.roas == null ? null : n(r.roas), chien_luoc: (r.chien_luoc as string) ?? null,
+    nuoc: ((r.nuoc as { g: string; c: unknown; t: unknown }[] | null) ?? []).map((x) => ({ g: x.g, c: n(x.c), t: n(x.t) })) }));
   // gộp creative / phim từ camp (cùng nguồn số)
   const cong = (a: SoTien, b: SoTien) => ({ chi: a.chi + b.chi, thu: a.thu + b.thu });
   const crMap = new Map<number, CreativeEtpKho>();
@@ -191,11 +197,11 @@ export async function docEtp(ng?: string): Promise<DuLieuEtp> {
     crMap.set(c.creative_id, x);
   }
   const phMap = new Map<number, PhimEtpKho & { _cr: Set<number> }>();
-  const phInfo = new Map((await run<Record<string, unknown>>(sql`select content_id, ten, the_loai, bo, locale, nguon from etp.phim`)).map((r) => [n(r.content_id), r]));
+  const phInfo = new Map((await run<Record<string, unknown>>(sql`select content_id, ten, the_loai, bo, locale, nguon, nhom_goc from etp.phim`)).map((r) => [n(r.content_id), r]));
   for (const c of cs) {
     if (c.content_id == null) continue;
     const i = phInfo.get(c.content_id) ?? {};
-    const x = phMap.get(c.content_id) ?? { content_id: c.content_id, ten: (i.ten as string) ?? c.phim, the_loai: (i.the_loai as string) ?? null, bo: (i.bo as string) ?? c.bo, locale: (i.locale as string) ?? null, nguon: (i.nguon as string) ?? null,
+    const x = phMap.get(c.content_id) ?? { content_id: c.content_id, ten: (i.ten as string) ?? c.phim, the_loai: (i.the_loai as string) ?? null, bo: (i.bo as string) ?? c.bo, locale: (i.locale as string) ?? null, nguon: (i.nguon as string) ?? null, nhom_goc: (i.nhom_goc as string) ?? null,
       creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, _cr: new Set<number>() };
     x.camp++; if (c.trang_thai === 'ACTIVE') x.chay++; if (c.creative_id) x._cr.add(c.creative_id); x.thang = cong(x.thang, c.thang); x.qua = cong(x.qua, c.qua); x.nay = cong(x.nay, c.nay);
     phMap.set(c.content_id, x);

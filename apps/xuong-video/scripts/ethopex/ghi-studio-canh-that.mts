@@ -12,7 +12,9 @@ import { getDb } from '@mos2/db';
 
 type Cr = { content_id: number; tu: number; den: number; nguon_qc: string | null; creative_id: number; camp_id: number | null; lang: 'en' | 'es'; url: string; giay: number; lo: string;
   anh: string; anh_cuoi: string; chu_cuoi: string; giong_cta?: { url: string; loi: string } };
-const vao = JSON.parse(readFileSync(process.argv[2]!, 'utf8')) as { creative: Cr[]; phim_moi: Record<string, { ten: string; link: string }> };
+const vao = JSON.parse(readFileSync(process.argv[2]!, 'utf8')) as { creative: Cr[]; phim_moi: Record<string, { ten: string; link: string }>; dang?: string };
+// DẠNG THẬT của lô (len-creative truyền vào, 29/10/2026): bản kể chuyện VideoExpress đi qua đây bị ghi cứng qc_canh_that → kho etp xếp nhầm 'cảnh thật', luật KT không nhận
+const THE_LOAI = vao.dang === 'kể chuyện' ? 'qc_ke_chuyen' : 'qc_canh_that';
 const db = getDb()!;
 const j = (x: unknown) => JSON.stringify(x);
 let moi = 0, co = 0, bs = 0;
@@ -39,7 +41,7 @@ for (const c of vao.creative) {
   const pm = vao.phim_moi[String(c.content_id)];
   const tenPhim = a[0] ? a[0].ten.split(' · ')[1]! : pm!.ten;
   const qc = a[0]?.kinh_thanh?.qc ?? { ten: `${pm!.ten} — short drama`, link: pm!.link };
-  const kt = { ti_le: '9:16', do_phan_giai: '1080p', ngon_ngu: c.lang, the_loai: 'qc_canh_that', qc,
+  const kt = { ti_le: '9:16', do_phan_giai: '1080p', ngon_ngu: c.lang, the_loai: THE_LOAI, qc,
     ethopex: { ...(a[0]?.kinh_thanh?.ethopex ?? {}), content_id: c.content_id, creative_id: c.creative_id, camp_id: c.camp_id, nguon_qc: c.nguon_qc, tu: c.tu, den: c.den, lo: c.lo,
       khuon: 'cảnh phim thật: cắt đoạn hook → lật ngược/treo từ QC app gốc (spy) + nút CTA + giọng CTA + thẻ cuối poster (cat-canh.py)' } };
   const ten = `Ethopex · ${tenPhim} · Cảnh thật ${c.tu}–${c.den}s (lô ${c.lo})`;

@@ -89,7 +89,7 @@ EOF'""", timeout=3600)
     r = sh(f"""ssh {B} '. /root/.secrets/spy.env; psql "$DATABASE_URL" -tA -F"\t" -c "select id, ten, url from ethopex_content where id in ({ids})"'""")
     for l in r.stdout.splitlines():
         i, t, u = l.split("\t"); pm[i] = {"ten": t.replace("（DUBBED）", "").replace("(Doblado)", "").strip(), "link": u}
-    sf = os.path.join(D, f"canh-that-studio-{ma}.json"); json.dump({"creative": st, "phim_moi": pm}, open(sf, "w"), ensure_ascii=False, indent=1)
+    sf = os.path.join(D, f"canh-that-studio-{ma}.json"); json.dump({"creative": st, "phim_moi": pm, "dang": dang}, open(sf, "w"), ensure_ascii=False, indent=1)   # dạng thật → studio ghi đúng the_loai (29/10/2026: KT bị ghi cảnh thật)
     subprocess.run(["scp", "-q", sf, f"{B}:/opt/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/"], check=True)
     print(sh(f"ssh {B} '{ENV}; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/ethopex/ghi-studio-canh-that.mts scripts/ethopex/{os.path.basename(sf)}'", timeout=900).stdout[-200:])
     # 5. cổng

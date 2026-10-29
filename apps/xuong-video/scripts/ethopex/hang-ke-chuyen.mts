@@ -1,5 +1,5 @@
 // HÀNG ĐỢI MÁY SINH KỂ CHUYỆN (anh 29/10/2026 "sinh cho hợp lý về tài nguyên và hiệu quả") — 0đ, chỉ đọc kho. In JSON các phim nên sinh bản kể chuyện kế tiếp, điểm cao trước.
-// Nguồn phim = danh sách cầu app gốc (xv_khoa_ngoai ethopex_200_phim: id, tên, link trang phim, nguồn, tiếng) — có link trang phim thì máy viết được kịch bản từ tóm tắt thật.
+// Nguồn phim = danh sách cầu app gốc (xv_khoa_ngoai ethopex_200_phim) + mọi phim có camp nhà (etp.phim) — cần link trang phim để máy viết kịch bản từ tóm tắt thật.
 // ĐIỂM (một chỗ, đổi ở đây):
 //   phim đang LÃI 14 ngày trên camp nhà       → 1000 + lãi   (đã có khách, thêm góc kể chuyện $0 để mở rộng)
 //   phim CHƯA có camp nhà (cầu app gốc cao)    → 500 − thứ hạng trong danh sách cầu
@@ -14,7 +14,12 @@ import { getDb } from '@mos2/db';
 const so = Number(process.argv.find((a) => a.startsWith('--so='))?.slice(5) ?? 10);
 const db = getDb()!;
 const q = async <T,>(s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as T[];
-const ds = ((await q<{ gia_tri: { id: string; ten: string; url: string; nguon: string; locale: string }[] }>(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_200_phim'`))[0]?.gia_tri ?? []);
+const dsCau = ((await q<{ gia_tri: { id: string; ten: string; url: string; nguon: string; locale: string }[] }>(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_200_phim'`))[0]?.gia_tri ?? []);
+// + MỌI phim đang có camp nhà có link trang phim (etp.phim) — danh sách cầu chỉ là phim mới, thiếu phim đang lãi nhất (Number One, Nobody lần chạy đầu 29/10)
+const dsNha = await q<{ id: string; ten: string; url: string; nguon: string; locale: string }>(sql`SELECT p.content_id::text id, p.ten, p.url, p.nguon, p.locale FROM etp.phim p
+  WHERE coalesce(p.url, '') <> '' AND EXISTS (SELECT 1 FROM etp.camp c WHERE c.content_id = p.content_id)`);
+const daCo = new Set(dsCau.map((p) => p.id));
+const ds = [...dsCau, ...dsNha.filter((p) => !daCo.has(p.id))];
 const tt = ((await q<{ gia_tri: Record<string, { tt: string }> }>(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_phim_moi_tt'`))[0]?.gia_tri ?? {});
 const so14 = new Map((await q<{ content_id: number; chi: number; thu: number }>(sql`SELECT c.content_id, coalesce(sum(n.chi), 0)::float chi, coalesce(sum(n.thu), 0)::float thu
   FROM etp.camp c JOIN etp.so_ngay n USING (camp_id) WHERE n.ngay >= current_date - 14 AND c.content_id IS NOT NULL GROUP BY 1`)).map((r) => [Number(r.content_id), r]));
@@ -27,7 +32,7 @@ const cho = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content
 const hang = ds.map((p, i) => {
   const id = Number(p.id), s = so14.get(id), k = kc.get(id), lai = s ? s.thu - s.chi : 0;
   const bo = cho.has(id) ? 'đã có bản chờ chạy / vừa sinh' : tt[p.id]?.tt === 'poster_loai' ? 'poster bị loại (soát phim mới)' : k && k.thua >= 2 && !k.thang ? `kể chuyện đã thua ${k.thua} lần, chưa thắng` : !p.url ? 'thiếu link trang phim' : null;
-  const diem = !s ? 500 - i : lai > 0 ? 1000 + lai : 100 + lai;
+  const diem = !s ? 500 - Math.min(i, 399) : lai > 0 ? 1000 + lai : 100 + lai;
   return { content_id: id, ten: p.ten, url: p.url, nguon: p.nguon, lang: p.locale?.startsWith('es') ? 'es' : 'en', diem: Math.round(diem * 100) / 100, lai14: Math.round(lai * 100) / 100, chi14: Math.round((s?.chi ?? 0) * 100) / 100, kc: k ?? null, bo };
 }).filter((x) => !x.bo).sort((a, b) => b.diem - a.diem).slice(0, so);
 console.log(JSON.stringify(hang));

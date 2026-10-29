@@ -1980,7 +1980,7 @@ export async function bocTachCanh(canhId: number): Promise<{ ok: boolean; boc_ta
 //   - duKien: thành phần dự kiến đầu/cuối dựng thẳng từ dữ liệu (MỌI shot thấy, kể cả chưa bóc AI).
 //   - boSung: dự kiến BỔ SUNG nối từ shot TRƯỚC đã sinh keyframe (trạng thái cuối của nó cần tiếp sang shot này) — tách bạch khỏi dự kiến gốc.
 //   - boc_tach: đối chiếu với ảnh (nếu đã bóc). keyframe đầu/cuối + nhân vật (BangBocTach so tóc).
-export async function layThanhPhanCanh(canhId: number): Promise<{ ok: boolean; ten?: string; keyframe_url?: string | null; keyframe_ket?: string | null; boc_tach?: BocTachCanh | null; nhanVat?: NhanVat[]; duKien?: { dau: MucDuKien[]; cuoi: MucDuKien[] }; boSung?: { tuShot: string; muc: MucDuKien[] } | null; loi?: string }> {
+export async function layThanhPhanCanh(canhId: number): Promise<{ ok: boolean; ten?: string; keyframe_url?: string | null; keyframe_ket?: string | null; boc_tach?: BocTachCanh | null; nhanVat?: NhanVat[]; duKien?: { dau: MucDuKien[]; cuoi: MucDuKien[] }; boSung?: { tuShot: string; tuThat: boolean; muc: MucDuKien[] } | null; loi?: string }> {
   const db = getDb();
   if (!db) return { ok: false, loi: 'không có DB' };
   const row = ((await db.execute(sql`SELECT c.*, t.phim_id, t.khong_gian FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${canhId}`)) as unknown as Row[])[0];
@@ -1989,9 +1989,18 @@ export async function layThanhPhanCanh(canhId: number): Promise<{ ok: boolean; t
   const nhanVat = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(row.phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
   const kg = kgCua(row.khong_gian as never, c);
   const duKien = { dau: thanhPhanDuKien(c, nhanVat, kg, 'dau'), cuoi: thanhPhanDuKien(c, nhanVat, kg, 'cuoi') };
-  // BỔ SUNG: shot TRƯỚC cùng phân đoạn (nhánh '' / 'A') ĐÃ sinh keyframe → trạng thái CUỐI của nó là dự kiến nối sang đầu shot này
-  let boSung: { tuShot: string; muc: MucDuKien[] } | null = null;
+  // BỔ SUNG nối từ shot TRƯỚC cùng phân đoạn đã sinh keyframe: ưu tiên TRẠNG THÁI THỰC TẾ đã xác lập ở CUỐI shot đó (đã bóc) — đó mới là mốc shot này phải khớp (anh 30/10);
+  // chưa bóc thì tạm dùng dự kiến cuối. tuThat=true khi lấy từ thực tế.
+  let boSung: { tuShot: string; tuThat: boolean; muc: MucDuKien[] } | null = null;
   const tr = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${c.tap_id} AND phan_doan = ${c.phan_doan} AND coalesce(nhanh, '') IN ('', 'A') AND thu_tu < ${c.thu_tu} AND keyframe_url IS NOT NULL ORDER BY thu_tu DESC LIMIT 1`)) as unknown as Row[])[0];
-  if (tr) { const ct = mapCanh(tr); boSung = { tuShot: `#${ct.thu_tu} ${ct.canh ?? ''}`.trim(), muc: thanhPhanDuKien(ct, nhanVat, kg, 'cuoi') }; }
+  if (tr) {
+    const ct = mapCanh(tr);
+    const dcCuoi = ct.boc_tach?.doi_chieu?.cuoi ?? ct.boc_tach?.doi_chieu?.dau;
+    const tuThat = !!dcCuoi?.length;
+    const muc = tuThat
+      ? dcCuoi!.filter((x) => x.thuc_te && x.thuc_te !== '—').map((x) => ({ thanh_phan: x.thanh_phan, du_kien: x.thuc_te }))
+      : thanhPhanDuKien(ct, nhanVat, kg, 'cuoi');
+    boSung = { tuShot: `#${ct.thu_tu} ${ct.canh ?? ''}`.trim(), tuThat, muc };
+  }
   return { ok: true, ten: `#${c.thu_tu} ${c.canh ?? ''}`.trim(), keyframe_url: c.keyframe_url, keyframe_ket: c.keyframe_ket ?? null, boc_tach: c.boc_tach ?? null, nhanVat, duKien, boSung };
 }

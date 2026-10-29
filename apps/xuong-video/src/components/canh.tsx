@@ -210,8 +210,12 @@ export function DoiChieuNgan({ canhId }: { canhId: number }) {
                   </div>
                 ) : <DoiChieuTable rows={rows} coAnh={coAnh} />}
                 {luc === 'dau' && d.boSung && d.boSung.muc.length > 0 && (
-                  <div style={{ border: '1px dashed var(--amber)', borderRadius: 6, padding: '6px 8px' }}>
-                    <div style={{ ...mono, fontSize: 10, color: 'var(--amber)', textTransform: 'uppercase', marginBottom: 4 }}>➕ Dự kiến bổ sung — nối tiếp từ shot {d.boSung.tuShot} (trạng thái cuối cần giữ sang đầu shot này)</div>
+                  <div style={{ border: `1px ${d.boSung.tuThat ? 'solid var(--green)' : 'dashed var(--amber)'}`, borderRadius: 6, padding: '6px 8px' }}>
+                    <div style={{ ...mono, fontSize: 10, color: d.boSung.tuThat ? 'var(--green)' : 'var(--amber)', textTransform: 'uppercase', marginBottom: 4 }}>
+                      {d.boSung.tuThat
+                        ? `🔗 THỰC TẾ đã xác lập ở cuối shot ${d.boSung.tuShot} — đầu shot này phải khớp tiếp`
+                        : `➕ Dự kiến cuối shot ${d.boSung.tuShot} (chưa bóc — tạm theo kế hoạch, bóc xong sẽ cập nhật theo thực tế)`}
+                    </div>
                     <DoiChieuTable rows={d.boSung.muc.map((m) => ({ thanh_phan: m.thanh_phan, du_kien: m.du_kien }))} coAnh={false} />
                   </div>
                 )}

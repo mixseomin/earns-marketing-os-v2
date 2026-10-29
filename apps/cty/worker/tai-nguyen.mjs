@@ -40,8 +40,8 @@ export function xetCanhBao(s, bayGio = Date.now()) {
   const lanBat = new Set(s.lan.filter((l) => l.may !== 'tat').map((l) => l.lan));
   for (const k of s.khoa) {
     const ngay = (k.het * 1000 - bayGio) / 864e5;
-    if (k.het && ngay < NGUONG.khoaConNgay) ra.push({ khoa: `het:${k.ma}`, chu: `Khoá 2proxy <b>…${k.ma}</b> (${k.lan ?? 'chưa gắn làn'}) ${ngay < 0 ? 'ĐÃ HẾT HẠN' : `còn ${ngay.toFixed(1)} ngày`} — anh quyết gia hạn hay bỏ (máy không tự gia hạn)` });
-    if (!k.lan || !lanBat.has(k.lan)) ra.push({ khoa: `nam:${k.ma}`, chu: `Khoá 2proxy <b>…${k.ma}</b> đang trả tiền mà ${k.lan ? `làn ${k.lan} đang tắt` : 'không làn nào dùng'} — slot nằm không` });
+    if (k.het && ngay < NGUONG.khoaConNgay) ra.push({ khoa: `het:${k.ma}`, chu: `Khoá 2proxy <b>…${k.ma}</b> (${k.lan ?? (k.ngoai ? `dùng cho ${k.ngoai}` : 'chưa gắn làn')}) ${ngay < 0 ? 'ĐÃ HẾT HẠN' : `còn ${ngay.toFixed(1)} ngày`} — anh quyết gia hạn hay bỏ (máy không tự gia hạn)` });
+    if (!k.ngoai && (!k.lan || !lanBat.has(k.lan))) ra.push({ khoa: `nam:${k.ma}`, chu: `Khoá 2proxy <b>…${k.ma}</b> đang trả tiền mà ${k.lan ? `làn ${k.lan} đang tắt` : 'không làn nào dùng'} — slot nằm không` });
   }
   const nang = (m) => (m.nang?.length ? ` — nặng nhất: ${m.nang.join(' · ')}` : '');
   if (s.may.ban >= NGUONG.cpuBan) ra.push({ khoa: 'box3:tai', chu: `box3 quá tải: CPU bận ${s.may.ban}% suốt ${s.may.phut} phút qua${nang(s.may)}` });
@@ -79,17 +79,20 @@ export function xetCanhBao(s, bayGio = Date.now()) {
 const docEnv = () => Object.fromEntries(fs.readFileSync(SPY_ENV, 'utf8').split('\n').map((l) => l.match(/^([A-Z0-9_]+)=(.*)$/)).filter(Boolean).map((m) => [m[1], m[2].replace(/^["']|["']$/g, '')]));
 const psqlSpy = (env, sql) => execFileSync('psql', [env.DATABASE_URL, '-tAF', '|', '-c', sql], { encoding: 'utf8', timeout: 20000 }).trim().split('\n').filter(Boolean).map((r) => r.split('|'));
 
+const MOS2_URL = () => (fs.readFileSync('/opt/earns-marketing-os-v2/.env.production', 'utf8').match(/^DATABASE_URL=(.*)$/m) || [])[1]?.replace(/^["']|["']$/g, '');
+const psqlMos2 = (sql) => execFileSync('psql', [MOS2_URL(), '-tAF', '|', '-c', sql], { encoding: 'utf8', timeout: 20000 }).trim().split('\n').filter(Boolean).map((r) => r.split('|'));
+
 async function hanKhoa(env, tep) {
   let c = {}; try { c = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* lần đầu */ }
-  if (Date.now() / 1000 - (c.luc ?? 0) < 3600) return c.het ?? {};
+  if (Date.now() / 1000 - (c.luc ?? 0) < 3600 && c.don) return { het: c.het ?? {}, don: c.don };
   const api = async (q) => (await fetch(`https://app.2proxy.vn/api/proxyv2.php?key=${env.TWOPROXY_API_KEY}&${q}`, { signal: AbortSignal.timeout(30000) })).json().catch(() => []);
-  const het = {};
+  const het = {}, don = {};   // don: khoá → mã đơn 2proxy, để đối với vault mos2 (data.ma_don) biết khoá dùng cho dự án nào ngoài spy
   for (const o of (await api('sukien=listorder')) || []) {
     await new Promise((r) => setTimeout(r, 4500));   // API: "chờ 4s giữa hai lần lấy đơn"
-    for (const k of (await api(`sukien=listproxy&ma_don_hang=${o.order_code}`)) || []) if (k?.proxy) het[k.proxy] = Number(k.time) || 0;
+    for (const k of (await api(`sukien=listproxy&ma_don_hang=${o.order_code}`)) || []) if (k?.proxy) { het[k.proxy] = Number(k.time) || 0; don[k.proxy] = o.order_code; }
   }
-  fs.writeFileSync(tep, JSON.stringify({ luc: Math.floor(Date.now() / 1000), het }));
-  return het;
+  fs.writeFileSync(tep, JSON.stringify({ luc: Math.floor(Date.now() / 1000), het, don }));
+  return { het, don };
 }
 
 export async function chupTaiNguyen() {
@@ -110,10 +113,14 @@ export async function chupTaiNguyen() {
     const ds = [cuoi[l], nhip].filter(Boolean).map((t) => new Date(t).toISOString()).sort();
     return { lan: l, may: m, cuoi: ds.pop() || null };
   });
-  const het = await hanKhoa(env, `${DATA()}/tai-nguyen-khoa.json`);
+  const { het, don } = await hanKhoa(env, `${DATA()}/tai-nguyen-khoa.json`);
+  // Khoá mua cho dự án KHÁC spy (29/10/2026: …Lr23 = 2proxy US_PRO của tablaris, vault #528, báo nhầm "không làn nào dùng") — chủ ghi ở vault mos2:
+  // account_state.data.ma_don + dung_cho. Đọc hỏng thì coi như không có chủ (báo dư còn hơn im).
+  let chuDon = {};
+  try { chuDon = Object.fromEntries(psqlMos2(`select data->>'ma_don', coalesce(data->>'dung_cho', 'acct #' || account_id) from account_state where data ? 'ma_don'`)); } catch (e) { console.error('✗ vault mos2 (ma_don):', e.message.split('\n')[0]); }
   const khoa = [];
   for (const [bien, l] of Object.entries(KHOA_LAN)) for (const k of String(env[bien] ?? '').split(/\s+/).filter(Boolean)) khoa.push({ ma: k.slice(-4), bien, lan: l, het: het[k] ?? 0 });
-  for (const k of Object.keys(het)) if (!khoa.some((x) => k.endsWith(x.ma))) khoa.push({ ma: k.slice(-4), bien: null, lan: null, het: het[k] });
+  for (const k of Object.keys(het)) if (!khoa.some((x) => k.endsWith(x.ma))) khoa.push({ ma: k.slice(-4), bien: null, lan: null, het: het[k], ...(chuDon[don?.[k]] ? { ngoai: chuDon[don[k]] } : {}) });
   // CPU bận từng máy so với lần đọc /proc/stat của nhịp trước (tệp cpu); chưa có lần trước / quá 2 giờ → đo tại chỗ 2 giây
   const tepCpu = `${DATA()}/tai-nguyen-cpu.json`; let cpu = {}; try { cpu = JSON.parse(fs.readFileSync(tepCpu, 'utf8')); } catch { /* lần đầu */ }
   const doCpu = (ten, chay) => {
@@ -130,9 +137,8 @@ export async function chupTaiNguyen() {
   // sổ tài sản mos2 (infra_resources): dòng còn hạn trong 30 ngày tới — đọc hỏng thì bỏ phần này, phần còn lại vẫn chạy
   let taiSan = [];
   try {
-    const url = (fs.readFileSync('/opt/earns-marketing-os-v2/.env.production', 'utf8').match(/^DATABASE_URL=(.*)$/m) || [])[1]?.replace(/^["']|["']$/g, '');
-    taiSan = execFileSync('psql', [url, '-tAF', '|', '-c', `select id, label, provider, expires_at, cost_monthly, currency from infra_resources where status = 'active' and expires_at is not null and expires_at < now() + interval '30 days' order by expires_at`], { encoding: 'utf8', timeout: 20000 })
-      .trim().split('\n').filter(Boolean).map((r) => r.split('|')).map(([id, ten, nha, het, thang, tien]) => ({ id: Number(id), ten, nha, het: new Date(het).toISOString(), thang: Number(thang) || 0, tien }));
+    taiSan = psqlMos2(`select id, label, provider, expires_at, cost_monthly, currency from infra_resources where status = 'active' and expires_at is not null and expires_at < now() + interval '30 days' order by expires_at`)
+      .map(([id, ten, nha, het, thang, tien]) => ({ id: Number(id), ten, nha, het: new Date(het).toISOString(), thang: Number(thang) || 0, tien }));
   } catch (e) { console.error('✗ sổ tài sản mos2:', e.message.split('\n')[0]); }
   // máy chạy VPS: daemon + tải qua ssh (ConnectTimeout 8 giây); không vào được = toi:false
   const vps = Object.entries(VPS).map(([ten, v]) => {
@@ -190,6 +196,9 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     assert.deepStrictEqual(k({ lan: [{ lan: 'cao_chinh', may: 'imac', cuoi: gio(32) }], khoa: [], may }), ['lan:cao_chinh'], 'máy cào chết 32 giờ (17–19/10)');
     assert.deepStrictEqual(k({ lan: [{ lan: 'cao_chinh', may: 'tat', cuoi: gio(32) }], khoa: [], may }), [], 'làn tắt: không báo đứng');
     assert.deepStrictEqual(k({ lan: [{ lan: 'cao_chinh', may: 'tat', cuoi: null }], khoa: [{ ma: 'yY4C', lan: 'cao_chinh', het: bay / 1000 + 14 * 86400 }], may }), ['nam:yY4C'], 'khoá trả tiền mà làn tắt = slot nằm không');
+    assert.deepStrictEqual(k({ lan: [], khoa: [{ ma: 'Lr23', lan: null, ngoai: 'tablaris thu-thap', het: bay / 1000 + 30 * 86400 }], may }), [], 'khoá vault ghi dùng cho dự án khác (tablaris): không phải slot nằm không');
+    assert.deepStrictEqual(k({ lan: [], khoa: [{ ma: 'Lr23', lan: null, het: bay / 1000 + 30 * 86400 }], may }), ['nam:Lr23'], 'khoá không chủ: vẫn báo');
+    assert.ok(xetCanhBao({ lan: [], khoa: [{ ma: 'Lr23', lan: null, ngoai: 'tablaris thu-thap', het: bay / 1000 + 3600 }], may }, bay)[0].chu.includes('dùng cho tablaris'), 'sắp hết hạn vẫn báo, kèm chủ');
     assert.deepStrictEqual(k({ lan: [{ lan: 'cao_chinh', may: 'imac', cuoi: gio(0) }], khoa: [{ ma: '08wY', lan: 'cao_chinh', het: bay / 1000 + 3600 }], may }), ['het:08wY'], 'khoá còn 1 giờ');
     assert.deepStrictEqual(k({ lan: [{ lan: 'spypro', may: 'imac', cuoi: gio(2.5) }], khoa: [], may }), [], 'spypro trần 3 giờ');
     assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ban: 92, phut: 30, nang: ['88% node nap.mjs'], ramMB: 900, daemon: true } }), ['box3:tai', 'box3:ram'], 'box3 bận 92% suốt 30 phút + thiếu RAM');

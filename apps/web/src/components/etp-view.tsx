@@ -2020,7 +2020,9 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
       ...(khong ? [{ value: KHONG_LUAT, label: 'Không chạm luật', nhom: 'Khác', dem: khong }] : [])]; }, [du.camps, chipMap]);
   const luatSel = () => <Chon2 value={luatLoc} onChange={(v) => doi({ luat: v }, () => setLuatLoc(v))} nhan="Luật" title="lọc camp theo thẻ luật đang hiện ở cột Luật (đang chạm: viền liền · sắp chạm: viền nét đứt)" options={luatOpts} />;
   const dangSel = () => <Chon2 value={dangLoc} onChange={(v) => doi({ dang: v }, () => setDangLoc(v))} nhan="Loại" title="lọc camp theo loại creative"
-    options={Object.entries(MA_DANG).map(([d, m]) => ({ value: d, label: `${m} · ${d}`, dem: du.camps.filter((c) => c.dang === d).length })).filter((o) => o.dem)} />;
+    // #1486: mỗi dòng = ĐÚNG badge cột LOẠI (BadgeDang ngắn, cùng màu MAU_DANG) + tên loại; chữ tìm + nhãn gọn trên nút giữ dạng chữ
+    options={Object.entries(MA_DANG).map(([d, m]) => ({ value: d, label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><BadgeDang d={d} ngan /><span>{d}</span></span>,
+      tim: `${m} ${d}`, ngan: `${m} · ${d}`, dem: du.camps.filter((c) => c.dang === d).length })).filter((o) => o.dem)} />;
   const TUOI_MUC = [['0-1', 'Dưới 1 ngày'], ['1-2', '1–2 ngày'], ['2-3', '2–3 ngày'], ['3-7', '3–7 ngày'], ['7-14', '7–14 ngày'], ['14-30', '14–30 ngày'], ['30-', 'Trên 30 ngày']] as const;
   const tuoiSel = () => <Chon2 value={tuoiChon} onChange={(v) => doi({ tu: v }, () => setTuoiChon(v))} nhan="Tuổi" title="lọc camp theo tuổi (tính từ lúc lên camp)"
     options={TUOI_MUC.map(([v, t]) => { const [a, b] = v.split('-'); return { value: v, label: t, dem: du.camps.filter((c) => { const x = tuoiNgay(c.tao); return x != null && x >= Number(a) && (b === '' || x < Number(b)); }).length }; }).filter((o) => o.dem)} />;

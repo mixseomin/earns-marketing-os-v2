@@ -725,17 +725,17 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
           <CotCampNoi c={theoId.get(gocId)} nhan={`Camp gốc #${gocId}`} du={du} anh={anh} />
         </KhungNoi>) : null}
       <h3 style={{ fontSize: 14, margin: '20px 0 8px' }} title="anh 29/10/2026: lãi 30 ngày ≥ $75 → máy tự lên ROAS (4 mức 1.0–1.3, $20, chạy hôm nay)">Ứng viên lên ROAS</h3>
-      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '-4px 0 8px' }}>Camp thường đang bật, lãi 30 ngày ≥ $50. ★ = lãi ≥ $75: máy tự lên ROAS ở nhịp kế (4 mức 1.0–1.3, $20); chặn chấm thì không lên.</div>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '-4px 0 8px' }}>Camp thường đang bật, lãi 30 ngày ≥ $50. ★ = lãi ≥ $75: máy tự lên ROAS ở nhịp kế (4 mức 1.0–1.3, $20). Camp ROAS dùng lại bài đăng của camp gốc nên không qua cổng chấm.</div>
       <DataTable rows={ungVien} getRowKey={(r) => String(r.camp_id)} persistKey="etp-roas-uv" minWidth={700} defaultSort={[{ key: 'lai', dir: 'desc' }]} columns={[
         { key: 'id', header: 'Camp', align: 'left', cell: (r) => <span>{r.du ? '★ ' : ''}#{r.camp_id} {(r.ten ?? '').replace(/^\d{4}\w* /, '').slice(0, 60)}</span>, sortValue: (r) => r.camp_id },
         { key: 'ns', header: 'Ngân sách', cell: (r) => `$${r.ngan_sach}`, sortValue: (r) => r.ngan_sach },
         { key: 'chi', header: 'Chi 30 ngày', cell: (r) => <Tien v={r.chi} />, sortValue: (r) => r.chi },
         { key: 'lai', header: 'Lãi 30 ngày', title: 'đủ lên ROAS khi ≥ $75', cell: (r) => <span style={{ color: r.du ? '#4ade80' : '#f59e0b' }}><Tien v={r.thu - r.chi} /></span>, sortValue: (r) => r.thu - r.chi },
         { key: 'roi', header: 'ROI 30 ngày', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 },
-        // lên được chưa (anh 28/10/2026 "Đây là cái gì"): đã có camp ★ đang chạy · creative bị cổng chấm chặn (không lên được) · sẵn sàng
-        { key: 'tt', header: 'Lên ROAS', align: 'left', title: 'đã lên = số camp ★ ROAS đang chạy nhân từ camp này · chặn chấm = creative ≤ 4 điểm, cổng chấm không cho lên (rê xem lý do)',
-          cell: (r) => (r.da_len ? <span style={{ color: '#4ade80' }}>đã lên {r.da_len}</span> : r.chan ? <span style={{ color: '#f87171' }} title={r.chan}>chặn chấm</span> : <span style={{ color: '#60a5fa' }}>sẵn sàng</span>),
-          sortValue: (r) => (r.da_len ? 2 : r.chan ? 1 : 0) }]} />
+        // lên được chưa (anh 28/10/2026 "Đây là cái gì"): đã có camp ★ đang chạy · đủ lãi → máy lên ở nhịp kế · chưa đủ lãi. Camp ROAS không qua cổng chấm (anh 29/10/2026)
+        { key: 'tt', header: 'Lên ROAS', align: 'left', title: 'đã lên = số camp ★ ROAS đang chạy nhân từ camp này · nhịp kế = đủ lãi $75, máy tự lên ở nhịp kế · chưa đủ = lãi 30 ngày < $75',
+          cell: (r) => (r.da_len ? <span style={{ color: '#4ade80' }}>đã lên {r.da_len}</span> : r.du ? <span style={{ color: '#60a5fa' }}>nhịp kế</span> : <span style={{ color: 'var(--fg-2)' }}>chưa đủ</span>),
+          sortValue: (r) => (r.da_len ? 2 : r.du ? 1 : 0) }]} />
     </div>
   );
 }

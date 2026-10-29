@@ -56,6 +56,8 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'moc30 = [x for x in moc30 if int(x[0] or 0) not in _goc_roas]', vi: 'gốc đã có camp ★ không lên ROAS lại' },
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'const ROAS_LAI = 75;', vi: 'trang etp cùng ngưỡng lên ROAS $75' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "chay(NB, [String(v.m.id), '--roas', String(v.muc)", vi: 'máy tự lên ROAS camp đủ điều kiện' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: 'if ly and mien_cham: kq["mien_cham"] = ly; ly = None', vi: 'camp ROAS không qua cổng chấm (anh 29/10/2026 "Camp roas lên ko cần chấm lại")' },
+  { card: 0, tep: 'apps/etp/lich-gio.py', co: "KHONG_ROAS = \"not (c.ten like '★%' or c.ten like '% duplicate by %')\"", vi: 'luật chấm không tắt camp ★ ROAS' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: 'fs.utimesSync(khoa, t, t)', vi: 'khoá nhịp có nhịp tim (nhịp dài lên ROAS không bị nhịp khác chen)' },
   // 28–29/10/2026 — bộ lọc trang Camp (chat): Luật theo đúng thẻ đang hiện, Tuổi, Cây dùng DataTable
   { card: 0, tep: V, mot: 'const chipCamp = (du: DuLieuEtp', vi: 'thẻ luật và bộ lọc Luật cùng một nguồn' },

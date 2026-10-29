@@ -343,15 +343,11 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
         d, ten, cid, pl = payload(goc, lich, bo=None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")
         ly = chan_bo(cid, bo)
         if ly: raise ValueError(ly)
-        # CỔNG CHẤM ÁP CẢ CAMP ROAS (anh 26/10/2026: "Áp dụng cho mọi loại camp" — 10 camp ★ nhân từ creative QC spy lọt vì đường ROAS bỏ cổng chấm):
-        # ad ROAS = bài đăng của camp gốc → creative của camp gốc phải sạch
+        # CAMP ROAS KHÔNG QUA CỔNG CHẤM (anh 29/10/2026: "Camp roas lên ko cần chấm lại" — thay luật 26/10 "áp cho mọi loại camp"): ad ROAS = đúng bài đăng
+        # của camp gốc đang chạy lãi (lãi 30 ngày ≥ $75), không phải creative mới. Điểm chấm chỉ ghi vào nhật ký để xem; luật chấm lich-gio cũng bỏ qua camp ★.
         cr_goc = q(f"select creative_id from etp.camp where camp_id = {int(goc)}")
-        if not cr_goc.isdigit() or int(cr_goc) <= 0: raise ValueError(f"camp gốc #{goc} không rõ creative trong kho — không qua được cổng chấm")
-        # --mien-cham: CHỈ khi anh lệnh đích danh trong lượt đó (anh 28/10/2026: lên ROAS cho camp gốc lãi mà creative bị chấm ≤ 4) — ghi vào luật nhật ký,
-        # camp mới vào etp.cau_hinh 'cham_mien' để luật chấm (lich-gio tat_cham) không tắt nó
-        ly = cham_sach(int(cr_goc))
-        if ly and mien_cham: kq["mien_cham"] = ly; ly = None
-        if ly: raise ValueError(ly)
+        ly = cham_sach(int(cr_goc)) if cr_goc.isdigit() and int(cr_goc) > 0 else None
+        if ly: kq["mien_cham"] = ly
         # camp ROAS là dạng riêng, miễn mọi luật (anh 26/10/2026) — kể cả trần 30 camp/phim: không bị chặn, cũng không chiếm chỗ camp thường (dem_dang_chay bỏ ★)
         if any(x.get("name") == ten for x in api("/api/v1/campaigns?page_size=500")["data"]): raise ValueError(f"đã có camp '{ten}' — không tạo trùng")
         ly = CONG.kiem("nhan_ban", None, ns, 0, str(bo) if bo else None)

@@ -140,6 +140,9 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/lib/actions/etp-lich.ts', co: "me.role === 'admin' ? me.email : null", vi: 'đặt lịch giờ chỉ admin' },
   { card: 1486, tep: 'apps/web/src/components/etp-view.tsx', co: "label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><BadgeDang d={d} ngan />", vi: 'ô lọc Loại hiện badge màu như cột LOẠI' },
   { card: 1486, tep: 'apps/web/src/components/etp-view.tsx', cam: "label: `${m} · ${d}`, dem:", vi: 'ô lọc Loại không quay lại chữ trơn' },
+  // bộ 2: camp tự thắng được miễn khoá bộ lỗ (anh 30/10/2026 "camp thắng phải thu được tối đa doanh thu")
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: "etp.bo_chan_mo_camp('{bo}', {int(goc)})", vi: 'nhân bản / thang: cổng bộ lỗ theo từng camp' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: "etp.bo_chan_mo_camp(", vi: 'luật thang: cổng bộ lỗ theo từng camp' },
   // năm kiểu dựng 0đ không theo góc spy (anh 29/10/2026): một sổ nhãn trên etp + sổ điểm chạm; nút CTA chỉ ở thẻ cuối; thư viện nhận bản không từ tập VideoExpress
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "'chọn phe': 'CP', 'bình luận': 'BL', 'ba khoảnh khắc': 'BK', 'trước sau': 'TS', 'tin nhắn': 'TI'", vi: 'mã ngắn năm kiểu mới' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/diem_cham.py', co: '"chon phe": "chọn phe", "binh luan": "bình luận"', vi: 'sổ điểm chạm nhận nhãn kiểu mới' },

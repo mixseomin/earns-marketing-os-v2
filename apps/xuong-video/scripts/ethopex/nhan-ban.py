@@ -12,7 +12,7 @@ Chạy trên box3 (khoá ở studio):
   python3 nhan-ban.py <camp_khuôn> --creative <id> --content <id> --ten "<tên>" [--that …]   → camp MỚI cho creative khác trên khuôn camp đó
     (creative phải qua trước kiem-studio.sh + kiem-thoai-creative.sh; khuôn phải cùng ngôn ngữ với phim)
   python3 nhan-ban.py <camp_gốc> --thang <$> --that …   → THANG NHÂN BẢN bộ 2 (anh 25/10/2026): bản mới ở bậc ngân sách cao hơn camp gốc
-    (creative khác cùng phim, tên "(thang $X cua <gốc>)"); không đòi gốc chạm trần — camp gốc giữ nguyên ngân sách, không phải học lại
+    (GIỮ creative camp gốc như mọi clone — đoạn đủ trần tran_trung mới sang creative khác cùng phim; tên "(thang $X cua <gốc>)"); không đòi gốc chạm trần — camp gốc giữ nguyên ngân sách
   python3 nhan-ban.py <camp_gốc> --bo <bộ> --ep --that [--lich today]   → CLONE SANG BỘ KHÁC theo lệnh đích danh của anh (anh 27/10/2026: "clone 1 camp tốt
     nhất sang bộ tk 03"): giữ NGUYÊN creative camp gốc (bản CTA sửa nếu có), bỏ qua 4 cổng chỉ dành cho nhân camp trong cùng bộ — mỗi phim một bộ, chạm trần $30,
     bão hoà phim, buộc đổi creative khác (và trần 30 camp/phim); vẫn qua cổng chấm sạch + rào chắn etp. --ep chỉ dùng khi anh ra lệnh trong lượt đó.
@@ -258,7 +258,7 @@ def main(a):
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep); kq["ten"] = ten; bo = pl.pop("bo")
-        ly = (None if ep else chan_bo(cid, bo)) or (None if moi or ep else q(f"select etp.bo_chan_mo('{bo}')"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (migration 0339, anh 26/10/2026)
+        ly = (None if ep else chan_bo(cid, bo)) or (None if moi or ep else q(f"select etp.bo_chan_mo_camp('{bo}', {int(goc)})"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (0339); camp gốc tự thắng (3 ngày khép ROI ≥ 30%) thì miễn (0372, anh 30/10/2026)
         if ly: raise ChanLuat(ly)
         if moi: kq["viec"] = "tao_camp"
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)

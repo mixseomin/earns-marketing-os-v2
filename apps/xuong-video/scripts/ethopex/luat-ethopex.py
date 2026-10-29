@@ -368,7 +368,7 @@ _bo = {int(v["tk"]): k for k, v in json.loads(q("select coalesce(gia_tri, '{}'::
 _bo_c = {int(c["id"]): _bo.get(int(c.get("ad_account_id") or 0)) for c in ds_camp}
 # THANG NHÂN BẢN — CHỈ BỘ 2 (anh 25/10/2026: "áp dụng chiến lược này cho bộ tk số 2 trước. Bộ 1 vẫn giữ nguyên"): đổi ngân sách lớn (> ~20%) là chỉnh
 # sửa đáng kể → camp học lại. Bộ 2 KHÔNG tăng ngân sách camp đang chạy (không tăng bậc / đầu phiên / T30 / nhân bản $1 NB) mà mở BẢN MỚI ở bậc kế
-# THANG_NB, dùng creative KHÁC cùng phim (nhan-ban.py --thang chọn: 3 giây đầu khác thì Meta mới coi là creative khác; qua cổng chấm).
+# THANG_NB, GIỮ creative camp gốc (nhan-ban.py: như mọi clone từ 28/10/2026 — đoạn đủ trần tran_trung mới sang creative khác cùng phim; qua cổng chấm).
 # Điều kiện (anh 25/10/2026 "áp dụng cho hôm nay"): camp bộ 2 chạm ĐÚNG luật tăng của bộ 1 (tăng bậc / tăng trong ngày / lãi đầu phiên — cùng mọi cổng:
 # hôm nay không lỗ, tăng lại sau giảm, LD siết) → thay vì đổi ngân sách, mở một bản ở bậc kế; mỗi camp tối đa THANG_CON bản con, bản trước còn chạy thì
 # không mở thêm. (Bản đầu đòi 2 ngày trọn ROI ≥ 50%: đo 25/10 bộ 2 có 0 camp đạt — không áp được hôm nay.) Bản thang chi ≥ 1 ngày ngân sách mà ROI ≤ −30% → đề xuất TẮT (anh bấm nút — luật cấm tự tắt).
@@ -397,7 +397,8 @@ try:
     _chan_phim, _loi6 = locals().get("chan_phim") or {}, locals().get("loi6") or set()
     for cid, a in thang.items():
         if int(cid) not in _tang_bo2 or cid not in _bat: continue
-        if _bo_chan.get(str(_bo_c.get(int(cid)) or "2")): _thang_ly[int(cid)] = f"bộ {_bo_c.get(int(cid)) or '2'} đang chặn mở bản mới: {str(_bo_chan.get(str(_bo_c.get(int(cid)) or '2')))[:60]}"; continue   # bộ lỗ 3 ngày khép → không mở bản thang (etp.bo_chan_mo, anh 26/10/2026)
+        _bc = q(f"select etp.bo_chan_mo_camp('{_bo_c.get(int(cid)) or '2'}', {int(cid)})") if _bo_chan.get(str(_bo_c.get(int(cid)) or "2")) else ""   # bộ lỗ 3 ngày khép → không mở bản thang (0339); camp tự thắng 3 ngày khép ROI ≥ 30% thì miễn (0372, anh 30/10/2026)
+        if _bc: _thang_ly[int(cid)] = f"bộ {_bo_c.get(int(cid)) or '2'} đang chặn mở bản mới: {str(_bc)[:60]}"; continue
         # THANG ĐI TỪ ĐÁY (anh 27/10/2026: "nhân bản này sai rule rồi. Phải nhân từ $1 - $3... lên cơ mà?" — #68835 $10 mở thẳng bản $15 #71957):
         # camp gốc THƯỜNG (đã được tăng bậc kiểu cũ tới $5–$20) → bản thang đầu tiên tối đa bậc thứ hai ($3); chỉ bản nhân của chính một BẢN THANG
         # mới lên bậc kế ($3 → $7 → $15 → $30)
@@ -412,7 +413,7 @@ try:
         if int(phim_cua.get(cid) or 0) in _chan_phim: _thang_ly[int(cid)] = f"phim đang bị chặn nhân bản: {str(_chan_phim.get(int(phim_cua.get(cid) or 0)))[:60]}"; continue
         if cid in _loi6: _thang_ly[int(cid)] = "nhân bản camp này lỗi gần đây"; continue
         if _chi3.get(int(cid), 0.0) < THANG_CHI_GOC: _thang_ly[int(cid)] = f"camp gốc tiêu TB ${_chi3.get(int(cid), 0.0):.2f}/ngày 3 ngày đã khép (< ${THANG_CHI_GOC:g})"; continue
-        thang_nb.append((cid, f"#{a['ten'][:70]} · ${ns:g} đủ luật tăng · ROI hôm nay {(roi(h) if h.get('chi', 0) >= 0.3 else 0):+.0f}% (chi ${h.get('chi', 0):.2f})" + (f" · hôm qua {roi(y):+.0f}%" if y["chi"] >= 0.3 else "") + f" · {rd(cid)} {roi(a):+.0f}% → ${dich:g} bản mới (creative khác cùng phim; camp này giữ nguyên ngân sách)" + (f" · bản con thứ {len(con) + 1}" if con else "")))
+        thang_nb.append((cid, f"#{a['ten'][:70]} · ${ns:g} đủ luật tăng · ROI hôm nay {(roi(h) if h.get('chi', 0) >= 0.3 else 0):+.0f}% (chi ${h.get('chi', 0):.2f})" + (f" · hôm qua {roi(y):+.0f}%" if y["chi"] >= 0.3 else "") + f" · {rd(cid)} {roi(a):+.0f}% → ${dich:g} bản mới (cùng creative gốc, đoạn đủ trần mới đổi; camp này giữ nguyên ngân sách)" + (f" · bản con thứ {len(con) + 1}" if con else "")))
     for c in ds_camp:
         if not la_thang(c) or c.get("state") != "ACTIVE": continue
         cid = c["id"]; a = tron.get(cid) or tron.get(str(cid)); ns = float((thang.get(cid) or {}).get("budget") or c.get("budget_daily") or 0)

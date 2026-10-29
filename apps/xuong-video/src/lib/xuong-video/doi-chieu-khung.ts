@@ -21,6 +21,15 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
   const doVat = nhanVat.filter((v) => (v.loai === 'dao_cu' || v.loai === 'san_pham') && c.nhan_vat.includes(v.id));
   const btShot = c.bien_the ?? [];
   const aoCua = (v: NhanVat) => { const bt = (v.bien_the ?? []).find((b) => btShot.includes(b.id)); return bt?.mo_ta || c.trang_phuc || v.mo_ta; };
+  // tách mô tả áo thành TRANG PHỤC chính + VẾT/đặc điểm, cắt đuôi câu lệnh sinh-ảnh ("in every shot", "no drips"…) — để lá gọn, model không ngáo
+  const tachAo = (moTa: string): { chinh: string; vet: string } => {
+    const s = (moTa || '').replace(/\s+/g, ' ').trim();
+    const m = s.match(/\b(?:one |a |the )?coffee[- ]?stain|vết\s*(?:cà\s*phê|ố)/i);
+    if (!m || m.index == null) return { chinh: s.split(/;?\s*(?:no drips|the stain has exactly|in every shot)/i)[0]!.replace(/[;,\s]+$/, '').trim() || s, vet: '' };
+    const chinh = s.slice(0, m.index).replace(/[;,\s]+$/, '').trim();
+    const vet = s.slice(m.index).split(/;?\s*(?:no drips|no runs|the stain has exactly|in every shot)/i)[0]!.replace(/[;,\s]+$/, '').trim();
+    return { chinh: chinh || s, vet };
+  };
   const viNguoi = (v: NhanVat) => { if (kg && nguoiKhung(kg, c, lucKg)?.includes(v.ten)) { const x = viTri(kg, c, v.ten); const h = nhinCan(kg, c, v.ten); return [x == null ? '' : x < -0.33 ? 'trái màn' : x > 0.33 ? 'phải màn' : 'giữa màn', h ? `nhìn ${h < 0 ? 'trái' : 'phải'}` : ''].filter(Boolean).join(', '); } return ''; };
   const L: MucDuKien[] = [];
   L.push({ thanh_phan: 'Khung hình', du_kien: c.ky_thuat?.co_canh ?? 'ms' });
@@ -29,14 +38,15 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
   for (const v of nguoi) {
     const bc = (c.bieu_cam ?? []).find((x) => x.nv === v.ten);
     const bcTxt = bc ? (luc === 'dau' ? bieuCam(bc.dau)?.ten ?? bc.dau : bieuCam(bc.cuoi)?.ten ?? bc.cuoi) : 'không khai';
+    const ao = tachAo(aoCua(v));
     L.push({ thanh_phan: `Vị trí ${v.ten}`, du_kien: viNguoi(v) || 'không khai' });
-    L.push({ thanh_phan: `Áo ${v.ten}`, du_kien: aoCua(v) || 'không tả' });
+    L.push({ thanh_phan: `Áo ${v.ten}`, du_kien: ao.chinh || 'không tả' });
+    if (ao.vet) L.push({ thanh_phan: `Vết áo ${v.ten}`, du_kien: ao.vet });   // vết/đặc điểm riêng — lá riêng để không bị gộp che (vụ vết cà phê)
     L.push({ thanh_phan: `Tóc ${v.ten}`, du_kien: tuToc(v.mo_ta) || '(theo mô tả nhân vật)' });
     L.push({ thanh_phan: `Biểu cảm ${v.ten}`, du_kien: bcTxt });
     const dangTxt = kg ? (dang(kg, c.thu_tu, v.ten, lucKg)?.vi ?? '') : '';
     if (dangTxt) L.push({ thanh_phan: `Dáng ${v.ten}`, du_kien: dangTxt });
-    const doTxt = kg ? doCam(kg, c.thu_tu, v.ten, lucKg).map((d) => `${d.mon}: ${d.vi}`).join('; ') : '';
-    if (doTxt) L.push({ thanh_phan: `Đồ cầm ${v.ten}`, du_kien: doTxt });
+    // "Đồ cầm" bỏ: trùng với các ĐẠO CỤ đã liệt kê riêng bên dưới → gây nhiễu/ngáo
   }
   for (const v of doVat) {
     // vị trí đạo cụ: ai đang cầm/đeo nó + vị trí người đó — để MỌI đối tượng (kể cả đạo cụ) đều có mục Vị trí tương quan

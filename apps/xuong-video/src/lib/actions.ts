@@ -50,7 +50,7 @@ import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-vi
 import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { kgCua } from '@/lib/xuong-video/khong-gian';
 import { bocTachKhung } from '@/lib/xuong-video/boc-tach-khung';
-import { duKienKhung, doiChieuKhung } from '@/lib/xuong-video/doi-chieu-khung';
+import { duKienKhung, doiChieuKhung, thanhPhanDuKien, type MucDuKien } from '@/lib/xuong-video/doi-chieu-khung';
 import type { BocTachCanh, BocTachKhung, DongDoiChieu } from '@/lib/xuong-video/kieu';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb, sinhAnhBienTheDb } from '@/lib/xuong-video/sinh-anh';
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
@@ -1976,13 +1976,22 @@ export async function bocTachCanh(canhId: number): Promise<{ ok: boolean; boc_ta
   return { ok: true, boc_tach };
 }
 
-// ⚖️ Lấy dữ liệu đối chiếu của một shot cho NGĂN RỘNG (DoiChieuNgan) — boc_tach + keyframe đầu/cuối + nhân vật (để BangBocTach so tóc). Chỉ đọc, không tốn tiền.
-export async function layBocTachCanh(canhId: number): Promise<{ ok: boolean; ten?: string; keyframe_url?: string | null; keyframe_ket?: string | null; boc_tach?: BocTachCanh | null; nhanVat?: NhanVat[]; loi?: string }> {
+// ⚖️ Lấy DANH MỤC THÀNH PHẦN của một shot cho NGĂN RỘNG (DoiChieuNgan). Chỉ đọc, không tốn tiền:
+//   - duKien: thành phần dự kiến đầu/cuối dựng thẳng từ dữ liệu (MỌI shot thấy, kể cả chưa bóc AI).
+//   - boSung: dự kiến BỔ SUNG nối từ shot TRƯỚC đã sinh keyframe (trạng thái cuối của nó cần tiếp sang shot này) — tách bạch khỏi dự kiến gốc.
+//   - boc_tach: đối chiếu với ảnh (nếu đã bóc). keyframe đầu/cuối + nhân vật (BangBocTach so tóc).
+export async function layThanhPhanCanh(canhId: number): Promise<{ ok: boolean; ten?: string; keyframe_url?: string | null; keyframe_ket?: string | null; boc_tach?: BocTachCanh | null; nhanVat?: NhanVat[]; duKien?: { dau: MucDuKien[]; cuoi: MucDuKien[] }; boSung?: { tuShot: string; muc: MucDuKien[] } | null; loi?: string }> {
   const db = getDb();
   if (!db) return { ok: false, loi: 'không có DB' };
-  const row = ((await db.execute(sql`SELECT c.*, t.phim_id FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${canhId}`)) as unknown as Row[])[0];
+  const row = ((await db.execute(sql`SELECT c.*, t.phim_id, t.khong_gian FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${canhId}`)) as unknown as Row[])[0];
   if (!row) return { ok: false, loi: 'không thấy cảnh' };
   const c = mapCanh(row);
   const nhanVat = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(row.phim_id)} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
-  return { ok: true, ten: `#${c.thu_tu} ${c.canh ?? ''}`.trim(), keyframe_url: c.keyframe_url, keyframe_ket: c.keyframe_ket ?? null, boc_tach: c.boc_tach ?? null, nhanVat };
+  const kg = kgCua(row.khong_gian as never, c);
+  const duKien = { dau: thanhPhanDuKien(c, nhanVat, kg, 'dau'), cuoi: thanhPhanDuKien(c, nhanVat, kg, 'cuoi') };
+  // BỔ SUNG: shot TRƯỚC cùng phân đoạn (nhánh '' / 'A') ĐÃ sinh keyframe → trạng thái CUỐI của nó là dự kiến nối sang đầu shot này
+  let boSung: { tuShot: string; muc: MucDuKien[] } | null = null;
+  const tr = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${c.tap_id} AND phan_doan = ${c.phan_doan} AND coalesce(nhanh, '') IN ('', 'A') AND thu_tu < ${c.thu_tu} AND keyframe_url IS NOT NULL ORDER BY thu_tu DESC LIMIT 1`)) as unknown as Row[])[0];
+  if (tr) { const ct = mapCanh(tr); boSung = { tuShot: `#${ct.thu_tu} ${ct.canh ?? ''}`.trim(), muc: thanhPhanDuKien(ct, nhanVat, kg, 'cuoi') }; }
+  return { ok: true, ten: `#${c.thu_tu} ${c.canh ?? ''}`.trim(), keyframe_url: c.keyframe_url, keyframe_ket: c.keyframe_ket ?? null, boc_tach: c.boc_tach ?? null, nhanVat, duKien, boSung };
 }

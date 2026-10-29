@@ -381,17 +381,19 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       gui++;
     }
   }
-  // T30 TỰ ĐỘNG (anh 28/10/2026: "bật rule cho phép tăng lên $30 tự động ko cần xin nữa"): camp đủ luật T30 lên $30 ngay, không chờ nút; ngoài trần tự tăng thường
-  if (tuTang || (kq.tang30 || []).length) {
+  // MỘT QUYỀN TỰ TĂNG, TRẦN $30 (anh 29/10/2026 "mày đc tự nâng đến $30 rồi nên gộp lại"): trước là hai quyền tách — tự tăng bậc trần $20 (24/10) + T30 lên $30 (28/10)
+  // → tin "MÁY TỰ TĂNG … trần $20" trong khi máy vẫn lên $30. Nay một trần trong ethopex-tu-tang.json (tran 30): thang BAC dừng ở $20 nên $20 → $30 vẫn CHỈ đi qua
+  // luật T30 (5 ngày đã khép ROI ≥ 50%, chi TB ≥ $12) — gộp quyền, không nới ngưỡng
+  if (tuTang) {
     for (const k of ['dau_phien', 'tang', 'tang30']) for (const m of kq[k] || []) {
-      const d = Number(dichCua(m)); if (!d || (k === 'tang30' ? d !== 30 : !tuTang || d > tuTang) || lamRoi.has(m.id) || seTat.has(m.id)) continue;
+      const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id) || seTat.has(m.id)) continue;
       lamRoi.add(m.id);
-      let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), '--luat', `${TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', k === 'tang30' ? 'máy tự tăng T30 (anh chat 28/10/2026: bật rule cho phép tăng lên $30 tự động ko cần xin nữa)' : `máy tự tăng (anh cho phép ${Date.parse(tt?.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), '--luat', `${TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', k === 'tang30' ? `máy tự tăng T30 (anh cho phép tự tăng, trần $${tuTang} — gộp 29/10/2026)` : `máy tự tăng (anh cho phép ${Date.parse(tt?.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daTu.push({ k, m, d, r });
     }
     if (daTu.length) {
       const dong = bangViec(daTu.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), 'Kỳ');
-      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ TĂNG</b> — ${tt && tuTang ? `anh cho phép ${Date.parse(tt.den) > Date.parse('2090-01-01') ? 'tới khi anh rút lại' : `tới hết ${esc(tt.den.slice(0, 10))}`}, trần $${tuTang}` : ''}${daTu.some((x) => x.k === 'tang30') ? `${tt && tuTang ? ' · ' : ''}T30 lên $30 tự động (anh 28/10)` : ''}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ TĂNG</b> — anh cho phép ${Date.parse(tt.den) > Date.parse('2090-01-01') ? 'tới khi anh rút lại' : `tới hết ${esc(tt.den.slice(0, 10))}`}, trần $${tuTang}${daTu.some((x) => x.k === 'tang30') ? ' ($20 → $30 qua luật T30)' : ''}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
       gui++;
     }
   }

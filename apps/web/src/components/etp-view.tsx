@@ -1564,8 +1564,8 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         return <span title="tổng ngân sách/ngày camp đang bật" style={{ display: 'inline-block', width: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : 400, opacity: t ? 1 : 0.45 }}>${t}</span>; } },   // cùng ô 30px canh phải với $ của camp (anh 29/10/2026 #1476 "thò thụt")
     { key: 'luat', header: 'Luật', align: 'left', width: 96, title: 'thẻ luật đang hiện — lọc chọn nhiều theo đúng chữ trên thẻ', sortValue: (c) => chipCamp(du, c, baoCamp.get(c.camp_id))?.chip ?? '',
       cell: (c) => (du.nguoi.ngoai ? <span title="camp người khác — chỉ xem, luật không áp" style={{ color: 'var(--fg-3, #777)' }}>—</span> : <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} />) },
-    // MỌI CỘT KHÁC CÓ BỀ RỘNG CỐ ĐỊNH → chỉ cột Creative nhận khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang" — trước TT rồi Tuổi lần lượt ăn khoảng trống)
-    { key: 'cr', header: 'Creative · điểm chấm', align: 'left', title: 'creative camp đang chạy (mã + điểm chấm Meta · AFS, ×N = số lần nhân bản giống hệt) — rê xem video', sortValue: (c) => c.creative_id ?? 0, cell: (c) => oCr(c) },
+    // MỌI CỘT CÓ BỀ RỘNG CỐ ĐỊNH, khoảng thừa vào cột đệm cuối bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang" — trước TT rồi Tuổi lần lượt ăn khoảng trống)
+    { key: 'cr', header: 'Creative · điểm chấm', align: 'left', width: 200, title: 'creative camp đang chạy (mã + điểm chấm Meta · AFS, ×N = số lần nhân bản giống hệt) — rê xem video', sortValue: (c) => c.creative_id ?? 0, cell: (c) => oCr(c) },
     { key: 'loai', header: 'Loại', align: 'left', width: 52, cell: (c) => <BadgeDang d={c.dang} ngan />, sortValue: (c) => c.dang ?? '' },
     ...(coLich ? [{ key: 'lich', header: 'Lịch giờ', align: 'left' as const, cell: (c: CampEtpKho) => <LichCamp c={c} du={du} tl={tlC} gon />, sortValue: (c: CampEtpKho) => tlC(c.the_loai) }] : []),
     ...ngay.map((d, i): DataColumn<CampEtpKho> => ({ key: `roi${i}`, header: `${d.slice(8, 10)}/${d.slice(5, 7)}`, align: 'center', width: 46, title: `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)} — lọc 🔍 theo %`,
@@ -1578,6 +1578,8 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       total: (rs) => <Tien v={rs.reduce((a, c) => a + laiKy(c).chi, 0)} /> },
     { key: 'lai', header: `Lãi ${tenKy.toLowerCase()}`, width: 104, title: `lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <LaiCot s={laiKy(c)} />, sortValue: (c) => Math.round(laiDai(c) * 100) / 100,
       total: (rs) => <LaiCot s={rs.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /> },
+    // CỘT ĐỆM (không tiêu đề, không số): mọi cột có bề rộng cố định → khoảng thừa của bảng dồn ra mép phải, số liệu xếp sát nhau (anh 29/10/2026 "cho gọn lại")
+    { key: 'dem', header: '', align: 'left', cell: () => null },
   ];
   // KT ĐANG SINH / SẴN SÀNG theo phim (anh 29/10/2026 kế hoạch KT cho phim đang chạy): bản kể chuyện VideoExpress trong etp.thu_vien chưa thành creative
   const ktCua = useMemo(() => new Map((du.thuVien ?? []).filter((v) => !v.creative_id && (v.tv === 'dang_sinh' || v.tv === 'san_sang')).map((v) => [v.content_id, v.tv as string])), [du.thuVien]);

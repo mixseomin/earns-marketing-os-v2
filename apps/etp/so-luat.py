@@ -12,6 +12,7 @@ import json, os, re, subprocess, sys, collections
 NGAY = 14   # cửa sổ đo
 DA_BO = {"gb", "giam_ngay", "giam_som", "roi_tut"}
 DA_AP_CUNG_CR = True
+DA_AP_CHI_GOC = True   # luat-ethopex.py: bản thang bộ 2 chỉ mở khi camp gốc tiêu TB ≥ $6/ngày 3 ngày đã khép (anh 29/10/2026)
 DA_AP_ROI_DAI = True   # luat-ethopex.py tăng trong ngày đòi ROI khung dài ≥ 0% từ 29/10/2026   # nhan-ban.py giữ nguyên creative gốc khi clone từ 28/10/2026 (commit 3cf79748) — số 14 ngày còn lẫn clone đổi creative trước đó   # luật đã bỏ khỏi máy (anh 29/10/2026 "làm 1+2") — dòng xét cũ còn trong etp.xet_luat tới 3 giờ, không đưa lên bản luật
 DB = os.environ.get("DATABASE_URL")
 def q(s):
@@ -126,6 +127,9 @@ def main():
                     dx.append(DX("Giữ — đã áp từ 28/10", f"clone giống hệt ROI {so_['cung_cr']['roi']}%, đổi creative chỉ {so_['khac_cr']['roi']}% — đúng hướng máy nhân bản đang chạy.", None))
                 elif len(cung) >= 5 and len(khac) >= 5 and (so_["cung_cr"]["roi"] or 0) - (so_["khac_cr"]["roi"] or 0) >= 20:
                     dx.append(DX("Clone giữ nguyên creative", f"clone giống hệt ROI {so_['cung_cr']['roi']}%, clone đổi creative chỉ {so_['khac_cr']['roi']}%.", "nhân bản camp thắng bằng chính creative đó; đổi creative khi đã bão hoà."))
+                elif m == "thang_nb" and DA_AP_CHI_GOC:
+                    _n = so_["theo_goc"].get("gốc tiêu < $6/ngày")
+                    dx.append(DX("Giữ — đã áp 29/10", "bản thang chỉ mở khi camp gốc tiêu TB ≥ $6/ngày 3 ngày đã khép" + (f" (trước đó {_n['n']} bản từ gốc < $6 → ROI {_n['roi']}%)." if _n else "."), None))
                 elif (so_["tat_ca"]["roi"] or 0) < 0:
                     dx.append(DX("Siết điều kiện nhân bản", f"clone đang lỗ (ROI {so_['tat_ca']['roi']}%).", "chỉ nhân bản camp gốc lãi đều hơn."))
                 else:

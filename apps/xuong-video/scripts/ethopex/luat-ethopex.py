@@ -384,6 +384,10 @@ ha = [x for x in ha if int(x[0] or 0) not in _id_thang]
 thang_nb, thang_tat = [], []
 _thang_ly = {}   # cổng mở bản thang chặn camp nào, vì sao — hiện trong bảng xét (anh 28/10/2026 "camp này phải đủ tăng trong ngày chứ?": trước cổng chặn ngầm)
 _bo_chan = {b: q(f"select etp.bo_chan_mo('{b}')") for b in BO_THANG}
+# CỔNG CHI GỐC (anh 29/10/2026 "làm đi"): 13/14 bản thang mở từ camp gốc tiêu < $6/ngày → ROI −27% (so-luat 14 ngày) → chỉ mở bản thang khi camp gốc
+# tiêu TRUNG BÌNH ≥ THANG_CHI_GOC $/ngày trong 3 ngày đã khép (ngày thiếu số tính $0 — camp chưa đủ 3 ngày thì chưa đủ để nhân)
+THANG_CHI_GOC = float(_ch("thang_chi_goc", 6))
+_chi3 = {int(l.split("|")[0]): float(l.split("|")[1]) for l in (q(f"select camp_id, sum(chi) / 3 from etp.so_ngay where ngay between '{d(3)}' and '{d(1)}' group by 1") or "").split("\n") if "|" in l}
 try:
     _con = {}
     _la_ban_thang = lambda cid: int(cid) in _id_thang   # _id_thang: camp mang tên "(thang $N cua <gốc>)" (khai phía trên)
@@ -407,6 +411,7 @@ try:
         h = hom.get(cid, {"chi": 0.0, "thu": 0.0}); y = hqua.get(cid) or {"chi": 0.0, "thu": 0.0}
         if int(phim_cua.get(cid) or 0) in _chan_phim: _thang_ly[int(cid)] = f"phim đang bị chặn nhân bản: {str(_chan_phim.get(int(phim_cua.get(cid) or 0)))[:60]}"; continue
         if cid in _loi6: _thang_ly[int(cid)] = "nhân bản camp này lỗi gần đây"; continue
+        if _chi3.get(int(cid), 0.0) < THANG_CHI_GOC: _thang_ly[int(cid)] = f"camp gốc tiêu TB ${_chi3.get(int(cid), 0.0):.2f}/ngày 3 ngày đã khép (< ${THANG_CHI_GOC:g})"; continue
         thang_nb.append((cid, f"#{a['ten'][:70]} · ${ns:g} đủ luật tăng · ROI hôm nay {(roi(h) if h.get('chi', 0) >= 0.3 else 0):+.0f}% (chi ${h.get('chi', 0):.2f})" + (f" · hôm qua {roi(y):+.0f}%" if y["chi"] >= 0.3 else "") + f" · {rd(cid)} {roi(a):+.0f}% → ${dich:g} bản mới (creative khác cùng phim; camp này giữ nguyên ngân sách)" + (f" · bản con thứ {len(con) + 1}" if con else "")))
     for c in ds_camp:
         if not la_thang(c) or c.get("state") != "ACTIVE": continue
@@ -658,7 +663,7 @@ def _xet_luat():
         cong_b2 = ["Cổng mở bản thang (bộ 2)", _thang_ly.get(int(cid), "mở được"), "mở được", int(cid) not in _thang_ly]
         if b2: dk_tang = dk_tang + [cong_b2]
         ls.append(L("thang_nb" if b2 else "tang", "Thang nhân bản (bộ 2)" if b2 else "Tăng bậc",
-            ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại.",
+            ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại." + (f" Bộ 2: camp gốc tiêu TB ≥ ${THANG_CHI_GOC:g}/ngày 3 ngày đã khép mới mở bản thang (29/10)." if b2 else ""),
             dk_tang, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None)))
         # bộ 2 KHÔNG tăng ngân sách — đủ luật thì mở bản thang, nên cổng mở bản thang mới nằm trong bảng (anh 28/10/2026 #1464 "tăng trong ngày sao lại liên quan đến mở bản thang?": tên luật không nói điều đó)
         ls.append(L("tang_ngay", "Tăng trong ngày → mở bản thang (bộ 2)" if b2 else "Tăng trong ngày", ("Bộ 2 không tăng ngân sách: đủ luật này thì máy MỞ BẢN MỚI ở bậc kế (creative khác cùng phim), nên phải qua cổng mở bản thang. " if b2 else "") + "ROI hôm nay (chỉ cộng các giờ tới đợt chi gần nhất) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không âm (hôm qua âm mà chi hôm qua < max($2, 50% ngân sách) thì bỏ qua — luật B1), ROI khung dài ≥ 0% (29/10). ROI chỉ tính khi chi ≥ $0.3.",

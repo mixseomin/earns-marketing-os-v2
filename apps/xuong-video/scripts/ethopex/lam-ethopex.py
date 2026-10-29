@@ -63,7 +63,7 @@ def dang_lai(cid, t7=False):
     tao = None if t7 else api(f"/api/v1/campaigns/{cid}")["campaign"].get("created_at")
     if tao:
         tuoi = (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(str(tao).replace("Z", "+00:00"))).total_seconds() / 86400
-        if tuoi < TUOI_TOI_THIEU_TAT: return f"camp mới {tuoi:.1f} ngày (< {TUOI_TOI_THIEU_TAT} ngày) — chưa tới kỳ review tắt, lỗ thì giảm bậc"
+        if tuoi < TUOI_TOI_THIEU_TAT: return f"camp mới {tuoi:.1f} ngày (< {TUOI_TOI_THIEU_TAT} ngày) — chưa tới kỳ review tắt (luật giảm bậc đã bỏ 29/10 — camp lỗ liền xem L3)"
     r = roi_ky(cid)
     # ĐÓNG CAMP PHẢI TIÊU ÍT NHẤT $10 (anh 22/10/2026: "lý do đóng camp là phải tiêu ít nhất $10") — chưa đủ tiền thì chưa đủ dữ liệu để kết luận
     if not t7 and r["chi_tong"] < CHI_TOI_THIEU_TAT: return f"mới tiêu ${r['chi_tong']:.2f} (< ${CHI_TOI_THIEU_TAT}) — chưa đủ để đóng"
@@ -186,7 +186,7 @@ def main(a):
                 raise ValueError(f"camp đã {truoc['tt']}")
             # CHẶN TẮT CAMP LÃI (anh 22/10/2026: "luật vẫn là luật. Camp nào lãi hơn 20% thì bật lại" — con tắt nhầm #66052/#66055/#65714 vì phân loại
             # theo số chụp lúc 09:50, doanh thu về trễ). Đọc ROI cộng dồn MỚI NHẤT ngay lúc tắt; > 20% thì từ chối, trừ --ep (anh lệnh đích danh).
-            lai = None if ep else dang_lai(cid, t7=(luat or "").startswith("T7"))
+            lai = None if ep else dang_lai(cid, t7=(luat or "").startswith(("T7", "dừng đêm")))   # dừng đêm chỉ nhắm camp clone (luôn < 7 ngày) — cổng tuổi / $10 chặn 100% từ 25/10 (45.098 lần, 0 lần tắt) → bỏ như T7 (anh 29/10/2026 "làm đi"); cổng camp đang lãi giữ
             if lai: raise ValueError(f"không tắt: {lai}")
             r = api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [cid], "status": "paused"}])
             d0 = (r.get("data") or [{}])[0]

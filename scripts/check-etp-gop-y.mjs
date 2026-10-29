@@ -157,6 +157,7 @@ const LUAT = [
   { card: 1487, tep: 'apps/web/src/components/etp-view.tsx', co: "width: gon ? '100%' : 'auto', fontSize: 11.5", vi: 'bảng xét luật rộng theo nội dung, không giãn cột Điều kiện' },
   { card: 1487, tep: 'apps/web/src/components/etp-view.tsx', co: "t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R }", vi: 'khung nổi xét luật rộng theo nội dung' },
   { card: 1488, tep: 'apps/web/src/components/etp-view.tsx', co: "data-comp={hep ? undefined : 'ui.StickyBar'}", vi: 'hàng Mở hết / Chú giải dính khi cuộn' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'tuoi', header: 'Tuổi', width: 52,", vi: 'cột Tuổi Cây hẹp cố định (không ăn khoảng thừa)' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

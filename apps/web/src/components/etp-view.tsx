@@ -1808,7 +1808,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
                 </div>
                 <div style={{ padding: '4px 6px', fontSize: 11, lineHeight: 1.35 }}>
                   <div style={{ color: mauTt, fontWeight: 600 }}>{chuTt}</div>
-                  <div style={{ color: 'var(--fg-2)' }} title={x.ghi ?? undefined}>{ttTv(x) === 'dang_sinh' ? (x.ghi ?? 'máy đang làm') : x.camp ? <>ROI <Roi s={x} /> · {usd(x.chi)}</> : x.nguon === 'videoexpress' ? 'kể chuyện $0' : x.creative_id ? `cr #${x.creative_id}` : '—'}</div>
+                  <div style={{ color: 'var(--fg-2)' }} title={x.ghi ?? undefined}>{ttTv(x) === 'dang_sinh' ? (x.ghi ?? 'máy đang làm') : x.camp ? <>ROI <Roi s={x} /> · {usd(x.chi)}</> : x.nguon === 'videoexpress' ? 'kể chuyện $0' : x.nguon === 'kieu_moi' ? 'dựng 0đ, chưa lên' : x.creative_id ? `cr #${x.creative_id}` : '—'}</div>
                 </div>
               </button>; })}
           </div>
@@ -1823,7 +1823,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
           <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>
             {xMo.camp ? <>14 ngày: {xMo.chay}/{xMo.camp} camp đang chạy · chi <Tien v={xMo.chi} /> · lãi <LaiCot s={xMo} /> · ROI <Roi s={xMo} /></> : 'Chưa chạy camp nào.'}
             {xMo.meta != null ? <> · chấm <span style={{ color: mauDiem(xMo.meta) }}>Meta {xMo.meta}</span> <span style={{ color: mauDiem(xMo.afs) }}>AFS {xMo.afs ?? '–'}</span></> : null}
-            {xMo.nguon === 'videoexpress' ? <> · máy sinh kể chuyện VideoExpress ($0)</> : null}</div>
+            {xMo.nguon === 'videoexpress' ? <> · máy sinh kể chuyện VideoExpress ($0)</> : xMo.nguon === 'kieu_moi' ? <> · dựng 0đ từ tập phim gốc (kieu-moi.py)</> : null}</div>
           {!xMo.creative_id && !du.nguoi.ngoai ? <div style={{ fontSize: 11, color: 'var(--fg-3, #777)' }} title="đưa bản này thành creative Ethopex (kho + chữ QC + cổng chữ) — lên camp vẫn chờ lệnh anh">
             mã thư viện <b style={{ userSelect: 'all' }}>{xMo.k}</b> · đưa lên Ethopex (iMac): <code style={{ userSelect: 'all' }}>python3 apps/xuong-video/scripts/ethopex/thu-vien-len.py {xMo.k.slice(2)}</code></div> : null}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

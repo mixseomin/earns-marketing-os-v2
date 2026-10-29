@@ -3,7 +3,7 @@
 // ảnh bìa 1640×624 = ảnh thật dưới lớp màu thương hiệu chuyển dần từ trái + tên + câu phụ trong vùng an toàn điện thoại (x 300–1340).
 // Ảnh gốc + link trang nguồn lưu cạnh bản dựng ở thư mục ra (mặc định /root/trang-diem/<page_id>/) — dựng lại ra y hệt.
 // Đặt lên Page: dang-fb-reel.mts › datAnhPage (cùng sổ token + kiểm danh tính token ↔ Page như lượt đăng); token thiếu pages_manage_metadata → mã thoát 3,
-// ảnh vẫn nằm ở thư mục ra để đặt bằng trình duyệt quản trị Page, xong chạy --kiem (Trust Reviews 29/10/2026 đặt theo đường này).
+// ảnh vẫn nằm ở thư mục ra để đặt bằng trình duyệt quản trị Page, xong chạy --kiem (Trust Reviews 29/10/2026: lần đầu đặt bằng trình duyệt, cấp quyền xong chạy lại qua Graph đạt).
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && ../../node_modules/.bin/tsx scripts/trang-diem-page.mts \
 //     --page 537626083113751 --anh 5149759 --bia 6519935 --chu "EMT Exam Prep" --phu "NREMT practice questions, explained" --mau B3261E \
 //     [--tam-anh 0.5,0.5] [--tam-bia 0.5,0.5] [--xem]      (--xem: chỉ dựng ảnh, không đặt lên Page)
@@ -81,7 +81,7 @@ const tepA = dungDaiDien(ga.tep, ra, docTam(lay('--tam-anh'))), tepB = dungBia(g
 writeFileSync(path.join(ra, 'nguon.json'), JSON.stringify({ page, dai_dien: { pexels: anh, trang: ga.trang }, bia: { pexels: bia, trang: gb.trang }, chu, phu, mau, luc: new Date().toISOString() }, null, 1));
 console.log(`✓ dựng ${tepA} + ${tepB}`);
 if (a.includes('--xem')) process.exit(0);
-// token thiếu pages_manage_metadata (#283 — app Kenh Social Poster 29/10/2026 chưa có quyền này trong danh sách Explorer): ảnh đã dựng xong ở `ra`,
+// token thiếu pages_manage_metadata (#283 — app Kenh Social Poster thêm quyền này vào use case Pages 29/10/2026, token cấp lại cùng ngày): ảnh đã dựng xong ở `ra`,
 // đặt bằng phiên trình duyệt quản trị Page (Profile picture actions → Choose profile picture; Add cover photo → Upload photo), rồi chạy --kiem
 const kq = await datAnhPage(page, { daiDien: tepA, bia: tepB }).catch((e: Error) => {
   if (/\(#283\)|pages_manage_metadata/.test(e.message)) { console.error(`✗ token Page thiếu quyền pages_manage_metadata — ảnh đã dựng: ${tepA} · ${tepB}; đặt bằng trình duyệt quản trị Page rồi chạy --kiem ${page}`); process.exit(3); }

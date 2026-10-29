@@ -35,6 +35,16 @@ const { meta, canh } = JSON.parse(readFileSync(tepTap, 'utf8')) as { meta: { phi
 const tepSo = `${D}/so.json`;
 const so: { poster?: number; canh: Record<string, Ghi> } = existsSync(tepSo) ? JSON.parse(readFileSync(tepSo, 'utf8')) : { canh: {} };
 const luu = () => writeFileSync(tepSo, JSON.stringify(so, null, 1));
+// SỬA TỪNG CẢNH sau khi soát: <thư mục>/sua.json {"<số cảnh>": {"anh"?: "...", "dong"?: "..."}} ghi đè prompt_anh / prompt_video của studio;
+// --lai=1,3 làm lại các cảnh đó (có "anh" trong sua.json thì sinh lại cả ảnh, không thì chỉ sinh lại clip từ ảnh cũ)
+const sua = (existsSync(`${D}/sua.json`) ? JSON.parse(readFileSync(`${D}/sua.json`, 'utf8')) : {}) as Record<string, { anh?: string; dong?: string }>;
+for (const c of canh) { const x = sua[c.so]; if (x?.anh) c.anh = x.anh; if (x?.dong) c.dong = x.dong; }
+for (const n of (gia('lai') ?? '').split(',').map(Number).filter(Boolean)) {
+  const x = so.canh[n]; if (!x) continue;
+  if (sua[n]?.anh) { delete x.anh; delete x.anhUuid; }
+  delete x.vid; delete x.vidUuid; delete x.vidGiay;
+}
+luu();
 const g = (c: Canh) => (so.canh[c.so] ??= {});
 const giayTep = (f: string) => Number(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 ${JSON.stringify(f)}`, { encoding: 'utf8' }).trim());
 const tai = (url: string, f: string) => execFileSync('curl', ['-sSfL', '-o', f, url]);
@@ -104,7 +114,7 @@ for (let nhip = 0; nhip < 40 && doiClip().length; nhip++) {
   const dangChay = doiClip().filter((c) => g(c).vidUuid).length;
   for (const c of doiClip().filter((c) => !g(c).vidUuid).slice(0, Math.max(0, SONG_SONG - dangChay))) {
     const dai = Math.min(8, Math.max(4, Math.ceil((g(c).amGiay ?? c.giay) + 0.8)));
-    const prompt = `Photorealistic live-action vertical short-drama clip; the first frame is exact — keep every face, hair, outfit and the set unchanged. ${c.dong} Natural, motivated movement; background stays fixed. The narration is an off-screen voice-over: nobody in frame talks or moves their lips. No on-screen text.`;
+    const prompt = `Photorealistic live-action vertical short-drama clip; the first frame is exact — keep every face, hair, outfit and the set unchanged; everyone keeps exactly the same clothes for the whole clip. Action: ${c.dong} Only this action happens — no kissing, no hugging, no hands over faces, no gasping and no extra emotional reactions beyond it. Natural, restrained screen acting; background stays fixed. The narration is an off-screen voice-over: nobody in frame talks or moves their lips. No on-screen text.`;
     const r = brEval<{ success?: boolean; uuid?: string; msg?: string; message?: string }>(`fetch("/ai/api/image2video",{method:"POST",headers:${HDR},body:${JSON.stringify(new URLSearchParams({ type: 'photorealistic', imagePrompt: '', prompt, uuid: g(c).anhUuid!, imageUuid: g(c).anhUuid!, mediaId: '0', saveImage: '1', audioMediaId: '0', isShared: '0', aspect: '9:16', enhanceHumanFace: '0', improveHumanFace: '0', isTalkingVideoFromText: '0', isNarrationVideo: '0', enhanceVideoPrompt: '0', videoOnly: '1', videoLength: String(dai), mode: 'advanced', speed: '', generatorName: 'create_from_prompt', faceImageMediaId: '0', faceSwap: '0' }).toString())}}).then(r=>r.json()).catch(e=>({success:false,msg:String(e)}))`);
     if (!r.uuid) { console.log(`✗ clip #${c.so}: ${r.msg ?? r.message ?? JSON.stringify(r)}`); break; }
     g(c).vidUuid = r.uuid; console.log(`→ gửi clip #${c.so} (${dai}s)`);

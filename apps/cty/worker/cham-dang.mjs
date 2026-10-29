@@ -33,6 +33,8 @@ export async function kiemGoc(ds) {
 }
 
 /** Máy đo một bài đăng. v = { nen_url, xuat_luc, video_url, dang: { title, description, link } }, ten = tên kênh / thương hiệu (câu móc không được mở bằng tên kênh). */
+/** Máy viết cho người Việt (chữ đăng tiếng Việt là đúng). */
+const MAY_TIENG_VIET = new Set(['giochap-van-khan']);
 export function doBaiDang(v, ten = '') {
   const chan = [], canh = [], d = v.dang ?? {}, title = String(d.title ?? ''), mo = String(d.description ?? ''), chu = `${title}\n${mo}`, thuong = chu.toLowerCase();
   // 1 · ảnh thật — poll (X) không có media; bài viết (Quora / Substack…) cũng phải có ảnh thật (Phòng Nội dung chặn câu trả lời Quora không ảnh, 28/10/2026)
@@ -62,6 +64,9 @@ export function doBaiDang(v, ten = '') {
   if (d.loai === 'bai') { if (!d.html && !mo) chan.push('bài viết không có nội dung'); if (v.kiem !== 'DUYET') chan.push(`Phòng Nội dung (kiem-bai) chưa DUYỆT bản này: ${v.kiem ?? 'chưa nộp'}`); }
   // 5 · giọng văn
   const gach = (chu.match(/[—–]/g) || []).length; if (gach) chan.push(`${gach} gạch ngang dài`);
+  // ngôn ngữ đúng thị trường (29/10/2026: đề Sidecue dung-sai-40165 viết tiếng Việt vẫn DUYỆT): máy thị trường US/global không được có chữ tiếng Việt.
+  // Cùng regex với may-de.ts › CHU_VIET (máy sinh đề chặn trước khi nạp; phòng này chặn mọi nguồn khác).
+  if (!MAY_TIENG_VIET.has(v.ma ?? '') && /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu)) chan.push('chữ đăng có tiếng Việt — kênh tiếng Anh');
   // 'vital signs' là thuật ngữ y khoa (đề NREMT / EMT — 29/10/2026 chặn oan), không phải từ máy 'vital'
   const tm = TU_MAY.filter((w) => thuong.replace(/vital signs?/g, '').includes(w)); if (tm.length) chan.push(`từ máy: ${tm.join(', ')}`);
   const tag = (chu.match(/(^|\s)#\w+/g) || []).length; if (tag > 3) canh.push(`${tag} hashtag (tối đa 3)`);

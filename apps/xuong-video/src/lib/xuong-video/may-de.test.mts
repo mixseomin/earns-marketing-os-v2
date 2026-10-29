@@ -33,4 +33,7 @@ assert.ok(vanHeThong(sp, 'ai-con-nho').includes('no em dashes') && vanNguoiDung(
 // câu nói: tiếng Việt / Anh bị chặn (khán giả nói tiếng Anh, tên góc tiếng Việt chỉ là nhãn nội bộ)
 const cn = { mau: 'cau-noi' as const, dang_bai: 'cau-noi-theo-nuoc', de: { tinh_huong: 'At hotel check-in', ngon_ngu: 'Japanese', truy: 'tokyo hotel desk', cau: [{ ban_ngu: 'チェックイン', doc: 'chekku-in', nghia: 'check in' }, { ban_ngu: '予約', doc: 'yoyaku', nghia: 'reservation' }, { ban_ngu: 'ありがとう', doc: 'arigatou', nghia: 'thanks' }] }, title: 'Say these 3 lines at a Tokyo hotel desk?', description: 'Three short lines for check-in in Japan, with how to say them. https://esimfares.com/', nhan: 'esimfares.com' };
 assert.deepStrictEqual(kiemDe(cn), []); assert.ok(kiemDe({ ...cn, de: { ...cn.de, ngon_ngu: 'Vietnamese', cau: [{ ban_ngu: 'Xin chào', doc: 'sin chao', nghia: 'hello' }, { ban_ngu: 'Cảm ơn', doc: 'cam on', nghia: 'thanks' }, { ban_ngu: 'Đặt phòng', doc: 'dat phong', nghia: 'booking' }] } }).some((l) => /tiếng điểm đến/.test(l)));
+// chữ đăng tiếng Việt bị chặn (29/10/2026 Sidecue dung-sai-40165 ra tiếng Việt vẫn DUYỆT); góc tiếng Việt → prompt dặn dịch sang tiếng Anh
+assert.ok(kiemDe({ ...tot, description: tot.description + ' Hãy kiểm tra giá sau thời gian thử.' }).some((l) => /tiếng Việt/.test(l)), 'chữ tiếng Việt bị chặn');
+assert.ok(vanNguoiDung({ ...goc, ten: 'Ngại trả phí đăng ký định kỳ' }, 'dung-sai', []).includes('write EVERYTHING in English'), 'góc tiếng Việt: dặn viết tiếng Anh');
 console.log('may-de: phần thuần đạt');

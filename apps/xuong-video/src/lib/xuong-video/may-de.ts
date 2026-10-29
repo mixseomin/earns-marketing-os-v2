@@ -102,6 +102,8 @@ export const ChuDangSchema = z.object({
   description: z.string().describe('Post text, 150-400 characters, English, plain human voice: concrete, one useful thing, no hype, no hashtags, no em dashes; end with a natural invitation to the destination page (the link is appended by the machine)'),
 });
 
+/** Chữ có dấu tiếng Việt (ă â đ ê ô ơ ư + các thanh) — chữ đăng tiếng Anh không bao giờ có. */
+export const CHU_VIET = /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i;
 /** Kiểm đề + chữ đăng theo đúng luật Phòng Nội dung (cham-dang.mjs) trước khi nạp — sai thì trả lỗi để sinh lại. Thuần. */
 export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string, unknown>; title: string; description: string; nhan: string }): string[] {
   const loi: string[] = [], chu = `${x.title}\n${x.description}`, thuong = chu.toLowerCase();
@@ -109,6 +111,9 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
   if (!/[?!]|\d/.test(x.title)) loi.push('câu móc không có câu hỏi / con số');
   if (x.nhan && x.title.toLowerCase().startsWith(x.nhan.toLowerCase())) loi.push('câu móc mở bằng tên thương hiệu');
   if (/[—–]/.test(chu)) loi.push('gạch ngang dài');
+  // chữ đăng + chữ trên video phải tiếng Anh (thị trường US): góc spy là ghi chú tiếng Việt, mô hình rẻ hay viết theo — 29/10/2026 đề Sidecue dung-sai-40165 ra tiếng Việt
+  // mà vẫn DUYỆT. Trừ mẫu câu nói (bản ngữ có thể là tiếng Việt).
+  if (x.mau !== 'cau-noi' && CHU_VIET.test(`${chu}\n${JSON.stringify(x.de)}`)) loi.push('có chữ tiếng Việt — viết toàn bộ bằng tiếng Anh (góc chỉ là ghi chú tiếng Việt, hãy dịch ý)');
   const tm = TU_MAY.filter((w) => thuong.includes(w)); if (tm.length) loi.push(`từ máy: ${tm.join(', ')}`);
   if (x.description.length < 80) loi.push('chữ đăng quá mỏng');
   if ((chu.match(/(^|\s)#\w+/g) || []).length > 3) loi.push('quá 3 hashtag');
@@ -141,6 +146,7 @@ export function vanHeThong(sp: SanPhamDe, dang_bai: string): string {
 }
 export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[]): string {
   return [`ANGLE (${LOAI_VI[goc.loai] ?? goc.loai}): "${goc.ten}"${goc.mo_ta ? ` — ${goc.mo_ta}` : ''}.`,
+    CHU_VIET.test(`${goc.ten} ${goc.mo_ta ?? ''}`) ? 'The angle above is an internal note in Vietnamese: translate its meaning and write EVERYTHING in English.' : '',
     `Format "${dang_bai}": ${MO_TA_DANG[dang_bai] ?? ''}`,
     daDung.length ? `Hooks already used (write something different): ${daDung.slice(0, 12).map((t) => `"${t}"`).join('; ')}` : '',
     'Return the JSON now.'].filter(Boolean).join('\n');

@@ -640,6 +640,17 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       gui++;
     }
   }
+  // CAMP THAY THẾ (anh 29/10/2026: "phim chỉ còn 1 camp duy nhất và có xu hướng bị đóng lại thì phải ưu tiên lên camp mới thay thế luôn" + "camp mới phải rút
+  // kinh nghiệm" + "các định dạng CC, CT… đều $0 thì lên theo bộ"): thay-the.py đọc etp.xet_luat vừa ghi ở nhịp này → mỗi phim một dòng etp.thay_the, chẩn đoán
+  // camp cũ, lên mỗi dạng một camp $1 (trần 15 camp / nhịp), phim chưa có CC sạch → xếp cắt góc mới. Đặt cuối nhịp (mỗi camp chờ Ethopex đồng bộ ~1 phút).
+  {
+    let r; try { r = JSON.parse((await chay(path.join(REPO, 'apps/xuong-video/scripts/ethopex/thay-the.py'), ['--that', '--toi-da', '15'], 1500)).trim().split('\n').pop()); } catch (e) { r = { moi: 0, bao: [`lỗi máy thay camp: ${e.message}`] }; }
+    const len = (r.bao || []).filter((x) => / lên /.test(x) || /^lỗi/.test(x));
+    if (r.moi || len.length) {
+      await guiNhanh({ message_thread_id: topic, disable_notification: true, text: `🔁 <b>CAMP THAY THẾ</b> — phim chỉ còn 1 camp sắp tắt: ${r.moi} phim mới vào hàng; lên theo bộ định dạng, rút kinh nghiệm camp cũ\n${(len.length ? len : r.bao || []).slice(0, 25).map((x) => '• ' + esc(x)).join('\n')}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
+      gui++;
+    }
+  }
   return { gui, nut };
 }
 

@@ -113,6 +113,8 @@ def goc_moi(ma, bao, nb):
     try: day = {str(x["content_id"]) for x in json.load(open(os.path.join(C, "ra", ma + "g", "len.json"))) if x.get("ok")}
     except Exception: day = set()
     for cid, m in viec.items():
+        if m.get("thay"):   # góc mới cho CAMP THAY THẾ (thay-the.py, anh 29/10/2026): không nhân bản camp cũ đang lỗ — nhịp ethopex kế tiếp thay-the.py lên camp bằng góc này
+            bao.append(f"góc mới phim {cid}: góc cho camp thay #{m.get('goc')} — thay-the.py lên ở nhịp ethopex kế"); continue
         if nb and m.get("goc") and cid not in day: bao.append(f"góc mới phim {cid}: góc chờ soát đoạn — soat_doan.py len sẽ nhân bản #{m['goc']} sau khi soát"); continue
         if nb and m.get("goc"):
             r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(m["goc"])} --that --lich today --luat "nhân bản camp thắng bằng GÓC MỚI (đoạn cũ đủ 3 camp)" --ai "máy (anh duyệt 23/10/2026: một đoạn tối đa 3 camp, nhân bản bằng góc mới)"'""", timeout=600)

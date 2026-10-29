@@ -25,8 +25,6 @@ const docJ = (f, mac) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); 
 
 /** Nhóm báo: tiêu đề · nút cho mỗi mục (null = chỉ báo). dich = ngân sách đích lấy từ chữ "→ $X". */
 const NHOM = [
-  ['tat', '⏹ <b>CẦN TẮT</b> — tiêu > $10 từ trước tới nay, ROI < −50%', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
-  ['thang_tat', '⏹ <b>BẢN THANG LỖ</b> — bộ 2: bản nhân ở bậc cao đã chi ≥ 1 ngày ngân sách mà ROI ≤ −30%', (m) => [{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tat:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]],
   ['thang_nb', '🪜 <b>THANG NHÂN BẢN</b> — bộ 2: camp chạm luật tăng (như bộ 1) → thay vì tăng ngân sách, máy mở bản mới ở bậc kế, creative khác cùng phim; camp gốc giữ ngân sách', null],
   ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — Edit camp, thay creative sạch đã duyệt cùng phim', null],
   ['dau_phien', '⇑ <b>LÃI ĐẦU PHIÊN</b> — ROI hôm nay > 50%, tăng luôn $2/$3', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
@@ -487,6 +485,11 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       cot: 'Lãi', luat: 'D24 (khoảng dừng > 24 giờ)', ai: 'anh (chat 29/10/2026: camp bị 1 khoảng dừng > 24h cũng dừng ngay lập tức) — máy chạy', ngay: true },
     { khoa: 'tat_l3', tep: 'ethopex-tat-l3.json', ten: 'LUẬT L3', mo_ta: 'luật L3: lỗ 3 ngày đã khép liền, mỗi ngày chi ≥ $1 — thay cho giảm bậc (anh 29/10)',
       cot: 'Lãi 3n', luat: 'L3 (lỗ 3 ngày đã khép liền, chi ≥ $1/ngày)', ai: 'anh (chat 29/10/2026: bỏ giảm bậc, ROI âm liên tục thì tắt — làm 1+2) — máy chạy' },
+    // OFF + BẢN THANG LỖ trước chờ anh bấm nút Tắt trên Telegram — anh 29/10/2026: "rule tạo ra để nó tự vận hành", nên đi cùng đường báo trước một nhịp rồi máy tắt
+    { khoa: 'tat', tep: 'ethopex-tat-off.json', ten: 'LUẬT OFF', mo_ta: 'luật OFF: camp ≥ 7 ngày, tiêu &gt; $10 từ trước tới nay, ROI &lt; −50%',
+      cot: 'Lãi', luat: 'OFF (≥ 7 ngày, tiêu > $10, ROI < −50%)', ai: 'anh (chat 29/10/2026: rule phải tự vận hành, không chờ anh tắt) — máy chạy' },
+    { khoa: 'thang_tat', tep: 'ethopex-tat-thang.json', ten: 'LUẬT BẢN THANG LỖ', mo_ta: 'bản thang bộ 2 đã chi ≥ 1 ngày ngân sách mà ROI ≤ −30%',
+      cot: 'Lãi', luat: 'bản thang lỗ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%)', ai: 'anh (chat 29/10/2026: rule phải tự vận hành, không chờ anh tắt) — máy chạy' },
   ];
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);

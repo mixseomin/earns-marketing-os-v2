@@ -96,7 +96,7 @@ export function chamLuat(c: CampEtp, ctx: { soCampPhim: number; phimThang: boole
   }
   // all-time ≈ từ đầu tháng (dự án bắt đầu 19/10/2026) — đổi sang report all-time khi qua tháng
   { const r = roi(c.thang), tuoi = Math.floor((Date.now() - new Date(c.tao).getTime()) / 86_400_000);
-    if (c.thang.chi > 10 && r != null && r < -50) out.push({ ma: 'OFF', trang_thai: tuoi >= TUOI_TAT ? 'cham' : 'gan', cau: tuoi >= TUOI_TAT ? `${tuoi} ngày · tiêu $${c.thang.chi.toFixed(2)}, ROI ${pct(r)} → tắt (anh duyệt)` : `Lỗ sâu nhưng camp mới ${tuoi} ngày — chưa tới kỳ review tắt (≥ ${TUOI_TAT} ngày), giảm bậc`,
+    if (c.thang.chi > 10 && r != null && r < -50) out.push({ ma: 'OFF', trang_thai: tuoi >= TUOI_TAT ? 'cham' : 'gan', cau: tuoi >= TUOI_TAT ? `${tuoi} ngày · tiêu $${c.thang.chi.toFixed(2)}, ROI ${pct(r)} → máy tắt (báo trước một nhịp)` : `Lỗ sâu nhưng camp mới ${tuoi} ngày — chưa tới kỳ review tắt (≥ ${TUOI_TAT} ngày), giảm bậc`,
       dk: [{ ten: 'Tuổi camp', hien: `${tuoi} ngày`, nguong: `≥ ${TUOI_TAT} ngày`, dat: tuoi >= TUOI_TAT }, { ten: 'Đã tiêu', hien: `$${c.thang.chi.toFixed(2)}`, nguong: '> $10', dat: true }, { ten: 'ROI', hien: pct(r), nguong: '< −50%', dat: true }] }); }
   if (c.thang.chi >= 30 && c.thang.thu > c.thang.chi) out.push({ ma: 'M30', trang_thai: 'cham', cau: `Đã tiêu $${c.thang.chi.toFixed(2)} mà vẫn lãi — hỏi Support scale bài viết cũ + bid ROAS`, dk: [] });
   if (ke == null) out.push({ ma: 'TR20', trang_thai: 'cham', cau: `Đã ở trần $${TRAN_CAMP}`, dk: [{ ten: 'Ngân sách', hien: `$${c.ngan_sach}`, nguong: `$${TRAN_CAMP}`, dat: true }] });

@@ -80,16 +80,16 @@ def the_bang(t, ra, y=150, mau_nen=(229, 57, 53, 235)):
 def the_hoi(hoi, chon, ra):
     """thẻ thăm dò: câu hỏi + hai lựa chọn"""
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); d.rectangle([0, 0, W, H], fill=(0, 0, 0, 90))
-    c = 72; dong = ngat(hoi, FA, c, W - 220); cao = 70 + 86 * len(dong) + 170 * len(chon) + 30; y0 = H - 330 - cao   # nửa dưới: không che mặt nhân vật
+    c = 72; dong = ngat(hoi, FA, c, W - 220); cao = 70 + 86 * len(dong) + 170 * len(chon) + 30 - (26 if not chon else 0); y0 = H - 330 - cao   # nửa dưới: không che mặt nhân vật
     d.rounded_rectangle([70, y0, W - 70, y0 + cao], 40, fill=(255, 255, 255, 245)); y = y0 + 44
     for x in dong: ve_chu(im, ((W - rong_chu(x, _f(FA, c), c)) / 2, y), x, FA, c, (20, 20, 20)); y += 86
     y += 26
-    for i, x in enumerate(chon):
-        d.rounded_rectangle([110, y, W - 110, y + 140], 70, fill=(240, 240, 245, 255), outline=((229, 57, 53) if i == 0 else (59, 130, 246)), width=7)
-        ve_chu(im, (160, y + 34), x, FA, 64, (20, 20, 20)); y += 170
+    # lựa chọn là CHỮ THƯỜNG căn giữa, KHÔNG viền / nền nút (chấm #62099 29/10/2026: AFS dụ nhấp 5 "sticker bình chọn giả dạng nút bấm")
+    for x in chon: ve_chu(im, ((W - rong_chu(x, _f(FR, 60), 60)) / 2, y + 30), x, FR, 60, (60, 60, 70)); y += 170
     im.save(ra); return ra
-def the_binh_luan(ten, chu, thich, ra, y):
-    """một bong bóng bình luận (ảnh đại diện chữ cái đầu + tên + chữ + 'Like · Reply') — trả y của bong bóng kế"""
+def the_binh_luan(ten, chu, ra, y):
+    """một bong bóng bình luận (ảnh đại diện chữ cái đầu + tên + chữ) — trả y của bong bóng kế. KHÔNG số lượt thích / 'Like · Reply'
+    (chấm #62100 29/10/2026: AFS dụ nhấp 6 "bình luận giả lập kèm lượt thích ảo")"""
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im); c = 44; dong = ngat(chu, FR, c, 700)
     cao = 30 + 54 + 56 * len(dong) + 20; x0 = 60
     av = [(91, 33, 182), (190, 24, 93), (3, 105, 161), (21, 128, 61)][sum(map(ord, ten)) % 4]
@@ -98,11 +98,7 @@ def the_binh_luan(ten, chu, thich, ra, y):
     d.rounded_rectangle([bx, y, bx + bw, y + cao], 36, fill=(242, 242, 245, 250))
     d.text((bx + 32, y + 22), ten, font=_f(FA, 40), fill=(20, 20, 20)); yy = y + 76
     for x in dong: ve_chu(im, (bx + 32, yy), x, FR, c, (25, 25, 25)); yy += 56
-    d.text((bx + 34, y + cao + 12), "Like  ·  Reply", font=_f(FA, 34), fill=(255, 255, 255), stroke_width=4, stroke_fill="black")
-    if thich:
-        tw = rong_chu(f"👍 {thich}", _f(FR, 34), 34); px = bx + bw - 60
-        d.rounded_rectangle([px, y + cao - 26, px + tw + 30, y + cao + 26], 26, fill=(255, 255, 255, 255)); ve_chu(im, (px + 14, y + cao - 21), f"👍 {thich}", FR, 34, (40, 40, 40))
-    im.save(ra); return y + cao + 76
+    im.save(ra); return y + cao + 36
 def the_so(so, nhan, ra):
     """huy hiệu #N + nhãn khoảnh khắc (góc trên trái)"""
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im)
@@ -130,7 +126,7 @@ def man_chat(ten, tin, n, ra):
 
 # ── năm kiểu: mỗi hàm dựng THÂN (chưa thẻ cuối) → tệp mp4 ──
 def chon_phe(src, k, tm):
-    hook, hoi, *chon = sach(k["hook"], k["hoi"], *k["chon"]); g = k["giu"]
+    hook, hoi, *chon = sach(k["hook"], k["hoi"], *k.get("chon", [])); g = k["giu"]
     cac = [doan(src, a, b, f"{tm}-cp{i}.mp4") for i, (a, b) in enumerate(k["doan"])]
     a, b = k["dung_hinh"]
     sh("-ss", f"{a}", "-t", f"{b - a}", "-i", src, "-vf", KHUNG + f",tpad=stop_mode=clone:stop_duration={g}", "-af", f"afade=out:st={b - a - 0.4}:d=0.4,apad=pad_dur={g}",
@@ -139,8 +135,8 @@ def chon_phe(src, k, tm):
     return phu(nen, [(the_bang(hook, f"{tm}-cp-hook.png"), 0, 4.5), (the_hoi(hoi, chon, f"{tm}-cp-hoi.png"), round(L - g, 2), None)], f"{tm}-than.mp4")
 def binh_luan(src, k, tm):
     nen = noi([doan(src, a, b, f"{tm}-bl{i}.mp4") for i, (a, b) in enumerate(k["doan"])], f"{tm}-bln.mp4"); lop, y = [], 150
-    for i, (ten, chu, thich, t) in enumerate(k["binh_luan"]):
-        p = f"{tm}-bl-{i}.png"; y = the_binh_luan(ten, sach(chu)[0], thich, p, y); lop.append((p, t, None))
+    for i, (ten, chu, t) in enumerate(k["binh_luan"]):
+        p = f"{tm}-bl-{i}.png"; y = the_binh_luan(ten, sach(chu)[0], p, y); lop.append((p, t, None))
     return phu(nen, lop, f"{tm}-than.mp4")
 def top3(src, k, tm):
     cac, lop, t = [], [], 0.0
@@ -188,4 +184,5 @@ if __name__ == "__main__":
         out = os.path.join(ra, f"{kieu}.mp4"); CC.dung(than, 0.0, L, os.path.expanduser(kh["poster"]), None, cta["nut"], out, cta["giong"], cta["hoi"])
         for f in os.listdir(ra):
             if f.startswith(f"_{kieu}"): os.remove(os.path.join(ra, f))
+        kiem_thoai(out, [(0, round(gx.dur(out), 1))])   # chữ lớp phủ của mình cũng qua cổng (bản tin nhắn đầu: ❤️ bị đọc thành "→" — mũi tên cấm CTA)
         print(json.dumps({"kieu": kieu, "nhan": NHAN[kieu], "file": out, "giay": round(gx.dur(out), 1)}, ensure_ascii=False), flush=True)

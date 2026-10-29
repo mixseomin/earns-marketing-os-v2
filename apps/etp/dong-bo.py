@@ -46,7 +46,10 @@ def ghi(bang, rows, khoa_, cot):
     q(f"insert into etp.{bang} ({cs}) select {cs} from jsonb_to_recordset($J${j}$J$::jsonb) as x({dk}) on conflict ({', '.join(khoa_)}) do update set {cap}")
     return len(rows)
 
-DANG = [("tap nguyen", "tập nguyên"), ("ke chuyen", "kể chuyện"), ("canh that", "cảnh thật"), ("canh cuoi", "cảnh cuối"), ("phim dai", "phim dài"), ("lam moi", "làm mới")]
+DANG = [("tap nguyen", "tập nguyên"), ("ke chuyen", "kể chuyện"), ("canh that", "cảnh thật"), ("canh cuoi", "cảnh cuối"), ("phim dai", "phim dài"), ("lam moi", "làm mới"),
+        # năm kiểu dựng 0đ (kieu-moi.py, 29/10/2026) — tên camp mang nhãn có dấu (len-creative) hoặc không dấu (len-sau-cham cho)
+        ("chọn phe", "chọn phe"), ("chon phe", "chọn phe"), ("bình luận", "bình luận"), ("binh luan", "bình luận"), ("ba khoảnh khắc", "ba khoảnh khắc"), ("ba khoanh khac", "ba khoảnh khắc"),
+        ("trước sau", "trước sau"), ("truoc sau", "trước sau"), ("tin nhắn", "tin nhắn"), ("tin nhan", "tin nhắn")]
 def main():
     day_du = "--day-du" in sys.argv
     lan = q("insert into etp.dong_bo default values returning lan"); loi = []; kq = {"so_camp": 0, "so_chi_tiet": 0, "so_dong_ngay": 0}
@@ -244,6 +247,9 @@ def main():
         for r in rows:
             t = (dang_camp.get(r["creative_id"]) or "").lower(); r["dang"] = next((v for k, v in DANG if k in t), r["dang"])
             r["doan"] = f"{r['content_id']}:{round(r['tu'])}-{round(r['den'])}" if r["tu"] is not None and r["den"] is not None else f"cr:{r['creative_id']}"
+        # DẠNG THẬT TỪ THƯ VIỆN (29/10/2026: sổ studio chỉ có qc_canh_that / qc_ke_chuyen → bản "chọn phe", "trước sau"… bị ghi cảnh thật): bản đi qua etp.thu_vien thì thư viện là nguồn đúng
+        tv_dang = dict(l.split("|", 1) for l in q("select creative_id, dang from etp.thu_vien where creative_id is not null").splitlines() if "|" in l)
+        for r in rows: r["dang"] = tv_dang.get(str(r["creative_id"]), r["dang"])
         for cu_, moi_ in thay.items():
             if int(cu_) in theo and int(moi_) in theo: theo[int(cu_)]["doan"] = theo[int(moi_)]["doan"]
         ghi("creative", rows, ["creative_id"], {"creative_id": "int", "content_id": "int", "dang": "text", "tu": "numeric", "den": "numeric", "doan": "text", "lang": "text", "lo": "text",

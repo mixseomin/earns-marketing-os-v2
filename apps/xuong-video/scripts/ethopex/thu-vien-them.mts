@@ -34,7 +34,8 @@ const lang = p.kinh_thanh.ngon_ngu === 'es' ? 'es' : 'en';
 const chuQc = { headline: ten, mo_ta: lang === 'es' ? 'Episodios completos gratis' : 'Watch Full Episodes!', link: p.kinh_thanh.qc?.link ?? null };
 const tt = gia('trang-thai') ?? 'san_sang';
 const co = (await db.execute(tapId ? sql`SELECT id FROM etp.thu_vien WHERE tap_id = ${tapId} LIMIT 1`
-  : sql`SELECT id FROM etp.thu_vien WHERE tap_id IS NULL AND content_id = ${content} AND dang = ${dang} AND nguon = ${nguon} LIMIT 1`)) as unknown as { id: number }[];
+  // bản đã thành creative (creative_id) là một phiên bản cố định có điểm chấm riêng → dựng lại = dòng MỚI, không đè (29/10/2026: chọn phe #62099 chấm cấm, bản sửa phải lên creative mới)
+  : sql`SELECT id FROM etp.thu_vien WHERE tap_id IS NULL AND content_id = ${content} AND dang = ${dang} AND nguon = ${nguon} AND creative_id IS NULL LIMIT 1`)) as unknown as { id: number }[];
 if (co.length) await db.execute(sql`UPDATE etp.thu_vien SET video = ${video}, anh = ${anh}, giay = ${giay}, ten = ${ten}, lang = ${lang}, chu_qc = ${JSON.stringify(chuQc)}::jsonb,
   trang_thai = ${tt}, chi_vnd = coalesce(${gia('chi-vnd') ? Number(gia('chi-vnd')) : null}, chi_vnd), ghi = coalesce(${gia('ghi') ?? null}, ghi), cap_nhat = now() WHERE id = ${co[0]!.id}`);
 else await db.execute(sql`INSERT INTO etp.thu_vien (content_id, dang, lang, ten, video, anh, giay, nguon, tap_id, chu_qc, trang_thai, chi_vnd, ghi)

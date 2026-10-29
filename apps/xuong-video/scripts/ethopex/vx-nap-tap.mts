@@ -1,7 +1,7 @@
 // NẠP PHIM KỂ CHUYỆN LÀM BẰNG VideoExpress vào studio + XUẤT MP4 (0đ — R2 + ffmpeg). Nửa sau của scripts/ethopex/vx-ke-chuyen.mts (anh 29/10/2026).
 // Đọc <thư mục>/so.json + am-N.mp3 · anh-N.jpg · vid-N.mp4 (chép từ iMac lên box3), nạp R2, ghi xv_canh (chụp hoàn tác trước khi ghi):
 // keyframe_url · video_url · thoai_url · phat_s (= giọng + 0,35s, không quá clip) · nguon_video {model:'videoexpress'}; rồi chayXuat của studio (đúng khuôn chữ
-// màn / thẻ cuối QC kể chuyện) + ghiBanXuat. Nhạc nền: tập chưa có nhạc thì xuất không nhạc (choThieuNhac) — sinh nhạc là bước tốn tiền riêng.
+// màn / thẻ cuối QC kể chuyện) + ghiBanXuat. Nhạc nền: tập chưa có nhạc thì dùng lại nhạc kể chuyện trong kho ($0).
 //   (iMac) rsync -a ~/.cache/ethopex/vx-kc/<tap>/ root@167.233.241.16:/var/tmp/vx-kc/<tap>/
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/ethopex/vx-nap-tap.mts <tap_id> /var/tmp/vx-kc/<tap>
@@ -41,6 +41,19 @@ for (const c of canh) {
   await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${kf}, video_url = ${vid}, thoai_url = ${am}, thoai = ${JSON.stringify(thoai)}::jsonb, phat_s = ${phat},
     nguon_video = ${JSON.stringify({ model: 'videoexpress', giay: gv, uuid: so.canh[n]?.vidUuid, anh_uuid: so.canh[n]?.anhUuid, khung_dau: kf })}::jsonb, updated_at = now() WHERE id = ${c.id}`);
   console.log(`✓ #${n}: clip ${gv.toFixed(1)}s · giọng ${ga.toFixed(1)}s · phát ${phat}s`);
+}
+// NHẠC NỀN $0 (anh 29/10/2026 "miễn phí tối đa"): tập chưa có nhạc → DÙNG LẠI bản nhạc QC kể chuyện đã sinh trong kho (xv_tai_san loai 'nhac', đã trả tiền từ trước),
+// ưu tiên bản "tense … triumphant" (cú lật của truyện trả thù), bản ít tập dùng nhất. Không sinh nhạc mới (bước tốn tiền); AI Sound Maker của VideoExpress khoá sau Review Bonus.
+// Không lót tiếng clip: am-thanh.ts › phatTiengClip tắt tiếng clip ở cảnh có lời dẫn (clip AI tự bịa giọng / nhạc, nền nhảy 30 dB).
+const coNhac = ((await db.execute(sql`SELECT nhac_url FROM xv_tap WHERE id = ${tapId}`)) as unknown as { nhac_url: string | null }[])[0]?.nhac_url;
+if (!coNhac) {
+  const nhac = ((await db.execute(sql`SELECT k.id, k.url, k.ten FROM xv_tai_san k WHERE k.loai = 'nhac' AND k.mo_ta ILIKE '%Genre: qc ke_chuyen%'
+    ORDER BY (k.mo_ta ILIKE '%tense%triumphant%') DESC, (SELECT count(*) FROM xv_tap t WHERE t.nhac_url = k.url), k.id DESC LIMIT 1`)) as unknown as { id: number; url: string; ten: string }[])[0];
+  if (nhac) {
+    await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['nhac_url', 'nhac_mo_ta'], moTa: '🎵 dùng lại nhạc kho cho phim VideoExpress', nguoi: '', nhom });
+    await db.execute(sql`UPDATE xv_tap SET nhac_url = ${nhac.url}, nhac_mo_ta = ${`dùng lại kho #${nhac.id}: ${nhac.ten}`} WHERE id = ${tapId}`);
+    console.log(`✓ nhạc nền: dùng lại kho #${nhac.id} (${nhac.ten.slice(0, 60)})`);
+  } else console.log('⚠ kho chưa có nhạc QC kể chuyện — xuất không nhạc');
 }
 const b = (await boiCanhTap(db, tapId))!; const kt = docKinhThanh(b.kt);
 const job = await taoJob(db, { phim_id: b.tap.phim_id, nhan: `Xuất bản · tập ${b.tap.so} (VideoExpress)`, loai: 'xuat', provider: 'ffmpeg', model: 'ffmpeg', request: { tap_id: tapId, nhanh: 'A' } });

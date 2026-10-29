@@ -1,7 +1,7 @@
 'use client';
 // Một shot trên storyboard: thẻ cảnh, keyframe/clip, form sửa 3 tab.
 import { KhungDauKet } from './khung-dau-ket';
-import { useContext, useEffect, useState, type CSSProperties } from 'react';
+import { Fragment, useContext, useEffect, useState, type CSSProperties } from 'react';
 import { moNgan, linkTai } from './ngan-chung';
 import { dongThoai, tenNoi, LOI_DAN } from '@/lib/xuong-video/am-thanh';
 import { THE_LOAI, NHOM_KY_THUAT, dsTheoNhom, hopTheLoai, type TheLoai } from '@/lib/xuong-video/dien-anh';
@@ -9,7 +9,6 @@ import { KyThuatTheoNhom } from './thu-vien';
 import { BoSetXem } from './bo-set-xem';
 import { suaCanh, xoaCanh, sinhKeyframe, chonKeyframe, duyetCanh, sinhVideoCanh, sinhVideoThu, lamLaiTuKeyframe, sinhGiong, sinhAmThanh, xoaKeyframe, goiYAICanh, nangCapCanh, chonPhienBan, khopMiengCanh, luuShotKho, bocTachCanh, layBocTachCanh } from '@/lib/actions';
 import { O_DAN_DUNG, moTaVi, chuManHien, tenPhanDoan, LOAI_NHAN_VAT, TRANG_THAI_CANH, doiBienThe, motBienTheMoiDoiTuong, thanhPhanCanh, NANG_CAP, KHOP_MIENG, MO_HINH_ANH, MO_HINH_VIDEO, tien, lamTronClip, gioVN, tenCamXuc, type NhanVat, type Canh, type KinhThanh, type LoaiPhim, type DongDoiChieu } from '@/lib/xuong-video/kieu';
-import { DataTable, type DataColumn } from '@mos2/bang/data-table';
 import { Chon } from './chon';
 import { BieuCamShot } from './bieu-cam-ui';
 import { chanVideo } from '@/lib/xuong-video/quy-trinh';
@@ -63,19 +62,28 @@ const tocHop = (that: string, spec: string) => { const a = tuToc(that), b = tuTo
 // ⚖️ Bảng đối chiếu Dự kiến ↔ Bóc-từ-ảnh (3 cột + mức khớp). khớp=xanh · gần=hổ phách · lệch/thiếu/thừa=đỏ.
 const MUC_MAU: Record<string, string> = { 'khớp': 'var(--green)', 'gần': 'var(--amber)', 'lệch': 'var(--red)', 'thiếu': 'var(--red)', 'thừa': 'var(--red)' };
 const MUC_NHAN: Record<string, string> = { 'khớp': '✓ khớp', 'gần': '≈ gần', 'thiếu': '✗ thiếu', 'thừa': '＋ thừa', 'lệch': '✗ lệch' };
-// DataTable nhà (@mos2/bang) → kéo mép cột rộng/hẹp tự do, nhớ bề ngang theo persistKey (anh 30/10/2026). Ô một dòng; kéo rộng hoặc rê chuột (cellTitle) để đọc đủ.
-function DoiChieuTable({ rows, luc }: { rows: DongDoiChieu[]; luc: 'dau' | 'cuoi' }) {
+// Bảng lưới tự XUỐNG DÒNG, vừa khít bề ngang ngăn (fr) → KHÔNG scroll ngang (anh 30/10/2026). Thành phần tô màu theo khớp; cột Khớp nằm GIỮA Dự kiến và Bóc ảnh.
+function DoiChieuTable({ rows }: { rows: DongDoiChieu[] }) {
   const xau = rows.filter((r) => r.muc !== 'khớp' && r.muc !== 'gần').length;
-  const cot: DataColumn<DongDoiChieu>[] = [
-    { key: 'tp', header: 'Thành phần', align: 'left', width: 150, cell: (r) => <b style={{ color: 'var(--fg-1)' }}>{r.thanh_phan}</b>, cellTitle: (r) => r.thanh_phan, sortValue: (r) => r.thanh_phan },
-    { key: 'dk', header: 'Dự kiến', align: 'left', width: 230, cell: (r) => <span style={{ color: 'var(--fg-2)' }}>{r.du_kien || '—'}</span>, cellTitle: (r) => r.du_kien || '—' },
-    { key: 'tt', header: 'Bóc từ ảnh', align: 'left', width: 230, cell: (r) => <span style={{ color: 'var(--fg-1)' }}>{r.thuc_te || '—'}{r.ghi_chu && r.muc !== 'khớp' ? <span style={{ color: MUC_MAU[r.muc] }}> ↳ {r.ghi_chu}</span> : null}</span>, cellTitle: (r) => [r.thuc_te || '—', r.ghi_chu && r.muc !== 'khớp' ? `↳ ${r.ghi_chu}` : ''].filter(Boolean).join('   ') },
-    { key: 'muc', header: 'Khớp', align: 'left', width: 78, cell: (r) => <span style={{ color: MUC_MAU[r.muc] ?? 'var(--fg-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{MUC_NHAN[r.muc] ?? r.muc}</span>, sortValue: (r) => r.muc },
-  ];
+  const oT: CSSProperties = { ...mono, fontSize: 9, color: 'var(--fg-3)', textTransform: 'uppercase', paddingBottom: 2 };
+  const o: CSSProperties = { borderTop: '1px solid var(--line)', paddingTop: 4, whiteSpace: 'normal', overflowWrap: 'anywhere', lineHeight: 1.45 };
   return (
-    <div style={{ fontSize: 10.5 }}>
-      <div style={{ ...mono, fontSize: 9.5, color: xau ? 'var(--red)' : 'var(--green)', marginBottom: 4 }}>{xau ? `⚠ ${xau} chi tiết lệch/thiếu/thừa` : '✓ mọi chi tiết khớp'} · {rows.length} mục đối chiếu · kéo mép cột để nới rộng</div>
-      <DataTable rows={rows} columns={cot} getRowKey={(_, i) => String(i)} persistKey={`xv-doi-chieu-${luc}`} minWidth={560} />
+    <div style={{ fontSize: 11 }}>
+      <div style={{ ...mono, fontSize: 9.5, color: xau ? 'var(--red)' : 'var(--green)', marginBottom: 4 }}>{xau ? `⚠ ${xau} chi tiết lệch/thiếu/thừa` : '✓ mọi chi tiết khớp'} · {rows.length} mục đối chiếu</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(84px,0.8fr) minmax(0,1.5fr) max-content minmax(0,1.5fr)', columnGap: 10, alignItems: 'start' }}>
+        <div style={oT}>Thành phần</div>
+        <div style={oT}>Dự kiến</div>
+        <div style={oT}>Khớp</div>
+        <div style={oT}>Bóc từ ảnh</div>
+        {rows.map((r, i) => (
+          <Fragment key={i}>
+            <div style={{ ...o, fontWeight: 700, color: MUC_MAU[r.muc] ?? 'var(--fg-1)' }}>{r.thanh_phan}</div>
+            <div style={{ ...o, color: 'var(--fg-2)' }}>{r.du_kien || '—'}</div>
+            <div style={o}><span style={{ color: MUC_MAU[r.muc] ?? 'var(--fg-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{MUC_NHAN[r.muc] ?? r.muc}</span></div>
+            <div style={{ ...o, color: 'var(--fg-1)' }}>{r.thuc_te || '—'}{r.ghi_chu && r.muc !== 'khớp' ? <span style={{ color: MUC_MAU[r.muc], display: 'block', fontSize: 10 }}>↳ {r.ghi_chu}</span> : null}</div>
+          </Fragment>
+        ))}
+      </div>
     </div>
   );
 }
@@ -158,7 +166,7 @@ export function DoiChieuNgan({ canhId }: { canhId: number }) {
             <div style={{ flex: 1, minWidth: 0 }}>
               {bt?.[luc]
                 ? (bt.doi_chieu?.[luc]?.length
-                    ? <DoiChieuTable rows={bt.doi_chieu[luc]!} luc={luc} />
+                    ? <DoiChieuTable rows={bt.doi_chieu[luc]!} />
                     : <><div style={{ fontSize: 11, color: 'var(--amber)', marginBottom: 6 }}>⚖️ chưa đối chiếu — bấm ⟳ Bóc tách lại. Dưới là thành phần bóc từ ảnh:</div><BangBocTach k={bt[luc]!} nhanVat={d.nhanVat ?? []} /></>)
                 : <div style={{ fontSize: 12, color: 'var(--fg-3)' }}>Khung {ten} chưa bóc tách — bấm nút ở trên để chạy.</div>}
             </div>

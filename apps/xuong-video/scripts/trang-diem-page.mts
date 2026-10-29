@@ -49,9 +49,9 @@ export function dungDaiDien(goc: string, ra: string, tam: [number, number]) {
 }
 export function dungBia(goc: string, ra: string, tam: [number, number], chu: string, phu: string, mau: string) {
   const tep = path.join(ra, 'bia.jpg'), [r, g, b] = [0, 2, 4].map((i) => parseInt(mau.slice(i, i + 2), 16));
-  // lớp màu thương hiệu: đặc 90% bên trái, tan dần theo MÉP PHẢI CỦA CHỮ (đặc tới mép − 500, hết ở mép + 200) — chữ dài vẫn nằm trên màu,
+  // lớp màu thương hiệu: đặc 75% bên trái (90% thì ảnh mất dưới màu), tan dần theo MÉP PHẢI CỦA CHỮ (đặc tới mép − 500, hết ở mép + 200) — chữ dài vẫn nằm trên màu,
   // ảnh thật lộ rõ phần còn lại (29/10/2026: cố định tan ở x 1150 làm "Healthcare Exam Prep" rơi chữ cuối ra nền sáng)
-  const mep = mepChu(chu, phu), lop = `color=c=black:s=1640x624,format=rgba,geq=r=${r}:g=${g}:b=${b}:a='230*clip(1-(X-${mep - 500})/700\\,0\\,1)'`;
+  const mep = mepChu(chu, phu), lop = `color=c=black:s=1640x624,format=rgba,geq=r=${r}:g=${g}:b=${b}:a='190*clip(1-(X-${mep - 500})/700\\,0\\,1)'`;
   const vf = [`[0:v]${catPhu(1640, 624, tam)}[nen]`, `${lop}[lop]`, '[nen][lop]overlay=0:0[x]',
     `[x]drawtext=fontfile='${FONT}/Montserrat-Black.ttf':text='${chuFf(chu)}':fontsize=84:fontcolor=white:x=300:y=(h/2)-90:shadowcolor=black@0.35:shadowx=2:shadowy=2,` +
     `drawtext=fontfile='${FONT}/AtkinsonHyperlegible-Bold.ttf':text='${chuFf(phu)}':fontsize=40:fontcolor=white:x=304:y=(h/2)+18[ra]`].join(';');

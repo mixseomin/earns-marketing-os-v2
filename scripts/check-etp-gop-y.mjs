@@ -54,6 +54,7 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'L4_CHI, L4_NGAY, L4_ROI = 5.0, 4, -20', vi: 'luật L4 (anh 29/10/2026 "L4 bật đi"): ≥ 4 ngày có chi, ROI < −20% → tắt' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'L7_CHI, L7_NGAY, L7_ROI = 5.0, 5, -30\ntat_l7 = []\n', vi: 'L7 đang dừng (thay bằng L4) — không xếp camp nào' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "{ khoa: 'tat_l4', tep: 'ethopex-tat-l4.json'", cam: "khoa: 'tat_l7'", vi: 'worker tắt theo L4, không còn đường tắt L7' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'T30N_ROI, T30N_SP, T30N_NGAY = 50, 60, 5', vi: 'T30 camp thường nới (anh 29/10/2026 "Nới đi"): 5 ngày ROI ≥ 50%, chi TB ≥ 60% ngân sách' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ROAS_LAI = 75;', vi: 'ngưỡng lên ROAS = lãi 30 ngày $75 (máy luật)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if a["thu"] - a["chi"] >= ROAS_LAI:', vi: 'đủ lên ROAS chỉ xét lãi 30 ngày' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'moc30 = [x for x in moc30 if int(x[0] or 0) not in _goc_roas]', vi: 'gốc đã có camp ★ không lên ROAS lại' },

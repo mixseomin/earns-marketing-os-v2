@@ -536,23 +536,29 @@ giam = [(cid, s + (lambda nd: f" · ${nd[0]:g} → ${nd[1]:g}" if nd[1] else " �
 ha, giam = [], []
 # LUẬT T30 (Support 23/10/2026: "$20 mà 2, 3 ngày spending > 80% và ROI vẫn cao > 80% thì tăng lên"; anh: "thêm rule này để có điều kiện tăng camp lên $30"):
 # camp đang bật ở trần $20, trong 3 ngày ĐÃ KHÉP gần nhất (D−1..D−3) có ≥ 2 ngày tiêu > 80% ngân sách, ROI cộng các ngày đó > 80% → đề xuất $20 → $30, anh duyệt nút.
-T30_SP, T30_ROI, T30_NGAY = 80, 80, 2
+T30_SP, T30_ROI, T30_NGAY = 80, 80, 2   # ngưỡng cũ — nay CHỈ còn cho ★ ROAS thắng → $30
+# NỚI T30 CHO CAMP THƯỜNG (anh 29/10/2026 "ok. Nới đi", sau khi so tk Nguyễn Sơn: 9 camp $30 tiêu 40–80% ngân sách, ROI 37–84% — luật cũ không
+# camp nào của Sơn qua được): camp thường $20, 5 ngày đã khép (D−1..D−5) ROI ≥ T30N_ROI% và chi TB ≥ T30N_SP% ngân sách ($12/ngày) → máy lên $30.
+T30N_ROI, T30N_SP, T30N_NGAY = 50, 60, 5
 TRAN_DOAN_ = int(float(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'tran_trung'), '20')") or 20))   # trần camp trùng một đoạn của nhan-ban.py (mô tả luật NB)
-tang30 = []
+tang30, _tang30_goc = [], []   # tang30 = camp thường (ngưỡng nới) · _tang30_goc = ngưỡng cũ, camp ★ ROAS thắng dùng lại (xem dưới luật ROAS)
+ngay5 = {}
 try:
     ngay3 = [bc(d(k), d(k)) for k in (1, 2, 3)]
+    ngay5 = bc(d(T30N_NGAY), d(1))
     bat30 = {c["id"] for c in ds_camp if c.get("state") == "ACTIVE"} if ds_camp else set(thang)
     for cid, a in thang.items():
         if cid not in bat30 or round(a["budget"]) != 20: continue
-        du = [n[cid] for n in ngay3 if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
-        if len(du) < T30_NGAY: continue
         if not _sau_giam_ok(cid): continue   # đã giảm → T30 cũng phải qua cổng tăng lại (anh 24/10/2026)
+        du = [n[cid] for n in ngay3 if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
         g = {"chi": sum(x["chi"] for x in du), "thu": sum(x["thu"] for x in du)}; r = roi(g)
-        if r is not None and r > T30_ROI:
-            tang30.append((cid, f"#{a['ten'][:70]} · $20 → $30 · {len(du)}/3 ngày tiêu > {T30_SP}% ngân sách · ROI các ngày đó {r:+.0f}% · {rd(cid)} {roi(a):+.0f}%"))
+        if len(du) >= T30_NGAY and r is not None and r > T30_ROI:
+            _tang30_goc.append((cid, f"#{a['ten'][:70]} · $20 → $30 · {len(du)}/3 ngày tiêu > {T30_SP}% ngân sách · ROI các ngày đó {r:+.0f}% · {rd(cid)} {roi(a):+.0f}%"))
+        g5 = ngay5.get(cid); r5 = roi(g5) if g5 and g5["chi"] else None
+        if g5 and g5["chi"] >= T30N_SP / 100 * 20 * T30N_NGAY and r5 is not None and r5 >= T30N_ROI:
+            tang30.append((cid, f"#{a['ten'][:70]} · $20 → $30 · {T30N_NGAY} ngày đã khép: chi ${g5['chi']:.2f} (TB ${g5['chi'] / T30N_NGAY:.2f}/ngày) · lãi ${g5['thu'] - g5['chi']:+.2f} · ROI {r5:+.0f}%"))
 except Exception as e:
     loi_may.append((0, f"luật T30 lỗi: {str(e)[:80]}"))
-_tang30_goc = list(tang30)   # trước khi lọc bộ 2 / ROAS — camp ★ ROAS thắng dùng lại (xem dưới luật ROAS)
 tang30 = [x for x in tang30 if int(x[0] or 0) not in bo2]
 # DỪNG ĐÊM — ĐÃ BỎ (anh 29/10/2026 "bỏ luôn luật dừng đêm đó"): từ 25/10 tới 29/10 chưa tắt được camp nào (cổng tuổi 7 ngày chặn 45.098 lần); mã cũ xem git log.
 dung_dem = []
@@ -679,9 +685,9 @@ def _xet_luat():
                 [["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), f"≥ {NB_ROI}%", r is not None and r >= NB_ROI], ["Chi khung dài", f(a.get("chi"), "$"), f"≥ ${NB_CHI}", a.get("chi", 0) >= NB_CHI],
                  ["ROI 3 ngày gần", f(rg, "%"), f"≥ {NB_ROI3}%", rg is not None and rg >= NB_ROI3], ["Ngân sách", f"${ns:g}", f"≥ ${TRAN_NB:g} (trần)", ns >= TRAN_NB]],
                 "nb" if int(cid) in vao["nb"] else None))
-            du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]; r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None
-            ls.append(L("t30", "T30 · $20 → $30", f"Camp đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách, ROI các ngày đó > {T30_ROI}% → máy tự lên $30.",
-                [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], ["Ngày tiêu > 80%", f"{len(du30)}/3", f"≥ {T30_NGAY}", len(du30) >= T30_NGAY], ["ROI các ngày đó", f(r30, "%"), f"> {T30_ROI}%", r30 is not None and r30 > T30_ROI]],
+            g5 = ngay5.get(cid) if "ngay5" in globals() else None; r5 = roi(g5) if g5 and g5["chi"] else None
+            ls.append(L("t30", "T30 · $20 → $30", f"Camp đang $20, {T30N_NGAY} ngày đã khép: chi TB ≥ {T30N_SP}% ngân sách (${T30N_SP / 100 * 20:g}/ngày), ROI ≥ {T30N_ROI}% → máy tự lên $30 (nới 29/10/2026 theo cách tk Nguyễn Sơn chạy).",
+                [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], [f"Chi TB {T30N_NGAY} ngày", f((g5["chi"] / T30N_NGAY) if g5 else None, "$"), f"≥ ${T30N_SP / 100 * 20:g}", bool(g5 and g5["chi"] >= T30N_SP / 100 * 20 * T30N_NGAY)], [f"ROI {T30N_NGAY} ngày", f(r5, "%"), f"≥ {T30N_ROI}%", r5 is not None and r5 >= T30N_ROI]],
                 "tang30" if int(cid) in vao["tang30"] else None, tien=1))
         ra[int(cid)] = ls
     return ra
@@ -709,7 +715,7 @@ in_("AD BỊ META TỪ CHỐI — thay creative sạch:", tu_choi)
 in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):", dau_phien, "(chưa có)")
 in_("THANG NHÂN BẢN BỘ 2 — MỞ BẢN MỚI Ở BẬC KẾ (không đổi ngân sách camp đang chạy):", thang_nb, "(chưa có)")
 in_("BẢN THANG LỖ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%) — MÁY TẮT (báo trước một nhịp):", thang_tat, "(không)")
-in_("T30 — CAMP $20 TIÊU ĐỦ + ROI > 80% TRONG 2–3 NGÀY → LÊN $30 (MÁY TỰ TĂNG — anh 28/10/2026):", tang30, "(chưa có)")
+in_("T30 — CAMP $20, 5 NGÀY ĐÃ KHÉP CHI TB ≥ $12 + ROI ≥ 50% → LÊN $30 (MÁY TỰ TĂNG — nới 29/10/2026):", tang30, "(chưa có)")
 in_(f"ĐỦ TIÊU CHÍ LÊN ROAS (lãi 30 ngày ≥ ${ROAS_LAI}, chưa có camp ★) — MÁY TỰ LÊN:", moc30, "(chưa có)")
 in_(f"ĐỦ ĐIỀU KIỆN TĂNG (ROI 30 ngày / từ lúc lên ≥ {roi_min:g}% và spending hôm nay > {sp_min:g}%) — CHỜ ANH DUYỆT:", dat, "(chưa có)")
 in_("CẦN XEM GIẢM / TẮT (ROI tụt — phim down trend hoặc creative bão hoà, CPC/CPA tăng) — CHỜ ANH QUYẾT:", giam)

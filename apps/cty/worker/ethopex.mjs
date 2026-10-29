@@ -31,7 +31,7 @@ const NHOM = [
   ['tang', '↑ <b>ĐỦ ĐIỀU KIỆN TĂNG BẬC</b> — ROI 30 ngày (camp mới: từ lúc lên) ≥ 50%, Spending > 50%', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
   ['ha', '↓ <b>GIẢM BẬC</b> — sáng: hôm qua ROI < 0% và 3 ngày < 20% (vừa tăng thì bỏ điều kiện 3 ngày) · mọi nhịp: camp ≥ $15 tiêu đều, ROI 1–2 ngày < 30% (Support) · $20 vừa tăng mà hôm nay âm cũng giảm · luôn từng bậc $20 → $15 → $10; sau giảm khoá tăng 6 giờ, hồi lại thì lên lại', (m) => (m.dich ? [{ text: `↓ #${m.id} về $${m.dich}`, callback_data: `et:giam:${m.id}:${m.dich}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }] : null)],
   ['giam', '↘ <b>ROI TỤT</b> — phim down trend / creative bão hoà → giảm một bậc (camp $1 ở đáy thang chỉ báo)', (m) => (m.dich ? [{ text: `↓ #${m.id} về $${m.dich}`, callback_data: `et:giam:${m.id}:${m.dich}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }] : null)],
-  ['tang30', '⇈ <b>T30 — LÊN $30</b> — camp $20, ≥ 2/3 ngày tiêu > 80% ngân sách, ROI các ngày đó > 80% (Support 23/10) · máy tự tăng, không chờ nút (anh 28/10/2026)', null],
+  ['tang30', '⇈ <b>T30 — LÊN $30</b> — camp $20, 5 ngày đã khép chi TB ≥ $12 (60% ngân sách), ROI ≥ 50% (nới 29/10 theo tk Nguyễn Sơn); ★ ROAS giữ ngưỡng cũ · máy tự tăng, không chờ nút (anh 28/10/2026)', null],
   // moc30 (đủ tiêu chí lên ROAS) không còn là nhóm báo: máy tự lên ROAS cuối nhịp và gửi tin ★ MÁY TỰ LÊN ROAS (anh 29/10/2026)
   ['dong', '⏸ <b>CAMP ĐÃ BỊ ĐÓNG</b> — Ethopex dừng (chạm rule hoặc tắt tay); báo MỘT lần mỗi lần dừng', null],
   ['loi_may', '⚙️ <b>LỖI MÁY</b> — đọc API Ethopex vẫn lỗi sau 3 lần thử; nhịp sau tự đọc lại, anh không cần làm gì (tin tự xoá)', null],

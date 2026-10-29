@@ -1603,7 +1603,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
     cell: (c: CampEtpKho, i: number) => { const t = c.camp_id < 0 ? thayCua.get(c.camp_id) : undefined; return t ? oThay(col.key, t) : col.cell(c, i); },
     sortValue: col.sortValue ? (c: CampEtpKho) => (c.camp_id < 0 ? -1e9 : col.sortValue!(c)) : undefined,
     total: col.total ? (rs: CampEtpKho[]) => col.total!(rs.filter((x) => x.camp_id > 0)) : undefined }));
-  const bangCay = hep ? null : <DataTable rows={thayRows.length ? [...camps, ...thayRows] : camps} columns={cotCayThay} getRowKey={(c) => String(c.camp_id)} persistKey="etp-cay" minWidth={1100} defaultSort={[{ key: 'lai', dir: 'desc' }]}
+  const bangCay = hep ? null : <DataTable rows={thayRows.length ? [...camps, ...thayRows] : camps} columns={cotCayThay} getRowKey={(c) => String(c.camp_id)} persistKey="etp-cay" minWidth={1100} fixedLayout defaultSort={[{ key: 'lai', dir: 'desc' }]}
     tree={{ parent: (c) => (c.goc ? String(c.goc) : null), open: moBang, onOpen: doiMoBang }} groupBy={{ value: (c) => String(c.content_id ?? 0), label: nhanPhim }}
     rowData={(c) => ({ 'camp-dong': c.camp_id })}
     rowStyle={(c) => { if (c.camp_id < 0) { const t = thayCua.get(c.camp_id); return { opacity: THAY_BUOC[t?.buoc ?? '']?.[1] ?? 0.3, fontStyle: 'italic' }; }

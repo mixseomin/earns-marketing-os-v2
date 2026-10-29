@@ -965,6 +965,12 @@ const DIEM_CHAM: { k: string; ten: string; nhom: string; xo?: (v: number) => str
 // NHÃN GIÁ TRỊ ĐIỂM CHẠM (anh 28/10/2026 "ko hiểu gì cả" — bảng hiện mã v2 / cu): mã trong sổ → [tên đọc được, bản này khác gì]. Mã mới chưa có nhãn thì hiện mã.
 const NHAN_DC: Record<string, [string, string]> = {
   'cta.mau=v2': ['CTA mới (từ 22/10)', 'nút đỏ "WATCH FREE · LEARN MORE" (ES "MÍRALA GRATIS · MÁS INFORMACIÓN"), thẻ cuối poster + "WHAT HAPPENS NEXT?", KHÔNG mũi tên, giọng đọc không chữ "Tap" — theo luật Support 22/10'],
+  'cta.mau=son_ten_nut': ['Mẫu tk Sơn · tên phim + nút', 'học từ creative thắng tk Sơn #54757 (30/10/2026): thẻ cuối là cảnh cuối phim, hộp tối giữa màn ghi tên phim chữ vàng + nút đỏ bo tròn "WATCH NOW", không câu hỏi, không mũi tên — nút chỉ ở ~5 giây cuối'],
+  'cta.mau=son_poster_hoi': ['Mẫu tk Sơn · poster đôi + câu hỏi', 'học từ creative thắng tk Sơn #55364 / #55350 (30/10/2026): thẻ cuối poster đôi nhân vật + logo tên phim, "WHAT HAPPENS NEXT?" chữ trắng, nút chuyển màu đỏ → vàng "WATCH NOW · LEARN MORE", không mũi tên'],
+  'cta.nut_mau=do_vang': ['Nút đỏ → vàng', 'nút CTA nền chuyển màu đỏ sang vàng (mẫu tk Sơn)'],
+  'cta.the_cuoi=khung_cuoi+ten_phim': ['Khung cuối + tên phim', 'thẻ cuối = cảnh cuối phim, hộp tối ghi tên phim + nút (mẫu tk Sơn)'],
+  'cta.the_cuoi=poster_doi+hoi_trang': ['Poster đôi + câu hỏi trắng', 'thẻ cuối = poster hai nhân vật + logo tên phim + "WHAT HAPPENS NEXT?" chữ trắng (mẫu tk Sơn)'],
+  'cta.nut_kieu=cuoi_5s': ['Nút ở 5 giây cuối', 'nút chỉ hiện ở thẻ cuối, ~5 giây cuối video'],
   'cta.mau=cu': ['CTA cũ (trước 22/10)', 'nút "WATCH FREE · TAP LEARN MORE" + 2 mũi tên vàng chỉ xuống nút + giọng đọc có chữ "Tap" — Support đã CẤM, không dựng lại được'],
   'cta.nut_mau=do': ['Nút đỏ', 'nút CTA nền đỏ'], 'cta.nut_mau=xanh': ['Nút xanh lá', 'bản thử: nút CTA nền xanh lá, chữ + viền vàng giữ nguyên'],
   'cta.the_cuoi=khung_cuoi+hoi_vang': ['Khung cuối cảnh + câu hỏi vàng', 'bản thử: thẻ cuối là khung treo cuối cảnh phim thay poster, giữ dải tối + "WHAT HAPPENS NEXT?"'], 'cta.nut_kieu=nhun_nhe': ['Nhún nhẹ từ giây 3', 'nút hiện từ giây 3, nhún nhẹ tới hết video'],

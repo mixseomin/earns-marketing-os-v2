@@ -25,6 +25,12 @@ export async function GET(req: Request) {
   await db.execute(sql`update etp.cham_hang h set trang_thai = 'loi', xong = now(), loi = 'creative không có trong kho / không có video sau 2 giờ'
     where trang_thai = 'cho' and luc < now() - interval '2 hours'
       and not exists (select 1 from etp.creative c where c.creative_id = h.creative_id and c.video is not null)`);
+  // creative ĐÃ VÀO KHO sau khi bị đánh lỗi trên (vd creative tài khoản khác đưa vào kho sau) → về hàng chờ, chưa có bản chấm thì chấm.
+  // Trước 30/10/2026 dòng lỗi nằm im mãi — mọi đường xếp hàng 'on conflict do nothing' (lich-gio, len-creative, nhan-ban) không gỡ được (Dragon Lord 54757)
+  await db.execute(sql`update etp.cham_hang h set trang_thai = 'cho', loi = null, xong = null, bat_dau = null, buoc = null, lan_thu = 0, thu_lai_luc = null, luc = now()
+    where trang_thai = 'loi' and loi like 'creative không có trong kho%'
+      and exists (select 1 from etp.creative c where c.creative_id = h.creative_id and c.video is not null)
+      and not exists (select 1 from etp.cham x where x.creative_id = h.creative_id)`);
   const viec = (await db.execute(sql`with nhan as (
       update etp.cham_hang set trang_thai = 'dang', bat_dau = now(), buoc = 'Cloudflare nhận việc', nhat_ky = jsonb_build_array(jsonb_build_object('b', 'Cloudflare nhận việc', 'luc', now())) where creative_id in (
         select h.creative_id from etp.cham_hang h join etp.creative c on c.creative_id = h.creative_id and c.video is not null

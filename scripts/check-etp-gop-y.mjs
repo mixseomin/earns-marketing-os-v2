@@ -163,6 +163,8 @@ const LUAT = [
   // anh 30/10/2026 "?ng=115…&b=2 sao ko thấy data": ?b= còn sót lọc camp người khác (không thuộc bộ nào) ra 0 dòng
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: ".filter((c) => !boHieu || c.bo === boHieu)", vi: 'lọc bộ chỉ áp khi bộ có trong dữ liệu đang xem' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', cam: ".filter((c) => !boLoc || c.bo === boLoc)", vi: 'không lọc bộ thẳng theo URL' },
+  // anh 30/10/2026 lên Dragon Lord bằng creative tk Sơn: dòng hàng chấm lỗi 'không có trong kho' phải tự về hàng chờ khi creative vào kho
+  { card: 0, tep: 'apps/web/src/app/api/ext/etp-cham/route.ts', co: "where trang_thai = 'loi' and loi like 'creative không có trong kho%'", vi: 'hàng chấm tự gỡ lỗi không-có-trong-kho khi creative đã vào kho' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

@@ -1870,6 +1870,7 @@ type XemCamp = typeof XEM_CAMP_V[number];
 const laXemCamp = (v: string | null | undefined): v is XemCamp => (XEM_CAMP_V as readonly string[]).includes(v ?? '');
 type MocBac = { k: string; c: number; luc: string; viec: string; truoc: number | null; sau: number | null; luat: string; ai: string | null; goc: number | null;
   d0: string; qua: SoTien; tronTruoc: SoTien; sau1: SoTien; sau3: SoTien; may: { ten: string; gio: number | null } | null; uoc: boolean; doan: boolean; phim: string | null };
+const ghiBac = (t: string) => luatThuong(t).replace(/^(số (lúc đổi|camp gốc #\d+ lúc nhân):\s*)?(hôm nay [^·]*·\s*)?(hôm qua [^·]*·\s*)?(cả chặng[^·]*)?(·\s*)?/, '').replace(/(^|·\s*)máy (đề xuất từ [^·]*|chưa đề xuất)/, '').replace(/^\s*·\s*|\s*·\s*$/g, '').trim();
 const ngayCong = (d: string, n: number) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10);
 function LenBac({ du, hep }: { du: DuLieuEtp; hep: boolean }) {
   const [kieu, setKieu] = useState<string>('all');
@@ -1898,7 +1899,7 @@ function LenBac({ du, hep }: { du: DuLieuEtp; hep: boolean }) {
   const mayTruoc = ds.filter((x) => x.may && x.may.gio != null), mayChua = ds.filter((x) => x.may?.ten === 'chưa');
   const s3 = (x: MocBac) => (x.sau3.chi ? <Roi s={x.sau3} /> : <span style={{ color: 'var(--fg-3, #777)' }} title="chưa có ngày khép sau mốc">—</span>);
   const cot: DataColumn<MocBac>[] = [
-    { key: 'luc', header: 'Giờ (VN)', align: 'left', width: 96, cell: (x) => <span title={x.uoc ? 'giờ ước — xem cột Ghi chú' : undefined}>{x.uoc ? '≈ ' : ''}{gioVn(x.luc)}</span>, sortValue: (x) => x.luc },
+    { key: 'luc', header: 'Giờ (VN)', align: 'left', width: 118, cell: (x) => <span title={x.uoc ? 'giờ ước — xem cột Ghi chú' : undefined}>{x.uoc ? '≈ ' : ''}{gioVn(x.luc)}</span>, sortValue: (x) => x.luc },
     { key: 'camp', header: 'Camp', align: 'left', width: 220, cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.phim ?? ''}><b>#{x.c}</b> <span style={{ color: 'var(--fg-2)' }}>{x.phim ?? ''}</span></span>, sortValue: (x) => x.c },
     { key: 'viec', header: 'Việc', align: 'left', width: 104, cell: (x) => { const [t, m] = VIEC_BAC[x.viec] ?? [x.viec, '#94a3b8']; return <b style={{ color: m }}>{t}{x.goc ? <span style={{ fontWeight: 400, color: 'var(--fg-3, #777)' }} title={x.doan ? 'gốc đoán theo nhóm tên' : 'gốc ghi trong tên camp'}> ← #{x.goc}{x.doan ? '?' : ''}</span> : null}</b>; }, sortValue: (x) => x.viec },
     { key: 'ns', header: 'Ngân sách', width: 92, cell: (x) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{x.truoc != null ? `$${x.truoc} → ` : ''}{x.sau != null ? `$${x.sau}` : '—'}</span>, sortValue: (x) => x.sau },
@@ -1910,7 +1911,8 @@ function LenBac({ du, hep }: { du: DuLieuEtp; hep: boolean }) {
     ...(du.nguoi.ngoai ? [{ key: 'may', header: 'Máy đề xuất', align: 'left' as const, width: 132, title: 'máy luật nhà đã đề xuất đúng việc này trước khi người làm? (chỉ có từ 30/10 — trước đó máy chưa chấm camp người khác)',
       cell: (x: MocBac) => (!x.may ? <span style={{ color: 'var(--fg-3, #777)' }}>—</span> : x.may.gio == null ? <span style={{ color: '#facc15' }}>chưa đề xuất</span> : <span style={{ color: '#4ade80' }} title={`máy đề xuất từ ${x.may.ten}`}>trước {x.may.gio} giờ</span>),
       sortValue: (x: MocBac) => x.may?.gio ?? null }] : []),
-    { key: 'ghi', header: 'Ghi chú', align: 'left', cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--fg-2)' }} title={luatThuong(x.luat)}>{luatThuong(x.luat)}</span> },
+    // ghi chú = phần CHƯA có ở cột khác (khoảng giờ ước, gốc đoán, lý do máy / lệnh) — số ROI đã nằm ở cột riêng thì bỏ khỏi chữ
+    { key: 'ghi', header: 'Ghi chú', align: 'left', cell: (x) => { const t = ghiBac(x.luat); return <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--fg-2)' }} title={luatThuong(x.luat)}>{t || '—'}</span>; } },
   ];
   return (
     <div>

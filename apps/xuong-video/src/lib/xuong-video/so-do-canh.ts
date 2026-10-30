@@ -9,13 +9,10 @@ export type SoDo = { moc: Record<string, Diem>; may: Record<string, { dat: Diem;
   /** tên đưa model của mốc ('thang' → 'the elevator door') */ ten?: Record<string, string>;
   /** CHIỀU CAO MẮT từng nhân vật (m, tính cả giày) — ánh nhìn theo chiều dọc: người thấp ngước lên nhìn người cao (eyeline match dọc) */ mat_cao?: Record<string, number>;
   /** ĐÈN CHÍNH của cảnh (key light): đứng ở đâu trên mặt bằng — mọi góc máy giữ cùng một phía sáng (lighting continuity) */ den?: { tu: Diem; ten?: string };
-  /** ĐỒ VẬT CỐ ĐỊNH của địa điểm (cửa, tranh, ghế, bảng chỉ dẫn…) — hình học KHÔNG đổi giữa mọi shot. key = tên mốc trong `moc` (vị trí thế giới), tên model lấy ở `ten`.
-   *  viTriMan dịch mốc đó ra trái / giữa / phải / ngoài khung THEO TỪNG MÁY → câu "FIXED LAYOUT" (prompt) + lá đối chiếu, nên đổi góc máy cửa không lật
-   *  (anh 31/10/2026, phim #353 thang máy: nền tả "2 cửa bên phải" mà mỗi khung cửa nhảy trái / phải vì hình học không bao giờ được khoá theo máy). */
-  co_dinh?: Record<string, CoDinh> };
-/** Một đồ-vật-cố-định của địa điểm. `tuong` = tường THẾ GIỚI theo LA BÀN (bắc/nam/đông/tây) — bất biến tuyệt đối, KHÔNG phải "trái/phải" (trái/phải lật theo góc máy, chính là lỗi
- *  cần tránh). Chỗ trên màn do viTriMan tính riêng theo từng máy. `so` = số lượng; `duy_nhat` = thứ DUY NHẤT loại đó trong địa điểm (→ "không có cái nào ở tường khác"). */
-export type CoDinh = { tuong?: 'bac' | 'nam' | 'dong' | 'tay'; so?: number; duy_nhat?: boolean };
+  /** CẤU KIỆN CỐ ĐỊNH của địa điểm (tường / cửa / tranh / cột) — mỗi món một đoạn tu→den trên mặt bằng + chiều cao. Hình học KHÔNG đổi giữa mọi shot:
+   *  viTriMan dịch điểm giữa mỗi món ra trái / giữa / phải / ngoài khung THEO TỪNG MÁY → câu "FIXED LAYOUT" (prompt) + lá đối chiếu, nên đổi góc máy cửa không lật
+   *  (anh 31/10/2026, phim #353 thang máy: nền "2 cửa" mà cửa nhảy trái / phải mỗi khung vì `phong` chỉ dùng vẽ SVG debug, chưa bao giờ vào prompt). Nguồn duy nhất với svgPhac. */
+  phong?: MangPhong[] };
 /** Một mảnh theo sơ đồ: máy nào · ai / cái gì ở đâu (tên mốc hoặc toạ độ) · ai nhìn ai / cái gì · ai đi vào khung từ mốc nào. */
 export type ManhSoDo = { may: string; o: Record<string, string | Diem>; nhin?: Record<string, string>; vao?: Record<string, string>; /** người CỐ Ý không nhìn người vừa nói (khong-gian.ts › luật người nghe nhìn người nói) */ ne_nhin?: string[]; /** ai THẤY trong khung (mặc định: mọi người trong o) — người ngoài khung vẫn có chỗ để tính hướng nhìn */ khung?: string[] };
 export type KyVong = { ben: -1 | 0 | 1; nhin?: -1 | 0 | 1; /** quay lưng / nửa lưng — không có mặt để đo, đừng đưa tên cho bộ so mặt (gán nhầm mặt người khác) */ lung?: true; /** quay lưng HẲN (sâu > 0,7) — không thể thấy mặt; nửa lưng thì có thể lộ má / nghiêng */ han?: true; /** KHUNG QUA VAI: người này quay lưng ở TIỀN CẢNH (gần máy hơn người được nhìn, người kia trong khung) — má / tai lộ ra là bình thường, cổng đếm mặt không tính */ ots?: true };
@@ -93,17 +90,19 @@ export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: strin
 }
 /** Thay ký hiệu {A→B} trong câu đầu / đuôi bằng phía màn tính từ sơ đồ ('toward screen left'…) — hướng trong chữ không viết tay. */
 export const thayHuong = (s: SoDo, m: ManhSoDo, chu: string): string => chu.replace(/\{([^{}→]+)→([^{}]+)\}/g, (_, a: string, b: string) => PHIA(huongMan(s, m, a.trim(), b.trim())));
-// ── ĐỒ VẬT CỐ ĐỊNH (so_do.co_dinh): hình học bất biến của địa điểm, dịch ra phía màn theo từng máy ───────────────────────────────────────────────
-const TUONG_EN = { bac: 'north wall', nam: 'south wall', dong: 'east wall', tay: 'west wall' } as const;
-const TUONG_VI = { bac: 'tường bắc', nam: 'tường nam', dong: 'tường đông', tay: 'tường tây' } as const;
-/** Chỗ của một mốc so với KHUNG của máy m: trước / sau máy, và lệch ngang (nx: âm = trái, dương = phải; |nx|>1 = ngoài mép khung). null khi sơ đồ thiếu máy / mốc. */
-function choMan(s: SoDo, m: ManhSoDo, mon: string): { sau: number; nx: number } | null {
+// ── CẤU KIỆN CỐ ĐỊNH (so_do.phong): hình học bất biến của địa điểm → dịch ra phía màn theo TỪNG máy cho prompt + đối chiếu ──────────────────────
+// Nguồn = `phong` (đã có, trước chỉ dùng vẽ SVG debug). Mỗi món một đoạn tu→den; điểm giữa chiếu qua viTriMan nên đổi góc máy chỗ-màn đổi đúng hình học, KHÔNG lật bậy.
+const NEN_EN: Record<MangPhong['loai'], readonly [string, string]> = { tuong: ['wall', 'walls'], cua: ['door', 'doors'], tranh: ['framed picture on the wall', 'framed pictures on the wall'], cot: ['column', 'columns'] };
+const NEN_VI: Record<MangPhong['loai'], string> = { tuong: 'tường', cua: 'cửa', tranh: 'tranh treo tường', cot: 'cột' };
+const giuaMon = (p: MangPhong): Diem => [(p.tu[0] + p.den[0]) / 2, (p.tu[1] + p.den[1]) / 2];
+/** Chỗ của một điểm (tên mốc hoặc toạ độ) so với KHUNG của máy m: trước / sau máy, lệch ngang (nx: âm = trái, dương = phải; |nx|>1 = ngoài mép khung). null khi thiếu máy / điểm. */
+function choMan(s: SoDo, m: ManhSoDo, mon: string | Diem): { sau: number; nx: number } | null {
   if (!s.may[m.may]) return null; const p = diem(s, m, mon); if (!p) return null;
   const t = truc(s, m.may); const v = tru(p, t.dat); const sau = cham(v, t.fw);
   return { sau, nx: sau <= 0.05 ? 0 : cham(v, t.phai) / sau / t.k };
 }
 /** Chỗ trên màn của một ĐIỂM (kể cả ngoài khung): 'trai'|'giua'|'phai' nếu ở trước máy, null nếu sau lưng / ngay máy (không thấy). */
-export function benMan(s: SoDo, m: ManhSoDo, mon: string): 'trai' | 'giua' | 'phai' | null {
+export function benMan(s: SoDo, m: ManhSoDo, mon: string | Diem): 'trai' | 'giua' | 'phai' | null {
   const c = choMan(s, m, mon); if (!c || c.sau <= 0.05) return null;
   return c.nx < -0.33 ? 'trai' : c.nx > 0.33 ? 'phai' : 'giua';
 }
@@ -113,30 +112,31 @@ const choEn = (c: { sau: number; nx: number }) => c.sau <= 0.05 ? 'behind the ca
 const choVi = (c: { sau: number; nx: number }) => c.sau <= 0.05 ? 'sau lưng máy, ngoài khung'
   : c.nx < -1 ? 'ngoài khung bên trái' : c.nx > 1 ? 'ngoài khung bên phải'
   : c.nx < -0.33 ? 'trái màn' : c.nx > 0.33 ? 'phải màn' : 'giữa màn';
-/** Tên model của một mốc cố định (ưu tiên s.ten, rồi tenEn, rồi khóa mốc). */
-const tenCoDinh = (s: SoDo, mon: string, tenEn: (t: string) => string) => (tenEn(mon) !== mon ? tenEn(mon) : s.ten?.[mon] ?? mon);
-/** Câu "FIXED LAYOUT" cho prompt keyframe: mỗi đồ cố định → tên + số lượng + tường + CHỖ TRÊN MÀN tính theo máy m, + "thứ duy nhất, không có ở tường khác".
- *  Giữ bất biến hình học qua mọi góc máy — đổi góc thì chỗ-màn đổi theo đúng hình học, nhưng số lượng / tường / tính duy nhất không bao giờ đổi. */
-export function cauBoiCanhCoDinh(s: SoDo, m: ManhSoDo, tenEn: (t: string) => string = (t) => t): string {
-  if (!s.co_dinh || !s.may[m.may]) return '';
-  // Tường (la bàn) là FACT bất biến, KHÔNG dịch sang trái/phải (trái/phải mới là thứ lật). Chỗ-màn (choEn) tính riêng theo máy này → đúng cho mọi góc.
-  const cum = Object.entries(s.co_dinh).map(([mon, cd]) => {
-    const c = choMan(s, m, mon); if (!c) return '';
-    const ten = tenCoDinh(s, mon, tenEn);
-    const spec = [cd.so ? `exactly ${cd.so}` : '', cd.tuong ? `mounted on the ${TUONG_EN[cd.tuong]}` : '', choEn(c)].filter(Boolean).join(', ');
-    return `${ten}: ${spec}${cd.duy_nhat ? ` — the only ${ten.replace(/^the\s+/i, '')} in this whole location` : ''}`;
-  }).filter(Boolean);
-  if (!cum.length) return '';
-  return `FIXED LAYOUT of this location (the same real place in every shot — each set piece is bolted to one wall and never swaps to another wall, even when the camera turns): ${cum.join('; ')}.`;
-}
-/** Lá đối chiếu cho đồ cố định (một lá mỗi món): thanh_phan "Đồ cố định <tên>" · du_kien "<n> cái, <tường>, <chỗ màn>". */
-export function coDinhDuKien(s: SoDo, m: ManhSoDo, tenEn: (t: string) => string = (t) => t): { thanh_phan: string; du_kien: string }[] {
-  if (!s.co_dinh || !s.may[m.may]) return [];
-  return Object.entries(s.co_dinh).flatMap(([mon, cd]) => {
-    const c = choMan(s, m, mon); if (!c) return [];
-    const du = [cd.so ? `${cd.so} cái` : '', cd.tuong ? TUONG_VI[cd.tuong] : '', choVi(c), cd.duy_nhat ? 'duy nhất loại này' : ''].filter(Boolean).join(', ');
-    return [{ thanh_phan: `Đồ cố định ${tenCoDinh(s, mon, tenEn)}`, du_kien: du || 'không khai' }];
+/** Gom `phong` theo loại (bỏ 'tuong' trơn) + điểm-giữa-gộp chiếu theo máy. Dùng chung cho câu prompt và lá đối chiếu. */
+function nhomPhong(s: SoDo, m: ManhSoDo): { loai: MangPhong['loai']; n: number; c: { sau: number; nx: number } }[] {
+  if (!s.may[m.may]) return [];
+  const byLoai = new Map<MangPhong['loai'], MangPhong[]>();
+  for (const p of (s.phong ?? []).filter((p) => p.loai !== 'tuong')) byLoai.set(p.loai, [...(byLoai.get(p.loai) ?? []), p]);
+  return [...byLoai].flatMap(([loai, items]) => {
+    const cs = items.map((p) => choMan(s, m, giuaMon(p))).filter((c): c is { sau: number; nx: number } => !!c);
+    if (!cs.length) return [];
+    return [{ loai, n: items.length, c: { sau: cs.reduce((a, c) => a + c.sau, 0) / cs.length, nx: cs.reduce((a, c) => a + c.nx, 0) / cs.length } }];
   });
+}
+/** Câu "FIXED LAYOUT" cho prompt keyframe: mỗi loại cấu kiện → tên + số lượng + CHỖ TRÊN MÀN tính theo máy m. Cửa ≥2 kèm "chỉ bấy nhiêu cửa, cùng một tường".
+ *  Giữ bất biến hình học qua mọi góc: đổi máy thì chỗ-màn đổi đúng hình học, nhưng số lượng không đổi và không cửa nào mọc thêm / nhảy tường. */
+export function cauBoiCanhCoDinh(s: SoDo, m: ManhSoDo): string {
+  const cum = nhomPhong(s, m).map(({ loai, n, c }) => {
+    const ten = n > 1 ? `the ${n} ${NEN_EN[loai][1]}` : `the ${NEN_EN[loai][0]}`;
+    const chi = loai === 'cua' ? ` — these are the ONLY doors in this location, all set into this one wall; add no door anywhere else and never flip them to another wall` : '';
+    return `${ten}: ${choEn(c)}${chi}`;
+  });
+  if (!cum.length) return '';
+  return `FIXED LAYOUT of this location — the real walls and fixtures, identical in every shot: ${cum.join('; ')}.`;
+}
+/** Lá đối chiếu cho cấu kiện cố định (một lá mỗi loại): thanh_phan "Cấu kiện cố định · <loại>" · du_kien "<n> <loại>, <chỗ màn>". */
+export function coDinhDuKien(s: SoDo, m: ManhSoDo): { thanh_phan: string; du_kien: string }[] {
+  return nhomPhong(s, m).map(({ loai, n, c }) => ({ thanh_phan: `Cấu kiện cố định · ${NEN_VI[loai]}`, du_kien: `${n} ${NEN_VI[loai]}, ${choVi(c)}` }));
 }
 /** Kỳ vọng cho cổng đo keyframe: người trong khung → phía màn (+ phía nhìn nếu khai). */
 export function kyVong(s: SoDo, m: ManhSoDo, nguoi: string[]): Record<string, KyVong> {

@@ -10,7 +10,7 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const tepSt = () => path.join(DATA(), 'resend-han-muc.json');
 const MUC = [70, 90, 100], KIEM_MOI_PHUT = 30;
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const giuVn = (iso) => new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
+const gioVn = (iso) => new Date(Date.parse(iso) + 7 * 3600e3).toISOString().slice(0, 16).replace('T', ' ');
 
 /** Mức cần báo mới: [{ ky: 'daily'|'monthly', muc, used, limit, resets_at }] — mỗi (kỳ, mốc reset, mức) chỉ một lần; da = khoá đã báo. */
 export function canBao(usage, da = []) {
@@ -27,36 +27,44 @@ export const khoa = (x) => `${x.ky}|${x.resets_at}|${x.muc}`;
 export function tinBao(x) {
   const ten = x.ky === 'daily' ? 'ngày' : 'tháng', het = x.muc >= 100;
   return [`${het ? '🔴' : x.muc >= 90 ? '🟠' : '🟡'} <b>Resend: đã dùng ${x.used}/${x.limit} thư trong ${ten} (${Math.floor((x.used / x.limit) * 100)}%)</b>`,
-    het ? `Đã chạm trần ${ten}: thư xác minh lúc khách đăng ký Astrolas sẽ KHÔNG gửi được cho tới ${esc(giuVn(x.resets_at))} (giờ VN).`
-      : `Chạm trần ${ten} thì thư xác minh lúc khách đăng ký Astrolas không gửi được. Trần làm mới lúc ${esc(giuVn(x.resets_at))} (giờ VN).`,
+    het ? `Đã chạm trần ${ten}: thư xác minh lúc khách đăng ký Astrolas sẽ KHÔNG gửi được cho tới ${esc(gioVn(x.resets_at))} (giờ VN).`
+      : `Chạm trần ${ten} thì thư xác minh lúc khách đăng ký Astrolas không gửi được. Trần làm mới lúc ${esc(gioVn(x.resets_at))} (giờ VN).`,
     `Cần anh: nâng gói Resend Pro ($20/tháng, 50.000 thư, bỏ trần ngày) ở <a href="https://resend.com/settings/billing">resend.com · Billing</a> (tài khoản htuan82). Hằng chỉ nhắc, không tự trả phí.`,
     '', '<a href="https://cty.on.tc/phong/astrolas">↗ cty · Phòng Astrolas</a>'].join('\n');
 }
 
 async function docUsage() {
-  if (!process.env.RESEND_KEY) try { for (const l of fs.readFileSync('/root/.secrets/resend.env', 'utf8').split('\n')) { const m = l.match(/^RESEND_KEY=(\S+)/); if (m) process.env.RESEND_KEY = m[1]; } } catch { /* không phải box */ }
-  if (!process.env.RESEND_KEY) throw new Error('thiếu RESEND_KEY (/root/.secrets/resend.env)');
-  const r = await fetch('https://api.resend.com/usage', { headers: { Authorization: `Bearer ${process.env.RESEND_KEY}` }, signal: AbortSignal.timeout(15000) });
+  const key = process.env.RESEND_KEY || (await import('./tai-nguyen-api.mjs')).docEnvTep('/root/.secrets/resend.env').RESEND_KEY;
+  if (!key) throw new Error('thiếu RESEND_KEY (/root/.secrets/resend.env)');
+  const r = await fetch('https://api.resend.com/usage', { headers: { Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(15000) });
   if (!r.ok) throw new Error(`resend /usage ${r.status}`);
   return r.json();
+}
+
+/** Người canh hỏng thì cũng phải kêu: không đọc được hạn mức (khoá bị thu hồi, Resend lỗi) → một tin, tối đa 6 giờ một lần. */
+export const canBaoLoi = (st, now = Date.now()) => !st.loi_bao || now - Date.parse(st.loi_bao) >= 6 * 3600e3;
+async function guiTopic(text) {
+  const { tgNoiDung } = await import('./kiem-bai.mjs'), { topicPhong } = await import('./tg-phong.mjs');
+  const { tg } = await tgNoiDung(), topic = await topicPhong('astrolas', 'Astrolas', tg);
+  if (!topic) throw new Error('phòng Astrolas chưa có chủ đề Telegram (tg-astrolas.json)');
+  const j = await tg('sendMessage', { message_thread_id: topic, text, parse_mode: 'HTML' });
+  if (!j.ok) throw new Error(`telegram: ${j.description}`);
 }
 
 /** Nhịp: gọi từ NHIP['kiem-resend'] (nhip.mjs) mỗi phút; đọc Resend mỗi 30 phút. */
 export async function nhipResend() {
   let st = {}; try { st = JSON.parse(fs.readFileSync(tepSt(), 'utf8')); } catch { /* lần đầu */ }
-  if (st.luc && Date.now() - Date.parse(st.luc) < KIEM_MOI_PHUT * 60e3) return `đã đọc lúc ${giuVn(st.luc)} · ngày ${st.ngay ?? '?'} · tháng ${st.thang ?? '?'}`;
-  const u = await docUsage(), moi = canBao(u, st.da ?? []);
-  st = { ...st, luc: new Date().toISOString(), ngay: `${u.emails.daily.used}/${u.emails.daily.limit}`, thang: `${u.emails.monthly.used}/${u.emails.monthly.limit}` };
-  if (moi.length) {
-    const { tgNoiDung } = await import('./kiem-bai.mjs'), { topicPhong } = await import('./tg-phong.mjs');
-    const { tg } = await tgNoiDung(), topic = await topicPhong('astrolas', 'Astrolas', tg);
-    if (!topic) throw new Error('phòng Astrolas chưa có chủ đề Telegram (tg-astrolas.json)');
-    for (const x of moi) {
-      const j = await tg('sendMessage', { message_thread_id: topic, text: tinBao(x), parse_mode: 'HTML' });
-      if (!j.ok) throw new Error(`telegram: ${j.description}`);
-      st.da = [...(st.da ?? []), khoa(x)].slice(-40);
-    }
+  if (st.luc && Date.now() - Date.parse(st.luc) < KIEM_MOI_PHUT * 60e3) return `đã đọc lúc ${gioVn(st.luc)} · ngày ${st.ngay ?? '?'} · tháng ${st.thang ?? '?'}`;
+  let u;
+  try { u = await docUsage(); } catch (e) {
+    st.luc = new Date().toISOString();   // lỗi cũng tính một lần đọc: không dội Resend mỗi phút
+    if (canBaoLoi(st)) { await guiTopic(`⚠️ <b>Hằng không đọc được hạn mức Resend</b>: ${esc(e.message)}\nChưa biết còn bao nhiêu thư trước trần, sẽ không có cảnh báo cho tới khi đọc lại được. Khoá đọc: /root/.secrets/resend.env trên box3 (khoá cty-han-muc, tài khoản Resend #475).\n\n<a href="https://cty.on.tc/phong/astrolas">↗ cty · Phòng Astrolas</a>`); st.loi_bao = st.luc; }
+    fs.mkdirSync(DATA(), { recursive: true }); fs.writeFileSync(tepSt(), JSON.stringify(st));
+    throw e;
   }
+  const moi = canBao(u, st.da ?? []);
+  st = { ...st, luc: new Date().toISOString(), loi_bao: undefined, ngay: `${u.emails.daily.used}/${u.emails.daily.limit}`, thang: `${u.emails.monthly.used}/${u.emails.monthly.limit}` };
+  for (const x of moi) { await guiTopic(tinBao(x)); st.da = [...(st.da ?? []), khoa(x)].slice(-40); }
   fs.mkdirSync(DATA(), { recursive: true }); fs.writeFileSync(tepSt(), JSON.stringify(st));
   return `ngày ${st.ngay} · tháng ${st.thang}${moi.length ? ` · báo ${moi.map((x) => `${x.ky === 'daily' ? 'ngày' : 'tháng'} ${x.muc}%`).join(', ')}` : ''}`;
 }
@@ -75,6 +83,7 @@ if (process.argv[1]?.endsWith('resend-han-muc.mjs') && process.argv.includes('--
   const m = tinBao(canBao(u(100, 3))[0]);
   t.ok(m.includes('100/100') && m.includes('KHÔNG gửi được') && m.includes('resend.com/settings/billing'), 'tin chạm trần có số + hậu quả + chỗ nâng gói');
   t.ok(m.trim().split('\n').at(-1).includes('https://cty.on.tc/phong/astrolas'), 'dòng cuối là link cty (luật tin Telegram cty)');
+  t.ok(canBaoLoi({}) && !canBaoLoi({ loi_bao: new Date().toISOString() }) && canBaoLoi({ loi_bao: new Date(Date.now() - 7 * 3600e3).toISOString() }), 'lỗi đọc: báo lần đầu, im trong 6 giờ, quá 6 giờ báo lại');
   const dir = fs.mkdtempSync('/tmp/resend-hm-'); process.env.CTY_DATA_DIR = dir;
   fs.writeFileSync(path.join(dir, 'resend-han-muc.json'), JSON.stringify({ luc: new Date().toISOString(), ngay: '3/100', thang: '3/3000' }));
   t.match(await nhipResend(), /^đã đọc lúc/, 'chưa đủ 30 phút → không gọi Resend');

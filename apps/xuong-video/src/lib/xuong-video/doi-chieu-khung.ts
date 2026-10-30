@@ -100,6 +100,42 @@ function tocEnum(moTa: string): string {
   return '';
 }
 
+// ✍️ B6: DỊCH các lệch (DongDoiChieu) → MỘT câu lệnh SỬA ẢNH (image-to-image) để con AI chỉ đụng chỗ sai, KHÔNG vẽ lại từ đầu.
+// Không gọi AI ($0). Gom các lá "thiếu vì khuất" (biểu cảm/vết/áo/tóc/vị trí của người bị quay lưng, góc che) về MỘT câu xoay mặt — vì gốc
+// là tư thế chứ không phải từng lá. Các lệch còn lại (vị trí màn, dáng, người giữ đạo cụ, áo…) thành một mệnh đề "giữ … chỉ sửa …".
+export function cauLenhSua(chieu: DongDoiChieu[]): string {
+  const loi = chieu.filter((r) => r.muc === 'lệch' || r.muc === 'thiếu' || r.muc === 'thừa');
+  if (!loi.length) return '';
+  const benEN: Record<string, string> = { 'trái': 'the left of the frame', 'giữa': 'the center of the frame', 'phải': 'the right of the frame' };
+  const ben = (v: string) => benEN[v.trim()] ?? v;
+  const khuat = (r: DongDoiChieu) => r.muc === 'thiếu' && (r.thuc_te === '—' || r.thuc_te === '' || /không thấy|không rõ|khuất|quay lưng|từ phía sau|từ sau|góc nhìn nghiêng|nghiêng từ/i.test(`${r.thuc_te} ${r.ghi_chu}`));
+  const nguoiKhuat = new Map<string, string[]>();   // người bị che → các chi tiết cần lộ ra
+  const menh: string[] = [];
+  for (const r of loi) {
+    const tp = r.thanh_phan; let m: RegExpMatchArray | null;
+    if (khuat(r) && (m = tp.match(/^(Biểu cảm|Vết áo|Áo|Tóc|Vị trí) (.+)$/))) {
+      const attr = m[1]!, name = m[2]!;
+      const ph = attr === 'Biểu cảm' ? `the face (expression: ${r.du_kien})` : attr === 'Vết áo' ? `the ${r.du_kien} on the top`
+        : attr === 'Áo' ? `the ${r.du_kien}` : attr === 'Tóc' ? `the hair (${r.du_kien})` : 'the front of the body';
+      if (!nguoiKhuat.has(name)) nguoiKhuat.set(name, []);
+      nguoiKhuat.get(name)!.push(ph); continue;
+    }
+    if ((m = tp.match(/^Vị trí (.+)$/))) { menh.push(`Move ${m[1]} to ${ben(r.du_kien)} (now at ${ben(r.thuc_te)}).`); continue; }
+    if ((m = tp.match(/^Dáng (.+)$/))) { menh.push(`${m[1]}'s pose/action must be: ${r.du_kien} (now: ${r.thuc_te}).`); continue; }
+    if ((m = tp.match(/^Đạo cụ (.+?) \+ vị trí$/i))) { menh.push(`The ${m[1]} must be held/worn by ${r.du_kien}, not ${r.thuc_te}.`); continue; }
+    if ((m = tp.match(/^Đạo cụ (.+?) \+ trạng thái$/i))) { menh.push(`The ${m[1]} should look like: ${r.du_kien} (now: ${r.thuc_te}).`); continue; }
+    if ((m = tp.match(/^(Áo|Tóc|Biểu cảm) (.+)$/))) { menh.push(`${m[2]}'s ${m[1] === 'Áo' ? 'clothing' : m[1] === 'Tóc' ? 'hair' : 'expression'} must be: ${r.du_kien} (now: ${r.thuc_te}).`); continue; }
+    if (r.muc === 'thừa') { menh.push(`Remove from frame: ${r.thanh_phan} (${r.thuc_te}) — it should not be there.`); continue; }
+    menh.push(`${tp}: must be ${r.du_kien}, not ${r.thuc_te}.`);
+  }
+  for (const [name, phs] of nguoiKhuat) menh.unshift(`Turn ${name} about three-quarters toward the camera (now turned away so key details are hidden), so ${phs.join(', ')} ${phs.length > 1 ? 'are' : 'is'} clearly visible.`);
+  return [
+    'Edit THIS exact image. Keep everything unchanged — the location and background, the lighting and mood, both characters\' identity, faces, hairstyles and wardrobe colours, and the camera framing. Change ONLY the following, as minimally as possible, leaving every already-correct part untouched:',
+    ...menh.map((c, i) => `${i + 1}. ${c}`),
+    'Do not redraw the whole scene from scratch; this is a correction pass on the given image.',
+  ].join('\n');
+}
+
 // ⚖️ B4: ĐÈ phán của model bằng SO BẰNG MÁY cho các lá ENUM sạch (vị trí màn · kiểu tóc · NGƯỜI GIỮ đạo cụ) — đây là chỗ model hay chấm ẩu nhất.
 // Dự kiến (B3) lấy thẳng từ DB/sổ đồ vật; thực tế lấy lá enum bóc tách; khác trị = LỆCH dứt khoát, không cần model. Các lá còn lại giữ nguyên phán của model.
 export function apDungSoBang(chieu: DongDoiChieu[], c: Canh, nhanVat: NhanVat[], kg: KhongGian | null | undefined, luc: 'dau' | 'cuoi', k: BocTachKhung): DongDoiChieu[] {

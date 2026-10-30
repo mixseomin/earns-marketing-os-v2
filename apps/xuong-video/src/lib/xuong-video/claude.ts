@@ -150,7 +150,7 @@ const dangJsonTay = (p: ThamSoChu): ThamSoChu => {
 };
 type TinChu = Anthropic.Message & { parsed_output?: unknown; vnd?: number };
 async function quaChuoi(p: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promise<TinChu>): Promise<TinChu> {
-  // script thiếu duyệt → dừng (chot-tien.ts); giá ước = trường hợp xấu nhất (rơi tới Anthropic, viết hết max_tokens) — lượt nhỏ dưới 1¢ tự chạy
+  // script thiếu duyệt → dừng (chot-tien.ts); giá ước = trường hợp xấu nhất (rơi tới Anthropic, viết hết max_tokens) — lượt nhỏ dưới ngưỡng tự chạy (5.000₫, chot-tien.ts) tự chạy
   chotTien('gọi Claude', { cents: giaChuCents(p.model, Math.ceil(JSON.stringify([p.system ?? '', p.messages ?? '']).length / 3), Number(p.max_tokens) || 0) });
   const ds = await duongChu(p.model); const loi: string[] = [];
   if (!ds.length) throw new Error('Thiếu khoá Claude trên máy chủ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)');

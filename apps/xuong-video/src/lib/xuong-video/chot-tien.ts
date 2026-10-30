@@ -10,10 +10,11 @@ export const LOAI_JOB_TON_TIEN = new Set(['anh', 'video', 'am', 'chu', 'nhac']);
 /** Đang chạy bằng script trong scripts/ (tsx đặt argv[1] = đường dẫn tệp script) — không phải máy chủ Next. */
 export const laScript = (argv1: string | undefined = process.argv[1]): boolean => /\/scripts\/[^/]+\.m?[jt]s$/.test(argv1 ?? '');
 
-/** LUẬT DƯỚI $0,01 (anh 16/10/2026: "các bước dưới $0.01 thì tự chạy luôn"): lượt chạy script được TỰ tiêu tới mức này mà không cần
- *  DUYET_SINH_1_LAN — CỘNG DỒN cả tiến trình (14 ảnh 0,3¢ = 4,2¢ → ảnh thứ 4 đã phải hỏi), ước theo GIÁ NIÊM YẾT (cổng rẻ thật ra còn rẻ hơn).
- *  Không biết giá (video, Claude…) → luôn hỏi. */
-export const NGUONG_TU_CHAY_CENTS = 1;
+/** LUẬT TỰ CHẠY DƯỚI NGƯỠNG — anh 16/10/2026 "dưới $0.01 thì tự chạy luôn", NÂNG 31/10/2026: "Từ giờ duyệt chi < 5000đ ko cần xin. Chỉ cần báo cáo".
+ *  Lượt chạy script được TỰ tiêu tới 5.000₫ (~19,2¢) mà không cần DUYET_SINH_1_LAN — CỘNG DỒN cả tiến trình, ước theo GIÁ NIÊM YẾT; tiền thật vẫn
+ *  ghi sổ + báo cáo sau lượt. Không biết giá (video, Claude…) → luôn hỏi. */
+export const NGUONG_TU_CHAY_VND = 5000;
+export const NGUONG_TU_CHAY_CENTS = Math.round((NGUONG_TU_CHAY_VND / 26000) * 100 * 100) / 100;   // 26.000₫/$ — cùng tỉ giá cong-ai.ts › VND_MOI_USD
 let daTuChay = 0;
 /** Reset bộ đếm cộng dồn — chỉ cho tự kiểm. */
 export const _datLaiTuChay = (): void => { daTuChay = 0; };

@@ -37,7 +37,7 @@ export const KE_HOACH: Buoc[] = [
   { so: 6, ma: 'giong', ten: 'Giọng AI cho dạng cần giọng', tt: 'dang', hien: 'giong',
     muc_dich: 'Kể chuyện, lồng tiếng giải thích, từ đọc sai, 10 câu theo chủ đề — bốn dạng cần giọng đọc.',
     cach: ['Báo giá THẬT của đường sẽ đi (cổng API rẻ đã có ở vault) trước, anh gật mới chạy; dưới $0,01 / video thì tự chạy theo luật 16/10/2026.', 'Giọng lưu cùng video trong studio, tái dùng khi dựng lại.'],
-    viec: [{ ten: 'Đo giá một video mẫu', tt: 'cho' }, { ten: 'Mẫu kể chuyện có thật', tt: 'cho' }, { ten: 'Mẫu lồng tiếng giải thích', tt: 'cho' }] },
+    viec: [{ ten: 'Đo giá một video mẫu', tt: 'xong', ghi: '450 ký tự/video: heygen turbo $0,0009 (khuyến mãi tới 31/10), inworld $0,0045, xai $0,0068, ElevenLabs v3 $0,045. Hai mẫu thật 30/10 (inworld Hank 25,7 s, heygen Vincent 20 s), tổng ~$0,004' }, { ten: 'Mẫu kể chuyện có thật', tt: 'cho' }, { ten: 'Mẫu lồng tiếng giải thích', tt: 'cho' }] },
   { so: 7, ma: 'do', ten: 'Đo theo dạng', tt: 'cho', hien: 'do',
     muc_dich: 'Biết dạng nào kéo người ở kênh nào; dạng yếu giảm tần suất, dạng mạnh thêm ô.',
     cach: ['Bảng Số bài thêm chiều dạng × góc (lượt xem, thích, bình luận, click site).', 'Luật dạng yếu: 2 tuần không bài nào có lượt xem ở một kênh → giảm tần suất dạng đó cho kênh đó (không bỏ hẳn). Luật kênh chết (nhip-an-toan › kenhChet) đã chạy từ 26/10/2026.'],

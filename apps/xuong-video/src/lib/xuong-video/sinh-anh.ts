@@ -674,7 +674,9 @@ export async function lyChanKeyframe(db: Db, canhId: number, /** THỬ ngoài qu
 /** Sinh keyframe: `so` ứng viên (1-3), nối vào keyframe_uv; cảnh chưa có ảnh chọn thì tự chọn ảnh đầu. Mọi cổng ở lyChanKeyframe. */
 /** congAnh (vd 'plenxai:nano-banana-2'): GIỮ đường nhiều bước (độ sâu / ghép từng người / sửa mặt) nhưng các bước Nano đi đúng cổng này — khác
  *  moHinh (chọn model khác = đường một bước). Anh 21/10/2026: thử keyframe qua PlenX mà vị trí người vẫn khoá theo 3D. */
-export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: string, congAnh?: string, thu = false): Promise<KqSinh<number[]>> {
+// siet = khối "ĐIỂM BẮT BUỘC ĐÚNG" (doi-chieu-khung.ts › sietTuLech): lệch của lần sinh trước, nối vào CHÍNH prompt nguồn + bước nhân dạng — vòng
+// tự-sửa B6 (anh 30/10/2026: SỬA TỪ PROMPT NGUỒN, không vá ảnh). $0, không đổi ảnh mẫu/trang phục nên giữ danh tính; sinh lại cả khung từ prompt đã siết.
+export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: string, congAnh?: string, thu = false, siet = ''): Promise<KqSinh<number[]>> {
   const loi = (x: string): KqSinh<number[]> => ({ ok: false, loi: x });
   const g = await lyChanKeyframe(db, canhId, thu);
   if (!g) return loi('không thấy cảnh');
@@ -685,13 +687,14 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   if (congAnh && /^(ckey|shopaikey|google|plenxai):/.test(congAnh)) bc.kt.mo_hinh_anh = congAnh as typeof bc.kt.mo_hinh_anh;   // cổng cho các bước Nano, vẫn nhiều bước
   await db.execute(sql`UPDATE xv_canh SET loi = '' WHERE id = ${canhId}`);
   const { prompt, urlRef, haiBuoc } = chuanBiKeyframe(bc);
+  const promptS = siet ? `${prompt}\n\n${siet}` : prompt;   // prompt nguồn đã siết (đường lop plate + một bước)
   const jobs: number[] = [];
   // Chọn đích danh model khác (so A/B) → đi đường một bước như cũ; mặc định có độ sâu 3D → hai bước.
   // LƯỢT NƯỚC MẮT (qc-cam-xuc.ts › NUOC_MAT): nét khóc / cười đau / nhục nhã ở đầu shot → thêm nước mắt bằng một lượt sửa ảnh (đường LoRA) hoặc gộp
   // vào lượt sửa sẵn có (bước 2 nhân dạng, lượt hoà ánh sáng của ghép từng người) — FLUX độ sâu không tự vẽ nước mắt.
   const nuoc = cauNuocMat(bc.canh.bieu_cam);
   if (haiBuoc?.lop && !moHinh) {   // shot ≥ 2 người: ghép từng người (đồng bộ, chọn ảnh khi xong)
-    const r = await ghepTungNguoi(db, canhId, bc.canh.thu_tu, bc.kt, haiBuoc.lop, { prompt, refs: urlRef }, jobs, nuoc);
+    const r = await ghepTungNguoi(db, canhId, bc.canh.thu_tu, bc.kt, haiBuoc.lop, { prompt: promptS, refs: urlRef }, jobs, nuoc);
     return r.ok ? { ok: true, data: jobs } : loi(`ghép từng người: ${r.loi}`);
   }
   if (haiBuoc && !moHinh) {
@@ -706,7 +709,7 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
       if (canMat && (await demMat(b1.url)) === 0) return loi(`bước 1 không có mặt người nào (khung 3D cần ${canMat}) — dừng trước bước 2, ảnh bước 1: ${b1.url}`);
       const thamChieuUrl = [b1.url, ...haiBuoc.ref2];
       // LoRA lo MẶT; trang phục / vết bẩn / đạo cụ vẫn phải qua lượt sửa theo ảnh mẫu (18/10/2026: bỏ lượt này thì #12–#15 mất áo dính cà phê, đổi màu váy)
-      const p2 = [haiBuoc.prompt2, haiBuoc.motBuoc ? KHOA_MAT_LORA : '', nuoc].filter(Boolean).join(' ');
+      const p2 = [haiBuoc.prompt2, siet, haiBuoc.motBuoc ? KHOA_MAT_LORA : '', nuoc].filter(Boolean).join(' ');
       const job = await taoJob(db, { nhan: `Keyframe (bước 2 · nhân dạng) · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt: p2, thamChieu: thamChieuUrl.length, thamChieuUrl, buoc1: b1.url } });
       jobs.push(job);
       await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt: p2, thamChieuUrl, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
@@ -714,9 +717,9 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
     return { ok: true, data: jobs };
   }
   for (let i = 0; i < Math.max(1, Math.min(3, so)); i++) {
-    const job = await taoJob(db, { nhan: `Keyframe · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: urlRef.length, thamChieuUrl: urlRef } });
+    const job = await taoJob(db, { nhan: `Keyframe · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt: promptS, thamChieu: urlRef.length, thamChieuUrl: urlRef } });
     jobs.push(job);
-    await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
+    await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt: promptS, thamChieuUrl: urlRef, tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}` });
   }
   return { ok: true, data: jobs };
 }

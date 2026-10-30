@@ -17,7 +17,8 @@ export const MAU_SINH = new Set<MauMayDung>(['canh-dong', 'giai-thich', 'bai-anh
 export const KIEU_ANH: Record<string, string> = { 'the-chu-tren-anh': 'the-chu-tren-anh', 'ai-con-nho': 'ai-con-nho', 'doan-nam-gia': 'doan-nam-gia', 'hai-lua-chon': 'hai-lua-chon' };
 
 export interface SanPhamDe { ma: string; ten: string; ngach: string[]; site: string | null; link: string; nhan: string; mo_ta: string; book?: string;
-  /** ngôn ngữ thị trường theo nhóm góc spy của máy (goc_sp.thi_truong: VN:vi → 'vi'); mặc định 'en' (US) — 31/10/2026, Giỗ Chạp viết tiếng Việt */ ngon_ngu?: 'en' | 'vi' }
+  /** ngôn ngữ thị trường theo nhóm góc spy của máy (goc_sp.thi_truong: VN:vi → 'vi'); mặc định 'en' (US) — 31/10/2026, Giỗ Chạp viết tiếng Việt */ ngon_ngu?: 'en' | 'vi';
+  /** phong cách hình + giọng của ngách (xv_may.phong_cach, 31/10/2026 "hình ảnh đơn điệu, ko giống với ngách") */ phong_cach?: string }
 export interface GocDe { sp: number; id: number; loai: string; ten: string; mo_ta?: string | null }
 
 const TU_MAY = ['delve', 'leverage', 'utilize', 'crucial', 'vital', 'comprehensive', 'robust', 'streamline', 'moreover', 'furthermore', 'seamless', 'elevate', 'unlock', 'game-changer', 'in today\'s', 'dive into', 'tapestry', 'realm', 'testament'];
@@ -90,8 +91,8 @@ export const DeLacLoaiSchema = z.object({
 /** Lồng tiếng giải thích (bước 6, 30/10/2026): lời dẫn đọc bằng giọng AI (heygen turbo) — chữ = đúng lời đọc, nên viết như NÓI. */
 export const DeGiaiThichSchema = z.object({
   truy: z.string().describe('Pexels VIDEO query for a real moving scene that fits the explanation, English, 2-4 words'),
-  moc: z.string().describe('on-screen hook shown while the first sentence is read, 20-80 characters, a question or a surprising fact from the angle'),
-  loi: z.array(z.string()).min(3).max(6).describe('3-6 short spoken sentences, 200-550 characters in total, natural to read aloud: set up the situation from the angle, give the answer or the key fact, one concrete reason; no lists, no URLs, no symbols the voice cannot read'),
+  moc: z.string().describe('THE HOOK, 12-60 characters: speaks straight to the viewer with a curiosity gap, contrast, number or "you vs them" (e.g. "Check his birth moon against yours"); shown huge mid-screen AND read aloud as the first sentence'),
+  loi: z.array(z.string()).min(4).max(7).describe('4-7 SHORT spoken sentences (each under 95 characters, 150-480 in total): sentence 1 is EXACTLY the hook (moc); then build the open loop from the angle, deliver the payoff / key fact near the end, finish with one concrete next step; natural to read aloud, no lists, no URLs, no symbols'),
   ket: z.string().describe('closing line on screen after the voice, under 60 characters, no link, e.g. a save or practice prompt'),
   canh: z.array(z.object({
     truy: z.string().describe('Pexels PHOTO query for a real photo that SHOWS what this sentence says, English, 2-5 concrete visible words (objects, people, place) — no abstract or ambiguous words like "records", "chart", "solution"'),
@@ -133,7 +134,9 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
   if (x.mau !== 'top-n' && x.mau !== 'lat-dap-an' && x.mau !== 'so-sanh' && x.mau !== 'cau-noi' && x.mau !== 'cai-nao-gia' && x.mau !== 'lac-loai' && x.mau !== 'binh-chon' && x.mau !== 'carousel' && (!de.truy || de.truy.split(/\s+/).length > 6)) loi.push('từ khoá cảnh thiếu hoặc dài');
   if (x.mau === 'canh-dong' && (!de.moc || de.moc.length < 20 || de.moc.length > 90)) loi.push('câu móc trên video 20–90 ký tự');
   if (x.mau === 'giai-thich') { const t = x.de as { moc?: string; loi?: string[]; ket?: string }; const n = t.loi?.length ?? 0, dai = (t.loi ?? []).join(' ').length;
-    if (!t.moc || t.moc.length < 20 || t.moc.length > 80) loi.push('câu móc trên video 20–80 ký tự'); if (n < 3 || n > 6) loi.push('lời dẫn cần 3–6 câu'); if (dai < 200 || dai > 550) loi.push(`lời dẫn ${dai} ký tự (cần 200–550)`);
+    const chuan = (v?: string) => (v ?? '').toLowerCase().replace(/[^a-z0-9à-ỹ ]/gi, '').replace(/\s+/g, ' ').trim();
+    if (!t.moc || t.moc.length < 12 || t.moc.length > 60) loi.push('hook trên video 12–60 ký tự'); if (n < 4 || n > 7) loi.push('lời dẫn cần 4–7 câu'); if (dai < 150 || dai > 480) loi.push(`lời dẫn ${dai} ký tự (cần 150–480)`);
+    if (chuan(t.loi?.[0]) !== chuan(t.moc)) loi.push('câu đọc đầu tiên phải đúng là câu hook (giọng đọc hook ngay giây đầu)'); if ((t.loi ?? []).some((c) => c.length > 95)) loi.push('có câu dài quá 95 ký tự — cắt ngắn để cảnh đổi nhanh');
     if ((t.loi ?? []).some((c) => /https?:|www\.|[#@<>{}\[\]]/.test(c))) loi.push('lời dẫn có link / ký hiệu giọng không đọc được'); if ((t.ket?.length ?? 0) > 60) loi.push('dòng kết quá 60 ký tự');
     const canh = (x.de as { canh?: { truy?: string; prompt?: string }[] }).canh ?? [];
     if (canh.length !== n) loi.push(`cần đúng một cảnh cho mỗi câu (${canh.length} cảnh / ${n} câu)`);
@@ -162,6 +165,9 @@ export function vanHeThong(sp: SanPhamDe, dang_bai: string): string {
     ...(sp.ngon_ngu === 'vi' ? ['LANGUAGE: write every text field (hook, post text, on-screen lines) in natural Vietnamese with full diacritics, even where a field description says English. Only Pexels search queries stay in English.'] : []),
     'Rules (hard): plain human voice, concrete and specific, one useful thing per post; no hype, no superlatives, no hashtags, no em dashes (— or –), never these words: ' + TU_MAY.join(', ') + '.',
     'The hook must come from the ANGLE given (a real thing the audience says or faces), be a question or carry a number, and must not open with the brand name. Do not invent statistics, prices or testimonials.',
+    // CHUẨN THU HÚT + GIỮ CHÂN cho MỌI dạng (anh 31/10/2026: "bài viết, post, video… đều phải có tính liên quan, có khả năng thu hút, giữ chân người dùng")
+    'Stop the scroll in the first 2 seconds: speak straight to the viewer ("you", "your"), open a curiosity gap, a surprising contrast, a number or a "you vs them" comparison — never a soft intro like "Some people…" or "Do you want…". Keep them watching: short sentences, the payoff comes at the end, every line earns its place, end with one concrete next step.',
+    ...(sp.phong_cach ? [`Visual style and tone of this brand (EVERY photo / video search query and every scene must fit it): ${sp.phong_cach}`] : []),
     `Post format: ${dang_bai}. Fill the schema exactly; empty strings / arrays where a field does not apply.`].join('\n');
 }
 export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[], ngonNgu: 'en' | 'vi' = 'en'): string {
@@ -173,7 +179,7 @@ export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[], ngo
 }
 const MO_TA_DANG: Record<string, string> = {
   'canh-dong': 'a calm 8-15s real scene video with ambient sound; one small hook line at the bottom that fits a quiet real scene (a feeling, a question, a situation from the angle) — never an on-screen task or puzzle instruction, nothing that is not in the footage; optional 1-2 closing lines (brand + site).',
-  'giai-thich-giong': 'a 15-40s voice-over explainer over real moving footage: an AI voice reads your sentences word for word (write them to be SPOKEN: short, plain, no lists or symbols), subtitles show each sentence; start from the situation in the angle, then the answer / key fact and one concrete reason; facts must come from the product description only.',
+  'giai-thich-giong': 'a 15-30s voice-over short in today\'s retention style: the first sentence IS the hook (shown huge mid-screen and read aloud in the first 2 seconds — straight to the viewer, curiosity gap / contrast / number / you vs them); then short punchy sentences that open a loop and pay it off near the end, one concrete next step; every sentence gets its own scene that SHOWS it in the brand visual style (never generic offices or paperwork); facts only from the product description.',
   'the-chu-tren-anh': 'one hook sentence placed on a real photo; the sentence IS the content.',
   'ai-con-nho': 'a nostalgic object/scene photo + one memory question the audience will answer in comments; the memory must connect to the angle (same need, same habit, earlier era); sub line = era/detail.',
   'doan-nam-gia': 'a guess question (year, price, count) on a photo; second image reveals the answer — the answer must be a real fact.',

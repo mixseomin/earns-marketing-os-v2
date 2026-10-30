@@ -4,7 +4,7 @@
 // (giong-heygen.ts → de.giong_url / de.giong_giay, dựng lại không tốn lại). THUẦN: đề → ASS + lệnh ffmpeg.
 // Phụ đề: mỗi câu lời dẫn hiện đúng quãng nó được đọc — chia thời lượng giọng theo số ký tự từng câu (giọng đọc đều, không cần dấu thời gian từng chữ).
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-giai-thich.test.mts
-import { alpha, bo, chu, giayDoc, mauAss, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { alpha, bo, chu, giayDoc, mauAss, nayVao, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
 
 export interface DeGiaiThich {
   truy: string;            // từ khoá VIDEO nền Pexels (tiếng Anh, theo góc)
@@ -35,18 +35,23 @@ export function nhipGiaiThich(de: DeGiaiThich) {
 }
 export const anhGiaiThich = (de: DeGiaiThich): { t: number; cat: [number, number, number, number] }[] => [{ t: Math.min(2, nhipGiaiThich(de).HET_GIONG * 0.3), cat: [0, 240, 1080, 1440] }];
 
+/** Phụ đề CỤM NGẮN (chuẩn short-form, anh 31/10/2026 "không có hook… nhàm"): mỗi câu chia cụm ≤ 4 từ, cụm đứng đúng quãng của nó (theo số ký tự). */
+export function cumPhuDe(cau: { chu: string; tu: number; den: number }[], toiDa = 4): { chu: string; tu: number; den: number }[] {
+  return cau.flatMap((c) => {
+    const tu = c.chu.split(/\s+/).filter(Boolean), cum: string[] = [];
+    for (let i = 0; i < tu.length; i += toiDa) cum.push(tu.slice(i, i + toiDa).join(' '));
+    const tong = cum.reduce((n, x) => n + x.length, 0) || 1; let t = c.tu;
+    return cum.map((x) => { const d = ((c.den - c.tu) * x.length) / tong, r = { chu: x, tu: t, den: t + d }; t += d; return r; });
+  });
+}
 export function assGiaiThich(de: DeGiaiThich): string {
   const { cau, HET_GIONG, ket, DAI } = nhipGiaiThich(de), d: DongAss[] = [];
-  // câu móc: dải trên cùng, 0 → hết câu đầu (người xem biết ngay video nói gì); cảnh thật vẫn rõ phía dưới
-  const moc = ngat(de.moc.trim(), 30).slice(0, 3), hetMoc = Math.max(2.5, cau[0]?.den ?? 2.5);
-  d.push([1, 0, hetMoc, 'Ve', `{\\an8\\pos(540,230)\\1c&H000000&\\1a${alpha(0.5)}\\fad(200,300)\\p1}${bo(1000, 60 + 70 * moc.length, 26)}`]);
-  d.push([2, 0, hetMoc, 'Chu', `{\\an8\\pos(540,262)\\b1${fs(50)}\\1c${mauAss(VANG)}\\3c&H000000&\\bord2\\q2\\fad(200,300)}${moc.map(chu).join('\\N')}`]);
-  // phụ đề: mỗi câu đúng quãng được đọc, khối giữa-dưới, nền tối mỏng
-  for (const c of cau) {
-    const dong = ngat(c.chu, 34).slice(0, 4), cao = 50 + 64 * dong.length;
-    d.push([1, c.tu, c.den, 'Ve', `{\\an2\\pos(540,1560)\\1c&H000000&\\1a${alpha(0.45)}\\fad(120,120)\\p1}${bo(1000, cao, 24)}`]);
-    d.push([2, c.tu, c.den, 'Chu', `{\\an2\\pos(540,${1560 - 25})\\b1${fs(44)}\\1c${mauAss(TRANG)}\\3c&H000000&\\bord2\\q2\\fad(120,120)}${dong.map(chu).join('\\N')}`]);
-  }
+  // HOOK: chữ TO giữa màn, nảy vào, đứng hết câu đầu (giọng đọc đúng câu hook) — người xem biết ngay vì sao phải xem tiếp
+  const moc = ngat(de.moc.trim(), 18).slice(0, 3), hetMoc = Math.max(2.2, cau[0]?.den ?? 2.2), yMoc = 820 - 55 * (moc.length - 1);
+  d.push([1, 0, hetMoc, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.28)}\\fad(0,250)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
+  d.push([2, 0, hetMoc, 'Den', `{\\an8\\pos(540,${yMoc})${fs(84)}\\1c${mauAss(VANG)}\\3c&H000000&\\bord5\\shad2\\q2${nayVao(70, 0, 0.35)}\\fad(0,250)}${moc.map(chu).join('\\N')}`]);
+  // phụ đề cụm ngắn, chữ to, viền đậm, không hộp — từ sau câu hook
+  for (const c of cumPhuDe(cau.slice(1))) d.push([2, c.tu, c.den, 'Den', `{\\an5\\pos(540,1340)${fs(66)}\\1c&HFFFFFF&\\3c&H000000&\\bord5\\shad2\\q2${nayVao(88, 0, 0.12)}}${chu(c.chu)}`]);
   if (ket) {
     d.push([3, HET_GIONG, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.5)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
     d.push([4, HET_GIONG, DAI, 'Den', `{\\an5\\pos(540,940)\\b1${fs(56)}\\1c&HFFFFFF&\\q2\\fad(400,0)}${ngat(ket, 26).map(chu).join('\\N')}`]);

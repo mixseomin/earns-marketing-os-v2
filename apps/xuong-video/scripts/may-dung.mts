@@ -31,11 +31,11 @@ const ma = lay('--may') ?? 'front-porch-only-one';
 const docStdin = async () => { let raw = ''; for await (const c of process.stdin) raw += c; return JSON.parse(raw); };
 /** Sản phẩm của máy cho chữ AI (sinh đề video + viết bài): tên, ngách, site, link đích, nhãn, mô tả — MỘT chỗ dựng cho cả hai lệnh. */
 async function spCua(ma: string) {
-  const r = (await db.execute(sql`SELECT ma, ten, coalesce(ngach, '{}') AS ngach, site_dich, muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { ten: string; ngach: string[]; site_dich: string | null; muc_dich: string }[];
+  const r = (await db.execute(sql`SELECT ma, ten, coalesce(ngach, '{}') AS ngach, site_dich, muc_dich, phong_cach FROM xv_may WHERE ma = ${ma}`)) as unknown as { ten: string; ngach: string[]; site_dich: string | null; muc_dich: string; phong_cach: string | null }[];
   const LINK_MAY: Record<string, { link: string; nhan: string; book?: string }> = { 'front-porch-only-one': { link: 'https://pickjot.com/printables/large-print-word-search/', nhan: 'Front Porch Puzzles', book: 'nostalgia' },
     'ratesbyroom-scam-or-real': { link: 'https://ratesbyroom.com/hotel-scam-check/', nhan: 'ratesbyroom.com' }, 'esimfares-before-you-land': { link: 'https://esimfares.com/', nhan: 'esimfares.com' }, 'militarycalc': { link: 'https://militarycalc.com/', nhan: 'MilitaryCalc' }, 'giochap-van-khan': { link: 'https://giochap.com/van-khan', nhan: 'Giỗ Chạp' } };
   const lm = LINK_MAY[ma] ?? { link: `https://${r[0]?.site_dich ?? ''}/`, nhan: r[0]?.ten ?? ma };
-  const sp = { ma, ten: r[0]!.ten, ngach: r[0]!.ngach, site: r[0]!.site_dich, link: lm.link, nhan: lm.nhan, mo_ta: r[0]!.muc_dich, ...(lm.book ? { book: lm.book } : {}) };
+  const sp = { ma, ten: r[0]!.ten, ngach: r[0]!.ngach, site: r[0]!.site_dich, link: lm.link, nhan: lm.nhan, mo_ta: r[0]!.muc_dich, ...(lm.book ? { book: lm.book } : {}), ...(r[0]!.phong_cach ? { phong_cach: r[0]!.phong_cach } : {}) };
   return sp;
 }
 

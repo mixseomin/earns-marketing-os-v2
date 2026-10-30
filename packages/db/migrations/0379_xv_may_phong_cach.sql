@@ -1,0 +1,15 @@
+-- PHONG CÁCH NGÁCH CỦA TỪNG MÁY (anh 31/10/2026: video Astrolas "không có hook… hình ảnh đơn điệu, ko giống với ngách"; "các ngách khác cũng vậy… đều phải có tính
+-- liên quan, có khả năng thu hút, giữ chân"). Một chỗ khai cho mọi dạng: máy sinh đề (may-de.ts › vanHeThong) đưa vào mọi từ khoá ảnh / prompt cảnh / giọng chữ;
+-- worker VideoExpress (vx-may.mts) đưa vào prompt từng clip. Tiếng Anh (gửi thẳng cho mô hình). Máy mới: khai phong_cach khi lập máy.
+ALTER TABLE xv_may ADD COLUMN IF NOT EXISTS phong_cach text;
+UPDATE xv_may SET phong_cach = v.p FROM (VALUES
+  ('astrolas', 'Celestial and mystical: night skies full of stars, a big glowing full moon, constellations, planets, golden-hour silhouettes looking at the sky, candles and zodiac jewelry; deep purple, midnight blue and gold palette, cinematic. Tone: intimate, personal ("your chart", "your moon"), curious, a little dramatic. Never offices, laptops or paperwork as the main subject.'),
+  ('examweight-cau-hoi', 'Real healthcare training: EMTs on ambulance calls, pharmacy technicians at the counter, nursing students in scrubs, stethoscopes, flashcards, late-night study desks; clean clinical light with urgent red accents. Tone: high-stakes test pressure turned into quick wins ("most people miss this one").'),
+  ('sidecue', 'Creators and professionals on camera: home studio setups, webcam close-ups, ring lights, video calls, presentations, nervous-to-confident moments; modern, bright, tech. Tone: the relief of never losing your words on camera.'),
+  ('saidly', 'People turning speech into text: podcasters at microphones, interviews, lectures, meetings, hands typing notes, waveforms; calm modern workspace, privacy feel. Tone: hours of typing saved, nothing leaves your PC.'),
+  ('militarycalc', 'US military life: service members in uniform, families at homecoming, bases, paychecks and benefits paperwork kept secondary; patriotic but grounded, navy and olive tones. Tone: money and benefits they are owed, plain numbers.'),
+  ('giochap-van-khan', 'Vietnamese ancestor worship and family rituals: altars with incense smoke, fruit trays, candles, family gatherings for death anniversaries, lunar calendars, temples, warm red and gold tones. Tone: respectful, warm, practical (giọng Việt nhẹ nhàng, gần gũi).'),
+  ('ratesbyroom-scam-or-real', 'Travelers and hotels: lobbies, front desks, phones with booking messages, suitcases, keycards, suspicious texts; real travel photography. Tone: protective, "spot the trick before you pay".'),
+  ('esimfares-before-you-land', 'International travel moments: airports, arrival halls, plane windows, SIM cards and phones, city streets on day one abroad; bright travel photography. Tone: land connected, avoid roaming shock.'),
+  ('front-porch-only-one', 'Cozy nostalgic Americana for older adults: front porches, rocking chairs, coffee, large-print puzzle books, grandparents, small towns, warm afternoon light. Tone: gentle, nostalgic, friendly brain-teaser fun.')
+) AS v(ma, p) WHERE xv_may.ma = v.ma;

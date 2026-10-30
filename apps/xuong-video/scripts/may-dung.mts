@@ -54,6 +54,16 @@ if (a.includes('--nap')) {
   process.stdout.write(JSON.stringify(await db.execute(sql`SELECT ho, nen, format, dang, can_dung, goc, dich FROM ke_hoach_goc WHERE may = ${ma} AND ngay = ${ngay}::date`)));
 } else if (a.includes('--ds')) {
   process.stdout.write(JSON.stringify(await dsVideoDang(db, ma, a.includes('--ca-luu-tru'))));
+} else if (lay('--gan-vx') != null) {
+  // GẮN CLIP VIDEOEXPRESS vào cảnh (31/10/2026): worker iMac scripts/vx-may.mts tải clip về rồi scp lên box3 → đây nạp R2 + ghi de.canh[i].vx.
+  //   --gan-vx <video_id> <cảnh i> <tệp mp4 trên box3>
+  const [idV, iC, tep] = [Number(lay('--gan-vx')), Number(a[a.indexOf('--gan-vx') + 2]), a[a.indexOf('--gan-vx') + 3]];
+  if (!(idV > 0) || !(iC >= 0) || !tep) { console.error('dùng: --gan-vx <video_id> <cảnh i> <tệp mp4>'); process.exit(2); }
+  const { uploadToR2 } = await import('../src/lib/r2'), fs = await import('node:fs');
+  const url = await uploadToR2(`xuong-video/may/vx-${idV}-${iC}-${Date.now().toString(36)}.mp4`, fs.readFileSync(tep), 'video/mp4');
+  if (!url) { console.error('không đẩy được clip lên R2'); process.exit(1); }
+  await db.execute(sql`UPDATE xv_may_video SET de = jsonb_set(de, ${`{canh,${iC},vx}`}::text[], to_jsonb(${url}::text)), updated_at = now() WHERE id = ${idV} AND jsonb_array_length(de->'canh') > ${iC}`);
+  console.log(`✓ cảnh ${iC} của video #${idV} → ${url}`);
 } else if (lay('--xuat') != null) {
   const muc = lay('--xuat')!, mauLoc = lay('--mau'), mMay = await mayTheoMa(db, ma);
   const ds = Object.entries(await dsVideoDang(db, ma)).filter(([slug, x]) => (muc === 'all' ? true : muc === 'all-chua' ? !x.file_url && !(x.loai === 'link' && x.xuat_luc) : slug === muc)).filter(([, x]) => !mauLoc || ((x as { mau?: string | null }).mau ?? mMay?.mau) === mauLoc);   // bài link không có video: đã chốt bản (xuat_luc) là xong

@@ -14,6 +14,10 @@ export interface DeGiaiThich {
   giong_url?: string;      // tệp giọng đã sinh (R2) — xuatVideo điền
   giong_giay?: number;     // thời lượng tệp giọng (giây) — xuatVideo điền
   giong_vnd?: number;      // tiền sinh giọng (VNĐ thật theo bảng giá fal) — xuatVideo điền
+  /** MỖI CÂU MỘT CẢNH (anh 31/10/2026: "sao ko dùng videoexpress sinh video? nội dung nhìn nhàm chán"): cảnh i đi với câu loi[i].
+   *  truy = ảnh thật Pexels làm khung đầu (xuatVideo lấy → anh); prompt = chỉ đạo chuyển động 4–6s cho VideoExpress (vx-may.mts trên iMac gửi → uuid → tải clip → vx = mp4 R2).
+   *  Đủ vx cho mọi câu thì dựng bằng clip VideoExpress; chưa đủ thì xuatVideo báo "chờ clip" (không dựng bản nhàm). */
+  canh?: { truy: string; prompt: string; anh?: string; uuid?: string; vx?: string }[];
 }
 export const FPS = 30, CHU_MOI_GIAY = 15, T_DAU = 0.6, DEM_CUOI = 1.2;
 const W = 1080, H = 1920, TRANG = '#F4F6F8', VANG = '#FFD24A';
@@ -51,15 +55,24 @@ export function assGiaiThich(de: DeGiaiThich): string {
 }
 
 /** Lệnh ffmpeg: VIDEO nền thật lặp đủ dài, tối nhẹ → ass; tiếng = tệp giọng (bắt đầu T_DAU), không nhạc. Không có video nền hoặc tệp giọng thì DỪNG. */
-export function lenhGiaiThich(o: { de: DeGiaiThich; ass: string; nen?: string | null; am?: string | null; fontsDir: string; ra: string; khung?: number }): string[] {
+/** Quãng hình của từng cảnh khi mỗi câu một clip: cảnh 0 từ 0 (gồm đệm đầu), cảnh cuối kéo tới hết video (gồm dòng kết). */
+export function quangCanh(de: DeGiaiThich): { tu: number; den: number }[] {
+  const { cau, DAI } = nhipGiaiThich(de);
+  return cau.map((c, i) => ({ tu: i === 0 ? 0 : c.tu, den: i === cau.length - 1 ? DAI : c.den }));
+}
+export function lenhGiaiThich(o: { de: DeGiaiThich; ass: string; nen?: string | null; nenThem?: string[]; am?: string | null; fontsDir: string; ra: string; khung?: number }): string[] {
   const { DAI } = nhipGiaiThich(o.de), dai = Number(DAI.toFixed(2));
-  if (!o.nen) throw new Error('mẫu giai-thich cần VIDEO nền thật (nen_url Pexels video)');
-  const nen = `[0:v]scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=${FPS},eq=brightness=-0.06:saturation=1.05,trim=0:${dai},setpts=PTS-STARTPTS`;
+  // MỖI CÂU MỘT CLIP (VideoExpress): đủ clip cho mọi câu → mỗi clip lặp / cắt đúng quãng câu của nó rồi nối; không đủ → một video nền (cũ)
+  const clip = o.nenThem?.length && o.nenThem.length === o.de.loi.length ? o.nenThem : null;
+  const chinh = (v: string, d: number) => `${v}scale=${W}:${H}:force_original_aspect_ratio=increase,crop=${W}:${H},fps=${FPS},eq=brightness=-0.06:saturation=1.05,trim=0:${d.toFixed(2)},setpts=PTS-STARTPTS`;
+  const vao = clip ? clip.flatMap((f) => ['-stream_loop', '-1', '-i', f]) : (() => { if (!o.nen) throw new Error('mẫu giai-thich cần VIDEO nền thật (nen_url Pexels video) hoặc clip VideoExpress cho mọi câu'); return ['-stream_loop', '-1', '-i', o.nen]; })();
+  const nen = clip ? `${quangCanh(o.de).map((q, i) => `${chinh(`[${i}:v]`, q.den - q.tu)}[c${i}]`).join(';')};${clip.map((_, i) => `[c${i}]`).join('')}concat=n=${clip.length}:v=1:a=0` : chinh('[0:v]', dai);
   const loc = `${nen},ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
-  if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', '-stream_loop', '-1', '-i', o.nen, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
+  if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   if (!o.am) throw new Error('mẫu giai-thich cần TỆP GIỌNG (de.giong_url — giong-heygen.ts) trước khi dựng');
-  const am = `[1:a]adelay=${Math.round(T_DAU * 1000)}|${Math.round(T_DAU * 1000)},apad,atrim=0:${dai},loudnorm=I=-16:TP=-1.5:LRA=11[a]`;
-  return ['-y', '-hide_banner', '-loglevel', 'error', '-stream_loop', '-1', '-i', o.nen, '-i', o.am,
+  const iAm = clip ? clip.length : 1;
+  const am = `[${iAm}:a]adelay=${Math.round(T_DAU * 1000)}|${Math.round(T_DAU * 1000)},apad,atrim=0:${dai},loudnorm=I=-16:TP=-1.5:LRA=11[a]`;
+  return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-i', o.am,
     '-filter_complex', `${loc};${am}`, '-map', '[v]', '-map', '[a]', '-r', String(FPS), '-t', String(dai), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
 }
 

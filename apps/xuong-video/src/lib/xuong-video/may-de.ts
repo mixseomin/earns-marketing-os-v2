@@ -93,6 +93,10 @@ export const DeGiaiThichSchema = z.object({
   moc: z.string().describe('on-screen hook shown while the first sentence is read, 20-80 characters, a question or a surprising fact from the angle'),
   loi: z.array(z.string()).min(3).max(6).describe('3-6 short spoken sentences, 200-550 characters in total, natural to read aloud: set up the situation from the angle, give the answer or the key fact, one concrete reason; no lists, no URLs, no symbols the voice cannot read'),
   ket: z.string().describe('closing line on screen after the voice, under 60 characters, no link, e.g. a save or practice prompt'),
+  canh: z.array(z.object({
+    truy: z.string().describe('Pexels PHOTO query for a real photo that SHOWS what this sentence says, English, 2-5 concrete visible words (objects, people, place) — no abstract or ambiguous words like "records", "chart", "solution"'),
+    prompt: z.string().describe('camera + motion direction for a 5-second realistic vertical clip animated from that photo, English, under 200 characters, e.g. "slow push-in on hands turning the pages, soft window light"; no text, no captions, no logos'),
+  })).describe('EXACTLY one scene per sentence in loi, same order'),
 });
 export const DePollSchema = z.object({
   cau_hoi: z.string().describe('the poll question as the post text, under 200 characters, ends with a question mark, no link'),
@@ -130,7 +134,11 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
   if (x.mau === 'canh-dong' && (!de.moc || de.moc.length < 20 || de.moc.length > 90)) loi.push('câu móc trên video 20–90 ký tự');
   if (x.mau === 'giai-thich') { const t = x.de as { moc?: string; loi?: string[]; ket?: string }; const n = t.loi?.length ?? 0, dai = (t.loi ?? []).join(' ').length;
     if (!t.moc || t.moc.length < 20 || t.moc.length > 80) loi.push('câu móc trên video 20–80 ký tự'); if (n < 3 || n > 6) loi.push('lời dẫn cần 3–6 câu'); if (dai < 200 || dai > 550) loi.push(`lời dẫn ${dai} ký tự (cần 200–550)`);
-    if ((t.loi ?? []).some((c) => /https?:|www\.|[#@<>{}\[\]]/.test(c))) loi.push('lời dẫn có link / ký hiệu giọng không đọc được'); if ((t.ket?.length ?? 0) > 60) loi.push('dòng kết quá 60 ký tự'); }
+    if ((t.loi ?? []).some((c) => /https?:|www\.|[#@<>{}\[\]]/.test(c))) loi.push('lời dẫn có link / ký hiệu giọng không đọc được'); if ((t.ket?.length ?? 0) > 60) loi.push('dòng kết quá 60 ký tự');
+    const canh = (x.de as { canh?: { truy?: string; prompt?: string }[] }).canh ?? [];
+    if (canh.length !== n) loi.push(`cần đúng một cảnh cho mỗi câu (${canh.length} cảnh / ${n} câu)`);
+    if (canh.some((c) => !c.truy?.trim() || !c.prompt?.trim())) loi.push('cảnh thiếu từ khoá ảnh hoặc prompt chuyển động');
+    const da = canh.find((c) => /\b(records?|charts?|solutions?|concepts?|ideas?|success)\b/i.test(c.truy ?? '')); if (da) loi.push(`từ khoá cảnh đa nghĩa / trừu tượng: "${da.truy}" — tả vật nhìn thấy được`); }
   if (x.mau === 'carousel') { const t = x.de as { trang?: { tieu_de?: string; truy?: string }[]; moc?: string }; const n = t.trang?.length ?? 0; if (n < 3 || n > 5) loi.push('carousel cần 3–5 trang ý'); if (t.trang?.some((p) => !p.tieu_de || !p.truy)) loi.push('mỗi trang cần ý + từ khoá ảnh'); if (!t.moc) loi.push('carousel thiếu câu móc trang 1'); }
   if (x.mau === 'binh-chon') { const t = x.de as { cau_hoi?: string; lua?: string[] }; if (!t.cau_hoi?.trim().endsWith('?')) loi.push('câu hỏi bình chọn phải kết bằng dấu hỏi'); if ((t.cau_hoi?.length ?? 0) > 200) loi.push('câu hỏi quá 200 ký tự'); const lua = t.lua ?? []; if (lua.length < 2 || lua.length > 4) loi.push('bình chọn cần 2–4 lựa chọn'); if (lua.some((l) => l.length > 25)) loi.push('lựa chọn quá 25 ký tự (giới hạn X)'); if (new Set(lua.map((l) => l.trim().toLowerCase())).size !== lua.length) loi.push('lựa chọn trùng nhau'); }
   if (x.mau === 'lac-loai') { const t = x.de as { giong?: string; khac?: string; hang?: number; cot?: number; vi_tri?: number }; if (!t.giong || !t.khac || t.giong === t.khac) loi.push('ô thường và ô khác phải khác nhau'); if ((t.giong?.length ?? 0) > 5 || (t.khac?.length ?? 0) > 5) loi.push('ô chữ tối đa 5 ký tự'); if ((t.vi_tri ?? 0) >= (t.hang ?? 3) * (t.cot ?? 3)) loi.push('vị trí ô khác ngoài lưới'); }
@@ -187,7 +195,7 @@ export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: Mau
   const link = o.dich ?? o.sp.link, mota = o.chu.description.includes(link) ? o.chu.description : `${o.chu.description.trim()} ${link}`;
   const de: Record<string, unknown> = o.mau === 'bai-anh'
     ? (() => { const d = o.de as z.infer<typeof DeAnhSchema>; return { kieu: KIEU_ANH[o.dang_bai] ?? 'the-chu-tren-anh', truy: d.truy, chu: d.chu, ...(d.phu ? { phu: d.phu } : {}), ...(o.dang_bai === 'hai-lua-chon' ? { lua: d.lua } : {}), ...(o.dang_bai === 'doan-nam-gia' && d.dap_an ? { dap_an: d.dap_an } : {}), nhan: o.sp.nhan }; })()
-    : o.mau === 'giai-thich' ? (() => { const d = o.de as z.infer<typeof DeGiaiThichSchema>; return { truy: d.truy, moc: d.moc, loi: d.loi, ...(d.ket ? { ket: d.ket } : {}) }; })()
+    : o.mau === 'giai-thich' ? (() => { const d = o.de as z.infer<typeof DeGiaiThichSchema>; return { truy: d.truy, moc: d.moc, loi: d.loi, ...(d.ket ? { ket: d.ket } : {}), canh: d.canh.map((c) => ({ truy: c.truy, prompt: c.prompt })) }; })()
     : o.mau === 'carousel' ? (() => { const d = o.de as z.infer<typeof DeCarouselSchema>; return { moc: d.moc, truy: d.truy, trang: d.trang.map((p) => ({ tieu_de: p.tieu_de, ...(p.chu ? { chu: p.chu } : {}), truy: p.truy })), ket: d.ket, nhan: o.sp.nhan }; })()
     : o.mau === 'binh-chon' ? (() => { const d = o.de as z.infer<typeof DePollSchema>; return { loai: 'binh-chon', cau_hoi: d.cau_hoi, lua: d.lua, ngay: d.ngay }; })()
     : o.mau === 'lac-loai' ? (() => { const d = o.de as z.infer<typeof DeLacLoaiSchema>; return { giong: d.giong, khac: d.khac, hang: d.hang, cot: d.cot, vi_tri: d.vi_tri, moc: d.moc, truy: d.truy, ...(d.ket?.length ? { ket: d.ket } : {}), am: d.am, nhan: o.sp.nhan }; })()

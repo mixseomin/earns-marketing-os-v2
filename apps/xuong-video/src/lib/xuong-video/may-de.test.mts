@@ -38,7 +38,7 @@ assert.ok(kiemDe({ ...tot, description: tot.description + ' Hãy kiểm tra giá
 assert.ok(vanNguoiDung({ ...goc, ten: 'Ngại trả phí đăng ký định kỳ' }, 'dung-sai', []).includes('write EVERYTHING in English'), 'góc tiếng Việt: dặn viết tiếng Anh');
 // lồng tiếng giải thích (bước 6, 30/10/2026): dạng → mẫu giai-thich; lời dẫn 3–6 câu, 200–550 ký tự, không link / ký hiệu
 assert.equal(MAU_CUA_DANG['giai-thich-giong'], 'giai-thich');
-const deGt = { truy: 'ambulance highway night', moc: 'Tanker spill on the interstate. First call?', loi: ['A clear liquid is pooling across two lanes and the driver is still inside the cab.', 'You do not request another ambulance first, and you do not call air medical.', 'You request the hazardous materials team, because scene safety always comes before patient care.'], ket: 'Save this for exam week' };
+const deGt = { truy: 'ambulance highway night', moc: 'Tanker spill on the interstate. First call?', loi: ['A clear liquid is pooling across two lanes and the driver is still inside the cab.', 'You do not request another ambulance first, and you do not call air medical.', 'You request the hazardous materials team, because scene safety always comes before patient care.'], ket: 'Save this for exam week', canh: [{ truy: 'overturned tanker truck highway', prompt: 'slow push-in on the truck, flashing lights' }, { truy: 'ambulance crew on highway shoulder', prompt: 'handheld pan across the crew' }, { truy: 'hazmat team in protective suits', prompt: 'slow walk toward camera, smoke behind' }] };
 const gt = { ...tot, mau: 'giai-thich' as const, dang_bai: 'giai-thich-giong', de: deGt };
 assert.deepEqual(kiemDe(gt).filter((l) => /lời dẫn|móc trên video|dòng kết/.test(l)), [], 'đề lồng tiếng đúng luật thì qua');
 assert.ok(kiemDe({ ...gt, de: { ...deGt, loi: deGt.loi.slice(0, 2) } }).some((l) => /3–6 câu/.test(l)), 'thiếu câu bị chặn');
@@ -50,4 +50,6 @@ assert.ok(!kiemDe({ ...viet, ngon_ngu: 'vi' }).some((l) => /tiếng Việt/.test
 assert.ok(kiemDe(viet).some((l) => /tiếng Việt/.test(l)), 'máy US: chữ tiếng Việt vẫn bị chặn');
 assert.ok(vanHeThong({ ...sp, ngon_ngu: 'vi' }, 'top-n').includes('Vietnamese') && !vanHeThong(sp, 'top-n').includes('Vietnamese'), 'prompt theo thị trường');
 assert.ok(!vanNguoiDung({ ...goc, ten: 'Chuẩn bị lễ giỗ tại nhà' }, 'top-n', [], 'vi').includes('write EVERYTHING in English'), 'máy VN: không bảo dịch sang tiếng Anh');
+assert.ok(kiemDe({ ...gt, de: { ...deGt, canh: deGt.canh.slice(0, 2) } }).some((l) => /một cảnh cho mỗi câu/.test(l)), 'thiếu cảnh bị chặn');
+assert.ok(kiemDe({ ...gt, de: { ...deGt, canh: [{ ...deGt.canh[0]!, truy: 'searching old records' }, ...deGt.canh.slice(1)] } }).some((l) => /đa nghĩa/.test(l)), 'từ khoá cảnh đa nghĩa bị chặn (bài #4321 ra kệ đĩa nhạc)');
 console.log('may-de: phần thuần đạt');

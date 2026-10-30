@@ -160,6 +160,26 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
       await db.execute(sql`UPDATE xv_may_video SET de = ${JSON.stringify(r.de)}::jsonb, updated_at = now() WHERE id = ${videoId}`);
       console.log(`giọng ${r.slug}: ${g.giay}s, ${g.vnd}₫`);
     }
+    // MỖI CÂU MỘT CLIP VIDEOEXPRESS (anh 31/10/2026 "sao ko dùng videoexpress… nhìn nhàm chán"): mỗi cảnh một ẢNH THẬT Pexels làm khung đầu (lấy ở đây,
+    // không trùng trong máy) → worker iMac scripts/vx-may.mts gửi VideoExpress (0₫), tải clip về R2, ghi canh[i].vx rồi gọi --xuat lại. Chưa đủ clip
+    // thì KHÔNG dựng bản nhàm: đánh dấu cho_vx và báo chờ.
+    const deV = r.de as DeGiaiThich;
+    if (deV.canh?.length) {
+      if (deV.canh.some((c) => !c.anh)) {
+        const daDung = new Set(((await db.execute(sql`SELECT nen_url FROM xv_may_video WHERE may_id = ${Number(r.may_id)} AND nen_url IS NOT NULL`)) as unknown as Row[]).map((x) => idPexels(x.nen_url as string)).filter((x): x is number => x != null));
+        const canh = [...deV.canh];
+        for (const [i, c] of canh.entries()) { if (c.anh) continue; try { const u = await timAnhNen(c.truy, daDung); canh[i] = { ...c, anh: u }; const id = idPexels(u); if (id != null) daDung.add(id); } catch (e) { return { ok: false, loi: `ảnh khung đầu cảnh #${i + 1}: ${(e as Error).message}` }; } }
+        r.de = { ...deV, canh };
+      }
+      const de2 = r.de as DeGiaiThich, thieu = de2.canh!.filter((c) => !c.vx).length;
+      if (thieu) {
+        r.de = { ...de2, cho_vx: true };
+        await db.execute(sql`UPDATE xv_may_video SET de = ${JSON.stringify(r.de)}::jsonb, updated_at = now() WHERE id = ${videoId}`);
+        return { ok: false, loi: `chờ clip VideoExpress ${thieu}/${de2.canh!.length} cảnh (vx-may.mts trên iMac)` };
+      }
+      if ((de2 as { cho_vx?: boolean }).cho_vx) { r.de = { ...de2, cho_vx: false }; await db.execute(sql`UPDATE xv_may_video SET de = ${JSON.stringify(r.de)}::jsonb, updated_at = now() WHERE id = ${videoId}`); }
+      nenThem = de2.canh!.map((c) => c.vx!);
+    }
   }
   // tiếng nền thu thật cho mẫu nền video (am-nen.ts): loại theo đề hoặc từ khoá, bản theo băm slug
   const deC = r.de as { truy?: string; am?: LoaiAm } | null, amUrl = BO_DUNG[r.mau as MauMayDung]?.giong ? ((r.de as DeGiaiThich).giong_url ?? null) : nenVideo || BO_DUNG[r.mau as MauMayDung]?.amThat ? chonAm(deC?.am ?? amTheoTruy(deC?.truy ?? String(r.chu_de ?? '')), String(r.slug))?.url ?? null : null;

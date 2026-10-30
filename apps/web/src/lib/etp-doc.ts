@@ -177,8 +177,26 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       where c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`),
     run<{ khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }>(sql`select khoa, gia_tri, ghi, ai, luc::text luc from etp.cau_hinh order by khoa`),
     runNha<DuLieuEtp['nhatKy'][number]>(sql`select luc::text luc, viec, camp_id, truoc, sau, ok, loi, luat, ai from etp.nhat_ky order by luc desc limit 300`),
-    runNha<{ camp_id: number; luc: string; xet: XetLuat[] }>(sql`select camp_id, luc::text luc, xet from etp.xet_luat`).catch(() => [] as { camp_id: number; luc: string; xet: XetLuat[] }[]),
-    runNha<{ camp_id: number; luc: string; viec: string; truoc: string | null; sau: string | null; luat: string | null; ai: string | null }>(sql`select n.camp_id, n.luc::text luc, n.viec, n.truoc, n.sau, left(n.luat, 400) luat, n.ai
+    // XEM NGƯỜI (anh 30/10/2026 "theo dõi … thời điểm lên bậc … chỉ đề xuất"): xét luật = máy luật nhà chấm camp người đó (apps/etp/de-xuat-ngoai.py, chỉ đề xuất);
+    // lịch sử bậc = sổ etp.bac_ngoai (trigger 0373) kèm ROI lúc đổi + máy đã đề xuất trước đó bao lâu (etp.de_xuat_bac, 0374)
+    run<{ camp_id: number; luc: string; xet: XetLuat[] }>(ngoai ? sql`select camp_id, luc::text luc, xet from etp.xet_luat_ngoai where nguoi_id = ${dangId}` : sql`select camp_id, luc::text luc, xet from etp.xet_luat`).catch(() => [] as { camp_id: number; luc: string; xet: XetLuat[] }[]),
+    run<{ camp_id: number; luc: string; viec: string; truoc: string | null; sau: string | null; luat: string | null; ai: string | null }>(ngoai ? sql`select b.camp_id, b.luc::text luc,
+        case b.kieu when 'tao' then 'tao_camp' when 'nhan_ban' then 'nhan_ban' when 'sua' then (case when b.moi > b.cu then 'tang' else 'giam' end) end viec,
+        b.cu::text truoc, b.moi::text sau,
+        (case when b.kieu = 'nhan_ban' then 'số camp gốc #' || b.goc_id || ' lúc nhân: ' else 'số lúc đổi: ' end)
+          || 'hôm nay ' || coalesce(round((b.thu_nay - b.chi_nay) / nullif(b.chi_nay, 0) * 100) || '% (chi $' || round(b.chi_nay, 2) || ')', 'chưa chi')
+          || ' · hôm qua ' || coalesce(round((b.thu_qua - b.chi_qua) / nullif(b.chi_qua, 0) * 100) || '%', '—')
+          || ' · cả chặng ' || coalesce(round((b.thu_tron - b.chi_tron) / nullif(b.chi_tron, 0) * 100) || '% (chi $' || round(b.chi_tron, 2) || ')', '—')
+          || case when b.kieu = 'tao' then '' else ' · ' || coalesce('máy đề xuất từ ' || to_char(m.lan_dau at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') || ' (người làm sau '
+               || round(extract(epoch from b.luc - m.lan_dau) / 3600, 1) || ' giờ)', 'máy chưa đề xuất') end luat,
+        t.nguoi ai
+      from etp.bac_ngoai b join etp.tai_khoan t on t.ad_account_id = (select ad_account_id from etp.camp_ngoai where camp_id = b.camp_id)
+      left join lateral (select min(d.lan_dau) lan_dau from etp.de_xuat_bac d where d.lan_dau <= b.luc and (
+          (b.kieu = 'sua' and b.moi > b.cu and d.camp_id = b.camp_id and d.ns = b.cu and d.loai in ('tang', 'dau_phien', 'tang30'))
+          or (b.kieu = 'sua' and b.moi < b.cu and d.camp_id = b.camp_id and d.ns = b.cu and d.loai in ('ha', 'giam'))
+          or (b.kieu = 'nhan_ban' and d.camp_id = b.goc_id and d.loai = 'nb'))) m on true
+      where t.nguoi_id = ${dangId} and b.luc > now() - interval '30 days' order by b.luc`
+      : sql`select n.camp_id, n.luc::text luc, n.viec, n.truoc, n.sau, left(n.luat, 400) luat, n.ai
       from etp.nhat_ky n join etp.camp c on c.camp_id = n.camp_id and c.trang_thai <> 'ARCHIVED'
       where n.ok and n.viec in ('tao_camp', 'nhan_ban', 'roas', 'sang_bo', 'tang', 'giam') and n.luc > now() - interval '30 days' order by n.luc`).catch(() => []),
     run<DuLieuEtp['canhBao'][number]>(sql`select luc::text luc, muc, noi_dung, da_gui::text da_gui from etp.canh_bao order by id desc limit 60`),

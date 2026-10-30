@@ -279,7 +279,9 @@ function dieuKienLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' 
     { ten: `tuổi ${tuoi.toFixed(1)} ≥ 7 ngày`, dat: tuoi >= 7 }] });
   return ra;
 }
-type VaoLuat = { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao' | 'ten' | 'bo' | 'camp_id' | 'phim'>; ba: SoTien; bao?: { nhom: string; chu: string }[]; boThang: string[]; thangMuc: number[]; xet?: XetLuat[] };
+type VaoLuat = { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao' | 'ten' | 'bo' | 'camp_id' | 'phim'>; ba: SoTien; bao?: { nhom: string; chu: string }[]; boThang: string[]; thangMuc: number[]; xet?: XetLuat[];
+  /** camp người khác (?ng=): bảng xét là ĐỀ XUẤT của máy luật nhà, không ai làm (anh 30/10/2026 "chỉ đề xuất, ko tự ý update") */
+  deXuat?: boolean };
 // MỘT chỗ tính luật cho chip (Cây) và ngăn camp (điện thoại) — THỨ TỰ NGUỒN: máy luật đã xếp (etp.bao 'dang', chip đặc) → luật đủ điều kiện theo số trang →
 // máy luật báo GẦN (etp.bao 'gan', vd Gần T7 — nét đứt) → luật thiếu điều kiện theo số trang (nét đứt). Sổ máy luật là nguồn thật; bảng điều kiện của trang chỉ bù khi máy chưa ghi.
 function tinhLuat({ c, ba, bao, boThang, thangMuc, xet }: VaoLuat) {
@@ -317,7 +319,9 @@ function ChuCamp({ t }: { t: string }) {
 }
 // CHỮ DÀI KHÔNG ĐẨY BỀ RỘNG (anh 30/10/2026 #1487 "thu gọn đoạn này lại"): bọc mô tả / ghi chú bằng khối này → bảng rộng theo các cột số liệu, chữ dài xuống dòng theo đó
 const KHONG_GIAN: React.CSSProperties = { width: 0, minWidth: '100%' };
-function BangXet({ xet, gon }: { xet: XetLuat[]; gon?: boolean }) {
+// camp người khác: máy luật nhà chỉ ĐỀ XUẤT — chữ "máy đã xếp làm" đổi thành đề xuất (cùng bảng, không bản thứ hai)
+const chuVao = (deXuat?: boolean) => <span style={{ color: '#4ade80' }}>{deXuat ? ' · máy đề xuất (chỉ đề xuất, không làm)' : ' · máy đã xếp làm'}</span>;
+function BangXet({ xet, gon, deXuat }: { xet: XetLuat[]; gon?: boolean; deXuat?: boolean }) {
   const thu = { dat: 0, gan: 1, xa: 2, khong_ap: 3 } as const;
   const ds = [...xet].sort((a, b) => thu[a.ket] - thu[b.ket]);
   // LUẬT ĐANG TẠM DỪNG gom vào một dòng gập (anh 28/10/2026 #1473 "luật tạm dừng thì cho vào 1 collapsed ko show ngay ra")
@@ -332,10 +336,10 @@ function BangXet({ xet, gon }: { xet: XetLuat[]; gon?: boolean }) {
       <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}>{gon ? null : <th style={o}>Luật</th>}<th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>
       {(() => { const ve = (l: XetLuat, vi: number) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);
         const dau = <td rowSpan={n} title={l.mo_ta} style={{ ...o, cursor: 'help', minWidth: 130, opacity: mo ? 0.6 : 1 }}>
-          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div><b style={{ color: km }}>{kt}</b>{l.vao ? <span style={{ color: '#4ade80' }}> · máy đã xếp làm</span> : null}</div>
+          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b><div><b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null}</div>
           {l.ghi ? <div style={{ ...KHONG_GIAN, color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}</td>;
         const dauGon = <tr key={`${l.ma}-t`} style={{ opacity: mo ? 0.6 : 1 }}><td colSpan={4} title={l.mo_ta} style={{ ...o, paddingTop: 8, borderTop: '1px solid var(--fg-3, #555)' }}>
-          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> · <b style={{ color: km }}>{kt}</b>{l.vao ? <span style={{ color: '#4ade80' }}> · máy đã xếp làm</span> : null}
+          <b style={{ color: XET_CHIP[l.ma]?.[1] }}>{l.ten}</b> · <b style={{ color: km }}>{kt}</b>{l.vao ? chuVao(deXuat) : null}
           {l.ghi ? <div style={{ ...KHONG_GIAN, color: '#fb923c', fontSize: 10.5 }}><ChuCamp t={l.ghi} /></div> : null}{l.dk.length ? null : <div style={{ ...KHONG_GIAN, color: 'var(--fg-2)' }}>{l.mo_ta}</div>}</td></tr>;
         // MỖI LUẬT MỘT KHỐI (anh 29/10/2026 "background khác nhau giữa các khối màu của bậc · hover thì highlight nhẹ bg"): <tbody> riêng, nền nhạt theo màu
         // luật, khối chẵn / lẻ đậm nhạt khác nhau (hai luật cùng màu đứng cạnh vẫn tách được), rê vào khối → nền đậm hơn
@@ -353,11 +357,11 @@ function BangXet({ xet, gon }: { xet: XetLuat[]; gon?: boolean }) {
     </div>
   );
 }
-function ThanLuat({ t, gon }: { t: ReturnType<typeof tinhLuat>; gon?: boolean }) {
+function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: boolean; deXuat?: boolean }) {
   if (t.xet) return <>
     {[...t.daXep, ...t.ganBao].map((b, i) => <div key={i} style={{ ...(gon ? {} : KHONG_GIAN), marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật {LUAT_NHAN[b.nhom]![3] === 'dang' ? 'đã xếp' : 'báo gần'}: {LUAT_NHAN[b.nhom]?.[1]}</b>
       <div style={{ color: 'var(--fg-2)' }}>{luatThuong(b.chu.replace(/^#\d+:[^·]*·\s*/, '').replace(/^#\S*\s*/, ''))}</div></div>)}
-    <BangXet xet={t.xet} gon={gon} />
+    <BangXet xet={t.xet} gon={gon} deXuat={deXuat} />
   </>;
   return <>
     {[...t.daXep, ...t.ganBao].map((b, i) => <div key={i} style={{ marginBottom: 6 }}><b style={{ color: LUAT_NHAN[b.nhom]?.[2] }}>Máy luật {LUAT_NHAN[b.nhom]![3] === 'dang' ? 'đã xếp' : 'báo gần'}: {LUAT_NHAN[b.nhom]?.[1]}</b>
@@ -381,7 +385,7 @@ function ChipLuat(p: VaoLuat) {
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c.ten) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
           <span style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.phim ?? p.c.ten} · ${p.c.ngan_sach}</span></div>
-        <ThanLuat t={t} /></div></KhungNoi> : null}
+        <ThanLuat t={t} deXuat={p.deXuat} /></div></KhungNoi> : null}
     </span>
   );
 }
@@ -395,7 +399,7 @@ const soThang = (du: DuLieuEtp) => ({ boThang: ((du.cauHinh.find((k) => k.khoa =
 const ba3 = (du: DuLieuEtp, c: CampEtpKho) => { const d1 = new Date(Date.parse(du.nay) - 86_400_000).toISOString().slice(0, 10), d2 = new Date(Date.parse(du.nay) - 2 * 86_400_000).toISOString().slice(0, 10);
   return du.soNgay.filter((r) => r.c === c.camp_id && (r.d === d1 || r.d === d2)).reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: c.nay.chi, thu: c.nay.thu }); };
 // THẺ LUẬT ĐANG HIỆN của một camp — MỘT nguồn cho ô Luật (Cây / Bảng) và bộ lọc Luật (anh 28/10/2026 "cần có bộ lọc theo các luật này"): lọc theo đúng chữ trên thẻ
-const chipCamp = (du: DuLieuEtp, c: CampEtpKho, bao?: { nhom: string; chu: string }[]) => (du.nguoi.ngoai ? null : tinhLuat({ c, ba: ba3(du, c), bao, ...soThang(du), xet: du.xetLuat?.[c.camp_id] }).chinh);
+const chipCamp = (du: DuLieuEtp, c: CampEtpKho, bao?: { nhom: string; chu: string }[]) => (tinhLuat({ c, ba: ba3(du, c), bao, ...soThang(du), xet: du.xetLuat?.[c.camp_id] }).chinh);
 const KHONG_LUAT = '__khong';
 // LÝ DO MÁY CHẤM CHẶN — đọc chuỗi etp.cham_cong.chan_boi ("meta.bao_luc 2, afs.cta 4" / "chờ người duyệt (5 điểm: meta.ngon_tu 5)") thành danh sách
 // { tên tiêu chí tiếng Việt (etp.tieu_chi — một nguồn với máy chấm), nhóm, điểm }, điểm thấp (nặng) trước (anh 29/10/2026 "trình bày lại cho dễ hiểu")
@@ -1535,7 +1539,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
           <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">{ds.length ? '▸' : ''}</span> <Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} /></span>
           <span data-cot="tuoi" data-cot-can="phai" title={c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : ''} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tuoi(c) == null ? '' : <>{tuoiChu(tuoi(c))} <span style={{ fontSize: 10 }}>ngày</span></>}</span>
           <span data-cot="ngan-sach"><BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} /></span>
-          <span data-cot="luat" style={{ minWidth: 0 }}>{du.nguoi.ngoai ? <span title="camp người khác — chỉ xem, luật không áp" style={{ color: 'var(--fg-3, #777)' }}>—</span> : null}{du.nguoi.ngoai ? null : <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} />}</span>
+          <span data-cot="luat" style={{ minWidth: 0 }}><ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} /></span>
           {oCr(c)}
           <span data-cot="loai-cr"><BadgeDang d={c.dang} ngan /></span>
           {coLich ? <span data-cot="lich" style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}><LichCamp c={c} du={du} tl={tlC} gon /></span> : null}
@@ -1569,7 +1573,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       total: (rs) => { const t = rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0);   // $0 mờ · ≥ $20 đậm sáng (anh 28/10/2026)
         return <span title="tổng ngân sách/ngày camp đang bật" style={{ display: 'inline-block', width: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : 400, opacity: t ? 1 : 0.45 }}>${t}</span>; } },   // cùng ô 30px canh phải với $ của camp (anh 29/10/2026 #1476 "thò thụt")
     { key: 'luat', header: 'Luật', align: 'left', width: 130, title: 'thẻ luật đang hiện — lọc chọn nhiều theo đúng chữ trên thẻ', sortValue: (c) => chipCamp(du, c, baoCamp.get(c.camp_id))?.chip ?? '',
-      cell: (c) => (du.nguoi.ngoai ? <span title="camp người khác — chỉ xem, luật không áp" style={{ color: 'var(--fg-3, #777)' }}>—</span> : <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} />) },
+      cell: (c) => <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} /> },
     // MỌI CỘT CÓ BỀ RỘNG CỐ ĐỊNH, khoảng thừa vào cột đệm cuối bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang" — trước TT rồi Tuổi lần lượt ăn khoảng trống)
     { key: 'cr', header: 'Creative · điểm chấm', align: 'left', width: 200, title: 'creative camp đang chạy (mã + điểm chấm Meta · AFS, ×N = số lần nhân bản giống hệt) — rê xem video', sortValue: (c) => c.creative_id ?? 0, cell: (c) => oCr(c) },
     { key: 'loai', header: 'Loại', align: 'left', width: 52, cell: (c) => <BadgeDang d={c.dang} ngan />, sortValue: (c) => c.dang ?? '' },
@@ -2071,7 +2075,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
         <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}
-          {du.nguoi.ngoai ? <span title="camp + số của tài khoản QC người này (Ethopex cho htuan82 xem) — chỉ để theo dõi / học; máy luật, nút bật / tắt không áp"
+          {du.nguoi.ngoai ? <span title="camp + số của tài khoản QC người này (Ethopex cho htuan82 xem) — chỉ để theo dõi / học; cột Luật = máy luật nhà ĐỀ XUẤT cho camp người này (không thao tác), rê ô ngân sách xem lịch sử lên bậc + máy đề xuất trước bao lâu; nút bật / tắt không áp"
             style={{ background: 'rgba(168,85,247,.18)', color: '#d8b4fe', border: '1px solid rgba(168,85,247,.5)', borderRadius: 8, padding: '2px 8px', fontWeight: 600, fontSize: 12 }}>👁 chỉ xem</span> : null}</span>
       </div>
       <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0' }}>

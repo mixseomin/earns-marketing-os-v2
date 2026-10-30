@@ -1,4 +1,4 @@
-"""NHÓM GỐC PHIM tự chấm trên poster (anh 29/10/2026: "dừng các phim ngoài âu mỹ … chặn khi lên camp target US" → "làm cho kín").
+"""NHÓM GỐC PHIM tự chấm trên poster (thiếu poster → 4 khung giữa video creative đã chấm) (anh 29/10/2026: "dừng các phim ngoài âu mỹ … chặn khi lên camp target US" → "làm cho kín").
 Cổng cong.kiem gặp phim chưa có etp.phim.nhom_goc thì gọi cham(content_id) NGAY lúc định lên camp (theo sự kiện, không chạy nền):
 poster (ethopex_content.anh, CDN dofez) + tên phim → mô hình nhìn ảnh rẻ qua ckey (tuyến sống /var/lib/spy/ckey-tuyen.json, Haiku trước) → ghi nhom_goc.
 Luật chấm giống lần chấm tay 200 phim (apps/etp/phan-tich/nhom-goc-phim.json): theo NGOẠI HÌNH diễn viên; hoat_hinh CHỈ khi nhìn ra tranh vẽ / hoạt hình 2D-3D;
@@ -25,12 +25,16 @@ def cham(content_id, ghi=True):
     db = os.environ["DATABASE_URL"]; spy_db, khoa = _spy()
     ten = _q(f"select coalesce(ten, '') from etp.phim where content_id = {int(content_id)}", db) or _q(f"select coalesce(ten, '') from ethopex_content where id = {int(content_id)}", spy_db)
     anh = _q(f"select coalesce(anh, '') from ethopex_content where id = {int(content_id)}", spy_db)
-    if not anh: return None, 0, "không có poster trong kho Ethopex"
-    url = anh if anh.startswith("http") else f"https://acdn.dofez.com/{anh}"
+    if anh: anh_ds, nguon = [anh if anh.startswith("http") else f"https://acdn.dofez.com/{anh}"], "poster"
+    else:   # THIẾU POSTER (anh 31/10/2026 "dùng video thumb nào đó đc ko?"): phim chỉ team chạy, spy chưa có → khung giữa video creative của phim đã chấm (Worker etp-cham)
+        anh_ds, nguon = _q(f"""select u from (select distinct on (c.creative_id) c.creative_id, c.lop->'anh'->'khung_url' k from etp.cham c join etp.creative r using (creative_id)
+                               where r.content_id = {int(content_id)} and jsonb_array_length(coalesce(c.lop->'anh'->'khung_url', '[]')) >= 8 order by c.creative_id) x,
+                               jsonb_array_elements_text(x.k) with ordinality e(u, n) where n in (3, 7, 11, 15) limit 4""", db).split(), "khung video QC"
+        if not anh_ds: return None, 0, "không có poster trong kho Ethopex, phim chưa có creative nào chấm xong để lấy khung"
     chi, loi = 0.0, ""
     for model in _tuyen()[:3]:
         try:
-            body = {"model": model, "max_tokens": 200, "messages": [{"role": "user", "content": [{"type": "image_url", "image_url": {"url": url}}, {"type": "text", "text": LUAT + ten}]}],
+            body = {"model": model, "max_tokens": 200, "messages": [{"role": "user", "content": [*({"type": "image_url", "image_url": {"url": u}} for u in anh_ds), {"type": "text", "text": (LUAT if nguon == "poster" else LUAT.replace("this short-drama poster", "these frames from the short drama's ad video")) + ten}]}],
                     "tools": [{"type": "function", "function": {"name": "ghi_nhom", "parameters": {"type": "object", "required": ["kieu_anh", "nhom", "ly_do"], "properties": {"kieu_anh": {"type": "string", "enum": ["anh_chup", "tranh_ve"]}, "nhom": {"type": "string", "enum": NHOM}, "ly_do": {"type": "string"}}}}}],
                     "tool_choice": {"type": "function", "function": {"name": "ghi_nhom"}}}
             r = json.load(urllib.request.urlopen(urllib.request.Request("https://api.xah.io/v1/chat/completions", data=json.dumps(body).encode(), headers={"Authorization": f"Bearer {khoa}", "content-type": "application/json"}), timeout=120))
@@ -39,7 +43,7 @@ def cham(content_id, ghi=True):
             if a.get("kieu_anh") == "tranh_ve": a["nhom"] = "hoat_hinh"   # tranh vẽ thắng ngoại hình (anh: phim kiểu tranh vẽ phải chỉ rõ)
             if a.get("nhom") in NHOM:
                 if ghi: _q(f"insert into etp.phim (content_id, ten, nhom_goc) values ({int(content_id)}, $T${ten}$T$, '{a['nhom']}') on conflict (content_id) do update set nhom_goc = excluded.nhom_goc", db)
-                return a["nhom"], round(chi), f"{model}: {str(a.get('ly_do'))[:120]}"
+                return a["nhom"], round(chi), f"{model} ({nguon}): {str(a.get('ly_do'))[:120]}"
             loi = f"{model}: nhóm lạ {a.get('nhom')}"
         except Exception as e: loi = f"{model}: {str(e)[:120]}"
     return None, round(chi), loi

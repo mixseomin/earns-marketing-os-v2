@@ -205,6 +205,9 @@ const LUAT = [
   // anh 31/10/2026 "Sửa máy luật. Cái này quan trọng": report 30 ngày 2.159 dòng > trang 1.000 người gọi xin → máy luật dừng hẳn từ 16:41 30/10
   { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'b = {**body, "page": 1, "page_size": TRANG_BC, "limit": TRANG_BC}', vi: 'report luôn xin trang tối đa máy chủ, không theo cỡ người gọi' },
   { card: 0, tep: 'apps/etp/ethopex_api.py', co: '"campaign_id": sorted(int(c["id"]) for c in ds_tat_ca())', vi: 'report dòng camp quá trang thì cổng tự chia lô camp' },
+  // anh 31/10/2026 "creative thiếu poster thì có dùng video thumb nào đó đc ko?": nhóm gốc phim thiếu poster chấm trên khung video creative đã chấm
+  { card: 0, tep: 'apps/etp/nhom_goc.py', co: 'jsonb_array_elements_text(x.k) with ordinality e(u, n) where n in (3, 7, 11, 15)', vi: 'nhóm gốc thiếu poster lấy 4 khung video creative đã chấm' },
+  { card: 0, tep: 'apps/etp/nhom_goc.py', cam: 'if not anh: return None, 0, "không có poster trong kho Ethopex"', vi: 'thiếu poster không chặn thẳng — lấy khung video creative' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

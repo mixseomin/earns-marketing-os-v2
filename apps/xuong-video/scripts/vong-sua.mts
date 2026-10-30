@@ -74,7 +74,7 @@ console.log(`LỆCH ĐẦU (${lo(lechDau).length}): ${inLo(lechDau)}`);
 // DỪNG khi 2 vòng liền không hạ được kỷ lục (chững) — không đốt tiền thêm vào bản xấu hơn. Promote bản ít-lệch-nhất.
 const giaTruoc = await giaCanh();
 let best = { url: urlDau, lech: lechDau };   // bản ít lệch nhất từng thấy (gồm cả ảnh đầu)
-let lech = lechDau; let vong = 0; let chung = 0;
+lech = lechDau; let vong = 0; let chung = 0;   // `lech` đã khai ở LỆCH ĐẦU — chỉ gán lại giá trị chạy vòng (không khai trùng)
 const nhatKy: string[] = [];
 while (lo(lech).length && vong < toiDa && chung < 2) {
   vong++;

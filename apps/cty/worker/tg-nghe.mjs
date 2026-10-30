@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { gomTin } from './tg-phong.mjs';
 import { xuNutPhim } from './phim-nut.mjs';
+import { xuThuKy } from './thu-ky.mjs';
 import { xuNutSp, baoKetLenh } from './sp-nut.mjs';
 import { xuNutDuyet } from './duyet-chi.mjs';
 import { bangEthopex, xuNutBang } from './ethopex.mjs';
@@ -15,6 +16,7 @@ const tg = (await import('./tg-phong.mjs')).ghiNut(async (m, b) => { const j = a
 const tim = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'tg-hop', 'nghe.tim');
 for (;;) {
   try { fs.mkdirSync(path.dirname(tim), { recursive: true }); fs.writeFileSync(tim, new Date().toISOString()); const n = await gomTin(tg, { cho: 30 }); if (n) console.log(`${new Date().toISOString()} ${n} tin`); if (await xuNutPhim(tg)) console.log('xử nút phim');
+    try { const k = await xuThuKy(tg); if (k) console.log(`thư ký xử ${k} tin`); } catch (e) { console.error(`✗ thư ký: ${e.message}`); }
     try { if (await xuNutSp(tg)) console.log('xử nút đăng sản phẩm'); await baoKetLenh(tg); } catch (e) { console.error(`✗ nút đăng sản phẩm: ${e.message}`); }
     try { if (await xuNutDuyet(tg)) console.log('xử nút duyệt chi'); } catch (e) { console.error(`✗ nút duyệt chi: ${e.message}`); }
     try { if (await xuNutBang(tg)) console.log('🔄 bảng Ethopex'); else { const b = await bangEthopex(tg); if (b) console.log(`bảng Ethopex: ${b}`); } } catch (e) { console.error(`✗ bảng Ethopex: ${e.message}`); } }

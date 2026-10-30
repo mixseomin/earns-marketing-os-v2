@@ -7,11 +7,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
-export const CHU_DE = { 'an-toan-tk': 'bao-mat-tg.json', 'noi-dung': 'noi-dung-tg.json' };
+export const CHU_DE = { 'an-toan-tk': 'bao-mat-tg.json', 'noi-dung': 'noi-dung-tg.json', 'tai-nguyen': 'tai-nguyen-tg.json' };   // tai-nguyen: 31/10/2026 tin anh trong 🧰 Tài nguyên rơi vào hộp _khac
 const GOC_HOP = () => path.join(DATA(), 'tg-hop'), HOP = (p) => path.join(GOC_HOP(), p);
 const KHAC_NUT = '_khac';   // nút đã nhận (x:cho) — không phòng nào xử
 // Nút bấm về phòng SỞ HỮU nút, không theo chủ đề nơi bấm: "↪️ Sai phòng" (kc:) nằm dưới thư Kiên chuyển vào chủ đề phòng khác vẫn về Kiên.
-export const NUT_CUA = { x: KHAC_NUT, km: 'an-toan-tk', kc: 'an-toan-tk', tp: 'an-toan-tk', nd: 'noi-dung', et: 'ethopex', el: 'ethopex', eb: 'ethopex-bang', ph: 'phim', sp: 'sp', dc: 'duyet-chi' };   // et: nút duyệt tăng / tắt camp của phòng Ethopex · eb: 🔄 bảng số Ethopex (xử ngay ở tg-nghe) · ph: chạy tiếp / dừng phim vượt ngân sách (phim-nut.mjs) · sp: 🚀 máy đăng một sản phẩm (sp-nut.mjs) · dc: ✅ duyệt chi một lượt việc tốn tiền (duyet-chi.mjs)
+export const NUT_CUA = { x: KHAC_NUT, km: 'an-toan-tk', kc: 'an-toan-tk', tp: 'an-toan-tk', nd: 'noi-dung', et: 'ethopex', el: 'ethopex', eb: 'ethopex-bang', ph: 'phim', sp: 'sp', dc: 'duyet-chi', hq: 'thu-ky' };   // et: nút duyệt tăng / tắt camp của phòng Ethopex · eb: 🔄 bảng số Ethopex (xử ngay ở tg-nghe) · ph: chạy tiếp / dừng phim vượt ngân sách (phim-nut.mjs) · sp: 🚀 máy đăng một sản phẩm (sp-nut.mjs) · dc: ✅ duyệt chi một lượt việc tốn tiền (duyet-chi.mjs)
 const KHAC = '_khac', GIU_KHAC_NGAY = 7;   // tin ở chủ đề không phòng nào nhận (chung, chủ đề tay) — giữ 7 ngày để tra rồi xoá
 
 /** topic → phòng, đọc từ tệp trạng thái từng phòng (CHU_DE) + chủ đề phòng tạo qua topicPhong (tg-<phòng>.json). */
@@ -97,14 +97,26 @@ async function daNhanNut(tg, c, bang = new Map()) {
 // câu dặn dài) giữ nguyên là tin chữ để phòng tự đọc. Tin có NHIỀU nút đồng ý (vd lên $2 / lên $3) thì không đoán — bot hỏi lại.
 const TEP_NUT = () => path.join(GOC_HOP(), 'nut.json'), GIU_NUT = 1500;
 export function ghiNut(tg) {
-  return async (m, b) => { const j = await tg(m, b);
+  return async (m, b) => {
+    // MỌI CÂU HỎI PHẢI CÓ LỰA CHỌN (anh 31/10/2026: "mọi câu hỏi trong tele thì phải có option để tao trả lời"): tin hỏi anh mà người gửi quên gắn nút →
+    // gắn [✅ Đồng ý] [✖ Không] (hq: → thư ký, worker/thu-ky.mjs nhận + xử + trả lời dưới tin). Một chỗ cho mọi bộ gửi của cty.
+    if (m === 'sendMessage' && !b?.reply_markup && laCauHoi(b?.text)) b = { ...b, reply_markup: NUT_HOI };
+    const j = await tg(m, b);
+    try { const tl = b?.reply_parameters?.message_id; if (m === 'sendMessage' && tl && j?.ok) danhDauTraLoi(tl); } catch { /* sổ trả lời hỏng không chặn việc gửi */ }
     try { const mid = m === 'sendMessage' ? j?.result?.message_id : b?.message_id; const kb = b?.reply_markup?.inline_keyboard;
       if (mid && kb && ['sendMessage', 'editMessageReplyMarkup', 'editMessageText'].includes(m)) { fs.mkdirSync(GOC_HOP(), { recursive: true }); let so = {}; try { so = JSON.parse(fs.readFileSync(TEP_NUT(), 'utf8')); } catch { /* lần đầu */ }
-        so[mid] = { kb, topic: j?.result?.message_thread_id ?? b?.message_thread_id ?? so[mid]?.topic ?? null }; const k = Object.keys(so); for (const x of k.slice(0, Math.max(0, k.length - GIU_NUT))) delete so[x];
+        so[mid] = { kb, topic: j?.result?.message_thread_id ?? b?.message_thread_id ?? so[mid]?.topic ?? null, chu: String(b?.text ?? so[mid]?.chu ?? '').slice(0, 1500) }; const k = Object.keys(so); for (const x of k.slice(0, Math.max(0, k.length - GIU_NUT))) delete so[x];
         fs.writeFileSync(TEP_NUT(), JSON.stringify(so)); } } catch { /* sổ nút hỏng không chặn việc gửi */ }
     return j; };
 }
-const docNut = (mid) => { try { return JSON.parse(fs.readFileSync(TEP_NUT(), 'utf8'))[mid] ?? null; } catch { return null; } };
+/** Câu hỏi gửi anh: "anh quyết / cho / duyệt / chọn…", "… không?", dòng kết bằng "?" (bỏ thẻ HTML). */
+export const laCauHoi = (t) => { const c = String(t ?? '').replace(/<[^>]+>/g, ''); return /anh (quyết|cho (phép|tạo|làm|chạy)|duyệt|chọn|muốn|có (muốn|đồng ý))|\banh\b[^?\n]*\?\s*$/im.test(c); };   // chỉ câu nhắm tới ANH — dòng FAQ "Is it safe…?" trong tin báo không phải câu hỏi
+export const NUT_HOI = { inline_keyboard: [[{ text: '✅ Đồng ý', callback_data: 'hq:co' }, { text: '✖ Không', callback_data: 'hq:khong' }]] };
+const TEP_TRA = () => path.join(GOC_HOP(), 'da-tra-loi.json');
+/** Tin của anh đã có phòng trả lời (mọi bộ gửi bọc ghiNut tự ghi khi reply_parameters trỏ vào tin đó) — thư ký không trả lời trùng. */
+function danhDauTraLoi(mid) { let ds = []; try { ds = JSON.parse(fs.readFileSync(TEP_TRA(), 'utf8')); } catch { /* lần đầu */ } if (!ds.includes(mid)) { ds.push(mid); fs.mkdirSync(GOC_HOP(), { recursive: true }); fs.writeFileSync(TEP_TRA(), JSON.stringify(ds.slice(-3000))); } }
+export const daTraLoi = (mid) => { try { return JSON.parse(fs.readFileSync(TEP_TRA(), 'utf8')).includes(mid); } catch { return false; } };
+export const docNut = (mid) => { try { return JSON.parse(fs.readFileSync(TEP_NUT(), 'utf8'))[mid] ?? null; } catch { return null; } };
 const CO = /^(ok(e|ay)?|oke+|ừ+|uh+|ờ|có|co|đồng ý|dong y|được|duoc|đc|dc|yes|y|làm đi|lam di|tạo đi|tao di|chạy đi|chay di|duyệt|duyet|chốt|chot|👍|❤️?|👌|✅)[\s.!]*$/i;
 const KHONG = /^(không|khong|ko|k|no|thôi|thoi|bỏ qua|bo qua|đừng|dung|từ chối|tu choi|👎|❌|✖️?)[\s.!]*$/i;
 const CAM_CO = new Set(['👍', '❤', '❤️', '👌', '🔥', '🥰', '👏', '⚡', '❤‍🔥', '💯', '🤝', '🫡']), CAM_KHONG = new Set(['👎']);
@@ -130,6 +142,15 @@ export function doiThanhNut(x) {
   }
   return null;
 }
+/** Phòng có máy đọc tin chữ anh gõ trong chủ đề phòng — và đúng mẫu tin máy đó xử. Còn lại thư ký nhận (không bỏ rơi tin nào). */
+export const phongXuChu = (phong, m) => {
+  const chu = String(m.text ?? m.caption ?? '');
+  if (phong === 'noi-dung') return /https?:\/\//.test(chu);                                   // Ngọc: link nộp chấm
+  if (phong === 'an-toan-tk') return !!m.reply_to_message?.from?.is_bot && !docNut(m.reply_to_message.message_id)?.kb?.flat().some((b) => /^hq:/.test(b.callback_data));   // Kiên: trả lời dưới tin báo thư
+  if (phong === 'ethopex') return /bỏ\s*(cả\s*)?phim|vi phạm|báo lại phim/i.test(chu);       // Phát: bỏ phim
+  if (phong === 'social-traffic') return true;                                                   // Vân: mọi tin (phong-thu.mjs quetTraLoi → iMac)
+  return false;
+};
 const topicCua = (x) => x.message?.message_thread_id ?? x.callback_query?.message?.message_thread_id ?? null;
 
 /** Đọc mọi tin mới của bot một lần, xếp vào hộp phòng. tg(method, body) = hàm gọi Bot API của bên gọi. Có khoá: hai nhịp cùng lúc thì một bên bỏ qua. */
@@ -158,13 +179,17 @@ export async function gomTin(tg, { cho = 0 } = {}) {   // cho = giây chờ tin 
       // lại được (tránh tăng ngân sách hai lần). Kết quả thành / bại do phòng sở hữu nút báo khi xử xong (anh 21/10/2026: "bấm không có tác dụng gì").
       if (x.callback_query && !x.callback_query.ban_phim) try { await daNhanNut(tg, x.callback_query, banPhim); } catch { /* đánh dấu hỏng không chặn việc xếp hộp */ }
       fs.mkdirSync(HOP(phong), { recursive: true }); fs.writeFileSync(path.join(HOP(phong), `${x.update_id}.json`), JSON.stringify(x));
+      // TIN ANH NHẮN LUÔN CÓ NGƯỜI NHẬN (anh 31/10/2026: "khi trả lời thì phải luôn có con nhận và xử lý + phản hồi"): phòng không có máy đọc tin chữ của nó
+      // (hoặc tin không thuộc mẫu phòng đó xử) → bản sao cho thư ký (worker/thu-ky.mjs), mang theo phòng gốc
+      if (x.message && !x.message.from?.is_bot && (x.message.text || x.message.caption) && !phongXuChu(phong, x.message)) { fs.mkdirSync(HOP('thu-ky'), { recursive: true }); fs.writeFileSync(path.join(HOP('thu-ky'), `${x.update_id}.json`), JSON.stringify({ ...x, phong_goc: phong })); }
       offset = x.update_id + 1; n++;
     }
     fs.writeFileSync(tOffset, JSON.stringify({ offset }));
     if ((u.ok ? u.result : []).some(laAnh)) fs.writeFileSync(TEP_DOC(), JSON.stringify({ luc: Date.now() }));
     try { await donTinNhanh(tg); } catch (e) { console.error(`✗ dọn tin nhanh: ${e.message}`); }
     try { await capNhatGhim(tg); } catch (e) { console.error(`✗ ghim nhân sự: ${e.message}`); }
-    try { for (const f of fs.readdirSync(HOP(KHAC))) if (Date.now() - fs.statSync(path.join(HOP(KHAC), f)).mtimeMs > GIU_KHAC_NGAY * 864e5) fs.rmSync(path.join(HOP(KHAC), f)); } catch { /* chưa có hộp khác */ }
+    // tin quá GIU_KHAC_NGAY ngày ở MỌI hộp (hộp phòng không có máy đọc — Sách, Astrolas… — từng giữ tin từ 19/10): thư ký đã nhận bản sao lúc tới
+    for (const h of fs.readdirSync(GOC_HOP(), { withFileTypes: true }).filter((d) => d.isDirectory())) try { for (const f of fs.readdirSync(HOP(h.name))) if (Date.now() - fs.statSync(path.join(HOP(h.name), f)).mtimeMs > GIU_KHAC_NGAY * 864e5) fs.rmSync(path.join(HOP(h.name), f)); } catch { /* hộp đang đổi */ }
     return n;
   } finally { fs.rmSync(khoa, { recursive: true, force: true }); }
 }
@@ -243,5 +268,18 @@ if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kie
     t.equal(so[1].doc, 3000, 'mốc đọc = lần hoạt động đầu sau tin'); t.equal(so[2].doc, undefined, 'hoạt động TRƯỚC lúc tin gửi không tính là đọc');
     t.deepEqual(buocDon(so, 3000, 3000 + 15 * P), [1], 'đọc đủ 15 phút → xoá'); t.ok(!so[1] && so[2]);
     t.deepEqual(buocDon(so, 3000, 5000 + 48 * 3600_000), [2], 'quá 47 giờ thì bỏ khỏi sổ'); }
+  { t.ok(laCauHoi('Khoá 2proxy …08wY còn 2.0 ngày — anh quyết gia hạn hay bỏ (máy không tự gia hạn)')); t.ok(laCauHoi('Phòng Kinh doanh chưa có chủ đề — em không tự tạo. Anh cho tạo không?'));
+    t.ok(!laCauHoi('box3 quá tải: CPU bận 95% suốt 30 phút qua')); t.ok(!laCauHoi('<b>Nguyên</b> · báo xong'));
+    t.ok(!laCauHoi('Thiếu FAQ: "Is it safe to pay the hotel on WhatsApp?"\nKết luận: SỬA LẠI'), 'câu FAQ trích trong tin báo không phải câu hỏi'); t.ok(laCauHoi('Em làm tiếp phần B được không anh?'));
+    const gui = []; const g = ghiNut(async (m, b) => { gui.push(b); return { ok: true, result: { message_id: 700, message_thread_id: 2424 } }; });
+    await g('sendMessage', { text: 'Khoá …08wY còn 2 ngày — anh quyết gia hạn hay bỏ' }); t.equal(gui[0].reply_markup.inline_keyboard[0][0].callback_data, 'hq:co', 'câu hỏi thiếu nút → tự gắn');
+    await g('sendMessage', { text: 'CPU 95%' }); t.ok(!gui[1].reply_markup, 'tin báo không phải câu hỏi: không gắn');
+    await g('sendMessage', { text: 'ok', reply_parameters: { message_id: 55 } }); t.ok(daTraLoi(55) && !daTraLoi(56), 'tin anh đã được trả lời');
+    t.equal(docNut(700).chu.slice(0, 4), 'Khoá', 'sổ nút giữ chữ câu hỏi');
+    t.ok(!phongXuChu('tai-nguyen', { text: 'gia hạn đi' }) && phongXuChu('noi-dung', { text: 'https://a.b/' }) && !phongXuChu('noi-dung', { text: 'bài này sao chậm?' }) && phongXuChu('social-traffic', { text: 'x' }));
+    fs.writeFileSync(path.join(DATA(), 'tai-nguyen-tg.json'), JSON.stringify({ topic: 2424 })); fs.rmSync(path.join(GOC_HOP(), '.khoa'), { recursive: true, force: true });
+    const tg5 = async (m) => (m === 'getUpdates' ? { ok: true, result: [{ update_id: 60, message: { message_id: 61, message_thread_id: 2424, text: 'gia hạn giúp anh', from: { first_name: 'D' } } }, { update_id: 61, message: { message_id: 62, message_thread_id: 2424, text: 'ok', from: { first_name: 'D' }, reply_to_message: { message_id: 700, message_thread_id: 2424, from: { is_bot: true } } } }] } : { ok: true });
+    await gomTin(tg5); t.equal(moHop('tai-nguyen').length >= 1, true, 'chủ đề Tài nguyên về hộp Tài nguyên'); const tk = moHop('thu-ky'); t.ok(tk.some((x) => x.phong_goc === 'tai-nguyen' && x.message?.text === 'gia hạn giúp anh'), 'tin chữ phòng không có máy đọc → thư ký');
+    t.ok(tk.some((x) => x.callback_query?.data === 'hq:co'), '"ok" dưới câu hỏi tự gắn nút → bấm Đồng ý, về thư ký'); }
   console.log('tg-phong: tự kiểm đạt');
 }

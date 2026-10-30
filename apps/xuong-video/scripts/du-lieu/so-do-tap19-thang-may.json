@@ -1,0 +1,184 @@
+{
+  "nguoi": [
+    "Lâm Hạ",
+    "Vivian",
+    "Lục Thần"
+  ],
+  "so_do": {
+    "moc": {
+      "ha": [
+        -0.5,
+        6
+      ],
+      "vi": [
+        0.3,
+        5.95
+      ],
+      "thang": [
+        -0.3,
+        7
+      ],
+      "vi_di": [
+        1.9,
+        5.1
+      ],
+      "loi_vao": [
+        6,
+        3
+      ],
+      "than_ra": [
+        -1.2,
+        6.5
+      ],
+      "tranh": [
+        -2.6,
+        6.4
+      ],
+      "bang": [
+        2.6,
+        6.3
+      ],
+      "ghe": [
+        2.6,
+        5.3
+      ]
+    },
+    "may": {
+      "toan": {
+        "cao": 1.6,
+        "dat": [
+          0.3,
+          0.5
+        ],
+        "ong": 26,
+        "nhin": [
+          0.3,
+          7
+        ]
+      },
+      "can_ha": {
+        "cao": 1.62,
+        "dat": [
+          1,
+          4.2
+        ],
+        "ong": 70,
+        "nhin": [
+          -0.4,
+          6.1
+        ]
+      },
+      "can_vi": {
+        "cao": 1.5,
+        "dat": [
+          -0.5,
+          4
+        ],
+        "ong": 70,
+        "nhin": [
+          0.3,
+          5.95
+        ]
+      },
+      "can_than": {
+        "cao": 1.38,
+        "dat": [
+          0.2,
+          4.8
+        ],
+        "ong": 70,
+        "nhin": [
+          -1.2,
+          6.5
+        ]
+      },
+      "hai_nguoi": {
+        "cao": 1.55,
+        "dat": [
+          2.4,
+          5.3
+        ],
+        "ong": 40,
+        "nhin": [
+          -0.4,
+          6.1
+        ]
+      },
+      "thang_may": {
+        "cao": 1.5,
+        "dat": [
+          0.8,
+          3.6
+        ],
+        "ong": 40,
+        "nhin": [
+          0,
+          7
+        ]
+      },
+      "qua_vai_ha": {
+        "cao": 1.5,
+        "dat": [
+          -1.6,
+          5.2
+        ],
+        "ong": 40,
+        "nhin": [
+          0.3,
+          5.95
+        ]
+      },
+      "can_ha_trai": {
+        "cao": 1.6,
+        "dat": [
+          -2,
+          4.6
+        ],
+        "ong": 70,
+        "nhin": [
+          -0.5,
+          6
+        ]
+      }
+    },
+    "ten": {
+      "thang": "the brushed-steel elevator doors",
+      "loi_vao": "the lobby entrance",
+      "tranh": "the large abstract gold-leaf painting",
+      "bang": "the black glass building directory",
+      "ghe": "the black leather bench"
+    },
+    "den": {
+      "tu": [
+        4,
+        3
+      ],
+      "ten": "warm overhead lobby light, strongest from the lobby-opening side (screen right in the main angles)"
+    },
+    "co_dinh": {
+      "thang": {
+        "tuong": "bac",
+        "so": 2,
+        "duy_nhat": true
+      },
+      "tranh": {
+        "tuong": "tay"
+      },
+      "bang": {
+        "tuong": "dong"
+      },
+      "ghe": {
+        "tuong": "dong"
+      }
+    }
+  },
+  "ten_en": {
+    "Dáng Hạ": "Hạ's pose",
+    "Dáng Thần": "Lục Thần's pose",
+    "Dáng Vivian": "Vivian's pose",
+    "Vết cà phê": "the coffee stain on her blouse",
+    "Thẻ nhân viên": "the white staff ID badge on its dark blue lanyard",
+    "Chỗ đứng Hạ": "Hạ's position",
+    "Thùng đồ cá nhân": "the cardboard box of Hạ's belongings (a small potted plant and a mug inside)"
+  }
+}

@@ -5,7 +5,8 @@ import 'server-only';
 import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
 import { ghiTienChu, type Db } from './doc-db';
 import { bieuCam } from './qc-cam-xuc';
-import { doCam, dang, nguoiKhung, viTri, nhinCan, type KhongGian } from './khong-gian';
+import { doCam, dang, nguoiKhung, viTri, nhinCan, sdLuc, type KhongGian } from './khong-gian';
+import { coDinhDuKien } from './so-do-canh';
 import { chuanEnum } from './thuoc-tinh';
 import type { BocTachKhung, Canh, NhanVat, DongDoiChieu } from './kieu';
 
@@ -54,6 +55,9 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
     L.push({ thanh_phan: `Đạo cụ ${v.ten} + vị trí`, du_kien: viDc || 'không khai' });
     L.push({ thanh_phan: `Đạo cụ ${v.ten} + trạng thái`, du_kien: v.mo_ta || 'không tả' });
   }
+  // ĐỒ CỐ ĐỊNH của địa điểm (cửa / tranh / ghế / bảng) — một lá mỗi món, chỗ trên màn dịch theo máy của shot (so_do.co_dinh): cổng bắt được cửa lật tường
+  const sd = kg ? sdLuc(c, lucKg) : null;
+  if (kg?.so_do && sd) L.push(...coDinhDuKien(kg.so_do, sd));
   return L;
 }
 
@@ -71,6 +75,7 @@ const SCHEMA = { type: 'OBJECT', properties: { doi_chieu: { type: 'ARRAY', items
 export async function doiChieuKhung(db: Db | null, phimId: number | null, duKien: MucDuKien[], k: BocTachKhung): Promise<DongDoiChieu[] | null> {
   const thuc = [
     `Khung hình: ${k.khung_hinh} · ${k.goc_may}`, `Bối cảnh: ${k.boi_canh} · ánh sáng ${k.anh_sang}`, `Bố cục: ${k.bo_cuc}`,
+    k.vat_co_dinh?.length ? `Đồ cố định thấy trong khung: ${k.vat_co_dinh.join(', ')}` : '',
     ...k.nguoi.map((n) => `Người "${n.ai}" (${n.dac_diem}) — vị trí: ${n.vi_tri} · áo: ${n.ao} · tóc: ${n.toc} · trang sức: ${n.trang_suc} · biểu cảm: ${n.bieu_cam} · nhìn: ${n.huong_nhin} · dáng: ${n.dang} · cầm: ${n.do_cam}`),
     ...k.dao_cu.map((d) => `Đạo cụ "${d.ten}" (${d.dac_diem}): ${d.trang_thai} — ${d.vi_tri}`),
     k.chu_tren_hinh && k.chu_tren_hinh !== 'không' ? `Chữ trên hình: ${k.chu_tren_hinh}` : '',

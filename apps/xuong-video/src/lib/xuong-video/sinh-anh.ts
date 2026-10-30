@@ -1,6 +1,7 @@
 // Sinh ảnh gốc anchor + keyframe shot — lõi dùng chung cho server action (actions.ts, đã kiểm quyền) và script trên box.
 import 'server-only';
-import { kgCua, loiMachTap2d, nguoiNgoai, type ShotKg } from './khong-gian';
+import { kgCua, loiMachTap2d, nguoiNgoai, sdLuc, type ShotKg } from './khong-gian';
+import { cauBoiCanhCoDinh } from './so-do-canh';
 import { doiTayDo, cauDoiTayKet, thieuCachThao } from './thao-do';
 import { sql } from 'drizzle-orm';
 import { dayViecAnh, giaAnhSv } from './hoan-tat';
@@ -358,6 +359,10 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // BỐI CẢNH: câu đầu mô tả anchor bối cảnh ("Boardroom in afternoon light") — có khung 3D thì KHÔNG gửi ảnh mẫu / mô tả dài (mời vẽ thêm đồ, #23
   // tập 19), nhưng phải nói ĐANG Ở ĐÂU: bỏ hẳn thì model không biết không gian (anh 17/10/2026: "không gian, bối cảnh chưa thấy prompt nhắc đến").
   const boiCanh = bc.nhanVat.filter((v) => v.loai === 'boi_canh').map((v) => dauBoiCanh(v.mo_ta)).filter(Boolean)[0] ?? '';
+  // HÌNH HỌC CỐ ĐỊNH theo máy (so-do-canh › cauBoiCanhCoDinh): cửa / tranh / ghế đúng tường + số lượng + chỗ trên màn tính từ máy của shot — giữ bất biến
+  // khi đổi góc (anh 31/10/2026: nền "2 cửa bên phải" mà cửa nhảy trái / phải mỗi khung vì hình học chưa bao giờ được khoá theo máy). '' khi phim chưa có sơ đồ.
+  const sdKhung = bc.khongGian?.so_do && bc.canh.ky_thuat?.sd ? sdLuc(bc.canh, ket ? 'ket' : 'dau') : null;
+  const boiCanhCoDinh = sdKhung ? cauBoiCanhCoDinh(bc.khongGian!.so_do, sdKhung) : '';
   // KHỐI NGƯỜI / MÓN (prompt-khoi.ts › chuNguoi) — MỘT hàm cho mọi đường: bộ đồ = mô tả mọi biến thể sổ người, đồ đeo sổ người, cận chèn chỉ tả tay.
   const chen = bc.canh.ky_thuat?.co_canh === 'insert';
   const vtCua = (v: NhanVat) => (v.loai === 'nhan_vat' ? viTriCua(v.ten) : undefined);
@@ -422,7 +427,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     // KHUÔN một bước (prompt-khoi.ts › KHUON.mot_buoc)
     const k1: Khoi[] = [
       khoi('anh_dich', `EDIT Image 1. Image 1 is a 3D previs render of this exact frame; turn it into ${CL.anh_dich(boiCanh)}. This is a RE-TEXTURING job, not a new picture: keep the camera position, height and tilt, the lens, the framing and horizon, and every object's and character's position, size, pose, facing, overlap and cut-off at the frame edges EXACTLY as in Image 1. Do not add, remove, move, rotate, enlarge or shrink anything.`),
-      khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat, bc.canh.khung_xam)), khoi('so_nguoi', soNguoi), khoi('huong', chen ? '' : huongCau), khoi('dien', dangCau), khoi('giu', dauCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
+      khoi('may', mayCau), khoi('bo_tri', ket ? '' : moTaThay(bc.canh.khung_xam?.thay, goiVat, bc.canh.khung_xam)), khoi('boi_canh', boiCanhCoDinh), khoi('so_nguoi', soNguoi), khoi('huong', chen ? '' : huongCau), khoi('dien', dangCau), khoi('giu', dauCau), khoi('khung', framingCau), khoi('ngoai_khung', ngoaiCau), khoi('trang_thai', trang3d),
       khoi('nguoi', thay.length && `Replace each smooth stand-in shape with the real thing, in exactly the same place, size and pose: ${thay.join(' | ')}.`),
       khoi('phong_cach', `Photo look: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}. Keep Image 1's light direction and colours.`),
       khoi('anh_set', setSo && cauAnhSet(setSo, nhanSet)), khoi('khong_them', KHONG_THEM_ANH),
@@ -494,7 +499,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       const kS: Khoi[] = [
         khoi('nguoi', `EDIT Image 1 (a photograph of this exact frame). Change ONLY how each character and prop LOOKS so it matches its reference image: ${nhanDang.join(' | ')}.`),
         khoi('giu', 'Keep everything else exactly as Image 1 (camera, framing, every position, size and outline, background, light, colours); Image 2 is the 3D layout of this frame. Do not add, remove, move or resize anything.'),
-        khoi('anh_set', set2 && cauAnhSet(set2, nhanSet)), khoi('khong_them', KHONG_THEM_ANH),
+        khoi('anh_set', set2 && cauAnhSet(set2, nhanSet)), khoi('khong_them', KHONG_THEM_ANH), khoi('boi_canh', boiCanhCoDinh),
         khoi('huong', chen ? '' : huongCau), khoi('so_nguoi', soNguoi), khoi('ngoai_khung', ngoaiCau), khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))),
         khoi('nhan_dang', coDinh.length && `The ${coDinh.join(' and the ')} must show EXACTLY what is on it in Image 2 — same picture, same title text, same layout — replacing whatever Image 1 shows there.`),
         khoi('cam_chu', coDinh.length ? `Apart from that: ${camChu(chuPhim)}` : camChu(chuPhim)),
@@ -504,7 +509,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
       // Thần quay lưng) → mỗi người MỘT lượt riêng trên nền xanh (một chủ thể thì đạt như các shot một người), nền một lượt riêng không người.
       const lopKx = bc.canh.khung_xam?.lop; const dau = CL.flux_dau(g >= 8 ? 'thap' : g <= -8 ? 'cao' : 'ngang');
       const lop: LopGhep | undefined = lopKx ? {
-        nen: { sau: lopKx.nen, prompt: ghep([khoi('anh_dich', dau), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`), khoi('hau_canh', nenDu.length && `Background: ${nenDu.slice(0, 6).join(', ')}.`),
+        nen: { sau: lopKx.nen, prompt: ghep([khoi('anh_dich', dau), khoi('boi_canh', boiCanh && `Setting: ${boiCanh}.`), khoi('boi_canh', boiCanhCoDinh), khoi('hau_canh', nenDu.length && `Background: ${nenDu.slice(0, 6).join(', ')}.`),
           khoi('so_nguoi', 'No people anywhere: the place is completely empty.'), khoi('khong_them', KHONG_THEM_FLUX), khoi('phong_cach', nguoiThat ? moTaVua(phongCachHinh(bc.kt.phong_cach)) : ''), khoi('chat_lieu', CL.flux_cuoi), khoi('cam_chu', camChu(chuPhim))]) },   // cấm chữ: biển / logo vẽ thành chữ méo (#12 'B-GROP') — đồ nhận dạng đi đường ghép ảnh chuẩn
         nguoi: lopKx.nguoi.flatMap((x) => {
           const v = trongS.find((n) => n.ten === x.ten); if (!v) return [];
@@ -537,7 +542,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
     return { prompt: pS, urlRef: ref, vai: vaiS, soat, khoi: { mot_buoc: k1 } };
   }
   // THỨ TỰ: khối 3D (bố trí, góc máy, cỡ, hướng mặt, ngoài khung) đứng ĐẦU prompt — đứng sau phong cách + mô tả nhân vật thì bị loãng (#35).
-  const prompt = [kxChu, mayCau, framingCau, huongCau, dangCau, ngoaiCau, trangCau, ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc, camChu(chuPhim)), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh'), 'No extra objects, props or people beyond what this description and the reference images show.'].filter(Boolean).join(' ');
+  const prompt = [kxChu, mayCau, framingCau, boiCanhCoDinh, huongCau, dangCau, ngoaiCau, trangCau, ghepPromptAnh(bc.canh.prompt_anh, phongCachHinh(bc.kt.phong_cach), nvRef, promptKyThuatAnh(bc.canh.ky_thuat), bc.canh.trang_phuc, camChu(chuPhim)), camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat)), tiLeCau, btlChu, anhSang, mauChu, moChu, theChu, banDoRef, noiChu, trChu, msChu, ghiChuBt, promptCamXuc(bc.canh, bc.nhanVat, 'anh'), promptBieuCam(bc.canh.bieu_cam, 'anh'), 'No extra objects, props or people beyond what this description and the reference images show.'].filter(Boolean).join(' ');
   return { prompt, urlRef, vai };
 }
 

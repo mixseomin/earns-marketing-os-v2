@@ -16,7 +16,8 @@ export const MAU_CUA_DANG: Record<string, MauMayDung | null> = {
 export const MAU_SINH = new Set<MauMayDung>(['canh-dong', 'giai-thich', 'bai-anh', 'top-n', 'lat-dap-an', 'so-sanh', 'cau-noi', 'cai-nao-gia', 'lac-loai', 'binh-chon', 'carousel']);
 export const KIEU_ANH: Record<string, string> = { 'the-chu-tren-anh': 'the-chu-tren-anh', 'ai-con-nho': 'ai-con-nho', 'doan-nam-gia': 'doan-nam-gia', 'hai-lua-chon': 'hai-lua-chon' };
 
-export interface SanPhamDe { ma: string; ten: string; ngach: string[]; site: string | null; link: string; nhan: string; mo_ta: string; book?: string }
+export interface SanPhamDe { ma: string; ten: string; ngach: string[]; site: string | null; link: string; nhan: string; mo_ta: string; book?: string;
+  /** ngôn ngữ thị trường theo nhóm góc spy của máy (goc_sp.thi_truong: VN:vi → 'vi'); mặc định 'en' (US) — 31/10/2026, Giỗ Chạp viết tiếng Việt */ ngon_ngu?: 'en' | 'vi' }
 export interface GocDe { sp: number; id: number; loai: string; ten: string; mo_ta?: string | null }
 
 const TU_MAY = ['delve', 'leverage', 'utilize', 'crucial', 'vital', 'comprehensive', 'robust', 'streamline', 'moreover', 'furthermore', 'seamless', 'elevate', 'unlock', 'game-changer', 'in today\'s', 'dive into', 'tapestry', 'realm', 'testament'];
@@ -112,7 +113,7 @@ export const ChuDangSchema = z.object({
 /** Chữ có dấu tiếng Việt (ă â đ ê ô ơ ư + các thanh) — chữ đăng tiếng Anh không bao giờ có. */
 export const CHU_VIET = /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i;
 /** Kiểm đề + chữ đăng theo đúng luật Phòng Nội dung (cham-dang.mjs) trước khi nạp — sai thì trả lỗi để sinh lại. Thuần. */
-export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string, unknown>; title: string; description: string; nhan: string }): string[] {
+export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string, unknown>; title: string; description: string; nhan: string; ngon_ngu?: 'en' | 'vi' }): string[] {
   const loi: string[] = [], chu = `${x.title}\n${x.description}`, thuong = chu.toLowerCase();
   if (x.title.length < 25) loi.push(`câu móc quá ngắn (${x.title.length})`); if (x.title.length > 110) loi.push(`câu móc dài ${x.title.length}`);
   if (!/[?!]|\d/.test(x.title)) loi.push('câu móc không có câu hỏi / con số');
@@ -120,7 +121,7 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
   if (/[—–]/.test(chu)) loi.push('gạch ngang dài');
   // chữ đăng + chữ trên video phải tiếng Anh (thị trường US): góc spy là ghi chú tiếng Việt, mô hình rẻ hay viết theo — 29/10/2026 đề Sidecue dung-sai-40165 ra tiếng Việt
   // mà vẫn DUYỆT. Trừ mẫu câu nói (bản ngữ có thể là tiếng Việt).
-  if (x.mau !== 'cau-noi' && CHU_VIET.test(`${chu}\n${JSON.stringify(x.de)}`)) loi.push('có chữ tiếng Việt — viết toàn bộ bằng tiếng Anh (góc chỉ là ghi chú tiếng Việt, hãy dịch ý)');
+  if (x.ngon_ngu !== 'vi' && x.mau !== 'cau-noi' && CHU_VIET.test(`${chu}\n${JSON.stringify(x.de)}`)) loi.push('có chữ tiếng Việt — viết toàn bộ bằng tiếng Anh (góc chỉ là ghi chú tiếng Việt, hãy dịch ý)');
   const tm = TU_MAY.filter((w) => thuong.includes(w)); if (tm.length) loi.push(`từ máy: ${tm.join(', ')}`);
   if (x.description.length < 80) loi.push('chữ đăng quá mỏng');
   if ((chu.match(/(^|\s)#\w+/g) || []).length > 3) loi.push('quá 3 hashtag');
@@ -149,14 +150,15 @@ export const slugDe = (dang: string, gocId: number, chu: string) => `${dang}-${g
 
 /** Prompt hệ thống: luật chữ chung (giọng người thật, Phòng Nội dung) + mô tả sản phẩm + góc + dạng. */
 export function vanHeThong(sp: SanPhamDe, dang_bai: string): string {
-  return [`You write short social posts for "${sp.nhan}" (${sp.mo_ta}). Destination page: ${sp.link}. Audience market: US, English.`,
+  return [`You write short social posts for "${sp.nhan}" (${sp.mo_ta}). Destination page: ${sp.link}. ${sp.ngon_ngu === 'vi' ? 'Audience market: Vietnam, Vietnamese.' : 'Audience market: US, English.'}`,
+    ...(sp.ngon_ngu === 'vi' ? ['LANGUAGE: write every text field (hook, post text, on-screen lines) in natural Vietnamese with full diacritics, even where a field description says English. Only Pexels search queries stay in English.'] : []),
     'Rules (hard): plain human voice, concrete and specific, one useful thing per post; no hype, no superlatives, no hashtags, no em dashes (— or –), never these words: ' + TU_MAY.join(', ') + '.',
     'The hook must come from the ANGLE given (a real thing the audience says or faces), be a question or carry a number, and must not open with the brand name. Do not invent statistics, prices or testimonials.',
     `Post format: ${dang_bai}. Fill the schema exactly; empty strings / arrays where a field does not apply.`].join('\n');
 }
-export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[]): string {
+export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[], ngonNgu: 'en' | 'vi' = 'en'): string {
   return [`ANGLE (${LOAI_VI[goc.loai] ?? goc.loai}): "${goc.ten}"${goc.mo_ta ? ` — ${goc.mo_ta}` : ''}.`,
-    CHU_VIET.test(`${goc.ten} ${goc.mo_ta ?? ''}`) ? 'The angle above is an internal note in Vietnamese: translate its meaning and write EVERYTHING in English.' : '',
+    ngonNgu !== 'vi' && CHU_VIET.test(`${goc.ten} ${goc.mo_ta ?? ''}`) ? 'The angle above is an internal note in Vietnamese: translate its meaning and write EVERYTHING in English.' : '',
     `Format "${dang_bai}": ${MO_TA_DANG[dang_bai] ?? ''}`,
     daDung.length ? `Hooks already used (write something different): ${daDung.slice(0, 12).map((t) => `"${t}"`).join('; ')}` : '',
     'Return the JSON now.'].filter(Boolean).join('\n');
@@ -207,11 +209,11 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   // tiền: ckey báo VNĐ thật (tokens.vnd); không báo (Anthropic trực tiếp, hoặc ckey thiếu x_ckey.cost — 27/10 nhật ký ghi 0₫) thì ƯỚC theo token × bảng giá (26.000₫/$)
   let vnd = 0, loiCu: string[] = []; const tk = { in: 0, out: 0 };
   for (let lan = 0; lan < 2; lan++) {
-    const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? []) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''), ten: 'de_bai' });
+    const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en') + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''), ten: 'de_bai' });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;
     const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich });
-    loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan });
+    loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu });
     if (!loiCu.length) return { ok: true, de, vnd, model: r.model, tokens: { ...tk, vnd } };
   }
   return { ok: false, loi: `đề sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };

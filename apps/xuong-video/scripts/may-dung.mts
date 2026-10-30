@@ -93,7 +93,10 @@ if (a.includes('--nap')) {
   if (!nhom.length) { console.error(`máy ${ma} chưa gắn nhóm góc spy (goc_sp)`); process.exit(1); }
   const fs = await import('node:fs'), url = process.env.SPY_DATABASE_URL ?? fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13);
   const spy = (await import('postgres')).default(url!, { max: 1, prepare: false });
-  const gocs = (await spy`select sp_id as sp, id, loai, ten from goc where sp_id = any(${nhom}) order by id`) as unknown as { sp: number; id: number; loai: string; ten: string }[]; await spy.end();
+  const gocs = (await spy`select sp_id as sp, id, loai, ten from goc where sp_id = any(${nhom}) order by id`) as unknown as { sp: number; id: number; loai: string; ten: string }[];
+  // NGÔN NGỮ THEO THỊ TRƯỜNG của nhóm góc (31/10/2026, Giỗ Chạp): nhóm thị trường VN → đề + chữ đăng tiếng Việt; dạng cần giọng tiếng Anh (heygen Vincent) / câu nói ngoại ngữ thì bỏ
+  const tt = ((await spy`select thi_truong from goc_sp where id = any(${nhom})`) as unknown as { thi_truong: string[] | null }[]).flatMap((x) => x.thi_truong ?? []); await spy.end();
+  if (tt.length && tt.every((t) => /^VN/i.test(t))) { (sp as { ngon_ngu?: 'vi' }).ngon_ngu = 'vi'; DANG_VIDEO.splice(0, DANG_VIDEO.length, ...DANG_VIDEO.filter((d) => d !== 'giai-thich-giong' && d !== 'cau-noi-theo-nuoc')); console.log('· máy thị trường VN: viết tiếng Việt'); }
   const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.dang->>'title' AS title FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; title: string | null }[];
   const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);
   const thuTu = [...gocs].sort((g1, g2) => (dem.get(g1.id) ?? 0) - (dem.get(g2.id) ?? 0));   // góc chưa dùng trước, rồi góc dùng ít

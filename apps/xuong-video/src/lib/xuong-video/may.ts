@@ -6,6 +6,7 @@ import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
 import { catAnhTuVideo, dungVideo, timVideoNenDong } from './may-dung';
 import { BO_DUNG, truyVanAnhMau, type DeMay } from './mau-dung';
+import { loiDoc, type DeGiaiThich } from './may-dung-giai-thich';
 import { idPexels, idPexelsVideo, timAnhNen } from './anh-nen';
 import { amTheoTruy, chonAm, type LoaiAm } from './am-nen';
 import { MAU_MAY_DUNG, type MauMayDung } from './may-dung-mau';
@@ -148,8 +149,19 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
     await db.execute(sql`UPDATE xv_may_video SET video_url = NULL, khung = '[]'::jsonb, anh = ${JSON.stringify([r.nen_url])}::jsonb, giay = NULL, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
     return { ok: true, url: String(r.nen_url) };
   }
+  // LỜI DẪN GIỌNG AI (mẫu khai `giong` — giai-thich, bước 6, 30/10/2026): sinh MỘT lần (giong-heygen.ts), ghi vào đề để dựng lại không tốn lại; tiếng của video = tệp giọng
+  if (BO_DUNG[r.mau as MauMayDung]?.giong) {
+    const deG = r.de as DeGiaiThich;
+    if (!deG.giong_url) {
+      const { sinhGiongLoiDan } = await import('./giong-heygen');
+      const g = await sinhGiongLoiDan(loiDoc(deG), String(r.slug)); if (!g.ok) return { ok: false, loi: `giọng lời dẫn: ${g.loi}` };
+      r.de = { ...deG, giong_url: g.url, giong_giay: g.giay, giong_vnd: g.vnd };
+      await db.execute(sql`UPDATE xv_may_video SET de = ${JSON.stringify(r.de)}::jsonb, updated_at = now() WHERE id = ${videoId}`);
+      console.log(`giọng ${r.slug}: ${g.giay}s, ${g.vnd}₫`);
+    }
+  }
   // tiếng nền thu thật cho mẫu nền video (am-nen.ts): loại theo đề hoặc từ khoá, bản theo băm slug
-  const deC = r.de as { truy?: string; am?: LoaiAm } | null, amUrl = nenVideo || BO_DUNG[r.mau as MauMayDung]?.amThat ? chonAm(deC?.am ?? amTheoTruy(deC?.truy ?? String(r.chu_de ?? '')), String(r.slug))?.url ?? null : null;
+  const deC = r.de as { truy?: string; am?: LoaiAm } | null, amUrl = BO_DUNG[r.mau as MauMayDung]?.giong ? ((r.de as DeGiaiThich).giong_url ?? null) : nenVideo || BO_DUNG[r.mau as MauMayDung]?.amThat ? chonAm(deC?.am ?? amTheoTruy(deC?.truy ?? String(r.chu_de ?? '')), String(r.slug))?.url ?? null : null;
   const v = await dungVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, nenUrl: (r.nen_url as string | null) ?? null, nenThemUrl: nenThem, amUrl, slug: String(r.slug) });
   if (!v.ok) return v;
   // mẫu chỉ ảnh (chiAnh): bản xuất là `anh`, video_url NULL — máy đăng chỉ lên nền ảnh (fb_anh / x_anh), Phòng Nội dung chấm theo anh (như bài link)

@@ -6,6 +6,7 @@ export const MAU_MAY_DUNG = {
   'before-you-land': { ten: 'Before you land · eSIM theo nước' },
   'cau-hoi-thi': { ten: 'Câu hỏi luyện thi · ExamWeight' },
   'canh-dong': { ten: 'Cảnh động thả hồn' },
+  'giai-thich': { ten: 'Lồng tiếng giải thích (giọng AI heygen)' },   // video nền thật + lời dẫn giọng AI + phụ đề theo câu — bước 6, 30/10/2026
   'bai-anh': { ten: 'Bài ảnh (thẻ chữ · nhận ra · đoán · hai lựa chọn)' },
   'top-n': { ten: 'Top 3/5 đếm ngược' },
   'carousel': { ten: 'Carousel 5–7 trang (chỉ ảnh 4:5)' },   // trang móc + 3–5 trang ý + trang chốt, mỗi trang một ảnh thật — bước 4, 28/10/2026

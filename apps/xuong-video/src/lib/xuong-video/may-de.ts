@@ -9,11 +9,11 @@ import { giaChuCents } from './kieu';
 
 /** Dạng trong kho (scripts/ke-hoach-goc/dang-bai.json) → mẫu studio dựng được. Dạng chưa có mẫu → null (ô để máy đăng dùng bài kho như cũ). */
 export const MAU_CUA_DANG: Record<string, MauMayDung | null> = {
-  'canh-dong': 'canh-dong', 'the-chu-tren-anh': 'bai-anh', 'ai-con-nho': 'bai-anh', 'doan-nam-gia': 'bai-anh', 'hai-lua-chon': 'bai-anh',
+  'canh-dong': 'canh-dong', 'giai-thich-giong': 'giai-thich', 'the-chu-tren-anh': 'bai-anh', 'ai-con-nho': 'bai-anh', 'doan-nam-gia': 'bai-anh', 'hai-lua-chon': 'bai-anh',
   'top-n': 'top-n', 'lam-tuong': 'lat-dap-an', 'dung-sai': 'lat-dap-an', 'cau-do-meo': 'lat-dap-an', 'so-sanh': 'so-sanh', 'cau-noi-theo-nuoc': 'cau-noi', 'spot-the-fake': 'cai-nao-gia', 'vat-lac-loai': 'lac-loai', 'binh-chon': 'binh-chon', 'carousel': 'carousel', 'tin-lua-tuan': 'scam-or-real', 'n-buoc': 'before-you-land', 'do-chu': 'do-chu-mot-dung', 'cau-hoi-thi': 'cau-hoi-thi',
 };
 /** Mẫu máy sinh đề đã viết được prompt (mẫu cũ có đề phức tạp — scam / land / đố chữ — vẫn đi đường cũ). */
-export const MAU_SINH = new Set<MauMayDung>(['canh-dong', 'bai-anh', 'top-n', 'lat-dap-an', 'so-sanh', 'cau-noi', 'cai-nao-gia', 'lac-loai', 'binh-chon', 'carousel']);
+export const MAU_SINH = new Set<MauMayDung>(['canh-dong', 'giai-thich', 'bai-anh', 'top-n', 'lat-dap-an', 'so-sanh', 'cau-noi', 'cai-nao-gia', 'lac-loai', 'binh-chon', 'carousel']);
 export const KIEU_ANH: Record<string, string> = { 'the-chu-tren-anh': 'the-chu-tren-anh', 'ai-con-nho': 'ai-con-nho', 'doan-nam-gia': 'doan-nam-gia', 'hai-lua-chon': 'hai-lua-chon' };
 
 export interface SanPhamDe { ma: string; ten: string; ngach: string[]; site: string | null; link: string; nhan: string; mo_ta: string; book?: string }
@@ -86,6 +86,13 @@ export const DeLacLoaiSchema = z.object({
   ket: z.array(z.string()).max(2).describe('0-2 closing lines: brand and site, each under 40 characters'),
   am: z.enum(['mua', 'song', 'gio', 'rung', 'dem', 'pho', 'lua', 'im']),
 });
+/** Lồng tiếng giải thích (bước 6, 30/10/2026): lời dẫn đọc bằng giọng AI (heygen turbo) — chữ = đúng lời đọc, nên viết như NÓI. */
+export const DeGiaiThichSchema = z.object({
+  truy: z.string().describe('Pexels VIDEO query for a real moving scene that fits the explanation, English, 2-4 words'),
+  moc: z.string().describe('on-screen hook shown while the first sentence is read, 20-80 characters, a question or a surprising fact from the angle'),
+  loi: z.array(z.string()).min(3).max(6).describe('3-6 short spoken sentences, 200-550 characters in total, natural to read aloud: set up the situation from the angle, give the answer or the key fact, one concrete reason; no lists, no URLs, no symbols the voice cannot read'),
+  ket: z.string().describe('closing line on screen after the voice, under 60 characters, no link, e.g. a save or practice prompt'),
+});
 export const DePollSchema = z.object({
   cau_hoi: z.string().describe('the poll question as the post text, under 200 characters, ends with a question mark, no link'),
   lua: z.array(z.string()).min(2).max(4).describe('2-4 answer options, each under 25 characters, distinct, no emoji, the audience picks ONE'),
@@ -120,6 +127,9 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
   const de = x.de as { truy?: string; moc?: string; chu?: string; lua?: string[]; dap_an?: string };
   if (x.mau !== 'top-n' && x.mau !== 'lat-dap-an' && x.mau !== 'so-sanh' && x.mau !== 'cau-noi' && x.mau !== 'cai-nao-gia' && x.mau !== 'lac-loai' && x.mau !== 'binh-chon' && x.mau !== 'carousel' && (!de.truy || de.truy.split(/\s+/).length > 6)) loi.push('từ khoá cảnh thiếu hoặc dài');
   if (x.mau === 'canh-dong' && (!de.moc || de.moc.length < 20 || de.moc.length > 90)) loi.push('câu móc trên video 20–90 ký tự');
+  if (x.mau === 'giai-thich') { const t = x.de as { moc?: string; loi?: string[]; ket?: string }; const n = t.loi?.length ?? 0, dai = (t.loi ?? []).join(' ').length;
+    if (!t.moc || t.moc.length < 20 || t.moc.length > 80) loi.push('câu móc trên video 20–80 ký tự'); if (n < 3 || n > 6) loi.push('lời dẫn cần 3–6 câu'); if (dai < 200 || dai > 550) loi.push(`lời dẫn ${dai} ký tự (cần 200–550)`);
+    if ((t.loi ?? []).some((c) => /https?:|www\.|[#@<>{}\[\]]/.test(c))) loi.push('lời dẫn có link / ký hiệu giọng không đọc được'); if ((t.ket?.length ?? 0) > 60) loi.push('dòng kết quá 60 ký tự'); }
   if (x.mau === 'carousel') { const t = x.de as { trang?: { tieu_de?: string; truy?: string }[]; moc?: string }; const n = t.trang?.length ?? 0; if (n < 3 || n > 5) loi.push('carousel cần 3–5 trang ý'); if (t.trang?.some((p) => !p.tieu_de || !p.truy)) loi.push('mỗi trang cần ý + từ khoá ảnh'); if (!t.moc) loi.push('carousel thiếu câu móc trang 1'); }
   if (x.mau === 'binh-chon') { const t = x.de as { cau_hoi?: string; lua?: string[] }; if (!t.cau_hoi?.trim().endsWith('?')) loi.push('câu hỏi bình chọn phải kết bằng dấu hỏi'); if ((t.cau_hoi?.length ?? 0) > 200) loi.push('câu hỏi quá 200 ký tự'); const lua = t.lua ?? []; if (lua.length < 2 || lua.length > 4) loi.push('bình chọn cần 2–4 lựa chọn'); if (lua.some((l) => l.length > 25)) loi.push('lựa chọn quá 25 ký tự (giới hạn X)'); if (new Set(lua.map((l) => l.trim().toLowerCase())).size !== lua.length) loi.push('lựa chọn trùng nhau'); }
   if (x.mau === 'lac-loai') { const t = x.de as { giong?: string; khac?: string; hang?: number; cot?: number; vi_tri?: number }; if (!t.giong || !t.khac || t.giong === t.khac) loi.push('ô thường và ô khác phải khác nhau'); if ((t.giong?.length ?? 0) > 5 || (t.khac?.length ?? 0) > 5) loi.push('ô chữ tối đa 5 ký tự'); if ((t.vi_tri ?? 0) >= (t.hang ?? 3) * (t.cot ?? 3)) loi.push('vị trí ô khác ngoài lưới'); }
@@ -153,6 +163,7 @@ export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[]): st
 }
 const MO_TA_DANG: Record<string, string> = {
   'canh-dong': 'a calm 8-15s real scene video with ambient sound; one small hook line at the bottom that fits a quiet real scene (a feeling, a question, a situation from the angle) — never an on-screen task or puzzle instruction, nothing that is not in the footage; optional 1-2 closing lines (brand + site).',
+  'giai-thich-giong': 'a 15-40s voice-over explainer over real moving footage: an AI voice reads your sentences word for word (write them to be SPOKEN: short, plain, no lists or symbols), subtitles show each sentence; start from the situation in the angle, then the answer / key fact and one concrete reason; facts must come from the product description only.',
   'the-chu-tren-anh': 'one hook sentence placed on a real photo; the sentence IS the content.',
   'ai-con-nho': 'a nostalgic object/scene photo + one memory question the audience will answer in comments; the memory must connect to the angle (same need, same habit, earlier era); sub line = era/detail.',
   'doan-nam-gia': 'a guess question (year, price, count) on a photo; second image reveals the answer — the answer must be a real fact.',
@@ -170,10 +181,11 @@ const MO_TA_DANG: Record<string, string> = {
 };
 
 /** Ráp dòng nạp máy từ JSON mô hình trả. Thuần. */
-export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: MauMayDung; de: z.infer<typeof DeCanhSchema> | z.infer<typeof DeAnhSchema> | z.infer<typeof DeTopSchema> | z.infer<typeof DeLatSchema> | z.infer<typeof DeSoSanhSchema> | z.infer<typeof DeCauNoiSchema> | z.infer<typeof DeGiaSchema> | z.infer<typeof DeLacLoaiSchema> | z.infer<typeof DePollSchema> | z.infer<typeof DeCarouselSchema>; chu: z.infer<typeof ChuDangSchema>; dich?: string | null }): DeNapMay & { mau: MauMayDung } {
+export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: MauMayDung; de: z.infer<typeof DeCanhSchema> | z.infer<typeof DeAnhSchema> | z.infer<typeof DeTopSchema> | z.infer<typeof DeLatSchema> | z.infer<typeof DeSoSanhSchema> | z.infer<typeof DeCauNoiSchema> | z.infer<typeof DeGiaSchema> | z.infer<typeof DeLacLoaiSchema> | z.infer<typeof DePollSchema> | z.infer<typeof DeCarouselSchema> | z.infer<typeof DeGiaiThichSchema>; chu: z.infer<typeof ChuDangSchema>; dich?: string | null }): DeNapMay & { mau: MauMayDung } {
   const link = o.dich ?? o.sp.link, mota = o.chu.description.includes(link) ? o.chu.description : `${o.chu.description.trim()} ${link}`;
   const de: Record<string, unknown> = o.mau === 'bai-anh'
     ? (() => { const d = o.de as z.infer<typeof DeAnhSchema>; return { kieu: KIEU_ANH[o.dang_bai] ?? 'the-chu-tren-anh', truy: d.truy, chu: d.chu, ...(d.phu ? { phu: d.phu } : {}), ...(o.dang_bai === 'hai-lua-chon' ? { lua: d.lua } : {}), ...(o.dang_bai === 'doan-nam-gia' && d.dap_an ? { dap_an: d.dap_an } : {}), nhan: o.sp.nhan }; })()
+    : o.mau === 'giai-thich' ? (() => { const d = o.de as z.infer<typeof DeGiaiThichSchema>; return { truy: d.truy, moc: d.moc, loi: d.loi, ...(d.ket ? { ket: d.ket } : {}) }; })()
     : o.mau === 'carousel' ? (() => { const d = o.de as z.infer<typeof DeCarouselSchema>; return { moc: d.moc, truy: d.truy, trang: d.trang.map((p) => ({ tieu_de: p.tieu_de, ...(p.chu ? { chu: p.chu } : {}), truy: p.truy })), ket: d.ket, nhan: o.sp.nhan }; })()
     : o.mau === 'binh-chon' ? (() => { const d = o.de as z.infer<typeof DePollSchema>; return { loai: 'binh-chon', cau_hoi: d.cau_hoi, lua: d.lua, ngay: d.ngay }; })()
     : o.mau === 'lac-loai' ? (() => { const d = o.de as z.infer<typeof DeLacLoaiSchema>; return { giong: d.giong, khac: d.khac, hang: d.hang, cot: d.cot, vi_tri: d.vi_tri, moc: d.moc, truy: d.truy, ...(d.ket?.length ? { ket: d.ket } : {}), am: d.am, nhan: o.sp.nhan }; })()
@@ -191,7 +203,7 @@ export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: Mau
 export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; dich?: string | null; daDung?: string[] }): Promise<{ ok: true; de: DeNapMay & { mau: MauMayDung }; vnd: number; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string; vnd: number }> {
   const mau = MAU_CUA_DANG[o.dang_bai]; if (!mau || !MAU_SINH.has(mau)) return { ok: false, loi: `dạng ${o.dang_bai} chưa có mẫu sinh đề`, vnd: 0 };
   const { sinhJson } = await import('./claude');
-  const schema = z.object({ de: mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema });
+  const schema = z.object({ de: mau === 'giai-thich' ? DeGiaiThichSchema : mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema });
   // tiền: ckey báo VNĐ thật (tokens.vnd); không báo (Anthropic trực tiếp, hoặc ckey thiếu x_ckey.cost — 27/10 nhật ký ghi 0₫) thì ƯỚC theo token × bảng giá (26.000₫/$)
   let vnd = 0, loiCu: string[] = []; const tk = { in: 0, out: 0 };
   for (let lan = 0; lan < 2; lan++) {

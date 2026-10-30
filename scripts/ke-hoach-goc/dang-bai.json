@@ -240,7 +240,7 @@
    "ma": "giai-thich-giong",
    "ten": "Lồng tiếng giải thích trên cảnh",
    "nhom": "video",
-   "dung": "Giọng AI đọc kịch bản 40–60s + cảnh thật + phụ đề",
+   "dung": "Giọng AI đọc kịch bản 15–40s (heygen Vincent) + cảnh thật + phụ đề",
    "nen": [
     "facebook",
     "instagram",
@@ -255,7 +255,8 @@
     "ai_noi_dau"
    ],
    "duong": "giong",
-   "mau": null
+   "mau": "giai-thich",
+   "sinh_de": true
   },
   {
    "ma": "ke-chuyen",

@@ -85,7 +85,10 @@ if (a.includes('--nap')) {
   const N = Math.max(1, Math.min(40, Number(lay('--sinh-kho')) || 10)), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
   const { sinhDe } = await import('../src/lib/xuong-video/may-de');
   const sp = await spCua(ma), dl = (sp.ngach ?? []).includes('du-lich');
-  const DANG_VIDEO = ['lam-tuong', 'dung-sai', 'top-n', 'so-sanh', 'spot-the-fake', 'cau-do-meo', 'vat-lac-loai', 'canh-dong', ...(dl ? ['cau-noi-theo-nuoc'] : [])];
+  // giai-thich-giong: lời dẫn giọng AI heygen (bước 6, 30/10/2026) — mỗi video thêm ~$0,002–0,004 tiền giọng, cộng vào tổng lượt. --dang <mã>: chỉ sinh đúng một dạng (thử mẫu mới)
+  const DANG_TAT_CA = ['lam-tuong', 'dung-sai', 'top-n', 'so-sanh', 'spot-the-fake', 'cau-do-meo', 'vat-lac-loai', 'canh-dong', 'giai-thich-giong', ...(dl ? ['cau-noi-theo-nuoc'] : [])];
+  const DANG_VIDEO = lay('--dang') ? DANG_TAT_CA.filter((d) => d === lay('--dang')) : DANG_TAT_CA;
+  if (!DANG_VIDEO.length) { console.error(`--dang ${lay('--dang')} không phải dạng video (${DANG_TAT_CA.join(', ')})`); process.exit(1); }
   const nhom = (((await db.execute(sql`SELECT goc_sp FROM xv_may WHERE ma = ${ma}`)) as unknown as { goc_sp: number[] | null }[])[0]?.goc_sp ?? []).map(Number);
   if (!nhom.length) { console.error(`máy ${ma} chưa gắn nhóm góc spy (goc_sp)`); process.exit(1); }
   const fs = await import('node:fs'), url = process.env.SPY_DATABASE_URL ?? fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13);
@@ -104,6 +107,7 @@ if (a.includes('--nap')) {
     await napVideo(db, ma, [kq.de]); daDung.push(kq.de.dang.title ?? '');
     const v = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${kq.de.slug}`)) as unknown as { id: number }[])[0];
     const x = v ? await xuatVideo(db, Number(v.id)) : { ok: false as const, loi: 'không thấy dòng vừa nạp' };
+    if (v) { const gv = Number(((await db.execute(sql`SELECT de->>'giong_vnd' AS g FROM xv_may_video WHERE id = ${v.id}`)) as unknown as { g: string | null }[])[0]?.g ?? 0); if (gv) { vnd += gv; kq.vnd += gv; } }   // tiền giọng lời dẫn (giong-heygen.ts) vào tổng lượt
     ra.push(`${x.ok ? '✓' : '⚠'} #${g.id} ${d} → ${kq.de.slug} (${Math.round(kq.vnd)}₫)${x.ok ? '' : ` · dựng ✗ ${x.loi}`}`); n++;
   }
   console.log(ra.join('\n')); console.log(`sinh kho ${ma}: ${n}/${N} đề, ${Math.round(vnd)}₫`);

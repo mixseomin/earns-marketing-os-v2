@@ -36,4 +36,12 @@ assert.deepStrictEqual(kiemDe(cn), []); assert.ok(kiemDe({ ...cn, de: { ...cn.de
 // chữ đăng tiếng Việt bị chặn (29/10/2026 Sidecue dung-sai-40165 ra tiếng Việt vẫn DUYỆT); góc tiếng Việt → prompt dặn dịch sang tiếng Anh
 assert.ok(kiemDe({ ...tot, description: tot.description + ' Hãy kiểm tra giá sau thời gian thử.' }).some((l) => /tiếng Việt/.test(l)), 'chữ tiếng Việt bị chặn');
 assert.ok(vanNguoiDung({ ...goc, ten: 'Ngại trả phí đăng ký định kỳ' }, 'dung-sai', []).includes('write EVERYTHING in English'), 'góc tiếng Việt: dặn viết tiếng Anh');
+// lồng tiếng giải thích (bước 6, 30/10/2026): dạng → mẫu giai-thich; lời dẫn 3–6 câu, 200–550 ký tự, không link / ký hiệu
+assert.equal(MAU_CUA_DANG['giai-thich-giong'], 'giai-thich');
+const deGt = { truy: 'ambulance highway night', moc: 'Tanker spill on the interstate. First call?', loi: ['A clear liquid is pooling across two lanes and the driver is still inside the cab.', 'You do not request another ambulance first, and you do not call air medical.', 'You request the hazardous materials team, because scene safety always comes before patient care.'], ket: 'Save this for exam week' };
+const gt = { ...tot, mau: 'giai-thich' as const, dang_bai: 'giai-thich-giong', de: deGt };
+assert.deepEqual(kiemDe(gt).filter((l) => /lời dẫn|móc trên video|dòng kết/.test(l)), [], 'đề lồng tiếng đúng luật thì qua');
+assert.ok(kiemDe({ ...gt, de: { ...deGt, loi: deGt.loi.slice(0, 2) } }).some((l) => /3–6 câu/.test(l)), 'thiếu câu bị chặn');
+assert.ok(kiemDe({ ...gt, de: { ...deGt, loi: ['Short.', 'Too short.', 'Still short.'] } }).some((l) => /cần 200–550/.test(l)), 'lời dẫn quá ngắn bị chặn');
+assert.ok(kiemDe({ ...gt, de: { ...deGt, loi: [...deGt.loi.slice(0, 2), deGt.loi[2] + ' See https://x.com now.'] } }).some((l) => /link/.test(l)), 'link trong lời đọc bị chặn');
 console.log('may-de: phần thuần đạt');

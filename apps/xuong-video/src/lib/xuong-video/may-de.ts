@@ -115,15 +115,35 @@ export const ChuDangSchema = z.object({
   description: z.string().describe('Post text, 150-400 characters, English, plain human voice: concrete, one useful thing, no hype, no hashtags, no em dashes; end with a natural invitation to the destination page (the link is appended by the machine)'),
 });
 
+/** HOOK GỐC TỪ QC THẬT (anh 31/10/2026, "rule quan trọng": "Hook cần lấy từ qc trên spy.on.tc rất chất lượng và ko nhạt"; "AI có thể tham khảo hook đó
+ *  và sửa ko quá nhiều bản gốc nếu cần"): dòng đầu của quảng cáo chạy LÂU NHẤT trong nhóm góc (spy qc_meta) — máy sinh đề đưa vào prompt, AI chọn một, sửa nhẹ. */
+export interface HookQc { id: string; chu: string; ngay: number; page: string }
+const TU_RONG = new Set('a an the to of and or for in on at is are be you your yours it this that with what how why do does i me my we our he she his her they them'.split(' '));
+const tuNoiDung = (v: string) => v.toLowerCase().normalize('NFC').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 1 && !TU_RONG.has(w));
+/** Mức GIỮ bản gốc: tỉ lệ từ nội dung của hook gốc còn trong hook mới (0–1). Thuần. */
+export const giuHook = (moi: string, goc: string) => { const g = [...new Set(tuNoiDung(goc))]; if (!g.length) return 0; const m = new Set(tuNoiDung(moi)); return g.filter((w) => m.has(w)).length / g.length; };
+/** Ngưỡng "sửa không quá nhiều": giữ ít nhất 35% từ nội dung của hook gốc (đổi tên thương hiệu / chủ ngữ / chi tiết góc vẫn qua; viết lại mới thì không). */
+export const GIU_HOOK_TOI_THIEU = 0.35;
+
 /** Chữ có dấu tiếng Việt (ă â đ ê ô ơ ư + các thanh) — chữ đăng tiếng Anh không bao giờ có. */
 export const CHU_VIET = /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i;
 /** Kiểm đề + chữ đăng theo đúng luật Phòng Nội dung (cham-dang.mjs) trước khi nạp — sai thì trả lỗi để sinh lại. Thuần. */
-export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string, unknown>; title: string; description: string; nhan: string; ngon_ngu?: 'en' | 'vi' }): string[] {
+export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string, unknown>; title: string; description: string; nhan: string; ngon_ngu?: 'en' | 'vi'; hooks?: HookQc[]; hook_qc?: string }): string[] {
   const loi: string[] = [], chu = `${x.title}\n${x.description}`, thuong = chu.toLowerCase();
   if (x.title.length < 25) loi.push(`câu móc quá ngắn (${x.title.length})`); if (x.title.length > 110) loi.push(`câu móc dài ${x.title.length}`);
   if (!/[?!]|\d/.test(x.title)) loi.push('câu móc không có câu hỏi / con số');
   if (x.nhan && x.title.toLowerCase().startsWith(x.nhan.toLowerCase())) loi.push('câu móc mở bằng tên thương hiệu');
   if (/[—–]/.test(chu)) loi.push('gạch ngang dài');
+  // hook phải lấy từ QC thật (khi máy có hook gốc): đã chọn một QC, câu móc giữ đủ bản gốc, không mang tên thương hiệu của nhà quảng cáo đó
+  if (x.hooks?.length) {
+    const h = x.hooks.find((k) => k.id === x.hook_qc);
+    if (!h) loi.push('chưa chọn hook QC gốc (hook_qc phải là một mã trong danh sách hook đã cho)');
+    else {
+      const hookBai = String((x.de as { moc?: string }).moc ?? '') || x.title, giu = Math.max(giuHook(x.title, h.chu), giuHook(hookBai, h.chu));
+      if (giu < GIU_HOOK_TOI_THIEU) loi.push(`câu móc sửa quá xa hook QC gốc (giữ ${Math.round(giu * 100)}% chữ, cần ≥ ${GIU_HOOK_TOI_THIEU * 100}%): "${h.chu.slice(0, 80)}"`);
+      const ten = h.page.trim().toLowerCase(); if (ten.length >= 5 && chu.toLowerCase().includes(ten)) loi.push(`câu móc mang tên nhà quảng cáo gốc (${h.page})`);   // cả cụm tên Page — từ lẻ ("Your" của "Your Astrology Reading") chặn oan
+    }
+  }
   // chữ đăng + chữ trên video phải tiếng Anh (thị trường US): góc spy là ghi chú tiếng Việt, mô hình rẻ hay viết theo — 29/10/2026 đề Sidecue dung-sai-40165 ra tiếng Việt
   // mà vẫn DUYỆT. Trừ mẫu câu nói (bản ngữ có thể là tiếng Việt).
   if (x.ngon_ngu !== 'vi' && x.mau !== 'cau-noi' && CHU_VIET.test(`${chu}\n${JSON.stringify(x.de)}`)) loi.push('có chữ tiếng Việt — viết toàn bộ bằng tiếng Anh (góc chỉ là ghi chú tiếng Việt, hãy dịch ý)');
@@ -170,10 +190,11 @@ export function vanHeThong(sp: SanPhamDe, dang_bai: string): string {
     ...(sp.phong_cach ? [`Visual style and tone of this brand (EVERY photo / video search query and every scene must fit it): ${sp.phong_cach}`] : []),
     `Post format: ${dang_bai}. Fill the schema exactly; empty strings / arrays where a field does not apply.`].join('\n');
 }
-export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[], ngonNgu: 'en' | 'vi' = 'en'): string {
+export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[], ngonNgu: 'en' | 'vi' = 'en', hooks: HookQc[] = []): string {
   return [`ANGLE (${LOAI_VI[goc.loai] ?? goc.loai}): "${goc.ten}"${goc.mo_ta ? ` — ${goc.mo_ta}` : ''}.`,
     ngonNgu !== 'vi' && CHU_VIET.test(`${goc.ten} ${goc.mo_ta ?? ''}`) ? 'The angle above is an internal note in Vietnamese: translate its meaning and write EVERYTHING in English.' : '',
     `Format "${dang_bai}": ${MO_TA_DANG[dang_bai] ?? ''}`,
+    hooks.length ? `PROVEN AD HOOKS (first lines of real ads that kept running for months — they work):\n${hooks.map((h) => `- [${h.id}] (${h.ngay} days) "${h.chu}"`).join('\n')}\nPick the ONE that best fits the angle and ADAPT IT LIGHTLY for the hook (post title${MO_TA_DANG[dang_bai] && /hook|móc/i.test(MO_TA_DANG[dang_bai]!) ? ' and the on-screen hook' : ''}): keep its structure and most of its words, change only what the angle, brand or format needs; never use the original advertiser's name. Put its id in hook_qc.` : '',
     daDung.length ? `Hooks already used (write something different): ${daDung.slice(0, 12).map((t) => `"${t}"`).join('; ')}` : '',
     'Return the JSON now.'].filter(Boolean).join('\n');
 }
@@ -197,7 +218,7 @@ const MO_TA_DANG: Record<string, string> = {
 };
 
 /** Ráp dòng nạp máy từ JSON mô hình trả. Thuần. */
-export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: MauMayDung; de: z.infer<typeof DeCanhSchema> | z.infer<typeof DeAnhSchema> | z.infer<typeof DeTopSchema> | z.infer<typeof DeLatSchema> | z.infer<typeof DeSoSanhSchema> | z.infer<typeof DeCauNoiSchema> | z.infer<typeof DeGiaSchema> | z.infer<typeof DeLacLoaiSchema> | z.infer<typeof DePollSchema> | z.infer<typeof DeCarouselSchema> | z.infer<typeof DeGiaiThichSchema>; chu: z.infer<typeof ChuDangSchema>; dich?: string | null }): DeNapMay & { mau: MauMayDung } {
+export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: MauMayDung; de: z.infer<typeof DeCanhSchema> | z.infer<typeof DeAnhSchema> | z.infer<typeof DeTopSchema> | z.infer<typeof DeLatSchema> | z.infer<typeof DeSoSanhSchema> | z.infer<typeof DeCauNoiSchema> | z.infer<typeof DeGiaSchema> | z.infer<typeof DeLacLoaiSchema> | z.infer<typeof DePollSchema> | z.infer<typeof DeCarouselSchema> | z.infer<typeof DeGiaiThichSchema>; chu: z.infer<typeof ChuDangSchema>; dich?: string | null; hook?: HookQc | null }): DeNapMay & { mau: MauMayDung } {
   const link = o.dich ?? o.sp.link, mota = o.chu.description.includes(link) ? o.chu.description : `${o.chu.description.trim()} ${link}`;
   const de: Record<string, unknown> = o.mau === 'bai-anh'
     ? (() => { const d = o.de as z.infer<typeof DeAnhSchema>; return { kieu: KIEU_ANH[o.dang_bai] ?? 'the-chu-tren-anh', truy: d.truy, chu: d.chu, ...(d.phu ? { phu: d.phu } : {}), ...(o.dang_bai === 'hai-lua-chon' ? { lua: d.lua } : {}), ...(o.dang_bai === 'doan-nam-gia' && d.dap_an ? { dap_an: d.dap_an } : {}), nhan: o.sp.nhan }; })()
@@ -212,22 +233,22 @@ export function rapDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; mau: Mau
     : o.mau === 'top-n' ? (() => { const d = o.de as z.infer<typeof DeTopSchema>; return { tieu_de: d.tieu_de, muc: d.muc.map((m) => ({ ten: m.ten, ...(m.chu ? { chu: m.chu } : {}), truy: m.truy })), ...(d.moc ? { moc: d.moc } : {}), ...(d.ket?.length ? { ket: d.ket } : {}), am: d.am, nhan: o.sp.nhan }; })()
     : (() => { const d = o.de as z.infer<typeof DeCanhSchema>; return { truy: d.truy, moc: d.moc, am: d.am, dai: d.dai, ...(d.ket?.length ? { ket: d.ket } : {}) }; })();
   return { slug: slugDe(o.dang_bai, o.goc.id, (de.tieu_de as string | undefined) ?? (de.tinh_huong as string | undefined) ?? (de.cau_hoi as string | undefined) ?? ((de.cau as { khang_dinh: string }[] | undefined)?.[0]?.khang_dinh) ?? (de.moc as string | undefined) ?? (de.chu as string | undefined) ?? o.goc.ten), chu_de: o.goc.ten, mau: o.mau, de: de as never,
-    dang: { title: o.chu.title, description: mota, link, nhom: 'Góc spy', ...(o.mau === 'binh-chon' ? { loai: 'poll', lua: (o.de as z.infer<typeof DePollSchema>).lua, ngay: (o.de as z.infer<typeof DePollSchema>).ngay } : {}), dang_bai: o.dang_bai, goc: { sp: o.goc.sp, id: o.goc.id, loai: o.goc.loai, ten: o.goc.ten }, ...(o.sp.book ? { book: o.sp.book } : {}) } as DeNapMay['dang'] };
+    dang: { title: o.chu.title, description: mota, link, nhom: 'Góc spy', ...(o.mau === 'binh-chon' ? { loai: 'poll', lua: (o.de as z.infer<typeof DePollSchema>).lua, ngay: (o.de as z.infer<typeof DePollSchema>).ngay } : {}), dang_bai: o.dang_bai, goc: { sp: o.goc.sp, id: o.goc.id, loai: o.goc.loai, ten: o.goc.ten }, ...(o.hook ? { hook: { qc: o.hook.id, goc: o.hook.chu, page: o.hook.page, ngay: o.hook.ngay } } : {}), ...(o.sp.book ? { book: o.sp.book } : {}) } as DeNapMay['dang'] };
 }
 
 /** Sinh một đề (gọi mô hình, tối đa 2 lượt nếu lượt đầu sai luật). Trả dòng nạp + tiền. */
-export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; dich?: string | null; daDung?: string[] }): Promise<{ ok: true; de: DeNapMay & { mau: MauMayDung }; vnd: number; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string; vnd: number }> {
+export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; dich?: string | null; daDung?: string[]; hooks?: HookQc[] }): Promise<{ ok: true; de: DeNapMay & { mau: MauMayDung }; vnd: number; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string; vnd: number }> {
   const mau = MAU_CUA_DANG[o.dang_bai]; if (!mau || !MAU_SINH.has(mau)) return { ok: false, loi: `dạng ${o.dang_bai} chưa có mẫu sinh đề`, vnd: 0 };
   const { sinhJson } = await import('./claude');
-  const schema = z.object({ de: mau === 'giai-thich' ? DeGiaiThichSchema : mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema });
+  const schema = z.object({ de: mau === 'giai-thich' ? DeGiaiThichSchema : mau === 'bai-anh' ? DeAnhSchema : mau === 'top-n' ? DeTopSchema : mau === 'lat-dap-an' ? DeLatSchema : mau === 'so-sanh' ? DeSoSanhSchema : mau === 'cau-noi' ? DeCauNoiSchema : mau === 'cai-nao-gia' ? DeGiaSchema : mau === 'lac-loai' ? DeLacLoaiSchema : mau === 'binh-chon' ? DePollSchema : mau === 'carousel' ? DeCarouselSchema : DeCanhSchema, chu: ChuDangSchema, hook_qc: z.string().describe('id of the proven ad hook you adapted (empty if none were given)') });
   // tiền: ckey báo VNĐ thật (tokens.vnd); không báo (Anthropic trực tiếp, hoặc ckey thiếu x_ckey.cost — 27/10 nhật ký ghi 0₫) thì ƯỚC theo token × bảng giá (26.000₫/$)
   let vnd = 0, loiCu: string[] = []; const tk = { in: 0, out: 0 };
   for (let lan = 0; lan < 2; lan++) {
-    const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en') + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''), ten: 'de_bai' });
+    const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en', o.hooks ?? []) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''), ten: 'de_bai' });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;
-    const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich });
-    loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu });
+    const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich, hook: o.hooks?.find((h) => h.id === r.data.hook_qc) ?? null });
+    loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: o.hooks, hook_qc: r.data.hook_qc });
     if (!loiCu.length) return { ok: true, de, vnd, model: r.model, tokens: { ...tk, vnd } };
   }
   return { ok: false, loi: `đề sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };

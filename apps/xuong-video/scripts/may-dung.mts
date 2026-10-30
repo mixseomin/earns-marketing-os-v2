@@ -103,9 +103,27 @@ if (a.includes('--nap')) {
   if (!nhom.length) { console.error(`máy ${ma} chưa gắn nhóm góc spy (goc_sp)`); process.exit(1); }
   const fs = await import('node:fs'), url = process.env.SPY_DATABASE_URL ?? fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13);
   const spy = (await import('postgres')).default(url!, { max: 1, prepare: false });
-  const gocs = (await spy`select sp_id as sp, id, loai, ten from goc where sp_id = any(${nhom}) order by id`) as unknown as { sp: number; id: number; loai: string; ten: string }[];
+  const gocs = (await spy`select sp_id as sp, id, loai, ten, coalesce(qc_ids, '{}') as qc_ids from goc where sp_id = any(${nhom}) order by id`) as unknown as { sp: number; id: number; loai: string; ten: string; qc_ids: string[] }[];
   // NGÔN NGỮ THEO THỊ TRƯỜNG của nhóm góc (31/10/2026, Giỗ Chạp): nhóm thị trường VN → đề + chữ đăng tiếng Việt; dạng cần giọng tiếng Anh (heygen Vincent) / câu nói ngoại ngữ thì bỏ
-  const tt = ((await spy`select thi_truong from goc_sp where id = any(${nhom})`) as unknown as { thi_truong: string[] | null }[]).flatMap((x) => x.thi_truong ?? []); await spy.end();
+  const tt = ((await spy`select thi_truong from goc_sp where id = any(${nhom})`) as unknown as { thi_truong: string[] | null }[]).flatMap((x) => x.thi_truong ?? []);
+  // HOOK GỐC TỪ QC THẬT (anh 31/10/2026, "rule quan trọng"): dòng đầu của QC chạy LÂU NHẤT khớp nhóm góc (biểu thức liên quan của spy, \b → \y cho Postgres),
+  // đúng ngôn ngữ thị trường, 20–140 ký tự, bỏ trùng chữ. Góc có QC gắn sẵn (goc.qc_ids) thì QC của góc đứng trước. AI chọn một, sửa nhẹ (may-de.ts › kiemDe).
+  const vi = tt.length > 0 && tt.every((t) => /^VN/i.test(t));
+  type HookDong = { id: string; chu: string; ngay: number; page: string };
+  const hookTu = (rows: { library_id: string; dong: string; ngay: number; page_ten: string | null }[]) => { const thay = new Set<string>(), ra: HookDong[] = [];
+    for (const r of rows) { const chu = String(r.dong ?? '').replace(/\s+/g, ' ').trim(), k = chu.toLowerCase(); if (chu.length < 20 || chu.length > 140 || thay.has(k) || /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu) !== vi) continue; thay.add(k); ra.push({ id: String(r.library_id), chu, ngay: Number(r.ngay) || 0, page: String(r.page_ten ?? '') }); }
+    return ra; };
+  const hookNhom = hookTu((await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta
+    where bat_dau is not null and noi_dung ~* any(select replace(lien_quan, '\b', '\y') from goc_sp where id = any(${nhom}) and lien_quan is not null)
+    order by (coalesce(lan_cuoi, now()) - bat_dau) desc, bien_the desc nulls last limit 200`) as never).slice(0, 40);
+  const qcGoc = [...new Set(gocs.flatMap((g) => g.qc_ids ?? []))];
+  const hookCuaQc = new Map(hookTu(qcGoc.length ? (await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta where library_id = any(${qcGoc})`) as never : []).map((h) => [h.id, h]));
+  /** 6 hook cho một góc: QC của góc trước, rồi QC chạy lâu của nhóm (xoay theo thứ tự để các bài không cùng một hook). */
+  const hooksCho = (g: { qc_ids: string[] }, i: number): HookDong[] => { const rieng = (g.qc_ids ?? []).map((id) => hookCuaQc.get(String(id))).filter((x): x is HookDong => !!x).slice(0, 3);
+    const chung = hookNhom.length ? Array.from({ length: Math.min(6, hookNhom.length) }, (_, k) => hookNhom[(i * 3 + k) % hookNhom.length]!) : [];
+    return [...rieng, ...chung.filter((h) => !rieng.some((r) => r.id === h.id))].slice(0, 6); };
+  await spy.end();
+  console.log(`· hook QC gốc: ${hookNhom.length} hook nhóm (chạy lâu nhất ${hookNhom[0]?.ngay ?? 0} ngày), ${hookCuaQc.size} QC gắn góc`);
   if (tt.length && tt.every((t) => /^VN/i.test(t))) { (sp as { ngon_ngu?: 'vi' }).ngon_ngu = 'vi'; DANG_VIDEO.splice(0, DANG_VIDEO.length, ...DANG_VIDEO.filter((d) => d !== 'giai-thich-giong' && d !== 'cau-noi-theo-nuoc')); console.log('· máy thị trường VN: viết tiếng Việt'); }
   const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.dang->>'title' AS title FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; title: string | null }[];
   const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);
@@ -115,7 +133,7 @@ if (a.includes('--nap')) {
   for (const g of thuTu) {
     if (n >= N) break;
     const d = DANG_VIDEO[i++ % DANG_VIDEO.length]!;
-    const kq = await sinhDe({ sp, goc: g, dang_bai: d, daDung }); vnd += kq.vnd;
+    const kq = await sinhDe({ sp, goc: g, dang_bai: d, daDung, hooks: hooksCho(g, n) }); vnd += kq.vnd;
     if (!kq.ok) { ra.push(`✗ #${g.id} ${d}: ${kq.loi}`); if (/TỐN TIỀN/.test(kq.loi)) break; continue; }
     await napVideo(db, ma, [kq.de]); daDung.push(kq.de.dang.title ?? '');
     const v = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${kq.de.slug}`)) as unknown as { id: number }[])[0];

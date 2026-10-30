@@ -35,6 +35,12 @@ export function nhipGiaiThich(de: DeGiaiThich) {
 }
 export const anhGiaiThich = (de: DeGiaiThich): { t: number; cat: [number, number, number, number] }[] => [{ t: Math.min(2, nhipGiaiThich(de).HET_GIONG * 0.3), cat: [0, 240, 1080, 1440] }];
 
+/** Hook ĐỦ CHỮ (31/10/2026: video #842 cắt mất chữ cuối vì cố định 3 dòng × 18 ký tự): ngắt hẹp chữ to; dài hơn 3 dòng thì ngắt rộng hơn + thu cỡ — KHÔNG bao giờ cắt. */
+export function dongHook(moc: string): { dong: string[]; co: number } {
+  const t = moc.trim();
+  for (const [rong, co] of [[18, 84], [22, 72], [27, 60], [34, 50]] as const) { const dong = ngat(t, rong); if (dong.length <= 3) return { dong, co }; }
+  return { dong: ngat(t, 34), co: 44 };
+}
 /** Phụ đề CỤM NGẮN (chuẩn short-form, anh 31/10/2026 "không có hook… nhàm"): mỗi câu chia cụm ≤ 4 từ, cụm đứng đúng quãng của nó (theo số ký tự). */
 export function cumPhuDe(cau: { chu: string; tu: number; den: number }[], toiDa = 4): { chu: string; tu: number; den: number }[] {
   return cau.flatMap((c) => {
@@ -47,9 +53,9 @@ export function cumPhuDe(cau: { chu: string; tu: number; den: number }[], toiDa 
 export function assGiaiThich(de: DeGiaiThich): string {
   const { cau, HET_GIONG, ket, DAI } = nhipGiaiThich(de), d: DongAss[] = [];
   // HOOK: chữ TO giữa màn, nảy vào, đứng hết câu đầu (giọng đọc đúng câu hook) — người xem biết ngay vì sao phải xem tiếp
-  const moc = ngat(de.moc.trim(), 18).slice(0, 3), hetMoc = Math.max(2.2, cau[0]?.den ?? 2.2), yMoc = 820 - 55 * (moc.length - 1);
+  const { dong: moc, co: coMoc } = dongHook(de.moc), hetMoc = Math.max(2.2, cau[0]?.den ?? 2.2), yMoc = 820 - Math.round(coMoc * 0.65) * (moc.length - 1);
   d.push([1, 0, hetMoc, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.28)}\\fad(0,250)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-  d.push([2, 0, hetMoc, 'Den', `{\\an8\\pos(540,${yMoc})${fs(84)}\\1c${mauAss(VANG)}\\3c&H000000&\\bord5\\shad2\\q2${nayVao(70, 0, 0.35)}\\fad(0,250)}${moc.map(chu).join('\\N')}`]);
+  d.push([2, 0, hetMoc, 'Den', `{\\an8\\pos(540,${yMoc})${fs(coMoc)}\\1c${mauAss(VANG)}\\3c&H000000&\\bord5\\shad2\\q2${nayVao(70, 0, 0.35)}\\fad(0,250)}${moc.map(chu).join('\\N')}`]);
   // phụ đề cụm ngắn, chữ to, viền đậm, không hộp — từ sau câu hook
   for (const c of cumPhuDe(cau.slice(1))) d.push([2, c.tu, c.den, 'Den', `{\\an5\\pos(540,1340)${fs(66)}\\1c&HFFFFFF&\\3c&H000000&\\bord5\\shad2\\q2${nayVao(88, 0, 0.12)}}${chu(c.chu)}`]);
   if (ket) {

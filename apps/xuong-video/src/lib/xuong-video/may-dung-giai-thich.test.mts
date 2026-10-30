@@ -1,6 +1,6 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-giai-thich.test.mts
 import assert from 'node:assert';
-import { assGiaiThich, cumPhuDe, lenhGiaiThich, nhipGiaiThich, loiDoc, T_DAU, type DeGiaiThich } from './may-dung-giai-thich';
+import { assGiaiThich, cumPhuDe, dongHook, lenhGiaiThich, nhipGiaiThich, loiDoc, T_DAU, type DeGiaiThich } from './may-dung-giai-thich';
 
 const de: DeGiaiThich = { truy: 'ambulance highway night', moc: 'Tanker on the interstate. What first?', loi: ['A clear liquid is pooling across two lanes.', 'Not another ambulance. Not air medical.', 'You call the hazmat team first, because scene safety comes before patient care.'], ket: 'Practice daily, one question at a time' };
 
@@ -30,4 +30,9 @@ const l = lenhGiaiThich({ de: { ...de, giong_giay: 20 }, ass, nen: '/v.mp4', am:
 assert.ok(l.includes('/a.mp3') && l.join(' ').includes(`adelay=${T_DAU * 1000}`));
 // khung tĩnh không cần giọng
 assert.ok(lenhGiaiThich({ de, ass, nen: '/v.mp4', am: null, fontsDir: '/f', ra: '/k.jpg', khung: 2 }).includes('/k.jpg'));
-console.log('may-dung-giai-thich: 5 nhóm ok');
+// 6. hook dài vẫn đủ chữ (bài #842 mất chữ "apps")
+const dai = 'This powerful blueprint holds your chart beyond apps';
+assert.equal(dongHook(dai).dong.join(' '), dai, 'hook không bị cắt chữ');
+assert.ok(dongHook(dai).dong.length <= 3 && dongHook(dai).co < 84, 'dài thì ngắt rộng + thu cỡ');
+assert.equal(dongHook('Check his moon').co, 84, 'hook ngắn giữ chữ to nhất');
+console.log('may-dung-giai-thich: 6 nhóm ok');

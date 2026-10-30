@@ -66,7 +66,7 @@ export function ChonKhoang({ tu, den, ma, homNay, onDoi, mocThem, title }: {
   /** mã mốc sẵn đang chọn; null = khoảng tự chọn */ ma: string | null;
   /** 'YYYY-MM-DD' theo múi giờ / ngày của màn (etp: ngày Ethopex 07:00–07:00 VN) */ homNay: string;
   onDoi: (v: { ma: string } | { tu: string; den: string }) => void;
-  /** mốc riêng của màn (vd "Tất cả") — đứng đầu danh sách */ mocThem?: { ma: string; nhan: string }[];
+  /** mốc riêng của màn (vd "All time") — đứng CUỐI danh sách, sau mốc dài nhất (etp #1490: đứng đầu trông như ô lọc, không ai nhận ra là kỳ) */ mocThem?: { ma: string; nhan: string }[];
   title?: string;
 }) {
   const ref = useRef<HTMLButtonElement | null>(null);
@@ -101,9 +101,8 @@ export function ChonKhoang({ tu, den, ma, homNay, onDoi, mocThem, title }: {
       <AnchoredPopover anchorRef={ref} open={mo} onClose={() => { setMo(false); setCho(null); }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', maxWidth: '96vw', background: 'var(--bg-0, #0b0d12)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.5)', color: 'var(--fg-1)' }}>
           <div style={{ width: 176, borderRight: '1px solid var(--line)', display: 'flex', flexDirection: 'column', padding: 4 }}>
-            {(mocThem ?? []).map((m) => <button key={m.ma} type="button" onClick={() => chot({ ma: m.ma })} style={nut(ma === m.ma)}>{m.nhan}</button>)}
-            {mocThem?.length ? <div style={{ borderTop: '1px solid var(--line)', margin: '4px 0' }} /> : null}
             {MOC_SAN.map((m) => <button key={m.ma} type="button" onClick={() => chot({ ma: m.ma })} style={nut(ma === m.ma)}>{m.nhan}</button>)}
+            {(mocThem ?? []).map((m) => <button key={m.ma} type="button" onClick={() => chot({ ma: m.ma })} style={nut(ma === m.ma)}>{m.nhan}</button>)}
             <div style={{ marginTop: 'auto', borderTop: '1px solid var(--line)', paddingTop: 4 }}>
               <ODem q={false} chu="ngày tới hôm nay" /><ODem q chu="ngày tới hôm qua" />
             </div>

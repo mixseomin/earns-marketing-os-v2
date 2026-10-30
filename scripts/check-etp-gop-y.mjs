@@ -168,6 +168,14 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', cam: ".filter((c) => !boLoc || c.bo === boLoc)", vi: 'không lọc bộ thẳng theo URL' },
   // anh 30/10/2026 lên Dragon Lord bằng creative tk Sơn: dòng hàng chấm lỗi 'không có trong kho' phải tự về hàng chờ khi creative vào kho
   { card: 0, tep: 'apps/web/src/app/api/ext/etp-cham/route.ts', co: "where trang_thai = 'loi' and loi like 'creative không có trong kho%'", vi: 'hàng chấm tự gỡ lỗi không-có-trong-kho khi creative đã vào kho' },
+  // #1489 dòng phim/tổng: ô NAY đọc đúng ô cuối của tongNgay, không số cứng [7]
+  { card: 1489, tep: V, co: 'const sd = tongNgay(rs), sn = sd[ngay.length];', vi: 'NAY dòng phim tính từ ô hôm nay' },
+  { card: 1489, tep: V, cam: 'roi(sd[7])', vi: 'không đọc hôm nay bằng chỉ số cứng 7' },
+  // #1490 kỳ "All time" đứng cuối danh sách mốc
+  { card: 1490, tep: V, co: "mocThem={[{ ma: 'tat_ca', nhan: 'All time' }]}", vi: 'mốc All time' },
+  { card: 1490, tep: 'apps/web/src/components/ui/chon-khoang.tsx', co: "{m.nhan}</button>)}\n            {(mocThem ?? []).map(", vi: 'mốc riêng đứng sau mốc sẵn' },
+  // #1491 thẻ thư viện thiếu ảnh bìa → khung hình video
+  { card: 1491, tep: V, co: ": x.video ? <video src={`${x.video}#t=1`} muted playsInline preload=\"metadata\"", vi: 'thẻ thư viện thiếu ảnh thì xem trước bằng video' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

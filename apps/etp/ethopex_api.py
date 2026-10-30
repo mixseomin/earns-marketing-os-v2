@@ -69,13 +69,18 @@ def doc_het(duong, body=None, timeout=90):
         # chừng ấy dòng rơi mất) → camp cộng đôi chi / camp mất chi, All time etp lệch Ethopex. Quá một trang thì CHIA ĐÔI khoảng ngày tới khi mỗi phần vừa một trang.
         b = {**body, "page": 1}; d = _goi(duong, b, timeout)
         if int(d.get("total_pages") or 1) <= 1: return d
-        tu, den = b.get("date_from"), b.get("date_to")
-        if "date" not in (b.get("group_by") or []) or not tu or not den or tu >= den:
-            raise RuntimeError(f"report {d.get('total_count')} dòng > 1 trang mà không chia theo ngày được (group_by {b.get('group_by')}, {tu}→{den}): lật trang Ethopex mất / trùng dòng")
+        # Hai trục chia mà mỗi dòng chỉ thuộc đúng MỘT phần: ngày (group_by có "date") · giờ (group_by có "hour", lọc filters {"hour": [..]})
+        tu, den = b.get("date_from"), b.get("date_to"); gb = b.get("group_by") or []; gio = list((b.get("filters") or {}).get("hour") or range(24))
         import datetime as _dt
-        a, z = _dt.date.fromisoformat(tu[:10]), _dt.date.fromisoformat(den[:10]); g = a + (z - a) // 2
-        d1 = doc_het(duong, {**b, "date_to": g.isoformat()}, timeout); d2 = doc_het(duong, {**b, "date_from": (g + _dt.timedelta(days=1)).isoformat()}, timeout)
-        d1["rows"] = list(d1.get("rows") or []) + list(d2.get("rows") or []); d1["total_pages"] = 1; return d1
+        if "date" in gb and tu and den and tu[:10] < den[:10]:
+            a, z = _dt.date.fromisoformat(tu[:10]), _dt.date.fromisoformat(den[:10]); g = a + (z - a) // 2
+            phan = [{**b, "date_to": g.isoformat()}, {**b, "date_from": (g + _dt.timedelta(days=1)).isoformat()}]
+        elif "hour" in gb and len(gio) > 1:
+            phan = [{**b, "filters": {**(b.get("filters") or {}), "hour": h}} for h in (gio[:len(gio) // 2], gio[len(gio) // 2:])]
+        else:
+            raise RuntimeError(f"report {d.get('total_count')} dòng > 1 trang mà không chia được theo ngày / giờ (group_by {gb}, {tu}→{den}): lật trang Ethopex mất / trùng dòng — thêm \"date\" vào group_by")
+        ds = [doc_het(duong, x, timeout) for x in phan]
+        ds[0]["rows"] = [r for x in ds for r in (x.get("rows") or [])]; ds[0]["total_pages"] = 1; return ds[0]
     if "?" not in duong: return _goi(duong, None, timeout)
     goc = re.sub(r"([?&])page=\d+", r"\1", duong).replace("?&", "?").replace("&&", "&").rstrip("&")
     d = _goi(goc + "&page=1", None, timeout); data = list(d.get("data") or [])

@@ -171,7 +171,12 @@ const LUAT = [
   { card: 0, tep: 'packages/db/migrations/0373_etp_bac_ngoai.sql', co: 'after insert or update of ngan_sach on etp.camp_ngoai', vi: 'sổ lên bậc team: trigger bắt mọi lần đổi ngân sách / nhân bản' },
   { card: 1487, tep: 'apps/web/src/components/etp-view.tsx', co: "width: gon ? '100%' : 'auto', fontSize: 11.5", vi: 'bảng xét luật rộng theo nội dung, không giãn cột Điều kiện' },
   { card: 1487, tep: 'apps/web/src/components/etp-view.tsx', co: "t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R }", vi: 'khung nổi xét luật rộng theo nội dung' },
-  { card: 1488, tep: 'apps/web/src/components/etp-view.tsx', co: "data-comp={hep ? undefined : 'ui.StickyBar'}", vi: 'hàng Mở hết / Chú giải dính khi cuộn' },
+  { card: 1488, tep: 'apps/web/src/components/etp-view.tsx', co: 'dauThanh={nutCay} thanhDinh="var(--etp-dinh, 0px)"', vi: 'Mở hết / Chú giải dính khi cuộn (đứng đầu thanh tìm dính của bảng cây, bố cục 31/10)' },
+  { card: 1488, tep: 'packages/bang/src/data-table.tsx', co: "data-comp={thanhDinh ? 'ui.StickyBar' : undefined}", vi: 'thanh tìm bảng dính được — tiêu đề cột dính ngay dưới' },
+  // anh 31/10/2026 "bố cục lại chỗ này" (YDNI): tab gãy hai dòng vì một hàng nhồi tab + kỳ + kiểu xem + 6 ô lọc; hai bộ lọc trùng nghĩa
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '.etp-thanh [data-comp="ui.Segmented"] button,.etp-thanh [data-comp="ui.Segmented"] a{white-space:nowrap}', vi: 'nhãn tab không gãy dòng' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "<span className=\"etp-xuong\" style={{ flexBasis: '100%', height: 0 }} />", vi: 'kiểu xem + bộ lọc xuống hàng 2, tab + kỳ hàng 1' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', mot: 'locTuDong={false} />;   // TT / Luật / Loại tự sinh', vi: 'cây camp không có bộ lọc tự sinh trùng ô Lọc / Luật / Loại' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'tuoi', header: 'Tuổi', width: 52,", vi: 'cột Tuổi Cây hẹp cố định (không ăn khoảng thừa)' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: 'persistKey="etp-cay" minWidth={1100} fixedLayout', vi: 'Cây table-layout fixed: bề rộng cột theo khai báo, máy nào cũng như nhau' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'dem', header: '', align: 'left', cell: () => null },", vi: 'Cây: cột đệm cuối nhận khoảng thừa, không hở giữa bảng' },

@@ -156,6 +156,12 @@ interface DataTableProps<T> {
   groupBy?: { value: (row: T) => string; label?: (v: string, rows: T[]) => ReactNode };
   /** thuộc tính data-* gắn lên <tr> của dòng (vd etp `data-camp-dong` để rê mã camp ở chỗ khác tô sáng đúng dòng) */
   rowData?: (row: T) => Record<string, string | number>;
+  /** nút riêng của trang đứng ĐẦU thanh lọc (vd etp cây camp: Mở hết · Chú giải) — gộp một hàng thay vì hàng nút riêng nằm trên thanh tìm */
+  dauThanh?: ReactNode;
+  /** thanh lọc DÍNH khi cuộn, cách mép trên bằng giá trị này (vd 'var(--etp-dinh, 0px)'); tiêu đề bảng tự dính ngay dưới thanh */
+  thanhDinh?: string;
+  /** false = bỏ ô lọc danh mục tự sinh theo cột (TT / Luật / Loại…) khi trang đã có bộ lọc riêng cùng nghĩa — tránh hai bộ lọc trùng */
+  locTuDong?: boolean;
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
@@ -177,7 +183,7 @@ export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
   stickyFirst = true, stickyCols, fixedLayout = false,
-  serverSort, serverFilter, hopCuon = false, tree, groupBy, rowData,
+  serverSort, serverFilter, hopCuon = false, tree, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true,
 }: DataTableProps<T>) {
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
   // KÉO GIÃN CỘT (keo-rong.ts — 17/10/2026, anh: "dùng DataTable mà không resize được"): mép phải mỗi tiêu đề có tay nắm; bề ngang nhớ theo
@@ -315,7 +321,7 @@ export function DataTable<T>({
   // gom nhóm theo một cột. Bảng không phải khai gì. Bảng `sliced` (chỉ cầm một trang) không có — danh mục của một trang là nói dối.
   const timCuaDong = useMemo(() => searchText ?? ((r: T) => chuoiTim(r, columns)), [searchText, columns]);
   const coTim = !sliced && (!!searchText || rows.length >= 6);
-  const danhMuc = useMemo(() => (sliced ? [] : cotDanhMuc(rows, columns)), [rows, columns, sliced]);
+  const danhMuc = useMemo(() => (sliced || !locTuDong ? [] : cotDanhMuc(rows, columns)), [rows, columns, sliced, locTuDong]);
   const gUrlKey = persistKey ? `${persistKey}.g` : undefined;
   const [gom, setGomTho] = useState(() => pref.g ?? '');
   useEffect(() => { const u = gUrlKey ? readShallowParam(gUrlKey) : null; if (u != null) setGomTho(u); }, [gUrlKey]);
@@ -599,8 +605,10 @@ export function DataTable<T>({
     // minWidth 0: bảng thường là con của grid/flex — min-width:auto mặc định làm khối giãn theo bề rộng bảng (minWidth cột), tràn khỏi ngăn
     // kéo thay vì cuộn ngang trong .dt-scroll; thanh lọc phía trên rơi ra ngoài màn (#1416).
     <div data-comp="ui.DataTable" style={{ minWidth: 0, maxWidth: '100%' }}>
-      {(coTim || danhMuc.length > 0 || (groups && groups.length > 0) || showViewToggle || anyColFilter) && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+      {(coTim || danhMuc.length > 0 || (groups && groups.length > 0) || showViewToggle || anyColFilter || dauThanh) && (
+        <div data-comp={thanhDinh ? 'ui.StickyBar' : undefined} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 6,
+          ...(thanhDinh ? { position: 'sticky', top: thanhDinh, zIndex: 7, background: 'var(--bg-0, #0b0b0c)', padding: '4px 0' } : {}) }}>
+          {dauThanh}
           {anyColFilter && (
             <button type="button" onClick={clearColFilters} title="Xoá tất cả lọc-cột đang bật"
               style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>

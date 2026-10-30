@@ -9,7 +9,7 @@ import { getDb } from '@mos2/db';
 import { mapCanh, mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
 import { bocTachKhung } from '../src/lib/xuong-video/boc-tach-khung';
 import { thanhPhanDuKien, doiChieuKhung, apDungSoBang, cauLenhSua } from '../src/lib/xuong-video/doi-chieu-khung';
-import { sinhAnhQuaCong, taNguon } from '../src/lib/xuong-video/cong-ai';
+import { sinhAnhQuaCong, sinhAnhMotCong, taNguon } from '../src/lib/xuong-video/cong-ai';
 import { uploadToR2 } from '../src/lib/r2';
 import { khongGianTap } from './phieu-shot.mts';
 import type { BocTachKhung, DongDoiChieu } from '../src/lib/xuong-video/kieu';
@@ -44,26 +44,36 @@ if (!truoc) {
 console.log(`\n=== #${canhId} · khung ${luc.toUpperCase()} ===`);
 console.log(`LỖI TRƯỚC (${lo(truoc).length}): ${inLo(truoc)}`);
 
-// 2) DỊCH LỆCH → câu lệnh sửa ($0)
-const prompt = cauLenhSua(truoc ?? []);
+// 2) DỊCH LỆCH → câu lệnh sửa ($0) — khoá bối cảnh + nét nhận dạng để model không vẽ lại / đổi danh tính
+const net = (s: string) => (s || '').replace(/\s+/g, ' ').trim().split(/(?<=[.;])\s/)[0]!.slice(0, 110);
+const giu = {
+  boiCanh: c.boc_tach?.[luc]?.boi_canh || c.phan_doan || '',
+  nhanVat: nhanVat.filter((v) => v.loai === 'nhan_vat' && c.nhan_vat.includes(v.id)).map((v) => ({ ten: v.ten, net: net(v.mo_ta) })),
+};
+const prompt = cauLenhSua(truoc ?? [], giu);
 if (!prompt) { console.log('không có lệch để sửa — dừng'); process.exit(0); }
 console.log(`\n--- CÂU LỆNH SỬA (ảnh gốc = keyframe hiện tại) ---\n${prompt}\n`);
 
-// 3) SỬA ẢNH: image-to-image từ CHÍNH ảnh hiện tại
-const a = await sinhAnhQuaCong('nano-banana-2', { prompt, thamChieuUrl: [baseUrl], tiLe: '9:16' });
-if (!a.anh) { console.error(`sửa ảnh hỏng: ${a.thu?.map((x) => x.loi).join(' | ') ?? '?'}`); process.exit(1); }
+// 3) SỬA ẢNH: image-to-image từ CHÍNH ảnh hiện tại. --pro ép nano-banana-pro (gemini-3.0-pro-image, giữ ảnh chặt hơn flash)
+const pro = process.argv.includes('--pro');
+const a = pro
+  ? await sinhAnhMotCong('ckey', 'wowztools/nano-banana-pro', { prompt, thamChieuUrl: [baseUrl], tiLe: '9:16' })
+  : await sinhAnhQuaCong('nano-banana-2', { prompt, thamChieuUrl: [baseUrl], tiLe: '9:16' });
+if (!a.anh) { console.error(`sửa ảnh hỏng: ${('thu' in a ? a.thu?.map((x) => x.loi).join(' | ') : a.loi) ?? '?'}`); process.exit(1); }
 const key = `xuong-video/vong-sua/${canhId}-${luc}-${randomUUID()}.png`;
 const url = await uploadToR2(key, a.anh.data, a.anh.mimeType);
 writeFileSync(`/tmp/vongsua-${canhId}-${luc}.png`, a.anh.data);
 console.log(`✓ ảnh sửa: ${taNguon(a.nguon)} · ${url ?? '(R2 hỏng)'} · /tmp/vongsua-${canhId}-${luc}.png`);
 
-// 4) BÓC + ĐỐI CHIẾU LẠI ảnh mới
-const r2 = await bocTachKhung(db, phimId, url ?? baseUrl, nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
-if (!r2) { console.error('bóc ảnh mới hỏng'); process.exit(1); }
-const d1 = await doiChieuKhung(db, phimId, thanhPhanDuKien(c, nhanVat, kg, luc), r2 as BocTachKhung);
-const sau = d1 ? apDungSoBang(d1, c, nhanVat, kg, luc, r2 as BocTachKhung) : null;
-console.log(`\nLỖI SAU  (${lo(sau).length}): ${inLo(sau)}`);
-console.log(`\n→ ${lo(truoc).length} → ${lo(sau).length} lỗi` + (ghi ? '' : ' (test, chưa ghi keyframe — thêm --ghi để thay)'));
+// 4) BÓC + ĐỐI CHIẾU LẠI ảnh mới — TUỲ CHỌN (tốn thêm ~2¢). Mặc định chỉ sửa + để anh nhìn mắt.
+if (process.argv.includes('--kiem')) {
+  const r2 = await bocTachKhung(db, phimId, url ?? baseUrl, nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
+  if (!r2) { console.error('bóc ảnh mới hỏng'); process.exit(1); }
+  const d1 = await doiChieuKhung(db, phimId, thanhPhanDuKien(c, nhanVat, kg, luc), r2 as BocTachKhung);
+  const sau = d1 ? apDungSoBang(d1, c, nhanVat, kg, luc, r2 as BocTachKhung) : null;
+  console.log(`\nLỖI SAU  (${lo(sau).length}): ${inLo(sau)}`);
+  console.log(`\n→ ${lo(truoc).length} → ${lo(sau).length} lỗi` + (ghi ? '' : ' (test, chưa ghi keyframe — thêm --ghi để thay)'));
+}
 
 if (ghi && url) {
   const col = luc === 'cuoi' ? 'keyframe_ket' : 'keyframe_url';

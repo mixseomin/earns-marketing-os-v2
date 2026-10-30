@@ -1,5 +1,5 @@
-// 🔁 VÒNG TỰ-SỬA KHUNG (B6): đọc các LỆCH của một canh → dịch thành câu "giữ … chỉ sửa …" (cauLenhSua, $0) → SỬA ẢNH (image-to-image:
-// chính keyframe hiện tại làm ảnh gốc, con AI chỉ đụng chỗ sai) → bóc + đối chiếu lại → báo lỗi TRƯỚC/SAU. Không ghi đè keyframe (test) trừ --ghi.
+// 🔁 VÒNG TỰ-SỬA KHUNG (B6, anh 30/10/2026: SỬA TỪ PROMPT NGUỒN, không vá ảnh): đọc LỆCH của canh → dịch thành khối "ĐIỂM BẮT BUỘC ĐÚNG"
+// (sietTuLech, $0) NỐI vào prompt nguồn keyframe (chuanBiKeyframe: có ảnh mẫu trang phục urlRef) → SINH LẠI cả khung → bóc+đối chiếu lại (--kiem).
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server \
 //     ../../node_modules/.bin/tsx scripts/vong-sua.mts --canh=1824 [--luc=dau|cuoi] [--ghi]
 import { writeFileSync } from 'node:fs';
@@ -8,8 +8,9 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapCanh, mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
 import { bocTachKhung } from '../src/lib/xuong-video/boc-tach-khung';
-import { thanhPhanDuKien, doiChieuKhung, apDungSoBang, cauLenhSua } from '../src/lib/xuong-video/doi-chieu-khung';
-import { sinhAnhQuaCong, sinhAnhMotCong, taNguon } from '../src/lib/xuong-video/cong-ai';
+import { thanhPhanDuKien, doiChieuKhung, apDungSoBang, sietTuLech } from '../src/lib/xuong-video/doi-chieu-khung';
+import { lyChanKeyframe, chuanBiKeyframe } from '../src/lib/xuong-video/sinh-anh';
+import { sinhAnhQuaCong, taNguon } from '../src/lib/xuong-video/cong-ai';
 import { uploadToR2 } from '../src/lib/r2';
 import { khongGianTap } from './phieu-shot.mts';
 import type { BocTachKhung, DongDoiChieu } from '../src/lib/xuong-video/kieu';
@@ -44,22 +45,18 @@ if (!truoc) {
 console.log(`\n=== #${canhId} · khung ${luc.toUpperCase()} ===`);
 console.log(`LỖI TRƯỚC (${lo(truoc).length}): ${inLo(truoc)}`);
 
-// 2) DỊCH LỆCH → câu lệnh sửa ($0) — khoá bối cảnh + nét nhận dạng để model không vẽ lại / đổi danh tính
-const net = (s: string) => (s || '').replace(/\s+/g, ' ').trim().split(/(?<=[.;])\s/)[0]!.slice(0, 110);
-const giu = {
-  boiCanh: c.boc_tach?.[luc]?.boi_canh || c.phan_doan || '',
-  nhanVat: nhanVat.filter((v) => v.loai === 'nhan_vat' && c.nhan_vat.includes(v.id)).map((v) => ({ ten: v.ten, net: net(v.mo_ta) })),
-};
-const prompt = cauLenhSua(truoc ?? [], giu);
-if (!prompt) { console.log('không có lệch để sửa — dừng'); process.exit(0); }
-console.log(`\n--- CÂU LỆNH SỬA (ảnh gốc = keyframe hiện tại) ---\n${prompt}\n`);
+// 2) PROMPT NGUỒN của keyframe (chuanBiKeyframe: mô tả cảnh + ảnh mẫu trang phục urlRef) + SIẾT từ lệch
+const g = await lyChanKeyframe(db, canhId, true);
+if (!g) { console.error('không dựng được bối cảnh cảnh'); process.exit(1); }
+const { prompt: promptNguon, urlRef } = chuanBiKeyframe(g.bc);
+const siet = sietTuLech(truoc ?? []);
+if (!siet) { console.log('không có lệch để sửa — dừng'); process.exit(0); }
+const prompt = `${promptNguon}\n${siet}`;
+console.log(`\n--- SIẾT NỐI VÀO PROMPT NGUỒN ---${siet}\n--- (prompt nguồn ${promptNguon.length} ký tự + ${urlRef.length} ảnh mẫu) ---\n`);
 
-// 3) SỬA ẢNH: image-to-image từ CHÍNH ảnh hiện tại. --pro ép nano-banana-pro (gemini-3.0-pro-image, giữ ảnh chặt hơn flash)
-const pro = process.argv.includes('--pro');
-const a = pro
-  ? await sinhAnhMotCong('ckey', 'wowztools/nano-banana-pro', { prompt, thamChieuUrl: [baseUrl], tiLe: '9:16' })
-  : await sinhAnhQuaCong('nano-banana-2', { prompt, thamChieuUrl: [baseUrl], tiLe: '9:16' });
-if (!a.anh) { console.error(`sửa ảnh hỏng: ${('thu' in a ? a.thu?.map((x) => x.loi).join(' | ') : a.loi) ?? '?'}`); process.exit(1); }
+// 3) SINH LẠI CẢ KHUNG từ prompt nguồn đã siết + ảnh mẫu (giữ trang phục/danh tính)
+const a = await sinhAnhQuaCong('nano-banana-2', { prompt, thamChieuUrl: urlRef, tiLe: g.bc.kt.ti_le });
+if (!a.anh) { console.error(`sinh lại hỏng: ${a.thu?.map((x) => x.loi).join(' | ') ?? '?'}`); process.exit(1); }
 const key = `xuong-video/vong-sua/${canhId}-${luc}-${randomUUID()}.png`;
 const url = await uploadToR2(key, a.anh.data, a.anh.mimeType);
 writeFileSync(`/tmp/vongsua-${canhId}-${luc}.png`, a.anh.data);

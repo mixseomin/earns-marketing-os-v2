@@ -100,44 +100,35 @@ function tocEnum(moTa: string): string {
   return '';
 }
 
-// ✍️ B6: DỊCH các lệch (DongDoiChieu) → MỘT câu lệnh SỬA ẢNH (image-to-image) để con AI chỉ đụng chỗ sai, KHÔNG vẽ lại từ đầu.
-// Không gọi AI ($0). Gom các lá "thiếu vì khuất" (biểu cảm/vết/áo/tóc/vị trí của người bị quay lưng, góc che) về MỘT câu xoay mặt — vì gốc
-// là tư thế chứ không phải từng lá. Các lệch còn lại (vị trí màn, dáng, người giữ đạo cụ, áo…) thành một mệnh đề "giữ … chỉ sửa …".
-export function cauLenhSua(chieu: DongDoiChieu[], giu?: { boiCanh?: string; nhanVat?: { ten: string; net: string }[] }): string {
+// ✍️ B6 (đúng hướng anh 30/10/2026): SỬA TỪ PROMPT NGUỒN — không vá ảnh. Dịch các lệch thành khối "ĐIỂM BẮT BUỘC ĐÚNG" để NỐI vào prompt nguồn
+// của keyframe (chuanBiKeyframe: đã có mô tả cảnh + ảnh mẫu trang phục), rồi SINH LẠI cả khung → giữ đúng trang phục/danh tính, chỉ ép lại chỗ trước sinh sai.
+export function sietTuLech(chieu: DongDoiChieu[]): string {
   const loi = chieu.filter((r) => r.muc === 'lệch' || r.muc === 'thiếu' || r.muc === 'thừa');
   if (!loi.length) return '';
   const benEN: Record<string, string> = { 'trái': 'the left of the frame', 'giữa': 'the center of the frame', 'phải': 'the right of the frame' };
   const ben = (v: string) => benEN[v.trim()] ?? v;
   const khuat = (r: DongDoiChieu) => r.muc === 'thiếu' && (r.thuc_te === '—' || r.thuc_te === '' || /không thấy|không rõ|khuất|quay lưng|từ phía sau|từ sau|góc nhìn nghiêng|nghiêng từ/i.test(`${r.thuc_te} ${r.ghi_chu}`));
-  const nguoiKhuat = new Map<string, string[]>();   // người bị che → các chi tiết cần lộ ra (nhãn NGẮN, không dán cả spec dài → model khỏi vẽ lại)
+  const nguoiKhuat = new Map<string, string[]>();
   const menh: string[] = [];
   for (const r of loi) {
     const tp = r.thanh_phan; let m: RegExpMatchArray | null;
     if (khuat(r) && (m = tp.match(/^(Biểu cảm|Vết áo|Áo|Tóc|Vị trí) (.+)$/))) {
       const attr = m[1]!, name = m[2]!;
-      const ph = attr === 'Biểu cảm' ? `her face (she looks ${r.du_kien})` : attr === 'Vết áo' ? 'the existing stain on her top'
+      const ph = attr === 'Biểu cảm' ? `her face (she looks ${r.du_kien})` : attr === 'Vết áo' ? 'the stain on her top'
         : attr === 'Áo' ? 'the front of her top' : attr === 'Tóc' ? 'her hair' : 'the front of her body';
       if (!nguoiKhuat.has(name)) nguoiKhuat.set(name, []);
       if (!nguoiKhuat.get(name)!.includes(ph)) nguoiKhuat.get(name)!.push(ph); continue;
     }
-    if ((m = tp.match(/^Vị trí (.+)$/))) { menh.push(`Reposition ${m[1]} to ${ben(r.du_kien)} (currently at ${ben(r.thuc_te)}), keeping the same person and clothes.`); continue; }
-    if ((m = tp.match(/^Dáng (.+)$/))) { menh.push(`Change only ${m[1]}'s pose/gesture to: ${r.du_kien} (currently: ${r.thuc_te}).`); continue; }
-    if ((m = tp.match(/^Đạo cụ (.+?) \+ vị trí$/i))) { menh.push(`The ${m[1]} must be held/worn by ${r.du_kien}, not by ${r.thuc_te} — move only the object, not the people.`); continue; }
-    if ((m = tp.match(/^Đạo cụ (.+?) \+ trạng thái$/i))) { menh.push(`The ${m[1]} should look like: ${r.du_kien} (currently: ${r.thuc_te}).`); continue; }
-    if ((m = tp.match(/^(Áo|Tóc|Biểu cảm) (.+)$/))) { menh.push(`Change only ${m[2]}'s ${m[1] === 'Áo' ? 'clothing' : m[1] === 'Tóc' ? 'hairstyle' : 'facial expression'} to: ${r.du_kien} (currently: ${r.thuc_te}).`); continue; }
-    if (r.muc === 'thừa') { menh.push(`Remove from frame: ${r.thanh_phan} (${r.thuc_te}).`); continue; }
-    menh.push(`${tp}: must be ${r.du_kien}, not ${r.thuc_te}.`);
+    if ((m = tp.match(/^Vị trí (.+)$/))) { menh.push(`${m[1]} must be at ${ben(r.du_kien)}.`); continue; }
+    if ((m = tp.match(/^Dáng (.+)$/))) { menh.push(`${m[1]}'s pose/gesture: ${r.du_kien}.`); continue; }
+    if ((m = tp.match(/^Đạo cụ (.+?) \+ vị trí$/i))) { menh.push(`The ${m[1]} is held/worn by ${r.du_kien} (NOT by anyone else).`); continue; }
+    if ((m = tp.match(/^Đạo cụ (.+?) \+ trạng thái$/i))) { menh.push(`The ${m[1]}: ${r.du_kien}.`); continue; }
+    if ((m = tp.match(/^(Áo|Tóc|Biểu cảm) (.+)$/))) { menh.push(`${m[2]}'s ${m[1] === 'Áo' ? 'clothing' : m[1] === 'Tóc' ? 'hairstyle' : 'expression'}: ${r.du_kien}.`); continue; }
+    if (r.muc === 'thừa') { menh.push(`Do NOT include: ${r.thanh_phan} (${r.thuc_te}).`); continue; }
+    menh.push(`${tp}: ${r.du_kien}.`);
   }
-  for (const [name, phs] of nguoiKhuat) menh.unshift(`Turn ${name} about three-quarters toward the camera (she is currently facing away), without moving her or changing her clothes, so ${phs.join(' and ')} become visible.`);
-  const giuNguoi = (giu?.nhanVat ?? []).map((n) => `${n.ten} = ${n.net}`).join('; ');
-  return [
-    'You are retouching ONE existing cinematic film still. Output ONE single photograph at 9:16, same resolution as the input. Do NOT produce a before/after comparison, a split screen, two stacked frames, a grid or any collage — one frame only.',
-    giu?.boiCanh ? `Keep the exact same setting: ${giu.boiCanh}. Do not change the location, furniture, props or background people.` : 'Keep the exact same setting, furniture, props and background.',
-    giuNguoi ? `Keep each person's identity, face and wardrobe EXACTLY as in the image — do not recolour hair or clothes, do not swap anyone: ${giuNguoi}.` : 'Keep each person\'s identity, face, hairstyle and wardrobe colours EXACTLY as in the image.',
-    'Keep the same lighting, colour grade and camera framing. Apply ONLY these minimal corrections, leaving every other pixel as-is:',
-    ...menh.map((c, i) => `${i + 1}. ${c}`),
-    'This is a local correction pass, not a re-generation.',
-  ].join('\n');
+  for (const [name, phs] of nguoiKhuat) menh.unshift(`${name} faces about three-quarters toward the camera (do not show her back), so ${phs.join(' and ')} are visible.`);
+  return ['', 'CRITICAL — a previous render of this exact shot got the following wrong; this time they MUST be correct:', ...menh.map((c, i) => `- ${c}`)].join('\n');
 }
 
 // ⚖️ B4: ĐÈ phán của model bằng SO BẰNG MÁY cho các lá ENUM sạch (vị trí màn · kiểu tóc · NGƯỜI GIỮ đạo cụ) — đây là chỗ model hay chấm ẩu nhất.

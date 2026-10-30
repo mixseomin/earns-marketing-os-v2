@@ -82,12 +82,13 @@ export const jsonChuan = (x: unknown): string => JSON.stringify(x, (_k, v) => (v
 /** Nạp đề (khoá = slug trong máy): chưa có → thêm; đề đổi → ghi đề mới, bỏ video cũ (xuất lại); chỉ chữ đăng đổi → cập nhật chữ. */
 export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ moi: number; doi: number; giu: number }> {
   const m = await mayTheoMa(db, ma); if (!m) throw new Error(`không có máy "${ma}"`);
-  if (!MAU_MAY_DUNG[m.mau]) throw new Error(`máy ${ma}: mẫu lạ ${m.mau}`);
   let moi = 0, doi = 0, giu = 0;
   for (const x of ds) {
     const cu = ((await db.execute(sql`SELECT id, de, dang, chu_de, nen_url, mau FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${x.slug}`)) as unknown as Row[])[0];
     const coNen = x.nen_url !== undefined, nen = coNen ? x.nen_url ?? null : ((cu?.nen_url as string | null | undefined) ?? null);
     if (x.mau && !MAU_MAY_DUNG[x.mau]) throw new Error(`${x.slug}: mẫu lạ ${x.mau}`);
+    // mẫu mặc định của MÁY chỉ cần hợp lệ khi đề không mang mẫu riêng (31/10/2026: Giỗ Chạp mẫu cũ 'van-khan-ngoai' không còn trong sổ — chặn oan mọi đề theo góc)
+    if (!x.mau && !cu?.mau && !MAU_MAY_DUNG[m.mau]) throw new Error(`${x.slug}: máy ${ma} mẫu mặc định lạ (${m.mau}) và đề không mang mẫu riêng`);
     const mau = x.mau !== undefined ? x.mau ?? null : ((cu?.mau as MauMayDung | null | undefined) ?? null);   // không gửi = giữ mẫu đang có
     if (!cu) {
       await db.execute(sql`INSERT INTO xv_may_video (may_id, slug, chu_de, de, dang, nen_url, mau) VALUES (${m.id}, ${x.slug}, ${x.chu_de}, ${JSON.stringify(x.de)}::jsonb, ${JSON.stringify(x.dang)}::jsonb, ${nen}, ${mau})`);

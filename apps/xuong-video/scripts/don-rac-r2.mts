@@ -23,11 +23,12 @@ if (process.argv.includes('--tra')) {
 }
 
 // Kho tham chiếu: mọi chuỗi xuong-video/… trong MỌI DB của box3 + tệp /opt, /var/lib (bỏ node_modules / .git / .next) — ~3 phút
-const RE = `xuong-video/[^[:space:]"'<>\\\\(),]+`;
-const sh = (c: string) => execFileSync('sh', ['-c', c], { encoding: 'utf8', maxBuffer: 512e6, timeout: 15 * 6e4 });
+const RE = `xuong-video/[^[:space:]"'<>\\(),]+`;
+// biểu thức đi qua biến môi trường RE (có dấu nháy đơn bên trong, nhét thẳng vào lệnh sh là vỡ cú pháp)
+const sh = (c: string) => execFileSync('sh', ['-c', c], { encoding: 'utf8', maxBuffer: 512e6, timeout: 15 * 6e4, env: { ...process.env, RE } });
 const chuoi = [
-  ...sh(`sudo -u postgres pg_dumpall -a 2>/dev/null | grep -aoE '${RE}' | sort -u`).split('\n'),
-  ...sh(`grep -rIaohE --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.next --exclude-dir=.cache '${RE}' /opt /var/lib/cty /var/lib/spy 2>/dev/null | sort -u || true`).split('\n'),
+  ...sh(`sudo -u postgres pg_dumpall -a 2>/dev/null | grep -aoE "$RE" | sort -u`).split('\n'),
+  ...sh(`grep -rIaohE --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=.next --exclude-dir=.cache "$RE" /opt /var/lib/cty /var/lib/spy 2>/dev/null | sort -u || true`).split('\n'),
 ];
 const ref = khoThamChieu(chuoi);
 const ds = await listR2(GOC);

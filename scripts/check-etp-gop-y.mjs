@@ -192,6 +192,8 @@ const LUAT = [
   { card: 0, tep: 'apps/etp/dong-bo.py', co: "select min(ngay) d from etp.so_ngay union all select min(ngay) from etp.so_ngay_ngoai", vi: 'kéo số ngày từ đầu khi bảng nhà HOẶC bảng team chưa phủ từ đầu' },
   { card: 0, tep: 'apps/etp/ethopex_api.py', cam: 'for tr in range(2, int(d.get("total_pages") or 1) + 1): rows += _goi(', vi: 'report Ethopex không lật trang (máy chủ trả thứ tự lộn → trùng / mất dòng), chia khoảng ngày' },
   { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'phan = [{**b, "filters": {**(b.get("filters") or {}), "hour": h}}', vi: 'report quá một trang thì chia đôi khoảng ngày, một ngày thì chia theo giờ' },
+  { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'elif len(cid := list((b.get("filters") or {}).get("campaign_id") or [])) > 1:', vi: 'report một ngày vẫn quá trang thì chia theo lô camp' },
+  { card: 0, tep: 'apps/etp/dong-bo.py', co: '"filters": {"campaign_id": ds_camp}, "metric_conditions": []', vi: 'nước giao theo camp lọc camp trong kho (chú thích giữa dòng từng nuốt filters / limit)' },
   // anh 30/10/2026 "Thêm luật tắt cho khớp mọi thứ để nhìn rõ trên màn hình. Ko đc để luật ngầm nào": RL (★ ROAS lỗ) máy tự tắt qua LUAT_TAT, điều kiện hiện trên thẻ xét luật
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', mot: "khoa: 'tat_roas', tep: 'ethopex-tat-rl.json'", vi: 'RL đi đường báo trước một nhịp rồi máy tắt' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: 'Máy không tự tắt — anh quyết', vi: 'không còn luật ROAS chỉ báo chờ anh' },

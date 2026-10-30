@@ -176,7 +176,9 @@ def main():
     # camp chạy ở đâu. Report gom campaign_name + geo (gom geo trần trả 1 dòng / nước cho mọi team, không tách được nhà) → etp.camp_nuoc, ghi đè cả bảng mỗi lượt
     try:
         gn_ = {}
-        for x in EA.api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue"], "group_by": ["campaign_name", "geo", "date"],   # + date: 7 ngày ~30.000 dòng > 1 trang, cổng chia theo ngày (cộng dồn bên dưới) "filters": {}, "metric_conditions": [], "limit": 10000, "page": 1, "page_size": 10000,
+        # + date và lọc campaign_id = camp trong kho: 8 ngày ~65.000 dòng, một ngày ~12.000 > 1 trang → cổng chia theo ngày rồi theo lô camp (cộng dồn bên dưới)
+        ds_camp = [int(x) for x in q("select camp_id from etp.camp union select camp_id from etp.camp_ngoai").split()]
+        for x in EA.api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue"], "group_by": ["campaign_name", "geo", "date"], "filters": {"campaign_id": ds_camp}, "metric_conditions": [], "limit": 10000, "page": 1, "page_size": 10000,
                                            "date_from": (nay - dt.timedelta(days=7)).isoformat(), "date_to": nay.isoformat()})["rows"]:
             m = re.match(r"\(([A-Z]{2})\)", str(x.get("geo") or ""))
             if not x.get("campaign_id") or not m: continue

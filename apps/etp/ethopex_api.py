@@ -69,7 +69,7 @@ def doc_het(duong, body=None, timeout=90):
         # chừng ấy dòng rơi mất) → camp cộng đôi chi / camp mất chi, All time etp lệch Ethopex. Quá một trang thì CHIA ĐÔI khoảng ngày tới khi mỗi phần vừa một trang.
         b = {**body, "page": 1}; d = _goi(duong, b, timeout)
         if int(d.get("total_pages") or 1) <= 1: return d
-        # Hai trục chia mà mỗi dòng chỉ thuộc đúng MỘT phần: ngày (group_by có "date") · giờ (group_by có "hour", lọc filters {"hour": [..]})
+        # Trục chia mà mỗi dòng chỉ thuộc đúng MỘT phần: ngày (group_by có "date") · giờ (group_by có "hour", lọc filters {"hour": [..]}) · lô camp (filters campaign_id)
         tu, den = b.get("date_from"), b.get("date_to"); gb = b.get("group_by") or []; gio = list((b.get("filters") or {}).get("hour") or range(24))
         import datetime as _dt
         if "date" in gb and tu and den and tu[:10] < den[:10]:
@@ -77,8 +77,10 @@ def doc_het(duong, body=None, timeout=90):
             phan = [{**b, "date_to": g.isoformat()}, {**b, "date_from": (g + _dt.timedelta(days=1)).isoformat()}]
         elif "hour" in gb and len(gio) > 1:
             phan = [{**b, "filters": {**(b.get("filters") or {}), "hour": h}} for h in (gio[:len(gio) // 2], gio[len(gio) // 2:])]
+        elif len(cid := list((b.get("filters") or {}).get("campaign_id") or [])) > 1:   # trục thứ ba: lô camp (người gọi truyền filters {"campaign_id": [..]})
+            phan = [{**b, "filters": {**(b.get("filters") or {}), "campaign_id": c}} for c in (cid[:len(cid) // 2], cid[len(cid) // 2:])]
         else:
-            raise RuntimeError(f"report {d.get('total_count')} dòng > 1 trang mà không chia được theo ngày / giờ (group_by {gb}, {tu}→{den}): lật trang Ethopex mất / trùng dòng — thêm \"date\" vào group_by")
+            raise RuntimeError(f"report {d.get('total_count')} dòng > 1 trang mà không chia được theo ngày / giờ / lô camp (group_by {gb}, {tu}→{den}): lật trang Ethopex mất / trùng dòng — thêm \"date\" vào group_by hoặc filters campaign_id")
         ds = [doc_het(duong, x, timeout) for x in phan]
         ds[0]["rows"] = [r for x in ds for r in (x.get("rows") or [])]; ds[0]["total_pages"] = 1; return ds[0]
     if "?" not in duong: return _goi(duong, None, timeout)

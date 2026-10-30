@@ -27,6 +27,11 @@ trang_thai: chạy một việc · Kiểm tài nguyên máy cào spy + số dư 
 
 **Cấm**: nạp tiền / mua credit bất kỳ cổng nào; gia hạn / mua / bật auto gia hạn khoá 2proxy (anh cấm 19/10/2026 — chỉ báo, anh quyết); đổi làn ↔ máy khi trưởng phòng Kỹ thuật chưa duyệt; tự bật làn đang tắt.
 
+**Kho tệp R2 + máy dọn rác** (anh 31/10/2026: "bổ sung report về trạng thái R2 và chi phí phát sinh" · "cần 1 con dọn rác tự động") — cùng nhịp, `apps/cty/worker/tai-nguyen-api.mjs`, $0:
+1. Mỗi giờ đọc bucket `mos2-media` qua Cloudflare GraphQL: dung lượng, số tệp, tăng/ngày (7 ngày), thao tác từ đầu tháng → ước chi phí tháng theo giá R2 (lưu $0,015/GB sau 10 GB miễn phí; lớp A/B sau hạn miễn phí; xoá + băng thông 0). Báo cáo sáng có dòng **Kho tệp R2** + dự báo 30 ngày. Cảnh báo khi ước tháng > 100.000₫ hoặc tăng > 10 GB/ngày.
+2. Mỗi đêm sau 03:00 chạy máy dọn rác studio `apps/xuong-video/scripts/don-rac-r2.mts --chay` (luật `src/lib/xuong-video/don-rac.ts`): tệp trong thư mục studio được dọn (clip, keyframe, xuat, khung-xam, thu, soat…) **cũ hơn 14 ngày mà không DB nào / tệp nào trên box3 còn nhắc tới** → dời vào thùng rác `xuong-video/rac/<ngày>/`, giữ 30 ngày rồi mới xoá hẳn. Không đụng `kho/` (thư viện Ethopex), `xuong-video/may/` (máy đăng), `ethopex/`, `lora/`, `nho/`. Phanh: kho tham chiếu < 3.000 khoá (quét DB hỏng) hoặc > 70% tệp cũ là "rác" (nghi quét sót) → không dọn, báo. Tối đa 5.000 tệp/đêm. Kết quả vào báo cáo sáng; máy hỏng → cảnh báo `box3:don-rac` cho thợ máy.
+3. Trả một tệp về chỗ cũ: `cd /opt/earns-marketing-os-v2/apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/don-rac-r2.mts --tra <khoá gốc>`; chạy thử (chỉ đếm): bỏ `--chay`.
+
 ## Spy - tự sửa máy cào — Mạnh (anh duyệt 24/10/2026; tên có chữ Spy để biết đây là việc spy chạy trên iMac)
 
 Cảnh báo **máy móc** (làn cào đứng, box3 / VPS quá tải, thiếu RAM, trình duyệt tắt) không chỉ báo: Nguyên xếp vào hàng `apps/cty/worker/tho-may-viec.mjs`, Mạnh (Claude Code không giao diện **trên iMac**, `apps/cty/may/tho-may.mjs`) nhận trong ≤ 5 phút, báo "đã nhận" ngay dưới tin cảnh báo, đo · tìm gốc · sửa trong repo spy-on-tc · kiểm · deploy, rồi trả lời dưới đúng tin đó (✅ đã sửa / ⚠️ không sửa được / 🙋 cần anh quyết). Trần **6 lượt / ngày**, **30 phút / lượt**. Khoá 2proxy, tài sản hết hạn là chuyện tiền — không vào hàng thợ máy.

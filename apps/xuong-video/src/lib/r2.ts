@@ -49,12 +49,12 @@ export async function deleteFromR2(key: string): Promise<boolean> {
 }
 
 /** Liệt kê object theo tiền tố (ListObjectsV2, SigV4 GET, tự lật trang) — cho script dọn ảnh render cũ. */
-export async function listR2(prefix: string): Promise<{ key: string; size: number }[]> {
+export async function listR2(prefix: string): Promise<{ key: string; size: number; luc: number }[]> {
   if (!r2Enabled()) return [];
   const acct = process.env.R2_ACCOUNT_ID!; const ak = process.env.R2_ACCESS_KEY_ID!; const sk = process.env.R2_SECRET_ACCESS_KEY!; const bucket = process.env.R2_BUCKET!;
   const host = `${acct}.r2.cloudflarestorage.com`; const region = 'auto'; const service = 's3';
   const enc = (x: string) => encodeURIComponent(x).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`);
-  const out: { key: string; size: number }[] = []; let token = '';
+  const out: { key: string; size: number; luc: number }[] = []; let token = '';
   for (let lan = 0; lan < 200; lan++) {
     const q: [string, string][] = [['list-type', '2'], ['prefix', prefix], ...(token ? [['continuation-token', token] as [string, string]] : [])];
     const qs = q.sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => `${enc(k)}=${enc(v)}`).join('&');
@@ -69,11 +69,36 @@ export async function listR2(prefix: string): Promise<{ key: string; size: numbe
     const res = await fetch(`https://${host}/${bucket}?${qs}`, { headers: { 'x-amz-content-sha256': payloadHash, 'x-amz-date': amzDate, Authorization: `AWS4-HMAC-SHA256 Credential=${ak}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}` } });
     if (!res.ok) throw new Error(`R2 list ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const xml = await res.text();
-    for (const m of xml.matchAll(/<Contents>[\s\S]*?<Key>([^<]+)<\/Key>[\s\S]*?<Size>(\d+)<\/Size>[\s\S]*?<\/Contents>/g)) out.push({ key: m[1]!.replace(/&amp;/g, '&'), size: Number(m[2]) });
+    for (const m of xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)) {   // luc = LastModified (ms) — máy dọn rác chỉ đụng tệp đủ cũ
+      const c = m[1]!, key = c.match(/<Key>([^<]+)<\/Key>/)?.[1]; if (!key) continue;
+      out.push({ key: key.replace(/&amp;/g, '&'), size: Number(c.match(/<Size>(\d+)<\/Size>/)?.[1] ?? 0), luc: Date.parse(c.match(/<LastModified>([^<]+)<\/LastModified>/)?.[1] ?? '') || 0 });
+    }
     token = /<IsTruncated>true<\/IsTruncated>/.test(xml) ? (xml.match(/<NextContinuationToken>([^<]+)<\/NextContinuationToken>/)?.[1] ?? '') : '';
     if (!token) break;
   }
   return out;
+}
+
+/** Chép một object sang khoá khác trong cùng bucket (S3 CopyObject, SigV4 PUT + x-amz-copy-source) — máy dọn rác dời tệp vào thùng rác / trả lại. */
+export async function copyR2(tu: string, den: string): Promise<boolean> {
+  if (!r2Enabled()) return false;
+  const acct = process.env.R2_ACCOUNT_ID!; const ak = process.env.R2_ACCESS_KEY_ID!; const sk = process.env.R2_SECRET_ACCESS_KEY!; const bucket = process.env.R2_BUCKET!;
+  const host = `${acct}.r2.cloudflarestorage.com`; const region = 'auto'; const service = 's3';
+  const enc = (k: string) => k.split('/').map(encodeURIComponent).join('/');
+  const canonicalUri = `/${bucket}/${enc(den)}`, nguon = `/${bucket}/${enc(tu)}`;
+  const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, ''); const dateStamp = amzDate.slice(0, 8);
+  const payloadHash = sha256hex('');
+  const canonicalHeaders = `host:${host}\nx-amz-content-sha256:${payloadHash}\nx-amz-copy-source:${nguon}\nx-amz-date:${amzDate}\n`;
+  const signedHeaders = 'host;x-amz-content-sha256;x-amz-copy-source;x-amz-date';
+  const canonicalRequest = `PUT\n${canonicalUri}\n\n${canonicalHeaders}\n${signedHeaders}\n${payloadHash}`;
+  const scope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const stringToSign = `AWS4-HMAC-SHA256\n${amzDate}\n${scope}\n${sha256hex(canonicalRequest)}`;
+  const kSigning = hmac(hmac(hmac(hmac(`AWS4${sk}`, dateStamp), region), service), 'aws4_request');
+  const signature = createHmac('sha256', kSigning).update(stringToSign).digest('hex');
+  try {
+    const res = await fetch(`https://${host}${canonicalUri}`, { method: 'PUT', headers: { 'x-amz-content-sha256': payloadHash, 'x-amz-copy-source': nguon, 'x-amz-date': amzDate, Authorization: `AWS4-HMAC-SHA256 Credential=${ak}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}` } });
+    return res.ok;
+  } catch { return false; }
 }
 
 export function r2KeyFromUrl(url: string): string | null {

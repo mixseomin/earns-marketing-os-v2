@@ -18,6 +18,7 @@ const luc = (gia('luc') || 'dau') as 'dau' | 'cuoi';
 const toiDa = Math.max(1, Math.min(3, Number(gia('vong') || 3)));
 const ghi = process.argv.includes('--ghi');
 if (!canhId) { console.error('cần --canh=<id>'); process.exit(1); }
+if (luc === 'cuoi') { console.error('vòng tự-sửa mới nối cho keyframe MỞ (đầu) — sinhKeyframeCanh chưa sinh khung KẾT; chạy --luc=dau'); process.exit(1); }
 const db = getDb()!;
 
 const col = luc === 'cuoi' ? 'keyframe_ket' : 'keyframe_url';
@@ -78,7 +79,7 @@ while (lo(lech).length && vong < toiDa) {
   console.log(`\n--- VÒNG ${vong}: siết ${lo(lech).length} lệch → sinh lại qua pipeline thật ---`);
   const rCanh = ((await db.execute(sql`SELECT ${sql.raw(col)} AS url, keyframe_uv FROM xv_canh WHERE id = ${canhId}`)) as unknown as Row[])[0];
   const urlCu = rCanh?.url ? String(rCanh.url) : null; const uvLen = ((rCanh?.keyframe_uv ?? []) as string[]).length;
-  const r = await sinhKeyframeCanh(db, canhId, 1, undefined, undefined, luc === 'cuoi', siet);
+  const r = await sinhKeyframeCanh(db, canhId, 1, undefined, undefined, true, siet);   // thu=true: shot đã có keyframe, sinh lại — bỏ qua cổng "tập chưa qua quy trình"
   if (!r.ok) { console.error(`sinh lại hỏng: ${r.loi}`); break; }
   const { url, loi } = await choAnhMoi(urlCu, uvLen);
   if (!url) { console.error(`chờ ảnh hỏng: ${loi}`); break; }

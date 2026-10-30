@@ -216,6 +216,8 @@ def main():
         for l in q(f"select id, coalesce(locale,''), coalesce(nguon,''), coalesce(url,''), coalesce(ten,'') from ethopex_content where id in ({','.join(map(str, ids)) or '0'})", SPY).splitlines():
             p = l.split("|", 4)
             if len(p) == 5: spy[int(p[0])] = p
+        # phim chỉ team chạy, spy chưa có (31/10/2026: camp nhà lên creative team ra tên "phim 170158 … 0-0s") → tên đọc từ camp ngoài, sau spy / sổ thể loại
+        ten_ngoai = {int(a): b for a, b in (l.split("|", 1) for l in q("select content_id, max(phim_ten) from etp.camp_ngoai where content_id > 0 and coalesce(phim_ten, '') <> '' group by 1").splitlines() if "|" in l)}
         # PHIM MỚI CHƯA CÓ THỂ LOẠI (anh 25/10/2026: "nhiều film không thuộc thể loại nào là vì sao?" — sổ chỉ cập nhật ở báo cáo thể loại sáng thứ Hai,
         # phim lên giữa tuần trống thể loại → lịch giờ xếp vào "chưa gắn"): đoán theo từ khoá trong tên (the-loai.py › doan, nguồn "tu"), ghi luôn vào sổ studio;
         # Claude / anh sửa bằng the-loai.py --gan <id>=<tl> (nguồn "claude", không bị ghi đè)
@@ -227,7 +229,7 @@ def main():
             q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_the_loai', '{}'::jsonb) on conflict (ten) do nothing")
             q(f"update xv_khoa_ngoai set gia_tri = $J${json.dumps(moi, ensure_ascii=False)}$J$::jsonb || gia_tri where ten = 'ethopex_the_loai'")   # bản có sẵn thắng
             tl = {**moi, **tl}
-        ghi("phim", [{"content_id": i, "ten": (spy.get(i) or [None] * 5)[4] or (tl.get(str(i)) or {}).get("ten"), "locale": (spy.get(i) or [None, None])[1], "nguon": (spy.get(i) or [None] * 3)[2],
+        ghi("phim", [{"content_id": i, "ten": (spy.get(i) or [None] * 5)[4] or (tl.get(str(i)) or {}).get("ten") or ten_ngoai.get(i), "locale": (spy.get(i) or [None, None])[1], "nguon": (spy.get(i) or [None] * 3)[2],
                       "url": (spy.get(i) or [None] * 4)[3], "the_loai": (tl.get(str(i)) or {}).get("tl"), "the_loai_nguon": (tl.get(str(i)) or {}).get("nguon"), "bo": ptk.get(str(i))} for i in ids],
             ["content_id"], {"content_id": "int", "ten": "text", "locale": "text", "nguon": "text", "url": "text", "the_loai": "text", "the_loai_nguon": "text", "bo": "text"})
         dat, thay, tc = khoa("ethopex_cta_dat"), khoa("ethopex_cta_thay"), khoa("ethopex_tu_choi")

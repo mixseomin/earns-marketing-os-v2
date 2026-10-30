@@ -29,7 +29,7 @@ def main():
             v = json.loads(d.get("video_url") or "[]"); v = v[0] if isinstance(v, list) and v else None
             if not v: loi.append(f"#{cr}: không có video"); continue
             rows.append({"creative_id": cr, "content_id": int(d.get("content_id") or 0) or None, "video": v, "dang": "team", "doan": f"cr:{cr}",
-                         "lo": f"ngoai:{d.get('user_name') or d.get('user_id') or '?'}"})
+                         "lo": "team"})
         except Exception as e: loi.append(f"#{cr}: {e}")
     if rows:
         j = json.dumps(rows, ensure_ascii=False).replace("$J$", "")

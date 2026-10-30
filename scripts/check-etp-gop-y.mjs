@@ -188,6 +188,8 @@ const LUAT = [
   { card: 1490, tep: 'apps/web/src/components/ui/chon-khoang.tsx', co: "{m.nhan}</button>)}\n            {(mocThem ?? []).map(", vi: 'mốc riêng đứng sau mốc sẵn' },
   // #1491 thẻ thư viện thiếu ảnh bìa → khung hình video
   { card: 1491, tep: V, co: ": x.video ? <video src={`${x.video}#t=1`} muted playsInline preload=\"metadata\"", vi: 'thẻ thư viện thiếu ảnh thì xem trước bằng video' },
+  // anh 30/10: All time lệch Ethopex — số ngày camp team (so_ngay_ngoai) thiếu 19–24/10 vì chỉ kiểm bảng nhà khi quyết kéo lại từ đầu
+  { card: 0, tep: 'apps/etp/dong-bo.py', co: "select min(ngay) d from etp.so_ngay union all select min(ngay) from etp.so_ngay_ngoai", vi: 'kéo số ngày từ đầu khi bảng nhà HOẶC bảng team chưa phủ từ đầu' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

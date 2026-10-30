@@ -139,7 +139,8 @@ def main():
     except Exception as e: loi.append(f"phot: {e}")
     # ── số theo ngày (camp × ngày)
     try:
-        tu = "2026-10-19" if day_du or q("select count(*) from etp.so_ngay") == "0" else (nay - dt.timedelta(days=3)).isoformat()
+        # kéo lại từ đầu khi BẤT KỲ bảng nào chưa phủ từ đầu: trước 30/10 chỉ kiểm so_ngay → so_ngay_ngoai (tạo sau) mất 19–24/10, All time lệch Ethopex $2.258
+        tu = "2026-10-19" if day_du or q("select bool_or(coalesce(d, '9999-01-01') > '2026-10-20') from (select min(ngay) d from etp.so_ngay union all select min(ngay) from etp.so_ngay_ngoai) x") == "t" else (nay - dt.timedelta(days=3)).isoformat()
         g, gn = {}, {}
         phim_ngoai = {}   # camp ngoài → (content_id, tên phim) cho cây phim theo người
         for x in bc(["campaign_name", "content_name", "date", "cost", "revenue"], ["campaign_name", "content_name", "date"], tu, nay.isoformat()):

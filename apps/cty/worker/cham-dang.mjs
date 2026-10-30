@@ -54,6 +54,9 @@ export function doBaiDang(v, ten = '') {
   // MỌI bài phải làm từ một góc cụ thể trong kho spy (dang.goc = { sp, id, loai, ten }); người gọi kiểm góc có thật và thuộc nhóm góc của thương hiệu (v.goc_loi).
   // Không gắn góc ngược cho bài cũ (gắn vào là số giả): bài cũ chưa đăng đã cất lưu trữ (migration 0377); can_goc = false chỉ còn cho bộ tự kiểm.
   if (v.can_goc !== false) { if (!d.goc?.id) chan.push('chưa gắn góc (nguồn idea) từ kho spy'); else if (v.goc_loi) chan.push(v.goc_loi); }
+  // 8 · HOOK từ QC thật trên spy (anh 31/10/2026, "rule quan trọng"): máy sinh ghi dang.hook = { qc, goc, page, ngay } (may-de.ts rapDe), hook tự nghĩ = chặn.
+  // Bài viết (loai 'bai', Quora / Substack) chưa có đường ghi hook ở sinh-bai.mjs → chưa bắt, kẻo dừng cả máy bài viết.
+  if (v.can_goc !== false && d.loai !== 'bai' && !d.hook?.qc) chan.push('hook không lấy từ QC spy (thiếu dang.hook)');
   // 6 · đa dạng — đăng nhiều nhưng không spam (anh 18/10/2026, "rule này là quan trọng"): cùng tiêu đề với video khác của máy = nội dung lặp
   if ((v.trung ?? 1) > 1) chan.push(`tiêu đề trùng với ${v.trung - 1} video khác của máy — mỗi bài một tiêu đề (chống spam)`);
   // 4 · lý do bấm
@@ -224,7 +227,7 @@ export async function nhipChamDang() {
 if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert');
   const tot = { nen_url: 'https://images.pexels.com/photos/1/p.jpeg?w=1080', video_url: 'https://img.on.tc/v.mp4', xuat_luc: '2026-10-18',
-    dang: { title: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds', description: 'Scam: fake deadline · asks for card by chat. Never pay through a link in a message. Call the hotel on its official number. Checklist: https://ratesbyroom.com/hotel-scam-check/', link: 'https://ratesbyroom.com/hotel-scam-check/', goc: { sp: 179, id: 1, loai: 'ai_noi_dau', ten: 'x' } } };   // mọi bài phải có góc (31/10/2026)
+    dang: { title: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds', description: 'Scam: fake deadline · asks for card by chat. Never pay through a link in a message. Call the hotel on its official number. Checklist: https://ratesbyroom.com/hotel-scam-check/', link: 'https://ratesbyroom.com/hotel-scam-check/', goc: { sp: 179, id: 1, loai: 'ai_noi_dau', ten: 'x' }, hook: { qc: '123', goc: 1 } } };   // mọi bài phải có góc + hook từ QC spy (31/10/2026)
   t.equal(doBaiDang(tot).ket, 'DUYET', 'bài đủ thì DUYỆT');
   t.equal(doBaiDang({ ...tot, video_url: null, dang: { ...tot.dang, loai: 'link' } }).ket, 'DUYET', 'bài link không video vẫn DUYỆT');
   t.ok(doBaiDang({ ...tot, video_url: null }).chan_cung.includes('chưa có bản xuất'), 'bài video thiếu video thì chặn');
@@ -243,8 +246,10 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   t.equal(doBaiDang({ ...tot, can_goc: true, dang: { ...tot.dang, goc: { sp: 179, id: 1, loai: 'ai_noi_dau', ten: 'x' } } }).ket, 'DUYET', 'bài mới có góc hợp lệ = DUYỆT');
   t.ok(doBaiDang({ ...tot, can_goc: true, goc_loi: 'góc #1 không có trong kho spy', dang: { ...tot.dang, goc: { sp: 179, id: 1 } } }).chan_cung.includes('góc #1 không có trong kho spy'), 'góc sai nhóm / không có = chặn');
   t.equal(doBaiDang({ ...khongGoc, can_goc: false }).ket, 'DUYET', 'chỉ bộ tự kiểm tắt luật góc được');
+  t.ok(doBaiDang({ ...tot, dang: { ...tot.dang, hook: undefined } }).chan_cung.some((x) => x.includes('hook')), 'hook tự nghĩ (không dang.hook) = chặn');
+  t.ok(!doBaiDang({ ...tot, dang: { ...tot.dang, hook: undefined, loai: 'bai' } }).chan_cung.some((x) => x.includes('hook')), 'bài viết chưa bắt hook');
   t.ok(doBaiDang({ ...khongGoc, can_goc: undefined }).chan_cung.some((x) => x.includes('góc')), 'không khai can_goc = vẫn bắt góc (31/10/2026: mọi bài)');
-  const thuong = { ...tot, dang: { goc: tot.dang.goc, title: 'Who remembers riding in the way-back of a station wagon?', description: 'Who remembers riding in the way-back of a station wagon? Where did your family go on Sunday drives? Tell us below.', loai: 'thuong' } };
+  const thuong = { ...tot, dang: { goc: tot.dang.goc, hook: tot.dang.hook, title: 'Who remembers riding in the way-back of a station wagon?', description: 'Who remembers riding in the way-back of a station wagon? Where did your family go on Sunday drives? Tell us below.', loai: 'thuong' } };
   t.equal(doBaiDang(thuong).ket, 'DUYET', 'bài thường không link = DUYỆT');
   t.equal(doBaiDang({ ...thuong, video_url: null, anh: ['a.jpg'] }).ket, 'DUYET', 'bài ảnh không video: ảnh đã dựng là bản xuất');
   t.ok(doBaiDang({ ...thuong, video_url: null, anh: [] }).chan_cung.includes('chưa có bản xuất'), 'bài ảnh chưa dựng ảnh = chặn');

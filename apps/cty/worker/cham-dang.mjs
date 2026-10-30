@@ -12,7 +12,7 @@ const NGUON_ANH = /^https:\/\/([a-z0-9-]+\.)*(pexels\.com|pixabay\.com|unsplash\
 const TU_MAY = ['delve', 'leverage', 'utilize', 'crucial', 'vital', 'comprehensive', 'robust', 'streamline', 'moreover', 'furthermore', 'seamless',
   'game-changer', 'cutting-edge', 'state-of-the-art', "in today's world", 'in the realm of', "it's worth noting", 'in conclusion', 'unlock the'];
 const DIEM_DUYET = 7;
-export const MOC_GOC = '2026-10-25T17:00:00Z';   // 00:00 26/10/2026 giờ VN: bài tạo từ đây bắt buộc có góc
+export const MOC_GOC = '2026-10-25T17:00:00Z';   // 00:00 26/10/2026 giờ VN: mốc cũ (bài tạo từ đây bắt buộc có góc) — 31/10/2026 bỏ mốc, MỌI bài phải có góc (xem luật 7)
 /** Kiểm góc của các bài với kho spy (DB spy: SPY_DATABASE_URL hoặc /root/.secrets/spy.env). ds = [{ goc, goc_sp }] → mảng lỗi (null = đạt) cùng thứ tự.
  *  Không đọc được kho spy → mọi bài có góc nhận lỗi "không kiểm được" (chặn chứ không cho qua mù). */
 export async function kiemGoc(ds) {
@@ -50,9 +50,10 @@ export function doBaiDang(v, ten = '') {
   else if (title.length > 110) canh.push(`câu móc dài ${title.length} ký tự (feed cắt ~100)`);
   if (ten && title.toLowerCase().startsWith(ten.toLowerCase())) chan.push(`câu móc mở bằng tên kênh "${ten}" thay vì tình huống`);
   if (!/[?!]|\d/.test(title)) canh.push('câu móc không có câu hỏi / con số / tình huống');
-  // 7 · GÓC (anh duyệt 25/10/2026): bài tạo từ MOC_GOC phải làm từ một góc cụ thể trong kho spy (dang.goc = { sp, id, loai, ten }) — người gọi kiểm góc có thật
-  // và thuộc nhóm góc của thương hiệu (v.goc_loi). Bài cũ (v.can_goc = false) không gắn góc ngược: chúng không được làm từ góc, gắn vào là số giả.
-  if (v.can_goc) { if (!d.goc?.id) chan.push('chưa gắn góc (nguồn idea) từ kho spy'); else if (v.goc_loi) chan.push(v.goc_loi); }
+  // 7 · GÓC (anh duyệt 25/10/2026, siết 31/10/2026: "mọi bài đăng mới, video, post, ảnh… đều phải dựa vào 1 idea góc" — bài cũ chưa đăng không góc thì bỏ):
+  // MỌI bài phải làm từ một góc cụ thể trong kho spy (dang.goc = { sp, id, loai, ten }); người gọi kiểm góc có thật và thuộc nhóm góc của thương hiệu (v.goc_loi).
+  // Không gắn góc ngược cho bài cũ (gắn vào là số giả): bài cũ chưa đăng đã cất lưu trữ (migration 0377); can_goc = false chỉ còn cho bộ tự kiểm.
+  if (v.can_goc !== false) { if (!d.goc?.id) chan.push('chưa gắn góc (nguồn idea) từ kho spy'); else if (v.goc_loi) chan.push(v.goc_loi); }
   // 6 · đa dạng — đăng nhiều nhưng không spam (anh 18/10/2026, "rule này là quan trọng"): cùng tiêu đề với video khác của máy = nội dung lặp
   if ((v.trung ?? 1) > 1) chan.push(`tiêu đề trùng với ${v.trung - 1} video khác của máy — mỗi bài một tiêu đề (chống spam)`);
   // 4 · lý do bấm
@@ -106,7 +107,7 @@ async function ketNoi() {
 export async function chamMoi(sql) {
   // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng
   const ds = await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, v.anh,
-      v.created_at >= ${MOC_GOC}::timestamptz as can_goc,
+      true as can_goc,   -- 31/10/2026: mọi bài phải có góc (trước: chỉ bài tạo từ MOC_GOC)
       (select count(*)::int from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') as trung
     from xv_may_video v join xv_may m on m.id = v.may_id
     where not coalesce(v.luu_tru, false) and v.xuat_luc is not null
@@ -223,7 +224,7 @@ export async function nhipChamDang() {
 if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert');
   const tot = { nen_url: 'https://images.pexels.com/photos/1/p.jpeg?w=1080', video_url: 'https://img.on.tc/v.mp4', xuat_luc: '2026-10-18',
-    dang: { title: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds', description: 'Scam: fake deadline · asks for card by chat. Never pay through a link in a message. Call the hotel on its official number. Checklist: https://ratesbyroom.com/hotel-scam-check/', link: 'https://ratesbyroom.com/hotel-scam-check/' } };
+    dang: { title: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds', description: 'Scam: fake deadline · asks for card by chat. Never pay through a link in a message. Call the hotel on its official number. Checklist: https://ratesbyroom.com/hotel-scam-check/', link: 'https://ratesbyroom.com/hotel-scam-check/', goc: { sp: 179, id: 1, loai: 'ai_noi_dau', ten: 'x' } } };   // mọi bài phải có góc (31/10/2026)
   t.equal(doBaiDang(tot).ket, 'DUYET', 'bài đủ thì DUYỆT');
   t.equal(doBaiDang({ ...tot, video_url: null, dang: { ...tot.dang, loai: 'link' } }).ket, 'DUYET', 'bài link không video vẫn DUYỆT');
   t.ok(doBaiDang({ ...tot, video_url: null }).chan_cung.includes('chưa có bản xuất'), 'bài video thiếu video thì chặn');
@@ -237,11 +238,13 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   t.ok(doBaiDang({ ...tot, nen_url: null }).diem <= 6, 'chặn cứng thì trần 6');
   t.equal(doBaiDang({ ...tot, trung: 2 }).ket, 'SUA_LAI', 'tiêu đề trùng video khác = chặn (chống spam)');
   t.equal(doBaiDang({ ...tot, trung: 1 }).ket, 'DUYET');
-  t.ok(doBaiDang({ ...tot, can_goc: true }).chan_cung.some((x) => x.includes('góc')), 'bài mới thiếu góc = chặn');
+  const khongGoc = { ...tot, dang: { ...tot.dang, goc: undefined } };
+  t.ok(doBaiDang({ ...khongGoc, can_goc: true }).chan_cung.some((x) => x.includes('góc')), 'bài thiếu góc = chặn');
   t.equal(doBaiDang({ ...tot, can_goc: true, dang: { ...tot.dang, goc: { sp: 179, id: 1, loai: 'ai_noi_dau', ten: 'x' } } }).ket, 'DUYET', 'bài mới có góc hợp lệ = DUYỆT');
   t.ok(doBaiDang({ ...tot, can_goc: true, goc_loi: 'góc #1 không có trong kho spy', dang: { ...tot.dang, goc: { sp: 179, id: 1 } } }).chan_cung.includes('góc #1 không có trong kho spy'), 'góc sai nhóm / không có = chặn');
-  t.equal(doBaiDang({ ...tot, can_goc: false }).ket, 'DUYET', 'bài cũ không bắt góc');
-  const thuong = { ...tot, dang: { title: 'Who remembers riding in the way-back of a station wagon?', description: 'Who remembers riding in the way-back of a station wagon? Where did your family go on Sunday drives? Tell us below.', loai: 'thuong' } };
+  t.equal(doBaiDang({ ...khongGoc, can_goc: false }).ket, 'DUYET', 'chỉ bộ tự kiểm tắt luật góc được');
+  t.ok(doBaiDang({ ...khongGoc, can_goc: undefined }).chan_cung.some((x) => x.includes('góc')), 'không khai can_goc = vẫn bắt góc (31/10/2026: mọi bài)');
+  const thuong = { ...tot, dang: { goc: tot.dang.goc, title: 'Who remembers riding in the way-back of a station wagon?', description: 'Who remembers riding in the way-back of a station wagon? Where did your family go on Sunday drives? Tell us below.', loai: 'thuong' } };
   t.equal(doBaiDang(thuong).ket, 'DUYET', 'bài thường không link = DUYỆT');
   t.equal(doBaiDang({ ...thuong, video_url: null, anh: ['a.jpg'] }).ket, 'DUYET', 'bài ảnh không video: ảnh đã dựng là bản xuất');
   t.ok(doBaiDang({ ...thuong, video_url: null, anh: [] }).chan_cung.includes('chưa có bản xuất'), 'bài ảnh chưa dựng ảnh = chặn');

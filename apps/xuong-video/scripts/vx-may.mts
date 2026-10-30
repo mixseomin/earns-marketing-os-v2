@@ -39,7 +39,8 @@ if (a.includes('--tu-kiem')) {
   console.log('vx-may: 3/3 ok'); process.exit(0);
 }
 if (!a.includes('--gui') && !a.includes('--lay')) { console.error('dùng: vx-may.mts --gui [--so N] | --lay | --tu-kiem'); process.exit(2); }
-if (!trenApp()) { console.error('phiên VideoExpress chưa mở — chạy: node scripts/videoexpress.mjs mo'); process.exit(2); }
+// phiên tự đóng khi rảnh (lượt --lay 31/10 hụt vì phiên đã đóng trong lúc chờ render) → tự mở lại qua videoexpress.mjs (một tệp cho nền tảng), không dừng
+if (!trenApp()) { execFileSync('node', [join(import.meta.dirname, 'videoexpress.mjs'), 'mo'], { stdio: 'inherit', timeout: 300e3 }); if (!trenApp()) { console.error('không mở được phiên VideoExpress (videoexpress.mjs mo)'); process.exit(2); } }
 mkdirSync(THU, { recursive: true });
 const hang = hangCho(so);
 if (!hang.length) { console.log('· không có video nào chờ clip VideoExpress'); process.exit(0); }

@@ -100,7 +100,7 @@ function ganLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'thang' | 'tao' | 'qua' | 'na
 // 'dang' = máy luật đã xếp làm ở nhịp này (chưa chạy / chờ anh duyệt / báo trước) · 'gan' = sắp chạm, chỉ theo dõi
 const LUAT_NHAN: Record<string, [string, string, string, 'dang' | 'gan']> = {   // nhóm etp.bao → [ký hiệu, tên, màu, loại]
   tat2: ['✕', 'T2 sắp tắt', '#f87171', 'dang'], tat7: ['✕', 'T7 sắp tắt', '#f87171', 'dang'], tat: ['✕', 'Cần tắt', '#f87171', 'dang'], dung_dem: ['☾', 'Dừng đêm', '#f87171', 'dang'], thang_tat: ['✕', 'Bản thang lỗ', '#f87171', 'dang'],
-  tat_roas: ['✕', 'ROAS chạm tắt', '#f87171', 'dang'], tat_d24: ['✕', 'Dừng > 24h', '#f87171', 'dang'], tu_choi: ['⛔', 'Meta từ chối', '#f87171', 'dang'],
+  tat_roas: ['✕', 'RL · ROAS lỗ', '#f87171', 'dang'], tat_d24: ['✕', 'Dừng > 24h', '#f87171', 'dang'], tu_choi: ['⛔', 'Meta từ chối', '#f87171', 'dang'],
   ha: ['↓', 'Giảm bậc', '#fb923c', 'dang'], giam: ['↘', 'ROI tụt', '#f59e0b', 'dang'],
   tang: ['↑', 'Tăng bậc', '#4ade80', 'dang'], dau_phien: ['↑', 'Lãi đầu phiên', '#4ade80', 'dang'], tang30: ['⇈', 'Lên $30', '#4ade80', 'dang'],
   nb: ['⧉', 'Nhân bản', '#60a5fa', 'dang'], thang_nb: ['⧉', 'Mở bản thang', '#60a5fa', 'dang'], moc30: ['★', 'Đủ bid ROAS', '#facc15', 'dang'],
@@ -305,7 +305,7 @@ const ChipO = ({ chinh }: { chinh: { chip: string; mau: string; dac: boolean } }
 // nhãn chip theo mã luật máy xét (luat-ethopex.py _xet_luat)
 const XET_CHIP: Record<string, [string, string]> = { t2: ['✕ T2', '#f87171'], d24: ['✕ D24', '#f87171'], off: ['✕ OFF', '#f87171'], t7: ['✕ T7', '#f87171'], tang: ['↑ Tăng bậc', '#4ade80'], thang_nb: ['⧉ Thang', '#60a5fa'],
   tang_ngay: ['↑ Tăng trong ngày', '#4ade80'], gb: ['↓ Giảm bậc', '#fb923c'], giam_ngay: ['↓ Giảm trong ngày', '#fb923c'], giam_som: ['↓ Giảm sớm', '#fb923c'], roi_tut: ['↘ ROI tụt', '#fb923c'],
-  nb: ['🧬 Nhân bản', '#a78bfa'], t30: ['⇈ $30', '#4ade80'], roas: ['★ ROAS', '#facc15'] };
+  nb: ['🧬 Nhân bản', '#a78bfa'], t30: ['⇈ $30', '#4ade80'], rl: ['✕ RL', '#f87171'] };
 const KET_XET: Record<XetLuat['ket'], [string, string]> = { dat: ['Đạt', '#4ade80'], gan: ['Gần', '#facc15'], xa: ['Xa', 'var(--fg-3, #777)'], khong_ap: ['Không áp', 'var(--fg-3, #777)'] };
 // BẢNG XÉT LUẬT (anh 28/10/2026: "Cần xem mức độ liên quan của từng camp với các luật khi hover vào" · "show dạng table là dễ hiểu nhất"): mỗi luật một nhóm dòng —
 // Luật (kết đạt / gần / xa, máy có xếp) · Điều kiện · Giá trị thật · Ngưỡng · ✓/✗; số từ CHÍNH máy luật (etp.xet_luat), rê tên luật xem luật đó làm gì
@@ -541,8 +541,8 @@ function TabTaiNguyen({ du, khCamp }: { du: DuLieuEtp; kh: Kh; khCamp: Map<numbe
 // BẢN LUẬT (anh 29/10/2026: "page ?t=luat phải thiết kế lại chỉ có 1 bản luật với các điều kiện hiện tại và số liệu thực tế + đề xuất thay đổi để tối ưu hoá lợi nhuận"):
 // điều kiện + ngưỡng đọc THẲNG từ lượt xét của máy luật (etp.xet_luat — không chép tay), số thật từ apps/etp/so-luat.py (nhật ký máy + số ngày Ethopex, mỗi giờ)
 const NHOM_LUAT: [string, string, string[]][] = [
-  ['tang', 'Tăng chi — tăng bậc, nhân bản', ['tang', 'tang_ngay', 'dau_phien', 't30', 'nb', 'thang_nb', 'roas']],
-  ['tat', 'Tắt camp', ['l3', 'l4', 't2', 'off', 'l7', 't7', 'd24']],   // giảm bậc đã bỏ (anh 29/10/2026) — camp lỗ liền đi L3
+  ['tang', 'Tăng chi — tăng bậc, nhân bản', ['tang', 'tang_ngay', 'dau_phien', 't30', 'nb', 'thang_nb']],
+  ['tat', 'Tắt camp', ['l3', 'l4', 't2', 'off', 'l7', 't7', 'd24', 'rl']],   // rl = camp ★ ROAS lỗ 2 ngày, máy tự tắt (30/10/2026)   // giảm bậc đã bỏ (anh 29/10/2026) — camp lỗ liền đi L3
 ];
 function BanLuat({ du }: { du: DuLieuEtp }) {
   const theo = new Map(du.soLuat.map((l) => [l.ma, l])); const luc = du.soLuat.reduce<string | null>((m, l) => (!m || l.luc > m ? l.luc : m), null);
@@ -717,11 +717,11 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
     ...cot.slice(1).filter((k) => k.key !== 'tuoi'),
     { key: 'tuchi', header: 'Chi từ lúc lên', cell: (c) => <Tien v={tu(c).chi} />, sortValue: (c) => tu(c).chi, total: (rs) => <KeToan v={rs.reduce((a, c) => a + tu(c).chi, 0)} /> },
     { key: 'tuthu', header: 'Thu từ lúc lên', cell: (c) => <Tien v={tu(c).thu} />, sortValue: (c) => tu(c).thu, total: (rs) => <KeToan v={rs.reduce((a, c) => a + tu(c).thu, 0)} /> },
-    { key: 'turoi', header: 'ROI từ lúc lên', title: 'luật tắt ROAS: 2 ngày đã khép ĐỀU lỗ, cộng 2 ngày chi > $20 mà ROI < 0% → báo riêng anh trên Telegram (một ngày âm rồi ngày sau dương = không báo)', cell: (c) => <Roi s={tu(c)} />, sortValue: (c) => roiOf(tu(c)) ?? -1e9 },
+    { key: 'turoi', header: 'ROI từ lúc lên', title: 'luật RL: 2 ngày đã khép ĐỀU lỗ, cộng 2 ngày chi > $20 mà ROI < 0% → báo trước một nhịp rồi máy tự tắt (một ngày âm rồi ngày sau dương = không tắt)', cell: (c) => <Roi s={tu(c)} />, sortValue: (c) => roiOf(tu(c)) ?? -1e9 },
   ];
   return (
     <div>
-      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px' }}>Camp bid ROAS là dạng riêng: miễn mọi luật tăng / giảm / tắt / lịch giờ. Chỉ một luật: 2 ngày đã khép ĐỀU lỗ, cộng 2 ngày chi &gt; $20 mà ROI &lt; 0% → báo riêng anh trên Telegram (nút Tắt / Giữ), máy không tự tắt.</div>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px' }}>Camp bid ROAS là dạng riêng: miễn mọi luật tăng / giảm / tắt / lịch giờ. Chỉ hai luật: <b>RL</b> — 2 ngày đã khép ĐỀU lỗ, cộng 2 ngày chi &gt; $20 mà ROI &lt; 0% → báo trước một nhịp rồi máy tự tắt; <b>★ ROAS thắng</b> → $30. Rê vào camp xem từng điều kiện.</div>
       <DataTable rows={camps} columns={cotRoas} groups={nhom} groupHeader getRowKey={(c) => String(c.camp_id)} persistKey="etp-roas" minWidth={1300} defaultSort={[{ key: 'tao', dir: 'desc' }]}
         searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''}`} searchPlaceholder="Tìm camp ROAS, phim…" />
       {noi.v && dang ? (

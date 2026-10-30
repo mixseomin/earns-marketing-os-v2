@@ -343,7 +343,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const daTu = []; const lamRoi = new Set();
   // Một camp một quyết định: máy luật (luat-ethopex.py _SE_TAT) đã gỡ camp trong danh sách tắt khỏi mọi danh sách tăng / giảm / nhân bản —
   // seTat ở đây chỉ là lưới đỡ khi máy luật bản cũ trả về (29/10/2026 #65656)
-  const seTat = new Set(['tat2', 'tat_d24', 'tat_l3', 'tat_l4', 'tat', 'thang_tat'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
+  const seTat = new Set(['tat2', 'tat_d24', 'tat_l3', 'tat_l4', 'tat', 'thang_tat', 'tat_roas'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
   const { tinNhanh } = await import('./tg-phong.mjs');
   const guiNhanh = async (b) => { const j = await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...b }); tinNhanh(j?.result?.message_id); return j; };
   // MÁY TỰ GIẢM BẬC (luật GB, chỉ khi anh đã duyệt "gb_tu_giam" trên Telegram): camp chạm GB → lam-ethopex giam (vẫn chặn đổi < 6 giờ, camp phải bật,
@@ -482,7 +482,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // T7 — TẮT THEO LUẬT SUPPORT (Dol 26/10/2026: 7 ngày lãi < 0, > 3 ngày có chi, chi > $5; anh: "thêm và áp dụng rule này"): BÁO TRƯỚC một nhịp
   // (anh 26/10/2026: "lúc chuẩn bị tắt / bật hàng loạt phải báo qua tele") — camp mới chạm luật vào sổ chờ + một tin "sắp tắt"; nhịp sau (≥ 25 phút) còn chạm
   // luật thì tắt qua lam-ethopex (người duyệt "anh (chat …)"; lam vẫn từ chối camp ROI cộng dồn > 20%). Không tự bật lại.
-  // ĐƯỜNG "báo trước một nhịp rồi máy tắt" (mỗi luật một sổ chờ). Luật ROAS KHÔNG đi đường này — xem khối ★ ROAS bên dưới (anh: báo riêng, anh tự quyết).
+  // ĐƯỜNG "báo trước một nhịp rồi máy tắt" (mỗi luật một sổ chờ) — MỌI luật tắt đi đường này, kể cả RL của camp ★ ROAS (anh 30/10/2026: "Ko đc để luật ngầm nào").
   // anh 27/10/2026: "Đặt 1 cái mới … Sau đó dừng T7" → T2 thay T7 (máy luật không còn trả tat7)
   const LUAT_TAT = [
     { khoa: 'tat2', tep: 'ethopex-tat2.json', ten: 'LUẬT T2', mo_ta: 'luật T2: 2 ngày có chi đầu tiên đã khép ROI &lt; −20% (anh 27/10), chi ≥ $2.5',
@@ -498,6 +498,9 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       cot: 'Lãi', luat: 'OFF (≥ 7 ngày, tiêu > $10, ROI < −50%)', ai: 'anh (chat 29/10/2026: rule phải tự vận hành, không chờ anh tắt) — máy chạy' },
     { khoa: 'thang_tat', tep: 'ethopex-tat-thang.json', ten: 'LUẬT BẢN THANG LỖ', mo_ta: 'bản thang bộ 2 đã chi ≥ 1 ngày ngân sách mà ROI ≤ −30%',
       cot: 'Lãi', luat: 'bản thang lỗ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%)', ai: 'anh (chat 29/10/2026: rule phải tự vận hành, không chờ anh tắt) — máy chạy' },
+    // RL — camp ★ ROAS lỗ: trước 30/10/2026 chỉ báo riêng chờ anh bấm Tắt / Giữ; anh: "Thêm luật tắt cho khớp mọi thứ để nhìn rõ trên màn hình. Ko đc để luật ngầm nào"
+    { khoa: 'tat_roas', tep: 'ethopex-tat-rl.json', ten: 'LUẬT RL', mo_ta: 'luật RL: camp ★ ROAS 2 ngày đã khép ĐỀU lỗ, cộng 2 ngày chi &gt; $20, ROI &lt; 0%',
+      cot: 'Lãi 2n', luat: 'RL (★ ROAS 2 ngày đã khép đều lỗ, chi > $20, ROI < 0%)', ai: 'anh (chat 30/10/2026: thêm luật tắt ROAS cho khớp mọi luật, không luật ngầm) — máy chạy' },
   ];
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);
@@ -509,7 +512,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       const lo = moi.reduce((a, m) => a + Number((String(m.chu).match(/lãi \$([+-]?[\d.]+)/) || [])[1] || 0), 0);
       await guiNhanh({ message_thread_id: topic, text: `⏳ <b>SẮP TẮT ${moi.length} CAMP</b> ở nhịp kế (~30 phút) — ${LT.mo_ta} · tổng lãi $${lo.toFixed(2)}\n`
         + [`${'Camp'.padEnd(8)}${'Bộ'.padStart(3)}${(LT.cot || 'Lãi').padStart(9)}${'ROI'.padStart(7)}`, ...moi.map((m) => { const c = String(m.chu); const l = (c.match(/lãi \$([+-]?[\d.]+)/) || [])[1] || ''; const r = (c.match(/ROI ([+-]?\d+%)/) || [])[1] || ''; return `#${String(m.id).padEnd(7)}${String(m.bo || '?').padStart(3)}${l.padStart(9)}${r.padStart(7)}`; })].map((d, i) => (i === 0 ? `<b><code>${esc(d)}</code></b>` : `<code>${esc(d)}</code>`)).slice(0, 61).join('\n')   // bảng (anh 26/10/2026: "những kiểu này sau phải luôn dùng bảng")
-        + `\n<i>Muốn giữ camp nào: nhắn trong chat trước giờ đó. Camp ROI cộng dồn &gt; 20% máy không tắt.</i>` });
+        + `\n<i>Muốn giữ camp nào: nhắn trong chat trước giờ đó.</i>` });   // bỏ câu "ROI cộng dồn > 20% máy không tắt": đường này gọi tat-loat --ep, không có cổng đó (anh 30/10/2026: không luật ngầm)
       gui++;
     }
     const daT7 = [];
@@ -528,39 +531,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       gui++;
   }
   }
-  // HIỆU SUẤT ĐỦ ĐỂ QUYẾT (anh 28/10/2026: "show đủ thông tin hiệu suất thì mới qđịnh đc"): ngân sách · tuổi · bộ · goal, bảng từng ngày (ngày Ethopex 07h–07h,
-  // "nay" = đang chạy dở) + cộng dồn, và cả phim 2 ngày đã khép để so camp với phim. ROI một số lẻ — ngưỡng 30% hay rơi sát mép (+29,8% làm tròn thành +30%).
-  async function hieuSuatCamp(id) {
-    const j = JSON.parse((await chayPsql(`select json_build_object(
-      'c', (select json_build_object('ns', ngan_sach, 'bo', bo, 'tt', trang_thai, 'roas', roas, 'tuoi', floor(extract(epoch from now() - tao) / 86400), 'cid', content_id) from etp.camp where camp_id = ${Number(id)}),
-      'd', (select coalesce(json_agg(json_build_object('n', to_char(ngay, 'DD/MM'), 'nay', ngay = (now() at time zone 'utc')::date, 'chi', chi, 'thu', thu) order by ngay), '[]') from etp.so_ngay where camp_id = ${Number(id)} and (chi > 0 or thu > 0)),
-      'p', (select json_build_object('n', count(distinct s.camp_id), 'chi', coalesce(sum(s.chi), 0), 'thu', coalesce(sum(s.thu), 0)) from etp.so_ngay s join etp.camp c using (camp_id)
-            where c.content_id = (select content_id from etp.camp where camp_id = ${Number(id)}) and s.ngay between (now() at time zone 'utc')::date - 2 and (now() at time zone 'utc')::date - 1 and s.chi > 0))`)).trim());
-    const r = (c, t) => (c >= 0.3 ? `${(((t - c) / c) * 100).toFixed(1)}%` : '—'), c = j.c || {}, ds = j.d || [];
-    const tong = ds.reduce((a, x) => ({ chi: a.chi + Number(x.chi), thu: a.thu + Number(x.thu) }), { chi: 0, thu: 0 });
-    const dong = [`${'Ngày'.padEnd(7)}${'Chi'.padStart(7)}${'Thu'.padStart(7)}${'Lãi'.padStart(7)}${'ROI'.padStart(8)}`,
-      ...ds.slice(-10).map((x) => `${(x.nay ? 'nay' : x.n).padEnd(7)}${Number(x.chi).toFixed(2).padStart(7)}${Number(x.thu).toFixed(2).padStart(7)}${(Number(x.thu) - Number(x.chi)).toFixed(2).padStart(7)}${r(Number(x.chi), Number(x.thu)).padStart(8)}`),
-      '-'.repeat(36), `${'Cộng'.padEnd(7)}${tong.chi.toFixed(2).padStart(7)}${tong.thu.toFixed(2).padStart(7)}${(tong.thu - tong.chi).toFixed(2).padStart(7)}${r(tong.chi, tong.thu).padStart(8)}`];
-    const p = j.p || {};
-    return `NS $${c.ns ?? '?'}/ngày · ${c.tt === 'ACTIVE' ? 'đang bật' : esc(c.tt || '?')} · bộ ${esc(c.bo || '?')} · goal ${c.roas ?? '?'} · ${c.tuoi ?? '?'} ngày tuổi\n`
-      + dong.map((d, i) => (i === 0 || i === dong.length - 1 ? `<b><code>${esc(d)}</code></b>` : `<code>${esc(d)}</code>`)).join('\n')
-      + (Number(p.chi) > 0 ? `\nCả phim 2 ngày khép: ${p.n} camp · chi $${Number(p.chi).toFixed(2)} · ROI ${r(Number(p.chi), Number(p.thu))}` : '')
-      + `\n<a href="https://etp.on.tc/?t=camp&amp;v=cay&amp;ngan=camp:${Number(id)}">Xem camp trên etp.on.tc</a>`;
-  }
-  // ★ CAMP ROAS CHẠM LUẬT TẮT (chi > $20 mà LỖ trong 1–2 ngày đã khép — anh 28/10/2026 bỏ ngưỡng ROI < 30% của Support vì báo cả camp lãi; anh 26/10/2026: "Luật tắt thì khi chạm báo cho tao riêng
-  // trên tele"): MỖI CAMP MỘT TIN RIÊNG, có chuông, nút ⏹ Tắt (et:tatr → lam-ethopex tat --ep: anh bấm = lệnh đích danh) / Giữ. Máy KHÔNG tự tắt. Mỗi camp báo một lần mỗi ngày.
-  {
-    const TEP = path.join(DATA(), 'ethopex-roas-bao.json'), homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
-    const da = docJ(TEP, {}); for (const k of Object.keys(da)) if (da[k] !== homNay) delete da[k];
-    for (const m of kq.tat_roas || []) {
-      if (da[m.id]) continue; da[m.id] = homNay;
-      const hs = await hieuSuatCamp(m.id).catch((e) => `<i>không đọc được hiệu suất: ${esc(e.message.slice(0, 80))}</i>`);
-      await guiNhanh({ message_thread_id: topic, text: `★ <b>CAMP ROAS CHẠM LUẬT TẮT</b> — 2 ngày đã khép ĐỀU lỗ, cộng chi &gt; $20 mà ROI &lt; 0%\n${esc(m.chu)}\n${hs}\n<i>Máy không tự tắt — anh quyết.</i>`.slice(0, 4000),
-        reply_markup: { inline_keyboard: [[{ text: `⏹ Tắt #${m.id}`, callback_data: `et:tatr:${m.id}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }]] } });
-      gui++;
-    }
-    fs.writeFileSync(TEP, JSON.stringify(da));
-  }
+  // ★ CAMP ROAS CHẠM LUẬT TẮT: đã chuyển vào LUAT_TAT (luật RL, máy tự tắt) ngày 30/10/2026 — nút et:tatr ở xuNut chỉ còn cho tin cũ
   // DỪNG ĐÊM (anh 25/10/2026 chat: "Trong phiên 9h tối đến 5h sáng mà các camp âm tăng nhanh hơn thì phải chủ động dừng luôn"): anh lệnh đích danh luật
   // này nên máy tắt qua lam-ethopex với người duyệt "anh (chat …)"; lam-ethopex vẫn từ chối camp ROI cộng dồn > 20% (camp lãi không bị tắt). Không tự bật lại.
   const daDem = [];

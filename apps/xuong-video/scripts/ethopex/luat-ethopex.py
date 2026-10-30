@@ -568,7 +568,8 @@ tang30 = [x for x in tang30 if int(x[0] or 0) not in bo2]
 dung_dem = []
 # CAMP ROAS — DẠNG RIÊNG (tài liệu Support 26/10/2026; anh: "Camp ROAS là 1 dạng riêng, miễn hết các luật"): camp ★ … duplicate by <gốc> (nhan-ban.py --roas)
 # ra khỏi MỌI danh sách luật ở trên (tắt / T7 / tăng / giảm / hạ / nhân bản / thang / dừng đêm / T30 / thay creative) — chỉ còn luật tắt ROAS của Support:
-# "camp tiêu > $20 mà ROI < 30%, 1–2 ngày thì off" = ngày đã khép hôm qua, hoặc cộng 2 ngày đã khép, chi > $20 và ROI < 30% → báo riêng anh trên Telegram (nút Tắt / Giữ), máy không tự tắt (anh 26/10/2026).
+# LUẬT RL (ROAS lỗ): 2 ngày đã khép ĐỀU có chi và ĐỀU lỗ, cộng 2 ngày chi > $20, ROI < 0% → báo trước một nhịp rồi MÁY TỰ TẮT, cùng đường T2 / L3 / L4 / OFF
+# (anh 30/10/2026: "Thêm luật tắt cho khớp mọi thứ để nhìn rõ trên màn hình. Ko đc để luật ngầm nào" — trước đó chỉ báo Telegram chờ anh bấm, thẻ xét luật không có điều kiện nào).
 import importlib.util as _iuc
 _sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
 ROAS_CHI, ROAS_ROI = 20, 0   # anh 28/10/2026: "camp lãi sao lại đòi tắt" — chỉ báo khi LỖ (ROI < 0%); bản Support 26/10 là < 30% báo cả camp đang lãi
@@ -583,7 +584,7 @@ moc30 = [x for x in moc30 if int(x[0] or 0) not in _goc_roas]
 # cùng lúc nằm trong danh sách giảm bậc, bước giảm của nhịp chạy trước giành camp. Một camp chỉ mang MỘT quyết định: camp trong danh sách tắt
 # (tự tắt, báo trước một nhịp: T2 · D24 · L3 · OFF · bản thang lỗ — 29/10/2026 không còn luật chờ anh tắt) bị gỡ khỏi mọi danh sách tăng / giảm / nhân bản / thay creative — worker,
 # Telegram, thẻ etp đều đọc cùng một quyết định, không còn phụ thuộc thứ tự bước trong nhịp.
-_SE_TAT = {int(x[0] or 0) for v in (tat2, tat_d24, tat_l3, tat_l4, dung_dem, tat_l, thang_tat) for x in v}
+_SE_TAT = {int(x[0] or 0) for v in (tat2, tat_d24, tat_l3, tat_l4, dung_dem, tat_l, thang_tat) for x in v}   # RL (tat_roas) gỡ tang30 ở dưới, sau khi xét
 tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, tang30, moc30 = ([x for x in v if int(x[0] or 0) not in _SE_TAT] for v in (tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, tang30, moc30))
 # ★ ROAS THẮNG → $30 (anh 28/10/2026 "thêm rule tăng roas thắng lên $30"): camp ROAS vẫn miễn mọi luật khác, riêng T30 áp cùng ngưỡng —
 # đang $20, ≥ 2/3 ngày đã khép tiêu > 80% ngân sách, ROI các ngày đó > 80% → máy tự tăng $20 → $30 (cùng đường tang30 của worker)
@@ -597,9 +598,10 @@ try:
         for cid in sorted(_ROAS & _bat):
             a1, a2, a = (x.get(cid) or x.get(str(cid)) for x in (_r1, _r2, _rg))
             if a and a1 and a2 and a1["chi"] > 0 and a2["chi"] > 0 and a["chi"] > ROAS_CHI and roi(a) < ROAS_ROI and roi(a1) < 0 and roi(a2) < 0:
-                tat_roas.append((cid, f"#{a['ten'][:80]} · 2 ngày đã khép ({d(2)[8:10]}/{d(2)[5:7]} {roi(a2):+.0f}% · {d(1)[8:10]}/{d(1)[5:7]} {roi(a1):+.0f}%): chi ${a['chi']:.2f} · thu ${a['thu']:.2f} · lãi ${a['thu'] - a['chi']:+.2f} · ROI {roi(a):+.0f}% → TẮT (luật ROAS)"))
+                tat_roas.append((cid, f"#{a['ten'][:80]} · 2 ngày đã khép ({d(2)[8:10]}/{d(2)[5:7]} {roi(a2):+.0f}% · {d(1)[8:10]}/{d(1)[5:7]} {roi(a1):+.0f}%): chi ${a['chi']:.2f} · thu ${a['thu']:.2f} · lãi ${a['thu'] - a['chi']:+.2f} · ROI {roi(a):+.0f}% → TẮT (luật RL)"))
 except Exception as e:
-    loi_may.append((0, f"luật ROAS không đọc được Report: {str(e)[:80]}"))
+    loi_may.append((0, f"luật RL (ROAS lỗ) không đọc được Report: {str(e)[:80]}"))
+_rl = {int(x[0] or 0) for x in tat_roas}; tang30 = [x for x in tang30 if int(x[0] or 0) not in _rl]   # một camp một quyết định: RL thắng ★ ROAS thắng → $30
 # XÉT LUẬT TỪNG CAMP (anh 28/10/2026: "Cần xem mức độ liên quan của từng camp với các luật khi hover vào … để biết tính có đúng không + hiểu rõ hơn
 # về từng luật"): với mỗi camp đang chạy, từng luật → điều kiện [tên, giá trị thật, ngưỡng, đạt?] trên CHÍNH các bảng số + ngưỡng máy vừa dùng ở trên;
 # kết: 'dat' (đủ mọi điều kiện) · 'gan' (thiếu đúng một) · 'xa'; 'vao' = máy có xếp camp vào danh sách làm ở nhịp này không (khác 'dat' thì do cổng phụ:
@@ -627,7 +629,14 @@ def _xet_luat():
         tuoi = (dt.datetime.now(dt.timezone.utc) - _tao[cid]).days if cid in _tao else None
         b2 = int(cid) in bo2; ls = []
         if int(cid) in _ROAS:
-            ls.append(L("roas", "Luật ROAS (camp ★)", "Camp ROAS miễn mọi luật khác (trừ ★ ROAS thắng → $30); chỉ báo riêng khi 2 ngày đã khép ĐỀU lỗ và cộng 2 ngày chi > $20 mà ROI < 0%.", [], "tat_roas" if int(cid) in vao["tat_roas"] else None))
+            # RL — điều kiện hiện đủ trên thẻ xét luật (trước đây dk rỗng → thẻ ghi "Đạt" mà không nói đạt cái gì)
+            _g = lambda t: (globals().get(t) or {}).get(cid) or (globals().get(t) or {}).get(str(cid))
+            a1_, a2_, ag_ = _g("_r1"), _g("_r2"), _g("_rg")
+            r1_, r2_, rg_ = (roi(x) if x and x["chi"] > 0 else None for x in (a1_, a2_, ag_))
+            ls.append(L("rl", "RL · ROAS lỗ 2 ngày", f"Camp ★ ROAS (miễn mọi luật khác, chỉ có RL và ★ ROAS thắng → $30): 2 ngày đã khép ĐỀU có chi và ĐỀU lỗ, cộng 2 ngày chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}% → báo trước một nhịp rồi máy tự tắt.",
+                [[f"ROI ngày {d(2)[8:10]}/{d(2)[5:7]}", f(r2_, "%"), "< 0%", r2_ is not None and r2_ < 0], [f"ROI ngày {d(1)[8:10]}/{d(1)[5:7]}", f(r1_, "%"), "< 0%", r1_ is not None and r1_ < 0],
+                 ["Chi 2 ngày", f((ag_ or {}).get("chi"), "$"), f"> ${ROAS_CHI}", bool(ag_) and ag_["chi"] > ROAS_CHI], ["ROI 2 ngày", f(rg_, "%"), f"< {ROAS_ROI}%", rg_ is not None and rg_ < ROAS_ROI]],
+                "tat_roas" if int(cid) in vao["tat_roas"] else None, lo=None if rg_ is None else rg_ < 0))
             ns = float(a.get("budget") or 0); du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
             r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None
             ls.append(L("t30", "★ ROAS thắng · $20 → $30", f"Camp ROAS đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách ($16), ROI các ngày đó > {T30_ROI}% → máy tự tăng $30.",
@@ -719,7 +728,7 @@ trong = any(abs(((gio - m + 12) % 24) - 12) <= 1 for m in (21, 0, 8))
 in_ = lambda tieu, ds, rong="(không)": (print(tieu), print("\n".join("  " + s for _, s in ds) or "  " + rong))
 print(f"Giờ VN {vn:%H:%M %d/%m} · khung tăng ngân sách ~21h / ~24h / 8h: " + ("ĐANG TRONG KHUNG" if trong else f"mốc kế ~{int(moc) % 24}h") + " (ngân sách còn thấp $1–3 thì chưa cần canh giờ; không thu lại sau khung)")
 in_("CẦN TẮT — OFF (camp ≥ 7 ngày, tiêu > $10 từ trước tới nay, ROI < −50%) — MÁY TẮT (báo trước một nhịp):", tat_l)
-in_(f"LUẬT ROAS (camp ★, 2 ngày đã khép đều lỗ, cộng chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}%) — BÁO RIÊNG ANH TRÊN TELEGRAM, MÁY KHÔNG TỰ TẮT:", tat_roas, "(không)")
+in_(f"LUẬT RL (camp ★ ROAS, 2 ngày đã khép đều lỗ, cộng chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}%) — BÁO TRƯỚC MỘT NHỊP RỒI MÁY TỰ TẮT:", tat_roas, "(không)")
 in_("AD BỊ META TỪ CHỐI — thay creative sạch:", tu_choi)
 in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):", dau_phien, "(chưa có)")
 in_("THANG NHÂN BẢN BỘ 2 — MỞ BẢN MỚI Ở BẬC KẾ (không đổi ngân sách camp đang chạy):", thang_nb, "(chưa có)")

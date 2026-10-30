@@ -192,6 +192,14 @@ const LUAT = [
   { card: 0, tep: 'apps/etp/dong-bo.py', co: "select min(ngay) d from etp.so_ngay union all select min(ngay) from etp.so_ngay_ngoai", vi: 'kéo số ngày từ đầu khi bảng nhà HOẶC bảng team chưa phủ từ đầu' },
   { card: 0, tep: 'apps/etp/ethopex_api.py', cam: 'for tr in range(2, int(d.get("total_pages") or 1) + 1): rows += _goi(', vi: 'report Ethopex không lật trang (máy chủ trả thứ tự lộn → trùng / mất dòng), chia khoảng ngày' },
   { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'phan = [{**b, "filters": {**(b.get("filters") or {}), "hour": h}}', vi: 'report quá một trang thì chia đôi khoảng ngày, một ngày thì chia theo giờ' },
+  // anh 30/10/2026 "Thêm luật tắt cho khớp mọi thứ để nhìn rõ trên màn hình. Ko đc để luật ngầm nào": RL (★ ROAS lỗ) máy tự tắt qua LUAT_TAT, điều kiện hiện trên thẻ xét luật
+  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', mot: "khoa: 'tat_roas', tep: 'ethopex-tat-rl.json'", vi: 'RL đi đường báo trước một nhịp rồi máy tắt' },
+  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: 'Máy không tự tắt — anh quyết', vi: 'không còn luật ROAS chỉ báo chờ anh' },
+  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: 'Camp ROI cộng dồn &gt; 20% máy không tắt', vi: 'tin sắp tắt không hứa cổng không có' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L("rl", "RL · ROAS lỗ 2 ngày"', vi: 'thẻ xét luật camp ROAS có điều kiện RL' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'ls.append(L("roas", "Luật ROAS (camp ★)"', vi: 'không còn luật ROAS dk rỗng ghi Đạt' },
+  { card: 0, tep: V, co: "'d24', 'rl']]", vi: 'bản luật nhóm Tắt có RL' },
+  { card: 0, tep: 'apps/etp/so-luat.py', co: '("tat", r"^RL ", "rl")', vi: 'số luật RL đếm từ nhật ký' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

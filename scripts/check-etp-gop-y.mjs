@@ -158,6 +158,9 @@ const LUAT = [
   // anh 30/10/2026 "vậy điều chỉnh đi": ★ ROAS thắng $20 → $30 cần ROI các ngày tiêu > $16 trên 50% (trước 80%)
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'T30_SP, T30_ROI, T30_NGAY = 80, 50, 2', vi: '★ ROAS thắng: ngưỡng ROI 50%' },
   // anh 30/10/2026 "theo dõi … thời điểm lên bậc … chỉ đề xuất": sổ lên bậc team ghi bằng trigger trên camp_ngoai (mọi đường ghi đều vào sổ)
+  // đề xuất bậc cho team: máy luật nhà chạy chế độ xem người — cổng chung chặn MỌI lệnh ghi ở chế độ này
+  { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'if XEM and body is not None and not duong.startswith("/api/v1/report"): raise NgoaiNha(', vi: 'chế độ xem người chặn mọi lệnh ghi' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'K_CAMP, K_SO = ("etp.camp_ngoai", "etp.so_ngay_ngoai") if EA.XEM else ("etp.camp", "etp.so_ngay")', vi: 'máy luật đọc kho theo chế độ (nhà / xem người)' },
   { card: 0, tep: 'packages/db/migrations/0373_etp_bac_ngoai.sql', co: 'after insert or update of ngan_sach on etp.camp_ngoai', vi: 'sổ lên bậc team: trigger bắt mọi lần đổi ngân sách / nhân bản' },
   { card: 1487, tep: 'apps/web/src/components/etp-view.tsx', co: "width: gon ? '100%' : 'auto', fontSize: 11.5", vi: 'bảng xét luật rộng theo nội dung, không giãn cột Điều kiện' },
   { card: 1487, tep: 'apps/web/src/components/etp-view.tsx', co: "t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R }", vi: 'khung nổi xét luật rộng theo nội dung' },

@@ -298,5 +298,11 @@ def main():
             r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "so-luat.py")], capture_output=True, text=True, timeout=180)
             print((r.stdout or r.stderr).strip()[-300:])
     except Exception as e: print(f"so-luat: {e}")
+    # ── ĐỀ XUẤT BẬC CHO TEAM (anh 30/10/2026 "chỉ đề xuất, ko tự ý update"): máy luật nhà chấm camp từng người ở chế độ xem (cổng chặn lệnh ghi) — mỗi giờ một lần
+    try:
+        if q("select coalesce(max(luc), 'epoch') < now() - interval '55 minutes' from etp.xet_luat_ngoai") == "t":
+            r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "de-xuat-ngoai.py")], capture_output=True, text=True, timeout=1800)
+            print((r.stdout or r.stderr).strip()[-300:])
+    except Exception as e: print(f"de-xuat-ngoai: {e}")
 
 if __name__ == "__main__": main()

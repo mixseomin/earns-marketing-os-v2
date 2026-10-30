@@ -7,6 +7,9 @@ Dùng (trên box3, đã nạp .env.production):  python3 luat-ethopex.py [roi_to
 import json, os, re, subprocess, sys, urllib.request, datetime as dt
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import ethopex_api as EA   # cổng chung: chỉ tài khoản nhà (anh 28/10/2026)
 ARGS = [a for a in sys.argv[1:] if not a.startswith('--')]
+# XEM NGƯỜI (ETP_XEM_NGUOI, anh 30/10/2026 "chỉ đề xuất, ko tự ý update"): cùng luật chấm camp của một người trong team — kho đọc bảng *_ngoai,
+# xét luật ghi etp.xet_luat_ngoai, cổng chung chặn mọi lệnh ghi. apps/etp/de-xuat-ngoai.py gọi chế độ này; worker cty KHÔNG BAO GIỜ gọi.
+K_CAMP, K_SO = ("etp.camp_ngoai", "etp.so_ngay_ngoai") if EA.XEM else ("etp.camp", "etp.so_ngay")
 # TĂNG BẬC chỉ khi ROI tháng > 50% (Support Dol 21/10/2026: "a chỉ tăng budget những camp rois > 50% nhé") — roi_min (20) còn dùng cho luật giảm / theo dõi
 ROI_TANG = 50
 HQ_NHO, HQ_NHO_MIN = 0.5, 2.0   # sàn $2 (anh 28/10/2026 "cấm viết chung chung, chi nhỏ là bao nhiêu — set tối thiểu $2"): chi nhỏ = chi hôm qua < max($2, 50% ngân sách) · luật B1: chi hôm qua dưới tỷ lệ này của ngân sách hiện tại thì ROI hôm qua âm không chặn tăng trong ngày
@@ -72,7 +75,7 @@ if '--tong' in sys.argv:   # bảng số rút gọn (cty ethopex.mjs bangEthopex
 # mùng 1 → luật tăng / nhân bản chấm trên một ngày. Tên biến giữ 'thang' (nhiều chỗ dùng) nhưng nghĩa = 30 ngày gần nhất; camp trẻ hơn 30 ngày thì
 # đó là ROI TỪ LÚC LÊN — chữ báo ghi đúng số ngày có dữ liệu (ROI 6 ngày), không gọi là "tháng".
 hom = bc(d(0), d(0)); thang = bc(d(29), d(0))
-try: _tao_kho = {int(l.split("|")[0]): dt.date.fromisoformat(l.split("|")[1][:10]) for l in q("select camp_id, (tao at time zone 'UTC')::date from etp.camp where tao is not null").splitlines() if "|" in l}
+try: _tao_kho = {int(l.split("|")[0]): dt.date.fromisoformat(l.split("|")[1][:10]) for l in q(f"select camp_id, (tao at time zone 'UTC')::date from {K_CAMP} where tao is not null").splitlines() if "|" in l}
 except Exception: _tao_kho = {}
 def rd(cid):
     """nhãn khung dài của camp: 'ROI 6 ngày' (camp < 30 ngày: từ lúc lên) / 'ROI 30 ngày'"""
@@ -271,7 +274,7 @@ tu_choi, dong_l, loi_may = [], [], []
 phim_cua, ds_camp = {}, []   # camp → content_id (camp đang chạy / đang đồng bộ) · danh sách camp (luật NB)
 # camp bị Meta từ chối thì Ethopex chuyển PAUSED — trước 24/10/2026 nhánh PAUSED nuốt mất, máy thay creative không bao giờ thấy (#68876 Step Back).
 # Kho etp (đồng bộ 10 phút, giao = delivery_status của ad) cho biết camp nào đang DISAPPROVED mà không phải gọi chi tiết từng camp tắt.
-tc_kho = set(q("select camp_id from etp.camp where giao = 'DISAPPROVED' and coalesce(trang_thai, '') <> 'ARCHIVED'").split())
+tc_kho = set() if EA.XEM else set(q("select camp_id from etp.camp where giao = 'DISAPPROVED' and coalesce(trang_thai, '') <> 'ARCHIVED'").split())   # camp ngoài: kho không giữ trạng thái duyệt
 lich_tat = set(q("select camp_id from etp.lich_tat").split())   # camp tạm dừng vì LỊCH GIỜ (apps/etp/lich-gio.py) — không phải bị đóng, không báo
 # ĐỌC SONG SONG (28/10/2026: đọc đủ 703 camp nhà → 765 lượt gọi API nối đuôi × 0,33s = 4m48s, vượt giới hạn nhịp 240s → cả nhịp Ethopex gãy 57 lượt):
 # lịch sử camp đóng + chi tiết camp đang chạy nạp trước bằng 12 luồng vào _NAP; vòng dưới đọc từ đó (thiếu thì gọi như cũ)
@@ -387,7 +390,7 @@ _bo_chan = {b: q(f"select etp.bo_chan_mo('{b}')") for b in BO_THANG}
 # CỔNG CHI GỐC (anh 29/10/2026 "làm đi"): 13/14 bản thang mở từ camp gốc tiêu < $6/ngày → ROI −27% (so-luat 14 ngày) → chỉ mở bản thang khi camp gốc
 # tiêu TRUNG BÌNH ≥ THANG_CHI_GOC $/ngày trong 3 ngày đã khép (ngày thiếu số tính $0 — camp chưa đủ 3 ngày thì chưa đủ để nhân)
 THANG_CHI_GOC = float(_ch("thang_chi_goc", 6))
-_chi3 = {int(l.split("|")[0]): float(l.split("|")[1]) for l in (q(f"select camp_id, sum(chi) / 3 from etp.so_ngay where ngay between '{d(3)}' and '{d(1)}' group by 1") or "").split("\n") if "|" in l}
+_chi3 = {int(l.split("|")[0]): float(l.split("|")[1]) for l in (q(f"select camp_id, sum(chi) / 3 from {K_SO} where ngay between '{d(3)}' and '{d(1)}' group by 1") or "").split("\n") if "|" in l}
 try:
     _con = {}
     _la_ban_thang = lambda cid: int(cid) in _id_thang   # _id_thang: camp mang tên "(thang $N cua <gốc>)" (khai phía trên)
@@ -460,7 +463,7 @@ T2_ROI, T2_CHI = -20, 2.5   # chi 2 ngày đầu tối thiểu $2.5 (anh 27/10/2
 tat2 = []
 try:
     _n2 = {}
-    for _l in q(f"select s.camp_id, s.chi, s.thu, coalesce(c.ten, '') from etp.so_ngay s left join etp.camp c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
+    for _l in q(f"select s.camp_id, s.chi, s.thu, coalesce(c.ten, '') from {K_SO} s left join {K_CAMP} c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
         _p = _l.split("|", 3)
         if len(_p) == 4 and _p[0].isdigit(): _n2.setdefault(int(_p[0]), [_p[3], []])[1].append((float(_p[1]), float(_p[2])))
     for _c, (_ten, _ds) in _n2.items():
@@ -478,7 +481,7 @@ except Exception as e:
 tat_d24 = []
 try:
     _hq = dt.date.fromisoformat(d(1)); _ng = {}
-    for _l in q(f"select s.camp_id, s.ngay, s.chi, s.thu, coalesce(c.ten, '') from etp.so_ngay s left join etp.camp c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
+    for _l in q(f"select s.camp_id, s.ngay, s.chi, s.thu, coalesce(c.ten, '') from {K_SO} s left join {K_CAMP} c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
         _p = _l.split("|", 4)
         if len(_p) == 5 and _p[0].isdigit(): _ng.setdefault(int(_p[0]), [_p[4], []])[1].append((dt.date.fromisoformat(_p[1]), float(_p[2]), float(_p[3])))
     for _c, (_ten, _ds) in _ng.items():
@@ -699,9 +702,11 @@ if JSON:
     m = lambda ds: [{"id": i, "chu": s, **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s in ds]
     try:   # XÉT LUẬT TỪNG CAMP → etp.xet_luat (đi qua stdin psql: chuỗi lớn vượt giới hạn một tham số dòng lệnh)
         _x = _xet_luat()
-        _sql = "begin; create temp table _x (j jsonb); insert into _x values ('" + json.dumps([{"c": k, "x": v} for k, v in _x.items()], ensure_ascii=False).replace("'", "''") + "'::jsonb);" \
-               " insert into etp.xet_luat (camp_id, luc, xet) select (e->>'c')::int, now(), e->'x' from _x, jsonb_array_elements(j) e on conflict (camp_id) do update set luc = excluded.luc, xet = excluded.xet;" \
-               " delete from etp.xet_luat where luc < now() - interval '3 hours'; commit;"
+        _sql = "begin; create temp table _x (j jsonb); insert into _x values ('" + json.dumps([{"c": k, "x": v} for k, v in _x.items()], ensure_ascii=False).replace("'", "''") + "'::jsonb);" + \
+               (f" insert into etp.xet_luat_ngoai (camp_id, nguoi_id, luc, xet) select (e->>'c')::int, {EA.XEM}, now(), e->'x' from _x, jsonb_array_elements(j) e on conflict (camp_id) do update set nguoi_id = excluded.nguoi_id, luc = excluded.luc, xet = excluded.xet;"
+                f" delete from etp.xet_luat_ngoai where nguoi_id = {EA.XEM} and luc < now() - interval '3 hours'; commit;" if EA.XEM else
+                " insert into etp.xet_luat (camp_id, luc, xet) select (e->>'c')::int, now(), e->'x' from _x, jsonb_array_elements(j) e on conflict (camp_id) do update set luc = excluded.luc, xet = excluded.xet;"
+                " delete from etp.xet_luat where luc < now() - interval '3 hours'; commit;")
         _p = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1"], input=_sql, capture_output=True, text=True, timeout=60)
         if _p.returncode: loi_may.append((0, f"ghi xét luật lỗi: {_p.stderr.strip()[:80]}"))
     except Exception as e:

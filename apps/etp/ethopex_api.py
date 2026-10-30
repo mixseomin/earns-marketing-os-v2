@@ -27,6 +27,13 @@ _BO = json.loads(_q("select gia_tri::text from xv_khoa_ngoai where ten='ethopex_
 TK = {int(v["tk"]) for v in _BO.values() if v.get("tk")}            # id tài khoản trong Ethopex
 EXT = {str(v["ext"]) for v in _BO.values() if v.get("ext")}          # id tài khoản Meta (report: external_account_id)
 if not TK: raise RuntimeError("không đọc được tài khoản nhà (ethopex_bo_tk) — dừng cho an toàn")
+# CHẾ ĐỘ XEM NGƯỜI (anh 30/10/2026: "theo dõi hiệu suất của mọi người trong team về thời điểm lên bậc … chỉ đề xuất, ko tự ý update"):
+# ETP_XEM_NGUOI=<nguoi_id> → "nhà" tạm là các tài khoản của người đó (etp.tai_khoan, trừ tài khoản nhà) để máy luật chấm camp của họ;
+# MỌI lệnh ghi bị chặn ngay đầu api() — chế độ này chỉ đọc, kể cả khi người gọi lỡ gửi lệnh.
+XEM = int(os.environ.get("ETP_XEM_NGUOI") or 0)
+if XEM:
+    TK = {int(x) for x in _q(f"select ad_account_id from etp.tai_khoan where nguoi_id = {XEM} and not nha").split() if x.isdigit()}
+    EXT = set()   # report lọc theo camp_id của người đó (kho không giữ id tài khoản Meta của người khác)
 
 def _goi(duong, body=None, timeout=90):
     r = urllib.request.Request("https://api.ethopex.dev" + duong, data=json.dumps(body).encode() if body is not None else None, method="POST" if body is not None else "GET",
@@ -76,6 +83,7 @@ def goc_tu_ten(ten):
     return int(m.group(1) or m.group(2)) if m else None
 
 def loc_report(rows):
+    if XEM: return [x for x in rows or [] if int(x.get("campaign_id") or 0) in camp_nha()]
     return [x for x in rows or [] if str(x.get("external_account_id") or "") in EXT or (not x.get("external_account_id") and int(x.get("campaign_id") or 0) in camp_nha())]
 
 def _id_cham(duong, body):
@@ -92,6 +100,7 @@ def _id_cham(duong, body):
 
 def api(duong, body=None, timeout=90):
     if isinstance(body, (str, bytes)): body = json.loads(body)
+    if XEM and body is not None and not duong.startswith("/api/v1/report"): raise NgoaiNha(f"chế độ xem người #{XEM}: chỉ đọc — không gửi {duong}")
     if duong.startswith("/api/v1/campaigns?") and body is None:
         return {"data": _ds_nha(duong.split("?", 1)[1]) if duong != "/api/v1/campaigns?" else _ds_nha()}
     if duong.startswith("/api/v1/report"):

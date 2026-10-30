@@ -1862,6 +1862,70 @@ const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggia
 const ghepNang = (d: DuLieuEtp, x: PhanNang): DuLieuEtp => ({ ...d, nhe: false, pheu: x.pheu, diemCham: x.diemCham, thuVien: x.thuVien,
   cham: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { ...c, ...(x.chamCt[Number(k)] ?? {}) }])) });
 
+// LÊN BẬC (anh 30/10/2026 "theo dõi hiệu suất của mọi người trong team về thời điểm lên bậc" → "Show nhiều nhất data có thể"): MỘT bảng phẳng mọi mốc
+// tạo / nhân bản / tăng / giảm của người đang xem — nguồn đúng du.lsBac (nhà: nhật ký máy; người khác: sổ etp.bac_ngoai + lịch sử nạp từ bản sao lưu)
+// + số TRƯỚC (camp gốc khi nhân bản) và SAU mốc từ du.soNgay (ngày Ethopex = UTC): đổi bậc có đáng không, máy đề xuất trước bao lâu
+const XEM_CAMP_V = ['cay', 'bang', 'lich', 'bac'] as const;
+type XemCamp = typeof XEM_CAMP_V[number];
+const laXemCamp = (v: string | null | undefined): v is XemCamp => (XEM_CAMP_V as readonly string[]).includes(v ?? '');
+type MocBac = { k: string; c: number; luc: string; viec: string; truoc: number | null; sau: number | null; luat: string; ai: string | null; goc: number | null;
+  d0: string; qua: SoTien; tronTruoc: SoTien; sau1: SoTien; sau3: SoTien; may: { ten: string; gio: number | null } | null; uoc: boolean; doan: boolean; phim: string | null };
+const ngayCong = (d: string, n: number) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10);
+function LenBac({ du, hep }: { du: DuLieuEtp; hep: boolean }) {
+  const [kieu, setKieu] = useState<string>('all');
+  const ds = useMemo<MocBac[]>(() => {
+    const so = new Map<number, Map<string, SoTien>>();
+    for (const x of du.soNgay) { let m = so.get(x.c); if (!m) so.set(x.c, (m = new Map())); m.set(x.d, { chi: x.chi, thu: x.thu }); }
+    const cong = (c: number | null, tu: string, den: string) => { const m = c == null ? null : so.get(c); let chi = 0, thu = 0;
+      if (m) for (const [d, v] of m) if (d >= tu && d <= den) { chi += v.chi; thu += v.thu; } return { chi, thu }; };
+    const campOf = new Map(du.camps.map((c) => [c.camp_id, c]));
+    return Object.entries(du.lsBac).flatMap(([cs, ls]) => ls.map((x, i) => {
+      const c = Number(cs), d0 = new Date(Date.parse(x.luc)).toISOString().slice(0, 10);
+      const goc = x.viec === 'nhan_ban' ? Number(/#(\d{4,})/.exec(x.luat ?? '')?.[1]) || campOf.get(c)?.goc || null : null;
+      const nguon = goc ?? c, m = /máy đề xuất từ ([^(]+)\(người làm sau ([\d.]+) giờ\)/.exec(x.luat ?? '');
+      return { k: `${c}-${i}`, c, luc: x.luc, viec: x.viec, truoc: x.truoc == null ? null : Number(x.truoc), sau: x.sau == null ? null : Number(x.sau), luat: x.luat ?? '', ai: x.ai, goc, d0,
+        qua: cong(nguon, ngayCong(d0, -1), ngayCong(d0, -1)), tronTruoc: cong(nguon, '2000-01-01', ngayCong(d0, -1)),
+        sau1: cong(c, ngayCong(d0, 1), ngayCong(d0, 1)), sau3: cong(c, ngayCong(d0, 1), ngayCong(d0, 3)),
+        may: m ? { ten: m[1]!.trim(), gio: Number(m[2]) } : /máy chưa đề xuất/.test(x.luat ?? '') ? { ten: 'chưa', gio: null } : null,
+        uoc: /bản sao lưu|không lưu/.test(x.luat ?? ''), doan: /gốc đoán/.test(x.luat ?? ''), phim: campOf.get(c)?.phim ?? null };
+    })).sort((a, b) => b.luc.localeCompare(a.luc));
+  }, [du]);
+  const dem = ds.reduce<Record<string, number>>((m, x) => ({ ...m, [x.viec]: (m[x.viec] ?? 0) + 1 }), {});
+  const loc = ds.filter((x) => kieu === 'all' || x.viec === kieu);
+  // tổng SAU mốc theo loại: lên bậc / nhân bản có ra lãi không (chỉ mốc đã có ≥ 1 ngày khép sau đó)
+  const sauLoai = (v: string) => { const xs = ds.filter((x) => x.viec === v && x.sau3.chi > 0); return { n: xs.length, s: xs.reduce((a, x) => ({ chi: a.chi + x.sau3.chi, thu: a.thu + x.sau3.thu }), { chi: 0, thu: 0 }), lai: xs.filter((x) => x.sau3.thu > x.sau3.chi).length }; };
+  const st = (['tang', 'nhan_ban', 'giam'] as const).map((v) => ({ v, ...sauLoai(v) }));
+  const mayTruoc = ds.filter((x) => x.may && x.may.gio != null), mayChua = ds.filter((x) => x.may?.ten === 'chưa');
+  const s3 = (x: MocBac) => (x.sau3.chi ? <Roi s={x.sau3} /> : <span style={{ color: 'var(--fg-3, #777)' }} title="chưa có ngày khép sau mốc">—</span>);
+  const cot: DataColumn<MocBac>[] = [
+    { key: 'luc', header: 'Giờ (VN)', align: 'left', width: 96, cell: (x) => <span title={x.uoc ? 'giờ ước — xem cột Ghi chú' : undefined}>{x.uoc ? '≈ ' : ''}{gioVn(x.luc)}</span>, sortValue: (x) => x.luc },
+    { key: 'camp', header: 'Camp', align: 'left', width: 220, cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.phim ?? ''}><b>#{x.c}</b> <span style={{ color: 'var(--fg-2)' }}>{x.phim ?? ''}</span></span>, sortValue: (x) => x.c },
+    { key: 'viec', header: 'Việc', align: 'left', width: 104, cell: (x) => { const [t, m] = VIEC_BAC[x.viec] ?? [x.viec, '#94a3b8']; return <b style={{ color: m }}>{t}{x.goc ? <span style={{ fontWeight: 400, color: 'var(--fg-3, #777)' }} title={x.doan ? 'gốc đoán theo nhóm tên' : 'gốc ghi trong tên camp'}> ← #{x.goc}{x.doan ? '?' : ''}</span> : null}</b>; }, sortValue: (x) => x.viec },
+    { key: 'ns', header: 'Ngân sách', width: 92, cell: (x) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{x.truoc != null ? `$${x.truoc} → ` : ''}{x.sau != null ? `$${x.sau}` : '—'}</span>, sortValue: (x) => x.sau },
+    { key: 'qua', header: 'ROI hôm trước', title: 'ngày Ethopex ngay trước mốc — của camp gốc khi nhân bản', width: 82, cell: (x) => (x.qua.chi ? <Roi s={x.qua} /> : '—'), sortValue: (x) => (x.qua.chi ? roiOf(x.qua) : null) },
+    { key: 'tron', header: 'ROI trước mốc', title: 'cả chặng tới hết ngày trước mốc (camp gốc khi nhân bản) · chi', width: 108, cell: (x) => (x.tronTruoc.chi ? <><Roi s={x.tronTruoc} /> <span style={{ color: 'var(--fg-3, #777)', fontSize: 11 }}>${x.tronTruoc.chi.toFixed(0)}</span></> : '—'), sortValue: (x) => (x.tronTruoc.chi ? roiOf(x.tronTruoc) : null) },
+    { key: 's1', header: 'Sau 1 ngày', title: 'ROI ngày khép ngay sau mốc (camp này)', width: 78, cell: (x) => (x.sau1.chi ? <Roi s={x.sau1} /> : '—'), sortValue: (x) => (x.sau1.chi ? roiOf(x.sau1) : null) },
+    { key: 's3', header: 'Sau 3 ngày', title: 'ROI 3 ngày khép sau mốc (camp này) · lãi', width: 112, cell: (x) => <>{s3(x)}{x.sau3.chi ? <span style={{ color: 'var(--fg-3, #777)', fontSize: 11 }}> {x.sau3.thu - x.sau3.chi >= 0 ? '+' : ''}${(x.sau3.thu - x.sau3.chi).toFixed(1)}</span> : null}</>,
+      sortValue: (x) => (x.sau3.chi ? roiOf(x.sau3) : null), total: (rs) => { const t = rs.reduce((a, x) => ({ chi: a.chi + x.sau3.chi, thu: a.thu + x.sau3.thu }), { chi: 0, thu: 0 }); return t.chi ? <Roi s={t} /> : '—'; } },
+    ...(du.nguoi.ngoai ? [{ key: 'may', header: 'Máy đề xuất', align: 'left' as const, width: 132, title: 'máy luật nhà đã đề xuất đúng việc này trước khi người làm? (chỉ có từ 30/10 — trước đó máy chưa chấm camp người khác)',
+      cell: (x: MocBac) => (!x.may ? <span style={{ color: 'var(--fg-3, #777)' }}>—</span> : x.may.gio == null ? <span style={{ color: '#facc15' }}>chưa đề xuất</span> : <span style={{ color: '#4ade80' }} title={`máy đề xuất từ ${x.may.ten}`}>trước {x.may.gio} giờ</span>),
+      sortValue: (x: MocBac) => x.may?.gio ?? null }] : []),
+    { key: 'ghi', header: 'Ghi chú', align: 'left', cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--fg-2)' }} title={luatThuong(x.luat)}>{luatThuong(x.luat)}</span> },
+  ];
+  return (
+    <div>
+      <StatsStrip minColWidth={hep ? 140 : 170} cards={[
+        { key: 'n', label: 'Mốc 30 ngày', value: ds.length, sub: `${dem.tang ?? 0} tăng · ${dem.giam ?? 0} giảm · ${dem.nhan_ban ?? 0} nhân bản · ${dem.tao_camp ?? 0} tạo` },
+        ...st.map((x) => ({ key: x.v, label: `Sau 3 ngày · ${VIEC_BAC[x.v]?.[0] ?? x.v}`, value: x.n ? <Roi s={x.s} /> : '—', sub: x.n ? `${x.lai}/${x.n} mốc lãi · chi $${x.s.chi.toFixed(0)}` : 'chưa có ngày khép sau mốc', onClick: () => setKieu(x.v), active: kieu === x.v, color: VIEC_BAC[x.v]?.[1] })),
+        ...(du.nguoi.ngoai ? [{ key: 'may', label: 'Máy đề xuất trước', value: `${mayTruoc.length}/${mayTruoc.length + mayChua.length}`, sub: mayTruoc.length ? `TB trước ${(mayTruoc.reduce((a, x) => a + (x.may!.gio ?? 0), 0) / mayTruoc.length).toFixed(1)} giờ` : 'máy chấm camp người khác từ 30/10' }] : []),
+      ]} />
+      <ListToolbar>
+        <FilterChips value={kieu} onChange={setKieu} counts={{ all: ds.length, ...dem }} options={[{ value: 'all', label: 'Tất cả' }, ...Object.keys(VIEC_BAC).filter((k) => dem[k]).map((k) => ({ value: k, label: VIEC_BAC[k]![0] }))]} />
+      </ListToolbar>
+      {!loc.length ? <EmptyState compact icon="📶" title="Chưa có mốc lên bậc nào trong 30 ngày" /> : <DataTable rows={loc} columns={cot} getRowKey={(x) => x.k} persistKey="etp-len-bac" minWidth={1100} fixedLayout />}
+    </div>
+  );
+}
 export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; chiXem?: boolean; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string } }) {
   const router = useRouter();
   // TẢI THEO TAB (anh 30/10/2026 "làm tối ưu triệt để đi"): máy chủ gửi bản nhẹ; Creative › Quét / Điểm chạm và Thư viện cần phần nặng → tải bù rồi ghép
@@ -1889,7 +1953,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
   const [loc, setLoc] = useState<(typeof LOC_CAMP)[number]>(LOC_CAMP.includes(dauVao?.l as (typeof LOC_CAMP)[number]) ? (dauVao!.l as (typeof LOC_CAMP)[number]) : 'chay');   // ?l= lọc camp
   // tab Creative: Hiệu quả | 🛡 Quét nội dung (?v=soat) | 🏭 Đang sx (?v=sx — anh 26/10/2026 "Thêm 1 tab là Đang sx")
   const [xemCr, setXemCr] = useState<'hq' | 'soat' | 'sx' | 'dc'>(dauVao?.v === 'soat' || dauVao?.v === 'sx' || dauVao?.v === 'dc' ? dauVao.v : 'hq'); const xemSoat = xemCr === 'soat';
-  const [xemCamp, setXemCamp] = useState<'cay' | 'bang' | 'lich'>(dauVao?.v === 'bang' || dauVao?.v === 'lich' ? dauVao.v : 'cay');   // + Lịch giờ (anh 25/10/2026)   // tab Camp: MẶC ĐỊNH cây phim → camp gốc → bản nhân (anh 25/10/2026 "đéo thấy" — nút 🌳 nhỏ bị bỏ qua); nhớ lựa chọn + ?v=cay|bang
+  const [xemCamp, setXemCamp] = useState<XemCamp>(laXemCamp(dauVao?.v) && dauVao?.v !== 'cay' ? dauVao.v : 'cay');   // + Lịch giờ (anh 25/10/2026)   // tab Camp: MẶC ĐỊNH cây phim → camp gốc → bản nhân (anh 25/10/2026 "đéo thấy" — nút 🌳 nhỏ bị bỏ qua); nhớ lựa chọn + ?v=cay|bang
   const [phimLoc, setPhimLoc] = useState<number | null>(Number(dauVao?.p) > 0 ? Number(dauVao!.p) : null);   // Camp › Bảng: lọc về một phim (bấm thẻ phim, ?p=)
   const [hep, setHep] = useState(false);   // màn hẹp (điện thoại): đầu trang gọn — 3 số chính, còn lại ở hover (anh 24/10/2026 "phần hero chiếm hết màn hình")
   useEffect(() => { const mq = window.matchMedia('(max-width: 720px)'); const f = () => setHep(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
@@ -1906,7 +1970,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
   useEffect(() => { const t = setInterval(() => router.refresh(), 60_000); return () => clearInterval(t); }, [router]);
   // URL không ghi kiểu xem cây/bảng → dùng lựa chọn đã nhớ (localStorage). Cờ daDoc: lượt ghi URL / nhớ chỉ chạy SAU khi đã đọc xong — không đè bằng giá trị mặc định
   const [daDoc, setDaDoc] = useState(false);
-  useEffect(() => { if (dauVao?.v !== 'bang' && dauVao?.v !== 'cay' && dauVao?.v !== 'lich') { try { const v = localStorage.getItem('etp-camp-xem'); if (v === 'bang' || v === 'cay' || v === 'lich') setXemCamp(v); } catch { /* trình duyệt chặn */ } } setDaDoc(true); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!laXemCamp(dauVao?.v)) { try { const v = localStorage.getItem('etp-camp-xem'); if (laXemCamp(v)) setXemCamp(v); } catch { /* trình duyệt chặn */ } } setDaDoc(true); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   // KHÔNG GHI ĐÈ URL LÚC VỪA MỞ (anh 25/10/2026: "bấm sang lịch rồi khi mày sửa lại tự quay về v=cay" — lúc deploy, bản cũ chưa biết v=lich rơi về Cây rồi ghi đè URL):
   // lượt đầu chỉ ghi khi URL chưa có v (kiểu xem lấy từ localStorage); từ đó chỉ ghi khi anh bấm đổi — bản nào không hiểu một giá trị v cũng để nguyên URL
   const ghiLanDau = useRef(false);
@@ -1924,11 +1988,11 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
   const doi = (x: Partial<typeof hienTai>, lam: () => void) => { urlTu({ ...hienTai, ...x }); startTransition(lam); };
   // BẤM TAB CHÍNH = VÀO KIỂU XEM ĐẦU TIÊN (anh 28/10/2026 "nếu bấm ngay vẫn vào cái đầu tiên như bình thường"); rê chuột = menu con chọn thẳng kiểu xem
   const doiTab = (t: Tab) => doi({ tab: t, ...(t === 'camp' ? { xemCamp: 'cay' } : t === 'creative' ? { xemCr: 'hq' } : {}) }, () => { setTab(t); if (t === 'camp') setXemCamp('cay'); if (t === 'creative') setXemCr('hq'); });
-  const XEM_CAMP = [['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN']] as const;
+  const XEM_CAMP = [['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN'], ['bac', '📶 Lên bậc', 'mọi mốc tạo / nhân bản / tăng / giảm 30 ngày + ROI trước và sau mốc, máy đề xuất trước bao lâu']] as const;
   const XEM_CR = [['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm'], ['dc', 'Điểm chạm', 'hook · nội dung · voice · chữ · CTA — giá trị nào kéo CTR / S CVR / ROI']] as const;
   const menuCamp = XEM_CAMP.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'camp' && xemCamp === v, href: () => urlCua({ ...hienTai, tab: 'camp', xemCamp: v }).href, onPick: () => doi({ tab: 'camp', xemCamp: v }, () => { setTab('camp'); setXemCamp(v); }) }));
   const menuCr = XEM_CR.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'creative' && xemCr === v, href: () => urlCua({ ...hienTai, tab: 'creative', xemCr: v }).href, onPick: () => doi({ tab: 'creative', xemCr: v }, () => { setTab('creative'); setXemCr(v); }) }));
-  const doiXemCamp = (v: 'cay' | 'bang' | 'lich') => doi({ xemCamp: v }, () => setXemCamp(v));
+  const doiXemCamp = (v: XemCamp) => doi({ xemCamp: v }, () => setXemCamp(v));
   const doiXemCr = (v: 'hq' | 'soat' | 'sx' | 'dc') => doi({ xemCr: v }, () => setXemCr(v));
   const doiLoc = (l: (typeof LOC_CAMP)[number]) => doi({ loc: l }, () => setLoc(l));
   const doiPhim = (id: number | null) => doi({ phim: id, ...(id ? { loc: 'all' as const } : {}) }, () => { setPhimLoc(id); if (id) setLoc('all'); });   // chọn phim = thấy mọi camp của phim (cả tạm dừng)
@@ -2120,7 +2184,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
               <button key={nhan} onClick={() => doiXemCamp(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
                 background: xemCamp === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCamp === v ? 600 : 400 }}>{gon ? nhan.split(' ')[0] : nhan}</button>))}
           </span>) : null}
-        {gon && tab === 'camp' && xemCamp !== 'lich' ? (() => { const coLoc = (loc !== 'chay' && loc !== 'all') || !!luatLoc || !!dangLoc || !!boHieu || !!laiLoc || !!tuoiChon;
+        {gon && tab === 'camp' && xemCamp !== 'lich' && xemCamp !== 'bac' ? (() => { const coLoc = (loc !== 'chay' && loc !== 'all') || !!luatLoc || !!dangLoc || !!boHieu || !!laiLoc || !!tuoiChon;
           return <button onClick={() => setMoLoc((v) => !v)} title={coLoc ? 'đang có lọc' : 'mở bộ lọc'} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', color: coLoc ? '#60a5fa' : 'inherit',
             border: `1px solid ${coLoc ? '#60a5fa' : 'var(--line)'}`, background: moLoc || coLoc ? 'var(--accent-soft, rgba(59,130,246,.18))' : 'transparent', fontWeight: coLoc ? 600 : 400 }}>{moLoc ? '▴' : '▾'} Lọc{coLoc ? ' •' : ''}</button>; })() : null}
         {tab === 'creative' ? (
@@ -2129,7 +2193,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
               <button key={nhan} onClick={() => doiXemCr(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
                 background: xemCr === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCr === v ? 600 : 400 }}>{nhan}</button>))}
           </span>) : null}
-        {tab === 'camp' && xemCamp !== 'lich' && (!gon || moLoc) ? <div style={gon ? { display: 'flex', flexDirection: 'column', gap: 6, width: '100%' } : { display: 'contents' }}>
+        {tab === 'camp' && xemCamp !== 'lich' && xemCamp !== 'bac' && (!gon || moLoc) ? <div style={gon ? { display: 'flex', flexDirection: 'column', gap: 6, width: '100%' } : { display: 'contents' }}>
         {(() => { const dem: Record<string, number> = { all: du.camps.length, chay: chay.length, cho: choChay.length, tat: du.camps.filter((c) => c.trang_thai !== 'ACTIVE').length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), cung: du.camps.filter((c) => c.cung_doan > tranT).length, roas: roasDat.size, luat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
           const m = (value: string, label: string, nhom: string, title?: string): Chon2Muc => ({ value, label, nhom, dem: dem[value], title });
           return <Chon2 value={loc} onChange={(v) => doiLoc(v as (typeof LOC_CAMP)[number])} nhan="Lọc" anRong title="lọc camp theo trạng thái / luật / ngưỡng" options={[
@@ -2164,6 +2228,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
         <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} du={du} anh={anh} />
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
+      ) : tab === 'camp' && xemCamp === 'bac' ? (
+        <LenBac du={du} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
         <CayCamp camps={camps} du={du} hep={hep} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e) => { const r = crAnh.get(cr); if (r?.anh) noiAnh.mo({ anh: r.anh, video: r.video, cr }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
       ) : tab === 'camp' ? (

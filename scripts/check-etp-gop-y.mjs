@@ -164,6 +164,10 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "deXuat ? ' · máy đề xuất (chỉ đề xuất, không làm)' : ' · máy đã xếp làm'", vi: 'camp người khác: bảng xét ghi là đề xuất' },
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'from etp.xet_luat_ngoai where nguoi_id = ${dangId}', vi: 'xem người: cột Luật đọc đề xuất của máy luật nhà' },
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "'máy chưa đề xuất') end luat", vi: 'xem người: lịch sử bậc so với lúc máy đề xuất' },
+  // anh 30/10/2026 "Show nhiều nhất data có thể": kiểu xem Lên bậc (bảng phẳng mọi mốc + ROI trước / sau) + nạp lịch sử từ bản sao lưu
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "const XEM_CAMP_V = ['cay', 'bang', 'lich', 'bac'] as const;", vi: 'tab Camp có kiểu xem Lên bậc' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "<LenBac du={du} hep={hep} />", vi: 'kiểu xem Lên bậc được vẽ' },
+  { card: 0, tep: 'apps/etp/bac-ngoai-lich-su.py', co: 'glob.glob("/var/backups/mos2/mos2_prod-*.sql.gz")', vi: 'sổ lên bậc nạp lịch sử từ bản sao lưu hằng ngày' },
   { card: 0, tep: 'packages/db/migrations/0373_etp_bac_ngoai.sql', co: 'after insert or update of ngan_sach on etp.camp_ngoai', vi: 'sổ lên bậc team: trigger bắt mọi lần đổi ngân sách / nhân bản' },
   { card: 1487, tep: 'apps/web/src/components/etp-view.tsx', co: "width: gon ? '100%' : 'auto', fontSize: 11.5", vi: 'bảng xét luật rộng theo nội dung, không giãn cột Điều kiện' },
   { card: 1487, tep: 'apps/web/src/components/etp-view.tsx', co: "t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R }", vi: 'khung nổi xét luật rộng theo nội dung' },

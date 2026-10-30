@@ -184,10 +184,11 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
         case b.kieu when 'tao' then 'tao_camp' when 'nhan_ban' then 'nhan_ban' when 'sua' then (case when b.moi > b.cu then 'tang' else 'giam' end) end viec,
         b.cu::text truoc, b.moi::text sau,
         (case when b.kieu = 'nhan_ban' then 'số camp gốc #' || b.goc_id || ' lúc nhân: ' else 'số lúc đổi: ' end)
-          || 'hôm nay ' || coalesce(round((b.thu_nay - b.chi_nay) / nullif(b.chi_nay, 0) * 100) || '% (chi $' || round(b.chi_nay, 2) || ')', 'chưa chi')
-          || ' · hôm qua ' || coalesce(round((b.thu_qua - b.chi_qua) / nullif(b.chi_qua, 0) * 100) || '%', '—')
-          || ' · cả chặng ' || coalesce(round((b.thu_tron - b.chi_tron) / nullif(b.chi_tron, 0) * 100) || '% (chi $' || round(b.chi_tron, 2) || ')', '—')
-          || case when b.kieu = 'tao' then '' else ' · ' || coalesce('máy đề xuất từ ' || to_char(m.lan_dau at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') || ' (người làm sau '
+          || case when b.chi_nay is null then '' else 'hôm nay ' || coalesce(round((b.thu_nay - b.chi_nay) / nullif(b.chi_nay, 0) * 100) || '% (chi $' || round(b.chi_nay, 2) || ')', 'chưa chi') || ' · ' end
+          || 'hôm qua ' || coalesce(round((b.thu_qua - b.chi_qua) / nullif(b.chi_qua, 0) * 100) || '%', '—')
+          || ' · cả chặng' || case when b.chi_nay is null then ' tới hôm qua ' else ' ' end || coalesce(round((b.thu_tron - b.chi_tron) / nullif(b.chi_tron, 0) * 100) || '% (chi $' || round(b.chi_tron, 2) || ')', '—')
+          || case when b.goc_doan then ' · gốc đoán theo nhóm tên' else '' end || coalesce(' · ' || b.khoang, '')
+          || case when b.kieu = 'tao' or b.luc < (select min(lan_dau) from etp.de_xuat_bac) then '' else ' · ' || coalesce('máy đề xuất từ ' || to_char(m.lan_dau at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') || ' (người làm sau '
                || round(extract(epoch from b.luc - m.lan_dau) / 3600, 1) || ' giờ)', 'máy chưa đề xuất') end luat,
         t.nguoi ai
       from etp.bac_ngoai b join etp.tai_khoan t on t.ad_account_id = (select ad_account_id from etp.camp_ngoai where camp_id = b.camp_id)

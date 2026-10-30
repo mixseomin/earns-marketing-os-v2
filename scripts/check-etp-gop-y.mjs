@@ -190,6 +190,8 @@ const LUAT = [
   { card: 1491, tep: V, co: ": x.video ? <video src={`${x.video}#t=1`} muted playsInline preload=\"metadata\"", vi: 'thẻ thư viện thiếu ảnh thì xem trước bằng video' },
   // anh 30/10: All time lệch Ethopex — số ngày camp team (so_ngay_ngoai) thiếu 19–24/10 vì chỉ kiểm bảng nhà khi quyết kéo lại từ đầu
   { card: 0, tep: 'apps/etp/dong-bo.py', co: "select min(ngay) d from etp.so_ngay union all select min(ngay) from etp.so_ngay_ngoai", vi: 'kéo số ngày từ đầu khi bảng nhà HOẶC bảng team chưa phủ từ đầu' },
+  { card: 0, tep: 'apps/etp/ethopex_api.py', cam: 'for tr in range(2, int(d.get("total_pages") or 1) + 1): rows += _goi(', vi: 'report Ethopex không lật trang (máy chủ trả thứ tự lộn → trùng / mất dòng), chia khoảng ngày' },
+  { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'd1 = doc_het(duong, {**b, "date_to": g.isoformat()}, timeout)', vi: 'report quá một trang thì chia đôi khoảng ngày' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

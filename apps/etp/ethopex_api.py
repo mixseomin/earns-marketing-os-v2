@@ -63,11 +63,19 @@ def _ds_nha(qs="", nha=True):
 def doc_het(duong, body=None, timeout=90):
     """ĐỦ MỌI TRANG cho MỌI danh sách Ethopex, KHÔNG lọc tài khoản (anh 29/10/2026: "sao lại limit theo trang được? Sau này sẽ có 1 tỷ camp").
     Máy chủ tự cắt: report tối đa 10.000 dòng / trang (xin 50.000 vẫn chỉ trả 10.000), danh sách GET tối đa 1.000 / trang — số người gọi xin KHÔNG
-    phải trần. POST report: lật theo total_pages; GET có '?': lật theo meta.total_pages. Không còn trang nào bị bỏ, bất kể bao nhiêu camp."""
+    phải trần. POST report: chia khoảng ngày (không lật trang — xem dưới); GET có '?': lật theo meta.total_pages. Không còn trang nào bị bỏ, bất kể bao nhiêu camp."""
     if body is not None:
-        b = {**body, "page": 1}; d = _goi(duong, b, timeout); rows = list(d.get("rows") or [])
-        for tr in range(2, int(d.get("total_pages") or 1) + 1): rows += _goi(duong, {**b, "page": tr}, timeout).get("rows") or []
-        d["rows"] = rows; return d
+        # REPORT KHÔNG LẬT TRANG: máy chủ không giữ thứ tự giữa các trang (order_by bị lờ, đo 30/10/2026: cùng lệnh 12.745 dòng → trang 1 và 2 trùng 16–71 dòng,
+        # chừng ấy dòng rơi mất) → camp cộng đôi chi / camp mất chi, All time etp lệch Ethopex. Quá một trang thì CHIA ĐÔI khoảng ngày tới khi mỗi phần vừa một trang.
+        b = {**body, "page": 1}; d = _goi(duong, b, timeout)
+        if int(d.get("total_pages") or 1) <= 1: return d
+        tu, den = b.get("date_from"), b.get("date_to")
+        if "date" not in (b.get("group_by") or []) or not tu or not den or tu >= den:
+            raise RuntimeError(f"report {d.get('total_count')} dòng > 1 trang mà không chia theo ngày được (group_by {b.get('group_by')}, {tu}→{den}): lật trang Ethopex mất / trùng dòng")
+        import datetime as _dt
+        a, z = _dt.date.fromisoformat(tu[:10]), _dt.date.fromisoformat(den[:10]); g = a + (z - a) // 2
+        d1 = doc_het(duong, {**b, "date_to": g.isoformat()}, timeout); d2 = doc_het(duong, {**b, "date_from": (g + _dt.timedelta(days=1)).isoformat()}, timeout)
+        d1["rows"] = list(d1.get("rows") or []) + list(d2.get("rows") or []); d1["total_pages"] = 1; return d1
     if "?" not in duong: return _goi(duong, None, timeout)
     goc = re.sub(r"([?&])page=\d+", r"\1", duong).replace("?&", "?").replace("&&", "&").rstrip("&")
     d = _goi(goc + "&page=1", None, timeout); data = list(d.get("data") or [])

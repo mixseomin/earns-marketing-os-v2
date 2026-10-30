@@ -17,8 +17,8 @@ const MA = /^[a-z0-9][a-z0-9-]{1,60}$/;
 
 /** Danh sách trắng lệnh tốn tiền: kiem(tham) → lỗi | null; lenh(tham) → [cmd, args] chạy trong repo trên box3. */
 export const LENH_CHI = {
-  'sinh-kho': { ten: 'Sinh kho video (chữ AI)', kiem: (t) => (!MA.test(String(t?.may ?? '')) ? 'tham.may sai khuôn' : !(Number.isInteger(t?.so) && t.so >= 1 && t.so <= 40) ? 'tham.so phải 1–40' : null),
-    lenh: (t) => ['bash', ['-lc', `cd ${GOC} && set -a && . ./.env.production && set +a && cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts --may ${t.may} --sinh-kho ${t.so}`]] },
+  'sinh-kho': { ten: 'Sinh kho video (chữ AI)', kiem: (t) => (!MA.test(String(t?.may ?? '')) ? 'tham.may sai khuôn' : !(Number.isInteger(t?.so) && t.so >= 1 && t.so <= 40) ? 'tham.so phải 1–40' : t?.dang != null && !MA.test(String(t.dang)) ? 'tham.dang sai khuôn' : null),
+    lenh: (t) => ['bash', ['-lc', `cd ${GOC} && set -a && . ./.env.production && set +a && cd apps/xuong-video && DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts --may ${t.may} --sinh-kho ${t.so}${t.dang ? ` --dang ${t.dang}` : ''}`]] },   // dang: chỉ sinh một dạng (thử mẫu mới — giai-thich-giong 31/10/2026)
 };
 export const nutDuyet = (id, gia) => ({ inline_keyboard: [[{ text: `✅ Duyệt chi ~${Number(gia).toLocaleString('vi-VN')}₫`, callback_data: `dc:ok:${id}` }, { text: '✖ Bỏ', callback_data: `dc:bo:${id}` }]] });
 const doc = (id, dir = DIR()) => { try { return JSON.parse(fs.readFileSync(path.join(dir, `${id}.json`), 'utf8')); } catch { return null; } };
@@ -74,7 +74,9 @@ if (process.argv[1]?.endsWith('duyet-chi.mjs')) {
     t.equal(doc(x.id, d).trang, 'cho'); t.ok(tinXin(x).includes('800₫'));
     t.ok(LENH_CHI['sinh-kho'].lenh(x.tham)[1][1].includes('--may militarycalc --sinh-kho 20') && LENH_CHI['sinh-kho'].lenh(x.tham)[1][1].includes('DUYET_SINH_1_LAN=1'));
     t.equal(nutDuyet(x.id, 800).inline_keyboard[0][0].callback_data, `dc:ok:${x.id}`);
-    fs.rmSync(d, { recursive: true, force: true }); console.log('duyet-chi: 7/7 ok'); process.exit(0);
+    t.ok(LENH_CHI['sinh-kho'].lenh({ may: 'astrolas', so: 1, dang: 'giai-thich-giong' })[1][1].includes('--sinh-kho 1 --dang giai-thich-giong'), 'dang đi vào lệnh');
+    t.throws(() => taoXin({ viec: 'x', gia: 10, lenh: 'sinh-kho', tham: { may: 'astrolas', so: 1, dang: 'x; rm -rf /' } }, d), /dang sai khuôn/, 'dang chèn lệnh bị chặn');
+    fs.rmSync(d, { recursive: true, force: true }); console.log('duyet-chi: 9/9 ok'); process.exit(0);
   }
   if (a[0] === 'xin') {
     const x = taoXin({ viec: lay('--viec'), gia: lay('--gia'), lenh: lay('--lenh'), tham: JSON.parse(lay('--tham') ?? '{}'), tu: lay('--tu') ?? 'claude' });

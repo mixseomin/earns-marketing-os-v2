@@ -69,10 +69,14 @@ const lechDau = lech;
 console.log(`\n=== #${canhId} · khung ${luc.toUpperCase()} · tối đa ${toiDa} vòng ===`);
 console.log(`LỆCH ĐẦU (${lo(lechDau).length}): ${inLo(lechDau)}`);
 
+// Sinh lại từ prompt nguồn mỗi vòng là MỘT lần sinh gần như ngẫu nhiên (sửa điểm siết nhưng có thể đẻ lệch mới) + bóc đối chiếu không ổn định →
+// vòng lặp KHÔNG hội tụ đơn điệu (#1824 30/10/2026: 5→3→5→4, có vòng đẻ người thừa). Nên: GIỮ bản ít-lệch-nhất qua mọi vòng (không lấy vòng cuối),
+// DỪNG khi 2 vòng liền không hạ được kỷ lục (chững) — không đốt tiền thêm vào bản xấu hơn. Promote bản ít-lệch-nhất.
 const giaTruoc = await giaCanh();
-let vong = 0; let urlCuoi = urlDau;
+let best = { url: urlDau, lech: lechDau };   // bản ít lệch nhất từng thấy (gồm cả ảnh đầu)
+let lech = lechDau; let vong = 0; let chung = 0;
 const nhatKy: string[] = [];
-while (lo(lech).length && vong < toiDa) {
+while (lo(lech).length && vong < toiDa && chung < 2) {
   vong++;
   const siet = sietTuLech(lech);
   if (!siet) break;
@@ -83,22 +87,23 @@ while (lo(lech).length && vong < toiDa) {
   if (!r.ok) { console.error(`sinh lại hỏng: ${r.loi}`); break; }
   const { url, loi } = await choAnhMoi(urlCu, uvLen);
   if (!url) { console.error(`chờ ảnh hỏng: ${loi}`); break; }
-  urlCuoi = url;
   ({ c, phimId, nhanVat, kg } = await nap());   // nạp lại trạng thái (keyframe_url có thể đã đổi)
   const lechMoi = await doiChieu(phimId, url, c, nhanVat, kg);
   if (lechMoi === null) { console.error('bóc ảnh mới hỏng'); break; }
-  nhatKy.push(`vòng ${vong}: ${lo(lech).length} → ${lo(lechMoi).length} lệch${lo(lechMoi).length ? ` (còn: ${inLo(lechMoi)})` : ' — ĐẠT'} · ${url}`);
+  const kyLuc = lo(lechMoi).length < lo(best.lech).length;   // hạ kỷ lục ít-lệch?
+  if (kyLuc) { best = { url, lech: lechMoi }; chung = 0; } else chung++;
+  nhatKy.push(`vòng ${vong}: ${lo(lech).length} → ${lo(lechMoi).length} lệch${kyLuc ? ' ✓ ít nhất' : ` (chững ${chung})`}${lo(lechMoi).length ? ` · còn: ${inLo(lechMoi)}` : ' — ĐẠT'} · ${url}`);
   lech = lechMoi;
 }
 
-const dat = lo(lech).length === 0;
+const dat = lo(best.lech).length === 0;
 console.log(`\n--- KẾT ---`);
 nhatKy.forEach((x) => console.log(`  ${x}`));
-console.log(`\nLỆCH ĐẦU ${lo(lechDau).length} → LỆCH CUỐI ${lo(lech).length} sau ${vong} vòng · ${dat ? '✅ ĐẠT (cổng mở — cho ráp clip)' : '⛔ CHƯA ĐẠT (cổng đóng — còn ' + inLo(lech) + ')'}`);
-console.log(`chi phí ${vong} vòng: ${(await giaCanh()) - giaTruoc}¢ · ảnh cuối: ${urlCuoi}`);
+console.log(`\nLỆCH ĐẦU ${lo(lechDau).length} → ÍT NHẤT ${lo(best.lech).length} sau ${vong} vòng${chung >= 2 ? ' (dừng vì 2 vòng liền không giảm)' : ''} · ${dat ? '✅ ĐẠT (cổng mở — cho ráp clip)' : '⛔ CHƯA ĐẠT (cổng đóng — còn ' + inLo(best.lech) + ')'}`);
+console.log(`chi phí ${vong} vòng: ${(await giaCanh()) - giaTruoc}¢ · bản ít lệch nhất: ${best.url}`);
 
-if (ghi && urlCuoi !== urlDau && lo(lech).length <= lo(lechDau).length) {
-  await db.execute(sql`UPDATE xv_canh SET ${sql.raw(col)} = ${urlCuoi}, updated_at = now() WHERE id = ${canhId}`);
-  console.log(`✓ đã promote ${col} = ${urlCuoi}`);
-} else if (!ghi) console.log('(test, chưa promote keyframe — thêm --ghi để chốt ảnh cuối)');
+if (ghi && best.url !== urlDau) {
+  await db.execute(sql`UPDATE xv_canh SET ${sql.raw(col)} = ${best.url}, updated_at = now() WHERE id = ${canhId}`);
+  console.log(`✓ đã promote ${col} = ${best.url} (bản ít lệch nhất)`);
+} else if (!ghi) console.log('(test, chưa promote keyframe — thêm --ghi để chốt bản ít lệch nhất)');
 process.exit(0);

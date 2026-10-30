@@ -47,14 +47,15 @@ if (!hang.length) { console.log('· không có video nào chờ clip VideoExpres
 
 if (a.includes('--gui')) {
   const catDefault = catId('default'); let gui = 0;
-  for (const d of hang) for (const [i, c] of d.canh.entries()) {
+  lo: for (const d of hang) for (const [i, c] of d.canh.entries()) {
     if (c.uuid || c.vx) continue;
     if (!c.anh) { console.log(`  ! #${d.id} cảnh ${i}: chưa có ảnh khung đầu (box3 xuatVideo chưa lấy)`); continue; }
     const f = join(THU, `${d.id}-${i}.jpg`);
     if (!existsSync(f)) { const r = await fetch(c.anh, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(60_000) }); if (!r.ok) { console.log(`  ! #${d.id} cảnh ${i}: tải ảnh ${r.status}`); continue; } writeFileSync(f, Buffer.from(await r.arrayBuffer())); }
     const mediaId = await napKhung(f, catDefault); if (!mediaId) { console.log(`  ! #${d.id} cảnh ${i}: nạp ảnh hỏng`); continue; }
     const uuid = guiShot(mediaId, cauPrompt(c, d.phong_cach), true);
-    if (!uuid) { console.log('  ✗ VideoExpress từ chối (có thể hết lượt hôm nay) — dừng lô'); process.exit(1); }
+    // VideoExpress cho tối đa 5 clip render song song (đo 31/10/2026) → hết chỗ thì dừng lô, cảnh còn lại gửi ở lượt sau (không phải hết lượt ngày)
+    if (!uuid) { console.log(`  · VideoExpress hết chỗ render song song (tối đa 5) — đã gửi ${gui}, phần còn lại gửi lượt sau`); break lo; }
     ghiCanh(d.id, i, 'uuid', uuid); gui++; console.log(`  ✓ #${d.id} ${d.slug} cảnh ${i} → ${uuid}`);
   }
   console.log(`vx-may --gui: đã gửi ${gui} cảnh (render ~4 phút, chạy --lay sau)`);

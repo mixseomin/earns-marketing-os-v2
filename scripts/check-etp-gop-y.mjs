@@ -202,6 +202,9 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'ls.append(L("roas", "Luật ROAS (camp ★)"', vi: 'không còn luật ROAS dk rỗng ghi Đạt' },
   { card: 0, tep: V, co: "'d24', 'rl']]", vi: 'bản luật nhóm Tắt có RL' },
   { card: 0, tep: 'apps/etp/so-luat.py', co: '("tat", r"^RL ", "rl")', vi: 'số luật RL đếm từ nhật ký' },
+  // anh 31/10/2026 "Sửa máy luật. Cái này quan trọng": report 30 ngày 2.159 dòng > trang 1.000 người gọi xin → máy luật dừng hẳn từ 16:41 30/10
+  { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'b = {**body, "page": 1, "page_size": TRANG_BC, "limit": TRANG_BC}', vi: 'report luôn xin trang tối đa máy chủ, không theo cỡ người gọi' },
+  { card: 0, tep: 'apps/etp/ethopex_api.py', co: '"campaign_id": sorted(int(c["id"]) for c in ds_tat_ca())', vi: 'report dòng camp quá trang thì cổng tự chia lô camp' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

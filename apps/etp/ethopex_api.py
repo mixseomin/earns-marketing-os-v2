@@ -60,6 +60,7 @@ def _ds_nha(qs="", nha=True):
         if trang >= int((d.get("meta") or {}).get("total_pages") or 1) or not d.get("data"): return ra
         trang += 1
 
+TRANG_BC = 10000   # report: máy chủ trả tối đa 10.000 dòng / trang
 def doc_het(duong, body=None, timeout=90):
     """ĐỦ MỌI TRANG cho MỌI danh sách Ethopex, KHÔNG lọc tài khoản (anh 29/10/2026: "sao lại limit theo trang được? Sau này sẽ có 1 tỷ camp").
     Máy chủ tự cắt: report tối đa 10.000 dòng / trang (xin 50.000 vẫn chỉ trả 10.000), danh sách GET tối đa 1.000 / trang — số người gọi xin KHÔNG
@@ -67,10 +68,15 @@ def doc_het(duong, body=None, timeout=90):
     if body is not None:
         # REPORT KHÔNG LẬT TRANG: máy chủ không giữ thứ tự giữa các trang (order_by bị lờ, đo 30/10/2026: cùng lệnh 12.745 dòng → trang 1 và 2 trùng 16–71 dòng,
         # chừng ấy dòng rơi mất) → camp cộng đôi chi / camp mất chi, All time etp lệch Ethopex. Quá một trang thì CHIA ĐÔI khoảng ngày tới khi mỗi phần vừa một trang.
-        b = {**body, "page": 1}; d = _goi(duong, b, timeout)
+        # Trang tối đa của máy chủ (10.000) thay cho cỡ người gọi xin (luat-ethopex xin 1.000 → khung 30 ngày 2.159 dòng gãy cả máy luật 30/10/2026)
+        b = {**body, "page": 1, "page_size": TRANG_BC, "limit": TRANG_BC}; d = _goi(duong, b, timeout)
         if int(d.get("total_pages") or 1) <= 1: return d
         # Trục chia mà mỗi dòng chỉ thuộc đúng MỘT phần: ngày (group_by có "date") · giờ (group_by có "hour", lọc filters {"hour": [..]}) · lô camp (filters campaign_id)
         tu, den = b.get("date_from"), b.get("date_to"); gb = b.get("group_by") or []; gio = list((b.get("filters") or {}).get("hour") or range(24))
+        # Không trục nào mà dòng là dòng CAMP (group_by trống / có campaign_*) → cổng tự lấy mọi camp làm lô (người gọi không phải tự truyền)
+        if not (b.get("filters") or {}).get("campaign_id") and "hour" not in gb and not ("date" in gb and tu and den and tu[:10] < den[:10]) \
+                and all(k.startswith("campaign") or k in ("date", "geo") for k in gb):
+            b = {**b, "filters": {**(b.get("filters") or {}), "campaign_id": sorted(int(c["id"]) for c in ds_tat_ca())}}
         import datetime as _dt
         if "date" in gb and tu and den and tu[:10] < den[:10]:
             a, z = _dt.date.fromisoformat(tu[:10]), _dt.date.fromisoformat(den[:10]); g = a + (z - a) // 2
@@ -82,7 +88,12 @@ def doc_het(duong, body=None, timeout=90):
         else:
             raise RuntimeError(f"report {d.get('total_count')} dòng > 1 trang mà không chia được theo ngày / giờ / lô camp (group_by {gb}, {tu}→{den}): lật trang Ethopex mất / trùng dòng — thêm \"date\" vào group_by hoặc filters campaign_id")
         ds = [doc_het(duong, x, timeout) for x in phan]
-        ds[0]["rows"] = [r for x in ds for r in (x.get("rows") or [])]; ds[0]["total_pages"] = 1; return ds[0]
+        ds[0]["rows"] = [r for x in ds for r in (x.get("rows") or [])]; ds[0]["total_pages"] = 1
+        # Đếm đối chiếu: các phần cộng lại so với tổng dòng máy chủ báo (camp vắng trong danh sách / trục chia sai → kêu ra stderr, không mất dòng âm thầm).
+        # Không dừng: số hôm nay còn chạy giữa các lệnh nên lệch vài dòng là thường — dừng ở đây là tắt cả máy luật.
+        if d.get("total_count") is not None and len(ds[0]["rows"]) < int(d["total_count"]):
+            import sys as _sys; print(f"⚠ report chia phần ra {len(ds[0]['rows'])} dòng < {d['total_count']} dòng máy chủ báo ({tu}→{den}, group_by {gb})", file=_sys.stderr)
+        ds[0]["total_count"] = len(ds[0]["rows"]); return ds[0]
     if "?" not in duong: return _goi(duong, None, timeout)
     goc = re.sub(r"([?&])page=\d+", r"\1", duong).replace("?&", "?").replace("&&", "&").rstrip("&")
     d = _goi(goc + "&page=1", None, timeout); data = list(d.get("data") or [])

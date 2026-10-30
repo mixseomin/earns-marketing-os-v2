@@ -114,7 +114,7 @@ if (a.includes('--nap')) {
     for (const r of rows) { const chu = String(r.dong ?? '').replace(/\s+/g, ' ').trim(), k = chu.toLowerCase(); if (chu.length < 20 || chu.length > 140 || thay.has(k) || /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu) !== vi) continue; thay.add(k); ra.push({ id: String(r.library_id), chu, ngay: Number(r.ngay) || 0, page: String(r.page_ten ?? '') }); }
     return ra; };
   const hookNhom = hookTu((await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta
-    where bat_dau is not null and noi_dung ~* any(select replace(lien_quan, '\b', '\y') from goc_sp where id = any(${nhom}) and lien_quan is not null)
+    where bat_dau is not null and noi_dung ~* any(select replace(lien_quan, '\\b', '\\y') from goc_sp where id = any(${nhom}) and lien_quan is not null)
     order by (coalesce(lan_cuoi, now()) - bat_dau) desc, bien_the desc nulls last limit 200`) as never).slice(0, 40);
   const qcGoc = [...new Set(gocs.flatMap((g) => g.qc_ids ?? []))];
   const hookCuaQc = new Map(hookTu(qcGoc.length ? (await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta where library_id = any(${qcGoc})`) as never : []).map((h) => [h.id, h]));

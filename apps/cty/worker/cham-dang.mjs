@@ -42,9 +42,10 @@ export async function kiemGoc(ds) {
  *  ds = [{ qc, ma, nhan, muc_dich, su_that, dong }] → mảng lỗi (null = đạt). Mỗi cặp (máy, QC) hỏi một lần; proxy / mô hình hỏng → không chặn, ghi cảnh báo. */
 const MODEL_NGOC = (() => { try { return (/^model:\s*(\S+)/m.exec(fs.readFileSync(new URL('../cong-ty/nhan-su/ngoc/SOUL.md', import.meta.url), 'utf8')) ?? [])[1] ?? null; } catch { return null; } })();
 export async function xetHookAi(ds) {
-  const ids = [...new Set(ds.map((x) => x.qc).filter(Boolean).map(String))]; if (!ids.length || !MODEL_NGOC) return ds.map(() => null);
+  // hook từ VIDEO THẮNG của chính kênh (qc 'kenh:<id>', anh duyệt 31/10/2026) không nằm trong kho spy — Ngọc được nói rõ nguồn + lượt xem
+  const ids = [...new Set(ds.map((x) => x.qc).filter((q) => q && !String(q).startsWith('kenh:')).map(String))]; if (!ds.some((x) => x.qc) || !MODEL_NGOC) return ds.map(() => null);
   let dau = new Map();
-  try { const spy = await moSpy(); try { dau = new Map((await spy`select library_id::text as qc, left(noi_dung, 500) as chu from qc_meta where library_id::text = any(${ids})`).map((r) => [r.qc, r.chu])); } finally { await spy.end(); } }
+  if (ids.length) try { const spy = await moSpy(); try { dau = new Map((await spy`select library_id::text as qc, left(noi_dung, 500) as chu from qc_meta where library_id::text = any(${ids})`).map((r) => [r.qc, r.chu])); } finally { await spy.end(); } }
   catch (e) { return ds.map(() => null); }
   // MỘT câu chỉ xét MỘT lần (31/10/2026: cùng hook "Need a hotel at the last minute?" lúc lọc kho Ngọc cho qua, lúc chấm bài lại chặn → ~500₫ đề phí):
   // kết luận lưu theo (máy, câu hook) ở ${CTY_DATA_DIR}/xet-hook.json, khâu lọc kho (may-dung.mts) và khâu chấm đọc chung. Bài dùng hook nguyên văn → khoá = câu gốc.
@@ -54,7 +55,7 @@ export async function xetHookAi(ds) {
   const khoa = (x) => `${x.ma}|${(x.goc && x.dong.every((d) => chuan(d) === chuan(x.goc)) ? [x.goc] : x.dong).map(chuan).join(' / ')}`;
   const hoi = async (x) => {
     const system = 'You check whether a social post hook borrowed from another company\'s ad fits OUR brand. Reply with ONE JSON only: {"cung_ngach":true|false,"hua_sai":true|false,"nhat":true|false,"ly_do":"one short sentence in Vietnamese"}. cung_ngach = the original ad is about the same topic and audience as our brand (a person stopped by this hook would plausibly want our brand). hua_sai = the hook as used promises something our brand does not do or a number our facts do not support. nhat = the line would NOT stop a stranger scrolling: a product label or feature list ("Birth Chart / Personal Insight", "Astrology software suite for professionals"), a sentence cut off mid-thought, or a flat statement with no curiosity, tension, situation or payoff.';
-    const user = `OUR BRAND: ${x.nhan}\nWHAT IT IS: ${x.muc_dich ?? ''}\nFACTS: ${(x.su_that ?? 'none').slice(0, 1500)}\n\nORIGINAL AD (opening): ${dau.get(String(x.qc)) ?? '(not found)'}\n\nHOOK LINES WE USE:\n${x.dong.join('\n')}`;
+    const user = `OUR BRAND: ${x.nhan}\nWHAT IT IS: ${x.muc_dich ?? ''}\nFACTS: ${(x.su_that ?? 'none').slice(0, 1500)}\n\n${String(x.qc).startsWith('kenh:') ? `ORIGINAL: our own channel's short that already got ${x.luot_xem ?? '?'} views: "${x.goc ?? ''}"` : `ORIGINAL AD (opening): ${dau.get(String(x.qc)) ?? '(not found)'}`}\n\nHOOK LINES WE USE:\n${x.dong.join('\n')}`;
     try {
       const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ngoc', 'x-cty-luot': `xet-hook-${Date.now()}`, 'x-cty-phong': 'noi-dung' },
         body: JSON.stringify({ model: MODEL_NGOC, max_tokens: 200, temperature: 0, system, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(60000) });
@@ -172,7 +173,7 @@ export async function chamMoi(sql) {
   const loiGoc = await kiemGoc(ds.map((v) => ({ goc: v.dang?.goc, goc_sp: v.goc_sp })));
   const suThat = new Map();   // tệp sự thật đã kiểm của từng máy (apps/xuong-video/su-that/<máy>.md) — không có thì null
   const suThatCua = (ma) => { if (!suThat.has(ma)) { try { suThat.set(ma, fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')); } catch { suThat.set(ma, null); } } return suThat.get(ma); };
-  const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), goc: v.dang?.hook?.goc, dong: dongHookBai(v.dang?.title, v.de) })));
+  const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), goc: v.dang?.hook?.goc, luot_xem: v.dang?.hook?.luot_xem, dong: dongHookBai(v.dang?.title, v.de) })));
   for (const [i, v] of ds.entries()) {
     let kiem;
     if (v.dang?.loai === 'bai') {   // bài viết: chờ kiem-bai chấm đúng bản (md5 chữ đăng); chưa nộp thì nộp, đang chờ thì để lượt sau

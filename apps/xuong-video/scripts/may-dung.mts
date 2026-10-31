@@ -16,6 +16,7 @@
 //   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }] } → trạng thái máy đăng thời gian thực (mos2 Lịch đăng › ⚡ Máy đăng)
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
+//   --sinh-game <N>                dạng game Only ONE: tiêu đề theo KHUNG video thắng của kênh (≥ 500 lượt sau 7 ngày, đọc lại lượt xem YouTube trước) + góc spy dùng ít nhất → nạp + dựng, 0₫
 //   --sinh-kho <N>                 lấp kho VIDEO cho máy: N đề theo góc spy chưa dùng, dạng ra MP4 xoay vòng → nạp + dựng (TỐN TIỀN chữ AI — lô lớn duyệt qua Telegram)
 //   --tu-khoa | --viet-bai           stdin { goc [, cau_hoi, slug] } → JSON câu tìm Quora / câu trả lời (chữ AI rẻ ~1¢; nạp vẫn qua nap-bai.mjs) — puzzle-books sinh-bai.mjs gọi
 //   --ke-hoach <YYYY-MM-DD>        in JSON ô KẾ HOẠCH GÓC của máy ngày đó [{ ho, nen, format, dang, goc, dich }] (ke_hoach_goc — mos2 tự sinh hằng tuần); máy đăng ưu tiên bài đúng góc + dùng link đích
@@ -167,6 +168,44 @@ if (a.includes('--nap')) {
     ra.push(`${x.ok ? '✓' : '⚠'} #${g.id} ${d} → ${kq.de.slug} (${Math.round(kq.vnd)}₫)${x.ok ? '' : ` · dựng ✗ ${x.loi}`}`); n++;
   }
   console.log(ra.join('\n')); console.log(`sinh kho ${ma}: ${n}/${N} đề, ${Math.round(vnd)}₫`);
+} else if (lay('--sinh-game') != null) {
+  // DẠNG GAME "Only ONE says ___" (anh duyệt 31/10/2026: hook lấy từ VIDEO THẮNG của chính kênh, cạnh QC spy) — 0₫, không gọi AI:
+  //   1. đọc lại lượt xem YouTube các video đã đăng của máy (luot-xem.ts) → video thắng = ≥ 500 lượt sau ≥ 7 ngày
+  //   2. từ chưa từng đăng (đề đố chữ đã dựng sẵn trong kho lưu trữ) + góc spy dùng ít nhất của máy → đề mới, tiêu đề = KHUNG video thắng chỉ đổi từ
+  //   3. nạp + dựng; Phòng Nội dung chấm như mọi bài (hook bám gốc, Ngọc xét nhạt / lệch ngách)
+  const N = Math.max(1, Math.min(30, Number(lay('--sinh-game')) || 6)), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
+  const { luotXemYoutube, THANG_LUOT_XEM, THANG_SAU_NGAY } = await import('../src/lib/xuong-video/luot-xem');
+  const daDang = (await db.execute(sql`SELECT id, da_dang->'youtube'->>'url' AS url FROM xv_may_video WHERE may_id = ${m.id} AND da_dang->'youtube'->>'url' IS NOT NULL
+    AND (luot_xem_luc IS NULL OR luot_xem_luc < now() - interval '12 hours')`)) as unknown as { id: number; url: string }[];
+  let doc = 0; for (const v of daDang) { const n = await luotXemYoutube(v.url); if (n != null) { await db.execute(sql`UPDATE xv_may_video SET luot_xem = ${n}, luot_xem_luc = now() WHERE id = ${v.id}`); doc++; } }
+  const thang = (await db.execute(sql`SELECT id, dang->>'title' AS title, luot_xem FROM xv_may_video WHERE may_id = ${m.id} AND de ? 'dich' AND luot_xem >= ${THANG_LUOT_XEM}
+    AND (da_dang->'youtube'->>'ngay')::date <= current_date - ${THANG_SAU_NGAY}::int AND dang->>'title' ~ ${'^Only ONE says [A-Z]+\\.'} ORDER BY luot_xem DESC`)) as unknown as { id: number; title: string; luot_xem: number }[];
+  console.log(`· đọc lượt xem ${doc}/${daDang.length} video; video thắng: ${thang.length}${thang[0] ? ` (cao nhất ${thang[0].luot_xem} lượt — "${thang[0].title.slice(0, 60)}")` : ''}`);
+  if (!thang.length) { console.error(`✗ máy ${ma}: chưa có video thắng (≥ ${THANG_LUOT_XEM} lượt sau ${THANG_SAU_NGAY} ngày) làm hook — dừng`); process.exit(1); }
+  const tu = (await db.execute(sql`SELECT DISTINCT ON (v.de->>'dich') v.de, v.dang FROM xv_may_video v WHERE v.may_id = ${m.id} AND v.de ? 'dich' AND v.da_dang = '{}'::jsonb
+    AND v.de->>'dich' NOT IN (SELECT w.de->>'dich' FROM xv_may_video w WHERE w.may_id = ${m.id} AND w.de ? 'dich' AND (w.da_dang <> '{}'::jsonb OR NOT coalesce(w.luu_tru, false)))
+    ORDER BY v.de->>'dich', v.id LIMIT ${N}`)) as unknown as { de: { dich: string; o: string[]; cho: number; goi: string; mau: unknown }; dang: { description?: string; link?: string; book?: string } }[];
+  const nhom = (((await db.execute(sql`SELECT goc_sp FROM xv_may WHERE ma = ${ma}`)) as unknown as { goc_sp: number[] | null }[])[0]?.goc_sp ?? []).map(Number);
+  const fs = await import('node:fs'), url = process.env.SPY_DATABASE_URL ?? fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13);
+  const spy = (await import('postgres')).default(url!, { max: 1, prepare: false });
+  const gocs = (await spy`select sp_id as sp, id, loai, ten from goc where sp_id = any(${nhom}) order by id`) as unknown as { sp: number; id: number; loai: string; ten: string }[]; await spy.end();
+  const daCo = (await db.execute(sql`SELECT dang->'goc'->>'id' AS goc FROM xv_may_video WHERE may_id = ${m.id} AND NOT coalesce(luu_tru, false)`)) as unknown as { goc: string | null }[];
+  const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);
+  const thuTu = [...gocs].sort((g1, g2) => (dem.get(g1.id) ?? 0) - (dem.get(g2.id) ?? 0));
+  if (!thuTu.length) { console.error(`máy ${ma} chưa có góc spy (goc_sp)`); process.exit(1); }
+  const ra: string[] = [];
+  for (const [k, x] of tu.entries()) {
+    const h = thang[k % thang.length]!, g = thuTu[k % thuTu.length]!, dich = x.de.dich;
+    const title = h.title.replace(/^Only ONE says [A-Z]+\./, `Only ONE says ${dich}.`);   // khung video thắng, chỉ đổi từ
+    const description = (x.dang.description ?? '').replace(/^35 of these are misspelled by one letter\. Only one says [A-Z]+\./, `35 of these are misspelled by one letter. Only one says ${dich}.`);
+    const slug = `game-${g.id}-${dich.toLowerCase()}`;
+    await napVideo(db, ma, [{ slug, chu_de: x.de.goi, de: { dich, o: x.de.o, cho: x.de.cho, goi: x.de.goi, mau: x.de.mau }, dang: { title, description, link: x.dang.link, book: x.dang.book, words: [dich], nhom: 'Góc spy', dang_bai: 'only-one',
+      goc: { sp: g.sp, id: g.id, loai: g.loai, ten: g.ten }, hook: { qc: `kenh:${h.id}`, goc: h.title, page: 'video thắng của kênh', ngay: 0, nguon: 'kenh', luot_xem: h.luot_xem } } } as never]);
+    const v = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${slug}`)) as unknown as { id: number }[])[0];
+    const kq = v ? await xuatVideo(db, Number(v.id)) : { ok: false as const, loi: 'không thấy dòng vừa nạp' };
+    ra.push(`${kq.ok ? '✓' : '⚠'} ${slug} ← khung #${h.id} (${h.luot_xem} lượt)${kq.ok ? '' : ` · dựng ✗ ${kq.loi}`}`);
+  }
+  console.log(ra.join('\n')); console.log(`sinh game ${ma}: ${ra.filter((x) => x.startsWith('✓')).length}/${N} video, 0₫`);
 } else if (a.includes('--tu-khoa') || a.includes('--viet-bai')) {
   // BÀI VIẾT bằng chữ AI rẻ (followup #1470): stdin { goc: { sp, id, loai, ten } [, cau_hoi, link] } → JSON. Một bài ~1¢ trở xuống (Haiku qua ckey) — dưới ngưỡng tự chạy;
   // máy gọi: puzzle-books scripts/sinh-bai.mjs (tìm câu hỏi Quora thật bằng br → --viet-bai → nap-bai.mjs). Không nạp ở đây: nạp chỉ một đường (nap-bai.mjs).

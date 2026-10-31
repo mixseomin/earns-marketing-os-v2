@@ -194,6 +194,7 @@ const LUAT = [
   { card: 0, tep: 'apps/etp/sua-ngoai.py', co: 'input=cau, capture_output=True', vi: 'phiên cất qua STDIN, không qua tham số dòng lệnh' },
   { card: 0, tep: 'apps/web/src/lib/actions/etp-sua.ts', co: 'p.stdin?.end(chuoi);', vi: 'phiên gửi xuống tiến trình con qua STDIN' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '{!het || doiPhien ? <KetNoiEthopex het={het}', vi: '✎ chưa có phiên riêng → hiện ô kết nối thay vì nút sửa' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "    </span>\n    {sua ? <SuaCamp c={c} /> : null}\n  </span>);", vi: '✎ nằm ngoài vùng rê thẻ bậc (không mở chồng thẻ lịch sử bậc)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'theo cách tk Nguyễn Sơn chạy', vi: 'mô tả luật (cột Luật mọi người thấy) không mang tên người — bộ chống lộ etp-quyen.kiem.mts bắt 31/10/2026' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'tuoi', header: 'Tuổi', width: 52,", vi: 'cột Tuổi Cây hẹp cố định (không ăn khoảng thừa)' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: 'persistKey="etp-cay" minWidth={1100} fixedLayout', vi: 'Cây table-layout fixed: bề rộng cột theo khai báo, máy nào cũng như nhau' },

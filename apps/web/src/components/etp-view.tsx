@@ -509,14 +509,15 @@ function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'camp_id' | 'trang_thai' 
   // thẻ nổi theo KHUÔN CHUNG của trang (useNoi + KhungNoi: trễ mở, ✕ + Esc, giữ khi rê vào) — trước dùng AnchoredPopover riêng: mở ngay, không ✕, rời chuột không tắt
   const noi = useNoi<{ id: 0 }>();
   const { d, t, bac } = dauBac(c, bao);
-  return (
+  // ✎ nằm NGOÀI vùng rê của thẻ bậc: trong vùng đó bấm ✎ là mở luôn thẻ lịch sử bậc, hai lớp chữ đè nhau (chụp tk thử 31/10/2026)
+  return (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
     <span aria-label={t} onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', cursor: 'help' }}>
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={400} cao={420} noi={noi}><TheBac ls={ls ?? []} d={d} /></KhungNoi> : null}
       <span style={{ fontVariantNumeric: 'tabular-nums', color: `rgba(196,181,253,${(0.55 + 0.45 * (bac / (BAC_NS.length - 1))).toFixed(2)})`, fontWeight: bac >= 4 ? 700 : 500, width: 30, flex: 'none', textAlign: 'right' }}>${c.ngan_sach}</span>{/* bậc càng cao chữ càng sáng (anh 26/10/2026); màu tím nhẹ, bậc thấp không chìm (anh 29/10/2026, #1482) */}
-      {sua ? <SuaCamp c={c} /> : null}
       {/* bỏ thước ROI + dấu luật sau số $ (anh 29/10/2026 "ẩn cái này đi. Vướng + khó nhìn", rồi "bỏ cái này đi cơ mà?" — là cả cái thước): ROI hôm nay đã có cột 'nay', luật có cột Luật */}
     </span>
-  );
+    {sua ? <SuaCamp c={c} /> : null}
+  </span>);
 }
 // kỳ (hôm nay / hôm qua / khoảng chọn) nằm ở nhãn NHÓM phía trên — tiêu đề cột chỉ ghi ROI · Lãi · Chi · Thu (anh 25/10/2026: lặp "ROI h.nay … ROI hôm nay" khó đọc)
 const soCot = <T,>(key: string, f: (r: T) => SoTien): DataColumn<T>[] => [

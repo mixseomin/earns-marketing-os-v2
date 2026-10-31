@@ -8,6 +8,7 @@ import { mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { napKhung, guiShot, getMedia, catId, trenApp, ngu } from './vx-br.mts';
+import { moPhien } from './videoexpress.mjs';
 
 const BOX = 'root@167.233.241.16';
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
@@ -16,30 +17,33 @@ const doan = `--tap=${gia('tap')} --tu=${gia('tu')} --den=${gia('den')}`;
 const lan = Math.max(1, Number(gia('lan') || 1));
 const dsBien = (gia('bien') ?? 'gop').split(',').flatMap((b) => (lan > 1 ? Array.from({ length: lan }, (_, j) => `${b}-${j + 1}`) : [b]));
 const boxTsx = (args: string) => execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2/apps/xuong-video && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/cum-thu.mts ${args}`], { encoding: 'utf8', timeout: 300e3 }).trim();
-if (!trenApp()) { console.error('chưa ở trong app VideoExpress — chạy: node scripts/videoexpress.mjs mo'); process.exit(1); }
+if (!trenApp()) await moPhien();   // phiên rụng / tab rời app → tự mở lại (videoexpress.mjs), không bắt chạy tay
 
 const k = JSON.parse(boxTsx(doan).split('\n').pop()!) as { ten: string; dau: string | null; cuoi: string | null; bien: Record<string, string> };
 if (!k.dau) { console.error(`${k.ten}: shot đầu chưa có keyframe`); process.exit(1); }
 const thu = join(tmpdir(), `vx-cum-${gia('tap')}-${gia('tu')}-${gia('den')}`); mkdirSync(thu, { recursive: true });
 const tai = (url: string, f: string) => { execFileSync('curl', ['-sSL', '-o', f, url], { timeout: 120e3 }); return f; };
 const catDefault = catId('default');
-const mDau = await napKhung(tai(k.dau, join(thu, 'dau.png')), catDefault);
-const mCuoi = k.cuoi ? await napKhung(tai(k.cuoi, join(thu, 'cuoi.png')), catDefault) : 0;
+const layTiep = !!gia('uuid');
+const mDau = layTiep ? 1 : await napKhung(tai(k.dau, join(thu, 'dau.png')), catDefault);
+const mCuoi = !layTiep && k.cuoi ? await napKhung(tai(k.cuoi, join(thu, 'cuoi.png')), catDefault) : 0;
 if (!mDau) { console.error('nạp khung đầu hỏng'); process.exit(1); }
 
-const gui: Record<string, string> = {};
-for (const b of dsBien) {
+// --uuid=gop-1:abcd…,gop-2:… : LẤY TIẾP các job đã gửi (lần trước chết giữa chừng) — không gửi lại
+const gui: Record<string, string> = Object.fromEntries((gia('uuid') ?? '').split(',').filter(Boolean).map((x) => [x.slice(0, x.indexOf(':')), x.slice(x.indexOf(':') + 1)]));
+for (const b of Object.keys(gui).length ? [] : dsBien) {
   const p = k.bien[b.replace(/-\d+$/, '')]; if (!p) { console.log(`  ! không có biến thể '${b}'`); continue; }
   const uuid = guiShot(mDau, p, false, mCuoi ?? 0); if (!uuid) continue;
-  gui[b] = uuid; console.log(`${k.ten} ${b}: gửi ${uuid.slice(0, 8)} (${p.length} ký tự)`);
+  gui[b] = uuid; console.log(`${k.ten} ${b}: gửi ${uuid} (${p.length} ký tự) — lấy tiếp: --uuid=${b}:${uuid}`);
 }
 const catVideo = catId('my_ai_videos'); const xong = new Set<string>();
 for (let lan = 0; lan < 60 && xong.size < Object.keys(gui).length; lan++) {
   await ngu(20e3);
-  const ds = getMedia(catVideo, 60).results;
+  let ds; try { ds = getMedia(catVideo, 60).results; }
+  catch { console.log('  ! tab rời app VideoExpress — mở lại phiên rồi chờ tiếp'); await moPhien(); continue; }   // 01/11/2026: tab bị đổi giữa lúc chờ → chết, mất 3 job
   for (const [b, uuid] of Object.entries(gui)) {
     if (xong.has(b)) continue;
-    const it = ds.find((x) => x.uuid === uuid); if (!it || it.isPending || !it.mediaPath) continue;
+    const it = ds.find((x) => x.uuid.startsWith(uuid));   // nhận cả tiền tố uuid (log cũ in 8 ký tự) if (!it || it.isPending || !it.mediaPath) continue;
     const f = tai(it.mediaPath, join(thu, `${b}.mp4`));
     execFileSync('scp', ['-q', f, `${BOX}:/tmp/vx-cum-${b}.mp4`]);
     console.log(boxTsx(`${doan} --gan=${b}:/tmp/vx-cum-${b}.mp4 --nguon=vx`).split('\n').pop());

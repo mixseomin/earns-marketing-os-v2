@@ -275,6 +275,8 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "substring(n.luat from '^(T2|T7|L3|L4|L7|D24|OFF|RL|G10)\\\\M')", vi: 'mã luật tắt lấy từ nhật ký máy' },
   { card: 0, tep: V, co: "nhom: 'Đã tắt theo', dem }))]", vi: 'ô lọc Luật có nhóm Đã tắt theo' },
   { card: 0, tep: V, co: 'filter((t) => t.ngay >= khK.tu && t.ngay <= khK.den)', vi: 'đã tắt theo luật lọc theo kỳ số liệu (anh 01/11/2026)' },
+  { card: 0, tep: V, co: "loc === 'all' || luatLoc.startsWith(TAT_LUAT) || (loc === 'chay'", vi: 'lọc Đã tắt theo không bắt đổi ô Lọc khỏi Đang chạy (anh 01/11/2026)' },
+  { card: 0, tep: V, cam: "dauVao?.lu?.startsWith(TAT_LUAT) ? 'all'", vi: 'mặc định ô Lọc luôn Đang chạy' },
   { card: 0, tep: V, co: "if (luatLoc.startsWith(TAT_LUAT)) return tatMap.get(c.camp_id)?.ma", vi: 'lọc camp theo luật đã tắt' },
   { card: 0, tep: V, co: "g10: 'giam', tat: 'tat', tat_g10: 'tat'", vi: 'lọc Gần giảm / Gần tắt tính G10' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "ns('g10', 'G10');", vi: 'tk team Tự động hạ G10' },

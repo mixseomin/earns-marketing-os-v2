@@ -21,6 +21,11 @@ Chạy trên box3 (khoá ở studio):
     ad = BÀI ĐĂNG CŨ của camp gốc (use existing post — giữ tương tác), ngân sách $15–20, lịch tomorrow, tên "… roas X duplicate by <gốc>".
     Camp ROAS là loại riêng: KHÔNG qua luật clone-khác-creative / cổng chấm / chạm trần / bão hoà (dùng lại đúng bài cũ); vẫn qua cổng etp; miễn trần 30 camp/phim và không chiếm chỗ camp thường (anh 26/10/2026).
     Tạo xong đọc lại: mức ROAS sai → tạm dừng camp ngay + báo lỗi (Support: "nhập sai là lỗi camp"). --tam-dung = để PAUSED chờ anh review.
+  ETP_SUA_NGUOI=<nguoi_id> python3 nhan-ban.py <camp_gốc> [--roas …] --that …   → CAMP CỦA NGƯỜI TRONG TEAM (Luật tự động, anh 31/10/2026: "giống hệt nhà nhưng chỉ
+    áp dụng cho tk của Sơn"; creative nhà dùng được vì cùng co-founder): lệnh đi bằng phiên Ethopex riêng của người đó, cổng chung chỉ cho tạo vào tài khoản của họ.
+    Đúng luật nhà (chạm trần $30, bão hoà phim, trần đoạn, cổng chấm, 18+, bài học, rào chắn dừng khẩn / Âu-Mỹ / phim cất), trừ những thứ chỉ có nghĩa với nhà:
+    sổ bộ tài khoản (mỗi phim một bộ, bộ chặn mở camp, đổi bộ), sổ CTA xưởng nhà (vẫn soát chữ QC), dựng lại CTA bằng xưởng, lịch giờ (lich-gio.py bật lại bằng
+    khoá nhà → không bật được camp người khác), trần ngày / trần bộ của nhà, nhật ký nhà (worker nhắn riêng kết quả). Đếm camp đang chạy đọc kho etp.camp_ngoai.
 In một dòng JSON {ok, goc, moi, ten, loi}."""
 import datetime as dt, importlib.util, json, os, re, subprocess, sys, time, urllib.request
 
@@ -39,6 +44,8 @@ def api(duong, body=None):
     return json.load(urllib.request.urlopen(r, timeout=60))
 api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 js = lambda v: json.loads(v) if isinstance(v, str) and v.strip().startswith("{") else (v or {})
+NGOAI = EA.SUA or EA.XEM   # camp của người trong team (xem docstring) — 0 = nhà; ETP_XEM_NGUOI = chạy khô trên camp thật của người đó (cổng chặn mọi lệnh ghi)
+_TK_SQL = ",".join(str(int(x)) for x in sorted(EA.TK)) or "0"
 
 DEM_CR = {}
 def dem_dang_chay(content_id):
@@ -46,6 +53,12 @@ def dem_dang_chay(content_id):
     Đọc KHO etp (dong-bo.py 10 phút/lần) + camp vừa tạo trong 15 phút qua (nhật ký luật) — trước 25/10/2026 đọc chi tiết từng camp qua API
     (~500 lượt gọi, 3–4 phút mỗi lần tạo camp)."""
     n = 0; DEM_CR.clear()
+    if NGOAI:   # kho camp người trong team (dong-bo.py) — không có cột đồng bộ; camp ROAS (mọi kiểu tên) không chiếm chỗ; camp máy vừa tạo đọc lại ở nhịp sau
+        for l in q(f"select camp_id, coalesce(creative_id, 0), ten from etp.camp_ngoai where content_id = {int(content_id)} and ad_account_id in ({_TK_SQL}) and trang_thai = 'ACTIVE'").splitlines():
+            _, cr, ten = l.split("|", 2)
+            if CONG.la_roas(ten): continue
+            n += 1; DEM_CR[int(cr)] = DEM_CR.get(int(cr), 0) + 1
+        return n
     rows = q(f"""select camp_id, coalesce(creative_id, 0) from etp.camp c where content_id = {int(content_id)}
                  and (camp_id in (select camp_id from etp.camp_dang_chay) or coalesce(dong_bo, '') not in ('done', 'synced'))
                  and ten not like '% duplicate by %' and ten not like '★%'""").splitlines()   # view gồm camp tạm dừng theo lịch giờ · camp ROAS ★ không chiếm chỗ (dạng riêng, anh 26/10/2026)
@@ -122,7 +135,7 @@ def _nap(ten, tep):
 
 def cong(content_id, creative_id, ten=""):
     """cổng phim 18+ (kiem-phim-18.py) + cổng CTA (kiem-cta.py) + sổ bài học (bai-hoc.py: không lên lại đúng đoạn/dạng đã lỗ) — anh 22/10/2026"""
-    chan = _nap("p18", "kiem-phim-18.py").kiem(content_id) or _nap("cta", "kiem-cta.py").kiem(creative_id)
+    chan = _nap("p18", "kiem-phim-18.py").kiem(content_id) or _nap("cta", "kiem-cta.py").kiem(creative_id, so=not NGOAI)
     if chan: return chan
     c, w = _nap("bh", "bai-hoc.py").da_lo(content_id, ten)
     if w: print(w, file=sys.stderr)
@@ -197,7 +210,7 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
         goc_ten = re.sub(r"\s*\((nhan ban \d+|thang \$\d+) cua \d+\)$", "", c["name"])
         so = 1 + sum(1 for x in api("/api/v1/campaigns?page_size=500")["data"] if re.search(rf"\(nhan ban \d+ cua {goc_id}\)$", x.get("name", "")))
         ten = f"{goc_ten} (thang ${thang:g} cua {goc_id})" if thang else f"{goc_ten} (nhan ban {so} cua {goc_id})"
-        if not roas and _nap("cta", "kiem-cta.py").kiem(a.get("creative_id")):   # CTA cũ → thay bằng bản sửa của chính đoạn đó
+        if not roas and not NGOAI and _nap("cta", "kiem-cta.py").kiem(a.get("creative_id")):   # CTA cũ → thay bằng bản sửa của chính đoạn đó
             sua = ban_sua(a.get("creative_id"))
             if not sua:
                 xep_dung_lai(goc_id, a.get("creative_id"), a.get("content_id"), c["name"])
@@ -208,8 +221,8 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
     BO = {"id", "campaign_id", "adset_id", "account_id", "start_time", "end_time", "stop_time", "created_time", "updated_time", "effective_status", "configured_status", "issues_info"}
     sp_c = {k: v for k, v in js(c.get("source_payload")).items() if k not in BO}; sp_c.update(name=ten, daily_budget=int(thang) if thang else 1, status="PAUSED")   # số nguyên như lam-ethopex tang (bậc thang đều là $ nguyên)
     tk, ext, page = c.get("ad_account_id"), c.get("external_account_id"), a.get("facebook_page_id")
-    bo = bo or bo_cua_camp(c) or "1"
-    if bo_cua_camp(c) != str(bo):   # dựng trên khuôn camp của bộ khác → đổi đúng 3 trường tài khoản / Page (pixel dùng chung, bài đăng FB tạo mới)
+    bo = None if NGOAI else (bo or bo_cua_camp(c) or "1")   # người trong team: không có bộ — dựng đúng tài khoản / Page của camp gốc
+    if bo and bo_cua_camp(c) != str(bo):   # dựng trên khuôn camp của bộ khác → đổi đúng 3 trường tài khoản / Page (pixel dùng chung, bài đăng FB tạo mới)
         b = bo_tk(bo); tk, ext, page = int(b["tk"]), str(b["ext"]), int(b["page"])
     sp_g = {k: v for k, v in js(g.get("source_payload")).items() if k not in BO}; sp_g.update(name=f"{ten} · adset")
     if roas:   # đúng đường form Ethopex (bid strategy cấp campaign + roas_average_floor cấp Ad Set, tối ưu VALUE) — đọc từ mã app 26/10/2026
@@ -219,12 +232,12 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
         sp_c.update(bid_strategy="LOWEST_COST_WITH_MIN_ROAS", daily_budget=int(ns_roas))
         sp_g.update(optimization_goal="VALUE", bid_constraints={"roas_average_floor": roas}); sp_g.pop("bid_amount", None)
         return d, ten, a.get("content_id"), {
-            "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo),
+            "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None,
             "external_account_id": ext,
             "campaign": {"source_payload": sp_c, "ad_groups": [{"type_run": lich, "source_payload": sp_g,
                 "ads": [{"effective_object_story_id": sid, "source_payload": {"name": ten, "status": "ACTIVE"}}]}]}}
     return d, ten, a.get("content_id"), {
-        "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo),
+        "name": ten, "pixel_id_arb": d.get("pixel_id"), "ad_account_id": tk, "facebook_page_id": page, "bo": str(bo) if bo else None,
         "external_account_id": ext,
         "campaign": {"source_payload": sp_c, "ad_groups": [{"type_run": lich, "source_payload": sp_g,
             "ads": [{"content_id": a.get("content_id"), "creative_id": a.get("creative_id"), "facebook_page_id": page, "domain": a.get("domain") or "",
@@ -258,7 +271,7 @@ def main(a):
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep); kq["ten"] = ten; bo = pl.pop("bo")
-        ly = (None if ep else chan_bo(cid, bo)) or (None if moi or ep else q(f"select etp.bo_chan_mo_camp('{bo}', {int(goc)})"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (0339); camp gốc tự thắng (3 ngày khép ROI ≥ 30%) thì miễn (0372, anh 30/10/2026)
+        ly = None if NGOAI else (None if ep else chan_bo(cid, bo)) or (None if moi or ep else q(f"select etp.bo_chan_mo_camp('{bo}', {int(goc)})"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (0339); camp gốc tự thắng (3 ngày khép ROI ≥ 30%) thì miễn (0372, anh 30/10/2026)
         if ly: raise ChanLuat(ly)
         if moi: kq["viec"] = "tao_camp"
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)
@@ -307,7 +320,7 @@ def main(a):
         if ly and ep and mien_cham: kq["mien_cham"] = ly; ly = None   # --mien-cham chỉ đi cùng --ep (lệnh đích danh của anh)
         if ly: raise ChanLuat(ly)
         kq["phim_dang_chay"] = n
-        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None, content_id=cid)
+        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI))
         if ly: raise ChanLuat(ly)
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
@@ -324,7 +337,7 @@ def main(a):
         if thang and kq["ok"] and float(c.get("budget_daily") or 0) != thang:   # Ethopex không nhận ngân sách lúc tạo → đặt lại ngay (camp mới chưa học gì)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(thang)}}}); time.sleep(8)
             kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")
-        if kq["ok"]:
+        if kq["ok"] and not NGOAI:
             ghi_bo(cid, bo)
             try: kq["lich"] = lich_ap(moi, cid)
             except Exception as e: kq["lich"] = f"lỗi áp lịch giờ: {str(e)[:80]}"
@@ -332,7 +345,7 @@ def main(a):
         kq.update(ok=None, chan=True, loi=str(e)[:240])   # bỏ qua theo luật — nhật ký ok NULL
     except Exception as e:
         kq["loi"] = str(e)[:240]
-    if that: ghi_nhat_ky(kq, luat, ai)
+    if that and not NGOAI: ghi_nhat_ky(kq, luat, ai)
     print(json.dumps(kq, ensure_ascii=False))
 
 def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False):
@@ -341,16 +354,16 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
     try:
         if not 15 <= ns <= 20: raise ValueError("ngân sách camp ROAS $15–20 (Support 26/10/2026)")
         d, ten, cid, pl = payload(goc, lich, bo=None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")
-        ly = chan_bo(cid, bo)
+        ly = None if NGOAI else chan_bo(cid, bo)
         if ly: raise ValueError(ly)
         # CAMP ROAS KHÔNG QUA CỔNG CHẤM (anh 29/10/2026: "Camp roas lên ko cần chấm lại" — thay luật 26/10 "áp cho mọi loại camp"): ad ROAS = đúng bài đăng
         # của camp gốc đang chạy lãi (lãi 30 ngày ≥ $75), không phải creative mới. Điểm chấm chỉ ghi vào nhật ký để xem; luật chấm lich-gio cũng bỏ qua camp ★.
-        cr_goc = q(f"select creative_id from etp.camp where camp_id = {int(goc)}")
+        cr_goc = q(f"select creative_id from {'etp.camp_ngoai' if NGOAI else 'etp.camp'} where camp_id = {int(goc)}")
         ly = cham_sach(int(cr_goc)) if cr_goc.isdigit() and int(cr_goc) > 0 else None
         if ly: kq["mien_cham"] = ly
         # camp ROAS là dạng riêng, miễn mọi luật (anh 26/10/2026) — kể cả trần 30 camp/phim: không bị chặn, cũng không chiếm chỗ camp thường (dem_dang_chay bỏ ★)
         if any(x.get("name") == ten for x in api("/api/v1/campaigns?page_size=500")["data"]): raise ValueError(f"đã có camp '{ten}' — không tạo trùng")
-        ly = CONG.kiem("nhan_ban", None, ns, 0, str(bo) if bo else None, content_id=cid)
+        ly = CONG.kiem("nhan_ban", None, ns, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI))
         if ly: raise ValueError(ly)
         kq["content"] = cid
         if not that:
@@ -384,10 +397,11 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
             kq["tam_dung"] = tt.get("state") == "PAUSED"; kq["trang_thai"] = tt.get("state")
             if not kq["tam_dung"]: raise ValueError(f"đã gửi lệnh tạm dừng nhưng camp #{moi} vẫn {tt.get('state')} — tắt tay ngay")
         if sai: raise ValueError(f"đọc lại sai ROAS (đặt {roas}, Ethopex {san}, chiến lược {c.get('source_bidding_strategy')}) — đã tạm dừng camp")
-        kq["ok"] = True; ghi_bo(cid, bo)
+        kq["ok"] = True
+        if not NGOAI: ghi_bo(cid, bo)
     except Exception as e:
         kq["loi"] = str(e)[:240]
-    if that: ghi_nhat_ky(kq, luat, ai)
+    if that and not NGOAI: ghi_nhat_ky(kq, luat, ai)
     print(json.dumps(kq, ensure_ascii=False))
 
 if __name__ == "__main__":

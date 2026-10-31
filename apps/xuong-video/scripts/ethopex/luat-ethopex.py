@@ -577,8 +577,9 @@ try: _ROAS = CONG.camp_roas() | {int(c["id"]) for c in ds_camp if CONG.la_roas(c
 except Exception as e: _ROAS = {int(c["id"]) for c in ds_camp if CONG.la_roas(c.get("name"))}; loi_may.append((0, f"không đọc được danh sách camp ROAS trong kho: {str(e)[:80]}"))
 _bo_roas = lambda ds: [x for x in ds if int(x[0] or 0) not in _ROAS]
 tat_l4, tat_l3, tat_d24, tat_l, tat7, tat2, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7 = map(_bo_roas, (tat_l4, tat_l3, tat_d24, tat_l, tat7, tat2, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7))
-# gốc đã có camp ★ ROAS (tên "… duplicate by <gốc>", đọc thẳng danh sách camp Ethopex — camp vừa tạo chưa cần chờ kho) → không lên ROAS lại
-_goc_roas = {int(m_.group(1)) for c in ds_camp if (m_ := re.search(r" duplicate by (\d+)", c.get("name") or ""))}
+# gốc đã có camp ★ ROAS (đọc thẳng danh sách camp Ethopex — camp vừa tạo chưa cần chờ kho) → không lên ROAS lại. Mọi kiểu tên: nhà "duplicate by <gốc>",
+# team "_D<gốc>_ROAS1" / "Dup by <gốc> ROAS 1.1" / "<tên gốc>_D2 (ROAS)" (31/10/2026: Luật tự động của Sơn — trước chỉ nhận kiểu nhà, gốc Sơn đã có ROAS vẫn vào moc30)
+_goc_roas = CONG.goc_roas(ds_camp)
 moc30 = [x for x in moc30 if int(x[0] or 0) not in _goc_roas]
 # LUẬT TẮT THẮNG MỌI LUẬT KHÁC — xếp ở NGUỒN (anh 29/10/2026 "các luật khác thì sao? đã fix triệt để chưa?"): #65656 chạm D24 mà không tắt vì
 # cùng lúc nằm trong danh sách giảm bậc, bước giảm của nhịp chạy trước giành camp. Một camp chỉ mang MỘT quyết định: camp trong danh sách tắt

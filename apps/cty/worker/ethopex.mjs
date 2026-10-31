@@ -220,6 +220,8 @@ async function xuNut(tg, x) {
 // BẢNG SỐ GHIM (anh 21/10/2026: "1 tin nhắn cố định show report rút gọn thời gian thực gồm ROI, profit tổng… và 1 nút refresh"): MỘT tin ghim trong 📂 Ethopex,
 // sửa tại chỗ (không gửi tin mới) mỗi 5 phút từ dịch vụ nghe (tg-nghe.mjs) và ngay khi anh bấm 🔄 (eb:moi → hộp ethopex-bang). Tin bị xoá thì gửi + ghim lại.
 const TEP_BANG = () => path.join(DATA(), 'ethopex-bang.json');
+// mức ROAS máy tự lên cho mỗi camp gốc (khuôn anh duyệt 28/10/2026) — một danh sách cho nhà (nhipEthopex) và tài khoản team (etp-tu-dong.mjs)
+export const ROAS_MUC = [1, 1.1, 1.2, 1.3];
 export const BANG_MOI_PHUT = 5;
 const tienUsd = (x) => `${x < 0 ? '−' : '+'}$${Math.abs(x).toFixed(2)}`;
 const roiChu = (r) => (r == null ? '—' : `${r > 0 ? '+' : ''}${Math.round(r)}%`);
@@ -600,7 +602,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // 2–4 phút → chạy song song 4 tiến trình, đặt CUỐI nhịp để tắt / tăng / giảm không phải chờ. Gốc bị nhan-ban TỪ CHỐI có lý do (chặn chấm…) → không thử lại
   // trong ngày; hỏng vì lỗi máy (hết giờ, mạng) → nhịp sau thử lại (mức đã tạo được thì nhan-ban chặn trùng tên).
   {
-    const ROAS_MUC = [1, 1.1, 1.2, 1.3], TEP_R = path.join(DATA(), 'ethopex-roas-len.json');
+    const TEP_R = path.join(DATA(), 'ethopex-roas-len.json');
     const so = docJ(TEP_R, {}); const giu = so.ngay === homNay ? so.giu || {} : {};
     const goc = (kq.moc30 || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id) && !giu[m.id]);
     const viec = goc.flatMap((m) => ROAS_MUC.map((muc) => ({ m, muc })));

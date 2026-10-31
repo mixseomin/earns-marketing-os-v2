@@ -11,12 +11,17 @@ D = os.path.dirname(os.path.abspath(__file__))
 _c = importlib.util.spec_from_file_location("cta_qc", os.path.join(D, "cta_qc.py")); CQ = importlib.util.module_from_spec(_c); _c.loader.exec_module(CQ)
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 
-def kiem(cr):
+def kiem(cr, so=True):
+    """so=False: creative KHÔNG do xưởng nhà dựng (camp của người trong team, Luật tự động — nhan-ban.py chế độ ETP_SUA_NGUOI): sổ ethopex_cta_dat chỉ ghi
+    creative xưởng nhà nên bỏ bước sổ, vẫn soát chữ QC (phần máy đọc được); creative team không đọc được bằng khoá nhà → cho qua phần chữ, không đoán."""
     cr = str(int(cr))
-    if cr not in json.loads(q("select gia_tri::text from xv_khoa_ngoai where ten='ethopex_cta_dat'") or "{}"):
+    if so and cr not in json.loads(q("select gia_tri::text from xv_khoa_ngoai where ten='ethopex_cta_dat'") or "{}"):
         return f"creative #{cr} chưa đạt luật CTA mới (dựng trước 22/10: nút 'TAP LEARN MORE' + mũi tên) — dựng lại bằng lam-lai-cta.py / cat-canh rồi kiem-cta.py --dat"
     T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
-    c = json.load(urllib.request.urlopen(urllib.request.Request(f"https://api.ethopex.dev/api/v1/creatives/{cr}", headers={"authorization": "Bearer " + T, "user-agent": "mos2-kiem"}), timeout=60))
+    try: c = json.load(urllib.request.urlopen(urllib.request.Request(f"https://api.ethopex.dev/api/v1/creatives/{cr}", headers={"authorization": "Bearer " + T, "user-agent": "mos2-kiem"}), timeout=60))
+    except Exception:
+        if so: raise
+        return None
     s = json.loads((c.get("creative") or c).get("asset_spec") or "{}")
     for t in (s.get("primaryTexts") or []) + (s.get("headlines") or []) + (s.get("descriptions") or []):
         if CQ.sai_luat(t): return f"creative #{cr} chữ QC dính '{CQ.sai_luat(t)}': «{t[:90]}»"

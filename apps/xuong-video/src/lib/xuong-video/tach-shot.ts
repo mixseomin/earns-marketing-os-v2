@@ -16,9 +16,14 @@ type Row = Record<string, unknown>;
 async function chenSau(db: Db, tapId: number, goc: Row, so: number, moi: { canh: string; hanh_dong: string; ky_thuat: Record<string, unknown> }[], nguoi: string, moTa: string): Promise<number[]> {
   const thuTu = Number(goc.thu_tu);
   const sau = (await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} AND thu_tu > ${thuTu}`)) as unknown as Row[];
-  const nhom = await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['khuon_chuoi'], moTa, nguoi });
+  const nhom = await chupTruoc(db, { bang: 'xv_tap', id: tapId, cot: ['khuon_chuoi', 'khong_gian', 'phan_canh_ve'], moTa, nguoi });
   for (const r of sau) await chupTruoc(db, { bang: 'xv_canh', id: Number(r.id), cot: ['thu_tu'], moTa, nguoi, nhom });
   await db.execute(sql`UPDATE xv_canh SET thu_tu = thu_tu + ${so}, updated_at = now() WHERE tap_id = ${tapId} AND thu_tu > ${thuTu}`);
+  // DỒN CẢ những gì ghi THEO SỐ SHOT của tập (01/11/2026, chèn #2.9 phim #353): sổ đồ vật + sổ dáng (khong_gian › so_vat / so_dang, mốc `tu` = thu_tu)
+  // và khối phân cảnh vẽ (phan_canh_ve › khoi tu/den). Không dồn thì mọi sự kiện sau chỗ chèn xảy ra SỚM một shot (giật thẻ, cúi nhìn…).
+  const tap = ((await db.execute(sql`SELECT khong_gian, phan_canh_ve FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0];
+  const kg = dOnSoShot(tap?.khong_gian, thuTu, so); const pcv = dOnKhoi(tap?.phan_canh_ve, thuTu, so);
+  if (kg || pcv) await db.execute(sql`UPDATE xv_tap SET khong_gian = coalesce(${kg ? JSON.stringify(kg) : null}::jsonb, khong_gian), phan_canh_ve = coalesce(${pcv ? JSON.stringify(pcv) : null}::jsonb, phan_canh_ve), updated_at = now() WHERE id = ${tapId}`);
   const ids: number[] = [];
   for (const [i, m] of moi.entries()) {
     // MANG THEO 3D + chỉ đạo của shot gốc (19/10/2026: shot tách ra không có may_3d / dan_dung → không dựng được khung 3D, không chấm được, tập 135 #5):
@@ -31,6 +36,38 @@ async function chenSau(db: Db, tapId: number, goc: Row, so: number, moi: { canh:
     ids.push(Number(r[0]!.id));
   }
   return ids;
+}
+
+/** Dồn mốc `tu` > thuTu của mọi sổ theo số shot (so_vat, so_dang) trong khong_gian của tập; null = không có gì để dồn. Thuần. */
+export function dOnSoShot(kgRaw: unknown, thuTu: number, so: number): Record<string, unknown> | null {
+  if (!kgRaw || typeof kgRaw !== 'object') return null;
+  let doi = false;
+  const kg = Object.fromEntries(Object.entries(kgRaw as Record<string, Record<string, unknown>>).map(([canh, k]) => {
+    if (!k || typeof k !== 'object') return [canh, k];
+    const ra = { ...k };
+    for (const so_ of ['so_vat', 'so_dang'] as const) {
+      const sv = k[so_] as Record<string, { tu: number }[]> | undefined; if (!sv) continue;
+      ra[so_] = Object.fromEntries(Object.entries(sv).map(([mon, ds]) => [mon, ds.map((m) => (m.tu > thuTu ? (doi = true, { ...m, tu: m.tu + so }) : m))]));
+    }
+    return [canh, ra];
+  }));
+  return doi ? kg : null;
+}
+/** Dồn khối phân cảnh vẽ (tu/den theo số shot) sau chỗ chèn. Thuần. */
+export function dOnKhoi(pcvRaw: unknown, thuTu: number, so: number): unknown[] | null {
+  if (!Array.isArray(pcvRaw)) return null; let doi = false;
+  const ra = pcvRaw.map((p: { khoi?: { tu: number; den: number }[] }) => (p?.khoi ? { ...p, khoi: p.khoi.map((k) => { const t = k.tu > thuTu ? k.tu + so : k.tu, d = k.den > thuTu ? k.den + so : k.den; if (t !== k.tu || d !== k.den) doi = true; return { ...k, tu: t, den: d }; }) } : p));
+  return doi ? ra : null;
+}
+
+/** Chèn MỘT shot đã soạn sẵn ngay SAU shot `idTruoc` (dồn số các shot sau + mọi sổ theo số shot). Shot mới mang cảnh / nhân vật / look / 3D của shot trước,
+ *  đè bằng các trường truyền vào (hành động, kỹ thuật, chỉ đạo khung mở / kết, giây phát). */
+export async function chenShotSauDb(db: Db, idTruoc: number, moi: { hanh_dong: string; ky_thuat: Record<string, unknown>; dan_dung?: Record<string, unknown> | null; phat_s?: number | null }, nguoi: string): Promise<{ ok: true; id: number } | { ok: false; loi: string }> {
+  const g = ((await db.execute(sql`SELECT * FROM xv_canh WHERE id = ${idTruoc}`)) as unknown as Row[])[0];
+  if (!g) return { ok: false, loi: 'không thấy shot đứng trước' };
+  const [id] = await chenSau(db, Number(g.tap_id), g, 1, [{ canh: String(g.canh ?? ''), hanh_dong: moi.hanh_dong, ky_thuat: moi.ky_thuat }], nguoi, `chèn shot sau #${g.thu_tu}`);
+  await db.execute(sql`UPDATE xv_canh SET dan_dung = coalesce(${moi.dan_dung ? JSON.stringify(moi.dan_dung) : null}::jsonb, dan_dung), phat_s = coalesce(${moi.phat_s ?? null}, phat_s), nhanh = ${g.nhanh ?? null} WHERE id = ${id!}`);
+  return { ok: true, id: id! };
 }
 
 const docKhuon = async (db: Db, tapId: number) => ((await db.execute(sql`SELECT khuon_chuoi FROM xv_tap WHERE id = ${tapId}`)) as unknown as { khuon_chuoi: ApKhuon[] }[])[0]?.khuon_chuoi ?? [];

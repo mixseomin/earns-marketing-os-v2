@@ -10,8 +10,8 @@ export const tuNoiDung = (v) => String(v ?? '').toLowerCase().normalize('NFC').r
 export const giuHook = (moi, goc) => { const g = [...new Set(tuNoiDung(goc))]; if (!g.length) return 0; const m = new Set(tuNoiDung(moi)); return g.filter((w) => m.has(w)).length / g.length; };
 /** "Sửa không quá nhiều": giữ ít nhất 35% từ nội dung của hook gốc. */
 export const GIU_HOOK_TOI_THIEU = 0.35;
-/** Dòng đầu QC sạch: bỏ đuôi nhãn của nền tảng ("| ad", "| Sponsored") — #851 mang nguyên "| ad?" lên tiêu đề. */
-export const sachHook = (v) => String(v ?? '').replace(/\s+/g, ' ').replace(/\s*[|｜]\s*(ads?|sponsored|promoted|paid)\s*\??\s*$/i, '').trim();
+/** Dòng đầu QC sạch: chữ kiểu Unicode in đậm (𝗡𝗘𝗪) về chữ thường (NFKC), bỏ đuôi nhãn của nền tảng ("| ad", "| Sponsored") — #851 mang nguyên "| ad?" lên tiêu đề. */
+export const sachHook = (v) => String(v ?? '').normalize('NFKC').replace(/\s+/g, ' ').replace(/\s*[|｜]\s*(ads?|sponsored|promoted|paid)\s*\??\s*$/i, '').trim();
 const cacSo = (v) => new Set(String(v ?? '').match(/\d+(?:[.,]\d+)?/g) ?? []);
 /** Dòng hook người xem thấy: tiêu đề bài + câu hook trên màn (de.moc, nếu mẫu có). */
 export const dongHookBai = (title, de) => [title, de?.moc].map((x) => String(x ?? '').trim()).filter(Boolean);
@@ -45,8 +45,9 @@ if (process.argv[1]?.endsWith('hook-qc.mjs') && process.argv.includes('--tu-kiem
   t.deepEqual(loiHook(['Get flight deals up to 72% off'], 'Get mind-blowing flight deals up to 72% off'), [], 'số có sẵn trong gốc = đạt');
   t.ok(loiHook(['This might be the most underrated productivity tool this year | ad?'], 'This might be the most underrated productivity tool this year | ad').some((x) => x.includes('đuôi')), 'đuôi "| ad" = chặn (#851)');
   t.equal(sachHook('Best tool this year | ad'), 'Best tool this year');
+  t.equal(sachHook('𝗡𝗘𝗪: 𝗛𝗼𝘄 𝟯𝟬+'), 'NEW: How 30+', 'chữ in đậm Unicode về chữ thường');
   t.deepEqual(dongHookBai('T', { moc: '' }), ['T'], 'mẫu không có câu trên màn = chỉ kiểm tiêu đề');
   t.deepEqual(soNgoaiSuThat(['AI translator 165+ languages'], '- Recognizes about 100 spoken languages.'), ['165'], 'số ngoài sự thật = lộ (#855)');
   t.deepEqual(soNgoaiSuThat(['AI translator 165+ languages'], null), [], 'chưa có tệp sự thật = không đoán');
-  console.log('hook-qc: 9 ca đạt'); process.exit(0);
+  console.log('hook-qc: 10 ca đạt'); process.exit(0);
 }

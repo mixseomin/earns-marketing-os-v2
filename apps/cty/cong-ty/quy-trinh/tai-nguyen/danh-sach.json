@@ -39,14 +39,16 @@
    "ten": "Spy - bảo trì danh sách người bán ckey (rẻ trước, chính hãng cuối)",
    "so_hoa": "co-dinh",
    "kich_hoat": "box3 mỗi 6 giờ — spy-bao-tri-ckey.timer (repo spy-on-tc); Nguyên canh trong nhịp kiem-tai-nguyen",
-   "mo_ta": "Đọc danh mục ckey, gọi thử từng người bán Haiku / Sonnet / Opus / gpt-6-luna, cộng tỉ lệ đạt 3 ngày → /var/lib/spy/ckey-tuyen.json (spy đọc làm chuỗi gọi AI). Nguyên báo 🧰 Tài nguyên: việc bảo trì đứng (thợ máy nhận), dòng hết người bán, người bán đổi giá cần anh bấm chấp nhận, danh sách đổi; báo cáo ngày có dòng Spy AI theo tuyến (ckey / fal / chính hãng).",
-   "ma": "spy-on-tc/scripts/bao-tri-ckey.mjs · canh: apps/cty/worker/tai-nguyen.mjs + tai-nguyen-api.mjs",
+   "mo_ta": "Đọc danh mục ckey, gọi thử từng người bán Haiku / Sonnet / Opus / gpt-6-luna, cộng tỉ lệ đạt 3 ngày → /var/lib/spy/ckey-tuyen.json (spy đọc làm chuỗi gọi AI). Nguyên báo 🧰 Tài nguyên: việc bảo trì đứng (thợ máy nhận), dòng hết người bán, người bán đổi giá (máy iMac tc.on.spy.ckey-gia mỗi giờ tự chấp nhận khi trong chốt; vượt chốt mới báo anh kèm giá), danh sách đổi; báo cáo ngày có dòng Spy AI theo tuyến (ckey / fal / chính hãng).",
+   "ma": "spy-on-tc/scripts/bao-tri-ckey.mjs · tự chấp nhận giá: spy-on-tc/scripts/ckey-gia.mjs (iMac) · canh: apps/cty/worker/tai-nguyen.mjs + tai-nguyen-api.mjs",
    "chu_tri": "nguyen",
    "lam": [
     "may"
    ],
    "khi": "mỗi 6 giờ",
-   "lich": [],
+   "lich": [
+    "iMac:tc.on.spy.ckey-gia"
+   ],
    "chi_phi": "~300₫ gọi thử / lượt (~1.200₫ / ngày)"
   }
  ]

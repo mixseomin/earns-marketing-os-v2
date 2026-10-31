@@ -62,8 +62,9 @@ export function xetCanhBao(s, bayGio = Date.now()) {
     // Nguyên chỉ báo: máy đã nhận (một lần) · vượt chốt (anh quyết, kèm giá) · máy đứng / phiên ckey hết (thợ máy, khoá box3:)
     const g = s.ckeyGia, gGio = g?.luc ? (bayGio - Date.parse(g.luc)) / 36e5 : Infinity, tuChoi = new Set(gGio < 24 ? (g.tu_choi ?? []).map((x) => x.model) : []);
     const doiGia = Object.values(c?.chi_tiet ?? {}).flat().filter((u) => !u.song && /price .*changed|accept the new price/i.test(u.loi || '')).map((u) => u.id);
-    if (gGio < 24) for (const x of g.nhan ?? []) ra.push({ khoa: `ckey-nhan:${x.model}:${g.luc}`, chu: `Máy đã tự chấp nhận giá mới người bán ckey <b>${x.model}</b> — vào ${x.vao}, ra ${x.ra} (${x.ly_do})` });
-    if (gGio < 24) for (const x of g.tu_choi ?? []) ra.push({ khoa: `ckey-gia:${x.model}`, chu: `Người bán ckey <b>${x.model}</b> tăng giá vượt chốt — vào ${x.vao}, ra ${x.ra} (${x.ly_do}). Máy không tự nhận; spy dùng người bán khác` });
+    // nhom + trường dữ liệu: soanTin gom các mục ckey thành bảng <pre> (anh 31/10/2026 "trình bày lại cho dễ nhìn"); chu giữ cho hàng thợ máy / nhật ký
+    if (gGio < 24) for (const x of g.nhan ?? []) ra.push({ khoa: `ckey-nhan:${x.model}:${g.luc}`, nhom: 'ckey-nhan', ...x, chu: `Máy đã tự chấp nhận giá mới người bán ckey <b>${x.model}</b> — vào ${x.vao}, ra ${x.ra} (${x.ly_do})` });
+    if (gGio < 24) for (const x of g.tu_choi ?? []) ra.push({ khoa: `ckey-gia:${x.model}`, nhom: 'ckey-vuot', ...x, chu: `Người bán ckey <b>${x.model}</b> tăng giá vượt chốt — vào ${x.vao}, ra ${x.ra} (${x.ly_do}). Máy không tự nhận; spy dùng người bán khác` });
     if (doiGia.some((id) => !tuChoi.has(id))) {
       if (g?.phien === 'het' && gGio < 24) ra.push({ khoa: 'box3:ckey-gia-phien', chu: 'Phiên ckey.vn trong profile br #10 (iMac, vault #534) đã đăng xuất — máy tự chấp nhận giá ckey đứng; đăng nhập lại bằng nút Google (mikerey887)' });
       else if (gGio > 3) ra.push({ khoa: 'box3:ckey-gia', chu: `Có người bán ckey đổi giá (${doiGia.join(', ')}) mà máy tự chấp nhận giá (iMac tc.on.spy.ckey-gia) ${gGio === Infinity ? 'chưa chạy lần nào' : `đứng ${gGio.toFixed(1)} giờ`}${g?.loi ? ` — lỗi: ${g.loi.slice(0, 120)}` : ''}` });
@@ -71,7 +72,7 @@ export function xetCanhBao(s, bayGio = Date.now()) {
     const truoc = s.ckeyTruoc?.dong;
     if (truoc && c?.dong) for (const [k, ds] of Object.entries(c.dong)) {
       const cu = truoc[k] ?? [], vao = ds.filter((x) => !cu.includes(x)), ra2 = cu.filter((x) => !ds.includes(x)), ten = (x) => x.replace(/^ckey:/, '');
-      if (vao.length || ra2.length) ra.push({ khoa: `ckey-doi:${k}:${c.cap_nhat}`, chu: `Người bán ckey dòng <b>${k}</b> đổi:${vao.length ? ` thêm ${vao.map(ten).join(', ')}` : ''}${ra2.length ? ` · bỏ ${ra2.map(ten).join(', ')}` : ''} → đầu chuỗi: ${ten(ds[0] || '—')}` });
+      if (vao.length || ra2.length) ra.push({ khoa: `ckey-doi:${k}:${c.cap_nhat}`, nhom: 'ckey-doi', dong: k, them: vao.map(ten), bo: ra2.map(ten), dau: ten(ds[0] || '—'), chu: `Người bán ckey dòng <b>${k}</b> đổi:${vao.length ? ` thêm ${vao.map(ten).join(', ')}` : ''}${ra2.length ? ` · bỏ ${ra2.map(ten).join(', ')}` : ''} → đầu chuỗi: ${ten(ds[0] || '—')}` });
     }
   }
   for (const v of s.vps ?? []) {
@@ -167,6 +168,23 @@ export async function chupTaiNguyen() {
   return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon }, taiSan, vps, ckey, ckeyTruoc, ckeyGia };
 }
 
+/** Thuần — tin Telegram: cảnh báo thường thành dòng •, mục ckey gom thành ba khối bảng <pre> (dòng ≤ 30 ký tự cho vừa màn điện thoại):
+ *  ⛔ vượt chốt (anh quyết) · ✅ máy đã tự nhận · 🔄 người bán đổi theo dòng. */
+export function soanTin(ten, ds) {
+  const e = (x) => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const ban = (id) => String(id).split('/')[0], mau = (id) => String(id).split('/').slice(1).join('/').replace(/^claude-|^om-/, '');
+  const gia = (s) => String(s ?? '').replace(/\s*VND/g, '');
+  const tang = (x) => x.ly_do?.match(/tăng (\d+%)/)?.[1] ? `+${x.ly_do.match(/tăng (\d+%)/)[1]}` : '';
+  const giaKhoi = (xs) => xs.map((x) => [`${ban(x.model)}`, ` ${mau(x.model)}${tang(x) ? ` · ${tang(x)}` : ''}`, ` vào ${gia(x.vao)}`, ` ra  ${gia(x.ra)}`].map(e).join('\n')).join('\n\n');
+  const thuong = ds.filter((c) => !c.nhom), vuot = ds.filter((c) => c.nhom === 'ckey-vuot'), nhan = ds.filter((c) => c.nhom === 'ckey-nhan'), doi = ds.filter((c) => c.nhom === 'ckey-doi');
+  const khoi = [`<b>${e(ten)} · Phòng Tài nguyên</b>`];
+  if (thuong.length) khoi.push(thuong.map((c) => `• ${c.chu}`).join('\n'));
+  if (vuot.length) khoi.push(`⛔ <b>Tăng giá vượt chốt — máy không nhận</b>\n<i>giá ₫ / 1M token · spy dùng người bán khác</i>\n<pre>${giaKhoi(vuot)}</pre>`);
+  if (nhan.length) khoi.push(`✅ <b>Máy đã tự nhận giá mới</b>\n<pre>${giaKhoi(nhan)}</pre>`);
+  if (doi.length) khoi.push(`🔄 <b>Người bán ckey đổi</b>\n<pre>${doi.map((c) => [`${c.dong} → ${ban(c.dau)}`, ...c.them.map((x) => ` + ${ban(x)}`), ...c.bo.map((x) => ` − ${ban(x)}`)].map(e).join('\n')).join('\n\n')}</pre>`);
+  return khoi.join('\n\n');
+}
+
 /** Nhịp (worker/nhip.mjs): chụp → lưu → cảnh báo MỚI (hoặc quá 6 giờ chưa nhắc) → Telegram. */
 export async function nhipTaiNguyen(nguoi, { ten = nguoi } = {}) {
   const s = await chupTaiNguyen();
@@ -183,7 +201,7 @@ export async function nhipTaiNguyen(nguoi, { ten = nguoi } = {}) {
     if (T && C) {
       const tg = (await import('./tg-phong.mjs')).ghiNut(async (m, b) => (await fetch(`https://api.telegram.org/bot${T}/${m}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ chat_id: C, ...b }), signal: AbortSignal.timeout(15000) })).json());
       if (!st.topic) { const j = await tg('createForumTopic', { name: '🧰 Tài nguyên' }); if (j.ok) st.topic = j.result.message_thread_id; }
-      if (moi.length) { const j = await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', text: `<b>${ten} · Phòng Tài nguyên</b>\n${moi.map((c) => `• ${c.chu}`).join('\n')}` });
+      if (moi.length) { const j = await tg('sendMessage', { message_thread_id: st.topic, parse_mode: 'HTML', text: soanTin(ten, moi) });
         if (j.ok) for (const c of moi) nhac[c.khoa] = bay;
         // THỢ MÁY (iMac, worker/tho-may-viec.mjs): cảnh báo máy móc mới thành việc, trả lời dưới đúng tin này — hỏng không ảnh hưởng phần báo
         if (j.ok) try { (await import('./tho-may-viec.mjs')).themTuCanhBao(moi, { topic: st.topic, msg: j.result?.message_id }); } catch (e) { console.error('✗ hàng thợ máy:', e.message); } }
@@ -246,6 +264,12 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     assert.deepStrictEqual(vpsT({ ramMB: 850, swapMB: 2200, dia: 60 }), [], 'VPS còn 850 MB: im');
     assert.deepStrictEqual(vpsT({ ramMB: 850, dia: 91 }), ['vps:may-cao-vn:dia'], 'ổ 91%: báo');
     assert.deepStrictEqual(vpsT({}), [], 'ảnh chụp cũ chưa có RAM / ổ: không báo bừa');
+    const tin = soanTin('Nguyên', [{ chu: 'VPS <b>x</b> mất kết nối' },
+      { nhom: 'ckey-vuot', model: 'tuanxedich28/claude-sonnet-5-5-ccmax', vao: '1.560 VND → 10.660 VND', ra: '14.300 VND → 53.300 VND', ly_do: 'tăng 583% (> 50%)', chu: 'x' },
+      { nhom: 'ckey-doi', dong: 'gemini-3.8-flash', them: ['hungdt/om-gemini-3.8-flash'], bo: [], dau: 'hungdt/om-gemini-3.8-flash', chu: 'x' }]);
+    assert.ok(tin.includes('• VPS <b>x</b>') && tin.includes('⛔') && tin.includes('🔄') && !tin.includes('✅'), 'cảnh báo thường thành •, ckey thành khối, khối rỗng không in');
+    assert.ok(tin.includes('+583%') && tin.includes('gemini-3.8-flash → hungdt'), 'bảng có % tăng và đầu chuỗi');
+    for (const p of tin.match(/<pre>[\s\S]*?<\/pre>/g)) for (const d of p.replace(/<\/?pre>/g, '').split('\n')) assert.ok(d.length <= 30, `dòng bảng ≤ 30 ký tự: "${d}"`);
     console.log('tai-nguyen tu-kiem ok');
   } else if (process.argv.includes('--in')) {
     const s = await chupTaiNguyen(); console.log(JSON.stringify(s, null, 1)); console.log(xetCanhBao(s));

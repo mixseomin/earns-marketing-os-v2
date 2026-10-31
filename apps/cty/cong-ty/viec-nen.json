@@ -789,6 +789,23 @@
     "moi_giay": 300
    },
    "uu_tien_thap": true
+  },
+  {
+   "nhan": "iMac:tc.on.spy.ckey-gia",
+   "ten": "Spy - tự chấp nhận giá mới người bán ckey",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/Me/GitHub/spy-on-tc/scripts/ckey-gia.mjs"
+   ],
+   "thu_muc": "/Users/htuan/Me/GitHub/spy-on-tc",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/ckey-gia.log",
+   "hen": {
+    "moi_giay": 3600
+   },
+   "ghi_chu": "Anh duyệt 31/10/2026: máy tự bấm chấp nhận giá mới trên ckey.vn (phiên chỉ có ở profile br #10 iMac). Chỉ mở trình duyệt khi ckey-tuyen.json (box3) có người bán báo đổi giá; chốt: giá ra mới ≤ người đắt nhất còn sống cùng dòng, ngoài dòng thì tăng ≤ 50%."
   }
  ]
 }

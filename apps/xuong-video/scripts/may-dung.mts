@@ -24,6 +24,7 @@ import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import { bucAnh, dsMay, dsVideoDang, ghiDang, ghiNguon, ghiNhatKy, mayTheoMa, napVideo, xuatVideo } from '../src/lib/xuong-video/may';
 import { BO_DUNG } from '../src/lib/xuong-video/mau-dung';
+import { CHU_VIET } from '../src/lib/xuong-video/may-de';
 
 const a = process.argv.slice(2), lay = (k: string) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] ?? '' : null; };
 const db = getDb(); if (!db) { console.error('thiếu DATABASE_URL'); process.exit(1); }
@@ -34,7 +35,10 @@ async function spCua(ma: string) {
   const r = (await db.execute(sql`SELECT ma, ten, coalesce(ngach, '{}') AS ngach, site_dich, muc_dich, phong_cach FROM xv_may WHERE ma = ${ma}`)) as unknown as { ten: string; ngach: string[]; site_dich: string | null; muc_dich: string; phong_cach: string | null }[];
   const LINK_MAY: Record<string, { link: string; nhan: string; book?: string }> = { 'front-porch-only-one': { link: 'https://pickjot.com/printables/large-print-word-search/', nhan: 'Front Porch Puzzles', book: 'nostalgia' },
     'ratesbyroom-scam-or-real': { link: 'https://ratesbyroom.com/hotel-scam-check/', nhan: 'ratesbyroom.com' }, 'esimfares-before-you-land': { link: 'https://esimfares.com/', nhan: 'esimfares.com' }, 'militarycalc': { link: 'https://militarycalc.com/', nhan: 'MilitaryCalc' }, 'giochap-van-khan': { link: 'https://giochap.com/van-khan', nhan: 'Giỗ Chạp' } };
-  const lm = LINK_MAY[ma] ?? { link: `https://${r[0]?.site_dich ?? ''}/`, nhan: r[0]?.ten ?? ma };
+  // tên máy là nhãn NỘI BỘ tiếng Việt "<dạng> · <thương hiệu>" — chữ đó vào bài thì kiemDe chặn cả lượt (ExamWeight 0/6 đề, 31/10/2026):
+  // tên thương hiệu = đoạn sau "·" không dấu tiếng Việt, không có thì tên miền đích
+  const nhanTen = (r[0]?.ten ?? '').split('·').map((x) => x.trim()).reverse().find((x) => x && !CHU_VIET.test(x)) ?? r[0]?.site_dich ?? ma;
+  const lm = LINK_MAY[ma] ?? { link: `https://${r[0]?.site_dich ?? ''}/`, nhan: nhanTen };
   const sp = { ma, ten: r[0]!.ten, ngach: r[0]!.ngach, site: r[0]!.site_dich, link: lm.link, nhan: lm.nhan, mo_ta: r[0]!.muc_dich, ...(lm.book ? { book: lm.book } : {}), ...(r[0]!.phong_cach ? { phong_cach: r[0]!.phong_cach } : {}) };
   return sp;
 }

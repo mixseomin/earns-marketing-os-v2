@@ -140,7 +140,7 @@ if (a.includes('--nap')) {
     const { xetHookAi } = await import('../../cty/worker/cham-dang.mjs');
     const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
     const muc = ((await db.execute(sql`SELECT muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { muc_dich: string | null }[])[0]?.muc_dich ?? null;
-    const xet = async (ds: HookDong[]) => { const loi = await xetHookAi(ds.map((h) => ({ qc: h.id, ma, nhan: sp.nhan, muc_dich: muc, su_that: suThat, dong: [h.chu] }))); return ds.filter((_, k) => !loi[k]); };
+    const xet = async (ds: HookDong[]) => { const loi = await xetHookAi(ds.map((h) => ({ qc: h.id, ma, nhan: sp.nhan, muc_dich: muc, su_that: suThat, goc: h.chu, dong: [h.chu] }))); return ds.filter((_, k) => !loi[k]); };
     const truoc = hookNhom.length + hookCuaQc.size, nhomDat = await xet(hookNhom.slice(0, 40)), qcDat = new Set((await xet([...hookCuaQc.values()])).map((h) => h.id));
     hookNhom.splice(0, hookNhom.length, ...nhomDat); for (const k of [...hookCuaQc.keys()]) if (!qcDat.has(k)) hookCuaQc.delete(k);
     console.log(`· Ngọc lọc kho hook: giữ ${hookNhom.length + hookCuaQc.size}/${truoc}`);

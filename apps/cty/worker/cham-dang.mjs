@@ -16,7 +16,8 @@ export const MOC_GOC = '2026-10-25T17:00:00Z';   // 00:00 26/10/2026 giờ VN: m
 /** Kiểm góc của các bài với kho spy (DB spy: SPY_DATABASE_URL hoặc /root/.secrets/spy.env). ds = [{ goc, goc_sp }] → mảng lỗi (null = đạt) cùng thứ tự.
  *  Không đọc được kho spy → mọi bài có góc nhận lỗi "không kiểm được" (chặn chứ không cho qua mù). */
 import fs from 'node:fs';
-import { loiHook, dongHookBai, soNgoaiSuThat } from '../../xuong-video/src/lib/xuong-video/hook-qc.mjs';
+import path from 'node:path';
+import { loiHook, dongHookBai, soNgoaiSuThat, sachHook } from '../../xuong-video/src/lib/xuong-video/hook-qc.mjs';
 async function moSpy() {
   let url = process.env.SPY_DATABASE_URL;
   if (!url) { const fs = await import('node:fs'); url = fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13); }
@@ -45,21 +46,32 @@ export async function xetHookAi(ds) {
   let dau = new Map();
   try { const spy = await moSpy(); try { dau = new Map((await spy`select library_id::text as qc, left(noi_dung, 500) as chu from qc_meta where library_id::text = any(${ids})`).map((r) => [r.qc, r.chu])); } finally { await spy.end(); } }
   catch (e) { return ds.map(() => null); }
-  const daXet = new Map();
+  // MỘT câu chỉ xét MỘT lần (31/10/2026: cùng hook "Need a hotel at the last minute?" lúc lọc kho Ngọc cho qua, lúc chấm bài lại chặn → ~500₫ đề phí):
+  // kết luận lưu theo (máy, câu hook) ở ${CTY_DATA_DIR}/xet-hook.json, khâu lọc kho (may-dung.mts) và khâu chấm đọc chung. Bài dùng hook nguyên văn → khoá = câu gốc.
+  const tepXet = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'xet-hook.json');
+  let daXet = {}; try { daXet = JSON.parse(fs.readFileSync(tepXet, 'utf8')); } catch { /* chưa có sổ: xét mới hết */ }
+  const chuan = (v) => sachHook(v).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const khoa = (x) => `${x.ma}|${(x.goc && x.dong.every((d) => chuan(d) === chuan(x.goc)) ? [x.goc] : x.dong).map(chuan).join(' / ')}`;
   const hoi = async (x) => {
     const system = 'You check whether a social post hook borrowed from another company\'s ad fits OUR brand. Reply with ONE JSON only: {"cung_ngach":true|false,"hua_sai":true|false,"nhat":true|false,"ly_do":"one short sentence in Vietnamese"}. cung_ngach = the original ad is about the same topic and audience as our brand (a person stopped by this hook would plausibly want our brand). hua_sai = the hook as used promises something our brand does not do or a number our facts do not support. nhat = the line would NOT stop a stranger scrolling: a product label or feature list ("Birth Chart / Personal Insight", "Astrology software suite for professionals"), a sentence cut off mid-thought, or a flat statement with no curiosity, tension, situation or payoff.';
     const user = `OUR BRAND: ${x.nhan}\nWHAT IT IS: ${x.muc_dich ?? ''}\nFACTS: ${(x.su_that ?? 'none').slice(0, 1500)}\n\nORIGINAL AD (opening): ${dau.get(String(x.qc)) ?? '(not found)'}\n\nHOOK LINES WE USE:\n${x.dong.join('\n')}`;
     try {
       const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ngoc', 'x-cty-luot': `xet-hook-${Date.now()}`, 'x-cty-phong': 'noi-dung' },
         body: JSON.stringify({ model: MODEL_NGOC, max_tokens: 200, temperature: 0, system, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(60000) });
-      const j = await r.json(); if (!r.ok) return null;
+      const j = await r.json(); if (!r.ok) return undefined;   // hỏng = không chặn, không ghi sổ (lượt sau xét lại)
       const txt = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(''), o = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
       const loi = [o.cung_ngach === false && 'hook mượn từ QC khác ngách', o.hua_sai === true && 'hook hứa điều thương hiệu không có', o.nhat === true && 'hook nhạt (nhãn sản phẩm / câu cụt / không gây tò mò)'].filter(Boolean);
       return loi.length ? `${loi.join(' + ')} (Ngọc: ${String(o.ly_do || '').slice(0, 140)})` : null;
-    } catch { return null; }
+    } catch { return undefined; }
   };
-  const ra = [];
-  for (const x of ds) { if (!x.qc) { ra.push(null); continue; } const k = `${x.ma}|${x.qc}|${x.dong.join('|')}`; if (!daXet.has(k)) daXet.set(k, await hoi(x)); ra.push(daXet.get(k)); }
+  const ra = []; let moi = 0;
+  for (const x of ds) {
+    if (!x.qc) { ra.push(null); continue; }
+    const k = khoa(x);
+    if (!(k in daXet)) { const kq = await hoi(x); if (kq === undefined) { ra.push(null); continue; } daXet[k] = kq; moi++; }
+    ra.push(daXet[k]);
+  }
+  if (moi) { try { fs.mkdirSync(path.dirname(tepXet), { recursive: true }); fs.writeFileSync(tepXet, JSON.stringify(daXet)); } catch (e) { console.error('xet-hook: không ghi được sổ', e.message); } }
   return ra;
 }
 
@@ -160,7 +172,7 @@ export async function chamMoi(sql) {
   const loiGoc = await kiemGoc(ds.map((v) => ({ goc: v.dang?.goc, goc_sp: v.goc_sp })));
   const suThat = new Map();   // tệp sự thật đã kiểm của từng máy (apps/xuong-video/su-that/<máy>.md) — không có thì null
   const suThatCua = (ma) => { if (!suThat.has(ma)) { try { suThat.set(ma, fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')); } catch { suThat.set(ma, null); } } return suThat.get(ma); };
-  const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), dong: dongHookBai(v.dang?.title, v.de) })));
+  const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), goc: v.dang?.hook?.goc, dong: dongHookBai(v.dang?.title, v.de) })));
   for (const [i, v] of ds.entries()) {
     let kiem;
     if (v.dang?.loai === 'bai') {   // bài viết: chờ kiem-bai chấm đúng bản (md5 chữ đăng); chưa nộp thì nộp, đang chờ thì để lượt sau

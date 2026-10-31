@@ -24,7 +24,9 @@ import { ChipGocSpy, GocSpyPanel } from './goc-spy-ui';
 import { useNho } from './nho';
 import { useDinhKy } from './dinh-ky';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
-import { SoDoSeries } from './so-do';
+import { SoDoSeries, BanDoTap } from './so-do';
+import { CayPhim, type NutPhim } from './cay-phim';
+import { nhomCayAnchor } from '@/lib/xuong-video/cay-anchor';
 import { TemplatePanel, KhoTemplate } from './template-ui';
 import { DanhSachSanPham, NganSanPham } from './kho-creative-ui';
 import { taNguon, taThu } from '@/lib/xuong-video/cong-ai';
@@ -144,7 +146,7 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
                   <b>T{t.so}</b> <span style={{ display: 'inline-grid', gap: 2, width: 34, verticalAlign: 'middle', marginLeft: 4 }}>{[t.so_hinh, t.so_clip].map((x, i) => <span key={i} style={{ height: 3, borderRadius: 2, background: `linear-gradient(90deg, ${t.so_canh && x >= t.so_canh ? '#4ade80' : 'var(--cyan)'} ${t.so_canh ? Math.round((100 * x) / t.so_canh) : 0}%, var(--line) 0)` }} />)}</span>
                 </button>
               ))}
-              {!!p.so_anh_qc && <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }} title={`${p.so_anh_qc} ảnh QC — mở phim, tab 🎭 Phim › Ảnh QC`}>
+              {!!p.so_anh_qc && <span style={{ display: 'inline-flex', gap: 3, alignItems: 'center' }} title={`${p.so_anh_qc} ảnh QC — mở phim, tab 📖 Phim › Poster · ảnh QC`}>
                 {(p.anh_qc_tom ?? []).slice(0, 6).map((a) => <img key={a.id} src={anhNho(a.url, 160)} alt="" onClick={() => moPhim(p.id)} style={{ height: 30, aspectRatio: a.ti_le.replace(':', ' / '), objectFit: 'cover', borderRadius: 3, cursor: 'pointer', border: '1px solid var(--line)' }} />)}
               </span>}
               </div>
@@ -193,9 +195,9 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
 // ── Drawer phim ─────────────────────────────────────────────────────────────────────────────────────────────────
 
 /** Khoá URL của một lớp ngăn phim: lớp chính m/tap/tab; lớp chồng m2/tap2/tab2 (hai lớp không giành tham số của nhau). */
-type KhoaUrl = { m: string; tap: string; tab: string };
-const KHOA_CHINH: KhoaUrl = { m: 'm', tap: 'tap', tab: 'tab' };
-const KHOA_CHONG: KhoaUrl = { m: 'm2', tap: 'tap2', tab: 'tab2' };
+type KhoaUrl = { m: string; tap: string; tab: string; nut: string };
+const KHOA_CHINH: KhoaUrl = { m: 'm', tap: 'tap', tab: 'tab', nut: 'nut' };
+const KHOA_CHONG: KhoaUrl = { m: 'm2', tap: 'tap2', tab: 'tab2', nut: 'nut2' };
 
 function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: { id: number; tapDau?: number | null; khoa: Khoa; onClose: () => void; onXoa: () => Promise<void>; khoaUrl?: KhoaUrl }) {
   const [d, setD] = useState<PhimDayDu | null | undefined>(undefined);
@@ -207,6 +209,12 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
   useEffect(() => { void tai(); }, [tai]);
   // Tab đang mở, nhớ theo phim (đọc ngay từ đầu, chỉ ghi khi bấm — cùng cách với khung thu gọn #1212).
   const [tab, setTab] = useNho<TabPhim>(`xv-tab-${id}`, 'phim', TAB_PHIM.map((t) => t.key), khoaUrl.tab);
+  // Nút đang xem trên CÂY PHIM (cay-phim.tsx). Link cũ ?tab=so_do / ?tab=kich_ban (hai tab đã gộp vào cây) → mở đúng nút tương ứng.
+  const [nut, setNut] = useNho<NutPhim>(`xv-nut-${id}`, 'tap', undefined, khoaUrl.nut);
+  useLayoutEffect(() => {
+    const cu = new URLSearchParams(window.location.search).get(khoaUrl.tab);
+    if (cu === 'so_do') setNut('so_do'); else if (cu === 'kich_ban') setNut('tap');
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps -- chỉ đọc link lúc mở
   // Job ảnh còn chạy trên máy chủ (kể cả sau F5) → hỏi lại mỗi 4s tới khi xong.
   const conChay = !!d && (d.dangSinh.nhanVat.length > 0 || d.dangSinh.bienThe.length > 0 || d.dangSinh.poster > 0);
   useDinhKy(tai, conChay ? 4000 : 15000);
@@ -218,7 +226,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
 
   return (
     <Ngan onClose={onClose} tieuDe={phim.ten} nut={<>
-      {phim.poster_url && <img src={anhNho(phim.poster_url, 160)} alt="" title="Poster (tab 🎭 Phim › Poster)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
+      {phim.poster_url && <img src={anhNho(phim.poster_url, 160)} alt="" title="Poster (tab 📖 Phim › Poster)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
       <Pill color="var(--fg-3)">{LOAI_PHIM.find((l) => l.key === phim.loai)?.label ?? phim.loai}</Pill>
       {phim.kinh_thanh?.template && <Pill color="var(--violet)">🧩 Template</Pill>}
       {phim.kinh_thanh?.tu_template && <button type="button" className="xv-lienket xv-mono" title="Phim này tạo từ template — mở template ở ngăn chồng lên trên" onClick={() => chong.open('phim', phim.kinh_thanh!.tu_template!.id)}>🧩 từ #{phim.kinh_thanh.tu_template.id}</button>}
@@ -239,19 +247,41 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
         {TAB_PHIM.map((t) => <button key={t.key} type="button" className={`xv-btn${tab === t.key ? ' chinh' : ''}`} title={t.mo} onClick={() => setTab(t.key)}>{t.label}</button>)}
       </div>
     }>
-      {tab === 'so_do' && <SoDoSeries phim={phim} tap={tap} nhanVat={nhanVat} onChanged={tai} onMoTap={(id) => { tapParam.open('tap', id); setTab('kich_ban'); }} />}
-      {tab === 'phim' && <>
-        {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} onMoPhimChong={(pid) => chong.open('phim', pid)} />}
-        {phim.loai === 'quang_cao' && !phim.kinh_thanh?.template && <GocSpyPanel phim={phim} onChanged={tai} />}
-        {phim.loai === 'may_dung' && <MayDungPanel phim={phim} />}
-        <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
-        <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} />
-        <PosterPhim phim={phim} nhanVat={nhanVat} dang={d.dangSinh.poster} loiNen={d.loiPoster} onChanged={tai} />
-        {phim.loai === 'quang_cao' && <AnhQcPhim phim={phim} nhanVat={nhanVat} />}
-      </>}
+      {tab === 'phim' && (() => {
+        const themTap = phim.loai === 'phim' || tap.length === 0 ? async () => { const r = await taoTap(phim.id, ''); if (r.ok) { await tai(); setNut('tap'); tapParam.open('tap', r.data); } } : undefined;
+        const nvDau = nhomCayAnchor(nhanVat)[0]?.cha.id ?? null;
+        const nvId = nut.startsWith('nv-') ? Number(nut.slice(3)) : null;
+        // nút trỏ vào thứ đã mất (tập bị xoá, anchor bị xoá) → về Kinh thánh / đầu Thiết kế sản xuất, khung phải không bao giờ trống
+        const k = nut === 'tap' && tapId == null ? 'kinh_thanh' : nvId != null && !nhanVat.some((v) => v.id === nvId) ? 'nhan_vat' : nut;
+        const moTap = (tid: number) => { setNut('tap'); tapParam.open('tap', tid); };
+        const nv = (chiTiet: number | null) => <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} chiTiet={chiTiet} />;
+        return (
+          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <CayPhim phim={phim} tap={tap} nhanVat={nhanVat} nut={k} tapId={tapId} onChon={(n, tid) => (tid != null ? moTap(tid) : setNut(n))} onThemTap={themTap} />
+            <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 10, alignContent: 'start' }}>
+              {k === 'kinh_thanh' && <>
+                {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} onMoPhimChong={(pid) => chong.open('phim', pid)} />}
+                {phim.loai === 'quang_cao' && !phim.kinh_thanh?.template && <GocSpyPanel phim={phim} onChanged={tai} />}
+                {phim.loai === 'may_dung' && <MayDungPanel phim={phim} />}
+                <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
+              </>}
+              {k === 'nhan_vat' && nv(nvDau)}
+              {nvId != null && k === nut && nv(nvId)}
+              {k === 'poster' && <>
+                <PosterPhim phim={phim} nhanVat={nhanVat} dang={d.dangSinh.poster} loiNen={d.loiPoster} onChanged={tai} />
+                {phim.loai === 'quang_cao' && <AnhQcPhim phim={phim} nhanVat={nhanVat} />}
+              </>}
+              {(k === 'so_do' || k === 'tuyen' || k === 'gai_tra') && <SoDoSeries phim={phim} tap={tap} nhanVat={nhanVat} onChanged={tai} onMoTap={moTap}
+                mat={k === 'so_do' ? 'tap' : k} onMat={(m) => setNut(m === 'tap' ? 'so_do' : m)} />}
+              {k.startsWith('bd-') && <BanDoTap phim={phim} so={Number(k.slice(3))} onTao={async (tid) => { await tai(); moTap(tid); }} />}
+              {k === 'tap' && tapId != null && <div className="xv-panel"><TapView key={tapId} tap={tap.find((t) => t.id === tapId)!} phim={phim} nhanVat={nhanVat} khoa={khoa} onChanged={tai} tab="kich_ban" /></div>}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Phần theo TẬP. Không tiêu đề mục (tên tab đã nói); hàng chọn tập chỉ hiện khi có thứ để chọn (phim nhiều tập / chưa có tập). */}
-      {tab !== 'phim' && tab !== 'so_do' && <div className="xv-panel">
+      {tab !== 'phim' && <div className="xv-panel">
         {(phim.loai === 'phim' || tap.length !== 1) && <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
           {tap.length > 0 && (
             <Seg options={tap.map((t) => ({ value: t.id, label: `${phim.loai === 'phim' ? `Tập ${t.so}` : 'Tập'}${t.ten && t.ten !== phim.ten ? ` · ${t.ten}` : ''}`, title: `${t.so_canh} cảnh` }))} value={tapId ?? 0} onChange={(v) => tapParam.open('tap', v)} />

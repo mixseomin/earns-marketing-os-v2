@@ -1,6 +1,6 @@
 'use client';
 // GÓC SPY của phim QC (goc-spy.ts): chip "👤 Chân dung · …", "😣 Nỗi đau · …" — bấm là sang spy.on.tc mở đúng ngăn bằng chứng của góc đó.
-// ChipGocSpy dùng ở danh sách phim + đầu tab Phim; GocSpyPanel (tab 🎭 Phim) chọn góc thẳng từ kho spy (đọc API spy cùng box).
+// ChipGocSpy dùng ở danh sách phim + đầu tab Phim; GocSpyPanel (tab 📖 Phim) chọn góc thẳng từ kho spy (đọc API spy cùng box).
 import { useEffect, useState, type CSSProperties } from 'react';
 import { dsSpSpy, dsGocSpy, luuGocSpy, spGoiYSpy, type SpSpy } from '@/lib/actions';
 import { LOAI_GOC_SPY, linkGocSpy, linkSpSpy, loaiGocSpy, xepGocSpy, type GocSpy } from '@/lib/xuong-video/goc-spy';

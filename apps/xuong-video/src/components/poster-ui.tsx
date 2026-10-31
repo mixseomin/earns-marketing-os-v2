@@ -20,7 +20,7 @@ export function PosterPhim({ phim, nhanVat, dang, loiNen, onChanged }: { phim: P
   const gia = giaAnhCents(MO_HINH_POSTER);
   const ds = phim.poster_uv ?? [];
   const nv = anchorPoster(nhanVat);
-  const ly = !nv.length && 'chưa có anchor nào có ảnh mẫu — sinh ảnh mẫu nhân vật (tab 🎭 Phim › mục 2) trước';
+  const ly = !nv.length && 'chưa có anchor nào có ảnh mẫu — sinh ảnh mẫu nhân vật (tab 📖 Phim › 🎨 Thiết kế sản xuất) trước';
   const lam = async (fn: () => Promise<{ ok: boolean; loi?: string }>) => {
     setBan(true); setLoi('');
     setLoi((await goiAction(fn)).loi);

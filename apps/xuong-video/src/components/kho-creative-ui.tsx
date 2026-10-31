@@ -65,7 +65,7 @@ const usd = (x: number) => `${x < 0 ? '−' : ''}$${Math.abs(x).toFixed(2)}`;
 export function DanhSachSanPham({ phim, onMo }: { phim: Phim[]; onMo: (key: string) => void }) {
   const song = useSoLieuSong();
   const ds = useMemo(() => nhomPhim(phim, { kieu: 'quang_cao' }).filter((g) => g.key.startsWith('sp:')).map((g) => tongSanPham(g, song.data?.theo_creative ?? null)), [phim, song.data]);
-  if (!ds.length) return <div className="xv-panel" style={mono}>Chưa có creative quảng cáo nào gắn sản phẩm (ô Sản phẩm + link trang bán ở tab 🎭 Phim của phim QC).</div>;
+  if (!ds.length) return <div className="xv-panel" style={mono}>Chưa có creative quảng cáo nào gắn sản phẩm (ô Sản phẩm + link trang bán ở tab 📖 Phim của phim QC).</div>;
   const mau = (x: number) => (x > 0 ? 'var(--green, #3fb950)' : x < 0 ? 'var(--red, #f85149)' : 'var(--fg-2)');
   const cot: DataColumn<TongSanPham>[] = [
     { key: 'ten', header: 'Sản phẩm', align: 'left', sortValue: (s) => s.ten, cellTitle: (s) => `${s.ten}${s.khoang ? ` · số liệu QC: ${s.khoang}` : ''}`, cell: (s) => (

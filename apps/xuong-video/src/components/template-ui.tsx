@@ -1,7 +1,7 @@
 'use client';
 // TEMPLATE trên studio (template.ts · template-db.ts): template là một phim — sửa kinh thánh / anchor / shot như thường, chỗ cần đổi gõ {{ô}}.
 // Tổ chức cho dễ dùng (anh 14/10/2026): KHO TEMPLATE ở đầu trang (thẻ: dùng khi nào · số shot · Dùng / Sửa) → bấm Dùng là ra form điền
-// chia nhóm (Sản phẩm mở sẵn) → Tạo phim 0đ. Sửa template = mở như phim; panel đầu tab 🎭 Phim giữ nhãn / gợi ý / giá trị mẫu của ô.
+// chia nhóm (Sản phẩm mở sẵn) → Tạo phim 0đ. Sửa template = mở như phim; panel đầu tab 📖 Phim giữ nhãn / gợi ý / giá trị mẫu của ô.
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Ngan } from './ngan';
 import { O, Nut, Loi, Pill, mono } from './ui';
@@ -158,7 +158,7 @@ export function KhoTemplate({ ds: dsVao, phimTu = [], onMo }: { ds: Phim[]; phim
   );
 }
 
-/** Panel đầu tab 🎭 Phim của template: nhãn / gợi ý / giá trị mẫu của từng ô (theo nhóm) + nút tạo phim. */
+/** Panel đầu tab 📖 Phim của template: nhãn / gợi ý / giá trị mẫu của từng ô (theo nhóm) + nút tạo phim. */
 export function TemplatePanel({ phim, onChanged, onMoPhim, onMoPhimChong }: { phim: Phim; onChanged: () => Promise<void>; onMoPhim: (id: number) => void; onMoPhimChong: (id: number) => void }) {
   const { d, loi, nap } = useTemplate(phim.id);
   const [o, setO] = useState<OTemplateDs[]>([]);
@@ -181,7 +181,7 @@ export function TemplatePanel({ phim, onChanged, onMoPhim, onMoPhimChong }: { ph
     <div className="xv-panel">
       <h3>🧩 Template<small>sửa phim này như phim thường — chỗ nào đổi theo sản phẩm / góc / chân dung thì gõ <code>{'{{ten_o}}'}</code> (kinh thánh, anchor, brief, chữ màn, lời, prompt…)</small></h3>
       <Loi>{loi}</Loi>
-      {d && <div style={{ margin: '4px 0 10px' }}><b style={{ fontSize: 12 }}>Cấu trúc video</b> <span style={mono}>— sửa shot ở tab Kịch bản / Storyboard</span><DaiKhung khung={d.khung} chiTiet /></div>}
+      {d && <div style={{ margin: '4px 0 10px' }}><b style={{ fontSize: 12 }}>Cấu trúc video</b> <span style={mono}>— sửa shot ở tab 📖 Phim (tập) / Storyboard</span><DaiKhung khung={d.khung} chiTiet /></div>}
       {d && <MauVaPhimDung d={d} onMoPhimChong={onMoPhimChong} />}
       <O label="Dùng khi nào (hiện trên thẻ ở kho template)"><textarea className="xv-in" rows={2} value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder="UGC kể chuyện tình huống — hợp sản phẩm giải quyết một nỗi khó chịu hằng ngày…" /></O>
       {!d ? <span style={mono}>…</span> : o.length === 0 ? <div style={mono}>Chưa có ô nào — gõ {'{{san_pham}}'}, {'{{nhan_vat_ten}}'}… vào chữ của phim rồi mở lại tab này.</div> : (

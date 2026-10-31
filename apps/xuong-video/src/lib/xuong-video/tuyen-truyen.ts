@@ -56,7 +56,7 @@ export function chamTuyenTruyen(s: Series | null | undefined, tapSo: number | un
     const mua = muaCua(s, tapSo);
     const treo = so.filter((g) => g.tra == null && g.chi_tiet.trim() && g.gieo <= tapSo && muaCua(s, g.gieo) === mua);
     m.push({ key: 'treo_cuoi_mua', ten: 'Hết chi tiết treo cuối mùa', dat: !treo.length, cung: true,
-      ghi: treo.length ? `tập cuối mùa mà còn ${treo.length} chi tiết chưa có tập trả: ${treo.map((g) => `${g.chi_tiet} (gieo tập ${g.gieo})`).join(' · ')} — trả trong tập này hoặc ghi tập trả ở mùa sau (🗺 Sơ đồ › Gài / trả)` : 'mọi chi tiết gieo trong mùa đã có tập trả' });
+      ghi: treo.length ? `tập cuối mùa mà còn ${treo.length} chi tiết chưa có tập trả: ${treo.map((g) => `${g.chi_tiet} (gieo tập ${g.gieo})`).join(' · ')} — trả trong tập này hoặc ghi tập trả ở mùa sau (📖 Phim › 📌 Gài / trả)` : 'mọi chi tiết gieo trong mùa đã có tập trả' });
   }
   const sai = so.filter((g) => (g.gieo === tapSo || g.tra === tapSo) && trangThaiGaiTra(s, g).muc === 'loi');
   if (sai.length) m.push({ key: 'gai_tra_sai', ten: 'Sổ gài / trả ghi đúng', dat: false, cung: false, ghi: sai.map((g) => `${g.chi_tiet || '(trống)'}: ${trangThaiGaiTra(s, g).ghi}`).join(' · ') });

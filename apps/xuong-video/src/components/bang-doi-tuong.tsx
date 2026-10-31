@@ -27,7 +27,7 @@ export function BangDoiTuong({ canh, nhanVat, onChonShot, onDong }: { canh: Canh
         <span style={mono}>bấm ô = chọn shot để sửa</span>
         <button type="button" className="xv-btn" style={{ padding: '0 6px' }} title="Đóng" onClick={onDong}>✕</button>
       </div>
-      {!bang.length ? <div style={mono}>Phim chưa có đối tượng nào (tab 🎭 Phim › Thiết kế sản xuất).</div> : (
+      {!bang.length ? <div style={mono}>Phim chưa có đối tượng nào (tab 📖 Phim › 🎨 Thiết kế sản xuất).</div> : (
         <div style={{ overflow: 'auto', maxHeight: 360 }}>
           <table style={{ borderCollapse: 'separate', borderSpacing: 2 }}>
             <thead><tr>

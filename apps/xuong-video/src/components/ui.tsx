@@ -13,9 +13,8 @@ export type TabPhim = 'phim' | 'so_do' | 'kich_ban' | 'ho_so' | 'storyboard' | '
 
 export const TAB_PHIM: { key: TabPhim; label: string; mo: string }[] = [
   // Phim (cả bộ, ít đổi) tách khỏi Kịch bản (từng tập, làm hằng ngày) — 13/10/2026: một tab chồng 5 khối dài 1,5 màn hình.
-  { key: 'phim', label: '🎭 Phim', mo: 'Cả bộ phim: mục 0 sản phẩm · 1 kinh thánh · 2 nhân vật / sản phẩm / bối cảnh · poster' },
-  { key: 'so_do', label: '🗺 Sơ đồ', mo: 'Cả bộ phim → từng mùa → từng tập: loại tập, nhân vật, gài/trả, tập đang ở khâu nào; bấm để mở hoặc tạo tập từ bản đồ' },
-  { key: 'kich_ban', label: '📝 Kịch bản', mo: 'Tập này: 3a brief · 3b kịch bản → tách cảnh · kiểm người xem có hiểu không' },
+  // Phim + Sơ đồ + Kịch bản gộp thành MỘT tab dạng cây (anh 31/10/2026, cay-phim.tsx); 'so_do' / 'kich_ban' cũ trên URL tự chuyển về nút cây.
+  { key: 'phim', label: '📖 Phim', mo: 'Cây cả bộ phim: kinh thánh · thiết kế sản xuất · poster · sơ đồ mùa · tuyến truyện · gài/trả → mùa → tập (brief, kịch bản, tách cảnh)' },
   { key: 'ho_so', label: '📋 Hồ sơ', mo: 'Hồ sơ tiền kỳ chuẩn studio, 7 tài liệu: kịch bản · phân tích cảnh · bóc tách · shot list · bảng liên tục · color script · âm thanh' },
   { key: 'storyboard', label: '🎞 Storyboard', mo: 'Keyframe → duyệt → video, kéo thả, cắt giây phát, chữ màn, bộ kiểm' },
   { key: 'am_thanh', label: '🔊 Âm thanh', mo: 'Giọng nhân vật, hiệu ứng, nhạc theo phân cảnh' },

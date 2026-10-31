@@ -71,7 +71,7 @@ export function thieuMau(c: Pick<Canh, 'nhan_vat' | 'prompt_anh' | 'hanh_dong'> 
   const gan = nhanVat.filter((v) => c.nhan_vat.includes(v.id));
   // Shot nền ghép (ky_thuat.nen_ghep — khuôn đổi nền): nơi chốn xuất hiện một lần, keyframe của nó là mẫu → không đòi anchor Bối cảnh
   // (15/10/2026: 7 shot nền của "Một dáng, mọi nơi" bị chặn "phim chưa có anchor Bối cảnh" dù mỗi nơi chỉ hiện 0,8s một lần).
-  if (!c.ky_thuat?.nen_ghep && !gan.some((v) => v.loai === 'boi_canh')) out.push(nhanVat.some((v) => v.loai === 'boi_canh') ? 'chưa gắn bối cảnh — gắn một anchor Bối cảnh (tab 🎭 Phim) để mọi shot cùng nơi trông như một chỗ' : 'phim chưa có anchor Bối cảnh nào — tả + sinh ảnh mẫu các nơi chốn lặp lại (tab 🎭 Phim) trước khi sinh keyframe');
+  if (!c.ky_thuat?.nen_ghep && !gan.some((v) => v.loai === 'boi_canh')) out.push(nhanVat.some((v) => v.loai === 'boi_canh') ? 'chưa gắn bối cảnh — gắn một anchor Bối cảnh (tab 📖 Phim) để mọi shot cùng nơi trông như một chỗ' : 'phim chưa có anchor Bối cảnh nào — tả + sinh ảnh mẫu các nơi chốn lặp lại (tab 📖 Phim) trước khi sinh keyframe');
   for (const v of mauNhacTen(c, nhanVat)) out.push(`"${v.ten}" có trong prompt mà chưa gắn mẫu`);
   // Shot CÓ NGƯỜI mà không gắn mẫu người nào → model vẽ người lạ (16/10/2026: JettJeans #54 shot 3 / 6 tả 'he squats…', 'hands…' không nhắc tên Mike
   // nên cổng nhắc tên không bắt, keyframe ra một người đàn ông trẻ tóc đen). Chỉ xét khi phim có anchor người.

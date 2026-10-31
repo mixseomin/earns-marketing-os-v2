@@ -1,5 +1,5 @@
 'use client';
-// BẢNG TUYẾN + SỔ GÀI / TRẢ (tab 🗺 Sơ đồ › Tuyến truyện · Gài / trả). Sổ của phòng biên kịch: hàng là tập, cột là tuyến A/B/C; sổ gài / trả
+// BẢNG TUYẾN + SỔ GÀI / TRẢ (tab 📖 Phim › Tuyến truyện · Gài / trả). Sổ của phòng biên kịch: hàng là tập, cột là tuyến A/B/C; sổ gài / trả
 // ghi chi tiết gieo ở tập nào, trả ở tập nào. Luật + trộn AI: lib/xuong-video/tuyen-truyen.ts. Sửa tại chỗ, tự lưu 1,2 giây sau lần gõ cuối.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { suaPhim, aiTuyenTruyen } from '@/lib/actions';

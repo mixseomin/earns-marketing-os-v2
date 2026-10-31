@@ -1,21 +1,21 @@
 'use client';
 // SƠ ĐỒ SERIES (anh 14/10/2026 — "cần một bảng kiểu sơ đồ cả bộ phim, từng season, rồi đến tập"): hàng đầu là cả bộ phim, mỗi mùa một hàng
 // thẻ tập. Thẻ = số · tên · loại (phiêu lưu / nguồn gốc / kết mùa) · mặt nhân vật · logline · gài/trả · tập đang ở khâu nào. Bấm thẻ: tập đã có
-// thì mở (tab Kịch bản), chưa có thì tạo từ bản đồ (tên + brief từ logline, 0đ). Dữ liệu: kinh_thanh.series (kieu.ts › muaSeries).
+// thì mở (tab 📖 Phim (bấm tập trên cây)), chưa có thì tạo từ bản đồ (tên + brief từ logline, 0đ). Dữ liệu: kinh_thanh.series (kieu.ts › muaSeries).
 // Ba mặt (anh 31/10/2026): Tập (thẻ theo mùa) · Tuyến truyện (bảng tuyến A/B/C × tập) · Gài / trả (sổ setup–payoff) — tuyen-truyen-ui.tsx.
+// Mặt nào hiện do CÂY PHIM chọn (cay-phim.tsx, tab 📖 Phim): mỗi mặt là một nút trên cây, không còn thanh chọn riêng.
 import { useState } from 'react';
 import { docKinhThanh, muaSeries, type NhanVat, type Phim, type Tap, type TapBanDo } from '@/lib/xuong-video/kieu';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { taoTapTuBanDo } from '@/lib/actions';
-import { Pill, Loi, Seg, mono, goiAction } from './ui';
-import { useNho } from './nho';
+import { Pill, Loi, mono, goiAction } from './ui';
 import { BangTuyen, SoGaiTra, NutAiTuyen, useSoSeries } from './tuyen-truyen-ui';
 import { trangThaiGaiTra, tuyenVang } from '@/lib/xuong-video/tuyen-truyen';
 
-type MatSoDo = 'tap' | 'tuyen' | 'gai_tra';
-const LOAI: Record<string, string> = { phieu_luu: 'Phiêu lưu', nguon_goc: 'Nguồn gốc', ket_mua: 'Kết mùa' };
+export type MatSoDo = 'tap' | 'tuyen' | 'gai_tra';
+export const LOAI: Record<string, string> = { phieu_luu: 'Phiêu lưu', nguon_goc: 'Nguồn gốc', ket_mua: 'Kết mùa' };
 /** Khâu của tập theo dữ liệu thật — trơn trừ khi đã xuất (xong) — màu chỉ báo nghĩa. */
-function khau(t: Tap | undefined): { chu: string; xong: boolean } {
+export function khau(t: Tap | undefined): { chu: string; xong: boolean } {
   if (!t) return { chu: 'bản đồ', xong: false };
   if (t.xuat?.some((b) => !b.long_tieng && !b.phu_de)) return { chu: '✓ đã xuất', xong: true };
   if (t.so_canh) return { chu: `${t.so_canh} cảnh`, xong: false };
@@ -23,12 +23,12 @@ function khau(t: Tap | undefined): { chu: string; xong: boolean } {
   return { chu: 'đã tạo', xong: false };
 }
 
-export function SoDoSeries({ phim, tap, nhanVat, onMoTap, onChanged }: { phim: Phim; tap: Tap[]; nhanVat: NhanVat[]; onMoTap: (tapId: number) => void; onChanged: () => Promise<void> }) {
+export function SoDoSeries({ phim, tap, nhanVat, onMoTap, onChanged, mat: matSd, onMat }: { phim: Phim; tap: Tap[]; nhanVat: NhanVat[]; onMoTap: (tapId: number) => void; onChanged: () => Promise<void>; mat: MatSoDo; onMat: (m: MatSoDo) => void }) {
   const kt = docKinhThanh(phim.kinh_thanh);
   const ds = muaSeries(kt.series);
   const [dang, setDang] = useState<number | null>(null);
   const [loi, setLoi] = useState('');
-  const [matSd, setMatSd] = useNho<MatSoDo>(`xv-sd-${phim.id}`, 'tap', ['tap', 'tuyen', 'gai_tra'], 'sd');
+  const setMatSd = onMat;
   const so = useSoSeries(phim, onChanged);
   const mat = (ten: string) => nhanVat.find((v) => v.loai === 'nhan_vat' && v.ten === ten);
   const tapCua = (b: TapBanDo) => tap.find((t) => t.so === b.so);
@@ -39,7 +39,7 @@ export function SoDoSeries({ phim, tap, nhanVat, onMoTap, onChanged }: { phim: P
   const gt = (sv?.so_gai_tra ?? []).filter((g) => g.chi_tiet.trim()).map((g) => trangThaiGaiTra(sv!, g).muc);
   const nTreo = gt.filter((m) => m === 'treo').length, nSai = gt.filter((m) => m === 'loi').length;
   const vang = tuyenVang(sv);
-  if (!ds.length) return <div className="xv-panel" style={mono}>Phim chưa có bản đồ series — viết kinh thánh mùa (động cơ + danh sách tập) ở tab 🎭 Phim › Kinh thánh.</div>;
+  if (!ds.length) return <div className="xv-panel" style={mono}>Phim chưa có bản đồ series — viết kinh thánh mùa (động cơ + danh sách tập) ở nút 📜 Kinh thánh trên cây.</div>;
   const bam = async (b: TapBanDo) => {
     const t = tapCua(b);
     if (t) { onMoTap(t.id); return; }
@@ -52,19 +52,14 @@ export function SoDoSeries({ phim, tap, nhanVat, onMoTap, onChanged }: { phim: P
   };
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10 }}>   {/* minmax(0,1fr): ô không nở theo nội dung → lưới thẻ tự xuống dòng */}
-      <div className="xv-panel" style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', padding: '8px 12px' }}>
+      {matSd === 'tap' && <div className="xv-panel" style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', padding: '8px 12px' }}>
         {phim.poster_url && <img src={anhNho(phim.poster_url, 160)} alt="" style={{ height: 52, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4 }} />}
         <div style={{ flex: 1, minWidth: 240 }}>
           <b style={{ fontSize: 14 }}>{kt.series?.ten || phim.ten}</b>
           <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{kt.logline}</div>
         </div>
         <span style={mono}>{ds.length} mùa · {tongTap} tập · {coKb} có kịch bản · {daXuat} đã xuất</span>
-        <Seg value={matSd} onChange={setMatSd} options={[
-          { value: 'tap', label: 'Tập', title: 'Thẻ từng tập theo mùa: loại tập, nhân vật, khâu đang làm' },
-          { value: 'tuyen', label: 'Tuyến truyện', title: `Bảng tuyến: hàng là tập, cột là tuyến A/B/C — ${sv?.tuyen?.length ?? 0} tuyến` },
-          { value: 'gai_tra', label: 'Gài / trả', title: `Sổ chi tiết gài → trả: ${gt.length} chi tiết, ${nTreo} còn treo` },
-        ]} />
-      </div>
+      </div>}
       {/* cảnh báo nằm TRÊN nội dung, bấm là tới đúng mặt (YDNI luật 4) */}
       {(nTreo > 0 || nSai > 0 || vang.length > 0) && <div className="xv-banner" style={{ margin: 0, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
         {nTreo > 0 && <a style={{ cursor: 'pointer' }} title="Tập cuối mùa bị chặn sinh keyframe tới khi các chi tiết này có tập trả" onClick={() => setMatSd('gai_tra')}>⚠ {nTreo} chi tiết còn treo</a>}
@@ -118,6 +113,35 @@ export function SoDoSeries({ phim, tap, nhanVat, onMoTap, onChanged }: { phim: P
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Một tập trên bản đồ CHƯA tạo (nút mờ trên cây): xem logline / loại / nhân vật / gài-trả, bấm để tạo tập từ bản đồ (0đ). */
+export function BanDoTap({ phim, so, onTao }: { phim: Phim; so: number; onTao: (tapId: number) => Promise<void> }) {
+  const b = docKinhThanh(phim.kinh_thanh).series?.tap.find((t) => t.so === so);
+  const [dang, setDang] = useState(false);
+  const [loi, setLoi] = useState('');
+  if (!b) return <div className="xv-panel" style={mono}>Tập {so} không còn trên bản đồ.</div>;
+  const tao = async () => {
+    setDang(true); setLoi('');
+    const r = await goiAction(() => taoTapTuBanDo(phim.id, b.so));
+    setDang(false);
+    if (r.loi) { setLoi(r.loi); return; }
+    if (r.kq && 'data' in r.kq && typeof r.kq.data === 'number') await onTao(r.kq.data);
+  };
+  return (
+    <div className="xv-panel" style={{ display: 'grid', gap: 8, maxWidth: 720 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}>
+        <span style={mono}>Tập {b.so}</span><b style={{ fontSize: 14 }}>{b.ten}</b>
+        {b.loai && <Pill color="var(--fg-3)">{LOAI[b.loai] ?? b.loai}</Pill>}
+      </div>
+      <div style={{ fontSize: 12.5 }}>{b.logline}</div>
+      {!!b.nhan_vat?.length && <div style={mono}>Nhân vật: {b.nhan_vat.join(', ')}</div>}
+      {!!b.boi_canh?.length && <div style={mono}>Bối cảnh / đạo cụ: {b.boi_canh.join(', ')}</div>}
+      {b.gai_tra && <div style={mono}>Gài / trả: {b.gai_tra}</div>}
+      <div><button type="button" className="xv-btn chinh" disabled={dang} title="Tạo tập với tên + brief lấy từ bản đồ — không tốn tiền" onClick={() => void tao()}>{dang ? 'đang tạo…' : '＋ Tạo tập từ bản đồ'}</button></div>
+      <Loi>{loi}</Loi>
     </div>
   );
 }

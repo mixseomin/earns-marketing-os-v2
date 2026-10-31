@@ -64,7 +64,7 @@ export async function chepPhim(db: Db, nguonId: number, o: { ten: string; gt: Re
   // Tạo phim TỪ template: anchor sản phẩm ghi cứng = phim mới mang sản phẩm của nguồn → dừng, không chép (lỗi nói rõ để sửa template).
   if (!o.laTemplate && (d.phim.kinh_thanh as KinhThanh | null)?.template) {
     const loi = anchorGhiCung(d.nv as { loai: unknown; ten: unknown; anh_ref?: unknown }[]);
-    if (loi.length) throw new Error(`template #${nguonId} hỏng: ${loi.join('; ')} — sửa anchor của template (tab 🎭 Phim) rồi tạo lại`);
+    if (loi.length) throw new Error(`template #${nguonId} hỏng: ${loi.join('; ')} — sửa anchor của template (tab 📖 Phim) rồi tạo lại`);
   }
   const gt = o.gt;
   const kq = await db.transaction(async (tx) => {

@@ -674,7 +674,7 @@ export async function lyChanKeyframe(db: Db, canhId: number, /** THỬ ngoài qu
   const cm = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (cm) chan.push(cm);
   const tp = thanhPhanCanh(bc.canh, bc.nhanVat);
-  if (tp.thieu.length) chan.push(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở tab 🎭 Phim (Thiết kế sản xuất) rồi sinh lại.`);
+  if (tp.thieu.length) chan.push(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở tab 📖 Phim › 🎨 Thiết kế sản xuất rồi sinh lại.`);
   // BỘ CHẤM PROMPT (kiem-prompt.ts): chữ SẼ gửi đường hai bước (mặc định khi có độ sâu 3D) — lẫn tiếng Việt, thiếu bộ đồ, cận chèn tả mặt, chữ ngược 3D, quá dài cho FLUX
   if (!chan.length) { const lp = chamKeyframe(bc).loi.filter((l) => l.phat >= NGUONG_CHAN); if (lp.length) chan.push(`Bộ chấm prompt: ${lp.map((l) => l.chu).join(' · ')}`); }
   return { bc, chan };

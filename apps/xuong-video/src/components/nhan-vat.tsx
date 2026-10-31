@@ -14,6 +14,7 @@ import { Khoa, O, Pill, Seg, Nut, Xoa, Loi, AnhNho, DangSinh, Menu, MucMenu, mon
 import { useNho } from './nho';
 import { NutNghe } from './media';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
+import { nhomCayAnchor } from '@/lib/xuong-video/cay-anchor';
 
 /** Số góc một lượt sinh ảnh gốc anchor (#1351): ảnh chính + góc phụ ngay từ đầu, không phải bấm lần lượt từng góc. */
 const BO_GOC = 3;
@@ -71,7 +72,8 @@ export function GiongNhanVat({ v, onChanged }: { v: NhanVat; onChanged: () => Pr
   );
 }
 
-export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loiAnh, onChanged }: { phimId: number; nhanVat: NhanVat[]; kinhThanh: KinhThanh; khoa: Khoa; dangSinh: { nhanVat: number[]; bienThe: number[] }; loiAnh: { nhanVat: Record<number, string>; bienThe: Record<number, string> }; onChanged: () => Promise<void> }) {
+/** chiTiet: CÂY PHIM (tab 📖 Phim) đã liệt kê anchor ở cây trái → mục này chỉ hiện đầu mục + khung chi tiết của anchor đó, không vẽ cây thứ hai. */
+export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loiAnh, onChanged, chiTiet }: { chiTiet?: number | null; phimId: number; nhanVat: NhanVat[]; kinhThanh: KinhThanh; khoa: Khoa; dangSinh: { nhanVat: number[]; bienThe: number[] }; loiAnh: { nhanVat: Record<number, string>; bienThe: Record<number, string> }; onChanged: () => Promise<void> }) {
   const [sua, setSua] = useState<Partial<NhanVat> | null>(null);
   const [btMo, setBtMo] = useState<number | null>(null);
   const [ban, setBan] = useState<number | null>(null);
@@ -97,13 +99,7 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
   // Mục đang xem nằm trong URL (?ac=<id>) — F5 / chia sẻ giữ nguyên (chuẩn YDNI §1).
   const [chon, setChon] = useState<number | null>(() => { try { const v = new URLSearchParams(window.location.search).get('ac'); return v ? Number(v) : null; } catch { return null; } });
   const chonDat = (id: number) => { setChon(id); try { const u = new URL(window.location.href); u.searchParams.set('ac', String(id)); window.history.replaceState(null, '', u); } catch { /* SSR */ } };
-  const nhomCay: { cha: NhanVat; con: NhanVat[] }[] = [];
-  { const idx = new Map<number, number>();
-    for (const v of dsHien) {
-      const cha = v.thuoc_id ? nhanVat.find((p) => p.id === v.thuoc_id) ?? null : null;
-      if (cha) { let i = idx.get(cha.id); if (i == null) { i = nhomCay.length; idx.set(cha.id, i); nhomCay.push({ cha, con: [] }); } nhomCay[i]!.con.push(v); }
-      else if (!idx.has(v.id)) { idx.set(v.id, nhomCay.length); nhomCay.push({ cha: v, con: [] }); }
-    } }
+  const nhomCay = nhomCayAnchor(dsHien, nhanVat);
   // KHUNG CHI TIẾT (bên phải, rộng) — ẢNH TO dùng hết không gian + mô tả đầy đủ + các góc lớn + nút (chuẩn YDNI §8).
   const the = (v: NhanVat) => {
     const soDang = dangSinh.nhanVat.filter((x) => x === v.id).length + (gui[v.id]?.cho ?? 0);
@@ -194,7 +190,7 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
   for (const { cha, con } of nhomCay) { dsPhang.push({ v: cha, laCon: false, cuoi: con.length === 0 }); con.forEach((c, i) => dsPhang.push({ v: c, laCon: true, cuoi: i === con.length - 1 })); }
   // MỘT DÒNG CÂY: ảnh nhỏ + tên + loại + số ảnh + nút nhanh; bấm cả dòng = mở/đóng card chi tiết (the) bung dưới.
   // MỘT DÒNG CÂY gọn (không kéo rộng): nhánh + ảnh nhỏ + tên + loại + số ảnh; bấm = chọn → khung chi tiết bên trái hiện. Nút Sửa/Sinh ngay trên dòng.
-  const chonId = chon ?? dsPhang[0]?.v.id ?? null;   // mặc định chọn mục đầu → khung chi tiết không bao giờ trống
+  const chonId = chiTiet !== undefined ? chiTiet : (chon ?? dsPhang[0]?.v.id ?? null);   // mặc định chọn mục đầu → khung chi tiết không bao giờ trống
   const dong = ({ v, laCon, cuoi }: { v: NhanVat; laCon: boolean; cuoi: boolean }) => {
     const sel = chonId === v.id;
     const soDang = dangSinh.nhanVat.filter((x) => x === v.id).length + (gui[v.id]?.cho ?? 0);
@@ -219,7 +215,7 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
         <h3 style={{ flex: 1 }}>2 · Thiết kế sản xuất<small>bàn chuẩn bị của đoàn phim: nhân vật, trang phục, tóc, kính/phụ kiện, đạo cụ, bối cảnh — mỗi món làm ảnh mẫu sẵn, mọi cảnh/tập dùng cùng một bản</small></h3>
         <Nut ban={ban === -1} title="Claude đọc tiền đề + kịch bản các tập + anchor đã có → tạo các anchor còn thiếu (nhân vật, sản phẩm, bối cảnh, đạo cụ). Tạo xong anh sửa/xoá tuỳ ý." onClick={async () => { setBan(-1); setLoi((x) => ({ ...x, [-1]: '' })); const r = await goiYAIBoAnchor(phimId); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [-1]: r.loi })); await onChanged(); }}>{ban === -1 ? '… AI đang đề xuất' : '✨ AI đề xuất tuyến còn thiếu'}</Nut>
-        {coLoai.length > 1 && <Seg value={coLoai.some((l) => l.key === locLoai) ? locLoai : ''} onChange={setLocLoai}
+        {chiTiet === undefined && coLoai.length > 1 && <Seg value={coLoai.some((l) => l.key === locLoai) ? locLoai : ''} onChange={setLocLoai}
           options={[{ value: '' as const, label: 'Tất cả', title: `${nhanVat.length} anchor` }, ...coLoai.map((l) => ({ value: l.key, label: `${l.ic} ${l.label}`, title: `${nhanVat.filter((v) => v.loai === l.key).length} ${l.label.toLowerCase()}` }))]} />}
         <button type="button" className="xv-btn" onClick={() => setSua({ loai: 'nhan_vat', ten: '', mo_ta: '', anh_ref: [], giong: '' })}>+ Thêm</button>
       </div>
@@ -227,9 +223,9 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
       {nhanVat.length === 0 && <div style={mono}>Chưa có anchor. Phim nhiều tập BẮT BUỘC khai nhân vật ở đây trước khi tách cảnh, nếu không mỗi tập Claude sẽ tả một kiểu.</div>}
       <div style={{ display: 'flex', gap: 14, alignItems: 'stretch' }}>
         {/* DANH SÁCH DẠNG CÂY bên TRÁI — gọn, cố định bề rộng, điều hướng (anh 31/10/2026, chuẩn YDNI §8) */}
-        <div style={{ flex: '0 0 440px', minWidth: 0, display: 'grid', gap: 2, alignContent: 'start' }}>
+        {chiTiet === undefined && <div style={{ flex: '0 0 440px', minWidth: 0, display: 'grid', gap: 2, alignContent: 'start' }}>
           {dsPhang.map((x) => dong(x))}
-        </div>
+        </div>}
         {/* KHUNG CHI TIẾT bên PHẢI — panel có viền, CAO BẰNG cây (alignItems stretch → hết khoảng trống), hiện mục đang chọn */}
         <div style={{ flex: 1, minWidth: 0, border: '1px solid var(--line)', borderRadius: 12, background: 'var(--bg-1)', padding: 14 }}>
           {(() => { const sv = nhanVat.find((v) => v.id === chonId); return sv

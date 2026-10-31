@@ -7,6 +7,7 @@ import { LOAI_NHAN_VAT, NHOM_BIEN_THE, type NhanVat } from '@/lib/xuong-video/ki
 import { nhomCayAnchor } from '@/lib/xuong-video/cay-anchor';
 import { AnhDaiDien } from './anh-set-3d';
 import { Den, mono } from './ui';
+import { CotCay, CayCon, CayNut } from './keo';
 
 const LOOK_NHOM = new Set(['trang_phuc', 'toc', 'trang_diem', 'do_deo', 'vet', 'trang']);
 const nhanNhom = (nhom: string) => NHOM_BIEN_THE.nhan_vat.find((x) => x.key === nhom)?.label ?? nhom;
@@ -26,44 +27,44 @@ export function CayThanhPhan({ nhanVat, nut, onChon }: { nhanVat: NhanVat[]; nut
     const looks = (v.bien_the ?? []).filter((b) => LOOK_NHOM.has(b.nhom));
     const coCon = con.length + looks.length > 0; const k = `nv-${v.id}`;
     return (
-      <div key={v.id} className="xv-cay-nut">
+      <CayNut key={v.id}>
         <Dong chon={nut === k} onClick={() => onChon(k)} title={`${v.anh_ref.length} ảnh anchor`}>
           {coCon && <span style={{ ...mono, width: 10 }} onClick={(e) => { e.stopPropagation(); lat(k); }}>{gap.has(k) ? '▸' : '▾'}</span>}
           <span style={{ width: 20, height: 20, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}><AnhDaiDien v={v} co={20} /></span>
           <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.ten || '(chưa đặt tên)'}</span>
           {!v.anh_ref.length && <Den muc="cho" title="chưa có ảnh anchor" />}
         </Dong>
-        {coCon && !gap.has(k) && <div className="xv-cay-con">
+        {coCon && !gap.has(k) && <CayCon>
           {looks.map((b) => (
-            <div key={b.id} className="xv-cay-nut">
+            <CayNut key={b.id}>
               <Dong chon={nut === `bt-${b.id}`} onClick={() => onChon(`bt-${b.id}`)} title={`${nhanNhom(b.nhom)}: ${b.ten}${b.dung_tap?.length ? ` · tập ${b.dung_tap.join(',')}` : ''}`}>
                 {b.anh_url ? <span style={{ width: 20, height: 20, borderRadius: 4, flexShrink: 0, background: `center/cover url(${b.anh_url})` }} /> : <span style={{ width: 20, textAlign: 'center', fontSize: 11 }}>📷</span>}
                 <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{b.ten}</span>
                 {!b.anh_url && <Den muc="cho" title="chưa có ảnh mẫu" />}
               </Dong>
-            </div>
+            </CayNut>
           ))}
           {con.map((c) => nutAnchor(c, []))}
-        </div>}
-      </div>
+        </CayCon>}
+      </CayNut>
     );
   };
   const cay = nhomCayAnchor(nhanVat);
   const nhom = LOAI_NHAN_VAT.map((l) => ({ l, ds: cay.filter((x) => x.cha.loai === l.key) })).filter((x) => x.ds.length);
   return (
-    <nav style={{ flex: '0 0 250px', minWidth: 0, position: 'sticky', top: 8, alignSelf: 'flex-start', maxHeight: 'calc(100vh - var(--dau-cao, 0px) - 24px)', overflowY: 'auto', paddingRight: 4 }}>
+    <CotCay khoa="cay-thanh-phan" macDinh={260}>
       <b style={{ fontSize: 12.5 }}>🧩 Thành phần <span style={mono} title={`${nhanVat.length} thành phần`}>({nhanVat.length})</span></b>
-      <div className="xv-cay-con">
+      <CayCon>
         {nhom.map(({ l, ds }) => (
-          <div key={l.key} className="xv-cay-nut">
+          <CayNut key={l.key}>
             <Dong chon={false} onClick={() => lat(l.key)}>
               <span style={{ ...mono, width: 10 }}>{gap.has(l.key) ? '▸' : '▾'}</span>
               <span style={{ fontWeight: 600 }}>{l.ic} {l.label}</span><span style={mono}>{ds.reduce((s, x) => s + 1 + x.con.length, 0)}</span>
             </Dong>
-            {!gap.has(l.key) && <div className="xv-cay-con">{ds.map(({ cha, con }) => nutAnchor(cha, con))}</div>}
-          </div>
+            {!gap.has(l.key) && <CayCon>{ds.map(({ cha, con }) => nutAnchor(cha, con))}</CayCon>}
+          </CayNut>
         ))}
-      </div>
-    </nav>
+      </CayCon>
+    </CotCay>
   );
 }

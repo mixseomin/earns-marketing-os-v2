@@ -9,6 +9,7 @@ import { docKinhThanh, muaSeries, type NhanVat, type Phim, type Tap } from '@/li
 import { trangThaiGaiTra, tuyenVang } from '@/lib/xuong-video/tuyen-truyen';
 import { khau } from './so-do';
 import { Den, mono } from './ui';
+import { CotCay } from './keo';
 
 /** Khoá nút: 'kinh_thanh' · 'nhan_vat' · 'phan_ra' · 'nv-<id>' · 'bt-<id>' · 'am_thanh' · 'poster' · 'so_do' (Các tập: sơ đồ thẻ) · 'tuyen' · 'gai_tra' ·
  *  'tap' (Kịch bản của tập = tham số tap) · 'tap:thanh_phan' · 'tap:ho_so' · 'tap:shots' · 'tap:storyboard' · 'tap:xuat' · 'bd-<số>' (tập bản đồ chưa tạo). */
@@ -98,8 +99,7 @@ export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, tha
     </nav>
   );
   return (
-    <nav style={{ flex: '0 0 250px', minWidth: 0, position: 'sticky', top: 'calc(var(--dau-cao, var(--ngan-py, 0px)) - var(--ngan-py, 0px) + 8px)', alignSelf: 'flex-start',
-      maxHeight: 'calc(100vh - var(--dau-cao, 0px) - 24px)', overflowY: 'auto', display: 'grid', gap: 1, alignContent: 'start', paddingRight: 4 }}>
+    <CotCay khoa="cay-phim" macDinh={250}>
       {onHep && <button type="button" className="xv-btn" style={{ justifySelf: 'end', padding: '0 6px', marginBottom: 4 }} title="Thu cây thành dải hẹp — nhường chỗ cho storyboard" onClick={() => onHep(true)}>⇤</button>}
       {out.map((d) => {
         const sel = !d.chiNhom && chon(d);
@@ -116,6 +116,6 @@ export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, tha
           </div>);
       })}
       {onThemTap && !dong.has('tap') && <button type="button" className="xv-btn" style={{ justifySelf: 'start', margin: '4px 0 4px 22px' }} title="Thêm một tập trống" onClick={onThemTap}>+ Thêm tập</button>}
-    </nav>
+    </CotCay>
   );
 }

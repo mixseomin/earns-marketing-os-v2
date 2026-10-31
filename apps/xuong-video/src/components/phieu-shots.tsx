@@ -9,6 +9,7 @@ import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { gioVN } from '@/lib/xuong-video/kieu';
 import { moNgan } from './ngan-chung';
 import { Seg, mono } from './ui';
+import { CotCay, CayCon, CayNut } from './keo';
 
 const ICON: Record<NutPhieu['loai'], string> = { boi_canh: '🏛', cau_kien: '▫', nhan_vat: '👤', look: '👗', dao_cu: '📦', khac: '·' };
 type Xem = '2d' | '3d';
@@ -16,7 +17,7 @@ type Xem = '2d' | '3d';
 function Nut({ x, cap, onMo }: { x: NutPhieu; cap: number; onMo?: (k: string, ten: string) => void }) {
   const con = x.con ?? [];
   return (
-    <div className="xv-cay-nut" style={{ display: 'grid', gap: 2, paddingBottom: 4 }}>
+    <CayNut style={{ display: 'grid', gap: 2, paddingBottom: 4 }}>
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', minHeight: 24 }}>
         {x.anh ? <img src={anhNho(x.anh, 160)} alt="" style={{ width: 22, height: 22, objectFit: 'cover', borderRadius: 3 }} /> : <span style={{ width: 22, textAlign: 'center' }}>{ICON[x.loai]}</span>}
         {x.link && onMo ? <button type="button" className="xv-lienket" style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600 }} title="Mở chi tiết thành phần (ngăn kéo, không rời phiếu)" onClick={() => onMo(x.link!, x.nhan)}>{x.nhan}</button>
@@ -24,8 +25,8 @@ function Nut({ x, cap, onMo }: { x: NutPhieu; cap: number; onMo?: (k: string, te
         {!x.anh && x.loai !== 'cau_kien' && x.loai !== 'khac' && <span style={{ ...mono, color: 'var(--amber)' }} title="Thành phần chưa có ảnh mẫu / ảnh gốc — keyframe sẽ vẽ theo chữ">chưa ảnh</span>}
       </div>
       {x.chi_tiet.filter(Boolean).map((t, i) => <div key={i} style={{ fontSize: 11.5, color: /không khai|không tả/.test(t) ? 'var(--red)' : 'var(--fg-2)', paddingLeft: 28 }}>{t}</div>)}
-      {con.length > 0 && <div className="xv-cay-con">{con.map((c, i) => <Nut key={i} x={c} cap={cap + 1} onMo={onMo} />)}</div>}
-    </div>
+      {con.length > 0 && <CayCon>{con.map((c, i) => <Nut key={i} x={c} cap={cap + 1} onMo={onMo} />)}</CayCon>}
+    </CayNut>
   );
 }
 
@@ -70,8 +71,8 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
   ];
   const xemDung = coXem.some((o) => o.value === xem) ? xem : coXem[0]?.value;
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 1fr) minmax(420px, 3fr)', gap: 12, alignItems: 'start' }}>
-      <div style={{ display: 'grid', gap: 2, maxHeight: '78vh', overflowY: 'auto' }}>
+    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+      <CotCay khoa="ds-shot" macDinh={260}>
         {ds.map((x) => (
           <button key={x.id} type="button" onClick={() => setChon(x.id)} style={{ display: 'grid', gap: 1, textAlign: 'left', padding: '5px 8px', borderRadius: 4, border: '1px solid var(--line)', background: x.id === p.id ? 'var(--bg-3)' : 'transparent' }}>
             <span style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
@@ -84,8 +85,8 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
             <span style={{ fontSize: 11.5, color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingLeft: 36 }}>{x.hanh_dong}</span>
           </button>
         ))}
-      </div>
-      <div className="xv-panel" style={{ display: 'grid', gap: 10 }}>
+      </CotCay>
+      <div className="xv-panel" style={{ display: 'grid', gap: 10, flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
           <b style={{ fontSize: 14 }}>Shot #{p.thu_tu}{p.nhanh ? ` · nhánh ${p.nhanh}` : ''}</b>
           <span style={mono}>{[p.co_canh, p.goc_may].filter(Boolean).join(' · ')}</span>

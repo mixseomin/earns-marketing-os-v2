@@ -17,6 +17,7 @@ import { useNho } from './nho';
 import { KHUON_CHUOI } from '@/lib/xuong-video/khuon-chuoi';
 import { HIEU_UNG_KHAN_GIA, hieuUngKG } from '@/lib/xuong-video/khan-gia';
 import { GOI_THE_LOAI, DIGEN_NHOM, DIGEN_KHONG_TINH, goiTheoKey, kiemGoi, boCucGoi } from '@/lib/xuong-video/goi-the-loai';
+import { CotCay } from './keo';
 import { KHUNG_TUYEN, khungTheoKey, khungTheoTheLoai, type KhungTuyen } from '@/lib/xuong-video/khung-tuyen';
 
 // THƯ VIỆN theo YDNI (anh 18/10/2026 "tổ chức lại thư viện cho dễ tìm, dễ truy cập"): ô tìm luôn trên đầu (tìm cả tên Việt, tên ngành tiếng Anh,
@@ -73,9 +74,9 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
   };
   const tong = MUC_TV.reduce((a, m) => a + Math.max(0, dem(m.key)), 0);
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 180px) 1fr', gap: 14, alignItems: 'start' }}>
-      {/* Mục lục — dính khi cuộn; nhãn chỉ tên, số ở hover */}
-      <nav style={{ position: 'sticky', top: 0, display: 'grid', gap: 10, fontSize: 12.5 }}>
+    <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+      {/* Mục lục — cột cây chuẩn (kéo rộng, dính khi cuộn); nhãn chỉ tên, số ở hover */}
+      <CotCay khoa="thu-vien" macDinh={180} min={140}><div style={{ display: 'grid', gap: 10, fontSize: 12.5 }}>
         {NHOM_MUC.map((g) => (
           <div key={g.ten} style={{ display: 'grid', gap: 1 }}>
             <div className="xv-mono" style={{ textTransform: 'uppercase', fontSize: 9.5, padding: '0 8px 2px' }}>{g.ten}</div>
@@ -85,8 +86,8 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
           </div>
         ))}
         <button type="button" className="xv-btn" style={{ fontSize: 11.5 }} onClick={() => moNgan({ loai: 'kho' })} title="Clip · keyframe · nhạc đã làm, dùng lại được">📦 Kho tài sản</button>
-      </nav>
-      <div style={{ minWidth: 0 }}>
+      </div></CotCay>
+      <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-0, var(--bg-1))', paddingBottom: 8, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <input className="xv-in" autoFocus value={qTho} onChange={(e) => setQ(e.target.value)} placeholder={`Tìm trong ${THU_VIEN.length + LUAT_DUNG_CANH.length + KHUON_CHUOI.length} mục — "dolly", "đẩy vào", "hook", "rack focus"…`}
             onKeyDown={(e) => { if (e.key === 'Escape' && qTho) { e.stopPropagation(); setQ(''); } }} style={{ flex: '1 1 260px', minWidth: 0 }} />

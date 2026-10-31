@@ -7,6 +7,7 @@ import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoan
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
 import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
 import { datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/actions/etp-sua';
+import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
@@ -58,9 +59,8 @@ const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat
   : choGio(c) ? { chu: `chờ ${conLai(c.lich!)} nữa`, mau: '#f59e0b', t: `hẹn chạy từ ${vn(c.lich)}` }
   : c.trang_thai === 'ACTIVE' ? { chu: 'chạy', mau: '#4ade80', t: 'đang chạy' } : { chu: 'dừng', mau: 'var(--fg-2)', t: 'tắt' };
 const dangChay = (c: Pick<CampEtpKho, 'trang_thai' | 'lich'>) => c.trang_thai === 'ACTIVE' && !choGio(c);
-// CAMP ROAS ★ (nhan-ban.py --roas: "★ … roas X duplicate by <gốc>") — cùng cách nhận với apps/etp/cong.py la_roas
-const MAU_ROAS = '#facc15';   // camp ROAS ★ tô vàng ở cây / bảng camp (anh 27/10/2026)
-const laRoas = (ten: string | null) => / duplicate by \d+/.test(ten ?? '') || (ten ?? '').trimStart().startsWith('★');
+// CAMP ROAS (nhà ★ … duplicate by · team "Dup by <gốc> ROAS 1.1" / "_ROAS1" / "(ROAS)") — luật nhận ở lib/etp-roas.ts, cùng apps/etp/cong.py la_roas
+const MAU_ROAS = '#facc15';   // camp ROAS tô vàng ở cây / bảng camp (anh 27/10/2026)
 // đã tiêu ≥ ngân sách ngày → Meta gần như ngừng phân phối tới lúc ngân sách nạp lại 07:00 VN (anh 26/10/2026: dòng đó để mờ hơn)
 const hetNs = (c: Pick<CampEtpKho, 'trang_thai' | 'ngan_sach' | 'nay'>) => c.trang_thai === 'ACTIVE' && c.ngan_sach > 0 && c.nay.chi >= c.ngan_sach;
 const TT = ({ c }: { c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean } }) => {
@@ -800,20 +800,19 @@ function CotCampNoi({ c, nhan, du, bid, anh }: { c: CampEtpKho | undefined; nhan
 
 function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpKho[]; tong: Map<number, DuLieuEtp['roasChay'][number]>; ungVien: DuLieuEtp['roas'];
   cot: DataColumn<CampEtpKho>[]; nhom: { key: string; label: string; color: string }[]; du: DuLieuEtp; anh: (cr: number | null) => React.ReactNode }) {
-  const muc = (c: CampEtpKho) => (c.ten ?? '').match(/roas ([\d.]+) duplicate by (\d+)/);
   const theoId = useMemo(() => new Map(du.camps.map((c) => [c.camp_id, c])), [du.camps]);
   const noi = useNoi<{ id: number }>();
   const reCamp = (c: CampEtpKho, nd: React.ReactNode) => <span onMouseEnter={(e) => noi.mo({ id: c.camp_id }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help' }}>{nd}</span>;
-  const dang = noi.v ? theoId.get(noi.v.id) : undefined, gocId = dang ? Number(muc(dang)?.[2] ?? 0) : 0;
+  const dang = noi.v ? theoId.get(noi.v.id) : undefined, gocId = dang ? gocRoas(dang.ten) ?? 0 : 0;
   const tt = (c: CampEtpKho) => (c.trang_thai !== 'ACTIVE' ? 'Đã tắt' : choGio(c) ? `Chờ ${conLai(c.lich!)} nữa · ${vn(c.lich)}` : 'Đang chạy');
   const tu = (c: CampEtpKho) => tong.get(c.camp_id) ?? { chi: 0, thu: 0 };
   const cotRoas: DataColumn<CampEtpKho>[] = [
     { ...cot[0]!, cell: (c, i) => reCamp(c, cot[0]!.cell(c, i)) },
     { key: 'muc', header: 'ROAS bid', title: 'ROAS goal THẬT đang đặt trên Ethopex (Ad Set bid_constraints, kho etp đồng bộ 10 phút) — đỏ = khác mức ghi trong tên camp hoặc camp không còn bid ROAS',
-      cell: (c) => { const ten = muc(c)?.[1], lech = c.roas == null || (ten != null && Math.abs(Number(ten) - c.roas) > 1e-6) || (!!c.chien_luoc && c.chien_luoc !== 'LOWEST_COST_WITH_MIN_ROAS');
+      cell: (c) => { const ten = mucRoas(c.ten), lech = c.roas == null || (ten != null && Math.abs(ten - c.roas) > 1e-6) || (!!c.chien_luoc && c.chien_luoc !== 'LOWEST_COST_WITH_MIN_ROAS');
         return <b style={{ color: lech ? '#f87171' : undefined }} title={`${c.chien_luoc ?? 'chưa đồng bộ'} · tên camp ghi ${ten ?? '—'}`}>{c.roas == null ? (ten ? `${ten}?` : '—') : c.roas}</b>; },
-      sortValue: (c) => c.roas ?? Number(muc(c)?.[1] ?? 0) },
-    { key: 'goc', header: 'Nhân từ', title: 'camp gốc (dùng lại bài đăng của camp này)', cell: (c) => reCamp(c, <span style={{ textDecoration: 'underline dotted' }}>#{muc(c)?.[2] ?? '—'}</span>), sortValue: (c) => Number(muc(c)?.[2] ?? 0) },
+      sortValue: (c) => c.roas ?? mucRoas(c.ten) ?? 0 },
+    { key: 'goc', header: 'Nhân từ', title: 'camp gốc (dùng lại bài đăng của camp này)', cell: (c) => reCamp(c, <span style={{ textDecoration: 'underline dotted' }}>#{gocRoas(c.ten) ?? '—'}</span>), sortValue: (c) => gocRoas(c.ten) ?? 0 },
     { key: 'tt', header: 'Trạng thái', align: 'left', cell: (c) => <span style={{ fontSize: 12, color: c.trang_thai !== 'ACTIVE' ? 'var(--fg-2)' : choGio(c) ? '#f59e0b' : '#4ade80' }}>{tt(c)}</span>, sortValue: (c) => tt(c) },
     ...cot.slice(1).filter((k) => k.key !== 'tuoi'),
     { key: 'tuchi', header: 'Chi từ lúc lên', cell: (c) => <Tien v={tu(c).chi} />, sortValue: (c) => tu(c).chi, total: (rs) => <KeToan v={rs.reduce((a, c) => a + tu(c).chi, 0)} /> },
@@ -827,7 +826,7 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
         searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''}`} searchPlaceholder="Tìm camp ROAS, phim…" />
       {noi.v && dang ? (
         <KhungNoi x={noi.v.x} y={noi.v.y} rong={760} cao={460} noi={noi} style={{ padding: 12, width: 760, display: 'flex', gap: 16 }}>
-          <CotCampNoi c={dang} nhan="★ Camp ROAS" du={du} anh={anh} bid={<b>ROAS bid {dang.roas ?? `${muc(dang)?.[1] ?? '?'}?`}</b>} />
+          <CotCampNoi c={dang} nhan="★ Camp ROAS" du={du} anh={anh} bid={<b>ROAS bid {dang.roas ?? `${mucRoas(dang.ten) ?? '?'}?`}</b>} />
           <div style={{ width: 1, background: 'var(--line)' }} />
           <CotCampNoi c={theoId.get(gocId)} nhan={`Camp gốc #${gocId}`} du={du} anh={anh} />
         </KhungNoi>) : null}

@@ -217,6 +217,11 @@ const LUAT = [
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "m.id > 0 && !seTat.has(m.id) && !giu[`nb:${m.id}`]", vi: 'không nhân bản camp đang chờ tắt' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC } from './ethopex.mjs';", vi: 'một danh sách mức ROAS cho nhà và team' },
   { card: 0, tep: 'apps/etp/cong.py', co: 'la_roas = lambda ten: " duplicate by " in (ten or "") or (ten or "").lstrip().startswith("★") or bool(_ROAS_TEAM.search(ten or ""))', vi: 'nhận camp ROAS team đặt tên kiểu _ROAS1 / (ROAS) / Dup by' },
+  // anh 31/10/2026 "các camp roas của kiên ko thấy đánh dấu vàng": giao diện nhận ROAS team bằng một hàm chung, không chép luật riêng
+  { card: 0, tep: 'apps/web/src/lib/etp-roas.ts', mot: 'const ROAS_TEAM = /(?:^|[\\s_(])ROAS\\d*(?=$|[\\s_)])/;', vi: 'giao diện nhận ROAS team cùng luật với cong.py' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';", vi: 'tô vàng / tab ROAS dùng hàm chung' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', cam: 'const laRoas = (', vi: 'không chép lại luật nhận ROAS chỉ hiểu kiểu nhà' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', cam: '.match(/roas ([\\d.]+) duplicate by (\\d+)/);', vi: 'tab ROAS đọc mức / gốc bằng hàm chung' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '_goc_roas = CONG.goc_roas(ds_camp)', vi: 'gốc team đã có ROAS không lên ROAS trùng' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'theo cách tk Nguyễn Sơn chạy', vi: 'mô tả luật (cột Luật mọi người thấy) không mang tên người — bộ chống lộ etp-quyen.kiem.mts bắt 31/10/2026' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'tuoi', header: 'Tuổi', width: 52,", vi: 'cột Tuổi Cây hẹp cố định (không ăn khoảng thừa)' },

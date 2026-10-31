@@ -156,6 +156,18 @@ export type NenKhung = { en1: string; enN: string; vi: string; n: number; choEn:
 export function nenTheoKhung(s: SoDo, m: ManhSoDo): NenKhung[] {
   return nhomPhong(s, m).map(({ en1, enN, vi, n, c }) => ({ en1, enN, vi, n, choEn: choEn(c), choVi: choVi(c), trong: c.sau > 0.05 && Math.abs(c.nx) <= 1 }));
 }
+/** Bước 4 — lắp MÔ TẢ BỐI CẢNH cho prompt TỪ bộ: vỏ phòng (vật liệu/kiến trúc luôn có) + CHỈ cấu kiện TRONG khung (tả theo mô tả anchor + vị trí màn),
+ *  cấu kiện NGOÀI khung gộp vào câu "không vẽ". Thay khối đổ-nguyên-phòng (nhắc cả vật ngoài khung → model đẻ vật thừa / lật cửa).
+ *  `moTa` = mô tả anchor của từng cấu kiện (khớp theo tên VI); thiếu thì chỉ nêu tên. */
+export function lapBoiCanh(vo: string, moTa: Record<string, string>, nen: NenKhung[]): { trong: string; khongVe: string } {
+  const danh = (x: NenKhung) => `${x.n > 1 ? x.n + ' ' : ''}${x.n > 1 ? x.enN : x.en1}`;
+  const trong = nen.filter((x) => x.trong).map((x) => { const d = moTa[x.vi]; return `${danh(x)}${d ? ` (${d})` : ''} — ${x.choEn}`; });
+  const ngoai = nen.filter((x) => !x.trong).map(danh);
+  return {
+    trong: [vo.trim() ? `The location — ${vo.trim()}` : '', trong.length ? `Fixtures visible in THIS frame (keep each exactly as in its reference image, at the stated place): ${trong.join('; ')}.` : ''].filter(Boolean).join(' '),
+    khongVe: ngoai.length ? `These fixtures belong to the location but are OUT of THIS frame right now — do not draw them or any part of them: ${ngoai.join(', ')}.` : '',
+  };
+}
 /** Kỳ vọng cho cổng đo keyframe: người trong khung → phía màn (+ phía nhìn nếu khai). */
 export function kyVong(s: SoDo, m: ManhSoDo, nguoi: string[]): Record<string, KyVong> {
   const r: Record<string, KyVong> = {};

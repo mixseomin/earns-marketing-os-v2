@@ -2,7 +2,7 @@
 // không đổi (anh 31/10/2026: nền "2 cửa" mà cửa nhảy trái / phải mỗi khung vì `phong` chưa bao giờ vào prompt). Chạy:
 //   NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx src/lib/xuong-video/so-do-co-dinh.test.mts   (cwd apps/xuong-video)
 import assert from 'node:assert';
-import { benMan, cauBoiCanhCoDinh, coDinhDuKien, nenTheoKhung, type SoDo, type ManhSoDo, type MangPhong } from './so-do-canh';
+import { benMan, cauBoiCanhCoDinh, coDinhDuKien, nenTheoKhung, lapBoiCanh, type SoDo, type ManhSoDo, type MangPhong } from './so-do-canh';
 
 const phong: MangPhong[] = [
   { loai: 'tuong', tu: [-3, 5], den: [3, 5], z1: 3 },        // tường sau (y=5) — không được nhắc thành "fixture"
@@ -69,4 +69,12 @@ assert.ok(cua && cua.trong === true, `cửa phải TRONG khung: ${JSON.stringify
 const sauLung = nenTheoKhung({ ...s2, phong: [{ loai: 'vat', ten: 'Bàn lễ tân', tu: [0, -2], den: [0.5, -2], z1: 1 }] }, { may: 'nam', o: {} });
 assert.ok(sauLung[0] && sauLung[0].trong === false, 'vật sau lưng máy → ngoài khung');
 
-console.log('✓ so-do-co-dinh: cụm cửa + cấu kiện có tên lật theo máy, số lượng bất biến, tách trong/ngoài khung đúng, tường trơn bỏ, phim cũ không vỡ');
+// 7. lapBoiCanh (Bước 4): vỏ phòng + CHỈ cấu kiện trong khung (kèm mô tả anchor + vị trí), cấu kiện ngoài khung → "không vẽ". Không nhắc vật ngoài khung như đang có.
+const nkA = nenTheoKhung(s2, { may: 'nam', o: {} });
+const lap = lapBoiCanh('black marble lobby, brushed steel', { 'Bục lan trắng': 'tall marble pedestal with white orchids', 'Bảng chỉ dẫn': 'black glass directory' }, nkA);
+assert.ok(/black marble lobby/.test(lap.trong), 'giữ vỏ phòng (vật liệu)');
+assert.ok(/2 white-orchid marble pedestals \(tall marble pedestal with white orchids\)/.test(lap.trong), `cấu kiện trong khung kèm mô tả anchor + số: ${lap.trong}`);
+assert.ok(!/directory/.test(lap.trong), 'bảng chỉ dẫn NGOÀI khung → không nằm ở phần "trong khung"');
+assert.ok(/do not draw them/.test(lap.khongVe) && /directory board/.test(lap.khongVe), `cấu kiện ngoài khung vào câu "không vẽ": ${lap.khongVe}`);
+
+console.log('✓ so-do-co-dinh: cụm cửa + cấu kiện có tên lật theo máy, số lượng bất biến, tách trong/ngoài khung đúng, lắp prompt chỉ vật trong khung, tường trơn bỏ, phim cũ không vỡ');

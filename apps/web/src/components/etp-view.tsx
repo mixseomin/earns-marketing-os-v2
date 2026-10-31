@@ -487,7 +487,8 @@ function SuaCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ngan_sach' | 'trang_t
     <button ref={neo} onClick={(e) => { e.stopPropagation(); setMo((v) => !v); setNs(String(c.ngan_sach)); setKq(null); }} title="sửa camp: ngân sách · bật · tắt"
       style={{ border: 'none', background: 'transparent', color: 'var(--fg-3, #777)', cursor: 'pointer', padding: '0 2px', fontSize: 11 }}>✎</button>
     <AnchoredPopover anchorRef={neo} open={mo} onClose={() => setMo(false)}>
-      <div onClick={(e) => e.stopPropagation()} style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220, fontSize: 12 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220, fontSize: 12,
+        background: 'var(--bg-1)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>{/* AnchoredPopover không tự có nền — panel do nơi gọi tô (mẫu channel-picker-chip) */}
         <div style={{ color: 'var(--fg-2)' }}>camp #{c.camp_id} · {c.trang_thai === 'ACTIVE' ? 'đang chạy' : 'đang tắt'}</div>
         {!het || doiPhien ? <KetNoiEthopex het={het} xong={() => { setDoiPhien(false); router.refresh(); }} /> : <>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

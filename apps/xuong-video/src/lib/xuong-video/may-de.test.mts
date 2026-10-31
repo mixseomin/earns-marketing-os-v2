@@ -62,5 +62,5 @@ assert.ok(!kiemDe({ ...dungHook, hooks: hk, hook_qc: hk[0]!.id }).some((l) => /h
 assert.ok(kiemDe({ ...dungHook, hooks: hk, hook_qc: '' }).some((l) => /chưa chọn hook QC/.test(l)), 'không chọn QC gốc bị chặn');
 assert.ok(kiemDe({ ...tot, hooks: hk, hook_qc: hk[0]!.id }).some((l) => /sửa quá xa/.test(l)), 'hook viết lại quá xa bị chặn');
 assert.ok(kiemDe({ ...dungHook, title: dungHook.title + ' Your Astrology Reading knows.', hooks: hk, hook_qc: hk[0]!.id }).some((l) => /tên nhà quảng cáo/.test(l)), 'mang tên Page gốc bị chặn');
-assert.ok(vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('3496181930676276') && vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('ADAPT IT LIGHTLY'), 'prompt có hook gốc');
+assert.ok(vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('3496181930676276') && vanNguoiDung(goc, 'top-n', [], 'en', hk).includes('WORD FOR WORD'), 'prompt có hook gốc + dặn giữ nguyên văn');
 console.log('may-de: phần thuần đạt');

@@ -2166,7 +2166,9 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const baoCampBang = useMemo(() => { const m = new Map<number, { nhom: string; chu: string }[]>(); for (const b of du.bao) m.set(b.camp_id, [...(m.get(b.camp_id) ?? []), b]); return m; }, [du.bao]);
   const chipMap = useMemo(() => new Map(du.camps.map((c) => [c.camp_id, chipCamp(du, c, baoCampBang.get(c.camp_id))])), [du, baoCampBang]);
   // đã tắt theo luật: giá trị lọc 'tat:<mã>' (nhóm "Đã tắt theo" trong ô Luật + dải luật) — lần tắt gần nhất trong nhật ký máy (etp-doc tatLuat)
-  const tatMap = useMemo(() => new Map((du.tatLuat ?? []).map((t) => [t.camp_id, t])), [du.tatLuat]);
+  // theo KỲ SỐ LIỆU đang chọn (anh 01/11/2026 "show theo cả khoảng thời gian"): chỉ camp có lần tắt gần nhất rơi trong kỳ (ngày Ethopex)
+  const tatKy = useMemo(() => (du.tatLuat ?? []).filter((t) => t.ngay >= khK.tu && t.ngay <= khK.den), [du.tatLuat, khK.tu, khK.den]);
+  const tatMap = useMemo(() => new Map(tatKy.map((t) => [t.camp_id, t])), [tatKy]);
   const hopLuat = useCallback((c: CampEtpKho) => { if (!luatLoc) return true; if (luatLoc.startsWith(TAT_LUAT)) return tatMap.get(c.camp_id)?.ma === luatLoc.slice(TAT_LUAT.length);
     const ch = chipMap.get(c.camp_id); return luatLoc === KHONG_LUAT ? !ch : ch?.chip === luatLoc; }, [luatLoc, chipMap, tatMap]);
   // gần tăng / giảm / tắt (anh 26/10/2026: "muốn lọc để xem các camp gần tăng/giảm") — chỉ camp đang chạy thật, gồm cả camp máy luật đã đánh dấu cùng hướng
@@ -2244,8 +2246,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     for (const c of du.camps) { const ch = chipMap.get(c.camp_id); if (!ch) { khong++; continue; } const x = m.get(ch.chip); if (x) x.dem++; else m.set(ch.chip, { dac: ch.dac, dem: 1 }); }
     return [...[...m].map(([chip, x]) => ({ value: chip, label: chip, nhom: x.dac ? 'Đang chạm' : 'Sắp chạm', dem: x.dem })).sort((a, b) => (a.nhom === b.nhom ? b.dem - a.dem : a.nhom === 'Đang chạm' ? -1 : 1)),
       ...(khong ? [{ value: KHONG_LUAT, label: 'Không chạm luật', nhom: 'Khác', dem: khong }] : []),
-      ...[...(du.tatLuat ?? []).reduce((a, t) => a.set(t.ma, (a.get(t.ma) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1])
-        .map(([ma, dem]) => ({ value: TAT_LUAT + ma, label: `⏹ ${ma}`, nhom: 'Đã tắt theo', dem }))]; }, [du.camps, du.tatLuat, chipMap]);
+      ...[...tatKy.reduce((a, t) => a.set(t.ma, (a.get(t.ma) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1])
+        .map(([ma, dem]) => ({ value: TAT_LUAT + ma, label: `⏹ ${ma}`, nhom: 'Đã tắt theo', dem }))]; }, [du.camps, tatKy, chipMap]);
   const luatSel = () => <Chon2 value={luatLoc} onChange={(v) => { const tat = v.startsWith(TAT_LUAT); doi({ luat: v, ...(tat ? { loc: 'all' as const } : {}) }, () => { setLuatLoc(v); if (tat) setLoc('all'); }); }} nhan="Luật" title="lọc camp theo thẻ luật đang hiện ở cột Luật (đang chạm: viền liền · sắp chạm: viền nét đứt)" options={luatOpts} />;
   const dangSel = () => <Chon2 value={dangLoc} onChange={(v) => doi({ dang: v }, () => setDangLoc(v))} nhan="Loại" title="lọc camp theo loại creative"
     // #1486: mỗi dòng = ĐÚNG badge cột LOẠI (BadgeDang ngắn, cùng màu MAU_DANG) + tên loại; chữ tìm + nhãn gọn trên nút giữ dạng chữ

@@ -43,7 +43,8 @@ for (let lan = 0; lan < 60 && xong.size < Object.keys(gui).length; lan++) {
   catch { console.log('  ! tab rời app VideoExpress — mở lại phiên rồi chờ tiếp'); await moPhien(); continue; }   // 01/11/2026: tab bị đổi giữa lúc chờ → chết, mất 3 job
   for (const [b, uuid] of Object.entries(gui)) {
     if (xong.has(b)) continue;
-    const it = ds.find((x) => x.uuid.startsWith(uuid));   // nhận cả tiền tố uuid (log cũ in 8 ký tự) if (!it || it.isPending || !/^https?:\/\//.test(String(it.mediaPath ?? ''))) continue;   // 'completed' mà CDN chưa đẩy file → mediaPath null / chuỗi "null"
+    const it = ds.find((x) => x.uuid.startsWith(uuid));   // nhận cả tiền tố uuid (log cũ in 8 ký tự)
+    if (!it || it.isPending || !/^https?:\/\//.test(String(it.mediaPath ?? ''))) continue;   // 'completed' mà CDN chưa đẩy file → mediaPath null / chuỗi "null"
     const f = tai(it.mediaPath, join(thu, `${b}.mp4`));
     execFileSync('scp', ['-q', f, `${BOX}:/tmp/vx-cum-${b}.mp4`]);
     console.log(boxTsx(`${doan} --gan=${b}:/tmp/vx-cum-${b}.mp4 --nguon=vx`).split('\n').pop());

@@ -104,7 +104,7 @@ function ganLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'thang' | 'tao' | 'qua' | 'na
 // 'dang' = máy luật đã xếp làm ở nhịp này (chưa chạy / chờ anh duyệt / báo trước) · 'gan' = sắp chạm, chỉ theo dõi
 const LUAT_NHAN: Record<string, [string, string, string, 'dang' | 'gan']> = {   // nhóm etp.bao → [ký hiệu, tên, màu, loại]
   tat2: ['✕', 'T2 sắp tắt', '#f87171', 'dang'], tat7: ['✕', 'T7 sắp tắt', '#f87171', 'dang'], tat: ['✕', 'Cần tắt', '#f87171', 'dang'], dung_dem: ['☾', 'Dừng đêm', '#f87171', 'dang'], thang_tat: ['✕', 'Bản thang lỗ', '#f87171', 'dang'],
-  tat_roas: ['✕', 'RL · ROAS lỗ', '#f87171', 'dang'], tat_d24: ['✕', 'Dừng > 24h', '#f87171', 'dang'], tu_choi: ['⛔', 'Meta từ chối', '#f87171', 'dang'],
+  tat_roas: ['✕', 'RL · ROAS lỗ', '#f87171', 'dang'], tat_g10: ['✕', 'G10 sắp tắt', '#f87171', 'dang'], g10: ['↓', 'G10 về $10', '#fb923c', 'dang'], tat_d24: ['✕', 'Dừng > 24h', '#f87171', 'dang'], tu_choi: ['⛔', 'Meta từ chối', '#f87171', 'dang'],
   ha: ['↓', 'Giảm bậc', '#fb923c', 'dang'], giam: ['↘', 'ROI tụt', '#f59e0b', 'dang'],
   tang: ['↑', 'Tăng bậc', '#4ade80', 'dang'], dau_phien: ['↑', 'Lãi đầu phiên', '#4ade80', 'dang'], tang30: ['⇈', 'Lên $30', '#4ade80', 'dang'],
   nb: ['⧉', 'Nhân bản', '#60a5fa', 'dang'], thang_nb: ['⧉', 'Mở bản thang', '#60a5fa', 'dang'], moc30: ['★', 'Đủ bid ROAS', '#facc15', 'dang'],
@@ -643,7 +643,7 @@ function TabTaiNguyen({ du, khCamp }: { du: DuLieuEtp; kh: Kh; khCamp: Map<numbe
 // điều kiện + ngưỡng đọc THẲNG từ lượt xét của máy luật (etp.xet_luat — không chép tay), số thật từ apps/etp/so-luat.py (nhật ký máy + số ngày Ethopex, mỗi giờ)
 const NHOM_LUAT: [string, string, string[]][] = [
   ['tang', 'Tăng chi — tăng bậc, nhân bản', ['tang', 'tang_ngay', 'dau_phien', 't30', 'nb', 'thang_nb']],
-  ['tat', 'Tắt camp', ['l3', 'l4', 't2', 'off', 'l7', 't7', 'd24', 'rl']],   // rl = camp ★ ROAS lỗ 2 ngày, máy tự tắt (30/10/2026)   // giảm bậc đã bỏ (anh 29/10/2026) — camp lỗ liền đi L3
+  ['tat', 'Tắt camp', ['g10', 'l3', 'l4', 't2', 'off', 'l7', 't7', 'd24', 'rl']],   // g10 = hạ về $10 rồi tắt (hướng dẫn team 31/10/2026)   // rl = camp ★ ROAS lỗ 2 ngày, máy tự tắt (30/10/2026)   // giảm bậc đã bỏ (anh 29/10/2026) — camp lỗ liền đi L3
 ];
 function BanLuat({ du }: { du: DuLieuEtp }) {
   const theo = new Map(du.soLuat.map((l) => [l.ma, l])); const luc = du.soLuat.reduce<string | null>((m, l) => (!m || l.luc > m ? l.luc : m), null);

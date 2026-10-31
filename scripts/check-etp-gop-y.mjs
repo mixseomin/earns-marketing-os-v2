@@ -253,6 +253,12 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L("rl", "RL · ROAS lỗ 2 ngày"', vi: 'thẻ xét luật camp ROAS có điều kiện RL' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'ls.append(L("roas", "Luật ROAS (camp ★)"', vi: 'không còn luật ROAS dk rỗng ghi Đạt' },
   { card: 0, tep: V, co: "'d24', 'rl']]", vi: 'bản luật nhóm Tắt có RL' },
+  // anh 31/10/2026 G10 theo hướng dẫn team (ảnh bộ lọc Ethopex: Active · Budget Daily > 15 · ROI < 15): hạ thẳng về $10, 2 ngày đã khép sau đó vẫn < 15% thì tắt, áp cả ★ ROAS
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'G10_NS, G10_DICH, G10_ROI, G10_THEO = 15, 10, 15, 2', vi: 'G10: ngân sách > $15, về $10, ROI < 15%, theo dõi 2 ngày' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '        if ns <= G10_NS: continue', vi: 'G10 lọc ngân sách > $15 đúng bộ lọc team' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L_g10(cid, ns)); ra[int(cid)] = ls; continue', vi: 'thẻ G10 có cả ở camp ★ ROAS' },
+  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', mot: "khoa: 'tat_g10', tep: 'ethopex-tat-g10.json'", vi: 'G10 bước tắt đi đường báo trước một nhịp' },
+  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "chay(LAM, ['giam', String(m.id), String(d), '--luat', `G10 · ${m.chu}`", vi: 'G10 máy tự hạ về $10' },
   { card: 0, tep: 'apps/etp/so-luat.py', co: '("tat", r"^RL ", "rl")', vi: 'số luật RL đếm từ nhật ký' },
   // anh 31/10/2026 "Sửa máy luật. Cái này quan trọng": report 30 ngày 2.159 dòng > trang 1.000 người gọi xin → máy luật dừng hẳn từ 16:41 30/10
   { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'b = {**body, "page": 1, "page_size": TRANG_BC, "limit": TRANG_BC}', vi: 'report luôn xin trang tối đa máy chủ, không theo cỡ người gọi' },

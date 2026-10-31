@@ -11,7 +11,7 @@ DB = os.environ["DATABASE_URL"]
 LUAT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "luat-ethopex.py")
 # khoá JSON máy luật → loại đề xuất bậc (mọi luật tắt gộp một loại 'tat'; luật thang bộ 2 chỉ có ở nhà)
 LOAI = {"tang": "tang", "dau_phien": "dau_phien", "tang30": "tang30", "moc30": "moc30", "nb": "nb", "ha": "ha", "giam": "giam",
-        "tat": "tat", "tat_d24": "tat", "tat_l3": "tat", "tat_l4": "tat", "tat2": "tat", "tat7": "tat", "tat_roas": "tat"}
+        "tat": "tat", "tat_d24": "tat", "tat_l3": "tat", "tat_l4": "tat", "tat2": "tat", "tat7": "tat", "tat_roas": "tat", "g10": "ha", "tat_g10": "tat"}
 
 def q(s):
     r = subprocess.run(["psql", DB, "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], input=s, capture_output=True, text=True)

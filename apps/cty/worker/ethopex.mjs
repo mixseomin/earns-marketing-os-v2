@@ -345,7 +345,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const daTu = []; const lamRoi = new Set();
   // Một camp một quyết định: máy luật (luat-ethopex.py _SE_TAT) đã gỡ camp trong danh sách tắt khỏi mọi danh sách tăng / giảm / nhân bản —
   // seTat ở đây chỉ là lưới đỡ khi máy luật bản cũ trả về (29/10/2026 #65656)
-  const seTat = new Set(['tat2', 'tat_d24', 'tat_l3', 'tat_l4', 'tat', 'thang_tat', 'tat_roas'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
+  const seTat = new Set(['tat2', 'tat_d24', 'tat_l3', 'tat_l4', 'tat', 'thang_tat', 'tat_roas', 'tat_g10'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
   const { tinNhanh } = await import('./tg-phong.mjs');
   const guiNhanh = async (b) => { const j = await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...b }); tinNhanh(j?.result?.message_id); return j; };
   // MÁY TỰ GIẢM BẬC (luật GB, chỉ khi anh đã duyệt "gb_tu_giam" trên Telegram): camp chạm GB → lam-ethopex giam (vẫn chặn đổi < 6 giờ, camp phải bật,
@@ -380,6 +380,32 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     if (daGiam.length) {
       const dong = bangViec(daGiam.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng');
       await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ GIẢM BẬC — ROI TỤT ĐANG ÂM</b> (anh duyệt 26/10) — ROI 3 ngày gần < 0%, xuống một bậc; không tắt camp nào; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
+      gui++;
+    }
+  }
+  // G10 — MÁY HẠ THẲNG VỀ $10 (hướng dẫn team 31/10/2026 "ngân sách lên $30 mà camp rois giảm là mình giảm luôn budget về ~ 10$ sau đó theo dõi 1,2 ngày
+  // mà rois vẫn kém, mình off đi"; anh lệnh làm, áp cả ★ ROAS): camp chạm G10 → lam-ethopex giam về $10 (cùng chặn của lam: đổi < 6 giờ, camp phải bật);
+  // hạ xong ghi etp.cau_hinh 'g10' {camp: ngày hạ UTC} — máy luật đếm ngày đã khép SAU ngày đó, kém tiếp thì tat_g10 (LUAT_TAT, báo trước một nhịp rồi tắt).
+  // Không theo công tắc giam_tu_dong (công tắc đó dừng bộ giảm bậc cũ, G10 là luật riêng anh lệnh).
+  {
+    const daG10 = [];
+    for (const m of kq.g10 || []) {
+      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id)) continue; lamRoi.add(m.id);
+      let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `G10 · ${m.chu}`.slice(0, 400), '--ai', 'máy tự hạ G10 (anh lệnh 31/10/2026 theo hướng dẫn team, áp cả ★ ROAS)'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      daG10.push({ m, d, r });
+    }
+    const daHa = daG10.filter((x) => x.r.ok).map((x) => Number(x.m.id));
+    if (daHa.length) {
+      const ngay = new Date().toISOString().slice(0, 10), han = new Date(Date.now() - 14 * 86400_000).toISOString().slice(0, 10);
+      let cu = {}; try { cu = JSON.parse(String(await chayPsql("select gia_tri::text from etp.cau_hinh where khoa = 'g10'")).trim() || '{}'); } catch { cu = {}; }
+      const moi = Object.fromEntries(Object.entries(cu).filter(([, v]) => v >= han));
+      for (const id of daHa) moi[id] = ngay;
+      const j = JSON.stringify(moi);
+      await chayPsql(`insert into etp.cau_hinh (khoa, gia_tri) values ('g10', $G$${j}$G$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri`).catch((e) => console.error('g10 cau_hinh:', e.message));
+    }
+    if (daG10.length) {
+      const dong = bangViec(daG10.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng');
+      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY HẠ VỀ $10 — LUẬT G10</b> (hướng dẫn team, anh lệnh 31/10) — ngân sách &gt; $15, 3 ngày đã khép ROI &lt; 15%, kể cả ★ ROAS; theo dõi 2 ngày đã khép, vẫn &lt; 15% thì máy tắt; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
       gui++;
     }
   }
@@ -503,6 +529,9 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     // RL — camp ★ ROAS lỗ: trước 30/10/2026 chỉ báo riêng chờ anh bấm Tắt / Giữ; anh: "Thêm luật tắt cho khớp mọi thứ để nhìn rõ trên màn hình. Ko đc để luật ngầm nào"
     { khoa: 'tat_roas', tep: 'ethopex-tat-rl.json', ten: 'LUẬT RL', mo_ta: 'luật RL: camp ★ ROAS 2 ngày đã khép ĐỀU lỗ, cộng 2 ngày chi &gt; $20, ROI &lt; 0%',
       cot: 'Lãi 2n', luat: 'RL (★ ROAS 2 ngày đã khép đều lỗ, chi > $20, ROI < 0%)', ai: 'anh (chat 30/10/2026: thêm luật tắt ROAS cho khớp mọi luật, không luật ngầm) — máy chạy' },
+    // G10 bước 2 — camp đã hạ về $10, 2 ngày đã khép sau đó ROI vẫn < 15% (hướng dẫn team, anh lệnh 31/10/2026, áp cả ★ ROAS)
+    { khoa: 'tat_g10', tep: 'ethopex-tat-g10.json', ten: 'LUẬT G10', mo_ta: 'luật G10: đã hạ về $10, 2 ngày đã khép sau đó ROI vẫn &lt; 15% (hướng dẫn team 31/10, cả ★ ROAS)',
+      cot: 'Lãi 2n', luat: 'G10 (đã hạ về $10, 2 ngày sau ROI vẫn < 15%)', ai: 'anh (chat 31/10/2026: G10 theo hướng dẫn team — hạ $10, 1–2 ngày vẫn kém thì off, áp cả ROAS) — máy chạy' },
   ];
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);

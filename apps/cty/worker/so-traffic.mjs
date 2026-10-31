@@ -1,5 +1,5 @@
 // BẢNG TRAFFIC + CLICK cho tin báo giờ (anh 31/10/2026: "Trên tele cần thêm báo cáo gọn dạng table về report traffic, clicks").
-// Mỗi máy đăng (xv_may.site_dich) một dòng: phiên 24 giờ · phiên từ bài đăng social (nguon "<nền> / short") · click sang shop/aff (sự kiện bam_mua).
+// Mỗi máy đăng (xv_may.site_dich) một dòng: phiên 24 giờ · phiên từ bài đăng mạng xã hội = cột MXH (nguon "<nền> / short") · click sang shop/aff (sự kiện bam_mua).
 // Nguồn = sổ phiên adfond (phien_khach + phien_su_kien, cùng nguồn trang Trực tiếp / city), bỏ lượt đội nhà. Bảng <code> từng dòng ≤ 30 ký tự.
 //   node worker/so-traffic.mjs          in bảng (box3, có DATABASE_URL)
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
@@ -20,7 +20,7 @@ export function bangHtml(dongs) {
   const t = dongs.reduce((a, x) => ({ phien: a.phien + x.phien, social: a.social + x.social, click: a.click + x.click, phien7: a.phien7 + x.phien7, click7: a.click7 + x.click7 }), { phien: 0, social: 0, click: 0, phien7: 0, click7: 0 });
   return [
     '<b>📊 Traffic 24 giờ (7 ngày)</b>',
-    `<b><code>${esc(dong(['Site', 'Phiên', 'Social', 'Click']))}</code></b>`,
+    `<b><code>${esc(dong(['Site', 'Phiên', 'MXH', 'Click']))}</code></b>`,
     ...[...dongs].sort((a, b) => b.phien - a.phien).map((x) => `<code>${esc(dong([x.ten, x.phien, x.social, x.click]))}</code>`),
     `<b><code>${esc(dong(['Cộng', t.phien, t.social, t.click]))}</code></b>`,
     `<i><code>${esc(dong(['7 ngày', t.phien7, '', t.click7]))}</code></i>`,

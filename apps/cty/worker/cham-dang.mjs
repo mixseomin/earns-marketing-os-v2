@@ -15,6 +15,7 @@ const DIEM_DUYET = 7;
 export const MOC_GOC = '2026-10-25T17:00:00Z';   // 00:00 26/10/2026 giờ VN: mốc cũ (bài tạo từ đây bắt buộc có góc) — 31/10/2026 bỏ mốc, MỌI bài phải có góc (xem luật 7)
 /** Kiểm góc của các bài với kho spy (DB spy: SPY_DATABASE_URL hoặc /root/.secrets/spy.env). ds = [{ goc, goc_sp }] → mảng lỗi (null = đạt) cùng thứ tự.
  *  Không đọc được kho spy → mọi bài có góc nhận lỗi "không kiểm được" (chặn chứ không cho qua mù). */
+import fs from 'node:fs';
 import { loiHook, dongHookBai, soNgoaiSuThat } from '../../xuong-video/src/lib/xuong-video/hook-qc.mjs';
 async function moSpy() {
   let url = process.env.SPY_DATABASE_URL;
@@ -35,20 +36,31 @@ export async function kiemGoc(ds) {
     return null;
   });
 }
-/** QC gốc của hook phải NÓI VỀ ngách của máy ngay phần đầu (280 ký tự đầu khớp biểu thức liên quan của nhóm góc / nhóm hook) — #875 QC xe đưa đón du thuyền
- *  lọt vào máy khách sạn vì chữ "hotel" nằm cuối thân QC. ds = [{ qc, nhom }] → mảng lỗi (null = đạt). Cùng luật với kho hook của máy sinh (may-dung.mts). */
-export async function kiemHookNgach(ds) {
-  const ids = [...new Set(ds.map((x) => x.qc).filter(Boolean).map(String))], nhom = [...new Set(ds.flatMap((x) => x.nhom ?? []).map(Number))];
-  if (!ids.length || !nhom.length) return ds.map(() => null);
-  let khop = new Map();
-  try {
-    const spy = await moSpy();
+/** HOOK MƯỢN ĐÚNG NGÁCH + KHÔNG HỨA SAI — phải hiểu nghĩa nên hỏi Ngọc (model của phòng, cong-ty/nhan-su/ngoc/SOUL.md, vài đồng một lần) qua proxy công ty.
+ *  Đo 31/10/2026: chữ khớp ngách nằm ở ký tự 300–1.300 cả ở QC đúng lẫn QC lệch (#875 xe đưa đón du thuyền ở 750) → không kiểm bằng từ khoá được.
+ *  ds = [{ qc, ma, nhan, muc_dich, su_that, dong }] → mảng lỗi (null = đạt). Mỗi cặp (máy, QC) hỏi một lần; proxy / mô hình hỏng → không chặn, ghi cảnh báo. */
+const MODEL_NGOC = (() => { try { return (/^model:\s*(\S+)/m.exec(fs.readFileSync(new URL('../cong-ty/nhan-su/ngoc/SOUL.md', import.meta.url), 'utf8')) ?? [])[1] ?? null; } catch { return null; } })();
+export async function xetHookAi(ds) {
+  const ids = [...new Set(ds.map((x) => x.qc).filter(Boolean).map(String))]; if (!ids.length || !MODEL_NGOC) return ds.map(() => null);
+  let dau = new Map();
+  try { const spy = await moSpy(); try { dau = new Map((await spy`select library_id::text as qc, left(noi_dung, 500) as chu from qc_meta where library_id::text = any(${ids})`).map((r) => [r.qc, r.chu])); } finally { await spy.end(); } }
+  catch (e) { return ds.map(() => null); }
+  const daXet = new Map();
+  const hoi = async (x) => {
+    const system = 'You check whether a social post hook borrowed from another company\'s ad fits OUR brand. Reply with ONE JSON only: {"cung_ngach":true|false,"hua_sai":true|false,"ly_do":"one short sentence in Vietnamese"}. cung_ngach = the original ad is about the same topic and audience as our brand (a person stopped by this hook would plausibly want our brand). hua_sai = the hook as used promises something our brand does not do or a number our facts do not support.';
+    const user = `OUR BRAND: ${x.nhan}\nWHAT IT IS: ${x.muc_dich ?? ''}\nFACTS: ${(x.su_that ?? 'none').slice(0, 1500)}\n\nORIGINAL AD (opening): ${dau.get(String(x.qc)) ?? '(not found)'}\n\nHOOK LINES WE USE:\n${x.dong.join('\n')}`;
     try {
-      for (const r of await spy`select q.library_id::text as qc, array_agg(s.id) as sp from qc_meta q join goc_sp s on s.id = any(${nhom}) and s.lien_quan is not null
-          and left(q.noi_dung, 280) ~* replace(s.lien_quan, '\\b', '\\y') where q.library_id::text = any(${ids}) group by 1`) khop.set(r.qc, r.sp.map(Number));
-    } finally { await spy.end(); }
-  } catch (e) { return ds.map((x) => (x.qc ? `không kiểm được hook với kho spy (${String(e.message).slice(0, 60)})` : null)); }
-  return ds.map((x) => (!x.qc || (khop.get(String(x.qc)) ?? []).some((s) => (x.nhom ?? []).includes(s)) ? null : `hook lấy từ QC #${x.qc} không nói về ngách của máy (nhóm ${(x.nhom ?? []).join(', ')}) ở phần đầu QC`));
+      const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ngoc', 'x-cty-luot': `xet-hook-${Date.now()}`, 'x-cty-phong': 'noi-dung' },
+        body: JSON.stringify({ model: MODEL_NGOC, max_tokens: 200, temperature: 0, system, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(60000) });
+      const j = await r.json(); if (!r.ok) return null;
+      const txt = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(''), o = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
+      const loi = [o.cung_ngach === false && 'hook mượn từ QC khác ngách', o.hua_sai === true && 'hook hứa điều thương hiệu không có'].filter(Boolean);
+      return loi.length ? `${loi.join(' + ')} (Ngọc: ${String(o.ly_do || '').slice(0, 140)})` : null;
+    } catch { return null; }
+  };
+  const ra = [];
+  for (const x of ds) { if (!x.qc) { ra.push(null); continue; } const k = `${x.ma}|${x.qc}|${x.dong.join('|')}`; if (!daXet.has(k)) daXet.set(k, await hoi(x)); ra.push(daXet.get(k)); }
+  return ra;
 }
 
 /** Máy đo một bài đăng. v = { nen_url, xuat_luc, video_url, dang: { title, description, link } }, ten = tên kênh / thương hiệu (câu móc không được mở bằng tên kênh). */
@@ -135,7 +147,7 @@ async function ketNoi() {
 /** Chấm mọi video đang dùng chưa chấm hoặc đã xuất lại sau lần chấm. Trả { cham, duyet, sua, theoMau: { mau: { n, loi: {lỗi: số} } } }. */
 export async function chamMoi(sql) {
   // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng
-  const ds = await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, m.hook_sp, v.anh,
+  const ds = await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, m.muc_dich, v.anh,
       true as can_goc,   -- 31/10/2026: mọi bài phải có góc (trước: chỉ bài tạo từ MOC_GOC)
       (select count(*)::int from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') as trung
     from xv_may_video v join xv_may m on m.id = v.may_id
@@ -146,9 +158,9 @@ export async function chamMoi(sql) {
     order by v.id`;
   const kq = { cham: 0, duyet: 0, sua: 0, theoMau: {} };
   const loiGoc = await kiemGoc(ds.map((v) => ({ goc: v.dang?.goc, goc_sp: v.goc_sp })));
-  const loiHookNgach = await kiemHookNgach(ds.map((v) => ({ qc: v.dang?.hook?.qc, nhom: [...(v.goc_sp ?? []), ...(v.hook_sp ?? [])] })));
-  const fs = await import('node:fs'), suThat = new Map();   // tệp sự thật đã kiểm của từng máy (apps/xuong-video/su-that/<máy>.md) — không có thì null
+  const suThat = new Map();   // tệp sự thật đã kiểm của từng máy (apps/xuong-video/su-that/<máy>.md) — không có thì null
   const suThatCua = (ma) => { if (!suThat.has(ma)) { try { suThat.set(ma, fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')); } catch { suThat.set(ma, null); } } return suThat.get(ma); };
+  const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), dong: dongHookBai(v.dang?.title, v.de) })));
   for (const [i, v] of ds.entries()) {
     let kiem;
     if (v.dang?.loai === 'bai') {   // bài viết: chờ kiem-bai chấm đúng bản (md5 chữ đăng); chưa nộp thì nộp, đang chờ thì để lượt sau

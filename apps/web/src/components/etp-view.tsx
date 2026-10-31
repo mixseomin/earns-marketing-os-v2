@@ -2086,7 +2086,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const [laiLoc, setLaiLoc] = useState(dauVao?.ll ?? '');
   const [tuoiChon, setTuoiChon] = useState(dauVao?.tu ?? '');   // lọc tuổi camp (anh 29/10/2026 "cần thêm bộ lọc theo tuổi") — mã 'a-b' ngày, b rỗng = trở lên
   const [moLoc, setMoLoc] = useState(false);   // điện thoại: bảng lọc gập sau nút Lọc (anh 27/10/2026 "trên mobile không thể cứ xuống dòng liên tục — tổ chức lại")   // ?b= lọc theo bộ tài khoản QC (anh 27/10/2026 "thêm bộ lọc theo tk")   // lọc theo loại creative (KT/CC/CT…) — anh 27/10/2026 "thêm bộ lọc chi tiết như danh sách camp KT"   // lọc theo MỘT luật (cột Luật bảng Camp)
-  const [loc, setLoc] = useState<(typeof LOC_CAMP)[number]>(LOC_CAMP.includes(dauVao?.l as (typeof LOC_CAMP)[number]) ? (dauVao!.l as (typeof LOC_CAMP)[number]) : 'chay');   // ?l= lọc camp
+  const [loc, setLoc] = useState<(typeof LOC_CAMP)[number]>(LOC_CAMP.includes(dauVao?.l as (typeof LOC_CAMP)[number]) ? (dauVao!.l as (typeof LOC_CAMP)[number]) : dauVao?.lu?.startsWith(TAT_LUAT) ? 'all' : 'chay');   // ?l= lọc camp · ?lu=tat:… (đã tắt theo luật) thì mặc định Tất cả
   // tab Creative: Hiệu quả | 🛡 Quét nội dung (?v=soat) | 🏭 Đang sx (?v=sx — anh 26/10/2026 "Thêm 1 tab là Đang sx")
   const [xemCr, setXemCr] = useState<'hq' | 'soat' | 'sx' | 'dc'>(dauVao?.v === 'soat' || dauVao?.v === 'sx' || dauVao?.v === 'dc' ? dauVao.v : 'hq'); const xemSoat = xemCr === 'soat';
   const [xemCamp, setXemCamp] = useState<XemCamp>(laXemCamp(dauVao?.v) && dauVao?.v !== 'cay' ? dauVao.v : 'cay');   // + Lịch giờ (anh 25/10/2026)   // tab Camp: MẶC ĐỊNH cây phim → camp gốc → bản nhân (anh 25/10/2026 "đéo thấy" — nút 🌳 nhỏ bị bỏ qua); nhớ lựa chọn + ?v=cay|bang

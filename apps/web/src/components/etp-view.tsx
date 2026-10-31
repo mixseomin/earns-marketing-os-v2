@@ -309,7 +309,7 @@ const ChipO = ({ chinh }: { chinh: { chip: string; mau: string; dac: boolean } }
 // nhãn chip theo mã luật máy xét (luat-ethopex.py _xet_luat)
 const XET_CHIP: Record<string, [string, string]> = { t2: ['✕ T2', '#f87171'], d24: ['✕ D24', '#f87171'], off: ['✕ OFF', '#f87171'], t7: ['✕ T7', '#f87171'], tang: ['↑ Tăng bậc', '#4ade80'], thang_nb: ['⧉ Thang', '#60a5fa'],
   tang_ngay: ['↑ Tăng trong ngày', '#4ade80'], gb: ['↓ Giảm bậc', '#fb923c'], giam_ngay: ['↓ Giảm trong ngày', '#fb923c'], giam_som: ['↓ Giảm sớm', '#fb923c'], roi_tut: ['↘ ROI tụt', '#fb923c'],
-  nb: ['🧬 Nhân bản', '#a78bfa'], t30: ['⇈ $30', '#4ade80'], rl: ['✕ RL', '#f87171'] };
+  nb: ['🧬 Nhân bản', '#a78bfa'], t30: ['⇈ $30', '#4ade80'], rl: ['✕ RL', '#f87171'], l3: ['✕ L3', '#f87171'], l4: ['✕ L4', '#f87171'], g10: ['↓ G10 về $10', '#fb923c'] };
 const KET_XET: Record<XetLuat['ket'], [string, string]> = { dat: ['Đạt', '#4ade80'], gan: ['Gần', '#facc15'], xa: ['Xa', 'var(--fg-3, #777)'], khong_ap: ['Không áp', 'var(--fg-3, #777)'] };
 // BẢNG XÉT LUẬT (anh 28/10/2026: "Cần xem mức độ liên quan của từng camp với các luật khi hover vào" · "show dạng table là dễ hiểu nhất"): mỗi luật một nhóm dòng —
 // Luật (kết đạt / gần / xa, máy có xếp) · Điều kiện · Giá trị thật · Ngưỡng · ✓/✗; số từ CHÍNH máy luật (etp.xet_luat), rê tên luật xem luật đó làm gì
@@ -491,7 +491,7 @@ function CheDoLuatO({ nguoiId, c }: { nguoiId: number; c: CheDoLuat }) {
     window.open(r.link, '_blank', 'noopener');
   };
   const opts: Chon2Muc[] = [{ value: 'bao', label: 'Chỉ báo Telegram', title: 'máy chấm camp theo luật Nhà, đề xuất bậc nhắn riêng qua bot — không đụng camp' },
-    ...(c.duoc.tuDong ? [{ value: 'tu_dong', label: 'Tự động', title: 'máy làm luôn trên camp như Nhà, bằng phiên Ethopex của bạn: tự tăng tới $30, tự giảm bậc, tắt theo luật T2 / D24 / L3 / L4 / OFF / RL + dừng đêm (báo trước một nhịp); nhân bản / lên ROAS chưa áp' }] : [])];
+    ...(c.duoc.tuDong ? [{ value: 'tu_dong', label: 'Tự động', title: 'máy làm luôn trên camp như Nhà, bằng phiên Ethopex của bạn: tự tăng tới $30, hạ về $10 theo G10, tắt theo luật T2 / D24 / L3 / L4 / OFF / RL / G10 + dừng đêm (báo trước một nhịp); nhân bản / lên ROAS chưa áp' }] : [])];
   return <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
     <Chon2 value={c.cheDo} onChange={doi} options={opts} anRong nhan="Luật máy" title="chế độ luật máy cho tài khoản này" />
     {c.cheDo === 'bao' ? (c.tg ? <span title="đề xuất bậc mới của máy nhắn riêng qua bot Telegram" style={{ fontSize: 11, color: '#4ade80' }}>✓ Telegram</span>

@@ -23,6 +23,17 @@ const chayPsql = (cau) => new Promise((ok, hong) => { const p = execFile('psql',
 const chay = (tep, args, giay = 240) => new Promise((ok, hong) => execFile('python3', [tep, ...args], { timeout: giay * 1000, maxBuffer: 8 << 20, env: process.env }, (e, out, err) => (e ? hong(new Error((err || e.message).slice(-300))) : ok(out))));
 const docJ = (f, mac) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return mac; } };
 
+/** G10: ghi ngày hạ về $10 (UTC) của các camp vừa hạ xong vào etp.cau_hinh 'g10' — máy luật đếm ngày đã khép SAU ngày này để xét tắt.
+ *  Dùng chung Nhà (nhipEthopex) + tài khoản team chế độ Tự động (etp-tu-dong.mjs); mục quá 14 ngày tự rụng. */
+export async function ghiG10(ids) {
+  if (!ids.length) return;
+  const ngay = new Date().toISOString().slice(0, 10), han = new Date(Date.now() - 14 * 86400_000).toISOString().slice(0, 10);
+  let cu = {}; try { cu = JSON.parse(String(await chayPsql("select gia_tri::text from etp.cau_hinh where khoa = 'g10'")).trim() || '{}'); } catch { cu = {}; }
+  const moi = Object.fromEntries(Object.entries(cu).filter(([, v]) => v >= han));
+  for (const id of ids) moi[id] = ngay;
+  await chayPsql(`insert into etp.cau_hinh (khoa, gia_tri) values ('g10', $G$${JSON.stringify(moi)}$G$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri`).catch((e) => console.error('g10 cau_hinh:', e.message));
+}
+
 /** Nhóm báo: tiêu đề · nút cho mỗi mục (null = chỉ báo). dich = ngân sách đích lấy từ chữ "→ $X". */
 const NHOM = [
   ['thang_nb', '🪜 <b>THANG NHÂN BẢN</b> — bộ 2: camp chạm luật tăng (như bộ 1) → thay vì tăng ngân sách, máy mở bản mới ở bậc kế, creative khác cùng phim; camp gốc giữ ngân sách', null],
@@ -394,15 +405,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `G10 · ${m.chu}`.slice(0, 400), '--ai', 'máy tự hạ G10 (anh lệnh 31/10/2026 theo hướng dẫn team, áp cả ★ ROAS)'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daG10.push({ m, d, r });
     }
-    const daHa = daG10.filter((x) => x.r.ok).map((x) => Number(x.m.id));
-    if (daHa.length) {
-      const ngay = new Date().toISOString().slice(0, 10), han = new Date(Date.now() - 14 * 86400_000).toISOString().slice(0, 10);
-      let cu = {}; try { cu = JSON.parse(String(await chayPsql("select gia_tri::text from etp.cau_hinh where khoa = 'g10'")).trim() || '{}'); } catch { cu = {}; }
-      const moi = Object.fromEntries(Object.entries(cu).filter(([, v]) => v >= han));
-      for (const id of daHa) moi[id] = ngay;
-      const j = JSON.stringify(moi);
-      await chayPsql(`insert into etp.cau_hinh (khoa, gia_tri) values ('g10', $G$${j}$G$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri`).catch((e) => console.error('g10 cau_hinh:', e.message));
-    }
+    await ghiG10(daG10.filter((x) => x.r.ok).map((x) => Number(x.m.id)));
     if (daG10.length) {
       const dong = bangViec(daG10.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng');
       await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY HẠ VỀ $10 — LUẬT G10</b> (hướng dẫn team, anh lệnh 31/10) — ngân sách &gt; $15, 3 ngày đã khép ROI &lt; 15%, kể cả ★ ROAS; theo dõi 2 ngày đã khép, vẫn &lt; 15% thì máy tắt; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });

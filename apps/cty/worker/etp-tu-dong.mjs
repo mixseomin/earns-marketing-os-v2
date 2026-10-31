@@ -2,7 +2,7 @@
 // Người ở chế độ 'tu_dong' (etp.che_do_luat, chỉ người có vai admin etp) + phiên Ethopex riêng còn hạn → mỗi nhịp:
 //   (1) máy luật Nhà chấm camp của người đó (luat-ethopex.py --json, chế độ ETP_XEM_NGUOI — chỉ đọc, đúng bộ luật / ngưỡng của Nhà)
 //   (2) keHoach(): đúng các việc ngân sách + tắt máy đang tự làm cho Nhà (ethopex.mjs nhipEthopex), cùng công tắc / trần của Nhà:
-//       tắt theo T2 / D24 / L3 / L4 / OFF / RL (báo trước một nhịp, D24 tắt ngay) + dừng đêm · tự giảm GB (khi anh đã duyệt gb_tu_giam) + ROI tụt đang âm
+//       tắt theo T2 / D24 / L3 / L4 / OFF / RL / G10 (báo trước một nhịp, D24 tắt ngay) + dừng đêm · hạ về $10 theo G10 (luôn bật, như Nhà) · tự giảm GB (khi anh đã duyệt gb_tu_giam) + ROI tụt đang âm
 //       (công tắc etp.cau_hinh.giam_tu_dong) · tự tăng đầu phiên / tăng bậc / T30 tới trần ethopex-tu-tang.json
 //   (3) làm bằng PHIÊN CỦA NGƯỜI ĐÓ (apps/etp/sua-ngoai.py --may: gác mức thang ≤ $30, camp phải chạy, nhịp tăng / giảm nhip_tang.py) → nhắn riêng kết quả.
 //   (4) nhân bản camp thắng (luật NB) + lên ROAS (moc30, ROAS_MUC · $20) qua nhan-ban.py chế độ ETP_SUA_NGUOI (Bước 4b, anh 31/10/2026: không cần sổ —
@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import { ROAS_MUC } from './ethopex.mjs';
+import { ROAS_MUC, ghiG10 } from './ethopex.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
@@ -29,7 +29,7 @@ const dongCuoi = (s) => JSON.parse(String(s).trim().split('\n').filter((l) => l.
 // luật tắt — cùng khoá + cách tắt với LUAT_TAT của Nhà (ethopex.mjs); ngay = tắt luôn nhịp này, còn lại báo trước một nhịp (≥ 25 phút)
 export const TAT = [
   { khoa: 'tat2', ten: 'T2' }, { khoa: 'tat_d24', ten: 'D24', ngay: true }, { khoa: 'tat_l3', ten: 'L3' }, { khoa: 'tat_l4', ten: 'L4' },
-  { khoa: 'tat', ten: 'OFF' }, { khoa: 'tat_roas', ten: 'RL' }, { khoa: 'dung_dem', ten: 'dừng đêm', ngay: true },
+  { khoa: 'tat', ten: 'OFF' }, { khoa: 'tat_roas', ten: 'RL' }, { khoa: 'tat_g10', ten: 'G10' }, { khoa: 'dung_dem', ten: 'dừng đêm', ngay: true },
 ];
 const dich = (m) => Number((String(m.chu).match(/→ \$(\d+)/) || [])[1]) || 0;
 
@@ -49,6 +49,7 @@ export function keHoach(kq, cfg, cho = {}, now = Date.now()) {
   }
   // xong = mọi camp trong danh sách tắt (đã tắt / đang chờ tắt) + camp đã có việc → một camp một việc
   const ns = (k, luat, dk = () => true) => { for (const m of kq[k] || []) { const id = Number(m.id), d = dich(m); if (!(id > 0) || !d || xong.has(id) || !dk(m, d)) continue; viec.push({ viec: 'ns', id, d, luat }); xong.add(id); } };
+  ns('g10', 'G10');   // hướng dẫn team 31/10/2026: hạ thẳng về $10 — luật riêng, không theo công tắc giam_tu_dong
   if (cfg.giamTu && cfg.gbDuyet) ns('ha', 'giảm bậc GB');
   if (cfg.giamTu) ns('giam', 'ROI tụt đang âm', (m) => Number((String(m.chu).match(/3 ngày gần ([+-]?\d+)%/) || [])[1]) < 0);
   if (cfg.tran > 0) for (const [k, luat] of [['dau_phien', 'lãi đầu phiên'], ['tang', 'tăng bậc'], ['tang30', 'T30']]) ns(k, luat, (_m, d) => d <= Math.min(cfg.tran, 30));
@@ -81,6 +82,7 @@ export async function nhipTuDong(tg, { giay = 1500 } = {}) {
       let r; try { r = dongCuoi(await py(SUA, [String(ng), v.viec === 'tat' ? 'tat' : 'ns', String(v.id), ...(v.viec === 'ns' ? [String(v.d)] : []), '--may'], {}, 120)); } catch (e) { r = { ok: false, loi: e.message }; }
       lam.push({ v, r });
     }
+    await ghiG10(lam.filter(({ v, r }) => r.ok && v.luat === 'G10').map(({ v }) => v.id));
     // nhân bản + lên ROAS bằng phiên của người đó (nhan-ban.py chế độ ETP_SUA_NGUOI: cổng chung chỉ cho tạo vào tài khoản của họ, đủ luật nhà — xem docstring nhan-ban)
     const nbEnv = { ETP_SUA_NGUOI: String(ng) }, ai = 'Luật tự động tài khoản team (anh 31/10/2026)';
     for (const m of k.nb) {
@@ -132,5 +134,8 @@ if (process.argv[1]?.endsWith('etp-tu-dong.mjs') && process.argv.includes('--tu-
   a.deepEqual(k.roas.map((m) => m.id), [10].slice(0, ROAS_NHIP), 'ROAS: bỏ camp tắt (#1) + camp vừa T30 (#4), tối đa ROAS_NHIP gốc');
   k = keHoach(kq2, { giamTu: true, gbDuyet: false, tran: 30, giu: { 'nb:8': 'x', 'roas:10': 'x' }, nbLoi: { 9: now - 7 * 3600_000 } }, {}, now);
   a.deepEqual([k.nb.map((m) => m.id), k.roas.map((m) => m.id)], [[9], [11].slice(0, ROAS_NHIP)], 'gốc bị từ chối hôm nay nghỉ; nhân bản lỗi quá 6 giờ thử lại');
+  k = keHoach({ g10: [{ id: 12, chu: '$20 → $10' }], tat_g10: [{ id: 13, chu: 'lỗ' }], tang: [{ id: 12, chu: '→ $30' }] }, { giamTu: false, gbDuyet: false, tran: 30 }, {}, now);
+  a.ok(k.viec.some((v) => v.id === 12 && v.d === 10 && v.luat === 'G10') && !k.viec.some((v) => v.id === 12 && v.d === 30), 'G10 hạ về $10 dù tắt công tắc giảm, không tăng cùng nhịp');
+  a.deepEqual(k.baoTruoc.map((b) => b.id), [13], 'G10 bước tắt báo trước một nhịp');
   console.log('✓ etp-tu-dong tự kiểm');
 }

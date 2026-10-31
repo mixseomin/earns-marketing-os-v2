@@ -51,13 +51,13 @@ assert.deepStrictEqual(vaoLienMach(ds.slice(4, 9)), [0.2, 1.7, 2.7, 4.7, 5.7]);
 
 // PROMPT KIỂU MỚI: #2 (cu) · #2.9 con của #2 (mcu) · #3.1 con của #3 cùng máy ws · #3 (ws)
 const ps = (id: number, so: number, xep: number, co: string, dien: string, con_cua: number | null = null) => ({ canh: { id, thu_tu: so, thu_tu_phat: xep, con_cua, ky_thuat: { co_canh: co }, canh: '', thoai: [], nhan_vat: [], loi_thoai: '', dan_dung: { dien: `${dien}. OBJECT STATE in this frame: box hugged` } } as never, nhanVat: [] });
-const bon = [ps(2, 2, 2, 'cu', 'Ha hears heels and starts turning her head'), ps(29, 2.9, 2.04, 'mcu', 'Ha keeps turning toward the entrance', 2), ps(31, 3.1, 2.51, 'ws', 'Ha finishes the turn', 3), ps(3, 3, 3, 'ws', 'Vivian strides in')];
+const bon = [ps(2, 2, 2, 'cu', 'Ha hears heels and starts turning her head. Static camera'), ps(29, 2.9, 2.04, 'mcu', 'Continuing, Ha keeps turning toward the entrance. Static camera', 2), ps(31, 3.1, 2.51, 'ws', 'Ha finishes the turn', 3), ps(3, 3, 3, 'ws', 'Vivian strides in')];
 const p4 = promptCumMoi(bon, { tag: { Ha: '@image1' } });
 assert.ok(p4.startsWith('A 4-shot') && !/OBJECT STATE|\d s,/.test(p4));
 assert.ok(p4.includes('Shot 3: Wide shot — ') && p4.includes('Shot 4: Wide shot, same angle, continuous'));   // #3.1 con của #3 cùng máy ws → #3 nối liền
 assert.strictEqual(p4.split('@image1').length, 2);   // nhãn ảnh chỉ gắn ở lần nhắc đầu
 const p2 = promptCumMoi(bon, { gopCon: true });
-assert.ok(p2.startsWith('A 2-shot') && p2.includes('Shot 1: Close-up — Ha hears heels and starts turning her head; then Ha keeps turning toward the entrance.'));
+assert.ok(p2.startsWith('A 2-shot') && p2.includes('Shot 1: Close-up, static camera — Ha hears heels and starts turning her head; then Ha keeps turning toward the entrance.'));
 assert.ok(p2.includes('Shot 2: Wide shot — Ha finishes the turn; then Vivian strides in.'));
 // phá thử: shot con mà cha KHÔNG có trong cụm → đứng riêng, không mất
 assert.ok(promptCumMoi(bon.slice(1, 3), { gopCon: true }).startsWith('A 2-shot'));

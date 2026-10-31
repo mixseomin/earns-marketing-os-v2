@@ -76,24 +76,28 @@ function promptCumTho(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], them: 
  *  gắn ngay tại lần nhắc đầu. gopCon: shot con (#2.9 / #3.1) gộp vào câu của shot cha thay vì đứng thành góc riêng — một nhịp nối, không một cú cắt. */
 export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], o: { tag?: Record<string, string>; gopCon?: boolean; them?: string } = {}): string {
   const gon = (t?: string) => (t ?? '').replace(/\s*(OBJECT STATE|BODY POSE|POSE)\b[\s\S]*$/, '').trim().replace(/[.\s]+$/, '');
-  const hanh = (c: Canh) => gon(c.dan_dung?.dien) || [gon(c.dan_dung?.mo), gon(c.dan_dung?.ket)].filter(Boolean).join(', then ') || gon(c.canh);
+  // câu máy ("Static camera.") tách khỏi hành động — mỗi shot nói máy MỘT lần, nhịp gộp không lặp
+  const MAY = /\s*\b(?:static|locked[- ]off|handheld|slow push[- ]in|slow dolly[^.]*?)\s+camera\b[^.]*\.?/i;
+  const hanh = (c: Canh) => { const t = gon(c.dan_dung?.dien) || [gon(c.dan_dung?.mo), gon(c.dan_dung?.ket)].filter(Boolean).join(', then ') || gon(c.canh);
+    return { cau: gon(t.replace(MAY, ' ')).replace(/\s{2,}/g, ' '), may: (t.match(MAY)?.[0] ?? '').trim().replace(/\.$/, '') }; };
   // nhóm: shot cha + các shot con của nó có trong cụm (theo thứ tự phát); shot con không có cha trong cụm thì đứng riêng
-  const nhom: { canh: Canh; nhanVat: NhanVat[]; cau: string[] }[] = [];
+  const nhom: { canh: Canh; nhanVat: NhanVat[]; cau: string[]; mayCau: string }[] = [];
   for (const x of cum) {
     const cha = o.gopCon && x.canh.con_cua != null ? cum.find((y) => y.canh.id === x.canh.con_cua) : undefined;
     if (cha) continue;
     const con = o.gopCon ? cum.filter((y) => y.canh.con_cua === x.canh.id) : [];
     const truoc = con.filter((y) => phat(y.canh) < phat(x.canh)), sau = con.filter((y) => phat(y.canh) > phat(x.canh));
-    nhom.push({ ...x, cau: [...truoc, x, ...sau].map((y) => hanh(y.canh)).filter(Boolean) });
+    const h = [...truoc, x, ...sau].map((y) => hanh(y.canh)).filter((y) => y.cau);
+    nhom.push({ ...x, cau: h.map((y, j) => (j ? y.cau.replace(/^continuing[^,]*,\s*/i, '') : y.cau)), mayCau: h.find((y) => y.may)?.may ?? '' });
   }
   const daGan = new Set<string>();
   const ganTag = (t: string) => Object.entries(o.tag ?? {}).reduce((s, [ten, nhan]) => {
     if (daGan.has(ten)) return s; const i = s.indexOf(ten); if (i < 0) return s; daGan.add(ten);
     return `${s.slice(0, i + ten.length)} ${nhan}${s.slice(i + ten.length)}`;
   }, t);
-  const shot = nhom.map(({ canh: c, nhanVat, cau }, i) => {
+  const shot = nhom.map(({ canh: c, nhanVat, cau, mayCau }, i) => {
     const co = CO_CANH[c.ky_thuat?.co_canh ?? ''] ?? c.ky_thuat?.co_canh ?? 'medium shot';
-    const may = kyThuat(c.ky_thuat?.chuyen_dong, 'chuyen_dong')?.prompt;
+    const may = kyThuat(c.ky_thuat?.chuyen_dong, 'chuyen_dong')?.prompt || mayCau.toLowerCase();
     const t = nhom[i - 1]?.canh;   // shot con cùng máy với cha (đứng trước hay sau cha) = quay liền, không cắt
     const lien = !!t && (t.id === c.con_cua || t.con_cua === c.id) && t.ky_thuat?.co_canh === c.ky_thuat?.co_canh;
     const mieng = cauMiengShot(c, nhanVat);

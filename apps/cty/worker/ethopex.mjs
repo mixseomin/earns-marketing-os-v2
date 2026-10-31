@@ -9,6 +9,12 @@ import { execFile } from 'node:child_process';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
+// SỔ LUẬT CHUNG etp (apps/web/src/lib/etp-bang-luat.json, anh 01/11/2026 "tìm nguyên nhân gốc"): luật tắt / luật hạ của Nhà + tài khoản team đọc từ đây
+export const BANG_LUAT = JSON.parse(fs.readFileSync(new URL('../../web/src/lib/etp-bang-luat.json', import.meta.url), 'utf8'));
+/** mọi luật tắt: { khoa, tep, ten: 'LUẬT X', mo_ta, cot, luat, ai, ngay?, rieng?, nha? } */
+export const LUAT_TAT_SO = Object.entries(BANG_LUAT.khoa).filter(([, v]) => v.tat).map(([khoa, v]) => ({ khoa, ...v.tat, ten: `LUẬT ${v.tat.ten}`, ngan: v.tat.ten }));
+/** mọi luật máy tự đổi ngân sách không cần công tắc (G10…): { khoa, ten } */
+export const LUAT_HA_SO = Object.entries(BANG_LUAT.khoa).filter(([, v]) => v.ha?.tu_dong).map(([khoa, v]) => ({ khoa, ten: v.ha.ten }));
 const LUAT = path.join(REPO, 'apps/xuong-video/scripts/ethopex/luat-ethopex.py');
 const LAM = path.join(REPO, 'apps/xuong-video/scripts/ethopex/lam-ethopex.py');
 const NB = path.join(REPO, 'apps/xuong-video/scripts/ethopex/nhan-ban.py');
@@ -359,7 +365,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const daTu = []; const lamRoi = new Set();
   // Một camp một quyết định: máy luật (luat-ethopex.py _SE_TAT) đã gỡ camp trong danh sách tắt khỏi mọi danh sách tăng / giảm / nhân bản —
   // seTat ở đây chỉ là lưới đỡ khi máy luật bản cũ trả về (29/10/2026 #65656)
-  const seTat = new Set(['tat2', 'tat_d24', 'tat_l3', 'tat_l4', 'tat', 'thang_tat', 'tat_roas', 'tat_g10'].flatMap((k) => (kq[k] || []).map((m) => m.id)));
+  const seTat = new Set(LUAT_TAT_SO.flatMap((x) => (kq[x.khoa] || []).map((m) => m.id)));   // mọi luật tắt trong sổ luật chung
   const { tinNhanh } = await import('./tg-phong.mjs');
   const guiNhanh = async (b) => { const j = await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...b }); tinNhanh(j?.result?.message_id); return j; };
   // MÁY TỰ GIẢM BẬC (luật GB, chỉ khi anh đã duyệt "gb_tu_giam" trên Telegram): camp chạm GB → lam-ethopex giam (vẫn chặn đổi < 6 giờ, camp phải bật,
@@ -401,14 +407,14 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // mà rois vẫn kém, mình off đi"; anh lệnh làm, áp cả ★ ROAS): camp chạm G10 → lam-ethopex giam về $10 (cùng chặn của lam: đổi < 6 giờ, camp phải bật);
   // hạ xong ghi etp.cau_hinh 'g10' {camp: ngày hạ UTC} — máy luật đếm ngày đã khép SAU ngày đó, kém tiếp thì tat_g10 (LUAT_TAT, báo trước một nhịp rồi tắt).
   // Không theo công tắc giam_tu_dong (công tắc đó dừng bộ giảm bậc cũ, G10 là luật riêng anh lệnh).
-  {
+  for (const LH of LUAT_HA_SO) {   // mọi luật hạ tự động trong sổ luật chung (nay: G10)
     const daG10 = [];
-    for (const m of kq.g10 || []) {
+    for (const m of kq[LH.khoa] || []) {
       const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id)) continue; lamRoi.add(m.id);
-      let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `G10 · ${m.chu}`.slice(0, 400), '--ai', 'máy tự hạ G10 (anh lệnh 31/10/2026 theo hướng dẫn team, áp cả ★ ROAS)'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `${LH.ten} · ${m.chu}`.slice(0, 400), '--ai', 'máy tự hạ G10 (anh lệnh 31/10/2026 theo hướng dẫn team, áp cả ★ ROAS)'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daG10.push({ m, d, r });
     }
-    await ghiG10(daG10.filter((x) => daGuiG10(x.r)).map((x) => Number(x.m.id)));
+    if (LH.khoa === 'g10') await ghiG10(daG10.filter((x) => daGuiG10(x.r)).map((x) => Number(x.m.id)));
     if (daG10.length) {
       const dong = bangViec(daG10.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng');
       await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY HẠ VỀ $10 — LUẬT G10</b> (hướng dẫn team, anh lệnh 31/10) — ngân sách &gt; $15, 3 ngày đã khép ROI &lt; 15%, kể cả ★ ROAS; theo dõi 2 ngày đã khép, vẫn &lt; 15% thì máy tắt; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
@@ -518,27 +524,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // luật thì tắt qua lam-ethopex (người duyệt "anh (chat …)"; lam vẫn từ chối camp ROI cộng dồn > 20%). Không tự bật lại.
   // ĐƯỜNG "báo trước một nhịp rồi máy tắt" (mỗi luật một sổ chờ) — MỌI luật tắt đi đường này, kể cả RL của camp ★ ROAS (anh 30/10/2026: "Ko đc để luật ngầm nào").
   // anh 27/10/2026: "Đặt 1 cái mới … Sau đó dừng T7" → T2 thay T7 (máy luật không còn trả tat7)
-  const LUAT_TAT = [
-    { khoa: 'tat2', tep: 'ethopex-tat2.json', ten: 'LUẬT T2', mo_ta: 'luật T2: 2 ngày có chi đầu tiên đã khép ROI &lt; −20% (anh 27/10), chi ≥ $2.5',
-      cot: 'Lãi 2n', luat: 'T2 (2 ngày đầu ROI < −20%, chi ≥ $2.5)', ai: 'anh (chat 27/10/2026: đặt luật mới T2 — 2 ngày đầu ROI < −20% — và dừng T7) — máy chạy' },
-    { khoa: 'tat_d24', tep: 'ethopex-tat-d24.json', ten: 'LUẬT D24', mo_ta: 'luật D24: camp có khoảng dừng &gt; 24 giờ (một ngày trọn không chi sau ngày chi đầu) — tắt ngay, không xét lãi lỗ (anh 29/10)',
-      cot: 'Lãi', luat: 'D24 (khoảng dừng > 24 giờ)', ai: 'anh (chat 29/10/2026: camp bị 1 khoảng dừng > 24h cũng dừng ngay lập tức) — máy chạy', ngay: true },
-    { khoa: 'tat_l3', tep: 'ethopex-tat-l3.json', ten: 'LUẬT L3', mo_ta: 'luật L3: lỗ 3 ngày đã khép liền, mỗi ngày chi ≥ $1 — thay cho giảm bậc (anh 29/10)',
-      cot: 'Lãi 3n', luat: 'L3 (lỗ 3 ngày đã khép liền, chi ≥ $1/ngày)', ai: 'anh (chat 29/10/2026: bỏ giảm bậc, ROI âm liên tục thì tắt — làm 1+2) — máy chạy' },
-    { khoa: 'tat_l4', tep: 'ethopex-tat-l4.json', ten: 'LUẬT L4', mo_ta: 'luật L4: 7 ngày đã khép ROI &lt; −20%, chi ≥ $5, ≥ 4 ngày có chi — camp lỗ đều mà L3 / T2 / OFF bỏ lọt (anh 29/10)',
-      cot: 'Lãi 7n', luat: 'L4 (7 ngày ROI < −20%, chi ≥ $5, ≥ 4 ngày có chi)', ai: 'anh (chat 29/10/2026: L4 bật đi — thay L7) — máy chạy' },
-    // OFF + BẢN THANG LỖ trước chờ anh bấm nút Tắt trên Telegram — anh 29/10/2026: "rule tạo ra để nó tự vận hành", nên đi cùng đường báo trước một nhịp rồi máy tắt
-    { khoa: 'tat', tep: 'ethopex-tat-off.json', ten: 'LUẬT OFF', mo_ta: 'luật OFF: camp ≥ 7 ngày, tiêu &gt; $10 từ trước tới nay, ROI &lt; −50%',
-      cot: 'Lãi', luat: 'OFF (≥ 7 ngày, tiêu > $10, ROI < −50%)', ai: 'anh (chat 29/10/2026: rule phải tự vận hành, không chờ anh tắt) — máy chạy' },
-    { khoa: 'thang_tat', tep: 'ethopex-tat-thang.json', ten: 'LUẬT BẢN THANG LỖ', mo_ta: 'bản thang bộ 2 đã chi ≥ 1 ngày ngân sách mà ROI ≤ −30%',
-      cot: 'Lãi', luat: 'bản thang lỗ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%)', ai: 'anh (chat 29/10/2026: rule phải tự vận hành, không chờ anh tắt) — máy chạy' },
-    // RL — camp ★ ROAS lỗ: trước 30/10/2026 chỉ báo riêng chờ anh bấm Tắt / Giữ; anh: "Thêm luật tắt cho khớp mọi thứ để nhìn rõ trên màn hình. Ko đc để luật ngầm nào"
-    { khoa: 'tat_roas', tep: 'ethopex-tat-rl.json', ten: 'LUẬT RL', mo_ta: 'luật RL: camp ★ ROAS 2 ngày đã khép ĐỀU lỗ, cộng 2 ngày chi &gt; $20, ROI &lt; 0%',
-      cot: 'Lãi 2n', luat: 'RL (★ ROAS 2 ngày đã khép đều lỗ, chi > $20, ROI < 0%)', ai: 'anh (chat 30/10/2026: thêm luật tắt ROAS cho khớp mọi luật, không luật ngầm) — máy chạy' },
-    // G10 bước 2 — camp đã hạ về $10, 2 ngày đã khép sau đó ROI vẫn < 15% (hướng dẫn team, anh lệnh 31/10/2026, áp cả ★ ROAS)
-    { khoa: 'tat_g10', tep: 'ethopex-tat-g10.json', ten: 'LUẬT G10', mo_ta: 'luật G10: đã hạ về $10, 2 ngày đã khép sau đó ROI vẫn &lt; 15% (hướng dẫn team 31/10, cả ★ ROAS)',
-      cot: 'Lãi 2n', luat: 'G10 (đã hạ về $10, 2 ngày sau ROI vẫn < 15%)', ai: 'anh (chat 31/10/2026: G10 theo hướng dẫn team — hạ $10, 1–2 ngày vẫn kém thì off, áp cả ROAS) — máy chạy' },
-  ];
+  // luật tắt đi đường này = mọi khoá có 'tat' trong SỔ LUẬT CHUNG (trừ 'rieng': dừng đêm có khối riêng bên dưới) — không chép danh sách ở đây (anh 01/11/2026)
+  const LUAT_TAT = LUAT_TAT_SO.filter((x) => !x.rieng);
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);
     const giu = cho._giu?.ngay === homNay ? cho._giu : { ngay: homNay, ds: {} }; delete cho._giu;   // camp lam-ethopex từ chối tắt (đang lãi) — không báo / thử lại trong ngày

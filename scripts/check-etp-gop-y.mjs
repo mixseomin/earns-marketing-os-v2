@@ -53,7 +53,7 @@ const LUAT = [
   // 29/10/2026 — lên ROAS: lãi 30 ngày ≥ $75 là đủ, máy tự lên (anh: "đủ điều kiện lên roas thì lên luôn. Nới điều kiện lên roas là ROI >= 75$")
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'L4_CHI, L4_NGAY, L4_ROI = 5.0, 4, -20', vi: 'luật L4 (anh 29/10/2026 "L4 bật đi"): ≥ 4 ngày có chi, ROI < −20% → tắt' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'L7_CHI, L7_NGAY, L7_ROI = 5.0, 5, -30\ntat_l7 = []\n', vi: 'L7 đang dừng (thay bằng L4) — không xếp camp nào' },
-  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "{ khoa: 'tat_l4', tep: 'ethopex-tat-l4.json'", cam: "khoa: 'tat_l7'", vi: 'worker tắt theo L4, không còn đường tắt L7' },
+  { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"tep": "ethopex-tat-l4.json"', cam: '"tat_l7"', vi: 'worker tắt theo L4 (sổ luật chung), không còn đường tắt L7' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'T30N_ROI, T30N_SP, T30N_NGAY = 50, 60, 5', vi: 'T30 camp thường nới (anh 29/10/2026 "Nới đi"): 5 ngày ROI ≥ 50%, chi TB ≥ 60% ngân sách' },
   // CAMP THAY THẾ (anh 29/10/2026): phim còn 1 camp sắp tắt → lên camp thay ngay, rút kinh nghiệm, lên theo bộ định dạng, dòng mờ trên Cây
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'else "gan" if thieu == 1 and lo is not False else "xa"', vi: 'luật tắt: camp đang lãi không bao giờ "gần chạm" (L4 hiện trên camp +177%, 29/10/2026)' },
@@ -215,7 +215,7 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'content_id=cid, ngoai=bool(NGOAI))', vi: 'camp team bỏ trần ngày / bộ của nhà, vẫn dừng khẩn / Âu-Mỹ' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "const nbEnv = { ETP_SUA_NGUOI: String(ng) }", vi: 'nhân bản / ROAS team đi phiên Ethopex của chính người đó' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "m.id > 0 && !seTat.has(m.id) && !giu[`nb:${m.id}`]", vi: 'không nhân bản camp đang chờ tắt' },
-  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC, ghiG10, daGuiG10 } from './ethopex.mjs';", vi: 'một danh sách mức ROAS + một chỗ ghi ngày G10 cho nhà và team' },
+  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO } from './ethopex.mjs';", vi: 'một danh sách mức ROAS + một chỗ ghi ngày G10 + sổ luật chung cho nhà và team' },
   { card: 0, tep: 'apps/etp/cong.py', co: 'la_roas = lambda ten: " duplicate by " in (ten or "") or (ten or "").lstrip().startswith("★") or bool(_ROAS_TEAM.search(ten or ""))', vi: 'nhận camp ROAS team đặt tên kiểu _ROAS1 / (ROAS) / Dup by' },
   // hàng góp ý 31/10/2026
   { card: 1492, tep: 'apps/etp/dong-bo.py', co: "g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d)", vi: 'bản nhân bản của team thừa hưởng phim + creative từ camp gốc ghi trong tên' },
@@ -256,39 +256,50 @@ const LUAT = [
   { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'elif len(cid := list((b.get("filters") or {}).get("campaign_id") or [])) > 1:', vi: 'report một ngày vẫn quá trang thì chia theo lô camp' },
   { card: 0, tep: 'apps/etp/dong-bo.py', co: '"filters": {"campaign_id": ds_camp}, "metric_conditions": []', vi: 'nước giao theo camp lọc camp trong kho (chú thích giữa dòng từng nuốt filters / limit)' },
   // anh 30/10/2026 "Thêm luật tắt cho khớp mọi thứ để nhìn rõ trên màn hình. Ko đc để luật ngầm nào": RL (★ ROAS lỗ) máy tự tắt qua LUAT_TAT, điều kiện hiện trên thẻ xét luật
-  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', mot: "khoa: 'tat_roas', tep: 'ethopex-tat-rl.json'", vi: 'RL đi đường báo trước một nhịp rồi máy tắt' },
+  { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', mot: '"tep": "ethopex-tat-rl.json"', vi: 'RL đi đường báo trước một nhịp rồi máy tắt (sổ luật chung)' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: 'Máy không tự tắt — anh quyết', vi: 'không còn luật ROAS chỉ báo chờ anh' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: 'Camp ROI cộng dồn &gt; 20% máy không tắt', vi: 'tin sắp tắt không hứa cổng không có' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L("rl", "RL · ROAS lỗ 2 ngày"', vi: 'thẻ xét luật camp ROAS có điều kiện RL' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'ls.append(L("roas", "Luật ROAS (camp ★)"', vi: 'không còn luật ROAS dk rỗng ghi Đạt' },
-  { card: 0, tep: V, co: "'d24', 'rl']]", vi: 'bản luật nhóm Tắt có RL' },
+  { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"rl":        ["✕ RL", "#f87171", "tat"', vi: 'bản luật nhóm Tắt có RL' },
   // anh 31/10/2026 G10 theo hướng dẫn team (ảnh bộ lọc Ethopex: Active · Budget Daily > 15 · ROI < 15): hạ thẳng về $10, 2 ngày đã khép sau đó vẫn < 15% thì tắt, áp cả ★ ROAS
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'G10_NS, G10_DICH, G10_ROI, G10_THEO = 15, 10, 15, 2', vi: 'G10: ngân sách > $15, về $10, ROI < 15%, theo dõi 2 ngày' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '        if ns <= G10_NS: continue', vi: 'G10 lọc ngân sách > $15 đúng bộ lọc team' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if len(x3) < 3 or c3 < ns', vi: 'G10 chỉ xét camp chạy đủ 3 ngày (anh 31/10/2026)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"đủ 3 ngày", len(_x) >= 3]', vi: 'thẻ G10: chưa đủ 3 ngày là Không áp, không phải Gần' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L_g10(cid, ns)); ra[int(cid)] = ls; continue', vi: 'thẻ G10 có cả ở camp ★ ROAS' },
-  { card: 0, tep: V, co: "['giam', 'Giảm chi — hạ bậc', ['g10']]", vi: 'bản luật có nhóm Giảm chứa G10' },
+  { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"g10":       ["↓ G10 về $10", "#fb923c", "giam"]', vi: 'bản luật có nhóm Giảm chứa G10' },
   // anh 31/10/2026 "Bộ lọc, danh sách,.... phải có G10 chứ?": chip sắp chạm / dải lọc, chế độ Tự động tk team đều có G10
-  { card: 0, tep: V, co: "g10: ['↓ G10 về $10', '#fb923c']", vi: 'chip + dải lọc có G10' },
+  { card: 0, tep: V, co: "const XET_CHIP: Record<string, [string, string]> = Object.fromEntries(Object.entries(BANG_LUAT.the)", vi: 'chip + dải lọc lấy từ sổ luật chung (có G10)' },
   // anh 01/11/2026 "lọc thế nào hiện ra các camp đã tắt theo 1 luật nào đó": nhóm "Đã tắt theo" trong ô Luật + dải luật, từ nhật ký tắt (etp-doc tatLuat)
-  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "substring(n.luat from '^(T2|T7|L3|L4|L7|D24|OFF|RL|G10)\\\\M')", vi: 'mã luật tắt lấy từ nhật ký máy' },
-  { card: 0, tep: V, co: "nhom: 'Đã tắt theo', dem }))]", vi: 'ô lọc Luật có nhóm Đã tắt theo' },
+  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "ma: luatDaLam(r.viec, r.luat)", vi: 'luật máy đã làm nhận bằng regex nhat_ky của sổ luật chung' },
+  { card: 0, tep: V, co: "const NHOM_LAM: Record<string, string> = { tat: 'Đã tắt theo', giam: 'Đã hạ theo' };", vi: 'ô lọc Luật có nhóm Đã tắt theo + Đã hạ theo' },
   { card: 0, tep: V, co: 'filter((t) => t.ngay >= khK.tu && t.ngay <= khK.den)', vi: 'đã tắt theo luật lọc theo kỳ số liệu (anh 01/11/2026)' },
-  { card: 0, tep: V, co: "loc === 'all' || luatLoc.startsWith(TAT_LUAT) || (loc === 'chay'", vi: 'lọc Đã tắt theo không bắt đổi ô Lọc khỏi Đang chạy (anh 01/11/2026)' },
+  { card: 0, tep: V, co: "loc === 'all' || luatLoc.startsWith(`${DA_LAM}tat:`) || (loc === 'chay'", vi: 'lọc Đã tắt theo không bắt đổi ô Lọc khỏi Đang chạy (anh 01/11/2026)' },
   { card: 0, tep: V, cam: "dauVao?.lu?.startsWith(TAT_LUAT) ? 'all'", vi: 'mặc định ô Lọc luôn Đang chạy' },
-  { card: 0, tep: V, co: "if (luatLoc.startsWith(TAT_LUAT)) return tatMap.get(c.camp_id)?.ma", vi: 'lọc camp theo luật đã tắt' },
-  { card: 0, tep: V, co: "g10: 'giam', tat: 'tat', tat_g10: 'tat'", vi: 'lọc Gần giảm / Gần tắt tính G10' },
-  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "ns('g10', 'G10');", vi: 'tk team Tự động hạ G10' },
+  { card: 0, tep: V, co: "if (luatLoc.startsWith(DA_LAM)) return lamSet.has(", vi: 'lọc camp theo luật máy đã làm (tắt / hạ)' },
+  { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"g10":       { "ma": "g10", "huong": "giam"', vi: 'lọc Gần giảm / Gần tắt tính G10 (huong trong sổ)' },
+  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "for (const h of LUAT_HA_SO) ns(h.khoa, h.ten);", vi: 'tk team Tự động hạ theo luật hạ của sổ (G10)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ngay_ha = _g10.get(int(cid)) if ns <= G10_DICH else None', vi: 'G10 chỉ theo dõi camp ngân sách thật đã về $10' },
-  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "{ khoa: 'tat_g10', ten: 'G10' }", vi: 'tk team Tự động tắt G10' },
+  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "export const TAT = LUAT_TAT_SO.filter((x) => !x.nha)", vi: 'tk team Tự động tắt theo mọi luật tắt của sổ (có G10)' },
   // anh 31/10/2026 "Bên tk của Sơn ko thấy danh sách Luật & cảnh báo à?": người trong team đọc đề xuất máy luật (de_xuat_bac) + bản luật chung
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'select d.luat nhom, d.camp_id, d.chu, d.lan_cuoi::text luc from etp.de_xuat_bac d', vi: 'luật & cảnh báo của người team đọc de_xuat_bac' },
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'run<{ ma: string; luc: string; so: Omit<SoLuat', vi: 'bản luật hiện cho mọi tài khoản' },
   { card: 0, tep: V, cam: "du.nguoi.ngoai ? '—' : <ChipLuat", vi: 'cột Luật không để trống ở tk team' },
-  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', mot: "khoa: 'tat_g10', tep: 'ethopex-tat-g10.json'", vi: 'G10 bước tắt đi đường báo trước một nhịp' },
-  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "chay(LAM, ['giam', String(m.id), String(d), '--luat', `G10 · ${m.chu}`", vi: 'G10 máy tự hạ về $10' },
-  { card: 0, tep: 'apps/etp/so-luat.py', co: '("tat", r"^RL ", "rl")', vi: 'số luật RL đếm từ nhật ký' },
+  { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', mot: '"tep": "ethopex-tat-g10.json"', vi: 'G10 bước tắt đi đường báo trước một nhịp' },
+  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "'--luat', `${LH.ten} · ${m.chu}`", vi: 'máy tự hạ theo luật hạ của sổ (G10)' },
+  { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"nhat_ky": ["tat", "^RL "]', vi: 'số luật RL đếm từ nhật ký (sổ luật chung)' },
+  // SỔ LUẬT CHUNG (anh 01/11/2026 "chắp vá à. Tìm nguyên nhân gốc"): danh sách luật chỉ ở etp-bang-luat.json — cấm chép tay lại ở 7 tệp đọc nó
+  { card: 0, tep: V, cam: "const LUAT_NHAN: Record<string, [string, string, string, 'dang' | 'gan']> = {", vi: 'thẻ luật không chép tay — đọc sổ' },
+  { card: 0, tep: V, cam: "const NHOM_LUAT: [string, string, string[]][] = [", vi: 'nhóm bản luật không chép tay — đọc sổ' },
+  { card: 0, tep: V, cam: "const BAO_HUONG: Record<string, 'tang' | 'giam' | 'tat'> = {", vi: 'hướng Gần tăng / giảm / tắt không chép tay — đọc sổ' },
+  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', cam: "const LUAT_TAT = [", vi: 'luật tắt worker không chép tay — đọc sổ' },
+  { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "const seTat = new Set(LUAT_TAT_SO.flatMap(", vi: 'seTat theo mọi luật tắt của sổ' },
+  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', cam: "export const TAT = [", vi: 'luật tắt team không chép tay — đọc sổ' },
+  { card: 0, tep: 'apps/etp/de-xuat-ngoai.py', co: 'LOAI = {k: v["de_xuat"] for k, v in', vi: 'loại đề xuất team đọc sổ' },
+  { card: 0, tep: 'apps/etp/so-luat.py', co: 'MA = [(v["nhat_ky"][0], v["nhat_ky"][1], v["ma"]) for v in BANG["khoa"].values()', vi: 'so-luat nhận luật bằng sổ' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '_thieu = sorted(k for k in ra_ if k != "luc" and k not in BANG_LUAT["khoa"])', vi: 'máy luật tự báo khoá chưa có trong sổ' },
+  { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"g10_theo":  { "ma": "g10", "huong": "giam", "nhan": ["⏸", "G10 theo dõi"', vi: 'camp G10 đang theo dõi có thẻ riêng (anh 01/11/2026 "Thiếu luật G10 vừa áp dụng?")' },
   // anh 31/10/2026 "Sửa máy luật. Cái này quan trọng": report 30 ngày 2.159 dòng > trang 1.000 người gọi xin → máy luật dừng hẳn từ 16:41 30/10
   { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'b = {**body, "page": 1, "page_size": TRANG_BC, "limit": TRANG_BC}', vi: 'report luôn xin trang tối đa máy chủ, không theo cỡ người gọi' },
   { card: 0, tep: 'apps/etp/ethopex_api.py', co: '"campaign_id": sorted(int(c["id"]) for c in ds_tat_ca())', vi: 'report dòng camp quá trang thì cổng tự chia lô camp' },
@@ -343,6 +354,13 @@ if (process.argv.includes('--tu-kiem')) {
 }
 
 const loi = [];
+// SỔ LUẬT CHUNG phủ mọi danh sách máy luật xuất ra (đọc dòng ra_ = {...} của luat-ethopex.py)
+{ const so = JSON.parse(readFileSync('apps/web/src/lib/etp-bang-luat.json', 'utf8')).khoa, src = readFileSync('apps/xuong-video/scripts/ethopex/luat-ethopex.py', 'utf8');
+  const dong = src.split('\n').find((l) => l.trimStart().startsWith('ra_ = {"luc"')) ?? '';
+  const khoa = [...dong.matchAll(/"([a-z0-9_]+)": m\(/g)].map((x) => x[1]);
+  if (!khoa.length) loi.push('  #chat sổ luật chung — không đọc được dòng ra_ = {...} của luat-ethopex.py');
+  for (const k of khoa) if (!so[k]) loi.push(`  #chat sổ luật chung thiếu khoá máy luật xuất ra: ${k} (thêm mục vào apps/web/src/lib/etp-bang-luat.json)`);
+  for (const [k, v] of Object.entries(so)) if (v.nhat_ky) try { new RegExp(v.nhat_ky[1]); } catch { loi.push(`  #chat sổ luật chung: regex nhat_ky của ${k} hỏng`); } }
 for (const l of LUAT) { const e = sai(l, readFileSync(l.tep, 'utf8')); if (e) loi.push(`  #${l.card || 'chat'} ${l.vi} — ${e}`); }
 if (loi.length) {
   console.error(`✗ góp ý etp đã sửa bị quay về bản cũ (${loi.length}):\n${loi.join('\n')}\n  Sửa mã cho đúng lại — KHÔNG xoá điều kiện trong scripts/check-etp-gop-y.mjs trừ khi anh đổi ý.`);

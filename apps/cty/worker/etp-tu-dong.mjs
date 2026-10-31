@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import { ROAS_MUC, ghiG10, daGuiG10 } from './ethopex.mjs';
+import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO } from './ethopex.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
@@ -27,10 +27,8 @@ const py = (tep, args, env, giay) => new Promise((ok, hong) => execFile('python3
 const dongCuoi = (s) => JSON.parse(String(s).trim().split('\n').filter((l) => l.startsWith('{')).pop() || '{}');
 
 // luật tắt — cùng khoá + cách tắt với LUAT_TAT của Nhà (ethopex.mjs); ngay = tắt luôn nhịp này, còn lại báo trước một nhịp (≥ 25 phút)
-export const TAT = [
-  { khoa: 'tat2', ten: 'T2' }, { khoa: 'tat_d24', ten: 'D24', ngay: true }, { khoa: 'tat_l3', ten: 'L3' }, { khoa: 'tat_l4', ten: 'L4' },
-  { khoa: 'tat', ten: 'OFF' }, { khoa: 'tat_roas', ten: 'RL' }, { khoa: 'tat_g10', ten: 'G10' }, { khoa: 'dung_dem', ten: 'dừng đêm', ngay: true },
-];
+// từ SỔ LUẬT CHUNG (anh 01/11/2026): mọi luật tắt trừ luật chỉ của Nhà (nha: bản thang bộ 2)
+export const TAT = LUAT_TAT_SO.filter((x) => !x.nha).map((x) => ({ khoa: x.khoa, ten: x.ngan, ...(x.ngay ? { ngay: true } : {}) }));
 const dich = (m) => Number((String(m.chu).match(/→ \$(\d+)/) || [])[1]) || 0;
 
 /** KẾ HOẠCH một nhịp (thuần, tự kiểm): kq = JSON máy luật · cfg {giamTu, gbDuyet, tran, giu?, nbLoi?} · cho = {camp: lúc thấy lần đầu} sổ chờ tắt · now
@@ -49,7 +47,7 @@ export function keHoach(kq, cfg, cho = {}, now = Date.now()) {
   }
   // xong = mọi camp trong danh sách tắt (đã tắt / đang chờ tắt) + camp đã có việc → một camp một việc
   const ns = (k, luat, dk = () => true) => { for (const m of kq[k] || []) { const id = Number(m.id), d = dich(m); if (!(id > 0) || !d || xong.has(id) || !dk(m, d)) continue; viec.push({ viec: 'ns', id, d, luat }); xong.add(id); } };
-  ns('g10', 'G10');   // hướng dẫn team 31/10/2026: hạ thẳng về $10 — luật riêng, không theo công tắc giam_tu_dong
+  for (const h of LUAT_HA_SO) ns(h.khoa, h.ten);   // luật hạ tự động của sổ luật chung (G10 — hướng dẫn team 31/10/2026), không theo công tắc giam_tu_dong
   if (cfg.giamTu && cfg.gbDuyet) ns('ha', 'giảm bậc GB');
   if (cfg.giamTu) ns('giam', 'ROI tụt đang âm', (m) => Number((String(m.chu).match(/3 ngày gần ([+-]?\d+)%/) || [])[1]) < 0);
   if (cfg.tran > 0) for (const [k, luat] of [['dau_phien', 'lãi đầu phiên'], ['tang', 'tăng bậc'], ['tang30', 'T30']]) ns(k, luat, (_m, d) => d <= Math.min(cfg.tran, 30));

@@ -20,6 +20,8 @@ assert.ok(nhipGiaiThich({ ...de, ket: undefined, giong_giay: 20 }).DAI - (T_DAU 
 const ass = assGiaiThich({ ...de, giong_giay: 20 });
 for (const w of de.moc.split(' ')) assert.ok(ass.includes(w.replace(/[?.]/g, '')), `hook có chữ "${w}"`);
 for (const c of de.loi.slice(1)) assert.ok(ass.includes(c.split(' ').slice(0, 3).join(' ')), `phụ đề có câu "${c.slice(0, 20)}"`);
+const dongKet = ass.split('\n').find((l) => l.includes('one question'))!;
+assert.ok(dongKet && Number(dongKet.match(/\\fs(\d+)/)![1]) >= 50 && /bord5/.test(dongKet), 'dòng kết = lời gọi hành động to, có viền như hook (không còn chữ trắng 56 trơn)');
 const cum = cumPhuDe([{ chu: 'one two three four five six seven', tu: 1, den: 4 }]);
 assert.equal(cum.length, 2); assert.ok(cum.every((x) => x.chu.split(' ').length <= 4), 'cụm ≤ 4 từ');
 assert.equal(cum[0]!.tu, 1); assert.ok(Math.abs(cum[1]!.den - 4) < 1e-9 && Math.abs(cum[1]!.tu - cum[0]!.den) < 1e-9, 'cụm nối liền, phủ đúng quãng câu');

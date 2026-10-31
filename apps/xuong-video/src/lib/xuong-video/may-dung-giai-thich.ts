@@ -60,7 +60,9 @@ export function assGiaiThich(de: DeGiaiThich): string {
   for (const c of cumPhuDe(cau.slice(1))) d.push([2, c.tu, c.den, 'Den', `{\\an5\\pos(540,1340)${fs(66)}\\1c&HFFFFFF&\\3c&H000000&\\bord5\\shad2\\q2${nayVao(88, 0, 0.12)}}${chu(c.chu)}`]);
   if (ket) {
     d.push([3, HET_GIONG, DAI, 'Ve', `{\\an7\\pos(0,0)\\1c&H000000&\\1a${alpha(0.5)}\\fad(400,0)\\p1}m 0 0 l ${W} 0 l ${W} ${H} l 0 ${H}`]);
-    d.push([4, HET_GIONG, DAI, 'Den', `{\\an5\\pos(540,940)\\b1${fs(56)}\\1c&HFFFFFF&\\q2\\fad(400,0)}${ngat(ket, 26).map(chu).join('\\N')}`]);
+    // dòng kết = lời gọi hành động: cùng cỡ + màu vàng + nảy vào như hook (trước: chữ trắng 56 không viền, #842 nhìn nhạt và nhỏ)
+    const { dong: dk, co: ck } = dongHook(ket);
+    d.push([4, HET_GIONG, DAI, 'Den', `{\\an5\\pos(540,940)${fs(ck)}\\1c${mauAss(VANG)}\\3c&H000000&\\bord5\\shad2\\q2${nayVao(70, 0, 0.35)}\\fad(300,0)}${dk.map(chu).join('\\N')}`]);
   }
   return rapAss(W, H, d);
 }

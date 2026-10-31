@@ -93,7 +93,7 @@ export const DeGiaiThichSchema = z.object({
   truy: z.string().describe('Pexels VIDEO query for a real moving scene that fits the explanation, English, 2-4 words'),
   moc: z.string().describe('THE HOOK, 12-60 characters: speaks straight to the viewer with a curiosity gap, contrast, number or "you vs them" (e.g. "Check his birth moon against yours"); shown huge mid-screen AND read aloud as the first sentence'),
   loi: z.array(z.string()).min(4).max(7).describe('4-7 SHORT spoken sentences (each under 95 characters, 150-480 in total): sentence 1 is EXACTLY the hook (moc); then build the open loop from the angle, deliver the payoff / key fact near the end, finish with one concrete next step; natural to read aloud, no lists, no URLs, no symbols'),
-  ket: z.string().describe('closing line on screen after the voice, under 60 characters, no link, e.g. a save or practice prompt'),
+  ket: z.string().describe('closing call to action on screen after the voice, under 60 characters, no link: ONE concrete thing the viewer does now, said to "you" (e.g. "Save this before the next full moon", "Check your Venus sign tonight"), never a flat label like "Compare your astrology tools"'),
   canh: z.array(z.object({
     truy: z.string().describe('Pexels PHOTO query for a real photo that SHOWS what this sentence says, English, 2-5 concrete visible words (objects, people, place) — no abstract or ambiguous words like "records", "chart", "solution"'),
     prompt: z.string().describe('camera + motion direction for a 5-second realistic vertical clip animated from that photo, English, under 200 characters, e.g. "slow push-in on hands turning the pages, soft window light"; no text, no captions, no logos'),

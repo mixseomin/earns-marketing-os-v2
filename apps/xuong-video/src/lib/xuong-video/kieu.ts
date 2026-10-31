@@ -204,9 +204,10 @@ export type CauHinhTemplate = { mo_ta?: string; o?: Record<string, OTemplate>; t
 export type TapBanDo = { so: number; ten: string; logline: string; mua?: number; loai?: 'phieu_luu' | 'nguon_goc' | 'ket_mua'; nhan_vat?: string[]; boi_canh?: string[]; gai_tra?: string;
   /** sự kiện của từng TUYẾN TRUYỆN trong tập này (khoá = TuyenTruyen.ma) — bảng tuyến, tab 📖 Phim › Tuyến truyện */ su_kien?: Record<string, string> };
 /** TUYẾN TRUYỆN (bảng tuyến của phòng biên kịch): A = tuyến chính, B/C = tuyến phụ. Sự kiện từng tập ở TapBanDo.su_kien[ma]. */
-export type TuyenTruyen = { ma: string; ten: string };
+export type TuyenTruyen = { ma: string; ten: string; /** vai ngành của tuyến (khung-tuyen.ts › VaiTuyen.vai) — bảng tuyến so với khung theo dạng phim */ vai?: string };
 /** SỔ GÀI / TRẢ (setup – payoff, script editor giữ): chi tiết gieo ở tập `gieo`, trả ở tập `tra` (null = còn treo). Luật: tuyen-truyen.ts. */
-export type GaiTra = { id: string; chi_tiet: string; gieo: number; tra: number | null };
+export type GaiTra = { id: string; chi_tiet: string; gieo: number; tra: number | null;
+  /** CỐ Ý để mở (chưa trả có chủ đích): móc sang tập sau / mùa sau — không tính là treo, tập cuối mùa không bị chặn vì nó */ mo?: 'tap_sau' | 'mua_sau' };
 export type MuaSeries = { so: number; ten: string; dong_co?: string; ghi_chu?: string };
 /** THAM CHIẾU của series (14/10/2026 — anh: "trước khi sinh key phải có hết"): tác phẩm mẫu + chuẩn đo được rút ra từ nó; hồ sơ tập đo theo đây. */
 export type ThamChieuSeries = { tac_pham: string; do_dai_s: number; gag_moi_phut: number; rut_ra: string[] };

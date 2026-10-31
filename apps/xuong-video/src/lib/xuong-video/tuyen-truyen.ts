@@ -14,12 +14,13 @@ const muaCua = (s: Series, so: number) => s.tap.find((t) => t.so === so)?.mua ??
 /** Tập cuối của mùa chứa tập `so` (theo bản đồ). */
 export const tapCuoiMua = (s: Series, so: number): number => { const m = muaCua(s, so); return Math.max(so, ...s.tap.filter((t) => (t.mua ?? 1) === m).map((t) => t.so)); };
 
-export type TrangThaiGaiTra = { muc: 'da_tra' | 'treo' | 'loi'; ghi: string };
+export type TrangThaiGaiTra = { muc: 'da_tra' | 'treo' | 'mo' | 'loi'; ghi: string };
 /** Trạng thái một chi tiết: đã trả (đèn xanh) · còn treo (cam) · sai (đỏ: trả trước khi gieo, tập không có trong bản đồ). */
 export function trangThaiGaiTra(s: Series, g: GaiTra): TrangThaiGaiTra {
   const co = (so: number) => s.tap.some((t) => t.so === so);
   if (!g.chi_tiet.trim()) return { muc: 'loi', ghi: 'chưa ghi chi tiết' };
   if (!co(g.gieo)) return { muc: 'loi', ghi: `tập ${g.gieo} không có trong bản đồ` };
+  if (g.tra == null && g.mo) return { muc: 'mo', ghi: `gieo ở tập ${g.gieo}, cố ý để mở — móc sang ${g.mo === 'mua_sau' ? 'mùa sau' : 'tập sau'}` };
   if (g.tra == null) return { muc: 'treo', ghi: `gieo ở tập ${g.gieo}, chưa có tập trả — mùa kết ở tập ${tapCuoiMua(s, g.gieo)}` };
   if (!co(g.tra)) return { muc: 'loi', ghi: `tập trả ${g.tra} không có trong bản đồ` };
   if (g.tra < g.gieo) return { muc: 'loi', ghi: `trả ở tập ${g.tra} trước khi gieo (tập ${g.gieo})` };
@@ -54,9 +55,9 @@ export function chamTuyenTruyen(s: Series | null | undefined, tapSo: number | un
     ghi: [tra.length ? `phải trả: ${tra.map((g) => `${g.chi_tiet} (gieo tập ${g.gieo})`).join(' · ')}` : '', gieo.length ? `gieo: ${gieo.map((g) => g.chi_tiet).join(' · ')}` : ''].filter(Boolean).join(' — ') });
   if (tapCuoiMua(s, tapSo) === tapSo) {
     const mua = muaCua(s, tapSo);
-    const treo = so.filter((g) => g.tra == null && g.chi_tiet.trim() && g.gieo <= tapSo && muaCua(s, g.gieo) === mua);
+    const treo = so.filter((g) => g.tra == null && g.mo !== 'mua_sau' && g.chi_tiet.trim() && g.gieo <= tapSo && muaCua(s, g.gieo) === mua);
     m.push({ key: 'treo_cuoi_mua', ten: 'Hết chi tiết treo cuối mùa', dat: !treo.length, cung: true,
-      ghi: treo.length ? `tập cuối mùa mà còn ${treo.length} chi tiết chưa có tập trả: ${treo.map((g) => `${g.chi_tiet} (gieo tập ${g.gieo})`).join(' · ')} — trả trong tập này hoặc ghi tập trả ở mùa sau (📖 Phim › 📌 Gài / trả)` : 'mọi chi tiết gieo trong mùa đã có tập trả' });
+      ghi: treo.length ? `tập cuối mùa mà còn ${treo.length} chi tiết chưa có tập trả: ${treo.map((g) => `${g.chi_tiet} (gieo tập ${g.gieo})`).join(' · ')} — trả trong tập này, ghi tập trả ở mùa sau, hoặc đánh dấu "để mở sang mùa sau" (📖 Phim › 📌 Gài / trả)` : 'mọi chi tiết gieo trong mùa đã có tập trả' });
   }
   const sai = so.filter((g) => (g.gieo === tapSo || g.tra === tapSo) && trangThaiGaiTra(s, g).muc === 'loi');
   if (sai.length) m.push({ key: 'gai_tra_sai', ten: 'Sổ gài / trả ghi đúng', dat: false, cung: false, ghi: sai.map((g) => `${g.chi_tiet || '(trống)'}: ${trangThaiGaiTra(s, g).ghi}`).join(' · ') });
@@ -105,4 +106,25 @@ export function themTapAi(s: Series, ai: AiThemTap, taoId: () => string): { s: S
   });
   const moi = ai.gai_tra_moi.filter((g) => g.chi_tiet.trim()).map((g) => ({ id: taoId(), chi_tiet: g.chi_tiet.trim(), gieo: quy(g.gieo)!, tra: quy(g.tra) }));
   return { s: { ...s, tap: [...s.tap, ...tapMoi], so_gai_tra: [...so, ...moi] }, them: tapMoi.map((t) => t.so) };
+}
+
+/** Kết quả AI sắp tuyến theo KHUNG NGÀNH (claude.ts › sapKhungTuyen): làn mới gắn vai ngành, sự kiện TRỌN bản đồ theo làn mới, các chi tiết để mở. */
+export type AiSapKhung = { tuyen: { ma: string; ten: string; vai: string }[]; su_kien: { so: number; ma: string; viec: string }[];
+  mo: { chi_tiet: string; gieo: number; mo: 'tap_sau' | 'mua_sau' }[] };
+/** Áp sắp khung: THAY làn + sự kiện theo AI (đây là thao tác sắp lại, có chụp hoàn tác ở nơi gọi); chi tiết treo khớp nguyên văn được đánh dấu để mở;
+ *  chi tiết để mở mới thêm vào sổ. Sự kiện của mã làn lạ / tập không có trên bản đồ bị bỏ. */
+export function apSapKhung(s: Series, ai: AiSapKhung, taoId: () => string): Series {
+  const tuyen = ai.tuyen.filter((t) => t.ma.trim()).map((t) => ({ ma: t.ma.trim(), ten: t.ten.trim(), vai: t.vai.trim() || undefined }));
+  const ma = new Set(tuyen.map((t) => t.ma)); const coTap = new Set(s.tap.map((t) => t.so));
+  const tap = s.tap.map((t) => {
+    const sk = Object.fromEntries(ai.su_kien.filter((k) => k.so === t.so && ma.has(k.ma) && k.viec.trim()).map((k) => [k.ma, k.viec.trim()]));
+    const { su_kien: _bo, ...con } = t;
+    return Object.keys(sk).length ? { ...con, su_kien: sk } : con;
+  });
+  const cu = s.so_gai_tra ?? [];
+  const khop = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
+  const so = cu.map((g) => { const m = g.tra == null ? ai.mo.find((x) => khop(x.chi_tiet, g.chi_tiet)) : undefined; return m ? { ...g, mo: m.mo } : g; });
+  const moi = ai.mo.filter((m) => m.chi_tiet.trim() && coTap.has(m.gieo) && !cu.some((g) => khop(g.chi_tiet, m.chi_tiet)))
+    .map((m) => ({ id: taoId(), chi_tiet: m.chi_tiet.trim(), gieo: m.gieo, tra: null, mo: m.mo }));
+  return { ...s, tuyen, tap, so_gai_tra: [...so, ...moi] };
 }

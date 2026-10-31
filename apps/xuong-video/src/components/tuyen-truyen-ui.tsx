@@ -2,9 +2,10 @@
 // BẢNG TUYẾN + SỔ GÀI / TRẢ (tab 📖 Phim › Tuyến truyện · Gài / trả). Sổ của phòng biên kịch: hàng là tập, cột là tuyến A/B/C; sổ gài / trả
 // ghi chi tiết gieo ở tập nào, trả ở tập nào. Luật + trộn AI: lib/xuong-video/tuyen-truyen.ts. Sửa tại chỗ, tự lưu 1,2 giây sau lần gõ cuối.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { suaPhim, aiTuyenTruyen, aiThemTap } from '@/lib/actions';
+import { suaPhim, aiTuyenTruyen, aiThemTap, aiSapKhung } from '@/lib/actions';
 import { gioVN, type GaiTra, type Phim, type Series } from '@/lib/xuong-video/kieu';
 import { dsTap, trangThaiGaiTra, tuyenVang, tronAi } from '@/lib/xuong-video/tuyen-truyen';
+import { doiKhung, type KhungTuyen } from '@/lib/xuong-video/khung-tuyen';
 import { Chon } from './chon';
 import { Den, Menu, MucMenu, Nut, Seg, Loi, mono, goiAction } from './ui';
 import { useNho } from './nho';
@@ -84,10 +85,30 @@ export function NutThemTap({ phimId, dangSua, onChanged }: { phimId: number; dan
   </span>;
 }
 
+/** 🧩 Sắp theo khung ngành: AI xếp lại làn theo vai ngành của dạng phim, chia lại sự kiện, nêu chi tiết để mở sang tập / mùa sau — ghi thẳng (hoàn tác được). */
+export function NutSapKhung({ phimId, khung, dangSua, onChanged }: { phimId: number; khung: KhungTuyen | null; dangSua: boolean; onChanged: () => Promise<void> }) {
+  const [ban, setBan] = useState(false);
+  const [kq, setKq] = useState('');
+  const chay = async () => {
+    setBan(true); setKq('');
+    const r = await goiAction(() => aiSapKhung(phimId));
+    setBan(false);
+    if (r.loi) { setKq(r.loi); return; }
+    setKq(`✓ sắp xong ${r.kq && 'data' in r.kq ? r.kq.data : ''} tuyến`);
+    await onChanged();
+  };
+  return <>
+    <Nut ban={ban} ly={(!khung && 'thể loại phim chưa có khung tuyến ngành trong thư viện') || (dangSua && 'đang lưu chữ vừa gõ — đợi 1 giây')}
+      title={khung ? `Claude xếp lại các làn theo khung ngành "${khung.ten}" (${khung.ca_bo[0]}–${khung.ca_bo[1]} tuyến cả bộ), chia lại sự kiện từng tập vào đúng làn, và nêu các chi tiết cố ý để mở sang tập / mùa sau. Hoàn tác được. Khoảng vài trăm ₫ qua ckey.` : undefined}
+      onClick={() => void chay()}>{ban ? '… AI đang sắp' : '🧩 Sắp theo khung ngành'}</Nut>
+    {kq && <span style={{ ...mono, color: kq.startsWith('✓') ? 'var(--lime)' : 'var(--red)' }}>{kq}</span>}
+  </>;
+}
+
 /** SƠ ĐỒ LÀN TUYẾN TRUYỆN (anh 31/10/2026: "cái gì trước, cái gì sau? thêm line nối giữa các thành phần"): thời gian chạy TRÁI → PHẢI
  *  (cột = tập, theo thứ tự), mỗi tuyến một LÀN ngang. Sự kiện là thẻ trên làn; các thẻ liên tiếp nối bằng đường có mũi tên. Đoạn tuyến
  *  không có sự kiện = nét đứt (vắng ≥ 3 tập liền = nét đứt vàng — người xem quên tuyến). Bấm thẻ để sửa, bấm ＋ để thêm sự kiện. */
-export function BangTuyen({ s, setS }: { s: Series; setS: (s: Series) => void }) {
+export function BangTuyen({ s, setS, khung }: { s: Series; setS: (s: Series) => void; /** khung tuyến ngành của dạng phim (khung-tuyen.ts) — làn ngành còn thiếu hiện mờ */ khung?: KhungTuyen | null }) {
   const tap = dsTap(s); const tuyen = s.tuyen ?? [];
   const vang = tuyenVang(s);
   const [sua, setSua] = useState<string | null>(null);   // ô đang gõ (ma:so) — ô trống bấm ＋ thì mở ô gõ
@@ -113,7 +134,7 @@ export function BangTuyen({ s, setS }: { s: Series; setS: (s: Series) => void })
           const dau = co.indexOf(true), cuoi = co.lastIndexOf(true);
           const kieu = (i: number) => (vang.some((v) => v.ma === x.ma && tap[i]!.so >= v.tu && tap[i]!.so <= v.den) ? 'vang' : co[i] ? 'lien' : 'ho');
           return [
-            <div key={`n${x.ma}`} className="xv-lan-nhan" title={`Tuyến ${x.ma}: ${co.filter(Boolean).length}/${tap.length} tập có sự kiện`}>
+            <div key={`n${x.ma}`} className="xv-lan-nhan" title={`Tuyến ${x.ma}${x.vai ? ` · vai ngành: ${khung?.tuyen.find((v) => v.vai === x.vai)?.ten ?? x.vai}` : ''}: ${co.filter(Boolean).length}/${tap.length} tập có sự kiện`}>
               <b style={{ color: 'var(--fg-2)', fontSize: 13 }}>{x.ma}</b>
               <ODai dam value={x.ten} placeholder={x.ma === 'A' ? 'tuyến chính…' : 'tuyến phụ…'} onChange={(v) => doiTen(x.ma, v)} />
               <Menu rong={190}><MucMenu nguy goiY="Bỏ làn tuyến này cùng mọi sự kiện đã ghi" onClick={() => boTuyen(x.ma)}>🗑 Bỏ tuyến {x.ma}</MucMenu></Menu>
@@ -138,20 +159,29 @@ export function BangTuyen({ s, setS }: { s: Series; setS: (s: Series) => void })
             }),
           ];
         })}
+        {/* LÀN NGÀNH CÒN THIẾU (khung-tuyen.ts): vai mà dạng phim này thường có nhưng bản đồ chưa có làn — hiện mờ, bấm ＋ để mở làn */}
+        {doiKhung(s, khung ?? null)?.thieu.map((v) => [
+          <div key={`kn${v.vai}`} className="xv-lan-nhan" style={{ opacity: 0.6 }} title={`${v.mo_ta}${v.mo_tu ? ` — ngành thường mở tập ${v.mo_tu[0]}–${v.mo_tu[1]}` : ''}`}>
+            <b style={{ color: 'var(--fg-3)', fontSize: 13 }}>{v.ma}</b>
+            <span style={{ fontSize: 12.5, flex: 1 }}>{v.ten}<br /><span style={mono}>khung ngành{v.mo_tu ? ` · thường mở tập ${v.mo_tu[0]}–${v.mo_tu[1]}` : ''}</span></span>
+            <button type="button" className="xv-btn" style={{ padding: '0 6px' }} title="Mở làn này cho phim" onClick={() => { const ma = tuyen.some((t) => t.ma === v.ma) ? 'ABCDEFGHIJ'.split('').find((c) => !tuyen.some((t) => t.ma === c))! : v.ma; setS({ ...s, tuyen: [...tuyen, { ma, ten: v.ten, vai: v.vai }] }); }}>＋</button>
+          </div>,
+          <div key={`kno${v.vai}`} className="xv-lan-o" style={{ gridColumn: `span ${Math.max(1, tap.length)}`, justifyContent: 'flex-start', opacity: 0.5 }}><span className="xv-lan-day trai" data-kieu="ho" style={{ right: 0 }} /></div>,
+        ])}
       </div>
       <button type="button" className="xv-btn" style={{ marginTop: 8 }} title="Thêm một làn tuyến — A là tuyến chính, B/C là tuyến phụ" onClick={themTuyen}>+ Tuyến</button>
     </div>
   );
 }
 
-type LocGt = 'tat_ca' | 'treo' | 'sai';
-/** Sổ gài / trả: đèn (xanh đã trả · cam còn treo · đỏ ghi sai) · chi tiết · tập gieo · tập trả. Lọc theo trạng thái, xếp theo tập gieo. */
+type LocGt = 'tat_ca' | 'treo' | 'mo' | 'sai';
+/** Sổ gài / trả: đèn (xanh đã trả · cam còn treo · xám 🔓 cố ý để mở sang tập/mùa sau · đỏ ghi sai) · chi tiết · tập gieo · trả ở (tập / để mở). Lọc theo trạng thái, xếp theo tập gieo. */
 export function SoGaiTra({ s, setS }: { s: Series; setS: (s: Series) => void }) {
-  const [loc, setLoc] = useNho<LocGt>('xv-gt-loc', 'tat_ca', ['tat_ca', 'treo', 'sai'], 'gt');
+  const [loc, setLoc] = useNho<LocGt>('xv-gt-loc', 'tat_ca', ['tat_ca', 'treo', 'mo', 'sai'], 'gt');
   const so = s.so_gai_tra ?? [];
   const tt = (g: GaiTra) => trangThaiGaiTra(s, g);
-  const dem = { treo: so.filter((g) => g.chi_tiet.trim() && tt(g).muc === 'treo').length, sai: so.filter((g) => g.chi_tiet.trim() && tt(g).muc === 'loi').length };
-  const hien = so.filter((g) => loc === 'tat_ca' || (g.chi_tiet.trim() && tt(g).muc === (loc === 'treo' ? 'treo' : 'loi'))).sort((a, b) => a.gieo - b.gieo || (a.tra ?? 1e9) - (b.tra ?? 1e9));
+  const dem = { mo: so.filter((g) => g.chi_tiet.trim() && tt(g).muc === 'mo').length, treo: so.filter((g) => g.chi_tiet.trim() && tt(g).muc === 'treo').length, sai: so.filter((g) => g.chi_tiet.trim() && tt(g).muc === 'loi').length };
+  const hien = so.filter((g) => loc === 'tat_ca' || (g.chi_tiet.trim() && tt(g).muc === (loc === 'sai' ? 'loi' : loc))).sort((a, b) => a.gieo - b.gieo || (a.tra ?? 1e9) - (b.tra ?? 1e9));
   const tap = dsTap(s);
   const tenMua = (n: number) => s.mua?.find((m) => m.so === n)?.ten ?? `Mùa ${n}`;
   const lcTap = tap.map((t) => ({ value: String(t.so), label: `Tập ${t.so} · ${t.ten}`, ngan: `Tập ${t.so}`, nhom: tenMua(t.mua ?? 1) }));
@@ -162,19 +192,22 @@ export function SoGaiTra({ s, setS }: { s: Series; setS: (s: Series) => void }) 
       <Seg value={loc} onChange={setLoc} options={[
         { value: 'tat_ca', label: 'Tất cả', title: `${so.length} chi tiết` },
         { value: 'treo', label: 'Còn treo', title: `${dem.treo} chi tiết chưa có tập trả — tập cuối mùa sẽ bị chặn sinh keyframe tới khi trả` },
+        { value: 'mo', label: 'Để mở', title: `${dem.mo} chi tiết cố ý bỏ ngỏ — móc sang tập sau / mùa sau` },
         { value: 'sai', label: 'Ghi sai', title: `${dem.sai} chi tiết ghi sai (trả trước khi gieo, tập không có trong bản đồ)` },
       ]} />
       <button type="button" className="xv-btn" style={{ marginLeft: 'auto' }} title="Thêm một chi tiết gài" onClick={them}>+ Chi tiết</button>
     </div>
     <table className="xv-tbl dinh">
-      <thead><tr><th style={{ width: 22 }} /><th>Chi tiết được gài</th><th style={{ width: 130 }}>Gieo ở</th><th style={{ width: 130 }}>Trả ở</th><th style={{ width: 34 }} /></tr></thead>
+      <thead><tr><th style={{ width: 22 }} /><th>Chi tiết được gài</th><th style={{ width: 130 }}>Gieo ở</th><th style={{ width: 150 }}>Trả ở · để mở</th><th style={{ width: 34 }} /></tr></thead>
       <tbody>
         {hien.map((g) => { const t = tt(g); return (
           <tr key={g.id}>
-            <td><Den muc={!g.chi_tiet.trim() ? 'tat' : t.muc === 'da_tra' ? 'ok' : t.muc === 'treo' ? 'cho' : 'loi'} title={g.chi_tiet.trim() ? t.ghi : 'chưa ghi chi tiết'} /></td>
+            <td><Den muc={!g.chi_tiet.trim() || t.muc === 'mo' ? 'tat' : t.muc === 'da_tra' ? 'ok' : t.muc === 'treo' ? 'cho' : 'loi'} title={g.chi_tiet.trim() ? t.ghi : 'chưa ghi chi tiết'} /></td>
             <td><input className="xv-o-sua" value={g.chi_tiet} placeholder="vd: chìa khoá đồng trong túi áo bà" onChange={(e) => sua(g.id, { chi_tiet: e.target.value })} /></td>
             <td><Chon nho minWidth={120} value={String(g.gieo)} options={lcTap} onChange={(v) => sua(g.id, { gieo: Number(v) })} /></td>
-            <td><Chon nho minWidth={120} value={g.tra == null ? '' : String(g.tra)} placeholder="chưa trả" options={[{ value: '', label: 'Chưa trả', ngan: 'chưa trả' }, ...lcTap]} onChange={(v) => sua(g.id, { tra: v ? Number(v) : null })} /></td>
+            <td><Chon nho minWidth={140} value={g.tra != null ? String(g.tra) : g.mo ? `mo:${g.mo}` : ''} placeholder="chưa trả"
+              options={[{ value: '', label: 'Chưa trả', ngan: 'chưa trả' }, { value: 'mo:tap_sau', label: '🔓 Để mở → tập sau', ngan: '🔓 tập sau', nhom: 'Cố ý để mở' }, { value: 'mo:mua_sau', label: '🔓 Để mở → mùa sau', ngan: '🔓 mùa sau', nhom: 'Cố ý để mở' }, ...lcTap]}
+              onChange={(v) => sua(g.id, v.startsWith('mo:') ? { tra: null, mo: v.slice(3) as 'tap_sau' | 'mua_sau' } : { tra: v ? Number(v) : null, mo: undefined })} /></td>
             <td><Menu rong={170}><MucMenu nguy goiY="Bỏ chi tiết này khỏi sổ" onClick={() => setS({ ...s, so_gai_tra: so.filter((x) => x.id !== g.id) })}>🗑 Bỏ chi tiết</MucMenu></Menu></td>
           </tr>); })}
         {!hien.length && <tr><td colSpan={5} style={mono}>{so.length ? 'Không có chi tiết nào ở bộ lọc này.' : <>Sổ trống — <button type="button" className="xv-btn" onClick={them}>+ ghi chi tiết đầu tiên</button> hoặc bấm ✨ AI rút từ bản đồ.</>}</td></tr>}

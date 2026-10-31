@@ -1,6 +1,6 @@
 // Tự kiểm tuyen-truyen.ts: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/tuyen-truyen.test.mts
 import assert from 'node:assert';
-import { chamTuyenTruyen, trangThaiGaiTra, tuyenVang, tapCuoiMua, tronAi, themTapAi } from './tuyen-truyen';
+import { chamTuyenTruyen, trangThaiGaiTra, tuyenVang, tapCuoiMua, tronAi, themTapAi, apSapKhung } from './tuyen-truyen';
 import type { Series } from './kieu';
 
 const tap = (so: number, mua = 1, su_kien?: Record<string, string>) => ({ so, ten: `T${so}`, logline: '', mua, su_kien });
@@ -65,4 +65,21 @@ assert.equal(w.s.tap.find((t) => t.so === 7)!.mua, 2);
 assert.equal(w.s.so_gai_tra!.find((g) => g.id === '2')!.tra, 8);
 assert.equal(w.s.so_gai_tra!.find((g) => g.id === '4')!.tra, 7);   // bản đồ gieo tập 6 → trả tập 7 (≥ gieo) hợp lệ
 assert.deepEqual(w.s.so_gai_tra!.find((g) => g.id === 'n1'), { id: 'n1', chi_tiet: 'mặt dây', gieo: 7, tra: 8 });
+// cố ý để mở sang mùa sau → không treo, không chặn tập cuối mùa
+const s3: Series = { ...s, so_gai_tra: s.so_gai_tra!.map((g) => (g.id === '2' ? { ...g, mo: 'mua_sau' as const } : g)) };
+assert.equal(trangThaiGaiTra(s3, s3.so_gai_tra![1]!).muc, 'mo');
+assert.equal(chamTuyenTruyen(s3, 5).find((x) => x.key === 'treo_cuoi_mua')!.dat, true);
+// để mở sang TẬP sau vẫn tính treo ở cuối mùa (tập sau phải trả)
+const s4: Series = { ...s, so_gai_tra: s.so_gai_tra!.map((g) => (g.id === '2' ? { ...g, mo: 'tap_sau' as const } : g)) };
+assert.equal(chamTuyenTruyen(s4, 5).find((x) => x.key === 'treo_cuoi_mua')!.dat, false);
+// sắp khung: thay làn + sự kiện, đánh dấu chi tiết treo để mở, thêm chi tiết mở mới, bỏ mã lạ / tập lạ
+const k = apSapKhung(s, { tuyen: [{ ma: 'A', ten: 'Quan hệ', vai: 'quan_he' }, { ma: 'D', ten: 'Quá khứ', vai: 'qua_khu' }],
+  su_kien: [{ so: 1, ma: 'D', viec: 'hé di vật' }, { so: 1, ma: 'Z', viec: 'lạ' }, { so: 2, ma: 'A', viec: 'đảo vai' }],
+  mo: [{ chi_tiet: 'vết sẹo', gieo: 2, mo: 'mua_sau' }, { chi_tiet: 'mẹ còn sống?', gieo: 5, mo: 'mua_sau' }, { chi_tiet: 'x', gieo: 99, mo: 'tap_sau' }] }, () => 'm1');
+assert.deepEqual(k.tuyen!.map((t) => `${t.ma}:${t.vai}`), ['A:quan_he', 'D:qua_khu']);
+assert.deepEqual(k.tap.find((t) => t.so === 1)!.su_kien, { D: 'hé di vật' });
+assert.equal(k.tap.find((t) => t.so === 3)!.su_kien, undefined);
+assert.equal(k.so_gai_tra!.find((g) => g.id === '2')!.mo, 'mua_sau');
+assert.deepEqual(k.so_gai_tra!.find((g) => g.id === 'm1'), { id: 'm1', chi_tiet: 'mẹ còn sống?', gieo: 5, tra: null, mo: 'mua_sau' });
+assert.equal(k.so_gai_tra!.length, 5);
 console.log('tuyen-truyen tu-kiem ok');

@@ -549,17 +549,18 @@ export async function datAnhChinh(nhanVatId: number, url: string): Promise<Kq> {
 
 // ── Biến thể anchor (biểu cảm · trang phục · tư thế · góc máy · thời điểm…) ───────────────────────────────────────
 
-export async function luuBienThe(d: { id?: number; nhan_vat_id: number; nhom: string; ten: string; mo_ta: string }): Promise<Kq<number>> {
+export async function luuBienThe(d: { id?: number; nhan_vat_id: number; nhom: string; ten: string; mo_ta: string; dung_tap?: number[] | null }): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  if (d.id) await chupTruoc(db, { bang: 'xv_bien_the', id: d.id, cot: ['nhom', 'ten', 'mo_ta'], moTa: `sửa biến thể ${d.ten.trim()}`, nguoi: await ai() });
+  if (d.id) await chupTruoc(db, { bang: 'xv_bien_the', id: d.id, cot: ['nhom', 'ten', 'mo_ta', 'dung_tap'], moTa: `sửa biến thể ${d.ten.trim()}`, nguoi: await ai() });
   if (!d.ten.trim()) return loi('thiếu tên biến thể');
+  const tap = d.dung_tap === undefined ? undefined : JSON.stringify((d.dung_tap ?? []).filter((x) => Number.isFinite(x)));   // undefined = không đụng cột; [] / null = mọi tập
   if (d.id) {
-    await db.execute(sql`UPDATE xv_bien_the SET nhom = ${d.nhom}, ten = ${d.ten.trim()}, mo_ta = ${d.mo_ta}, updated_at = now() WHERE id = ${d.id}`);
+    await db.execute(sql`UPDATE xv_bien_the SET nhom = ${d.nhom}, ten = ${d.ten.trim()}, mo_ta = ${d.mo_ta}${tap === undefined ? sql`` : sql`, dung_tap = ${tap === '[]' ? null : tap}::jsonb`}, updated_at = now() WHERE id = ${d.id}`);
     return { ok: true, data: d.id };
   }
-  const r = (await db.execute(sql`INSERT INTO xv_bien_the (nhan_vat_id, nhom, ten, mo_ta) VALUES (${d.nhan_vat_id}, ${d.nhom}, ${d.ten.trim()}, ${d.mo_ta}) RETURNING id`)) as unknown as Row[];
+  const r = (await db.execute(sql`INSERT INTO xv_bien_the (nhan_vat_id, nhom, ten, mo_ta, dung_tap) VALUES (${d.nhan_vat_id}, ${d.nhom}, ${d.ten.trim()}, ${d.mo_ta}, ${tap && tap !== '[]' ? tap : null}::jsonb) RETURNING id`)) as unknown as Row[];
   return { ok: true, data: n(r[0]?.id) };
 }
 
@@ -1968,10 +1969,10 @@ export async function taoPhimTuLo(loId: number, ten: string, gt: Record<string, 
 // 👗 SỔ TRANG PHỤC CARRY của shot canhId: nạp mọi shot nhánh chính của tập + phân cảnh (ngày/lien_truoc) → lookMang → look đã carry cho từng nhân vật
 // của riêng shot này. Dùng cho đối chiếu (Áo + Vết áo lấy từ biến thể, vết carry từ mốc đổ). tap_id + phan_canh từ xv_tap.
 async function lookTap(db: NonNullable<ReturnType<typeof getDb>>, tapId: number, nhanVat: NhanVat[]): Promise<Map<number, Map<string, LookMang>>> {
-  const pc = ((await db.execute(sql`SELECT phan_canh FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0]?.phan_canh;
+  const t = ((await db.execute(sql`SELECT so, phan_canh FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0];
   const ds = ((await db.execute(sql`SELECT id, canh, nhan_vat, bien_the FROM xv_canh WHERE tap_id = ${tapId} AND coalesce(nhanh, '') IN ('', 'A') ORDER BY thu_tu, id`)) as unknown as Row[])
     .map((r) => ({ id: n(r.id), canh: s(r.canh), nhan_vat: arr<number>(r.nhan_vat).map(Number), bien_the: arr<number>(r.bien_the).map(Number) }));
-  return lookMang(ds, nhanVat, (pc ?? []) as PhanCanh[]);
+  return lookMang(ds, nhanVat, (t?.phan_canh ?? []) as PhanCanh[], t?.so == null ? undefined : n(t.so));
 }
 
 // 🧩 BÓC TÁCH một shot từ UI (bấm nút trong ngăn chi tiết) — chạy y boc-tach.mts --ghi cho khung đầu + cuối: bóc thành phần thật từ keyframe rồi đối chiếu dự kiến, ghi xv_canh.boc_tach.

@@ -34,10 +34,10 @@ async function nap() {
   const nhanVat = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
   const kg = await khongGianTap(c.tap_id, c.phan_doan ?? '').catch(() => null);
   // SỔ TRANG PHỤC CARRY (bo-set-3d.ts › lookMang): áo + VẾT của shot — cùng nguồn với prompt (boiCanhCanh.look), để đối chiếu có lá Vết áo từ biến thể nhóm `vet`
-  const pc = ((await db.execute(sql`SELECT phan_canh FROM xv_tap WHERE id = ${c.tap_id}`)) as unknown as Row[])[0]?.phan_canh;
+  const t = ((await db.execute(sql`SELECT so, phan_canh FROM xv_tap WHERE id = ${c.tap_id}`)) as unknown as Row[])[0];
   const dsLook = ((await db.execute(sql`SELECT id, canh, nhan_vat, bien_the FROM xv_canh WHERE tap_id = ${c.tap_id} AND coalesce(nhanh, '') IN ('', 'A') ORDER BY thu_tu, id`)) as unknown as Row[])
     .map((x) => ({ id: n(x.id), canh: s(x.canh), nhan_vat: arr<number>(x.nhan_vat).map(Number), bien_the: arr<number>(x.bien_the).map(Number) }));
-  const look = lookMang(dsLook, nhanVat, (pc ?? []) as PhanCanh[]).get(canhId);
+  const look = lookMang(dsLook, nhanVat, (t?.phan_canh ?? []) as PhanCanh[], t?.so == null ? undefined : n(t.so)).get(canhId);
   return { c, phimId, nhanVat, kg, look };
 }
 

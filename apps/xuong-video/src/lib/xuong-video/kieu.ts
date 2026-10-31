@@ -384,7 +384,8 @@ export type Phim = {
   /** poster đang dùng + mọi bản đã sinh (poster.ts) */
   poster_url?: string | null; poster_uv?: string[];
 };
-export type BienThe = { id: number; nhan_vat_id: number; nhom: string; ten: string; mo_ta: string; anh_url: string | null };
+export type BienThe = { id: number; nhan_vat_id: number; nhom: string; ten: string; mo_ta: string; anh_url: string | null;
+  /** look theo TẬP: mảng số tập (xv_tap.so) biến thể này dùng; rỗng/thiếu = mọi tập (bang-trang-phuc theo tập, lookMang bộ mặc định) */ dung_tap?: number[] | null };
 /** Claude nhìn ảnh gốc của anchor so với mô tả: lệch chỗ nào (màu, ren, khoá, chữ thương hiệu…) + mô tả viết lại theo ảnh. */
 export type DoiChieu = { khop: boolean; lech: string[]; mo_ta_de_xuat: string; luc: string };
 /** BỘ SET 3D (bo-set-3d.ts): bối cảnh là DỮ LIỆU toạ độ cm — gốc giữa mép trước, x phải, y vào sâu, z lên. Một set dùng cho nhiều phim của dự án. */

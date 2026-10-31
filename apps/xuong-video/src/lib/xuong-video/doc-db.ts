@@ -22,7 +22,8 @@ export const mangInt = (xs: number[]) => `{${xs.map((x) => Math.trunc(Number(x))
 
 export const mapBienThe = (r: Row): BienThe => ({ id: n(r.id), nhan_vat_id: n(r.nhan_vat_id), nhom: s(r.nhom), ten: s(r.ten), mo_ta: s(r.mo_ta), anh_url: r.anh_url == null ? null : s(r.anh_url),
   ...(Array.isArray(r.dan_3d) && r.dan_3d.length ? { dan_3d: r.dan_3d } : {}),   // dấu 3D của biến thể (bo-set-3d.ts › BienTheDan)
-  ...(Array.isArray(r.dung_cho) && r.dung_cho.length ? { dung_cho: r.dung_cho } : {}) });   // hoàn cảnh dùng (bang-trang-phuc.ts)
+  ...(Array.isArray(r.dung_cho) && r.dung_cho.length ? { dung_cho: r.dung_cho } : {}),   // hoàn cảnh dùng (bang-trang-phuc.ts)
+  ...(Array.isArray(r.dung_tap) && r.dung_tap.length ? { dung_tap: (r.dung_tap as unknown[]).map(Number) } : {}) });   // tập dùng (trang phục theo tập)
 
 export const mapNhanVat = (r: Row): NhanVat => ({ id: n(r.id), phim_id: n(r.phim_id), loai: s(r.loai) as LoaiNhanVat, ten: s(r.ten), mo_ta: s(r.mo_ta), tieu_su: s(r.tieu_su), am_hieu: arr<{ ten: string; mo_ta: string; url: string }>(r.am_hieu), anh_ref: arr<string>(r.anh_ref), anh_mat: (r.anh_mat && typeof r.anh_mat === 'object' ? r.anh_mat : null) as NhanVat['anh_mat'], giong: s(r.giong), giong_model: s(r.giong_model), giong_id: s(r.giong_id), giong_mau_url: r.giong_mau_url == null ? null : s(r.giong_mau_url), giong_thu: Array.isArray(r.giong_thu) ? (r.giong_thu as NhanVat['giong_thu']) : [], doi_chieu: (r.doi_chieu && typeof r.doi_chieu === 'object' ? r.doi_chieu : null) as NhanVat['doi_chieu'],
   thuoc_id: r.thuoc_id == null ? null : n(r.thuoc_id), bo_set_id: r.bo_set_id == null ? null : n(r.bo_set_id), vung: (r.vung ?? null) as NhanVat['vung'], khoi_3d: (r.khoi_3d ?? null) as NhanVat['khoi_3d'], lora: (r.lora && typeof r.lora === 'object' ? r.lora : null) as NhanVat['lora'] });
@@ -122,8 +123,8 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   const dsLook = ((await db.execute(sql`SELECT id, canh, nhan_vat, bien_the FROM xv_canh WHERE tap_id = ${canh.tap_id} AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu, id`)) as unknown as Row[])
     .map((x) => ({ id: n(x.id), canh: s(x.canh), nhan_vat: arr<number>(x.nhan_vat).map(Number), bien_the: arr<number>(x.bien_the).map(Number) }));
   const nvLook = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)} AND loai = 'nhan_vat' ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
-  const pcLook = ((await db.execute(sql`SELECT phan_canh FROM xv_tap WHERE id = ${canh.tap_id}`)) as unknown as Row[])[0]?.phan_canh;
-  const look = lookMang(dsLook, nvLook, (pcLook ?? []) as PhanCanh[]).get(canh.id) ?? null;
+  const tLook = ((await db.execute(sql`SELECT so, phan_canh FROM xv_tap WHERE id = ${canh.tap_id}`)) as unknown as Row[])[0];
+  const look = lookMang(dsLook, nvLook, (tLook?.phan_canh ?? []) as PhanCanh[], tLook?.so == null ? undefined : n(tLook.so)).get(canh.id) ?? null;
   return { canh, kt, nhanVat: nv, truoc, master, anhSet, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null, nvPhim, loai: s(r[0].p_loai || 'phim') as LoaiPhim, vatSet, khanGia, look,
     /** sơ đồ cảnh 2D của shot (phim không 3D — khong-gian.ts) */ khongGian: kgCua(r[0].t_khong_gian as KhongGianTap | null, canh) };
 }

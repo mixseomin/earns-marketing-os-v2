@@ -19,6 +19,11 @@ import { nhomCayAnchor } from '@/lib/xuong-video/cay-anchor';
 /** Số góc một lượt sinh ảnh gốc anchor (#1351): ảnh chính + góc phụ ngay từ đầu, không phải bấm lần lượt từng góc. */
 const BO_GOC = 3;
 
+/** Nhóm biến thể LOOK-BOOK (bề ngoài nhân vật) — có thể khác nhau theo tập (trang phục theo tập). Khớp KHOA_LOOK ở bo-set-3d.ts (giữ cạnh client, không kéo server-only). */
+const LOOK_NHOM = new Set(['trang_phuc', 'toc', 'trang_diem', 'do_deo', 'vet', 'trang']);
+/** "1,3" → [1,3]; trống → [] (mọi tập). */
+const parseTap = (s: string): number[] => s.split(/[,\s]+/).map(Number).filter((x) => Number.isInteger(x) && x > 0);
+
 /** Giọng cố định của một nhân vật (cả bộ phim): chọn model (ElevenLabs tài khoản anh / mọi TTS fal) + giọng, nghe thử. */
 export function GiongNhanVat({ v, onChanged }: { v: NhanVat; onChanged: () => Promise<void> }) {
   const [mo, setMo] = useState(false);
@@ -83,6 +88,10 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
   const coLoai = LOAI_NHAN_VAT.filter((l) => nhanVat.some((v) => v.loai === l.key));
   const [locLoai, setLocLoai] = useNho<'' | LoaiNhanVat>('xv-nv-loai', '', ['', ...LOAI_NHAN_VAT.map((l) => l.key)], 'nvl');
   const dsHien = locLoai && coLoai.some((l) => l.key === locLoai) ? nhanVat.filter((v) => v.loai === locLoai) : nhanVat;
+  // Lọc bảng theo TẬP: các tập có bộ đồ riêng (suy từ dung_tap của biến thể, khỏi cần danh sách tập); chọn tập → look-book chỉ hiện đồ hợp tập đó (+ đồ mọi tập).
+  const tapCo = [...new Set(nhanVat.flatMap((v) => (v.bien_the ?? []).flatMap((b) => b.dung_tap ?? [])))].sort((x, y) => x - y);
+  const [locTap, setLocTap] = useState<number | null>(null);
+  const hopTapHien = (b: BienThe) => locTap == null || !b.dung_tap?.length || b.dung_tap.includes(locTap);
   // Bấm là đẩy vào hàng đợi nền rồi trả ngay → bấm liên tục nhiều anchor được; trạng thái "đang sinh" đọc từ máy chủ.
   // gui[id] = số ảnh gốc lúc bấm lần đầu của mạch này → nút hiện "đang gửi" ngay khi bấm, xong thì báo đã thêm mấy ảnh.
   const [gui, setGui] = useState<Record<number, { goc: number; cho: number }>>({});
@@ -162,15 +171,17 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
             {/* Thiết kế sản xuất — bàn chuẩn bị theo NHÓM (trang phục · tóc · kính/phụ kiện · trang điểm · vết · trạng thái · biểu cảm · tư thế): mỗi hàng một
                 khía cạnh, ảnh mẫu đã làm hiện thumbnail, món CHƯA có ảnh hiện chip hổ phách "📷 <tên>" (cần làm ảnh — như đạo cụ phải mua/làm trước). */}
             {!!v.bien_the?.length && (() => {
-              const nhoms = (NHOM_BIEN_THE[v.loai] ?? NHOM_BIEN_THE.nhan_vat).filter((g) => v.bien_the!.some((b) => b.nhom === g.key));
+              const btHien = v.bien_the!.filter(hopTapHien);   // lọc theo tập đang chọn (đồ mọi tập luôn hiện)
+              const nhoms = (NHOM_BIEN_THE[v.loai] ?? NHOM_BIEN_THE.nhan_vat).filter((g) => btHien.some((b) => b.nhom === g.key));
+              if (!nhoms.length) return null;
               return (
                 <div style={{ display: 'grid', gap: 5 }}>
                   {nhoms.map((g) => (
                     <div key={g.key} style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                       <span style={{ ...mono, minWidth: 92, color: 'var(--fg-3)' }}>{g.label}</span>
-                      {v.bien_the!.filter((b) => b.nhom === g.key).map((b) => b.anh_url
-                        ? <AnhNho key={b.id} url={b.anh_url} kich={48} title={`${g.label}: ${b.ten}`} onClick={() => setBtMo(v.id)} />
-                        : <span key={b.id} title={`${g.label}: ${b.ten} — chưa có ảnh mẫu, bấm để làm`} onClick={() => setBtMo(v.id)}
+                      {btHien.filter((b) => b.nhom === g.key).map((b) => b.anh_url
+                        ? <AnhNho key={b.id} url={b.anh_url} kich={48} title={`${g.label}: ${b.ten}${b.dung_tap?.length ? ` · tập ${b.dung_tap.join(',')}` : ''}`} onClick={() => setBtMo(v.id)} />
+                        : <span key={b.id} title={`${g.label}: ${b.ten}${b.dung_tap?.length ? ` · tập ${b.dung_tap.join(',')}` : ''} — chưa có ảnh mẫu, bấm để làm`} onClick={() => setBtMo(v.id)}
                             style={{ cursor: 'pointer', fontSize: 10, lineHeight: '20px', padding: '0 7px', borderRadius: 4, border: `1px dashed ${dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--amber)'}`, color: dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--amber)', whiteSpace: 'nowrap', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {dangSinh.bienThe.includes(b.id) ? '⏳ ' : '📷 '}{b.ten}
                           </span>)}
@@ -217,6 +228,8 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
         <Nut ban={ban === -1} title="Claude đọc tiền đề + kịch bản các tập + anchor đã có → tạo các anchor còn thiếu (nhân vật, sản phẩm, bối cảnh, đạo cụ). Tạo xong anh sửa/xoá tuỳ ý." onClick={async () => { setBan(-1); setLoi((x) => ({ ...x, [-1]: '' })); const r = await goiYAIBoAnchor(phimId); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [-1]: r.loi })); await onChanged(); }}>{ban === -1 ? '… AI đang đề xuất' : '✨ AI đề xuất tuyến còn thiếu'}</Nut>
         {chiTiet === undefined && coLoai.length > 1 && <Seg value={coLoai.some((l) => l.key === locLoai) ? locLoai : ''} onChange={setLocLoai}
           options={[{ value: '' as const, label: 'Tất cả', title: `${nhanVat.length} anchor` }, ...coLoai.map((l) => ({ value: l.key, label: `${l.ic} ${l.label}`, title: `${nhanVat.filter((v) => v.loai === l.key).length} ${l.label.toLowerCase()}` }))]} />}
+        {tapCo.length > 0 && <Seg value={locTap == null ? '' : String(locTap)} onChange={(v) => setLocTap(v ? Number(v) : null)}
+          options={[{ value: '' as const, label: 'Mọi tập', title: 'Hiện look-book của mọi tập' }, ...tapCo.map((t) => ({ value: String(t), label: `Tập ${t}`, title: `Chỉ đồ dùng ở tập ${t} (+ đồ mọi tập)` }))]} />}
         <button type="button" className="xv-btn" onClick={() => setSua({ loai: 'nhan_vat', ten: '', mo_ta: '', anh_ref: [], giong: '' })}>+ Thêm</button>
       </div>
       <Loi>{loi[-1]}</Loi>
@@ -241,7 +254,7 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
 
 export function BienTheDrawer({ a, khoa, kt, dangSinh, loiBt, onClose, onChanged }: { a: NhanVat; khoa: Khoa; kt: Required<KinhThanh>; dangSinh: number[]; loiBt: Record<number, string>; onClose: () => void; onChanged: () => Promise<void> }) {
   const nhom = NHOM_BIEN_THE[a.loai] ?? NHOM_BIEN_THE.nhan_vat;
-  const [f, setF] = useState({ nhom: nhom[0]!.key, ten: '', mo_ta: '' });
+  const [f, setF] = useState({ nhom: nhom[0]!.key, ten: '', mo_ta: '', tap: '' });
   const [ban, setBan] = useState<string | null>(null);
   const [loi, setLoi] = useState('');
   const chay = async (k: string, fn: () => Promise<{ ok: boolean; loi?: string } | void>) => {
@@ -288,7 +301,8 @@ export function BienTheDrawer({ a, khoa, kt, dangSinh, loiBt, onClose, onChanged
           <O label="Nhóm"><Seg options={nhom.map((x) => ({ value: x.key, label: x.label }))} value={f.nhom} onChange={(v) => setF({ ...f, nhom: v })} /></O>
           <O label="Tên"><input className="xv-in" value={f.ten} onChange={(e) => setF({ ...f, ten: e.target.value })} placeholder="vui · buồn · đồ mùa đông · góc cao · ban đêm" style={{ minWidth: 200 }} /></O>
           <O label="Thay đổi gì (tiếng Anh tốt hơn)"><input className="xv-in" value={f.mo_ta} onChange={(e) => setF({ ...f, mo_ta: e.target.value })} placeholder="crying, tears on cheeks, ears drooping" style={{ minWidth: 320 }} /></O>
-          <div className="xv-field"><Nut chinh ly={!f.ten.trim() && 'nhập tên'} ban={!!ban} onClick={() => void chay('them', async () => { const r = await luuBienThe({ nhan_vat_id: a.id, ...f }); if (r.ok) setF({ ...f, ten: '', mo_ta: '' }); return r; })}>+ Thêm</Nut></div>
+          {LOOK_NHOM.has(f.nhom) && <O label="Dùng cho tập"><input className="xv-in" value={f.tap} onChange={(e) => setF({ ...f, tap: e.target.value })} placeholder="1,3 — trống = mọi tập" title="Số tập dùng bộ này (phim nhiều tập tủ đồ riêng); trống = mọi tập" style={{ minWidth: 150 }} /></O>}
+          <div className="xv-field"><Nut chinh ly={!f.ten.trim() && 'nhập tên'} ban={!!ban} onClick={() => void chay('them', async () => { const r = await luuBienThe({ nhan_vat_id: a.id, nhom: f.nhom, ten: f.ten, mo_ta: f.mo_ta, dung_tap: parseTap(f.tap) }); if (r.ok) setF({ ...f, ten: '', mo_ta: '', tap: '' }); return r; })}>+ Thêm</Nut></div>
         </div>
       </div>
       {(a.loai === 'nhan_vat' || a.loai === 'dao_cu') && <section style={{ marginTop: 18, display: 'grid', gap: 8 }}>
@@ -302,7 +316,7 @@ export function BienTheDrawer({ a, khoa, kt, dangSinh, loiBt, onClose, onChanged
 
 export function BienTheThe({ b, ly, dang, loiAnh, ban, chay }: { b: BienThe; ly: string | false; dang: boolean; loiAnh?: string; ban: boolean; chay: (k: string, fn: () => Promise<{ ok: boolean; loi?: string } | void>) => Promise<void> }) {
   const [sua, setSua] = useState(false);
-  const [f, setF] = useState({ ten: b.ten, mo_ta: b.mo_ta });
+  const [f, setF] = useState({ ten: b.ten, mo_ta: b.mo_ta, tap: (b.dung_tap ?? []).join(',') });
   return (
     <div className="xv-canh" style={{ display: 'flex', gap: 8 }}>
       <div style={{ position: 'relative', width: 64, height: 64, flexShrink: 0, borderRadius: 6, overflow: 'hidden' }}>
@@ -315,8 +329,9 @@ export function BienTheThe({ b, ly, dang, loiAnh, ban, chay }: { b: BienThe; ly:
           <>
             <input className="xv-in" value={f.ten} onChange={(e) => setF({ ...f, ten: e.target.value })} style={{ marginBottom: 4 }} />
             <textarea className="xv-ta" rows={2} value={f.mo_ta} onChange={(e) => setF({ ...f, mo_ta: e.target.value })} />
+            {LOOK_NHOM.has(b.nhom) && <input className="xv-in" value={f.tap} onChange={(e) => setF({ ...f, tap: e.target.value })} placeholder="Dùng cho tập: 1,3 — trống = mọi tập" title="Số tập dùng bộ này; trống = mọi tập" style={{ marginTop: 4 }} />}
             <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
-              <Nut chinh ban={ban} onClick={() => void chay(`b${b.id}`, async () => { const r = await luuBienThe({ id: b.id, nhan_vat_id: b.nhan_vat_id, nhom: b.nhom, ...f }); setSua(false); return r; })}>Lưu</Nut>
+              <Nut chinh ban={ban} onClick={() => void chay(`b${b.id}`, async () => { const r = await luuBienThe({ id: b.id, nhan_vat_id: b.nhan_vat_id, nhom: b.nhom, ten: f.ten, mo_ta: f.mo_ta, dung_tap: parseTap(f.tap) }); setSua(false); return r; })}>Lưu</Nut>
               <button type="button" className="xv-btn" onClick={() => setSua(false)}>Huỷ</button>
             </div>
           </>

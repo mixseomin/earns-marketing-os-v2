@@ -987,6 +987,10 @@ export function bienTheTheoSo(v: May3d['vi_tri'][number], nv: { bien_the?: BienT
 }
 /** Look đã CARRY của một nhân vật ở một shot: biến thể đang có hiệu lực cho mỗi look-book key (trang phục, tóc, trang điểm, kính/phụ kiện, vết, trạng thái). */
 export type LookMang = Partial<Record<KhoaNguoi, BienThe>>;
+/** Biến thể look có hợp TẬP không: không khai dung_tap (rỗng) = dùng mọi tập; có khai = chỉ tập trong danh sách. */
+export const hopTap = (b: Pick<BienThe, 'dung_tap'>, tapSo: number | null | undefined): boolean => !b.dung_tap?.length || (tapSo != null && b.dung_tap.includes(tapSo));
+/** Nền look-book KHÔNG seed theo tập (theo SỰ KIỆN, phải khai tại shot): vết, trạng thái cơ thể. Còn lại (trang phục/tóc/trang điểm/kính) là bộ mặc định tập. */
+const KHONG_SEED = new Set<KhoaNguoi>(['vet', 'trang']);
 /** SỔ TRANG PHỤC CARRY cho shot 2D (shot 3D đã có sổ người qua noiHookup). Khai một lần tại shot mốc → tự mang sang mọi shot sau trong tập, không phải
  *  chọn lại từng shot (anh 31/10/2026: "vết áo phải là trạng thái liền mạch, bật từ mốc rồi tự mang sang"). Nguồn look = biến thể trong c.bien_the thuộc
  *  nhân vật đó, nhóm ∈ KHOA_LOOK. Luật giữ (khớp SO_NGUOI): trang_phuc/trang reset sang ngày truyện mới (luongShot 'ngay'); vet bám TRANG PHỤC —
@@ -994,12 +998,20 @@ export type LookMang = Partial<Record<KhoaNguoi, BienThe>>;
  *  carry cho key đó. Thuần, dùng chung cho đối chiếu (thanhPhanDuKien) và prompt (sinh-anh btCanh 2D) → một nguồn. */
 export function lookMang<T extends { id: number; canh?: string; nhan_vat: number[]; bien_the: number[] }>(
   ds: T[], nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai'> & { bien_the?: BienThe[] })[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[],
+  /** số tập (xv_tap.so) — có thì biến thể look hợp tập (mỗi nhóm đúng một cái) làm BỘ MẶC ĐỊNH, shot khỏi khai lại; bỏ qua vết/trạng thái (theo sự kiện) */ tapSo?: number,
 ): Map<number, Map<string, LookMang>> {
   const luong = luongShot(ds, phanCanh);
   const btCua = new Map<number, BienThe>();   // id biến thể → biến thể (mọi nhân vật)
   for (const nv of nhanVat) for (const b of nv.bien_the ?? []) btCua.set(b.id, b);
   const GIU = Object.fromEntries(SO_NGUOI.map((x) => [x.k, x.giu])) as Record<string, 'ngay' | 'mai'>;   // mỗi look-key: 'ngay' = reset sang ngày mới · 'mai' = giữ qua ngày (vết)
   const LOOK = new Set<string>(KHOA_LOOK);
+  // BỘ MẶC ĐỊNH theo tập: mỗi nhân vật, mỗi look-key (trừ vết/trạng thái) có ĐÚNG MỘT biến thể hợp tập → nền; shot/carry đè được, backfill khi trống (kể cả sau reset ngày).
+  const macDinh = new Map<number, LookMang>();
+  if (tapSo != null) for (const nv of nhanVat) {
+    if (nv.loai !== 'nhan_vat') continue; const r: LookMang = {};
+    for (const k of KHOA_LOOK) { if (KHONG_SEED.has(k)) continue; const hop = (nv.bien_the ?? []).filter((b) => b.nhom === k && hopTap(b, tapSo)); if (hop.length === 1) r[k] = hop[0]; }
+    if (Object.keys(r).length) macDinh.set(nv.id, r);
+  }
   const giu = new Map<number, LookMang>();   // nhân vật id → look đang giữ (CARRY, chỉ tiến về sau — vết KHÔNG bao giờ hiện trước shot đổ)
   const out = new Map<number, Map<string, LookMang>>();
   for (const c of ds) {
@@ -1012,6 +1024,7 @@ export function lookMang<T extends { id: number; canh?: string; nhan_vat: number
     for (const nv of nhanVat) {
       if (nv.loai !== 'nhan_vat' || !c.nhan_vat.includes(nv.id)) continue;
       const g: LookMang = { ...(giu.get(nv.id) ?? {}) }; const kh = theoShot.get(nv.id) ?? {};
+      const md = macDinh.get(nv.id); if (md) for (const k of Object.keys(md) as KhoaNguoi[]) if (!g[k]) g[k] = md[k];   // bộ mặc định tập: backfill key trống (sau reset ngày cũng tự về đồ mặc định của tập)
       if (kh.trang_phuc && kh.trang_phuc.id !== g.trang_phuc?.id) delete g.vet;   // thay đồ (biến thể trang phục khác) → vết bám đồ cũ hết
       for (const k of Object.keys(kh) as KhoaNguoi[]) g[k] = kh[k];   // look khai ở shot này ĐÈ carry cho đúng key đó (vết chỉ bật từ shot khai, không trước)
       giu.set(nv.id, g); m.set(nv.ten, g);

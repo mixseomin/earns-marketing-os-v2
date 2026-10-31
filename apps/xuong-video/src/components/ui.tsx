@@ -69,14 +69,16 @@ export function Xoa({ nhan, onXoa, ban, noiKhoiPhuc = 'nút 🗑 Thùng rác', g
 
 export function Loi({ children }: { children: ReactNode }) { return children ? <div className="xv-loi">{children}</div> : null; }
 
-/** Ảnh nhỏ có nút ⋯ (hiện khi rê chuột) mở menu thao tác — xoá nằm trong menu, không bấm nhầm ngay trên ảnh. Dùng cho ảnh gốc, ảnh biến thể, ứng viên keyframe. */
-export function AnhNho({ url, kich = 40, vien, nhan, title, onClick, onXoa, soSanh }: { url: string; kich?: number; vien?: string; nhan?: string; title?: string; onClick?: () => void; onXoa?: () => void | Promise<void>; soSanh?: string }) {
+/** Ảnh nhỏ có nút ⋯ (hiện khi rê chuột) mở menu thao tác. Bấm ẢNH chỉ để XEM (onClick) — mọi thao tác đổi dữ liệu (đặt làm chính, chọn keyframe)
+ *  đi vào `menu` (các <MucMenu>), xoá luôn là mục cuối; không có đổi dữ liệu nào bằng một cú bấm vào ảnh (anh 31/10/2026). */
+export function AnhNho({ url, kich = 40, vien, nhan, title, onClick, onXoa, soSanh, menu }: { url: string; kich?: number; vien?: string; nhan?: string; title?: string; onClick?: () => void; onXoa?: () => void | Promise<void>; soSanh?: string; menu?: ReactNode }) {
   return (
     <span className="xv-anh-nho" title={title} style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
       <img src={anhNho(url, nacNho(kich))} alt="" onClick={onClick} data-so-sanh={soSanh} style={{ width: kich, height: kich, objectFit: 'cover', borderRadius: 5, display: 'block', cursor: onClick ? 'pointer' : 'default', border: `2px solid ${vien ?? 'transparent'}` }} />
       {nhan && <span style={{ position: 'absolute', left: 3, bottom: 2, fontSize: 8.5, color: '#fff', textShadow: '0 1px 2px #000', pointerEvents: 'none' }}>{nhan}</span>}
-      {onXoa && <Menu lop="xv-x" nutLop="xv-x-nut" rong={130}>
-        <MucMenu nguy goiY="Bỏ vào thùng rác — lấy lại được ở nút 🗑 Thùng rác" onClick={() => void onXoa()}>🗑 Xoá ảnh</MucMenu>
+      {(onXoa || menu) && <Menu lop="xv-x" nutLop="xv-x-nut" rong={170}>
+        {menu}
+        {onXoa && <MucMenu nguy goiY="Bỏ vào thùng rác — lấy lại được ở nút 🗑 Thùng rác" onClick={() => void onXoa()}>🗑 Xoá ảnh</MucMenu>}
       </Menu>}
     </span>
   );

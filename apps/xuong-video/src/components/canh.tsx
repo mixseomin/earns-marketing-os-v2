@@ -385,8 +385,9 @@ export function CanhRow({ c, nhanVat, kt, khoa, ban, chay: chayTap, phimLoai, ch
             <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
               {c.keyframe_uv.map((u) => (
                 <div key={u} style={{ display: 'grid', gap: 1, justifyItems: 'center', maxWidth: 72 }}>
-                  <AnhNho url={u} soSanh={soSanh} vien={u === c.keyframe_url ? 'var(--cyan)' : undefined} title={`${u === c.keyframe_url ? 'đang chọn' : 'chọn ảnh này làm keyframe'}${c.nguon_tep?.[u] ? `\n${c.nguon_tep[u]!.day}` : ''}`}
-                    onClick={() => void chay(k, async () => { await chonKeyframe(c.id, u); })} onXoa={() => chay(k, () => xoaKeyframe(c.id, u))} />
+                  <AnhNho url={u} soSanh={soSanh} vien={u === c.keyframe_url ? 'var(--cyan)' : undefined} title={`${u === c.keyframe_url ? 'keyframe đang dùng' : 'bấm để xem lớn · ⋯ để chọn làm keyframe'}${c.nguon_tep?.[u] ? `\n${c.nguon_tep[u]!.day}` : ''}`}
+                    onClick={() => moNgan({ loai: 'xem', url: u, ten: `Shot #${c.thu_tu}` })}
+                    menu={u !== c.keyframe_url ? <MucMenu onClick={() => void chay(k, async () => { await chonKeyframe(c.id, u); })}>✓ Chọn làm keyframe</MucMenu> : undefined} onXoa={() => chay(k, () => xoaKeyframe(c.id, u))} />
                   <NguonTep c={c} url={u} />
                 </div>
               ))}

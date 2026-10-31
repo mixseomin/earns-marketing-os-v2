@@ -155,8 +155,9 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
               <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
                 {v.anh_ref.length > 1 && v.anh_ref.map((u, i) => (
                   <AnhNho key={u} url={u} kich={34} vien={i === 0 ? 'var(--cyan)' : undefined} nhan={i === 0 ? 'chính' : undefined}
-                    title={i === 0 ? 'ảnh chính (thẻ + tham chiếu ưu tiên khi sinh cảnh)' : 'bấm để đặt làm ảnh chính'}
-                    onClick={i ? async () => { await datAnhChinh(v.id, u); await onChanged(); } : undefined}
+                    title={i === 0 ? 'ảnh chính (thẻ + tham chiếu ưu tiên khi sinh cảnh)' : 'bấm để xem lớn · ⋯ để đặt làm ảnh chính'}
+                    onClick={() => moNgan({ loai: 'xem', url: u, ten: v.ten })}
+                    menu={i ? <MucMenu goiY="Ảnh chính hiện trên thẻ và được ưu tiên làm tham chiếu khi sinh cảnh" onClick={async () => { await datAnhChinh(v.id, u); await onChanged(); }}>⭐ Đặt làm ảnh chính</MucMenu> : undefined}
                     onXoa={async () => { await xoaAnhGoc(v.id, u); await onChanged(); }} />
                 ))}
                 {v.anh_ref.length > 1 && !!v.bien_the?.length && <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', margin: '0 3px' }} />}

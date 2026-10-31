@@ -29,6 +29,13 @@ export function loiHook(dong, goc) {
   return loi;
 }
 
+/** Con số trong dòng hook mà tệp SỰ THẬT của máy (apps/xuong-video/su-that/<máy>.md) không có — lời hứa sản phẩm chưa kiểm
+ *  (#855 Saidly "165+ languages" chép từ QC máy phiên dịch đeo tai, sự thật: ~100 ngôn ngữ). Máy chưa có tệp sự thật → [] (không đoán). */
+export function soNgoaiSuThat(dong, suThat) {
+  if (!suThat) return [];
+  const co = cacSo(suThat); return [...new Set(dong.flatMap((d) => [...cacSo(d)]))].filter((x) => !co.has(x));
+}
+
 if (process.argv[1]?.endsWith('hook-qc.mjs') && process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert');
   const goc = 'Did you know that the moment you were born is the most important moment of your life?';
@@ -39,5 +46,7 @@ if (process.argv[1]?.endsWith('hook-qc.mjs') && process.argv.includes('--tu-kiem
   t.ok(loiHook(['This might be the most underrated productivity tool this year | ad?'], 'This might be the most underrated productivity tool this year | ad').some((x) => x.includes('đuôi')), 'đuôi "| ad" = chặn (#851)');
   t.equal(sachHook('Best tool this year | ad'), 'Best tool this year');
   t.deepEqual(dongHookBai('T', { moc: '' }), ['T'], 'mẫu không có câu trên màn = chỉ kiểm tiêu đề');
-  console.log('hook-qc: 7 ca đạt'); process.exit(0);
+  t.deepEqual(soNgoaiSuThat(['AI translator 165+ languages'], '- Recognizes about 100 spoken languages.'), ['165'], 'số ngoài sự thật = lộ (#855)');
+  t.deepEqual(soNgoaiSuThat(['AI translator 165+ languages'], null), [], 'chưa có tệp sự thật = không đoán');
+  console.log('hook-qc: 9 ca đạt'); process.exit(0);
 }

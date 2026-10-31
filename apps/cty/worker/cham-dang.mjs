@@ -15,14 +15,17 @@ const DIEM_DUYET = 7;
 export const MOC_GOC = '2026-10-25T17:00:00Z';   // 00:00 26/10/2026 giờ VN: mốc cũ (bài tạo từ đây bắt buộc có góc) — 31/10/2026 bỏ mốc, MỌI bài phải có góc (xem luật 7)
 /** Kiểm góc của các bài với kho spy (DB spy: SPY_DATABASE_URL hoặc /root/.secrets/spy.env). ds = [{ goc, goc_sp }] → mảng lỗi (null = đạt) cùng thứ tự.
  *  Không đọc được kho spy → mọi bài có góc nhận lỗi "không kiểm được" (chặn chứ không cho qua mù). */
-import { loiHook, dongHookBai } from '../../xuong-video/src/lib/xuong-video/hook-qc.mjs';
+import { loiHook, dongHookBai, soNgoaiSuThat } from '../../xuong-video/src/lib/xuong-video/hook-qc.mjs';
+async function moSpy() {
+  let url = process.env.SPY_DATABASE_URL;
+  if (!url) { const fs = await import('node:fs'); url = fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13); }
+  return (await import('postgres')).default(url, { max: 1, prepare: false, connect_timeout: 5 });
+}
 export async function kiemGoc(ds) {
   const ids = [...new Set(ds.map((x) => Number(x.goc?.id)).filter(Boolean))]; if (!ids.length) return ds.map(() => null);
   let gocs = new Map();
   try {
-    let url = process.env.SPY_DATABASE_URL;
-    if (!url) { const fs = await import('node:fs'); url = fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13); }
-    const spy = (await import('postgres')).default(url, { max: 1, prepare: false, connect_timeout: 5 });
+    const spy = await moSpy();
     try { gocs = new Map((await spy`select id, sp_id from goc where id = any(${ids})`).map((r) => [Number(r.id), Number(r.sp_id)])); } finally { await spy.end(); }
   } catch (e) { return ds.map((x) => (x.goc?.id ? `không kiểm được góc với kho spy (${String(e.message).slice(0, 60)})` : null)); }
   return ds.map((x) => {
@@ -31,6 +34,21 @@ export async function kiemGoc(ds) {
     if (x.goc_sp?.length && !x.goc_sp.includes(sp)) return `góc #${x.goc.id} thuộc nhóm spy #${sp}, không phải nhóm của thương hiệu (${x.goc_sp.join(', ')})`;
     return null;
   });
+}
+/** QC gốc của hook phải NÓI VỀ ngách của máy ngay phần đầu (280 ký tự đầu khớp biểu thức liên quan của nhóm góc / nhóm hook) — #875 QC xe đưa đón du thuyền
+ *  lọt vào máy khách sạn vì chữ "hotel" nằm cuối thân QC. ds = [{ qc, nhom }] → mảng lỗi (null = đạt). Cùng luật với kho hook của máy sinh (may-dung.mts). */
+export async function kiemHookNgach(ds) {
+  const ids = [...new Set(ds.map((x) => x.qc).filter(Boolean).map(String))], nhom = [...new Set(ds.flatMap((x) => x.nhom ?? []).map(Number))];
+  if (!ids.length || !nhom.length) return ds.map(() => null);
+  let khop = new Map();
+  try {
+    const spy = await moSpy();
+    try {
+      for (const r of await spy`select q.library_id::text as qc, array_agg(s.id) as sp from qc_meta q join goc_sp s on s.id = any(${nhom}) and s.lien_quan is not null
+          and left(q.noi_dung, 280) ~* replace(s.lien_quan, '\\b', '\\y') where q.library_id::text = any(${ids}) group by 1`) khop.set(r.qc, r.sp.map(Number));
+    } finally { await spy.end(); }
+  } catch (e) { return ds.map((x) => (x.qc ? `không kiểm được hook với kho spy (${String(e.message).slice(0, 60)})` : null)); }
+  return ds.map((x) => (!x.qc || (khop.get(String(x.qc)) ?? []).some((s) => (x.nhom ?? []).includes(s)) ? null : `hook lấy từ QC #${x.qc} không nói về ngách của máy (nhóm ${(x.nhom ?? []).join(', ')}) ở phần đầu QC`));
 }
 
 /** Máy đo một bài đăng. v = { nen_url, xuat_luc, video_url, dang: { title, description, link } }, ten = tên kênh / thương hiệu (câu móc không được mở bằng tên kênh). */
@@ -60,7 +78,11 @@ export function doBaiDang(v, ten = '') {
   if (v.can_goc !== false && d.loai !== 'bai' && !d.hook?.qc) chan.push('hook không lấy từ QC spy (thiếu dang.hook)');
   // chấm ĐỘC LẬP mọi dòng hook người xem thấy (tiêu đề + câu hook trên màn) với dòng QC gốc đã lưu — cùng bộ luật với máy sinh (hook-qc.mjs):
   // sửa quá xa, thêm con số bịa, dính đuôi "| ad" (31/10/2026: 10/21 bài DUYỆT lọt vì trước chỉ kiểm có dang.hook hay không)
-  else if (d.hook?.goc && d.loai !== 'bai') chan.push(...loiHook(dongHookBai(title, v.de), d.hook.goc));
+  else if (d.hook?.goc && d.loai !== 'bai') {
+    chan.push(...loiHook(dongHookBai(title, v.de), d.hook.goc));
+    const soLa = soNgoaiSuThat(dongHookBai(title, v.de), v.su_that); if (soLa.length) chan.push(`hook có con số tệp sự thật của máy không có (${soLa.join(', ')}) — lời hứa sản phẩm chưa kiểm`);
+    if (v.hook_loi) chan.push(v.hook_loi);
+  }
   // 6 · đa dạng — đăng nhiều nhưng không spam (anh 18/10/2026, "rule này là quan trọng"): cùng tiêu đề với video khác của máy = nội dung lặp
   if ((v.trung ?? 1) > 1) chan.push(`tiêu đề trùng với ${v.trung - 1} video khác của máy — mỗi bài một tiêu đề (chống spam)`);
   // 4 · lý do bấm
@@ -113,7 +135,7 @@ async function ketNoi() {
 /** Chấm mọi video đang dùng chưa chấm hoặc đã xuất lại sau lần chấm. Trả { cham, duyet, sua, theoMau: { mau: { n, loi: {lỗi: số} } } }. */
 export async function chamMoi(sql) {
   // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng
-  const ds = await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, v.anh,
+  const ds = await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, m.hook_sp, v.anh,
       true as can_goc,   -- 31/10/2026: mọi bài phải có góc (trước: chỉ bài tạo từ MOC_GOC)
       (select count(*)::int from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') as trung
     from xv_may_video v join xv_may m on m.id = v.may_id
@@ -124,12 +146,15 @@ export async function chamMoi(sql) {
     order by v.id`;
   const kq = { cham: 0, duyet: 0, sua: 0, theoMau: {} };
   const loiGoc = await kiemGoc(ds.map((v) => ({ goc: v.dang?.goc, goc_sp: v.goc_sp })));
+  const loiHookNgach = await kiemHookNgach(ds.map((v) => ({ qc: v.dang?.hook?.qc, nhom: [...(v.goc_sp ?? []), ...(v.hook_sp ?? [])] })));
+  const fs = await import('node:fs'), suThat = new Map();   // tệp sự thật đã kiểm của từng máy (apps/xuong-video/su-that/<máy>.md) — không có thì null
+  const suThatCua = (ma) => { if (!suThat.has(ma)) { try { suThat.set(ma, fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')); } catch { suThat.set(ma, null); } } return suThat.get(ma); };
   for (const [i, v] of ds.entries()) {
     let kiem;
     if (v.dang?.loai === 'bai') {   // bài viết: chờ kiem-bai chấm đúng bản (md5 chữ đăng); chưa nộp thì nộp, đang chờ thì để lượt sau
       const k = await kiemBaiViet(v); if (k === 'CHO') continue; kiem = k;
     }
-    const r = doBaiDang({ ...v, xuat_luc: v.xuat, goc_loi: loiGoc[i], kiem }, '');
+    const r = doBaiDang({ ...v, xuat_luc: v.xuat, goc_loi: loiGoc[i], hook_loi: loiHookNgach[i], su_that: suThatCua(v.ma), kiem }, '');
     await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
     kq.cham++; r.ket === 'DUYET' ? kq.duyet++ : kq.sua++;
     const t = (kq.theoMau[v.ma] ??= { ten: v.ten, n: 0, sua: 0, loi: {} }); t.n++;
@@ -252,6 +277,8 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   t.equal(doBaiDang({ ...khongGoc, can_goc: false }).ket, 'DUYET', 'chỉ bộ tự kiểm tắt luật góc được');
   t.ok(doBaiDang({ ...tot, dang: { ...tot.dang, hook: undefined } }).chan_cung.some((x) => x.includes('hook')), 'hook tự nghĩ (không dang.hook) = chặn');
   t.ok(!doBaiDang({ ...tot, dang: { ...tot.dang, hook: undefined, loai: 'bai' } }).chan_cung.some((x) => x.includes('hook')), 'bài viết chưa bắt hook');
+  t.ok(doBaiDang({ ...tot, dang: { ...tot.dang, title: tot.dang.title }, su_that: '- Checks in 9 seconds.' }).chan_cung.some((x) => x.includes('sự thật')), 'số trong hook không có ở tệp sự thật = chặn (#855)');
+  t.ok(doBaiDang({ ...tot, hook_loi: 'hook lấy từ QC #1 không nói về ngách' }).chan_cung.some((x) => x.includes('ngách')), 'QC gốc lệch ngách = chặn (#875)');
   t.ok(doBaiDang({ ...tot, de: { moc: 'Stay ready for every OTP' } }).chan_cung.some((x) => x.includes('sửa quá xa')), 'câu hook trên màn tự viết = chặn dù tiêu đề giống gốc (#882)');
   t.ok(doBaiDang({ ...khongGoc, can_goc: undefined }).chan_cung.some((x) => x.includes('góc')), 'không khai can_goc = vẫn bắt góc (31/10/2026: mọi bài)');
   const thuong = { ...tot, dang: { goc: tot.dang.goc, hook: { qc: '124', goc: 'Who remembers riding in the way-back of a station wagon?' }, title: 'Who remembers riding in the way-back of a station wagon?', description: 'Who remembers riding in the way-back of a station wagon? Where did your family go on Sunday drives? Tell us below.', loai: 'thuong' } };

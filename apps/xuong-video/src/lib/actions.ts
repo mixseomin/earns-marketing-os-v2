@@ -9,6 +9,7 @@ import { lamSachKhanGia, type YDoKhanGia } from '@/lib/xuong-video/khan-gia';
 import { napRef2v, guiRef2v, dsRef2v, type KetRef2v } from '@/lib/xuong-video/ref2v-chay';
 import { tachShotDb, chenShotKhuonDb } from '@/lib/xuong-video/tach-shot';
 import 'server-only';
+import { phieuShotsTapDb, type PhieuShot } from '@/lib/xuong-video/phieu-shots';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { getDb } from '@mos2/db';
@@ -595,6 +596,13 @@ export async function mocBienThe(phimId: number): Promise<Record<number, { tap_s
   const out: Record<number, { tap_so: number; thu_tu: number; canh: string; so_shot: number; cac_tap: number[] }> = {};
   for (const r of rows) out[n(r.id)] = { tap_so: n(r.tap_so), thu_tu: n(r.thu_tu), canh: s(r.canh), so_shot: n(r.so_shot), cac_tap: arr<number>(r.cac_tap).map(Number).sort((a, b) => a - b) };
   return out;
+}
+
+// 🎬 PHIẾU SHOT của tập (tab con Shots): mọi shot + yêu cầu cụ thể từng thành phần, MỘT nguồn với prompt keyframe + cổng đối chiếu (phieu-shots.ts). 0đ.
+export async function phieuShotsTap(tapId: number): Promise<PhieuShot[]> {
+  const me = await getCurrentUser(); if (!me) return [];
+  const db = getDb(); if (!db) return [];
+  return (await phieuShotsTapDb(db, tapId)) ?? [];
 }
 
 // ── 📋 PHÂN RÃ KỊCH BẢN (script breakdown — phan-ra.ts): tự gắn thẻ mọi yếu tố từng shot, tạo món thiếu, báo thiếu; tăng dần theo tập ─────────────

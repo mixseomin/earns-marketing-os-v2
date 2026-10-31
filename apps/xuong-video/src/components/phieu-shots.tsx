@@ -1,0 +1,94 @@
+'use client';
+// 🎬 Tab con "Shots" của một tập: danh sách shot (trái) + PHIẾU của shot đang chọn (phải) — yêu cầu cụ thể mọi thành phần TRƯỚC khi sinh, dạng cây,
+// bấm tên mở đúng thành phần trên cây phim; bố trí 2D (khung phác từ sơ đồ cảnh) hoặc 3D (khung Blender) tuỳ shot. Dữ liệu: phieu-shots.ts (một nguồn
+// với prompt keyframe + cổng đối chiếu) — màn này chỉ hiện, không có chữ tả riêng.
+import { useEffect, useState } from 'react';
+import { phieuShotsTap } from '@/lib/actions';
+import type { NutPhieu, PhieuShot } from '@/lib/xuong-video/phieu-shots';
+import { anhNho } from '@/lib/xuong-video/anh-nho';
+import { moNgan } from './ngan-chung';
+import { Seg, mono } from './ui';
+
+const ICON: Record<NutPhieu['loai'], string> = { boi_canh: '🏛', cau_kien: '▫', nhan_vat: '👤', look: '👗', dao_cu: '📦', khac: '·' };
+type Xem = '2d' | '3d' | 'kf';
+
+function Nut({ x, cap, onMo }: { x: NutPhieu; cap: number; onMo?: (k: string) => void }) {
+  return (
+    <div style={{ display: 'grid', gap: 2, paddingLeft: cap * 14 }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        {x.anh ? <img src={anhNho(x.anh, 160)} alt="" style={{ width: 22, height: 22, objectFit: 'cover', borderRadius: 3 }} /> : <span style={{ width: 22, textAlign: 'center' }}>{ICON[x.loai]}</span>}
+        {x.link && onMo ? <button type="button" className="xv-lienket" style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600 }} title="Mở thành phần này trên cây phim" onClick={() => onMo(x.link!)}>{x.nhan}</button>
+          : <span style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600 }}>{x.nhan}</span>}
+        {!x.anh && x.loai !== 'cau_kien' && <span style={{ ...mono, color: 'var(--amber)' }} title="Thành phần chưa có ảnh mẫu / ảnh gốc — keyframe sẽ vẽ theo chữ">chưa ảnh</span>}
+      </div>
+      {x.chi_tiet.filter(Boolean).map((t, i) => <div key={i} style={{ fontSize: 11.5, color: /không khai|không tả/.test(t) ? 'var(--red)' : 'var(--fg-2)', paddingLeft: 28 }}>{t}</div>)}
+      {(x.con ?? []).map((c, i) => <Nut key={i} x={c} cap={cap + 1} onMo={onMo} />)}
+    </div>
+  );
+}
+
+export function PhieuShots({ tapId, onMoNut, onXemShot }: { tapId: number; onMoNut?: (k: string) => void; onXemShot?: (canhId: number) => void }) {
+  const [ds, setDs] = useState<PhieuShot[] | null>(null);
+  const [chon, setChon] = useState<number | null>(null);
+  const [xem, setXem] = useState<Xem>('2d');
+  useEffect(() => { let huy = false; void phieuShotsTap(tapId).then((r) => { if (!huy) { setDs(r); setChon((c) => c ?? r[0]?.id ?? null); } }); return () => { huy = true; }; }, [tapId]);
+  if (!ds) return <span style={mono}>…</span>;
+  if (!ds.length) return <div style={mono}>Tập chưa có shot — viết kịch bản rồi ✂ Tách cảnh ở nút 📝 Kịch bản.</div>;
+  const p = ds.find((x) => x.id === chon) ?? ds[0]!;
+  const coXem: { value: Xem; label: string; title: string }[] = [
+    ...(p.svg ? [{ value: '2d' as const, label: '2D sơ đồ', title: 'Khung phác chiếu từ sơ đồ cảnh theo máy của shot: tường, cửa, cấu kiện, chỗ đứng + hướng nhìn từng người' }] : []),
+    ...(p.anh3d ? [{ value: '3d' as const, label: '3D', title: 'Khung Blender của shot (bộ set 3D) — bấm ảnh để xoay xem' }] : []),
+    ...(p.keyframe ? [{ value: 'kf' as const, label: 'Keyframe', title: 'Ảnh đã sinh hiện tại — so với phiếu' }] : []),
+  ];
+  const xemDung = coXem.some((o) => o.value === xem) ? xem : coXem[0]?.value;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(220px, 1fr) minmax(420px, 3fr)', gap: 12, alignItems: 'start' }}>
+      <div style={{ display: 'grid', gap: 2, maxHeight: '78vh', overflowY: 'auto' }}>
+        {ds.map((x) => (
+          <button key={x.id} type="button" onClick={() => setChon(x.id)} style={{ display: 'grid', gap: 1, textAlign: 'left', padding: '5px 8px', borderRadius: 4, border: '1px solid var(--line)', background: x.id === p.id ? 'var(--bg-3)' : 'transparent' }}>
+            <span style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
+              <b style={{ fontSize: 12 }}>#{x.thu_tu}{x.nhanh ? ` ${x.nhanh}` : ''}</b>
+              <span style={mono}>{x.co_canh}</span>
+              <span style={{ flex: 1 }} />
+              {x.thieu.length > 0 && <span style={{ ...mono, color: 'var(--red)' }} title={`Thiếu thông tin trước khi sinh: ${x.thieu.join(', ')}`}>thiếu {x.thieu.length}</span>}
+              {x.lech.length > 0 && <span style={{ ...mono, color: 'var(--amber)' }} title={x.lech.join('\n')}>lệch {x.lech.length}</span>}
+            </span>
+            <span style={{ fontSize: 11.5, color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.hanh_dong}</span>
+          </button>
+        ))}
+      </div>
+      <div className="xv-panel" style={{ display: 'grid', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+          <b style={{ fontSize: 14 }}>Shot #{p.thu_tu}{p.nhanh ? ` · nhánh ${p.nhanh}` : ''}</b>
+          <span style={mono}>{[p.co_canh, p.goc_may].filter(Boolean).join(' · ')}</span>
+          <span style={{ flex: 1 }} />
+          {onXemShot && <button type="button" className="xv-btn" title="Mở ngăn chi tiết shot (sửa, sinh keyframe, video)" onClick={() => onXemShot(p.id)}>Mở shot ↗</button>}
+        </div>
+        <div style={{ display: 'grid', gap: 3, fontSize: 12.5 }}>
+          <div><span style={mono}>Hành động</span> {p.hanh_dong || '—'}</div>
+          {p.mo && <div><span style={mono}>Khung mở</span> {p.mo}</div>}
+          {p.ket && <div><span style={mono}>Khung kết</span> {p.ket.replace(/\s*(BODY POSE|OBJECT STATE) in this frame.*$/s, '')}</div>}
+          {p.thoai && <div><span style={mono}>Thoại</span> {p.thoai}</div>}
+          {p.chung.map((r, i) => <div key={i}><span style={mono}>{r.thanh_phan}</span> <span style={{ color: /không khai|không tả/.test(r.du_kien) ? 'var(--red)' : undefined }}>{r.du_kien}</span></div>)}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 3fr) minmax(200px, 2fr)', gap: 12, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {p.cay.map((x, i) => <Nut key={i} x={x} cap={0} onMo={onMoNut} />)}
+            {p.lech.length > 0 && <div style={{ display: 'grid', gap: 2, borderLeft: '2px solid var(--amber)', paddingLeft: 8 }}>
+              <b style={{ fontSize: 12, color: 'var(--amber)' }}>Keyframe hiện tại lệch phiếu</b>
+              {p.lech.map((t, i) => <div key={i} style={{ fontSize: 11.5 }}>{t}</div>)}
+            </div>}
+          </div>
+          <div style={{ display: 'grid', gap: 6, justifyItems: 'start' }}>
+            {coXem.length > 1 && xemDung && <Seg value={xemDung} onChange={setXem} options={coXem} />}
+            {xemDung === '2d' && p.svg && <div style={{ width: '100%', maxWidth: 300 }} title="Khung phác bố trí: mỗi bóng màu là một người, mũi tên là hướng nhìn" dangerouslySetInnerHTML={{ __html: p.svg.replace('<svg', '<svg style="width:100%;height:auto;border-radius:4px"') }} />}
+            {xemDung === '3d' && p.anh3d && <button type="button" title="Mở bộ set 3D đúng máy shot" onClick={() => moNgan({ loai: 'bo-set', tapId, canhId: p.id })} style={{ padding: 0, border: 0, background: 'none' }}>
+              <img src={anhNho(p.anh3d, 320)} alt="" style={{ width: '100%', maxWidth: 300, borderRadius: 4 }} /></button>}
+            {xemDung === 'kf' && p.keyframe && <img src={anhNho(p.keyframe, 320)} alt="" style={{ width: '100%', maxWidth: 300, borderRadius: 4 }} />}
+            {!coXem.length && <span style={mono}>Shot chưa có sơ đồ cảnh / khung 3D — chưa có bố trí để xem</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -3,6 +3,7 @@ import { ThanhPhanTap } from './thanh-phan-ui';
 import { kgCua } from '@/lib/xuong-video/khong-gian';
 // Mục 3 một tập: brief → kịch bản → tách cảnh → storyboard/timeline → âm thanh → xuất.
 import { HoSoTap } from './ho-so';
+import { PhieuShots } from './phieu-shots';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { khaiNguCanh } from '@/lib/ngu-canh';
 import { Timeline } from './timeline';
@@ -180,6 +181,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab, onMoNut }: {
     <div>
       {/* Thứ tự theo mạch, trái → phải rồi xuống: 3a brief → 3b kịch bản → 3c storyboard. */}
       {tab === 'thanh_phan' && (canh === null ? <span style={mono}>…</span> : <ThanhPhanTap canh={canh} nhanVat={nhanVat} onXemShot={setXemShot} onMoAnchor={onMoNut ? (id) => onMoNut(`nv-${id}`) : undefined} />)}
+      {tab === 'shots' && <PhieuShots tapId={tap.id} onMoNut={onMoNut} onXemShot={setXemShot} />}
       {tab === 'ho_so' && <HoSoTap tap={tap} phim={phim} canh={canh ?? []} nhanVat={nhanVat} onChanged={onChanged} />}
       {tab === 'kich_ban' && (<>
       {phim.loai === 'phim' && <O label="Tên tập"><input className="xv-in" value={tenTap} onChange={(e) => setTenTap(e.target.value)} placeholder="Cuộc đua bắt đầu" style={{ maxWidth: 420 }} /></O>}

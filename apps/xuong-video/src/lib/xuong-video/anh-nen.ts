@@ -4,25 +4,32 @@
 // Pexels: free, dùng thương mại, không cần ghi nguồn; WAF chặn UA mặc định → luôn gửi UA trình duyệt (skill design/stock-photo-apis).
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
-type AnhPexels = { id: number; src: { original: string } };
+type AnhPexels = { id: number; src: { original: string }; avg_color?: string | null };
 
 /** id ảnh Pexels trong một URL ảnh (images.pexels.com/photos/<id>/…) — để so trùng. */
 export const idPexels = (u: string | null | undefined): number | null => { const m = String(u ?? '').match(/pexels\.com\/photos\/(\d+)\//); return m ? Number(m[1]) : null; };
 /** URL ảnh dọc 1080x1920 cắt sẵn. */
 export const urlDoc = (p: AnhPexels) => `${p.src.original}?auto=compress&cs=tinysrgb&w=1080&h=1920&fit=crop`;
-/** Ảnh đầu tiên chưa dùng (theo id), hoặc null. */
-export const chonChuaDung = (ds: AnhPexels[], daDung: Set<number>) => ds.find((p) => !daDung.has(p.id)) ?? null;
+/** Độ sáng cảm nhận 0–1 từ màu trung bình Pexels (avg_color '#rrggbb'); không có màu = coi như đủ sáng (không loại oan). */
+export const doSang = (p: AnhPexels): number => { const m = String(p.avg_color ?? '').match(/^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i); if (!m) return 1; const [r, g, b] = m.slice(1).map((h) => parseInt(h, 16)); return (0.299 * r! + 0.587 * g! + 0.114 * b!) / 255; };
+/** Ảnh tối hơn mức này nhìn gần như đen trên điện thoại (video #842 cảnh 3, trời đêm trơn, 31/10/2026) — mọi bài phải "nhìn rõ chứ không phủ tối" (luật chung 18/10/2026). */
+export const SANG_TOI_THIEU = 0.14;
+/** Ảnh đầu tiên chưa dùng (theo id) đủ sáng, hoặc null. */
+export const chonChuaDung = (ds: AnhPexels[], daDung: Set<number>) => ds.find((p) => !daDung.has(p.id) && doSang(p) >= SANG_TOI_THIEU) ?? null;
 
 /** Tìm một ảnh dọc chưa dùng cho truy vấn (thử thêm truy vấn ngắn hơn nếu trang đầu đã dùng hết). Ném lỗi khi không có khoá / không có ảnh: không dựng video thiếu ảnh. */
 export async function timAnhNen(truyVan: string, daDung: Set<number>, key = process.env.PEXELS_KEY): Promise<string> {
   if (!key) throw new Error('thiếu PEXELS_KEY — không dựng video thiếu ảnh nền thật');
-  const tu = truyVan.trim().split(/\s+/);
+  const tu = truyVan.trim().split(/\s+/); let toiNhat: AnhPexels | null = null;
   for (const q of [...new Set([tu.join(' '), tu.slice(0, 2).join(' ')])].filter(Boolean)) {
     const r = await fetch(`https://api.pexels.com/v1/search?${new URLSearchParams({ query: q, orientation: 'portrait', per_page: '30' })}`, { headers: { Authorization: key, 'User-Agent': UA }, signal: AbortSignal.timeout(20_000) });
     if (!r.ok) throw new Error(`Pexels ${r.status} cho "${q}"`);
-    const p = chonChuaDung(((await r.json()) as { photos?: AnhPexels[] }).photos ?? [], daDung);
+    const ds = ((await r.json()) as { photos?: AnhPexels[] }).photos ?? [];
+    const p = chonChuaDung(ds, daDung);
     if (p) return urlDoc(p);
+    for (const x of ds) if (!daDung.has(x.id) && (!toiNhat || doSang(x) > doSang(toiNhat))) toiNhat = x;
   }
+  if (toiNhat) return urlDoc(toiNhat);   // mọi ảnh còn lại đều tối (chủ đề đêm) → lấy ảnh sáng nhất, không dừng video
   throw new Error(`Pexels không còn ảnh chưa dùng cho "${truyVan}"`);
 }
 

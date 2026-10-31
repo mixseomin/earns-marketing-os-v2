@@ -1,12 +1,14 @@
 import assert from 'node:assert';
-import { idPexels, chonChuaDung, urlDoc, timAnhNen } from './anh-nen';
+import { idPexels, chonChuaDung, urlDoc, timAnhNen, doSang } from './anh-nen';
 import { truyVanAnhMau } from './mau-dung';
 assert.strictEqual(idPexels('https://images.pexels.com/photos/38947971/pexels-photo-38947971.jpeg?w=1080'), 38947971);
 assert.strictEqual(idPexels('https://img.on.tc/x.jpg'), null);
 assert.strictEqual(chonChuaDung([{ id: 1, src: { original: 'a' } }, { id: 2, src: { original: 'b' } }], new Set([1]))?.id, 2, 'bỏ ảnh đã dùng');
 assert.strictEqual(chonChuaDung([{ id: 1, src: { original: 'a' } }], new Set([1])), null, 'hết ảnh → null');
+assert.strictEqual(chonChuaDung([{ id: 1, src: { original: 'a' }, avg_color: '#0B0D14' }, { id: 2, src: { original: 'b' }, avg_color: '#4A5A78' }], new Set())?.id, 2, 'bỏ ảnh gần đen');
+assert.ok(doSang({ id: 1, src: { original: 'a' } }) === 1, 'không có màu = không loại oan');
 assert.ok(urlDoc({ id: 1, src: { original: 'https://images.pexels.com/photos/1/p.jpeg' } }).includes('w=1080&h=1920'));
 await assert.rejects(timAnhNen('christmas', new Set(), ''), /PEXELS_KEY/, 'thiếu khoá thì ném, không dựng trần');
 assert.strictEqual(truyVanAnhMau('do-chu-mot-dung', {} as never, 'Christmas Dinner'), 'Christmas Dinner cozy');
 assert.strictEqual(truyVanAnhMau('scam-or-real', {} as never, 'Refund bait'), 'Refund bait', 'mặc định = chủ đề');
-console.log('anh-nen: 8 ca đạt');
+console.log('anh-nen: 10 ca đạt');

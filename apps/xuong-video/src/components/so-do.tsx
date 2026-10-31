@@ -70,7 +70,7 @@ export function SoDoSeries({ phim, tap, nhanVat, onMoTap, onChanged, mat: matSd,
       {matSd !== 'tap' && sv && <div className="xv-panel" style={{ padding: 10 }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
           <b style={{ fontSize: 13 }}>{matSd === 'tuyen' ? 'Bảng tuyến truyện' : 'Sổ gài / trả'}</b>
-          <span style={{ ...mono, flex: 1 }}>{matSd === 'tuyen' ? 'mỗi ô là sự kiện của tuyến trong tập đó — ô có vạch vàng là tuyến đang bị bỏ quên' : 'tập cuối mùa còn chi tiết treo thì máy chấm kịch bản chặn sinh keyframe'}</span>
+          <span style={{ ...mono, flex: 1 }}>{matSd === 'tuyen' ? 'thời gian chạy trái → phải theo tập; mỗi tuyến một làn, sự kiện nối nhau bằng mũi tên — nét đứt vàng là tuyến đang bị bỏ quên' : 'tập cuối mùa còn chi tiết treo thì máy chấm kịch bản chặn sinh keyframe'}</span>
           {so.luuLuc && <span style={mono} title="Tự lưu sau mỗi lần gõ">✓ đã lưu {so.luuLuc}</span>}
           <NutAiTuyen phimId={phim.id} s={sv} setS={so.setS} />
         </div>

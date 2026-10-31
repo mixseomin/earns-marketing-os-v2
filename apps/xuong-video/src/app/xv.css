@@ -54,7 +54,20 @@ table.xv-tbl.dinh th { position: sticky; top: 0; background: var(--bg-1); z-inde
 .xv-o-sua:hover { border-color: var(--line); }
 .xv-o-sua:focus { outline: 1px solid var(--cyan); background: var(--bg-0); }
 .xv-o-sua::placeholder { color: var(--fg-3); opacity: .5; }
-td.vang { box-shadow: inset 2px 0 0 var(--amber); }
+/* sơ đồ làn tuyến truyện (tuyen-truyen-ui.tsx › BangTuyen): cột = tập trái → phải, hàng = tuyến; đường nối các sự kiện liên tiếp */
+.xv-lan { display: grid; min-width: max-content; }
+.xv-lan > div { border-bottom: 1px solid var(--line); }
+.xv-lan-dau { display: flex; gap: 6px; align-items: center; padding: 6px 10px; font-size: 12px; font-weight: 600; position: sticky; top: 0; background: var(--bg-1); z-index: 2; }
+.xv-lan-nhan { display: flex; gap: 6px; align-items: center; padding: 6px 8px; position: sticky; left: 0; background: var(--bg-1); z-index: 3; border-right: 1px solid var(--line); }
+.xv-lan-o { position: relative; display: flex; align-items: center; justify-content: center; padding: 8px 14px; min-height: 64px; }
+.xv-lan-day { position: absolute; top: 50%; height: 0; border-top: 2px solid var(--fg-3); }
+.xv-lan-day.trai { left: 0; right: 50%; } .xv-lan-day.phai { left: 50%; right: 0; }
+.xv-lan-day[data-kieu="ho"] { border-top-style: dashed; opacity: .55; }
+.xv-lan-day[data-kieu="vang"] { border-top: 2px dashed var(--amber); }
+.xv-lan-the { position: relative; z-index: 1; width: 100%; background: var(--bg-0); border: 1px solid var(--line); border-radius: 8px; padding: 2px; }
+.xv-lan-the.vao::before { content: ''; position: absolute; left: -9px; top: 50%; transform: translateY(-50%); border: 5px solid transparent; border-left-color: var(--fg-3); }
+.xv-lan-them { position: relative; z-index: 1; width: 22px; height: 22px; border-radius: 50%; border: 1px dashed var(--line); background: var(--bg-1); color: var(--fg-3); cursor: pointer; font-size: 12px; line-height: 1; }
+.xv-lan-them:hover { color: var(--fg-1); border-color: var(--fg-3); }
 .xv-den { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--fg-3); flex-shrink: 0; opacity: .5; }
 .xv-den[data-muc="ok"] { background: var(--lime); opacity: 1; }
 .xv-den[data-muc="cho"] { background: var(--amber); opacity: 1; }

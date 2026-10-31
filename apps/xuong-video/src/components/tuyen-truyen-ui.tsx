@@ -54,47 +54,65 @@ export function NutAiTuyen({ phimId, s, setS }: { phimId: number; s: Series; set
   </>;
 }
 
-/** Bảng tuyến: hàng = tập (một dòng), cột = tuyến. Ô vàng mép trái = tuyến vắng ≥ 3 tập liền kể từ lần đầu xuất hiện. */
+/** SƠ ĐỒ LÀN TUYẾN TRUYỆN (anh 31/10/2026: "cái gì trước, cái gì sau? thêm line nối giữa các thành phần"): thời gian chạy TRÁI → PHẢI
+ *  (cột = tập, theo thứ tự), mỗi tuyến một LÀN ngang. Sự kiện là thẻ trên làn; các thẻ liên tiếp nối bằng đường có mũi tên. Đoạn tuyến
+ *  không có sự kiện = nét đứt (vắng ≥ 3 tập liền = nét đứt vàng — người xem quên tuyến). Bấm thẻ để sửa, bấm ＋ để thêm sự kiện. */
 export function BangTuyen({ s, setS }: { s: Series; setS: (s: Series) => void }) {
   const tap = dsTap(s); const tuyen = s.tuyen ?? [];
   const vang = tuyenVang(s);
-  const vangO = (ma: string, so: number) => vang.find((v) => v.ma === ma && so >= v.tu && so <= v.den);
+  const [sua, setSua] = useState<string | null>(null);   // ô đang gõ (ma:so) — ô trống bấm ＋ thì mở ô gõ
   const nhieuMua = new Set(tap.map((t) => t.mua ?? 1)).size > 1;
-  const tenMua = (n: number) => s.mua?.find((m) => m.so === n)?.ten ?? `Mùa ${n}`;
   const themTuyen = () => { const ma = 'ABCDEFGHIJ'.split('').find((c) => !tuyen.some((t) => t.ma === c)); if (ma) setS({ ...s, tuyen: [...tuyen, { ma, ten: '' }] }); };
   const doiTen = (ma: string, ten: string) => setS({ ...s, tuyen: tuyen.map((t) => (t.ma === ma ? { ...t, ten } : t)) });
   const boTuyen = (ma: string) => setS({ ...s, tuyen: tuyen.filter((t) => t.ma !== ma), tap: s.tap.map((t) => { if (!t.su_kien?.[ma]) return t; const { [ma]: _, ...con } = t.su_kien; return { ...t, su_kien: con }; }) });
   const ghi = (so: number, ma: string, viec: string) => setS({ ...s, tap: s.tap.map((t) => (t.so === so ? { ...t, su_kien: { ...(t.su_kien ?? {}), [ma]: viec } } : t)) });
+  const cot = `220px repeat(${tap.length}, minmax(180px, 1fr))`;
   return (
-    <table className="xv-tbl dinh">
-      <thead><tr>
-        <th style={{ width: 190 }}>Tập</th>
-        {tuyen.map((t) => <th key={t.ma} title={`Tuyến ${t.ma}: ${tap.filter((x) => x.su_kien?.[t.ma]?.trim()).length}/${tap.length} tập có sự kiện`}>
-          <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-            <b style={{ color: 'var(--fg-2)' }}>{t.ma}</b>
-            <input className="xv-o-sua" style={{ textTransform: 'none', fontFamily: 'inherit' }} value={t.ten} placeholder={t.ma === 'A' ? 'tuyến chính…' : 'tuyến phụ…'} onChange={(e) => doiTen(t.ma, e.target.value)} />
-            <Menu rong={190}><MucMenu nguy goiY="Bỏ cột tuyến này cùng mọi sự kiện đã ghi trong cột" onClick={() => boTuyen(t.ma)}>🗑 Bỏ tuyến {t.ma}</MucMenu></Menu>
-          </span>
-        </th>)}
-        <th style={{ width: 90 }}><button type="button" className="xv-btn" title="Thêm một tuyến (cột) — A là tuyến chính, B/C là tuyến phụ" onClick={themTuyen}>+ Tuyến</button></th>
-      </tr></thead>
-      <tbody>
-        {tap.map((t, i) => <FragmentTap key={t.so} dauMua={nhieuMua && (i === 0 || (tap[i - 1]!.mua ?? 1) !== (t.mua ?? 1)) ? tenMua(t.mua ?? 1) : ''} cot={tuyen.length + 2}>
-          <tr>
-            <td style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 190 }} title={`${t.ten}\n${t.logline}`}><span style={mono}>{t.so}</span> {t.ten}</td>
-            {tuyen.map((x) => { const v = vangO(x.ma, t.so); return (
-              <td key={x.ma} className={v ? 'vang' : undefined} title={v ? `Tuyến ${x.ma} vắng ${v.n} tập liền (tập ${v.tu}–${v.den}) — người xem quên tuyến này` : undefined}>
-                <input className="xv-o-sua" value={t.su_kien?.[x.ma] ?? ''} placeholder="—" onChange={(e) => ghi(t.so, x.ma, e.target.value)} />
-              </td>); })}
-            <td />
-          </tr>
-        </FragmentTap>)}
-      </tbody>
-    </table>
+    <div style={{ overflowX: 'auto' }}>
+      <div className="xv-lan" style={{ gridTemplateColumns: cot }}>
+        <div className="xv-lan-nhan xv-lan-dau" style={mono}>Tuyến ╲ Tập →</div>
+        {tap.map((t, i) => (
+          <div key={t.so} className="xv-lan-dau" title={`${t.ten}\n${t.logline}`}>
+            <span style={mono}>{nhieuMua ? `M${t.mua ?? 1} · ` : ''}Tập {t.so}</span>
+            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.ten}</span>
+            {i < tap.length - 1 && <span style={mono}>→</span>}
+          </div>
+        ))}
+        {tuyen.map((x) => {
+          const co = tap.map((t) => !!t.su_kien?.[x.ma]?.trim());
+          const dau = co.indexOf(true), cuoi = co.lastIndexOf(true);
+          const kieu = (i: number) => (vang.some((v) => v.ma === x.ma && tap[i]!.so >= v.tu && tap[i]!.so <= v.den) ? 'vang' : co[i] ? 'lien' : 'ho');
+          return [
+            <div key={`n${x.ma}`} className="xv-lan-nhan" title={`Tuyến ${x.ma}: ${co.filter(Boolean).length}/${tap.length} tập có sự kiện`}>
+              <b style={{ color: 'var(--fg-2)', fontSize: 13 }}>{x.ma}</b>
+              <textarea className="xv-o-sua" rows={2} style={{ resize: 'none', fontWeight: 600 }} value={x.ten} placeholder={x.ma === 'A' ? 'tuyến chính…' : 'tuyến phụ…'} onChange={(e) => doiTen(x.ma, e.target.value)} />
+              <Menu rong={190}><MucMenu nguy goiY="Bỏ làn tuyến này cùng mọi sự kiện đã ghi" onClick={() => boTuyen(x.ma)}>🗑 Bỏ tuyến {x.ma}</MucMenu></Menu>
+            </div>,
+            ...tap.map((t, i) => {
+              const viec = t.su_kien?.[x.ma] ?? ''; const k = `${x.ma}:${t.so}`;
+              // nửa trái có đường khi đã có sự kiện trước đó; nửa phải khi còn sự kiện sau — đường mang kiểu của đoạn nó đi qua
+              const trai = dau >= 0 && i > dau && i <= cuoi, phai = dau >= 0 && i >= dau && i < cuoi;
+              const kTrai = co[i] && co[i - 1] ? 'lien' : kieu(co[i] ? i - 1 : i), kPhai = co[i] && co[i + 1] ? 'lien' : kieu(co[i] ? i + 1 : i);
+              const v = vang.find((z) => z.ma === x.ma && t.so >= z.tu && t.so <= z.den);
+              return (
+                <div key={k} className="xv-lan-o" title={v ? `Tuyến ${x.ma} vắng ${v.n} tập liền (tập ${v.tu}–${v.den}) — người xem quên tuyến này` : undefined}>
+                  {trai && <span className="xv-lan-day trai" data-kieu={kTrai} />}
+                  {phai && <span className="xv-lan-day phai" data-kieu={kPhai} />}
+                  {viec.trim() || sua === k
+                    ? <div className={`xv-lan-the${trai ? ' vao' : ''}`}>
+                        <textarea className="xv-o-sua" rows={2} style={{ resize: 'none' }} autoFocus={sua === k} value={viec} placeholder="sự kiện của tuyến trong tập này"
+                          onChange={(e) => ghi(t.so, x.ma, e.target.value)} onBlur={() => setSua(null)} />
+                      </div>
+                    : <button type="button" className="xv-lan-them" title={`Thêm sự kiện của tuyến ${x.ma} ở tập ${t.so}`} onClick={() => setSua(k)}>＋</button>}
+                </div>
+              );
+            }),
+          ];
+        })}
+      </div>
+      <button type="button" className="xv-btn" style={{ marginTop: 8 }} title="Thêm một làn tuyến — A là tuyến chính, B/C là tuyến phụ" onClick={themTuyen}>+ Tuyến</button>
+    </div>
   );
-}
-function FragmentTap({ dauMua, cot, children }: { dauMua: string; cot: number; children: React.ReactNode }) {
-  return <>{dauMua && <tr><td colSpan={cot} style={{ ...mono, paddingTop: 10 }}>{dauMua}</td></tr>}{children}</>;
 }
 
 type LocGt = 'tat_ca' | 'treo' | 'sai';

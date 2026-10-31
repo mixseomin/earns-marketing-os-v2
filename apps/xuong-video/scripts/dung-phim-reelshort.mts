@@ -27,7 +27,7 @@ const du = JSON.parse(readFileSync(tep, 'utf8')) as { phan_doan: string; anh_boi
 const TT: number[] = []; { let n = 0; for (const s of (du.shot as { so?: number }[])) { if (s.so != null) TT.push(s.so); else TT.push(++n); } }
 /** số XẾP PHÁT (xv_canh.thu_tu) của từng mảnh — shot con 2.9 → 2.04, 3.1 → 2.51 (kieu.ts › khoaPhat); sổ theo số shot cũng tra bằng số này */
 const TP = TT.map(khoaPhat);
-const soHien = (i: number) => (TP[i]! === Math.floor(TP[i]!) ? null : TP[i]!);
+const soHien = (i: number) => (TT[i]! === Math.floor(TT[i]!) ? null : TT[i]!);   // số HIỆN (2.9 / 3.1) — KHÔNG phải số xếp phát
 /** sơ đồ ở khung CUỐI của mảnh = sd đè bằng sd_ket (người nhìn / đứng khác lúc kết) */
 const sdKet = (m: Manh): ManhSoDo | undefined => (m.sd ? { ...m.sd, ...(m.sd_ket ?? {}), o: { ...m.sd.o, ...(m.sd_ket?.o ?? {}) } } : undefined);
 const khungVe = (m: Manh): ('dau' | 'giua' | 'ket')[] => m.khung_ve ?? (m.ket ? ['dau', 'ket'] : ['dau']);

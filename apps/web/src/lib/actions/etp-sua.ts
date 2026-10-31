@@ -3,10 +3,11 @@
 // Hai lớp gác: (1) ở đây — vai admin etp có nguoi_id, camp thuộc tài khoản QC của người đó trong kho; (2) cổng Ethopex chế độ ETP_SUA_NGUOI (apps/etp/sua-ngoai.py)
 // đọc danh sách camp THẬT của tài khoản người đó từ Ethopex — camp nhà / người khác bị chặn kể cả khi kho lệch.
 import { execFile } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
-import { quyenEtp, suaNguoi } from '@/lib/etp-quyen';
+import { hetPhienEthopex, quyenCheDo, quyenEtp, suaNguoi } from '@/lib/etp-quyen';
 
 /** KẾT NỐI ETHOPEX (anh 31/10/2026: "Sơn ko thể sửa camp thông qua api của tao" — token Nhà chỉ được XEM tài khoản người khác):
  *  người tự dán phiên Ethopex của mình (localStorage access_token trên app.ethopex.dev) → sua-ngoai.py ket kiểm (đúng người, còn hạn, thấy camp của mình) rồi cất.
@@ -44,4 +45,33 @@ export async function suaCampNgoai(campId: number, viec: 'ns' | 'bat' | 'tat', n
   const k = JSON.parse(dong) as { ok?: boolean; loi?: string | null; truoc?: { ns: unknown; tt: unknown }; sau?: { ns: unknown; tt: unknown } };
   const so = (x?: { ns: unknown; tt: unknown }) => ({ ns: x?.ns == null ? null : Number(x.ns), tt: x?.tt == null ? null : String(x.tt) });
   return k.ok ? { ok: true, truoc: so(k.truoc), sau: so(k.sau) } : { loi: k.loi || 'không sửa được' };
+}
+
+/** ĐẶT CHẾ ĐỘ LUẬT MÁY cho người nguoiId (anh 31/10/2026): 'bao' = nhắn riêng đề xuất qua bot · 'tu_dong' = máy làm luôn bằng phiên Ethopex của người đó.
+ *  Quyền: quyenCheDo (etp-quyen.ts). Tự động cần phiên Ethopex riêng còn hạn — không có thì máy không có gì để làm. */
+export async function datCheDoLuat(nguoiId: number, cheDo: 'bao' | 'tu_dong'): Promise<{ ok: true } | { loi: string }> {
+  const me = await getCurrentUser();
+  const q = await quyenEtp(me);
+  if (!q || !Number.isInteger(nguoiId) || !['bao', 'tu_dong'].includes(cheDo)) return { loi: 'lệnh không hợp lệ' };
+  const duoc = await quyenCheDo(q, nguoiId);
+  if (cheDo === 'bao' ? !duoc.bao : !duoc.tuDong) return { loi: cheDo === 'tu_dong' ? 'tài khoản này chỉ được chế độ Chỉ báo' : 'không có quyền đổi chế độ của người này' };
+  if (cheDo === 'tu_dong' && !(await hetPhienEthopex(nguoiId))) return { loi: 'chưa kết nối phiên Ethopex (bấm ✎ ở ô ngân sách một camp để kết nối) — máy cần phiên đó để tự làm' };
+  await getDb()!.execute(sql`insert into etp.che_do_luat (nguoi_id, che_do, sua_boi, luc) values (${nguoiId}, ${cheDo}, ${me!.id}, now())
+    on conflict (nguoi_id) do update set che_do = excluded.che_do, sua_boi = excluded.sua_boi, luc = now()`);
+  return { ok: true };
+}
+
+/** NỐI TELEGRAM (chế độ Chỉ báo — bot nhắn riêng): sinh mã một lần → link t.me/<bot>?start=<mã>; bot nhận /start <mã> thì ghi tg_chat
+ *  (apps/cty/worker/etp-rieng.mjs). Tên bot do worker cất ở xv_khoa_ngoai['tg_bot'] — web không giữ khoá bot. */
+export async function taoMaTelegram(nguoiId: number): Promise<{ ok: true; link: string } | { loi: string }> {
+  const me = await getCurrentUser();
+  const q = await quyenEtp(me);
+  if (!q || !Number.isInteger(nguoiId) || !(await quyenCheDo(q, nguoiId)).bao) return { loi: 'không có quyền nối Telegram cho người này' };
+  const db = getDb()!;
+  const bot = ((await db.execute(sql`select gia_tri->>'username' u from xv_khoa_ngoai where ten = 'tg_bot'`)) as unknown as { u: string | null }[])[0]?.u;
+  if (!bot) return { loi: 'máy chưa đọc được tên bot — thử lại sau ít phút' };
+  const ma = randomBytes(18).toString('base64url');
+  await db.execute(sql`insert into etp.che_do_luat (nguoi_id, tg_ma, sua_boi, luc) values (${nguoiId}, ${ma}, ${me!.id}, now())
+    on conflict (nguoi_id) do update set tg_ma = excluded.tg_ma`);
+  return { ok: true, link: `https://t.me/${bot}?start=${ma}` };
 }

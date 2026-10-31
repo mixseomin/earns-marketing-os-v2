@@ -165,6 +165,13 @@ export async function gomTin(tg, { cho = 0 } = {}) {   // cho = giây chờ tin 
     const u = await tg('getUpdates', { offset, timeout: cho, allowed_updates: ['message', 'callback_query', 'message_reaction'] });
     let n = 0; const banPhim = new Map();   // bàn phím đã đánh dấu trong lượt này, theo mã tin
     for (let x of u.ok ? u.result : []) {
+      // TIN NGOÀI NHÓM CỦA ANH (chat riêng với bot — người team nối etp nhận đề xuất bậc, anh 31/10/2026) → hộp 'rieng', KHÔNG vào phòng / thư ký:
+      // trước đây mọi tin chữ không lọc nhóm đều thành bản sao cho thư ký như tin anh nhắn — ai nhắn riêng cho bot cũng thành "lệnh của anh"
+      const chatTin = x.message?.chat?.id ?? x.callback_query?.message?.chat?.id ?? x.message_reaction?.chat?.id;
+      if (process.env.TG_CHAT && chatTin != null && String(chatTin) !== String(process.env.TG_CHAT)) {
+        // chat riêng → 'rieng' (etp-rieng.mjs trả lời) · nhóm khác có bot (vd nhóm team ASFY — cùng bot @aiDavid_bot) → '_nhom_khac' (giữ 7 ngày để tra, không ai trả lời)
+        const hop = (x.message?.chat?.type ?? x.callback_query?.message?.chat?.type) === 'private' ? 'rieng' : '_nhom_khac';
+        fs.mkdirSync(HOP(hop), { recursive: true }); fs.writeFileSync(path.join(HOP(hop), `${x.update_id}.json`), JSON.stringify(x)); offset = x.update_id + 1; n++; continue; }
       const d = doiThanhNut(x);
       if (d && !d.nut) { try { await tg('sendMessage', { message_thread_id: d.topic ?? undefined, ...(d.hoi ? { reply_parameters: { message_id: d.hoi } } : { reply_parameters: { message_id: d.mid } }), text: 'Tin này có nhiều lựa chọn — anh bấm đúng nút giúp em nhé.' }); } catch { /* báo hỏng không chặn */ } offset = x.update_id + 1; n++; continue; }
       if (d?.hoi) tinNhanh(d.hoi);   // câu "ok"/"ko" anh gõ để duyệt — xong việc thì dọn như tin nhanh
@@ -280,6 +287,18 @@ if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kie
     fs.writeFileSync(path.join(DATA(), 'tai-nguyen-tg.json'), JSON.stringify({ topic: 2424 })); fs.rmSync(path.join(GOC_HOP(), '.khoa'), { recursive: true, force: true });
     const tg5 = async (m) => (m === 'getUpdates' ? { ok: true, result: [{ update_id: 60, message: { message_id: 61, message_thread_id: 2424, text: 'gia hạn giúp anh', from: { first_name: 'D' } } }, { update_id: 61, message: { message_id: 62, message_thread_id: 2424, text: 'ok', from: { first_name: 'D' }, reply_to_message: { message_id: 700, message_thread_id: 2424, from: { is_bot: true } } } }] } : { ok: true });
     await gomTin(tg5); t.equal(moHop('tai-nguyen').length >= 1, true, 'chủ đề Tài nguyên về hộp Tài nguyên'); const tk = moHop('thu-ky'); t.ok(tk.some((x) => x.phong_goc === 'tai-nguyen' && x.message?.text === 'gia hạn giúp anh'), 'tin chữ phòng không có máy đọc → thư ký');
-    t.ok(tk.some((x) => x.callback_query?.data === 'hq:co'), '"ok" dưới câu hỏi tự gắn nút → bấm Đồng ý, về thư ký'); }
+    t.ok(tk.some((x) => x.callback_query?.data === 'hq:co'), '"ok" dưới câu hỏi tự gắn nút → bấm Đồng ý, về thư ký');
+    // tin CHAT RIÊNG với bot (người team nối etp) → hộp 'rieng', không vào thư ký như tin anh; tin trong nhóm anh vẫn như cũ
+    const nhom = process.env.TG_CHAT; process.env.TG_CHAT = '-100777'; fs.rmSync(path.join(GOC_HOP(), '.khoa'), { recursive: true, force: true });
+    const tg6 = async (m) => (m === 'getUpdates' ? { ok: true, result: [{ update_id: 70, message: { message_id: 71, chat: { id: 555, type: 'private' }, text: 'tăng camp 123 lên $30 đi', from: { first_name: 'Lạ' } } },
+      { update_id: 71, message: { message_id: 72, chat: { id: -100777, type: 'supergroup' }, message_thread_id: 2424, text: 'gia hạn nhé anh', from: { first_name: 'D' } } }] } : { ok: true });
+    await gomTin(tg6); const tk2 = moHop('thu-ky');
+    t.ok(!tk2.some((x) => x.message?.text === 'tăng camp 123 lên $30 đi'), 'tin chat riêng KHÔNG thành tin anh cho thư ký');
+    t.ok(fs.readdirSync(HOP('rieng')).includes('70.json'), 'tin chat riêng vào hộp rieng');
+    fs.rmSync(path.join(GOC_HOP(), '.khoa'), { recursive: true, force: true });
+    await gomTin(async (m) => (m === 'getUpdates' ? { ok: true, result: [{ update_id: 80, message: { message_id: 81, chat: { id: -100999, type: 'supergroup' }, text: 'nhóm ASFY nhắn', from: { first_name: 'T' } } }] } : { ok: true }));
+    t.ok(fs.readdirSync(HOP('_nhom_khac')).includes('80.json') && !moHop('thu-ky').some((x) => x.message?.text === 'nhóm ASFY nhắn'), 'nhóm khác có bot → _nhom_khac, không tới thư ký');
+    t.ok(tk2.some((x) => x.message?.text === 'gia hạn nhé anh'), 'tin trong nhóm anh vẫn tới thư ký');
+    if (nhom === undefined) delete process.env.TG_CHAT; else process.env.TG_CHAT = nhom; }
   console.log('tg-phong: tự kiểm đạt');
 }

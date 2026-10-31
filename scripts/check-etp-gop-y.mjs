@@ -196,6 +196,13 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '{!het || doiPhien ? <KetNoiEthopex het={het}', vi: '✎ chưa có phiên riêng → hiện ô kết nối thay vì nút sửa' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "    </span>\n    {sua ? <SuaCamp c={c} /> : null}\n  </span>);", vi: '✎ nằm ngoài vùng rê thẻ bậc (không mở chồng thẻ lịch sử bậc)' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "background: 'var(--bg-1)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>{/* AnchoredPopover không tự có nền", vi: 'ô ✎ có nền (không trong suốt lẫn vào bảng)' },
+  // anh 31/10/2026 "cho các tk quyền bật tắt Luật tự động hay chỉ thông báo qua Telegram" — Chat riêng với bot; Tự động chỉ tk Sơn (vai admin etp)
+  { card: 0, tep: 'apps/web/src/lib/etp-quyen.ts', co: "return { bao: true, tuDong: TU_DONG_CHAY && adm && q.vai !== 'nguoi' };", vi: 'Tự động chỉ cho người có vai admin etp; vai người chỉ Chỉ báo' },
+  { card: 0, tep: 'apps/web/src/lib/actions/etp-sua.ts', co: "if (cheDo === 'tu_dong' && !(await hetPhienEthopex(nguoiId)))", vi: 'Tự động cần phiên Ethopex riêng còn hạn' },
+  { card: 0, tep: 'apps/cty/worker/tg-phong.mjs', co: "if (process.env.TG_CHAT && chatTin != null && String(chatTin) !== String(process.env.TG_CHAT)) {", vi: 'tin chat riêng với bot không vào phòng / thư ký (không thành lệnh của anh)' },
+  { card: 0, tep: 'apps/cty/worker/etp-rieng.mjs', co: "where d.bao_luc is null and d.lan_dau > coalesce(c.tg_luc, now()) and d.lan_cuoi > now() - interval '2 hours'", vi: 'nhắn riêng chỉ đề xuất mới sau lúc nối, mỗi đề xuất một lần' },
+  { card: 0, tep: 'apps/cty/worker/tg-nghe.mjs', co: "await xuTinRieng(tg)", vi: 'dịch vụ nghe xử tin chat riêng + gửi đề xuất' },
+  { card: 0, tep: 'deploy.sh', co: 'systemctl restart cty-tg-nghe && echo', vi: 'worker đổi thì deploy khởi động lại dịch vụ nghe' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'theo cách tk Nguyễn Sơn chạy', vi: 'mô tả luật (cột Luật mọi người thấy) không mang tên người — bộ chống lộ etp-quyen.kiem.mts bắt 31/10/2026' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'tuoi', header: 'Tuổi', width: 52,", vi: 'cột Tuổi Cây hẹp cố định (không ăn khoảng thừa)' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: 'persistKey="etp-cay" minWidth={1100} fixedLayout', vi: 'Cây table-layout fixed: bề rộng cột theo khai báo, máy nào cũng như nhau' },

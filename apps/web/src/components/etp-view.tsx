@@ -6,7 +6,8 @@ import { createPortal } from 'react-dom';
 import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoang';
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
 import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
-import { ketNoiEthopex, suaCampNgoai } from '@/lib/actions/etp-sua';
+import { datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/actions/etp-sua';
+import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
@@ -468,6 +469,36 @@ function KetNoiEthopex({ het, xong }: { het: string | null; xong: () => void }) 
     </div>
     {dang ? <span style={{ color: 'var(--fg-2)' }}>đang kiểm phiên…</span> : kq ? <span style={{ color: kq.ok ? '#4ade80' : '#f87171' }}>{kq.ok ? '✓ ' : '✕ '}{kq.chu}</span> : null}
   </div>;
+}
+// CHẾ ĐỘ LUẬT MÁY của người đang xem (anh 31/10/2026: "cho các tk quyền bật tắt Luật tự động hay chỉ thông báo qua Telegram") — etp.che_do_luat.
+// Chỉ báo = đề xuất bậc nhắn riêng qua bot · Tự động = máy làm luôn như Nhà bằng phiên Ethopex của người đó (chỉ tk có vai admin etp — Sơn)
+function CheDoLuatO({ nguoiId, c }: { nguoiId: number; c: CheDoLuat }) {
+  const router = useRouter();
+  const [dang, setDang] = useState(false), [loi, setLoi] = useState<string | null>(null);
+  const doi = async (v: string) => {
+    if (v === c.cheDo) return;
+    setDang(true); setLoi(null);
+    const r = await datCheDoLuat(nguoiId, v as CheDoLuat['cheDo']);
+    setDang(false);
+    if ('loi' in r) { setLoi(r.loi); return; }
+    router.refresh();
+  };
+  const noiTg = async () => {
+    setDang(true); setLoi(null);
+    const r = await taoMaTelegram(nguoiId);
+    setDang(false);
+    if ('loi' in r) { setLoi(r.loi); return; }
+    window.open(r.link, '_blank', 'noopener');
+  };
+  const opts: Chon2Muc[] = [{ value: 'bao', label: 'Chỉ báo Telegram', title: 'máy chấm camp theo luật Nhà, đề xuất bậc nhắn riêng qua bot — không đụng camp' },
+    ...(c.duoc.tuDong ? [{ value: 'tu_dong', label: 'Tự động', title: 'máy làm luôn trên camp (tăng / giảm bậc, lên $30, lên ROAS… như Nhà) bằng phiên Ethopex của bạn' }] : [])];
+  return <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+    <Chon2 value={c.cheDo} onChange={doi} options={opts} anRong nhan="Luật máy" title="chế độ luật máy cho tài khoản này" />
+    {c.cheDo === 'bao' ? (c.tg ? <span title="đề xuất bậc mới của máy nhắn riêng qua bot Telegram" style={{ fontSize: 11, color: '#4ade80' }}>✓ Telegram</span>
+      : <button onClick={noiTg} disabled={dang} title="mở bot Telegram, bấm Start một lần — từ đó đề xuất bậc nhắn riêng cho bạn"
+        style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'inherit', cursor: 'pointer' }}>Nối Telegram</button>) : null}
+    {dang ? <span style={{ fontSize: 11, color: '#60a5fa' }}>đang lưu…</span> : loi ? <span style={{ fontSize: 11, color: '#f87171' }}>✕ {loi}</span> : null}
+  </span>;
 }
 function SuaCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ngan_sach' | 'trang_thai'> }) {
   const router = useRouter();
@@ -2018,7 +2049,7 @@ function LenBac({ du, hep }: { du: DuLieuEtp; hep: boolean }) {
 }
 // QUYỀN (etp.quyen, anh 31/10/2026): vai từ máy chủ (lib/etp-quyen.ts) — dữ liệu đã cắt trên máy chủ, đây chỉ bỏ tab / kiểu xem không còn dữ liệu.
 // sua = nguoi_id mà người xem sửa được camp (admin etp, vd Sơn #115); null = không sửa
-type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null };
+type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null; cheDo?: CheDoLuat | null };
 const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
 export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLieuEtp; chiXem?: boolean; quyen?: QuyenXem; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string } }) {
   const router = useRouter();
@@ -2235,7 +2266,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
         <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}
-          {du.nguoi.ngoai ? <span title="camp + số của tài khoản QC người này (Ethopex cho htuan82 xem) — chỉ để theo dõi / học; cột Luật = máy luật nhà ĐỀ XUẤT cho camp người này (không thao tác), rê ô ngân sách xem lịch sử lên bậc + máy đề xuất trước bao lâu; nút bật / tắt không áp"
+          {du.nguoi.ngoai && quyen?.cheDo?.duoc.bao && du.nguoi.dang != null ? <CheDoLuatO nguoiId={du.nguoi.dang} c={quyen.cheDo} /> : null}
+          {du.nguoi.ngoai && !(quyen?.sua != null && du.nguoi.dang === quyen.sua) ? <span title="camp + số của tài khoản QC người này — chỉ để theo dõi / học; cột Luật = máy luật ĐỀ XUẤT cho camp người này (không thao tác), rê ô ngân sách xem lịch sử lên bậc + máy đề xuất trước bao lâu; nút bật / tắt không áp"
             style={{ background: 'rgba(168,85,247,.18)', color: '#d8b4fe', border: '1px solid rgba(168,85,247,.5)', borderRadius: 8, padding: '2px 8px', fontWeight: 600, fontSize: 12 }}>👁 chỉ xem</span> : null}</span>
       </div>
       <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0' }}>

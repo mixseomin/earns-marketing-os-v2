@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { docEtp } from '@/lib/etp-doc';
-import { catChoNguoi, hetPhienEthopex, ngCua, quyenEtp, suaNguoi } from '@/lib/etp-quyen';
+import { catChoNguoi, docCheDo, hetPhienEthopex, ngCua, quyenEtp, suaNguoi } from '@/lib/etp-quyen';
 import { EtpView } from '@/components/etp-view';
 
 export const dynamic = 'force-dynamic';
@@ -22,5 +22,6 @@ export default async function EtpPage({ searchParams }: { searchParams: Promise<
   if (!quyen) redirect('/');
   const mot = (k: string) => (typeof q[k] === 'string' ? (q[k] as string) : undefined);
   const [du, het] = await Promise.all([docEtp(ngCua(quyen, mot('ng')), true), hetPhienEthopex(suaNguoi(quyen))]);
-  return <EtpView chiXem={quyen.vai !== 'chu'} quyen={{ vai: quyen.vai, sua: suaNguoi(quyen), het }} du={quyen.vai === 'nguoi' ? catChoNguoi(du, quyen.nguoiId!) : du} dauVao={{ t: mot('t'), v: mot('v'), l: mot('l'), p: mot('p'), lu: mot('lu'), d: mot('d'), b: mot('b'), ll: mot('ll'), tu: mot('tu'), ngan: mot('ngan') }} />;
+  const cheDo = du.nguoi.ngoai ? await docCheDo(quyen, du.nguoi.dang) : null;   // chế độ luật máy của người đang xem (etp.che_do_luat)
+  return <EtpView chiXem={quyen.vai !== 'chu'} quyen={{ vai: quyen.vai, sua: suaNguoi(quyen), het, cheDo }} du={quyen.vai === 'nguoi' ? catChoNguoi(du, quyen.nguoiId!) : du} dauVao={{ t: mot('t'), v: mot('v'), l: mot('l'), p: mot('p'), lu: mot('lu'), d: mot('d'), b: mot('b'), ll: mot('ll'), tu: mot('tu'), ngan: mot('ngan') }} />;
 }

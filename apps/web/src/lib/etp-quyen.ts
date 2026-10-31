@@ -31,6 +31,24 @@ export async function hetPhienEthopex(nguoiId: number | null): Promise<string | 
   return r?.het && new Date(r.het).getTime() > Date.now() + 60_000 ? r.het : null;
 }
 
+// CHẾ ĐỘ LUẬT MÁY của một người (etp.che_do_luat, migration 0387; anh 31/10/2026). Không có dòng = 'bao'.
+export type CheDoLuat = { cheDo: 'bao' | 'tu_dong'; tg: boolean; duoc: { bao: boolean; tuDong: boolean } };
+/** ai được đặt chế độ cho người nguoiId: chủ (admin mos2) · admin etp của chính người đó · vai người cho chính mình (chỉ 'bao').
+ *  'tu_dong' chỉ cho người có vai admin trong etp.quyen (anh chốt: "chỉ áp dụng cho tk của Sơn") — người khác chỉ được 'bao'. */
+/** máy TỰ LÀM cho team (Bước 4: luật Nhà chạy bằng phiên Ethopex của người đó) chưa dựng → chưa cho chọn 'tu_dong', kẻo ô chọn hứa một việc máy chưa làm */
+const TU_DONG_CHAY = false;
+export async function quyenCheDo(q: QuyenEtp, nguoiId: number): Promise<CheDoLuat['duoc']> {
+  const cua = q.vai === 'chu' || q.nguoiId === nguoiId;
+  if (!cua) return { bao: false, tuDong: false };
+  const adm = ((await getDb()!.execute(sql`select 1 from etp.quyen where vai = 'admin' and nguoi_id = ${nguoiId} limit 1`)) as unknown as unknown[]).length > 0;
+  return { bao: true, tuDong: TU_DONG_CHAY && adm && q.vai !== 'nguoi' };
+}
+export async function docCheDo(q: QuyenEtp, nguoiId: number | null): Promise<CheDoLuat | null> {
+  if (nguoiId == null) return null;
+  const r = ((await getDb()!.execute(sql`select che_do, tg_chat is not null tg from etp.che_do_luat where nguoi_id = ${nguoiId}`)) as unknown as { che_do: string; tg: boolean }[])[0];
+  return { cheDo: r?.che_do === 'tu_dong' ? 'tu_dong' : 'bao', tg: !!r?.tg, duoc: await quyenCheDo(q, nguoiId) };
+}
+
 // DỮ LIỆU CHO VAI nguoi — danh sách CHO PHÉP, không phải danh sách cấm: trường nào không ghi ở GIU thì về rỗng theo RONG.
 // Thêm trường mới vào DuLieuEtp mà quên ở đây → tsc báo thiếu khoá trong RONG → buộc quyết định, mặc định là KHÔNG lộ.
 const GIU = ['nhe', 'luc', 'nay', 'ngay', 'camps', 'creatives', 'phims', 'soNgay', 'demNgay', 'theLoai', 'xetLuat', 'xetLuc', 'lsBac'] as const;

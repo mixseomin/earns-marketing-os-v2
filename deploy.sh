@@ -209,6 +209,11 @@ fi
 if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | node scripts/app-cham.mjs apps/cty; then
   CTY_CHANGED=true
 fi
+# Dịch vụ nghe Telegram (cty-tg-nghe, chạy liền, nạp worker/*.mjs MỘT lần lúc khởi động) — mã worker đổi mà không khởi động lại thì nút / tin xử bằng mã cũ
+# tới lần restart tay kế (31/10/2026: etp nhắn riêng + tách tin chat riêng nằm im sau deploy). Nhịp mỗi phút (cty-nhip.timer) mỗi lần chạy là tiến trình mới — không cần.
+if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -q "^apps/cty/worker/" && systemctl is-enabled cty-tg-nghe >/dev/null 2>&1; then
+  systemctl restart cty-tg-nghe && echo "✓ cty-tg-nghe khởi động lại (worker đổi)"
+fi
 if [ -f apps/cty/.next.new/BUILD_ID ] && ! cmp -s apps/cty/.next.new/BUILD_ID apps/cty/.next/BUILD_ID; then
   CTY_CHANGED=true
 fi

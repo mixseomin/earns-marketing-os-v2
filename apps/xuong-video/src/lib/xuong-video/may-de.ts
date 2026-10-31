@@ -128,7 +128,8 @@ export const CHU_VIET = /[ăâđêôơưạảấầẩẫậắằẳẵặẹ�
 export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string, unknown>; title: string; description: string; nhan: string; ngon_ngu?: 'en' | 'vi'; hooks?: HookQc[]; hook_qc?: string }): string[] {
   const loi: string[] = [], chu = `${x.title}\n${x.description}`, thuong = chu.toLowerCase();
   if (x.title.length < 25) loi.push(`câu móc quá ngắn (${x.title.length})`); if (x.title.length > 110) loi.push(`câu móc dài ${x.title.length}`);
-  if (!/[?!]|\d/.test(x.title)) loi.push('câu móc không có câu hỏi / con số');
+  // hook QC đã được thị trường chứng minh → không ép thêm '?' / con số (31/10: AI chêm '?' vào cuối hook nguyên văn, #899 "…everyone has?")
+  if (!x.hooks?.length && !/[?!]|\d/.test(x.title)) loi.push('câu móc không có câu hỏi / con số');
   if (x.nhan && x.title.toLowerCase().startsWith(x.nhan.toLowerCase())) loi.push('câu móc mở bằng tên thương hiệu');
   if (/[—–]/.test(chu)) loi.push('gạch ngang dài');
   // hook phải lấy từ QC thật (khi máy có hook gốc): đã chọn một QC, câu móc giữ đủ bản gốc, không mang tên thương hiệu của nhà quảng cáo đó

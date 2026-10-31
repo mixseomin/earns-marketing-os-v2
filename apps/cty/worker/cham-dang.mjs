@@ -36,7 +36,7 @@ export async function kiemGoc(ds) {
     return null;
   });
 }
-/** HOOK MƯỢN ĐÚNG NGÁCH + KHÔNG HỨA SAI — phải hiểu nghĩa nên hỏi Ngọc (model của phòng, cong-ty/nhan-su/ngoc/SOUL.md, vài đồng một lần) qua proxy công ty.
+/** HOOK MƯỢN ĐÚNG NGÁCH + KHÔNG HỨA SAI + KHÔNG NHẠT (anh: hook "chất lượng và ko nhạt") — phải hiểu nghĩa nên hỏi Ngọc (model của phòng, cong-ty/nhan-su/ngoc/SOUL.md, vài đồng một lần) qua proxy công ty.
  *  Đo 31/10/2026: chữ khớp ngách nằm ở ký tự 300–1.300 cả ở QC đúng lẫn QC lệch (#875 xe đưa đón du thuyền ở 750) → không kiểm bằng từ khoá được.
  *  ds = [{ qc, ma, nhan, muc_dich, su_that, dong }] → mảng lỗi (null = đạt). Mỗi cặp (máy, QC) hỏi một lần; proxy / mô hình hỏng → không chặn, ghi cảnh báo. */
 const MODEL_NGOC = (() => { try { return (/^model:\s*(\S+)/m.exec(fs.readFileSync(new URL('../cong-ty/nhan-su/ngoc/SOUL.md', import.meta.url), 'utf8')) ?? [])[1] ?? null; } catch { return null; } })();
@@ -47,14 +47,14 @@ export async function xetHookAi(ds) {
   catch (e) { return ds.map(() => null); }
   const daXet = new Map();
   const hoi = async (x) => {
-    const system = 'You check whether a social post hook borrowed from another company\'s ad fits OUR brand. Reply with ONE JSON only: {"cung_ngach":true|false,"hua_sai":true|false,"ly_do":"one short sentence in Vietnamese"}. cung_ngach = the original ad is about the same topic and audience as our brand (a person stopped by this hook would plausibly want our brand). hua_sai = the hook as used promises something our brand does not do or a number our facts do not support.';
+    const system = 'You check whether a social post hook borrowed from another company\'s ad fits OUR brand. Reply with ONE JSON only: {"cung_ngach":true|false,"hua_sai":true|false,"nhat":true|false,"ly_do":"one short sentence in Vietnamese"}. cung_ngach = the original ad is about the same topic and audience as our brand (a person stopped by this hook would plausibly want our brand). hua_sai = the hook as used promises something our brand does not do or a number our facts do not support. nhat = the line would NOT stop a stranger scrolling: a product label or feature list ("Birth Chart / Personal Insight", "Astrology software suite for professionals"), a sentence cut off mid-thought, or a flat statement with no curiosity, tension, situation or payoff.';
     const user = `OUR BRAND: ${x.nhan}\nWHAT IT IS: ${x.muc_dich ?? ''}\nFACTS: ${(x.su_that ?? 'none').slice(0, 1500)}\n\nORIGINAL AD (opening): ${dau.get(String(x.qc)) ?? '(not found)'}\n\nHOOK LINES WE USE:\n${x.dong.join('\n')}`;
     try {
       const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ngoc', 'x-cty-luot': `xet-hook-${Date.now()}`, 'x-cty-phong': 'noi-dung' },
         body: JSON.stringify({ model: MODEL_NGOC, max_tokens: 200, temperature: 0, system, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(60000) });
       const j = await r.json(); if (!r.ok) return null;
       const txt = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(''), o = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
-      const loi = [o.cung_ngach === false && 'hook mượn từ QC khác ngách', o.hua_sai === true && 'hook hứa điều thương hiệu không có'].filter(Boolean);
+      const loi = [o.cung_ngach === false && 'hook mượn từ QC khác ngách', o.hua_sai === true && 'hook hứa điều thương hiệu không có', o.nhat === true && 'hook nhạt (nhãn sản phẩm / câu cụt / không gây tò mò)'].filter(Boolean);
       return loi.length ? `${loi.join(' + ')} (Ngọc: ${String(o.ly_do || '').slice(0, 140)})` : null;
     } catch { return null; }
   };

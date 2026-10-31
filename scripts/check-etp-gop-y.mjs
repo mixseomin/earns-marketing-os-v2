@@ -271,6 +271,10 @@ const LUAT = [
   { card: 0, tep: V, co: "['giam', 'Giảm chi — hạ bậc', ['g10']]", vi: 'bản luật có nhóm Giảm chứa G10' },
   // anh 31/10/2026 "Bộ lọc, danh sách,.... phải có G10 chứ?": chip sắp chạm / dải lọc, chế độ Tự động tk team đều có G10
   { card: 0, tep: V, co: "g10: ['↓ G10 về $10', '#fb923c']", vi: 'chip + dải lọc có G10' },
+  // anh 01/11/2026 "lọc thế nào hiện ra các camp đã tắt theo 1 luật nào đó": nhóm "Đã tắt theo" trong ô Luật + dải luật, từ nhật ký tắt (etp-doc tatLuat)
+  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "substring(n.luat from '^(T2|T7|L3|L4|L7|D24|OFF|RL|G10)\\\\M')", vi: 'mã luật tắt lấy từ nhật ký máy' },
+  { card: 0, tep: V, co: "nhom: 'Đã tắt theo', dem }))]", vi: 'ô lọc Luật có nhóm Đã tắt theo' },
+  { card: 0, tep: V, co: "if (luatLoc.startsWith(TAT_LUAT)) return tatMap.get(c.camp_id)?.ma", vi: 'lọc camp theo luật đã tắt' },
   { card: 0, tep: V, co: "g10: 'giam', tat: 'tat', tat_g10: 'tat'", vi: 'lọc Gần giảm / Gần tắt tính G10' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "ns('g10', 'G10');", vi: 'tk team Tự động hạ G10' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ngay_ha = _g10.get(int(cid)) if ns <= G10_DICH else None', vi: 'G10 chỉ theo dõi camp ngân sách thật đã về $10' },

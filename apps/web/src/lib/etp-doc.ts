@@ -73,6 +73,8 @@ export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt —
   hangDoi: { cho: number; dang: number; xong: number; loi: number };
   /** máy luật đang báo (etp.bao — cty ethopex.mjs ghi mỗi nhịp, cùng nhóm với Telegram) · ứng viên lên ROAS: lãi 30 ngày ≥ $50, đủ (du) khi ≥ $75 (anh 29/10/2026) */
   bao: { nhom: string; camp_id: number; chu: string; luc: string }[];
+  /** ĐÃ TẮT THEO LUẬT (anh 01/11/2026 "lọc thế nào hiện ra các camp đã tắt theo 1 luật nào đó"): camp đang không chạy → lần tắt gần nhất trong etp.nhat_ky; ma = mã luật (L3, T2, G10…) hoặc tên lý do */
+  tatLuat: { camp_id: number; ma: string; luc: string }[];
   roas: { camp_id: number; ten: string | null; ngan_sach: number; chi: number; thu: number; ngay: { d: string; chi: number; thu: number }[]; da_len: number; chan: string | null; du: boolean }[];
   /** camp ROAS ★ đang theo dõi (nhan-ban.py --roas, tên "★ … roas X duplicate by <gốc>" — anh 26/10/2026 "lưu vào etp để theo dõi cùng"): số từ lúc lên */
   roasChay: { camp_id: number; ten: string | null; trang_thai: string | null; ngan_sach: number; chi: number; thu: number; ngay: { d: string; chi: number; thu: number }[] }[];
@@ -301,6 +303,11 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       (select array_agg(c.camp_id) from etp.camp c join etp.cham_cong g on g.creative_id = etp.creative_cua(c.creative_id, c.ten)
         where g.tat and c.trang_thai not in ('ACTIVE', 'ARCHIVED') and not exists (select 1 from etp.lich_tat l where l.camp_id = c.camp_id)
           and c.camp_id not in (select jsonb_array_elements_text(coalesce((select gia_tri from etp.cau_hinh where khoa = 'cham_mien_dang'), '[]'))::int)) camp`);
+  // mã luật = tiền tố máy ghi ở --luat (LUAT_TAT ethopex.mjs: 'L3 (…)', 'G10 (…)'…); lý do khác (cấm phim, chấm creative…) lấy phần tên trước ' (' / ' —' / ' ·'
+  const tatLuat = await runNha<{ camp_id: number; ma: string; luc: string }>(sql`select distinct on (n.camp_id) n.camp_id,
+      left(coalesce(substring(n.luat from '^(T2|T7|L3|L4|L7|D24|OFF|RL|G10)\\M'), case when n.luat ilike 'dừng đêm%' then 'Dừng đêm' end,
+        nullif(trim(split_part(split_part(split_part(n.luat, ' (', 1), ' —', 1), ' ·', 1)), ''), 'Tay / không ghi luật'), 40) ma, n.luc::text luc
+      from etp.nhat_ky n join etp.camp c using (camp_id) where n.viec = 'tat' and n.ok and c.trang_thai <> 'ACTIVE' order by n.camp_id, n.luc desc`).catch(() => []);
   const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot, tieuChi, cham, chamHang, roasChay, viecSx, choCamp] = await Promise.all([
     run<DuLieuEtp['taiNguyen'][number]>(sql`select loai, id, external_id, ten, trang_thai, them from etp.tai_nguyen order by loai, ten`),
     run<Record<string, unknown>>(sql`select may, count(*) filter (where trang_thai = 'xong') xong, count(*) filter (where trang_thai = 'loi') loi, count(*) filter (where trang_thai = 'dang') dang,
@@ -391,7 +398,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       loi: (r.loi as string) ?? null, lop: gonLop(r.lop), diem: (r.diem ?? {}) as ChamCr['diem'], ly_do: (r.ly_do ?? {}) as ChamCr['ly_do'], khung: (r.khung ?? {}) as ChamCr['khung'], duoc_len: r.duoc_len == null ? null : !!r.duoc_len, chan_boi: (r.chan_boi as string) ?? null, cho_duyet: (r.cho_duyet as string) ?? null, duyet: r.duyet == null ? null : !!r.duyet }])),
     phot: phot.map((r) => ({ id: n(r.id), luc: String(r.luc), camp_id: n(r.camp_id), creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id),
       bo: (r.bo as string) ?? null, ad_account_id: r.ad_account_id == null ? null : n(r.ad_account_id), page_id: r.page_id == null ? null : n(r.page_id), nhom: String(r.nhom ?? 'khac'), ly_do: (r.ly_do as string) ?? null })),
-    bao, baoHoa, nbLoi: nbLoi.map((r) => ({ camp_id: n(r.camp_id), lan: n(r.lan), luc: String(r.luc), loi: (r.loi as string) ?? null })), roas: roas.map((r) => ({ camp_id: n(r.camp_id), ten: (r.ten as string) ?? null, ngan_sach: n(r.ngan_sach), chi: n(r.chi), thu: n(r.thu),
+    bao, tatLuat: tatLuat.map((r) => ({ camp_id: n(r.camp_id), ma: String(r.ma), luc: String(r.luc) })), baoHoa, nbLoi: nbLoi.map((r) => ({ camp_id: n(r.camp_id), lan: n(r.lan), luc: String(r.luc), loi: (r.loi as string) ?? null })), roas: roas.map((r) => ({ camp_id: n(r.camp_id), ten: (r.ten as string) ?? null, ngan_sach: n(r.ngan_sach), chi: n(r.chi), thu: n(r.thu),
       ngay: ((r.ngay as { d: string; chi: unknown; thu: unknown }[]) ?? []).map((x) => ({ d: x.d, chi: n(x.chi), thu: n(x.thu) })), da_len: n(r.da_len), chan: (r.chan as string) ?? null, du: r.du === true })),
     roasChay: roasChay.map((r) => ({ camp_id: n(r.camp_id), ten: (r.ten as string) ?? null, trang_thai: (r.trang_thai as string) ?? null, ngan_sach: n(r.ngan_sach), chi: n(r.chi), thu: n(r.thu),
       ngay: ((r.ngay as { d: string; chi: unknown; thu: unknown }[]) ?? []).map((x) => ({ d: x.d, chi: n(x.chi), thu: n(x.thu) })) })) };

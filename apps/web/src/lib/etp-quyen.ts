@@ -53,7 +53,7 @@ const GIU = ['nhe', 'luc', 'nay', 'ngay', 'camps', 'creatives', 'phims', 'soNgay
 type Giu = (typeof GIU)[number];
 const RONG: Omit<DuLieuEtp, Giu | 'nguoi' | 'cauHinh'> = {
   thuVien: [], nhatKy: [], canhBao: [], dongBo: null, boTk: {}, pheu: [], diemCham: {}, soLuat: [], thayThe: [], taiNguyen: [], mayTho: [],
-  hangDoi: { cho: 0, dang: 0, xong: 0, loi: 0 }, bao: [], roas: [], roasChay: [], baoHoa: [], nbLoi: [], quet: {}, tieuChi: [], cham: {}, dangSx: [], chamHang: {},
+  hangDoi: { cho: 0, dang: 0, xong: 0, loi: 0 }, bao: [], tatLuat: [], roas: [], roasChay: [], baoHoa: [], nbLoi: [], quet: {}, tieuChi: [], cham: {}, dangSx: [], chamHang: {},
   lichGio: [], khungSo: [], lichTat: [], khungGio: [], khungNay: '', chamTat: { bat: false, camp: [], mienLuc: null }, phot: [],
 };
 /** cấu hình luật được thấy: chỉ thứ cột Luật / đề xuất bậc cần để vẽ (thang bậc) — anh 31/10/2026 cho Kiên xem đề xuất bậc của máy */

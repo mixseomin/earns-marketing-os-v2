@@ -618,7 +618,8 @@ try:
     for cid in sorted(_bat):
         if int(cid) in _SE_TAT or int(cid) in _rl: continue
         _ds = (_ng.get(int(cid)) or [None, []])[1]; a = thang.get(cid) or {}; ten_ = (a.get("ten") or (_ng.get(int(cid)) or [""])[0] or "")[:70]
-        ngay_ha = _g10.get(int(cid))
+        ns = float(a.get("budget") or 0)
+        ngay_ha = _g10.get(int(cid)) if ns <= G10_DICH else None   # sổ ghi theo lệnh đã gửi — ngân sách thật chưa về $10 thì coi như chưa hạ, xét hạ lại
         if ngay_ha:
             sau = sorted(x for x in _ds if x[0] > ngay_ha)[:G10_THEO]
             if len(sau) < G10_THEO: _g10_theo[int(cid)] = ngay_ha; continue
@@ -626,7 +627,6 @@ try:
             if cs > 0 and (ts - cs) / cs * 100 < G10_ROI:
                 tat_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% → TẮT (luật G10: vẫn < {G10_ROI}%)"))
                 continue
-        ns = float(a.get("budget") or 0)
         if ns <= G10_NS: continue
         x3 = [x for x in _ds if x[0] in _d3s]; c3, t3 = sum(x[1] for x in x3), sum(x[2] for x in x3)
         if c3 < ns or (t3 - c3) / c3 * 100 >= G10_ROI: continue

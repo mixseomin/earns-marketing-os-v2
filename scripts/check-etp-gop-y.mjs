@@ -215,7 +215,7 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'content_id=cid, ngoai=bool(NGOAI))', vi: 'camp team bỏ trần ngày / bộ của nhà, vẫn dừng khẩn / Âu-Mỹ' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "const nbEnv = { ETP_SUA_NGUOI: String(ng) }", vi: 'nhân bản / ROAS team đi phiên Ethopex của chính người đó' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "m.id > 0 && !seTat.has(m.id) && !giu[`nb:${m.id}`]", vi: 'không nhân bản camp đang chờ tắt' },
-  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC, ghiG10 } from './ethopex.mjs';", vi: 'một danh sách mức ROAS + một chỗ ghi ngày G10 cho nhà và team' },
+  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC, ghiG10, daGuiG10 } from './ethopex.mjs';", vi: 'một danh sách mức ROAS + một chỗ ghi ngày G10 cho nhà và team' },
   { card: 0, tep: 'apps/etp/cong.py', co: 'la_roas = lambda ten: " duplicate by " in (ten or "") or (ten or "").lstrip().startswith("★") or bool(_ROAS_TEAM.search(ten or ""))', vi: 'nhận camp ROAS team đặt tên kiểu _ROAS1 / (ROAS) / Dup by' },
   // anh 31/10/2026 "các camp roas của kiên ko thấy đánh dấu vàng": giao diện nhận ROAS team bằng một hàm chung, không chép luật riêng
   { card: 0, tep: 'apps/web/src/lib/etp-roas.ts', mot: 'const ROAS_TEAM = /(?:^|[\\s_(])ROAS\\d*(?=$|[\\s_)])/;', vi: 'giao diện nhận ROAS team cùng luật với cong.py' },
@@ -262,6 +262,7 @@ const LUAT = [
   { card: 0, tep: V, co: "g10: ['↓ G10 về $10', '#fb923c']", vi: 'chip + dải lọc có G10' },
   { card: 0, tep: V, co: "g10: 'giam', tat: 'tat', tat_g10: 'tat'", vi: 'lọc Gần giảm / Gần tắt tính G10' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "ns('g10', 'G10');", vi: 'tk team Tự động hạ G10' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ngay_ha = _g10.get(int(cid)) if ns <= G10_DICH else None', vi: 'G10 chỉ theo dõi camp ngân sách thật đã về $10' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "{ khoa: 'tat_g10', ten: 'G10' }", vi: 'tk team Tự động tắt G10' },
   // anh 31/10/2026 "Bên tk của Sơn ko thấy danh sách Luật & cảnh báo à?": người trong team đọc đề xuất máy luật (de_xuat_bac) + bản luật chung
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'select d.luat nhom, d.camp_id, d.chu, d.lan_cuoi::text luc from etp.de_xuat_bac d', vi: 'luật & cảnh báo của người team đọc de_xuat_bac' },

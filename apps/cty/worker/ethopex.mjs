@@ -25,6 +25,9 @@ const docJ = (f, mac) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); 
 
 /** G10: ghi ngày hạ về $10 (UTC) của các camp vừa hạ xong vào etp.cau_hinh 'g10' — máy luật đếm ngày đã khép SAU ngày này để xét tắt.
  *  Dùng chung Nhà (nhipEthopex) + tài khoản team chế độ Tự động (etp-tu-dong.mjs); mục quá 14 ngày tự rụng. */
+// lệnh đã tới Ethopex: đọc lại xong, hoặc gửi được mà đọc lại quá ~60s chưa thấy (31/10/2026: #65110 #65714 #65736 báo "chưa thấy đổi" nhưng Ethopex đã về $10)
+// — máy luật còn soát ngân sách thật ≤ $10 mới tính là đã hạ, nên ghi ngày theo lệnh đã gửi không làm tắt nhầm camp chưa hạ
+export const daGuiG10 = (r) => !!r && (r.ok || /đọc lại/.test(String(r.loi || '')));   // nhà: "đã gửi nhưng đọc lại chưa thấy đổi" · team (sua-ngoai): "Ethopex chưa nhận — đọc lại camp vẫn như cũ"
 export async function ghiG10(ids) {
   if (!ids.length) return;
   const ngay = new Date().toISOString().slice(0, 10), han = new Date(Date.now() - 14 * 86400_000).toISOString().slice(0, 10);
@@ -405,7 +408,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `G10 · ${m.chu}`.slice(0, 400), '--ai', 'máy tự hạ G10 (anh lệnh 31/10/2026 theo hướng dẫn team, áp cả ★ ROAS)'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daG10.push({ m, d, r });
     }
-    await ghiG10(daG10.filter((x) => x.r.ok).map((x) => Number(x.m.id)));
+    await ghiG10(daG10.filter((x) => daGuiG10(x.r)).map((x) => Number(x.m.id)));
     if (daG10.length) {
       const dong = bangViec(daG10.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng');
       await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY HẠ VỀ $10 — LUẬT G10</b> (hướng dẫn team, anh lệnh 31/10) — ngân sách &gt; $15, 3 ngày đã khép ROI &lt; 15%, kể cả ★ ROAS; theo dõi 2 ngày đã khép, vẫn &lt; 15% thì máy tắt; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });

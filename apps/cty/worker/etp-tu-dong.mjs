@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import { ROAS_MUC, ghiG10 } from './ethopex.mjs';
+import { ROAS_MUC, ghiG10, daGuiG10 } from './ethopex.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
@@ -82,7 +82,7 @@ export async function nhipTuDong(tg, { giay = 1500 } = {}) {
       let r; try { r = dongCuoi(await py(SUA, [String(ng), v.viec === 'tat' ? 'tat' : 'ns', String(v.id), ...(v.viec === 'ns' ? [String(v.d)] : []), '--may'], {}, 120)); } catch (e) { r = { ok: false, loi: e.message }; }
       lam.push({ v, r });
     }
-    await ghiG10(lam.filter(({ v, r }) => r.ok && v.luat === 'G10').map(({ v }) => v.id));
+    await ghiG10(lam.filter(({ v, r }) => daGuiG10(r) && v.luat === 'G10').map(({ v }) => v.id));
     // nhân bản + lên ROAS bằng phiên của người đó (nhan-ban.py chế độ ETP_SUA_NGUOI: cổng chung chỉ cho tạo vào tài khoản của họ, đủ luật nhà — xem docstring nhan-ban)
     const nbEnv = { ETP_SUA_NGUOI: String(ng) }, ai = 'Luật tự động tài khoản team (anh 31/10/2026)';
     for (const m of k.nb) {

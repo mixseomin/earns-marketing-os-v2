@@ -16,6 +16,8 @@ import { xacNhanLoiClaude, MO_HINH_XAC_NHAN_CLAUDE } from './claude';
 
 /** 2.5 Flash đã đóng với khoá mới (404 17/10/2026, Google chỉ sang 3.8 Flash). Suy nghĩ 'low' để mỗi clip dưới ngưỡng tự chạy $0.01. */
 export const MO_HINH_BD = 'gemini-3.8-flash';
+/** Model TRƠN dự phòng cuối cho goiGeminiJson — ckey route bare ổn định (đã kiểm chạy 31/10/2026), dùng khi model chính bị chặn giá cả tuyến. */
+export const MO_HINH_DU_PHONG = 'gemini-2.5-flash-lite';
 /** Lấy khung tại các giây `ts` (rộng `w`px) — ảnh RỜI (ghép ảnh bị Gemini nén mất chi tiết chân tay). */
 const khungTai = async (url: string, ts: number[], w: number): Promise<string[] | null> => {
   const ra: string[] = [];
@@ -104,6 +106,10 @@ export async function goiGeminiJson<T>(parts: unknown[], schema: unknown, mediaR
     ...[...nguoiBanTuyen(model), model].map((ten) => ({ nguon: 'ckey' as const, goc: 'https://api.xah.io/v1beta', khoa: process.env.CKEY_API_KEY, ten })),
     { nguon: 'shopaikey', goc: 'https://api.shopaikey.com/v1beta', khoa: process.env.SHOPAIKEY_API_KEY, ten: model },
     { nguon: 'google', goc: 'https://generativelanguage.googleapis.com/v1beta', khoa: khoaGoogle(), ten: model },
+    // DỰ PHÒNG CUỐI: khi MỌI route của model chính bị chặn giá / trả rác (ckey người bán 402 "accept new price", shopaikey/google thiếu khoá), rơi về một
+    // model ckey TRƠN ổn định để không đứng hình cả pipeline (31/10/2026: gemini-3.8-flash cả tuyến 402 làm đối chiếu/vòng-sửa sập). Chất lượng thấp hơn
+    // nhưng còn chạy; Phòng Tài nguyên (spy/bao-tri-ckey.mjs) dọn tuyến chính thì tự về 3.8.
+    ...(model === MO_HINH_DU_PHONG ? [] : [{ nguon: 'ckey' as const, goc: 'https://api.xah.io/v1beta', khoa: process.env.CKEY_API_KEY, ten: MO_HINH_DU_PHONG }]),
   ];
   for (const d of duong) {
     if (!d.khoa) continue;

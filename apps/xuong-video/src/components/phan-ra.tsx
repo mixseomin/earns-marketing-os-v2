@@ -66,9 +66,9 @@ export function PhanRaPanel({ phimId, bc, onChanged, onChon }: { phimId: number;
         <span>cần <b>{bc.tong.can}</b> món · đủ <b>{bc.tong.du}</b> · thiếu <b style={{ color: bc.tong.thieu ? 'var(--red)' : 'var(--lime)' }}>{bc.tong.thieu}</b></span>
       </div>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        <Nut chinh ban={!!ban} ly={!cho.length && 'mọi tập có shot đã phân rã và không đổi'} gia={giaPr.cents}
+        <Nut chinh={cho.length > 0} ban={!!ban} ly={!cho.length && 'mọi tập có shot đã phân rã và không đổi — chạy lại từng tập ở tab Theo tập'} gia={giaPr.cents}
           title={`Phân rã các tập chưa / cũ (${cho.map((t) => t.so).join(', ')}) — từng tập một, tập không đổi bỏ qua 0đ. Giá ước theo model chữ của phim (${bc.model}), qua cổng rẻ trước.`}
-          onClick={() => void phanRa(cho)}>{ban === 'pr' ? '… đang phân rã' : `🔎 Phân rã ${cho.length} tập (~${dong(giaPr.vnd)})`}</Nut>
+          onClick={() => void phanRa(cho)}>{ban === 'pr' ? '… đang phân rã' : cho.length ? `🔎 Phân rã ${cho.length} tập (~${dong(giaPr.vnd)})` : '✓ Mọi tập đã phân rã'}</Nut>
         <Nut ban={!!ban} ly={!thieuAnh.length && 'không món nào thiếu ảnh'} gia={giaAnh.cents}
           title="Đợt 1: ảnh gốc cho anchor đang dùng mà chưa có · đợt 2: ảnh mẫu cho biến thể có cha đã có ảnh gốc (biến thể chờ ảnh gốc thì bấm lại khi xong). Chạy nền."
           onClick={() => void sinhThieu()}>{ban === 'anh' ? '… đang xếp hàng' : `🖼 Sinh ảnh cho ${thieuAnh.length} món thiếu (~${dong(giaAnh.vnd)})`}</Nut>

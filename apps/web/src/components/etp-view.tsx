@@ -1418,6 +1418,16 @@ const NHOM_GOC: Record<string, [string, string, string]> = {   // [chữ, màu, 
   latin: ['Latin', '#fbbf24', 'diễn viên Latin'], dong_a: ['Đông Á', '#f472b6', 'diễn viên Hàn / Nhật / Đông Nam Á'], da_mau: ['Da màu', '#a78bfa', 'diễn viên da màu'],
   hoat_hinh: ['🎨 Hoạt hình', '#60a5fa', 'nhìn như tranh vẽ / hoạt hình (không tính phim AI nhìn như người thật)'] };
 const NhomGoc = ({ g }: { g: string | null | undefined }) => { const x = g ? NHOM_GOC[g] : undefined; return x ? <span title={`Nhóm gốc phim: ${x[2]} — chấm trên poster`} style={{ fontSize: 10.5, fontWeight: 500, color: x[1], border: `1px solid ${x[1]}55`, borderRadius: 4, padding: '0 4px', whiteSpace: 'nowrap' }}>{x[0]}</span> : null; };
+// PHIM CHẠM MỐC (anh 31/10/2026: "film đã chạm mốc ko nên mở thêm mà trong đội vẫn còn chạy thì có cảnh báo ở film đó cho mọi người nắm đc"): máy cất phim
+// (apps/etp/cat_phim.py — Nhà thử đủ creative + đủ bộ, chi ≥ mức thử, chưa camp nào lãi) → nhãn đỏ khi đội / Nhà còn camp chạy, xám khi không còn ai chạy
+function MocPhim({ ph, chay }: { ph: PhimEtpKho | undefined; chay: number }) {
+  if (!ph?.moc) return null;
+  const con = Math.max(chay, ph.doi_chay), d = new Date(new Date(ph.moc).getTime() + 7 * 3600e3).toISOString();
+  const t = `Phim đã chạm mốc thử (máy cất ${d.slice(11, 16)} ${d.slice(8, 10)}/${d.slice(5, 7)}): Nhà đã thử đủ creative và đủ bộ mà chưa camp nào lãi → máy không mở thêm camp phim này.\n`
+    + (con ? `Đội còn ${ph.doi_chay} camp, đang xem còn ${chay} camp chạy phim này — không nên mở thêm; camp đang chạy để luật tắt xử.` : 'Không còn camp nào chạy phim này.')
+    + '\nTự mở lại khi có camp (Nhà hoặc đội) lãi.';
+  return <span title={t} style={{ color: con ? '#f87171' : 'var(--fg-3)', border: `1px solid ${con ? '#f8717166' : 'var(--line)'}`, borderRadius: 4, padding: '0 4px', fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'help' }}>⛔ chạm mốc{ph.doi_chay ? ` · đội ${ph.doi_chay}` : ''}</span>;
+}
 const maxLai = (ds: (SoTien | undefined)[]) => { const l = ds.map((x) => (x ? x.thu - x.chi : 0)); return { p: Math.max(0, ...l), n: Math.max(0, ...l.map((x) => -x)) }; };
 // BIỂU ĐỒ NGÀY TRONG NGĂN ĐIỆN THOẠI (anh 28/10/2026 "bấm vào đây trên mobile thì cho xem chart chi tiết như trên pc"): 6 ngày trọn + hôm nay,
 // cột lãi/lỗ cùng cách vẽ ô O của cây trên máy tính (đường 0 theo tỉ lệ lãi lớn nhất / lỗ lớn nhất), dưới mỗi cột ROI · chi · lãi của ngày
@@ -1594,9 +1604,10 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   // KT ĐANG SINH / SẴN SÀNG theo phim (anh 29/10/2026 kế hoạch KT cho phim đang chạy): bản kể chuyện VideoExpress trong etp.thu_vien chưa thành creative
   const ktCua = useMemo(() => new Map((du.thuVien ?? []).filter((v) => !v.creative_id && (v.tv === 'dang_sinh' || v.tv === 'san_sang')).map((v) => [v.content_id, v.tv as string])), [du.thuVien]);
   const nhomCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x.nhom_goc])), [du.phims]);
+  const phCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x])), [du.phims]);
   const nhanPhim = (k: string) => { const p = phimMap.get(k); if (!p) return `#${k}`;
     return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}
-      <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }} title={p.all[0]?.phim ?? ''}>{p.all[0]?.phim ?? `#${k}`}</b><NhomGoc g={nhomCua.get(Number(k))} />
+      <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }} title={p.all[0]?.phim ?? ''}>{p.all[0]?.phim ?? `#${k}`}</b><NhomGoc g={nhomCua.get(Number(k))} /><MocPhim ph={phCua.get(Number(k))} chay={p.all.filter((c) => c.trang_thai === 'ACTIVE').length} />
       <span title="camp đang chạy / tổng" style={{ color: 'var(--fg-2)', fontWeight: 400 }}>{p.all.filter((c) => c.trang_thai === 'ACTIVE').length}/{p.all.length}</span>
       {(() => { const kt = ktCua.get(Number(k)); return kt ? <span title={kt === 'dang_sinh' ? 'máy đang sinh bản kể chuyện (KT) VideoExpress cho phim này — xong tự lên creative, chấm Sạch thì lên camp' : 'bản kể chuyện (KT) đã xong, đang lên creative / chờ chấm'} style={{ color: '#a78bfa', fontWeight: 400, opacity: kt === 'dang_sinh' ? 0.6 : 0.9, fontSize: 11 }}>◌ KT {kt === 'dang_sinh' ? 'đang sinh' : 'sẵn sàng'}</span> : null; })()}
       {p.b?.bao_hoa ? <span title={p.b.bao_hoa} style={{ color: '#f59e0b', fontWeight: 400 }}>⚠ bão hoà</span> : null}
@@ -1677,6 +1688,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
             <span style={{ gridColumn: hep ? '1 / 3' : '1 / 4', display: 'flex', gap: hep ? 6 : 8, alignItems: 'center', minWidth: 0, overflow: 'hidden', paddingLeft: hep ? 18 : 0 }}>
             {hep ? null : <><span className="mui">▸</span>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}<b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.all[0]?.phim ?? `#${p.k}`}</b></>}
             <span title="camp" style={{ color: 'var(--fg-2)' }}>{p.all.filter((c) => c.trang_thai === 'ACTIVE').length}/{p.all.length}</span>
+            <MocPhim ph={du.phims.find((x) => x.content_id === Number(p.k))} chay={p.all.filter((c) => c.trang_thai === 'ACTIVE').length} />
             {p.b?.bao_hoa ? <span title={p.b.bao_hoa} style={{ color: '#f59e0b' }}>{hep ? '⚠' : '⚠ bão hoà'}</span> : null}
             {p.loi ? <span title={`${p.loi} camp không nhân bản được trong 24 giờ`} style={{ color: '#f87171' }}>⚠{p.loi}</span> : null}
             {p.sut ? <span title={`${p.sut} camp lãi giảm 2 ngày liền`} style={{ color: '#f87171' }}>↘{p.sut}</span> : null}

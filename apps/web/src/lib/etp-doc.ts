@@ -24,7 +24,10 @@ export type CreativeEtpKho = { creative_id: number; content_id: number | null; p
 export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: string | null; bo: string | null; locale: string | null; nguon: string | null; creative: number; camp: number; chay: number;
   thang: SoTien; qua: SoTien; nay: SoTien;
   /** nhóm gốc phim chấm trên poster (migration 0368): au_my · trung · an · latin · dong_a · da_mau · hoat_hinh */
-  nhom_goc: string | null };
+  nhom_goc: string | null;
+  /** PHIM CHẠM MỐC (anh 31/10/2026: "film đã chạm mốc ko nên mở thêm mà trong đội vẫn còn chạy thì có cảnh báo"): lúc máy cất phim (etp.phim.thu_vong = 'cat', apps/etp/cat_phim.py)
+   *  · doi_chay = số camp đội (camp ngoài) đang chạy phim này */
+  moc: string | null; doi_chay: number };
 export type ChamCr = { luc: string; may: string | null; ket: string | null; meta: number | null; afs: number | null; loi: string | null;
   lop: { chu?: { luc: string; noi_dung: string; loi: string[]; cta: string[] }; giong?: { luc: string; noi_dung: string; ngon_ngu: string | null; loi: string[] };
     anh?: { luc: string; url?: string; giay?: number; khung_url?: string[] /* các khung Worker cắt (Cloudflare); url = tờ khung bản cũ */; khung_mau?: string /* gọn: mẫu '{n}' + so_khung thay danh sách — dựng lại bằng khungUrl() ở etp-view */; so_khung?: number }; noi_dung?: { luc: string; tom_tat: string } };
@@ -230,12 +233,13 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     crMap.set(c.creative_id, x);
   }
   const phMap = new Map<number, PhimEtpKho & { _cr: Set<number> }>();
-  const phInfo = new Map((await run<Record<string, unknown>>(sql`select content_id, ten, the_loai, bo, locale, nguon, nhom_goc from etp.phim`)).map((r) => [n(r.content_id), r]));
+  const phInfo = new Map((await run<Record<string, unknown>>(sql`select content_id, ten, the_loai, bo, locale, nguon, nhom_goc, case when thu_vong = 'cat' then thu_luc end moc from etp.phim`)).map((r) => [n(r.content_id), r]));
+  const doiChay = new Map((await run<{ c: number; n: string }>(sql`select content_id c, count(*) n from etp.camp_ngoai where trang_thai = 'ACTIVE' and content_id > 0 group by 1`)).map((r) => [n(r.c), n(r.n)]));
   for (const c of cs) {
     if (c.content_id == null) continue;
     const i = phInfo.get(c.content_id) ?? {};
     const x = phMap.get(c.content_id) ?? { content_id: c.content_id, ten: (i.ten as string) ?? c.phim, the_loai: (i.the_loai as string) ?? null, bo: (i.bo as string) ?? c.bo, locale: (i.locale as string) ?? null, nguon: (i.nguon as string) ?? null, nhom_goc: (i.nhom_goc as string) ?? null,
-      creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, _cr: new Set<number>() };
+      moc: i.moc ? String(i.moc) : null, doi_chay: doiChay.get(c.content_id) ?? 0, creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, _cr: new Set<number>() };
     x.camp++; if (c.trang_thai === 'ACTIVE') x.chay++; if (c.creative_id) x._cr.add(c.creative_id); x.thang = cong(x.thang, c.thang); x.qua = cong(x.qua, c.qua); x.nay = cong(x.nay, c.nay);
     phMap.set(c.content_id, x);
   }

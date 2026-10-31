@@ -31,7 +31,8 @@ def so_phim():
                                     array_agg(distinct bo) filter (where bo <> '') bo from c group by 1),
                        t as (select cn.content_id, sum(n.chi) chi, sum(n.thu) thu from etp.camp_ngoai cn join etp.so_ngay_ngoai n using (camp_id)
                              where n.ngay >= current_date - 14 and coalesce(cn.content_id, 0) > 0 group by 1)
-                  select p.*, f.thu_vong, f.thu_bo, f.ten, round(coalesce(t.chi, 0), 2) team_chi, round(coalesce(t.thu, 0), 2) team_thu
+                  select p.*, f.thu_vong, f.thu_bo, f.ten, round(coalesce(t.chi, 0), 2) team_chi, round(coalesce(t.thu, 0), 2) team_thu,
+                         (select count(*) from etp.camp_ngoai cn where cn.content_id = p.content_id and cn.trang_thai = 'ACTIVE') doi_chay
                   from p left join etp.phim f using (content_id) left join t using (content_id)""")
 
 def dat(content, vong, ly, that, bo=None):
@@ -60,7 +61,7 @@ def xet(that=False):
         if vong not in ("doi_bo", "cat") and bo_moi and len(p.get("bo") or []) < int(ch["so_bo"]):
             doi_bo[ct] = bo_moi; dat(ct, "doi_bo", f"đổi sang bộ {bo_moi} · {so}", that, bo_moi)
             bao.append(f"đổi bộ phim {ct} {ten}: camp thay kế tiếp lên bộ {bo_moi} ({so})"); continue
-        if vong != "cat": dat(ct, "cat", so, that); bao.append(f"cất phim {ct} {ten}: thôi lên camp mới ({so})")
+        if vong != "cat": dat(ct, "cat", so, that); bao.append(f"cất phim {ct} {ten}: thôi lên camp mới ({so})" + (f" · ⚠ đội còn {p['doi_chay']} camp chạy phim này — không nên mở thêm (nhãn ⛔ chạm mốc trên etp)" if p.get("doi_chay") else ""))
     return bao, doi_bo
 
 if __name__ == "__main__":

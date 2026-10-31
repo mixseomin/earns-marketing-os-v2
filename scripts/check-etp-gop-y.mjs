@@ -219,6 +219,11 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: '"--bo", bo_len,', vi: 'camp thay lên bộ đích khi phim ở vòng đổi bộ' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'if int(x["content_id"]) in CAT: continue', vi: 'phim đã cất không mở dòng thay mới' },
   { card: 0, tep: 'apps/etp/cat_phim.py', co: 'if p.get("lai") or (vong == "cat" and team_lai):', vi: 'phim cất tự mở lại khi camp nhà / team lãi' },
+  // anh 31/10/2026 "film đã chạm mốc ko nên mở thêm mà trong đội vẫn còn chạy thì có cảnh báo ở film đó cho mọi người nắm đc"
+  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "case when thu_vong = 'cat' then thu_luc end moc from etp.phim", vi: 'dữ liệu phim mang mốc cất' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "<MocPhim ph={phCua.get(Number(k))}", vi: 'nhãn chạm mốc ở dòng phim bảng camp' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "<MocPhim ph={du.phims.find((x) => x.content_id === Number(p.k))}", vi: 'nhãn chạm mốc ở dòng phim cây' },
+  { card: 0, tep: 'apps/etp/cat_phim.py', co: 'đội còn {p[\'doi_chay\']} camp chạy phim này', vi: 'tin cất phim báo số camp đội còn chạy' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

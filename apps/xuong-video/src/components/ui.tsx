@@ -69,13 +69,15 @@ export function Xoa({ nhan, onXoa, ban, noiKhoiPhuc = 'nút 🗑 Thùng rác', g
 
 export function Loi({ children }: { children: ReactNode }) { return children ? <div className="xv-loi">{children}</div> : null; }
 
-/** Ảnh nhỏ có nút ✕ xoá (hiện khi rê chuột, hỏi lại trước khi xoá). Dùng cho ảnh gốc, ảnh biến thể, ứng viên keyframe. */
+/** Ảnh nhỏ có nút ⋯ (hiện khi rê chuột) mở menu thao tác — xoá nằm trong menu, không bấm nhầm ngay trên ảnh. Dùng cho ảnh gốc, ảnh biến thể, ứng viên keyframe. */
 export function AnhNho({ url, kich = 40, vien, nhan, title, onClick, onXoa, soSanh }: { url: string; kich?: number; vien?: string; nhan?: string; title?: string; onClick?: () => void; onXoa?: () => void | Promise<void>; soSanh?: string }) {
   return (
     <span className="xv-anh-nho" title={title} style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
       <img src={anhNho(url, nacNho(kich))} alt="" onClick={onClick} data-so-sanh={soSanh} style={{ width: kich, height: kich, objectFit: 'cover', borderRadius: 5, display: 'block', cursor: onClick ? 'pointer' : 'default', border: `2px solid ${vien ?? 'transparent'}` }} />
       {nhan && <span style={{ position: 'absolute', left: 3, bottom: 2, fontSize: 8.5, color: '#fff', textShadow: '0 1px 2px #000', pointerEvents: 'none' }}>{nhan}</span>}
-      {onXoa && <button type="button" className="xv-x" title="Bỏ ảnh vào thùng rác (khôi phục được)" onClick={(e) => { e.stopPropagation(); if (window.confirm('Bỏ ảnh này vào thùng rác? Khôi phục được ở nút 🗑 Thùng rác.')) void onXoa(); }}>✕</button>}
+      {onXoa && <Menu lop="xv-x" nutLop="xv-x-nut" rong={220}>
+        <MucMenu nguy onClick={() => void onXoa()}>🗑 Bỏ ảnh vào thùng rác (khôi phục được ở nút 🗑 Thùng rác)</MucMenu>
+      </Menu>}
     </span>
   );
 }
@@ -93,18 +95,19 @@ export function NhomNut({ nhan, children }: { nhan: string; children: ReactNode 
 export const mono: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--fg-3)' };
 
 /** Menu "⋯" gom thao tác phụ (YDNI: mặt ngoài chỉ giữ việc kế tiếp). */
-export function Menu({ children, nhan = '⋯' }: { children: ReactNode; nhan?: string }) {
+/** lop/nutLop: lớp riêng cho khung + nút (vd nút ⋯ nhỏ góc ảnh); rong: bề rộng menu. */
+export function Menu({ children, nhan = '⋯', lop, nutLop, rong = 420 }: { children: ReactNode; nhan?: string; lop?: string; nutLop?: string; rong?: number }) {
   const [mo, setMo] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
-  const viTri = useViTriNoi(ref, mo, { rong: 420, canPhai: true, caoToiDa: 560 });
+  const viTri = useViTriNoi(ref, mo, { rong, canPhai: true, caoToiDa: 560 });
   useEffect(() => {
     if (!mo) return;
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setMo(false); };
     document.addEventListener('mousedown', h); return () => document.removeEventListener('mousedown', h);
   }, [mo]);
   return (
-    <span ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <button type="button" className="xv-btn" onClick={() => setMo(!mo)} title="Thêm thao tác">{nhan}</button>
+    <span ref={ref} className={lop} data-mo={mo ? '' : undefined} style={lop ? undefined : { position: 'relative', display: 'inline-block' }}>
+      <button type="button" className={nutLop ?? 'xv-btn'} onClick={(e) => { e.stopPropagation(); setMo(!mo); }} title="Thêm thao tác">{nhan}</button>
       {mo && <div onClick={(e) => { if ((e.target as HTMLElement).closest('[data-dong]')) setMo(false); }} style={{ ...viTri, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 10px 30px rgba(0,0,0,.5)', padding: 6, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 4, alignContent: 'start', overflowX: 'hidden' }}>{children}</div>}
     </span>
   );

@@ -94,6 +94,10 @@ export const VIEC_NHIP = {
     { ma: 'han-muc', ten: 'Canh hạn mức Resend', lich: () => 'mỗi 30 phút · box3', khop: null,
       mo_ta: 'Mỗi 30 phút trên box3 (worker/resend-han-muc.mjs, 0đ, không gọi mô hình): đọc GET /usage của tài khoản Resend #475 (gói miễn phí 100 thư/ngày, 3.000 thư/tháng, chung Astrolas + militarycalc). Chạm 70% / 90% / 100% trần ngày hoặc tháng → một tin vào chủ đề Astrolas trên MINE, mỗi mức một lần mỗi kỳ: đã dùng bao nhiêu, khi nào làm mới, chạm trần thì thư xác minh đăng ký Astrolas không đi, và chỗ nâng gói Pro. Máy chỉ nhắc, không tự trả phí.' },
   ],
+  'kiem-ai-astrolas': [
+    { ma: 'chi-ai', ten: 'Đồng bộ tuyến ckey + canh chi AI Astrolas', lich: () => 'mỗi 30 phút · box3', khop: null,
+      mo_ta: 'Mỗi 30 phút trên box3 (worker/astrolas-ai.mjs, 0đ, không gọi mô hình): đẩy bảng tuyến ckey sống (/var/lib/spy/ckey-tuyen.json) sang Astrolas qua POST /api/ops/ai-sync — Astrolas thử ckey trước mọi lần gọi AI (chat, báo cáo, AI nhỏ), hết tuyến mới về nguồn chính thức — và nhận số chi AI hôm nay. Phần miễn phí (khách gọi AI nhỏ) chạm 70% / 90% / 100% trần ngày → một tin vào chủ đề Astrolas trên MINE, mỗi mức một lần mỗi ngày; 100% thì Astrolas đã tự ngắt các lối đó tới hết ngày.' },
+  ],
   'bao-social': [
     { ma: 'bao-ngay', ten: 'Báo cáo ngày Social Traffic', lich: (n) => `${n.gio || '21:30'} hằng ngày · box3`, khop: /báo cáo ngày/,
       mo_ta: 'Mỗi ngày một tin vào chủ đề 📂 Social Traffic, sau giờ admin đặt ở cột Tự làm (mặc định 21:30, sau lượt đăng cuối 21:00): hôm nay máy đăng lên được bao nhiêu lượt / lịch định bao nhiêu và lỡ nền nào (kèm link bài), kho đã xếp lịch theo máy × format tới ngày nào (đỏ khi cạn trong 7 ngày), lịch dự kiến còn được máy đăng iMac cập nhật không. Máy đọc xv_may_video + xv_lich_du_kien (worker/bao-social.mjs), không gọi mô hình. Bảng đủ: mos2 Social › Lịch đăng.' },
@@ -110,7 +114,7 @@ export const VIEC_NHIP = {
 /** Đầu việc của một người đang bật: [{ ma, ten, lich, mo_ta, viec, khop }]. n = { viec[], ca, diemDanh, kiemMoi } (như dangBat). */
 export const dauViec = (n) => n.viec.flatMap((v) => (VIEC_NHIP[v] ?? []).filter((x) => !x.can_diem_danh || n.diemDanh).map((x) => ({ ...x, viec: v, lich: x.lich(n), gio: x.gio?.(n) })));
 /** Tên việc nhịp bằng chữ người đọc (bảng nhân sự hiện cái này, không hiện mã). */
-export const TEN_NHIP = { 'kiem-bai': 'Kiểm bài mới trước khi lên trang (gọi mô hình chỉ khi có bài nộp)', 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)', 'sua-bai': 'Sửa bài Phòng Nội dung trả về (iMac, Claude Code)', 'xu-thu': 'Xử thư Kiên chuyển vào phòng (iMac, Claude Code, chỉ đọc)', 'bao-social': 'Báo cáo ngày Social Traffic (box3, máy đọc số, 0đ)', 'kiem-tai-nguyen': 'Kiểm tài nguyên: proxy, làn cào, tải box3, số dư API (box3, 0đ)', 'kiem-ethopex': 'Theo dõi luật camp Ethopex, báo Telegram + duyệt bằng nút (box3, 0đ)', 'kiem-resend': 'Canh hạn mức gửi thư Resend, báo trước khi chạm trần (box3, 0đ)' };
+export const TEN_NHIP = { 'kiem-bai': 'Kiểm bài mới trước khi lên trang (gọi mô hình chỉ khi có bài nộp)', 'mail-bao-mat': 'Báo khi có thư bảo mật mới (gọi mô hình chỉ lúc có thư)', 'don-nhat-ky': 'Dọn nhật ký chat Claude cũ (MacBook)', 'sua-bai': 'Sửa bài Phòng Nội dung trả về (iMac, Claude Code)', 'xu-thu': 'Xử thư Kiên chuyển vào phòng (iMac, Claude Code, chỉ đọc)', 'bao-social': 'Báo cáo ngày Social Traffic (box3, máy đọc số, 0đ)', 'kiem-tai-nguyen': 'Kiểm tài nguyên: proxy, làn cào, tải box3, số dư API (box3, 0đ)', 'kiem-ethopex': 'Theo dõi luật camp Ethopex, báo Telegram + duyệt bằng nút (box3, 0đ)', 'kiem-resend': 'Canh hạn mức gửi thư Resend, báo trước khi chạm trần (box3, 0đ)', 'kiem-ai-astrolas': 'Đồng bộ tuyến ckey + canh chi AI Astrolas (box3, 0đ)' };
 /** Việc NHỊP chạy trên MÁY MAC (LaunchAgent), không phải bộ chạy box này: box không gọi, chỉ hiện + giữ cờ bật/tắt; script trên Mac hỏi `dangTat`
  *  qua ssh trước mỗi lượt và tự ghi nhật ký nhịp (<DATA>/nhip/<người>.json[l]) như ghiLam. */
 export { NHIP_MAY } from './nhip-may.mjs';
@@ -122,6 +126,7 @@ export const NHIP = {
   'bao-social': async (n) => (await import('./bao-social.mjs')).nhipBaoSocial(n.id),   // Phòng Social Traffic: báo cáo ngày của trưởng phòng → Telegram (0đ, máy đọc)
   'kiem-tai-nguyen': async (n) => { const r = await (await import('./tai-nguyen.mjs')).nhipTaiNguyen(n.id, { ten: n.ten }); return `${r.canh_bao} cảnh báo · gửi ${r.gui}`; },   // Phòng Tài nguyên: slot proxy · làn cào · tải box3 → Telegram (0đ, chỉ báo)
   'kiem-resend': async () => (await import('./resend-han-muc.mjs')).nhipResend(),   // Phòng Astrolas: hạn mức Resend → Telegram chủ đề Astrolas (0đ, máy đọc)
+  'kiem-ai-astrolas': async () => (await import('./astrolas-ai.mjs')).nhipAstrolasAi(),   // Phòng Astrolas: tuyến ckey → Astrolas + chi AI → Telegram chủ đề Astrolas (0đ)
   'kiem-ethopex': async (n) => { const r = await (await import('./ethopex.mjs')).nhipEthopex(n.id, { ten: n.ten });
     // LUẬT TỰ ĐỘNG CHO TÀI KHOẢN TEAM (etp.che_do_luat 'tu_dong', anh 31/10/2026 — chỉ tk Sơn): cùng nhịp Nhà, làm bằng phiên Ethopex của người đó, nhắn riêng kết quả
     let t = 0; try { t = await (await import('./etp-tu-dong.mjs')).nhipTuDong((await (await import('./kiem-bai.mjs')).tgNoiDung()).tg); } catch (e) { console.error(`✗ etp tự động team: ${e.message}`); }

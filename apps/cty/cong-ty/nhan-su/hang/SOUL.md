@@ -10,7 +10,7 @@ model: claude-code
 room: bo-loc
 muc_quyet: 1
 approval: STRICT
-heartbeat: kiem-resend
+heartbeat: kiem-resend, kiem-ai-astrolas
 ca: 00:00-24:00
 lich: theo hạn (lịch hằng năm trong phòng Astrolas)
 skills: [followup]

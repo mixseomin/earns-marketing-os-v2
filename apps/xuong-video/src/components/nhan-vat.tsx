@@ -94,7 +94,9 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
   };
   // CÂY BỘ BỐI CẢNH (anh 31/10/2026: cấu kiện là đồ thật đoàn phim chuẩn bị → hiện DANH SÁCH DẠNG CÂY, mỗi node một dòng gọn, BẤM MỞ ra card chi tiết).
   // cha của con dù bị lọc khỏi dsHien vẫn hiện làm đầu nhóm → luôn thấy cấu kiện thuộc về đâu.
-  const [chon, setChon] = useState<number | null>(null);
+  // Mục đang xem nằm trong URL (?ac=<id>) — F5 / chia sẻ giữ nguyên (chuẩn YDNI §1).
+  const [chon, setChon] = useState<number | null>(() => { try { const v = new URLSearchParams(window.location.search).get('ac'); return v ? Number(v) : null; } catch { return null; } });
+  const chonDat = (id: number) => { setChon(id); try { const u = new URL(window.location.href); u.searchParams.set('ac', String(id)); window.history.replaceState(null, '', u); } catch { /* SSR */ } };
   const nhomCay: { cha: NhanVat; con: NhanVat[] }[] = [];
   { const idx = new Map<number, number>();
     for (const v of dsHien) {
@@ -119,8 +121,8 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
         <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
           <div style={{ width: 'min(440px, 100%)', flexShrink: 0 }}>
             {anhChinh
-              ? <img src={anhNho(anhChinh, 640)} alt={v.ten} onClick={() => moNgan({ loai: 'xem', url: anhChinh, ten: v.ten })}
-                  style={{ width: '100%', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--bg-2)', cursor: 'zoom-in', display: 'block' }} />
+              ? <img src={anhNho(anhChinh, 640)} alt={v.ten} loading="eager" decoding="async" onClick={() => moNgan({ loai: 'xem', url: anhChinh, ten: v.ten })}
+                  style={{ width: '100%', borderRadius: 12, border: '1px solid var(--line)', cursor: 'zoom-in', display: 'block', backgroundColor: 'var(--bg-2)', backgroundImage: `url(${anhNho(anhChinh, 160)})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
               : <div style={{ width: '100%', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', position: 'relative' }} onClick={v.loai === 'boi_canh' && v.bo_set_id ? () => moNgan({ loai: 'bo-set', setId: v.bo_set_id! }) : undefined}><AnhDaiDien v={v} co={440} />{soDang > 0 && <DangSinh chu={`${soDang} ảnh`} />}</div>}
             {v.anh_ref.length > 1 && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
@@ -192,7 +194,7 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
     const soDang = dangSinh.nhanVat.filter((x) => x === v.id).length + (gui[v.id]?.cho ?? 0);
     const nhan = v.anh_ref.length ? '●'.repeat(Math.min(3, v.anh_ref.length)) + '○'.repeat(Math.max(0, 3 - v.anh_ref.length)) : '○○○';
     return (
-      <div key={v.id} onClick={() => setChon(v.id)} title="Bấm xem chi tiết bên trái"
+      <div key={v.id} onClick={() => chonDat(v.id)} title="Bấm xem chi tiết bên trái"
         style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 8, cursor: 'pointer', marginLeft: laCon ? 18 : 0, background: sel ? 'var(--bg-2)' : 'transparent', borderLeft: `3px solid ${sel ? 'var(--cyan)' : 'transparent'}` }}>
         {laCon && <span style={{ fontFamily: 'monospace', color: 'var(--fg-4)', fontSize: 13 }}>{cuoi ? '└─' : '├─'}</span>}
         <span style={{ width: 28, height: 28, borderRadius: 5, overflow: 'hidden', flexShrink: 0, position: 'relative' }}><AnhDaiDien v={v} co={28} />{soDang > 0 && <span style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.45)', display: 'grid', placeItems: 'center', fontSize: 11 }}>⏳</span>}</span>

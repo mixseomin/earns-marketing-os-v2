@@ -1,3 +1,4 @@
+import { phat } from './kieu';
 // TRẠNG THÁI ĐỐI TƯỢNG THEO SHOT (anh 16/10/2026: "show trạng thái đạo cụ, nhân vật… trên timeline, ở dưới, và điểm số của chúng").
 // Mỗi đối tượng (người · đạo cụ · sản phẩm · bối cảnh) × mỗi shot: có mặt không, đang ở trạng thái nào, lỗi gì, điểm 0–10 — rồi điểm cả tập.
 // KHÔNG tự đặt luật mới: gom kết quả các máy đã có —
@@ -96,11 +97,11 @@ export function trangThaiDoiTuong(canh: Canh[], nhanVat: NhanVat[], phanCanh?: P
           if (laNguoi && c.ky_thuat?.sd?.o[nv.ten] != null) {
             const trong = (nguoiKhung(co2, c, 'dau') ?? []).includes(nv.ten); const x = viTri(co2, c, nv.ten); const h = nhinCan(co2, c, nv.ten); const dn = dichNhin(c, nv.ten); const tm = thayMat(co2, c, nv.ten);
             them('vi_tri', trong ? [x == null ? '' : x < -0.33 ? 'trái màn' : x > 0.33 ? 'phải màn' : 'giữa màn', dn ? `nhìn ${co2.so_do.ten?.[dn] ?? dn}${h ? ` (sang ${h < 0 ? 'trái' : 'phải'})` : ''}` : '', tm === false ? 'quay lưng / nửa lưng' : ''].filter(Boolean).join(' · ') : 'ngoài khung');
-            const dd = dang(co2, c.thu_tu, nv.ten, 'dau'), dk = dang(co2, c.thu_tu, nv.ten, 'ket');
-            chu2 = [dd?.vi, dk && dk.vi !== dd?.vi ? `→ ${dk.vi}` : '', ...doCam(co2, c.thu_tu, nv.ten, 'ket').map((v) => `${v.doi ? '⚡ ' : ''}${v.mon}: ${v.vi}`)].filter(Boolean).join(' · ');
+            const dd = dang(co2, phat(c), nv.ten, 'dau'), dk = dang(co2, phat(c), nv.ten, 'ket');
+            chu2 = [dd?.vi, dk && dk.vi !== dd?.vi ? `→ ${dk.vi}` : '', ...doCam(co2, phat(c), nv.ten, 'ket').map((v) => `${v.doi ? '⚡ ' : ''}${v.mon}: ${v.vi}`)].filter(Boolean).join(' · ');
             them('dang', chu2 || 'chưa khai dáng');
           }
-          const mv = !laNguoi && co2.so_vat?.[nv.ten] ? { dau: trangThai(co2.so_vat, c.thu_tu, 'dau')[nv.ten], ket: trangThai(co2.so_vat, c.thu_tu, 'ket')[nv.ten] } : null;
+          const mv = !laNguoi && co2.so_vat?.[nv.ten] ? { dau: trangThai(co2.so_vat, phat(c), 'dau')[nv.ten], ket: trangThai(co2.so_vat, phat(c), 'ket')[nv.ten] } : null;
           if (mv?.dau || mv?.ket) { chu2 = [mv.dau?.vi, mv.ket && mv.ket !== mv.dau ? `→ ⚡ ${mv.ket.vi}` : ''].filter(Boolean).join(' '); them('trang', chu2); }
           for (const x of loi2d[c.id] ?? []) if (nhacTen(x, nv.ten)) them(/dáng/.test(x) ? 'dang' : /đồ vật/.test(x) ? 'trang' : 'vi_tri').tru.push({ chu: `liền mạch: ${x}`, diem: TRU_DIEM.lien_mach });
         }

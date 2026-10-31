@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // Các bước dựng 0đ chạy trên máy chủ cho cả tập (12/10/2026) — gọi từ server action (nút trên studio) và scripts/hau-ky.mts, MỘT đường:
 //   khopGiongTap       giây phát mỗi shot ≥ đủ đọc hết giọng (khop-giong.ts), chữ màn co giãn mốc theo, lớp phủ dời theo shot
 //   nhipHanhDongTap    ⚡ impact / tiếng vút / âm doạ theo kiểu chuyển cảnh ở mọi điểm cắt (nhip-hanh-dong.ts)
@@ -28,7 +29,7 @@ async function docTap(db: Db, tapId: number) {
   const t = (await db.execute(sql`SELECT * FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
   if (!t[0]) return null;
   const tap = mapTap(t[0]);
-  const ds: Canh[] = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu`)) as unknown as Row[]).map(mapCanh), 'A').sort((a, b) => a.thu_tu - b.thu_tu);
+  const ds: Canh[] = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu`)) as unknown as Row[]).map(mapCanh), 'A').sort((a, b) => xepPhat(a, b));
   const nv = ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${tap.phim_id}`)) as unknown as Row[]).map(mapNhanVat);
   return { tap, ds, nv };
 }

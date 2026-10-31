@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // KHO CREATIVE THEO SẢN PHẨM (anh 16/10/2026: "từ 104 góc sẽ cần tạo 10000 creatives — tổ chức thế nào để không ngợp, thấy từng thành phần
 // Góc, Loại… sâu hơn Hook… CTA"). Dựng từ bản mô phỏng JettJeans đã duyệt. Không quản lý 10.000 dòng mà quản lý THÀNH PHẦN; creative là
 // một tổ hợp (góc spy × khuôn template × hook × … × CTA). Thuần — dữ liệu đọc ở actions.ts › docKhoSanPham. Tự kiểm: kho-creative.test.mts
@@ -23,7 +24,7 @@ const nac = (key: Nac['key'], so: number, tong: number): Nac => ({ key, ten: TEN
 
 /** Hàng của bảng creative: 5 nấc sản xuất + chỗ kẹt (nấc đầu chưa xong) + hook / CTA (chữ màn shot đầu / shot cuối) + cờ sửa sau xuất. */
 export function dongCreative(c: CreativeKho, shot: ShotKho[]): DongCreative {
-  const s = shot.filter((x) => x.phim_id === c.id).sort((a, b) => a.thu_tu - b.thu_tu);
+  const s = shot.filter((x) => x.phim_id === c.id).sort((a, b) => xepPhat(a, b));
   const canGiong = s.filter((x) => x.can_giong);
   const ds = [nac('kich_ban', s.length ? 1 : 0, 1), nac('hinh', s.filter((x) => x.co_hinh).length, s.length), nac('giong', canGiong.filter((x) => x.co_giong).length, canGiong.length),
     nac('clip', s.filter((x) => x.co_clip).length, s.length), nac('xuat', c.xuat ? 1 : 0, 1)];

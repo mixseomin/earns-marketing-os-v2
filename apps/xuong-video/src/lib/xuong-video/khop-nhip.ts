@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // Khớp điểm cắt của tập vào phách nhạc nền (12/10/2026) — phần máy chủ: tải nhạc, giải mã bằng ffmpeg, gọi lõi thuần nhip-nhac.ts,
 // ghi giây phát mới + dời lớp phủ theo shot. Chụp trước mỗi thứ sửa (↶ Hoàn tác được). 0đ, không gọi model.
 import 'server-only';
@@ -25,7 +26,7 @@ export async function khopNhipTap(db: Db, tapId: number, nguoi: string): Promise
   const t = (await db.execute(sql`SELECT * FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[];
   if (!t[0]) return { ok: false, loi: 'không thấy tập' };
   const tap = mapTap(t[0]);
-  const ds: Canh[] = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu`)) as unknown as Row[]).map(mapCanh), 'A').sort((a, b) => a.thu_tu - b.thu_tu);
+  const ds: Canh[] = locNhanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY thu_tu`)) as unknown as Row[]).map(mapCanh), 'A').sort((a, b) => xepPhat(a, b));
   if (ds.length < 2) return { ok: false, loi: 'tập chưa đủ shot để khớp' };
   const phat = ds.map(giayPhat); const tong = phat.reduce((a, b) => a + b, 0);
   const batDau = phat.map((_, i) => phat.slice(0, i).reduce((a, b) => a + b, 0));

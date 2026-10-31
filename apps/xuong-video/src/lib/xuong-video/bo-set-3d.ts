@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // BỘ SET 3D — phần thuần (14/10/2026). Bối cảnh là DỮ LIỆU toạ độ (xv_bo_set), không phải chữ: mọi shot cùng set đứng trên CÙNG một bộ đồ đạc,
 // máy ảo của từng shot (xv_canh.may_3d) render ra khung xám + bản đồ độ sâu (scripts/bo-set/dung-set.py, Blender trên box) làm khung xương
 // cho keyframe. Ở đây: shot thuộc set nào, mã đầu vào (đổi là phải dựng lại), bảng đầu vào cho Blender, kiểm trục 180° bằng hình học,
@@ -667,7 +668,7 @@ type ShotMach = { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d
 /** Véc-tơ ngang (phải màn) và sâu (vào màn) của máy trên mặt bàn. */
 const trucMay = (m: Pick<May3d, 'dat' | 'nhin'>) => { const fx = m.nhin[0]! - m.dat[0]!, fy = m.nhin[1]! - m.dat[1]!; const l = Math.hypot(fx, fy) || 1; return { f: [fx / l, fy / l], r: [fy / l, -fx / l] }; };
 const tamThay = (c: ShotMach, ten: string) => { const t = c.khung_xam?.thay?.find((x) => x.ten === ten); return t && t.pt >= PT_THAY ? { x: (t.hop[0] + t.hop[2]) / 2, y: (t.hop[1] + t.hop[3]) / 2, t } : null; };
-const khoiCanh = <T extends ShotMach>(ds: T[]): T[][] => { const out: T[][] = []; for (const c of [...ds].sort((a, b) => a.thu_tu - b.thu_tu)) { const l = out[out.length - 1]; if (l && (l[0]!.phan_doan ?? '') === (c.phan_doan ?? '')) l.push(c); else out.push([c]); } return out; };
+const khoiCanh = <T extends ShotMach>(ds: T[]): T[][] => { const out: T[][] = []; for (const c of [...ds].sort((a, b) => xepPhat(a, b))) { const l = out[out.length - 1]; if (l && (l[0]!.phan_doan ?? '') === (c.phan_doan ?? '')) l.push(c); else out.push([c]); } return out; };
 /** Vùng khung bằng chữ (trái trên, giữa, phải dưới…) cho câu cảnh báo — không bắt người đọc dịch phần trăm. */
 const vungKhung = (x: number, y: number) => `${y < 0.36 ? 'phía trên' : y > 0.64 ? 'phía dưới' : 'giữa'}${x < 0.36 ? ' bên trái' : x > 0.64 ? ' bên phải' : x >= 0.36 && y >= 0.36 && y <= 0.64 ? ' khung' : ''}`.trim();
 const ben = (chu: string) => (chu.includes('screen-right') ? 'phải' : chu.includes('screen-left') ? 'trái' : null);
@@ -930,7 +931,7 @@ export const VAI_GOC_RIENG = new Set(['thiet_lap', 'nguoi_thu_ba', 'chu_quan']);
 export function nhipDan<T extends { id: number; thu_tu: number; phan_doan?: string; may_3d?: May3d | null; ky_thuat?: { vai?: string } | null }>(ds: T[]): Record<number, string[]> {
   const out: Record<number, string[]> = {}; const hg = (m: May3d) => (Math.atan2(m.nhin[1]! - m.dat[1]!, m.nhin[0]! - m.dat[0]!) * 180) / Math.PI;
   for (const pd of new Set(ds.map((c) => c.phan_doan ?? ''))) {
-    const cua = ds.filter((c) => (c.phan_doan ?? '') === pd && c.may_3d).sort((a, b) => a.thu_tu - b.thu_tu);
+    const cua = ds.filter((c) => (c.phan_doan ?? '') === pd && c.may_3d).sort((a, b) => xepPhat(a, b));
     const thuong = cua.filter((c) => !c.may_3d!.qua_truc && !VAI_GOC_RIENG.has(c.ky_thuat?.vai ?? '')); if (thuong.length < 3) continue;
     const chu = thuong.map((c) => hg(c.may_3d!)).map((h, _, a) => ({ h, n: a.filter((x) => gocLech(x, h) <= NHIP_DAN).length })).sort((a, b) => b.n - a.n)[0]!.h;
     for (const c of thuong) { const l = gocLech(hg(c.may_3d!), chu); if (l > NHIP_DAN) (out[c.id] ??= []).push(`máy lệch ${Math.round(l)}° khỏi hướng máy chủ của cảnh (${Math.round(chu)}°) — hậu cảnh đổi, mất dẫn dắt: đưa máy về trong ±${NHIP_DAN}°, hoặc khai qua_truc nếu là POV / chèn`); }

@@ -1,4 +1,5 @@
 'use client';
+import { xepPhat, phat } from '@/lib/xuong-video/kieu';
 import { ThanhPhanTap } from './thanh-phan-ui';
 import { kgCua } from '@/lib/xuong-video/khong-gian';
 // Mục 3 một tập: brief → kịch bản → tách cảnh → storyboard/timeline → âm thanh → xuất.
@@ -50,7 +51,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab, onMoNut }: {
   const [soCanh, setSoCanh] = useState(0);
   const [canh, setCanh] = useState<Canh[] | null>(null);
   // shot KẾ cùng phân đoạn, cùng nhánh chính — sơ đồ khung cuối cần biết shot sau (cắt giữa động tác: đầu bắt đầu quay theo hướng shot sau)
-  const shotSau = (c: Canh): Canh | null => (canh ?? []).filter((x) => x.phan_doan === c.phan_doan && x.thu_tu > c.thu_tu && (x.nhanh ?? '') === (c.nhanh ?? '')).sort((a, b) => a.thu_tu - b.thu_tu)[0] ?? null;
+  const shotSau = (c: Canh): Canh | null => (canh ?? []).filter((x) => x.phan_doan === c.phan_doan && phat(x) > phat(c) && (x.nhanh ?? '') === (c.nhanh ?? '')).sort((a, b) => xepPhat(a, b))[0] ?? null;
   // Bận theo TỪNG nút (không một khoá chung): bấm keyframe cảnh 2 không khoá nút cảnh 3, 4… — chỉ Tách cảnh mới khoá cả tập.
   const [banSet, setBanSet] = useState<ReadonlySet<string>>(new Set());
   const ban = (k: string) => banSet.has(k);

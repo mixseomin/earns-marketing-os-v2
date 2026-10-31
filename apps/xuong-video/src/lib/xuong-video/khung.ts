@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // KIỂM KHUNG — phần thuần (14/10/2026, anh: "cần giải pháp kỹ thuật để không xảy ra cho mọi shot về sau, check bằng mắt mới thấy thì còn sai nhiều").
 // Mỗi keyframe phải được MÁY NHÌN so với thẻ shot + các khung cùng cảnh (kiem-khung.ts); kết quả gắn với ĐÚNG url keyframe đã kiểm, nên sinh lại
 // keyframe là tự hết hiệu lực. Cổng video + duyệt animatic đọc chanKhung — không có đường nào đi tiếp bằng một khung chưa kiểm hoặc kiểm trượt.
@@ -75,7 +76,7 @@ export const loiNhin = (m: SoiMat): string[] => m.ket.filter(nhinSai).map((k) =>
  *  mặt bên kia đáng tin (nhìn rõ sang một phía ≥ NGUONG_NHIN và không sai so với 3D của chính nó). Trả các shot có kết quả đổi (id → ket mới). Thuần. */
 export function canTheoCap(ds: (Pick<Canh, 'id' | 'thu_tu' | 'phan_doan' | 'keyframe_url'> & Partial<Pick<Canh, 'soi_mat' | 'may_3d' | 'ky_thuat'>>)[]): Map<number, SoiMat['ket']> {
   const out = new Map<number, SoiMat['ket']>();
-  const xep = [...ds].sort((a, b) => a.thu_tu - b.thu_tu);
+  const xep = [...ds].sort((a, b) => xepPhat(a, b));
   const motMat = (c: (typeof xep)[number]) => { const m = c.soi_mat; if (!m || m.url !== c.keyframe_url) return undefined; const co = m.ket.filter((k) => k.nhin); return co.length === 1 ? co[0] : undefined; };
   const khai = (c: (typeof xep)[number], ten: string) => !!c.may_3d?.vi_tri.some((v) => v.ten === ten) || c.ky_thuat?.sd?.o?.[ten] != null;   // 3D hoặc sơ đồ cảnh
   const gan = (c: (typeof xep)[number], ten: string, can: 1 | -1, tu: number) => {

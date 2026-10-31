@@ -110,6 +110,15 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
     ...(p.anh3d ? [{ value: '3d' as const, label: '3D', title: 'Khung Blender của shot (bộ set 3D) — bấm ảnh để xoay xem' }] : []),
   ];
   const xemDung = coXem.some((o) => o.value === xem) ? xem : coXem[0]?.value;
+  const dongShot = (x: PhieuShot) => (
+          <button type="button" onClick={() => chonShot(x.id)} title={`${x.co_ten} — ${x.hanh_dong}`}
+            style={{ display: 'flex', width: '100%', gap: 6, alignItems: 'baseline', textAlign: 'left', padding: '4px 6px', borderRadius: 4, border: 0, minWidth: 0,
+              background: x.id === p.id ? 'var(--bg-2)' : 'transparent', boxShadow: x.id === p.id ? 'inset 2px 0 0 var(--cyan)' : undefined, color: 'var(--fg-1)' }}>
+            <b style={{ fontSize: 12.5, color: x.con_cua ? 'var(--fg-1)' : 'var(--fg-0)', minWidth: 28 }} title={x.con_cua ? (x.thu_tu % 1 >= 0.5 ? `đoạn cuối của #${Math.floor(x.thu_tu)} — phát ngay sau nó` : `đoạn đầu của #${Math.floor(x.thu_tu)} — phát ngay trước phần chính`) : undefined}>#{x.thu_tu}{x.nhanh ? x.nhanh : ''}</b>
+            <span style={{ fontSize: 11.5, color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{x.hanh_dong}</span>
+            <DauSo k="○" n={x.thieu.length} mau="var(--amber)" title={`Thiếu thông tin trước khi sinh: ${x.thieu.join(', ')}`} />
+            <DauSo k="✗" n={x.lech.length} mau="var(--red)" title={x.lech.join('\n')} />
+          </button>);
   const chonShot = (id: number) => { setChonS(String(id)); setAnhS(''); };
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', minWidth: 0 }}>
@@ -118,16 +127,8 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
           { value: 'tat_ca', label: 'Tất cả', title: `${ds.length} shot` },
           { value: 'lech', label: 'Có lệch', title: `${ds.filter((x) => x.lech.length).length} shot có ảnh đang dùng lệch yêu cầu` },
           { value: 'thieu', label: 'Thiếu', title: `${ds.filter((x) => x.thieu.length).length} shot thiếu thông tin trước khi sinh` }]} />
-        {dsLoc.map((x) => (
-          <button key={x.id} type="button" onClick={() => chonShot(x.id)} title={`${x.co_ten} — ${x.hanh_dong}`}
-            style={{ display: 'flex', gap: 6, alignItems: 'baseline', textAlign: 'left', padding: '4px 6px', borderRadius: 4, border: 0, minWidth: 0,
-              background: x.id === p.id ? 'var(--bg-2)' : 'transparent', boxShadow: x.id === p.id ? 'inset 2px 0 0 var(--cyan)' : undefined, color: 'var(--fg-1)' }}>
-            <b style={{ fontSize: 12.5, color: 'var(--fg-0)', minWidth: 28 }}>#{x.thu_tu}{x.nhanh ? x.nhanh : ''}</b>
-            <span style={{ fontSize: 11.5, color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{x.hanh_dong}</span>
-            <DauSo k="○" n={x.thieu.length} mau="var(--amber)" title={`Thiếu thông tin trước khi sinh: ${x.thieu.join(', ')}`} />
-            <DauSo k="✗" n={x.lech.length} mau="var(--red)" title={x.lech.join('\n')} />
-          </button>
-        ))}
+        {dsLoc.filter((x) => !x.con_cua || !dsLoc.some((y) => y.id === x.con_cua)).sort((a, b) => a.thu_tu - b.thu_tu).map((x) => { const con = dsLoc.filter((y) => y.con_cua === x.id).sort((a, b) => a.thu_tu - b.thu_tu); return (
+          <div key={x.id}>{dongShot(x)}{con.length > 0 && <CayCon>{con.map((y) => <CayNut key={y.id}>{dongShot(y)}</CayNut>)}</CayCon>}</div>); })}
         {!dsLoc.length && <span style={mono}>Không shot nào {loc === 'lech' ? 'lệch' : 'thiếu thông tin'} ✓</span>}
       </CotCay>
       <div className="xv-panel" style={{ ...ghim, flex: 1, minWidth: 0, height: caoKhung, display: 'flex', flexDirection: 'column', gap: 8, overflow: 'hidden' }}>

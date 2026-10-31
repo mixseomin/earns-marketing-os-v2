@@ -7,21 +7,27 @@
 import { readFileSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
+import { ganShotCha } from '../src/lib/xuong-video/tach-shot';
 import type { Row } from '../src/lib/xuong-video/doc-db';
-import { lamTronClip, type DanDung } from '../src/lib/xuong-video/kieu';
+import { lamTronClip, khoaPhat, type DanDung } from '../src/lib/xuong-video/kieu';
 import { loiNoiNhip } from '../src/lib/xuong-video/noi-nhip';
 import { cauHuong, keThuaNhin, kyVong, loiCanMat, loiChuSoDo, loiTruc, thayHuong, type ManhSoDo, type SoDo } from '../src/lib/xuong-video/so-do-canh';
 import { loiMach2d } from '../src/lib/xuong-video/khong-gian';
 import { catDo } from '../src/lib/xuong-video/cat-do';
 import { cauVat, daMat, dongVat, loiSoVat, NHAN_DANG, NHAN_DO_VAT, vatTrongKhung, type SoVat } from '../src/lib/xuong-video/so-vat';
 
-type Manh = { /** KẾ HOẠCH DIỄN (nét mặt đầu → cuối từng người, qc-cam-xuc.ts › BIEU_CAM) — xv_canh.bieu_cam */ bc?: { nv: string; dau: string; cuoi: string; lat?: boolean }[]; co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; /** đầu NHẬN · đuôi GIEO · cớ cắt sang mảnh sau (noi-nhip.ts) */ mo?: string; ket?: string; noi?: DanDung['noi'];
+type Manh = { /** SỐ SHOT khai tay (shot CON: 2.9 = đoạn nối tiếp cuối #2, không dồn số shot sau) */ so?: number; /** KẾ HOẠCH DIỄN (nét mặt đầu → cuối từng người, qc-cam-xuc.ts › BIEU_CAM) — xv_canh.bieu_cam */ bc?: { nv: string; dau: string; cuoi: string; lat?: boolean }[]; co: string; giay: number; /** điểm vào clip (giây) — ky_thuat.vao_s */ vao?: number; /** tiếng hiệu ứng (sfx.ts) — ky_thuat.am_thanh */ am?: string[]; /** đầu NHẬN · đuôi GIEO · cớ cắt sang mảnh sau (noi-nhip.ts) */ mo?: string; ket?: string; noi?: DanDung['noi'];
   /** chỗ trong SƠ ĐỒ CẢNH (so-do-canh.ts): máy · ai ở đâu · ai nhìn gì · ai vào từ đâu — hướng trên màn tính từ đây, không viết tay */ sd?: ManhSoDo; /** dùng lại keyframe đã duyệt (URL) */ kf?: string;
   /** STORYBOARD đầu / giữa / cuối: khung vẽ (mặc định đầu + cuối nếu có ket) · câu khung giữa (EN) · câu tả tiếng Việt từng khung · sơ đồ ở khung cuối (đè sd) */ khung_ve?: ('dau' | 'giua' | 'ket')[]; giua?: string; mo_vi?: string; giua_vi?: string; ket_vi?: string; sd_ket?: Partial<ManhSoDo>; nv: string[]; bt?: string[]; hd: string; anh: string; vid: string; thoai?: { nhan_vat: string; loi: string; dien_xuat?: string }[] };
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';
 const tuPhim = Number(gia('tu-phim')); const tep = gia('manh');
 if (!tuPhim || !tep) { console.error('cần --tu-phim=<id> --manh=<tệp.json>'); process.exit(1); }
 const du = JSON.parse(readFileSync(tep, 'utf8')) as { phan_doan: string; anh_boi_canh: Record<string, string>; shot: Manh[]; /** sơ đồ cảnh + tên nhân vật người (để tính trục) */ so_do?: SoDo; nguoi?: string[]; /** SỔ LIÊN TỤC ĐỒ VẬT (so-vat.ts) + tên tiếng Anh của món */ so_vat?: SoVat; /** SỔ DÁNG người (cùng khuôn sổ đồ vật, ai = chính người đó) */ so_dang?: SoVat; ten_en?: Record<string, string> };
+// SỐ SHOT của từng mảnh: mảnh khai "so" (vd 2.9 — shot CON, đoạn nối tiếp của #2) giữ đúng số đó; mảnh thường đếm tiếp số nguyên. Mọi sổ theo số shot dùng số này.
+const TT: number[] = []; { let n = 0; for (const s of (du.shot as { so?: number }[])) { if (s.so != null) TT.push(s.so); else TT.push(++n); } }
+/** số XẾP PHÁT (xv_canh.thu_tu) của từng mảnh — shot con 2.9 → 2.04, 3.1 → 2.51 (kieu.ts › khoaPhat); sổ theo số shot cũng tra bằng số này */
+const TP = TT.map(khoaPhat);
+const soHien = (i: number) => (TP[i]! === Math.floor(TP[i]!) ? null : TP[i]!);
 /** sơ đồ ở khung CUỐI của mảnh = sd đè bằng sd_ket (người nhìn / đứng khác lúc kết) */
 const sdKet = (m: Manh): ManhSoDo | undefined => (m.sd ? { ...m.sd, ...(m.sd_ket ?? {}), o: { ...m.sd.o, ...(m.sd_ket?.o ?? {}) } } : undefined);
 const khungVe = (m: Manh): ('dau' | 'giua' | 'ket')[] => m.khung_ve ?? (m.ket ? ['dau', 'ket'] : ['dau']);
@@ -29,14 +35,14 @@ const khungVe = (m: Manh): ('dau' | 'giua' | 'ket')[] => m.khung_ve ?? (m.ket ? 
 if (du.so_do) {
   const sd = du.so_do; const ng = du.nguoi ?? [];
   // ánh nhìn không khai ở mảnh sau = ánh nhìn cuối mảnh trước (người đang vào từ mốc đó thì nhìn người ấy) — so-do-canh.ts › keThuaNhin
-  { const truoc = du.shot.map((m) => JSON.stringify(m.sd?.nhin ?? {})); du.shot = keThuaNhin(sd, du.shot); du.shot.forEach((m, i) => { if (JSON.stringify(m.sd?.nhin ?? {}) !== truoc[i]) console.log(`#${i + 1} kế thừa ánh nhìn: ${JSON.stringify(m.sd!.nhin)}`); }); }
+  { const truoc = du.shot.map((m) => JSON.stringify(m.sd?.nhin ?? {})); du.shot = keThuaNhin(sd, du.shot); du.shot.forEach((m, i) => { if (JSON.stringify(m.sd?.nhin ?? {}) !== truoc[i]) console.log(`#${TT[i]!} kế thừa ánh nhìn: ${JSON.stringify(m.sd!.nhin)}`); }); }
   for (const m of du.shot) if (m.sd) { for (const k of ['mo', 'vid', 'anh'] as const) if (m[k]) m[k] = thayHuong(sd, m.sd, m[k]!); const sk = sdKet(m)!; for (const k of ['ket', 'giua'] as const) if (m[k]) m[k] = thayHuong(sd, sk, m[k]!); }
-  const tr = [...loiTruc(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: i + 1 }] : [])), ng), ...loiCanMat(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: i + 1, co: m.co }] : []))),
+  const tr = [...loiTruc(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: TP[i]! }] : [])), ng), ...loiCanMat(sd, du.shot.flatMap((m, i) => (m.sd ? [{ ...m.sd, thu_tu: TP[i]!, co: m.co }] : []))),
     // chữ tay trái sơ đồ (mốc đang nhìn bị viết "behind her"…): đầu / ảnh / diễn theo sd, đuôi / giữa theo sd_ket
-    ...du.shot.flatMap((m, i) => (m.sd ? [...(['mo', 'vid', 'anh'] as const).flatMap((k) => loiChuSoDo(sd, m.sd!, m[k] ?? '')), ...(['ket', 'giua'] as const).flatMap((k) => loiChuSoDo(sd, sdKet(m)!, m[k] ?? ''))].map((x) => `#${i + 1}: ${x}`) : []))];
+    ...du.shot.flatMap((m, i) => (m.sd ? [...(['mo', 'vid', 'anh'] as const).flatMap((k) => loiChuSoDo(sd, m.sd!, m[k] ?? '')), ...(['ket', 'giua'] as const).flatMap((k) => loiChuSoDo(sd, sdKet(m)!, m[k] ?? ''))].map((x) => `#${TT[i]!}: ${x}`) : []))];
   // CÙNG cổng mạch tập studio đọc (khong-gian.ts › loiMach2d): trục qua cú cắt, nhìn → thấy, tổng thể, sổ dáng / đồ vật, cận mất mặt
   { const kgThu = { so_do: sd, nguoi: ng, ...(du.so_vat ? { so_vat: du.so_vat } : {}), ...(du.so_dang ? { so_dang: du.so_dang } : {}) };
-    const m2 = loiMach2d(kgThu, du.shot.map((m, i) => ({ id: i + 1, thu_tu: i + 1, phan_doan: du.phan_doan, ky_thuat: { sd: m.sd, sd_ket: m.sd_ket, co_canh: m.co }, dan_dung: { noi: m.noi }, thoai: (m as { thoai?: { nhan_vat: string }[] }).thoai ?? null })));
+    const m2 = loiMach2d(kgThu, du.shot.map((m, i) => ({ id: TP[i]!, thu_tu: TP[i]!, phan_doan: du.phan_doan, ky_thuat: { sd: m.sd, sd_ket: m.sd_ket, co_canh: m.co }, dan_dung: { noi: m.noi }, thoai: (m as { thoai?: { nhan_vat: string }[] }).thoai ?? null })));
     for (const v of Object.values(m2)) tr.push(...v); }
   if (tr.length) { console.error(`sơ đồ lỗi (trục 180° / cận mặt quay lưng / chữ trái sơ đồ):\n  ${tr.join('\n  ')}`); process.exit(1); }
 }
@@ -54,23 +60,23 @@ for (const [so, tenSo, nhan] of soSo) {
   for (const [i, s] of du.shot.entries()) {
     const ng = nguoiKhung(s); const khai = laVat ? s.nv.filter((x) => x in so) : []; const en = (t: string) => du.ten_en?.[t] ?? t;
     // khung ĐẦU: sự kiện của mảnh chưa xảy ra · khung CUỐI: đã xảy ra (so-vat.ts › LucKhung)
-    const thayDau = vatTrongKhung(so, i + 1, ng, khai, 'dau'); const thayKet = vatTrongKhung(so, i + 1, ng, khai, 'ket');
-    vatSo.set(i + 1, [...(vatSo.get(i + 1) ?? []), ...thayDau.map(([t, m]) => ({ ten: t, cach: m.cach }))]); vatSoKet.set(i + 1, [...(vatSoKet.get(i + 1) ?? []), ...thayKet.map(([t, m]) => ({ ten: t, cach: m.cach }))]);
+    const thayDau = vatTrongKhung(so, TP[i]!, ng, khai, 'dau'); const thayKet = vatTrongKhung(so, TP[i]!, ng, khai, 'ket');
+    vatSo.set(TP[i]!, [...(vatSo.get(TP[i]!) ?? []), ...thayDau.map(([t, m]) => ({ ten: t, cach: m.cach }))]); vatSoKet.set(TP[i]!, [...(vatSoKet.get(TP[i]!) ?? []), ...thayKet.map(([t, m]) => ({ ten: t, cach: m.cach }))]);
     if (laVat) for (const [t] of [...thayDau, ...thayKet]) if (!s.nv.includes(t)) s.nv.push(t);   // món đồ vào ảnh mẫu; dáng không có ảnh mẫu
-    const cauDau = cauVat(so, i + 1, ng, en, khai, 'dau', nhan); const cauKet = cauVat(so, i + 1, ng, en, khai, 'ket', nhan);
+    const cauDau = cauVat(so, TP[i]!, ng, en, khai, 'dau', nhan); const cauKet = cauVat(so, TP[i]!, ng, en, khai, 'ket', nhan);
     if (cauDau) s.anh = `${s.anh} ${cauDau}`.trim();
     s.vid = `${s.vid} ${cauDau}${cauKet && cauKet !== cauDau ? ` By the END of the shot: ${cauKet}` : ''}`.trim();
     if (cauKet && s.ket) s.ket = `${s.ket}. ${cauKet}`;
-    vatDoc.set(i + 1, [...(vatDoc.get(i + 1) ?? []), ...dongVat(so, i + 1, 'dau')]); vatDocKet.set(i + 1, [...(vatDocKet.get(i + 1) ?? []), ...dongVat(so, i + 1, 'ket')]);
+    vatDoc.set(TP[i]!, [...(vatDoc.get(TP[i]!) ?? []), ...dongVat(so, TP[i]!, 'dau')]); vatDocKet.set(TP[i]!, [...(vatDocKet.get(TP[i]!) ?? []), ...dongVat(so, TP[i]!, 'ket')]);
   }
 }
 // CẮT CÓ CỚ: bảng mảnh thiếu đuôi gieo / đầu nhận / cớ cắt thì không dựng (cảnh rời rạc — anh 23/10/2026)
 const danDung = (s: Manh): DanDung => ({ dien: s.vid, ...(s.mo ? { mo: s.mo } : {}), ...(s.ket ? { ket: s.ket } : {}), ...(s.noi ? { noi: s.noi } : {}),
   ...(s.giua ? { giua: s.giua } : {}), ...(s.mo_vi ? { mo_vi: s.mo_vi } : {}), ...(s.giua_vi ? { giua_vi: s.giua_vi } : {}), ...(s.ket_vi ? { ket_vi: s.ket_vi } : {}),
   ...(du.so_do && s.sd ? { huong: cauHuong(du.so_do, s.sd, du.nguoi ?? []), huong_ket: cauHuong(du.so_do, sdKet(s)!, du.nguoi ?? []) } : {}) });
-{ const loi = loiNoiNhip(du.shot.map((s, i) => ({ thu_tu: i + 1, dan_dung: danDung(s), ky_thuat: { am_thanh: s.am } }))); if (loi.length) { console.error(`bảng mảnh chưa nối cắt:\n  ${loi.join('\n  ')}`); process.exit(1); } }
+{ const loi = loiNoiNhip(du.shot.map((s, i) => ({ thu_tu: TP[i]!, dan_dung: danDung(s), ky_thuat: { am_thanh: s.am } }))); if (loi.length) { console.error(`bảng mảnh chưa nối cắt:\n  ${loi.join('\n  ')}`); process.exit(1); } }
 const ktThem = (s: Manh, i: number) => ({ khung_ve: khungVe(s), ...(s.sd ? { sd: s.sd, sd_ket: s.sd_ket ?? null } : {}), ...(du.so_do && s.sd ? { huong_so: kyVong(du.so_do, s.sd, du.nguoi ?? []), huong_so_ket: kyVong(du.so_do, sdKet(s)!, du.nguoi ?? []) } : {}),
-  ...(vatDoc.get(i + 1)?.length ? { vat: vatDoc.get(i + 1), vat_so: vatSo.get(i + 1) ?? [], vat_ket: vatDocKet.get(i + 1), vat_so_ket: vatSoKet.get(i + 1) ?? [] } : {}) });
+  ...(vatDoc.get(TP[i]!)?.length ? { vat: vatDoc.get(TP[i]!), vat_so: vatSo.get(TP[i]!) ?? [], vat_ket: vatDocKet.get(TP[i]!), vat_so_ket: vatSoKet.get(TP[i]!) ?? [] } : {}) });
 const db = getDb()!;
 // NGUỒN KHÔNG GIAN của cảnh cho mọi bộ chấm (khong-gian.ts): xv_tap.khong_gian[phan_doan]
 const kgCanh = du.so_do ? { so_do: du.so_do, nguoi: du.nguoi ?? [], ...(du.so_vat ? { so_vat: du.so_vat } : {}), ...(du.so_dang ? { so_dang: du.so_dang } : {}), ...(du.ten_en ? { ten_en: du.ten_en } : {}) } : null;
@@ -85,12 +91,12 @@ if (gia('cap-nhat')) {
   // người trong khung có món đã sang tay (so-vat › daMat) mà biến thể gán cho shot còn tả món đó → chặn, phải gán biến thể không có món
   // Kiểm trên ẢNH biến thể (cat-do.ts tìm món trong ảnh, ~0,2¢ / cặp, nhớ theo cặp) — mô tả chữ của biến thể 156 không nhắc thẻ, chỉ ẢNH có thẻ
   if (du.so_vat) { const loiBt: string[] = []; const daXet = new Map<string, boolean>();
-    for (const [i, s] of du.shot.entries()) for (const ten of nguoiKhung(s)) for (const mon of daMat(du.so_vat, i + 1, ten, 'dau')) {
+    for (const [i, s] of du.shot.entries()) for (const ten of nguoiKhung(s)) for (const mon of daMat(du.so_vat, TP[i]!, ten, 'dau')) {
       const en = du.ten_en?.[mon] ?? mon; const tu = en.toLowerCase().replace(/^the\s+/, '').split(/\s+/).filter((w) => w.length > 3);
       for (const b of btPhim.filter((r) => r.nv === ten && (s.bt ?? []).includes(String(r.ten)))) { const mt = String(b.mo_ta ?? '').toLowerCase(); const khoa = `${b.id}|${mon}`;
         if (!daXet.has(khoa)) { const chu = tu.some((w) => mt.includes(w)) && !/\bno (staff )?(lanyard|badge)|\bwithout\b|\bbare\b/.test(mt);
           const anh = b.anh_url ? !!(await catDo(db, phimId, String(b.anh_url), en, `on ${ten}`).catch(() => null)) : false; daXet.set(khoa, chu || anh); }
-        if (daXet.get(khoa)) loiBt.push(`#${i + 1} ${ten}: biến thể "${b.ten}" (ảnh / mô tả) còn ${mon} mà ${mon} đã sang tay người khác — gán biến thể không có ${mon}`); } }
+        if (daXet.get(khoa)) loiBt.push(`#${TT[i]!} ${ten}: biến thể "${b.ten}" (ảnh / mô tả) còn ${mon} mà ${mon} đã sang tay người khác — gán biến thể không có ${mon}`); } }
     if (loiBt.length) { console.error(`biến thể trang phục lệch sổ đồ vật:\n  ${loiBt.join('\n  ')}`); process.exit(1); } }
   const idNv = (x: string) => nvPhim.find((r) => r.ten === x)?.id; const idBt = (x: string) => btPhim.find((r) => r.ten === x)?.id;
   for (const [i, s] of du.shot.entries()) {
@@ -98,9 +104,10 @@ if (gia('cap-nhat')) {
     const kt = { co_canh: s.co, ...(s.am?.length ? { am_thanh: s.am } : {}), ...ktThem(s, i) };
     await db.execute(sql`UPDATE xv_canh SET hanh_dong = ${s.hd}, prompt_anh = ${s.anh}, dan_dung = coalesce(dan_dung, '{}'::jsonb) || ${JSON.stringify(danDung(s))}::jsonb,
       ky_thuat = coalesce(ky_thuat, '{}'::jsonb) || ${JSON.stringify(kt)}::jsonb, bieu_cam = coalesce(${s.bc ? JSON.stringify(s.bc) : null}::jsonb, bieu_cam), nhan_vat = ${JSON.stringify(nv)}::jsonb, bien_the = ${JSON.stringify(bt)}::jsonb, updated_at = now()
-      WHERE tap_id = ${tapId} AND thu_tu = ${i + 1}`);
+      WHERE tap_id = ${tapId} AND thu_tu = ${TP[i]!}`);
+    await db.execute(sql`UPDATE xv_canh SET so_hien = ${soHien(i)} WHERE tap_id = ${tapId} AND thu_tu = ${TP[i]!}`);
   }
-  await ghiKhongGian(tapId); console.log(`cập nhật ${du.shot.length} mảnh của tập ${tapId}`); process.exit(0);
+  await ghiKhongGian(tapId); await ganShotCha(db, tapId); console.log(`cập nhật ${du.shot.length} mảnh của tập ${tapId}`); process.exit(0);
 }
 const kq = await db.transaction(async (tx) => {
   const t = async (s: ReturnType<typeof sql>) => (await tx.execute(s)) as unknown as Row[];
@@ -129,11 +136,12 @@ const kq = await db.transaction(async (tx) => {
   for (const [i, s] of du.shot.entries()) {
     const nv = s.nv.map((x) => doiNv.get(x)!); const bt = (s.bt ?? []).map((x) => doiBt.get(x)).filter((x): x is number => x != null);
     // vid = khối DIỄN của mảnh (một việc): dan_dung.dien — khuôn video bắt buộc khối diễn (prompt-khoi.ts › KHUON.video); prompt_video để trống cho khỏi lặp
-    await t(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, phan_doan, hanh_dong, nhan_vat, bien_the, ky_thuat, thoi_luong_s, phat_s, prompt_anh, prompt_video, dan_dung, thoai, keyframe_url, trang_thai)
-      VALUES (${tapId}, ${i + 1}, ${du.phan_doan}, ${du.phan_doan}, ${s.hd}, ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${JSON.stringify({ co_canh: s.co, ...(s.vao != null ? { vao_s: s.vao } : {}), ...(s.am?.length ? { am_thanh: s.am } : {}), ...ktThem(s, i) })}::jsonb,
+    await t(sql`INSERT INTO xv_canh (tap_id, thu_tu, so_hien, canh, phan_doan, hanh_dong, nhan_vat, bien_the, ky_thuat, thoi_luong_s, phat_s, prompt_anh, prompt_video, dan_dung, thoai, keyframe_url, trang_thai)
+      VALUES (${tapId}, ${TP[i]!}, ${soHien(i)}, ${du.phan_doan}, ${du.phan_doan}, ${s.hd}, ${JSON.stringify(nv)}::jsonb, ${JSON.stringify(bt)}::jsonb, ${JSON.stringify({ co_canh: s.co, ...(s.vao != null ? { vao_s: s.vao } : {}), ...(s.am?.length ? { am_thanh: s.am } : {}), ...ktThem(s, i) })}::jsonb,
         ${lamTronClip(s.giay)}, ${s.giay}, ${s.anh}, '', ${JSON.stringify(danDung(s))}::jsonb, ${JSON.stringify(s.thoai ?? [])}::jsonb, ${s.kf ?? null}, ${s.kf ? 'co_keyframe' : 'nhap'})`);
   }
   return { phimId, tapId, soManh: du.shot.length, giay: tongGiay, ten };
 });
+await ganShotCha(db, kq.tapId);   // shot con (số lẻ) → con_cua
 console.log(JSON.stringify(kq));
 process.exit(0);

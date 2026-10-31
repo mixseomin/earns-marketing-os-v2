@@ -1,3 +1,4 @@
+import { phat } from './kieu';
 // ⚖️ ĐỐI CHIẾU bóc tách ↔ dự kiến (anh 30/10/2026: "phần bóc từ ảnh phải có 1 cột so sánh với thành phần dự kiến tại thời điểm đó và so sánh mức
 // độ khớp, liên quan. Những chi tiết quan trọng phải so sánh cụ thể rõ ràng"). duKienKhung dựng spec dự kiến của shot từ dữ liệu (ai có mặt, áo,
 // tóc, biểu cảm, đạo cụ, khung, bối cảnh); doiChieuKhung nhờ Gemini so TỪNG thành phần quan trọng → mức khớp + ghi chú cụ thể. ~0,3¢/khung.
@@ -61,13 +62,13 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
     if (mot('trang_diem')) L.push({ thanh_phan: `Trang điểm ${v.ten}`, du_kien: mot('trang_diem') });
     if (mot('trang')) L.push({ thanh_phan: `Trạng thái ${v.ten}`, du_kien: mot('trang') });
     L.push({ thanh_phan: `Biểu cảm ${v.ten}`, du_kien: bcTxt });
-    const dangTxt = kg ? (dang(kg, c.thu_tu, v.ten, lucKg)?.vi ?? '') : '';
+    const dangTxt = kg ? (dang(kg, phat(c), v.ten, lucKg)?.vi ?? '') : '';
     if (dangTxt) L.push({ thanh_phan: `Dáng ${v.ten}`, du_kien: dangTxt });
     // "Đồ cầm" bỏ: trùng với các ĐẠO CỤ đã liệt kê riêng bên dưới → gây nhiễu/ngáo
   }
   for (const v of doVat) {
     // vị trí đạo cụ: ai đang cầm/đeo nó + vị trí người đó — để MỌI đối tượng (kể cả đạo cụ) đều có mục Vị trí tương quan
-    const viDc = kg ? (nguoi.map((p) => { const d = doCam(kg, c.thu_tu, p.ten, lucKg).find((x) => x.mon === v.ten); return d ? `${d.vi} (${p.ten} cầm/đeo)` : ''; }).find(Boolean) ?? '') : '';
+    const viDc = kg ? (nguoi.map((p) => { const d = doCam(kg, phat(c), p.ten, lucKg).find((x) => x.mon === v.ten); return d ? `${d.vi} (${p.ten} cầm/đeo)` : ''; }).find(Boolean) ?? '') : '';
     L.push({ thanh_phan: `Đạo cụ ${v.ten} + vị trí`, du_kien: viDc || 'không khai' });
     L.push({ thanh_phan: `Đạo cụ ${v.ten} + trạng thái`, du_kien: v.mo_ta || 'không tả' });
   }
@@ -167,7 +168,7 @@ export function apDungSoBang(chieu: DongDoiChieu[], c: Canh, nhanVat: NhanVat[],
   const nguoiTT = (ten: string) => k.nguoi.find((n) => khop(ten, n.ai));
   const doTT = (ten: string) => k.dao_cu.find((d) => khop(ten, d.ten));
   const viTriMan = (ten: string) => { if (!kg) return ''; const x = viTri(kg, c, ten, lucKg); return x == null ? '' : x < -0.33 ? 'trái' : x > 0.33 ? 'phải' : 'giữa'; };
-  const nguoiGiu = (prop: string) => kg ? (nhanVat.find((p) => p.loai === 'nhan_vat' && doCam(kg, c.thu_tu, p.ten, lucKg).some((x) => khop(prop, x.mon)))?.ten ?? '') : '';
+  const nguoiGiu = (prop: string) => kg ? (nhanVat.find((p) => p.loai === 'nhan_vat' && doCam(kg, phat(c), p.ten, lucKg).some((x) => khop(prop, x.mon)))?.ten ?? '') : '';
   const out = chieu.map((row): DongDoiChieu => {
     let dk = '', tt = '', nhan = '';
     const mVi = row.thanh_phan.match(/^Vị trí (.+)$/);

@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // Bản xuất MP4 của một tập — phần THUẦN (không server-only): từ shot + nguyên liệu đã tải/đo → lệnh ffmpeg + các tệp chữ.
 // Review 09/10/2026: studio chỉ "xem thử" trong trình duyệt, không có tệp nào gửi Meta/TikTok. Bản xuất làm đúng thứ timeline cho xem:
 //   - mỗi shot phát đúng phat_s (cắt từ đầu clip), clip chưa có thì dùng keyframe tĩnh;
@@ -223,7 +224,7 @@ export function keHoachXuat(o: {
 }): KeHoachXuat {
   const doc = o.tiLe !== '16:9';
   const W = doc ? 1080 : 1920, H = doc ? 1920 : 1080;
-  const ds = locNhanh(o.canh, o.nhanh).slice().sort((a, b) => a.thu_tu - b.thu_tu).filter((c) => !o.chiThuTu?.length || o.chiThuTu.includes(c.thu_tu));
+  const ds = locNhanh(o.canh, o.nhanh).slice().sort((a, b) => xepPhat(a, b)).filter((c) => !o.chiThuTu?.length || o.chiThuTu.includes(c.thu_tu));
   const nl = new Map(o.nguyenLieu.map((x) => [x.url, x]));
   const canhBao = kiemGiongLoiDan(ds, o.nhanVat);
   // Nhạc nền là lớp liền mạch duy nhất của QC: giọng đọc ngắt quãng, clip mỗi cái một tiếng (đã tắt) → thiếu nhạc là có khoảng im tuyệt đối

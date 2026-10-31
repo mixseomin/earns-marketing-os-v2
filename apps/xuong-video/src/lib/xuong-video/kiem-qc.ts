@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // Bộ kiểm "quảng cáo đạt chưa" — chạy ngay sau tách cảnh và mỗi lần sửa shot, không tốn tiền, dùng chung cho MỌI sản phẩm
 // (review phim bra 09/10/2026: hook 6s toàn lời, không chữ màn, không bằng chứng, 64s cho brief 24s — không máy nào kêu).
 // Mỗi luật là một thứ ads thật đo được: 85% xem tắt tiếng → chữ màn; 3 giây đầu quyết định giữ tay; sản phẩm phải thấy sớm;
@@ -18,7 +19,7 @@ export const TU_MOI_GIAY = 2.8;
 export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<NhanVat, 'id' | 'loai'>[]; qc?: ThongTinQc | null; mucTieuS?: number | null; nhanh?: string | null; ngonNgu?: string;
   /** lớp phủ của tập: lớp ảnh mang_sp (người cắt nền cầm sản phẩm) phủ lên shot nào thì shot đó tính là có sản phẩm. */
   lop?: Pick<Lop, 'loai' | 'url' | 'tu' | 'den' | 'mang_sp' | 'an'>[] }): MucKiem[] {
-  const ds = locNhanh(opts.canh, opts.nhanh).slice().sort((a, b) => a.thu_tu - b.thu_tu);
+  const ds = locNhanh(opts.canh, opts.nhanh).slice().sort((a, b) => xepPhat(a, b));
   const out: MucKiem[] = [];
   if (!ds.length) return out;
   const tong = ds.reduce((a, c) => a + giayPhat(c), 0);

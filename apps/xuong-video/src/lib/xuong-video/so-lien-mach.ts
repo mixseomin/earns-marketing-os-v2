@@ -1,3 +1,4 @@
+import { phat } from './kieu';
 // SỔ LIỀN MẠCH (script supervisor's continuity log, anh 16/10/2026: "các phần theo dõi này phải show chi tiết trong drawer của nhân vật, của từng
 // cảnh" · "film này để demo và học hỏi để sau này làm film thật, người thật"). Mỗi nhân vật × mỗi shot một dòng: ngày truyện, cảnh, chỗ mở → kết,
 // dáng, hướng, trạng thái cơ thể (ướt / xù / bẩn / quần áo), đồ đang cầm, động tác — và lỗi đứt mạch. Lỗi lấy THẲNG từ cổng lienMachTap (một
@@ -67,7 +68,7 @@ export function soLienMach(ds: ShotSo[], phanCanh: Pick<PhanCanh, 'ten' | 'ngay'
     if (!m && k2 && coKhongGian(k2, c)) {
       const trong = new Set([...(nguoiKhung(k2, c, 'dau') ?? []), ...(nguoiKhung(k2, c, 'ket') ?? [])]);
       for (const ten of k2.nguoi.filter((n) => c.ky_thuat?.sd?.o[n] != null)) {
-        const dd = dang(k2, c.thu_tu, ten, 'dau'), dk = dang(k2, c.thu_tu, ten, 'ket'); const cam = doCam(k2, c.thu_tu, ten, 'ket').map((v) => `${v.mon} (${v.vi})`).join('; ');
+        const dd = dang(k2, phat(c), ten, 'dau'), dk = dang(k2, phat(c), ten, 'ket'); const cam = doCam(k2, phat(c), ten, 'ket').map((v) => `${v.mon} (${v.vi})`).join('; ');
         const d: DongSo = { canhId: c.id, thu_tu: c.thu_tu, canh: tenCanh, ngay: ngayTruoc, luong_moi: luong, noi: null, tam: [], den: null, huong: null, huong_den: null, nam: false, nam_den: false,
           trang: dd?.vi ?? '', trang_den: dk?.vi ?? dd?.vi ?? '', ngoai: [], cam: cam || null, chia: null, dien: [], an: !trong.has(ten), loi: (loi2d[c.id] ?? []).filter((x) => x.includes(ten)), diem: 100, muc: [] };
         Object.assign(d, chamLoi(d.loi, d.an, null)); (out.nhanVat[ten] ??= []).push(d);

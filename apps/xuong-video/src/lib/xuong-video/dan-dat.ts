@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // CHẤM DẪN DẮT (anh 18/10/2026: "bộ khuôn này phải chấm được sự dẫn dắt các cảnh, các shot — cách trình bày trong film HBO rất rõ ràng, logic").
 // Khuôn (khuon-chuoi.ts) nói một ĐOẠN làm nhiệm vụ kể gì; dẫn dắt chấm từng ĐIỂM CẮT: cắt có lý do không, vào cảnh mới khán giả có biết đang ở
 // đâu / lúc nào không, cảnh có khép dứt không, nhìn mà có cho thấy thứ được nhìn không, có cắt nhảy hình không — và shot nào không phục vụ
@@ -66,7 +67,7 @@ const DIEM_MUC = { tot: 100, vang: 80, do: 50 } as const;
 
 /** Chấm cả tập: điểm cắt (dẫn dắt) + khuôn (nhiệm vụ kể) + shot ngoài khuôn. diem = 60% điểm cắt + 40% điểm khuôn (khi tập đã áp khuôn). */
 export function chamDanDat(canh: ShotDanDat[], phanCanh: CanhDanDat[], khuon: ApKhuon[] = [], theLoai?: TheLoai | ''): KetDanDat {
-  const ds = [...canh].sort((a, b) => a.thu_tu - b.thu_tu);
+  const ds = [...canh].sort((a, b) => xepPhat(a, b));
   const pc = new Map(phanCanh.map((p) => [p.ten, p] as const));
   const cat = ds.slice(1).map((b, i) => chamCat(ds[i]!, b, pc));
   const kq = khuon.map((a) => kiemKhuon(a, ds, theLoai)).filter((k): k is KetAp => !!k);

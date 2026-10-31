@@ -1,3 +1,4 @@
+import { phat } from './kieu';
 // SƠ ĐỒ SHOT (anh 26/10/2026: "có kiểu vẽ nào $0 mà lột tả đủ yêu cầu" → "gắn vào studio để dùng lại"). Vẽ SVG bằng code từ DỮ LIỆU shot — không gọi AI,
 // nên không có người lạ, không đổi áo, không lệch trục. Mỗi khung: cỡ cảnh đúng tỉ lệ, ai đứng trái / phải màn, đầu quay đâu, nét mặt (mã BIEU_CAM —
 // qc-cam-xuc.ts), mũi tên ánh nhìn tới người / vật được nhìn, đồ trên người (sổ đồ vật), dấu điểm neo mắt NEO_MAT, ô nét mặt cuối shot.
@@ -141,7 +142,7 @@ export function veShotTuCanh(c: Canh, kg: KhongGian | null | undefined, nhanVat:
     return { ten, x: v == null ? 0.5 : Math.max(0.08, Math.min(0.92, (v + 1) / 2)), lung, quay, nhin_vao: dich && !kg.nguoi.includes(dich) ? kg.so_do.ten?.[dich] ?? dich : dich, nhin_huong: h,
       mat: b ? (luc === 'ket' ? [b.cuoi, b.cuoi] : [b.dau, b.cuoi]) : undefined, ao: MAU_AO[Math.max(0, kg.nguoi.indexOf(ten)) % MAU_AO.length]!,
       toc: tocGlyph(nhanVat.find((x) => x.ten === ten)?.mo_ta),   // tóc theo DB (một nguồn) — không còn gõ tay trên bảng/sơ đồ
-      do: doCam(kg, c.thu_tu, ten, luc).map((d) => ({ mon: d.mon, cam: !!d.tay })), bat_dau_quay: bat };
+      do: doCam(kg, phat(c), ten, luc).map((d) => ({ mon: d.mon, cam: !!d.tay })), bat_dau_quay: bat };
   });
   const khai = (c.nhan_vat ?? []).map((id) => nhanVat.find((x) => x.id === id)).filter((x) => x && (x.loai === 'dao_cu' || x.loai === 'san_pham')).map((x) => x!.ten);   // đạo cụ gắn vào shot
   return { so: c.thu_tu, co: String(c.ky_thuat?.co_canh ?? 'ms'), nguoi, khai, luc };

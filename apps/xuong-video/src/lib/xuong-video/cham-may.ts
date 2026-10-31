@@ -2,6 +2,7 @@
 // Đo: scripts/do-cam-xuc.py (venv /opt/xv-camxuc) · Xét: qc-cam-xuc.ts › chamMay · Ghi: xv_canh.soat.may cho ĐÚNG clip đang dùng.
 // Chạy tự động khi clip sinh xong (sinh-video.ts › kiemVideoTap, cạnh máy soi clip) + scripts/cham-may.mts để chấm lại cả tập.
 // Người soát (soat.clip) luôn thắng máy (qc-cam-xuc.ts › soatClip); máy "cần mắt" = chưa đạt cho tới khi người nhìn.
+import { phat } from './kieu';
 import 'server-only';
 import { execFile } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -40,7 +41,7 @@ export async function chamMayShots(db: Db, tapId: number, canhIds?: number[]): P
     .map((v) => ({ ten: v.ten, anh: [...v.anh_ref, ...bt.filter((b) => b.nhan_vat_id === v.id && b.anh_url).map((b) => b.anh_url!)].slice(0, 3) }))
     .filter((v) => v.anh.length);
   // Shot nối liền: so khung đầu với khung cuối clip shot liền trước CÙNG nhánh.
-  const truoc = (c: (typeof ds)[number]) => { if (!c.noi_lien) return null; const t = ds.filter((x) => x.thu_tu < c.thu_tu && (x.nhanh || '') === (c.nhanh || '')).pop(); return t ? clip(t) : null; };
+  const truoc = (c: (typeof ds)[number]) => { if (!c.noi_lien) return null; const t = ds.filter((x) => phat(x) < phat(c) && (x.nhanh || '') === (c.nhanh || '')).pop(); return t ? clip(t) : null; };
   const doRa = await doCamXuc({ nv, clips: chon.map((c) => ({ id: String(c.id), url: clip(c)!, phat: c.phat_s, truoc_url: truoc(c) })) });
   const luc = new Date().toISOString();
   const out: { id: number; thu_tu: number; ket: KqMay['ket']; loi: string[] }[] = [];

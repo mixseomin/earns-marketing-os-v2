@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // PHÂN RÃ KỊCH BẢN (script breakdown) — phần THUẦN: khuôn trả lời AI, câu hệ thống, dựng đầu vào, mã băm, kế hoạch tạo món thiếu, gắn shot, báo cáo chuẩn bị.
 // Cách đoàn phim thật làm (anh 31/10/2026: "tóc, giày, đồng hồ… làm sao có đủ ở đây? Làm sao để nó tự sinh ra và báo nếu thiếu? Thêm 1000 tập mới thì sao?"):
 // trợ lý đạo diễn + phục trang + giám sát kịch bản đọc TỪNG cảnh, gắn thẻ mọi yếu tố theo hạng mục (phục trang gồm giày, tóc, trang điểm, từng phụ kiện,
@@ -83,7 +84,7 @@ const chuThoai = (c: Pick<Canh, 'thoai' | 'loi_thoai'>) => (c.thoai?.length ? c.
 
 /** MÃ BĂM chữ của tập (kịch bản + chữ từng shot) — đổi = phân rã CŨ. KHÔNG băm phần gắn (nhan_vat / bien_the) để chính lượt phân rã gắn xong không tự làm mình cũ. FNV-1a. */
 export function bamPhanRa(tap: Pick<Tap, 'kich_ban'>, canh: Pick<CanhVao, 'thu_tu' | 'nhanh' | 'canh' | 'phan_doan' | 'hanh_dong' | 'loi_thoai' | 'thoai' | 'trang_phuc' | 'prompt_anh'>[]): string {
-  const s = [`v${PHIEN_PHAN_RA}`, tap.kich_ban ?? '', ...[...canh].sort((a, b) => (a.nhanh || '').localeCompare(b.nhanh || '') || a.thu_tu - b.thu_tu)
+  const s = [`v${PHIEN_PHAN_RA}`, tap.kich_ban ?? '', ...[...canh].sort((a, b) => (a.nhanh || '').localeCompare(b.nhanh || '') || xepPhat(a, b))
     .map((c) => [c.thu_tu, c.nhanh || '', c.canh, c.phan_doan, c.hanh_dong, chuThoai(c), c.trang_phuc, c.prompt_anh].join('\u0001'))].join('\u0002');
   let h1 = 0x811c9dc5, h2 = 0x01000193;
   for (let i = 0; i < s.length; i++) { const ch = s.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 16777619); h2 = Math.imul(h2 ^ ch, 2246822519); }
@@ -112,7 +113,7 @@ export function taPhanRa(o: { tenPhim: string; loai: string; phongCach: string; 
   const ma = new Map<string, number>();
   const tenCua = (ids: number[]) => ids.map((id) => o.nhanVat.find((v) => v.id === id)?.ten).filter(Boolean).join(', ');
   const btCua = (ids: number[]) => o.nhanVat.flatMap((v) => (v.bien_the ?? []).filter((b) => ids.includes(b.id)).map((b) => `${v.ten} · ${b.ten}`)).join(', ');
-  const ds = [...o.canh].sort((a, b) => (a.nhanh || '').localeCompare(b.nhanh || '') || a.thu_tu - b.thu_tu);
+  const ds = [...o.canh].sort((a, b) => (a.nhanh || '').localeCompare(b.nhanh || '') || xepPhat(a, b));
   const shot = ds.map((c, i) => {
     const m = `S${i + 1}`; ma.set(m, c.id);
     return [`${m} · shot #${c.thu_tu}${c.nhanh ? ` (nhánh hook ${c.nhanh})` : ''} · phân cảnh: ${c.phan_doan || '—'} · cảnh: ${c.canh || '—'}`,

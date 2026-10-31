@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // KHUÔN CHUỖI SHOT (anh 18/10/2026: "trong cùng một film áp dụng nhiều kiểu khuôn để phục vụ mục đích của đạo diễn và kịch bản · mỗi dòng film
 // có quy chuẩn / kiến thức ngành riêng — tổng hợp lại và áp dụng · trên timeline phải show rõ từng khuôn đang áp thế nào ở từng cảnh quay").
 // Tầng GIỮA giữa luật một shot (luat-dung.ts, dien-anh.ts › vai) và khuôn cả phim (mau/templates.json): một đoạn 2–6 shot làm MỘT nhiệm vụ kể
@@ -177,7 +178,7 @@ const nang = (a: MucKiem, b: MucKiem): MucKiem => (a === 'do' || b === 'do' ? 'd
 export function kiemKhuon(ap: ApKhuon, canh: ShotKhuon[], theLoai?: TheLoai | ''): KetAp | null {
   const kh = khuonTheoKey(ap.khuon);
   if (!kh) return null;
-  const ds = canh.filter((c) => buocCua(ap.shots[String(c.id)]).length).sort((a, b) => a.thu_tu - b.thu_tu);
+  const ds = canh.filter((c) => buocCua(ap.shots[String(c.id)]).length).sort((a, b) => xepPhat(a, b));
   const shots: KetShot[] = [];
   let truoc = -1;
   const dem = new Map<number, number>();

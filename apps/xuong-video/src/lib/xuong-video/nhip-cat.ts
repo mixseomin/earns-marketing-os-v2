@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // NHỊP CẮT ĐOẠN THOẠI (anh 19/10/2026, đo phim ngắn dọc NetShort "Karma at the Crossroad": 78 shot / 209 s — trung bình 2,7 s, thoại cắt
 // theo từng câu, gần như mọi shot ≤ 4 s). Ngành: độ dài shot trung bình (ASL — Barry Salt, *Film Style and Technology*; Bordwell,
 // "Intensified Continuity", 2002: phim Mỹ 2000s ASL 3–6 s, phim hành động 2–3 s; Cutting & cộng sự 2011 đo ASL giảm đều qua các thập kỷ) là
@@ -15,7 +16,7 @@ const giay = (c: ShotNhip) => Number(c.phat_s || c.thoi_luong_s || 0);
 
 /** ASL cả tập + cảnh báo nhịp đoạn thoại. tu / den = thu_tu shot đầu / cuối của đoạn. */
 export function nhipCat(canh: ShotNhip[], theLoai?: TheLoai | ''): { asl: number; asl_thoai: number | null; canhBao: CanhBaoNhip[] } {
-  const ds = [...canh].sort((a, b) => a.thu_tu - b.thu_tu).filter((c) => giay(c) > 0);
+  const ds = [...canh].sort((a, b) => xepPhat(a, b)).filter((c) => giay(c) > 0);
   const tb = (x: ShotNhip[]) => (x.length ? Math.round((x.reduce((s, c) => s + giay(c), 0) / x.length) * 10) / 10 : 0);
   const thoai = ds.filter((c) => (c.thoai?.length ?? 0) > 0);
   const out = { asl: tb(ds), asl_thoai: thoai.length ? tb(thoai) : null, canhBao: [] as CanhBaoNhip[] };

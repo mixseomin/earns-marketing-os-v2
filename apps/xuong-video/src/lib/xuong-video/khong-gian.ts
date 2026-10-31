@@ -1,3 +1,4 @@
+import { xepPhat, phat } from './kieu';
 // NGUỒN KHÔNG GIAN CHUNG cho mọi bộ chấm (anh 24/10/2026: "còn phần nào chấm điểm ngu lại chỉ áp dụng cho phim 3D?" → "sửa triệt để luật rồi mới sửa
 // cảnh phim"). Trước đây cổng mạch tập, Murch, câu hỏi kiểm khung, soi mặt, chấm prompt đọc thẳng may_3d / khung_xam: phim KHÔNG 3D bị bỏ qua im lặng
 // hoặc được điểm mặc định. Phim không 3D có đủ dữ kiện tương đương — SƠ ĐỒ CẢNH (so-do-canh.ts, xv_tap.khong_gian.so_do + ky_thuat.sd / sd_ket từng
@@ -80,15 +81,19 @@ export const TAM_VOI = 1.0; export const LECH_CHEN = 45; const CHAM = /\b(touch\
 /** Bậc cỡ cảnh (luật 30° / 2 bậc) — dùng chung 3D (bo-set-3d) và 2D. */
 export const BAC_CO: Record<string, number> = { ews: 0, ws: 1, two: 2, ms: 2, pov: 2, ots: 3, mcu: 3, cu: 4, insert: 4, ecu: 5 };
 export const gocLech = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
+/** MỘT LẦN QUAY LIỀN, không phải cú cắt: shot con và shot cha (cùng số nguyên — 2 ↔ 2.9, 3.1 ↔ 3) đứng liền nhau CÙNG máy (khung cuối trước = khung
+ *  đầu sau) → không áp luật nối cắt (30°, trục, nhìn → thấy) giữa hai đoạn. Shot con đổi máy (2 → 2.9 khác góc) vẫn là cú cắt, vẫn bị kiểm. */
+export const lienMay = (a: ShotKg, c: ShotKg): boolean => Math.floor(a.thu_tu) === Math.floor(c.thu_tu) && a.thu_tu !== c.thu_tu && sdLuc(a, 'ket')?.may === sdLuc(c, 'dau')?.may && sdLuc(c, 'dau')?.may != null;
+
 /** LỖI MẠCH TẬP từ sơ đồ (thay cho bo-set-3d › loiMachTap khi shot không có 3D). Câu mang từ khoá để diem-murch › loai xếp đúng tiêu chí:
  *  "qua trục liền nhau" → mặt phẳng màn hình · "NHÌN → THẤY" → truyện (chuỗi chú ý) · "TỔNG THỂ" → truyện · "đứt mạch" → không gian. */
 export function loiMach2d(kg: KhongGian | null | undefined, ds0: ShotKg[]): Record<number, string[]> {
   const out: Record<number, string[]> = {}; if (!kg?.so_do) return out;
-  const ds = ds0.filter((c) => c.ky_thuat?.sd).sort((a, b) => a.thu_tu - b.thu_tu); const s = kg.so_do;
+  const ds = ds0.filter((c) => c.ky_thuat?.sd).sort((a, b) => xepPhat(a, b)); const s = kg.so_do;
   const them = (id: number, x: string) => { (out[id] ??= []).push(x); };
   const theoSo = new Map(ds.map((c) => [c.thu_tu, c]));
   for (let i = 0; i < ds.length; i++) {
-    const c = ds[i]!; const a = i > 0 && ds[i - 1]!.phan_doan === c.phan_doan ? ds[i - 1]! : null;
+    const c = ds[i]!; const a0 = i > 0 && ds[i - 1]!.phan_doan === c.phan_doan ? ds[i - 1]! : null; const a = a0 && !lienMay(a0, c) ? a0 : null;
     for (const l of loiCanMat(s, [{ ...sdLuc(c, 'dau')!, thu_tu: c.thu_tu, co: c.ky_thuat?.co_canh }])) them(c.id, `máy không thấy mặt: ${l}`);
     // CẬN mà người trong khung NỬA LƯNG suốt shot (đầu lẫn cuối) — cận cảm xúc mất mặt; vai tiền cảnh khung qua vai (nhìn người khác trong khung) thì đúng ý
     if (/^(cu|mcu|ecu)$/.test(c.ky_thuat?.co_canh ?? '')) for (const n of nguoiKhung(kg, c, 'dau') ?? []) {
@@ -103,7 +108,7 @@ export function loiMach2d(kg: KhongGian | null | undefined, ds0: ShotKg[]): Reco
       const k = sdLuc(a, 'ket')!; const d = sdLuc(c, 'dau')!; const thay = nguoiKhung(kg, c, 'dau') ?? [];
       const dich = (nguoiKhung(kg, a, 'ket') ?? []).flatMap((n) => (k.nhin?.[n] ? [[n, k.nhin[n]!] as const] : []));
       // cận chèn đồ người đó đang cầm (#8 Hạ nhìn nắm tay Vivian → #9 cận tay cầm thẻ) cũng là cho thấy người đó
-      const chenDo = (x: string) => c.ky_thuat?.co_canh === 'insert' && kg.nguoi.includes(x) && doCam(kg, c.thu_tu, x, 'dau').length > 0;
+      const chenDo = (x: string) => c.ky_thuat?.co_canh === 'insert' && kg.nguoi.includes(x) && doCam(kg, phat(c), x, 'dau').length > 0;
       const thayDuoc = (x: string) => thay.includes(x) || chenDo(x) || Object.values(d.vao ?? {}).includes(x) || (!kg.nguoi.includes(x) && s.moc[x] != null && Math.abs(viTriMan(s, d, x) ?? 9) <= 1);
       if (dich.length && !dich.some(([, x]) => thayDuoc(x))) them(c.id, `đứt chuỗi NHÌN → THẤY: cuối #${a.thu_tu} ${dich.map(([n, x]) => `${n} nhìn ${x}`).join(', ')} — #${c.thu_tu} cắt theo ánh mắt mà không cho thấy thứ được nhìn`);
     }
@@ -118,7 +123,7 @@ export function loiMach2d(kg: KhongGian | null | undefined, ds0: ShotKg[]): Reco
         if (!dn || !noi.includes(dn)) them(c.id, `phản ứng không NHÌN người vừa nói: #${c.thu_tu} ${y} nhìn ${dn ?? '(không khai)'} — cuối #${a.thu_tu} ${noi.join(', ')} vừa nói; người nghe phải nhìn người nói (cố ý né thì khai sd.ne_nhin)`); } }
     // CẬN CHÈN ĐỔI PHÍA (#8→#9: nắm tay vào từ phải, cận chèn quay máy khác lại chìa từ trái): cận chèn đồ trên tay người X phải quay CÙNG HƯỚNG máy
     // với shot trước (lệch ≤ LECH_CHEN°) — phía bàn tay trong ảnh AI đi theo góc máy, không đoán được từ chỗ đứng
-    if (a && c.ky_thuat?.co_canh === 'insert' && kg.nguoi.some((n) => d.o[n] != null && doCam(kg, c.thu_tu, n, 'dau').length)) {
+    if (a && c.ky_thuat?.co_canh === 'insert' && kg.nguoi.some((n) => d.o[n] != null && doCam(kg, phat(c), n, 'dau').length)) {
       const ma = s.may[sdLuc(a, 'ket')!.may], mc = s.may[d.may];
       if (ma && mc) { const h = (m: { dat: [number, number]; nhin: [number, number] }) => Math.atan2(m.nhin[1] - m.dat[1], m.nhin[0] - m.dat[0]) * 180 / Math.PI; const l = gocLech(h(ma), h(mc));
         if (l > LECH_CHEN) them(c.id, `cận chèn đổi phía: #${c.thu_tu} quay máy "${d.may}" lệch ${Math.round(l)}° so máy "${sdLuc(a, 'ket')!.may}" của #${a.thu_tu} — đồ trên tay sẽ vào khung từ phía khác; dùng máy cùng hướng #${a.thu_tu}`); }
@@ -126,7 +131,7 @@ export function loiMach2d(kg: KhongGian | null | undefined, ds0: ShotKg[]): Reco
     // CHẠM MÀ ĐỨNG XA (#5–#7: Vivian vươn tay tới thẻ trên ngực Hạ mà sơ đồ đặt cách 1,5 m → clip #7 Vivian đứng cách cả sải tay): dáng của A nhắc chạm B
     // (tay trên / nắm / giật / chạm) thì A–B trong sơ đồ phải ≤ TAM_VOI m
     for (const luc of ['dau', 'ket'] as const) { const m = sdLuc(c, luc)!;
-      for (const A of nguoiKhung(kg, c, luc) ?? []) { const dg = dang(kg, c.thu_tu, A, luc)?.en ?? ''; if (!CHAM.test(dg)) continue;
+      for (const A of nguoiKhung(kg, c, luc) ?? []) { const dg = dang(kg, phat(c), A, luc)?.en ?? ''; if (!CHAM.test(dg)) continue;
         for (const B of kg.nguoi.filter((n) => n !== A && m.o[n] != null && dg.includes(n.split(' ').pop()!))) { const pa = diemO(kg, m, A), pb = diemO(kg, m, B); if (!pa || !pb) continue; const kc = Math.hypot(pa[0] - pb[0], pa[1] - pb[1]);
           if (kc > TAM_VOI) them(c.id, `đứt mạch khoảng cách: #${c.thu_tu} ${luc === 'dau' ? 'đầu' : 'cuối'} ${A} chạm ${B} (sổ dáng) mà sơ đồ đặt cách ${kc.toFixed(1)} m — dời chỗ đứng trong sơ đồ về ≤ ${TAM_VOI} m`); } } }
   }
@@ -157,11 +162,11 @@ const diemO = (kg: KhongGian, m: ManhSoDo, ten: string): [number, number] | null
 /** CẢNH BÁO (không chặn) từ sơ đồ — bản 2D của bo-set-3d › canhBaoMachTap: luật 30° · khoảng nhìn · ống kính lệch cỡ cảnh / quá nhiều tiêu cự. */
 export function canhBao2d(kg: KhongGian | null | undefined, ds0: ShotKg[]): Record<number, string[]> {
   const out: Record<number, string[]> = {}; if (!kg?.so_do) return out; const them = (id: number, x: string) => { (out[id] ??= []).push(x); };
-  const ds = ds0.filter((c) => c.ky_thuat?.sd).sort((a, b) => a.thu_tu - b.thu_tu); const s = kg.so_do;
+  const ds = ds0.filter((c) => c.ky_thuat?.sd).sort((a, b) => xepPhat(a, b)); const s = kg.so_do;
   for (let i = 0; i < ds.length; i++) {
     const c = ds[i]!; const d = sdLuc(c, 'dau')!; const co = c.ky_thuat?.co_canh ?? ''; const may = s.may[d.may];
     // luật 30° / 2 bậc: cùng chủ thể chính, máy quanh nó xoay < 30° và cỡ đổi < 2 bậc
-    const a = i > 0 && ds[i - 1]!.phan_doan === c.phan_doan ? ds[i - 1]! : null;
+    const a0 = i > 0 && ds[i - 1]!.phan_doan === c.phan_doan ? ds[i - 1]! : null; const a = a0 && !lienMay(a0, c) ? a0 : null;
     if (a && may) { const k = sdLuc(a, 'ket')!; const sb = (nguoiKhung(kg, c, 'dau') ?? [])[0]; const ma = s.may[k.may];
       if (sb && ma && (nguoiKhung(kg, a, 'ket') ?? [])[0] === sb) { const pa = diemO(kg, k, sb), pb = diemO(kg, d, sb);
         if (pa && pb) { const g = (x: [number, number], p: [number, number]) => (Math.atan2(x[1] - p[1], x[0] - p[0]) * 180) / Math.PI; const lech = gocLech(g(ma.dat, pa), g(may.dat, pb));
@@ -252,7 +257,7 @@ export function loiDoThem(kg: KhongGian, c: Shot & { thu_tu: number }, luc: LucK
     if (!coThoai && k.nhin?.net && k.nhin.net.ha > NGUONG_DO.ha_mieng) out.push({ chu: `${k.ten} há miệng (${k.nhin.net.ha}) ở shot không có thoại — như đang nói`, muc: 'canh' });
     // ÁNH NHÌN DỌC (luat anh_mat_doc_goc_may): ngước lên = doc âm
     // sổ dáng ghi cúi / cụp mắt ở khung này → ánh nhìn dọc theo sổ dáng, không đòi ngước (#13 cuối: Hạ nghe Thần rồi cụp mắt)
-    const dg = dang(kg, c.thu_tu, k.ten, luc); const kdDang = dg ? kyVongDang(dg.en).dau : undefined;
+    const dg = dang(kg, phat(c), k.ten, luc); const kdDang = dg ? kyVongDang(dg.en).dau : undefined;
     const kd = kdDang === -1 || kdDang === 1 ? null : kyVongDoc(kg, c, k.ten, luc); const d = k.nhin?.doc;   // 'cằm ngang' trong sổ vẫn cho mắt ngước theo người cao hơn
     // kỳ vọng ngước lên (kd = −1) mà đo cúi rõ (d > ngưỡng), hoặc kỳ vọng nhìn xuống (kd = 1) mà đo ngẩng rõ (d < −ngưỡng)
     if (kd != null && d != null && ((kd === -1 && d > NGUONG_DO.doc_nguoc) || (kd === 1 && d < -NGUONG_DO.doc_nguoc))) out.push({ chu: `${k.ten} ${kd < 0 ? 'lẽ ra ngước lên' : 'lẽ ra nhìn xuống'} (người kia ${kd < 0 ? 'cao' : 'thấp'} hơn) mà đo ${d > 0 ? 'cúi' : 'ngẩng'} ${Math.abs(d)}°`, muc: 'canh' });

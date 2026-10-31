@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // VÒNG TỰ SỬA CLIP (anh 17/10/2026: "tự động hoàn thành, fix làm sao ra được video không bị lỗi … đéo phải cứ hỏi xin suốt ngày"). Shot nào
 // clip còn lỗi soi (soi-clip.ts: chữ lạ, sản phẩm vắng, mặt trôi, biến dạng) hoặc lượt sinh bị từ chối → Gemini viết lại prompt video theo lỗi
 // vừa gặp + luật đã học (tu-sua-clip-do.ts) → lint → sinh lại QUA ĐÚNG CỔNG STUDIO (batDauVideoCanh) → máy soi tự chạy lúc nhận clip.
@@ -215,5 +216,5 @@ export async function tuSuaClipTap(db: Db, tapId: number, o: { toiDa?: number; c
   const songSong = SONG_SONG;
   let i = 0;
   await Promise.all(Array.from({ length: Math.min(songSong, hang.length) }, async () => { while (i < hang.length) await xuLy(hang[i++]!); }));
-  return ra.sort((a, b) => a.thu_tu - b.thu_tu);
+  return ra.sort((a, b) => xepPhat(a, b));
 }

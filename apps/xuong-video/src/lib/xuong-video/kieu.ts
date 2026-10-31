@@ -665,6 +665,8 @@ export type Canh = {
   /** job video đang chạy của shot: cổng · model đang áp dụng (ngan) + các bước dự phòng đã thử (day) */
   video_dang?: { ngan: string; day: string };
   /** nguồn tham khảo của từng câu chữ màn / lời (tham-khao.ts) — QC bắt buộc */ tham_khao?: import('./tham-khao').ThamKhaoCau[];
+  /** số XẾP PHÁT (xv_canh.thu_tu) — khác thu_tu (số HIỆN) chỉ ở shot con: #2.9 phát ngay sau #2, #3.1 phát ngay trước #3 (khoaPhat) */ thu_tu_phat?: number;
+  /** shot con: id shot cha (#2.9 → #2) */ con_cua?: number | null;
   keyframe_url: string | null; keyframe_uv: string[];
   /** keyframe KẾT (khung cuối, sinh từ khung màu chỗ kết) — video nhận làm ảnh cuối */ keyframe_ket?: string | null; /** keyframe GIỮA (khung 3D giữa clip) — ô giữa dải nhịp của ảnh thứ 2 */ keyframe_giua?: string | null; /** giây cắt cuối clip (trước lúc dải nhịp hiện) */ cat_cuoi_s?: number | null; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };
@@ -799,3 +801,15 @@ export function doanHien(chu: string, phat: number, toiDaTu?: number): { tu: num
 }
 /** Chữ màn hiện trên timeline/thẻ shot: chỉ câu cuối (câu đã "lộ hết"), bỏ cú pháp "@giây". */
 export const chuManHien = (chu: string): string => { const d = doanChuMan(chu, 999); return d.length ? d[d.length - 1]!.dong.join(' ') : chu.trim(); };
+
+/** SHOT CON (anh 01/11/2026: "#2.9 … sub của shot #2, đoạn cuối của #2" · "#3.1 … đoạn hứng đoạn 2.9"): số HIỆN có phần lẻ → số XẾP PHÁT.
+ *  Lẻ ≥ .5 = ĐOẠN CUỐI của shot nguyên (phát ngay sau nó): 2.9 → 2.04. Lẻ < .5 = ĐOẠN ĐẦU của shot nguyên kế (phát ngay trước nó): 3.1 → 2.51.
+ *  Số nguyên giữ nguyên. Mọi ORDER BY thu_tu trong DB vì thế xếp đúng thứ tự phát; số hiện nằm ở xv_canh.so_hien (mapCanh đổi về thu_tu). */
+export function khoaPhat(so: number): number {
+  const n = Math.floor(so), f = Math.round((so - n) * 10000) / 10000;
+  if (!f) return so;
+  return Math.round((f >= 0.5 ? n + (f - 0.5) * 0.1 : n - 0.5 + f * 0.1) * 10000) / 10000;
+}
+/** số xếp phát của một shot (shot thường: = thu_tu) — dùng để XẾP, tìm shot liền trước / sau, và tra sổ theo số shot */
+export const phat = (c: { thu_tu: number; thu_tu_phat?: number }): number => c.thu_tu_phat ?? c.thu_tu;
+export const xepPhat = (a: { thu_tu: number; thu_tu_phat?: number }, b: { thu_tu: number; thu_tu_phat?: number }): number => phat(a) - phat(b);

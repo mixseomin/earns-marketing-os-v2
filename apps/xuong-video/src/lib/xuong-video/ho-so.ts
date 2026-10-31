@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // HỒ SƠ TIỀN KỲ — khuôn CHUẨN của studio (14/10/2026, anh chốt từ Tango & Lint tập 1: "dùng cái này làm tiêu chuẩn cho cả studio").
 // Ngành tách bảy tài liệu, mỗi cái của một người — KHÔNG gộp:
 //   1. Kịch bản (biên kịch)             — screenplay: tiêu đề cảnh, hành động, nhân vật + diễn xuất + lời/âm hiệu, chuyển cảnh. KHÔNG máy.
@@ -26,14 +27,14 @@ const tenLuat = (k: string) => luatDung(k)?.ten.replace(/\s*\(.*\)$/, '') ?? k;
 /** Shot của nhánh dựng (thân chung + hook A), theo thứ tự. */
 /** Mã ANIMATIC: keyframe + giây phát của nhánh dựng theo thứ tự — duyệt animatic ghi mã này; keyframe hay giây đổi là phải duyệt lại. */
 export const maAnimatic = (ds: { thu_tu: number; nhanh?: string; keyframe_url?: string | null; phat_s: number | null; thoi_luong_s: number }[]): string =>
-  maBan(ds.filter((c) => !c.nhanh || c.nhanh === 'A').sort((a, b) => a.thu_tu - b.thu_tu).map((c) => `${c.keyframe_url ?? '-'}@${giay(c as ShotHoSo)}`).join('|'));
+  maBan(ds.filter((c) => !c.nhanh || c.nhanh === 'A').sort((a, b) => xepPhat(a, b)).map((c) => `${c.keyframe_url ?? '-'}@${giay(c as ShotHoSo)}`).join('|'));
 /** Đo tập theo THAM CHIẾU của series: độ dài (không tính cảnh intro) + số gag/phút. */
 export function doTheoThamChieu(v: HoSoVao): { giay: number; gag: number; gagPhut: number } {
   const giayTap = v.phan_canh.filter((p) => !p.intro).flatMap((p) => cuaCanh(v, p)).reduce((a, s) => a + giay(s), 0);
   const gag = v.phan_canh.reduce((a, p) => a + (p.gag?.length ?? 0), 0);
   return { giay: giayTap, gag, gagPhut: giayTap ? Math.round((gag / (giayTap / 60)) * 10) / 10 : 0 };
 }
-const shotDung = (v: HoSoVao) => v.canh.filter((c) => !c.nhanh || c.nhanh === 'A').sort((a, b) => a.thu_tu - b.thu_tu);
+const shotDung = (v: HoSoVao) => v.canh.filter((c) => !c.nhanh || c.nhanh === 'A').sort((a, b) => xepPhat(a, b));
 const cuaCanh = (v: HoSoVao, pc: PhanCanh) => shotDung(v).filter((s) => s.phan_doan === pc.ten);
 
 /** Bóc tách của một cảnh: anchor gắn ở các shot của cảnh, chia theo loại (thứ tự xuất hiện). */

@@ -1,3 +1,4 @@
+import { xepPhat } from './kieu';
 // THỬ NGƯỜI XEM LẦN ĐẦU (13/10/2026 — anh: "đây là chuẩn bị quan trọng cho mọi video, cần chuẩn hoá"). Fox Tales tập 2 chấm kịch bản 100/100
 // (đủ 5 nhịp, hook, lật ngược đúng chỗ) mà xem xong vẫn khó hiểu: cú lật dựa vào truyện Aesop phim không kể, mục tiêu Felix không ai nói,
 // đoạn quạ hát thì câm. Máy chấm cấu trúc không thấy được — phải có một người xem CHỈ biết thứ trên màn kể lại câu chuyện.
@@ -115,7 +116,7 @@ export type KeHoachSua = {
   thuTu: (number | string)[];
 };
 export function keHoachSua(canh: Pick<Canh, 'id' | 'thu_tu' | 'thoai' | 'nhan_vat'>[], nv: Pick<NhanVat, 'id' | 'ten'>[], sua: SuaShot[], them: ShotMoi[]): KeHoachSua {
-  const ds = [...canh].sort((a, b) => a.thu_tu - b.thu_tu);
+  const ds = [...canh].sort((a, b) => xepPhat(a, b));
   const capNhat: KeHoachSua['capNhat'] = [];
   for (const x of sua) {
     const c = ds.find((y) => y.thu_tu === x.shot); if (!c) continue;

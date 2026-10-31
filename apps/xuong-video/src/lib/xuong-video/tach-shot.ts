@@ -7,6 +7,7 @@
 import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
 import { chupTruoc } from './hoan-tac';
+import { khoaPhat } from './kieu';
 import { buocCua, khuonTheoKey, kiemKhuon, type ApKhuon, type ShotKhuon } from './khuon-chuoi';
 
 type Db = NonNullable<ReturnType<typeof getDb>>;
@@ -68,6 +69,29 @@ export async function chenShotSauDb(db: Db, idTruoc: number, moi: { hanh_dong: s
   const [id] = await chenSau(db, Number(g.tap_id), g, 1, [{ canh: String(g.canh ?? ''), hanh_dong: moi.hanh_dong, ky_thuat: moi.ky_thuat }], nguoi, `chèn shot sau #${g.thu_tu}`);
   await db.execute(sql`UPDATE xv_canh SET dan_dung = coalesce(${moi.dan_dung ? JSON.stringify(moi.dan_dung) : null}::jsonb, dan_dung), phat_s = coalesce(${moi.phat_s ?? null}, phat_s), nhanh = ${g.nhanh ?? null} WHERE id = ${id!}`);
   return { ok: true, id: id! };
+}
+
+/** SHOT CON: shot có số hiện lẻ (so_hien 2.9 / 3.1) là đoạn của shot số nguyên cùng nhánh — 2.9 thuộc #2 (đoạn cuối), 3.1 thuộc #3 (đoạn đầu)
+ *  → con_cua = id shot cha. Gọi sau mọi lần dựng / cập nhật tập. */
+export async function ganShotCha(db: Db, tapId: number): Promise<void> {
+  await db.execute(sql`UPDATE xv_canh c SET con_cua = p.id FROM xv_canh p WHERE c.tap_id = ${tapId} AND p.tap_id = c.tap_id AND c.so_hien IS NOT NULL AND c.so_hien <> floor(c.so_hien)
+    AND p.so_hien IS NULL AND p.thu_tu = floor(c.so_hien) AND coalesce(p.nhanh, '') = coalesce(c.nhanh, '') AND c.con_cua IS DISTINCT FROM p.id`);
+  await db.execute(sql`UPDATE xv_canh SET con_cua = NULL WHERE tap_id = ${tapId} AND (so_hien IS NULL OR so_hien = floor(so_hien)) AND con_cua IS NOT NULL`);
+}
+
+/** Thêm SHOT CON số hiện `so` (2.9 = đoạn cuối #2 · 3.1 = đoạn đầu #3) — KHÔNG dồn số shot khác, sổ theo số shot giữ nguyên.
+ *  Shot con mang cảnh / nhân vật / look của shot cha (shot số nguyên floor/ceil tương ứng). */
+export async function themShotConDb(db: Db, tapId: number, so: number, moi: { hanh_dong: string; ky_thuat: Record<string, unknown>; phat_s?: number | null; nhanh?: string | null }): Promise<{ ok: true; id: number } | { ok: false; loi: string }> {
+  if (so === Math.floor(so)) return { ok: false, loi: 'shot con phải có số lẻ (vd 2.9 hoặc 3.1)' };
+  const soCha = Math.floor(so);
+  const g = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} AND thu_tu = ${soCha} AND so_hien IS NULL AND coalesce(nhanh, '') = coalesce(${moi.nhanh ?? null}, '')`)) as unknown as Row[])[0];
+  if (!g) return { ok: false, loi: `không thấy shot cha #${soCha}` };
+  const trung = (await db.execute(sql`SELECT 1 FROM xv_canh WHERE tap_id = ${tapId} AND so_hien = ${so} AND coalesce(nhanh, '') = coalesce(${moi.nhanh ?? null}, '')`)) as unknown as Row[];
+  if (trung.length) return { ok: false, loi: `đã có shot #${so}` };
+  const r = (await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, so_hien, con_cua, nhanh, canh, hanh_dong, phan_doan, nhan_vat, bien_the, ky_thuat, thoi_luong_s, phat_s, cam_xuc, trang_phuc, bieu_cam)
+    VALUES (${tapId}, ${khoaPhat(so)}, ${so}, ${Number(g.id)}, ${moi.nhanh ?? null}, ${String(g.canh ?? '')}, ${moi.hanh_dong}, ${g.phan_doan ?? ''}, ${JSON.stringify(g.nhan_vat ?? [])}::jsonb, ${JSON.stringify(g.bien_the ?? [])}::jsonb,
+      ${JSON.stringify(moi.ky_thuat)}::jsonb, ${Number(g.thoi_luong_s) || 4}, ${moi.phat_s ?? null}, ${Number(g.cam_xuc) || 0}, ${String(g.trang_phuc ?? '')}, ${g.bieu_cam ? JSON.stringify(g.bieu_cam) : null}::jsonb) RETURNING id`)) as unknown as Row[];
+  return { ok: true, id: Number(r[0]!.id) };
 }
 
 const docKhuon = async (db: Db, tapId: number) => ((await db.execute(sql`SELECT khuon_chuoi FROM xv_tap WHERE id = ${tapId}`)) as unknown as { khuon_chuoi: ApKhuon[] }[])[0]?.khuon_chuoi ?? [];

@@ -20,7 +20,7 @@ import { dayViecAm, chayNen } from '@/lib/xuong-video/hoan-tat';
 import { gopAm } from '@/lib/xuong-video/xuat-chay';
 import { batDauXuatTap } from '@/lib/xuong-video/xuat-tap';
 import { MO_HINH_AM, giaAm, moHinhAm, dongThoai, giaGiongTheo, timNv, giayNhac } from '@/lib/xuong-video/am-thanh';
-import { locNhanh, giayPhat, laTiengViet, type ThuNguoiXem, type KiemKhung } from '@/lib/xuong-video/kieu';
+import { locNhanh, giayPhat, laTiengViet, phat, type ThuNguoiXem, type KiemKhung } from '@/lib/xuong-video/kieu';
 import { sinhNhacTap } from '@/lib/xuong-video/sinh-nhac';
 import { dsKho, luuShotVaoKho, dungTaiSan, boKhoiKho, luuKhuonQc, taoTapTuKhuon, apKieuChuThuongHieu } from '@/lib/xuong-video/kho';
 import { dsMoHinhGiong, giongCua, dauVaoGiongTheoModel, type MoHinhGiong } from '@/lib/xuong-video/giong';
@@ -2124,7 +2124,7 @@ export async function layThanhPhanCanh(canhId: number): Promise<{ ok: boolean; t
   // BỔ SUNG nối từ shot TRƯỚC cùng phân đoạn đã sinh keyframe: ưu tiên TRẠNG THÁI THỰC TẾ đã xác lập ở CUỐI shot đó (đã bóc) — đó mới là mốc shot này phải khớp (anh 30/10);
   // chưa bóc thì tạm dùng dự kiến cuối. tuThat=true khi lấy từ thực tế.
   let boSung: { tuShot: string; tuThat: boolean; muc: MucDuKien[] } | null = null;
-  const tr = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${c.tap_id} AND phan_doan = ${c.phan_doan} AND coalesce(nhanh, '') IN ('', 'A') AND thu_tu < ${c.thu_tu} AND keyframe_url IS NOT NULL ORDER BY thu_tu DESC LIMIT 1`)) as unknown as Row[])[0];
+  const tr = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${c.tap_id} AND phan_doan = ${c.phan_doan} AND coalesce(nhanh, '') IN ('', 'A') AND thu_tu < ${phat(c)} AND keyframe_url IS NOT NULL ORDER BY thu_tu DESC LIMIT 1`)) as unknown as Row[])[0];
   if (tr) {
     const ct = mapCanh(tr);
     const dcCuoi = ct.boc_tach?.doi_chieu?.cuoi ?? ct.boc_tach?.doi_chieu?.dau;

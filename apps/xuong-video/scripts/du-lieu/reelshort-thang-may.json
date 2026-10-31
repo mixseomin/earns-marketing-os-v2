@@ -290,6 +290,7 @@
       }
     },
     {
+      "so": 2.9,
       "co": "mcu",
       "giay": 1.2,
       "nv": [
@@ -304,8 +305,8 @@
       "anh": "Medium close-up of Hạ seen from her front-right, the closed elevator door beside her: she is mid-turn, her head swinging from the elevator toward camera-right, face in three-quarter profile, wary.",
       "vid": "Continuing the same head turn, Hạ swings her gaze {Lâm Hạ→loi_vao} toward the lobby entrance and holds it there, wary. Static camera.",
       "mo": "Hạ is mid-turn, her head swinging from the elevator toward the lobby entrance at the sound of heels, face in three-quarter profile",
-      "ket": "Hạ has turned her head {Lâm Hạ→loi_vao}, her eyes locked on the lobby entrance, her face visible — the same head direction as the start of the next wide shot",
-      "noi": "nhin",
+      "ket": "Hạ's head is turning on toward the lobby entrance {Lâm Hạ→loi_vao}, her face fully in view, wary",
+      "noi": "dong_tac",
       "sd": {
         "may": "hai_nguoi",
         "o": {
@@ -328,7 +329,49 @@
         "ket"
       ],
       "mo_vi": "Trung cận Hạ từ phía trước bên phải: đầu đang quay dở từ cửa thang về phía lối vào (nối tiếp động tác cuối #2)",
-      "ket_vi": "Hạ đã quay hẳn đầu sang phải, về phía lối vào, lộ mặt — khớp hướng đầu ở khung mở của shot toàn cảnh kế tiếp",
+      "ket_vi": "Đầu Hạ đang quay tiếp về phía lối vào, lộ trọn mặt — cắt giữa động tác sang #3.1 (toàn cảnh)",
+      "bc": [
+        {
+          "nv": "Lâm Hạ",
+          "dau": "lo_lang",
+          "cuoi": "lo_lang"
+        }
+      ]
+    },
+    {
+      "so": 3.1,
+      "co": "ws",
+      "giay": 1.0,
+      "nv": [
+        "Lâm Hạ",
+        "Sảnh thang máy",
+        "Thùng đồ cá nhân",
+        "Thẻ nhân viên"
+      ],
+      "bt": [
+        "Sơ mi trắng dính cà phê"
+      ],
+      "hd": "Toàn sảnh (đầu #3): Hạ quay nốt đầu, nhìn hẳn về phía lối vào còn trống — hứng động tác cuối #2.9",
+      "anh": "Wide shot of the same lobby from the front: Hạ stands with her box in front of the closed elevator door, her head turned toward the empty lobby opening on screen right, wary, the click of heels approaching.",
+      "vid": "Hạ finishes turning her head {Lâm Hạ→loi_vao} toward the empty lobby opening and holds there, wary, as the click of heels grows louder. Static camera.",
+      "mo": "Hạ's head is still turning toward the lobby opening, continuing the motion of the previous shot",
+      "ket": "Hạ holds her gaze {Lâm Hạ→loi_vao} on the empty lobby opening, waiting, the heels now very close",
+      "noi": "dong_tac",
+      "sd": {
+        "may": "toan",
+        "o": {
+          "Lâm Hạ": "ha"
+        },
+        "nhin": {
+          "Lâm Hạ": "loi_vao"
+        }
+      },
+      "khung_ve": [
+        "dau",
+        "ket"
+      ],
+      "mo_vi": "Toàn sảnh cùng góc #3: đầu Hạ đang quay nốt về phía lối vào (nối tiếp động tác cuối #2.9)",
+      "ket_vi": "Hạ nhìn hẳn lối vào còn trống, chờ — tiếng giày đã rất gần; phần chính #3 Vivian bước vào cùng góc máy",
       "bc": [
         {
           "nv": "Lâm Hạ",
@@ -1101,7 +1144,7 @@
         "vi": "đeo trên cổ Hạ, nằm trên ngực"
       },
       {
-        "tu": 8,
+        "tu": 7,
         "ai": "Vivian",
         "cach": "held by its SNAPPED dark blue lanyard in Vivian's right hand, the white card dangling below her fingers (she holds the lanyard, never the card itself)",
         "vi": "Vivian cầm dây đứt bằng TAY PHẢI, thẻ lủng lẳng dưới tay (không cầm vào thẻ)",
@@ -1140,42 +1183,42 @@
         "su_kien": "nghe giày cao gót, Hạ quay đầu về phía lối vào"
       },
       {
-        "tu": 6,
+        "tu": 5,
         "ai": "Lâm Hạ",
         "cach": "head bowed slightly, eyes down on Vivian's hand at her chest",
         "vi": "hơi cúi, mắt nhìn xuống tay Vivian trên ngực",
         "su_kien": "Hạ cúi nhìn tay Vivian chạm vào thẻ"
       },
       {
-        "tu": 8,
+        "tu": 7,
         "ai": "Lâm Hạ",
         "cach": "chin level, eyes wide, jerked half a step forward",
         "vi": "bị giật chúi về trước, ngẩng lên, mắt mở to",
         "su_kien": "dây thẻ đứt, Hạ chúi về trước rồi ngẩng lên sững sờ"
       },
       {
-        "tu": 9,
+        "tu": 8,
         "ai": "Lâm Hạ",
         "cach": "head slightly bowed, eyes dropped low",
         "vi": "hơi cúi, mắt nhìn xuống thấp",
         "su_kien": "Hạ cụp mắt nhìn nắm tay Vivian"
       },
       {
-        "tu": 12,
+        "tu": 11,
         "ai": "Lâm Hạ",
         "cach": "chin level, looking at the man stepping out of the elevator",
         "vi": "cằm ngang, nhìn người bước ra thang",
         "su_kien": "cửa thang mở, Hạ ngẩng lên nhìn Lục Thần"
       },
       {
-        "tu": 14,
+        "tu": 13,
         "ai": "Lâm Hạ",
         "cach": "head bowed, eyes lowered, lips pressed together",
         "vi": "cúi đầu, cụp mắt, mím môi",
         "su_kien": "nghe lời anh ta, Hạ cụp mắt xuống"
       },
       {
-        "tu": 16,
+        "tu": 15,
         "ai": "Lâm Hạ",
         "cach": "chin raised, eyes level and steady, a faint smile at the corner of her mouth",
         "vi": "ngẩng cằm, mắt ngang vững, khoé môi nhếch nhẹ",
@@ -1190,35 +1233,35 @@
         "vi": "hai tay buông xuôi, tay không"
       },
       {
-        "tu": 6,
+        "tu": 5,
         "ai": "Vivian",
         "cach": "right arm extended toward Hạ, right hand on the badge on Hạ's chest; left arm down at her side",
         "vi": "tay phải vươn tới, bàn tay đặt lên thẻ trên ngực Hạ; tay trái buông",
         "su_kien": "Vivian vươn tay phải tới thẻ trên ngực Hạ"
       },
       {
-        "tu": 8,
+        "tu": 7,
         "ai": "Vivian",
         "cach": "right fist pulled back to her own chest, elbow bent, gripping the snapped lanyard; left arm down",
         "vi": "nắm tay phải kéo về sát ngực mình, khuỷu gập, nắm dây thẻ đứt; tay trái buông",
         "su_kien": "Vivian giật mạnh về phía mình"
       },
       {
-        "tu": 11,
+        "tu": 10,
         "ai": "Vivian",
         "cach": "right hand raised beside her face holding the snapped lanyard up, badge dangling; left arm down",
         "vi": "tay phải giơ dây thẻ ngang mặt, thẻ lủng lẳng; tay trái buông",
         "su_kien": "Vivian giơ dây thẻ lên ngang mặt"
       },
       {
-        "tu": 15,
+        "tu": 14,
         "ai": "Vivian",
         "cach": "right arm stretched forward at shoulder height, swinging the dangling badge toward Hạ; left arm down",
         "vi": "tay phải đưa ra trước ngang vai, lắc tấm thẻ về phía Hạ; tay trái buông",
         "su_kien": "Vivian lắc tấm thẻ trước mặt Hạ"
       },
       {
-        "tu": 17,
+        "tu": 16,
         "ai": "Vivian",
         "cach": "right hand lowered to waist height, badge hanging still; left arm down",
         "vi": "tay phải hạ xuống ngang hông, thẻ rủ yên; tay trái buông",
@@ -1241,7 +1284,7 @@
         "vi": "đứng NGOÀI thang, trên sàn sảnh trước cửa thang"
       },
       {
-        "tu": 18,
+        "tu": 17,
         "ai": "Lâm Hạ",
         "cach": "standing INSIDE the elevator cabin, steel walls around her, facing out toward the doors",
         "vi": "đứng TRONG cabin thang máy, vách thép quanh người, quay mặt ra cửa",

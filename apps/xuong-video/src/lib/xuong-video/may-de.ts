@@ -125,6 +125,11 @@ export { giuHook, GIU_HOOK_TOI_THIEU } from './hook-qc.mjs';
 /** Chữ có dấu tiếng Việt (ă â đ ê ô ơ ư + các thanh) — chữ đăng tiếng Anh không bao giờ có. */
 export const CHU_VIET = /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i;
 /** Kiểm đề + chữ đăng theo đúng luật Phòng Nội dung (cham-dang.mjs) trước khi nạp — sai thì trả lỗi để sinh lại. Thuần. */
+/** Hook AI đã chọn theo mã — khớp dễ dãi: mô hình hay bỏ tiền tố / ngoặc ("kenh:931" → "931", "[1998…]"). 31/10/2026: 5/6 đề eSIMfares hỏng "chưa chọn hook" vì thế, 449₫ phí. Thuần. */
+export const timHook = (ds: HookQc[] | undefined, ma: string | undefined): HookQc | null => {
+  const so = (v: string) => String(v ?? '').replace(/^\D+/, '').replace(/\D+$/, '');
+  return ds?.find((k) => k.id === ma) ?? ds?.find((k) => !!ma && so(k.id) !== '' && so(k.id) === so(ma)) ?? null;
+};
 export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string, unknown>; title: string; description: string; nhan: string; ngon_ngu?: 'en' | 'vi'; hooks?: HookQc[]; hook_qc?: string }): string[] {
   const loi: string[] = [], chu = `${x.title}\n${x.description}`, thuong = chu.toLowerCase();
   if (x.title.length < 25) loi.push(`câu móc quá ngắn (${x.title.length})`); if (x.title.length > 110) loi.push(`câu móc dài ${x.title.length}`);
@@ -134,7 +139,7 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
   if (/[—–]/.test(chu)) loi.push('gạch ngang dài');
   // hook phải lấy từ QC thật (khi máy có hook gốc): đã chọn một QC, câu móc giữ đủ bản gốc, không mang tên thương hiệu của nhà quảng cáo đó
   if (x.hooks?.length) {
-    const h = x.hooks.find((k) => k.id === x.hook_qc);
+    const h = timHook(x.hooks, x.hook_qc);
     if (!h) loi.push('chưa chọn hook QC gốc (hook_qc phải là một mã trong danh sách hook đã cho)');
     else {
       loi.push(...loiHook(dongHookBai(x.title, x.de), h.chu));   // MỌI dòng hook (tiêu đề + câu trên màn), không còn "một dòng giống là qua"
@@ -244,7 +249,7 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en', o.hooks ?? []) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.` : ''), ten: 'de_bai' });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;
-    const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich, hook: o.hooks?.find((h) => h.id === r.data.hook_qc) ?? null });
+    const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich, hook: timHook(o.hooks, r.data.hook_qc) });
     loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: o.hooks, hook_qc: r.data.hook_qc });
     if (!loiCu.length) return { ok: true, de, vnd, model: r.model, tokens: { ...tk, vnd } };
   }

@@ -161,13 +161,15 @@ if (a.includes('--nap')) {
   const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);
   const thuTu = [...gocs].sort((g1, g2) => (dem.get(g1.id) ?? 0) - (dem.get(g2.id) ?? 0));   // góc chưa dùng trước, rồi góc dùng ít
   const daDung = daCo.map((x) => x.title ?? '').filter(Boolean);
-  let vnd = 0, n = 0, i = 0; const ra: string[] = [];
+  let vnd = 0, n = 0, i = 0, hongLien = 0; const ra: string[] = [];
   for (const g of thuTu) {
     if (n >= N) break;
     const d = DANG_VIDEO[i++ % DANG_VIDEO.length]!;
     const hk = hooksCho(g, n); if (!hk.length) { ra.push(`· hết hook QC chưa dùng (${hookDaDung.size} hook đều đã có bài chờ đăng) — dừng lượt`); break; }
     const kq = await sinhDe({ sp, goc: g, dang_bai: d, daDung, hooks: hk }); vnd += kq.vnd;
-    if (!kq.ok) { ra.push(`✗ #${g.id} ${d}: ${kq.loi}`); if (/TỐN TIỀN/.test(kq.loi)) break; continue; }
+    // 3 đề hỏng liền nhau = lỗi hệ thống, không phải đề xấu → dừng, không đốt tiền tiếp (31/10/2026: 5/6 hỏng cùng một lỗi, 449₫)
+    if (!kq.ok) { ra.push(`✗ #${g.id} ${d}: ${kq.loi}`); hongLien++; if (/TỐN TIỀN/.test(kq.loi) || hongLien >= 3) { if (hongLien >= 3) ra.push('· 3 đề hỏng liền — dừng lượt'); break; } continue; }
+    hongLien = 0;
     await napVideo(db, ma, [kq.de]); daDung.push(kq.de.dang.title ?? ''); const hq = (kq.de.dang as { hook?: { qc?: string } }).hook?.qc; if (hq) hookDaDung.add(hq);
     const v = ((await db.execute(sql`SELECT id FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${kq.de.slug}`)) as unknown as { id: number }[])[0];
     const x = v ? await xuatVideo(db, Number(v.id)) : { ok: false as const, loi: 'không thấy dòng vừa nạp' };

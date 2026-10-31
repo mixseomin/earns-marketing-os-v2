@@ -127,20 +127,20 @@ if (a.includes('--nap')) {
   const hookCuaQc = new Map(hookTu(qcGoc.length ? (await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta where library_id = any(${qcGoc})`) as never : []).map((h) => [h.id, h]));
   /** 6 hook cho một góc: QC của góc trước, rồi QC chạy lâu của nhóm (xoay theo thứ tự để các bài không cùng một hook). */
   // hook dùng NGUYÊN VĂN → một hook chỉ một bài đang chờ đăng của máy (31/10/2026: 5 bài Front Porch cùng một câu → Phòng Nội dung chặn trùng tiêu đề)
-  const hookDaDung = new Set(((await db.execute(sql`SELECT v.dang->'hook'->>'qc' AS qc FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false) AND v.dang->'hook'->>'qc' IS NOT NULL`)) as unknown as { qc: string }[]).map((x) => x.qc));
+  const hookDaDung = new Set(((await db.execute(sql`SELECT v.dang->'hook'->>'qc' AS qc FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false) AND v.dang->'hook'->>'qc' IS NOT NULL AND coalesce(v.cham->>'ket', 'DUYET') = 'DUYET'`   -- bài bị chặn không bao giờ đăng → hook của nó trả lại kho)) as unknown as { qc: string }[]).map((x) => x.qc));
   const hooksCho = (g: { qc_ids: string[] }, i: number): HookDong[] => { const rieng = (g.qc_ids ?? []).map((id) => hookCuaQc.get(String(id))).filter((x): x is HookDong => !!x && !hookDaDung.has(x.id)).slice(0, 3);
     const con = hookNhom.filter((h) => !hookDaDung.has(h.id));
     const chung = con.length ? Array.from({ length: Math.min(6, con.length) }, (_, k) => con[(i * 3 + k) % con.length]!) : [];
     return [...rieng, ...chung.filter((h, k, ds) => !rieng.some((r) => r.id === h.id) && ds.findIndex((x) => x.id === h.id) === k)].slice(0, 6); };
   await spy.end();
   // NGỌC LỌC KHO HOOK TRƯỚC KHI SINH (31/10/2026): cùng phép xét của Phòng Nội dung (cham-dang.mjs › xetHookAi — lệch ngách / hứa điều thương hiệu không có),
-  // hook bị chặn thì không đưa cho AI viết — sinh ra là bài SỬA LẠI, đốt tiền. Xét 20 hook nhóm chạy lâu nhất + QC gắn góc; vài đồng một hook.
+  // hook bị chặn thì không đưa cho AI viết — sinh ra là bài SỬA LẠI, đốt tiền. Xét 40 hook nhóm chạy lâu nhất + QC gắn góc; vài đồng một hook.
   {
     const { xetHookAi } = await import('../../cty/worker/cham-dang.mjs');
     const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
     const muc = ((await db.execute(sql`SELECT muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { muc_dich: string | null }[])[0]?.muc_dich ?? null;
     const xet = async (ds: HookDong[]) => { const loi = await xetHookAi(ds.map((h) => ({ qc: h.id, ma, nhan: sp.nhan, muc_dich: muc, su_that: suThat, dong: [h.chu] }))); return ds.filter((_, k) => !loi[k]); };
-    const truoc = hookNhom.length + hookCuaQc.size, nhomDat = await xet(hookNhom.slice(0, 20)), qcDat = new Set((await xet([...hookCuaQc.values()])).map((h) => h.id));
+    const truoc = hookNhom.length + hookCuaQc.size, nhomDat = await xet(hookNhom.slice(0, 40)), qcDat = new Set((await xet([...hookCuaQc.values()])).map((h) => h.id));
     hookNhom.splice(0, hookNhom.length, ...nhomDat); for (const k of [...hookCuaQc.keys()]) if (!qcDat.has(k)) hookCuaQc.delete(k);
     console.log(`· Ngọc lọc kho hook: giữ ${hookNhom.length + hookCuaQc.size}/${truoc}`);
   }

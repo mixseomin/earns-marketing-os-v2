@@ -2,7 +2,7 @@
 // độ khớp, liên quan. Những chi tiết quan trọng phải so sánh cụ thể rõ ràng"). duKienKhung dựng spec dự kiến của shot từ dữ liệu (ai có mặt, áo,
 // tóc, biểu cảm, đạo cụ, khung, bối cảnh); doiChieuKhung nhờ Gemini so TỪNG thành phần quan trọng → mức khớp + ghi chú cụ thể. ~0,3¢/khung.
 import 'server-only';
-import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
+import { goiGeminiJson } from './soi-bien-dang';
 import { ghiTienChu, type Db } from './doc-db';
 import { bieuCam } from './qc-cam-xuc';
 import { doCam, dang, nguoiKhung, viTri, nhinCan, sdLuc, type KhongGian } from './khong-gian';
@@ -90,7 +90,7 @@ export async function doiChieuKhung(db: Db | null, phimId: number | null, duKien
   ].join('\n');
   const r = await goiGeminiJson<{ doi_chieu?: DongDoiChieu[] }>([{ text }], SCHEMA, undefined);
   if (!r) return null;
-  if (db) await ghiTienChu(db, phimId, 'đối chiếu khung', MO_HINH_BD, r.tk, 'google');
+  if (db) await ghiTienChu(db, phimId, 'đối chiếu khung', r.model, r.tk, r.nguon);
   return r.data.doi_chieu ?? null;
 }
 

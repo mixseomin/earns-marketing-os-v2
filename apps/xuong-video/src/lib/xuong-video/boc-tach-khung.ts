@@ -3,7 +3,7 @@
 // ánh sáng, khung hình, MỌI người (cả vai phụ) với vị trí/áo/tóc/trang sức/biểu cảm/hướng nhìn/dáng/đồ cầm, MỌI đạo cụ (trạng thái + vị trí).
 // Dùng để (a) đối chiếu spec shot (lệch thì chặn + sinh lại) và (b) mang TRẠNG THÁI THẬT sang shot sau. Gemini Flash ~0,3¢/khung (ghi xv_job).
 import 'server-only';
-import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
+import { goiGeminiJson } from './soi-bien-dang';
 import { ghiTienChu } from './doc-db';
 import { readFile } from 'node:fs/promises';
 import type { Db } from './doc-db';
@@ -43,6 +43,6 @@ export async function bocTachKhung(db: Db | null, phimId: number | null, anh: st
   const lenh = LENH + (tenNhanVat?.length ? `\nDANH SÁCH NHÂN VẬT trong phim (ánh xạ "ai" và "nguoi_giu" về đúng MỘT tên trong đây khi nhận ra, dựa áo/tóc/vai): ${tenNhanVat.join(', ')}.` : '');
   const r = await goiGeminiJson<BocTachKhung>([{ text: lenh }, { inlineData: { mimeType: 'image/jpeg', data: b.toString('base64') } }], SCHEMA, 'MEDIA_RESOLUTION_HIGH');
   if (!r) return null;
-  if (db) await ghiTienChu(db, phimId, 'bóc tách khung', MO_HINH_BD, r.tk, 'google');
+  if (db) await ghiTienChu(db, phimId, 'bóc tách khung', r.model, r.tk, r.nguon);
   return r.data;
 }

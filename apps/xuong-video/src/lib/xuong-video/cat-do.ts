@@ -4,7 +4,7 @@
 import 'server-only';
 import sharp from 'sharp';
 import { randomUUID } from 'node:crypto';
-import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
+import { goiGeminiJson } from './soi-bien-dang';
 import { ghiTienChu, type Db } from './doc-db';
 import { uploadToR2 } from '../r2';
 
@@ -12,7 +12,7 @@ export async function catDo(db: Db, phimId: number | null, anhUrl: string, tenEn
   const b = Buffer.from(await (await fetch(anhUrl)).arrayBuffer());
   const schema = { type: 'OBJECT', properties: { co: { type: 'BOOLEAN' }, box_2d: { type: 'ARRAY', items: { type: 'INTEGER' } } }, required: ['co'] };
   const r = await goiGeminiJson<{ co: boolean; box_2d?: number[] }>([{ text: `Find ${tenEn}${moTa ? ` (${moTa})` : ''} in this film frame. If clearly visible, return co=true and its bounding box as box_2d = [ymin, xmin, ymax, xmax] on a 0–1000 scale. If not visible, co=false.` }, { inlineData: { mimeType: 'image/jpeg', data: b.toString('base64') } }], schema, 'MEDIA_RESOLUTION_MEDIUM');
-  if (!r) return null; await ghiTienChu(db, phimId, 'cắt đồ vật (hộp bao)', MO_HINH_BD, r.tk, 'google');
+  if (!r) return null; await ghiTienChu(db, phimId, 'cắt đồ vật (hộp bao)', r.model, r.tk, r.nguon);
   const bx = r.data.box_2d; if (!r.data.co || !bx || bx.length !== 4) return null;
   const meta = await sharp(b).metadata(); const W = meta.width ?? 0, H = meta.height ?? 0; if (!W || !H) return null;
   const [y0, x0, y1, x1] = bx.map((v) => Math.max(0, Math.min(1000, v)) / 1000) as [number, number, number, number];

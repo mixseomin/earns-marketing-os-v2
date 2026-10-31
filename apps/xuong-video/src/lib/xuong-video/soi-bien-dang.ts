@@ -42,7 +42,7 @@ type KetSoiBd = { loi: string[]; tho: LoiBienDang[]; cents: number; canhBao: str
 /** Tải clip về đĩa MỘT lần rồi cắt khung tại chỗ (17/10/2026: ffmpeg đọc thẳng URL mở lại kết nối + tua cho TỪNG khung — 26 khung/clip,
  *  soi lại 14 clip #127 mất 25 phút). Tải hỏng thì đọc thẳng URL như cũ. */
 export async function soiBienDang(db: Db | null, o: { url: string; dai: number; sp: string; yDo?: string; phimId?: number | null }): Promise<KetSoiBd | null> {
-  if (!khoaGoogle()) return null;
+  if (!coDuongGemini()) return null;
   const tep = join(tmpdir(), `soi-bd-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp4`);
   const co = /^https?:/.test(o.url) ? await fetch(o.url, { signal: AbortSignal.timeout(120_000) }).then(async (r) => (r.ok ? (await writeFile(tep, Buffer.from(await r.arrayBuffer())), true) : false)).catch(() => false) : false;
   try { return await soiBienDangTep(db, { ...o, url: co ? tep : o.url }); } finally { if (co) await unlink(tep).catch(() => {}); }
@@ -57,7 +57,7 @@ async function soiBienDangTep(db: Db | null, o: { url: string; dai: number; sp: 
   const goi = (anh: string[]) => goiGeminiJson<{ loi?: LoiBienDang[] }>([{ text: loiDanBienDang(o.sp, o.yDo) }, ...anh.map((d) => ({ inlineData: { mimeType: 'image/jpeg', data: d } }))], schema, 'MEDIA_RESOLUTION_MEDIUM');
   const [x, y] = await Promise.all([goi(a), goi(b)]);
   if (!x || !y) return null;
-  const tk = { in: x.tk.in + y.tk.in, out: x.tk.out + y.tk.out };
+  const tk = congTk(x.tk, y.tk);
   // gộp: mỗi loại lấy thời điểm sớm nhất mà một trong hai lượt thấy
   const gop = new Map<string, { giay: number; mo_ta: string; khung: number }>();
   for (const [ds, ts] of [[x.data.loi ?? [], tA], [y.data.loi ?? [], tB]] as const) for (const l of ds) {
@@ -85,25 +85,43 @@ A first automatic check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Loo
     if (cd?.co && cd.muc === 'nhe') { canhBao.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} (nhẹ) giây ${Math.round(v.giay * 10) / 10}: ${cd.ly_do.slice(0, 140)}`); continue; }
     if (!cd || cd.co) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); }
   }
-  let cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', MO_HINH_BD, tk, 'google') : giaChuCents(MO_HINH_BD, tk.in, tk.out);
+  let cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', x.model, tk, x.nguon) : tk.vnd != null ? (tk.vnd / 26000) * 100 : giaChuCents(MO_HINH_BD, tk.in, tk.out);
   if (tkXn) cents += db ? await ghiTienChu(db, o.phimId ?? null, 'xác nhận lỗi clip', modelXn, tkXn) : giaChuCents(modelXn, tkXn.in, tkXn.out);
   return { loi, tho: giu, cents, canhBao };
 }
-/** MỘT lượt Gemini trả JSON theo schema (MO_HINH_BD, suy nghĩ low) — dùng chung cho soi biến dạng và viết lại prompt (tu-sua-clip.ts). null = lỗi / thiếu khoá. */
-export async function goiGeminiJson<T>(parts: unknown[], schema: unknown, mediaResolution?: string, model: string = MO_HINH_BD): Promise<{ data: T; tk: { in: number; out: number } } | null> {
-  const key = khoaGoogle(); if (!key) return null;
-  const body = { contents: [{ role: 'user', parts }], generationConfig: { ...(mediaResolution ? { mediaResolution } : {}), thinkingConfig: { thinkingLevel: 'low' }, maxOutputTokens: 16384, responseMimeType: 'application/json', responseSchema: schema } };
-  try {
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(120_000) });
-    if (!r.ok) { console.error('[gemini json]', r.status, (await r.text()).slice(0, 200)); return null; }
-    const j = await r.json() as { candidates?: { finishReason?: string; content?: { parts?: { text?: string }[] } }[]; promptFeedback?: { blockReason?: string }; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number } };
-    const u = j.usageMetadata ?? {};
-    // không có chữ (hết token / bị chặn) → null có lý do, KHÔNG trả {} (17/10/2026: {} thành điểm NaN, vòng tự làm phim đổ lỗi)
-    const txt = (j.candidates?.[0]?.content?.parts ?? []).map((x) => x.text ?? '').join('').trim();
-    if (!txt) { console.error('[gemini json] không có chữ —', j.candidates?.[0]?.finishReason ?? j.promptFeedback?.blockReason ?? 'không rõ'); return null; }
-    return { data: JSON.parse(txt) as T, tk: { in: u.promptTokenCount ?? 0, out: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0) } };
-  } catch (e) { console.error('[gemini json]', e); return null; }
+/** MỘT lượt Gemini trả JSON theo schema (MO_HINH_BD, suy nghĩ low) — dùng chung cho soi biến dạng, bóc tách / đối chiếu khung, viết lại prompt… null = lỗi / thiếu khoá.
+ *  CHUỖI RẺ → CHÍNH HÃNG (anh 31/10/2026: "các luồng AI phải ưu tiên nguồn từ rẻ đến chính hãng"): ckey.vn → ShopAIKey → Google trực tiếp, CÙNG thân
+ *  generateContent (hai cổng nhận nguyên đường /v1beta của Google). Trước đó mọi lượt đi thẳng Google — 66 lượt / 3 ngày, khoản chữ lớn nhất của studio.
+ *  `model` mang tiền tố đường đã đi ('ckey:…' / 'shopaikey:…', Google = tên trơn), `nguon` = provider ghi sổ; tk.vnd = tiền thật (ckey báo usage.x_ckey.cost;
+ *  ShopAIKey = giá niêm yết Google × 3.250₫ mỗi $1 credit). */
+export type KqGeminiJson<T> = { data: T; tk: { in: number; out: number; vnd?: number }; model: string; nguon: 'ckey' | 'shopaikey' | 'google' };
+export async function goiGeminiJson<T>(parts: unknown[], schema: unknown, mediaResolution?: string, model: string = MO_HINH_BD): Promise<KqGeminiJson<T> | null> {
+  const body = JSON.stringify({ contents: [{ role: 'user', parts }], generationConfig: { ...(mediaResolution ? { mediaResolution } : {}), thinkingConfig: { thinkingLevel: 'low' }, maxOutputTokens: 16384, responseMimeType: 'application/json', responseSchema: schema } });
+  const duong: { nguon: KqGeminiJson<T>['nguon']; goc: string; khoa: string | null | undefined }[] = [
+    { nguon: 'ckey', goc: 'https://api.xah.io/v1beta', khoa: process.env.CKEY_API_KEY },
+    { nguon: 'shopaikey', goc: 'https://api.shopaikey.com/v1beta', khoa: process.env.SHOPAIKEY_API_KEY },
+    { nguon: 'google', goc: 'https://generativelanguage.googleapis.com/v1beta', khoa: khoaGoogle() },
+  ];
+  for (const d of duong) {
+    if (!d.khoa) continue;
+    try {
+      const r = await fetch(`${d.goc}/models/${model}:generateContent`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-goog-api-key': d.khoa, ...(d.nguon === 'google' ? {} : { authorization: `Bearer ${d.khoa}` }) }, body, signal: AbortSignal.timeout(120_000) });
+      if (!r.ok) { console.error(`[gemini json ${d.nguon}]`, r.status, (await r.text()).slice(0, 200)); continue; }
+      const j = await r.json() as { candidates?: { finishReason?: string; content?: { parts?: { text?: string; thought?: boolean }[] } }[]; promptFeedback?: { blockReason?: string }; usageMetadata?: { promptTokenCount?: number; candidatesTokenCount?: number; thoughtsTokenCount?: number; x_ckey?: { cost?: number } } };
+      const u = j.usageMetadata ?? {};
+      // không có chữ (hết token / bị chặn) → đường sau; hết đường thì null có lý do, KHÔNG trả {} (17/10/2026: {} thành điểm NaN, vòng tự làm phim đổ lỗi)
+      const txt = (j.candidates?.[0]?.content?.parts ?? []).filter((x) => !x.thought).map((x) => x.text ?? '').join('').trim();
+      if (!txt) { console.error(`[gemini json ${d.nguon}] không có chữ —`, j.candidates?.[0]?.finishReason ?? j.promptFeedback?.blockReason ?? 'không rõ'); continue; }
+      const data = JSON.parse(txt) as T;
+      const tk = { in: u.promptTokenCount ?? 0, out: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0) };
+      const vnd = d.nguon === 'ckey' && typeof u.x_ckey?.cost === 'number' ? u.x_ckey.cost : d.nguon === 'shopaikey' ? (giaChuCents(model, tk.in, tk.out) / 100) * 3250 : undefined;
+      return { data, tk: vnd != null ? { ...tk, vnd } : tk, model: d.nguon === 'google' ? model : `${d.nguon}:${model}`, nguon: d.nguon };
+    } catch (e) { console.error(`[gemini json ${d.nguon}]`, e); }
+  }
+  return null;
 }
+/** Có ít nhất một đường cho goiGeminiJson (cổng rẻ hoặc Google). */
+export const coDuongGemini = (): boolean => !!(process.env.CKEY_API_KEY || process.env.SHOPAIKEY_API_KEY || khoaGoogle());
 /** Ý đồ của shot cho máy soi: hành động video + khung hình (bỏ đoạn tả sản phẩm dài — đã có riêng) — để quần cũ / rách / chia đôi khung cố ý không bị báo. */
 export const yDoShot = (promptVideo: string, promptAnh: string, spMoTa = ''): string =>
   [promptVideo, spMoTa ? promptAnh.split(spMoTa).join('') : promptAnh].map((x) => x.trim()).filter(Boolean).join(' | ').slice(0, 900);

@@ -8,12 +8,12 @@ import { batDauVideoCanh, kiemVideoTap } from './sinh-video';
 import { sinhKeyframeCanh } from './sinh-anh';
 import { chupTruoc } from './hoan-tac';
 import { taiAnhBase64 } from './google';
-import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
+import { goiGeminiJson } from './soi-bien-dang';
 import { giaVideoCong } from './cong-ai';
 import { lintPrompt, loiDanSuaPrompt, laLoiTam, laTuChoiModel, laMatNoiTieng, laPlenxBan, tranPlenx, VIDEO_DU_PHONG } from './tu-sua-clip-do';
 import { coNguoi } from './quy-trinh';
 import { ghiTienChu, mapCanh, type Db, type Row } from './doc-db';
-import { loiSoiClip, locNhanh, type Canh } from './kieu';
+import { congTk, loiSoiClip, locNhanh, type Canh } from './kieu';
 
 const ngu = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
 const docCanh = async (db: Db, id: number): Promise<Canh> => mapCanh(((await db.execute(sql`SELECT * FROM xv_canh WHERE id = ${id}`)) as unknown as Row[])[0]!);
@@ -38,7 +38,7 @@ ${sp ? `The product must match this description exactly: ${sp}\n` : ''}List only
   const schema = { type: 'OBJECT', properties: { loi: { type: 'ARRAY', items: { type: 'STRING' } } }, required: ['loi'] };
   const [x, y] = await Promise.all([goiGeminiJson<{ loi?: string[] }>(parts, schema), goiGeminiJson<{ loi?: string[] }>(parts, schema)]);
   if (!x || !y) return null;
-  await ghiTienChu(db, phimId, `soi keyframe #${c.thu_tu}`, MO_HINH_BD, { in: x.tk.in + y.tk.in, out: x.tk.out + y.tk.out }, 'google');
+  await ghiTienChu(db, phimId, `soi keyframe #${c.thu_tu}`, x.model, congTk(x.tk, y.tk), x.nguon);
   return (x.data.loi ?? []).length && (y.data.loi ?? []).length ? (x.data.loi ?? []) : [];
 }
 /** Viết lại prompt khung (prompt_anh) theo lỗi soi keyframe: giữ NGUYÊN đoạn mô tả sản phẩm (thay bằng ‹sản phẩm› khi gửi, ghép lại sau),
@@ -51,7 +51,7 @@ On-screen text the frame must support: ${c.chu_man || '(none)'}
 Change framing / composition / pose so the model renders the product correctly (e.g. a medium or full-body shot instead of a tight close-up when the close-up gets the product details wrong), keep the same person, setting and meaning. Hands out of frame or relaxed at the sides. Plain English, under 90 words plus the ‹PRODUCT› token.` }],
     { type: 'OBJECT', properties: { prompt: { type: 'STRING' } }, required: ['prompt'] });
   if (!r) return null;
-  await ghiTienChu(db, phimId, `viết lại prompt khung #${c.thu_tu}`, MO_HINH_BD, r.tk, 'google');
+  await ghiTienChu(db, phimId, `viết lại prompt khung #${c.thu_tu}`, r.model, r.tk, r.nguon);
   const p = (r.data.prompt ?? '').trim();
   if (!p || (sp && !p.includes('‹PRODUCT›'))) return null;
   return sp ? p.split('‹PRODUCT›').join(sp) : p;
@@ -142,7 +142,7 @@ async function vietLaiPrompt(db: Db, c: Canh, phimId: number, loi: string[], daT
     const r = await goiGeminiJson<{ prompt?: string }>([{ text: loiDanSuaPrompt({ prompt: c.prompt_video, chu: c.chu_man, loi, daThu }) + (ten ? `\n- Never write the brand or product name ("${ten}") — call it "the trousers"; any name in the prompt gets printed onto the clothing.` : '') }],
       { type: 'OBJECT', properties: { prompt: { type: 'STRING' } }, required: ['prompt'] });
     if (!r) { log(`  #${c.thu_tu} viết lại prompt: Gemini không trả lời`); return null; }
-    await ghiTienChu(db, phimId, `viết lại prompt video #${c.thu_tu}`, MO_HINH_BD, r.tk, 'google');
+    await ghiTienChu(db, phimId, `viết lại prompt video #${c.thu_tu}`, r.model, r.tk, r.nguon);
     const p = (r.data.prompt ?? '').trim();
     // không thêm người vào shot không có người (#120 shot 3: shot sản phẩm bị viết thành 'the person stands…')
     const vi = [...(!p ? ['rỗng'] : []), ...lintPrompt(p).map((l) => l.vi), ...(coNguoi(p) && !coNguoiShot ? ['thêm người vào shot không người'] : []), ...(ten && p.toLowerCase().includes(ten.toLowerCase()) ? [`có tên "${ten}"`] : [])];

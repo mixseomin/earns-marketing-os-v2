@@ -3,7 +3,7 @@
 // cầm dây thẻ, #13 Hạ vẫn đeo dây thẻ đã bị giật. ~0,3¢ / khung, ghi tiền vào xv_job như mọi lượt chữ. Thiếu khoá / lỗi mạng → null (không báo đạt giả).
 import 'server-only';
 import { readFile } from 'node:fs/promises';
-import { goiGeminiJson, MO_HINH_BD } from './soi-bien-dang';
+import { goiGeminiJson } from './soi-bien-dang';
 import { ghiTienChu, type Db } from './doc-db';
 import type { CauHoi } from './cau-hoi-khung';
 
@@ -29,6 +29,6 @@ export async function hoiKhung(db: Db, phimId: number | null, anh: string, cau: 
     ...cau.map((c) => `[${c.ma}] ${c.hoi}`)].join('\n');
   const r = await goiGeminiJson<{ dap?: { ma: string; co: boolean }[] }>([{ text }, { inlineData: { mimeType: 'image/jpeg', data: b.toString('base64') } }], schema, res);
   if (!r) return null;
-  await ghiTienChu(db, phimId, 'soi nối cắt (hỏi khung)', MO_HINH_BD, r.tk, 'google');
+  await ghiTienChu(db, phimId, 'soi nối cắt (hỏi khung)', r.model, r.tk, r.nguon);
   return Object.fromEntries((r.data.dap ?? []).map((x) => [x.ma, x.co]));
 }

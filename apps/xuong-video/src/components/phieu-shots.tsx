@@ -75,13 +75,13 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
         {ds.map((x) => (
           <button key={x.id} type="button" onClick={() => setChon(x.id)} style={{ display: 'grid', gap: 1, textAlign: 'left', padding: '5px 8px', borderRadius: 4, border: '1px solid var(--line)', background: x.id === p.id ? 'var(--bg-3)' : 'transparent' }}>
             <span style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
-              <b style={{ fontSize: 12 }}>#{x.thu_tu}{x.nhanh ? ` ${x.nhanh}` : ''}</b>
+              <b style={{ fontSize: 13, color: 'var(--fg)', minWidth: 30 }}>#{x.thu_tu}{x.nhanh ? ` ${x.nhanh}` : ''}</b>
               <span style={mono}>{x.co_canh}</span>
               <span style={{ flex: 1 }} />
               {x.thieu.length > 0 && <span style={{ ...mono, color: 'var(--red)' }} title={`Thiếu thông tin trước khi sinh: ${x.thieu.join(', ')}`}>thiếu {x.thieu.length}</span>}
               {x.lech.length > 0 && <span style={{ ...mono, color: 'var(--amber)' }} title={x.lech.join('\n')}>lệch {x.lech.length}</span>}
             </span>
-            <span style={{ fontSize: 11.5, color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.hanh_dong}</span>
+            <span style={{ fontSize: 11.5, color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingLeft: 36 }}>{x.hanh_dong}</span>
           </button>
         ))}
       </div>

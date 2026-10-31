@@ -522,6 +522,31 @@ export function goiYTuyenTruyen(kt0: KinhThanh, tenPhim: string): Promise<GoiYKq
   return hoi(TuyenTruyenSchema, kt, HE_THONG_GOI_Y, `PHIM: ${tenPhim}\nLogline: ${kt.logline}\nĐộng cơ series: ${s?.dong_co ?? ''}\n${co ? `Tuyến đã có: ${co}\n` : ''}\nBẢN ĐỒ TẬP:\n${tap}\n\nLập BẢNG TUYẾN TRUYỆN (tuyến A/B/C + sự kiện của từng tuyến trong từng tập) và SỔ GÀI / TRẢ (chi tiết gieo ở tập nào, trả ở tập nào) cho series này — chỉ dựa trên bản đồ trên.`);
 }
 
+/** VIẾT TIẾP N TẬP trên bản đồ series (anh 31/10/2026: "mở rộng thêm vài tập để xem tuyến truyện sẽ thế nào"): đọc bản đồ + bảng tuyến +
+ *  sổ gài/trả hiện có → viết các tập kế tiếp nối mạch, ghi sự kiện từng tuyến, gieo chi tiết mới, TRẢ chi tiết đang treo. Gọn (không kéo kịch bản). */
+const ThemTapSchema = z.object({
+  tap: z.array(z.object({
+    so: z.number(), ten: z.string().describe('Tên tập, cùng ngôn ngữ các tập đã có, ngắn, gây tò mò'),
+    logline: z.string().describe('Logline một câu, cùng ngôn ngữ các tập đã có: ai muốn gì, vướng gì, lật ngược gì'),
+    loai: z.enum(['phieu_luu', 'nguon_goc', 'ket_mua']).describe('ket_mua chỉ cho tập cuối cùng nếu được yêu cầu kết mùa'),
+    nhan_vat: z.array(z.string()).describe('nhân vật chính của tập (đúng tên đã có)'),
+    boi_canh: z.array(z.string()).describe('bối cảnh / đạo cụ (đúng tên đã có nếu dùng lại)'),
+    gai_tra: z.string().describe('gài / trả của tập (tiếng Việt)'),
+  })).describe('Các tập MỚI, số nối tiếp tập cuối'),
+  su_kien: z.array(z.object({ so: z.number(), ma: z.string(), viec: z.string().describe('sự kiện của tuyến trong tập, tiếng Việt, tối đa 14 từ') }))
+    .describe('Sự kiện của từng tuyến trong các tập MỚI; tuyến chính A có mặt gần như mọi tập, tuyến phụ không bỏ quá 2 tập liền'),
+  gai_tra_moi: z.array(z.object({ chi_tiet: z.string(), gieo: z.number(), tra: z.number().nullable() })).describe('Chi tiết MỚI gieo trong các tập mới'),
+  tra_cu: z.array(z.object({ chi_tiet: z.string().describe('đúng nguyên văn chi tiết đang treo trong sổ'), tra: z.number() })).describe('Chi tiết ĐANG TREO được trả ở tập mới nào'),
+});
+export function vietThemTap(kt0: KinhThanh, tenPhim: string, n: number, tenAnchor: string[]): Promise<GoiYKq<z.infer<typeof ThemTapSchema>>> {
+  const kt = docKinhThanh(kt0); const s = kt.series;
+  const tuyen = s?.tuyen ?? [];
+  const tap = [...(s?.tap ?? [])].sort((a, b) => a.so - b.so).map((t) => `Tập ${t.so} "${t.ten}": ${t.logline}${tuyen.map((x) => (t.su_kien?.[x.ma] ? `\n   ${x.ma}: ${t.su_kien[x.ma]}` : '')).join('')}`).join('\n');
+  const so = (s?.so_gai_tra ?? []).map((g) => `- ${g.chi_tiet} (gieo tập ${g.gieo}, ${g.tra == null ? 'CÒN TREO' : `trả tập ${g.tra}`})`).join('\n');
+  const cuoi = Math.max(0, ...(s?.tap ?? []).map((t) => t.so));
+  return hoi(ThemTapSchema, kt, HE_THONG_GOI_Y, `PHIM: ${tenPhim}\nLogline: ${kt.logline}\nĐộng cơ series: ${s?.dong_co ?? ''}\nNhân vật / bối cảnh đã có: ${tenAnchor.join(', ')}\nTUYẾN: ${tuyen.map((t) => `${t.ma} = ${t.ten}`).join('; ')}\n\nBẢN ĐỒ HIỆN CÓ:\n${tap}\n\nSỔ GÀI / TRẢ:\n${so || '(trống)'}\n\nViết tiếp ĐÚNG ${n} tập (tập ${cuoi + 1}–${cuoi + n}) nối mạch: mỗi tập leo thang xung đột, có cú lật, kết bằng móc. Ghi sự kiện từng tuyến cho các tập mới, gieo chi tiết mới và trả dần các chi tiết đang treo (đừng trả hết một lúc).`);
+}
+
 export const goiYKinhThanh = (nc: NguCanhPhim) =>
   hoi(KinhThanhSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết PHONG CÁCH HÌNH ẢNH cố định, TIỀN ĐỀ, THỂ LOẠI, LOGLINE và CHỦ ĐỀ cho bộ phim này. Nếu đã có thì giữ ý, viết rõ và cụ thể hơn (chất liệu, màu, ánh sáng, lens).`);
 

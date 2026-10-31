@@ -78,3 +78,31 @@ export function tronAi(s: Series, ai: AiTuyenTruyen, taoId: () => string): Serie
   const moi = ai.gai_tra.filter((g) => g.chi_tiet.trim() && !da.has(g.chi_tiet.trim().toLowerCase())).map((g) => ({ id: taoId(), chi_tiet: g.chi_tiet.trim(), gieo: g.gieo, tra: g.tra ?? null }));
   return { ...s, tuyen, tap, so_gai_tra: [...(s.so_gai_tra ?? []), ...moi] };
 }
+
+/** Kết quả AI viết tiếp tập (claude.ts › vietThemTap). */
+export type AiThemTap = {
+  tap: { so: number; ten: string; logline: string; loai: 'phieu_luu' | 'nguon_goc' | 'ket_mua'; nhan_vat: string[]; boi_canh: string[]; gai_tra: string }[];
+  su_kien: { so: number; ma: string; viec: string }[]; gai_tra_moi: { chi_tiet: string; gieo: number; tra: number | null }[]; tra_cu: { chi_tiet: string; tra: number }[];
+};
+/** Nối các tập AI viết vào bản đồ: số tập luôn nối tiếp tập cuối (AI đánh số lệch cũng không đè tập cũ), cùng mùa với tập cuối; sự kiện chỉ cho tuyến
+ *  đã có; chi tiết treo được trả khớp theo nguyên văn (không phân biệt hoa thường) và chỉ khi tập trả ≥ tập gieo. */
+export function themTapAi(s: Series, ai: AiThemTap, taoId: () => string): { s: Series; them: number[] } {
+  const cuoi = Math.max(0, ...s.tap.map((t) => t.so));
+  const mua = s.tap.find((t) => t.so === cuoi)?.mua;
+  const doiSo = new Map<number, number>(); [...ai.tap].sort((a, b) => a.so - b.so).forEach((t, i) => doiSo.set(t.so, cuoi + 1 + i));
+  const ma = new Set((s.tuyen ?? []).map((t) => t.ma));
+  const tapMoi = [...ai.tap].sort((a, b) => a.so - b.so).map((t) => {
+    const so = doiSo.get(t.so)!;
+    const sk = Object.fromEntries(ai.su_kien.filter((k) => k.so === t.so && ma.has(k.ma) && k.viec.trim()).map((k) => [k.ma, k.viec.trim()]));
+    return { so, ten: t.ten, logline: t.logline, ...(mua ? { mua } : {}), loai: t.loai, nhan_vat: t.nhan_vat, boi_canh: t.boi_canh, gai_tra: t.gai_tra, ...(Object.keys(sk).length ? { su_kien: sk } : {}) };
+  });
+  const quy = (n: number | null) => (n == null ? null : doiSo.get(n) ?? n);
+  const so = (s.so_gai_tra ?? []).map((g) => {
+    if (g.tra != null) return g;
+    const t = ai.tra_cu.find((x) => x.chi_tiet.trim().toLowerCase() === g.chi_tiet.trim().toLowerCase());
+    const tra = t ? quy(t.tra) : null;
+    return tra != null && tra >= g.gieo ? { ...g, tra } : g;
+  });
+  const moi = ai.gai_tra_moi.filter((g) => g.chi_tiet.trim()).map((g) => ({ id: taoId(), chi_tiet: g.chi_tiet.trim(), gieo: quy(g.gieo)!, tra: quy(g.tra) }));
+  return { s: { ...s, tap: [...s.tap, ...tapMoi], so_gai_tra: [...so, ...moi] }, them: tapMoi.map((t) => t.so) };
+}

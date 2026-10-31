@@ -2,7 +2,7 @@
 // BẢNG TUYẾN + SỔ GÀI / TRẢ (tab 📖 Phim › Tuyến truyện · Gài / trả). Sổ của phòng biên kịch: hàng là tập, cột là tuyến A/B/C; sổ gài / trả
 // ghi chi tiết gieo ở tập nào, trả ở tập nào. Luật + trộn AI: lib/xuong-video/tuyen-truyen.ts. Sửa tại chỗ, tự lưu 1,2 giây sau lần gõ cuối.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { suaPhim, aiTuyenTruyen } from '@/lib/actions';
+import { suaPhim, aiTuyenTruyen, aiThemTap } from '@/lib/actions';
 import { gioVN, type GaiTra, type Phim, type Series } from '@/lib/xuong-video/kieu';
 import { dsTap, trangThaiGaiTra, tuyenVang, tronAi } from '@/lib/xuong-video/tuyen-truyen';
 import { Chon } from './chon';
@@ -42,7 +42,7 @@ export function useSoSeries(phim: Phim, onChanged: () => Promise<void>) {
     }, 1200);
     return () => clearTimeout(t);
   }, [s, dirty, onChanged]);
-  return { s, setS, luuLuc, loi };
+  return { s, setS, luuLuc, loi, dirty };
 }
 
 /** ✨ AI rút tuyến + gài/trả từ bản đồ tập → trộn vào sổ, chỉ điền chỗ trống (không đè chữ đã gõ). */
@@ -60,6 +60,28 @@ export function NutAiTuyen({ phimId, s, setS }: { phimId: number; s: Series; set
     <Nut ban={ban} title="Claude đọc động cơ + bản đồ tập (logline, ô gài/trả) rồi đề xuất tuyến, sự kiện từng tập và sổ gài / trả — chỉ điền ô đang trống, không đè chữ đã gõ. Dùng model chữ của phim; ước ~1.800₫ một lượt theo giá chính hãng (Opus, phim 10 tập), đi cổng rẻ trước (ckey) nên thường thấp hơn." onClick={() => void chay()}>{ban ? '… AI đang đọc bản đồ' : '✨ AI rút từ bản đồ'}</Nut>
     <Loi>{loi}</Loi>
   </>;
+}
+
+/** ＋ Viết tiếp tập: AI nối N tập vào bản đồ (sự kiện từng tuyến, gài mới, trả chi tiết treo), ghi thẳng máy chủ rồi tải lại.
+ *  Khoá khi sổ đang có chữ chưa lưu — tự lưu xong mới viết, kẻo bản đang gõ đè mất các tập mới. */
+export function NutThemTap({ phimId, dangSua, onChanged }: { phimId: number; dangSua: boolean; onChanged: () => Promise<void> }) {
+  const [n, setN] = useState(5);
+  const [ban, setBan] = useState(false);
+  const [kq, setKq] = useState('');
+  const chay = async () => {
+    setBan(true); setKq('');
+    const r = await goiAction(() => aiThemTap(phimId, n));
+    setBan(false);
+    if (r.loi) { setKq(r.loi); return; }
+    const them = r.kq && 'data' in r.kq ? (r.kq.data as number[]) : [];
+    setKq(them.length ? `✓ thêm tập ${them[0]}–${them[them.length - 1]}` : '');
+    await onChanged();
+  };
+  return <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+    <Seg value={n} onChange={setN} options={[3, 5, 10].map((x) => ({ value: x, label: String(x), title: `viết tiếp ${x} tập` }))} />
+    <Nut ban={ban} ly={dangSua && 'đang lưu chữ vừa gõ — đợi 1 giây'} title="Claude đọc bản đồ + bảng tuyến + sổ gài/trả rồi viết tiếp các tập nối mạch: sự kiện từng tuyến, chi tiết gài mới, trả dần chi tiết đang treo. Tập mới nằm trên bản đồ (chưa tạo), bấm tập trên cây để tạo. Khoảng vài trăm ₫ một lượt qua ckey." onClick={() => void chay()}>{ban ? '… AI đang viết tiếp' : '＋ Viết tiếp tập'}</Nut>
+    {kq && <span style={{ ...mono, color: kq.startsWith('✓') ? 'var(--lime)' : 'var(--red)' }}>{kq}</span>}
+  </span>;
 }
 
 /** SƠ ĐỒ LÀN TUYẾN TRUYỆN (anh 31/10/2026: "cái gì trước, cái gì sau? thêm line nối giữa các thành phần"): thời gian chạy TRÁI → PHẢI

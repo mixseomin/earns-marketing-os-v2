@@ -9,7 +9,7 @@ import { docKinhThanh, muaSeries, type NhanVat, type Phim, type Tap, type TapBan
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { taoTapTuBanDo } from '@/lib/actions';
 import { Pill, Loi, mono, goiAction } from './ui';
-import { BangTuyen, SoGaiTra, NutAiTuyen, useSoSeries } from './tuyen-truyen-ui';
+import { BangTuyen, SoGaiTra, NutAiTuyen, NutThemTap, useSoSeries } from './tuyen-truyen-ui';
 import { trangThaiGaiTra, tuyenVang } from '@/lib/xuong-video/tuyen-truyen';
 
 export type MatSoDo = 'tap' | 'tuyen' | 'gai_tra';
@@ -59,6 +59,7 @@ export function SoDoSeries({ phim, tap, nhanVat, onMoTap, onChanged, mat: matSd,
           <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{kt.logline}</div>
         </div>
         <span style={mono}>{ds.length} mùa · {tongTap} tập · {coKb} có kịch bản · {daXuat} đã xuất</span>
+        <NutThemTap phimId={phim.id} dangSua={so.dirty} onChanged={onChanged} />
       </div>}
       {/* cảnh báo nằm TRÊN nội dung, bấm là tới đúng mặt (YDNI luật 4) */}
       {(nTreo > 0 || nSai > 0 || vang.length > 0) && <div className="xv-banner" style={{ margin: 0, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -72,6 +73,7 @@ export function SoDoSeries({ phim, tap, nhanVat, onMoTap, onChanged, mat: matSd,
           <b style={{ fontSize: 13 }}>{matSd === 'tuyen' ? 'Bảng tuyến truyện' : 'Sổ gài / trả'}</b>
           <span style={{ ...mono, flex: 1 }}>{matSd === 'tuyen' ? 'thời gian chạy trái → phải theo tập; mỗi tuyến một làn, sự kiện nối nhau bằng mũi tên — nét đứt vàng là tuyến đang bị bỏ quên' : 'tập cuối mùa còn chi tiết treo thì máy chấm kịch bản chặn sinh keyframe'}</span>
           {so.luuLuc && <span style={mono} title="Tự lưu sau mỗi lần gõ">✓ đã lưu {so.luuLuc}</span>}
+          <NutThemTap phimId={phim.id} dangSua={so.dirty} onChanged={onChanged} />
           <NutAiTuyen phimId={phim.id} s={sv} setS={so.setS} />
         </div>
         {matSd === 'tuyen' ? <BangTuyen s={sv} setS={so.setS} /> : <SoGaiTra s={sv} setS={so.setS} />}

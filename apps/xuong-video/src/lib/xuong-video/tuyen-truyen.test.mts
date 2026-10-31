@@ -1,6 +1,6 @@
 // Tự kiểm tuyen-truyen.ts: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/tuyen-truyen.test.mts
 import assert from 'node:assert';
-import { chamTuyenTruyen, trangThaiGaiTra, tuyenVang, tapCuoiMua, tronAi } from './tuyen-truyen';
+import { chamTuyenTruyen, trangThaiGaiTra, tuyenVang, tapCuoiMua, tronAi, themTapAi } from './tuyen-truyen';
 import type { Series } from './kieu';
 
 const tap = (so: number, mua = 1, su_kien?: Record<string, string>) => ({ so, ten: `T${so}`, logline: '', mua, su_kien });
@@ -56,4 +56,13 @@ assert.equal(t.tap.find((x) => x.so === 1)!.su_kien!.A, 'mở');
 assert.equal(t.tap.find((x) => x.so === 3)!.su_kien!.A, 'mới');
 assert.equal(t.tap.find((x) => x.so === 3)!.su_kien!.Z, undefined);
 assert.deepEqual(t.so_gai_tra!.slice(4), [{ id: 'ai1', chi_tiet: 'chiếc nhẫn', gieo: 2, tra: null }]);
+// viết tiếp: AI đánh số lệch (2, 3) vẫn nối sau tập cuối (6 → 7, 8); trả chi tiết treo theo nguyên văn; mã tuyến lạ bị bỏ
+const w = themTapAi(s, { tap: [{ so: 2, ten: 'X', logline: 'x', loai: 'phieu_luu', nhan_vat: [], boi_canh: [], gai_tra: '' }, { so: 3, ten: 'Y', logline: 'y', loai: 'ket_mua', nhan_vat: [], boi_canh: [], gai_tra: '' }],
+  su_kien: [{ so: 2, ma: 'A', viec: 'đi tiếp' }, { so: 2, ma: 'Q', viec: 'lạ' }], gai_tra_moi: [{ chi_tiet: 'mặt dây', gieo: 2, tra: 3 }], tra_cu: [{ chi_tiet: 'Vết sẹo', tra: 3 }, { chi_tiet: 'bản đồ', tra: 2 }] }, () => 'n1');
+assert.deepEqual(w.them, [7, 8]);
+assert.equal(w.s.tap.find((t) => t.so === 7)!.su_kien!.A, 'đi tiếp'); assert.equal(w.s.tap.find((t) => t.so === 7)!.su_kien!.Q, undefined);
+assert.equal(w.s.tap.find((t) => t.so === 7)!.mua, 2);
+assert.equal(w.s.so_gai_tra!.find((g) => g.id === '2')!.tra, 8);
+assert.equal(w.s.so_gai_tra!.find((g) => g.id === '4')!.tra, 7);   // bản đồ gieo tập 6 → trả tập 7 (≥ gieo) hợp lệ
+assert.deepEqual(w.s.so_gai_tra!.find((g) => g.id === 'n1'), { id: 'n1', chi_tiet: 'mặt dây', gieo: 7, tra: 8 });
 console.log('tuyen-truyen tu-kiem ok');

@@ -34,8 +34,8 @@ import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
 import { lamSanNho } from '@/lib/xuong-video/anh-nho-may';
 import { dichMoTaVi } from '@/lib/xuong-video/claude';
 import { coKhoa, DON_SO_DU, LOAI_NGUON, TEN_TRANG_THAI, type SoDu, type Nguon, type NguonModel, type TrangThaiNguon, type LoaiNguon, type O } from '@/lib/xuong-video/nguon-ai';
-import { vietKichBan, vietBaiDang, phanTichMau, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, goiYTuyenTruyen } from '@/lib/xuong-video/claude';
-import type { AiTuyenTruyen } from '@/lib/xuong-video/tuyen-truyen';
+import { vietKichBan, vietBaiDang, phanTichMau, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, goiYTuyenTruyen, vietThemTap } from '@/lib/xuong-video/claude';
+import { themTapAi, type AiTuyenTruyen } from '@/lib/xuong-video/tuyen-truyen';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, khoaKyThuatForm, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
 import { ghepThoai, thieuQc, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
@@ -1385,6 +1385,25 @@ export async function aiTuyenTruyen(phimId: number): Promise<Kq<AiTuyenTruyen>> 
   const r = await goiYTuyenTruyen(nc.kinhThanh, nc.ten);
   await ghiChu(phimId, 'AI rút tuyến truyện + gài/trả', r);
   return r.ok ? { ok: true, data: r.data } : loi(r.loi);
+}
+
+/** ＋ Viết tiếp N tập trên bản đồ series (AI, vài trăm ₫ qua ckey): nối tập, sự kiện tuyến, gài mới, trả chi tiết treo → ghi thẳng (chụp hoàn tác). */
+export async function aiThemTap(phimId: number, n: number): Promise<Kq<number[]>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const nc = await nguCanhPhimDb(db, phimId);
+  if (!nc) return loi('không thấy phim');
+  if (!docKinhThanh(nc.kinhThanh).series?.tap?.length) return loi('phim chưa có bản đồ tập');
+  const r = await vietThemTap(nc.kinhThanh, nc.ten, Math.max(1, Math.min(10, n)), nc.nhanVat.map((v) => v.ten));
+  await ghiChu(phimId, `AI viết tiếp ${n} tập trên bản đồ`, r);
+  if (!r.ok) return loi(r.loi);
+  // đọc lại ngay trước khi ghi — người có thể vừa sửa sổ trong lúc AI chạy
+  const kt = ((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as { kinh_thanh: KinhThanh }[])[0]!.kinh_thanh;
+  const { s, them } = themTapAi(kt.series!, r.data, () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`);
+  await chupTruoc(db, { bang: 'xv_phim', id: phimId, cot: ['kinh_thanh'], moTa: `AI viết tiếp tập ${them.join(', ')}`, nguoi: await ai() });
+  await db.execute(sql`UPDATE xv_phim SET kinh_thanh = jsonb_set(kinh_thanh, '{series}', ${JSON.stringify(s)}::jsonb), updated_at = now() WHERE id = ${phimId}`);
+  return { ok: true, data: them };
 }
 
 export async function goiYAIAnchor(phimId: number, a: { loai: LoaiNhanVat; ten: string; mo_ta: string }): Promise<Kq<{ mo_ta: string; giong: string }>> {

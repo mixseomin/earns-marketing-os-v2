@@ -43,6 +43,11 @@ export async function bocTachKhung(db: Db | null, phimId: number | null, anh: st
   const lenh = LENH + (tenNhanVat?.length ? `\nDANH SÁCH NHÂN VẬT trong phim (ánh xạ "ai" và "nguoi_giu" về đúng MỘT tên trong đây khi nhận ra, dựa áo/tóc/vai): ${tenNhanVat.join(', ')}.` : '');
   const r = await goiGeminiJson<BocTachKhung>([{ text: lenh }, { inlineData: { mimeType: 'image/jpeg', data: b.toString('base64') } }], SCHEMA, 'MEDIA_RESOLUTION_HIGH');
   if (!r) return null;
+  // Cổng rẻ đôi khi trả JSON ĐÚNG CÚ PHÁP nhưng KHUYẾT shape (thiếu mảng nguoi/dao_cu — người bán ckey trả prose/yaml, hoặc model 402 fallback nửa vời):
+  // coi là bóc HỎNG → null, để đối chiếu báo "bóc hỏng" thay vì sập ở doiChieuKhung (k.nguoi.map / k.vat_co_dinh.join). Chuẩn hoá các mảng cho chắc.
+  const k = r.data as Partial<BocTachKhung> | null;
+  if (!k || !Array.isArray(k.nguoi) || !Array.isArray(k.dao_cu)) return null;
+  if (!Array.isArray(k.vat_co_dinh)) k.vat_co_dinh = [];
   if (db) await ghiTienChu(db, phimId, 'bóc tách khung', r.model, r.tk, r.nguon);
-  return r.data;
+  return k as BocTachKhung;
 }

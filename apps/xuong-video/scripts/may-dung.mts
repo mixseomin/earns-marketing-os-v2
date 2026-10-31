@@ -25,6 +25,7 @@ import { readFileSync } from 'node:fs';
 import { bucAnh, dsMay, dsVideoDang, ghiDang, ghiNguon, ghiNhatKy, mayTheoMa, napVideo, xuatVideo } from '../src/lib/xuong-video/may';
 import { BO_DUNG } from '../src/lib/xuong-video/mau-dung';
 import { CHU_VIET } from '../src/lib/xuong-video/may-de';
+import { sachHook } from '../src/lib/xuong-video/hook-qc.mjs';
 
 const a = process.argv.slice(2), lay = (k: string) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] ?? '' : null; };
 const db = getDb(); if (!db) { console.error('thiếu DATABASE_URL'); process.exit(1); }
@@ -114,12 +115,13 @@ if (a.includes('--nap')) {
   // HOOK GỐC TỪ QC THẬT (anh 31/10/2026, "rule quan trọng"): dòng đầu của QC chạy LÂU NHẤT khớp nhóm góc (biểu thức liên quan của spy, \b → \y cho Postgres),
   // đúng ngôn ngữ thị trường, 20–140 ký tự, bỏ trùng chữ. Góc có QC gắn sẵn (goc.qc_ids) thì QC của góc đứng trước. AI chọn một, sửa nhẹ (may-de.ts › kiemDe).
   const vi = tt.length > 0 && tt.every((t) => /^VN/i.test(t));
+  // QC phải NÓI VỀ ngách ngay phần đầu (280 ký tự đầu khớp biểu thức liên quan) — khớp ở cuối thân QC = QC chủ đề khác (#875 xe đưa đón du thuyền lọt vào máy khách sạn)
   type HookDong = { id: string; chu: string; ngay: number; page: string };
   const hookTu = (rows: { library_id: string; dong: string; ngay: number; page_ten: string | null }[]) => { const thay = new Set<string>(), ra: HookDong[] = [];
-    for (const r of rows) { const chu = String(r.dong ?? '').replace(/\s+/g, ' ').trim(), k = chu.toLowerCase(); if (chu.length < 20 || chu.length > 140 || thay.has(k) || /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu) !== vi) continue; thay.add(k); ra.push({ id: String(r.library_id), chu, ngay: Number(r.ngay) || 0, page: String(r.page_ten ?? '') }); }
+    for (const r of rows) { const chu = sachHook(r.dong), k = chu.toLowerCase(); if (chu.length < 20 || chu.length > 140 || thay.has(k) || /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu) !== vi) continue; thay.add(k); ra.push({ id: String(r.library_id), chu, ngay: Number(r.ngay) || 0, page: String(r.page_ten ?? '') }); }
     return ra; };
   const hookNhom = hookTu((await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta
-    where bat_dau is not null and noi_dung ~* any(select replace(lien_quan, '\\b', '\\y') from goc_sp where id = any(${nhomHook}) and lien_quan is not null)
+    where bat_dau is not null and left(noi_dung, 280) ~* any(select replace(lien_quan, '\\b', '\\y') from goc_sp where id = any(${nhomHook}) and lien_quan is not null)
     order by (coalesce(lan_cuoi, now()) - bat_dau) desc, bien_the desc nulls last limit 200`) as never).slice(0, 40);
   const qcGoc = [...new Set(gocs.flatMap((g) => g.qc_ids ?? []))];
   const hookCuaQc = new Map(hookTu(qcGoc.length ? (await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta where library_id = any(${qcGoc})`) as never : []).map((h) => [h.id, h]));

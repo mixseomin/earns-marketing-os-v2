@@ -6,6 +6,7 @@ import { z } from 'zod/v4';
 import type { MauMayDung } from './may-dung-mau';
 import type { DeNapMay } from './may';
 import { giaChuCents } from './kieu';
+import { loiHook, dongHookBai } from './hook-qc.mjs';
 
 /** Dạng trong kho (scripts/ke-hoach-goc/dang-bai.json) → mẫu studio dựng được. Dạng chưa có mẫu → null (ô để máy đăng dùng bài kho như cũ). */
 export const MAU_CUA_DANG: Record<string, MauMayDung | null> = {
@@ -118,12 +119,8 @@ export const ChuDangSchema = z.object({
 /** HOOK GỐC TỪ QC THẬT (anh 31/10/2026, "rule quan trọng": "Hook cần lấy từ qc trên spy.on.tc rất chất lượng và ko nhạt"; "AI có thể tham khảo hook đó
  *  và sửa ko quá nhiều bản gốc nếu cần"): dòng đầu của quảng cáo chạy LÂU NHẤT trong nhóm góc (spy qc_meta) — máy sinh đề đưa vào prompt, AI chọn một, sửa nhẹ. */
 export interface HookQc { id: string; chu: string; ngay: number; page: string }
-const TU_RONG = new Set('a an the to of and or for in on at is are be you your yours it this that with what how why do does i me my we our he she his her they them'.split(' '));
-const tuNoiDung = (v: string) => v.toLowerCase().normalize('NFC').replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter((w) => w.length > 1 && !TU_RONG.has(w));
-/** Mức GIỮ bản gốc: tỉ lệ từ nội dung của hook gốc còn trong hook mới (0–1). Thuần. */
-export const giuHook = (moi: string, goc: string) => { const g = [...new Set(tuNoiDung(goc))]; if (!g.length) return 0; const m = new Set(tuNoiDung(moi)); return g.filter((w) => m.has(w)).length / g.length; };
-/** Ngưỡng "sửa không quá nhiều": giữ ít nhất 35% từ nội dung của hook gốc (đổi tên thương hiệu / chủ ngữ / chi tiết góc vẫn qua; viết lại mới thì không). */
-export const GIU_HOOK_TOI_THIEU = 0.35;
+// đo giữ bản gốc + luật dòng hook: MỘT bộ chung với Phòng Nội dung (hook-qc.mjs)
+export { giuHook, GIU_HOOK_TOI_THIEU } from './hook-qc.mjs';
 
 /** Chữ có dấu tiếng Việt (ă â đ ê ô ơ ư + các thanh) — chữ đăng tiếng Anh không bao giờ có. */
 export const CHU_VIET = /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i;
@@ -139,8 +136,7 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
     const h = x.hooks.find((k) => k.id === x.hook_qc);
     if (!h) loi.push('chưa chọn hook QC gốc (hook_qc phải là một mã trong danh sách hook đã cho)');
     else {
-      const hookBai = String((x.de as { moc?: string }).moc ?? '') || x.title, giu = Math.max(giuHook(x.title, h.chu), giuHook(hookBai, h.chu));
-      if (giu < GIU_HOOK_TOI_THIEU) loi.push(`câu móc sửa quá xa hook QC gốc (giữ ${Math.round(giu * 100)}% chữ, cần ≥ ${GIU_HOOK_TOI_THIEU * 100}%): "${h.chu.slice(0, 80)}"`);
+      loi.push(...loiHook(dongHookBai(x.title, x.de), h.chu));   // MỌI dòng hook (tiêu đề + câu trên màn), không còn "một dòng giống là qua"
       const ten = h.page.trim().toLowerCase(); if (ten.length >= 5 && chu.toLowerCase().includes(ten)) loi.push(`câu móc mang tên nhà quảng cáo gốc (${h.page})`);   // cả cụm tên Page — từ lẻ ("Your" của "Your Astrology Reading") chặn oan
     }
   }

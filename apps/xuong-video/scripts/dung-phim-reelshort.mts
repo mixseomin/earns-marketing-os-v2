@@ -99,6 +99,10 @@ if (gia('cap-nhat')) {
         if (daXet.get(khoa)) loiBt.push(`#${TT[i]!} ${ten}: biến thể "${b.ten}" (ảnh / mô tả) còn ${mon} mà ${mon} đã sang tay người khác — gán biến thể không có ${mon}`); } }
     if (loiBt.length) { console.error(`biến thể trang phục lệch sổ đồ vật:\n  ${loiBt.join('\n  ')}`); process.exit(1); } }
   const idNv = (x: string) => nvPhim.find((r) => r.ten === x)?.id; const idBt = (x: string) => btPhim.find((r) => r.ten === x)?.id;
+  // TÊN LẠ = LỖI, không lặng lẽ bỏ (01/11/2026: bảng còn 'Sơ mi trắng dính cà phê' sau khi look-book tách thành áo + vết → mọi shot Hạ mất áo, prompt gọi
+  // 'the woman' trơn, đối chiếu không chấm áo). Nhân vật / đối tượng / biến thể khai trong bảng mà DB không có → dừng, kể tên.
+  { const la = [...new Set(du.shot.flatMap((s) => [...s.nv.filter((x) => idNv(x) == null).map((x) => `đối tượng "${x}"`), ...(s.bt ?? []).filter((x) => idBt(x) == null).map((x) => `biến thể "${x}"`)]))];
+    if (la.length) { console.error(`bảng mảnh khai tên DB không có (đổi tên trong bảng cho khớp DB):\n  ${la.join('\n  ')}`); process.exit(1); } }
   for (const [i, s] of du.shot.entries()) {
     const nv = s.nv.map(idNv).filter((x) => x != null).map(Number); const bt = (s.bt ?? []).map(idBt).filter((x) => x != null).map(Number);
     const kt = { co_canh: s.co, ...(s.am?.length ? { am_thanh: s.am } : {}), ...ktThem(s, i) };

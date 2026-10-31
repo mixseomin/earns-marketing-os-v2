@@ -3,6 +3,7 @@
 // bấm tên mở đúng thành phần trên cây phim; bố trí 2D (khung phác từ sơ đồ cảnh) hoặc 3D (khung Blender) tuỳ shot. Dữ liệu: phieu-shots.ts (một nguồn
 // với prompt keyframe + cổng đối chiếu) — màn này chỉ hiện, không có chữ tả riêng.
 import { useEffect, useState } from 'react';
+import { useNho } from './nho';
 import { phieuShotsTap } from '@/lib/actions';
 import type { NutPhieu, PhieuShot } from '@/lib/xuong-video/phieu-shots';
 import type { DongDoiChieu } from '@/lib/xuong-video/kieu';
@@ -81,17 +82,22 @@ function LichSuAnh({ ds, lon, onXem }: { ds: AnhSinh[]; lon: AnhSinh | null; onX
 
 export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId: number; onXemShot?: (canhId: number) => void }) {
   const [ds, setDs] = useState<PhieuShot[] | null>(null);
-  const [chon, setChon] = useState<number | null>(null);
+  // shot đang chọn nằm TRÊN URL (?shot=<id>) — F5 / chia sẻ link giữ đúng shot (anh 01/11/2026: chọn #3, F5 lại về #1)
+  const [chonS, setChonS] = useNho<string>('xv-phieu-shot', '', undefined, 'shot');
+  const chon = Number(chonS) || null; const setChon = (id: number) => setChonS(String(id));
   const [xem, setXem] = useState<Xem>('2d');
-  const [anhXem, setAnhXem] = useState<string | null>(null);   // ảnh đang xem to + so sánh (null = mới nhất)
-  useEffect(() => { let huy = false; void phieuShotsTap(tapId).then((r) => { if (!huy) { setDs(r); setChon((c) => c ?? r[0]?.id ?? null); } }); return () => { huy = true; }; }, [tapId]);
+  const [anhXem, setAnhXem] = useState<string | null>(null);   // ảnh đang xem to + so sánh (null = ảnh ĐANG CHỌN làm keyframe — cùng ảnh với 'lệch N' ở danh sách)
+  useEffect(() => { let huy = false; void phieuShotsTap(tapId).then((r) => { if (!huy) { setDs(r); } }); return () => { huy = true; }; }, [tapId]);
   if (!ds) return <span style={mono}>…</span>;
   if (!ds.length) return <div style={mono}>Tập chưa có shot — viết kịch bản rồi ✂ Tách cảnh ở nút 📝 Kịch bản.</div>;
   const p = ds.find((x) => x.id === chon) ?? ds[0]!;
-  const lon = p.lich_su.find((x) => x.url === anhXem) ?? p.lich_su[0] ?? null;
+  const lon = p.lich_su.find((x) => x.url === anhXem) ?? p.lich_su.find((x) => x.chon) ?? p.lich_su[0] ?? null;
   const tra: TraSS = (khoa) => (khoa ? lon?.so_sanh?.find((r) => r.thanh_phan === khoa) : undefined);
   // lá ảnh có mà phiếu không có (người / đồ thừa) — không gắn được vào nút nào, báo trên đầu cây
-  const thua = (lon?.so_sanh ?? []).filter((r) => r.muc === 'thừa' && !p.cay.some((n) => n.khoa === r.thanh_phan));
+  // lá lệch KHÔNG gắn được vào nút / dòng nào trên cây (thừa trong ảnh, lá chung…) — báo ngay đầu cây, không để lệch nào bị ẩn
+  const khoaCay = new Set<string>(); const gom = (n: NutPhieu) => { if (n.khoa) khoaCay.add(n.khoa); n.chi_tiet.forEach((d) => d.khoa && khoaCay.add(d.khoa)); (n.con ?? []).forEach(gom); };
+  p.cay.forEach(gom); p.chung.forEach((r) => khoaCay.add(r.thanh_phan));
+  const thua = (lon?.so_sanh ?? []).filter((r) => r.muc !== 'khớp' && r.muc !== 'gần' && !khoaCay.has(r.thanh_phan));
   const coXem: { value: Xem; label: string; title: string }[] = [
     ...(p.svg ? [{ value: '2d' as const, label: '2D sơ đồ', title: 'Khung phác chiếu từ sơ đồ cảnh theo máy của shot: tường, cửa, cấu kiện, chỗ đứng + hướng nhìn từng người' }] : []),
     ...(p.anh3d ? [{ value: '3d' as const, label: '3D', title: 'Khung Blender của shot (bộ set 3D) — bấm ảnh để xoay xem' }] : []),
@@ -133,8 +139,9 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <CotKeo khoa="phieu-cay" macDinh={420} min={280} max={1000}><div style={{ display: 'grid', gap: 8, minWidth: 0, overflow: 'hidden' }}>
             {/* gốc = chính shot; mọi thành phần là con của nó → một đường nối liền từ trên xuống */}
-            {lon && <div style={{ ...mono, display: 'flex', gap: 8, alignItems: 'center' }}>⚖️ dấu theo ảnh {lon === p.lich_su[0] ? 'mới nhất' : 'đang xem'} <span style={{ color: mauLech(lon) }}>{chuLech(lon)}</span>
-              {thua.length > 0 && <span style={{ color: 'var(--red)' }} title={thua.map((r) => `${r.thanh_phan}: ${r.thuc_te}`).join('\n')}>＋ {thua.length} thừa trong ảnh</span>}</div>}
+            {lon && <div style={{ ...mono, display: 'flex', gap: 8, alignItems: 'center' }}>⚖️ dấu theo ảnh {lon.chon ? 'đang chọn làm keyframe' : lon === p.lich_su[0] ? 'mới nhất (chưa chọn)' : 'đang xem'} <span style={{ color: mauLech(lon) }}>{chuLech(lon)}</span>
+</div>}
+            {thua.map((r, i) => <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'baseline', fontSize: 11.5, minWidth: 0 }}><Dau r={r} /><span style={{ whiteSpace: 'nowrap' }}>{r.thanh_phan}</span><AnhThay r={r} /></div>)}
             <Nut x={{ nhan: `Shot #${p.thu_tu}`, loai: 'khac', chi_tiet: (p.chung).map((r) => ({ chu: `${r.thanh_phan}: ${r.du_kien}`, khoa: r.thanh_phan })), con: p.cay }} cap={0} onMo={(ma, ten) => moNgan({ loai: 'thanh-phan', phimId, ma, ten })} tra={tra} />
           </div>
           </CotKeo>

@@ -232,7 +232,8 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: "jsonb_build_array('{v}'::jsonb)", vi: 'nhan-ban ghi nhật ký qua nhat_ky.ghi, không tự chép câu update' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', cam: "jsonb_build_array('{v}'::jsonb)", vi: 'thay-tu-choi ghi nhật ký qua nhat_ky.ghi, không tự chép câu update' },
   { card: 0, tep: 'packages/db/migrations/0392_etp_nhat_ky_khong_trung.sql', co: 'nulls not distinct', vi: 'etp.nhat_ky khoá một dòng, NULL coi là bằng nhau' },
-  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'CAT = cong.phim_chan_len()', vi: 'máy thay camp lọc phim cổng chắc chắn chặn (ngoài Âu-Mỹ · đã cất) trước khi thử lên' },
+  { card: 0, tep: 'apps/etp/cong.py', mot: 'LY_CAT = "', vi: 'một câu lý do phim đã cất dùng chung cho kiem() và phim_chan_len()' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'CHAN = cong.phim_chan_len()', vi: 'máy thay camp lọc phim cổng chắc chắn chặn (ngoài Âu-Mỹ · đã cất) trước khi thử lên' },
   { card: 0, tep: 'apps/etp/cong.py', mot: 'LY_AU_MY = "', vi: 'một câu lý do Âu-Mỹ dùng chung cho kiem() và phim_chan_len()' },
   // anh 31/10/2026 "các camp roas của kiên ko thấy đánh dấu vàng": giao diện nhận ROAS team bằng một hàm chung, không chép luật riêng
   { card: 0, tep: 'apps/web/src/lib/etp-roas.ts', mot: 'const ROAS_TEAM = /(?:^|[\\s_(])ROAS\\d*(?=$|[\\s_)])/;', vi: 'giao diện nhận ROAS team cùng luật với cong.py' },
@@ -318,7 +319,7 @@ const LUAT = [
   { card: 0, tep: 'apps/etp/cong.py', co: "where content_id = {int(ct)} and thu_vong = 'cat'", vi: 'cổng chặn tạo / nhân bản camp phim đã cất' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'b_cp, d_cp = CP.xet(that=THAT)', vi: 'máy thay camp chạy thang chuyển hướng mỗi nhịp' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: '"--bo", bo_len,', vi: 'camp thay lên bộ đích khi phim ở vòng đổi bộ' },
-  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'if int(x["content_id"]) in CAT: continue', vi: 'phim đã cất không mở dòng thay mới' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'if int(x["content_id"]) in CHAN: continue', vi: 'phim đã cất (và phim ngoài Âu-Mỹ) không mở dòng thay mới' },
   { card: 0, tep: 'apps/etp/cat_phim.py', co: 'if p.get("lai") or (vong == "cat" and team_lai):', vi: 'phim cất tự mở lại khi camp nhà / team lãi' },
   // anh 31/10/2026 "film đã chạm mốc ko nên mở thêm mà trong đội vẫn còn chạy thì có cảnh báo ở film đó cho mọi người nắm đc"
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "case when thu_vong = 'cat' then thu_luc end moc from etp.phim", vi: 'dữ liệu phim mang mốc cất' },

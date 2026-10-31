@@ -161,13 +161,13 @@ def main():
         b_cp, d_cp = CP.xet(that=THAT); bao += b_cp; DOI_BO.update({int(k): v for k, v in d_cp.items() if v})
     except Exception as e: bao.append(f"lỗi thang chuyển hướng: {str(e)[:120]}")
     sys.path.insert(0, ETP); import cong
-    CAT = cong.phim_chan_len()   # phim cổng chắc chắn chặn (ngoài Âu-Mỹ · đã cất) → không mở dòng, không thử lên (31/10/2026: 445/450 lần thử bị chặn Âu-Mỹ)
+    CHAN = cong.phim_chan_len()   # phim cổng chắc chắn chặn (ngoài Âu-Mỹ · đã cất) → không mở dòng, không thử lên (31/10/2026: 445/450 lần thử bị chặn Âu-Mỹ)
     global SAP; CAN = can_thay(); SAP = {int(x["camp_id"]) for x in CAN}
     # 4. camp thay đã chạy → xong; phim đã có camp khác chạy (ngoài camp cũ) → huỷ
     for r in qj("select id, content_id, camp_cu, buoc, camp_moi, ghi from etp.thay_the where buoc not in ('chay', 'huy')"):
         # xong khi camp thay đầu tiên đã có chi VÀ không còn dạng nào đang chờ chấm (ghi rỗng) — còn chờ thì nhịp sau vẫn thử lên nốt dạng đó
-        if int(r["content_id"]) in CAT and r["buoc"] != "len_lich":
-            ghi(r["id"], buoc="huy", ghi=CAT[int(r["content_id"])][:300]); bo_hang_cat(r["content_id"]); continue
+        if int(r["content_id"]) in CHAN and r["buoc"] != "len_lich":
+            ghi(r["id"], buoc="huy", ghi=CHAN[int(r["content_id"])][:300]); bo_hang_cat(r["content_id"]); continue
         if r.get("camp_moi") and not (r.get("ghi") or "").strip() and q(f"select 1 from etp.camp c join etp.so_ngay n using (camp_id) where c.camp_id = {int(r['camp_moi'])} and n.chi > 0 limit 1"):
             ghi(r["id"], buoc="chay"); continue
         if r["buoc"] != "len_lich" and q(f"select count(*) from etp.camp where trang_thai = 'ACTIVE' and content_id = {int(r['content_id'])} and camp_id <> {int(r['camp_cu'])}") not in ("", "0"):
@@ -177,7 +177,7 @@ def main():
             ghi(r["id"], buoc="huy", ghi="camp cũ không còn sắp tắt"); bo_hang_cat(r["content_id"])
     # 1. phim mới cần thay
     for x in CAN:
-        if int(x["content_id"]) in CAT: continue
+        if int(x["content_id"]) in CHAN: continue
         if q(f"select 1 from etp.thay_the where content_id = {int(x['content_id'])} and buoc not in ('chay', 'huy')"): continue
         moi += 1
         if THAT: q(f"insert into etp.thay_the (content_id, camp_cu, ghi) values ({int(x['content_id'])}, {int(x['camp_id'])}, '{s_(x['ly'])}') on conflict do nothing")
@@ -187,7 +187,7 @@ def main():
     if not THAT: ds += [{"id": 0, "content_id": x["content_id"], "camp_cu": x["camp_id"], "buoc": "chuan_bi", "bai_hoc": {}, "bo_camp": []} for x in CAN
                         if not any(int(d["content_id"]) == int(x["content_id"]) for d in ds)]
     for r in ds:
-        if int(r["content_id"]) in CAT: continue   # dòng đã có camp thay (len_lich) giữ để bước 4 đánh 'chay', nhưng không thử lên thêm
+        if int(r["content_id"]) in CHAN: continue   # dòng đã có camp thay (len_lich) giữ để bước 4 đánh 'chay', nhưng không thử lên thêm
         try: bao.append(lam(r, NB))
         except Exception as e: bao.append(f"phim {r['content_id']}: lỗi {str(e)[:120]}")
     print("\n".join(bao), file=sys.stderr)

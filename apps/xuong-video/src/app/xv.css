@@ -136,3 +136,11 @@ div:hover > .xv-nut-sinh, .xv-nut-sinh:hover, .xv-nut-sinh:focus-visible { opaci
 
 /* Nhóm làn của một nhân vật (timeline.tsx): vạch màu vẽ TRÊN ô nhãn dính — viền ở khung bọc thì cuộn ngang trôi mất và đẩy làn lệch 2px (#1413). */
 .xv-tl-nhom [data-nhan-lan] { box-shadow: inset 2px 0 0 var(--mau-nhom); }
+
+/* CÂY có ĐƯỜNG NỐI (anh 01/11/2026: "trình bày tree phải có line kết nối từ trên xuống dưới"): mỗi con một đoạn dọc từ đỉnh tới đáy nút (con cuối dừng ở
+   ngang tên) + một nhánh ngang vào tên → đường dọc liền từ cha xuống hết các con, kể cả qua dòng chi tiết. Dùng: .xv-cay-con > .xv-cay-nut (lồng bao nhiêu tầng cũng được). */
+.xv-cay-con { margin-left: 10px; }
+.xv-cay-con > .xv-cay-nut { position: relative; padding-left: 16px; }
+.xv-cay-con > .xv-cay-nut::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; border-left: 1px solid var(--line-2, var(--line)); }
+.xv-cay-con > .xv-cay-nut:last-child::before { bottom: auto; height: 12px; }
+.xv-cay-con > .xv-cay-nut::after { content: ''; position: absolute; left: 0; top: 12px; width: 12px; border-top: 1px solid var(--line-2, var(--line)); }

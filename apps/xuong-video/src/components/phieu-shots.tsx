@@ -13,17 +13,18 @@ import { Seg, mono } from './ui';
 const ICON: Record<NutPhieu['loai'], string> = { boi_canh: '🏛', cau_kien: '▫', nhan_vat: '👤', look: '👗', dao_cu: '📦', khac: '·' };
 type Xem = '2d' | '3d';
 
-function Nut({ x, cap, onMo }: { x: NutPhieu; cap: number; onMo?: (k: string) => void }) {
+function Nut({ x, cap, onMo }: { x: NutPhieu; cap: number; onMo?: (k: string, ten: string) => void }) {
+  const con = x.con ?? [];
   return (
-    <div style={{ display: 'grid', gap: 2, paddingLeft: cap * 14 }}>
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+    <div className="xv-cay-nut" style={{ display: 'grid', gap: 2, paddingBottom: 4 }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', minHeight: 24 }}>
         {x.anh ? <img src={anhNho(x.anh, 160)} alt="" style={{ width: 22, height: 22, objectFit: 'cover', borderRadius: 3 }} /> : <span style={{ width: 22, textAlign: 'center' }}>{ICON[x.loai]}</span>}
-        {x.link && onMo ? <button type="button" className="xv-lienket" style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600 }} title="Mở thành phần này trên cây phim" onClick={() => onMo(x.link!)}>{x.nhan}</button>
+        {x.link && onMo ? <button type="button" className="xv-lienket" style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600 }} title="Mở chi tiết thành phần (ngăn kéo, không rời phiếu)" onClick={() => onMo(x.link!, x.nhan)}>{x.nhan}</button>
           : <span style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600 }}>{x.nhan}</span>}
-        {!x.anh && x.loai !== 'cau_kien' && <span style={{ ...mono, color: 'var(--amber)' }} title="Thành phần chưa có ảnh mẫu / ảnh gốc — keyframe sẽ vẽ theo chữ">chưa ảnh</span>}
+        {!x.anh && x.loai !== 'cau_kien' && x.loai !== 'khac' && <span style={{ ...mono, color: 'var(--amber)' }} title="Thành phần chưa có ảnh mẫu / ảnh gốc — keyframe sẽ vẽ theo chữ">chưa ảnh</span>}
       </div>
       {x.chi_tiet.filter(Boolean).map((t, i) => <div key={i} style={{ fontSize: 11.5, color: /không khai|không tả/.test(t) ? 'var(--red)' : 'var(--fg-2)', paddingLeft: 28 }}>{t}</div>)}
-      {(x.con ?? []).map((c, i) => <Nut key={i} x={c} cap={cap + 1} onMo={onMo} />)}
+      {con.length > 0 && <div className="xv-cay-con">{con.map((c, i) => <Nut key={i} x={c} cap={cap + 1} onMo={onMo} />)}</div>}
     </div>
   );
 }
@@ -55,7 +56,7 @@ function LichSuAnh({ ds }: { ds: PhieuShot['lich_su'] }) {
   );
 }
 
-export function PhieuShots({ tapId, onMoNut, onXemShot }: { tapId: number; onMoNut?: (k: string) => void; onXemShot?: (canhId: number) => void }) {
+export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId: number; onXemShot?: (canhId: number) => void }) {
   const [ds, setDs] = useState<PhieuShot[] | null>(null);
   const [chon, setChon] = useState<number | null>(null);
   const [xem, setXem] = useState<Xem>('2d');
@@ -104,7 +105,8 @@ export function PhieuShots({ tapId, onMoNut, onXemShot }: { tapId: number; onMoN
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 3fr) minmax(200px, 2fr)', gap: 12, alignItems: 'start' }}>
           <div style={{ display: 'grid', gap: 8 }}>
-            {p.cay.map((x, i) => <Nut key={i} x={x} cap={0} onMo={onMoNut} />)}
+            {/* gốc = chính shot; mọi thành phần là con của nó → một đường nối liền từ trên xuống */}
+            <Nut x={{ nhan: `Shot #${p.thu_tu}`, loai: 'khac', chi_tiet: [], con: p.cay }} cap={0} onMo={(ma, ten) => moNgan({ loai: 'thanh-phan', phimId, ma, ten })} />
             {p.lech.length > 0 && <div style={{ display: 'grid', gap: 2, borderLeft: '2px solid var(--amber)', paddingLeft: 8 }}>
               <b style={{ fontSize: 12, color: 'var(--amber)' }}>Keyframe hiện tại lệch phiếu</b>
               {p.lech.map((t, i) => <div key={i} style={{ fontSize: 11.5 }}>{t}</div>)}

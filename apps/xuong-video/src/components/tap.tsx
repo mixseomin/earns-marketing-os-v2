@@ -181,7 +181,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab, onMoNut }: {
     <div>
       {/* Thứ tự theo mạch, trái → phải rồi xuống: 3a brief → 3b kịch bản → 3c storyboard. */}
       {tab === 'thanh_phan' && (canh === null ? <span style={mono}>…</span> : <ThanhPhanTap canh={canh} nhanVat={nhanVat} onXemShot={setXemShot} onMoAnchor={onMoNut ? (id) => onMoNut(`nv-${id}`) : undefined} />)}
-      {tab === 'shots' && <PhieuShots tapId={tap.id} onMoNut={onMoNut} onXemShot={setXemShot} />}
+      {tab === 'shots' && <PhieuShots tapId={tap.id} phimId={phim.id} onXemShot={setXemShot} />}
       {tab === 'ho_so' && <HoSoTap tap={tap} phim={phim} canh={canh ?? []} nhanVat={nhanVat} onChanged={onChanged} />}
       {tab === 'kich_ban' && (<>
       {phim.loai === 'phim' && <O label="Tên tập"><input className="xv-in" value={tenTap} onChange={(e) => setTenTap(e.target.value)} placeholder="Cuộc đua bắt đầu" style={{ maxWidth: 420 }} /></O>}

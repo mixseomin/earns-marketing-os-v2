@@ -19,7 +19,7 @@ def thieu():
         select i.creative_id, coalesce(r.video, ''), coalesce((select k from (select coalesce(c.lop->'anh'->'khung_url'->>2, replace(c.lop->'anh'->>'khung_mau', '{{n}}', '3')) k
                                                                 from etp.cham c where c.creative_id = i.creative_id) x), '')
         from ids i left join etp.creative r using (creative_id) left join etp.anh_cr a using (creative_id)
-        where ((coalesce(r.anh, '') = '' and coalesce(a.anh, '') = '') or (r.creative_id is null and coalesce(a.video, '') = '')) and coalesce(a.lan_loi, 0) < 3
+        where ((coalesce(r.anh, '') = '' and coalesce(a.anh, '') = '') or (r.creative_id is null and coalesce(a.video, '') = '' and coalesce(a.nguon, '') <> 'anh_qc')) and coalesce(a.lan_loi, 0) < 3
         order by i.creative_id desc limit {SO}""").splitlines() if l]
 
 def mot(cr, video, khung):

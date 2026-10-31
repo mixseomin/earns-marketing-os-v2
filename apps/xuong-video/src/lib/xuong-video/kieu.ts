@@ -201,14 +201,20 @@ export const DONG_TEMPLATE = [
 export type DongTemplate = (typeof DONG_TEMPLATE)[number]['key'];
 export type CauHinhTemplate = { mo_ta?: string; o?: Record<string, OTemplate>; thu_tu?: string[]; mau_qc?: MauQcTemplate[]; dong?: DongTemplate; khuon?: string };
 /** Một tập trong BẢN ĐỒ series (chưa chắc đã có xv_tap): số thứ tự toàn series, mùa, loại, nhân vật, gài/trả (claude.ts › vietMuaPhim). */
-export type TapBanDo = { so: number; ten: string; logline: string; mua?: number; loai?: 'phieu_luu' | 'nguon_goc' | 'ket_mua'; nhan_vat?: string[]; boi_canh?: string[]; gai_tra?: string };
+export type TapBanDo = { so: number; ten: string; logline: string; mua?: number; loai?: 'phieu_luu' | 'nguon_goc' | 'ket_mua'; nhan_vat?: string[]; boi_canh?: string[]; gai_tra?: string;
+  /** sự kiện của từng TUYẾN TRUYỆN trong tập này (khoá = TuyenTruyen.ma) — bảng tuyến, tab 🗺 Sơ đồ › Tuyến truyện */ su_kien?: Record<string, string> };
+/** TUYẾN TRUYỆN (bảng tuyến của phòng biên kịch): A = tuyến chính, B/C = tuyến phụ. Sự kiện từng tập ở TapBanDo.su_kien[ma]. */
+export type TuyenTruyen = { ma: string; ten: string };
+/** SỔ GÀI / TRẢ (setup – payoff, script editor giữ): chi tiết gieo ở tập `gieo`, trả ở tập `tra` (null = còn treo). Luật: tuyen-truyen.ts. */
+export type GaiTra = { id: string; chi_tiet: string; gieo: number; tra: number | null };
 export type MuaSeries = { so: number; ten: string; dong_co?: string; ghi_chu?: string };
 /** THAM CHIẾU của series (14/10/2026 — anh: "trước khi sinh key phải có hết"): tác phẩm mẫu + chuẩn đo được rút ra từ nó; hồ sơ tập đo theo đây. */
 export type ThamChieuSeries = { tac_pham: string; do_dai_s: number; gag_moi_phut: number; rut_ra: string[] };
 /** KHUÔN NHẬN DIỆN series: intro dùng chung, thẻ tựa, thẻ kết, câu nhạc chủ đề — tập nào cũng mang. */
 export type KhuonSeries = { intro: string; the_tua: string; the_ket: string; nhac_chu_de: string };
 export type Series = { tham_chieu?: ThamChieuSeries; khuon?: KhuonSeries; /** tên series — gom các bản (bút chì, sáp màu…) trên danh sách phim */ ten?: string; dong_co: string; khan_gia: string; dinh_dang: string; tap: TapBanDo[];
-  /** các mùa (sơ đồ series): tên + động cơ riêng; tập thuộc mùa theo TapBanDo.mua (thiếu = mùa 1) */ mua?: MuaSeries[] };
+  /** các mùa (sơ đồ series): tên + động cơ riêng; tập thuộc mùa theo TapBanDo.mua (thiếu = mùa 1) */ mua?: MuaSeries[];
+  tuyen?: TuyenTruyen[]; so_gai_tra?: GaiTra[] };
 /** Sơ đồ series: mỗi mùa kèm các tập của nó (tập không ghi mùa = mùa 1). Mùa khai mà chưa có tập vẫn hiện (đang lên ý). */
 export function muaSeries(s: Series | null | undefined): (MuaSeries & { tap: TapBanDo[] })[] {
   if (!s) return [];

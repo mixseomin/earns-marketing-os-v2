@@ -1,0 +1,80 @@
+// TUYẾN TRUYỆN + SỔ GÀI / TRẢ (anh 31/10/2026: "sự kiện chính trong phim, ngành có sổ theo dõi không" → làm): hai sổ xuyên tập của phòng
+// biên kịch. Bảng tuyến = hàng là tập, cột là tuyến A/B/C, ô là sự kiện của tuyến trong tập đó → thấy tuyến nào bị bỏ quên. Sổ gài / trả
+// (script editor) = chi tiết gieo ở tập nào, trả ở tập nào, cái nào còn treo. Dữ liệu ở kinh_thanh.series (kieu.ts › TuyenTruyen, GaiTra,
+// TapBanDo.su_kien). Máy chấm kịch bản (cham-kich-ban.ts) đọc chamTuyenTruyen: tập cuối mùa mà còn chi tiết treo thì CHẶN keyframe.
+// Thuần — tự kiểm: node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/tuyen-truyen.test.mts
+import type { GaiTra, Series, TapBanDo } from './kieu';
+import type { MucKb } from './cham-kich-ban';
+
+/** Số tập liền nhau không có sự kiện (tính từ lần đầu tuyến xuất hiện) để coi là tuyến bị bỏ quên. */
+export const NGUONG_VANG = 3;
+
+export const dsTap = (s: Series | null | undefined): TapBanDo[] => [...(s?.tap ?? [])].sort((a, b) => a.so - b.so);
+const muaCua = (s: Series, so: number) => s.tap.find((t) => t.so === so)?.mua ?? 1;
+/** Tập cuối của mùa chứa tập `so` (theo bản đồ). */
+export const tapCuoiMua = (s: Series, so: number): number => { const m = muaCua(s, so); return Math.max(so, ...s.tap.filter((t) => (t.mua ?? 1) === m).map((t) => t.so)); };
+
+export type TrangThaiGaiTra = { muc: 'da_tra' | 'treo' | 'loi'; ghi: string };
+/** Trạng thái một chi tiết: đã trả (đèn xanh) · còn treo (cam) · sai (đỏ: trả trước khi gieo, tập không có trong bản đồ). */
+export function trangThaiGaiTra(s: Series, g: GaiTra): TrangThaiGaiTra {
+  const co = (so: number) => s.tap.some((t) => t.so === so);
+  if (!g.chi_tiet.trim()) return { muc: 'loi', ghi: 'chưa ghi chi tiết' };
+  if (!co(g.gieo)) return { muc: 'loi', ghi: `tập ${g.gieo} không có trong bản đồ` };
+  if (g.tra == null) return { muc: 'treo', ghi: `gieo ở tập ${g.gieo}, chưa có tập trả — mùa kết ở tập ${tapCuoiMua(s, g.gieo)}` };
+  if (!co(g.tra)) return { muc: 'loi', ghi: `tập trả ${g.tra} không có trong bản đồ` };
+  if (g.tra < g.gieo) return { muc: 'loi', ghi: `trả ở tập ${g.tra} trước khi gieo (tập ${g.gieo})` };
+  return { muc: 'da_tra', ghi: `gieo tập ${g.gieo} → trả tập ${g.tra}` };
+}
+
+export type TuyenVang = { ma: string; tu: number; den: number; n: number };
+/** Tuyến bị bỏ quên: từ lần đầu xuất hiện, có ≥ NGUONG_VANG tập liền nhau không ghi sự kiện (kể cả đoạn cuối bản đồ). */
+export function tuyenVang(s: Series | null | undefined, nguong = NGUONG_VANG): TuyenVang[] {
+  const tap = dsTap(s); const out: TuyenVang[] = [];
+  for (const t of s?.tuyen ?? []) {
+    const co = tap.map((x) => !!x.su_kien?.[t.ma]?.trim());
+    const dau = co.indexOf(true); if (dau < 0) continue;
+    let i = dau + 1;
+    while (i < tap.length) {
+      if (co[i]) { i++; continue; }
+      let j = i; while (j < tap.length && !co[j]) j++;
+      if (j - i >= nguong) out.push({ ma: t.ma, tu: tap[i]!.so, den: tap[j - 1]!.so, n: j - i });
+      i = j;
+    }
+  }
+  return out;
+}
+
+/** Mục chấm cho MỘT tập: nhắc gài/trả của tập (gợi ý) + chặn tập cuối mùa còn chi tiết treo + báo chi tiết ghi sai chạm tập này. */
+export function chamTuyenTruyen(s: Series | null | undefined, tapSo: number | undefined): MucKb[] {
+  const so = s?.so_gai_tra ?? [];
+  if (!s || !so.length || tapSo == null) return [];
+  const m: MucKb[] = [];
+  const tra = so.filter((g) => g.tra === tapSo && g.chi_tiet.trim()), gieo = so.filter((g) => g.gieo === tapSo && g.chi_tiet.trim());
+  if (tra.length || gieo.length) m.push({ key: 'gai_tra_tap', ten: 'Gài / trả của tập', dat: true, cung: false,
+    ghi: [tra.length ? `phải trả: ${tra.map((g) => `${g.chi_tiet} (gieo tập ${g.gieo})`).join(' · ')}` : '', gieo.length ? `gieo: ${gieo.map((g) => g.chi_tiet).join(' · ')}` : ''].filter(Boolean).join(' — ') });
+  if (tapCuoiMua(s, tapSo) === tapSo) {
+    const mua = muaCua(s, tapSo);
+    const treo = so.filter((g) => g.tra == null && g.chi_tiet.trim() && g.gieo <= tapSo && muaCua(s, g.gieo) === mua);
+    m.push({ key: 'treo_cuoi_mua', ten: 'Hết chi tiết treo cuối mùa', dat: !treo.length, cung: true,
+      ghi: treo.length ? `tập cuối mùa mà còn ${treo.length} chi tiết chưa có tập trả: ${treo.map((g) => `${g.chi_tiet} (gieo tập ${g.gieo})`).join(' · ')} — trả trong tập này hoặc ghi tập trả ở mùa sau (🗺 Sơ đồ › Gài / trả)` : 'mọi chi tiết gieo trong mùa đã có tập trả' });
+  }
+  const sai = so.filter((g) => (g.gieo === tapSo || g.tra === tapSo) && trangThaiGaiTra(s, g).muc === 'loi');
+  if (sai.length) m.push({ key: 'gai_tra_sai', ten: 'Sổ gài / trả ghi đúng', dat: false, cung: false, ghi: sai.map((g) => `${g.chi_tiet || '(trống)'}: ${trangThaiGaiTra(s, g).ghi}`).join(' · ') });
+  return m;
+}
+
+/** Kết quả AI rút từ bản đồ (claude.ts › goiYTuyenTruyen). */
+export type AiTuyenTruyen = { tuyen: { ma: string; ten: string }[]; su_kien: { so: number; ma: string; viec: string }[]; gai_tra: { chi_tiet: string; gieo: number; tra: number | null }[] };
+/** Trộn đề xuất AI vào sổ: CHỈ điền chỗ trống — tuyến mới (mã chưa có), ô sự kiện đang rỗng, chi tiết chưa ghi. Không đè thứ người đã gõ. */
+export function tronAi(s: Series, ai: AiTuyenTruyen, taoId: () => string): Series {
+  const tuyen = [...(s.tuyen ?? [])];
+  for (const t of ai.tuyen) if (t.ma.trim() && !tuyen.some((x) => x.ma === t.ma.trim())) tuyen.push({ ma: t.ma.trim(), ten: t.ten.trim() });
+  const ma = new Set(tuyen.map((t) => t.ma));
+  const tap = s.tap.map((t) => {
+    const them = ai.su_kien.filter((k) => k.so === t.so && ma.has(k.ma) && k.viec.trim() && !t.su_kien?.[k.ma]?.trim());
+    return them.length ? { ...t, su_kien: { ...(t.su_kien ?? {}), ...Object.fromEntries(them.map((k) => [k.ma, k.viec.trim()])) } } : t;
+  });
+  const da = new Set((s.so_gai_tra ?? []).map((g) => g.chi_tiet.trim().toLowerCase()));
+  const moi = ai.gai_tra.filter((g) => g.chi_tiet.trim() && !da.has(g.chi_tiet.trim().toLowerCase())).map((g) => ({ id: taoId(), chi_tiet: g.chi_tiet.trim(), gieo: g.gieo, tra: g.tra ?? null }));
+  return { ...s, tuyen, tap, so_gai_tra: [...(s.so_gai_tra ?? []), ...moi] };
+}

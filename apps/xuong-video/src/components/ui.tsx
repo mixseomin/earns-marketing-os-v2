@@ -67,6 +67,9 @@ export function Xoa({ nhan, onXoa, ban, noiKhoiPhuc = 'nút 🗑 Thùng rác', g
   return <button type="button" className="xv-btn nguy" disabled={ban} style={gon ? { padding: '0 5px', lineHeight: '18px' } : undefined} title={`Bỏ ${nhan} — lấy lại được ở ${noiKhoiPhuc}`} onClick={() => { if (armed) { setArmed(false); void onXoa(); } else setArmed(true); }}>{armed ? `⚠ bấm lại để bỏ ${nhan}` : '🗑'}</button>;
 }
 
+/** Đèn trạng thái (YDNI: trạng thái là DẤU HIỆU, chữ nằm ở hover): ok xanh · cho cam (chờ / còn treo) · loi đỏ · tat xám. */
+export function Den({ muc, title }: { muc: 'ok' | 'cho' | 'loi' | 'tat'; title?: string }) { return <span className="xv-den" data-muc={muc} title={title} aria-label={title} />; }
+
 export function Loi({ children }: { children: ReactNode }) { return children ? <div className="xv-loi">{children}</div> : null; }
 
 /** Ảnh nhỏ có nút ⋯ (hiện khi rê chuột) mở menu thao tác. Bấm ẢNH chỉ để XEM (onClick) — mọi thao tác đổi dữ liệu (đặt làm chính, chọn keyframe)

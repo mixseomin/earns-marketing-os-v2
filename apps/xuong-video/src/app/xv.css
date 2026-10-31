@@ -47,6 +47,18 @@ table.xv-tbl { width: 100%; border-collapse: collapse; }
 table.xv-tbl th { text-align: left; font-family: var(--font-mono); font-size: 9.5px; color: var(--fg-3); text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid var(--line); }
 table.xv-tbl td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
 table.xv-tbl td.n, table.xv-tbl th.n { text-align: right; font-family: var(--font-mono); }
+/* bảng dài trong ngăn: tiêu đề cột dính mép trên khung cuộn */
+table.xv-tbl.dinh th { position: sticky; top: 0; background: var(--bg-1); z-index: 1; }
+/* ô sửa tại chỗ trong bảng (bảng tuyến, sổ gài/trả): trơn như chữ, viền chỉ hiện khi rê / đang gõ */
+.xv-o-sua { width: 100%; background: transparent; color: var(--fg-1); border: 1px solid transparent; border-radius: 5px; padding: 3px 6px; font: inherit; font-size: 12px; }
+.xv-o-sua:hover { border-color: var(--line); }
+.xv-o-sua:focus { outline: 1px solid var(--cyan); background: var(--bg-0); }
+.xv-o-sua::placeholder { color: var(--fg-3); opacity: .5; }
+td.vang { box-shadow: inset 2px 0 0 var(--amber); }
+.xv-den { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--fg-3); flex-shrink: 0; opacity: .5; }
+.xv-den[data-muc="ok"] { background: var(--lime); opacity: 1; }
+.xv-den[data-muc="cho"] { background: var(--amber); opacity: 1; }
+.xv-den[data-muc="loi"] { background: var(--red); opacity: 1; }
 .xv-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 50; }
 .xv-drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(1100px, 96vw); background: var(--bg-1); border-left: 1px solid var(--line); z-index: 51; overflow: auto; --ngan-py: 18px; --ngan-px: 20px; padding: var(--ngan-py) var(--ngan-px) 40px; }
 .xv-drawer.nho { width: min(520px, 96vw); z-index: 53; }

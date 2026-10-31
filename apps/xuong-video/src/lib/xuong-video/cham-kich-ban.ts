@@ -7,6 +7,7 @@ import type { Canh, PhanCanh, Series } from './kieu';
 import type { Beat } from './dien-anh';
 import { giayPhat } from './kieu';
 import { loiNoiNhip } from './noi-nhip';
+import { chamTuyenTruyen } from './tuyen-truyen';
 
 export type NhipKb = 'hook' | 'van_de' | 'leo_thang' | 'lat_nguoc' | 'ket';
 /** Tên beat (Anh/Việt, tự do) → nhịp chuẩn. Thứ tự dò quan trọng: "climax twist" là lật ngược, "cliffhanger" là kết/móc. */
@@ -134,6 +135,7 @@ export function chamKichBan(o: VaoKb): { muc: MucKb[]; diem: number; chan: strin
     const moc = /cliff|móc|teaser|tease|next|tập sau|to be continued/i.test(cuoi);
     if (conTap) m.push({ key: 'moc', ten: 'Móc sang tập sau', dat: moc, ghi: moc ? `beat cuối: ${cuoi}` : 'tập chưa phải tập cuối mà beat cuối không phải móc (cliffhanger/teaser) — người xem không có lý do xem tập sau', cung: false });
     m.push({ key: 'dong_co', ten: 'Động cơ series', dat: true, ghi: kt.series!.dong_co, cung: false });
+    m.push(...chamTuyenTruyen(kt.series, tap.so));   // sổ gài / trả: tập cuối mùa còn chi tiết treo thì chặn (tuyen-truyen.ts)
   }
   const dat = m.filter((x) => x.dat).length;
   return { muc: m, diem: m.length ? Math.round((dat / m.length) * 100) : 0, chan: m.filter((x) => x.cung && !x.dat).map((x) => `kịch bản: ${x.ghi}`) };

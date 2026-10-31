@@ -505,6 +505,23 @@ const MuaPhimSchema = z.object({
 export const vietMuaPhim = (nc: NguCanhPhim, soTap: number, yeuCau = '') =>
   hoi(MuaPhimSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết KINH THÁNH MÙA 1 cho series này: động cơ series, luật thế giới, khuôn một tập, và bản đồ ĐÚNG ${soTap} tập. Xen tập phiêu lưu với tập NGUỒN GỐC của từng nhân vật (dựa đúng tiểu sử: nguồn gốc, vết sẹo, bí mật, món yêu/ghét); mỗi tập một xung đột rõ dựa trên món yêu/ghét/nỗi sợ; mỗi bối cảnh / đạo cụ đặc trưng được dùng làm sân chơi; tập cuối là đỉnh điểm của mùa. Mọi gag phải hiểu được khi tắt tiếng.${yeuCau ? `\nYÊU CẦU CỦA ĐẠO DIỄN (bắt buộc): ${yeuCau}` : ''}`);
 
+/** TUYẾN TRUYỆN + SỔ GÀI / TRẢ rút từ bản đồ series (tuyen-truyen.ts): chỉ đọc động cơ + bản đồ tập (gọn, không kéo kịch bản) → rẻ.
+ *  Người bấm trộn vào sổ bằng tronAi (chỉ điền chỗ trống). */
+const TuyenTruyenSchema = z.object({
+  tuyen: z.array(z.object({ ma: z.string().describe('Mã tuyến: A, B, C…'), ten: z.string().describe('Tên tuyến tiếng Việt ngắn, vd "Tango tìm đường về nhà"') }))
+    .describe('2-4 tuyến: A = tuyến chính cả series, B/C = tuyến phụ (quan hệ, bí ẩn, nguồn gốc nhân vật). Giữ đúng mã + tên các tuyến đã có.'),
+  su_kien: z.array(z.object({ so: z.number().describe('số tập'), ma: z.string().describe('mã tuyến'), viec: z.string().describe('sự kiện của tuyến trong tập, tiếng Việt, tối đa 12 từ') }))
+    .describe('Chỉ ghi ô mà tuyến thật sự có chuyện trong tập đó; tập không có chuyện của tuyến thì bỏ, không bịa'),
+  gai_tra: z.array(z.object({ chi_tiet: z.string().describe('chi tiết được gài, tiếng Việt, tối đa 10 từ'), gieo: z.number().describe('tập gieo'), tra: z.number().nullable().describe('tập trả; null nếu bản đồ chưa có tập trả') }))
+    .describe('Mọi chi tiết gài → trả đọc được từ ô "gài/trả" và logline các tập'),
+});
+export function goiYTuyenTruyen(kt0: KinhThanh, tenPhim: string): Promise<GoiYKq<z.infer<typeof TuyenTruyenSchema>>> {
+  const kt = docKinhThanh(kt0); const s = kt.series;
+  const tap = [...(s?.tap ?? [])].sort((a, b) => a.so - b.so).map((t) => `Tập ${t.so} (mùa ${t.mua ?? 1}${t.loai ? `, ${t.loai}` : ''}) "${t.ten}": ${t.logline}${t.nhan_vat?.length ? ` | nhân vật: ${t.nhan_vat.join(', ')}` : ''}${t.gai_tra ? ` | gài/trả: ${t.gai_tra}` : ''}`).join('\n');
+  const co = (s?.tuyen ?? []).map((t) => `${t.ma} = ${t.ten}`).join('; ');
+  return hoi(TuyenTruyenSchema, kt, HE_THONG_GOI_Y, `PHIM: ${tenPhim}\nLogline: ${kt.logline}\nĐộng cơ series: ${s?.dong_co ?? ''}\n${co ? `Tuyến đã có: ${co}\n` : ''}\nBẢN ĐỒ TẬP:\n${tap}\n\nLập BẢNG TUYẾN TRUYỆN (tuyến A/B/C + sự kiện của từng tuyến trong từng tập) và SỔ GÀI / TRẢ (chi tiết gieo ở tập nào, trả ở tập nào) cho series này — chỉ dựa trên bản đồ trên.`);
+}
+
 export const goiYKinhThanh = (nc: NguCanhPhim) =>
   hoi(KinhThanhSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y, `${taNguCanh(nc)}\n\nViết PHONG CÁCH HÌNH ẢNH cố định, TIỀN ĐỀ, THỂ LOẠI, LOGLINE và CHỦ ĐỀ cho bộ phim này. Nếu đã có thì giữ ý, viết rõ và cụ thể hơn (chất liệu, màu, ánh sáng, lens).`);
 

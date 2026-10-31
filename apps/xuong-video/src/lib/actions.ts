@@ -34,7 +34,8 @@ import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
 import { lamSanNho } from '@/lib/xuong-video/anh-nho-may';
 import { dichMoTaVi } from '@/lib/xuong-video/claude';
 import { coKhoa, DON_SO_DU, LOAI_NGUON, TEN_TRANG_THAI, type SoDu, type Nguon, type NguonModel, type TrangThaiNguon, type LoaiNguon, type O } from '@/lib/xuong-video/nguon-ai';
-import { vietKichBan, vietBaiDang, phanTichMau, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh } from '@/lib/xuong-video/claude';
+import { vietKichBan, vietBaiDang, phanTichMau, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, goiYTuyenTruyen } from '@/lib/xuong-video/claude';
+import type { AiTuyenTruyen } from '@/lib/xuong-video/tuyen-truyen';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { lamSachKyThuat, khoaKyThuatForm, promptKyThuatVideo } from '@/lib/xuong-video/dien-anh';
 import { ghepThoai, thieuQc, type BaiDang, type MauQc } from '@/lib/xuong-video/kieu';
@@ -1347,6 +1348,19 @@ export async function goiYAIKinhThanh(phimId: number): Promise<Kq<{ phong_cach: 
   if (!nc) return loi('không thấy phim');
   const r = await goiYKinhThanh(nc);
   await ghiChu(phimId, 'AI gợi ý kinh thánh', r);
+  return r.ok ? { ok: true, data: r.data } : loi(r.loi);
+}
+
+/** ✨ Rút tuyến truyện + sổ gài / trả từ bản đồ series (0 → vài trăm ₫ qua ckey). Trả đề xuất; ngăn Sơ đồ trộn vào sổ (tronAi, chỉ điền chỗ trống). */
+export async function aiTuyenTruyen(phimId: number): Promise<Kq<AiTuyenTruyen>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const nc = await nguCanhPhimDb(db, phimId);
+  if (!nc) return loi('không thấy phim');
+  if (!docKinhThanh(nc.kinhThanh).series?.tap?.length) return loi('phim chưa có bản đồ tập');
+  const r = await goiYTuyenTruyen(nc.kinhThanh, nc.ten);
+  await ghiChu(phimId, 'AI rút tuyến truyện + gài/trả', r);
   return r.ok ? { ok: true, data: r.data } : loi(r.loi);
 }
 

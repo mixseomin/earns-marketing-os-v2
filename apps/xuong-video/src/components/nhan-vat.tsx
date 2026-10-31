@@ -94,7 +94,7 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
   };
   // CÂY BỘ BỐI CẢNH (anh 31/10/2026: cấu kiện là đồ thật đoàn phim chuẩn bị → hiện DANH SÁCH DẠNG CÂY, mỗi node một dòng gọn, BẤM MỞ ra card chi tiết).
   // cha của con dù bị lọc khỏi dsHien vẫn hiện làm đầu nhóm → luôn thấy cấu kiện thuộc về đâu.
-  const [moCt, setMoCt] = useState<Record<number, boolean>>({});
+  const [chon, setChon] = useState<number | null>(null);
   const nhomCay: { cha: NhanVat; con: NhanVat[] }[] = [];
   { const idx = new Map<number, number>();
     for (const v of dsHien) {
@@ -176,27 +176,23 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
   const dsPhang: { v: NhanVat; laCon: boolean; cuoi: boolean }[] = [];
   for (const { cha, con } of nhomCay) { dsPhang.push({ v: cha, laCon: false, cuoi: con.length === 0 }); con.forEach((c, i) => dsPhang.push({ v: c, laCon: true, cuoi: i === con.length - 1 })); }
   // MỘT DÒNG CÂY: ảnh nhỏ + tên + loại + số ảnh + nút nhanh; bấm cả dòng = mở/đóng card chi tiết (the) bung dưới.
+  // MỘT DÒNG CÂY gọn (không kéo rộng): nhánh + ảnh nhỏ + tên + loại + số ảnh; bấm = chọn → khung chi tiết bên trái hiện. Nút Sửa/Sinh ngay trên dòng.
   const dong = ({ v, laCon, cuoi }: { v: NhanVat; laCon: boolean; cuoi: boolean }) => {
-    const open = !!moCt[v.id];
+    const sel = chon === v.id;
     const soDang = dangSinh.nhanVat.filter((x) => x === v.id).length + (gui[v.id]?.cho ?? 0);
     const nhan = v.anh_ref.length ? '●'.repeat(Math.min(3, v.anh_ref.length)) + '○'.repeat(Math.max(0, 3 - v.anh_ref.length)) : '○○○';
     return (
-      <div key={v.id}>
-        <div onClick={() => setMoCt((m) => ({ ...m, [v.id]: !open }))} title={open ? 'Thu gọn' : 'Mở xem chi tiết'}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 8, cursor: 'pointer', marginLeft: laCon ? 20 : 0, background: open ? 'var(--bg-2)' : 'transparent', border: `1px solid ${open ? 'var(--line)' : 'transparent'}` }}>
-          {laCon && <span style={{ fontFamily: 'monospace', color: 'var(--fg-4)', fontSize: 13 }}>{cuoi ? '└─' : '├─'}</span>}
-          <span style={{ width: 13, color: 'var(--fg-3)', fontSize: 11 }}>{open ? '▾' : '▸'}</span>
-          <span style={{ width: 30, height: 30, borderRadius: 5, overflow: 'hidden', flexShrink: 0, position: 'relative' }}><AnhDaiDien v={v} co={30} />{soDang > 0 && <span style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.45)', display: 'grid', placeItems: 'center', fontSize: 11 }}>⏳</span>}</span>
-          <strong style={{ fontSize: 12.5, whiteSpace: 'nowrap' }}>{v.ten}</strong>
-          <Pill color="var(--fg-3)">{LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label ?? v.loai}</Pill>
-          <span style={{ fontSize: 10, letterSpacing: 1, color: v.anh_ref.length ? 'var(--cyan)' : 'var(--fg-4)' }} title={`${v.anh_ref.length} ảnh anchor`}>{nhan}</span>
-          <span style={{ fontSize: 11, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{v.mo_ta ? v.mo_ta.slice(0, 80) : <em style={{ color: 'var(--fg-4)' }}>chưa mô tả</em>}</span>
-          <span style={{ display: 'flex', gap: 4 }} onClick={(e) => e.stopPropagation()}>
-            <button type="button" className="xv-btn" onClick={() => setSua(v)}>Sửa</button>
-            <Nut ly={(!khoa.google && !khoa.openai && 'thiếu khoá ảnh') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title={`Sinh ${BO_GOC} ảnh anchor (góc khác nhau) — ${tien(BO_GOC * giaAnhCents(kt.mo_hinh_anh))}, qua cổng rẻ nhất trước`} onClick={() => void sinh(v.id, v.anh_ref.length)} gia={BO_GOC * giaAnhCents(kt.mo_hinh_anh)}>{v.anh_ref.length ? '✨ +3 góc' : '✨ Sinh ảnh'}</Nut>
-          </span>
-        </div>
-        {open && <div style={{ marginLeft: laCon ? 34 : 14, marginTop: 4, marginBottom: 8 }}>{the(v)}</div>}
+      <div key={v.id} onClick={() => setChon(v.id)} title="Bấm xem chi tiết bên trái"
+        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 8, cursor: 'pointer', marginLeft: laCon ? 18 : 0, background: sel ? 'var(--bg-2)' : 'transparent', borderLeft: `3px solid ${sel ? 'var(--cyan)' : 'transparent'}` }}>
+        {laCon && <span style={{ fontFamily: 'monospace', color: 'var(--fg-4)', fontSize: 13 }}>{cuoi ? '└─' : '├─'}</span>}
+        <span style={{ width: 28, height: 28, borderRadius: 5, overflow: 'hidden', flexShrink: 0, position: 'relative' }}><AnhDaiDien v={v} co={28} />{soDang > 0 && <span style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,.45)', display: 'grid', placeItems: 'center', fontSize: 11 }}>⏳</span>}</span>
+        <strong style={{ fontSize: 12.5, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 170 }}>{v.ten}</strong>
+        <Pill color="var(--fg-3)">{LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label ?? v.loai}</Pill>
+        <span style={{ fontSize: 10, letterSpacing: 1, color: v.anh_ref.length ? 'var(--cyan)' : 'var(--fg-4)' }} title={`${v.anh_ref.length} ảnh anchor`}>{nhan}</span>
+        <span style={{ display: 'flex', gap: 4, marginLeft: 6 }} onClick={(e) => e.stopPropagation()}>
+          <button type="button" className="xv-btn" onClick={() => setSua(v)}>Sửa</button>
+          <Nut ly={(!khoa.google && !khoa.openai && 'thiếu khoá ảnh') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title={`Sinh ${BO_GOC} ảnh anchor (góc khác nhau) — ${tien(BO_GOC * giaAnhCents(kt.mo_hinh_anh))}, qua cổng rẻ nhất trước`} onClick={() => void sinh(v.id, v.anh_ref.length)} gia={BO_GOC * giaAnhCents(kt.mo_hinh_anh)}>{v.anh_ref.length ? '✨ +3 góc' : '✨ Sinh ảnh'}</Nut>
+        </span>
       </div>
     );
   };
@@ -211,8 +207,17 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
       </div>
       <Loi>{loi[-1]}</Loi>
       {nhanVat.length === 0 && <div style={mono}>Chưa có anchor. Phim nhiều tập BẮT BUỘC khai nhân vật ở đây trước khi tách cảnh, nếu không mỗi tập Claude sẽ tả một kiểu.</div>}
-      <div style={{ display: 'grid', gap: 2 }}>
-        {dsPhang.map((x) => dong(x))}
+      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+        {/* KHUNG CHI TIẾT full-height bên TRÁI — bấm một mục cây bên phải thì hiện ở đây (anh 31/10/2026) */}
+        <div style={{ flex: '0 0 384px', position: 'sticky', top: 12, maxHeight: 'calc(100vh - 96px)', overflowY: 'auto', overflowX: 'hidden' }}>
+          {(() => { const sv = nhanVat.find((v) => v.id === chon); return sv
+            ? the(sv)
+            : <div style={{ ...mono, padding: 24, textAlign: 'center', border: '1px dashed var(--line)', borderRadius: 12, color: 'var(--fg-4)' }}>Bấm một mục ở cây bên phải để xem chi tiết</div>; })()}
+        </div>
+        {/* DANH SÁCH DẠNG CÂY bên phải — gọn, không kéo rộng */}
+        <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 2 }}>
+          {dsPhang.map((x) => dong(x))}
+        </div>
       </div>
       {btMo != null && nhanVat.find((v) => v.id === btMo) && <BienTheDrawer a={nhanVat.find((v) => v.id === btMo)!} khoa={khoa} kt={kt} dangSinh={dangSinh.bienThe} loiBt={loiAnh.bienThe} onClose={() => setBtMo(null)} onChanged={onChanged} />}
       {sua && <NhanVatForm phimId={phimId} goc={sua} dsCha={nhanVat.filter((v) => v.loai === 'boi_canh' || v.loai === 'dao_cu')} onClose={() => setSua(null)} onSaved={async () => { setSua(null); await onChanged(); }} />}

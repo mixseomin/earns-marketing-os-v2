@@ -10,7 +10,7 @@ import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { gioVN } from '@/lib/xuong-video/kieu';
 import { moNgan } from './ngan-chung';
 import { Seg, mono } from './ui';
-import { CotCay, CayCon, CayNut } from './keo';
+import { CotCay, CotKeo, CayCon, CayNut } from './keo';
 
 const ICON: Record<NutPhieu['loai'], string> = { boi_canh: '🏛', cau_kien: '▫', nhan_vat: '👤', look: '👗', dao_cu: '📦', khac: '·' };
 type Xem = '2d' | '3d';
@@ -34,8 +34,8 @@ function Nut({ x, cap, onMo, tra }: { x: NutPhieu; cap: number; onMo?: (k: strin
       <div style={{ display: 'flex', gap: 6, alignItems: 'center', minHeight: 24, minWidth: 0 }}>
         {x.anh ? <img src={anhNho(x.anh, 160)} alt="" style={{ width: 22, height: 22, objectFit: 'cover', borderRadius: 3, flexShrink: 0, outline: xau(rN) ? '2px solid var(--red)' : undefined }} /> : <span style={{ width: 22, textAlign: 'center', flexShrink: 0 }}>{ICON[x.loai]}</span>}
         <Dau r={rN} />
-        {x.link && onMo ? <button type="button" className="xv-lienket" style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600, whiteSpace: 'nowrap' }} title="Mở chi tiết thành phần (ngăn kéo, không rời phiếu)" onClick={() => onMo(x.link!, x.nhan)}>{x.nhan}</button>
-          : <span style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600, whiteSpace: 'nowrap' }}>{x.nhan}</span>}
+        {x.link && onMo ? <button type="button" className="xv-lienket" style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0, flexShrink: 1, textAlign: 'left' }} title={`${x.nhan} — mở chi tiết (ngăn kéo, không rời phiếu)`} onClick={() => onMo(x.link!, x.nhan)}>{x.nhan}</button>
+          : <span style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{x.nhan}</span>}
         {!x.anh && x.loai !== 'cau_kien' && x.loai !== 'khac' && <span style={{ ...mono, color: 'var(--amber)' }} title="Thành phần chưa có ảnh mẫu / ảnh gốc — keyframe sẽ vẽ theo chữ">chưa ảnh</span>}
         <AnhThay r={rN} />
       </div>
@@ -130,18 +130,15 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
           {p.ket && <div><span style={mono}>Khung kết</span> {p.ket.replace(/\s*(BODY POSE|OBJECT STATE) in this frame.*$/s, '')}</div>}
           {p.thoai && <div><span style={mono}>Thoại</span> {p.thoai}</div>}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 3fr) minmax(200px, 2fr)', gap: 12, alignItems: 'start' }}>
-          <div style={{ display: 'grid', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <CotKeo khoa="phieu-cay" macDinh={480} min={300} max={1000}><div style={{ display: 'grid', gap: 8, minWidth: 0, overflow: 'hidden' }}>
             {/* gốc = chính shot; mọi thành phần là con của nó → một đường nối liền từ trên xuống */}
             {lon && <div style={{ ...mono, display: 'flex', gap: 8, alignItems: 'center' }}>⚖️ dấu theo ảnh {lon === p.lich_su[0] ? 'mới nhất' : 'đang xem'} <span style={{ color: mauLech(lon) }}>{chuLech(lon)}</span>
               {thua.length > 0 && <span style={{ color: 'var(--red)' }} title={thua.map((r) => `${r.thanh_phan}: ${r.thuc_te}`).join('\n')}>＋ {thua.length} thừa trong ảnh</span>}</div>}
             <Nut x={{ nhan: `Shot #${p.thu_tu}`, loai: 'khac', chi_tiet: (p.chung).map((r) => ({ chu: `${r.thanh_phan}: ${r.du_kien}`, khoa: r.thanh_phan })), con: p.cay }} cap={0} onMo={(ma, ten) => moNgan({ loai: 'thanh-phan', phimId, ma, ten })} tra={tra} />
-            {p.lech.length > 0 && <div style={{ display: 'grid', gap: 2, borderLeft: '2px solid var(--amber)', paddingLeft: 8 }}>
-              <b style={{ fontSize: 12, color: 'var(--amber)' }}>Keyframe hiện tại lệch phiếu</b>
-              {p.lech.map((t, i) => <div key={i} style={{ fontSize: 11.5 }}>{t}</div>)}
-            </div>}
           </div>
-          <div style={{ display: 'grid', gap: 6, justifyItems: 'start' }}>
+          </CotKeo>
+          <div style={{ display: 'grid', gap: 6, justifyItems: 'start', flex: 1, minWidth: 200 }}>
             {coXem.length > 1 && xemDung && <Seg value={xemDung} onChange={setXem} options={coXem} />}
             {xemDung === '2d' && p.svg && <div style={{ width: '100%', maxWidth: 300 }} title="Khung phác bố trí: mỗi bóng màu là một người, mũi tên là hướng nhìn" dangerouslySetInnerHTML={{ __html: p.svg.replace('<svg', '<svg style="width:100%;height:auto;border-radius:4px"') }} />}
             {xemDung === '3d' && p.anh3d && <button type="button" title="Mở bộ set 3D đúng máy shot" onClick={() => moNgan({ loai: 'bo-set', tapId, canhId: p.id })} style={{ padding: 0, border: 0, background: 'none' }}>

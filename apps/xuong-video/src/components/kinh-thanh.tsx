@@ -12,6 +12,7 @@ import { MauQcForm } from './mau-qc';
 import { Khoa, O, Seg, Nut, Loi, mono } from './ui';
 import { MoHinhCtx, luaChonAnh, luaChonVideo } from './mo-hinh-ui';
 import { docLT, ghiLT } from '@/lib/luu-tru';
+import { useMoUrl } from './nho';
 
 export function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa; onSaved: () => Promise<void> }) {
   // Ngăn phim tự làm mới 4-15 giây/lần → phim.kinh_thanh là object MỚI mỗi lần dù nội dung y nguyên. Đồng bộ theo NỘI DUNG (chuỗi JSON)
@@ -43,8 +44,9 @@ export function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa;
   const ghiMo = (ten: string, v: boolean) => ghiLT(khoaMo(ten), v ? '1' : '0');
   // Đọc trạng thái đã lưu NGAY từ đầu (form này chỉ dựng ở trình duyệt, sau khi tải phim — không có SSR). CHỈ ghi khi anh bấm tiêu đề:
   // trước đây ghi trong onToggle, mà trình duyệt bắn toggle cho cả lần mở MẶC ĐỊNH lúc tải trang → đè "đã thu gọn" thành "mở".
-  const [moKhung, setMoKhungS] = useState(() => docMo('kt', !goc.phong_cach || !goc.the_loai));
-  const latKhung = (e: React.MouseEvent) => { e.preventDefault(); setMoKhungS((v) => { ghiMo('kt', !v); return !v; }); };
+  // Trạng thái mở/gập nằm trên URL (?mo=kt<id>,-qc<id> — YDNI "mọi trạng thái mở/gập trên URL", 31/10/2026); localStorage là mặc định riêng theo máy.
+  const [moKhung, setMoKhungU] = useMoUrl(`kt${phim.id}`, docMo('kt', !goc.phong_cach || !goc.the_loai));
+  const latKhung = (e: React.MouseEvent) => { e.preventDefault(); ghiMo('kt', !moKhung); setMoKhungU(!moKhung); };
   const set = <K extends keyof KinhThanh>(k: K, v: Required<KinhThanh>[K]) => setKt((x) => ({ ...x, [k]: v }));
   // Phim quảng cáo: khai sản phẩm/dịch vụ TRƯỚC — mọi nút AI đọc nó (#1201).
   const laQc = phim.loai === 'quang_cao';
@@ -52,8 +54,8 @@ export function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa;
   const setQc = (p: Partial<ThongTinQc>) => setKt((x) => ({ ...x, qc: { ...QC_TRONG, ...(x.qc ?? {}), ...p } }));
   const thieuSp = !!thieuQc(phim.loai, { ...kt, qc });
   const [docLink, setDocLink] = useState(false);
-  const [moQc, setMoQcS] = useState(() => docMo('qc', !(goc.qc?.ten || goc.qc?.link)));
-  const latQc = (e: React.MouseEvent) => { e.preventDefault(); setMoQcS((v) => { ghiMo('qc', !v); return !v; }); };
+  const [moQc, setMoQcU] = useMoUrl(`qc${phim.id}`, docMo('qc', !(goc.qc?.ten || goc.qc?.link)));
+  const latQc = (e: React.MouseEvent) => { e.preventDefault(); ghiMo('qc', !moQc); setMoQcU(!moQc); };
   const layLink = async () => {
     setDocLink(true); setLoiAi('');
     const r = await layTuLinkSanPham(phim.id, qc.link);

@@ -1,13 +1,21 @@
 'use client';
 // BẢNG TUYẾN + SỔ GÀI / TRẢ (tab 📖 Phim › Tuyến truyện · Gài / trả). Sổ của phòng biên kịch: hàng là tập, cột là tuyến A/B/C; sổ gài / trả
 // ghi chi tiết gieo ở tập nào, trả ở tập nào. Luật + trộn AI: lib/xuong-video/tuyen-truyen.ts. Sửa tại chỗ, tự lưu 1,2 giây sau lần gõ cuối.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { suaPhim, aiTuyenTruyen } from '@/lib/actions';
 import { gioVN, type GaiTra, type Phim, type Series } from '@/lib/xuong-video/kieu';
 import { dsTap, trangThaiGaiTra, tuyenVang, tronAi } from '@/lib/xuong-video/tuyen-truyen';
 import { Chon } from './chon';
 import { Den, Menu, MucMenu, Nut, Seg, Loi, mono, goiAction } from './ui';
 import { useNho } from './nho';
+
+/** Ô chữ TỰ GIÃN theo nội dung — chữ luôn hiện đủ, không bị cắt ở 2 dòng (anh 31/10/2026: "chữ phải rõ ra, đéo đọc được"). */
+function ODai({ value, onChange, placeholder, autoFocus, onBlur, dam }: { value: string; onChange: (v: string) => void; placeholder?: string; autoFocus?: boolean; onBlur?: () => void; dam?: boolean }) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => { const el = ref.current; if (!el) return; el.style.height = 'auto'; el.style.height = `${el.scrollHeight + 2}px`; }, [value]);
+  return <textarea ref={ref} className="xv-o-sua" rows={1} autoFocus={autoFocus} onBlur={onBlur} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)}
+    style={{ resize: 'none', overflow: 'hidden', fontSize: 13, lineHeight: 1.45, color: 'var(--fg-1)', fontWeight: dam ? 600 : 400 }} />;
+}
 
 const taoId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 
@@ -66,7 +74,7 @@ export function BangTuyen({ s, setS }: { s: Series; setS: (s: Series) => void })
   const doiTen = (ma: string, ten: string) => setS({ ...s, tuyen: tuyen.map((t) => (t.ma === ma ? { ...t, ten } : t)) });
   const boTuyen = (ma: string) => setS({ ...s, tuyen: tuyen.filter((t) => t.ma !== ma), tap: s.tap.map((t) => { if (!t.su_kien?.[ma]) return t; const { [ma]: _, ...con } = t.su_kien; return { ...t, su_kien: con }; }) });
   const ghi = (so: number, ma: string, viec: string) => setS({ ...s, tap: s.tap.map((t) => (t.so === so ? { ...t, su_kien: { ...(t.su_kien ?? {}), [ma]: viec } } : t)) });
-  const cot = `220px repeat(${tap.length}, minmax(180px, 1fr))`;
+  const cot = `260px repeat(${tap.length}, minmax(220px, 1fr))`;
   return (
     <div style={{ overflowX: 'auto' }}>
       <div className="xv-lan" style={{ gridTemplateColumns: cot }}>
@@ -85,7 +93,7 @@ export function BangTuyen({ s, setS }: { s: Series; setS: (s: Series) => void })
           return [
             <div key={`n${x.ma}`} className="xv-lan-nhan" title={`Tuyến ${x.ma}: ${co.filter(Boolean).length}/${tap.length} tập có sự kiện`}>
               <b style={{ color: 'var(--fg-2)', fontSize: 13 }}>{x.ma}</b>
-              <textarea className="xv-o-sua" rows={2} style={{ resize: 'none', fontWeight: 600 }} value={x.ten} placeholder={x.ma === 'A' ? 'tuyến chính…' : 'tuyến phụ…'} onChange={(e) => doiTen(x.ma, e.target.value)} />
+              <ODai dam value={x.ten} placeholder={x.ma === 'A' ? 'tuyến chính…' : 'tuyến phụ…'} onChange={(v) => doiTen(x.ma, v)} />
               <Menu rong={190}><MucMenu nguy goiY="Bỏ làn tuyến này cùng mọi sự kiện đã ghi" onClick={() => boTuyen(x.ma)}>🗑 Bỏ tuyến {x.ma}</MucMenu></Menu>
             </div>,
             ...tap.map((t, i) => {
@@ -100,8 +108,7 @@ export function BangTuyen({ s, setS }: { s: Series; setS: (s: Series) => void })
                   {phai && <span className="xv-lan-day phai" data-kieu={kPhai} />}
                   {viec.trim() || sua === k
                     ? <div className={`xv-lan-the${trai ? ' vao' : ''}`}>
-                        <textarea className="xv-o-sua" rows={2} style={{ resize: 'none' }} autoFocus={sua === k} value={viec} placeholder="sự kiện của tuyến trong tập này"
-                          onChange={(e) => ghi(t.so, x.ma, e.target.value)} onBlur={() => setSua(null)} />
+                        <ODai autoFocus={sua === k} value={viec} placeholder="sự kiện của tuyến trong tập này" onChange={(v) => ghi(t.so, x.ma, v)} onBlur={() => setSua(null)} />
                       </div>
                     : <button type="button" className="xv-lan-them" title={`Thêm sự kiện của tuyến ${x.ma} ở tập ${t.so}`} onClick={() => setSua(k)}>＋</button>}
                 </div>

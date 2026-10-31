@@ -57,8 +57,8 @@ table.xv-tbl.dinh th { position: sticky; top: 0; background: var(--bg-1); z-inde
 /* sơ đồ làn tuyến truyện (tuyen-truyen-ui.tsx › BangTuyen): cột = tập trái → phải, hàng = tuyến; đường nối các sự kiện liên tiếp */
 .xv-lan { display: grid; min-width: max-content; }
 .xv-lan > div { border-bottom: 1px solid var(--line); }
-.xv-lan-dau { display: flex; gap: 6px; align-items: center; padding: 6px 10px; font-size: 12px; font-weight: 600; position: sticky; top: 0; background: var(--bg-1); z-index: 2; }
-.xv-lan-nhan { display: flex; gap: 6px; align-items: center; padding: 6px 8px; position: sticky; left: 0; background: var(--bg-1); z-index: 3; border-right: 1px solid var(--line); }
+.xv-lan-dau { display: flex; gap: 6px; align-items: center; padding: 8px 10px; font-size: 13px; font-weight: 600; position: sticky; top: 0; background: var(--bg-1); z-index: 2; }
+.xv-lan-nhan { display: flex; gap: 6px; align-items: flex-start; padding: 6px 8px; position: sticky; left: 0; background: var(--bg-1); z-index: 3; border-right: 1px solid var(--line); }
 .xv-lan-o { position: relative; display: flex; align-items: center; justify-content: center; padding: 8px 14px; min-height: 64px; }
 .xv-lan-day { position: absolute; top: 50%; height: 0; border-top: 2px solid var(--fg-3); }
 .xv-lan-day.trai { left: 0; right: 50%; } .xv-lan-day.phai { left: 50%; right: 0; }

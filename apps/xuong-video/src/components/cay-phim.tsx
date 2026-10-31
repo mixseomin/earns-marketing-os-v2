@@ -2,7 +2,8 @@
 // CÂY PHIM (anh 31/10/2026: "Phim, Sơ đồ, Kịch bản gom lại thành 1 · show dạng cây · giờ bấm ngu quá"): một tab 📖 Phim = cây TRÁI + chi tiết PHẢI
 // (ui-conventions §8). Cây: Kinh thánh · Thiết kế sản xuất (anchor lồng cha–con) · Poster · Tuyến truyện · Gài / trả · Các tập (→ mùa → tập).
 // Tập chưa tạo trên bản đồ hiện mờ (bấm → xem + tạo từ bản đồ). Nút đang chọn nằm trong URL (`nut`), tập trong `tap` — F5 / chia sẻ giữ nguyên.
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
+import { useGapUrl } from './nho';
 import { docKinhThanh, muaSeries, LOAI_NHAN_VAT, type NhanVat, type Phim, type Tap } from '@/lib/xuong-video/kieu';
 import { nhomCayAnchor } from '@/lib/xuong-video/cay-anchor';
 import { trangThaiGaiTra, tuyenVang } from '@/lib/xuong-video/tuyen-truyen';
@@ -14,14 +15,13 @@ import { Den, mono } from './ui';
 export type NutPhim = string;
 type Dong = { key: string; nhan: ReactNode; cap: number; tapId?: number; title?: string; den?: { muc: 'ok' | 'cho' | 'loi'; title: string }; mo?: boolean; nhom?: string; anh?: NhanVat; /** đầu nhánh chỉ để gập (mùa, ngoài bản đồ) — không phải nút xem */ chiNhom?: boolean; chuaTao?: boolean };
 
-export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap }: {
+export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, thamSoGap }: {
   phim: Phim; tap: Tap[]; nhanVat: NhanVat[]; nut: NutPhim; tapId: number | null;
-  onChon: (nut: NutPhim, tapId?: number) => void; onThemTap?: () => void;
+  onChon: (nut: NutPhim, tapId?: number) => void; onThemTap?: () => void; /** tên tham số URL giữ các nhánh đang gập (lớp ngăn chính / chồng khác nhau) */ thamSoGap: string;
 }) {
   const kt = docKinhThanh(phim.kinh_thanh);
   const ds = muaSeries(kt.series);
-  const [dong, setDong] = useState<Set<string>>(new Set());   // nhóm đang gập (mùa / thiết kế sản xuất)
-  const lat = (k: string) => setDong((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  const [dong, lat] = useGapUrl(thamSoGap);   // nhánh đang gập (thiết kế sản xuất / các tập / mùa) — trên URL, F5 giữ nguyên
   const sv = kt.series;
   const gt = (sv?.so_gai_tra ?? []).filter((g) => g.chi_tiet.trim()).map((g) => trangThaiGaiTra(sv!, g).muc);
   const nTreo = gt.filter((m) => m === 'treo').length, nSai = gt.filter((m) => m === 'loi').length;

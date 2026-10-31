@@ -20,3 +20,31 @@ export function useNho<T extends string>(khoa: string, macDinh: T, hopLe?: reado
     if (thamSoUrl) ghiThamSoUrl({ [thamSoUrl]: x });
   }];
 }
+
+/** TẬP các nhánh đang GẬP (cây, nhóm, khối mở/gập) nằm trên URL dạng ?thamSo=a,b,c — F5 / chia sẻ link mở đúng y như đang thấy
+ *  (anh 31/10/2026: "các phần này khi mở ra cũng phải lưu vào URL để F5 mở ra"). Trạng thái mặc định (không gập gì) = không có tham số. */
+export function useGapUrl(thamSo: string): [Set<string>, (k: string) => void] {
+  const [gap, setGap] = useState<Set<string>>(new Set());
+  useLayoutEffect(() => {
+    const u = new URLSearchParams(window.location.search).get(thamSo);
+    if (u) setGap(new Set(u.split(',').filter(Boolean)));
+  }, [thamSo]);
+  return [gap, (k: string) => setGap((s) => {
+    const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k);
+    ghiThamSoUrl({ [thamSo]: [...n].join(',') || null });
+    return n;
+  })];
+}
+
+/** Một khối mở/gập (<details>, accordion) trên URL: ?mo=kt16,-qc16 — chỉ ghi khi KHÁC mặc định (tên = mở, -tên = gập). URL thắng localStorage. */
+export function useMoUrl(ten: string, macDinh: boolean, thamSo = 'mo'): [boolean, (v: boolean) => void] {
+  const doc = () => { const ds = (new URLSearchParams(window.location.search).get(thamSo) ?? '').split(',');
+    return ds.includes(ten) ? true : ds.includes(`-${ten}`) ? false : null; };
+  const [mo, setMo] = useState<boolean>(() => { try { return doc() ?? macDinh; } catch { return macDinh; } });
+  return [mo, (v: boolean) => {
+    setMo(v);
+    const ds = (new URLSearchParams(window.location.search).get(thamSo) ?? '').split(',').filter((x) => x && x !== ten && x !== `-${ten}`);
+    if (v !== macDinh) ds.push(v ? ten : `-${ten}`);
+    ghiThamSoUrl({ [thamSo]: ds.join(',') || null });
+  }];
+}

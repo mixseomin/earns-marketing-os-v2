@@ -195,9 +195,9 @@ function Ruot({ phimDau, khoa }: { phimDau: Phim[]; khoa: Khoa }) {
 // ── Drawer phim ─────────────────────────────────────────────────────────────────────────────────────────────────
 
 /** Khoá URL của một lớp ngăn phim: lớp chính m/tap/tab; lớp chồng m2/tap2/tab2 (hai lớp không giành tham số của nhau). */
-type KhoaUrl = { m: string; tap: string; tab: string; nut: string };
-const KHOA_CHINH: KhoaUrl = { m: 'm', tap: 'tap', tab: 'tab', nut: 'nut' };
-const KHOA_CHONG: KhoaUrl = { m: 'm2', tap: 'tap2', tab: 'tab2', nut: 'nut2' };
+type KhoaUrl = { m: string; tap: string; tab: string; nut: string; gap: string };
+const KHOA_CHINH: KhoaUrl = { m: 'm', tap: 'tap', tab: 'tab', nut: 'nut', gap: 'gap' };
+const KHOA_CHONG: KhoaUrl = { m: 'm2', tap: 'tap2', tab: 'tab2', nut: 'nut2', gap: 'gap2' };
 
 function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: { id: number; tapDau?: number | null; khoa: Khoa; onClose: () => void; onXoa: () => Promise<void>; khoaUrl?: KhoaUrl }) {
   const [d, setD] = useState<PhimDayDu | null | undefined>(undefined);
@@ -257,7 +257,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
         const nv = (chiTiet: number | null) => <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} chiTiet={chiTiet} />;
         return (
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-            <CayPhim phim={phim} tap={tap} nhanVat={nhanVat} nut={k} tapId={tapId} onChon={(n, tid) => (tid != null ? moTap(tid) : setNut(n))} onThemTap={themTap} />
+            <CayPhim thamSoGap={khoaUrl.gap} phim={phim} tap={tap} nhanVat={nhanVat} nut={k} tapId={tapId} onChon={(n, tid) => (tid != null ? moTap(tid) : setNut(n))} onThemTap={themTap} />
             <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 10, alignContent: 'start' }}>
               {k === 'kinh_thanh' && <>
                 {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} onMoPhimChong={(pid) => chong.open('phim', pid)} />}

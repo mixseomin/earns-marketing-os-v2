@@ -16,6 +16,7 @@
 //   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }] } → trạng thái máy đăng thời gian thực (mos2 Lịch đăng › ⚡ Máy đăng)
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
+//   --luot-xem                     ĐO THEO DẠNG: đọc lại lượt xem YouTube mọi video đã đăng (cũ hơn 12 giờ) → bảng trung bình máy × dạng, 0₫
 //   --sinh-game <N>                dạng game Only ONE: tiêu đề theo KHUNG video thắng của kênh (≥ 500 lượt sau 7 ngày, đọc lại lượt xem YouTube trước) + góc spy dùng ít nhất → nạp + dựng, 0₫
 //   --sinh-kho <N>                 lấp kho VIDEO cho máy: N đề theo góc spy chưa dùng, dạng ra MP4 xoay vòng → nạp + dựng (TỐN TIỀN chữ AI — lô lớn duyệt qua Telegram)
 //   --tu-khoa | --viet-bai           stdin { goc [, cau_hoi, slug] } → JSON câu tìm Quora / câu trả lời (chữ AI rẻ ~1¢; nạp vẫn qua nap-bai.mjs) — puzzle-books sinh-bai.mjs gọi
@@ -168,6 +169,14 @@ if (a.includes('--nap')) {
     ra.push(`${x.ok ? '✓' : '⚠'} #${g.id} ${d} → ${kq.de.slug} (${Math.round(kq.vnd)}₫)${x.ok ? '' : ` · dựng ✗ ${x.loi}`}`); n++;
   }
   console.log(ra.join('\n')); console.log(`sinh kho ${ma}: ${n}/${N} đề, ${Math.round(vnd)}₫`);
+} else if (a.includes('--luot-xem')) {
+  // ĐO THEO DẠNG (bước 7): đọc lại lượt xem YouTube mọi video đã đăng của MỌI máy (cũ hơn 12 giờ) rồi in trung bình theo máy × dạng — 0₫
+  const { luotXemYoutube } = await import('../src/lib/xuong-video/luot-xem');
+  const ds = (await db.execute(sql`SELECT id, da_dang->'youtube'->>'url' AS url FROM xv_may_video WHERE da_dang->'youtube'->>'url' IS NOT NULL AND (luot_xem_luc IS NULL OR luot_xem_luc < now() - interval '12 hours')`)) as unknown as { id: number; url: string }[];
+  let doc = 0; for (const v of ds) { const n = await luotXemYoutube(v.url); if (n != null) { await db.execute(sql`UPDATE xv_may_video SET luot_xem = ${n}, luot_xem_luc = now() WHERE id = ${v.id}`); doc++; } }
+  const bang = (await db.execute(sql`SELECT m.ma, coalesce(v.dang->>'dang_bai', v.mau, m.mau) AS dang, count(*)::int AS n, round(avg(v.luot_xem))::int AS tb, max(v.luot_xem) AS cao
+    FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.luot_xem IS NOT NULL GROUP BY 1, 2 ORDER BY 1, tb DESC`)) as unknown as { ma: string; dang: string; n: number; tb: number; cao: number }[];
+  console.log(`· đọc ${doc}/${ds.length} video`); for (const r of bang) console.log(`${r.ma.padEnd(28)} ${String(r.dang).padEnd(22)} ${String(r.n).padStart(3)} video  tb ${String(r.tb).padStart(6)}  cao ${r.cao}`);
 } else if (lay('--sinh-game') != null) {
   // DẠNG GAME "Only ONE says ___" (anh duyệt 31/10/2026: hook lấy từ VIDEO THẮNG của chính kênh, cạnh QC spy) — 0₫, không gọi AI:
   //   1. đọc lại lượt xem YouTube các video đã đăng của máy (luot-xem.ts) → video thắng = ≥ 500 lượt sau ≥ 7 ngày

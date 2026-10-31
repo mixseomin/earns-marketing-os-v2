@@ -7,12 +7,13 @@ import { AnchoredPopover } from './anchored-popover';
 
 export interface Chon2Muc { value: string; label: ReactNode; nhom?: string; dem?: number; title?: string; tim?: string; /** nhãn gọn trên nút (danh sách vẫn hiện label đủ) */ ngan?: string }
 
-export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong }: {
+export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong, href }: {
   value: string; onChange: (v: string) => void; options: Chon2Muc[];
   /** chữ đứng trước giá trị trên nút: "Luật", "Loại"… */ nhan?: string;
   /** nhãn khi value = '' (mục "tất cả" tự thêm đầu danh sách) */ rong?: string;
   title?: string; minWidth?: number; align?: 'left' | 'right';
   /** true = không tự thêm mục '' (danh sách đã có đủ lựa chọn) */ anRong?: boolean;
+  /** đường dẫn của từng lựa chọn → mục là link thật: ⌘ / Ctrl / ⇧ / chuột giữa mở TAB MỚI, bấm thường vẫn onChange (anh 31/10/2026 etp #1496) */ href?: (v: string) => string;
 }) {
   const ref = useRef<HTMLButtonElement | null>(null);
   const [mo, setMo] = useState(false);
@@ -50,12 +51,13 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
             {loc.length ? loc.map((m, i) => (
               <div key={m.value || '_'}>
                 {m.nhom && m.nhom !== loc[i - 1]?.nhom ? <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--fg-3, #777)', padding: '8px 10px 3px' }}>{m.nhom}</div> : null}
-                <div role="option" aria-selected={m.value === value} title={m.title} onMouseEnter={() => setTro(i)} onClick={() => chon(m.value)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '5px 10px', cursor: 'pointer', background: i === tro ? 'var(--hover, rgba(255,255,255,.07))' : undefined, fontWeight: m.value === value ? 600 : 400 }}>
+                <a role="option" aria-selected={m.value === value} title={m.title} href={href?.(m.value)} onMouseEnter={() => setTro(i)}
+                  onClick={(e) => { if (href && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return; e.preventDefault(); chon(m.value); }}   // phím phụ = để trình duyệt mở tab mới
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '5px 10px', cursor: 'pointer', color: 'inherit', textDecoration: 'none', background: i === tro ? 'var(--hover, rgba(255,255,255,.07))' : undefined, fontWeight: m.value === value ? 600 : 400 }}>
                   <span style={{ width: 12, color: 'var(--accent, #60a5fa)' }}>{m.value === value ? '✓' : ''}</span>
                   <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.label}</span>
                   {m.dem != null ? <span style={{ fontSize: 11, color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{m.dem}</span> : null}
-                </div>
+                </a>
               </div>)) : <div style={{ fontSize: 12, color: 'var(--fg-2)', padding: '8px 10px' }}>Không có mục khớp</div>}
           </div>
         </div>

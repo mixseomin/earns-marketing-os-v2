@@ -752,7 +752,7 @@ export function DataTable<T>({
                         title={c.cellTitle?.(row, i)}
                         onClick={c.onCellClick ? (e) => { e.stopPropagation(); c.onCellClick!(row, i); } : undefined}>
                       {tree && ci === 0 ? (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', paddingLeft: sau * 14, maxWidth: '100%' }}>
+                        <span style={{ display: 'flex', alignItems: 'center', paddingLeft: sau * 14, width: '100%', boxSizing: 'border-box' }}>{/* giãn đủ ô: nội dung muốn dạt phải (marginLeft auto) thì được — etp #1493 */}
                           <span className="dt-cay-mui" title={con ? `${mo ? 'gập' : 'mở'} ${con} dòng con` : undefined} onClick={con ? (e) => { e.stopPropagation(); tree.onOpen([k], !mo); } : undefined}
                             style={{ width: 14, flex: 'none', textAlign: 'center', color: 'var(--fg-3)', cursor: con ? 'pointer' : undefined }}>{con ? (mo ? '▾' : '▸') : ''}</span>
                           {c.cell(row, i)}

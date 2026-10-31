@@ -216,9 +216,16 @@ const gioVn = (iso: string) => { const d = new Date(Date.parse(iso) + 7 * 3600_0
 const luatThuong = (t: string) => t.replace(/(#\d+): [^·]*· /, '$1 · ').replace(/\s*[—-]?\s*(quy trình phim mới\s*|lô\s+)?\b[a-z]{1,6}-?\d{4,}[a-z0-9-]*/gi, '').replace(/\s*—\s*$/, '').trim();
 // chỉ bậc + ROI + lịch sử bậc — dòng luật (gần tắt / máy luật sắp làm / vùng tăng-giảm) đã bỏ: cột Luật có đủ (anh 29/10/2026 #1477 "đã có cột Luật chi tiết thì ko cần show thêm")
 type DauBac = { bac: number; so: number; ns: number; nay: SoTien; qua: SoTien };
-function TheBac({ ls, d }: { ls: DuLieuEtp['lsBac'][number]; d: DauBac }) {
+// ĐẦU THẺ NỔI = CAMP NÀO (anh 31/10/2026 #1494 "thêm tên camp khi mở xem chi tiết report"): số camp + tên camp thật (chọn được để chép)
+function DauCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ten'> }) {
+  return <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
+    <b style={{ fontSize: 13, color: laRoas(c.ten) ? MAU_ROAS : undefined, userSelect: 'all', flex: 'none' }}>#{c.camp_id}</b>
+    <span title={c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', userSelect: 'all' }}>{c.ten ?? '—'}</span></div>;
+}
+function TheBac({ ls, d, c }: { ls: DuLieuEtp['lsBac'][number]; d: DauBac; /** thẻ nổi đứng riêng thì ghi camp nào (anh 31/10/2026 #1494); trong ngăn camp đã có đầu ngăn thì bỏ */ c?: Pick<CampEtpKho, 'camp_id' | 'ten'> }) {
   return (
     <div style={{ width: 400, maxWidth: '92vw', maxHeight: 420, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
+      {c ? <DauCamp c={c} /> : null}
       {/* MỘT dòng cho bậc + ROI (trước: 3 dòng chữ) — số ROI cùng khuôn Roi của bảng (màu theo nghĩa, đậm theo mức) */}
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
         <b style={{ fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>${d.ns}</b><span style={{ color: 'var(--fg-3, #777)' }} title="bậc ngân sách hiện tại / số bậc">bậc {d.bac}/{d.so}</span>
@@ -388,7 +395,7 @@ function ChipLuat(p: VaoLuat) {
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ ...(t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R } : { width: R }), maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c.ten) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
-          <span style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.phim ?? p.c.ten} · ${p.c.ngan_sach}</span></div>
+          <span title={p.c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.ten ?? p.c.phim} · ${p.c.ngan_sach}</span></div>
         <ThanLuat t={t} deXuat={p.deXuat} /></div></KhungNoi> : null}
     </span>
   );
@@ -536,7 +543,7 @@ function SuaCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ngan_sach' | 'trang_t
     </AnchoredPopover>
   </>;
 }
-function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'camp_id' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao'>; bao?: { nhom: string; chu: string }[]; ls?: DuLieuEtp['lsBac'][number] }) {
+function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao'>; bao?: { nhom: string; chu: string }[]; ls?: DuLieuEtp['lsBac'][number] }) {
   const sua = useContext(SuaCampCtx) != null && c.camp_id > 0;
   // thẻ nổi theo KHUÔN CHUNG của trang (useNoi + KhungNoi: trễ mở, ✕ + Esc, giữ khi rê vào) — trước dùng AnchoredPopover riêng: mở ngay, không ✕, rời chuột không tắt
   const noi = useNoi<{ id: 0 }>();
@@ -544,7 +551,7 @@ function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'camp_id' | 'trang_thai' 
   // ✎ nằm NGOÀI vùng rê của thẻ bậc: trong vùng đó bấm ✎ là mở luôn thẻ lịch sử bậc, hai lớp chữ đè nhau (chụp tk thử 31/10/2026)
   return (<span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
     <span aria-label={t} onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', cursor: 'help' }}>
-      {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={400} cao={420} noi={noi}><TheBac ls={ls ?? []} d={d} /></KhungNoi> : null}
+      {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={400} cao={420} noi={noi}><TheBac ls={ls ?? []} d={d} c={c} /></KhungNoi> : null}
       <span style={{ fontVariantNumeric: 'tabular-nums', color: `rgba(196,181,253,${(0.55 + 0.45 * (bac / (BAC_NS.length - 1))).toFixed(2)})`, fontWeight: bac >= 4 ? 700 : 500, width: 30, flex: 'none', textAlign: 'right' }}>${c.ngan_sach}</span>{/* bậc càng cao chữ càng sáng (anh 26/10/2026); màu tím nhẹ, bậc thấp không chìm (anh 29/10/2026, #1482) */}
       {/* bỏ thước ROI + dấu luật sau số $ (anh 29/10/2026 "ẩn cái này đi. Vướng + khó nhìn", rồi "bỏ cái này đi cơ mà?" — là cả cái thước): ROI hôm nay đã có cột 'nay', luật có cột Luật */}
     </span>
@@ -1676,9 +1683,11 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
     rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })];
   const cotCay: DataColumn<CampEtpKho>[] = [
     { key: 'camp', header: 'Phim → camp gốc → bản nhân', align: 'left', width: 260, cellTitle: (c) => c.ten ?? undefined, sortValue: (c) => c.camp_id,
-      cell: (c) => { const l = loiNb.get(c.camp_id), n = dem(c); return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
-        <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><CoNuoc nuoc={c.nuoc ?? []} /><BadgeDangNgan d={c.dang} />
-        {l ? <span style={{ color: '#f87171', fontSize: 11 }} title={`nhân bản lỗi ${l.lan} lần / 24h: ${loiThuong(l.loi)}`}>⚠{l.lan}</span> : n ? <span style={{ color: 'var(--fg-2)', fontSize: 11 }} title={`${n} bản nhân`}>x{n}</span> : null}</span>; } },
+      // loại (CC…) + số bản nhân (x9 / ⚠) DẠT PHẢI ô, thẳng một cột ở mọi tầng cây — trước bám sau số camp nên thụt theo tầng (anh 31/10/2026 #1493 "cho sang phải")
+      cell: (c) => { const l = loiNb.get(c.camp_id), n = dem(c); return <span data-o="camp-cay" style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
+        <b style={laRoas(c.ten) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><CoNuoc nuoc={c.nuoc ?? []} />
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} />
+        {l ? <span style={{ color: '#f87171', fontSize: 11 }} title={`nhân bản lỗi ${l.lan} lần / 24h: ${loiThuong(l.loi)}`}>⚠{l.lan}</span> : n ? <span style={{ color: 'var(--fg-2)', fontSize: 11, minWidth: 22, textAlign: 'right' }} title={`${n} bản nhân`}>x{n}</span> : <span style={{ minWidth: 22 }} />}</span></span>; } },
     { key: 'tt', header: 'TT', align: 'left', width: 74, title: 'trạng thái camp trên Ethopex', cell: (c) => { const x = ttCamp(c); return <span title={x.t} style={{ display: 'block', fontSize: 11, color: x.mau, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.chu}</span>; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
     { key: 'tuoi', header: 'Tuổi', width: 52, title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: (c) => (c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : undefined), cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)) },
     { key: 'ns', header: 'Ngân sách', align: 'left', width: 86, loc: 'so', title: 'ngân sách $/ngày — rê xem lịch sử bậc', cell: (c) => <BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach,
@@ -2246,8 +2255,11 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       ...[2, 3, 5, 7].map((n) => ({ value: `l${n}`, label: `Lỗ ${n} ngày liên tiếp`, nhom: 'Liên tiếp từng ngày (ngày đã khép)', title: `${n} ngày trọn gần nhất ngày nào cũng có chi và đều âm`, tim: `lo lien tiep ${n} ngay` }))]} />;
   const [dangDoiNguoi, doiNguoi] = useTransition();   // đổi người = nạp trang mới từ máy chủ — hiện "đang tải…" ngay, trang cũ vẫn dùng được tới khi trang mới về
   // NGƯỜI (anh 28/10/2026 "xem được report của từng người"): đổi người = nạp lại dữ liệu từ máy chủ (?ng=); người nhà bỏ tham số; bỏ lọc bộ (bộ chỉ có ở nhà)
+  const tenNguoi = (du.nguoi.ngoai ? du.nguoi.ds.find((x) => x.id === du.nguoi.dang) : du.nguoi.ds.find((x) => x.nha))?.ten ?? 'Nhà';
+  // URL xem một người — chung cho bấm chọn (router.push) và ⌘ / Ctrl-click mở tab mới (#1496)
+  const urlNguoi = (v: string) => { const u = new URL(location.href); if (!v || Number(v) === du.nguoi.nha) u.searchParams.delete('ng'); else u.searchParams.set('ng', v); u.searchParams.delete('b'); u.searchParams.delete('ngan'); return u; };
   const nguoiSel = () => (du.nguoi.ds.length > 1 ? <>{dangDoiNguoi ? <span style={{ fontSize: 11, color: '#60a5fa' }}>đang tải…</span> : null}<Chon2 value={du.nguoi.dang == null || !du.nguoi.ngoai ? '' : String(du.nguoi.dang)} nhan="Người" align="left" title="xem camp + report theo người dùng Ethopex (tài khoản QC của người đó) — người khác chỉ xem, luật không áp"
-    onChange={(v) => { const u = new URL(location.href); if (!v || Number(v) === du.nguoi.nha) u.searchParams.delete('ng'); else u.searchParams.set('ng', v); u.searchParams.delete('b'); u.searchParams.delete('ngan'); doiNguoi(() => router.push(`${u.pathname}${u.search}`)); }}
+    onChange={(v) => { const u = urlNguoi(v); doiNguoi(() => router.push(`${u.pathname}${u.search}`)); }} href={(v) => urlNguoi(v).href}
     options={du.nguoi.ds.filter((x) => !x.nha).map((x) => ({ value: String(x.id), label: `${x.ten} · ${x.tk} TK`, ngan: x.ten }))} rong={`${du.nguoi.ds.find((x) => x.nha)?.ten ?? 'Nhà'} (nhà)`} /></> : null);
   const boSel = () => (!boCo.length ? null : <Chon2 value={boHieu} onChange={(v) => doi({ bo: v }, () => setBoLoc(v))} nhan="TK" align="right" title="lọc camp theo bộ tài khoản QC (tài khoản + Page)"
     options={boCo.map((b) => ({ value: b, label: `Bộ ${b}${gon ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''} · ${du.boTk[b]?.mui_gio ?? 'múi giờ ?'}`, ngan: `Bộ ${b}`, tim: `bộ ${b} ${du.boTk[b]?.ten ?? ''}`, dem: du.camps.filter((c) => c.bo === b && c.trang_thai === 'ACTIVE').length }))} />);
@@ -2297,6 +2309,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         {([['Hôm nay', nay], ['Hôm qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, x]) => <span key={ten}><span style={{ color: 'var(--fg-2)' }}>{ten} </span><b style={{ fontSize: 14 }}><Lai s={x} /></b> <span style={{ fontSize: 11 }}><Roi s={x} /></span></span>)}
         <span><span style={{ color: 'var(--fg-2)' }}>Camp chạy </span><b style={{ fontSize: 14 }}>{chay.length}</b></span>
         <span><span style={{ color: 'var(--fg-2)' }}>Ngân sách </span><b style={{ fontSize: 14 }}>${[...chay, ...choChay].reduce((a, c) => a + c.ngan_sach, 0)}/ngày</b></span>
+        {du.nguoi.ds.length > 1 ? <span title="người đang xem — cuộn lên ô Người để đổi"><span style={{ color: 'var(--fg-2)' }}>Người </span><b style={{ fontSize: 14, color: du.nguoi.ngoai ? '#60a5fa' : undefined }}>{tenNguoi}</b></span> : null}{/* anh 31/10/2026 #1495 */}
       </div> : null}
       {/* BỐ CỤC THANH TRÊN (anh 31/10/2026 "bố cục lại chỗ này" + YDNI): một hàng nowrap nhồi 8 tab + kỳ + kiểu xem + 6 ô lọc → tab gãy hai dòng chữ.
           Máy tính: hàng 1 = tab (mỗi nhãn một dòng) · kỳ dạt phải; hàng 2 = kiểu xem + bộ lọc của tab đó (tách bằng etp-xuong). Điện thoại giữ như cũ. */}
@@ -2440,6 +2453,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingRight: 28 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} /><b style={{ fontSize: 15, color: laRoas(c.ten) ? MAU_ROAS : undefined }}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} />
               <span style={{ color: 'var(--fg-3, #777)', marginLeft: 'auto' }}>{tuoiChu(tuoiNgay(c.tao))} ngày</span></div>
             <div style={{ fontWeight: 600, lineHeight: 1.3 }}>{c.phim ?? c.ten}</div>
+            {c.phim && c.ten && c.ten !== c.phim ? <div style={{ color: 'var(--fg-2)', marginTop: -6, wordBreak: 'break-word', userSelect: 'all' }}>{c.ten}</div> : null}{/* tên camp thật (anh 31/10/2026 #1494) */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
               <O ten={`bậc ${b!.bac + 1}/${BAC_NS.length}`}>${c.ngan_sach}</O><O ten="ROI nay"><Roi s={c.nay} /></O><O ten="ROI qua"><Roi s={c.qua} /></O><O ten={khNay ? 'lãi nay' : `lãi ${khNhan.toLowerCase()}`}><Lai s={khNay ? c.nay : ckh(c.camp_id)} /></O></div>
             <BieuNgay ngay={ngay6} sd={ngay6.map((d) => soCamp(c.camp_id, d))} nay={c.nay} />

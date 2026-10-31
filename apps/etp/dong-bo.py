@@ -80,6 +80,13 @@ def main():
             _an = json.dumps(ad_n)
             q(f"update etp.camp_ngoai n set content_id = coalesce(x.ct, n.content_id), creative_id = coalesce(x.cr, n.creative_id) from jsonb_to_recordset($J${_an}$J$::jsonb) as x(id int, ct int, cr int) where n.camp_id = x.id")
         kq["chi_tiet_ngoai"] = len(ad_n)
+        # BẢN NHÂN BẢN CỦA TEAM ("Dup by 68596 ROAS 1.1" · "…_D69655_ROAS1"): ad của bản dup Ethopex trả phim / creative rỗng hoặc 0 → cây phim dồn vào "#0"
+        # (anh 31/10/2026 #1492 "sao ko bắt được tên phim các camp này"). Thừa hưởng từ camp gốc ghi trong tên — cùng mẫu gốc với cong.py _GOC_ID
+        q("""update etp.camp_ngoai n set content_id = case when coalesce(n.content_id, 0) = 0 then g.content_id else n.content_id end,
+                 creative_id = case when coalesce(n.creative_id, 0) = 0 then g.creative_id else n.creative_id end
+               from (select camp_id, content_id, creative_id from etp.camp_ngoai union all select camp_id, content_id, creative_id from etp.camp) g
+               where (coalesce(n.content_id, 0) = 0 or coalesce(n.creative_id, 0) = 0) and coalesce(g.content_id, 0) > 0
+                 and g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d)\\s*(\\d{5,})')::int""")
         # tài khoản → người dùng (report theo người trên etp.on.tc, anh 28/10/2026)
         try:
             ghi("tai_khoan", [{"ad_account_id": int(x["id"]), "nguoi_id": x.get("used_by_user_id"), "nguoi": x.get("used_by_user_name") or x.get("user_name") or None, "nha": int(x["id"]) in EA.TK}

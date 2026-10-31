@@ -217,6 +217,15 @@ const LUAT = [
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "m.id > 0 && !seTat.has(m.id) && !giu[`nb:${m.id}`]", vi: 'không nhân bản camp đang chờ tắt' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC, ghiG10, daGuiG10 } from './ethopex.mjs';", vi: 'một danh sách mức ROAS + một chỗ ghi ngày G10 cho nhà và team' },
   { card: 0, tep: 'apps/etp/cong.py', co: 'la_roas = lambda ten: " duplicate by " in (ten or "") or (ten or "").lstrip().startswith("★") or bool(_ROAS_TEAM.search(ten or ""))', vi: 'nhận camp ROAS team đặt tên kiểu _ROAS1 / (ROAS) / Dup by' },
+  // hàng góp ý 31/10/2026
+  { card: 1492, tep: 'apps/etp/dong-bo.py', co: "g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d)", vi: 'bản nhân bản của team thừa hưởng phim + creative từ camp gốc ghi trong tên' },
+  { card: 1493, tep: 'apps/web/src/components/etp-view.tsx', co: "<span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} />", vi: 'loại + số bản nhân dạt phải ô camp ở cây' },
+  { card: 1493, tep: 'packages/bang/src/data-table.tsx', co: "paddingLeft: sau * 14, width: '100%', boxSizing: 'border-box' }}>", vi: 'ô cây giãn đủ bề rộng để nội dung dạt phải được' },
+  { card: 1494, tep: 'apps/web/src/components/etp-view.tsx', co: '<TheBac ls={ls ?? []} d={d} c={c} /></KhungNoi>', vi: 'thẻ lịch sử bậc ghi số + tên camp' },
+  { card: 1494, tep: 'apps/web/src/components/etp-view.tsx', mot: 'function DauCamp(', vi: 'một đầu thẻ camp dùng chung' },
+  { card: 1495, tep: 'apps/web/src/components/etp-view.tsx', co: '<span style={{ color: \'var(--fg-2)\' }}>Người </span><b style={{ fontSize: 14, color: du.nguoi.ngoai', vi: 'dải số gọn khi cuộn ghi người đang xem' },
+  { card: 1496, tep: 'apps/web/src/components/ui/chon2.tsx', co: "if (href && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return;", vi: 'ô chọn: ⌘ / Ctrl / ⇧-click mở tab mới' },
+  { card: 1496, tep: 'apps/web/src/components/etp-view.tsx', co: 'href={(v) => urlNguoi(v).href}', vi: 'ô Người ⌘ / Ctrl-click mở tab mới' },
   // anh 31/10/2026 "các camp roas của kiên ko thấy đánh dấu vàng": giao diện nhận ROAS team bằng một hàm chung, không chép luật riêng
   { card: 0, tep: 'apps/web/src/lib/etp-roas.ts', mot: 'const ROAS_TEAM = /(?:^|[\\s_(])ROAS\\d*(?=$|[\\s_)])/;', vi: 'giao diện nhận ROAS team cùng luật với cong.py' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';", vi: 'tô vàng / tab ROAS dùng hàm chung' },

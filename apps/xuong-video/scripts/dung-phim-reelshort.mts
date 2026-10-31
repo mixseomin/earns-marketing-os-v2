@@ -92,9 +92,12 @@ if (gia('cap-nhat')) {
   // Kiểm trên ẢNH biến thể (cat-do.ts tìm món trong ảnh, ~0,2¢ / cặp, nhớ theo cặp) — mô tả chữ của biến thể 156 không nhắc thẻ, chỉ ẢNH có thẻ
   if (du.so_vat) { const loiBt: string[] = []; const daXet = new Map<string, boolean>();
     for (const [i, s] of du.shot.entries()) for (const ten of nguoiKhung(s)) for (const mon of daMat(du.so_vat, TP[i]!, ten, 'dau')) {
-      const en = du.ten_en?.[mon] ?? mon; const tu = en.toLowerCase().replace(/^the\s+/, '').split(/\s+/).filter((w) => w.length > 3);
+      // DANH TỪ CHÍNH của món, không phải mọi chữ dài: "the white staff ID badge on its dark blue lanyard" → badge, lanyard (01/11/2026: dò 'white' làm vết cà phê
+      // "on a white silk blouse" bị coi là còn thẻ). Mỗi cụm trước / sau giới từ lấy chữ cuối.
+      const en = du.ten_en?.[mon] ?? mon; const tu = en.toLowerCase().replace(/^the\s+/, '').split(/\s+(?:on|with|in|of|around)\s+/).map((c) => c.trim().split(/\s+/).pop() ?? '').filter((w) => w.length > 3);
       for (const b of btPhim.filter((r) => r.nv === ten && (s.bt ?? []).includes(String(r.ten)))) { const mt = String(b.mo_ta ?? '').toLowerCase(); const khoa = `${b.id}|${mon}`;
-        if (!daXet.has(khoa)) { const chu = tu.some((w) => mt.includes(w)) && !/\bno (staff )?(lanyard|badge)|\bwithout\b|\bbare\b/.test(mt);
+        if (!daXet.has(khoa)) { const phu = (w: string) => new RegExp(`\\b(no longer|no|not|without|removed|snapped off|bare)\\b[^.;]*\\b${w}`).test(mt);   // "no longer wears the staff lanyard or the badge"
+          const chu = tu.some((w) => new RegExp(`\\b${w}`).test(mt) && !phu(w));
           const anh = b.anh_url ? !!(await catDo(db, phimId, String(b.anh_url), en, `on ${ten}`).catch(() => null)) : false; daXet.set(khoa, chu || anh); }
         if (daXet.get(khoa)) loiBt.push(`#${TT[i]!} ${ten}: biến thể "${b.ten}" (ảnh / mô tả) còn ${mon} mà ${mon} đã sang tay người khác — gán biến thể không có ${mon}`); } }
     if (loiBt.length) { console.error(`biến thể trang phục lệch sổ đồ vật:\n  ${loiBt.join('\n  ')}`); process.exit(1); } }

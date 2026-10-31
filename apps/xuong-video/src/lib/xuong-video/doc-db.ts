@@ -23,7 +23,8 @@ export const mangInt = (xs: number[]) => `{${xs.map((x) => Math.trunc(Number(x))
 export const mapBienThe = (r: Row): BienThe => ({ id: n(r.id), nhan_vat_id: n(r.nhan_vat_id), nhom: s(r.nhom), ten: s(r.ten), mo_ta: s(r.mo_ta), anh_url: r.anh_url == null ? null : s(r.anh_url),
   ...(Array.isArray(r.dan_3d) && r.dan_3d.length ? { dan_3d: r.dan_3d } : {}),   // dấu 3D của biến thể (bo-set-3d.ts › BienTheDan)
   ...(Array.isArray(r.dung_cho) && r.dung_cho.length ? { dung_cho: r.dung_cho } : {}),   // hoàn cảnh dùng (bang-trang-phuc.ts)
-  ...(Array.isArray(r.dung_tap) && r.dung_tap.length ? { dung_tap: (r.dung_tap as unknown[]).map(Number) } : {}) });   // tập dùng (trang phục theo tập)
+  ...(Array.isArray(r.dung_tap) && r.dung_tap.length ? { dung_tap: (r.dung_tap as unknown[]).map(Number) } : {}),
+  ...(r.anh_can_lai ? { anh_can_lai: true } : {}) });   // tập dùng (trang phục theo tập)
 
 export const mapNhanVat = (r: Row): NhanVat => ({ id: n(r.id), phim_id: n(r.phim_id), loai: s(r.loai) as LoaiNhanVat, ten: s(r.ten), mo_ta: s(r.mo_ta), tieu_su: s(r.tieu_su), am_hieu: arr<{ ten: string; mo_ta: string; url: string }>(r.am_hieu), anh_ref: arr<string>(r.anh_ref), anh_mat: (r.anh_mat && typeof r.anh_mat === 'object' ? r.anh_mat : null) as NhanVat['anh_mat'], giong: s(r.giong), giong_model: s(r.giong_model), giong_id: s(r.giong_id), giong_mau_url: r.giong_mau_url == null ? null : s(r.giong_mau_url), giong_thu: Array.isArray(r.giong_thu) ? (r.giong_thu as NhanVat['giong_thu']) : [], doi_chieu: (r.doi_chieu && typeof r.doi_chieu === 'object' ? r.doi_chieu : null) as NhanVat['doi_chieu'],
   thuoc_id: r.thuoc_id == null ? null : n(r.thuoc_id), bo_set_id: r.bo_set_id == null ? null : n(r.bo_set_id), vung: (r.vung ?? null) as NhanVat['vung'], khoi_3d: (r.khoi_3d ?? null) as NhanVat['khoi_3d'], lora: (r.lora && typeof r.lora === 'object' ? r.lora : null) as NhanVat['lora'] });

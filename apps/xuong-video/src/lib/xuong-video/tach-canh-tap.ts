@@ -7,7 +7,8 @@ import { dsKhuon, taKhuon, ghiKhuonTuCanh } from './khuon-shot';
 import { boiCanhTap, ghiTienChu, type Db } from './doc-db';
 import { docKinhThanh, coMau, giayMau, thieuQc } from './kieu';
 import { soShotToiDa } from './nhip-hinh';
-import { phanRaTapDb } from './phan-ra';
+import { phanRaTapDb, sinhAnhThieuDb } from './phan-ra';
+import { NGUONG_TU_CHAY_VND } from './chot-tien';
 
 type Kq<T> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -34,5 +35,11 @@ export async function tachCanhTapDb(db: Db, tapId: number, soCanh: number, nguoi
   // của tập mới, tạo món thiếu, gắn đúng shot (~200₫). Hỏng không làm hỏng tách cảnh — báo cáo chuẩn bị sẽ hiện tập này "chưa phân rã".
   const pr = await phanRaTapDb(db, tapId, { nguoi }).catch((e: unknown) => ({ ok: false as const, loi: e instanceof Error ? e.message : String(e) }));
   if (!pr.ok) console.error(`[phân rã sau tách cảnh] tập ${bc.tap.so}:`, pr.loi);
+  // …rồi TỰ SINH ảnh mẫu món thiếu / món vừa bổ sung (anh 31/10/2026: "sao tao cứ phải bấm lắt nhắt") — chỉ khi cả mẻ dưới ngưỡng tự chạy;
+  // vượt thì nằm ở báo cáo chuẩn bị, nút 🖼 ghi giá. Ảnh xếp hàng nền, không giữ lượt tách cảnh.
+  else {
+    const sa = await sinhAnhThieuDb(db, bc.tap.phim_id, { tranVnd: NGUONG_TU_CHAY_VND - (pr.data.vnd ?? 0) }).catch((e: unknown) => ({ ok: false as const, loi: e instanceof Error ? e.message : String(e) }));
+    if (!sa.ok) console.error(`[sinh ảnh thiếu sau phân rã] tập ${bc.tap.so}:`, sa.loi);
+  }
   return { ok: true, data: so };
 }

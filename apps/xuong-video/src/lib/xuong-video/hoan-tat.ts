@@ -183,7 +183,7 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
   // Ảnh nhỏ cho timeline / thẻ (anh-nho.ts) làm sẵn ngay — lần mở đầu không phải chờ thu nhỏ. Chạy nền, hỏng thì lúc xem làm lại.
   void lamSanNho(kq.url);
   if (j.bien_the_id != null) {
-    await db.execute(sql`UPDATE xv_bien_the SET anh_url = ${kq.url}, updated_at = now() WHERE id = ${Number(j.bien_the_id)}`);
+    await db.execute(sql`UPDATE xv_bien_the SET anh_url = ${kq.url}, anh_can_lai = false, updated_at = now() WHERE id = ${Number(j.bien_the_id)}`);
   } else if (canh != null && j.dich === 'sua_mat') {
     // 🩹 sửa mặt (soi-mat.ts › suaMatCanh): soi lại ảnh sửa → đạt thì thành keyframe, chưa thì thử lại từ ảnh gốc (tối đa 3 lần)
     const { xongSuaMat } = await import('./soi-mat');

@@ -7,7 +7,7 @@ import { z } from 'zod/v4';   // zodOutputFormat của SDK cần zod v4 (claude.
 import { thieuAnchor, type BienThe, type Canh, type NhanVat, type Tap } from './kieu';
 
 /** Đổi câu hệ thống / khuôn / luật gắn → tăng số này: mọi tập đã phân rã thành "cũ", báo cáo nhắc chạy lại. */
-export const PHIEN_PHAN_RA = 1;
+export const PHIEN_PHAN_RA = 2;   // 2: bo_sung — món đã có mà mô tả thiếu chi tiết (giày, phụ kiện…) thì AI bổ sung, máy ghi + đánh dấu ảnh mẫu cần sinh lại
 /** Model phân rã: việc TRÍCH XUẤT có cấu trúc (không phải viết sáng tác như kịch bản) → Sonnet là model rẻ nhất làm tốt; không theo mo_hinh_chu
  *  của phim (Opus, cho viết). 31/10/2026: Opus + trần 16k token ra → cổng tiền ước theo giá niêm yết ~9.100₫/tập, vượt ngưỡng tự chạy. */
 export const MO_HINH_PHAN_RA = 'claude-sonnet-5-5';
@@ -26,6 +26,7 @@ export const PhanRaSchema = z.object({
     ten: z.string().describe('Tên ngắn tiếng Việt, DUY NHẤT trong nhóm của nhân vật/bối cảnh đó; món đã có thì chép ĐÚNG tên cũ'),
     co_san: z.boolean().describe('true nếu món ĐÃ CÓ trong danh sách thành phần (chép đúng tên); false nếu là món MỚI cần chuẩn bị'),
     mo_ta: z.string().describe('Mô tả TIẾNG ANH đủ để vẽ ảnh mẫu không phải đoán (màu, chất liệu, kiểu dáng, chi tiết; phụ kiện ghi tay/tai nào; vết ghi hình dạng, màu, cỡ cm, vị trí). Món đã có: có thể để rỗng'),
+    bo_sung: z.string().describe('Chỉ cho món ĐÃ CÓ (co_san=true): câu TIẾNG ANH bổ sung chi tiết mô tả cũ CÒN THIẾU mà shot đòi (vd bộ đồ chưa tả giày → "Shoes: black leather pointed-toe pumps, 5 cm heel."). Mô tả cũ đã đủ / món mới → để rỗng'),
     ly_do: z.string().describe('Shot / dòng kịch bản nào đòi món này, tiếng Việt (vd "S3: Vivian hắt cà phê lên áo Hạ")'),
   })).describe('MỌI thành phần tập này cần — cả món ĐÃ CÓ (co_san=true) lẫn món MỚI'),
   shot: z.array(z.object({
@@ -57,7 +58,8 @@ QUY TẮC:
 4. Liền mạch: cùng ngày truyện, cùng phân cảnh → cùng bộ đồ / tóc / phụ kiện, trừ khi kịch bản cho thấy thay. Nối với tập trước nếu tóm tắt cho thấy cùng ngày.
 5. MỖI shot (đủ mọi mã S…): dung = MỌI thành phần NHÌN THẤY TRONG KHUNG — tên nhân vật, và với MỖI nhân vật trong khung là TOÀN BỘ look đang thấy dạng "Tên nhân vật · tên món" (bộ đồ, tóc, trang điểm, từng phụ kiện, từng vết, trạng thái — đủ cả, vì danh sách này THAY look cũ của nhân vật ở shot đó); tên đạo cụ; tên bối cảnh; cấu kiện thấy được dạng "Tên bối cảnh · tên món". Ngoài khung KHÔNG ghi. Vết chưa xảy ra KHÔNG ghi.
 6. Chỉ ghi điều kịch bản / shot nói ra hoặc suy ra chắc chắn theo vai (nhân viên văn phòng đi làm có giày công sở). Không bịa chi tiết lạ không căn cứ.
-7. ghi_chu: mâu thuẫn liền mạch phát hiện, thiếu sót kịch bản, điểm cần chú ý khi quay.
+7. BỔ SUNG món đã có: mô tả cũ thiếu chi tiết mà shot sẽ thấy (bộ phục trang chưa tả giày / tất / thắt lưng, tóc chưa tả màu, phụ kiện chưa tả tay nào…) → ghi bo_sung tiếng Anh, CHỈ phần thiếu, không chép lại mô tả cũ, không đổi điều mô tả cũ đã chốt. Thiếu chi tiết thì TỰ bổ sung bằng bo_sung — KHÔNG đẩy sang ghi_chu kiểu "nên bổ sung…".
+8. ghi_chu: mâu thuẫn liền mạch phát hiện, thiếu sót kịch bản, điểm cần chú ý khi quay.
 Trả JSON đúng khuôn: ten / ly_do / ghi_chu tiếng Việt, mo_ta tiếng Anh.`;
 
 /** So tên: chuẩn Unicode, thường, gọn khoảng trắng, bỏ ngoặc kép bao ngoài. */
@@ -97,7 +99,7 @@ export function taThanhPhan(nhanVat: NhanVat[]): string {
   for (const loai of thu) for (const a of nhanVat.filter((v) => v.loai === loai)) {
     dong.push(`[${NHAN_LOAI[loai]}] ${a.ten} — ${cat(a.mo_ta, 180) || '(chưa tả)'}`);
     const look = (a.bien_the ?? []).filter((b) => LA_LOOK.has(b.nhom));
-    for (const n of NHOM_LOOK) { const bs = look.filter((b) => b.nhom === n); if (bs.length) dong.push(`    · ${n}: ${bs.map((b) => `"${b.ten}"${b.dung_tap?.length ? ` [tập ${b.dung_tap.join(',')}]` : ''} — ${cat(b.mo_ta, 90)}`).join('; ')}`); }
+    for (const n of NHOM_LOOK) { const bs = look.filter((b) => b.nhom === n); if (bs.length) dong.push(`    · ${n}: ${bs.map((b) => `"${b.ten}"${b.dung_tap?.length ? ` [tập ${b.dung_tap.join(',')}]` : ''} — ${cat(b.mo_ta, 600)}`).join('; ')}`); }
     if (loai === 'boi_canh') { const ck = nhanVat.filter((v) => v.loai === 'cau_kien' && v.thuoc_id === a.id); if (ck.length) dong.push(`    · cấu kiện: ${ck.map((v) => `"${v.ten}"`).join(', ')}`); }
   }
   const ckMoCoi = nhanVat.filter((v) => v.loai === 'cau_kien' && !nhanVat.some((p) => p.id === v.thuoc_id));
@@ -133,11 +135,13 @@ export type KeHoach = {
   taoBienThe: { cua: string; nhom: string; ten: string; mo_ta: string; dung_tap: number[]; ly_do: string }[];
   /** biến thể SẴN CÓ đã gắn tập (dung_tap không rỗng) mà tập này cũng dùng → thêm số tập */
   themTap: { id: number; dung_tap: number[] }[];
+  /** look SẴN CÓ mà mô tả thiếu chi tiết → mô tả mới (cũ + bổ sung); ảnh mẫu cũ cần sinh lại */
+  boSung: { id: number; ten: string; mo_ta: string; them: string }[];
   khongKhop: string[];
 };
 /** KẾ HOẠCH tạo món thiếu từ kết quả AI (thuần). Món đã có (khớp tên) → không tạo, chỉ ghi thêm tập nếu biến thể đang gắn tập. Món mới gắn đúng tập này. */
 export function keHoach(kq: Pick<PhanRaKq, 'thanh_phan'>, nhanVat: NhanVat[], tapSo: number): KeHoach {
-  const kh: KeHoach = { taoAnchor: [], taoBienThe: [], themTap: [], khongKhop: [] };
+  const kh: KeHoach = { taoAnchor: [], taoBienThe: [], themTap: [], boSung: [], khongKhop: [] };
   const anchorCo = nhanVat.filter((v) => v.loai !== 'cau_kien');
   const planAnchor = (loai: string, ten: string) => kh.taoAnchor.find((a) => a.loai === loai && chuan(a.ten) === chuan(ten));
   const timBc = (ten: string) => khopTen(anchorCo.filter((v) => v.loai === 'boi_canh'), ten) ?? planAnchor('boi_canh', ten);
@@ -155,6 +159,8 @@ export function keHoach(kq: Pick<PhanRaKq, 'thanh_phan'>, nhanVat: NhanVat[], ta
       const co = nv ? khopTen((nv.bien_the ?? []).filter((b) => b.nhom === nhom), ten) : undefined;
       if (co) {
         if (co.dung_tap?.length && !co.dung_tap.includes(tapSo) && !kh.themTap.some((x) => x.id === co.id)) kh.themTap.push({ id: co.id, dung_tap: [...co.dung_tap, tapSo].sort((a, b) => a - b) });
+        const them = (t.bo_sung ?? '').trim();
+        if (them && !chuan(co.mo_ta).includes(chuan(them)) && !kh.boSung.some((x) => x.id === co.id)) kh.boSung.push({ id: co.id, ten: `${nv!.ten} · ${co.ten}`, mo_ta: `${(co.mo_ta ?? '').trim()} ${them}`.trim(), them });
         continue;
       }
       const tenCha = nv?.ten ?? t.cua.trim();
@@ -207,9 +213,9 @@ export function lienKetShot(kq: Pick<PhanRaKq, 'shot'>, ma: Map<string, number>,
 }
 
 /** Lượt phân rã đã lưu của một tập (xv_tap.phan_ra). */
-export type PhanRaTapLuu = { phien: number; luc: string; bam: string; model?: string; vnd?: number; moi?: number; shot_doi?: number; ghi_chu?: string[]; khong_khop?: string[] };
+export type PhanRaTapLuu = { phien: number; luc: string; bam: string; model?: string; vnd?: number; moi?: number; shot_doi?: number; ghi_chu?: string[]; khong_khop?: string[]; /** món đã có được bổ sung chi tiết: "Hạ · Sơ mi trắng: Shoes: …" */ bo_sung?: string[] };
 export type TrangThaiPhanRa = 'trong' | 'chua' | 'cu' | 'xong';
-export type TapBaoCao = { id: number; so: number; ten: string; trang_thai: TrangThaiPhanRa; luc: string | null; so_shot: number; can: number; thieu: number; ghi_chu: string[]; khong_khop: string[]; /** độ dài chữ đầu vào (ước token / tiền lượt phân rã) */ ky_tu: number };
+export type TapBaoCao = { id: number; so: number; ten: string; trang_thai: TrangThaiPhanRa; luc: string | null; so_shot: number; can: number; thieu: number; ghi_chu: string[]; khong_khop: string[]; bo_sung: string[]; /** độ dài chữ đầu vào (ước token / tiền lượt phân rã) */ ky_tu: number };
 export type MonThieu = { loai: 'anchor' | 'bien_the'; id: number; ten: string; cua: string | null; nhom: string | null; ly_do: string; tap: number[]; so_shot: number };
 export type BaoCaoChuanBi = { tong: { tap: number; tap_chua: number; tap_cu: number; can: number; du: number; thieu: number }; tap: TapBaoCao[]; thieu: MonThieu[] };
 
@@ -234,10 +240,11 @@ export function baoCaoChuanBi(o: { tap: (Pick<Tap, 'id' | 'so' | 'ten' | 'kich_b
       for (const id of c.bien_the) {
         const x = btTheoId.get(id); if (!x) continue; const k = `b:${id}`; can.add(k); canAll.add(k);
         if (!x.b.anh_url) ghi(k, { loai: 'bien_the', id, ten: x.b.ten, cua: x.nv.ten, nhom: x.b.nhom, ly_do: 'chưa có ảnh mẫu' });
+        else if (x.b.anh_can_lai) ghi(k, { loai: 'bien_the', id, ten: x.b.ten, cua: x.nv.ten, nhom: x.b.nhom, ly_do: 'ảnh mẫu cũ — mô tả vừa bổ sung' });
       }
     }
     const ky_tu = (t.kich_ban ?? '').length + cs.reduce((s, c) => s + (c.hanh_dong?.length ?? 0) + (c.prompt_anh?.length ?? 0) + chuThoai(c).length + (c.canh?.length ?? 0) + 120, 0);
-    return { id: t.id, so: t.so, ten: t.ten, trang_thai, luc: pr?.luc ?? null, so_shot: cs.length, can: can.size, thieu: thieuTap.size, ghi_chu: pr?.ghi_chu ?? [], khong_khop: pr?.khong_khop ?? [], ky_tu };
+    return { id: t.id, so: t.so, ten: t.ten, trang_thai, luc: pr?.luc ?? null, so_shot: cs.length, can: can.size, thieu: thieuTap.size, ghi_chu: pr?.ghi_chu ?? [], khong_khop: pr?.khong_khop ?? [], bo_sung: pr?.bo_sung ?? [], ky_tu };
   });
   const ds = [...thieu.values()].map(({ tapSet, ...m }) => ({ ...m, tap: [...tapSet].sort((a, b) => a - b) })).sort((a, b) => b.so_shot - a.so_shot || a.ten.localeCompare(b.ten));
   return { tong: { tap: tap.length, tap_chua: tap.filter((t) => t.trang_thai === 'chua').length, tap_cu: tap.filter((t) => t.trang_thai === 'cu').length, can: canAll.size, du: canAll.size - thieuAll.size, thieu: thieuAll.size }, tap, thieu: ds };

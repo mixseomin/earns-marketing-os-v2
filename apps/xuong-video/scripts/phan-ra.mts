@@ -29,6 +29,7 @@ if (!co('bao-cao')) {
     if (r.data.boQua) { console.log('  · bỏ qua — chữ tập không đổi từ lần trước (0đ)'); continue; }
     tong += r.data.vnd ?? 0;
     console.log(`  ✓ tạo ${r.data.moi} món mới · thêm tập cho ${r.data.themTap} món · gắn lại ${r.data.shotDoi} shot${r.data.vnd != null ? ` · tiền thật ${dong(r.data.vnd)}` : ''}`);
+    for (const g of r.data.boSung) console.log(`    ＋ bổ sung ${g}`);
     for (const g of r.data.ghiChu) console.log(`    📝 ${g}`);
     for (const k of r.data.khongKhop) console.log(`    ⚠ ${k}`);
   }

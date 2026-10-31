@@ -32,15 +32,15 @@ assert.notStrictEqual(bamPhanRa({ kich_ban: 'KB2' }, s1), b0, 'kịch bản đ�
 // 3. keHoach: dùng lại món có sẵn (kể cả AI rút gọn tên), tạo món mới gắn tập, thêm tập cho món đang gắn tập, cấu kiện có cha, nhân vật lạ → không khớp
 const kq: Pick<PhanRaKq, 'thanh_phan' | 'shot'> = {
   thanh_phan: [
-    { loai: 'look', cua: 'Lâm Hạ', nhom: 'trang_phuc', ten: 'Sơ mi trắng', co_san: true, mo_ta: '', ly_do: '' },             // rút gọn → khớp "Sơ mi trắng (có thẻ)"
-    { loai: 'look', cua: 'Lâm Hạ', nhom: 'do_deo', ten: 'Đồng hồ bạc', co_san: false, mo_ta: 'silver watch, left wrist', ly_do: 'S1' },
-    { loai: 'look', cua: 'Lâm Hạ', nhom: 'vet', ten: 'Vết cà phê ngực trái', co_san: true, mo_ta: '', ly_do: 'S2' },         // gắn tập 1, tập 2 cũng dùng → thêm tập
-    { loai: 'look', cua: 'Lâm Hạ', nhom: 'toc', ten: 'Xoã dài', co_san: false, mo_ta: 'long straight black hair', ly_do: '' },
-    { loai: 'dao_cu', cua: '', nhom: '', ten: 'Thẻ nhân viên', co_san: true, mo_ta: '', ly_do: '' },
-    { loai: 'dao_cu', cua: '', nhom: '', ten: 'Ly cà phê giấy', co_san: false, mo_ta: 'paper coffee cup', ly_do: 'S2' },
-    { loai: 'cau_kien', cua: 'Sảnh thang máy', nhom: '', ten: 'Bảng chỉ dẫn', co_san: false, mo_ta: 'black glass directory', ly_do: '' },
-    { loai: 'look', cua: 'Người lạ', nhom: 'toc', ten: 'Tóc ngắn', co_san: false, mo_ta: 'x', ly_do: '' },
-    { loai: 'look', cua: 'Lâm Hạ', nhom: 'do_deo', ten: 'Đồng hồ bạc', co_san: false, mo_ta: 'dup', ly_do: '' },              // trùng trong cùng lượt → một món
+    { loai: 'look', cua: 'Lâm Hạ', nhom: 'trang_phuc', ten: 'Sơ mi trắng', co_san: true, mo_ta: '', bo_sung: 'Shoes: black pumps.', ly_do: '' },             // rút gọn → khớp "Sơ mi trắng (có thẻ)"
+    { loai: 'look', cua: 'Lâm Hạ', nhom: 'do_deo', ten: 'Đồng hồ bạc', co_san: false, mo_ta: 'silver watch, left wrist', bo_sung: '', ly_do: 'S1' },
+    { loai: 'look', cua: 'Lâm Hạ', nhom: 'vet', ten: 'Vết cà phê ngực trái', co_san: true, mo_ta: '', bo_sung: '', ly_do: 'S2' },         // gắn tập 1, tập 2 cũng dùng → thêm tập
+    { loai: 'look', cua: 'Lâm Hạ', nhom: 'toc', ten: 'Xoã dài', co_san: false, mo_ta: 'long straight black hair', bo_sung: '', ly_do: '' },
+    { loai: 'dao_cu', cua: '', nhom: '', ten: 'Thẻ nhân viên', co_san: true, mo_ta: '', bo_sung: 'ignored for props', ly_do: '' },
+    { loai: 'dao_cu', cua: '', nhom: '', ten: 'Ly cà phê giấy', co_san: false, mo_ta: 'paper coffee cup', bo_sung: '', ly_do: 'S2' },
+    { loai: 'cau_kien', cua: 'Sảnh thang máy', nhom: '', ten: 'Bảng chỉ dẫn', co_san: false, mo_ta: 'black glass directory', bo_sung: '', ly_do: '' },
+    { loai: 'look', cua: 'Người lạ', nhom: 'toc', ten: 'Tóc ngắn', co_san: false, mo_ta: 'x', bo_sung: '', ly_do: '' },
+    { loai: 'look', cua: 'Lâm Hạ', nhom: 'do_deo', ten: 'Đồng hồ bạc', co_san: false, mo_ta: 'dup', bo_sung: '', ly_do: '' },              // trùng trong cùng lượt → một món
   ],
   shot: [],
 };
@@ -49,6 +49,8 @@ assert.deepStrictEqual(kh.taoBienThe.map((b) => `${b.cua}/${b.nhom}/${b.ten}/${b
 assert.deepStrictEqual(kh.themTap, [{ id: 11, dung_tap: [1, 2] }], 'vết đang gắn tập 1 → thêm tập 2');
 assert.deepStrictEqual(kh.taoAnchor.map((a) => `${a.loai}/${a.ten}/${a.cha}`).sort(), ['cau_kien/Bảng chỉ dẫn/Sảnh thang máy', 'dao_cu/Ly cà phê giấy/null']);
 assert.ok(kh.khongKhop.some((x) => x.includes('Người lạ')), 'look của nhân vật không có → báo không khớp');
+assert.deepStrictEqual(kh.boSung.map((b) => [b.id, b.mo_ta]), [[10, 'Sơ mi trắng (có thẻ) desc Shoes: black pumps.']], 'look đã có thiếu giày → bổ sung nối sau mô tả cũ; đạo cụ không bổ sung');
+assert.strictEqual(keHoach({ thanh_phan: [{ ...kq.thanh_phan[0]!, bo_sung: 'desc' }] }, nhanVat, 2).boSung.length, 0, 'bổ sung đã nằm trong mô tả cũ → không ghi lại');
 
 // 4. lienKetShot (sau khi tạo món mới: đồng hồ id 13). S1: Hạ có đồng hồ, CHƯA vết; S2: Hạ có vết. Vivian ở S1 không kê look → giữ đầm.
 const nv2: NhanVat[] = nhanVat.map((v) => v.id === 1 ? { ...v, bien_the: [...(v.bien_the ?? []), bt(13, 1, 'do_deo', 'Đồng hồ bạc', { anh_url: null })] } : v);
@@ -81,6 +83,10 @@ const bc = baoCaoChuanBi({
 assert.deepStrictEqual(bc.tap.map((t) => t.trang_thai), ['xong', 'cu', 'chua', 'trong']);
 assert.deepStrictEqual(bc.thieu.map((m) => `${m.loai}:${m.ten}:${m.tap}:${m.so_shot}`), ['bien_the:Đồng hồ bạc:1:2'], 'chỉ đồng hồ thiếu ảnh mẫu; Sảnh (bộ set) không tính thiếu ảnh gốc');
 assert.strictEqual(bc.tong.thieu, 1); assert.strictEqual(bc.tong.tap_chua, 1); assert.strictEqual(bc.tong.tap_cu, 1);
+// mô tả vừa bổ sung (anh_can_lai) → ảnh mẫu đang có tính THIẾU (cần sinh lại), không im
+const nv3: NhanVat[] = nv2.map((v) => v.id === 1 ? { ...v, bien_the: (v.bien_the ?? []).map((b) => b.id === 10 ? { ...b, anh_can_lai: true } : b) } : v);
+const bc3 = baoCaoChuanBi({ tap: [{ id: 9, so: 1, ten: 'Thang máy', kich_ban: 'KB', phan_ra: { phien: PHIEN_PHAN_RA, luc: 'x', bam: bam9 } }], canh: shotsSau, nhanVat: nv3 });
+assert.ok(bc3.thieu.some((m) => m.id === 10 && m.ly_do.includes('ảnh mẫu cũ')), 'look bổ sung mô tả → báo cần sinh lại ảnh');
 
 // 6. taPhanRa: mã shot S1… theo thứ tự phát, có danh sách thành phần đã có + look-book theo nhóm
 const { user, ma: ma2 } = taPhanRa({ tenPhim: 'P', loai: 'phim', phongCach: '', tap: { so: 1, ten: 'T', kich_ban: 'KB' }, tomTatTruoc: [], nhanVat: nv2, canh: [shot(102, 2), shot(101, 1)] });

@@ -29,7 +29,7 @@ export function PhanRaPanel({ phimId, bc, onChanged, onChon }: { phimId: number;
   const giaPr = cho.reduce((s, t) => ({ cents: s.cents + (bc.uoc[t.id]?.cents ?? 0), vnd: s.vnd + (bc.uoc[t.id]?.vnd ?? 0) }), { cents: 0, vnd: 0 });
   const thieuAnh = bc.thieu.filter((m) => m.ly_do.includes('ảnh') && !m.ly_do.includes('chưa tả'));
   const giaAnh = { cents: thieuAnh.length * bc.gia_anh.cents, vnd: thieuAnh.length * bc.gia_anh.vnd };
-  const ghiChu = bc.tap.filter((t) => t.ghi_chu.length || t.khong_khop.length);
+  const ghiChu = bc.tap.filter((t) => t.ghi_chu.length || t.khong_khop.length || t.bo_sung.length);
   const xong = bc.tap.filter((t) => t.trang_thai === 'xong').length;
 
   // phân rã danh sách tập TUẦN TỰ từng request (tập sau thấy món tập trước vừa tạo → không đẻ trùng), cập nhật tiến độ + báo cáo sau mỗi tập
@@ -78,7 +78,7 @@ export function PhanRaPanel({ phimId, bc, onChanged, onChon }: { phimId: number;
       <Seg value={tab} onChange={setTab} options={[
         { value: 'thieu', label: 'Thiếu chuẩn bị', title: `${bc.thieu.length} món shot đang dùng mà chưa đủ (chưa tả / chưa ảnh)` },
         { value: 'tap', label: 'Theo tập', title: `${bc.tap.length} tập — trạng thái phân rã, số món cần / thiếu` },
-        { value: 'ghi', label: 'Ghi chú liền mạch', title: `${ghiChu.reduce((s, t) => s + t.ghi_chu.length + t.khong_khop.length, 0)} ghi chú / chỗ không khớp` },
+        { value: 'ghi', label: 'Ghi chú liền mạch', title: `${ghiChu.reduce((s, t) => s + t.ghi_chu.length + t.khong_khop.length + t.bo_sung.length, 0)} ghi chú / bổ sung / chỗ không khớp` },
       ]} />
 
       {tab === 'thieu' && (bc.thieu.length ? (
@@ -119,6 +119,7 @@ export function PhanRaPanel({ phimId, bc, onChanged, onChon }: { phimId: number;
         <div style={{ display: 'grid', gap: 10 }}>{ghiChu.map((t) => (
           <div key={t.id} style={{ display: 'grid', gap: 3 }}>
             <b style={{ fontSize: 12.5 }}>Tập {t.so} · {t.ten}</b>
+            {t.bo_sung.map((g, i) => <div key={`b${i}`} style={{ fontSize: 12.5, paddingLeft: 10, color: 'var(--green)' }}>＋ đã bổ sung {g}</div>)}
             {t.ghi_chu.map((g, i) => <div key={`g${i}`} style={{ fontSize: 12.5, paddingLeft: 10 }}>– {g}</div>)}
             {t.khong_khop.map((g, i) => <div key={`k${i}`} style={{ fontSize: 12, paddingLeft: 10, color: 'var(--amber)' }}>⚠ {g}</div>)}
           </div>))}</div>

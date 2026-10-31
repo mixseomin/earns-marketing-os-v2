@@ -17,7 +17,7 @@ const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
 const nvPhim = async (db: Db, phimId: number): Promise<NhanVat[]> =>
   kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY loai, id`)) as unknown as Row[]).map(mapNhanVat));
 
-export type KqPhanRa = { boQua: boolean; moi: number; themTap: number; shotDoi: number; ghiChu: string[]; khongKhop: string[]; vnd?: number };
+export type KqPhanRa = { boQua: boolean; moi: number; themTap: number; boSung: string[]; shotDoi: number; ghiChu: string[]; khongKhop: string[]; vnd?: number };
 
 /** Phân rã MỘT tập: AI gắn thẻ mọi yếu tố → tạo món thiếu (look / đạo cụ / bối cảnh / cấu kiện / nhân vật) → gắn đúng shot → ghi xv_tap.phan_ra.
  *  ep = chạy lại dù mã băm không đổi. nguoi = ai bấm (sổ hoàn tác). */
@@ -29,7 +29,7 @@ export async function phanRaTapDb(db: Db, tapId: number, o: { ep?: boolean; nguo
   if (!canh.length) return loi('tập chưa có shot — tách cảnh trước');
   const bam = bamPhanRa(bc.tap, canh);
   const cu = ((await db.execute(sql`SELECT phan_ra FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0]?.phan_ra as PhanRaTapLuu | null | undefined;
-  if (!o.ep && cu && cu.phien === PHIEN_PHAN_RA && cu.bam === bam) return { ok: true, data: { boQua: true, moi: 0, themTap: 0, shotDoi: 0, ghiChu: cu.ghi_chu ?? [], khongKhop: cu.khong_khop ?? [] } };
+  if (!o.ep && cu && cu.phien === PHIEN_PHAN_RA && cu.bam === bam) return { ok: true, data: { boQua: true, moi: 0, themTap: 0, boSung: [], shotDoi: 0, ghiChu: cu.ghi_chu ?? [], khongKhop: cu.khong_khop ?? [] } };
   const phimId = bc.tap.phim_id;
   const tenPhim = String(((await db.execute(sql`SELECT ten FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[])[0]?.ten ?? '');
   const { user, ma } = taPhanRa({ tenPhim, loai: bc.loai, phongCach: kt.phong_cach, tap: bc.tap, tomTatTruoc: bc.tapTruoc, nhanVat: bc.nhanVat, canh });
@@ -57,6 +57,11 @@ export async function phanRaTapDb(db: Db, tapId: number, o: { ep?: boolean; nguo
     await chupTruoc(db, { bang: 'xv_bien_the', id: t.id, cot: ['dung_tap'], moTa: `phân rã tập ${bc.tap.so}: thêm tập dùng`, nguoi });
     await db.execute(sql`UPDATE xv_bien_the SET dung_tap = ${JSON.stringify(t.dung_tap)}::jsonb, updated_at = now() WHERE id = ${t.id}`);
   }
+  // BỔ SUNG chi tiết còn thiếu vào look đã có (giày, phụ kiện…) — ảnh mẫu đang có giữ nguyên, đánh dấu cần sinh lại (báo cáo đưa vào "thiếu", 🖼 sinh lại)
+  for (const b of kh.boSung) {
+    await chupTruoc(db, { bang: 'xv_bien_the', id: b.id, cot: ['mo_ta', 'anh_can_lai'], moTa: `phân rã tập ${bc.tap.so}: bổ sung mô tả`, nguoi });
+    await db.execute(sql`UPDATE xv_bien_the SET mo_ta = ${b.mo_ta}, anh_can_lai = (anh_url IS NOT NULL), updated_at = now() WHERE id = ${b.id}`);
+  }
 
   // 2. GẮN SHOT theo thành phần vừa đủ (id mới) — chụp trước mỗi shot đổi (hoàn tác được), ghi phần phân rã của shot (kể cả gắn cũ)
   const lk = lienKetShot(kq.data, ma, canh, await nvPhim(db, phimId));
@@ -69,9 +74,9 @@ export async function phanRaTapDb(db: Db, tapId: number, o: { ep?: boolean; nguo
     await db.execute(sql`UPDATE xv_canh SET nhan_vat = ${JSON.stringify(x.nhan_vat)}::jsonb, bien_the = ${JSON.stringify(x.bien_the)}::jsonb, phan_ra = ${JSON.stringify(pr)}::jsonb WHERE id = ${x.id}`);
   }
   const khongKhop = [...kh.khongKhop, ...lk.flatMap((x) => x.khong_khop.map((k) => `shot #${canh.find((y) => y.id === x.id)?.thu_tu}: không khớp "${k}"`))];
-  const ghi: PhanRaTapLuu = { phien: PHIEN_PHAN_RA, luc, bam, model: kq.model, vnd: kq.tokens.vnd, moi: kh.taoAnchor.length + kh.taoBienThe.length, shot_doi: shotDoi, ghi_chu: kq.data.ghi_chu ?? [], khong_khop: khongKhop };
+  const ghi: PhanRaTapLuu = { phien: PHIEN_PHAN_RA, luc, bam, model: kq.model, vnd: kq.tokens.vnd, moi: kh.taoAnchor.length + kh.taoBienThe.length, shot_doi: shotDoi, ghi_chu: kq.data.ghi_chu ?? [], khong_khop: khongKhop, bo_sung: kh.boSung.map((b) => `${b.ten}: ${b.them}`) };
   await db.execute(sql`UPDATE xv_tap SET phan_ra = ${JSON.stringify(ghi)}::jsonb WHERE id = ${tapId}`);
-  return { ok: true, data: { boQua: false, moi: ghi.moi!, themTap: kh.themTap.length, shotDoi, ghiChu: ghi.ghi_chu!, khongKhop, vnd: kq.tokens.vnd } };
+  return { ok: true, data: { boQua: false, moi: ghi.moi!, themTap: kh.themTap.length, boSung: ghi.bo_sung!, shotDoi, ghiChu: ghi.ghi_chu!, khongKhop, vnd: kq.tokens.vnd } };
 }
 
 /** Giá ước: cents (cổng xác nhận tiền của nút — ui.tsx › Nut gia) + VNĐ thật quy đổi (chữ hiện cho anh). */
@@ -98,7 +103,7 @@ export async function baoCaoChuanBiDb(db: Db, phimId: number): Promise<BaoCaoPhi
 /** 🖼 SINH HẾT ẢNH THIẾU — MỘT lõi cho nút trên khung Phân rã và script (phan-ra.mts --sinh-anh). Đợt 1: ảnh gốc cho anchor shot đang dùng mà chưa có
  *  (đã tả; chưa tả thì không vẽ được — báo lại) · đợt 2: ảnh mẫu cho biến thể có cha ĐÃ có ảnh gốc (biến thể bám danh tính cha). Biến thể có cha còn
  *  chờ ảnh gốc → trả tên, chạy lại khi ảnh gốc xong. Xếp hàng nền song song có trần (dayViecAnh), trả ngay. TỐN TIỀN: mỗi ảnh một lượt model ảnh của phim. */
-export async function sinhAnhThieuDb(db: Db, phimId: number): Promise<Kq<{ goc: number; bienThe: number; cho: string[]; loi: string[] }>> {
+export async function sinhAnhThieuDb(db: Db, phimId: number, o: { tranVnd?: number } = {}): Promise<Kq<{ goc: number; bienThe: number; cho: string[]; loi: string[] }>> {
   const bc = await baoCaoChuanBiDb(db, phimId); if (!bc) return loi('không thấy phim');
   const goc = bc.thieu.filter((m) => m.loai === 'anchor' && m.ly_do.includes('chưa có ảnh gốc') && !m.ly_do.includes('chưa tả'));
   const coAnhGoc = new Set(((await db.execute(sql`SELECT id FROM xv_nhan_vat WHERE phim_id = ${phimId} AND jsonb_array_length(coalesce(anh_ref, '[]'::jsonb)) > 0`)) as unknown as Row[]).map((r) => Number(r.id)));
@@ -106,6 +111,9 @@ export async function sinhAnhThieuDb(db: Db, phimId: number): Promise<Kq<{ goc: 
   const bt = bc.thieu.filter((m) => m.loai === 'bien_the');
   const btSan = bt.filter((m) => coAnhGoc.has(chaCua.get(m.id) ?? -1));
   const cho = bt.filter((m) => !coAnhGoc.has(chaCua.get(m.id) ?? -1)).map((m) => `${m.cua} · ${m.ten}`);
+  // tranVnd: đường TỰ CHẠY (sau tách cảnh, không ai bấm) chỉ đi khi cả mẻ theo giá niêm yết nằm trong ngưỡng — vượt thì để nút 🖼 (giá ghi trên nút)
+  const uocVnd = (goc.length + btSan.length) * bc.gia_anh.vnd;
+  if (o.tranVnd != null && uocVnd > o.tranVnd) return loi(`mẻ ${goc.length + btSan.length} ảnh ~${uocVnd.toLocaleString('vi-VN')}₫ vượt ngưỡng tự chạy ${o.tranVnd.toLocaleString('vi-VN')}₫`);
   const l: string[] = bc.thieu.filter((m) => m.loai === 'anchor' && m.ly_do.includes('chưa tả')).map((m) => `${m.ten}: chưa tả đặc tính — tả trước rồi mới sinh ảnh`);
   const r1 = await songSong(goc, (m) => sinhAnhGoc(db, m.id, 1));
   r1.forEach((x, i) => { if (!x.ok) l.push(`${goc[i]!.ten}: ${x.loi}`); else if (!x.data.ok) l.push(`${goc[i]!.ten}: ${x.data.loi}`); });

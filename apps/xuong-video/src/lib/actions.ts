@@ -56,8 +56,7 @@ import { bocTachKhung } from '@/lib/xuong-video/boc-tach-khung';
 import { doiChieuKhung, thanhPhanDuKien, apDungSoBang, type MucDuKien } from '@/lib/xuong-video/doi-chieu-khung';
 import type { BocTachCanh, BocTachKhung, DongDoiChieu } from '@/lib/xuong-video/kieu';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb, sinhAnhBienTheDb } from '@/lib/xuong-video/sinh-anh';
-import { phanRaTapDb, baoCaoChuanBiDb, type KqPhanRa, type BaoCaoPhim } from '@/lib/xuong-video/phan-ra';
-import { songSong } from '@/lib/xuong-video/song-song';
+import { phanRaTapDb, baoCaoChuanBiDb, sinhAnhThieuDb, type KqPhanRa, type BaoCaoPhim } from '@/lib/xuong-video/phan-ra';
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
 import { docGocSpy, xepGocSpy, nhomCuaGoc, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { sanPhamPhim } from '@/lib/xuong-video/nhom-phim';
@@ -629,20 +628,7 @@ export async function baoCaoChuanBiAction(phimId: number): Promise<BaoCaoPhim | 
 export async function sinhAnhThieuAction(phimId: number): Promise<Kq<{ goc: number; bienThe: number; cho: string[]; loi: string[] }>> {
   const db = getDb(); if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
-  const bc = await baoCaoChuanBiDb(db, phimId); if (!bc) return loi('không thấy phim');
-  const goc = bc.thieu.filter((m) => m.loai === 'anchor' && m.ly_do.includes('chưa có ảnh gốc') && !m.ly_do.includes('chưa tả'));
-  const coAnhGoc = new Set(((await db.execute(sql`SELECT id FROM xv_nhan_vat WHERE phim_id = ${phimId} AND jsonb_array_length(coalesce(anh_ref, '[]'::jsonb)) > 0`)) as unknown as Row[]).map((r) => n(r.id)));
-  const btRow = ((await db.execute(sql`SELECT b.id, b.nhan_vat_id FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${phimId}`)) as unknown as Row[]);
-  const chaCua = new Map(btRow.map((r) => [n(r.id), n(r.nhan_vat_id)]));
-  const bt = bc.thieu.filter((m) => m.loai === 'bien_the');
-  const btSan = bt.filter((m) => coAnhGoc.has(chaCua.get(m.id) ?? -1));
-  const cho = bt.filter((m) => !coAnhGoc.has(chaCua.get(m.id) ?? -1)).map((m) => `${m.cua} · ${m.ten}`);
-  const l: string[] = [];
-  const r1 = await songSong(goc, (m) => sinhAnhGoc(db, m.id, 1));
-  r1.forEach((x, i) => { if (!x.ok) l.push(`${goc[i]!.ten}: ${x.loi}`); else if (!x.data.ok) l.push(`${goc[i]!.ten}: ${x.data.loi}`); });
-  const r2 = await songSong(btSan, (m) => sinhAnhBienTheDb(db, m.id));
-  r2.forEach((x, i) => { if (!x.ok) l.push(`${btSan[i]!.cua} · ${btSan[i]!.ten}: ${x.loi}`); else if (!x.data.ok) l.push(`${btSan[i]!.cua} · ${btSan[i]!.ten}: ${x.data.loi}`); });
-  return { ok: true, data: { goc: goc.length, bienThe: btSan.length, cho, loi: l } };
+  return sinhAnhThieuDb(db, phimId);
 }
 
 /** Claude đọc kịch bản các tập → đề xuất biến thể cần cho anchor này → tạo luôn (chưa có ảnh). */

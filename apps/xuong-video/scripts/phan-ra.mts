@@ -3,9 +3,10 @@
 //     ../../node_modules/.bin/tsx scripts/phan-ra.mts --phim=<id> [--tap=<id>] [--ep] [--bao-cao]
 //   mặc định : phân rã các tập CHƯA / CŨ (tập có chữ không đổi bỏ qua 0đ), TUẦN TỰ (tập sau thấy món tập trước vừa tạo), rồi in báo cáo chuẩn bị
 //   --bao-cao: chỉ in báo cáo (0đ) · --tap=<id>: chỉ một tập · --ep: chạy lại dù chữ tập không đổi
+//   --sinh-anh: sau phân rã, xếp sinh hết ảnh thiếu (ảnh gốc anchor → ảnh mẫu biến thể; một lõi với nút 🖼 — phan-ra.ts › sinhAnhThieuDb)
 // TỐN TIỀN ~200₫ / tập (1 lượt chữ, chuỗi rẻ trước). chot-tien: cộng dồn dưới ngưỡng tự chạy thì chạy; vượt → cần DUYET_SINH_1_LAN=1 ngay sau khi anh duyệt.
 import { getDb } from '@mos2/db';
-import { phanRaTapDb, baoCaoChuanBiDb } from '../src/lib/xuong-video/phan-ra';
+import { phanRaTapDb, baoCaoChuanBiDb, sinhAnhThieuDb } from '../src/lib/xuong-video/phan-ra';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const co = (k: string) => process.argv.includes(`--${k}`);
@@ -32,6 +33,16 @@ if (!co('bao-cao')) {
     for (const k of r.data.khongKhop) console.log(`    ⚠ ${k}`);
   }
   if (tong) console.log(`\nTổng tiền thật phân rã lượt này: ${dong(tong)}`);
+}
+
+if (co('sinh-anh')) {
+  const r = await sinhAnhThieuDb(db, phimId);
+  if (!r.ok) console.log(`\n✗ sinh ảnh thiếu: ${r.loi}`);
+  else {
+    console.log(`\n🖼 Đã xếp sinh ${r.data.goc} ảnh gốc + ${r.data.bienThe} ảnh mẫu biến thể (chạy nền)`);
+    for (const c of r.data.cho) console.log(`  ⏳ chờ ảnh gốc của cha: ${c}`);
+    for (const l of r.data.loi) console.log(`  ✗ ${l}`);
+  }
 }
 
 const bc = await baoCaoChuanBiDb(db, phimId);

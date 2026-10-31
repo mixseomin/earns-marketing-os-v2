@@ -6,6 +6,8 @@ import { sql } from 'drizzle-orm';
 import { sinhJson } from './claude';
 import { boiCanhTap, ghiTienChu, kemBienThe, mapCanh, mapNhanVat, type Db, type Row } from './doc-db';
 import { chupTruoc } from './hoan-tac';
+import { sinhAnhGoc, sinhAnhBienTheDb } from './sinh-anh';
+import { songSong } from './song-song';
 import { docKinhThanh, giaAnhCents, giaChuUoc, type NhanVat } from './kieu';
 import { VND_MOI_USD } from './cong-ai';
 import { PhanRaSchema, HE_PHAN_RA, PHIEN_PHAN_RA, MO_HINH_PHAN_RA, tranTokenPhanRa, taPhanRa, bamPhanRa, keHoach, lienKetShot, baoCaoChuanBi, type BaoCaoChuanBi, type PhanRaTapLuu } from './phan-ra-thuan';
@@ -91,4 +93,23 @@ export async function baoCaoChuanBiDb(db: Db, phimId: number): Promise<BaoCaoPhi
   const uoc: Record<number, Gia> = {};
   for (const t of bc.tap) if (t.trang_thai !== 'trong') uoc[t.id] = uocPhanRa(t.ky_tu, t.so_shot);   // cả tập đã xong (nút chạy lại cũng ghi giá)
   return { ...bc, model, uoc, gia_anh: gia(giaAnhCents(kt.mo_hinh_anh)) };
+}
+
+/** 🖼 SINH HẾT ẢNH THIẾU — MỘT lõi cho nút trên khung Phân rã và script (phan-ra.mts --sinh-anh). Đợt 1: ảnh gốc cho anchor shot đang dùng mà chưa có
+ *  (đã tả; chưa tả thì không vẽ được — báo lại) · đợt 2: ảnh mẫu cho biến thể có cha ĐÃ có ảnh gốc (biến thể bám danh tính cha). Biến thể có cha còn
+ *  chờ ảnh gốc → trả tên, chạy lại khi ảnh gốc xong. Xếp hàng nền song song có trần (dayViecAnh), trả ngay. TỐN TIỀN: mỗi ảnh một lượt model ảnh của phim. */
+export async function sinhAnhThieuDb(db: Db, phimId: number): Promise<Kq<{ goc: number; bienThe: number; cho: string[]; loi: string[] }>> {
+  const bc = await baoCaoChuanBiDb(db, phimId); if (!bc) return loi('không thấy phim');
+  const goc = bc.thieu.filter((m) => m.loai === 'anchor' && m.ly_do.includes('chưa có ảnh gốc') && !m.ly_do.includes('chưa tả'));
+  const coAnhGoc = new Set(((await db.execute(sql`SELECT id FROM xv_nhan_vat WHERE phim_id = ${phimId} AND jsonb_array_length(coalesce(anh_ref, '[]'::jsonb)) > 0`)) as unknown as Row[]).map((r) => Number(r.id)));
+  const chaCua = new Map(((await db.execute(sql`SELECT b.id, b.nhan_vat_id FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${phimId}`)) as unknown as Row[]).map((r) => [Number(r.id), Number(r.nhan_vat_id)]));
+  const bt = bc.thieu.filter((m) => m.loai === 'bien_the');
+  const btSan = bt.filter((m) => coAnhGoc.has(chaCua.get(m.id) ?? -1));
+  const cho = bt.filter((m) => !coAnhGoc.has(chaCua.get(m.id) ?? -1)).map((m) => `${m.cua} · ${m.ten}`);
+  const l: string[] = bc.thieu.filter((m) => m.loai === 'anchor' && m.ly_do.includes('chưa tả')).map((m) => `${m.ten}: chưa tả đặc tính — tả trước rồi mới sinh ảnh`);
+  const r1 = await songSong(goc, (m) => sinhAnhGoc(db, m.id, 1));
+  r1.forEach((x, i) => { if (!x.ok) l.push(`${goc[i]!.ten}: ${x.loi}`); else if (!x.data.ok) l.push(`${goc[i]!.ten}: ${x.data.loi}`); });
+  const r2 = await songSong(btSan, (m) => sinhAnhBienTheDb(db, m.id));
+  r2.forEach((x, i) => { if (!x.ok) l.push(`${btSan[i]!.cua} · ${btSan[i]!.ten}: ${x.loi}`); else if (!x.data.ok) l.push(`${btSan[i]!.cua} · ${btSan[i]!.ten}: ${x.data.loi}`); });
+  return { ok: true, data: { goc: goc.length, bienThe: btSan.length, cho, loi: l } };
 }

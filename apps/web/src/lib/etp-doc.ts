@@ -221,12 +221,12 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const dongS = (v?: { ok?: boolean; ghi?: string; luc?: string }) => (v && typeof v.ok === 'boolean' ? { ok: v.ok, ghi: String(v.ghi ?? ''), luc: String(v.luc ?? '') } : null);
   const crInfo = new Map((await run<Record<string, unknown>>(sql`select creative_id, tu, den, lang, cta_dat, tu_choi, video, anh from etp.creative`)).map((r) => [n(r.creative_id), r]));
   // ẢNH CREATIVE KHÔNG BAO GIỜ THIẾU (anh 31/10/2026): creative đội / tập nguyên không có etp.creative.anh → etp.anh_cr (apps/etp/anh-creative.py: khung chấm / khung cắt từ video)
-  const anhCr = new Map((await run<{ c: number; a: string }>(sql`select creative_id c, anh a from etp.anh_cr where anh is not null`)).map((r) => [n(r.c), r.a]));
+  const anhCr = new Map((await run<{ c: number; a: string | null; v: string | null }>(sql`select creative_id c, anh a, video v from etp.anh_cr where anh is not null or video is not null`)).map((r) => [n(r.c), r]));
   for (const c of cs) {
     if (c.creative_id == null) continue;
     const i = crInfo.get(c.creative_id) ?? {};
     const x = crMap.get(c.creative_id) ?? { creative_id: c.creative_id, content_id: c.content_id, phim: c.phim, the_loai: c.the_loai, dang: c.dang, doan: c.doan, tu: i.tu == null ? null : n(i.tu), den: i.den == null ? null : n(i.den),
-      lang: (i.lang as string) ?? null, cta_dat: !!i.cta_dat, tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) ?? null, anh: (i.anh as string) || anhCr.get(c.creative_id) || null, camp: 0, chay: 0, cung_doan: c.cung_doan,
+      lang: (i.lang as string) ?? null, cta_dat: !!i.cta_dat, tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) || anhCr.get(c.creative_id)?.v || null, anh: (i.anh as string) || anhCr.get(c.creative_id)?.a || null, camp: 0, chay: 0, cung_doan: c.cung_doan,
       thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, ngay_dau: null,
       s18: c.content_id ? dongS(s18[String(c.content_id)]) : null, sd: c.doan ? dongS(sDoan[c.doan]) : null, sd_cho: !!(c.doan && choSoat[c.doan]), giao: [] as string[] };
     if (c.giao) x.giao.push(c.giao);

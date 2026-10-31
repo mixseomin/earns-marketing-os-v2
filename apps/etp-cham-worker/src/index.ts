@@ -191,6 +191,15 @@ export default {
     // khung đã cắt — trang etp.on.tc hiện khi rê chuột (ảnh khung quảng cáo, không bí mật)
     const m = u.pathname.match(/^\/khung\/(\d+)\/(\d+)\.jpg$/);
     if (m) { const o = await env.R2.get(`khung/${m[1]}/${m[2]}.jpg`); return o ? new Response(o.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=31536000' } }) : new Response('không có', { status: 404 }); }
+    // ẢNH CREATIVE (anh 31/10/2026 "ko bao giờ đc để thiếu hình creative"): apps/etp/anh-creative.py trên box3 cắt một khung từ video creative chưa có ảnh
+    // (creative đội, tập nguyên…) → PUT /anh/<creative_id>.jpg (khoá MOS2_EXT_KEY) → trang etp đọc GET /anh/<id>.jpg
+    const a = u.pathname.match(/^\/anh\/(\d+)\.jpg$/);
+    if (a && req.method === 'GET') { const o = await env.R2.get(`anh/${a[1]}.jpg`); return o ? new Response(o.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'public, max-age=31536000' } }) : new Response('không có', { status: 404 }); }
+    if (a && req.method === 'PUT') {
+      if (req.headers.get('authorization') !== `Bearer ${env.MOS2_EXT_KEY}`) return new Response('cấm', { status: 403 });
+      const dai = Number(req.headers.get('content-length') ?? 0); if (!dai || dai >= 5 * 1048576 || !req.body) return new Response('cỡ tệp sai', { status: 400 });
+      await env.R2.put(`anh/${a[1]}.jpg`, req.body, { httpMetadata: { contentType: 'image/jpeg', cacheControl: 'public, max-age=31536000' } }); return Response.json({ ok: true, dai });
+    }
     // nhận BẢN XEM NHẸ từ box3 (apps/etp/cham-nhe.py, khoá MOS2_EXT_KEY sẵn trên box3): PUT /nhe/<creative_id> thân = mp4 720p
     const n = u.pathname.match(/^\/nhe\/(\d+)$/);
     if (n && req.method === 'PUT') {

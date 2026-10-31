@@ -295,6 +295,11 @@ def main():
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cham-nhe.py")], capture_output=True, text=True, timeout=540)
         if (r.stdout or r.stderr).strip(): print((r.stdout + r.stderr).strip()[-300:])
     except Exception as e: print(f"cham-nhe: {e}")
+    # ── ẢNH CREATIVE KHÔNG BAO GIỜ THIẾU (anh 31/10/2026) — anh-creative.py: khung chấm / ffmpeg từ video → etp.anh_cr, 60 creative / lượt
+    try:
+        r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "anh-creative.py"), "--so", "60"], capture_output=True, text=True, timeout=240)
+        if '"thieu": 0' not in r.stdout or r.stderr.strip(): print(("anh-creative: " + r.stdout + r.stderr).strip()[-300:])
+    except Exception as e: print(f"anh-creative: {e}")
     # ── CHẤM CREATIVE MỌI THÀNH VIÊN (anh 31/10/2026) — nap-creative-ngoai.py --tu-dong, chỉ chạy khi etp.cau_hinh.cham_doi.bat
     try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nap-creative-ngoai.py"), "--tu-dong"], capture_output=True, text=True, timeout=180)

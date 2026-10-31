@@ -246,6 +246,10 @@ const LUAT = [
   { card: 0, tep: 'apps/etp/dong-bo.py', co: '"nap-creative-ngoai.py"), "--tu-dong"]', vi: 'dong-bo gọi chấm creative mọi thành viên mỗi lượt' },
   { card: 0, tep: 'apps/etp/nap-creative-ngoai.py', co: 'if not ch["bat"] and "--kho" not in sys.argv:', vi: 'chấm đội chỉ chạy khi cham_doi.bat (tiền AI)' },
   { card: 0, tep: 'apps/etp-cham-worker/src/index.ts', co: "vnd: typeof j.usage?.x_ckey?.cost === 'number' ? j.usage.x_ckey.cost : null", vi: 'Worker chấm ghi tiền thật ckey mỗi lượt' },
+  // anh 31/10/2026 "ko bao giờ đc để thiếu hình creative"
+  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "anh: (i.anh as string) || anhCr.get(c.creative_id) || null", vi: 'ô creative lấy ảnh dự phòng etp.anh_cr' },
+  { card: 0, tep: 'apps/etp/dong-bo.py', co: '"anh-creative.py"), "--so", "60"]', vi: 'dong-bo điền ảnh creative thiếu mỗi lượt' },
+  { card: 0, tep: 'apps/etp-cham-worker/src/index.ts', co: "if (a && req.method === 'GET') { const o = await env.R2.get(`anh/${a[1]}.jpg`)", vi: 'Worker phát ảnh creative cắt từ video' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

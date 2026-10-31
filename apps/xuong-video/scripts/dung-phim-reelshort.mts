@@ -55,7 +55,7 @@ const vatDoc = new Map<number, string[]>(); const vatSo = new Map<number, { ten:
 // cúi, tay hạ / nâng) ghi như đồ vật: mốc + sự kiện trên hình → khung đầu shot sau = khung cuối shot trước (match on action), đổi dáng phải có cớ.
 const soSo: [SoVat, string, string][] = [...(du.so_vat ? [[du.so_vat, 'sổ đồ vật', NHAN_DO_VAT] as [SoVat, string, string]] : []), ...(du.so_dang ? [[du.so_dang, 'sổ dáng', NHAN_DANG] as [SoVat, string, string]] : [])];
 for (const [so, tenSo, nhan] of soSo) {
-  const loi = loiSoVat(so, (n) => (du.shot[n - 1] ? nguoiKhung(du.shot[n - 1]!) : null)); if (loi.length) { console.error(`${tenSo} lỗi:\n  ${loi.join('\n  ')}`); process.exit(1); }
+  const loi = loiSoVat(so, (n) => { const i = TT.indexOf(n); return i >= 0 ? nguoiKhung(du.shot[i]!) : null; });   // mốc sổ = SỐ SHOT (shot con 2.9 / 3.1 không làm lệch) if (loi.length) { console.error(`${tenSo} lỗi:\n  ${loi.join('\n  ')}`); process.exit(1); }
   const laVat = so === du.so_vat;
   for (const [i, s] of du.shot.entries()) {
     const ng = nguoiKhung(s); const khai = laVat ? s.nv.filter((x) => x in so) : []; const en = (t: string) => du.ten_en?.[t] ?? t;

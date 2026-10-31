@@ -226,6 +226,12 @@ const LUAT = [
   { card: 1495, tep: 'apps/web/src/components/etp-view.tsx', co: '<span style={{ color: \'var(--fg-2)\' }}>Người </span><b style={{ fontSize: 14, color: du.nguoi.ngoai', vi: 'dải số gọn khi cuộn ghi người đang xem' },
   { card: 1496, tep: 'apps/web/src/components/ui/chon2.tsx', co: "if (href && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return;", vi: 'ô chọn: ⌘ / Ctrl / ⇧-click mở tab mới' },
   { card: 1496, tep: 'apps/web/src/components/etp-view.tsx', co: 'href={(v) => urlNguoi(v).href}', vi: 'ô Người ⌘ / Ctrl-click mở tab mới' },
+  // anh 01/11/2026 "việc này quan trọng, fix ngay" (#70177: 15 dòng lỗi giống hệt): nhật ký máy một đường ghi, chặn dòng lỗi lặp; kho khoá NULL bằng nhau
+  { card: 0, tep: 'apps/etp/nhat_ky.py', co: "where ten = 'ethopex_nhat_ky' and not {lap}", vi: 'nhật ký studio: dòng lỗi trùng trong 24 giờ không ghi lại' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', cam: "jsonb_build_array('{v}'::jsonb)", vi: 'lam-ethopex ghi nhật ký qua nhat_ky.ghi, không tự chép câu update' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: "jsonb_build_array('{v}'::jsonb)", vi: 'nhan-ban ghi nhật ký qua nhat_ky.ghi, không tự chép câu update' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', cam: "jsonb_build_array('{v}'::jsonb)", vi: 'thay-tu-choi ghi nhật ký qua nhat_ky.ghi, không tự chép câu update' },
+  { card: 0, tep: 'packages/db/migrations/0392_etp_nhat_ky_khong_trung.sql', co: 'nulls not distinct', vi: 'etp.nhat_ky khoá một dòng, NULL coi là bằng nhau' },
   // anh 31/10/2026 "các camp roas của kiên ko thấy đánh dấu vàng": giao diện nhận ROAS team bằng một hàm chung, không chép luật riêng
   { card: 0, tep: 'apps/web/src/lib/etp-roas.ts', mot: 'const ROAS_TEAM = /(?:^|[\\s_(])ROAS\\d*(?=$|[\\s_)])/;', vi: 'giao diện nhận ROAS team cùng luật với cong.py' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';", vi: 'tô vàng / tab ROAS dùng hàm chung' },

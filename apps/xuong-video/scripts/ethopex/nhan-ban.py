@@ -248,11 +248,9 @@ class ChanLuat(ValueError):
     cổng trần ngân sách / trần phim / bão hoà / cổng chấm / chặn bộ… → nhật ký ghi ok = NULL (bỏ qua); ValueError thường vẫn là lỗi thật (ok = false)"""
 
 def ghi_nhat_ky(kq, luat, ai):
-    dong = {"luc": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y"), "viec": kq.get("viec") or "nhan_ban", "id": kq.get("moi") or kq.get("goc"), "goc": kq.get("goc"),
-            "truoc": None, "sau": (kq.get("ns") or 1) if kq.get("ok") else None, "ok": kq.get("ok"), "loi": kq.get("loi"), "luat": luat or "(không ghi luật)", "ai": ai or "?", "content": kq.get("content"), "creative": kq.get("creative")}
-    v = json.dumps(dong, ensure_ascii=False).replace("'", "''")
-    q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_nhat_ky', '[]'::jsonb) on conflict (ten) do nothing")
-    q(f"update xv_khoa_ngoai set gia_tri = (select coalesce(jsonb_agg(x), '[]'::jsonb) from (select x from jsonb_array_elements(gia_tri || jsonb_build_array('{v}'::jsonb)) x offset greatest(jsonb_array_length(gia_tri) + 1 - 1000, 0)) t) where ten = 'ethopex_nhat_ky'")
+    import nhat_ky   # apps/etp/nhat_ky.py — một đường ghi, chặn dòng lỗi lặp (nhịp gọi lại mỗi phút khi cổng chặn)
+    nhat_ky.ghi(q, {"viec": kq.get("viec") or "nhan_ban", "id": kq.get("moi") or kq.get("goc"), "goc": kq.get("goc"),
+                    "truoc": None, "sau": (kq.get("ns") or 1) if kq.get("ok") else None, "ok": kq.get("ok"), "loi": kq.get("loi"), "luat": luat or "(không ghi luật)", "ai": ai or "?", "content": kq.get("content"), "creative": kq.get("creative")})
 
 def main(a):
     goc = int(a[0]); that = "--that" in a

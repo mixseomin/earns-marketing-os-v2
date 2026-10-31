@@ -73,9 +73,7 @@ def mot(camp, tu_choi, dat):
     kq.update(creative_moi=moi, viec="thay", ok=(sau == moi), loi=None if sau == moi else f"đã gửi Update nhưng đọc lại vẫn creative #{sau}")
     dong = {"luc": vn(), "viec": "thay_creative", "id": camp, "truoc": cu, "sau": sau, "ok": kq["ok"], "loi": kq["loi"],
             "luat": f"Meta từ chối ad (lý do: {ly[:150]}) → thay creative sạch cùng phim #{moi}", "ai": "máy (anh 23/10/2026: bị từ chối thì tự thay creative ngay)"}
-    v = json.dumps(dong, ensure_ascii=False).replace("'", "''")
-    q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_nhat_ky', '[]'::jsonb) on conflict (ten) do nothing")
-    q(f"update xv_khoa_ngoai set gia_tri = (select coalesce(jsonb_agg(x), '[]'::jsonb) from (select x from jsonb_array_elements(gia_tri || jsonb_build_array('{v}'::jsonb)) x offset greatest(jsonb_array_length(gia_tri) + 1 - 1000, 0)) t) where ten = 'ethopex_nhat_ky'")
+    import nhat_ky; nhat_ky.ghi(q, dong)   # apps/etp/nhat_ky.py — một đường ghi, chặn dòng lỗi lặp
     if kq["ok"]:
         q(f"update xv_khoa_ngoai set gia_tri = gia_tri - '{cu}' where ten='ethopex_cho_dung_lai'")
         gop("ethopex_thay_cho_duyet", {str(camp): moi})
@@ -149,8 +147,7 @@ def don_doan(that=True):
             dn = {"luc": vn(), "viec": "thay_creative", "id": x["camp"], "truoc": x["cr"], "sau": sau, "ok": ok, "loi": dong.get("loi"),
                   "luat": f"dọn đoạn quá tải: đoạn {doan} có {len(ds)} camp (giữ {GIU_DOAN} tốt nhất) · camp dư ROI 3 ngày {r3:+.0f}% < {ROI_DU}% → góc khác #{moi}",
                   "ai": "máy (anh duyệt 25/10/2026: dọn đoạn quá tải, không tắt, không đụng camp lãi)"}
-            v = json.dumps(dn, ensure_ascii=False).replace("'", "''")
-            q(f"update xv_khoa_ngoai set gia_tri = (select coalesce(jsonb_agg(x), '[]'::jsonb) from (select x from jsonb_array_elements(gia_tri || jsonb_build_array('{v}'::jsonb)) x offset greatest(jsonb_array_length(gia_tri) + 1 - 1000, 0)) t) where ten = 'ethopex_nhat_ky'")
+            import nhat_ky; nhat_ky.ghi(q, dn)
             kq.append({**dong, "viec": "thay", "creative_moi": moi, "ok": ok})
     for k in kq: print(json.dumps(k, ensure_ascii=False), flush=True)
     return kq

@@ -173,7 +173,7 @@ export async function chamMoi(sql) {
   const loiGoc = await kiemGoc(ds.map((v) => ({ goc: v.dang?.goc, goc_sp: v.goc_sp })));
   const suThat = new Map();   // tệp sự thật đã kiểm của từng máy (apps/xuong-video/su-that/<máy>.md) — không có thì null
   const suThatCua = (ma) => { if (!suThat.has(ma)) { try { suThat.set(ma, fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')); } catch { suThat.set(ma, null); } } return suThat.get(ma); };
-  const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), goc: v.dang?.hook?.goc, luot_xem: v.dang?.hook?.luot_xem, dong: dongHookBai(v.dang?.title, v.de) })));
+  const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), goc: v.dang?.hook?.goc, luot_xem: v.dang?.hook?.luot_xem ?? (String(v.dang?.hook?.qc ?? '').startsWith('kenh:') ? v.dang?.hook?.ngay : undefined), dong: dongHookBai(v.dang?.title, v.de) })));
   for (const [i, v] of ds.entries()) {
     let kiem;
     if (v.dang?.loai === 'bai') {   // bài viết: chờ kiem-bai chấm đúng bản (md5 chữ đăng); chưa nộp thì nộp, đang chờ thì để lượt sau

@@ -125,6 +125,11 @@ if (a.includes('--nap')) {
   const hookNhom = hookTu((await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta
     where bat_dau is not null and left(noi_dung, 280) ~* any(select replace(lien_quan, '\\b', '\\y') from goc_sp where id = any(${nhomHook}) and lien_quan is not null)
     order by (coalesce(lan_cuoi, now()) - bat_dau) desc, bien_the desc nulls last limit 400`) as never).slice(0, 100);
+  // VIDEO THẮNG của chính máy (anh duyệt 31/10/2026: hook đã chứng minh = QC spy chạy lâu HOẶC video kênh ≥ 500 lượt sau 7 ngày) → đứng ĐẦU kho hook
+  const { THANG_LUOT_XEM, THANG_SAU_NGAY } = await import('../src/lib/xuong-video/luot-xem');
+  const thangKenh: HookDong[] = ((await db.execute(sql`SELECT id, dang->>'title' AS title, luot_xem FROM xv_may_video WHERE may_id = ${m.id} AND luot_xem >= ${THANG_LUOT_XEM}
+    AND (da_dang->'youtube'->>'ngay')::date <= current_date - ${THANG_SAU_NGAY}::int ORDER BY luot_xem DESC LIMIT 10`)) as unknown as { id: number; title: string; luot_xem: number }[])
+    .map((v) => ({ id: `kenh:${v.id}`, chu: sachHook(v.title.replace(/\s*#\w+/g, '')), ngay: v.luot_xem, page: `video thắng của kênh (${v.luot_xem} lượt xem)` }));
   const qcGoc = [...new Set(gocs.flatMap((g) => g.qc_ids ?? []))];
   const hookCuaQc = new Map(hookTu(qcGoc.length ? (await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta where library_id = any(${qcGoc})`) as never : []).map((h) => [h.id, h]));
   /** 6 hook cho một góc: QC của góc trước, rồi QC chạy lâu của nhóm (xoay theo thứ tự để các bài không cùng một hook). */
@@ -147,6 +152,7 @@ if (a.includes('--nap')) {
     hookNhom.splice(0, hookNhom.length, ...nhomDat); for (const k of [...hookCuaQc.keys()]) if (!qcDat.has(k)) hookCuaQc.delete(k);
     console.log(`· Ngọc lọc kho hook: giữ ${hookNhom.length + hookCuaQc.size}/${truoc}`);
   }
+  hookNhom.unshift(...thangKenh);   // video thắng của kênh: đã chứng minh trên đúng tệp người xem của máy, không qua kho spy
   console.log(`· hook QC gốc: ${hookNhom.length} hook nhóm (chạy lâu nhất ${hookNhom[0]?.ngay ?? 0} ngày), ${hookCuaQc.size} QC gắn góc, ${hookDaDung.size} đã dùng ở bài đang chờ`);
   // KHÔNG có hook QC thì DỪNG: bài hook tự viết bị Phòng Nội dung chặn (cham-dang luật 8) — sinh ra là đốt tiền (31/10: Sidecue / MilitaryCalc / Giỗ Chạp 17 bài SỬA LẠI)
   if (!hookNhom.length && !hookCuaQc.size) { console.error(`✗ máy ${ma}: nhóm spy ${nhomHook.join(', ')} (góc + hook_sp) chưa có QC nào khớp làm hook — cần cào QC cho nhóm (hoặc gắn nhóm lân cận) trước khi sinh`); process.exit(1); }

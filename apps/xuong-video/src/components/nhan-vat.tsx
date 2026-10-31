@@ -208,16 +208,16 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
       </div>
       <Loi>{loi[-1]}</Loi>
       {nhanVat.length === 0 && <div style={mono}>Chưa có anchor. Phim nhiều tập BẮT BUỘC khai nhân vật ở đây trước khi tách cảnh, nếu không mỗi tập Claude sẽ tả một kiểu.</div>}
-      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-        {/* DANH SÁCH DẠNG CÂY bên TRÁI — gọn, cố định bề rộng, điều hướng (anh 31/10/2026) */}
-        <div style={{ flex: '0 0 440px', minWidth: 0, display: 'grid', gap: 2, position: 'sticky', top: 12, maxHeight: 'calc(100vh - 96px)', overflowY: 'auto', overflowX: 'hidden' }}>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'stretch' }}>
+        {/* DANH SÁCH DẠNG CÂY bên TRÁI — gọn, cố định bề rộng, điều hướng (anh 31/10/2026, chuẩn YDNI §8) */}
+        <div style={{ flex: '0 0 440px', minWidth: 0, display: 'grid', gap: 2, alignContent: 'start' }}>
           {dsPhang.map((x) => dong(x))}
         </div>
-        {/* KHUNG CHI TIẾT full-height bên PHẢI — bấm một mục cây bên trái thì hiện ở đây */}
-        <div style={{ flex: 1, minWidth: 0 }}>
+        {/* KHUNG CHI TIẾT bên PHẢI — panel có viền, CAO BẰNG cây (alignItems stretch → hết khoảng trống), hiện mục đang chọn */}
+        <div style={{ flex: 1, minWidth: 0, border: '1px solid var(--line)', borderRadius: 12, background: 'var(--bg-1)', padding: 14 }}>
           {(() => { const sv = nhanVat.find((v) => v.id === chonId); return sv
-            ? <div style={{ maxWidth: 720 }}>{the(sv)}</div>
-            : <div style={{ ...mono, padding: 24, textAlign: 'center', border: '1px dashed var(--line)', borderRadius: 12, color: 'var(--fg-4)' }}>Chưa có mục nào</div>; })()}
+            ? the(sv)
+            : <div style={{ ...mono, textAlign: 'center', color: 'var(--fg-4)', paddingTop: 40 }}>Chưa có mục nào</div>; })()}
         </div>
       </div>
       {btMo != null && nhanVat.find((v) => v.id === btMo) && <BienTheDrawer a={nhanVat.find((v) => v.id === btMo)!} khoa={khoa} kt={kt} dangSinh={dangSinh.bienThe} loiBt={loiAnh.bienThe} onClose={() => setBtMo(null)} onChanged={onChanged} />}

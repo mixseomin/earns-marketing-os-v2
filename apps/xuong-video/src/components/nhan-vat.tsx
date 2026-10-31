@@ -102,76 +102,84 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
       if (cha) { let i = idx.get(cha.id); if (i == null) { i = nhomCay.length; idx.set(cha.id, i); nhomCay.push({ cha, con: [] }); } nhomCay[i]!.con.push(v); }
       else if (!idx.has(v.id)) { idx.set(v.id, nhomCay.length); nhomCay.push({ cha: v, con: [] }); }
     } }
+  // KHUNG CHI TIẾT (bên phải, rộng) — ẢNH TO dùng hết không gian + mô tả đầy đủ + các góc lớn + nút (chuẩn YDNI §8).
   const the = (v: NhanVat) => {
-          const soDang = dangSinh.nhanVat.filter((x) => x === v.id).length + (gui[v.id]?.cho ?? 0);
-          const g0 = gui[v.id]; const them = g0 ? v.anh_ref.length - g0.goc : 0;
-          return (
-          <div key={v.id} className="xv-anchor" style={{ flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ width: 72, height: 72, flexShrink: 0, position: 'relative', borderRadius: 6, overflow: 'hidden' }}>
-                <AnhDaiDien v={v} onClick={v.anh_ref[0] ? () => moNgan({ loai: 'xem', url: v.anh_ref[0]!, ten: v.ten }) : v.loai === 'boi_canh' && v.bo_set_id ? () => moNgan({ loai: 'bo-set', setId: v.bo_set_id! }) : undefined} />   {/* chưa có ảnh thật → ảnh 3D (quy trình chuẩn 17/10/2026) */}
-                {soDang > 0 && <DangSinh chu={`${soDang} ảnh`} />}
-              </div>
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}><strong style={{ fontSize: 12 }}>{v.ten}</strong><Pill color="var(--fg-3)">{LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label ?? v.loai}</Pill>{!!v.tieu_su?.trim() && <button type="button" className="xv-lienket" style={{ fontSize: 12 }} title={`Tiểu sử — bấm để sửa:\n${v.tieu_su}`} onClick={() => setSua(v)}>📖</button>}</div>
-                <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 2, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }} title={v.mo_ta}>{v.mo_ta || <em style={{ color: 'var(--fg-4)' }}>chưa mô tả</em>}</div>
-                <div style={{ display: 'flex', gap: 4, marginTop: 6, flexWrap: 'wrap' }}>
-                  <button type="button" className="xv-btn" onClick={() => setSua(v)}>Sửa</button>
-                  {v.bo_set_id && <button type="button" className="xv-btn chinh" title="Bộ set 3D của bối cảnh này — xoay, phóng, nhìn qua máy từng shot đứng trên nó" onClick={() => moNgan({ loai: 'bo-set', setId: v.bo_set_id! })}>🧊 Xem 3D</button>}
-                  <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title={`Một lượt = ${BO_GOC} ảnh, mỗi ảnh một GÓC khác (${v.anh_ref.length ? 'các góc chưa có' : 'ảnh chính + góc phụ'}: ${v.loai === 'nhan_vat' ? 'dáng toàn thân, biểu cảm, ¾, lưng/cạnh' : v.loai === 'boi_canh' ? 'ngược hướng, sát đất, trên cao, chi tiết' : 'nghiêng 45°, cận chất liệu, từ trên, mặt sau'}) — ~${tien(giaAnhCents(kt.mo_hinh_anh))}/ảnh, chạy song song ~20 giây.`} onClick={() => void sinh(v.id, v.anh_ref.length)} gia={BO_GOC * giaAnhCents(kt.mo_hinh_anh)}>{v.anh_ref.length ? `✨ Sinh thêm ${BO_GOC} góc` : `✨ Sinh ảnh gốc + góc phụ (${BO_GOC})`} · {tien(BO_GOC * giaAnhCents(kt.mo_hinh_anh))}</Nut>
-                  <Nut ly={(!khoa.google && !khoa.openai && 'thiếu khoá ảnh') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title="Chỉ sinh thêm MỘT góc kế tiếp" onClick={() => void sinh(v.id, v.anh_ref.length, 1)} gia={giaAnhCents(kt.mo_hinh_anh)}>+1 góc</Nut>
-                  {/* Sản phẩm chưa có ảnh thật thì nút ảnh thật là việc CHÍNH → để ngoài; còn lại ít dùng → sau ⋯ (YDNI). */}
-                  {v.loai === 'san_pham' && !v.anh_ref.length && <button type="button" className="xv-btn" onClick={() => setSua(v)} title="Thêm ảnh thật: dán Ctrl+V, nút Dán (điện thoại), kéo thả, chọn file, URL">📷 Ảnh thật</button>}
-                  {v.loai === 'nhan_vat' && <GiongNhanVat v={v} onChanged={onChanged} />}
-                  {(v.bien_the?.length ?? 0) > 0 && <button type="button" className="xv-btn" onClick={() => setBtMo(v.id)} title="Biến thể đang có — biểu cảm, trang phục, tư thế">🎭 {v.bien_the!.length}</button>}
-                  <Menu>
-                    <MucMenu onClick={() => setSua(v)}>📷 Ảnh thật — dán / kéo thả / URL</MucMenu>
-                    <MucMenu ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!v.anh_ref.length && 'chưa có ảnh gốc') || (!v.mo_ta.trim() && 'chưa có mô tả') || (ban === v.id && 'đang so…')}
-                      onClick={async () => { setBan(v.id); setLoi((x) => ({ ...x, [v.id]: '' })); const r = await doiChieuAnchor(v.id); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [v.id]: r.loi })); await onChanged(); }}>🔍 Đối chiếu ảnh với mô tả (Claude nhìn ảnh)</MucMenu>
-                    <MucMenu onClick={() => setBtMo(v.id)}>🎭 Biến thể ({v.bien_the?.length ?? 0}) — biểu cảm, trang phục, tư thế</MucMenu>
-                    <Xoa nhan="anchor" onXoa={async () => { await xoaNhanVat(v.id); await onChanged(); }} />
-                  </Menu>
-                  {ban === v.id && <span style={mono}>… đang đối chiếu</span>}
-                </div>
-                {(soDang > 0 || them > 0) && (
-                  <div style={{ ...mono, marginTop: 4, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {soDang > 0 && <span style={{ color: 'var(--violet)' }}>⏳ đang sinh {soDang} ảnh (~20 giây/ảnh)…</span>}
-                    {them > 0 && <span style={{ color: 'var(--lime)' }}>✓ đã thêm {them} ảnh gốc mới (đang là ảnh chính)</span>}
-                  </div>
-                )}
-                {v.loai === 'san_pham' && !v.anh_ref.length && <div style={{ fontSize: 10.5, color: 'var(--amber)', marginTop: 4 }}>⚠ Quảng cáo cần ảnh sản phẩm thật — bấm 📷 Ảnh thật để dán/tải ảnh, AI sẽ giữ đúng màu, dáng, chi tiết.</div>}
-                {v.doi_chieu && (v.doi_chieu.khop
-                  ? <div style={{ fontSize: 10.5, color: 'var(--lime)', marginTop: 4 }} title={`Đối chiếu lúc ${gioVN(v.doi_chieu.luc)}`}>✓ Mô tả khớp ảnh gốc</div>
-                  : <div style={{ fontSize: 10.5, color: 'var(--amber)', marginTop: 4, display: 'grid', gap: 3 }}>
-                      <div>⚠ Mô tả LỆCH ảnh gốc ({gioVN(v.doi_chieu.luc)}):</div>
-                      {v.doi_chieu.lech.slice(0, 5).map((l, i) => <div key={i} style={{ paddingLeft: 10 }}>– {l}</div>)}
-                      {v.doi_chieu.mo_ta_de_xuat && <div><button type="button" className="xv-btn" style={{ padding: '1px 7px' }} title={v.doi_chieu.mo_ta_de_xuat}
-                        onClick={async () => { await luuNhanVat({ id: v.id, phim_id: v.phim_id, loai: v.loai, ten: v.ten, mo_ta: v.doi_chieu!.mo_ta_de_xuat, anh_ref: v.anh_ref, giong: v.giong, thuoc_id: v.thuoc_id }); await onChanged(); }}>↳ Dùng mô tả viết theo ảnh</button></div>}
-                    </div>)}
-                <Loi>{loi[v.id] || (!dangSinh.nhanVat.includes(v.id) ? loiAnh.nhanVat[v.id] : '')}</Loi>
-              </div>
-            </div>
-            {(v.anh_ref.length > 1 || !!v.bien_the?.length) && (
-              <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap', alignItems: 'center' }}>
-                {v.anh_ref.length > 1 && v.anh_ref.map((u, i) => (
-                  <AnhNho key={u} url={u} kich={34} vien={i === 0 ? 'var(--cyan)' : undefined} nhan={i === 0 ? 'chính' : undefined}
-                    title={i === 0 ? 'ảnh chính (thẻ + tham chiếu ưu tiên khi sinh cảnh)' : 'bấm để xem lớn · ⋯ để đặt làm ảnh chính'}
-                    onClick={() => moNgan({ loai: 'xem', url: u, ten: v.ten })}
-                    menu={i ? <MucMenu goiY="Ảnh chính hiện trên thẻ và được ưu tiên làm tham chiếu khi sinh cảnh" onClick={async () => { await datAnhChinh(v.id, u); await onChanged(); }}>⭐ Đặt làm ảnh chính</MucMenu> : undefined}
+    const soDang = dangSinh.nhanVat.filter((x) => x === v.id).length + (gui[v.id]?.cho ?? 0);
+    const g0 = gui[v.id]; const them = g0 ? v.anh_ref.length - g0.goc : 0;
+    const anhChinh = v.anh_ref[0];
+    return (
+      <div key={v.id} style={{ display: 'grid', gap: 16 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <strong style={{ fontSize: 18 }}>{v.ten}</strong>
+          <Pill color="var(--fg-3)">{LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label ?? v.loai}</Pill>
+          {!!v.tieu_su?.trim() && <button type="button" className="xv-lienket" style={{ fontSize: 13 }} title={`Tiểu sử — bấm để sửa:\n${v.tieu_su}`} onClick={() => setSua(v)}>📖 tiểu sử</button>}
+          {soDang > 0 && <span style={{ fontSize: 12, color: 'var(--violet)' }}>⏳ đang sinh {soDang} ảnh…</span>}
+          {them > 0 && <span style={{ fontSize: 12, color: 'var(--lime)' }}>✓ +{them} ảnh mới</span>}
+        </div>
+        <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div style={{ width: 'min(440px, 100%)', flexShrink: 0 }}>
+            {anhChinh
+              ? <img src={anhNho(anhChinh, 640)} alt={v.ten} onClick={() => moNgan({ loai: 'xem', url: anhChinh, ten: v.ten })}
+                  style={{ width: '100%', borderRadius: 12, border: '1px solid var(--line)', background: 'var(--bg-2)', cursor: 'zoom-in', display: 'block' }} />
+              : <div style={{ width: '100%', aspectRatio: '1', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--line)', position: 'relative' }} onClick={v.loai === 'boi_canh' && v.bo_set_id ? () => moNgan({ loai: 'bo-set', setId: v.bo_set_id! }) : undefined}><AnhDaiDien v={v} co={440} />{soDang > 0 && <DangSinh chu={`${soDang} ảnh`} />}</div>}
+            {v.anh_ref.length > 1 && (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                {v.anh_ref.map((u, i) => (
+                  <AnhNho key={u} url={u} kich={72} vien={i === 0 ? 'var(--cyan)' : undefined} nhan={i === 0 ? 'chính' : undefined}
+                    title={i === 0 ? 'ảnh chính' : 'bấm để đặt làm ảnh chính'}
+                    onClick={i ? async () => { await datAnhChinh(v.id, u); await onChanged(); } : () => moNgan({ loai: 'xem', url: u, ten: v.ten })}
                     onXoa={async () => { await xoaAnhGoc(v.id, u); await onChanged(); }} />
                 ))}
-                {v.anh_ref.length > 1 && !!v.bien_the?.length && <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--line)', margin: '0 3px' }} />}
-                {(v.bien_the ?? []).slice(0, 14).map((b) => b.anh_url
-                  ? <AnhNho key={b.id} url={b.anh_url} kich={24} title={`${nhanNhom(v.loai, b.nhom)}: ${b.ten}`} onClick={() => setBtMo(v.id)} />
-                  : <span key={b.id} title={`${nhanNhom(v.loai, b.nhom)}: ${b.ten} — chưa có ảnh`} onClick={() => setBtMo(v.id)}
-                      style={{ cursor: 'pointer', fontSize: 9.5, lineHeight: '15px', padding: '0 5px', borderRadius: 4, border: `1px solid ${dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--line)'}`, color: dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--fg-3)', whiteSpace: 'nowrap', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {dangSinh.bienThe.includes(b.id) ? '⏳ ' : ''}{b.ten}
-                    </span>)}
-                {(v.bien_the?.length ?? 0) > 14 && <span style={{ ...mono, fontSize: 9.5 }} onClick={() => setBtMo(v.id)}>+{v.bien_the!.length - 14}</span>}
               </div>
             )}
           </div>
-          );
+          <div style={{ flex: 1, minWidth: 260, display: 'grid', gap: 12 }}>
+            <div style={{ fontSize: 14, lineHeight: 1.65, color: 'var(--fg-1)', whiteSpace: 'pre-wrap' }}>{v.mo_ta || <em style={{ color: 'var(--fg-4)' }}>chưa mô tả — bấm Sửa để tả đặc tính</em>}</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <button type="button" className="xv-btn" onClick={() => setSua(v)}>✎ Sửa</button>
+              {v.bo_set_id && <button type="button" className="xv-btn chinh" title="Bộ set 3D của bối cảnh này" onClick={() => moNgan({ loai: 'bo-set', setId: v.bo_set_id! })}>🧊 Xem 3D</button>}
+              <Nut ly={(!khoa.google && !khoa.openai && 'thiếu GOOGLE_API_KEY/OPENAI_API_KEY') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title="Một lượt = nhiều ảnh, mỗi ảnh một GÓC khác — qua cổng rẻ nhất trước, song song ~20 giây." onClick={() => void sinh(v.id, v.anh_ref.length)} gia={BO_GOC * giaAnhCents(kt.mo_hinh_anh)}>{v.anh_ref.length ? `✨ Sinh thêm ${BO_GOC} góc` : `✨ Sinh ảnh gốc + góc phụ (${BO_GOC})`} · {tien(BO_GOC * giaAnhCents(kt.mo_hinh_anh))}</Nut>
+              <Nut ly={(!khoa.google && !khoa.openai && 'thiếu khoá ảnh') || (!v.mo_ta.trim() && 'tả đặc tính trước')} title="Chỉ sinh thêm MỘT góc kế tiếp" onClick={() => void sinh(v.id, v.anh_ref.length, 1)} gia={giaAnhCents(kt.mo_hinh_anh)}>+1 góc</Nut>
+              {v.loai === 'san_pham' && !v.anh_ref.length && <button type="button" className="xv-btn" onClick={() => setSua(v)} title="Thêm ảnh thật: dán Ctrl+V, kéo thả, chọn file, URL">📷 Ảnh thật</button>}
+              {v.loai === 'nhan_vat' && <GiongNhanVat v={v} onChanged={onChanged} />}
+              {(v.bien_the?.length ?? 0) > 0 && <button type="button" className="xv-btn" onClick={() => setBtMo(v.id)} title="Biến thể — biểu cảm, trang phục, tư thế">🎭 {v.bien_the!.length}</button>}
+              <Menu>
+                <MucMenu onClick={() => setSua(v)}>📷 Ảnh thật — dán / kéo thả / URL</MucMenu>
+                <MucMenu ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || (!v.anh_ref.length && 'chưa có ảnh gốc') || (!v.mo_ta.trim() && 'chưa có mô tả') || (ban === v.id && 'đang so…')}
+                  onClick={async () => { setBan(v.id); setLoi((x) => ({ ...x, [v.id]: '' })); const r = await doiChieuAnchor(v.id); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [v.id]: r.loi })); await onChanged(); }}>🔍 Đối chiếu ảnh với mô tả (Claude nhìn ảnh)</MucMenu>
+                <MucMenu onClick={() => setBtMo(v.id)}>🎭 Biến thể ({v.bien_the?.length ?? 0})</MucMenu>
+                <Xoa nhan="anchor" onXoa={async () => { await xoaNhanVat(v.id); await onChanged(); }} />
+              </Menu>
+              {ban === v.id && <span style={mono}>… đang đối chiếu</span>}
+            </div>
+            {v.loai === 'san_pham' && !v.anh_ref.length && <div style={{ fontSize: 11.5, color: 'var(--amber)' }}>⚠ Quảng cáo cần ảnh sản phẩm thật — bấm 📷 Ảnh thật để AI giữ đúng màu, dáng, chi tiết.</div>}
+            {v.doi_chieu && (v.doi_chieu.khop
+              ? <div style={{ fontSize: 12, color: 'var(--lime)' }} title={`Đối chiếu lúc ${gioVN(v.doi_chieu.luc)}`}>✓ Mô tả khớp ảnh gốc</div>
+              : <div style={{ fontSize: 12, color: 'var(--amber)', display: 'grid', gap: 3 }}>
+                  <div>⚠ Mô tả LỆCH ảnh gốc ({gioVN(v.doi_chieu.luc)}):</div>
+                  {v.doi_chieu.lech.slice(0, 6).map((l, i) => <div key={i} style={{ paddingLeft: 10 }}>– {l}</div>)}
+                  {v.doi_chieu.mo_ta_de_xuat && <div><button type="button" className="xv-btn" style={{ padding: '1px 7px' }} title={v.doi_chieu.mo_ta_de_xuat}
+                    onClick={async () => { await luuNhanVat({ id: v.id, phim_id: v.phim_id, loai: v.loai, ten: v.ten, mo_ta: v.doi_chieu!.mo_ta_de_xuat, anh_ref: v.anh_ref, giong: v.giong, thuoc_id: v.thuoc_id }); await onChanged(); }}>↳ Dùng mô tả viết theo ảnh</button></div>}
+                </div>)}
+            {!!v.bien_the?.length && (
+              <div>
+                <div style={{ ...mono, marginBottom: 6 }}>Biến thể ({v.bien_the.length})</div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                  {v.bien_the.slice(0, 16).map((b) => b.anh_url
+                    ? <AnhNho key={b.id} url={b.anh_url} kich={56} title={`${nhanNhom(v.loai, b.nhom)}: ${b.ten}`} onClick={() => setBtMo(v.id)} />
+                    : <span key={b.id} title={`${nhanNhom(v.loai, b.nhom)}: ${b.ten} — chưa có ảnh`} onClick={() => setBtMo(v.id)}
+                        style={{ cursor: 'pointer', fontSize: 10, lineHeight: '18px', padding: '0 7px', borderRadius: 4, border: `1px solid ${dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--line)'}`, color: dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--fg-3)', whiteSpace: 'nowrap', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {dangSinh.bienThe.includes(b.id) ? '⏳ ' : ''}{b.ten}
+                      </span>)}
+                  {v.bien_the.length > 16 && <span style={{ ...mono }} onClick={() => setBtMo(v.id)}>+{v.bien_the.length - 16}</span>}
+                </div>
+              </div>
+            )}
+            <Loi>{loi[v.id] || (!dangSinh.nhanVat.includes(v.id) ? loiAnh.nhanVat[v.id] : '')}</Loi>
+          </div>
+        </div>
+      </div>
+    );
   };
   // Danh sách phẳng theo thứ tự cây: cha rồi các con (có cờ con + con cuối để vẽ nhánh ├─ └─).
   const dsPhang: { v: NhanVat; laCon: boolean; cuoi: boolean }[] = [];

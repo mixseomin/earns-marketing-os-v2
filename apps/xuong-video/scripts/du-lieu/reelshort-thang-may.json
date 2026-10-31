@@ -1137,7 +1137,6 @@
     "Dáng Hạ": "Hạ's pose",
     "Dáng Vivian": "Vivian's pose",
     "Dáng Thần": "Lục Thần's pose",
-    "Vết cà phê": "the coffee stain on her blouse",
     "Chỗ đứng Hạ": "Hạ's position"
   },
   "so_vat": {
@@ -1162,14 +1161,6 @@
         "cach": "held by its SNAPPED dark blue lanyard in Vivian's right hand, the white card dangling below her fingers (she holds the lanyard, never the card itself)",
         "vi": "Vivian cầm dây đứt bằng TAY PHẢI, thẻ lủng lẳng dưới tay (không cầm vào thẻ)",
         "su_kien": "Vivian giật mạnh, dây thẻ đứt khỏi cổ Hạ"
-      }
-    ],
-    "Vết cà phê": [
-      {
-        "tu": 1,
-        "ai": "Lâm Hạ",
-        "cach": "a large brown coffee stain on the left side of Hạ's white blouse, over her heart — the same size and place in every shot",
-        "vi": "vết cà phê lớn ở ngực trái áo sơ mi trắng, cùng chỗ mọi shot"
       }
     ]
   },

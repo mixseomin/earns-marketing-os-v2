@@ -232,6 +232,8 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: "jsonb_build_array('{v}'::jsonb)", vi: 'nhan-ban ghi nhật ký qua nhat_ky.ghi, không tự chép câu update' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', cam: "jsonb_build_array('{v}'::jsonb)", vi: 'thay-tu-choi ghi nhật ký qua nhat_ky.ghi, không tự chép câu update' },
   { card: 0, tep: 'packages/db/migrations/0392_etp_nhat_ky_khong_trung.sql', co: 'nulls not distinct', vi: 'etp.nhat_ky khoá một dòng, NULL coi là bằng nhau' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'CAT = cong.phim_chan_len()', vi: 'máy thay camp lọc phim cổng chắc chắn chặn (ngoài Âu-Mỹ · đã cất) trước khi thử lên' },
+  { card: 0, tep: 'apps/etp/cong.py', mot: 'LY_AU_MY = "', vi: 'một câu lý do Âu-Mỹ dùng chung cho kiem() và phim_chan_len()' },
   // anh 31/10/2026 "các camp roas của kiên ko thấy đánh dấu vàng": giao diện nhận ROAS team bằng một hàm chung, không chép luật riêng
   { card: 0, tep: 'apps/web/src/lib/etp-roas.ts', mot: 'const ROAS_TEAM = /(?:^|[\\s_(])ROAS\\d*(?=$|[\\s_)])/;', vi: 'giao diện nhận ROAS team cùng luật với cong.py' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';", vi: 'tô vàng / tab ROAS dùng hàm chung' },

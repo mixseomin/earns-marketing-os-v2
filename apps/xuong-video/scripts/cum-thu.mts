@@ -31,5 +31,9 @@ if (gan) {
 }
 const vao = (await Promise.all(cum.map((c) => boiCanhCanh(db, c.id)))).map((x) => ({ canh: x!.canh, nhanVat: x!.nhanVat, look: x!.look }));
 const cuoi = anhNeoCuoi(cum) ?? (cum.length > 1 ? cum.at(-1)!.keyframe_url : null);
-console.log(JSON.stringify({ ten, dau: cum[0]!.keyframe_url, cuoi, bien: { gop: promptCumMoi(vao), tach: promptCumMoi(vao, { gopCon: false }) } }));
+// ẢNH MẶT neo (vx-br.mts › guiShot faceSwap): người chính của shot đầu — ảnh sát mặt chuẩn → ảnh mẫu → ảnh biến thể. A/B 01/11/2026: không neo 3/3 trôi mặt,
+// có neo 2/2 giữ một khuôn mặt.
+const nguoiDau = vao[0]!.nhanVat.find((n) => n.loai === 'nhan_vat' && vao[0]!.canh.nhan_vat.includes(n.id));
+const mat = nguoiDau ? (nguoiDau.anh_mat?.url?.[0] ?? nguoiDau.anh_ref[0] ?? null) : null;
+console.log(JSON.stringify({ ten, dau: cum[0]!.keyframe_url, cuoi, mat, bien: { gop: promptCumMoi(vao), tach: promptCumMoi(vao, { gopCon: false }) } }));
 process.exit(0);

@@ -21,7 +21,7 @@ const dsBien = (gia('bien') ?? 'gop').split(',').flatMap((b) => (lan > 1 ? Array
 const boxTsx = (args: string) => execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2/apps/xuong-video && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/cum-thu.mts ${args}`], { encoding: 'utf8', timeout: 300e3 }).trim();
 if (!trenApp()) await moPhien();   // phiên rụng / tab rời app → tự mở lại (videoexpress.mjs), không bắt chạy tay
 
-const k = JSON.parse(boxTsx(doan).split('\n').pop()!) as { ten: string; dau: string | null; cuoi: string | null; bien: Record<string, string> };
+const k = JSON.parse(boxTsx(doan).split('\n').pop()!) as { ten: string; dau: string | null; cuoi: string | null; mat: string | null; bien: Record<string, string> };
 if (!k.dau) { console.error(`${k.ten}: shot đầu chưa có keyframe`); process.exit(1); }
 const thu = join(tmpdir(), `vx-cum-${gia('tap')}-${gia('tu')}-${gia('den')}`); mkdirSync(thu, { recursive: true });
 const tai = (url: string, f: string) => { execFileSync('curl', ['-sSL', '-o', f, url], { timeout: 120e3 }); return f; };
@@ -30,7 +30,10 @@ const layTiep = !!gia('uuid');
 const mDau = layTiep ? 1 : await napKhung(tai(k.dau, join(thu, 'dau.png')), catDefault);
 const mCuoi = !layTiep && k.cuoi ? await napKhung(tai(k.cuoi, join(thu, 'cuoi.png')), catDefault) : 0;
 // --mat=<url ảnh mặt>: neo mặt (faceSwap) — xem vx-br.mts › guiShot
-const mMat = !layTiep && gia('mat') ? await napKhung(tai(gia('mat')!, join(thu, 'mat.png')), catDefault) : 0;
+// mặc định: ảnh sát mặt người chính (cum-thu.mts › mat); --mat=khong để tắt
+const urlMat = gia('mat') === 'khong' ? null : gia('mat') ?? k.mat;
+const mMat = !layTiep && urlMat ? await napKhung(tai(urlMat, join(thu, 'mat.png')), catDefault) : 0;
+if (urlMat) console.log(`neo mặt: ${urlMat}`);
 if (!mDau) { console.error('nạp khung đầu hỏng'); process.exit(1); }
 
 // --uuid=gop-1:abcd…,gop-2:… : LẤY TIẾP các job đã gửi (lần trước chết giữa chừng) — không gửi lại

@@ -13,6 +13,8 @@ Mỗi nhịp ethopex (cty worker, SAU khi luat-ethopex.py --json đã ghi etp.xe
      một camp $1 — creative khác cùng phim, chọn theo hướng rút kinh nghiệm (CTA đạt, chưa bị Meta từ chối, chưa có camp chạy, không trùng ≥ 50%
      đoạn cũ / đoạn đã lỗ) → chấm sạch thì lên trên khuôn camp cũ (nhan-ban.py --creative, cùng bộ); chưa chấm → xếp chấm, nhịp sau thử lại;
      phim chưa có CC sạch → xếp hàng cắt góc mới (ethopex_can_goc_moi, cờ thay — sua-cta.py iMac cắt cảnh cuối, nhịp sau máy này lên).
+  0. THANG CHUYỂN HƯỚNG (anh 31/10/2026, apps/etp/cat_phim.py): phim chưa camp nào lãi, chi ≥ mức thử mà ROI dưới ngưỡng → đổi sang bộ chưa thử (camp thay lên
+     bộ đó), team lãi thì báo nạp creative team, hết đường thì CẤT (thôi mở dòng thay; cong.kiem chặn tạo camp phim đó). Mức ở etp.cau_hinh.cat_phim.
   4. Camp thay đã chạy (có chi) → dòng 'chay' (trang etp thôi vẽ dòng mờ).
 Chạy (box3, đã nạp .env.production):  python3 thay-the.py [--that] [--toi-da 15]     (không --that = chạy khô, chỉ in sẽ làm gì; --toi-da = trần camp mới mỗi lượt)"""
 import datetime as dt, importlib.util, json, os, subprocess, sys
@@ -27,6 +29,9 @@ TAT_MA = ("l3", "l4", "t2", "off", "d24")   # luật tắt hẳn camp (cùng mã
 HOOK_GAP, GIU_GAP = 1.25, 0.8               # chi/lượt hiện ≥ 1.25× camp lãi → hook yếu · thu/lượt hiện ≤ 0.8× → không giữ chân
 vn = lambda: (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y")
 s_ = lambda t: str(t or "").replace("'", "''")
+
+ETP = os.path.join(D, "..", "..", "..", "etp")
+DOI_BO = {}   # {content_id: bộ đích} — vòng 2 thang chuyển hướng (cat_phim.py): phim lỗ đủ mức thử ở bộ cũ → camp thay lên bộ chưa thử
 
 def _nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(D, tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
@@ -114,6 +119,7 @@ def lam(r, NB):
     if not bh.get("huong"): bh = chan_doan(cu, content); ghi(r["id"], bai_hoc=bh)
     bo = list(r.get("bo_camp") or []); co_dang = {b["dang"] for b in bo}
     c0 = (qj(f"select creative_id, bo, ten from etp.camp where camp_id = {cu}") or [{}])[0]
+    bo_len = DOI_BO.get(content) or str(c0.get("bo") or "2")
     ds = [x for x in ung_vien(content, c0.get("creative_id"), bh["huong"]) if (x.get("dang") or "?") not in co_dang]
     nhom = {}
     for x in ds: nhom.setdefault(x.get("dang") or "?", []).append(x)   # giữ thứ tự xếp theo hướng trong từng dạng
@@ -126,8 +132,8 @@ def lam(r, NB):
             if ly: cho.append((dang, cr, ly)); continue
             ten = ten_camp(x, content, cu)
             if not THAT: len_.append({"dang": dang, "creative": cr, "camp": None}); bao.append(f"{dang} #{cr} {round(float(x.get('tu') or 0))}–{round(float(x.get('den') or 0))}s"); break
-            p = subprocess.run(["python3", os.path.join(D, "nhan-ban.py"), str(cu), "--bo", str(c0.get("bo") or "2"), "--creative", str(cr), "--content", str(content), "--ten", ten,
-                                "--that", "--lich", "today", "--luat", f"camp thay thế ({dang}) · phim chỉ còn #{cu} sắp tắt · {bh['ly_do']}"[:400],
+            p = subprocess.run(["python3", os.path.join(D, "nhan-ban.py"), str(cu), "--bo", bo_len, "--creative", str(cr), "--content", str(content), "--ten", ten,
+                                "--that", "--lich", "today", "--luat", f"camp thay thế ({dang}){f' · đổi sang bộ {bo_len}' if content in DOI_BO else ''} · phim chỉ còn #{cu} sắp tắt · {bh['ly_do']}"[:400],
                                 "--ai", "máy thay camp (anh chat 29/10/2026: phim còn 1 camp sắp đóng thì lên camp mới thay luôn, rút kinh nghiệm, lên theo bộ định dạng)"],
                                capture_output=True, text=True, timeout=600)
             try: kq = json.loads((p.stdout.strip().splitlines() or ["{}"])[-1])
@@ -149,10 +155,18 @@ def lam(r, NB):
 def main():
     NB = _nap("nb", "nhan-ban.py")
     bao, moi = [], 0
+    # THANG CHUYỂN HƯỚNG (anh 31/10/2026): phim chưa lãi sau mức thử → đổi bộ (vòng 2) / chờ creative team (vòng 3) / cất (vòng 4) — trước khi mở dòng thay
+    try:
+        s_cp = importlib.util.spec_from_file_location("cat_phim", os.path.join(ETP, "cat_phim.py")); CP = importlib.util.module_from_spec(s_cp); s_cp.loader.exec_module(CP)
+        b_cp, d_cp = CP.xet(that=THAT); bao += b_cp; DOI_BO.update({int(k): v for k, v in d_cp.items() if v})
+    except Exception as e: bao.append(f"lỗi thang chuyển hướng: {str(e)[:120]}")
+    CAT = {int(x) for x in q("select content_id from etp.phim where thu_vong = 'cat'").split()}
     global SAP; CAN = can_thay(); SAP = {int(x["camp_id"]) for x in CAN}
     # 4. camp thay đã chạy → xong; phim đã có camp khác chạy (ngoài camp cũ) → huỷ
     for r in qj("select id, content_id, camp_cu, buoc, camp_moi, ghi from etp.thay_the where buoc not in ('chay', 'huy')"):
         # xong khi camp thay đầu tiên đã có chi VÀ không còn dạng nào đang chờ chấm (ghi rỗng) — còn chờ thì nhịp sau vẫn thử lên nốt dạng đó
+        if int(r["content_id"]) in CAT and r["buoc"] != "len_lich":
+            ghi(r["id"], buoc="huy", ghi="phim đã cất (thang chuyển hướng, cat_phim.py)"); bo_hang_cat(r["content_id"]); continue
         if r.get("camp_moi") and not (r.get("ghi") or "").strip() and q(f"select 1 from etp.camp c join etp.so_ngay n using (camp_id) where c.camp_id = {int(r['camp_moi'])} and n.chi > 0 limit 1"):
             ghi(r["id"], buoc="chay"); continue
         if r["buoc"] != "len_lich" and q(f"select count(*) from etp.camp where trang_thai = 'ACTIVE' and content_id = {int(r['content_id'])} and camp_id <> {int(r['camp_cu'])}") not in ("", "0"):
@@ -162,6 +176,7 @@ def main():
             ghi(r["id"], buoc="huy", ghi="camp cũ không còn sắp tắt"); bo_hang_cat(r["content_id"])
     # 1. phim mới cần thay
     for x in CAN:
+        if int(x["content_id"]) in CAT: continue
         if q(f"select 1 from etp.thay_the where content_id = {int(x['content_id'])} and buoc not in ('chay', 'huy')"): continue
         moi += 1
         if THAT: q(f"insert into etp.thay_the (content_id, camp_cu, ghi) values ({int(x['content_id'])}, {int(x['camp_id'])}, '{s_(x['ly'])}') on conflict do nothing")

@@ -113,7 +113,7 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
           </button>
         ))}
       </CotCay>
-      <div className="xv-panel" style={{ display: 'grid', gap: 10, flex: 1, minWidth: 0 }}>
+      <div className="xv-panel" style={{ display: 'grid', gap: 10, flex: 1, minWidth: 0, overflow: 'hidden' }}>
         <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
           <b style={{ fontSize: 14 }}>Shot #{p.thu_tu}{p.nhanh ? ` · nhánh ${p.nhanh}` : ''}</b>
           <span style={mono}>{[p.co_canh, p.goc_may].filter(Boolean).join(' · ')}</span>
@@ -131,14 +131,14 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
           {p.thoai && <div><span style={mono}>Thoại</span> {p.thoai}</div>}
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <CotKeo khoa="phieu-cay" macDinh={480} min={300} max={1000}><div style={{ display: 'grid', gap: 8, minWidth: 0, overflow: 'hidden' }}>
+          <CotKeo khoa="phieu-cay" macDinh={420} min={280} max={1000}><div style={{ display: 'grid', gap: 8, minWidth: 0, overflow: 'hidden' }}>
             {/* gốc = chính shot; mọi thành phần là con của nó → một đường nối liền từ trên xuống */}
             {lon && <div style={{ ...mono, display: 'flex', gap: 8, alignItems: 'center' }}>⚖️ dấu theo ảnh {lon === p.lich_su[0] ? 'mới nhất' : 'đang xem'} <span style={{ color: mauLech(lon) }}>{chuLech(lon)}</span>
               {thua.length > 0 && <span style={{ color: 'var(--red)' }} title={thua.map((r) => `${r.thanh_phan}: ${r.thuc_te}`).join('\n')}>＋ {thua.length} thừa trong ảnh</span>}</div>}
             <Nut x={{ nhan: `Shot #${p.thu_tu}`, loai: 'khac', chi_tiet: (p.chung).map((r) => ({ chu: `${r.thanh_phan}: ${r.du_kien}`, khoa: r.thanh_phan })), con: p.cay }} cap={0} onMo={(ma, ten) => moNgan({ loai: 'thanh-phan', phimId, ma, ten })} tra={tra} />
           </div>
           </CotKeo>
-          <div style={{ display: 'grid', gap: 6, justifyItems: 'start', flex: 1, minWidth: 200 }}>
+          <div style={{ display: 'grid', gap: 6, justifyItems: 'start', flex: '1 1 160px', minWidth: 0 }}>
             {coXem.length > 1 && xemDung && <Seg value={xemDung} onChange={setXem} options={coXem} />}
             {xemDung === '2d' && p.svg && <div style={{ width: '100%', maxWidth: 300 }} title="Khung phác bố trí: mỗi bóng màu là một người, mũi tên là hướng nhìn" dangerouslySetInnerHTML={{ __html: p.svg.replace('<svg', '<svg style="width:100%;height:auto;border-radius:4px"') }} />}
             {xemDung === '3d' && p.anh3d && <button type="button" title="Mở bộ set 3D đúng máy shot" onClick={() => moNgan({ loai: 'bo-set', tapId, canhId: p.id })} style={{ padding: 0, border: 0, background: 'none' }}>

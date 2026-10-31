@@ -196,7 +196,7 @@ export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[], ngo
   return [`ANGLE (${LOAI_VI[goc.loai] ?? goc.loai}): "${goc.ten}"${goc.mo_ta ? ` — ${goc.mo_ta}` : ''}.`,
     ngonNgu !== 'vi' && CHU_VIET.test(`${goc.ten} ${goc.mo_ta ?? ''}`) ? 'The angle above is an internal note in Vietnamese: translate its meaning and write EVERYTHING in English.' : '',
     `Format "${dang_bai}": ${MO_TA_DANG[dang_bai] ?? ''}`,
-    hooks.length ? `PROVEN AD HOOKS (first lines of real ads that kept running for months — they work):\n${hooks.map((h) => `- [${h.id}] (${h.ngay} days) "${h.chu}"`).join('\n')}\nPick the ONE that best fits the angle and use it WORD FOR WORD as the hook (post title${MO_TA_DANG[dang_bai] && /hook|móc/i.test(MO_TA_DANG[dang_bai]!) ? ' and the on-screen hook' : ''}) — it has been proven for months, your rewrite has not. Edit ONLY when needed: remove a brand / app / advertiser name, flip his/her to fit the angle, or drop a claim our product cannot keep; then change the fewest words and keep its rhythm and its promise (never bolt the product or the angle onto it — the body of the post connects the hook to the angle). Put its id in hook_qc.` : '',
+    hooks.length ? `PROVEN AD HOOKS (first lines of real ads that kept running for months — they work):\n${hooks.map((h) => `- [${h.id}] (${h.id.startsWith('kenh:') ? `our own video, ${h.ngay} views` : `${h.ngay} days`}) "${h.chu}"`).join('\n')}\nHooks marked "video thắng của kênh" are OUR OWN best videos: keep their frame word for word but change the specific subject (country, word, item, number) to this post's angle, never repeat the same title. For the others, pick the ONE that best fits the angle and use it WORD FOR WORD as the hook (post title${MO_TA_DANG[dang_bai] && /hook|móc/i.test(MO_TA_DANG[dang_bai]!) ? ' and the on-screen hook' : ''}) — it has been proven for months, your rewrite has not. Edit ONLY when needed: remove a brand / app / advertiser name, flip his/her to fit the angle, or drop a claim our product cannot keep; then change the fewest words and keep its rhythm and its promise (never bolt the product or the angle onto it — the body of the post connects the hook to the angle). Put its id in hook_qc.` : '',
     daDung.length ? `Hooks already used (write something different): ${daDung.slice(0, 12).map((t) => `"${t}"`).join('; ')}` : '',
     'Return the JSON now.'].filter(Boolean).join('\n');
 }
@@ -251,6 +251,9 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;
     const de = rapDe({ sp: o.sp, goc: o.goc, dang_bai: o.dang_bai, mau, de: r.data.de, chu: r.data.chu, dich: o.dich, hook: timHook(o.hooks, r.data.hook_qc) });
     loiCu = kiemDe({ mau, dang_bai: o.dang_bai, de: de.de as unknown as Record<string, unknown>, title: de.dang.title ?? '', description: de.dang.description ?? '', nhan: o.sp.nhan, ngon_ngu: o.sp.ngon_ngu, hooks: o.hooks, hook_qc: r.data.hook_qc });
+    // tiêu đề trùng bài có sẵn của máy = Phòng Nội dung chặn chống spam → sinh lại ngay ở đây (31/10/2026: hook video thắng chép nguyên văn trùng chính video đó)
+    const chuanTd = (v: string) => v.toLowerCase().replace(/#\w+/g, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    if ((o.daDung ?? []).some((t) => chuanTd(t) === chuanTd(de.dang.title ?? ''))) loiCu.push('tiêu đề trùng một bài có sẵn của máy — đổi phần cụ thể (nước, từ, món, con số) để thành bài mới');
     if (!loiCu.length) return { ok: true, de, vnd, model: r.model, tokens: { ...tk, vnd } };
   }
   return { ok: false, loi: `đề sai luật sau 2 lượt: ${loiCu.join('; ')}`, vnd };

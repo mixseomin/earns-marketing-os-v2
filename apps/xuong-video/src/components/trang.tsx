@@ -273,10 +273,11 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
         const nv = (chiTiet: number | null) => <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} chiTiet={chiTiet} />;
         return (
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            {/* cột phải: grid PHẢI khai minmax(0, 1fr) — không thì khối con nở theo chữ dài nhất (dòng nowrap) và đẩy ngăn tràn ngang (01/11/2026 phiếu Shots) */}
             <CayPhim thamSoGap={khoaUrl.gap} phim={phim} tap={tap} nhanVat={nhanVat} nut={k} tapId={tapId} onChon={(n, tid) => (tid != null ? moTap(tid) : setNut(n))} onThemTap={themTap}
               hep={hep} onHep={k === 'tap:storyboard' ? (v) => setGiuCay(!v) : undefined}
               phanRa={bcPr ? { thieu: bcPr.tong.thieu, tapCho: bcPr.tong.tap_chua + bcPr.tong.tap_cu } : null} />
-            <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 10, alignContent: 'start' }}>
+            <div style={{ flex: 1, minWidth: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, alignContent: 'start' }}>
               {k === 'kinh_thanh' && <>
                 {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} onMoPhimChong={(pid) => chong.open('phim', pid)} />}
                 {phim.loai === 'quang_cao' && !phim.kinh_thanh?.template && <GocSpyPanel phim={phim} onChanged={tai} />}
@@ -286,7 +287,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
               {/* 🧩 THÀNH PHẦN: cây đầy đủ là CỘT RIÊNG bên trong (sidebar trái chỉ còn một nút) + chi tiết món đang chọn bên phải */}
               {(k === 'nhan_vat' || ((nvId != null || bt) && k === nut)) && <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <CayThanhPhan nhanVat={nhanVat} nut={k === 'nhan_vat' && nvDau != null ? `nv-${nvDau}` : k} onChon={setNut} />
-                <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 10, alignContent: 'start' }}>
+                <div style={{ flex: 1, minWidth: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, alignContent: 'start' }}>
                 {k === 'nhan_vat' && nvDau != null && <XuatHien phim={phim} tap={tap} loai="nv" id={nvDau} ten={nhanVat.find((v) => v.id === nvDau)?.ten ?? ''} onMoTap={moTap} onMoBanDo={(so) => setNut(`bd-${so}`)} />}
                 {k === 'nhan_vat' && nv(nvDau)}
                 {nvId != null && k === nut && <XuatHien phim={phim} tap={tap} loai="nv" id={nvId} ten={nhanVat.find((v) => v.id === nvId)?.ten ?? ''} onMoTap={moTap} onMoBanDo={(so) => setNut(`bd-${so}`)} />}

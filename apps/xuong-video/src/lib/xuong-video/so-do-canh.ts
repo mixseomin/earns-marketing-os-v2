@@ -146,9 +146,11 @@ export function cauBoiCanhCoDinh(s: SoDo, m: ManhSoDo): string {
   if (!cum.length) return '';
   return `FIXED LAYOUT of this location — the real walls and fixtures, identical in every shot: ${cum.join('; ')}.`;
 }
-/** Lá đối chiếu cho cấu kiện cố định (một lá mỗi cấu kiện): thanh_phan "Cấu kiện cố định · <tên vi>" · du_kien "<n> <tên vi>, <chỗ màn>". */
+/** Lá đối chiếu cho cấu kiện cố định (một lá mỗi cấu kiện): thanh_phan "Cấu kiện cố định · <tên vi>" · du_kien "<n> <tên vi>, <chỗ màn>".
+ *  CHỈ cấu kiện TRONG khung (cùng cổng `trong` với nenTheoKhung → prompt): vật ngoài khung không vào prompt thì cũng không được chấm "thiếu"
+ *  (anh 31/10: "thứ không xuất hiện trong shot thì không nhắc"). Trước đây liệt kê cả vật ngoài khung → bục lan ngoài khung chật bị chấm thiếu oan. */
 export function coDinhDuKien(s: SoDo, m: ManhSoDo): { thanh_phan: string; du_kien: string }[] {
-  return nhomPhong(s, m).map(({ vi, n, c }) => ({ thanh_phan: `Cấu kiện cố định · ${vi}`, du_kien: `${n} ${vi}, ${choVi(c)}` }));
+  return nenTheoKhung(s, m).filter((x) => x.trong).map(({ vi, n, choVi }) => ({ thanh_phan: `Cấu kiện cố định · ${vi}`, du_kien: `${n} ${vi}, ${choVi}` }));
 }
 /** Một cấu kiện sau khi chiếu theo máy, kèm cờ TRONG KHUNG (Bước 3). Bước 4 dùng: trong=true → tả + vị trí; trong=false → dòng "không vẽ". */
 export type NenKhung = { en1: string; enN: string; vi: string; n: number; choEn: string; choVi: string; trong: boolean };

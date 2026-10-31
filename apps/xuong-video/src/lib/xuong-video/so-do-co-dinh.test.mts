@@ -8,7 +8,7 @@ const phong: MangPhong[] = [
   { loai: 'tuong', tu: [-3, 5], den: [3, 5], z1: 3 },        // tường sau (y=5) — không được nhắc thành "fixture"
   { loai: 'cua', tu: [0.6, 5], den: [1.4, 5], z1: 2.4 },      // cửa 1, giữa [1, 5]
   { loai: 'cua', tu: [1.4, 5], den: [2.2, 5], z1: 2.4 },      // cửa 2, giữa [1.8, 5] → cụm cửa lệch phải khi nhìn từ nam
-  { loai: 'tranh', tu: [-2.8, 5], den: [-2.0, 5], z0: 1, z1: 2 },
+  { loai: 'tranh', tu: [-2.2, 5], den: [-1.4, 5], z0: 1, z1: 2 },   // tường sau trái, TRONG khung máy nam (x≈-1.8)
 ];
 const s: SoDo = { moc: { cua1: [1, 5] }, may: { nam: { dat: [0, 0], nhin: [0, 5] }, bac: { dat: [0, 10], nhin: [0, 0] } }, phong };
 const nam: ManhSoDo = { may: 'nam', o: {} };
@@ -53,8 +53,11 @@ const s2: SoDo = { moc: {}, may: { nam: { dat: [0, 0], nhin: [0, 5] }, bac: { da
 const cNam2 = cauBoiCanhCoDinh(s2, { may: 'nam', o: {} });
 assert.ok(cNam2.includes('the 2 white-orchid marble pedestals'), `gộp theo tên, số 2, danh từ EN: ${cNam2}`);
 assert.ok(cNam2.includes('the black glass directory board'), `cấu kiện đơn giữ tên EN: ${cNam2}`);
-const bucNam = coDinhDuKien(s2, { may: 'nam', o: {} }).find((x) => x.thanh_phan === 'Cấu kiện cố định · Bục lan trắng');
+const dkNam = coDinhDuKien(s2, { may: 'nam', o: {} });
+const bucNam = dkNam.find((x) => x.thanh_phan === 'Cấu kiện cố định · Bục lan trắng');
 assert.ok(bucNam && /2 Bục lan trắng/.test(bucNam.du_kien), `lá bục lan: ${bucNam?.du_kien}`);
+// CẤU KIỆN NGOÀI KHUNG không được thành lá chấm (bảng chỉ dẫn [3.4,...] ngoài khung phải từ nam) — nếu không sẽ bị chấm "thiếu" oan như bục lan 31/10
+assert.ok(!dkNam.some((x) => x.thanh_phan === 'Cấu kiện cố định · Bảng chỉ dẫn'), 'cấu kiện ngoài khung KHÔNG vào danh sách chấm');
 // LẬT theo máy: bảng chỉ dẫn [3.4,...] từ nam ở PHẢI, từ bắc LẬT sang TRÁI
 assert.strictEqual(benMan(s2, { may: 'nam', o: {} }, [3.4, 4.7]), 'phai', 'bảng từ nam ở phải');
 assert.strictEqual(benMan(s2, { may: 'bac', o: {} }, [3.4, 4.7]), 'trai', 'bảng từ bắc LẬT sang trái');

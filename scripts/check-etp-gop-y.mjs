@@ -136,7 +136,7 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/lib/auth.ts', mot: 'if (r.chi_host && String(r.chi_host).toLowerCase() !== await hostHienTai()) continue;', vi: 'phiên khách một trang chỉ sống trên đúng host của họ' },
   { card: 0, tep: 'apps/web/src/app/api/auth/verify/route.ts', co: "if (u.role === 'viewer' && !u.chiHost) return", vi: 'cổng SSO cho khách một trang qua, viewer thường vẫn 403' },
   { card: 0, tep: 'apps/etp/deploy/etp.on.tc.nginx', co: 'proxy_set_header Cookie $http_cookie; proxy_set_header Host $host; }', vi: 'cổng auth_request etp gửi Host thật (khách etp mới qua được)' },
-  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "<EtpView chiXem={quyen.vai !== 'chu'}", vi: 'không phải chủ (admin mos2) thì ẩn nút ghi của nhà' },
+  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: '<EtpView chiXem={me.role !== \'admin\'}', vi: 'khách etp chỉ xem — ẩn nút ghi' },
   { card: 0, tep: 'apps/web/src/lib/actions/etp-lich.ts', co: "me.role === 'admin' ? me.email : null", vi: 'đặt lịch giờ chỉ admin' },
   { card: 1486, tep: 'apps/web/src/components/etp-view.tsx', co: "label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><BadgeDang d={d} ngan />", vi: 'ô lọc Loại hiện badge màu như cột LOẠI' },
   { card: 1486, tep: 'apps/web/src/components/etp-view.tsx', cam: "label: `${m} · ${d}`, dem:", vi: 'ô lọc Loại không quay lại chữ trơn' },
@@ -152,7 +152,7 @@ const LUAT = [
   // anh 29/10/2026 "cột trạng thái cho gọn lại … hạn chế phải scroll ngang": cột TT của Cây có bề rộng cố định, không ăn khoảng thừa
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'tt', header: 'TT', align: 'left', width: 74,", vi: 'cột trạng thái Cây hẹp cố định' },
   // anh 30/10/2026 "chậm quá" → "làm tối ưu triệt để đi": trang gửi bản nhẹ, phần nặng tải theo tab
-  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "const du = await docEtp(ngCua(quyen, mot('ng')), true);", vi: 'trang etp gửi bản nhẹ' },
+  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "du={await docEtp(mot('ng'), true)}", vi: 'trang etp gửi bản nhẹ' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "const canNang = (tab === 'creative' && (xemCr === 'soat' || xemCr === 'dc')) || tab === 'tv';", vi: 'tab cần phần nặng mới tải bù' },
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'with g as (select coalesce(p.the_loai', vi: 'câu khung giờ gộp theo giờ trước khi gọi khung_vn' },
   // anh 30/10/2026 "vậy điều chỉnh đi": ★ ROAS thắng $20 → $30 cần ROI các ngày tiêu > $16 trên 50% (trước 80%)
@@ -177,16 +177,6 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '.etp-thanh [data-comp="ui.Segmented"] button,.etp-thanh [data-comp="ui.Segmented"] a{white-space:nowrap}', vi: 'nhãn tab không gãy dòng' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "<span className=\"etp-xuong\" style={{ flexBasis: '100%', height: 0 }} />", vi: 'kiểu xem + bộ lọc xuống hàng 2, tab + kỳ hàng 1' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', mot: 'locTuDong={false} />;   // TT / Luật / Loại tự sinh', vi: 'cây camp không có bộ lọc tự sinh trùng ô Lọc / Luật / Loại' },
-  // anh 31/10/2026 PHÂN QUYỀN: Sơn admin (xem hết + sửa camp của Sơn), Kiên chỉ phần của Kiên — dữ liệu cắt TRÊN MÁY CHỦ, một chỗ gác
-  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "du={quyen.vai === 'nguoi' ? catChoNguoi(du, quyen.nguoiId!) : du}", vi: 'vai người nhận dữ liệu đã cắt trên máy chủ' },
-  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "const du = await docEtp(ngCua(quyen, mot('ng')), true);", vi: 'vai người không đổi được ?ng= sang người khác' },
-  { card: 0, tep: 'apps/web/src/lib/actions/etp-nang.ts', co: 'if (!xemNha(q)) return { chamCt: {}, pheu: [], diemCham: {}, thuVien: [] };', vi: 'phần nặng (dữ liệu nhà) không tới vai người' },
-  { card: 0, tep: 'apps/web/src/lib/actions/etp-cham.ts', co: 'if (!q || !xemNha(q)) return {};', vi: 'chữ chấm creative nhà không tới vai người' },
-  { card: 0, tep: 'apps/web/src/lib/etp-quyen.ts', co: "const GIU = ['nhe', 'luc', 'nay', 'ngay', 'camps', 'creatives', 'phims', 'soNgay', 'demNgay', 'theLoai', 'xetLuat', 'xetLuc', 'lsBac'] as const;", vi: 'vai người: danh sách CHO PHÉP, trường mới mặc định rỗng' },
-  { card: 0, tep: 'apps/web/src/lib/etp-quyen.ts', cam: "chiHost !== 'etp.on.tc')", vi: 'không gác bằng chi_host — gác bằng sổ etp.quyen' },
-  { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'if XEM and body is not None and not duong.startswith("/api/v1/report"): raise NgoaiNha(', vi: 'chế độ xem người vẫn chặn mọi lệnh ghi (chế độ sửa là biến khác)' },
-  { card: 0, tep: 'apps/etp/sua-ngoai.py', co: 'os.environ["ETP_SUA_NGUOI"] = str(NG); os.environ.pop("ETP_XEM_NGUOI", None)', vi: 'sửa camp người đi cổng chung chế độ sửa của người (camp ngoài tài khoản người đó bị chặn)' },
-  { card: 0, tep: 'apps/web/src/lib/actions/etp-sua.ts', co: 'where c.camp_id = ${campId} and t.nguoi_id = ${ng} and not t.nha', vi: 'sửa camp: camp phải thuộc tài khoản của người sửa' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'tuoi', header: 'Tuổi', width: 52,", vi: 'cột Tuổi Cây hẹp cố định (không ăn khoảng thừa)' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: 'persistKey="etp-cay" minWidth={1100} fixedLayout', vi: 'Cây table-layout fixed: bề rộng cột theo khai báo, máy nào cũng như nhau' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'dem', header: '', align: 'left', cell: () => null },", vi: 'Cây: cột đệm cuối nhận khoảng thừa, không hở giữa bảng' },

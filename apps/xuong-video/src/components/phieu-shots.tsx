@@ -5,28 +5,47 @@
 import { useEffect, useState } from 'react';
 import { phieuShotsTap } from '@/lib/actions';
 import type { NutPhieu, PhieuShot } from '@/lib/xuong-video/phieu-shots';
+import type { DongDoiChieu } from '@/lib/xuong-video/kieu';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { gioVN } from '@/lib/xuong-video/kieu';
 import { moNgan } from './ngan-chung';
 import { Seg, mono } from './ui';
-import { DoiChieuTable } from './canh';
 import { CotCay, CayCon, CayNut } from './keo';
 
 const ICON: Record<NutPhieu['loai'], string> = { boi_canh: '🏛', cau_kien: '▫', nhan_vat: '👤', look: '👗', dao_cu: '📦', khac: '·' };
 type Xem = '2d' | '3d';
 
-function Nut({ x, cap, onMo }: { x: NutPhieu; cap: number; onMo?: (k: string, ten: string) => void }) {
-  const con = x.con ?? [];
+// ĐỐI CHIẾU NGAY TRÊN CÂY (anh 01/11/2026: "đối chiếu phải show vào đây, viết toàn chữ ai đọc"): mỗi nút / dòng mang dấu của ảnh đang xem —
+// ✓ khớp · ≈ gần · ✗ lệch / thiếu / thừa (kèm "ảnh: …" ngắn) · không dấu = lá này chưa được so. Mô tả dài thu MỘT dòng, rê để xem đủ.
+const DAU: Record<string, { k: string; mau: string }> = { 'khớp': { k: '✓', mau: 'var(--lime)' }, 'gần': { k: '≈', mau: 'var(--amber)' }, 'lệch': { k: '✗', mau: 'var(--red)' }, 'thiếu': { k: '✗', mau: 'var(--red)' }, 'thừa': { k: '＋', mau: 'var(--red)' } };
+type TraSS = (khoa?: string) => DongDoiChieu | undefined;
+function Dau({ r }: { r?: DongDoiChieu }) {
+  if (!r) return null; const d = DAU[r.muc] ?? DAU['lệch']!;
+  return <span title={`${r.muc}: cần "${r.du_kien}" — ảnh "${r.thuc_te}"${r.ghi_chu ? `\n${r.ghi_chu}` : ''}`} style={{ color: d.mau, fontWeight: 700, width: 14, textAlign: 'center', flexShrink: 0 }}>{d.k}</span>;
+}
+const xau = (r?: DongDoiChieu) => !!r && r.muc !== 'khớp' && r.muc !== 'gần';
+/** "ảnh: …" ngắn dưới dòng lệch — thứ máy thấy trong ảnh, cắt gọn */
+const AnhThay = ({ r }: { r?: DongDoiChieu }) => (xau(r) ? <span style={{ color: 'var(--red)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={r!.thuc_te}>→ ảnh: {r!.thuc_te || 'không thấy'}</span> : null);
+
+function Nut({ x, cap, onMo, tra }: { x: NutPhieu; cap: number; onMo?: (k: string, ten: string) => void; tra: TraSS }) {
+  const con = x.con ?? []; const rN = tra(x.khoa);
   return (
-    <CayNut style={{ display: 'grid', gap: 2, paddingBottom: 4 }}>
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', minHeight: 24 }}>
-        {x.anh ? <img src={anhNho(x.anh, 160)} alt="" style={{ width: 22, height: 22, objectFit: 'cover', borderRadius: 3 }} /> : <span style={{ width: 22, textAlign: 'center' }}>{ICON[x.loai]}</span>}
-        {x.link && onMo ? <button type="button" className="xv-lienket" style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600 }} title="Mở chi tiết thành phần (ngăn kéo, không rời phiếu)" onClick={() => onMo(x.link!, x.nhan)}>{x.nhan}</button>
-          : <span style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600 }}>{x.nhan}</span>}
+    <CayNut style={{ display: 'grid', gap: 1, paddingBottom: 3 }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', minHeight: 24, minWidth: 0 }}>
+        {x.anh ? <img src={anhNho(x.anh, 160)} alt="" style={{ width: 22, height: 22, objectFit: 'cover', borderRadius: 3, flexShrink: 0, outline: xau(rN) ? '2px solid var(--red)' : undefined }} /> : <span style={{ width: 22, textAlign: 'center', flexShrink: 0 }}>{ICON[x.loai]}</span>}
+        <Dau r={rN} />
+        {x.link && onMo ? <button type="button" className="xv-lienket" style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600, whiteSpace: 'nowrap' }} title="Mở chi tiết thành phần (ngăn kéo, không rời phiếu)" onClick={() => onMo(x.link!, x.nhan)}>{x.nhan}</button>
+          : <span style={{ fontSize: 12.5, fontWeight: cap ? 400 : 600, whiteSpace: 'nowrap' }}>{x.nhan}</span>}
         {!x.anh && x.loai !== 'cau_kien' && x.loai !== 'khac' && <span style={{ ...mono, color: 'var(--amber)' }} title="Thành phần chưa có ảnh mẫu / ảnh gốc — keyframe sẽ vẽ theo chữ">chưa ảnh</span>}
+        <AnhThay r={rN} />
       </div>
-      {x.chi_tiet.filter(Boolean).map((t, i) => <div key={i} style={{ fontSize: 11.5, color: /không khai|không tả/.test(t) ? 'var(--red)' : 'var(--fg-2)', paddingLeft: 28 }}>{t}</div>)}
-      {con.length > 0 && <CayCon>{con.map((c, i) => <Nut key={i} x={c} cap={cap + 1} onMo={onMo} />)}</CayCon>}
+      {x.chi_tiet.filter((d) => d.chu).map((d, i) => { const r = tra(d.khoa); return (
+        <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'baseline', paddingLeft: 28, minWidth: 0, fontSize: 11.5 }}>
+          <Dau r={r} />
+          <span title={d.chu} style={{ color: /không khai|không tả/.test(d.chu) ? 'var(--red)' : 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0, flex: xau(r) ? '0 1 auto' : 1 }}>{d.chu}</span>
+          <AnhThay r={r} />
+        </div>); })}
+      {con.length > 0 && <CayCon>{con.map((c, i) => <Nut key={i} x={c} cap={cap + 1} onMo={onMo} tra={tra} />)}</CayCon>}
     </CayNut>
   );
 }
@@ -70,6 +89,9 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
   if (!ds.length) return <div style={mono}>Tập chưa có shot — viết kịch bản rồi ✂ Tách cảnh ở nút 📝 Kịch bản.</div>;
   const p = ds.find((x) => x.id === chon) ?? ds[0]!;
   const lon = p.lich_su.find((x) => x.url === anhXem) ?? p.lich_su[0] ?? null;
+  const tra: TraSS = (khoa) => (khoa ? lon?.so_sanh?.find((r) => r.thanh_phan === khoa) : undefined);
+  // lá ảnh có mà phiếu không có (người / đồ thừa) — không gắn được vào nút nào, báo trên đầu cây
+  const thua = (lon?.so_sanh ?? []).filter((r) => r.muc === 'thừa' && !p.cay.some((n) => n.khoa === r.thanh_phan));
   const coXem: { value: Xem; label: string; title: string }[] = [
     ...(p.svg ? [{ value: '2d' as const, label: '2D sơ đồ', title: 'Khung phác chiếu từ sơ đồ cảnh theo máy của shot: tường, cửa, cấu kiện, chỗ đứng + hướng nhìn từng người' }] : []),
     ...(p.anh3d ? [{ value: '3d' as const, label: '3D', title: 'Khung Blender của shot (bộ set 3D) — bấm ảnh để xoay xem' }] : []),
@@ -107,12 +129,13 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
           {p.mo && <div><span style={mono}>Khung mở</span> {p.mo}</div>}
           {p.ket && <div><span style={mono}>Khung kết</span> {p.ket.replace(/\s*(BODY POSE|OBJECT STATE) in this frame.*$/s, '')}</div>}
           {p.thoai && <div><span style={mono}>Thoại</span> {p.thoai}</div>}
-          {p.chung.map((r, i) => <div key={i}><span style={mono}>{r.thanh_phan}</span> <span style={{ color: /không khai|không tả/.test(r.du_kien) ? 'var(--red)' : undefined }}>{r.du_kien}</span></div>)}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 3fr) minmax(200px, 2fr)', gap: 12, alignItems: 'start' }}>
           <div style={{ display: 'grid', gap: 8 }}>
             {/* gốc = chính shot; mọi thành phần là con của nó → một đường nối liền từ trên xuống */}
-            <Nut x={{ nhan: `Shot #${p.thu_tu}`, loai: 'khac', chi_tiet: [], con: p.cay }} cap={0} onMo={(ma, ten) => moNgan({ loai: 'thanh-phan', phimId, ma, ten })} />
+            {lon && <div style={{ ...mono, display: 'flex', gap: 8, alignItems: 'center' }}>⚖️ dấu theo ảnh {lon === p.lich_su[0] ? 'mới nhất' : 'đang xem'} <span style={{ color: mauLech(lon) }}>{chuLech(lon)}</span>
+              {thua.length > 0 && <span style={{ color: 'var(--red)' }} title={thua.map((r) => `${r.thanh_phan}: ${r.thuc_te}`).join('\n')}>＋ {thua.length} thừa trong ảnh</span>}</div>}
+            <Nut x={{ nhan: `Shot #${p.thu_tu}`, loai: 'khac', chi_tiet: (p.chung).map((r) => ({ chu: `${r.thanh_phan}: ${r.du_kien}`, khoa: r.thanh_phan })), con: p.cay }} cap={0} onMo={(ma, ten) => moNgan({ loai: 'thanh-phan', phimId, ma, ten })} tra={tra} />
             {p.lech.length > 0 && <div style={{ display: 'grid', gap: 2, borderLeft: '2px solid var(--amber)', paddingLeft: 8 }}>
               <b style={{ fontSize: 12, color: 'var(--amber)' }}>Keyframe hiện tại lệch phiếu</b>
               {p.lech.map((t, i) => <div key={i} style={{ fontSize: 11.5 }}>{t}</div>)}
@@ -127,11 +150,6 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
             <LichSuAnh ds={p.lich_su} lon={lon} onXem={setAnhXem} />
           </div>
         </div>
-        {/* ⚖️ SO VỚI YÊU CẦU: ảnh đang xem ↔ đúng danh mục dự kiến của phiếu (doi-chieu-anh.ts — mọi ảnh sinh ra đều được đối chiếu) */}
-        {lon && <div style={{ display: 'grid', gap: 6, borderTop: '1px solid var(--line)', paddingTop: 8 }}>
-          <b style={{ fontSize: 12.5 }}>⚖️ Ảnh {lon === p.lich_su[0] ? 'mới nhất' : 'đang xem'} so với yêu cầu <span style={{ ...mono, color: mauLech(lon) }}>{chuLech(lon)}</span></b>
-          {lon.so_sanh ? <DoiChieuTable rows={lon.so_sanh} coAnh /> : <span style={mono}>Ảnh này chưa được đối chiếu — ảnh mới tự đối chiếu ngay khi sinh xong; ảnh cũ chạy bổ sung bằng scripts/doi-chieu-anh.mts</span>}
-        </div>}
       </div>
     </div>
   );

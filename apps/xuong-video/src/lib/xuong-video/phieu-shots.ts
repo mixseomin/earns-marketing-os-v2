@@ -14,7 +14,9 @@ import { locNhanh, nhanNhom, type DongDoiChieu, type NhanVat, type PhanCanh } fr
 import { soLech, type DoiChieuAnh } from './doi-chieu-anh';
 
 /** Một nút trên cây thành phần của shot. link = khoá nút trên cây phim ('nv-<id>' anchor · 'bt-<id>' look) để bấm mở đúng thành phần. */
-export type NutPhieu = { nhan: string; loai: 'boi_canh' | 'cau_kien' | 'nhan_vat' | 'look' | 'dao_cu' | 'khac'; chi_tiet: string[]; link?: string; anh?: string | null; con?: NutPhieu[] };
+/** khoa = tên lá trong danh mục dự kiến (thanhPhanDuKien) — UI tra kết quả đối chiếu của ảnh đang xem theo đúng khoá này để gắn ✓ / ✗ vào nút / dòng. */
+export type DongPhieu = { chu: string; khoa?: string };
+export type NutPhieu = { nhan: string; loai: 'boi_canh' | 'cau_kien' | 'nhan_vat' | 'look' | 'dao_cu' | 'khac'; chi_tiet: DongPhieu[]; khoa?: string; link?: string; anh?: string | null; con?: NutPhieu[] };
 export type PhieuShot = {
   id: number; thu_tu: number; nhanh: string; co_canh: string; goc_may: string; hanh_dong: string; mo: string; ket: string; thoai: string;
   /** dòng chung của shot (khung hình, ai có mặt…) — lá dự kiến không thuộc riêng thành phần nào */ chung: MucDuKien[];
@@ -55,30 +57,33 @@ export async function phieuShotsTapDb(db: Db, tapId: number): Promise<PhieuShot[
     const dk = thanhPhanDuKien(c, nhanVat, kg, 'dau', look.get(c.id));
     const dung = new Set<MucDuKien>();
     /** lá dự kiến của một thành phần: "<Thuộc tính> <tên>" — bỏ tên, giữ thuộc tính */
-    const la = (ten: string) => dk.filter((r) => r.thanh_phan.endsWith(` ${ten}`) && !r.thanh_phan.startsWith('Đạo cụ ')).map((r) => { dung.add(r); return `${r.thanh_phan.slice(0, -ten.length - 1)}: ${r.du_kien}`; });
+    const la = (ten: string): DongPhieu[] => dk.filter((r) => r.thanh_phan.endsWith(` ${ten}`) && !r.thanh_phan.startsWith('Đạo cụ ')).map((r) => { dung.add(r); return { chu: `${r.thanh_phan.slice(0, -ten.length - 1)}: ${r.du_kien}`, khoa: r.thanh_phan }; });
+    /** lá dự kiến của một NHÓM look (áo → "Áo <tên>", vết → "Vết áo <tên>"…) — để nút look mang kết quả đối chiếu của đúng lá đó */
+    const LA_NHOM: Record<string, string> = { trang_phuc: 'Áo', vet: 'Vết áo', toc: 'Tóc', trang_diem: 'Trang điểm', do_deo: 'Phụ kiện', trang: 'Trạng thái' };
     const anchor = c.nhan_vat.map((id) => theoId.get(id)).filter((v): v is NhanVat => !!v);
     const cay: NutPhieu[] = [];
     // BỐI CẢNH + cấu kiện cố định lọt khung (vị trí theo máy của shot)
     for (const bc of anchor.filter((v) => v.loai === 'boi_canh')) {
       const ck = dk.filter((r) => r.thanh_phan.startsWith('Cấu kiện cố định · ')).map((r): NutPhieu => {
         dung.add(r); const ten = r.thanh_phan.slice('Cấu kiện cố định · '.length); const a = cauKien.find((v) => v.ten === ten);
-        return { nhan: ten, loai: 'cau_kien', chi_tiet: [r.du_kien], link: a ? `nv-${a.id}` : undefined, anh: a?.anh_ref[0] ?? null };
+        return { nhan: ten, loai: 'cau_kien', chi_tiet: [{ chu: r.du_kien }], khoa: r.thanh_phan, link: a ? `nv-${a.id}` : undefined, anh: a?.anh_ref[0] ?? null };
       });
-      cay.push({ nhan: bc.ten, loai: 'boi_canh', chi_tiet: [], link: `nv-${bc.id}`, anh: bc.anh_ref[0] ?? null, con: ck });
+      for (const r of dk) if (r.thanh_phan === 'Bối cảnh') dung.add(r);   // lá bối cảnh nằm trên nút bối cảnh, không lặp ở dòng chung
+      cay.push({ nhan: bc.ten, loai: 'boi_canh', chi_tiet: [], khoa: 'Bối cảnh', link: `nv-${bc.id}`, anh: bc.anh_ref[0] ?? null, con: ck });
     }
     // NHÂN VẬT: vị trí / hướng / biểu cảm / dáng + từng món look của shot (node con, link sang look-book)
     for (const v of anchor.filter((x) => x.loai === 'nhan_vat')) {
       const lk = look.get(c.id)?.get(v.ten);
-      const con: NutPhieu[] = KHOA_LOOK.flatMap((k) => (lk?.[k] ?? []).map((b): NutPhieu => ({ nhan: `${nhanNhom('nhan_vat', b.nhom)} · ${b.ten}`, loai: 'look', chi_tiet: [b.mo_ta], link: `bt-${b.id}`, anh: b.anh_url })));
+      const con: NutPhieu[] = KHOA_LOOK.flatMap((k) => (lk?.[k] ?? []).map((b): NutPhieu => ({ nhan: `${nhanNhom('nhan_vat', b.nhom)} · ${b.ten}`, loai: 'look', chi_tiet: [{ chu: b.mo_ta }], khoa: LA_NHOM[b.nhom] ? `${LA_NHOM[b.nhom]} ${v.ten}` : undefined, link: `bt-${b.id}`, anh: b.anh_url })));
       // biến thể KHÔNG phải look gắn ở shot (biểu cảm, tư thế) — vẫn là thành phần có ảnh riêng
-      for (const id of c.bien_the) { const x = btTheoId.get(id); if (x && x.v.id === v.id && !con.some((y) => y.link === `bt-${id}`) && !(KHOA_LOOK as readonly string[]).includes(x.b.nhom)) con.push({ nhan: `${nhanNhom('nhan_vat', x.b.nhom)} · ${x.b.ten}`, loai: 'look', chi_tiet: [x.b.mo_ta], link: `bt-${id}`, anh: x.b.anh_url }); }
+      for (const id of c.bien_the) { const x = btTheoId.get(id); if (x && x.v.id === v.id && !con.some((y) => y.link === `bt-${id}`) && !(KHOA_LOOK as readonly string[]).includes(x.b.nhom)) con.push({ nhan: `${nhanNhom('nhan_vat', x.b.nhom)} · ${x.b.ten}`, loai: 'look', chi_tiet: [{ chu: x.b.mo_ta }], link: `bt-${id}`, anh: x.b.anh_url }); }
       // dòng của chính nhân vật: chỉ chỗ đứng / hướng / nét mặt / dáng — áo, tóc, trang điểm, vết… đã là node look con (cùng chữ, khỏi lặp)
-      const cua = la(v.ten).filter((t) => /^(Vị trí|Hướng|Biểu cảm|Dáng):/.test(t) || !con.length);
+      const cua = la(v.ten).filter((t) => /^(Vị trí|Hướng|Biểu cảm|Dáng):/.test(t.chu) || !con.length);
       cay.push({ nhan: v.ten, loai: 'nhan_vat', chi_tiet: cua, link: `nv-${v.id}`, anh: v.anh_ref[0] ?? null, con });
     }
     // ĐẠO CỤ / SẢN PHẨM: ai cầm / trạng thái
     for (const v of anchor.filter((x) => x.loai === 'dao_cu' || x.loai === 'san_pham')) {
-      const ct = dk.filter((r) => r.thanh_phan.startsWith(`Đạo cụ ${v.ten} `)).map((r) => { dung.add(r); return `${r.thanh_phan.slice(`Đạo cụ ${v.ten} + `.length)}: ${r.du_kien}`; });
+      const ct = dk.filter((r) => r.thanh_phan.startsWith(`Đạo cụ ${v.ten} `)).map((r): DongPhieu => { dung.add(r); return { chu: `${r.thanh_phan.slice(`Đạo cụ ${v.ten} + `.length)}: ${r.du_kien}`, khoa: r.thanh_phan }; });
       cay.push({ nhan: v.ten, loai: 'dao_cu', chi_tiet: ct, link: `nv-${v.id}`, anh: v.anh_ref[0] ?? null });
     }
     const sd = sdLuc(c, 'dau');

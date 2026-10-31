@@ -256,6 +256,8 @@ const LUAT = [
   // anh 31/10/2026 G10 theo hướng dẫn team (ảnh bộ lọc Ethopex: Active · Budget Daily > 15 · ROI < 15): hạ thẳng về $10, 2 ngày đã khép sau đó vẫn < 15% thì tắt, áp cả ★ ROAS
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'G10_NS, G10_DICH, G10_ROI, G10_THEO = 15, 10, 15, 2', vi: 'G10: ngân sách > $15, về $10, ROI < 15%, theo dõi 2 ngày' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '        if ns <= G10_NS: continue', vi: 'G10 lọc ngân sách > $15 đúng bộ lọc team' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if len(x3) < 3 or c3 < ns', vi: 'G10 chỉ xét camp chạy đủ 3 ngày (anh 31/10/2026)' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"đủ 3 ngày", len(_x) >= 3]', vi: 'thẻ G10: chưa đủ 3 ngày là Không áp, không phải Gần' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L_g10(cid, ns)); ra[int(cid)] = ls; continue', vi: 'thẻ G10 có cả ở camp ★ ROAS' },
   { card: 0, tep: V, co: "['giam', 'Giảm chi — hạ bậc', ['g10']]", vi: 'bản luật có nhóm Giảm chứa G10' },
   // anh 31/10/2026 "Bộ lọc, danh sách,.... phải có G10 chứ?": chip sắp chạm / dải lọc, chế độ Tự động tk team đều có G10

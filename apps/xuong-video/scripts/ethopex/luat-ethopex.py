@@ -629,7 +629,7 @@ try:
                 continue
         if ns <= G10_NS: continue
         x3 = [x for x in _ds if x[0] in _d3s]; c3, t3 = sum(x[1] for x in x3), sum(x[2] for x in x3)
-        if c3 < ns or (t3 - c3) / c3 * 100 >= G10_ROI: continue
+        if len(x3) < 3 or c3 < ns or (t3 - c3) / c3 * 100 >= G10_ROI: continue   # chạy đủ 3 ngày: cả 3 ngày đã khép đều có chi (anh 31/10/2026 "ROI 3 ngày và phải chạy từ 3 ngày trở lên")
         try: ly = NT.chan_giam(api, cid)
         except Exception: ly = None
         if not ly: g10.append((cid, f"#{ten_} · ${ns:g} → ${G10_DICH} · 3 ngày đã khép chi ${c3:.2f} · lãi ${t3 - c3:+.2f} · ROI {(t3 - c3) / c3 * 100:+.1f}% < {G10_ROI}% (luật G10 — hướng dẫn team)"))
@@ -656,10 +656,10 @@ def _xet_luat():
     def L_g10(cid, ns):
         _x = [x for x in (_ng.get(int(cid)) or [None, []])[1] if x[0] in _d3s]; c3, t3 = sum(x[1] for x in _x), sum(x[2] for x in _x); r3 = (t3 - c3) / c3 * 100 if c3 >= 0.3 else None
         theo_ = _g10_theo.get(int(cid))
-        return L("g10", "G10 · ROI 3 ngày < 15% → $10, rồi tắt", f"Mọi camp kể cả ★ ROAS (hướng dẫn team 31/10/2026): ngân sách > ${G10_NS}, 3 ngày đã khép chi ≥ 1 ngày ngân sách mà ROI < {G10_ROI}% → máy hạ thẳng về ${G10_DICH}; {G10_THEO} ngày đã khép sau đó ROI vẫn < {G10_ROI}% → báo trước một nhịp rồi máy tắt. Đang theo dõi thì khoá tăng.",
-            [["Ngân sách", f"${ns:g}", f"> ${G10_NS}", ns > G10_NS], ["Chi 3 ngày đã khép", f(c3, "$"), f"≥ 1 ngày ngân sách", bool(ns) and c3 >= ns], ["ROI 3 ngày đã khép", f(r3, "%"), f"< {G10_ROI}%", r3 is not None and r3 < G10_ROI]],
+        return L("g10", "G10 · ROI 3 ngày < 15% → $10, rồi tắt", f"Mọi camp kể cả ★ ROAS (hướng dẫn team 31/10/2026): ngân sách > ${G10_NS}, chạy đủ 3 ngày (3 ngày đã khép đều có chi), chi 3 ngày ≥ 1 ngày ngân sách mà ROI < {G10_ROI}% → máy hạ thẳng về ${G10_DICH}; {G10_THEO} ngày đã khép sau đó ROI vẫn < {G10_ROI}% → báo trước một nhịp rồi máy tắt. Đang theo dõi thì khoá tăng.",
+            [["Ngân sách", f"${ns:g}", f"> ${G10_NS}", ns > G10_NS], ["Ngày có chi (3 ngày đã khép)", f"{len(_x)}/3", "đủ 3 ngày", len(_x) >= 3], ["Chi 3 ngày đã khép", f(c3, "$"), f"≥ 1 ngày ngân sách", bool(ns) and c3 >= ns], ["ROI 3 ngày đã khép", f(r3, "%"), f"< {G10_ROI}%", r3 is not None and r3 < G10_ROI]],
             "g10" if int(cid) in vao["g10"] else "tat_g10" if int(cid) in vao["tat_g10"] else None,
-            f"đã hạ về ${G10_DICH} ngày {theo_:%d/%m} — đang theo dõi {G10_THEO} ngày đã khép, khoá tăng" if theo_ else None, tien=1, lo=None if r3 is None else r3 < G10_ROI)
+            f"đã hạ về ${G10_DICH} ngày {theo_:%d/%m} — đang theo dõi {G10_THEO} ngày đã khép, khoá tăng" if theo_ else None, tien=2, lo=None if r3 is None else r3 < G10_ROI)
     ra = {}
     for cid in sorted(_dc):
         a = thang.get(cid) or thang.get(str(cid)) or {"chi": 0.0, "thu": 0.0, "budget": 0.0}

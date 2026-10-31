@@ -113,9 +113,15 @@ export function Menu({ children, nhan = '⋯', lop, nutLop, rong = 420 }: { chil
   );
 }
 
-/** goiY: chữ rê chuột giải thích mục (giữ nhãn mục ngắn). */
+/** goiY: chữ rê chuột giải thích mục (giữ nhãn mục ngắn). nguy: thao tác phá hoại → xác nhận TẠI CHỖ hai nhịp như <Xoa> (bấm lần một = "⚠ bấm lại",
+ *  lần hai trong 4 giây mới chạy; ui-conventions §3 — cấm confirm() của trình duyệt, cấm xoá một chạm). */
 export function MucMenu({ onClick, children, ly, nguy, gia, goiY }: { onClick: () => void; children: ReactNode; ly?: string | false | null; nguy?: boolean; gia?: number; goiY?: string }) {
   const xn = useXacNhanTien(gia);
-  // Đang hỏi xác nhận thì KHÔNG mang data-dong — menu không đóng ở lần bấm đầu.
-  return <button type="button" {...(xn.canHoi && !xn.dangHoi ? {} : { 'data-dong': '' })} disabled={!!ly} title={ly || goiY || undefined} onClick={() => xn.bam(onClick)} className="xv-btn" style={{ textAlign: 'left', whiteSpace: 'normal', color: nguy || xn.dangHoi ? 'var(--red)' : undefined, opacity: ly ? 0.5 : 1 }}>{xn.dangHoi ? `⚠ ${tien(gia ?? 0)} — bấm lại để xác nhận` : children}</button>;
+  const [hoiNguy, setHoiNguy] = useState(false);
+  useEffect(() => { if (!hoiNguy) return; const t = setTimeout(() => setHoiNguy(false), 4000); return () => clearTimeout(t); }, [hoiNguy]);
+  const bam = () => { if (nguy && !hoiNguy) { setHoiNguy(true); return; } setHoiNguy(false); xn.bam(onClick); };
+  const dangHoi = hoiNguy || xn.dangHoi;
+  // Lần bấm sẽ còn hỏi tiếp (nguy chưa hỏi / tiền chưa hỏi) thì KHÔNG mang data-dong — menu không đóng ở lần bấm đầu.
+  const conHoi = (nguy && !hoiNguy) || (xn.canHoi && !xn.dangHoi);
+  return <button type="button" {...(conHoi ? {} : { 'data-dong': '' })} disabled={!!ly} title={ly || goiY || undefined} onClick={bam} className="xv-btn" style={{ textAlign: 'left', whiteSpace: 'normal', color: nguy || dangHoi ? 'var(--red)' : undefined, opacity: ly ? 0.5 : 1 }}>{xn.dangHoi ? `⚠ ${tien(gia ?? 0)} — bấm lại để xác nhận` : hoiNguy ? '⚠ Bấm lại để xác nhận' : children}</button>;
 }

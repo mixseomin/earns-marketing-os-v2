@@ -12,13 +12,14 @@ import { svgPhac } from './so-do-canh';
 import { lookMang, KHOA_LOOK } from './bo-set-3d';
 import { locNhanh, nhanNhom, type DongDoiChieu, type NhanVat, type PhanCanh } from './kieu';
 import { soLech, type DoiChieuAnh } from './doi-chieu-anh';
+import { kyThuat } from './dien-anh';
 
 /** Một nút trên cây thành phần của shot. link = khoá nút trên cây phim ('nv-<id>' anchor · 'bt-<id>' look) để bấm mở đúng thành phần. */
 /** khoa = tên lá trong danh mục dự kiến (thanhPhanDuKien) — UI tra kết quả đối chiếu của ảnh đang xem theo đúng khoá này để gắn ✓ / ✗ vào nút / dòng. */
 export type DongPhieu = { chu: string; khoa?: string };
 export type NutPhieu = { nhan: string; loai: 'boi_canh' | 'cau_kien' | 'nhan_vat' | 'look' | 'dao_cu' | 'khac'; chi_tiet: DongPhieu[]; khoa?: string; link?: string; anh?: string | null; con?: NutPhieu[] };
 export type PhieuShot = {
-  id: number; thu_tu: number; nhanh: string; co_canh: string; goc_may: string; hanh_dong: string; mo: string; ket: string; thoai: string;
+  id: number; thu_tu: number; nhanh: string; co_canh: string; /** tên cỡ cảnh lời thường (thư viện điện ảnh) — mã ws/mcu không lên màn */ co_ten: string; goc_may: string; hanh_dong: string; mo: string; ket: string; thoai: string;
   /** dòng chung của shot (khung hình, ai có mặt…) — lá dự kiến không thuộc riêng thành phần nào */ chung: MucDuKien[];
   cay: NutPhieu[];
   /** 2D: khung phác bố trí chiếu từ sơ đồ cảnh theo máy của shot (svgPhac) — null khi shot chưa có sơ đồ */ svg: string | null;
@@ -97,9 +98,9 @@ export async function phieuShotsTapDb(db: Db, tapId: number): Promise<PhieuShot[
     const lech = (so_sanh ?? []).filter((r) => r.muc !== 'khớp' && r.muc !== 'gần').map((r) => `${r.thanh_phan}: cần "${r.du_kien}" — ảnh "${r.thuc_te}"`);
     const thieu = dk.filter((r) => /^(không khai|không tả)$/.test(r.du_kien.trim())).map((r) => r.thanh_phan);
     return {
-      id: c.id, thu_tu: c.thu_tu, nhanh: c.nhanh ?? '', co_canh: c.ky_thuat?.co_canh ?? '', goc_may: c.goc_may, hanh_dong: c.hanh_dong,
+      id: c.id, thu_tu: c.thu_tu, nhanh: c.nhanh ?? '', co_canh: c.ky_thuat?.co_canh ?? '', co_ten: kyThuat(c.ky_thuat?.co_canh, 'co_canh')?.ten ?? c.ky_thuat?.co_canh ?? '', goc_may: c.goc_may, hanh_dong: c.hanh_dong,
       mo: c.dan_dung?.mo ?? '', ket: c.dan_dung?.ket ?? '', thoai: (c.thoai ?? []).filter((d) => d.loi?.trim()).map((d) => `${d.nhan_vat}: "${d.loi}"`).join(' · ') || c.loi_thoai || '',
-      chung: dk.filter((r) => !dung.has(r)), cay, svg, anh3d, keyframe: c.keyframe_url, lech, so_sanh, thieu,
+      chung: dk.filter((r) => !dung.has(r)).map((r) => (r.thanh_phan === 'Khung hình' ? { ...r, du_kien: kyThuat(r.du_kien, 'co_canh')?.ten ?? r.du_kien } : r)), cay, svg, anh3d, keyframe: c.keyframe_url, lech, so_sanh, thieu,
       lich_su: [...new Set([...(c.keyframe_uv ?? []), ...(c.keyframe_url ? [c.keyframe_url] : [])])]
         .map((url, i) => { const ch = chieuCua(url); return { url, luc: lucAnh.get(url) ?? null, chon: url === c.keyframe_url, i, so_sanh: ch, lech: ch ? soLech(ch) : null }; })
         .sort((a, b) => (b.luc ?? '').localeCompare(a.luc ?? '') || b.i - a.i).map(({ i: _i, ...x }) => x),

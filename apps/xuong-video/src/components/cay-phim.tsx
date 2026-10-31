@@ -39,6 +39,8 @@ export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, tha
     den: thieuKt.length ? { muc: 'cho', title: `Còn thiếu: ${thieuKt.join(', ')}` } : undefined });
   const loaiLabel = (v: NhanVat) => LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label ?? v.loai;
   out.push({ key: 'nhan_vat', nhan: '🎨 Thiết kế sản xuất', cap: 0, nhom: 'nv', title: `${nhanVat.length} anchor: nhân vật, sản phẩm, bối cảnh, đạo cụ, cấu kiện` });
+  // ÂM THANH thuộc Thiết kế sản xuất (anh 31/10/2026): MỘT nút đầu nhánh (giọng nhân vật, hiệu ứng, nhạc — theo tập đang chọn), đứng NGOÀI vòng anchor
+  if (!dong.has('nv')) out.push({ key: 'am_thanh', nhan: '🔊 Âm thanh', cap: 1, title: 'Giọng nhân vật, hiệu ứng, nhạc theo phân cảnh — của tập đang chọn' });
   if (!dong.has('nv')) for (const { cha, con } of nhomCayAnchor(nhanVat)) {
     for (const [i, v] of [cha, ...con].entries()) {
       const capV = i ? 2 : 1;
@@ -50,8 +52,6 @@ export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, tha
           den: b.anh_url ? undefined : { muc: 'cho', title: 'chưa có ảnh mẫu' } });
       }
     }
-    // ÂM THANH thuộc Thiết kế sản xuất (anh 31/10/2026): giọng nhân vật, hiệu ứng, nhạc — xem/sinh theo tập đang chọn
-    out.push({ key: 'am_thanh', nhan: '🔊 Âm thanh', cap: 1, title: 'Giọng nhân vật, hiệu ứng, nhạc theo phân cảnh — của tập đang chọn' });
   }
   out.push({ key: 'poster', nhan: phim.loai === 'quang_cao' ? '🖼 Poster · ảnh QC' : '🖼 Poster', cap: 0, title: 'Poster của phim' });
   if (ds.length) {

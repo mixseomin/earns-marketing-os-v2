@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""LÊN CREATIVE CHO MỘT LÔ ĐOẠN CẮT ĐÃ DỰNG (gom các bước làm tay ở lô 2310 / cta2, 22/10/2026) — chạy trên Mac (cổng chữ dùng Vision):
+"""LÊN CREATIVE CHO MỘT LÔ ĐOẠN CẮT ĐÃ DỰNG (gom các bước làm tay ở lô 2310 / cta2, 22/10/2026) — chạy trên Mac (cổng chữ Vision) hoặc box3 (tesseract, kiem-thoai.doc_linux):
   1. đẩy video lên box3 + kho phat (R2) + ảnh đầu / thẻ cuối
   2. chữ QC (chu-qc.py, lọc thoại cấm + CTA dụ nhấp)
   3. POST /creatives/bulk-jobs → mã creative

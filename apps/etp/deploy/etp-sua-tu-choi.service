@@ -1,0 +1,16 @@
+# Sửa ad bị Meta từ chối + cắt GÓC MỚI cho camp thay thế (apps/xuong-video/scripts/ethopex/sua-cta.py --tu-choi) — chuyển từ iMac
+# (launchd com.htuan.ethopex-sua-tu-choi, anh duyệt 24/10/2026) lên box3 ngày 31/10/2026 (anh: "sao vẫn có tiến trình dựng phim ffmpeg trên iMac" → chọn "Lên box3").
+# Đọc chữ bằng tesseract (kiem-thoai.doc_linux) thay Vision — cần apt: tesseract-ocr tesseract-ocr-spa python3-pil. Hàng rỗng thì thoát ngay. Cài trên box3 từ bản git:
+#   cp apps/etp/deploy/etp-sua-tu-choi.{service,timer} /etc/systemd/system/ && systemctl daemon-reload && systemctl enable --now etp-sua-tu-choi.timer
+[Unit]
+Description=ETP sua ad bi tu choi + cat goc moi (dung video tren box3)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex
+EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
+ExecStart=/usr/bin/python3 /opt/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/sua-cta.py --tu-choi
+Nice=15
+IOSchedulingClass=idle
+TimeoutStartSec=6h

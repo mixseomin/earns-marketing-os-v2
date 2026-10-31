@@ -12,13 +12,15 @@ CHUẨN BỊ TRƯỚC (anh 23/10/2026: "camp mới chuẩn bị lên thì phải
 có lãi (ROI tháng ≥ 50%, chi ≥ $3) mang creative CTA cũ chưa có bản sửa cũng được dựng sẵn bản sửa → tới lượt nhân bản là có ngay. Chỉ dựng creative mới
 + tạo camp nhân bản; KHÔNG sửa / tắt / đổi creative của camp đang chạy. Mục chuẩn bị trước không nhân bản ở đây (để luật NB quyết như thường).
 Phim bị đánh dấu cấm ở soát 18+ (ethopex_soat_18 ok=false) thì bỏ qua, báo lại.
-Chạy trên iMac (cổng chữ dùng Vision), gọi ở cuối mỗi đợt lên camp (dot-phim-moi.py): python3 sua-cta.py [--chi <creative cũ> …] [--khong-nb] [--khong-truoc]"""
+Chạy trên box3 (etp-sua-tu-choi.timer, cổng chữ đọc bằng tesseract — kiem-thoai.doc_linux) hoặc iMac (Vision), gọi ở cuối mỗi đợt lên camp (dot-phim-moi.py): python3 sua-cta.py [--chi <creative cũ> …] [--khong-nb] [--khong-truoc]"""
 import fcntl, glob, importlib.util, json, os, subprocess, sys, time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import loi_ky_thuat as LK; import soat_doan as SD
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 N, Q = os.path.join(C, "nguon"), os.path.join(C, "nguon-qc")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 sh = lambda c, **k: subprocess.run(c, shell=True, capture_output=True, text=True, **k)
+# ưu tiên nền: iMac taskpolicy -b · box3 (anh 31/10/2026 đưa dựng lên box3 — tiến trình etp-sua-tu-choi.timer) nice 15 để mos2 / etp.on.tc không chậm
+NEN = ["taskpolicy", "-b"] if sys.platform == "darwin" else ["nice", "-n", "15"]
 def nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(D, tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 
@@ -96,7 +98,7 @@ def goc_moi(ma, bao, nb):
         if not tm: bao.append(f"góc mới phim {cid}: chưa tải được tập sạch"); continue
         da = [tuple(map(float, l.split("\t"))) for l in sql(f"select kinh_thanh->'ethopex'->>'tu', kinh_thanh->'ethopex'->>'den' from xv_phim where project='ethopex' and (kinh_thanh->'ethopex'->>'content_id')::int = {int(cid)} and kinh_thanh->'ethopex' ? 'tu'").splitlines() if l.count("\t") == 1 and "" not in l.split("\t")]
         rg = os.path.join(C, "ra", ma, f"gocmoi-{cid}"); tsv = rg + ".tsv"; open(tsv, "w").write(f"{cid}\t{lang}\tgoc\t{ten}\t{url}\n")
-        subprocess.run(["taskpolicy", "-b", "python3", f"{D}/cat-cuoi-lo.py", N, tsv, rg, "1", "6"], capture_output=True, text=True, timeout=4 * 3600)
+        subprocess.run([*NEN, "python3", f"{D}/cat-cuoi-lo.py", N, tsv, rg, "1", "6"], capture_output=True, text=True, timeout=4 * 3600)
         try: g = [x for x in json.load(open(os.path.join(rg, "lo.json"))) if x.get("file") and not x.get("loi")]
         except Exception: g = []
         da += SD.cam_cua(cid)   # tránh cả đoạn soát cấm + đoạn Meta đã từ chối
@@ -108,7 +110,7 @@ def goc_moi(ma, bao, nb):
         else: bao.append(f"góc mới phim {cid} ({ten[:30]}): hết khung cuối tập sạch chưa dùng — phim đã khai thác hết phần tập miễn phí")
     if dung:
         lf = os.path.join(C, "ra", ma, "len-goc-moi.json"); json.dump(dung, open(lf, "w"), ensure_ascii=False, indent=1)
-        r = subprocess.run(["taskpolicy", "-b", "python3", f"{D}/len-creative.py", lf, ma + "g", "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
+        r = subprocess.run([*NEN, "python3", f"{D}/len-creative.py", lf, ma + "g", "canh cuoi"], capture_output=True, text=True, timeout=6 * 3600)
         print(r.stdout[-800:], r.stderr[-300:])
     try: day = {str(x["content_id"]) for x in json.load(open(os.path.join(C, "ra", ma + "g", "len.json"))) if x.get("ok")}
     except Exception: day = set()
@@ -185,7 +187,7 @@ def main():
         # chưa có: cắt góc mới từ tập sạch
         tsv = os.path.join(ra, f"goc-{cid}.tsv"); open(tsv, "w").write(f"{cid}\t{lang}\tsua\t{ten}\t{url}\n"); rg = os.path.join(ra, f"goc-{cid}")
         # 3 góc một lần: góc nào trượt cổng chữ (thoại nhạy cảm — Phantom Returns 23/10/2026) vẫn còn góc khác; len-creative ghi bản sửa theo góc đạt
-        subprocess.run(["taskpolicy", "-b", "python3", f"{D}/cat-cuoi-lo.py", N, tsv, rg, "1", "3"], capture_output=True, text=True, timeout=3 * 3600)
+        subprocess.run([*NEN, "python3", f"{D}/cat-cuoi-lo.py", N, tsv, rg, "1", "3"], capture_output=True, text=True, timeout=3 * 3600)
         try: g = [x for x in json.load(open(os.path.join(rg, "lo.json"))) if x.get("file") and not x.get("loi")]
         except Exception: g = []
         cam = SD.cam_cua(cid) + ([(float(tu), float(den))] if m.get("tu_choi") and tu is not None else [])   # bỏ góc chồng lên đoạn soát cấm / Meta từ chối
@@ -196,7 +198,7 @@ def main():
         if not ds: continue
         lf = os.path.join(ra, f"len-{dang.replace(' ', '-')}.json"); json.dump(ds, open(lf, "w"), ensure_ascii=False, indent=1)
         m2 = f"{ma}{'t' if dang == 'canh that' else 'c'}"
-        r = subprocess.run(["taskpolicy", "-b", "python3", f"{D}/len-creative.py", lf, m2, dang], capture_output=True, text=True, timeout=6 * 3600)
+        r = subprocess.run([*NEN, "python3", f"{D}/len-creative.py", lf, m2, dang], capture_output=True, text=True, timeout=6 * 3600)
         print(r.stdout[-800:], r.stderr[-400:])
     thay = khoa("ethopex_cta_thay")
     for old, v in cu.items():

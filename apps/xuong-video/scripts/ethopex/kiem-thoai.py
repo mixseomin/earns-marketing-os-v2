@@ -4,7 +4,7 @@ Meta từ chối #65717 (Number One 1136–1200s) + #65719 (1280–1352s) vì "A
 Gốc: phụ đề in cứng của app gốc nói thẳng chuyện mua bán dâm / quan hệ ("banged", "prostitute yourself", "manwhore", "dirty prostitute
 money", "sells himself") + đe doạ lột đồ trước đám đông ("Let's strip this fraud down"). Các đoạn cùng phim không có những chữ đó thì qua.
 Máy duyệt Meta không nhất quán (đoạn có "gigolo" vẫn qua) → không trông may rủi: đoạn nào phụ đề dính từ dưới đây thì KHÔNG cắt.
-Đọc phụ đề: mỗi giây một khung → doc-chu.swift (Vision macOS, 0đ).
+Đọc phụ đề: mỗi giây một khung → doc-chu.swift (Vision macOS, 0đ) · Linux (box3): tesseract hai lượt (doc_linux).
 Dùng:  kiem-thoai.py <video> <tu_giay> <den_giay>   → "THOAI OK" (mã 0) hoặc "THOAI CHAN: <giây> <câu>" (mã 2)
 Tự kiểm: kiem-thoai.py --tu-kiem"""
 import json, os, re, subprocess, sys, tempfile
@@ -62,18 +62,37 @@ def bo_doc_san(video):
     try: return json.load(open(f)) if os.path.exists(f) and os.path.getmtime(f) >= os.path.getmtime(video) - 5 else None
     except Exception: return None
 
+# ĐỌC CHỮ TRÊN LINUX (anh 31/10/2026 "sao vẫn có tiến trình dựng phim ffmpeg trên iMac" → chọn đưa dựng lên box3): tesseract eng+spa, HAI lượt mỗi khung
+# — ngưỡng 185 (giữ chữ phụ đề trắng, nền thành trắng) + ảnh xám thô — rồi hợp chữ. Đo 31/10/2026 trên 5 phim box3 đã có bản Vision (<nguồn>.chu.json):
+# một lượt xám thô bắt 45% từ Vision · ngưỡng 185 bắt 67–98% · hợp hai lượt 81–91%; giây bị cổng thoại chặn khớp Vision (xem tu_kiem_linux). ~0,22s/khung, 4 luồng.
+NGUONG = (185, 0)
+def _tess(anh):
+    from PIL import Image, ImageFilter
+    ra = []
+    for ng in NGUONG:
+        im = Image.open(anh).convert("L")
+        if ng: im = im.point(lambda p: 0 if p > ng else 255).filter(ImageFilter.MedianFilter(3))
+        f = f"{anh}.{ng}.png"; im.resize((im.width * 2, im.height * 2), Image.LANCZOS).save(f)
+        r = subprocess.run(["tesseract", f, "-", "-l", "eng+spa", "--psm", "11", "--oem", "1"], capture_output=True, text=True, timeout=120, env={**os.environ, "OMP_THREAD_LIMIT": "1"})
+        if r.returncode: raise RuntimeError(f"tesseract lỗi {r.stderr.strip()[-150:]}")
+        ra += [l.strip() for l in r.stdout.splitlines() if len(l.strip()) > 2]
+    return " | ".join(dict.fromkeys(ra))
+
+def doc_linux(anhs):
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(int(os.environ.get("ETP_OCR_LUONG", "4"))) as ex: return list(ex.map(_tess, anhs))
+
 def doc(video, tu, den):
     san = bo_doc_san(video)
     if san is not None:
         ks = [str(round(tu + i)) for i in range(max(1, int(-(-(den - tu) // 1))))]
         thieu = [k for k in ks if k not in san]
         if not thieu: return [(tu + i, san[k]) for i, k in enumerate(ks)]
-        if sys.platform != "darwin": raise RuntimeError(f"chưa đọc chữ giây {thieu[:5]}… của {video} (máy này không có Vision — đọc khung trên iMac: doc-khung.py)")
-    elif sys.platform != "darwin": raise RuntimeError(f"chưa đọc chữ {video} (máy này không có Vision — đọc khung trên iMac: doc-khung.py)")
-    with tempfile.TemporaryDirectory() as t:
+    with tempfile.TemporaryDirectory(dir="/var/tmp" if sys.platform != "darwin" else None) as t:
         subprocess.run(["ffmpeg", "-v", "error", "-ss", str(tu), "-t", str(den - tu), "-i", video, "-vf", "fps=1,scale=540:-2", f"{t}/k%04d.png"], check=True)
-        anh = sorted(os.listdir(t))
-        r = subprocess.run([may_doc()] + [f"{t}/{a}" for a in anh], capture_output=True, text=True, check=True, timeout=600)
+        anh = [f"{t}/{a}" for a in sorted(os.listdir(t))]
+        if sys.platform != "darwin": return [(tu + i, c) for i, c in enumerate(doc_linux(anh))]   # box3: không có Vision → tesseract
+        r = subprocess.run([may_doc()] + anh, capture_output=True, text=True, check=True, timeout=600)
         return [(tu + i, json.loads(l)["chu"]) for i, l in enumerate(r.stdout.splitlines())]
 
 def tu_kiem():

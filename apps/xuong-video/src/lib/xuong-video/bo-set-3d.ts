@@ -1018,7 +1018,9 @@ export function lookMang<T extends { id: number; canh?: string; nhan_vat: number
     for (const k of KHOA_LOOK) {
       if (KHONG_SEED.has(k)) continue;
       const cua = (nv.bien_the ?? []).filter((b) => b.nhom === k);
-      const hop = KHOA_NHIEU.has(k) ? cua.filter((b) => b.dung_tap?.includes(tapSo)) : cua.filter((b) => hopTap(b, tapSo));
+      // nhiều biến thể cùng hợp tập (4 áo của Lâm Hạ phim #353 đều 'mọi tập') → cái GẮN ĐÚNG tập này thắng; không thì không seed (để shot khai)
+      const hopRong = cua.filter((b) => hopTap(b, tapSo)), dung = cua.filter((b) => b.dung_tap?.includes(tapSo));
+      const hop = KHOA_NHIEU.has(k) ? dung : hopRong.length > 1 && dung.length === 1 ? dung : hopRong;
       if (KHOA_NHIEU.has(k) ? hop.length > 0 : hop.length === 1) r[k] = hop;
     }
     if (Object.keys(r).length) macDinh.set(nv.id, r);

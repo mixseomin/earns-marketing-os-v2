@@ -284,6 +284,9 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', cam: "if (r?.anh) noiAnh.mo({ anh: r.anh, video: r.video, cr }, e);", vi: 'không chặn thẻ chi tiết khi thiếu ảnh' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "onClick={c.creative_id && moCr ? (e) => { e.stopPropagation(); e.preventDefault(); moCr(c.creative_id!, e); } : undefined}", vi: 'bấm ô creative mở thẻ chi tiết (điện thoại)' },
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "video: (i.video as string) || anhCr.get(c.creative_id)?.v || null", vi: 'creative đội có video cho thẻ chi tiết' },
+  // anh 31/10/2026 "Chưa thấy chấm creatives của các thành viên à?": xem người khác (?ng=) phải đọc bản chấm creative trong camp người đó — runNha trả rỗng
+  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "using (creative_id)${crNguoi(sql`c.creative_id`)}", vi: 'bản chấm hiện khi xem thành viên' },
+  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', cam: "runNha<Record<string, unknown>>(sql`select c.creative_id, c.luc::text luc, c.may, c.ket", vi: 'bản chấm không được đọc chỉ-nhà' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

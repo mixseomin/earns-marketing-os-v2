@@ -157,6 +157,8 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   // bảng số theo ngày + bảng camp của người đang xem (alias giữ tên so_ngay / c để các câu dưới dùng chung)
   // dữ liệu CHỈ CÓ Ở NHÀ (luật, chấm, nhật ký, lịch sử bậc, ROAS, sản xuất) — xem người khác thì không nạp (anh 28/10/2026 "tối ưu tốc độ load nhất là khi đổi tk thành viên")
   const runNha = <T,>(q: ReturnType<typeof sql>) => (ngoai ? Promise.resolve([] as T[]) : run<T>(q));
+  // creative trong camp của người đang xem (camp_ngoai) — lọc bảng dùng chung theo creative (chấm, hàng chấm) khi ?ng=; xem nhà thì không lọc
+  const crNguoi = (cot: ReturnType<typeof sql>, va = false) => (ngoai ? sql` ${va ? sql`and` : sql`where`} ${cot} in (select k.creative_id from etp.camp_ngoai k join etp.tai_khoan t on t.ad_account_id = k.ad_account_id where t.nguoi_id = ${dangId} and k.creative_id > 0)` : sql``);
   const SN = ngoai ? sql`(select x.* from etp.so_ngay_ngoai x join etp.camp_ngoai k using (camp_id) join etp.tai_khoan t on t.ad_account_id = k.ad_account_id where t.nguoi_id = ${dangId}) so_ngay` : sql`etp.so_ngay`;
   // số mỗi camp: tháng / hôm qua / hôm nay
   const soCamp = sql`select camp_id,
@@ -320,9 +322,11 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       where viec = 'nhan_ban' and ok = false and luc > now() - interval '24 hours' and camp_id is not null group by camp_id`),
     runNha<Record<string, unknown>>(sql`select id, luc::text luc, camp_id, creative_id, content_id, bo, ad_account_id, page_id, nhom, ly_do from etp.phot order by luc desc limit 500`).catch(() => [] as Record<string, unknown>[]),
     run<{ nhom: string; ma: string; ten: string; mo_ta: string }>(sql`select nhom, ma, ten, mo_ta from etp.tieu_chi order by nhom desc, thu_tu`).catch(() => [] as { nhom: string; ma: string; ten: string; mo_ta: string }[]),
-    runNha<Record<string, unknown>>(sql`select c.creative_id, c.luc::text luc, c.may, c.ket, c.meta, c.afs, c.loi, c.lop, c.diem, c.ly_do, c.khung, g.duoc_len, g.chan_boi, g.cho_duyet, u.ok duyet from etp.cham c left join etp.cham_cong g using (creative_id) left join etp.cham_duyet u using (creative_id)`).catch(() => [] as Record<string, unknown>[]),
-    runNha<Record<string, unknown>>(sql`select creative_id, trang_thai, luc::text luc, loi, nguon, buoc, nhat_ky, bat_dau::text bat_dau, xong::text xong from etp.cham_hang
-      where trang_thai in ('cho', 'dang') or (trang_thai = 'loi' and luc > now() - interval '1 day') or xong > now() - interval '30 minutes'`).catch(() => [] as Record<string, unknown>[]),
+    // CHẤM CREATIVE MỌI THÀNH VIÊN (anh 31/10/2026 "Chưa thấy chấm creatives của các thành viên à?"): xem người khác → bản chấm + hàng chấm của creative trong camp người đó
+    //   (trước đây runNha → rỗng khi ?ng=, dù nap-creative-ngoai.py --tu-dong đã chấm)
+    run<Record<string, unknown>>(sql`select c.creative_id, c.luc::text luc, c.may, c.ket, c.meta, c.afs, c.loi, c.lop, c.diem, c.ly_do, c.khung, g.duoc_len, g.chan_boi, g.cho_duyet, u.ok duyet from etp.cham c left join etp.cham_cong g using (creative_id) left join etp.cham_duyet u using (creative_id)${crNguoi(sql`c.creative_id`)}`).catch(() => [] as Record<string, unknown>[]),
+    run<Record<string, unknown>>(sql`select creative_id, trang_thai, luc::text luc, loi, nguon, buoc, nhat_ky, bat_dau::text bat_dau, xong::text xong from etp.cham_hang q
+      where (trang_thai in ('cho', 'dang') or (trang_thai = 'loi' and luc > now() - interval '1 day') or xong > now() - interval '30 minutes')${crNguoi(sql`q.creative_id`, true)}`).catch(() => [] as Record<string, unknown>[]),
     runNha<Record<string, unknown>>(sql`select c.camp_id, c.ten, c.trang_thai, c.ngan_sach, coalesce(sum(s.chi), 0) chi, coalesce(sum(s.thu), 0) thu,
         coalesce(json_agg(json_build_object('d', s.ngay::text, 'chi', s.chi, 'thu', s.thu) order by s.ngay) filter (where s.chi > 0), '[]') ngay
       from etp.camp c left join etp.so_ngay s using (camp_id) where (c.ten like '% duplicate by %' or c.ten like '★%') and coalesce(c.trang_thai, '') <> 'ARCHIVED'

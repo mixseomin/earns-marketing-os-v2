@@ -150,6 +150,12 @@ export function cauBoiCanhCoDinh(s: SoDo, m: ManhSoDo): string {
 export function coDinhDuKien(s: SoDo, m: ManhSoDo): { thanh_phan: string; du_kien: string }[] {
   return nhomPhong(s, m).map(({ vi, n, c }) => ({ thanh_phan: `Cấu kiện cố định · ${vi}`, du_kien: `${n} ${vi}, ${choVi(c)}` }));
 }
+/** Một cấu kiện sau khi chiếu theo máy, kèm cờ TRONG KHUNG (Bước 3). Bước 4 dùng: trong=true → tả + vị trí; trong=false → dòng "không vẽ". */
+export type NenKhung = { en1: string; enN: string; vi: string; n: number; choEn: string; choVi: string; trong: boolean };
+/** Tách cấu kiện của địa điểm theo máy m: cái nào LỌT KHUNG (trước máy, trong mép |nx|≤1), cái nào ngoài / sau lưng. Nguồn vị trí = sơ đồ 2D (shot tĩnh) hoặc máy 3D (shot động). */
+export function nenTheoKhung(s: SoDo, m: ManhSoDo): NenKhung[] {
+  return nhomPhong(s, m).map(({ en1, enN, vi, n, c }) => ({ en1, enN, vi, n, choEn: choEn(c), choVi: choVi(c), trong: c.sau > 0.05 && Math.abs(c.nx) <= 1 }));
+}
 /** Kỳ vọng cho cổng đo keyframe: người trong khung → phía màn (+ phía nhìn nếu khai). */
 export function kyVong(s: SoDo, m: ManhSoDo, nguoi: string[]): Record<string, KyVong> {
   const r: Record<string, KyVong> = {};

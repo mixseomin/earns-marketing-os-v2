@@ -2,7 +2,7 @@
 // không đổi (anh 31/10/2026: nền "2 cửa" mà cửa nhảy trái / phải mỗi khung vì `phong` chưa bao giờ vào prompt). Chạy:
 //   NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx src/lib/xuong-video/so-do-co-dinh.test.mts   (cwd apps/xuong-video)
 import assert from 'node:assert';
-import { benMan, cauBoiCanhCoDinh, coDinhDuKien, type SoDo, type ManhSoDo, type MangPhong } from './so-do-canh';
+import { benMan, cauBoiCanhCoDinh, coDinhDuKien, nenTheoKhung, type SoDo, type ManhSoDo, type MangPhong } from './so-do-canh';
 
 const phong: MangPhong[] = [
   { loai: 'tuong', tu: [-3, 5], den: [3, 5], z1: 3 },        // tường sau (y=5) — không được nhắc thành "fixture"
@@ -59,4 +59,14 @@ assert.ok(bucNam && /2 Bục lan trắng/.test(bucNam.du_kien), `lá bục lan: 
 assert.strictEqual(benMan(s2, { may: 'nam', o: {} }, [3.4, 4.7]), 'phai', 'bảng từ nam ở phải');
 assert.strictEqual(benMan(s2, { may: 'bac', o: {} }, [3.4, 4.7]), 'trai', 'bảng từ bắc LẬT sang trái');
 
-console.log('✓ so-do-co-dinh: cụm cửa + cấu kiện có tên lật theo máy, số lượng bất biến, tường trơn bỏ, phim cũ không vỡ');
+// 6. nenTheoKhung (Bước 3): tách TRONG / NGOÀI khung cho prompt. Bảng [3.4,...] từ nam ngoài khung phải → trong=false; cửa trước máy → trong=true.
+const nk = nenTheoKhung(s2, { may: 'nam', o: {} });
+const bang = nk.find((x) => x.vi === 'Bảng chỉ dẫn');
+assert.ok(bang && bang.trong === false && /ngoài khung/.test(bang.choVi), `bảng phải NGOÀI khung: ${JSON.stringify(bang)}`);
+const cua = nk.find((x) => x.vi === 'cửa');
+assert.ok(cua && cua.trong === true, `cửa phải TRONG khung: ${JSON.stringify(cua)}`);
+// cấu kiện sau lưng máy → trong=false (bắc nhìn ngược: bục lan [*,4.6] vẫn trước; dùng điểm sau lưng để chắc)
+const sauLung = nenTheoKhung({ ...s2, phong: [{ loai: 'vat', ten: 'Bàn lễ tân', tu: [0, -2], den: [0.5, -2], z1: 1 }] }, { may: 'nam', o: {} });
+assert.ok(sauLung[0] && sauLung[0].trong === false, 'vật sau lưng máy → ngoài khung');
+
+console.log('✓ so-do-co-dinh: cụm cửa + cấu kiện có tên lật theo máy, số lượng bất biến, tách trong/ngoài khung đúng, tường trơn bỏ, phim cũ không vỡ');

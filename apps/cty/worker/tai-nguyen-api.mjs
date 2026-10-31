@@ -135,16 +135,23 @@ export async function docSoDu() {
   return { du, loi };
 }
 
-/** Đọc R2 qua Cloudflare GraphQL: dung lượng 10 ngày gần nhất + thao tác từ đầu tháng (giờ VN ≈ UTC, lệch vài giờ đầu tháng không đáng kể). */
+/** Thuần: cửa sổ ngày của truy vấn R2 — CÙNG lịch giờ VN với hệ số tháng của tinhR2. 01/11/2026: cửa sổ theo UTC (còn 31/10) kéo thao tác
+ *  cả tháng 10, tinhR2 theo giờ VN (ngày 1) nhân 30 → báo ~186.000₫ thay vì ~21.000₫. s = 10 ngày trước · m = đầu tháng · e = hôm nay. */
+export function cuaSoR2(bay = Date.now()) {
+  const e = ngayVN(bay);
+  return { s: ngayVN(bay - 10 * 864e5), m: `${e.slice(0, 8)}01`, e };
+}
+
+/** Đọc R2 qua Cloudflare GraphQL: dung lượng 10 ngày gần nhất + thao tác từ đầu tháng (ngày theo giờ VN, xem cuaSoR2). */
 export async function docR2(bay = Date.now()) {
   const e = { ...docEnvTep(ENV_STUDIO), ...process.env };
   if (!e.CF_EMAIL || !e.CF_API_KEY || !e.R2_ACCOUNT_ID || !e.R2_BUCKET) throw new Error('thiếu CF_EMAIL / CF_API_KEY / R2_ACCOUNT_ID / R2_BUCKET');
-  const ngay = (t) => new Date(t).toISOString().slice(0, 10), homNay = ngay(bay), dauThang = `${homNay.slice(0, 8)}01`;
+  const { s, m, e: homNay } = cuaSoR2(bay);
   const query = `query($a:String!,$b:String!,$s:Date!,$m:Date!,$e:Date!){viewer{accounts(filter:{accountTag:$a}){
     luu:r2StorageAdaptiveGroups(limit:10,filter:{bucketName:$b,date_geq:$s,date_leq:$e},orderBy:[date_DESC]){max{payloadSize objectCount} dimensions{date}}
     thao:r2OperationsAdaptiveGroups(limit:100,filter:{bucketName:$b,date_geq:$m,date_leq:$e}){sum{requests} dimensions{actionType}}}}}`;
   const j = await lay('https://api.cloudflare.com/client/v4/graphql', { method: 'POST', headers: { 'content-type': 'application/json', 'X-Auth-Email': e.CF_EMAIL, 'X-Auth-Key': e.CF_API_KEY },
-    body: JSON.stringify({ query, variables: { a: e.R2_ACCOUNT_ID, b: e.R2_BUCKET, s: ngay(bay - 10 * 864e5), m: dauThang, e: homNay } }) });
+    body: JSON.stringify({ query, variables: { a: e.R2_ACCOUNT_ID, b: e.R2_BUCKET, s, m, e: homNay } }) });
   if (j.errors?.length) throw new Error(String(j.errors[0].message).slice(0, 80));
   const acc = j.data?.viewer?.accounts?.[0] ?? {};
   return tinhR2((acc.luu ?? []).map((x) => ({ ngay: x.dimensions.date, byte: Number(x.max.payloadSize), tep: Number(x.max.objectCount) })),
@@ -215,6 +222,7 @@ if (process.argv[1]?.endsWith('tai-nguyen-api.mjs')) {
     assert.deepStrictEqual(xetCanhBaoR2(r), [], '~20.000₫/tháng, tăng 4 GB/ngày: im');
     assert.deepStrictEqual(xetCanhBaoR2({ ...r, gb: 400, thang: 5.85, tang: 12 }).map((c) => c.khoa), ['api:r2:thang', 'api:r2:tang']);
     assert.strictEqual(tinhR2([], []), null, 'chưa có số đo');
+    assert.deepStrictEqual(cuaSoR2(Date.parse('2026-10-31T19:00:00Z')), { s: '2026-10-22', m: '2026-11-01', e: '2026-11-01' }, '02:00 sáng 1/11 VN: cửa sổ thao tác bắt đầu 1/11, không kéo cả tháng 10');
     const dr = dongR2(r, { da_chuyen_rac: 1200, rac_mb: 3400, con_lai: 0, da_xoa_han: 0, xoa_han_mb: 0, thung_rac_mb: 3400 });
     assert.ok(dr.includes('61,4 GB') && dr.includes('61.718 tệp') && dr.includes('dời 1.200 tệp (3,4 GB)') && dr.includes('~20.051₫ ($0,77)'), dr);
     assert.ok(dongR2(null, { dung: 'nghi quét sót' }).includes('phanh kéo') && dongR2(r, { loi: 'tsx hỏng' }).includes('hỏng — tsx hỏng'));

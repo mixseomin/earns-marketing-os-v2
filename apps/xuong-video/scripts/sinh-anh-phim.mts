@@ -4,7 +4,7 @@
 //   --tiep-job   : đẩy lại job ảnh treo của tập (tiến trình chạy nó đã chết) bằng đúng đầu vào đã lưu — không chạy lại bước đã trả tiền.
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
 //   --bien-the   : sinh ảnh tham chiếu cho biến thể chưa có ảnh (sinh-anh.sinhAnhBienTheDb — sổ trang phục), đợi xong.
-//   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước. --cong-anh=<cổng:model> = vẫn nhiều bước, bước Nano qua cổng đó. --lam-lai = sinh lại mọi shot (ảnh cũ giữ làm ứng viên).
+//   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước. --cong-anh=<cổng:model> = vẫn nhiều bước, bước Nano qua cổng đó. --lam-lai = sinh lại mọi shot (ảnh cũ giữ làm ứng viên). --thu = sinh thử (bỏ cổng cấp tập, giữ cổng prompt/ngôn ngữ/thành phần).
 //   --nhac=<model> [--mo-ta-nhac="…"] : sinh MỘT bài nhạc nền cả tập (dài = giây phát của nhánh A), đợi xong — TỐN TIỀN.
 //   --xuat       : dựng MP4 thử (0đ, ffmpeg) → R2 + ghi vào tập như nút ⬇ Xuất. QC có lời dẫn mà chưa có nhạc nền → bị chặn;
 //                  --thieu-nhac = vẫn xuất làm bản nháp (gắn cờ đỏ "thiếu nhạc nền").
@@ -46,6 +46,9 @@ const tap = await q(sql`SELECT id, so FROM xv_tap WHERE phim_id = ${phimId} ORDE
 const tapId = Number(tap[0]?.id ?? 0);
 // --lam-lai: sinh lại keyframe cho MỌI shot (3D / dáng đổi sau lượt trước) — ảnh cũ vẫn nằm trong keyframe_uv (ứng viên, chọn lại được), ảnh mới thành ảnh chọn.
 const lamLai = arg('lam-lai');
+// --thu: SINH THỬ như nút 🧪 (sinh-anh.ts › lyChanKeyframe thu=true) — bỏ cổng cấp tập / thẻ shot (brief, phân cảnh, nhịp…), GIỮ cổng prompt + ngôn ngữ + thành phần.
+//   Dùng để thử một thứ cụ thể (vd độ đồng nhất look sau phân rã) trước khi tập qua đủ quy trình.
+const thu = arg('thu');
 // --chi=<số shot,…>: chỉ các shot này (thứ tự trên lưới) — sinh lại đúng shot hỏng, không cả tập
 const chi = new Set((process.argv.find((a) => a.startsWith('--chi=')) ?? '').slice(6).split(',').filter(Boolean).map(Number));
 const canhThieu = (tapId ? await q(sql`SELECT id, thu_tu, canh, keyframe_url, (khung_xam->>'sau') IS NOT NULL AS co_sau, (khung_xam->>'xuong') IS NOT NULL AS co_xuong FROM xv_canh WHERE tap_id = ${tapId} AND (${lamLai} OR keyframe_url IS NULL) AND prompt_anh <> '' ORDER BY thu_tu`) : []).filter((c) => !chi.size || chi.has(Number(c.thu_tu)));
@@ -137,7 +140,7 @@ if (arg('keyframe') && canhThieu.length) {
   await songSong(canhThieu, async (c) => {
     if (lamLai) await db.execute(sql`UPDATE xv_canh SET keyframe_url = NULL WHERE id = ${c.id}`);   // ảnh mới về thì thành ảnh chọn (hoan-tat: coalesce)
     // MỖI SHOT BỌC RIÊNG: một lỗi (mạng, cổng) không đổ cả lượt — 17/10/2026 ConnectTimeout ở shot #12 làm chết tiến trình, 4 job hàng nền treo, 5 shot mất ảnh chọn
-    const r = await sinhKeyframeCanh(db, Number(c.id), 1, nguon || undefined, congAnh || undefined).catch((e: unknown) => ({ ok: false as const, loi: `lỗi không bắt được: ${e instanceof Error ? e.message : String(e)}` }));
+    const r = await sinhKeyframeCanh(db, Number(c.id), 1, nguon || undefined, congAnh || undefined, thu).catch((e: unknown) => ({ ok: false as const, loi: `lỗi không bắt được: ${e instanceof Error ? e.message : String(e)}` }));
     if (r.ok) jobs.push(...r.data);
     else { console.log(`  ✗ #${c.thu_tu} ${c.canh}: ${r.loi}`); if (lamLai && c.keyframe_url) await db.execute(sql`UPDATE xv_canh SET keyframe_url = coalesce(keyframe_url, ${String(c.keyframe_url)}) WHERE id = ${c.id}`); }
   });

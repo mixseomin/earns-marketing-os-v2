@@ -92,19 +92,16 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
     if (!r.ok) setLoi((x) => ({ ...x, [id]: r.loi }));
     await onChanged();
   };
-  return (
-    <div className="xv-panel">
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <h3 style={{ flex: 1 }}>2 · Tuyến nhân vật · sản phẩm · bối cảnh<small>anchor: đặc tính cố định + ảnh mẫu → mọi cảnh, mọi tập tham chiếu cùng một bản</small></h3>
-        <Nut ban={ban === -1} title="Claude đọc tiền đề + kịch bản các tập + anchor đã có → tạo các anchor còn thiếu (nhân vật, sản phẩm, bối cảnh, đạo cụ). Tạo xong anh sửa/xoá tuỳ ý." onClick={async () => { setBan(-1); setLoi((x) => ({ ...x, [-1]: '' })); const r = await goiYAIBoAnchor(phimId); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [-1]: r.loi })); await onChanged(); }}>{ban === -1 ? '… AI đang đề xuất' : '✨ AI đề xuất tuyến còn thiếu'}</Nut>
-        {coLoai.length > 1 && <Seg value={coLoai.some((l) => l.key === locLoai) ? locLoai : ''} onChange={setLocLoai}
-          options={[{ value: '' as const, label: 'Tất cả', title: `${nhanVat.length} anchor` }, ...coLoai.map((l) => ({ value: l.key, label: `${l.ic} ${l.label}`, title: `${nhanVat.filter((v) => v.loai === l.key).length} ${l.label.toLowerCase()}` }))]} />}
-        <button type="button" className="xv-btn" onClick={() => setSua({ loai: 'nhan_vat', ten: '', mo_ta: '', anh_ref: [], giong: '' })}>+ Thêm</button>
-      </div>
-      <Loi>{loi[-1]}</Loi>
-      {nhanVat.length === 0 && <div style={mono}>Chưa có anchor. Phim nhiều tập BẮT BUỘC khai nhân vật ở đây trước khi tách cảnh, nếu không mỗi tập Claude sẽ tả một kiểu.</div>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
-        {dsHien.map((v) => {
+  // CÂY BỘ BỐI CẢNH (anh 31/10/2026: cấu kiện là đồ thật đoàn phim chuẩn bị → hiện dạng cây, cấu kiện lồng dưới đạo cụ / bối cảnh cha). Giữ thứ tự dsHien;
+  // cha của con dù bị lọc khỏi dsHien vẫn hiện làm đầu nhóm → luôn thấy cấu kiện thuộc về đâu.
+  const nhomCay: { cha: NhanVat; con: NhanVat[] }[] = [];
+  { const idx = new Map<number, number>();
+    for (const v of dsHien) {
+      const cha = v.thuoc_id ? nhanVat.find((p) => p.id === v.thuoc_id) ?? null : null;
+      if (cha) { let i = idx.get(cha.id); if (i == null) { i = nhomCay.length; idx.set(cha.id, i); nhomCay.push({ cha, con: [] }); } nhomCay[i]!.con.push(v); }
+      else if (!idx.has(v.id)) { idx.set(v.id, nhomCay.length); nhomCay.push({ cha: v, con: [] }); }
+    } }
+  const the = (v: NhanVat) => {
           const soDang = dangSinh.nhanVat.filter((x) => x === v.id).length + (gui[v.id]?.cho ?? 0);
           const g0 = gui[v.id]; const them = g0 ? v.anh_ref.length - g0.goc : 0;
           return (
@@ -148,7 +145,7 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
                       <div>⚠ Mô tả LỆCH ảnh gốc ({gioVN(v.doi_chieu.luc)}):</div>
                       {v.doi_chieu.lech.slice(0, 5).map((l, i) => <div key={i} style={{ paddingLeft: 10 }}>– {l}</div>)}
                       {v.doi_chieu.mo_ta_de_xuat && <div><button type="button" className="xv-btn" style={{ padding: '1px 7px' }} title={v.doi_chieu.mo_ta_de_xuat}
-                        onClick={async () => { await luuNhanVat({ id: v.id, phim_id: v.phim_id, loai: v.loai, ten: v.ten, mo_ta: v.doi_chieu!.mo_ta_de_xuat, anh_ref: v.anh_ref, giong: v.giong }); await onChanged(); }}>↳ Dùng mô tả viết theo ảnh</button></div>}
+                        onClick={async () => { await luuNhanVat({ id: v.id, phim_id: v.phim_id, loai: v.loai, ten: v.ten, mo_ta: v.doi_chieu!.mo_ta_de_xuat, anh_ref: v.anh_ref, giong: v.giong, thuoc_id: v.thuoc_id }); await onChanged(); }}>↳ Dùng mô tả viết theo ảnh</button></div>}
                     </div>)}
                 <Loi>{loi[v.id] || (!dangSinh.nhanVat.includes(v.id) ? loiAnh.nhanVat[v.id] : '')}</Loi>
               </div>
@@ -173,10 +170,29 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
             )}
           </div>
           );
-        })}
+  };
+  return (
+    <div className="xv-panel">
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <h3 style={{ flex: 1 }}>2 · Tuyến nhân vật · sản phẩm · bối cảnh<small>anchor: đặc tính cố định + ảnh mẫu → mọi cảnh, mọi tập tham chiếu cùng một bản</small></h3>
+        <Nut ban={ban === -1} title="Claude đọc tiền đề + kịch bản các tập + anchor đã có → tạo các anchor còn thiếu (nhân vật, sản phẩm, bối cảnh, đạo cụ). Tạo xong anh sửa/xoá tuỳ ý." onClick={async () => { setBan(-1); setLoi((x) => ({ ...x, [-1]: '' })); const r = await goiYAIBoAnchor(phimId); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [-1]: r.loi })); await onChanged(); }}>{ban === -1 ? '… AI đang đề xuất' : '✨ AI đề xuất tuyến còn thiếu'}</Nut>
+        {coLoai.length > 1 && <Seg value={coLoai.some((l) => l.key === locLoai) ? locLoai : ''} onChange={setLocLoai}
+          options={[{ value: '' as const, label: 'Tất cả', title: `${nhanVat.length} anchor` }, ...coLoai.map((l) => ({ value: l.key, label: `${l.ic} ${l.label}`, title: `${nhanVat.filter((v) => v.loai === l.key).length} ${l.label.toLowerCase()}` }))]} />}
+        <button type="button" className="xv-btn" onClick={() => setSua({ loai: 'nhan_vat', ten: '', mo_ta: '', anh_ref: [], giong: '' })}>+ Thêm</button>
+      </div>
+      <Loi>{loi[-1]}</Loi>
+      {nhanVat.length === 0 && <div style={mono}>Chưa có anchor. Phim nhiều tập BẮT BUỘC khai nhân vật ở đây trước khi tách cảnh, nếu không mỗi tập Claude sẽ tả một kiểu.</div>}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
+        {nhomCay.map(({ cha, con }) => con.length === 0 ? the(cha) : (
+          <div key={`nhom-${cha.id}`} style={{ gridColumn: '1 / -1', display: 'grid', gap: 8, padding: 10, borderRadius: 12, border: '1px solid var(--line)', background: 'var(--bg-2)' }}>
+            <div style={{ fontSize: 11.5, color: 'var(--fg-3)' }}>🎬 Bộ {cha.loai === 'boi_canh' ? 'bối cảnh' : cha.loai === 'dao_cu' ? 'đạo cụ' : 'anchor'}: <strong style={{ color: 'var(--fg)' }}>{cha.ten}</strong> · {con.length} cấu kiện / đồ vật thuộc nó (đoàn phim chuẩn bị sẵn)</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>{the(cha)}</div>
+            <div style={{ marginLeft: 14, paddingLeft: 14, borderLeft: '2px solid var(--line)', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>{con.map((c) => the(c))}</div>
+          </div>
+        ))}
       </div>
       {btMo != null && nhanVat.find((v) => v.id === btMo) && <BienTheDrawer a={nhanVat.find((v) => v.id === btMo)!} khoa={khoa} kt={kt} dangSinh={dangSinh.bienThe} loiBt={loiAnh.bienThe} onClose={() => setBtMo(null)} onChanged={onChanged} />}
-      {sua && <NhanVatForm phimId={phimId} goc={sua} onClose={() => setSua(null)} onSaved={async () => { setSua(null); await onChanged(); }} />}
+      {sua && <NhanVatForm phimId={phimId} goc={sua} dsCha={nhanVat.filter((v) => v.loai === 'boi_canh' || v.loai === 'dao_cu')} onClose={() => setSua(null)} onSaved={async () => { setSua(null); await onChanged(); }} />}
     </div>
   );
 }
@@ -279,8 +295,8 @@ export function BienTheThe({ b, ly, dang, loiAnh, ban, chay }: { b: BienThe; ly:
   );
 }
 
-export function NhanVatForm({ phimId, goc, onClose, onSaved }: { phimId: number; goc: Partial<NhanVat>; onClose: () => void; onSaved: () => Promise<void> }) {
-  const [f, setF] = useState({ loai: (goc.loai ?? 'nhan_vat') as LoaiNhanVat, ten: goc.ten ?? '', mo_ta: goc.mo_ta ?? '', anh_ref: goc.anh_ref ?? [], giong: goc.giong ?? '', tieu_su: goc.tieu_su ?? '' });
+export function NhanVatForm({ phimId, goc, dsCha = [], onClose, onSaved }: { phimId: number; goc: Partial<NhanVat>; dsCha?: NhanVat[]; onClose: () => void; onSaved: () => Promise<void> }) {
+  const [f, setF] = useState({ loai: (goc.loai ?? 'nhan_vat') as LoaiNhanVat, ten: goc.ten ?? '', mo_ta: goc.mo_ta ?? '', anh_ref: goc.anh_ref ?? [], giong: goc.giong ?? '', tieu_su: goc.tieu_su ?? '', thuoc_id: goc.thuoc_id ?? null as number | null });
   const [loi, setLoi] = useState('');
   const [luu, setLuu] = useState(false);
   const [ai, setAi] = useState(false);
@@ -288,6 +304,12 @@ export function NhanVatForm({ phimId, goc, onClose, onSaved }: { phimId: number;
   return (
     <Ngan onClose={onClose} nho tieuDe={goc.id ? `Sửa: ${goc.ten}` : 'Thêm anchor'}>
       <O label="Loại"><Seg options={LOAI_NHAN_VAT.map((l) => ({ value: l.key, label: l.label }))} value={f.loai} onChange={(v) => setF({ ...f, loai: v })} /></O>
+      {f.loai === 'cau_kien' && <O label="Thuộc về (đạo cụ / bối cảnh cha)" hint="Cấu kiện là đồ thật thuộc một bối cảnh hoặc đạo cụ — chọn cha để nó hiện lồng dạng cây. Vật liệu bề mặt tả trong Đặc tính, không phải một cấu kiện riêng.">
+        <select className="xv-in" value={f.thuoc_id ?? ''} onChange={(e) => setF({ ...f, thuoc_id: e.target.value ? Number(e.target.value) : null })}>
+          <option value="">— (chưa gắn, hiện ở gốc)</option>
+          {dsCha.filter((c) => c.id !== goc.id).map((c) => <option key={c.id} value={c.id}>{c.loai === 'boi_canh' ? '🏠' : '🧸'} {c.ten}</option>)}
+        </select>
+      </O>}
       <O label="Tên *" hint="Claude dùng đúng tên này khi ghi nhân vật của từng cảnh"><input className="xv-in" value={f.ten} onChange={(e) => setF({ ...f, ten: e.target.value })} placeholder="Timo (rùa) · Áo bra X · Khu rừng Thì Thầm" /></O>
       <O label="Đặc tính cố định" hint="Mọi thứ phải GIỐNG NHAU ở mọi cảnh: ngoại hình, màu, trang phục, tỉ lệ, chất liệu, tính cách. Càng cụ thể model càng ít bịa.">
         <textarea className="xv-ta" rows={5} value={f.mo_ta} onChange={(e) => setF({ ...f, mo_ta: e.target.value })} placeholder="Rùa con 8 tuổi, mai xanh rêu có vân lục giác, mắt to nâu, đeo khăn quàng đỏ, tính điềm tĩnh, đi chậm nhưng chắc…" />

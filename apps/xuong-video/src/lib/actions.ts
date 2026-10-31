@@ -462,19 +462,20 @@ export async function xoaPhim(id: number): Promise<Kq> {
 
 // ── Anchor ───────────────────────────────────────────────────────────────────────────────────────────────────────
 
-export async function luuNhanVat(d: { id?: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref: string[]; giong: string; tieu_su?: string }): Promise<Kq<number>> {
+export async function luuNhanVat(d: { id?: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string; anh_ref: string[]; giong: string; tieu_su?: string; thuoc_id?: number | null }): Promise<Kq<number>> {
   const db = getDb();
   if (!db) return loi('no db');
   if (!(await admin())) return loi('không có quyền');
   if (!d.ten.trim()) return loi('thiếu tên');
   const anh = JSON.stringify(d.anh_ref.filter(Boolean).slice(0, 10));
+  const thuoc = d.thuoc_id && d.thuoc_id !== d.id ? d.thuoc_id : null;   // không tự làm cha của chính mình
   if (d.id) {
     // Mô tả hay ảnh gốc đổi → kết quả đối chiếu cũ hết giá trị, xoá để thẻ không hiện "khớp" sai.
     await db.execute(sql`UPDATE xv_nhan_vat SET doi_chieu = CASE WHEN mo_ta IS DISTINCT FROM ${d.mo_ta} OR anh_ref::text IS DISTINCT FROM ${anh} THEN NULL ELSE doi_chieu END,
-      loai = ${d.loai}, ten = ${d.ten.trim()}, mo_ta = ${d.mo_ta}, anh_ref = ${anh}::jsonb, giong = ${d.giong}, tieu_su = ${d.tieu_su ?? ''}, updated_at = now() WHERE id = ${d.id}`);
+      loai = ${d.loai}, ten = ${d.ten.trim()}, mo_ta = ${d.mo_ta}, anh_ref = ${anh}::jsonb, giong = ${d.giong}, tieu_su = ${d.tieu_su ?? ''}, thuoc_id = ${thuoc}, updated_at = now() WHERE id = ${d.id}`);
     return { ok: true, data: d.id };
   }
-  const r = (await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref, giong, tieu_su) VALUES (${d.phim_id}, ${d.loai}, ${d.ten.trim()}, ${d.mo_ta}, ${anh}::jsonb, ${d.giong}, ${d.tieu_su ?? ''}) RETURNING id`)) as unknown as Row[];
+  const r = (await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref, giong, tieu_su, thuoc_id) VALUES (${d.phim_id}, ${d.loai}, ${d.ten.trim()}, ${d.mo_ta}, ${anh}::jsonb, ${d.giong}, ${d.tieu_su ?? ''}, ${thuoc}) RETURNING id`)) as unknown as Row[];
   return { ok: true, data: n(r[0]?.id) };
 }
 

@@ -51,7 +51,7 @@ const lamLai = arg('lam-lai');
 const thu = arg('thu');
 // --chi=<số shot,…>: chỉ các shot này (thứ tự trên lưới) — sinh lại đúng shot hỏng, không cả tập
 const chi = new Set((process.argv.find((a) => a.startsWith('--chi=')) ?? '').slice(6).split(',').filter(Boolean).map(Number));
-const canhThieu = (tapId ? await q(sql`SELECT id, thu_tu, canh, keyframe_url, (khung_xam->>'sau') IS NOT NULL AS co_sau, (khung_xam->>'xuong') IS NOT NULL AS co_xuong FROM xv_canh WHERE tap_id = ${tapId} AND (${lamLai} OR keyframe_url IS NULL) AND prompt_anh <> '' ORDER BY thu_tu`) : []).filter((c) => !chi.size || chi.has(Number(c.thu_tu)));
+const canhThieu = (tapId ? await q(sql`SELECT id, coalesce(so_hien, thu_tu) AS thu_tu, canh, keyframe_url, (khung_xam->>'sau') IS NOT NULL AS co_sau, (khung_xam->>'xuong') IS NOT NULL AS co_xuong FROM xv_canh WHERE tap_id = ${tapId} AND (${lamLai} OR keyframe_url IS NULL) AND prompt_anh <> '' ORDER BY thu_tu`) : []).filter((c) => !chi.size || chi.has(Number(c.thu_tu)));
 // --nguon=<cổng:model> (vd ckey:wowztools/nano-banana-2): sinh keyframe ĐÚNG nguồn đó, một bước — không tự rơi sang cổng đắt hơn, không qua FLUX độ sâu.
 const nguon = (process.argv.find((a) => a.startsWith('--nguon=')) ?? '').slice(8);
 // --cong-anh=<cổng:model> (vd plenxai:nano-banana-2): GIỮ đường nhiều bước (độ sâu / ghép từng người / sửa mặt), riêng các bước Nano đi đúng cổng này.

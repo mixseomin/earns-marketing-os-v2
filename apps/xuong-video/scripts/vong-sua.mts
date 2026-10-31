@@ -26,7 +26,7 @@ const ghi = process.argv.includes('--ghi');
 if (tapId) {
   // CẢ TẬP: chạy lại CHÍNH script này cho từng shot (cùng một lõi, không chép vòng) — song song có trần; mỗi shot chỉ in dòng KẾT
   const dbT = getDb()!; const chiT = new Set((gia('chi') ?? '').split(',').filter(Boolean).map(Number));
-  const ds = ((await dbT.execute(sql`SELECT id, thu_tu FROM xv_canh WHERE tap_id = ${tapId} AND coalesce(nhanh, '') IN ('', 'A') AND keyframe_url IS NOT NULL ORDER BY thu_tu`)) as unknown as Row[])
+  const ds = ((await dbT.execute(sql`SELECT id, coalesce(so_hien, thu_tu) AS thu_tu FROM xv_canh WHERE tap_id = ${tapId} AND coalesce(nhanh, '') IN ('', 'A') AND keyframe_url IS NOT NULL ORDER BY thu_tu`)) as unknown as Row[])
     .filter((r) => !chiT.size || chiT.has(Number(r.thu_tu)));
   const them = process.argv.slice(2).filter((a) => !/^--(tap|chi|song)=/.test(a));
   let i = 0; const song = Math.max(1, Math.min(6, Number(gia('song') || 4)));

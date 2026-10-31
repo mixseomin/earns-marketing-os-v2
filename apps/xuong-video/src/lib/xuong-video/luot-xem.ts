@@ -17,7 +17,7 @@ export async function luotXemYoutube(url: string): Promise<number | null> {
 export const THANG_LUOT_XEM = 500, THANG_SAU_NGAY = 7;
 
 if (process.argv[1]?.endsWith('luot-xem.ts') && process.argv.includes('--tu-kiem')) {
-  const { strict: t } = await import('node:assert');
+  const t: typeof import('node:assert').strict = (await import('node:assert')).strict;
   t.equal(docLuotXem('x "viewCount":"1209" y "viewCount":"5"'), 1209, 'lấy số đầu tiên');
   t.equal(docLuotXem('không có số'), null, 'không có thì null, không đoán 0');
   console.log('luot-xem: 2 ca đạt');

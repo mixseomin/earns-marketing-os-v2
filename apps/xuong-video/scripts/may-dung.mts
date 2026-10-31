@@ -182,9 +182,10 @@ if (a.includes('--nap')) {
     AND (da_dang->'youtube'->>'ngay')::date <= current_date - ${THANG_SAU_NGAY}::int AND dang->>'title' ~ ${'^Only ONE says [A-Z]+\\.'} ORDER BY luot_xem DESC`)) as unknown as { id: number; title: string; luot_xem: number }[];
   console.log(`· đọc lượt xem ${doc}/${daDang.length} video; video thắng: ${thang.length}${thang[0] ? ` (cao nhất ${thang[0].luot_xem} lượt — "${thang[0].title.slice(0, 60)}")` : ''}`);
   if (!thang.length) { console.error(`✗ máy ${ma}: chưa có video thắng (≥ ${THANG_LUOT_XEM} lượt sau ${THANG_SAU_NGAY} ngày) làm hook — dừng`); process.exit(1); }
-  const tu = (await db.execute(sql`SELECT DISTINCT ON (v.de->>'dich') v.de, v.dang FROM xv_may_video v WHERE v.may_id = ${m.id} AND v.de ? 'dich' AND v.da_dang = '{}'::jsonb
+  // từ trộn ngẫu nhiên (lấy theo ABC thì một lượt toàn ACROBAT, ACTIVITY, AIRPORT… — đơn điệu)
+  const tu = (await db.execute(sql`SELECT de, dang FROM (SELECT DISTINCT ON (v.de->>'dich') v.de, v.dang FROM xv_may_video v WHERE v.may_id = ${m.id} AND v.de ? 'dich' AND v.da_dang = '{}'::jsonb
     AND v.de->>'dich' NOT IN (SELECT w.de->>'dich' FROM xv_may_video w WHERE w.may_id = ${m.id} AND w.de ? 'dich' AND (w.da_dang <> '{}'::jsonb OR NOT coalesce(w.luu_tru, false)))
-    ORDER BY v.de->>'dich', v.id LIMIT ${N}`)) as unknown as { de: { dich: string; o: string[]; cho: number; goi: string; mau: unknown }; dang: { description?: string; link?: string; book?: string } }[];
+    ORDER BY v.de->>'dich', v.id) x ORDER BY random() LIMIT ${N}`)) as unknown as { de: { dich: string; o: string[]; cho: number; goi: string; mau: unknown }; dang: { description?: string; link?: string; book?: string } }[];
   const nhom = (((await db.execute(sql`SELECT goc_sp FROM xv_may WHERE ma = ${ma}`)) as unknown as { goc_sp: number[] | null }[])[0]?.goc_sp ?? []).map(Number);
   const fs = await import('node:fs'), url = process.env.SPY_DATABASE_URL ?? fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13);
   const spy = (await import('postgres')).default(url!, { max: 1, prepare: false });

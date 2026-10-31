@@ -3,6 +3,8 @@
 // góc + "hard cut" (C) giữ cùng người, cùng sảnh, cùng đồ qua 4 góc và tốn 1 clip thay 4. Ngành gọi là coverage trong một take / multi-cam:
 // liên tục do cùng một lần diễn, không do khớp từng shot rời. Module thuần: chia cụm, lịch giây trong clip, prompt, đổi điểm cắt đo được → vao_s.
 import { giayPhat, phat, type Canh, type NhanVat } from './kieu';
+import type { LookMang } from './bo-set-3d';
+import { nhanNhin, thayTenNhan } from './prompt-khoi';
 import { kyThuat } from './dien-anh';
 import { dongThoai, laLoiDan } from './am-thanh';
 
@@ -52,58 +54,48 @@ export function cauMiengShot(c: Canh, nv: NhanVat[]): string {
 
 const CO_CANH: Record<string, string> = { ews: 'extreme wide shot', ws: 'wide shot', ms: 'medium shot', mcu: 'medium close-up', cu: 'close-up', ecu: 'extreme close-up', insert: 'insert close-up', ots: 'over-the-shoulder shot', pov: 'point-of-view shot' };
 
-/** Prompt MỘT lần sinh cho cả cụm: danh sách góc có mốc giây + "hard cut" + câu giữ người / đồ / bối cảnh qua mọi cú cắt. */
-export function promptCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], them = '', toiDa = Infinity): string {
-  // Quá giới hạn prompt của model (Vidu 3000 ký tự) → bỏ khối trạng thái đồ / dáng lặp lại ở từng shot (đã nằm trong ảnh tham chiếu + câu giữ chung), giữ hành động
-  const gon = (t: string) => t.replace(/\s*(OBJECT STATE|BODY POSE|POSE)\b[\s\S]*$/, '').trim();
-  const du = promptCumTho(cum, them, (t) => t);
-  return du.length <= toiDa ? du : promptCumTho(cum, them, gon).slice(0, toiDa);
-}
-function promptCumTho(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], them: string, loc: (t: string) => string): string {
-  const lich = lichCum(cum.map((x) => x.canh));
-  const shot = cum.map(({ canh: c, nhanVat }, i) => {
-    const l = lich[i]!; const co = CO_CANH[c.ky_thuat?.co_canh ?? ''] ?? c.ky_thuat?.co_canh ?? 'medium shot';
-    const mieng = cauMiengShot(c, nhanVat);
-    return `Shot ${i + 1} (${(l.tu - VAO_DAU).toFixed(1)}–${(l.den - VAO_DAU).toFixed(1)} s, ${co}${i ? ', hard cut' : ''}): ${loc(c.dan_dung?.mo ?? c.canh)} → ${loc(c.dan_dung?.ket ?? '')}${mieng ? `; ${mieng}` : ''}`;
-  });
-  return [`A short edited film sequence of ${cum.length} shots with hard cuts between them. The same people with the same faces, hair and outfits, the same props in the same state and the same location and lighting in every shot — it is one continuous moment filmed from several angles.`,
-    `${shot.join('. ')}.`, 'Keep every object state continuous across the cuts (what was taken stays taken, stains stay, nothing reappears). Only the people of this scene appear. No on-screen text, no subtitles.', them].filter(Boolean).join(' ');
-}
-
-/** PROMPT CỤM KIỂU MỚI (anh 01/11/2026, học từ prompt mẫu "Shot 1: Extreme close-up on Youri's @image1 … Shot 2: Wide shot from behind as he pushes off…"):
- *  mỗi shot = cỡ cảnh + chuyển động máy + MỘT chuỗi hành động (cớ → phản ứng), shot sau mở bằng hệ quả động tác cuối shot trước (cắt theo động tác nằm
- *  trong động từ), không mốc giây, không khối OBJECT STATE / POSE (ảnh khung đầu / tham chiếu đã mang), ngắn. tag: tên người → nhãn ảnh ('@image1')
- *  gắn ngay tại lần nhắc đầu. gopCon: shot con (#2.9 / #3.1) gộp vào câu của shot cha thay vì đứng thành góc riêng — một nhịp nối, không một cú cắt. */
-export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], o: { tag?: Record<string, string>; gopCon?: boolean; them?: string } = {}): string {
+/** PROMPT CỤM KIỂU MỚI — luật học từ prompt mẫu anh gửi 01/11/2026 ("Shot 1: Extreme close-up on Youri's @image1 … Shot 2: Wide shot from behind as he pushes
+ *  off…") + hướng dẫn chính hãng (OpenAI Sora 2 cookbook, Runway Seedance 2.0, Google Veo): xem luat-dung.ts › prompt_cum_nganh. Tóm tắt:
+ *  1. Định nghĩa người MỘT lần ở đầu bằng dáng nhìn thấy (giới + bộ đồ) + nhãn ảnh nếu có, rồi gọi đúng nhãn đó mọi shot — KHÔNG gọi tên (model không biết tên).
+ *  2. Mỗi shot: máy trước (cỡ cảnh + MỘT chuyển động / máy đứng) → MỘT chuỗi hành động nhìn thấy được → tiếng / thoại cùng câu.
+ *  3. Shot sau mở bằng hệ quả động tác cuối shot trước (cắt theo động tác nằm trong động từ). Không mốc giây (Seedance / Runway: ép giây làm loạn).
+ *  4. Ít góc mỗi clip: shot con (#2.9 / #3.1) MẶC ĐỊNH gộp vào câu shot cha — bài thử A/B #2→#3 01/11 (VideoExpress): 4 góc trong clip 5 s đổi mặt Hạ,
+ *     sảnh trống rồi nhảy; 2 góc giữ mặt, liền mạch. Prompt cũ 5.052 ký tự còn bị in phụ đề chữ Hán.
+ *  5. Thoại: "<người> says: <câu>" không ngoặc kép (Google: ngoặc kép làm model in chữ lên hình). Kết bằng ràng buộc: không phụ đề, chữ, logo, watermark. */
+export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[]; look?: Map<string, LookMang> | null }[], o: { tag?: Record<string, string>; gopCon?: boolean; them?: string } = {}): string {
+  const gopCon = o.gopCon ?? true;
   const gon = (t?: string) => (t ?? '').replace(/\s*(OBJECT STATE|BODY POSE|POSE)\b[\s\S]*$/, '').trim().replace(/[.\s]+$/, '');
   // câu máy ("Static camera.") tách khỏi hành động — mỗi shot nói máy MỘT lần, nhịp gộp không lặp
   const MAY = /\s*\b(?:static|locked[- ]off|handheld|slow push[- ]in|slow dolly[^.]*?)\s+camera\b[^.]*\.?/i;
   const hanh = (c: Canh) => { const t = gon(c.dan_dung?.dien) || [gon(c.dan_dung?.mo), gon(c.dan_dung?.ket)].filter(Boolean).join(', then ') || gon(c.canh);
     return { cau: gon(t.replace(MAY, ' ')).replace(/\s{2,}/g, ' '), may: (t.match(MAY)?.[0] ?? '').trim().replace(/\.$/, '') }; };
+  // NHÃN người (prompt-khoi.ts › nhanNhin): bộ đồ từ sổ trang phục carry của shot đầu người đó xuất hiện
+  const nguoi: { ten: string; moTaNv: string; ao?: string }[] = [];
+  for (const x of cum) for (const v of x.nhanVat.filter((n) => n.loai === 'nhan_vat' && x.canh.nhan_vat.includes(n.id)))
+    if (!nguoi.some((n) => n.ten === v.ten)) nguoi.push({ ten: v.ten, moTaNv: v.mo_ta, ao: x.look?.get(v.ten)?.trang_phuc?.[0]?.mo_ta });
+  const nhan = nhanNhin(nguoi);
+  const thay = (t: string) => thayTenNhan(t, nhan.map((n) => ({ ten: n.ten, nhan: n.gon })));
   // nhóm: shot cha + các shot con của nó có trong cụm (theo thứ tự phát); shot con không có cha trong cụm thì đứng riêng
   const nhom: { canh: Canh; nhanVat: NhanVat[]; cau: string[]; mayCau: string }[] = [];
   for (const x of cum) {
-    const cha = o.gopCon && x.canh.con_cua != null ? cum.find((y) => y.canh.id === x.canh.con_cua) : undefined;
-    if (cha) continue;
-    const con = o.gopCon ? cum.filter((y) => y.canh.con_cua === x.canh.id) : [];
+    if (gopCon && x.canh.con_cua != null && cum.some((y) => y.canh.id === x.canh.con_cua)) continue;
+    const con = gopCon ? cum.filter((y) => y.canh.con_cua === x.canh.id) : [];
     const truoc = con.filter((y) => phat(y.canh) < phat(x.canh)), sau = con.filter((y) => phat(y.canh) > phat(x.canh));
     const h = [...truoc, x, ...sau].map((y) => hanh(y.canh)).filter((y) => y.cau);
-    nhom.push({ ...x, cau: h.map((y, j) => (j ? y.cau.replace(/^continuing[^,]*,\s*/i, '') : y.cau)), mayCau: h.find((y) => y.may)?.may ?? '' });
+    nhom.push({ canh: x.canh, nhanVat: x.nhanVat, cau: h.map((y, j) => (j ? y.cau.replace(/^continuing[^,]*,\s*/i, '') : y.cau)), mayCau: h.find((y) => y.may)?.may ?? '' });
   }
-  const daGan = new Set<string>();
-  const ganTag = (t: string) => Object.entries(o.tag ?? {}).reduce((s, [ten, nhan]) => {
-    if (daGan.has(ten)) return s; const i = s.indexOf(ten); if (i < 0) return s; daGan.add(ten);
-    return `${s.slice(0, i + ten.length)} ${nhan}${s.slice(i + ten.length)}`;
-  }, t);
   const shot = nhom.map(({ canh: c, nhanVat, cau, mayCau }, i) => {
     const co = CO_CANH[c.ky_thuat?.co_canh ?? ''] ?? c.ky_thuat?.co_canh ?? 'medium shot';
     const may = kyThuat(c.ky_thuat?.chuyen_dong, 'chuyen_dong')?.prompt || mayCau.toLowerCase();
     const t = nhom[i - 1]?.canh;   // shot con cùng máy với cha (đứng trước hay sau cha) = quay liền, không cắt
     const lien = !!t && (t.id === c.con_cua || t.con_cua === c.id) && t.ky_thuat?.co_canh === c.ky_thuat?.co_canh;
-    const mieng = cauMiengShot(c, nhanVat);
-    return `Shot ${i + 1}: ${co[0]!.toUpperCase()}${co.slice(1)}${lien ? ', same angle, continuous' : ''}${may ? `, ${may}` : ''} — ${ganTag(cau.join('; then '))}${mieng ? `; ${mieng}` : ''}.`;
+    const dong = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && d.nhan_vat.trim() && !laLoiDan(d.dien_xuat));
+    const loi = dong.length ? dong.map((d) => `${d.nhan_vat} says: ${d.loi.trim().replace(/["“”]/g, '')}`).join('; ') : cauMiengShot(c, nhanVat);
+    return thay(`Shot ${i + 1}: ${co[0]!.toUpperCase()}${co.slice(1)}${lien ? ', same angle, continuous' : ''}${may ? `, ${may}` : ''} — ${cau.join('; then ')}${loi ? `; ${loi}` : ''}.`);
   });
-  return [`A ${nhom.length}-shot cinematic sequence${nhom.length > 1 ? ' with hard cuts' : ''}, one continuous moment: same people, outfits, props and location in every shot.`, ...shot, 'No on-screen text.', o.them ?? ''].filter(Boolean).join(' ');
+  const dinh = nhan.length ? `Throughout: ${nhan.map((n) => `${n.day}${o.tag?.[n.ten] ? ` (${o.tag[n.ten]})` : ''}`).join(' and ')} keep the same face, hair, wardrobe and props in every shot; same location and light.` : 'Same location and light in every shot.';
+  return [`A ${nhom.length}-shot vertical film sequence${nhom.length > 1 ? ' cutting between angles' : ''}, one continuous moment.`, dinh, ...shot,
+    'Keep it subtitle-free: no on-screen text, captions, logo or watermark.', o.them ?? ''].filter(Boolean).join(' ');
 }
 
 /** CÚ MÁY LIỀN (Vidu Q2 tham chiếu, phim #353 25/10/2026: cả 6 cụm ra MỘT cú máy đẩy / lia, không cắt cứng dù prompt ghi "hard cut"): các shot phát NỐI
@@ -129,7 +121,7 @@ const DO_RONG: Record<string, number> = { ews: 0, ws: 1, ots: 2, ms: 3, mcu: 4, 
 export function anhBoiCanh(ds: readonly Pick<Canh, 'keyframe_url' | 'ky_thuat'>[]): string | null {
   return [...ds].filter((c) => c.keyframe_url).sort((a, b) => (DO_RONG[a.ky_thuat?.co_canh ?? ''] ?? 3) - (DO_RONG[b.ky_thuat?.co_canh ?? ''] ?? 3))[0]?.keyframe_url ?? null;
 }
-export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], toiDa = 7, boiCanh?: string | null): { anh: string[]; goi: string } {
+export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], toiDa = 7, boiCanh?: string | null): { anh: string[]; goi: string; tag: Record<string, string>; them: string } {
   const nguoi: { ten: string; anh: string[] }[] = [];
   for (const { canh: c, nhanVat } of cum) for (const v of nhanVat.filter((x) => x.loai === 'nhan_vat')) {
     if (nguoi.some((n) => n.ten === v.ten)) continue;
@@ -142,5 +134,7 @@ export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[],
   for (const n of nguoi) if (n.anh[0] && anh.length < cho) { anh.push(n.anh[0]); nhan.push(n.ten); }
   for (const n of nguoi) if (n.anh[1] && anh.length < cho) { anh.push(n.anh[1]); nhan.push(n.ten); }
   if (rong) { anh.push(rong); nhan.push('the location (lighting, set, colours)'); }
-  return { anh, goi: nhan.map((t, i) => `Reference image ${i + 1} is ${t}`).join('; ') };
+  // tag: tên → "reference image N" (ảnh danh tính đầu của người đó) — promptCumMoi gắn vào câu định nghĩa bằng dáng nhìn thấy, không gọi tên
+  const tag: Record<string, string> = {}; nhan.forEach((t, i) => { if (i < anh.length - (rong ? 1 : 0)) tag[t] ??= `reference image ${i + 1}`; });
+  return { anh, goi: nhan.map((t, i) => `Reference image ${i + 1} is ${t}`).join('; '), tag, them: rong ? `Reference image ${anh.length} is the location (lighting, set, colours).` : '' };
 }

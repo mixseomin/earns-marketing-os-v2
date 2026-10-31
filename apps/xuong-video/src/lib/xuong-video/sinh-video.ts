@@ -1,7 +1,7 @@
 // Lõi sinh video cho một shot + nhận kết quả (Veo qua Google hoặc model fal) — tách khỏi actions.ts để script trên box
 // (scripts/sinh-shot.mts) và server action (sinhVideoCanh / kiemVideo) dùng CÙNG một đường; actions chỉ kiểm quyền rồi gọi vào đây.
 import { chanDanDat } from './dan-dat';
-import { CHAT_LIEU, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, tenNgonNguEn, type ChatLieu, type Khoi } from './prompt-khoi';
+import { CHAT_LIEU, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, nhanNhin, tenNgonNguEn, thayTenNhan, type ChatLieu, type Khoi } from './prompt-khoi';
 import { loiTrangThaiVat, chamPrompt, NGUONG_CHAN, type LoiPrompt } from './kiem-prompt';
 import { batCamXuc } from './qc-cam-xuc';
 import { moTaChuyenDong, bienTheTheoSo } from './bo-set-3d';
@@ -47,16 +47,13 @@ const boCauTrung = (t: string, cum: (string | undefined)[]) => { const c = cum.m
 /** DÁNG NHÌN THẤY của từng nhân vật trong prompt video (không gọi tên — model không biết tên): đầy đủ "the woman in the fitted burgundy … dress" + GỌI GỌN
  *  "the woman in the dress" (giới + danh từ cuối của bộ đồ, thêm chữ tới khi không trùng người khác) — lần nhắc sau dùng gọn khi model có trần ký tự. */
 export function dangNhinVideo(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): { ten: string; day: string; gon: string }[] {
-  const ds = ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).filter((x) => bc.nhanVat.some((n) => n.ten === x.ten && n.loai === 'nhan_vat')).map((v) => {   // mayDu: bộ đồ kế thừa từ shot trước (shot chỉ khai chỗ đổi) — đọc may_3d trơn thì mất đồ, ra 'the woman' trơn
-    const nv = bc.nhanVat.find((n) => n.ten === v.ten)!; const ao = (bienTheTheoSo(v, nv)[0]?.mo_ta ?? '').split(/[,;]| with | tucked /)[0]!.trim().toLowerCase();
-    const gioi = /\bwoman\b/i.test(nv.mo_ta ?? '') ? 'woman' : /\bman\b/i.test(nv.mo_ta ?? '') ? 'man' : 'person';
-    return { ten: v.ten, gioi, tu: ao ? ao.split(/\s+/) : [], day: ao ? `the ${gioi} in the ${ao}` : `the ${gioi}` };
-  });
-  return ds.map((x) => {
-    let gon = x.day;
-    for (let k = 1; k < x.tu.length; k++) { const g = `the ${x.gioi} in the ${x.tu.slice(-k).join(' ')}`; if (!ds.some((y) => y !== x && (y.day === g || y.day.endsWith(` ${x.tu.slice(-k).join(' ')}`) && y.gioi === x.gioi))) { gon = g; break; } }
-    return { ten: x.ten, day: x.day, gon };
-  });
+  const vt = ((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? []).filter((x) => bc.nhanVat.some((n) => n.ten === x.ten && n.loai === 'nhan_vat'));
+  if (vt.length) return nhanNhin(vt.map((v) => {   // mayDu: bộ đồ kế thừa từ shot trước (shot chỉ khai chỗ đổi) — đọc may_3d trơn thì mất đồ, ra 'the woman' trơn
+    const nv = bc.nhanVat.find((n) => n.ten === v.ten)!; return { ten: v.ten, moTaNv: nv.mo_ta, ao: bienTheTheoSo(v, nv)[0]?.mo_ta };
+  }));
+  // PHIM KHÔNG 3D (sơ đồ cảnh, phim #353): trước 01/11/2026 không có vi_tri → trả rỗng → tên "Hạ" / "Vivian" lọt nguyên vào prompt video. Dùng sổ trang
+  // phục carry (bc.look — lookMang) của người có trong shot.
+  return nhanNhin(bc.nhanVat.filter((n) => n.loai === 'nhan_vat' && bc.canh.nhan_vat.includes(n.id)).map((n) => ({ ten: n.ten, moTaNv: n.mo_ta, ao: bc.look?.get(n.ten)?.trang_phuc?.[0]?.mo_ta })));
 }
 /** KHỐI prompt video (prompt-khoi.ts) — promptVideoCanh ghép, chamVideo chấm theo KHUON.video. */
 export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): Khoi[] {
@@ -86,9 +83,11 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   // bảo "nhân vật cử miệng" thì ông Tom nhép câu của vợ. Chỉ người nói có mặt trong shot + không ghi V.O. mới cử miệng.
   const laVO = (d: { nhan_vat: string; dien_xuat: string }) => !d.nhan_vat.trim() || laLoiDan(d.dien_xuat);
   const trongKhung = dong.filter((d) => !laVO(d));
+  // THOẠI KHÔNG NGOẶC KÉP (Google Veo best practice: "<người> says: <câu>" — ngoặc kép làm model in câu thành chữ trên hình; A/B cụm 01/11/2026 ra phụ đề Hán)
+  const khongNgoac = (t: string) => t.trim().replace(/["“”]/g, '');
   const thoaiVeo = coGiong || !dong.length ? '' : [
-    trongKhung.length ? `On-camera dialogue (${tenNgonNguEn(bc.kt.ngon_ngu)}, natural lip-sync, no subtitles): ${trongKhung.map((d) => `${d.nhan_vat} says "${d.loi.trim()}"`).join('; ')}.` : '',
-    dong.some(laVO) ? `Off-screen voice-over (${tenNgonNguEn(bc.kt.ngon_ngu)}, nobody in frame moves their lips for it): ${dong.filter(laVO).map((d) => `"${d.loi.trim()}"`).join(' ')}` : '',
+    trongKhung.length ? `On-camera dialogue (${tenNgonNguEn(bc.kt.ngon_ngu)}, natural lip-sync, no subtitles): ${trongKhung.map((d) => `${d.nhan_vat} says: ${khongNgoac(d.loi)}`).join('; ')}.` : '',
+    dong.some(laVO) ? `Off-screen voice-over (${tenNgonNguEn(bc.kt.ngon_ngu)}, nobody in frame moves their lips for it): ${dong.filter(laVO).map((d) => khongNgoac(d.loi)).join(' ')}` : '',
   ].filter(Boolean).join(' ');
   // IM LẶNG: shot có người mà không có lời — nói thẳng là không ai mở miệng (phim #353 #13: Hạ chỉ nghe câu Thần nói mà clip cho Hạ mấp máy như đang cãi)
   // CẮT GIỮA ĐỘNG TÁC (luat-dung.ts › cat_giua_dong_tac — ngành quay phủ CHỒNG qua điểm cắt rồi cắt lúc đang chuyển động): shot nối sang shot sau bằng
@@ -106,15 +105,8 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   const chen = bc.canh.ky_thuat?.co_canh === 'insert';   // cận chèn: không đòi cử động cả người, không biểu cảm mặt (mặt ngoài khung)
   // KHÔNG GỌI TÊN trong prompt video (19/10/2026 #1): model video không biết tên ai — hai phụ nữ tóc đen chỉ gọi "Vivian" / "Hạ" thì Veo đảo vai, và
   // tên trong prompt bị in lên hình ("Vivian" ở góc khung). Mọi tên nhân vật (đầy đủ + tên gọi tắt) thay bằng DÁNG NHÌN THẤY: giới + bộ đồ của shot.
-  const moTaNhin = new Map(dangNhinVideo(bc).map((x) => [x.ten, x.day] as const));
-  const thayTen = (t: string): string => {
-    let o = t;
-    for (const [ten, mt] of [...moTaNhin].sort((x, y) => y[0].length - x[0].length)) {
-      const goi = ten.trim().split(/\s+/); const cac = [ten, ...(goi.length >= 2 ? [goi[goi.length - 1]!] : [])];
-      for (const c of cac) o = o.replace(new RegExp(`(^|[^\\p{L}])${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=[^\\p{L}]|$)`, 'gu'), (_m, tr: string) => `${tr}${mt}`);
-    }
-    return o;
-  };
+  const nhanVideo = dangNhinVideo(bc).map((x) => ({ ten: x.ten, nhan: x.day }));
+  const thayTen = (t: string): string => thayTenNhan(t, nhanVideo);
   const ds: Khoi[] = [
     khoi('phong_cach', !rendau && phongCachHinh(bc.kt.phong_cach) ? `Visual style: ${phongCachHinh(bc.kt.phong_cach).replace(/[.\s]+$/, '')}.` : ''),
     // KHOẢNH KHẮC: prompt_video riêng của shot (nếu có); thẻ có mở / kết hoặc câu diễn (mảnh ReelShort một việc) thì khối diễn đã nói — không lấy hanh_dong (mô tả cho người đọc, có thể tiếng Việt)

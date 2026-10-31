@@ -1,5 +1,5 @@
 // BÀI THỬ MODEL CÓ ẢNH THAM CHIẾU NHÂN VẬT (anh 25/10/2026 "kiểm tra hết các model khác"). Ca thử = cụm mà Veo Lite (chỉ khung mở) BỊA người: nhân vật của
-// cụm không có trong khung mở (phim #353 #13–#14: khung mở cận Hạ, shot sau Vivian). Ba model cùng prompt cụm (cum-shot.ts › promptCum):
+// cụm không có trong khung mở (phim #353 #13–#14: khung mở cận Hạ, shot sau Vivian). Ba model cùng prompt cụm (cum-shot.ts › promptCumMoi):
 //   K. Veo 3.1 Lite · Kie REFERENCE_2_VIDEO — 1–3 ảnh tham chiếu (người + bối cảnh), không khung mở, clip 8s
 //   V. Vidu Q2 · fal reference-to-video — tới 7 ảnh tham chiếu, không khung mở, 1–8s
 //   O. Kling O3 Std · fal reference-to-video — element mỗi người (ảnh chính diện + phụ) + KHUNG MỞ (start_image_url), nhiều prompt nối nhau
@@ -14,7 +14,7 @@ import { getDb } from '@mos2/db';
 import { boiCanhCanh, mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
 import { docVideoCong } from '../src/lib/xuong-video/cong-ai';
 import { guiFal, docFal } from '../src/lib/xuong-video/fal';
-import { promptCum } from '../src/lib/xuong-video/cum-shot';
+import { promptCumMoi } from '../src/lib/xuong-video/cum-shot';
 import { giayPhat, type NhanVat, type Canh } from '../src/lib/xuong-video/kieu';
 import { uploadToR2 } from '../src/lib/r2';
 
@@ -36,8 +36,7 @@ const anhNguoi = (v: NhanVat, c: Canh): string[] => {
 const nguoi: { v: NhanVat; anh: string[] }[] = [];
 for (const [i, b] of bc.entries()) for (const v of b.nhanVat.filter((x) => x.loai === 'nhan_vat')) if (!nguoi.some((n) => n.v.id === v.id)) nguoi.push({ v, anh: anhNguoi(v, ds[i]!) });
 const boiCanh = ds[0]!.keyframe_url!;   // khung đã duyệt của shot đầu = hình bối cảnh
-const goi = nguoi.map((n, i) => `Reference image ${i + 1} is ${n.v.ten}`).join('; ');
-const pr = promptCum(bc.map((b) => ({ canh: b.canh, nhanVat: b.nhanVat })));
+const pr = promptCumMoi(bc.map((b) => ({ canh: b.canh, nhanVat: b.nhanVat, look: b.look })), { tag: Object.fromEntries(nguoi.map((n, i) => [n.v.ten, `reference image ${i + 1}`])) });
 console.log(`cụm #${tu}–#${den} · ${tongGiay}s · người: ${nguoi.map((n) => `${n.v.ten} (${n.anh[0]?.split('/').pop()})`).join(', ')}`);
 
 async function cho(nhan: string, doc: () => Promise<{ done: boolean; ok?: boolean; uri?: string; loi?: string }>): Promise<string | null> {
@@ -49,14 +48,14 @@ async function cho(nhan: string, doc: () => Promise<{ done: boolean; ok?: boolea
 async function K(): Promise<string | null> {
   const anh = [...nguoi.map((n) => n.anh[0]!), boiCanh].slice(0, 3);
   const r = await fetch('https://api.kie.ai/api/v1/jobs/createTask', { method: 'POST', headers: { authorization: `Bearer ${process.env.KIE_API_KEY}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: 'veo-3-1', input: { prompt: `${goi}${anh.length > nguoi.length ? `; reference image ${anh.length} is the location` : ''}. ${pr}`, model: 'veo3_lite', image_urls: anh, generation_type: 'REFERENCE_2_VIDEO', aspect_ratio: '9:16', resolution: '720p', duration: 8 } }) });
+    body: JSON.stringify({ model: 'veo-3-1', input: { prompt: `${pr}${anh.length > nguoi.length ? ` Reference image ${anh.length} is the location.` : ''}`, model: 'veo3_lite', image_urls: anh, generation_type: 'REFERENCE_2_VIDEO', aspect_ratio: '9:16', resolution: '720p', duration: 8 } }) });
   const j = (await r.json().catch(() => ({}))) as { code?: number; msg?: string; data?: { taskId?: string } };
   if (j.code !== 200 || !j.data?.taskId) { console.log(`  K: Kie từ chối — ${j.code} ${j.msg}`); return null; }
   const tao = new Date().toISOString(); return cho('K', () => docVideoCong('kie', j.data!.taskId!, tao));
 }
 async function V(): Promise<string | null> {
   const anh = [...nguoi.flatMap((n) => n.anh.slice(0, 2)), boiCanh].slice(0, 7);
-  const g = await guiFal('fal-ai/vidu/q2/reference-to-video', { prompt: `${goi}. ${pr}`.slice(0, 3000), reference_image_urls: anh, duration: Math.min(8, Math.ceil(tongGiay) + 1), resolution: '720p', aspect_ratio: '9:16' });   // Vidu nhận SỐ (422 với chuỗi)
+  const g = await guiFal('fal-ai/vidu/q2/reference-to-video', { prompt: pr.slice(0, 3000), reference_image_urls: anh, duration: Math.min(8, Math.ceil(tongGiay) + 1), resolution: '720p', aspect_ratio: '9:16' });   // Vidu nhận SỐ (422 với chuỗi)
   if (!g.ok) { console.log(`  V: fal từ chối — ${g.loi}`); return null; }
   return cho('V', () => docFal(g.taskId));
 }

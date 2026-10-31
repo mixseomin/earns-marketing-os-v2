@@ -2,7 +2,7 @@
 // + khung cuối (khung kết / keyframe shot cuối — first_last_frame neo người vào sau, vd Vivian ở #3), prompt giữ NGUYÊN (enhance tắt) để so đúng cách viết.
 // Gửi song song (VideoExpress cho ≤ 5 render cùng lúc), đợi render (~4 phút), tải về, đẩy lên box → cum-thu.mts --gan (R2 + ky_thuat.cum_thu), tờ khung để soát.
 //   cd ~/Me/GitHub/earns-marketing-os-v2/apps/xuong-video && node scripts/videoexpress.mjs mo && \
-//     ../../node_modules/.bin/tsx scripts/vx-cum.mts --tap=356 --tu=2 --den=3 [--bien=cu,moi,gop]
+//     ../../node_modules/.bin/tsx scripts/vx-cum.mts --tap=356 --tu=2 --den=3 [--bien=gop,tach]
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -12,7 +12,7 @@ import { napKhung, guiShot, getMedia, catId, trenApp, ngu } from './vx-br.mts';
 const BOX = 'root@167.233.241.16';
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const doan = `--tap=${gia('tap')} --tu=${gia('tu')} --den=${gia('den')}`;
-const dsBien = (gia('bien') ?? 'cu,moi,gop').split(',');
+const dsBien = (gia('bien') ?? 'gop').split(',');
 const boxTsx = (args: string) => execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2/apps/xuong-video && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/cum-thu.mts ${args}`], { encoding: 'utf8', timeout: 300e3 }).trim();
 if (!trenApp()) { console.error('chưa ở trong app VideoExpress — chạy: node scripts/videoexpress.mjs mo'); process.exit(1); }
 

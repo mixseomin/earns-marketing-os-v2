@@ -199,3 +199,29 @@ export function chuNguoi(a: { ten: string; mo_ta: string; loai: string; khoi_3d?
   const n = o.gon ? '; ' : ', ';
   return `${goc}${dang ? `${n}${dang}` : ''}${o.tu_the && !o.chen ? `${n}${o.tu_the}` : ''}${ao ? `${n}wearing ${ao}` : ''}${deo ? `${n}${deo}` : ''}${them ? `${n}${them}` : ''}`;
 }
+
+/** NHÃN NHÌN THẤY của người trong prompt video (model không biết tên — gọi tên thì đảo vai / in tên lên hình, #353 19/10/2026): "the woman in the white
+ *  silk blouse" (giới + bộ đồ) và GỌI GỌN "the woman in the blouse" (thêm chữ tới khi không trùng người khác). Một lõi cho prompt một shot (sinh-video.ts ›
+ *  dangNhinVideo) và prompt cụm (cum-shot.ts › promptCumMoi). moTaNv tiếng Anh hoặc Việt. */
+export function nhanNhin(ds: readonly { ten: string; moTaNv?: string | null; ao?: string | null }[]): { ten: string; day: string; gon: string }[] {
+  const x = ds.map((d) => {
+    const ao = (d.ao ?? '').split(/[,;.]| with | tucked /)[0]!.trim().toLowerCase();
+    const m = d.moTaNv ?? '';
+    const gioi = /\bwoman\b|\bgirl\b|(^|[^\p{L}])(nữ|cô gái|phụ nữ|chị)([^\p{L}]|$)/iu.test(m) ? 'woman' : /\bman\b|\bboy\b|(^|[^\p{L}])(nam|đàn ông|chàng|anh)([^\p{L}]|$)/iu.test(m) ? 'man' : 'person';
+    return { ten: d.ten, gioi, tu: ao ? ao.split(/\s+/) : [], day: ao ? `the ${gioi} in the ${ao}` : `the ${gioi}` };
+  });
+  return x.map((a) => {
+    let gon = a.day;
+    for (let k = 1; k < a.tu.length; k++) { const g = `the ${a.gioi} in the ${a.tu.slice(-k).join(' ')}`; if (!x.some((y) => y !== a && (y.day === g || y.day.endsWith(` ${a.tu.slice(-k).join(' ')}`) && y.gioi === a.gioi))) { gon = g; break; } }
+    return { ten: a.ten, day: a.day, gon };
+  });
+}
+/** Thay mọi lần gọi tên (tên đầy đủ + tên gọi cuối, vd "Lâm Hạ" / "Hạ") bằng nhãn nhìn thấy — model video không biết tên. Tên dài thay trước. */
+export function thayTenNhan(t: string, ds: readonly { ten: string; nhan: string }[]): string {
+  let o = t;
+  for (const { ten, nhan } of [...ds].sort((a, b) => b.ten.length - a.ten.length)) {
+    const goi = ten.trim().split(/\s+/); const cac = [ten.trim(), ...(goi.length >= 2 ? [goi[goi.length - 1]!] : [])];
+    for (const c of cac) o = o.replace(new RegExp(`(^|[^\\p{L}])${c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=[^\\p{L}]|$)`, 'gu'), (_m, tr: string) => `${tr}${nhan}`);
+  }
+  return o;
+}

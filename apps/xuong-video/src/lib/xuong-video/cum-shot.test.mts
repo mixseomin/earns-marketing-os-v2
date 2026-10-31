@@ -46,19 +46,30 @@ const t1 = thamChieuCum([shot('kf-cu', 'cu', [160], [ha]), shot('kf-ws', 'ws', [
 assert.deepStrictEqual(t1.anh, ['ha-khong-the', 'vi-mau', 'ha-mau', 'vi-phu', 'kf-ws']);
 assert.ok(t1.goi.startsWith('Reference image 1 is Lâm Hạ; Reference image 2 is Vivian') && t1.goi.endsWith('the location (lighting, set, colours)'));
 assert.deepStrictEqual(thamChieuCum([shot('kf-cu', 'cu', [160], [ha]), shot('kf-ws', 'ws', [], [vi])], 3).anh, ['ha-khong-the', 'vi-mau', 'kf-ws']);
+// nhãn ảnh: tên → 'reference image N' (ảnh danh tính đầu), ảnh cuối là bối cảnh
+assert.deepStrictEqual(t1.tag, { 'Lâm Hạ': 'reference image 1', Vivian: 'reference image 2' }); assert.ok(t1.them.startsWith(`Reference image ${t1.anh.length} is the location`));
 // cú máy liền: shot nối tiếp nhau (#5–#9: 1,5 · 1 · 2 · 1 · 1,5 giây)
 assert.deepStrictEqual(vaoLienMach(ds.slice(4, 9)), [0.2, 1.7, 2.7, 4.7, 5.7]);
 
-// PROMPT KIỂU MỚI: #2 (cu) · #2.9 con của #2 (mcu) · #3.1 con của #3 cùng máy ws · #3 (ws)
-const ps = (id: number, so: number, xep: number, co: string, dien: string, con_cua: number | null = null) => ({ canh: { id, thu_tu: so, thu_tu_phat: xep, con_cua, ky_thuat: { co_canh: co }, canh: '', thoai: [], nhan_vat: [], loi_thoai: '', dan_dung: { dien: `${dien}. OBJECT STATE in this frame: box hugged` } } as never, nhanVat: [] });
-const bon = [ps(2, 2, 2, 'cu', 'Ha hears heels and starts turning her head. Static camera'), ps(29, 2.9, 2.04, 'mcu', 'Continuing, Ha keeps turning toward the entrance. Static camera', 2), ps(31, 3.1, 2.51, 'ws', 'Ha finishes the turn', 3), ps(3, 3, 3, 'ws', 'Vivian strides in')];
-const p4 = promptCumMoi(bon, { tag: { Ha: '@image1' } });
-assert.ok(p4.startsWith('A 4-shot') && !/OBJECT STATE|\d s,/.test(p4));
-assert.ok(p4.includes('Shot 3: Wide shot — ') && p4.includes('Shot 4: Wide shot, same angle, continuous'));   // #3.1 con của #3 cùng máy ws → #3 nối liền
-assert.strictEqual(p4.split('@image1').length, 2);   // nhãn ảnh chỉ gắn ở lần nhắc đầu
-const p2 = promptCumMoi(bon, { gopCon: true });
-assert.ok(p2.startsWith('A 2-shot') && p2.includes('Shot 1: Close-up, static camera — Ha hears heels and starts turning her head; then Ha keeps turning toward the entrance.'));
-assert.ok(p2.includes('Shot 2: Wide shot — Ha finishes the turn; then Vivian strides in.'));
+// PROMPT KIỂU MỚI: #2 (cu) · #2.9 con của #2 (mcu) · #3.1 con của #3 cùng máy ws · #3 (ws). Người: Lâm Hạ (áo sơ mi lụa trắng) — không được gọi tên
+const nvHa = { id: 1, ten: 'Lâm Hạ', loai: 'nhan_vat', mo_ta: 'cô gái 24 tuổi, tóc đen dài' };
+const look = new Map([['Lâm Hạ', { trang_phuc: [{ mo_ta: 'white silk blouse, black trousers' }] }]]) as never;
+const ps = (id: number, so: number, xep: number, co: string, dien: string, con_cua: number | null = null, thoai: { nhan_vat: string; loi: string; dien_xuat: string }[] = []) => ({
+  canh: { id, thu_tu: so, thu_tu_phat: xep, con_cua, ky_thuat: { co_canh: co }, canh: '', thoai, nhan_vat: [1], loi_thoai: '', dan_dung: { dien: `${dien}. OBJECT STATE in this frame: box hugged` } } as never, nhanVat: [nvHa] as never, look });
+const bon = [ps(2, 2, 2, 'cu', 'Hạ hears heels and starts turning her head. Static camera'), ps(29, 2.9, 2.04, 'mcu', 'Continuing, Hạ keeps turning toward the entrance. Static camera', 2),
+  ps(31, 3.1, 2.51, 'ws', 'Lâm Hạ finishes the turn', 3), ps(3, 3, 3, 'ws', 'Vivian strides in')];
+// mặc định GỘP shot con → 2 góc; tên → nhãn nhìn thấy; câu máy một lần; bỏ "Continuing," thừa; không khối trạng thái / mốc giây
+const p2 = promptCumMoi(bon);
+assert.ok(p2.startsWith('A 2-shot') && !/OBJECT STATE|\d s,|Hạ/.test(p2), p2);
+assert.ok(p2.includes('Throughout: the woman in the white silk blouse keep'), p2);
+assert.ok(p2.includes('Shot 1: Close-up, static camera — the woman in the blouse hears heels and starts turning her head; then the woman in the blouse keeps turning toward the entrance'), p2);
+assert.ok(p2.includes('Shot 2: Wide shot — the woman in the blouse finishes the turn; then Vivian strides in') && p2.endsWith('no on-screen text, captions, logo or watermark.'), p2);
+// không gộp: 4 góc, #3.1 → #3 cùng máy = liền; nhãn ảnh gắn ở câu định nghĩa
+const p4 = promptCumMoi(bon, { gopCon: false, tag: { 'Lâm Hạ': '@image1' } });
+assert.ok(p4.startsWith('A 4-shot') && p4.includes('Shot 4: Wide shot, same angle, continuous') && p4.includes('white silk blouse (@image1)'), p4);
+// thoại: "says:" không ngoặc kép (Google: ngoặc kép → chữ trên hình)
+const pt = promptCumMoi([ps(5, 5, 5, 'mcu', 'Hạ looks up', null, [{ nhan_vat: 'Lâm Hạ', loi: '"Chị cần gì?"', dien_xuat: '' }])]);
+assert.ok(pt.includes('the woman in the blouse says: Chị cần gì?') && !pt.includes('"'), pt);
 // phá thử: shot con mà cha KHÔNG có trong cụm → đứng riêng, không mất
-assert.ok(promptCumMoi(bon.slice(1, 3), { gopCon: true }).startsWith('A 2-shot'));
+assert.ok(promptCumMoi(bon.slice(1, 3)).startsWith('A 2-shot'));
 console.log('✓ cum-shot');

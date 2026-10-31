@@ -1,15 +1,15 @@
 // THỬ PROMPT CỤM (A/B/C) — nửa chạy trên BOX (có DB): dựng prompt các biến thể cho một đoạn shot + ghi clip thử về Studio. Nửa gửi VideoExpress chạy trên iMac
-// (scripts/vx-cum.mts, phiên trình duyệt). Biến thể: cu = promptCum (mốc giây + khối trạng thái) · moi = promptCumMoi (cớ → phản ứng, cắt theo động tác)
-// · gop = promptCumMoi gộp shot con (#2.9 / #3.1) vào câu của shot cha. Clip thử KHÔNG đè video_url: lưu R2 + ky_thuat.cum_thu[<bien>] ở shot đầu đoạn.
+// (scripts/vx-cum.mts, phiên trình duyệt). Biến thể: gop = promptCumMoi (mặc định, shot con gộp vào câu shot cha) · tach = mỗi shot con một góc.
+// Bản 'cu' (promptCum mốc giây + khối trạng thái) đã bỏ sau A/B 01/11/2026 — clip thử còn ở ky_thuat.cum_thu.cu của #2 tập 356. Clip thử KHÔNG đè video_url: lưu R2 + ky_thuat.cum_thu[<bien>] ở shot đầu đoạn.
 //   cd /opt/earns-marketing-os-v2/apps/xuong-video && set -a; . ../../.env.production; set +a; NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx \
-//     scripts/cum-thu.mts --tap=356 --tu=2 --den=3                       → in JSON {dau, cuoi, bien:{cu,moi,gop}}
+//     scripts/cum-thu.mts --tap=356 --tu=2 --den=3                       → in JSON {dau, cuoi, bien:{gop,tach}}
 //     scripts/cum-thu.mts --tap=356 --tu=2 --den=3 --gan=moi:/tmp/x.mp4 [--nguon=vx]  → R2 + ghi ky_thuat.cum_thu.moi
 import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { boiCanhCanh, mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
-import { promptCum, promptCumMoi, anhNeoCuoi } from '../src/lib/xuong-video/cum-shot';
+import { promptCumMoi, anhNeoCuoi } from '../src/lib/xuong-video/cum-shot';
 import { uploadToR2 } from '../src/lib/r2';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
@@ -29,7 +29,7 @@ if (gan) {
   console.log(`${ten} ${bien}: ${url}`);
   process.exit(0);
 }
-const vao = (await Promise.all(cum.map((c) => boiCanhCanh(db, c.id)))).map((x) => ({ canh: x!.canh, nhanVat: x!.nhanVat }));
+const vao = (await Promise.all(cum.map((c) => boiCanhCanh(db, c.id)))).map((x) => ({ canh: x!.canh, nhanVat: x!.nhanVat, look: x!.look }));
 const cuoi = anhNeoCuoi(cum) ?? (cum.length > 1 ? cum.at(-1)!.keyframe_url : null);
-console.log(JSON.stringify({ ten, dau: cum[0]!.keyframe_url, cuoi, bien: { cu: promptCum(vao), moi: promptCumMoi(vao), gop: promptCumMoi(vao, { gopCon: true }) } }));
+console.log(JSON.stringify({ ten, dau: cum[0]!.keyframe_url, cuoi, bien: { gop: promptCumMoi(vao), tach: promptCumMoi(vao, { gopCon: false }) } }));
 process.exit(0);

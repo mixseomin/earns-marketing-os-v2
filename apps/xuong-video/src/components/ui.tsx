@@ -101,7 +101,7 @@ export const mono: CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 1
 export function Menu({ children, nhan = '⋯', lop, nutLop, rong = 420 }: { children: ReactNode; nhan?: string; lop?: string; nutLop?: string; rong?: number }) {
   const [mo, setMo] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
-  const viTri = useViTriNoi(ref, mo, { rong, canPhai: true, caoToiDa: 560 });
+  const viTri = useViTriNoi(ref, mo, { rong, caoToiDa: 560 });
   useEffect(() => {
     if (!mo) return;
     const h = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setMo(false); };

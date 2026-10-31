@@ -19,7 +19,10 @@ export function tamTatTitleCha(el: HTMLElement | null): () => void {
   if (ds.some(([, a]) => a === 'data-goi-y') && typeof window !== 'undefined') window.dispatchEvent(new Event(GOI_Y_AN));
   return () => { for (const [p, a, t] of ds) if (!p.hasAttribute(a)) p.setAttribute(a, t); };
 }
-export function useViTriNoi(neo: RefObject<HTMLElement | null> | DiemNeo, mo: boolean, o: { rong: number; canPhai?: boolean; caoToiDa?: number }): CSSProperties {
+/** HƯỚNG MỞ (anh 31/10/2026): lớp nổi LUÔN mở sang PHẢI nút (mép trái lớp nổi = mép trái nút); chỉ khi bên phải không đủ chỗ (nút sát mép
+ *  phải màn) mới lật sang trái (mép phải lớp nổi = mép phải nút); thiếu chỗ bên dưới thì lật lên trên. Không có tuỳ chọn ép hướng — cùng một
+ *  luật cho mọi lớp nổi, nơi gọi không tự chọn được (luật cũng ở skill ydni § lớp nổi neo vào nút). */
+export function useViTriNoi(neo: RefObject<HTMLElement | null> | DiemNeo, mo: boolean, o: { rong: number; caoToiDa?: number }): CSSProperties {
   const [st, setSt] = useState<CSSProperties>({ position: 'fixed', visibility: 'hidden' });
   useLayoutEffect(() => { if (!mo || !('current' in neo)) return; return tamTatTitleCha(neo.current); }, [mo, 'current' in neo ? neo : null]); // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
@@ -29,7 +32,7 @@ export function useViTriNoi(neo: RefObject<HTMLElement | null> | DiemNeo, mo: bo
       if (!r) return;
       const vw = window.innerWidth, vh = window.innerHeight, le = 8;
       const rong = Math.min(o.rong, vw - 2 * le);
-      let left = o.canPhai ? r.right - rong : r.left;
+      let left = r.left + rong <= vw - le ? r.left : r.right - rong;   // phải trước, sát mép phải mới lật trái
       left = Math.max(le, Math.min(left, vw - rong - le));
       const duoi = vh - r.bottom - le, tren = r.top - le;
       const caoMuon = o.caoToiDa ?? 420;
@@ -40,6 +43,6 @@ export function useViTriNoi(neo: RefObject<HTMLElement | null> | DiemNeo, mo: bo
     tinh();
     window.addEventListener('resize', tinh); window.addEventListener('scroll', tinh, true);
     return () => { window.removeEventListener('resize', tinh); window.removeEventListener('scroll', tinh, true); };
-  }, [mo, 'current' in neo ? neo : `${neo.x},${neo.y}`, o.rong, o.canPhai, o.caoToiDa]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [mo, 'current' in neo ? neo : `${neo.x},${neo.y}`, o.rong, o.caoToiDa]); // eslint-disable-line react-hooks/exhaustive-deps
   return st;
 }

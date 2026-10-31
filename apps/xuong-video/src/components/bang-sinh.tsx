@@ -83,7 +83,7 @@ export function BangSinh({ yc, nhanVat, tap, mhNhac, onClose, onGiong, onSfx, on
   const chuNut = (chu: string) => (xn.dangHoi ? `⚠ ${tien(giaNut)} — bấm lại để xác nhận` : chu);
 
   // Vị trí: ngay dưới nút ＋ (canh phải theo nút), kẹp trong màn, thiếu chỗ bên dưới thì lật lên — cùng luật với menu ⋯ / ô chọn.
-  const viTri = useViTriNoi({ x: yc.x + 24, y: yc.y + 6 }, true, { rong: 420, canPhai: true, caoToiDa: typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.8) : 640 });
+  const viTri = useViTriNoi({ x: yc.x + 24, y: yc.y + 6 }, true, { rong: 420, caoToiDa: typeof window !== 'undefined' ? Math.round(window.innerHeight * 0.8) : 640 });
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 70 }} />

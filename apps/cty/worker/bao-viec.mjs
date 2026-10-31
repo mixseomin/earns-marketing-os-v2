@@ -4,12 +4,14 @@
 //   node worker/bao-viec.mjs --tep /tmp/tin.html           gửi nội dung tệp
 //   node worker/bao-viec.mjs --phong social-traffic --ten "📂 Social Traffic" …   chủ đề khác (slug + tên phòng như nhip-chinh.json)
 //   node worker/bao-viec.mjs --in …                        chỉ in, không gửi
+//   Mặc định nối bảng traffic + click theo máy (so-traffic.mjs, anh 31/10/2026); --khong-so để bỏ.
 import fs from 'node:fs';
 
 const a = process.argv.slice(2), lay = (k) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
 const phong = lay('--phong') ?? 'social-traffic', ten = lay('--ten') ?? '📂 Social Traffic';
 let tin = lay('--tin') ?? (lay('--tep') ? fs.readFileSync(lay('--tep'), 'utf8') : '');
 if (!tin.trim()) { console.error('cần --tin "<html>" hoặc --tep <tệp>'); process.exit(1); }
+if (!a.includes('--khong-so')) { const b = await (await import('./so-traffic.mjs')).bangTraffic(); if (b) tin = `${tin.trimEnd()}\n\n${b}`; }
 if (tin.length > 4000) tin = tin.slice(0, 3990) + '…';
 if (a.includes('--in')) { console.log(tin); process.exit(0); }
 const { tgNoiDung } = await import('./kiem-bai.mjs'), { topicPhong } = await import('./tg-phong.mjs');

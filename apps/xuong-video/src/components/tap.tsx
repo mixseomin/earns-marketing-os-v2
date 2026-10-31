@@ -79,11 +79,19 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   // Dấu vân của danh sách cảnh: đổi (sinh xong keyframe/video, duyệt, thêm/bớt cảnh) → báo phim tải lại để chip thống kê
   // đầu phim chạy theo thời gian thực (card #1191). So dấu chứ không báo mỗi lần hỏi, để không tải phim vô ích mỗi 4 giây.
   const dauCanh = useRef('');
+  // NHẸ (anh 31/10/2026 "Storyboard nặng quá"): hỏi định kỳ mà danh sách shot KHÔNG đổi → giữ nguyên mảng cũ (không vẽ lại timeline) và không
+  // tính lại giá; giá âm thanh chỉ hỏi lại khi shot đổi hoặc nhạc đang sinh. Trước đây 8s/lần: thay mảng mới + uocTien + uocAm (gọi dsCanh lần
+  // hai + đọc danh mục giọng) — server action Next chạy NỐI ĐUÔI, nên mỗi cú bấm phải xếp hàng sau đống hỏi đó.
+  const jsonCanh = useRef('');
+  const dangNhacRef = useRef(0);
   const taiCanh = useCallback(async () => {
     const ds = await dsCanh(tap.id);
-    setCanh(ds); setUoc(await uocTien(tap.id));
+    const j = JSON.stringify(ds);
+    const doi = j !== jsonCanh.current;
+    if (doi) { jsonCanh.current = j; setCanh(ds); setUoc(await uocTien(tap.id)); }
     // Giá âm thanh nạp riêng (lần đầu phải đọc danh mục giọng fal, chậm) — không bắt danh sách cảnh hay dòng nút âm thanh chờ nó.
-    void uocAm(tap.id).then((u) => { setUocA(u); setLoiUoc(''); }).catch((e) => setLoiUoc(`Không tính được giá âm thanh: ${e instanceof Error ? e.message : String(e)}`));
+    if (doi || dangNhacRef.current > 0) void uocAm(tap.id).then((u) => { setUocA(u); setLoiUoc(''); }).catch((e) => setLoiUoc(`Không tính được giá âm thanh: ${e instanceof Error ? e.message : String(e)}`));
+    if (!doi) return;
     const dau = ds.map((c) => `${c.id}:${c.trang_thai}:${c.keyframe_uv.length}:${c.video_url ? 1 : 0}:${c.video_cuoi_url ? 1 : 0}:${c.thoi_luong_s}:${c.chi_phi_cents}`).join('|');
     if (dauCanh.current && dau !== dauCanh.current) void onChanged();
     dauCanh.current = dau;
@@ -98,6 +106,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const dangSinhAnh = (canh ?? []).some((c) => c.dang_sinh_anh || c.dang_sinh_am) || (uocA?.dangNhac ?? 0) > 0;
   // Nhạc sinh xong không đổi danh sách cảnh → phải tự báo phim tải lại thì khối nhạc mới hiện file (không bắt F5).
   const dangNhacTruoc = useRef(0);
+  useEffect(() => { dangNhacRef.current = uocA?.dangNhac ?? 0; }, [uocA?.dangNhac]);
   useEffect(() => { const n = uocA?.dangNhac ?? 0; if (dangNhacTruoc.current > 0 && n < dangNhacTruoc.current) void onChanged(); dangNhacTruoc.current = n; }, [uocA?.dangNhac]); // eslint-disable-line react-hooks/exhaustive-deps
   // Thời gian thực: có việc ảnh đang chạy → hỏi lại 4s/lần; không có → 15s/lần (bấm ở tab khác / Worker xong muộn vẫn tự hiện). Tab ẩn thì thôi.
   // Nhàn rỗi vẫn hỏi 8s/lần: job do script trên box hay cửa sổ khác bắt đầu phải hiện ⏳ trên trang mà không cần F5 (anh 09/10/2026).

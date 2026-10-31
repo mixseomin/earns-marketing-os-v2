@@ -4,7 +4,7 @@
 // là hai cách nhìn khác của cùng bảng này, không có dữ liệu riêng.
 import { MayDungPanel } from './may-dung-ui';
 import { TuDong } from './may-ui';
-import { Suspense, useCallback, useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useModalParam } from '@/lib/use-modal-param';
 import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
@@ -206,7 +206,9 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
   const modal = useModalParam(khoaUrl.m);
   /** Mở phim KHÁC từ trong ngăn này → lớp chồng (không thay phim đang xem). */
   const chong = useModalParam(KHOA_CHONG.m);
-  const tai = useCallback(async () => setD(await docPhim(id)), [id]);
+  // Hỏi lại định kỳ mà phim KHÔNG đổi → giữ nguyên đối tượng cũ: React bỏ qua lượt vẽ, cây + storyboard bên dưới không dựng lại (31/10/2026).
+  const jsonPhim = useRef('');
+  const tai = useCallback(async () => { const m = await docPhim(id); const j = JSON.stringify(m); if (j === jsonPhim.current) return; jsonPhim.current = j; setD(m); }, [id]);
   useEffect(() => { void tai(); }, [tai]);
   // KHÔNG CÒN TAB (anh 31/10/2026): mọi phần là một nút trên CÂY PHIM (cay-phim.tsx), nút đang xem trong URL (?nut=), tập trong ?tap=.
   // Link cũ ?tab=… (so_do / kich_ban / ho_so / storyboard / am_thanh / xuat) → mở đúng nút tương ứng rồi xoá tham số cũ.
@@ -341,9 +343,10 @@ function HoanTac({ phimId, onDone }: { phimId: number; onDone: () => Promise<voi
   const [m, setM] = useState<MucHoanTac | null>(null);
   const [dang, setDang] = useState(false);
   const [loi, setLoi] = useState('');
-  const nap = useCallback(async () => { const r = await docHoanTac(phimId); if (r.ok) setM(r.data); }, [phimId]);
+  const jsonM = useRef('');
+  const nap = useCallback(async () => { const r = await docHoanTac(phimId); if (!r.ok) return; const j = JSON.stringify(r.data); if (j !== jsonM.current) { jsonM.current = j; setM(r.data); } }, [phimId]);
   useEffect(() => { void nap(); }, [nap]);
-  useDinhKy(nap, 4000);
+  useDinhKy(nap, 12_000);   // 12s (trước 4s): server action chạy nối đuôi — hỏi dày làm mọi cú bấm phải xếp hàng; sau mỗi thao tác của anh thì onDone/nap gọi ngay
   const lam = async () => { setDang(true); setLoi(''); const r = await hoanTac(phimId); setDang(false); if (!r.ok) { setLoi(r.loi); return; } await onDone(); await nap(); };
   return (
     <>

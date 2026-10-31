@@ -76,7 +76,7 @@ const BAC_NS = [1, 2, 3, 5, 7, 10, 15, 20, 30];
 // tăng trong ngày ROI hôm nay ≥ +50% · chi ≥ 30% ngân sách · hôm qua ≥ 0% (hoặc chi hôm qua < max($2, 50% ngân sách) — luật B1 26/10, sàn $2 28/10) | giảm trong ngày (ngân sách > $1) ROI ≤ −5% · chi ≥ 30% · hôm qua < +50% | tắt: tiêu > $10 · ROI < −50% · ≥ 7 ngày (ROI/tiêu lấy 30 ngày)
 // dấu mờ ⇡ gần tăng · ⇣ gần giảm · ✕ mờ gần tắt; máy luật đã đánh dấu thật (etp.bao) thì không hiện dấu gần cùng loại
 // một chỗ cho ô Bậc + bộ lọc "Gần tăng / Gần giảm / Gần tắt": dấu GẦN (ganLuat) + dấu máy luật đã đánh (etp.bao) cùng hướng
-const BAO_HUONG: Record<string, 'tang' | 'giam' | 'tat'> = { tang: 'tang', dau_phien: 'tang', tang30: 'tang', ha: 'giam', tat: 'tat' };   // ↘ 'giam' = ROI TỤT theo xu hướng 3 ngày (cảnh báo), KHÔNG phải luật giảm bậc — không vào lọc Gần giảm
+const BAO_HUONG: Record<string, 'tang' | 'giam' | 'tat'> = { tang: 'tang', dau_phien: 'tang', tang30: 'tang', ha: 'giam', g10: 'giam', tat: 'tat', tat_g10: 'tat' };   // ↘ 'giam' = ROI TỤT theo xu hướng 3 ngày (cảnh báo), KHÔNG phải luật giảm bậc — không vào lọc Gần giảm
 function ganCamp(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao'>, bao?: { nhom: string }[]) {
   const r = roiOf(c.nay), du = c.nay.chi >= Math.max(0.3 * c.ngan_sach, 0.3), rq = roiOf(c.qua), da = new Set((bao ?? []).map((b) => b.nhom));
   const gan = ganLuat(c, r, du, rq, da), huong = new Set([...[...da].map((k) => BAO_HUONG[k]), ...gan.map((g) => (g[0] === '⇡' ? 'tang' : g[0] === '⇣' ? 'giam' : 'tat'))]);
@@ -643,7 +643,8 @@ function TabTaiNguyen({ du, khCamp }: { du: DuLieuEtp; kh: Kh; khCamp: Map<numbe
 // điều kiện + ngưỡng đọc THẲNG từ lượt xét của máy luật (etp.xet_luat — không chép tay), số thật từ apps/etp/so-luat.py (nhật ký máy + số ngày Ethopex, mỗi giờ)
 const NHOM_LUAT: [string, string, string[]][] = [
   ['tang', 'Tăng chi — tăng bậc, nhân bản', ['tang', 'tang_ngay', 'dau_phien', 't30', 'nb', 'thang_nb']],
-  ['tat', 'Tắt camp', ['g10', 'l3', 'l4', 't2', 'off', 'l7', 't7', 'd24', 'rl']],   // g10 = hạ về $10 rồi tắt (hướng dẫn team 31/10/2026)   // rl = camp ★ ROAS lỗ 2 ngày, máy tự tắt (30/10/2026)   // giảm bậc đã bỏ (anh 29/10/2026) — camp lỗ liền đi L3
+  ['giam', 'Giảm chi — hạ bậc', ['g10']],   // G10 = hạ thẳng về $10, 2 ngày sau vẫn kém thì tắt (hướng dẫn team, anh 31/10/2026: "G10 là dạng Giảm bậc")
+  ['tat', 'Tắt camp', ['l3', 'l4', 't2', 'off', 'l7', 't7', 'd24', 'rl']],   // rl = camp ★ ROAS lỗ 2 ngày, máy tự tắt (30/10/2026)   // giảm bậc đã bỏ (anh 29/10/2026) — camp lỗ liền đi L3
 ];
 function BanLuat({ du }: { du: DuLieuEtp }) {
   const theo = new Map(du.soLuat.map((l) => [l.ma, l])); const luc = du.soLuat.reduce<string | null>((m, l) => (!m || l.luc > m ? l.luc : m), null);
@@ -2191,7 +2192,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (c) => <span style={{ fontSize: 12 }}>{tl(c.the_loai)}</span>, sortValue: (c) => c.the_loai ?? '' },
     ...(du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true ? [{key: 'lich', header: 'Lịch giờ', align: 'left', title: 'lịch bật / tắt theo thể loại: 07h · 08h–12h · 13h–19h · 20h–06h (xanh BẬT, xám TẮT, viền = khung đang chạy) — sửa ở Camp › Lịch giờ', cell: (c) => <LichCamp c={c} du={du} tl={tl} />, sortValue: (c) => (c.lich_tat ? 1 : 0) }] as DataColumn<CampEtpKho>[] : []),
     { key: 'ns', header: 'Bậc ngân sách', align: 'left', loc: 'so', title: 'ngân sách $/ngày của camp · thước ROI hôm nay (đỏ giảm, xám giữ, xanh tăng) · dấu máy luật', cell: (c) => <BacCamp c={c} bao={baoCampBang.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach, total: (rs) => `$${rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0)}` },
-    { key: 'luat', header: 'Luật', align: 'left', width: 84, title: 'luật máy đang xếp làm ở nhịp này (thẻ đậm: chưa chạy / chờ anh duyệt / báo trước) và luật sắp chạm (thẻ viền nét đứt) — rê vào thẻ xem số', cell: (c) => (du.nguoi.ngoai ? '—' : <ChipLuat c={c} bao={baoCampBang.get(c.camp_id)} {...soThang(du)} ba={ba3(du, c)} xet={du.xetLuat?.[c.camp_id]} />), sortValue: (c) => (baoCampBang.get(c.camp_id) ?? []).reduce((a, b) => a + (LUAT_NHAN[b.nhom]?.[3] === 'dang' ? 10 : LUAT_NHAN[b.nhom] ? 1 : 0), 0) },
+    { key: 'luat', header: 'Luật', align: 'left', width: 84, title: 'luật máy đang xếp làm ở nhịp này (thẻ đậm: chưa chạy / chờ anh duyệt / báo trước) và luật sắp chạm (thẻ viền nét đứt) — rê vào thẻ xem số', cell: (c) => <ChipLuat c={c} bao={baoCampBang.get(c.camp_id)} {...soThang(du)} ba={ba3(du, c)} xet={du.xetLuat?.[c.camp_id]} deXuat={du.nguoi.ngoai} />, sortValue: (c) => (baoCampBang.get(c.camp_id) ?? []).reduce((a, b) => a + (LUAT_NHAN[b.nhom]?.[3] === 'dang' ? 10 : LUAT_NHAN[b.nhom] ? 1 : 0), 0) },
     ...soCot<CampEtpKho>('nay', (c) => c.nay), ...soCot<CampEtpKho>('qua', (c) => c.qua), ...(khNay ? [] : soCot<CampEtpKho>('kh', (c) => ckh(c.camp_id))),
     { key: 'tuoi', header: 'Tuổi (ngày)', title: 'tuổi camp tính bằng NGÀY từ lúc tạo (0.3 ≈ 7 giờ) — lọc 🔍 theo ngày: > 2 = camp hơn 2 ngày', cellTitle: (c) => (c.tao ? `${Math.floor((tuoiNgay(c.tao) ?? 0) * 24)} giờ` : undefined), cell: (c) => tuoiChu(tuoiNgay(c.tao)), sortValue: (c) => tuoiLoc(tuoiNgay(c.tao)) },
     { key: 'tao', header: 'Tạo', cell: (c) => <span style={{ fontSize: 11 }}>{vn(c.tao)}</span>, sortValue: (c) => c.tao ?? '' },

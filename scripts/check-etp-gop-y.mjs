@@ -257,6 +257,11 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'G10_NS, G10_DICH, G10_ROI, G10_THEO = 15, 10, 15, 2', vi: 'G10: ngân sách > $15, về $10, ROI < 15%, theo dõi 2 ngày' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '        if ns <= G10_NS: continue', vi: 'G10 lọc ngân sách > $15 đúng bộ lọc team' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L_g10(cid, ns)); ra[int(cid)] = ls; continue', vi: 'thẻ G10 có cả ở camp ★ ROAS' },
+  { card: 0, tep: V, co: "['giam', 'Giảm chi — hạ bậc', ['g10']]", vi: 'bản luật có nhóm Giảm chứa G10' },
+  // anh 31/10/2026 "Bên tk của Sơn ko thấy danh sách Luật & cảnh báo à?": người trong team đọc đề xuất máy luật (de_xuat_bac) + bản luật chung
+  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'select d.luat nhom, d.camp_id, d.chu, d.lan_cuoi::text luc from etp.de_xuat_bac d', vi: 'luật & cảnh báo của người team đọc de_xuat_bac' },
+  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'run<{ ma: string; luc: string; so: Omit<SoLuat', vi: 'bản luật hiện cho mọi tài khoản' },
+  { card: 0, tep: V, cam: "du.nguoi.ngoai ? '—' : <ChipLuat", vi: 'cột Luật không để trống ở tk team' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', mot: "khoa: 'tat_g10', tep: 'ethopex-tat-g10.json'", vi: 'G10 bước tắt đi đường báo trước một nhịp' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "chay(LAM, ['giam', String(m.id), String(d), '--luat', `G10 · ${m.chu}`", vi: 'G10 máy tự hạ về $10' },
   { card: 0, tep: 'apps/etp/so-luat.py', co: '("tat", r"^RL ", "rl")', vi: 'số luật RL đếm từ nhật ký' },

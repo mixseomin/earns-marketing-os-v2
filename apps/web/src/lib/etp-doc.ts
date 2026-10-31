@@ -256,7 +256,8 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const [pheuR, dcR, slR, tvR, tvCr, ttR] = await Promise.all([
     runNha<{ c: number; d: string; h: number; n: number; v: number; sh: number; sn: number; sv: number; sg: string }>(sql`select camp_id c, ngay::text d, hien h, nhap n, chuyen v, s_hien sh, s_nhap sn, s_chuyen sv, s_gt sg from etp.so_pheu where hien > 0 or s_hien > 0 or nhap > 0`).catch(() => []),
     runNha<{ creative_id: number; cham: DiemCham }>(sql`select creative_id, cham from etp.diem_cham`).catch(() => []),
-    runNha<{ ma: string; luc: string; so: Omit<SoLuat, 'ma' | 'luc'> }>(sql`select ma, luc::text luc, so from etp.so_luat`).catch(() => []),
+    // bản luật dùng chung mọi tài khoản (máy luật chạy cùng luật, cùng ngưỡng cho team — de-xuat-ngoai.py); số kết quả là của máy nhà (anh 31/10/2026: tk Sơn không thấy Luật & cảnh báo)
+    run<{ ma: string; luc: string; so: Omit<SoLuat, 'ma' | 'luc'> }>(sql`select ma, luc::text luc, so from etp.so_luat`).catch(() => []),
     run<Record<string, unknown>>(sql`select v.id, v.content_id, v.creative_id, v.dang, v.lang, coalesce(p.ten, v.ten) phim, p.the_loai, v.video, v.anh, v.giay, v.nguon, v.trang_thai, v.ghi, v.tao::text tao
       from etp.thu_vien v left join etp.phim p using (content_id) where v.trang_thai not in ('loai', 'loi_may')`).catch(() => [] as Record<string, unknown>[]),
     run<Record<string, unknown>>(sql`with s as (select etp.creative_cua(c.creative_id, c.ten) cr, count(*) camp, count(*) filter (where c.trang_thai = 'ACTIVE') chay, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu
@@ -305,7 +306,13 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     run<Record<string, unknown>>(sql`select may, count(*) filter (where trang_thai = 'xong') xong, count(*) filter (where trang_thai = 'loi') loi, count(*) filter (where trang_thai = 'dang') dang,
         max(coalesce(xong, bat_dau))::text cuoi, avg(extract(epoch from xong - bat_dau)) filter (where trang_thai = 'xong') giay_tb from etp.viec where may is not null group by may order by may`),
     run<Record<string, unknown>>(sql`select count(*) filter (where trang_thai = 'cho') cho, count(*) filter (where trang_thai = 'dang') dang, count(*) filter (where trang_thai = 'xong') xong, count(*) filter (where trang_thai = 'loi') loi from etp.viec`),
-    runNha<DuLieuEtp['bao'][number]>(sql`select nhom, camp_id, chu, luc::text luc from etp.bao order by nhom, camp_id`).catch(() => [] as DuLieuEtp['bao']),
+    // LUẬT & CẢNH BÁO của người trong team (anh 31/10/2026 "Bên tk của Sơn ko thấy danh sách Luật & cảnh báo à?"): etp.bao chỉ là nhịp máy nhà; người ngoài
+    // đọc đề xuất máy luật chạy cho họ (de-xuat-ngoai.py → etp.de_xuat_bac, mỗi giờ) — chỉ lượt gần nhất, camp còn chạy. Chỉ đề xuất, không lệnh nào chạy.
+    run<DuLieuEtp['bao'][number]>(ngoai
+      ? sql`select d.luat nhom, d.camp_id, d.chu, d.lan_cuoi::text luc from etp.de_xuat_bac d join etp.camp_ngoai k using (camp_id)
+            where d.nguoi_id = ${dangId} and k.trang_thai = 'ACTIVE' and d.lan_cuoi >= (select max(lan_cuoi) - interval '30 minutes' from etp.de_xuat_bac where nguoi_id = ${dangId})
+            order by d.luat, d.camp_id`
+      : sql`select nhom, camp_id, chu, luc::text luc from etp.bao order by nhom, camp_id`).catch(() => [] as DuLieuEtp['bao']),
     // ứng viên lên ROAS (anh 29/10/2026 "nới điều kiện lên roas là ROI >= 75$"): lãi 30 ngày ≥ $75 là đủ (máy luật moc30, worker tự lên); hiện từ $50 để thấy camp sắp đủ.
     // Chuẩn Support cũ (chi ≥ $100 · ROI ≥ 50% ổn định 2–3 ngày) bỏ. 3 ngày trọn gần nhất chỉ để hiện.
     runNha<Record<string, unknown>>(sql`with t as (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay where ngay >= ${nay}::date - 29 group by 1 having sum(thu) - sum(chi) >= ${ROAS_LAI - 25}),

@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
 import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoang';
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
-import { DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Segmented, StatsStrip, usePaged, type DataColumn } from '@/components/ui';
+import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
+import { ketNoiEthopex, suaCampNgoai } from '@/lib/actions/etp-sua';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 // CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
 const ChiXem = createContext(false);
+/** người xem sửa được camp trong danh sách đang xem (admin etp xem chính tài khoản của mình — anh 31/10/2026 Sơn "được edit camp của Sơn") */
+const SuaCampCtx = createContext<{ het: string | null } | null>(null);   // null = không có quyền sửa · het = phiên Ethopex riêng còn hạn tới (null = chưa kết nối)
 import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhanNang, PhimEtpKho, SoLuat, SoTien, ThayThe, ThuVienMuc, XetLuat } from '@/lib/etp-doc';
 import { taiNangEtp } from '@/lib/actions/etp-nang';
 
@@ -438,7 +441,71 @@ function dauBac(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao
   const d: DauBac = { bac: bac + 1, so: BAC_NS.length, ns: c.ngan_sach, nay: c.nay, qua: c.qua };
   return { d, t, bac, r, du, dau, gan };
 }
-function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao'>; bao?: { nhom: string; chu: string }[]; ls?: DuLieuEtp['lsBac'][number] }) {
+// SỬA CAMP CỦA MÌNH (✎ cạnh ngân sách, chỉ hiện khi SuaCampCtx): đổi ngân sách · bật · tắt → action suaCampNgoai (gác 2 lớp: kho + cổng Ethopex), xong tải lại trang
+// KẾT NỐI ETHOPEX: lệnh sửa đi bằng phiên CỦA CHÍNH NGƯỜI ĐÓ (token Nhà chỉ được xem tài khoản người khác — anh 31/10/2026). Người tự chép access_token
+// từ app.ethopex.dev rồi dán ở đây → ketNoiEthopex (máy chủ kiểm đúng người + còn hạn rồi cất; trang không bao giờ đọc lại chuỗi đó)
+function KetNoiEthopex({ het, xong }: { het: string | null; xong: () => void }) {
+  const [phien, setPhien] = useState(''), [dang, setDang] = useState(false), [kq, setKq] = useState<{ ok: boolean; chu: string } | null>(null);
+  const gui = async () => {
+    setDang(true); setKq(null);
+    const r = await ketNoiEthopex(phien);
+    setDang(false); setPhien('');
+    if ('loi' in r) { setKq({ ok: false, chu: r.loi }); return; }
+    setKq({ ok: true, chu: `đã kết nối · thấy ${r.soCamp} camp · hạn tới ${new Date(r.het).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}` }); xong();
+  };
+  return <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxWidth: 300 }}>
+    <div style={{ color: 'var(--fg-2)', lineHeight: 1.45 }}>{het ? `Phiên Ethopex của bạn còn hạn tới ${new Date(het).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}. Dán phiên mới để đổi:`
+      : 'Kết nối Ethopex của bạn để sửa camp (một lần, hạn 30 ngày):'}</div>
+    <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--fg-2)', lineHeight: 1.45 }}>
+      <li>Mở app.ethopex.dev, đăng nhập tài khoản của bạn</li>
+      <li>Bấm F12 → tab Console, gõ <code>copy(localStorage.access_token)</code> rồi Enter</li>
+      <li>Dán vào ô dưới</li>
+    </ol>
+    <div style={{ display: 'flex', gap: 6 }}>
+      <input type="password" autoComplete="off" value={phien} onChange={(e) => setPhien(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !dang && phien) gui(); }} placeholder="phiên Ethopex"
+        style={{ flex: 1, minWidth: 0, fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit' }} />
+      <button disabled={dang || !phien} onClick={gui} style={{ fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--accent, #60a5fa)', background: 'transparent', color: 'inherit', cursor: dang ? 'wait' : 'pointer' }}>Kết nối</button>
+    </div>
+    {dang ? <span style={{ color: 'var(--fg-2)' }}>đang kiểm phiên…</span> : kq ? <span style={{ color: kq.ok ? '#4ade80' : '#f87171' }}>{kq.ok ? '✓ ' : '✕ '}{kq.chu}</span> : null}
+  </div>;
+}
+function SuaCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ngan_sach' | 'trang_thai'> }) {
+  const router = useRouter();
+  const het = useContext(SuaCampCtx)?.het ?? null, [doiPhien, setDoiPhien] = useState(false);
+  const neo = useRef<HTMLButtonElement>(null);
+  const [mo, setMo] = useState(false), [ns, setNs] = useState(String(c.ngan_sach)), [dang, setDang] = useState(false), [kq, setKq] = useState<{ ok: boolean; chu: string } | null>(null);
+  const lam = async (viec: 'ns' | 'bat' | 'tat') => {
+    setDang(true); setKq(null);
+    const r = await suaCampNgoai(c.camp_id, viec, viec === 'ns' ? Number(ns) : undefined);
+    setDang(false);
+    if ('loi' in r) { setKq({ ok: false, chu: r.loi }); return; }
+    setKq({ ok: true, chu: viec === 'ns' ? `$${r.truoc.ns ?? '?'} → $${r.sau.ns ?? '?'}` : `${r.truoc.tt ?? '?'} → ${r.sau.tt ?? '?'}` });
+    router.refresh();
+  };
+  const nut: React.CSSProperties = { fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: dang ? 'wait' : 'pointer' };
+  return <>
+    <button ref={neo} onClick={(e) => { e.stopPropagation(); setMo((v) => !v); setNs(String(c.ngan_sach)); setKq(null); }} title="sửa camp: ngân sách · bật · tắt"
+      style={{ border: 'none', background: 'transparent', color: 'var(--fg-3, #777)', cursor: 'pointer', padding: '0 2px', fontSize: 11 }}>✎</button>
+    <AnchoredPopover anchorRef={neo} open={mo} onClose={() => setMo(false)}>
+      <div onClick={(e) => e.stopPropagation()} style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8, minWidth: 220, fontSize: 12 }}>
+        <div style={{ color: 'var(--fg-2)' }}>camp #{c.camp_id} · {c.trang_thai === 'ACTIVE' ? 'đang chạy' : 'đang tắt'}</div>
+        {!het || doiPhien ? <KetNoiEthopex het={het} xong={() => { setDoiPhien(false); router.refresh(); }} /> : <>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span>$</span><input value={ns} onChange={(e) => setNs(e.target.value.replace(/\D/g, ''))} onKeyDown={(e) => { if (e.key === 'Enter' && !dang) lam('ns'); }} inputMode="numeric"
+            style={{ width: 70, fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit' }} />
+          <button disabled={dang || !ns || Number(ns) === c.ngan_sach} onClick={() => lam('ns')} style={{ ...nut, borderColor: 'var(--accent, #60a5fa)' }}>Lưu ngân sách</button>
+        </div>
+        <button disabled={dang} onClick={() => lam(c.trang_thai === 'ACTIVE' ? 'tat' : 'bat')} style={nut}>{c.trang_thai === 'ACTIVE' ? 'Tắt camp' : 'Bật camp'}</button>
+        {dang ? <span style={{ color: 'var(--fg-2)' }}>đang gửi Ethopex…</span> : kq ? <span style={{ color: kq.ok ? '#4ade80' : '#f87171' }}>{kq.ok ? '✓ ' : '✕ '}{kq.chu}</span> : null}
+        <button onClick={() => setDoiPhien(true)} style={{ alignSelf: 'flex-start', border: 'none', background: 'transparent', color: 'var(--fg-3, #777)', fontSize: 11, padding: 0, cursor: 'pointer' }}>
+          phiên Ethopex hạn tới {new Date(het).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })} · đổi</button>
+        </>}
+      </div>
+    </AnchoredPopover>
+  </>;
+}
+function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'camp_id' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao'>; bao?: { nhom: string; chu: string }[]; ls?: DuLieuEtp['lsBac'][number] }) {
+  const sua = useContext(SuaCampCtx) != null && c.camp_id > 0;
   // thẻ nổi theo KHUÔN CHUNG của trang (useNoi + KhungNoi: trễ mở, ✕ + Esc, giữ khi rê vào) — trước dùng AnchoredPopover riêng: mở ngay, không ✕, rời chuột không tắt
   const noi = useNoi<{ id: 0 }>();
   const { d, t, bac } = dauBac(c, bao);
@@ -446,6 +513,7 @@ function BacCamp({ c, bao, ls }: { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qu
     <span aria-label={t} onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', cursor: 'help' }}>
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={400} cao={420} noi={noi}><TheBac ls={ls ?? []} d={d} /></KhungNoi> : null}
       <span style={{ fontVariantNumeric: 'tabular-nums', color: `rgba(196,181,253,${(0.55 + 0.45 * (bac / (BAC_NS.length - 1))).toFixed(2)})`, fontWeight: bac >= 4 ? 700 : 500, width: 30, flex: 'none', textAlign: 'right' }}>${c.ngan_sach}</span>{/* bậc càng cao chữ càng sáng (anh 26/10/2026); màu tím nhẹ, bậc thấp không chìm (anh 29/10/2026, #1482) */}
+      {sua ? <SuaCamp c={c} /> : null}
       {/* bỏ thước ROI + dấu luật sau số $ (anh 29/10/2026 "ẩn cái này đi. Vướng + khó nhìn", rồi "bỏ cái này đi cơ mà?" — là cả cái thước): ROI hôm nay đã có cột 'nay', luật có cột Luật */}
     </span>
   );
@@ -1945,7 +2013,11 @@ function LenBac({ du, hep }: { du: DuLieuEtp; hep: boolean }) {
     </div>
   );
 }
-export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; chiXem?: boolean; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string } }) {
+// QUYỀN (etp.quyen, anh 31/10/2026): vai từ máy chủ (lib/etp-quyen.ts) — dữ liệu đã cắt trên máy chủ, đây chỉ bỏ tab / kiểu xem không còn dữ liệu.
+// sua = nguoi_id mà người xem sửa được camp (admin etp, vd Sơn #115); null = không sửa
+type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null };
+const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
+export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLieuEtp; chiXem?: boolean; quyen?: QuyenXem; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string } }) {
   const router = useRouter();
   // TẢI THEO TAB (anh 30/10/2026 "làm tối ưu triệt để đi"): máy chủ gửi bản nhẹ; Creative › Quét / Điểm chạm và Thư viện cần phần nặng → tải bù rồi ghép
   const [nang, setNang] = useState<PhanNang | null>(null);
@@ -1956,7 +2028,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
   const tranT = tranTrung(du);
   const [nganCamp, setNganCamp] = useState<number | null>(Number(/^camp:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1]) || null);
   const [nganPhim, setNganPhim] = useState<string | null>(/^phim:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1] ?? null);   // ngăn biểu đồ cả phim (điện thoại)
-  const [tab, setTab] = useState<Tab>(TABS.includes(dauVao?.t as Tab) ? (dauVao!.t as Tab) : 'tong');
+  const laNguoi = quyen?.vai === 'nguoi', tabsHien = laNguoi ? TAB_NGUOI : TABS;
+  const [tab, setTab] = useState<Tab>(tabsHien.includes(dauVao?.t as Tab) ? (dauVao!.t as Tab) : 'tong');
   // ?lu= luật · ?d= loại creative — bộ lọc giữ qua F5 (anh 27/10/2026 "bộ lọc cũng phải lưu theo F5")
   const [luatLoc, setLuatLoc] = useState(dauVao?.lu ?? '');
   const [dangLoc, setDangLoc] = useState(dauVao?.d ?? '');
@@ -2007,8 +2080,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
   const doi = (x: Partial<typeof hienTai>, lam: () => void) => { urlTu({ ...hienTai, ...x }); startTransition(lam); };
   // BẤM TAB CHÍNH = VÀO KIỂU XEM ĐẦU TIÊN (anh 28/10/2026 "nếu bấm ngay vẫn vào cái đầu tiên như bình thường"); rê chuột = menu con chọn thẳng kiểu xem
   const doiTab = (t: Tab) => doi({ tab: t, ...(t === 'camp' ? { xemCamp: 'cay' } : t === 'creative' ? { xemCr: 'hq' } : {}) }, () => { setTab(t); if (t === 'camp') setXemCamp('cay'); if (t === 'creative') setXemCr('hq'); });
-  const XEM_CAMP = [['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN'], ['bac', '📶 Lên bậc', 'mọi mốc tạo / nhân bản / tăng / giảm 30 ngày + ROI trước và sau mốc, máy đề xuất trước bao lâu']] as const;
-  const XEM_CR = [['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm'], ['dc', 'Điểm chạm', 'hook · nội dung · voice · chữ · CTA — giá trị nào kéo CTR / S CVR / ROI']] as const;
+  const XEM_CAMP = ([['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN'], ['bac', '📶 Lên bậc', 'mọi mốc tạo / nhân bản / tăng / giảm 30 ngày + ROI trước và sau mốc, máy đề xuất trước bao lâu']] as const).filter(([v]) => !laNguoi || v !== 'lich');   // Lịch giờ = lịch nhà
+  const XEM_CR = ([['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm'], ['dc', 'Điểm chạm', 'hook · nội dung · voice · chữ · CTA — giá trị nào kéo CTR / S CVR / ROI']] as const).filter(([v]) => !laNguoi || v === 'hq');   // quét / sx / điểm chạm = dữ liệu nhà
   const menuCamp = XEM_CAMP.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'camp' && xemCamp === v, href: () => urlCua({ ...hienTai, tab: 'camp', xemCamp: v }).href, onPick: () => doi({ tab: 'camp', xemCamp: v }, () => { setTab('camp'); setXemCamp(v); }) }));
   const menuCr = XEM_CR.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'creative' && xemCr === v, href: () => urlCua({ ...hienTai, tab: 'creative', xemCr: v }).href, onPick: () => doi({ tab: 'creative', xemCr: v }, () => { setTab('creative'); setXemCr(v); }) }));
   const doiXemCamp = (v: XemCamp) => doi({ xemCamp: v }, () => setXemCamp(v));
@@ -2148,6 +2221,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
     <ChiXem.Provider value={chiXem}>
+    <SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
     <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > h.offsetTop + h.offsetHeight; if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
     {/* TRÀN HẾT BỀ NGANG MÀN (anh 29/10/2026 "tại sao màn hình ko tràn hết sang 2 bên"): trước khoá maxWidth 1600 căn giữa — màn 1930px thừa hai lề trống, bảng Cây bị cắt cột phải */}
@@ -2193,9 +2267,9 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
           Máy tính: hàng 1 = tab (mỗi nhãn một dòng) · kỳ dạt phải; hàng 2 = kiểu xem + bộ lọc của tab đó (tách bằng etp-xuong). Điện thoại giữ như cũ. */}
       <div className={gon ? 'etp-dk' : 'etp-thanh'} style={{ display: 'flex', gap: gon ? 6 : 8, alignItems: 'center', flexWrap: !gon ? 'wrap' : thap && !moLoc ? 'nowrap' : 'wrap', overflowX: gon && thap && !moLoc ? 'auto' : undefined, scrollbarWidth: 'none', margin: '8px 0', position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0', rowGap: 8 }}>
         {!gon ? <style>{'.etp-thanh [data-comp="ui.Segmented"] button,.etp-thanh [data-comp="ui.Segmented"] a{white-space:nowrap}.etp-thanh>*{flex-shrink:0}'}</style> : null}
-        <Segmented<Tab> value={tab} onChange={doiTab} hrefFor={(t) => urlCua({ ...hienTai, tab: t, xemCamp: 'cay', xemCr: 'hq' }).href} options={[
+        <Segmented<Tab> value={tab} onChange={doiTab} hrefFor={(t) => urlCua({ ...hienTai, tab: t, xemCamp: 'cay', xemCr: 'hq' }).href} options={([
           { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
-          { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }]} />
+          { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }] satisfies SegmentedOption<Tab>[]).filter((o) => tabsHien.includes(o.value))} />
         {/* ĐIỆN THOẠI: hàng 1 = tab (cuộn ngang) · hàng 2 = kiểu xem (biểu tượng) + kỳ (ô chọn) + nút Lọc; bảng lọc chỉ mở khi bấm Lọc */}
         {tab !== 'luat' && tab !== 'tn' ? (gon
           ? <ChonKhoang tu={khK.tu} den={khK.den} ma={kh.includes('~') ? null : kh} homNay={du.nay} mocThem={[{ ma: 'tat_ca', nhan: 'All time' }]} title="kỳ số liệu (ngày Ethopex 07:00–07:00 VN)" onDoi={(v) => setKh('ma' in v ? v.ma : `${v.tu}~${v.den}`)} />
@@ -2355,6 +2429,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false }: { du: DuLieuEtp; 
         </KhungNoi>; })() : null}
     </div>
     </div>
+    </SuaCampCtx.Provider>
     </ChiXem.Provider>
   );
 }

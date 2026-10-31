@@ -31,11 +31,36 @@ if not TK: raise RuntimeError("không đọc được tài khoản nhà (ethopex
 # ETP_XEM_NGUOI=<nguoi_id> → "nhà" tạm là các tài khoản của người đó (etp.tai_khoan, trừ tài khoản nhà) để máy luật chấm camp của họ;
 # MỌI lệnh ghi bị chặn ngay đầu api() — chế độ này chỉ đọc, kể cả khi người gọi lỡ gửi lệnh.
 XEM = int(os.environ.get("ETP_XEM_NGUOI") or 0)
-if XEM:
-    TK = {int(x) for x in _q(f"select ad_account_id from etp.tai_khoan where nguoi_id = {XEM} and not nha").split() if x.isdigit()}
+# CHẾ ĐỘ SỬA CỦA NGƯỜI (anh 31/10/2026: Sơn "được edit camp của Sơn" trên etp.on.tc — apps/etp/sua-ngoai.py): ETP_SUA_NGUOI=<nguoi_id> → "nhà" tạm là tài khoản
+# của người đó; lệnh ghi ĐƯỢC gửi nhưng cùng một cái gác như nhà: camp đụng tới phải nằm trong tài khoản người đó (camp nhà / người khác bị NgoaiNha)
+SUA = int(os.environ.get("ETP_SUA_NGUOI") or 0)
+if XEM and SUA: raise RuntimeError("ETP_XEM_NGUOI và ETP_SUA_NGUOI không đi cùng nhau")
+if XEM or SUA:
+    TK = {int(x) for x in _q(f"select ad_account_id from etp.tai_khoan where nguoi_id = {XEM or SUA} and not nha").split() if x.isdigit()}
     EXT = set()   # report lọc theo camp_id của người đó (kho không giữ id tài khoản Meta của người khác)
+    if not TK: raise RuntimeError(f"người #{XEM or SUA} không có tài khoản QC ngoài nhà — dừng")
+
+def jwt_tai(tok):
+    """phần thân JWT phiên Ethopex ({user_id, exp…}) — None khi không phải JWT"""
+    import base64
+    p = (tok or "").split(".")
+    if len(p) != 3: return None
+    try: return json.loads(base64.urlsafe_b64decode(p[1] + "=" * (-len(p[1]) % 4)))
+    except Exception: return None
+
+def khoa_nguoi(ng):
+    """PHIÊN ETHOPEX RIÊNG của một người (anh 31/10/2026: "Sơn ko thể sửa camp thông qua api của tao" — token htuan82 chỉ được XEM tài khoản người khác).
+    Người tự dán trên etp.on.tc (sua-ngoai.py ket) → xv_khoa_ngoai['ethopex_nguoi'][<nguoi_id>]. None khi chưa kết nối / đã hết hạn."""
+    import time
+    tok = _q(f"select gia_tri->'{int(ng)}'->>'access_token' from xv_khoa_ngoai where ten = 'ethopex_nguoi'")
+    t = jwt_tai(tok)
+    return tok if t and int(t.get("exp") or 0) > time.time() + 60 else None
+
+T_NHA = T
+if SUA: T = khoa_nguoi(SUA)   # chế độ sửa: MỌI lệnh đi bằng phiên của chính người đó — Ethopex ghi nhật ký đúng người, quyền đúng người
 
 def _goi(duong, body=None, timeout=90):
+    if not T: raise NgoaiNha(f"người #{SUA} chưa kết nối Ethopex (hoặc phiên đã hết hạn) — dán phiên Ethopex của mình trên etp.on.tc")
     r = urllib.request.Request("https://api.ethopex.dev" + duong, data=json.dumps(body).encode() if body is not None else None, method="POST" if body is not None else "GET",
                                headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-ethopex"})
     return json.load(urllib.request.urlopen(r, timeout=timeout))
@@ -109,7 +134,7 @@ def goc_tu_ten(ten):
     return int(m.group(1) or m.group(2)) if m else None
 
 def loc_report(rows):
-    if XEM: return [x for x in rows or [] if int(x.get("campaign_id") or 0) in camp_nha()]
+    if XEM or SUA: return [x for x in rows or [] if int(x.get("campaign_id") or 0) in camp_nha()]
     return [x for x in rows or [] if str(x.get("external_account_id") or "") in EXT or (not x.get("external_account_id") and int(x.get("campaign_id") or 0) in camp_nha())]
 
 def _id_cham(duong, body):

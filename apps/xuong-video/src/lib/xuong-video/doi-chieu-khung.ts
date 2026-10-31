@@ -1,4 +1,4 @@
-import { phat } from './kieu';
+import { phat, CO_RONG } from './kieu';
 // ⚖️ ĐỐI CHIẾU bóc tách ↔ dự kiến (anh 30/10/2026: "phần bóc từ ảnh phải có 1 cột so sánh với thành phần dự kiến tại thời điểm đó và so sánh mức
 // độ khớp, liên quan. Những chi tiết quan trọng phải so sánh cụ thể rõ ràng"). duKienKhung dựng spec dự kiến của shot từ dữ liệu (ai có mặt, áo,
 // tóc, biểu cảm, đạo cụ, khung, bối cảnh); doiChieuKhung nhờ Gemini so TỪNG thành phần quan trọng → mức khớp + ghi chú cụ thể. ~0,3¢/khung.
@@ -59,7 +59,8 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
     L.push({ thanh_phan: `Tóc ${v.ten}`, du_kien: mot('toc') || tuToc(v.mo_ta) || '(theo mô tả nhân vật)' });   // tóc: biến thể look-book trước, phim cũ thì rút từ mô tả
     // Thiết kế sản xuất — look-book khác CHỈ chấm khi đã chuẩn bị biến thể (có ảnh mẫu): kính/phụ kiện, trang điểm, trạng thái cơ thể. Chưa chuẩn bị thì không đẻ lá thừa.
     if (gop('do_deo')) L.push({ thanh_phan: `Phụ kiện ${v.ten}`, du_kien: gop('do_deo') });
-    if (mot('trang_diem')) L.push({ thanh_phan: `Trang điểm ${v.ten}`, du_kien: mot('trang_diem') });
+    // trang điểm là chi tiết cỡ mặt: shot toàn (ws/ews) mặt chỉ vài chục điểm ảnh → không chấm, kẻo cổng đòi thứ không thể thấy (#3.1 phim #353 kẹt mãi "thiếu")
+    if (mot('trang_diem') && !CO_RONG.includes(c.ky_thuat?.co_canh ?? '')) L.push({ thanh_phan: `Trang điểm ${v.ten}`, du_kien: mot('trang_diem') });
     if (mot('trang')) L.push({ thanh_phan: `Trạng thái ${v.ten}`, du_kien: mot('trang') });
     L.push({ thanh_phan: `Biểu cảm ${v.ten}`, du_kien: bcTxt });
     const dangTxt = kg ? (dang(kg, phat(c), v.ten, lucKg)?.vi ?? '') : '';

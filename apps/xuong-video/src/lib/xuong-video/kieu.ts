@@ -812,4 +812,6 @@ export function khoaPhat(so: number): number {
 }
 /** số xếp phát của một shot (shot thường: = thu_tu) — dùng để XẾP, tìm shot liền trước / sau, và tra sổ theo số shot */
 export const phat = (c: { thu_tu: number; thu_tu_phat?: number }): number => c.thu_tu_phat ?? c.thu_tu;
+/** Cỡ cảnh RỘNG (toàn / rất rộng): người nhỏ trong khung — chi tiết cỡ mặt (trang điểm) không đọc được, cổng đối chiếu không chấm; dẫn dắt coi là cỡ định vị. */
+export const CO_RONG: readonly string[] = ['ews', 'ws'];
 export const xepPhat = (a: { thu_tu: number; thu_tu_phat?: number }, b: { thu_tu: number; thu_tu_phat?: number }): number => phat(a) - phat(b);

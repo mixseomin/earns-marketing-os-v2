@@ -1,4 +1,4 @@
-import { xepPhat } from './kieu';
+import { xepPhat, CO_RONG } from './kieu';
 // CHẤM DẪN DẮT (anh 18/10/2026: "bộ khuôn này phải chấm được sự dẫn dắt các cảnh, các shot — cách trình bày trong film HBO rất rõ ràng, logic").
 // Khuôn (khuon-chuoi.ts) nói một ĐOẠN làm nhiệm vụ kể gì; dẫn dắt chấm từng ĐIỂM CẮT: cắt có lý do không, vào cảnh mới khán giả có biết đang ở
 // đâu / lúc nào không, cảnh có khép dứt không, nhìn mà có cho thấy thứ được nhìn không, có cắt nhảy hình không — và shot nào không phục vụ
@@ -19,7 +19,6 @@ export type DiemCat = { truoc: number; sau: number; sangCanh: boolean; diem: num
 export type KetDanDat = { diem: number; diemCat: number; diemKhuon: number | null; cat: DiemCat[]; canh: { ten: string; diem: number; tru: KhoanTru[] }[]; ngoaiKhuon: number[]; khuon: KetAp[] };
 
 const DINH_VI = ['thiet_lap', 'thoi_gian', 'tong_the', 'hanh_trinh'];
-const CO_RONG = ['ews', 'ws'];
 const CAU_NOI = ['hoa_tan', 'toi_den', 'cat_khop', 'j_cut', 'l_cut', 'quat_chuyen', 'mo_cheo', 'lien_may'];   // chuyển cảnh tự nối hai cảnh
 const CHAM_CAU = ['phan_ung', 'tam_trang', 'chi_tiet', 'tong_the', 'thoi_gian'];
 const NHIN = /nhìn|dõi|ngước|liếc|ngó|trừng|nhìn theo|\blook|\bstar(e|ing)|\bgaz(e|ing)|\bwatch/i;

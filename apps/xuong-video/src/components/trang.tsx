@@ -29,6 +29,7 @@ import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { SoDoSeries, BanDoTap, khau } from './so-do';
 import { Chon } from './chon';
 import { CayPhim, type NutPhim } from './cay-phim';
+import { XuatHien } from './thanh-phan-ui';
 import { nhomCayAnchor } from '@/lib/xuong-video/cay-anchor';
 import { TemplatePanel, KhoTemplate } from './template-ui';
 import { DanhSachSanPham, NganSanPham } from './kho-creative-ui';
@@ -280,8 +281,11 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
                 {phim.loai === 'may_dung' && <MayDungPanel phim={phim} />}
                 <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
               </>}
+              {k === 'nhan_vat' && nvDau != null && <XuatHien phim={phim} tap={tap} loai="nv" id={nvDau} ten={nhanVat.find((v) => v.id === nvDau)?.ten ?? ''} onMoTap={moTap} onMoBanDo={(so) => setNut(`bd-${so}`)} />}
               {k === 'nhan_vat' && nv(nvDau)}
+              {nvId != null && k === nut && <XuatHien phim={phim} tap={tap} loai="nv" id={nvId} ten={nhanVat.find((v) => v.id === nvId)?.ten ?? ''} onMoTap={moTap} onMoBanDo={(so) => setNut(`bd-${so}`)} />}
               {nvId != null && k === nut && nv(nvId)}
+              {bt && k === nut && <XuatHien phim={phim} tap={tap} loai="bt" id={bt.b.id} ten={bt.b.ten} onMoTap={moTap} onMoBanDo={(so) => setNut(`bd-${so}`)} />}
               {bt && k === nut && <div className="xv-panel"><BienTheChiTiet b={bt.b} nvTen={bt.nv.ten} phimId={phim.id} dangSinh={d.dangSinh.bienThe} loiBt={d.loiAnh.bienThe} onChanged={tai} /></div>}
               {k === 'phan_ra' && <PhanRaPanel phimId={phim.id} bc={bcPr} onChanged={async () => { await tai(); await taiPr(); }} onChon={(n) => setNut(n)} />}
               {k === 'poster' && <>
@@ -291,7 +295,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
               {(k === 'so_do' || k === 'tuyen' || k === 'gai_tra') && <SoDoSeries phim={phim} tap={tap} nhanVat={nhanVat} onChanged={tai} onMoTap={moTap}
                 mat={k === 'so_do' ? 'tap' : k} onMat={(m) => setNut(m === 'tap' ? 'so_do' : m)} />}
               {k.startsWith('bd-') && <BanDoTap phim={phim} so={Number(k.slice(3))} onTao={async (tid) => { await tai(); moTap(tid); }} />}
-              {khauTap && tapDang && <div className="xv-panel"><TapView key={`${tapDang.id}-${khauTap}`} tap={tapDang} phim={phim} nhanVat={nhanVat} khoa={khoa} onChanged={tai} tab={khauTap} /></div>}
+              {khauTap && tapDang && <div className="xv-panel"><TapView key={`${tapDang.id}-${khauTap}`} tap={tapDang} phim={phim} nhanVat={nhanVat} khoa={khoa} onChanged={tai} tab={khauTap} onMoNut={setNut} /></div>}
               {k === 'tap:xuat' && <ChiPhiGanDay jobs={d.ganDay} tong={d.tongTien} phimId={phim.id} />}
               {/* 🔊 Âm thanh (thuộc Thiết kế sản xuất): theo tập — chọn tập ngay đầu khung */}
               {k === 'am_thanh' && <div className="xv-panel">

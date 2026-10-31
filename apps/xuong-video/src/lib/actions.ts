@@ -1477,6 +1477,23 @@ export async function aiSapKhung(phimId: number): Promise<Kq<number>> {
   return { ok: true, data: s.tuyen?.length ?? 0 };
 }
 
+/** 📍 Thành phần (anchor / biến thể look) XUẤT HIỆN Ở TẬP NÀO, SHOT NÀO — đọc thẳng xv_canh.nhan_vat / bien_the (mảng id). 0đ, một truy vấn. */
+export type XuatHienTP = { loai: 'nv' | 'bt'; id: number; tap_id: number; so: number; shot: number[] };
+export async function xuatHienPhim(phimId: number): Promise<XuatHienTP[]> {
+  const db = getDb();
+  if (!db || !(await admin())) return [];
+  const r = (await db.execute(sql`
+    SELECT 'nv' AS loai, x.id::int AS id, t.id AS tap_id, t.so, array_agg(c.thu_tu ORDER BY c.thu_tu) AS shot
+      FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id CROSS JOIN LATERAL jsonb_array_elements_text(coalesce(c.nhan_vat, '[]'::jsonb)) x(id)
+      WHERE t.phim_id = ${phimId} GROUP BY 1, 2, 3, 4
+    UNION ALL
+    SELECT 'bt', x.id::int, t.id, t.so, array_agg(c.thu_tu ORDER BY c.thu_tu)
+      FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id CROSS JOIN LATERAL jsonb_array_elements_text(coalesce(c.bien_the, '[]'::jsonb)) x(id)
+      WHERE t.phim_id = ${phimId} GROUP BY 1, 2, 3, 4
+    ORDER BY 4`)) as unknown as { loai: 'nv' | 'bt'; id: number; tap_id: number; so: number; shot: number[] }[];
+  return r.map((x) => ({ loai: x.loai, id: Number(x.id), tap_id: Number(x.tap_id), so: Number(x.so), shot: (x.shot ?? []).map(Number) }));
+}
+
 export async function goiYAIAnchor(phimId: number, a: { loai: LoaiNhanVat; ten: string; mo_ta: string }): Promise<Kq<{ mo_ta: string; giong: string }>> {
   const db = getDb();
   if (!db) return loi('no db');

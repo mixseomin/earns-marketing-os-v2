@@ -1,7 +1,7 @@
 'use client';
 // CÂY PHIM (anh 31/10/2026: "Phim, Sơ đồ, Kịch bản gom lại thành 1 · show dạng cây · giờ bấm ngu quá"): một tab 📖 Phim = cây TRÁI + chi tiết PHẢI
 // (ui-conventions §8). Cây: Kinh thánh · Thiết kế sản xuất (anchor lồng cha–con, look, 🔊 Âm thanh) · Poster · Tuyến truyện · Gài / trả · Các tập
-// (→ mùa → tập → Kịch bản · Hồ sơ · Storyboard · Xuất). Không còn thanh tab nào — mọi thứ là nút trên cây.
+// (→ mùa → tập → Kịch bản · Thành phần · Hồ sơ · Storyboard · Xuất). Không còn thanh tab nào — mọi thứ là nút trên cây.
 // Tập chưa tạo trên bản đồ hiện mờ (bấm → xem + tạo từ bản đồ). Nút đang chọn nằm trong URL (`nut`), tập trong `tap` — F5 / chia sẻ giữ nguyên.
 import { type ReactNode } from 'react';
 import { useGapUrl } from './nho';
@@ -13,7 +13,7 @@ import { khau } from './so-do';
 import { Den, mono } from './ui';
 
 /** Khoá nút: 'kinh_thanh' · 'nhan_vat' · 'phan_ra' · 'nv-<id>' · 'bt-<id>' · 'am_thanh' · 'poster' · 'so_do' (Các tập: sơ đồ thẻ) · 'tuyen' · 'gai_tra' ·
- *  'tap' (Kịch bản của tập = tham số tap) · 'tap:ho_so' · 'tap:storyboard' · 'tap:xuat' · 'bd-<số>' (tập bản đồ chưa tạo). */
+ *  'tap' (Kịch bản của tập = tham số tap) · 'tap:thanh_phan' · 'tap:ho_so' · 'tap:storyboard' · 'tap:xuat' · 'bd-<số>' (tập bản đồ chưa tạo). */
 export type NutPhim = string;
 type Dong = { key: string; nhan: ReactNode; cap: number; tapId?: number; title?: string; den?: { muc: 'ok' | 'cho' | 'loi'; title: string }; mo?: boolean; nhom?: string; anh?: NhanVat; /** ảnh thumbnail của một BIẾN THỂ look (node con nhân vật) */ anhUrl?: string | null; /** đầu nhánh chỉ để gập (mùa, ngoài bản đồ) — không phải nút xem */ chiNhom?: boolean; chuaTao?: boolean };
 // Look-book (character/costume breakdown ngành phim): các khía cạnh bề ngoài ĐỘC LẬP (ảnh + thông tin riêng) → node CON của nhân vật trong cây. Khớp KHOA_LOOK.
@@ -80,6 +80,7 @@ export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, tha
       title: `${t.ten}${t.tom_tat ? `\n${t.tom_tat}` : ''}\n${k.chu}\n\nBấm để mở tập (vào thẳng khâu đang dở)`, den: k.xong ? { muc: 'ok', title: 'đã xuất' } : undefined });
     if (!moKhau || tapId !== t.id) return;
     out.push({ key: 'tap', cap: cap + 1, nhan: '📝 Kịch bản', title: 'Brief · kịch bản → tách cảnh · kiểm người xem có hiểu không' });
+    out.push({ key: 'tap:thanh_phan', cap: cap + 1, nhan: '🧩 Thành phần', title: 'Mọi nhân vật / bối cảnh / đạo cụ / look có mặt trong tập, kèm shot #N' });
     out.push({ key: 'tap:ho_so', cap: cap + 1, nhan: '📋 Hồ sơ', title: 'Hồ sơ tiền kỳ: kịch bản · phân tích cảnh · bóc tách · shot list · bảng liên tục · color script · âm thanh' });
     out.push({ key: 'tap:storyboard', cap: cap + 1, nhan: '🎞 Storyboard', title: `Keyframe → duyệt → video, timeline — ${t.so_canh} shot` });
     out.push({ key: 'tap:xuat', cap: cap + 1, nhan: '⬇ Xuất', title: 'Bộ kiểm · dựng MP4 · bài đăng · chi phí', den: k.xong ? { muc: 'ok', title: 'đã xuất' } : undefined });

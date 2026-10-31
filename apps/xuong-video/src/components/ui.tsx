@@ -9,7 +9,7 @@ import { anhNho, nacNho } from '@/lib/xuong-video/anh-nho';
 export type Khoa = { google: boolean; anthropic: boolean; r2: boolean; openai: boolean; fal: boolean; /** cổng giá rẻ (cong-ai.ts) */ ckey?: boolean; shopaikey?: boolean };
 
 /** Drawer phim chia tab (audit 09/10/2026: một cuộn dài 0→1→2→3→timeline không vừa một màn): kịch bản · storyboard & timeline · âm thanh · xuất. */
-export type TabPhim = 'phim' | 'so_do' | 'kich_ban' | 'ho_so' | 'storyboard' | 'am_thanh' | 'xuat';
+export type TabPhim = 'phim' | 'so_do' | 'kich_ban' | 'thanh_phan' | 'ho_so' | 'storyboard' | 'am_thanh' | 'xuat';
 
 /** Khâu của một tập — nút con dưới tập trên CÂY PHIM (cay-phim.tsx); 'phim' / 'so_do' giữ cho link cũ. Không còn thanh tab (anh 31/10/2026). */
 

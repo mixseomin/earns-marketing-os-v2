@@ -1,4 +1,5 @@
 'use client';
+import { ThanhPhanTap } from './thanh-phan-ui';
 import { kgCua } from '@/lib/xuong-video/khong-gian';
 // Mục 3 một tập: brief → kịch bản → tách cảnh → storyboard/timeline → âm thanh → xuất.
 import { HoSoTap } from './ho-so';
@@ -30,7 +31,7 @@ import { MayDungStoryboard } from './may-dung-ui';
 import { PhanCanhVe } from './phan-canh-ve';
 import { chanNguoiXem } from '@/lib/xuong-video/nguoi-xem';
 
-export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap; phim: Phim; nhanVat: NhanVat[]; khoa: Khoa; onChanged: () => Promise<void>; tab: TabPhim }) {
+export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab, onMoNut }: { tap: Tap; phim: Phim; nhanVat: NhanVat[]; khoa: Khoa; onChanged: () => Promise<void>; tab: TabPhim; /** nhảy tới một nút trên cây phim (vd 'nv-<id>') */ onMoNut?: (nut: string) => void }) {
   const [kichBan, setKichBan] = useState(tap.kich_ban);
   const [tenTap, setTenTap] = useState(tap.ten);
   const [brief, setBrief] = useState(tap.brief);
@@ -178,6 +179,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   return (
     <div>
       {/* Thứ tự theo mạch, trái → phải rồi xuống: 3a brief → 3b kịch bản → 3c storyboard. */}
+      {tab === 'thanh_phan' && (canh === null ? <span style={mono}>…</span> : <ThanhPhanTap canh={canh} nhanVat={nhanVat} onXemShot={setXemShot} onMoAnchor={onMoNut ? (id) => onMoNut(`nv-${id}`) : undefined} />)}
       {tab === 'ho_so' && <HoSoTap tap={tap} phim={phim} canh={canh ?? []} nhanVat={nhanVat} onChanged={onChanged} />}
       {tab === 'kich_ban' && (<>
       {phim.loai === 'phim' && <O label="Tên tập"><input className="xv-in" value={tenTap} onChange={(e) => setTenTap(e.target.value)} placeholder="Cuộc đua bắt đầu" style={{ maxWidth: 420 }} /></O>}

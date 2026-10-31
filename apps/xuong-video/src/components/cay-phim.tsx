@@ -1,6 +1,7 @@
 'use client';
 // CÂY PHIM (anh 31/10/2026: "Phim, Sơ đồ, Kịch bản gom lại thành 1 · show dạng cây · giờ bấm ngu quá"): một tab 📖 Phim = cây TRÁI + chi tiết PHẢI
-// (ui-conventions §8). Cây: Kinh thánh · Thiết kế sản xuất (anchor lồng cha–con) · Poster · Tuyến truyện · Gài / trả · Các tập (→ mùa → tập).
+// (ui-conventions §8). Cây: Kinh thánh · Thiết kế sản xuất (anchor lồng cha–con, look, 🔊 Âm thanh) · Poster · Tuyến truyện · Gài / trả · Các tập
+// (→ mùa → tập → Kịch bản · Hồ sơ · Storyboard · Xuất). Không còn thanh tab nào — mọi thứ là nút trên cây.
 // Tập chưa tạo trên bản đồ hiện mờ (bấm → xem + tạo từ bản đồ). Nút đang chọn nằm trong URL (`nut`), tập trong `tap` — F5 / chia sẻ giữ nguyên.
 import { type ReactNode } from 'react';
 import { useGapUrl } from './nho';
@@ -11,16 +12,18 @@ import { AnhDaiDien } from './anh-set-3d';
 import { khau } from './so-do';
 import { Den, mono } from './ui';
 
-/** Khoá nút: 'kinh_thanh' · 'nhan_vat' · 'nv-<id>' · 'poster' · 'so_do' (Các tập: sơ đồ thẻ) · 'tuyen' · 'gai_tra' · 'tap' (tập = tham số tap) · 'bd-<số>' (tập bản đồ chưa tạo). */
+/** Khoá nút: 'kinh_thanh' · 'nhan_vat' · 'nv-<id>' · 'bt-<id>' · 'am_thanh' · 'poster' · 'so_do' (Các tập: sơ đồ thẻ) · 'tuyen' · 'gai_tra' ·
+ *  'tap' (Kịch bản của tập = tham số tap) · 'tap:ho_so' · 'tap:storyboard' · 'tap:xuat' · 'bd-<số>' (tập bản đồ chưa tạo). */
 export type NutPhim = string;
 type Dong = { key: string; nhan: ReactNode; cap: number; tapId?: number; title?: string; den?: { muc: 'ok' | 'cho' | 'loi'; title: string }; mo?: boolean; nhom?: string; anh?: NhanVat; /** ảnh thumbnail của một BIẾN THỂ look (node con nhân vật) */ anhUrl?: string | null; /** đầu nhánh chỉ để gập (mùa, ngoài bản đồ) — không phải nút xem */ chiNhom?: boolean; chuaTao?: boolean };
 // Look-book (character/costume breakdown ngành phim): các khía cạnh bề ngoài ĐỘC LẬP (ảnh + thông tin riêng) → node CON của nhân vật trong cây. Khớp KHOA_LOOK.
 const LOOK_NHOM = new Set(['trang_phuc', 'toc', 'trang_diem', 'do_deo', 'vet', 'trang']);
 const nhanNhomNv = (nhom: string) => NHOM_BIEN_THE.nhan_vat.find((x) => x.key === nhom)?.label ?? nhom;
 
-export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, thamSoGap }: {
+export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, thamSoGap, hep, onHep }: {
   phim: Phim; tap: Tap[]; nhanVat: NhanVat[]; nut: NutPhim; tapId: number | null;
   onChon: (nut: NutPhim, tapId?: number) => void; onThemTap?: () => void; /** tên tham số URL giữ các nhánh đang gập (lớp ngăn chính / chồng khác nhau) */ thamSoGap: string;
+  /** hep: thu thành dải hẹp (Storyboard cần cả bề ngang); onHep(v) bật/tắt — trạng thái nằm trên URL ở nơi gọi */ hep?: boolean; onHep?: (v: boolean) => void;
 }) {
   const kt = docKinhThanh(phim.kinh_thanh);
   const ds = muaSeries(kt.series);
@@ -47,6 +50,8 @@ export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, tha
           den: b.anh_url ? undefined : { muc: 'cho', title: 'chưa có ảnh mẫu' } });
       }
     }
+    // ÂM THANH thuộc Thiết kế sản xuất (anh 31/10/2026): giọng nhân vật, hiệu ứng, nhạc — xem/sinh theo tập đang chọn
+    out.push({ key: 'am_thanh', nhan: '🔊 Âm thanh', cap: 1, title: 'Giọng nhân vật, hiệu ứng, nhạc theo phân cảnh — của tập đang chọn' });
   }
   out.push({ key: 'poster', nhan: phim.loai === 'quang_cao' ? '🖼 Poster · ảnh QC' : '🖼 Poster', cap: 0, title: 'Poster của phim' });
   if (ds.length) {
@@ -59,8 +64,18 @@ export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, tha
   // mũi tên = gập. Mùa là nhánh con, tập nằm trong mùa.
   out.push({ key: ds.length ? 'so_do' : 'tap-goc', nhan: '🎬 Các tập', cap: 0, nhom: 'tap', chiNhom: !ds.length,
     title: ds.length ? 'Sơ đồ thẻ tập theo mùa: loại tập, nhân vật, gài/trả, khâu đang làm' : `${tap.length} tập` });
-  const dongTap = (t: Tap, cap: number) => { const k = khau(t); out.push({ key: `tap-${t.id}`, tapId: t.id, cap, nhan: <><span style={mono}>{t.so}</span> {t.ten || `Tập ${t.so}`}</>,
-    title: `${t.ten}${t.tom_tat ? `\n${t.tom_tat}` : ''}\n${k.chu}`, den: k.xong ? { muc: 'ok', title: 'đã xuất' } : undefined }); };
+  // Tập đang mở bung ra các KHÂU (anh 31/10/2026: "không còn tab nữa"): Kịch bản · Hồ sơ · Storyboard · Xuất — mỗi khâu một nút, khoá 'tap' / 'tap:<khâu>'.
+  const moKhau = nut === 'tap' || nut.startsWith('tap:');
+  const dongTap = (t: Tap, cap: number) => {
+    const k = khau(t);
+    out.push({ key: `tap-${t.id}`, tapId: t.id, cap, nhan: <><span style={mono}>{t.so}</span> {t.ten || `Tập ${t.so}`}</>,
+      title: `${t.ten}${t.tom_tat ? `\n${t.tom_tat}` : ''}\n${k.chu}\n\nBấm để mở tập (vào thẳng khâu đang dở)`, den: k.xong ? { muc: 'ok', title: 'đã xuất' } : undefined });
+    if (!moKhau || tapId !== t.id) return;
+    out.push({ key: 'tap', cap: cap + 1, nhan: '📝 Kịch bản', title: 'Brief · kịch bản → tách cảnh · kiểm người xem có hiểu không' });
+    out.push({ key: 'tap:ho_so', cap: cap + 1, nhan: '📋 Hồ sơ', title: 'Hồ sơ tiền kỳ: kịch bản · phân tích cảnh · bóc tách · shot list · bảng liên tục · color script · âm thanh' });
+    out.push({ key: 'tap:storyboard', cap: cap + 1, nhan: '🎞 Storyboard', title: `Keyframe → duyệt → video, timeline — ${t.so_canh} shot` });
+    out.push({ key: 'tap:xuat', cap: cap + 1, nhan: '⬇ Xuất', title: 'Bộ kiểm · dựng MP4 · bài đăng · chi phí', den: k.xong ? { muc: 'ok', title: 'đã xuất' } : undefined });
+  };
   const daBanDo = new Set<number>();
   const moTap = !dong.has('tap');
   const motMua = ds.length === 1;   // một mùa → không vẽ tầng mùa, tập nằm thẳng dưới Các tập
@@ -79,10 +94,17 @@ export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, tha
   if (moTap && ngoai.length && ds.length) out.push({ key: 'tap-ngoai', nhan: 'Ngoài bản đồ', cap: 1, nhom: 'tap-ngoai', chiNhom: true, title: 'Tập đã tạo nhưng không có trên bản đồ series' });
   if (moTap && !dong.has('tap-ngoai')) ngoai.forEach((t) => dongTap(t, ds.length ? 2 : 1));
 
-  const chon = (d: Dong) => d.key.startsWith('tap-') && d.tapId != null ? nut === 'tap' && tapId === d.tapId : nut === d.key;
+  const chon = (d: Dong) => (d.tapId != null ? false : nut === d.key);   // tập mở thì khâu con được tô, dòng tập không tô
+  if (hep) return (
+    <nav style={{ flex: '0 0 30px', position: 'sticky', top: 'calc(var(--dau-cao, var(--ngan-py, 0px)) - var(--ngan-py, 0px) + 8px)', alignSelf: 'flex-start', display: 'grid', gap: 6, justifyItems: 'center' }}>
+      <button type="button" className="xv-btn" style={{ padding: '4px 6px' }} title="Mở cây phim" onClick={() => onHep?.(false)}>☰</button>
+      {tapId != null && <span style={{ ...mono, writingMode: 'vertical-rl' }}>Tập {tap.find((t) => t.id === tapId)?.so}</span>}
+    </nav>
+  );
   return (
     <nav style={{ flex: '0 0 250px', minWidth: 0, position: 'sticky', top: 'calc(var(--dau-cao, var(--ngan-py, 0px)) - var(--ngan-py, 0px) + 8px)', alignSelf: 'flex-start',
       maxHeight: 'calc(100vh - var(--dau-cao, 0px) - 24px)', overflowY: 'auto', display: 'grid', gap: 1, alignContent: 'start', paddingRight: 4 }}>
+      {onHep && <button type="button" className="xv-btn" style={{ justifySelf: 'end', padding: '0 6px', marginBottom: 4 }} title="Thu cây thành dải hẹp — nhường chỗ cho storyboard" onClick={() => onHep(true)}>⇤</button>}
       {out.map((d) => {
         const sel = !d.chiNhom && chon(d);
         const bam = () => (d.chiNhom ? lat(d.nhom!) : d.tapId != null ? onChon('tap', d.tapId) : onChon(d.key));

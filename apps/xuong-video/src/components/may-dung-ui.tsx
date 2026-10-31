@@ -47,7 +47,7 @@ export function MayDungStoryboard({ tap, canh }: { tap: Tap; canh: Canh[] }) {
       <div className="xv-panel" style={{ display: 'grid', gap: 6 }}>
         <b style={{ fontSize: 12 }}>Video sẽ đăng</b>
         {ban ? <video key={ban.url} src={ban.url} controls preload="metadata" style={khung} />
-          : <span style={mono}>Chưa xuất. Khung bên phải cắt đúng từ bản dựng; bấm ⬇ Xuất ở tab Xuất để ra video (0đ).</span>}
+          : <span style={mono}>Chưa xuất. Khung bên phải cắt đúng từ bản dựng; bấm ⬇ Xuất ở nút ⬇ Xuất của tập (trên cây) để ra video (0đ).</span>}
         {ban && <span style={mono}>{ban.giay}s · xuất {gioVN(ban.luc)}</span>}
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${canh.length}, minmax(0, 1fr))`, gap: 10 }}>

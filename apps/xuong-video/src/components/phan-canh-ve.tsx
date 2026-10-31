@@ -1,5 +1,5 @@
 'use client';
-// 🎬 PHÂN CẢNH — tab Storyboard (anh 24/10/2026: "phải drilldown từ tổng quan trước rồi mới vào chi tiết… đọc như truyện tranh để hiểu", "phải show nó
+// 🎬 PHÂN CẢNH — nút 🎞 Storyboard của tập (anh 24/10/2026: "phải drilldown từ tổng quan trước rồi mới vào chi tiết… đọc như truyện tranh để hiểu", "phải show nó
 // ra trong studio của phim luôn"). Mỗi cảnh một khối, đọc từ trên xuống: 1 tờ phác bố trí (máy vẽ từ sơ đồ — ai đứng đâu, nhìn đâu, nền nào) →
 // 2 thumbnail cả cảnh (AI) → 3 bảng khối → 4 khung chi tiết = keyframe từng shot kèm hành động · thoại · cớ cắt (đọc không cũng nắm được mạch).
 // Dữ liệu: xv_tap.phan_canh_ve (scripts/bang-gom.mts ghi) + xv_canh. Ảnh bấm = ngăn xem to (ngan-chung › moNgan). Link: ?tab=storyboard&sbx=phan_canh.

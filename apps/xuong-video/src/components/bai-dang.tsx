@@ -1,5 +1,5 @@
 'use client';
-// Bài đăng kèm video (tab Xuất): văn bản chính · tiêu đề · mô tả · nút — Claude viết theo QC mẫu (nếu có), sửa tay, chép sang Meta/TikTok.
+// Bài đăng kèm video (nút ⬇ Xuất của tập): văn bản chính · tiêu đề · mô tả · nút — Claude viết theo QC mẫu (nếu có), sửa tay, chép sang Meta/TikTok.
 import { useEffect, useState } from 'react';
 import { vietBaiDangTap, suaBaiDang } from '@/lib/actions';
 import { gioVN, type BaiDang, type Tap } from '@/lib/xuong-video/kieu';

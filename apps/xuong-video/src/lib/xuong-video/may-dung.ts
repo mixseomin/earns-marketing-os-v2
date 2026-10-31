@@ -1,5 +1,5 @@
 // DỰNG VIDEO MÁY (0đ, không AI): đề của mẫu → ASS + ffmpeg trên box3 → MP4 + 3 khung (giữa từng shot của mẫu) → R2.
-// Dùng ở hai chỗ: video của MÁY (may.ts › xuatVideo — đường chính từ 17/10/2026) và phim Máy Dựng cũ đã lưu trữ (tab ⬇ Xuất của tập,
+// Dùng ở hai chỗ: video của MÁY (may.ts › xuatVideo — đường chính từ 17/10/2026) và phim Máy Dựng cũ đã lưu trữ (nút ⬇ Xuất của tập của tập,
 // xuat-tap.ts › xuatMayDungTap — để phim cũ mở ra vẫn xuất được).
 import { dungFfmpeg } from './may-dung-cf';
 import { execFile } from 'node:child_process';

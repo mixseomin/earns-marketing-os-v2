@@ -7,7 +7,7 @@
 //   5. Bảng liên tục (thư ký trường quay) — trạng thái mở/kết, hướng, bố cục 3 lớp, motif.
 //   6. Color script                      — ánh sáng + màu từng cảnh theo cung cảm xúc.
 //   7. Bảng âm thanh (cue sheet)          — âm + âm hiệu từng shot theo mốc giây, nhạc từng cảnh.
-// Đọc THẲNG dữ liệu tập (xv_tap.phan_canh + ho_so) và shot (xv_canh: ky_thuat, dan_dung, phat_s, nhan_vat…). MỘT chỗ dựng cho: tab Hồ sơ của
+// Đọc THẲNG dữ liệu tập (xv_tap.phan_canh + ho_so) và shot (xv_canh: ky_thuat, dan_dung, phat_s, nhan_vat…). MỘT chỗ dựng cho: nút 📋 Hồ sơ của tập của
 // studio (iframe), trang duyệt gửi anh (scripts/kich-ban-the.mts) và chữ kịch bản (hoSoKichBan). kiemHoSo = cổng: mã theo thư viện, anchor
 // theo phim, nhịp đọc + nhịp hình + vai kể + thẻ shot bằng đúng cổng studio. Thuần (client lẫn server import được).
 import { kyThuat, type NhomKyThuat, type KyThuatShot } from './dien-anh';

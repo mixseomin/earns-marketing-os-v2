@@ -11,15 +11,7 @@ export type Khoa = { google: boolean; anthropic: boolean; r2: boolean; openai: b
 /** Drawer phim chia tab (audit 09/10/2026: một cuộn dài 0→1→2→3→timeline không vừa một màn): kịch bản · storyboard & timeline · âm thanh · xuất. */
 export type TabPhim = 'phim' | 'so_do' | 'kich_ban' | 'ho_so' | 'storyboard' | 'am_thanh' | 'xuat';
 
-export const TAB_PHIM: { key: TabPhim; label: string; mo: string }[] = [
-  // Phim (cả bộ, ít đổi) tách khỏi Kịch bản (từng tập, làm hằng ngày) — 13/10/2026: một tab chồng 5 khối dài 1,5 màn hình.
-  // Phim + Sơ đồ + Kịch bản gộp thành MỘT tab dạng cây (anh 31/10/2026, cay-phim.tsx); 'so_do' / 'kich_ban' cũ trên URL tự chuyển về nút cây.
-  { key: 'phim', label: '📖 Phim', mo: 'Cây cả bộ phim: kinh thánh · thiết kế sản xuất · poster · sơ đồ mùa · tuyến truyện · gài/trả → mùa → tập (brief, kịch bản, tách cảnh)' },
-  { key: 'ho_so', label: '📋 Hồ sơ', mo: 'Hồ sơ tiền kỳ chuẩn studio, 7 tài liệu: kịch bản · phân tích cảnh · bóc tách · shot list · bảng liên tục · color script · âm thanh' },
-  { key: 'storyboard', label: '🎞 Storyboard', mo: 'Keyframe → duyệt → video, kéo thả, cắt giây phát, chữ màn, bộ kiểm' },
-  { key: 'am_thanh', label: '🔊 Âm thanh', mo: 'Giọng nhân vật, hiệu ứng, nhạc theo phân cảnh' },
-  { key: 'xuat', label: '⬇ Xuất', mo: 'Bộ kiểm đạt chưa · dựng MP4 theo nhánh hook · chi phí' },
-];
+/** Khâu của một tập — nút con dưới tập trên CÂY PHIM (cay-phim.tsx); 'phim' / 'so_do' giữ cho link cũ. Không còn thanh tab (anh 31/10/2026). */
 
 export type KqChay = { ok: boolean; loi?: string } | void;
 /** Gọi một server action từ nút: trả { loi: câu lỗi ('' = được), kq }. Ném (mạng rớt / studio vừa cập nhật, action cũ không còn) → câu bảo

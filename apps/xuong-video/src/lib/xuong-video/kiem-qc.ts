@@ -29,7 +29,7 @@ export function kiemQc(opts: { loai: LoaiPhim; canh: ShotKiem[]; nhanVat: Pick<N
   // Ngôn ngữ: phim không phải tiếng Việt mà chữ màn/thoại còn tiếng Việt → chặn trước khi tốn tiền ảnh/giọng (09/10/2026).
   if (opts.ngonNgu && opts.ngonNgu !== 'vi') {
     const lech = shotLechNgonNgu(opts.ngonNgu, ds);
-    out.push({ key: 'ngon_ngu', ok: !lech.length, chu: `Chữ đúng ${tenNgonNgu(opts.ngonNgu)}`, chiTiet: lech.length ? `${lech.length} shot còn chữ màn/thoại tiếng Việt (#${lech.slice(0, 8).join(', #')}${lech.length > 8 ? '…' : ''}) — bấm 🌐 Dịch tập ở tab 📖 Phim (bấm tập trên cây), đừng sinh keyframe/giọng trước` : undefined });
+    out.push({ key: 'ngon_ngu', ok: !lech.length, chu: `Chữ đúng ${tenNgonNgu(opts.ngonNgu)}`, chiTiet: lech.length ? `${lech.length} shot còn chữ màn/thoại tiếng Việt (#${lech.slice(0, 8).join(', #')}${lech.length > 8 ? '…' : ''}) — bấm 🌐 Dịch tập ở nút 📝 Kịch bản của tập (trên cây), đừng sinh keyframe/giọng trước` : undefined });
   }
   // Cảm xúc khán giả = đích từng shot phải đạt (đi vào prompt ảnh/video). Phẳng gần hết ở 0 = chưa ai đặt đích → model nhận "calm neutrality"
   // (phim #5 10/10/2026: script dựng từ khung mẫu ghi cứng 0 cho 24/25 shot).

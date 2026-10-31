@@ -120,7 +120,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
   const sanSang = (canh ?? []).filter((c) => !c.keyframe_url && thanhPhanCanh(c, nhanVat).thieu.length === 0);
   const kemThieu = chuaKeyframe - sanSang.length;
 
-  // Chọn nhánh hook (A/B/C) — dùng ở tab Storyboard lẫn tab Xuất.
+  // Chọn nhánh hook (A/B/C) — dùng ở nút 🎞 Storyboard của tập lẫn nút ⬇ Xuất của tập.
   const chonNhanh = !!canh?.length && cacNhanh(canh).length > 0 && (
     <span style={{ display: 'inline-flex', gap: 2, alignItems: 'center' }} title="Cùng một thân, nhiều hook để A/B trên Meta/TikTok — chọn nhánh để xem / xuất">
       <span style={mono}>hook:</span>
@@ -207,7 +207,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       </div>
       {uoc && uoc.soCanhDuyet > 0 && <div style={{ ...mono, marginTop: 8, color: 'var(--amber)' }}>Đang chờ sinh video: {uoc.soCanhDuyet} cảnh · {uoc.giayDuyet}s ≈ {tien(uoc.videoTong)}</div>}
       </>)}
-      {/* Kiểm người xem có hiểu không: luôn ở tab 📖 Phim (bấm tập trên cây); chưa đạt thì hiện ĐẦU tab Storyboard / Xuất — đúng chỗ nó đang chặn keyframe + xuất. */}
+      {/* Kiểm người xem có hiểu không: luôn ở nút 📝 Kịch bản của tập (trên cây); chưa đạt thì hiện ĐẦU nút 🎞 Storyboard của tập / Xuất — đúng chỗ nó đang chặn keyframe + xuất. */}
       {/* Máy Dựng (may_dung) dựng bằng máy: không có lượt AI nào để kiểm người xem / quy trình / sinh — storyboard riêng (may-dung-ui.tsx). */}
       {!mayDung && !!canh?.length && (tab === 'kich_ban' || chanNguoiXem(tap.thu_nguoi_xem, locNhanh(canh, 'A')).length > 0) && (
         <NguoiXem tap={tap} canh={locNhanh(canh, 'A')} moHinhChu={kt.mo_hinh_chu} coAnthropic={khoa.anthropic} onChanged={onChanged} onMoShot={tab === 'storyboard' ? (so) => { const x = canh.find((c) => c.thu_tu === so); if (x) setChonCanh(x.id); } : undefined} />
@@ -228,9 +228,9 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
         {nutQt}{nutQc}
         <span style={{ flex: 1 }} />
         {kt.ngon_ngu !== 'vi' && !!canh?.length && <>
-          {xemVi && !!vi?.thieu && <span style={{ ...mono, color: 'var(--red)' }} title="Câu mới / đã sửa sau lần lồng tiếng — im khi xem. Bấm lại 🇻🇳 Lồng tiếng Việt ở tab Xuất (câu đã đọc dùng lại).">{vi.thieu} câu chưa có giọng Việt</span>}
+          {xemVi && !!vi?.thieu && <span style={{ ...mono, color: 'var(--red)' }} title="Câu mới / đã sửa sau lần lồng tiếng — im khi xem. Bấm lại 🇻🇳 Lồng tiếng Việt ở nút ⬇ Xuất của tập (trên cây) (câu đã đọc dùng lại).">{vi.thieu} câu chưa có giọng Việt</span>}
           <button type="button" className={`xv-btn${xemVi ? ' chinh' : ''}`} disabled={!vi?.coDich} onClick={() => setTiengXem(xemVi ? '' : 'vi')}
-            title={vi?.coDich ? (xemVi ? 'Đang xem + nghe bản lồng tiếng Việt — bấm để về bản gốc' : 'Xem + nghe bản lồng tiếng Việt trên timeline (chữ màn dịch, giọng Việt từng nhân vật). Sửa giây/chuyển cảnh vẫn áp vào bản gốc.') : 'Chưa có bản lồng tiếng Việt — bấm 🇻🇳 Lồng tiếng Việt ở tab Xuất'}>🇻🇳</button>
+            title={vi?.coDich ? (xemVi ? 'Đang xem + nghe bản lồng tiếng Việt — bấm để về bản gốc' : 'Xem + nghe bản lồng tiếng Việt trên timeline (chữ màn dịch, giọng Việt từng nhân vật). Sửa giây/chuyển cảnh vẫn áp vào bản gốc.') : 'Chưa có bản lồng tiếng Việt — bấm 🇻🇳 Lồng tiếng Việt ở nút ⬇ Xuất của tập (trên cây)'}>🇻🇳</button>
         </>}
         {/* Công cụ xem (0đ) gọn thành nút icon nhỏ (#1211, #1311); nối khung là công tắc + sơ đồ trong cùng một menu. */}
         <button type="button" className="xv-btn" style={{ opacity: 0.8 }} disabled={!(canh ?? []).some((c) => c.keyframe_url)} title="▶ Xem animatic cả tập (0đ) — đúng thứ tự, số giây, hiệu ứng, chuyển cảnh" onClick={() => setAnimatic(true)}>▶</button>
@@ -294,7 +294,7 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab }: { tap: Tap
       {tab === 'xuat' && hien.chinh && (
         <video key={hien.chinh.url} src={hien.chinh.url} controls preload="metadata" style={{ marginTop: 8, maxHeight: 420, borderRadius: 8, background: '#000', aspectRatio: kt.ti_le === '9:16' ? '9 / 16' : '16 / 9' }} />
       )}
-      {tab === 'am_thanh' && (canh === null ? <span style={mono}>…</span> : !canh.length ? <div style={mono}>Chưa có cảnh — tách cảnh ở tab 📖 Phim (bấm tập trên cây) trước.</div> : null)}
+      {tab === 'am_thanh' && (canh === null ? <span style={mono}>…</span> : !canh.length ? <div style={mono}>Chưa có cảnh — tách cảnh ở nút 📝 Kịch bản của tập (trên cây) trước.</div> : null)}
       {tab === 'am_thanh' && !!canh?.length && (() => {
         const u = uocA ?? { dangPhanDoan: [] as string[], dangCaTap: false, giong: 0, soThoai: canh.filter((c) => c.loi_thoai.trim()).length, sfx: 0, soSfx: canh.length, nhac: {} as Record<string, number>, giay: canh.reduce((a, c) => a + (c.thoi_luong_s || 5), 0), soPhanCanh: new Set(canh.map((c) => c.phan_doan).filter(Boolean)).size, dangNhac: 0 };
         const gia = (c: number) => (uocA ? tien(c) : '…');

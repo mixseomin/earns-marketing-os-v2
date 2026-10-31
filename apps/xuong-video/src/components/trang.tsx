@@ -13,7 +13,7 @@ import { nhomPhim, demKieu, laLuuTru, anhDaiDien, TEN_KIEU, type KieuNhom } from
 import { dsPhim, luuTruPhim, luuThanhTemplate, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, docHoanTac, hoanTac, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
 import type { MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { LOAI_PHIM, docKinhThanh, giaAnhCents, giaVideoCents, tien, gioVN, type Phim, type Job, type LoaiPhim } from '@/lib/xuong-video/kieu';
-import { Khoa, TabPhim, TAB_PHIM, Pill, Seg, Nut, Xoa, Loi, Menu, MucMenu, mono } from './ui';
+import { Khoa, type TabPhim, Pill, Seg, Nut, Xoa, Loi, Menu, MucMenu, mono } from './ui';
 import { MoHinhCtx } from './mo-hinh-ui';
 import { KinhThanhForm } from './kinh-thanh';
 import { NhanVatSection, BienTheChiTiet } from './nhan-vat';
@@ -21,10 +21,11 @@ import { TapView } from './tap';
 import { PosterPhim } from './poster-ui';
 import { AnhQcPhim } from './anh-qc-ui';
 import { ChipGocSpy, GocSpyPanel } from './goc-spy-ui';
-import { useNho } from './nho';
+import { useNho, useMoUrl } from './nho';
 import { useDinhKy } from './dinh-ky';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
-import { SoDoSeries, BanDoTap } from './so-do';
+import { SoDoSeries, BanDoTap, khau } from './so-do';
+import { Chon } from './chon';
 import { CayPhim, type NutPhim } from './cay-phim';
 import { nhomCayAnchor } from '@/lib/xuong-video/cay-anchor';
 import { TemplatePanel, KhoTemplate } from './template-ui';
@@ -207,13 +208,14 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
   const chong = useModalParam(KHOA_CHONG.m);
   const tai = useCallback(async () => setD(await docPhim(id)), [id]);
   useEffect(() => { void tai(); }, [tai]);
-  // Tab đang mở, nhớ theo phim (đọc ngay từ đầu, chỉ ghi khi bấm — cùng cách với khung thu gọn #1212).
-  const [tab, setTab] = useNho<TabPhim>(`xv-tab-${id}`, 'phim', TAB_PHIM.map((t) => t.key), khoaUrl.tab);
-  // Nút đang xem trên CÂY PHIM (cay-phim.tsx). Link cũ ?tab=so_do / ?tab=kich_ban (hai tab đã gộp vào cây) → mở đúng nút tương ứng.
+  // KHÔNG CÒN TAB (anh 31/10/2026): mọi phần là một nút trên CÂY PHIM (cay-phim.tsx), nút đang xem trong URL (?nut=), tập trong ?tap=.
+  // Link cũ ?tab=… (so_do / kich_ban / ho_so / storyboard / am_thanh / xuat) → mở đúng nút tương ứng rồi xoá tham số cũ.
   const [nut, setNut] = useNho<NutPhim>(`xv-nut-${id}`, 'tap', undefined, khoaUrl.nut);
+  const [giuCay, setGiuCay] = useMoUrl(`cay${id}`, false);   // Storyboard tự thu cây thành dải hẹp; anh bung lại thì giữ (URL)
   useLayoutEffect(() => {
     const cu = new URLSearchParams(window.location.search).get(khoaUrl.tab);
-    if (cu === 'so_do') setNut('so_do'); else if (cu === 'kich_ban') setNut('tap');
+    const doi: Record<string, NutPhim> = { so_do: 'so_do', kich_ban: 'tap', ho_so: 'tap:ho_so', storyboard: 'tap:storyboard', xuat: 'tap:xuat', am_thanh: 'am_thanh', phim: 'kinh_thanh' };
+    if (cu && doi[cu]) { setNut(doi[cu]!); ghiThamSoUrl({ [khoaUrl.tab]: null }); }
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps -- chỉ đọc link lúc mở
   // Job ảnh còn chạy trên máy chủ (kể cả sau F5) → hỏi lại mỗi 4s tới khi xong.
   const conChay = !!d && (d.dangSinh.nhanVat.length > 0 || d.dangSinh.bienThe.length > 0 || d.dangSinh.poster > 0);
@@ -226,7 +228,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
 
   return (
     <Ngan onClose={onClose} tieuDe={phim.ten} nut={<>
-      {phim.poster_url && <img src={anhNho(phim.poster_url, 160)} alt="" title="Poster (tab 📖 Phim › Poster)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
+      {phim.poster_url && <img src={anhNho(phim.poster_url, 160)} alt="" title="Poster (nút 🖼 Poster trên cây)" style={{ height: 34, aspectRatio: '2 / 3', objectFit: 'cover', borderRadius: 4, border: '1px solid var(--line)' }} />}
       <Pill color="var(--fg-3)">{LOAI_PHIM.find((l) => l.key === phim.loai)?.label ?? phim.loai}</Pill>
       {phim.kinh_thanh?.template && <Pill color="var(--violet)">🧩 Template</Pill>}
       {phim.kinh_thanh?.tu_template && <button type="button" className="xv-lienket xv-mono" title="Phim này tạo từ template — mở template ở ngăn chồng lên trên" onClick={() => chong.open('phim', phim.kinh_thanh!.tu_template!.id)}>🧩 từ #{phim.kinh_thanh.tu_template.id}</button>}
@@ -242,12 +244,8 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
         <MucMenu onClick={async () => { await luuTruPhim(phim.id, !phim.kinh_thanh?.luu_tru); await tai(); }}>{phim.kinh_thanh?.luu_tru ? '📤 Bỏ lưu trữ (hiện lại trong danh sách)' : '🗄 Lưu trữ (ẩn khỏi danh sách, không xoá)'}</MucMenu>
         <Xoa nhan="cả phim (tập + cảnh)" onXoa={onXoa} />
       </Menu>
-    </>} dau={
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-        {TAB_PHIM.map((t) => <button key={t.key} type="button" className={`xv-btn${tab === t.key ? ' chinh' : ''}`} title={t.mo} onClick={() => setTab(t.key)}>{t.label}</button>)}
-      </div>
-    }>
-      {tab === 'phim' && (() => {
+    </>}>
+      {(() => {
         const themTap = phim.loai === 'phim' || tap.length === 0 ? async () => { const r = await taoTap(phim.id, ''); if (r.ok) { await tai(); setNut('tap'); tapParam.open('tap', r.data); } } : undefined;
         const nvDau = nhomCayAnchor(nhanVat)[0]?.cha.id ?? null;
         const nvId = nut.startsWith('nv-') ? Number(nut.slice(3)) : null;
@@ -255,12 +253,17 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
         const btId = nut.startsWith('bt-') ? Number(nut.slice(3)) : null;
         const bt = btId != null ? nhanVat.flatMap((v) => (v.bien_the ?? []).map((b) => ({ b, nv: v }))).find((x) => x.b.id === btId) ?? null : null;
         // nút trỏ vào thứ đã mất (tập bị xoá, anchor bị xoá, biến thể bị xoá) → về Kinh thánh / đầu Thiết kế sản xuất, khung phải không bao giờ trống
-        const k = nut === 'tap' && tapId == null ? 'kinh_thanh' : (nvId != null && !nhanVat.some((v) => v.id === nvId)) || (btId != null && !bt) ? 'nhan_vat' : nut;
-        const moTap = (tid: number) => { setNut('tap'); tapParam.open('tap', tid); };
+        const k = (nut === 'tap' || nut.startsWith('tap:')) && tapId == null ? 'kinh_thanh' : (nvId != null && !nhanVat.some((v) => v.id === nvId)) || (btId != null && !bt) ? 'nhan_vat' : nut;
+        // bấm một tập → vào thẳng KHÂU ĐANG DỞ: chưa có cảnh → Kịch bản, đã xuất → Xuất, còn lại → Storyboard
+        const moTap = (tid: number) => { const t = tap.find((x) => x.id === tid); setNut(!t?.so_canh ? 'tap' : khau(t).xong ? 'tap:xuat' : 'tap:storyboard'); tapParam.open('tap', tid); };
+        const khauTap: TabPhim | null = k === 'tap' ? 'kich_ban' : k.startsWith('tap:') ? (k.slice(4) as TabPhim) : null;
+        const hep = k === 'tap:storyboard' && !giuCay;
+        const tapDang = tapId != null ? tap.find((t) => t.id === tapId)! : null;
         const nv = (chiTiet: number | null) => <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} chiTiet={chiTiet} />;
         return (
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-            <CayPhim thamSoGap={khoaUrl.gap} phim={phim} tap={tap} nhanVat={nhanVat} nut={k} tapId={tapId} onChon={(n, tid) => (tid != null ? moTap(tid) : setNut(n))} onThemTap={themTap} />
+            <CayPhim thamSoGap={khoaUrl.gap} phim={phim} tap={tap} nhanVat={nhanVat} nut={k} tapId={tapId} onChon={(n, tid) => (tid != null ? moTap(tid) : setNut(n))} onThemTap={themTap}
+              hep={hep} onHep={k === 'tap:storyboard' ? (v) => setGiuCay(!v) : undefined} />
             <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 10, alignContent: 'start' }}>
               {k === 'kinh_thanh' && <>
                 {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} onMoPhimChong={(pid) => chong.open('phim', pid)} />}
@@ -278,25 +281,21 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
               {(k === 'so_do' || k === 'tuyen' || k === 'gai_tra') && <SoDoSeries phim={phim} tap={tap} nhanVat={nhanVat} onChanged={tai} onMoTap={moTap}
                 mat={k === 'so_do' ? 'tap' : k} onMat={(m) => setNut(m === 'tap' ? 'so_do' : m)} />}
               {k.startsWith('bd-') && <BanDoTap phim={phim} so={Number(k.slice(3))} onTao={async (tid) => { await tai(); moTap(tid); }} />}
-              {k === 'tap' && tapId != null && <div className="xv-panel"><TapView key={tapId} tap={tap.find((t) => t.id === tapId)!} phim={phim} nhanVat={nhanVat} khoa={khoa} onChanged={tai} tab="kich_ban" /></div>}
+              {khauTap && tapDang && <div className="xv-panel"><TapView key={`${tapDang.id}-${khauTap}`} tap={tapDang} phim={phim} nhanVat={nhanVat} khoa={khoa} onChanged={tai} tab={khauTap} /></div>}
+              {k === 'tap:xuat' && <ChiPhiGanDay jobs={d.ganDay} tong={d.tongTien} phimId={phim.id} />}
+              {/* 🔊 Âm thanh (thuộc Thiết kế sản xuất): theo tập — chọn tập ngay đầu khung */}
+              {k === 'am_thanh' && <div className="xv-panel">
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+                  <b style={{ fontSize: 13 }}>🔊 Âm thanh</b><span style={mono}>giọng nhân vật · hiệu ứng · nhạc theo phân cảnh — của tập</span>
+                  {tap.length > 0 && <Chon nho minWidth={200} value={String(tapId ?? '')} options={tap.map((t) => ({ value: String(t.id), label: `Tập ${t.so} · ${t.ten}`, ngan: `Tập ${t.so}` }))} onChange={(v) => tapParam.open('tap', Number(v))} />}
+                </div>
+                {tapDang ? <TapView key={`${tapDang.id}-am`} tap={tapDang} phim={phim} nhanVat={nhanVat} khoa={khoa} onChanged={tai} tab="am_thanh" /> : <div style={mono}>Phim chưa có tập nào.</div>}
+              </div>}
             </div>
           </div>
         );
       })()}
 
-      {/* Phần theo TẬP. Không tiêu đề mục (tên tab đã nói); hàng chọn tập chỉ hiện khi có thứ để chọn (phim nhiều tập / chưa có tập). */}
-      {tab !== 'phim' && <div className="xv-panel">
-        {(phim.loai === 'phim' || tap.length !== 1) && <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
-          {tap.length > 0 && (
-            <Seg options={tap.map((t) => ({ value: t.id, label: `${phim.loai === 'phim' ? `Tập ${t.so}` : 'Tập'}${t.ten && t.ten !== phim.ten ? ` · ${t.ten}` : ''}`, title: `${t.so_canh} cảnh` }))} value={tapId ?? 0} onChange={(v) => tapParam.open('tap', v)} />
-          )}
-          {(phim.loai === 'phim' || tap.length === 0) && (
-            <button type="button" className="xv-btn" onClick={async () => { const r = await taoTap(phim.id, ''); if (r.ok) { await tai(); tapParam.open('tap', r.data); } }}>+ Thêm tập</button>
-          )}
-        </div>}
-        {tapId != null && <TapView key={tapId} tap={tap.find((t) => t.id === tapId)!} phim={phim} nhanVat={nhanVat} khoa={khoa} onChanged={tai} tab={tab} />}
-      </div>}
-      {tab === 'xuat' && <ChiPhiGanDay jobs={d.ganDay} tong={d.tongTien} phimId={phim.id} />}
     </Ngan>
   );
 }
@@ -307,7 +306,7 @@ const MAU_LOAI: Record<string, string> = { chu: 'var(--cyan)', anh: 'var(--amber
 
 const NHAN_LOAI: Record<string, string> = { chu: 'Chữ', anh: 'Ảnh', video: 'Video' };
 
-/** Sổ chi phí gần đây — panel phụ của tab Xuất → gập mặc định (YDNI luật 5), tổng tiền vẫn thấy; mở/gập nhớ trên máy. */
+/** Sổ chi phí gần đây — panel phụ của nút ⬇ Xuất của tập → gập mặc định (YDNI luật 5), tổng tiền vẫn thấy; mở/gập nhớ trên máy. */
 function ChiPhiGanDay({ jobs, tong, phimId }: { jobs: Job[]; tong: number; phimId: number }) {
   const [mo, setMo] = useNho<'0' | '1'>('xv-chi-phi-mo', '0', ['0', '1']);
   return (

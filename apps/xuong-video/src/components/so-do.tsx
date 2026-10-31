@@ -1,7 +1,7 @@
 'use client';
 // SƠ ĐỒ SERIES (anh 14/10/2026 — "cần một bảng kiểu sơ đồ cả bộ phim, từng season, rồi đến tập"): hàng đầu là cả bộ phim, mỗi mùa một hàng
 // thẻ tập. Thẻ = số · tên · loại (phiêu lưu / nguồn gốc / kết mùa) · mặt nhân vật · logline · gài/trả · tập đang ở khâu nào. Bấm thẻ: tập đã có
-// thì mở (tab 📖 Phim (bấm tập trên cây)), chưa có thì tạo từ bản đồ (tên + brief từ logline, 0đ). Dữ liệu: kinh_thanh.series (kieu.ts › muaSeries).
+// thì mở (nút 📝 Kịch bản của tập (trên cây)), chưa có thì tạo từ bản đồ (tên + brief từ logline, 0đ). Dữ liệu: kinh_thanh.series (kieu.ts › muaSeries).
 // Ba mặt (anh 31/10/2026): Tập (thẻ theo mùa) · Tuyến truyện (bảng tuyến A/B/C × tập) · Gài / trả (sổ setup–payoff) — tuyen-truyen-ui.tsx.
 // Mặt nào hiện do CÂY PHIM chọn (cay-phim.tsx, tab 📖 Phim): mỗi mặt là một nút trên cây, không còn thanh chọn riêng.
 import { useState } from 'react';

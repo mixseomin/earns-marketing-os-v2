@@ -18,7 +18,7 @@ export function HoSoTap({ tap, phim, canh, nhanVat, onChanged }: { tap: Tap; phi
     };
     return `<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">${hoSoHtml(vao)}</head></html>`;
   }, [tap, phim, canh, nhanVat, kt.series, kt.khong_loi]);
-  if (!tap.phan_canh.length) return <div className="xv-mono">Tập chưa có phân cảnh — viết kịch bản rồi ✂ Tách cảnh ở tab 📖 Phim (bấm tập trên cây); hồ sơ dựng từ đó.</div>;
+  if (!tap.phan_canh.length) return <div className="xv-mono">Tập chưa có phân cảnh — viết kịch bản rồi ✂ Tách cảnh ở nút 📝 Kịch bản của tập (trên cây); hồ sơ dựng từ đó.</div>;
   const an = tap.ho_so?.animatic; const khop = !!an && an.ma === maAnimatic(canh);
   const duKf = canh.filter((c) => !c.nhanh || c.nhanh === 'A').every((c) => c.keyframe_url);
   return (

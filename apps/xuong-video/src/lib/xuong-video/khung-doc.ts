@@ -1,5 +1,5 @@
 // KHUNG ĐỌC của một shot cho storyboard (anh 24/10/2026: "trình bày giống như truyện nhưng chi tiết hơn và có thứ tự rõ ràng", "phải nhìn được đầu, giữa,
-// cuối mỗi shot"). MỘT hàm cho bảng truyện tranh (scripts/truyen-tranh.mts) và tab Storyboard › 🎬 Phân cảnh (phan-canh-ve.tsx) — hai chỗ không lệch nhau.
+// cuối mỗi shot"). MỘT hàm cho bảng truyện tranh (scripts/truyen-tranh.mts) và nút 🎞 Storyboard của tập › 🎬 Phân cảnh (phan-canh-ve.tsx) — hai chỗ không lệch nhau.
 // Mỗi khung: nhãn thứ tự (#N·đầu / #N·giữa / #N·cuối), ảnh, câu tả tiếng Việt, trạng thái đồ ĐÚNG thời điểm khung (⚡ = vừa đổi), thoại (khung đầu), cớ cắt
 // sang shot sau (khung cuối cùng của shot). Thuần — client dùng được.
 import type { Canh } from './kieu';

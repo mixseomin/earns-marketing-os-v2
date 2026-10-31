@@ -8,6 +8,11 @@ import { thieuAnchor, type BienThe, type Canh, type NhanVat, type Tap } from './
 
 /** Đổi câu hệ thống / khuôn / luật gắn → tăng số này: mọi tập đã phân rã thành "cũ", báo cáo nhắc chạy lại. */
 export const PHIEN_PHAN_RA = 1;
+/** Model phân rã: việc TRÍCH XUẤT có cấu trúc (không phải viết sáng tác như kịch bản) → Sonnet là model rẻ nhất làm tốt; không theo mo_hinh_chu
+ *  của phim (Opus, cho viết). 31/10/2026: Opus + trần 16k token ra → cổng tiền ước theo giá niêm yết ~9.100₫/tập, vượt ngưỡng tự chạy. */
+export const MO_HINH_PHAN_RA = 'claude-sonnet-5-5';
+/** Trần token ra theo số shot (mỗi shot ~150 token dung + danh sách thành phần ~6k), kẹp 16k — đủ cho tập dài, không đặt trần thừa làm ước giá phình. */
+export const tranTokenPhanRa = (soShot: number) => Math.min(16000, 6000 + 150 * soShot);
 /** Nhóm look-book (khớp KHOA_LOOK ở bo-set-3d.ts — giữ cạnh đây cho phần thuần dùng được cả phía trình duyệt). */
 export const NHOM_LOOK = ['trang_phuc', 'toc', 'trang_diem', 'do_deo', 'vet', 'trang'] as const;
 const LA_LOOK = new Set<string>(NHOM_LOOK);

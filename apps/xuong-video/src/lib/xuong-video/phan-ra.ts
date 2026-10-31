@@ -8,7 +8,7 @@ import { boiCanhTap, ghiTienChu, kemBienThe, mapCanh, mapNhanVat, type Db, type 
 import { chupTruoc } from './hoan-tac';
 import { docKinhThanh, giaAnhCents, giaChuUoc, type NhanVat } from './kieu';
 import { VND_MOI_USD } from './cong-ai';
-import { PhanRaSchema, HE_PHAN_RA, PHIEN_PHAN_RA, taPhanRa, bamPhanRa, keHoach, lienKetShot, baoCaoChuanBi, type BaoCaoChuanBi, type PhanRaTapLuu } from './phan-ra-thuan';
+import { PhanRaSchema, HE_PHAN_RA, PHIEN_PHAN_RA, MO_HINH_PHAN_RA, tranTokenPhanRa, taPhanRa, bamPhanRa, keHoach, lienKetShot, baoCaoChuanBi, type BaoCaoChuanBi, type PhanRaTapLuu } from './phan-ra-thuan';
 
 type Kq<T> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -31,7 +31,7 @@ export async function phanRaTapDb(db: Db, tapId: number, o: { ep?: boolean; nguo
   const phimId = bc.tap.phim_id;
   const tenPhim = String(((await db.execute(sql`SELECT ten FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[])[0]?.ten ?? '');
   const { user, ma } = taPhanRa({ tenPhim, loai: bc.loai, phongCach: kt.phong_cach, tap: bc.tap, tomTatTruoc: bc.tapTruoc, nhanVat: bc.nhanVat, canh });
-  const kq = await sinhJson({ schema: PhanRaSchema, system: HE_PHAN_RA, user, model: kt.mo_hinh_chu, max_tokens: 16000, ten: 'phân rã kịch bản' });
+  const kq = await sinhJson({ schema: PhanRaSchema, system: HE_PHAN_RA, user, model: MO_HINH_PHAN_RA, max_tokens: tranTokenPhanRa(canh.length), ten: 'phân rã kịch bản' });
   if (!kq.ok) return loi(`phân rã hỏng: ${kq.loi}`);
   await ghiTienChu(db, phimId, `Phân rã kịch bản · tập ${bc.tap.so}`, kq.model, kq.tokens);
   const nguoi = o.nguoi ?? 'phân rã kịch bản';
@@ -76,19 +76,19 @@ export async function phanRaTapDb(db: Db, tapId: number, o: { ep?: boolean; nguo
 export type Gia = { cents: number; vnd: number };
 const gia = (cents: number): Gia => ({ cents: Math.round(cents * 1000) / 1000, vnd: Math.round((cents / 100) * VND_MOI_USD) });
 /** Giá ƯỚC một lượt phân rã từ độ dài chữ đầu vào (theo đường sẽ đi — ckey trước): token vào ≈ ký tự / 3 + danh sách thành phần, ra ≈ 6k. */
-export const uocPhanRa = (model: string, kyTu: number): Gia => gia(giaChuUoc(model, Math.ceil(kyTu / 3) + 2500, 6000));
+export const uocPhanRa = (kyTu: number, soShot: number): Gia => gia(giaChuUoc(MO_HINH_PHAN_RA, Math.ceil(kyTu / 3) + 2500, tranTokenPhanRa(soShot)));
 
 export type BaoCaoPhim = BaoCaoChuanBi & { model: string; /** giá ước phân rã mỗi tập có shot */ uoc: Record<number, Gia>; /** giá ước 1 ảnh mẫu theo model ảnh của phim (nút Sinh hết ảnh thiếu) */ gia_anh: Gia };
 /** Báo cáo chuẩn bị cả phim (đọc DB, 0đ) + giá ước phân rã cho tập chưa / cũ. */
 export async function baoCaoChuanBiDb(db: Db, phimId: number): Promise<BaoCaoPhim | null> {
   const p = ((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as Row[])[0];
   if (!p) return null;
-  const kt = docKinhThanh(p.kinh_thanh as never); const model = kt.mo_hinh_chu;
+  const kt = docKinhThanh(p.kinh_thanh as never); const model = MO_HINH_PHAN_RA;
   const tap = ((await db.execute(sql`SELECT id, so, ten, kich_ban, phan_ra FROM xv_tap WHERE phim_id = ${phimId} ORDER BY so`)) as unknown as Row[])
     .map((r) => ({ id: Number(r.id), so: Number(r.so), ten: String(r.ten ?? ''), kich_ban: String(r.kich_ban ?? ''), phan_ra: (r.phan_ra ?? null) as PhanRaTapLuu | null }));
   const canh = ((await db.execute(sql`SELECT c.* FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE t.phim_id = ${phimId}`)) as unknown as Row[]).map((r) => ({ ...mapCanh(r), tap_id: Number(r.tap_id) }));
   const bc = baoCaoChuanBi({ tap, canh, nhanVat: await nvPhim(db, phimId) });
   const uoc: Record<number, Gia> = {};
-  for (const t of bc.tap) if (t.trang_thai !== 'trong') uoc[t.id] = uocPhanRa(model, t.ky_tu);   // cả tập đã xong (nút chạy lại cũng ghi giá)
+  for (const t of bc.tap) if (t.trang_thai !== 'trong') uoc[t.id] = uocPhanRa(t.ky_tu, t.so_shot);   // cả tập đã xong (nút chạy lại cũng ghi giá)
   return { ...bc, model, uoc, gia_anh: gia(giaAnhCents(kt.mo_hinh_anh)) };
 }

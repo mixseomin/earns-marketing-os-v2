@@ -103,7 +103,8 @@ if (a.includes('--nap')) {
   const DANG_TAT_CA = ['lam-tuong', 'dung-sai', 'top-n', 'so-sanh', 'spot-the-fake', 'cau-do-meo', 'vat-lac-loai', 'canh-dong', 'giai-thich-giong', ...(dl ? ['cau-noi-theo-nuoc'] : [])];
   const DANG_VIDEO = lay('--dang') ? DANG_TAT_CA.filter((d) => d === lay('--dang')) : DANG_TAT_CA;
   if (!DANG_VIDEO.length) { console.error(`--dang ${lay('--dang')} không phải dạng video (${DANG_TAT_CA.join(', ')})`); process.exit(1); }
-  const nhom = (((await db.execute(sql`SELECT goc_sp FROM xv_may WHERE ma = ${ma}`)) as unknown as { goc_sp: number[] | null }[])[0]?.goc_sp ?? []).map(Number);
+  const dongMay = ((await db.execute(sql`SELECT goc_sp, hook_sp FROM xv_may WHERE ma = ${ma}`)) as unknown as { goc_sp: number[] | null; hook_sp: number[] | null }[])[0];
+  const nhom = (dongMay?.goc_sp ?? []).map(Number), nhomHook = [...new Set([...nhom, ...(dongMay?.hook_sp ?? []).map(Number)])];   // hook_sp: nhóm lân cận CHỈ để mượn hook (migration 0382)
   if (!nhom.length) { console.error(`máy ${ma} chưa gắn nhóm góc spy (goc_sp)`); process.exit(1); }
   const fs = await import('node:fs'), url = process.env.SPY_DATABASE_URL ?? fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13);
   const spy = (await import('postgres')).default(url!, { max: 1, prepare: false });
@@ -118,7 +119,7 @@ if (a.includes('--nap')) {
     for (const r of rows) { const chu = String(r.dong ?? '').replace(/\s+/g, ' ').trim(), k = chu.toLowerCase(); if (chu.length < 20 || chu.length > 140 || thay.has(k) || /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu) !== vi) continue; thay.add(k); ra.push({ id: String(r.library_id), chu, ngay: Number(r.ngay) || 0, page: String(r.page_ten ?? '') }); }
     return ra; };
   const hookNhom = hookTu((await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta
-    where bat_dau is not null and noi_dung ~* any(select replace(lien_quan, '\\b', '\\y') from goc_sp where id = any(${nhom}) and lien_quan is not null)
+    where bat_dau is not null and noi_dung ~* any(select replace(lien_quan, '\\b', '\\y') from goc_sp where id = any(${nhomHook}) and lien_quan is not null)
     order by (coalesce(lan_cuoi, now()) - bat_dau) desc, bien_the desc nulls last limit 200`) as never).slice(0, 40);
   const qcGoc = [...new Set(gocs.flatMap((g) => g.qc_ids ?? []))];
   const hookCuaQc = new Map(hookTu(qcGoc.length ? (await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta where library_id = any(${qcGoc})`) as never : []).map((h) => [h.id, h]));
@@ -132,7 +133,7 @@ if (a.includes('--nap')) {
   await spy.end();
   console.log(`· hook QC gốc: ${hookNhom.length} hook nhóm (chạy lâu nhất ${hookNhom[0]?.ngay ?? 0} ngày), ${hookCuaQc.size} QC gắn góc, ${hookDaDung.size} đã dùng ở bài đang chờ`);
   // KHÔNG có hook QC thì DỪNG: bài hook tự viết bị Phòng Nội dung chặn (cham-dang luật 8) — sinh ra là đốt tiền (31/10: Sidecue / MilitaryCalc / Giỗ Chạp 17 bài SỬA LẠI)
-  if (!hookNhom.length && !hookCuaQc.size) { console.error(`✗ máy ${ma}: nhóm spy ${nhom.join(', ')} chưa có QC nào khớp làm hook — cần cào QC cho nhóm (hoặc gắn nhóm lân cận) trước khi sinh`); process.exit(1); }
+  if (!hookNhom.length && !hookCuaQc.size) { console.error(`✗ máy ${ma}: nhóm spy ${nhomHook.join(', ')} (góc + hook_sp) chưa có QC nào khớp làm hook — cần cào QC cho nhóm (hoặc gắn nhóm lân cận) trước khi sinh`); process.exit(1); }
   if (tt.length && tt.every((t) => /^VN/i.test(t))) { (sp as { ngon_ngu?: 'vi' }).ngon_ngu = 'vi'; DANG_VIDEO.splice(0, DANG_VIDEO.length, ...DANG_VIDEO.filter((d) => d !== 'giai-thich-giong' && d !== 'cau-noi-theo-nuoc')); console.log('· máy thị trường VN: viết tiếng Việt'); }
   const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.dang->>'title' AS title FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; title: string | null }[];
   const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);

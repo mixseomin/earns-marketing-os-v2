@@ -573,6 +573,28 @@ export async function xoaBienThe(id: number): Promise<Kq> {
   return { ok: true, data: undefined };
 }
 
+// 📍 MỐC XUẤT HIỆN của mỗi biến thể: shot ĐẦU TIÊN (theo tập.so, thu_tu) có dùng nó trong c.bien_the + số shot dùng + dải tập. Cho bảng Thiết kế sản xuất
+// hiện "vết cafe xuất hiện từ shot #N, tập 1" — thấy ngay look nào bật từ mốc nào, ở tập nào. Chỉ đọc, không tốn tiền.
+export async function mocBienThe(phimId: number): Promise<Record<number, { tap_so: number; thu_tu: number; canh: string; so_shot: number; cac_tap: number[] }>> {
+  const db = getDb();
+  if (!db) return {};
+  const rows = (await db.execute(sql`
+    SELECT b.id,
+      (array_agg(t.so ORDER BY t.so, c.thu_tu))[1] AS tap_so,
+      (array_agg(c.thu_tu ORDER BY t.so, c.thu_tu))[1] AS thu_tu,
+      (array_agg(coalesce(c.canh, '') ORDER BY t.so, c.thu_tu))[1] AS canh,
+      count(*)::int AS so_shot,
+      array_agg(DISTINCT t.so) AS cac_tap
+    FROM xv_bien_the b
+    JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id AND v.phim_id = ${phimId}
+    JOIN xv_canh c ON c.bien_the @> to_jsonb(b.id) AND coalesce(c.nhanh, '') IN ('', 'A')
+    JOIN xv_tap t ON t.id = c.tap_id
+    GROUP BY b.id`)) as unknown as Row[];
+  const out: Record<number, { tap_so: number; thu_tu: number; canh: string; so_shot: number; cac_tap: number[] }> = {};
+  for (const r of rows) out[n(r.id)] = { tap_so: n(r.tap_so), thu_tu: n(r.thu_tu), canh: s(r.canh), so_shot: n(r.so_shot), cac_tap: arr<number>(r.cac_tap).map(Number).sort((a, b) => a - b) };
+  return out;
+}
+
 /** Claude đọc kịch bản các tập → đề xuất biến thể cần cho anchor này → tạo luôn (chưa có ảnh). */
 export async function goiYAIBienThe(nhanVatId: number): Promise<Kq<number>> {
   const db = getDb();

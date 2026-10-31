@@ -7,7 +7,7 @@ import { SoLienMachXem } from './so-lien-mach-ui';
 import { moNgan } from './ngan-chung';
 import { ImageAttach } from './image-attach';
 import { GIONG, moHinhAm } from '@/lib/xuong-video/am-thanh';
-import { luuNhanVat, xoaNhanVat, sinhAnhMau, taiAnhLen, datAnhChinh, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, goiYAIAnchor, goiYAIBoAnchor, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, doiChieuAnchor } from '@/lib/actions';
+import { luuNhanVat, xoaNhanVat, sinhAnhMau, taiAnhLen, datAnhChinh, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, goiYAIAnchor, goiYAIBoAnchor, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, doiChieuAnchor, mocBienThe } from '@/lib/actions';
 import { LOAI_NHAN_VAT, NHOM_BIEN_THE, docKinhThanh, giaAnhCents, tien, gioVN, type NhanVat, type BienThe, type KinhThanh, type LoaiNhanVat } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, O, Pill, Seg, Nut, Xoa, Loi, AnhNho, DangSinh, Menu, MucMenu, mono, goiAction } from './ui';
@@ -92,6 +92,9 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
   const tapCo = [...new Set(nhanVat.flatMap((v) => (v.bien_the ?? []).flatMap((b) => b.dung_tap ?? [])))].sort((x, y) => x - y);
   const [locTap, setLocTap] = useState<number | null>(null);
   const hopTapHien = (b: BienThe) => locTap == null || !b.dung_tap?.length || b.dung_tap.includes(locTap);
+  // Mốc xuất hiện của từng biến thể (shot đầu + tập + số shot) — để hiện "vết cafe · tập 1 · 📍từ #N" ngay trên bàn Thiết kế sản xuất.
+  const [moc, setMoc] = useState<Record<number, { tap_so: number; thu_tu: number; canh: string; so_shot: number; cac_tap: number[] }>>({});
+  useEffect(() => { let s = true; void mocBienThe(phimId).then((m) => { if (s) setMoc(m); }); return () => { s = false; }; }, [phimId, nhanVat]);
   // Bấm là đẩy vào hàng đợi nền rồi trả ngay → bấm liên tục nhiều anchor được; trạng thái "đang sinh" đọc từ máy chủ.
   // gui[id] = số ảnh gốc lúc bấm lần đầu của mạch này → nút hiện "đang gửi" ngay khi bấm, xong thì báo đã thêm mấy ảnh.
   const [gui, setGui] = useState<Record<number, { goc: number; cho: number }>>({});
@@ -177,14 +180,26 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
               return (
                 <div style={{ display: 'grid', gap: 5 }}>
                   {nhoms.map((g) => (
-                    <div key={g.key} style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                      <span style={{ ...mono, minWidth: 92, color: 'var(--fg-3)' }}>{g.label}</span>
-                      {btHien.filter((b) => b.nhom === g.key).map((b) => b.anh_url
-                        ? <AnhNho key={b.id} url={b.anh_url} kich={48} title={`${g.label}: ${b.ten}${b.dung_tap?.length ? ` · tập ${b.dung_tap.join(',')}` : ''}`} onClick={() => setBtMo(v.id)} />
-                        : <span key={b.id} title={`${g.label}: ${b.ten}${b.dung_tap?.length ? ` · tập ${b.dung_tap.join(',')}` : ''} — chưa có ảnh mẫu, bấm để làm`} onClick={() => setBtMo(v.id)}
-                            style={{ cursor: 'pointer', fontSize: 10, lineHeight: '20px', padding: '0 7px', borderRadius: 4, border: `1px dashed ${dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--amber)'}`, color: dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--amber)', whiteSpace: 'nowrap', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {dangSinh.bienThe.includes(b.id) ? '⏳ ' : '📷 '}{b.ten}
-                          </span>)}
+                    <div key={g.key} style={{ display: 'flex', gap: 6, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                      <span style={{ ...mono, minWidth: 92, color: 'var(--fg-3)', lineHeight: '48px' }}>{g.label}</span>
+                      {btHien.filter((b) => b.nhom === g.key).map((b) => {
+                        const mc = moc[b.id];
+                        // Nhãn dưới món: TẬP (từ dung_tap, hoặc suy từ mốc nếu chỉ một tập) + MỐC "từ #N" (shot đầu tiên dùng — thấy vết bật từ đâu).
+                        const tapTxt = b.dung_tap?.length ? `tập ${b.dung_tap.join(',')}` : (mc && mc.cac_tap.length === 1 ? `tập ${mc.cac_tap[0]}` : '');
+                        const cap = [tapTxt, mc ? `📍từ #${mc.thu_tu}` : ''].filter(Boolean).join(' · ');
+                        const tip = `${g.label}: ${b.ten}${b.dung_tap?.length ? ` · gắn tập ${b.dung_tap.join(',')}` : ''}${mc ? ` — xuất hiện từ shot #${mc.thu_tu} (tập ${mc.tap_so}${mc.canh ? `, ${mc.canh}` : ''}), dùng ${mc.so_shot} shot` : ' — chưa dùng ở shot nào'}`;
+                        return (
+                          <span key={b.id} style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2, maxWidth: 160 }}>
+                            {b.anh_url
+                              ? <AnhNho url={b.anh_url} kich={48} title={tip} onClick={() => setBtMo(v.id)} />
+                              : <span title={`${tip} — chưa có ảnh mẫu, bấm để làm`} onClick={() => setBtMo(v.id)}
+                                  style={{ cursor: 'pointer', fontSize: 10, lineHeight: '20px', padding: '0 7px', borderRadius: 4, border: `1px dashed ${dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--amber)'}`, color: dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--amber)', whiteSpace: 'nowrap', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {dangSinh.bienThe.includes(b.id) ? '⏳ ' : '📷 '}{b.ten}
+                                </span>}
+                            {cap && <span style={{ fontSize: 9, color: 'var(--fg-4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 158 }}>{cap}</span>}
+                          </span>
+                        );
+                      })}
                     </div>
                   ))}
                 </div>

@@ -113,7 +113,7 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
   const chonShot = (id: number) => { setChonS(String(id)); setAnhS(''); };
   return (
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', minWidth: 0 }}>
-      <CotCay khoa="ds-shot" macDinh={250} min={150}>
+      <CotCay khoa="ds-shot" macDinh={220} min={150}>
         <Seg value={loc} onChange={setLoc} options={[
           { value: 'tat_ca', label: 'Tất cả', title: `${ds.length} shot` },
           { value: 'lech', label: 'Có lệch', title: `${ds.filter((x) => x.lech.length).length} shot có ảnh đang dùng lệch yêu cầu` },
@@ -142,14 +142,14 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
         </div>
         <div style={{ display: 'flex', gap: 12, alignItems: 'stretch', flex: 1, minHeight: 0 }}>
           {/* CÂY THÀNH PHẦN + dấu đối chiếu — cuộn riêng */}
-          <CotKeo khoa="phieu-cay" macDinh={400} min={240} max={1000}><div style={{ height: '100%', overflowY: 'auto', paddingRight: 8 }}>
+          <CotKeo khoa="phieu-cay" macDinh={300} min={220} max={1000}><div style={{ height: '100%', overflowY: 'auto', paddingRight: 8 }}>
             {thua.map((r, i) => <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'baseline', fontSize: 11.5, minWidth: 0 }}><Dau r={r} /><span style={{ whiteSpace: 'nowrap' }}>{r.thanh_phan}</span><AnhThay r={r} /></div>)}
             <Nut x={{ nhan: `Shot #${p.thu_tu}`, loai: 'khac', chi_tiet: p.chung.map((r) => ({ chu: `${r.thanh_phan}: ${r.du_kien}`, khoa: r.thanh_phan })), con: p.cay }} cap={0} onMo={(ma, ten) => moNgan({ loai: 'thanh-phan', phimId, ma, ten })} tra={tra} />
           </div></CotKeo>
           {/* CỘT PHẢI chia tab: Ảnh đã sinh · Bố trí 2D/3D · Diễn biến */}
-          <div style={{ flex: '1 1 160px', minWidth: 120, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ flex: '1 1 220px', minWidth: 180, display: 'flex', flexDirection: 'column', gap: 6 }}>
             <Seg value={tab} onChange={setTab} options={[
-              { value: 'anh', label: 'Ảnh đã sinh', title: `${p.lich_su.length} lần sinh — bấm ảnh để gắn dấu đối chiếu theo ảnh đó` },
+              { value: 'anh', label: 'Ảnh', title: `${p.lich_su.length} lần sinh — bấm ảnh để gắn dấu đối chiếu theo ảnh đó` },
               { value: 'bo_tri', label: 'Bố trí', title: 'Sơ đồ 2D / khung 3D theo máy của shot' },
               { value: 'dien', label: 'Diễn biến', title: 'Hành động · khung mở · khung kết · thoại' }]} />
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>

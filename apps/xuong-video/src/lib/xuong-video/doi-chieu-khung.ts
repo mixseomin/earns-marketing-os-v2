@@ -145,7 +145,7 @@ export function sietTuLech(chieu: DongDoiChieu[]): string {
 // Dự kiến (B3) lấy thẳng từ DB/sổ đồ vật; thực tế lấy lá enum bóc tách; khác trị = LỆCH dứt khoát, không cần model. Các lá còn lại giữ nguyên phán của model.
 export function apDungSoBang(chieu: DongDoiChieu[], c: Canh, nhanVat: NhanVat[], kg: KhongGian | null | undefined, luc: 'dau' | 'cuoi', k: BocTachKhung): DongDoiChieu[] {
   const lucKg = luc === 'cuoi' ? 'ket' : 'dau';
-  const khop = (a: string, b: string) => (b.includes(a) || a.includes(b));   // tên gần đúng (ai của ảnh đã map về tên nhân vật)
+  const khop = (a: string, b: string) => !!a && !!b && (b.includes(a) || a.includes(b));   // tên gần đúng (ai của ảnh đã map về tên nhân vật); null-safe: bóc có thể thiếu ai/ten
   const nguoiTT = (ten: string) => k.nguoi.find((n) => khop(ten, n.ai));
   const doTT = (ten: string) => k.dao_cu.find((d) => khop(ten, d.ten));
   const viTriMan = (ten: string) => { if (!kg) return ''; const x = viTri(kg, c, ten, lucKg); return x == null ? '' : x < -0.33 ? 'trái' : x > 0.33 ? 'phải' : 'giữa'; };

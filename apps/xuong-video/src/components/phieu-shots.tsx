@@ -6,11 +6,12 @@ import { useEffect, useState } from 'react';
 import { phieuShotsTap } from '@/lib/actions';
 import type { NutPhieu, PhieuShot } from '@/lib/xuong-video/phieu-shots';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
+import { gioVN } from '@/lib/xuong-video/kieu';
 import { moNgan } from './ngan-chung';
 import { Seg, mono } from './ui';
 
 const ICON: Record<NutPhieu['loai'], string> = { boi_canh: '🏛', cau_kien: '▫', nhan_vat: '👤', look: '👗', dao_cu: '📦', khac: '·' };
-type Xem = '2d' | '3d' | 'kf';
+type Xem = '2d' | '3d';
 
 function Nut({ x, cap, onMo }: { x: NutPhieu; cap: number; onMo?: (k: string) => void }) {
   return (
@@ -27,6 +28,33 @@ function Nut({ x, cap, onMo }: { x: NutPhieu; cap: number; onMo?: (k: string) =>
   );
 }
 
+/** ẢNH ĐÃ SINH của shot: mới nhất to (hoặc ảnh vừa bấm), các lần trước nhỏ — ✓ = ảnh đang chọn làm keyframe. */
+function LichSuAnh({ ds }: { ds: PhieuShot['lich_su'] }) {
+  const [to, setTo] = useState<string | null>(null);
+  if (!ds.length) return <span style={mono}>Shot chưa sinh ảnh nào</span>;
+  const lon = ds.find((x) => x.url === to) ?? ds[0]!;
+  const nhan = (x: PhieuShot['lich_su'][number], i: number) => `${i === 0 ? 'mới nhất' : `lần ${ds.length - i}`}${x.luc ? ` · ${gioVN(x.luc)}` : ''}${x.chon ? ' · ✓ đang chọn' : ''}`;
+  return (
+    <div style={{ display: 'grid', gap: 6 }}>
+      <b style={{ fontSize: 12 }}>🖼 Ảnh đã sinh <span style={mono} title={`${ds.length} lần sinh`}>({ds.length})</span></b>
+      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <figure style={{ margin: 0, display: 'grid', gap: 3 }}>
+          <a href={lon.url} target="_blank" rel="noreferrer" title="Mở ảnh gốc"><img src={anhNho(lon.url, 640)} alt="" style={{ width: 300, borderRadius: 4, outline: lon.chon ? '2px solid var(--lime)' : undefined }} /></a>
+          <figcaption style={mono}>{nhan(lon, ds.indexOf(lon))}</figcaption>
+        </figure>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 200, alignContent: 'flex-start' }}>
+          {ds.map((x, i) => x === lon ? null : (
+            <button key={x.url} type="button" onClick={() => setTo(x.url)} title={`${nhan(x, i)} — bấm để xem to`} style={{ padding: 0, border: 0, background: 'none', display: 'grid', gap: 2, width: 96 }}>
+              <img src={anhNho(x.url, 160)} alt="" style={{ width: 96, borderRadius: 3, outline: x.chon ? '2px solid var(--lime)' : undefined, opacity: 0.9 }} />
+              <span style={{ ...mono, fontSize: 9.5 }}>{i === 0 ? 'mới nhất' : `lần ${ds.length - i}`}{x.luc ? ` · ${gioVN(x.luc, { chiGio: true })}` : ''}{x.chon ? ' ✓' : ''}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function PhieuShots({ tapId, onMoNut, onXemShot }: { tapId: number; onMoNut?: (k: string) => void; onXemShot?: (canhId: number) => void }) {
   const [ds, setDs] = useState<PhieuShot[] | null>(null);
   const [chon, setChon] = useState<number | null>(null);
@@ -38,7 +66,6 @@ export function PhieuShots({ tapId, onMoNut, onXemShot }: { tapId: number; onMoN
   const coXem: { value: Xem; label: string; title: string }[] = [
     ...(p.svg ? [{ value: '2d' as const, label: '2D sơ đồ', title: 'Khung phác chiếu từ sơ đồ cảnh theo máy của shot: tường, cửa, cấu kiện, chỗ đứng + hướng nhìn từng người' }] : []),
     ...(p.anh3d ? [{ value: '3d' as const, label: '3D', title: 'Khung Blender của shot (bộ set 3D) — bấm ảnh để xoay xem' }] : []),
-    ...(p.keyframe ? [{ value: 'kf' as const, label: 'Keyframe', title: 'Ảnh đã sinh hiện tại — so với phiếu' }] : []),
   ];
   const xemDung = coXem.some((o) => o.value === xem) ? xem : coXem[0]?.value;
   return (
@@ -88,10 +115,10 @@ export function PhieuShots({ tapId, onMoNut, onXemShot }: { tapId: number; onMoN
             {xemDung === '2d' && p.svg && <div style={{ width: '100%', maxWidth: 300 }} title="Khung phác bố trí: mỗi bóng màu là một người, mũi tên là hướng nhìn" dangerouslySetInnerHTML={{ __html: p.svg.replace('<svg', '<svg style="width:100%;height:auto;border-radius:4px"') }} />}
             {xemDung === '3d' && p.anh3d && <button type="button" title="Mở bộ set 3D đúng máy shot" onClick={() => moNgan({ loai: 'bo-set', tapId, canhId: p.id })} style={{ padding: 0, border: 0, background: 'none' }}>
               <img src={anhNho(p.anh3d, 320)} alt="" style={{ width: '100%', maxWidth: 300, borderRadius: 4 }} /></button>}
-            {xemDung === 'kf' && p.keyframe && <img src={anhNho(p.keyframe, 320)} alt="" style={{ width: '100%', maxWidth: 300, borderRadius: 4 }} />}
             {!coXem.length && <span style={mono}>Shot chưa có sơ đồ cảnh / khung 3D — chưa có bố trí để xem</span>}
           </div>
         </div>
+        <LichSuAnh key={p.id} ds={p.lich_su} />
       </div>
     </div>
   );

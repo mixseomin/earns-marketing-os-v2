@@ -21,6 +21,7 @@ export type PhieuShot = {
   /** 2D: khung phác bố trí chiếu từ sơ đồ cảnh theo máy của shot (svgPhac) — null khi shot chưa có sơ đồ */ svg: string | null;
   /** 3D: khung màu / xám Blender của shot (xv_canh.khung_xam) — null khi shot chưa dựng 3D */ anh3d: string | null;
   keyframe: string | null;
+  /** MỌI ảnh keyframe từng sinh của shot (ứng viên keyframe_uv + ảnh đang chọn), MỚI NHẤT TRƯỚC; luc = giờ job sinh ra nó (null = không còn job) */ lich_su: { url: string; luc: string | null; chon: boolean }[];
   /** lệch của keyframe HIỆN TẠI so với phiếu (bóc tách + đối chiếu đã lưu, chỉ khi đúng ảnh đang chọn) */ lech: string[];
   /** thiếu thông tin để sinh: lá "không khai" / "không tả" — phải điền trước khi sinh */ thieu: string[];
 };
@@ -39,6 +40,8 @@ export async function phieuShotsTapDb(db: Db, tapId: number): Promise<PhieuShot[
   const theoId = new Map(nhanVat.map((v) => [v.id, v]));
   const btTheoId = new Map(nhanVat.flatMap((v) => (v.bien_the ?? []).map((b) => [b.id, { b, v }] as const)));
   const cauKien = nhanVat.filter((v) => v.loai === 'cau_kien');
+  // giờ sinh của từng ảnh: job ảnh xong của các shot tập này (output_url → created_at) — để xếp lịch sử mới nhất trước
+  const lucAnh = new Map(((await db.execute(sql`SELECT j.output_url, j.created_at FROM xv_job j JOIN xv_canh c ON c.id = j.canh_id WHERE c.tap_id = ${tapId} AND j.loai = 'anh' AND j.trang_thai = 'xong' AND j.output_url IS NOT NULL`)) as unknown as Row[]).map((r) => [String(r.output_url), new Date(r.created_at as string).toISOString()]));
 
   return chinh.map((c): PhieuShot => {
     const kg = kgCua(kgt, c);
@@ -81,6 +84,9 @@ export async function phieuShotsTapDb(db: Db, tapId: number): Promise<PhieuShot[
       id: c.id, thu_tu: c.thu_tu, nhanh: c.nhanh ?? '', co_canh: c.ky_thuat?.co_canh ?? '', goc_may: c.goc_may, hanh_dong: c.hanh_dong,
       mo: c.dan_dung?.mo ?? '', ket: c.dan_dung?.ket ?? '', thoai: (c.thoai ?? []).filter((d) => d.loi?.trim()).map((d) => `${d.nhan_vat}: "${d.loi}"`).join(' · ') || c.loi_thoai || '',
       chung: dk.filter((r) => !dung.has(r)), cay, svg, anh3d, keyframe: c.keyframe_url, lech, thieu,
+      lich_su: [...new Set([...(c.keyframe_uv ?? []), ...(c.keyframe_url ? [c.keyframe_url] : [])])]
+        .map((url, i) => ({ url, luc: lucAnh.get(url) ?? null, chon: url === c.keyframe_url, i }))
+        .sort((a, b) => (b.luc ?? '').localeCompare(a.luc ?? '') || b.i - a.i).map(({ i: _i, ...x }) => x),
     };
   });
 }

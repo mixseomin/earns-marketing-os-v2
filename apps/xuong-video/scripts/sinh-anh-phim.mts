@@ -4,7 +4,7 @@
 //   --tiep-job   : đẩy lại job ảnh treo của tập (tiến trình chạy nó đã chết) bằng đúng đầu vào đã lưu — không chạy lại bước đã trả tiền.
 //   --anchor     : sinh ảnh gốc cho anchor chưa có ảnh (sinh-anh.sinhAnhGoc), đợi xong.
 //   --bien-the   : sinh ảnh tham chiếu cho biến thể chưa có ảnh (sinh-anh.sinhAnhBienTheDb — sổ trang phục), đợi xong.
-//   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước. --cong-anh=<cổng:model> = vẫn nhiều bước, bước Nano qua cổng đó. --lam-lai = sinh lại mọi shot (ảnh cũ giữ làm ứng viên). --thu = sinh thử (bỏ cổng cấp tập, giữ cổng prompt/ngôn ngữ/thành phần).
+//   --keyframe   : sinh 1 keyframe cho mọi shot chưa có (sinh-anh.sinhKeyframeCanh), đợi xong. --nguon=<cổng:model> = đúng nguồn đó, một bước. --cong-anh=<cổng:model> = vẫn nhiều bước, bước Nano qua cổng đó. --lam-lai = sinh lại mọi shot (ảnh cũ giữ làm ứng viên). --thu = sinh thử (bỏ cổng cấp tập, giữ cổng prompt/ngôn ngữ/thành phần). Sinh xong TỰ chạy vòng tự-sửa vong-sua.mts (--vong-sua=N, --khong-sua để bỏ).
 //   --nhac=<model> [--mo-ta-nhac="…"] : sinh MỘT bài nhạc nền cả tập (dài = giây phát của nhánh A), đợi xong — TỐN TIỀN.
 //   --xuat       : dựng MP4 thử (0đ, ffmpeg) → R2 + ghi vào tập như nút ⬇ Xuất. QC có lời dẫn mà chưa có nhạc nền → bị chặn;
 //                  --thieu-nhac = vẫn xuất làm bản nháp (gắn cờ đỏ "thiếu nhạc nền").
@@ -149,6 +149,17 @@ if (arg('keyframe') && canhThieu.length) {
   if (lamLai) for (const c of canhThieu) if (c.keyframe_url) await db.execute(sql`UPDATE xv_canh SET keyframe_url = ${String(c.keyframe_url)} WHERE id = ${c.id} AND keyframe_url IS NULL`);
   const loi = await q(sql`SELECT nhan, loi FROM xv_job WHERE id = ANY(${`{${jobs.join(',')}}`}::int[]) AND trang_thai = 'loi'`);
   for (const l of loi) console.log(`  ✗ ${l.nhan}: ${String(l.loi).slice(0, 160)}`);
+  // VÒNG TỰ-SỬA ngay sau khi sinh (anh 31/10/2026: "vị trí các nhân vật trong không gian thang máy cứ lung tung"): mỗi khung vừa sinh được bóc + đối chiếu
+  // với sơ đồ cảnh / look (vị trí màn, hướng nhìn / quay lưng, số người, áo, vết…) → lệch thì siết prompt nguồn và sinh lại (≤ --vong-sua vòng, mặc định 2),
+  // giữ bản ít lệch nhất. Một lõi: scripts/vong-sua.mts --tap. --khong-sua = bỏ qua.
+  if (!arg('khong-sua') && tapId && jobs.length) {
+    const vongSua = Number((process.argv.find((a) => a.startsWith('--vong-sua=')) ?? '').slice(11) || 2);
+    const chiSua = canhThieu.map((c) => Number(c.thu_tu)).join(',');
+    console.log(`\n🔁 vòng tự-sửa ${canhThieu.length} shot (≤ ${vongSua} vòng/shot)…`);
+    const { spawnSync } = await import('node:child_process');
+    const r = spawnSync(process.execPath, [...process.execArgv, new URL('./vong-sua.mts', import.meta.url).pathname, `--tap=${tapId}`, `--chi=${chiSua}`, `--vong=${vongSua}`, '--ghi'], { env: process.env, encoding: 'utf8', maxBuffer: 64 << 20 });
+    process.stdout.write(r.stdout ?? ''); if (r.status) process.stdout.write(r.stderr ?? '');
+  }
 }
 const moNhac = (process.argv.find((a) => a.startsWith('--nhac=')) ?? '').slice(7);
 if (moNhac && tapId) {

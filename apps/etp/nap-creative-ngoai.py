@@ -25,7 +25,8 @@ def main():
         if not ch["bat"] and "--kho" not in sys.argv: print(json.dumps({"tat": True, "ghi": "etp.cau_hinh.cham_doi.bat = false"})); return
         ids = [int(x) for x in EA._q(f"""select c.creative_id from etp.camp_ngoai c join etp.tai_khoan t using (ad_account_id) left join etp.so_ngay_ngoai n using (camp_id)
                 where not t.nha and c.trang_thai = 'ACTIVE' and c.creative_id > 0
-                  and not exists (select 1 from etp.cham h where h.creative_id = c.creative_id) and not exists (select 1 from etp.cham_hang q where q.creative_id = c.creative_id)
+                  and not exists (select 1 from etp.cham h where h.creative_id = c.creative_id) and not exists (select 1 from etp.cham_hang q where q.creative_id = c.creative_id
+                                  and not (q.trang_thai = 'loi' and q.loi like 'creative không có trong kho%' and q.luc < now() - interval '1 hour'))
                 group by 1 having coalesce(sum(n.chi), 0) >= {float(ch['chi'])} order by sum(n.thu) - sum(n.chi) desc limit {int(ch['moi_luot'])}""").split()]
         if "--kho" in sys.argv: print(json.dumps({"se_nap": ids, "cau_hinh": ch})); return
         if not ids: print(json.dumps({"nap": [], "xep_cham": True})); return
@@ -55,7 +56,8 @@ def main():
             EA._q(f"""insert into etp.cham_hang (creative_id, nguon, ai)
                       select x.creative_id, 'ngoai', 'nap-creative-ngoai: ' || {(chr(39) + 'chấm creative mọi thành viên' + chr(39)) if '--tu-dong' in sys.argv else chr(39) + 'creative team để lên camp tương đương' + chr(39)} from jsonb_to_recordset($J${j}$J$::jsonb) as x(creative_id int)
                       where not exists (select 1 from etp.cham c where c.creative_id = x.creative_id)
-                      on conflict (creative_id) do nothing""")
+                      on conflict (creative_id) do update set trang_thai = 'cho', loi = null, xong = null, bat_dau = null, buoc = null, luc = now()
+                      where etp.cham_hang.trang_thai = 'loi'""")   # lượt trước nạp kho hỏng → cổng chấm báo "không có trong kho"; nạp lại xong thì xếp lại (anh 31/10/2026: 8 creative đội kẹt)
     print(json.dumps({"nap": [r["creative_id"] for r in rows], "xep_cham": cham, "loi": loi}, ensure_ascii=False))
 
 if __name__ == "__main__":

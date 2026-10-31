@@ -120,5 +120,16 @@ Card chuẩn của nhà (nền tối + viền mảnh + tiêu đề kèm `// mono
   - **Boundary:** `DataTable` là `'use client'` (state cho toggle) + `columns.cell` là FUNCTION → **không truyền trực tiếp từ server component** (function không serialize qua ranh giới). Server component có bảng → tách 1 file `'use client'` build columns rồi render DataTable, truyền data thô (xem `affiliate-offer-table.tsx` ↔ `affiliate-offers-panel.tsx`).
 - **"Phím 2" = RefactorDebug** (`ui/refactor-debug.tsx`, mount ở RootProviders): outline mọi element có `data-comp` (= house primitive) + badge tên (click = copy). Không outline = hand-roll. Trang nào bấm 2 thấy trống = nội dung chưa build trên primitive.
 
+## 8. DANH SÁCH NHIỀU MỤC + XEM CHI TIẾT = MASTER-DETAIL (cây TRÁI, chi tiết PHẢI) — KHÔNG mở inline, KHÔNG full-width card xếp dọc
+
+Màn vừa LIỆT KÊ nhiều mục vừa cần XEM/SỬA chi tiết từng mục (Tuyến nhân vật/anchor, và mọi màn cùng dạng) = hai khung cạnh nhau, **không** phải lưới card to xếp dọc, **không** phải bung chi tiết inline đẩy danh sách giãn ra (anh chửi 31/10/2026: card cha full-width bỏ trống nửa dòng; bung inline kéo rộng cả trang; để trống cả mảng bên phải).
+
+- **Trái = DANH SÁCH / CÂY điều hướng:** bề rộng CỐ ĐỊNH (~400–440px), `position: sticky; top: 12; maxHeight: calc(100vh - 96px); overflowY: auto` (tự cuộn riêng, không kéo trang). Mỗi mục MỘT DÒNG gọn: ảnh nhỏ (28px) + tên + `Pill` loại + tín hiệu ngắn (số ảnh ●●○) + vài nút nhanh — **CẤM** nhồi mô tả dài vào dòng (nó kéo dòng rộng, chữ cụt, nút văng sang phải). Quan hệ cha–con (cấu kiện thuộc bối cảnh/đạo cụ) vẽ bằng thụt lề + nhánh `├─ └─`.
+- **Phải = KHUNG CHI TIẾT:** `flex: 1`, lấp phần còn lại, cao theo trang; nội dung bọc `maxWidth ~720` cho dễ đọc. Hiện chi tiết của mục đang chọn.
+- **Chọn, không mở inline:** bấm một dòng bên trái → set 1 id đang chọn (state + nên ghi URL theo §1), khung phải đổi theo. Dòng đang chọn tô viền trái accent. **MẶC ĐỊNH chọn mục ĐẦU** để khung phải không bao giờ trống trơ (đừng để placeholder nằm một mình giữa khoảng trắng mênh mông).
+- Dùng lại card/thành phần sẵn có cho khung phải (đừng dựng detail raw). Khi chi tiết là một luồng sửa/tạo nặng thì vẫn mở `Drawer` (§1) chồng lên, không thay thế khung phải.
+
+Mẫu: `components/nhan-vat.tsx` (NhanVatSection) — cây trái (dsPhang + hàm `dong`) · chi tiết phải (`the(sv)`) · `chonId = chon ?? mục đầu`.
+
 ## Vì sao context này tồn tại
 Trước đây user phải "báo lại từ đầu" mỗi lần (drawer-not-modal, select chuẩn) vì convention nằm ở recall memory (hay rớt). Nay là context auto-load theo path → áp mặc định. Gốc rule: [[feedback pack ui-primitives]] (picker_inline_crud, stacked_drawer, modal_close_outside, guarded_action_button).

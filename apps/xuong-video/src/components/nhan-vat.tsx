@@ -177,8 +177,9 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
   for (const { cha, con } of nhomCay) { dsPhang.push({ v: cha, laCon: false, cuoi: con.length === 0 }); con.forEach((c, i) => dsPhang.push({ v: c, laCon: true, cuoi: i === con.length - 1 })); }
   // MỘT DÒNG CÂY: ảnh nhỏ + tên + loại + số ảnh + nút nhanh; bấm cả dòng = mở/đóng card chi tiết (the) bung dưới.
   // MỘT DÒNG CÂY gọn (không kéo rộng): nhánh + ảnh nhỏ + tên + loại + số ảnh; bấm = chọn → khung chi tiết bên trái hiện. Nút Sửa/Sinh ngay trên dòng.
+  const chonId = chon ?? dsPhang[0]?.v.id ?? null;   // mặc định chọn mục đầu → khung chi tiết không bao giờ trống
   const dong = ({ v, laCon, cuoi }: { v: NhanVat; laCon: boolean; cuoi: boolean }) => {
-    const sel = chon === v.id;
+    const sel = chonId === v.id;
     const soDang = dangSinh.nhanVat.filter((x) => x === v.id).length + (gui[v.id]?.cho ?? 0);
     const nhan = v.anh_ref.length ? '●'.repeat(Math.min(3, v.anh_ref.length)) + '○'.repeat(Math.max(0, 3 - v.anh_ref.length)) : '○○○';
     return (
@@ -208,15 +209,15 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
       <Loi>{loi[-1]}</Loi>
       {nhanVat.length === 0 && <div style={mono}>Chưa có anchor. Phim nhiều tập BẮT BUỘC khai nhân vật ở đây trước khi tách cảnh, nếu không mỗi tập Claude sẽ tả một kiểu.</div>}
       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-        {/* KHUNG CHI TIẾT full-height bên TRÁI — bấm một mục cây bên phải thì hiện ở đây (anh 31/10/2026) */}
-        <div style={{ flex: '0 0 384px', position: 'sticky', top: 12, maxHeight: 'calc(100vh - 96px)', overflowY: 'auto', overflowX: 'hidden' }}>
-          {(() => { const sv = nhanVat.find((v) => v.id === chon); return sv
-            ? the(sv)
-            : <div style={{ ...mono, padding: 24, textAlign: 'center', border: '1px dashed var(--line)', borderRadius: 12, color: 'var(--fg-4)' }}>Bấm một mục ở cây bên phải để xem chi tiết</div>; })()}
-        </div>
-        {/* DANH SÁCH DẠNG CÂY bên phải — gọn, không kéo rộng */}
-        <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 2 }}>
+        {/* DANH SÁCH DẠNG CÂY bên TRÁI — gọn, cố định bề rộng, điều hướng (anh 31/10/2026) */}
+        <div style={{ flex: '0 0 440px', minWidth: 0, display: 'grid', gap: 2, position: 'sticky', top: 12, maxHeight: 'calc(100vh - 96px)', overflowY: 'auto', overflowX: 'hidden' }}>
           {dsPhang.map((x) => dong(x))}
+        </div>
+        {/* KHUNG CHI TIẾT full-height bên PHẢI — bấm một mục cây bên trái thì hiện ở đây */}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {(() => { const sv = nhanVat.find((v) => v.id === chonId); return sv
+            ? <div style={{ maxWidth: 720 }}>{the(sv)}</div>
+            : <div style={{ ...mono, padding: 24, textAlign: 'center', border: '1px dashed var(--line)', borderRadius: 12, color: 'var(--fg-4)' }}>Chưa có mục nào</div>; })()}
         </div>
       </div>
       {btMo != null && nhanVat.find((v) => v.id === btMo) && <BienTheDrawer a={nhanVat.find((v) => v.id === btMo)!} khoa={khoa} kt={kt} dangSinh={dangSinh.bienThe} loiBt={loiAnh.bienThe} onClose={() => setBtMo(null)} onChanged={onChanged} />}

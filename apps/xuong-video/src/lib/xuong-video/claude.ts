@@ -110,15 +110,9 @@ export type PhanCanhSinh = Omit<z.infer<typeof StoryboardSchema>['phan_canh'][nu
  *  → Anthropic trực tiếp. Đo 19/10/2026 một lượt Opus điển hình (6,8k vào / 3,5k ra): ckey ≈ 30–125₫ · ShopAIKey ≈ 315₫ · Anthropic ≈ 2.500₫.
  *  Bước nào lỗi / từ chối / trả sai khuôn → bước sau. r.model trả về mang tiền tố đường đã đi ('ckey:…', 'shopaikey:…'; Anthropic = tên trơn);
  *  ckey báo tiền thật mỗi lượt (usage.x_ckey.cost, VNĐ) → tkCua(r).vnd → ghiTienChu ghi đúng tiền. */
-export const CKEY_CLAUDE: Record<string, string[]> = {
-  // người bán xếp theo giá đã đo (ckey.vn/ajax/apiai-public-catalog, 19/10/2026) — lỗi người trước thì thử người sau
-  'claude-opus-5-5': ['anhyeu00m/claude-opus-5-5', 'tranhieu13102003/claude-opus-5.5'],
-  'claude-sonnet-5-5': ['duc121026ab/claude-sonnet-5-5', 'thanhnhan9023/claude-sonnet-5.5'],
-  'claude-haiku-4-5': ['3h15pm/claude-haiku-4.5', 'w3leee/claude-haiku-4.5'],   // 27/10/2026: anhyeu00m / sypham98 đã gỡ (404); người bán khác tự phát hiện qua /v1/models
-};
 type DuongChu = { ten: 'ckey' | 'shopaikey' | 'anthropic'; c: Anthropic; model: string; jsonTay: boolean };
 /** NGƯỜI BÁN CKEY ĐANG CÓ cho một model Claude — đọc /v1/models (nhớ 10 phút): người bán trên chợ đổi tên / nghỉ liên tục (27/10/2026: cả hai người bán Haiku
- *  trong CKEY_CLAUDE đều 404 → lượt rơi thẳng về Anthropic giá gấp 30 lần). Bảng cố định đi trước (đã đo giá), người phát hiện thêm xếp sau. Thuần phần khớp tên. */
+ *  trong bảng gõ tay cũ đều 404 → lượt rơi thẳng về Anthropic giá gấp 30 lần). Chỉ còn là LƯỚI khi danh sách sống của Phòng Tài nguyên (ckey-tuyen.ts) chưa có dòng cho model; bảng người bán gõ tay đã bỏ 31/10/2026. Thuần phần khớp tên. */
 export const khopTenCkey = (model: string, id: string): boolean => { const d = id.split('/')[1]; if (!d || !id.includes('/')) return false; const re = new RegExp('^' + model.replace(/[.-](?=\d)/g, '[.-]') + '$', 'i'); return re.test(d); };
 let khoNguoiBan: { luc: number; ids: string[] } | null = null;
 async function nguoiBanCkey(k: string, model: string): Promise<string[]> {
@@ -132,8 +126,8 @@ const duongChu = async (model: string): Promise<DuongChu[]> => {
   const ds: DuongChu[] = [];
   const kc = process.env.CKEY_API_KEY, ks = process.env.SHOPAIKEY_API_KEY, ka = process.env.ANTHROPIC_API_KEY;
   const ke = (key: string, baseURL: string) => new Anthropic({ apiKey: key, baseURL, defaultHeaders: { authorization: `Bearer ${key}` }, maxRetries: 1 });
-  // người bán: danh sách sống của Phòng Tài nguyên (ckey-tuyen.ts) trước; bảng cũ + tự dò danh mục chỉ còn là lưới khi tệp chưa có dòng cho model này
-  if (kc) { const co = [...new Set([...nguoiBanTuyen(model), ...(CKEY_CLAUDE[model] ?? [])])], them = (await nguoiBanCkey(kc, model)).filter((m) => !co.includes(m)); for (const m of [...co, ...them]) ds.push({ ten: 'ckey', c: ke(kc, 'https://api.xah.io'), model: m, jsonTay: true }); }   // jsonTay: ckey trả JSON hỏng với output_config từ 28/10 ("Unterminated fractional number…") → mọi lượt rơi sang Anthropic ~7× giá; dặn khuôn trong system như ShopAIKey
+  // người bán: danh sách sống của Phòng Tài nguyên (ckey-tuyen.ts) trước; tự dò danh mục chỉ là lưới khi tệp chưa có dòng cho model này
+  if (kc) { const co = nguoiBanTuyen(model), them = (await nguoiBanCkey(kc, model)).filter((m) => !co.includes(m)); for (const m of [...co, ...them]) ds.push({ ten: 'ckey', c: ke(kc, 'https://api.xah.io'), model: m, jsonTay: true }); }   // jsonTay: ckey trả JSON hỏng với output_config từ 28/10 ("Unterminated fractional number…") → mọi lượt rơi sang Anthropic ~7× giá; dặn khuôn trong system như ShopAIKey
   if (ks && /^claude-/.test(model)) ds.push({ ten: 'shopaikey', c: ke(ks, 'https://api.shopaikey.com'), model, jsonTay: true });
   if (ka) ds.push({ ten: 'anthropic', c: new Anthropic({ apiKey: ka }), model, jsonTay: false });
   return ds;

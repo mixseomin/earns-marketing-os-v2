@@ -75,8 +75,8 @@ export function AnhNho({ url, kich = 40, vien, nhan, title, onClick, onXoa, soSa
     <span className="xv-anh-nho" title={title} style={{ position: 'relative', display: 'inline-block', flexShrink: 0 }}>
       <img src={anhNho(url, nacNho(kich))} alt="" onClick={onClick} data-so-sanh={soSanh} style={{ width: kich, height: kich, objectFit: 'cover', borderRadius: 5, display: 'block', cursor: onClick ? 'pointer' : 'default', border: `2px solid ${vien ?? 'transparent'}` }} />
       {nhan && <span style={{ position: 'absolute', left: 3, bottom: 2, fontSize: 8.5, color: '#fff', textShadow: '0 1px 2px #000', pointerEvents: 'none' }}>{nhan}</span>}
-      {onXoa && <Menu lop="xv-x" nutLop="xv-x-nut" rong={220}>
-        <MucMenu nguy onClick={() => void onXoa()}>🗑 Bỏ ảnh vào thùng rác (khôi phục được ở nút 🗑 Thùng rác)</MucMenu>
+      {onXoa && <Menu lop="xv-x" nutLop="xv-x-nut" rong={130}>
+        <MucMenu nguy goiY="Bỏ vào thùng rác — lấy lại được ở nút 🗑 Thùng rác" onClick={() => void onXoa()}>🗑 Xoá ảnh</MucMenu>
       </Menu>}
     </span>
   );
@@ -113,8 +113,9 @@ export function Menu({ children, nhan = '⋯', lop, nutLop, rong = 420 }: { chil
   );
 }
 
-export function MucMenu({ onClick, children, ly, nguy, gia }: { onClick: () => void; children: ReactNode; ly?: string | false | null; nguy?: boolean; gia?: number }) {
+/** goiY: chữ rê chuột giải thích mục (giữ nhãn mục ngắn). */
+export function MucMenu({ onClick, children, ly, nguy, gia, goiY }: { onClick: () => void; children: ReactNode; ly?: string | false | null; nguy?: boolean; gia?: number; goiY?: string }) {
   const xn = useXacNhanTien(gia);
   // Đang hỏi xác nhận thì KHÔNG mang data-dong — menu không đóng ở lần bấm đầu.
-  return <button type="button" {...(xn.canHoi && !xn.dangHoi ? {} : { 'data-dong': '' })} disabled={!!ly} title={ly || undefined} onClick={() => xn.bam(onClick)} className="xv-btn" style={{ textAlign: 'left', whiteSpace: 'normal', color: nguy || xn.dangHoi ? 'var(--red)' : undefined, opacity: ly ? 0.5 : 1 }}>{xn.dangHoi ? `⚠ ${tien(gia ?? 0)} — bấm lại để xác nhận` : children}</button>;
+  return <button type="button" {...(xn.canHoi && !xn.dangHoi ? {} : { 'data-dong': '' })} disabled={!!ly} title={ly || goiY || undefined} onClick={() => xn.bam(onClick)} className="xv-btn" style={{ textAlign: 'left', whiteSpace: 'normal', color: nguy || xn.dangHoi ? 'var(--red)' : undefined, opacity: ly ? 0.5 : 1 }}>{xn.dangHoi ? `⚠ ${tien(gia ?? 0)} — bấm lại để xác nhận` : children}</button>;
 }

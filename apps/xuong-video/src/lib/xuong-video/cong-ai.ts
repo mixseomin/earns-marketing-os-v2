@@ -6,6 +6,8 @@ import { hopQc, type TiLeAnh } from './kieu';
 
 /** Tỉ giá quy tiền thật (memory feedback_chi_phi_vnd_that): sổ chi phí ghi cent USD theo VNĐ thật đã trả. */
 export const VND_MOI_USD = 26000;
+/** ShopAIKey bán credit theo $ niêm yết, $1 credit = 3.250₫ tiền thật (memory feedback_chi_phi_vnd_that) — quy giá niêm yết ra tiền đã trả. */
+export const VND_MOI_USD_SHOPAIKEY = 3250;
 const vndRaCent = (vnd: number) => Math.round((vnd / VND_MOI_USD) * 100 * 1000) / 1000;
 
 export type CongKey = 'ckey' | 'shopaikey' | 'google' | 'kie' | 'wavespeed' | 'plenxai';

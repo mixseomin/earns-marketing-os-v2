@@ -4,9 +4,9 @@
 import 'server-only';
 import { readFileSync } from 'node:fs';
 
-const TEP = '/var/lib/spy/ckey-tuyen.json';
+const TEP = process.env.CKEY_TUYEN_TEP || '/var/lib/spy/ckey-tuyen.json';   // biến môi trường chỉ để tự kiểm (ckey-tuyen.test.mts)
 /** model studio gọi ↔ khoá dòng trong tệp (trùng DONG của bao-tri-ckey.mjs). */
-const DONG: [RegExp, string][] = [[/^claude-haiku-5[-.]5$/i, 'haiku'], [/^claude-sonnet-5[-.]5$/i, 'sonnet'], [/^claude-opus-5[-.]5$/i, 'opus'], [/^gemini-3[-.]8-flash$/i, 'gemini-3.8-flash']];
+const DONG: [RegExp, string][] = [[/^claude-haiku-5[-.]5$/i, 'haiku'], [/^claude-haiku-4[-.]5$/i, 'haiku-4-5'], [/^claude-sonnet-5[-.]5$/i, 'sonnet'], [/^claude-opus-5[-.]5$/i, 'opus'], [/^gemini-3[-.]8-flash$/i, 'gemini-3.8-flash']];
 let kho: { luc: number; dong: Record<string, string[]> } | null = null;
 
 /** Người bán ckey đã xếp (sống, đạt cao, rẻ trước) cho một model — tên trần không tiền tố 'ckey:'. Tệp thiếu / hỏng / model không có dòng → []. */

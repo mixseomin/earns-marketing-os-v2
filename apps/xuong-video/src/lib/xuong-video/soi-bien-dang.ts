@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { khoaGoogle } from './google';
 import { nguoiBanTuyen } from './ckey-tuyen';
+import { VND_MOI_USD, VND_MOI_USD_SHOPAIKEY } from './cong-ai';
 import { loiDanBienDang, LOAI_BD, N_KHUNG_BD, TEN_BD, type LoiBienDang } from './soi-clip-do';
 import { ghiTienChu, type Db } from './doc-db';
 import { congTk, giaChuCents } from './kieu';
@@ -86,7 +87,7 @@ A first automatic check reported: ${LOAI_EN[loai] ?? loai} — "${v.mo_ta}". Loo
     if (cd?.co && cd.muc === 'nhe') { canhBao.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} (nhẹ) giây ${Math.round(v.giay * 10) / 10}: ${cd.ly_do.slice(0, 140)}`); continue; }
     if (!cd || cd.co) { giu.push({ khung: v.khung, loai: loai as LoiBienDang['loai'], mo_ta: v.mo_ta }); loi.push(`${TEN_BD[loai as keyof typeof TEN_BD] ?? loai} từ giây ${Math.round(v.giay * 10) / 10}: ${v.mo_ta.trim().slice(0, 160)}`); }
   }
-  let cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', x.model, tk, x.nguon) : tk.vnd != null ? (tk.vnd / 26000) * 100 : giaChuCents(MO_HINH_BD, tk.in, tk.out);
+  let cents = db ? await ghiTienChu(db, o.phimId ?? null, 'soi biến dạng clip', x.model, tk, x.nguon) : tk.vnd != null ? (tk.vnd / VND_MOI_USD) * 100 : giaChuCents(MO_HINH_BD, tk.in, tk.out);
   if (tkXn) cents += db ? await ghiTienChu(db, o.phimId ?? null, 'xác nhận lỗi clip', modelXn, tkXn) : giaChuCents(modelXn, tkXn.in, tkXn.out);
   return { loi, tho: giu, cents, canhBao };
 }
@@ -116,7 +117,7 @@ export async function goiGeminiJson<T>(parts: unknown[], schema: unknown, mediaR
       if (!txt) { console.error(`[gemini json ${d.nguon}] không có chữ —`, j.candidates?.[0]?.finishReason ?? j.promptFeedback?.blockReason ?? 'không rõ'); continue; }
       const data = JSON.parse(txt) as T;
       const tk = { in: u.promptTokenCount ?? 0, out: (u.candidatesTokenCount ?? 0) + (u.thoughtsTokenCount ?? 0) };
-      const vnd = d.nguon === 'ckey' && typeof u.x_ckey?.cost === 'number' ? u.x_ckey.cost : d.nguon === 'shopaikey' ? (giaChuCents(model, tk.in, tk.out) / 100) * 3250 : undefined;
+      const vnd = d.nguon === 'ckey' && typeof u.x_ckey?.cost === 'number' ? u.x_ckey.cost : d.nguon === 'shopaikey' ? (giaChuCents(model, tk.in, tk.out) / 100) * VND_MOI_USD_SHOPAIKEY : undefined;
       return { data, tk: vnd != null ? { ...tk, vnd } : tk, model: d.nguon === 'google' ? model : `${d.nguon}:${model}`, nguon: d.nguon };
     } catch (e) { console.error(`[gemini json ${d.nguon}]`, e); }
   }

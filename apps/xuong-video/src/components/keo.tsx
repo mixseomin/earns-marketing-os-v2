@@ -32,7 +32,8 @@ export function TayKeo({ truc, onPointerDown, onDoubleClick, style, title = 'Ké
 export function CotKeo({ khoa, macDinh, min = 160, max = 640, style, children }: { khoa: string; macDinh: number; min?: number; max?: number; style?: CSSProperties; children: ReactNode }) {
   const { v, keo, veMacDinh } = useKichThuoc(`xv-cot:${khoa}`, macDinh, min, max);
   return (
-    <div style={{ flex: `0 0 ${v}px`, width: v, minWidth: 0, position: 'relative', ...style }}>
+    // co được khi thiếu chỗ (flex-shrink 1) nhưng không nhỏ hơn min — cột cố định không bao giờ đẩy trang tràn ngang
+    <div style={{ flex: `0 1 ${v}px`, width: v, minWidth: Math.min(min, v), position: 'relative', ...style }}>
       {children}
       <div className="xv-keo-cot" onPointerDown={keo('x')} onDoubleClick={veMacDinh} title="Kéo để đổi bề rộng cột · nhấp đúp = mặc định" />
     </div>

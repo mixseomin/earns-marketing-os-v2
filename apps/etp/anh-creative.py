@@ -3,7 +3,8 @@
 Mọi creative có camp (etp.camp nhà + etp.camp_ngoai đội) mà etp.creative.anh trống và chưa có etp.anh_cr → điền etp.anh_cr (ảnh + video —
 anh 31/10/2026 "creative thì phải xem đc chi tiết": creative đội không ở etp.creative nên video cũng lưu ở đây cho thẻ chi tiết):
   1. đã chấm → khung thứ 3 của bản chấm (Worker etp-cham /khung/<id>/3.jpg — sẵn, không tốn gì)
-  2. chưa chấm → video (etp.creative.video, không có thì GET Ethopex /api/v1/creatives/<id>) → ffmpeg cắt một khung giây 2, rộng 360
+  2. QC dạng ảnh (single_image) → image_url của creative
+  3. chưa chấm → video (etp.creative.video, không có thì GET Ethopex /api/v1/creatives/<id>) → ffmpeg cắt một khung giây 2, rộng 360
      → PUT Worker /anh/<id>.jpg (R2, khoá MOS2_EXT_KEY) → anh = <Worker>/anh/<id>.jpg
 Lỗi ghi loi + lan_loi, thử lại tối đa 3 lần. Trang etp đọc coalesce(etp.creative.anh, etp.anh_cr.anh) (etp-doc.ts).
 Dùng (box3): python3 anh-creative.py [--so 60]    — dong-bo.py gọi mỗi lượt 10 phút; chạy tay --so 2000 để vét tồn."""
@@ -23,8 +24,12 @@ def thieu():
 
 def mot(cr, video, khung):
     if not video:
-        v = json.loads(EA._goi(f"/api/v1/creatives/{cr}").get("video_url") or "[]"); video = v[0] if isinstance(v, list) and v else ""
-    if not video: raise RuntimeError("Ethopex không có video")
+        d = EA._goi(f"/api/v1/creatives/{cr}")
+        v = json.loads(d.get("video_url") or "[]"); video = v[0] if isinstance(v, list) and v else ""
+        if not video:   # QC dạng ảnh (creative_type single_image): ảnh của QC chính là hình creative, không có video
+            a = json.loads(d.get("image_url") or "[]"); a = a[0] if isinstance(a, list) and a else ""
+            if a: return a, "anh_qc", ""
+    if not video: raise RuntimeError("Ethopex không có video lẫn ảnh")
     if khung: return khung, "cham", video
     with tempfile.TemporaryDirectory(dir="/var/tmp") as d:
         ra = os.path.join(d, "a.jpg")
@@ -39,7 +44,7 @@ def chay(x):
     cr, video, khung = int(x[0]), x[1], x[2]
     try:
         anh, nguon, vid = mot(cr, video, khung)
-        EA._q(f"insert into etp.anh_cr (creative_id, anh, nguon, video) values ({cr}, '{s_(anh)}', '{nguon}', '{s_(vid)}') on conflict (creative_id) do update set anh = excluded.anh, nguon = excluded.nguon, video = excluded.video, loi = null, luc = now()")
+        EA._q(f"insert into etp.anh_cr (creative_id, anh, nguon, video) values ({cr}, '{s_(anh)}', '{nguon}', {('$$' + vid + '$$') if vid else 'null'}) on conflict (creative_id) do update set anh = excluded.anh, nguon = excluded.nguon, video = excluded.video, loi = null, luc = now()")
         return nguon
     except Exception as e:
         EA._q(f"insert into etp.anh_cr (creative_id, loi, lan_loi) values ({cr}, '{s_(str(e)[:300])}', 1) on conflict (creative_id) do update set loi = excluded.loi, lan_loi = etp.anh_cr.lan_loi + 1, luc = now()")

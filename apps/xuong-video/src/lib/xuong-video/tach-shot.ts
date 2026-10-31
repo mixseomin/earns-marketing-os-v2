@@ -67,7 +67,7 @@ export async function chenShotSauDb(db: Db, idTruoc: number, moi: { hanh_dong: s
   const g = ((await db.execute(sql`SELECT * FROM xv_canh WHERE id = ${idTruoc}`)) as unknown as Row[])[0];
   if (!g) return { ok: false, loi: 'không thấy shot đứng trước' };
   const [id] = await chenSau(db, Number(g.tap_id), g, 1, [{ canh: String(g.canh ?? ''), hanh_dong: moi.hanh_dong, ky_thuat: moi.ky_thuat }], nguoi, `chèn shot sau #${g.thu_tu}`);
-  await db.execute(sql`UPDATE xv_canh SET dan_dung = coalesce(${moi.dan_dung ? JSON.stringify(moi.dan_dung) : null}::jsonb, dan_dung), phat_s = coalesce(${moi.phat_s ?? null}, phat_s), nhanh = ${g.nhanh ?? null} WHERE id = ${id!}`);
+  await db.execute(sql`UPDATE xv_canh SET dan_dung = coalesce(${moi.dan_dung ? JSON.stringify(moi.dan_dung) : null}::jsonb, dan_dung), phat_s = coalesce(${moi.phat_s ?? null}, phat_s), nhanh = ${g.nhanh ?? ''} WHERE id = ${id!}`);
   return { ok: true, id: id! };
 }
 
@@ -89,7 +89,7 @@ export async function themShotConDb(db: Db, tapId: number, so: number, moi: { ha
   const trung = (await db.execute(sql`SELECT 1 FROM xv_canh WHERE tap_id = ${tapId} AND so_hien = ${so} AND coalesce(nhanh, '') = coalesce(${moi.nhanh ?? null}, '')`)) as unknown as Row[];
   if (trung.length) return { ok: false, loi: `đã có shot #${so}` };
   const r = (await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, so_hien, con_cua, nhanh, canh, hanh_dong, phan_doan, nhan_vat, bien_the, ky_thuat, thoi_luong_s, phat_s, cam_xuc, trang_phuc, bieu_cam)
-    VALUES (${tapId}, ${khoaPhat(so)}, ${so}, ${Number(g.id)}, ${moi.nhanh ?? null}, ${String(g.canh ?? '')}, ${moi.hanh_dong}, ${g.phan_doan ?? ''}, ${JSON.stringify(g.nhan_vat ?? [])}::jsonb, ${JSON.stringify(g.bien_the ?? [])}::jsonb,
+    VALUES (${tapId}, ${khoaPhat(so)}, ${so}, ${Number(g.id)}, ${moi.nhanh ?? ''}, ${String(g.canh ?? '')}, ${moi.hanh_dong}, ${g.phan_doan ?? ''}, ${JSON.stringify(g.nhan_vat ?? [])}::jsonb, ${JSON.stringify(g.bien_the ?? [])}::jsonb,
       ${JSON.stringify(moi.ky_thuat)}::jsonb, ${Number(g.thoi_luong_s) || 4}, ${moi.phat_s ?? null}, ${Number(g.cam_xuc) || 0}, ${String(g.trang_phuc ?? '')}, ${g.bieu_cam ? JSON.stringify(g.bieu_cam) : null}::jsonb) RETURNING id`)) as unknown as Row[];
   return { ok: true, id: Number(r[0]!.id) };
 }

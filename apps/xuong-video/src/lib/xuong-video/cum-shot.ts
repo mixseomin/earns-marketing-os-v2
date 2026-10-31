@@ -2,7 +2,8 @@
 // mỗi shot một clip (A) đổi mặt / sảnh / vết áo ở MỌI đường cắt; quay rộng một lần + cận chèn (B) hỏng đúng chỗ cận sinh riêng; một clip có danh sách
 // góc + "hard cut" (C) giữ cùng người, cùng sảnh, cùng đồ qua 4 góc và tốn 1 clip thay 4. Ngành gọi là coverage trong một take / multi-cam:
 // liên tục do cùng một lần diễn, không do khớp từng shot rời. Module thuần: chia cụm, lịch giây trong clip, prompt, đổi điểm cắt đo được → vao_s.
-import { giayPhat, type Canh, type NhanVat } from './kieu';
+import { giayPhat, phat, type Canh, type NhanVat } from './kieu';
+import { kyThuat } from './dien-anh';
 import { dongThoai, laLoiDan } from './am-thanh';
 
 /** Clip model sinh (giây) · bỏ đầu (model khởi động chậm) · bỏ đuôi (xuat.ts › DUOI_CLIP_BO: Kie / PlenX chèn ô ảnh nhỏ ~7,6 s). */
@@ -67,6 +68,38 @@ function promptCumTho(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], them: 
   });
   return [`A short edited film sequence of ${cum.length} shots with hard cuts between them. The same people with the same faces, hair and outfits, the same props in the same state and the same location and lighting in every shot — it is one continuous moment filmed from several angles.`,
     `${shot.join('. ')}.`, 'Keep every object state continuous across the cuts (what was taken stays taken, stains stay, nothing reappears). Only the people of this scene appear. No on-screen text, no subtitles.', them].filter(Boolean).join(' ');
+}
+
+/** PROMPT CỤM KIỂU MỚI (anh 01/11/2026, học từ prompt mẫu "Shot 1: Extreme close-up on Youri's @image1 … Shot 2: Wide shot from behind as he pushes off…"):
+ *  mỗi shot = cỡ cảnh + chuyển động máy + MỘT chuỗi hành động (cớ → phản ứng), shot sau mở bằng hệ quả động tác cuối shot trước (cắt theo động tác nằm
+ *  trong động từ), không mốc giây, không khối OBJECT STATE / POSE (ảnh khung đầu / tham chiếu đã mang), ngắn. tag: tên người → nhãn ảnh ('@image1')
+ *  gắn ngay tại lần nhắc đầu. gopCon: shot con (#2.9 / #3.1) gộp vào câu của shot cha thay vì đứng thành góc riêng — một nhịp nối, không một cú cắt. */
+export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], o: { tag?: Record<string, string>; gopCon?: boolean; them?: string } = {}): string {
+  const gon = (t?: string) => (t ?? '').replace(/\s*(OBJECT STATE|BODY POSE|POSE)\b[\s\S]*$/, '').trim().replace(/[.\s]+$/, '');
+  const hanh = (c: Canh) => gon(c.dan_dung?.dien) || [gon(c.dan_dung?.mo), gon(c.dan_dung?.ket)].filter(Boolean).join(', then ') || gon(c.canh);
+  // nhóm: shot cha + các shot con của nó có trong cụm (theo thứ tự phát); shot con không có cha trong cụm thì đứng riêng
+  const nhom: { canh: Canh; nhanVat: NhanVat[]; cau: string[] }[] = [];
+  for (const x of cum) {
+    const cha = o.gopCon && x.canh.con_cua != null ? cum.find((y) => y.canh.id === x.canh.con_cua) : undefined;
+    if (cha) continue;
+    const con = o.gopCon ? cum.filter((y) => y.canh.con_cua === x.canh.id) : [];
+    const truoc = con.filter((y) => phat(y.canh) < phat(x.canh)), sau = con.filter((y) => phat(y.canh) > phat(x.canh));
+    nhom.push({ ...x, cau: [...truoc, x, ...sau].map((y) => hanh(y.canh)).filter(Boolean) });
+  }
+  const daGan = new Set<string>();
+  const ganTag = (t: string) => Object.entries(o.tag ?? {}).reduce((s, [ten, nhan]) => {
+    if (daGan.has(ten)) return s; const i = s.indexOf(ten); if (i < 0) return s; daGan.add(ten);
+    return `${s.slice(0, i + ten.length)} ${nhan}${s.slice(i + ten.length)}`;
+  }, t);
+  const shot = nhom.map(({ canh: c, nhanVat, cau }, i) => {
+    const co = CO_CANH[c.ky_thuat?.co_canh ?? ''] ?? c.ky_thuat?.co_canh ?? 'medium shot';
+    const may = kyThuat(c.ky_thuat?.chuyen_dong, 'chuyen_dong')?.prompt;
+    const t = nhom[i - 1]?.canh;   // shot con cùng máy với cha (đứng trước hay sau cha) = quay liền, không cắt
+    const lien = !!t && (t.id === c.con_cua || t.con_cua === c.id) && t.ky_thuat?.co_canh === c.ky_thuat?.co_canh;
+    const mieng = cauMiengShot(c, nhanVat);
+    return `Shot ${i + 1}: ${co[0]!.toUpperCase()}${co.slice(1)}${lien ? ', same angle, continuous' : ''}${may ? `, ${may}` : ''} — ${ganTag(cau.join('; then '))}${mieng ? `; ${mieng}` : ''}.`;
+  });
+  return [`A ${nhom.length}-shot cinematic sequence${nhom.length > 1 ? ' with hard cuts' : ''}, one continuous moment: same people, outfits, props and location in every shot.`, ...shot, 'No on-screen text.', o.them ?? ''].filter(Boolean).join(' ');
 }
 
 /** CÚ MÁY LIỀN (Vidu Q2 tham chiếu, phim #353 25/10/2026: cả 6 cụm ra MỘT cú máy đẩy / lia, không cắt cứng dù prompt ghi "hard cut"): các shot phát NỐI

@@ -8,7 +8,7 @@ import { moNgan } from './ngan-chung';
 import { ImageAttach } from './image-attach';
 import { GIONG, moHinhAm } from '@/lib/xuong-video/am-thanh';
 import { luuNhanVat, xoaNhanVat, sinhAnhMau, taiAnhLen, datAnhChinh, dsGiongModel, dsGiongCua, chonGiong, ngheThuGiong, xoaAnhGoc, xoaAnhBienThe, goiYAIAnchor, goiYAIBoAnchor, luuBienThe, xoaBienThe, goiYAIBienThe, sinhAnhBienThe, doiChieuAnchor } from '@/lib/actions';
-import { LOAI_NHAN_VAT, NHOM_BIEN_THE, nhanNhom, docKinhThanh, giaAnhCents, tien, gioVN, type NhanVat, type BienThe, type KinhThanh, type LoaiNhanVat } from '@/lib/xuong-video/kieu';
+import { LOAI_NHAN_VAT, NHOM_BIEN_THE, docKinhThanh, giaAnhCents, tien, gioVN, type NhanVat, type BienThe, type KinhThanh, type LoaiNhanVat } from '@/lib/xuong-video/kieu';
 import { Chon } from './chon';
 import { Khoa, O, Pill, Seg, Nut, Xoa, Loi, AnhNho, DangSinh, Menu, MucMenu, mono, goiAction } from './ui';
 import { useNho } from './nho';
@@ -163,20 +163,26 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
                   {v.doi_chieu.mo_ta_de_xuat && <div><button type="button" className="xv-btn" style={{ padding: '1px 7px' }} title={v.doi_chieu.mo_ta_de_xuat}
                     onClick={async () => { await luuNhanVat({ id: v.id, phim_id: v.phim_id, loai: v.loai, ten: v.ten, mo_ta: v.doi_chieu!.mo_ta_de_xuat, anh_ref: v.anh_ref, giong: v.giong, thuoc_id: v.thuoc_id }); await onChanged(); }}>↳ Dùng mô tả viết theo ảnh</button></div>}
                 </div>)}
-            {!!v.bien_the?.length && (
-              <div>
-                <div style={{ ...mono, marginBottom: 6 }}>Biến thể ({v.bien_the.length})</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                  {v.bien_the.slice(0, 16).map((b) => b.anh_url
-                    ? <AnhNho key={b.id} url={b.anh_url} kich={56} title={`${nhanNhom(v.loai, b.nhom)}: ${b.ten}`} onClick={() => setBtMo(v.id)} />
-                    : <span key={b.id} title={`${nhanNhom(v.loai, b.nhom)}: ${b.ten} — chưa có ảnh`} onClick={() => setBtMo(v.id)}
-                        style={{ cursor: 'pointer', fontSize: 10, lineHeight: '18px', padding: '0 7px', borderRadius: 4, border: `1px solid ${dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--line)'}`, color: dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--fg-3)', whiteSpace: 'nowrap', maxWidth: 130, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {dangSinh.bienThe.includes(b.id) ? '⏳ ' : ''}{b.ten}
-                      </span>)}
-                  {v.bien_the.length > 16 && <span style={{ ...mono }} onClick={() => setBtMo(v.id)}>+{v.bien_the.length - 16}</span>}
+            {/* Thiết kế sản xuất — bàn chuẩn bị theo NHÓM (trang phục · tóc · kính/phụ kiện · trang điểm · vết · trạng thái · biểu cảm · tư thế): mỗi hàng một
+                khía cạnh, ảnh mẫu đã làm hiện thumbnail, món CHƯA có ảnh hiện chip hổ phách "📷 <tên>" (cần làm ảnh — như đạo cụ phải mua/làm trước). */}
+            {!!v.bien_the?.length && (() => {
+              const nhoms = (NHOM_BIEN_THE[v.loai] ?? NHOM_BIEN_THE.nhan_vat).filter((g) => v.bien_the!.some((b) => b.nhom === g.key));
+              return (
+                <div style={{ display: 'grid', gap: 5 }}>
+                  {nhoms.map((g) => (
+                    <div key={g.key} style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ ...mono, minWidth: 92, color: 'var(--fg-3)' }}>{g.label}</span>
+                      {v.bien_the!.filter((b) => b.nhom === g.key).map((b) => b.anh_url
+                        ? <AnhNho key={b.id} url={b.anh_url} kich={48} title={`${g.label}: ${b.ten}`} onClick={() => setBtMo(v.id)} />
+                        : <span key={b.id} title={`${g.label}: ${b.ten} — chưa có ảnh mẫu, bấm để làm`} onClick={() => setBtMo(v.id)}
+                            style={{ cursor: 'pointer', fontSize: 10, lineHeight: '20px', padding: '0 7px', borderRadius: 4, border: `1px dashed ${dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--amber)'}`, color: dangSinh.bienThe.includes(b.id) ? 'var(--violet)' : 'var(--amber)', whiteSpace: 'nowrap', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {dangSinh.bienThe.includes(b.id) ? '⏳ ' : '📷 '}{b.ten}
+                          </span>)}
+                    </div>
+                  ))}
                 </div>
-              </div>
-            )}
+              );
+            })()}
             <Loi>{loi[v.id] || (!dangSinh.nhanVat.includes(v.id) ? loiAnh.nhanVat[v.id] : '')}</Loi>
           </div>
         </div>
@@ -211,7 +217,7 @@ export function NhanVatSection({ phimId, nhanVat, kinhThanh, khoa, dangSinh, loi
   return (
     <div className="xv-panel">
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-        <h3 style={{ flex: 1 }}>2 · Tuyến nhân vật · sản phẩm · bối cảnh<small>anchor: đặc tính cố định + ảnh mẫu → mọi cảnh, mọi tập tham chiếu cùng một bản</small></h3>
+        <h3 style={{ flex: 1 }}>2 · Thiết kế sản xuất<small>bàn chuẩn bị của đoàn phim: nhân vật, trang phục, tóc, kính/phụ kiện, đạo cụ, bối cảnh — mỗi món làm ảnh mẫu sẵn, mọi cảnh/tập dùng cùng một bản</small></h3>
         <Nut ban={ban === -1} title="Claude đọc tiền đề + kịch bản các tập + anchor đã có → tạo các anchor còn thiếu (nhân vật, sản phẩm, bối cảnh, đạo cụ). Tạo xong anh sửa/xoá tuỳ ý." onClick={async () => { setBan(-1); setLoi((x) => ({ ...x, [-1]: '' })); const r = await goiYAIBoAnchor(phimId); setBan(null); if (!r.ok) setLoi((x) => ({ ...x, [-1]: r.loi })); await onChanged(); }}>{ban === -1 ? '… AI đang đề xuất' : '✨ AI đề xuất tuyến còn thiếu'}</Nut>
         {coLoai.length > 1 && <Seg value={coLoai.some((l) => l.key === locLoai) ? locLoai : ''} onChange={setLocLoai}
           options={[{ value: '' as const, label: 'Tất cả', title: `${nhanVat.length} anchor` }, ...coLoai.map((l) => ({ value: l.key, label: `${l.ic} ${l.label}`, title: `${nhanVat.filter((v) => v.loai === l.key).length} ${l.label.toLowerCase()}` }))]} />}

@@ -48,7 +48,11 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
     L.push({ thanh_phan: `Vị trí ${v.ten}`, du_kien: viNguoi(v) || 'không khai' });
     L.push({ thanh_phan: `Áo ${v.ten}`, du_kien: ao.chinh || 'không tả' });
     if (vetTxt) L.push({ thanh_phan: `Vết áo ${v.ten}`, du_kien: vetTxt });   // vết/đặc điểm riêng — lá riêng để không bị gộp che (vụ vết cà phê)
-    L.push({ thanh_phan: `Tóc ${v.ten}`, du_kien: tuToc(v.mo_ta) || '(theo mô tả nhân vật)' });
+    L.push({ thanh_phan: `Tóc ${v.ten}`, du_kien: lk?.toc?.mo_ta?.trim() || tuToc(v.mo_ta) || '(theo mô tả nhân vật)' });   // tóc: biến thể look-book trước, phim cũ thì rút từ mô tả
+    // Thiết kế sản xuất — look-book khác CHỈ chấm khi đã chuẩn bị biến thể (có ảnh mẫu): kính/phụ kiện, trang điểm, trạng thái cơ thể. Chưa chuẩn bị thì không đẻ lá thừa.
+    if (lk?.do_deo) L.push({ thanh_phan: `Phụ kiện ${v.ten}`, du_kien: lk.do_deo.mo_ta.trim() });
+    if (lk?.trang_diem) L.push({ thanh_phan: `Trang điểm ${v.ten}`, du_kien: lk.trang_diem.mo_ta.trim() });
+    if (lk?.trang) L.push({ thanh_phan: `Trạng thái ${v.ten}`, du_kien: lk.trang.mo_ta.trim() });
     L.push({ thanh_phan: `Biểu cảm ${v.ten}`, du_kien: bcTxt });
     const dangTxt = kg ? (dang(kg, c.thu_tu, v.ten, lucKg)?.vi ?? '') : '';
     if (dangTxt) L.push({ thanh_phan: `Dáng ${v.ten}`, du_kien: dangTxt });
@@ -133,7 +137,10 @@ export function sietTuLech(chieu: DongDoiChieu[]): string {
     if ((m = tp.match(/^Dáng (.+)$/))) { menh.push(`${m[1]}'s pose/gesture: ${r.du_kien}.`); continue; }
     if ((m = tp.match(/^Đạo cụ (.+?) \+ vị trí$/i))) { menh.push(`The ${m[1]} is held/worn by ${r.du_kien} (NOT by anyone else).`); continue; }
     if ((m = tp.match(/^Đạo cụ (.+?) \+ trạng thái$/i))) { menh.push(`The ${m[1]}: ${r.du_kien}.`); continue; }
-    if ((m = tp.match(/^(Áo|Tóc|Biểu cảm) (.+)$/))) { menh.push(`${m[2]}'s ${m[1] === 'Áo' ? 'clothing' : m[1] === 'Tóc' ? 'hairstyle' : 'expression'}: ${r.du_kien}.`); continue; }
+    if ((m = tp.match(/^(Áo|Tóc|Biểu cảm|Phụ kiện|Trang điểm|Trạng thái) (.+)$/))) {
+      const nhan: Record<string, string> = { 'Áo': 'clothing', 'Tóc': 'hairstyle', 'Biểu cảm': 'expression', 'Phụ kiện': 'accessories/glasses', 'Trang điểm': 'makeup', 'Trạng thái': 'body state' };
+      menh.push(`${m[2]}'s ${nhan[m[1]!]}: ${r.du_kien}.`); continue;
+    }
     if (r.muc === 'thừa') { menh.push(`Do NOT include: ${r.thanh_phan} (${r.thuc_te}).`); continue; }
     menh.push(`${tp}: ${r.du_kien}.`);
   }

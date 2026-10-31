@@ -16,7 +16,7 @@ import { cauHoiKhung } from './cau-hoi-khung';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
 import { promptPoster, MO_HINH_POSTER, TI_LE_POSTER, type MauPoster } from './poster';
 import { promptAnhQc, sanPhamAnhQc, type AnhQc } from './anh-qc';
-import { bienTheTheoSo, boCauMay, boSetCuaShot, catMep, chanKhungXam, chuTheThay, doiTuongThieu, huongVoiMay, nhinCau, loiMachTap, moTaThay, PT_THAY, shotSoTruc, thayRo, trangThaiVat } from './bo-set-3d';
+import { bienTheTheoSo, boCauMay, boSetCuaShot, catMep, chanKhungXam, chuTheThay, doiTuongThieu, huongVoiMay, KHOA_LOOK, nhinCau, loiMachTap, moTaThay, PT_THAY, shotSoTruc, thayRo, trangThaiVat } from './bo-set-3d';
 import { mapBoSet } from './bo-set-3d-may';
 import { LA_NHAN_DANG, loiAi3d } from './kiem-ai-3d';
 import { loiTrangThaiVat, boMat, chamPrompt, dauBoiCanh, NGUONG_CHAN, noiChonPhongCach, TU_TOI_DA_FLUX, type LoiPrompt, type SoatPrompt } from './kiem-prompt';
@@ -222,7 +222,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // Biến thể của từng người: SỔ TRANG PHỤC trước (sổ người trỏ tới biến thể chuẩn hoá — bo-set-3d.ts › bienTheTheoSo), chọn tay trên shot sau.
   const viTriCua = (t: string) => (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.ten === t);
   // Shot 3D có sổ người (bienTheTheoSo theo ket); shot 2D dùng SỔ TRANG PHỤC CARRY (bc.look — lookMang) để áo + VẾT mang từ shot khai sang, đồng nhất đối chiếu.
-  const lookCua = (v: NhanVat): BienThe[] => { const lk = v.loai === 'nhan_vat' ? bc.look?.get(v.ten) : undefined; return lk ? ([lk.trang_phuc, lk.trang, lk.vet].filter(Boolean) as BienThe[]) : []; };
+  const lookCua = (v: NhanVat): BienThe[] => { const lk = v.loai === 'nhan_vat' ? bc.look?.get(v.ten) : undefined; return lk ? (KHOA_LOOK.map((k) => lk[k]).filter(Boolean) as BienThe[]) : []; };
   const btCanh = (v: NhanVat) => { const vt = viTriCua(v.ten); return (vt ? bienTheTheoSo(vt, v, ket)[0] : lookCua(v)[0]) ?? (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id)); };
   /** MỌI biến thể sổ người đang trỏ (trang_phuc + trang + vet) — mô tả en, không phải tên biến thể tiếng Việt */
   const btSo = (v: NhanVat) => { const vt = viTriCua(v.ten); return vt && v.loai === 'nhan_vat' ? bienTheTheoSo(vt, v, ket) : lookCua(v); };
@@ -674,7 +674,7 @@ export async function lyChanKeyframe(db: Db, canhId: number, /** THỬ ngoài qu
   const cm = chanChuModel(bc.kt.ngon_ngu, { phongCach: bc.kt.phong_cach, shot: bc.canh, anchor: bc.nhanVat });
   if (cm) chan.push(cm);
   const tp = thanhPhanCanh(bc.canh, bc.nhanVat);
-  if (tp.thieu.length) chan.push(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở tab 🎭 Phim (Tuyến nhân vật) rồi sinh lại.`);
+  if (tp.thieu.length) chan.push(`Chưa chuẩn bị đủ thành phần: ${tp.thieu.join('; ')}. Làm ở tab 🎭 Phim (Thiết kế sản xuất) rồi sinh lại.`);
   // BỘ CHẤM PROMPT (kiem-prompt.ts): chữ SẼ gửi đường hai bước (mặc định khi có độ sâu 3D) — lẫn tiếng Việt, thiếu bộ đồ, cận chèn tả mặt, chữ ngược 3D, quá dài cho FLUX
   if (!chan.length) { const lp = chamKeyframe(bc).loi.filter((l) => l.phat >= NGUONG_CHAN); if (lp.length) chan.push(`Bộ chấm prompt: ${lp.map((l) => l.chu).join(' · ')}`); }
   return { bc, chan };

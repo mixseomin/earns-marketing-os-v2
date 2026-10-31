@@ -702,7 +702,8 @@ def _xet_luat():
                  ["ROI 3 ngày gần", f(rg, "%"), f"≥ {NB_ROI3}%", rg is not None and rg >= NB_ROI3], ["Ngân sách", f"${ns:g}", f"≥ ${TRAN_NB:g} (trần)", ns >= TRAN_NB]],
                 "nb" if int(cid) in vao["nb"] else None))
             g5 = ngay5.get(cid) if "ngay5" in globals() else None; r5 = roi(g5) if g5 and g5["chi"] else None
-            ls.append(L("t30", "T30 · $20 → $30", f"Camp đang $20, {T30N_NGAY} ngày đã khép: chi TB ≥ {T30N_SP}% ngân sách (${T30N_SP / 100 * 20:g}/ngày), ROI ≥ {T30N_ROI}% → máy tự lên $30 (nới 29/10/2026 theo cách tk Nguyễn Sơn chạy).",
+            # mô tả luật hiện ở cột Luật của MỌI người trong team (etp vai người) → không ghi tên người (nới 29/10/2026 theo cách một tk team chạy; anh 31/10/2026 Kiên không thấy phần người khác)
+            ls.append(L("t30", "T30 · $20 → $30", f"Camp đang $20, {T30N_NGAY} ngày đã khép: chi TB ≥ {T30N_SP}% ngân sách (${T30N_SP / 100 * 20:g}/ngày), ROI ≥ {T30N_ROI}% → máy tự lên $30.",
                 [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], [f"Chi TB {T30N_NGAY} ngày", f((g5["chi"] / T30N_NGAY) if g5 else None, "$"), f"≥ ${T30N_SP / 100 * 20:g}", bool(g5 and g5["chi"] >= T30N_SP / 100 * 20 * T30N_NGAY)], [f"ROI {T30N_NGAY} ngày", f(r5, "%"), f"≥ {T30N_ROI}%", r5 is not None and r5 >= T30N_ROI]],
                 "tang30" if int(cid) in vao["tang30"] else None, tien=1))
         ra[int(cid)] = ls

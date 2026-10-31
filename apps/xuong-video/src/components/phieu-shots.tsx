@@ -37,15 +37,15 @@ function LichSuAnh({ ds }: { ds: PhieuShot['lich_su'] }) {
   return (
     <div style={{ display: 'grid', gap: 6 }}>
       <b style={{ fontSize: 12 }}>🖼 Ảnh đã sinh <span style={mono} title={`${ds.length} lần sinh`}>({ds.length})</span></b>
-      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div style={{ display: 'grid', gap: 8 }}>
         <figure style={{ margin: 0, display: 'grid', gap: 3 }}>
-          <a href={lon.url} target="_blank" rel="noreferrer" title="Mở ảnh gốc"><img src={anhNho(lon.url, 640)} alt="" style={{ width: 300, borderRadius: 4, outline: lon.chon ? '2px solid var(--lime)' : undefined }} /></a>
+          <a href={lon.url} target="_blank" rel="noreferrer" title="Mở ảnh gốc"><img src={anhNho(lon.url, 640)} alt="" style={{ width: '100%', maxWidth: 300, borderRadius: 4, outline: lon.chon ? '2px solid var(--lime)' : undefined }} /></a>
           <figcaption style={mono}>{nhan(lon, ds.indexOf(lon))}</figcaption>
         </figure>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1, minWidth: 200, alignContent: 'flex-start' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: 300 }}>
           {ds.map((x, i) => x === lon ? null : (
-            <button key={x.url} type="button" onClick={() => setTo(x.url)} title={`${nhan(x, i)} — bấm để xem to`} style={{ padding: 0, border: 0, background: 'none', display: 'grid', gap: 2, width: 96 }}>
-              <img src={anhNho(x.url, 160)} alt="" style={{ width: 96, borderRadius: 3, outline: x.chon ? '2px solid var(--lime)' : undefined, opacity: 0.9 }} />
+            <button key={x.url} type="button" onClick={() => setTo(x.url)} title={`${nhan(x, i)} — bấm để xem to`} style={{ padding: 0, border: 0, background: 'none', display: 'grid', gap: 2, width: 70 }}>
+              <img src={anhNho(x.url, 160)} alt="" style={{ width: 70, borderRadius: 3, outline: x.chon ? '2px solid var(--lime)' : undefined, opacity: 0.9 }} />
               <span style={{ ...mono, fontSize: 9.5 }}>{i === 0 ? 'mới nhất' : `lần ${ds.length - i}`}{x.luc ? ` · ${gioVN(x.luc, { chiGio: true })}` : ''}{x.chon ? ' ✓' : ''}</span>
             </button>
           ))}
@@ -116,9 +116,9 @@ export function PhieuShots({ tapId, onMoNut, onXemShot }: { tapId: number; onMoN
             {xemDung === '3d' && p.anh3d && <button type="button" title="Mở bộ set 3D đúng máy shot" onClick={() => moNgan({ loai: 'bo-set', tapId, canhId: p.id })} style={{ padding: 0, border: 0, background: 'none' }}>
               <img src={anhNho(p.anh3d, 320)} alt="" style={{ width: '100%', maxWidth: 300, borderRadius: 4 }} /></button>}
             {!coXem.length && <span style={mono}>Shot chưa có sơ đồ cảnh / khung 3D — chưa có bố trí để xem</span>}
+            <LichSuAnh key={p.id} ds={p.lich_su} />
           </div>
         </div>
-        <LichSuAnh key={p.id} ds={p.lich_su} />
       </div>
     </div>
   );

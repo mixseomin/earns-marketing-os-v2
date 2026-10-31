@@ -377,6 +377,7 @@ const GOC_THEM: Record<string, string[]> = {
   boi_canh: ['Same location seen from the OPPOSITE direction, reverse angle', 'Low ground-level angle looking up, close foreground details', 'High aerial bird-eye view of the whole place', 'Medium shot focusing on one landmark detail of the place', 'Wide shot from the far side, the place seen at a distance'],
   san_pham: ['Product from a 45-degree side angle', 'Macro close-up of material texture and stitching details', 'Flat lay top-down shot', 'Back view of the product'],
   dao_cu: ['Prop from a different angle, side view', 'Macro close-up detail of the prop', 'Prop shown at true scale beside a plain ballpoint pen'],
+  cau_kien: ['The fixture from a 45-degree angle', 'Macro close-up of its material, colour and finish', 'Straight front-on view of the whole fixture', 'Side profile view of the fixture'],
 };
 /** ẢNH MẪU = ĐÚNG MÔ TẢ, KHÔNG HƠN (anh 22/10/2026 "không được thiếu thì cũng không được thừa"; phim #132: cửa kính tự in "总裁办公室 CEO OFFICE", cửa thang
  *  máy tự gắn bảng số "28", logo mọc thêm biểu tượng, thành viên HĐQT vest nâu thành vest đen, bàn nhân viên thành bàn giám đốc chạm trổ). Danh sách trắng:
@@ -391,16 +392,18 @@ export function promptAnhMau(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: Ki
     const goc = ds[(daCo - 1) % ds.length]!;
     return `${goc}. Subject: ${nv.mo_ta}. Visual style: ${phongCachHinh(docKinhThanh(kt).phong_cach) || 'consistent cinematic look'}. `
       + 'The reference images only define the identity/design of the subject — create a NEW image with a clearly DIFFERENT camera angle and composition; do NOT reproduce the reference image.'
-      + (nv.loai === 'dao_cu' || nv.loai === 'san_pham' ? ' ' + CO_LAP_VAT : '') + ' ' + cauDungMoTa(nv.mo_ta);
+      + (nv.loai === 'dao_cu' || nv.loai === 'san_pham' || nv.loai === 'cau_kien' ? ' ' + CO_LAP_VAT : '') + ' ' + cauDungMoTa(nv.mo_ta);
   }
   const k = docKinhThanh(kt);
   const loai = nv.loai === 'nhan_vat' ? 'Character design reference sheet on a plain light background: full-body turnaround (front, three-quarter, side, back) in a neutral pose, plus a row of head close-ups showing neutral, happy, sad and surprised expressions; identical design in every view'
     : nv.loai === 'san_pham' ? 'Product reference shot, centered, soft studio lighting, plain background, exact product details'
     : nv.loai === 'boi_canh' ? 'Establishing shot of the location, wide angle, no characters'
-    : nv.loai === 'dao_cu' ? 'Prop reference shot, centered, plain background' : 'Style reference frame';
+    : nv.loai === 'dao_cu' ? 'Prop reference shot, centered, plain background'
+    : nv.loai === 'cau_kien' ? 'Single architectural fixture reference shot on a plain neutral background — only this one fixture, no room or people around it, centered, even lighting, exact material and finish'
+    : 'Style reference frame';
   // Đạo cụ / sản phẩm: câu CÔ LẬP đứng SAU phong cách phim — phong cách kiểu "luxury corporate drama" kéo cả văn phòng + người vào ảnh mẫu
   // (tổng tài 17/10/2026: điện thoại cầm trong tay một người đàn ông, thẻ nhân viên in ảnh + tên một cô gái khác) → keyframe nhận người lạ làm tham chiếu.
-  const coLap = nv.loai === 'dao_cu' || nv.loai === 'san_pham' ? ' ' + CO_LAP_VAT : '';
+  const coLap = nv.loai === 'dao_cu' || nv.loai === 'san_pham' || nv.loai === 'cau_kien' ? ' ' + CO_LAP_VAT : '';
   return `${loai}. ${nv.mo_ta}. Visual style: ${phongCachHinh(k.phong_cach) || 'consistent cinematic look'}.${coLap} ${cauDungMoTa(nv.mo_ta)}`;
 }
 export const CO_LAP_VAT = 'ISOLATED object only, on a plain seamless light-grey studio background: no people, no hands, no faces, no room, no scenery, no other objects. Only if the object itself carries an ID photo or a printed name (badge, card), leave that area blank — never add grey patches, stickers or labels to any other object.';

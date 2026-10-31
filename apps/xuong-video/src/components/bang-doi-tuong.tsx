@@ -9,7 +9,7 @@ import type { Canh, NhanVat } from '@/lib/xuong-video/kieu';
 import { mono } from './ui';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
 
-const ICON: Record<string, string> = { san_pham: '👖', nhan_vat: '🧍', boi_canh: '🏠', dao_cu: '🧸' };
+const ICON: Record<string, string> = { san_pham: '👖', nhan_vat: '🧍', boi_canh: '🏠', dao_cu: '🧸', cau_kien: '🪟' };
 
 export function BangDoiTuong({ canh, nhanVat, onChonShot, onDong }: { canh: Canh[]; nhanVat: NhanVat[]; onChonShot: (id: number) => void; onDong: () => void }) {
   const bang = useMemo(() => bangDoiTuong(canh, nhanVat), [canh, nhanVat]);

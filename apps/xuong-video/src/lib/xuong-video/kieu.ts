@@ -20,6 +20,7 @@ export const LOAI_NHAN_VAT: { key: LoaiNhanVat; label: string; ic: string }[] = 
   { key: 'san_pham', label: 'Sản phẩm', ic: '📦' },
   { key: 'boi_canh', label: 'Bối cảnh', ic: '🏠' },
   { key: 'dao_cu', label: 'Đạo cụ', ic: '🧸' },
+  { key: 'cau_kien', label: 'Cấu kiện', ic: '🪟' },
   { key: 'phong_cach', label: 'Phong cách', ic: '🎨' },
 ];
 

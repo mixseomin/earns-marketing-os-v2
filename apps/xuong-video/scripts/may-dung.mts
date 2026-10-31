@@ -16,7 +16,7 @@
 //   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }] } → trạng thái máy đăng thời gian thực (mos2 Lịch đăng › ⚡ Máy đăng)
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
-//   --luot-xem                     ĐO THEO DẠNG: đọc lại lượt xem YouTube mọi video đã đăng (cũ hơn 12 giờ) → bảng trung bình máy × dạng, 0₫
+//   --luot-xem                     ĐO THEO DẠNG: đọc lại lượt xem YouTube + Facebook mọi video đã đăng (cũ hơn 12 giờ) → bảng trung bình máy × dạng, 0₫
 //   --sinh-game <N>                dạng game Only ONE: tiêu đề theo KHUNG video thắng của kênh (≥ 500 lượt sau 7 ngày, đọc lại lượt xem YouTube trước) + góc spy dùng ít nhất → nạp + dựng, 0₫
 //   --sinh-kho <N>                 lấp kho VIDEO cho máy: N đề theo góc spy chưa dùng, dạng ra MP4 xoay vòng → nạp + dựng (TỐN TIỀN chữ AI — lô lớn duyệt qua Telegram)
 //   --tu-khoa | --viet-bai           stdin { goc [, cau_hoi, slug] } → JSON câu tìm Quora / câu trả lời (chữ AI rẻ ~1¢; nạp vẫn qua nap-bai.mjs) — puzzle-books sinh-bai.mjs gọi
@@ -127,8 +127,9 @@ if (a.includes('--nap')) {
     order by (coalesce(lan_cuoi, now()) - bat_dau) desc, bien_the desc nulls last limit 400`) as never).slice(0, 100);
   // VIDEO THẮNG của chính máy (anh duyệt 31/10/2026: hook đã chứng minh = QC spy chạy lâu HOẶC video kênh ≥ 500 lượt sau 7 ngày) → đứng ĐẦU kho hook
   const { THANG_LUOT_XEM, THANG_SAU_NGAY } = await import('../src/lib/xuong-video/luot-xem');
+  const { docLaiLuotXem, NGAY_DANG_SQL } = await import('../src/lib/xuong-video/luot-xem-db'); await docLaiLuotXem(db, Number(m.id));
   const thangKenh: HookDong[] = ((await db.execute(sql`SELECT id, dang->>'title' AS title, luot_xem FROM xv_may_video WHERE may_id = ${m.id} AND luot_xem >= ${THANG_LUOT_XEM}
-    AND (da_dang->'youtube'->>'ngay')::date <= current_date - ${THANG_SAU_NGAY}::int ORDER BY luot_xem DESC LIMIT 10`)) as unknown as { id: number; title: string; luot_xem: number }[])
+    AND ${sql.raw(NGAY_DANG_SQL)} <= current_date - ${THANG_SAU_NGAY}::int ORDER BY luot_xem DESC LIMIT 10`)) as unknown as { id: number; title: string; luot_xem: number }[])
     .map((v) => ({ id: `kenh:${v.id}`, chu: sachHook(v.title.replace(/\s*#\w+/g, '')), ngay: v.luot_xem, page: `video thắng của kênh (${v.luot_xem} lượt xem)` }));
   const qcGoc = [...new Set(gocs.flatMap((g) => g.qc_ids ?? []))];
   const hookCuaQc = new Map(hookTu(qcGoc.length ? (await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta where library_id = any(${qcGoc})`) as never : []).map((h) => [h.id, h]));
@@ -180,24 +181,22 @@ if (a.includes('--nap')) {
   console.log(ra.join('\n')); console.log(`sinh kho ${ma}: ${n}/${N} đề, ${Math.round(vnd)}₫`);
 } else if (a.includes('--luot-xem')) {
   // ĐO THEO DẠNG (bước 7): đọc lại lượt xem YouTube mọi video đã đăng của MỌI máy (cũ hơn 12 giờ) rồi in trung bình theo máy × dạng — 0₫
-  const { luotXemYoutube } = await import('../src/lib/xuong-video/luot-xem');
-  const ds = (await db.execute(sql`SELECT id, da_dang->'youtube'->>'url' AS url FROM xv_may_video WHERE da_dang->'youtube'->>'url' IS NOT NULL AND (luot_xem_luc IS NULL OR luot_xem_luc < now() - interval '12 hours')`)) as unknown as { id: number; url: string }[];
-  let doc = 0; for (const v of ds) { const n = await luotXemYoutube(v.url); if (n != null) { await db.execute(sql`UPDATE xv_may_video SET luot_xem = ${n}, luot_xem_luc = now() WHERE id = ${v.id}`); doc++; } }
+  const { docLaiLuotXem } = await import('../src/lib/xuong-video/luot-xem-db');
+  const { doc, tong: ds } = await docLaiLuotXem(db, null);
   const bang = (await db.execute(sql`SELECT m.ma, coalesce(v.dang->>'dang_bai', v.mau, m.mau) AS dang, count(*)::int AS n, round(avg(v.luot_xem))::int AS tb, max(v.luot_xem) AS cao
     FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.luot_xem IS NOT NULL GROUP BY 1, 2 ORDER BY 1, tb DESC`)) as unknown as { ma: string; dang: string; n: number; tb: number; cao: number }[];
-  console.log(`· đọc ${doc}/${ds.length} video`); for (const r of bang) console.log(`${r.ma.padEnd(28)} ${String(r.dang).padEnd(22)} ${String(r.n).padStart(3)} video  tb ${String(r.tb).padStart(6)}  cao ${r.cao}`);
+  console.log(`· đọc ${doc}/${ds} video`); for (const r of bang) console.log(`${r.ma.padEnd(28)} ${String(r.dang).padEnd(22)} ${String(r.n).padStart(3)} video  tb ${String(r.tb).padStart(6)}  cao ${r.cao}`);
 } else if (lay('--sinh-game') != null) {
   // DẠNG GAME "Only ONE says ___" (anh duyệt 31/10/2026: hook lấy từ VIDEO THẮNG của chính kênh, cạnh QC spy) — 0₫, không gọi AI:
   //   1. đọc lại lượt xem YouTube các video đã đăng của máy (luot-xem.ts) → video thắng = ≥ 500 lượt sau ≥ 7 ngày
   //   2. từ chưa từng đăng (đề đố chữ đã dựng sẵn trong kho lưu trữ) + góc spy dùng ít nhất của máy → đề mới, tiêu đề = KHUNG video thắng chỉ đổi từ
   //   3. nạp + dựng; Phòng Nội dung chấm như mọi bài (hook bám gốc, Ngọc xét nhạt / lệch ngách)
   const N = Math.max(1, Math.min(30, Number(lay('--sinh-game')) || 6)), m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
-  const { luotXemYoutube, THANG_LUOT_XEM, THANG_SAU_NGAY } = await import('../src/lib/xuong-video/luot-xem');
-  const daDang = (await db.execute(sql`SELECT id, da_dang->'youtube'->>'url' AS url FROM xv_may_video WHERE may_id = ${m.id} AND da_dang->'youtube'->>'url' IS NOT NULL
-    AND (luot_xem_luc IS NULL OR luot_xem_luc < now() - interval '12 hours')`)) as unknown as { id: number; url: string }[];
-  let doc = 0; for (const v of daDang) { const n = await luotXemYoutube(v.url); if (n != null) { await db.execute(sql`UPDATE xv_may_video SET luot_xem = ${n}, luot_xem_luc = now() WHERE id = ${v.id}`); doc++; } }
+  const { THANG_LUOT_XEM, THANG_SAU_NGAY } = await import('../src/lib/xuong-video/luot-xem');
+  const { docLaiLuotXem, NGAY_DANG_SQL } = await import('../src/lib/xuong-video/luot-xem-db');
+  const { doc, tong } = await docLaiLuotXem(db, Number(m.id)); const daDang = { length: tong };
   const thang = (await db.execute(sql`SELECT id, dang->>'title' AS title, luot_xem FROM xv_may_video WHERE may_id = ${m.id} AND de ? 'dich' AND luot_xem >= ${THANG_LUOT_XEM}
-    AND (da_dang->'youtube'->>'ngay')::date <= current_date - ${THANG_SAU_NGAY}::int AND dang->>'title' ~ ${'^Only ONE says [A-Z]+\\.'} ORDER BY luot_xem DESC`)) as unknown as { id: number; title: string; luot_xem: number }[];
+    AND ${sql.raw(NGAY_DANG_SQL)} <= current_date - ${THANG_SAU_NGAY}::int AND dang->>'title' ~ ${'^Only ONE says [A-Z]+\\.'} ORDER BY luot_xem DESC`)) as unknown as { id: number; title: string; luot_xem: number }[];
   console.log(`· đọc lượt xem ${doc}/${daDang.length} video; video thắng: ${thang.length}${thang[0] ? ` (cao nhất ${thang[0].luot_xem} lượt — "${thang[0].title.slice(0, 60)}")` : ''}`);
   if (!thang.length) { console.error(`✗ máy ${ma}: chưa có video thắng (≥ ${THANG_LUOT_XEM} lượt sau ${THANG_SAU_NGAY} ngày) làm hook — dừng`); process.exit(1); }
   // từ trộn ngẫu nhiên (lấy theo ABC thì một lượt toàn ACROBAT, ACTIVITY, AIRPORT… — đơn điệu)

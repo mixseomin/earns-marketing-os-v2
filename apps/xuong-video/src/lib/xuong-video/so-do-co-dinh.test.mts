@@ -40,4 +40,23 @@ const trong: SoDo = { moc: {}, may: { a: { dat: [0, 0], nhin: [0, 1] } } };
 assert.strictEqual(cauBoiCanhCoDinh(trong, { may: 'a', o: {} }), '');
 assert.deepStrictEqual(coDinhDuKien(trong, { may: 'a', o: {} }), []);
 
-console.log('✓ so-do-co-dinh: cụm cửa lật theo máy, số lượng bất biến, tường trơn bỏ, phim cũ không vỡ');
+// 5. CẤU KIỆN CÓ TÊN (bộ bối cảnh): hai bục lan ĐỐI XỨNG trước thang → gom theo TÊN, số lượng 2, danh từ EN lấy từ ten_en, chỗ-màn tính theo máy.
+//    Khai một lần (ten khớp xv_nhan_vat 'cau_kien'); 100 cảnh sau dùng lại, không khai lại.
+const phong2: MangPhong[] = [
+  { loai: 'cua', tu: [0.6, 5], den: [1.4, 5], z1: 2.4 },
+  { loai: 'cua', tu: [1.4, 5], den: [2.2, 5], z1: 2.4 },
+  { loai: 'vat', ten: 'Bục lan trắng', ten_en: 'white-orchid marble pedestal', tu: [-3.2, 4.6], den: [-2.6, 4.6], z1: 1.1 },   // bục trái
+  { loai: 'vat', ten: 'Bục lan trắng', ten_en: 'white-orchid marble pedestal', tu: [2.6, 4.6], den: [3.2, 4.6], z1: 1.1 },     // bục phải
+  { loai: 'vat', ten: 'Bảng chỉ dẫn', ten_en: 'black glass directory board', vat_lieu: 'black glass', tu: [3.4, 4.2], den: [3.4, 5.2], z0: 1, z1: 2.2 },
+];
+const s2: SoDo = { moc: {}, may: { nam: { dat: [0, 0], nhin: [0, 5] }, bac: { dat: [0, 10], nhin: [0, 0] } }, phong: phong2 };
+const cNam2 = cauBoiCanhCoDinh(s2, { may: 'nam', o: {} });
+assert.ok(cNam2.includes('the 2 white-orchid marble pedestals'), `gộp theo tên, số 2, danh từ EN: ${cNam2}`);
+assert.ok(cNam2.includes('the black glass directory board'), `cấu kiện đơn giữ tên EN: ${cNam2}`);
+const bucNam = coDinhDuKien(s2, { may: 'nam', o: {} }).find((x) => x.thanh_phan === 'Cấu kiện cố định · Bục lan trắng');
+assert.ok(bucNam && /2 Bục lan trắng/.test(bucNam.du_kien), `lá bục lan: ${bucNam?.du_kien}`);
+// LẬT theo máy: bảng chỉ dẫn [3.4,...] từ nam ở PHẢI, từ bắc LẬT sang TRÁI
+assert.strictEqual(benMan(s2, { may: 'nam', o: {} }, [3.4, 4.7]), 'phai', 'bảng từ nam ở phải');
+assert.strictEqual(benMan(s2, { may: 'bac', o: {} }, [3.4, 4.7]), 'trai', 'bảng từ bắc LẬT sang trái');
+
+console.log('✓ so-do-co-dinh: cụm cửa + cấu kiện có tên lật theo máy, số lượng bất biến, tường trơn bỏ, phim cũ không vỡ');

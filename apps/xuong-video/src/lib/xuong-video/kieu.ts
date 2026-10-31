@@ -13,7 +13,7 @@ export const LOAI_PHIM: { key: LoaiPhim; label: string; mo_ta: string }[] = [
   { key: 'may_dung', label: 'Máy Dựng', mo_ta: 'Dựng bằng máy theo khuôn (đố chữ Front Porch…), không AI — keyframe / clip / bản xuất 0đ' },
 ];
 
-export type LoaiNhanVat = 'nhan_vat' | 'san_pham' | 'boi_canh' | 'dao_cu' | 'phong_cach';
+export type LoaiNhanVat = 'nhan_vat' | 'san_pham' | 'boi_canh' | 'dao_cu' | 'phong_cach' | 'cau_kien';
 /** ic = biểu tượng của loại đối tượng — MỘT chỗ khai cho timeline, bảng đối tượng × shot… */
 export const LOAI_NHAN_VAT: { key: LoaiNhanVat; label: string; ic: string }[] = [
   { key: 'nhan_vat', label: 'Nhân vật', ic: '🧍' },
@@ -501,6 +501,7 @@ export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]
   boi_canh: [{ key: 'goc_may', label: 'Góc máy' }, { key: 'thoi_diem', label: 'Thời điểm / thời tiết' }],
   dao_cu: [{ key: 'trang_thai', label: 'Trạng thái' }, { key: 'goc_may', label: 'Góc' }],
   phong_cach: [{ key: 'trang_thai', label: 'Biến tấu' }],
+  cau_kien: [{ key: 'goc_may', label: 'Góc' }, { key: 'vat_lieu', label: 'Vật liệu / màu' }],
 };
 export const nhanNhom = (loai: LoaiNhanVat, nhom: string) => NHOM_BIEN_THE[loai]?.find((x) => x.key === nhom)?.label ?? nhom;
 /** LỚP PHỦ tự do của tập (như trình dựng video): chữ, ảnh, hình khối đặt theo vị trí + thời gian TUYỆT ĐỐI trên tập (nhánh A).

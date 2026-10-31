@@ -92,8 +92,9 @@ export function cauHuong(s: SoDo, m: ManhSoDo, nguoi: string[], tenEn: (t: strin
 export const thayHuong = (s: SoDo, m: ManhSoDo, chu: string): string => chu.replace(/\{([^{}→]+)→([^{}]+)\}/g, (_, a: string, b: string) => PHIA(huongMan(s, m, a.trim(), b.trim())));
 // ── CẤU KIỆN CỐ ĐỊNH (so_do.phong): hình học bất biến của địa điểm → dịch ra phía màn theo TỪNG máy cho prompt + đối chiếu ──────────────────────
 // Nguồn = `phong` (đã có, trước chỉ dùng vẽ SVG debug). Mỗi món một đoạn tu→den; điểm giữa chiếu qua viTriMan nên đổi góc máy chỗ-màn đổi đúng hình học, KHÔNG lật bậy.
-const NEN_EN: Record<MangPhong['loai'], readonly [string, string]> = { tuong: ['wall', 'walls'], cua: ['door', 'doors'], tranh: ['framed picture on the wall', 'framed pictures on the wall'], cot: ['column', 'columns'] };
-const NEN_VI: Record<MangPhong['loai'], string> = { tuong: 'tường', cua: 'cửa', tranh: 'tranh treo tường', cot: 'cột' };
+// Danh từ cho LOẠI hình học (cửa/tranh/cột). Cấu kiện có hình riêng (loai 'vat') mang danh từ của chính nó qua `ten`/`ten_en`, không tra bảng này.
+const NEN_EN: Record<'cua' | 'tranh' | 'cot', readonly [string, string]> = { cua: ['door', 'doors'], tranh: ['framed picture on the wall', 'framed pictures on the wall'], cot: ['column', 'columns'] };
+const NEN_VI: Record<'cua' | 'tranh' | 'cot', string> = { cua: 'cửa', tranh: 'tranh treo tường', cot: 'cột' };
 const giuaMon = (p: MangPhong): Diem => [(p.tu[0] + p.den[0]) / 2, (p.tu[1] + p.den[1]) / 2];
 /** Chỗ của một điểm (tên mốc hoặc toạ độ) so với KHUNG của máy m: trước / sau máy, lệch ngang (nx: âm = trái, dương = phải; |nx|>1 = ngoài mép khung). null khi thiếu máy / điểm. */
 function choMan(s: SoDo, m: ManhSoDo, mon: string | Diem): { sau: number; nx: number } | null {
@@ -112,31 +113,42 @@ const choEn = (c: { sau: number; nx: number }) => c.sau <= 0.05 ? 'behind the ca
 const choVi = (c: { sau: number; nx: number }) => c.sau <= 0.05 ? 'sau lưng máy, ngoài khung'
   : c.nx < -1 ? 'ngoài khung bên trái' : c.nx > 1 ? 'ngoài khung bên phải'
   : c.nx < -0.33 ? 'trái màn' : c.nx > 0.33 ? 'phải màn' : 'giữa màn';
-/** Gom `phong` theo loại (bỏ 'tuong' trơn) + điểm-giữa-gộp chiếu theo máy. Dùng chung cho câu prompt và lá đối chiếu. */
-function nhomPhong(s: SoDo, m: ManhSoDo): { loai: MangPhong['loai']; n: number; c: { sau: number; nx: number } }[] {
+/** Một nhóm cấu kiện cùng tên/loại sau khi chiếu theo máy: danh từ EN (1 / nhiều), danh từ VI, có-phải-cửa, số lượng, chỗ-màn gộp. */
+type NhomNen = { en1: string; enN: string; vi: string; laCua: boolean; n: number; c: { sau: number; nx: number } };
+/** Gom `phong` + điểm-giữa-gộp chiếu theo máy. Bỏ tường TRƠN (không tên); cấu kiện có `ten` (bục lan / logo / bảng) gom theo TÊN để giữ đồng nhất, loại hình học (cửa/tranh/cột) gom theo loại. */
+function nhomPhong(s: SoDo, m: ManhSoDo): NhomNen[] {
   if (!s.may[m.may]) return [];
-  const byLoai = new Map<MangPhong['loai'], MangPhong[]>();
-  for (const p of (s.phong ?? []).filter((p) => p.loai !== 'tuong')) byLoai.set(p.loai, [...(byLoai.get(p.loai) ?? []), p]);
-  return [...byLoai].flatMap(([loai, items]) => {
-    const cs = items.map((p) => choMan(s, m, giuaMon(p))).filter((c): c is { sau: number; nx: number } => !!c);
+  const g = new Map<string, { en1: string; enN: string; vi: string; laCua: boolean; items: MangPhong[] }>();
+  for (const p of s.phong ?? []) {
+    if (p.loai === 'tuong' && !p.ten) continue;   // tường trơn không là cấu kiện để nhắc
+    const co = p.loai === 'cua' || p.loai === 'tranh' || p.loai === 'cot' ? p.loai : null;
+    const key = p.ten ? `t:${p.ten}` : p.loai;
+    const en1 = p.ten_en ?? p.ten ?? (co ? NEN_EN[co][0] : 'fixture');
+    const enN = p.ten_en ? `${p.ten_en}s` : p.ten ?? (co ? NEN_EN[co][1] : 'fixtures');   // tên EN số nhiều = +s; tên VI không biến đổi
+    const vi = p.ten ?? (co ? NEN_VI[co] : 'vật');
+    const e = g.get(key) ?? { en1, enN, vi, laCua: p.loai === 'cua', items: [] };
+    e.items.push(p); g.set(key, e);
+  }
+  return [...g.values()].flatMap((e) => {
+    const cs = e.items.map((p) => choMan(s, m, giuaMon(p))).filter((c): c is { sau: number; nx: number } => !!c);
     if (!cs.length) return [];
-    return [{ loai, n: items.length, c: { sau: cs.reduce((a, c) => a + c.sau, 0) / cs.length, nx: cs.reduce((a, c) => a + c.nx, 0) / cs.length } }];
+    return [{ en1: e.en1, enN: e.enN, vi: e.vi, laCua: e.laCua, n: e.items.length, c: { sau: cs.reduce((a, c) => a + c.sau, 0) / cs.length, nx: cs.reduce((a, c) => a + c.nx, 0) / cs.length } }];
   });
 }
-/** Câu "FIXED LAYOUT" cho prompt keyframe: mỗi loại cấu kiện → tên + số lượng + CHỖ TRÊN MÀN tính theo máy m. Cửa ≥2 kèm "chỉ bấy nhiêu cửa, cùng một tường".
+/** Câu "FIXED LAYOUT" cho prompt keyframe: mỗi cấu kiện → tên + số lượng + CHỖ TRÊN MÀN tính theo máy m. Cửa kèm "chỉ bấy nhiêu cửa, cùng một tường".
  *  Giữ bất biến hình học qua mọi góc: đổi máy thì chỗ-màn đổi đúng hình học, nhưng số lượng không đổi và không cửa nào mọc thêm / nhảy tường. */
 export function cauBoiCanhCoDinh(s: SoDo, m: ManhSoDo): string {
-  const cum = nhomPhong(s, m).map(({ loai, n, c }) => {
-    const ten = n > 1 ? `the ${n} ${NEN_EN[loai][1]}` : `the ${NEN_EN[loai][0]}`;
-    const chi = loai === 'cua' ? ` — these are the ONLY doors in this location, all set into this one wall; add no door anywhere else and never flip them to another wall` : '';
+  const cum = nhomPhong(s, m).map(({ en1, enN, laCua, n, c }) => {
+    const ten = n > 1 ? `the ${n} ${enN}` : `the ${en1}`;
+    const chi = laCua ? ` — these are the ONLY doors in this location, all set into this one wall; add no door anywhere else and never flip them to another wall` : '';
     return `${ten}: ${choEn(c)}${chi}`;
   });
   if (!cum.length) return '';
   return `FIXED LAYOUT of this location — the real walls and fixtures, identical in every shot: ${cum.join('; ')}.`;
 }
-/** Lá đối chiếu cho cấu kiện cố định (một lá mỗi loại): thanh_phan "Cấu kiện cố định · <loại>" · du_kien "<n> <loại>, <chỗ màn>". */
+/** Lá đối chiếu cho cấu kiện cố định (một lá mỗi cấu kiện): thanh_phan "Cấu kiện cố định · <tên vi>" · du_kien "<n> <tên vi>, <chỗ màn>". */
 export function coDinhDuKien(s: SoDo, m: ManhSoDo): { thanh_phan: string; du_kien: string }[] {
-  return nhomPhong(s, m).map(({ loai, n, c }) => ({ thanh_phan: `Cấu kiện cố định · ${NEN_VI[loai]}`, du_kien: `${n} ${NEN_VI[loai]}, ${choVi(c)}` }));
+  return nhomPhong(s, m).map(({ vi, n, c }) => ({ thanh_phan: `Cấu kiện cố định · ${vi}`, du_kien: `${n} ${vi}, ${choVi(c)}` }));
 }
 /** Kỳ vọng cho cổng đo keyframe: người trong khung → phía màn (+ phía nhìn nếu khai). */
 export function kyVong(s: SoDo, m: ManhSoDo, nguoi: string[]): Record<string, KyVong> {
@@ -178,8 +190,14 @@ export function loiDoHuong(kv: Record<string, KyVong>, ket: { ten: string; o?: {
 // không đủ — model không tự dựng lại góc máy, mỗi khung tự đặt người + nền. Máy vẽ từ sơ đồ một khung PHÁC (nét thô như phác chì của người vẽ phân cảnh):
 // tường + cửa + mảng nhận diện chiếu đúng góc máy, mỗi người một bóng màu đúng chỗ / đúng cỡ theo độ sâu, mũi tên = hướng nhìn. Chỉ dẫn tầng THUMBNAIL
 // (scripts/bang-gom.mts tầng 1), không phải ảnh để model chép điểm ảnh (bài học khung 3D xám).
-export type MangPhong = { loai: 'tuong' | 'cua' | 'tranh' | 'cot'; tu: Diem; den: Diem; z0?: number; z1: number; mau?: string };
-const MAU_MANG: Record<MangPhong['loai'], string> = { tuong: '#3c3c44', cua: '#b9bec6', tranh: '#d9b44a', cot: '#55555f' };
+// CẤU KIỆN của một địa điểm (bộ bối cảnh). Hình học tu→den + z nằm trong sơ đồ (per tập); DANH TÍNH (ảnh anchor, mô tả) nằm ở xv_nhan_vat loai 'cau_kien' cùng phim,
+// NỐI BẰNG `ten` (khai một lần/phim, 100 cảnh dùng lại). `vat_lieu` = bề mặt khi không cần ảnh riêng (marble đen, thép chải). loai 'vat' = cấu kiện có hình riêng
+// (bục lan / ghế / bảng chỉ dẫn / logo / cây) — khác cửa/tranh/cột là loại hình học thuần.
+export type MangPhong = { loai: 'tuong' | 'cua' | 'tranh' | 'cot' | 'vat'; tu: Diem; den: Diem; z0?: number; z1: number; mau?: string;
+  /** tên cấu kiện — khớp xv_nhan_vat loai 'cau_kien' cùng phim để lấy ảnh anchor + mô tả (đồng nhất qua mọi shot) */ ten?: string;
+  /** danh từ tiếng Anh ngắn cho prompt (vd "white-orchid pedestal"); thiếu thì dùng `ten` */ ten_en?: string;
+  /** vật liệu bề mặt khi cấu kiện không cần ảnh riêng (vd "black marble", "brushed steel") */ vat_lieu?: string };
+const MAU_MANG: Record<MangPhong['loai'], string> = { tuong: '#3c3c44', cua: '#b9bec6', tranh: '#d9b44a', cot: '#55555f', vat: '#6a8f5a' };
 /** SVG khung phác W×H của một mảnh. mau = màu bóng từng người; cao máy 1,5 m, khung dọc nửa góc ngang tan 0,36 / dọc tan 0,64. */
 export function svgPhac(s: SoDo & { phong?: MangPhong[] }, m: ManhSoDo, nguoi: string[], mau: Record<string, string>, W = 360, H = 640): string {
   const t = truc(s, m.may); const CAO = 1.5;

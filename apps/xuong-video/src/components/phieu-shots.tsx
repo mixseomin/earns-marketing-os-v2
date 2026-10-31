@@ -64,6 +64,10 @@ export function PhieuShots({ tapId, onMoNut, onXemShot }: { tapId: number; onMoN
           <span style={{ flex: 1 }} />
           {onXemShot && <button type="button" className="xv-btn" title="Mở ngăn chi tiết shot (sửa, sinh keyframe, video)" onClick={() => onXemShot(p.id)}>Mở shot ↗</button>}
         </div>
+        {p.thieu.length > 0 && <div style={{ display: 'grid', gap: 2, borderLeft: '2px solid var(--red)', paddingLeft: 8 }}>
+          <b style={{ fontSize: 12, color: 'var(--red)' }}>Thiếu thông tin — điền trước khi sinh</b>
+          <span style={{ fontSize: 11.5 }}>{p.thieu.join(' · ')}</span>
+        </div>}
         <div style={{ display: 'grid', gap: 3, fontSize: 12.5 }}>
           <div><span style={mono}>Hành động</span> {p.hanh_dong || '—'}</div>
           {p.mo && <div><span style={mono}>Khung mở</span> {p.mo}</div>}

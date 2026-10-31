@@ -62,7 +62,9 @@ export async function phieuShotsTapDb(db: Db, tapId: number): Promise<PhieuShot[
       const con: NutPhieu[] = KHOA_LOOK.flatMap((k) => (lk?.[k] ?? []).map((b): NutPhieu => ({ nhan: `${nhanNhom('nhan_vat', b.nhom)} · ${b.ten}`, loai: 'look', chi_tiet: [b.mo_ta], link: `bt-${b.id}`, anh: b.anh_url })));
       // biến thể KHÔNG phải look gắn ở shot (biểu cảm, tư thế) — vẫn là thành phần có ảnh riêng
       for (const id of c.bien_the) { const x = btTheoId.get(id); if (x && x.v.id === v.id && !con.some((y) => y.link === `bt-${id}`) && !(KHOA_LOOK as readonly string[]).includes(x.b.nhom)) con.push({ nhan: `${nhanNhom('nhan_vat', x.b.nhom)} · ${x.b.ten}`, loai: 'look', chi_tiet: [x.b.mo_ta], link: `bt-${id}`, anh: x.b.anh_url }); }
-      cay.push({ nhan: v.ten, loai: 'nhan_vat', chi_tiet: la(v.ten), link: `nv-${v.id}`, anh: v.anh_ref[0] ?? null, con });
+      // dòng của chính nhân vật: chỉ chỗ đứng / hướng / nét mặt / dáng — áo, tóc, trang điểm, vết… đã là node look con (cùng chữ, khỏi lặp)
+      const cua = la(v.ten).filter((t) => /^(Vị trí|Hướng|Biểu cảm|Dáng):/.test(t) || !con.length);
+      cay.push({ nhan: v.ten, loai: 'nhan_vat', chi_tiet: cua, link: `nv-${v.id}`, anh: v.anh_ref[0] ?? null, con });
     }
     // ĐẠO CỤ / SẢN PHẨM: ai cầm / trạng thái
     for (const v of anchor.filter((x) => x.loai === 'dao_cu' || x.loai === 'san_pham')) {

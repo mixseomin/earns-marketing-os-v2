@@ -58,7 +58,16 @@ export function xetCanhBao(s, bayGio = Date.now()) {
     const c = s.ckey, gio = c?.cap_nhat ? (bayGio - Date.parse(c.cap_nhat)) / 36e5 : Infinity;
     if (gio > NGUONG.ckeyDungGio) ra.push({ khoa: 'box3:ckey', chu: `Việc bảo trì người bán ckey (spy-bao-tri-ckey.timer) ${gio === Infinity ? 'chưa ghi danh sách lần nào' : `đứng ${gio.toFixed(1)} giờ`} — spy đang dùng danh sách cũ` });
     for (const [k, ds] of Object.entries(c?.dong ?? {})) if (!ds.length) ra.push({ khoa: `ckey-dong:${k}`, chu: `Dòng <b>${k}</b> không còn người bán ckey nào sống — spy đang gọi tuyến đắt hơn (fal / chính hãng)` });
-    for (const [k, ds] of Object.entries(c?.chi_tiet ?? {})) for (const u of ds) if (!u.song && /price .*changed|accept the new price/i.test(u.loi || '')) ra.push({ khoa: `ckey-gia:${u.id}`, chu: `Người bán ckey <b>${u.id}</b> (${k}) đổi giá — muốn dùng lại thì anh vào ckey.vn bấm chấp nhận giá mới (máy không tự bấm)` });
+    // đổi giá: máy iMac tc.on.spy.ckey-gia (spy-on-tc/scripts/ckey-gia.mjs, mỗi giờ) tự chấp nhận khi trong chốt, ghi /var/lib/spy/ckey-gia.json.
+    // Nguyên chỉ báo: máy đã nhận (một lần) · vượt chốt (anh quyết, kèm giá) · máy đứng / phiên ckey hết (thợ máy, khoá box3:)
+    const g = s.ckeyGia, gGio = g?.luc ? (bayGio - Date.parse(g.luc)) / 36e5 : Infinity, tuChoi = new Set(gGio < 24 ? (g.tu_choi ?? []).map((x) => x.model) : []);
+    const doiGia = Object.values(c?.chi_tiet ?? {}).flat().filter((u) => !u.song && /price .*changed|accept the new price/i.test(u.loi || '')).map((u) => u.id);
+    if (gGio < 24) for (const x of g.nhan ?? []) ra.push({ khoa: `ckey-nhan:${x.model}:${g.luc}`, chu: `Máy đã tự chấp nhận giá mới người bán ckey <b>${x.model}</b> — vào ${x.vao}, ra ${x.ra} (${x.ly_do})` });
+    if (gGio < 24) for (const x of g.tu_choi ?? []) ra.push({ khoa: `ckey-gia:${x.model}`, chu: `Người bán ckey <b>${x.model}</b> tăng giá vượt chốt — vào ${x.vao}, ra ${x.ra} (${x.ly_do}). Máy không tự nhận; spy dùng người bán khác` });
+    if (doiGia.some((id) => !tuChoi.has(id))) {
+      if (g?.phien === 'het' && gGio < 24) ra.push({ khoa: 'box3:ckey-gia-phien', chu: 'Phiên ckey.vn trong profile br #10 (iMac, vault #534) đã đăng xuất — máy tự chấp nhận giá ckey đứng; đăng nhập lại bằng nút Google (mikerey887)' });
+      else if (gGio > 3) ra.push({ khoa: 'box3:ckey-gia', chu: `Có người bán ckey đổi giá (${doiGia.join(', ')}) mà máy tự chấp nhận giá (iMac tc.on.spy.ckey-gia) ${gGio === Infinity ? 'chưa chạy lần nào' : `đứng ${gGio.toFixed(1)} giờ`}${g?.loi ? ` — lỗi: ${g.loi.slice(0, 120)}` : ''}` });
+    }
     const truoc = s.ckeyTruoc?.dong;
     if (truoc && c?.dong) for (const [k, ds] of Object.entries(c.dong)) {
       const cu = truoc[k] ?? [], vao = ds.filter((x) => !cu.includes(x)), ra2 = cu.filter((x) => !ds.includes(x)), ten = (x) => x.replace(/^ckey:/, '');
@@ -154,8 +163,8 @@ export async function chupTaiNguyen() {
   // NGƯỜI BÁN CKEY (anh 26/10/2026 "giao cho Nguyên"): spy-bao-tri-ckey.timer (box3, 6 giờ) ghi danh sách sống — Nguyên canh việc đó còn chạy, dòng nào hết người bán,
   // người bán nào đổi giá (cần anh bấm chấp nhận trên ckey.vn), danh sách đổi so với nhịp trước
   const ck = docJson('/var/lib/spy/ckey-tuyen.json'), ckeyTruoc = docJson(`${DATA()}/tai-nguyen.json`)?.ckey ?? null;
-  const ckey = ck ? { cap_nhat: ck.cap_nhat, dong: ck.dong, chi_tiet: ck.chi_tiet } : null;
-  return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon }, taiSan, vps, ckey, ckeyTruoc };
+  const ckey = ck ? { cap_nhat: ck.cap_nhat, dong: ck.dong, chi_tiet: ck.chi_tiet } : null, ckeyGia = docJson('/var/lib/spy/ckey-gia.json');
+  return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon }, taiSan, vps, ckey, ckeyTruoc, ckeyGia };
 }
 
 /** Nhịp (worker/nhip.mjs): chụp → lưu → cảnh báo MỚI (hoặc quá 6 giờ chưa nhắc) → Telegram. */
@@ -223,7 +232,13 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     assert.deepStrictEqual(k({ lan: [], khoa: [], may, ckey: null }), ['box3:ckey'], 'chưa có tệp danh sách: báo (thợ máy nhận)');
     assert.deepStrictEqual(k(ckT(20, { haiku: ['ckey:a/h'] })), ['box3:ckey'], 'việc bảo trì đứng 20 giờ');
     assert.deepStrictEqual(k(ckT(1, { sonnet: [] })), ['ckey-dong:sonnet'], 'dòng hết người bán');
-    assert.deepStrictEqual(k(ckT(1, { opus: ['ckey:x/o'] }, { opus: [{ id: 't/o', song: false, loi: 'The price of this model has changed. Accept the new price in the dashboard' }] })), ['ckey-gia:t/o'], 'người bán đổi giá → anh quyết');
+    const doiG = { opus: [{ id: 't/o', song: false, loi: 'The price of this model has changed. Accept the new price in the dashboard' }] };
+    const vuot = { model: 't/o', vao: '1 → 9', ra: '2 → 18', ly_do: 'tăng 800%' };
+    assert.deepStrictEqual(k(ckT(1, { opus: ['ckey:x/o'] }, doiG)), ['box3:ckey-gia'], 'đổi giá mà máy tự chấp nhận chưa chạy → thợ máy');
+    assert.deepStrictEqual(k({ ...ckT(1, { opus: ['ckey:x/o'] }, doiG), ckeyGia: { luc: gio(1), phien: 'ok', nhan: [], tu_choi: [] } }), [], 'máy vừa chạy < 3 giờ: chờ lượt sau, im');
+    assert.deepStrictEqual(k({ ...ckT(1, { opus: ['ckey:x/o'] }, doiG), ckeyGia: { luc: gio(1), phien: 'ok', nhan: [], tu_choi: [vuot] } }), ['ckey-gia:t/o'], 'vượt chốt → anh quyết');
+    assert.deepStrictEqual(k({ ...ckT(1, { opus: ['ckey:x/o'] }, doiG), ckeyGia: { luc: gio(1), phien: 'het', nhan: [], tu_choi: [] } }), ['box3:ckey-gia-phien'], 'phiên ckey đăng xuất → thợ máy');
+    assert.deepStrictEqual(k({ ...ckT(1, { opus: ['ckey:x/o'] }), ckeyGia: { luc: gio(1), phien: 'ok', nhan: [{ ...vuot, ly_do: 'ok' }], tu_choi: [] } }).map((x) => x.split(':')[0]), ['ckey-nhan'], 'máy đã nhận → báo một lần');
     assert.deepStrictEqual(k(ckT(1, { haiku: ['ckey:b/h', 'ckey:a/h'] }, {}, { haiku: ['ckey:a/h', 'ckey:c/h'] })).map((x) => x.split(':').slice(0, 2).join(':')), ['ckey-doi:haiku'], 'danh sách đổi → báo một lần');
     assert.deepStrictEqual(k({ lan: [], khoa: [], may }), [], 'ảnh chụp cũ không có trường ckey: không báo bừa');
     const vpsT = (x) => k({ lan: lanVps, khoa: [], may, vps: [{ ten: 'may-cao-vn', toi: true, daemon: true, ban: 40, phut: 30, nang: [], ...x }] });

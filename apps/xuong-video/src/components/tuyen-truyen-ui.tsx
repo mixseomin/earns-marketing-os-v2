@@ -49,7 +49,7 @@ export function NutAiTuyen({ phimId, s, setS }: { phimId: number; s: Series; set
     setS(tronAi(s, r.kq.data, taoId));
   };
   return <>
-    <Nut ban={ban} title="Claude đọc động cơ + bản đồ tập (logline, ô gài/trả) rồi đề xuất tuyến, sự kiện từng tập và sổ gài / trả — chỉ điền ô đang trống, không đè chữ đã gõ. Đi cổng rẻ trước (ckey), dưới 2.000₫ một lượt." onClick={() => void chay()}>{ban ? '… AI đang đọc bản đồ' : '✨ AI rút từ bản đồ'}</Nut>
+    <Nut ban={ban} title="Claude đọc động cơ + bản đồ tập (logline, ô gài/trả) rồi đề xuất tuyến, sự kiện từng tập và sổ gài / trả — chỉ điền ô đang trống, không đè chữ đã gõ. Dùng model chữ của phim; ước ~1.800₫ một lượt theo giá chính hãng (Opus, phim 10 tập), đi cổng rẻ trước (ckey) nên thường thấp hơn." onClick={() => void chay()}>{ban ? '… AI đang đọc bản đồ' : '✨ AI rút từ bản đồ'}</Nut>
     <Loi>{loi}</Loi>
   </>;
 }

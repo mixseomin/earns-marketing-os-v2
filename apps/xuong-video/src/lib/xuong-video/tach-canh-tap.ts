@@ -7,6 +7,7 @@ import { dsKhuon, taKhuon, ghiKhuonTuCanh } from './khuon-shot';
 import { boiCanhTap, ghiTienChu, type Db } from './doc-db';
 import { docKinhThanh, coMau, giayMau, thieuQc } from './kieu';
 import { soShotToiDa } from './nhip-hinh';
+import { phanRaTapDb } from './phan-ra';
 
 type Kq<T> = { ok: true; data: T } | { ok: false; loi: string };
 const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
@@ -29,5 +30,9 @@ export async function tachCanhTapDb(db: Db, tapId: number, soCanh: number, nguoi
   // Shot vừa tách có hình tả được → vào thư viện khuôn (gỡ tên anchor), không cần ai bấm.
   if (bc.loai === 'quang_cao') await ghiKhuonTuCanh(db, kq.canh, bc.nhanVat, kt.qc?.ten ?? '', `phim #${bc.tap.phim_id} tập ${bc.tap.so}`, bc.tap.phim_id);
   if (kq.model && kq.tokens) await ghiTienChu(db, bc.tap.phim_id, `Tách cảnh · tập ${bc.tap.so} (${so} cảnh${coMau(kt.qc) ? ', bám QC mẫu' : ''})`, kq.model, kq.tokens);
+  // PHÂN RÃ KỊCH BẢN ngay sau tách (anh 31/10/2026: "làm sao để nó tự sinh ra và báo nếu thiếu"): gắn thẻ mọi phục trang / tóc / phụ kiện / vết / đạo cụ
+  // của tập mới, tạo món thiếu, gắn đúng shot (~200₫). Hỏng không làm hỏng tách cảnh — báo cáo chuẩn bị sẽ hiện tập này "chưa phân rã".
+  const pr = await phanRaTapDb(db, tapId, { nguoi }).catch((e: unknown) => ({ ok: false as const, loi: e instanceof Error ? e.message : String(e) }));
+  if (!pr.ok) console.error(`[phân rã sau tách cảnh] tập ${bc.tap.so}:`, pr.loi);
   return { ok: true, data: so };
 }

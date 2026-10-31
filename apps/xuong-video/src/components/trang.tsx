@@ -10,13 +10,15 @@ import { Ngan } from './ngan';
 import { moNgan } from './ngan-chung';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
 import { nhomPhim, demKieu, laLuuTru, anhDaiDien, TEN_KIEU, type KieuNhom } from '@/lib/xuong-video/nhom-phim';
-import { dsPhim, luuTruPhim, luuThanhTemplate, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, docHoanTac, hoanTac, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
+import { dsPhim, luuTruPhim, luuThanhTemplate, docPhim, taoPhim, taoPhimMau, xoaPhim, taoTap, dsMoHinh, dsThungRac, khoiPhuc, docHoanTac, hoanTac, baoCaoChuanBiAction, type MoHinhChon, type PhimDayDu } from '@/lib/actions';
 import type { MucHoanTac } from '@/lib/xuong-video/hoan-tac';
 import { LOAI_PHIM, docKinhThanh, giaAnhCents, giaVideoCents, tien, gioVN, type Phim, type Job, type LoaiPhim } from '@/lib/xuong-video/kieu';
 import { Khoa, type TabPhim, Pill, Seg, Nut, Xoa, Loi, Menu, MucMenu, mono } from './ui';
 import { MoHinhCtx } from './mo-hinh-ui';
 import { KinhThanhForm } from './kinh-thanh';
 import { NhanVatSection, BienTheChiTiet } from './nhan-vat';
+import { PhanRaPanel } from './phan-ra';
+import type { BaoCaoPhim } from '@/lib/xuong-video/phan-ra';
 import { TapView } from './tap';
 import { PosterPhim } from './poster-ui';
 import { AnhQcPhim } from './anh-qc-ui';
@@ -222,6 +224,10 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
   // Job ảnh còn chạy trên máy chủ (kể cả sau F5) → hỏi lại mỗi 4s tới khi xong.
   const conChay = !!d && (d.dangSinh.nhanVat.length > 0 || d.dangSinh.bienThe.length > 0 || d.dangSinh.poster > 0);
   useDinhKy(tai, conChay ? 4000 : 15000);
+  // 📋 BÁO CÁO CHUẨN BỊ (phân rã kịch bản, 0đ): đọc lại mỗi khi dữ liệu phim đổi (d chỉ đổi khi JSON khác) → chấm thiếu trên cây + khung Phân rã luôn khớp
+  const [bcPr, setBcPr] = useState<BaoCaoPhim | null>(null);
+  const taiPr = useCallback(async () => setBcPr(await baoCaoChuanBiAction(id)), [id]);
+  useEffect(() => { void taiPr(); }, [taiPr, d]);
 
   if (d === undefined) return <Ngan onClose={onClose}><span style={mono}>đang tải…</span></Ngan>;
   if (d === null) return <Ngan onClose={onClose}><b>Không thấy phim</b></Ngan>;
@@ -265,7 +271,8 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
         return (
           <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
             <CayPhim thamSoGap={khoaUrl.gap} phim={phim} tap={tap} nhanVat={nhanVat} nut={k} tapId={tapId} onChon={(n, tid) => (tid != null ? moTap(tid) : setNut(n))} onThemTap={themTap}
-              hep={hep} onHep={k === 'tap:storyboard' ? (v) => setGiuCay(!v) : undefined} />
+              hep={hep} onHep={k === 'tap:storyboard' ? (v) => setGiuCay(!v) : undefined}
+              phanRa={bcPr ? { thieu: bcPr.tong.thieu, tapCho: bcPr.tong.tap_chua + bcPr.tong.tap_cu } : null} />
             <div style={{ flex: 1, minWidth: 0, display: 'grid', gap: 10, alignContent: 'start' }}>
               {k === 'kinh_thanh' && <>
                 {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} onMoPhimChong={(pid) => chong.open('phim', pid)} />}
@@ -276,6 +283,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
               {k === 'nhan_vat' && nv(nvDau)}
               {nvId != null && k === nut && nv(nvId)}
               {bt && k === nut && <div className="xv-panel"><BienTheChiTiet b={bt.b} nvTen={bt.nv.ten} phimId={phim.id} dangSinh={d.dangSinh.bienThe} loiBt={d.loiAnh.bienThe} onChanged={tai} /></div>}
+              {k === 'phan_ra' && <PhanRaPanel phimId={phim.id} bc={bcPr} onChanged={async () => { await tai(); await taiPr(); }} onChon={(n) => setNut(n)} />}
               {k === 'poster' && <>
                 <PosterPhim phim={phim} nhanVat={nhanVat} dang={d.dangSinh.poster} loiNen={d.loiPoster} onChanged={tai} />
                 {phim.loai === 'quang_cao' && <AnhQcPhim phim={phim} nhanVat={nhanVat} />}

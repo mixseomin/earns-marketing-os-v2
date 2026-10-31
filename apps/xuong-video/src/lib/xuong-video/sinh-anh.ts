@@ -222,7 +222,7 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // Biến thể của từng người: SỔ TRANG PHỤC trước (sổ người trỏ tới biến thể chuẩn hoá — bo-set-3d.ts › bienTheTheoSo), chọn tay trên shot sau.
   const viTriCua = (t: string) => (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.ten === t);
   // Shot 3D có sổ người (bienTheTheoSo theo ket); shot 2D dùng SỔ TRANG PHỤC CARRY (bc.look — lookMang) để áo + VẾT mang từ shot khai sang, đồng nhất đối chiếu.
-  const lookCua = (v: NhanVat): BienThe[] => { const lk = v.loai === 'nhan_vat' ? bc.look?.get(v.ten) : undefined; return lk ? (KHOA_LOOK.map((k) => lk[k]).filter(Boolean) as BienThe[]) : []; };
+  const lookCua = (v: NhanVat): BienThe[] => { const lk = v.loai === 'nhan_vat' ? bc.look?.get(v.ten) : undefined; return lk ? KHOA_LOOK.flatMap((k) => lk[k] ?? []) : []; };   // mọi món: phục trang + từng phụ kiện + từng vết
   const btCanh = (v: NhanVat) => { const vt = viTriCua(v.ten); return (vt ? bienTheTheoSo(vt, v, ket)[0] : lookCua(v)[0]) ?? (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id)); };
   /** MỌI biến thể sổ người đang trỏ (trang_phuc + trang + vet) — mô tả en, không phải tên biến thể tiếng Việt */
   const btSo = (v: NhanVat) => { const vt = viTriCua(v.ten); return vt && v.loai === 'nhan_vat' ? bienTheTheoSo(vt, v, ket) : lookCua(v); };

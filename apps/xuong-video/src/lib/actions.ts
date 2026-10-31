@@ -55,6 +55,8 @@ import { bocTachKhung } from '@/lib/xuong-video/boc-tach-khung';
 import { doiChieuKhung, thanhPhanDuKien, apDungSoBang, type MucDuKien } from '@/lib/xuong-video/doi-chieu-khung';
 import type { BocTachCanh, BocTachKhung, DongDoiChieu } from '@/lib/xuong-video/kieu';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb, sinhAnhBienTheDb } from '@/lib/xuong-video/sinh-anh';
+import { phanRaTapDb, baoCaoChuanBiDb, type KqPhanRa, type BaoCaoPhim } from '@/lib/xuong-video/phan-ra';
+import { songSong } from '@/lib/xuong-video/song-song';
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
 import { docGocSpy, xepGocSpy, nhomCuaGoc, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { sanPhamPhim } from '@/lib/xuong-video/nhom-phim';
@@ -593,6 +595,53 @@ export async function mocBienThe(phimId: number): Promise<Record<number, { tap_s
   const out: Record<number, { tap_so: number; thu_tu: number; canh: string; so_shot: number; cac_tap: number[] }> = {};
   for (const r of rows) out[n(r.id)] = { tap_so: n(r.tap_so), thu_tu: n(r.thu_tu), canh: s(r.canh), so_shot: n(r.so_shot), cac_tap: arr<number>(r.cac_tap).map(Number).sort((a, b) => a - b) };
   return out;
+}
+
+// ── 📋 PHÂN RÃ KỊCH BẢN (script breakdown — phan-ra.ts): tự gắn thẻ mọi yếu tố từng shot, tạo món thiếu, báo thiếu; tăng dần theo tập ─────────────
+/** Phân rã MỘT tập (~200₫, 1 lượt chữ qua chuỗi rẻ). ep = chạy lại dù chữ tập không đổi. */
+export async function phanRaTapAction(tapId: number, ep = false): Promise<Kq<KqPhanRa>> {
+  const db = getDb(); if (!db) return loi('no db');
+  const me = await admin(); if (!me) return loi('không có quyền');
+  try { return await phanRaTapDb(db, tapId, { ep, nguoi: me.email }); } catch (e) { console.error('[phân rã]', e); return loi(`lỗi máy chủ: ${e instanceof Error ? e.message : String(e)}`); }
+}
+/** Phân rã MỌI tập CHƯA phân rã / phân rã CŨ (chữ đổi sau lần trước) — tập không đổi bỏ qua 0đ. TUẦN TỰ: tập sau thấy món tập trước vừa tạo → không đẻ trùng. */
+export async function phanRaPhimAction(phimId: number): Promise<Kq<{ chay: number; boQua: number; moi: number; vnd: number; loi: string[] }>> {
+  const db = getDb(); if (!db) return loi('no db');
+  const me = await admin(); if (!me) return loi('không có quyền');
+  const bc = await baoCaoChuanBiDb(db, phimId); if (!bc) return loi('không thấy phim');
+  const out = { chay: 0, boQua: 0, moi: 0, vnd: 0, loi: [] as string[] };
+  for (const t of bc.tap.filter((x) => x.trang_thai === 'chua' || x.trang_thai === 'cu')) {
+    const r = await phanRaTapDb(db, t.id, { nguoi: me.email }).catch((e: unknown) => ({ ok: false as const, loi: e instanceof Error ? e.message : String(e) }));
+    if (!r.ok) { out.loi.push(`tập ${t.so}: ${r.loi}`); continue; }
+    if (r.data.boQua) out.boQua++; else { out.chay++; out.moi += r.data.moi; out.vnd += r.data.vnd ?? 0; }
+  }
+  return { ok: true, data: out };
+}
+/** Báo cáo chuẩn bị cả phim (0đ): tập chưa / cũ / xong, món cần, món THIẾU (chưa tả / chưa ảnh gốc / chưa ảnh mẫu), giá ước phân rã. */
+export async function baoCaoChuanBiAction(phimId: number): Promise<BaoCaoPhim | null> {
+  const db = getDb(); if (!db) return null;
+  if (!(await admin())) return null;
+  return baoCaoChuanBiDb(db, phimId);
+}
+/** 🖼 SINH HẾT ẢNH THIẾU (giá ghi trên nút): đợt 1 ảnh gốc cho anchor shot đang dùng mà chưa có (đã tả) · đợt 2 ảnh mẫu cho biến thể có cha ĐÃ có ảnh gốc.
+ *  Biến thể có cha còn đang chờ ảnh gốc → trả lại tên, bấm lần nữa khi ảnh gốc xong. Chạy nền song song có trần. */
+export async function sinhAnhThieuAction(phimId: number): Promise<Kq<{ goc: number; bienThe: number; cho: string[]; loi: string[] }>> {
+  const db = getDb(); if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const bc = await baoCaoChuanBiDb(db, phimId); if (!bc) return loi('không thấy phim');
+  const goc = bc.thieu.filter((m) => m.loai === 'anchor' && m.ly_do.includes('chưa có ảnh gốc') && !m.ly_do.includes('chưa tả'));
+  const coAnhGoc = new Set(((await db.execute(sql`SELECT id FROM xv_nhan_vat WHERE phim_id = ${phimId} AND jsonb_array_length(coalesce(anh_ref, '[]'::jsonb)) > 0`)) as unknown as Row[]).map((r) => n(r.id)));
+  const btRow = ((await db.execute(sql`SELECT b.id, b.nhan_vat_id FROM xv_bien_the b JOIN xv_nhan_vat v ON v.id = b.nhan_vat_id WHERE v.phim_id = ${phimId}`)) as unknown as Row[]);
+  const chaCua = new Map(btRow.map((r) => [n(r.id), n(r.nhan_vat_id)]));
+  const bt = bc.thieu.filter((m) => m.loai === 'bien_the');
+  const btSan = bt.filter((m) => coAnhGoc.has(chaCua.get(m.id) ?? -1));
+  const cho = bt.filter((m) => !coAnhGoc.has(chaCua.get(m.id) ?? -1)).map((m) => `${m.cua} · ${m.ten}`);
+  const l: string[] = [];
+  const r1 = await songSong(goc, (m) => sinhAnhGoc(db, m.id, 1));
+  r1.forEach((x, i) => { if (!x.ok) l.push(`${goc[i]!.ten}: ${x.loi}`); else if (!x.data.ok) l.push(`${goc[i]!.ten}: ${x.data.loi}`); });
+  const r2 = await songSong(btSan, (m) => sinhAnhBienTheDb(db, m.id));
+  r2.forEach((x, i) => { if (!x.ok) l.push(`${btSan[i]!.cua} · ${btSan[i]!.ten}: ${x.loi}`); else if (!x.data.ok) l.push(`${btSan[i]!.cua} · ${btSan[i]!.ten}: ${x.data.loi}`); });
+  return { ok: true, data: { goc: goc.length, bienThe: btSan.length, cho, loi: l } };
 }
 
 /** Claude đọc kịch bản các tập → đề xuất biến thể cần cho anchor này → tạo luôn (chưa có ảnh). */

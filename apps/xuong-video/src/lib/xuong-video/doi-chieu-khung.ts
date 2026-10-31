@@ -43,16 +43,19 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
     const bc = (c.bieu_cam ?? []).find((x) => x.nv === v.ten);
     const bcTxt = bc ? (luc === 'dau' ? bieuCam(bc.dau)?.ten ?? bc.dau : bieuCam(bc.cuoi)?.ten ?? bc.cuoi) : 'không khai';
     const lk = look?.get(v.ten);
-    const ao = tachAo(lk?.trang_phuc?.mo_ta || aoCua(v));   // áo: ưu tiên biến thể trang_phuc đã carry; không có look thì đường cũ
-    const vetTxt = lk?.vet?.mo_ta?.trim() || ao.vet;        // vết: ưu tiên biến thể nhóm `vet` RIÊNG (atomic, có ảnh anchor); phim cũ thì tách từ chữ áo
+    // khoá look là MẢNG (phụ kiện / vết nhiều món): một-món lấy món đầu; nhiều-món gộp mô tả từng món vào một lá (bóc tách cũng gom trang sức/phụ kiện một ô)
+    const mot = (k: 'trang_phuc' | 'toc' | 'trang_diem' | 'trang') => lk?.[k]?.[0]?.mo_ta?.trim() ?? '';
+    const gop = (k: 'do_deo' | 'vet') => (lk?.[k] ?? []).map((b) => b.mo_ta.trim()).filter(Boolean).join('; ');
+    const ao = tachAo(mot('trang_phuc') || aoCua(v));   // áo: ưu tiên biến thể trang_phuc đã carry; không có look thì đường cũ
+    const vetTxt = gop('vet') || ao.vet;                 // vết: ưu tiên biến thể nhóm `vet` RIÊNG (atomic, có ảnh anchor); phim cũ thì tách từ chữ áo
     L.push({ thanh_phan: `Vị trí ${v.ten}`, du_kien: viNguoi(v) || 'không khai' });
     L.push({ thanh_phan: `Áo ${v.ten}`, du_kien: ao.chinh || 'không tả' });
     if (vetTxt) L.push({ thanh_phan: `Vết áo ${v.ten}`, du_kien: vetTxt });   // vết/đặc điểm riêng — lá riêng để không bị gộp che (vụ vết cà phê)
-    L.push({ thanh_phan: `Tóc ${v.ten}`, du_kien: lk?.toc?.mo_ta?.trim() || tuToc(v.mo_ta) || '(theo mô tả nhân vật)' });   // tóc: biến thể look-book trước, phim cũ thì rút từ mô tả
+    L.push({ thanh_phan: `Tóc ${v.ten}`, du_kien: mot('toc') || tuToc(v.mo_ta) || '(theo mô tả nhân vật)' });   // tóc: biến thể look-book trước, phim cũ thì rút từ mô tả
     // Thiết kế sản xuất — look-book khác CHỈ chấm khi đã chuẩn bị biến thể (có ảnh mẫu): kính/phụ kiện, trang điểm, trạng thái cơ thể. Chưa chuẩn bị thì không đẻ lá thừa.
-    if (lk?.do_deo) L.push({ thanh_phan: `Phụ kiện ${v.ten}`, du_kien: lk.do_deo.mo_ta.trim() });
-    if (lk?.trang_diem) L.push({ thanh_phan: `Trang điểm ${v.ten}`, du_kien: lk.trang_diem.mo_ta.trim() });
-    if (lk?.trang) L.push({ thanh_phan: `Trạng thái ${v.ten}`, du_kien: lk.trang.mo_ta.trim() });
+    if (gop('do_deo')) L.push({ thanh_phan: `Phụ kiện ${v.ten}`, du_kien: gop('do_deo') });
+    if (mot('trang_diem')) L.push({ thanh_phan: `Trang điểm ${v.ten}`, du_kien: mot('trang_diem') });
+    if (mot('trang')) L.push({ thanh_phan: `Trạng thái ${v.ten}`, du_kien: mot('trang') });
     L.push({ thanh_phan: `Biểu cảm ${v.ten}`, du_kien: bcTxt });
     const dangTxt = kg ? (dang(kg, c.thu_tu, v.ten, lucKg)?.vi ?? '') : '';
     if (dangTxt) L.push({ thanh_phan: `Dáng ${v.ten}`, du_kien: dangTxt });

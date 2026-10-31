@@ -577,9 +577,21 @@ export const goiYBienThe = (nc: NguCanhPhim, a: NhanVat, nhom: { key: string; la
   hoi(BoBienTheSchema, docKinhThanh(nc.kinhThanh), HE_THONG_GOI_Y,
     `${taNguCanh(nc)}\n\nAnchor cần biến thể: [${a.loai}] ${a.ten}: ${a.mo_ta}\nBiến thể đã có: ${(a.bien_the ?? []).map((b) => `${b.nhom}/${b.ten}`).join(', ') || '(chưa có)'}\nNhóm hợp lệ: ${nhom.map((x) => `${x.key} (${x.label})`).join(', ')}\n\nĐề xuất 4-10 biến thể mà kịch bản các tập thật sự dùng tới (vd cảnh khóc → biểu cảm buồn; cảnh đêm → bối cảnh ban đêm), ưu tiên thứ xuất hiện nhiều.`);
 
+/** Khung ảnh mẫu cho từng nhóm LOOK của nhân vật — như đoàn phim chụp tham chiếu: ảnh fitting phục trang toàn thân THẤY GIÀY, ảnh tóc, ảnh trang điểm,
+ *  ảnh liền mạch cận đúng món (cổ tay đeo đồng hồ, chỗ có vết). Trước 31/10/2026 mọi nhóm chung một khung "nhân vật nền trơn" → bộ đồ không thấy giày,
+ *  đồng hồ nhỏ xíu không dùng làm tham chiếu được. */
+const KHUNG_LOOK: Record<string, string> = {
+  trang_phuc: 'Full-body costume fitting photo, head to toe with the shoes clearly visible, standing straight, front view',
+  toc: 'Head-and-shoulders hair reference, the whole hairstyle clearly visible',
+  trang_diem: 'Beauty close-up of the face, the makeup clearly visible',
+  do_deo: 'Close-up continuity photo of the accessory as worn on the body (on the wrist / ear / neck / face it belongs to), the item sharp and fully visible',
+  vet: 'Continuity photo framed on the mark — the exact spot on the body or clothing, the mark sharp, at true size and fully visible',
+  trang: 'Medium shot showing the body state clearly',
+};
 export function promptBienThe(a: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, b: Pick<BienThe, 'nhom' | 'mo_ta' | 'ten'>, kt: KinhThanh): string {
   const k = docKinhThanh(kt);
-  const khung = a.loai === 'boi_canh' ? 'Establishing shot of the SAME location as the reference image' : a.loai === 'san_pham' ? 'Product shot of the EXACT same product as the reference image' : 'The SAME character as the reference image, single character, plain light background';
+  const khung = a.loai === 'boi_canh' ? 'Establishing shot of the SAME location as the reference image' : a.loai === 'san_pham' ? 'Product shot of the EXACT same product as the reference image'
+    : `The SAME character as the reference image, single character, plain light background${KHUNG_LOOK[b.nhom] ? `. ${KHUNG_LOOK[b.nhom]}` : ''}`;
   return `${khung}. Identity (must not change): ${a.mo_ta}. Change only this (${b.nhom}): ${b.mo_ta || b.ten}. Visual style: ${phongCachHinh(k.phong_cach) || 'consistent with reference'}. Keep proportions, colors, markings and outfit details identical unless the change says otherwise.`;
 }
 

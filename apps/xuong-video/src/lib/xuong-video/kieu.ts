@@ -742,15 +742,21 @@ export const tien = (cents: number): string => { const d = cents / 100; return `
 
 /** Thành phần một cảnh dùng: anchor + biến thể chọn + thiếu gì. Dùng CHUNG cho UI (khoá nút, hiện chip) và máy chủ (chặn sinh). */
 export type ThanhPhanCanh = { nv: NhanVat; bt: BienThe | null; anh: string | null; thieu: string[] };
+/** Anchor còn THIẾU gì để làm tham chiếu — MỘT luật cho cổng shot (thanhPhanCanh) và báo cáo chuẩn bị (phan-ra-thuan.ts › baoCaoChuanBi).
+ *  Bối cảnh có bộ set 3D: khung xám / khung đẹp của set LÀ ảnh tham chiếu (sinh-anh.ts bỏ ảnh bối cảnh khỏi tham chiếu khi có khung xám;
+ *  sinh-anh-phim --anchor cũng không sinh ảnh cho nó) — đòi thêm ảnh gốc là chặn oan (tập 122, 17/10/2026: 3 bối cảnh chặn cả 20 shot). */
+export function thieuAnchor(nv: Pick<NhanVat, 'mo_ta' | 'anh_ref' | 'loai' | 'bo_set_id'>): ('chưa tả đặc tính' | 'chưa có ảnh gốc')[] {
+  const t: ('chưa tả đặc tính' | 'chưa có ảnh gốc')[] = [];
+  if (!nv.mo_ta.trim()) t.push('chưa tả đặc tính');
+  if (!nv.anh_ref.length && !(nv.loai === 'boi_canh' && nv.bo_set_id)) t.push('chưa có ảnh gốc');
+  return t;
+}
 export function thanhPhanCanh(c: Pick<Canh, 'nhan_vat' | 'bien_the'>, nhanVat: NhanVat[]): { ds: ThanhPhanCanh[]; thieu: string[] } {
   const ds = c.nhan_vat.map((id) => nhanVat.find((v) => v.id === id)).filter((v): v is NhanVat => !!v).map((nv) => {
-    const bt = (nv.bien_the ?? []).find((b) => c.bien_the.includes(b.id)) ?? null;
-    const thieu: string[] = [];
-    if (!nv.mo_ta.trim()) thieu.push(`${nv.ten}: chưa tả đặc tính`);
-    // Bối cảnh có bộ set 3D: khung xám / khung đẹp của set LÀ ảnh tham chiếu (sinh-anh.ts bỏ ảnh bối cảnh khỏi tham chiếu khi có khung xám;
-    // sinh-anh-phim --anchor cũng không sinh ảnh cho nó) — đòi thêm ảnh gốc là chặn oan (tập 122, 17/10/2026: 3 bối cảnh chặn cả 20 shot).
-    if (!nv.anh_ref.length && !(nv.loai === 'boi_canh' && nv.bo_set_id)) thieu.push(`${nv.ten}: chưa có ảnh gốc`);
-    if (bt && !bt.anh_url) thieu.push(`${nv.ten} · ${bt.ten}: biến thể chưa có ảnh`);
+    // MỌI biến thể của anchor gắn ở shot (phục trang + từng phụ kiện + từng vết…) đều phải có ảnh — trước đây chỉ kiểm món đầu, đồng hồ/kính thiếu ảnh lọt cổng
+    const bts = (nv.bien_the ?? []).filter((b) => c.bien_the.includes(b.id));
+    const bt = bts[0] ?? null;
+    const thieu = [...thieuAnchor(nv).map((x) => `${nv.ten}: ${x}`), ...bts.filter((b) => !b.anh_url).map((b) => `${nv.ten} · ${b.ten}: biến thể chưa có ảnh`)];
     return { nv, bt, anh: bt?.anh_url ?? nv.anh_ref[0] ?? null, thieu };
   });
   return { ds, thieu: ds.flatMap((x) => x.thieu) };

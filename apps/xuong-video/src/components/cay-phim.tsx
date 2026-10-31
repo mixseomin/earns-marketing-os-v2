@@ -12,7 +12,7 @@ import { AnhDaiDien } from './anh-set-3d';
 import { khau } from './so-do';
 import { Den, mono } from './ui';
 
-/** Khoá nút: 'kinh_thanh' · 'nhan_vat' · 'nv-<id>' · 'bt-<id>' · 'am_thanh' · 'poster' · 'so_do' (Các tập: sơ đồ thẻ) · 'tuyen' · 'gai_tra' ·
+/** Khoá nút: 'kinh_thanh' · 'nhan_vat' · 'phan_ra' · 'nv-<id>' · 'bt-<id>' · 'am_thanh' · 'poster' · 'so_do' (Các tập: sơ đồ thẻ) · 'tuyen' · 'gai_tra' ·
  *  'tap' (Kịch bản của tập = tham số tap) · 'tap:ho_so' · 'tap:storyboard' · 'tap:xuat' · 'bd-<số>' (tập bản đồ chưa tạo). */
 export type NutPhim = string;
 type Dong = { key: string; nhan: ReactNode; cap: number; tapId?: number; title?: string; den?: { muc: 'ok' | 'cho' | 'loi'; title: string }; mo?: boolean; nhom?: string; anh?: NhanVat; /** ảnh thumbnail của một BIẾN THỂ look (node con nhân vật) */ anhUrl?: string | null; /** đầu nhánh chỉ để gập (mùa, ngoài bản đồ) — không phải nút xem */ chiNhom?: boolean; chuaTao?: boolean };
@@ -20,8 +20,10 @@ type Dong = { key: string; nhan: ReactNode; cap: number; tapId?: number; title?:
 const LOOK_NHOM = new Set(['trang_phuc', 'toc', 'trang_diem', 'do_deo', 'vet', 'trang']);
 const nhanNhomNv = (nhom: string) => NHOM_BIEN_THE.nhan_vat.find((x) => x.key === nhom)?.label ?? nhom;
 
-export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, thamSoGap, hep, onHep }: {
+export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, thamSoGap, hep, onHep, phanRa }: {
   phim: Phim; tap: Tap[]; nhanVat: NhanVat[]; nut: NutPhim; tapId: number | null;
+  /** tóm tắt báo cáo chuẩn bị (phan-ra.ts): số món THIẾU + số tập chưa / cũ phân rã → chấm báo trên Thiết kế sản xuất + nút 📋 Phân rã */
+  phanRa?: { thieu: number; tapCho: number } | null;
   onChon: (nut: NutPhim, tapId?: number) => void; onThemTap?: () => void; /** tên tham số URL giữ các nhánh đang gập (lớp ngăn chính / chồng khác nhau) */ thamSoGap: string;
   /** hep: thu thành dải hẹp (Storyboard cần cả bề ngang); onHep(v) bật/tắt — trạng thái nằm trên URL ở nơi gọi */ hep?: boolean; onHep?: (v: boolean) => void;
 }) {
@@ -38,7 +40,13 @@ export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, tha
   out.push({ key: 'kinh_thanh', nhan: '📜 Kinh thánh', cap: 0, title: 'Phong cách, thể loại, logline, chủ đề, kinh thánh series, khung hình, model' + (phim.loai === 'quang_cao' ? ' · sản phẩm / dịch vụ được quảng cáo' : ''),
     den: thieuKt.length ? { muc: 'cho', title: `Còn thiếu: ${thieuKt.join(', ')}` } : undefined });
   const loaiLabel = (v: NhanVat) => LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.label ?? v.loai;
-  out.push({ key: 'nhan_vat', nhan: '🎨 Thiết kế sản xuất', cap: 0, nhom: 'nv', title: `${nhanVat.length} anchor: nhân vật, sản phẩm, bối cảnh, đạo cụ, cấu kiện` });
+  // báo THIẾU chuẩn bị ngay trên gốc nhánh (không phải mở ra từng món mới biết) + nút 📋 Phân rã kịch bản đứng đầu nhánh
+  const baoPr = phanRa && (phanRa.thieu || phanRa.tapCho)
+    ? { muc: 'cho' as const, title: [phanRa.thieu ? `${phanRa.thieu} món shot đang dùng còn thiếu (chưa tả / chưa ảnh)` : '', phanRa.tapCho ? `${phanRa.tapCho} tập chưa / cũ phân rã` : ''].filter(Boolean).join(' · ') + ' — xem 📋 Phân rã kịch bản' }
+    : undefined;
+  out.push({ key: 'nhan_vat', nhan: '🎨 Thiết kế sản xuất', cap: 0, nhom: 'nv', title: `${nhanVat.length} anchor: nhân vật, sản phẩm, bối cảnh, đạo cụ, cấu kiện`, den: baoPr });
+  if (!dong.has('nv')) out.push({ key: 'phan_ra', nhan: '📋 Phân rã kịch bản', cap: 1, den: baoPr,
+    title: 'Script breakdown: tự gắn thẻ mọi phục trang · tóc · phụ kiện · vết · đạo cụ · bối cảnh của từng shot, tạo món thiếu, báo món chưa chuẩn bị' });
   // ÂM THANH thuộc Thiết kế sản xuất (anh 31/10/2026): MỘT nút đầu nhánh (giọng nhân vật, hiệu ứng, nhạc — theo tập đang chọn), đứng NGOÀI vòng anchor
   if (!dong.has('nv')) out.push({ key: 'am_thanh', nhan: '🔊 Âm thanh', cap: 1, title: 'Giọng nhân vật, hiệu ứng, nhạc theo phân cảnh — của tập đang chọn' });
   if (!dong.has('nv')) for (const { cha, con } of nhomCayAnchor(nhanVat)) {

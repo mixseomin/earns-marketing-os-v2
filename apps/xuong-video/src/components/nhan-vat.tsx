@@ -338,7 +338,9 @@ export function BienTheChiTiet({ b, nvTen, phimId, dangSinh, loiBt, onChanged }:
   const [f, setF] = useState({ mo_ta: b.mo_ta, tap: (b.dung_tap ?? []).join(',') });
   const [mc, setMc] = useState<{ tap_so: number; thu_tu: number; canh: string; so_shot: number; cac_tap: number[] } | null>(null);
   useEffect(() => { let s = true; void mocBienThe(phimId).then((m) => { if (s) setMc(m[b.id] ?? null); }); return () => { s = false; }; }, [phimId, b.id]);
-  const chay = async (fn: () => Promise<{ ok: boolean; loi?: string } | void>) => { setBan(true); try { const r = await fn(); if (r && !r.ok) alert(r.loi); await onChanged(); } finally { setBan(false); } };
+  const [loi, setLoi] = useState('');
+  // lỗi hiện tại chỗ (Loi) — không alert() native (ui-conventions §3)
+  const chay = async (fn: () => Promise<{ ok: boolean; loi?: string } | void>) => { setBan(true); setLoi(''); try { const r = await fn(); if (r && !r.ok) setLoi(r.loi ?? 'lỗi'); await onChanged(); } finally { setBan(false); } };
   const dang = dangSinh.includes(b.id);
   return (
     <div style={{ display: 'grid', gap: 12, maxWidth: 760 }}>
@@ -356,9 +358,9 @@ export function BienTheChiTiet({ b, nvTen, phimId, dangSinh, loiBt, onChanged }:
             : <div style={{ width: '100%', aspectRatio: '1', borderRadius: 8, border: '1px dashed var(--amber)', display: 'grid', placeItems: 'center', color: 'var(--amber)', fontSize: 13, textAlign: 'center', padding: 12 }}>{dang ? '⏳ đang sinh ảnh mẫu…' : '📷 chưa có ảnh mẫu — bấm "Sinh ảnh mẫu"'}</div>}
           <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
             <Nut chinh ban={ban} title="Sinh ảnh mẫu của biến thể này (từ ảnh gốc nhân vật nên giữ đúng danh tính)" onClick={() => void chay(() => sinhAnhBienThe(b.id))}>{dang ? '… đang sinh' : b.anh_url ? '🔄 Sinh lại ảnh' : '🖼 Sinh ảnh mẫu'}</Nut>
-            {b.anh_url && <button type="button" className="xv-btn" onClick={() => void chay(() => xoaAnhBienThe(b.id))}>Xoá ảnh</button>}
+            {b.anh_url && <Xoa nhan="ảnh mẫu" ban={ban} onXoa={() => chay(() => xoaAnhBienThe(b.id))} />}
           </div>
-          <Loi>{loiBt[b.id] || ''}</Loi>
+          <Loi>{loi || loiBt[b.id] || ''}</Loi>
         </div>
         <div style={{ flex: 1, minWidth: 260, display: 'grid', gap: 8 }}>
           {sua ? (

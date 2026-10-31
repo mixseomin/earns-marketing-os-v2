@@ -329,6 +329,59 @@ export function BienTheDrawer({ a, khoa, kt, dangSinh, loiBt, onClose, onChanged
   );
 }
 
+/** CHI TIẾT một biến thể look khi chọn node con của nhân vật trong cây (ngăn phải): ảnh mẫu lớn + nhóm/tên + mô tả + tập + MỐC xuất hiện + sinh ảnh + sửa.
+ *  Đây là "character/costume breakdown" — mỗi trang phục/tóc/vết là một thành phần độc lập có trang chi tiết riêng. */
+export function BienTheChiTiet({ b, nvTen, phimId, dangSinh, loiBt, onChanged }: { b: BienThe; nvTen: string; phimId: number; dangSinh: number[]; loiBt: Record<number, string>; onChanged: () => Promise<void> }) {
+  const nhanNhom = NHOM_BIEN_THE.nhan_vat.find((x) => x.key === b.nhom)?.label ?? b.nhom;
+  const [ban, setBan] = useState(false);
+  const [sua, setSua] = useState(false);
+  const [f, setF] = useState({ mo_ta: b.mo_ta, tap: (b.dung_tap ?? []).join(',') });
+  const [mc, setMc] = useState<{ tap_so: number; thu_tu: number; canh: string; so_shot: number; cac_tap: number[] } | null>(null);
+  useEffect(() => { let s = true; void mocBienThe(phimId).then((m) => { if (s) setMc(m[b.id] ?? null); }); return () => { s = false; }; }, [phimId, b.id]);
+  const chay = async (fn: () => Promise<{ ok: boolean; loi?: string } | void>) => { setBan(true); try { const r = await fn(); if (r && !r.ok) alert(r.loi); await onChanged(); } finally { setBan(false); } };
+  const dang = dangSinh.includes(b.id);
+  return (
+    <div style={{ display: 'grid', gap: 12, maxWidth: 760 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+        <h3 style={{ margin: 0 }}>{b.ten}</h3>
+        <Pill color="var(--violet)">{nhanNhom}</Pill>
+        <span style={{ ...mono, color: 'var(--fg-3)' }}>của {nvTen}</span>
+        {!!b.dung_tap?.length && <Pill color="var(--cyan)">tập {b.dung_tap.join(',')}</Pill>}
+        {mc && <span style={{ ...mono, color: 'var(--fg-3)' }} title={`Dùng ${mc.so_shot} shot`}>📍 xuất hiện từ shot #{mc.thu_tu} · tập {mc.tap_so}{mc.canh ? ` · ${mc.canh}` : ''}</span>}
+      </div>
+      <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div style={{ width: 'min(360px, 100%)' }}>
+          {b.anh_url
+            ? <div style={{ position: 'relative' }}><img src={anhNho(b.anh_url, 640)} loading="eager" decoding="async" alt={b.ten} style={{ width: '100%', borderRadius: 8, display: 'block', background: `center/cover url(${anhNho(b.anh_url, 160)})` }} />{dang && <DangSinh chu="đang sinh" />}</div>
+            : <div style={{ width: '100%', aspectRatio: '1', borderRadius: 8, border: '1px dashed var(--amber)', display: 'grid', placeItems: 'center', color: 'var(--amber)', fontSize: 13, textAlign: 'center', padding: 12 }}>{dang ? '⏳ đang sinh ảnh mẫu…' : '📷 chưa có ảnh mẫu — bấm "Sinh ảnh mẫu"'}</div>}
+          <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
+            <Nut chinh ban={ban} title="Sinh ảnh mẫu của biến thể này (từ ảnh gốc nhân vật nên giữ đúng danh tính)" onClick={() => void chay(() => sinhAnhBienThe(b.id))}>{dang ? '… đang sinh' : b.anh_url ? '🔄 Sinh lại ảnh' : '🖼 Sinh ảnh mẫu'}</Nut>
+            {b.anh_url && <button type="button" className="xv-btn" onClick={() => void chay(() => xoaAnhBienThe(b.id))}>Xoá ảnh</button>}
+          </div>
+          <Loi>{loiBt[b.id] || ''}</Loi>
+        </div>
+        <div style={{ flex: 1, minWidth: 260, display: 'grid', gap: 8 }}>
+          {sua ? (
+            <>
+              <O label="Mô tả (tiếng Anh tốt hơn)"><textarea className="xv-ta" rows={5} value={f.mo_ta} onChange={(e) => setF({ ...f, mo_ta: e.target.value })} /></O>
+              <O label="Dùng cho tập (vd 1,3 — trống = mọi tập)"><input className="xv-in" value={f.tap} onChange={(e) => setF({ ...f, tap: e.target.value })} placeholder="1,3 — trống = mọi tập" /></O>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <Nut chinh ban={ban} onClick={() => void chay(async () => { const r = await luuBienThe({ id: b.id, nhan_vat_id: b.nhan_vat_id, nhom: b.nhom, ten: b.ten, mo_ta: f.mo_ta, dung_tap: parseTap(f.tap) }); if (r.ok) setSua(false); return r; })}>Lưu</Nut>
+                <button type="button" className="xv-btn" onClick={() => setSua(false)}>Huỷ</button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--fg-2)' }}>{b.mo_ta || <span style={{ color: 'var(--fg-4)' }}>chưa tả</span>}</div>
+              <button type="button" className="xv-btn" style={{ justifySelf: 'start' }} onClick={() => setSua(true)}>✎ Sửa mô tả / tập</button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function BienTheThe({ b, ly, dang, loiAnh, ban, chay }: { b: BienThe; ly: string | false; dang: boolean; loiAnh?: string; ban: boolean; chay: (k: string, fn: () => Promise<{ ok: boolean; loi?: string } | void>) => Promise<void> }) {
   const [sua, setSua] = useState(false);
   const [f, setF] = useState({ ten: b.ten, mo_ta: b.mo_ta, tap: (b.dung_tap ?? []).join(',') });

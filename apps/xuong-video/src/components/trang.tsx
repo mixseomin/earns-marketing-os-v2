@@ -16,7 +16,7 @@ import { LOAI_PHIM, docKinhThanh, giaAnhCents, giaVideoCents, tien, gioVN, type 
 import { Khoa, TabPhim, TAB_PHIM, Pill, Seg, Nut, Xoa, Loi, Menu, MucMenu, mono } from './ui';
 import { MoHinhCtx } from './mo-hinh-ui';
 import { KinhThanhForm } from './kinh-thanh';
-import { NhanVatSection } from './nhan-vat';
+import { NhanVatSection, BienTheChiTiet } from './nhan-vat';
 import { TapView } from './tap';
 import { PosterPhim } from './poster-ui';
 import { AnhQcPhim } from './anh-qc-ui';
@@ -251,8 +251,11 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
         const themTap = phim.loai === 'phim' || tap.length === 0 ? async () => { const r = await taoTap(phim.id, ''); if (r.ok) { await tai(); setNut('tap'); tapParam.open('tap', r.data); } } : undefined;
         const nvDau = nhomCayAnchor(nhanVat)[0]?.cha.id ?? null;
         const nvId = nut.startsWith('nv-') ? Number(nut.slice(3)) : null;
-        // nút trỏ vào thứ đã mất (tập bị xoá, anchor bị xoá) → về Kinh thánh / đầu Thiết kế sản xuất, khung phải không bao giờ trống
-        const k = nut === 'tap' && tapId == null ? 'kinh_thanh' : nvId != null && !nhanVat.some((v) => v.id === nvId) ? 'nhan_vat' : nut;
+        // node con look (bt-<id>): biến thể look của một nhân vật — chi tiết riêng (character/costume breakdown)
+        const btId = nut.startsWith('bt-') ? Number(nut.slice(3)) : null;
+        const bt = btId != null ? nhanVat.flatMap((v) => (v.bien_the ?? []).map((b) => ({ b, nv: v }))).find((x) => x.b.id === btId) ?? null : null;
+        // nút trỏ vào thứ đã mất (tập bị xoá, anchor bị xoá, biến thể bị xoá) → về Kinh thánh / đầu Thiết kế sản xuất, khung phải không bao giờ trống
+        const k = nut === 'tap' && tapId == null ? 'kinh_thanh' : (nvId != null && !nhanVat.some((v) => v.id === nvId)) || (btId != null && !bt) ? 'nhan_vat' : nut;
         const moTap = (tid: number) => { setNut('tap'); tapParam.open('tap', tid); };
         const nv = (chiTiet: number | null) => <NhanVatSection phimId={phim.id} nhanVat={nhanVat} kinhThanh={phim.kinh_thanh} khoa={khoa} dangSinh={d.dangSinh} loiAnh={d.loiAnh} onChanged={tai} chiTiet={chiTiet} />;
         return (
@@ -267,6 +270,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
               </>}
               {k === 'nhan_vat' && nv(nvDau)}
               {nvId != null && k === nut && nv(nvId)}
+              {bt && k === nut && <div className="xv-panel"><BienTheChiTiet b={bt.b} nvTen={bt.nv.ten} phimId={phim.id} dangSinh={d.dangSinh.bienThe} loiBt={d.loiAnh.bienThe} onChanged={tai} /></div>}
               {k === 'poster' && <>
                 <PosterPhim phim={phim} nhanVat={nhanVat} dang={d.dangSinh.poster} loiNen={d.loiPoster} onChanged={tai} />
                 {phim.loai === 'quang_cao' && <AnhQcPhim phim={phim} nhanVat={nhanVat} />}

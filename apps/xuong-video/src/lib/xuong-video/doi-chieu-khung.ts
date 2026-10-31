@@ -80,7 +80,7 @@ const SCHEMA = { type: 'OBJECT', properties: { doi_chieu: { type: 'ARRAY', items
 export async function doiChieuKhung(db: Db | null, phimId: number | null, duKien: MucDuKien[], k: BocTachKhung): Promise<DongDoiChieu[] | null> {
   const thuc = [
     `Khung hình: ${k.khung_hinh} · ${k.goc_may}`, `Bối cảnh: ${k.boi_canh} · ánh sáng ${k.anh_sang}`, `Bố cục: ${k.bo_cuc}`,
-    k.vat_co_dinh?.length ? `Đồ cố định thấy trong khung: ${k.vat_co_dinh.join(', ')}` : '',
+    Array.isArray(k.vat_co_dinh) && k.vat_co_dinh.length ? `Đồ cố định thấy trong khung: ${k.vat_co_dinh.join(', ')}` : '',
     ...k.nguoi.map((n) => `Người "${n.ai}" (${n.dac_diem}) — vị trí: ${n.vi_tri} · áo: ${n.ao} · tóc: ${n.toc} · trang sức: ${n.trang_suc} · biểu cảm: ${n.bieu_cam} · nhìn: ${n.huong_nhin} · dáng: ${n.dang} · cầm: ${n.do_cam}`),
     ...k.dao_cu.map((d) => `Đạo cụ "${d.ten}" (${d.dac_diem}): ${d.trang_thai} — ${d.vi_tri}`),
     k.chu_tren_hinh && k.chu_tren_hinh !== 'không' ? `Chữ trên hình: ${k.chu_tren_hinh}` : '',

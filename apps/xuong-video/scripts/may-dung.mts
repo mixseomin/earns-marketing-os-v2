@@ -133,6 +133,17 @@ if (a.includes('--nap')) {
     const chung = con.length ? Array.from({ length: Math.min(6, con.length) }, (_, k) => con[(i * 3 + k) % con.length]!) : [];
     return [...rieng, ...chung.filter((h, k, ds) => !rieng.some((r) => r.id === h.id) && ds.findIndex((x) => x.id === h.id) === k)].slice(0, 6); };
   await spy.end();
+  // NGỌC LỌC KHO HOOK TRƯỚC KHI SINH (31/10/2026): cùng phép xét của Phòng Nội dung (cham-dang.mjs › xetHookAi — lệch ngách / hứa điều thương hiệu không có),
+  // hook bị chặn thì không đưa cho AI viết — sinh ra là bài SỬA LẠI, đốt tiền. Xét 20 hook nhóm chạy lâu nhất + QC gắn góc; vài đồng một hook.
+  {
+    const { xetHookAi } = await import('../../cty/worker/cham-dang.mjs');
+    const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
+    const muc = ((await db.execute(sql`SELECT muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { muc_dich: string | null }[])[0]?.muc_dich ?? null;
+    const xet = async (ds: HookDong[]) => { const loi = await xetHookAi(ds.map((h) => ({ qc: h.id, ma, nhan: sp.nhan, muc_dich: muc, su_that: suThat, dong: [h.chu] }))); return ds.filter((_, k) => !loi[k]); };
+    const truoc = hookNhom.length + hookCuaQc.size, nhomDat = await xet(hookNhom.slice(0, 20)), qcDat = new Set((await xet([...hookCuaQc.values()])).map((h) => h.id));
+    hookNhom.splice(0, hookNhom.length, ...nhomDat); for (const k of [...hookCuaQc.keys()]) if (!qcDat.has(k)) hookCuaQc.delete(k);
+    console.log(`· Ngọc lọc kho hook: giữ ${hookNhom.length + hookCuaQc.size}/${truoc}`);
+  }
   console.log(`· hook QC gốc: ${hookNhom.length} hook nhóm (chạy lâu nhất ${hookNhom[0]?.ngay ?? 0} ngày), ${hookCuaQc.size} QC gắn góc, ${hookDaDung.size} đã dùng ở bài đang chờ`);
   // KHÔNG có hook QC thì DỪNG: bài hook tự viết bị Phòng Nội dung chặn (cham-dang luật 8) — sinh ra là đốt tiền (31/10: Sidecue / MilitaryCalc / Giỗ Chạp 17 bài SỬA LẠI)
   if (!hookNhom.length && !hookCuaQc.size) { console.error(`✗ máy ${ma}: nhóm spy ${nhomHook.join(', ')} (góc + hook_sp) chưa có QC nào khớp làm hook — cần cào QC cho nhóm (hoặc gắn nhóm lân cận) trước khi sinh`); process.exit(1); }

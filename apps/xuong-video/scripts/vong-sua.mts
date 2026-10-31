@@ -3,6 +3,9 @@
 //   → chờ ảnh mới → bóc + đối chiếu lại → lặp ≤ --vong vòng tới khi HẾT LỆCH (cổng). Mỗi vòng một ảnh mới vào keyframe_uv; đường ≥2 người tự promote.
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server \
 //     ../../node_modules/.bin/tsx scripts/vong-sua.mts --canh=1824 [--luc=dau|cuoi] [--vong=3] [--ghi]
+//   CẢ TẬP: --tap=<id> [--chi=1,4,7] [--song=4] — mỗi shot có keyframe một tiến trình con (song song có trần), in một dòng kết mỗi shot.
+//   TỐN TIỀN mỗi vòng = một lượt sinh keyframe + bóc/đối chiếu Gemini (~0,6¢); chot-tien gác như mọi script sinh.
+import { spawn } from 'node:child_process';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapCanh, mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
@@ -16,10 +19,26 @@ import type { BocTachKhung, DongDoiChieu, PhanCanh } from '../src/lib/xuong-vide
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const canhId = Number(gia('canh') || 0);
+const tapId = Number(gia('tap') || 0);
 const luc = (gia('luc') || 'dau') as 'dau' | 'cuoi';
 const toiDa = Math.max(1, Math.min(3, Number(gia('vong') || 3)));
 const ghi = process.argv.includes('--ghi');
-if (!canhId) { console.error('cần --canh=<id>'); process.exit(1); }
+if (tapId) {
+  // CẢ TẬP: chạy lại CHÍNH script này cho từng shot (cùng một lõi, không chép vòng) — song song có trần; mỗi shot chỉ in dòng KẾT
+  const dbT = getDb()!; const chiT = new Set((gia('chi') ?? '').split(',').filter(Boolean).map(Number));
+  const ds = ((await dbT.execute(sql`SELECT id, thu_tu FROM xv_canh WHERE tap_id = ${tapId} AND coalesce(nhanh, '') IN ('', 'A') AND keyframe_url IS NOT NULL ORDER BY thu_tu`)) as unknown as Row[])
+    .filter((r) => !chiT.size || chiT.has(Number(r.thu_tu)));
+  const them = process.argv.slice(2).filter((a) => !/^--(tap|chi|song)=/.test(a));
+  let i = 0; const song = Math.max(1, Math.min(6, Number(gia('song') || 4)));
+  const mot = (r: Row) => new Promise<void>((xong) => {
+    const p = spawn(process.execPath, [...process.execArgv, process.argv[1]!, `--canh=${r.id}`, ...them], { env: process.env });
+    let ra = ''; p.stdout.on('data', (d) => { ra += d; }); p.stderr.on('data', (d) => { ra += d; });
+    p.on('close', () => { const ket = ra.split('\n').filter((l) => /LỆCH ĐẦU|ĐẠT|promote|chi phí|hỏng/.test(l)); console.log(`#${r.thu_tu}: ${ket.join(' | ') || ra.trim().split('\n').slice(-2).join(' | ')}`); xong(); });
+  });
+  await Promise.all(Array.from({ length: song }, async () => { while (i < ds.length) await mot(ds[i++]!); }));
+  process.exit(0);
+}
+if (!canhId) { console.error('cần --canh=<id> hoặc --tap=<id>'); process.exit(1); }
 if (luc === 'cuoi') { console.error('vòng tự-sửa mới nối cho keyframe MỞ (đầu) — sinhKeyframeCanh chưa sinh khung KẾT; chạy --luc=dau'); process.exit(1); }
 const db = getDb()!;
 
@@ -69,7 +88,7 @@ const urlDau = luc === 'cuoi' ? c.keyframe_ket : c.keyframe_url;
 if (!urlDau) { console.error(`canh ${canhId} chưa có keyframe ${luc}`); process.exit(1); }
 
 // LỆCH ĐẦU: bản đã lưu nếu có, không thì bóc ảnh hiện tại
-let lech = c.boc_tach?.doi_chieu?.[luc] ?? null;
+let lech = c.boc_tach?.tren?.[luc] === urlDau ? c.boc_tach?.doi_chieu?.[luc] ?? null : null;   // bản đã lưu chỉ dùng khi đúng ảnh hiện tại
 if (!lech) lech = await doiChieu(phimId, urlDau, c, nhanVat, kg, look);
 if (lech === null) { console.error('bóc ảnh đầu hỏng'); process.exit(1); }
 const lechDau = lech;

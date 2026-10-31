@@ -5,7 +5,7 @@ import 'server-only';
 import { goiGeminiJson } from './soi-bien-dang';
 import { ghiTienChu, type Db } from './doc-db';
 import { bieuCam } from './qc-cam-xuc';
-import { doCam, dang, nguoiKhung, viTri, nhinCan, sdLuc, type KhongGian } from './khong-gian';
+import { doCam, dang, nguoiKhung, viTri, nhinCan, thayMat, sdLuc, type KhongGian } from './khong-gian';
 import { coDinhDuKien } from './so-do-canh';
 import { chuanEnum } from './thuoc-tinh';
 import type { LookMang } from './bo-set-3d';
@@ -34,7 +34,10 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
     const vet = s.slice(m.index).split(/;?\s*(?:no drips|no runs|the stain has exactly|in every shot)/i)[0]!.replace(/[;,\s]+$/, '').trim();
     return { chinh: chinh || s, vet };
   };
-  const viNguoi = (v: NhanVat) => { if (kg && nguoiKhung(kg, c, lucKg)?.includes(v.ten)) { const x = viTri(kg, c, v.ten); const h = nhinCan(kg, c, v.ten); return [x == null ? '' : x < -0.33 ? 'trái màn' : x > 0.33 ? 'phải màn' : 'giữa màn', h ? `nhìn ${h < 0 ? 'trái' : 'phải'}` : ''].filter(Boolean).join(', '); } return ''; };
+  const viNguoi = (v: NhanVat) => { if (kg && nguoiKhung(kg, c, lucKg)?.includes(v.ten)) { const x = viTri(kg, c, v.ten, lucKg); return x == null ? '' : x < -0.33 ? 'trái' : x > 0.33 ? 'phải' : 'giữa'; } return ''; };
+  // HƯỚNG theo sơ đồ (anh 31/10/2026, phim #353: "vị trí các nhân vật trong không gian thang máy cứ lung tung"): quay lưng về máy / nhìn sang trái / phải màn —
+  // enum khớp HUONG_NHIN của bóc tách (thuoc-tinh.ts) để apDungSoBang so bằng máy. Không khai nhìn đâu → không đẻ lá.
+  const huongNguoi = (v: NhanVat) => { if (!kg || !nguoiKhung(kg, c, lucKg)?.includes(v.ten)) return ''; if (thayMat(kg, c, v.ten, lucKg) === false) return 'quay lưng'; const h = nhinCan(kg, c, v.ten, lucKg); return h ? (h < 0 ? 'trái' : 'phải') : ''; };
   const L: MucDuKien[] = [];
   L.push({ thanh_phan: 'Khung hình', du_kien: c.ky_thuat?.co_canh ?? 'ms' });
   L.push({ thanh_phan: 'Bối cảnh', du_kien: c.phan_doan || c.canh || 'không khai' });
@@ -49,6 +52,7 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
     const ao = tachAo(mot('trang_phuc') || aoCua(v));   // áo: ưu tiên biến thể trang_phuc đã carry; không có look thì đường cũ
     const vetTxt = gop('vet') || ao.vet;                 // vết: ưu tiên biến thể nhóm `vet` RIÊNG (atomic, có ảnh anchor); phim cũ thì tách từ chữ áo
     L.push({ thanh_phan: `Vị trí ${v.ten}`, du_kien: viNguoi(v) || 'không khai' });
+    const hg = huongNguoi(v); if (hg) L.push({ thanh_phan: `Hướng ${v.ten}`, du_kien: hg });
     L.push({ thanh_phan: `Áo ${v.ten}`, du_kien: ao.chinh || 'không tả' });
     if (vetTxt) L.push({ thanh_phan: `Vết áo ${v.ten}`, du_kien: vetTxt });   // vết/đặc điểm riêng — lá riêng để không bị gộp che (vụ vết cà phê)
     L.push({ thanh_phan: `Tóc ${v.ten}`, du_kien: mot('toc') || tuToc(v.mo_ta) || '(theo mô tả nhân vật)' });   // tóc: biến thể look-book trước, phim cũ thì rút từ mô tả
@@ -126,17 +130,21 @@ export function sietTuLech(chieu: DongDoiChieu[]): string {
   const ben = (v: string) => benEN[v.trim()] ?? v;
   const khuat = (r: DongDoiChieu) => r.muc === 'thiếu' && (r.thuc_te === '—' || r.thuc_te === '' || /không thấy|không rõ|khuất|quay lưng|từ phía sau|từ sau|góc nhìn nghiêng|nghiêng từ/i.test(`${r.thuc_te} ${r.ghi_chu}`));
   const nguoiKhuat = new Map<string, string[]>();
+  // người sơ đồ muốn QUAY LƯNG (khung qua vai / toàn sau lưng): không bao giờ siết "quay mặt ra máy" vì thiếu mặt / áo — đó chính là đúng
+  const quayLung = new Set(chieu.filter((r) => /^Hướng /.test(r.thanh_phan) && r.du_kien === 'quay lưng').map((r) => r.thanh_phan.slice(6)));
   const menh: string[] = [];
   for (const r of loi) {
     const tp = r.thanh_phan; let m: RegExpMatchArray | null;
-    if (khuat(r) && (m = tp.match(/^(Biểu cảm|Vết áo|Áo|Tóc|Vị trí) (.+)$/))) {
+    if (khuat(r) && (m = tp.match(/^(Biểu cảm|Vết áo|Áo|Tóc|Vị trí) (.+)$/)) && !quayLung.has(m[2]!)) {
       const attr = m[1]!, name = m[2]!;
       const ph = attr === 'Biểu cảm' ? `her face (she looks ${r.du_kien})` : attr === 'Vết áo' ? 'the stain on her top'
         : attr === 'Áo' ? 'the front of her top' : attr === 'Tóc' ? 'her hair' : 'the front of her body';
       if (!nguoiKhuat.has(name)) nguoiKhuat.set(name, []);
       if (!nguoiKhuat.get(name)!.includes(ph)) nguoiKhuat.get(name)!.push(ph); continue;
     }
-    if ((m = tp.match(/^Vị trí (.+)$/))) { menh.push(`${m[1]} must be at ${ben(r.du_kien)}.`); continue; }
+    if ((m = tp.match(/^Vị trí (.+)$/))) { menh.push(`${m[1]} must be at ${ben(r.du_kien.replace(/\s*màn$/, ''))}.`); continue; }
+    if ((m = tp.match(/^Hướng (.+)$/))) { menh.push(r.du_kien === 'quay lưng' ? `${m[1]} has her/his BACK to the camera (we see the back of the head and shoulders, not the face).` : `${m[1]} turns the head and eyes toward screen ${r.du_kien === 'trái' ? 'LEFT' : 'RIGHT'} (not toward the camera, not the other side).`); continue; }
+    if (tp === 'Số người') { menh.push(`Exactly these people and nobody else in the frame: ${r.du_kien}. No extra person, no duplicate of anyone, no stranger in the foreground or background.`); continue; }
     if ((m = tp.match(/^Dáng (.+)$/))) { menh.push(`${m[1]}'s pose/gesture: ${r.du_kien}.`); continue; }
     if ((m = tp.match(/^Đạo cụ (.+?) \+ vị trí$/i))) { menh.push(`The ${m[1]} is held/worn by ${r.du_kien} (NOT by anyone else).`); continue; }
     if ((m = tp.match(/^Đạo cụ (.+?) \+ trạng thái$/i))) { menh.push(`The ${m[1]}: ${r.du_kien}.`); continue; }
@@ -160,11 +168,17 @@ export function apDungSoBang(chieu: DongDoiChieu[], c: Canh, nhanVat: NhanVat[],
   const doTT = (ten: string) => k.dao_cu.find((d) => khop(ten, d.ten));
   const viTriMan = (ten: string) => { if (!kg) return ''; const x = viTri(kg, c, ten, lucKg); return x == null ? '' : x < -0.33 ? 'trái' : x > 0.33 ? 'phải' : 'giữa'; };
   const nguoiGiu = (prop: string) => kg ? (nhanVat.find((p) => p.loai === 'nhan_vat' && doCam(kg, c.thu_tu, p.ten, lucKg).some((x) => khop(prop, x.mon)))?.ten ?? '') : '';
-  return chieu.map((row) => {
+  const out = chieu.map((row): DongDoiChieu => {
     let dk = '', tt = '', nhan = '';
     const mVi = row.thanh_phan.match(/^Vị trí (.+)$/);
     const mToc = row.thanh_phan.match(/^Tóc (.+)$/);
     const mGiu = row.thanh_phan.match(/^Đạo cụ (.+?) \+ vị trí$/i);
+    const mHg = row.thanh_phan.match(/^Hướng (.+)$/);
+    if (mHg) {   // so hướng: "trái" khớp cả "xuống-trái"; ảnh "thẳng (vào máy)" khi cần nhìn sang = lệch
+      const tt0 = nguoiTT(mHg[1]!)?.huong_man ?? ''; if (!tt0) return row;
+      const ok = row.du_kien === 'quay lưng' ? tt0 === 'quay lưng' : tt0.endsWith(row.du_kien);
+      return { ...row, muc: ok ? 'khớp' : 'lệch', thuc_te: tt0, ghi_chu: `[máy so bằng] hướng: dự kiến "${row.du_kien}" ${ok ? '=' : '≠'} ảnh "${tt0}"` };
+    }
     if (mVi) { dk = viTriMan(mVi[1]!); tt = nguoiTT(mVi[1]!)?.vi_tri_man ?? ''; nhan = 'vị trí màn'; }
     else if (mToc) { dk = tocEnum(nhanVat.find((v) => v.ten === mToc[1])?.mo_ta ?? ''); tt = nguoiTT(mToc[1]!)?.toc_kieu ?? ''; nhan = 'kiểu tóc'; }
     else if (mGiu) { dk = nguoiGiu(mGiu[1]!); tt = doTT(mGiu[1]!)?.nguoi_giu ?? ''; nhan = 'người giữ'; }
@@ -173,4 +187,9 @@ export function apDungSoBang(chieu: DongDoiChieu[], c: Canh, nhanVat: NhanVat[],
     const m: DongDoiChieu['muc'] = chuanEnum(dk) === chuanEnum(tt) ? 'khớp' : 'lệch';
     return { ...row, muc: m, du_kien: dk, thuc_te: tt, ghi_chu: `[máy so bằng] ${nhan}: dự kiến "${dk}" ${m === 'khớp' ? '=' : '≠'} ảnh "${tt}"` };
   });
+  // ĐẾM NGƯỜI bằng máy: ảnh có nhiều người hơn sơ đồ cho trong khung = người chen / nhân đôi (phim #353 #7: thêm một Hạ áo trắng ở tiền cảnh)
+  const can = kg ? nguoiKhung(kg, c, lucKg) : null;
+  if (can && c.ky_thuat?.co_canh !== 'insert' && k.nguoi.length > can.length)
+    out.push({ thanh_phan: 'Số người', du_kien: can.join(', '), thuc_te: `${k.nguoi.length} người: ${k.nguoi.map((n) => n.ai).join(', ')}`, muc: 'thừa', ghi_chu: `[máy đếm] sơ đồ ${can.length} người trong khung, ảnh ${k.nguoi.length}` });
+  return out;
 }

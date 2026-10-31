@@ -2,7 +2,7 @@
 // + khung cuối (khung kết / keyframe shot cuối — first_last_frame neo người vào sau, vd Vivian ở #3), prompt giữ NGUYÊN (enhance tắt) để so đúng cách viết.
 // Gửi song song (VideoExpress cho ≤ 5 render cùng lúc), đợi render (~4 phút), tải về, đẩy lên box → cum-thu.mts --gan (R2 + ky_thuat.cum_thu), tờ khung để soát.
 //   cd ~/Me/GitHub/earns-marketing-os-v2/apps/xuong-video && node scripts/videoexpress.mjs mo && \
-//     ../../node_modules/.bin/tsx scripts/vx-cum.mts --tap=356 --tu=2 --den=3 [--bien=gop,tach] [--lan=3]
+//     ../../node_modules/.bin/tsx scripts/vx-cum.mts --tap=356 --tu=2 --den=3 [--bien=gop,tach] [--lan=3] [--mat=<url ảnh mặt>]
 import { execFileSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -15,7 +15,9 @@ const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.sl
 const doan = `--tap=${gia('tap')} --tu=${gia('tu')} --den=${gia('den')}`;
 // --lan=N: mỗi biến thể N lượt cùng prompt (model ngẫu nhiên — một lượt không đủ kết luận; nhãn gop-1, gop-2…)
 const lan = Math.max(1, Number(gia('lan') || 1));
-const dsBien = (gia('bien') ?? 'gop').split(',').flatMap((b) => (lan > 1 ? Array.from({ length: lan }, (_, j) => `${b}-${j + 1}`) : [b]));
+// --ten=X: nhãn lượt thử (lưu ky_thuat.cum_thu.X-1…) — biến thể prompt vẫn theo --bien; không đè clip thử cũ
+const tenThu = gia('ten');
+const dsBien = (gia('bien') ?? 'gop').split(',').flatMap((b) => (lan > 1 ? Array.from({ length: lan }, (_, j) => `${tenThu ?? b}-${j + 1}~${b}`) : [`${tenThu ?? b}~${b}`]));
 const boxTsx = (args: string) => execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2/apps/xuong-video && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/cum-thu.mts ${args}`], { encoding: 'utf8', timeout: 300e3 }).trim();
 if (!trenApp()) await moPhien();   // phiên rụng / tab rời app → tự mở lại (videoexpress.mjs), không bắt chạy tay
 
@@ -27,14 +29,17 @@ const catDefault = catId('default');
 const layTiep = !!gia('uuid');
 const mDau = layTiep ? 1 : await napKhung(tai(k.dau, join(thu, 'dau.png')), catDefault);
 const mCuoi = !layTiep && k.cuoi ? await napKhung(tai(k.cuoi, join(thu, 'cuoi.png')), catDefault) : 0;
+// --mat=<url ảnh mặt>: neo mặt (faceSwap) — xem vx-br.mts › guiShot
+const mMat = !layTiep && gia('mat') ? await napKhung(tai(gia('mat')!, join(thu, 'mat.png')), catDefault) : 0;
 if (!mDau) { console.error('nạp khung đầu hỏng'); process.exit(1); }
 
 // --uuid=gop-1:abcd…,gop-2:… : LẤY TIẾP các job đã gửi (lần trước chết giữa chừng) — không gửi lại
 const gui: Record<string, string> = Object.fromEntries((gia('uuid') ?? '').split(',').filter(Boolean).map((x) => [x.slice(0, x.indexOf(':')), x.slice(x.indexOf(':') + 1)]));
 for (const b of Object.keys(gui).length ? [] : dsBien) {
-  const p = k.bien[b.replace(/-\d+$/, '')]; if (!p) { console.log(`  ! không có biến thể '${b}'`); continue; }
-  const uuid = guiShot(mDau, p, false, mCuoi ?? 0); if (!uuid) continue;
-  gui[b] = uuid; console.log(`${k.ten} ${b}: gửi ${uuid} (${p.length} ký tự) — lấy tiếp: --uuid=${b}:${uuid}`);
+  const [nhanB, bienB] = b.split('~') as [string, string];
+  const p = k.bien[bienB]; if (!p) { console.log(`  ! không có biến thể '${bienB}'`); continue; }
+  const uuid = guiShot(mDau, p, false, mCuoi ?? 0, mMat ?? 0); if (!uuid) continue;
+  gui[nhanB] = uuid; console.log(`${k.ten} ${nhanB}: gửi ${uuid} (${p.length} ký tự) — lấy tiếp: --uuid=${nhanB}:${uuid}`);
 }
 const catVideo = catId('my_ai_videos'); const xong = new Set<string>();
 for (let lan = 0; lan < 60 && xong.size < Object.keys(gui).length; lan++) {

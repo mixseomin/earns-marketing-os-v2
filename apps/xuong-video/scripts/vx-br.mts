@@ -49,14 +49,16 @@ export async function napKhung(file: string, catDefault: number): Promise<number
 // enhance=false cho shot THOẠI: giữ nguyên câu tiếng Việt, không để máy tự viết lại prompt (anh chốt 27/10 dùng native speech).
 // lastMediaId (anh 29/10 "tập trung vào ảnh cuối shot và đầu shot sau"): có khung CUỐI → generator first_last_frame, clip chạy từ khung đầu → khung cuối.
 //   Nối mạch: đặt khung cuối shot N = khung đầu shot N+1 → cú cắt liền, động tác không giật. (field bundle: mediaId + lastFrameMediaId + generatorName=first_last_frame)
-export function guiShot(mediaId: number, prompt: string, enhance = true, lastMediaId = 0): string | null {
+// faceMediaId (01/11/2026): ảnh MẶT nhân vật → faceImageMediaId + faceSwap=1 — khung đầu không thấy mặt (chụp sau vai) thì model bịa mặt khi người quay ra máy
+//   (A/B #2→#3 phim #353: 4/4 lượt trôi mặt); neo mặt bằng ảnh như @image của Seedance.
+export function guiShot(mediaId: number, prompt: string, enhance = true, lastMediaId = 0, faceMediaId = 0): string | null {
   const noi = lastMediaId > 0;
   const body = [
     'type=human', 'imagePrompt=', `prompt=${encodeURIComponent(prompt)}`, 'uuid=', `mediaId=${mediaId}`,
     'lastFrameUuid=', `lastFrameMediaId=${noi ? lastMediaId : 0}`,
     'audioMediaId=0', 'isShared=0', 'aspect=9%3A16', 'enhanceHumanFace=0', 'isTalkingVideoFromText=0',
     'isNarrationVideo=0', `enhanceVideoPrompt=${enhance ? 1 : 0}`, 'videoOnly=0', 'speed=', `generatorName=${noi ? 'first_last_frame' : 'create_from_prompt'}`,
-    'faceImageMediaId=0', 'faceSwap=0', 'mode=',
+    `faceImageMediaId=${faceMediaId}`, `faceSwap=${faceMediaId ? 1 : 0}`, 'mode=',
   ].join('&');
   const r = brEval<{ success?: boolean; uuid?: string; message?: string }>(
     `fetch("/ai/api/image2video",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8","X-Requested-With":"XMLHttpRequest"},body:${JSON.stringify(body)}}).then(r=>r.json()).catch(e=>({success:false,message:String(e)}))`,

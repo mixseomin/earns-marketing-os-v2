@@ -122,7 +122,10 @@ export const NHIP = {
   'bao-social': async (n) => (await import('./bao-social.mjs')).nhipBaoSocial(n.id),   // Phòng Social Traffic: báo cáo ngày của trưởng phòng → Telegram (0đ, máy đọc)
   'kiem-tai-nguyen': async (n) => { const r = await (await import('./tai-nguyen.mjs')).nhipTaiNguyen(n.id, { ten: n.ten }); return `${r.canh_bao} cảnh báo · gửi ${r.gui}`; },   // Phòng Tài nguyên: slot proxy · làn cào · tải box3 → Telegram (0đ, chỉ báo)
   'kiem-resend': async () => (await import('./resend-han-muc.mjs')).nhipResend(),   // Phòng Astrolas: hạn mức Resend → Telegram chủ đề Astrolas (0đ, máy đọc)
-  'kiem-ethopex': async (n) => { const r = await (await import('./ethopex.mjs')).nhipEthopex(n.id, { ten: n.ten }); return `báo ${r.gui} nhóm · xử ${r.nut} nút`; },   // Phòng Ethopex: luật camp → Telegram 📂 Ethopex, anh duyệt bằng nút (0đ, máy đọc)
+  'kiem-ethopex': async (n) => { const r = await (await import('./ethopex.mjs')).nhipEthopex(n.id, { ten: n.ten });
+    // LUẬT TỰ ĐỘNG CHO TÀI KHOẢN TEAM (etp.che_do_luat 'tu_dong', anh 31/10/2026 — chỉ tk Sơn): cùng nhịp Nhà, làm bằng phiên Ethopex của người đó, nhắn riêng kết quả
+    let t = 0; try { t = await (await import('./etp-tu-dong.mjs')).nhipTuDong((await (await import('./kiem-bai.mjs')).tgNoiDung()).tg); } catch (e) { console.error(`✗ etp tự động team: ${e.message}`); }
+    return `báo ${r.gui} nhóm · xử ${r.nut} nút${t ? ` · team tự động ${t} việc` : ''}`; },   // Phòng Ethopex: luật camp → Telegram 📂 Ethopex, anh duyệt bằng nút (0đ, máy đọc)
 };
 export { trongCa } from './gio-lam.mjs';
 import { trongCa, mocCuoiCa } from './gio-lam.mjs';

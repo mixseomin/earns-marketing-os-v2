@@ -9,7 +9,9 @@ Không áp luật / trần của nhà (camp của người đó, người đó q
 Mọi lệnh đi bằng PHIÊN ETHOPEX RIÊNG của người đó (token htuan82 chỉ được XEM tài khoản người khác — Ethopex từ chối ghi, anh 31/10/2026):
   ket <nguoi_id>             → đọc phiên từ STDIN (không qua dòng lệnh / log), kiểm rồi cất xv_khoa_ngoai['ethopex_nguoi'][<nguoi_id>]
 Dùng (box3): python3 sua-ngoai.py <nguoi_id> ns|bat|tat <camp_id> [ngân sách]   → một dòng JSON {ok, viec, id, truoc, sau, loi}
-             echo '<access_token>' | python3 sua-ngoai.py <nguoi_id> ket          → {ok, het, so_camp, loi}"""
+             echo '<access_token>' | python3 sua-ngoai.py <nguoi_id> ket          → {ok, het, so_camp, loi}
+  --may = MÁY TỰ LÀM (chế độ Luật tự động, apps/cty/worker/etp-tu-dong.mjs): qua đúng cái gác của Nhà (lam-ethopex.py) — mức trên thang ≤ $30, camp phải đang chạy,
+          nhịp tăng / giảm nhip_tang.py (tăng cách ≥ 3 giờ, khoá tăng 6 giờ sau giảm, giảm cách ≥ 3 giờ). Người tự sửa tay (nút ✎) không qua các gác này."""
 import json, os, subprocess, sys, time
 
 KET = len(sys.argv) == 3 and sys.argv[1].isdigit() and sys.argv[2] == "ket"
@@ -19,6 +21,10 @@ NG, VIEC, CID = int(sys.argv[1]), sys.argv[2], (0 if KET else int(sys.argv[3]))
 os.environ["ETP_SUA_NGUOI"] = str(NG); os.environ.pop("ETP_XEM_NGUOI", None)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ethopex_api as EA   # noqa: E402 — nạp SAU khi đặt chế độ
+MAY = "--may" in sys.argv
+import importlib.util as _iu
+_s = _iu.spec_from_file_location("nhip_tang", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "nhip_tang.py"))
+NT = _iu.module_from_spec(_s); _s.loader.exec_module(NT)
 
 def doc():
     c = EA.api(f"/api/v1/campaigns/{CID}")["campaign"]
@@ -56,6 +62,12 @@ try:
         if len(sys.argv) < 5 or not sys.argv[4].isdigit() or not 1 <= int(sys.argv[4]) <= 1000: ra(ok=False, truoc=truoc, loi="ngân sách phải là số nguyên $1–$1000")
         ns = int(sys.argv[4])
         if truoc["ns"] is not None and int(float(truoc["ns"])) == ns: ra(ok=True, truoc=truoc, sau=truoc, loi=None)
+        if MAY:   # máy tự làm: cùng gác với Nhà
+            cu = float(truoc["ns"] or 0)
+            if ns not in NT.BAC or ns > 30: ra(ok=False, truoc=truoc, loi=f"${ns} không phải mức trên thang (trần máy $30)")
+            if truoc["tt"] != "ACTIVE": ra(ok=False, truoc=truoc, loi="camp không chạy — máy không đổi ngân sách")
+            ly = NT.chan_tang(lambda p: EA.api(p), CID) if ns > cu else NT.chan_giam(lambda p: EA.api(p), CID)
+            if ly: ra(ok=False, truoc=truoc, loi=ly)
         EA.api("/api/v1/campaigns/update", {"campaign": {"campaign_id": CID, "source_payload": {"daily_budget": ns}}})
     else:
         EA.api("/api/v1/campaigns/control/batch/bulk", [{"entity_type": "campaign", "entity_ids": [CID], "status": "active" if VIEC == "bat" else "paused"}])

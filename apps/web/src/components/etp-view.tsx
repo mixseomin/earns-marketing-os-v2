@@ -491,7 +491,7 @@ function CheDoLuatO({ nguoiId, c }: { nguoiId: number; c: CheDoLuat }) {
     window.open(r.link, '_blank', 'noopener');
   };
   const opts: Chon2Muc[] = [{ value: 'bao', label: 'Chỉ báo Telegram', title: 'máy chấm camp theo luật Nhà, đề xuất bậc nhắn riêng qua bot — không đụng camp' },
-    ...(c.duoc.tuDong ? [{ value: 'tu_dong', label: 'Tự động', title: 'máy làm luôn trên camp (tăng / giảm bậc, lên $30, lên ROAS… như Nhà) bằng phiên Ethopex của bạn' }] : [])];
+    ...(c.duoc.tuDong ? [{ value: 'tu_dong', label: 'Tự động', title: 'máy làm luôn trên camp như Nhà, bằng phiên Ethopex của bạn: tự tăng tới $30, tự giảm bậc, tắt theo luật T2 / D24 / L3 / L4 / OFF / RL + dừng đêm (báo trước một nhịp); nhân bản / lên ROAS chưa áp' }] : [])];
   return <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
     <Chon2 value={c.cheDo} onChange={doi} options={opts} anRong nhan="Luật máy" title="chế độ luật máy cho tài khoản này" />
     {c.cheDo === 'bao' ? (c.tg ? <span title="đề xuất bậc mới của máy nhắn riêng qua bot Telegram" style={{ fontSize: 11, color: '#4ade80' }}>✓ Telegram</span>

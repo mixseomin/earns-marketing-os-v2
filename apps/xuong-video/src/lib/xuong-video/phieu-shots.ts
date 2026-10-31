@@ -10,7 +10,8 @@ import { thanhPhanDuKien, type MucDuKien } from './doi-chieu-khung';
 import { kgCua, sdLuc, type KhongGianTap } from './khong-gian';
 import { svgPhac } from './so-do-canh';
 import { lookMang, KHOA_LOOK } from './bo-set-3d';
-import { locNhanh, nhanNhom, type NhanVat, type PhanCanh } from './kieu';
+import { locNhanh, nhanNhom, type DongDoiChieu, type NhanVat, type PhanCanh } from './kieu';
+import { soLech, type DoiChieuAnh } from './doi-chieu-anh';
 
 /** Một nút trên cây thành phần của shot. link = khoá nút trên cây phim ('nv-<id>' anchor · 'bt-<id>' look) để bấm mở đúng thành phần. */
 export type NutPhieu = { nhan: string; loai: 'boi_canh' | 'cau_kien' | 'nhan_vat' | 'look' | 'dao_cu' | 'khac'; chi_tiet: string[]; link?: string; anh?: string | null; con?: NutPhieu[] };
@@ -21,8 +22,11 @@ export type PhieuShot = {
   /** 2D: khung phác bố trí chiếu từ sơ đồ cảnh theo máy của shot (svgPhac) — null khi shot chưa có sơ đồ */ svg: string | null;
   /** 3D: khung màu / xám Blender của shot (xv_canh.khung_xam) — null khi shot chưa dựng 3D */ anh3d: string | null;
   keyframe: string | null;
-  /** MỌI ảnh keyframe từng sinh của shot (ứng viên keyframe_uv + ảnh đang chọn), MỚI NHẤT TRƯỚC; luc = giờ job sinh ra nó (null = không còn job) */ lich_su: { url: string; luc: string | null; chon: boolean }[];
-  /** lệch của keyframe HIỆN TẠI so với phiếu (bóc tách + đối chiếu đã lưu, chỉ khi đúng ảnh đang chọn) */ lech: string[];
+  /** MỌI ảnh keyframe từng sinh của shot (ứng viên keyframe_uv + ảnh đang chọn), MỚI NHẤT TRƯỚC; luc = giờ job sinh ra nó (null = không còn job);
+   *  lech = số lá lệch khi so với yêu cầu (null = ảnh chưa đối chiếu); so_sanh = đủ các lá để xem khi bấm ảnh */
+  lich_su: { url: string; luc: string | null; chon: boolean; lech: number | null; so_sanh: DongDoiChieu[] | null }[];
+  /** lệch của keyframe HIỆN TẠI so với phiếu (đối chiếu đã lưu cho ĐÚNG ảnh đang chọn) */ lech: string[];
+  /** SO SÁNH ảnh đang chọn ↔ yêu cầu, đủ mọi lá (khớp / gần / lệch / thiếu / thừa) — null = ảnh chưa được đối chiếu */ so_sanh: DongDoiChieu[] | null;
   /** thiếu thông tin để sinh: lá "không khai" / "không tả" — phải điền trước khi sinh */ thieu: string[];
 };
 
@@ -32,7 +36,10 @@ export async function phieuShotsTapDb(db: Db, tapId: number): Promise<PhieuShot[
   const t = ((await db.execute(sql`SELECT id, phim_id, so, phan_canh, khong_gian FROM xv_tap WHERE id = ${tapId}`)) as unknown as Row[])[0];
   if (!t) return null;
   const nhanVat = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${n(t.phim_id)} ORDER BY loai, id`)) as unknown as Row[]).map(mapNhanVat));
-  const tatCa = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY coalesce(nhanh, ''), thu_tu, id`)) as unknown as Row[]).map(mapCanh);
+  const hang = (await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tapId} ORDER BY coalesce(nhanh, ''), thu_tu, id`)) as unknown as Row[];
+  const tatCa = hang.map(mapCanh);
+  // đối chiếu theo từng ảnh — đọc THÔ ở đây, KHÔNG đưa vào mapCanh (storyboard không phải chở bóc tách của mọi ảnh)
+  const dcTheoShot = new Map(hang.map((r) => [Number(r.id), (r.doi_chieu_uv ?? {}) as Record<string, DoiChieuAnh>]));
   const kgt = (t.khong_gian ?? null) as KhongGianTap | null;
   // sổ trang phục carry: mọi shot nhánh chính (cùng cách lookTap / vong-sua dựng) → look từng nhân vật của từng shot
   const chinh = locNhanh(tatCa, 'A');
@@ -78,14 +85,18 @@ export async function phieuShotsTapDb(db: Db, tapId: number): Promise<PhieuShot[
     const nguoi = kg?.nguoi ?? [];
     const svg = kg?.so_do && sd ? svgPhac(kg.so_do, sd, nguoi, Object.fromEntries(nguoi.map((ten, i) => [ten, MAU[i % MAU.length]!]))) : null;
     const kx = c.khung_xam; const anh3d = kx && !kx.nguon ? kx.mau || kx.xam || null : null;
-    const bt = c.boc_tach; const lech = bt?.tren?.dau && bt.tren.dau === c.keyframe_url ? (bt.doi_chieu?.dau ?? []).filter((r) => r.muc !== 'khớp' && r.muc !== 'gần').map((r) => `${r.thanh_phan}: cần "${r.du_kien}" — ảnh "${r.thuc_te}"`) : [];
+    // ĐỐI CHIẾU theo từng ảnh (doi-chieu-anh.ts › xv_canh.doi_chieu_uv); ảnh đang chọn còn có thể nằm ở boc_tach (bản cũ trước khi lưu theo url)
+    const dcUv = dcTheoShot.get(c.id) ?? {};
+    const chieuCua = (url: string): DongDoiChieu[] | null => dcUv[url]?.luc === 'dau' ? dcUv[url]!.chieu : url === c.boc_tach?.tren?.dau ? c.boc_tach?.doi_chieu?.dau ?? null : null;
+    const so_sanh = c.keyframe_url ? chieuCua(c.keyframe_url) : null;
+    const lech = (so_sanh ?? []).filter((r) => r.muc !== 'khớp' && r.muc !== 'gần').map((r) => `${r.thanh_phan}: cần "${r.du_kien}" — ảnh "${r.thuc_te}"`);
     const thieu = dk.filter((r) => /^(không khai|không tả)$/.test(r.du_kien.trim())).map((r) => r.thanh_phan);
     return {
       id: c.id, thu_tu: c.thu_tu, nhanh: c.nhanh ?? '', co_canh: c.ky_thuat?.co_canh ?? '', goc_may: c.goc_may, hanh_dong: c.hanh_dong,
       mo: c.dan_dung?.mo ?? '', ket: c.dan_dung?.ket ?? '', thoai: (c.thoai ?? []).filter((d) => d.loi?.trim()).map((d) => `${d.nhan_vat}: "${d.loi}"`).join(' · ') || c.loi_thoai || '',
-      chung: dk.filter((r) => !dung.has(r)), cay, svg, anh3d, keyframe: c.keyframe_url, lech, thieu,
+      chung: dk.filter((r) => !dung.has(r)), cay, svg, anh3d, keyframe: c.keyframe_url, lech, so_sanh, thieu,
       lich_su: [...new Set([...(c.keyframe_uv ?? []), ...(c.keyframe_url ? [c.keyframe_url] : [])])]
-        .map((url, i) => ({ url, luc: lucAnh.get(url) ?? null, chon: url === c.keyframe_url, i }))
+        .map((url, i) => { const ch = chieuCua(url); return { url, luc: lucAnh.get(url) ?? null, chon: url === c.keyframe_url, i, so_sanh: ch, lech: ch ? soLech(ch) : null }; })
         .sort((a, b) => (b.luc ?? '').localeCompare(a.luc ?? '') || b.i - a.i).map(({ i: _i, ...x }) => x),
     };
   });

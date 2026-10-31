@@ -9,6 +9,7 @@ import { lamSachKhanGia, type YDoKhanGia } from '@/lib/xuong-video/khan-gia';
 import { napRef2v, guiRef2v, dsRef2v, type KetRef2v } from '@/lib/xuong-video/ref2v-chay';
 import { tachShotDb, chenShotKhuonDb } from '@/lib/xuong-video/tach-shot';
 import 'server-only';
+import { bocTachCanhDb } from '@/lib/xuong-video/doi-chieu-anh';
 import { phieuShotsTapDb, type PhieuShot } from '@/lib/xuong-video/phieu-shots';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -53,9 +54,8 @@ import { docPhimDich, uocDichCents, chayDichPhim } from '@/lib/xuong-video/dich-
 import { NGON_NGU, type LoaiTaiSan, type Lop, type TaiSan } from '@/lib/xuong-video/kieu';
 import { type Row, n, s, arr, mangInt, nguCanhPhimDb, mapBienThe, mapNhanVat, mapTap, mapCanh, kemBienThe, boiCanhTap, boiCanhCanh, taoJob } from '@/lib/xuong-video/doc-db';
 import { kgCua } from '@/lib/xuong-video/khong-gian';
-import { bocTachKhung } from '@/lib/xuong-video/boc-tach-khung';
-import { doiChieuKhung, thanhPhanDuKien, apDungSoBang, type MucDuKien } from '@/lib/xuong-video/doi-chieu-khung';
-import type { BocTachCanh, BocTachKhung, DongDoiChieu } from '@/lib/xuong-video/kieu';
+import { thanhPhanDuKien, type MucDuKien } from '@/lib/xuong-video/doi-chieu-khung';
+import type { BocTachCanh } from '@/lib/xuong-video/kieu';
 import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb, sinhAnhBienTheDb } from '@/lib/xuong-video/sinh-anh';
 import { phanRaTapDb, baoCaoChuanBiDb, sinhAnhThieuDb, type KqPhanRa, type BaoCaoPhim } from '@/lib/xuong-video/phan-ra';
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
@@ -2104,26 +2104,7 @@ export async function bocTachCanh(canhId: number): Promise<{ ok: boolean; boc_ta
   if (!me) return { ok: false, loi: 'chưa đăng nhập' };
   const db = getDb();
   if (!db) return { ok: false, loi: 'không có DB' };
-  const row = ((await db.execute(sql`SELECT c.*, t.phim_id, t.khong_gian FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id WHERE c.id = ${canhId}`)) as unknown as Row[])[0];
-  if (!row) return { ok: false, loi: 'không thấy cảnh' };
-  const c = mapCanh(row); const phimId = Number(row.phim_id);
-  if (!c.keyframe_url && !c.keyframe_ket) return { ok: false, loi: 'chưa có keyframe để bóc tách' };
-  const nhanVat = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
-  const kg = kgCua(row.khong_gian as never, c);
-  const look = (await lookTap(db, c.tap_id, nhanVat)).get(canhId);
-  const out: { dau?: BocTachKhung; cuoi?: BocTachKhung } = {}; const dc: { dau?: DongDoiChieu[]; cuoi?: DongDoiChieu[] } = {};
-  for (const [luc, url] of [['dau', c.keyframe_url], ['cuoi', c.keyframe_ket]] as const) {
-    if (!url) continue;
-    const r = await bocTachKhung(db, phimId, url, nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
-    if (!r) continue;
-    out[luc] = r;
-    const chieu = await doiChieuKhung(db, phimId, thanhPhanDuKien(c, nhanVat, kg, luc, look), r);
-    if (chieu) dc[luc] = apDungSoBang(chieu, c, nhanVat, kg, luc, r);
-  }
-  if (!out.dau && !out.cuoi) return { ok: false, loi: 'bóc tách hỏng (cổng ảnh không trả kết quả)' };
-  const boc_tach: BocTachCanh = { ...out, doi_chieu: dc, luc_boc: new Date().toISOString(), tren: { dau: c.keyframe_url, cuoi: c.keyframe_ket ?? null } };
-  await db.execute(sql`UPDATE xv_canh SET boc_tach = ${JSON.stringify(boc_tach)}::jsonb WHERE id = ${canhId}`);
-  return { ok: true, boc_tach };
+  return bocTachCanhDb(db, canhId);   // một lõi với job / vòng tự-sửa (doi-chieu-anh.ts)
 }
 
 // ⚖️ Lấy DANH MỤC THÀNH PHẦN của một shot cho NGĂN RỘNG (DoiChieuNgan). Chỉ đọc, không tốn tiền:

@@ -2,6 +2,7 @@
 // (scripts/soi-mat/soi-mat.py, cài bằng scripts/soi-mat/cai.sh). Mỗi shot có keyframe chưa soi (hoặc đã đổi) → so mặt trong khung với ảnh mẫu của
 // các nhân vật gắn shot (anh_ref + ảnh biến thể) → ghi xv_canh.soi_mat. Nhân vật ảnh mẫu không có mặt người (hoạt hình, đồ vật) không theo dõi.
 // Luật thuần + cổng ở khung.ts (trangThaiMat · chanKhung).
+import { doiChieuAnhNen } from './doi-chieu-anh';
 import 'server-only';
 import { execFile } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
@@ -218,8 +219,10 @@ export async function xongSuaMat(db: Db, canhId: number, url: string, gia: numbe
   if (sm && (tenSua ? nhanSuaMat(sm, tenSua) : sm.dat)) {
     await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([url])}::jsonb), keyframe_url = ${url}, soi_mat = ${JSON.stringify(sm)}::jsonb,
       chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canhId}`);
+    doiChieuAnhNen(db, canhId, url);
     return;
   }
+  doiChieuAnhNen(db, canhId, url);
   await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([url])}::jsonb), chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${canhId}`);
   const diem = sm ? chuLoiMat(sm) || 'chưa đạt' : 'soi lại lỗi';
   if (lan < SUA_MAT_TOI_DA && c.soi_mat && canSuaMat(c)) {

@@ -12,6 +12,7 @@ import { getDb } from '@mos2/db';
 import { modelFal } from './fal';
 import { jobDangCho } from './doc-db';
 import { lamSanNho } from './anh-nho-may';
+import { doiChieuAnhNen } from './doi-chieu-anh';
 import { giaAnhCents, thuongHieu, type KinhThanh } from './kieu';
 import './cong-plenxai';   // máy chủ chạy việc ảnh dự phòng (hàng đợi Cloudflare lỗi) → cổng PlenX lấy token từ tệp trên box
 import { chayViecAnh, type ViecAnh, type KqViec } from './viec-anh';
@@ -197,10 +198,12 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
     const u = g?.url ?? kq.url;
     if (giua) await db.execute(sql`UPDATE xv_canh SET keyframe_giua = ${u}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
     else await db.execute(sql`UPDATE xv_canh SET keyframe_ket = ${u}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
+    if (!giua) doiChieuAnhNen(db, canh, u, 'cuoi');   // ⚖️ mọi ảnh sinh ra đều so với yêu cầu (doi-chieu-anh.ts)
   } else if (canh != null) {
     await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([kq.url])}::jsonb),
       keyframe_url = coalesce(keyframe_url, ${kq.url}), trang_thai = CASE WHEN trang_thai = 'nhap' THEN 'co_keyframe' ELSE trang_thai END,
       chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
+    doiChieuAnhNen(db, canh, kq.url);   // ⚖️ mọi ảnh sinh ra đều so với yêu cầu (doi-chieu-anh.ts) — kể cả ứng viên chưa chọn
   } else if (j.dich === 'poster' && j.phim_id != null) {
     // poster (sinh-anh.ts › sinhPosterPhim): bản mới lên ĐẦU dải; phim chưa có poster thì bản này thành poster đang dùng
     await db.execute(sql`UPDATE xv_phim SET poster_uv = (${JSON.stringify([kq.url])}::jsonb || poster_uv), poster_url = coalesce(poster_url, ${kq.url}), updated_at = now() WHERE id = ${Number(j.phim_id)}`);

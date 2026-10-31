@@ -9,6 +9,7 @@ import { anhNho } from '@/lib/xuong-video/anh-nho';
 import { gioVN } from '@/lib/xuong-video/kieu';
 import { moNgan } from './ngan-chung';
 import { Seg, mono } from './ui';
+import { DoiChieuTable } from './canh';
 import { CotCay, CayCon, CayNut } from './keo';
 
 const ICON: Record<NutPhieu['loai'], string> = { boi_canh: '🏛', cau_kien: '▫', nhan_vat: '👤', look: '👗', dao_cu: '📦', khac: '·' };
@@ -30,25 +31,27 @@ function Nut({ x, cap, onMo }: { x: NutPhieu; cap: number; onMo?: (k: string, te
   );
 }
 
-/** ẢNH ĐÃ SINH của shot: mới nhất to (hoặc ảnh vừa bấm), các lần trước nhỏ — ✓ = ảnh đang chọn làm keyframe. */
-function LichSuAnh({ ds }: { ds: PhieuShot['lich_su'] }) {
-  const [to, setTo] = useState<string | null>(null);
-  if (!ds.length) return <span style={mono}>Shot chưa sinh ảnh nào</span>;
-  const lon = ds.find((x) => x.url === to) ?? ds[0]!;
-  const nhan = (x: PhieuShot['lich_su'][number], i: number) => `${i === 0 ? 'mới nhất' : `lần ${ds.length - i}`}${x.luc ? ` · ${gioVN(x.luc)}` : ''}${x.chon ? ' · ✓ đang chọn' : ''}`;
+type AnhSinh = PhieuShot['lich_su'][number];
+const chuLech = (x: AnhSinh) => (x.lech == null ? 'chưa so' : x.lech ? `lệch ${x.lech}` : 'khớp hết');
+const mauLech = (x: AnhSinh) => (x.lech == null ? 'var(--fg-3)' : x.lech ? 'var(--red)' : 'var(--lime)');
+
+/** ẢNH ĐÃ SINH của shot: ảnh đang xem to (mặc định mới nhất), các lần khác nhỏ — mỗi ảnh ghi số lệch so với yêu cầu; ✓ = ảnh đang chọn làm keyframe. */
+function LichSuAnh({ ds, lon, onXem }: { ds: AnhSinh[]; lon: AnhSinh | null; onXem: (url: string) => void }) {
+  if (!ds.length || !lon) return <span style={mono}>Shot chưa sinh ảnh nào</span>;
+  const nhan = (x: AnhSinh) => { const i = ds.indexOf(x); return `${i === 0 ? 'mới nhất' : `lần ${ds.length - i}`}${x.luc ? ` · ${gioVN(x.luc)}` : ''}${x.chon ? ' · ✓ đang chọn' : ''}`; };
   return (
     <div style={{ display: 'grid', gap: 6 }}>
       <b style={{ fontSize: 12 }}>🖼 Ảnh đã sinh <span style={mono} title={`${ds.length} lần sinh`}>({ds.length})</span></b>
       <div style={{ display: 'grid', gap: 8 }}>
         <figure style={{ margin: 0, display: 'grid', gap: 3 }}>
           <a href={lon.url} target="_blank" rel="noreferrer" title="Mở ảnh gốc"><img src={anhNho(lon.url, 640)} alt="" style={{ width: '100%', maxWidth: 300, borderRadius: 4, outline: lon.chon ? '2px solid var(--lime)' : undefined }} /></a>
-          <figcaption style={mono}>{nhan(lon, ds.indexOf(lon))}</figcaption>
+          <figcaption style={mono}>{nhan(lon)} · <span style={{ color: mauLech(lon) }}>{chuLech(lon)}</span></figcaption>
         </figure>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxWidth: 300 }}>
-          {ds.map((x, i) => x === lon ? null : (
-            <button key={x.url} type="button" onClick={() => setTo(x.url)} title={`${nhan(x, i)} — bấm để xem to`} style={{ padding: 0, border: 0, background: 'none', display: 'grid', gap: 2, width: 70 }}>
+          {ds.map((x) => x === lon ? null : (
+            <button key={x.url} type="button" onClick={() => onXem(x.url)} title={`${nhan(x)} · ${chuLech(x)} — bấm để xem to + so sánh`} style={{ padding: 0, border: 0, background: 'none', display: 'grid', gap: 2, width: 70 }}>
               <img src={anhNho(x.url, 160)} alt="" style={{ width: 70, borderRadius: 3, outline: x.chon ? '2px solid var(--lime)' : undefined, opacity: 0.9 }} />
-              <span style={{ ...mono, fontSize: 9.5 }}>{i === 0 ? 'mới nhất' : `lần ${ds.length - i}`}{x.luc ? ` · ${gioVN(x.luc, { chiGio: true })}` : ''}{x.chon ? ' ✓' : ''}</span>
+              <span style={{ ...mono, fontSize: 9.5, color: mauLech(x) }}>{chuLech(x)}{x.chon ? ' ✓' : ''}</span>
             </button>
           ))}
         </div>
@@ -61,10 +64,12 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
   const [ds, setDs] = useState<PhieuShot[] | null>(null);
   const [chon, setChon] = useState<number | null>(null);
   const [xem, setXem] = useState<Xem>('2d');
+  const [anhXem, setAnhXem] = useState<string | null>(null);   // ảnh đang xem to + so sánh (null = mới nhất)
   useEffect(() => { let huy = false; void phieuShotsTap(tapId).then((r) => { if (!huy) { setDs(r); setChon((c) => c ?? r[0]?.id ?? null); } }); return () => { huy = true; }; }, [tapId]);
   if (!ds) return <span style={mono}>…</span>;
   if (!ds.length) return <div style={mono}>Tập chưa có shot — viết kịch bản rồi ✂ Tách cảnh ở nút 📝 Kịch bản.</div>;
   const p = ds.find((x) => x.id === chon) ?? ds[0]!;
+  const lon = p.lich_su.find((x) => x.url === anhXem) ?? p.lich_su[0] ?? null;
   const coXem: { value: Xem; label: string; title: string }[] = [
     ...(p.svg ? [{ value: '2d' as const, label: '2D sơ đồ', title: 'Khung phác chiếu từ sơ đồ cảnh theo máy của shot: tường, cửa, cấu kiện, chỗ đứng + hướng nhìn từng người' }] : []),
     ...(p.anh3d ? [{ value: '3d' as const, label: '3D', title: 'Khung Blender của shot (bộ set 3D) — bấm ảnh để xoay xem' }] : []),
@@ -74,7 +79,7 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
     <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
       <CotCay khoa="ds-shot" macDinh={260}>
         {ds.map((x) => (
-          <button key={x.id} type="button" onClick={() => setChon(x.id)} style={{ display: 'grid', gap: 1, textAlign: 'left', padding: '5px 8px', borderRadius: 4, border: '1px solid var(--line)', background: x.id === p.id ? 'var(--bg-3)' : 'transparent' }}>
+          <button key={x.id} type="button" onClick={() => { setChon(x.id); setAnhXem(null); }} style={{ display: 'grid', gap: 1, textAlign: 'left', padding: '5px 8px', borderRadius: 4, border: '1px solid var(--line)', background: x.id === p.id ? 'var(--bg-3)' : 'transparent' }}>
             <span style={{ display: 'flex', gap: 6, alignItems: 'baseline' }}>
               <b style={{ fontSize: 13, color: 'var(--fg)', minWidth: 30 }}>#{x.thu_tu}{x.nhanh ? ` ${x.nhanh}` : ''}</b>
               <span style={mono}>{x.co_canh}</span>
@@ -119,9 +124,14 @@ export function PhieuShots({ tapId, phimId, onXemShot }: { tapId: number; phimId
             {xemDung === '3d' && p.anh3d && <button type="button" title="Mở bộ set 3D đúng máy shot" onClick={() => moNgan({ loai: 'bo-set', tapId, canhId: p.id })} style={{ padding: 0, border: 0, background: 'none' }}>
               <img src={anhNho(p.anh3d, 320)} alt="" style={{ width: '100%', maxWidth: 300, borderRadius: 4 }} /></button>}
             {!coXem.length && <span style={mono}>Shot chưa có sơ đồ cảnh / khung 3D — chưa có bố trí để xem</span>}
-            <LichSuAnh key={p.id} ds={p.lich_su} />
+            <LichSuAnh ds={p.lich_su} lon={lon} onXem={setAnhXem} />
           </div>
         </div>
+        {/* ⚖️ SO VỚI YÊU CẦU: ảnh đang xem ↔ đúng danh mục dự kiến của phiếu (doi-chieu-anh.ts — mọi ảnh sinh ra đều được đối chiếu) */}
+        {lon && <div style={{ display: 'grid', gap: 6, borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+          <b style={{ fontSize: 12.5 }}>⚖️ Ảnh {lon === p.lich_su[0] ? 'mới nhất' : 'đang xem'} so với yêu cầu <span style={{ ...mono, color: mauLech(lon) }}>{chuLech(lon)}</span></b>
+          {lon.so_sanh ? <DoiChieuTable rows={lon.so_sanh} coAnh /> : <span style={mono}>Ảnh này chưa được đối chiếu — ảnh mới tự đối chiếu ngay khi sinh xong; ảnh cũ chạy bổ sung bằng scripts/doi-chieu-anh.mts</span>}
+        </div>}
       </div>
     </div>
   );

@@ -60,7 +60,7 @@ export function TrangPhucShot({ c, onLuu }: { c: Canh; onLuu: (t: string) => voi
 const MUC_MAU: Record<string, string> = { 'khớp': 'var(--green)', 'gần': 'var(--amber)', 'lệch': 'var(--red)', 'thiếu': 'var(--red)', 'thừa': 'var(--red)' };
 const MUC_NHAN: Record<string, string> = { 'khớp': '✓ khớp', 'gần': '≈ gần', 'thiếu': '✗ thiếu', 'thừa': '＋ thừa', 'lệch': '✗ lệch' };
 // Tách "Thành phần" → (đối tượng → thuộc tính) để dựng cây. "Áo Lâm Hạ"→{Lâm Hạ, Áo}; "Đạo cụ Thẻ + vị trí"→{🧸 Thẻ, Vị trí}; "Đạo cụ Thẻ + trạng thái"→{🧸 Thẻ, Trạng thái}.
-const THUOC_TINH = ['Vết áo', 'Áo', 'Tóc', 'Biểu cảm', 'Vị trí', 'Dáng', 'Hướng nhìn', 'Ánh nhìn', 'Nhìn', 'Trang sức', 'Hành động', 'Đồ cầm', 'Cầm', 'Trang điểm', 'Makeup'];
+const THUOC_TINH = ['Vết áo', 'Áo', 'Tóc', 'Biểu cảm', 'Vị trí', 'Dáng', 'Hướng nhìn', 'Hướng', 'Phụ kiện', 'Trạng thái', 'Ánh nhìn', 'Nhìn', 'Trang sức', 'Hành động', 'Đồ cầm', 'Cầm', 'Trang điểm', 'Makeup'];
 function tachTP(tp: string): { obj: string; attr: string | null } {
   const md = tp.match(/^Đạo cụ\s+(.+?)\s*[+·\-–]\s*(vị trí|trạng thái).*$/i);
   if (md?.[1]) return { obj: `🧸 ${md[1].trim()}`, attr: md[2]!.toLowerCase().startsWith('vị') ? 'Vị trí' : 'Trạng thái' };
@@ -73,11 +73,12 @@ const mucXauNhat = (ms: string[]): string | null => ms.some((m) => m === 'lệch
 function BadgeMuc({ muc }: { muc: string }) { return <span style={{ color: MUC_MAU[muc] ?? 'var(--fg-3)', fontWeight: 700, whiteSpace: 'nowrap' }}>{MUC_NHAN[muc] ?? muc}</span>; }
 
 // Một dòng bảng: dự kiến LUÔN có; thuc_te/muc/ghi_chu chỉ có khi đã bóc ảnh.
-type RowDC = { thanh_phan: string; du_kien: string; thuc_te?: string; muc?: string; ghi_chu?: string };
+export type RowDC = { thanh_phan: string; du_kien: string; thuc_te?: string; muc?: string; ghi_chu?: string };
 const dongLoi = (r: RowDC) => { const { obj, attr } = tachTP(r.thanh_phan); return attr ? `${obj} · ${attr}` : obj; };
 
 // Bảng dạng CÂY: đối tượng là nút cha, thuộc tính là con; lưới tự xuống dòng khít bề ngang. coAnh=false → chỉ Thành phần + Dự kiến (shot chưa bóc); coAnh=true → thêm Khớp (giữa) + Bóc ảnh.
-function DoiChieuTable({ rows, coAnh }: { rows: RowDC[]; coAnh: boolean }) {
+/** Bảng đối chiếu yêu cầu ↔ ảnh — MỘT bảng cho ngăn shot và phiếu 🎬 Shots (phieu-shots.tsx). */
+export function DoiChieuTable({ rows, coAnh }: { rows: RowDC[]; coAnh: boolean }) {
   const nhom: { obj: string; con: { r: RowDC; attr: string | null }[] }[] = [];
   for (const r of rows) { const { obj, attr } = tachTP(r.thanh_phan); const g = nhom.find((x) => x.obj === obj); if (g) g.con.push({ r, attr }); else nhom.push({ obj, con: [{ r, attr }] }); }
   const o: CSSProperties = { borderTop: '1px solid var(--line)', paddingTop: 4, whiteSpace: 'normal', overflowWrap: 'anywhere', lineHeight: 1.45 };

@@ -26,7 +26,7 @@ import { ChipGocSpy, GocSpyPanel } from './goc-spy-ui';
 import { useNho, useMoUrl } from './nho';
 import { useDinhKy } from './dinh-ky';
 import { anhNho } from '@/lib/xuong-video/anh-nho';
-import { SoDoSeries, BanDoTap, khau } from './so-do';
+import { SoDoSeries, BanDoTap } from './so-do';
 import { Chon } from './chon';
 import { CayThanhPhan } from './cay-thanh-phan';
 import { CayPhim, type NutPhim } from './cay-phim';
@@ -264,8 +264,9 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
         const bt = btId != null ? nhanVat.flatMap((v) => (v.bien_the ?? []).map((b) => ({ b, nv: v }))).find((x) => x.b.id === btId) ?? null : null;
         // nút trỏ vào thứ đã mất (tập bị xoá, anchor bị xoá, biến thể bị xoá) → về Kinh thánh / đầu Thiết kế sản xuất, khung phải không bao giờ trống
         const k = (nut === 'tap' || nut.startsWith('tap:')) && tapId == null ? 'kinh_thanh' : (nvId != null && !nhanVat.some((v) => v.id === nvId)) || (btId != null && !bt) ? 'nhan_vat' : nut;
-        // bấm một tập → vào thẳng KHÂU ĐANG DỞ: chưa có cảnh → Kịch bản, đã xuất → Xuất, còn lại → Storyboard
-        const moTap = (tid: number) => { const t = tap.find((x) => x.id === tid); setNut(!t?.so_canh ? 'tap' : khau(t).xong ? 'tap:xuat' : 'tap:storyboard'); tapParam.open('tap', tid); };
+        // bấm một tập → CHỈ mở tập (bung các khâu trên cây) + khung nhẹ 📝 Kịch bản (anh 01/11/2026: "không tự ý mở sẵn vào Storyboard, nặng không chịu được").
+        // Storyboard / Xuất chỉ mở khi bấm đúng nút khâu đó.
+        const moTap = (tid: number) => { setNut('tap'); tapParam.open('tap', tid); };
         const khauTap: TabPhim | null = k === 'tap' ? 'kich_ban' : k.startsWith('tap:') ? (k.slice(4) as TabPhim) : null;
         const hep = k === 'tap:storyboard' && !giuCay;
         const tapDang = tapId != null ? tap.find((t) => t.id === tapId)! : null;

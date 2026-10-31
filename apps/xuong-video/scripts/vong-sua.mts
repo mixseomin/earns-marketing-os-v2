@@ -9,13 +9,13 @@ import { spawn } from 'node:child_process';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { mapCanh, mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-video/doc-db';
-import { bocTachKhung } from '../src/lib/xuong-video/boc-tach-khung';
-import { thanhPhanDuKien, doiChieuKhung, apDungSoBang, sietTuLech } from '../src/lib/xuong-video/doi-chieu-khung';
+import { sietTuLech } from '../src/lib/xuong-video/doi-chieu-khung';
 import { sinhKeyframeCanh } from '../src/lib/xuong-video/sinh-anh';
+import { doiChieuAnh } from '../src/lib/xuong-video/doi-chieu-anh';
 import { lookMang } from '../src/lib/xuong-video/bo-set-3d';
 import { khongGianTap } from './phieu-shot.mts';
 import { arr, n, s } from '../src/lib/xuong-video/doc-db';
-import type { BocTachKhung, DongDoiChieu, PhanCanh } from '../src/lib/xuong-video/kieu';
+import type { DongDoiChieu, PhanCanh } from '../src/lib/xuong-video/kieu';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const canhId = Number(gia('canh') || 0);
@@ -60,12 +60,10 @@ async function nap() {
   return { c, phimId, nhanVat, kg, look };
 }
 
-// ĐỐI CHIẾU một keyframe url → danh sách lệch (bóc Gemini + so dự kiến + SO BẰNG enum). null = bóc hỏng.
-async function doiChieu(phimId: number, url: string, c: Awaited<ReturnType<typeof nap>>['c'], nhanVat: Awaited<ReturnType<typeof nap>>['nhanVat'], kg: Awaited<ReturnType<typeof nap>>['kg'], look: Awaited<ReturnType<typeof nap>>['look']): Promise<DongDoiChieu[] | null> {
-  const rb = await bocTachKhung(db, phimId, url, nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
-  if (!rb) return null;
-  const d = await doiChieuKhung(db, phimId, thanhPhanDuKien(c, nhanVat, kg, luc, look), rb as BocTachKhung);
-  return d ? apDungSoBang(d, c, nhanVat, kg, luc, rb as BocTachKhung) : null;
+// ĐỐI CHIẾU một keyframe url → danh sách lệch — MỘT lõi với job / nút (doi-chieu-anh.ts): kết quả lưu theo url (xv_canh.doi_chieu_uv), ảnh đã được
+// đối chiếu nền lúc job xong thì dùng lại (0đ). null = bóc hỏng. Tham số thừa giữ chữ ký cũ cho các chỗ gọi bên dưới.
+async function doiChieu(_phimId: number, url: string, _c?: unknown, _nv?: unknown, _kg?: unknown, _look?: unknown): Promise<DongDoiChieu[] | null> {
+  return (await doiChieuAnh(db, canhId, url, luc))?.chieu ?? null;
 }
 
 // Chờ ảnh mới sau sinhKeyframeCanh: đường ≥2 người ghi đồng bộ (keyframe_url đổi ngay); hai bước chạy nền → poll keyframe_uv dài thêm / keyframe_url đổi / loi.

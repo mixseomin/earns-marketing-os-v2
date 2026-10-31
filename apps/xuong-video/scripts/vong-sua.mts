@@ -9,8 +9,10 @@ import { mapCanh, mapNhanVat, kemBienThe, type Row } from '../src/lib/xuong-vide
 import { bocTachKhung } from '../src/lib/xuong-video/boc-tach-khung';
 import { thanhPhanDuKien, doiChieuKhung, apDungSoBang, sietTuLech } from '../src/lib/xuong-video/doi-chieu-khung';
 import { sinhKeyframeCanh } from '../src/lib/xuong-video/sinh-anh';
+import { lookMang } from '../src/lib/xuong-video/bo-set-3d';
 import { khongGianTap } from './phieu-shot.mts';
-import type { BocTachKhung, DongDoiChieu } from '../src/lib/xuong-video/kieu';
+import { arr, n, s } from '../src/lib/xuong-video/doc-db';
+import type { BocTachKhung, DongDoiChieu, PhanCanh } from '../src/lib/xuong-video/kieu';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const canhId = Number(gia('canh') || 0);
@@ -31,14 +33,19 @@ async function nap() {
   const c = mapCanh(row); const phimId = Number(row.phim_id);
   const nhanVat = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${phimId} ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
   const kg = await khongGianTap(c.tap_id, c.phan_doan ?? '').catch(() => null);
-  return { c, phimId, nhanVat, kg };
+  // SỔ TRANG PHỤC CARRY (bo-set-3d.ts › lookMang): áo + VẾT của shot — cùng nguồn với prompt (boiCanhCanh.look), để đối chiếu có lá Vết áo từ biến thể nhóm `vet`
+  const pc = ((await db.execute(sql`SELECT phan_canh FROM xv_tap WHERE id = ${c.tap_id}`)) as unknown as Row[])[0]?.phan_canh;
+  const dsLook = ((await db.execute(sql`SELECT id, canh, nhan_vat, bien_the FROM xv_canh WHERE tap_id = ${c.tap_id} AND coalesce(nhanh, '') IN ('', 'A') ORDER BY thu_tu, id`)) as unknown as Row[])
+    .map((x) => ({ id: n(x.id), canh: s(x.canh), nhan_vat: arr<number>(x.nhan_vat).map(Number), bien_the: arr<number>(x.bien_the).map(Number) }));
+  const look = lookMang(dsLook, nhanVat, (pc ?? []) as PhanCanh[]).get(canhId);
+  return { c, phimId, nhanVat, kg, look };
 }
 
 // ĐỐI CHIẾU một keyframe url → danh sách lệch (bóc Gemini + so dự kiến + SO BẰNG enum). null = bóc hỏng.
-async function doiChieu(phimId: number, url: string, c: Awaited<ReturnType<typeof nap>>['c'], nhanVat: Awaited<ReturnType<typeof nap>>['nhanVat'], kg: Awaited<ReturnType<typeof nap>>['kg']): Promise<DongDoiChieu[] | null> {
+async function doiChieu(phimId: number, url: string, c: Awaited<ReturnType<typeof nap>>['c'], nhanVat: Awaited<ReturnType<typeof nap>>['nhanVat'], kg: Awaited<ReturnType<typeof nap>>['kg'], look: Awaited<ReturnType<typeof nap>>['look']): Promise<DongDoiChieu[] | null> {
   const rb = await bocTachKhung(db, phimId, url, nhanVat.filter((v) => v.loai === 'nhan_vat').map((v) => v.ten));
   if (!rb) return null;
-  const d = await doiChieuKhung(db, phimId, thanhPhanDuKien(c, nhanVat, kg, luc), rb as BocTachKhung);
+  const d = await doiChieuKhung(db, phimId, thanhPhanDuKien(c, nhanVat, kg, luc, look), rb as BocTachKhung);
   return d ? apDungSoBang(d, c, nhanVat, kg, luc, rb as BocTachKhung) : null;
 }
 
@@ -57,13 +64,13 @@ async function choAnhMoi(urlCu: string | null, uvLen: number): Promise<{ url: st
 
 const giaCanh = async () => Number(((await db.execute(sql`SELECT chi_phi_cents FROM xv_canh WHERE id = ${canhId}`)) as unknown as Row[])[0]?.chi_phi_cents ?? 0);
 
-let { c, phimId, nhanVat, kg } = await nap();
+let { c, phimId, nhanVat, kg, look } = await nap();
 const urlDau = luc === 'cuoi' ? c.keyframe_ket : c.keyframe_url;
 if (!urlDau) { console.error(`canh ${canhId} chưa có keyframe ${luc}`); process.exit(1); }
 
 // LỆCH ĐẦU: bản đã lưu nếu có, không thì bóc ảnh hiện tại
 let lech = c.boc_tach?.doi_chieu?.[luc] ?? null;
-if (!lech) lech = await doiChieu(phimId, urlDau, c, nhanVat, kg);
+if (!lech) lech = await doiChieu(phimId, urlDau, c, nhanVat, kg, look);
 if (lech === null) { console.error('bóc ảnh đầu hỏng'); process.exit(1); }
 const lechDau = lech;
 console.log(`\n=== #${canhId} · khung ${luc.toUpperCase()} · tối đa ${toiDa} vòng ===`);
@@ -87,8 +94,8 @@ while (lo(lech).length && vong < toiDa && chung < 2) {
   if (!r.ok) { console.error(`sinh lại hỏng: ${r.loi}`); break; }
   const { url, loi } = await choAnhMoi(urlCu, uvLen);
   if (!url) { console.error(`chờ ảnh hỏng: ${loi}`); break; }
-  ({ c, phimId, nhanVat, kg } = await nap());   // nạp lại trạng thái (keyframe_url có thể đã đổi)
-  const lechMoi = await doiChieu(phimId, url, c, nhanVat, kg);
+  ({ c, phimId, nhanVat, kg, look } = await nap());   // nạp lại trạng thái (keyframe_url có thể đã đổi)
+  const lechMoi = await doiChieu(phimId, url, c, nhanVat, kg, look);
   if (lechMoi === null) { console.error('bóc ảnh mới hỏng'); break; }
   const kyLuc = lo(lechMoi).length < lo(best.lech).length;   // hạ kỷ lục ít-lệch?
   if (kyLuc) { best = { url, lech: lechMoi }; chung = 0; } else chung++;

@@ -295,6 +295,11 @@ def main():
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cham-nhe.py")], capture_output=True, text=True, timeout=540)
         if (r.stdout or r.stderr).strip(): print((r.stdout + r.stderr).strip()[-300:])
     except Exception as e: print(f"cham-nhe: {e}")
+    # ── CHẤM CREATIVE MỌI THÀNH VIÊN (anh 31/10/2026) — nap-creative-ngoai.py --tu-dong, chỉ chạy khi etp.cau_hinh.cham_doi.bat
+    try:
+        r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nap-creative-ngoai.py"), "--tu-dong"], capture_output=True, text=True, timeout=180)
+        if '"nap": [' in r.stdout and '"nap": []' not in r.stdout or r.stderr.strip(): print(("cham-doi: " + r.stdout + r.stderr).strip()[-300:])
+    except Exception as e: print(f"cham-doi: {e}")
     r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "canh-bao.py")], capture_output=True, text=True, timeout=120)   # bước 3: cảnh báo bất thường
     print((r.stdout or r.stderr).strip()[-300:])
     # ── SỐ THẬT TỪNG LUẬT (trang ?t=luat, anh 29/10/2026 "luật cũng cần định kỳ review lại dựa vào số liệu thực tế") — mỗi giờ một lần, ~1 giây

@@ -224,6 +224,9 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "<MocPhim ph={phCua.get(Number(k))}", vi: 'nhãn chạm mốc ở dòng phim bảng camp' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "<MocPhim ph={du.phims.find((x) => x.content_id === Number(p.k))}", vi: 'nhãn chạm mốc ở dòng phim cây' },
   { card: 0, tep: 'apps/etp/cat_phim.py', co: 'đội còn {p[\'doi_chay\']} camp chạy phim này', vi: 'tin cất phim báo số camp đội còn chạy' },
+  // anh 31/10/2026 "hãy bổ sung bước chấm điểm Creative cho mọi thành viên"
+  { card: 0, tep: 'apps/etp/dong-bo.py', co: '"nap-creative-ngoai.py"), "--tu-dong"]', vi: 'dong-bo gọi chấm creative mọi thành viên mỗi lượt' },
+  { card: 0, tep: 'apps/etp/nap-creative-ngoai.py', co: 'if not ch["bat"] and "--kho" not in sys.argv:', vi: 'chấm đội chỉ chạy khi cham_doi.bat (tiền AI)' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

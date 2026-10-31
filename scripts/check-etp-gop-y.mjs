@@ -244,6 +244,7 @@ const LUAT = [
   // anh 31/10/2026 "hãy bổ sung bước chấm điểm Creative cho mọi thành viên"
   { card: 0, tep: 'apps/etp/dong-bo.py', co: '"nap-creative-ngoai.py"), "--tu-dong"]', vi: 'dong-bo gọi chấm creative mọi thành viên mỗi lượt' },
   { card: 0, tep: 'apps/etp/nap-creative-ngoai.py', co: 'if not ch["bat"] and "--kho" not in sys.argv:', vi: 'chấm đội chỉ chạy khi cham_doi.bat (tiền AI)' },
+  { card: 0, tep: 'apps/etp-cham-worker/src/index.ts', co: "vnd: typeof j.usage?.x_ckey?.cost === 'number' ? j.usage.x_ckey.cost : null", vi: 'Worker chấm ghi tiền thật ckey mỗi lượt' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

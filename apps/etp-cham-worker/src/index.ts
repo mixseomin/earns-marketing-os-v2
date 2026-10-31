@@ -12,7 +12,7 @@ interface Env {
 type TieuChi = { nhom: string; ma: string; ten: string; mo_ta: string };
 type Mau = { thoai: string; thoai_hoa: string[]; cta: string; cta_hoa: string[]; phu: string; phu_hoa: string[]; nut_chuan: string };
 type Viec = { creative_id: number; video: string; dur: number; doan: string | null; phim: string | null };
-type KetClaude = { noi_dung?: string; chu?: string; diem?: Record<string, number>; ly_do?: Record<string, string>; khung?: Record<string, number[]>; duong?: string };
+type KetClaude = { noi_dung?: string; chu?: string; diem?: Record<string, number>; ly_do?: Record<string, string>; khung?: Record<string, number[]>; duong?: string; tien?: { vao: number; ra: number; vnd: number | null } };
 
 const MOS2 = 'https://mos2.on.tc/api/ext/etp-cham';
 const SO_KHUNG = 20, CAM_META = 5, XEM = 7;
@@ -70,13 +70,14 @@ async function claude(env: Env, anh: Uint8Array[], hoi: string, can: string[]): 
       const h: Record<string, string> = { 'x-api-key': k, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' };
       if (ten !== 'anthropic') h.authorization = `Bearer ${k}`;
       const r = await fetch(url, { method: 'POST', headers: h, body: JSON.stringify({ model: m, max_tokens: 2000, messages: nd }) });
-      const j = await r.json() as { content?: { type: string; text?: string }[]; error?: unknown };
+      const j = await r.json() as { content?: { type: string; text?: string }[]; error?: unknown; usage?: { input_tokens?: number; output_tokens?: number; x_ckey?: { cost?: number } } };
       const t = (j.content ?? []).filter((b) => b.type === 'text').map((b) => b.text ?? '').join('');
       if (!t) throw new Error(`HTTP ${r.status} ${JSON.stringify(j.error ?? j).slice(0, 120)}`);
       const o = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1)) as KetClaude;
       const thieu = can.filter((c) => typeof o.diem?.[c] !== 'number');
       if (thieu.length) throw new Error(`thiếu điểm ${thieu.slice(0, 3).join(', ')}`);
-      return { ...o, duong: `${ten}:${m}` };
+      // TIỀN THẬT MỖI LƯỢT (anh 31/10/2026 "đã tính dựa vào ưu tiên chi phí giá rẻ fallback trước chưa"): ckey trả usage.x_ckey.cost (₫ thật); cổng khác ghi token, vnd null
+      return { ...o, duong: `${ten}:${m}`, tien: { vao: j.usage?.input_tokens ?? 0, ra: j.usage?.output_tokens ?? 0, vnd: typeof j.usage?.x_ckey?.cost === 'number' ? j.usage.x_ckey.cost : null } };
     } catch (e) { loi.push(`${ten} ${m}: ${String(e).slice(0, 120)}`); }
   }
   throw new Error(`mọi đường Claude lỗi — ${loi.join(' | ').slice(0, 300)}`);
@@ -156,7 +157,9 @@ async function chamMot(env: Env, v0: Viec, tc: TieuChi[], mau: Mau | null) {
     const s = soat(mau, chu, giong);
     lop.chu = { luc: vn(), noi_dung: chu.slice(0, 4000), loi: s.thoai, cta: s.cta };
     if (lop.giong) (lop.giong as { loi: string[] }).loi = s.thoai.filter((x) => x.startsWith('lời'));
-    lop.noi_dung = { luc: vn(), tom_tat: String(ls[0]!.noi_dung ?? '').slice(0, 600), duong: ls.map((x) => x.duong).join(' + ') };
+    lop.noi_dung = { luc: vn(), tom_tat: String(ls[0]!.noi_dung ?? '').slice(0, 600), duong: ls.map((x) => x.duong).join(' + '),
+      // tiền: tổng ₫ các lượt có giá thật (ckey) · du = mọi lượt đều có giá thật · token vào / ra cộng dồn (lượt ShopAIKey / Anthropic chỉ có token)
+      tien: { vnd: Math.round(ls.reduce((a, x) => a + (x.tien?.vnd ?? 0), 0) * 100) / 100, du: ls.every((x) => x.tien?.vnd != null), vao: ls.reduce((a, x) => a + (x.tien?.vao ?? 0), 0), ra: ls.reduce((a, x) => a + (x.tien?.ra ?? 0), 0) } };
     // luật máy đọc chữ / lời kéo điểm xuống (không tự kết cấm)
     if (s.thoai.length && 'meta.ngon_tu' in diem) { diem['meta.ngon_tu'] = Math.min(diem['meta.ngon_tu']!, 6); ly['meta.ngon_tu'] = `máy đọc thấy từ cấm: ${s.thoai.join('; ')}`.slice(0, 300); }
     if (s.cta.length && 'afs.cta' in diem) { diem['afs.cta'] = Math.min(diem['afs.cta']!, 4); ly['afs.cta'] = `chữ dụ nhấp: ${s.cta.join('; ')}`.slice(0, 300); }

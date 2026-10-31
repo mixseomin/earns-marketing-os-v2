@@ -498,7 +498,7 @@ export function locNhanh<T extends Pick<Canh, 'nhanh'>>(canh: T[], nhanh?: strin
 
 /** Nhóm biến thể gợi ý theo loại anchor (nhãn hiển thị). */
 export const NHOM_BIEN_THE: Record<LoaiNhanVat, { key: string; label: string }[]> = {
-  nhan_vat: [{ key: 'bieu_cam', label: 'Biểu cảm' }, { key: 'trang_phuc', label: 'Trang phục' }, { key: 'tu_the', label: 'Tư thế / hành động' }],
+  nhan_vat: [{ key: 'bieu_cam', label: 'Biểu cảm' }, { key: 'trang_phuc', label: 'Trang phục' }, { key: 'vet', label: 'Vết / dấu trên người' }, { key: 'trang', label: 'Trạng thái cơ thể' }, { key: 'tu_the', label: 'Tư thế / hành động' }],
   san_pham: [{ key: 'goc_may', label: 'Góc chụp' }, { key: 'ngu_canh', label: 'Ngữ cảnh dùng' }, { key: 'trang_thai', label: 'Trạng thái / màu' }],
   boi_canh: [{ key: 'goc_may', label: 'Góc máy' }, { key: 'thoi_diem', label: 'Thời điểm / thời tiết' }],
   dao_cu: [{ key: 'trang_thai', label: 'Trạng thái' }, { key: 'goc_may', label: 'Góc' }],

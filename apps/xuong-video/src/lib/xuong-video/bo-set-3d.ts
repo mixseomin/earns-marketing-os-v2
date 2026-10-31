@@ -983,6 +983,39 @@ export function bienTheTheoSo(v: May3d['vi_tri'][number], nv: { bien_the?: BienT
   }
   return out;
 }
+/** Look đã CARRY của một nhân vật ở một shot: biến thể trang_phuc / trang / vet đang có hiệu lực. */
+export type LookMang = { trang_phuc?: BienThe; trang?: BienThe; vet?: BienThe };
+/** SỔ TRANG PHỤC CARRY cho shot 2D (shot 3D đã có sổ người qua noiHookup). Khai một lần tại shot mốc → tự mang sang mọi shot sau trong tập, không phải
+ *  chọn lại từng shot (anh 31/10/2026: "vết áo phải là trạng thái liền mạch, bật từ mốc rồi tự mang sang"). Nguồn look = biến thể trong c.bien_the thuộc
+ *  nhân vật đó, nhóm ∈ KHOA_LOOK. Luật giữ (khớp SO_NGUOI): trang_phuc/trang reset sang ngày truyện mới (luongShot 'ngay'); vet bám TRANG PHỤC —
+ *  tự hết khi đổi biến thể trang_phuc (thay đồ) hoặc sang ngày mới, còn lại thì carry kể cả shot sau không khai lại. Shot đã khai look-key nào thì ĐÈ
+ *  carry cho key đó. Thuần, dùng chung cho đối chiếu (thanhPhanDuKien) và prompt (sinh-anh btCanh 2D) → một nguồn. */
+export function lookMang<T extends { id: number; canh?: string; nhan_vat: number[]; bien_the: number[] }>(
+  ds: T[], nhanVat: (Pick<NhanVat, 'id' | 'ten' | 'loai'> & { bien_the?: BienThe[] })[], phanCanh?: Pick<PhanCanh, 'ten' | 'ngay' | 'lien_truoc'>[],
+): Map<number, Map<string, LookMang>> {
+  const luong = luongShot(ds, phanCanh);
+  const btCua = new Map<number, BienThe>();   // id biến thể → biến thể (mọi nhân vật)
+  for (const nv of nhanVat) for (const b of nv.bien_the ?? []) btCua.set(b.id, b);
+  const giu = new Map<number, LookMang>();   // nhân vật id → look đang giữ
+  const out = new Map<number, Map<string, LookMang>>();
+  for (const c of ds) {
+    if (luong.get(c.id) === 'ngay') giu.clear();   // sang ngày truyện: sổ quên đồ cũ (trang_phuc/trang/vet đều reset)
+    const theoShot = new Map<number, LookMang>();   // nhân vật id → look-key biến thể KHAI ở shot này
+    for (const id of c.bien_the) { const b = btCua.get(id); if (!b) continue; const k = b.nhom; if (k !== 'trang_phuc' && k !== 'trang' && k !== 'vet') continue; const r = theoShot.get(b.nhan_vat_id) ?? {}; r[k] = b; theoShot.set(b.nhan_vat_id, r); }
+    const m = new Map<string, LookMang>();
+    for (const nv of nhanVat) {
+      if (nv.loai !== 'nhan_vat' || !c.nhan_vat.includes(nv.id)) continue;
+      const g = { ...(giu.get(nv.id) ?? {}) }; const kh = theoShot.get(nv.id) ?? {};
+      if (kh.trang_phuc && kh.trang_phuc.id !== g.trang_phuc?.id) { g.trang_phuc = kh.trang_phuc; delete g.vet; }   // đổi đồ: vết cũ (bám đồ) hết
+      else if (kh.trang_phuc) g.trang_phuc = kh.trang_phuc;
+      if (kh.trang) g.trang = kh.trang;
+      if (kh.vet) g.vet = kh.vet;   // khai vết = bật mốc; carry giữ nó cho các shot sau tới khi đổi đồ / sang ngày
+      giu.set(nv.id, g); m.set(nv.ten, g);
+    }
+    out.set(c.id, m);
+  }
+  return out;
+}
 const laNguoiThat = (nv: Pick<NhanVat, 'loai' | 'khoi_3d'> | undefined) => nv?.loai === 'nhan_vat' && nv.khoi_3d?.hinh === 'nguoi';
 /** CHẶN — sổ trang phục của người thật: ô trang_phuc / trang / vet ghi chữ tự do (không phải tên biến thể) · biến thể chưa có ảnh tham chiếu ·
  *  người thật chưa khai dáng nghỉ (khoi_3d.dang — ma-nơ-canh đứng nghiêm, ảnh ra người thẳng đuỗn). Đọc trên sổ ĐÃ NỐI (noiHookup). */

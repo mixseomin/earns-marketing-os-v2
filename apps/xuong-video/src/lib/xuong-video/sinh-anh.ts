@@ -10,7 +10,7 @@ import { promptCatNen, MAU_XANH_NEN } from './cat-nen';
 import { promptCamXuc } from './am-thanh';
 import { promptBieuCam, cauNuocMat } from './qc-cam-xuc';
 import { promptKyThuatAnh } from './dien-anh';
-import { chatLieuPhim, docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type Canh, type KhungXam, type KinhThanh, type May3d, type NhanVat } from './kieu';
+import { chatLieuPhim, docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type BienThe, type Canh, type KhungXam, type KinhThanh, type May3d, type NhanVat } from './kieu';
 import { damBaoAnhMat, demMat } from './soi-mat';
 import { cauHoiKhung } from './cau-hoi-khung';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
@@ -221,9 +221,11 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   // Mỗi anchor: ảnh biến thể cảnh chọn (nếu đã sinh) đứng TRƯỚC, rồi ảnh gốc — model bám biến thể mà vẫn giữ danh tính.
   // Biến thể của từng người: SỔ TRANG PHỤC trước (sổ người trỏ tới biến thể chuẩn hoá — bo-set-3d.ts › bienTheTheoSo), chọn tay trên shot sau.
   const viTriCua = (t: string) => (bc.mayDu ?? bc.canh.may_3d)?.vi_tri.find((x) => x.ten === t);
-  const btCanh = (v: NhanVat) => { const vt = viTriCua(v.ten); return (vt ? bienTheTheoSo(vt, v, ket)[0] : undefined) ?? (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id)); };
+  // Shot 3D có sổ người (bienTheTheoSo theo ket); shot 2D dùng SỔ TRANG PHỤC CARRY (bc.look — lookMang) để áo + VẾT mang từ shot khai sang, đồng nhất đối chiếu.
+  const lookCua = (v: NhanVat): BienThe[] => { const lk = v.loai === 'nhan_vat' ? bc.look?.get(v.ten) : undefined; return lk ? ([lk.trang_phuc, lk.trang, lk.vet].filter(Boolean) as BienThe[]) : []; };
+  const btCanh = (v: NhanVat) => { const vt = viTriCua(v.ten); return (vt ? bienTheTheoSo(vt, v, ket)[0] : lookCua(v)[0]) ?? (v.bien_the ?? []).find((b) => bc.canh.bien_the.includes(b.id)); };
   /** MỌI biến thể sổ người đang trỏ (trang_phuc + trang + vet) — mô tả en, không phải tên biến thể tiếng Việt */
-  const btSo = (v: NhanVat) => { const vt = viTriCua(v.ten); return vt && v.loai === 'nhan_vat' ? bienTheTheoSo(vt, v, ket) : []; };
+  const btSo = (v: NhanVat) => { const vt = viTriCua(v.ten); return vt && v.loai === 'nhan_vat' ? bienTheTheoSo(vt, v, ket) : lookCua(v); };
   // CHẤT LIỆU PHIM (prompt-khoi.ts › CHAT_LIEU): mọi chữ phụ thuộc chất liệu lấy từ một bảng — không ghi cứng chữ hoạt hình / người thật ở đây
   const cl = chatLieuPhim(bc.kt); const CL = CHAT_LIEU[cl]; const nguoiThat = cl === 'nguoi_that';
   // Sản phẩm đứng ĐẦU danh sách tham chiếu (3 ảnh), rồi người/bối cảnh — và prompt nói rõ ảnh số mấy là gì, ảnh thắng chữ (#1256: quần

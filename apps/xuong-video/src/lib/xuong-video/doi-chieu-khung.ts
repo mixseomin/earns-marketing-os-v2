@@ -8,6 +8,7 @@ import { bieuCam } from './qc-cam-xuc';
 import { doCam, dang, nguoiKhung, viTri, nhinCan, sdLuc, type KhongGian } from './khong-gian';
 import { coDinhDuKien } from './so-do-canh';
 import { chuanEnum } from './thuoc-tinh';
+import type { LookMang } from './bo-set-3d';
 import type { BocTachKhung, Canh, NhanVat, DongDoiChieu } from './kieu';
 
 const tuToc = (s: string) => (s.match(/đuôi ngựa|ponytail|búi (thấp|cao)|low bun|high bun|bun|xõa|loose|tóc dài|long hair|tóc ngắn|short hair|straight|thẳng|tết|braid/i)?.[0] ?? '');
@@ -15,8 +16,10 @@ const tuToc = (s: string) => (s.match(/đuôi ngựa|ponytail|búi (thấp|cao)|
 /** Một mục trong danh mục THÀNH PHẦN DỰ KIẾN (một thuộc tính của một đối tượng). thanh_phan theo quy ước để tách cây: "Áo <nv>", "Vị trí <nv>", "Đạo cụ <x> + vị trí"… */
 export type MucDuKien = { thanh_phan: string; du_kien: string };
 
-/** DANH MỤC THÀNH PHẦN DỰ KIẾN của một khung (đầu/cuối) — dựng thẳng từ dữ liệu, KHÔNG cần AI. Dùng cho cả hiển thị (mọi shot thấy dự kiến) lẫn đối chiếu. */
-export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | null | undefined, luc: 'dau' | 'cuoi'): MucDuKien[] {
+/** DANH MỤC THÀNH PHẦN DỰ KIẾN của một khung (đầu/cuối) — dựng thẳng từ dữ liệu, KHÔNG cần AI. Dùng cho cả hiển thị (mọi shot thấy dự kiến) lẫn đối chiếu.
+ *  look = sổ trang phục ĐÃ CARRY cho shot này (bo-set-3d.ts › lookMang): áo lấy từ biến thể trang_phuc, VẾT lấy từ biến thể nhóm `vet` RIÊNG (một nguồn
+ *  với prompt, carry từ mốc đổ). Không truyền look → giữ đường cũ (tách vết từ chữ trang phục) cho phim chưa chuẩn hoá. */
+export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | null | undefined, luc: 'dau' | 'cuoi', look?: Map<string, LookMang>): MucDuKien[] {
   const lucKg = luc === 'cuoi' ? 'ket' : 'dau';
   const nguoi = nhanVat.filter((v) => v.loai === 'nhan_vat' && c.nhan_vat.includes(v.id));
   const doVat = nhanVat.filter((v) => (v.loai === 'dao_cu' || v.loai === 'san_pham') && c.nhan_vat.includes(v.id));
@@ -39,10 +42,12 @@ export function thanhPhanDuKien(c: Canh, nhanVat: NhanVat[], kg: KhongGian | nul
   for (const v of nguoi) {
     const bc = (c.bieu_cam ?? []).find((x) => x.nv === v.ten);
     const bcTxt = bc ? (luc === 'dau' ? bieuCam(bc.dau)?.ten ?? bc.dau : bieuCam(bc.cuoi)?.ten ?? bc.cuoi) : 'không khai';
-    const ao = tachAo(aoCua(v));
+    const lk = look?.get(v.ten);
+    const ao = tachAo(lk?.trang_phuc?.mo_ta || aoCua(v));   // áo: ưu tiên biến thể trang_phuc đã carry; không có look thì đường cũ
+    const vetTxt = lk?.vet?.mo_ta?.trim() || ao.vet;        // vết: ưu tiên biến thể nhóm `vet` RIÊNG (atomic, có ảnh anchor); phim cũ thì tách từ chữ áo
     L.push({ thanh_phan: `Vị trí ${v.ten}`, du_kien: viNguoi(v) || 'không khai' });
     L.push({ thanh_phan: `Áo ${v.ten}`, du_kien: ao.chinh || 'không tả' });
-    if (ao.vet) L.push({ thanh_phan: `Vết áo ${v.ten}`, du_kien: ao.vet });   // vết/đặc điểm riêng — lá riêng để không bị gộp che (vụ vết cà phê)
+    if (vetTxt) L.push({ thanh_phan: `Vết áo ${v.ten}`, du_kien: vetTxt });   // vết/đặc điểm riêng — lá riêng để không bị gộp che (vụ vết cà phê)
     L.push({ thanh_phan: `Tóc ${v.ten}`, du_kien: tuToc(v.mo_ta) || '(theo mô tả nhân vật)' });
     L.push({ thanh_phan: `Biểu cảm ${v.ten}`, du_kien: bcTxt });
     const dangTxt = kg ? (dang(kg, c.thu_tu, v.ten, lucKg)?.vi ?? '') : '';

@@ -9,7 +9,7 @@ import { dienThe, goiThe } from './prompt-khoi';
 import { docKinhThanh, giaAnhCents, MO_HINH_ANH, giaChuCents, giaVideoCents, type BienThe, type Canh, type Job, type KinhThanh, type LoaiNhanVat, type LoaiPhim, type May3d, type NhanVat, type PhanCanh, type Tap, type TrangThaiCanh } from './kieu';
 import { hieuUngTaiShot, type YDoKhanGia } from './khan-gia';
 import { modelFal } from './fal';
-import { boSetCuaShot, laDoVatPhim, mayDayDu, PT_THAY } from './bo-set-3d';
+import { boSetCuaShot, laDoVatPhim, lookMang, mayDayDu, PT_THAY } from './bo-set-3d';
 import type { NguCanhPhim } from './claude';
 
 export type Db = NonNullable<ReturnType<typeof getDb>>;
@@ -118,7 +118,13 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   // Ý ĐỒ KHÁN GIẢ phủ shot này (khan-gia.ts) — prompt video thêm dòng không khí; thứ tự shot cùng nhánh để biết shot nằm trong đoạn nào.
   const kgTap = arr<YDoKhanGia>(r[0].t_khan_gia);
   const khanGia = kgTap.length ? hieuUngTaiShot(kgTap, ((await db.execute(sql`SELECT id FROM xv_canh WHERE tap_id = ${canh.tap_id} AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu`)) as unknown as Row[]).map((x) => n(x.id)), canh.id) : [];
-  return { canh, kt, nhanVat: nv, truoc, master, anhSet, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null, nvPhim, loai: s(r[0].p_loai || 'phim') as LoaiPhim, vatSet, khanGia,
+  // SỔ TRANG PHỤC CARRY (bo-set-3d.ts › lookMang): áo + VẾT của shot này mang từ shot KHAI sang — cho shot 2D (không có sổ người 3D) và ĐỒNG NHẤT với đối chiếu.
+  const dsLook = ((await db.execute(sql`SELECT id, canh, nhan_vat, bien_the FROM xv_canh WHERE tap_id = ${canh.tap_id} AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu, id`)) as unknown as Row[])
+    .map((x) => ({ id: n(x.id), canh: s(x.canh), nhan_vat: arr<number>(x.nhan_vat).map(Number), bien_the: arr<number>(x.bien_the).map(Number) }));
+  const nvLook = await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)} AND loai = 'nhan_vat' ORDER BY id`)) as unknown as Row[]).map(mapNhanVat));
+  const pcLook = ((await db.execute(sql`SELECT phan_canh FROM xv_tap WHERE id = ${canh.tap_id}`)) as unknown as Row[])[0]?.phan_canh;
+  const look = lookMang(dsLook, nvLook, (pcLook ?? []) as PhanCanh[]).get(canh.id) ?? null;
+  return { canh, kt, nhanVat: nv, truoc, master, anhSet, mayDu, anchorCua, ptAnchor: canh.khung_xam?.thay ? ptAnchor : null, nvPhim, loai: s(r[0].p_loai || 'phim') as LoaiPhim, vatSet, khanGia, look,
     /** sơ đồ cảnh 2D của shot (phim không 3D — khong-gian.ts) */ khongGian: kgCua(r[0].t_khong_gian as KhongGianTap | null, canh) };
 }
 

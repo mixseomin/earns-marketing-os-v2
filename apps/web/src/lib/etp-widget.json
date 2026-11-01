@@ -75,6 +75,42 @@
         7,
         8
       ]
+    },
+    "gio_nhiet": {
+      "ten": "Bản đồ giờ",
+      "mo_ta": "ngày × giờ VN (14 ngày), màu = ROI giờ đó của nhà + đội, dòng Cộng = các ngày đã khép — thấy giờ lãi / giờ lỗ cho lịch giờ, dừng đêm",
+      "min": [
+        6,
+        5
+      ],
+      "mac": [
+        12,
+        7
+      ]
+    },
+    "luy_ke": {
+      "ten": "Luỹ kế hôm nay",
+      "mo_ta": "lãi cộng dồn theo giờ: hôm nay so với hôm qua và trung bình 7 ngày đã khép",
+      "min": [
+        4,
+        4
+      ],
+      "mac": [
+        6,
+        6
+      ]
+    },
+    "luat": {
+      "ten": "Luật máy",
+      "mo_ta": "thẻ luật máy xếp cho nhịp tới (bấm mở camp) + việc máy đã làm theo từng luật trong kỳ (bấm mở camp đã tắt / hạ)",
+      "min": [
+        4,
+        4
+      ],
+      "mac": [
+        5,
+        8
+      ]
     }
   },
   "template": {
@@ -116,6 +152,40 @@
           "y": 12,
           "w": 12,
           "h": 6
+        }
+      ]
+    },
+    "trong_ngay": {
+      "ten": "Trong ngày",
+      "muc": "theo nhịp lúc đang chạy: luỹ kế so với hôm qua, tài khoản đã tiêu bao nhiêu, giờ nào đang lãi",
+      "o": [
+        {
+          "ma": "nam_nhanh",
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 4
+        },
+        {
+          "ma": "luy_ke",
+          "x": 0,
+          "y": 4,
+          "w": 6,
+          "h": 7
+        },
+        {
+          "ma": "tk",
+          "x": 6,
+          "y": 4,
+          "w": 6,
+          "h": 7
+        },
+        {
+          "ma": "gio_nhiet",
+          "x": 0,
+          "y": 11,
+          "w": 12,
+          "h": 7
         }
       ]
     },
@@ -184,6 +254,67 @@
           "y": 12,
           "w": 6,
           "h": 6
+        }
+      ]
+    },
+    "luat_may": {
+      "ten": "Luật máy",
+      "muc": "máy đang và đã làm gì: luật nhịp tới, việc đã làm theo từng luật, kết quả theo ngày",
+      "o": [
+        {
+          "ma": "nam_nhanh",
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 4
+        },
+        {
+          "ma": "luat",
+          "x": 0,
+          "y": 4,
+          "w": 5,
+          "h": 14
+        },
+        {
+          "ma": "bieu_do_ngay",
+          "x": 5,
+          "y": 4,
+          "w": 7,
+          "h": 7
+        },
+        {
+          "ma": "nguoi",
+          "x": 5,
+          "y": 11,
+          "w": 7,
+          "h": 7
+        }
+      ]
+    },
+    "gio_vang": {
+      "ten": "Giờ vàng",
+      "muc": "chỉnh lịch giờ / dừng đêm: giờ lãi, giờ lỗ, nhịp trong ngày",
+      "o": [
+        {
+          "ma": "gio_nhiet",
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 10
+        },
+        {
+          "ma": "luy_ke",
+          "x": 0,
+          "y": 10,
+          "w": 6,
+          "h": 8
+        },
+        {
+          "ma": "bieu_do_ngay",
+          "x": 6,
+          "y": 10,
+          "w": 6,
+          "h": 8
         }
       ]
     },

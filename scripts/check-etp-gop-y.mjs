@@ -363,6 +363,8 @@ const LUAT = [
   { card: 'chat', tep: 'apps/web/src/components/etp-tong2.tsx', co: "from '@/lib/etp-widget'", vi: 'lưới widget đọc sổ widget' },
   { card: 'chat', tep: 'apps/web/src/lib/actions/etp-bo-cuc.ts', co: 'const v = hopLe(o); if (!v)', vi: 'máy chủ kiểm bố cục trước khi lưu' },
   { card: 'chat', tep: V, co: "...(tab === 'tong2' ? { display: 'none' } : {})", vi: 'Tổng quan 2 ẩn dải số đầu trang để lưới vừa một màn' },
+  { card: 'chat', tep: 'apps/web/src/components/etp-tong2.tsx', co: 'const hep = kt.w < 700;', vi: 'Tổng quan 2 điện thoại: một widget một lúc, không lưới 12 cột' },
+  { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tong2.ts', co: 'const cua = (n: number | undefined) => chiNg == null || n === chiNg;', vi: 'Tổng quan 2: vai người chỉ nhận số của mình' },
   { card: 'chat', tep: V, co: "chiXem ? TABS.filter((t) => t !== 'tong2')", vi: 'Tổng quan 2 chỉ chủ thấy (bản thử)' },
 ];
 

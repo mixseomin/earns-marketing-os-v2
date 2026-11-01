@@ -7,6 +7,7 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp, xemNha } from '@/lib/etp-quyen';
+import { luatDaLam } from '@/lib/etp-doc';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 
 export type SoTong2 = {
@@ -18,6 +19,8 @@ export type SoTong2 = {
   tkNay: { tk: number; chay: number; ns: number; loi: number }[];
   gioNgay: { d: string; g: number; nha: boolean; chi: number; thu: number }[];
   luat: { tang: number; giam: number; tat: number } | null;
+  /** thẻ luật nhịp tới theo nhóm (etp.bao) · việc máy đã làm theo luật từng ngày (etp.nhat_ky ok, tên luật theo sổ luật chung) — chỉ nhà */
+  baoNhom: { nhom: string; n: number }[]; daLam: { d: string; viec: string; luat: string; n: number }[];
   phim: { p: number; ten: string; n: number; chi: number; thu: number }[];
 };
 
@@ -28,7 +31,7 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
   if (!q) return { loi: 'không có quyền' };
   const db = getDb()!, run = async <T,>(x: ReturnType<typeof sql>) => (await db.execute(x)) as unknown as T[];
   const nha = xemNha(q), chiNg = q.vai === 'nguoi' ? q.nguoiId : null;
-  const [nguoi, nguoiNgay, tk, tkNgay, tkNay, gioNgay, bao, phim, boRow] = await Promise.all([
+  const [nguoi, nguoiNgay, tk, tkNgay, tkNay, gioNgay, bao, phim, boRow, lam] = await Promise.all([
     run<{ id: number; ten: string; nha: boolean }>(sql`select distinct on (nguoi_id) nguoi_id::int id, nguoi ten, nha from etp.so_nguoi order by nguoi_id, ngay desc`),
     run<{ n: number; d: string; chi: string; thu: string; camp: number }>(sql`select nguoi_id::int n, ngay::text d, chi, thu, camp::int camp from etp.so_nguoi where ngay >= current_date - 40`),
     run<{ id: number; ten: string | null; n: number; nha: boolean }>(sql`select t.ad_account_id::int id, r.ten, t.nguoi_id::int n, t.nha from etp.tai_khoan t left join etp.tai_nguyen r on r.loai = 'tk_qc' and r.id = t.ad_account_id`),
@@ -54,6 +57,8 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
           where s.ngay >= current_date - 7 and s.ngay < current_date and c.content_id is not null)
       select x.content_id::int p, max(p.ten) ten, x.nguoi_id::int n, sum(x.chi) chi, sum(x.thu) thu from x left join etp.phim p using (content_id) group by 1, 3 having sum(x.chi) >= 5`),
     run<{ gia_tri: Record<string, { tk: string | number }> | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_bo_tk'`),
+    nha ? run<{ d: string; viec: string; luat: string | null; n: number }>(sql`select (luc at time zone 'UTC')::date::text d, viec, luat, count(distinct camp_id)::int n from etp.nhat_ky
+      where luc > now() - interval '40 days' and viec in ('tat', 'giam', 'tang', 'nhan_ban') and (ok or (viec = 'giam' and loi like '%đọc lại%')) group by 1, 2, 3`) : Promise.resolve([]),
   ]);
   const boCua = new Map(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [Number(b.tk), k]));
   const tkN = new Map(tk.map((t) => [t.id, t.n]));
@@ -71,6 +76,9 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
     tkNay: tkNay.filter((x) => cua(tkN.get(x.tk))).map((x) => ({ ...x, ns: so(x.ns) })),
     gioNgay: nha ? gioNgay.map((x) => ({ ...x, chi: so(x.chi), thu: so(x.thu) })) : [],
     luat: nha ? luat : null,
+    baoNhom: nha ? bao : [],
+    daLam: [...lam.reduce((m, r) => { const k = `${r.d}|${r.viec}|${luatDaLam(r.viec, r.luat)}`; m.set(k, (m.get(k) ?? 0) + r.n); return m; }, new Map<string, number>())]
+      .map(([k, n]) => { const [d, viec, ten] = k.split('|'); return { d: d!, viec: viec!, luat: ten!, n }; }),
     phim: phim.filter((x) => cua(x.n)).map((x) => ({ p: x.p, ten: x.ten ?? `#${x.p}`, n: x.n, chi: so(x.chi), thu: so(x.thu) })),
   };
 }

@@ -4,6 +4,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { SimpleTable, StatsStrip } from '@/components/ui';
 import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
+import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
 
 type ST = { chi: number; thu: number };
@@ -23,6 +24,30 @@ function DuongRoi({ v }: { v: (number | null)[] }) {
   const max = Math.max(...ok, 0), min = Math.min(...ok, 0), W = 64, H = 16, y = (x: number) => H - 1 - ((x - min) / (max - min || 1)) * (H - 2);
   const d = v.map((x, i) => (x == null ? null : `${(i / (v.length - 1)) * W},${y(x)}`)).filter(Boolean).join(' ');
   return <svg width={W} height={H} style={{ verticalAlign: 'middle' }}><line x1={0} x2={W} y1={y(0)} y2={y(0)} stroke="var(--line)" /><polyline points={d} fill="none" stroke={ok.at(-1)! >= 0 ? XANH : DO} strokeWidth={1.5} /></svg>;
+}
+
+const gioVn = (g: number) => String((g + 7) % 24).padStart(2, '0');   // giờ UTC của ngày Ethopex → giờ VN (ngày Ethopex bắt đầu 07:00 VN = 00 UTC)
+const NHAN_LUAT = BANG_LUAT.khoa as Record<string, { nhan?: string[] }>;
+const TEN_VIEC: Record<string, string> = { tat: '⏹ Tắt', giam: '↓ Hạ', tang: '↑ Tăng', nhan_ban: '⧉ Nhân bản' };
+
+/** đường luỹ kế lãi theo giờ: hôm nay (đậm) · hôm qua · TB 7 ngày đã khép (nét đứt) */
+function LuyKe({ s, rong, cao }: { s: SoTong2; rong: number; cao: number }) {
+  const ngay = (d: string) => { let a = 0; return Array.from({ length: 24 }, (_, g) => { const r = s.gioNgay.filter((x) => x.d === d && x.g === g); a += r.reduce((t, x) => t + x.thu - x.chi, 0); return a; }); };
+  const nay = ngay(s.nay).slice(0, s.gio + 1), qua = ngay(congNgay(s.nay, -1));
+  const bay = Array.from({ length: 7 }, (_, i) => ngay(congNgay(s.nay, -1 - i))), tb = qua.map((_, g) => bay.reduce((t, d) => t + d[g]!, 0) / 7);
+  const W = Math.max(200, rong), H = Math.max(80, cao - 18), PL = 44, PB = 16, all = [...nay, ...qua, ...tb, 0], max = Math.max(...all), min = Math.min(...all);
+  const x = (g: number) => PL + (g / 23) * (W - PL - 6), y = (v: number) => 4 + ((max - v) / (max - min || 1)) * (H - PB - 8);
+  const duong = (v: number[]) => v.map((t, g) => `${x(g)},${y(t)}`).join(' ');
+  return <div style={{ fontSize: 11 }}>
+    <div style={{ display: 'flex', gap: 12, color: 'var(--fg-2)' }}><span style={{ color: XANH }}>━ hôm nay {tien(nay.at(-1) ?? 0)}</span><span>━ hôm qua {tien(qua[s.gio] ?? 0)} cùng giờ</span><span style={{ color: MO }}>┅ TB 7 ngày {tien(tb[s.gio] ?? 0)}</span></div>
+    <svg width={W} height={H} role="img" aria-label="lãi luỹ kế theo giờ">
+      {[max, 0, min].filter((v, i, a) => a.indexOf(v) === i).map((v) => <g key={v}><line x1={PL} x2={W - 6} y1={y(v)} y2={y(v)} stroke="var(--line)" strokeDasharray={v ? '3 3' : undefined} /><text x={PL - 4} y={y(v) + 3} textAnchor="end" fontSize={9} fill="var(--fg-3)">{tien(v)}</text></g>)}
+      {[0, 6, 12, 18, 23].map((g) => <text key={g} x={x(g)} y={H - 3} textAnchor="middle" fontSize={9} fill="var(--fg-3)">{gioVn(g)}h</text>)}
+      <polyline points={duong(tb)} fill="none" stroke="var(--fg-3)" strokeDasharray="4 3" />
+      <polyline points={duong(qua)} fill="none" stroke="var(--fg-2)" strokeWidth={1.2} />
+      <polyline points={duong(nay)} fill="none" stroke={(nay.at(-1) ?? 0) >= 0 ? XANH : DO} strokeWidth={2.2} />
+    </svg>
+  </div>;
 }
 
 export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidget> {
@@ -104,6 +129,43 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
         { key: 'doi', header: 'Đội tốt nhất', align: 'right', cell: (r) => <span title={`chi ${tien(r.doi.chi)}`}>{ten(r.doi.n)} {pct(roi(r.doi))}</span> },
         { key: 'c', header: 'Chênh', align: 'right', cell: (r) => <b style={{ color: DO }}>{r.chenh.toFixed(0)} điểm</b> },
       ]} />;
+    },
+    gio_nhiet: ({ rong, cao }) => {
+      if (!s) return cho;
+      if (!s.gioNgay.length) return <span style={{ color: MO, fontSize: 12 }}>số theo giờ chỉ có ở tài khoản nhà</span>;
+      const ds = [...new Set(s.gioNgay.map((r) => r.d))].sort().reverse(), o = new Map(s.gioNgay.map((r) => [`${r.d}|${r.g}`, { chi: 0, thu: 0 }]));
+      for (const r of s.gioNgay) { const t = o.get(`${r.d}|${r.g}`)!; t.chi += r.chi; t.thu += r.thu; }
+      const cotG = Array.from({ length: 24 }, (_, g) => g), tong = cotG.map((g) => cong(ds.filter((d) => d !== s.nay).map((d) => o.get(`${d}|${g}`) ?? { chi: 0, thu: 0 })));
+      const cw = Math.max(10, Math.floor((rong - 44) / 24)), ch = Math.max(8, Math.min(22, Math.floor((cao - 34) / (ds.length + 1)) - 1));
+      const mau = (t?: ST) => { if (!t || t.chi < 0.5) return 'var(--bg-2)'; const r = (t.thu - t.chi) / t.chi; return r >= 0 ? `rgba(74,222,128,${Math.min(0.85, 0.15 + r)})` : `rgba(248,113,113,${Math.min(0.85, 0.15 - r)})`; };
+      const o_ = (t: ST | undefined, ten: string) => <span title={t && t.chi >= 0.01 ? `${ten} · chi ${tien(t.chi)} · thu ${tien(t.thu)} · lãi ${tien(t.thu - t.chi)} · ROI ${pct(roi(t))}` : `${ten} · không chi`} style={{ width: cw, height: ch, background: mau(t), borderRadius: 2 }} />;
+      return <div style={{ fontSize: 9, color: 'var(--fg-3)', display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <div style={{ display: 'flex', gap: 1, paddingLeft: 42 }}>{cotG.map((g) => <span key={g} style={{ width: cw, textAlign: 'center' }}>{g % 3 === 0 ? gioVn(g) : ''}</span>)}</div>
+        {[...ds.map((d) => [d, `${d.slice(8, 10)}/${d.slice(5, 7)}`] as const), ['tong', 'Cộng'] as const].map(([d, nhan]) => <div key={d} style={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <span style={{ width: 40, flex: '0 0 40px', textAlign: 'right', paddingRight: 2, fontWeight: d === 'tong' ? 700 : 400, color: d === s.nay ? 'var(--fg-1)' : undefined }}>{nhan}</span>
+          {cotG.map((g) => <span key={g} style={{ display: 'inline-flex' }}>{o_(d === 'tong' ? tong[g] : d === s.nay && g > s.gio ? undefined : o.get(`${d}|${g}`), `${nhan} ${gioVn(g)}:00 VN`)}</span>)}
+        </div>)}
+        <div style={{ paddingLeft: 42, marginTop: 2 }}>giờ VN · màu = ROI giờ đó (nhà + đội) · dòng Cộng = các ngày đã khép</div>
+      </div>;
+    },
+    luy_ke: ({ rong, cao }) => (!s ? cho : !s.gioNgay.length ? <span style={{ color: MO, fontSize: 12 }}>số theo giờ chỉ có ở tài khoản nhà</span> : <LuyKe s={s} rong={rong} cao={cao} />),
+    luat: () => {
+      if (!s || !x) return cho;
+      if (!s.luat) return <span style={{ color: MO, fontSize: 12 }}>máy luật chỉ chạy trên tài khoản nhà</span>;
+      const lam = [...s.daLam.filter((r) => r.d >= x.tu && r.d <= x.den).reduce((m, r) => { const k = `${r.viec}|${r.luat}`; m.set(k, (m.get(k) ?? 0) + r.n); return m; }, new Map<string, number>())]
+        .map(([k, n]) => { const [viec, luat] = k.split('|'); return { viec: viec!, luat: luat!, n }; }).sort((a, b) => b.n - a.n);
+      const sap = s.baoNhom.filter((b) => NHAN_LUAT[b.nhom]?.nhan?.length).sort((a, b) => b.n - a.n);
+      return <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12 }}>
+        <div><div style={{ color: 'var(--fg-3)', fontSize: 10, marginBottom: 4 }}>NHỊP TỚI — máy xếp</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{sap.length ? sap.map((b) => { const n = NHAN_LUAT[b.nhom]!.nhan!;
+            return <a key={b.nhom} href="?t=luat" title="mở Luật & cảnh báo" style={{ border: `1px ${n[3] === 'gan' ? 'dashed' : 'solid'} ${n[2]}`, color: n[2], borderRadius: 10, padding: '1px 8px', textDecoration: 'none' }}>{n[0]} {n[1]} · {b.n}</a>; }) : <span style={{ color: MO }}>không có</span>}</div></div>
+        <div><div style={{ color: 'var(--fg-3)', fontSize: 10, marginBottom: 4 }}>ĐÃ LÀM TRONG KỲ — số camp</div>
+          {lam.length ? <SimpleTable rows={lam} getRowKey={(r) => `${r.viec}|${r.luat}`} hideHeader columns={[
+            { key: 'v', header: 'Việc', cell: (r) => TEN_VIEC[r.viec] ?? r.viec },
+            { key: 'l', header: 'Luật', cell: (r) => (r.viec === 'tat' || r.viec === 'giam' ? <a href={`?t=camp&l=all&lu=${encodeURIComponent(`lam:${r.viec}:${r.luat}`)}`} style={{ color: 'inherit' }} title="mở các camp máy đã làm theo luật này">{r.luat}</a> : r.luat) },
+            { key: 'n', header: 'Camp', align: 'right', cell: (r) => r.n },
+          ]} /> : <span style={{ color: MO }}>máy chưa làm gì trong kỳ</span>}</div>
+      </div>;
     },
     tk: ({ rong }) => {
       if (!x) return cho;

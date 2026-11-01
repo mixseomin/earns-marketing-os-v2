@@ -4,7 +4,7 @@
 // không bao giờ phải cuộn trang. Widget + template mặc định: sổ lib/etp-widget.json · kiểm + xếp ô: lib/etp-widget.ts · lưu: actions/etp-bo-cuc.ts (etp.bo_cuc).
 // Hàm vẽ widget: widget số ở etp-tong2-widget.tsx (useVeSo) + `ve` EtpView truyền (dùng lại khối Tổng quan cũ, không chép). Widget trong sổ mà không có hàm vẽ → ô báo đỏ.
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { Panel } from '@/components/ui';
+import { Panel, Segmented } from '@/components/ui';
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
 import { COT, HANG, MAC_DINH, TEMPLATE, TEN_DANG, WIDGET, hopLe, them, traMan, xep, type O } from '@/lib/etp-widget';
 import { datBoCucTeam, docBoCuc, luuBoCuc, type BoCucDoc } from '@/lib/actions/etp-bo-cuc';
@@ -25,6 +25,8 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
   const [bao, setBao] = useState<string | null>(null);
   const [tenMoi, setTenMoi] = useState<string | null>(null);
   const hop = useRef<HTMLDivElement>(null);
+  // ĐIỆN THOẠI: lưới 12 cột không đọc được → một widget một lúc, chọn bằng hàng chip (thứ tự theo bố cục); widget đang xem ghi ?w2= (F5 giữ)
+  const [mot, setMot] = useState<string>(() => (typeof location === 'undefined' ? '' : new URL(location.href).searchParams.get('w2') ?? ''));
   const [kt, setKt] = useState({ w: 1200, h: 700 });
 
   const taiLai = () => docBoCuc().then((r) => { if (!('loi' in r)) setDoc(r); return r; });
@@ -35,7 +37,7 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
     const doKt = () => { const r = el.getBoundingClientRect(); setKt({ w: Math.round(r.width), h: Math.max(420, Math.round(window.innerHeight - r.top - 16)) }); };
     doKt(); const ro = new ResizeObserver(doKt); ro.observe(el); window.addEventListener('resize', doKt);
     return () => { ro.disconnect(); window.removeEventListener('resize', doKt); };
-  }, [sua, bao, tenMoi]);
+  }, [sua, bao, tenMoi, mot]);
 
   const cw = (kt.w - GAP * (COT - 1)) / COT, rh = (kt.h - GAP * (HANG - 1)) / HANG;
   const hien = keo ?? o, vuot = hien.some(traMan);
@@ -75,6 +77,26 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
     const t = (tenMoi ?? '').trim(); if (!t) return;
     luuBoCuc(t, o).then((r) => { if ('loi' in r) { setBao(r.loi); return; } setTenMoi(null); setTpl(`r:${t}`); setBao(`Đã lưu template "${t}"`); taiLai(); });
   };
+
+  const hep = kt.w < 700;
+  if (hep) {
+    const ds = [...o].sort((a, b) => a.y - b.y || a.x - b.x), chon = ds.find((x) => x.ma === mot) ?? ds[0], v = chon ? ve[chon.ma] : undefined;
+    const urlW = (k: string) => { const u = new URL(location.href); u.searchParams.set('w2', k); return u.href; };
+    return (
+      <div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+          <Chon2 value={tpl} onChange={moTpl} options={tplOpts} nhan="Template" rong="Bố cục đang dùng" />
+          <Segmented<string> value={chon?.ma ?? ''} hrefFor={urlW} style={{ flexWrap: 'wrap' }} options={ds.map((x) => ({ value: x.ma, label: WIDGET[x.ma]?.ten ?? x.ma }))}
+            onChange={(k) => { setMot(k); history.replaceState(history.state, '', urlW(k)); }} />
+        </div>
+        <div ref={hop} style={{ height: kt.h, overflow: 'hidden' }}>
+          {chon ? <Panel pad={PAD} title={WIDGET[chon.ma]?.ten} style={{ height: kt.h, marginBottom: 0, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+            <div style={{ flex: 1, minHeight: 0, marginTop: -6, overflowY: 'auto', overflowX: 'hidden' }}>{v ? v({ rong: kt.w - PAD * 2 - 2, cao: kt.h - DAU - PAD * 2 }) : null}</div>
+          </Panel> : null}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

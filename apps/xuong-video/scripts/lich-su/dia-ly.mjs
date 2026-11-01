@@ -34,11 +34,13 @@ export const TP = new Map(), TP_NHAC = new Map();
 for (const f of JSON.parse(readFileSync(join(KHO, 'ne_10m_places.geojson'), 'utf8')).features) { const p = f.properties, v = { ten: p.name, o: f.geometry.coordinates, pop: p.pop_max };
   for (const t of [p.name, p.nameascii, ...(p.namealt || '').split('|')]) { if (!t || t.length <= 3) continue; const k = chuan(t);
     if (!TP.has(k) || p.pop_max > TP.get(k).pop) TP.set(k, v); if ((p.pop_max >= 150000 || p.adm0cap) && (!TP_NHAC.has(k) || p.pop_max > TP_NHAC.get(k).pop)) TP_NHAC.set(k, v); } }
-// ĐÍCH VIẾT BẰNG CHỮ (máy viết tập khai): "RUS" nước · "RUS@19,54,23,56" mảnh nước trong khung lon/lat · "@Ceuta" thành phố Natural Earth · "20.5,54.7" toạ độ
+// ĐÍCH VIẾT BẰNG CHỮ (máy viết tập khai): "RUS" nước · "RUS@19,54,23,56" mảnh nước trong khung lon/lat · "USA@-150,61" một điểm · "@Ceuta" thành phố Natural Earth · "20.5,54.7" toạ độ
 export const dichCua = (v) => { if (Array.isArray(v)) return { o: v, h: [v[0], v[1], v[0], v[1]] };
   if (typeof v !== 'string') return { o: tamVung(v), h: hopVung(v) };
   if (v.startsWith('@')) { const c = TP.get(chuan(v.slice(1))); if (!c) throw new Error(`không có thành phố "${v.slice(1)}" trong Natural Earth`); const o = kinh(c.o); return { o, h: [o[0], o[1], o[0], o[1]] }; }
   if (/^-?\d/.test(v)) { const o = kinh(v.split(',').map(Number)); return { o, h: [o[0], o[1], o[0], o[1]] }; }
-  const [iso, vg] = v.split('@'); const q = { iso, vung: vg ? vg.split(',').map(Number) : undefined }; return { o: tamVung(q), h: hopVung(q) }; };
+  const [iso, vg] = v.split('@'); const so = vg ? vg.split(',').map(Number) : null;
+  if (so?.length === 2) { const o = kinh(so); return { o, h: [o[0], o[1], o[0], o[1]] }; }   // "USA@-150,61" = một điểm trong nước đó (máy viết hay ghi thế)
+  const q = { iso, vung: so ?? undefined }; return { o: tamVung(q), h: hopVung(q) }; };
 export const diem = (v) => dichCua(v).o;
 export const isoVung = (v) => { const [iso, vg] = v.split('@'); return { iso, ...(vg ? { vung: vg.split(',').map(Number) } : {}) }; };

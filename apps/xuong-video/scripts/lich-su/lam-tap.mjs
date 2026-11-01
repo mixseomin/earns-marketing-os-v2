@@ -33,7 +33,7 @@ const kiemDich = (d) => { if (Array.isArray(d)) return null; if (typeof d !== 's
   if (d.startsWith('@')) return TP.has(chuan(d.slice(1))) ? null : `không có thành phố "${d.slice(1)}" trong Natural Earth — dùng toạ độ "lon,lat"`;
   if (/^-?\d/.test(d)) { const [a, b] = d.split(',').map(Number); return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a) <= 180 && Math.abs(b) <= 90 ? null : `toạ độ sai "${d}"`; }
   const [iso, vg] = d.split('@'); if (!ISO.has(iso)) return `mã nước "${iso}" không có trong Natural Earth`;
-  if (vg && vg.split(',').map(Number).filter(Number.isFinite).length !== 4) return `khung vùng sai "${d}"`;
+  if (vg && ![2, 4].includes(vg.split(',').map(Number).filter(Number.isFinite).length)) return `"${d}" sai cú pháp — viết "ISO@lon0,lat0,lon1,lat1" (khung) hoặc "ISO@lon,lat" (điểm)`;
   try { dichCua(d); } catch { return `"${d}": nước ${iso} không có mảnh đất nào trong khung ${vg} — chọn khung có đất của đúng nước đó hôm nay (chủ thời xưa ghi ở to.chu)`; } return null; };
 const phang = (t) => boDau(t).toLowerCase().replace(/[‘’´`]/g, "'").replace(/[“”«»]/g, '"').replace(/\s+/g, ' ').trim();
 const commons = async (ten) => { const r = await (await fetch(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', titles: ten, prop: 'imageinfo', iiprop: 'url', iiurlwidth: '640', format: 'json', formatversion: '2' })}`, { headers: { 'User-Agent': 'studio-lich-su/1.0' } })).json();
@@ -65,7 +65,7 @@ async function kiem(tap, nguonChu) {
     for (const [m, loai] of [...(cv.nguoi || []).map((m) => [m, 'nhan_vat']), ...(cv.xe || []).map((m) => [m, 'phuong_tien']), ...(cv.co || []).map((m) => [m, 'co'])]) {
       const ts = kho[m.anh] ?? moi[m.anh]; if (!ts) { loi.push(`${K}: "${m.anh}" không có trong KHO và không khai trong tai_san_moi`); continue; }
       if (ts.loai !== loai) loi.push(`${K}: "${m.anh}" là ${ts.loai}, không dùng được làm ${loai}`);
-      const hop = [nam, namCuoi].filter((v) => v != null).some((v) => v >= ts.tu && v <= ts.den); if ((nam != null || namCuoi != null) && !hop) loi.push(`${K} (năm ${nam}${namCuoi !== nam ? `→${namCuoi}` : ''}): "${m.anh}" chỉ đúng ${ts.tu}–${ts.den}`); }
+      const hop = [nam, namCuoi].filter((v) => v != null).some((v) => v >= ts.tu && v <= ts.den); if ((nam != null || namCuoi != null) && !hop) loi.push(`${K} (năm ${nam}${namCuoi !== nam ? `→${namCuoi}` : ''}): "${m.anh}" chỉ đúng ${ts.tu}–${ts.den} — ở câu này thay bằng ${loai === 'co' ? 'cờ ĐÚNG năm đó (khai tai_san_moi một cờ mới với tệp Commons của thời đó)' : 'món đúng thời (khai tai_san_moi mới)'} hoặc bỏ ${loai === 'co' ? 'cờ' : 'món'} khỏi câu`); }
     for (const r of cv.tranh?.ref || []) if (!kho[r] && !moi[r]) loi.push(`${K}: tranh tham chiếu "${r}" không có`); });
   if (!ds[0]?.canh?.mo || !ds[0]?.canh?.chu_to) loi.push('câu 1: thiếu hook (mo + chu_to)');
   if (!ds.at(-1)?.canh?.ket) loi.push('câu cuối: thiếu thẻ kết ket');

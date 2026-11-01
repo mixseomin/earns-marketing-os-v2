@@ -1,0 +1,567 @@
+{
+ "_ghi": "THƯ VIỆN ĐẠO CỤ / VẬT DỤNG dùng chung mọi phim (anh 01/11/2026: 'đạo cụ, đồ vật phải cho vào thư viện để dùng cho nhiều dự án; sau này không phải nghĩ lại công năng, chỉ bổ sung khi tìm được cái mới'). Thêm vật = thêm một mục; thêm công năng = thêm một dòng. Đọc ở src/lib/xuong-video/thu-vien-vat.ts. Mỗi vật tách BỘ PHẬN (bo_phan: tên, mô tả hình, công năng riêng nếu có) — anh 01/11/2026: 'các vật dụng cơ bản như bàn, ghế, cốc cafe đều có thể được phân tách ra chi tiết'. PHỐI HỢP (phoi_hop): công năng sinh ra khi dùng chung nhiều vật — mỗi mục: vat (mã), ten, mo_ta (anh 01/11/2026: 'có phần tính năng khi phối hợp các thành phần với nhau').",
+ "nhom": {
+  "van_chuyen": "Gánh, chở, mang",
+  "bep": "Bếp, ăn uống",
+  "pho": "Đồ phố, quán xá",
+  "nha": "Đồ trong nhà",
+  "choi": "Đồ chơi, giải trí"
+ },
+ "vat": [
+  {
+   "ma": "don_ganh",
+   "ten": "Đòn gánh + hai thúng (quang gánh)",
+   "nhom": "van_chuyen",
+   "the": [
+    "Việt Nam",
+    "hàng rong",
+    "tre"
+   ],
+   "mo_ta": "A long gently curved smooth bamboo carrying pole (don ganh), pale honey color with darker worn ends, hanging two red-brown jute rope cradles, each holding a shallow round woven bamboo basket.",
+   "cau_tao": "đòn tre dài, dẻo, cong nhẹ; hai đầu treo quang dây đay, mỗi quang một thúng tròn nông; người gánh nhún theo nhịp đòn",
+   "cong_nang": [
+    {
+     "ten": "Cân đĩa",
+     "mo_ta": "hai thúng là hai đĩa cân: đặt vật / người vào một bên, bên kia nâng lên — đo, so, đổi chỗ"
+    },
+    {
+     "ten": "Bập bênh",
+     "mo_ta": "tì giữa đòn lên mép ray / bậc cửa: ấn một đầu, đầu kia bật lên hất vật / người"
+    },
+    {
+     "ten": "Đòn bẩy",
+     "mo_ta": "luồn dưới vật nặng, tì điểm tựa, nhấc bổng"
+    },
+    {
+     "ten": "Lò xo / máy bắn",
+     "mo_ta": "đòn tre dẻo: uốn cong rồi thả, bắn vật đi xa hoặc lên tầng 2"
+    },
+    {
+     "ten": "Cần câu",
+     "mo_ta": "dây quang thả xuống làm dây câu, móc thúng làm lưỡi: câu vật dưới khe ray / trên ban công"
+    },
+    {
+     "ten": "Cầu / thang",
+     "mo_ta": "bắc ngang hai bậc cửa hay từ đất lên ban công cho người / mèo đi"
+    },
+    {
+     "ten": "Barie",
+     "mo_ta": "gác ngang làm thanh chắn, hạ / nâng như barie đường sắt"
+    },
+    {
+     "ten": "Trục quay / chong chóng",
+     "mo_ta": "xoay đòn trên vai: hai thúng văng tròn quét một vòng, gom hoặc dạt vật"
+    },
+    {
+     "ten": "Nhịp tàu (đồng hồ)",
+     "mo_ta": "đòn nhún theo nhịp — bà đi đúng nhịp tàu, cả phố bắt nhịp theo bà"
+    },
+    {
+     "ten": "Gậy nhạc trưởng",
+     "mo_ta": "vung đòn chỉ huy: cả phố co vào / bày ra theo hiệu"
+    },
+    {
+     "ten": "Thước đo",
+     "mo_ta": "đòn dài đúng một khoảng: đo khe hở, đo hành lang an toàn, chia phần dây phơi cho hai nhà"
+    },
+    {
+     "ten": "Móc treo di động",
+     "mo_ta": "đầu đòn làm móc quần áo / cây treo đèn lồng, mang đi được"
+    },
+    {
+     "ten": "Kiệu / cáng",
+     "mo_ta": "hai người khiêng hai đầu: chở người, chở cả bàn cà phê"
+    },
+    {
+     "ten": "Thúng làm mũ / ô / lồng",
+     "mo_ta": "úp thúng che mưa, che nắng, úp giữ con mèo / gà, làm mũ cho trẻ"
+    },
+    {
+     "ten": "Thúng làm thuyền / nôi",
+     "mo_ta": "đặt trẻ / mèo vào thúng, đưa võng, thả trôi trên vũng nước"
+    },
+    {
+     "ten": "Gõ nhịp / chuông",
+     "mo_ta": "gõ đầu đòn lên ray, lên thúng: báo hiệu, gọi người, làm nhạc"
+    },
+    {
+     "ten": "Cột cờ / cột ăng-ten",
+     "mo_ta": "dựng đứng đòn, treo đồ lên cao cho người xa nhìn thấy"
+    },
+    {
+     "ten": "Cái kẹp",
+     "mo_ta": "hai quang khép lại kẹp vật như đôi đũa lớn"
+    },
+    {
+     "ten": "Thăng bằng",
+     "mo_ta": "bà đi trên ray như đi dây, đòn gánh là sào thăng bằng"
+    },
+    {
+     "ten": "Chia đôi",
+     "mo_ta": "một đòn hai đầu — chia đều cho hai bên tranh chấp (hai nhà, hai quán)"
+    }
+   ],
+   "nguon": "Phim #1156 Gánh hoa phố cổ (01/11/2026) — kho công năng dựng sau khi tập 1 trượt phép thử 'Thay vai'",
+   "bo_phan": [
+    {
+     "ten": "Đòn tre",
+     "mo_ta": "long flexible bamboo pole, slightly curved, worn dark ends",
+     "cong_nang": [
+      "Lò xo / máy bắn",
+      "Bập bênh",
+      "Đòn bẩy",
+      "Thước đo"
+     ]
+    },
+    {
+     "ten": "Quang dây đay",
+     "mo_ta": "red-brown jute rope cradles hanging from each end",
+     "cong_nang": [
+      "Cần câu",
+      "Cái kẹp"
+     ]
+    },
+    {
+     "ten": "Thúng tre",
+     "mo_ta": "shallow round woven bamboo basket",
+     "cong_nang": [
+      "Thúng làm mũ / ô / lồng",
+      "Thúng làm thuyền / nôi",
+      "Cân đĩa"
+     ]
+    }
+   ]
+  },
+  {
+   "ma": "ghe_nhua_thap",
+   "ten": "Ghế nhựa thấp (ghế đẩu quán vỉa hè)",
+   "nhom": "pho",
+   "the": [
+    "Việt Nam",
+    "quán vỉa hè",
+    "nhựa"
+   ],
+   "mo_ta": "A low red plastic stool, about 25 cm tall, square seat with a hand hole in the middle, four splayed legs, stackable.",
+   "cau_tao": "nhựa đúc nhẹ, xếp chồng được, lỗ tay cầm giữa mặt ghế, chân choãi",
+   "cong_nang": [
+    {
+     "ten": "Xếp tháp",
+     "mo_ta": "chồng thành cột cao lắc lư — làm thang, làm tháp canh, đổ dây chuyền"
+    },
+    {
+     "ten": "Bậc thang",
+     "mo_ta": "một chiếc làm bậc với lên ban công / bàn thờ"
+    },
+    {
+     "ten": "Úp làm lồng",
+     "mo_ta": "úp ngược nhốt gà / mèo / quả bóng"
+    },
+    {
+     "ten": "Xe trượt",
+     "mo_ta": "ngồi lên trượt dọc mép ray / dốc"
+    },
+    {
+     "ten": "Domino",
+     "mo_ta": "cả dãy đổ dây chuyền"
+    },
+    {
+     "ten": "Trống",
+     "mo_ta": "gõ mặt ghế làm nhịp"
+    },
+    {
+     "ten": "Mũ / khiên",
+     "mo_ta": "đội lên đầu che mưa, giơ lên đỡ vật rơi"
+    },
+    {
+     "ten": "Xâu chuỗi",
+     "mo_ta": "luồn gậy qua lỗ tay cầm mang cả chồng"
+    }
+   ],
+   "bo_phan": [
+    {
+     "ten": "Mặt ghế có lỗ",
+     "mo_ta": "square seat with a hand-sized hole",
+     "cong_nang": [
+      "Xâu chuỗi",
+      "Úp làm lồng"
+     ]
+    },
+    {
+     "ten": "Chân choãi",
+     "mo_ta": "four splayed hollow legs",
+     "cong_nang": [
+      "Xếp tháp",
+      "Domino"
+     ]
+    }
+   ],
+   "nguon": "Hồ sơ Phố đường tàu (tham-khao/pho/duong_tau) + 16 ảnh thật, 01/11/2026"
+  },
+  {
+   "ma": "ban_go_tron_sat_ray",
+   "ten": "Bàn gỗ tròn nhỏ sát ray",
+   "nhom": "pho",
+   "the": [
+    "phố đường tàu",
+    "quán cà phê"
+   ],
+   "mo_ta": "A tiny round dark wooden café table on a single leg or bracket fixed to a wall right beside the rail.",
+   "cau_tao": "mặt gỗ tròn nhỏ, một chân hoặc gắn tường, sát mép ray",
+   "cong_nang": [
+    {
+     "ten": "Khay xoay",
+     "mo_ta": "xoay mặt bàn chuyền đồ cho khách"
+    },
+    {
+     "ten": "Gập vào tường",
+     "mo_ta": "gập / nhấc sát tường khi tàu tới"
+    },
+    {
+     "ten": "Bàn cờ",
+     "mo_ta": "đặt bàn cờ tướng tranh chấp"
+    },
+    {
+     "ten": "Sân khấu nhỏ",
+     "mo_ta": "mèo / trẻ con đứng lên làm trò"
+    }
+   ],
+   "bo_phan": [
+    {
+     "ten": "Mặt bàn tròn",
+     "mo_ta": "small round wooden top",
+     "cong_nang": [
+      "Khay xoay",
+      "Sân khấu nhỏ"
+     ]
+    },
+    {
+     "ten": "Chân / giá gắn tường",
+     "mo_ta": "single leg or wall bracket",
+     "cong_nang": [
+      "Gập vào tường"
+     ]
+    }
+   ],
+   "nguon": "Hồ sơ Phố đường tàu (tham-khao/pho/duong_tau) + 16 ảnh thật, 01/11/2026"
+  },
+  {
+   "ma": "coc_ca_phe_trung",
+   "ten": "Cốc cà phê trứng",
+   "nhom": "bep",
+   "the": [
+    "Hà Nội",
+    "cà phê"
+   ],
+   "mo_ta": "A small glass cup of Vietnamese egg coffee sitting in a bowl of hot water, thick pale yellow foam on top, a small spoon.",
+   "cau_tao": "cốc thuỷ tinh nhỏ đặt trong bát nước nóng giữ ấm, lớp bọt trứng dày, thìa nhỏ",
+   "cong_nang": [
+    {
+     "ten": "Rung theo tàu",
+     "mo_ta": "bọt / cốc rung lắc theo nhịp tàu — đo tàu tới"
+    },
+    {
+     "ten": "Vẽ bọt",
+     "mo_ta": "bọt in hình, ria mép bọt trên môi khách"
+    },
+    {
+     "ten": "Thăng bằng",
+     "mo_ta": "bưng cốc qua ray không sánh"
+    },
+    {
+     "ten": "Giữ ấm bằng bát nước",
+     "mo_ta": "bát nước nóng làm thuyền nhỏ / gương soi"
+    }
+   ],
+   "bo_phan": [
+    {
+     "ten": "Cốc thuỷ tinh",
+     "mo_ta": "small clear glass",
+     "cong_nang": [
+      "Thăng bằng"
+     ]
+    },
+    {
+     "ten": "Bọt trứng",
+     "mo_ta": "thick pale yellow foam",
+     "cong_nang": [
+      "Vẽ bọt",
+      "Rung theo tàu"
+     ]
+    },
+    {
+     "ten": "Bát nước nóng",
+     "mo_ta": "bowl of hot water holding the cup",
+     "cong_nang": [
+      "Giữ ấm bằng bát nước"
+     ]
+    },
+    {
+     "ten": "Thìa nhỏ",
+     "mo_ta": "tiny metal spoon",
+     "cong_nang": []
+    }
+   ],
+   "nguon": "Hồ sơ Phố đường tàu (tham-khao/pho/duong_tau) + 16 ảnh thật, 01/11/2026"
+  },
+  {
+   "ma": "den_long_giay",
+   "ten": "Đèn lồng giấy / vải",
+   "nhom": "pho",
+   "the": [
+    "Hội An",
+    "Hà Nội",
+    "trang trí"
+   ],
+   "mo_ta": "Colorful paper or fabric lanterns hanging in strings across a narrow street, some round, some diamond-shaped, with tassels.",
+   "cau_tao": "khung tre, bọc giấy / vải màu, treo thành dây ngang phố, có tua",
+   "cong_nang": [
+    {
+     "ten": "Chuông gió tàu",
+     "mo_ta": "cả dây đèn đung đưa khi tàu qua — báo tàu"
+    },
+    {
+     "ten": "Đèn soi",
+     "mo_ta": "mang một chiếc soi đường đêm"
+    },
+    {
+     "ten": "Mũ / mặt nạ",
+     "mo_ta": "chụp lên đầu trẻ con"
+    },
+    {
+     "ten": "Phao / bóng",
+     "mo_ta": "bay theo gió, lăn như bóng"
+    }
+   ],
+   "bo_phan": [
+    {
+     "ten": "Khung tre",
+     "mo_ta": "thin bamboo ribs",
+     "cong_nang": []
+    },
+    {
+     "ten": "Vỏ giấy / vải",
+     "mo_ta": "colored paper or fabric skin",
+     "cong_nang": [
+      "Mũ / mặt nạ"
+     ]
+    },
+    {
+     "ten": "Dây treo + tua",
+     "mo_ta": "string and tassel",
+     "cong_nang": [
+      "Chuông gió tàu"
+     ]
+    }
+   ],
+   "nguon": "Hồ sơ Phố đường tàu (tham-khao/pho/duong_tau) + 16 ảnh thật, 01/11/2026"
+  },
+  {
+   "ma": "day_phoi_moc",
+   "ten": "Dây phơi chung + móc quần áo",
+   "nhom": "nha",
+   "the": [
+    "Việt Nam",
+    "nhà ống",
+    "hàng xóm"
+   ],
+   "mo_ta": "A sagging clothesline strung between two facing houses with plastic clothes hangers and clothes pegs, shirts and towels drying.",
+   "cau_tao": "dây căng giữa hai nhà đối diện, móc nhựa, kẹp phơi",
+   "cong_nang": [
+    {
+     "ten": "Tranh móc",
+     "mo_ta": "hai nhà giành cái móc / đoạn dây"
+    },
+    {
+     "ten": "Ròng rọc",
+     "mo_ta": "kéo dây chuyển đồ sang nhà bên kia"
+    },
+    {
+     "ten": "Võng",
+     "mo_ta": "dây võng xuống làm võng / cầu khỉ"
+    },
+    {
+     "ten": "Cờ hiệu",
+     "mo_ta": "áo bay theo gió tàu như cờ"
+    },
+    {
+     "ten": "Bẫy",
+     "mo_ta": "kẹp phơi kẹp nhầm tóc / mũ"
+    }
+   ],
+   "bo_phan": [
+    {
+     "ten": "Dây phơi",
+     "mo_ta": "sagging line between two houses",
+     "cong_nang": [
+      "Ròng rọc",
+      "Võng"
+     ]
+    },
+    {
+     "ten": "Móc nhựa",
+     "mo_ta": "plastic coat hanger",
+     "cong_nang": [
+      "Tranh móc"
+     ]
+    },
+    {
+     "ten": "Kẹp phơi",
+     "mo_ta": "plastic clothes peg",
+     "cong_nang": [
+      "Bẫy"
+     ]
+    }
+   ],
+   "nguon": "Hồ sơ Phố đường tàu (tham-khao/pho/duong_tau) + 16 ảnh thật, 01/11/2026"
+  },
+  {
+   "ma": "bep_than_to_ong",
+   "ten": "Bếp than tổ ong",
+   "nhom": "bep",
+   "the": [
+    "Việt Nam",
+    "bếp vỉa hè"
+   ],
+   "mo_ta": "A small round clay brazier burning a cylindrical honeycomb coal briquette, a pot on top, set on the doorstep.",
+   "cau_tao": "lò đất nung nhỏ, viên than tổ ong nhiều lỗ, nồi đặt trên",
+   "cong_nang": [
+    {
+     "ten": "Ống khói",
+     "mo_ta": "khói bay theo gió tàu / che tầm nhìn"
+    },
+    {
+     "ten": "Hẹn giờ",
+     "mo_ta": "nồi sôi đúng giờ tàu"
+    },
+    {
+     "ten": "Quạt nan",
+     "mo_ta": "quạt than — quạt nhầm khói vào hàng xóm"
+    },
+    {
+     "ten": "Sưởi",
+     "mo_ta": "cả xóm sưởi quanh bếp"
+    }
+   ],
+   "bo_phan": [
+    {
+     "ten": "Lò đất nung",
+     "mo_ta": "small round clay stove",
+     "cong_nang": []
+    },
+    {
+     "ten": "Viên than tổ ong",
+     "mo_ta": "cylindrical coal briquette with many holes",
+     "cong_nang": [
+      "Ống khói"
+     ]
+    },
+    {
+     "ten": "Nồi",
+     "mo_ta": "aluminium pot on top",
+     "cong_nang": [
+      "Hẹn giờ"
+     ]
+    }
+   ],
+   "nguon": "Hồ sơ Phố đường tàu (tham-khao/pho/duong_tau) + 16 ảnh thật, 01/11/2026"
+  }
+ ],
+ "phoi_hop": [
+  {
+   "vat": [
+    "don_ganh",
+    "ghe_nhua_thap"
+   ],
+   "ten": "Cáng / kiệu ghế",
+   "mo_ta": "luồn đòn qua lỗ hai ghế nhựa → kiệu khiêng người, chở cụ già qua ray"
+  },
+  {
+   "vat": [
+    "don_ganh",
+    "ghe_nhua_thap"
+   ],
+   "ten": "Bập bênh trên ghế",
+   "mo_ta": "đặt giữa đòn lên mặt ghế làm điểm tựa → bập bênh hất vật lên ban công"
+  },
+  {
+   "vat": [
+    "don_ganh",
+    "day_phoi_moc"
+   ],
+   "ten": "Ròng rọc",
+   "mo_ta": "gác đòn lên dây phơi, quang làm gàu → kéo đồ lên tầng 2 / sang nhà đối diện"
+  },
+  {
+   "vat": [
+    "don_ganh",
+    "day_phoi_moc"
+   ],
+   "ten": "Chia dây",
+   "mo_ta": "đặt đòn làm vạch giữa dây phơi → chia đều phần dây cho hai nhà đang cãi"
+  },
+  {
+   "vat": [
+    "don_ganh",
+    "den_long_giay"
+   ],
+   "ten": "Đèn rước",
+   "mo_ta": "treo đèn lồng hai đầu đòn → soi đường đêm như rước đèn, báo tàu bằng ánh sáng"
+  },
+  {
+   "vat": [
+    "don_ganh",
+    "coc_ca_phe_trung"
+   ],
+   "ten": "Bưng qua ray",
+   "mo_ta": "đặt cốc trong thúng, đòn nhún đúng nhịp → bưng cà phê qua ray không sánh khi tàu rung"
+  },
+  {
+   "vat": [
+    "don_ganh",
+    "bep_than_to_ong"
+   ],
+   "ten": "Gánh bếp chạy tàu",
+   "mo_ta": "móc nồi + bếp vào quang → di dời cả bếp đang sôi khỏi ray trong một nhịp"
+  },
+  {
+   "vat": [
+    "ghe_nhua_thap",
+    "ban_go_tron_sat_ray"
+   ],
+   "ten": "Sân khấu mini",
+   "mo_ta": "xếp ghế quanh bàn → sân khấu nhỏ cho mèo / trẻ con làm trò, khách xem như rạp"
+  },
+  {
+   "vat": [
+    "ghe_nhua_thap",
+    "day_phoi_moc"
+   ],
+   "ten": "Cầu thang phơi đồ",
+   "mo_ta": "chồng ghế làm bậc với dây phơi cao → tháp ghế lắc lư"
+  },
+  {
+   "vat": [
+    "coc_ca_phe_trung",
+    "ban_go_tron_sat_ray"
+   ],
+   "ten": "Máy đo tàu",
+   "mo_ta": "bọt cà phê rung trên bàn sát ray → cả quán biết tàu sắp tới trước khi nghe còi"
+  },
+  {
+   "vat": [
+    "den_long_giay",
+    "day_phoi_moc"
+   ],
+   "ten": "Dây đèn tạm",
+   "mo_ta": "treo đèn lồng lên dây phơi → phố sáng đèn, áo phơi thành bóng hình"
+  },
+  {
+   "vat": [
+    "bep_than_to_ong",
+    "day_phoi_moc"
+   ],
+   "ten": "Khói xông áo",
+   "mo_ta": "khói bếp bay lên dây phơi → hàng xóm cãi nhau vì áo ám khói"
+  }
+ ]
+}

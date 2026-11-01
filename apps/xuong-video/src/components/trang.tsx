@@ -263,12 +263,11 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
         // node con look (bt-<id>): biến thể look của một nhân vật — chi tiết riêng (character/costume breakdown)
         const btId = nut.startsWith('bt-') ? Number(nut.slice(3)) : null;
         // node con 🧰 Công năng (cn-<id>) dưới anchor là vật đặc trưng của phim (kinh_thanh.vat_dac_trung_id)
-        const ktP = phim.kinh_thanh ?? {}; const vatId = Number(ktP.vat_dac_trung_id) || 0; const khoVat = ktP.vat_dac_trung && KHO_VAT[ktP.vat_dac_trung] ? ktP.vat_dac_trung : '';
-        const congNang = vatId && khoVat && nhanVat.some((v) => v.id === vatId) ? { nvId: vatId, so: KHO_VAT[khoVat]!.cong_nang.length, ten: KHO_VAT[khoVat]!.ten } : null;
         const cnId = nut.startsWith('cn-') ? Number(nut.slice(3)) : null;
+        const cnNv = cnId != null ? nhanVat.find((v) => v.id === cnId && v.thu_vien_vat && KHO_VAT[v.thu_vien_vat]) ?? null : null;
         const bt = btId != null ? nhanVat.flatMap((v) => (v.bien_the ?? []).map((b) => ({ b, nv: v }))).find((x) => x.b.id === btId) ?? null : null;
         // nút trỏ vào thứ đã mất (tập bị xoá, anchor bị xoá, biến thể bị xoá) → về Kinh thánh / đầu Thiết kế sản xuất, khung phải không bao giờ trống
-        const k = (nut === 'tap' || nut.startsWith('tap:')) && tapId == null ? 'kinh_thanh' : (nvId != null && !nhanVat.some((v) => v.id === nvId)) || (btId != null && !bt) || (cnId != null && congNang?.nvId !== cnId) ? 'nhan_vat' : nut;
+        const k = (nut === 'tap' || nut.startsWith('tap:')) && tapId == null ? 'kinh_thanh' : (nvId != null && !nhanVat.some((v) => v.id === nvId)) || (btId != null && !bt) || (cnId != null && !cnNv) ? 'nhan_vat' : nut;
         // bấm một tập → CHỈ mở tập (bung các khâu trên cây) + khung nhẹ 📝 Kịch bản (anh 01/11/2026: "không tự ý mở sẵn vào Storyboard, nặng không chịu được").
         // Storyboard / Xuất chỉ mở khi bấm đúng nút khâu đó.
         const moTap = (tid: number) => { setNut('tap'); tapParam.open('tap', tid); };
@@ -291,13 +290,13 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
               </>}
               {/* 🧩 THÀNH PHẦN: cây đầy đủ là CỘT RIÊNG bên trong (sidebar trái chỉ còn một nút) + chi tiết món đang chọn bên phải */}
               {(k === 'nhan_vat' || ((nvId != null || bt || cnId != null) && k === nut)) && <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <CayThanhPhan nhanVat={nhanVat} nut={k === 'nhan_vat' && nvDau != null ? `nv-${nvDau}` : k} onChon={setNut} congNang={congNang} />
+                <CayThanhPhan nhanVat={nhanVat} nut={k === 'nhan_vat' && nvDau != null ? `nv-${nvDau}` : k} onChon={setNut} phimId={phim.id} onChanged={tai} />
                 <div style={{ flex: 1, minWidth: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, alignContent: 'start' }}>
                 {k === 'nhan_vat' && nvDau != null && <XuatHien phim={phim} tap={tap} loai="nv" id={nvDau} ten={nhanVat.find((v) => v.id === nvDau)?.ten ?? ''} onMoTap={moTap} onMoBanDo={(so) => setNut(`bd-${so}`)} />}
                 {k === 'nhan_vat' && nv(nvDau)}
                 {nvId != null && k === nut && <XuatHien phim={phim} tap={tap} loai="nv" id={nvId} ten={nhanVat.find((v) => v.id === nvId)?.ten ?? ''} onMoTap={moTap} onMoBanDo={(so) => setNut(`bd-${so}`)} />}
                 {nvId != null && k === nut && nv(nvId)}
-                {cnId != null && k === nut && congNang && <CongNangVat khoa={khoVat} ten={congNang.ten} tap={tap} onMoTap={moTap} />}
+                {cnNv && k === nut && <CongNangVat khoa={cnNv.thu_vien_vat!} ten={cnNv.ten} tap={tap} onMoTap={moTap} coVat={nhanVat.map((v) => v.thu_vien_vat ?? '').filter(Boolean)} />}
                 {bt && k === nut && <XuatHien phim={phim} tap={tap} loai="bt" id={bt.b.id} ten={bt.b.ten} onMoTap={moTap} onMoBanDo={(so) => setNut(`bd-${so}`)} />}
                 {bt && k === nut && <div className="xv-panel"><BienTheChiTiet b={bt.b} nvTen={bt.nv.ten} phimId={phim.id} dangSinh={d.dangSinh.bienThe} loiBt={d.loiAnh.bienThe} onChanged={tai} /></div>}
                 </div>

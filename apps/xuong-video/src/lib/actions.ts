@@ -61,6 +61,7 @@ import { phanRaTapDb, baoCaoChuanBiDb, sinhAnhThieuDb, type KqPhanRa, type BaoCa
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
 import { docGocSpy, xepGocSpy, nhomCuaGoc, type GocSpy } from '@/lib/xuong-video/goc-spy';
 import { vanGocSpyKb } from '@/lib/xuong-video/spy-api';
+import { vatThuVien } from '@/lib/xuong-video/thu-vien-vat';
 import { sanPhamPhim } from '@/lib/xuong-video/nhom-phim';
 import { dongCreative, gomThanhPhan, type AnchorKho, type CreativeKho, type CumGoc, type DongCreative, type ShotKho, type ThanhPhan , type EtpCr } from '@/lib/xuong-video/kho-creative';
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
@@ -2138,4 +2139,17 @@ export async function layThanhPhanCanh(canhId: number): Promise<{ ok: boolean; t
     boSung = { tuShot: `#${ct.thu_tu} ${ct.canh ?? ''}`.trim(), tuThat, muc };
   }
   return { ok: true, ten: `#${c.thu_tu} ${c.canh ?? ''}`.trim(), keyframe_url: c.keyframe_url, keyframe_ket: c.keyframe_ket ?? null, boc_tach: c.boc_tach ?? null, nhanVat, duKien, boSung };
+}
+
+/** 📚 Thêm đạo cụ / vật dụng từ THƯ VIỆN VẬT DỤNG dùng chung (thu-vien-vat.ts) vào phim: anchor đạo cụ mang mô tả hình của thư viện + thu_vien_vat
+ *  (cây Thành phần đánh dấu 📚, công năng + bộ phận đọc từ thư viện). Phim đã có vật đó thì trả anchor cũ, không tạo trùng. 0đ — ảnh sinh sau. */
+export async function themVatTuThuVien(phimId: number, ma: string): Promise<Kq<number>> {
+  const db = getDb();
+  if (!db) return loi('no db');
+  if (!(await admin())) return loi('không có quyền');
+  const v = vatThuVien(ma); if (!v) return loi(`thư viện không có vật "${ma}"`);
+  const cu = (await db.execute(sql`SELECT id FROM xv_nhan_vat WHERE phim_id = ${phimId} AND thu_vien_vat = ${ma} LIMIT 1`)) as unknown as Row[];
+  if (cu[0]) return { ok: true, data: n(cu[0].id) };
+  const r = (await db.execute(sql`INSERT INTO xv_nhan_vat (phim_id, loai, ten, mo_ta, anh_ref, thu_vien_vat) VALUES (${phimId}, 'dao_cu', ${v.ten}, ${v.mo_ta}, '[]'::jsonb, ${ma}) RETURNING id`)) as unknown as Row[];
+  return { ok: true, data: n(r[0]!.id) };
 }

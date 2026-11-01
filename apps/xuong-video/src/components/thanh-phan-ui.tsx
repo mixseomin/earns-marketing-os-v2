@@ -11,7 +11,7 @@ import { AnhDaiDien } from './anh-set-3d';
 import { BangDoiTuong } from './bang-doi-tuong';
 import { Pill, Seg, mono } from './ui';
 import { LinkMa } from './thu-vien';
-import { KHO_VAT } from '@/lib/xuong-video/so-tay-kich-ban';
+import { KHO_VAT, phoiHopCua } from '@/lib/xuong-video/thu-vien-vat';
 import { useNho } from './nho';
 
 const chip = (vien: string, nen = 'var(--bg-2)') => ({ ...mono, color: 'var(--fg-1)', padding: '1px 6px', border: vien, borderRadius: 4, background: nen, cursor: 'pointer' } as const);
@@ -89,7 +89,7 @@ export function ThanhPhanTap({ canh, nhanVat, onXemShot, onMoAnchor }: { canh: C
 
 /** 🧰 CÔNG NĂNG của vật đặc trưng (nhánh con dưới anchor trên cây Thành phần — anh 01/11/2026 "tính năng của quang gánh sao không thấy trong Thành phần"):
  *  bảng công năng ở KHO_VAT (so-tay-kich-ban.ts, một nguồn với máy sinh gag) + gag nào trong các tập đang dùng công năng nào (đọc dòng "(cơ chế: …" của khối [GAG n]). */
-export function CongNangVat({ khoa, ten, tap, onMoTap }: { khoa: string; ten: string; tap: Tap[]; onMoTap: (tapId: number) => void }) {
+export function CongNangVat({ khoa, ten, tap, onMoTap, coVat = [] }: { khoa: string; ten: string; tap: Tap[]; onMoTap: (tapId: number) => void; /** mã thư viện các vật phim đang có — phối hợp đủ vật thì sáng */ coVat?: string[] }) {
   const v = KHO_VAT[khoa];
   if (!v) return <div style={mono}>Kho công năng “{khoa}” không còn trong sổ tay.</div>;
   const dung = (cn: string) => tap.flatMap((t) => [...(t.kich_ban ?? '').matchAll(/\[GAG (\d+)\]\s*([^\n]*)[\s\S]*?\(cơ chế: ([^·)]*)/g)]
@@ -98,14 +98,20 @@ export function CongNangVat({ khoa, ten, tap, onMoTap }: { khoa: string; ten: st
     <div className="xv-panel" style={{ display: 'grid', gap: 8, padding: '8px 12px' }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
         <b style={{ fontSize: 13, flex: 1 }}>🧰 Công năng · {ten}</b>
-        <LinkMa ma={`so_tay.vat_${khoa}`} chu="sổ tay" />
+        <LinkMa ma={`vat.${khoa}`} chu="thư viện" />
       </div>
-      <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>{v.cau_tao}</div>
+      <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>📚 {v.ten} — {v.cau_tao}</div>
+      {v.bo_phan?.length ? <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'baseline' }}><span style={mono}>Bộ phận:</span>{v.bo_phan.map((b) => <span key={b.ten} title={`${b.mo_ta}${b.cong_nang.length ? `\ngánh: ${b.cong_nang.join(', ')}` : ''}`} style={chip('1px solid var(--line)', 'transparent')}>{b.ten}</span>)}</div> : null}
       <table className="xv-tbl" style={{ width: '100%' }}><tbody>{v.cong_nang.map((c) => { const d = dung(c.ten); return (
         <tr key={c.ten}><td style={{ whiteSpace: 'nowrap', width: 140 }}><b>{c.ten}</b></td><td style={{ color: 'var(--fg-2)' }}>{c.mo_ta}</td>
           <td style={{ width: 120, whiteSpace: 'nowrap' }}>{d.length ? <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{d.map((x, i) => (
             <button key={i} type="button" onClick={() => onMoTap(x.t.id)} title={`Tập ${x.t.so} · GAG ${x.so} ${x.ten}`} style={chip('1px solid var(--line)')}>T{x.t.so} · G{x.so}</button>))}</span>
             : <span style={mono}>chưa dùng</span>}</td></tr>); })}</tbody></table>
+      {phoiHopCua(khoa).length > 0 && <div><span style={mono}>🔗 Phối hợp với vật khác (sáng = phim đang có đủ vật):</span>
+        <table className="xv-tbl" style={{ width: '100%', marginTop: 4 }}><tbody>{phoiHopCua(khoa).map((p) => { const du = p.vat.every((x) => x === khoa || coVat.includes(x)); return (
+          <tr key={p.ten} style={{ opacity: du ? 1 : 0.5 }}><td style={{ whiteSpace: 'nowrap', width: 140 }}><b>{p.ten}</b></td>
+            <td style={{ whiteSpace: 'nowrap', width: 200 }}>{p.vat.filter((x) => x !== khoa).map((x) => <LinkMa key={x} ma={`vat.${x}`} chu={KHO_VAT[x]?.ten ?? x} />)}</td>
+            <td style={{ color: 'var(--fg-2)' }}>{p.mo_ta}</td></tr>); })}</tbody></table></div>}
       <div style={mono}>Máy sinh gag lấy mỗi lời giải từ một công năng (không quá một gag mỗi công năng); bộ chấm dùng bảng này để chấm “Thay vai”.</div>
     </div>
   );

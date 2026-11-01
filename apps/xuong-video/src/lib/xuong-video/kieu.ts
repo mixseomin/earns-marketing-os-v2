@@ -470,6 +470,7 @@ export type VatThay = { ten: string; /** khối là NGƯỜI (nhân vật / ngư
 export type GiongThu = { model: string; voice: string; url: string; cau: string; luc: string };
 export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string;
   /** ẢNH THẬT của nơi / vật (anh 01/11/2026: "phố đường tàu phải sinh dựa vào ảnh thực") — ảnh gốc sinh bằng cách VẼ LẠI từng ảnh theo phong cách phim, giữ bố cục; KHÔNG vào anh_ref (keyframe không bị kéo về ảnh chụp). Nguồn + giấy phép: tham-khao/… nguon.json */ anh_that?: string[];
+  /** lấy từ THƯ VIỆN VẬT DỤNG (thu-vien-vat.ts › ma) — 📚 trên cây Thành phần, công năng + bộ phận đọc từ thư viện */ thu_vien_vat?: string | null;
   /** tiểu sử (nhân vật): nguồn gốc, tính cách, sức mạnh, điểm yếu, mong muốn, nỗi sợ, quan hệ, bí mật — chỉ vào ngữ cảnh viết kịch bản, không vào prompt hình */
   tieu_su?: string;
   /** bộ âm hiệu cố định (phim không lời): âm đặc trưng, vui, sợ… — làm một lần, mọi tập dùng lại */

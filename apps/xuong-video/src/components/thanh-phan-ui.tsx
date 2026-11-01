@@ -97,13 +97,13 @@ export function CongNangVat({ khoa, ten, tap, onMoTap }: { khoa: string; ten: st
   return (
     <div className="xv-panel" style={{ display: 'grid', gap: 8, padding: '8px 12px' }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
-        <b style={{ fontSize: 13 }}>🧰 Công năng · {ten}</b>
-        <span style={{ ...mono, flex: 1 }}>{v.cau_tao}</span>
+        <b style={{ fontSize: 13, flex: 1 }}>🧰 Công năng · {ten}</b>
         <LinkMa ma={`so_tay.vat_${khoa}`} chu="sổ tay" />
       </div>
-      <table className="xv-tbl"><tbody>{v.cong_nang.map((c) => { const d = dung(c.ten); return (
-        <tr key={c.ten}><td style={{ whiteSpace: 'nowrap', width: 150 }}><b>{c.ten}</b></td><td style={{ color: 'var(--fg-2)' }}>{c.mo_ta}</td>
-          <td style={{ width: 200 }}>{d.length ? <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{d.map((x, i) => (
+      <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>{v.cau_tao}</div>
+      <table className="xv-tbl" style={{ width: '100%' }}><tbody>{v.cong_nang.map((c) => { const d = dung(c.ten); return (
+        <tr key={c.ten}><td style={{ whiteSpace: 'nowrap', width: 140 }}><b>{c.ten}</b></td><td style={{ color: 'var(--fg-2)' }}>{c.mo_ta}</td>
+          <td style={{ width: 120, whiteSpace: 'nowrap' }}>{d.length ? <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{d.map((x, i) => (
             <button key={i} type="button" onClick={() => onMoTap(x.t.id)} title={`Tập ${x.t.so} · GAG ${x.so} ${x.ten}`} style={chip('1px solid var(--line)')}>T{x.t.so} · G{x.so}</button>))}</span>
             : <span style={mono}>chưa dùng</span>}</td></tr>); })}</tbody></table>
       <div style={mono}>Máy sinh gag lấy mỗi lời giải từ một công năng (không quá một gag mỗi công năng); bộ chấm dùng bảng này để chấm “Thay vai”.</div>

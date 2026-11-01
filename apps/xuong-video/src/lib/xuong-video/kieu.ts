@@ -632,8 +632,8 @@ export type DanDung = {
   /** khán giả cảm gì từ đầu → cuối shot, shot tồn tại để làm gì */ muc_dich?: string;
   /** motif / cái gài hoặc trả có trong khung */ motif?: string;
   /** DIỄN XUẤT HOẠT HÌNH (tiếng Anh, vào prompt video): lấy đà → hành động → theo đà / phản ứng, nén–giãn, khựng — chất Larva */ dien?: string;
-  /** NHỊP GAG (tiếng Anh, vào prompt video) — shot [GAG n] diễn TRỌN một gag: 4 nhịp có mốc giây "0-2s: vấn đề + lý do gấp | 2-4s: ra tay | 4-6s: hệ quả +
-   *  đẩy thêm | 6-8s: phản ứng" — clip 4s cụt mất kết (anh 01/11/2026). Thiếu ô này clip 8s nhận một câu "từ… tới…" và bỏ nhịp giữa (phim #1156 #6: không thấy cú kẹp, 01/11/2026). Khung đầu = nhịp đầu. */ nhip?: string;
+  /** NHỊP GAG (tiếng Anh, vào prompt video) — shot [GAG n] diễn TRỌN một gag: 4 nhịp có mốc giây "0-1.5s: vấn đề + lý do gấp trên đường đi | 1.5-3s: một động tác
+   *  không ngắt bước | 3-6s: đi tiếp, hệ quả sau lưng" — phim mẫu là một mạch đi liền (anh 01/11/2026). Thiếu ô này clip 8s nhận một câu "từ… tới…" và bỏ nhịp giữa (phim #1156 #6: không thấy cú kẹp, 01/11/2026). Khung đầu = nhịp đầu. */ nhip?: string;
   /** ĐIỂM NHẤN âm–hình của gag: khung nào, tiếng gì đập đúng lúc nào (shot có cú bùng của gag bắt buộc có) */ nhan?: string;
   /** mã shot CỐ ĐỊNH trong hồ sơ viết tay (vd "4.6a") — đồng bộ hồ sơ ↔ studio khớp theo mã này, chèn shot giữa cảnh không làm lệch shot sau */ ma?: string;
 };
@@ -645,7 +645,7 @@ export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoMode
   { key: 'muc_dich', ten: 'Mục đích cảm xúc', mau: 'Thèm → hụt hẫng buồn cười; khán giả hiểu Tango muốn gì.', vaoModel: false },
   { key: 'motif', ten: 'Motif · gài / trả', mau: 'Viên kẹo đỏ (motif); gài: góc giấy vàng nhìn trộm.', vaoModel: false },
   { key: 'dien', ten: 'Diễn xuất (lấy đà · hành động · phản ứng)', mau: 'Anticipation: Tango crouches and wiggles. Action: leaps, arms wide. Reaction: freezes mid-air a beat, then drops face-first (squash), strand boings.', vaoModel: true },
-  { key: 'nhip', ten: 'Nhịp gag (mốc giây)', mau: '0-2s: a train headlight flashes at the curve; the man frantically drags a tall stool stack that blocks the rail and cannot move it | 2-4s: she clamps the stack with both cradles and hoists it high | 4-6s: the train roars through below; the man still clinging to the stack dangles above the train roof | 6-8s: train gone, she sets the stack down, he is left hanging from the lantern string, resigned', vaoModel: true },
+  { key: 'nhip', ten: 'Nhịp gag (mốc giây)', mau: '0-1.5s: the vendor walks along the rail; ahead a stool stack blocks the rail, the man strains at it in panic, a train headlight at the curve | 1.5-3s: without breaking stride she hooks the stack with one cradle and swings it onto the doorstep, the man still hugging it | 3-6s: she walks on as the train roars past behind her; the man is left perched on the stack, blinking', vaoModel: true },
   { key: 'nhan', ten: 'Điểm nhấn âm–hình', mau: 'Giây 2,8: kẹo phụt khỏi tay — tiếng "bloop" đúng khung; nhạc ngắt 1 nhịp trước cú ngã.', vaoModel: false },
 ];
 /** Ô thẻ shot BẮT BUỘC trước keyframe (motif + điểm nhấn tuỳ shot — điểm nhấn bắt buộc ở shot có cú bùng của gag, ho-so.ts › kiemHoSo). */

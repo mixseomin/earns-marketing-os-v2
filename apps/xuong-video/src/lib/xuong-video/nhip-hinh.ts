@@ -92,7 +92,7 @@ export function kiemTheShot(ds: { thu_tu: number; dan_dung?: DanDung }[], p: { l
 /** NHỊP GAG (01/11/2026, phim #1156 #6 — anh: "video đó là full 1 gag sao không thấy rõ gì cả? mỗi vấn đề mà không thấy tiếp theo"): shot [GAG n] phải diễn
  *  trọn vấn đề → ra tay → đẩy thêm → phản ứng TRONG một clip — cần ô nhịp có ≥ 3 nhịp và clip đủ giây (GIAY_GAG). Trước đây 4 nhịp nhồi vào 3,5s phát. */
 export const TIEN_TO_NHIP_GAG = 'nhịp gag: ';
-export const GIAY_GAG = 8;   // giây CLIP sinh (thoi_luong_s) của shot gag: clip 4s cụt mất đoạn kết (anh 01/11/2026); tiết tấu nhanh lo ở khâu dựng, không ép mô hình
+export const GIAY_GAG = 6;   // giây CLIP sinh (thoi_luong_s) của shot gag: 4s cụt mất kết; gag đi liền một động tác vừa 6s (anh 01/11/2026)
 export const laShotGag = (ten?: string) => /^\s*\[GAG\b/i.test(ten ?? '');
 export function kiemNhipGag(ds: { thu_tu: number; canh?: string; phat_s: number | null; thoi_luong_s: number; dan_dung?: DanDung }[]): string[] {
   const gag = ds.filter((c) => laShotGag(c.canh)); if (!gag.length) return [];

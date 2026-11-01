@@ -2067,10 +2067,13 @@ function NutLamMoi({ dongBo, gon }: { dongBo: DuLieuEtp['dongBo']; gon: boolean 
   const lanNay = dongBo?.lan ?? 0;
   useEffect(() => { if (!cho) return; if (lanNay > cho.lan || Date.now() - cho.tu > 600_000) { setCho(null); return; }
     const t = setInterval(() => router.refresh(), 8_000); return () => clearInterval(t); }, [cho, lanNay, router]);
-  const bam = async () => { const r = await lamMoiEtp(); if ('loi' in r) { alert(r.loi); return; } if (r.chay) setCho({ lan: r.lan ?? 0, tu: Date.now() }); router.refresh(); };
+  const [bao, setBao] = useState<string | null>(null);   // câu ngắn sau khi bấm (kho đã mới / máy đang chạy phần sau) — tự tắt sau 6 giây
+  useEffect(() => { if (!bao) return; const t = setTimeout(() => setBao(null), 6_000); return () => clearTimeout(t); }, [bao]);
+  const bam = async () => { const r = await lamMoiEtp(); if ('loi' in r) { alert(r.loi); return; } if (r.chay) setCho({ lan: r.lan ?? 0, tu: Date.now() });
+    else setBao(r.ban != null ? `số đã là lượt ${vn(r.ban || null)} — máy đang chạy phần sau, lượt kế tự chạy khi xong` : 'kho vừa đồng bộ, đã đọc lại'); router.refresh(); };
   return <button onClick={bam} disabled={!!cho} title={cho ? 'đang kéo số mới từ Ethopex — xong tự hiện (thường 1–3 phút)' : `kéo số mới từ Ethopex ngay (máy tự kéo 10 phút/lần) · lần cuối ${vn(dongBo?.xong ?? null)}`}
     style={{ alignSelf: 'center', border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: cho ? 'var(--fg-2)' : 'inherit', cursor: cho ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
-    <span style={{ display: 'inline-block', animation: cho ? 'etpXoay 1s linear infinite' : undefined }}>↻</span>{gon ? '' : cho ? ' Đang làm mới…' : ' Làm mới'}</button>;
+    <span style={{ display: 'inline-block', animation: cho ? 'etpXoay 1s linear infinite' : undefined }}>↻</span>{gon ? '' : cho ? ' Đang làm mới…' : ' Làm mới'}{bao ? <span style={{ marginLeft: 6, color: 'var(--fg-2)' }}>{bao}</span> : null}</button>;
 }
 type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null; cheDo?: CheDoLuat | null };
 const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];

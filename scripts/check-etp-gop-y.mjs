@@ -229,6 +229,7 @@ const LUAT = [
   { card: 1497, tep: 'apps/web/src/lib/actions/etp-lam-moi.ts', co: "execFile('systemctl', ['start', '--no-block', 'etp-dong-bo.service']", vi: 'nút Làm mới chạy đúng unit đồng bộ (systemd gộp lượt đang chạy, không chạy song song)' },
   { card: 1497, tep: 'apps/web/src/components/etp-view.tsx', mot: '{chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}', vi: 'nút Làm mới cạnh dòng "đồng bộ HH:MM", một chỗ' },
   { card: 1497, tep: 'apps/web/src/components/etp-view.tsx', co: 'if (lanNay > cho.lan || Date.now() - cho.tu > 600_000)', vi: 'chờ tới khi kho có lượt đồng bộ mới hơn lúc bấm mới thôi đọc lại' },
+  { card: 1497, tep: 'apps/web/src/lib/actions/etp-lam-moi.ts', co: "if (tt === 'activating' || tt === 'active') return { ok: true, chay: false, ban:", vi: 'máy đang chạy phần sau của lượt → không để nút chờ một lượt systemd không mở' },
   { card: 1498, tep: 'apps/web/src/components/etp-view.tsx', co: "{hep ? <O0 v={roi(sx)} t={`${t} — tổng các camp đang hiện`}", vi: 'điện thoại: ROI tổng nằm trong dòng tiêu đề dính, không thêm hàng dính' },
   { card: 1498, tep: 'apps/web/src/components/etp-view.tsx', co: 'Tổng {phim.length} phim · $', vi: 'điện thoại: ô đầu dòng tiêu đề ghi số phim + ngân sách đang bật' },
   // anh 01/11/2026 "việc này quan trọng, fix ngay" (#70177: 15 dòng lỗi giống hệt): nhật ký máy một đường ghi, chặn dòng lỗi lặp; kho khoá NULL bằng nhau

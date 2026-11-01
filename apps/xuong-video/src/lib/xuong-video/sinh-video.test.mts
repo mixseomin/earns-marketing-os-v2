@@ -11,7 +11,7 @@ console.log('sinh-video.test: ok');
 // vật lý thật theo thể loại (19/10/2026 #1 cà phê vọt lên trời; anh: viễn tưởng… ngoại lệ): tổng tài / chưa đặt → có câu trọng lực; viễn tưởng / hoạt hình / kinh dị → miễn
 { const { cauVatLy } = await import('./dien-anh');
   assert.ok(cauVatLy('phim_doc').includes('gravity')); assert.ok(cauVatLy('').includes('gravity'));
-  assert.equal(cauVatLy('vien_tuong'), ''); assert.equal(cauVatLy('hoat_hinh'), ''); assert.equal(cauVatLy('kinh_di'), ''); }
+  for (const tl of ['vien_tuong', 'hoat_hinh', 'kinh_di'] as const) { assert.ok(!cauVatLy(tl).includes('gravity') && cauVatLy(tl).includes('rails')); } }
 
 // chất liệu vẽ 2D tách khỏi mô hình nặn; câu nhịp gag giữ đủ nhịp theo thứ tự
 {

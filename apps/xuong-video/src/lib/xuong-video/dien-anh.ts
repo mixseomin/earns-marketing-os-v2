@@ -44,7 +44,10 @@ export type KyThuatShot = Partial<Record<Exclude<NhomKyThuat, 'am_thanh'>, strin
  *  phép phá vật lý (anh: "các dạng viễn tưởng… sẽ có ngoại lệ về vật lý") — viễn tưởng (phép thuật, phản trọng lực), hoạt hình (cường điệu), kinh dị
  *  (vật bay, siêu nhiên) — không nhận câu này. */
 export const THE_LOAI_PHA_VAT_LY: ReadonlySet<TheLoai> = new Set<TheLoai>(['vien_tuong', 'hoat_hinh', 'kinh_di']);
-export const cauVatLy = (tl: TheLoai | '' | undefined): string => (tl && THE_LOAI_PHA_VAT_LY.has(tl) ? '' : 'Real-world physics: liquids pour and splash downward with gravity, objects fall naturally — nothing flies upward or hangs in the air unless it is thrown upward.');
+/** Thể loại phá vật lý vẫn giữ LUẬT THẾ GIỚI cố định (anh 01/11/2026, phim #1156 #6: "tàu đi lệch khỏi đường ray??" — câu vật lý bị bỏ hẳn với hoạt hình,
+ *  Veo cho tàu né sang bên cạnh người còn đứng trên ray): nhân vật được cường điệu, còn ray / đường / tường / mặt đất và đường đi của xe thì không. */
+export const LUAT_THE_GIOI = 'Cartoon exaggeration applies only to the characters\' moves; the world itself stays solid: a train or any vehicle runs exactly along its rails or road and never swerves, leaves its track or passes through things; walls, ground and buildings never bend or move; anything still on the track when the train arrives is in its way.';
+export const cauVatLy = (tl: TheLoai | '' | undefined): string => (tl && THE_LOAI_PHA_VAT_LY.has(tl) ? LUAT_THE_GIOI : 'Real-world physics: liquids pour and splash downward with gravity, objects fall naturally — nothing flies upward or hangs in the air unless it is thrown upward.');
 export const THE_LOAI: { key: TheLoai; ten: string; mo_ta: string }[] = [
   { key: 'hoat_hinh', ten: 'Hoạt hình gia đình', mo_ta: 'Ấm áp, màu tươi, máy mềm, cảm xúc rõ ràng' },
   { key: 'phieu_luu', ten: 'Phiêu lưu', mo_ta: 'Khung rộng hùng vĩ, cẩu máy, nhạc dàn nhạc' },

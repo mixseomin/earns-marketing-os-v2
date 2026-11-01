@@ -33,7 +33,7 @@ def doc():
 def ra(**k): print(json.dumps({"viec": VIEC, "id": CID, **k}, ensure_ascii=False)); sys.exit(0 if k.get("ok") else 1)
 
 def ket():
-    """KẾT NỐI: người dán access_token (localStorage app.ethopex.dev) → kiểm đúng là phiên CỦA NGƯỜI ĐÓ rồi mới cất"""
+    """KẾT NỐI: người dán Token ở app.ethopex.dev/profile (nút Copy — cùng access_token phiên đăng nhập) → kiểm đúng là phiên CỦA NGƯỜI ĐÓ rồi mới cất"""
     import datetime
     tok = sys.stdin.read().strip().strip('"').strip("'")
     if tok.startswith("{"): tok = (json.loads(tok).get("access_token") or "").strip()

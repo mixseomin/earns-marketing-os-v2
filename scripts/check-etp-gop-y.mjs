@@ -243,6 +243,8 @@ const LUAT = [
   { card: 1498, tep: 'apps/web/src/components/etp-view.tsx', co: "position: gon ? undefined : 'sticky', top: 0, zIndex: 5,", vi: 'hàng tab không tự dính trên điện thoại' },
   { card: 'bo2-0111', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 't2_chi = lambda ns: min(T2_CHI, round(T2_PHAN * 2 * float(ns or 0), 2)) if ns else T2_CHI', vi: 'T2 ngưỡng chi theo ngân sách — camp $1 không lọt luật tắt (anh 01/11/2026)' },
   { card: 'bo2-0111', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'if _c2 >= T2_CHI and _r2 < T2_ROI', vi: 'T2 không quay lại ngưỡng $2.5 cố định' },
+  { card: 'token-0211', tep: 'apps/web/src/components/etp-view.tsx', co: 'href="https://app.ethopex.dev/profile"', vi: 'kết nối Ethopex hướng dẫn lấy Token chính thức ở trang Profile (anh 02/11/2026)' },
+  { card: 'token-0211', tep: 'apps/web/src/components/etp-view.tsx', cam: 'copy(localStorage.access_token)', vi: 'không quay lại đường F12 / localStorage' },
   { card: 1501, tep: 'apps/web/src/components/etp-tong2.tsx', cam: "borderColor: ra ?", vi: 'widget Tổng quan 2 không ghi đè borderColor lên shorthand border của Panel (React xoá viền → trắng gắt)' },
   { card: 1501, tep: 'apps/web/src/components/etp-tong2.tsx', co: "border: `1px solid ${ra ? '#f87171' : sua ? 'var(--accent)' : 'var(--line)'}`", vi: 'viền widget viết đủ shorthand, mặc định var(--line)' },
   { card: 1502, tep: 'apps/web/src/components/ui/chon2.tsx', co: "autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}", vi: 'ô chọn không tự focus ô tìm trên màn cảm ứng (bàn phím điện thoại bật che danh sách)' },

@@ -462,9 +462,10 @@ function KetNoiEthopex({ het, xong }: { het: string | null; xong: () => void }) 
     <div style={{ color: 'var(--fg-2)', lineHeight: 1.45 }}>{het ? `Phiên Ethopex của bạn còn hạn tới ${new Date(het).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}. Dán phiên mới để đổi:`
       : 'Kết nối Ethopex của bạn để sửa camp (một lần, hạn 30 ngày):'}</div>
     <ol style={{ margin: 0, paddingLeft: 18, color: 'var(--fg-2)', lineHeight: 1.45 }}>
-      <li>Mở app.ethopex.dev, đăng nhập tài khoản của bạn</li>
-      <li>Bấm F12 → tab Console, gõ <code>copy(localStorage.access_token)</code> rồi Enter</li>
-      <li>Dán vào ô dưới</li>
+      {/* token chính thức Ethopex đưa ở trang Profile (anh 02/11/2026: "Tk etho thông thường đều cung cấp token chính thức trong page setting của acc") — thay đường F12 / localStorage */}
+      <li>Đăng nhập app.ethopex.dev bằng tài khoản của bạn, mở <a href="https://app.ethopex.dev/profile" target="_blank" rel="noreferrer" style={{ color: 'var(--accent, #60a5fa)' }}>Profile</a></li>
+      <li>Ô <b>Token</b> → bấm <b>Copy</b></li>
+      <li>Dán vào ô dưới → Kết nối</li>
     </ol>
     <div style={{ display: 'flex', gap: 6 }}>
       <input type="password" autoComplete="off" value={phien} onChange={(e) => setPhien(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !dang && phien) gui(); }} placeholder="phiên Ethopex"

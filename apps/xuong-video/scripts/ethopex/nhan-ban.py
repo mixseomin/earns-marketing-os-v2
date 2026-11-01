@@ -191,7 +191,8 @@ def _cau_hinh(khoa, mac):   # một sổ với luat-ethopex.py: etp.cau_hinh tha
     return json.loads(v) if v else mac
 THANG_BO = [str(x) for x in _cau_hinh("thang_bo", ["2"])]
 THANG_MUC = {float(x) for x in _cau_hinh("thang_muc", [1, 3, 7, 15, 30]) if float(x) > 1}   # bậc mở bản mới (trừ bậc đầu $1)
-BO_DANG_CHAN = {str(k): set(v) for k, v in _cau_hinh("bo_dang_chan", {}).items()}   # bộ → dạng creative không lên camp mới (migration 0394, anh 01/11/2026 "bộ 2 chỉ lên cảnh cuối")
+BO_DANG_CHAN = {str(k): set(v) for k, v in _cau_hinh("bo_dang_chan", {}).items()}
+BO_CHI_PHIM_LAI = {str(x) for x in _cau_hinh("bo_chi_phim_lai", [])}   # bộ chỉ mở camp cho phim đã lãi 7 ngày ở bộ đó (migration 0399, anh 02/11/2026 "chặn mở camp phim mới" ở bộ 2)   # bộ → dạng creative không lên camp mới (migration 0394, anh 01/11/2026 "bộ 2 chỉ lên cảnh cuối")
 ROAS_MIN, ROAS_MAX = 1.0, 1.4
 def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
@@ -276,6 +277,9 @@ def main(a):
         if moi and not NGOAI and BO_DANG_CHAN.get(str(bo)):
             dg = q(f"select coalesce(dang, '') from etp.creative where creative_id = {int(moi['creative'])}")
             if dg in BO_DANG_CHAN[str(bo)]: raise ChanLuat(f"bộ {bo} chỉ lên dạng khác {', '.join(sorted(BO_DANG_CHAN[str(bo)]))} — creative #{moi['creative']} là {dg} (etp.cau_hinh.bo_dang_chan, anh 01/11/2026)")
+        if not NGOAI and not ep and str(bo) in BO_CHI_PHIM_LAI:   # mọi đường mở camp (creative mới, clone, thang) — phim mới / phim lỗ ở bộ này không mở thêm
+            pc, pt = (float(x or 0) for x in (q(f"select coalesce(sum(s.chi), 0), coalesce(sum(s.thu), 0) from etp.so_ngay s join etp.camp c using (camp_id) where c.bo = '{bo}' and c.content_id = {int(cid)} and s.ngay between (now() at time zone 'UTC')::date - 7 and (now() at time zone 'UTC')::date - 1") or "0|0").split("|"))
+            if pt <= pc: raise ChanLuat(f"bộ {bo} chỉ mở camp cho phim đã lãi 7 ngày ở bộ này — phim {cid}: chi ${pc:.2f} · lãi ${pt - pc:+.2f} (etp.cau_hinh.bo_chi_phim_lai, anh 02/11/2026)")
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)
         if chan: raise ChanLuat(chan)
         n = dem_dang_chay(cid)

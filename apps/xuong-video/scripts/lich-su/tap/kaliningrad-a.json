@@ -1,0 +1,443 @@
+{
+  "id": "kaliningrad-a",
+  "dang": "A",
+  "tieu_de": "Why does Russia own a piece of Europe it isn't connected to?",
+  "ngon_ngu": "en",
+  "giong": {
+    "voice": "George"
+  },
+  "nen": {
+    "anh": "giay.jpg",
+    "nguon": "https://www.pexels.com/photo/close-up-of-a-piece-of-paper-7952505/"
+  },
+  "nguon": [
+    "https://en.wikipedia.org/wiki/K%C3%B6nigsberg — thành lập 1255 bởi Hiệp sĩ Teuton, tên theo vua Ottokar II (núi của Vua); thủ phủ Công quốc Phổ từ 1525; Friedrich I đăng quang 1701",
+    "https://en.wikipedia.org/wiki/Immanuel_Kant — sống gần như cả đời ở Königsberg",
+    "https://en.wikipedia.org/wiki/Potsdam_Conference — 1945 giao Königsberg cho Liên Xô quản lý",
+    "https://en.wikipedia.org/wiki/Kaliningrad — đổi tên 1946 theo Mikhail Kalinin; người Đức còn lại bị trục xuất 1947–1948; từ 1991 là vùng tách rời, giáp Ba Lan và Litva"
+  ],
+  "cau": [
+    {
+      "chu": "Russia owns a piece of Europe that isn't even connected to Russia.",
+      "canh": {
+        "tam": [
+          33,
+          56
+        ],
+        "zoom": 2.2,
+        "to": [
+          {
+            "iso": "RUS",
+            "mau": "#9e2b25"
+          }
+        ],
+        "nhay": [
+          [
+            20.5,
+            54.7
+          ]
+        ],
+        "chu_to": "RUSSIA… IN THE MIDDLE OF EUROPE?"
+      }
+    },
+    {
+      "chu": "It's called Kaliningrad, squeezed between Poland and Lithuania.",
+      "canh": {
+        "tam": [
+          21,
+          54.6
+        ],
+        "zoom": 9,
+        "to": [
+          {
+            "iso": "RUS",
+            "vung": [
+              19,
+              54,
+              23,
+              56
+            ],
+            "mau": "#9e2b25"
+          },
+          {
+            "iso": "POL",
+            "mau": "#d9c39a"
+          },
+          {
+            "iso": "LTU",
+            "mau": "#c9b48a"
+          }
+        ],
+        "nhan": [
+          {
+            "o": [
+              20.6,
+              54.75
+            ],
+            "chu": "Kaliningrad"
+          },
+          {
+            "o": [
+              19.4,
+              53.2
+            ],
+            "chu": "POLAND"
+          },
+          {
+            "o": [
+              23.8,
+              55.4
+            ],
+            "chu": "LITHUANIA"
+          }
+        ]
+      }
+    },
+    {
+      "chu": "But for almost seven hundred years, it wasn't Russian at all.",
+      "canh": {
+        "tam": [
+          20.5,
+          54.7
+        ],
+        "zoom": 7,
+        "nam": 1255,
+        "to": [
+          {
+            "iso": "RUS",
+            "vung": [
+              19,
+              54,
+              23,
+              56
+            ],
+            "mau": "#3f5c7a"
+          }
+        ]
+      }
+    },
+    {
+      "chu": "In twelve fifty-five, crusader knights built a castle here and named it Königsberg, the King's Mountain.",
+      "canh": {
+        "tam": [
+          20.5,
+          54.7
+        ],
+        "zoom": 10,
+        "nam": 1255,
+        "to": [
+          {
+            "iso": "RUS",
+            "vung": [
+              19,
+              54,
+              23,
+              56
+            ],
+            "mau": "#3f5c7a"
+          }
+        ],
+        "nhan": [
+          {
+            "o": [
+              20.5,
+              54.71
+            ],
+            "chu": "Königsberg",
+            "ghim": true
+          }
+        ],
+        "nguoi": [
+          {
+            "o": [
+              21.6,
+              54.4
+            ],
+            "mu": "mu_sat",
+            "mau": "#f4f1e8",
+            "ten": "Teutonic Knights"
+          }
+        ]
+      }
+    },
+    {
+      "chu": "It became the heart of Prussia. Kings were crowned here, and the philosopher Immanuel Kant barely ever left.",
+      "canh": {
+        "tam": [
+          20.8,
+          54.5
+        ],
+        "zoom": 6,
+        "nam": 1701,
+        "to": [
+          {
+            "iso": "RUS",
+            "vung": [
+              19,
+              54,
+              23,
+              56
+            ],
+            "mau": "#3f5c7a"
+          }
+        ],
+        "nhan": [
+          {
+            "o": [
+              20.6,
+              55.25
+            ],
+            "chu": "PRUSSIA"
+          }
+        ],
+        "nguoi": [
+          {
+            "o": [
+              20.6,
+              54.0
+            ],
+            "mu": "vuong_mien",
+            "mau": "#3f5c7a",
+            "ten": "King"
+          },
+          {
+            "o": [
+              22.3,
+              54.0
+            ],
+            "mu": "toc_gia",
+            "mau": "#7a6a55",
+            "ten": "Kant"
+          }
+        ]
+      }
+    },
+    {
+      "chu": "Then came nineteen forty-five. The Red Army took the city, and at Potsdam the Allies handed it to Stalin.",
+      "canh": {
+        "tam": [
+          24,
+          54
+        ],
+        "zoom": 4,
+        "nam": 1945,
+        "to": [
+          {
+            "iso": "RUS",
+            "vung": [
+              19,
+              54,
+              23,
+              56
+            ],
+            "mau": "#9e2b25"
+          }
+        ],
+        "ten": [
+          {
+            "tu": [
+              32,
+              54
+            ],
+            "den": [
+              21,
+              54.7
+            ],
+            "mau": "#9e2b25"
+          }
+        ],
+        "nguoi": [
+          {
+            "o": [
+              28.5,
+              55.6
+            ],
+            "mu": "mu_quan",
+            "mau": "#9e2b25",
+            "ten": "Stalin"
+          }
+        ]
+      }
+    },
+    {
+      "chu": "In nineteen forty-six it got a new name, Kaliningrad, and over the next two years its remaining Germans were deported.",
+      "canh": {
+        "tam": [
+          20.5,
+          54.7
+        ],
+        "zoom": 9,
+        "nam": 1946,
+        "to": [
+          {
+            "iso": "RUS",
+            "vung": [
+              19,
+              54,
+              23,
+              56
+            ],
+            "mau": "#9e2b25"
+          }
+        ],
+        "nhan": [
+          {
+            "o": [
+              20.5,
+              54.71
+            ],
+            "chu": "Königsberg → Kaliningrad",
+            "ghim": true
+          }
+        ]
+      }
+    },
+    {
+      "chu": "For decades, that didn't matter. It was just one more corner of the Soviet Union.",
+      "canh": {
+        "tam": [
+          36,
+          55
+        ],
+        "zoom": 2,
+        "to": [
+          {
+            "iso": [
+              "RUS",
+              "UKR",
+              "BLR",
+              "LTU",
+              "LVA",
+              "EST",
+              "MDA",
+              "KAZ",
+              "GEO",
+              "ARM",
+              "AZE",
+              "UZB",
+              "TKM",
+              "KGZ",
+              "TJK"
+            ],
+            "mau": "#9e2b25"
+          }
+        ],
+        "nhan": [
+          {
+            "o": [
+              42,
+              56
+            ],
+            "chu": "USSR"
+          }
+        ]
+      }
+    },
+    {
+      "chu": "Then in nineteen ninety-one, the Soviet Union fell apart, and Kaliningrad woke up stranded.",
+      "canh": {
+        "tam": [
+          25,
+          55
+        ],
+        "zoom": 4.5,
+        "nam": 1991,
+        "to": [
+          {
+            "iso": "RUS",
+            "mau": "#9e2b25"
+          },
+          {
+            "iso": "LTU",
+            "mau": "#d8b25a"
+          },
+          {
+            "iso": "LVA",
+            "mau": "#c98f4a"
+          },
+          {
+            "iso": "BLR",
+            "mau": "#7f9a5c"
+          },
+          {
+            "iso": "EST",
+            "mau": "#6d86a0"
+          }
+        ],
+        "nhay": [
+          [
+            20.5,
+            54.7
+          ]
+        ],
+        "nhan": [
+          {
+            "o": [
+              20.5,
+              54.15
+            ],
+            "chu": "cut off"
+          },
+          {
+            "o": [
+              24,
+              55.35
+            ],
+            "chu": "LITHUANIA"
+          },
+          {
+            "o": [
+              25,
+              56.9
+            ],
+            "chu": "LATVIA"
+          },
+          {
+            "o": [
+              28,
+              53.4
+            ],
+            "chu": "BELARUS"
+          },
+          {
+            "o": [
+              33,
+              55.8
+            ],
+            "chu": "RUSSIA"
+          }
+        ]
+      }
+    },
+    {
+      "chu": "What Moscow did with it next is why NATO watches it so closely today. That's part two.",
+      "canh": {
+        "tam": [
+          21,
+          54.7
+        ],
+        "zoom": 7,
+        "nam": 1991,
+        "to": [
+          {
+            "iso": "RUS",
+            "vung": [
+              19,
+              54,
+              23,
+              56
+            ],
+            "mau": "#9e2b25"
+          }
+        ],
+        "nhay": [
+          [
+            20.5,
+            54.7
+          ]
+        ],
+        "ket": "PART 2 →"
+      }
+    }
+  ]
+}

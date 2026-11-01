@@ -1,0 +1,96 @@
+<!doctype html>
+<!-- KÊNH LỊCH SỬ — MẪU DỰNG "BẢN ĐỒ + DÒNG THỜI GIAN" (02/11/2026, S08 bước 2). Hình là hàm thuần của t (window.__seek) → shot-code/dung.mjs quay từng khung.
+     CAU do dung-tap.mjs dựng: {DAI, W, H, nen, geo:{iso:[[[lon,lat]…]…]}, tu:[{chu,a,b}] (mốc từng chữ của giọng), canh:[{bd,kt,chu,…cảnh trong tệp tập}]}.
+     Một cảnh = một câu đọc: camera bay tới (tam, zoom), tô nước (to), nhãn, ghim, mũi tên quân (ten), điểm nháy, người phẳng, năm đếm, chữ to mở,
+     phụ đề từng chữ sáng theo giọng, thẻ kết "PART 2". Nền = ảnh giấy cổ thật (luật nền ảnh thật). -->
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const c = document.getElementById('c'), x = c.getContext('2d'), W = 1080, H = 1920;
+const io = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2), out = (k) => 1 - Math.pow(1 - k, 3), kep = (v) => Math.max(0, Math.min(1, v));
+let C, nen, mien;
+// Mercator: (lon, lat) → x, y theo camera (tâm + zoom: zoom 1 ≈ 1 độ kinh = 12 px)
+const merY = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) * 180 / Math.PI;
+let cam = { lon: 0, lat: 0, z: 1 };
+const chieu = (lon, lat) => { const s = 12 * cam.z; return [W / 2 + (lon - cam.lon) * s, H * 0.46 - (merY(lat) - merY(cam.lat)) * s]; };
+
+window.__dung = async () => {
+  C = window.CAU; nen = new Image(); nen.src = C.nen; await nen.decode();
+  mien = {}; for (const [iso, polys] of Object.entries(C.geo)) mien[iso] = polys.map((ring) => ({ ring, bb: ring.reduce((b, [a, d]) => [Math.min(b[0], a), Math.min(b[1], d), Math.max(b[2], a), Math.max(b[3], d)], [999, 999, -999, -999]) }));
+  await document.fonts.ready;
+};
+const vePoly = (ring) => { x.beginPath(); ring.forEach(([lo, la], i) => { const [px, py] = chieu(lo, la); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.closePath(); };
+const phan = (iso, vung) => (mien[iso] || []).filter((p) => !vung || (p.bb[2] >= vung[0] && p.bb[0] <= vung[2] && p.bb[3] >= vung[1] && p.bb[1] <= vung[3]));
+function chuVien(t, px, py, size, mau = '#2b2116', vien = 'rgba(248,240,222,.95)', can = 'center', dam = 700, font = 'Georgia, "Times New Roman", serif') {
+  x.font = `${dam} ${size}px ${font}`; x.textAlign = can; x.textBaseline = 'middle'; x.lineJoin = 'round';
+  x.lineWidth = size * 0.22; x.strokeStyle = vien; x.strokeText(t, px, py); x.fillStyle = mau; x.fillText(t, px, py);
+}
+function nguoi(px, py, mu, mau, ten, u) {   // người phẳng kiểu sách tranh: đầu tròn, thân áo choàng, nhún thở
+  const b = Math.sin(u * 3) * 4, s = 1.6; x.save(); x.translate(px, py + b); x.scale(s, s);
+  x.fillStyle = 'rgba(0,0,0,.18)'; x.beginPath(); x.ellipse(0, 46, 26, 6, 0, 0, 7); x.fill();
+  x.fillStyle = mau; x.strokeStyle = '#2b2116'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(-22, 44); x.quadraticCurveTo(-20, 2, 0, 0); x.quadraticCurveTo(20, 2, 22, 44); x.closePath(); x.fill(); x.stroke();
+  x.fillStyle = '#f1d9b5'; x.beginPath(); x.arc(0, -14, 15, 0, 7); x.fill(); x.stroke();
+  x.fillStyle = '#2b2116'; x.beginPath(); x.arc(-5, -15, 1.8, 0, 7); x.arc(5, -15, 1.8, 0, 7); x.fill();
+  if (mu === 'vuong_mien') { x.fillStyle = '#e0b43a'; x.beginPath(); x.moveTo(-13, -26); x.lineTo(-13, -40); x.lineTo(-6, -32); x.lineTo(0, -42); x.lineTo(6, -32); x.lineTo(13, -40); x.lineTo(13, -26); x.closePath(); x.fill(); x.stroke(); }
+  if (mu === 'mu_sat') { x.fillStyle = '#9aa0a6'; x.beginPath(); x.rect(-16, -34, 32, 22); x.fill(); x.stroke(); x.fillStyle = '#2b2116'; x.fillRect(-12, -22, 24, 3); x.strokeStyle = '#b02a22'; x.lineWidth = 3; x.beginPath(); x.moveTo(0, 6); x.lineTo(0, 34); x.moveTo(-10, 16); x.lineTo(10, 16); x.stroke(); }
+  if (mu === 'mu_quan') { x.fillStyle = '#5a6b4a'; x.beginPath(); x.ellipse(0, -28, 19, 7, 0, 0, 7); x.fill(); x.stroke(); x.fillStyle = '#b02a22'; x.beginPath(); x.arc(0, -29, 3, 0, 7); x.fill(); x.fillStyle = '#2b2116'; x.fillRect(-7, -8, 14, 3); }
+  if (mu === 'toc_gia') { x.fillStyle = '#f2efe8'; x.beginPath(); x.arc(-13, -18, 7, 0, 7); x.arc(13, -18, 7, 0, 7); x.arc(0, -28, 9, 0, 7); x.fill(); x.stroke(); }
+  x.restore(); if (ten) chuVien(ten, px, py + 112 + b, 30, '#2b2116');
+}
+function muiTen(a, b, k, mau) {   // mũi tên quân vẽ dần
+  const [x0, y0] = chieu(...a), [x1, y1] = chieu(...b), mx = (x0 + x1) / 2 - (y1 - y0) * 0.25, my = (y0 + y1) / 2 + (x1 - x0) * 0.25;
+  const P = (t) => [(1 - t) ** 2 * x0 + 2 * (1 - t) * t * mx + t * t * x1, (1 - t) ** 2 * y0 + 2 * (1 - t) * t * my + t * t * y1];
+  x.save(); x.strokeStyle = mau; x.lineCap = 'round'; x.lineWidth = 22; x.globalAlpha = 0.9; x.beginPath();
+  for (let i = 0; i <= 40; i++) { const t = (i / 40) * k, [px, py] = P(t); i ? x.lineTo(px, py) : x.moveTo(px, py); } x.stroke();
+  if (k > 0.05) { const [px, py] = P(k), [qx, qy] = P(Math.max(0, k - 0.02)), g = Math.atan2(py - qy, px - qx); x.fillStyle = mau; x.translate(px, py); x.rotate(g); x.beginPath(); x.moveTo(34, 0); x.lineTo(-14, -30); x.lineTo(-14, 30); x.closePath(); x.fill(); }
+  x.restore();
+}
+
+window.__seek = (t) => {
+  const ds = C.canh; let k = ds.findIndex((s) => t < s.kt); if (k < 0) k = ds.length - 1;
+  const s = ds[k], tr = ds[k - 1], u = t - s.bd, bay = kep(u / 1.1);
+  // camera bay từ cảnh trước tới cảnh này (zoom theo log để bay đều)
+  const a = tr ? tr.c : s.c, e = io(bay);
+  cam = { lon: a.tam[0] + (s.c.tam[0] - a.tam[0]) * e, lat: a.tam[1] + (s.c.tam[1] - a.tam[1]) * e, z: Math.exp(Math.log(a.zoom) + (Math.log(s.c.zoom) - Math.log(a.zoom)) * e) * (1 + 0.012 * u) };
+  // nền giấy thật (phủ kín, trôi nhẹ)
+  const sc = Math.max(W / nen.width, H / nen.height) * 1.06; x.drawImage(nen, (W - nen.width * sc) / 2 - u * 2, (H - nen.height * sc) / 2, nen.width * sc, nen.height * sc);
+  x.fillStyle = 'rgba(96,128,140,.22)'; x.fillRect(0, 0, W, H);   // biển: giấy ngả lam
+  // đất liền
+  x.lineJoin = 'round';
+  for (const ps of Object.values(mien)) for (const p of ps) { vePoly(p.ring); x.fillStyle = 'rgba(244,232,205,.86)'; x.fill(); }
+  for (const ps of Object.values(mien)) for (const p of ps) { vePoly(p.ring); x.strokeStyle = 'rgba(92,70,46,.7)'; x.lineWidth = 1.6; x.stroke(); }
+  // tô nước của cảnh: hiện dần; nước cảnh trước còn tô mà cảnh này không tô thì nhạt dần
+  const toMau = (sc_) => (sc_?.c.to || []).flatMap((o) => [].concat(o.iso).map((iso) => ({ iso, vung: o.vung, mau: o.mau })));
+  const cu = tr ? toMau(tr) : [], moi = toMau(s), khoa = (o) => `${o.iso}|${o.vung}|${o.mau}`;
+  const ve = (o, al) => { for (const p of phan(o.iso, o.vung)) { vePoly(p.ring); x.globalAlpha = al; x.fillStyle = o.mau; x.fill(); x.globalAlpha = 1; x.strokeStyle = 'rgba(43,33,22,.85)'; x.lineWidth = 2.4; x.stroke(); } };
+  for (const o of cu) if (!moi.some((m) => khoa(m) === khoa(o))) ve(o, 0.78 * (1 - kep(u / 0.6)));
+  for (const o of moi) ve(o, 0.78 * (cu.some((m) => khoa(m) === khoa(o)) ? 1 : kep((u - 0.2) / 0.6)));
+  // mũi tên quân
+  for (const m of s.c.ten || []) muiTen(m.tu, m.den, out(kep((u - 0.4) / 1.4)), m.mau);
+  // điểm nháy
+  for (const p of s.c.nhay || []) { const [px, py] = chieu(...p); for (let i = 0; i < 2; i++) { const q = ((u * 0.9 + i * 0.5) % 1); x.strokeStyle = `rgba(158,43,37,${1 - q})`; x.lineWidth = 6; x.beginPath(); x.arc(px, py, 14 + q * 70, 0, 7); x.stroke(); } x.fillStyle = '#9e2b25'; x.beginPath(); x.arc(px, py, 12, 0, 7); x.fill(); }
+  // nhãn + ghim
+  (s.c.nhan || []).forEach((n, i) => { const al = kep((u - 0.5 - i * 0.25) / 0.4); if (!al) return; const [px, py] = chieu(...n.o); x.globalAlpha = al;
+    if (n.ghim) { x.fillStyle = '#2b2116'; x.beginPath(); x.arc(px, py, 10, 0, 7); x.fill(); x.fillStyle = '#e8d9b8'; x.beginPath(); x.arc(px, py, 4, 0, 7); x.fill(); }
+    chuVien(n.chu, px, py - (n.ghim ? 52 : 0), n.chu === n.chu.toUpperCase() ? 50 : 46, '#2b2116'); x.globalAlpha = 1; });
+  // người phẳng bước vào
+  (s.c.nguoi || []).forEach((n, i) => { const al = out(kep((u - 0.6 - i * 0.3) / 0.5)); if (!al) return; const [px, py] = chieu(...n.o); x.globalAlpha = al; nguoi(px, py + (1 - al) * 60, n.mu, n.mau, n.ten, u); x.globalAlpha = 1; });
+  // năm: đếm từ năm cảnh trước tới năm cảnh này
+  const namTr = tr?.c.nam ?? s.c.nam, nam = s.c.nam != null ? Math.round((namTr ?? s.c.nam) + (s.c.nam - (namTr ?? s.c.nam)) * out(kep(u / 1.2))) : null;   // cảnh không khai năm = không hiện ô năm (không bịa mốc)
+  if (nam != null) { x.fillStyle = 'rgba(43,33,22,.82)'; x.beginPath(); x.roundRect(60, 150, 300, 120, 18); x.fill(); x.font = '700 92px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f3e6c8'; x.fillText(String(nam), 210, 214); }
+  // chữ to mở (cảnh đầu)
+  if (s.c.chu_to) { const al = kep(u / 0.25) * (1 - kep((u - 3.2) / 0.4)); if (al) { x.globalAlpha = al; const sz = 74; x.font = `900 ${sz}px Georgia, serif`;
+    const tu = s.c.chu_to.split(' '), dong = []; let l = ''; for (const w of tu) { const th = l ? `${l} ${w}` : w; if (x.measureText(th).width > W - 140) { dong.push(l); l = w; } else l = th; } dong.push(l);
+    dong.forEach((d, i) => chuVien(d, W / 2, 300 + i * (sz * 1.15) + (1 - out(kep(u / 0.35))) * -40, sz, '#9e2b25', 'rgba(248,240,222,.97)', 'center', 900)); x.globalAlpha = 1; } }
+  // phụ đề: các chữ của câu đang đọc, chữ đang nói sáng màu
+  const tu = C.tu.filter((w) => w.cau === k);
+  if (tu.length) { const nhom = []; for (let i = 0; i < tu.length; i += 4) nhom.push(tu.slice(i, i + 4)); const g = nhom.find((n) => t < n[n.length - 1].b + 0.05) || nhom[nhom.length - 1];
+    if (t >= g[0].a - 0.15) { const sz = 66; x.font = `900 ${sz}px "Helvetica Neue", Arial, sans-serif`; const rong = g.map((w) => x.measureText(w.chu).width), tong = rong.reduce((a, b) => a + b, 0) + (g.length - 1) * 22; let px = (W - tong) / 2;
+      g.forEach((w, i) => { const dang = t >= w.a && t < w.b + 0.08; x.textAlign = 'left'; x.textBaseline = 'middle'; x.lineWidth = 14; x.lineJoin = 'round'; x.strokeStyle = '#111'; x.strokeText(w.chu, px, H * 0.78); x.fillStyle = dang ? '#ffd23f' : '#fff'; x.fillText(w.chu, px, H * 0.78); px += rong[i] + 22; }); } }
+  // thẻ kết
+  if (s.c.ket) { const al = kep((u - 1.2) / 0.4); if (al) { x.globalAlpha = al; const p = 1 + 0.04 * Math.sin(u * 6); x.save(); x.translate(W / 2, H * 0.64); x.scale(p, p); x.fillStyle = '#9e2b25'; x.beginPath(); x.roundRect(-230, -70, 460, 140, 70); x.fill(); x.font = '900 70px Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f8f0de'; x.fillText(s.c.ket, 0, 4); x.restore(); x.globalAlpha = 1; } }
+  // viền tối mép (giấy cũ)
+  const v = x.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.72); v.addColorStop(0, 'rgba(40,25,10,0)'); v.addColorStop(1, 'rgba(40,25,10,.5)'); x.fillStyle = v; x.fillRect(0, 0, W, H);
+};
+</script></body></html>

@@ -237,8 +237,28 @@ function DangKenhKhoi({ kho, opus, chon, doiChon }: { kho: KhoDangKenh; opus: Kh
   const tuoi = (iso?: string) => (iso ? Math.floor((Date.now() - Date.parse(iso)) / 86400_000) : null);
   const ds = kho.ds.map((d) => ({ d, tv: Math.max(0, ...d.cum.map((c) => c.trung_vi ?? 0)), dau: d.cum.flatMap((c) => c.top ?? []).sort((a, b) => (b.xem ?? 0) - (a.xem ?? 0))[0],
     tuoi: Math.max(...d.cum.map((c) => tuoi(c.do_luc) ?? 9999)), n: opus.ds.filter((x) => thuocDang(d, x)).length })).sort((a, b) => b.tv - a.tv);
+  const tvDang = (id: string | null) => ds.find((x) => x.d.id === id)?.tv;
   return (
     <div style={{ margin: '6px 0 10px' }}>
+      {kho.co_hoi?.length ? (
+        <div style={{ marginBottom: 12 }}>
+          <b style={{ fontSize: 13 }}>Cơ hội kênh xếp hạng</b> <span className="xv-mono">· chốt {kho.co_hoi_luc} · bấm dòng có dạng để lọc prompt</span>
+          <div style={{ display: 'grid', gap: 4, marginTop: 6 }}>{kho.co_hoi.map((c) => (
+            <button key={c.hang} type="button" className="xv-canh" disabled={!c.dang} onClick={() => c.dang && doiChon(c.dang)}
+              title={`Bằng chứng tiền: ${c.bang_chung_tien}\nDựng bằng code: ${c.dung_code}\nKiếm tiền: ${c.kiem_tien}`}
+              style={{ textAlign: 'left', cursor: c.dang ? 'pointer' : 'default', display: 'grid', gridTemplateColumns: '28px 1fr auto', gap: 8, alignItems: 'baseline', font: 'inherit', color: 'inherit', outline: c.dang && chon === c.dang ? '2px solid var(--accent)' : undefined }}>
+              <b style={{ fontSize: 15, color: c.hang <= 4 ? 'var(--accent)' : 'var(--fg-3)' }}>{c.hang}</b>
+              <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
+                <b style={{ fontSize: 12.5 }}>{c.ten}{c.trang_thai ? <span style={{ color: 'var(--green)', fontWeight: 400 }}> · {c.trang_thai}</span> : null}</b>
+                <span style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>Kiếm tiền: {c.kiem_tien}</span>
+                <span style={{ fontSize: 11, color: 'var(--fg-3)' }}>Tiền thật: {c.bang_chung_tien} · Code: {c.dung_code}</span>
+              </span>
+              <span className="xv-mono" style={{ fontSize: 11 }}>{tvDang(c.dang) != null ? `${so(tvDang(c.dang)!)} lượt xem` : '—'}</span>
+            </button>))}</div>
+          {kho.mo_hinh_saga && <details style={{ marginTop: 8, fontSize: 12 }}><summary style={{ cursor: 'pointer' }}><b>Mô hình Saga kiếm tiền</b> — {kho.mo_hinh_saga.tom_tat}</summary>
+            <ol style={{ margin: '6px 0 0 18px', display: 'grid', gap: 3, color: 'var(--fg-2)' }}>{kho.mo_hinh_saga.buoc.map((b) => <li key={b}>{b}</li>)}</ol>
+            <div className="xv-mono" style={{ marginTop: 4 }}>nguồn: {kho.mo_hinh_saga.nguon}</div></details>}
+        </div>) : null}
       <div className="xv-mono" style={{ marginBottom: 6 }}>Dạng kênh làm được bằng code · nhu cầu = trung vị lượt xem 20 video YouTube đầu mỗi cụm tìm · {kho.nguon}</div>
       <LuoiThe rong={230}>{ds.map(({ d, tv, dau, tuoi: t, n }) => (
         <button key={d.id} type="button" className="xv-canh" onClick={() => doiChon(d.id)} title={`${d.mo_ta}\ncụm đo: ${d.cum.map((c) => `"${c.q}" ${so(c.trung_vi ?? 0)}`).join(' · ')}\n— bấm lọc ${n} prompt Opus làm được dạng này`}

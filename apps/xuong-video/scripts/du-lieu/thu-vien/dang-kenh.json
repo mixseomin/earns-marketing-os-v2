@@ -668,5 +668,99 @@
     }
    ]
   }
- ]
+ ],
+ "co_hoi_luc": "2026-11-02",
+ "co_hoi": [
+  {
+   "hang": 1,
+   "ten": "Lịch sử / \"vì sao\" kể bằng bản đồ + dòng thời gian",
+   "dang": "lich_su",
+   "bang_chung_tien": "Saga History App ~900 quảng cáo video đang chạy (83% quảng cáo video app lịch sử nút Download trên SpyPro)",
+   "dung_code": "Bản đồ SVG, mốc thời gian, nhân vật phẳng, giọng đọc",
+   "kiem_tien": "YouTube Partner + clone mô hình Saga (PWA + funnel thuê bao); affiliate sách / khoá học",
+   "trang_thai": "đang làm — kế hoạch 5 bước"
+  },
+  {
+   "hang": 2,
+   "ten": "Giải thích \"nó hoạt động thế nào\"",
+   "dang": "cach_hoat_dong",
+   "bang_chung_tien": "Hume Health, Rise Science, Guardio mua ads dạng \"explained\"",
+   "dung_code": "3D Three.js bổ đôi, sơ đồ động",
+   "kiem_tien": "YouTube ads + affiliate sản phẩm được giải thích"
+  },
+  {
+   "hang": 3,
+   "ten": "So sánh số liệu (nước, kích thước, tốc độ, giá)",
+   "dang": "so_sanh",
+   "bang_chung_tien": "Kênh kiểu \"Real Data\" sống bằng ads",
+   "dung_code": "Biểu đồ đua, vật thể xếp cạnh nhau",
+   "kiem_tien": "YouTube ads; dữ liệu công khai, mỗi ngày một tập"
+  },
+  {
+   "hang": 4,
+   "ten": "Mô phỏng vật lý Shorts (bóng thoát vòng, đua bi, cát)",
+   "dang": "vat_ly",
+   "bang_chung_tien": "Thuần organic, đỉnh 47,8 triệu lượt (Rec Ninja)",
+   "dung_code": "Dễ nhất: đổi tham số là ra video mới, không lời, mọi nước xem được",
+   "kiem_tien": "Shorts fund / ads; nhận gia công đua bi theo yêu cầu; kênh phụ chạy song song kênh 1"
+  },
+  {
+   "hang": 5,
+   "ten": "Toán học trực quan (kiểu 3Blue1Brown)",
+   "dang": "toan_hoc",
+   "bang_chung_tien": "Brilliant trả affiliate",
+   "dung_code": "Manim / canvas",
+   "kiem_tien": "Affiliate Brilliant + ads; khán giả hẹp hơn"
+  },
+  {
+   "hang": 6,
+   "ten": "\"Nếu… thì sao?\" giả định khoa học",
+   "dang": "what_if",
+   "bang_chung_tien": "Kurzgesagt bán hàng, sách",
+   "dung_code": "Được nhưng cần nhiều hình minh hoạ",
+   "kiem_tien": "Ads + hàng hoá; chủ đề hữu hạn hơn"
+  },
+  {
+   "hang": 7,
+   "ten": "Lofi loop",
+   "dang": "lofi",
+   "bang_chung_tien": "Lofi Girl bán hàng, nhạc",
+   "dung_code": "Một cảnh lặp dùng hàng giờ",
+   "kiem_tien": "Ads trên stream dài; cần nhạc sạch bản quyền, chỗ đã chật"
+  },
+  {
+   "hang": 8,
+   "ten": "Quảng cáo app / sản phẩm bằng motion graphics",
+   "dang": null,
+   "bang_chung_tien": "Doanh nghiệp trả ~10 vạn yên/clip (bài trong kho Opus); 369 prompt motion",
+   "dung_code": "Thứ kho Opus mạnh nhất",
+   "kiem_tien": "Bán dịch vụ, hoặc dựng quảng cáo cho dự án nhà (Ethopex, shop) — giảm tiền video AI ngay"
+  },
+  {
+   "hang": 9,
+   "ten": "Game HTML chơi được / phim tương tác",
+   "dang": null,
+   "bang_chung_tien": "Không đo bằng YouTube được",
+   "dung_code": "101 prompt game / tương tác",
+   "kiem_tien": "Playable ads cho app nhà, hoặc game web gắn ads"
+  },
+  {
+   "hang": 10,
+   "ten": "Thành phố thu nhỏ / quả cầu tuyết 3D",
+   "dang": "mo_hinh_tp",
+   "bang_chung_tien": "Không",
+   "dung_code": "Được",
+   "kiem_tien": "Bỏ — nhu cầu ~0"
+  }
+ ],
+ "mo_hinh_saga": {
+  "tom_tat": "Video không phải sản phẩm, chỉ là mồi. Tiền = thuê bao trả qua web.",
+  "buoc": [
+   "Quảng cáo video ~900 bài (ES > EN): kể chuyện lịch sử \"giải thích như cho trẻ 5 tuổi\", DỪNG ngay trước kết cục — \"phần còn lại ở trong Saga\"",
+   "Funnel đố vui trên web (go.kittysites.dev, nền mad-kitty.dev): Landing → chọn thời kỳ → persona → thư viện → bằng chứng xã hội → paywall",
+   "Giá: 1 tháng $9,99 · 3 tháng $19,99 · 12 tháng $39,99 (gạch $119,88), thử 7 ngày; bỏ thì chào lại năm $29,99; Stripe + Apple/Google Pay trên web, không mất 30% cho store",
+   "Sản phẩm = PWA (pwa.sagastory.me): chuyện lịch sử ngắn + câu đố, upsell \"Video Stories\""
+  ],
+  "nguon": "Mã funnel go.kittysites.dev/s9wrbmvj + SpyPro trang 1118010178067195, đọc 02/11/2026"
+ }
 }

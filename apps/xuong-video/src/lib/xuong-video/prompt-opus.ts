@@ -13,7 +13,9 @@ export const taiPromptOpus = (): Promise<KhoPromptOpus> => (hua ??= import('../.
  *  quá han_ngay thì thư viện báo cũ, chạy lại script (chỉ đo cụm quá hạn). khop = regex lọc prompt Opus làm được dạng đó. */
 export type CumDo = { q: string; do_luc?: string; n?: number; trung_vi?: number; top?: { xem: number | null; kenh: string | null; giay: number | null; ten: string; url: string }[] };
 export type DangKenh = { id: string; ten: string; mo_ta: string; khop: string; cum: CumDo[] };
-export type KhoDangKenh = { nguon: string; han_ngay: number; ds: DangKenh[] };
+/** Cơ hội kênh xếp hạng (anh 02/11/2026 "liệt kê mọi cơ hội, cái top lên đầu") — dang trỏ DangKenh.id để lấy số đo nhu cầu. */
+export type CoHoi = { hang: number; ten: string; dang: string | null; bang_chung_tien: string; dung_code: string; kiem_tien: string; trang_thai?: string };
+export type KhoDangKenh = { nguon: string; han_ngay: number; ds: DangKenh[]; co_hoi?: CoHoi[]; co_hoi_luc?: string; mo_hinh_saga?: { tom_tat: string; buoc: string[]; nguon: string } };
 let huaDang: Promise<KhoDangKenh> | null = null;
 export const taiDangKenh = (): Promise<KhoDangKenh> => (huaDang ??= import('../../../scripts/du-lieu/thu-vien/dang-kenh.json').then((m) => (m.default ?? m) as KhoDangKenh));
 /** prompt Opus thuộc một dạng (regex khop trên prompt + tên) */

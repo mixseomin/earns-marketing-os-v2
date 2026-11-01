@@ -37,7 +37,12 @@
    "que": [
     10.5,
     51
-   ]
+   ],
+   "huong": {
+    "goc": "trai",
+    "chi_tay": "phai",
+    "noi_mo": "trai"
+   }
   },
   "vua_pho": {
    "loai": "nhan_vat",
@@ -58,6 +63,10 @@
     "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/noi_dong.png",
     "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/noi_mo.png",
     "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/suy_nghi.png"
+   },
+   "huong": {
+    "goc": "trai",
+    "khoanh_tay": "thang"
    }
   },
   "kant": {
@@ -79,6 +88,10 @@
     "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/kant/noi_dong.png",
     "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/kant/noi_mo.png",
     "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/kant/suy_nghi.png"
+   },
+   "huong": {
+    "goc": "trai",
+    "suy_nghi": "trai"
    }
   },
   "stalin": {
@@ -109,6 +122,11 @@
      60,
      62
     ]
+   },
+   "huong": {
+    "goc": "trai",
+    "chi_tay": "phai",
+    "cuoi": "trai"
    }
   },
   "xe_tang": {

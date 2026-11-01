@@ -50,7 +50,7 @@ for (const s of canh) { for (const m of [...(s.c.ten || []), ...(s.c.xe || [])])
 // → máy đặt về phía quê so với ĐÍCH của cảnh (đầu mũi tên / chỗ xe tới / vòng / điểm nháy / tâm) và quay mặt về đích. Người không khai quê giữ ben khai tay.
 const KHO_QUE = JSON.parse(readFileSync(join(DIR, 'kho.json'), 'utf8')).tai_san;
 for (const s of canh) { const dich = s.c.ten?.[0]?.den ?? s.c.xe?.[0]?.den ?? s.c.vong?.[0] ?? s.c.nhay?.[0] ?? s.c.tam;
-  for (const n of s.c.nguoi || []) { const q = KHO_QUE[n.anh]?.que; if (q) { n.que = diem(q); n.dich = dich; } } }
+  for (const n of s.c.nguoi || []) { n.dich = dich; const q = KHO_QUE[n.anh]?.que; if (q) n.que = diem(q); } }
 const lo = canh.map((s) => s.c.tam[0]), la = canh.map((s) => s.c.tam[1]), zmin = Math.min(...canh.map((s) => s.c.zoom));
 const pad = 1080 / (12 * zmin); const hop = [Math.min(...lo) - pad, Math.min(...la) - pad, Math.max(...lo) + pad, Math.max(...la) + pad];
 const G = {};
@@ -88,12 +88,21 @@ canh.forEach((s, k) => { for (const n of s.c.nguoi || []) if (Array.isArray(n.da
       else if (nam != null && (nam < d.tu || nam > d.den)) lech.push(`cảnh ${k + 1} năm ${nam}: "${m.anh}" chỉ đúng ${d.tu}–${d.den}`); } });
   if (lech.length) { console.error(`✗ đạo cụ lệch thời:\n  ${[...new Set(lech)].join('\n  ')}`); process.exit(3); } }
 const cauTep = join(RA, 'cau.json');
-writeFileSync(cauTep, JSON.stringify({ DAI, nen: pathToFileURL(join(KHO, tap.nen.anh)).href, geo: G, tu, canh,
+let huong = {};
+const cauObj = { DAI, nen: pathToFileURL(join(KHO, tap.nen.anh)).href, geo: G, tu, canh,
   dia_hinh: tap.dia_hinh ? { ...tap.dia_hinh, anh: pathToFileURL(join(KHO, tap.dia_hinh.anh)).href } : null,
   nv: await (async () => { const nv = {}; for (const s of canh) for (const m of [...(s.c.nguoi || []), ...(s.c.xe || []), ...(s.c.co || [])]) {
     const ds = ['goc', ...(Array.isArray(m.dang) ? m.dang.map((x) => x[1]) : [])]; for (const d of ds) nv[`${m.anh}:${d}`] ??= pathToFileURL(await tepDang(m.anh, d)).href; }
+    // HƯỚNG MẶT từng dáng (huong-mat.swift, Vision yaw: dương = nhìn sang phải màn): đo dáng chưa có rồi ghi lại kho.json — máy dựng lật để mặt nhìn về MỤC TIÊU
+    const khoTep = join(DIR, 'kho.json'), khoJ = JSON.parse(readFileSync(khoTep, 'utf8')); let ghiKho = false; huong = {};
+    for (const [key, url] of Object.entries(nv)) { const [id, dang] = key.split(':'); const ts = khoJ.tai_san[id]; if (!ts || ts.loai !== 'nhan_vat') continue;
+      ts.huong ||= {}; if (!(dang in ts.huong)) { const out = execFileSync('swift', [join(DIR, 'huong-mat.swift'), fileURLToPath(url)], { encoding: 'utf8' }).trim().split(' ').pop();
+        const y = Number(out); ts.huong[dang] = Number.isFinite(y) ? (y > 0.08 ? 'phai' : y < -0.08 ? 'trai' : 'thang') : 'thang'; ghiKho = true; }
+      huong[key] = ts.huong[dang]; }
+    if (ghiKho) writeFileSync(khoTep, JSON.stringify(khoJ, null, 1) + '\n');
     for (const s of canh) if (s.c.tranh) { nv[s.c.tranh.anh] = pathToFileURL(join(KHO, s.c.tranh.anh)).href; if (s.c.tranh.lop) nv[s.c.tranh.lop] = pathToFileURL(join(KHO, s.c.tranh.lop)).href; }
-    return nv; })() }));
+    return nv; })() };
+cauObj.huong = huong; writeFileSync(cauTep, JSON.stringify(cauObj));
 
 // ---------- quay hình + tiếng ----------
 const dung = (them) => { const r = spawnSync(process.execPath, [join(DIR, '../shot-code/dung.mjs'), '--trang', join(DIR, 'ban-do.html'), '--cau', cauTep, '--rong', '1080', '--cao', '1920', '--fps', '30', ...them], { stdio: 'inherit' }); if (r.status) process.exit(r.status); };

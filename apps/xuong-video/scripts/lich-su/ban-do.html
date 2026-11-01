@@ -117,8 +117,11 @@ window.__seek = (t) => {
     const ds_ = Array.isArray(n.dang) ? n.dang.filter((m) => u >= m[0]) : []; const dg = ds_.length ? ds_[ds_.length - 1] : null;
     const img = NV[`${n.anh}:${dg ? dg[1] : 'goc'}`] || NV[`${n.anh}:goc`]; const nay = dg ? 1 + 0.06 * Math.max(0, 1 - (u - dg[0]) / 0.18) : 1;
     // phía + hướng theo địa lý: so quê với đích theo CAMERA CUỐI của cảnh (không đổi phía giữa lúc bay); ảnh gốc hướng phải → đứng bên phải thì lật
-    const ben = n.que && n.dich ? ((n.que[0] - n.dich[0]) * COS > 0 ? 'phai' : 'trai') : n.ben, lat = n.que && n.dich ? ben === 'phai' : n.lat;
+    // PHÍA đứng theo quê so với mục tiêu; MẶT luôn nhìn về MỤC TIÊU (đứng bên phải → nhìn trái và ngược lại) — lật theo hướng mặt THẬT của ảnh dáng (C.huong, Vision đo)
+    const ben = n.que && n.dich ? ((n.que[0] - n.dich[0]) * COS > 0 ? 'phai' : 'trai') : (n.ben || 'phai');
     const cx = dsNv.length === 1 ? (ben === 'trai' ? 300 : 780) : 250 + (i * (W - 500)) / (dsNv.length - 1);
+    const tx = n.dich ? chieu(...n.dich)[0] : W / 2, canNhin = cx < tx ? 'phai' : 'trai';   // nhìn về chỗ MỤC TIÊU đang hiện trên khung
+    const hAnh = C.huong?.[`${n.anh}:${dg ? dg[1] : 'goc'}`] ?? 'phai', lat = hAnh !== 'thang' && hAnh !== canNhin;
     if (img) { const h = 640, w = (img.width / img.height) * h, tho = 1 + 0.008 * Math.sin(u * 2.4 + i);
       x.save(); x.globalAlpha = al; x.translate(cx, H * 0.735 + (1 - al) * 120); x.scale((lat ? -1 : 1) * nay, tho * nay);
       x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 30; x.shadowOffsetY = 12; x.drawImage(img, -w / 2, -h, w, h); x.restore();

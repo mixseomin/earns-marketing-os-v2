@@ -1,8 +1,12 @@
-// Phim #1156 tập 1 · shot #7 [GAG 5] Nhịp đòn — kịch bản (luật gag mới: một trục trặc nhỏ, một động tác, đi liền):
-//   0–1.5s  còi tàu; đôi khách Tây ngồi ghế nhựa sát ray, duỗi chân qua ray, nhâm nhi cà phê, không biết gì. Bà Lụa vào từ mép trái (nối shot #6)
-//   1.5–3s  đi ngang không dừng, bà nhún đòn một cái — thúng hoa chạm ống chân; hai người co chân, kéo ghế lùi cùng một nhịp
-//   3–5.5s  đoàn tàu lướt qua đúng chỗ vừa có chân; hai người vẫn nhâm nhi, tóc bay; bà ra khỏi khung bên phải
-// Chạy: node canh/gag5-nhip-don.mjs [ra.mp4] · ảnh mốc: --moc=0,1.7,2.6,3.6,5.2
+// Phim #1156 tập 1 · shot #7 [GAG 5] Nhịp đòn — kịch bản (anh 02/11/2026: "Tây ngồi nhắc xong vẫn đứng im, chưa kịp làm gì tàu đã đến" → thêm nhịp CHỜ):
+//   0–0.9s   còi tàu xa; đôi khách Tây duỗi chân qua ray nhâm nhi cà phê. Bà Lụa đi tới (nối shot #6), nhún đòn
+//   0.9–1.6s thúng chạm ống chân → hai người giật mình co chân, kéo ghế lùi
+//   1.6–4.0s bà đi tiếp ra khỏi khung; hai người quay đầu nhìn về phía còi, CHỜ
+//   4.0–5.1s tàu lướt qua đúng chỗ vừa có chân (bà đã đi khỏi — không ai đứng trước tàu)
+//   5.1–6.5s giữ: hai người vẫn ngồi nhâm nhi, tóc bay, tỉnh bơ
+// TÀU LÀ LỚP CODE (anh: "sao tàu lại đi lùi lung tung") — mô hình video bịa vật to chuyển động nhanh; --khong-tau xuất ảnh mốc không tàu cho VideoExpress,
+// --lop-tau xuất riêng lớp tàu trong suốt (.mov) để đè lên video người đúng giây.
+// Chạy: node canh/gag5-nhip-don.mjs [ra.mp4] · --moc=0,0.9,1.6,4,6.5 --khong-tau · --lop-tau
 import { W, H, doan, em, lerp, tai, manh, bongDat, diBo, veChan, chay } from '../dung.mjs';
 
 const T = new URL('../tai/', import.meta.url).pathname;
@@ -14,12 +18,12 @@ const coCao = (img, px) => px / img.height, coRong = (img, px) => px / img.width
 // ── bố trí: ray ngang ở y≈580, thềm nhà y≈550, vỉa hè trước ray y 620–720 ──
 const RAY = 588, THEM = 572, MAT_BA = 702, SAI = 64, DAI = 104;
 const CO_BA = coCao(ba, 200), CO_DON = coRong(don, 430);
-const hxBa = (t) => -120 + 330 * t;                         // vào từ mép trái, đi đều, không dừng
+const hxBa = (t) => 200 + 340 * t;                          // đi đều, không dừng — nhún đòn lúc thúng trước ngang chân khách (~0,9s), ra khỏi khung ~4s
 const DOI = { x: 760, co: coCao(doiDuoi, 262) };
 // CHÂN GHẾ hai tư thế đặt cùng một mức thềm (đo trên mảnh: đáy ghế ở 89,2% / 92,6% chiều cao) — đổi tư thế không bị nhấc bổng; lúc duỗi, mũi giày vắt qua ray
 const DAY_GHE = { duoi: 0.892, co: 0.926 };
-const T_NHUN = [1.62, 1.92], T_CO = 1.86;                  // nhún đòn · lúc hai người co chân
-const T_TAU = [3.0, 4.15];                                  // tàu vào mép trái → đuôi ra mép phải
+const T_NHUN = [0.8, 1.05], T_CO = 1.0;                  // nhún đòn · lúc hai người co chân
+const T_TAU = [4.0, 5.1];                                  // tàu vào mép trái → đuôi ra mép phải
 const CO_TAU = coCao(tau, 300);
 
 const ba_ = (t) => {
@@ -40,14 +44,20 @@ function ve(ctx, t) {
   if (!co) manh(ctx, doiDuoi, { x: DOI.x, y: THEM, co: DOI.co, neo: [0.5, DAY_GHE.duoi], xoay: nhap * 0.2 });
   else manh(ctx, doiCo, { x: DOI.x, y: THEM, co: DOI.co, coY: nay, neo: [0.5, DAY_GHE.co] });
 
-  // tàu: lướt ngang trên ray, giữa đôi khách và bà
+  if (!KHONG_TAU) veTau(ctx, t);
+  veBa(ctx, t);
+}
+const KHONG_TAU = process.argv.includes('--khong-tau') || process.argv.includes('--lop-tau');
+/** tàu: lướt ngang trên ray từ trái sang phải, một chiều, giữa đôi khách và mép máy */
+function veTau(ctx, t) {
   const u = doan(t, T_TAU[0], T_TAU[1]);
   if (u > 0 && u < 1) {
     const w = tau.width * CO_TAU, x = lerp(-w, W + 40, u);
     ctx.save(); ctx.globalAlpha = 0.25; for (const k of [1, 2]) manh(ctx, tau, { x: x - 26 * k, y: RAY + 6, co: CO_TAU, neo: [0, 1], bong: false }); ctx.restore();   // vệt nhoè tốc độ
     manh(ctx, tau, { x, y: RAY + 6, co: CO_TAU, neo: [0, 1] });
   }
-
+}
+function veBa(ctx, t) {
   // bà (trước ray, trên vỉa hè gần máy)
   const b = ba_(t);
   if (b.hx > -260 && b.hx < W + 260) {
@@ -59,4 +69,5 @@ function ve(ctx, t) {
   }
 }
 
-await chay(ve, 5.5, 'gag5-nhip-don');
+if (process.argv.includes('--lop-tau')) { const { xuatLop } = await import('../dung.mjs'); console.log(await xuatLop(veTau, 6.5, new URL('../ra/gag5-lop-tau.mov', import.meta.url).pathname)); }
+else await chay(ve, 6.5, 'gag5-nhip-don');

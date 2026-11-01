@@ -93,3 +93,17 @@ export async function chay(ve, giay, ten) {
   const { mkdirSync } = await import('node:fs'); mkdirSync(goc, { recursive: true });
   console.log(await xuat(ve, giay, process.argv.find((a, i) => i > 1 && a.endsWith('.mp4')) ?? `${goc}${ten}.mp4`));
 }
+
+/** Xuất MỘT LỚP trong suốt (.mov, PNG có kênh alpha) — vẽ đè lên video người bằng ffmpeg overlay (vật chạy quỹ đạo: tàu, xe, ghế bay). */
+export async function xuatLop(ve, giay, ra) {
+  const c = createCanvas(W, H), ctx = c.getContext('2d');
+  const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', String(FPS), '-i', '-', '-c:v', 'png', '-pix_fmt', 'rgba', ra], { stdio: ['pipe', 'inherit', 'inherit'] });
+  for (let i = 0, n = Math.round(giay * FPS); i < n; i++) {
+    ctx.clearRect(0, 0, W, H); ve(ctx, i / FPS);
+    const buf = Buffer.from(ctx.getImageData(0, 0, W, H).data.buffer);
+    if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once('drain', r));
+  }
+  ff.stdin.end();
+  await new Promise((r, j) => ff.on('close', (code) => (code ? j(new Error(`ffmpeg ${code}`)) : r())));
+  return ra;
+}

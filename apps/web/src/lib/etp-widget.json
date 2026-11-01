@@ -1,0 +1,14 @@
+{
+  "_ghi": "SỔ WIDGET tab Tổng quan 2 etp (anh 01/11/2026: 'kéo thả tuỳ người dùng muốn hiện thế nào… template riêng… template mặc định theo mục đích'). MỘT nguồn: lưới (etp-tong2.tsx), kiểm bố cục (etp-widget.ts, chạy cả máy chủ khi lưu), template mặc định. Thêm widget = một mục ở đây + một hàm vẽ trong VE của etp-tong2.tsx (check-etp-gop-y đối chiếu hai bên).",
+  "_khoa": "cot × hang = lưới cố định cao đúng một màn (hàng co theo chiều cao cửa sổ — bố cục không bao giờ vượt màn) · widget.min / mac = [rộng cột, cao hàng] nhỏ nhất / mặc định khi thêm · template.o = ô {ma, x, y, w, h}",
+  "cot": 12,
+  "hang": 18,
+  "widget": {
+    "bieu_do_ngay": { "ten": "Biểu đồ ngày", "mo_ta": "lãi / lỗ từng ngày trong kỳ + dự kiến hôm nay + camp mới / creative mới / camp tắt", "min": [4, 4], "mac": [12, 6] },
+    "bang_ngay":    { "ten": "Bảng ngày", "mo_ta": "số từng ngày: ngân sách, chi, thu, lãi, ROI, camp có chi, camp mới, creative mới, camp tắt", "min": [6, 4], "mac": [12, 8] }
+  },
+  "template": {
+    "mac_dinh": { "ten": "Mặc định", "muc": "như tab Tổng quan cũ — biểu đồ ngày trên, bảng ngày dưới",
+                  "o": [{ "ma": "bieu_do_ngay", "x": 0, "y": 0, "w": 12, "h": 7 }, { "ma": "bang_ngay", "x": 0, "y": 7, "w": 12, "h": 11 }] }
+  }
+}

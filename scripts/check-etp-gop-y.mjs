@@ -354,6 +354,13 @@ const LUAT = [
   // anh 31/10/2026 "Chưa thấy chấm creatives của các thành viên à?": xem người khác (?ng=) phải đọc bản chấm creative trong camp người đó — runNha trả rỗng
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "using (creative_id)${crNguoi(sql`c.creative_id`)}", vi: 'bản chấm hiện khi xem thành viên' },
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', cam: "runNha<Record<string, unknown>>(sql`select c.creative_id, c.luc::text luc, c.may, c.ket", vi: 'bản chấm không được đọc chỉ-nhà' },
+  // TỔNG QUAN 2 dạng widget (anh 01/11/2026 "kéo thả… template riêng… template mặc định theo mục đích"): khối Tổng quan dùng chung một bản, widget đi từ sổ
+  { card: 'chat', tep: V, mot: "const bieuDoNgay = (h: number) => <CotAmDuong ", vi: 'biểu đồ ngày một bản cho Tổng quan + widget' },
+  { card: 'chat', tep: V, mot: "const bangNgay = <DataTable ", vi: 'bảng ngày một bản cho Tổng quan + widget' },
+  { card: 'chat', tep: V, mot: "<CotAmDuong data={ngayGanNhat", vi: 'không chép tay biểu đồ ngày lần hai' },
+  { card: 'chat', tep: 'apps/web/src/components/etp-tong2.tsx', co: "from '@/lib/etp-widget'", vi: 'lưới widget đọc sổ widget' },
+  { card: 'chat', tep: 'apps/web/src/lib/actions/etp-bo-cuc.ts', co: 'const v = hopLe(o); if (!v)', vi: 'máy chủ kiểm bố cục trước khi lưu' },
+  { card: 'chat', tep: V, co: "chiXem ? TABS.filter((t) => t !== 'tong2')", vi: 'Tổng quan 2 chỉ chủ thấy (bản thử)' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;
@@ -382,6 +389,12 @@ const loi = [];
   if (!khoa.length) loi.push('  #chat sổ luật chung — không đọc được dòng ra_ = {...} của luat-ethopex.py');
   for (const k of khoa) if (!so[k]) loi.push(`  #chat sổ luật chung thiếu khoá máy luật xuất ra: ${k} (thêm mục vào apps/web/src/lib/etp-bang-luat.json)`);
   for (const [k, v] of Object.entries(so)) if (v.nhat_ky) try { new RegExp(v.nhat_ky[1]); } catch { loi.push(`  #chat sổ luật chung: regex nhat_ky của ${k} hỏng`); } }
+// SỔ WIDGET Tổng quan 2: mọi widget trong sổ có hàm vẽ (khoá trong ve={{...}} của <Tong2>), không hàm vẽ nào ngoài sổ, template chỉ dùng widget trong sổ
+{ const so = JSON.parse(readFileSync('apps/web/src/lib/etp-widget.json', 'utf8')), v = readFileSync(V, 'utf8') + readFileSync('apps/web/src/components/etp-tong2.tsx', 'utf8');
+  const ve = new Set([...(v.match(/<Tong2 [^\n]*/)?.[0] ?? '').matchAll(/([a-z0-9_]+): \(/g), ...v.matchAll(/^  ([a-z0-9_]+): \(k\) =>/gm)].map((x) => x[1]));
+  for (const k of Object.keys(so.widget)) if (!ve.has(k)) loi.push(`  #chat sổ widget: ${k} chưa có hàm vẽ trong ve của <Tong2>`);
+  for (const k of ve) if (!so.widget[k]) loi.push(`  #chat sổ widget: hàm vẽ ${k} không có trong apps/web/src/lib/etp-widget.json`);
+  for (const [t, x] of Object.entries(so.template)) for (const o of x.o) if (!so.widget[o.ma]) loi.push(`  #chat template ${t} dùng widget ngoài sổ: ${o.ma}`); }
 for (const l of LUAT) { const e = sai(l, readFileSync(l.tep, 'utf8')); if (e) loi.push(`  #${l.card || 'chat'} ${l.vi} — ${e}`); }
 if (loi.length) {
   console.error(`✗ góp ý etp đã sửa bị quay về bản cũ (${loi.length}):\n${loi.join('\n')}\n  Sửa mã cho đúng lại — KHÔNG xoá điều kiện trong scripts/check-etp-gop-y.mjs trừ khi anh đổi ý.`);

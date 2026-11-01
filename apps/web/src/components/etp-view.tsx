@@ -11,6 +11,7 @@ import { datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
+import { Tong2 } from '@/components/etp-tong2';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 // CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
@@ -21,7 +22,7 @@ import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhanNang, PhimEtpKh
 import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 
-type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'tv' | 'tn' | 'luat';
+type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'tv' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
 const tuoiNgay = (iso: string | null | undefined) => (iso ? Math.max(0, (Date.now() - Date.parse(iso)) / 86_400_000) : null);
 const tuoiChu = (d: number | null) => (d == null ? '—' : d < 10 ? d.toFixed(1) : String(Math.floor(d)));
@@ -1986,7 +1987,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
     </div>
   );
 }
-const TABS: Tab[] = ['tong', 'camp', 'roas', 'creative', 'phim', 'tv', 'tn', 'luat'];
+const TABS: Tab[] = ['tong', 'tong2', 'camp', 'roas', 'creative', 'phim', 'tv', 'tn', 'luat'];
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'cung', 'roas'] as const;
 // ghép phần nặng tải bù vào bản nhẹ (PhanNang ở etp-doc) — component đọc du.* như cũ
 const ghepNang = (d: DuLieuEtp, x: PhanNang): DuLieuEtp => ({ ...d, nhe: false, pheu: x.pheu, diemCham: x.diemCham, thuVien: x.thuVien,
@@ -2088,7 +2089,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const tranT = tranTrung(du);
   const [nganCamp, setNganCamp] = useState<number | null>(Number(/^camp:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1]) || null);
   const [nganPhim, setNganPhim] = useState<string | null>(/^phim:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1] ?? null);   // ngăn biểu đồ cả phim (điện thoại)
-  const laNguoi = quyen?.vai === 'nguoi', tabsHien = laNguoi ? TAB_NGUOI : TABS;
+  const laNguoi = quyen?.vai === 'nguoi', tabsHien = laNguoi ? TAB_NGUOI : chiXem ? TABS.filter((t) => t !== 'tong2') : TABS;   // Tổng quan 2 (widget) chỉ chủ thấy tới khi hoàn thiện (anh 01/11/2026)
   const [tab, setTab] = useState<Tab>(tabsHien.includes(dauVao?.t as Tab) ? (dauVao!.t as Tab) : 'tong');
   // ?lu= luật · ?d= loại creative — bộ lọc giữ qua F5 (anh 27/10/2026 "bộ lọc cũng phải lưu theo F5")
   const [luatLoc, setLuatLoc] = useState(dauVao?.lu ?? '');
@@ -2258,6 +2259,20 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     return { i, v: chi * r, tu: chi * (r - 0.07), den: chi * (r + 0.07), cach: `chi ~${usd(chi)} (90% ngân sách $${ns}/ngày) × ROI ~${Math.round(r * 100)}% (TB hôm nay ${Math.round(rn * 100)}% và hôm qua ${Math.round(rq * 100)}%)` };
   })();
 
+  // khối Tổng quan: MỘT bản cho tab Tổng quan và widget Biểu đồ ngày / Bảng ngày của Tổng quan 2 (etp-tong2.tsx)
+  const bieuDoNgay = (h: number) => <CotAmDuong data={ngayGanNhat.map((r) => ({ x: `${r.ngay.slice(8, 10)}/${r.ngay.slice(5, 7)}`, v: r.thu - r.chi, phu: `chi ${usd(r.chi)} · thu ${usd(r.thu)} · ROI ${roiOf(r) ?? '—'}% · ${r.camp} camp có chi${r.ns != null ? ` · ngân sách active ${usd(r.ns)}/ngày` : ''}` }))} dinhDang={usd} height={h} duKien={duKien} duongPhu={[{ ten: 'camp mới lên', mau: '#3b82f6', gt: ngayGanNhat.map((r) => r.camp_moi) }, { ten: 'creative mới', mau: '#a855f7', gt: ngayGanNhat.map((r) => r.cr_moi) }, { ten: 'camp tắt', mau: '#f87171', gt: ngayGanNhat.map((r) => r.tat) }]} />;
+  const bangNgay = <DataTable rows={[...ngayGanNhat].reverse()} getRowKey={(r) => r.ngay} persistKey="etp-ngay" minWidth={820} columns={[
+          { key: 'ngay', header: 'Ngày', align: 'left', cell: (r) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{r.ngay.slice(8, 10)}/{r.ngay.slice(5, 7)}{r.ngay === du.nay ? <Den mau={MAU_DEN.chay} t="hôm nay, đang chạy" song /> : null}</span>, sortValue: (r) => r.ngay },
+          { key: 'ns', header: 'Ngân sách (cao nhất)', title: 'tổng ngân sách CAO NHẤT trong ngày của mọi camp có bật / có chi trong ngày (máy giảm bậc trong ngày thì vẫn tính mức trước khi giảm) — Meta cho chi vượt ngân sách ngày tới 75%, nên chi có thể cao hơn cột này', cell: (r) => (r.ns == null ? <span style={{ color: MO }}>—</span> : <Tien v={r.ns} />), sortValue: (r) => r.ns },
+          { key: 'chi', header: 'Chi', cell: (r) => <Tien v={r.chi} />, sortValue: (r) => r.chi, total: (rs) => <KeToan v={rs.reduce((a, r) => a + r.chi, 0)} /> },
+          { key: 'thu', header: 'Thu', cell: (r) => <Tien v={r.thu} />, sortValue: (r) => r.thu, total: (rs) => <KeToan v={rs.reduce((a, r) => a + r.thu, 0)} /> },
+          { key: 'lai', header: 'Lãi', cell: (r) => <LaiCot s={r} />, sortValue: (r) => r.thu - r.chi, total: (rs) => <KeToan v={rs.reduce((a, r) => a + r.thu - r.chi, 0)} /> },
+          { key: 'roi', header: 'ROI', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 },
+          { key: 'camp', header: 'Camp có chi', cell: (r) => r.camp, sortValue: (r) => r.camp },
+          { key: 'cm', header: 'Camp mới lên', cell: (r) => (r.camp_moi ? `+${r.camp_moi}` : '—'), sortValue: (r) => r.camp_moi, total: (rs) => `+${rs.reduce((a, r) => a + r.camp_moi, 0)}` },
+          { key: 'crm', header: 'Creative mới', cell: (r) => (r.cr_moi ? `+${r.cr_moi}` : '—'), sortValue: (r) => r.cr_moi, total: (rs) => `+${rs.reduce((a, r) => a + r.cr_moi, 0)}` },
+          { key: 'tat', header: 'Camp tắt', title: 'camp máy / anh tắt trong ngày (nhật ký luật)', cell: (r) => (r.tat ? <span style={{ color: '#f87171' }}>{r.tat}</span> : '—'), sortValue: (r) => r.tat, total: (rs) => String(rs.reduce((a, r) => a + r.tat, 0)) }]} />;
+
   // ô chọn lọc camp — MỘT bản cho máy tính (cùng hàng chip) và điện thoại (bảng Lọc, ba ô một hàng)
   const luatOpts = useMemo(() => { const m = new Map<string, { dac: boolean; dem: number }>(); let khong = 0;
     for (const c of du.camps) { const ch = chipMap.get(c.camp_id); if (!ch) { khong++; continue; } const x = m.get(ch.chip); if (x) x.dem++; else m.set(ch.chip, { dac: ch.dac, dem: 1 }); }
@@ -2349,7 +2364,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       <div className={gon ? 'etp-dk' : 'etp-thanh'} style={{ display: 'flex', gap: gon ? 6 : 8, alignItems: 'center', flexWrap: !gon ? 'wrap' : thap && !moLoc ? 'nowrap' : 'wrap', overflowX: gon && thap && !moLoc ? 'auto' : undefined, scrollbarWidth: 'none', margin: '8px 0', position: 'sticky', top: 0, zIndex: 5, background: 'var(--bg-0, #0b0b0c)', padding: '6px 0', rowGap: 8 }}>
         {!gon ? <style>{'.etp-thanh [data-comp="ui.Segmented"] button,.etp-thanh [data-comp="ui.Segmented"] a{white-space:nowrap}.etp-thanh>*{flex-shrink:0}'}</style> : null}
         <Segmented<Tab> value={tab} onChange={doiTab} hrefFor={(t) => urlCua({ ...hienTai, tab: t, xemCamp: 'cay', xemCr: 'hq' }).href} options={([
-          { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
+          { value: 'tong', label: 'Tổng quan' }, { value: 'tong2', label: 'Tổng quan 2', title: 'bản thử dạng widget kéo thả + template — chỉ chủ thấy tới khi hoàn thiện' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
           { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }] satisfies SegmentedOption<Tab>[]).filter((o) => tabsHien.includes(o.value))} />
         {/* ĐIỆN THOẠI: hàng 1 = tab (cuộn ngang) · hàng 2 = kiểu xem (biểu tượng) + kỳ (ô chọn) + nút Lọc; bảng lọc chỉ mở khi bấm Lọc */}
         {coKy && !lenDinh ? (gon ? kySel() : <span style={{ marginLeft: 'auto' }}>{kySel()}</span>) : null}
@@ -2387,19 +2402,11 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       </div>
       {tab === 'tong' ? (
         <div>
-          <CotAmDuong data={ngayGanNhat.map((r) => ({ x: `${r.ngay.slice(8, 10)}/${r.ngay.slice(5, 7)}`, v: r.thu - r.chi, phu: `chi ${usd(r.chi)} · thu ${usd(r.thu)} · ROI ${roiOf(r) ?? '—'}% · ${r.camp} camp có chi${r.ns != null ? ` · ngân sách active ${usd(r.ns)}/ngày` : ''}` }))} dinhDang={usd} height={260} duKien={duKien} duongPhu={[{ ten: 'camp mới lên', mau: '#3b82f6', gt: ngayGanNhat.map((r) => r.camp_moi) }, { ten: 'creative mới', mau: '#a855f7', gt: ngayGanNhat.map((r) => r.cr_moi) }, { ten: 'camp tắt', mau: '#f87171', gt: ngayGanNhat.map((r) => r.tat) }]} />
-          <DataTable rows={[...ngayGanNhat].reverse()} getRowKey={(r) => r.ngay} persistKey="etp-ngay" minWidth={820} columns={[
-            { key: 'ngay', header: 'Ngày', align: 'left', cell: (r) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>{r.ngay.slice(8, 10)}/{r.ngay.slice(5, 7)}{r.ngay === du.nay ? <Den mau={MAU_DEN.chay} t="hôm nay, đang chạy" song /> : null}</span>, sortValue: (r) => r.ngay },
-            { key: 'ns', header: 'Ngân sách (cao nhất)', title: 'tổng ngân sách CAO NHẤT trong ngày của mọi camp có bật / có chi trong ngày (máy giảm bậc trong ngày thì vẫn tính mức trước khi giảm) — Meta cho chi vượt ngân sách ngày tới 75%, nên chi có thể cao hơn cột này', cell: (r) => (r.ns == null ? <span style={{ color: MO }}>—</span> : <Tien v={r.ns} />), sortValue: (r) => r.ns },
-            { key: 'chi', header: 'Chi', cell: (r) => <Tien v={r.chi} />, sortValue: (r) => r.chi, total: (rs) => <KeToan v={rs.reduce((a, r) => a + r.chi, 0)} /> },
-            { key: 'thu', header: 'Thu', cell: (r) => <Tien v={r.thu} />, sortValue: (r) => r.thu, total: (rs) => <KeToan v={rs.reduce((a, r) => a + r.thu, 0)} /> },
-            { key: 'lai', header: 'Lãi', cell: (r) => <LaiCot s={r} />, sortValue: (r) => r.thu - r.chi, total: (rs) => <KeToan v={rs.reduce((a, r) => a + r.thu - r.chi, 0)} /> },
-            { key: 'roi', header: 'ROI', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 },
-            { key: 'camp', header: 'Camp có chi', cell: (r) => r.camp, sortValue: (r) => r.camp },
-            { key: 'cm', header: 'Camp mới lên', cell: (r) => (r.camp_moi ? `+${r.camp_moi}` : '—'), sortValue: (r) => r.camp_moi, total: (rs) => `+${rs.reduce((a, r) => a + r.camp_moi, 0)}` },
-            { key: 'crm', header: 'Creative mới', cell: (r) => (r.cr_moi ? `+${r.cr_moi}` : '—'), sortValue: (r) => r.cr_moi, total: (rs) => `+${rs.reduce((a, r) => a + r.cr_moi, 0)}` },
-            { key: 'tat', header: 'Camp tắt', title: 'camp máy / anh tắt trong ngày (nhật ký luật)', cell: (r) => (r.tat ? <span style={{ color: '#f87171' }}>{r.tat}</span> : '—'), sortValue: (r) => r.tat, total: (rs) => String(rs.reduce((a, r) => a + r.tat, 0)) }]} />
+          {bieuDoNgay(260)}
+          {bangNgay}
         </div>
+      ) : tab === 'tong2' ? (
+        <Tong2 laChu={!chiXem} ve={{ bieu_do_ngay: (k) => bieuDoNgay(k.cao), bang_ngay: () => bangNgay }} />
       ) : tab === 'roas' ? (
         <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} du={du} anh={anh} />
       ) : tab === 'camp' && xemCamp === 'lich' ? (

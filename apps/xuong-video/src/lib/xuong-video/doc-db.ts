@@ -88,9 +88,10 @@ export async function boiCanhCanh(db: Db, canhId: number) {
   const thayThem = [...ptAnchor].filter(([a, pt]) => pt >= PT_THAY && !nv.some((v) => v.ten === a)).map(([a]) => a);
   if (thayThem.length) nv.push(...await kemBienThe(db, ((await db.execute(sql`SELECT * FROM xv_nhan_vat WHERE phim_id = ${Number(r[0].p_id)} AND loai IN ('dao_cu', 'san_pham', 'nhan_vat') AND ten IN (${sql.join(thayThem.map((t) => sql`${t}`), sql`, `)})`)) as unknown as Row[]).map(mapNhanVat)));
   // Shot liền trước cùng nhánh — shot đó chọn chuyển cảnh 'lien_may' thì keyframe của nó là tham chiếu nối khung cho shot này (sinh-anh.ts).
-  const t = (await db.execute(sql`SELECT keyframe_url, ky_thuat, dan_dung, thu_tu, phan_doan FROM xv_canh WHERE tap_id = ${canh.tap_id} AND thu_tu < ${phat(canh)}
-    AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY thu_tu DESC LIMIT 1`)) as unknown as Row[];
-  const truoc = t[0] ? { thu_tu: n(t[0].thu_tu), phan_doan: s(t[0].phan_doan), keyframe_url: t[0].keyframe_url == null ? null : s(t[0].keyframe_url), ky_thuat: (t[0].ky_thuat ?? null) as Canh['ky_thuat'], dan_dung: (t[0].dan_dung ?? null) as Canh['dan_dung'] } : null;
+  const t = (await db.execute(sql`SELECT keyframe_url, keyframe_ket, ky_thuat, dan_dung, coalesce(so_hien, thu_tu)::float8 AS thu_tu, phan_doan FROM xv_canh WHERE tap_id = ${canh.tap_id} AND thu_tu < ${phat(canh)}
+    AND coalesce(nhanh, '') IN ('', ${canh.nhanh || 'A'}) ORDER BY xv_canh.thu_tu DESC LIMIT 1`)) as unknown as Row[];
+  // thu_tu = số HIỆN (2.9 / 3.1), không phải khoá xếp phát — kieu.ts › lienCon so số nguyên; keyframe_ket = khung cuối để shot con nối từ đó
+  const truoc = t[0] ? { thu_tu: n(t[0].thu_tu), phan_doan: s(t[0].phan_doan), keyframe_url: t[0].keyframe_url == null ? null : s(t[0].keyframe_url), keyframe_ket: t[0].keyframe_ket == null ? null : s(t[0].keyframe_ket), ky_thuat: (t[0].ky_thuat ?? null) as Canh['ky_thuat'], dan_dung: (t[0].dan_dung ?? null) as Canh['dan_dung'] } : null;
   // Shot MỞ CẢNH (master) của cùng phân cảnh đã có keyframe — tham chiếu bố trí bối cảnh cho các shot sau trong cảnh: đồ vật đứng đâu so với nhau,
   // nhân vật ở phía nào (Tango & Lint tập 1: #9 → #10 Tango nhảy từ trước bàn phím ra sau bàn phím vì mỗi keyframe tự dựng lại bàn).
   const m = canh.phan_doan ? (await db.execute(sql`SELECT keyframe_url, thu_tu FROM xv_canh WHERE tap_id = ${canh.tap_id} AND phan_doan = ${canh.phan_doan} AND thu_tu < ${phat(canh)}

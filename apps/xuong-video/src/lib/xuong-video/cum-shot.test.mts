@@ -1,6 +1,7 @@
 // node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/cum-shot.test.mts
 import assert from 'node:assert';
 import { chiaCum, lichCum, vaoTuCatThat, vaoLienMach, thamChieuCum, promptCumMoi, DUNG_DUOC, VAO_DAU } from './cum-shot';
+import { lienCon, noiKhungShot } from './kieu';
 
 // Cảnh Thang máy phim #353: giây phát 17 shot thật → 6 cụm theo nhịp (đến · giật thẻ · thang mở · đối đáp · quay đi · vào thang)
 const phat = [1.5, 1.5, 2, 1.5, 1.5, 1, 2, 1, 1.5, 1.5, 2, 3, 1.5, 4.7, 5, 1.5, 3];
@@ -65,9 +66,9 @@ assert.ok(p2.startsWith('A 5-second, 2-shot') && !/OBJECT STATE|\d:\d\d|Hạ/.te
 assert.ok(p2.includes('Throughout: the woman in the white silk blouse keep'), p2);
 assert.ok(p2.includes('Shot 1 (about 2 s): Close-up, static camera — the woman in the blouse hears heels and starts turning her head; then the woman in the blouse keeps turning toward the entrance'), p2);
 assert.ok(p2.includes('Shot 2 (about 3 s): Wide shot — the woman in the blouse finishes the turn; then Vivian strides in') && p2.endsWith('no on-screen text, captions, logo or watermark.'), p2);
-// không gộp: 4 góc, #3.1 → #3 cùng máy = liền; nhãn ảnh gắn ở câu định nghĩa
+// không gộp: 4 góc; #2 → #2.9 và #3.1 → #3 = liền khung (cuối trước là đầu sau, kể cả đổi cỡ cảnh), #2.9 → #3.1 = cắt thật; nhãn ảnh ở câu định nghĩa
 const p4 = promptCumMoi(bon, { gopCon: false, tag: { 'Lâm Hạ': '@image1' } });
-assert.ok(p4.startsWith('A 5-second, 4-shot') && p4.includes('Shot 2 (about 0.5 s)') && p4.includes('Shot 4 (about 2.5 s): Wide shot, same angle, continuous') && p4.includes('white silk blouse (@image1)'), p4);
+assert.ok(p4.startsWith('A 5-second, 4-shot') && p4.includes('Shot 2 (about 0.5 s)') && p4.includes('Shot 2 (about 0.5 s): Medium close-up, continuous from the last frame') && p4.includes('Shot 4 (about 2.5 s): Wide shot, continuous from the last frame') && !/Shot 3[^:]*: Wide shot, continuous/.test(p4) && p4.includes('white silk blouse (@image1)'), p4);
 // thoại: "says:" không ngoặc kép (Google: ngoặc kép → chữ trên hình)
 const pt = promptCumMoi([ps(5, 5, 5, 'mcu', 'Hạ looks up', null, [{ nhan_vat: 'Lâm Hạ', loi: '"Chị cần gì?"', dien_xuat: '' }])]);
 assert.ok(pt.includes('the woman in the blouse says: Chị cần gì?') && !pt.includes('"'), pt);
@@ -76,4 +77,9 @@ assert.ok(promptCumMoi(bon.slice(1, 3)).startsWith('A 1-second, 2-shot'));
 // giãn cho đầy clip model sinh (VideoExpress ~6 s): 5 s → 6 s, tỉ lệ giữ nguyên (2 s : 3 s → 2.5 : 3.5 làm tròn 0,5)
 const p6 = promptCumMoi(bon, { giay: 6 });
 assert.ok(p6.startsWith('A 6-second, 2-shot') && p6.includes('Shot 1 (about 2.5 s)') && p6.includes('Shot 2 (about 3.5 s)'), p6);
+// SHOT CON LIỀN KHUNG (anh 01/11/2026): cuối #2 = đầu #2.9, cuối #3.1 = đầu #3; #2.9 → #3.1 là cắt; #2 → #3 không liền
+assert.ok(lienCon(2, 2.9) && lienCon(3.1, 3) && !lienCon(2.9, 3.1) && !lienCon(2, 3) && !lienCon(3, 3));
+assert.ok(noiKhungShot(false, { thu_tu: 2 }, { thu_tu: 2.9 }) && noiKhungShot(false, { thu_tu: 3.1 }, { thu_tu: 3 }) && !noiKhungShot(false, { thu_tu: 2.9 }, { thu_tu: 3.1 }));
+// tập bật nối khung cả tập: #2.9 → #3.1 vẫn là cắt; shot thường #4 → #5 vẫn nối; shot tự chọn 'lien_may' thì nối
+assert.ok(!noiKhungShot(true, { thu_tu: 2.9 }, { thu_tu: 3.1 }) && noiKhungShot(true, { thu_tu: 4 }, { thu_tu: 5 }) && noiKhungShot(true, { thu_tu: 2.9, ky_thuat: { chuyen_canh: 'lien_may' } }, { thu_tu: 3.1 }));
 console.log('✓ cum-shot');

@@ -1,4 +1,4 @@
-import { xepPhat, phat } from './kieu';
+import { xepPhat, phat, lienCon } from './kieu';
 // NGUỒN KHÔNG GIAN CHUNG cho mọi bộ chấm (anh 24/10/2026: "còn phần nào chấm điểm ngu lại chỉ áp dụng cho phim 3D?" → "sửa triệt để luật rồi mới sửa
 // cảnh phim"). Trước đây cổng mạch tập, Murch, câu hỏi kiểm khung, soi mặt, chấm prompt đọc thẳng may_3d / khung_xam: phim KHÔNG 3D bị bỏ qua im lặng
 // hoặc được điểm mặc định. Phim không 3D có đủ dữ kiện tương đương — SƠ ĐỒ CẢNH (so-do-canh.ts, xv_tap.khong_gian.so_do + ky_thuat.sd / sd_ket từng
@@ -81,9 +81,10 @@ export const TAM_VOI = 1.0; export const LECH_CHEN = 45; const CHAM = /\b(touch\
 /** Bậc cỡ cảnh (luật 30° / 2 bậc) — dùng chung 3D (bo-set-3d) và 2D. */
 export const BAC_CO: Record<string, number> = { ews: 0, ws: 1, two: 2, ms: 2, pov: 2, ots: 3, mcu: 3, cu: 4, insert: 4, ecu: 5 };
 export const gocLech = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360 - 180);
-/** MỘT LẦN QUAY LIỀN, không phải cú cắt: shot con và shot cha (cùng số nguyên — 2 ↔ 2.9, 3.1 ↔ 3) đứng liền nhau CÙNG máy (khung cuối trước = khung
- *  đầu sau) → không áp luật nối cắt (30°, trục, nhìn → thấy) giữa hai đoạn. Shot con đổi máy (2 → 2.9 khác góc) vẫn là cú cắt, vẫn bị kiểm. */
-export const lienMay = (a: ShotKg, c: ShotKg): boolean => Math.floor(a.thu_tu) === Math.floor(c.thu_tu) && a.thu_tu !== c.thu_tu && sdLuc(a, 'ket')?.may === sdLuc(c, 'dau')?.may && sdLuc(c, 'dau')?.may != null;
+/** MỘT LẦN QUAY LIỀN, không phải cú cắt: shot con và shot cha (cùng số nguyên — 2 → 2.9, 3.1 → 3) đứng liền nhau = khung cuối trước LÀ khung đầu sau
+ *  (anh 01/11/2026: luôn luôn, 100% — kieu.ts › lienCon) → không áp luật nối cắt (30°, trục, nhìn → thấy) giữa hai đoạn; máy đổi cỡ trong shot con là
+ *  máy chạy liền từ khung đó. #2.9 → #3.1 (khác số nguyên) là cú cắt thật, vẫn bị kiểm. */
+export const lienMay = (a: ShotKg, c: ShotKg): boolean => lienCon(a.thu_tu, c.thu_tu);
 
 /** LỖI MẠCH TẬP từ sơ đồ (thay cho bo-set-3d › loiMachTap khi shot không có 3D). Câu mang từ khoá để diem-murch › loai xếp đúng tiêu chí:
  *  "qua trục liền nhau" → mặt phẳng màn hình · "NHÌN → THẤY" → truyện (chuỗi chú ý) · "TỔNG THỂ" → truyện · "đứt mạch" → không gian. */

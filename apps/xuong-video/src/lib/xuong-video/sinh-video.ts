@@ -26,7 +26,7 @@ import { chupTruoc } from './hoan-tac';
 import { soiClipCanh, khungDauThieuSp } from './soi-clip';
 import { chamMayCanh } from './cham-may';
 import { sinhGiongShots } from './sinh-giong';
-import { type Canh, type TapHoSo, chatLieuPhim, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
+import { type Canh, type TapHoSo, chatLieuPhim, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, lienCon, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { cauKhongKhi } from './khan-gia';
 import { doiTayDo, cauDoiTayVideo, thieuCachThao } from './thao-do';
 import { boiCanhCanh, canhDaThayThe, taoJob, xongJob, mapJob, giaVideoSv, s, mapCanh, type Db, type Row } from './doc-db';
@@ -165,12 +165,15 @@ export async function catCuoiClip(url: string, anhChuoi: string, anhKet: string)
   return A[0] && B[0] ? tinhCatCuoi(F, A[0], B[0], 24) : null;
 }
 export async function khungCuoiCanh(db: Db, canhId: number): Promise<string | null> {
-  // Keyframe KẾT của chính shot (sinh từ khung màu chỗ kết của bản 3D) thắng mọi nguồn khác: video phải đi đúng từ chỗ mở tới chỗ kết.
-  const kk = (await db.execute(sql`SELECT keyframe_ket FROM xv_canh WHERE id = ${canhId}`)) as unknown as Row[];
-  if (kk[0]?.keyframe_ket) return s(kk[0].keyframe_ket);
-  const ke = (await db.execute(sql`SELECT c2.keyframe_url, t.noi_khung, c.ky_thuat FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id
-    LEFT JOIN LATERAL (SELECT keyframe_url FROM xv_canh x WHERE x.tap_id = c.tap_id AND x.thu_tu > c.thu_tu ORDER BY x.thu_tu LIMIT 1) c2 ON true WHERE c.id = ${canhId}`)) as unknown as Row[];
-  return ke[0] && noiKhungShot(ke[0].noi_khung === true, { ky_thuat: ke[0].ky_thuat as { chuyen_canh?: string } | null }) && ke[0].keyframe_url ? s(ke[0].keyframe_url) : null;
+  // Thứ tự: SHOT CON LIỀN KHUNG (kieu.ts › lienCon — cuối #2 = đầu #2.9, cuối #3.1 = đầu #3, 100%) thắng tất cả · rồi keyframe KẾT của chính shot
+  // (khung màu chỗ kết của bản 3D: video đi đúng từ chỗ mở tới chỗ kết) · rồi nối khung theo tập / 'lien_may'.
+  const ke = (await db.execute(sql`SELECT c.keyframe_ket, coalesce(c.so_hien, c.thu_tu)::float8 AS so, c2.so AS so_sau, c2.keyframe_url, t.noi_khung, c.ky_thuat FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id
+    LEFT JOIN LATERAL (SELECT keyframe_url, coalesce(so_hien, thu_tu)::float8 AS so FROM xv_canh x WHERE x.tap_id = c.tap_id AND x.thu_tu > c.thu_tu ORDER BY x.thu_tu LIMIT 1) c2 ON true
+    WHERE c.id = ${canhId}`)) as unknown as Row[];
+  const r = ke[0]; if (!r) return null;
+  if (r.keyframe_url && r.so_sau != null && lienCon(Number(r.so), Number(r.so_sau))) return s(r.keyframe_url);
+  if (r.keyframe_ket) return s(r.keyframe_ket);
+  return noiKhungShot(r.noi_khung === true, { thu_tu: Number(r.so), ky_thuat: r.ky_thuat as { chuyen_canh?: string } | null }, r.so_sau == null ? null : { thu_tu: Number(r.so_sau) }) && r.keyframe_url ? s(r.keyframe_url) : null;
 }
 
 /** Veo trên Google → cùng model trên fal (dự phòng khi Google hết lượt/ngày). Id đã kiểm tồn tại trên fal.ai/models 15/10/2026. */

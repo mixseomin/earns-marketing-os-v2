@@ -490,10 +490,19 @@ export const giayPhat = (c: Pick<Canh, 'phat_s' | 'thoi_luong_s'> & { cat_cuoi_s
   const g = c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4;
   return c.cat_cuoi_s && c.cat_cuoi_s > 0 ? Math.min(g, c.cat_cuoi_s) : g;
 };
+/** SHOT CON LIỀN KHUNG (anh 01/11/2026): cùng số nguyên, đứng liền nhau theo thứ tự phát — cuối #2 LUÔN là đầu #2.9 (đoạn cuối shot cha), cuối #3.1
+ *  LUÔN là đầu #3 (đoạn dẫn vào shot cha), 100% khung. Giữa #2.9 → #3.1 (khác số nguyên) là cú cắt thật, không nối. Số = số HIỆN (so_hien ?? thu_tu). */
+export const lienCon = (truoc: number, sau: number): boolean => Math.floor(truoc) === Math.floor(sau) && truoc !== sau;
 /** Clip của shot này kết bằng keyframe shot sau? Cả tập bật nối khung (tap.noi_khung), HOẶC riêng shot chọn chuyển cảnh 'lien_may' (shot sau
- *  tiếp đúng giây cuối, cùng nơi). MỘT luật cho lúc sinh clip (sinh-video.ts), sơ đồ nối/phụ thuộc và tham chiếu keyframe shot sau (sinh-anh.ts). */
-export const noiKhungShot = (tapNoiKhung: boolean, c: { ky_thuat?: { chuyen_canh?: string } | null } | null | undefined): boolean =>
-  tapNoiKhung || c?.ky_thuat?.chuyen_canh === 'lien_may';
+ *  tiếp đúng giây cuối, cùng nơi), HOẶC shot sau là shot con liền khung (lienCon). MỘT luật cho lúc sinh clip (sinh-video.ts), sơ đồ nối/phụ thuộc
+ *  và tham chiếu keyframe shot sau (sinh-anh.ts). */
+export const noiKhungShot = (tapNoiKhung: boolean, c: { thu_tu?: number; ky_thuat?: { chuyen_canh?: string } | null } | null | undefined, sau?: { thu_tu?: number } | null): boolean => {
+  const a = c?.thu_tu, b = sau?.thu_tu; const chon = c?.ky_thuat?.chuyen_canh === 'lien_may';
+  if (a != null && b != null && lienCon(a, b)) return true;
+  // #2.9 → #3.1: hai shot con khác số nguyên = cú cắt dựng sẵn giữa hai shot cha — nối khung CẢ TẬP không áp, chỉ khi chính shot chọn 'lien_may'
+  if (a != null && b != null && a !== Math.floor(a) && b !== Math.floor(b)) return chon;
+  return tapNoiKhung || chon;
+};
 /** Thời lượng mục tiêu mặc định theo loại phim (giây). */
 export const thoiLuongMacDinh = (loai: LoaiPhim): number => (loai === 'quang_cao' ? 30 : loai === 'short' ? 40 : 60);
 /** Các nhánh hook của tập ('' = thân chung không tính). */

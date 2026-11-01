@@ -10,7 +10,7 @@ import { promptCatNen, MAU_XANH_NEN } from './cat-nen';
 import { promptCamXuc } from './am-thanh';
 import { promptBieuCam, cauNuocMat } from './qc-cam-xuc';
 import { promptKyThuatAnh } from './dien-anh';
-import { chatLieuPhim, docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, camCongCuVe, laTayNguoi, MO_HINH_ANH, type BienThe, type Canh, type KhungXam, type KinhThanh, type May3d, type NhanVat } from './kieu';
+import { chatLieuPhim, docKinhThanh, thanhPhanCanh, chanChuModel, phongCachHinh, locNhanh, noiKhungShot, lienCon, camCongCuVe, laTayNguoi, MO_HINH_ANH, type BienThe, type Canh, type KhungXam, type KinhThanh, type May3d, type NhanVat } from './kieu';
 import { damBaoAnhMat, demMat } from './soi-mat';
 import { cauHoiKhung } from './cau-hoi-khung';
 import { chanTienKy, chanShot, phimQt } from './quy-trinh';
@@ -274,7 +274,8 @@ export function chuanBiKeyframe(bc: NonNullable<Awaited<ReturnType<typeof boiCan
   if (moUrl) { urlRef.push(moUrl); vai.push({ url: moUrl, nhan: '▶ khung mở của chính shot' }); }
   const moChu = moUrl ? `Image ${urlRef.length} = the START frame of this very shot: same characters, look, materials, lighting and set — this new image is the same shot at its LAST moment, everyone moved to where Image 1 shows them.` : '';
   const tr = bc.truoc;
-  const noi = !ket && tr?.keyframe_url && noiKhungShot(false, tr) && urlRef.length < toiDaRef ? tr.keyframe_url : null;
+  // shot con liền khung (kieu.ts › lienCon: #2 → #2.9): ảnh này nối từ khung CUỐI shot trước (keyframe kết nếu có), không phải khung mở
+  const noi = !ket && tr?.keyframe_url && noiKhungShot(false, tr, bc.canh) && urlRef.length < toiDaRef ? (lienCon(tr.thu_tu, bc.canh.thu_tu) && tr.keyframe_ket) || tr.keyframe_url : null;
   if (noi) { urlRef.push(noi); vai.push({ url: noi, nhan: `⛓ khung shot #${tr!.thu_tu} (liền máy)` }); }
   const noiChu = noi ? `Image ${urlRef.length} = the frame just before this one (the same continuous moment): keep the same place, camera side, lighting, and every character's and object's position and state; show only the next instant of the action described.` : '';
   // CÙNG CẢNH: keyframe shot mở cảnh làm tham chiếu BỐ TRÍ (không phải khung hình) — mọi shot trong cảnh đứng trên cùng một bộ set như stop-motion thật.

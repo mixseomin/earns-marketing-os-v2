@@ -2,7 +2,7 @@
 // mỗi shot một clip (A) đổi mặt / sảnh / vết áo ở MỌI đường cắt; quay rộng một lần + cận chèn (B) hỏng đúng chỗ cận sinh riêng; một clip có danh sách
 // góc + "hard cut" (C) giữ cùng người, cùng sảnh, cùng đồ qua 4 góc và tốn 1 clip thay 4. Ngành gọi là coverage trong một take / multi-cam:
 // liên tục do cùng một lần diễn, không do khớp từng shot rời. Module thuần: chia cụm, lịch giây trong clip, prompt, đổi điểm cắt đo được → vao_s.
-import { giayPhat, phat, type Canh, type NhanVat } from './kieu';
+import { giayPhat, lienCon, phat, type Canh, type NhanVat } from './kieu';
 import type { LookMang } from './bo-set-3d';
 import { nhanNhin, thayTenNhan } from './prompt-khoi';
 import { kyThuat } from './dien-anh';
@@ -93,11 +93,11 @@ export function promptCumMoi(cum: readonly { canh: Canh; nhanVat: NhanVat[]; loo
   const shot = nhom.map(({ canh: c, nhanVat, cau, mayCau, giay }, i) => {
     const co = CO_CANH[c.ky_thuat?.co_canh ?? ''] ?? c.ky_thuat?.co_canh ?? 'medium shot';
     const may = kyThuat(c.ky_thuat?.chuyen_dong, 'chuyen_dong')?.prompt || mayCau.toLowerCase();
-    const t = nhom[i - 1]?.canh;   // shot con cùng máy với cha (đứng trước hay sau cha) = quay liền, không cắt
-    const lien = !!t && (t.id === c.con_cua || t.con_cua === c.id) && t.ky_thuat?.co_canh === c.ky_thuat?.co_canh;
+    const t = nhom[i - 1]?.canh;   // shot con liền shot cha (#2 → #2.9, #3.1 → #3) = khung cuối trước LÀ khung đầu sau (kieu.ts › lienCon), không cắt
+    const lien = !!t && lienCon(t.thu_tu, c.thu_tu);
     const dong = dongThoai(c, nhanVat).filter((d) => d.loi.trim() && d.nhan_vat.trim() && !laLoiDan(d.dien_xuat));
     const loi = dong.length ? dong.map((d) => `${d.nhan_vat} says: ${d.loi.trim().replace(/["“”]/g, '')}`).join('; ') : cauMiengShot(c, nhanVat);
-    return thay(`Shot ${i + 1} (about ${nua(giay * k)} s): ${co[0]!.toUpperCase()}${co.slice(1)}${lien ? ', same angle, continuous' : ''}${may ? `, ${may}` : ''} — ${cau.join('; then ')}${loi ? `; ${loi}` : ''}.`);
+    return thay(`Shot ${i + 1} (about ${nua(giay * k)} s): ${co[0]!.toUpperCase()}${co.slice(1)}${lien ? ', continuous from the last frame of the previous shot, no cut' : ''}${may ? `, ${may}` : ''} — ${cau.join('; then ')}${loi ? `; ${loi}` : ''}.`);
   });
   const dinh = nhan.length ? `Throughout: ${nhan.map((n) => `${n.day}${o.tag?.[n.ten] ? ` (${o.tag[n.ten]})` : ''}`).join(' and ')} keep the same face, hair, wardrobe and props in every shot; same location and light.` : 'Same location and light in every shot.';
   return [`A ${nua(tongGiay * k)}-second, ${nhom.length}-shot vertical film sequence${nhom.length > 1 ? ' cutting between angles' : ''}, one continuous moment.`, dinh, ...shot,

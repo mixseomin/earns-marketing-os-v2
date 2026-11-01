@@ -14,30 +14,44 @@
     "https://en.wikipedia.org/wiki/K%C3%B6nigsberg — thành lập 1255 bởi Hiệp sĩ Teuton, tên theo vua Ottokar II (núi của Vua); thủ phủ Công quốc Phổ từ 1525; Friedrich I đăng quang 1701",
     "https://en.wikipedia.org/wiki/Immanuel_Kant — sống gần như cả đời ở Königsberg",
     "https://en.wikipedia.org/wiki/Potsdam_Conference — 1945 giao Königsberg cho Liên Xô quản lý",
-    "https://en.wikipedia.org/wiki/Kaliningrad — đổi tên 1946 theo Mikhail Kalinin; người Đức còn lại bị trục xuất 1947–1948; từ 1991 là vùng tách rời, giáp Ba Lan và Litva"
+    "https://en.wikipedia.org/wiki/Kaliningrad — đổi tên 1946 theo Mikhail Kalinin; người Đức còn lại bị trục xuất 1947–1948; từ 1991 là vùng tách rời, giáp Ba Lan và Litva",
+    "https://en.wikipedia.org/wiki/Frederick_I_of_Prussia — tự đội vương miện ở Königsberg ngày 18/01/1701",
+    "https://en.wikipedia.org/wiki/Immanuel_Kant — giảng dạy ở Đại học Königsberg từ 1755, giáo sư 1770"
   ],
   "cau": [
     {
       "chu": "Russia owns a piece of Europe that isn't even connected to Russia.",
       "canh": {
         "tam": [
-          33,
-          56
+          21.5,
+          55
         ],
-        "zoom": 2.2,
+        "zoom": 6,
         "to": [
           {
             "iso": "RUS",
             "mau": "#9e2b25"
           }
         ],
-        "nhay": [
-          [
-            20.5,
-            54.7
-          ]
-        ],
-        "chu_to": "RUSSIA… IN THE MIDDLE OF EUROPE?"
+        "chu_to": "WHY DOES RUSSIA OWN THIS?",
+        "mo": {
+          "tu_tam": [
+            45,
+            52
+          ],
+          "tu_zoom": 2.6
+        },
+        "vong": [
+          {
+            "iso": "RUS",
+            "vung": [
+              19,
+              54,
+              23,
+              56
+            ]
+          }
+        ]
       }
     },
     {
@@ -61,11 +75,11 @@
           },
           {
             "iso": "POL",
-            "mau": "#d9c39a"
+            "mau": "#c8763a"
           },
           {
             "iso": "LTU",
-            "mau": "#c9b48a"
+            "mau": "#d8b25a"
           }
         ],
         "nhan": [
@@ -149,13 +163,24 @@
         ],
         "nguoi": [
           {
-            "o": [
-              21.6,
-              54.4
-            ],
-            "mu": "mu_sat",
-            "mau": "#f4f1e8",
-            "ten": "Teutonic Knights"
+            "anh": "hiep_si",
+            "ten": "Teutonic Knights",
+            "ben": "phai"
+          }
+        ],
+        "co": [
+          {
+            "anh": "co_teuton",
+            "o": {
+              "iso": "RUS",
+              "vung": [
+                19,
+                54,
+                23,
+                56
+              ]
+            },
+            "tre": 1.2
           }
         ]
       }
@@ -192,22 +217,33 @@
         ],
         "nguoi": [
           {
-            "o": [
-              20.6,
-              54.0
-            ],
-            "mu": "vuong_mien",
-            "mau": "#3f5c7a",
-            "ten": "King"
+            "anh": "vua_pho",
+            "ten": "Frederick I",
+            "tre": 0.6
           },
           {
-            "o": [
-              22.3,
-              54.0
-            ],
-            "mu": "toc_gia",
-            "mau": "#7a6a55",
-            "ten": "Kant"
+            "anh": "kant",
+            "ten": "Immanuel Kant",
+            "tre": 4.6
+          }
+        ],
+        "nam_sau": [
+          4.4,
+          1770
+        ],
+        "co": [
+          {
+            "anh": "co_phu",
+            "o": {
+              "iso": "RUS",
+              "vung": [
+                19,
+                54,
+                23,
+                56
+              ]
+            },
+            "tre": 0.8
           }
         ]
       }
@@ -239,22 +275,59 @@
               32,
               54
             ],
-            "den": [
-              21,
-              54.7
-            ],
+            "den": {
+              "iso": "RUS",
+              "vung": [
+                19,
+                54,
+                23,
+                56
+              ]
+            },
             "mau": "#9e2b25"
           }
         ],
         "nguoi": [
           {
-            "o": [
-              28.5,
-              55.6
+            "anh": "stalin",
+            "ten": "Stalin",
+            "ben": "trai"
+          }
+        ],
+        "xe": [
+          {
+            "anh": "xe_tang",
+            "tu": [
+              32,
+              54
             ],
-            "mu": "mu_quan",
-            "mau": "#9e2b25",
-            "ten": "Stalin"
+            "den": {
+              "iso": "RUS",
+              "vung": [
+                19,
+                54,
+                23,
+                56
+              ]
+            },
+            "tre": 0.4,
+            "giay": 2.6,
+            "cao": 130
+          }
+        ],
+        "co": [
+          {
+            "anh": "co_lien_xo",
+            "o": {
+              "iso": "RUS",
+              "vung": [
+                19,
+                54,
+                23,
+                56
+              ]
+            },
+            "tre": 3.2
           }
         ]
       }
@@ -286,8 +359,30 @@
               20.5,
               54.71
             ],
-            "chu": "Königsberg → Kaliningrad",
+            "chu": "Kaliningrad",
             "ghim": true
+          },
+          {
+            "o": [
+              20.5,
+              54.35
+            ],
+            "chu": "(Königsberg)"
+          }
+        ],
+        "co": [
+          {
+            "anh": "co_lien_xo",
+            "o": {
+              "iso": "RUS",
+              "vung": [
+                19,
+                54,
+                23,
+                56
+              ]
+            },
+            "tre": 0.4
           }
         ]
       }
@@ -365,30 +460,35 @@
           }
         ],
         "nhay": [
-          [
-            20.5,
-            54.7
-          ]
+          {
+            "iso": "RUS",
+            "vung": [
+              19,
+              54,
+              23,
+              56
+            ]
+          }
         ],
         "nhan": [
           {
             "o": [
-              20.5,
-              54.15
+              20.4,
+              54.05
             ],
             "chu": "cut off"
           },
           {
             "o": [
-              24,
-              55.35
+              24.2,
+              54.85
             ],
             "chu": "LITHUANIA"
           },
           {
             "o": [
-              25,
-              56.9
+              25.6,
+              56.75
             ],
             "chu": "LATVIA"
           },
@@ -405,6 +505,28 @@
               55.8
             ],
             "chu": "RUSSIA"
+          }
+        ],
+        "co": [
+          {
+            "anh": "co_nga",
+            "o": {
+              "iso": "RUS",
+              "vung": [
+                19,
+                54,
+                23,
+                56
+              ]
+            },
+            "tre": 1.0
+          },
+          {
+            "anh": "co_litva",
+            "o": {
+              "iso": "LTU"
+            },
+            "tre": 1.4
           }
         ]
       }
@@ -431,13 +553,91 @@
           }
         ],
         "nhay": [
-          [
-            20.5,
-            54.7
-          ]
+          {
+            "iso": "RUS",
+            "vung": [
+              19,
+              54,
+              23,
+              56
+            ]
+          }
         ],
-        "ket": "PART 2 →"
+        "ket": "PART 2"
       }
     }
-  ]
+  ],
+  "dia_hinh": {
+    "anh": "dia-hinh-eu.jpg",
+    "lon": [
+      -30,
+      120
+    ],
+    "lat": [
+      20,
+      82
+    ],
+    "nguon": "Natural Earth NE1_HR_LC_SR_W (public domain), cắt lon -30..120, lat 20..82 (60 px/độ)"
+  },
+  "nhan_vat": {
+    "hiep_si": {
+      "tep": "nv/hiep_si.png",
+      "tu": 1190,
+      "den": 1525,
+      "ghi": "Hiệp sĩ Teuton, áo choàng trắng chữ thập đen"
+    },
+    "vua_pho": {
+      "tep": "nv/vua_pho.png",
+      "tu": 1701,
+      "den": 1713,
+      "ghi": "Friedrich I, vua Phổ 1701–1713"
+    },
+    "kant": {
+      "tep": "nv/kant.png",
+      "tu": 1755,
+      "den": 1804,
+      "ghi": "Kant giảng dạy ở Königsberg từ 1755, mất 1804"
+    },
+    "stalin": {
+      "tep": "nv/stalin.png",
+      "tu": 1924,
+      "den": 1953
+    },
+    "xe_tang": {
+      "tep": "nv/xe_tang.png",
+      "tu": 1944,
+      "den": 1960,
+      "ghi": "T-34-85 vào biên chế 1944"
+    },
+    "co_teuton": {
+      "tep": "co/teuton.png",
+      "tu": 1224,
+      "den": 1525,
+      "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_State_of_the_Teutonic_Order.svg"
+    },
+    "co_phu": {
+      "tep": "co/phu_1701.png",
+      "tu": 1701,
+      "den": 1750,
+      "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_Kingdom_of_Prussia_(1701-1750).svg"
+    },
+    "co_lien_xo": {
+      "tep": "co/lien_xo.png",
+      "tu": 1923,
+      "den": 1991,
+      "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_Soviet_Union.svg"
+    },
+    "co_nga": {
+      "tep": "co/nga.png",
+      "tu": 1991,
+      "den": 2100,
+      "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_Russia.svg"
+    },
+    "co_litva": {
+      "tep": "co/litva.png",
+      "tu": 1990,
+      "den": 2100,
+      "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_Lithuania.svg"
+    }
+  }
 }

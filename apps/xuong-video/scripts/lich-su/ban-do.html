@@ -121,6 +121,18 @@ window.__seek = (t) => {
       x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 30; x.shadowOffsetY = 12; x.drawImage(img, -w / 2, -h, w, h); x.restore();
       x.globalAlpha = al; chuVien(n.ten, cx, H * 0.735 + 34 + (1 - al) * 120, 36, '#2b1d10'); x.globalAlpha = 1; }
     else { const [px, py] = chieu(...n.o); x.globalAlpha = al; nguoi(px, py + (1 - al) * 60, n.mu, n.mau, n.ten, u); x.globalAlpha = 1; } });
+  // TRANH CẢNH đầy khung chen giữa bản đồ (tranh.tu → tranh.den, giây trong cảnh): máy đẩy chậm, lớp nhân vật trước trôi lệch nền (chiều sâu),
+  // bụi bay trong nắng, chuyển mềm 0,35 s — bản đồ kể "ở đâu", tranh kể "chuyện gì"
+  const tr_ = s.c.tranh; if (tr_ && u > tr_.tu - 0.35 && u < tr_.den + 0.35) { const img = NV[tr_.anh]; if (img) {
+    const al = kep((u - tr_.tu + 0.35) / 0.35) * kep((tr_.den + 0.35 - u) / 0.35), k5 = kep((u - tr_.tu) / Math.max(1, tr_.den - tr_.tu));
+    const sc0 = Math.max(W / img.width, H / img.height), z = sc0 * (1.04 + 0.09 * k5), ox = (W - img.width * z) / 2 + (tr_.lia ?? -20) * k5, oy = (H - img.height * z) / 2;
+    x.save(); x.globalAlpha = al; x.drawImage(img, ox, oy, img.width * z, img.height * z);
+    const lop = tr_.lop && NV[tr_.lop]; if (lop) { const z2 = z * (1 + 0.035 * k5), b = tr_.lop_hop, cxl = (b.x + b.w / 2), cyl = b.y + b.h;
+      x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 24; x.drawImage(lop, ox + cxl * z - (b.w / 2) * z2 + 26 * k5, oy + cyl * z - b.h * z2, b.w * z2, b.h * z2); x.shadowBlur = 0; }
+    x.globalCompositeOperation = 'lighter'; for (let i = 0; i < 70; i++) { const px = ((i * 137.5) % W + u * (12 + (i % 7) * 4)) % W, py = ((i * 263.1) % H + Math.sin(u * 0.8 + i) * 30), a2 = 0.25 + 0.25 * Math.sin(u * 2 + i);
+      x.fillStyle = `rgba(255,230,180,${Math.max(0, a2) * al})`; x.beginPath(); x.arc(px, py, 1.6 + (i % 4), 0, 7); x.fill(); }
+    x.restore();
+    const v2 = x.createLinearGradient(0, H * 0.7, 0, H); v2.addColorStop(0, 'rgba(0,0,0,0)'); v2.addColorStop(1, `rgba(0,0,0,${0.55 * al})`); x.fillStyle = v2; x.fillRect(0, H * 0.7, W, H * 0.3); } }
   // năm: đếm từ năm cảnh trước tới năm cảnh này
   const namTr = tr?.c.nam_sau?.[1] ?? tr?.c.nam ?? s.c.nam; let nam = s.c.nam != null ? Math.round((namTr ?? s.c.nam) + (s.c.nam - (namTr ?? s.c.nam)) * out(kep(u / 1.2))) : null;
   if (s.c.nam_sau && u >= s.c.nam_sau[0]) nam = Math.round(s.c.nam + (s.c.nam_sau[1] - s.c.nam) * out(kep((u - s.c.nam_sau[0]) / 1.2)));   // năm đổi giữa cảnh (vd 1701 → 1770 khi Kant bước vào)   // cảnh không khai năm = không hiện ô năm (không bịa mốc)

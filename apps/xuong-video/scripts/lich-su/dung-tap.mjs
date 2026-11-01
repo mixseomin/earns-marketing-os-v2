@@ -70,6 +70,10 @@ const tepDang = async (id, dang) => { const d = DC[id]; if (d.tep) return join(K
   const f = join(KHO, 'r2', id, `${dang in (d.dang || {}) ? dang : 'goc'}.png`); if (!existsSync(f)) { mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, Buffer.from(await (await fetch(u)).arrayBuffer())); } return f; };
 // dáng theo CHỮ của giọng: {chu, dang} → [giây trong cảnh, dáng] (chữ đầu tiên trùng trong câu của cảnh, so không dấu câu)
 const chuan = (w) => w.toLowerCase().replace(/[^\p{L}\p{N}'-]/gu, '');
+// tranh cảnh: {anh, tu_chu, den_chu} → giây trong cảnh (chữ đầu khớp trong câu; den = hết chữ đó + 0,4 s)
+canh.forEach((s, k) => { const t = s.c.tranh; if (!t) return; const tim = (c) => { const w = tu.find((x) => x.cau === k && chuan(x.chu) === chuan(c)); if (!w) throw new Error(`cảnh ${k + 1}: tranh không thấy chữ "${c}"`); return w; };
+  t.tu = t.tu_chu ? Math.max(0, tim(t.tu_chu).a - s.bd - 0.2) : (t.tu ?? 0); t.den = t.den_chu ? tim(t.den_chu).b - s.bd + 0.4 : (t.den ?? (s.kt - s.bd));
+  if (t.lop_hop_tep) t.lop_hop = JSON.parse(readFileSync(join(KHO, t.lop_hop_tep), 'utf8')); });
 canh.forEach((s, k) => { for (const n of s.c.nguoi || []) if (Array.isArray(n.dang)) n.dang = n.dang.map((m) => { const w = tu.find((x) => x.cau === k && chuan(x.chu) === chuan(m.chu)); if (!w) throw new Error(`cảnh ${k + 1}: không thấy chữ "${m.chu}" để đổi dáng`); return [Math.max(0, w.a - s.bd - 0.15), m.dang]; }); });
 { const lech = []; let namTruoc = null;
   canh.forEach((s, k) => { const n0 = s.c.nam ?? namTruoc; namTruoc = s.c.nam_sau?.[1] ?? n0;
@@ -82,7 +86,9 @@ const cauTep = join(RA, 'cau.json');
 writeFileSync(cauTep, JSON.stringify({ DAI, nen: pathToFileURL(join(KHO, tap.nen.anh)).href, geo: G, tu, canh,
   dia_hinh: tap.dia_hinh ? { ...tap.dia_hinh, anh: pathToFileURL(join(KHO, tap.dia_hinh.anh)).href } : null,
   nv: await (async () => { const nv = {}; for (const s of canh) for (const m of [...(s.c.nguoi || []), ...(s.c.xe || []), ...(s.c.co || [])]) {
-    const ds = ['goc', ...(Array.isArray(m.dang) ? m.dang.map((x) => x[1]) : [])]; for (const d of ds) nv[`${m.anh}:${d}`] ??= pathToFileURL(await tepDang(m.anh, d)).href; } return nv; })() }));
+    const ds = ['goc', ...(Array.isArray(m.dang) ? m.dang.map((x) => x[1]) : [])]; for (const d of ds) nv[`${m.anh}:${d}`] ??= pathToFileURL(await tepDang(m.anh, d)).href; }
+    for (const s of canh) if (s.c.tranh) { nv[s.c.tranh.anh] = pathToFileURL(join(KHO, s.c.tranh.anh)).href; if (s.c.tranh.lop) nv[s.c.tranh.lop] = pathToFileURL(join(KHO, s.c.tranh.lop)).href; }
+    return nv; })() }));
 
 // ---------- quay hình + tiếng ----------
 const dung = (them) => { const r = spawnSync(process.execPath, [join(DIR, '../shot-code/dung.mjs'), '--trang', join(DIR, 'ban-do.html'), '--cau', cauTep, '--rong', '1080', '--cao', '1920', '--fps', '30', ...them], { stdio: 'inherit' }); if (r.status) process.exit(r.status); };

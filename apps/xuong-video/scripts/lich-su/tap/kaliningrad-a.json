@@ -192,7 +192,16 @@
             },
             "tre": 1.2
           }
-        ]
+        ],
+        "tranh": {
+          "anh": "tranh/1255-thanh.jpg",
+          "lop": "tranh/1255-thanh-lop.png",
+          "lop_hop_tep": "tranh/1255-thanh-lop.json",
+          "tu_chu": "crusader",
+          "den_chu": "here",
+          "lia": -30,
+          "mo_ta": "Hiệp sĩ Teuton dựng thành bên bờ Baltic (tranh-sinh.mts, tham chiếu kho hiep_si)"
+        }
       }
     },
     {
@@ -361,7 +370,16 @@
             },
             "tre": 3.2
           }
-        ]
+        ],
+        "tranh": {
+          "anh": "tranh/1945-potsdam.jpg",
+          "lop": "tranh/1945-potsdam-lop.png",
+          "lop_hop_tep": "tranh/1945-potsdam-lop.json",
+          "tu_chu": "Potsdam",
+          "den_chu": "Stalin.",
+          "lia": 20,
+          "mo_ta": "Hội nghị Potsdam 1945, Stalin chỉ bản đồ (tranh-sinh.mts, tham chiếu kho stalin)"
+        }
       }
     },
     {

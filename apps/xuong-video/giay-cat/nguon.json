@@ -38,5 +38,74 @@
    "ba": "gag4v2/manh-2.png",
    "don": "gag4v2/manh-1.png"
   }
+ },
+ "be": {
+  "to": {
+   "url": "https://img.on.tc/xuong-video/giay-cat/1156-be-975def8b.png",
+   "tep": "to-be.png",
+   "tach": "be",
+   "vai": {
+    "ngoi": "manh-1.png",
+    "thap_que": "manh-2.png",
+    "giat_minh": "manh-3.png",
+    "chu_mo": "manh-4.png",
+    "om_bong": "manh-5.png",
+    "bong": "manh-6.png"
+   }
+  }
+ },
+ "meo": {
+  "to": {
+   "url": "https://img.on.tc/xuong-video/giay-cat/1156-meo-b9a1fbee.png",
+   "tep": "to-meo.png",
+   "tach": "meo",
+   "vai": {
+    "cuon": "manh-1.png",
+    "ngoi": "manh-2.png",
+    "so": "manh-3.png",
+    "bay": "manh-4.png"
+   }
+  }
+ },
+ "tay_cu": {
+  "to": {
+   "url": "https://img.on.tc/xuong-video/giay-cat/1156-tay-cu-f5c47c6b.png",
+   "tep": "to-tay-cu.png",
+   "tach": "tay-cu",
+   "vai": {
+    "tay_selfie": "manh-1.png",
+    "tay_tuong": "manh-2.png",
+    "cu_ngu": "manh-3.png",
+    "cu_chao": "manh-4.png"
+   }
+  }
+ },
+ "co_tuong": {
+  "to": {
+   "url": "https://img.on.tc/xuong-video/giay-cat/1156-co-tuong-0a45c659.png",
+   "tep": "to-co-tuong.png",
+   "tach": "co-tuong",
+   "vai": {
+    "ban_mo": "manh-1.png",
+    "ban_gap": "manh-2.png",
+    "choi": "manh-3.png",
+    "nghieng": "manh-4.png",
+    "long_den": "manh-5.png"
+   }
+  }
+ },
+ "nu_sinh": {
+  "to": {
+   "url": "https://img.on.tc/xuong-video/giay-cat/1156-nu-sinh-89b13099.png",
+   "tep": "to-nu-sinh.png",
+   "tach": "nu-sinh",
+   "vai": {
+    "cui_chi": "manh-1.png",
+    "cuoi_dep": "manh-2.png",
+    "dep": "manh-3.png",
+    "den_1": "manh-4.png",
+    "den_2": "manh-5.png"
+   }
+  }
  }
 }

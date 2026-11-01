@@ -109,7 +109,7 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
     <div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8, fontSize: 12 }}>
         <Chon2 value={tpl} onChange={moTpl} options={tplOpts} nhan="Template" rong="Bố cục đang dùng" title="mở một template — chép vào bố cục đang dùng, sửa tiếp không đổi template gốc" />
-        <button type="button" style={{ ...nut, ...(sua ? { background: 'var(--accent-soft)', borderColor: 'var(--accent)' } : {}) }} onClick={() => { setSua(!sua); setTenMoi(null); }}>{sua ? '✓ Xong' : '✎ Sửa bố cục'}</button>
+        <button type="button" style={{ ...nut, ...(sua ? { background: 'var(--accent-soft)', border: '1px solid var(--accent)' } : {}) }} onClick={() => { setSua(!sua); setTenMoi(null); }}>{sua ? '✓ Xong' : '✎ Sửa bố cục'}</button>
         {sua ? <>
           {conThem.length ? <Chon2 value="" onChange={(k) => { const m = them(o, k); if (m) ghi(m); else setBao('Hết chỗ trong màn: thu nhỏ hoặc bỏ bớt widget trước'); }} nhan="+ Thêm widget" rong="chọn…"
             options={conThem.map((k) => ({ value: k, label: WIDGET[k]!.ten, title: WIDGET[k]!.mo_ta }))} /> : null}
@@ -127,7 +127,8 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
           const w = x.w * cw + (x.w - 1) * GAP, h = x.h * rh + (x.h - 1) * GAP, ra = traMan(x), v = ve[x.ma];
           return (
             <Panel key={x.ma} pad={PAD} style={{ position: 'absolute', left: x.x * (cw + GAP), top: x.y * (rh + GAP), width: w, height: h, marginBottom: 0, display: 'flex', flexDirection: 'column', boxSizing: 'border-box',
-              borderColor: ra ? '#f87171' : sua ? 'var(--accent)' : undefined, transition: keo ? 'none' : 'left .15s, top .15s, width .15s, height .15s' }}
+              // viền viết ĐỦ shorthand, không ghi đè borderColor (anh 01/11/2026 etp #1501: React gỡ borderColor khi thôi sửa / hết đỏ thì xoá luôn phần border của Panel → viền rơi về màu chữ, trắng gắt)
+              border: `1px solid ${ra ? '#f87171' : sua ? 'var(--accent)' : 'var(--line)'}`, transition: keo ? 'none' : 'left .15s, top .15s, width .15s, height .15s' }}
               title={<span onPointerDown={(e) => batDau(e, x, 'doi')} title={WIDGET[x.ma]?.mo_ta} style={{ fontSize: 12, cursor: sua ? 'move' : 'default', userSelect: 'none', touchAction: sua ? 'none' : undefined }}>{sua ? '⠿ ' : ''}{WIDGET[x.ma]?.ten ?? x.ma}</span>}
               actions={sua ? <button type="button" onClick={() => ghi(o.filter((y) => y.ma !== x.ma))} title="bỏ widget này" style={{ border: 0, background: 'none', color: 'var(--fg-3)', cursor: 'pointer', fontSize: 12, padding: 0 }}>✕</button> : undefined}>
               <div style={{ flex: 1, minHeight: 0, marginTop: -6, overflowY: 'auto', overflowX: 'hidden', pointerEvents: sua ? 'none' : undefined, opacity: sua ? 0.55 : 1 }}>

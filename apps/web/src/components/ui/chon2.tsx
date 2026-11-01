@@ -44,7 +44,8 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
       <AnchoredPopover anchorRef={ref} open={mo} onClose={() => setMo(false)} align={align}>
         <div onKeyDown={phim} style={{ width: 260, maxWidth: '92vw', background: 'var(--bg-0, #0b0d12)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.5)', color: 'var(--fg-1)', overflow: 'hidden' }}>
           <div style={{ padding: 6, borderBottom: '1px solid var(--line)' }}>
-            <input autoFocus value={q} onChange={(e) => { setQ(e.target.value); setTro(0); }} placeholder="Tìm…"
+            {/* KHÔNG tự focus ô tìm trên màn cảm ứng (anh 01/11/2026 etp #1502: mở ô chọn trên điện thoại là bật bàn phím che danh sách) — chỉ máy có chuột (pointer: fine) mới focus để gõ / ↑ ↓ ngay */}
+            <input autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches} value={q} onChange={(e) => { setQ(e.target.value); setTro(0); }} placeholder="Tìm…"
               style={{ width: '100%', boxSizing: 'border-box', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1, #111)', color: 'inherit' }} />
           </div>
           <div style={{ maxHeight: 340, overflowY: 'auto', padding: '4px 0' }}>

@@ -18,6 +18,7 @@ export type GoiTheLoai = {
   tham_chieu: string;
   /** nhóm tương ứng trên chợ skill Digen (DIGEN_NHOM) — để biết đã phủ đủ loại video ngành đang làm */ digen?: string[];
   /** bố cục màn xem mặc định trên timeline (trái / giữa / phải); trống = theo khung hình (boCucGoi) */ bo_cuc?: BoCucXem;
+  /** cách dựng shot mặc định: 'lop' = nền cố định + lớp nhân vật (dung-lop.ts); trống = mô hình vẽ cả khung */ dung?: 'lop';
 };
 
 export const GOI_THE_LOAI: GoiTheLoai[] = [
@@ -69,7 +70,7 @@ export const GOI_THE_LOAI: GoiTheLoai[] = [
   { key: 'mv_gag_hoat_hinh', ten: 'MV hoạt hình chuỗi gag', ic: '☂', nhom: 'Mạng xã hội', loai: 'short', the_loai: 'hoat_hinh', khung: 'mv_gag', ti_le: '16:9', do_dai_s: [40, 90],
     mo_ta: 'Một nhân vật + một vật đặc trưng đi qua một thành phố; mỗi shot 3–4 giây một gag trọn, cắt đúng phách, không thoại, nét vẽ 2D thống nhất.',
     khan_gia: ['to_mo', 'vui', 'bat_ngo', 'nhe_nhom'], luat: ['khop_hanh_dong', 'khung_dong', 'motif', 'tu_ke_du'],
-    tham_chieu: '"Englishman in New York" của antrofrog (Midjourney + ảnh→video, 46 giây, 13 gag, cắt mỗi 3–4 giây theo phách)', digen: ['Music'] },
+    tham_chieu: '"Englishman in New York" của antrofrog (Midjourney + ảnh→video, 46 giây, 13 gag, cắt mỗi 3–4 giây theo phách)', digen: ['Music'], dung: 'lop' },
   { key: 'youtuber', ten: 'Video YouTuber (nói vào máy)', ic: '🎙', nhom: 'Mạng xã hội', loai: 'short', the_loai: 'qc_ugc', khung: 'video_youtube', ti_le: '16:9', do_dai_s: [180, 720],
     mo_ta: 'Người dẫn nói thẳng vào máy: móc đầu, hứa giá trị, nội dung chia phần, kêu gọi cuối.', khan_gia: ['to_mo', 'vui', 'bat_ngo', 'nhe_nhom'], luat: ['muon_gi_5s', 'thay_tung_buoc', 'nhip_doc', 'ket_ro'],
     tham_chieu: 'Hướng dẫn của YouTube cho nhà sáng tạo (giữ chân người xem trong những giây đầu, chương mục)', digen: ['YouTuber'] },

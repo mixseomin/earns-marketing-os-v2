@@ -1,4 +1,5 @@
 // Sinh ảnh gốc anchor + keyframe shot — lõi dùng chung cho server action (actions.ts, đã kiểm quyền) và script trên box.
+import { laDungLop, cauDoMang } from './dung-lop';
 import 'server-only';
 import { kgCua, loiMachTap2d, nguoiNgoai, sdLuc, type ShotKg } from './khong-gian';
 import { cauBoiCanhCoDinh } from './so-do-canh';
@@ -712,7 +713,13 @@ export async function sinhKeyframeCanh(db: Db, canhId: number, so = 1, moHinh?: 
   if (moHinh && (/^(fal|ckey|shopaikey|google|plenxai):/.test(moHinh) || MO_HINH_ANH.some((m) => m.key === moHinh))) bc.kt.mo_hinh_anh = moHinh as typeof bc.kt.mo_hinh_anh;   // ckey:/shopaikey:/google:/plenxai: = chọn đích danh nguồn (cong-ai.ts)
   if (congAnh && /^(ckey|shopaikey|google|plenxai):/.test(congAnh)) bc.kt.mo_hinh_anh = congAnh as typeof bc.kt.mo_hinh_anh;   // cổng cho các bước Nano, vẫn nhiều bước
   await db.execute(sql`UPDATE xv_canh SET loi = '' WHERE id = ${canhId}`);
-  const { prompt, urlRef, haiBuoc } = chuanBiKeyframe(bc);
+  // NỀN CỐ ĐỊNH + LỚP NHÂN VẬT (dung-lop.ts): phim dựng lớp không vẽ cả khung — tấm nền dùng chung + ảnh lớp nền xanh, ghép khi ảnh về
+  if (laDungLop(bc.kt)) { const { sinhKeyframeLop } = await import('./dung-lop-may'); return sinhKeyframeLop(db, bc, so); }
+  const { prompt: prompt0, urlRef, haiBuoc } = chuanBiKeyframe(bc);
+  // ĐỒ LUÔN MANG THEO của người trong shot (dung-lop.ts › cauDoMang) — mọi đường keyframe
+  const doMang = cauDoMang(bc.nhanVat.filter((v) => bc.canh.nhan_vat.includes(v.id)));
+  const prompt = doMang ? `${prompt0} ${doMang}` : prompt0;
+  if (haiBuoc && doMang) haiBuoc.prompt2 = `${haiBuoc.prompt2} ${doMang}`;
   const promptS = siet ? `${prompt}\n\n${siet}` : prompt;   // prompt nguồn đã siết (đường lop plate + một bước)
   const jobs: number[] = [];
   // Chọn đích danh model khác (so A/B) → đi đường một bước như cũ; mặc định có độ sâu 3D → hai bước.

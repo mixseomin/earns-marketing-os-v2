@@ -55,6 +55,7 @@ const DanDungSchema = z.object({
   motif: z.string().describe('Tiếng Việt: motif / cái gài hoặc cái trả có trong khung; rỗng nếu không'),
   dien: z.string().describe('DIỄN XUẤT HOẠT HÌNH, TIẾNG ANH (vào prompt video): lấy đà (anticipation) → hành động → theo đà / phản ứng, nén–giãn (squash & stretch), khựng giữ phản ứng — cụ thể từng nhịp'),
   nhip: z.string().describe('CHỈ shot [GAG n] (shot khác rỗng), TIẾNG ANH, vào prompt video: như phim mẫu: trục trặc NHỎ đang xảy ra, nhân vật chính đi ngang làm MỘT động tác, kết quả nhỏ hiện ngay rồi đi tiếp; ba nhịp có mốc giây ngăn bằng " | ": "0-1.5s: <trục trặc đang diễn ra, đọc ngay (sắp ngã, sắp rơi, đang kẹt)> | 1.5-3s: <nhân vật chính đi ngang, MỘT động tác bằng vật đặc trưng> | 3-5s: <kết quả nhỏ + phản ứng nhỏ; nhân vật chính đã đi tiếp>". Trong khung tối đa nhân vật chính + MỘT chủ thể gặp chuyện; không cú đẩy nhiều tầng. Khung đầu (prompt_anh) vẽ nhịp trục trặc. Shot gag thoi_luong_s 6.'),
+  vao_ra: z.string().describe('TIẾNG ANH, vào prompt video: ai đi VÀO khung từ mép nào, ai đi RA khỏi khung phía nào trước khi shot hết (vd "the vendor walks out of frame on the right"); phim gag: nhân vật chính đi ra khỏi khung ở cuối mọi shot gag. Rỗng nếu không ai vào / ra'),
   nhan: z.string().describe('Tiếng Việt: ĐIỂM NHẤN âm–hình nếu shot có cú bùng của gag (giây nào, tiếng gì đập đúng lúc nào, nhạc ngắt ở đâu); rỗng nếu không'),
 });
 const ShotSchema = CanhSchema.extend({

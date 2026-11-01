@@ -423,7 +423,7 @@ export function BienTheThe({ b, ly, dang, loiAnh, ban, chay }: { b: BienThe; ly:
 }
 
 export function NhanVatForm({ phimId, goc, dsCha = [], onClose, onSaved }: { phimId: number; goc: Partial<NhanVat>; dsCha?: NhanVat[]; onClose: () => void; onSaved: () => Promise<void> }) {
-  const [f, setF] = useState({ loai: (goc.loai ?? 'nhan_vat') as LoaiNhanVat, ten: goc.ten ?? '', mo_ta: goc.mo_ta ?? '', anh_ref: goc.anh_ref ?? [], giong: goc.giong ?? '', tieu_su: goc.tieu_su ?? '', thuoc_id: goc.thuoc_id ?? null as number | null });
+  const [f, setF] = useState({ loai: (goc.loai ?? 'nhan_vat') as LoaiNhanVat, ten: goc.ten ?? '', mo_ta: goc.mo_ta ?? '', anh_ref: goc.anh_ref ?? [], giong: goc.giong ?? '', tieu_su: goc.tieu_su ?? '', thuoc_id: goc.thuoc_id ?? null as number | null, do_mang: goc.do_mang ?? '' });
   const [loi, setLoi] = useState('');
   const [luu, setLuu] = useState(false);
   const [ai, setAi] = useState(false);
@@ -452,6 +452,7 @@ export function NhanVatForm({ phimId, goc, dsCha = [], onClose, onSaved }: { phi
           </div>
         </O>
       )}
+      {f.loai === 'nhan_vat' && <O label="Đồ luôn mang theo (tiếng Anh) — mọi ảnh / clip giữ đủ, không để biến mất"><input className="xv-in" value={f.do_mang} onChange={(e) => setF({ ...f, do_mang: e.target.value })} placeholder="a bamboo carrying pole on her shoulder with two jute cradles holding baskets of white daisies" /></O>}
       {f.loai === 'nhan_vat' && <O label="Giọng (cho lồng tiếng sau này)"><input className="xv-in" value={f.giong} onChange={(e) => setF({ ...f, giong: e.target.value })} placeholder="giọng trẻ con ấm, chậm rãi" /></O>}
       <O label={f.loai === 'san_pham' ? 'Ảnh sản phẩm THẬT (quảng cáo phải đúng hàng) — dán Ctrl+V, nút Dán (điện thoại), kéo thả, chọn file, hoặc URL' : 'Ảnh tham chiếu — dán / kéo thả / file / URL, hoặc lưu rồi bấm “Sinh ảnh gốc”'}>
         <ImageAttach value={f.anh_ref} onChange={(urls) => setF({ ...f, anh_ref: urls })} max={10} nhanBo="Bỏ ảnh khỏi anchor"

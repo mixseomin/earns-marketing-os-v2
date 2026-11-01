@@ -169,6 +169,8 @@ export type KinhThanh = {
   look?: string;
   /** phim KHÔNG LỜI (kiểu Larva): không thoại; nhân vật chỉ phát âm hiệu riêng; truyện kể bằng hành động + âm thanh (claude.ts › heThong) */
   khong_loi?: boolean;
+  /** CÁCH DỰNG shot: 'lop' = nền cố định + lớp nhân vật nền xanh ghép lên (hoạt hình truyền thống, dung-lop.ts); 'khung' = mô hình vẽ cả khung;
+   *  trống = theo gói thể loại (goi-the-loai.ts › dung) */ dung?: '' | 'lop' | 'khung';
   /** BẢN ĐỒ KHÔNG GIAN (14/10/2026 — "thiếu đoạn dẫn từ không gian tới nơi xảy ra, như Larva"): các nơi chốn (tên đúng anchor Bối cảnh)
    *  nằm đâu trong thế giới, cạnh nhau thế nào, đường đi từ nơi này sang nơi kia. Tách cảnh dựa vào đây để dựng chuỗi shot dẫn rộng → hẹp
    *  và shot hành trình khi đổi nơi (claude.ts › heThong, luật kể chuyện 12). */
@@ -359,7 +361,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
   return cho.length ? `Phim ${tenNgonNgu(ngonNgu)} nhưng chữ đi vào model còn tiếng Việt (${cho.slice(0, 5).join(', ')}${cho.length > 5 ? '…' : ''}) — bấm 🌐 Dịch cả phim trước, không sinh để khỏi mất tiền.` : null;
 }
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
-  phong_cach: '', chat_lieu: '', ti_le: '9:16', do_phan_giai: '720p',
+  phong_cach: '', chat_lieu: '', dung: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', goi: '', vat_dac_trung: '', vat_dac_trung_id: 0, logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
   may_dung: null, giong_dan: null, nguoi_ke: '', cam_xuc_qc: false, series: null, luu_tru: false, nhip_stop_motion: false, phu_de: false, look: '', khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '', keyframe_sua_3d: true, keyframe_hai_buoc: true,
 };
@@ -473,6 +475,9 @@ export type GiongThu = { model: string; voice: string; url: string; cau: string;
 export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string;
   /** ẢNH THẬT của nơi / vật (anh 01/11/2026: "phố đường tàu phải sinh dựa vào ảnh thực") — ảnh gốc sinh bằng cách VẼ LẠI từng ảnh theo phong cách phim, giữ bố cục; KHÔNG vào anh_ref (keyframe không bị kéo về ảnh chụp). Nguồn + giấy phép: tham-khao/… nguon.json */ anh_that?: string[];
   /** lấy từ THƯ VIỆN VẬT DỤNG (thu-vien-vat.ts › ma) — 📚 trên cây Thành phần, công năng + bộ phận đọc từ thư viện */ thu_vien_vat?: string | null;
+  /** ĐỒ LUÔN MANG THEO (tiếng Anh, vd "a bamboo carrying pole with two jute cradles holding baskets of daisies") — mọi prompt ảnh / video có người này
+   *  đọc (dung-lop.ts › cauDoMang): đồ không được biến mất giữa clip (#1156 #6 bà mất hai thúng hoa, 01/11/2026) */ do_mang?: string;
+  /** NỀN CỐ ĐỊNH của anchor bối cảnh theo góc máy (dung-lop.ts › khoaNen) → url — dựng một lần, mọi shot cùng chỗ cùng góc dùng chung */ nen?: Record<string, string>;
   /** tiểu sử (nhân vật): nguồn gốc, tính cách, sức mạnh, điểm yếu, mong muốn, nỗi sợ, quan hệ, bí mật — chỉ vào ngữ cảnh viết kịch bản, không vào prompt hình */
   tieu_su?: string;
   /** bộ âm hiệu cố định (phim không lời): âm đặc trưng, vui, sợ… — làm một lần, mọi tập dùng lại */
@@ -634,6 +639,7 @@ export type DanDung = {
   /** DIỄN XUẤT HOẠT HÌNH (tiếng Anh, vào prompt video): lấy đà → hành động → theo đà / phản ứng, nén–giãn, khựng — chất Larva */ dien?: string;
   /** NHỊP GAG (tiếng Anh, vào prompt video) — shot [GAG n] diễn TRỌN một gag: 4 nhịp có mốc giây "0-1.5s: vấn đề + lý do gấp trên đường đi | 1.5-3s: một động tác
    *  không ngắt bước | 3-6s: đi tiếp, hệ quả sau lưng" — phim mẫu là một mạch đi liền (anh 01/11/2026). Thiếu ô này clip 8s nhận một câu "từ… tới…" và bỏ nhịp giữa (phim #1156 #6: không thấy cú kẹp, 01/11/2026). Khung đầu = nhịp đầu. */ nhip?: string;
+  /** VÀO / RA KHUNG (tiếng Anh, vào prompt video): ai đi vào từ mép nào, ai đi ra khỏi khung phía nào trước khi shot hết — vd "the vendor walks out of frame on the right" */ vao_ra?: string;
   /** ĐIỂM NHẤN âm–hình của gag: khung nào, tiếng gì đập đúng lúc nào (shot có cú bùng của gag bắt buộc có) */ nhan?: string;
   /** mã shot CỐ ĐỊNH trong hồ sơ viết tay (vd "4.6a") — đồng bộ hồ sơ ↔ studio khớp theo mã này, chèn shot giữa cảnh không làm lệch shot sau */ ma?: string;
 };
@@ -646,10 +652,11 @@ export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoMode
   { key: 'motif', ten: 'Motif · gài / trả', mau: 'Viên kẹo đỏ (motif); gài: góc giấy vàng nhìn trộm.', vaoModel: false },
   { key: 'dien', ten: 'Diễn xuất (lấy đà · hành động · phản ứng)', mau: 'Anticipation: Tango crouches and wiggles. Action: leaps, arms wide. Reaction: freezes mid-air a beat, then drops face-first (squash), strand boings.', vaoModel: true },
   { key: 'nhip', ten: 'Nhịp gag (mốc giây)', mau: '0-1.5s: the vendor walks along the rail; ahead a stool stack blocks the rail, the man strains at it in panic, a train headlight at the curve | 1.5-3s: without breaking stride she hooks the stack with one cradle and swings it onto the doorstep, the man still hugging it | 3-6s: she walks on as the train roars past behind her; the man is left perched on the stack, blinking', vaoModel: true },
+  { key: 'vao_ra', ten: 'Vào / ra khung', mau: 'The vendor enters from the left and walks out of frame on the right before the shot ends.', vaoModel: true },
   { key: 'nhan', ten: 'Điểm nhấn âm–hình', mau: 'Giây 2,8: kẹo phụt khỏi tay — tiếng "bloop" đúng khung; nhạc ngắt 1 nhịp trước cú ngã.', vaoModel: false },
 ];
 /** Ô thẻ shot BẮT BUỘC trước keyframe (motif + điểm nhấn tuỳ shot — điểm nhấn bắt buộc ở shot có cú bùng của gag, ho-so.ts › kiemHoSo). */
-export const O_DAN_DUNG_BAT_BUOC = O_DAN_DUNG.filter((o) => o.key !== 'motif' && o.key !== 'nhan' && o.key !== 'nhip');   // nhịp gag: chỉ shot [GAG n] — nhip-hinh.ts › kiemNhipGag
+export const O_DAN_DUNG_BAT_BUOC = O_DAN_DUNG.filter((o) => o.key !== 'motif' && o.key !== 'nhan' && o.key !== 'nhip' && o.key !== 'vao_ra');   // nhịp gag: chỉ shot [GAG n] — nhip-hinh.ts › kiemNhipGag
 // 🧩 CON BÓC TÁCH KHUNG — thành phần THẬT đọc được từ một keyframe (boc-tach-khung.ts). Mỗi đối tượng: đặc điểm + vị trí TƯƠNG ĐỐI (cạnh ai/vật gì).
 export type NguoiKhung = { ai: string; dac_diem: string; vi_tri: string; ao: string; toc: string; trang_suc: string; bieu_cam: string; huong_nhin: string; dang: string; do_cam: string;
   /** 🧬 lá nguyên tử enum (mức 2) — máy đọc ảnh điền theo từ khóa chuẩn, để chấm SO BẰNG; cũ không có thì bỏ qua. */ vi_tri_man?: string; huong_man?: string; toc_kieu?: string };
@@ -660,6 +667,8 @@ export type BocTachKhung = { boi_canh: string; vat_co_dinh: string[]; anh_sang: 
 export type DongDoiChieu = { thanh_phan: string; du_kien: string; thuc_te: string; muc: 'khớp' | 'gần' | 'lệch' | 'thiếu' | 'thừa'; ghi_chu: string };
 export type BocTachCanh = { dau?: BocTachKhung; cuoi?: BocTachKhung; doi_chieu?: { dau?: DongDoiChieu[]; cuoi?: DongDoiChieu[] }; luc_boc: string; tren: { dau: string | null; cuoi: string | null } };
 
+/** Dữ liệu dựng lớp của một shot (dung-lop.ts). */
+export type LopShot = { nen?: string; anh?: Record<string, string>; video_tho?: string };
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; /** mô tả tiếng Việt của hành động (#1397) — đọc qua moTaVi */ hanh_dong_vi: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;
   /** Giây thực phát (cắt từ đầu clip); null = phát cả clip. chu_man = chữ trên màn. nhanh = '' thân chung | 'A'/'B'/'C' biến thể hook. */
@@ -686,6 +695,7 @@ export type Canh = {
   /** số XẾP PHÁT (xv_canh.thu_tu) — khác thu_tu (số HIỆN) chỉ ở shot con: #2.9 phát ngay sau #2, #3.1 phát ngay trước #3 (khoaPhat) */ thu_tu_phat?: number;
   /** shot con: id shot cha (#2.9 → #2) */ con_cua?: number | null;
   keyframe_url: string | null; keyframe_uv: string[];
+  /** DỰNG LỚP (dung-lop.ts): nền cố định của shot + ảnh ghép → ảnh lớp nền xanh (video đi từ ảnh lớp) + clip lớp thô trước khi ghép */ lop?: LopShot | null;
   /** keyframe KẾT (khung cuối, sinh từ khung màu chỗ kết) — video nhận làm ảnh cuối */ keyframe_ket?: string | null; /** keyframe GIỮA (khung 3D giữa clip) — ô giữa dải nhịp của ảnh thứ 2 */ keyframe_giua?: string | null; /** giây cắt cuối clip (trước lúc dải nhịp hiện) */ cat_cuoi_s?: number | null; video_url: string | null; video_cuoi_url: string | null; nguon_video: Record<string, unknown>; video_phien_ban: { url: string; ban: 'nhap' | 'cuoi'; model?: string; job?: number; luc?: string }[]; trang_thai: TrangThaiCanh; loi: string; chi_phi_cents: number;
 };
 export type Job = {

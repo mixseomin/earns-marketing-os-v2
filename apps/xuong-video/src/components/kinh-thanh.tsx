@@ -1,5 +1,6 @@
 'use client';
 // Mục 0 sản phẩm · 1 kinh thánh của phim (thể loại, giọng kể, model mặc định…).
+import { laDungLop } from '@/lib/xuong-video/dung-lop';
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ImageAttach } from './image-attach';
 import { THE_LOAI, type TheLoai } from '@/lib/xuong-video/dien-anh';
@@ -110,6 +111,7 @@ export function KinhThanhForm({ phim, khoa, onSaved }: { phim: Phim; khoa: Khoa;
         <O span label="Phong cách hình ảnh" hint="Viết như tả cho hoạ sĩ: chất liệu, bảng màu, ánh sáng, lens. Tiếng Việt hay Anh đều được. Nối vào đầu mọi prompt để các tập giống nhau.">
           <textarea className="xv-ta" rows={2} value={kt.phong_cach} onChange={(e) => set('phong_cach', e.target.value)} placeholder={laQc ? "Quay thật kiểu UGC, ánh sáng cửa sổ, cầm tay, chân thực…" : "3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm buổi sáng, khu rừng cổ tích…"} />
         </O>
+        <O label="Cách dựng shot" hint="Nền cố định + lớp: mỗi shot một tấm nền đứng yên (dựng một lần theo bối cảnh × góc máy), nhân vật diễn trên nền xanh rồi ghép lên — kiểu hoạt hình truyền thống, nền không bao giờ đổi. Cả khung: mô hình vẽ lại toàn khung mỗi giây."><Chon value={kt.dung ?? ''} onChange={(v) => set('dung', v as NonNullable<KinhThanh['dung']>)} options={[{ value: '', label: `theo gói (${laDungLop({ dung: '', goi: kt.goi }) ? 'nền cố định + lớp' : 'cả khung'})` }, { value: 'lop', label: 'nền cố định + lớp nhân vật' }, { value: 'khung', label: 'mô hình vẽ cả khung' }]} /></O>
         <O label="Chất liệu hình" hint="Người thật → bật cổng soi mặt (giữ đúng khuôn mặt) + sổ bề ngoài theo ngày. Để trống thì máy đọc chữ phong cách."><Chon value={kt.chat_lieu ?? ''} onChange={(v) => set('chat_lieu', v as NonNullable<KinhThanh['chat_lieu']>)} options={[{ value: '', label: `tự nhận (${({ nguoi_that: 'người thật', hoat_hinh: 'hoạt hình nặn', ve_2d: 'hoạt hình vẽ 2D' })[chatLieuPhim({ phong_cach: kt.phong_cach })]})` }, { value: 'nguoi_that', label: 'người thật' }, { value: 'hoat_hinh', label: 'hoạt hình nặn (stop-motion)' }, { value: 've_2d', label: 'hoạt hình vẽ 2D' }]} /></O>
         <O span label="Mô tả / tiền đề"><textarea className="xv-ta" rows={2} value={moTa} onChange={(e) => setMoTa(e.target.value)} placeholder="Bộ phim kể về… / Sản phẩm là… bán cho…" /></O>
         {/* GÓI THỂ LOẠI (goi-the-loai.ts): chọn gói = đặt thể loại + khung hình; tách cảnh đọc gói (khung beat, cung khán giả, luật nhấn). Sửa tay thể loại sau vẫn được. */}

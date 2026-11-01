@@ -199,6 +199,20 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
     if (giua) await db.execute(sql`UPDATE xv_canh SET keyframe_giua = ${u}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
     else await db.execute(sql`UPDATE xv_canh SET keyframe_ket = ${u}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
     if (!giua) doiChieuAnhNen(db, canh, u, 'cuoi');   // ⚖️ mọi ảnh sinh ra đều so với yêu cầu (doi-chieu-anh.ts)
+  } else if (canh != null && j.dich === 'keyframe_lop') {
+    // KEYFRAME LỚP (dung-lop-may.ts › sinhKeyframeLop): ảnh lớp nền xanh → ghép lên tấm nền của shot; ảnh GHÉP vào dải ứng viên như keyframe thường,
+    // lop.anh nhớ ảnh ghép → ảnh lớp (video đi từ ảnh lớp). Ghép hỏng thì báo lỗi, ảnh lớp nằm ở output_url của job.
+    const c = ((await db.execute(sql`SELECT c.lop, p.kinh_thanh->>'ti_le' AS ti_le FROM xv_canh c JOIN xv_tap t ON t.id = c.tap_id JOIN xv_phim p ON p.id = t.phim_id WHERE c.id = ${canh}`)) as unknown as Row[])[0];
+    const nen = (c?.lop as { nen?: string } | null)?.nen;
+    const { ghepAnhLop } = await import('./dung-lop-may');
+    const g = nen ? await ghepAnhLop(nen, kq.url, (c?.ti_le as string | null) ?? undefined, `keyframe/${canh}`) : null;
+    if (!g) await db.execute(sql`UPDATE xv_canh SET loi = ${nen ? 'ghép lớp lên nền hỏng (ffmpeg) — ảnh lớp ở output_url của job' : 'shot chưa có tấm nền — sinh lại keyframe'}, chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${canh}`);
+    else {
+      await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([g])}::jsonb), keyframe_url = coalesce(keyframe_url, ${g}),
+        lop = coalesce(lop, '{}'::jsonb) || jsonb_build_object('anh', coalesce(lop->'anh', '{}'::jsonb) || jsonb_build_object(${g}::text, ${kq.url}::text)),
+        trang_thai = CASE WHEN trang_thai = 'nhap' THEN 'co_keyframe' ELSE trang_thai END, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
+      void lamSanNho(g);
+    }
   } else if (canh != null) {
     await db.execute(sql`UPDATE xv_canh SET keyframe_uv = (keyframe_uv || ${JSON.stringify([kq.url])}::jsonb),
       keyframe_url = coalesce(keyframe_url, ${kq.url}), trang_thai = CASE WHEN trang_thai = 'nhap' THEN 'co_keyframe' ELSE trang_thai END,

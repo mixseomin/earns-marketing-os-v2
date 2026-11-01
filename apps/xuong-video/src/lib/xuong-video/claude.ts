@@ -54,7 +54,7 @@ const DanDungSchema = z.object({
   muc_dich: z.string().describe('Tiếng Việt: khán giả cảm gì từ đầu → cuối shot, shot tồn tại để làm gì (luật 17)'),
   motif: z.string().describe('Tiếng Việt: motif / cái gài hoặc cái trả có trong khung; rỗng nếu không'),
   dien: z.string().describe('DIỄN XUẤT HOẠT HÌNH, TIẾNG ANH (vào prompt video): lấy đà (anticipation) → hành động → theo đà / phản ứng, nén–giãn (squash & stretch), khựng giữ phản ứng — cụ thể từng nhịp'),
-  nhip: z.string().describe('CHỈ shot [GAG n] (shot khác rỗng), TIẾNG ANH, vào prompt video: gag diễn TRỌN trong 4 giây như phim mẫu, nhịp NHANH, bốn nhịp có mốc giây, mỗi nhịp MỘT việc nhìn thấy được, ngăn bằng " | ": "0-1s: <vấn đề hiện rõ> | 1-2s: <ra tay bằng vật đặc trưng> | 2-3s: <cú đẩy thêm> | 3-4s: <phản ứng>". Khung đầu (prompt_anh) vẽ đúng nhịp đầu, không vẽ giữa động tác. Shot gag phat_s 4.'),
+  nhip: z.string().describe('CHỈ shot [GAG n] (shot khác rỗng), TIẾNG ANH, vào prompt video: gag diễn TRỌN trong clip 8 giây, nhịp nhanh, bốn nhịp có mốc giây, mỗi nhịp MỘT việc nhìn thấy được, ngăn bằng " | ": "0-2s: <vấn đề + LÝ DO GẤP nhìn thấy (tàu đang tới, đồ sắp rơi…)> | 2-4s: <ra tay bằng vật đặc trưng> | 4-6s: <hệ quả trả lời đúng lý do đó (tàu lao qua chỗ vừa dọn…) + cú đẩy thêm> | 6-8s: <phản ứng>". Khung đầu (prompt_anh) vẽ vấn đề cùng mối đe doạ, không vẽ giữa động tác. Shot gag thoi_luong_s 8.'),
   nhan: z.string().describe('Tiếng Việt: ĐIỂM NHẤN âm–hình nếu shot có cú bùng của gag (giây nào, tiếng gì đập đúng lúc nào, nhạc ngắt ở đâu); rỗng nếu không'),
 });
 const ShotSchema = CanhSchema.extend({

@@ -90,17 +90,17 @@ export function kiemTheShot(ds: { thu_tu: number; dan_dung?: DanDung }[], p: { l
   return [`${TIEN_TO_THE_SHOT}${thieu.length} shot thiếu ô thẻ (${thieu.slice(0, 5).map((x) => `#${x.c.thu_tu}: ${x.t.map((o) => o.ten.toLowerCase()).join(', ')}`).join(' · ')}${thieu.length > 5 ? '…' : ''})`];
 }
 /** NHỊP GAG (01/11/2026, phim #1156 #6 — anh: "video đó là full 1 gag sao không thấy rõ gì cả? mỗi vấn đề mà không thấy tiếp theo"): shot [GAG n] phải diễn
- *  trọn vấn đề → ra tay → đẩy thêm → phản ứng TRONG một clip — cần ô nhịp có ≥ 3 nhịp và đủ giây phát (GIAY_GAG). Trước đây 4 nhịp nhồi vào 3,5s phát. */
+ *  trọn vấn đề → ra tay → đẩy thêm → phản ứng TRONG một clip — cần ô nhịp có ≥ 3 nhịp và clip đủ giây (GIAY_GAG). Trước đây 4 nhịp nhồi vào 3,5s phát. */
 export const TIEN_TO_NHIP_GAG = 'nhịp gag: ';
-export const GIAY_GAG = 3.5;   // anh 01/11/2026 "tiết tấu phải nhanh hơn" + "phim gốc có 4s": khuôn gag 4s (4 nhịp × 1s), phát ≥ 3,5s
+export const GIAY_GAG = 8;   // giây CLIP sinh (thoi_luong_s) của shot gag: clip 4s cụt mất đoạn kết (anh 01/11/2026); tiết tấu nhanh lo ở khâu dựng, không ép mô hình
 export const laShotGag = (ten?: string) => /^\s*\[GAG\b/i.test(ten ?? '');
 export function kiemNhipGag(ds: { thu_tu: number; canh?: string; phat_s: number | null; thoi_luong_s: number; dan_dung?: DanDung }[]): string[] {
   const gag = ds.filter((c) => laShotGag(c.canh)); if (!gag.length) return [];
   const it = gag.filter((c) => (c.dan_dung?.nhip ?? '').split(/[|\n]/).filter((x) => x.trim()).length < 3);
-  const ngan = gag.filter((c) => (c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4) < GIAY_GAG - 0.05);
+  const ngan = gag.filter((c) => (c.thoi_luong_s || 4) < GIAY_GAG - 0.05);
   return [
     it.length ? `${TIEN_TO_NHIP_GAG}${it.length} shot gag thiếu nhịp có mốc giây (${it.slice(0, 8).map((c) => `#${c.thu_tu}`).join(', ')}) — clip sẽ bỏ nhịp giữa` : '',
-    ngan.length ? `${TIEN_TO_NHIP_GAG}${ngan.length} shot gag phát dưới ${GIAY_GAG}s (${ngan.slice(0, 8).map((c) => `#${c.thu_tu} ${c.phat_s ?? c.thoi_luong_s}s`).join(', ')}) — một gag đủ bốn nhịp cần ~4s` : '',
+    ngan.length ? `${TIEN_TO_NHIP_GAG}${ngan.length} shot gag sinh clip dưới ${GIAY_GAG}s (${ngan.slice(0, 8).map((c) => `#${c.thu_tu} ${c.thoi_luong_s}s`).join(', ')}) — mô hình không kịp diễn tới đoạn kết` : '',
   ].filter(Boolean);
 }
 /** VAI KỂ (14/10/2026 — "thiếu dẫn thời gian, góc người thứ 3, góc tổng thể, góc tâm trạng…"): một tập phim truyện phải kể bằng nhiều

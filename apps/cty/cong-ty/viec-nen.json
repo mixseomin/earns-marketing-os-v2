@@ -693,6 +693,26 @@
    }
   },
   {
+   "nhan": "iMac:com.earns.studio-shot-code",
+   "ten": "Studio - dựng shot code (10 phút)",
+   "chay": [
+    "/Users/htuan/Me/GitHub/earns-marketing-os-v2/node_modules/.bin/tsx",
+    "scripts/shot-code/may.mts",
+    "--so",
+    "10"
+   ],
+   "thu_muc": "/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/studio-shot-code.log",
+   "uu_tien_thap": true,
+   "ghi": "anh duyệt 01/11/2026: video máy dựng mẫu khai shotCode (Scam or Real) chờ iMac dựng lớp hình (box3 cấm trình duyệt) — hàng chờ trống thì chỉ một lệnh ssh",
+   "hen": {
+    "moi_giay": 600
+   }
+  },
+  {
    "nhan": "iMac:com.earns.may-dang",
    "ten": "Máy đăng chung - video các máy studio",
    "chay": [

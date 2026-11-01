@@ -27,7 +27,7 @@ if (process.env.DUYET_SINH_1_LAN !== '1') { console.error('tốn tiền (~1.000�
 
 const db = getDb();
 const kt = docKinhThanh(((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WHERE id = ${phimId}`)) as unknown as { kinh_thanh: KinhThanh }[])[0]!.kinh_thanh);
-const anchors = (await db.execute(sql`SELECT id, mo_ta, anh_ref, anh_that FROM xv_nhan_vat WHERE id = ANY(${[nenId, ...nvIds]})`)) as unknown as { id: number; mo_ta: string; anh_ref: string[]; anh_that: string[] | null }[];
+const anchors = (await db.execute(sql`SELECT id, mo_ta, anh_ref, anh_that FROM xv_nhan_vat WHERE id IN (${sql.raw([nenId, ...nvIds].map(Number).join(','))})`)) as unknown as { id: number; mo_ta: string; anh_ref: string[]; anh_that: string[] | null }[];
 const nen = anchors.find((a) => a.id === nenId)!;
 const nv = nvIds.map((id) => anchors.find((a) => a.id === id)!).filter(Boolean);
 const style = phongCachHinh(kt.phong_cach).replace(/[.\s]+$/, '');

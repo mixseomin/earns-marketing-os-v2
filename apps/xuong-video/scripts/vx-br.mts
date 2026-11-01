@@ -38,7 +38,7 @@ export async function napKhung(file: string, catDefault: number): Promise<number
   const b64 = readFileSync(file).toString('base64');
   brEval(`window.__b64=""`);
   for (let i = 0; i < b64.length; i += 300_000) brEval(`window.__b64+=${JSON.stringify(b64.slice(i, i + 300_000))}`);
-  const res = brEval<string>(`(async()=>{const s=window.__b64;const bin=atob(s);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);const fd=new FormData();fd.append("file",new Blob([a],{type:"image/png"}),"f.png");fd.append("categoryId","${catDefault}");const r=await fetch("/library/upload/4",{method:"POST",headers:{"X-Requested-With":"XMLHttpRequest"},body:fd});return (await r.text()).trim().slice(0,50)})()`);
+  const res = brEval<string>(`(async()=>{const s=window.__b64;const bin=atob(s);const a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);const fd=new FormData();fd.append("file",new Blob([a],{type:"${/\.jpe?g$/i.test(file) ? 'image/jpeg' : 'image/png'}"}),"f.${/\.jpe?g$/i.test(file) ? 'jpg' : 'png'}");fd.append("categoryId","${catDefault}");const r=await fetch("/library/upload/4",{method:"POST",headers:{"X-Requested-With":"XMLHttpRequest"},body:fd});return (await r.text()).trim().slice(0,50)})()`);
   brEval(`window.__b64=""`);
   if (!/^OK$/i.test(res)) { console.log(`  ! upload hỏng: ${res}`); return null; }
   const moi = getMedia(catDefault, 1).results[0];           // ảnh mới nhất = ảnh vừa nạp (upload đồng bộ)

@@ -12,7 +12,7 @@ import { moPhien } from './videoexpress.mjs';
 
 const BOX = 'root@167.233.241.16';
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
-const doan = `--tap=${gia('tap')} --tu=${gia('tu')} --den=${gia('den')}`;
+const doan = `--tap=${gia('tap')} --tu=${gia('tu')} --den=${gia('den')}${gia('cuoi') ? ` --cuoi=${gia('cuoi')}` : ''}`;   // --cuoi=khong: không khung cuối (cum-thu.mts)
 // --lan=N: mỗi biến thể N lượt cùng prompt (model ngẫu nhiên — một lượt không đủ kết luận; nhãn gop-1, gop-2…)
 const lan = Math.max(1, Number(gia('lan') || 1));
 // --ten=X: nhãn lượt thử (lưu ky_thuat.cum_thu.X-1…) — biến thể prompt vẫn theo --bien; không đè clip thử cũ

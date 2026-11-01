@@ -32,7 +32,8 @@ if (gan) {
 }
 const vao = (await Promise.all(cum.map((c) => boiCanhCanh(db, c.id)))).map((x) => ({ canh: x!.canh, nhanVat: x!.nhanVat, look: x!.look }));
 // khung cuối = luật chung sinh-video.ts › khungCuoiCanh của shot cuối đoạn (shot con liền khung: đoạn #2 kết ở keyframe #2.9 · rồi keyframe kết · rồi nối khung tập)
-const cuoi = (await khungCuoiCanh(db, cum.at(-1)!.id)) ?? anhNeoCuoi(cum) ?? (cum.length > 1 ? cum.at(-1)!.keyframe_url : null);
+// --cuoi=khong: thả khung cuối (model tự diễn tới hết) — vd đoạn #2 + #2.9 khi keyframe #2.9 cũ lệch chỗ máy với #2 (ép tới đó = máy quay vòng, 01/11/2026)
+const cuoi = gia('cuoi') === 'khong' ? null : (await khungCuoiCanh(db, cum.at(-1)!.id)) ?? anhNeoCuoi(cum) ?? (cum.length > 1 ? cum.at(-1)!.keyframe_url : null);
 // ẢNH MẶT neo (vx-br.mts › guiShot faceSwap): người chính của shot đầu — ảnh sát mặt chuẩn → ảnh mẫu → ảnh biến thể. A/B 01/11/2026: không neo 3/3 trôi mặt,
 // có neo 2/2 giữ một khuôn mặt.
 const nguoiDau = vao[0]!.nhanVat.find((n) => n.loai === 'nhan_vat' && vao[0]!.canh.nhan_vat.includes(n.id));

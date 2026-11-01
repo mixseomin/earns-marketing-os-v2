@@ -286,8 +286,8 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
       const tran = b.cong === 'plenxai' && iB < chuoi.length - 1 ? await oPlenx(db) : null;
       if (tran) { thuCong.push({ cong: b.cong, model: b.model, ok: false, loi: tran }); continue; }
       const pB = promptCho(b.model), cB = cuoiCho(b.model);
-      const g = b.cong === 'plenxai' ? await guiPlenxGian(() => guiVideoCong(b.cong, b.model, { prompt: pB, anhDau: bc.canh.keyframe_url!, anhCuoi: cB, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai }))
-        : await guiVideoCong(b.cong, b.model, { prompt: pB, anhDau: bc.canh.keyframe_url, anhCuoi: cB, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai });
+      const g = b.cong === 'plenxai' ? await guiPlenxGian(() => guiVideoCong(b.cong, b.model, { tiLe: bc.kt.ti_le, prompt: pB, anhDau: bc.canh.keyframe_url!, anhCuoi: cB, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai }))
+        : await guiVideoCong(b.cong, b.model, { tiLe: bc.kt.ti_le, prompt: pB, anhDau: bc.canh.keyframe_url, anhCuoi: cB, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai });
       if (g.ok) {
         thuCong.push({ cong: b.cong, model: b.model, ok: true });
         const nguon: NguonSinh = { cong: b.cong, model: b.model, ...giaVideoCong(b.cong, b.model), thu: thuCong };

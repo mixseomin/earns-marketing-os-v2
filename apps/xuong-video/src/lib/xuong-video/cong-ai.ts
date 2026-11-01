@@ -276,7 +276,7 @@ export function chuoiVideo(modelGoc: string, laQc: boolean): { cong: CongKey; mo
 
 /** Cổng CHỈ CHẠY TRÊN MÁY CHỦ (cần node:fs — PlenX giữ token ở tệp): tệp đó tự đăng ký vào đây khi được import ở phía máy chủ (sinh-video.ts),
  *  để cong-ai.ts (giao diện + Worker cũng import) không kéo node:fs vào bản build trình duyệt. */
-type CongMay = { gui: (model: string, o: { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }) => Promise<KqGui>; doc: (taskId: string, taoLuc: string, treoPhut: number) => Promise<KqDoc>; /** xoá clip trên nền tảng của họ SAU khi đã lưu về R2 (anh 21/10/2026) */ xoa?: (uri: string) => Promise<void>; /** token còn hạn (PlenX) */ token?: () => Promise<string> };
+type CongMay = { gui: (model: string, o: { tiLe?: string | null; prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }) => Promise<KqGui>; doc: (taskId: string, taoLuc: string, treoPhut: number) => Promise<KqDoc>; /** xoá clip trên nền tảng của họ SAU khi đã lưu về R2 (anh 21/10/2026) */ xoa?: (uri: string) => Promise<void>; /** token còn hạn (PlenX) */ token?: () => Promise<string> };
 export const CONG_MAY: Partial<Record<CongKey, CongMay>> = {};
 /** Clip đã lưu về kho của mình (R2) → xoá bản trên nền tảng cổng nếu cổng có lệnh xoá (PlenX). Không chặn: lỗi chỉ ghi log. */
 export async function donVideoCong(cong: string | null | undefined, uri: string): Promise<void> {
@@ -284,7 +284,10 @@ export async function donVideoCong(cong: string | null | undefined, uri: string)
   try { await x(uri); } catch (e) { console.error(`[${cong}] không xoá được clip trên nền tảng:`, e instanceof Error ? e.message : e); }
 }
 /** Gửi một task video lên cổng: khung đầu = keyframe (URL công khai). Trả task id hoặc lỗi (lỗi gửi = không tính tiền). */
-export async function guiVideoCong(cong: CongKey, model: string, o: { prompt: string; anhDau: string; /** ảnh CUỐI (keyframe KẾT) — cổng nhận hai ảnh (kie Veo FIRST_AND_LAST_FRAMES) thì gửi */ anhCuoi?: string | null; giay: number ; /** độ phân giải của phim (kinh_thanh.do_phan_giai) — Kie Veo nhận 1080p; cổng khác giữ 720p */ doPhanGiai?: '720p' | '1080p' }): Promise<{ ok: true; taskId: string } | { ok: false; loi: string; status?: number }> {
+/** Khung hình gửi cổng video: khung của PHIM (kinh_thanh.ti_le) — 01/11/2026 phim 16:9 ra clip dọc 720×1280 vì PlenX / Kie gắn cứng 9:16, ShopAIKey 2:3.
+ *  Cổng chỉ nhận dọc / ngang; khung lạ → 9:16 (QC dọc, mặc định cũ). */
+export const khungVideoCong = (tiLe?: string | null): '16:9' | '9:16' => (tiLe === '16:9' ? '16:9' : '9:16');
+export async function guiVideoCong(cong: CongKey, model: string, o: { /** khung hình của phim */ tiLe?: string | null; prompt: string; anhDau: string; /** ảnh CUỐI (keyframe KẾT) — cổng nhận hai ảnh (kie Veo FIRST_AND_LAST_FRAMES) thì gửi */ anhCuoi?: string | null; giay: number ; /** độ phân giải của phim (kinh_thanh.do_phan_giai) — Kie Veo nhận 1080p; cổng khác giữ 720p */ doPhanGiai?: '720p' | '1080p' }): Promise<{ ok: true; taskId: string } | { ok: false; loi: string; status?: number }> {
   const k = khoa(cong);
   if (!k || !CONG_VIDEO.includes(cong)) return { ok: false, loi: `cổng ${cong} chưa có đường video` };
   if (cong === 'kie') return guiKie(k, model, o);
@@ -293,7 +296,7 @@ export async function guiVideoCong(cong: CongKey, model: string, o: { prompt: st
   try {
     const r = await fetch('https://api.shopaikey.com/v1/video/generations', {
       method: 'POST', headers: { authorization: `Bearer ${k}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(60_000),
-      body: JSON.stringify({ model, prompt: o.prompt, metadata: { images: [o.anhDau], aspect_ratio: '2:3', duration: o.giay, resolution: '720p' } }),
+      body: JSON.stringify({ model, prompt: o.prompt, metadata: { images: [o.anhDau], aspect_ratio: khungVideoCong(o.tiLe) === '16:9' ? '3:2' : '2:3', duration: o.giay, resolution: '720p' } }),
     });
     const j = (await r.json().catch(() => ({}))) as { task_id?: string; id?: string; error?: { message?: string }; message?: string };
     const id = j.task_id || j.id;
@@ -326,10 +329,10 @@ export async function docVideoCong(cong: string, taskId: string, taoLuc: string)
 type KqGui = { ok: true; taskId: string } | { ok: false; loi: string; status?: number };
 type KqDoc = { done: false } | { done: true; ok: true; uri: string } | { done: true; ok: false; loi: string; treo?: boolean };
 const quaHan = (taoLuc: string) => Date.now() - new Date(taoLuc).getTime() > TREO_PHUT * 60_000;
-async function guiKie(k: string, model: string, o: { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }): Promise<KqGui> {
+async function guiKie(k: string, model: string, o: { tiLe?: string | null; prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }): Promise<KqGui> {
   try {
     const r = await fetch('https://api.kie.ai/api/v1/jobs/createTask', { method: 'POST', headers: { authorization: `Bearer ${k}`, 'content-type': 'application/json' }, signal: AbortSignal.timeout(60_000),
-      body: JSON.stringify({ model: 'veo-3-1', input: { prompt: o.prompt, model, image_urls: o.anhCuoi ? [o.anhDau, o.anhCuoi] : [o.anhDau], generation_type: 'FIRST_AND_LAST_FRAMES_2_VIDEO'   /* 19/10/2026: trước chỉ gửi ảnh đầu — keyframe KẾT có mà không bao giờ tới Veo, #1 đoán kết cục */, aspect_ratio: '9:16', resolution: o.doPhanGiai === '1080p' ? '1080p' : '720p'   /* 19/10/2026: creative QC luôn HD — phim khai 1080p thì clip 1080p (trước gắn cứng 720p) */, duration: o.giay <= 4 ? 4 : o.giay <= 6 ? 6 : 8 } }) });
+      body: JSON.stringify({ model: 'veo-3-1', input: { prompt: o.prompt, model, image_urls: o.anhCuoi ? [o.anhDau, o.anhCuoi] : [o.anhDau], generation_type: 'FIRST_AND_LAST_FRAMES_2_VIDEO'   /* 19/10/2026: trước chỉ gửi ảnh đầu — keyframe KẾT có mà không bao giờ tới Veo, #1 đoán kết cục */, aspect_ratio: khungVideoCong(o.tiLe), resolution: o.doPhanGiai === '1080p' ? '1080p' : '720p'   /* 19/10/2026: creative QC luôn HD — phim khai 1080p thì clip 1080p (trước gắn cứng 720p) */, duration: o.giay <= 4 ? 4 : o.giay <= 6 ? 6 : 8 } }) });
     const j = (await r.json().catch(() => ({}))) as { code?: number; msg?: string; data?: { taskId?: string } };
     if (j.code !== 200 || !j.data?.taskId) return { ok: false, status: j.code === 402 ? 402 : r.status, loi: `Kie.ai ${j.code ?? r.status}: ${j.msg || 'không nhận task'}`.slice(0, 300) };
     return { ok: true, taskId: j.data.taskId };

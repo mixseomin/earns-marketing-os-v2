@@ -9,7 +9,7 @@
 // Chỉ chạy trên máy chủ Next (node:fs) — cong-ai.ts gọi qua import động để Worker ảnh không kéo theo.
 import { readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { CONG_MAY } from './cong-ai';
+import { CONG_MAY, khungVideoCong } from './cong-ai';
 
 export const TOKEN_TEP = process.env.PLENXAI_TOKEN_FILE || '/root/.secrets/plenxai.json';
 const GOC = 'https://plenxai.com/api/v1';
@@ -55,13 +55,13 @@ export const VND_MOI_CREDIT = 100;   // nạp VietQR lẻ; gói tháng Pro ≈ 7
 export type KqGui = { ok: true; taskId: string } | { ok: false; loi: string; status?: number };
 export type KqDoc = { done: false } | { done: true; ok: true; uri: string } | { done: true; ok: false; loi: string; treo?: boolean };
 
-export async function guiPlenx(model: string, o: { prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }): Promise<KqGui> {
+export async function guiPlenx(model: string, o: { tiLe?: string | null; prompt: string; anhDau: string; anhCuoi?: string | null; giay: number; doPhanGiai?: '720p' | '1080p' }): Promise<KqGui> {
   const st = STUDIO_PLENX[model];
   if (st) {
     try {
       const giay = st.giay.find((g) => g >= o.giay) ?? st.giay[st.giay.length - 1]!;
       const r = await goi('/see-dance-studio/generate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({
-        prompt: o.prompt, model, duration: giay, aspect_ratio: '9:16', resolution: o.doPhanGiai === '1080p' ? '1080p' : '720p', generate_audio: true,
+        prompt: o.prompt, model, duration: giay, aspect_ratio: khungVideoCong(o.tiLe), resolution: o.doPhanGiai === '1080p' ? '1080p' : '720p', generate_audio: true,
         mode: 'i2v', input_image_url: o.anhDau, ...(o.anhCuoi ? { end_image_url: o.anhCuoi } : {}), server_id: st.server }) });
       const j = (await r.json().catch(() => ({}))) as { task_id?: string; id?: string; data?: { task_id?: string; id?: string }; detail?: unknown; message?: string; error?: unknown };
       const id = j.task_id || j.id || j.data?.task_id || j.data?.id;
@@ -72,7 +72,7 @@ export async function guiPlenx(model: string, o: { prompt: string; anhDau: strin
   }
   try {
     const f = new FormData();
-    f.append('prompt', o.prompt); f.append('model', model); f.append('aspect_ratio', '9:16');
+    f.append('prompt', o.prompt); f.append('model', model); f.append('aspect_ratio', khungVideoCong(o.tiLe));
     f.append('duration', String(o.giay <= 4 ? 4 : o.giay <= 6 ? 6 : 8)); f.append('resolution', o.doPhanGiai === '1080p' ? '1080' : '720');
     f.append('image_url', o.anhDau); if (o.anhCuoi) f.append('end_image_url', o.anhCuoi);
     const r = await goi('/veo/generate', { method: 'POST', body: f });

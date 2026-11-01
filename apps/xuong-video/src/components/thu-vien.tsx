@@ -19,7 +19,7 @@ import { HIEU_UNG_KHAN_GIA, hieuUngKG } from '@/lib/xuong-video/khan-gia';
 import { GOI_THE_LOAI, DIGEN_NHOM, DIGEN_KHONG_TINH, goiTheoKey, kiemGoi, boCucGoi } from '@/lib/xuong-video/goi-the-loai';
 import { CotCay } from './keo';
 import { KHUNG_TUYEN, khungTheoKey, khungTheoTheLoai, type KhungTuyen } from '@/lib/xuong-video/khung-tuyen';
-import { taiPromptOpus, LOAI_OPUS, type KhoPromptOpus } from '@/lib/xuong-video/prompt-opus';
+import { taiPromptOpus, taiDangKenh, thuocDang, LOAI_OPUS, type KhoPromptOpus, type KhoDangKenh } from '@/lib/xuong-video/prompt-opus';
 import { KINH_NGHIEM_KB, PHEP_THU_GAG, PHEP_THU_CHUNG, NGUONG_DAT, type PhepThu } from '@/lib/xuong-video/so-tay-kich-ban';
 import { VAT_DUNG, NHOM_VAT, KHO_VAT, phoiHopCua } from '@/lib/xuong-video/thu-vien-vat';
 
@@ -192,16 +192,20 @@ function PromptOpusKhoi({ q, dau }: { q: string; dau: React.ReactNode }) {
   const [loai, setLoai] = useNho<string>('xv-tv-opus-loai', '', ['', ...Object.keys(LOAI_OPUS)], 'tvol');
   const [cn, setCn] = useNho<string>('xv-tv-opus-cn', '', undefined, 'tvoc');
   const [het, setHet] = useState(60);
-  useEffect(() => { void taiPromptOpus().then(setKho); }, []);
-  useEffect(() => setHet(60), [q, loai, cn]);
+  const [dangKenh, setDangKenh] = useState<KhoDangKenh | null>(null);
+  const [dang, setDang] = useNho<string>('xv-tv-opus-dang', '', undefined, 'tvod');
+  useEffect(() => { void taiPromptOpus().then(setKho); void taiDangKenh().then(setDangKenh); }, []);
+  useEffect(() => setHet(60), [q, loai, cn, dang]);
   if (!kho) return q ? null : <div>{dau}<div className="xv-mono">…</div></div>;
-  const ds = kho.ds.filter((x) => (!loai || x.loai === loai) && (!cn || x.cong_nghe.includes(cn)) && khop(q, x.prompt, x.tac_gia, x.ten, x.slug));
+  const dangChon = dangKenh?.ds.find((d) => d.id === dang);
+  const ds = kho.ds.filter((x) => (!loai || x.loai === loai) && (!cn || x.cong_nghe.includes(cn)) && (!dangChon || thuocDang(dangChon, x)) && khop(q, x.prompt, x.tac_gia, x.ten, x.slug));
   if (q && !ds.length) return null;
   const dsCn = [...new Set(kho.ds.flatMap((x) => x.cong_nghe))].sort((a, b) => kho.ds.filter((x) => x.cong_nghe.includes(b)).length - kho.ds.filter((x) => x.cong_nghe.includes(a)).length);
   const chip = (on: boolean, chu: string, f: () => void, title?: string) => <button key={chu} type="button" className={`xv-btn${on ? ' chinh' : ''}`} style={{ padding: '2px 9px' }} onClick={f} title={title}>{chu}</button>;
   return (
     <div>{dau}
       {!q && <div className="xv-mono" style={{ marginBottom: 6 }}>Video làm bằng cách bảo Opus 5.5 viết hoạt hình thành code (Canvas · SVG · Three.js · GSAP…), mỗi mục kèm prompt tác giả đăng · nguồn <LinkNgoai href={kho.nguon}>yihui-dev/awesome-opus5-5-videos</LinkNgoai> ({kho.giay_phep}) · nạp {kho.nap}</div>}
+      {!q && dangKenh && <DangKenhKhoi kho={dangKenh} opus={kho} chon={dang} doiChon={(id) => setDang(dang === id ? '' : id)} />}
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', margin: '6px 0' }}>
         {chip(!loai, 'Mọi loại', () => setLoai(''))}
         {Object.entries(LOAI_OPUS).map(([k, t]) => chip(loai === k, t, () => setLoai(loai === k ? '' : k), `${kho.ds.filter((x) => x.loai === k).length} prompt`))}
@@ -223,6 +227,27 @@ function PromptOpusKhoi({ q, dau }: { q: string; dau: React.ReactNode }) {
         </button>))}</LuoiThe>
       {ds.length > het && <div style={{ marginTop: 8 }}><button type="button" className="xv-btn" onClick={() => setHet(het + 60)} title={`còn ${ds.length - het} prompt`}>Xem thêm</button></div>}
       {!ds.length && <div className="xv-mono">Không có prompt nào hợp bộ lọc.</div>}
+    </div>
+  );
+}
+/** Dạng kênh dựng được bằng code + nhu cầu đo trên YouTube (trung vị lượt xem 20 video đầu, video đầu bảng) — bấm thẻ lọc prompt Opus làm được dạng đó.
+ *  Số đo có tuổi: quá han_ngay thì báo cũ (chạy scripts/do-dang-kenh.mjs — chỉ đo lại cụm quá hạn). Xếp theo trung vị giảm dần. */
+function DangKenhKhoi({ kho, opus, chon, doiChon }: { kho: KhoDangKenh; opus: KhoPromptOpus; chon: string; doiChon: (id: string) => void }) {
+  const so = (n: number) => (n >= 1e6 ? `${(n / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} tr` : n >= 1e3 ? `${Math.round(n / 1e3).toLocaleString('vi-VN')} N` : String(n));
+  const tuoi = (iso?: string) => (iso ? Math.floor((Date.now() - Date.parse(iso)) / 86400_000) : null);
+  const ds = kho.ds.map((d) => ({ d, tv: Math.max(0, ...d.cum.map((c) => c.trung_vi ?? 0)), dau: d.cum.flatMap((c) => c.top ?? []).sort((a, b) => (b.xem ?? 0) - (a.xem ?? 0))[0],
+    tuoi: Math.max(...d.cum.map((c) => tuoi(c.do_luc) ?? 9999)), n: opus.ds.filter((x) => thuocDang(d, x)).length })).sort((a, b) => b.tv - a.tv);
+  return (
+    <div style={{ margin: '6px 0 10px' }}>
+      <div className="xv-mono" style={{ marginBottom: 6 }}>Dạng kênh làm được bằng code · nhu cầu = trung vị lượt xem 20 video YouTube đầu mỗi cụm tìm · {kho.nguon}</div>
+      <LuoiThe rong={230}>{ds.map(({ d, tv, dau, tuoi: t, n }) => (
+        <button key={d.id} type="button" className="xv-canh" onClick={() => doiChon(d.id)} title={`${d.mo_ta}\ncụm đo: ${d.cum.map((c) => `"${c.q}" ${so(c.trung_vi ?? 0)}`).join(' · ')}\n— bấm lọc ${n} prompt Opus làm được dạng này`}
+          style={{ textAlign: 'left', cursor: 'pointer', display: 'grid', gap: 3, alignContent: 'start', font: 'inherit', color: 'inherit', outline: chon === d.id ? '2px solid var(--accent)' : undefined }}>
+          <b style={{ fontSize: 12.5 }}>{d.ten}</b>
+          <span style={{ fontSize: 18, fontWeight: 600 }}>{so(tv)} <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--fg-3)' }}>lượt xem trung vị</span></span>
+          {dau && <span style={{ fontSize: 11, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${dau.ten} · ${dau.kenh ?? ''}`}>đầu bảng {so(dau.xem ?? 0)} · {dau.kenh}</span>}
+          <span className="xv-mono" style={{ fontSize: 10, color: t > kho.han_ngay ? 'var(--amber)' : undefined }}>{n} prompt · đo {t === 0 ? 'hôm nay' : `${t} ngày trước`}{t > kho.han_ngay ? ' · cũ, đo lại' : ''}</span>
+        </button>))}</LuoiThe>
     </div>
   );
 }

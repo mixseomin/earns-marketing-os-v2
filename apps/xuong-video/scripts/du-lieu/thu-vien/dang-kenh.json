@@ -1,0 +1,672 @@
+{
+ "nguon": "YouTube — 20 kết quả tìm đầu mỗi cụm (lượt xem, kênh, độ dài) qua máy cào spy.on.tc (yt-dlp + proxy làn 13)",
+ "han_ngay": 30,
+ "ds": [
+  {
+   "id": "lich_su",
+   "ten": "Lịch sử kể bằng bản đồ & dòng thời gian",
+   "mo_ta": "Một sự kiện / đế chế / phát minh kể trong 1–10 phút bằng bản đồ, mốc thời gian, nhân vật phẳng. Chủ đề vô hạn: mỗi nước, mỗi trận đánh, mỗi đồ vật.",
+   "khop": "histor|timeline|map|century|empire|war\\b|ancient",
+   "cum": [
+    {
+     "q": "history explained animation",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 1294797,
+     "top": [
+      {
+       "xem": 185526522,
+       "kenh": "bill wurtz",
+       "giay": 1166,
+       "ten": "history of the entire world, i guess",
+       "url": "https://www.youtube.com/watch?v=xuCn8ux2gbs"
+      },
+      {
+       "xem": 64255255,
+       "kenh": "OverSimplified",
+       "giay": 908,
+       "ten": "The American Revolution  - OverSimplified (Part 1)",
+       "url": "https://www.youtube.com/watch?v=gzALIXcY4pg"
+      },
+      {
+       "xem": 57660071,
+       "kenh": "OverSimplified",
+       "giay": 384,
+       "ten": "WW1 - Oversimplified (Part 1)",
+       "url": "https://www.youtube.com/watch?v=dHSQAEam2yc"
+      },
+      {
+       "xem": 50988132,
+       "kenh": "OverSimplified",
+       "giay": 1607,
+       "ten": "Henry VIII - OverSimplified",
+       "url": "https://www.youtube.com/watch?v=ewLpXw6uN28"
+      },
+      {
+       "xem": 41487234,
+       "kenh": "OverSimplified",
+       "giay": 1043,
+       "ten": "Three Kingdoms - OverSimplified",
+       "url": "https://www.youtube.com/watch?v=26EivpCPHnQ"
+      }
+     ]
+    },
+    {
+     "q": "geography map animation history",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 408963,
+     "top": [
+      {
+       "xem": 23867269,
+       "kenh": "Business Insider and Insider",
+       "giay": 156,
+       "ten": "Animated map shows how religion spread around the world",
+       "url": "https://www.youtube.com/watch?v=AvFl6UBZLv4"
+      },
+      {
+       "xem": 13897047,
+       "kenh": "Ollie Bye",
+       "giay": 1148,
+       "ten": "The History of the World: Every Year",
+       "url": "https://www.youtube.com/watch?v=-6Wu0Q7x5D0"
+      },
+      {
+       "xem": 5968672,
+       "kenh": "Atlas Pro",
+       "giay": 928,
+       "ten": "The Geography of the Ice Age",
+       "url": "https://www.youtube.com/watch?v=Pg0Z3LappEM"
+      },
+      {
+       "xem": 3167083,
+       "kenh": "Cottereau",
+       "giay": 1044,
+       "ten": "History of the World: Every Year",
+       "url": "https://www.youtube.com/watch?v=hzWwp9JM7Hw"
+      },
+      {
+       "xem": 2581726,
+       "kenh": "FactSpark",
+       "giay": 773,
+       "ten": "The Geography of India Explained",
+       "url": "https://www.youtube.com/watch?v=sxBG1cdWtO4"
+      }
+     ]
+    },
+    {
+     "q": "evolution of animation timeline",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 419644,
+     "top": [
+      {
+       "xem": 15008398,
+       "kenh": "Colossal Cranium",
+       "giay": 181,
+       "ten": "What Was The First Cartoon? | COLOSSAL QUESTIONS",
+       "url": "https://www.youtube.com/watch?v=p2NrvQ8m8FU"
+      },
+      {
+       "xem": 14119419,
+       "kenh": "TheOdd1sOut",
+       "giay": 1097,
+       "ten": "Animation Before Computers",
+       "url": "https://www.youtube.com/watch?v=6ecTO22ulRM"
+      },
+      {
+       "xem": 10600156,
+       "kenh": "Insider",
+       "giay": 614,
+       "ten": "How Pixar's Animation Has Evolved Over 24 Years, From ‘Toy Story’ To ‘Toy Story ",
+       "url": "https://www.youtube.com/watch?v=qTPKGVrFtQU"
+      },
+      {
+       "xem": 7203720,
+       "kenh": "Insider",
+       "giay": 2934,
+       "ten": "How Pixar Animation Evolved Over 28 Years | Movies Insider | Insider",
+       "url": "https://www.youtube.com/watch?v=h4WBP6ikjLo"
+      },
+      {
+       "xem": 6034713,
+       "kenh": "Insider Tech",
+       "giay": 208,
+       "ten": "Incredible Animation Shows How Humans Evolved From Early Life",
+       "url": "https://www.youtube.com/watch?v=2W5hOJaFjxU"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "cach_hoat_dong",
+   "ten": "Giải thích “nó hoạt động thế nào”",
+   "mo_ta": "Bổ đôi một cỗ máy / cơ thể / hệ thống bằng 3D hoặc sơ đồ động. Chủ đề vô hạn: mọi đồ vật quanh ta.",
+   "khop": "how .{0,25}works?\\b|inside (a|an|the) |how does|cross.?section|explain how",
+   "cum": [
+    {
+     "q": "how it works animation 3d",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 914171,
+     "top": [
+      {
+       "xem": 35401469,
+       "kenh": "Thomas Schwenke",
+       "giay": 855,
+       "ten": "Human digestive system - How it works! (Animation)",
+       "url": "https://www.youtube.com/watch?v=X3TAROotFfM"
+      },
+      {
+       "xem": 10471268,
+       "kenh": "Dr. Paulien Moyaert",
+       "giay": 48,
+       "ten": "Menstrual Cycle Basics | 3D animation (1/2)",
+       "url": "https://www.youtube.com/watch?v=zcvo9VLVHWc"
+      },
+      {
+       "xem": 9392438,
+       "kenh": "Dr. Paulien Moyaert",
+       "giay": 257,
+       "ten": "Pregnancy: A Month-By-Month Guide | 3D Animation",
+       "url": "https://www.youtube.com/watch?v=8BH7WFmRs-E"
+      },
+      {
+       "xem": 5250780,
+       "kenh": "Dr. Paulien Moyaert",
+       "giay": 228,
+       "ten": "How the Digestive System Works | 3D Animation",
+       "url": "https://www.youtube.com/watch?v=_T_vmcLyTzI"
+      },
+      {
+       "xem": 4586786,
+       "kenh": "CARinfo3d (En)",
+       "giay": 544,
+       "ten": "Сar anatomy: The Basics / How cars work? (3D animation)",
+       "url": "https://www.youtube.com/watch?v=fPjOWekzeGI"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "so_sanh",
+   "ten": "So sánh số liệu (nước, kích thước, tốc độ)",
+   "mo_ta": "Biểu đồ / vật thể xếp cạnh nhau tăng dần, đếm ngược, đua số. Dữ liệu công khai vô hạn.",
+   "khop": "compar|\\bcharts?\\b|\\bgraphs?\\b|statistic|population|\\bvs\\.?\\s|bigger than|ranking",
+   "cum": [
+    {
+     "q": "country comparison animation",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 461456,
+     "top": [
+      {
+       "xem": 58278926,
+       "kenh": "Real Data",
+       "giay": 111,
+       "ten": "◄ Tallest statue size comparison ► 3d animation",
+       "url": "https://www.youtube.com/watch?v=YEPJDkZRdJU"
+      },
+      {
+       "xem": 4448407,
+       "kenh": "PWA",
+       "giay": 103,
+       "ten": "COUNTRIES SCALED BY AGE | Countryballs Animation",
+       "url": "https://www.youtube.com/watch?v=U-ge1RHARpU"
+      },
+      {
+       "xem": 2649125,
+       "kenh": "PWA",
+       "giay": 82,
+       "ten": "COUNTRIES COMPARE LANGUAGES | Countryballs Animation",
+       "url": "https://www.youtube.com/watch?v=xb7j0db765M"
+      },
+      {
+       "xem": 2545253,
+       "kenh": "Abendu STF M.",
+       "giay": 683,
+       "ten": "World Flags Animation - Remastered",
+       "url": "https://www.youtube.com/watch?v=wyOFXtqZcXw"
+      },
+      {
+       "xem": 2168381,
+       "kenh": "PWA",
+       "giay": 105,
+       "ten": "COUNTRIES SCALED BY TEMPERATURE | Countryballs Animation",
+       "url": "https://www.youtube.com/watch?v=qa7C5_1t3Ok"
+      }
+     ]
+    },
+    {
+     "q": "population data visualization race",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 206,
+     "top": [
+      {
+       "xem": 1813987,
+       "kenh": "American Museum of Natural History",
+       "giay": 379,
+       "ten": "Human Population Through Time (Updated in 2023) #datavisualization",
+       "url": "https://www.youtube.com/watch?v=vJ5p3pZlBi4"
+      },
+      {
+       "xem": 1066010,
+       "kenh": "Global Stats",
+       "giay": 613,
+       "ten": "World Population - History & Projection (10,000 BC-2100)",
+       "url": "https://www.youtube.com/watch?v=3CWCHEnscfw"
+      },
+      {
+       "xem": 7095,
+       "kenh": "Data EYE",
+       "giay": 501,
+       "ten": "Evolution of US Population by Race (1800–2027)",
+       "url": "https://www.youtube.com/watch?v=ztYzBxMd5z8"
+      },
+      {
+       "xem": 893,
+       "kenh": "Globrithm Stats",
+       "giay": 511,
+       "ten": "Top 15 Most Populous U.S. States (1900-2030) | Bar Chart Race",
+       "url": "https://www.youtube.com/watch?v=BhFa2zaeQwA"
+      },
+      {
+       "xem": 732,
+       "kenh": "DatamonsGlobal",
+       "giay": 849,
+       "ten": "Top 25 Most Populous Countries (1960-2023) - #BarChartRace #DataVisualization",
+       "url": "https://www.youtube.com/watch?v=67BuEjKibEo"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "what_if",
+   "ten": "Giả định “Nếu … thì sao?”",
+   "mo_ta": "Kịch bản tưởng tượng có cơ sở khoa học kể bằng hoạt hình. Ý tưởng vô hạn, câu hỏi tự là cái móc.",
+   "khop": "what if|if my|imagine|dream",
+   "cum": [
+    {
+     "q": "what if animation",
+     "do_luc": "2026-11-01T17:30:11Z",
+     "n": 20,
+     "trung_vi": 208983,
+     "top": [
+      {
+       "xem": 1179210,
+       "kenh": "「AStickyNote」",
+       "giay": 105,
+       "ten": "What if The Second Coming awakened? - Animator Vs Animation (FANMADE)",
+       "url": "https://www.youtube.com/watch?v=2wB0THW2a6E"
+      },
+      {
+       "xem": 873046,
+       "kenh": "What If Animations",
+       "giay": 405,
+       "ten": "What if you shrank and couldn't stop?",
+       "url": "https://www.youtube.com/watch?v=YayPaipjNAM"
+      },
+      {
+       "xem": 639277,
+       "kenh": "IFOLOGY",
+       "giay": 611,
+       "ten": "What IF You Could Stop Time?",
+       "url": "https://www.youtube.com/watch?v=YznR5NmI3bc"
+      },
+      {
+       "xem": 597237,
+       "kenh": "Genosis",
+       "giay": 51,
+       "ten": "What If The Second Coming Fully Awakened? | Animator vs Animation 13 (Fan Animat",
+       "url": "https://www.youtube.com/watch?v=Inr4tojWB_I"
+      },
+      {
+       "xem": 443259,
+       "kenh": "IFOLOGY",
+       "giay": 1326,
+       "ten": "What IF You Could Shapeshift?",
+       "url": "https://www.youtube.com/watch?v=RxAhxw6Emec"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "vat_ly",
+   "ten": "Mô phỏng vật lý gây nghiện (bóng, cát, đua bi)",
+   "mo_ta": "Bóng thoát vòng tròn, đua bi, cát/nước rơi — không lời, xem được mọi nước, biến thể vô hạn bằng tham số.",
+   "khop": "physic|simulat|ball|marble|sand|particle|bounce|gravity",
+   "cum": [
+    {
+     "q": "satisfying ball physics simulation",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 127027,
+     "top": [
+      {
+       "xem": 20196950,
+       "kenh": "Kawaken 3DCG",
+       "giay": 509,
+       "ten": "【4K】Satisfying 3D Simulations Showcase 【60fps】",
+       "url": "https://www.youtube.com/watch?v=3ll5jzjNIcs"
+      },
+      {
+       "xem": 8870007,
+       "kenh": "Blender N Chill",
+       "giay": 499,
+       "ten": "The Most Satisfying Blender 3D Physics Simulation | 8 Minutes of Non-Stop Satisf",
+       "url": "https://www.youtube.com/watch?v=APVFn6yKRfA"
+      },
+      {
+       "xem": 4429461,
+       "kenh": "CodeCraftedPhysics",
+       "giay": 496,
+       "ten": "Bouncing simulations that I watch before sleep",
+       "url": "https://www.youtube.com/watch?v=Aiz89crN0No"
+      },
+      {
+       "xem": 2009741,
+       "kenh": "Foxsplash 3D",
+       "giay": 499,
+       "ten": "Extreme 3D Physics Simulations | Satisfying Showcase",
+       "url": "https://www.youtube.com/watch?v=6JR3y4e5wL4"
+      },
+      {
+       "xem": 1086476,
+       "kenh": "Satisfying 2D Sims",
+       "giay": 559,
+       "ten": "12 Most Satisfying 2D Simulations | 9 Minutes of Pure Satisfaction",
+       "url": "https://www.youtube.com/watch?v=OKZltUoI7eE"
+      }
+     ]
+    },
+    {
+     "q": "ball escape circle simulation",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 191811,
+     "top": [
+      {
+       "xem": 47803401,
+       "kenh": "Rec Ninja",
+       "giay": 137,
+       "ten": "Balls on spiral stair, Blender animation, Rigid body simulation, Eevee",
+       "url": "https://www.youtube.com/watch?v=6gxfaOciWpo"
+      },
+      {
+       "xem": 42498232,
+       "kenh": "MIKAN",
+       "giay": 212,
+       "ten": "Escape from the Rolling MIKAN - Survival Marble Race in Algodoo",
+       "url": "https://www.youtube.com/watch?v=MmA-WBjfTlI"
+      },
+      {
+       "xem": 28238116,
+       "kenh": "MIKAN 3D",
+       "giay": 311,
+       "ten": "Escape from Me - The Pipe - Proliferation Survival Marble Race in Unity",
+       "url": "https://www.youtube.com/watch?v=ljhoXA3fNnY"
+      },
+      {
+       "xem": 27619270,
+       "kenh": "MIKAN",
+       "giay": 216,
+       "ten": "Escape from the Rolling Object - Survival Marble Race in Algodoo",
+       "url": "https://www.youtube.com/watch?v=7a1Dao8khp4"
+      },
+      {
+       "xem": 8239567,
+       "kenh": "Max Marble",
+       "giay": 386,
+       "ten": "Zombie Tower Escape",
+       "url": "https://www.youtube.com/watch?v=pWSSZg2mgM0"
+      }
+     ]
+    },
+    {
+     "q": "marble race",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 191187,
+     "top": [
+      {
+       "xem": 13327325,
+       "kenh": "Fubeca's Marble Runs",
+       "giay": 928,
+       "ten": "Marble Race: Friendly 🏆⚡ Countryballs Compete in a Thrilling Tournament!",
+       "url": "https://www.youtube.com/watch?v=woiwOo2jI7A"
+      },
+      {
+       "xem": 10820541,
+       "kenh": "MIKAN",
+       "giay": 1761,
+       "ten": "Mega Team Elimination Marble Race",
+       "url": "https://www.youtube.com/watch?v=ND6_romtb3Q"
+      },
+      {
+       "xem": 8912463,
+       "kenh": "Fubeca's Marble Runs",
+       "giay": 1647,
+       "ten": "Elimination Marble race: SPLASH with Elevetor - Underwater marble run Tournament",
+       "url": "https://www.youtube.com/watch?v=Rgh0OPs2QMw"
+      },
+      {
+       "xem": 8609210,
+       "kenh": "MIKAN",
+       "giay": 1389,
+       "ten": "Elimination Soft Marble Race",
+       "url": "https://www.youtube.com/watch?v=o1-rHMCj9Fw"
+      },
+      {
+       "xem": 6010307,
+       "kenh": "MoreBalls",
+       "giay": 1604,
+       "ten": "Night Marble Elimination Race  | #marbles #marblerun #marblerace #asmr #sensory",
+       "url": "https://www.youtube.com/watch?v=_biIzYIUSWg"
+      }
+     ]
+    },
+    {
+     "q": "satisfying sand simulation",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 38478,
+     "top": [
+      {
+       "xem": 20196950,
+       "kenh": "Kawaken 3DCG",
+       "giay": 509,
+       "ten": "【4K】Satisfying 3D Simulations Showcase 【60fps】",
+       "url": "https://www.youtube.com/watch?v=3ll5jzjNIcs"
+      },
+      {
+       "xem": 5813552,
+       "kenh": "Sand Tagious",
+       "giay": 625,
+       "ten": "Very Satisfying and Relaxing Compilation 109 Kinetic Sand ASMR",
+       "url": "https://www.youtube.com/watch?v=8BYrvVeejzg"
+      },
+      {
+       "xem": 1352382,
+       "kenh": "The Coding Train",
+       "giay": 1380,
+       "ten": "Coding Challenge 180: Falling Sand",
+       "url": "https://www.youtube.com/watch?v=L4u7Zy_b868"
+      },
+      {
+       "xem": 1169094,
+       "kenh": "Sand Tagious",
+       "giay": 628,
+       "ten": "Very Satisfying and Relaxing Compilation 298 Kinetic Sand ASMR",
+       "url": "https://www.youtube.com/watch?v=C_PWdv5Bluw"
+      },
+      {
+       "xem": 343954,
+       "kenh": "Bad Normals",
+       "giay": 1839,
+       "ten": "How to simulate SAND in Blender 3.1?",
+       "url": "https://www.youtube.com/watch?v=MjM16FUMOKM"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "toan_hoc",
+   "ten": "Toán học trực quan",
+   "mo_ta": "Chuỗi Fourier, hình học, xác suất vẽ động kiểu Manim / 3Blue1Brown.",
+   "khop": "fourier|math|manim|geometr|derivative|equation|fractal",
+   "cum": [
+    {
+     "q": "math visualization animation",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 245304,
+     "top": [
+      {
+       "xem": 158764688,
+       "kenh": "Alan Becker",
+       "giay": 843,
+       "ten": "Animation vs. Math",
+       "url": "https://www.youtube.com/watch?v=B1J6Ou4q8vE"
+      },
+      {
+       "xem": 19000272,
+       "kenh": "3Blue1Brown",
+       "giay": 1487,
+       "ten": "But what is a Fourier series?  From heat flow to drawing with circles | DE4",
+       "url": "https://www.youtube.com/watch?v=r6sGWTCMz2k"
+      },
+      {
+       "xem": 6249683,
+       "kenh": "3Blue1Brown",
+       "giay": 1636,
+       "ten": "Differential equations, a tourist's guide | DE1",
+       "url": "https://www.youtube.com/watch?v=p_di4Zn4wz4"
+      },
+      {
+       "xem": 3295835,
+       "kenh": "3Blue1Brown",
+       "giay": 3221,
+       "ten": "How I animate 3Blue1Brown | A Manim demo with Ben Sparks",
+       "url": "https://www.youtube.com/watch?v=rbu7Zu5X1zI"
+      },
+      {
+       "xem": 2109402,
+       "kenh": "3Blue1Brown",
+       "giay": 2081,
+       "ten": "But what is a Laplace Transform?",
+       "url": "https://www.youtube.com/watch?v=j0wJBEZdwLs"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "lofi",
+   "ten": "Vòng lặp lofi / cảnh thư giãn",
+   "mo_ta": "Cảnh vẽ lặp vô tận kèm nhạc nền dài cho học, làm việc; một cảnh dùng hàng giờ.",
+   "khop": "lofi|lo-fi|loop|ambient|cozy|relax",
+   "cum": [
+    {
+     "q": "lofi animation loop",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 1698874,
+     "top": [
+      {
+       "xem": 7949658,
+       "kenh": "Lofi Girl",
+       "giay": 28828,
+       "ten": "Bedtime Lofi 💤  8 hours of relaxing beats to sleep to",
+       "url": "https://www.youtube.com/watch?v=UJs6__K7gSY"
+      },
+      {
+       "xem": 6076213,
+       "kenh": "The Jazz Hop Café",
+       "giay": 2437,
+       "ten": "a peaceful place. [lofi / jazzhop / chillhop mix]",
+       "url": "https://www.youtube.com/watch?v=DbuebKNKQsQ"
+      },
+      {
+       "xem": 5499705,
+       "kenh": "HBO Max",
+       "giay": 1825,
+       "ten": "Studio Ghibli Nature Loop | Studio Ghibli | HBO Max",
+       "url": "https://www.youtube.com/watch?v=z9Ug-3qhrwY"
+      },
+      {
+       "xem": 4996678,
+       "kenh": "Lofi Ailurophile",
+       "giay": 14041,
+       "ten": "ＳＬＥＥＰＹ Lofi Cat 💤 Listen to it to escape from a hard day with my cat 💤 Beats To ",
+       "url": "https://www.youtube.com/watch?v=vvThzcBfnyc"
+      },
+      {
+       "xem": 4976681,
+       "kenh": "Aesthetic Lofi",
+       "giay": 42899,
+       "ten": "Just relax 🍀 stop overthinking, calm your anxiety - lofi hip hop mix - aesthetic",
+       "url": "https://www.youtube.com/watch?v=zuCRSwWssVk"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "mo_hinh_tp",
+   "ten": "Thành phố thu nhỏ / quả cầu tuyết 3D",
+   "mo_ta": "Diorama 3D một thành phố / địa danh. Thử đo: nhu cầu thấp.",
+   "khop": "snow globe|miniature|diorama|tiny world",
+   "cum": [
+    {
+     "q": "city snow globe 3d",
+     "do_luc": "2026-11-01T17:29:37+00:00",
+     "n": 20,
+     "trung_vi": 171,
+     "top": [
+      {
+       "xem": 351329,
+       "kenh": "smoothelondon",
+       "giay": 80,
+       "ten": "Snowglobe",
+       "url": "https://www.youtube.com/watch?v=RR6xGufBzbU"
+      },
+      {
+       "xem": 12135,
+       "kenh": "l0ne5tar",
+       "giay": 85,
+       "ten": "3D CHRISTMAS ADVENT SNOWGLOBE",
+       "url": "https://www.youtube.com/watch?v=1zqYiiwDHSk"
+      },
+      {
+       "xem": 1158,
+       "kenh": "D_Svou)",
+       "giay": 21,
+       "ten": "city snow globe mini world live wallpaper",
+       "url": "https://www.youtube.com/watch?v=yX27WGBci1w"
+      },
+      {
+       "xem": 877,
+       "kenh": "MoviemakerSagi",
+       "giay": 11,
+       "ten": "a city in a snow globe",
+       "url": "https://www.youtube.com/watch?v=QCUF_oWFtFI"
+      },
+      {
+       "xem": 456,
+       "kenh": "Kelly Whicker Cards",
+       "giay": 1533,
+       "ten": "Simon Hurley NEW RELEASE | Snow Globe Scenes",
+       "url": "https://www.youtube.com/watch?v=wvyHdCjDc0o"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

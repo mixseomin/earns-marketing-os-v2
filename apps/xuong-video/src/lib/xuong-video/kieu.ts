@@ -668,7 +668,7 @@ export type DongDoiChieu = { thanh_phan: string; du_kien: string; thuc_te: strin
 export type BocTachCanh = { dau?: BocTachKhung; cuoi?: BocTachKhung; doi_chieu?: { dau?: DongDoiChieu[]; cuoi?: DongDoiChieu[] }; luc_boc: string; tren: { dau: string | null; cuoi: string | null } };
 
 /** Dữ liệu dựng lớp của một shot (dung-lop.ts). */
-export type LopShot = { nen?: string; anh?: Record<string, string>; video_tho?: string };
+export type LopShot = { nen?: string; anh?: Record<string, string>; video_tho?: string; /** cảnh báo mức chân của clip lớp (dung-lop-may.ts › doChanClip); rỗng = đạt */ chan?: string };
 export type Canh = {
   id: number; tap_id: number; thu_tu: number; canh: string; goc_may: string; hanh_dong: string; /** mô tả tiếng Việt của hành động (#1397) — đọc qua moTaVi */ hanh_dong_vi: string; loi_thoai: string; am_thanh: string; thoai_url: string | null; am_thanh_url: string | null; phan_doan: string; cam_xuc: number; ky_thuat: KyThuatShot; thoai: DongThoai[]; trang_phuc: string;
   /** Giây thực phát (cắt từ đầu clip); null = phát cả clip. chu_man = chữ trên màn. nhanh = '' thân chung | 'A'/'B'/'C' biến thể hook. */

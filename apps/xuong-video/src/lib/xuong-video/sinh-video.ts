@@ -1,6 +1,6 @@
 // Lõi sinh video cho một shot + nhận kết quả (Veo qua Google hoặc model fal) — tách khỏi actions.ts để script trên box
 // (scripts/sinh-shot.mts) và server action (sinhVideoCanh / kiemVideo) dùng CÙNG một đường; actions chỉ kiểm quyền rồi gọi vào đây.
-import { laDungLop, anhLopCua, cauDoMang, CAU_NEN_VIDEO_LOP, CAU_MAY_VIDEO_LOP, CAU_SONG_VIDEO_LOP } from './dung-lop';
+import { laDungLop, anhLopCua, cauDoMang, CAU_NEN_VIDEO_LOP, CAU_MAY_VIDEO_LOP, CAU_SONG_VIDEO_LOP, CAU_CHAN_VIDEO_LOP } from './dung-lop';
 import { chanDanDat } from './dan-dat';
 import { CHAT_LIEU, cauNhipGag, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, nhanNhin, tenNgonNguEn, thayTenNhan, type ChatLieu, type Khoi } from './prompt-khoi';
 import { loiTrangThaiVat, chamPrompt, NGUONG_CHAN, type LoiPrompt } from './kiem-prompt';
@@ -113,7 +113,7 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
     // KHOẢNH KHẮC: prompt_video riêng của shot (nếu có); thẻ có mở / kết hoặc câu diễn (mảnh ReelShort một việc) thì khối diễn đã nói — không lấy hanh_dong (mô tả cho người đọc, có thể tiếng Việt)
     khoi('cong_cu', camCongCuVe(bc.kt.phong_cach, laTayNguoi(bc.nhanVat))), khoi('khoanh_khac', boCauTrung(boThoaiTrongPrompt(bc.canh.prompt_video.trim() || ((bc.canh.dan_dung?.mo && bc.canh.dan_dung?.ket) || bc.canh.dan_dung?.dien?.trim() ? '' : bc.canh.hanh_dong)), [bc.canh.dan_dung?.mo, bc.canh.dan_dung?.ket])),
     // đường đi: đồ đang cầm / đeo (vi_tri.cam) đi theo người, không tả riêng — tả riêng làm video phô món đó (#12 tổng tài: vòng ngọc gài lộ trước cú trả #25)
-    khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di?.filter((d) => !bc.canh.may_3d?.vi_tri.some((v) => v.ten === d.ten && v.cam)), goiTenEn([...bc.nhanVat, ...bc.nvPhim]), (t) => [...bc.nhanVat, ...bc.nvPhim].some((v) => v.ten === t && v.loai === 'nhan_vat'), (t) => bc.canh.may_3d?.vi_tri.some((v) => v.ten === t && v.den && Math.hypot(v.den[0]! - v.tam[0]!, v.den[1]! - v.tam[1]!, (v.den[2] ?? 0) - (v.tam[2] ?? 0)) >= 15) ?? true)), khoi('khac', laDungLop(bc.kt) ? CAU_SONG_VIDEO_LOP : lv.song(coMau(bc.kt.qc)) ? CHAT_LIEU[cl].song_video(chen) : ''), khoi('boi_canh', laDungLop(bc.kt) ? CAU_NEN_VIDEO_LOP : ''), khoi('vat', spTrongTam),
+    khoi('dien', theVideo(bc.canh.dan_dung, cl, rendau)), khoi('chuyen_dong', moTaChuyenDong(bc.canh.khung_xam?.di?.filter((d) => !bc.canh.may_3d?.vi_tri.some((v) => v.ten === d.ten && v.cam)), goiTenEn([...bc.nhanVat, ...bc.nvPhim]), (t) => [...bc.nhanVat, ...bc.nvPhim].some((v) => v.ten === t && v.loai === 'nhan_vat'), (t) => bc.canh.may_3d?.vi_tri.some((v) => v.ten === t && v.den && Math.hypot(v.den[0]! - v.tam[0]!, v.den[1]! - v.tam[1]!, (v.den[2] ?? 0) - (v.tam[2] ?? 0)) >= 15) ?? true)), khoi('khac', laDungLop(bc.kt) ? `${CAU_SONG_VIDEO_LOP} ${CAU_CHAN_VIDEO_LOP}` : lv.song(coMau(bc.kt.qc)) ? CHAT_LIEU[cl].song_video(chen) : ''), khoi('boi_canh', laDungLop(bc.kt) ? CAU_NEN_VIDEO_LOP : ''), khoi('vat', spTrongTam),
     khoi('thoai', thoaiVeo || imLang), khoi('noi_cat', catDongTac), khoi('giu', `${giuAnh} ${giuKhung} ${cauVatLy(bc.kt.the_loai)}`.trim()), khoi('khong_them', khongThem), khoi('cam_chu', 'No on-screen text, captions, subtitles or logos.'),
     khoi('trang_thai', [bc.canh.trang_phuc.trim() ? `Clothing stays exactly: ${bc.canh.trang_phuc.trim()}; no extra garments.` : '', cauDoMang(bc.nhanVat.filter((v) => bc.canh.nhan_vat.includes(v.id)))].filter(Boolean).join(' ')), khoi('may', laDungLop(bc.kt) ? CAU_MAY_VIDEO_LOP : promptKyThuatVideo(bc.canh.ky_thuat)),
     khoi('cam_xuc', chen ? '' : promptCamXuc(bc.canh, bc.nhanVat, 'video')), khoi('bieu_cam', chen ? '' : promptBieuCam(bc.canh.bieu_cam, 'video')),
@@ -389,11 +389,12 @@ export async function kiemVideoTap(db: Db, tapId: number): Promise<{ conChay: nu
     let bufG = buf;
     const ln = buf ? ((await db.execute(sql`SELECT request->>'lopNen' AS n, request->>'tiLe' AS t FROM xv_job WHERE id = ${r.id}`)) as unknown as Row[])[0] : null;
     if (buf && ln?.n) {
-      const { ghepVideoLop } = await import('./dung-lop-may');
+      const { ghepVideoLop, doChanClip } = await import('./dung-lop-may');
+      const chan = await doChanClip(buf);   // mức chân (0đ) — báo trên thẻ shot, không chặn (gag có cú nhảy)
       const tho = await uploadToR2(`xuong-video/clip-lop/${r.canh_id}-${randomUUID()}.mp4`, buf, 'video/mp4');
       bufG = await ghepVideoLop(String(ln.n), buf, ln.t == null ? undefined : String(ln.t));
       if (!bufG) { await xongJob(db, r.id, { loi: `ghép lớp lên nền hỏng (ffmpeg) — clip lớp: ${tho ?? '?'}` }); await db.execute(sql`UPDATE xv_canh SET trang_thai = 'loi', loi = 'ghép lớp lên nền hỏng', updated_at = now() WHERE id = ${r.canh_id}`); continue; }
-      if (tho) await db.execute(sql`UPDATE xv_canh SET lop = coalesce(lop, '{}'::jsonb) || jsonb_build_object('video_tho', ${tho}::text) WHERE id = ${r.canh_id}`);
+      if (tho) await db.execute(sql`UPDATE xv_canh SET lop = coalesce(lop, '{}'::jsonb) || jsonb_build_object('video_tho', ${tho}::text, 'chan', ${chan}::text) WHERE id = ${r.canh_id}`);
     }
     const url = bufG ? await uploadToR2(`xuong-video/clip/${r.canh_id}-${randomUUID()}.mp4`, bufG, 'video/mp4') : null;
     if (url) await donVideoCong(r.provider, kq.uri);   // đã lưu về R2 → xoá bản trên nền tảng cổng (PlenX)

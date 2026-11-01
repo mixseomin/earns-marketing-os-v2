@@ -40,3 +40,17 @@ assert.strictEqual(anhLopCua({ keyframe_url: 'g1', lop: { anh: { g1: 'xanh1' } }
 assert.strictEqual(anhLopCua({ keyframe_url: 'cu', lop: { anh: { g1: 'xanh1' } } }), null);
 assert.strictEqual(anhLopCua({ keyframe_url: null, lop: null }), null);
 console.log('✓ dung-lop');
+
+// bước 1 vẽ lên nền: Image 1 = nền, ảnh mẫu từ Image 2; bước 2 tách lớp xanh giữ nguyên người
+{
+  const { promptLopTrenNen, PROMPT_TACH_LOP, soatChan, CAU_CHAN_VIDEO_LOP } = await import('./dung-lop');
+  const p = promptLopTrenNen('The vendor walks.', '', 2);
+  assert.ok(p.startsWith('EDIT Image 1') && p.includes('visible ground') && p.includes('Images 2–3'), p);
+  assert.ok(PROMPT_TACH_LOP.includes('#00FF00') && /same position, size, pose/.test(PROMPT_TACH_LOP));
+  assert.ok(/no sliding/.test(CAU_CHAN_VIDEO_LOP));
+  // mức chân: đứng yên → đạt; lún 6% ở khung 3 → báo đúng khung; rỗng → null
+  assert.strictEqual(soatChan([0.8, 0.81, 0.8, 0.82]), null);
+  { const k = soatChan([0.8, 0.8, 0.81, 0.86])!; assert.ok(k.khung === 3 && Math.abs(k.lech - 0.06) < 1e-9, JSON.stringify(k)); }
+  assert.strictEqual(soatChan([]), null);
+}
+console.log('✓ dung-lop (bước chân)');

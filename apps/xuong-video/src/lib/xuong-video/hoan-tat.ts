@@ -199,6 +199,12 @@ export async function hoanTatAnh(kq: KqViec): Promise<boolean> {
     if (giua) await db.execute(sql`UPDATE xv_canh SET keyframe_giua = ${u}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
     else await db.execute(sql`UPDATE xv_canh SET keyframe_ket = ${u}, chi_phi_cents = chi_phi_cents + ${gia}, loi = '', updated_at = now() WHERE id = ${canh}`);
     if (!giua) doiChieuAnhNen(db, canh, u, 'cuoi');   // ⚖️ mọi ảnh sinh ra đều so với yêu cầu (doi-chieu-anh.ts)
+  } else if (canh != null && j.dich === 'keyframe_lop_1') {
+    // bước 1 keyframe lớp (vẽ lên tấm nền) xong → bước 2 tách lớp nền xanh từ chính ảnh này (dung-lop-may.ts)
+    const rq1 = ((await db.execute(sql`SELECT request->>'model' AS model, request->>'tiLe' AS ti_le FROM xv_job WHERE id = ${kq.job}`)) as unknown as Row[])[0];
+    await db.execute(sql`UPDATE xv_canh SET chi_phi_cents = chi_phi_cents + ${gia}, updated_at = now() WHERE id = ${canh}`);
+    const { tachLopBuoc2 } = await import('./dung-lop-may');
+    await tachLopBuoc2(db, canh, kq.url, { model: (rq1?.model as string | null) ?? kq.model, tiLe: (rq1?.ti_le as string | null) ?? undefined }).catch(async (e: unknown) => { await db.execute(sql`UPDATE xv_canh SET loi = ${`tách lớp (bước 2) hỏng: ${String(e)}`} WHERE id = ${canh}`); });
   } else if (canh != null && j.dich === 'keyframe_lop') {
     // KEYFRAME LỚP (dung-lop-may.ts › sinhKeyframeLop): ảnh lớp nền xanh → ghép lên tấm nền của shot; ảnh GHÉP vào dải ứng viên như keyframe thường,
     // lop.anh nhớ ảnh ghép → ảnh lớp (video đi từ ảnh lớp). Ghép hỏng thì báo lỗi, ảnh lớp nằm ở output_url của job.

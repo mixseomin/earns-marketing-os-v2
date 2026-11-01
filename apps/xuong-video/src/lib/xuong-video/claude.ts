@@ -1032,11 +1032,11 @@ const TheGagSchema = z.object({ gag: z.array(z.object({
   muc: z.number().describe('1–10: quy mô / mức nguy / độ khéo'),
 })) });
 const DiemGagSchema = z.object({ cham: z.array(z.object({
-  ten: z.string(), ly_do_loai: z.string().describe('CHẤM NGƯỢC: viết TRƯỚC — lý do mạnh nhất để loại gag này (nhạt, tầm thường, đoán trước, khó hiểu)'),
+  so: z.number().describe('SỐ THỨ TỰ của gag trong danh sách (1, 2, …) — ghép điểm theo số, không theo tên'), ly_do_loai: z.string().describe('CHẤM NGƯỢC: viết TRƯỚC — lý do mạnh nhất để loại gag này (nhạt, tầm thường, đoán trước, khó hiểu)'),
   phen: z.string().describe('chỗ phèn nếu có (lời giải tiện, cảm ơn lố, biểu tượng nhồi nhét); không có thì để trống'),
   diem: z.object(Object.fromEntries(PHEP_THU_GAG.map((p) => [p.ma, z.number().describe(`${p.ten}: ${p.hoi} 0 = trượt (${p.truot}), 1 = tạm, 2 = tốt`)])) as Record<string, z.ZodNumber>),
 })) });
-const ThuMuSchema = z.object({ thu: z.array(z.object({ ten: z.string(), ke_lai: z.string().describe('người xem kể lại chuyện gì xảy ra, một câu'), hieu: z.boolean(), buon_cuoi: z.number().describe('0–2') })) });
+const ThuMuSchema = z.object({ thu: z.array(z.object({ so: z.number().describe('số thứ tự clip'), ke_lai: z.string().describe('người xem kể lại chuyện gì xảy ra, một câu'), hieu: z.boolean(), buon_cuoi: z.number().describe('0–2') })) });
 const ChamThuongSchema = z.object({
   nguoc: z.array(z.string()).describe('CHẤM NGƯỢC: viết TRƯỚC — 3–6 lý do mạnh nhất khiến kịch bản này nhạt / phèn / tầm thường, cụ thể theo cảnh'),
   muc: z.array(z.object({ ma: z.string(), diem: z.number().describe('0 = trượt, 1 = tạm, 2 = tốt'), ly_do: z.string() })),
@@ -1060,11 +1060,15 @@ async function vietGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor:
     const ds = moi.map((g, i) => `${i + 1}. ${g.ten} — vấn đề: ${g.van_de} · ra tay: ${g.ra_tay} · đẩy thêm: ${g.day_them} · phản ứng: ${g.phan_ung} · cơ chế: ${g.co_che} · vì sao ở đây: ${g.vi_sao_noi}`).join('\n');
     const [c, t] = await Promise.all([
       sinhJson({ schema: DiemGagSchema, model: nguoiCham, max_tokens: 8000, ten: 'chấm chéo + ngược gag', system: `Bạn là trưởng phòng biên kịch hoạt hình khó tính, không phải người viết. Chấm NGƯỢC: với mỗi gag, viết lý do loại mạnh nhất TRƯỚC rồi mới cho điểm. Không nể nang — gag tầm thường cho 0.\n${vanSoTay(o.kt.goi)}`, user: `BRIEF:\n${o.brief}\n\nCÁC GAG:\n${ds}` }),
-      sinhJson({ schema: ThuMuSchema, model: MO_HINH_THU, max_tokens: 4000, ten: 'thử mù gag', system: 'Bạn là người xem mạng xã hội lướt nhanh, xem hoạt hình không lời. Bạn chỉ thấy HÀNH ĐỘNG trên màn, không biết ý đồ người viết.', user: `Mỗi dòng là một clip 3–4 giây. Kể lại bạn thấy gì, có hiểu không, buồn cười cỡ nào (0–2):\n${moi.map((g) => `${g.ten}: ${g.van_de} → ${g.ra_tay} → ${g.day_them} → ${g.phan_ung}`).join('\n')}` }),
+      sinhJson({ schema: ThuMuSchema, model: MO_HINH_THU, max_tokens: 4000, ten: 'thử mù gag', system: 'Bạn là người xem mạng xã hội lướt nhanh, xem hoạt hình không lời. Bạn chỉ thấy HÀNH ĐỘNG trên màn, không biết ý đồ người viết.', user: `Mỗi dòng là một clip 3–4 giây. Kể lại bạn thấy gì, có hiểu không, buồn cười cỡ nào (0–2):\n${moi.map((g, i) => `${i + 1}. ${g.van_de} → ${g.ra_tay} → ${g.day_them} → ${g.phan_ung}`).join('\n')}` }),
     ]);
     if (!c.ok) return c; tk.push(c.tokens);
-    if (t.ok) { tk.push(t.tokens); mu.push(...t.data.thu); }
-    diem.push(...c.data.cham.map((x) => ({ ...x, tong: Object.values(x.diem).reduce((a, v) => a + v, 0) })));
+    // ghép theo SỐ THỨ TỰ trong lượt (model chép lại tên hay lệch chữ → lượt 01/11/2026 mọi gag thành "không được chấm")
+    const tenSo = (so: number) => moi[Math.round(so) - 1]?.ten;
+    if (t.ok) { tk.push(t.tokens); mu.push(...t.data.thu.flatMap((x) => (tenSo(x.so) ? [{ ten: tenSo(x.so)!, ke_lai: x.ke_lai, hieu: x.hieu, buon_cuoi: x.buon_cuoi }] : []))); }
+    const coDiem = c.data.cham.flatMap((x) => (tenSo(x.so) ? [{ ten: tenSo(x.so)!, ly_do_loai: x.ly_do_loai, phen: x.phen, diem: x.diem, tong: Object.values(x.diem).reduce((a, v) => a + v, 0) }] : []));
+    if (!coDiem.length) return { ok: false, loi: `bộ chấm không trả điểm khớp gag nào (${c.data.cham.length} dòng)` };
+    diem.push(...coDiem);
     chon = chonGag(ungVien, diem, mu, o.k);
   }
   const may = kiemTheGag(chon.chon);

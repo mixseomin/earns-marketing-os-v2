@@ -1,0 +1,174 @@
+{
+ "ghi_chu": "KHO TÀI SẢN KÊNH LỊCH SỬ — nguồn máy duy nhất cho mọi tập (dung-tap.mjs đọc). Ảnh ở R2 (xuong-video/lich-su/kho/<id>/<dáng>.png); bản xem/quản trong Studio: phim \"Kênh lịch sử · kho tài sản\" (#1186), thành phần = tài sản, biến thể nhóm dang = dáng. Thêm tài sản: kho-sinh.mts (dáng) → tách nền → kho-day.mts → thêm mục ở đây. tu/den = khoảng năm dùng được (luật đạo cụ theo thời).",
+ "phong_cach": "Flat 2D illustrated history documentary character: clean confident ink outlines, soft cel shading, muted earthy palette (ochre, slate blue, brick red, cream), slightly stylised friendly proportions, full body, plain white background",
+ "dang_chuan": [
+  "goc",
+  "chi_tay",
+  "khoanh_tay",
+  "nam_dam",
+  "ngac_nhien",
+  "cuoi",
+  "suy_nghi",
+  "noi_mo",
+  "noi_dong",
+  "buon"
+ ],
+ "tai_san": {
+  "hiep_si": {
+   "loai": "nhan_vat",
+   "ten": "Hiệp sĩ Teuton",
+   "tu": 1190,
+   "den": 1525,
+   "ghi": "Hiệp sĩ Teuton, áo choàng trắng chữ thập đen",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 02/11/2026",
+   "studio_thanh_phan": 815,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/suy_nghi.png"
+   }
+  },
+  "vua_pho": {
+   "loai": "nhan_vat",
+   "ten": "Friedrich I (vua Phổ)",
+   "tu": 1701,
+   "den": 1713,
+   "ghi": "Friedrich I, vua Phổ 1701–1713",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 02/11/2026",
+   "studio_thanh_phan": 816,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/vua_pho/suy_nghi.png"
+   }
+  },
+  "kant": {
+   "loai": "nhan_vat",
+   "ten": "Immanuel Kant",
+   "tu": 1755,
+   "den": 1804,
+   "ghi": "Kant giảng dạy ở Königsberg từ 1755, mất 1804",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 02/11/2026",
+   "studio_thanh_phan": 817,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/kant/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/kant/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/kant/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/kant/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/kant/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/kant/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/kant/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/kant/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/kant/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/kant/suy_nghi.png"
+   }
+  },
+  "stalin": {
+   "loai": "nhan_vat",
+   "ten": "Joseph Stalin",
+   "tu": 1924,
+   "den": 1953,
+   "ghi": "",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 02/11/2026",
+   "studio_thanh_phan": 818,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/stalin/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/stalin/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/stalin/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/stalin/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/stalin/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/stalin/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/stalin/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/stalin/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/stalin/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/stalin/suy_nghi.png"
+   }
+  },
+  "xe_tang": {
+   "loai": "phuong_tien",
+   "ten": "Xe tăng T-34-85",
+   "tu": 1944,
+   "den": 1960,
+   "ghi": "T-34-85 vào biên chế 1944",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 02/11/2026",
+   "studio_thanh_phan": 819,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/xe_tang/goc.png"
+   }
+  },
+  "co_teuton": {
+   "loai": "co",
+   "ten": "Cờ Nhà nước dòng Teuton",
+   "tu": 1224,
+   "den": 1525,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_State_of_the_Teutonic_Order.svg",
+   "studio_thanh_phan": 820,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_teuton/goc.png"
+   }
+  },
+  "co_phu": {
+   "loai": "co",
+   "ten": "Cờ Vương quốc Phổ 1701–1750",
+   "tu": 1701,
+   "den": 1750,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_Kingdom_of_Prussia_(1701-1750).svg",
+   "studio_thanh_phan": 821,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_phu/goc.png"
+   }
+  },
+  "co_lien_xo": {
+   "loai": "co",
+   "ten": "Cờ Liên Xô",
+   "tu": 1923,
+   "den": 1991,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_Soviet_Union.svg",
+   "studio_thanh_phan": 822,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_lien_xo/goc.png"
+   }
+  },
+  "co_nga": {
+   "loai": "co",
+   "ten": "Cờ Nga",
+   "tu": 1991,
+   "den": 2100,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_Russia.svg",
+   "studio_thanh_phan": 823,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_nga/goc.png"
+   }
+  },
+  "co_litva": {
+   "loai": "co",
+   "ten": "Cờ Litva",
+   "tu": 1990,
+   "den": 2100,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_Lithuania.svg",
+   "studio_thanh_phan": 824,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_litva/goc.png"
+   }
+  }
+ }
+}

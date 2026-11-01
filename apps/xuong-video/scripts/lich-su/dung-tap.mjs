@@ -63,7 +63,14 @@ for (const w of tu) w.chu = w.chu.replace(/[.,;:…]+$/u, '').replace(/^[“"']+
 for (const s of canh) { for (const n of s.c.nhan || []) n.chu = sachChu(n.chu); for (const n of s.c.nguoi || []) n.ten = sachChu(n.ten); if (s.c.chu_to) s.c.chu_to = sachChu(s.c.chu_to); if (s.c.ket) s.c.ket = sachChu(s.c.ket); }
 // ĐẠO CỤ THEO THỜI (anh 02/11/2026: "vũ khí cũng phải theo thời, rồi cờ, huy hiệu"): mỗi nhân vật / phương tiện / cờ khai {tep, tu, den} = khoảng năm
 // dùng được; cảnh đặt đồ lệch năm (xe tăng năm 1255, Kant năm 1701) thì DỪNG, không dựng. Năm của một món = năm cảnh lúc món đó xuất hiện (nam_sau).
-const DC = Object.fromEntries(Object.entries(tap.nhan_vat || {}).map(([k, v]) => [k, typeof v === 'string' ? { tep: v } : v]));
+// tài sản từ KHO chung (kho.json: R2 + Studio phim #1186) — tập chỉ gọi tên + dáng; tải về bộ đệm iMac một lần
+const KHO_TS = JSON.parse(readFileSync(join(DIR, 'kho.json'), 'utf8')).tai_san;
+const DC = { ...KHO_TS, ...Object.fromEntries(Object.entries(tap.nhan_vat || {}).map(([k, v]) => [k, typeof v === 'string' ? { tep: v } : v])) };
+const tepDang = async (id, dang) => { const d = DC[id]; if (d.tep) return join(KHO, d.tep); const u = d.dang?.[dang] ?? d.dang?.goc; if (!u) throw new Error(`"${id}" không có dáng ${dang}`);
+  const f = join(KHO, 'r2', id, `${dang in (d.dang || {}) ? dang : 'goc'}.png`); if (!existsSync(f)) { mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, Buffer.from(await (await fetch(u)).arrayBuffer())); } return f; };
+// dáng theo CHỮ của giọng: {chu, dang} → [giây trong cảnh, dáng] (chữ đầu tiên trùng trong câu của cảnh, so không dấu câu)
+const chuan = (w) => w.toLowerCase().replace(/[^\p{L}\p{N}'-]/gu, '');
+canh.forEach((s, k) => { for (const n of s.c.nguoi || []) if (Array.isArray(n.dang)) n.dang = n.dang.map((m) => { const w = tu.find((x) => x.cau === k && chuan(x.chu) === chuan(m.chu)); if (!w) throw new Error(`cảnh ${k + 1}: không thấy chữ "${m.chu}" để đổi dáng`); return [Math.max(0, w.a - s.bd - 0.15), m.dang]; }); });
 { const lech = []; let namTruoc = null;
   canh.forEach((s, k) => { const n0 = s.c.nam ?? namTruoc; namTruoc = s.c.nam_sau?.[1] ?? n0;
     for (const m of [...(s.c.nguoi || []), ...(s.c.xe || []), ...(s.c.co || [])]) { const d = DC[m.anh]; if (!d) { lech.push(`cảnh ${k + 1}: không có đạo cụ "${m.anh}"`); continue; }
@@ -74,7 +81,8 @@ const DC = Object.fromEntries(Object.entries(tap.nhan_vat || {}).map(([k, v]) =>
 const cauTep = join(RA, 'cau.json');
 writeFileSync(cauTep, JSON.stringify({ DAI, nen: pathToFileURL(join(KHO, tap.nen.anh)).href, geo: G, tu, canh,
   dia_hinh: tap.dia_hinh ? { ...tap.dia_hinh, anh: pathToFileURL(join(KHO, tap.dia_hinh.anh)).href } : null,
-  nv: Object.fromEntries(Object.entries(DC).map(([k, d]) => [k, pathToFileURL(join(KHO, d.tep)).href])) }));
+  nv: await (async () => { const nv = {}; for (const s of canh) for (const m of [...(s.c.nguoi || []), ...(s.c.xe || []), ...(s.c.co || [])]) {
+    const ds = ['goc', ...(Array.isArray(m.dang) ? m.dang.map((x) => x[1]) : [])]; for (const d of ds) nv[`${m.anh}:${d}`] ??= pathToFileURL(await tepDang(m.anh, d)).href; } return nv; })() }));
 
 // ---------- quay hình + tiếng ----------
 const dung = (them) => { const r = spawnSync(process.execPath, [join(DIR, '../shot-code/dung.mjs'), '--trang', join(DIR, 'ban-do.html'), '--cau', cauTep, '--rong', '1080', '--cao', '1920', '--fps', '30', ...them], { stdio: 'inherit' }); if (r.status) process.exit(r.status); };

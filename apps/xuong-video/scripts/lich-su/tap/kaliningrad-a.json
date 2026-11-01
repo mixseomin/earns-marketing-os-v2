@@ -165,7 +165,17 @@
           {
             "anh": "hiep_si",
             "ten": "Teutonic Knights",
-            "ben": "phai"
+            "ben": "phai",
+            "dang": [
+              {
+                "chu": "built",
+                "dang": "chi_tay"
+              },
+              {
+                "chu": "Königsberg,",
+                "dang": "noi_mo"
+              }
+            ]
           }
         ],
         "co": [
@@ -219,12 +229,24 @@
           {
             "anh": "vua_pho",
             "ten": "Frederick I",
-            "tre": 0.6
+            "tre": 0.6,
+            "dang": [
+              {
+                "chu": "crowned",
+                "dang": "khoanh_tay"
+              }
+            ]
           },
           {
             "anh": "kant",
             "ten": "Immanuel Kant",
-            "tre": 4.6
+            "tre": 4.6,
+            "dang": [
+              {
+                "chu": "barely",
+                "dang": "suy_nghi"
+              }
+            ]
           }
         ],
         "nam_sau": [
@@ -291,7 +313,17 @@
           {
             "anh": "stalin",
             "ten": "Stalin",
-            "ben": "trai"
+            "ben": "trai",
+            "dang": [
+              {
+                "chu": "took",
+                "dang": "chi_tay"
+              },
+              {
+                "chu": "Stalin.",
+                "dang": "cuoi"
+              }
+            ]
           }
         ],
         "xe": [
@@ -578,66 +610,5 @@
       82
     ],
     "nguon": "Natural Earth NE1_HR_LC_SR_W (public domain), cắt lon -30..120, lat 20..82 (60 px/độ)"
-  },
-  "nhan_vat": {
-    "hiep_si": {
-      "tep": "nv/hiep_si.png",
-      "tu": 1190,
-      "den": 1525,
-      "ghi": "Hiệp sĩ Teuton, áo choàng trắng chữ thập đen"
-    },
-    "vua_pho": {
-      "tep": "nv/vua_pho.png",
-      "tu": 1701,
-      "den": 1713,
-      "ghi": "Friedrich I, vua Phổ 1701–1713"
-    },
-    "kant": {
-      "tep": "nv/kant.png",
-      "tu": 1755,
-      "den": 1804,
-      "ghi": "Kant giảng dạy ở Königsberg từ 1755, mất 1804"
-    },
-    "stalin": {
-      "tep": "nv/stalin.png",
-      "tu": 1924,
-      "den": 1953
-    },
-    "xe_tang": {
-      "tep": "nv/xe_tang.png",
-      "tu": 1944,
-      "den": 1960,
-      "ghi": "T-34-85 vào biên chế 1944"
-    },
-    "co_teuton": {
-      "tep": "co/teuton.png",
-      "tu": 1224,
-      "den": 1525,
-      "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_State_of_the_Teutonic_Order.svg"
-    },
-    "co_phu": {
-      "tep": "co/phu_1701.png",
-      "tu": 1701,
-      "den": 1750,
-      "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_Kingdom_of_Prussia_(1701-1750).svg"
-    },
-    "co_lien_xo": {
-      "tep": "co/lien_xo.png",
-      "tu": 1923,
-      "den": 1991,
-      "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_Soviet_Union.svg"
-    },
-    "co_nga": {
-      "tep": "co/nga.png",
-      "tu": 1991,
-      "den": 2100,
-      "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_Russia.svg"
-    },
-    "co_litva": {
-      "tep": "co/litva.png",
-      "tu": 1990,
-      "den": 2100,
-      "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_Lithuania.svg"
-    }
   }
 }

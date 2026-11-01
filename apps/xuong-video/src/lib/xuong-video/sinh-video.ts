@@ -30,7 +30,7 @@ import { sinhGiongShots } from './sinh-giong';
 import { type Canh, type TapHoSo, chatLieuPhim, hopQc, coMau, camCongCuVe, loaiCongCuVe, laTayNguoi, lamTronClip, noiKhungShot, lienCon, boThoaiTrongPrompt, tenNgonNgu, chanChuModel, phongCachHinh, MO_HINH_VIDEO, NANG_CAP, KHOP_MIENG } from './kieu';
 import { cauKhongKhi } from './khan-gia';
 import { doiTayDo, cauDoiTayVideo, thieuCachThao } from './thao-do';
-import { boiCanhCanh, canhDaThayThe, taoJob, xongJob, mapJob, giaVideoSv, s, mapCanh, type Db, type Row } from './doc-db';
+import { boiCanhCanh, canhDaThayThe, taoJob, xongJob, mapJob, giaVideoSv, s, mapCanh, jobDangCho, type Db, type Row } from './doc-db';
 /** Khung hình sống (nhip-hinh.ts): clip AI hay đứng như ảnh — nhân vật làm hành động bằng cả thân, chuyển động phụ không ngừng. */
 
 type Kq<T = undefined> = { ok: true; data: T } | { ok: false; loi: string };
@@ -258,7 +258,14 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   if (lop && (!lop.nen || !lop.tho)) return loi(`Shot #${bc.canh.thu_tu}: phim dựng lớp — keyframe đang chọn chưa có ảnh lớp nền xanh / tấm nền; sinh keyframe lớp rồi chọn ảnh ghép`);
   if (lop) { bc.canh.keyframe_url = lop.tho!; bc.canh.keyframe_ket = null; bc.canh.keyframe_giua = null; }
   // BỘ CHẤM PROMPT VIDEO: lỗi nặng (chất liệu sai, tiếng Việt lọt vào…) thì không tiêu tiền video lên prompt rác — kể cả lượt thử
-  { const cv = chamVideo(bc, !!(await khungCuoiCanh(db, canhId))).loi.filter((l) => l.phat >= NGUONG_CHAN); if (cv.length) return loi(`Shot #${bc.canh.thu_tu} — bộ chấm prompt video: ${cv.map((l) => l.chu).join(' · ')}`); }
+  { const cv = chamVideo(bc, !!(await khungCuoiCanh(db, canhId))).loi.filter((l) => l.phat >= NGUONG_CHAN);
+    // VẬT ĐI XA ở phim vẽ 2D (kiem-prompt.ts › DI_XA): tự gửi sinh ảnh kết (~110₫) thay vì chờ người bấm — vòng tự sửa / lượt sau đi tiếp khi ảnh về
+    if (cv.some((l) => l.ma === 'di_xa') && bc.canh.dan_dung?.ket?.trim()) {
+      const dang = ((await db.execute(sql`SELECT id FROM xv_job WHERE canh_id = ${canhId} AND request->>'dich' = 'keyframe_ket' AND ${jobDangCho()} LIMIT 1`)) as unknown as Row[])[0];
+      const k = dang ? null : await (await import('./sinh-anh')).sinhKeyframeKetCanh(db, canhId);
+      return loi(`Shot #${bc.canh.thu_tu}: có vật đi xa mà chưa có keyframe kết — ${dang ? `ảnh kết đang sinh (job #${dang.id})` : k?.ok ? `đã tự gửi sinh ảnh kết (job #${k.data.join(', ')})` : `sinh ảnh kết không được: ${k?.loi}`}; ảnh về thì sinh video lại`);
+    }
+    if (cv.length) return loi(`Shot #${bc.canh.thu_tu} — bộ chấm prompt video: ${cv.map((l) => l.chu).join(' · ')}`); }
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');
   { const t = thieuCachThao(doiTayDo((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? [], (x) => bc.nhanVat.some((v) => v.ten === x && v.loai === 'nhan_vat'))); if (t) return loi(`Shot #${bc.canh.thu_tu}: ${t}`); }

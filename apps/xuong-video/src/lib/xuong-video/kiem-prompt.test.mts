@@ -91,3 +91,19 @@ console.log('kiem-prompt: ok');
   assert.deepStrictEqual(loiTrangThaiVat('keyframe', 'anything', undefined), []);
   console.log('kiem-prompt.test: ok (sổ đồ vật)');
 }
+{ // VẬT ĐI XA (DI_XA, 01/11/2026 tháp xanh: xe cam biến thành bụi hoa + xe thứ hai): phim vẽ 2D, đường video, chưa có ảnh cuối → chặn
+  const { diXa } = await import('./kiem-prompt');
+  const xe = 'The orange van at the bottom starts its engine and rolls slowly out of frame to the left along the cobblestones.';
+  const v = { nguoi: [], vat: [], chat_lieu: 've_2d' as const };
+  const l = loiPrompt([{ ten: 'video', chu: xe }], { ...v, khung_ket: false });
+  assert.ok(l.length === 1 && /keyframe KẾT/.test(l[0]!), JSON.stringify(l));
+  assert.deepStrictEqual(loiPrompt([{ ten: 'video', chu: xe }], { ...v, khung_ket: true }), []);                       // có ảnh kết → qua
+  assert.deepStrictEqual(loiPrompt([{ ten: 'video', chu: xe }], v), []);                                                // không khai (keyframe) → không soi
+  assert.deepStrictEqual(loiPrompt([{ ten: 'video', chu: xe }], { ...v, chat_lieu: 'nguoi_that', khung_ket: false }), []); // chỉ khuôn anime 2D
+  // gag đi qua khung · mèo bị bắn lên ban công · đi vào khung → bắt; diễn tại chỗ → không
+  for (const c of ['the vendor walks steadily along the rail screen-left to screen-right', 'the basket launches the cat up onto the balcony', 'a boy runs into the frame', 'the train speeds away into the distance']) assert.ok(diXa(c), c);
+  for (const c of ['Stars twinkle softly, clouds drift slowly to the right, windows flicker warm', 'She turns her head and smiles, hair moving in the wind', 'he walks two steps toward the table']) assert.equal(diXa(c), null, c);
+  const { promptKetVe2d } = await import('./sinh-anh').catch(() => ({ promptKetVe2d: null as null | ((a: string, b: string, c: string) => string) }));
+  if (promptKetVe2d) { const p = promptKetVe2d('The van has driven out to the right', 'van moves left to right', 'Hand-painted'); assert.ok(/LAST frame/.test(p) && /exactly once/.test(p) && /left to right/.test(p), p); }
+  console.log('kiem-prompt.test: ok (vật đi xa)');
+}

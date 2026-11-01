@@ -12,7 +12,7 @@ export { boDo, boMat, dauBoiCanh, MAT } from './prompt-khoi';
 export const TU_TOI_DA_FLUX = 300;
 /** Lỗi phạt từ mức này trở lên thì chặn sinh. */
 export const NGUONG_CHAN = 20;
-const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10, the_tho: 40, noi_chon: 10, liet_ke_cam: 30, thieu_vat: 30 } as const;
+const PHAT = { tieng_viet: 30, thieu_khoi: 30, thieu_do: 30, chat_lieu: 40, can_mat: 30, nguoc_3d: 30, nguoc_huong: 30, dai: 20, lap: 10, ngoai_khung: 10, the_tho: 40, noi_chon: 10, liet_ke_cam: 30, thieu_vat: 30, di_xa: 30 } as const;
 export type MaLoiPrompt = keyof typeof PHAT;
 /** ĐỒ CỦA MỘT NƠI trong câu PHONG CÁCH PHIM (anh 22/10/2026, phim #132: phong cách "daylight from floor-to-ceiling windows" đi vào mọi shot, kể cả sảnh
  *  thang máy đá đen không có cửa sổ → nền sau lưng người đổi giữa các shot). Phong cách chỉ nói chất ảnh / ống kính / tông; đồ đạc là của bối cảnh.
@@ -33,6 +33,7 @@ export type SoatPrompt = {
   /** tên riêng được phép giữ dấu (nhân vật, đạo cụ có tên) */ ten_rieng?: string[];
   /** nhân vật NGOÀI KHUNG cả shot (3D không thấy, không đi vào) — chữ diễn cho họ làm gì thì model vẽ họ vào */ ngoai?: string[];
   /** chuyển động trên màn đo từ khung 3D (khung_xam.di: dx > 0 = sang phải màn) — chữ "walks screen-left" ngược số này là lỗi */ di?: { ten: string; dx: number }[];
+  /** (chỉ đường VIDEO) shot đã có ảnh CUỐI cho model (keyframe kết / nối khung) — khai false thì luật DI_XA được soi */ khung_ket?: boolean;
 };
 export type LoiPrompt = { buoc: string; ma: MaLoiPrompt; phat: number; chu: string };
 /** TRẠNG THÁI ĐỒ VẬT trong prompt (anh 24/10/2026, #353: bộ chấm cho 100 điểm chính những prompt sinh ra cảnh "ôm hộp lúc có lúc không", "cầm dây rồi cầm
@@ -43,6 +44,13 @@ export function loiTrangThaiVat(buoc: string, chu: string, vat: { ten: string; c
   return (vat ?? []).filter((v) => { const k = tu(v.cach); return k.length >= 2 && k.filter((w) => thuong.includes(w)).length < Math.min(3, k.length); })
     .map((v) => ({ buoc, ma: 'thieu_vat' as const, phat: PHAT.thieu_vat, chu: `${buoc}: thiếu trạng thái đồ "${v.ten}" (${v.cach.slice(0, 70)}…) mà sổ đồ vật đòi — model tự quyết ai cầm, cầm thế nào` }));
 }
+
+/** VẬT ĐI XA TRONG KHUNG (anh 01/11/2026, thử phim anime tháp xanh: "xe chạy ra bên trái" → Veo xoá xe gốc thành bụi hoa và cho một xe THỨ HAI chạy vào;
+ *  anh: "anime thật không làm thế"). Video AI không giữ vật thể: thứ phải đi xa (qua khung, rời / vào khung, bay lên chỗ khác) bị vẽ lại thành bản mới,
+ *  nhân đôi hoặc biến mất. Xưởng anime giữ vật bằng lớp riêng; ở đây giữ bằng ẢNH CUỐI — model chỉ việc đi tới chỗ ảnh kết đã vẽ (mỗi vật một lần, đúng
+ *  hướng đầu xe / mặt người). Áp cho phim vẽ 2D (khuôn anime); cụm chữ khớp → trả đoạn chữ, không khớp → null. Thuần — kiểm ở kiem-prompt.test. */
+export const DI_XA = /\b(out of (?:the )?(?:frame|shot|view)|off[- ]?screen|(?:leaves?|exits?|enters?) (?:the )?(?:frame|shot)|into (?:the )?(?:frame|shot)|across the (?:whole |entire )?(?:frame|screen)|screen[- ]left to screen[- ]right|screen[- ]right to screen[- ]left|from screen[- ](?:left|right) to|into the distance|(?:drives?|rolls?|walks?|runs?|flies|fly|sails?|speeds?|rides?) (?:away|off)|launch(?:es|ed)?\b[^.;|]{0,40}\b(?:onto|up to|into)|lands? (?:on|onto|in)|passes? through the frame)\b/i;
+export const diXa = (chu: string): string | null => { const m = chu.match(new RegExp(`[^.;|]{0,50}${DI_XA.source}[^.;|]{0,20}`, 'i')); return m ? m[0].trim() : null; };
 
 const doan = (chu: string, re: RegExp) => { const m = chu.match(new RegExp(`[^.;|]{0,40}${re.source}[^.;|]{0,30}`, 'gi')) ?? []; return m.slice(0, 2).map((x) => `"…${x.trim()}…"`).join(', '); };
 const VIET = /[^\s,.:;|]*[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ][^\s,.:;|]*/;
@@ -99,6 +107,8 @@ export function chamPrompt(buoc: BuocPrompt[], s: SoatPrompt): { diem: number; l
       const m = chuDien.match(new RegExp(`(?<!\\b(?:at|to|toward|towards|from|with|of|on|into|after|beside|near)\\s+(?:\\p{L}+\\s+)?)(?<!\\p{L})${tat}(?!\\p{L})(?:'s)?\\s+\\p{L}+`, 'iu'));
       if (m) them(b.ten, 'ngoai_khung', `chữ cho "${m[0]}" mà ${t} ngoài khung cả shot — model vẽ thêm người: chỉ tả người trong khung (hướng nhìn "looks at ${tat}" thì được)`);
     }
+    // VẬT ĐI XA mà chưa có ảnh cuối (DI_XA): phim vẽ 2D, đường video
+    if (s.khung_ket === false && s.chat_lieu === 've_2d') { const d = diXa(chuDien); if (d) them(b.ten, 'di_xa', `có vật / người đi xa trong khung ("…${d.slice(0, 90)}…") mà shot chưa có keyframe KẾT — video AI không giữ vật (xoá, nhân đôi, vẽ bản mới chạy ngược). Sinh keyframe kết (ảnh cuối, đúng hướng đầu vật) rồi mới sinh video`); }
     // CÂU LẶP: một vế ≥ 4 từ nằm trọn trong một vế khác (#15 "jade bangle on the left wrist" hai lần)
     const ve = chuLap.toLowerCase().split(/[,.;|]/).map((x) => x.trim()).filter((x) => x.split(/\s+/).length >= 4);
     const lap = ve.find((x, i) => ve.some((y, j) => j !== i && (y === x ? j < i : y.includes(x))));

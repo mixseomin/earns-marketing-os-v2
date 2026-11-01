@@ -83,7 +83,7 @@ Defect types:
 - co_the_meo: distorted anatomy — check EVERY frame closely: count legs, feet, arms, hands; a leg merging into the other leg or the body, a limb disappearing or duplicated, a joint bending at an impossible place, not being able to tell which leg is which, melted fingers, body proportions changing.
 - chu_tren_vat: letters, logos or words printed or appearing on the product, clothing or objects (any readable text at all).
 - san_pham_doi_kieu: the product changes design or color compared with the description or with earlier frames.
-- vat_the_la: objects appearing, vanishing or morphing — ESPECIALLY anything held in a hand: it floats free of the hand, detaches, changes shape or size, merges with the fingers or clothing, or a new object appears in the hand.
+- vat_the_la: objects appearing, vanishing or morphing — ESPECIALLY anything held in a hand: it floats free of the hand, detaches, changes shape or size, merges with the fingers or clothing, or a new object appears in the hand. ALSO any vehicle, animal or person that dissolves or turns into something else (e.g. a parked van becoming bushes) instead of moving away, or a SECOND copy of the same vehicle / animal / person appearing while the first is still there or right after it vanished (things meant to leave the frame must visibly travel out, not fade).
 Give the frame number (1-${N_KHUNG_BD}) where each defect is clearest. If the clip is clean, return an empty list.`;
 }
 /** Kết quả mô hình → câu lỗi cho soi_clip.loi (giây = giữa khung). Khung ngoài 1..N hoặc loại lạ thì bỏ. Mỗi loại một câu (khung sớm nhất). */

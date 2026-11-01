@@ -211,6 +211,16 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number, o: { ep?: bool
   const bc = await boiCanhCanh(db, canhId);
   if (!bc) return { ok: false, loi: 'không thấy cảnh' };
   if (!bc.canh.keyframe_url) return { ok: false, loi: 'shot chưa có keyframe mở' };
+  // PHIM VẼ 2D không có khung 3D (anh 01/11/2026, khuôn anime): ảnh kết = SỬA ảnh mở theo câu kết của shot (dan_dung.ket) — cùng nền, cùng máy, vật đã đi
+  // nằm ở chỗ mới đúng một lần. Đây là đường duy nhất để shot có vật đi xa qua được luật DI_XA (kiem-prompt.ts).
+  if (chatLieuPhim(bc.kt) === 've_2d' && !bc.canh.khung_xam?.mau_ket) {
+    const ket = bc.canh.dan_dung?.ket?.trim();
+    if (!ket) return { ok: false, loi: `#${bc.canh.thu_tu}: phim vẽ 2D — ảnh kết sửa từ ảnh mở theo ô "Kết" của dẫn dựng; ô đó đang trống` };
+    const prompt = promptKetVe2d(ket, bc.canh.dan_dung?.huong ?? '', bc.kt.phong_cach);
+    const job = await taoJob(db, { nhan: `Keyframe KẾT (vẽ 2D) · cảnh #${bc.canh.thu_tu} ${bc.canh.canh}`, canh_id: canhId, loai: 'anh', provider: 'google', model: bc.kt.mo_hinh_anh, request: { prompt, thamChieu: 1, thamChieuUrl: [bc.canh.keyframe_url], dich: 'keyframe_ket' } });
+    await dayViecAnh({ job, model: bc.kt.mo_hinh_anh, prompt, thamChieuUrl: [bc.canh.keyframe_url], tiLe: bc.kt.ti_le, thuMuc: `keyframe/${canhId}-ket` });
+    return { ok: true, data: [job] };
+  }
   if (!(o.ep ? !!bc.canh.khung_xam?.mau_ket : canKeyframeKet(bc.canh.khung_xam))) return { ok: false, loi: 'shot không đổi khung trong clip (không ai di chuyển / quay, máy không đi cú liền mạch) — không cần keyframe kết, hoặc chưa dựng khung 3D' };
   { const t = thieuCachThao(doiTayDo((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? [], (x) => bc.nhanVat.some((v) => v.ten === x && v.loai === 'nhan_vat'))); if (t) return { ok: false, loi: `#${bc.canh.thu_tu}: ${t}` }; }
   if (chatLieuPhim(bc.kt) === 'nguoi_that') await damBaoAnhMat(db, bc.nhanVat).catch((e: unknown) => console.error('[ảnh sát mặt]', e));
@@ -226,6 +236,13 @@ export async function sinhKeyframeKetCanh(db: Db, canhId: number, o: { ep?: bool
   }
   return { ok: true, data: jobs };
 }
+
+/** Câu sửa ảnh MỞ thành ảnh KẾT cho phim vẽ 2D: trạng thái kết + hướng, giữ nguyên máy / nền / nét; vật đã di chuyển chỉ có ở chỗ mới. Thuần. */
+export const promptKetVe2d = (ket: string, huong: string, phongCach: string): string =>
+  `Edit Image 1 into the LAST frame of the same continuous shot, a few seconds later: ${ket.replace(/\.?$/, '.')}${huong.trim() ? ` Movement direction: ${huong.trim().replace(/\.?$/, '.')}` : ''} `
+  + 'Same camera position, framing, background, lighting, art style and character designs as Image 1. Anything that moved appears ONLY at its new place, exactly once, '
+  + 'facing the way it travels; anything that left the frame is simply gone with the background visible behind it; nothing new is added and nothing else changes. '
+  + `${phongCach.trim() ? `Style: ${phongCach.trim()} ` : ''}${KHONG_CHU}`;
 
 /** Câu lệnh + ảnh tham chiếu sẽ gửi cho keyframe của một shot — MỘT chỗ cho lúc sinh thật và sơ đồ nguồn (so "đã gửi" với "giờ sẽ gửi"). */
 /** LỚP GHÉP shot ≥ 2 người (khung_xam.lop): prompt NỀN không người + từng người (FLUX độ sâu riêng → nhân dạng → tách nền xanh) — ghepTungNguoi */

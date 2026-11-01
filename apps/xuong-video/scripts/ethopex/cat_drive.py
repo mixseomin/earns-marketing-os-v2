@@ -1,41 +1,57 @@
 #!/usr/bin/env python3
 """CẤT VIDEO LÊN GOOGLE DRIVE (anh 28/10/2026: "các file khi render, cắt video xong phải lưu lên drive.google chứ? Sao cứ lưu hết ở iMac làm đầy máy").
-Kho làm việc ~/.cache/ethopex (iMac) → Drive htuan82 (rclone remote 'gdrive', 5 TB) thư mục ethopex-cache/, GIỮ NGUYÊN đường dẫn tương đối.
+Kho làm việc ~/.cache/ethopex (iMac / box3) → Drive htuan82 (rclone remote 'gdrive' trên iMac, 'khodrive' trên box3, 5 TB) thư mục ethopex-cache/, GIỮ NGUYÊN đường dẫn tương đối.
 Chỉ cất tệp NẶNG (video / tiếng) đã nằm yên ≥ min_age; ảnh tờ soát, json, tsv, log ở lại máy (nhỏ, máy đọc thường xuyên).
 `rclone move` chỉ xoá bản trên máy SAU KHI Drive nhận đủ và khớp mã băm — không có bước xoá tay.
 Cần lại một tệp đã cất: dam_bao(<đường dẫn tuyệt đối>) kéo về đúng chỗ (len-creative.py, cat-cuoi-lo.py gọi trước khi đọc).
-  cat_drive.py cat [--min-age 24h] [--giu <thư mục tương đối>…]   → cất (chạy nền taskpolicy -b)
+  cat_drive.py cat [--min-age 24h] [--giu <thư mục tương đối>…]   → cất (chạy nền: taskpolicy -b trên Mac, nice + ionice trên Linux)
   cat_drive.py lay <đường dẫn>                                        → kéo một tệp / thư mục về
   cat_drive.py xem                                                    → dung lượng trên máy vs Drive"""
 import fcntl, os, shutil, subprocess, sys
 
 GOC = os.path.expanduser("~/.cache/ethopex")
-DICH = "gdrive:ethopex-cache"
+# MỖI MÁY MỘT TÊN REMOTE cho cùng Drive htuan82 5 TB: iMac 'gdrive', box3 'khodrive' (01/11/2026: box3 chỉ có khodrive → mọi lượt cất trên box3
+# báo "chưa có remote" rồi giữ nguyên tệp, /root/.cache/ethopex phình 12 GB, ổ box3 95%). ETHOPEX_DRIVE ép tên khác nếu cần.
+REMOTE = ("gdrive", "khodrive")
+# máy nền: macOS taskpolicy -b, Linux nice + ionice (taskpolicy không có trên Linux → lệnh cất trên box3 vỡ FileNotFoundError)
+NEN = ["taskpolicy", "-b"] if sys.platform == "darwin" else ["nice", "-n", "19", "ionice", "-c", "3"]
 DUOI = ("mp4", "mov", "mkv", "webm", "wav", "m4a", "mp3", "aac")
 LOG = os.path.join(GOC, "cat-drive.log")
 # 8 luồng · mảnh 64 MB · ≤ 8 lệnh/giây (đo 28/10/2026: 4 luồng mảnh 8 MB chỉ ~13 Mbit/s trên mạng 254 Mbps, client_id dùng chung của rclone còn bị 403 "Quota exceeded … per minute")
 
 
+def _dich():
+    """'<remote>:ethopex-cache' của máy này, None khi máy chưa có rclone / remote Drive"""
+    if not shutil.which("rclone"): return None
+    co = subprocess.run(["rclone", "listremotes"], capture_output=True, text=True).stdout.split()
+    for r in ([os.environ["ETHOPEX_DRIVE"]] if os.environ.get("ETHOPEX_DRIVE") else []) + list(REMOTE):
+        if f"{r.rstrip(':')}:" in co: return f"{r.rstrip(':')}:ethopex-cache"
+    return None
+
+
+DICH = _dich()
+
+
 def co_rclone():
-    return shutil.which("rclone") and "gdrive:" in subprocess.run(["rclone", "listremotes"], capture_output=True, text=True).stdout
+    return DICH is not None
 
 
 def cat(min_age="24h", giu=()):
     """cất mọi tệp nặng đã nằm yên ≥ min_age; giu = thư mục tương đối (vd 'ra/pm-26101408') còn đang dùng → không đụng. Trả số GB trống sau khi cất."""
     if not co_rclone():
-        print("cất Drive: chưa có rclone remote 'gdrive' — bỏ qua (máy giữ nguyên tệp)", flush=True); return shutil.disk_usage(os.path.expanduser("~")).free / 1e9
+        print(f"cất Drive: máy chưa có rclone remote nào trong {REMOTE} — bỏ qua (máy giữ nguyên tệp)", flush=True); return shutil.disk_usage(os.path.expanduser("~")).free / 1e9
     khoa = open(os.path.join(GOC, ".cat-drive.lock"), "w")
     try: fcntl.flock(khoa, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:   # một lượt cất khác đang chạy (phim-moi don + len-creative cùng gọi) → nó cất luôn phần này, không chạy chồng
         print("cất Drive: lượt khác đang chạy — bỏ qua", flush=True); return shutil.disk_usage(os.path.expanduser("~")).free / 1e9
     giu = [d.strip("/") for d in giu if d and os.path.isdir(os.path.join(GOC, d.strip("/")))]   # chỉ thư mục có thật (trường 'ghi' của da_cat đôi khi là câu báo lỗi, không phải tên lô)
-    lenh = ["taskpolicy", "-b", "rclone", "move", GOC, DICH, "--min-age", min_age, "--transfers", "8", "--drive-chunk-size", "64M", "--tpslimit", "8", "--log-file", LOG, "--log-level", "INFO",
+    lenh = NEN + ["rclone", "move", GOC, DICH, "--min-age", min_age, "--transfers", "8", "--drive-chunk-size", "64M", "--tpslimit", "8", "--log-file", LOG, "--log-level", "INFO",
             "--stats-one-line", "--stats", "0"]
     for d in giu: lenh += ["--exclude", f"/{d}/**"]
     for e in DUOI: lenh += ["--include", f"*.{e}", "--include", f"*.{e.upper()}"]
     r = subprocess.run(lenh, capture_output=True, text=True)
     trong = shutil.disk_usage(os.path.expanduser("~")).free / 1e9
-    print(f"cất Drive ({DICH}, tệp nằm yên ≥ {min_age}): {'xong' if r.returncode == 0 else 'LỖI rc=' + str(r.returncode) + ' ' + r.stderr[-200:]} · ổ iMac còn trống {trong:.0f} GB · nhật ký {LOG}", flush=True)
+    print(f"cất Drive ({DICH}, tệp nằm yên ≥ {min_age}): {'xong' if r.returncode == 0 else 'LỖI rc=' + str(r.returncode) + ' ' + r.stderr[-200:]} · ổ máy còn trống {trong:.0f} GB · nhật ký {LOG}", flush=True)
     return trong
 
 

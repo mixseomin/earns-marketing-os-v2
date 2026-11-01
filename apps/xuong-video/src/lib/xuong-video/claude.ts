@@ -13,6 +13,7 @@ import { vanKhuonChuoi } from './khuon-chuoi';
 import { nguoiBanTuyen } from './ckey-tuyen';
 import { vanKhanGia } from './khan-gia';
 import { vanGoi, goiTheoKey } from './goi-the-loai';
+import { vanSoTay, phepThuCua, cachViet, kiemTheGag, chonGag, kichBanTuGag, ketLuan, PHEP_THU_GAG, type ChamKb, type TheGag, type DiemGag, type ThuMu } from './so-tay-kich-ban';
 import { congTk, giaChuCents, docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
 
 const CanhSchema = z.object({
@@ -223,7 +224,8 @@ ${taQc(kt)}
 ${LUAT_KE_CHUYEN}
 ${vanKhuonChuoi(kt.the_loai)}
 ${vanKhanGia()}
-${kt.goi ? `${vanGoi(kt.goi)}\n` : ''}${kt.khong_loi ? LUAT_KHONG_LOI + '\n' : ''}${kt.ban_do?.trim() ? `BẢN ĐỒ KHÔNG GIAN (các nơi chốn nằm đâu, cạnh nhau thế nào, đường đi — dùng cho chuỗi dẫn và shot hành trình, luật 12):\n${kt.ban_do.trim()}\n` : ''}QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình (không viết "như shot trước" — model không thấy shot khác) NHƯNG phải tả lại bằng chữ trạng thái nối tiếp từ shot trước (luật 11: vị trí, đồ đang cầm, biến dạng, ánh sáng, hướng di chuyển). Hai shot liền nhau cùng nơi, cùng khoảnh khắc, máy cùng phía (shot sau tiếp đúng giây cuối shot trước) → ky_thuat.chuyen_canh của shot TRƯỚC = 'lien_may': clip shot trước sẽ kết đúng bằng keyframe shot sau, cắt không giật.`;
+${kt.goi ? `${vanGoi(kt.goi)}\n` : ''}${vanSoTay(kt.goi)}
+${kt.khong_loi ? LUAT_KHONG_LOI + '\n' : ''}${kt.ban_do?.trim() ? `BẢN ĐỒ KHÔNG GIAN (các nơi chốn nằm đâu, cạnh nhau thế nào, đường đi — dùng cho chuỗi dẫn và shot hành trình, luật 12):\n${kt.ban_do.trim()}\n` : ''}QUY TẮC ĐỒNG NHẤT: nhân vật, sản phẩm, bối cảnh phải tả bằng đúng đặc tính cố định trong danh sách anchor ở mọi cảnh (cùng màu lông, cùng trang phục, cùng tỉ lệ cơ thể, cùng chất liệu). prompt_anh và prompt_video viết tiếng Anh, tả người/vật theo đặc tính chứ không dùng tên riêng (model ảnh không biết tên). Mỗi prompt tự đứng được một mình (không viết "như shot trước" — model không thấy shot khác) NHƯNG phải tả lại bằng chữ trạng thái nối tiếp từ shot trước (luật 11: vị trí, đồ đang cầm, biến dạng, ánh sáng, hướng di chuyển). Hai shot liền nhau cùng nơi, cùng khoảnh khắc, máy cùng phía (shot sau tiếp đúng giây cuối shot trước) → ky_thuat.chuyen_canh của shot TRƯỚC = 'lien_may': clip shot trước sẽ kết đúng bằng keyframe shot sau, cắt không giật.`;
 
 /** Thư viện điện ảnh rút gọn cho prompt: kỹ thuật hợp thể loại trước, mỗi dòng "key — tên: dùng khi nào". */
 function taThuVien(tl: string): string {
@@ -1013,4 +1015,96 @@ export async function goiYThu(): Promise<GoiYKq<{ diem: number; ly_do: string }>
     const p = r.parsed_output as { diem: number; ly_do: string } | null;
     return p ? { ok: true, data: p, model: r.model, tokens: tkCua(r) } : { ok: false, loi: `không đọc được khuôn: ${r.content.map((b) => (b.type === 'text' ? b.text : '')).join('').slice(0, 120)}` };
   } catch (e) { return { ok: false, loi: loiGoi(e) }; }
+}
+
+
+// ── VIẾT = VIẾT + TỰ CHẤM + KẾT LUẬN (anh 01/11/2026; luật + bài học ở so-tay-kich-ban.ts) ───────────────────────────────────────────
+// Chấm CHÉO = model khác người viết; chấm NGƯỢC = tìm lý do loại / chỗ phèn TRƯỚC khi cho điểm; THỬ MÙ = model thứ ba chỉ thấy hành động, kể lại + chấm buồn cười.
+const MO_HINH_CHAM = (viet: string) => (/opus/i.test(viet) ? 'claude-sonnet-5-5' : 'claude-opus-5-5');
+const MO_HINH_THU = 'claude-haiku-4-5';
+type Tk = { in: number; out: number; vnd?: number };
+
+const TheGagSchema = z.object({ gag: z.array(z.object({
+  ten: z.string().describe('tên gag 3–6 chữ'), van_de: z.string().describe('rắc rối nhìn thấy được ngay khung đầu, MỘT rắc rối'),
+  ra_tay: z.string().describe('vật đặc trưng của nhân vật chính ra tay thế nào — cách dùng bất ngờ, không phải cách thông thường'),
+  day_them: z.string().describe('cú đẩy thêm sau khi gỡ rối (topper)'), phan_ung: z.string().describe('phản ứng của người được giúp / người xung quanh'),
+  co_che: z.string().describe('tên cơ chế gag 2–5 chữ, vd "đòn bẩy nhấc xe", "móc vật đang bay"'), vi_sao_noi: z.string().describe('vì sao gag chỉ xảy ra ở đúng nơi này'),
+  muc: z.number().describe('1–10: quy mô / mức nguy / độ khéo'),
+})) });
+const DiemGagSchema = z.object({ cham: z.array(z.object({
+  ten: z.string(), ly_do_loai: z.string().describe('CHẤM NGƯỢC: viết TRƯỚC — lý do mạnh nhất để loại gag này (nhạt, tầm thường, đoán trước, khó hiểu)'),
+  phen: z.string().describe('chỗ phèn nếu có (lời giải tiện, cảm ơn lố, biểu tượng nhồi nhét); không có thì để trống'),
+  diem: z.object(Object.fromEntries(PHEP_THU_GAG.map((p) => [p.ma, z.number().describe(`${p.ten}: ${p.hoi} 0 = trượt (${p.truot}), 1 = tạm, 2 = tốt`)])) as Record<string, z.ZodNumber>),
+})) });
+const ThuMuSchema = z.object({ thu: z.array(z.object({ ten: z.string(), ke_lai: z.string().describe('người xem kể lại chuyện gì xảy ra, một câu'), hieu: z.boolean(), buon_cuoi: z.number().describe('0–2') })) });
+const ChamThuongSchema = z.object({
+  nguoc: z.array(z.string()).describe('CHẤM NGƯỢC: viết TRƯỚC — 3–6 lý do mạnh nhất khiến kịch bản này nhạt / phèn / tầm thường, cụ thể theo cảnh'),
+  muc: z.array(z.object({ ma: z.string(), diem: z.number().describe('0 = trượt, 1 = tạm, 2 = tốt'), ly_do: z.string() })),
+  sua: z.string().describe('chỉ dẫn sửa cụ thể cho người viết (nếu chưa đạt)'),
+});
+
+async function sinhGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor: string; brief: string; n: number; tranh?: string }) {
+  return sinhJson({ schema: TheGagSchema, model: o.kt.mo_hinh_chu, max_tokens: 12000, ten: 'sinh gag ứng viên', system: o.heThongVan,
+    user: `${o.anchor}\n\nBRIEF:\n${o.brief.trim()}\n\nSinh ${o.n} gag ỨNG VIÊN khác nhau (khác cơ chế), mỗi gag là một shot liền 3–4 giây. Viết dư để còn loại — đa dạng hơn là an toàn.${o.tranh ? `\nTRÁNH các hướng đã bị loại: ${o.tranh}` : ''}` });
+}
+
+/** Viết gag: sinh dư → chấm chéo + ngược → thử mù → máy chọn K + kết luận. */
+async function vietGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor: string; brief: string; k: number }): Promise<{ ok: true; kichBan: string; cham: ChamKb; model: string; tokens: Tk } | { ok: false; loi: string }> {
+  const tk: Tk[] = []; let ungVien: TheGag[] = []; const diem: DiemGag[] = []; const mu: ThuMu[] = []; let chon: ReturnType<typeof chonGag> = { chon: [], loai: [] };
+  const nguoiCham = MO_HINH_CHAM(o.kt.mo_hinh_chu); let vong = 0;
+  for (; vong < 2 && chon.chon.length < o.k; vong++) {
+    const s = await sinhGag({ ...o, n: Math.max(o.k * 2, 24), tranh: chon.loai.slice(0, 12).map((x) => `${x.ten} (${x.vi})`).join('; ') });
+    if (!s.ok) return s; tk.push(s.tokens);
+    const moi = s.data.gag.map((g) => ({ ...g, ten: ungVien.some((u) => u.ten === g.ten) ? `${g.ten} (${vong + 1})` : g.ten }));
+    ungVien = [...ungVien, ...moi];
+    const ds = moi.map((g, i) => `${i + 1}. ${g.ten} — vấn đề: ${g.van_de} · ra tay: ${g.ra_tay} · đẩy thêm: ${g.day_them} · phản ứng: ${g.phan_ung} · cơ chế: ${g.co_che} · vì sao ở đây: ${g.vi_sao_noi}`).join('\n');
+    const [c, t] = await Promise.all([
+      sinhJson({ schema: DiemGagSchema, model: nguoiCham, max_tokens: 8000, ten: 'chấm chéo + ngược gag', system: `Bạn là trưởng phòng biên kịch hoạt hình khó tính, không phải người viết. Chấm NGƯỢC: với mỗi gag, viết lý do loại mạnh nhất TRƯỚC rồi mới cho điểm. Không nể nang — gag tầm thường cho 0.\n${vanSoTay(o.kt.goi)}`, user: `BRIEF:\n${o.brief}\n\nCÁC GAG:\n${ds}` }),
+      sinhJson({ schema: ThuMuSchema, model: MO_HINH_THU, max_tokens: 4000, ten: 'thử mù gag', system: 'Bạn là người xem mạng xã hội lướt nhanh, xem hoạt hình không lời. Bạn chỉ thấy HÀNH ĐỘNG trên màn, không biết ý đồ người viết.', user: `Mỗi dòng là một clip 3–4 giây. Kể lại bạn thấy gì, có hiểu không, buồn cười cỡ nào (0–2):\n${moi.map((g) => `${g.ten}: ${g.van_de} → ${g.ra_tay} → ${g.day_them} → ${g.phan_ung}`).join('\n')}` }),
+    ]);
+    if (!c.ok) return c; tk.push(c.tokens);
+    if (t.ok) { tk.push(t.tokens); mu.push(...t.data.thu); }
+    diem.push(...c.data.cham.map((x) => ({ ...x, tong: Object.values(x.diem).reduce((a, v) => a + v, 0) })));
+    chon = chonGag(ungVien, diem, mu, o.k);
+  }
+  const may = kiemTheGag(chon.chon);
+  const muc = PHEP_THU_GAG.map((p) => { const v = chon.chon.map((g) => diem.find((d) => d.ten === g.ten)?.diem[p.ma] ?? 0); return { ma: p.ma, ten: p.ten, diem: v.length ? Math.round((v.reduce((a, x) => a + x, 0) / v.length) * 10) / 10 : 0, ly_do: `TB ${chon.chon.length} gag giữ lại` }; });
+  const nguoc = chon.chon.map((g) => diem.find((d) => d.ten === g.ten)).filter((d) => d && (d.ly_do_loai || d.phen)).slice(0, 5).map((d) => `${d!.ten}: ${d!.phen || d!.ly_do_loai}`);
+  if (chon.chon.length < o.k) may.push(`chỉ ${chon.chon.length}/${o.k} gag qua đủ phép thử sau ${vong} vòng`);
+  const kl = ketLuan(muc, may, nguoc);
+  const tong = congTk(...tk);
+  return { ok: true, kichBan: kichBanTuGag(chon.chon, ''), model: o.kt.mo_hinh_chu, tokens: tong,
+    cham: { luc: new Date().toISOString(), cach: 'gag', ...kl, nguoi_viet: o.kt.mo_hinh_chu, nguoi_cham: nguoiCham, nguoi_thu: MO_HINH_THU, muc, nguoc, may,
+      gag: { ung_vien: ungVien.length, chon: chon.chon.map((g) => g.ten), loai: chon.loai }, vong, vnd: tong.vnd } };
+}
+
+/** Chấm một kịch bản thường (chéo + ngược) theo phép thử của gói. */
+export async function chamKichBanAi(o: { kt: Required<KinhThanh>; kichBan: string; brief: string; nguoiViet: string }) {
+  const pt = phepThuCua(o.kt.goi);
+  return sinhJson({ schema: ChamThuongSchema, model: MO_HINH_CHAM(o.nguoiViet), max_tokens: 4000, ten: 'chấm chéo + ngược kịch bản',
+    system: `Bạn là trưởng phòng biên kịch khó tính, không phải người viết. Chấm NGƯỢC: liệt kê lý do kịch bản nhạt / phèn / tầm thường TRƯỚC, rồi mới cho điểm từng phép thử. Không nể nang.\n${vanSoTay(o.kt.goi)}`,
+    user: `Logline: ${o.kt.logline || '(trống)'}\nBRIEF:\n${o.brief}\n\nPHÉP THỬ (ma — câu hỏi):\n${pt.map((p) => `${p.ma} — ${p.hoi}`).join('\n')}\n\nKỊCH BẢN:\n${o.kichBan}` });
+}
+
+/** Viết kịch bản đầy đủ: gói gag → vietGag; còn lại → viết → chấm → (chưa đạt) viết lại một vòng theo lời chấm → chấm lại. Luôn trả kết luận. */
+export async function vietVaCham(opts: Parameters<typeof vietKichBan>[0] & { soGag?: number; /** khối góc spy (spy-api.ts › vanGocSpyKb) — nối vào brief */ gocSpy?: string }): Promise<({ ok: true; kichBan: string; cham: ChamKb } & DungChu) | { ok: false; loi: string }> {
+  const kt = docKinhThanh(opts.kinhThanh);
+  if (opts.gocSpy) opts = { ...opts, brief: `${opts.brief.trim()}\n\n${opts.gocSpy}` };
+  if (cachViet(kt.goi) === 'gag') {
+    const soGag = opts.soGag ?? Math.max(6, Math.round((opts.thoiLuongS ?? 45) / 3.5));
+    return vietGag({ kt, heThongVan: heThong(opts.loai, kt), anchor: `DANH SÁCH ANCHOR:\n${taAnchor(opts.nhanVat)}`, brief: opts.brief, k: soGag });
+  }
+  const tk: Tk[] = [];
+  let v = await vietKichBan(opts); if (!v.ok) return v; tk.push(v.tokens);
+  let c = await chamKichBanAi({ kt, kichBan: v.kichBan, brief: opts.brief, nguoiViet: v.model }); if (!c.ok) return c; tk.push(c.tokens);
+  const pt = phepThuCua(kt.goi); const mucCua = (d: z.infer<typeof ChamThuongSchema>) => pt.map((p) => { const m = d.muc.find((x) => x.ma === p.ma); return { ma: p.ma, ten: p.ten, diem: m?.diem ?? 0, ly_do: m?.ly_do ?? 'không chấm' }; });
+  let kl = ketLuan(mucCua(c.data), [], c.data.nguoc); let vong = 1;
+  if (!kl.dat) {
+    const v2 = await vietKichBan({ ...opts, brief: `${opts.brief}\n\nBẢN TRƯỚC BỊ CHẤM CHƯA ĐẠT (${kl.ket_luan}). Lý do: ${c.data.nguoc.join(' · ')}. Sửa: ${c.data.sua}\nViết lại cả kịch bản, khắc phục đúng các điểm trên.` });
+    if (v2.ok) { tk.push(v2.tokens); const c2 = await chamKichBanAi({ kt, kichBan: v2.kichBan, brief: opts.brief, nguoiViet: v2.model });
+      if (c2.ok) { tk.push(c2.tokens); const kl2 = ketLuan(mucCua(c2.data), [], c2.data.nguoc); vong = 2; if (kl2.diem >= kl.diem) { v = v2; c = c2; kl = kl2; } } }
+  }
+  const tong = congTk(...tk);
+  return { ok: true, kichBan: v.kichBan, model: v.model, tokens: tong,
+    cham: { luc: new Date().toISOString(), cach: 'thuong', ...kl, nguoi_viet: v.model, nguoi_cham: MO_HINH_CHAM(v.model), muc: mucCua(c.data), nguoc: c.data.nguoc, may: [], vong, vnd: tong.vnd } };
 }

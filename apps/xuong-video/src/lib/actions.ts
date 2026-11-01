@@ -36,7 +36,7 @@ import { xuatLongTiengTap } from '@/lib/xuong-video/long-tieng';
 import { lamSanNho } from '@/lib/xuong-video/anh-nho-may';
 import { dichMoTaVi } from '@/lib/xuong-video/claude';
 import { coKhoa, DON_SO_DU, LOAI_NGUON, TEN_TRANG_THAI, type SoDu, type Nguon, type NguonModel, type TrangThaiNguon, type LoaiNguon, type O } from '@/lib/xuong-video/nguon-ai';
-import { vietKichBan, vietBaiDang, phanTichMau, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, goiYTuyenTruyen, vietThemTap, sapKhungTuyen } from '@/lib/xuong-video/claude';
+import { vietVaCham, vietBaiDang, phanTichMau, goiYBienThe, goiYKinhThanh, goiYAnchor, goiYBoAnchor, goiYBrief, goiYCanh, goiYTuyenTruyen, vietThemTap, sapKhungTuyen } from '@/lib/xuong-video/claude';
 import { themTapAi, apSapKhung, type AiTuyenTruyen } from '@/lib/xuong-video/tuyen-truyen';
 import { khungCuaPhim, vanKhung } from '@/lib/xuong-video/khung-tuyen';
 import { MAU_PHIM } from '@/lib/xuong-video/mau';
@@ -60,6 +60,7 @@ import { sinhAnhGoc, sinhKeyframeCanh, sinhPosterPhim, sinhAnhQcDb, sinhAnhBienT
 import { phanRaTapDb, baoCaoChuanBiDb, sinhAnhThieuDb, type KqPhanRa, type BaoCaoPhim } from '@/lib/xuong-video/phan-ra';
 import { khuonAnhQc, MO_HINH_ANH_QC, TI_LE_ANH_QC, type AnhQc } from '@/lib/xuong-video/anh-qc';
 import { docGocSpy, xepGocSpy, nhomCuaGoc, type GocSpy } from '@/lib/xuong-video/goc-spy';
+import { vanGocSpyKb } from '@/lib/xuong-video/spy-api';
 import { sanPhamPhim } from '@/lib/xuong-video/nhom-phim';
 import { dongCreative, gomThanhPhan, type AnchorKho, type CreativeKho, type CumGoc, type DongCreative, type ShotKho, type ThanhPhan , type EtpCr } from '@/lib/xuong-video/kho-creative';
 import { docOTemplate, chepPhim, type KetQuaChep, type ShotKhung } from '@/lib/xuong-video/template-db';
@@ -729,10 +730,12 @@ export async function vietKichBanTap(tapId: number, brief: string, thoiLuongS: n
   const thieu = thieuQc(bc.loai, bc.kt);   // quảng cáo chưa khai sản phẩm → Claude bịa tính năng (phim bra 09/10/2026) — chặn ở máy chủ, không chỉ mờ nút
   if (thieu) return loi(thieu);
   if (!brief.trim()) return loi('thiếu brief');
-  const kq = await vietKichBan({ loai: bc.loai, kinhThanh: bc.kt, nhanVat: bc.nhanVat, brief, tapSo: bc.loai === 'phim' ? bc.tap.so : undefined, tapTruoc: bc.tapTruoc, thoiLuongS });
+  // viết = viết + tự chấm (chéo + ngược, gag thêm thử mù) + kết luận — sổ tay + phép thử ở so-tay-kich-ban.ts (claude.ts › vietVaCham)
+  const gan = docGocSpy(((await db.execute(sql`SELECT goc_spy FROM xv_phim WHERE id = ${bc.tap.phim_id}`)) as unknown as Row[])[0]?.goc_spy);
+  const kq = await vietVaCham({ loai: bc.loai, kinhThanh: bc.kt, nhanVat: bc.nhanVat, brief, tapSo: bc.loai === 'phim' ? bc.tap.so : undefined, tapTruoc: bc.tapTruoc, thoiLuongS, gocSpy: await vanGocSpyKb(gan) });
   if (!kq.ok) return loi(kq.loi);
-  await ghiChu(bc.tap.phim_id, `Viết kịch bản · tập ${bc.tap.so}`, kq);
-  await db.execute(sql`UPDATE xv_tap SET brief = ${brief}, kich_ban = ${kq.kichBan}, updated_at = now() WHERE id = ${tapId}`);
+  await ghiChu(bc.tap.phim_id, `Viết + tự chấm kịch bản · tập ${bc.tap.so}`, kq);
+  await db.execute(sql`UPDATE xv_tap SET brief = ${brief}, kich_ban = ${kq.kichBan}, cham_kich_ban = ${JSON.stringify(kq.cham)}::jsonb, updated_at = now() WHERE id = ${tapId}`);
   return { ok: true, data: kq.kichBan };
 }
 

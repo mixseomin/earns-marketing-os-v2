@@ -1,4 +1,5 @@
 'use client';
+import { KetLuanCham } from './cham-kb-ui';
 import { xepPhat, phat } from '@/lib/xuong-video/kieu';
 import { ThanhPhanTap } from './thanh-phan-ui';
 import { kgCua } from '@/lib/xuong-video/khong-gian';
@@ -196,15 +197,16 @@ export function TapView({ tap, phim, nhanVat, khoa, onChanged, tab, onMoNut }: {
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
             <input className="xv-in" type="number" min={8} max={300} value={thoiLuong} onChange={(e) => setThoiLuong(Number(e.target.value) || 30)} style={{ width: 70 }} title="tổng giây" />
             <span style={mono}>giây</span>
-            <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || thieuSp || (!brief.trim() && 'viết brief trước')} ban={banTach || ban('viet')} title="Viết kịch bản từ brief → điền sang ô 3b"
-              onClick={() => void chay('viet', async () => { const r = await vietKichBanTap(tap.id, brief, thoiLuong); if (r.ok) setKichBan(r.data); return r; })}>
-              {ban('viet') ? '… đang viết' : '✍ Claude viết kịch bản →'}
+            <Nut ly={(!khoa.anthropic && 'thiếu ANTHROPIC_API_KEY') || thieuSp || (!brief.trim() && 'viết brief trước')} ban={banTach || ban('viet')} title="Viết kịch bản từ brief theo sổ tay (Thư viện › 📓) → model khác chấm chéo + chấm ngược (phim gag: sinh dư ~30 gag, thử mù, giữ phần tốt) → kết luận hiện dưới ô 3b"
+              onClick={() => void chay('viet', async () => { const r = await vietKichBanTap(tap.id, brief, thoiLuong); if (r.ok) { setKichBan(r.data); onChanged?.(); } return r; })}>
+              {ban('viet') ? '… đang viết + tự chấm' : '✍ Viết + tự chấm kịch bản →'}
             </Nut>
           </div>
         </div>
         <div>
           <O label="3b · Kịch bản"><textarea className="xv-ta" rows={12} value={kichBan} onChange={(e) => setKichBan(e.target.value)} placeholder={'Dán kịch bản, hoặc viết brief ở 3a rồi bấm "Claude viết kịch bản".\nCảnh 1: … \nCảnh 2: …'} /></O>
           {tap.tom_tat && <div style={{ ...mono, marginTop: -4, marginBottom: 6 }}>Tóm tắt (tập sau đọc): {tap.tom_tat}</div>}
+          {tap.cham_kich_ban && <KetLuanCham c={tap.cham_kich_ban} />}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
             <Nut ly={!kbDirty && 'chưa sửa'} ban={banTach || ban('luu')} onClick={() => void chay('luu', async () => { await suaTap(tap.id, { kich_ban: kichBan, ten: tenTap, brief }); })}>Lưu brief + kịch bản</Nut>
             <DichPhim tap={tap} ngonNgu={kt.ngon_ngu} coAnthropic={khoa.anthropic} ban={banTach} onChanged={onChanged} />

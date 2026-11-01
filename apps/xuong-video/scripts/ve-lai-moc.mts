@@ -20,7 +20,10 @@ const kt = docKinhThanh(((await db.execute(sql`SELECT kinh_thanh FROM xv_phim WH
 const nv = refIds.length ? ((await db.execute(sql`SELECT id, mo_ta, anh_ref->>0 AS u FROM xv_nhan_vat WHERE id IN (${sql.raw(refIds.join(','))})`)) as unknown as { id: number; mo_ta: string; u: string | null }[])
   .sort((a, b) => refIds.indexOf(a.id) - refIds.indexOf(b.id)) : [];
 const style = phongCachHinh(kt.phong_cach).replace(/[.\s]+$/, '');
-const giu = 'Keep EXACTLY the same composition as Image 1: every character, prop and the background stay in the same place, size, pose, direction and timing of the action; the background is unchanged; add nothing, remove nothing, no text.';
+// --them='…': câu khoá riêng cho mốc khó (vd thứ tự trước sau khi tàu che người)
+const them = arg('them');
+const giu0 = 'Keep EXACTLY the same composition as Image 1: every character, prop and the background stay in the same place, size, pose, direction and timing of the action; the background is unchanged; add nothing, remove nothing, no text.';
+const giu = them ? `${giu0} ${them}` : giu0;
 const ra: string[] = [];
 for (const [i, f] of moc.entries()) {
   const vao = await uploadToR2(`xuong-video/giay-cat/${phimId}-${ten}-vao-${i}-${randomUUID().slice(0, 6)}.png`, readFileSync(f), 'image/png');

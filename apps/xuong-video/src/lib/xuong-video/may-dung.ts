@@ -49,7 +49,7 @@ export async function timVideoNenDong(truyVan: string, daDung: Set<number>): Pro
 const FONTS_DIR = [`${process.cwd()}/public/fonts`, `${process.cwd()}/apps/xuong-video/public/fonts`, '/opt/earns-marketing-os-v2/apps/xuong-video/public/fonts'].find((d) => existsSync(d));
 
 /** Dựng MỘT video từ đề theo mẫu của máy: MP4 cả video + mỗi shot của mẫu một khung (giây giữa shot), đẩy lên R2. */
-export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string | null; /** URL tệp tiếng nền thu thật (mẫu nenVideo — am-nen.ts) */ amUrl?: string | null; /** ảnh nền thêm (mẫu nhiều cảnh) */ nenThemUrl?: string[]; slug: string }): Promise<{ ok: true; url: string; khung: string[]; anh: string[]; giay: number; /** mẫu chỉ ảnh: url = ảnh 1, không có MP4 */ chiAnh?: boolean } | { ok: false; loi: string }> {
+export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string | null; /** URL tệp tiếng nền thu thật (mẫu nenVideo — am-nen.ts) */ amUrl?: string | null; /** ảnh nền thêm (mẫu nhiều cảnh) */ nenThemUrl?: string[]; /** SHOT CODE: MP4 lớp hình đã dựng trên iMac (cột hinh_code) — chỉ ghép tiếng, không vẽ ASS */ hinhUrl?: string | null; slug: string }): Promise<{ ok: true; url: string; khung: string[]; anh: string[]; giay: number; /** mẫu chỉ ảnh: url = ảnh 1, không có MP4 */ chiAnh?: boolean } | { ok: false; loi: string }> {
   if (!FONTS_DIR) return { ok: false, loi: 'máy chủ thiếu thư mục font (apps/xuong-video/public/fonts)' };
   const bo = BO_DUNG[o.mau]; if (!bo) return { ok: false, loi: `mẫu máy lạ: ${o.mau}` };
   const thuMuc = `${tmpdir()}/xv-may-${o.slug}-${randomUUID().slice(0, 8)}`;
@@ -90,10 +90,19 @@ export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string
       }
       return { ok: true, url: anh[0]!, khung: anh, anh, giay: 0, chiAnh: true };
     }
+    if (o.hinhUrl && bo.shotCode) {
+      // SHOT CODE: hình đã xong ở iMac → giữ nguyên luồng hình (-c:v copy), chỉ ghép tiếng của mẫu, cắt đúng thời lượng theo đề; vài giây tại box3
+      const t = await fetch(o.hinhUrl, { signal: AbortSignal.timeout(120_000) }).catch(() => null);
+      if (!t?.ok) return { ok: false, loi: `không tải được lớp hình shot code (${t?.status ?? 'mạng'})` };
+      const hinh = `${thuMuc}/hinh.mp4`; await writeFile(hinh, Buffer.from(await t.arrayBuffer()));
+      try { await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-i', hinh, ...bo.shotCode.am(o.de), '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '128k', '-t', String(Number(bo.dai(o.de).toFixed(2))), '-movflags', '+faststart', ra], { timeout: 120_000, maxBuffer: 8 << 20 }); }
+      catch (e) { const err = e as { stderr?: string; message?: string }; return { ok: false, loi: `ffmpeg ghép tiếng shot code: ${(err.stderr || err.message || String(e)).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}` }; }
+    } else {
     // lệnh dựng chính: máy dựng Cloudflare (nhẹ tải box3), lỗi / chưa cấu hình thì tại chỗ — may-dung-cf.ts
     const args = bo.lenh({ de: o.de, ass, nen, nenThem, am, fontsDir: FONTS_DIR, ra });
     try { const d = await dungFfmpeg(args, { thuMuc, fontsDir: FONTS_DIR, ra, chayTaiCho: () => run('ffmpeg', args, { timeout: 5 * 60_000, maxBuffer: 8 << 20 }) }); console.log(`dựng ${o.slug}: ${d.noi}${d.giay ? ` ${d.giay}s` : ''}${d.loiCf ? ` (cloudflare lỗi: ${d.loiCf})` : ''}`); }
     catch (e) { const err = e as { stderr?: string; message?: string }; return { ok: false, loi: `ffmpeg: ${(err.stderr || err.message || String(e)).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}` }; }
+    }
     const goc = `xuong-video/may/${o.slug}-${randomUUID().slice(0, 8)}`;
     const url = await uploadToR2(`${goc}.mp4`, await readFile(ra), 'video/mp4');
     if (!url) return { ok: false, loi: 'không đẩy được video lên R2' };
@@ -106,15 +115,15 @@ export async function dungVideo(o: { mau: MauMayDung; de: DeMay; nenUrl?: string
       if (!u) return { ok: false, loi: `không đẩy được khung shot #${i + 1} lên R2` };
       khung.push(u);
     }
-    const anh = await catAnh(o.mau, o.de, ra, goc, thuMuc); if (!Array.isArray(anh)) return anh;
+    const anh = await catAnh(o.mau, o.de, ra, goc, thuMuc, !!(o.hinhUrl && bo.shotCode)); if (!Array.isArray(anh)) return anh;
     return { ok: true, url, khung, anh, giay: Number(bo.dai(o.de).toFixed(2)) };
   } finally { await rm(thuMuc, { recursive: true, force: true }).catch(() => {}); }
 }
 
 /** Ảnh tĩnh của mẫu (BO_DUNG[mau].anh — mẫu không khai thì []): cắt từ MP4 `ra` đúng giây + khung, đẩy lên R2 cạnh video (<goc>-a<n>.jpg). */
-async function catAnh(mau: MauMayDung, de: DeMay, ra: string, goc: string, thuMuc: string): Promise<string[] | { ok: false; loi: string }> {
-  const ds: string[] = [];
-  for (const [i, x] of (BO_DUNG[mau]?.anh?.(de) ?? []).entries()) {
+async function catAnh(mau: MauMayDung, de: DeMay, ra: string, goc: string, thuMuc: string, code = false): Promise<string[] | { ok: false; loi: string }> {
+  const ds: string[] = [], bo = BO_DUNG[mau];
+  for (const [i, x] of ((code && bo?.shotCode?.anh ? bo.shotCode.anh(de) : bo?.anh?.(de)) ?? []).entries()) {
     const f = `${thuMuc}/a${i}.jpg`, [cx, cy, cw, ch] = x.cat;
     try { await run('ffmpeg', ['-y', '-hide_banner', '-loglevel', 'error', '-ss', String(x.t), '-i', ra, '-frames:v', '1', '-vf', `crop=${cw}:${ch}:${cx}:${cy}`, '-q:v', '2', f], { timeout: 60_000 }); }
     catch (e) { return { ok: false, loi: `cắt ảnh #${i + 1} hỏng: ${(e as Error).message.slice(0, 120)}` }; }
@@ -125,13 +134,13 @@ async function catAnh(mau: MauMayDung, de: DeMay, ra: string, goc: string, thuMu
   return ds;
 }
 /** Cắt ảnh tĩnh cho video ĐÃ DỰNG (không dựng lại): tải MP4 từ R2 về rồi cắt — bù cho video dựng trước khi mẫu có `anh`. */
-export async function catAnhTuVideo(o: { mau: MauMayDung; de: DeMay; videoUrl: string; slug: string }): Promise<{ ok: true; anh: string[] } | { ok: false; loi: string }> {
+export async function catAnhTuVideo(o: { mau: MauMayDung; de: DeMay; videoUrl: string; slug: string; /** video dựng bằng shot code → khung cắt của trang */ code?: boolean }): Promise<{ ok: true; anh: string[] } | { ok: false; loi: string }> {
   const thuMuc = `${tmpdir()}/xv-anh-${o.slug}-${randomUUID().slice(0, 8)}`;
   await mkdir(thuMuc, { recursive: true });
   try {
     const r = await fetch(o.videoUrl, { signal: AbortSignal.timeout(120_000) }); if (!r.ok) return { ok: false, loi: `tải video hỏng ${r.status}` };
     const ra = `${thuMuc}/ra.mp4`; await writeFile(ra, Buffer.from(await r.arrayBuffer()));
-    const anh = await catAnh(o.mau, o.de, ra, `xuong-video/may/${o.slug}-${randomUUID().slice(0, 8)}`, thuMuc);
+    const anh = await catAnh(o.mau, o.de, ra, `xuong-video/may/${o.slug}-${randomUUID().slice(0, 8)}`, thuMuc, o.code);
     return Array.isArray(anh) ? { ok: true, anh } : anh;
   } finally { await rm(thuMuc, { recursive: true, force: true }).catch(() => {}); }
 }

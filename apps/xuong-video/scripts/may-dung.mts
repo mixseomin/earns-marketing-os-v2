@@ -6,6 +6,8 @@
 //   --ds [--ca-luu-tru]            in JSON { slug: { id, file_url, xuat_luc, da_dang, title, description, link, book, … } } — bên đăng / bên đọc số
 //   --xuat <slug|all-chua|all> [--mau <mẫu>] [--song-song N]   dựng video (MP4 + 3 khung) cho một slug, mọi video đang dùng chưa có video, hoặc dựng lại TẤT CẢ (đổi mẫu)
 //                                  — --mau chỉ lấy video của một mẫu (vd dựng lại màn kết Only ONE: --xuat all --mau do-chu-mot-dung); song song N lượt (mặc định 3; máy dựng Cloudflare chịu được 6)
+//   --cho-code [--so N]            in JSON video đang chờ iMac dựng lớp hình SHOT CODE (mẫu khai shotCode) — worker scripts/shot-code/may.mts đọc
+//   --gan-code <id> <phiên> <tệp>  nạp lớp hình iMac vừa dựng (tệp trên box3) lên R2 → xuất lại video đó (ghép tiếng + khung + ảnh)
 //   --anh <slug|all-chua>          cắt ảnh tĩnh (mẫu có khai `anh`, vd scam → 2 ảnh cho nền x_anh) từ video ĐÃ dựng, không dựng lại
 //   --ghi-dang <slug> <nền>        stdin JSON { url, ngay, luc?, binhLuan? } → sổ đăng của video (gộp vào lượt đã có)
 //   --nap-nguon <tệp.json>         nạp cả tệp nguồn đề của mẫu (vd mau/may/scam-or-real.json) qua tuNguon của mẫu (mau-dung.ts)
@@ -71,6 +73,22 @@ if (a.includes('--nap')) {
   if (!url) { console.error('không đẩy được clip lên R2'); process.exit(1); }
   await db.execute(sql`UPDATE xv_may_video SET de = jsonb_set(de, ${`{canh,${iC},vx}`}::text[], to_jsonb(${url}::text)), updated_at = now() WHERE id = ${idV} AND jsonb_array_length(de->'canh') > ${iC}`);
   console.log(`✓ cảnh ${iC} của video #${idV} → ${url}`);
+} else if (a.includes('--cho-code')) {
+  // HÀNG CHỜ SHOT CODE (01/11/2026): in JSON video đang chờ iMac dựng lớp hình — kèm dữ liệu trang (cau) + tên trang theo sổ mẫu. Worker: scripts/shot-code/may.mts
+  const { choHinhCode } = await import('../src/lib/xuong-video/may');
+  const ds = await choHinhCode(db, Number(lay('--so') ?? 10));
+  console.log(JSON.stringify(ds.map((x) => { const sc = BO_DUNG[x.mau]?.shotCode; return sc ? { id: x.id, slug: x.slug, mau: x.mau, phien: x.phien, nen_url: x.nen_url, trang: sc.trang, cau: sc.cau(x.de) } : null; }).filter(Boolean)));
+} else if (lay('--gan-code') != null) {
+  // GẮN LỚP HÌNH SHOT CODE: iMac scp MP4 lên box3 → đây nạp R2 + ghi hinh_code.url rồi xuất lại video (ghép tiếng, khung, ảnh). Xoá tệp tạm sau khi nạp.
+  //   --gan-code <video_id> <phiên> <tệp mp4 trên box3>
+  const i = a.indexOf('--gan-code'), [idV, phien, tep] = [Number(a[i + 1]), a[i + 2], a[i + 3]];
+  if (!(idV > 0) || !phien || !tep) { console.error('dùng: --gan-code <video_id> <phiên> <tệp mp4>'); process.exit(2); }
+  const { uploadToR2 } = await import('../src/lib/r2'), fs = await import('node:fs'), { ganHinhCode } = await import('../src/lib/xuong-video/may');
+  const url = await uploadToR2(`xuong-video/may/code-${idV}-${Date.now().toString(36)}.mp4`, fs.readFileSync(tep), 'video/mp4');
+  fs.rmSync(tep, { force: true });
+  if (!url) { console.error('không đẩy được lớp hình lên R2'); process.exit(1); }
+  const r = await ganHinhCode(db, idV, url, phien);
+  console.log(r.ok ? `✓ #${idV} → ${r.url}` : `✗ #${idV}: ${r.loi}`); if (!r.ok) process.exit(1);
 } else if (lay('--xuat') != null) {
   const muc = lay('--xuat')!, mauLoc = lay('--mau'), mMay = await mayTheoMa(db, ma);
   const ds = Object.entries(await dsVideoDang(db, ma)).filter(([slug, x]) => (muc === 'all' ? true : muc === 'all-chua' ? !x.file_url && !(x.loai === 'link' && x.xuat_luc) : slug === muc)).filter(([, x]) => !mauLoc || ((x as { mau?: string | null }).mau ?? mMay?.mau) === mauLoc);   // bài link không có video: đã chốt bản (xuat_luc) là xong

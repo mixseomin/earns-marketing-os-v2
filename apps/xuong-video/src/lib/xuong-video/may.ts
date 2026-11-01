@@ -2,6 +2,7 @@
 // mỗi VIDEO là một dòng nhẹ của xv_may_video (đề, video, 3 khung, sổ đăng từng nền) — không phim / tập / shot riêng, nên lên số lớn được.
 // Cửa vào cho máy ngoài studio: scripts/may-dung.mts (puzzle-books qua ssh: nạp đề, xuất, đọc danh sách đăng, ghi sổ đăng, ghi số nguồn).
 import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { getDb } from '@mos2/db';
 import { catAnhTuVideo, dungVideo, timVideoNenDong } from './may-dung';
@@ -105,7 +106,7 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
 
 /** Dựng video của một dòng (0đ) → video_url + 3 khung. */
 export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
-  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.nen_url, coalesce(v.nen_them, '{}') AS nen_them, v.chu_de, v.may_id, coalesce(v.mau, m.mau) AS mau FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
+  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.nen_url, coalesce(v.nen_them, '{}') AS nen_them, v.chu_de, v.may_id, coalesce(v.mau, m.mau) AS mau, v.hinh_code FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
   if (!r) return { ok: false, loi: `không có video #${videoId}` };
   // BÌNH CHỌN (bước 4 Dạng × Góc × Sản phẩm, 27/10/2026): X poll không có media — không ảnh, không video; "xuất" = chốt bản (xuat_luc) để Phòng Nội dung chấm chữ + lựa chọn
   if ((r.de as { loai?: string } | null)?.loai === 'binh-chon') {
@@ -181,20 +182,49 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
       nenThem = de2.canh!.map((c) => c.vx!);
     }
   }
+  // SHOT CODE (anh 01/11/2026): lớp hình của mẫu do iMac dựng (scripts/shot-code/may.mts). Chưa có bản đúng đề + ảnh nền + phiên trang → đánh dấu chờ,
+  // KHÔNG dựng bản ASS thay (video cũ giữ nguyên tới khi bản mới về). iMac gắn xong (--gan-code) thì gọi lại hàm này.
+  const sc = BO_DUNG[r.mau as MauMayDung]?.shotCode;
+  let hinhUrl: string | null = null;
+  if (sc) {
+    const hc = r.hinh_code as HinhCode | null, md5 = md5Hinh(r.de, r.nen_url as string | null);
+    if (!hc?.url || hc.phien !== sc.phien || hc.de_md5 !== md5) {
+      await db.execute(sql`UPDATE xv_may_video SET hinh_code = ${JSON.stringify({ cho: true, phien: sc.phien, de_md5: md5 })}::jsonb, updated_at = now() WHERE id = ${videoId}`);
+      return { ok: false, loi: 'chờ iMac dựng lớp hình shot code (scripts/shot-code/may.mts)' };
+    }
+    hinhUrl = hc.url;
+  }
   // tiếng nền thu thật cho mẫu nền video (am-nen.ts): loại theo đề hoặc từ khoá, bản theo băm slug
   const deC = r.de as { truy?: string; am?: LoaiAm } | null, amUrl = BO_DUNG[r.mau as MauMayDung]?.giong ? ((r.de as DeGiaiThich).giong_url ?? null) : nenVideo || BO_DUNG[r.mau as MauMayDung]?.amThat ? chonAm(deC?.am ?? amTheoTruy(deC?.truy ?? String(r.chu_de ?? '')), String(r.slug))?.url ?? null : null;
-  const v = await dungVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, nenUrl: (r.nen_url as string | null) ?? null, nenThemUrl: nenThem, amUrl, slug: String(r.slug) });
+  const v = await dungVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, nenUrl: (r.nen_url as string | null) ?? null, nenThemUrl: nenThem, amUrl, hinhUrl, slug: String(r.slug) });
   if (!v.ok) return v;
   // mẫu chỉ ảnh (chiAnh): bản xuất là `anh`, video_url NULL — máy đăng chỉ lên nền ảnh (fb_anh / x_anh), Phòng Nội dung chấm theo anh (như bài link)
   await db.execute(sql`UPDATE xv_may_video SET video_url = ${v.chiAnh ? null : v.url}, khung = ${JSON.stringify(v.khung)}::jsonb, anh = ${JSON.stringify(v.anh)}::jsonb, giay = ${v.chiAnh ? null : v.giay}, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
   return { ok: true, url: v.url };
 }
 
+/** Lớp hình shot code của một video: đang chờ iMac ({ cho }) hoặc đã gắn ({ url }); phien + de_md5 để biết còn khớp đề / trang không. */
+export type HinhCode = { cho?: boolean; url?: string; phien: string; de_md5: string };
+/** Dấu của thứ lớp hình phụ thuộc: đề + ảnh nền (đổi một trong hai là dựng lại). */
+export const md5Hinh = (de: unknown, nen: string | null) => createHash('md5').update(`${jsonChuan(de)}|${nen ?? ''}`).digest('hex');
+/** Hàng chờ iMac: video có hinh_code.cho, kèm mọi thứ worker cần để dựng (mẫu, đề, ảnh nền). */
+export async function choHinhCode(db: Db, so = 10): Promise<{ id: number; slug: string; mau: MauMayDung; de: DeMay; nen_url: string | null; phien: string }[]> {
+  return ((await db.execute(sql`SELECT v.id, v.slug, coalesce(v.mau, m.mau) AS mau, v.de, v.nen_url, v.hinh_code->>'phien' AS phien FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id
+    WHERE v.hinh_code->>'cho' = 'true' AND NOT coalesce(v.luu_tru, false) ORDER BY v.id LIMIT ${so}`)) as unknown as { id: number; slug: string; mau: MauMayDung; de: DeMay; nen_url: string | null; phien: string }[]);
+}
+/** Gắn lớp hình iMac vừa dựng (đã lên R2) rồi xuất lại ngay. Chỉ nhận khi dòng vẫn đang chờ đúng phiên (đề đổi giữa chừng → bỏ, lượt sau dựng lại). */
+export async function ganHinhCode(db: Db, videoId: number, url: string, phien: string): Promise<{ ok: true; url: string } | { ok: false; loi: string }> {
+  const n = (await db.execute(sql`UPDATE xv_may_video SET hinh_code = jsonb_build_object('url', ${url}::text, 'phien', hinh_code->>'phien', 'de_md5', hinh_code->>'de_md5'), updated_at = now()
+    WHERE id = ${videoId} AND hinh_code->>'cho' = 'true' AND hinh_code->>'phien' = ${phien} RETURNING id`)) as unknown as Row[];
+  if (!n.length) return { ok: false, loi: `video #${videoId} không còn chờ lớp hình phiên ${phien}` };
+  return xuatVideo(db, videoId);
+}
+
 /** Bù ảnh tĩnh cho video đã dựng mà chưa có (mẫu mới khai `anh`) — không dựng lại video. */
 export async function bucAnh(db: Db, videoId: number): Promise<{ ok: true; so: number } | { ok: false; loi: string }> {
-  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.video_url, coalesce(v.mau, m.mau) AS mau FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
+  const r = ((await db.execute(sql`SELECT v.slug, v.de, v.video_url, coalesce(v.mau, m.mau) AS mau, v.hinh_code->>'url' AS hinh FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE v.id = ${videoId}`)) as unknown as Row[])[0];
   if (!r?.video_url) return { ok: false, loi: `video #${videoId} chưa dựng` };
-  const k = await catAnhTuVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, videoUrl: String(r.video_url), slug: String(r.slug) });
+  const k = await catAnhTuVideo({ mau: r.mau as MauMayDung, de: r.de as DeMay, videoUrl: String(r.video_url), slug: String(r.slug), code: !!r.hinh });
   if (!k.ok) return k;
   await db.execute(sql`UPDATE xv_may_video SET anh = ${JSON.stringify(k.anh)}::jsonb, updated_at = now() WHERE id = ${videoId}`);
   return { ok: true, so: k.anh.length };

@@ -55,3 +55,19 @@ console.log(`may-dung-scam: ${ds.length} đề + ${dsGoc.length} đề góc đ�
   assert.ok(cap.size > 3, 'khung tiêu đề không đi cặp cố định với trang đích');
   console.log(`trang đích: ${[...dem].map(([l, n]) => `${l.replace('https://ratesbyroom.com', '')} ${n}`).join(' · ')}`);
 }
+
+// SHOT CODE: trang nhận đúng mốc giây của nhipScam (luật đọc) + ảnh tĩnh cắt trong khung 1080×1920; sổ mẫu khai đủ trang / phiên / tiếng
+{
+  const { cauScam, anhCodeScam, nhipScam, amCodeScam } = await import('./may-dung-scam');
+  const { BO_DUNG } = await import('./mau-dung');
+  const nguon = JSON.parse((await import('node:fs')).readFileSync(new URL('../../../mau/may/scam-or-real.json', import.meta.url), 'utf8')) as Parameters<typeof cauScam>[0][];
+  for (const de of nguon) {
+    const c = cauScam(de), n = nhipScam(de);
+    assert.ok(c.T_KET === n.T_KET && c.DAI === n.DAI && c.T_LO === n.T_LO, 'trang dùng đúng nhịp đọc của mẫu');
+    for (const x of anhCodeScam(de)) { const [cx, cy, cw, ch] = x.cat; assert.ok(cx >= 0 && cy >= 0 && cx + cw <= 1080 && cy + ch <= 1920 && x.t > 0 && x.t < n.DAI, 'ảnh tĩnh cắt trong khung, trong thời lượng'); }
+    assert.ok(amCodeScam(de).join(' ').includes(`d=${Number(n.DAI.toFixed(2))}`), 'tiếng dài đúng thời lượng');
+  }
+  const sc = BO_DUNG['scam-or-real'].shotCode!;
+  assert.ok(sc.trang === 'scam-or-real.html' && sc.phien && (await import('node:fs')).existsSync(new URL(`../../../scripts/shot-code/${sc.trang}`, import.meta.url)), 'trang shot code có thật');
+  console.log(`shot code scam: ${nguon.length} đề đúng nhịp + khung cắt`);
+}

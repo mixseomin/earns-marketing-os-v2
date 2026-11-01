@@ -113,7 +113,7 @@ export function assScam(de: DeScam): string {
   d.push([21, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1060)\\b1${fs(46)}\\1c&HFFFFFF&${fad}}Compare real hotel rates:`]);
   d.push([21, T_KET, DAI, 'Ve', `{\\an5\\pos(540,1170)\\1c${mauAss(NHAN)}${fad}\\p1}${bo(640, 120, 20)}`]);
   d.push([22, T_KET, DAI, 'Den', `{\\an5\\pos(540,1172)${fs(62)}\\1c&H111111&${fad}}ratesbyroom.com`]);
-  d.push([21, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1330)\\b1${fs(42)}\\1c${mauAss(NHAN)}${fad}}Free checklist: 5 red flags before you pay`]);
+  d.push([21, T_KET, DAI, 'Chu', `{\\an5\\pos(540,1330)\\b1${fs(42)}\\1c${mauAss(NHAN)}${fad}}${CHU_PHU_SCAM}`]);
   return rapAss(W, H, d);
 }
 
@@ -136,6 +136,24 @@ export function lenhScam(o: { de: DeScam; ass: string; nen?: string | null; font
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${amScam(o.de.ket)}':s=44100:d=${DAI}`,
     '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
 }
+
+/** SHOT CODE (anh 01/11/2026): lớp hình dựng trên iMac bằng scripts/shot-code/scam-or-real.html (cột hinh_code), box chỉ ghép tiếng amScam.
+ *  Tăng PHIEN khi đổi trang → mọi video của mẫu được dựng lại ở lượt --xuat kế. */
+export const PHIEN_CODE_SCAM = '1';
+export const CHU_PHU_SCAM = 'Free checklist: 5 red flags before you pay';
+/** Dữ liệu trang (window.CAU, thiếu `nen` — worker iMac gắn tệp ảnh nền): đề + đúng mốc giây của nhipScam + chữ màn kết. */
+export function cauScam(de: DeScam) {
+  const { T_KET, DAI } = nhipScam(de);
+  return { de, T_DEM, T_LO, T_KET, DAI, ket: CHU_KET_SCAM, phu: CHU_PHU_SCAM };
+}
+/** Ảnh tĩnh của bản code (bố cục khác ASS: dấu SCAM/REAL nằm đáy, lý do ngay dưới thẻ): câu đố = tiêu đề + thẻ (3:4, đồng hồ ở dưới bị cắt),
+ *  đáp án = từ thẻ tới dấu ở đáy, lúc mọi lý do đã hiện. */
+export function anhCodeScam(de: DeScam): { t: number; cat: [number, number, number, number] }[] {
+  const { T_KET } = nhipScam(de);
+  return [{ t: T_DEM + DEM * 0.8, cat: [0, 0, 1080, 1440] }, { t: T_LO + (T_KET - T_LO) * 0.7, cat: [0, 240, 1080, 1680] }];
+}
+/** Đầu vào tiếng ffmpeg cho bản code — cùng tiếng tích / bè / ting của bản ASS. */
+export const amCodeScam = (de: DeScam): string[] => ['-f', 'lavfi', '-i', `aevalsrc='${amScam(de.ket)}':s=44100:d=${Number(nhipScam(de).DAI.toFixed(2))}`];
 
 /** Trang đích của ngách (trang con trên ratesbyroom.com — nhịp 1 của plan social traffic). */
 export const LINK_SCAM = 'https://ratesbyroom.com/hotel-scam-check/';

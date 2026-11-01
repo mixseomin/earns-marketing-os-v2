@@ -1,5 +1,6 @@
 // VẼ LẠI ẢNH MỐC giấy cắt (giay-cat/ → --moc) thành khung hoạt hình hoàn chỉnh, GIỮ NGUYÊN chỗ / cỡ / dáng của mọi thứ (vật lý đã đúng trong bản giấy cắt).
-// Ảnh mốc đầu: tham chiếu = ảnh mẫu nhân vật (đúng màu áo, nét mặt). Các mốc sau: tham chiếu = mốc đầu ĐÃ VẼ LẠI (cùng một nét qua cả shot).
+// Mọi mốc: tham chiếu = ảnh mẫu nhân vật (đúng màu áo, nét mặt). KHÔNG lấy mốc đã vẽ lại làm chuẩn cho mốc sau: thử 02/11/2026 mô hình chép luôn bố cục mốc
+// chuẩn (ghế đang bay biến mất, bà về chỗ cũ) — giữ bố cục là việc của ảnh giấy cắt (Image 1).
 // Kết quả nối bằng VideoExpress khung đầu → cuối (vx-noi-moc.mts). Tốn 1 ảnh / mốc (~65₫).
 // Chạy trên box3: DUYET_SINH_1_LAN=1 NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/ve-lai-moc.mts --phim=1156 --ref=736,806 --moc=/tmp/a.png,/tmp/b.png [--ten=gag4]
 import { readFileSync } from 'node:fs';
@@ -20,17 +21,14 @@ const nv = refIds.length ? ((await db.execute(sql`SELECT id, mo_ta, anh_ref->>0 
   .sort((a, b) => refIds.indexOf(a.id) - refIds.indexOf(b.id)) : [];
 const style = phongCachHinh(kt.phong_cach).replace(/[.\s]+$/, '');
 const giu = 'Keep EXACTLY the same composition as Image 1: every character, prop and the background stay in the same place, size, pose, direction and timing of the action; the background is unchanged; add nothing, remove nothing, no text.';
-const ra: string[] = []; let chuan = '';
+const ra: string[] = [];
 for (const [i, f] of moc.entries()) {
   const vao = await uploadToR2(`xuong-video/giay-cat/${phimId}-${ten}-vao-${i}-${randomUUID().slice(0, 6)}.png`, readFileSync(f), 'image/png');
-  const refs = i === 0 ? [vao!, ...nv.map((v) => v.u).filter((u): u is string => !!u)].slice(0, 3) : [vao!, chuan];
-  const ve = i === 0
-    ? `EDIT Image 1, a rough paper cut-out animation frame, into a finished frame of hand-drawn 2D animation. Visual style: ${style}. Redraw the characters as real drawn animation, not paper pieces: connected arms, legs, hands and clothes with natural drawn poses and expressions. ${nv.map((v, k) => `The character matching Image ${k + 2}: ${v.mo_ta.split(/(?<=\.)\s/)[0]}`).join(' ')} ${giu}`
-    : `EDIT Image 1, a rough paper cut-out animation frame, into a finished frame of hand-drawn 2D animation that matches Image 2 exactly in drawing style, character designs, colours and background (Image 2 is an earlier frame of the same shot). Redraw the characters as real drawn animation, not paper pieces: connected arms, legs, hands and clothes with natural drawn poses and expressions. ${giu}`;
+  const refs = [vao!, ...nv.map((v) => v.u).filter((u): u is string => !!u)].slice(0, 3);
+  const ve = `EDIT Image 1, a rough paper cut-out animation frame, into a finished frame of hand-drawn 2D animation. Visual style: ${style}. Redraw the characters as real drawn animation, not paper pieces: connected arms, legs, hands and clothes with natural drawn poses and expressions. ${nv.map((v, k) => `The character matching Image ${k + 2}: ${v.mo_ta.split(/(?<=\.)\s/)[0]}`).join(' ')} ${giu}`;
   const k = await sinhAnhQuaCong(kt.mo_hinh_anh, { prompt: ve, thamChieuUrl: refs, tiLe: '16:9' });
   if (!k.anh) { console.error(`mốc ${i}: hỏng`, k.thu); process.exit(1); }
   const u = await uploadToR2(`xuong-video/giay-cat/${phimId}-${ten}-ve-${i}-${randomUUID().slice(0, 6)}.png`, k.anh.data, k.anh.mimeType);
-  if (i === 0) chuan = u!;
   ra.push(u!); console.log(`mốc ${i}: ${u} · ${k.nguon?.vnd ?? '?'}₫`);
 }
 process.exit(0);

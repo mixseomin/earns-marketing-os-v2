@@ -2,21 +2,23 @@
 // TỔNG QUAN 2 etp — LƯỚI WIDGET KÉO THẢ (anh 01/11/2026: "kiểu widget, kéo thả tuỳ người dùng muốn hiện thế nào… tự lưu lại làm template riêng… template mặc định
 // theo mục đích theo dõi"; "trên 1 màn hình ko phải scroll ngang dọc"). Lưới COT × HANG cố định cao đúng phần màn còn lại — hàng co theo cửa sổ, nên bố cục hợp lệ
 // không bao giờ phải cuộn trang. Widget + template mặc định: sổ lib/etp-widget.json · kiểm + xếp ô: lib/etp-widget.ts · lưu: actions/etp-bo-cuc.ts (etp.bo_cuc).
-// Hàm vẽ widget: `ve` (EtpView truyền — dùng lại khối Tổng quan cũ, không chép). Widget trong sổ mà không có hàm vẽ → ô báo đỏ.
+// Hàm vẽ widget: widget số ở etp-tong2-widget.tsx (useVeSo) + `ve` EtpView truyền (dùng lại khối Tổng quan cũ, không chép). Widget trong sổ mà không có hàm vẽ → ô báo đỏ.
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { Panel } from '@/components/ui';
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
-import { COT, HANG, TEMPLATE, TEN_DANG, WIDGET, hopLe, them, traMan, xep, type O } from '@/lib/etp-widget';
+import { COT, HANG, MAC_DINH, TEMPLATE, TEN_DANG, WIDGET, hopLe, them, traMan, xep, type O } from '@/lib/etp-widget';
 import { datBoCucTeam, docBoCuc, luuBoCuc, type BoCucDoc } from '@/lib/actions/etp-bo-cuc';
+import { useVeSo } from '@/components/etp-tong2-widget';
 
 /** rong / cao = chỗ thật của phần ruột widget (px) — widget biểu đồ vẽ đúng cỡ ô */
 export type VeWidget = (k: { rong: number; cao: number }) => ReactNode;
 const GAP = 8, DAU = 26, PAD = 8;   // khe giữa ô · cao dòng tên widget · đệm trong ô
 const nut: React.CSSProperties = { fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-1)', color: 'var(--fg-1)', cursor: 'pointer' };
 
-export function Tong2({ ve, laChu }: { ve: Record<string, VeWidget>; laChu: boolean }) {
+export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>; laChu: boolean; ky: { tu: string; den: string } }) {
+  const ve = { ...useVeSo(ky), ...veNgoai };   // widget số (etp-tong2-widget.tsx) + widget dùng lại khối của EtpView
   const [doc, setDoc] = useState<BoCucDoc | null>(null);
-  const [o, setO] = useState<O[]>(TEMPLATE.mac_dinh!.o);
+  const [o, setO] = useState<O[]>(MAC_DINH);
   const [tpl, setTpl] = useState('');   // template vừa mở ('' = bố cục đang dùng)
   const [sua, setSua] = useState(false);
   const [keo, setKeo] = useState<O[] | null>(null);   // bố cục xem trước lúc đang kéo
@@ -26,7 +28,7 @@ export function Tong2({ ve, laChu }: { ve: Record<string, VeWidget>; laChu: bool
   const [kt, setKt] = useState({ w: 1200, h: 700 });
 
   const taiLai = () => docBoCuc().then((r) => { if (!('loi' in r)) setDoc(r); return r; });
-  useEffect(() => { taiLai().then((r) => { if (!('loi' in r)) setO(r.dang ?? r.team ?? TEMPLATE.mac_dinh!.o); }).catch(() => {}); }, []);
+  useEffect(() => { taiLai().then((r) => { if (!('loi' in r)) setO(r.dang ?? r.team ?? MAC_DINH); }).catch(() => {}); }, []);
   // lưới cao đúng phần màn còn lại dưới thanh trên (đo mép trên thật) → không cuộn dọc; bề ngang theo khung → không cuộn ngang
   useLayoutEffect(() => {
     const el = hop.current; if (!el) return;
@@ -86,7 +88,7 @@ export function Tong2({ ve, laChu }: { ve: Record<string, VeWidget>; laChu: bool
             : <span style={{ display: 'inline-flex', gap: 4 }}><input autoFocus value={tenMoi} maxLength={40} placeholder="tên template" onChange={(e) => setTenMoi(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') luuTen(); if (e.key === 'Escape') setTenMoi(null); }}
               style={{ ...nut, cursor: 'text', width: 160 }} /><button type="button" style={nut} onClick={luuTen}>Lưu</button></span>}
           {laChu ? <button type="button" style={nut} title="mọi người chưa tự sửa bố cục sẽ thấy bố cục này" onClick={() => datBoCucTeam(o).then((r) => { setBao('loi' in r ? r.loi : 'Đã đặt làm mặc định cho team'); taiLai(); })}>Đặt mặc định cho team</button> : null}
-          <button type="button" style={nut} onClick={() => { setTpl(''); ghi((doc?.team ?? TEMPLATE.mac_dinh!.o).map((x) => ({ ...x }))); }}>Về mặc định</button>
+          <button type="button" style={nut} onClick={() => { setTpl(''); ghi((doc?.team ?? MAC_DINH).map((x) => ({ ...x }))); }}>Về mặc định</button>
           <span style={{ color: 'var(--fg-3)' }}>kéo dòng tên để dời · kéo góc ◢ để đổi cỡ</span>
         </> : null}
         {bao ? <span style={{ color: vuot ? '#f87171' : 'var(--fg-2)' }}>{bao}</span> : null}

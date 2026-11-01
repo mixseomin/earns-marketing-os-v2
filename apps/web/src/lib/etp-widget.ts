@@ -7,6 +7,8 @@ export const COT = SO.cot, HANG = SO.hang;
 export const WIDGET = SO.widget as unknown as Record<string, WidgetSo>;
 export const TEMPLATE = SO.template as Record<string, { ten: string; muc: string; o: O[] }>;
 export const TEN_DANG = '__dang', TEN_TEAM = '__team';
+/** bố cục khi người chưa có bản riêng và team chưa đặt mặc định */
+export const MAC_DINH = TEMPLATE[SO.mac_dinh]!.o;
 
 export const chongNhau = (a: O, b: O) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 /** ô thò ra ngoài màn (y + h > HANG) — vẽ đỏ, không lưu */

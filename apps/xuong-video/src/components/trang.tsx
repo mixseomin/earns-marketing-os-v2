@@ -218,6 +218,8 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
   // KHÔNG CÒN TAB (anh 31/10/2026): mọi phần là một nút trên CÂY PHIM (cay-phim.tsx), nút đang xem trong URL (?nut=), tập trong ?tap=.
   // Link cũ ?tab=… (so_do / kich_ban / ho_so / storyboard / am_thanh / xuat) → mở đúng nút tương ứng rồi xoá tham số cũ.
   const [nut, setNut] = useNho<NutPhim>(`xv-nut-${id}`, 'tap', undefined, khoaUrl.nut);
+  // khoá cũ cn-<id> (nhánh 🧰 Công năng đã bỏ 01/11/2026) → nút của chính vật; công năng nằm trong khung chi tiết vật
+  useEffect(() => { if (nut.startsWith('cn-')) setNut(`nv-${nut.slice(3)}`); }, [nut]); // eslint-disable-line react-hooks/exhaustive-deps
   const [giuCay, setGiuCay] = useMoUrl(`cay${id}`, false);   // Storyboard tự thu cây thành dải hẹp; anh bung lại thì giữ (URL)
   useLayoutEffect(() => {
     const cu = new URLSearchParams(window.location.search).get(khoaUrl.tab);
@@ -263,11 +265,12 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
         // node con look (bt-<id>): biến thể look của một nhân vật — chi tiết riêng (character/costume breakdown)
         const btId = nut.startsWith('bt-') ? Number(nut.slice(3)) : null;
         // node con 🧰 Công năng (cn-<id>) dưới anchor là vật đặc trưng của phim (kinh_thanh.vat_dac_trung_id)
+        // vật lấy từ thư viện (thu_vien_vat): công năng + bộ phận + phối hợp hiện ngay trong khung chi tiết của vật (khoá cũ cn-<id> = nv-<id>)
         const cnId = nut.startsWith('cn-') ? Number(nut.slice(3)) : null;
-        const cnNv = cnId != null ? nhanVat.find((v) => v.id === cnId && v.thu_vien_vat && KHO_VAT[v.thu_vien_vat]) ?? null : null;
+        const nvTv = (id: number | null) => (id != null ? nhanVat.find((v) => v.id === id && v.thu_vien_vat && KHO_VAT[v.thu_vien_vat]) ?? null : null);
         const bt = btId != null ? nhanVat.flatMap((v) => (v.bien_the ?? []).map((b) => ({ b, nv: v }))).find((x) => x.b.id === btId) ?? null : null;
         // nút trỏ vào thứ đã mất (tập bị xoá, anchor bị xoá, biến thể bị xoá) → về Kinh thánh / đầu Thiết kế sản xuất, khung phải không bao giờ trống
-        const k = (nut === 'tap' || nut.startsWith('tap:')) && tapId == null ? 'kinh_thanh' : (nvId != null && !nhanVat.some((v) => v.id === nvId)) || (btId != null && !bt) || (cnId != null && !cnNv) ? 'nhan_vat' : nut;
+        const k = (nut === 'tap' || nut.startsWith('tap:')) && tapId == null ? 'kinh_thanh' : (nvId != null && !nhanVat.some((v) => v.id === nvId)) || (btId != null && !bt) || cnId != null ? 'nhan_vat' : nut;
         // bấm một tập → CHỈ mở tập (bung các khâu trên cây) + khung nhẹ 📝 Kịch bản (anh 01/11/2026: "không tự ý mở sẵn vào Storyboard, nặng không chịu được").
         // Storyboard / Xuất chỉ mở khi bấm đúng nút khâu đó.
         const moTap = (tid: number) => { setNut('tap'); tapParam.open('tap', tid); };
@@ -289,14 +292,14 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
                 <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
               </>}
               {/* 🧩 THÀNH PHẦN: cây đầy đủ là CỘT RIÊNG bên trong (sidebar trái chỉ còn một nút) + chi tiết món đang chọn bên phải */}
-              {(k === 'nhan_vat' || ((nvId != null || bt || cnId != null) && k === nut)) && <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+              {(k === 'nhan_vat' || ((nvId != null || bt) && k === nut)) && <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <CayThanhPhan nhanVat={nhanVat} nut={k === 'nhan_vat' && nvDau != null ? `nv-${nvDau}` : k} onChon={setNut} phimId={phim.id} onChanged={tai} />
                 <div style={{ flex: 1, minWidth: 0, display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 10, alignContent: 'start' }}>
                 {k === 'nhan_vat' && nvDau != null && <XuatHien phim={phim} tap={tap} loai="nv" id={nvDau} ten={nhanVat.find((v) => v.id === nvDau)?.ten ?? ''} onMoTap={moTap} onMoBanDo={(so) => setNut(`bd-${so}`)} />}
                 {k === 'nhan_vat' && nv(nvDau)}
                 {nvId != null && k === nut && <XuatHien phim={phim} tap={tap} loai="nv" id={nvId} ten={nhanVat.find((v) => v.id === nvId)?.ten ?? ''} onMoTap={moTap} onMoBanDo={(so) => setNut(`bd-${so}`)} />}
+                {(() => { const id = k.startsWith('nv-') ? Number(k.slice(3)) : null; const x = nvTv(id); return x ? <CongNangVat khoa={x.thu_vien_vat!} ten={x.ten} tap={tap} onMoTap={moTap} coVat={nhanVat.map((v) => v.thu_vien_vat ?? '').filter(Boolean)} /> : null; })()}
                 {nvId != null && k === nut && nv(nvId)}
-                {cnNv && k === nut && <CongNangVat khoa={cnNv.thu_vien_vat!} ten={cnNv.ten} tap={tap} onMoTap={moTap} coVat={nhanVat.map((v) => v.thu_vien_vat ?? '').filter(Boolean)} />}
                 {bt && k === nut && <XuatHien phim={phim} tap={tap} loai="bt" id={bt.b.id} ten={bt.b.ten} onMoTap={moTap} onMoBanDo={(so) => setNut(`bd-${so}`)} />}
                 {bt && k === nut && <div className="xv-panel"><BienTheChiTiet b={bt.b} nvTen={bt.nv.ten} phimId={phim.id} dangSinh={d.dangSinh.bienThe} loiBt={d.loiAnh.bienThe} onChanged={tai} /></div>}
                 </div>

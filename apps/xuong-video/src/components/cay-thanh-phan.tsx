@@ -25,23 +25,29 @@ function Dong({ chon, onClick, title, children }: { chon: boolean; onClick: () =
 export function CayThanhPhan({ nhanVat, nut, onChon, phimId, onChanged }: { nhanVat: NhanVat[]; nut: string; onChon: (k: string) => void; /** có thì hiện ô 📚 + từ thư viện (thêm đạo cụ từ thư viện vật dụng dùng chung) */ phimId?: number; onChanged?: () => Promise<void> | void }) {
   const [gap, setGap] = useState<Set<string>>(new Set());
   const lat = (k: string) => setGap((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  const [mo, setMo] = useState<Set<string>>(new Set());   // vật thư viện bung bộ phận bằng tay (mặc định gập)
+  const latMo = (k: string) => setMo((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const nutAnchor = (v: NhanVat, con: NhanVat[]) => {
     const looks = (v.bien_the ?? []).filter((b) => LOOK_NHOM.has(b.nhom));
-    // anchor lấy từ THƯ VIỆN VẬT DỤNG (thu_vien_vat): dấu 📚 + nhánh 🧰 Công năng (công năng + bộ phận đọc từ thư viện)
-    const tv = vatThuVien(v.thu_vien_vat); const cn = tv ? { so: tv.cong_nang.length, ten: tv.ten } : null;
-    const coCon = con.length + looks.length + (cn ? 1 : 0) > 0; const k = `nv-${v.id}`;
+    // anchor lấy từ THƯ VIỆN VẬT DỤNG (thu_vien_vat): dấu 📚; con = BỘ PHẬN của vật (đọc từ thư viện) — chỉ bung khi đang chọn vật hoặc bấm ▸
+    // (anh 01/11/2026: dòng "Công năng" lặp dưới mọi vật không đọc được). Công năng + phối hợp nằm trong khung chi tiết của vật.
+    const tv = vatThuVien(v.thu_vien_vat); const boPhan = tv?.bo_phan ?? [];
+    const k = `nv-${v.id}`; const moBp = boPhan.length > 0 && (nut === k || mo.has(k));
+    const coCon = con.length + looks.length + boPhan.length > 0;
+    const dongMo = boPhan.length && !con.length && !looks.length ? !moBp : gap.has(k);
     return (
       <CayNut key={v.id}>
         <Dong chon={nut === k} onClick={() => onChon(k)} title={`${v.anh_ref.length} ảnh anchor`}>
-          {coCon && <span style={{ ...mono, width: 10 }} onClick={(e) => { e.stopPropagation(); lat(k); }}>{gap.has(k) ? '▸' : '▾'}</span>}
-          <span style={{ width: 20, height: 20, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}><AnhDaiDien v={v} co={20} /></span>
+          {coCon && <span style={{ ...mono, width: 10 }} onClick={(e) => { e.stopPropagation(); if (boPhan.length && !con.length && !looks.length) latMo(k); else lat(k); }}>{dongMo ? '▸' : '▾'}</span>}
+          <span style={{ width: 20, height: 20, borderRadius: 4, overflow: 'hidden', flexShrink: 0, display: 'grid', placeItems: 'center', fontSize: 13 }}>{v.anh_ref.length ? <AnhDaiDien v={v} co={20} /> : LOAI_NHAN_VAT.find((l) => l.key === v.loai)?.ic}</span>
           {tv && <span title={`Lấy từ thư viện vật dụng: ${tv.ten}`} style={{ fontSize: 11, flexShrink: 0 }}>📚</span>}
           <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.ten || '(chưa đặt tên)'}</span>
           {!v.anh_ref.length && <Den muc="cho" title="chưa có ảnh anchor" />}
         </Dong>
-        {coCon && !gap.has(k) && <CayCon>
-          {cn && <CayNut><Dong chon={nut === `cn-${v.id}`} onClick={() => onChon(`cn-${v.id}`)} title={`Công năng + bộ phận của ${cn.ten} (thư viện vật dụng)`}>
-            <span style={{ width: 20, textAlign: 'center' }}>🧰</span><span style={{ flex: 1 }}>Công năng</span><span style={mono}>{cn.so}</span></Dong></CayNut>}
+        {coCon && !dongMo && <CayCon>
+          {moBp && boPhan.map((b) => (
+            <CayNut key={b.ten}><Dong chon={false} onClick={() => onChon(k)} title={`${b.mo_ta}${b.cong_nang.length ? `\ncông năng: ${b.cong_nang.join(', ')}` : ''}`}>
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--fg-2)', fontSize: 12 }}>{b.ten}</span></Dong></CayNut>))}
           {looks.map((b) => (
             <CayNut key={b.id}>
               <Dong chon={nut === `bt-${b.id}`} onClick={() => onChon(`bt-${b.id}`)} title={`${nhanNhom(b.nhom)}: ${b.ten}${b.dung_tap?.length ? ` · tập ${b.dung_tap.join(',')}` : ''}`}>

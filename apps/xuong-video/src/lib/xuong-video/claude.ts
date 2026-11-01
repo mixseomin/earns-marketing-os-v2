@@ -1038,7 +1038,7 @@ const DiemGagSchema = z.object({ cham: z.array(z.object({
   diem: z.object(Object.fromEntries(PHEP_THU_GAG.map((p) => [p.ma, z.number().describe(`${p.ten}: ${p.hoi} 0 = trượt (${p.truot}), 1 = tạm, 2 = tốt`)])) as Record<string, z.ZodNumber>),
 })) });
 const TrungSchema = z.object({ trung: z.array(z.object({ a: z.number(), b: z.number(), vi: z.string().describe('vì sao trùng: cùng trò / cùng chủ thể') })) });
-const DayThemSchema = z.object({ gag: z.array(z.object({ so: z.number(), phuong_an: z.array(z.string()).describe('đúng 3 phương án cú đẩy thêm, mỗi cái một câu') })) });
+const DayThemSchema = z.object({ gag: z.array(z.object({ so: z.number(), phuong_an: z.array(z.string()).describe('đúng 3 phương án, mỗi cái dạng "<cú đẩy thêm> || <phản ứng khớp với chính cú đẩy đó>"') })) });
 const ChonDayThemSchema = z.object({ chon: z.array(z.object({ so: z.number(), phuong_an: z.number().describe('số phương án tốt nhất 1–3'), diem: z.number().describe('0 trượt / 1 tạm / 2 tốt theo luật cú đẩy thêm'), ly_do: z.string() })) });
 const NhipNgoaiGagSchema = z.object({ mo: z.string().describe('[MỞ] một shot liền: phố thức dậy, nhân vật chính + vật đặc trưng bước vào'), dao_vai: z.string().describe('[ĐẢO VAI] một shot liền: lần đầu nhân vật chính gặp rắc rối, những người đã được giúp (nêu đúng tên các gag) quay lại giúp bằng chính đồ / công năng đã thấy'), ket: z.string().describe('[KẾT] một shot liền: hình đọng cuối, vật đặc trưng là hình cuối') });
 const LUAT_DAY_THEM = 'LUẬT CÚ ĐẨY THÊM (topper): là HỆ QUẢ VẬT LÝ của chính lời giải, đi thêm một bước bất ngờ; ưu tiên có một nạn nhân nhỏ bị bẽ mặt (không bị đau) hoặc lời giải gây ra rắc rối mới buồn cười. CẤM: vật "rơi đúng chỗ" / "đáp gọn vào tay" / "tự về đúng người", phép màu tiện, cảm ơn lố, hoa / cúc tự xuất hiện làm phần thưởng. Nên dùng công năng, đạo cụ của nơi hoặc phối hợp vật.';
@@ -1051,7 +1051,7 @@ const ChamThuongSchema = z.object({
 
 async function sinhGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor: string; brief: string; n: number; tranh?: string; vat: string; dachu?: string }) {
   return sinhJson({ schema: TheGagSchema, model: o.kt.mo_hinh_chu, max_tokens: 12000, ten: 'sinh gag ứng viên', system: o.heThongVan,
-    user: `${o.anchor}\n\n${vanKhoVat(o.vat)}${o.dachu ? `\n\n${o.dachu}` : ''}\n\nBRIEF:\n${o.brief.trim()}\n\nSinh ${o.n} gag ỨNG VIÊN khác nhau (khác cơ chế), mỗi gag là một shot liền 3–4 giây. Viết dư để còn loại — đa dạng hơn là an toàn.${o.tranh ? `\nTRÁNH các hướng đã bị loại: ${o.tranh}` : ''}` });
+    user: `${o.anchor}\n\n${vanKhoVat(o.vat)}${o.dachu ? `\n\n${o.dachu}` : ''}\n\nBRIEF:\n${o.brief.trim()}\n\nSinh ${o.n} gag ỨNG VIÊN khác nhau (khác cơ chế), mỗi gag là một shot liền 3–4 giây. Viết dư để còn loại — đa dạng hơn là an toàn. KHÔNG viết gag nhân vật chính gặp nạn / được mọi người cứu / cảnh kết — đó là khối [ĐẢO VAI] [KẾT] viết riêng.${o.tranh ? `\nTRÁNH các hướng đã bị loại: ${o.tranh}` : ''}` });
 }
 
 /** Viết gag: sinh dư → chấm chéo + ngược → thử mù → máy chọn K + kết luận. */
@@ -1093,7 +1093,8 @@ async function vietGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor:
         if (c.ok) { tk.push(c.tokens);
           for (const x of c.data.chon) { const g = cuu[Math.round(x.so) - 1]; const pa = v.data.gag.find((y) => Math.round(y.so) === Math.round(x.so))?.phuong_an[Math.round(x.phuong_an) - 1]; const d = g && ma(g);
             if (!g || !pa || !d || x.diem < (d.diem.day_them ?? 0)) continue;
-            g.day_them = pa; d.diem.day_them = x.diem; d.tong = Object.values(d.diem).reduce((a, vv) => a + vv, 0); }
+            const [dt, pu] = pa.split('||').map((t) => t.trim()); g.day_them = dt || pa; if (pu) g.phan_ung = pu;   // phản ứng đi CÙNG cú đẩy mới (lượt 01/11: đẩy thêm mới mà phản ứng còn cũ)
+            d.diem.day_them = x.diem; d.tong = Object.values(d.diem).reduce((a, vv) => a + vv, 0); }
           chon = chonGag(ungVien, diem, mu, o.k); } }
     }
   }
@@ -1117,7 +1118,8 @@ async function vietGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor:
   if (chon.chon.length) {
     const n = await sinhJson({ schema: NhipNgoaiGagSchema, model: o.kt.mo_hinh_chu, max_tokens: 2000, ten: 'nhịp mở · đảo vai · kết', system: o.heThongVan,
       user: `${o.anchor}\n\nBRIEF:\n${o.brief.trim()}\n\nCÁC GAG ĐÃ CHỐT (theo thứ tự):\n${chon.chon.map((g, i) => `${i + 1}. ${g.ten}: ${g.van_de} → ${g.ra_tay}`).join('\n')}\n\nViết ba nhịp ngoài gag, mỗi nhịp một shot liền 3–5 giây, không thoại.` });
-    if (n.ok) { tk.push(n.tokens); mo = `[MỞ] ${n.data.mo}`; cuoi = `[ĐẢO VAI] ${n.data.dao_vai}\n\n[KẾT] ${n.data.ket}`; } else may.push(`không viết được nhịp mở / đảo vai / kết: ${n.loi}`);
+    if (n.ok) { tk.push(n.tokens); const bo = (t: string) => t.replace(/^\s*\[[^\]]*\]\s*/, '');   // model hay tự ghi thẻ — bỏ để không thành "[MỞ] [MỞ]"
+      mo = `[MỞ] ${bo(n.data.mo)}`; cuoi = `[ĐẢO VAI] ${bo(n.data.dao_vai)}\n\n[KẾT] ${bo(n.data.ket)}`; } else may.push(`không viết được nhịp mở / đảo vai / kết: ${n.loi}`);
   }
   const tong2 = congTk(...tk);
   return { ok: true, kichBan: `${kichBanTuGag(chon.chon, mo)}${cuoi ? `\n\n${cuoi}` : ''}`, model: o.kt.mo_hinh_chu, tokens: tong2,

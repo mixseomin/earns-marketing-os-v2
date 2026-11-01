@@ -13,8 +13,9 @@ GOC = os.path.expanduser("~/.cache/ethopex")
 # MỖI MÁY MỘT TÊN REMOTE cho cùng Drive htuan82 5 TB: iMac 'gdrive', box3 'khodrive' (01/11/2026: box3 chỉ có khodrive → mọi lượt cất trên box3
 # báo "chưa có remote" rồi giữ nguyên tệp, /root/.cache/ethopex phình 12 GB, ổ box3 95%). ETHOPEX_DRIVE ép tên khác nếu cần.
 REMOTE = ("gdrive", "khodrive")
-# máy nền: macOS taskpolicy -b, Linux nice + ionice (taskpolicy không có trên Linux → lệnh cất trên box3 vỡ FileNotFoundError)
-NEN = ["taskpolicy", "-b"] if sys.platform == "darwin" else ["nice", "-n", "19", "ionice", "-c", "3"]
+# máy nền: macOS taskpolicy -b, Linux nice + ionice (taskpolicy không có trên Linux → lệnh cất trên box3 vỡ FileNotFoundError).
+# ionice lớp 2 mức 7 (thấp nhất mà vẫn tới lượt) — lớp 3 "idle" chỉ được đọc đĩa khi không ai dùng: lô cắt ghi liên tục → cất chỉ ~1 MB/s (đo 01/11/2026)
+NEN = ["taskpolicy", "-b"] if sys.platform == "darwin" else ["nice", "-n", "19", "ionice", "-c", "2", "-n", "7"]
 DUOI = ("mp4", "mov", "mkv", "webm", "wav", "m4a", "mp3", "aac")
 LOG = os.path.join(GOC, "cat-drive.log")
 # 8 luồng · mảnh 64 MB · ≤ 8 lệnh/giây (đo 28/10/2026: 4 luồng mảnh 8 MB chỉ ~13 Mbit/s trên mạng 254 Mbps, client_id dùng chung của rclone còn bị 403 "Quota exceeded … per minute")
@@ -47,8 +48,11 @@ def cat(min_age="24h", giu=()):
     giu = [d.strip("/") for d in giu if d and os.path.isdir(os.path.join(GOC, d.strip("/")))]   # chỉ thư mục có thật (trường 'ghi' của da_cat đôi khi là câu báo lỗi, không phải tên lô)
     lenh = NEN + ["rclone", "move", GOC, DICH, "--min-age", min_age, "--transfers", "8", "--drive-chunk-size", "64M", "--tpslimit", "8", "--log-file", LOG, "--log-level", "INFO",
             "--stats-one-line", "--stats", "0"]
-    for d in giu: lenh += ["--exclude", f"/{d}/**"]
-    for e in DUOI: lenh += ["--include", f"*.{e}", "--include", f"*.{e.upper()}"]
+    # --filter giữ đúng thứ tự luật (giữ → nhận đuôi nặng → bỏ còn lại); trộn --include với --exclude thì rclone tự báo "thứ tự không xác định"
+    # (01/11/2026) — tức thư mục đang dùng có thể bị cất mất giữa lô
+    for d in giu: lenh += ["--filter", f"- /{d}/**"]
+    for e in DUOI: lenh += ["--filter", f"+ *.{e}", "--filter", f"+ *.{e.upper()}"]
+    lenh += ["--filter", "- *"]
     r = subprocess.run(lenh, capture_output=True, text=True)
     trong = shutil.disk_usage(os.path.expanduser("~")).free / 1e9
     print(f"cất Drive ({DICH}, tệp nằm yên ≥ {min_age}): {'xong' if r.returncode == 0 else 'LỖI rc=' + str(r.returncode) + ' ' + r.stderr[-200:]} · ổ máy còn trống {trong:.0f} GB · nhật ký {LOG}", flush=True)

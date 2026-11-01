@@ -191,8 +191,8 @@ def _cau_hinh(khoa, mac):   # một sổ với luat-ethopex.py: etp.cau_hinh tha
     return json.loads(v) if v else mac
 THANG_BO = [str(x) for x in _cau_hinh("thang_bo", ["2"])]
 THANG_MUC = {float(x) for x in _cau_hinh("thang_muc", [1, 3, 7, 15, 30]) if float(x) > 1}   # bậc mở bản mới (trừ bậc đầu $1)
-BO_DANG_CHAN = {str(k): set(v) for k, v in _cau_hinh("bo_dang_chan", {}).items()}
-BO_CHI_PHIM_LAI = {str(x) for x in _cau_hinh("bo_chi_phim_lai", [])}   # bộ chỉ mở camp cho phim đã lãi 7 ngày ở bộ đó (migration 0399, anh 02/11/2026 "chặn mở camp phim mới" ở bộ 2)   # bộ → dạng creative không lên camp mới (migration 0394, anh 01/11/2026 "bộ 2 chỉ lên cảnh cuối")
+BO_DANG_CHAN = {str(k): set(v) for k, v in _cau_hinh("bo_dang_chan", {}).items()}   # bộ → dạng creative không lên camp mới (migration 0394, anh 01/11/2026 "bộ 2 chỉ lên cảnh cuối")
+BO_CHI_PHIM_LAI = {str(x) for x in _cau_hinh("bo_chi_phim_lai", [])}   # bộ chỉ mở camp cho phim đã lãi 7 ngày ở bộ đó (migration 0399, anh 02/11/2026 "chặn mở camp phim mới" ở bộ 2)
 ROAS_MIN, ROAS_MAX = 1.0, 1.4
 def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)

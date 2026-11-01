@@ -62,6 +62,7 @@ async function kiem(tap, nguonChu) {
     for (const d of dichs) { const e = kiemDich(d); if (e) loi.push(`${K}: ${e}`); }
     if (!(cv.nhin || []).length && !cv.tam) loi.push(`${K}: thiếu nhin (camera không biết nhìn đâu)`);
     nam = cv.nam ?? nam; const namCuoi = cv.nam_sau?.nam ?? nam;
+    if ([...(cv.nguoi || []), ...(cv.xe || []), ...(cv.co || [])].length && cv.nam == null && namCuoi == null) loi.push(`${K}: có cờ / nhân vật / phương tiện mà cảnh chưa có nam — khai năm sự việc để máy kiểm đúng thời`);
     for (const [m, loai] of [...(cv.nguoi || []).map((m) => [m, 'nhan_vat']), ...(cv.xe || []).map((m) => [m, 'phuong_tien']), ...(cv.co || []).map((m) => [m, 'co'])]) {
       const ts = kho[m.anh] ?? moi[m.anh]; if (!ts) { loi.push(`${K}: "${m.anh}" không có trong KHO và không khai trong tai_san_moi`); continue; }
       if (ts.loai !== loai) loi.push(`${K}: "${m.anh}" là ${ts.loai}, không dùng được làm ${loai}`);

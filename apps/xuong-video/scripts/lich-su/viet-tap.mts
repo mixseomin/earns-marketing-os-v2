@@ -52,9 +52,9 @@ const Ra = z.object({
   tieu_de: z.string().describe('tiêu đề video đúng ngôn ngữ tập, công thức "Why does X own Y?" / "¿Por qué…?"'),
   cau: z.array(z.object({ chu: z.string().describe('MỘT câu lời đọc'), su_that: z.array(z.object({ gia_tri: z.string().describe('năm / con số / tên người / tên hiệp ước trong câu'), nguon: z.number().int(), trich: z.string().describe('đoạn chép NGUYÊN VĂN từ nguồn [nguon] chứng minh giá_trị (≤ 220 ký tự)') })),
     canh: Canh })),
-  tai_san_moi: z.array(z.object({ id: z.string().describe('mã snake_case ascii, vd seward, co_my_1867, tau_buom'), loai: z.enum(['nhan_vat', 'phuong_tien', 'co']), ten: z.string().describe('tên tiếng Việt cho kho'),
-    mo_ta_en: z.string().describe('nhan_vat / phuong_tien: tả tiếng Anh cho hoạ sĩ — tuổi, mặt, tóc, râu, trang phục, vũ khí ĐÚNG thời; co: để ""'),
-    tu: z.number().int(), den: z.number().int().describe('khoảng năm món này đúng (người: năm hoạt động; cờ: năm cờ có hiệu lực; còn dùng tới nay = 2100)'),
+  tai_san_moi: z.array(z.object({ id: z.string().describe('mã snake_case ascii KHÔNG gắn năm cho người / vai (alexander_ii, seward, linh_tay_ban_nha) — kho dùng lại cho mọi tập; cờ theo thời thì gắn năm (co_my_1867)'), loai: z.enum(['nhan_vat', 'phuong_tien', 'co']), ten: z.string().describe('tên tiếng Việt cho kho'),
+    mo_ta_en: z.string().describe('nhan_vat / phuong_tien: tả tiếng Anh cho hoạ sĩ bằng NÉT THẤY ĐƯỢC — tuổi, dáng, mặt, tóc, râu, màu + kiểu trang phục, huân chương, vũ khí ĐÚNG thời (cấm "matching his portrait": hoạ sĩ không xem được chân dung); co: để ""'),
+    tu: z.number().int(), den: z.number().int().describe('khoảng năm món này ĐÚNG để kho dùng lại mọi tập: người thật = cả đời hoạt động (vd Alexander II 1855–1881, không phải năm của tập); vai chung = cả thời trang phục đó; cờ = năm cờ có hiệu lực; còn dùng tới nay = 2100'),
     que: Dich.nullable().describe('nhan_vat: quê / phe (để máy đặt người về phía quê so với mục tiêu)'),
     commons: z.string().nullable().describe('co: tên tệp Wikimedia Commons CÓ THẬT, vd "File:Flag of Bolivia.svg"') })).describe('món chưa có trong KHO mà cảnh dùng'),
 });
@@ -78,6 +78,8 @@ HÌNH:
 - Mã ISO-3 theo Natural Earth (Nga RUS, Mỹ USA, Pháp FRA, Anh GBR, Tây Ban Nha ESP, Ma-rốc MAR, Bolivia BOL…). Nơi đã mất tên / không còn là nước: dùng mảnh nước hôm nay "ISO@lon0,lat0,lon1,lat1" + nhan tên cũ.
 - Nhân vật luôn quay về mục tiêu của cảnh — máy lo, chỉ cần chọn đúng người và dáng.
 - NGƯỜI CÓ TÊN đang hành động trong câu (quyết định, bán, mua, ký, đánh, phát hiện) PHẢI đứng trong cảnh đó bằng nguoi — không có trong KHO thì khai tai_san_moi. Cả tập ≥ 2 nhân vật khác nhau.
+- Cảnh có cờ / nhân vật / phương tiện PHẢI có nam (năm sự việc của cảnh) — máy kiểm đồ đúng thời theo năm đó; cờ nước hôm nay không cắm vào cảnh quá khứ.
+- HOOK câu 1 = sự thật gây sốc nhất của chuyện (con số, cái giá, nghịch lý: "Russia sold this land for two cents an acre."), không phải câu tả địa lý.
 - Mỗi câu (trừ câu móc cuối) có ≥ 1 su_that — kể cả hook (hook phải ĐÚNG: "gần chạm" khác "chạm"). Ô năm (nam) chỉ ghi năm có trong su_that của tập; không rõ năm thì null.
 - Đích ISO@khung phải là khung có ĐẤT của đúng nước đó hôm nay (đất Canada là CAN, không phải GBR) — chủ thời xưa ghi ở to.chu. Được dùng cả hai phía kinh tuyến 180 (máy tự nối lưới).`;
 const user = `CHỦ ĐỀ: ${chuDe}

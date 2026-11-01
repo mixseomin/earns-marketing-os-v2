@@ -1,0 +1,7 @@
+{
+  "name": "giay-cat",
+  "private": true,
+  "type": "module",
+  "description": "Hoạt hình giấy cắt bằng code: tách mảnh từ tờ hình cắt nền xanh, dựng chuyển động theo timeline, xuất MP4 (chạy trên iMac — không cần trình duyệt)",
+  "dependencies": { "@napi-rs/canvas": "0.1.65" }
+}

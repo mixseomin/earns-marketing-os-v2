@@ -2304,7 +2304,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const boSel = () => (!boCo.length ? null : <Chon2 value={boHieu} onChange={(v) => doi({ bo: v }, () => setBoLoc(v))} nhan="TK" align="left" title="lọc camp theo bộ tài khoản QC (tài khoản + Page)"
     options={boCo.map((b) => ({ value: b, label: `Bộ ${b}${gon ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''} · ${du.boTk[b]?.mui_gio ?? 'múi giờ ?'}`, ngan: `Bộ ${b}`, tim: `bộ ${b} ${du.boTk[b]?.ten ?? ''}`, dem: du.camps.filter((c) => c.bo === b && c.trang_thai === 'ACTIVE').length }))} />);
   // LÊN DÒNG DÍNH (anh 01/11/2026 #1499 "chuyển chọn ngày lên trên + sticky (vẫn cho chọn)", #1500 "chuyển cả bộ TK vào sau chỗ chọn người + sticky; phần chọn Người cũng cho đổi ở sticky"):
-  // máy tính, cuộn qua hero → dòng số gọn mang luôn ô Người · ô TK · ô kỳ (dạt phải) — hàng tab bên dưới bỏ ô kỳ, không hiện hai nơi. Ô TK luôn đứng ngay sau ô Người (tiêu đề / dòng dính), không ở hàng lọc.
+  // máy tính: Người · TK · kỳ đứng LIỀN một cụm (anh 01/11/2026 "chọn kỳ cũng cho lên cùng dòng với Người, TK") — ở dòng tiêu đề khi chưa cuộn, ở dòng số gọn dính khi đã cuộn; hàng tab / hàng lọc không còn hai ô này.
   // Điện thoại giữ như cũ (dòng gọn cuộn ngang, ô TK trong bảng Lọc)
   const coKy = tab !== 'luat' && tab !== 'tn', lenDinh = gonHero && !gon;
   const coBo = tab === 'camp' && xemCamp !== 'lich' && xemCamp !== 'bac';   // ô TK chỉ lọc camp (urlCua bỏ ?b= ngoài tab Camp)
@@ -2324,7 +2324,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
-        <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{!gon && coBo ? boSel() : null}
+        <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{!gon && coBo ? boSel() : null}{!gon && coKy ? kySel() : null}
           {du.nguoi.ngoai && quyen?.cheDo?.duoc.bao && du.nguoi.dang != null ? <CheDoLuatO nguoiId={du.nguoi.dang} c={quyen.cheDo} /> : null}
           {du.nguoi.ngoai && !(quyen?.sua != null && du.nguoi.dang === quyen.sua) ? <span title="camp + số của tài khoản QC người này — chỉ để theo dõi / học; cột Luật = máy luật ĐỀ XUẤT cho camp người này (không thao tác), rê ô ngân sách xem lịch sử lên bậc + máy đề xuất trước bao lâu; nút bật / tắt không áp"
             style={{ background: 'rgba(168,85,247,.18)', color: '#d8b4fe', border: '1px solid rgba(168,85,247,.5)', borderRadius: 8, padding: '2px 8px', fontWeight: 600, fontSize: 12 }}>👁 chỉ xem</span> : null}</span>
@@ -2356,7 +2356,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         {([['Hôm nay', nay], ['Hôm qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, x]) => <span key={ten}><span style={{ color: 'var(--fg-2)' }}>{ten} </span><b style={{ fontSize: 14 }}><Lai s={x} /></b> <span style={{ fontSize: 11 }}><Roi s={x} /></span></span>)}
         <span><span style={{ color: 'var(--fg-2)' }}>Camp chạy </span><b style={{ fontSize: 14 }}>{chay.length}</b></span>
         <span><span style={{ color: 'var(--fg-2)' }}>Ngân sách </span><b style={{ fontSize: 14 }}>${[...chay, ...choChay].reduce((a, c) => a + c.ngan_sach, 0)}/ngày</b></span>
-        {lenDinh ? <><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{coBo ? boSel() : null}</span>{coKy ? <span style={{ marginLeft: 'auto' }}>{kySel()}</span> : null}</>
+        {lenDinh ? <><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{coBo ? boSel() : null}{coKy ? kySel() : null}</span></>
           : du.nguoi.ds.length > 1 ? <span title="người đang xem — cuộn lên ô Người để đổi"><span style={{ color: 'var(--fg-2)' }}>Người </span><b style={{ fontSize: 14, color: du.nguoi.ngoai ? '#60a5fa' : undefined }}>{tenNguoi}</b></span> : null}{/* anh 31/10/2026 #1495 (điện thoại) */}
       </div> : null}
       {/* BỐ CỤC THANH TRÊN (anh 31/10/2026 "bố cục lại chỗ này" + YDNI): một hàng nowrap nhồi 8 tab + kỳ + kiểu xem + 6 ô lọc → tab gãy hai dòng chữ.
@@ -2367,7 +2367,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
           { value: 'tong', label: 'Tổng quan' }, { value: 'tong2', label: 'Tổng quan 2', title: 'bản thử dạng widget kéo thả + template — chỉ chủ thấy tới khi hoàn thiện' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
           { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }] satisfies SegmentedOption<Tab>[]).filter((o) => tabsHien.includes(o.value))} />
         {/* ĐIỆN THOẠI: hàng 1 = tab (cuộn ngang) · hàng 2 = kiểu xem (biểu tượng) + kỳ (ô chọn) + nút Lọc; bảng lọc chỉ mở khi bấm Lọc */}
-        {coKy && !lenDinh ? (gon ? kySel() : <span style={{ marginLeft: 'auto' }}>{kySel()}</span>) : null}
+        {gon && coKy ? kySel() : null}
         {!gon && (tab === 'camp' || tab === 'creative') ? <span className="etp-xuong" style={{ flexBasis: '100%', height: 0 }} /> : null}
         {tab === 'camp' ? (
           <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>

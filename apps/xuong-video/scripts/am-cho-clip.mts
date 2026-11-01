@@ -19,7 +19,7 @@ const giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'fo
 const giayNhac = Math.max(10, Math.ceil(giay));
 const uoc = giaAm('mirelo-ai/sfx-v1/video-to-audio', giay) + (nhac ? giaAm('cassetteai/music-generator', giayNhac) : 0);
 console.log(`clip ${giay.toFixed(2)}s · ước ${uoc.toFixed(2)}¢`);
-if (process.env.DUYET_SINH_1_LAN !== '1') { console.error('tốn tiền: chạy kèm DUYET_SINH_1_LAN=1 ngay sau khi anh bảo'); process.exit(1); }
+if (process.env.DUYET_SINH_1_LAN !== '1' && !(arg('sfx') && (arg('nhac-url') || !nhac))) { console.error('tốn tiền: chạy kèm DUYET_SINH_1_LAN=1 ngay sau khi anh bảo'); process.exit(1); }
 
 const url = await uploadToR2(`xuong-video/am-clip/${randomUUID()}.mp4`, readFileSync(video), 'video/mp4');
 /** đợi một job fal xong, trả url tệp đầu tiên trong kết quả (âm / video) */
@@ -41,12 +41,12 @@ async function cho(id: string, input: Record<string, unknown>): Promise<string> 
 const sfxCo = arg('sfx');
 const [sfx, nen] = await Promise.all([
   sfxCo ? Promise.resolve(sfxCo) : cho('mirelo-ai/sfx-v1/video-to-audio', { video_url: url }).then((u) => { console.log(`hiệu ứng xong: ${u}`); return u; }),
-  nhac ? cho('cassetteai/music-generator', { prompt: `${nhac}, instrumental, no vocals`, duration: giayNhac }) : Promise.resolve(''),
+  arg('nhac-url') ? Promise.resolve(arg('nhac-url')) : nhac ? cho('cassetteai/music-generator', { prompt: `${nhac}, instrumental, no vocals`, duration: giayNhac }) : Promise.resolve(''),
 ]);
 console.log(`hiệu ứng: ${sfx}${nen ? `\nnhạc: ${nen}` : ''}`);
 const thu = mkdtempSync(join(tmpdir(), 'am-clip-')); const ra = join(thu, 'ra.mp4');
 const vao = ['-i', video, '-i', sfx, ...(nen ? ['-i', nen] : [])];
-const loc = nen ? `[1:a]volume=1.0[a1];[2:a]volume=${toNhac},afade=t=out:st=${Math.max(0, giay - 0.8).toFixed(2)}:d=0.8[a2];[a1][a2]amix=inputs=2:duration=first:normalize=0[a]` : '[1:a]anull[a]';
+const loc = nen ? `[1:a]volume=1.0[a1];[2:a]volume=${toNhac},afade=t=out:st=${Math.max(0, giay - 0.8).toFixed(2)}:d=0.8[a2];[a1][a2]amix=inputs=2:duration=first:normalize=0,alimiter=limit=0.89:level=false[a]` : '[1:a]alimiter=limit=0.89:level=false[a]';   // đỉnh ≤ −1 dB (hiệu ứng Mirelo chạm 0 dB → rè)
 execFileSync('ffmpeg', ['-v', 'error', '-y', ...vao, '-filter_complex', loc, '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-t', giay.toFixed(3), ra]);
 console.log(`có tiếng: ${await uploadToR2(`xuong-video/am-clip/${randomUUID()}-co-tieng.mp4`, readFileSync(ra), 'video/mp4')}`);
 process.exit(0);

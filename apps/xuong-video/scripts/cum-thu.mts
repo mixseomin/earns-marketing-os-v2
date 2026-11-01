@@ -11,6 +11,7 @@ import { getDb } from '@mos2/db';
 import { boiCanhCanh, mapCanh, type Row } from '../src/lib/xuong-video/doc-db';
 import { promptCumMoi, anhNeoCuoi } from '../src/lib/xuong-video/cum-shot';
 import { uploadToR2 } from '../src/lib/r2';
+import { khungCuoiCanh } from '../src/lib/xuong-video/sinh-video';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const tap = Number(gia('tap')), tu = Number(gia('tu')), den = Number(gia('den'));
@@ -30,7 +31,8 @@ if (gan) {
   process.exit(0);
 }
 const vao = (await Promise.all(cum.map((c) => boiCanhCanh(db, c.id)))).map((x) => ({ canh: x!.canh, nhanVat: x!.nhanVat, look: x!.look }));
-const cuoi = anhNeoCuoi(cum) ?? (cum.length > 1 ? cum.at(-1)!.keyframe_url : null);
+// khung cuối = luật chung sinh-video.ts › khungCuoiCanh của shot cuối đoạn (shot con liền khung: đoạn #2 kết ở keyframe #2.9 · rồi keyframe kết · rồi nối khung tập)
+const cuoi = (await khungCuoiCanh(db, cum.at(-1)!.id)) ?? anhNeoCuoi(cum) ?? (cum.length > 1 ? cum.at(-1)!.keyframe_url : null);
 // ẢNH MẶT neo (vx-br.mts › guiShot faceSwap): người chính của shot đầu — ảnh sát mặt chuẩn → ảnh mẫu → ảnh biến thể. A/B 01/11/2026: không neo 3/3 trôi mặt,
 // có neo 2/2 giữ một khuôn mặt.
 const nguoiDau = vao[0]!.nhanVat.find((n) => n.loai === 'nhan_vat' && vao[0]!.canh.nhan_vat.includes(n.id));

@@ -87,7 +87,7 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
           <Chon2 value={tpl} onChange={moTpl} options={tplOpts} nhan="Template" rong="Bố cục đang dùng" />
           <Segmented<string> value={chon?.ma ?? ''} hrefFor={urlW} style={{ flexWrap: 'wrap' }} options={ds.map((x) => ({ value: x.ma, label: WIDGET[x.ma]?.ten ?? x.ma }))}
-            onChange={(k) => { setMot(k); history.replaceState(history.state, '', urlW(k)); }} />
+            onChange={(k) => { setMot(k); history.replaceState(null, '', urlW(k)); }} />
         </div>
         <div ref={hop} style={{ height: kt.h, overflow: 'hidden' }}>
           {chon ? <Panel pad={PAD} title={WIDGET[chon.ma]?.ten} style={{ height: kt.h, marginBottom: 0, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>

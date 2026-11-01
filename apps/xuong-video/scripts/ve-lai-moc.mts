@@ -24,8 +24,10 @@ const giu = 'Keep EXACTLY the same composition as Image 1: every character, prop
 const ra: string[] = [];
 for (const [i, f] of moc.entries()) {
   const vao = await uploadToR2(`xuong-video/giay-cat/${phimId}-${ten}-vao-${i}-${randomUUID().slice(0, 6)}.png`, readFileSync(f), 'image/png');
-  const refs = [vao!, ...nv.map((v) => v.u).filter((u): u is string => !!u)].slice(0, 3);
-  const ve = `EDIT Image 1, a rough paper cut-out animation frame, into a finished frame of hand-drawn 2D animation. Visual style: ${style}. Redraw the characters as real drawn animation, not paper pieces: connected arms, legs, hands and clothes with natural drawn poses and expressions. ${nv.map((v, k) => `The character matching Image ${k + 2}: ${v.mo_ta.split(/(?<=\.)\s/)[0]}`).join(' ')} ${giu}`;
+  // --mot-anh: chỉ đưa ảnh giấy cắt (nhân vật tả bằng chữ) — nhiều ảnh mẫu kèm theo thì mô hình vẽ cảnh mới từ ảnh mẫu, bỏ bố cục Image 1 (thử 02/11/2026: 3/4 mốc hỏng)
+  const motAnh = process.argv.includes('--mot-anh');
+  const refs = motAnh ? [vao!] : [vao!, ...nv.map((v) => v.u).filter((u): u is string => !!u)].slice(0, 3);
+  const ve = `EDIT Image 1, a rough paper cut-out animation frame, into a finished frame of hand-drawn 2D animation. Visual style: ${style}. Redraw the characters as real drawn animation, not paper pieces: connected arms, legs, hands and clothes with natural drawn poses and expressions. ${nv.map((v, k) => motAnh ? `${v.mo_ta.split(/(?<=\.)\s/)[0]}` : `The character matching Image ${k + 2}: ${v.mo_ta.split(/(?<=\.)\s/)[0]}`).join(' ')} ${giu}`;
   const k = await sinhAnhQuaCong(kt.mo_hinh_anh, { prompt: ve, thamChieuUrl: refs, tiLe: '16:9' });
   if (!k.anh) { console.error(`mốc ${i}: hỏng`, k.thu); process.exit(1); }
   const u = await uploadToR2(`xuong-video/giay-cat/${phimId}-${ten}-ve-${i}-${randomUUID().slice(0, 6)}.png`, k.anh.data, k.anh.mimeType);

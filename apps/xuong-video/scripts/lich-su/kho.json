@@ -1,5 +1,5 @@
 {
- "ghi_chu": "KHO TÀI SẢN KÊNH LỊCH SỬ — nguồn máy duy nhất cho mọi tập (dung-tap.mjs đọc). Ảnh ở R2 (xuong-video/lich-su/kho/<id>/<dáng>.png); bản xem/quản trong Studio: phim \"Kênh lịch sử · kho tài sản\" (#1186), thành phần = tài sản, biến thể nhóm dang = dáng. Thêm tài sản: kho-sinh.mts (dáng) → tách nền → kho-day.mts → thêm mục ở đây. tu/den = khoảng năm dùng được (luật đạo cụ theo thời).",
+ "ghi_chu": "KHO TÀI SẢN KÊNH LỊCH SỬ — nguồn máy duy nhất cho mọi tập (dung-tap.mjs đọc). Ảnh ở R2 (xuong-video/lich-su/kho/<id>/<dáng>.png); bản xem/quản trong Studio: phim \"Kênh lịch sử · kho tài sản\" (#1186), thành phần = tài sản, biến thể nhóm dang = dáng. Thêm tài sản: kho-sinh.mts (dáng) → tách nền → kho-day.mts → thêm mục ở đây. tu/den = khoảng năm dùng được (luật đạo cụ theo thời). que = nơi xuất phát của nhân vật ({iso} hoặc [lon,lat]): máy đặt nhân vật về PHÍA quê so với đích của cảnh và cho quay mặt / chỉ tay về đích (anh 02/11/2026). Ảnh dáng gốc vẽ hướng PHẢI.",
  "phong_cach": "Flat 2D illustrated history documentary character: clean confident ink outlines, soft cel shading, muted earthy palette (ochre, slate blue, brick red, cream), slightly stylised friendly proportions, full body, plain white background",
  "dang_chuan": [
   "goc",
@@ -33,7 +33,11 @@
     "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/noi_dong.png",
     "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/noi_mo.png",
     "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/hiep_si/suy_nghi.png"
-   }
+   },
+   "que": [
+    10.5,
+    51
+   ]
   },
   "vua_pho": {
    "loai": "nhan_vat",
@@ -96,6 +100,15 @@
     "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/stalin/noi_dong.png",
     "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/stalin/noi_mo.png",
     "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/stalin/suy_nghi.png"
+   },
+   "que": {
+    "iso": "RUS",
+    "vung": [
+     30,
+     50,
+     60,
+     62
+    ]
    }
   },
   "xe_tang": {

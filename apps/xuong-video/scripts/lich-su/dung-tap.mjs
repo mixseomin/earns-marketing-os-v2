@@ -46,6 +46,11 @@ const tamVung = ({ iso, vung }) => { let A = 0, X = 0, Y = 0;
 const diem = (v) => (Array.isArray(v) ? v : tamVung(v));
 for (const s of canh) { for (const m of [...(s.c.ten || []), ...(s.c.xe || [])]) { m.tu = diem(m.tu); m.den = diem(m.den); }
   for (const m of [...(s.c.co || []), ...(s.c.nhan || [])]) m.o = diem(m.o); s.c.nhay = (s.c.nhay || []).map(diem); s.c.vong = (s.c.vong || []).map(diem); }
+// HƯỚNG THEO ĐỊA LÝ (anh 02/11/2026: "Stalin phải ở bên phải rồi giơ tay về trái — hướng phải đồng nhất với vị trí câu chuyện"): mỗi người có quê (kho que)
+// → máy đặt về phía quê so với ĐÍCH của cảnh (đầu mũi tên / chỗ xe tới / vòng / điểm nháy / tâm) và quay mặt về đích. Người không khai quê giữ ben khai tay.
+const KHO_QUE = JSON.parse(readFileSync(join(DIR, 'kho.json'), 'utf8')).tai_san;
+for (const s of canh) { const dich = s.c.ten?.[0]?.den ?? s.c.xe?.[0]?.den ?? s.c.vong?.[0] ?? s.c.nhay?.[0] ?? s.c.tam;
+  for (const n of s.c.nguoi || []) { const q = KHO_QUE[n.anh]?.que; if (q) { n.que = diem(q); n.dich = dich; } } }
 const lo = canh.map((s) => s.c.tam[0]), la = canh.map((s) => s.c.tam[1]), zmin = Math.min(...canh.map((s) => s.c.zoom));
 const pad = 1080 / (12 * zmin); const hop = [Math.min(...lo) - pad, Math.min(...la) - pad, Math.max(...lo) + pad, Math.max(...la) + pad];
 const G = {};

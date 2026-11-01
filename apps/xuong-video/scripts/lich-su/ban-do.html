@@ -115,9 +115,12 @@ window.__seek = (t) => {
   dsNv.forEach((n, i) => { const al = out(kep((u - (n.tre ?? 0.5 + i * 0.35)) / 0.55)); if (!al) return;
     // dáng theo chữ: lấy dáng cuối cùng đã tới giờ; vừa đổi dáng thì nảy nhẹ (0,15 s)
     const ds_ = Array.isArray(n.dang) ? n.dang.filter((m) => u >= m[0]) : []; const dg = ds_.length ? ds_[ds_.length - 1] : null;
-    const img = NV[`${n.anh}:${dg ? dg[1] : 'goc'}`] || NV[`${n.anh}:goc`]; const nay = dg ? 1 + 0.06 * Math.max(0, 1 - (u - dg[0]) / 0.18) : 1; const cx = dsNv.length === 1 ? (n.ben === 'trai' ? 300 : 780) : 250 + (i * (W - 500)) / (dsNv.length - 1);
+    const img = NV[`${n.anh}:${dg ? dg[1] : 'goc'}`] || NV[`${n.anh}:goc`]; const nay = dg ? 1 + 0.06 * Math.max(0, 1 - (u - dg[0]) / 0.18) : 1;
+    // phía + hướng theo địa lý: so quê với đích theo CAMERA CUỐI của cảnh (không đổi phía giữa lúc bay); ảnh gốc hướng phải → đứng bên phải thì lật
+    const ben = n.que && n.dich ? ((n.que[0] - n.dich[0]) * COS > 0 ? 'phai' : 'trai') : n.ben, lat = n.que && n.dich ? ben === 'phai' : n.lat;
+    const cx = dsNv.length === 1 ? (ben === 'trai' ? 300 : 780) : 250 + (i * (W - 500)) / (dsNv.length - 1);
     if (img) { const h = 640, w = (img.width / img.height) * h, tho = 1 + 0.008 * Math.sin(u * 2.4 + i);
-      x.save(); x.globalAlpha = al; x.translate(cx, H * 0.735 + (1 - al) * 120); x.scale((n.lat ? -1 : 1) * nay, tho * nay);
+      x.save(); x.globalAlpha = al; x.translate(cx, H * 0.735 + (1 - al) * 120); x.scale((lat ? -1 : 1) * nay, tho * nay);
       x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 30; x.shadowOffsetY = 12; x.drawImage(img, -w / 2, -h, w, h); x.restore();
       x.globalAlpha = al; chuVien(n.ten, cx, H * 0.735 + 34 + (1 - al) * 120, 36, '#2b1d10'); x.globalAlpha = 1; }
     else { const [px, py] = chieu(...n.o); x.globalAlpha = al; nguoi(px, py + (1 - al) * 60, n.mu, n.mau, n.ten, u); x.globalAlpha = 1; } });

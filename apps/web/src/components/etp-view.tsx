@@ -2330,7 +2330,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
             style={{ background: 'rgba(168,85,247,.18)', color: '#d8b4fe', border: '1px solid rgba(168,85,247,.5)', borderRadius: 8, padding: '2px 8px', fontWeight: 600, fontSize: 12 }}>👁 chỉ xem</span> : null}</span>
       </div>
       {/* MỐC BẬT DÒNG DÍNH (anh 01/11/2026 "sticky chưa hiện khi đang scroll ở gần Heros"): máy tính bật ngay khi dòng tiêu đề (cụm Người · TK · kỳ) trôi khỏi màn = đỉnh hero, không đợi qua hết hero; điện thoại dòng gọn chỉ có số → vẫn đợi qua hết hero */}
-      <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0' }}>
+      <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0', ...(tab === 'tong2' ? { display: 'none' } : {}) }}>{/* Tổng quan 2: widget Nắm nhanh thay dải số này — nhường chỗ để lưới vừa một màn (anh 01/11/2026) */}
         {gon ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }} title={`Camp chạy ${chay.length} · ngân sách $${chay.reduce((a, c) => a + c.ngan_sach, 0)}/ngày · đoạn vượt 3 camp ${new Set(du.camps.filter((c) => c.cung_doan > tranT).map((c) => c.doan)).size} · cảnh báo 24h ${du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length}`}>
             {([['H.nay', nay], ['H.qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, s]) => (

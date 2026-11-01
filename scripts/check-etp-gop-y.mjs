@@ -362,6 +362,7 @@ const LUAT = [
   { card: 'chat', tep: V, mot: "<CotAmDuong data={ngayGanNhat", vi: 'không chép tay biểu đồ ngày lần hai' },
   { card: 'chat', tep: 'apps/web/src/components/etp-tong2.tsx', co: "from '@/lib/etp-widget'", vi: 'lưới widget đọc sổ widget' },
   { card: 'chat', tep: 'apps/web/src/lib/actions/etp-bo-cuc.ts', co: 'const v = hopLe(o); if (!v)', vi: 'máy chủ kiểm bố cục trước khi lưu' },
+  { card: 'chat', tep: V, co: "...(tab === 'tong2' ? { display: 'none' } : {})", vi: 'Tổng quan 2 ẩn dải số đầu trang để lưới vừa một màn' },
   { card: 'chat', tep: V, co: "chiXem ? TABS.filter((t) => t !== 'tong2')", vi: 'Tổng quan 2 chỉ chủ thấy (bản thử)' },
 ];
 

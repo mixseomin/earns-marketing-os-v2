@@ -14,7 +14,9 @@ export const taiPromptOpus = (): Promise<KhoPromptOpus> => (hua ??= import('../.
 export type CumDo = { q: string; do_luc?: string; n?: number; trung_vi?: number; top?: { xem: number | null; kenh: string | null; giay: number | null; ten: string; url: string }[] };
 export type DangKenh = { id: string; ten: string; mo_ta: string; khop: string; cum: CumDo[] };
 /** Cơ hội kênh xếp hạng (anh 02/11/2026 "liệt kê mọi cơ hội, cái top lên đầu") — dang trỏ DangKenh.id để lấy số đo nhu cầu. */
-export type CoHoi = { hang: number; ten: string; dang: string | null; bang_chung_tien: string; dung_code: string; kiem_tien: string; trang_thai?: string };
+/** Khuôn kịch bản rút từ mổ đối thủ (B1 kế hoạch kênh) — kênh mẫu, dạng video + nhịp, công thức tiêu đề, luật. */
+export type KhuonKichBan = { nguon: string; kenh_mau: string[]; dang: { ten: string; nhip: string[] }[]; cong_thuc_tieu_de: string[]; luat: string[] };
+export type CoHoi = { hang: number; ten: string; dang: string | null; bang_chung_tien: string; dung_code: string; kiem_tien: string; trang_thai?: string; khuon?: KhuonKichBan };
 export type KhoDangKenh = { nguon: string; han_ngay: number; ds: DangKenh[]; co_hoi?: CoHoi[]; co_hoi_luc?: string; mo_hinh_saga?: { tom_tat: string; buoc: string[]; nguon: string } };
 let huaDang: Promise<KhoDangKenh> | null = null;
 export const taiDangKenh = (): Promise<KhoDangKenh> => (huaDang ??= import('../../../scripts/du-lieu/thu-vien/dang-kenh.json').then((m) => (m.default ?? m) as KhoDangKenh));

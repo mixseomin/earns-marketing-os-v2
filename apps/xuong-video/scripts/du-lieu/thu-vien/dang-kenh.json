@@ -678,7 +678,49 @@
    "bang_chung_tien": "Saga History App ~900 quảng cáo video đang chạy (83% quảng cáo video app lịch sử nút Download trên SpyPro)",
    "dung_code": "Bản đồ SVG, mốc thời gian, nhân vật phẳng, giọng đọc",
    "kiem_tien": "YouTube Partner + clone mô hình Saga (PWA + funnel thuê bao); affiliate sách / khoá học",
-   "trang_thai": "đang làm — kế hoạch 5 bước"
+   "trang_thai": "B1 xong (khuôn kịch bản) — tiếp B2 mẫu dựng bản đồ + dòng thời gian",
+   "khuon": {
+    "nguon": "Mổ 02/11/2026: 40 quảng cáo Saga chạy lâu nhất (34 tiêu đề) + 4 kênh YouTube (History Matters 395 video trung vị 1,7 tr · OverSimplified 33 video trung vị 40 tr · bill wurtz · Kings and Generals trung vị 189 N) + lời thoại 5 video top",
+    "kenh_mau": [
+     "History Matters — trung vị 1,7 tr/video, ~3,5 phút, ~700–870 từ, người que vẽ phẳng + bản đồ; tiêu đề \"Why did/didn't/does X…? (Short Animated Documentary)\"; tiền: Patreon (đọc tên người ủng hộ cuối video) + tài trợ",
+     "OverSimplified — trung vị 40 tr nhưng 15–30 phút, hài kịch nặng, ra chậm (33 video); tiền: merch + tài trợ VPN; chia Part 1 / Part 2",
+     "bill wurtz — 2 video lịch sử 185 tr + 87 tr: nhịp cực nhanh, chữ + nhạc, không cố nhân bản (một lần là hết)",
+     "Kings and Generals — video 1–4 giờ, trung vị 189 N: dài quá, không hợp máy"
+    ],
+    "dang": [
+     {
+      "ten": "A · Shorts mồi 45–60 s (kiểu quảng cáo Saga)",
+      "nhip": [
+       "0–2 s HOOK nghịch lý / con số, chữ to + giọng: \"Dracula was real. Not the vampire — a prince.\" · \"In 1595, 19 brothers vanished in one night. It was the law.\"",
+       "2–8 s bối cảnh MỘT câu có năm + bản đồ phóng tới nơi xảy ra",
+       "8–40 s 2–3 nhịp leo thang, mỗi nhịp một chuyển động (bản đồ đổi màu, mũi tên quân, nhân vật phẳng bước vào)",
+       "40–55 s tới đúng khúc ngoặt rồi DỪNG (\"…and that's the moment everything broke.\") → \"Part 2\" (video dài trên kênh / playlist; sau này PWA thuê bao)"
+      ]
+     },
+     {
+      "ten": "B · Video dài 3–4 phút (kiểu History Matters)",
+      "nhip": [
+       "Mở bằng bản đồ / sự thật hôm nay có điểm lạ (\"If you look at a map of Europe, you'll see a curious exclave…\")",
+       "Câu bản lề: \"…which raises the question: why…?\"",
+       "2–3 lý do đánh số, mỗi lý do một cảnh bản đồ + người que",
+       "Kết bằng hệ quả còn thấy hôm nay; ~150 từ/phút → 700–900 từ"
+      ]
+     }
+    ],
+    "cong_thuc_tieu_de": [
+     "Why do X and Y hate each other? (đi theo tin thời sự — Saga: \"La historia detrás de los titulares\")",
+     "Why does X own Y? / Why didn't X conquer Y? / Why did X sell Y?",
+     "X was real. (Dracula, Robin Hood…) · The law that… · The line drawn in 30 minutes…",
+     "Why does the Pope have his own country? / Why don't the Kurds have a country?",
+     "A whole empire in 2 minutes · 600 years, lost in under 40"
+    ],
+    "luat": [
+     "Mọi năm, con số, tên người phải có nguồn kiểm (tệp sự thật của kênh) — kênh lịch sử sai một chi tiết là mất uy tín",
+     "Tiếng Anh trước; Tây Ban Nha + Bồ Đào Nha là thị trường Saga đang mua mạnh nhất",
+     "Hình: bản đồ + người que / nhân vật phẳng dựng bằng code, nền ảnh thật bản đồ cổ (luật nền ảnh thật), không cần video AI",
+     "Một chủ đề = một Shorts (mồi, dừng ở khúc ngoặt) + một video dài (trả lời đủ) — Shorts dẫn sang video dài"
+    ]
+   }
   },
   {
    "hang": 2,

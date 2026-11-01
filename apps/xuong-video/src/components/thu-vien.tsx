@@ -255,6 +255,11 @@ function DangKenhKhoi({ kho, opus, chon, doiChon }: { kho: KhoDangKenh; opus: Kh
               </span>
               <span className="xv-mono" style={{ fontSize: 11 }}>{tvDang(c.dang) != null ? `${so(tvDang(c.dang)!)} lượt xem` : '—'}</span>
             </button>))}</div>
+          {kho.co_hoi.filter((c) => c.khuon).map((c) => <details key={`k${c.hang}`} style={{ marginTop: 8, fontSize: 12 }}><summary style={{ cursor: 'pointer' }}><b>Khuôn kịch bản · {c.ten}</b></summary>
+            <div className="xv-mono" style={{ margin: '4px 0' }}>{c.khuon!.nguon}</div>
+            {([['Kênh mẫu', c.khuon!.kenh_mau], ...c.khuon!.dang.map((d) => [d.ten, d.nhip] as [string, string[]]), ['Công thức tiêu đề', c.khuon!.cong_thuc_tieu_de], ['Luật', c.khuon!.luat]] as [string, string[]][]).map(([t, ds]) => (
+              <div key={t} style={{ marginTop: 6 }}><b>{t}</b><ul style={{ margin: '3px 0 0 18px', display: 'grid', gap: 2, color: 'var(--fg-2)' }}>{ds.map((x) => <li key={x}>{x}</li>)}</ul></div>))}
+          </details>)}
           {kho.mo_hinh_saga && <details style={{ marginTop: 8, fontSize: 12 }}><summary style={{ cursor: 'pointer' }}><b>Mô hình Saga kiếm tiền</b> — {kho.mo_hinh_saga.tom_tat}</summary>
             <ol style={{ margin: '6px 0 0 18px', display: 'grid', gap: 3, color: 'var(--fg-2)' }}>{kho.mo_hinh_saga.buoc.map((b) => <li key={b}>{b}</li>)}</ol>
             <div className="xv-mono" style={{ marginTop: 4 }}>nguồn: {kho.mo_hinh_saga.nguon}</div></details>}

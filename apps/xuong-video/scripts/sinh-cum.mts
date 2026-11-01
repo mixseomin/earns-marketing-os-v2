@@ -38,7 +38,8 @@ const vaoCum = bcCum.map((b) => b.map((x) => ({ canh: x!.canh, nhanVat: x!.nhanV
 const toanTap = ((await db.execute(sql`SELECT * FROM xv_canh WHERE tap_id = ${tap} ORDER BY thu_tu, id`)) as unknown as Row[]).map(mapCanh);
 const tc = vaoCum.map((v) => (thamChieu ? thamChieuCum(v, 7, anhBoiCanh(toanTap.filter((x) => x.phan_doan === v[0]!.canh.phan_doan))) : null));
 // prompt cụm kiểu mới (cum-shot.ts › promptCumMoi): người định nghĩa một lần bằng dáng nhìn thấy + nhãn ảnh tham chiếu, shot con gộp vào câu shot cha
-const prGui = vaoCum.map((v, i) => promptCumMoi(v, tc[i] ? { tag: tc[i]!.tag, them: tc[i]!.them } : {}));
+// thời lượng shot trong prompt khớp cách bản dựng cắt: Vidu tham chiếu = giây phát thật (vaoLienMach), PlenX clip 8 s = giãn đầy phần dùng được (lichCum)
+const prGui = vaoCum.map((v, i) => promptCumMoi(v, tc[i] ? { tag: tc[i]!.tag, them: tc[i]!.them } : { giay: DUNG_DUOC }));
 tc.forEach((t, i) => t && console.log(`#${cacCum[i]![0]!.thu_tu}–#${cacCum[i]!.at(-1)!.thu_tu} ảnh: ${t.goi}`));
 cacCum.forEach((c, i) => console.log(`\n#${c[0]!.thu_tu}–#${c.at(-1)!.thu_tu} (${prGui[i]!.length} ký tự): ${prGui[i]}`));
 if (thu) process.exit(0);

@@ -54,22 +54,26 @@ assert.deepStrictEqual(vaoLienMach(ds.slice(4, 9)), [0.2, 1.7, 2.7, 4.7, 5.7]);
 // PROMPT KIỂU MỚI: #2 (cu) · #2.9 con của #2 (mcu) · #3.1 con của #3 cùng máy ws · #3 (ws). Người: Lâm Hạ (áo sơ mi lụa trắng) — không được gọi tên
 const nvHa = { id: 1, ten: 'Lâm Hạ', loai: 'nhan_vat', mo_ta: 'cô gái 24 tuổi, tóc đen dài' };
 const look = new Map([['Lâm Hạ', { trang_phuc: [{ mo_ta: 'white silk blouse, black trousers' }] }]]) as never;
-const ps = (id: number, so: number, xep: number, co: string, dien: string, con_cua: number | null = null, thoai: { nhan_vat: string; loi: string; dien_xuat: string }[] = []) => ({
-  canh: { id, thu_tu: so, thu_tu_phat: xep, con_cua, ky_thuat: { co_canh: co }, canh: '', thoai, nhan_vat: [1], loi_thoai: '', dan_dung: { dien: `${dien}. OBJECT STATE in this frame: box hugged` } } as never, nhanVat: [nvHa] as never, look });
-const bon = [ps(2, 2, 2, 'cu', 'Hạ hears heels and starts turning her head. Static camera'), ps(29, 2.9, 2.04, 'mcu', 'Continuing, Hạ keeps turning toward the entrance. Static camera', 2),
-  ps(31, 3.1, 2.51, 'ws', 'Lâm Hạ finishes the turn', 3), ps(3, 3, 3, 'ws', 'Vivian strides in')];
-// mặc định GỘP shot con → 2 góc; tên → nhãn nhìn thấy; câu máy một lần; bỏ "Continuing," thừa; không khối trạng thái / mốc giây
+const ps = (id: number, so: number, xep: number, co: string, dien: string, con_cua: number | null = null, thoai: { nhan_vat: string; loi: string; dien_xuat: string }[] = [], phat_s = 1) => ({
+  canh: { id, thu_tu: so, thu_tu_phat: xep, con_cua, phat_s, ky_thuat: { co_canh: co }, canh: '', thoai, nhan_vat: [1], loi_thoai: '', dan_dung: { dien: `${dien}. OBJECT STATE in this frame: box hugged` } } as never, nhanVat: [nvHa] as never, look });
+const bon = [ps(2, 2, 2, 'cu', 'Hạ hears heels and starts turning her head. Static camera', null, [], 1.5), ps(29, 2.9, 2.04, 'mcu', 'Continuing, Hạ keeps turning toward the entrance. Static camera', 2, [], 0.5),
+  ps(31, 3.1, 2.51, 'ws', 'Lâm Hạ finishes the turn', 3, [], 0.5), ps(3, 3, 3, 'ws', 'Vivian strides in', null, [], 2.5)];
+// mặc định GỘP shot con → 2 góc; tên → nhãn nhìn thấy; câu máy một lần; bỏ "Continuing," thừa; không khối trạng thái / mốc giây "0:00–0:02"
+// THỜI LƯỢNG: mỗi shot "(about N s)" = giây phát shot cha + shot con gộp vào; tổng ở câu mở
 const p2 = promptCumMoi(bon);
-assert.ok(p2.startsWith('A 2-shot') && !/OBJECT STATE|\d s,|Hạ/.test(p2), p2);
+assert.ok(p2.startsWith('A 5-second, 2-shot') && !/OBJECT STATE|\d:\d\d|Hạ/.test(p2), p2);
 assert.ok(p2.includes('Throughout: the woman in the white silk blouse keep'), p2);
-assert.ok(p2.includes('Shot 1: Close-up, static camera — the woman in the blouse hears heels and starts turning her head; then the woman in the blouse keeps turning toward the entrance'), p2);
-assert.ok(p2.includes('Shot 2: Wide shot — the woman in the blouse finishes the turn; then Vivian strides in') && p2.endsWith('no on-screen text, captions, logo or watermark.'), p2);
+assert.ok(p2.includes('Shot 1 (about 2 s): Close-up, static camera — the woman in the blouse hears heels and starts turning her head; then the woman in the blouse keeps turning toward the entrance'), p2);
+assert.ok(p2.includes('Shot 2 (about 3 s): Wide shot — the woman in the blouse finishes the turn; then Vivian strides in') && p2.endsWith('no on-screen text, captions, logo or watermark.'), p2);
 // không gộp: 4 góc, #3.1 → #3 cùng máy = liền; nhãn ảnh gắn ở câu định nghĩa
 const p4 = promptCumMoi(bon, { gopCon: false, tag: { 'Lâm Hạ': '@image1' } });
-assert.ok(p4.startsWith('A 4-shot') && p4.includes('Shot 4: Wide shot, same angle, continuous') && p4.includes('white silk blouse (@image1)'), p4);
+assert.ok(p4.startsWith('A 5-second, 4-shot') && p4.includes('Shot 2 (about 0.5 s)') && p4.includes('Shot 4 (about 2.5 s): Wide shot, same angle, continuous') && p4.includes('white silk blouse (@image1)'), p4);
 // thoại: "says:" không ngoặc kép (Google: ngoặc kép → chữ trên hình)
 const pt = promptCumMoi([ps(5, 5, 5, 'mcu', 'Hạ looks up', null, [{ nhan_vat: 'Lâm Hạ', loi: '"Chị cần gì?"', dien_xuat: '' }])]);
 assert.ok(pt.includes('the woman in the blouse says: Chị cần gì?') && !pt.includes('"'), pt);
 // phá thử: shot con mà cha KHÔNG có trong cụm → đứng riêng, không mất
-assert.ok(promptCumMoi(bon.slice(1, 3)).startsWith('A 2-shot'));
+assert.ok(promptCumMoi(bon.slice(1, 3)).startsWith('A 1-second, 2-shot'));
+// giãn cho đầy clip model sinh (VideoExpress ~6 s): 5 s → 6 s, tỉ lệ giữ nguyên (2 s : 3 s → 2.5 : 3.5 làm tròn 0,5)
+const p6 = promptCumMoi(bon, { giay: 6 });
+assert.ok(p6.startsWith('A 6-second, 2-shot') && p6.includes('Shot 1 (about 2.5 s)') && p6.includes('Shot 2 (about 3.5 s)'), p6);
 console.log('✓ cum-shot');

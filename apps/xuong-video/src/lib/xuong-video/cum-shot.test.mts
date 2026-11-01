@@ -41,7 +41,7 @@ assert.ok(!cn.some((c) => c.includes(1) && c.includes(4)));
 const nv = (id: number, ten: string, bt: { id: number; anh_url: string }[], ref: string[]) => ({ id, ten, loai: 'nhan_vat', bien_the: bt, anh_ref: ref, anh_mat: null }) as never;
 const ha = nv(1, 'Lâm Hạ', [{ id: 160, anh_url: 'ha-khong-the' }, { id: 150, anh_url: 'ha-co-the' }], ['ha-mau']);
 const vi = nv(2, 'Vivian', [], ['vi-mau', 'vi-phu']);
-const shot = (kf: string, co: string, bienThe: number[], ds: unknown[]) => ({ canh: { keyframe_url: kf, ky_thuat: { co_canh: co }, bien_the: bienThe } as never, nhanVat: ds as never });
+const shot = (kf: string, co: string, bienThe: number[], ds: unknown[]) => ({ canh: { keyframe_url: kf, ky_thuat: { co_canh: co }, bien_the: bienThe, nhan_vat: (ds as { id: number }[]).map((v) => v.id) } as never, nhanVat: ds as never });
 const t1 = thamChieuCum([shot('kf-cu', 'cu', [160], [ha]), shot('kf-ws', 'ws', [], [vi, ha])]);
 assert.deepStrictEqual(t1.anh, ['ha-khong-the', 'vi-mau', 'ha-mau', 'vi-phu', 'kf-ws']);
 assert.ok(t1.goi.startsWith('Reference image 1 is Lâm Hạ; Reference image 2 is Vivian') && t1.goi.endsWith('the location (lighting, set, colours)'));

@@ -34,7 +34,8 @@ const anhNguoi = (v: NhanVat, c: Canh): string[] => {
 };
 // người của cụm theo lần xuất hiện đầu; ảnh lấy ở shot ĐẦU TIÊN người đó có mặt (đúng trang phục lúc đó)
 const nguoi: { v: NhanVat; anh: string[] }[] = [];
-for (const [i, b] of bc.entries()) for (const v of b.nhanVat.filter((x) => x.loai === 'nhan_vat')) if (!nguoi.some((n) => n.v.id === v.id)) nguoi.push({ v, anh: anhNguoi(v, ds[i]!) });
+// CHỈ người CÓ MẶT trong shot (canh.nhan_vat) — bc.nhanVat còn gồm người khác của cảnh: 01/11/2026 Vivian bị tính 'xuất hiện' từ #2 (chưa có đầm đỏ) → lấy nhầm ảnh, Kling ra vest xanh
+for (const [i, b] of bc.entries()) for (const v of b.nhanVat.filter((x) => x.loai === 'nhan_vat' && b.canh.nhan_vat.includes(x.id))) if (!nguoi.some((n) => n.v.id === v.id)) nguoi.push({ v, anh: anhNguoi(v, ds[i]!) });
 const boiCanh = ds[0]!.keyframe_url!;   // khung đã duyệt của shot đầu = hình bối cảnh
 const pr = promptCumMoi(bc.map((b) => ({ canh: b.canh, nhanVat: b.nhanVat, look: b.look })), { tag: Object.fromEntries(nguoi.map((n, i) => [n.v.ten, `reference image ${i + 1}`])) });
 console.log(`cụm #${tu}–#${den} · ${tongGiay}s · người: ${nguoi.map((n) => `${n.v.ten} (${n.anh[0]?.split('/').pop()})`).join(', ')}`);
@@ -63,7 +64,7 @@ async function O(): Promise<string | null> {
   const el = nguoi.map((n, i) => ({ ma: `@Element${i + 1}`, ten: n.v.ten }));
   const doiTen = (t: string) => el.reduce((x, e) => x.split(e.ten).join(e.ma), t);
   // giây từng shot ≥ 1, nguyên; mỗi prompt ≤ ~480 ký tự (giới hạn 512 của model, ref2v-canh.ts)
-  const mp = bc.map((b) => ({ prompt: doiTen(`${b.canh.dan_dung?.mo ?? b.canh.canh} → ${b.canh.dan_dung?.ket ?? ''}`).replace(/\s*(OBJECT STATE|BODY POSE|POSE)[\s\S]*$/, '').slice(0, 470), duration: String(Math.max(1, Math.round(giayPhat(b.canh)))) }));
+  const mp = bc.map((b) => ({ prompt: doiTen(`${b.canh.dan_dung?.mo ?? b.canh.canh} → ${b.canh.dan_dung?.ket ?? ''}`).replace(/\s*(OBJECT STATE|BODY POSE|POSE)[\s\S]*$/, '').slice(0, 420) + '. Same location as the start image.', duration: String(Math.max(1, Math.round(giayPhat(b.canh)))) }));
   const tong = mp.reduce((s, x) => s + Number(x.duration), 0);
   const g = await guiFal('fal-ai/kling-video/o3/standard/reference-to-video', { multi_prompt: mp, shot_type: 'customize', duration: String(Math.max(3, Math.min(15, tong))), aspect_ratio: '9:16', generate_audio: false,
     start_image_url: boiCanh, elements: nguoi.map((n) => ({ frontal_image_url: n.anh[0], reference_image_urls: n.anh.length > 1 ? n.anh.slice(1, 4) : [n.anh[0]] })) });

@@ -123,7 +123,7 @@ export function anhBoiCanh(ds: readonly Pick<Canh, 'keyframe_url' | 'ky_thuat'>[
 }
 export function thamChieuCum(cum: readonly { canh: Canh; nhanVat: NhanVat[] }[], toiDa = 7, boiCanh?: string | null): { anh: string[]; goi: string; tag: Record<string, string>; them: string } {
   const nguoi: { ten: string; anh: string[] }[] = [];
-  for (const { canh: c, nhanVat } of cum) for (const v of nhanVat.filter((x) => x.loai === 'nhan_vat')) {
+  for (const { canh: c, nhanVat } of cum) for (const v of nhanVat.filter((x) => x.loai === 'nhan_vat' && c.nhan_vat.includes(x.id))) {   // chỉ người CÓ MẶT trong shot — ảnh theo đúng đồ lúc đó
     if (nguoi.some((n) => n.ten === v.ten)) continue;
     const bt = (v.bien_the ?? []).find((b) => c.bien_the.includes(b.id) && b.anh_url)?.anh_url;
     nguoi.push({ ten: v.ten, anh: [...new Set([bt, ...(v.anh_mat?.url ?? []).slice(0, 1), ...v.anh_ref].filter((x): x is string => !!x))].slice(0, 2) });

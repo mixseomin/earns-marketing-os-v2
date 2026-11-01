@@ -178,7 +178,9 @@ window.__seek = (t) => {
   // chữ to mở (cảnh đầu)
   if (s.c.chu_to) { const al = kep(u / 0.25) * (1 - kep((u - 3.2) / 0.4)); if (al) { x.globalAlpha = al; const sz = 76; x.font = `900 ${sz}px Cinzel, Georgia, serif`;
     const tu = s.c.chu_to.split(' '), dong = []; let l = ''; for (const w of tu) { const th = l ? `${l} ${w}` : w; if (x.measureText(th).width > W - 140) { dong.push(l); l = w; } else l = th; } dong.push(l);
-    dong.forEach((d, i) => chuVien(d, W / 2, 300 + i * (sz * 1.15) + (1 - out(kep(u / 0.35))) * -40, sz, '#9e2b25', 'rgba(248,240,222,.97)', 'center', 900)); x.globalAlpha = 1; } }
+    // chữ hook tránh vòng đỏ: đích nằm nửa trên khung (Greenland sát mép bản đồ, camera không hạ được) → chữ xuống dưới đích
+    const vy = (s.c.vong || []).map((p) => chieu(...p)[1]), y0 = vy.length && Math.min(...vy) < 300 + dong.length * sz * 1.15 + 140 ? Math.max(...vy) + 200 : 300;
+    dong.forEach((d, i) => chuVien(d, W / 2, y0 + i * (sz * 1.15) + (1 - out(kep(u / 0.35))) * -40, sz, '#9e2b25', 'rgba(248,240,222,.97)', 'center', 900)); x.globalAlpha = 1; } }
   // phụ đề: các chữ của câu đang đọc, chữ đang nói sáng màu
   const tu = C.tu.filter((w) => w.cau === k);
   if (tu.length) { x.font = `900 68px Montserrat, "Helvetica Neue", Arial, sans-serif`;   // nhóm chữ theo BỀ RỘNG (≤ khung − lề), tối đa 4 chữ — không tràn mép

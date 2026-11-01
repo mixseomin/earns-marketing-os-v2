@@ -35,8 +35,8 @@ export function CayThanhPhan({ nhanVat, nut, onChon, phimId, onChanged }: { nhan
         <Dong chon={nut === k} onClick={() => onChon(k)} title={`${v.anh_ref.length} ảnh anchor`}>
           {coCon && <span style={{ ...mono, width: 10 }} onClick={(e) => { e.stopPropagation(); lat(k); }}>{gap.has(k) ? '▸' : '▾'}</span>}
           <span style={{ width: 20, height: 20, borderRadius: 4, overflow: 'hidden', flexShrink: 0 }}><AnhDaiDien v={v} co={20} /></span>
+          {tv && <span title={`Lấy từ thư viện vật dụng: ${tv.ten}`} style={{ fontSize: 11, flexShrink: 0 }}>📚</span>}
           <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{v.ten || '(chưa đặt tên)'}</span>
-          {tv && <span title={`Lấy từ thư viện vật dụng: ${tv.ten}`} style={{ fontSize: 11 }}>📚</span>}
           {!v.anh_ref.length && <Den muc="cho" title="chưa có ảnh anchor" />}
         </Dong>
         {coCon && !gap.has(k) && <CayCon>

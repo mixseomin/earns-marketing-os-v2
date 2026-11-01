@@ -9,7 +9,7 @@ import { docKinhThanh, muaSeries, type NhanVat, type Phim, type Tap } from '@/li
 import { trangThaiGaiTra, tuyenVang } from '@/lib/xuong-video/tuyen-truyen';
 import { khau } from './so-do';
 import { Den, mono } from './ui';
-import { CotCay } from './keo';
+import { CotCay, CayCon, CayNut } from './keo';
 
 /** Khoá nút: 'kinh_thanh' · 'nhan_vat' · 'phan_ra' · 'nv-<id>' · 'bt-<id>' · 'am_thanh' · 'poster' · 'so_do' (Các tập: sơ đồ thẻ) · 'tuyen' · 'gai_tra' ·
  *  'tap' (Kịch bản của tập = tham số tap) · 'tap:thanh_phan' · 'tap:ho_so' · 'tap:shots' · 'tap:storyboard' · 'tap:xuat' · 'bd-<số>' (tập bản đồ chưa tạo). */
@@ -101,20 +101,34 @@ export function CayPhim({ phim, tap, nhanVat, nut, tapId, onChon, onThemTap, tha
   return (
     <CotCay khoa="cay-phim" macDinh={250}>
       {onHep && <button type="button" className="xv-btn" style={{ justifySelf: 'end', padding: '0 6px', marginBottom: 4 }} title="Thu cây thành dải hẹp — nhường chỗ cho storyboard" onClick={() => onHep(true)}>⇤</button>}
-      {out.map((d) => {
-        const sel = !d.chiNhom && chon(d);
-        const bam = () => (d.chiNhom ? lat(d.nhom!) : d.tapId != null ? onChon('tap', d.tapId) : onChon(d.key));
-        return (
-          <div key={d.key} role="button" tabIndex={0} title={d.title} onClick={bam} onKeyDown={(e) => { if (e.key === 'Enter') bam(); }}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', paddingLeft: 8 + d.cap * 14, borderRadius: 6, cursor: 'pointer', fontSize: d.chiNhom && d.cap ? 11.5 : 12.5,
-              marginTop: d.cap === 0 ? 2 : 0, color: d.chiNhom && d.cap ? 'var(--fg-2)' : undefined,
-              background: sel ? 'var(--bg-2)' : 'transparent', borderLeft: `3px solid ${sel ? 'var(--cyan)' : 'transparent'}`, opacity: d.mo ? 0.55 : 1, fontWeight: d.cap === 0 ? 600 : 400 }}>
-            {d.nhom && <span style={{ width: 10, ...mono }} onClick={(e) => { e.stopPropagation(); lat(d.nhom!); }} title={dong.has(d.nhom) ? 'Mở nhánh' : 'Gập nhánh'}>{dong.has(d.nhom) ? '▸' : '▾'}</span>}
-            <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.nhan}</span>
-            {d.chuaTao && <span style={mono} title="Tập trên bản đồ, chưa tạo — bấm để xem và tạo (0đ)">＋</span>}
-            {d.den && <Den muc={d.den.muc} title={d.den.title} />}
-          </div>);
-      })}
+      {(() => {
+        // danh sách phẳng theo cấp → cây lồng: dòng cấp N nhận mọi dòng liền sau có cấp > N làm con; nét nối do CayCon/CayNut vẽ (keo.tsx, xv.css)
+        const dongCay = (d: Dong) => {
+          const sel = !d.chiNhom && chon(d);
+          const bam = () => (d.chiNhom ? lat(d.nhom!) : d.tapId != null ? onChon('tap', d.tapId) : onChon(d.key));
+          return (
+            <div role="button" tabIndex={0} title={d.title} onClick={bam} onKeyDown={(e) => { if (e.key === 'Enter') bam(); }}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '3px 6px', borderRadius: 5, cursor: 'pointer', fontSize: d.chiNhom && d.cap ? 11.5 : 12.5,
+                color: d.chiNhom && d.cap ? 'var(--fg-2)' : undefined,
+                background: sel ? 'var(--bg-2)' : 'transparent', boxShadow: sel ? 'inset 2px 0 0 var(--cyan)' : undefined, opacity: d.mo ? 0.55 : 1, fontWeight: d.cap === 0 ? 600 : 400 }}>
+              {d.nhom && <span style={{ width: 9, ...mono }} onClick={(e) => { e.stopPropagation(); lat(d.nhom!); }} title={dong.has(d.nhom) ? 'Mở nhánh' : 'Gập nhánh'}>{dong.has(d.nhom) ? '▸' : '▾'}</span>}
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.nhan}</span>
+              {d.chuaTao && <span style={mono} title="Tập trên bản đồ, chưa tạo — bấm để xem và tạo (0đ)">＋</span>}
+              {d.den && <Den muc={d.den.muc} title={d.den.title} />}
+            </div>);
+        };
+        const nhanh = (tu: number, den: number): ReactNode[] => {
+          const kq: ReactNode[] = [];
+          for (let i = tu; i < den;) {
+            const d = out[i]!; let j = i + 1;
+            while (j < den && out[j]!.cap > d.cap) j++;
+            kq.push(<div key={d.key}>{dongCay(d)}{j > i + 1 && <CayCon>{nhanh(i + 1, j).map((x, n) => <CayNut key={n}>{x}</CayNut>)}</CayCon>}</div>);
+            i = j;
+          }
+          return kq;
+        };
+        return nhanh(0, out.length);
+      })()}
       {onThemTap && !dong.has('tap') && <button type="button" className="xv-btn" style={{ justifySelf: 'start', margin: '4px 0 4px 22px' }} title="Thêm một tập trống" onClick={onThemTap}>+ Thêm tập</button>}
     </CotCay>
   );

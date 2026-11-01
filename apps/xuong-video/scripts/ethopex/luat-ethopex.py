@@ -461,18 +461,25 @@ tat7, gan_t7 = [], []
 # Xét trên kho etp.so_ngay, CHỈ ngày đã khép (trước hôm nay): camp có 2–3 ngày đã khép có chi (vừa hết 2 ngày đầu — không quét lại camp già đã hồi),
 # 2 ngày đầu chi ≥ T2_CHI và ROI < −20%, ROI mọi ngày đã khép vẫn < −20% → TẮT HẲN (bỏ khỏi sổ lịch, không luật nào bật lại). Camp ROAS không áp.
 T2_ROI, T2_CHI = -20, 2.5   # chi 2 ngày đầu tối thiểu $2.5 (anh 27/10/2026: $1 → $5 → "hạ xuống 2.5")
+# NGƯỠNG THEO NGÂN SÁCH (anh 01/11/2026 "bộ tk 2 đang lỗ khá nặng" → chọn "sửa T2 theo ngân sách"): camp $1 chi tối đa $2 trong 2 ngày → không bao giờ chạm $2.5,
+# lỗ mãi không bị tắt (đo 29–31/10: bộ 2 có 45 camp $1 ROI < −30%, −$54 / 3 ngày). Ngưỡng = min($2.5, 80% ngân sách 2 ngày) — camp ≥ $2 giữ nguyên $2.5.
+# CỬA SỔ 2–5 ngày đã khép có chi (trước 2–3): camp $1 già hơn 3 ngày là đúng đám đã lọt luật cũ; vẫn đòi ROI MỌI ngày đã khép < −20% nên camp đã hồi không bị đụng
+T2_PHAN, T2_NGAY = 0.8, 5
+t2_chi = lambda ns: min(T2_CHI, round(T2_PHAN * 2 * float(ns or 0), 2)) if ns else T2_CHI
 tat2 = []
 try:
     _n2 = {}
-    for _l in q(f"select s.camp_id, s.chi, s.thu, coalesce(c.ten, '') from {K_SO} s left join {K_CAMP} c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
-        _p = _l.split("|", 3)
-        if len(_p) == 4 and _p[0].isdigit(): _n2.setdefault(int(_p[0]), [_p[3], []])[1].append((float(_p[1]), float(_p[2])))
+    _ns2 = {}
+    for _l in q(f"select s.camp_id, s.chi, s.thu, coalesce(c.ngan_sach, 0), coalesce(c.ten, '') from {K_SO} s left join {K_CAMP} c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
+        _p = _l.split("|", 4)
+        if len(_p) == 5 and _p[0].isdigit(): _n2.setdefault(int(_p[0]), [_p[4], []])[1].append((float(_p[1]), float(_p[2]))); _ns2[int(_p[0])] = float(_p[3] or 0)
     for _c, (_ten, _ds) in _n2.items():
-        if _c not in _dc or not 2 <= len(_ds) <= 3: continue
+        if _c not in _dc or not 2 <= len(_ds) <= T2_NGAY: continue
         _c2, _t2 = _ds[0][0] + _ds[1][0], _ds[0][1] + _ds[1][1]; _ca, _ta = sum(x[0] for x in _ds), sum(x[1] for x in _ds)
         _r2, _ra = (_t2 - _c2) / _c2 * 100, (_ta - _ca) / _ca * 100
-        if _c2 >= T2_CHI and _r2 < T2_ROI and _ra < T2_ROI:
-            tat2.append((_c, f"#{_ten[:70]} · 2 ngày đầu: chi ${_c2:.2f} · lãi ${_t2 - _c2:+.2f} · ROI {_r2:+.0f}%" + (f" · cả {len(_ds)} ngày ROI {_ra:+.0f}%" if len(_ds) > 2 else "") + f" → TẮT (luật T2: 2 ngày đầu ROI < −20%, chi ≥ ${T2_CHI:g})"))
+        _ng2 = t2_chi(_ns2.get(_c))
+        if _c2 >= _ng2 and _r2 < T2_ROI and _ra < T2_ROI:
+            tat2.append((_c, f"#{_ten[:70]} · 2 ngày đầu: chi ${_c2:.2f} · lãi ${_t2 - _c2:+.2f} · ROI {_r2:+.0f}%" + (f" · cả {len(_ds)} ngày ROI {_ra:+.0f}%" if len(_ds) > 2 else "") + f" → TẮT (luật T2: 2 ngày đầu ROI < −20%, chi ≥ ${_ng2:g})"))
     tat2.sort(key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))
 except Exception as e:
     loi_may.append((0, f"luật T2 lỗi: {str(e)[:80]}"))
@@ -692,8 +699,9 @@ def _xet_luat():
         ds2 = _n2.get(int(cid), [None, []])[1] if "_n2" in globals() else []
         c2 = sum(x[0] for x in ds2[:2]); t2_ = sum(x[1] for x in ds2[:2]); r2 = (t2_ - c2) / c2 * 100 if c2 else None
         ca = sum(x[0] for x in ds2); ra_ = (sum(x[1] for x in ds2) - ca) / ca * 100 if ca else None
-        ls.append(L("t2", "T2 · tắt sau 2 ngày đầu", f"Camp vừa hết 2 ngày có chi đầu tiên (2–3 ngày đã khép có chi), 2 ngày đầu chi ≥ ${T2_CHI:g} và ROI < {T2_ROI}%, mọi ngày đã khép vẫn < {T2_ROI}% → máy tắt hẳn.",
-            [["Số ngày đã khép có chi", f"{len(ds2)} ngày", "2–3 ngày", 2 <= len(ds2) <= 3], ["Chi 2 ngày đầu", f(c2, "$"), f"≥ ${T2_CHI:g}", c2 >= T2_CHI],
+        ng2 = t2_chi(ns)
+        ls.append(L("t2", "T2 · tắt sau 2 ngày đầu", f"Camp có 2–{T2_NGAY} ngày đã khép có chi, 2 ngày đầu chi ≥ min(${T2_CHI:g}, {T2_PHAN:.0%} ngân sách 2 ngày) và ROI < {T2_ROI}%, mọi ngày đã khép vẫn < {T2_ROI}% → máy tắt hẳn.",
+            [["Số ngày đã khép có chi", f"{len(ds2)} ngày", f"2–{T2_NGAY} ngày", 2 <= len(ds2) <= T2_NGAY], ["Chi 2 ngày đầu", f(c2, "$"), f"≥ ${ng2:g}", c2 >= ng2],
              ["ROI 2 ngày đầu", f(r2, "%"), f"< {T2_ROI}%", r2 is not None and r2 < T2_ROI], ["ROI mọi ngày đã khép", f(ra_, "%"), f"< {T2_ROI}%", ra_ is not None and ra_ < T2_ROI]],
             "tat2" if int(cid) in vao["tat2"] else None, tien=1, lo=(r2 is not None and r2 < 0) or (ra_ is not None and ra_ < 0)))
         # D24 — khoảng dừng > 24 giờ

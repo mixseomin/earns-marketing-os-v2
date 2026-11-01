@@ -191,6 +191,7 @@ def _cau_hinh(khoa, mac):   # một sổ với luat-ethopex.py: etp.cau_hinh tha
     return json.loads(v) if v else mac
 THANG_BO = [str(x) for x in _cau_hinh("thang_bo", ["2"])]
 THANG_MUC = {float(x) for x in _cau_hinh("thang_muc", [1, 3, 7, 15, 30]) if float(x) > 1}   # bậc mở bản mới (trừ bậc đầu $1)
+BO_DANG_CHAN = {str(k): set(v) for k, v in _cau_hinh("bo_dang_chan", {}).items()}   # bộ → dạng creative không lên camp mới (migration 0394, anh 01/11/2026 "bộ 2 chỉ lên cảnh cuối")
 ROAS_MIN, ROAS_MAX = 1.0, 1.4
 def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, nhan=None, ep=False):
     """moi = {creative, content, ten}: KHÔNG nhân bản mà dựng camp MỚI cho creative khác trên khuôn camp gốc (cùng tài khoản/Page/pixel/Ad Set/ngôn ngữ)
@@ -272,6 +273,9 @@ def main(a):
         ly = None if NGOAI else (None if ep else chan_bo(cid, bo)) or (None if moi or ep else q(f"select etp.bo_chan_mo_camp('{bo}', {int(goc)})"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (0339); camp gốc tự thắng (3 ngày khép ROI ≥ 30%) thì miễn (0372, anh 30/10/2026)
         if ly: raise ChanLuat(ly)
         if moi: kq["viec"] = "tao_camp"
+        if moi and not NGOAI and BO_DANG_CHAN.get(str(bo)):
+            dg = q(f"select coalesce(dang, '') from etp.creative where creative_id = {int(moi['creative'])}")
+            if dg in BO_DANG_CHAN[str(bo)]: raise ChanLuat(f"bộ {bo} chỉ lên dạng khác {', '.join(sorted(BO_DANG_CHAN[str(bo)]))} — creative #{moi['creative']} là {dg} (etp.cau_hinh.bo_dang_chan, anh 01/11/2026)")
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)
         if chan: raise ChanLuat(chan)
         n = dem_dang_chay(cid)

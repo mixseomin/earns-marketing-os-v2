@@ -8,7 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { uploadToR2 } from '../src/lib/r2';
-import { sinhAnhQuaCong } from '../src/lib/xuong-video/cong-ai';
+import { sinhAnhQuaCong, sinhAnhMotCong, tachKhoa } from '../src/lib/xuong-video/cong-ai';
 import { docKinhThanh, phongCachHinh, type KinhThanh } from '../src/lib/xuong-video/kieu';
 
 const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';
@@ -28,9 +28,11 @@ for (const [i, f] of moc.entries()) {
   const motAnh = process.argv.includes('--mot-anh');
   const refs = motAnh ? [vao!] : [vao!, ...nv.map((v) => v.u).filter((u): u is string => !!u)].slice(0, 3);
   const ve = `EDIT Image 1, a rough paper cut-out animation frame, into a finished frame of hand-drawn 2D animation. Visual style: ${style}. Redraw the characters as real drawn animation, not paper pieces: connected arms, legs, hands and clothes with natural drawn poses and expressions. ${nv.map((v, k) => motAnh ? `${v.mo_ta.split(/(?<=\.)\s/)[0]}` : `The character matching Image ${k + 2}: ${v.mo_ta.split(/(?<=\.)\s/)[0]}`).join(' ')} ${giu}`;
-  const k = await sinhAnhQuaCong(kt.mo_hinh_anh, { prompt: ve, thamChieuUrl: refs, tiLe: '16:9' });
+  // --nguon=ckey:<người bán>/<model>: chạy đúng một nguồn (so người bán) — mặc định theo chuỗi cổng của phim
+  const nguon = arg('nguon'); const kh = nguon ? tachKhoa(nguon) : null;
+  const k = kh?.kieu === 'cong' ? await sinhAnhMotCong(kh.cong, kh.model, { prompt: ve, thamChieuUrl: refs, tiLe: '16:9' }) : await sinhAnhQuaCong(kt.mo_hinh_anh, { prompt: ve, thamChieuUrl: refs, tiLe: '16:9' });
   if (!k.anh) { console.error(`mốc ${i}: hỏng`, k.thu); process.exit(1); }
   const u = await uploadToR2(`xuong-video/giay-cat/${phimId}-${ten}-ve-${i}-${randomUUID().slice(0, 6)}.png`, k.anh.data, k.anh.mimeType);
-  ra.push(u!); console.log(`mốc ${i}: ${u} · ${k.nguon?.vnd ?? '?'}₫`);
+  ra.push(u!); console.log(`mốc ${i}: ${u} · ${k.nguon?.nguoi_ban ?? k.nguon?.cong ?? '?'} · ${k.nguon?.vnd ?? '?'}₫`);
 }
 process.exit(0);

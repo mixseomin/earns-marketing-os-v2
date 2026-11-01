@@ -1037,7 +1037,11 @@ const DiemGagSchema = z.object({ cham: z.array(z.object({
   phen: z.string().describe('chỗ phèn nếu có (lời giải tiện, cảm ơn lố, biểu tượng nhồi nhét); không có thì để trống'),
   diem: z.object(Object.fromEntries(PHEP_THU_GAG.map((p) => [p.ma, z.number().describe(`${p.ten}: ${p.hoi} 0 = trượt (${p.truot}), 1 = tạm, 2 = tốt`)])) as Record<string, z.ZodNumber>),
 })) });
-const TrungSchema = z.object({ trung: z.array(z.object({ a: z.number(), b: z.number(), vi: z.string().describe('vì sao là cùng một trò') })) });
+const TrungSchema = z.object({ trung: z.array(z.object({ a: z.number(), b: z.number(), vi: z.string().describe('vì sao trùng: cùng trò / cùng chủ thể') })) });
+const DayThemSchema = z.object({ gag: z.array(z.object({ so: z.number(), phuong_an: z.array(z.string()).describe('đúng 3 phương án cú đẩy thêm, mỗi cái một câu') })) });
+const ChonDayThemSchema = z.object({ chon: z.array(z.object({ so: z.number(), phuong_an: z.number().describe('số phương án tốt nhất 1–3'), diem: z.number().describe('0 trượt / 1 tạm / 2 tốt theo luật cú đẩy thêm'), ly_do: z.string() })) });
+const NhipNgoaiGagSchema = z.object({ mo: z.string().describe('[MỞ] một shot liền: phố thức dậy, nhân vật chính + vật đặc trưng bước vào'), dao_vai: z.string().describe('[ĐẢO VAI] một shot liền: lần đầu nhân vật chính gặp rắc rối, những người đã được giúp (nêu đúng tên các gag) quay lại giúp bằng chính đồ / công năng đã thấy'), ket: z.string().describe('[KẾT] một shot liền: hình đọng cuối, vật đặc trưng là hình cuối') });
+const LUAT_DAY_THEM = 'LUẬT CÚ ĐẨY THÊM (topper): là HỆ QUẢ VẬT LÝ của chính lời giải, đi thêm một bước bất ngờ; ưu tiên có một nạn nhân nhỏ bị bẽ mặt (không bị đau) hoặc lời giải gây ra rắc rối mới buồn cười. CẤM: vật "rơi đúng chỗ" / "đáp gọn vào tay" / "tự về đúng người", phép màu tiện, cảm ơn lố, hoa / cúc tự xuất hiện làm phần thưởng. Nên dùng công năng, đạo cụ của nơi hoặc phối hợp vật.';
 const ThuMuSchema = z.object({ thu: z.array(z.object({ so: z.number().describe('số thứ tự clip'), ke_lai: z.string().describe('người xem kể lại chuyện gì xảy ra, một câu'), hieu: z.boolean(), buon_cuoi: z.number().describe('0–2') })) });
 const ChamThuongSchema = z.object({
   nguoc: z.array(z.string()).describe('CHẤM NGƯỢC: viết TRƯỚC — 3–6 lý do mạnh nhất khiến kịch bản này nhạt / phèn / tầm thường, cụ thể theo cảnh'),
@@ -1073,9 +1077,29 @@ async function vietGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor:
     diem.push(...coDiem);
     chon = chonGag(ungVien, diem, mu, o.k);
   }
+  // CỨU CÚ ĐẨY THÊM (01/11/2026: lượt 8,1/10 yếu nhất ở "Cú đẩy thêm" 1,0 — dép đáp đúng chân, bóng tự về lòng trẻ): gag đã giữ + gag CHỈ trượt
+  // mỗi phép đẩy thêm → người viết đưa 3 phương án đẩy thêm theo luật cấm "rơi đúng chỗ" → người chấm chọn + chấm lại → chọn lại bộ gag.
+  {
+    const ma = (g: TheGag) => diem.find((d) => d.ten === g.ten);
+    const cuu = ungVien.filter((g) => { const d = ma(g); if (!d) return false; const truot = Object.entries(d.diem).filter(([, v]) => v <= 0).map(([kk]) => kk);
+      return chon.chon.includes(g) || (truot.length === 1 && truot[0] === 'day_them'); }).slice(0, 24);
+    if (cuu.length) {
+      const ds = cuu.map((g, i) => `${i + 1}. ${g.ten} — vấn đề: ${g.van_de} · ra tay: ${g.ra_tay} · đẩy thêm cũ: ${g.day_them} · phản ứng: ${g.phan_ung}`).join('\n');
+      const v = await sinhJson({ schema: DayThemSchema, model: o.kt.mo_hinh_chu, max_tokens: 6000, ten: 'viết lại cú đẩy thêm', system: `${o.heThongVan}\n${LUAT_DAY_THEM}`,
+        user: `${vanKhoVat(o.vat)}${o.dachu ? `\n\n${o.dachu}` : ''}\n\nViết 3 phương án CÚ ĐẨY THÊM mới cho mỗi gag:\n${ds}` });
+      if (v.ok) { tk.push(v.tokens);
+        const c = await sinhJson({ schema: ChonDayThemSchema, model: nguoiCham, max_tokens: 3000, ten: 'chấm cú đẩy thêm', system: `Bạn là trưởng phòng biên kịch hoạt hình khó tính. Chấm NGƯỢC từng phương án cú đẩy thêm theo luật dưới, chọn phương án tốt nhất cho mỗi gag.\n${LUAT_DAY_THEM}`,
+          user: v.data.gag.map((x) => { const g = cuu[Math.round(x.so) - 1]; return g ? `${x.so}. ${g.ten} — lời giải: ${g.ra_tay}\n${x.phuong_an.map((pa, j) => `   ${j + 1}) ${pa}`).join('\n')}` : ''; }).filter(Boolean).join('\n') });
+        if (c.ok) { tk.push(c.tokens);
+          for (const x of c.data.chon) { const g = cuu[Math.round(x.so) - 1]; const pa = v.data.gag.find((y) => Math.round(y.so) === Math.round(x.so))?.phuong_an[Math.round(x.phuong_an) - 1]; const d = g && ma(g);
+            if (!g || !pa || !d || x.diem < (d.diem.day_them ?? 0)) continue;
+            g.day_them = pa; d.diem.day_them = x.diem; d.tong = Object.values(d.diem).reduce((a, vv) => a + vv, 0); }
+          chon = chonGag(ungVien, diem, mu, o.k); } }
+    }
+  }
   // CHẤM TỔNG trên bộ đã chọn: model chấm nhìn cả tập một lượt — bắt hai gag cùng một trò mà mỗi vòng chấm riêng không thấy (01/11/2026: "xâu vật bằng đòn" vs "xâu chuỗi qua lỗ")
   if (chon.chon.length > 1) {
-    const tg = await sinhJson({ schema: TrungSchema, model: nguoiCham, max_tokens: 1500, ten: 'chấm tổng: trùng trò', system: 'Bạn là trưởng phòng biên kịch. Chỉ tìm các cặp gag về bản chất là CÙNG MỘT TRÒ (cùng động tác giải / cùng vật bị xử lý) dù tên khác. Không tìm thì trả mảng rỗng.',
+    const tg = await sinhJson({ schema: TrungSchema, model: nguoiCham, max_tokens: 1500, ten: 'chấm tổng: trùng trò', system: 'Bạn là trưởng phòng biên kịch. Tìm các cặp gag (1) về bản chất là CÙNG MỘT TRÒ (cùng động tác giải) dù tên khác, hoặc (2) CÙNG CHỦ THỂ được giải cứu (cùng một người / cùng một đồ vật, vd hai lần quả bóng của cậu bé). Không có thì trả mảng rỗng.',
       user: chon.chon.map((g, i) => `${i + 1}. ${g.ten} — vấn đề: ${g.van_de} · ra tay: ${g.ra_tay}`).join('\n') });
     if (tg.ok) { tk.push(tg.tokens); const bo = new Set<string>();
       for (const c of tg.data.trung) { const a = chon.chon[c.a - 1], b = chon.chon[c.b - 1]; if (!a || !b || a === b) continue;
@@ -1088,9 +1112,17 @@ async function vietGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor:
   if (chon.chon.length < o.k) may.push(`chỉ ${chon.chon.length}/${o.k} gag qua đủ phép thử sau ${vong} vòng`);
   const kl = ketLuan(muc, may, nguoc);
   const tong = congTk(...tk);
-  return { ok: true, kichBan: kichBanTuGag(chon.chon, ''), model: o.kt.mo_hinh_chu, tokens: tong,
+  // BA NHỊP NGOÀI GAG (mở phố · đảo vai · hình đọng) — viết riêng theo khung beat, không chấm bằng 6 phép thử gag (01/11/2026: bị bộ chấm gag loại hết, tập mất mở và kết)
+  let mo = '', cuoi = '';
+  if (chon.chon.length) {
+    const n = await sinhJson({ schema: NhipNgoaiGagSchema, model: o.kt.mo_hinh_chu, max_tokens: 2000, ten: 'nhịp mở · đảo vai · kết', system: o.heThongVan,
+      user: `${o.anchor}\n\nBRIEF:\n${o.brief.trim()}\n\nCÁC GAG ĐÃ CHỐT (theo thứ tự):\n${chon.chon.map((g, i) => `${i + 1}. ${g.ten}: ${g.van_de} → ${g.ra_tay}`).join('\n')}\n\nViết ba nhịp ngoài gag, mỗi nhịp một shot liền 3–5 giây, không thoại.` });
+    if (n.ok) { tk.push(n.tokens); mo = `[MỞ] ${n.data.mo}`; cuoi = `[ĐẢO VAI] ${n.data.dao_vai}\n\n[KẾT] ${n.data.ket}`; } else may.push(`không viết được nhịp mở / đảo vai / kết: ${n.loi}`);
+  }
+  const tong2 = congTk(...tk);
+  return { ok: true, kichBan: `${kichBanTuGag(chon.chon, mo)}${cuoi ? `\n\n${cuoi}` : ''}`, model: o.kt.mo_hinh_chu, tokens: tong2,
     cham: { luc: new Date().toISOString(), cach: 'gag', ...kl, nguoi_viet: o.kt.mo_hinh_chu, nguoi_cham: nguoiCham, nguoi_thu: MO_HINH_THU, muc, nguoc, may,
-      gag: { ung_vien: ungVien.length, chon: chon.chon.map((g) => g.ten), loai: chon.loai }, vong, vnd: tong.vnd } };
+      gag: { ung_vien: ungVien.length, chon: chon.chon.map((g) => g.ten), loai: chon.loai }, vong, vnd: tong2.vnd } };
 }
 
 /** Chấm một kịch bản thường (chéo + ngược) theo phép thử của gói. */

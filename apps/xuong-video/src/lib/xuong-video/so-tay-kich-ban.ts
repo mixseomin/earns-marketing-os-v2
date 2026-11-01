@@ -20,10 +20,13 @@ export const KINH_NGHIEM_KB: KinhNghiem[] = [
     ap_dung: 'Kịch bản gag viết theo khối [GAG n], tách cảnh mỗi khối đúng một shot; máy chặn khối gom hai gag.', nguon: 'antrofrog — Englishman in New York (Midjourney + ảnh→video)' },
   { ma: 'cu_day_them', ten: 'Gag phải có cú đẩy thêm (topper)', pham_vi: 'gag',
     bai_hoc: 'Gỡ rối xong mà dừng là gag nhạt; phim mẫu luôn có thêm một cú sau lời giải (gỡ dây xong người dắt chó xoay như con quay).',
-    ap_dung: 'Thẻ gag bắt buộc ô "đẩy thêm"; bộ chấm trừ điểm gag thiếu nó.', nguon: 'Thuật ngữ gag hoạt hình "topper"; phân tích phim mẫu 01/11/2026' },
+    ap_dung: 'Thẻ gag bắt buộc ô "đẩy thêm"; bộ chấm trừ điểm gag thiếu nó; sau khi chọn gag có MỘT lượt riêng viết lại đẩy thêm (3 phương án, cấm "rơi đúng chỗ" / phép màu tiện — lượt 8,1/10 ngày 01/11 yếu nhất ở đây) rồi chấm lại.', nguon: 'Thuật ngữ gag hoạt hình "topper"; phân tích phim mẫu 01/11/2026' },
   { ma: 'cham_tong', ten: 'Chấm từng mảnh rồi chấm cả tập', pham_vi: 'chung',
     bai_hoc: 'Chấm từng gag / cảnh riêng không thấy hai mảnh cùng một trò khác tên (lượt đầu phim #1156: "xâu vật bằng đòn" và "xâu chuỗi qua lỗ" cùng lọt).',
     ap_dung: 'Vòng chấm sau được xem các mảnh đã giữ; cuối cùng một lượt chấm tổng cả tập loại cặp trùng trò.', nguon: 'Bài học lượt chạy 01/11/2026' },
+  { ma: 'nhip_ngoai_gag', ten: 'Mở · đảo vai · kết không phải gag', pham_vi: 'gag',
+    bai_hoc: 'Chấm mọi khối bằng 6 phép thử gag thì nhịp mở phố, đảo vai, hình đọng bị loại hết — tập mất đầu và đuôi (lượt 01/11/2026).',
+    ap_dung: 'Ba khối [MỞ] [ĐẢO VAI] [KẾT] viết riêng theo khung beat sau khi chốt gag; chấm tổng còn loại hai gag cùng chủ thể được cứu.', nguon: 'Bài học lượt chạy 01/11/2026' },
   { ma: 'khong_phen', ten: 'Tránh phèn', pham_vi: 'chung',
     bai_hoc: 'Phèn = lời giải tiện quá, cảm ơn lố, nhồi biểu tượng (nón lá, áo dài, phở) không vì lý do trong truyện, biểu cảm khoa trương.',
     ap_dung: 'Chấm ngược hỏi thẳng "chỗ nào phèn" trước khi cho điểm.', nguon: 'Anh 01/11/2026' },
@@ -61,7 +64,7 @@ export function vanSoTay(goi: string | null | undefined): string {
   const cv = cachViet(goi);
   return `SỔ TAY KỊCH BẢN (bài học ngành — áp dụng, không nhắc lại):\n${kinhNghiemCua(goi).map((k) => `- ${k.ten}: ${k.bai_hoc} → ${k.ap_dung}`).join('\n')}\n`
     + `Kịch bản sẽ bị chấm bằng các phép thử sau (trượt là bị loại):\n${phepThuCua(goi).map((p) => `- ${p.ten}: ${p.hoi} (trượt khi ${p.truot})`).join('\n')}`
-    + (cv === 'gag' ? `\nĐỊNH DẠNG GAG: kịch bản gồm các khối "[GAG n] <tên>" — mỗi khối là MỘT shot liền, một gag trọn: vấn đề → vật đặc trưng ra tay → cú đẩy thêm → phản ứng. Khi tách cảnh: mỗi khối [GAG n] đúng MỘT shot, không chia nhỏ, không gộp.` : '');
+    + (cv === 'gag' ? `\nĐỊNH DẠNG GAG: kịch bản gồm các khối "[GAG n] <tên>" — mỗi khối là MỘT shot liền, một gag trọn: vấn đề → vật đặc trưng ra tay → cú đẩy thêm → phản ứng. Ngoài gag có ba khối [MỞ], [ĐẢO VAI], [KẾT]. Khi tách cảnh: mỗi khối [GAG n] / [MỞ] / [ĐẢO VAI] / [KẾT] đúng MỘT shot, không chia nhỏ, không gộp.` : '');
 }
 
 // KHO VẬT ĐẶC TRƯNG nằm ở THƯ VIỆN VẬT DỤNG dùng chung (thu-vien-vat.ts ← scripts/du-lieu/thu-vien/vat-dung.json); sổ tay chỉ trỏ tới.

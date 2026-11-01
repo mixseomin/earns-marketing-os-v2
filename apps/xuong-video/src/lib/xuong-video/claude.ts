@@ -13,7 +13,7 @@ import { vanKhuonChuoi } from './khuon-chuoi';
 import { nguoiBanTuyen } from './ckey-tuyen';
 import { vanKhanGia } from './khan-gia';
 import { vanGoi, goiTheoKey } from './goi-the-loai';
-import { vanSoTay, phepThuCua, cachViet, kiemTheGag, chonGag, kichBanTuGag, ketLuan, PHEP_THU_GAG, type ChamKb, type TheGag, type DiemGag, type ThuMu } from './so-tay-kich-ban';
+import { vanKhoVat, vanSoTay, phepThuCua, cachViet, kiemTheGag, chonGag, kichBanTuGag, ketLuan, PHEP_THU_GAG, type ChamKb, type TheGag, type DiemGag, type ThuMu } from './so-tay-kich-ban';
 import { congTk, giaChuCents, docKinhThanh, phongCachHinh, lamTronClip, LOAI_PHIM, CAM_XUC_KHAN_GIA, LOAI_SHOT_MAU, giayMau, coMau, tenNgonNgu, type BaiDang, type ShotMau } from './kieu';
 
 const CanhSchema = z.object({
@@ -1046,7 +1046,7 @@ const ChamThuongSchema = z.object({
 
 async function sinhGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor: string; brief: string; n: number; tranh?: string }) {
   return sinhJson({ schema: TheGagSchema, model: o.kt.mo_hinh_chu, max_tokens: 12000, ten: 'sinh gag ứng viên', system: o.heThongVan,
-    user: `${o.anchor}\n\nBRIEF:\n${o.brief.trim()}\n\nSinh ${o.n} gag ỨNG VIÊN khác nhau (khác cơ chế), mỗi gag là một shot liền 3–4 giây. Viết dư để còn loại — đa dạng hơn là an toàn.${o.tranh ? `\nTRÁNH các hướng đã bị loại: ${o.tranh}` : ''}` });
+    user: `${o.anchor}\n\n${vanKhoVat(o.kt.vat_dac_trung)}\n\nBRIEF:\n${o.brief.trim()}\n\nSinh ${o.n} gag ỨNG VIÊN khác nhau (khác cơ chế), mỗi gag là một shot liền 3–4 giây. Viết dư để còn loại — đa dạng hơn là an toàn.${o.tranh ? `\nTRÁNH các hướng đã bị loại: ${o.tranh}` : ''}` });
 }
 
 /** Viết gag: sinh dư → chấm chéo + ngược → thử mù → máy chọn K + kết luận. */
@@ -1060,7 +1060,7 @@ async function vietGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor:
     ungVien = [...ungVien, ...moi];
     const ds = moi.map((g, i) => `${i + 1}. ${g.ten} — vấn đề: ${g.van_de} · ra tay: ${g.ra_tay} · đẩy thêm: ${g.day_them} · phản ứng: ${g.phan_ung} · cơ chế: ${g.co_che} · vì sao ở đây: ${g.vi_sao_noi}`).join('\n');
     const [c, t] = await Promise.all([
-      sinhJson({ schema: DiemGagSchema, model: nguoiCham, max_tokens: 8000, ten: 'chấm chéo + ngược gag', system: `Bạn là trưởng phòng biên kịch hoạt hình khó tính, không phải người viết. Chấm NGƯỢC: với mỗi gag, viết lý do loại mạnh nhất TRƯỚC rồi mới cho điểm. Không nể nang — gag tầm thường cho 0.\n${vanSoTay(o.kt.goi)}`, user: `BRIEF:\n${o.brief}\n\n${chon.chon.length ? `GAG ĐÃ GIỮ TỪ VÒNG TRƯỚC (gag mới trùng trò / cơ chế với bất kỳ gag nào dưới đây → khong_lap = 0):\n${chon.chon.map((g) => `- ${g.ten}: ${g.ra_tay} (cơ chế ${g.co_che})`).join('\n')}\n\n` : ''}CÁC GAG:\n${ds}` }),
+      sinhJson({ schema: DiemGagSchema, model: nguoiCham, max_tokens: 8000, ten: 'chấm chéo + ngược gag', system: `Bạn là trưởng phòng biên kịch hoạt hình khó tính, không phải người viết. Chấm NGƯỢC: với mỗi gag, viết lý do loại mạnh nhất TRƯỚC rồi mới cho điểm. Không nể nang — gag tầm thường cho 0.\n${vanSoTay(o.kt.goi)}\n${vanKhoVat(o.kt.vat_dac_trung)}${o.kt.vat_dac_trung ? '\nThay vai = 2 chỉ khi lời giải dùng một công năng trong kho theo đúng cách mô tả, không phải cây gậy bất kỳ làm được.' : ''}`, user: `BRIEF:\n${o.brief}\n\n${chon.chon.length ? `GAG ĐÃ GIỮ TỪ VÒNG TRƯỚC (gag mới trùng trò / cơ chế với bất kỳ gag nào dưới đây → khong_lap = 0):\n${chon.chon.map((g) => `- ${g.ten}: ${g.ra_tay} (cơ chế ${g.co_che})`).join('\n')}\n\n` : ''}CÁC GAG:\n${ds}` }),
       sinhJson({ schema: ThuMuSchema, model: MO_HINH_THU, max_tokens: 4000, ten: 'thử mù gag', system: 'Bạn là người xem mạng xã hội lướt nhanh, xem hoạt hình không lời. Bạn chỉ thấy HÀNH ĐỘNG trên màn, không biết ý đồ người viết.', user: `Mỗi dòng là một clip 3–4 giây. Kể lại bạn thấy gì, có hiểu không, buồn cười cỡ nào (0–2):\n${moi.map((g, i) => `${i + 1}. ${g.van_de} → ${g.ra_tay} → ${g.day_them} → ${g.phan_ung}`).join('\n')}` }),
     ]);
     if (!c.ok) return c; tk.push(c.tokens);

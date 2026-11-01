@@ -64,6 +64,40 @@ export function vanSoTay(goi: string | null | undefined): string {
     + (cv === 'gag' ? `\nĐỊNH DẠNG GAG: kịch bản gồm các khối "[GAG n] <tên>" — mỗi khối là MỘT shot liền, một gag trọn: vấn đề → vật đặc trưng ra tay → cú đẩy thêm → phản ứng. Khi tách cảnh: mỗi khối [GAG n] đúng MỘT shot, không chia nhỏ, không gộp.` : '');
 }
 
+// ── KHO VẬT ĐẶC TRƯNG (anh duyệt 01/11/2026): lượt đầu tập 1 trượt "Thay vai" hàng loạt — đòn gánh chỉ được dùng như gậy bất kỳ. Dựng kho công năng
+// KHÔNG hiển nhiên của vật trước, máy sinh gag phải rút lời giải từ kho (mỗi gag một công năng khác), bộ chấm dùng kho để chấm "Thay vai".
+// Phim khai vật bằng kinh_thanh.vat_dac_trung (khoá ở đây). Thêm vật = thêm một khoá.
+export type CongNang = { ten: string; mo_ta: string };
+export const KHO_VAT: Record<string, { ten: string; cau_tao: string; cong_nang: CongNang[] }> = {
+  don_ganh: { ten: 'Đòn gánh + hai thúng (quang gánh)', cau_tao: 'đòn tre dài, dẻo, cong nhẹ; hai đầu treo quang dây đay, mỗi quang một thúng tròn nông; người gánh nhún theo nhịp đòn',
+    cong_nang: [
+      { ten: 'Cân đĩa', mo_ta: 'hai thúng là hai đĩa cân: đặt vật / người vào một bên, bên kia nâng lên — đo, so, đổi chỗ' },
+      { ten: 'Bập bênh', mo_ta: 'tì giữa đòn lên mép ray / bậc cửa: ấn một đầu, đầu kia bật lên hất vật / người' },
+      { ten: 'Đòn bẩy', mo_ta: 'luồn dưới vật nặng, tì điểm tựa, nhấc bổng' },
+      { ten: 'Lò xo / máy bắn', mo_ta: 'đòn tre dẻo: uốn cong rồi thả, bắn vật đi xa hoặc lên tầng 2' },
+      { ten: 'Cần câu', mo_ta: 'dây quang thả xuống làm dây câu, móc thúng làm lưỡi: câu vật dưới khe ray / trên ban công' },
+      { ten: 'Cầu / thang', mo_ta: 'bắc ngang hai bậc cửa hay từ đất lên ban công cho người / mèo đi' },
+      { ten: 'Barie', mo_ta: 'gác ngang làm thanh chắn, hạ / nâng như barie đường sắt' },
+      { ten: 'Trục quay / chong chóng', mo_ta: 'xoay đòn trên vai: hai thúng văng tròn quét một vòng, gom hoặc dạt vật' },
+      { ten: 'Nhịp tàu (đồng hồ)', mo_ta: 'đòn nhún theo nhịp — bà đi đúng nhịp tàu, cả phố bắt nhịp theo bà' },
+      { ten: 'Gậy nhạc trưởng', mo_ta: 'vung đòn chỉ huy: cả phố co vào / bày ra theo hiệu' },
+      { ten: 'Thước đo', mo_ta: 'đòn dài đúng một khoảng: đo khe hở, đo hành lang an toàn, chia phần dây phơi cho hai nhà' },
+      { ten: 'Móc treo di động', mo_ta: 'đầu đòn làm móc quần áo / cây treo đèn lồng, mang đi được' },
+      { ten: 'Kiệu / cáng', mo_ta: 'hai người khiêng hai đầu: chở người, chở cả bàn cà phê' },
+      { ten: 'Thúng làm mũ / ô / lồng', mo_ta: 'úp thúng che mưa, che nắng, úp giữ con mèo / gà, làm mũ cho trẻ' },
+      { ten: 'Thúng làm thuyền / nôi', mo_ta: 'đặt trẻ / mèo vào thúng, đưa võng, thả trôi trên vũng nước' },
+      { ten: 'Gõ nhịp / chuông', mo_ta: 'gõ đầu đòn lên ray, lên thúng: báo hiệu, gọi người, làm nhạc' },
+      { ten: 'Cột cờ / cột ăng-ten', mo_ta: 'dựng đứng đòn, treo đồ lên cao cho người xa nhìn thấy' },
+      { ten: 'Cái kẹp', mo_ta: 'hai quang khép lại kẹp vật như đôi đũa lớn' },
+      { ten: 'Thăng bằng', mo_ta: 'bà đi trên ray như đi dây, đòn gánh là sào thăng bằng' },
+      { ten: 'Chia đôi', mo_ta: 'một đòn hai đầu — chia đều cho hai bên tranh chấp (hai nhà, hai quán)' },
+    ] },
+};
+export const vanKhoVat = (k: string | null | undefined): string => {
+  const v = k ? KHO_VAT[k] : null; if (!v) return '';
+  return `KHO CÔNG NĂNG VẬT ĐẶC TRƯNG — ${v.ten} (${v.cau_tao}). Mỗi gag lấy lời giải từ MỘT công năng dưới đây (ghi tên công năng vào co_che), không dùng vật như cây gậy thông thường, mỗi công năng tối đa một gag:\n${v.cong_nang.map((c) => `- ${c.ten}: ${c.mo_ta}`).join('\n')}`;
+};
+
 // ── Thẻ gag + máy kiểm (0đ) ─────────────────────────────────────────────────────────────────────────────────────────────
 export type TheGag = { ten: string; van_de: string; ra_tay: string; day_them: string; phan_ung: string; /** tên cơ chế ngắn (vd "móc vật đang bay") — để bắt lặp */ co_che: string;
   /** vì sao gag chỉ xảy ra ở nơi này */ vi_sao_noi: string; /** 1–10: quy mô / mức nguy / độ khéo — để xếp leo thang */ muc: number };

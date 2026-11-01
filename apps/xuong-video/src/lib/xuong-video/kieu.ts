@@ -143,6 +143,7 @@ export type KinhThanh = {
   keyframe_hai_buoc?: boolean;
   ngon_ngu?: string;            // ngôn ngữ lời thoại/phụ đề: 'vi' | 'en'
   /** GÓI THỂ LOẠI đang chọn (goi-the-loai.ts) — khung beat, cung khán giả, luật nhấn cho tách cảnh; '' = chưa chọn */ goi?: string;
+  /** vật đặc trưng của phim gag — khoá KHO_VAT (so-tay-kich-ban.ts): máy sinh gag rút lời giải từ kho công năng của vật */ vat_dac_trung?: string;
   the_loai?: TheLoai | '';      // thể loại → thư viện điện ảnh gợi ý kỹ thuật hợp (kinh dị ≠ hài ≠ QC UGC)
   logline?: string;             // một câu: ai, muốn gì, cản trở gì
   chu_de?: string;              // điều bộ phim muốn nói (theme)
@@ -358,7 +359,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
 }
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', chat_lieu: '', ti_le: '9:16', do_phan_giai: '720p',
-  mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', goi: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
+  mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', goi: '', vat_dac_trung: '', logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
   may_dung: null, giong_dan: null, nguoi_ke: '', cam_xuc_qc: false, series: null, luu_tru: false, nhip_stop_motion: false, phu_de: false, look: '', khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '', keyframe_sua_3d: true, keyframe_hai_buoc: true,
 };
 /** Chất liệu hình của phim: khai tay trong kinh thánh, không thì đọc chữ phong cách. Không đoán được → 'hoat_hinh' an toàn (không bật cổng soi mặt

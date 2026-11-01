@@ -20,7 +20,7 @@ import { GOI_THE_LOAI, DIGEN_NHOM, DIGEN_KHONG_TINH, goiTheoKey, kiemGoi, boCucG
 import { CotCay } from './keo';
 import { KHUNG_TUYEN, khungTheoKey, khungTheoTheLoai, type KhungTuyen } from '@/lib/xuong-video/khung-tuyen';
 import { taiPromptOpus, LOAI_OPUS, type KhoPromptOpus } from '@/lib/xuong-video/prompt-opus';
-import { KINH_NGHIEM_KB, PHEP_THU_GAG, PHEP_THU_CHUNG, NGUONG_DAT, type PhepThu } from '@/lib/xuong-video/so-tay-kich-ban';
+import { KINH_NGHIEM_KB, PHEP_THU_GAG, PHEP_THU_CHUNG, NGUONG_DAT, KHO_VAT, type PhepThu } from '@/lib/xuong-video/so-tay-kich-ban';
 
 // THƯ VIỆN theo YDNI (anh 18/10/2026 "tổ chức lại thư viện cho dễ tìm, dễ truy cập"): ô tìm luôn trên đầu (tìm cả tên Việt, tên ngành tiếng Anh,
 // mã, mô tả — mọi mục cùng lúc); mục lục trái theo câu hỏi người làm phim mang tới, MỖI LẦN MỘT MỤC (không chồng dọc 300 thẻ); thẻ gọn một tên +
@@ -75,6 +75,7 @@ export function ThuVienNoiDung({ tlDau = '' }: { tlDau?: string }) {
       <LuoiThe rong={320}>
         <TheMuc ten="🧪 6 phép thử gag" ma="so_tay.pt_gag" moTa={PHEP_THU_GAG.map((p) => p.ten).join(' · ')} />
         <TheMuc ten="🧪 Phép thử kịch bản thường" ma="so_tay.pt_chung" moTa={PHEP_THU_CHUNG.map((p) => p.ten).join(' · ')} />
+        {Object.entries(KHO_VAT).map(([k, v]) => <TheMuc key={k} ten={`🧰 Kho công năng: ${v.ten}`} ma={`so_tay.vat_${k}`} moTa={v.cong_nang.map((c) => c.ten).join(' · ')} ten2="phim gag" />)}
         {sotay.map((k) => <TheMuc key={k.ma} ten={`📓 ${k.ten}`} ma={`so_tay.${k.ma}`} moTa={k.bai_hoc} ten2={k.pham_vi === 'gag' ? 'phim gag' : 'mọi phim'} />)}
       </LuoiThe></div>;
     if (m === 'khan_gia') return kg.length ? <div key={m}>{dau}<LuoiThe>{kg.map((h) => <TheMuc key={h.key} ten={`${h.ic} ${h.ten}`} ma={`khan_gia.${h.key}`} moTa={h.mo_ta} ten2={h.nganh.ten_nganh} />)}</LuoiThe></div> : null;
@@ -283,6 +284,14 @@ export function ChiTietKyThuatNgan({ ma }: { ma: string }) {
       <table className="xv-tbl"><tbody>{pt.map((p) => <tr key={p.ma}><td style={{ whiteSpace: 'nowrap' }}><b>{p.ten}</b></td><td>{p.hoi}</td><td style={{ color: 'var(--fg-3)' }}>trượt khi {p.truot}</td></tr>)}</tbody></table>
       <div style={{ color: 'var(--fg-2)' }}>Mỗi phép chấm 0 (trượt) · 1 (tạm) · 2 (tốt). Đạt khi điểm quy về thang 10 ≥ {NGUONG_DAT}, không phép nào 0 và máy kiểm không báo lỗi.{key === 'pt_gag' ? ' Gag trượt một phép là bị loại khỏi tập; gag trùng cơ chế giữ bản điểm cao.' : ' Chưa đạt thì máy viết lại một vòng theo lời chấm rồi chấm lại.'}</div>
       <div className="xv-mono">Người chấm là model khác người viết (chấm chéo), viết lý do loại trước khi cho điểm (chấm ngược){key === 'pt_gag' ? '; model thứ ba xem mù chỉ thấy hành động (thử)' : ''}.</div>
+      {nut}
+    </div>);
+    const vat = key.startsWith('vat_') ? KHO_VAT[key.slice(4)] : null;
+    if (vat) return (<div style={{ display: 'grid', gap: 8, fontSize: 12.5 }}>
+      <div className="xv-mono">📓 Sổ tay kịch bản · kho công năng vật đặc trưng</div><b style={{ fontSize: 15 }}>🧰 {vat.ten}</b>
+      <div style={{ color: 'var(--fg-2)' }}>{vat.cau_tao}</div>
+      <table className="xv-tbl"><tbody>{vat.cong_nang.map((c) => <tr key={c.ten}><td style={{ whiteSpace: 'nowrap' }}><b>{c.ten}</b></td><td style={{ color: 'var(--fg-2)' }}>{c.mo_ta}</td></tr>)}</tbody></table>
+      <div className="xv-mono">Phim khai vật ở Kinh thánh (vat_dac_trung = {key.slice(4)}): máy sinh gag rút mỗi lời giải từ một công năng, bộ chấm dùng kho này để chấm "Thay vai".</div>
       {nut}
     </div>);
     const k = KINH_NGHIEM_KB.find((x) => x.ma === key);

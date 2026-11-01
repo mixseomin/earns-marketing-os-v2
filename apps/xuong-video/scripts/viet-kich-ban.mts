@@ -16,7 +16,8 @@ const gia = (k: string) => (process.argv.find((a) => a.startsWith(`--${k}=`)) ??
 const tapId = Number(gia('tap')); if (!tapId) { console.error('thiếu --tap='); process.exit(1); }
 const db = getDb()!;
 const bc = await boiCanhTap(db, tapId); if (!bc) { console.error('không thấy tập'); process.exit(1); }
-const brief = gia('brief-tep') ? readFileSync(gia('brief-tep'), 'utf8') : bc.tap.brief;
+// --brief-tep=a.md,b.md: nối nhiều tệp (brief tập + hồ sơ nơi chốn, vd tham-khao/pho/<phố>/ho-so.md) — hồ sơ giữ một chỗ, không chép vào brief
+const brief = gia('brief-tep') ? gia('brief-tep').split(',').map((t) => readFileSync(t.trim(), 'utf8')).join('\n\n') : bc.tap.brief;
 const gan = docGocSpy(((await db.execute(sql`SELECT goc_spy FROM xv_phim WHERE id = ${bc.tap.phim_id}`)) as unknown as Row[])[0]?.goc_spy);
 const gocSpy = await vanGocSpyKb(gan);
 console.log(`tập #${tapId} · phim #${bc.tap.phim_id} · gói ${docKinhThanh(bc.kt).goi || '(chưa chọn)'} · ${bc.nhanVat.length} anchor · góc spy: ${gan.length}\nBRIEF:\n${brief}\n${gocSpy}`);

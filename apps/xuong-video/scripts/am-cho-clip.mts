@@ -15,7 +15,9 @@ const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.sl
 const video = arg('video'), nhac = arg('nhac'), toNhac = Number(arg('to-nhac') || 0.35);
 if (!video) { console.error('thiếu --video'); process.exit(1); }
 const giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', video], { encoding: 'utf8' }).trim());
-const uoc = giaAm('mirelo-ai/sfx-v1/video-to-audio', giay) + (nhac ? giaAm('cassetteai/music-generator', Math.ceil(giay)) : 0);
+// CassetteAI nhận duration ≥ 10 (fal 422 "greater than or equal to 10") — sinh tối thiểu 10s, bản trộn cắt theo clip
+const giayNhac = Math.max(10, Math.ceil(giay));
+const uoc = giaAm('mirelo-ai/sfx-v1/video-to-audio', giay) + (nhac ? giaAm('cassetteai/music-generator', giayNhac) : 0);
 console.log(`clip ${giay.toFixed(2)}s · ước ${uoc.toFixed(2)}¢`);
 if (process.env.DUYET_SINH_1_LAN !== '1') { console.error('tốn tiền: chạy kèm DUYET_SINH_1_LAN=1 ngay sau khi anh bảo'); process.exit(1); }
 
@@ -35,9 +37,11 @@ async function cho(id: string, input: Record<string, unknown>): Promise<string> 
   }
   throw new Error(`${id}: quá 6 phút`);
 }
+// --sfx=<url>: dùng lại hiệu ứng đã sinh (lượt trước hỏng ở bước sau) — không trả tiền Mirelo lần nữa
+const sfxCo = arg('sfx');
 const [sfx, nen] = await Promise.all([
-  cho('mirelo-ai/sfx-v1/video-to-audio', { video_url: url }),
-  nhac ? cho('cassetteai/music-generator', { prompt: `${nhac}, instrumental, no vocals`, duration: Math.ceil(giay) }) : Promise.resolve(''),
+  sfxCo ? Promise.resolve(sfxCo) : cho('mirelo-ai/sfx-v1/video-to-audio', { video_url: url }).then((u) => { console.log(`hiệu ứng xong: ${u}`); return u; }),
+  nhac ? cho('cassetteai/music-generator', { prompt: `${nhac}, instrumental, no vocals`, duration: giayNhac }) : Promise.resolve(''),
 ]);
 console.log(`hiệu ứng: ${sfx}${nen ? `\nnhạc: ${nen}` : ''}`);
 const thu = mkdtempSync(join(tmpdir(), 'am-clip-')); const ra = join(thu, 'ra.mp4');

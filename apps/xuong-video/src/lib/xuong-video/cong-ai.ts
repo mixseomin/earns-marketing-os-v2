@@ -100,9 +100,13 @@ export const TOI_DA_REF: Partial<Record<CongKey, number>> = { ckey: 3, plenxai: 
 export const RE_NANO_CKEY = /^[^/]+\/(nano-banana-2|gemini-3\.1-flash-image|nano-banana-pro)$/i;
 /** uuTien = người bán vừa chạy ĐẠT gần đây → đứng đầu (thử 15/10/2026: người rẻ nhất 65₫ và người 480₫ đều chết, chỉ wowztools sống — xếp thuần
  *  theo giá thì mỗi ảnh phải chờ người chết trước). */
-export function chonNguoiBanCkey(danhMuc: { id: string; vnd: number }[], nghi: Set<string>, tranVnd = 683, uuTien: Set<string> = new Set()): { model: string; vnd: number }[] {
+/** NGƯỜI BÁN BỎ QUA ẢNH THAM CHIẾU (đo 02/11/2026): cùng prompt + cùng ảnh đầu vào, dungcsnd113 vẽ cảnh mới từ chữ (3/3 mốc), wowztools giữ đúng bố cục
+ *  (3/3). Lượt có ảnh tham chiếu (keyframe, sửa ảnh, giữ nhân vật) KHÔNG được đi qua họ — trước đây script chạy riêng chọn người rẻ nhất (65₫) và 44 lượt
+ *  có ảnh tham chiếu đã đi qua người bán này (15–31/10). Lượt không ảnh vẫn dùng được. Thêm người bán mới vào đây khi đo thấy cùng lỗi. */
+export const CKEY_BO_THAM_CHIEU: ReadonlySet<string> = new Set(['dungcsnd113/gemini-3.1-flash-image']);
+export function chonNguoiBanCkey(danhMuc: { id: string; vnd: number }[], nghi: Set<string>, tranVnd = 683, uuTien: Set<string> = new Set(), coThamChieu = false): { model: string; vnd: number }[] {
   const hang = (id: string) => (uuTien.has(id) ? 0 : 2) + (/pro$/i.test(id) ? 1 : 0);
-  return danhMuc.filter((m) => RE_NANO_CKEY.test(m.id) && m.vnd < tranVnd && !nghi.has(m.id))
+  return danhMuc.filter((m) => RE_NANO_CKEY.test(m.id) && m.vnd < tranVnd && !nghi.has(m.id) && !(coThamChieu && CKEY_BO_THAM_CHIEU.has(m.id)))
     .sort((a, b) => hang(a.id) - hang(b.id) || a.vnd - b.vnd).map((m) => ({ model: m.id, vnd: m.vnd }));
 }
 /** Cầu dao từng người bán (trong bộ nhớ tiến trình): hỏng HONG_LIEN lần liền → nghỉ NGHI_PHUT phút; một lần đạt là mở lại. Tránh mỗi ảnh
@@ -210,7 +214,7 @@ export async function sinhAnhQuaCong(modelGoogle: string, o: { prompt: string; t
   if (kc && tinh.some((x) => x.cong === 'ckey')) {
     await napCkey(kc);
     if (khoCkey) {
-      const ban = chonNguoiBanCkey([...khoCkey.gia].map(([id, vnd]) => ({ id, vnd })), dangNghi(), undefined, vuaDat());
+      const ban = chonNguoiBanCkey([...khoCkey.gia].map(([id, vnd]) => ({ id, vnd })), dangNghi(), undefined, vuaDat(), o.thamChieuUrl.length > 0);
       for (const b of ban) giaDong[`ckey:${b.model}`] = b.vnd;
       chuoi = [...ban.map((b) => ({ cong: 'ckey' as const, model: b.model })), ...tinh.filter((x) => x.cong !== 'ckey')];
     }

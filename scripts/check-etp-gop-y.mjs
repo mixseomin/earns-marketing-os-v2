@@ -232,6 +232,12 @@ const LUAT = [
   { card: 1497, tep: 'apps/web/src/lib/actions/etp-lam-moi.ts', co: "if (tt === 'activating' || tt === 'active') return { ok: true, chay: false, ban:", vi: 'máy đang chạy phần sau của lượt → không để nút chờ một lượt systemd không mở' },
   { card: 1498, tep: 'apps/web/src/components/etp-view.tsx', co: "{hep ? <O0 v={roi(sx)} t={`${t} — tổng các camp đang hiện`}", vi: 'điện thoại: ROI tổng nằm trong dòng tiêu đề dính, không thêm hàng dính' },
   { card: 1498, tep: 'apps/web/src/components/etp-view.tsx', co: 'Tổng {phim.length} phim · $', vi: 'điện thoại: ô đầu dòng tiêu đề ghi số phim + ngân sách đang bật' },
+  { card: 1499, tep: 'apps/web/src/components/etp-view.tsx', co: "{coKy ? <span style={{ marginLeft: 'auto' }}>{kySel()}</span> : null}", vi: 'cuộn xuống: ô kỳ lên dòng dính, dạt phải, vẫn chọn được' },
+  { card: 1499, tep: 'apps/web/src/components/etp-view.tsx', co: "{coKy && !lenDinh ? (gon ? kySel() : <span style={{ marginLeft: 'auto' }}>{kySel()}</span>) : null}", vi: 'ô kỳ không hiện hai nơi khi đã lên dòng dính' },
+  { card: 1499, tep: 'apps/web/src/components/etp-view.tsx', mot: '<ChonKhoang tu={khK.tu}', vi: 'ô kỳ dựng MỘT chỗ (kySel), không chép tay' },
+  { card: 1500, tep: 'apps/web/src/components/etp-view.tsx', co: '{nguoiSel()}{coBo ? boSel() : null}</span>', vi: 'dòng dính: đổi Người ngay trên đó + ô TK sau ô Người' },
+  { card: 1500, tep: 'apps/web/src/components/etp-view.tsx', co: '{nguoiSel()}{!gon && coBo ? boSel() : null}', vi: 'tiêu đề: ô TK đứng ngay sau ô Người' },
+  { card: 1500, tep: 'apps/web/src/components/etp-view.tsx', cam: '{!gon ? <>{laiSel()}{tuoiSel()}{luatSel()}{dangSel()}{boSel()}</> : null}', vi: 'máy tính: ô TK không quay lại hàng lọc' },
   // anh 01/11/2026 "việc này quan trọng, fix ngay" (#70177: 15 dòng lỗi giống hệt): nhật ký máy một đường ghi, chặn dòng lỗi lặp; kho khoá NULL bằng nhau
   { card: 0, tep: 'apps/etp/nhat_ky.py', co: "where ten = 'ethopex_nhat_ky' and not {lap}", vi: 'nhật ký studio: dòng lỗi trùng trong 24 giờ không ghi lại' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', cam: "jsonb_build_array('{v}'::jsonb)", vi: 'lam-ethopex ghi nhật ký qua nhat_ky.ghi, không tự chép câu update' },

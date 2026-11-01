@@ -2286,8 +2286,14 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const nguoiSel = () => (du.nguoi.ds.length > 1 ? <>{dangDoiNguoi ? <span style={{ fontSize: 11, color: '#60a5fa' }}>đang tải…</span> : null}<Chon2 value={du.nguoi.dang == null || !du.nguoi.ngoai ? '' : String(du.nguoi.dang)} nhan="Người" align="left" title="xem camp + report theo người dùng Ethopex (tài khoản QC của người đó) — người khác chỉ xem, luật không áp"
     onChange={(v) => { const u = urlNguoi(v); doiNguoi(() => router.push(`${u.pathname}${u.search}`)); }} href={(v) => urlNguoi(v).href}
     options={du.nguoi.ds.filter((x) => !x.nha).map((x) => ({ value: String(x.id), label: `${x.ten} · ${x.tk} TK`, ngan: x.ten }))} rong={`${du.nguoi.ds.find((x) => x.nha)?.ten ?? 'Nhà'} (nhà)`} /></> : null);
-  const boSel = () => (!boCo.length ? null : <Chon2 value={boHieu} onChange={(v) => doi({ bo: v }, () => setBoLoc(v))} nhan="TK" align="right" title="lọc camp theo bộ tài khoản QC (tài khoản + Page)"
+  const boSel = () => (!boCo.length ? null : <Chon2 value={boHieu} onChange={(v) => doi({ bo: v }, () => setBoLoc(v))} nhan="TK" align="left" title="lọc camp theo bộ tài khoản QC (tài khoản + Page)"
     options={boCo.map((b) => ({ value: b, label: `Bộ ${b}${gon ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''} · ${du.boTk[b]?.mui_gio ?? 'múi giờ ?'}`, ngan: `Bộ ${b}`, tim: `bộ ${b} ${du.boTk[b]?.ten ?? ''}`, dem: du.camps.filter((c) => c.bo === b && c.trang_thai === 'ACTIVE').length }))} />);
+  // LÊN DÒNG DÍNH (anh 01/11/2026 #1499 "chuyển chọn ngày lên trên + sticky (vẫn cho chọn)", #1500 "chuyển cả bộ TK vào sau chỗ chọn người + sticky; phần chọn Người cũng cho đổi ở sticky"):
+  // máy tính, cuộn qua hero → dòng số gọn mang luôn ô Người · ô TK · ô kỳ (dạt phải) — hàng tab bên dưới bỏ ô kỳ, không hiện hai nơi. Ô TK luôn đứng ngay sau ô Người (tiêu đề / dòng dính), không ở hàng lọc.
+  // Điện thoại giữ như cũ (dòng gọn cuộn ngang, ô TK trong bảng Lọc)
+  const coKy = tab !== 'luat' && tab !== 'tn', lenDinh = gonHero && !gon;
+  const coBo = tab === 'camp' && xemCamp !== 'lich' && xemCamp !== 'bac';   // ô TK chỉ lọc camp (urlCua bỏ ?b= ngoài tab Camp)
+  const kySel = () => <ChonKhoang tu={khK.tu} den={khK.den} ma={kh.includes('~') ? null : kh} homNay={du.nay} mocThem={[{ ma: 'tat_ca', nhan: 'All time' }]} title="kỳ số liệu (ngày Ethopex 07:00–07:00 VN)" onDoi={(v) => setKh('ma' in v ? v.ma : `${v.tu}~${v.den}`)} />;
   return (
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
@@ -2303,7 +2309,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
-        <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}
+        <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{!gon && coBo ? boSel() : null}
           {du.nguoi.ngoai && quyen?.cheDo?.duoc.bao && du.nguoi.dang != null ? <CheDoLuatO nguoiId={du.nguoi.dang} c={quyen.cheDo} /> : null}
           {du.nguoi.ngoai && !(quyen?.sua != null && du.nguoi.dang === quyen.sua) ? <span title="camp + số của tài khoản QC người này — chỉ để theo dõi / học; cột Luật = máy luật ĐỀ XUẤT cho camp người này (không thao tác), rê ô ngân sách xem lịch sử lên bậc + máy đề xuất trước bao lâu; nút bật / tắt không áp"
             style={{ background: 'rgba(168,85,247,.18)', color: '#d8b4fe', border: '1px solid rgba(168,85,247,.5)', borderRadius: 8, padding: '2px 8px', fontWeight: 600, fontSize: 12 }}>👁 chỉ xem</span> : null}</span>
@@ -2331,11 +2337,12 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       {/* HÀNG TAB + PILL DÍNH KHI CUỘN (anh 26/10/2026 "các tabs pill phải sticky khi scroll xuống") — chiều cao vào --etp-dinh cho hàng dính bên dưới (lọc Quét nội dung, đầu cây camp) */}
       {/* HERO GỌN DÍNH KHI CUỘN (anh 27/10/2026 "hero khi cuộn xuống vẫn sticky nhưng gọn lại"): cuộn qua dải số lớn thì một dòng số gọn dính trên hàng tab */}
       <div ref={dinhRef} data-comp="ui.StickyBar" style={{ position: 'sticky', top: 0, zIndex: 7, background: 'var(--bg-0, #0b0b0c)' }}>
-      {gonHero ? <div style={{ display: 'flex', gap: gon ? 10 : 18, alignItems: 'baseline', overflowX: 'auto', scrollbarWidth: 'none', whiteSpace: 'nowrap', fontSize: 12, padding: '6px 0 2px', borderBottom: '1px solid var(--line)' }}>
+      {gonHero ? <div style={{ display: 'flex', gap: gon ? 10 : 18, alignItems: gon ? 'baseline' : 'center', overflowX: 'auto', scrollbarWidth: 'none', whiteSpace: 'nowrap', fontSize: 12, padding: '6px 0 2px', borderBottom: '1px solid var(--line)' }}>
         {([['Hôm nay', nay], ['Hôm qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, x]) => <span key={ten}><span style={{ color: 'var(--fg-2)' }}>{ten} </span><b style={{ fontSize: 14 }}><Lai s={x} /></b> <span style={{ fontSize: 11 }}><Roi s={x} /></span></span>)}
         <span><span style={{ color: 'var(--fg-2)' }}>Camp chạy </span><b style={{ fontSize: 14 }}>{chay.length}</b></span>
         <span><span style={{ color: 'var(--fg-2)' }}>Ngân sách </span><b style={{ fontSize: 14 }}>${[...chay, ...choChay].reduce((a, c) => a + c.ngan_sach, 0)}/ngày</b></span>
-        {du.nguoi.ds.length > 1 ? <span title="người đang xem — cuộn lên ô Người để đổi"><span style={{ color: 'var(--fg-2)' }}>Người </span><b style={{ fontSize: 14, color: du.nguoi.ngoai ? '#60a5fa' : undefined }}>{tenNguoi}</b></span> : null}{/* anh 31/10/2026 #1495 */}
+        {lenDinh ? <><span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{coBo ? boSel() : null}</span>{coKy ? <span style={{ marginLeft: 'auto' }}>{kySel()}</span> : null}</>
+          : du.nguoi.ds.length > 1 ? <span title="người đang xem — cuộn lên ô Người để đổi"><span style={{ color: 'var(--fg-2)' }}>Người </span><b style={{ fontSize: 14, color: du.nguoi.ngoai ? '#60a5fa' : undefined }}>{tenNguoi}</b></span> : null}{/* anh 31/10/2026 #1495 (điện thoại) */}
       </div> : null}
       {/* BỐ CỤC THANH TRÊN (anh 31/10/2026 "bố cục lại chỗ này" + YDNI): một hàng nowrap nhồi 8 tab + kỳ + kiểu xem + 6 ô lọc → tab gãy hai dòng chữ.
           Máy tính: hàng 1 = tab (mỗi nhãn một dòng) · kỳ dạt phải; hàng 2 = kiểu xem + bộ lọc của tab đó (tách bằng etp-xuong). Điện thoại giữ như cũ. */}
@@ -2345,9 +2352,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
           { value: 'tong', label: 'Tổng quan' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
           { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }] satisfies SegmentedOption<Tab>[]).filter((o) => tabsHien.includes(o.value))} />
         {/* ĐIỆN THOẠI: hàng 1 = tab (cuộn ngang) · hàng 2 = kiểu xem (biểu tượng) + kỳ (ô chọn) + nút Lọc; bảng lọc chỉ mở khi bấm Lọc */}
-        {tab !== 'luat' && tab !== 'tn' ? (gon
-          ? <ChonKhoang tu={khK.tu} den={khK.den} ma={kh.includes('~') ? null : kh} homNay={du.nay} mocThem={[{ ma: 'tat_ca', nhan: 'All time' }]} title="kỳ số liệu (ngày Ethopex 07:00–07:00 VN)" onDoi={(v) => setKh('ma' in v ? v.ma : `${v.tu}~${v.den}`)} />
-          : <span style={{ marginLeft: 'auto' }}><ChonKhoang tu={khK.tu} den={khK.den} ma={kh.includes('~') ? null : kh} homNay={du.nay} mocThem={[{ ma: 'tat_ca', nhan: 'All time' }]} title="kỳ số liệu (ngày Ethopex 07:00–07:00 VN)" onDoi={(v) => setKh('ma' in v ? v.ma : `${v.tu}~${v.den}`)} /></span>) : null}
+        {coKy && !lenDinh ? (gon ? kySel() : <span style={{ marginLeft: 'auto' }}>{kySel()}</span>) : null}
         {!gon && (tab === 'camp' || tab === 'creative') ? <span className="etp-xuong" style={{ flexBasis: '100%', height: 0 }} /> : null}
         {tab === 'camp' ? (
           <span style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 6, overflow: 'hidden' }}>
@@ -2376,7 +2381,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         {gon ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }} className="etp-loc3">
           <style>{'.etp-loc3 select{width:100%;min-width:0}'}</style>
           {laiSel()}{tuoiSel()}{luatSel()}{dangSel()}{boSel()}</div> : null}
-        {!gon ? <>{laiSel()}{tuoiSel()}{luatSel()}{dangSel()}{boSel()}</> : null}
+        {!gon ? <>{laiSel()}{tuoiSel()}{luatSel()}{dangSel()}</> : null}{/* ô TK máy tính đứng sau ô Người (#1500) */}
         </div> : null}
       </div>
       </div>

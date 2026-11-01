@@ -25,4 +25,4 @@ function veNguoi(ctx, t) {
   manh(ctx, tuong, { x: X, y, co: CO * 1.02, coX: 1 + 0.05 * nhip(t, 1.55, 1.75) });   // dội vào tường: bẹt ra một nhịp
 }
 
-await chayGag('gag2-barie', 6.5, { veNguoi, veVat: (ctx, t) => veTau(ctx, t), donGoc });
+await chayGag('gag2-barie', 6.5, { vung: [[540, 240, 860, 625]], veNguoi, veVat: (ctx, t) => veTau(ctx, t), donGoc });

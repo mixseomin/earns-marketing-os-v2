@@ -30,4 +30,4 @@ function veVat(ctx, t) {
   manh(ctx, bong, { x: p.x, y: p.y, co: CO_BONG, neo: [0.5, 0.5], xoay: t * 400 * (t > T_THUC ? 1 : 0) });
 }
 
-await chayGag('gag6-bong', 5.5, { veNguoi, veVat, donGoc });
+await chayGag('gag6-bong', 5.5, { vung: [[460, 330, 630, 600]], veNguoi, veVat, donGoc });

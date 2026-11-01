@@ -29,4 +29,4 @@ function veNguoi(ctx, t) {
   manh(ctx, meoNgoi, { x: meo.x, y: meo.y, co: CO_MEO, lat: true });
 }
 
-await chayGag('gag1-go-ray', 6.5, { veNguoi, veVat: (ctx, t) => veTau(ctx, t), donGoc });
+await chayGag('gag1-go-ray', 6.5, { vung: [[560, 360, 930, 625]], veNguoi, veVat: (ctx, t) => veTau(ctx, t), donGoc });

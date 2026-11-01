@@ -22,4 +22,4 @@ function veNguoi(ctx, t) {
   manh(ctx, banGap, { x: BAN.x - 10, y: THEM, co: CO, coY: 1 - 0.06 * nhip(t, T_LAT + 0.18, T_LAT + 0.36) });   // đập vào tường, nảy nhẹ
 }
 
-await chayGag('gag3-ban-co', 6.5, { veNguoi, veVat: (ctx, t) => veTau(ctx, t), donGoc });
+await chayGag('gag3-ban-co', 6.5, { vung: [[400, 330, 840, 625]], veNguoi, veVat: (ctx, t) => veTau(ctx, t), donGoc });

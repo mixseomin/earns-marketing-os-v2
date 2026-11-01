@@ -11,9 +11,9 @@ import { THEM, BAN_CONG, manhTo, nhip, bay, coCao, chayGag } from '../pho-ngang.
 const CAO_ONG = 210;
 const [cuiChi, cuoiDep, dep, den1, den2] = await Promise.all(['cui_chi', 'cuoi_dep', 'dep', 'den_1', 'den_2'].map((v) => manhTo('nu_sinh', v)));
 const [choi, longDen] = await Promise.all([manhTo('co_tuong', 'choi'), manhTo('co_tuong', 'long_den')]);
-const CO_NS = coCao(cuoiDep, 165), CO_ONG = coCao(choi, CAO_ONG), CO_DEN = coCao(den1, 76), CO_DEP = 30 / dep.width;
+const CO_NS = coCao(cuoiDep, 165), CO_ONG = coCao(choi, CAO_ONG), CO_DEN = coCao(den1, 60), CO_DEP = 30 / dep.width;
 const CO = { x: 870, y: BAN_CONG.san }, ONG = { x: 735 };
-const DAY = [{ x: 560, y: 318 }, { x: 1040, y: 300 }];
+const DAY = [{ x: 560, y: 322 }, { x: 1040, y: 170 }];      // dây chéo lên ban công — đèn treo phải cao hơn đầu hai ông (dây ngang 300px: đèn như úp sẵn từ giây đầu)
 const T_HAT = 1.45, T_BAT = 2.3, T_TUOT = 2.6, T_UP = 2.95;
 const DEN = [{ x: 706, dau: THEM - CAO_ONG + 40 }, { x: 774, dau: THEM - CAO_ONG + 40 }];
 
@@ -40,4 +40,4 @@ function veVat(ctx, t) {
   else if (t < T_BAT) { const p = bay(treo, tay, doan(t, T_HAT, T_BAT), 90); manh(ctx, dep, { x: p.x, y: p.y, co: CO_DEP, neo: [0.5, 0.5], xoay: 70 + 720 * doan(t, T_HAT, T_BAT) }); }
 }
 
-await chayGag('gag7-dep', 6, { veNguoi, veVat, donGoc });
+await chayGag('gag7-dep', 6, { vung: [[770, 160, 970, 375], [590, 330, 890, 600]], veNguoi, veVat, donGoc });

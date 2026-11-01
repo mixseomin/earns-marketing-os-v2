@@ -3,9 +3,12 @@
 //   · veNguoi(ctx, t): người + đồ đứng yên trên nền (thứ VideoExpress vẽ lại thành hoạt hình)
 //   · veVat(ctx, t): vật chạy QUỸ ĐẠO (tàu, bóng bay, mèo bay…) — do code vẽ đè lên video người, mô hình video không được bịa (luật sổ tay gag, shot #7)
 //   · donGoc(t): góc đòn gánh thêm vào (độ; + = đầu trước chúc xuống, − = hất lên) — cú xử lý của bà
-// Chạy: node canh/<gag>.mjs → MP4 giấy cắt đủ lớp · --moc=0,1.2,… → ảnh mốc KHÔNG lớp vật · --lop → lớp vật .mov trong suốt
+//   · vung: [[x0, y0, x1, y1], …] chỗ người / vật đứng yên trên nền diễn (khung 1280×720) — cùng vùng bà đi theo từng giây làm MẶT NẠ
+// Chạy: node canh/<gag>.mjs → MP4 giấy cắt đủ lớp · --moc=0,1.2,… → ảnh mốc KHÔNG lớp vật · --lop → lớp vật .mov trong suốt · --mat → mặt nạ (ghep-lop.sh)
+// MẶT NẠ (02/11/2026: VideoExpress bịa ô tô, người đi ngang, mèo khổng lồ dù prompt cấm): nền đứng yên nên chỉ lấy hình video TRONG vùng có diễn,
+// ngoài vùng là khung nền sạch — thứ mô hình bịa ngoài vùng không bao giờ lên hình.
 import { readFileSync } from 'node:fs';
-import { W, H, doan, lerp, tai, manh, bongDat, diBo, veChan, chay, xuatLop } from './dung.mjs';
+import { W, H, doan, lerp, tai, manh, bongDat, diBo, veChan, chay, xuat, xuatLop } from './dung.mjs';
 
 const T = new URL('./tai/', import.meta.url).pathname;
 const NG = JSON.parse(readFileSync(new URL('./nguon.json', import.meta.url), 'utf8'));
@@ -73,8 +76,22 @@ export function chieu(ctx, lop = false) {
 }
 
 /** chạy một gag: nền → veNguoi → bà → (veVat, trừ khi xuất ảnh mốc). `sau` vẽ đè cuối (vd ám chiều). */
-export async function chayGag(ten, giay, { veNguoi, veVat = () => {}, donGoc, sau }) {
+/** vùng bà (người + đòn + hai thúng) tại giây t */
+function vungBa(t, donGoc) {
+  const b = ba_(t, donGoc), dau = Math.min(b.vai.y - 90, b.mui.y - 40, b.vai.y - NUA * Math.sin(Math.abs(b.goc) * Math.PI / 180) - 40);
+  return [b.hx - 300, dau, b.hx + 320, H];
+}
+export async function chayGag(ten, giay, { veNguoi, veVat = () => {}, donGoc, sau, vung = [] }) {
   const khongVat = process.argv.some((a) => a.startsWith('--moc='));
+  if (process.argv.includes('--mat')) {
+    const ra = new URL(`./ra/${ten}-mat.mp4`, import.meta.url).pathname;
+    return console.log(await xuat((ctx, t) => {
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+      ctx.save(); ctx.filter = 'blur(14px)'; ctx.fillStyle = '#fff';
+      for (const [x0, y0, x1, y1] of [...vung, vungBa(t, donGoc)]) ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
+      ctx.restore();
+    }, giay, ra));
+  }
   if (process.argv.includes('--lop')) {
     const ra = new URL(`./ra/${ten}-lop.mov`, import.meta.url).pathname;
     return console.log(await xuatLop((ctx, t) => { veVat(ctx, t); if (sau) sau(ctx, t, true); }, giay, ra));

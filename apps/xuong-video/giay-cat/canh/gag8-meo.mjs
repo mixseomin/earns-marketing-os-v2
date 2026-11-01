@@ -26,4 +26,4 @@ function veVat(ctx, t) {
   manh(ctx, bayM, { x: p.x, y: p.y, co: CO * 0.9, neo: [0.5, 0.6], xoay: 20 * Math.sin(u * 6) });
 }
 
-await chayGag('gag8-meo', 6.5, { veNguoi, veVat, donGoc });
+await chayGag('gag8-meo', 6.5, { vung: [[580, 520, 730, 625], [840, 170, 990, 345]], veNguoi, veVat, donGoc });

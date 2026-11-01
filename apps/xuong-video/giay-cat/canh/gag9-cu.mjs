@@ -20,4 +20,4 @@ function veNguoi(ctx, t) {
   manh(ctx, t < T_CHAO ? ngu : chao, { x: CU.x - 10 * u, y, co: CO, xoay: -10 * nhip(t, ...T_HAY) + (t < T_CHAO ? 2 * Math.sin(t * 2) : 0) });
 }
 
-await chayGag('gag9-cu', 6.5, { veNguoi, veVat: (ctx, t) => veTau(ctx, t), donGoc, sau: (ctx, t, lop) => chieu(ctx, lop) });
+await chayGag('gag9-cu', 6.5, { vung: [[550, 350, 770, 625]], veNguoi, veVat: (ctx, t) => veTau(ctx, t), donGoc, sau: (ctx, t, lop) => chieu(ctx, lop) });

@@ -12,3 +12,16 @@ console.log('sinh-video.test: ok');
 { const { cauVatLy } = await import('./dien-anh');
   assert.ok(cauVatLy('phim_doc').includes('gravity')); assert.ok(cauVatLy('').includes('gravity'));
   assert.equal(cauVatLy('vien_tuong'), ''); assert.equal(cauVatLy('hoat_hinh'), ''); assert.equal(cauVatLy('kinh_di'), ''); }
+
+// chất liệu vẽ 2D tách khỏi mô hình nặn; câu nhịp gag giữ đủ nhịp theo thứ tự
+{
+  const { chatLieuPhim } = await import('./kieu');
+  const { cauNhipGag } = await import('./prompt-khoi');
+  const { CHAT_LIEU } = await import('./prompt-khoi');
+  assert.strictEqual(chatLieuPhim({ chat_lieu: '', phong_cach: 'Hand-painted 2D animation, gouache and watercolor backgrounds' }), 've_2d');
+  assert.strictEqual(chatLieuPhim({ chat_lieu: '', phong_cach: 'miniature stop-motion felt puppets, 2d paper backdrop' }), 'hoat_hinh');
+  assert.ok(!/miniature|never draw/i.test(CHAT_LIEU.ve_2d.giu_video) && CHAT_LIEU.ve_2d.cam.test('a real photographed miniature'));
+  const c = cauNhipGag('0-2s: wobble. | 2-4s: clamp | 4-6s: lift\n6-8s: swing');
+  assert.ok(c.includes('0-2s: wobble; 2-4s: clamp; 4-6s: lift; 6-8s: swing'), c);
+  assert.strictEqual(cauNhipGag(''), '');
+}

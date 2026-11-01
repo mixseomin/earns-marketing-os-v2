@@ -20,7 +20,7 @@ import { chanThamKhao, TIEN_TO_THAM_KHAO } from './tham-khao';
 import { loiSanPhamShot } from './san-pham-shot';
 import { chanDanDat } from './dan-dat';
 import { kiemNguPhapMay, diCm } from './ngu-phap-may';
-import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNutDong, kiemKetTap, TIEN_TO_NHIP_HINH, TIEN_TO_DUNG_TRUYEN } from './nhip-hinh';
+import { kiemNhipHinh, kiemGiayDoc, kiemDanKhongGian, kiemVaiKe, kiemTheShot, kiemNhipGag, kiemNutDong, kiemKetTap, TIEN_TO_NHIP_HINH, TIEN_TO_DUNG_TRUYEN } from './nhip-hinh';
 import { thieuBieuCam, loiMachBieuCam, loiCanCanhDongLon, loiCauTraiBieuCam, soatKeyframe } from './qc-cam-xuc';
 
 export type Cong = 'keyframe' | 'video' | 'xuat';
@@ -92,7 +92,7 @@ const chamTap = (tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_lu
 /** canhA = nhánh hook A của tập — bản người xem được kiểm trên nhánh A (kiem-nguoi-xem.ts), nên cổng phải so đúng nhánh đó, kể cả khi đang
  *  sinh shot của nhánh B (truyền canh = nhánh B thì mã phiên bản luôn lệch → chặn oan). Mặc định = canh (tập không có nhánh). */
 /** boiCanh = id các anchor Bối cảnh của phim — có thì xét luật dẫn không gian (nhip-hinh.ts › kiemDanKhongGian). */
-export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'thu_tu' | 'hanh_dong' | 'ky_thuat' | 'nhan_vat' | 'dan_dung' | 'tham_khao' | 'bieu_cam' | 'may_3d'>>)[] = [], canhA = canh, boiCanh?: number[]): string[] {
+export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' | 'thoi_luong_s' | 'phan_doan' | 'chu_man' | 'thoai' | 'loi_thoai'> & Partial<Pick<Canh, 'thu_tu' | 'canh' | 'hanh_dong' | 'ky_thuat' | 'nhan_vat' | 'dan_dung' | 'tham_khao' | 'bieu_cam' | 'may_3d'>>)[] = [], canhA = canh, boiCanh?: number[]): string[] {
   const out: string[] = [];
   // QC: mọi câu chữ phải có nguồn tham khảo (tham-khao.ts) — cấm câu tự viết không tham khảo (anh 15/10/2026).
   out.push(...chanThamKhao(canh, phim.laQc));
@@ -116,6 +116,7 @@ export function chanTienKy(tap: TapQt, phim: PhimQt, canh: (Pick<Canh, 'phat_s' 
   // Nhịp đọc (nhip-hinh.ts › giayDoc): shot phim truyện phát quá ngắn → người xem chưa hiểu đã cắt.
   out.push(...kiemGiayDoc(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phat_s: c.phat_s, thoi_luong_s: c.thoi_luong_s })), phim));
   out.push(...kiemTheShot(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, dan_dung: c.dan_dung })), phim));
+  out.push(...kiemNhipGag(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, canh: c.canh, phat_s: c.phat_s, thoi_luong_s: c.thoi_luong_s, dan_dung: c.dan_dung }))));
   out.push(...kiemVaiKe(canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phan_doan: c.phan_doan, ky_thuat: c.ky_thuat })), phim));
   // Dựng truyện (nhip-hinh.ts): nút đóng giữa hai mạch truyện trong một cảnh + kết tập ba nhịp (bùng → giữ → móc).
   const dsTruyen = canh.map((c, i) => ({ thu_tu: c.thu_tu ?? i + 1, phan_doan: c.phan_doan, phat_s: c.phat_s, thoi_luong_s: c.thoi_luong_s, ky_thuat: c.ky_thuat }));

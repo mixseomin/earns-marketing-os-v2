@@ -89,6 +89,20 @@ export function kiemTheShot(ds: { thu_tu: number; dan_dung?: DanDung }[], p: { l
   if (!thieu.length) return [];
   return [`${TIEN_TO_THE_SHOT}${thieu.length} shot thiếu ô thẻ (${thieu.slice(0, 5).map((x) => `#${x.c.thu_tu}: ${x.t.map((o) => o.ten.toLowerCase()).join(', ')}`).join(' · ')}${thieu.length > 5 ? '…' : ''})`];
 }
+/** NHỊP GAG (01/11/2026, phim #1156 #6 — anh: "video đó là full 1 gag sao không thấy rõ gì cả? mỗi vấn đề mà không thấy tiếp theo"): shot [GAG n] phải diễn
+ *  trọn vấn đề → ra tay → đẩy thêm → phản ứng TRONG một clip — cần ô nhịp có ≥ 3 nhịp và đủ giây phát (GIAY_GAG). Trước đây 4 nhịp nhồi vào 3,5s phát. */
+export const TIEN_TO_NHIP_GAG = 'nhịp gag: ';
+export const GIAY_GAG = 7;
+export const laShotGag = (ten?: string) => /^\s*\[GAG\b/i.test(ten ?? '');
+export function kiemNhipGag(ds: { thu_tu: number; canh?: string; phat_s: number | null; thoi_luong_s: number; dan_dung?: DanDung }[]): string[] {
+  const gag = ds.filter((c) => laShotGag(c.canh)); if (!gag.length) return [];
+  const it = gag.filter((c) => (c.dan_dung?.nhip ?? '').split(/[|\n]/).filter((x) => x.trim()).length < 3);
+  const ngan = gag.filter((c) => (c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4) < GIAY_GAG - 0.05);
+  return [
+    it.length ? `${TIEN_TO_NHIP_GAG}${it.length} shot gag thiếu nhịp có mốc giây (${it.slice(0, 8).map((c) => `#${c.thu_tu}`).join(', ')}) — clip sẽ bỏ nhịp giữa` : '',
+    ngan.length ? `${TIEN_TO_NHIP_GAG}${ngan.length} shot gag phát dưới ${GIAY_GAG}s (${ngan.slice(0, 8).map((c) => `#${c.thu_tu} ${c.phat_s ?? c.thoi_luong_s}s`).join(', ')}) — một gag đủ bốn nhịp cần ~8s` : '',
+  ].filter(Boolean);
+}
 /** VAI KỂ (14/10/2026 — "thiếu dẫn thời gian, góc người thứ 3, góc tổng thể, góc tâm trạng…"): một tập phim truyện phải kể bằng nhiều
  *  điểm nhìn, không chỉ chuỗi shot hành động. Đo trên ky_thuat.vai (dien-anh.ts › nhóm 'vai'). Quảng cáo và tập < 6 shot không xét. */
 export function kiemVaiKe(ds: { thu_tu: number; phan_doan?: string; ky_thuat?: KyThuatShot | null }[], p: { laQc?: boolean }): string[] {

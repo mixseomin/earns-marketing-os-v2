@@ -8,7 +8,9 @@
 // Thuần (client lẫn server import được). Tự kiểm: prompt-khoi.test.mts
 import { THAN_EN, thanMacDinh, type KhoiSet } from './kieu';
 import { MOCAP_EN } from './mocap-kho';
-export type ChatLieu = 'nguoi_that' | 'hoat_hinh';
+// 've_2d' = hoạt hình VẼ 2D (tay, gouache, cel…) — tách khỏi 'hoat_hinh' (mô hình nặn stop-motion) 01/11/2026: phim #1156 vẽ tay nhận câu "real photographed
+// miniature… never animate a cartoon face", clip gag mất hẳn nhịp phản ứng.
+export type ChatLieu = 'nguoi_that' | 'hoat_hinh' | 've_2d';
 
 type Goc = 'thap' | 'cao' | 'ngang';
 /** Chữ theo chất liệu phim cho từng khối. Thêm thể loại: thêm khoá ở ChatLieu (kieu.ts › KinhThanh.chat_lieu) + một dòng ở đây. */
@@ -52,8 +54,23 @@ export const CHAT_LIEU: Record<ChatLieu, {
     khong_them: (vao) => `WHITELIST: the only things that change in this clip are the ones the action above names${vao}. Every character, object and part of the set it does not name stays exactly as in the first frame; nothing is added, no effects of any kind; things cut off by the frame edge stay cut off; only movement, expression and camera motion change.`,
     cam: /\b(live-action film still|real actors|35mm film look)\b/i,
   },
+  ve_2d: {
+    anh_dich: () => 'a finished frame of hand-drawn 2D animation',
+    previs: 're-create it as a finished hand-drawn 2D animation frame',
+    flux_dau: (g) => `Hand-drawn 2D animation frame, ${g === 'thap' ? 'low-angle shot looking up' : g === 'cao' ? 'high-angle shot looking down' : 'eye-level shot'}.`,
+    flux_cuoi: 'Flat painted 2D artwork with clean readable shapes. No text, no letters, no numbers.',
+    anh_sang: () => 'Scene lighting, identical in every shot of this scene: same light direction, palette and colour grade as the rest of the scene.',
+    dien_video: () => 'Classic 2D cartoon acting (clear anticipation, snappy action, follow-through, squash and stretch, exaggerated readable faces and poses, hold the reaction)',
+    giu_video: 'Keep the drawn look of the first frame: same linework, painted textures, palette and character designs. The characters stay on model, but their faces and bodies animate freely and expressively, as in a hand-drawn cartoon.',
+    song_video: () => 'Keep the whole frame alive: the characters perform the action with clear, readable whole-body movement (not just a small facial change), and secondary motion never stops — leaves, cloth, hair and small background details keep drifting.',
+    khong_them: (vao) => `WHITELIST: the only things that change in this clip are the ones the action above names${vao}. Every character, object and part of the set it does not name stays exactly as in the first frame; nothing is added, no effects of any kind; things cut off by the frame edge stay cut off; only movement, expression and camera motion change.`,
+    cam: /\b(miniature|stop-motion|stop motion|plasticine|claymation|photographed|real photograph|desk lamp|live-action film still|real actors|35mm film look)\b/i,
+  },
 };
 
+/** NHỊP GAG (kieu.ts › DanDung.nhip) — khối diễn của video (sinh-video.ts › theVideo): shot [GAG n] nói từng nhịp theo mốc giây — câu "from… to…" trơn cho clip 8s nhảy thẳng tới kết (#1156 #6). */
+export const cauNhipGag = (nhip?: string): string => { const ds = (nhip ?? '').split(/\s*[|\n]\s*/).map((x) => x.trim().replace(/[.\s]+$/, '')).filter(Boolean);
+  return ds.length ? `The whole gag plays out on screen in this exact order, every beat clearly visible and held long enough to read — no beat skipped, merged or rushed: ${ds.join('; ')}` : ''; };
 /** Chữ theo LOẠI VIDEO (xv_phim.loai): phim truyện thì sản phẩm (nếu lọt vào) chỉ cần giữ y, không phải trọng tâm; quảng cáo thì cử chỉ dồn vào sản phẩm
  *  (#54 shot 9 ông Mike kéo cổ áo trong phim bán QUẦN). Chữ sản phẩm TRUNG TÍNH — trước đây ghi cứng cho quần áo ("cut, color, pockets, fabric",
  *  "never tugging other clothing"), QC điện thoại / mỹ phẩm nhận chữ quần. Thêm loại video: thêm một dòng. */

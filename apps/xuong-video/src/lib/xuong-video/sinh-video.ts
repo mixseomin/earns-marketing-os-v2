@@ -1,7 +1,7 @@
 // Lõi sinh video cho một shot + nhận kết quả (Veo qua Google hoặc model fal) — tách khỏi actions.ts để script trên box
 // (scripts/sinh-shot.mts) và server action (sinhVideoCanh / kiemVideo) dùng CÙNG một đường; actions chỉ kiểm quyền rồi gọi vào đây.
 import { chanDanDat } from './dan-dat';
-import { CHAT_LIEU, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, nhanNhin, tenNgonNguEn, thayTenNhan, type ChatLieu, type Khoi } from './prompt-khoi';
+import { CHAT_LIEU, cauNhipGag, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, nhanNhin, tenNgonNguEn, thayTenNhan, type ChatLieu, type Khoi } from './prompt-khoi';
 import { loiTrangThaiVat, chamPrompt, NGUONG_CHAN, type LoiPrompt } from './kiem-prompt';
 import { batCamXuc } from './qc-cam-xuc';
 import { moTaChuyenDong, bienTheTheoSo } from './bo-set-3d';
@@ -41,7 +41,7 @@ const loi = (m: string): { ok: false; loi: string } => ({ ok: false, loi: m });
 // "squash and stretch" làm Veo kéo Tango chảy nhão, tay rối như sợi mì.
 // Lối diễn theo CHẤT LIỆU PHIM (prompt-khoi.ts › CHAT_LIEU.dien_video): trước đây ghi cứng "Cartoon acting… squash and stretch" — phim người thật tập 122 sẽ
 // diễn kiểu hoạt hình.
-const theVideo = (dd: Canh['dan_dung'], cl: ChatLieu, rendau = false): string => [dd?.mo?.trim() && dd?.ket?.trim() ? `The action runs completely from: ${dd.mo.trim()} — to: ${dd.ket.trim()}` : '', dd?.dien?.trim() ? `${CHAT_LIEU[cl].dien_video(rendau)}: ${dd.dien.trim().replace(/[.\s]+$/, '')}` : '', dd?.huong?.trim() ? `Keep screen direction: ${dd.huong.trim()}` : ''].filter(Boolean).map((x) => `${x}.`).join(' ');
+const theVideo = (dd: Canh['dan_dung'], cl: ChatLieu, rendau = false): string => [cauNhipGag(dd?.nhip), dd?.mo?.trim() && dd?.ket?.trim() ? `The action runs completely from: ${dd.mo.trim()} — to: ${dd.ket.trim()}` : '', dd?.dien?.trim() ? `${CHAT_LIEU[cl].dien_video(rendau)}: ${dd.dien.trim().replace(/[.\s]+$/, '')}` : '', dd?.huong?.trim() ? `Keep screen direction: ${dd.huong.trim()}` : ''].filter(Boolean).map((x) => `${x}.`).join(' ');
 /** Bỏ câu đã nói ở khối khác (mở / kết của thẻ shot nằm cả trong prompt_video lẫn câu "from… to…" — bộ chấm báo lặp ở 9 shot tập 122). */
 const boCauTrung = (t: string, cum: (string | undefined)[]) => { const c = cum.map((x) => (x ?? '').trim().toLowerCase().replace(/[.\s]+$/, '')).filter((x) => x.split(/\s+/).length >= 3); return t.split(/(?<=[.!?])\s+/).filter((x) => !c.some((k) => x.toLowerCase().includes(k))).join(' '); };
 /** DÁNG NHÌN THẤY của từng nhân vật trong prompt video (không gọi tên — model không biết tên): đầy đủ "the woman in the fitted burgundy … dress" + GỌI GỌN

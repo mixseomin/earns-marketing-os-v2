@@ -129,7 +129,7 @@ export type KinhThanh = {
     dang: { title?: string; description?: string; link?: string; book?: string; words?: string[] }; nen_url?: string | null; nen_prompt?: string | null } | null;
   phong_cach?: string;          // "3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm" — nối vào đầu mọi prompt ảnh/video
   /** CHẤT LIỆU HÌNH (anh 16/10/2026 "phải tách thể loại film ra"): người thật / hoạt hình — quyết định cổng soi mặt + sổ bề ngoài; '' = tự nhận từ phong_cach (chatLieuPhim) */
-  chat_lieu?: '' | 'nguoi_that' | 'hoat_hinh';
+  chat_lieu?: '' | 'nguoi_that' | 'hoat_hinh' | 've_2d';
   ti_le?: TiLe;
   do_phan_giai?: DoPhanGiai;
   mo_hinh_anh?: MoHinhAnh;
@@ -365,9 +365,11 @@ export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
 };
 /** Chất liệu hình của phim: khai tay trong kinh thánh, không thì đọc chữ phong cách. Không đoán được → 'hoat_hinh' an toàn (không bật cổng soi mặt
  *  trên phim chưa rõ) — phim người thật nào phong cách không nói rõ thì chọn tay. */
-export function chatLieuPhim(kt: Pick<KinhThanh, 'chat_lieu' | 'phong_cach'> | null | undefined): 'nguoi_that' | 'hoat_hinh' {
+export function chatLieuPhim(kt: Pick<KinhThanh, 'chat_lieu' | 'phong_cach'> | null | undefined): 'nguoi_that' | 'hoat_hinh' | 've_2d' {
   if (kt?.chat_lieu) return kt.chat_lieu;
   const p = (kt?.phong_cach ?? '').toLowerCase();
+  // VẼ 2D trước mô hình nặn: "hand-painted 2D… gouache" lọt nhánh hoat_hinh (stop-motion) → prompt video đòi "real photographed miniature" (phim #1156)
+  if (!/(stop[- ]?motion|claymation|clay|plasticine|felt|puppet|miniature)/.test(p) && /(\b2d\b|hand[- ]?(drawn|painted)|gouache|watercolou?r|ink line|cel[- ]?(anim|shad)|anime|vẽ tay)/.test(p)) return 've_2d';
   if (/(animat|cartoon|pixar|anime|stop[- ]?motion|claymation|clay|hoạt hình|2d|3d (render|style)|cel[- ]shad|illustrat|felt|puppet)/.test(p)) return 'hoat_hinh';
   return /(live[- ]action|photo ?real|real (people|person)|người thật|ugc|documentary|shot on (an )?iphone|phone (camera|video)|creator|talking to camera)/.test(p) ? 'nguoi_that' : 'hoat_hinh';
 }
@@ -630,6 +632,8 @@ export type DanDung = {
   /** khán giả cảm gì từ đầu → cuối shot, shot tồn tại để làm gì */ muc_dich?: string;
   /** motif / cái gài hoặc trả có trong khung */ motif?: string;
   /** DIỄN XUẤT HOẠT HÌNH (tiếng Anh, vào prompt video): lấy đà → hành động → theo đà / phản ứng, nén–giãn, khựng — chất Larva */ dien?: string;
+  /** NHỊP GAG (tiếng Anh, vào prompt video) — shot [GAG n] diễn TRỌN một gag: 4 nhịp có mốc giây "0-2s: vấn đề | 2-4s: ra tay | 4-6s: đẩy thêm | 6-8s: phản ứng
+   *  giữ". Thiếu ô này clip 8s nhận một câu "từ… tới…" và bỏ nhịp giữa (phim #1156 #6: không thấy cú kẹp, 01/11/2026). Khung đầu = nhịp đầu. */ nhip?: string;
   /** ĐIỂM NHẤN âm–hình của gag: khung nào, tiếng gì đập đúng lúc nào (shot có cú bùng của gag bắt buộc có) */ nhan?: string;
   /** mã shot CỐ ĐỊNH trong hồ sơ viết tay (vd "4.6a") — đồng bộ hồ sơ ↔ studio khớp theo mã này, chèn shot giữa cảnh không làm lệch shot sau */ ma?: string;
 };
@@ -641,10 +645,11 @@ export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoMode
   { key: 'muc_dich', ten: 'Mục đích cảm xúc', mau: 'Thèm → hụt hẫng buồn cười; khán giả hiểu Tango muốn gì.', vaoModel: false },
   { key: 'motif', ten: 'Motif · gài / trả', mau: 'Viên kẹo đỏ (motif); gài: góc giấy vàng nhìn trộm.', vaoModel: false },
   { key: 'dien', ten: 'Diễn xuất (lấy đà · hành động · phản ứng)', mau: 'Anticipation: Tango crouches and wiggles. Action: leaps, arms wide. Reaction: freezes mid-air a beat, then drops face-first (squash), strand boings.', vaoModel: true },
+  { key: 'nhip', ten: 'Nhịp gag (mốc giây)', mau: '0-2s: the stool stack wobbles on the rail, the man strains and cannot lift it | 2-4s: she closes both cradles around it like chopsticks and lifts it | 4-6s: the man still hugging it rises too, the top stool hooks the lantern string | 6-8s: he dangles and swings like a pendulum, resigned; she walks on', vaoModel: true },
   { key: 'nhan', ten: 'Điểm nhấn âm–hình', mau: 'Giây 2,8: kẹo phụt khỏi tay — tiếng "bloop" đúng khung; nhạc ngắt 1 nhịp trước cú ngã.', vaoModel: false },
 ];
 /** Ô thẻ shot BẮT BUỘC trước keyframe (motif + điểm nhấn tuỳ shot — điểm nhấn bắt buộc ở shot có cú bùng của gag, ho-so.ts › kiemHoSo). */
-export const O_DAN_DUNG_BAT_BUOC = O_DAN_DUNG.filter((o) => o.key !== 'motif' && o.key !== 'nhan');
+export const O_DAN_DUNG_BAT_BUOC = O_DAN_DUNG.filter((o) => o.key !== 'motif' && o.key !== 'nhan' && o.key !== 'nhip');   // nhịp gag: chỉ shot [GAG n] — nhip-hinh.ts › kiemNhipGag
 // 🧩 CON BÓC TÁCH KHUNG — thành phần THẬT đọc được từ một keyframe (boc-tach-khung.ts). Mỗi đối tượng: đặc điểm + vị trí TƯƠNG ĐỐI (cạnh ai/vật gì).
 export type NguoiKhung = { ai: string; dac_diem: string; vi_tri: string; ao: string; toc: string; trang_suc: string; bieu_cam: string; huong_nhin: string; dang: string; do_cam: string;
   /** 🧬 lá nguyên tử enum (mức 2) — máy đọc ảnh điền theo từ khóa chuẩn, để chấm SO BẰNG; cũ không có thì bỏ qua. */ vi_tri_man?: string; huong_man?: string; toc_kieu?: string };

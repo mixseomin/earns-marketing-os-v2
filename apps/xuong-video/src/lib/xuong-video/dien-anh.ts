@@ -371,6 +371,15 @@ export const CAU_TRUC: Record<string, { ten: string; beats: { ten: string; mo_ta
     { ten: 'Chorus 2', mo_ta: 'Lặp hình điệp khúc, lớn hơn', phan: 0.13 }, { ten: 'Bridge', mo_ta: 'Đổi màu / đổi nơi, khoảnh khắc cảm xúc', phan: 0.12 },
     { ten: 'Chorus cuối', mo_ta: 'Cao trào hình ảnh', phan: 0.14 }, { ten: 'Outro', mo_ta: 'Hình đọng lại', phan: 0.06 },
   ] },
+  // MV hoạt hình chuỗi gag (học "Englishman in New York" của antrofrog, 01/11/2026): một nhân vật một vật đặc trưng đi qua thành phố, mỗi shot
+  // 3–4 giây là MỘT gag trọn (vấn đề → vật ra tay → người kia cảm ơn), cắt đúng phách, không thoại; gag sau to hơn gag trước, cuối là cú đảo vai.
+  mv_gag: { ten: 'MV hoạt hình chuỗi gag (mở thành phố → chuỗi gag 3 nhịp leo thang → gag lớn nhất → đảo vai → hình đọng)', beats: [
+    { ten: 'Mở thành phố', mo_ta: 'Nhân vật + vật đặc trưng bước vào nhịp sáng của thành phố, hình nhận diện nơi chốn', phan: 0.1 },
+    { ten: 'Gag nhỏ', mo_ta: '3–4 gag đời thường, mỗi shot một gag trọn: vấn đề → vật ra tay → người kia vẫy cảm ơn', phan: 0.35 },
+    { ten: 'Gag lớn dần', mo_ta: 'Gag đông người / nguy hơn, nhân vật vẫn bình thản', phan: 0.3 },
+    { ten: 'Đảo vai', mo_ta: 'Lần đầu nhân vật gặp rắc rối — những người đã được giúp quay lại giúp', phan: 0.15 },
+    { ten: 'Hình đọng', mo_ta: 'Nhân vật khuất vào thành phố, vật đặc trưng là hình cuối', phan: 0.1 },
+  ] },
   // Video YouTuber (hướng dẫn nhà sáng tạo của YouTube: giữ chân trong những giây đầu, chương mục, kêu gọi cuối).
   video_youtube: { ten: 'Video YouTuber (móc → hứa giá trị → các phần → tóm lại → kêu gọi)', beats: [
     { ten: 'Móc', mo_ta: 'Kết quả / câu hỏi / cảnh mạnh nhất trong 5–15 giây đầu', phan: 0.08 }, { ten: 'Hứa giá trị', mo_ta: 'Video này cho người xem điều gì, vì sao nên xem hết', phan: 0.07 },

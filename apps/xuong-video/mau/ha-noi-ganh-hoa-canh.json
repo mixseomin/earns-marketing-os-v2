@@ -1,0 +1,418 @@
+{
+ "tomTat": "Một ngày bà Lụa gánh hoa qua Hà Nội: mỗi gag đòn gánh gỡ một rắc rối và tặng một bông cúc; đòn gánh gãy, những người bà giúp quay lại nối nó; hoàng hôn Hồ Gươm.",
+ "beats": [
+  {
+   "ten": "Mở thành phố",
+   "mo_ta": "Bà Lụa gánh hoa bước vào bình minh phố cổ",
+   "cam_xuc": 1
+  },
+  {
+   "ten": "Gag nhỏ",
+   "mo_ta": "5 gag đời thường, mỗi người một bông cúc",
+   "cam_xuc": 2
+  },
+  {
+   "ten": "Gag lớn dần",
+   "mo_ta": "Ngập, mèo, voan cưới, tàu",
+   "cam_xuc": 4
+  },
+  {
+   "ten": "Đảo vai",
+   "mo_ta": "Đòn gánh gãy, mọi người quay lại",
+   "cam_xuc": 5
+  },
+  {
+   "ten": "Hình đọng",
+   "mo_ta": "Bông cúc cuối trôi trên Hồ Gươm",
+   "cam_xuc": 4
+  }
+ ],
+ "phanCanh": [
+  {
+   "ten": "Mở thành phố",
+   "beat": "Mở thành phố",
+   "muc_tieu": "Đi bán hoa",
+   "xung_dot": "",
+   "an_y": "",
+   "nhip": "vua",
+   "cam_xuc_dau": 0,
+   "cam_xuc_cuoi": 1
+  },
+  {
+   "ten": "Gag nhỏ",
+   "beat": "Gag nhỏ",
+   "muc_tieu": "Đi qua phố",
+   "xung_dot": "Rắc rối nhỏ của người lạ",
+   "an_y": "Mỗi bông cúc là một món nợ ân tình",
+   "nhip": "nhanh",
+   "cam_xuc_dau": 1,
+   "cam_xuc_cuoi": 3
+  },
+  {
+   "ten": "Gag lớn dần",
+   "beat": "Gag lớn dần",
+   "muc_tieu": "Đi qua phố",
+   "xung_dot": "Rắc rối lớn dần, nguy hơn",
+   "an_y": "",
+   "nhip": "nhanh",
+   "cam_xuc_dau": 3,
+   "cam_xuc_cuoi": 5
+  },
+  {
+   "ten": "Đảo vai",
+   "beat": "Đảo vai",
+   "muc_tieu": "Về nhà",
+   "xung_dot": "Đòn gánh gãy",
+   "an_y": "Lòng tốt quay về",
+   "nhip": "cham",
+   "cam_xuc_dau": -2,
+   "cam_xuc_cuoi": 5
+  },
+  {
+   "ten": "Hình đọng",
+   "beat": "Hình đọng",
+   "muc_tieu": "",
+   "xung_dot": "",
+   "an_y": "",
+   "nhip": "cham",
+   "cam_xuc_dau": 4,
+   "cam_xuc_cuoi": 4
+  }
+ ],
+ "canh": [
+  {
+   "canh": "Ngõ phố cổ, bình minh",
+   "goc_may": "EWS",
+   "hanh_dong": "Sương sớm, bà Lụa gánh hoa bước ra từ ngõ nhỏ dưới mớ dây điện rối, đòn gánh nhún theo bước, hoa cúc rung rung, đàn bồ câu bay lên.",
+   "loi_thoai": "",
+   "am_thanh": "bird wings, sandals on stone, distant motorbike horns",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Phố cổ Hà Nội"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot, early misty morning in a narrow Hanoi Old Quarter alley under tangled black power lines, ochre shophouses with green shutters; tiny elderly flower vendor in a conical hat walks toward camera with a bamboo carrying pole on her shoulder, two baskets heaped with white daisies.",
+   "prompt_video": "She walks forward with a springy bouncing rhythm, the carrying pole flexing with each step, daisies trembling; a few pigeons lift off from the power lines.",
+   "phan_doan": "Mở thành phố",
+   "cam_xuc": 1,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Hồ Gươm · mũ bay",
+   "goc_may": "WS",
+   "hanh_dong": "Gió hất chiếc mũ nỉ của cụ ông đang tập dưỡng sinh bay ra mép hồ; bà xoay đòn gánh móc mũ ngay trước khi chạm nước, đội lại cho cụ; cụ chắp tay cảm ơn, nhận một bông cúc.",
+   "loi_thoai": "",
+   "am_thanh": "gust of wind, soft whoosh, water lapping",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Cụ ông tập dưỡng sinh",
+    "Hồ Gươm"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium wide shot on the misty lakeside path of Hoan Kiem Lake, Turtle Tower in the background; an old man doing tai chi as his green felt hat flies off toward the water; the tiny flower vendor beside him swings the end of her carrying pole toward the hat.",
+   "prompt_video": "The hat flutters toward the water, the vendor swings her pole and hooks it just above the surface, lifts it back onto the old man's head; he bows with joined hands and she tucks a white daisy into his hat band.",
+   "phan_doan": "Gag nhỏ",
+   "cam_xuc": 2,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Vỉa hè cao · xe kẹt gầm",
+   "goc_may": "WS",
+   "hanh_dong": "Anh shipper rồ ga mãi không lên được vỉa hè cao, gầm xe kẹt trên mép đá; bà đặt quang gánh xuống, kê đòn gánh chéo làm dốc, xe trượt lên êm; anh giơ ngón cái, nhận một bông cúc cài lên mũ bảo hiểm.",
+   "loi_thoai": "",
+   "am_thanh": "engine revving, scrape, smooth roll",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Anh shipper",
+    "Phố cổ Hà Nội"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot on an Old Quarter street: a young delivery rider in a green jacket and helmet stuck on a high stone sidewalk curb, his scooter belly scraping the edge, big green delivery box on the back; the tiny flower vendor beside him lowering her baskets.",
+   "prompt_video": "She lays her bamboo pole diagonally against the curb as a ramp, the scooter rolls smoothly up onto the sidewalk; the rider gives a thumbs up as she tucks a daisy onto his helmet.",
+   "phan_doan": "Gag nhỏ",
+   "cam_xuc": 2,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Trưa nắng · yên xe nóng",
+   "goc_may": "MS",
+   "hanh_dong": "Trưa nắng gắt, cô nữ sinh áo dài trắng định ngồi lên yên xe điện đang bốc hơi nóng; bà úp chiếc nón lá lên yên; cô ngồi xuống, mỉm cười, cài một bông cúc lên tóc.",
+   "loi_thoai": "",
+   "am_thanh": "sizzle, cicadas, soft giggle",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Cô nữ sinh",
+    "Phố cổ Hà Nội"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot at harsh noon on an ochre Old Quarter street, heat shimmer; a schoolgirl in a white ao dai about to sit on the visibly steaming seat of a pink electric scooter; the tiny flower vendor beside her lifting her conical palm-leaf hat off her head.",
+   "prompt_video": "Wavy heat rises from the scooter seat, the vendor places her conical hat upside down on the seat, the girl sits on it and smiles, tucking a white daisy behind her ear.",
+   "phan_doan": "Gag nhỏ",
+   "cam_xuc": 2,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Trà đá · ghế nhựa đổ",
+   "goc_may": "WS",
+   "hanh_dong": "Chồng ghế nhựa đỏ ở quán trà đá vỉa hè đổ dây chuyền như domino về phía bàn cờ tướng của hai ông chú; bà chìa đầu đòn gánh chặn đúng chiếc ghế cuối; quân cờ không xê dịch; hai ông chú nâng cốc trà đá chào bà.",
+   "loi_thoai": "",
+   "am_thanh": "plastic clatter, clack-clack-clack, glasses clink",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Hai ông chú trà đá",
+    "Phố cổ Hà Nội"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot of a sidewalk iced-tea stall under tangled power lines: a row of tiny red plastic stools toppling like dominoes toward two middle-aged men intent on a Chinese chess board; the tiny flower vendor walking past with her carrying pole.",
+   "prompt_video": "The red stools fall one after another like dominoes; the vendor casually sticks out the end of her pole and stops the last stool an inch from the chess board; both men raise their iced-tea glasses to her.",
+   "phan_doan": "Gag nhỏ",
+   "cam_xuc": 3,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Đèn đỏ · quả bóng lăn",
+   "goc_may": "HA",
+   "hanh_dong": "Ngã tư đèn đỏ chật kín xe máy, quả bóng vàng của cậu bé lăn vào giữa đám xe; bà thò đòn gánh xuống gầm xe gạt nhẹ, bóng lăn ngoằn ngoèo qua các bánh xe về đúng tay cậu bé; cậu vẫy và nhận một bông cúc.",
+   "loi_thoai": "",
+   "am_thanh": "idling engines, ball bounce, tock",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Cậu bé bóng vàng",
+    "Phố cổ Hà Nội"
+   ],
+   "bien_the": [],
+   "prompt_anh": "High-angle wide shot of a crowded Hanoi intersection at a red light packed with motorbikes; a small boy in a red football jersey on the corner, his yellow ball rolling among the wheels; the tiny flower vendor at the curb lowering the tip of her pole.",
+   "prompt_video": "She nudges the ball with the tip of her pole, it zigzags between motorbike wheels and pops back into the boy's hands just as the light turns green and the bikes surge forward; the boy waves.",
+   "phan_doan": "Gag nhỏ",
+   "cam_xuc": 3,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Mưa rào · phố ngập",
+   "goc_may": "WS",
+   "hanh_dong": "Sau cơn mưa rào, đoạn phố ngập ngang bánh xe; hai em học sinh đứng ở mép không qua được; bà dồn hoa sang một bên, cho mỗi em ngồi vào một giỏ, gánh qua chỗ ngập; hai em cười khúc khích, mỗi em ôm một bông cúc.",
+   "loi_thoai": "",
+   "am_thanh": "rain dripping, splashing steps, children giggling",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Hai em học sinh",
+    "Phố cổ Hà Nội"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot of a flooded Old Quarter street after rain, water up to the motorbike wheels, reflections of yellow walls; two small schoolchildren in yellow raincoats at the edge; the tiny flower vendor wading in with each child sitting in one basket of her carrying pole.",
+   "prompt_video": "She wades across the flooded street with steady little steps, a child sitting in each basket among the daisies, both swinging gently and giggling; ripples spread behind her.",
+   "phan_doan": "Gag lớn dần",
+   "cam_xuc": 3,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Dây điện · mèo kẹt",
+   "goc_may": "LA",
+   "hanh_dong": "Mèo mướp kẹt trên mớ dây điện rối, kêu meo; bà nhấc đòn gánh lên cao như cây cầu, mèo bước dọc đòn gánh xuống vai bà, nhảy xuống cọ vào chân bà.",
+   "loi_thoai": "",
+   "am_thanh": "meow, wire hum, soft thump",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Mèo mướp",
+    "Phố cổ Hà Nội"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Low-angle shot up at a giant tangle of black power lines between ochre houses; a grey tabby cat stuck on the wires; the tiny flower vendor below raising her long bamboo pole up to it.",
+   "prompt_video": "The cat steps carefully onto the raised pole and walks down it like a bridge onto her shoulder, then hops to the ground and rubs against her leg.",
+   "phan_doan": "Gag lớn dần",
+   "cam_xuc": 3,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Cầu Long Biên · voan cưới",
+   "goc_may": "WS",
+   "hanh_dong": "Gió sông thổi tung tấm voan của cô dâu bay ra ngoài lan can cầu Long Biên; bà vươn đòn gánh, voan quấn vào đầu đòn gánh; đôi cưới vẫy tay, bà tặng cả bó cúc làm hoa cưới.",
+   "loi_thoai": "",
+   "am_thanh": "river wind, fabric flutter, camera shutter",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Đôi cưới",
+    "Cầu Long Biên"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot on the narrow walkway of the rust-brown Long Bien steel bridge over the wide Red River; a wedding couple posing as the bride's long white veil blows off over the railing; the tiny flower vendor reaching out with her bamboo pole.",
+   "prompt_video": "The veil flies over the railing, she extends her pole and the veil wraps around its tip; she hands it back with a whole bunch of daisies as a bouquet; the couple waves happily.",
+   "phan_doan": "Gag lớn dần",
+   "cam_xuc": 4,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Phố đường tàu · selfie",
+   "goc_may": "WS",
+   "hanh_dong": "Đôi khách Tây đứng selfie giữa đường ray, không nghe còi tàu; bà gõ đòn gánh lên ray 'keng', móc quai ba lô kéo cả hai lùi sát tường.",
+   "loi_thoai": "",
+   "am_thanh": "distant train horn, metal clang, gasp",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Đôi khách Tây",
+    "Phố đường tàu"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium wide shot on Hanoi Train Street, rails between narrow colorful houses; a sunburnt backpacker couple taking a selfie in the middle of the track, a train headlight glowing far behind them; the tiny flower vendor tapping her pole on the rail.",
+   "prompt_video": "She taps the rail with her pole, then hooks both backpack straps with it and tugs the couple back against the wall just in time.",
+   "phan_doan": "Gag lớn dần",
+   "cam_xuc": 4,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Phố đường tàu · tàu lướt",
+   "goc_may": "CU",
+   "hanh_dong": "Đoàn tàu lướt qua sát mũi, gió hất tung tóc hai khách Tây, bà vẫn đứng bình thản giữ nón; tàu qua, hai người cúi đầu cảm ơn, nhận hai bông cúc.",
+   "loi_thoai": "",
+   "am_thanh": "train roar, rushing wind",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Đôi khách Tây",
+    "Phố đường tàu"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Close two-shot against a wall on Train Street: the backpacker couple and the tiny flower vendor pressed flat, wide-eyed, as a blurred train rushes past inches from their noses.",
+   "prompt_video": "The train rushes past in a blur, wind blasting their hair and clothes; the vendor calmly holds her hat; the train clears and the couple bows, each holding a daisy.",
+   "phan_doan": "Gag lớn dần",
+   "cam_xuc": 5,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Chiều · đòn gánh gãy",
+   "goc_may": "MS",
+   "hanh_dong": "Chiều tà, bà vấp bậc vỉa hè, đòn gánh gãy đôi 'rắc', hai giỏ lật, hoa cúc văng khắp mặt đường; bà ngồi bệt, nhìn đòn gánh gãy.",
+   "loi_thoai": "",
+   "am_thanh": "crack, baskets tumbling, silence",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Phố cổ Hà Nội"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Medium shot at golden late afternoon on an Old Quarter street: the tiny flower vendor sitting on the pavement looking at her carrying pole snapped in two, both baskets overturned, white daisies scattered across the road.",
+   "prompt_video": "The pole snaps, the baskets tumble and daisies scatter in slow motion; she sits down and looks quietly at the two broken halves.",
+   "phan_doan": "Đảo vai",
+   "cam_xuc": -2,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Mọi người quay lại",
+   "goc_may": "WS",
+   "hanh_dong": "Từ các ngả, những người bà đã giúp chạy đến, ai cũng cài một bông cúc: anh shipper lấy dây buộc nối đòn gánh, cô nữ sinh và bọn trẻ nhặt hoa bỏ lại vào giỏ, đôi khách Tây đỡ bà đứng dậy.",
+   "loi_thoai": "",
+   "am_thanh": "footsteps gathering, rope tightening, warm laughter",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Anh shipper",
+    "Cô nữ sinh",
+    "Cậu bé bóng vàng",
+    "Hai em học sinh",
+    "Đôi khách Tây"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot at golden hour on the Old Quarter street: a crowd of people the vendor helped, each wearing a white daisy, gathering around her; the delivery rider tying the broken bamboo pole together with rope, a schoolgirl in a white ao dai and children picking up daisies into the baskets, the backpacker couple helping the tiny vendor to her feet.",
+   "prompt_video": "Everyone works together: rope wraps the broken pole tight, daisies go back into the baskets, the vendor is lifted to her feet and smiles.",
+   "phan_doan": "Đảo vai",
+   "cam_xuc": 5,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  },
+  {
+   "canh": "Hoàng hôn Hồ Gươm",
+   "goc_may": "EWS",
+   "hanh_dong": "Hoàng hôn bên Hồ Gươm, bà gánh đòn gánh buộc dây đi khuất trên cầu Thê Húc đỏ, giỏ gần trống chỉ còn một bông cúc; bông cúc ấy rơi xuống mặt hồ, trôi về phía tháp Rùa.",
+   "loi_thoai": "",
+   "am_thanh": "evening bells, water, music resolves",
+   "thoi_luong_s": 5,
+   "phat_s": 3.5,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
+    "Hồ Gươm"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Extreme wide shot at sunset over Hoan Kiem Lake: the red arched The Huc bridge, the tiny silhouette of the flower vendor with her rope-tied carrying pole walking away, almost empty baskets, Turtle Tower glowing in the distance.",
+   "prompt_video": "She walks slowly away across the red bridge; a single white daisy falls from her basket onto the water and drifts toward the Turtle Tower.",
+   "phan_doan": "Hình đọng",
+   "cam_xuc": 4,
+   "ky_thuat": {},
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": []
+  }
+ ]
+}

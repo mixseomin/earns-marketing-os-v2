@@ -1,0 +1,99 @@
+{
+ "project": "studio",
+ "loai": "short",
+ "ten": "Gánh hoa phố cổ · MV hoạt hình chuỗi gag Hà Nội",
+ "mo_ta": "MV hoạt hình 2D không lời theo gói ☂ MV hoạt hình chuỗi gag (học 'Englishman in New York' của antrofrog). Bà Lụa gánh hoa cúc họa mi đi một ngày qua Hà Nội, dùng đòn gánh gỡ rối cho người qua đường, mỗi người được tặng một bông cúc; cuối phim đòn gánh gãy, tất cả quay lại giúp bà. Gag lấy theo tín hiệu QC chạy lâu trên spy.on.tc (dốc xe lên vỉa hè 178 ngày, bọc yên xe máy chống nóng 162 ngày, giao hàng nội thành 57 QC, phố ngập, Long Biên, Hoàn Kiếm) + đặc trưng Hà Nội (trà đá ghế nhựa, dây điện, phố đường tàu, đèn đỏ xe máy). Nhạc tự sinh, không dùng bài có bản quyền.",
+ "kinh_thanh": {
+  "phong_cach": "Hand-painted 2D animation in a mid-century storybook style: loose expressive ink linework, gouache and watercolor painted backgrounds with visible brush texture, soft hazy light; Hanoi Old Quarter with ochre-yellow French colonial tube houses, green wooden shutters, potted plants on tiny balconies, tangled black power lines; palette of ochre yellow, moss green, faded brick red, soft sky blue and cream; characters with elongated stylized proportions and simple readable silhouettes; cinematic 16:9 framing; clean frames with no text, letters, signs or logos.",
+  "chat_lieu": "hoat_hinh",
+  "ti_le": "16:9",
+  "do_phan_giai": "720p",
+  "ngon_ngu": "vi",
+  "the_loai": "hoat_hinh",
+  "goi": "mv_gag_hoat_hinh",
+  "logline": "Một bà bán hoa nhỏ bé gánh cúc họa mi qua Hà Nội, lặng lẽ gỡ rối cho cả thành phố bằng chiếc đòn gánh — cho tới khi chính đòn gánh gãy.",
+  "chu_de": "Lòng tốt nhỏ đi một vòng rồi quay về",
+  "luu_tru": false
+ },
+ "nhan_vat": [
+  {
+   "loai": "nhan_vat",
+   "ten": "Bà Lụa",
+   "mo_ta": "Tiny elderly Hanoi street flower vendor, about 70, very small and slightly stooped but quick and graceful, round wrinkled cheerful face with calm half-closed eyes and a tiny knowing smile, grey hair in a low bun under a black velvet headband, conical palm-leaf hat (non la) tilted back on her head; faded brown loose blouse, loose black trousers, worn plastic sandals. Always carries the long bamboo carrying pole with two baskets of white daisies across her right shoulder. Stylized elongated arms."
+  },
+  {
+   "loai": "dao_cu",
+   "ten": "Quang gánh hoa",
+   "mo_ta": "A long gently curved smooth bamboo carrying pole (don ganh), pale honey color with darker worn ends, hanging two red-brown jute rope cradles, each holding a shallow round woven bamboo basket heaped with small white daisy chrysanthemums with yellow centers (cuc hoa mi)."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Cụ ông tập dưỡng sinh",
+   "mo_ta": "Very old thin Hanoi grandfather about 80, wispy white beard, white sleeveless undershirt and loose light-grey pyjama trousers, soft green felt hat, doing slow morning tai chi by the lake."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Anh shipper",
+   "mo_ta": "Lanky young Hanoi delivery rider, early 20s, messy hair, bright green delivery jacket and green helmet, sneakers, riding a small scooter with a big square green insulated delivery box on the back."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Cô nữ sinh",
+   "mo_ta": "Hanoi high-school girl about 17, long straight black hair, white ao dai school uniform with white trousers, white sneakers, small backpack, with a pastel pink electric scooter."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Hai ông chú trà đá",
+   "mo_ta": "Two middle-aged Hanoi men playing Chinese chess at a sidewalk iced-tea stall on tiny red plastic stools: one chubby and bald in a white singlet, one thin with a moustache in a striped polo shirt; glasses of iced tea beside the board."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Cậu bé bóng vàng",
+   "mo_ta": "Boy about 7, buzz-cut hair, oversized red football jersey, blue shorts, flip-flops, holding a scuffed yellow football."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Hai em học sinh",
+   "mo_ta": "Two small Hanoi schoolchildren about 9, a boy and a girl, white shirts with navy shorts / skirt and red neckerchiefs, oversized backpacks, yellow raincoats."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Mèo mướp",
+   "mo_ta": "Skinny grey tabby street cat with big amber eyes, one torn ear, long striped tail."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Đôi cưới",
+   "mo_ta": "Young Vietnamese wedding couple taking photos: bride in a white ao dai with a long sheer white veil, groom in a navy suit with a red tie."
+  },
+  {
+   "loai": "nhan_vat",
+   "ten": "Đôi khách Tây",
+   "mo_ta": "Tall sunburnt Western backpacker couple, man with a red beard and bucket hat, woman with blonde braids and sunglasses, both with huge backpacks, holding a phone on a selfie stick."
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Phố cổ Hà Nội",
+   "mo_ta": "Narrow Hanoi Old Quarter street: ochre-yellow narrow tube houses with green shutters and tiny balconies of potted plants, dense tangled black power lines overhead, high stone sidewalk curbs, parked motorbikes, sidewalk iced-tea stall with tiny red plastic stools, soft morning haze."
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Hồ Gươm",
+   "mo_ta": "Hoan Kiem Lake in Hanoi: calm jade-green water, the small old Turtle Tower on its islet in the mist, the red arched The Huc wooden bridge, weeping willows and old trees along the lakeside path."
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Phố đường tàu",
+   "mo_ta": "Hanoi Train Street: a single railway track running inches from narrow colorful houses on both sides, small cafes with low stools right beside the rails, laundry and plants hanging from balconies."
+  },
+  {
+   "loai": "boi_canh",
+   "ten": "Cầu Long Biên",
+   "mo_ta": "Long Bien Bridge in Hanoi: old rust-brown steel truss bridge over the wide Red River, narrow pedestrian walkway with a railing, banana-tree sandbanks below, wide sky."
+  }
+ ],
+ "tap": {
+  "ten": "Tập 1 · Một ngày gánh hoa",
+  "brief": "MV 49 giây không lời, 14 shot, mỗi shot phát 3–4 giây cắt đúng phách. Nhạc nền tự sinh: swing-jazz nhẹ nhàng pha đàn bầu và đàn tranh, 112 BPM, vui, tinh nghịch, không lời. Mỗi gag: vấn đề → đòn gánh ra tay → người kia cảm ơn + được tặng một bông cúc. Cuối: đòn gánh gãy, mọi người quay lại giúp."
+ }
+}

@@ -83,11 +83,11 @@
   {
    "canh": "[MỞ] Hoa vào ngõ",
    "goc_may": "Toàn rất rộng, góc cao, cẩu xuống",
-   "hanh_dong": "Sáng sớm sương mỏng, máy cẩu từ mái ngói xuống ngõ đường tàu; bà Lụa gánh hoa bước dọc ray từ trái sang phải, cửa chớp xanh hé dần sau lưng; một bông cúc rơi xuống cạnh ray.",
+   "hanh_dong": "Sáng sớm sương mỏng, máy cẩu từ mái ngói xuống ngõ đường tàu; bà Lụa gánh hoa bước dọc ray từ trái sang phải, cửa chớp xanh hé dần sau lưng; một bông cúc rơi xuống cạnh ray. Máy hạ xuống ngang tầm, bà đi tới gần máy, mỉm cười; bông cúc rơi ngay tiền cảnh trên ray.",
    "loi_thoai": "",
    "am_thanh": "Dép bước nhẹ, quang tre kẽo kẹt, cửa chớp mở lạch cạch, nhạc pizzicato vào.",
-   "thoi_luong_s": 4,
-   "phat_s": 4,
+   "thoi_luong_s": 6,
+   "phat_s": 5,
    "nhan_vat": [
     "Bà Lụa",
     "Quang gánh hoa",
@@ -95,7 +95,7 @@
    ],
    "bien_the": [],
    "prompt_anh": "Extreme wide high-angle establishing shot, early misty morning. Hanoi Train Street by day: a single curving railway track between narrow colorful tube houses, red-orange shopfronts, green shutters, balconies full of plants, paper lanterns strung across, low red plastic stools at the rail edge, street still empty and waking. the tiny elderly flower vendor (grey low bun, black velvet headband, tilted-back conical palm-leaf hat, faded brown blouse, black trousers, worn sandals) with a long honey-colored bamboo carrying pole and two jute-rope cradles holding shallow woven baskets of white daisies walks along the rail from screen-left. One white daisy lies by the rail.",
-   "prompt_video": "Camera cranes down from the rooftops; the vendor walks left to right with a springy step, the pole flexing; green shutters open one by one behind her; a daisy drops from a basket beside the rail.",
+   "prompt_video": "Camera cranes down from the rooftops; the vendor walks left to right with a springy step, the pole flexing; green shutters open one by one behind her; a daisy drops from a basket beside the rail. The camera settles at eye level as she walks close past the lens, smiling; the daisy lands in the foreground on the rail.",
    "phan_doan": "Mở thành phố",
    "cam_xuc": 1,
    "ky_thuat": {
@@ -129,11 +129,11 @@
   {
    "canh": "[GAG 1] Gõ ray báo giờ",
    "goc_may": "Toàn, ngang tầm người",
-   "hanh_dong": "Cậu bé ngồi giữa hai thanh ray xếp que, mèo nằm cạnh; cuối phố đèn pha tàu loé xa sau lưng em. Bà gõ đầu đòn lên ray 'keng keng'; bé và mèo cùng bật dậy nhảy vào thềm; dọc phố mấy con mèo, chó, một con gà cũng đồng loạt nhảy vào thềm theo tiếng ray.",
+   "hanh_dong": "Còi tàu xa; đèn pha loé ở khúc cong sau lưng cậu bé đang ngồi xếp que giữa ray, mèo nằm cạnh — em không nghe thấy. Bà gõ đầu đòn lên ray 'keng keng' như chuông báo tàu; bé và mèo giật mình nhìn thấy đèn tàu, cùng nhảy vào thềm; dọc phố chó, mèo, gà cũng nhảy vào thềm theo tiếng keng.",
    "loi_thoai": "",
    "am_thanh": "Keng keng ngân dọc ray, tiếng gà cục tác, chó sủa một tiếng.",
    "thoi_luong_s": 4,
-   "phat_s": 3.5,
+   "phat_s": 4,
    "nhan_vat": [
     "Bà Lụa",
     "Quang gánh hoa",
@@ -143,7 +143,7 @@
    ],
    "bien_the": [],
    "prompt_anh": "Medium wide shot. Hanoi Train Street by day: a single curving railway track between narrow colorful tube houses, red-orange shopfronts, green shutters, balconies full of plants, paper lanterns strung across, low red plastic stools at the rail edge. a boy about 7 with buzz-cut hair and an oversized red football jersey sits between the rails stacking little sticks, a skinny grey tabby street cat with a torn ear, standing on all four legs like a real cat curled beside him; far behind them a small train headlight glows at the curve. the tiny elderly flower vendor (grey low bun, black velvet headband, tilted-back conical palm-leaf hat, faded brown blouse, black trousers, worn sandals) with a long honey-colored bamboo carrying pole and two jute-rope cradles holding shallow woven baskets of white daisies stands at the rail edge raising the pole tip.",
-   "prompt_video": "The vendor taps the rail twice with the pole tip; the boy and the cat spring up together and hop onto the doorstep; down the street several cats, a dog and a chicken all hop onto their doorsteps at the same moment.",
+   "prompt_video": "A distant horn; the train headlight glows at the curve behind the boy, who doesn't notice. The vendor taps the rail twice with the pole tip like a warning bell; the boy and cat look up, see the headlight and hop onto the doorstep together; down the street cats, a dog and a chicken hop onto their doorsteps at the same ring.",
    "phan_doan": "Gag nhỏ",
    "cam_xuc": 2,
    "ky_thuat": {
@@ -221,11 +221,11 @@
   {
    "canh": "[GAG 3] Bàn gập kẹp ván cờ",
    "goc_may": "Trung cảnh ngang vai",
-   "hanh_dong": "Hai ông chú đánh cờ trên chiếc bàn gỗ gắn tường chìa ra sát ray. Bà luồn đầu đòn dưới mép bàn, bẩy bàn gập sát vào tường. Bàn gập lại kẹp luôn bàn cờ đứng dọc trên tường; hai ông nghiêng đầu 90 độ, vẫn đi tiếp nước cờ trên bàn cờ dựng đứng.",
+   "hanh_dong": "Bàn gỗ gắn tường chìa ra chắn ray, hai ông chú đang đánh cờ trên đó. Bà bẩy đầu đòn gập bàn sát tường để dọn lối cho tàu; bàn gập kẹp luôn bàn cờ dựng đứng trên tường — hai ông nghiêng đầu, đi tiếp nước cờ trên bàn cờ dựng đứng.",
    "loi_thoai": "",
    "am_thanh": "Bàn gập cộc, quân cờ lách cách nhưng không rơi.",
    "thoi_luong_s": 4,
-   "phat_s": 3.5,
+   "phat_s": 4,
    "nhan_vat": [
     "Bà Lụa",
     "Quang gánh hoa",
@@ -314,11 +314,11 @@
   {
    "canh": "[GAG 5] Nhịp đòn nhịp tàu",
    "goc_may": "Toàn, góc cao",
-   "hanh_dong": "Còi tàu sáng vang, cả phố cuống cuồng dọn va vào nhau. Bà nhún đòn đều theo nhịp bánh tàu; cả phố bắt nhịp: kéo ghế, dắt xe, thu bàn vào tường đúng nhịp như một điệu nhảy; đoàn tàu đỏ lướt qua cách nửa mét. Con gà chui trong thúng hoa thò đầu gật gù theo nhịp đòn.",
+   "hanh_dong": "Còi tàu sáng. Bà nhún đòn đều theo nhịp; mọi người hai bên ray lùi sát tường đúng từng nhịp, như một hàng múa; đoàn tàu đỏ lướt qua sát mặt. Con gà trong thúng hoa gật gù theo nhịp đòn.",
    "loi_thoai": "",
    "am_thanh": "Còi tàu, tiếng bánh tàu thành phách nhạc, nhạc lên nhịp nhảy.",
-   "thoi_luong_s": 4,
-   "phat_s": 4,
+   "thoi_luong_s": 6,
+   "phat_s": 5,
    "nhan_vat": [
     "Bà Lụa",
     "Quang gánh hoa",
@@ -329,7 +329,7 @@
    ],
    "bien_the": [],
    "prompt_anh": "Wide shot. Hanoi Train Street by day: a single curving railway track between narrow colorful tube houses, red-orange shopfronts, green shutters, balconies full of plants, paper lanterns strung across, low red plastic stools at the rail edge, a red diesel train approaching from the curve. the tiny elderly flower vendor (grey low bun, black velvet headband, tilted-back conical palm-leaf hat, faded brown blouse, black trousers, worn sandals) with a long honey-colored bamboo carrying pole and two jute-rope cradles holding shallow woven baskets of white daisies bounces her pole in rhythm; two middle-aged café men, one chubby and bald in a white singlet, one thin with a moustache in a striped polo, a tall sunburnt backpacker couple (red-bearded man in a bucket hat, blonde-braided woman in sunglasses) holding a selfie stick and a boy about 7 with buzz-cut hair and an oversized red football jersey pull stools and tables to the wall. A chicken pokes its head out of one daisy basket.",
-   "prompt_video": "Everyone pulls back to the walls in perfect rhythm with the vendor's bouncing pole like a dance; the red train slides past half a metre away; the chicken in the basket bobs its head to the beat.",
+   "prompt_video": "Train horn. The vendor bounces her pole in a steady beat; on both sides people step back flat against the walls on each beat like a dance line; the red train glides past inches away; a chicken in the daisy basket bobs its head to the beat.",
    "phan_doan": "Gag lớn dần",
    "cam_xuc": 3,
    "ky_thuat": {
@@ -362,7 +362,7 @@
   {
    "canh": "[GAG 6] Bập bênh bóng",
    "goc_may": "Trung cảnh",
-   "hanh_dong": "Quả bóng vàng của cậu bé mắc trên mái hiên chìa sát ray, em đứng dưới mếu. Bà đặt giữa đòn lên một ghế nhựa làm điểm tựa, bảo em nhảy lên đầu thấp; đầu kia hất bóng bật khỏi mái hiên rơi vào thúng. Đòn bập bênh liên tục: bóng nảy qua lại giữa hai thúng, cậu bé chạy qua chạy lại đổi đầu đòn theo bóng.",
+   "hanh_dong": "Bóng vàng mắc trên mái hiên sát ray, cậu bé mếu. Bà kê đòn lên ghế nhựa làm bập bênh, bé nhảy lên đầu thấp: đầu kia hất bóng bật khỏi mái hiên — bóng bay lên rồi rơi bộp đúng đầu cậu bé, nảy vào tay em.",
    "loi_thoai": "",
    "am_thanh": "Bóng bộp bộp, ghế nhựa kẽo kẹt, tiếng cười trẻ con bằng âm hiệu.",
    "thoi_luong_s": 4,
@@ -377,7 +377,7 @@
    ],
    "bien_the": [],
    "prompt_anh": "Medium shot. Hanoi Train Street by day: a single curving railway track between narrow colorful tube houses, red-orange shopfronts, green shutters, balconies full of plants, paper lanterns strung across, low red plastic stools at the rail edge. A yellow football is stuck on a low tin awning above the rail; a boy about 7 with buzz-cut hair and an oversized red football jersey stands below pouting. the tiny elderly flower vendor (grey low bun, black velvet headband, tilted-back conical palm-leaf hat, faded brown blouse, black trousers, worn sandals) with a long honey-colored bamboo carrying pole and two jute-rope cradles holding shallow woven baskets of white daisies sets the pole across a low red plastic stool as a seesaw.",
-   "prompt_video": "The boy jumps on the low end, the other end flicks the ball off the awning into a daisy basket; the seesaw keeps rocking, the ball bounces from basket to basket and the boy runs back and forth switching ends to keep up.",
+   "prompt_video": "The boy jumps on the low end of the seesaw; the other end flicks the ball off the awning; it flies up and drops bonk onto the boy's head, then bounces into his hands; he rubs his head and laughs.",
    "phan_doan": "Gag lớn dần",
    "cam_xuc": 2,
    "ky_thuat": {
@@ -502,7 +502,7 @@
   {
    "canh": "[GAG 9] Kiệu ghế đưa cụ",
    "goc_may": "Trung cảnh",
-   "hanh_dong": "Chiều, đèn lồng vàng bật. Cụ ông ngồi ngủ gật trên ghế đẩu ngay mép ray, tay vẫn múa dưỡng sinh trong mơ. Bà luồn đòn qua lỗ ghế, cậu bé khiêng đầu kia; hai người khiêng cả ghế lẫn cụ vào thềm. Cụ vẫn ngủ, tay múa như bơi trên không; đặt xuống cụ mở mắt, cúi chào… cái ray trống.",
+   "hanh_dong": "Chiều, đèn lồng bật. Cụ ông ngủ gật trên ghế đẩu ngay mép ray, tay vẫn múa dưỡng sinh. Bà và cậu bé luồn đòn qua lỗ ghế khiêng cả ghế lẫn cụ vào thềm — vừa đặt xuống thì đoàn tàu lướt qua đúng chỗ cụ ngồi; cụ mở mắt, thấy tàu, chậm rãi cúi chào đoàn tàu.",
    "loi_thoai": "",
    "am_thanh": "Tiếng ngáy nhẹ, ghế kẽo kẹt, nhạc chậm lại một nhịp.",
    "thoi_luong_s": 4,
@@ -517,7 +517,7 @@
    ],
    "bien_the": [],
    "prompt_anh": "Medium shot, late afternoon. the same train street at dusk, yellow lanterns glowing along the cafés, rails catching warm light. a very old thin grandfather with a wispy white beard, white undershirt and green felt hat dozes on a low red stool right at the rail edge, hands slowly doing tai chi in his sleep. the tiny elderly flower vendor (grey low bun, black velvet headband, tilted-back conical palm-leaf hat, faded brown blouse, black trousers, worn sandals) with a long honey-colored bamboo carrying pole and two jute-rope cradles holding shallow woven baskets of white daisies threads the pole through the stool's hand hole while a boy about 7 with buzz-cut hair and an oversized red football jersey lifts the other end.",
-   "prompt_video": "The two carry the stool with the sleeping grandfather like a palanquin onto the doorstep; his hands keep swimming in the air; set down, he wakes and politely bows to the empty rail.",
+   "prompt_video": "The vendor and the boy carry the stool with the sleeping grandfather onto the doorstep like a palanquin; just as they set him down the train slides through exactly where he was sitting; he opens his eyes, sees the train, and slowly bows to it.",
    "phan_doan": "Gag lớn dần",
    "cam_xuc": 2,
    "ky_thuat": {
@@ -550,11 +550,11 @@
   {
    "canh": "[ĐẢO VAI] Đòn mắc mối ray",
    "goc_may": "Cận trung, góc thấp",
-   "hanh_dong": "Chiều tối. Bà bước qua ray, đầu đòn tuột xuống kẹt vào khe mối ray (cận: đầu tre lọt khe). Đèn pha tàu loé ở khúc cong. Bà ghì kéo, đòn gãy 'rắc', bà ngã ngồi giữa ray, hai thúng nghiêng sắp đổ.",
+   "hanh_dong": "Chiều tối. Bà bước qua ray, đầu đòn tuột xuống lọt khe mối ray (cận đầu tre trong khe). Đèn pha tàu loé ở khúc cong. Bà giật một lần không ra, giật mạnh lần hai — đòn gãy 'rắc', bà ngã ngồi giữa ray, hai thúng nghiêng.",
    "loi_thoai": "",
    "am_thanh": "Còi tàu xa, tiếng rắc sắc, nhạc tắt.",
-   "thoi_luong_s": 4,
-   "phat_s": 4,
+   "thoi_luong_s": 6,
+   "phat_s": 5,
    "nhan_vat": [
     "Bà Lụa",
     "Quang gánh hoa",
@@ -563,7 +563,7 @@
    ],
    "bien_the": [],
    "prompt_anh": "Low close medium shot at dusk. the same train street at dusk, yellow lanterns glowing along the cafés, rails catching warm light. The dark worn end of the bamboo pole is stuck in the gap of a rail joint. the tiny elderly flower vendor (grey low bun, black velvet headband, tilted-back conical palm-leaf hat, faded brown blouse, black trousers, worn sandals) with a long honey-colored bamboo carrying pole and two jute-rope cradles holding shallow woven baskets of white daisies leans back pulling hard. Far down the curve a train headlight flares.",
-   "prompt_video": "She heaves; the pole snaps with a loud crack; she falls sitting on the rail, both baskets tipping, the headlight growing at the curve.",
+   "prompt_video": "Close on the pole tip slipping into the rail-joint gap as she steps across; the headlight flares at the curve; she tugs once, it holds; she heaves again — crack, the pole snaps and she falls sitting on the rail, baskets tipping.",
    "phan_doan": "Đảo vai",
    "cam_xuc": -2,
    "ky_thuat": {
@@ -594,9 +594,9 @@
    }
   },
   {
-   "canh": "[ĐẢO VAI] Những người bà đã giúp",
+   "canh": "[ĐẢO VAI] Báo tàu, chắn ray",
    "goc_may": "Toàn",
-   "hanh_dong": "Những người bà đã giúp lao ra, mỗi người dùng đúng cái bà từng làm cho họ: cậu bé gõ ray báo tàu, đôi khách Tây giơ gậy selfie ngang làm barie, hai ông chú đỡ hai thúng, cô nữ sinh kéo bà lên thềm. Tất cả vào thềm vừa lúc tàu tới.",
+   "hanh_dong": "Cậu bé chạy ra gõ que lên ray 'keng keng' báo tàu như bà từng làm; đôi khách Tây giơ ngang gậy selfie chắn giữa ray như barie, phía sau đèn tàu đang tới.",
    "loi_thoai": "",
    "am_thanh": "Tiếng gõ ray lặp lại, bước chân dồn, còi tàu gần.",
    "thoi_luong_s": 4,
@@ -606,13 +606,58 @@
     "Quang gánh hoa",
     "Cậu bé bóng vàng",
     "Đôi khách Tây",
+    "Phố đường tàu · dãy quán đông khách"
+   ],
+   "bien_the": [],
+   "prompt_anh": "Wide shot at dusk, Hanoi train street with yellow lanterns. A boy about 7 in an oversized red football jersey taps the rail with a stick; a tall sunburnt backpacker couple hold their selfie stick horizontally across the rail like a barrier; the tiny elderly flower vendor sits fallen on the rail with a broken bamboo pole; a train headlight approaches.",
+   "prompt_video": "The boy taps the rail like a warning bell, the couple hold the selfie stick across the track like a crossing gate, facing the approaching headlight.",
+   "phan_doan": "Đảo vai",
+   "cam_xuc": 4,
+   "ky_thuat": {
+    "vai": "tong_the",
+    "co_canh": "ws",
+    "goc": "ngang",
+    "chuyen_dong": "tinh",
+    "chuyen_canh": "cat",
+    "luat": [
+     "motif",
+     "giu_phan_ung"
+    ],
+    "anh_sang": "hoang_hon",
+    "mau": "am",
+    "ong_kinh": "chuan",
+    "nhac": "piano"
+   },
+   "trang_phuc": "",
+   "chu_man": "",
+   "thoai": [],
+   "dan_dung": {
+    "bo_cuc": "Vendor center on rail; helpers converging from both sides",
+    "mo": "Vendor fallen, helpers running in",
+    "ket": "All on doorstep, baskets safe",
+    "huong": "Everyone converges to the doorstep",
+    "muc_dich": "Lòng tốt quay về: đúng các mẹo bà đã làm",
+    "dien": "Urgent, purposeful; vendor surprised"
+   }
+  },
+  {
+   "canh": "[ĐẢO VAI] Đỡ thúng, kéo bà",
+   "goc_may": "Toàn",
+   "hanh_dong": "Hai ông chú đỡ hai thúng hoa đang đổ, cô nữ sinh kéo bà đứng dậy lên thềm — vừa kịp trước khi tàu tới.",
+   "loi_thoai": "",
+   "am_thanh": "Tiếng gõ ray lặp lại, bước chân dồn, còi tàu gần.",
+   "thoi_luong_s": 4,
+   "phat_s": 4,
+   "nhan_vat": [
+    "Bà Lụa",
+    "Quang gánh hoa",
     "Hai ông chú trà đá",
     "Cô nữ sinh",
     "Phố đường tàu · dãy quán đông khách"
    ],
    "bien_the": [],
-   "prompt_anh": "Wide shot at dusk. the same train street at dusk, yellow lanterns glowing along the cafés, rails catching warm light. the tiny elderly flower vendor (grey low bun, black velvet headband, tilted-back conical palm-leaf hat, faded brown blouse, black trousers, worn sandals) with a long honey-colored bamboo carrying pole and two jute-rope cradles holding shallow woven baskets of white daisies sits on the rail with a broken pole. a boy about 7 with buzz-cut hair and an oversized red football jersey taps the rail with a stick, a tall sunburnt backpacker couple (red-bearded man in a bucket hat, blonde-braided woman in sunglasses) holding a selfie stick hold their selfie stick across the rail like a barrier, two middle-aged café men, one chubby and bald in a white singlet, one thin with a moustache in a striped polo catch the two daisy baskets, a teenage schoolgirl in a white ao dai pulls the vendor up toward the doorstep.",
-   "prompt_video": "Everyone the vendor helped rushes in, each repeating her trick: the boy taps the rail, the couple hold the selfie stick as a barrier, the men catch the baskets, the girl pulls her onto the doorstep just as the train arrives.",
+   "prompt_anh": "Medium shot at dusk on the train street. Two middle-aged café men (one chubby bald in a white singlet, one thin with a moustache) catch two tipping baskets of white daisies; a teenage schoolgirl in a white ao dai pulls the tiny elderly flower vendor up from the rail toward the doorstep.",
+   "prompt_video": "The men catch the baskets, the girl pulls the vendor up onto the doorstep just before the train arrives.",
    "phan_doan": "Đảo vai",
    "cam_xuc": 4,
    "ky_thuat": {

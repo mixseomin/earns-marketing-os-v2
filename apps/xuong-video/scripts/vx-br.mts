@@ -51,12 +51,13 @@ export async function napKhung(file: string, catDefault: number): Promise<number
 //   Nối mạch: đặt khung cuối shot N = khung đầu shot N+1 → cú cắt liền, động tác không giật. (field bundle: mediaId + lastFrameMediaId + generatorName=first_last_frame)
 // faceMediaId (01/11/2026): ảnh MẶT nhân vật → faceImageMediaId + faceSwap=1 — khung đầu không thấy mặt (chụp sau vai) thì model bịa mặt khi người quay ra máy
 //   (A/B #2→#3 phim #353: 4/4 lượt trôi mặt); neo mặt bằng ảnh như @image của Seedance.
-export function guiShot(mediaId: number, prompt: string, enhance = true, lastMediaId = 0, faceMediaId = 0): string | null {
+// aspect (02/11/2026): khổ của phim — trước đây ghi cứng 9:16, phim ngang 16:9 (MV gag) cần '16:9'.
+export function guiShot(mediaId: number, prompt: string, enhance = true, lastMediaId = 0, faceMediaId = 0, aspect: '9:16' | '16:9' | '1:1' = '9:16'): string | null {
   const noi = lastMediaId > 0;
   const body = [
     'type=human', 'imagePrompt=', `prompt=${encodeURIComponent(prompt)}`, 'uuid=', `mediaId=${mediaId}`,
     'lastFrameUuid=', `lastFrameMediaId=${noi ? lastMediaId : 0}`,
-    'audioMediaId=0', 'isShared=0', 'aspect=9%3A16', 'enhanceHumanFace=0', 'isTalkingVideoFromText=0',
+    'audioMediaId=0', 'isShared=0', `aspect=${encodeURIComponent(aspect)}`, 'enhanceHumanFace=0', 'isTalkingVideoFromText=0',
     'isNarrationVideo=0', `enhanceVideoPrompt=${enhance ? 1 : 0}`, 'videoOnly=0', 'speed=', `generatorName=${noi ? 'first_last_frame' : 'create_from_prompt'}`,
     `faceImageMediaId=${faceMediaId}`, `faceSwap=${faceMediaId ? 1 : 0}`, 'mode=',
   ].join('&');

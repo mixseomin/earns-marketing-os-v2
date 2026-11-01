@@ -1,7 +1,22 @@
 {
-  "ghi_chu": "Tài sản tĩnh của từng cảnh (tải về tai/ bằng: node tai-ve.mjs). Tách mảnh: node tach.mjs tai/<tờ>.png tai/<thư mục>",
-  "gag4": {
-    "nen": { "url": "https://img.on.tc/xuong-video/nen/749-d1c97c82-056e-409f-8369-b890a57eb9d7.png", "tep": "nen-749.png" },
-    "to": { "url": "https://img.on.tc/xuong-video/giay-cat/1156-gag4-5b62d1c7.png", "tep": "to-gag4.png", "tach": "gag4" }
+ "ghi_chu": "Tài sản tĩnh của từng cảnh (tải về tai/ bằng: node tai-ve.mjs). Tách mảnh: node tach.mjs tai/<tờ>.png tai/<thư mục>",
+ "gag4": {
+  "nen": {
+   "url": "https://img.on.tc/xuong-video/nen/749-d1c97c82-056e-409f-8369-b890a57eb9d7.png",
+   "tep": "nen-749.png"
+  },
+  "to": {
+   "url": "https://img.on.tc/xuong-video/giay-cat/1156-gag4-1be7b312.png",
+   "tep": "to-gag4-v2.png",
+   "tach": "gag4v2",
+   "vai": {
+    "don": "manh-1.png",
+    "ba": "manh-2.png",
+    "ong_hoang": "manh-3.png",
+    "ong_ha": "manh-4.png",
+    "ghe": "manh-5.png",
+    "chong": "manh-6.png"
+   }
   }
+ }
 }

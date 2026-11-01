@@ -5,16 +5,21 @@
 // Chạy: node canh/gag4-ke-chong-ghe.mjs [ra.mp4] · ảnh mốc: --moc=0,1.62,2.6,5.5
 import { W, H, doan, em, roi, lerp, tai, manh, bongDat, diBo, veChan, chay } from '../dung.mjs';
 
+// mảnh đọc theo VAI khai trong nguon.json (tờ hình cắt vẽ lại thì thứ tự mảnh đổi — cảnh không đổi)
 const T = new URL('../tai/', import.meta.url).pathname;
-const [nen, ba, don, ongHoang, ongHa, ghe, chong] = await Promise.all(['nen-749.png', 'gag4/manh-1.png', 'gag4/manh-3.png', 'gag4/manh-4.png', 'gag4/manh-5.png', 'gag4/manh-6.png', 'gag4/manh-7.png'].map((f) => tai(T + f)));
+const NG = JSON.parse(await import('node:fs').then((fs) => fs.readFileSync(new URL('../nguon.json', import.meta.url), 'utf8'))).gag4;
+const m = (v) => tai(`${T}${NG.to.tach}/${NG.to.vai[v]}`);
+const [nen, ba, don, ongHoang, ongHa, ghe, chong] = await Promise.all([tai(T + NG.nen.tep), m('ba'), m('don'), m('ong_hoang'), m('ong_ha'), m('ghe'), m('chong')]);
+// CỠ theo kích thước mong muốn trên khung (px), không theo hệ số cố định — mảnh mỗi lần vẽ cỡ khác nhau
+const coCao = (img, px) => px / img.height, coRong = (img, px) => px / img.width;
 
 // ── bố trí (toạ độ khung 1280×720) ──
 const MAT_BA = 676, SAI = 66, DAI = 104;                  // mặt vỉa hè gần máy · nửa sải · dài chân
 const hxBa = (t) => 150 + 330 * t;                        // bà đi đều sang phải, không dừng
-const CO_BA = 0.5;
-const ONG = { x: 960, y: 640, co: 0.7 };                  // ông đứng sau một chút (xa máy hơn) — bà đi phía trước
-const CO_GHE = 0.66, LONG = 32;                           // ghế lồng nhau: mỗi chiếc cao thêm 30px
-const chongCao = chong.height * CO_GHE;
+const CO_BA = coCao(ba, 200), CO_DON = coRong(don, 430);
+const ONG = { x: 960, y: 640, co: coCao(ongHoang, 340) };                  // ông đứng sau một chút (xa máy hơn) — bà đi phía trước
+const CO_GHE = coRong(ghe, 96), CO_CHONG = coCao(chong, 300), LONG = 30;                           // ghế lồng nhau: mỗi chiếc cao thêm 30px
+const chongCao = chong.height * CO_CHONG;
 const chongDay = { x: ONG.x + 82, y: ONG.y - 100 };       // đáy chồng ghế ông ôm bên hông (ngang bụng) — lệch sang phải để thấy mặt ông
 const dinh = chongDay.y - chongCao;
 const oGhe = (i) => ({ x: chongDay.x, y: dinh + 52 - LONG * i });   // ô của ghế thứ i (0 = thấp nhất trong ba chiếc trên cùng)
@@ -30,7 +35,7 @@ const ba_ = (t) => {
   const nhun = Math.sin((hxBa(t) / (2 * SAI)) * 2 * Math.PI * 2) * 1.2;          // đòn nhún theo bước
   const hat = -20 * em(doan(t, 1.5, 1.68)) * (1 - em(doan(t, 1.8, 2.15)));        // cú hất: đầu đòn trước vểnh lên rồi hạ
   const goc = nhun + hat;
-  const a = (goc * Math.PI) / 180, nua = (don.width * CO_BA) / 2;
+  const a = (goc * Math.PI) / 180, nua = (don.width * CO_DON) / 2;
   return { ...d, vai, goc, mui: { x: vai.x + nua * Math.cos(a), y: vai.y + nua * Math.sin(a) } };
 };
 
@@ -56,7 +61,7 @@ function ve(ctx, t) {
   bongDat(ctx, ONG.x, ONG.y, 70);
   manh(ctx, ha ? ongHa : ongHoang, { x: ONG.x, y: ONG.y, co: ONG.co, coY: nhay, xoay: lac, lat: ngoai });
   const cd = xoayQuanh(chongDay, lac);
-  manh(ctx, chong, { x: cd.x, y: cd.y, co: CO_GHE, xoay: lac });
+  manh(ctx, chong, { x: cd.x, y: cd.y, co: CO_CHONG, xoay: lac });
   for (const i of [0, 1, 2]) { const g = ghe_(i, t); manh(ctx, ghe, { x: g.x, y: g.y, co: CO_GHE, coY: g.co, xoay: g.xoay }); }
 
   // bà (gần máy → vẽ sau): chân bám vỉa hè, thân, đòn gánh
@@ -66,7 +71,7 @@ function ve(ctx, t) {
     bongDat(ctx, hx, MAT_BA, 90, 0.12);
     veChan(ctx, hx, b.hy, b.ban, {});
     manh(ctx, ba, { x: hx, y: b.hy + 6, co: CO_BA, neo: [0.45, 0.97], xoay: 4 });
-    manh(ctx, don, { x: b.vai.x, y: b.vai.y, co: CO_BA, neo: [0.5, 0.03], xoay: b.goc });
+    manh(ctx, don, { x: b.vai.x, y: b.vai.y, co: CO_DON, neo: [0.5, 0.05], xoay: b.goc });
   }
 }
 

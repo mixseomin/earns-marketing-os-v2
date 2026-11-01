@@ -239,6 +239,8 @@ const LUAT = [
   { card: 1500, tep: 'apps/web/src/components/etp-view.tsx', co: '{lenDinh ? <><span style={{ display: \'inline-flex\', gap: 6, alignItems: \'center\' }}>{nguoiSel()}{coBo ? boSel() : null}', vi: 'dòng dính: đổi Người ngay trên đó + ô TK sau ô Người' },
   { card: 1500, tep: 'apps/web/src/components/etp-view.tsx', co: '{nguoiSel()}{!gon && coBo ? boSel() : null}', vi: 'tiêu đề: ô TK đứng ngay sau ô Người' },
   { card: 1499, tep: 'apps/web/src/components/etp-view.tsx', co: 'e.currentTarget.scrollTop > (gon ? h.offsetTop + h.offsetHeight : 12)', vi: 'máy tính: dòng dính bật ngay khi tiêu đề bắt đầu trôi khỏi màn, không đợi hero' },
+  { card: 1498, tep: 'apps/web/src/components/etp-view.tsx', co: "      {gon ? null : thanhTren}\n      </div>\n      {gon ? thanhTren : null}", vi: 'điện thoại chỉ 1–2 dòng dính: hàng tab · kỳ · Lọc nằm ngoài khung dính (anh 01/11/2026)' },
+  { card: 1498, tep: 'apps/web/src/components/etp-view.tsx', co: "position: gon ? undefined : 'sticky', top: 0, zIndex: 5,", vi: 'hàng tab không tự dính trên điện thoại' },
   { card: 1500, tep: 'apps/web/src/components/etp-view.tsx', cam: '{!gon ? <>{laiSel()}{tuoiSel()}{luatSel()}{dangSel()}{boSel()}</> : null}', vi: 'máy tính: ô TK không quay lại hàng lọc' },
   // anh 01/11/2026 "việc này quan trọng, fix ngay" (#70177: 15 dòng lỗi giống hệt): nhật ký máy một đường ghi, chặn dòng lỗi lặp; kho khoá NULL bằng nhau
   { card: 0, tep: 'apps/etp/nhat_ky.py', co: "where ten = 'ethopex_nhat_ky' and not {lap}", vi: 'nhật ký studio: dòng lỗi trùng trong 24 giờ không ghi lại' },

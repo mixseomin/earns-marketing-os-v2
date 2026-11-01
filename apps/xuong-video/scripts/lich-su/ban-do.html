@@ -11,13 +11,14 @@
 const c = document.getElementById('c'), x = c.getContext('2d'), W = 1080, H = 1920;
 const io = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2), out = (k) => 1 - Math.pow(1 - k, 3), kep = (v) => Math.max(0, Math.min(1, v));
 let C, nen, mien, dh, NV = {};
-// Chiếu trụ đều có vĩ tuyến chuẩn 54° (cùng lưới với ảnh địa hình Natural Earth: 60 px / độ) — zoom 1 ≈ 1 độ vĩ = 12 px
-const COS = Math.cos((54 * Math.PI) / 180);
+// Chiếu trụ đều, vĩ tuyến chuẩn theo vùng của tập (C.vi_tuyen do dung-tap.mjs tính từ các cảnh: Baltic 54°, Nam Mỹ ~-18°) — cùng lưới với ảnh địa hình
+// Natural Earth; zoom 1 ≈ 1 độ vĩ = 12 px
+let COS = Math.cos((54 * Math.PI) / 180);
 let cam = { lon: 0, lat: 0, z: 1 }, rung = [0, 0];
 const chieu = (lon, lat) => { const s = 12 * cam.z; return [W / 2 + (lon - cam.lon) * s * COS + rung[0], H * 0.42 - (lat - cam.lat) * s + rung[1]]; };
 
 window.__dung = async () => {
-  C = window.CAU; nen = new Image(); nen.src = C.nen; await nen.decode();
+  C = window.CAU; if (C.vi_tuyen != null) COS = Math.cos((C.vi_tuyen * Math.PI) / 180); nen = new Image(); nen.src = C.nen; await nen.decode();
   if (C.dia_hinh) { dh = new Image(); dh.src = C.dia_hinh.anh; await dh.decode(); }
   for (const [k, u] of Object.entries(C.nv || {})) { const i = new Image(); i.src = u; await i.decode(); NV[k] = i; }
   mien = {}; for (const [iso, polys] of Object.entries(C.geo)) mien[iso] = polys.map((ring) => ({ ring, bb: ring.reduce((b, [a, d]) => [Math.min(b[0], a), Math.min(b[1], d), Math.max(b[2], a), Math.max(b[3], d)], [999, 999, -999, -999]) }));
@@ -189,7 +190,7 @@ window.__seek = (t) => {
     x.fillStyle = d.mau || '#b3261e'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(d.text, 0, 6);
     x.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 90; i++) { x.beginPath(); x.arc(((i * 53) % rw) - rw / 2, ((i * 37) % 132) - 66, 1.5 + (i % 3), 0, 7); x.fill(); } x.restore(); }
   // thẻ kết
-  if (s.c.ket) { const al = kep((u - 1.2) / 0.4); if (al) { x.globalAlpha = al; const p = 1 + 0.04 * Math.sin(u * 6); x.save(); x.translate(W / 2, H * 0.64); x.scale(p, p); x.fillStyle = '#9e2b25'; x.beginPath(); x.roundRect(-230, -70, 460, 140, 70); x.fill(); x.font = '900 66px Cinzel, Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f8f0de'; x.fillText(s.c.ket, 0, 4); x.restore(); x.globalAlpha = 1; } }
+  if (s.c.ket) { const al = kep((u - 1.2) / 0.4); if (al) { x.globalAlpha = al; const p = 1 + 0.04 * Math.sin(u * 6); x.save(); x.translate(W / 2, H * 0.64); x.scale(p, p); x.font = '900 66px Cinzel, Georgia, serif'; const kw = Math.max(460, x.measureText(s.c.ket).width + 120); x.fillStyle = '#9e2b25'; x.beginPath(); x.roundRect(-kw / 2, -70, kw, 140, 70); x.fill(); x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f8f0de'; x.fillText(s.c.ket, 0, 4); x.restore(); x.globalAlpha = 1; } }
   // viền tối mép (giấy cũ)
   const v = x.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.72); v.addColorStop(0, 'rgba(40,25,10,0)'); v.addColorStop(1, 'rgba(40,25,10,.5)'); x.fillStyle = v; x.fillRect(0, 0, W, H);
 };

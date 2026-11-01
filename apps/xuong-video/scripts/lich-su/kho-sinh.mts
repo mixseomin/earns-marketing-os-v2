@@ -1,10 +1,13 @@
 // SINH BỘ DÁNG cho một tài sản kho kênh lịch sử (02/11/2026, anh: "thư viện động tác, cử chỉ, khuôn mặt cho sinh động"). Chạy trên box3:
 //   NODE_OPTIONS=--conditions=react-server tsx scripts/lich-su/kho-sinh.mts <thư-mục-ra> <url-ảnh-gốc> <dáng>[,<dáng>…]
+//   … kho-sinh.mts <thư-mục-ra> "mota:<nhan_vat|phuong_tien>:<mô tả tiếng Anh>" <dáng,…|goc>   (chưa có ảnh gốc: vẽ goc.jpg theo kho.json › phong_cach
+//   trước, đẩy tạm lên R2 làm tham chiếu, rồi mới sửa dáng — máy làm tập lam-tap.mjs gọi đường này cho tài sản mới)
 // Mỗi dáng = SỬA từ ảnh gốc (giữ mặt, trang phục, nét vẽ, màu) qua cổng ảnh rẻ nhất (ckey Nano Banana 2 ~110₫), song song. Ra <dáng>.jpg nền trắng;
 // iMac tách nền (shot-code/tach-lop.swift) rồi kho-day.mts đẩy lên R2 + Studio. Danh mục dáng: DANG bên dưới (thêm dáng = thêm một dòng).
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { sinhAnhMotCong, chuoiAnh } from '../../src/lib/xuong-video/cong-ai';
+import { uploadToR2 } from '../../src/lib/r2';
 
 export const DANG: Record<string, string> = {
   chi_tay: 'pointing firmly with the right arm stretched out toward the right side of the picture, looking that way, determined face',
@@ -17,11 +20,22 @@ export const DANG: Record<string, string> = {
   noi_dong: 'talking to the viewer with an open-palm explaining gesture of the right hand, mouth CLOSED between words (exactly the same pose as an open-mouth talking frame)',
   buon: 'sad and defeated: shoulders slumped, head down, eyes looking at the ground',
 };
-const [ra, goc, ds] = process.argv.slice(2);
-if (!ra || !goc || !ds) { console.error('tsx kho-sinh.mts <ra> <url-gốc> <dáng,…>'); process.exit(2); }
+const [ra, gocArg, ds] = process.argv.slice(2);
+if (!ra || !gocArg || !ds) { console.error('tsx kho-sinh.mts <ra> <url-gốc|mota:loai:mô tả> <dáng,…>'); process.exit(2); }
 mkdirSync(ra, { recursive: true });
-const c = chuoiAnh('nano-banana-2')[0]!; let tong = 0;
-await Promise.all(ds.split(',').map(async (d) => {
+const c = chuoiAnh('nano-banana-2')[0]!; let tong = 0; let goc = gocArg;
+if (gocArg.startsWith('mota:')) {
+  const [, loai, ...m] = gocArg.split(':'); const moTa = m.join(':');
+  const pc = (JSON.parse(readFileSync(new URL('./kho.json', import.meta.url), 'utf8')) as { phong_cach: string }).phong_cach;
+  const prompt = loai === 'phuong_tien'
+    ? `${pc.replace(/character/i, 'object').replace(/full body, /, '')}. Object: ${moTa}. Clean side view facing RIGHT, whole object visible, centered, plain pure white background, no people, no ground shadow, no text, letters or logos.`
+    : `${pc}. Character: ${moTa}. Standing in a neutral relaxed pose, body turned slightly toward the right side of the picture, centered, no text, letters or logos.`;
+  const r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [], tiLe: loai === 'phuong_tien' ? '3:2' : '2:3' });
+  if (!r.anh) { console.error(`✗ goc: ${r.loi}`); process.exit(1); }
+  writeFileSync(join(ra, 'goc.jpg'), r.anh.data); tong += r.nguon.vnd || 0; console.log('✓ goc');
+  goc = (await uploadToR2(`xuong-video/lich-su/tam/${Date.now()}-goc.jpg`, r.anh.data, 'image/jpeg'))!;
+}
+await Promise.all(ds.split(',').filter((d) => d !== 'goc').map(async (d) => {
   const mo = DANG[d]; if (!mo) { console.log(`✗ ${d}: không có trong danh mục dáng`); return; }
   const prompt = `Edit Image 1: keep EXACTLY the same character — same face, hair, age, outfit, accessories, art style, line work, colours and proportions. Change only the pose and expression: ${mo}. Full body, centered, on a plain pure white background, no ground shadow, no text, letters or logos.`;
   const r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [goc], tiLe: '2:3' });

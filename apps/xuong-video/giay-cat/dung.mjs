@@ -76,3 +76,20 @@ export async function xuat(ve, giay, ra) {
   await new Promise((r, j) => ff.on('close', (code) => (code ? j(new Error(`ffmpeg ${code}`)) : r())));
   return ra;
 }
+
+/** Xuất ẢNH MỐC (PNG) tại các giây cho trước — khung đầu / cuối của từng đoạn khi vẽ lại bằng mô hình khung đầu → cuối (VideoExpress first_last_frame). */
+export async function xuatKhung(ve, ts, thuMuc) {
+  const { mkdirSync, writeFileSync } = await import('node:fs');
+  mkdirSync(thuMuc, { recursive: true });
+  const c = createCanvas(W, H), ctx = c.getContext('2d'); const ra = [];
+  for (const t of ts) { ctx.clearRect(0, 0, W, H); ve(ctx, t); const p = `${thuMuc}/moc-${String(t).replace('.', '_')}.png`; writeFileSync(p, c.toBuffer('image/png')); ra.push(p); }
+  return ra;
+}
+/** Chạy một cảnh: `node canh/x.mjs [ra.mp4]` xuất video · `--moc=0,1.62,2.6,5.5` xuất ảnh mốc vào ra/<tên>-moc/. */
+export async function chay(ve, giay, ten) {
+  const moc = process.argv.find((a) => a.startsWith('--moc='));
+  const goc = new URL('./ra/', import.meta.url).pathname;
+  if (moc) return console.log((await xuatKhung(ve, moc.slice(6).split(',').map(Number), `${goc}${ten}-moc`)).join('\n'));
+  const { mkdirSync } = await import('node:fs'); mkdirSync(goc, { recursive: true });
+  console.log(await xuat(ve, giay, process.argv.find((a, i) => i > 1 && a.endsWith('.mp4')) ?? `${goc}${ten}.mp4`));
+}

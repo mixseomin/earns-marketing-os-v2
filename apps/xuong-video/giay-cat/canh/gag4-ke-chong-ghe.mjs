@@ -2,8 +2,8 @@
 //   0–1.5s  ông chủ quán ôm chồng ghế quá cao loạng choạng; BA ghế trên cùng bật ra, rơi
 //   1.5–3s  bà Lụa đi ngang KHÔNG dừng, hất đầu đòn gánh: ba ghế bật ngược lên, đáp gọn lại đỉnh chồng ông đang ôm
 //   3–6s    chồng ghế đứng thẳng trong tay ông; ông há hốc, quay nhìn theo; bà đã ra khỏi khung bên phải
-// Chạy: node canh/gag4-ke-chong-ghe.mjs [ra.mp4]
-import { W, H, doan, em, roi, lerp, tai, manh, bongDat, diBo, veChan, xuat } from '../dung.mjs';
+// Chạy: node canh/gag4-ke-chong-ghe.mjs [ra.mp4] · ảnh mốc: --moc=0,1.62,2.6,5.5
+import { W, H, doan, em, roi, lerp, tai, manh, bongDat, diBo, veChan, chay } from '../dung.mjs';
 
 const T = new URL('../tai/', import.meta.url).pathname;
 const [nen, ba, don, ongHoang, ongHa, ghe, chong] = await Promise.all(['nen-749.png', 'gag4/manh-1.png', 'gag4/manh-3.png', 'gag4/manh-4.png', 'gag4/manh-5.png', 'gag4/manh-6.png', 'gag4/manh-7.png'].map((f) => tai(T + f)));
@@ -70,6 +70,4 @@ function ve(ctx, t) {
   }
 }
 
-const ra = process.argv[2] || new URL('../ra/gag4-ke-chong-ghe.mp4', import.meta.url).pathname;
-await import('node:fs').then((fs) => fs.mkdirSync(new URL('../ra/', import.meta.url).pathname, { recursive: true }));
-console.log(await xuat(ve, 6, ra));
+await chay(ve, 6, 'gag4-ke-chong-ghe');

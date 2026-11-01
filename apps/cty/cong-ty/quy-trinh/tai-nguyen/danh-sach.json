@@ -4,10 +4,10 @@
  "quy_trinh": [
   {
    "id": "kiem-tai-nguyen",
-   "ten": "Canh tài nguyên máy cào (làn, khoá 2proxy, CPU, RAM, tài sản)",
+   "ten": "Canh tài nguyên máy cào (làn, khoá 2proxy, CPU, RAM, ổ cứng, tài sản)",
    "so_hoa": "co-dinh",
    "kich_hoat": "box3 mỗi 30 phút — nhịp kiem-tai-nguyen (cty-nhip.timer)",
-   "mo_ta": "Đọc làn ↔ máy, hạn khoá 2proxy, CPU bận thật box3 + VPS, RAM, tài sản sắp hết hạn → Telegram 🧰 Tài nguyên; cảnh báo máy móc xếp vào hàng thợ máy.",
+   "mo_ta": "Đọc làn ↔ máy, hạn khoá 2proxy, CPU bận thật box3 + VPS (giờ nice của lô nền tính là rỗi), RAM, ổ cứng box3 + VPS, tài sản sắp hết hạn → Telegram 🧰 Tài nguyên; cảnh báo máy móc xếp vào hàng thợ máy.",
    "ma": "apps/cty/worker/tai-nguyen.mjs",
    "chu_tri": "nguyen",
    "lam": [

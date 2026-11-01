@@ -16,12 +16,14 @@ export const NGUONG = { lanDungGio: 2, spyproDungGio: 3, khoaConNgay: 3, cpuBan:
 // QUÁ TẢI = % CPU BẬN THẬT trung bình giữa hai nhịp (~30 phút, /proc/stat; chờ đĩa/mạng tính là rỗi) — KHÔNG dùng load average 1 phút: nó đếm cả
 // tiến trình ngồi chờ mạng/đĩa và một phút nhói là kêu (22/10/2026: box3 "thỉnh thoảng quá tải" theo nhịp deploy spy; VPS CPU rỗi 97% mà tải 4).
 // Báo kèm 3 tiến trình nặng nhất lúc chụp → biết nghẽn ở đâu, không đoán.
+// GIỜ CPU "NICE" TÍNH LÀ RỖI (01/11/2026): lô cắt video ethopex chạy nice 19 (ffmpeg + tesseract) nhường mọi việc khác, vậy mà đếm là bận →
+// box3:tai kêu 5 lần trong 2 ngày, thợ máy mở 5 lượt đều kết "không sửa" (đo: 97% bận = 67% nice + 30% việc thật). Quá tải = việc ưu tiên thường tranh nhau.
 const TOP3 = `top -b -c -n 2 -d 2 -o %CPU -w 300 | awk '/^top -/{n++} n==2 && $1 ~ /^[0-9]+$/ && c++ < 3 {a=""; for(i=12;i<=NF&&i<=15;i++) a=a" "$i; print $9"%"substr(a,1,70)}'`;
-/** Thuần: hai dòng "cpu …" của /proc/stat → % CPU bận giữa hai lần đọc (rỗi = idle + iowait); không tính được → null */
+/** Thuần: hai dòng "cpu …" của /proc/stat → % CPU bận giữa hai lần đọc (rỗi = nice + idle + iowait); không tính được → null */
 export function banCpu(truoc, nay) {
   const so = (d) => String(d || '').trim().split(/\s+/).slice(1).map(Number), a = so(truoc), b = so(nay), cong = (x) => x.reduce((t, v) => t + (v || 0), 0);
   if (a.length < 5 || b.length < 5) return null;
-  const tong = cong(b) - cong(a), roi = b[3] + b[4] - a[3] - a[4];
+  const tong = cong(b) - cong(a), roi = b[1] + b[3] + b[4] - a[1] - a[3] - a[4];
   return tong > 0 ? Math.round(100 - (100 * roi) / tong) : null;
 }
 // MÁY CHẠY VPS (22/10/2026): máy cào chính chạy trên VPS vpschinhhang may-cao-vn — phòng canh nó qua ssh (daemon trình duyệt + tải), tên máy trùng
@@ -45,6 +47,9 @@ export function xetCanhBao(s, bayGio = Date.now()) {
   }
   const nang = (m) => (m.nang?.length ? ` — nặng nhất: ${m.nang.join(' · ')}` : '');
   if (s.may.ban >= NGUONG.cpuBan) ra.push({ khoa: 'box3:tai', chu: `box3 quá tải: CPU bận ${s.may.ban}% suốt ${s.may.phut} phút qua${nang(s.may)}` });
+  // Ổ BOX3 (01/11/2026: lên 95% — /root/.cache/ethopex 12 GB không cất được Drive — mà phòng chỉ canh ổ VPS, không ai báo). Khoá 'dia:' không vào hàng
+  // thợ máy (LOAI_SUA): dọn ổ là quyết định giữ / cất của anh, thợ máy spy không được tự xoá.
+  if (s.may.dia >= NGUONG.diaPt) ra.push({ khoa: 'dia:box3', chu: `box3 ổ cứng đầy ${s.may.dia}% — còn ${s.may.diaConGB} GB` });
   if (s.may.ramMB < NGUONG.ramMB) ra.push({ khoa: 'box3:ram', chu: `box3 thiếu RAM: còn ${s.may.ramMB} MB` });
   if (s.may.daemon === false && s.lan.some((l) => l.may === 'box3')) ra.push({ khoa: 'box3:daemon', chu: 'box3: trình duyệt máy cào (spy-cao-daemon) không chạy trong khi có làn giao box3' });
   // TÀI SẢN SẮP HẾT HẠN (anh 22/10/2026 "cập nhật vps mới vào cty để còn kiểm soát thời hạn, chi phí"): mọi dòng mos2 infra_resources còn < 5 ngày
@@ -143,6 +148,7 @@ export async function chupTaiNguyen() {
   const sh = (c) => execFileSync('sh', ['-c', c], { encoding: 'utf8', timeout: 20000 }).trim();
   const box3 = doCpu('box3', sh);
   const ramMB = Math.round(Number(fs.readFileSync('/proc/meminfo', 'utf8').match(/MemAvailable:\s+(\d+)/)[1]) / 1024);
+  const [diaConGB, dia] = sh(`df -B1G --output=avail,pcent / | tail -1`).split(/\s+/).map((x) => Number(x.replace('%', '')));
   let daemon = false; try { daemon = execFileSync('systemctl', ['is-active', 'spy-cao-daemon'], { encoding: 'utf8' }).trim() === 'active'; } catch { /* không active */ }
   // sổ tài sản mos2 (infra_resources): dòng còn hạn trong 30 ngày tới — đọc hỏng thì bỏ phần này, phần còn lại vẫn chạy
   let taiSan = [];
@@ -165,7 +171,7 @@ export async function chupTaiNguyen() {
   // người bán nào đổi giá (cần anh bấm chấp nhận trên ckey.vn), danh sách đổi so với nhịp trước
   const ck = docJson('/var/lib/spy/ckey-tuyen.json'), ckeyTruoc = docJson(`${DATA()}/tai-nguyen.json`)?.ckey ?? null;
   const ckey = ck ? { cap_nhat: ck.cap_nhat, dong: ck.dong, chi_tiet: ck.chi_tiet } : null, ckeyGia = docJson('/var/lib/spy/ckey-gia.json');
-  return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon }, taiSan, vps, ckey, ckeyTruoc, ckeyGia };
+  return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon, dia, diaConGB }, taiSan, vps, ckey, ckeyTruoc, ckeyGia };
 }
 
 /** Thuần — tin Telegram: cảnh báo thường thành dòng •, mục ckey gom thành ba khối bảng <pre> (dòng ≤ 30 ký tự cho vừa màn điện thoại):
@@ -235,6 +241,9 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     const st = (u, n, s, i, w) => `cpu  ${u} ${n} ${s} ${i} ${w} 0 0 0 0 0`;
     assert.strictEqual(banCpu(st(0, 0, 0, 0, 0), st(90, 0, 10, 0, 0)), 100, 'toàn bận');
     assert.strictEqual(banCpu(st(0, 0, 0, 0, 0), st(10, 0, 0, 40, 50)), 10, 'chờ đĩa (iowait) tính là rỗi');
+    assert.strictEqual(banCpu(st(0, 0, 0, 0, 0), st(30, 67, 3, 0, 0)), 33, 'lô nice 19 chiếm 67% (ethopex 01/11): tính là rỗi');
+    assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, dia: 95, diaConGB: 4 } }), ['dia:box3'], 'ổ box3 95%');
+    assert.deepStrictEqual(k({ lan: [], khoa: [], may: { ...may, dia: 80, diaConGB: 15 } }), [], 'ổ box3 80%: im');
     assert.strictEqual(banCpu('', st(1, 0, 0, 1, 0)), null, 'thiếu lần trước → null');
     const ts = (id, ngay, thang = 37500000) => ({ id, ten: 'VPS may-cao-vn', nha: 'vpschinhhang', het: new Date(bay + ngay * 864e5).toISOString(), thang, tien: 'VND' });
     assert.deepStrictEqual(k({ lan: [], khoa: [], may, taiSan: [ts(17, 20)] }), [], 'tài sản còn 20 ngày: im');

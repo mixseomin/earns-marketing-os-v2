@@ -1,6 +1,8 @@
 // PHÒNG TÀI NGUYÊN · SỐ DƯ CỔNG API (anh 20/10/2026: "có phòng quản lý các API này về hiện trạng như balance… và báo cáo hàng ngày qua telegram").
 // Chạy TRONG nhịp kiem-tai-nguyen (tai-nguyen.mjs, mỗi 30 phút trên box3) — không có tiến trình riêng. $0: chỉ đọc số dư, không gọi mô hình.
 //   Số dư đọc thẳng từ cổng: ShopAIKey (trần − đã dùng, credit $1 = 3.250₫) · Kie.ai (credit) · RunPod ($) · PlenX AI (credit, 100₫/credit — token studio) · fal.ai ($, khoá FAL_ADMIN_KEY).
+//   Keywords Everywhere (credit, khoá KE_API_KEY trong /root/.secrets/spy.env — anh 02/11/2026 "Phòng tài nguyên phải theo dõi hoạt động của api này"):
+//   số dư + sổ lượt gọi ke_luot của spy (server/ke.mjs) → dòng báo cáo sáng + cảnh báo lỗi liên tiếp / tiêu sát trần ngày.
 //   ckey.vn KHÔNG đọc (anh 26/10/2026 "CKEY bỏ"): API số dư cần khoá tài khoản riêng, không có.
 //   Tiền đã tiêu hôm qua theo cổng: sổ job studio (xv_job.chi_phi_cents, mos2_prod) — gồm cả cổng không có API số dư (Anthropic, Google, fal).
 // Cảnh báo (cùng chủ đề 🧰 Tài nguyên, nhắc lại sau 6 giờ như cảnh báo khác): số dư dưới SAN, hoặc chỉ còn < NGAY_CON ngày theo mức tiêu 7 ngày.
@@ -12,7 +14,7 @@ import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const ENV_STUDIO = '/opt/earns-marketing-os-v2/.env.production';
-export const SAN = { shopaikey: 5, kie: 500, runpod: 2, plenxai: 100, vast: 2, elevenlabs: 1000, fal: 5 };   // $ / credit / $ / ₫ — dưới mức này là báo
+export const SAN = { shopaikey: 5, kie: 500, runpod: 2, plenxai: 100, vast: 2, elevenlabs: 1000, fal: 5, ke: 5000 };   // $ / credit / $ / ₫ — dưới mức này là báo
 export const NGAY_CON = 3; export const GIO_BAO = '08:00'; export const GIO_DON = '03:00';
 /** Giá R2 (cloudflare.com/r2/pricing, gói Standard): lưu $0,015/GB-tháng sau 10 GB miễn phí · lớp A $4,50/triệu sau 1 triệu · lớp B $0,36/triệu sau 10 triệu · xoá + băng thông ra: 0. */
 export const GIA_R2 = { gb: 0.015, gbFree: 10, a: 4.5, aFree: 1e6, b: 0.36, bFree: 10e6 };
@@ -21,8 +23,8 @@ export const NGUONG_R2 = { thangVnd: 100000, tangGb: 10 };
 const VND = 26000;   // $1 ≈ 26.000₫ (cùng tỷ giá báo cáo studio)
 const LOP_B = new Set(['GetObject', 'HeadObject', 'HeadBucket', 'GetBucketLocation', 'GetBucketEncryption', 'GetBucketCors', 'GetBucketLifecycleConfiguration']);
 const MIEN_PHI = new Set(['DeleteObject', 'DeleteObjects', 'DeleteBucket', 'AbortMultipartUpload']);
-const DON = { shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit', vast: '$', elevenlabs: 'credit', fal: '$' };
-const TEN = { plenxai: 'PlenX AI', shopaikey: 'ShopAIKey', kie: 'Kie.ai', runpod: 'RunPod', ckey: 'ckey.vn', vast: 'Vast.ai', elevenlabs: 'ElevenLabs', anthropic: 'Anthropic', google: 'Google', fal: 'fal.ai' };
+const DON = { shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit', vast: '$', elevenlabs: 'credit', fal: '$', ke: 'credit' };
+const TEN = { plenxai: 'PlenX AI', shopaikey: 'ShopAIKey', kie: 'Kie.ai', runpod: 'RunPod', ckey: 'ckey.vn', vast: 'Vast.ai', elevenlabs: 'ElevenLabs', anthropic: 'Anthropic', google: 'Google', fal: 'fal.ai', ke: 'Keywords Everywhere' };
 
 const so = (x, d = 2) => Number(x).toLocaleString('vi-VN', { maximumFractionDigits: d });
 const hien = (k, v) => (DON[k] === '$' ? `$${so(v)}` : DON[k] === '₫' ? `${so(v, 0)}₫` : `${so(v, 0)} ${DON[k]}`);
@@ -86,7 +88,7 @@ export function dongR2(r, don) {
 }
 
 /** Thuần: tin báo cáo ngày (HTML Telegram). tieu = { provider: cents hôm qua } từ sổ job. */
-export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc, spy = null, r2 = undefined, don = null }) {
+export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc, spy = null, r2 = undefined, don = null, ke = undefined }) {
   const dong = [];
   for (const k of Object.keys(SAN)) {
     const v = du[k]; const t = tieuNgay(lichSu, k);
@@ -95,13 +97,39 @@ export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc, spy = null, r2
   }
   const tong = Object.values(tieu).reduce((a, x) => a + x, 0);
   const tieuDong = Object.entries(tieu).sort((a, b) => b[1] - a[1]).map(([p, c]) => `${TEN[p] ?? p} ${so(c / 100 * 26000, 0)}₫`).join(' · ');
-  return `<b>${ten} · Phòng Tài nguyên — báo cáo API ${ngay.split('-').reverse().slice(0, 2).join('/')}</b>\n<b>Số dư</b>\n${dong.join('\n')}\n<b>Studio tiêu hôm qua</b> (sổ job, 26.000₫ ≈ $1): ${tong ? `${so(tong / 100 * 26000, 0)}₫ — ${tieuDong}` : 'không có lượt tốn tiền'}${spy ? `\n${dongSpy(spy)}` : ''}${r2 !== undefined ? `\n${dongR2(r2, don)}` : ''}`;
+  return `<b>${ten} · Phòng Tài nguyên — báo cáo API ${ngay.split('-').reverse().slice(0, 2).join('/')}</b>\n<b>Số dư</b>\n${dong.join('\n')}\n<b>Studio tiêu hôm qua</b> (sổ job, 26.000₫ ≈ $1): ${tong ? `${so(tong / 100 * 26000, 0)}₫ — ${tieuDong}` : 'không có lượt tốn tiền'}${spy ? `\n${dongSpy(spy)}` : ''}${ke !== undefined ? `\n${dongKe(ke)}` : ''}${r2 !== undefined ? `\n${dongR2(r2, don)}` : ''}`;
 }
 /** Thuần: dòng "Spy AI hôm qua" theo tuyến — chính hãng phải gần 0 (anh 26/10/2026: ckey trước, chính hãng luôn cuối); chính hãng > 10% tổng = in đậm cảnh báo. */
 export function dongSpy(spy) {
   const tong = (spy.ckey || 0) + (spy.fal || 0) + (spy.chinh_hang || 0); if (!tong) return '<b>Spy AI hôm qua</b>: không có lượt tốn tiền';
   const pt = Math.round((spy.chinh_hang || 0) / tong * 100);
   return `<b>Spy AI hôm qua</b>: ${so(tong, 0)}₫ — ckey ${so(spy.ckey || 0, 0)}₫ · fal ${so(spy.fal || 0, 0)}₫ · chính hãng ${so(spy.chinh_hang || 0, 0)}₫${pt > 10 ? ` · <b>⚠ chính hãng ${pt}% — người bán ckey đang hỏng?</b>` : ''}`;
+}
+/** Thuần: hoạt động KE (hd = hoatDongKe) → cảnh báo. Lỗi: KE_LOI_LIEN lượt gần nhất đều lỗi (trong 24 giờ) — khoá hỏng / hết credit / KE sập;
+ *  tiêu: hôm nay đã tới KE_SAT_TRAN trần ngày của spy (server/ke.mjs KE_TRAN_NGAY) — có thứ gọi lố. Không phải máy móc (khoá api:, không vào hàng thợ máy). */
+export const KE_LOI_LIEN = 3, KE_SAT_TRAN = 0.8;
+export function xetKe(hd) {
+  if (!hd) return [];
+  const ra = [], cuoi = hd.cuoi ?? [];
+  if (cuoi.length >= KE_LOI_LIEN && cuoi.slice(0, KE_LOI_LIEN).every((l) => !l.ok)) ra.push({ khoa: 'api:ke:loi', chu: `Keywords Everywhere: ${KE_LOI_LIEN} lượt gọi gần nhất đều lỗi — lỗi cuối: ${String(cuoi[0].loi || '?').slice(0, 120)}` });
+  if (hd.tran && hd.hom_nay >= hd.tran * KE_SAT_TRAN) ra.push({ khoa: 'api:ke:tieu', chu: `Keywords Everywhere: hôm nay đã tiêu <b>${so(hd.hom_nay, 0)} credit</b> / trần ${so(hd.tran, 0)} — xem ai đang gọi (spy.on.tc › Công cụ › Từ khoá Google)` });
+  return ra;
+}
+/** Thuần: dòng "KE hôm qua" của báo cáo sáng. */
+export const dongKe = (hd) => (!hd ? '<b>Keywords Everywhere hôm qua</b>: chưa đọc được sổ' : !hd.qua_luot ? '<b>Keywords Everywhere hôm qua</b>: không có lượt gọi'
+  : `<b>Keywords Everywhere hôm qua</b>: ${so(hd.qua_luot, 0)} lượt · ${so(hd.qua_credit, 0)} credit${hd.qua_loi ? ` · <b>${so(hd.qua_loi, 0)} lỗi</b>` : ''}`);
+/** Sổ ke_luot của spy: hôm qua (ngày VN) + hôm nay + 5 lượt cuối trong 24 giờ. Trần ngày đọc từ server/ke.mjs không được (khác repo) → KE_TRAN (cùng số 3.000). */
+const KE_TRAN = 3000;
+export function hoatDongKe(ngayQua) {
+  const url = docEnvTep('/root/.secrets/spy.env').DATABASE_URL; if (!url) return null;
+  const sql = `SELECT json_build_object(
+    'qua_luot', count(*) FILTER (WHERE (luc AT TIME ZONE 'Asia/Ho_Chi_Minh')::date = '${ngayQua}'::date),
+    'qua_credit', coalesce(sum(credit) FILTER (WHERE (luc AT TIME ZONE 'Asia/Ho_Chi_Minh')::date = '${ngayQua}'::date), 0),
+    'qua_loi', count(*) FILTER (WHERE (luc AT TIME ZONE 'Asia/Ho_Chi_Minh')::date = '${ngayQua}'::date AND NOT ok),
+    'hom_nay', coalesce(sum(credit) FILTER (WHERE (luc AT TIME ZONE 'Asia/Ho_Chi_Minh')::date = (now() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date), 0),
+    'cuoi', (SELECT coalesce(json_agg(x), '[]') FROM (SELECT ok, loi FROM ke_luot WHERE luc > now() - interval '24 hours' ORDER BY id DESC LIMIT 5) x)) FROM ke_luot`;
+  const out = execFileSync('psql', [url, '-tA', '-c', sql], { encoding: 'utf8', timeout: 20000 });
+  return { ...JSON.parse(out.trim()), tran: KE_TRAN };
 }
 /** Tiền spy AI theo tuyến trong MỘT ngày VN (sổ ai_luot của spy, chi_phi USD → ₫ theo 26.000). */
 export function tieuSpy(ngay) {
@@ -130,6 +158,8 @@ export async function docSoDu() {
     thu('vast', async () => { if (!e.VAST_API_KEY) throw new Error('thiếu khoá VAST_API_KEY'); const j = await lay('https://console.vast.ai/api/v0/users/current/', { headers: { authorization: `Bearer ${e.VAST_API_KEY}` } }); return Math.round(Number(j.credit ?? j.balance) * 100) / 100; }),
     thu('elevenlabs', async () => { if (!e.ELEVENLABS_API_KEY) throw new Error('thiếu khoá ELEVENLABS_API_KEY'); const j = await lay('https://api.elevenlabs.io/v1/user/subscription', { headers: { 'xi-api-key': e.ELEVENLABS_API_KEY } }); return Number(j.character_limit) - Number(j.character_count); }),
     // fal.ai (anh 26/10/2026 "cần thêm ngân sách còn lại" ở bảng AI spy): khoá AI FAL_KEY không có quyền billing → cần khoá ADMIN riêng FAL_ADMIN_KEY (quyền billing:usage:read)
+    // Keywords Everywhere (anh 02/11/2026): khoá nằm ở spy.env — spy là chỗ duy nhất gọi KE (server/ke.mjs); đọc số dư miễn phí
+    thu('ke', async () => { const k = docEnvTep('/root/.secrets/spy.env').KE_API_KEY; if (!k) throw new Error('thiếu khoá KE_API_KEY (spy.env)'); const j = await lay('https://api.keywordseverywhere.com/v1/account/credits', { headers: { authorization: `Bearer ${k}` } }); const v = Number(Array.isArray(j) ? j[0] : j?.credits); if (!Number.isFinite(v)) throw new Error('trả lạ'); return v; }),
     thu('fal', async () => { if (!e.FAL_ADMIN_KEY) throw new Error('thiếu khoá FAL_ADMIN_KEY (quyền billing:usage:read)'); const j = await lay('https://rest.alpha.fal.ai/billing/user_balance', { headers: { authorization: `Key ${e.FAL_ADMIN_KEY}` } }); const v = Number(typeof j === 'object' ? j.balance ?? j.credits : j); if (!Number.isFinite(v)) throw new Error('trả lạ'); return Math.round(v * 100) / 100; }),
   ]);
   return { du, loi };
@@ -185,14 +215,15 @@ export async function nhipApi({ ten, tep, bay = Date.now() }) {
   const r2 = st.r2?.loi ? null : st.r2;
   // máy dọn rác: một lần mỗi đêm sau GIO_DON (trước báo cáo sáng) — ~3 phút quét DB + tệp
   if (st.donNgay !== ngay && gioVN(bay) >= GIO_DON) { st.don = { ngay, ...chayDonRac() }; st.donNgay = ngay; }
-  const canhBao = [...xetCanhBaoApi(du, st.lich), ...xetCanhBaoR2(r2),
+  let ke = null; try { ke = hoatDongKe(ngayVN(bay - 864e5)); } catch { /* sổ spy không đọc được: báo cáo ghi "chưa đọc được sổ" */ }
+  const canhBao = [...xetCanhBaoApi(du, st.lich), ...xetCanhBaoR2(r2), ...xetKe(ke),
     ...(st.don?.ngay === ngay && st.don.loi ? [{ khoa: 'box3:don-rac', chu: `Máy dọn rác R2 (xuong-video/scripts/don-rac-r2.mts) hỏng đêm nay: ${st.don.loi}` }] : []),
     ...(st.don?.ngay === ngay && st.don.dung ? [{ khoa: 'r2:don-phanh', chu: `Máy dọn rác R2 kéo phanh, không dọn: ${st.don.dung}` }] : [])];
   let bao = null;
   if (st.baoNgay !== ngay && gioVN(bay) >= GIO_BAO) {
     let tieu = {}; try { tieu = tieuTheoCong(ngayVN(bay - 864e5)); } catch { /* sổ job không đọc được: báo số dư vẫn gửi */ }
     let spy = null; try { spy = tieuSpy(ngayVN(bay - 864e5)); } catch { /* sổ spy không đọc được: phần còn lại vẫn gửi */ }
-    bao = baoCaoNgay({ ten, ngay, du, lichSu: st.lich, tieu, loiDoc: loi, spy, r2, don: st.don?.ngay === ngay ? st.don : null });
+    bao = baoCaoNgay({ ten, ngay, du, lichSu: st.lich, tieu, loiDoc: loi, spy, r2, don: st.don?.ngay === ngay ? st.don : null, ke });
   }
   return { st, du, loi, canhBao, bao, ghiBao: () => { st.baoNgay = ngay; } };
 }
@@ -228,6 +259,17 @@ if (process.argv[1]?.endsWith('tai-nguyen-api.mjs')) {
     assert.ok(dongR2(null, { dung: 'nghi quét sót' }).includes('phanh kéo') && dongR2(r, { loi: 'tsx hỏng' }).includes('hỏng — tsx hỏng'));
     assert.ok(baoCaoNgay({ ten: 'Nguyên', ngay: '2026-10-31', du: {}, lichSu: [], tieu: {}, r2: r }).includes('Kho tệp R2'), 'báo cáo có dòng R2');
     assert.ok(!baoCaoNgay({ ten: 'Nguyên', ngay: '2026-10-31', du: {}, lichSu: [], tieu: {} }).includes('Kho tệp R2'), 'gọi cũ không truyền r2: không thêm dòng');
+    // Keywords Everywhere
+    const kk = (hd) => xetKe(hd).map((c) => c.khoa);
+    assert.deepStrictEqual(kk({ hom_nay: 10, tran: 3000, cuoi: [{ ok: true }, { ok: false }, { ok: false }] }), [], 'lượt cuối OK: im');
+    assert.deepStrictEqual(kk({ hom_nay: 10, tran: 3000, cuoi: [{ ok: false, loi: 'HTTP 401' }, { ok: false }, { ok: false }] }), ['api:ke:loi'], '3 lượt cuối lỗi → báo');
+    assert.deepStrictEqual(kk({ hom_nay: 10, tran: 3000, cuoi: [{ ok: false }, { ok: false }] }), [], 'mới 2 lượt lỗi: chưa báo');
+    assert.deepStrictEqual(kk({ hom_nay: 2500, tran: 3000, cuoi: [] }), ['api:ke:tieu'], 'tiêu 83% trần ngày → báo');
+    assert.deepStrictEqual(kk(null), [], 'sổ không đọc được: không báo bừa');
+    assert.deepStrictEqual(k({ ke: 4000 }), ['api:ke:san'], 'KE dưới 5.000 credit → anh nạp');
+    assert.ok(dongKe({ qua_luot: 4, qua_credit: 52, qua_loi: 1 }).includes('4 lượt · 52 credit · <b>1 lỗi</b>') && dongKe({ qua_luot: 0 }).includes('không có lượt') && dongKe(null).includes('chưa đọc'));
+    const tk = baoCaoNgay({ ten: 'Nguyên', ngay: '2026-11-02', du: { ke: 94549 }, lichSu: [], tieu: {}, ke: { qua_luot: 2, qua_credit: 11, qua_loi: 0 } });
+    assert.ok(tk.includes('Keywords Everywhere: còn <b>94.549 credit</b>') && tk.includes('Keywords Everywhere hôm qua</b>: 2 lượt · 11 credit'), tk);
     console.log('tai-nguyen-api tu-kiem ok');
   } else if (process.argv.includes('--in')) {
     const { du, loi } = await docSoDu(); console.log(du, loi);

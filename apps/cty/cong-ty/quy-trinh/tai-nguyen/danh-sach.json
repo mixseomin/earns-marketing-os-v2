@@ -50,6 +50,21 @@
     "iMac:tc.on.spy.ckey-gia"
    ],
    "chi_phi": "~300₫ gọi thử / lượt (~1.200₫ / ngày)"
+  },
+  {
+   "id": "canh-ke",
+   "ten": "Spy - canh Keywords Everywhere (số dư credit + lượt gọi)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "box3 mỗi 30 phút — trong nhịp kiem-tai-nguyen (tai-nguyen-api.mjs)",
+   "mo_ta": "Đọc số dư credit KE (miễn phí) + sổ lượt gọi ke_luot của spy (spy.on.tc › Công cụ › Từ khoá Google, server/ke.mjs). Báo 🧰 Tài nguyên: dưới 5.000 credit hoặc chỉ đủ < 3 ngày theo mức tiêu 7 ngày (anh nạp), 3 lượt gọi gần nhất đều lỗi, hôm nay tiêu ≥ 80% trần 3.000 credit / ngày. Báo cáo sáng có dòng số dư KE + KE hôm qua (lượt · credit · lỗi).",
+   "ma": "apps/cty/worker/tai-nguyen-api.mjs (xetKe · hoatDongKe · dongKe) · gọi KE: spy-on-tc/server/ke.mjs",
+   "chu_tri": "nguyen",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi 30 phút",
+   "lich": [],
+   "chi_phi": "0 (đọc số dư + sổ; credit chỉ tiêu khi người dùng bấm Tra trên spy)"
   }
  ]
 }

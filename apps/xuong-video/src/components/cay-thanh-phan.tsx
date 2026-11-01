@@ -20,12 +20,13 @@ function Dong({ chon, onClick, title, children }: { chon: boolean; onClick: () =
   );
 }
 
-export function CayThanhPhan({ nhanVat, nut, onChon }: { nhanVat: NhanVat[]; nut: string; onChon: (k: string) => void }) {
+export function CayThanhPhan({ nhanVat, nut, onChon, congNang }: { nhanVat: NhanVat[]; nut: string; onChon: (k: string) => void; /** vật đặc trưng của phim (kinh_thanh.vat_dac_trung_id + KHO_VAT): nhánh 🧰 Công năng dưới anchor đó → khoá 'cn-<id>' */ congNang?: { nvId: number; so: number; ten: string } | null }) {
   const [gap, setGap] = useState<Set<string>>(new Set());
   const lat = (k: string) => setGap((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const nutAnchor = (v: NhanVat, con: NhanVat[]) => {
     const looks = (v.bien_the ?? []).filter((b) => LOOK_NHOM.has(b.nhom));
-    const coCon = con.length + looks.length > 0; const k = `nv-${v.id}`;
+    const cn = congNang && congNang.nvId === v.id ? congNang : null;
+    const coCon = con.length + looks.length + (cn ? 1 : 0) > 0; const k = `nv-${v.id}`;
     return (
       <CayNut key={v.id}>
         <Dong chon={nut === k} onClick={() => onChon(k)} title={`${v.anh_ref.length} ảnh anchor`}>
@@ -35,6 +36,8 @@ export function CayThanhPhan({ nhanVat, nut, onChon }: { nhanVat: NhanVat[]; nut
           {!v.anh_ref.length && <Den muc="cho" title="chưa có ảnh anchor" />}
         </Dong>
         {coCon && !gap.has(k) && <CayCon>
+          {cn && <CayNut><Dong chon={nut === `cn-${v.id}`} onClick={() => onChon(`cn-${v.id}`)} title={`Kho công năng ${cn.ten}: máy sinh gag rút mỗi lời giải từ một công năng`}>
+            <span style={{ width: 20, textAlign: 'center' }}>🧰</span><span style={{ flex: 1 }}>Công năng</span><span style={mono}>{cn.so}</span></Dong></CayNut>}
           {looks.map((b) => (
             <CayNut key={b.id}>
               <Dong chon={nut === `bt-${b.id}`} onClick={() => onChon(`bt-${b.id}`)} title={`${nhanNhom(b.nhom)}: ${b.ten}${b.dung_tap?.length ? ` · tập ${b.dung_tap.join(',')}` : ''}`}>

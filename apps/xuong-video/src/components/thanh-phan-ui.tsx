@@ -10,6 +10,8 @@ import { docKinhThanh, LOAI_NHAN_VAT, type Canh, type NhanVat, type Phim, type T
 import { AnhDaiDien } from './anh-set-3d';
 import { BangDoiTuong } from './bang-doi-tuong';
 import { Pill, Seg, mono } from './ui';
+import { LinkMa } from './thu-vien';
+import { KHO_VAT } from '@/lib/xuong-video/so-tay-kich-ban';
 import { useNho } from './nho';
 
 const chip = (vien: string, nen = 'var(--bg-2)') => ({ ...mono, color: 'var(--fg-1)', padding: '1px 6px', border: vien, borderRadius: 4, background: nen, cursor: 'pointer' } as const);
@@ -81,6 +83,30 @@ export function ThanhPhanTap({ canh, nhanVat, onXemShot, onMoAnchor }: { canh: C
               </tr>);
           })}</tbody></table>
         </div>))}
+    </div>
+  );
+}
+
+/** 🧰 CÔNG NĂNG của vật đặc trưng (nhánh con dưới anchor trên cây Thành phần — anh 01/11/2026 "tính năng của quang gánh sao không thấy trong Thành phần"):
+ *  bảng công năng ở KHO_VAT (so-tay-kich-ban.ts, một nguồn với máy sinh gag) + gag nào trong các tập đang dùng công năng nào (đọc dòng "(cơ chế: …" của khối [GAG n]). */
+export function CongNangVat({ khoa, ten, tap, onMoTap }: { khoa: string; ten: string; tap: Tap[]; onMoTap: (tapId: number) => void }) {
+  const v = KHO_VAT[khoa];
+  if (!v) return <div style={mono}>Kho công năng “{khoa}” không còn trong sổ tay.</div>;
+  const dung = (cn: string) => tap.flatMap((t) => [...(t.kich_ban ?? '').matchAll(/\[GAG (\d+)\]\s*([^\n]*)[\s\S]*?\(cơ chế: ([^·)]*)/g)]
+    .filter((m) => m[3]!.toLowerCase().includes(cn.toLowerCase())).map((m) => ({ t, so: m[1]!, ten: m[2]!.trim() })));
+  return (
+    <div className="xv-panel" style={{ display: 'grid', gap: 8, padding: '8px 12px' }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+        <b style={{ fontSize: 13 }}>🧰 Công năng · {ten}</b>
+        <span style={{ ...mono, flex: 1 }}>{v.cau_tao}</span>
+        <LinkMa ma={`so_tay.vat_${khoa}`} chu="sổ tay" />
+      </div>
+      <table className="xv-tbl"><tbody>{v.cong_nang.map((c) => { const d = dung(c.ten); return (
+        <tr key={c.ten}><td style={{ whiteSpace: 'nowrap', width: 150 }}><b>{c.ten}</b></td><td style={{ color: 'var(--fg-2)' }}>{c.mo_ta}</td>
+          <td style={{ width: 200 }}>{d.length ? <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>{d.map((x, i) => (
+            <button key={i} type="button" onClick={() => onMoTap(x.t.id)} title={`Tập ${x.t.so} · GAG ${x.so} ${x.ten}`} style={chip('1px solid var(--line)')}>T{x.t.so} · G{x.so}</button>))}</span>
+            : <span style={mono}>chưa dùng</span>}</td></tr>); })}</tbody></table>
+      <div style={mono}>Máy sinh gag lấy mỗi lời giải từ một công năng (không quá một gag mỗi công năng); bộ chấm dùng bảng này để chấm “Thay vai”.</div>
     </div>
   );
 }

@@ -34,7 +34,7 @@ const Canh = z.object({
   nam_sau: z.object({ chu: TheoChu, nam: z.number().int() }).nullable().describe('năm đổi GIỮA câu (vd câu nhắc hai mốc) — đổi ở chữ chu'),
   mo: z.boolean().describe('true CHỈ ở cảnh 1: camera lao từ trên cao xuống chỗ lạ'),
   chu_to: z.string().nullable().describe('CHỈ cảnh 1: chữ hook to giữa màn ≤ 5 từ, VIẾT HOA, đúng ngôn ngữ tập, không dấu chấm'),
-  to: z.array(z.object({ noi: Dich, mau: z.string().nullable().describe('null = máy chọn; chỉ khai khi cần màu nghĩa (vd hai bên đối đầu)') })).describe('nước / mảnh tô màu ở cảnh này (ai sở hữu vùng ĐÚNG THỜI ĐÓ — tô theo vùng nước hôm nay gần nhất)'),
+  to: z.array(z.object({ noi: Dich, chu: z.string().describe('CHỦ của vùng đó ĐÚNG THỜI cảnh: mã ISO-3 nước kế thừa hôm nay (Đế quốc Nga = RUS) hoặc mã tự đặt 3–5 chữ HOA cho thế lực không còn (INCA, OTTO, CAST) — máy tô MÀU THEO CHỦ, cùng chủ cùng màu cả tập, nên vùng đổi chủ là đổi màu') })).describe('vùng tô màu ở cảnh này (tô theo vùng nước hôm nay gần nhất)'),
   nhan: z.array(z.object({ chu: z.string().describe('nhãn ≤ 3 từ, tên đất / vùng / biển đúng thời'), o: Dich })).describe('nhãn tên chỉ cho nơi lời KHÔNG đọc tên (nơi được đọc tên máy tự hiện)'),
   vong: z.array(Dich).describe('vòng đỏ vẽ tay quanh chỗ đáng chú ý (cảnh 1 bắt buộc)'),
   nhay: z.array(Dich).describe('điểm nhấp nháy (chỗ đang có biến)'),
@@ -76,7 +76,10 @@ HÌNH:
 - Nhân vật / phương tiện / cờ dùng mã trong KHO; thiếu thì khai trong tai_san_moi (người thật: tả đúng ngoại hình chân dung lịch sử; vai chung: "Spanish conquistador 1500s"…). Mỗi món phải ĐÚNG THỜI của cảnh (năm cảnh nằm trong tu–den) — máy dừng dựng nếu lệch.
 - Cả tập: ≥ 2 cảnh có nhân vật, ≥ 1 mũi tên hoặc phương tiện, cờ ở mỗi lần chủ quyền đổi, 1–2 tranh, 1–2 con dấu. Cảnh không cần thì để mảng rỗng / null.
 - Mã ISO-3 theo Natural Earth (Nga RUS, Mỹ USA, Pháp FRA, Anh GBR, Tây Ban Nha ESP, Ma-rốc MAR, Bolivia BOL…). Nơi đã mất tên / không còn là nước: dùng mảnh nước hôm nay "ISO@lon0,lat0,lon1,lat1" + nhan tên cũ.
-- Nhân vật luôn quay về mục tiêu của cảnh — máy lo, chỉ cần chọn đúng người và dáng.`;
+- Nhân vật luôn quay về mục tiêu của cảnh — máy lo, chỉ cần chọn đúng người và dáng.
+- NGƯỜI CÓ TÊN đang hành động trong câu (quyết định, bán, mua, ký, đánh, phát hiện) PHẢI đứng trong cảnh đó bằng nguoi — không có trong KHO thì khai tai_san_moi. Cả tập ≥ 2 nhân vật khác nhau.
+- Mỗi câu (trừ câu móc cuối) có ≥ 1 su_that — kể cả hook (hook phải ĐÚNG: "gần chạm" khác "chạm"). Ô năm (nam) chỉ ghi năm có trong su_that của tập; không rõ năm thì null.
+- Đích ISO@khung phải là khung có ĐẤT của đúng nước đó hôm nay (đất Canada là CAN, không phải GBR) — chủ thời xưa ghi ở to.chu. Được dùng cả hai phía kinh tuyến 180 (máy tự nối lưới).`;
 const user = `CHỦ ĐỀ: ${chuDe}
 MÃ TẬP: ${id}
 KHO (mã · loại · tên · năm dùng được):

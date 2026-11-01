@@ -8,7 +8,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { geo, tamVung, chuan, TP_NHAC, dichCua, diem, isoVung } from './dia-ly.mjs';
+import { geo, tamVung, chuan, TP_NHAC, dichCua, diem, isoVung, datThaiBinh, kinh, vong } from './dia-ly.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const DIR = dirname(fileURLToPath(import.meta.url)), KHO = `${process.env.HOME}/.cache/lich-su`, BOX = 'root@167.233.241.16';
@@ -40,6 +40,8 @@ canh.forEach((s, k) => (s.kt = canh[k + 1]?.bd ?? DAI));
 // TỰ ĐIỀN CẢNH (02/11/2026, S08 bước 3 — máy viết tập lam-tap.mjs chỉ khai Ý cảnh): cảnh thiếu tam/zoom → máy tính từ nhin (khung bao các đích, chừa
 // chỗ người + phụ đề); vĩ tuyến chuẩn theo vùng tập; tô thiếu màu → bảng màu đất theo thứ tự nước xuất hiện (một nước một màu cả tập); mo:true = lao
 // từ trên cao xuống; ảnh địa hình cắt tự động đúng vùng tập từ Natural Earth (bộ đệm theo khung).
+{ const ds = canh.flatMap((s) => [...(s.c.nhin || []), ...(s.c.to || []).map((t) => (typeof t === 'string' ? t : t.noi))]).filter((d) => typeof d === 'string').map((d) => { try { const h = dichCua(d).h; return (h[0] + h[2]) / 2; } catch { return 0; } });
+  if (tap.thai_binh ?? (ds.some((x) => x > 120) && ds.some((x) => x < -120))) datThaiBinh(true); }
 const MAU = ['#9e2b25', '#c8763a', '#d8b25a', '#7f9a5c', '#3f5c7a', '#c98f4a', '#6d86a0', '#8a5a8c', '#b05a3c'], mauNuoc = new Map();
 const mauCua = (iso) => { const k = Array.isArray(iso) ? iso.join() : iso; if (!mauNuoc.has(k)) mauNuoc.set(k, MAU[mauNuoc.size % MAU.length]); return mauNuoc.get(k); };
 const hopCanh = (c) => (c.nhin?.length ? c.nhin : (c.to || []).map((t) => (typeof t === 'string' ? t : t.noi ?? (t.iso && !Array.isArray(t.iso) ? (t.vung ? `${t.iso}@${t.vung}` : t.iso) : null))).filter(Boolean))
@@ -55,17 +57,20 @@ for (const s of canh) { const c = s.c;
     c.zoom ||= Math.round(Math.max(1.2, Math.min(14, 0.78 * 1080 / (dl * 12 * COS), (coNguoi ? 0.46 : 0.62) * 1920 / (db * 12))) * 100) / 100; }
   truoc = [c.tam[0] - 2, c.tam[1] - 1, c.tam[0] + 2, c.tam[1] + 1];
   if (c.mo === true) c.mo = { tu_tam: c.tam, tu_zoom: Math.max(1.2, c.zoom / 3) };
-  c.to = (c.to || []).map((t) => { const o = typeof t === 'string' ? isoVung(t) : { ...t, ...(typeof t.noi === 'string' ? isoVung(t.noi) : {}) }; delete o.noi; o.mau ||= mauCua(o.iso); return o; });
+  c.to = (c.to || []).map((t) => { const o = typeof t === 'string' ? isoVung(t) : { ...t, ...(typeof t.noi === 'string' ? isoVung(t.noi) : {}) }; delete o.noi; o.mau ||= mauCua(o.chu ?? o.iso); return o; });
   for (const m of c.ten || []) m.mau ||= '#9e2b25';
   for (const m of c.xe || []) { m.tre ??= 0.4; m.giay ??= 2.6; } }
 if (!tap.dia_hinh) { let h = null;
   for (const s of canh) for (const [t, z] of [[s.c.tam, s.c.zoom], ...(s.c.mo ? [[s.c.mo.tu_tam, s.c.mo.tu_zoom]] : [])]) { const nl = 540 / (12 * z * COS), nb = 1150 / (12 * z);
     const b = [t[0] - nl, t[1] - nb, t[0] + nl, t[1] + nb]; h = h ? [Math.min(h[0], b[0]), Math.min(h[1], b[1]), Math.max(h[2], b[2]), Math.max(h[3], b[3])] : b; }
-  const l0 = Math.max(-180, Math.floor(h[0] - 3)), b0 = Math.max(-84, Math.floor(h[1] - 3)), l1 = Math.min(180, Math.ceil(h[2] + 3)), b1 = Math.min(84, Math.ceil(h[3] + 3));
+  const l0 = Math.max(-180, Math.floor(h[0] - 3)), b0 = Math.max(-84, Math.floor(h[1] - 3)), l1 = Math.min(l0 + 360, Math.ceil(h[2] + 3)), b1 = Math.min(84, Math.ceil(h[3] + 3));
   const ten = `dia-hinh-${l0}_${b0}_${l1}_${b1}.jpg`, f = join(KHO, ten);
-  if (!existsSync(f)) { const tif = join(KHO, 'ne_hr', 'NE1_HR_LC_SR_W.tif'); const w = (l1 - l0) * 60, hh = (b1 - b0) * 60;
-    execFileSync('sips', ['-s', 'format', 'jpeg', '-s', 'formatOptions', '82', '-c', String(hh), String(w), '--cropOffset', String((90 - b1) * 60), String((l0 + 180) * 60), tif, '--out', f], { stdio: 'ignore' });
-    if (w > 12000) execFileSync('sips', ['-Z', '12000', f], { stdio: 'ignore' }); }
+  if (!existsSync(f)) { const tif = join(KHO, 'ne_hr', 'NE1_HR_LC_SR_W.tif'), hh = (b1 - b0) * 60;
+    const cat = (a, b, ra) => execFileSync('sips', ['-s', 'format', 'jpeg', '-s', 'formatOptions', '82', '-c', String(hh), String((b - a) * 60), '--cropOffset', String((90 - b1) * 60), String((a + 180) * 60), tif, '--out', ra], { stdio: 'ignore' });
+    // vắt qua kinh tuyến 180: cắt hai mảnh (l0..180 và -180..l1-360) rồi ghép ngang
+    if (l1 <= 180) cat(l0, l1, f); else { const a = `${f}.a.jpg`, b = `${f}.b.jpg`; cat(l0, 180, a); cat(-180, l1 - 360, b);
+      execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', a, '-i', b, '-filter_complex', 'hstack', '-q:v', '3', f]); execFileSync('rm', ['-f', a, b]); }
+    if ((l1 - l0) * 60 > 12000) execFileSync('sips', ['-Z', '12000', f], { stdio: 'ignore' }); }
   tap.dia_hinh = { anh: ten, lon: [l0, l1], lat: [b0, b1], nguon: 'Natural Earth NE1_HR_LC_SR_W (public domain), máy tự cắt theo vùng tập' }; }
 tap.nen ||= { anh: 'giay.jpg', nguon: 'https://www.pexels.com/photo/close-up-of-a-piece-of-paper-7952505/' };
 for (const s of canh) { for (const m of [...(s.c.ten || []), ...(s.c.xe || [])]) { m.tu = diem(m.tu); m.den = diem(m.den); }
@@ -88,7 +93,7 @@ for (const [t, iso, ten] of [['soviet union', SU, 'USSR'], ['ussr', SU, 'USSR'],
 canh.forEach((s, k) => { const ws = tu.filter((w) => w.cau === k); s.c.goi = []; s.c.tp = [];
   for (let i = 0; i < ws.length; i++) for (const n of [3, 2, 1]) { const cum = ws.slice(i, i + n); if (cum.length < n) continue; const key = cum.map((w) => chuan(w.chu)).join(' ');
     const nuoc = TEN_NUOC.get(key); if (nuoc && !s.c.goi.some((g) => g.ten === nuoc.ten)) { s.c.goi.push({ iso: nuoc.iso, ten: nuoc.ten, t: Math.max(0, cum[0].a - s.bd), o: nuoc.iso.length === 1 ? tamVung({ iso: nuoc.iso[0] }) : null }); i += n - 1; break; }
-    const tp = n === 1 && /^\p{Lu}/u.test(cum[0].chu) ? TP_NHAC.get(key) : null; if (tp && !TEN_NUOC.get(key) && !s.c.tp.some((g) => g.ten === tp.ten) && !(s.c.nhan || []).some((l) => chuan(l.chu).includes(chuan(tp.ten)))) { s.c.tp.push({ ten: tp.ten, o: tp.o, t: Math.max(0, cum[0].a - s.bd) }); break; } }
+    const tp = n === 1 && /^\p{Lu}/u.test(cum[0].chu) ? TP_NHAC.get(key) : null; if (tp && !TEN_NUOC.get(key) && !s.c.tp.some((g) => g.ten === tp.ten) && !(s.c.nhan || []).some((l) => chuan(l.chu).includes(chuan(tp.ten)))) { s.c.tp.push({ ten: tp.ten, o: kinh(tp.o), t: Math.max(0, cum[0].a - s.bd) }); break; } }
   for (const d of s.c.dau || []) { const w = ws.find((x) => chuan(x.chu) === chuan(d.chu)); if (!w) throw new Error(`cảnh ${k + 1}: dấu không thấy chữ "${d.chu}"`); d.t = Math.max(0, w.a - s.bd); d.o = d.o ? diem(d.o) : null; } });
 console.log('nhắc tên:', canh.map((s, k) => [...s.c.goi.map((g) => g.ten), ...s.c.tp.map((g) => `◦${g.ten}`)].join(',') || '—').map((x, k) => `${k + 1}:${x}`).join(' '));
 // HƯỚNG THEO ĐỊA LÝ (anh 02/11/2026: "Stalin phải ở bên phải rồi giơ tay về trái — hướng phải đồng nhất với vị trí câu chuyện"): mỗi người có quê (kho que)
@@ -101,7 +106,7 @@ const pad = 1080 / (12 * zmin); const hop = [Math.min(...lo) - pad, Math.min(...
 const G = {};
 for (const f of geo.features) {
   const iso = f.properties.ADM0_A3; const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
-  for (const p of polys) { const ring = p[0]; const xs = ring.map((q) => q[0]), ys = ring.map((q) => q[1]);
+  for (const p of polys) { const ring = vong(p[0]); const xs = ring.map((q) => q[0]), ys = ring.map((q) => q[1]);
     if (Math.max(...xs) < hop[0] || Math.min(...xs) > hop[2] || Math.max(...ys) < hop[1] || Math.min(...ys) > hop[3] || Math.max(...xs) - Math.min(...xs) > 300) continue;
     (G[iso] ||= []).push(ring.map(([a, b]) => [Math.round(a * 100) / 100, Math.round(b * 100) / 100])); }
 }

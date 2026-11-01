@@ -12,7 +12,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { KHO, geo, TP, chuan, boDau } from './dia-ly.mjs';
+import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const co = (k) => process.argv.includes(`--${k}`);
@@ -33,17 +33,24 @@ const kiemDich = (d) => { if (Array.isArray(d)) return null; if (typeof d !== 's
   if (d.startsWith('@')) return TP.has(chuan(d.slice(1))) ? null : `không có thành phố "${d.slice(1)}" trong Natural Earth — dùng toạ độ "lon,lat"`;
   if (/^-?\d/.test(d)) { const [a, b] = d.split(',').map(Number); return Number.isFinite(a) && Number.isFinite(b) && Math.abs(a) <= 180 && Math.abs(b) <= 90 ? null : `toạ độ sai "${d}"`; }
   const [iso, vg] = d.split('@'); if (!ISO.has(iso)) return `mã nước "${iso}" không có trong Natural Earth`;
-  if (vg && vg.split(',').map(Number).filter(Number.isFinite).length !== 4) return `khung vùng sai "${d}"`; return null; };
+  if (vg && vg.split(',').map(Number).filter(Number.isFinite).length !== 4) return `khung vùng sai "${d}"`;
+  try { dichCua(d); } catch { return `"${d}": nước ${iso} không có mảnh đất nào trong khung ${vg} — chọn khung có đất của đúng nước đó hôm nay (chủ thời xưa ghi ở to.chu)`; } return null; };
 const phang = (t) => boDau(t).toLowerCase().replace(/[‘’´`]/g, "'").replace(/[“”«»]/g, '"').replace(/\s+/g, ' ').trim();
 const commons = async (ten) => { const r = await (await fetch(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', titles: ten, prop: 'imageinfo', iiprop: 'url', iiurlwidth: '640', format: 'json', formatversion: '2' })}`, { headers: { 'User-Agent': 'studio-lich-su/1.0' } })).json();
   const p = r.query?.pages?.[0]; return p && !p.missing && p.imageinfo?.[0] ? { thumb: p.imageinfo[0].thumburl, trang: p.imageinfo[0].descriptionurl } : null; };
+// tệp Commons đoán sai tên → máy tìm tệp có thật gần nhất để máy viết chọn (không tự chọn: cờ sai thời còn tệ hơn không có cờ)
+const timCommons = async (ten) => { const r = await (await fetch(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', list: 'search', srnamespace: '6', srlimit: '10', srsearch: ten.replace(/^File:|\.svg$|\.png$/gi, '').replace(/[()_-]/g, ' '), format: 'json', formatversion: '2' })}`, { headers: { 'User-Agent': 'studio-lich-su/1.0' } })).json();
+  return (r.query?.search ?? []).map((x) => x.title).filter((t) => /^File:Flag/i.test(t)); };
 async function kiem(tap, nguonChu) {
   const loi = [], kho = docKho().tai_san, moi = Object.fromEntries((tap.tai_san_moi || []).map((t) => [t.id, t])), nguonP = phang(nguonChu);
   const ds = tap.cau, tu = ds.map((c) => c.chu).join(' ').split(/\s+/).length, [t0, t1] = nn === 'es' ? [130, 200] : [120, 185];
   if (ds.length < 8 || ds.length > 12) loi.push(`có ${ds.length} câu — khuôn là 9–11 câu`);
   if (tu < t0 || tu > t1) loi.push(`tổng ${tu} từ — khuôn ${nn === 'es' ? '140–185' : '130–170'} từ`);
-  let nam = null;
+  let nam = null; const namNguon = new Set((ds.flatMap((c) => (c.su_that || []).map((x) => `${x.gia_tri} ${x.trich}`)).join(' ').match(/\b\d{3,4}\b/g) || []).map(Number));
+  const nhanVat = new Set(ds.flatMap((c) => (c.canh.nguoi || []).map((n) => n.anh))); if (nhanVat.size < 2) loi.push(`cả tập chỉ có ${nhanVat.size} nhân vật — cần ≥ 2 (người có tên đang hành động phải đứng trong cảnh)`);
   ds.forEach((c, k) => { const K = `câu ${k + 1}`, cv = c.canh, ws = new Set(c.chu.split(/\s+/).map(chuan));
+    if (k < ds.length - 1 && !(c.su_that || []).length) loi.push(`${K}: không có su_that nào — mọi câu kể (cả hook) phải có nguồn`);
+    for (const n of [cv.nam, cv.nam_sau?.nam]) if (n != null && !namNguon.has(n)) loi.push(`${K}: ô năm ${n} không có trong su_that nào của tập — ghi năm có nguồn hoặc null`);
     if (/[—–→…]|\.\.\./.test(c.chu)) loi.push(`${K}: còn dấu vết AI (— – → …) trong "${c.chu}"`);
     for (const s of c.su_that || []) { const tr = phang(s.trich).replace(/^["']|["']$/g, ''); if (nguonP.includes(tr)) continue;
       const w = tr.split(' '), sh = []; for (let i = 0; i + 6 <= w.length; i++) sh.push(w.slice(i, i + 6).join(' ')); const trung = sh.filter((x) => nguonP.includes(x)).length;
@@ -63,7 +70,7 @@ async function kiem(tap, nguonChu) {
   if (!ds[0]?.canh?.mo || !ds[0]?.canh?.chu_to) loi.push('câu 1: thiếu hook (mo + chu_to)');
   if (!ds.at(-1)?.canh?.ket) loi.push('câu cuối: thiếu thẻ kết ket');
   for (const t of tap.tai_san_moi || []) { if (kho[t.id]) continue;
-    if (t.loai === 'co') { if (!t.commons) loi.push(`cờ mới "${t.id}" thiếu tên tệp Commons`); else if (!(await commons(t.commons))) loi.push(`cờ mới "${t.id}": tệp Commons "${t.commons}" không tồn tại — tìm đúng tên tệp`); }
+    if (t.loai === 'co') { if (!t.commons) loi.push(`cờ mới "${t.id}" thiếu tên tệp Commons`); else if (!(await commons(t.commons))) { const g = await timCommons(t.commons); loi.push(`cờ mới "${t.id}": tệp Commons "${t.commons}" không tồn tại${g.length ? ` — tệp CÓ THẬT gần nhất (chọn cái đúng thời, hoặc bỏ cờ): ${g.map((x) => `"${x}"`).join(', ')}` : ' — bỏ cờ này'}`); } }
     else if (!t.mo_ta_en?.trim()) loi.push(`tài sản mới "${t.id}" thiếu mo_ta_en`);
     if (t.que) { const e = kiemDich(t.que); if (e) loi.push(`tài sản mới "${t.id}": quê ${e}`); } }
   return loi;
@@ -74,7 +81,7 @@ if (!existsSync(tepTap) || co('viet-lai')) {
   if (!chuDe) { console.error('chưa có tập — cần --chu-de'); process.exit(2); }
   const tmp = `/tmp/lich-su-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${tmp}`]); len(tepKho, `${tmp}/kho.json`);
   let loi = [];
-  for (let lan = 1; lan <= 3; lan++) {
+  for (let lan = 1; lan <= 4; lan++) {
     const them = loi.length ? ` --loi ${tmp}/loi.txt --cu ${tmp}/tap.json` : '';
     if (loi.length) { writeFileSync(join(RA, 'loi.txt'), loi.map((x) => `- ${x}`).join('\n')); len(join(RA, 'loi.txt'), `${tmp}/loi.txt`); len(tepTap, `${tmp}/tap.json`); }
     console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json --chu-de ${q(chuDe)} --nn ${nn} --id ${id} --kho ${tmp}/kho.json${arg('nguon') ? ` --nguon ${q(arg('nguon'))}` : ''}${them}`));
@@ -84,7 +91,7 @@ if (!existsSync(tepTap) || co('viet-lai')) {
     if (!loi.length) break;
   }
   execFileSync('ssh', [BOX, `rm -rf ${tmp}`]);
-  if (loi.length) { console.error('✗ máy viết 3 lượt vẫn lỗi — dừng, không tốn tiền giọng / ảnh'); process.exit(4); }
+  if (loi.length) { console.error('✗ máy viết 4 lượt vẫn lỗi — dừng, không tốn tiền giọng / ảnh'); process.exit(4); }
 } else { const loi = existsSync(join(RA, 'nguon.txt')) ? await kiem(JSON.parse(readFileSync(tepTap, 'utf8')), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
   if (loi.length) { console.error(`✗ tập có lỗi:\n  ${loi.join('\n  ')}`); process.exit(4); } }
 if (co('chi-viet')) process.exit(0);

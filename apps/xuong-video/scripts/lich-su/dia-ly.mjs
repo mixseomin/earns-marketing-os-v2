@@ -8,9 +8,16 @@ export const geo = JSON.parse(readFileSync(join(KHO, 'ne_50m.geojson'), 'utf8'))
 // mảnh của một nước: khai vung thì lấy mảnh chạm khung đó; không khai thì lấy CỤM CHÍNH (mảnh lớn nhất + mảnh trong 12° quanh nó) — Pháp không kéo
 // theo Guyane, Mỹ không kéo theo Hawaii. Đảo vắt qua kinh tuyến 180 bị bỏ.
 export const dienTich = (r) => { let A = 0; for (let i = 0; i < r.length - 1; i++) A += r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]; return Math.abs(A / 2); };
-export const manh = ({ iso, vung }) => { const ds = [];
+// TẬP VẮT QUA KINH TUYẾN 180 (Alaska ↔ Nga, Thái Bình Dương): datThaiBinh(true) → mọi mảnh / điểm / khung có tâm ở kinh độ < -30 cộng 360 (châu Mỹ dời
+// sang 180..330), cả tập nằm trên một lưới liền; dung-tap.mjs tự bật khi các đích của tập nằm cả hai phía kinh tuyến 180.
+export let THAI_BINH = false;
+export const datThaiBinh = (b) => { THAI_BINH = b; };
+export const kinh = (o) => (THAI_BINH && o[0] < -30 ? [o[0] + 360, o[1]] : o);
+export const vong = (r) => { if (!THAI_BINH) return r; const cx = r.reduce((a, q) => a + q[0], 0) / r.length; return cx < -30 ? r.map(([a, b]) => [a + 360, b]) : r; };
+const khungDoi = (v) => (v && THAI_BINH && (v[0] + v[2]) / 2 < -30 ? [v[0] + 360, v[1], v[2] + 360, v[3]] : v);
+export const manh = ({ iso, vung: v0 }) => { const ds = [], vung = khungDoi(v0);
   for (const f of geo.features) { if (f.properties.ADM0_A3 !== iso) continue; const ps = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
-    for (const p of ps) { const r = p[0], xs = r.map((q) => q[0]), ys = r.map((q) => q[1]), h = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+    for (const p of ps) { const r = vong(p[0]), xs = r.map((q) => q[0]), ys = r.map((q) => q[1]), h = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
       if (h[2] - h[0] > 300) continue; if (vung && (h[2] < vung[0] || h[0] > vung[2] || h[3] < vung[1] || h[1] > vung[3])) continue; ds.push({ r, h, A: dienTich(r) }); } }
   if (!ds.length) throw new Error(`không tìm thấy vùng ${iso} ${vung ?? ''}`); if (vung) return ds;
   const lon = ds.reduce((m, d) => (d.A > m.A ? d : m)); const t = [(lon.h[0] + lon.h[2]) / 2, (lon.h[1] + lon.h[3]) / 2];
@@ -30,8 +37,8 @@ for (const f of JSON.parse(readFileSync(join(KHO, 'ne_10m_places.geojson'), 'utf
 // ĐÍCH VIẾT BẰNG CHỮ (máy viết tập khai): "RUS" nước · "RUS@19,54,23,56" mảnh nước trong khung lon/lat · "@Ceuta" thành phố Natural Earth · "20.5,54.7" toạ độ
 export const dichCua = (v) => { if (Array.isArray(v)) return { o: v, h: [v[0], v[1], v[0], v[1]] };
   if (typeof v !== 'string') return { o: tamVung(v), h: hopVung(v) };
-  if (v.startsWith('@')) { const c = TP.get(chuan(v.slice(1))); if (!c) throw new Error(`không có thành phố "${v.slice(1)}" trong Natural Earth`); return { o: c.o, h: [c.o[0], c.o[1], c.o[0], c.o[1]] }; }
-  if (/^-?\d/.test(v)) { const o = v.split(',').map(Number); return { o, h: [o[0], o[1], o[0], o[1]] }; }
+  if (v.startsWith('@')) { const c = TP.get(chuan(v.slice(1))); if (!c) throw new Error(`không có thành phố "${v.slice(1)}" trong Natural Earth`); const o = kinh(c.o); return { o, h: [o[0], o[1], o[0], o[1]] }; }
+  if (/^-?\d/.test(v)) { const o = kinh(v.split(',').map(Number)); return { o, h: [o[0], o[1], o[0], o[1]] }; }
   const [iso, vg] = v.split('@'); const q = { iso, vung: vg ? vg.split(',').map(Number) : undefined }; return { o: tamVung(q), h: hopVung(q) }; };
 export const diem = (v) => dichCua(v).o;
 export const isoVung = (v) => { const [iso, vg] = v.split('@'); return { iso, ...(vg ? { vung: vg.split(',').map(Number) } : {}) }; };

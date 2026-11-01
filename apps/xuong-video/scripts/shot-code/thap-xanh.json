@@ -1,0 +1,227 @@
+{
+  "ghi_chu": "Khuôn anime (02/11/2026): phim thử «Thử anime vẽ tay · Tháp xanh đêm sao» tập 1169. Nền sống = clip video AI shot #2 (xv_canh 4193, sinh từ ảnh kết không xe, máy quay khoá). Xe cam = lớp tách từ ảnh mở (tach-lop.swift --vung), hai bánh cắt tròn riêng quay theo quãng đường (góc = quãng / bán kính), thân nhún trên đá lát; đèn pha, bóng đổ, khói bám theo lớp. Toạ độ theo ảnh mở 768×1376.",
+  "W": 768,
+  "H": 1376,
+  "RONG": 720,
+  "CAO": 1280,
+  "fps": 24,
+  "nen_video": "nen-song.mp4",
+  "shots": [
+    {
+      "id": "xe",
+      "ten": "Xe cam rời tháp",
+      "dai": 7.9,
+      "cat_gat": true,
+      "lop": [
+        {
+          "src": "xe/0",
+          "ten": "than",
+          "dung": true,
+          "x_": [
+            [
+              1.6,
+              0
+            ],
+            [
+              7.2,
+              820,
+              "in"
+            ]
+          ],
+          "run": [
+            [
+              0.6,
+              1.6,
+              0.8
+            ]
+          ],
+          "buoc": [
+            [
+              1.6,
+              7.2,
+              2.2,
+              5
+            ]
+          ],
+          "y_": [
+            [
+              0.6,
+              0
+            ],
+            [
+              0.7,
+              -2
+            ],
+            [
+              0.8,
+              0
+            ]
+          ]
+        },
+        {
+          "cat": "dau.jpg",
+          "x": 118,
+          "y": 1155,
+          "w": 44,
+          "h": 44,
+          "tron": true,
+          "ten": "banh_sau",
+          "x_": [
+            [
+              1.6,
+              0
+            ],
+            [
+              7.2,
+              820,
+              "in"
+            ]
+          ],
+          "r": [
+            [
+              1.6,
+              0
+            ],
+            [
+              7.2,
+              2136,
+              "in"
+            ]
+          ]
+        },
+        {
+          "cat": "dau.jpg",
+          "x": 272,
+          "y": 1159,
+          "w": 46,
+          "h": 46,
+          "tron": true,
+          "ten": "banh_truoc",
+          "x_": [
+            [
+              1.6,
+              0
+            ],
+            [
+              7.2,
+              820,
+              "in"
+            ]
+          ],
+          "r": [
+            [
+              1.6,
+              0
+            ],
+            [
+              7.2,
+              2043,
+              "in"
+            ]
+          ]
+        }
+      ],
+      "fx": [
+        {
+          "loai": "bong",
+          "sau": true,
+          "toi": "than",
+          "dx": 0,
+          "dy": -2,
+          "rx": 165,
+          "ry": 22,
+          "o": 0.75
+        },
+        {
+          "loai": "bong",
+          "sau": true,
+          "toi": "banh_sau",
+          "dx": 0,
+          "dy": 21,
+          "rx": 34,
+          "ry": 7,
+          "o": 0.85
+        },
+        {
+          "loai": "bong",
+          "sau": true,
+          "toi": "banh_truoc",
+          "dx": 0,
+          "dy": 22,
+          "rx": 36,
+          "ry": 7,
+          "o": 0.85
+        },
+        {
+          "loai": "sang",
+          "toi": "than",
+          "dx": 120,
+          "dy": -62,
+          "r": [
+            [
+              0,
+              0
+            ],
+            [
+              0.6,
+              0
+            ],
+            [
+              0.9,
+              70
+            ]
+          ],
+          "o": [
+            [
+              0.6,
+              0
+            ],
+            [
+              0.9,
+              0.9
+            ]
+          ],
+          "mau": "255,230,160"
+        },
+        {
+          "loai": "sang",
+          "sau": true,
+          "toi": "than",
+          "dx": 230,
+          "dy": -10,
+          "r": [
+            [
+              0.6,
+              0
+            ],
+            [
+              1.0,
+              160
+            ]
+          ],
+          "o": [
+            [
+              0.6,
+              0
+            ],
+            [
+              1.0,
+              0.35
+            ]
+          ],
+          "mau": "255,225,150"
+        },
+        {
+          "loai": "khoi",
+          "toi": "than",
+          "dx": -150,
+          "dy": -30,
+          "tu": 0.7,
+          "nhip": 0.3,
+          "lui": 50
+        }
+      ]
+    }
+  ],
+  "mo_lop": 0.7
+}

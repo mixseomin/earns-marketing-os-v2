@@ -4,6 +4,8 @@
 // --tai: thư mục tài nguyên (keyframe gốc kfN.jpg · lN/ của tach-lop.swift · vN/ vật nhấc theo vùng). Lớp 'lN/i' / 'vN/i' trong biên đạo được
 // đổi thành ảnh + khung từ lop.json. Tiếng (nhạc gảy + tiếng động) tổng hợp bằng số học ngay đây, không tải gì, rồi ghép vào hình.
 // --shot <id>: chỉ dựng một shot (soát nhanh).
+// Biên đạo có nen_video (clip nền sống của video AI, trong thư mục --tai) → lớp vẽ trên nền TRONG rồi ghép lên clip đó, giữ tiếng của clip;
+// RONG/CAO/fps theo clip. Đây là khuôn anime: vật đi xa là lớp riêng, không để video AI tự đoán đường đi.
 import { spawnSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
@@ -19,12 +21,21 @@ const url = (f) => pathToFileURL(join(TAI, f)).href;
 const hop = {};
 const khung = (ref) => { const [d, i] = ref.split('/'); hop[d] ||= JSON.parse(readFileSync(join(TAI, d, 'lop.json'), 'utf8')); const b = hop[d].find((x) => x.i === Number(i)); if (!b) throw new Error(`không có lớp ${ref}`); return { src: url(`${d}/lop-${i}.png`), x: b.x, y: b.y, w: b.w, h: b.h }; };
 const shots = BD.shots.map((s) => ({
-  ...s, nen: url(s.nen), con_lai: s.con_lai ? url(s.con_lai) : null,
+  ...s, nen: s.nen ? url(s.nen) : null, con_lai: s.con_lai ? url(s.con_lai) : null,
   lop: s.lop.map((l) => (l.src ? { ...l, ...khung(l.src) } : { ...l, cat: url(l.cat) })),
 }));
 const DAI = shots.reduce((a, s) => a + s.dai, 0);
 const cauTep = join(TAI, 'cau.json');
-writeFileSync(cauTep, JSON.stringify({ W: BD.W, H: BD.H, DAI, shots }));
+writeFileSync(cauTep, JSON.stringify({ W: BD.W, H: BD.H, RONG: BD.RONG, CAO: BD.CAO, trong: !!BD.nen_video, mo_lop: BD.mo_lop, DAI, shots }));
+
+// ---------- lớp ghép lên clip nền (khuôn anime) ----------
+const RONG = String(BD.RONG || 1920), CAO = String(BD.CAO || 1080);
+if (BD.nen_video) {
+  const r = spawnSync(process.execPath, [join(DIR, 'dung.mjs'), '--trang', join(DIR, 'cat-giay.html'), '--cau', cauTep, '--rong', RONG, '--cao', CAO, '--fps', String(BD.fps || 24),
+    '--nen-video', join(TAI, BD.nen_video), ...(arg('khung') ? ['--khung', arg('khung'), '--khung-ra', resolve(arg('khung-ra'))] : ['--ra', RA])], { stdio: 'inherit' });
+  if (r.status) process.exit(r.status);
+  console.log(`${RA} · ${DAI.toFixed(1)}s · ghép lớp lên ${BD.nen_video}`); process.exit(0);
+}
 
 // ---------- tiếng ----------
 const SR = 48000, N = Math.ceil((DAI + 0.5) * SR), mix = new Float32Array(N);
@@ -83,7 +94,7 @@ for (let i = 0; i < N; i++) wav.writeInt16LE(Math.max(-32767, Math.min(32767, Ma
 const wavTep = join(TAI, 'tieng.wav'); writeFileSync(wavTep, wav);
 
 // ---------- hình ----------
-const dung = (them) => { const r = spawnSync(process.execPath, [join(DIR, 'dung.mjs'), '--trang', join(DIR, 'cat-giay.html'), '--cau', cauTep, '--rong', '1920', '--cao', '1080', ...them], { stdio: 'inherit' }); if (r.status) process.exit(r.status); };
+const dung = (them) => { const r = spawnSync(process.execPath, [join(DIR, 'dung.mjs'), '--trang', join(DIR, 'cat-giay.html'), '--cau', cauTep, '--rong', RONG, '--cao', CAO, ...them], { stdio: 'inherit' }); if (r.status) process.exit(r.status); };
 if (arg('khung')) { dung(['--ra', '/dev/null', '--khung', arg('khung'), '--khung-ra', resolve(arg('khung-ra'))]); process.exit(0); }
 const hinh = join(TAI, 'hinh.mp4');
 dung(['--ra', hinh]);

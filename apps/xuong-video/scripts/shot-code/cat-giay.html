@@ -1,7 +1,8 @@
 <!doctype html>
 <!-- PHIM CẮT GIẤY bằng code (01/11/2026, anh: "thử 1 tập gag"): mỗi shot = nền sạch (xoa-nguoi.mts) + người còn lại đứng yên + lớp nhân vật tách
      (tach-lop.swift) di chuyển theo BIÊN ĐẠO (mốc giây) + hiệu ứng vẽ bằng canvas. Hình là hàm thuần của t (window.__seek) → dung.mjs quay từng khung.
-     CAU do phim-cat-giay.mjs dựng từ tệp biên đạo (vd gag-1148.json): {DAI, W, H, shots:[{bd, dai, nen, con_lai, lop:[…], may, fx:[…]}]}. -->
+     CAU do phim-cat-giay.mjs dựng từ tệp biên đạo (vd gag-1148.json): {DAI, W, H, RONG?, CAO?, trong?, shots:[{bd, dai, nen?, con_lai, lop:[…], may, fx:[…]}]}.
+     trong = nền TRONG SUỐT (lớp diễn ghép lên clip nền video ở dung.mjs --nen-video — khuôn anime: video AI dựng nền sống, vật đi xa là lớp riêng). -->
 <html><head><meta charset="utf-8">
 <style>
 html,body{margin:0;background:#000;overflow:hidden}
@@ -31,15 +32,17 @@ const trong = (u, a, b) => u >= a && u <= b;
 // giả ngẫu nhiên xác định (khung nào cũng ra cùng hình)
 const ngau = (i) => { const x = Math.sin(i * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); };
 
-let S = [], W = 1376, H = 768, K = 1, shotHien = -1;
+let S = [], W = 1376, H = 768, K = 1, RONG = 1920, CAO = 1080, TRONG = false, shotHien = -1;
 const the = document.getElementById('the'), man = document.getElementById('man'), cm = man.getContext('2d');
 
 window.__dung = async () => {
-  const C = window.CAU; W = C.W; H = C.H; K = Math.max(1920 / W, 1080 / H);
+  const C = window.CAU; W = C.W; H = C.H; RONG = C.RONG || 1920; CAO = C.CAO || 1080; TRONG = !!C.trong; K = Math.max(RONG / W, CAO / H);
+  const san = document.getElementById('san'); san.style.width = RONG + 'px'; san.style.height = CAO + 'px'; man.width = RONG; man.height = CAO;
+  if (TRONG) { document.documentElement.style.background = 'transparent'; document.body.style.background = 'transparent'; san.style.background = 'transparent'; }
   let bd = 0;
   for (const [k, s] of C.shots.entries()) {
     const d = document.createElement('div'); d.className = 'shot'; d.style.width = W + 'px'; d.style.height = H + 'px'; the.appendChild(d);
-    const nen = new Image(); nen.src = s.nen; nen.style.cssText = `left:0;top:0;width:${W}px;height:${H}px;transform-origin:50% 50%`; d.appendChild(nen);
+    const nen = new Image(); if (s.nen) { nen.src = s.nen; nen.style.cssText = `left:0;top:0;width:${W}px;height:${H}px;transform-origin:50% 50%`; d.appendChild(nen); }
     const cvSau = document.createElement('canvas'); cvSau.width = W; cvSau.height = H; d.appendChild(cvSau);
     let conLai = null;
     if (s.con_lai) { conLai = new Image(); conLai.src = s.con_lai; conLai.style.cssText = `left:0;top:0;width:${W}px;height:${H}px`; d.appendChild(conLai); }
@@ -48,6 +51,8 @@ window.__dung = async () => {
       if (l.cat) { e = document.createElement('div'); e.className = 'cat'; e.style.background = `url("${l.cat}") ${-l.x}px ${-l.y}px / ${W}px ${H}px`; if (l.tron) e.style.clipPath = 'ellipse(50% 50% at 50% 50%)'; if (l.tron) e.style.transformOrigin = '50% 50%'; }
       else { e = new Image(); e.src = l.src; }
       e.style.left = l.x + 'px'; e.style.top = l.y + 'px'; e.style.width = l.w + 'px'; e.style.height = l.h + 'px';
+      // làm mềm lớp cho khớp độ nét clip nền (video AI 720p mềm hơn ảnh tách) — lớp sắc hơn nền là lộ "dán lên"
+      if (l.mo ?? C.mo_lop) e.style.filter = `blur(${l.mo ?? C.mo_lop}px)`;
       d.appendChild(e); return { l, e };
     });
     const cvTren = document.createElement('canvas'); cvTren.width = W; cvTren.height = H; d.appendChild(cvTren);
@@ -75,6 +80,8 @@ function datLop(o, u) {
 }
 
 // ---------- hiệu ứng (toạ độ nền W×H) ----------
+/** điểm đặt hiệu ứng: bám một lớp (toi = tên lớp, dx/dy lệch từ chân lớp) hoặc toạ độ cố định / rãnh x, y */
+const viTri = (f, u, ten) => (f.toi && ten?.[f.toi] ? (({ x, y }) => ({ x: x + (f.dx || 0), y: y + (f.dy || 0) }))(cham(ten[f.toi], u)) : { x: ranh(f.x, u, 0), y: ranh(f.y, u, 0) });
 function veCuc(c, x, y, rr, goc, op = 1) {
   c.save(); c.translate(x, y); c.rotate(goc); c.globalAlpha = op;
   c.fillStyle = '#fbfbf4'; c.strokeStyle = 'rgba(60,50,40,.55)'; c.lineWidth = 1;
@@ -93,12 +100,20 @@ function veSao(c, x, y, rr) { c.beginPath(); for (let i = 0; i < 10; i++) { cons
 
 const FX = {
   /** quầng sáng (đèn pha tàu, nắng, đèn lồng) */
-  sang(c, f, u) {
-    const o = ranh(f.o, u, 1); if (o <= 0) return; const r = ranh(f.r, u, 100) * (1 + 0.04 * Math.sin(u * 37));
-    const g = c.createRadialGradient(f.x, f.y, 0, f.x, f.y, r); const m = f.mau || '255,236,190';
+  sang(c, f, u, ten) {
+    const o = ranh(f.o, u, 1); if (o <= 0) return; const r = ranh(f.r, u, 100) * (1 + 0.04 * Math.sin(u * 37)); const { x, y } = viTri(f, u, ten);
+    const g = c.createRadialGradient(x, y, 0, x, y, r); const m = f.mau || '255,236,190';
     g.addColorStop(0, `rgba(${m},${0.95 * o})`); g.addColorStop(0.25, `rgba(${m},${0.45 * o})`); g.addColorStop(1, `rgba(${m},0)`);
-    c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(f.x - r, f.y - r, r * 2, r * 2); c.restore();
+    c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2); c.restore();
   },
+  /** bóng đổ mềm dưới vật (bám lớp) — vật cắt ra mất bóng thì trông lơ lửng */
+  bong(c, f, u, ten) { const { x, y } = viTri(f, u, ten), rx = f.rx || 120, ry = f.ry || 16; const g = c.createRadialGradient(x, y, 0, x, y, rx);
+    g.addColorStop(0, `rgba(0,0,0,${f.o ?? 0.45})`); g.addColorStop(1, 'rgba(0,0,0,0)'); c.save(); c.translate(x, y); c.scale(1, ry / rx); c.translate(-x, -y); c.fillStyle = g; c.fillRect(x - rx, y - rx, rx * 2, rx * 2); c.restore(); },
+  /** khói ống xả: cụm tròn xám nhả ra theo nhịp, trôi lên ngược hướng đi, tan dần (bám lớp) */
+  khoi(c, f, u, ten) { if (u < (f.tu ?? 0)) return; c.save();
+    for (let i = 0; i < 14; i++) { const t0 = (f.tu ?? 0) + i * (f.nhip || 0.28); if (u < t0) break; const k = (u - t0) / 1.4; if (k > 1) continue; const p = viTri(f, t0, ten);
+      c.fillStyle = `rgba(200,205,215,${0.35 * (1 - k)})`; c.beginPath(); c.arc(p.x - k * (f.lui ?? 40), p.y - k * 50, 6 + k * 26, 0, Math.PI * 2); c.fill(); }
+    c.restore(); },
   /** tiếng gõ keng: vòng loang + tia */
   keng(c, f, u) {
     for (const t of f.t) { const k = (u - t) / 0.55; if (k < 0 || k > 1) continue;
@@ -161,12 +176,12 @@ window.__seek = (t) => {
   const o = S[k], u = t - o.bd, s = o.s;
   if (k !== shotHien) { if (shotHien >= 0) S[shotHien].d.style.display = 'none'; o.d.style.display = 'block'; shotHien = k; }
   // camera: điểm nhìn (x, y) ở giữa khung, phóng s; kẹp để không lộ mép nền
-  const sc = Math.max(1, ranh(s.may?.s, u, 1)), vw = 1920 / (K * sc), vh = 1080 / (K * sc);
+  const sc = Math.max(1, ranh(s.may?.s, u, 1)), vw = RONG / (K * sc), vh = CAO / (K * sc);
   let fx = ranh(s.may?.x, u, W / 2), fy = ranh(s.may?.y, u, H / 2);
   fx = Math.min(W - vw / 2, Math.max(vw / 2, fx)); fy = Math.min(H - vh / 2, Math.max(vh / 2, fy));
   let rx = 0, ry = 0;
   for (const r of s.rung || []) { const kk = (u - r[0]) / r[1]; if (kk >= 0 && kk <= 1) { const b = r[2] * (1 - kk); rx += b * Math.sin(u * 83); ry += b * Math.cos(u * 71); } }
-  the.style.transform = `translate(${960 + rx}px,${540 + ry}px) scale(${K * sc}) translate(${-fx}px,${-fy}px)`;
+  the.style.transform = `translate(${RONG / 2 + rx}px,${CAO / 2 + ry}px) scale(${K * sc}) translate(${-fx}px,${-fy}px)`;
   if (s.nen_x) o.nen.style.transform = `translateX(${ranh(s.nen_x, u, 0)}px) scale(1.04)`;
   if (o.conLai) { const c = s.con_lai_dong || {}; o.conLai.style.transform = `translate(${ranh(c.x_, u, 0)}px,${ranh(c.y_, u, 0) + (c.nhip ? -c.nhip[2] * Math.abs(Math.sin(Math.PI * c.nhip[3] * Math.max(0, u - c.nhip[0]))) * (u >= c.nhip[0] && u <= c.nhip[1] ? 1 : 0) : 0)}px)`; }
   const ten = {};
@@ -175,8 +190,9 @@ window.__seek = (t) => {
     c.clearRect(0, 0, W, H);
     for (const f of s.fx || []) if (!!f.sau === sau && FX[f.loai]) FX[f.loai](c, f, u, ten);
   }
-  cm.clearRect(0, 0, 1920, 1080);
+  cm.clearRect(0, 0, RONG, CAO);
   for (const f of s.man || []) FX_MAN[f.loai]?.(cm, f, u);
+  if (TRONG) return;
   FX_MAN.vien(cm);
   // nối shot: mờ đen ngắn ở mép (đầu 0,12s, cuối 0,12s) trừ shot đánh dấu cắt gắt
   if (!s.cat_gat) { const vao = Math.max(0, 1 - u / 0.12), ra = Math.max(0, 1 - (s.dai - u) / 0.12), a = Math.max(k === 0 ? 0 : vao, k === S.length - 1 ? 0 : ra) * 0.85; if (a > 0) { cm.fillStyle = `rgba(0,0,0,${a})`; cm.fillRect(0, 0, 1920, 1080); } }

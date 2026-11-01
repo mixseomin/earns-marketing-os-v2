@@ -87,7 +87,7 @@ Bản tải về (chỉ mã + chữ, bỏ tệp > 300 KB): `/Users/htuan/Me/GitH
 ## Danh sách để tra thêm
 - [zhuyansen/awesome-claude-video-skills](https://github.com/zhuyansen/awesome-claude-video-skills) — skill video cho Claude Code theo loại
 - [frankxai/awesome-motion-design-agent-skills](https://github.com/frankxai/awesome-motion-design-agent-skills) — skill chuyển động cho agent
-- [yihui-dev/awesome-opus5-5-videos](https://github.com/yihui-dev/awesome-opus5-5-videos) — video lan truyền làm bằng Opus 5.5 + câu lệnh
+- [yihui-dev/awesome-opus5-5-videos](https://github.com/yihui-dev/awesome-opus5-5-videos) — video lan truyền làm bằng Opus 5.5 + câu lệnh — ĐÃ vào Thư viện studio › Kho › 🧪 Prompt Opus 5.5 (01/11/2026, `scripts/nap-prompt-opus.mjs`)
 - [joeseesun/opus-video-prompts](https://github.com/joeseesun/opus-video-prompts) — ví dụ video Opus 5.5 + câu lệnh
 - [athemeroy/awesome-claude-5-5-videos](https://github.com/athemeroy/awesome-claude-5-5-videos) — quy trình video Claude 5.5 có dẫn nguồn
 - [zhuyansen/awesome-opus-5.5-video](https://github.com/zhuyansen/awesome-opus-5.5-video) — video, chuyển động, 3D bằng Opus 5.5

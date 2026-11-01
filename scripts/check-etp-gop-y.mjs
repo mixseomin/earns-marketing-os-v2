@@ -243,6 +243,8 @@ const LUAT = [
   { card: 1498, tep: 'apps/web/src/components/etp-view.tsx', co: "position: gon ? undefined : 'sticky', top: 0, zIndex: 5,", vi: 'hàng tab không tự dính trên điện thoại' },
   { card: 'bo2-0111', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 't2_chi = lambda ns: min(T2_CHI, round(T2_PHAN * 2 * float(ns or 0), 2)) if ns else T2_CHI', vi: 'T2 ngưỡng chi theo ngân sách — camp $1 không lọt luật tắt (anh 01/11/2026)' },
   { card: 'bo2-0111', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'if _c2 >= T2_CHI and _r2 < T2_ROI', vi: 'T2 không quay lại ngưỡng $2.5 cố định' },
+  { card: 'l3-69314', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'l3_chi = lambda ns: min(L3_CHI, round(L3_PHAN * float(ns), 2)) if ns else L3_CHI', vi: 'L3 ngưỡng chi mỗi ngày theo ngân sách — camp $1 chi $0.7–0.98 lỗ liền không lọt (anh 01/11/2026 #69314)' },
+  { card: 'l3-69314', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: '_m[k][1] >= L3_CHI and', vi: 'L3 không quay lại ngưỡng $1 cố định' },
   { card: 'bo2-0111', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if moi and not NGOAI and BO_DANG_CHAN.get(str(bo)):', vi: 'bộ 2 chỉ lên cảnh cuối — cổng dạng creative theo etp.cau_hinh.bo_dang_chan' },
   { card: 1500, tep: 'apps/web/src/components/etp-view.tsx', cam: '{!gon ? <>{laiSel()}{tuoiSel()}{luatSel()}{dangSel()}{boSel()}</> : null}', vi: 'máy tính: ô TK không quay lại hàng lọc' },
   // anh 01/11/2026 "việc này quan trọng, fix ngay" (#70177: 15 dòng lỗi giống hệt): nhật ký máy một đường ghi, chặn dòng lỗi lặp; kho khoá NULL bằng nhau

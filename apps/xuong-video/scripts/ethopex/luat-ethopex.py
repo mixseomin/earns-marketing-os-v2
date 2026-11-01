@@ -489,9 +489,9 @@ except Exception as e:
 tat_d24 = []
 try:
     _hq = dt.date.fromisoformat(d(1)); _ng = {}
-    for _l in q(f"select s.camp_id, s.ngay, s.chi, s.thu, coalesce(c.ten, '') from {K_SO} s left join {K_CAMP} c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
-        _p = _l.split("|", 4)
-        if len(_p) == 5 and _p[0].isdigit(): _ng.setdefault(int(_p[0]), [_p[4], []])[1].append((dt.date.fromisoformat(_p[1]), float(_p[2]), float(_p[3])))
+    for _l in q(f"select s.camp_id, s.ngay, s.chi, s.thu, coalesce(s.ngan_sach, 0), coalesce(c.ten, '') from {K_SO} s left join {K_CAMP} c using (camp_id) where s.ngay < '{d(0)}' and s.chi > 0 order by s.camp_id, s.ngay").splitlines():
+        _p = _l.split("|", 5)   # (ngày, chi, thu, ngân sách ngày đó — L3 đo ngưỡng chi theo nó)
+        if len(_p) == 6 and _p[0].isdigit(): _ng.setdefault(int(_p[0]), [_p[5], []])[1].append((dt.date.fromisoformat(_p[1]), float(_p[2]), float(_p[3]), float(_p[4] or 0)))
     for _c, (_ten, _ds) in _ng.items():
         if _c not in _dc: continue
         _co = {x[0] for x in _ds}; _thieu = [_ds[0][0] + dt.timedelta(days=i) for i in range((_hq - _ds[0][0]).days + 1)]; _thieu = [x for x in _thieu if x not in _co]
@@ -505,16 +505,19 @@ _D24 = {x[0]: x for x in tat_d24}
 # L3 — LỖ 3 NGÀY ĐÃ KHÉP LIỀN → TẮT (anh 29/10/2026: "theo hướng dẫn Ethopex không có điều kiện giảm; ROI âm liên tục thì tắt camp luôn" → "làm 1+2"):
 # 3 ngày đã khép gần nhất (D−1..D−3) NGÀY NÀO cũng chi ≥ L3_CHI và thu < chi → tắt hẳn như T2 / D24. Đo 29/10 (21 ngày): sau 3 ngày lỗ liền, 2 ngày kế
 # cộng lãi $0 (hoà) → tắt không mất gì, giải phóng ngân sách; mốc 2 ngày KHÔNG dùng vì 25% camp lỗ 2 ngày liền hồi lại lãi. Camp ROAS không áp (_bo_roas).
-L3_CHI = 1.0
+# Ngưỡng chi mỗi ngày = min($1, 60% ngân sách ngày đó) (anh 01/11/2026 #69314: camp $1 chi $0.7–0.98/ngày lỗ 5 ngày liền mà không tắt — $1 cứng không bao giờ chạm).
+# Đo 21 ngày: 116 camp lọt $1 cứng nhưng dính ngưỡng mới, 3 ngày KẾ chi $84 · lãi −$27 · ROI −32%.
+L3_CHI, L3_PHAN = 1.0, 0.6
+l3_chi = lambda ns: min(L3_CHI, round(L3_PHAN * float(ns), 2)) if ns else L3_CHI
 tat_l3 = []
 try:
     _d3 = [dt.date.fromisoformat(d(i)) for i in (1, 2, 3)]
     for _c, (_ten, _ds) in _ng.items():
         if _c not in _dc or _c in _D24: continue
         _m = {x[0]: x for x in _ds}
-        if not all(k in _m and _m[k][1] >= L3_CHI and _m[k][2] < _m[k][1] for k in _d3): continue
+        if not all(k in _m and _m[k][1] >= l3_chi(_m[k][3]) and _m[k][2] < _m[k][1] for k in _d3): continue
         _ca, _ta = sum(_m[k][1] for k in _d3), sum(_m[k][2] for k in _d3)
-        tat_l3.append((_c, f"#{_ten[:70]} · 3 ngày đã khép lỗ liền: chi ${_ca:.2f} · lãi ${_ta - _ca:+.2f} · ROI {(_ta - _ca) / _ca * 100:+.0f}% → TẮT (luật L3: lỗ 3 ngày đã khép liền, mỗi ngày chi ≥ ${L3_CHI:g})"))
+        tat_l3.append((_c, f"#{_ten[:70]} · 3 ngày đã khép lỗ liền: chi ${_ca:.2f} · lãi ${_ta - _ca:+.2f} · ROI {(_ta - _ca) / _ca * 100:+.0f}% → TẮT (luật L3: lỗ 3 ngày đã khép liền, mỗi ngày chi ≥ min(${L3_CHI:g}, {L3_PHAN:.0%} ngân sách))"))
     tat_l3.sort(key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))
 except Exception as e:
     loi_may.append((0, f"luật L3 lỗi: {str(e)[:80]}"))
@@ -712,8 +715,8 @@ def _xet_luat():
             "tat_d24" if int(cid) in vao["tat_d24"] else None, tien=2))   # cả hai là tiền đề: chưa có khoảng nghỉ = KHÔNG ÁP, không có "sắp chạm D24" (anh 29/10/2026: thẻ D24 nét đứt trên camp chưa từng nghỉ)
         # L3 — lỗ 3 ngày đã khép liền
         _m3 = {x[0]: x for x in _g}; _l3 = [_m3.get(k) for k in _d3] if "_d3" in globals() else []
-        ls.append(L("l3", "L3 · lỗ 3 ngày liền", f"3 ngày đã khép gần nhất ngày nào cũng chi ≥ ${L3_CHI:g} và lỗ → máy tắt hẳn (thay cho giảm bậc — anh 29/10/2026).",
-            [[f"Ngày {k:%d/%m}", (f"chi ${x[1]:.2f} · lãi ${x[2] - x[1]:+.2f}" if x else "không chi"), f"chi ≥ ${L3_CHI:g} và lỗ", bool(x and x[1] >= L3_CHI and x[2] < x[1])] for k, x in zip(_d3 if "_d3" in globals() else [], _l3)],
+        ls.append(L("l3", "L3 · lỗ 3 ngày liền", f"3 ngày đã khép gần nhất ngày nào cũng chi ≥ min(${L3_CHI:g}, {L3_PHAN:.0%} ngân sách ngày đó) và lỗ → máy tắt hẳn (thay cho giảm bậc — anh 29/10/2026; ngưỡng theo ngân sách 01/11/2026).",
+            [[f"Ngày {k:%d/%m}", (f"chi ${x[1]:.2f} · lãi ${x[2] - x[1]:+.2f}" if x else "không chi"), (f"chi ≥ ${l3_chi(x[3]):g} và lỗ" if x else f"chi ≥ ${L3_CHI:g} và lỗ"), bool(x and x[1] >= l3_chi(x[3]) and x[2] < x[1])] for k, x in zip(_d3 if "_d3" in globals() else [], _l3)],
             "tat_l3" if int(cid) in vao["tat_l3"] else None))
         # L4 — lỗ đều ≥ 4 ngày trong 7 ngày đã khép
         _x7 = [x for x in _g if x[0] in _d7] if "_d7" in globals() else []; _c7, _t7_ = sum(x[1] for x in _x7), sum(x[2] for x in _x7); _r7 = (_t7_ - _c7) / _c7 * 100 if _c7 >= 0.3 else None

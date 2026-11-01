@@ -139,7 +139,7 @@ export function lenhScam(o: { de: DeScam; ass: string; nen?: string | null; font
 
 /** SHOT CODE (anh 01/11/2026): lớp hình dựng trên iMac bằng scripts/shot-code/scam-or-real.html (cột hinh_code), box chỉ ghép tiếng amScam.
  *  Tăng PHIEN khi đổi trang → mọi video của mẫu được dựng lại ở lượt --xuat kế. */
-export const PHIEN_CODE_SCAM = '1';
+export const PHIEN_CODE_SCAM = '2';
 export const CHU_PHU_SCAM = 'Free checklist: 5 red flags before you pay';
 /** Dữ liệu trang (window.CAU, thiếu `nen` — worker iMac gắn tệp ảnh nền): đề + đúng mốc giây của nhipScam + chữ màn kết. */
 export function cauScam(de: DeScam) {

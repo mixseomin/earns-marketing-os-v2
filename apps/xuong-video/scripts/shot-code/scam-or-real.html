@@ -91,7 +91,8 @@ window.__dung = () => {
   $('k1').textContent = C.ket[0]; $('k2').innerHTML = '<b>✓</b><span></span>'; $('k2').querySelector('span').textContent = C.ket[1];
   const m = C.ket[2].match(/^(.*?):\s*(\S+)$/) || [null, C.ket[2], ''];
   $('k3').textContent = m[1] + ':'; $('nut').dataset.chu = m[2]; $('k4').textContent = C.phu || '';
-  return document.fonts.ready.then(() => { $('ly').style.top = ($('the').offsetTop + $('the').offsetHeight + 40) + 'px'; });
+  // lý do ngay dưới thẻ; dấu SCAM/REAL ngay dưới lý do (trần 1660 để ảnh đáp án cắt tới 1920 vẫn trọn dấu nghiêng)
+  return document.fonts.ready.then(() => { const ly = $('ly'); ly.style.top = ($('the').offsetTop + $('the').offsetHeight + 40) + 'px'; $('dong-dau').style.top = Math.min(1660, ly.offsetTop + ly.offsetHeight + 50) + 'px'; });
 };
 window.__seek = (t) => {
   const d = C.de, lo = t >= C.T_LO, email = d.kenh === 'Email';
@@ -103,7 +104,7 @@ window.__seek = (t) => {
   let goDang = null;
   BONG.forEach((e, i) => {
     const vao = email ? MOC[i] : MOC[i] + 0.35, hien = tien(t, vao, 0.3);
-    e.style.opacity = lo && !CO[i] ? 0.55 : hien;
+    e.style.opacity = lo && LUA && !CO[i] ? 0.55 : hien;   // SCAM: làm mờ dòng không có dấu hiệu; REAL: cả tin là bằng chứng, giữ rõ
     e.style.transformOrigin = 'left top';
     e.style.transform = email ? `translateY(${(1 - ra(hien)) * 24}px)` : `translateY(${(1 - ra(hien)) * 30}px) scale(${hien ? 0.85 + 0.15 * nay(hien) : 0.85})`;
     if (!email && t >= MOC[i] && t < MOC[i] + 0.35) goDang = e;

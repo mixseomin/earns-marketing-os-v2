@@ -46,6 +46,23 @@ const tamVung = ({ iso, vung }) => { let A = 0, X = 0, Y = 0;
 const diem = (v) => (Array.isArray(v) ? v : tamVung(v));
 for (const s of canh) { for (const m of [...(s.c.ten || []), ...(s.c.xe || [])]) { m.tu = diem(m.tu); m.den = diem(m.den); }
   for (const m of [...(s.c.co || []), ...(s.c.nhan || [])]) m.o = diem(m.o); s.c.nhay = (s.c.nhay || []).map(diem); s.c.vong = (s.c.vong || []).map(diem); }
+const chuan = (w) => w.toLowerCase().replace(/[^\p{L}\p{N}'-]/gu, '');
+// NHẮC TÊN LÀ SÁNG (anh 02/11/2026: "đoạn nhắc đến quốc gia như Lithuania thì highlight quốc gia đó trên map"): dò lời đọc từng cảnh — tên nước
+// (Natural Earth NAME / NAME_LONG / ADMIN / NAME_<ngôn ngữ tập> + cách gọi chung: Soviet Union, Russian…) → s.c.goi [{iso[], t, ten, o}] sáng đúng lúc chữ
+// được đọc; tên thành phố (Natural Earth populated places, viết hoa trong lời) → s.c.tp [{ten, o, t}] chấm + sóng + tên. Không khai tay từng tập.
+const NN = (tap.ngon_ngu || 'en').toUpperCase(), SU = ['RUS', 'UKR', 'BLR', 'LTU', 'LVA', 'EST', 'MDA', 'KAZ', 'GEO', 'ARM', 'AZE', 'UZB', 'TKM', 'KGZ', 'TJK'];
+const TEN_NUOC = new Map();
+for (const f of geo.features) { const p = f.properties; for (const t of [p.NAME, p.NAME_LONG, p.ADMIN, p.NAME_EN, p[`NAME_${NN}`]]) if (t) TEN_NUOC.set(chuan(t).replace(/-/g, ' '), { iso: [p.ADM0_A3], ten: p.NAME_EN || p.NAME }); }
+for (const [t, iso, ten] of [['soviet union', SU, 'USSR'], ['ussr', SU, 'USSR'], ['union sovietica', SU, 'URSS'], ['russian', ['RUS'], 'Russia'], ['lithuanian', ['LTU'], 'Lithuania'], ['polish', ['POL'], 'Poland'],
+  ['german', ['DEU'], 'Germany'], ['british', ['GBR'], 'United Kingdom'], ['french', ['FRA'], 'France'], ['american', ['USA'], 'United States'], ['chinese', ['CHN'], 'China'], ['japanese', ['JPN'], 'Japan']]) TEN_NUOC.set(t, { iso, ten });
+const TP = new Map(); for (const f of JSON.parse(readFileSync(join(KHO, 'ne_50m_places.geojson'), 'utf8')).features) { const p = f.properties; for (const t of [p.name, p.nameascii, ...(p.namealt || '').split('|')]) if (t && t.length > 3) TP.set(chuan(t), { ten: p.name, o: f.geometry.coordinates }); }
+// thành phố mà nhãn cảnh đã có tên thì không in trùng
+canh.forEach((s, k) => { const ws = tu.filter((w) => w.cau === k); s.c.goi = []; s.c.tp = [];
+  for (let i = 0; i < ws.length; i++) for (const n of [3, 2, 1]) { const cum = ws.slice(i, i + n); if (cum.length < n) continue; const key = cum.map((w) => chuan(w.chu)).join(' ');
+    const nuoc = TEN_NUOC.get(key); if (nuoc && !s.c.goi.some((g) => g.ten === nuoc.ten)) { s.c.goi.push({ iso: nuoc.iso, ten: nuoc.ten, t: Math.max(0, cum[0].a - s.bd), o: nuoc.iso.length === 1 ? tamVung({ iso: nuoc.iso[0] }) : null }); i += n - 1; break; }
+    const tp = n === 1 && /^\p{Lu}/u.test(cum[0].chu) ? TP.get(key) : null; if (tp && !TEN_NUOC.get(key) && !s.c.tp.some((g) => g.ten === tp.ten) && !(s.c.nhan || []).some((l) => chuan(l.chu).includes(chuan(tp.ten)))) { s.c.tp.push({ ten: tp.ten, o: tp.o, t: Math.max(0, cum[0].a - s.bd) }); break; } }
+  for (const d of s.c.dau || []) { const w = ws.find((x) => chuan(x.chu) === chuan(d.chu)); if (!w) throw new Error(`cảnh ${k + 1}: dấu không thấy chữ "${d.chu}"`); d.t = Math.max(0, w.a - s.bd); d.o = d.o ? diem(d.o) : null; } });
+console.log('nhắc tên:', canh.map((s, k) => [...s.c.goi.map((g) => g.ten), ...s.c.tp.map((g) => `◦${g.ten}`)].join(',') || '—').map((x, k) => `${k + 1}:${x}`).join(' '));
 // HƯỚNG THEO ĐỊA LÝ (anh 02/11/2026: "Stalin phải ở bên phải rồi giơ tay về trái — hướng phải đồng nhất với vị trí câu chuyện"): mỗi người có quê (kho que)
 // → máy đặt về phía quê so với ĐÍCH của cảnh (đầu mũi tên / chỗ xe tới / vòng / điểm nháy / tâm) và quay mặt về đích. Người không khai quê giữ ben khai tay.
 const KHO_QUE = JSON.parse(readFileSync(join(DIR, 'kho.json'), 'utf8')).tai_san;
@@ -74,7 +91,6 @@ const DC = { ...KHO_TS, ...Object.fromEntries(Object.entries(tap.nhan_vat || {})
 const tepDang = async (id, dang) => { const d = DC[id]; if (d.tep) return join(KHO, d.tep); const u = d.dang?.[dang] ?? d.dang?.goc; if (!u) throw new Error(`"${id}" không có dáng ${dang}`);
   const f = join(KHO, 'r2', id, `${dang in (d.dang || {}) ? dang : 'goc'}.png`); if (!existsSync(f)) { mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, Buffer.from(await (await fetch(u)).arrayBuffer())); } return f; };
 // dáng theo CHỮ của giọng: {chu, dang} → [giây trong cảnh, dáng] (chữ đầu tiên trùng trong câu của cảnh, so không dấu câu)
-const chuan = (w) => w.toLowerCase().replace(/[^\p{L}\p{N}'-]/gu, '');
 // tranh cảnh: {anh, tu_chu, den_chu} → giây trong cảnh (chữ đầu khớp trong câu; den = hết chữ đó + 0,4 s)
 canh.forEach((s, k) => { const t = s.c.tranh; if (!t) return; const tim = (c) => { const w = tu.find((x) => x.cau === k && chuan(x.chu) === chuan(c)); if (!w) throw new Error(`cảnh ${k + 1}: tranh không thấy chữ "${c}"`); return w; };
   t.tu = t.tu_chu ? Math.max(0, tim(t.tu_chu).a - s.bd - 0.2) : (t.tu ?? 0); t.den = t.den_chu ? tim(t.den_chu).b - s.bd + 0.4 : (t.den ?? (s.kt - s.bd));
@@ -109,10 +125,29 @@ const dung = (them) => { const r = spawnSync(process.execPath, [join(DIR, '../sh
 if (arg('khung')) { dung(['--ra', '/dev/null', '--khung', arg('khung'), '--khung-ra', resolve(arg('khung-ra'))]); process.exit(0); }
 const hinh = join(RA, 'hinh.mp4'), ra = join(RA, `${tap.id}.mp4`);
 dung(['--ra', hinh]);
+// TIẾNG ĐỘNG KHỚP HÌNH (0đ, tổng hợp số học): vút khi camera nhảy xa · thịch khi đóng dấu / cắm cờ · giấy khi sang tranh · trống trầm khi đổi năm ·
+// chuông nhẹ khi một nước được nhắc tên. Lịch theo giây tuyệt đối; trộn dưới giọng.
+const SR = 48000, N = Math.ceil(DAI * SR), sfx = new Float32Array(N); let hat = 11; const rnd = () => ((hat = (hat * 1103515245 + 12345) % 2147483648) / 2147483648) * 2 - 1;
+const dat = (t, len, f, vol) => { const o = Math.round(t * SR); for (let i = 0; i < len * SR && o + i < N; i++) if (o + i >= 0) sfx[o + i] += f(i / SR) * vol; };
+const AMT = { vut: (t) => { const k = t / 0.6; return rnd() * Math.sin(Math.PI * k) * (0.3 + 0.7 * k) * 0.5; }, thich: (t) => Math.sin(2 * Math.PI * (90 - 40 * t) * t) * Math.exp(-t * 14) + (t < 0.01 ? rnd() * 0.5 : 0),
+  giay: (t) => rnd() * (Math.sin(t * 90) > 0.3 ? 1 : 0.25) * Math.exp(-t * 3) * 0.35, trong: (t) => Math.sin(2 * Math.PI * 62 * t) * Math.exp(-t * 6) + Math.sin(2 * Math.PI * 124 * t) * Math.exp(-t * 12) * 0.3,
+  ting: (t) => (Math.sin(2 * Math.PI * 1318 * t) + 0.4 * Math.sin(2 * Math.PI * 1976 * t)) * Math.exp(-t * 5) * 0.35 };
+const LEN = { vut: 0.6, thich: 0.5, giay: 0.6, trong: 0.9, ting: 1.0 };
+let namCu = null;
+canh.forEach((s, k) => { const tr = canh[k - 1]; const a = tr ? tr.c : null; const xa = a ? Math.hypot((s.c.tam[0] - a.tam[0]) * 0.59, s.c.tam[1] - a.tam[1]) : 0;
+  if (xa > 6 || (!tr && s.c.mo)) dat(s.bd, LEN.vut, AMT.vut, 0.9);
+  const nam = s.c.nam ?? namCu; if (s.c.nam != null && s.c.nam !== namCu && namCu != null) dat(s.bd + 0.1, LEN.trong, AMT.trong, 0.8); if (s.c.nam_sau) dat(s.bd + s.c.nam_sau[0], LEN.trong, AMT.trong, 0.7); namCu = s.c.nam_sau?.[1] ?? nam;
+  for (const f of s.c.co || []) dat(s.bd + (f.tre ?? 0.6) + 0.3, LEN.thich, AMT.thich, 0.6);
+  for (const d of s.c.dau || []) dat(s.bd + d.t, LEN.thich, AMT.thich, 1.0);
+  if (s.c.tranh) dat(s.bd + s.c.tranh.tu - 0.3, LEN.giay, AMT.giay, 0.8);
+  for (const g of s.c.goi) dat(s.bd + g.t, LEN.ting, AMT.ting, 0.5); });
+const wavSfx = join(RA, 'sfx.wav'); { let dinh = 0; for (const v of sfx) dinh = Math.max(dinh, Math.abs(v)); const g = dinh > 0.95 ? 0.95 / dinh : 1;
+  const b = Buffer.alloc(44 + N * 2); b.write('RIFF', 0); b.writeUInt32LE(36 + N * 2, 4); b.write('WAVEfmt ', 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(SR, 24); b.writeUInt32LE(SR * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(N * 2, 40);
+  for (let i = 0; i < N; i++) b.writeInt16LE(Math.round(Math.max(-1, Math.min(1, sfx[i] * g)) * 32767), 44 + i * 2); writeFileSync(wavSfx, b); }
 // nhạc nền: hợp âm trầm thở chậm, nằm dưới giọng ~22 dB (0đ, không bản quyền)
 const nhac = `0.05*sin(2*PI*98*t)*(0.6+0.4*sin(2*PI*0.08*t))+0.04*sin(2*PI*146.8*t)*(0.6+0.4*sin(2*PI*0.06*t+1))+0.03*sin(2*PI*196*t)*(0.5+0.5*sin(2*PI*0.05*t+2))`;
-const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, '-i', join(RA, 'giong.mp3'), '-f', 'lavfi', '-t', String(DAI), '-i', `aevalsrc='${nhac}':s=48000`,
-  '-filter_complex', '[1:a]volume=1.0[g];[2:a]volume=0.5,afade=t=in:d=1.5,afade=t=out:st=' + (DAI - 1.5) + ':d=1.5[n];[g][n]amix=inputs=2:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5[a]',
+const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, '-i', join(RA, 'giong.mp3'), '-f', 'lavfi', '-t', String(DAI), '-i', `aevalsrc='${nhac}':s=48000`, '-i', wavSfx,
+  '-filter_complex', '[1:a]volume=1.0[g];[2:a]volume=0.5,afade=t=in:d=1.5,afade=t=out:st=' + (DAI - 1.5) + ':d=1.5[n];[3:a]volume=0.35[s];[g][n][s]amix=inputs=3:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5[a]',
   '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-t', String(DAI), '-movflags', '+faststart', ra], { stdio: 'inherit' });
 if (r.status) process.exit(r.status);
 console.log(`${ra} · ${DAI}s · ${canh.length} cảnh · ${tu.length} chữ`);

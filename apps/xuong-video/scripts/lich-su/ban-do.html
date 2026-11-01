@@ -13,8 +13,8 @@ const io = (k) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2), o
 let C, nen, mien, dh, NV = {};
 // Chiếu trụ đều có vĩ tuyến chuẩn 54° (cùng lưới với ảnh địa hình Natural Earth: 60 px / độ) — zoom 1 ≈ 1 độ vĩ = 12 px
 const COS = Math.cos((54 * Math.PI) / 180);
-let cam = { lon: 0, lat: 0, z: 1 };
-const chieu = (lon, lat) => { const s = 12 * cam.z; return [W / 2 + (lon - cam.lon) * s * COS, H * 0.42 - (lat - cam.lat) * s]; };
+let cam = { lon: 0, lat: 0, z: 1 }, rung = [0, 0];
+const chieu = (lon, lat) => { const s = 12 * cam.z; return [W / 2 + (lon - cam.lon) * s * COS + rung[0], H * 0.42 - (lat - cam.lat) * s + rung[1]]; };
 
 window.__dung = async () => {
   C = window.CAU; nen = new Image(); nen.src = C.nen; await nen.decode();
@@ -69,11 +69,16 @@ window.__seek = (t) => {
     const nb = (H * 0.42) / (12 * cam.z), nd = (H * 0.58) / (12 * cam.z), nn = W / 2 / (12 * cam.z * COS);
     cam.lat = Math.min(b1 - nb, Math.max(b0 + nd, cam.lat)); cam.lon = Math.min(l1 - nn, Math.max(l0 + nn, cam.lon)); }
   // nền giấy thật (phủ kín, trôi nhẹ)
+  rung = [0, 0]; for (const d of s.c.dau || []) { const q = u - d.t; if (q > 0 && q < 0.35) { const a = 14 * (1 - q / 0.35); rung = [a * Math.sin(q * 90), a * Math.cos(q * 77)]; } }
   x.fillStyle = '#3d4f58'; x.fillRect(0, 0, W, H);
   if (dh) { const [x0, y0] = chieu(C.dia_hinh.lon[0], C.dia_hinh.lat[1]), [x1, y1] = chieu(C.dia_hinh.lon[1], C.dia_hinh.lat[0]); x.drawImage(dh, x0, y0, x1 - x0, y1 - y0); }
   // tông giấy cổ: ngả sepia + vân giấy thật nhân lên (multiply) — địa hình vẫn đọc được
   x.save(); x.globalCompositeOperation = 'color'; x.fillStyle = 'rgba(176,140,90,.55)'; x.fillRect(0, 0, W, H); x.restore();
   x.save(); x.globalCompositeOperation = 'multiply'; x.globalAlpha = 0.55; const sc = Math.max(W / nen.width, H / nen.height) * 1.06; x.drawImage(nen, (W - nen.width * sc) / 2 - u * 2, (H - nen.height * sc) / 2, nen.width * sc, nen.height * sc); x.restore();
+  // TÔNG THEO THỜI: trung cổ ngả nâu cũ, thế kỷ 20 lạnh hơn
+  { const nm = s.c.nam_sau && u >= s.c.nam_sau[0] ? s.c.nam_sau[1] : (s.c.nam ?? tr?.c.nam ?? 1900);
+    if (nm < 1600) { x.save(); x.globalCompositeOperation = 'multiply'; x.fillStyle = 'rgba(190,150,100,.22)'; x.fillRect(0, 0, W, H); x.restore(); }
+    else if (nm >= 1900) { x.save(); x.globalCompositeOperation = 'soft-light'; x.fillStyle = 'rgba(70,100,140,.28)'; x.fillRect(0, 0, W, H); x.restore(); } }
   // biên giới mảnh, mực nâu
   x.lineJoin = 'round';
   for (const ps of Object.values(mien)) for (const p of ps) { vePoly(p.ring); x.strokeStyle = 'rgba(70,50,30,.55)'; x.lineWidth = 1.4; x.stroke(); }
@@ -86,6 +91,24 @@ window.__seek = (t) => {
     vePoly(p.ring); x.globalAlpha = al; x.strokeStyle = '#2b1d10'; x.lineWidth = 4; x.stroke(); x.globalAlpha = 1; } };
   for (const o of cu) if (!moi.some((m) => khoa(m) === khoa(o))) ve(o, 0.78 * (1 - kep(u / 0.6)));
   for (const o of moi) ve(o, 0.78 * (cu.some((m) => khoa(m) === khoa(o)) ? 1 : kep((u - 0.2) / 0.6)));
+  // NHẮC TÊN LÀ SÁNG: nước được đọc tên lóe sáng rồi tắt hẳn sau ~3 s (không đè màu riêng của cảnh), viền vàng nhấp nháy, nhãn tên bật ra ở tâm nước
+  for (const g of s.c.goi || []) { const q = u - g.t; if (q < 0 || q > 3.2) continue; const loe = Math.exp(-q * 2.2), al = (0.2 + 0.55 * loe) * kep((3.2 - q) / 0.8);
+    for (const iso of g.iso) for (const p of phan(iso)) { x.save(); vePoly(p.ring); x.globalAlpha = al; x.fillStyle = '#e6b23a'; x.shadowColor = '#ffd36a'; x.shadowBlur = 50 * loe + 8; x.fill(); x.restore();
+      vePoly(p.ring); x.strokeStyle = `rgba(255,214,90,${(0.5 + 0.5 * loe) * kep((3.2 - q) / 0.8)})`; x.lineWidth = 3 + 5 * loe; x.stroke(); }
+    if (g.o && q < 2.4) { const [px, py] = chieu(...g.o), pop = q < 0.25 ? 0.6 + 0.55 * out(q / 0.25) : 1 + 0.15 * Math.max(0, 1 - (q - 0.25) / 0.2); x.save(); x.globalAlpha = kep((2.4 - q) / 0.4); x.translate(px, py); x.scale(pop, pop); chuVien(g.ten.toUpperCase(), 0, 0, 52, '#5a2a08', 'rgba(255,240,200,.97)'); x.restore(); } }
+  for (const c of s.c.tp || []) { const q = u - c.t; if (q < 0) continue; const [px, py] = chieu(...c.o);
+    for (let i = 0; i < 2; i++) { const r = ((q * 0.8 + i * 0.5) % 1); x.strokeStyle = `rgba(43,29,16,${(1 - r) * 0.8})`; x.lineWidth = 4; x.beginPath(); x.arc(px, py, 10 + r * 60, 0, 7); x.stroke(); }
+    x.fillStyle = '#2b1d10'; x.beginPath(); x.arc(px, py, 11, 0, 7); x.fill(); x.fillStyle = '#f0dcae'; x.beginPath(); x.arc(px, py, 5, 0, 7); x.fill();
+    x.globalAlpha = kep(q / 0.3); chuVien(c.ten, px, py - 44, 42, '#2b1d10'); x.globalAlpha = 1; }
+  // NHẮC TÊN LÀ SÁNG: nước được đọc tên lóe sáng rồi tắt hẳn sau ~3 s (không đè màu riêng của cảnh), viền vàng nhấp nháy, nhãn tên bật ra ở tâm nước
+  for (const g of s.c.goi || []) { const q = u - g.t; if (q < 0 || q > 3.2) continue; const loe = Math.exp(-q * 2.2), al = (0.2 + 0.55 * loe) * kep((3.2 - q) / 0.8);
+    for (const iso of g.iso) for (const p of phan(iso)) { x.save(); vePoly(p.ring); x.globalAlpha = al; x.fillStyle = '#e6b23a'; x.shadowColor = '#ffd36a'; x.shadowBlur = 50 * loe + 8; x.fill(); x.restore();
+      vePoly(p.ring); x.strokeStyle = `rgba(255,214,90,${(0.5 + 0.5 * loe) * kep((3.2 - q) / 0.8)})`; x.lineWidth = 3 + 5 * loe; x.stroke(); }
+    if (g.o && q < 2.4) { const [px, py] = chieu(...g.o), pop = q < 0.25 ? 0.6 + 0.55 * out(q / 0.25) : 1 + 0.15 * Math.max(0, 1 - (q - 0.25) / 0.2); x.save(); x.globalAlpha = kep((2.4 - q) / 0.4); x.translate(px, py); x.scale(pop, pop); chuVien(g.ten.toUpperCase(), 0, 0, 52, '#5a2a08', 'rgba(255,240,200,.97)'); x.restore(); } }
+  for (const c of s.c.tp || []) { const q = u - c.t; if (q < 0) continue; const [px, py] = chieu(...c.o);
+    for (let i = 0; i < 2; i++) { const r = ((q * 0.8 + i * 0.5) % 1); x.strokeStyle = `rgba(43,29,16,${(1 - r) * 0.8})`; x.lineWidth = 4; x.beginPath(); x.arc(px, py, 10 + r * 60, 0, 7); x.stroke(); }
+    x.fillStyle = '#2b1d10'; x.beginPath(); x.arc(px, py, 11, 0, 7); x.fill(); x.fillStyle = '#f0dcae'; x.beginPath(); x.arc(px, py, 5, 0, 7); x.fill();
+    x.globalAlpha = kep(q / 0.3); chuVien(c.ten, px, py - 44, 42, '#2b1d10'); x.globalAlpha = 1; }
   // mũi tên quân
   for (const m of s.c.ten || []) muiTen(m.tu, m.den, out(kep((u - 0.4) / 1.4)), m.mau);
   // phương tiện chạy theo đường cong (ảnh minh hoạ nhìn ngang; đi sang trái thì lật)
@@ -142,9 +165,10 @@ window.__seek = (t) => {
   // năm: đếm từ năm cảnh trước tới năm cảnh này
   const namTr = tr?.c.nam_sau?.[1] ?? tr?.c.nam ?? s.c.nam; let nam = s.c.nam != null ? Math.round((namTr ?? s.c.nam) + (s.c.nam - (namTr ?? s.c.nam)) * out(kep(u / 1.2))) : null;
   if (s.c.nam_sau && u >= s.c.nam_sau[0]) nam = Math.round(s.c.nam + (s.c.nam_sau[1] - s.c.nam) * out(kep((u - s.c.nam_sau[0]) / 1.2)));   // năm đổi giữa cảnh (vd 1701 → 1770 khi Kant bước vào)   // cảnh không khai năm = không hiện ô năm (không bịa mốc)
-  if (nam != null) { x.save(); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 18; x.fillStyle = '#2b1d10'; x.beginPath(); x.roundRect(60, 150, 330, 128, 10); x.fill(); x.restore();
+  const doiNam = s.c.nam_sau && u >= s.c.nam_sau[0] ? u - s.c.nam_sau[0] : (namTr !== s.c.nam ? u : 9), nayN = 1 + 0.12 * Math.max(0, 1 - doiNam / 0.3) * Math.sin(Math.min(1, doiNam / 0.3) * Math.PI);
+  if (nam != null) { x.save(); x.translate(225, 214); x.scale(nayN, nayN); x.translate(-225, -214); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 18; x.fillStyle = '#2b1d10'; x.beginPath(); x.roundRect(60, 150, 330, 128, 10); x.fill(); x.restore();
     x.strokeStyle = '#c9a45c'; x.lineWidth = 3; x.beginPath(); x.roundRect(70, 160, 310, 108, 6); x.stroke();
-    x.font = '900 88px Cinzel, Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f0dcae'; x.fillText(String(nam), 225, 218); }
+    x.font = '900 88px Cinzel, Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f0dcae'; x.fillText(String(nam), 225, 218); x.restore(); }
   // chữ to mở (cảnh đầu)
   if (s.c.chu_to) { const al = kep(u / 0.25) * (1 - kep((u - 3.2) / 0.4)); if (al) { x.globalAlpha = al; const sz = 76; x.font = `900 ${sz}px Cinzel, Georgia, serif`;
     const tu = s.c.chu_to.split(' '), dong = []; let l = ''; for (const w of tu) { const th = l ? `${l} ${w}` : w; if (x.measureText(th).width > W - 140) { dong.push(l); l = w; } else l = th; } dong.push(l);
@@ -158,6 +182,12 @@ window.__seek = (t) => {
       if (tong > W - 120) { sz = Math.floor(sz * (W - 120) / tong); x.font = `900 ${sz}px Montserrat, "Helvetica Neue", Arial, sans-serif`; rong = g.map((w) => x.measureText(w.chu).width); tong = rong.reduce((a, b) => a + b, 0) + (g.length - 1) * 22; }   // một chữ quá dài: thu cỡ, không bao giờ tràn mép
       let px = (W - tong) / 2;
       g.forEach((w, i) => { const dang = t >= w.a && t < w.b + 0.08; x.textAlign = 'left'; x.textBaseline = 'middle'; x.lineWidth = 14; x.lineJoin = 'round'; x.strokeStyle = '#111'; x.strokeText(w.chu, px, H * 0.835); x.fillStyle = dang ? '#ffd23f' : '#fff'; x.fillText(w.chu, px, H * 0.835); px += rong[i] + 22; }); } }
+  // CON DẤU đóng lên khung ở chữ nhấn: rơi từ to xuống, nghiêng, mực đỏ sần
+  for (const d of s.c.dau || []) { const q = u - d.t; if (q < 0) continue; const k6 = kep(q / 0.16), sc = 2.4 - 1.4 * out(k6), [px, py] = d.o ? chieu(...d.o) : [W / 2, H * 0.6];
+    x.save(); x.globalAlpha = k6 * 0.92; x.translate(px, py); x.rotate(-0.14); x.scale(sc, sc); x.font = '900 84px Cinzel, Georgia, serif'; const rw = x.measureText(d.text).width + 70;
+    x.strokeStyle = d.mau || '#b3261e'; x.lineWidth = 9; x.beginPath(); x.roundRect(-rw / 2, -66, rw, 132, 10); x.stroke(); x.lineWidth = 3; x.beginPath(); x.roundRect(-rw / 2 + 12, -54, rw - 24, 108, 6); x.stroke();
+    x.fillStyle = d.mau || '#b3261e'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(d.text, 0, 6);
+    x.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 90; i++) { x.beginPath(); x.arc(((i * 53) % rw) - rw / 2, ((i * 37) % 132) - 66, 1.5 + (i % 3), 0, 7); x.fill(); } x.restore(); }
   // thẻ kết
   if (s.c.ket) { const al = kep((u - 1.2) / 0.4); if (al) { x.globalAlpha = al; const p = 1 + 0.04 * Math.sin(u * 6); x.save(); x.translate(W / 2, H * 0.64); x.scale(p, p); x.fillStyle = '#9e2b25'; x.beginPath(); x.roundRect(-230, -70, 460, 140, 70); x.fill(); x.font = '900 66px Cinzel, Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f8f0de'; x.fillText(s.c.ket, 0, 4); x.restore(); x.globalAlpha = 1; } }
   // viền tối mép (giấy cũ)

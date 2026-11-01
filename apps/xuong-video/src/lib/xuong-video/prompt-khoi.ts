@@ -70,7 +70,7 @@ export const CHAT_LIEU: Record<ChatLieu, {
 
 /** NHỊP GAG (kieu.ts › DanDung.nhip) — khối diễn của video (sinh-video.ts › theVideo): shot [GAG n] nói từng nhịp theo mốc giây — câu "from… to…" trơn cho clip 8s nhảy thẳng tới kết (#1156 #6). */
 export const cauNhipGag = (nhip?: string): string => { const ds = (nhip ?? '').split(/\s*[|\n]\s*/).map((x) => x.trim().replace(/[.\s]+$/, '')).filter(Boolean);
-  return ds.length ? `The whole gag plays out on screen in this exact order, every beat clearly visible and held long enough to read — no beat skipped, merged or rushed: ${ds.join('; ')}` : ''; };
+  return ds.length ? `Fast, snappy cartoon comedy timing: the whole gag plays out on screen in this exact order, each beat quick but clearly readable — no beat skipped or merged, no slow drifting, no dead time: ${ds.join('; ')}` : ''; };
 /** Chữ theo LOẠI VIDEO (xv_phim.loai): phim truyện thì sản phẩm (nếu lọt vào) chỉ cần giữ y, không phải trọng tâm; quảng cáo thì cử chỉ dồn vào sản phẩm
  *  (#54 shot 9 ông Mike kéo cổ áo trong phim bán QUẦN). Chữ sản phẩm TRUNG TÍNH — trước đây ghi cứng cho quần áo ("cut, color, pockets, fabric",
  *  "never tugging other clothing"), QC điện thoại / mỹ phẩm nhận chữ quần. Thêm loại video: thêm một dòng. */

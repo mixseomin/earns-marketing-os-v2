@@ -96,7 +96,7 @@ console.log('nhip-hinh.test: ok');
   const { kiemNhipGag } = await import('./nhip-hinh');
   const du = '0-2s: a | 2-4s: b | 4-6s: c | 6-8s: d';
   assert.deepStrictEqual(kiemNhipGag([{ thu_tu: 1, canh: '[MỞ] x', phat_s: 3, thoi_luong_s: 4 }]), []);
-  assert.deepStrictEqual(kiemNhipGag([{ thu_tu: 2, canh: '[GAG 1] x', phat_s: 8, thoi_luong_s: 8, dan_dung: { nhip: du } }]), []);
+  assert.deepStrictEqual(kiemNhipGag([{ thu_tu: 2, canh: '[GAG 1] x', phat_s: 6, thoi_luong_s: 6, dan_dung: { nhip: du } }]), []);
   const l = kiemNhipGag([{ thu_tu: 3, canh: '[GAG 2] x', phat_s: 3.5, thoi_luong_s: 4, dan_dung: { nhip: 'a | b' } }]);
   assert.ok(l.length === 2 && l[0]!.includes('#3') && l[1]!.includes('3.5s'), l.join(' | '));
 }

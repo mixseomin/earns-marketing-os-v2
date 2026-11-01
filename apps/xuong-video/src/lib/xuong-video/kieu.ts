@@ -632,8 +632,8 @@ export type DanDung = {
   /** khán giả cảm gì từ đầu → cuối shot, shot tồn tại để làm gì */ muc_dich?: string;
   /** motif / cái gài hoặc trả có trong khung */ motif?: string;
   /** DIỄN XUẤT HOẠT HÌNH (tiếng Anh, vào prompt video): lấy đà → hành động → theo đà / phản ứng, nén–giãn, khựng — chất Larva */ dien?: string;
-  /** NHỊP GAG (tiếng Anh, vào prompt video) — shot [GAG n] diễn TRỌN một gag: 4 nhịp có mốc giây "0-2s: vấn đề | 2-4s: ra tay | 4-6s: đẩy thêm | 6-8s: phản ứng
-   *  giữ". Thiếu ô này clip 8s nhận một câu "từ… tới…" và bỏ nhịp giữa (phim #1156 #6: không thấy cú kẹp, 01/11/2026). Khung đầu = nhịp đầu. */ nhip?: string;
+  /** NHỊP GAG (tiếng Anh, vào prompt video) — shot [GAG n] diễn TRỌN một gag: 4 nhịp có mốc giây "0-1.5s: vấn đề | 1.5-3s: ra tay | 3-4.5s: đẩy thêm | 4.5-6s:
+   *  phản ứng" (nhịp nhanh, anh 01/11/2026). Thiếu ô này clip 8s nhận một câu "từ… tới…" và bỏ nhịp giữa (phim #1156 #6: không thấy cú kẹp, 01/11/2026). Khung đầu = nhịp đầu. */ nhip?: string;
   /** ĐIỂM NHẤN âm–hình của gag: khung nào, tiếng gì đập đúng lúc nào (shot có cú bùng của gag bắt buộc có) */ nhan?: string;
   /** mã shot CỐ ĐỊNH trong hồ sơ viết tay (vd "4.6a") — đồng bộ hồ sơ ↔ studio khớp theo mã này, chèn shot giữa cảnh không làm lệch shot sau */ ma?: string;
 };
@@ -645,7 +645,7 @@ export const O_DAN_DUNG: { key: keyof DanDung; ten: string; mau: string; vaoMode
   { key: 'muc_dich', ten: 'Mục đích cảm xúc', mau: 'Thèm → hụt hẫng buồn cười; khán giả hiểu Tango muốn gì.', vaoModel: false },
   { key: 'motif', ten: 'Motif · gài / trả', mau: 'Viên kẹo đỏ (motif); gài: góc giấy vàng nhìn trộm.', vaoModel: false },
   { key: 'dien', ten: 'Diễn xuất (lấy đà · hành động · phản ứng)', mau: 'Anticipation: Tango crouches and wiggles. Action: leaps, arms wide. Reaction: freezes mid-air a beat, then drops face-first (squash), strand boings.', vaoModel: true },
-  { key: 'nhip', ten: 'Nhịp gag (mốc giây)', mau: '0-2s: the stool stack wobbles on the rail, the man strains and cannot lift it | 2-4s: she closes both cradles around it like chopsticks and lifts it | 4-6s: the man still hugging it rises too, the top stool hooks the lantern string | 6-8s: he dangles and swings like a pendulum, resigned; she walks on', vaoModel: true },
+  { key: 'nhip', ten: 'Nhịp gag (mốc giây)', mau: '0-1.5s: the stool stack wobbles on the rail, the man strains and cannot lift it | 1.5-3s: she closes both cradles around it like chopsticks and lifts it | 3-4.5s: the man still hugging it rises too, the top stool hooks the lantern string | 4.5-6s: he dangles and swings like a pendulum, resigned; she walks on', vaoModel: true },
   { key: 'nhan', ten: 'Điểm nhấn âm–hình', mau: 'Giây 2,8: kẹo phụt khỏi tay — tiếng "bloop" đúng khung; nhạc ngắt 1 nhịp trước cú ngã.', vaoModel: false },
 ];
 /** Ô thẻ shot BẮT BUỘC trước keyframe (motif + điểm nhấn tuỳ shot — điểm nhấn bắt buộc ở shot có cú bùng của gag, ho-so.ts › kiemHoSo). */

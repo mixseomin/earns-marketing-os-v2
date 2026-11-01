@@ -92,7 +92,7 @@ export function kiemTheShot(ds: { thu_tu: number; dan_dung?: DanDung }[], p: { l
 /** NHỊP GAG (01/11/2026, phim #1156 #6 — anh: "video đó là full 1 gag sao không thấy rõ gì cả? mỗi vấn đề mà không thấy tiếp theo"): shot [GAG n] phải diễn
  *  trọn vấn đề → ra tay → đẩy thêm → phản ứng TRONG một clip — cần ô nhịp có ≥ 3 nhịp và đủ giây phát (GIAY_GAG). Trước đây 4 nhịp nhồi vào 3,5s phát. */
 export const TIEN_TO_NHIP_GAG = 'nhịp gag: ';
-export const GIAY_GAG = 7;
+export const GIAY_GAG = 5.5;   // anh 01/11/2026 "tiết tấu phải nhanh hơn": khuôn gag 6s (4 nhịp × 1,5s), không 8s
 export const laShotGag = (ten?: string) => /^\s*\[GAG\b/i.test(ten ?? '');
 export function kiemNhipGag(ds: { thu_tu: number; canh?: string; phat_s: number | null; thoi_luong_s: number; dan_dung?: DanDung }[]): string[] {
   const gag = ds.filter((c) => laShotGag(c.canh)); if (!gag.length) return [];
@@ -100,7 +100,7 @@ export function kiemNhipGag(ds: { thu_tu: number; canh?: string; phat_s: number 
   const ngan = gag.filter((c) => (c.phat_s && c.phat_s > 0 ? c.phat_s : c.thoi_luong_s || 4) < GIAY_GAG - 0.05);
   return [
     it.length ? `${TIEN_TO_NHIP_GAG}${it.length} shot gag thiếu nhịp có mốc giây (${it.slice(0, 8).map((c) => `#${c.thu_tu}`).join(', ')}) — clip sẽ bỏ nhịp giữa` : '',
-    ngan.length ? `${TIEN_TO_NHIP_GAG}${ngan.length} shot gag phát dưới ${GIAY_GAG}s (${ngan.slice(0, 8).map((c) => `#${c.thu_tu} ${c.phat_s ?? c.thoi_luong_s}s`).join(', ')}) — một gag đủ bốn nhịp cần ~8s` : '',
+    ngan.length ? `${TIEN_TO_NHIP_GAG}${ngan.length} shot gag phát dưới ${GIAY_GAG}s (${ngan.slice(0, 8).map((c) => `#${c.thu_tu} ${c.phat_s ?? c.thoi_luong_s}s`).join(', ')}) — một gag đủ bốn nhịp cần ~6s` : '',
   ].filter(Boolean);
 }
 /** VAI KỂ (14/10/2026 — "thiếu dẫn thời gian, góc người thứ 3, góc tổng thể, góc tâm trạng…"): một tập phim truyện phải kể bằng nhiều

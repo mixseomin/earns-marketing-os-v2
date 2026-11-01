@@ -18,5 +18,25 @@
     "chong": "manh-6.png"
    }
   }
+ },
+ "gag5": {
+  "nen": {
+   "url": "https://img.on.tc/xuong-video/thu-lop/f89d4a39-nen.png",
+   "tep": "nen-ngang.png"
+  },
+  "to": {
+   "url": "https://img.on.tc/xuong-video/giay-cat/1156-gag5-be889437.png",
+   "tep": "to-gag5.png",
+   "tach": "gag5",
+   "vai": {
+    "doi_duoi": "manh-1.png",
+    "tau": "manh-2.png",
+    "doi_co": "manh-3.png"
+   }
+  },
+  "dung_lai": {
+   "ba": "gag4v2/manh-2.png",
+   "don": "gag4v2/manh-1.png"
+  }
  }
 }

@@ -279,6 +279,8 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   let kq: { ok: true; taskId: string } | { ok: false; loi: string };
   // CHUỖI CỔNG (cong-ai.ts): shot dùng Veo → thử Grok qua ShopAIKey trước (rẻ hơn, ~95s); không nhận thì gọi Google như cũ.
   const thuCong: BuocNguon[] = [];
+  // GIÂY CLIP = giây của shot (4/6/8) cho cổng Veo — trước 01/11/2026 gửi trần 8s của cổng: shot gag 4s ra clip 8s chậm rì (#1156 #6). Cổng Grok độ dài cố định.
+  const giayCong = (b: { model: string; giay: number }) => (/^veo/i.test(b.model) ? Math.min(b.giay, giay) : b.giay);
   const chuoi = khoaVid.kieu === 'cong' ? [{ cong: khoaVid.cong, model: khoaVid.model, giay: MO_HINH_CONG.find((m) => m.key === `${khoaVid.cong}:${khoaVid.model}`)?.giay ?? 10 }] : chuoiVideo(bc.kt.mo_hinh_video, tapR?.loai === 'quang_cao');
   if (!laFal && !boQuaCong) {
     for (const [iB, b] of chuoi.entries()) {
@@ -286,13 +288,13 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
       const tran = b.cong === 'plenxai' && iB < chuoi.length - 1 ? await oPlenx(db) : null;
       if (tran) { thuCong.push({ cong: b.cong, model: b.model, ok: false, loi: tran }); continue; }
       const pB = promptCho(b.model), cB = cuoiCho(b.model);
-      const g = b.cong === 'plenxai' ? await guiPlenxGian(() => guiVideoCong(b.cong, b.model, { tiLe: bc.kt.ti_le, prompt: pB, anhDau: bc.canh.keyframe_url!, anhCuoi: cB, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai }))
-        : await guiVideoCong(b.cong, b.model, { tiLe: bc.kt.ti_le, prompt: pB, anhDau: bc.canh.keyframe_url, anhCuoi: cB, giay: b.giay, doPhanGiai: bc.kt.do_phan_giai });
+      const g = b.cong === 'plenxai' ? await guiPlenxGian(() => guiVideoCong(b.cong, b.model, { tiLe: bc.kt.ti_le, prompt: pB, anhDau: bc.canh.keyframe_url!, anhCuoi: cB, giay: giayCong(b), doPhanGiai: bc.kt.do_phan_giai }))
+        : await guiVideoCong(b.cong, b.model, { tiLe: bc.kt.ti_le, prompt: pB, anhDau: bc.canh.keyframe_url, anhCuoi: cB, giay: giayCong(b), doPhanGiai: bc.kt.do_phan_giai });
       if (g.ok) {
         thuCong.push({ cong: b.cong, model: b.model, ok: true });
         const nguon: NguonSinh = { cong: b.cong, model: b.model, ...giaVideoCong(b.cong, b.model), thu: thuCong };
         await db.execute(sql`UPDATE xv_job SET trang_thai = 'chay', task_id = ${g.taskId}, provider = ${b.cong}, model = ${b.model}, nguon = ${JSON.stringify(nguon)}::jsonb,
-          request = request || ${JSON.stringify({ giay: b.giay, prompt: pB, khungCuoi: cB })}::jsonb, updated_at = now() WHERE id = ${job}`);   // ảnh / prompt THẬT đã gửi bậc này
+          request = request || ${JSON.stringify({ giay: giayCong(b), prompt: pB, khungCuoi: cB })}::jsonb, updated_at = now() WHERE id = ${job}`);   // ảnh / prompt THẬT đã gửi bậc này
         await db.execute(sql`UPDATE xv_canh SET trang_thai = 'dang_sinh', loi = '', updated_at = now() WHERE id = ${canhId}`);
         if (thuCong.some((x) => x.het_tien)) void baoHetTien(db, thuCong, `video shot #${bc.canh.thu_tu} · job #${job}`).catch(() => {});
         return { ok: true, data: job };

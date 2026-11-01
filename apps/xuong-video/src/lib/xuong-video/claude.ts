@@ -1036,6 +1036,7 @@ const DiemGagSchema = z.object({ cham: z.array(z.object({
   phen: z.string().describe('chỗ phèn nếu có (lời giải tiện, cảm ơn lố, biểu tượng nhồi nhét); không có thì để trống'),
   diem: z.object(Object.fromEntries(PHEP_THU_GAG.map((p) => [p.ma, z.number().describe(`${p.ten}: ${p.hoi} 0 = trượt (${p.truot}), 1 = tạm, 2 = tốt`)])) as Record<string, z.ZodNumber>),
 })) });
+const TrungSchema = z.object({ trung: z.array(z.object({ a: z.number(), b: z.number(), vi: z.string().describe('vì sao là cùng một trò') })) });
 const ThuMuSchema = z.object({ thu: z.array(z.object({ so: z.number().describe('số thứ tự clip'), ke_lai: z.string().describe('người xem kể lại chuyện gì xảy ra, một câu'), hieu: z.boolean(), buon_cuoi: z.number().describe('0–2') })) });
 const ChamThuongSchema = z.object({
   nguoc: z.array(z.string()).describe('CHẤM NGƯỢC: viết TRƯỚC — 3–6 lý do mạnh nhất khiến kịch bản này nhạt / phèn / tầm thường, cụ thể theo cảnh'),
@@ -1052,14 +1053,14 @@ async function sinhGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor:
 async function vietGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor: string; brief: string; k: number }): Promise<{ ok: true; kichBan: string; cham: ChamKb; model: string; tokens: Tk } | { ok: false; loi: string }> {
   const tk: Tk[] = []; let ungVien: TheGag[] = []; const diem: DiemGag[] = []; const mu: ThuMu[] = []; let chon: ReturnType<typeof chonGag> = { chon: [], loai: [] };
   const nguoiCham = MO_HINH_CHAM(o.kt.mo_hinh_chu); let vong = 0;
-  for (; vong < 2 && chon.chon.length < o.k; vong++) {
+  for (; vong < 3 && chon.chon.length < o.k; vong++) {
     const s = await sinhGag({ ...o, n: Math.max(o.k * 2, 24), tranh: chon.loai.slice(0, 12).map((x) => `${x.ten} (${x.vi})`).join('; ') });
     if (!s.ok) return s; tk.push(s.tokens);
     const moi = s.data.gag.map((g) => ({ ...g, ten: ungVien.some((u) => u.ten === g.ten) ? `${g.ten} (${vong + 1})` : g.ten }));
     ungVien = [...ungVien, ...moi];
     const ds = moi.map((g, i) => `${i + 1}. ${g.ten} — vấn đề: ${g.van_de} · ra tay: ${g.ra_tay} · đẩy thêm: ${g.day_them} · phản ứng: ${g.phan_ung} · cơ chế: ${g.co_che} · vì sao ở đây: ${g.vi_sao_noi}`).join('\n');
     const [c, t] = await Promise.all([
-      sinhJson({ schema: DiemGagSchema, model: nguoiCham, max_tokens: 8000, ten: 'chấm chéo + ngược gag', system: `Bạn là trưởng phòng biên kịch hoạt hình khó tính, không phải người viết. Chấm NGƯỢC: với mỗi gag, viết lý do loại mạnh nhất TRƯỚC rồi mới cho điểm. Không nể nang — gag tầm thường cho 0.\n${vanSoTay(o.kt.goi)}`, user: `BRIEF:\n${o.brief}\n\nCÁC GAG:\n${ds}` }),
+      sinhJson({ schema: DiemGagSchema, model: nguoiCham, max_tokens: 8000, ten: 'chấm chéo + ngược gag', system: `Bạn là trưởng phòng biên kịch hoạt hình khó tính, không phải người viết. Chấm NGƯỢC: với mỗi gag, viết lý do loại mạnh nhất TRƯỚC rồi mới cho điểm. Không nể nang — gag tầm thường cho 0.\n${vanSoTay(o.kt.goi)}`, user: `BRIEF:\n${o.brief}\n\n${chon.chon.length ? `GAG ĐÃ GIỮ TỪ VÒNG TRƯỚC (gag mới trùng trò / cơ chế với bất kỳ gag nào dưới đây → khong_lap = 0):\n${chon.chon.map((g) => `- ${g.ten}: ${g.ra_tay} (cơ chế ${g.co_che})`).join('\n')}\n\n` : ''}CÁC GAG:\n${ds}` }),
       sinhJson({ schema: ThuMuSchema, model: MO_HINH_THU, max_tokens: 4000, ten: 'thử mù gag', system: 'Bạn là người xem mạng xã hội lướt nhanh, xem hoạt hình không lời. Bạn chỉ thấy HÀNH ĐỘNG trên màn, không biết ý đồ người viết.', user: `Mỗi dòng là một clip 3–4 giây. Kể lại bạn thấy gì, có hiểu không, buồn cười cỡ nào (0–2):\n${moi.map((g, i) => `${i + 1}. ${g.van_de} → ${g.ra_tay} → ${g.day_them} → ${g.phan_ung}`).join('\n')}` }),
     ]);
     if (!c.ok) return c; tk.push(c.tokens);
@@ -1070,6 +1071,15 @@ async function vietGag(o: { kt: Required<KinhThanh>; heThongVan: string; anchor:
     if (!coDiem.length) return { ok: false, loi: `bộ chấm không trả điểm khớp gag nào (${c.data.cham.length} dòng)` };
     diem.push(...coDiem);
     chon = chonGag(ungVien, diem, mu, o.k);
+  }
+  // CHẤM TỔNG trên bộ đã chọn: model chấm nhìn cả tập một lượt — bắt hai gag cùng một trò mà mỗi vòng chấm riêng không thấy (01/11/2026: "xâu vật bằng đòn" vs "xâu chuỗi qua lỗ")
+  if (chon.chon.length > 1) {
+    const tg = await sinhJson({ schema: TrungSchema, model: nguoiCham, max_tokens: 1500, ten: 'chấm tổng: trùng trò', system: 'Bạn là trưởng phòng biên kịch. Chỉ tìm các cặp gag về bản chất là CÙNG MỘT TRÒ (cùng động tác giải / cùng vật bị xử lý) dù tên khác. Không tìm thì trả mảng rỗng.',
+      user: chon.chon.map((g, i) => `${i + 1}. ${g.ten} — vấn đề: ${g.van_de} · ra tay: ${g.ra_tay}`).join('\n') });
+    if (tg.ok) { tk.push(tg.tokens); const bo = new Set<string>();
+      for (const c of tg.data.trung) { const a = chon.chon[c.a - 1], b = chon.chon[c.b - 1]; if (!a || !b || a === b) continue;
+        const thap = (diem.find((d) => d.ten === a.ten)?.tong ?? 0) >= (diem.find((d) => d.ten === b.ten)?.tong ?? 0) ? b : a; if (!bo.has(thap.ten)) { bo.add(thap.ten); chon.loai.push({ ten: thap.ten, vi: `chấm tổng: cùng trò với "${(thap === a ? b : a).ten}" — ${c.vi}` }); } }
+      chon = { chon: chon.chon.filter((g) => !bo.has(g.ten)), loai: chon.loai }; }
   }
   const may = kiemTheGag(chon.chon);
   const muc = PHEP_THU_GAG.map((p) => { const v = chon.chon.map((g) => diem.find((d) => d.ten === g.ten)?.diem[p.ma] ?? 0); return { ma: p.ma, ten: p.ten, diem: v.length ? Math.round((v.reduce((a, x) => a + x, 0) / v.length) * 10) / 10 : 0, ly_do: `TB ${chon.chon.length} gag giữ lại` }; });

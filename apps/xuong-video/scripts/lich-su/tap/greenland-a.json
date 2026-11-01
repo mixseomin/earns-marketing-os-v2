@@ -13,77 +13,42 @@
  ],
  "may_viet": {
   "model": "ckey:claude-sonnet-5-5",
-  "luc": "2026-11-01T20:16:06.424Z",
+  "luc": "2026-11-01T20:33:40.998Z",
   "tokens": {
-   "in": 9858,
-   "out": 4687,
-   "vnd": 42.94
+   "in": 8804,
+   "out": 3896,
+   "vnd": 37.6
   }
  },
  "cau": [
   {
-   "chu": "Denmark owns the world's biggest island, and its capital is three thousand miles away.",
+   "chu": "This island is eighty percent ice, and it belongs to Denmark.",
    "su_that": [
     {
-     "gia_tri": "Denmark",
-     "nguon": 1,
-     "trich": "On 5 April 1933 however, the court ruled that on the basis of the Treaty of Kiel and subsequent treaties, Denmark was the sovereign over the whole of Greenland."
+     "gia_tri": "eighty percent",
+     "nguon": 0,
+     "trich": "currently, an ice sheet covers about eighty percent of the island, restricting human activity largely to the coasts."
     }
    ],
    "canh": {
     "nhin": [
-     "GRL",
-     "DNK"
+     "GRL"
     ],
     "mo": true,
-    "chu_to": "DENMARK OWNS IT",
-    "to": [
-     {
-      "noi": "GRL",
-      "chu": "DNK"
-     }
-    ],
+    "chu_to": "EIGHTY PERCENT ICE",
     "vong": [
      "GRL"
     ],
-    "nhay": [
-     "GRL"
-    ]
+    "co": []
    }
   },
   {
-   "chu": "That island is Greenland, sitting between the Atlantic and the Arctic Ocean.",
+   "chu": "Greenland sits in the Arctic, and Norse settlers reached its southwest coast in nine eighty.",
    "su_that": [
     {
-     "gia_tri": "Greenland",
+     "gia_tri": "980",
      "nguon": 0,
-     "trich": "There has been no evidence discovered that Greenland was known to Norsemen until the 9th century AD, when Norse Icelandic explorers settled on its southwestern coast."
-    }
-   ],
-   "canh": {
-    "nhin": [
-     "GRL"
-    ],
-    "nhan": [
-     {
-      "chu": "Greenland",
-      "o": "GRL"
-     }
-    ]
-   }
-  },
-  {
-   "chu": "In nine eighty-five, Erik the Red sailed from Iceland and reached its southwest coast.",
-   "su_that": [
-    {
-     "gia_tri": "nine eighty-five",
-     "nguon": 0,
-     "trich": "The Icelandic sagas say that 25 ships left Iceland with Erik the Red in 985, and that only 14 of them arrived safely in Greenland."
-    },
-    {
-     "gia_tri": "Erik the Red",
-     "nguon": 0,
-     "trich": "During the 980s explorers led by Erik the Red set out from Iceland and reached the southwest coast of Greenland."
+     "trich": "Meanwhile, the Norse arrived and settled in the southern part of the island in 980."
     }
    ],
    "canh": {
@@ -91,12 +56,15 @@
      "GRL",
      "ISL"
     ],
-    "nam": 985,
+    "nam": 980,
     "to": [
      {
       "noi": "GRL",
       "chu": "NOR"
      }
+    ],
+    "nhay": [
+     "GRL"
     ],
     "ten": [
      {
@@ -104,32 +72,14 @@
       "den": "GRL"
      }
     ],
-    "xe": [
-     {
-      "anh": "longship",
-      "tu": "ISL",
-      "den": "GRL"
-     }
-    ],
-    "nguoi": [
-     {
-      "anh": "erik_the_red",
-      "ten": "Erik the Red",
-      "dang": [
-       {
-        "chu": "sailed",
-        "dang": "chi_tay"
-       }
-      ]
-     }
-    ]
+    "co": []
    }
   },
   {
-   "chu": "In twelve sixty-one, the Norse Greenlanders accepted the overlordship of the King of Norway.",
+   "chu": "In twelve sixty-one the Greenlanders accepted the overlordship of the King of Norway.",
    "su_that": [
     {
-     "gia_tri": "twelve sixty-one",
+     "gia_tri": "1261",
      "nguon": 0,
      "trich": "In 1261 the population accepted the over lordship of the King of Norway, although it continued to have its own law."
     }
@@ -148,52 +98,55 @@
     ],
     "nhay": [
      "GRL"
-    ]
+    ],
+    "ten": [
+     {
+      "tu": "NOR",
+      "den": "GRL"
+     }
+    ],
+    "co": []
    }
   },
   {
-   "chu": "Then the Norse settlements vanished, leaving Inuit as the only inhabitants for centuries.",
+   "chu": "In thirteen eighty Norway entered a personal union with Denmark, and Greenland came along.",
    "su_that": [
     {
-     "gia_tri": "Inuit",
+     "gia_tri": "1380",
      "nguon": 0,
-     "trich": "While Inuit survived in the icy world of the Little Ice Age, the early Norse settlements, known as the Eastern Settlement, along the southwestern coast disappeared, leaving Inuit as the only inhabitants of the island for several centuries."
+     "trich": "In 1380 the Norwegian kingdom entered into a personal union with the Kingdom of Denmark."
     }
    ],
    "canh": {
     "nhin": [
+     "NOR",
+     "DNK",
      "GRL"
     ],
+    "nam": 1380,
     "to": [
      {
+      "noi": "NOR",
+      "chu": "DNK"
+     },
+     {
       "noi": "GRL",
-      "chu": "INUIT"
+      "chu": "DNK"
      }
     ],
     "nhay": [
      "GRL"
     ],
-    "nguoi": [
-     {
-      "anh": "inuit_hunter",
-      "ten": "Greenlandic Inuit",
-      "dang": [
-       {
-        "chu": "only",
-        "dang": "noi_mo"
-       }
-      ]
-     }
-    ]
+    "co": []
    }
   },
   {
-   "chu": "Denmark kept claiming the island anyway, believing the Norse were still there.",
+   "chu": "Denmark kept claiming the island for centuries, even with no contact with the settlers.",
    "su_that": [
     {
-     "gia_tri": "Denmark",
+     "gia_tri": "Denmark–Norway",
      "nguon": 0,
-     "trich": "During this time, Denmark–Norway, apparently believing the Norse settlements had survived, continued to claim sovereignty over the island despite the lack of any contact between the Norsemen (specifically Icelanders) installed in Greenland and their Scandinavian brethren."
+     "trich": "Denmark–Norway, apparently believing the Norse settlements had survived, continued to claim sovereignty over the island despite the lack of any contact between the Norsemen"
     }
    ],
    "canh": {
@@ -209,21 +162,17 @@
     ],
     "nhay": [
      "GRL"
-    ]
+    ],
+    "co": []
    }
   },
   {
-   "chu": "In seventeen twenty-one, Denmark sent a missionary expedition and baptised the Inuit it found.",
+   "chu": "In seventeen twenty-one Denmark sent a missionary expedition to revive Christianity there.",
    "su_that": [
     {
-     "gia_tri": "seventeen twenty-one",
+     "gia_tri": "1721",
      "nguon": 0,
-     "trich": "In 1721, aspiring to become a colonial power, Denmark-Norway sent a missionary expedition to Greenland with the stated aim of reinstating Christianity among descendants of the Norse Greenlanders who may have converted back to paganism."
-    },
-    {
-     "gia_tri": "Inuit",
-     "nguon": 0,
-     "trich": "When the missionaries found no descendants of the Norse Greenlanders, they baptised the Inuit they found living there instead."
+     "trich": "In 1721, aspiring to become a colonial power, Denmark-Norway sent a missionary expedition to Greenland with the stated aim of reinstating Christianity among descendants of the Norse Greenlanders"
     }
    ],
    "canh": {
@@ -238,9 +187,6 @@
       "chu": "DNK"
      }
     ],
-    "nhay": [
-     "GRL"
-    ],
     "ten": [
      {
       "tu": "DNK",
@@ -249,33 +195,55 @@
     ],
     "xe": [
      {
-      "anh": "sailing_ship",
+      "anh": "thuyen_mauc",
       "tu": "DNK",
       "den": "GRL"
      }
     ],
-    "co": [
-     {
-      "anh": "co_dan_mach",
-      "o": "GRL"
-     }
-    ],
-    "nguoi": [
-     {
-      "anh": "danish_missionary",
-      "ten": "Danish missionaries",
-      "dang": [
-       {
-        "chu": "baptised",
-        "dang": "chi_tay"
-       }
-      ]
-     }
-    ]
+    "co": []
    }
   },
   {
-   "chu": "Denmark then built trading colonies and locked the coast into a trade monopoly.",
+   "chu": "The missionaries found no Norse descendants, so they baptised the Inuit instead.",
+   "su_that": [
+    {
+     "gia_tri": "Inuit",
+     "nguon": 0,
+     "trich": "When the missionaries found no descendants of the Norse Greenlanders, they baptised the Inuit they found living there instead."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "GRL"
+    ],
+    "nam": 1721,
+    "nguoi": [
+     {
+      "anh": "linh_truyen_giao",
+      "ten": "Missionaries",
+      "dang": [
+       {
+        "chu": "baptised",
+        "dang": "noi_mo"
+       }
+      ]
+     },
+     {
+      "anh": "inuit_greenland",
+      "ten": "Inuit",
+      "dang": [
+       {
+        "chu": "Inuit",
+        "dang": "ngac_nhien"
+       }
+      ]
+     }
+    ],
+    "co": []
+   }
+  },
+  {
+   "chu": "Denmark then built trading colonies and imposed a trade monopoly on the coast.",
    "su_that": [
     {
      "gia_tri": "trade monopoly",
@@ -293,34 +261,31 @@
       "chu": "DNK"
      }
     ],
-    "nhan": [
-     {
-      "chu": "trading colonies",
-      "o": "GRL"
-     }
-    ]
+    "nhay": [
+     "GRL"
+    ],
+    "co": []
    }
   },
   {
-   "chu": "In eighteen fourteen the Treaty of Kiel gave Norway to Sweden, but kept Greenland with Denmark.",
+   "chu": "Then in eighteen fourteen came the twist, when the Treaty of Kiel handed Norway to Sweden.",
    "su_that": [
     {
-     "gia_tri": "eighteen fourteen",
+     "gia_tri": "1814",
      "nguon": 1,
-     "trich": "The Treaty of Kiel (Danish: Kieltraktaten) or Peace of Kiel (Swedish and Norwegian: Kielfreden or freden i Kiel) was concluded between the United Kingdom of Great Britain and Ireland and the Kingdom of Sweden on one side and the Kingdoms of Denmark and Norway on the other side on 14 January 1814 in Kiel."
+     "trich": "on 14 January 1814 in Kiel"
     },
     {
      "gia_tri": "Treaty of Kiel",
      "nguon": 1,
-     "trich": "Specifically excluded from the exchange were the Norwegian dependencies of Greenland, Iceland and the Faroe Islands, which remained in the union with Denmark after being transferred."
+     "trich": "The Treaty of Kiel (Danish: Kieltraktaten) or Peace of Kiel"
     }
    ],
    "canh": {
     "nhin": [
-     "GRL",
      "NOR",
      "SWE",
-     "DNK"
+     "GRL"
     ],
     "nam": 1814,
     "to": [
@@ -333,37 +298,72 @@
       "chu": "DNK"
      }
     ],
-    "vong": [
-     "GRL"
-    ],
     "nhay": [
      "NOR"
     ],
-    "co": [
+    "dau": [
      {
-      "anh": "co_thy_dien_1814",
-      "o": "NOR"
+      "chu": "twist",
+      "text": "CEDED"
+     }
+    ],
+    "co": []
+   }
+  },
+  {
+   "chu": "The treaty excluded Greenland, Iceland and the Faroes, which stayed with Denmark.",
+   "su_that": [
+    {
+     "gia_tri": "Greenland, Iceland and the Faroe Islands",
+     "nguon": 1,
+     "trich": "Specifically excluded from the exchange were the Norwegian dependencies of Greenland, Iceland and the Faroe Islands, which remained in the union with Denmark after being transferred."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "GRL",
+     "ISL",
+     "FRO",
+     "DNK"
+    ],
+    "nam": 1814,
+    "to": [
+     {
+      "noi": "GRL",
+      "chu": "DNK"
      },
+     {
+      "noi": "ISL",
+      "chu": "DNK"
+     },
+     {
+      "noi": "FRO",
+      "chu": "DNK"
+     }
+    ],
+    "nhay": [
+     "GRL"
+    ],
+    "co": [
      {
       "anh": "co_dan_mach",
       "o": "GRL"
-     }
-    ],
-    "dau": [
-     {
-      "chu": "kept",
-      "text": "KEPT"
      }
     ]
    }
   },
   {
-   "chu": "Norway fought back in nineteen thirty-one and occupied eastern Greenland.",
+   "chu": "Norway contested Danish Greenland in nineteen thirty-one, and lost at The Hague in nineteen thirty-three.",
    "su_that": [
     {
-     "gia_tri": "nineteen thirty-one",
+     "gia_tri": "1931",
      "nguon": 1,
-     "trich": "The Norwegian side argued that Denmark did not hold rights to any part of the island where she did not exact actual sovereignty, and accordingly proclaimed a Norwegian Eirik Raudes Land in eastern Greenland on 10 July 1931, which had been occupied in the previous month."
+     "trich": "Between 1931 and 1933, Norway contested the Danish possession of all of Greenland at the Permanent Court of International Justice in The Hague."
+    },
+    {
+     "gia_tri": "1933",
+     "nguon": 1,
+     "trich": "On 5 April 1933 however, the court ruled that on the basis of the Treaty of Kiel and subsequent treaties, Denmark was the sovereign over the whole of Greenland."
     }
    ],
    "canh": {
@@ -372,65 +372,17 @@
      "NOR"
     ],
     "nam": 1931,
-    "to": [
-     {
-      "noi": "GRL@-73,60,-20,84",
-      "chu": "NOR"
-     },
-     {
-      "noi": "GRL@-73,59,-20,60",
-      "chu": "DNK"
-     }
-    ],
-    "nhan": [
-     {
-      "chu": "Eirik Raudes Land",
-      "o": "GRL@-40,70,-22,78"
-     }
-    ],
-    "nhay": [
-     "GRL@-40,70,-22,78"
-    ],
-    "ten": [
-     {
-      "tu": "NOR",
-      "den": "GRL@-40,70,-22,78"
-     }
-    ],
-    "co": [
-     {
-      "anh": "co_na_uy",
-      "o": "GRL@-40,70,-22,78"
-     }
-    ]
-   }
-  },
-  {
-   "chu": "But in nineteen thirty-three the court in The Hague ruled the whole island Danish.",
-   "su_that": [
-    {
-     "gia_tri": "The Hague",
-     "nguon": 1,
-     "trich": "On 5 April 1933 however, the court ruled that on the basis of the Treaty of Kiel and subsequent treaties, Denmark was the sovereign over the whole of Greenland."
+    "nam_sau": {
+     "chu": "nineteen thirty-three",
+     "nam": 1933
     },
-    {
-     "gia_tri": "nineteen thirty-three",
-     "nguon": 1,
-     "trich": "Between 1931 and 1933, Norway contested the Danish possession of all of Greenland at the Permanent Court of International Justice in The Hague."
-    }
-   ],
-   "canh": {
-    "nhin": [
-     "GRL"
-    ],
-    "nam": 1933,
     "to": [
      {
       "noi": "GRL",
       "chu": "DNK"
      }
     ],
-    "vong": [
+    "nhay": [
      "GRL"
     ],
     "co": [
@@ -441,19 +393,19 @@
     ],
     "dau": [
      {
-      "chu": "ruled",
-      "text": "RULED"
+      "chu": "lost",
+      "text": "LOST"
      }
     ]
    }
   },
   {
-   "chu": "So why did Greenlanders accept home rule from Denmark in nineteen seventy-nine?",
+   "chu": "So a treaty about Norway is why this island flies Danish colors, but who signed it? That's part two.",
    "su_that": [
     {
-     "gia_tri": "nineteen seventy-nine",
-     "nguon": 0,
-     "trich": "Although Greenland is still a part of the Danish Realm, it has enjoyed home rule since 1979."
+     "gia_tri": "Norway",
+     "nguon": 1,
+     "trich": "The treaty between the Kingdom of Denmark and the Kingdom of Sweden was negotiated by Danish diplomat Edmund Bourke (Burke) and Swedish envoy Baron Gustaf af Wetterstedt with British mediation."
     }
    ],
    "canh": {
@@ -461,15 +413,17 @@
      "GRL",
      "DNK"
     ],
-    "nam": 1979,
     "to": [
      {
       "noi": "GRL",
       "chu": "DNK"
      }
     ],
-    "nhay": [
-     "GRL"
+    "co": [
+     {
+      "anh": "co_dan_mach",
+      "o": "GRL"
+     }
     ],
     "ket": "PART 2"
    }
@@ -477,84 +431,44 @@
  ],
  "tai_san_moi": [
   {
-   "id": "inuit_hunter",
-   "loai": "nhan_vat",
-   "ten": "Thợ săn Inuit",
-   "mo_ta_en": "Arctic Inuit hunter, adult, round face, straight black hair, thick fur-lined parka of sealskin, holding a harpoon, standing on icy coastal ground",
-   "tu": 1200,
-   "den": 2100,
-   "que": "GRL",
-   "commons": null
-  },
-  {
-   "id": "danish_missionary",
-   "loai": "nhan_vat",
-   "ten": "Nhà truyền giáo Đan Mạch",
-   "mo_ta_en": "Danish Lutheran missionary of the 1720s, middle-aged man, long dark coat, black hat, white collar, holding a Bible, stern pious face",
-   "tu": 1721,
-   "den": 1760,
-   "que": "DNK",
-   "commons": null
-  },
-  {
-   "id": "erik_the_red",
-   "loai": "nhan_vat",
-   "ten": "Erik Đỏ",
-   "mo_ta_en": "Norse Viking chieftain of the tenth century, tall broad-shouldered man with a thick red beard and long red hair, wearing a wool tunic, a fur cloak, and a sword at his belt, standing on the deck of a longship",
-   "tu": 950,
-   "den": 1003,
-   "que": "ISL",
-   "commons": null
-  },
-  {
-   "id": "sailing_ship",
-   "loai": "phuong_tien",
-   "ten": "Tàu buồm thế kỷ 18",
-   "mo_ta_en": "Early eighteenth-century wooden sailing ship with three masts and square sails, seen from the side",
-   "tu": 1700,
-   "den": 1800,
-   "que": null,
-   "commons": null
-  },
-  {
-   "id": "longship",
-   "loai": "phuong_tien",
-   "ten": "Thuyền dài Viking",
-   "mo_ta_en": "Norse Viking longship of the tenth century, narrow wooden hull, single mast with one striped square sail, rows of oars, dragon head at the prow, seen from the side",
-   "tu": 800,
-   "den": 1100,
-   "que": null,
-   "commons": null
-  },
-  {
    "id": "co_dan_mach",
    "loai": "co",
    "ten": "Cờ Đan Mạch",
    "mo_ta_en": "",
-   "tu": 1625,
+   "tu": 1748,
    "den": 2100,
    "que": null,
    "commons": "File:Flag of Denmark.svg"
   },
   {
-   "id": "co_na_uy",
-   "loai": "co",
-   "ten": "Cờ Na Uy",
-   "mo_ta_en": "",
-   "tu": 1821,
-   "den": 2100,
-   "que": null,
-   "commons": "File:Flag of Norway.svg"
+   "id": "thuyen_mauc",
+   "loai": "phuong_tien",
+   "ten": "Thuyền buồm truyền giáo 1721",
+   "mo_ta_en": "Small wooden sailing ship of the early 1700s, single deck, square sails, tall masts, weathered brown hull, tiny crew figures on deck.",
+   "tu": 1700,
+   "den": 1800,
+   "que": "DNK",
+   "commons": null
   },
   {
-   "id": "co_thy_dien_1814",
-   "loai": "co",
-   "ten": "Cờ Thụy Điển 1814",
-   "mo_ta_en": "",
-   "tu": 1814,
-   "den": 1844,
-   "que": null,
-   "commons": "File:Flag of Sweden.svg"
+   "id": "linh_truyen_giao",
+   "loai": "nhan_vat",
+   "ten": "Nhà truyền giáo Đan Mạch 1721",
+   "mo_ta_en": "Danish-Norwegian Lutheran missionary, man in his thirties, long dark coat, black tricorn hat, white collar, holding a Bible, sober expression.",
+   "tu": 1721,
+   "den": 1800,
+   "que": "DNK",
+   "commons": null
+  },
+  {
+   "id": "inuit_greenland",
+   "loai": "nhan_vat",
+   "ten": "Người Inuit Greenland",
+   "mo_ta_en": "Greenlandic Inuit man of the early 1700s, sealskin parka with fur hood, short black hair, round face, surprised expression, standing on icy shore.",
+   "tu": 1700,
+   "den": 1800,
+   "que": "GRL",
+   "commons": null
   }
  ]
 }

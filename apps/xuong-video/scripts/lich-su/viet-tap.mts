@@ -39,6 +39,7 @@ const Canh = z.object({
   vong: z.array(Dich).describe('vòng đỏ vẽ tay quanh chỗ đáng chú ý (cảnh 1 bắt buộc)'),
   nhay: z.array(Dich).describe('điểm nhấp nháy (chỗ đang có biến)'),
   ten: z.array(z.object({ tu: Dich, den: Dich })).describe('mũi tên quân / đường đi từ tu tới den (đầu mũi tên cắm đúng tâm đích)'),
+  ke: z.array(z.object({ tu: Dich, den: Dich, nhan: z.string().nullable().describe('tên đường ≤ 3 từ, vd "Tordesillas line"') })).describe('ĐƯỜNG KẺ thẳng nét đứt: ranh giới hiệp ước, kinh tuyến chia đất, biên giới mới vạch ra — câu nói "vạch / chia / ranh giới" thì PHẢI có'),
   xe: z.array(z.object({ anh: z.string().describe('mã tài sản loại phuong_tien'), tu: Dich, den: Dich })).describe('phương tiện chạy dọc đường từ tu tới den (tàu, xe, ngựa… đúng thời)'),
   co: z.array(z.object({ anh: z.string().describe('mã tài sản loại co'), o: Dich })).describe('cờ cắm xuống khi chủ quyền đổi / ai đang nắm đất — ĐÚNG cờ của thời đó'),
   nguoi: z.array(z.object({ anh: z.string().describe('mã tài sản loại nhan_vat'), ten: z.string().describe('tên hiện dưới chân (tên người hoặc vai: "Spanish soldiers")'),

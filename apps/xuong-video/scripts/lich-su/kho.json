@@ -310,6 +310,365 @@
    },
    "que": "USA",
    "tap_dau": "alaska-a"
+  },
+  "co_dan_mach": {
+   "loai": "co",
+   "ten": "Cờ Đan Mạch",
+   "tu": 1748,
+   "den": 2100,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_Denmark.svg",
+   "studio_thanh_phan": 838,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_dan_mach/goc.png"
+   },
+   "tap_dau": "greenland-a"
+  },
+  "thuyen_mauc": {
+   "loai": "phuong_tien",
+   "ten": "Thuyền buồm truyền giáo 1721",
+   "tu": 1700,
+   "den": 1800,
+   "ghi": "Small wooden sailing ship of the early 1700s, single deck, square sails, tall masts, weathered brown hull, tiny crew figures on deck.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 839,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/thuyen_mauc/goc.png"
+   },
+   "que": "DNK",
+   "tap_dau": "greenland-a"
+  },
+  "linh_truyen_giao": {
+   "loai": "nhan_vat",
+   "ten": "Nhà truyền giáo Đan Mạch 1721",
+   "tu": 1721,
+   "den": 1800,
+   "ghi": "Danish-Norwegian Lutheran missionary, man in his thirties, long dark coat, black tricorn hat, white collar, holding a Bible, sober expression.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 840,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/linh_truyen_giao/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/linh_truyen_giao/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/linh_truyen_giao/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/linh_truyen_giao/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/linh_truyen_giao/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/linh_truyen_giao/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/linh_truyen_giao/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/linh_truyen_giao/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/linh_truyen_giao/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/linh_truyen_giao/suy_nghi.png"
+   },
+   "que": "DNK",
+   "tap_dau": "greenland-a",
+   "huong": {
+    "goc": "thang",
+    "noi_mo": "phai"
+   }
+  },
+  "inuit_greenland": {
+   "loai": "nhan_vat",
+   "ten": "Người Inuit Greenland",
+   "tu": 1700,
+   "den": 1800,
+   "ghi": "Greenlandic Inuit man of the early 1700s, sealskin parka with fur hood, short black hair, round face, surprised expression, standing on icy shore.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 841,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/inuit_greenland/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/inuit_greenland/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/inuit_greenland/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/inuit_greenland/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/inuit_greenland/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/inuit_greenland/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/inuit_greenland/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/inuit_greenland/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/inuit_greenland/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/inuit_greenland/suy_nghi.png"
+   },
+   "que": "GRL",
+   "tap_dau": "greenland-a",
+   "huong": {
+    "goc": "thang",
+    "ngac_nhien": "thang"
+   }
+  },
+  "hilarion_daza": {
+   "loai": "nhan_vat",
+   "ten": "Hilarión Daza",
+   "tu": 1876,
+   "den": 1879,
+   "ghi": "Bolivian president of 1879, man in his early forties, dark receding hair, thick black mustache and sideburns, serious frown, dark formal military-style frock coat with gold epaulettes and a sash, standing stiffly",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 844,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/hilarion_daza/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/hilarion_daza/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/hilarion_daza/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/hilarion_daza/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/hilarion_daza/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/hilarion_daza/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/hilarion_daza/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/hilarion_daza/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/hilarion_daza/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/hilarion_daza/suy_nghi.png"
+   },
+   "que": "BOL",
+   "tap_dau": "bolivia-mar-es",
+   "huong": {
+    "goc": "trai",
+    "noi_dong": "trai"
+   }
+  },
+  "soldado_chileno_1879": {
+   "loai": "nhan_vat",
+   "ten": "Lính Chile 1879",
+   "tu": 1879,
+   "den": 1881,
+   "ghi": "Chilean infantry soldiers of 1879 in dark blue single-breasted tunics with red trim, grey trousers, red-trimmed kepi caps, carrying bolt-action rifles and bayonets, marching in a small group",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 845,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/soldado_chileno_1879/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/soldado_chileno_1879/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/soldado_chileno_1879/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/soldado_chileno_1879/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/soldado_chileno_1879/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/soldado_chileno_1879/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/soldado_chileno_1879/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/soldado_chileno_1879/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/soldado_chileno_1879/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/soldado_chileno_1879/suy_nghi.png"
+   },
+   "que": "CHL",
+   "tap_dau": "bolivia-mar-es",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "trai"
+   }
+  },
+  "co_chile_1904": {
+   "loai": "co",
+   "ten": "Cờ Chile 1904",
+   "tu": 1817,
+   "den": 2100,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_Chile.svg",
+   "studio_thanh_phan": 846,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_chile_1904/goc.png"
+   },
+   "tap_dau": "bolivia-mar-es"
+  },
+  "alejandro_vi": {
+   "loai": "nhan_vat",
+   "ten": "Giáo hoàng Alejandro VI",
+   "tu": 1492,
+   "den": 1503,
+   "ghi": "Man in his early sixties, heavy build, clean-shaven with a thin mouth, wearing a white papal cassock and red mozzetta cape, a triple papal tiara on his head, holding a rolled parchment, 1490s Rome",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 847,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/alejandro_vi/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/alejandro_vi/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/alejandro_vi/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/alejandro_vi/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/alejandro_vi/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/alejandro_vi/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/alejandro_vi/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/alejandro_vi/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/alejandro_vi/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/alejandro_vi/suy_nghi.png"
+   },
+   "que": "ESP@-20,24,-10,40",
+   "tap_dau": "brasil-es",
+   "huong": {
+    "goc": "thang",
+    "noi_dong": "thang"
+   }
+  },
+  "juan_ii_portugal": {
+   "loai": "nhan_vat",
+   "ten": "Vua Juan II của Bồ Đào Nha",
+   "tu": 1481,
+   "den": 1495,
+   "ghi": "Man in his late thirties, lean face, dark shoulder-length hair, clean-shaven, wearing a black velvet doublet with gold trim, a heavy gold chain, a dark cap, resting one hand on a table with maps, 1490s Lisbon",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 848,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/juan_ii_portugal/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/juan_ii_portugal/chi_tay.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/juan_ii_portugal/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/juan_ii_portugal/khoanh_tay.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/juan_ii_portugal/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/juan_ii_portugal/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/juan_ii_portugal/suy_nghi.png"
+   },
+   "que": "PRT@-12,36,-6,43",
+   "tap_dau": "brasil-es",
+   "huong": {
+    "goc": "trai",
+    "suy_nghi": "trai"
+   }
+  },
+  "cabral": {
+   "loai": "nhan_vat",
+   "ten": "Pedro Álvares Cabral",
+   "tu": 1500,
+   "den": 1520,
+   "ghi": "Man in his early thirties, short dark beard, shoulder-length brown hair, wearing a red wool doublet, dark hose, a black feathered hat, a sword at his belt, standing on a beach in 1500",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 849,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/cabral/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/cabral/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/cabral/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/cabral/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/cabral/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/cabral/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/cabral/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/cabral/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/cabral/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/cabral/suy_nghi.png"
+   },
+   "que": "PRT@-12,36,-6,43",
+   "tap_dau": "brasil-es",
+   "huong": {
+    "goc": "trai",
+    "chi_tay": "trai"
+   }
+  },
+  "pinzon": {
+   "loai": "nhan_vat",
+   "ten": "Vicente Yáñez Pinzón",
+   "tu": 1499,
+   "den": 1514,
+   "ghi": "Man in his late forties, weathered tanned face, short grey beard, wearing a dark blue sailor's coat, a plain leather cap, holding a brass compass, standing on a ship deck in 1500",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 850,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/pinzon/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/pinzon/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/pinzon/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/pinzon/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/pinzon/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/pinzon/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/pinzon/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/pinzon/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/pinzon/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/pinzon/suy_nghi.png"
+   },
+   "que": "ESP@-20,24,-10,40",
+   "tap_dau": "brasil-es",
+   "huong": {
+    "goc": "phai",
+    "buon": "phai"
+   }
+  },
+  "co_castilla_1492": {
+   "loai": "co",
+   "ten": "Cờ Castilla 1492",
+   "tu": 1479,
+   "den": 1516,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Bandera_de_la_Corona_de_Castilla.svg",
+   "studio_thanh_phan": 851,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_castilla_1492/goc.png"
+   },
+   "tap_dau": "brasil-es"
+  },
+  "john_i_portugal": {
+   "loai": "nhan_vat",
+   "ten": "Vua John I của Bồ Đào Nha",
+   "tu": 1385,
+   "den": 1433,
+   "ghi": "Middle-aged king with a full dark beard, wearing a crimson velvet doublet, a gold chain, and a crown, pointing forward with a sword.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 852,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/john_i_portugal/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/john_i_portugal/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/john_i_portugal/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/john_i_portugal/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/john_i_portugal/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/john_i_portugal/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/john_i_portugal/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/john_i_portugal/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/john_i_portugal/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/john_i_portugal/suy_nghi.png"
+   },
+   "que": "PRT",
+   "tap_dau": "ceuta-a",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai"
+   }
+  },
+  "co_bo_dao_nha": {
+   "loai": "co",
+   "ten": "Cờ Bồ Đào Nha 1415",
+   "tu": 1415,
+   "den": 1495,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:PortugueseFlag1385.svg",
+   "studio_thanh_phan": 853,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_bo_dao_nha/goc.png"
+   },
+   "tap_dau": "ceuta-a"
+  },
+  "co_castile_1497": {
+   "loai": "co",
+   "ten": "Cờ Castile 1497",
+   "tu": 1497,
+   "den": 1556,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Bandera_de_la_Corona_de_Castilla.svg",
+   "studio_thanh_phan": 854,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_castile_1497/goc.png"
+   },
+   "tap_dau": "ceuta-a"
+  },
+  "co_tay_ban_nha_1785": {
+   "loai": "co",
+   "ten": "Cờ Tây Ban Nha 1785",
+   "tu": 1785,
+   "den": 2100,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_Spain.svg",
+   "studio_thanh_phan": 855,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_tay_ban_nha_1785/goc.png"
+   },
+   "tap_dau": "ceuta-a"
+  },
+  "moulay_ismail": {
+   "loai": "nhan_vat",
+   "ten": "Moulay Ismail",
+   "tu": 1672,
+   "den": 1727,
+   "ghi": "Older North African sultan with a long white beard, wearing a white turban, a dark red robe, and a curved sword at his belt, one hand raised in command.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 856,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/moulay_ismail/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/moulay_ismail/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/moulay_ismail/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/moulay_ismail/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/moulay_ismail/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/moulay_ismail/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/moulay_ismail/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/moulay_ismail/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/moulay_ismail/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/moulay_ismail/suy_nghi.png"
+   },
+   "que": "MAR",
+   "tap_dau": "ceuta-a",
+   "huong": {
+    "goc": "trai",
+    "chi_tay": "trai"
+   }
   }
  }
 }

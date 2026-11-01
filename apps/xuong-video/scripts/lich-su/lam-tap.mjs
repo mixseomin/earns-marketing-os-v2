@@ -80,14 +80,16 @@ async function kiem(tap, nguonChu) {
     // MỌI con số / so sánh nhất trong câu phải có su_that riêng (giá trị nhắc đúng nó) — hook "biggest island … three thousand miles" từng lọt vì chỉ có 1 su_that cho cả câu
     if (k < ds.length - 1) { const gt = (c.su_that || []).map((x) => phang(`${x.gia_tri}`)).join(' | ');
       const cum = []; let cur = []; for (const w of c.chu.split(/\s+/)) { const x = chuan(w).replace(/-/g, ' '); if (x && x.split(' ').every((y) => SO.has(y)) && !(cur.length === 0 && /^(one|a|un|una|uno)$/.test(x))) cur.push(chuan(w)); else { if (cur.length) cum.push(cur); cur = []; } } if (cur.length) cum.push(cur);
+      // đếm nhỏ ("two cities") không phải số liệu tranh cãi → bỏ qua; số lớn, năm, tiền thì mỗi số một dòng su_that
       const soDong = (c.su_that || []).filter((x) => /\d/.test(x.gia_tri)).length; let thieu = 0;
-      for (const q of cum) { const nhoi = q.filter((y) => !/^(and|y|point|punto|a)$/.test(y)); if (!nhoi.length || nhoi.some((y) => gt.includes(y.split('-')[0]))) continue; if (++thieu > soDong) loi.push(`${K}: con số "${q.join(' ')}" chưa có su_that riêng (mỗi con số một dòng, gia_tri ghi số)`); }
-      for (const w of c.chu.split(/\s+/).map(chuan)) if (NHAT.test(w) && !gt.includes(w)) loi.push(`${K}: so sánh nhất "${w}" chưa có su_that riêng chứng minh`); }
+      for (const q of cum) { const nhoi = q.filter((y) => !/^(and|y|point|punto|a)$/.test(y)); if (nhoi.length === 1 && /^(two|three|four|five|six|seven|eight|nine|ten|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)$/.test(nhoi[0])) continue; if (!nhoi.length || nhoi.some((y) => gt.includes(y.split('-')[0]))) continue; if (++thieu > soDong) loi.push(`${K}: con số "${q.join(' ')}" chưa có su_that riêng (mỗi con số một dòng, gia_tri ghi số)`); }
+      const tr = (c.su_that || []).map((x) => phang(`${x.gia_tri} ${x.trich}`)).join(' | ');
+      const cw = c.chu.split(/\s+/).map(chuan); for (const [i, w] of cw.entries()) if (NHAT.test(w) && !(/^(first|primero|primera)$/.test(w) && (/^(of|de)$/.test(cw[i + 1] || '') || /^(january|february|march|april|may|june|july|august|september|october|november|december)$/.test(cw[i - 1] || ''))) && !tr.includes(w)) loi.push(`${K}: so sánh nhất "${w}" chưa có su_that riêng chứng minh`); }
     const theoChu = [...(cv.nguoi || []).flatMap((n) => (n.dang || []).map((d) => d.chu)), ...(cv.dau || []).map((d) => d.chu), ...(cv.tranh ? [cv.tranh.tu_chu, cv.tranh.den_chu] : []), ...(cv.nam_sau ? [cv.nam_sau.chu] : [])];
     const cauW = c.chu.split(/\s+/).map(chuan).filter(Boolean), coCum = (w) => { const q = String(w).split(/\s+/).map(chuan).filter(Boolean); return q.length > 0 && cauW.some((_, i) => q.every((x, j) => cauW[i + j] === x)); };
     for (const w of theoChu) if (!coCum(w)) loi.push(`${K}: chữ "${w}" (gọi dáng / dấu / tranh / năm) không có trong câu "${c.chu}"`);
     for (const n of cv.nguoi || []) for (const d of n.dang || []) if (!docKho().dang_chuan.includes(d.dang)) loi.push(`${K}: dáng "${d.dang}" không có trong danh mục`);
-    const dichs = [...(cv.nhin || []), ...(cv.to || []).map((t) => t.noi ?? t), ...(cv.nhan || []).map((n) => n.o), ...(cv.vong || []), ...(cv.nhay || []), ...(cv.ten || []).flatMap((m) => [m.tu, m.den]), ...(cv.xe || []).flatMap((m) => [m.tu, m.den]), ...(cv.co || []).map((m) => m.o)];
+    const dichs = [...(cv.nhin || []), ...(cv.to || []).map((t) => t.noi ?? t), ...(cv.nhan || []).map((n) => n.o), ...(cv.vong || []), ...(cv.nhay || []), ...(cv.ten || []).flatMap((m) => [m.tu, m.den]), ...(cv.ke || []).flatMap((m) => [m.tu, m.den]), ...(cv.xe || []).flatMap((m) => [m.tu, m.den]), ...(cv.co || []).map((m) => m.o)];
     for (const d of dichs) { const e = kiemDich(d); if (e) loi.push(`${K}: ${e}`); }
     if (!(cv.nhin || []).length && !cv.tam) loi.push(`${K}: thiếu nhin (camera không biết nhìn đâu)`);
     nam = cv.nam ?? nam; const namCuoi = cv.nam_sau?.nam ?? nam;
@@ -99,6 +101,7 @@ async function kiem(tap, nguonChu) {
     for (const r of cv.tranh?.ref || []) if (!kho[r] && !moi[r]) loi.push(`${K}: tranh tham chiếu "${r}" không có`); });
   if (!ds[0]?.canh?.mo || !ds[0]?.canh?.chu_to) loi.push('câu 1: thiếu hook (mo + chu_to)');
   if (!ds.at(-1)?.canh?.ket) loi.push('câu cuối: thiếu thẻ kết ket');
+  if (!(nn === 'es' ? /segunda parte/i : /part two/i).test(ds.at(-1)?.chu || '')) loi.push(`câu cuối: phải kết bằng câu móc "${nn === 'es' ? 'Eso, en la segunda parte.' : "That's part two."}"`);
   for (const t of tap.tai_san_moi || []) { if (kho[t.id]) continue;
     if (t.loai === 'co') { if (!t.commons) loi.push(`cờ mới "${t.id}" thiếu tên tệp Commons`); else if (!(await commons(t.commons))) { const g = await timCommons(t.commons); loi.push(`cờ mới "${t.id}": tệp Commons "${t.commons}" không tồn tại${g.length ? ` — tệp CÓ THẬT gần nhất (chọn cái đúng thời, hoặc bỏ cờ): ${g.map((x) => `"${x}"`).join(', ')}` : ' — bỏ cờ này'}`); } }
     else if (!t.mo_ta_en?.trim()) loi.push(`tài sản mới "${t.id}" thiếu mo_ta_en`);
@@ -108,11 +111,12 @@ async function kiem(tap, nguonChu) {
 }
 
 // ---------- 1. VIẾT ----------
-if (!existsSync(tepTap) || co('viet-lai')) {
+const sua = co('sua') && existsSync(tepTap) && existsSync(join(RA, 'nguon.txt'));   // --sua: không viết lại từ đầu, đưa lỗi của bản đang có cho máy viết sửa
+if (!existsSync(tepTap) || co('viet-lai') || sua) {
   if (!chuDe) { console.error('chưa có tập — cần --chu-de'); process.exit(2); }
   const tmp = `/tmp/lich-su-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${tmp}`]); len(tepKho, `${tmp}/kho.json`);
-  let loi = [];
-  for (let lan = 1; lan <= 4; lan++) {
+  let loi = sua ? await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
+  for (let lan = 1; lan <= 4 && !(sua && !loi.length && lan === 1); lan++) {
     const them = loi.length ? ` --loi ${tmp}/loi.txt --cu ${tmp}/tap.json` : '';
     if (loi.length) { writeFileSync(join(RA, 'loi.txt'), loi.map((x) => `- ${x}`).join('\n')); len(join(RA, 'loi.txt'), `${tmp}/loi.txt`); len(tepTap, `${tmp}/tap.json`); }
     try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json --chu-de ${q(chuDe)} --nn ${nn} --id ${id} --kho ${tmp}/kho.json${arg('nguon') ? ` --nguon ${q(arg('nguon'))}` : ''}${them}`)); }

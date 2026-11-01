@@ -129,6 +129,11 @@ window.__seek = (t) => {
       x.globalAlpha = kep((k4 - 0.5) * 2); x.filter = `brightness(${sang})`; x.drawImage(img, sx, 0, img.width / n + 1, img.height, px + dx, top + song, fw / n + 1, fh); }
       x.filter = 'none'; x.globalAlpha = 1; } }
   // điểm nháy
+  // ĐƯỜNG KẺ (ranh giới hiệp ước, kinh tuyến chia đất, biên giới mới): nét đứt đỏ sẫm kéo dần từ tu tới den trong 1,4 s, nhãn giữa đường
+  for (const [i, k] of (s.c.ke || []).entries()) { const q = kep((u - 0.5 - i * 0.6) / 1.4); if (!q) continue; const [x0, y0] = chieu(...k.tu), [x1, y1] = chieu(...k.den), e = io(q);
+    x.save(); x.strokeStyle = 'rgba(110,20,16,.92)'; x.lineWidth = 8; x.setLineDash([26, 16]); x.lineCap = 'round'; x.shadowColor = 'rgba(255,240,200,.8)'; x.shadowBlur = 8;
+    x.beginPath(); x.moveTo(x0, y0); x.lineTo(x0 + (x1 - x0) * e, y0 + (y1 - y0) * e); x.stroke(); x.restore();
+    if (k.nhan && q > 0.6) { x.globalAlpha = kep((q - 0.6) / 0.3); chuVien(k.nhan.toUpperCase(), (x0 + x1) / 2 + 20, (y0 + y1) / 2, 40, '#6e1410', 'rgba(255,240,200,.95)'); x.globalAlpha = 1; } }
   for (const p of s.c.nhay || []) { const [px, py] = chieu(...p); for (let i = 0; i < 2; i++) { const q = ((u * 0.9 + i * 0.5) % 1); x.strokeStyle = `rgba(158,43,37,${1 - q})`; x.lineWidth = 6; x.beginPath(); x.arc(px, py, 14 + q * 70, 0, 7); x.stroke(); } x.fillStyle = '#9e2b25'; x.beginPath(); x.arc(px, py, 12, 0, 7); x.fill(); }
   // nhãn + ghim
   (s.c.nhan || []).forEach((n, i) => { const al = kep((u - 0.5 - i * 0.25) / 0.4); if (!al) return; const [px, py] = chieu(...n.o); x.globalAlpha = al;

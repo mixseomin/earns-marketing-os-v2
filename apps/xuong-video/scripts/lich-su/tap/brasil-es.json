@@ -230,6 +230,13 @@
       "chu": "370 leguas",
       "o": "CPV@-27,12,-21,19"
      }
+    ],
+    "ke": [
+     {
+      "tu": "-46.6,8",
+      "den": "-46.6,-34",
+      "nhan": "Tordesillas"
+     }
     ]
    }
   },
@@ -255,6 +262,13 @@
     ],
     "nhay": [
      "BRA@-74,-34,-34,6"
+    ],
+    "ke": [
+     {
+      "tu": "-46.6,8",
+      "den": "-46.6,-34",
+      "nhan": "Tordesillas"
+     }
     ]
    }
   },
@@ -296,7 +310,10 @@
      "ref": [
       "cabral"
      ],
-     "anh": null
+     "anh": "tranh/brasil-es-8.jpg",
+     "lia": 20,
+     "lop": "tranh/brasil-es-8-lop.png",
+     "lop_hop_tep": "tranh/brasil-es-8-lop.json"
     }
    }
   },
@@ -368,6 +385,13 @@
      {
       "chu": "gusto",
       "text": "A GUSTO"
+     }
+    ],
+    "ke": [
+     {
+      "tu": "-46.6,8",
+      "den": "-46.6,-34",
+      "nhan": "Tordesillas"
      }
     ]
    }

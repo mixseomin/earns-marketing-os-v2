@@ -13,16 +13,16 @@
  ],
  "may_viet": {
   "model": "ckey:claude-sonnet-5-5",
-  "luc": "2026-11-01T20:30:26.588Z",
+  "luc": "2026-11-01T20:41:27.247Z",
   "tokens": {
-   "in": 10990,
-   "out": 4304,
-   "vnd": 45.48
+   "in": 9958,
+   "out": 3583,
+   "vnd": 40.38
   }
  },
  "cau": [
   {
-   "chu": "Spain still owns two small cities on African soil today.",
+   "chu": "Spain still holds two African cities that Morocco claims.",
    "su_that": [
     {
      "gia_tri": "Ceuta",
@@ -30,9 +30,9 @@
      "trich": "Ceuta (UK: , US: ; Spanish: [ˈθewta, ˈsewta] ; Moroccan Arabic: سَبْتَة, romanized: Sabtah) is an autonomous city of Spain on the North African coast."
     },
     {
-     "gia_tri": "Melilla",
+     "gia_tri": "Morocco",
      "nguon": 1,
-     "trich": "Melilla (, Spanish: [meˈliʝa] ; Tarifit: Mřič) is an autonomous city of Spain on the North African coast. It lies on the eastern side of the Cape Three Forks, on the Morocco–Spain border, adjacent to the Moroccan port town of Beni Ansar, and faces the Mediterranean Sea."
+     "trich": "Like the autonomous city of Ceuta and Spain's other territories along the northern African coast, Melilla is subject to an irredentist claim by Morocco."
     }
    ],
    "canh": {
@@ -43,78 +43,56 @@
     "mo": true,
     "chu_to": "TWO CITIES IN AFRICA",
     "vong": [
-     "@Ceuta",
-     "@Melilla"
-    ],
-    "nhay": [
-     "@Ceuta",
-     "@Melilla"
-    ],
-    "co": []
+     "@Ceuta"
+    ]
    }
   },
   {
-   "chu": "They are Ceuta and Melilla, hugging the coast of Morocco.",
+   "chu": "Ceuta sits on the Strait of Gibraltar, bordered by Morocco.",
    "su_that": [
     {
      "gia_tri": "Ceuta",
      "nguon": 0,
-     "trich": "Ceuta (UK: , US: ; Spanish: [ˈθewta, ˈsewta] ; Moroccan Arabic: سَبْتَة, romanized: Sabtah) is an autonomous city of Spain on the North African coast."
-    },
-    {
-     "gia_tri": "Melilla",
-     "nguon": 1,
-     "trich": "Melilla (, Spanish: [meˈliʝa] ; Tarifit: Mřič) is an autonomous city of Spain on the North African coast. It lies on the eastern side of the Cape Three Forks, on the Morocco–Spain border, adjacent to the Moroccan port town of Beni Ansar, and faces the Mediterranean Sea."
+     "trich": "Bordered by Morocco, it lies between the Mediterranean Sea and the Atlantic Ocean."
     }
    ],
    "canh": {
     "nhin": [
-     "@Ceuta",
-     "@Melilla",
-     "MAR"
-    ],
-    "nhan": [
-     {
-      "chu": "Ceuta",
-      "o": "@Ceuta"
-     },
-     {
-      "chu": "Melilla",
-      "o": "@Melilla"
-     }
+     "@Ceuta"
     ],
     "nhay": [
-     "@Ceuta",
-     "@Melilla"
-    ],
-    "co": []
+     "@Ceuta"
+    ]
    }
   },
   {
-   "chu": "In fourteen fifteen, Portugal stormed Ceuta with forty five thousand men.",
+   "chu": "In fourteen fifteen, Portugal seized Ceuta with forty five thousand men on two hundred ships.",
    "su_that": [
     {
      "gia_tri": "1415",
      "nguon": 0,
-     "trich": "On the morning of 21 August 1415, King John I of Portugal led his sons and their assembled forces in a surprise assault that would come to be known as the Conquest of Ceuta."
+     "trich": "On the morning of 21 August 1415, King John I of Portugal led his sons and their assembled forces in a surprise assault that would come to be known as the Conquest of Ceuta. The 45,000 Portuguese who traveled on 200 ships caught the defenders of Ceuta off guard and suffered only eight casualties."
     },
     {
      "gia_tri": "45,000",
+     "nguon": 0,
+     "trich": "The 45,000 Portuguese who traveled on 200 ships caught the defenders of Ceuta off guard and suffered only eight casualties."
+    },
+    {
+     "gia_tri": "200",
      "nguon": 0,
      "trich": "The 45,000 Portuguese who traveled on 200 ships caught the defenders of Ceuta off guard and suffered only eight casualties."
     }
    ],
    "canh": {
     "nhin": [
-     "@Ceuta",
-     "PRT",
-     "MAR"
+     "@Ceuta"
     ],
     "nam": 1415,
     "to": [
      {
       "noi": "@Ceuta",
-      "chu": "PRT"
+      "chu": "POR"
      }
     ],
     "nhay": [
@@ -126,14 +104,19 @@
       "den": "@Ceuta"
      }
     ],
-    "co": [],
+    "co": [
+     {
+      "anh": "co_bo_dao_nha",
+      "o": "@Ceuta"
+     }
+    ],
     "nguoi": [
      {
-      "anh": "john_i",
+      "anh": "john_i_portugal",
       "ten": "King John I",
       "dang": [
        {
-        "chu": "stormed",
+        "chu": "seized",
         "dang": "chi_tay"
        }
       ]
@@ -142,42 +125,17 @@
    }
   },
   {
-   "chu": "Portugal held the city for more than two centuries.",
+   "chu": "In sixteen forty, Ceuta chose to stay with Spain while Portugal broke away.",
    "su_that": [
     {
-     "gia_tri": "two centuries",
+     "gia_tri": "1640",
      "nguon": 0,
      "trich": "In 1580, it was annexed by the Hispanic Monarchy, and the city chose to remain under Spanish authority after 1640."
     }
    ],
    "canh": {
     "nhin": [
-     "@Ceuta",
-     "PRT"
-    ],
-    "to": [
-     {
-      "noi": "@Ceuta",
-      "chu": "PRT"
-     }
-    ],
-    "co": []
-   }
-  },
-  {
-   "chu": "Then in sixteen forty, Portugal broke free and Ceuta chose Madrid.",
-   "su_that": [
-    {
-     "gia_tri": "1640",
-     "nguon": 0,
-     "trich": "During the Hispanic Monarchy, which lasted from 1580 to 1640, Ceuta attracted many residents of mainland Spanish origin and eventually became the only city in the Portuguese Empire that sided with Madrid when Portugal regained its independence in the Portuguese Restoration War of 1640–1668."
-    }
-   ],
-   "canh": {
-    "nhin": [
-     "@Ceuta",
-     "ESP",
-     "PRT"
+     "@Ceuta"
     ],
     "nam": 1640,
     "to": [
@@ -188,34 +146,21 @@
     ],
     "nhay": [
      "@Ceuta"
-    ],
-    "co": [
-     {
-      "anh": "co_tay_ban_nha_1640",
-      "o": "@Ceuta"
-     }
     ]
    }
   },
   {
-   "chu": "On New Year's Day sixteen sixty eight, Lisbon signed Ceuta away for good.",
+   "chu": "On January first, sixteen sixty eight, Portugal formally ceded Ceuta to Spain.",
    "su_that": [
     {
-     "gia_tri": "1668",
-     "nguon": 0,
-     "trich": "On 1 January 1668, King Afonso VI of Portugal recognised the formal allegiance of Ceuta to Spain and ceded Ceuta to King Carlos II of Spain by the Treaty of Lisbon."
-    },
-    {
-     "gia_tri": "Treaty of Lisbon",
+     "gia_tri": "1 January 1668",
      "nguon": 0,
      "trich": "On 1 January 1668, King Afonso VI of Portugal recognised the formal allegiance of Ceuta to Spain and ceded Ceuta to King Carlos II of Spain by the Treaty of Lisbon."
     }
    ],
    "canh": {
     "nhin": [
-     "@Ceuta",
-     "ESP",
-     "PRT"
+     "@Ceuta"
     ],
     "nam": 1668,
     "to": [
@@ -224,114 +169,36 @@
       "chu": "ESP"
      }
     ],
-    "co": [
-     {
-      "anh": "co_tay_ban_nha_1640",
-      "o": "@Ceuta"
-     }
-    ],
-    "nguoi": [
-     {
-      "anh": "afonso_vi",
-      "ten": "King Afonso VI",
-      "dang": [
-       {
-        "chu": "signed",
-        "dang": "chi_tay"
-       }
-      ]
-     },
-     {
-      "anh": "carlos_ii",
-      "ten": "King Carlos II",
-      "dang": [
-       {
-        "chu": "Ceuta",
-        "dang": "cuoi"
-       }
-      ]
-     }
+    "nhay": [
+     "@Ceuta"
     ],
     "dau": [
      {
-      "chu": "signed",
+      "chu": "ceded",
       "text": "CEDED"
      }
     ]
    }
   },
   {
-   "chu": "Melilla fell in fourteen ninety seven, almost without a fight.",
+   "chu": "Then Morocco laid siege to Ceuta for thirty three years, the longest siege in history.",
    "su_that": [
     {
-     "gia_tri": "1497",
-     "nguon": 1,
-     "trich": "Melilla was occupied on 17 September 1497, virtually without violence as it was on the border between the Kingdom of Tlemcen and the Kingdom of Fez, and as a result had been fought over many times and left abandoned."
-    }
-   ],
-   "canh": {
-    "nhin": [
-     "@Melilla",
-     "ESP",
-     "MAR"
-    ],
-    "nam": 1497,
-    "to": [
-     {
-      "noi": "@Melilla",
-      "chu": "ESP"
-     }
-    ],
-    "nhay": [
-     "@Melilla"
-    ],
-    "co": [
-     {
-      "anh": "co_castile_1497",
-      "o": "@Melilla"
-     }
-    ],
-    "nguoi": [
-     {
-      "anh": "pedro_de_estopinan",
-      "ten": "Pedro de Estopiñán",
-      "dang": [
-       {
-        "chu": "Melilla",
-        "dang": "chi_tay"
-       }
-      ]
-     }
-    ]
-   }
-  },
-  {
-   "chu": "Morocco besieged Ceuta for thirty three years, the longest siege in history.",
-   "su_that": [
-    {
-     "gia_tri": "1694",
+     "gia_tri": "1694–1727",
      "nguon": 0,
      "trich": "The city was attacked by Moroccan forces under Moulay Ismail during the Siege of Ceuta (1694–1727), the longest siege in history."
     },
     {
-     "gia_tri": "Moulay Ismail",
+     "gia_tri": "thirty three",
      "nguon": 0,
      "trich": "The city was attacked by Moroccan forces under Moulay Ismail during the Siege of Ceuta (1694–1727), the longest siege in history."
     }
    ],
    "canh": {
     "nhin": [
-     "@Ceuta",
-     "MAR",
-     "ESP"
+     "@Ceuta"
     ],
     "nam": 1694,
-    "to": [
-     {
-      "noi": "@Ceuta",
-      "chu": "ESP"
-     }
-    ],
     "nhay": [
      "@Ceuta"
     ],
@@ -347,75 +214,66 @@
       "ten": "Moulay Ismail",
       "dang": [
        {
-        "chu": "siege",
-        "dang": "noi_dong"
+        "chu": "laid",
+        "dang": "chi_tay"
        }
       ]
-     }
-    ],
-    "co": []
-   }
-  },
-  {
-   "chu": "Spain held both fortresses through every siege and every treaty.",
-   "su_that": [
-    {
-     "gia_tri": "1956",
-     "nguon": 0,
-     "trich": "When Spain recognized the independence of Spanish Morocco in 1956, Ceuta and the other plazas de soberanía remained under Spanish rule."
-    }
-   ],
-   "canh": {
-    "nhin": [
-     "@Ceuta",
-     "@Melilla",
-     "ESP",
-     "MAR"
-    ],
-    "nam": 1956,
-    "to": [
-     {
-      "noi": "@Ceuta",
-      "chu": "ESP"
-     },
-     {
-      "noi": "@Melilla",
-      "chu": "ESP"
-     }
-    ],
-    "co": [
-     {
-      "anh": "co_tay_ban_nha_1956",
-      "o": "@Ceuta"
-     },
-     {
-      "anh": "co_tay_ban_nha_1956",
-      "o": "@Melilla"
-     }
-    ],
-    "dau": [
-     {
-      "chu": "treaty",
-      "text": "HELD"
      }
     ]
    }
   },
   {
-   "chu": "But Morocco claims both cities to this day, and the fight is still open. That's part two.",
+   "chu": "In fourteen ninety seven, Castile seized Melilla almost without a fight.",
    "su_that": [
     {
-     "gia_tri": "Morocco",
+     "gia_tri": "1497",
      "nguon": 1,
-     "trich": "Like the autonomous city of Ceuta and Spain's other territories along the northern African coast, Melilla is subject to an irredentist claim by Morocco."
+     "trich": "Melilla was occupied on 17 September 1497, virtually without violence as it was on the border between the Kingdom of Tlemcen and the Kingdom of Fez, and as a result had been fought over many times and left abandoned."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Melilla"
+    ],
+    "nam": 1497,
+    "to": [
+     {
+      "noi": "@Melilla",
+      "chu": "ESP"
+     }
+    ],
+    "nhay": [
+     "@Melilla"
+    ],
+    "ten": [
+     {
+      "tu": "ESP",
+      "den": "@Melilla"
+     }
+    ],
+    "co": [
+     {
+      "anh": "co_castile_1497",
+      "o": "@Melilla"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In eighteen sixty, the Treaty of Wad Ras expanded both borders.",
+   "su_that": [
+    {
+     "gia_tri": "1860",
+     "nguon": 0,
+     "trich": "The subsequent 1860 Treaty of Wad Ras expanded the borders of the Spanish plazas de soberanía."
     }
    ],
    "canh": {
     "nhin": [
      "@Ceuta",
-     "@Melilla",
-     "MAR"
+     "@Melilla"
     ],
+    "nam": 1860,
     "to": [
      {
       "noi": "@Ceuta",
@@ -430,101 +288,154 @@
      "@Ceuta",
      "@Melilla"
     ],
-    "ket": "PART 2",
-    "co": []
+    "co": [
+     {
+      "anh": "co_tay_ban_nha_1785",
+      "o": "@Ceuta"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In nineteen fifty six, Spain gave up Spanish Morocco but kept these two cities.",
+   "su_that": [
+    {
+     "gia_tri": "1956",
+     "nguon": 0,
+     "trich": "When Spain recognized the independence of Spanish Morocco in 1956, Ceuta and the other plazas de soberanía remained under Spanish rule."
+    },
+    {
+     "gia_tri": "two",
+     "nguon": 1,
+     "trich": "Melilla (, Spanish: [meˈliʝa] ; Tarifit: Mřič) is an autonomous city of Spain on the North African coast."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Ceuta",
+     "@Melilla"
+    ],
+    "nam": 1956,
+    "to": [
+     {
+      "noi": "@Ceuta",
+      "chu": "ESP"
+     },
+     {
+      "noi": "@Melilla",
+      "chu": "ESP"
+     },
+     {
+      "noi": "MAR",
+      "chu": "MAR"
+     }
+    ],
+    "nhay": [
+     "@Ceuta",
+     "@Melilla"
+    ],
+    "co": [
+     {
+      "anh": "co_tay_ban_nha_1785",
+      "o": "@Ceuta"
+     }
+    ],
+    "dau": [
+     {
+      "chu": "kept",
+      "text": "KEPT"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Morocco still disputes the Spanish claim, so why has Spain held on for centuries?",
+   "su_that": [
+    {
+     "gia_tri": "Morocco",
+     "nguon": 0,
+     "trich": "Spain considered them integral parts of the Spanish state, but the Moroccan state has disputed this claim."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Ceuta",
+     "@Melilla"
+    ],
+    "vong": [
+     "@Ceuta",
+     "@Melilla"
+    ]
+   }
+  },
+  {
+   "chu": "That's part two.",
+   "su_that": [
+    {
+     "gia_tri": "Ceuta",
+     "nguon": 0,
+     "trich": "Ceuta belonged to the Spanish province of Cádiz as a regular municipality until the passage of its Statute of Autonomy in March 1995, when it became an autonomous city."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Ceuta",
+     "@Melilla"
+    ],
+    "ket": "PART 2"
    }
   }
  ],
  "tai_san_moi": [
   {
-   "id": "john_i",
+   "id": "john_i_portugal",
    "loai": "nhan_vat",
    "ten": "Vua John I của Bồ Đào Nha",
-   "mo_ta_en": "King John I of Portugal in 1415, a bearded man in his fifties wearing a polished steel breastplate over a red surcoat, a gold crown over a mail coif, holding a sword",
+   "mo_ta_en": "Middle-aged king with a full dark beard, wearing a crimson velvet doublet, a gold chain, and a crown, pointing forward with a sword.",
    "tu": 1385,
    "den": 1433,
    "que": "PRT",
    "commons": null
   },
   {
-   "id": "afonso_vi",
-   "loai": "nhan_vat",
-   "ten": "Vua Afonso VI của Bồ Đào Nha",
-   "mo_ta_en": "King Afonso VI of Portugal in the 1660s, a thin young man in his twenties with long dark hair, wearing a black velvet doublet with gold buttons, a wide white lace collar, and a dark cloak, standing with a quill in hand",
-   "tu": 1656,
-   "den": 1683,
-   "que": "PRT",
-   "commons": null
-  },
-  {
-   "id": "carlos_ii",
-   "loai": "nhan_vat",
-   "ten": "Vua Carlos II của Tây Ban Nha",
-   "mo_ta_en": "King Carlos II of Spain in the 1660s, a frail pale young boy with long reddish-brown hair, the pronounced Habsburg jaw, dressed in a black Spanish court doublet with a white ruff collar and the Golden Fleece pendant",
-   "tu": 1665,
-   "den": 1700,
-   "que": "ESP",
-   "commons": null
-  },
-  {
-   "id": "pedro_de_estopinan",
-   "loai": "nhan_vat",
-   "ten": "Pedro de Estopiñán",
-   "mo_ta_en": "Spanish commander of 1497, a bearded man in his forties wearing a steel breastplate over a crimson doublet, a simple morion helmet under his arm, a sword at his belt",
-   "tu": 1490,
-   "den": 1510,
-   "que": "ESP",
-   "commons": null
-  },
-  {
-   "id": "moulay_ismail",
-   "loai": "nhan_vat",
-   "ten": "Moulay Ismail",
-   "mo_ta_en": "Sultan Moulay Ismail of Morocco around 1700, a stern middle-aged man with a full dark beard, wearing a white turban, a richly embroidered green and gold caftan, and a curved dagger at his sash",
-   "tu": 1672,
-   "den": 1727,
-   "que": "MAR",
-   "commons": null
-  },
-  {
-   "id": "co_bo_dao_phap_1485",
+   "id": "co_bo_dao_nha",
    "loai": "co",
-   "ten": "Cờ Bồ Đào Nha 1485",
+   "ten": "Cờ Bồ Đào Nha 1415",
    "mo_ta_en": "",
-   "tu": 1485,
+   "tu": 1415,
    "den": 1495,
    "que": null,
-   "commons": "File:Flag of Portugal (1485).svg"
+   "commons": "File:PortugueseFlag1385.svg"
   },
   {
    "id": "co_castile_1497",
    "loai": "co",
    "ten": "Cờ Castile 1497",
    "mo_ta_en": "",
-   "tu": 1475,
-   "den": 1504,
+   "tu": 1497,
+   "den": 1556,
    "que": null,
-   "commons": "File:Flag of Castile.svg"
+   "commons": "File:Bandera de la Corona de Castilla.svg"
   },
   {
-   "id": "co_tay_ban_nha_1640",
+   "id": "co_tay_ban_nha_1785",
    "loai": "co",
-   "ten": "Cờ Tây Ban Nha thế kỷ 17",
+   "ten": "Cờ Tây Ban Nha 1785",
    "mo_ta_en": "",
-   "tu": 1640,
-   "den": 1785,
+   "tu": 1785,
+   "den": 2100,
    "que": null,
-   "commons": "File:Flag of Cross of Burgundy.svg"
+   "commons": "File:Flag of Spain.svg"
   },
   {
-   "id": "co_tay_ban_nha_1956",
-   "loai": "co",
-   "ten": "Cờ Tây Ban Nha 1956",
-   "mo_ta_en": "",
-   "tu": 1945,
-   "den": 1977,
-   "que": null,
-   "commons": "File:Flag of Spain (1945–1977).svg"
+   "id": "moulay_ismail",
+   "loai": "nhan_vat",
+   "ten": "Moulay Ismail",
+   "mo_ta_en": "Older North African sultan with a long white beard, wearing a white turban, a dark red robe, and a curved sword at his belt, one hand raised in command.",
+   "tu": 1672,
+   "den": 1727,
+   "que": "MAR",
+   "commons": null
   }
  ]
 }

@@ -16,12 +16,15 @@ const tepTap = resolve(DIR, process.argv[2]), tap = JSON.parse(readFileSync(tepT
 mkdirSync(RA, { recursive: true });
 
 // ---------- giọng (box3, một lần) ----------
-if (!existsSync(join(RA, 'moc-tho.json')) || process.argv.includes('--giong-lai')) {
+// giọng gắn với ĐÚNG lời đọc: lời trong tệp tập đổi (máy viết lại) thì đọc lại, không dùng giọng cũ lệch chữ
+const loiDoc = tap.cau.map((c) => c.chu.trim()).join(' '), tepLoi = join(RA, 'giong.txt');
+if (!existsSync(join(RA, 'moc-tho.json')) || process.argv.includes('--giong-lai') || (existsSync(tepLoi) && readFileSync(tepLoi, 'utf8') !== loiDoc)) {
   execFileSync('scp', ['-q', tepTap, `${BOX}:/tmp/tap-${tap.id}.json`]);
   console.log(execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && cd apps/xuong-video && ../../node_modules/.bin/tsx scripts/lich-su/giong.mts /tmp/tap-${tap.id}.json /tmp/ra-${tap.id} && rm -f /tmp/tap-${tap.id}.json`], { encoding: 'utf8' }).trim());
   execFileSync('scp', ['-q', `${BOX}:/tmp/ra-${tap.id}/*`, RA]); execFileSync('ssh', [BOX, `rm -rf /tmp/ra-${tap.id}`]);
 }
 // mốc ký tự → chữ {chu, a, b}
+writeFileSync(tepLoi, loiDoc);
 const tho = JSON.parse(readFileSync(join(RA, 'moc-tho.json'), 'utf8'));
 const kt = tho.flatMap((o) => o.characters.map((ch, i) => ({ ch, a: o.character_start_times_seconds[i], b: o.character_end_times_seconds[i] })));
 const tu = []; let cur = null;
@@ -51,10 +54,13 @@ const VT = tap.vi_tuyen ?? (() => { const ls = canh.map((s) => { if (s.c.tam) re
 const COS = Math.cos((VT * Math.PI) / 180);
 let truoc = null;
 for (const s of canh) { const c = s.c;
+  s.c._tamKhai = !!(c.tam && c.zoom);
   if (!c.tam || !c.zoom) { const h = hopCanh(c) ?? truoc; if (!h) throw new Error('cảnh không có tam/zoom và không có nhin để máy tự tính');
     const dl = Math.max(4, h[2] - h[0]), db = Math.max(2.5, h[3] - h[1]), coNguoi = (c.nguoi || []).length > 0;
     c.tam ||= [Math.round(((h[0] + h[2]) / 2) * 100) / 100, Math.round(((h[1] + h[3]) / 2 - (coNguoi ? db * 0.08 : 0)) * 100) / 100];
     c.zoom ||= Math.round(Math.max(1.2, Math.min(14, 0.78 * 1080 / (dl * 12 * COS), (coNguoi ? 0.46 : 0.62) * 1920 / (db * 12))) * 100) / 100; }
+    // cảnh có chữ hook to ở đầu khung: đẩy đích xuống ~0,12 khung để vòng đỏ không đè chữ
+    if (c.chu_to && !s.c._tamKhai) c.tam[1] = Math.round((c.tam[1] + (0.12 * 1920) / (12 * c.zoom)) * 100) / 100;
   truoc = [c.tam[0] - 2, c.tam[1] - 1, c.tam[0] + 2, c.tam[1] + 1];
   if (c.mo === true) c.mo = { tu_tam: c.tam, tu_zoom: Math.max(1.2, c.zoom / 3) };
   c.to = (c.to || []).map((t) => { const o = typeof t === 'string' ? isoVung(t) : { ...t, ...(typeof t.noi === 'string' ? isoVung(t.noi) : {}) }; delete o.noi; if (o.vung) o.vung = khungDoi(o.vung); o.mau ||= mauCua(o.chu ?? o.iso); return o; });
@@ -74,7 +80,7 @@ if (!tap.dia_hinh) { let h = null;
   tap.dia_hinh = { anh: ten, lon: [l0, l1], lat: [b0, b1], nguon: 'Natural Earth NE1_HR_LC_SR_W (public domain), máy tự cắt theo vùng tập' }; }
 tap.nen ||= { anh: 'giay.jpg', nguon: 'https://www.pexels.com/photo/close-up-of-a-piece-of-paper-7952505/' };
 for (const s of canh) { for (const m of [...(s.c.ten || []), ...(s.c.xe || [])]) { m.tu = diem(m.tu); m.den = diem(m.den); }
-  for (const m of [...(s.c.co || []), ...(s.c.nhan || [])]) m.o = diem(m.o); s.c.nhay = (s.c.nhay || []).map(diem); s.c.vong = (s.c.vong || []).map(diem); }
+  for (const m of [...(s.c.co || []), ...(s.c.nhan || [])]) m.o = diem(m.o); for (const m of s.c.ke || []) { m.tu = diem(m.tu); m.den = diem(m.den); } s.c.nhay = (s.c.nhay || []).map(diem); s.c.vong = (s.c.vong || []).map(diem); }
 // NHẮC TÊN LÀ SÁNG (anh 02/11/2026: "đoạn nhắc đến quốc gia như Lithuania thì highlight quốc gia đó trên map"): dò lời đọc từng cảnh — tên nước
 // (Natural Earth NAME / NAME_LONG / ADMIN / NAME_<ngôn ngữ tập> + cách gọi chung: Soviet Union, Russian…) → s.c.goi [{iso[], t, ten, o}] sáng đúng lúc chữ
 // được đọc; tên thành phố (Natural Earth populated places, viết hoa trong lời) → s.c.tp [{ten, o, t}] chấm + sóng + tên. Không khai tay từng tập.
@@ -88,16 +94,20 @@ for (const f of geo.features) { const p = f.properties; for (const t of [p.NAME,
 for (const [t, iso, ten] of [['soviet union', SU, 'USSR'], ['ussr', SU, 'USSR'], ['union sovietica', SU, 'URSS'], ['russian', ['RUS'], 'Russia'], ['lithuanian', ['LTU'], 'Lithuania'], ['polish', ['POL'], 'Poland'],
   ['german', ['DEU'], 'Germany'], ['british', ['GBR'], 'United Kingdom'], ['french', ['FRA'], 'France'], ['american', ['USA'], 'United States'], ['chinese', ['CHN'], 'China'], ['japanese', ['JPN'], 'Japan'],
   ['spanish', ['ESP'], 'Spain'], ['portuguese', ['PRT'], 'Portugal'], ['moroccan', ['MAR'], 'Morocco'], ['danish', ['DNK'], 'Denmark'], ['norwegian', ['NOR'], 'Norway'], ['mexican', ['MEX'], 'Mexico'],
-  ['america', ['USA'], 'United States'], ['britain', ['GBR'], 'United Kingdom'], ['england', ['GBR'], 'United Kingdom'], ['urss', SU, 'URSS'], ['eeuu', ['USA'], 'Estados Unidos'], ['ee uu', ['USA'], 'Estados Unidos'],
+  ['britain', ['GBR'], 'United Kingdom'], ['england', ['GBR'], 'United Kingdom'], ['urss', SU, 'URSS'], ['eeuu', ['USA'], 'Estados Unidos'], ['ee uu', ['USA'], 'Estados Unidos'],
   ['espanol', ['ESP'], 'España'], ['espanoles', ['ESP'], 'España'], ['portugues', ['PRT'], 'Portugal'], ['portugueses', ['PRT'], 'Portugal'], ['boliviano', ['BOL'], 'Bolivia'], ['bolivianos', ['BOL'], 'Bolivia'],
   ['chileno', ['CHL'], 'Chile'], ['chilenos', ['CHL'], 'Chile'], ['peruano', ['PER'], 'Perú'], ['peruanos', ['PER'], 'Perú'], ['ruso', ['RUS'], 'Rusia'], ['rusos', ['RUS'], 'Rusia'],
   ['estadounidense', ['USA'], 'Estados Unidos'], ['brasileno', ['BRA'], 'Brasil'], ['brasilenos', ['BRA'], 'Brasil'], ['frances', ['FRA'], 'Francia'], ['britanico', ['GBR'], 'Reino Unido'], ['aleman', ['DEU'], 'Alemania'],
   ['marroqui', ['MAR'], 'Marruecos'], ['argentino', ['ARG'], 'Argentina'], ['mexicano', ['MEX'], 'México']]) TEN_NUOC.set(t, { iso, ten });
+// "America" chỉ là nước Mỹ trong tiếng Anh; tiếng Tây Ban Nha "América" là châu lục
+if (NN === 'EN') TEN_NUOC.set('america', { iso: ['USA'], ten: 'United States' });
 // thành phố mà nhãn cảnh đã có tên thì không in trùng
+// thành phố chỉ chấm khi nằm trong nước có mặt trong tập (Colón ở Panama không hiện khi lời đọc nhắc Colón = Columbus)
+const NUOC_TAP = new Set(canh.flatMap((s) => [...(s.c.to || []).flatMap((t) => [t.iso, t.chu].flat()), ...(s.c.nhin || []).filter((d) => typeof d === 'string' && !d.startsWith('@') && !/^-?\d/.test(d)).map((d) => d.split('@')[0])]).filter(Boolean));
 canh.forEach((s, k) => { const ws = tu.filter((w) => w.cau === k); s.c.goi = []; s.c.tp = [];
   for (let i = 0; i < ws.length; i++) for (const n of [3, 2, 1]) { const cum = ws.slice(i, i + n); if (cum.length < n) continue; const key = cum.map((w) => chuan(w.chu)).join(' ');
     const nuoc = TEN_NUOC.get(key); if (nuoc && !s.c.goi.some((g) => g.ten === nuoc.ten)) { s.c.goi.push({ iso: nuoc.iso, ten: nuoc.ten, t: Math.max(0, cum[0].a - s.bd), o: nuoc.iso.length === 1 ? tamVung({ iso: nuoc.iso[0] }) : null }); i += n - 1; break; }
-    const tp = n === 1 && /^\p{Lu}/u.test(cum[0].chu) ? TP_NHAC.get(key) : null; if (tp && !TEN_NUOC.get(key) && !s.c.tp.some((g) => g.ten === tp.ten) && !(s.c.nhan || []).some((l) => chuan(l.chu).includes(chuan(tp.ten)))) { s.c.tp.push({ ten: tp.ten, o: kinh(tp.o), t: Math.max(0, cum[0].a - s.bd) }); break; } }
+    const tp = n === 1 && /^\p{Lu}/u.test(cum[0].chu) ? TP_NHAC.get(key) : null; if (tp && NUOC_TAP.has(tp.iso) && !TEN_NUOC.get(key) && !s.c.tp.some((g) => g.ten === tp.ten) && !(s.c.nhan || []).some((l) => chuan(l.chu).includes(chuan(tp.ten)))) { s.c.tp.push({ ten: tp.ten, o: kinh(tp.o), t: Math.max(0, cum[0].a - s.bd) }); break; } }
   for (const d of s.c.dau || []) { const w = timChu(k, d.chu); if (!w) throw new Error(`cảnh ${k + 1}: dấu không thấy chữ "${d.chu}"`); d.t = Math.max(0, w.a - s.bd); d.o = d.o ? diem(d.o) : null; } });
 console.log('nhắc tên:', canh.map((s, k) => [...s.c.goi.map((g) => g.ten), ...s.c.tp.map((g) => `◦${g.ten}`)].join(',') || '—').map((x, k) => `${k + 1}:${x}`).join(' '));
 // HƯỚNG THEO ĐỊA LÝ (anh 02/11/2026: "Stalin phải ở bên phải rồi giơ tay về trái — hướng phải đồng nhất với vị trí câu chuyện"): mỗi người có quê (kho que)

@@ -37,7 +37,7 @@ export const chuan = (w) => boDau(w).toLowerCase().replace(/[^\p{L}\p{N}'-]/gu, 
 // thành phố: Natural Earth 10m (7.300 nơi, có Ceuta / Melilla / Nuuk…) — trùng tên thì lấy nơi đông dân hơn. TP = mọi nơi (đích khai "@Tên");
 // TP_NHAC = nơi ≥ 150 N dân hoặc thủ đô (máy tự chấm khi lời đọc nhắc tên — tránh nhận nhầm chữ thường như "Florida", "Victoria")
 export const TP = new Map(), TP_NHAC = new Map();
-for (const f of JSON.parse(readFileSync(join(KHO, 'ne_10m_places.geojson'), 'utf8')).features) { const p = f.properties, v = { ten: p.name, o: f.geometry.coordinates, pop: p.pop_max };
+for (const f of JSON.parse(readFileSync(join(KHO, 'ne_10m_places.geojson'), 'utf8')).features) { const p = f.properties, v = { ten: p.name, o: f.geometry.coordinates, pop: p.pop_max, iso: p.adm0_a3 };
   for (const t of [p.name, p.nameascii, ...(p.namealt || '').split('|')]) { if (!t || t.length <= 3) continue; const k = chuan(t);
     if (!TP.has(k) || p.pop_max > TP.get(k).pop) TP.set(k, v); if ((p.pop_max >= 150000 || p.adm0cap) && (!TP_NHAC.has(k) || p.pop_max > TP_NHAC.get(k).pop)) TP_NHAC.set(k, v); } }
 // ĐÍCH VIẾT BẰNG CHỮ (máy viết tập khai): "RUS" nước · "RUS@19,54,23,56" mảnh nước trong khung lon/lat · "USA@-150,61" một điểm · "@Ceuta" thành phố Natural Earth · "20.5,54.7" toạ độ

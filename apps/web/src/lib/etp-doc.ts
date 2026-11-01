@@ -7,8 +7,11 @@ import BANG_LUAT from './etp-bang-luat.json';
 
 // chữ --luat trong nhật ký máy → tên luật theo SỔ LUẬT CHUNG (regex nhat_ky của từng khoá); không khớp luật nào thì lấy tên lý do trước ' (' / ' —' / ' ·'
 const NHAT_KY_LUAT = Object.values(BANG_LUAT.khoa).flatMap((v) => {
-  const x = v as { ma?: string | null; nhat_ky?: string[]; tat?: { ten?: string }; ha?: { ten?: string } };
-  return x.nhat_ky ? [{ viec: x.nhat_ky[0]!, re: new RegExp(x.nhat_ky[1]!), ten: x.tat?.ten ?? x.ha?.ten ?? (x.ma ?? '').toUpperCase() }] : [];
+  const x = v as { ma?: string | null; nhat_ky?: string[]; nhan?: string[]; tat?: { ten?: string }; ha?: { ten?: string } };
+  // tắt / hạ: mã luật ngắn (giá trị lọc 'lam:<việc>:<luật>' dùng đúng chữ này) · tăng / nhân bản: tên thẻ trong sổ ("Tăng bậc", "Mở bản thang") thay vì mã viết hoa
+  if (!x.nhat_ky) return [];
+  const viec = x.nhat_ky[0]!, ten = x.tat?.ten ?? x.ha?.ten ?? (viec === 'tat' || viec === 'giam' ? (x.ma ?? '').toUpperCase() : x.nhan?.[1] ?? (x.ma ?? '').toUpperCase());
+  return [{ viec, re: new RegExp(x.nhat_ky[1]!), ten }];
 });
 export const luatDaLam = (viec: string, luat: string | null) => NHAT_KY_LUAT.find((k) => k.viec === viec && k.re.test(luat ?? ''))?.ten
   ?? ((luat ?? '').split(/ \(| —| ·/)[0]!.trim().slice(0, 40) || 'Tay / không ghi luật');

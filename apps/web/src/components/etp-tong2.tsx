@@ -34,7 +34,14 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
   // lưới cao đúng phần màn còn lại dưới thanh trên (đo mép trên thật) → không cuộn dọc; bề ngang theo khung → không cuộn ngang
   useLayoutEffect(() => {
     const el = hop.current; if (!el) return;
-    const doKt = () => { const r = el.getBoundingClientRect(); setKt({ w: Math.round(r.width), h: Math.max(420, Math.round(window.innerHeight - r.top - 16)) }); };
+    // khung cuộn thật của trang (etp: div 100dvh, nơi khác: main.main) — cao lưới = phần còn lại của khung đó sau mép trên lưới, trừ đúng phần nội dung nằm dưới lưới
+    const cha = (() => { let e = el.parentElement; while (e && !/auto|scroll/.test(getComputedStyle(e).overflowY)) e = e.parentElement; return e; })();
+    const doKt = () => {
+      const r = el.getBoundingClientRect();
+      if (!cha) { setKt({ w: Math.round(r.width), h: Math.max(420, Math.round(window.innerHeight - r.top - 16)) }); return; }
+      const pr = cha.getBoundingClientRect(), tren = r.top - pr.top + cha.scrollTop, duoi = cha.scrollHeight - (tren + r.height);
+      setKt({ w: Math.round(r.width), h: Math.max(420, Math.floor(cha.clientHeight - tren - Math.max(0, duoi))) });
+    };
     doKt(); const ro = new ResizeObserver(doKt); ro.observe(el); window.addEventListener('resize', doKt);
     return () => { ro.disconnect(); window.removeEventListener('resize', doKt); };
   }, [sua, bao, tenMoi, mot]);

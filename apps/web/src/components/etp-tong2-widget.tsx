@@ -170,10 +170,11 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
     tk: ({ rong }) => {
       if (!x) return cho;
       const nhom = x.nguoi.map((p) => ({ p, ds: x.tk.filter((a) => a.n === p.id).sort((a, b) => b.k.chi - a.k.chi) }));
-      const cot = Math.max(...nhom.map((g) => g.ds.length), 1), o = Math.max(56, Math.floor((rong - 70 - (cot - 1) * 4) / cot));
+      // ô hẹp (điện thoại, widget nhỏ): tên người lên dòng riêng để ô tài khoản có đủ bề ngang
+      const cot = Math.max(...nhom.map((g) => g.ds.length), 1), dung = rong < 480, o = Math.max(56, Math.floor((rong - (dung ? 0 : 70) - (cot - 1) * 4) / cot));
       return <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11 }}>
-        {nhom.map(({ p, ds }) => <div key={p.id} style={{ display: 'flex', gap: 4, alignItems: 'stretch' }}>
-          <span style={{ width: 66, flex: '0 0 66px', color: 'var(--fg-2)', alignSelf: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.ten}>{p.ten}</span>
+        {nhom.map(({ p, ds }) => <div key={p.id} style={{ display: 'flex', flexWrap: dung ? 'wrap' : undefined, gap: 4, alignItems: 'stretch' }}>
+          <span style={{ width: dung ? '100%' : 66, flex: dung ? '0 0 100%' : '0 0 66px', color: 'var(--fg-2)', alignSelf: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.ten}>{p.ten}</span>
           {ds.map((a) => {
             const r = roi(a.k), lai = a.k.thu - a.k.chi, trong = a.k.chi === 0 && a.chay === 0;
             const nen = trong ? 'transparent' : r == null ? 'var(--bg-2)' : r >= 0 ? `rgba(74,222,128,${Math.min(0.35, 0.08 + r / 150)})` : `rgba(248,113,113,${Math.min(0.4, 0.1 - r / 120)})`;

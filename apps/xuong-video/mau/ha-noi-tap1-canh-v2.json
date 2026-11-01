@@ -136,9 +136,7 @@
    "phat_s": 4,
    "nhan_vat": [
     "Bà Lụa",
-    "Quang gánh hoa",
     "Cậu bé bóng vàng",
-    "Mèo mướp",
     "Phố đường tàu · ngõ quán ban ngày"
    ],
    "bien_the": [],
@@ -183,7 +181,6 @@
    "phat_s": 3.5,
    "nhan_vat": [
     "Bà Lụa",
-    "Quang gánh hoa",
     "Đôi khách Tây",
     "Phố đường tàu · ngõ quán ban ngày"
    ],
@@ -228,9 +225,7 @@
    "phat_s": 4,
    "nhan_vat": [
     "Bà Lụa",
-    "Quang gánh hoa",
     "Hai ông chú trà đá",
-    "Bàn cà phê sát ray",
     "Phố đường tàu · ngõ quán ban ngày"
    ],
    "bien_the": [],
@@ -274,10 +269,7 @@
    "phat_s": 3.5,
    "nhan_vat": [
     "Bà Lụa",
-    "Quang gánh hoa",
     "Hai ông chú trà đá",
-    "Ghế nhựa thấp (ghế đẩu quán vỉa hè)",
-    "Đèn lồng giấy / vải",
     "Phố đường tàu · ngõ quán ban ngày"
    ],
    "bien_the": [],
@@ -322,9 +314,6 @@
    "nhan_vat": [
     "Bà Lụa",
     "Quang gánh hoa",
-    "Hai ông chú trà đá",
-    "Đôi khách Tây",
-    "Cậu bé bóng vàng",
     "Phố đường tàu · tàu vào phố"
    ],
    "bien_the": [],
@@ -369,10 +358,7 @@
    "phat_s": 3.5,
    "nhan_vat": [
     "Bà Lụa",
-    "Quang gánh hoa",
     "Cậu bé bóng vàng",
-    "Ghế nhựa thấp (ghế đẩu quán vỉa hè)",
-    "Bóng đá vàng",
     "Phố đường tàu · ngõ quán ban ngày"
    ],
    "bien_the": [],
@@ -416,10 +402,7 @@
    "phat_s": 3.5,
    "nhan_vat": [
     "Bà Lụa",
-    "Quang gánh hoa",
     "Cô nữ sinh",
-    "Đèn lồng giấy / vải",
-    "Hai ông chú trà đá",
     "Phố đường tàu · ngõ quán ban ngày"
    ],
    "bien_the": [],
@@ -463,9 +446,7 @@
    "phat_s": 3.5,
    "nhan_vat": [
     "Bà Lụa",
-    "Quang gánh hoa",
     "Mèo mướp",
-    "Dây phơi chung + móc quần áo",
     "Phố đường tàu · ngõ quán ban ngày"
    ],
    "bien_the": [],
@@ -509,10 +490,7 @@
    "phat_s": 3.5,
    "nhan_vat": [
     "Bà Lụa",
-    "Quang gánh hoa",
     "Cụ ông tập dưỡng sinh",
-    "Cậu bé bóng vàng",
-    "Ghế nhựa thấp (ghế đẩu quán vỉa hè)",
     "Phố đường tàu · dãy quán đông khách"
    ],
    "bien_the": [],
@@ -558,7 +536,6 @@
    "nhan_vat": [
     "Bà Lụa",
     "Quang gánh hoa",
-    "Đèn pha tàu",
     "Phố đường tàu · dãy quán đông khách"
    ],
    "bien_the": [],
@@ -603,9 +580,7 @@
    "phat_s": 4,
    "nhan_vat": [
     "Bà Lụa",
-    "Quang gánh hoa",
     "Cậu bé bóng vàng",
-    "Đôi khách Tây",
     "Phố đường tàu · dãy quán đông khách"
    ],
    "bien_the": [],
@@ -650,9 +625,7 @@
    "phat_s": 4,
    "nhan_vat": [
     "Bà Lụa",
-    "Quang gánh hoa",
     "Hai ông chú trà đá",
-    "Cô nữ sinh",
     "Phố đường tàu · dãy quán đông khách"
    ],
    "bien_the": [],
@@ -697,7 +670,6 @@
    "phat_s": 3,
    "nhan_vat": [
     "Bà Lụa",
-    "Thân tàu đỏ",
     "Phố đường tàu · dãy quán đông khách"
    ],
    "bien_the": [],
@@ -741,7 +713,6 @@
    "phat_s": 3,
    "nhan_vat": [
     "Quang gánh hoa",
-    "Đèn pha tàu",
     "Phố đường tàu · khúc nhà dân ban đêm"
    ],
    "bien_the": [],

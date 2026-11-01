@@ -36,6 +36,23 @@
     "iMac:com.earns.may-dang"
    ],
    "chi_phi": "0 (br trên phiên có sẵn)"
+  },
+  {
+   "id": "dung-shot-code",
+   "ten": "Dựng lớp hình shot code cho video máy",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "mỗi 10 phút trên iMac, chỉ làm khi box3 có video đang chờ",
+   "mo_ta": "Video máy dựng của mẫu khai shotCode (đầu tiên: 'Scam or Real?' → ratesbyroom.com) cần lớp hình dựng bằng trang HTML; box3 cấm trình duyệt nên iMac quay trang ra MP4, gửi về box3 ghép tiếng + cắt khung / ảnh. Video mới từ sinh kho chờ ở đây tới khi có hình, rồi qua Phòng Nội dung chấm như mọi bài.",
+   "ma": "apps/xuong-video/scripts/shot-code/may.mts → dung.mjs + may-dung.mts --cho-code / --gan-code",
+   "chu_tri": "long",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi 10 phút (anh duyệt 01/11/2026)",
+   "lich": [
+    "iMac:com.earns.studio-shot-code"
+   ],
+   "chi_phi": "0 (Chromium + ffmpeg trên iMac, ~55 giây CPU mỗi video)"
   }
  ]
 }

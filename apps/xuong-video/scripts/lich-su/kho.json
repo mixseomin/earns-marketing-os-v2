@@ -200,6 +200,116 @@
    "dang": {
     "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_litva/goc.png"
    }
+  },
+  "alexander_ii": {
+   "loai": "nhan_vat",
+   "ten": "Sa hoàng Aleksandr Đệ nhị",
+   "tu": 1855,
+   "den": 1881,
+   "ghi": "Adult Russian emperor, tall with a long face, high forehead, short light-brown hair brushed back, thick mutton-chop sideburns and a mustache, clean-shaven chin. Dark green double-breasted military tunic, gold epaulettes, high red collar, pale blue sash, and a silver breast star. Flat cutout style.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 831,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/alexander_ii/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/alexander_ii/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/alexander_ii/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/alexander_ii/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/alexander_ii/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/alexander_ii/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/alexander_ii/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/alexander_ii/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/alexander_ii/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/alexander_ii/suy_nghi.png"
+   },
+   "que": "RUS",
+   "tap_dau": "alaska-a",
+   "huong": {
+    "goc": "phai",
+    "suy_nghi": "phai",
+    "chi_tay": "phai"
+   }
+  },
+  "william_seward": {
+   "loai": "nhan_vat",
+   "ten": "Ngoại trưởng William Seward",
+   "tu": 1830,
+   "den": 1872,
+   "ghi": "Older white American man with a narrow, deeply lined face, prominent nose, receding gray hair swept back and over the ears, and no facial hair. Slim build, black frock coat and waistcoat, white high-collared shirt, black bow tie. Flat cutout style.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 832,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/william_seward/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/william_seward/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/william_seward/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/william_seward/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/william_seward/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/william_seward/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/william_seward/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/william_seward/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/william_seward/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/william_seward/suy_nghi.png"
+   },
+   "que": "USA",
+   "tap_dau": "alaska-a",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai"
+   }
+  },
+  "eduard_de_stoeckl": {
+   "loai": "nhan_vat",
+   "ten": "Nhà ngoại giao Eduard de Stoeckl",
+   "tu": 1830,
+   "den": 1869,
+   "ghi": "Older white Russian diplomat with a high receding forehead, short wavy graying hair at the sides, a long nose, and graying side whiskers; clean-shaven chin. Black formal coat, dark waistcoat, white standing collar, and black necktie. Flat cutout style.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 833,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/eduard_de_stoeckl/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/eduard_de_stoeckl/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/eduard_de_stoeckl/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/eduard_de_stoeckl/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/eduard_de_stoeckl/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/eduard_de_stoeckl/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/eduard_de_stoeckl/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/eduard_de_stoeckl/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/eduard_de_stoeckl/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/eduard_de_stoeckl/suy_nghi.png"
+   },
+   "que": "RUS",
+   "tap_dau": "alaska-a",
+   "huong": {
+    "goc": "phai",
+    "cuoi": "phai"
+   }
+  },
+  "co_de_quoc_nga_1858": {
+   "loai": "co",
+   "ten": "Cờ Đế quốc Nga đen vàng trắng",
+   "tu": 1858,
+   "den": 1896,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_Russia_(1858%E2%80%931896).svg",
+   "studio_thanh_phan": 834,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_de_quoc_nga_1858/goc.png"
+   },
+   "que": "RUS",
+   "tap_dau": "alaska-a"
+  },
+  "co_my_1867": {
+   "loai": "co",
+   "ten": "Cờ Hoa Kỳ ba mươi bảy sao",
+   "tu": 1867,
+   "den": 1877,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_United_States_(1867-1877).svg",
+   "studio_thanh_phan": 835,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_my_1867/goc.png"
+   },
+   "que": "USA",
+   "tap_dau": "alaska-a"
   }
  }
 }

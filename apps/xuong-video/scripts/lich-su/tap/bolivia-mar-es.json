@@ -1,0 +1,420 @@
+{
+ "id": "bolivia-mar-es",
+ "dang": "A",
+ "tieu_de": "¿Por qué Bolivia no tiene salida al mar?",
+ "ngon_ngu": "es",
+ "chu_de": "¿Por qué Bolivia no tiene salida al mar?",
+ "giong": {
+  "voice": "George"
+ },
+ "nguon": [
+  "https://es.wikipedia.org/wiki/Guerra_del_Pac%C3%ADfico",
+  "https://es.wikipedia.org/wiki/Mediterraneidad_de_Bolivia"
+ ],
+ "may_viet": {
+  "model": "ckey:claude-sonnet-5-5",
+  "luc": "2026-11-01T20:14:36.969Z",
+  "tokens": {
+   "in": 11325,
+   "out": 2747,
+   "vnd": 42.48
+  }
+ },
+ "cau": [
+  {
+   "chu": "Bolivia perdió su costa por un impuesto de diez centavos.",
+   "su_that": [
+    {
+     "gia_tri": "diez centavos",
+     "nguon": 0,
+     "trich": "aprobó la licencia a condición de que la compañía pagara un impuesto mínimo de 10​ centavos por quintal de salitre exportado"
+    },
+    {
+     "gia_tri": "1878",
+     "nguon": 0,
+     "trich": "En febrero de 1878, Bolivia estableció un nuevo impuesto a la empresa chilena Compañía de Salitres y Ferrocarril de Antofagasta (CSFA), violando el Tratado de límites de 1874."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BOL",
+     "CHL"
+    ],
+    "nam": 1878,
+    "mo": true,
+    "chu_to": "DIEZ CENTAVOS",
+    "to": [
+     {
+      "noi": "BOL",
+      "chu": "BOL"
+     },
+     {
+      "noi": "CHL",
+      "chu": "CHL"
+     }
+    ],
+    "vong": [
+     "@Antofagasta"
+    ]
+   }
+  },
+  {
+   "chu": "Antofagasta, el puerto boliviano del desierto de Atacama, era mayoritariamente chileno.",
+   "su_that": [
+    {
+     "gia_tri": "Antofagasta",
+     "nguon": 0,
+     "trich": "las fuerzas militares chilenas ocuparon el puerto boliviano de Antofagasta, mayoritariamente habitado por chilenos"
+    },
+    {
+     "gia_tri": "Atacama",
+     "nguon": 0,
+     "trich": "Los territorios disputados, así como las zonas aledañas, se ubican en el desierto de Atacama"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Antofagasta",
+     "CHL",
+     "BOL"
+    ],
+    "nam": 1879,
+    "to": [
+     {
+      "noi": "BOL",
+      "chu": "BOL"
+     },
+     {
+      "noi": "CHL",
+      "chu": "CHL"
+     }
+    ],
+    "nhan": [
+     {
+      "chu": "Desierto de Atacama",
+      "o": "-69.5,-23.5"
+     }
+    ],
+    "nhay": [
+     "@Antofagasta"
+    ]
+   }
+  },
+  {
+   "chu": "En mil ochocientos setenta y cuatro, Chile renunció a impuestos a cambio de que Bolivia no los subiera por veinticinco años.",
+   "su_that": [
+    {
+     "gia_tri": "1874",
+     "nguon": 0,
+     "trich": "firmaron un nuevo tratado de límites el 6 de agosto de 1874, por el cual Chile renunció al 50 % de los impuestos en el territorio 23°S-24°S a cambio de la promesa de Bolivia de no incrementar los impuestos a los capitales y negocios chilenos durante 25 años"
+    },
+    {
+     "gia_tri": "veinticinco",
+     "nguon": 0,
+     "trich": "no incrementar los impuestos a los capitales y negocios chilenos durante 25 años"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BOL",
+     "CHL"
+    ],
+    "nam": 1874,
+    "to": [
+     {
+      "noi": "BOL",
+      "chu": "BOL"
+     },
+     {
+      "noi": "CHL",
+      "chu": "CHL"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Hilarión Daza rompió el trato, embargó la compañía chilena y la puso a remate.",
+   "su_that": [
+    {
+     "gia_tri": "Hilarión Daza",
+     "nguon": 0,
+     "trich": "Daza rescindió la licencia a la compañía chilena, embargó sus bienes y los puso a remate"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Antofagasta",
+     "BOL"
+    ],
+    "nam": 1879,
+    "to": [
+     {
+      "noi": "BOL",
+      "chu": "BOL"
+     }
+    ],
+    "nhay": [
+     "@Antofagasta"
+    ],
+    "nguoi": [
+     {
+      "anh": "hilarion_daza",
+      "ten": "Hilarión Daza",
+      "dang": [
+       {
+        "chu": "remate",
+        "dang": "noi_dong"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "El catorce de febrero de mil ochocientos setenta y nueve, Chile ocupó el puerto.",
+   "su_that": [
+    {
+     "gia_tri": "catorce de febrero de mil ochocientos setenta y nueve",
+     "nguon": 0,
+     "trich": "El día del remate, el 14 de febrero de 1879, las fuerzas militares chilenas ocuparon el puerto boliviano de Antofagasta"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Antofagasta",
+     "CHL"
+    ],
+    "nam": 1879,
+    "to": [
+     {
+      "noi": "BOL",
+      "chu": "BOL"
+     },
+     {
+      "noi": "CHL",
+      "chu": "CHL"
+     }
+    ],
+    "ten": [
+     {
+      "tu": "CHL",
+      "den": "@Antofagasta"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "soldado_chileno_1879",
+      "ten": "Soldados chilenos",
+      "dang": [
+       {
+        "chu": "ocupó",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Perú entró a la guerra por un tratado secreto firmado en mil ochocientos setenta y tres.",
+   "su_that": [
+    {
+     "gia_tri": "tratado secreto",
+     "nguon": 0,
+     "trich": "el Perú sintió amenazada su supremacía en la costa del Pacífico y firmó el 6 de febrero de 1873 un tratado secreto"
+    },
+    {
+     "gia_tri": "1873",
+     "nguon": 0,
+     "trich": "firmó el 6 de febrero de 1873 un tratado secreto cuyas intenciones eran, según lo hecho público seis años después, proteger la integridad y soberanía de los países firmantes"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "PER",
+     "BOL",
+     "CHL"
+    ],
+    "nam": 1873,
+    "to": [
+     {
+      "noi": "PER",
+      "chu": "PER"
+     },
+     {
+      "noi": "BOL",
+      "chu": "BOL"
+     },
+     {
+      "noi": "CHL",
+      "chu": "CHL"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "En mil ochocientos ochenta, Bolivia abandonó militarmente la guerra.",
+   "su_that": [
+    {
+     "gia_tri": "mil ochocientos ochenta",
+     "nguon": 0,
+     "trich": "a comienzos de 1880, la zona de Tacna y Arica, tras lo cual Bolivia abandonó militarmente la guerra"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BOL",
+     "CHL"
+    ],
+    "nam": 1880,
+    "to": [
+     {
+      "noi": "BOL",
+      "chu": "BOL"
+     },
+     {
+      "noi": "CHL",
+      "chu": "CHL"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "El Tratado de mil novecientos cuatro confirmó que Bolivia entregaba Antofagasta a perpetuidad.",
+   "su_that": [
+    {
+     "gia_tri": "Tratado de 1904",
+     "nguon": 1,
+     "trich": "El Tratado de 1904 llevaría a la normalización de las relaciones diplomáticas entre Chile y Bolivia, poniendo fin al régimen establecido por el Pacto de Tregua, y que fijaron las fronteras definitivas entre ambos países"
+    },
+    {
+     "gia_tri": "a perpetuidad",
+     "nguon": 1,
+     "trich": "Bolivia entrega a Chile la provincia de Antofagasta a perpetuidad"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BOL",
+     "CHL"
+    ],
+    "nam": 1904,
+    "to": [
+     {
+      "noi": "BOL",
+      "chu": "BOL"
+     },
+     {
+      "noi": "CHL",
+      "chu": "CHL"
+     }
+    ],
+    "co": [
+     {
+      "anh": "co_chile_1904",
+      "o": "@Antofagasta"
+     }
+    ],
+    "dau": [
+     {
+      "chu": "perpetuidad",
+      "text": "ENTREGADO"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Hoy Bolivia sigue rodeada por tierra, sin una salida soberana al Pacífico.",
+   "su_that": [
+    {
+     "gia_tri": "sin litoral",
+     "nguon": 1,
+     "trich": "dicha nación se encuentra «rodeada por tierra», es decir, que no tiene una salida soberana al mar territorial"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BOL",
+     "CHL",
+     "PER"
+    ],
+    "to": [
+     {
+      "noi": "BOL",
+      "chu": "BOL"
+     },
+     {
+      "noi": "CHL",
+      "chu": "CHL"
+     },
+     {
+      "noi": "PER",
+      "chu": "PER"
+     }
+    ],
+    "nhay": [
+     "BOL"
+    ]
+   }
+  },
+  {
+   "chu": "¿Podrá Bolivia recuperar algún día su mar? Eso, en la segunda parte.",
+   "su_that": [
+    {
+     "gia_tri": "reclamo de acceso al océano Pacífico",
+     "nguon": 1,
+     "trich": "devenido en un reclamo de acceso al océano Pacífico de parte del Estado Plurinacional de Bolivia a la República de Chile"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BOL",
+     "CHL"
+    ],
+    "to": [
+     {
+      "noi": "BOL",
+      "chu": "BOL"
+     },
+     {
+      "noi": "CHL",
+      "chu": "CHL"
+     }
+    ],
+    "ket": "PARTE 2"
+   }
+  }
+ ],
+ "tai_san_moi": [
+  {
+   "id": "hilarion_daza",
+   "loai": "nhan_vat",
+   "ten": "Hilarión Daza",
+   "mo_ta_en": "Bolivian president of 1879, man in his early forties, dark receding hair, thick black mustache and sideburns, serious frown, dark formal military-style frock coat with gold epaulettes and a sash, standing stiffly",
+   "tu": 1876,
+   "den": 1879,
+   "que": "BOL",
+   "commons": null
+  },
+  {
+   "id": "soldado_chileno_1879",
+   "loai": "nhan_vat",
+   "ten": "Lính Chile 1879",
+   "mo_ta_en": "Chilean infantry soldiers of 1879 in dark blue single-breasted tunics with red trim, grey trousers, red-trimmed kepi caps, carrying bolt-action rifles and bayonets, marching in a small group",
+   "tu": 1879,
+   "den": 1881,
+   "que": "CHL",
+   "commons": null
+  },
+  {
+   "id": "co_chile_1904",
+   "loai": "co",
+   "ten": "Cờ Chile 1904",
+   "mo_ta_en": "",
+   "tu": 1817,
+   "den": 2100,
+   "que": null,
+   "commons": "File:Flag of Chile.svg"
+  }
+ ]
+}

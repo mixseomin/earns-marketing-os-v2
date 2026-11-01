@@ -14,7 +14,7 @@ export let THAI_BINH = false;
 export const datThaiBinh = (b) => { THAI_BINH = b; };
 export const kinh = (o) => (THAI_BINH && o[0] < -30 ? [o[0] + 360, o[1]] : o);
 export const vong = (r) => { if (!THAI_BINH) return r; const cx = r.reduce((a, q) => a + q[0], 0) / r.length; return cx < -30 ? r.map(([a, b]) => [a + 360, b]) : r; };
-const khungDoi = (v) => (v && THAI_BINH && (v[0] + v[2]) / 2 < -30 ? [v[0] + 360, v[1], v[2] + 360, v[3]] : v);
+export const khungDoi = (v) => (v && THAI_BINH && (v[0] + v[2]) / 2 < -30 ? [v[0] + 360, v[1], v[2] + 360, v[3]] : v);
 export const manh = ({ iso, vung: v0 }) => { const ds = [], vung = khungDoi(v0);
   for (const f of geo.features) { if (f.properties.ADM0_A3 !== iso) continue; const ps = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
     for (const p of ps) { const r = vong(p[0]), xs = r.map((q) => q[0]), ys = r.map((q) => q[1]), h = [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
@@ -22,10 +22,16 @@ export const manh = ({ iso, vung: v0 }) => { const ds = [], vung = khungDoi(v0);
   if (!ds.length) throw new Error(`không tìm thấy vùng ${iso} ${vung ?? ''}`); if (vung) return ds;
   const lon = ds.reduce((m, d) => (d.A > m.A ? d : m)); const t = [(lon.h[0] + lon.h[2]) / 2, (lon.h[1] + lon.h[3]) / 2];
   return ds.filter((d) => d === lon || (Math.abs((d.h[0] + d.h[2]) / 2 - t[0]) < (lon.h[2] - lon.h[0]) / 2 + 12 && Math.abs((d.h[1] + d.h[3]) / 2 - t[1]) < (lon.h[3] - lon.h[1]) / 2 + 12)); };
-export const tamVung = (v) => { let A = 0, X = 0, Y = 0;
-  for (const { r } of manh(v)) for (let i = 0; i < r.length - 1; i++) { const c = r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]; A += c; X += (r[i][0] + r[i + 1][0]) * c; Y += (r[i][1] + r[i + 1][1]) * c; }
+export const tamVung = (v) => { let A = 0, X = 0, Y = 0; const ds = manh(v), k = khungDoi(v.vung);
+  // mảnh tràn ra ngoài khung khai (mũi Chukotka của nước Nga) → tâm phần nằm trong khung, không phải tâm cả nước
+  if (k && ds.some((d) => d.h[0] < k[0] - 0.5 || d.h[1] < k[1] - 0.5 || d.h[2] > k[2] + 0.5 || d.h[3] > k[3] + 0.5)) {
+    const p = ds.flatMap((d) => d.r).filter(([a, b]) => a >= k[0] && a <= k[2] && b >= k[1] && b <= k[3]);
+    if (p.length) { const xs = p.map((q) => q[0]), ys = p.map((q) => q[1]); return [Math.round(((Math.min(...xs) + Math.max(...xs)) / 2) * 1000) / 1000, Math.round(((Math.min(...ys) + Math.max(...ys)) / 2) * 1000) / 1000]; } }
+  for (const { r } of ds) for (let i = 0; i < r.length - 1; i++) { const c = r[i][0] * r[i + 1][1] - r[i + 1][0] * r[i][1]; A += c; X += (r[i][0] + r[i + 1][0]) * c; Y += (r[i][1] + r[i + 1][1]) * c; }
   return [Math.round((X / (3 * A)) * 1000) / 1000, Math.round((Y / (3 * A)) * 1000) / 1000]; };
-export const hopVung = (v) => manh(v).reduce((h, d) => [Math.min(h[0], d.h[0]), Math.min(h[1], d.h[1]), Math.max(h[2], d.h[2]), Math.max(h[3], d.h[3])], [999, 999, -999, -999]);
+// khung bao của vùng: khai vung thì CẮT theo khung đó (Nga@170,60,180,70 là mũi Chukotka, không phải cả nước Nga trải tới Baltic)
+export const hopVung = (v) => { const h = manh(v).reduce((h, d) => [Math.min(h[0], d.h[0]), Math.min(h[1], d.h[1]), Math.max(h[2], d.h[2]), Math.max(h[3], d.h[3])], [999, 999, -999, -999]);
+  const k = khungDoi(v.vung); return k ? [Math.max(h[0], k[0]), Math.max(h[1], k[1]), Math.min(h[2], k[2]), Math.min(h[3], k[3])] : h; };
 export const boDau = (t) => String(t).normalize('NFD').replace(/\p{M}/gu, '');
 export const chuan = (w) => boDau(w).toLowerCase().replace(/[^\p{L}\p{N}'-]/gu, '');
 // thành phố: Natural Earth 10m (7.300 nơi, có Ceuta / Melilla / Nuuk…) — trùng tên thì lấy nơi đông dân hơn. TP = mọi nơi (đích khai "@Tên");

@@ -86,7 +86,7 @@ const user = `CHỦ ĐỀ: ${chuDe}
 MÃ TẬP: ${id}
 KHO (mã · loại · tên · năm dùng được):
 ${khoChu}
-${arg('loi') ? `\nLẦN TRƯỚC MÁY KIỂM BÁO LỖI — sửa hết, giữ phần đúng:\n${readFileSync(arg('loi')!, 'utf8')}\nBản lần trước:\n${readFileSync(arg('cu')!, 'utf8').slice(0, 14000)}\n` : ''}
+${arg('loi') ? `\nLẦN TRƯỚC MÁY KIỂM BÁO LỖI — sửa hết, giữ phần đúng:\n${readFileSync(arg('loi')!, 'utf8')}\nBản lần trước:\n${readFileSync(arg('cu')!, 'utf8').slice(0, 40000)}\n` : ''}
 NGUỒN:
 ${nguon.map((n, i) => `[${i}] ${n.tua}\n${n.chu.slice(0, 16000)}`).join('\n\n')}`;
 const r = await sinhJson({ schema: Ra, system, user, model: 'claude-sonnet-5-5', max_tokens: 12000, ten: 'viết tập lịch sử' });

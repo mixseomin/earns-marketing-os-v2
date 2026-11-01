@@ -1,0 +1,458 @@
+{
+ "id": "alaska-a",
+ "dang": "A",
+ "tieu_de": "Why does the United States own Alaska?",
+ "ngon_ngu": "en",
+ "chu_de": "Why is Alaska part of the United States and not Russia?",
+ "giong": {
+  "voice": "George"
+ },
+ "nguon": [
+  "https://en.wikipedia.org/wiki/Alaska_Purchase",
+  "https://en.wikipedia.org/wiki/Russian_colonization_of_North_America"
+ ],
+ "may_viet": {
+  "model": "ckey:claude-sonnet-5-5",
+  "luc": "2026-11-01T20:08:55.815Z",
+  "tokens": {
+   "in": 10824,
+   "out": 5153,
+   "vnd": 41.54
+  }
+ },
+ "cau": [
+  {
+   "chu": "Russia sold this American land for about two cents an acre.",
+   "su_that": [
+    {
+     "gia_tri": "Russia sold Alaska to the United States",
+     "nguon": 0,
+     "trich": "The Alaska Purchase in 1867 resulted in the transfer of Russian America to the United States for $7.2 million (equivalent to $136 million in 2025)."
+    },
+    {
+     "gia_tri": "about two cents an acre",
+     "nguon": 0,
+     "trich": "The purchase price was set at $7.2 million (equivalent to $136 million in 2025), or about 2 cents per acre ($4.74/km2)."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "mo": true,
+    "chu_to": "TWO CENTS AN ACRE",
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "vong": [
+     "USA@-170,54,-130,72"
+    ]
+   }
+  },
+  {
+   "chu": "This is Alaska, on North America's Pacific coast, once part of an empire ruled from Russia.",
+   "su_that": [
+    {
+     "gia_tri": "Alaska and its location",
+     "nguon": 1,
+     "trich": "Russian America consisted mostly of present-day Alaska in the United States, but also included the outpost of Fort Ross in California."
+    },
+    {
+     "gia_tri": "Russian imperial territory on North America's Pacific coast",
+     "nguon": 1,
+     "trich": "Russian colonization of North America describes colonies and territories claimed by the Russian Empire in the Pacific Coast region of North America from 1732 to 1867."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72",
+     "RUS@170,60,180,70"
+    ],
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhay": [
+     "USA@-170,54,-130,72"
+    ]
+   }
+  },
+  {
+   "chu": "In eighteen fifty-eight, Russia discussed selling its colony, with few Russian settlers and serious defense problems.",
+   "su_that": [
+    {
+     "gia_tri": "eighteen fifty-eight",
+     "nguon": 0,
+     "trich": "The Russian government discussed the proposal in 1857 and 1858 and offered to sell the territory to the United States, hoping that its presence in the region would offset the plans of Britain."
+    },
+    {
+     "gia_tri": "few Russian settlers",
+     "nguon": 0,
+     "trich": "During the first half of the 19th century, the Russian Empire had established a colonial presence in parts of North America, but few Russians ever settled in Alaska."
+    },
+    {
+     "gia_tri": "serious defense problems",
+     "nguon": 0,
+     "trich": "which, in any future war, would be difficult to defend from the United Kingdom."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1858,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nhan": [
+     {
+      "chu": "Russian America",
+      "o": "USA@-170,54,-130,72"
+     }
+    ],
+    "co": [
+     {
+      "anh": "co_de_quoc_nga_1858",
+      "o": "USA@-170,54,-130,72"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "After defeat in the Crimean War, Russia needed money, while its sea otters approached extinction.",
+   "su_that": [
+    {
+     "gia_tri": "Crimean War, financial pressure, and sea otter depletion",
+     "nguon": 0,
+     "trich": "By the 1850s, a population of once 300,000 sea otters, who were skinned for their valuable fur, was almost extinct, and Russia needed money after being defeated by France and Britain in the Crimean War."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-165,54,-130,63"
+    ],
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "vong": [
+     "USA@-155,56,-150,60"
+    ]
+   }
+  },
+  {
+   "chu": "British forces in neighboring Canada could seize the colony in another war, making keeping it dangerous.",
+   "su_that": [
+    {
+     "gia_tri": "potential British conquest from Canada",
+     "nguon": 0,
+     "trich": "However, the principal reason for the sale was that the hard-to-defend colony would be easily conquered by British forces based in neighboring Canada in any future conflict"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-155,54,-130,65",
+     "CAN@-135,54,-125,62"
+    ],
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nhan": [
+     {
+      "chu": "Russian America",
+      "o": "USA@-155,58,-140,65"
+     }
+    ],
+    "nhay": [
+     "USA@-140,58,-135,61"
+    ],
+    "ten": [
+     {
+      "tu": "CAN@-135,56,-128,60",
+      "den": "USA@-140,58,-135,61"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "So Alexander the Second decided to sell Alaska rather than risk losing it to Britain.",
+   "su_that": [
+    {
+     "gia_tri": "Alexander the Second decided to sell",
+     "nguon": 0,
+     "trich": "Therefore, Emperor Alexander II decided to sell the territory."
+    },
+    {
+     "gia_tri": "risk of losing Alaska to Britain",
+     "nguon": 0,
+     "trich": "However, the principal reason for the sale was that the hard-to-defend colony would be easily conquered by British forces based in neighboring Canada in any future conflict"
+    },
+    {
+     "gia_tri": "eighteen fifty-eight sale proposal",
+     "nguon": 0,
+     "trich": "The Russian government discussed the proposal in 1857 and 1858 and offered to sell the territory to the United States, hoping that its presence in the region would offset the plans of Britain."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "RUS@170,60,180,70",
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1858,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "alexander_ii",
+      "ten": "Alexander II",
+      "dang": [
+       {
+        "chu": "Alexander",
+        "dang": "suy_nghi"
+       },
+       {
+        "chu": "sell",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In eighteen sixty-seven, William Seward and Eduard de Stoeckl agreed on seven point two million dollars.",
+   "su_that": [
+    {
+     "gia_tri": "William Seward and Eduard de Stoeckl",
+     "nguon": 0,
+     "trich": "William H. Seward, the U.S. secretary of state at the time, entered into negotiations with Russian diplomat Eduard de Stoeckl"
+    },
+    {
+     "gia_tri": "eighteen sixty-seven agreement",
+     "nguon": 0,
+     "trich": "Seward and Steckel agreed to a treaty for the sale on March 30, 1867."
+    },
+    {
+     "gia_tri": "seven point two million dollars",
+     "nguon": 0,
+     "trich": "The purchase price was set at $7.2 million (equivalent to $136 million in 2025), or about 2 cents per acre ($4.74/km2)."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "william_seward",
+      "ten": "William Seward",
+      "dang": [
+       {
+        "chu": "Seward",
+        "dang": "chi_tay"
+       }
+      ]
+     },
+     {
+      "anh": "eduard_de_stoeckl",
+      "ten": "Eduard de Stoeckl",
+      "dang": [
+       {
+        "chu": "agreed",
+        "dang": "cuoi"
+       }
+      ]
+     }
+    ],
+    "tranh": {
+     "mo_ta": "Washington, March 1867, before dawn: William Seward and Eduard de Stoeckl sit across a polished wooden table, reviewing a handwritten treaty beside an Alaska map. Warm lamplight catches their dark formal coats, white collars, pens, and stacked papers. A dark window emphasizes the overnight negotiation. Keep document text illegible.",
+     "tu_chu": "agreed",
+     "den_chu": "dollars",
+     "ref": [
+      "william_seward",
+      "eduard_de_stoeckl"
+     ],
+     "anh": "tranh/alaska-a-7.jpg",
+     "lia": -24,
+     "lop": "tranh/alaska-a-7-lop.png",
+     "lop_hop_tep": "tranh/alaska-a-7-lop.json"
+    }
+   }
+  },
+  {
+   "chu": "That October, American sovereignty took effect, and the Russian flag came down in Sitka.",
+   "su_that": [
+    {
+     "gia_tri": "October sovereignty transfer",
+     "nguon": 0,
+     "trich": "American sovereignty became legally effective across the territory on October 18."
+    },
+    {
+     "gia_tri": "Sitka transfer in eighteen sixty-seven",
+     "nguon": 0,
+     "trich": "The transfer ceremony took place in Sitka on October 18, 1867."
+    },
+    {
+     "gia_tri": "Russian flag lowered and American flag raised",
+     "nguon": 0,
+     "trich": "Russian and American soldiers paraded in front of the governor's house; the Russian flag was lowered and the American flag raised amid peals of artillery."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72",
+     "@Sitka"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhay": [
+     "@Sitka"
+    ],
+    "co": [
+     {
+      "anh": "co_my_1867",
+      "o": "@Sitka"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "But most Americans welcomed the purchase, despite opponents calling their new territory useless land.",
+   "su_that": [
+    {
+     "gia_tri": "mostly positive American reactions",
+     "nguon": 0,
+     "trich": "Reactions to the Alaska Purchase among Americans were mostly positive, as many believed that Alaska would serve as a base to expand American trade in Asia."
+    },
+    {
+     "gia_tri": "opponents called the land useless",
+     "nguon": 0,
+     "trich": "Some opponents labeled the purchase as \"Seward's Folly\" or \"Seward's Icebox\" as they contended that the United States had acquired useless land."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72",
+     "USA@-125,25,-67,49"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     },
+     {
+      "noi": "USA@-125,25,-67,49",
+      "chu": "USA"
+     }
+    ],
+    "dau": [
+     {
+      "chu": "welcomed",
+      "text": "WELCOMED"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Why did some opponents think buying Alaska was a mistake? That's part two.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "vong": [
+     "USA@-170,54,-130,72"
+    ],
+    "ket": "PART 2"
+   }
+  }
+ ],
+ "tai_san_moi": [
+  {
+   "id": "alexander_ii",
+   "loai": "nhan_vat",
+   "ten": "Sa hoàng Aleksandr Đệ nhị",
+   "mo_ta_en": "Adult Russian emperor, tall with a long face, high forehead, short light-brown hair brushed back, thick mutton-chop sideburns and a mustache, clean-shaven chin. Dark green double-breasted military tunic, gold epaulettes, high red collar, pale blue sash, and a silver breast star. Flat cutout style.",
+   "tu": 1855,
+   "den": 1881,
+   "que": "RUS",
+   "commons": null
+  },
+  {
+   "id": "william_seward",
+   "loai": "nhan_vat",
+   "ten": "Ngoại trưởng William Seward",
+   "mo_ta_en": "Older white American man with a narrow, deeply lined face, prominent nose, receding gray hair swept back and over the ears, and no facial hair. Slim build, black frock coat and waistcoat, white high-collared shirt, black bow tie. Flat cutout style.",
+   "tu": 1830,
+   "den": 1872,
+   "que": "USA",
+   "commons": null
+  },
+  {
+   "id": "eduard_de_stoeckl",
+   "loai": "nhan_vat",
+   "ten": "Nhà ngoại giao Eduard de Stoeckl",
+   "mo_ta_en": "Older white Russian diplomat with a high receding forehead, short wavy graying hair at the sides, a long nose, and graying side whiskers; clean-shaven chin. Black formal coat, dark waistcoat, white standing collar, and black necktie. Flat cutout style.",
+   "tu": 1830,
+   "den": 1869,
+   "que": "RUS",
+   "commons": null
+  },
+  {
+   "id": "co_de_quoc_nga_1858",
+   "loai": "co",
+   "ten": "Cờ Đế quốc Nga đen vàng trắng",
+   "mo_ta_en": "",
+   "tu": 1858,
+   "den": 1896,
+   "que": "RUS",
+   "commons": "File:Flag of the Russian Empire (black-yellow-white).svg"
+  },
+  {
+   "id": "co_my_1867",
+   "loai": "co",
+   "ten": "Cờ Hoa Kỳ ba mươi bảy sao",
+   "mo_ta_en": "",
+   "tu": 1867,
+   "den": 1877,
+   "que": "USA",
+   "commons": "File:Flag of the United States (1867-1877).svg"
+  }
+ ]
+}

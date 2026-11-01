@@ -8,7 +8,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { geo, tamVung, chuan, TP_NHAC, dichCua, diem, isoVung, datThaiBinh, kinh, vong } from './dia-ly.mjs';
+import { geo, tamVung, chuan, TP_NHAC, dichCua, diem, isoVung, datThaiBinh, kinh, vong, khungDoi } from './dia-ly.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const DIR = dirname(fileURLToPath(import.meta.url)), KHO = `${process.env.HOME}/.cache/lich-su`, BOX = 'root@167.233.241.16';
@@ -57,7 +57,7 @@ for (const s of canh) { const c = s.c;
     c.zoom ||= Math.round(Math.max(1.2, Math.min(14, 0.78 * 1080 / (dl * 12 * COS), (coNguoi ? 0.46 : 0.62) * 1920 / (db * 12))) * 100) / 100; }
   truoc = [c.tam[0] - 2, c.tam[1] - 1, c.tam[0] + 2, c.tam[1] + 1];
   if (c.mo === true) c.mo = { tu_tam: c.tam, tu_zoom: Math.max(1.2, c.zoom / 3) };
-  c.to = (c.to || []).map((t) => { const o = typeof t === 'string' ? isoVung(t) : { ...t, ...(typeof t.noi === 'string' ? isoVung(t.noi) : {}) }; delete o.noi; o.mau ||= mauCua(o.chu ?? o.iso); return o; });
+  c.to = (c.to || []).map((t) => { const o = typeof t === 'string' ? isoVung(t) : { ...t, ...(typeof t.noi === 'string' ? isoVung(t.noi) : {}) }; delete o.noi; if (o.vung) o.vung = khungDoi(o.vung); o.mau ||= mauCua(o.chu ?? o.iso); return o; });
   for (const m of c.ten || []) m.mau ||= '#9e2b25';
   for (const m of c.xe || []) { m.tre ??= 0.4; m.giay ??= 2.6; } }
 if (!tap.dia_hinh) { let h = null;
@@ -78,6 +78,10 @@ for (const s of canh) { for (const m of [...(s.c.ten || []), ...(s.c.xe || [])])
 // NHẮC TÊN LÀ SÁNG (anh 02/11/2026: "đoạn nhắc đến quốc gia như Lithuania thì highlight quốc gia đó trên map"): dò lời đọc từng cảnh — tên nước
 // (Natural Earth NAME / NAME_LONG / ADMIN / NAME_<ngôn ngữ tập> + cách gọi chung: Soviet Union, Russian…) → s.c.goi [{iso[], t, ten, o}] sáng đúng lúc chữ
 // được đọc; tên thành phố (Natural Earth populated places, viết hoa trong lời) → s.c.tp [{ten, o, t}] chấm + sóng + tên. Không khai tay từng tập.
+// CHỮ GỌI (dáng / dấu / tranh / năm đổi): một chữ hoặc CỤM chữ liền nhau trong câu của cảnh (máy viết hay ghi cụm) → {a: giây đầu cụm, b: giây cuối cụm}
+const timChu = (k, cum) => { const ws = tu.filter((x) => x.cau === k), q = String(cum).split(/\s+/).map(chuan).filter(Boolean);
+  for (let i = 0; q.length && i + q.length <= ws.length; i++) if (q.every((c, j) => chuan(ws[i + j].chu) === c)) return { a: ws[i].a, b: ws[i + q.length - 1].b };
+  return null; };
 const NN = (tap.ngon_ngu || 'en').toUpperCase(), SU = ['RUS', 'UKR', 'BLR', 'LTU', 'LVA', 'EST', 'MDA', 'KAZ', 'GEO', 'ARM', 'AZE', 'UZB', 'TKM', 'KGZ', 'TJK'];
 const TEN_NUOC = new Map();
 for (const f of geo.features) { const p = f.properties; for (const t of [p.NAME, p.NAME_LONG, p.ADMIN, p.NAME_EN, p[`NAME_${NN}`]]) if (t) TEN_NUOC.set(t.split(/[\s-]+/).map(chuan).filter(Boolean).join(' '), { iso: [p.ADM0_A3], ten: (NN === 'EN' ? null : p[`NAME_${NN}`]) || p.NAME_EN || p.NAME }); }
@@ -94,7 +98,7 @@ canh.forEach((s, k) => { const ws = tu.filter((w) => w.cau === k); s.c.goi = [];
   for (let i = 0; i < ws.length; i++) for (const n of [3, 2, 1]) { const cum = ws.slice(i, i + n); if (cum.length < n) continue; const key = cum.map((w) => chuan(w.chu)).join(' ');
     const nuoc = TEN_NUOC.get(key); if (nuoc && !s.c.goi.some((g) => g.ten === nuoc.ten)) { s.c.goi.push({ iso: nuoc.iso, ten: nuoc.ten, t: Math.max(0, cum[0].a - s.bd), o: nuoc.iso.length === 1 ? tamVung({ iso: nuoc.iso[0] }) : null }); i += n - 1; break; }
     const tp = n === 1 && /^\p{Lu}/u.test(cum[0].chu) ? TP_NHAC.get(key) : null; if (tp && !TEN_NUOC.get(key) && !s.c.tp.some((g) => g.ten === tp.ten) && !(s.c.nhan || []).some((l) => chuan(l.chu).includes(chuan(tp.ten)))) { s.c.tp.push({ ten: tp.ten, o: kinh(tp.o), t: Math.max(0, cum[0].a - s.bd) }); break; } }
-  for (const d of s.c.dau || []) { const w = ws.find((x) => chuan(x.chu) === chuan(d.chu)); if (!w) throw new Error(`cảnh ${k + 1}: dấu không thấy chữ "${d.chu}"`); d.t = Math.max(0, w.a - s.bd); d.o = d.o ? diem(d.o) : null; } });
+  for (const d of s.c.dau || []) { const w = timChu(k, d.chu); if (!w) throw new Error(`cảnh ${k + 1}: dấu không thấy chữ "${d.chu}"`); d.t = Math.max(0, w.a - s.bd); d.o = d.o ? diem(d.o) : null; } });
 console.log('nhắc tên:', canh.map((s, k) => [...s.c.goi.map((g) => g.ten), ...s.c.tp.map((g) => `◦${g.ten}`)].join(',') || '—').map((x, k) => `${k + 1}:${x}`).join(' '));
 // HƯỚNG THEO ĐỊA LÝ (anh 02/11/2026: "Stalin phải ở bên phải rồi giơ tay về trái — hướng phải đồng nhất với vị trí câu chuyện"): mỗi người có quê (kho que)
 // → máy đặt về phía quê so với ĐÍCH của cảnh (đầu mũi tên / chỗ xe tới / vòng / điểm nháy / tâm) và quay mặt về đích. Người không khai quê giữ ben khai tay.
@@ -125,13 +129,13 @@ const tepDang = async (id, dang) => { const d = DC[id]; if (d.tep) return join(K
   const f = join(KHO, 'r2', id, `${dang in (d.dang || {}) ? dang : 'goc'}.png`); if (!existsSync(f)) { mkdirSync(dirname(f), { recursive: true }); writeFileSync(f, Buffer.from(await (await fetch(u)).arrayBuffer())); } return f; };
 // dáng theo CHỮ của giọng: {chu, dang} → [giây trong cảnh, dáng] (chữ đầu tiên trùng trong câu của cảnh, so không dấu câu)
 // tranh cảnh: {anh, tu_chu, den_chu} → giây trong cảnh (chữ đầu khớp trong câu; den = hết chữ đó + 0,4 s)
-canh.forEach((s, k) => { const t = s.c.tranh; if (!t) return; const tim = (c) => { const w = tu.find((x) => x.cau === k && chuan(x.chu) === chuan(c)); if (!w) throw new Error(`cảnh ${k + 1}: tranh không thấy chữ "${c}"`); return w; };
+canh.forEach((s, k) => { const t = s.c.tranh; if (!t) return; const tim = (c) => { const w = timChu(k, c); if (!w) throw new Error(`cảnh ${k + 1}: tranh không thấy chữ "${c}"`); return w; };
   t.tu = t.tu_chu ? Math.max(0, tim(t.tu_chu).a - s.bd - 0.2) : (t.tu ?? 0); t.den = t.den_chu ? tim(t.den_chu).b - s.bd + 0.4 : (t.den ?? (s.kt - s.bd));
   if (t.lop_hop_tep) t.lop_hop = JSON.parse(readFileSync(join(KHO, t.lop_hop_tep), 'utf8')); });
-canh.forEach((s, k) => { for (const n of s.c.nguoi || []) if (Array.isArray(n.dang)) n.dang = n.dang.map((m) => { const w = tu.find((x) => x.cau === k && chuan(x.chu) === chuan(m.chu)); if (!w) throw new Error(`cảnh ${k + 1}: không thấy chữ "${m.chu}" để đổi dáng`); return [Math.max(0, w.a - s.bd - 0.15), m.dang]; }); });
+canh.forEach((s, k) => { for (const n of s.c.nguoi || []) if (Array.isArray(n.dang)) n.dang = n.dang.map((m) => { const w = timChu(k, m.chu); if (!w) throw new Error(`cảnh ${k + 1}: không thấy chữ "${m.chu}" để đổi dáng`); return [Math.max(0, w.a - s.bd - 0.15), m.dang]; }); });
 // người chưa khai tre → bước vào ngay trước chữ gọi dáng đầu tiên; năm đổi giữa cảnh khai {chu, nam} → [giây, năm]
 canh.forEach((s, k) => { for (const n of s.c.nguoi || []) if (n.tre == null && Array.isArray(n.dang) && n.dang.length) n.tre = Math.max(0.2, n.dang[0][0] - 0.45);
-  const ns = s.c.nam_sau; if (ns && !Array.isArray(ns)) { const w = tu.find((x) => x.cau === k && chuan(x.chu) === chuan(ns.chu)); if (!w) throw new Error(`cảnh ${k + 1}: nam_sau không thấy chữ "${ns.chu}"`); s.c.nam_sau = [Math.max(0, w.a - s.bd - 0.1), ns.nam]; } });
+  const ns = s.c.nam_sau; if (ns && !Array.isArray(ns)) { const w = timChu(k, ns.chu); if (!w) throw new Error(`cảnh ${k + 1}: nam_sau không thấy chữ "${ns.chu}"`); s.c.nam_sau = [Math.max(0, w.a - s.bd - 0.1), ns.nam]; } });
 { const lech = []; let namTruoc = null;
   canh.forEach((s, k) => { const n0 = s.c.nam ?? namTruoc; namTruoc = s.c.nam_sau?.[1] ?? n0;
     for (const m of [...(s.c.nguoi || []), ...(s.c.xe || []), ...(s.c.co || [])]) { const d = DC[m.anh]; if (!d) { lech.push(`cảnh ${k + 1}: không có đạo cụ "${m.anh}"`); continue; }

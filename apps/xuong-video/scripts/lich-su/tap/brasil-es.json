@@ -1,0 +1,450 @@
+{
+ "id": "brasil-es",
+ "dang": "A",
+ "tieu_de": "¿Por qué en Brasil se habla portugués y no español?",
+ "ngon_ngu": "es",
+ "chu_de": "¿Por qué en Brasil se habla portugués y no español?",
+ "giong": {
+  "voice": "George"
+ },
+ "nguon": [
+  "https://es.wikipedia.org/wiki/Tratado_de_Tordesillas",
+  "https://es.wikipedia.org/wiki/Descubrimiento_de_Brasil"
+ ],
+ "may_viet": {
+  "model": "ckey:claude-sonnet-5-5",
+  "luc": "2026-11-01T20:11:22.974Z",
+  "tokens": {
+   "in": 8737,
+   "out": 4390,
+   "vnd": 38.67
+  }
+ },
+ "cau": [
+  {
+   "chu": "La frontera que decide el idioma de Brasil se firmó sin pisar América.",
+   "su_that": [
+    {
+     "gia_tri": "Brasil",
+     "nguon": 0,
+     "trich": "la parte oriental de América del Sur, el extremo este de Brasil, quedaba ahora adscrito al área de acción de Portugal"
+    },
+    {
+     "gia_tri": "Tratado de Tordesillas",
+     "nguon": 0,
+     "trich": "El Tratado de Tordesillas (en portugués: Tratado de Tordesilhas) fue un compromiso suscrito en la villa castellana de Tordesillas"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BRA@-74,-34,-34,6"
+    ],
+    "mo": true,
+    "chu_to": "UNA LÍNEA SIN PISAR AMÉRICA",
+    "vong": [
+     "BRA@-74,-34,-34,6"
+    ]
+   }
+  },
+  {
+   "chu": "Es Brasil, la mitad oriental de Sudamérica, y en mil cuatrocientos noventa y cuatro nadie sabía aún que existía.",
+   "su_that": [
+    {
+     "gia_tri": "mil cuatrocientos noventa y cuatro",
+     "nguon": 0,
+     "trich": "firmado el 7 de junio de 1494, hoy denominado Tratado de Tordesillas"
+    },
+    {
+     "gia_tri": "Brasil",
+     "nguon": 0,
+     "trich": "el extremo este de Brasil, quedaba ahora adscrito al área de acción de Portugal"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BRA@-74,-34,-34,6"
+    ],
+    "nam": 1494,
+    "to": [
+     {
+      "noi": "BRA@-74,-34,-34,6",
+      "chu": "POR"
+     }
+    ],
+    "nhay": [
+     "BRA@-74,-34,-34,6"
+    ]
+   }
+  },
+  {
+   "chu": "Colón volvió en mil cuatrocientos noventa y tres y Juan Segundo de Portugal reclamó las islas nuevas.",
+   "su_that": [
+    {
+     "gia_tri": "mil cuatrocientos noventa y tres",
+     "nguon": 0,
+     "trich": "Tras el regreso de Colón y su paso por Lisboa en marzo de 1493, el rey Juan II de Portugal afirmó que las islas descubiertas estaban al sur de las Canarias"
+    },
+    {
+     "gia_tri": "Juan II de Portugal",
+     "nguon": 0,
+     "trich": "el rey Juan II de Portugal afirmó que las islas descubiertas estaban al sur de las Canarias"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "ESP@-20,24,-10,40",
+     "PRT@-12,36,-6,43"
+    ],
+    "nam": 1493,
+    "to": [
+     {
+      "noi": "ESP@-20,24,-10,40",
+      "chu": "CAST"
+     }
+    ],
+    "co": [
+     {
+      "anh": "co_castilla_1492",
+      "o": "ESP@-20,24,-10,40"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "El papa Alejandro Sexto trazó una línea a cien leguas de las Azores y dejó América entera para Castilla.",
+   "su_that": [
+    {
+     "gia_tri": "Alejandro VI",
+     "nguon": 0,
+     "trich": "Isabel y Fernando solicitaron ayuda al papa Alejandro VI (Rodrigo Borgia)"
+    },
+    {
+     "gia_tri": "cien leguas",
+     "nguon": 0,
+     "trich": "estableció que pertenecerían a la corona de Castilla las tierras y mares al oeste del meridiano situado a 100 leguas al oeste de las Azores y Cabo Verde"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "PRT@-31,36,-25,40",
+     "BRA@-74,-34,-34,6"
+    ],
+    "nam": 1493,
+    "to": [
+     {
+      "noi": "BRA@-74,-34,-34,6",
+      "chu": "CAST"
+     }
+    ],
+    "nhan": [
+     {
+      "chu": "100 leguas",
+      "o": "PRT@-31,36,-25,40"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "alejandro_vi",
+      "ten": "Alejandro VI",
+      "dang": [
+       {
+        "chu": "trazó",
+        "dang": "noi_dong"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Portugal quedó fuera del Nuevo Mundo y Juan Segundo negoció en secreto durante meses.",
+   "su_that": [
+    {
+     "gia_tri": "Portugal",
+     "nguon": 0,
+     "trich": "Portugal quedaba excluido en la práctica de las empresas americanas"
+    },
+    {
+     "gia_tri": "Juan II",
+     "nguon": 0,
+     "trich": "Los embajadores portugueses recibían desde Lisboa informes secretos sobre cuál iba a ser la posición negociadora de los castellanos junto a instrucciones directas del rey Juan"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "PRT@-12,36,-6,43",
+     "ESP@-20,24,-10,40"
+    ],
+    "nam": 1494,
+    "nhay": [
+     "PRT@-12,36,-6,43"
+    ],
+    "ten": [
+     {
+      "tu": "PRT@-12,36,-6,43",
+      "den": "ESP@-20,24,-10,40"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "juan_ii_portugal",
+      "ten": "Juan II",
+      "dang": [
+       {
+        "chu": "negoció",
+        "dang": "suy_nghi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "El siete de junio de mil cuatrocientos noventa y cuatro movieron la raya trescientas setenta leguas al oeste de Cabo Verde.",
+   "su_that": [
+    {
+     "gia_tri": "siete de junio de mil cuatrocientos noventa y cuatro",
+     "nguon": 0,
+     "trich": "firmado el 7 de junio de 1494, hoy denominado Tratado de Tordesillas"
+    },
+    {
+     "gia_tri": "trescientas setenta leguas",
+     "nguon": 0,
+     "trich": "pasase a 370 leguas​ al oeste de las islas de Cabo Verde"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "CPV@-27,12,-21,19",
+     "BRA@-74,-34,-34,6"
+    ],
+    "nam": 1494,
+    "to": [
+     {
+      "noi": "BRA@-74,-34,-34,6",
+      "chu": "POR"
+     }
+    ],
+    "nhan": [
+     {
+      "chu": "370 leguas",
+      "o": "CPV@-27,12,-21,19"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Así, el extremo este de Brasil cayó del lado portugués por pura geometría.",
+   "su_that": [
+    {
+     "gia_tri": "Brasil",
+     "nguon": 0,
+     "trich": "la parte oriental de América del Sur, el extremo este de Brasil, quedaba ahora adscrito al área de acción de Portugal"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BRA@-74,-34,-34,6"
+    ],
+    "nam": 1494,
+    "to": [
+     {
+      "noi": "BRA@-74,-34,-34,6",
+      "chu": "POR"
+     }
+    ],
+    "nhay": [
+     "BRA@-74,-34,-34,6"
+    ]
+   }
+  },
+  {
+   "chu": "En mil quinientos llegó Cabral a esas costas y ya eran de Portugal.",
+   "su_that": [
+    {
+     "gia_tri": "mil quinientos",
+     "nguon": 1,
+     "trich": "la llegada, el 22 de abril de 1500, de la flota comandada por el portugués Pedro Alvares Cabral al territorio del actual Brasil"
+    },
+    {
+     "gia_tri": "Cabral",
+     "nguon": 1,
+     "trich": "la llegada, el 22 de abril de 1500, de la flota comandada por el portugués Pedro Alvares Cabral al territorio del actual Brasil"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BRA@-74,-34,-34,6"
+    ],
+    "nam": 1500,
+    "nguoi": [
+     {
+      "anh": "cabral",
+      "ten": "Pedro Álvares Cabral",
+      "dang": [
+       {
+        "chu": "llegó",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ],
+    "tranh": {
+     "mo_ta": "Portuguese caravel fleet of 1500 anchoring off the green Brazilian coast, Pedro Álvares Cabral in a red doublet and feathered hat stepping onto the beach, Tupí indigenous people watching from the treeline",
+     "tu_chu": "llegó",
+     "den_chu": "costas",
+     "ref": [
+      "cabral"
+     ],
+     "anh": null
+    }
+   }
+  },
+  {
+   "chu": "Los españoles también tocaron esas costas, pero llegaron tarde.",
+   "su_that": [
+    {
+     "gia_tri": "Vicente Yáñez Pinzón",
+     "nguon": 1,
+     "trich": "las expediciones documentadas de los españoles Vicente Yáñez Pinzón, el 26 de enero de 1500"
+    },
+    {
+     "gia_tri": "Diego de Lepe",
+     "nguon": 1,
+     "trich": "y Diego de Lepe en febrero de 1500"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BRA@-74,-34,-34,6"
+    ],
+    "nam": 1500,
+    "to": [
+     {
+      "noi": "BRA@-74,-34,-34,6",
+      "chu": "POR"
+     }
+    ],
+    "ten": [
+     {
+      "tu": "ESP@-20,24,-10,40",
+      "den": "BRA@-74,-34,-34,6"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "pinzon",
+      "ten": "Vicente Yáñez Pinzón",
+      "dang": [
+       {
+        "chu": "tocaron",
+        "dang": "buon"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "La línea nunca se midió con precisión y cada reino la movió a su gusto.",
+   "su_that": [
+    {
+     "gia_tri": "nunca se midió",
+     "nguon": 0,
+     "trich": "La demarcación del límite nunca se realizó y cada parte interpretó el tratado a su conveniencia"
+    },
+    {
+     "gia_tri": "cada reino",
+     "nguon": 0,
+     "trich": "La demarcación del límite nunca se realizó y cada parte interpretó el tratado a su conveniencia"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BRA@-74,-34,-34,6"
+    ],
+    "nam": 1500,
+    "dau": [
+     {
+      "chu": "gusto",
+      "text": "A GUSTO"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "¿Y qué pasó cuando Portugal y Castilla acabaron unidos bajo una sola corona? Eso, en la segunda parte.",
+   "su_that": [
+    {
+     "gia_tri": "Portugal",
+     "nguon": 0,
+     "trich": "El Tratado de Tordesillas (en portugués: Tratado de Tordesilhas) fue un compromiso suscrito en la villa castellana de Tordesillas"
+    },
+    {
+     "gia_tri": "Castilla",
+     "nguon": 0,
+     "trich": "entre los representantes de Isabel y Fernando, reyes de Castilla y de Aragón"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "BRA@-74,-34,-34,6",
+     "PRT@-12,36,-6,43"
+    ],
+    "ket": "PARTE 2"
+   }
+  }
+ ],
+ "tai_san_moi": [
+  {
+   "id": "alejandro_vi",
+   "loai": "nhan_vat",
+   "ten": "Giáo hoàng Alejandro VI",
+   "mo_ta_en": "Man in his early sixties, heavy build, clean-shaven with a thin mouth, wearing a white papal cassock and red mozzetta cape, a triple papal tiara on his head, holding a rolled parchment, 1490s Rome",
+   "tu": 1492,
+   "den": 1503,
+   "que": "ESP@-20,24,-10,40",
+   "commons": null
+  },
+  {
+   "id": "juan_ii_portugal",
+   "loai": "nhan_vat",
+   "ten": "Vua Juan II của Bồ Đào Nha",
+   "mo_ta_en": "Man in his late thirties, lean face, dark shoulder-length hair, clean-shaven, wearing a black velvet doublet with gold trim, a heavy gold chain, a dark cap, resting one hand on a table with maps, 1490s Lisbon",
+   "tu": 1481,
+   "den": 1495,
+   "que": "PRT@-12,36,-6,43",
+   "commons": null
+  },
+  {
+   "id": "cabral",
+   "loai": "nhan_vat",
+   "ten": "Pedro Álvares Cabral",
+   "mo_ta_en": "Man in his early thirties, short dark beard, shoulder-length brown hair, wearing a red wool doublet, dark hose, a black feathered hat, a sword at his belt, standing on a beach in 1500",
+   "tu": 1500,
+   "den": 1520,
+   "que": "PRT@-12,36,-6,43",
+   "commons": null
+  },
+  {
+   "id": "pinzon",
+   "loai": "nhan_vat",
+   "ten": "Vicente Yáñez Pinzón",
+   "mo_ta_en": "Man in his late forties, weathered tanned face, short grey beard, wearing a dark blue sailor's coat, a plain leather cap, holding a brass compass, standing on a ship deck in 1500",
+   "tu": 1499,
+   "den": 1514,
+   "que": "ESP@-20,24,-10,40",
+   "commons": null
+  },
+  {
+   "id": "co_castilla_1492",
+   "loai": "co",
+   "ten": "Cờ Castilla 1492",
+   "mo_ta_en": "",
+   "tu": 1479,
+   "den": 1516,
+   "que": null,
+   "commons": "File:Bandera de la Corona de Castilla.svg"
+  }
+ ]
+}

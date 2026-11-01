@@ -22,7 +22,7 @@ assert.strictEqual(boiCanhCua({ nhan_vat: [1] }, [...nv]), null);
 
 // đồ luôn mang: chỉ nhân vật có khai; bỏ chấm cuối
 const dm = cauDoMang([{ ten: 'Bà Lụa', loai: 'nhan_vat', do_mang: 'a bamboo pole with two baskets.' }, { ten: 'Ghế', loai: 'dao_cu', do_mang: 'x' }, { ten: 'B', loai: 'nhan_vat', do_mang: '' }]);
-assert.ok(dm.startsWith('Bà Lụa always carries a bamboo pole with two baskets —') && !dm.includes('Ghế') && !dm.includes('B always'), dm);
+assert.ok(dm.startsWith('Bà Lụa always carries a bamboo pole with two baskets; these carried items stay with this character') && (dm.match(/Bà Lụa/g) ?? []).length === 1 && !dm.includes('Ghế') && !dm.includes('B always'), dm);
 
 // prompt nền trống người, có góc máy; prompt lớp đòi nền xanh, không cảnh
 const pn = promptNen('2D', 'Hanoi Train Street.', { co_canh: 'ws', goc: 'thap' } as never);
@@ -54,3 +54,9 @@ console.log('✓ dung-lop');
   assert.strictEqual(soatChan([]), null);
 }
 console.log('✓ dung-lop (bước chân)');
+
+{
+  const { raKhoiKhung } = await import('./dung-lop');
+  assert.ok(raKhoiKhung('The vendor walks out of frame on the right before the shot ends.') && raKhoiKhung('she walks off the right edge') && raKhoiKhung('He exits left'));
+  assert.ok(!raKhoiKhung('The vendor enters from the left.') && !raKhoiKhung('') && !raKhoiKhung(undefined));
+}

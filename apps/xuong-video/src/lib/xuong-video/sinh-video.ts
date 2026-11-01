@@ -1,6 +1,6 @@
 // Lõi sinh video cho một shot + nhận kết quả (Veo qua Google hoặc model fal) — tách khỏi actions.ts để script trên box
 // (scripts/sinh-shot.mts) và server action (sinhVideoCanh / kiemVideo) dùng CÙNG một đường; actions chỉ kiểm quyền rồi gọi vào đây.
-import { laDungLop, anhLopCua, cauDoMang, CAU_NEN_VIDEO_LOP, CAU_MAY_VIDEO_LOP, CAU_SONG_VIDEO_LOP, CAU_CHAN_VIDEO_LOP } from './dung-lop';
+import { raKhoiKhung, laDungLop, anhLopCua, cauDoMang, CAU_NEN_VIDEO_LOP, CAU_MAY_VIDEO_LOP, CAU_SONG_VIDEO_LOP, CAU_CHAN_VIDEO_LOP } from './dung-lop';
 import { chanDanDat } from './dan-dat';
 import { CHAT_LIEU, cauNhipGag, ghep, ghepTrongTran, goiTenEn, khoi, KHUON, LOAI_VIDEO, nhanNhin, tenNgonNguEn, thayTenNhan, type ChatLieu, type Khoi } from './prompt-khoi';
 import { loiTrangThaiVat, chamPrompt, NGUONG_CHAN, type LoiPrompt } from './kiem-prompt';
@@ -68,7 +68,9 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
   // đi khỏi khung (thử 2 shot 09/10/2026) — nói rõ khung đầu là chân lý, chủ thể ở trong khung suốt clip, không chữ.
   const coSp = bc.nhanVat.some((v) => v.loai === 'san_pham');
   const lv = LOAI_VIDEO[bc.loai] ?? LOAI_VIDEO.phim;
-  const giuKhung = `The main subject stays fully in frame for the whole clip${coSp ? `; ${lv.sp_giu} stays exactly as in the first frame` : ''}.`;
+  // Thẻ shot cho người RA khỏi khung (DanDung.vao_ra) thì không ép "chủ thể ở trong khung suốt clip" — hai câu đá nhau, Veo giữ người lại (#1156 #6, 01/11/2026)
+  const coRa = raKhoiKhung(bc.canh.dan_dung?.vao_ra);
+  const giuKhung = coRa ? (coSp ? `${lv.sp_giu} stays exactly as in the first frame.` : '') : `The main subject stays fully in frame for the whole clip${coSp ? `; ${lv.sp_giu} stays exactly as in the first frame` : ''}.`;
   // Shot có sản phẩm mà hành động chỉ tả mặt ("cười, gật đầu", "push-in") + câu khung sống (CHAT_LIEU.song_video) đòi cử động cả thân → model tự bịa cử chỉ vào món
   // gần tay nhất: #54 shot 9 (16/10/2026) ông Mike kéo cổ áo polo trong phim bán QUẦN, máy đẩy vào cắt mất quần. Cử chỉ phải dồn vào sản phẩm.
   const tenSp = bc.nhanVat.filter((v) => v.loai === 'san_pham').map((v) => v.ten.trim()).filter(Boolean).join(', ');
@@ -125,9 +127,9 @@ export function khoiVideoCanh(bc: NonNullable<Awaited<ReturnType<typeof boiCanhC
 }
 export const promptVideoCanh = (bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): string => ghep(khoiVideoCanh(bc));
 /** CHẤM prompt video (kiem-prompt.ts, khuôn KHUON.video): chất liệu phim, tiếng Việt lọt vào, cận chèn tả mặt, lặp — chặn trước khi gửi model video. */
-export function chamVideo(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>): { diem: number; loi: LoiPrompt[] } {
+export function chamVideo(bc: NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>, /** có ảnh cuối gửi model (keyframe kết / nối khung shot sau) — mặc định theo keyframe_ket */ coKhungCuoi = !!bc.canh.keyframe_ket): { diem: number; loi: LoiPrompt[] } {
   const lv = loiTrangThaiVat('video', promptVideoCanh(bc), bc.canh.ky_thuat?.vat_so);   // sổ đồ vật (kiem-prompt.ts)
-  const c = chamPrompt([{ ten: KHUON.video.ten, duong: 'video', khoi: khoiVideoCanh(bc) }], { co_canh: bc.canh.ky_thuat?.co_canh, chat_lieu: chatLieuPhim(bc.kt), ten_rieng: bc.nhanVat.map((v) => v.ten), nguoi: [], vat: [],
+  const c = chamPrompt([{ ten: KHUON.video.ten, duong: 'video', khoi: khoiVideoCanh(bc) }], { co_canh: bc.canh.ky_thuat?.co_canh, chat_lieu: chatLieuPhim(bc.kt), khung_ket: coKhungCuoi, ten_rieng: bc.nhanVat.map((v) => v.ten), nguoi: [], vat: [],
     // chiều đi trên màn: 3D (khung_xam.di), không thì sơ đồ cảnh (người đi vào khung — khong-gian.ts › diChuyen)
     di: bc.canh.khung_xam?.di?.length ? bc.canh.khung_xam.di.map((d) => ({ ten: d.ten, dx: d.den[0]! - d.tu[0]! })) : bc.khongGian && bc.canh.ky_thuat?.sd ? diChuyen(bc.khongGian, bc.canh).map((d) => ({ ten: d.ten, dx: d.dx })) : [],
     // ngoài khung CẢ shot: nhân vật của shot mà 3D không thấy lúc mở và không đi vào (khung_xam.kiem / di)
@@ -256,7 +258,7 @@ export async function batDauVideoCanh(db: Db, canhId: number, moHinh?: string, b
   if (lop && (!lop.nen || !lop.tho)) return loi(`Shot #${bc.canh.thu_tu}: phim dựng lớp — keyframe đang chọn chưa có ảnh lớp nền xanh / tấm nền; sinh keyframe lớp rồi chọn ảnh ghép`);
   if (lop) { bc.canh.keyframe_url = lop.tho!; bc.canh.keyframe_ket = null; bc.canh.keyframe_giua = null; }
   // BỘ CHẤM PROMPT VIDEO: lỗi nặng (chất liệu sai, tiếng Việt lọt vào…) thì không tiêu tiền video lên prompt rác — kể cả lượt thử
-  { const cv = chamVideo(bc).loi.filter((l) => l.phat >= NGUONG_CHAN); if (cv.length) return loi(`Shot #${bc.canh.thu_tu} — bộ chấm prompt video: ${cv.map((l) => l.chu).join(' · ')}`); }
+  { const cv = chamVideo(bc, !!(await khungCuoiCanh(db, canhId))).loi.filter((l) => l.phat >= NGUONG_CHAN); if (cv.length) return loi(`Shot #${bc.canh.thu_tu} — bộ chấm prompt video: ${cv.map((l) => l.chu).join(' · ')}`); }
   const giay = lamTronClip(bc.canh.thoi_luong_s);
   const laFal = bc.kt.mo_hinh_video.startsWith('fal:');
   { const t = thieuCachThao(doiTayDo((bc.mayDu ?? bc.canh.may_3d)?.vi_tri ?? [], (x) => bc.nhanVat.some((v) => v.ten === x && v.loai === 'nhan_vat'))); if (t) return loi(`Shot #${bc.canh.thu_tu}: ${t}`); }

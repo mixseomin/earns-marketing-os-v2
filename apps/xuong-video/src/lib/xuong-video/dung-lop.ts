@@ -26,8 +26,10 @@ export const thanhPhanLop = <T extends Pick<NhanVat, 'id' | 'loai'>>(canh: Pick<
 
 /** Câu ĐỒ LUÔN MANG THEO cho mọi prompt có người đó (ảnh lẫn video). */
 export const cauDoMang = (nv: Pick<NhanVat, 'ten' | 'loai' | 'do_mang'>[]): string =>
-  nv.filter((v) => v.loai === 'nhan_vat' && (v.do_mang ?? '').trim()).map((v) => `${v.ten} always carries ${v.do_mang!.trim().replace(/[.\s]+$/, '')} — they stay with ${v.ten} in every frame, never vanish, drop off or change.`).join(' ');
+  nv.filter((v) => v.loai === 'nhan_vat' && (v.do_mang ?? '').trim()).map((v) => `${v.ten} always carries ${v.do_mang!.trim().replace(/[.\s]+$/, '')}; these carried items stay with this character in every frame, never vanish, drop off or change.`).join(' ');
 
+/** Thẻ shot có người đi RA khỏi khung (DanDung.vao_ra) — khi đó không ép giữ chủ thể trong khung. */
+export const raKhoiKhung = (vaoRa?: string) => /\b(out of (the )?frame|off (the )?(left|right|screen|edge)|exits?\b|leaves? the frame)/i.test(vaoRa ?? '');
 /** Prompt TẤM NỀN: nơi chốn trống người, góc máy của shot, chừa đất cho nhân vật đi. */
 export const promptNen = (style: string, boiCanh: string, kt: Canh['ky_thuat'] | null | undefined) =>
   `Visual style: ${style}. A single still background plate for a hand-drawn animated film (${mayNen(kt)}): ${boiCanh.trim().replace(/[.\s]+$/, '')}. The place is completely EMPTY — no people, no animals, no vehicles, nothing moving. Keep open ground in the lower third where characters will walk. No text, no letters, no signs.`;

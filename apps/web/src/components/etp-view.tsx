@@ -19,6 +19,7 @@ const ChiXem = createContext(false);
 const SuaCampCtx = createContext<{ het: string | null } | null>(null);   // null = không có quyền sửa · het = phiên Ethopex riêng còn hạn tới (null = chưa kết nối)
 import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhanNang, PhimEtpKho, SoLuat, SoTien, ThayThe, ThuVienMuc, XetLuat } from '@/lib/etp-doc';
 import { taiNangEtp } from '@/lib/actions/etp-nang';
+import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 
 type Tab = 'tong' | 'camp' | 'roas' | 'creative' | 'phim' | 'tv' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -1769,14 +1770,23 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         </>
       </div>}
       {bangCay ?? <>
-      <div style={{ position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 2, background: 'var(--bg-0, #0b0b0c)', display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, fontSize: 11, color: 'var(--fg-2)', padding: '6px 0', borderBottom: '1px solid var(--line)' }}>
-        {hep ? <span>Phim → camp</span> : (
+      <div style={{ position: 'sticky', top: 'var(--etp-dinh, 0px)', zIndex: 2, background: 'var(--bg-0, #0b0b0c)', display: 'grid', gridTemplateColumns: hep ? LUOI_CAY_HEP : LUOI_CAY, columnGap: 4, fontSize: 11, color: 'var(--fg-2)', padding: hep ? '4px 0' : '6px 0', alignItems: 'end', borderBottom: '1px solid var(--line)' }}>
+        {/* DÒNG TỔNG TRÊN ĐIỆN THOẠI (anh 01/11/2026 #1498 "thêm dòng tổng nhg bố trí chỉ 1 dòng sticky cho gọn"): số tổng nằm NGAY TRONG dòng tiêu đề dính —
+            mỗi ô cột = nhãn nhỏ trên + ROI tổng dưới (O0, cùng khuôn ô số), ô đầu = số phim · tổng ngân sách đang bật; không thêm hàng dính thứ hai */}
+        {hep ? <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2, minWidth: 0 }}><span>Phim → camp</span>
+          <b style={{ color: 'var(--fg)', fontVariantNumeric: 'tabular-nums' }} title="tổng các camp đang hiện (theo bộ lọc) · ngân sách/ngày camp đang bật">Tổng {phim.length} phim · ${camps.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)}</b></span> : (
           <span style={{ display: 'grid', gridTemplateColumns: LT, columnGap: 8, alignItems: 'center', paddingLeft: 12, whiteSpace: 'nowrap' }}>
             <span /><span>Phim → camp gốc → bản nhân</span><span style={{ textAlign: 'right' }} title="tuổi camp tính bằng ngày từ lúc tạo">tuổi</span><span>ngân sách</span><span title="luật camp sắp chạm — chip đặc: máy luật đã xếp làm · viền nét đứt: sắp chạm · rê vào xem điều kiện">luật</span><span>creative · điểm chấm</span><span>loại</span>
             {coLich ? <span title="lịch giờ 07h · 08h–12h · 13h–19h · 20h–06h (xanh chạy, đỏ tắt, ⏸ đang dừng theo lịch)">lịch giờ</span> : null}<span />
           </span>)}
-        {ngayHien.map((d) => <span key={d} data-cot={`roi-${ngay.indexOf(d)}`} data-cot-can="giua" style={{ textAlign: 'center' }} title={`ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`}>{d.slice(8, 10)}/{d.slice(5, 7)}</span>)}{coQua ? <span data-cot="roi-qua" data-cot-can="giua" style={{ textAlign: 'center' }} title="ROI hôm qua">qua</span> : null}<span data-cot="roi-nay" data-cot-can="giua" style={{ textAlign: 'center', color: '#60a5fa', fontWeight: 600, background: hep ? undefined : 'rgba(59,130,246,.12)', borderRadius: '4px 4px 0 0' }} title="ROI hôm nay">nay</span>
-        <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }} title={`lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`}>lãi {tenKy.toLowerCase()}</span>
+        {(() => { const tg = tongNgay(camps), tq = camps.reduce((a, c) => ({ chi: a.chi + c.qua.chi, thu: a.thu + c.qua.thu }), { chi: 0, thu: 0 });
+          const o = (nhan: React.ReactNode, cot: string, t: string, sx: SoTien, st?: React.CSSProperties) => <span key={cot} data-cot={cot} data-cot-can="giua" title={t} style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.2, ...st }}>
+            {nhan}{hep ? <O0 v={roi(sx)} t={`${t} — tổng các camp đang hiện`} cot={`${cot}-tong`} s={sx} /> : null}</span>;
+          return <>{ngayHien.map((d) => { const i = ngay.indexOf(d); return o(`${d.slice(8, 10)}/${d.slice(5, 7)}`, `roi-${i}`, `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)}`, tg[i]!); })}
+            {coQua ? o('qua', 'roi-qua', 'ROI hôm qua', tq) : null}
+            {o('nay', 'roi-nay', 'ROI hôm nay', tg[ngay.length]!, { color: '#60a5fa', fontWeight: 600, background: hep ? undefined : 'rgba(59,130,246,.12)', borderRadius: '4px 4px 0 0' })}</>; })()}
+        <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', lineHeight: 1.2 }} title={`lãi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`}>lãi {tenKy.toLowerCase()}
+          {hep ? <LaiCot s={camps.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /> : null}</span>
       </div>
       {phim.map((p) => (
         <details key={p.k} open={moCay.has(`p${p.k}`)} onToggle={(e) => { const mo = e.currentTarget.open; doiMo(mo ? [`p${p.k}`, ...p.all.filter((c) => con.m.has(c.camp_id)).map((c) => `c${c.camp_id}`)] : `p${p.k}`, mo); }} style={{ borderTop: '1px solid var(--line)' }}>
@@ -2050,6 +2060,18 @@ function LenBac({ du, hep }: { du: DuLieuEtp; hep: boolean }) {
 }
 // QUYỀN (etp.quyen, anh 31/10/2026): vai từ máy chủ (lib/etp-quyen.ts) — dữ liệu đã cắt trên máy chủ, đây chỉ bỏ tab / kiểu xem không còn dữ liệu.
 // sua = nguoi_id mà người xem sửa được camp (admin etp, vd Sơn #115); null = không sửa
+// NÚT LÀM MỚI (anh 01/11/2026 #1497): chạy ngay một lượt đồng bộ Ethopex → kho (lamMoiEtp), đọc lại trang mỗi 8 giây tới khi kho có lượt mới hơn lượt lúc bấm (tối đa 10 phút)
+function NutLamMoi({ dongBo, gon }: { dongBo: DuLieuEtp['dongBo']; gon: boolean }) {
+  const router = useRouter();
+  const [cho, setCho] = useState<{ lan: number; tu: number } | null>(null);
+  const lanNay = dongBo?.lan ?? 0;
+  useEffect(() => { if (!cho) return; if (lanNay > cho.lan || Date.now() - cho.tu > 600_000) { setCho(null); return; }
+    const t = setInterval(() => router.refresh(), 8_000); return () => clearInterval(t); }, [cho, lanNay, router]);
+  const bam = async () => { const r = await lamMoiEtp(); if ('loi' in r) { alert(r.loi); return; } if (r.chay) setCho({ lan: r.lan ?? 0, tu: Date.now() }); router.refresh(); };
+  return <button onClick={bam} disabled={!!cho} title={cho ? 'đang kéo số mới từ Ethopex — xong tự hiện (thường 1–3 phút)' : `kéo số mới từ Ethopex ngay (máy tự kéo 10 phút/lần) · lần cuối ${vn(dongBo?.xong ?? null)}`}
+    style={{ alignSelf: 'center', border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: cho ? 'var(--fg-2)' : 'inherit', cursor: cho ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-block', animation: cho ? 'etpXoay 1s linear infinite' : undefined }}>↻</span>{gon ? '' : cho ? ' Đang làm mới…' : ' Làm mới'}</button>;
+}
 type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null; cheDo?: CheDoLuat | null };
 const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
 export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLieuEtp; chiXem?: boolean; quyen?: QuyenXem; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string } }) {
@@ -2269,12 +2291,13 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     <ChiXem.Provider value={chiXem}>
     <SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
     <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > h.offsetTop + h.offsetHeight; if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
-      <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
+      <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}@keyframes etpXoay{to{transform:rotate(360deg)}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
     {/* TRÀN HẾT BỀ NGANG MÀN (anh 29/10/2026 "tại sao màn hình ko tràn hết sang 2 bên"): trước khoá maxWidth 1600 căn giữa — màn 1930px thừa hai lề trống, bảng Cây bị cắt cột phải */}
     <div style={{ padding: hep ? '10px 10px 40px' : '16px 20px 40px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
         <h1 style={{ margin: 0, fontSize: hep ? 16 : 20 }}>ETP · quản lý camp</h1>
         <span title={`kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`} style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hep ? `đồng bộ ${vn(du.dongBo?.xong ?? null)}` : `kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`}{du.dongBo?.loi ? ` · lỗi: ${du.dongBo.loi.slice(0, 80)}` : ''}</span>
+        {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
         <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}

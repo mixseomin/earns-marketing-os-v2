@@ -226,6 +226,11 @@ const LUAT = [
   { card: 1495, tep: 'apps/web/src/components/etp-view.tsx', co: '<span style={{ color: \'var(--fg-2)\' }}>Người </span><b style={{ fontSize: 14, color: du.nguoi.ngoai', vi: 'dải số gọn khi cuộn ghi người đang xem' },
   { card: 1496, tep: 'apps/web/src/components/ui/chon2.tsx', co: "if (href && (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0)) return;", vi: 'ô chọn: ⌘ / Ctrl / ⇧-click mở tab mới' },
   { card: 1496, tep: 'apps/web/src/components/etp-view.tsx', co: 'href={(v) => urlNguoi(v).href}', vi: 'ô Người ⌘ / Ctrl-click mở tab mới' },
+  { card: 1497, tep: 'apps/web/src/lib/actions/etp-lam-moi.ts', co: "execFile('systemctl', ['start', '--no-block', 'etp-dong-bo.service']", vi: 'nút Làm mới chạy đúng unit đồng bộ (systemd gộp lượt đang chạy, không chạy song song)' },
+  { card: 1497, tep: 'apps/web/src/components/etp-view.tsx', mot: '{chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}', vi: 'nút Làm mới cạnh dòng "đồng bộ HH:MM", một chỗ' },
+  { card: 1497, tep: 'apps/web/src/components/etp-view.tsx', co: 'if (lanNay > cho.lan || Date.now() - cho.tu > 600_000)', vi: 'chờ tới khi kho có lượt đồng bộ mới hơn lúc bấm mới thôi đọc lại' },
+  { card: 1498, tep: 'apps/web/src/components/etp-view.tsx', co: "{hep ? <O0 v={roi(sx)} t={`${t} — tổng các camp đang hiện`}", vi: 'điện thoại: ROI tổng nằm trong dòng tiêu đề dính, không thêm hàng dính' },
+  { card: 1498, tep: 'apps/web/src/components/etp-view.tsx', co: 'Tổng {phim.length} phim · $', vi: 'điện thoại: ô đầu dòng tiêu đề ghi số phim + ngân sách đang bật' },
   // anh 01/11/2026 "việc này quan trọng, fix ngay" (#70177: 15 dòng lỗi giống hệt): nhật ký máy một đường ghi, chặn dòng lỗi lặp; kho khoá NULL bằng nhau
   { card: 0, tep: 'apps/etp/nhat_ky.py', co: "where ten = 'ethopex_nhat_ky' and not {lap}", vi: 'nhật ký studio: dòng lỗi trùng trong 24 giờ không ghi lại' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', cam: "jsonb_build_array('{v}'::jsonb)", vi: 'lam-ethopex ghi nhật ký qua nhat_ky.ghi, không tự chép câu update' },

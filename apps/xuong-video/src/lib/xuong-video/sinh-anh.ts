@@ -130,6 +130,11 @@ export async function sinhMatGoc(db: Db, nhanVatId: number, ben: ('trai' | 'phai
   }
   return { ok: true, data: jobs };
 }
+/** VẼ LẠI một ảnh thật theo phong cách phim: giữ nguyên bố cục, kiến trúc, vật, ánh sáng — đổi chất liệu hình; bỏ người, chữ, biển hiệu. */
+export function promptVeLaiAnhThat(nv: Pick<NhanVat, 'loai' | 'ten' | 'mo_ta'>, kt: KinhThanh): string {
+  const k = docKinhThanh(kt);
+  return `Repaint the reference PHOTOGRAPH as a single frame of the film. KEEP its exact composition, camera position, perspective, architecture, layout of buildings, rails, balconies, doors, furniture, plants, lanterns and time-of-day lighting — this is a real place and must stay recognisable. CHANGE only the rendering: ${phongCachHinh(k.phong_cach) || 'consistent cinematic look'}. Remove all people, readable text, signs, logos and brand names (leave blank shapes). Subject: ${nv.mo_ta}`;
+}
 export async function sinhAnhGoc(db: Db, nhanVatId: number, so = 1): Promise<KqSinh<number>> {
   const loi = (x: string): KqSinh<number> => ({ ok: false, loi: x });
   const r = (await db.execute(sql`SELECT v.*, p.kinh_thanh AS kt FROM xv_nhan_vat v JOIN xv_phim p ON p.id = v.phim_id WHERE v.id = ${nhanVatId}`)) as unknown as Row[];
@@ -140,6 +145,17 @@ export async function sinhAnhGoc(db: Db, nhanVatId: number, so = 1): Promise<KqS
   const chan = chanChuModel(kt.ngon_ngu, { phongCach: kt.phong_cach, anchor: [nv] });
   if (chan) return loi(chan);
   let dau = 0;
+  // Có ẢNH THẬT → VẼ LẠI từng ảnh (lần k dùng ảnh thật thứ (số ảnh gốc đã có + k)): bố cục thật, nét vẽ của phim
+  if (nv.anh_that?.length) {
+    for (let k = 0; k < Math.max(1, Math.min(6, so)); k++) {
+      const that = nv.anh_that[(nv.anh_ref.length + k) % nv.anh_that.length]!;
+      const prompt = promptVeLaiAnhThat(nv, kt);
+      const job = await taoJob(db, { nhan: `Ảnh gốc từ ảnh thật · ${nv.ten}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt, anh_that: that } });
+      await dayViecAnh({ job, model: kt.mo_hinh_anh, prompt, thamChieuUrl: [that], tiLe: nv.loai === 'boi_canh' ? kt.ti_le : '1:1', thuMuc: `anchor/${nhanVatId}` });
+      dau ||= job;
+    }
+    return { ok: true, data: dau };
+  }
   for (let k = 0; k < Math.max(1, Math.min(6, so)); k++) {
     const prompt = promptAnhMau(nv, kt, nv.anh_ref.length + k);
     const job = await taoJob(db, { nhan: `Ảnh gốc · ${nv.ten}${so > 1 ? ` · góc ${k + 1}/${so}` : ''}`, nhan_vat_id: nhanVatId, loai: 'anh', provider: 'google', model: kt.mo_hinh_anh, request: { prompt } });

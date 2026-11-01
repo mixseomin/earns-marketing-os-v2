@@ -468,6 +468,7 @@ export type KhungXam = { ma: string; /** 'song' = đo trên 3D sống (do-3d-son
 export type VatThay = { ten: string; /** khối là NGƯỜI (nhân vật / người phụ của set) — prompt đếm số người */ nguoi?: boolean; /** tên tiếng Anh cho prompt (vat.en) — mô hình ảnh không hiểu 'Mặt bàn', 'Tường phải' */ en?: string; /** trạng thái lúc dựng (đã chia mảnh…) — nhãn keyframe nói rõ, không để model vẽ theo ảnh mẫu nguyên vẹn */ trang?: string; pt: number; hop: [number, number, number, number]; tien: boolean };
 export type GiongThu = { model: string; voice: string; url: string; cau: string; luc: string };
 export type NhanVat = { id: number; phim_id: number; loai: LoaiNhanVat; ten: string; mo_ta: string;
+  /** ẢNH THẬT của nơi / vật (anh 01/11/2026: "phố đường tàu phải sinh dựa vào ảnh thực") — ảnh gốc sinh bằng cách VẼ LẠI từng ảnh theo phong cách phim, giữ bố cục; KHÔNG vào anh_ref (keyframe không bị kéo về ảnh chụp). Nguồn + giấy phép: tham-khao/… nguon.json */ anh_that?: string[];
   /** tiểu sử (nhân vật): nguồn gốc, tính cách, sức mạnh, điểm yếu, mong muốn, nỗi sợ, quan hệ, bí mật — chỉ vào ngữ cảnh viết kịch bản, không vào prompt hình */
   tieu_su?: string;
   /** bộ âm hiệu cố định (phim không lời): âm đặc trưng, vui, sợ… — làm một lần, mọi tập dùng lại */

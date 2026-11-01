@@ -1,0 +1,16 @@
+{
+ "phim": 1156,
+ "goc_anh": "tham-khao/pho/duong_tau",
+ "khu": [
+  { "id": 749, "ten": "Phố đường tàu · ngõ quán ban ngày", "loai": "boi_canh", "so_ve": 1, "anh": ["02-commons.jpg"],
+    "mo_ta": "Hanoi Train Street by day: a single curving railway track running between two rows of narrow colorful tube houses, red and orange shopfronts, green roller shutters, tiny balconies overflowing with plants, hanging paper lanterns, low plastic stools and small tables right at the edge of the rail, empty of people." },
+  { "ten": "Phố đường tàu · tàu vào phố", "loai": "boi_canh", "so_ve": 2, "anh": ["06-commons.jpg", "11-commons.jpg"],
+    "mo_ta": "Hanoi Train Street as the diesel train arrives: the locomotive filling the narrow street between tube houses, its sides inches from the shop awnings, balconies with plants and lanterns above, stools pulled back against the walls." },
+  { "ten": "Phố đường tàu · dãy quán đông khách", "loai": "boi_canh", "so_ve": 1, "anh": ["16-unsplash.jpg"],
+    "mo_ta": "Hanoi Train Street café row in the late afternoon: rows of low plastic stools and small tables crowding both sides of the rail, strings of warm yellow lanterns overhead, café fronts open onto the track." },
+  { "ten": "Phố đường tàu · khúc nhà dân ban đêm", "loai": "boi_canh", "so_ve": 2, "anh": ["13-commons.jpg", "14-commons.jpg"],
+    "mo_ta": "The quiet residential stretch of Hanoi Train Street at night: houses opening directly onto the wet rails, a small rice stall with stools by a doorway, plants in pots, a single warm lamp, the headlight of an approaching train far down the track." },
+  { "ten": "Bàn cà phê sát ray", "loai": "cau_kien", "so_ve": 1, "anh": ["05-commons.jpg"],
+    "mo_ta": "A tiny round wooden café table fixed to a wall right beside the railway, a cup of Vietnamese egg coffee and a small chili sauce bottle on it, red stools, the rail running past inches away." }
+ ]
+}

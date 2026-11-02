@@ -277,7 +277,6 @@ if (KENH.may) { let namCanh = null; for (const c of tap.cau) { namCanh = c.canh.
   if (tr.tim_that && tr.commons && tr.tim_nam !== namCanh) { delete tr.commons; delete tr.commons_url; tr.tim_that = false; }
   if (tr.commons || tr.tim_that) continue; tr.tim_that = true; tr.tim_nam = namCanh;
   const t = await timAnhThat(cumTranh(tr), namCanh, tr.mo_ta); if (t) { console.log(`✓ ảnh thật cho tranh "${(tr.mo_ta || '').slice(0, 50)}…": ${t} (Ngọc duyệt)`); tr.commons = t; tr.ngoc_ok = t; delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; } } }
-if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons)) console.log('⚠ tập không có ảnh lịch sử thật nào — Phòng Nội dung sẽ chặn (nen_url trống)');
 // đã có ảnh chỉ khi TỆP còn thật (tệp ghi trong tập mà đã mất / hỏng thì tải lại — không tin dòng ghi)
 // TỆP GẮN ĐÚNG ẢNH (02/11/2026, Alaska: đổi ảnh Commons mà tệp tên cố định "<tập>-<cảnh>-c.jpg" còn nằm đó → máy không tải ảnh mới, video + thumbnail vẫn
 // là ảnh sai): tên tệp Commons mang dấu của chính tệp Commons; tệp ghi trong tập không khớp ảnh đang chọn (hoặc là tệp Commons mà tranh không còn Commons) thì bỏ.
@@ -305,6 +304,26 @@ for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr) cont
   const lop = existsSync(join(lopDir, 'lop.json')) ? JSON.parse(readFileSync(join(lopDir, 'lop.json'), 'utf8')) : [];
   tr.anh = `${ten}.jpg`; tr.lia ??= k % 2 ? 20 : -24;
   if (lop[0]) { copyFileSync(join(lopDir, 'lop-0.png'), join(KHO, `${ten}-lop.png`)); writeFileSync(join(KHO, `${ten}-lop.json`), JSON.stringify(lop[0])); tr.lop = `${ten}-lop.png`; tr.lop_hop_tep = `${ten}-lop.json`; } }
+writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
+// ẢNH BÌA THẬT — LƯỚI CUỐI (03/11/2026, tập Constantinople: không tranh nào có ảnh Commons qua được lọc tên + năm + Ngọc → thumbnail hỏng, Phòng Nội dung chặn):
+// lấy ẢNH CHÍNH của bài Wikipedia nguồn (pageimages — luôn là ảnh / tranh thật của chính chuyện), Ngọc xét với chủ đề tập, tải về → tap.anh_bia
+// (nền thumbnail + ảnh thật của bài đăng). Đã có thì dùng lại.
+if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons && c.canh.tranh?.anh) && !(tap.anh_bia?.anh && existsSync(join(KHO, tap.anh_bia.anh)))) {
+  for (const u of tap.nguon ?? []) {
+    const tua = decodeURIComponent(u.split('/wiki/')[1] || '').replace(/_/g, ' '), lang = (u.match(/\/\/(\w+)\.wikipedia/) || [])[1] || 'en'; if (!tua) continue;
+    const r = await (await tai(`https://${lang}.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', prop: 'pageimages', piprop: 'name', titles: tua, redirects: '1', format: 'json', formatversion: '2' })}`)).json();
+    const pi = r.query?.pages?.[0]?.pageimage; if (!pi || !/\.(jpe?g|png)$/i.test(pi)) continue;
+    const tep = `File:${pi.replace(/_/g, ' ')}`; xetConLai = 1;
+    if (!(await ngocDuyetAnh(tep, tap.chu_de, null))) continue;
+    const c = await commons(tep); if (!c?.thumb) continue;
+    const f = join(KHO, 'tranh', `${id}-bia-${dauCommons(tep)}.jpg`);
+    for (const uu of [c.thumb.replace(/\/\d+px-/, '/1600px-'), c.thumb]) { const rr = await tai(uu); if (rr.ok && /^image\//.test(rr.headers.get('content-type') || '')) { writeFileSync(f, Buffer.from(await rr.arrayBuffer())); break; } }
+    if (!existsSync(f)) continue;
+    tap.anh_bia = { commons: tep, commons_url: c.thumb, commons_trang: c.trang, anh: `tranh/${id}-bia-${dauCommons(tep)}.jpg`, tu: tua };
+    console.log(`✓ ảnh bìa thật (ảnh chính bài "${tua}"): ${tep} (Ngọc duyệt)`); break;
+  }
+}
+if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons) && !tap.anh_bia) console.log('⚠ tập không có ảnh lịch sử thật nào — Phòng Nội dung sẽ chặn (nen_url trống)');
 writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
 if (tien) console.log(`tiền kho + tranh lượt này ~${tien}₫`);
 
@@ -353,7 +372,7 @@ buoc('đẩy Studio');
   buoc('nạp máy đăng');
   // 6. MÁY ĐĂNG: kênh có máy Studio → tập thành một video của máy (mẫu video-ngoai: URL R2 + 3 khung), Phòng Nội dung chấm rồi máy đăng chung tự đăng theo nhịp
   if (KENH.may && kq) try {
-    const anhThat = tap.cau.map((c) => c.canh.tranh?.commons_url).filter(Boolean);
+    const anhThat = [...tap.cau.map((c) => c.canh.tranh?.commons_url), tap.anh_bia?.commons_url].filter(Boolean);
     const moTa = `${tap.mo_ta_dang}${anhThat.length ? '\n\nImages: Wikimedia Commons (public domain). Maps: Natural Earth.' : ''}`;
     const nap = [{ slug: id, chu_de: tap.chu_de, mau: 'video-ngoai', nen_url: anhThat[0] ?? null,
       de: { loai: 'video-ngoai', video_url: kq.url, giay: Math.round(giay * 100) / 100, khung: kq.khung ?? [], soat: kq.soat ?? [], tom_tat: tap.chu_de, thumb: tap.thumb?.url ? { url: tap.thumb.url, chu: tap.thumb.chu, nguon: tap.thumb.commons ?? null } : null },

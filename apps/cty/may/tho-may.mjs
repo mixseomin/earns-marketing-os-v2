@@ -33,7 +33,7 @@ const log = (s) => console.log(`${new Date().toISOString()} ${s}`);
 
 const [chinh, soul] = box(`cat ${DATA}/nhip-chinh.json 2>/dev/null || echo {}; echo '@@'; grep -m1 '^model:' ${APP}/cong-ty/nhan-su/${NGUOI}/SOUL.md`).split('@@');
 if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log('Mạnh đang tắt'); process.exit(0); }
-const model = (soul.match(/claude-code:([\w.-]+)/) || [])[1] || 'sonnet';
+const model = (soul.match(/claude-code:([\w.-]+)/) || [])[1] || 'sonnet', effort = (soul.match(/effort:(low|medium|high|max)\b/) || [])[1] || null;   // effort: anh 03/11/2026 (Opus 4.8 medium)
 const r0 = JSON.parse(thu ? box(`cd ${APP} && CTY_DATA_DIR=${DATA} node -e "const s=require('fs').existsSync('${DATA}/tho-may.json')?JSON.parse(require('fs').readFileSync('${DATA}/tho-may.json','utf8')):{hang:[]};const v=(s.hang||[]).find(x=>x.tt==='cho');console.log(JSON.stringify(v?{viec:v}:{ly_do:'không có việc'}))"`) : viec('--lay'));
 if (!r0.viec) { log(`không nhận việc: ${r0.ly_do}`); process.exit(0); }
 const v = r0.viec, chu = v.chu.replace(/<[^>]+>/g, ''), laDang = v.khoa.startsWith('dang:'), laKenh = v.khoa.startsWith('kenh:');
@@ -130,15 +130,15 @@ lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit) · chạy lại 
 const loiGiao = laDang ? giaoDang : laKenh ? giaoKenh : giao, quyen = laDang ? QUYEN_DANG : laKenh ? QUYEN_KENH : QUYEN, noiChay = laDang ? DANG : laKenh ? MOS2 : REPO;
 if (thu) { console.log(loiGiao); process.exit(0); }
 try { viec(`--nhan ${v.id}`); } catch (e) { log(`báo nhận lỗi: ${e.message.split('\n')[0]}`); }
-log(`nhận việc #${v.id} ${v.khoa} · model ${model}`);
+log(`nhận việc #${v.id} ${v.khoa} · model ${model}${effort ? ` · effort ${effort}` : ''}`);
 const truoc = git('rev-parse', 'HEAD');
-const r = spawnSync(CLAUDE, ['-p', loiGiao, '--model', model, '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...quyen, '--disallowedTools', ...CAM],
+const r = spawnSync(CLAUDE, ['-p', loiGiao, '--model', model, ...(effort ? ['--effort', effort] : []), '--output-format', 'json', '--setting-sources', 'project,local', '--allowedTools', ...quyen, '--disallowedTools', ...CAM],
   { cwd: noiChay, encoding: 'utf8', timeout: TRAN_PHUT * 60000, maxBuffer: 64 << 20, env: ENV });
 let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng / hết giờ */ }
 const ra = String(kq.result || '').trim(), ketDong = (ra.match(/^\s*\**KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)\b.*$/gim) || []).pop();
 const ket = ketDong ? ketDong.match(/DA_SUA|KHONG_SUA|CAN_ANH/i)[0].toLowerCase() : (r.signal || r.error ? 'treo' : 'khong_sua');
 const sau = git('rev-parse', 'HEAD'), commit = sau === truoc ? '' : git('log', '--format=%h %s', `${truoc}..${sau}`).split('\n').slice(0, 5).join('\n');
 const than = (ra.replace(/^\s*\**KET:.*$/gim, '').trim().split('\n').slice(-8).join('\n') || `Claude thoát ${r.status ?? r.signal} không kèm báo cáo (${String(r.stderr || r.error?.message || '').slice(0, 200)})`)
-  + (commit ? `\n\nCommit:\n${commit}` : '') + `\n(${kq.num_turns ?? '?'} lượt · ${Math.round((kq.duration_ms || 0) / 6e4)} phút · ${model})`;
+  + (commit ? `\n\nCommit:\n${commit}` : '') + `\n(${kq.num_turns ?? '?'} lượt · ${Math.round((kq.duration_ms || 0) / 6e4)} phút · ${model}${effort ? ` ${effort}` : ''})`;
 log(`xong #${v.id}: ${ket} · commit ${commit ? sau.slice(0, 8) : 'không'} · ${kq.num_turns ?? '?'} lượt`);
 viec(`--bao ${v.id} ${ket === 'treo' ? 'treo' : ket}`, than);

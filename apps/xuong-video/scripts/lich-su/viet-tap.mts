@@ -106,6 +106,8 @@ if (process.argv.includes('--chi-thumb')) {
   if (!cuTap) { console.error('--chi-thumb cần --cu <tập.json>'); process.exit(2); }
   const cu = cuTap as unknown as { tieu_de: string; chu_de: string; cau: { chu: string; canh?: { tranh?: { anh?: string; commons?: string; mo_ta?: string } } }[] };
   const anh = cu.cau.map((c) => c.canh?.tranh).filter((t): t is { anh: string; commons: string; mo_ta?: string } => !!t?.anh && !!t?.commons);
+  // ảnh bìa thật (ảnh chính bài Wikipedia nguồn — lam-tap lưới cuối khi không tranh nào có ảnh Commons) cũng là ứng viên nền
+  const bia = (cuTap as unknown as { anh_bia?: { anh: string; commons: string } }).anh_bia; if (bia?.anh && bia.commons) anh.push({ anh: bia.anh, commons: bia.commons, mo_ta: 'ảnh chính của bài Wikipedia nguồn' });
   if (!anh.length) { console.error('tập chưa có ảnh thật (tranh.commons) để làm nền thumbnail'); process.exit(3); }
   const Th = z.object({ chu: z.string().describe(`chữ to trên thumbnail, 2–4 TỪ, VIẾT HOA, ${nn === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'}, KHÔNG lặp lại tiêu đề mà nói phần tiêu đề chưa nói (con số sốc / lời phán / câu hỏi bỏ ngỏ), giọng lá cải hài của kênh, không gạch dài, không dấu chấm`),
     phu: z.string().describe(`dòng nhỏ kiểu tít báo lá cải ≤ 5 từ, VIẾT HOA (vd "SHOCKING DEAL", "EXCLUSIVE"), ${nn === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'}`),

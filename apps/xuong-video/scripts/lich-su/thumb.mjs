@@ -24,6 +24,7 @@ const RA = join(KHO, id); mkdirSync(RA, { recursive: true });
 // 1. CHỮ
 // ảnh nền thumbnail phải còn là ảnh Commons đang dùng trong tập (đổi ảnh tranh → chọn lại, kẻo thumbnail giữ ảnh đã bị loại — Alaska 02/11/2026)
 const anhTap = new Map(tap.cau.map((c) => c.canh?.tranh).filter((t) => t?.anh && t?.commons).map((t) => [t.commons, t.anh]));
+if (tap.anh_bia?.anh && tap.anh_bia.commons) anhTap.set(tap.anh_bia.commons, tap.anh_bia.anh);   // ảnh bìa thật (lam-tap lưới cuối)
 if (tap.thumb?.commons && anhTap.get(tap.thumb.commons) !== tap.thumb.anh) { console.log(`· ảnh nền thumbnail cũ (${tap.thumb.commons}) không còn trong tập — viết lại`); delete tap.thumb; }
 if (!tap.thumb?.chu || co('viet-lai')) {
   const tmp = `/var/tmp/thumb-${id}`; execFileSync('ssh', [BOX, `rm -rf ${tmp} && mkdir -p ${tmp}`]); len(tepTap, `${tmp}/tap.json`);

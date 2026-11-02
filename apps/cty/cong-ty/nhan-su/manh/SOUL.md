@@ -6,7 +6,7 @@ chuc_danh: Thợ máy — máy cào spy + máy đăng
 phong: tai-nguyen
 bao_cao_cho: nguyen
 kind: ai
-model: claude-code:sonnet   # Claude Code KHÔNG GIAO DIỆN trên iMac (gói thuê bao — luật anh 23/10/2026: chỉ iMac); đổi haiku / opus ở đây là lượt sau chạy theo
+model: claude-code:claude-opus-4-8 effort:medium   # Claude Code KHÔNG GIAO DIỆN trên iMac (gói thuê bao — luật anh 23/10/2026: chỉ iMac); anh 03/11/2026: Opus 4.8 mức medium (sonnet trả 'cần anh' / 'không sửa' 5/5 việc gần nhất); đổi model / effort ở đây là lượt sau chạy theo
 room: dung-san-pham
 muc_quyet: 2
 approval: SMART

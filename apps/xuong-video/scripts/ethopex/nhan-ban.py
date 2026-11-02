@@ -97,6 +97,9 @@ def trang_chua_san(content_id, tk):
     ws, thieu = r.split("|", 1)
     if thieu and nha_ == "t" and ("mô tả" in thieu or "cốt truyện" in thieu) and dien_trang(ws):
         # TỰ ĐIỀN MÔ TẢ / CỐT TRUYỆN (anh 03/11/2026 — bản gốc thư viện không có mô tả thì Ethopex không tự sinh cho bản workspace): từ tóm tắt của phim, $0
+        # PUT lưu được = trang đủ ngay → chỉ thiếu 2 trường đó thì lên camp luôn, không chờ lượt đồng bộ (03/11/2026: 5 phim lô pm-03110155 nằm chờ vô ích)
+        con = [x.strip() for x in thieu.split(",") if x.strip() and x.strip() not in ("mô tả", "cốt truyện")]
+        if not con: return None
         return f"trang phim {content_id} (bản workspace #{ws}) vừa được máy điền mô tả + cốt truyện từ tóm tắt — chờ đồng bộ trang phim rồi lên camp ở lượt sau"
     return f"trang phim {content_id} (bản workspace #{ws} của {ng_ten}) còn thiếu: {thieu} — mở lại trên Ethopex cho máy sinh / sửa rồi mới lên camp" if thieu else None
 

@@ -407,6 +407,7 @@ const LUAT = [
   { card: 'cham-0311', tep: 'packages/db/migrations/0412_etp_tieu_chi_kien_robot.sql', co: 'robots, mecha, armor or sci-fi machines fighting each other', vi: 'robot/mecha đánh nhau không máu không phải bạo lực (Mech King)' },
   { card: 'cham-0311', tep: 'packages/db/migrations/0412_etp_tieu_chi_kien_robot.sql', co: 'only in the LAST ~5 seconds a dark box near the bottom shows the drama title', vi: 'tiêu chí CTA chấm mẫu Kiên = 10 (anh 03/11/2026)' },
   { card: 'ws-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'and ("mô tả" in thieu or "cốt truyện" in thieu) and dien_trang(ws):', vi: 'trang phim Nhà thiếu mô tả / cốt truyện thì máy tự điền từ tóm tắt ($0) thay vì chặn chờ (03/11/2026)' },
+  { card: 'trang-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if not con: return None', vi: 'điền mô tả / cốt truyện xong mà không thiếu gì khác thì lên camp luôn, không chờ đồng bộ (03/11/2026)' },
   { card: 'nha-0311', tep: 'apps/xuong-video/scripts/ethopex/phim-moi.py', co: 'python3 apps/etp/soat_18_ai.py {', vi: 'lô cắt phim mới soát poster 18+ trước khi cắt, phim cấm thay bằng phim kế' },
   { card: 'nha-0311', tep: 'apps/xuong-video/scripts/ethopex/kiem-phim-18.py', co: 'def nha_phim_cam(cid):', vi: 'phim bị cấm 18+ tự nhả nhận (anh 03/11/2026)' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: "bat_dau < now() - interval '1 hour'", vi: 'thợ chết: việc dang quá 1 giờ thì xếp lại' },

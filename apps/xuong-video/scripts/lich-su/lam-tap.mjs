@@ -83,7 +83,16 @@ async function tuSua(tap) { const kho = docKho().tai_san, ghi = [];
   const tsAll = { ...docKho().tai_san, ...Object.fromEntries((tap.tai_san_moi || []).map((t) => [t.id, t])) }; let nam = null;
   tap.cau.forEach((c, k) => { nam = c.canh.nam ?? nam; const ns = [nam, c.canh.nam_sau?.nam ?? nam].filter((v) => v != null);
     c.canh.co = (c.canh.co || []).filter((m) => { const t = tsAll[m.anh]; const ok = !t || !ns.length || ns.some((v) => v >= t.tu && v <= t.den); if (!ok) ghi.push(`câu ${k + 1}: gỡ cờ ${m.anh} (${t.tu}–${t.den}) khỏi năm ${ns.join('→')}`); return ok; }); });
-  if (ghi.length) { writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n'); console.log(`máy tự sửa: ${ghi.join(' · ')}`); } return tap; }
+  // THÀNH PHỐ KHÔNG CÓ TRONG NATURAL EARTH ("@Hue", "@Otranto" — 03/11/2026 lặp 2 tập, máy viết sửa mãi không xong): máy tự đổi thành toạ độ "lon,lat" lấy từ
+  // Wikipedia (prop=coordinates); không tìm được thì để nguyên cho máy viết sửa như cũ
+  const toaDo = new Map(), doi = async (v) => { if (typeof v !== 'string' || !v.startsWith('@') || TP.has(chuan(v.slice(1)))) return v;
+    const ten = v.slice(1); if (!toaDo.has(ten)) { let ra = null; try { const r = await (await tai(`https://en.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', prop: 'coordinates', titles: ten, redirects: '1', format: 'json', formatversion: '2' })}`)).json();
+      const c = r.query?.pages?.[0]?.coordinates?.[0]; if (c) ra = `${Math.round(c.lon * 100) / 100},${Math.round(c.lat * 100) / 100}`; } catch { /* để máy viết sửa */ } toaDo.set(ten, ra); }
+    const ra = toaDo.get(ten); if (ra) ghi.push(`thành phố ${ten} → toạ độ ${ra}`); return ra ?? v; };
+  const duyet = async (o) => { if (Array.isArray(o)) { for (let i = 0; i < o.length; i++) o[i] = typeof o[i] === 'object' && o[i] ? (await duyet(o[i]), o[i]) : await doi(o[i]); return; }
+    for (const [k, v] of Object.entries(o)) { if (v && typeof v === 'object') await duyet(v); else o[k] = await doi(v); } };
+  for (const c of tap.cau) await duyet(c.canh);
+  if (ghi.length) { writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n'); console.log(`máy tự sửa: ${[...new Set(ghi)].join(' · ')}`); } return tap; }
 async function kiem(tap, nguonChu) {
   const loi = [], kho = docKho().tai_san, moi = Object.fromEntries((tap.tai_san_moi || []).map((t) => [t.id, t])), nguonP = phang(nguonChu);
   const ds = tap.cau, tu = ds.map((c) => c.chu).join(' ').split(/\s+/).length, [t0, t1] = KENH.tu[nn] ?? KENH.tu.en, coMoc = !!KENH.cau_cuoi;

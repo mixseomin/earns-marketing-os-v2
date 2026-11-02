@@ -62,6 +62,13 @@ for (const [k, K] of Object.entries(KENH)) {
     bao.push(hong ? `⚠ tự làm lại tập ${t.id} (lần ${td.lan + 1}/3) hỏng: ${t2.tu_dong.loi}${t2.tu_dong.tho ? '\n🔧 đã giao Mạnh (thợ máy) tìm gốc + sửa' : ''}` : `✓ tự làm lại tập ${t.id} (${st ? `Phòng Nội dung: ${st.ket ?? 'chưa xuất'}` : 'chưa nạp'}) → đã nạp lại, chờ chấm`);
     break;   // một tập mỗi lượt — lượt giờ sau làm tập kế
   }
+  // TẬP ĐANG DỞ lên bảng mos2 (anh 03/11/2026: "không thấy phim đang làm đâu cả" — tập chưa nạp máy đăng không nằm trong "Đã làm", giữa hai lượt chạy thì biến mất):
+  // mỗi lượt ghi xv_may.nguon.tap_cho = tập của kênh trong 10 ngày chưa nạp (id · chủ đề · số lần tự làm lại · lỗi gần nhất · đã giao thợ máy chưa)
+  { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`, daNap = new Set(sqlBox(`SELECT coalesce(string_agg(v.slug, ','), '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)};`).split(',').filter(Boolean));
+    const cho = readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json')).map((f) => join(DIR, 'tap', f)).filter((f) => Date.now() - statSync(f).mtimeMs < 10 * 86_400_000)
+      .map((f) => JSON.parse(readFileSync(f, 'utf8'))).filter((t) => (t.kenh ?? 'saga') === k && t.id && !daNap.has(t.id))
+      .map((t) => ({ id: t.id, chu_de: t.chu_de ?? null, cau: t.cau?.length ?? 0, lan: t.tu_dong?.lan ?? 0, loi: t.tu_dong?.loi ?? null, tho: t.tu_dong?.tho ?? null }));
+    try { sqlBox(`UPDATE xv_may SET nguon = jsonb_set(coalesce(nguon, '{}'::jsonb), '{tap_cho}', ${q1(JSON.stringify(cho))}::jsonb) WHERE ma = ${q1(K.may)};`); } catch { /* phụ */ } }
   // việc nền chạy MỖI GIỜ (02/11/2026 anh: đo kênh tần suất cao hơn) → làm tập chỉ từ gio_tap trở đi của ngày lịch; khoá ~/.cache/lich-su-<k>.khoa (pid) chống lượt chồng
   const gioNay = new Date().toLocaleTimeString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
   const khoa = join(homedir(), '.cache', `lich-su-${k}.khoa`), dangChay = (() => { try { process.kill(Number(readFileSync(khoa, 'utf8')), 0); return true; } catch { return false; } })();

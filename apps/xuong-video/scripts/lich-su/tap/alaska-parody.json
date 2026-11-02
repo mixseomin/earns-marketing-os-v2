@@ -1,7 +1,7 @@
 {
  "id": "alaska-parody",
  "kenh": "parody",
- "tieu_de": "Why did Russia sell Alaska for two cents an acre?",
+ "tieu_de": "The History \"Facts\" You Were Never Supposed to Question About Alaska",
  "ngon_ngu": "en",
  "chu_de": "How Russia sold Alaska to the United States for two cents an acre, and how Seward's Folly became the 49th state",
  "giong": {
@@ -600,7 +600,15 @@
       "william_seward",
       "eduard_de_stoeckl"
      ],
-     "anh": null
+     "lia": -24,
+     "tim_that": true,
+     "tim_nam": 1867,
+     "commons": "File:CRAFTS (1868) p1.086 WILLIAM H. SEWARD.jpg",
+     "commons_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/30/CRAFTS_%281868%29_p1.086_WILLIAM_H._SEWARD.jpg/960px-CRAFTS_%281868%29_p1.086_WILLIAM_H._SEWARD.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "commons_trang": "https://commons.wikimedia.org/wiki/File:CRAFTS_(1868)_p1.086_WILLIAM_H._SEWARD.jpg",
+     "anh": "tranh/alaska-parody-15-c-de2a1a55.jpg",
+     "lop": "tranh/alaska-parody-15-c-de2a1a55-lop.png",
+     "lop_hop_tep": "tranh/alaska-parody-15-c-de2a1a55-lop.json"
     }
    }
   },
@@ -838,7 +846,13 @@
      "ref": [
       "russian_soldier"
      ],
-     "anh": null
+     "lia": -24,
+     "commons_trang": "https://commons.wikimedia.org/wiki/File:Russian_Ground_Forces_Iveco_LMV.jpg",
+     "lop": "tranh/alaska-parody-21-lop.png",
+     "lop_hop_tep": "tranh/alaska-parody-21-lop.json",
+     "tim_that": true,
+     "tim_nam": 1867,
+     "anh": "tranh/alaska-parody-21.jpg"
     }
    }
   },
@@ -1375,5 +1389,28 @@
    "que": null,
    "commons": "File:US flag 49 stars.svg"
   }
- ]
+ ],
+ "hook": {
+  "qc": "yt:QCZLbCW3OMs",
+  "goc": "The History “Facts” You Were Never Supposed to Question"
+ },
+ "goc": {
+  "sp": 2680,
+  "id": 66906,
+  "loai": "ai_tinh_huong",
+  "ten": "Học viên đang theo lớp học"
+ },
+ "mo_ta_dang": "Two cents an acre, a flag that refused to come down, and a nickname that stuck for a century. Everyone knows Seward's Folly, but almost nobody knows what the icebox was actually hiding at the back. The real story involves a memo, an all-night signing, and a gold rush that arrived thirty years late to the party.",
+ "thumb": {
+  "chu": "TWO CENTS AN ACRE",
+  "phu": "SHOCKING DEAL",
+  "anh": "tranh/alaska-parody-15-c-de2a1a55.jpg",
+  "commons": "File:CRAFTS (1868) p1.086 WILLIAM H. SEWARD.jpg",
+  "url": "https://img.on.tc/xuong-video/lich-su/tap/alaska-parody/thumb-7987edadb713.jpg",
+  "xet": {
+   "chan": [],
+   "canh": [],
+   "luc": "2026-11-02T14:06:47.371Z"
+  }
+ }
 }

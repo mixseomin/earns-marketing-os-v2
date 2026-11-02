@@ -867,7 +867,17 @@
     "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/hatshepsut/suy_nghi.png"
    },
    "que": "EGY",
-   "tap_dau": "yesterdays-news-tonight-20261102"
+   "tap_dau": "yesterdays-news-tonight-20261102",
+   "huong": {
+    "goc": "thang",
+    "khoanh_tay": "thang",
+    "chi_tay": "phai",
+    "cuoi": "phai",
+    "ngac_nhien": "thang",
+    "noi_mo": "phai",
+    "nam_dam": "phai",
+    "suy_nghi": "thang"
+   }
   },
   "thutmose_ii": {
    "loai": "nhan_vat",
@@ -890,7 +900,13 @@
     "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/thutmose_ii/suy_nghi.png"
    },
    "que": "EGY",
-   "tap_dau": "yesterdays-news-tonight-20261102"
+   "tap_dau": "yesterdays-news-tonight-20261102",
+   "huong": {
+    "goc": "thang",
+    "ngac_nhien": "thang",
+    "suy_nghi": "thang",
+    "cuoi": "thang"
+   }
   },
   "thutmose_iii": {
    "loai": "nhan_vat",
@@ -913,7 +929,13 @@
     "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/thutmose_iii/suy_nghi.png"
    },
    "que": "EGY",
-   "tap_dau": "yesterdays-news-tonight-20261102"
+   "tap_dau": "yesterdays-news-tonight-20261102",
+   "huong": {
+    "goc": "phai",
+    "ngac_nhien": "phai",
+    "suy_nghi": "phai",
+    "chi_tay": "phai"
+   }
   },
   "egyptian_ship": {
    "loai": "phuong_tien",

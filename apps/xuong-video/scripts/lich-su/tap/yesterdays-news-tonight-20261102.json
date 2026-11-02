@@ -526,14 +526,20 @@
      }
     ],
     "tranh": {
-     "commons": null,
+     "commons": "File:Sphinx of Hatshepsut c.jpg",
      "mo_ta": "Illustrated scene of the female pharaoh Hatshepsut seated on a throne in a New Kingdom Egyptian palace hall, wearing a blue and gold striped nemes headcloth with a golden uraeus cobra, a white pleated shendyt kilt, a wide beaded gold collar and a long braided false ceremonial beard, with a carved granite statue of her in the same pose behind her",
      "tu_chu": "statues",
      "den_chu": "horns",
      "ref": [
       "hatshepsut"
      ],
-     "anh": null
+     "lia": -24,
+     "tim_that": true,
+     "commons_url": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Sphinx_of_Hatshepsut_c.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+     "commons_trang": "https://commons.wikimedia.org/wiki/File:Sphinx_of_Hatshepsut_c.jpg",
+     "anh": "tranh/yesterdays-news-tonight-20261102-13-c.jpg",
+     "lop": "tranh/yesterdays-news-tonight-20261102-13-c-lop.png",
+     "lop_hop_tep": "tranh/yesterdays-news-tonight-20261102-13-c-lop.json"
     }
    }
   },
@@ -635,12 +641,18 @@
      }
     ],
     "tranh": {
-     "commons": null,
+     "commons": "File:Red Sea Sunrise BWP.jpg",
      "mo_ta": "Painted illustration of an ancient Egyptian trading ship sailing home across the Red Sea, deck crowded with live myrrh trees in woven baskets and sacks of frankincense resin, sailors pulling ropes under a striped linen sail, New Kingdom era",
      "tu_chu": "returned",
      "den_chu": "frankincense",
      "ref": [],
-     "anh": null
+     "lia": 20,
+     "tim_that": true,
+     "commons_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/94/Red_Sea_Sunrise_BWP.jpg/960px-Red_Sea_Sunrise_BWP.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "commons_trang": "https://commons.wikimedia.org/wiki/File:Red_Sea_Sunrise_BWP.jpg",
+     "anh": "tranh/yesterdays-news-tonight-20261102-16-c.jpg",
+     "lop": "tranh/yesterdays-news-tonight-20261102-16-c-lop.png",
+     "lop_hop_tep": "tranh/yesterdays-news-tonight-20261102-16-c-lop.json"
     }
    }
   },
@@ -992,12 +1004,18 @@
      }
     ],
     "tranh": {
-     "commons": null,
+     "commons": "File:Templo funerario de Hatshepsut, Valle de las Reyes, Luxor, Egipto, 2022-04-03, DD 118.jpg",
      "mo_ta": "Wide cinematic illustration of the Mortuary Temple of Hatshepsut at Deir el-Bahari: three tiers of pillared terraces joined by long ramps, built against steep golden limestone cliffs above the Nile valley, bright desert light",
      "tu_chu": "mortuary",
      "den_chu": "architecture",
      "ref": [],
-     "anh": null
+     "lia": -24,
+     "tim_that": true,
+     "commons_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/47/Templo_funerario_de_Hatshepsut%2C_Valle_de_las_Reyes%2C_Luxor%2C_Egipto%2C_2022-04-03%2C_DD_118.jpg/960px-Templo_funerario_de_Hatshepsut%2C_Valle_de_las_Reyes%2C_Luxor%2C_Egipto%2C_2022-04-03%2C_DD_118.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+     "commons_trang": "https://commons.wikimedia.org/wiki/File:Templo_funerario_de_Hatshepsut,_Valle_de_las_Reyes,_Luxor,_Egipto,_2022-04-03,_DD_118.jpg",
+     "anh": "tranh/yesterdays-news-tonight-20261102-29-c.jpg",
+     "lop": "tranh/yesterdays-news-tonight-20261102-29-c-lop.png",
+     "lop_hop_tep": "tranh/yesterdays-news-tonight-20261102-29-c-lop.json"
     }
    }
   },
@@ -1088,5 +1106,17 @@
    "que": null,
    "commons": null
   }
- ]
+ ],
+ "thumb": {
+  "chu": "PHARAOH OR WOMAN?",
+  "phu": "BOTH, APPARENTLY",
+  "anh": "tranh/yesterdays-news-tonight-20261102-13-c.jpg",
+  "commons": "File:Sphinx of Hatshepsut c.jpg",
+  "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-20261102/thumb-b583566669ac.jpg",
+  "xet": {
+   "chan": [],
+   "canh": [],
+   "luc": "2026-11-02T11:02:51.304Z"
+  }
+ }
 }

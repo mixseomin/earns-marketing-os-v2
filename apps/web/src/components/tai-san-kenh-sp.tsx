@@ -46,7 +46,8 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   const [moUrl, datMoUrl] = useShallowParam('kenh_mo', '');
   // TRỰC TIẾP: có tập đang trong lò (lam-tap ghi bước) → làm mới bảng 15 giây/lần; không có thì đứng yên
   const router = useRouter(), coLo = kenh.some((k) => k.ke.dangLam && !k.ke.dangLam.loi);
-  useEffect(() => { if (!coLo) return; const t = setInterval(() => router.refresh(), 15_000); return () => clearInterval(t); }, [coLo, router]);
+  // luôn làm mới (60 giây; 15 giây khi có tập trong lò) — trước chỉ khi lúc mở trang đã có tập chạy → mở trang lúc rảnh thì không bao giờ thấy tập mới bắt đầu
+  useEffect(() => { const t = setInterval(() => router.refresh(), coLo ? 15_000 : 60_000); return () => clearInterval(t); }, [coLo, router]);
   const moCay = new Set(moUrl.split(',').filter(Boolean));
   // từng KHỐI trong cây (Lộ trình / Playlist / Đang sản xuất / Lịch / Đã làm) đóng mở riêng, nhớ trên URL: ?kenh_gap=<mã>:<khối>,…
   const [gapUrl, datGapUrl] = useShallowParam('kenh_gap', '');

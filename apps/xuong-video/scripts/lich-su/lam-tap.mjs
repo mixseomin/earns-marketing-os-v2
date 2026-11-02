@@ -146,7 +146,9 @@ const BUOC = ['gắn hook', 'viết kịch bản', 'kho + ảnh thật', 'Ngọc
 let buocNay = null;
 const sqlQ = (x) => `'${String(x).replace(/'/g, "''")}'`;
 const ghiDangLam = (patch) => { if (!KENH.may) return; try { sqlBox(`UPDATE xv_may SET nguon = jsonb_set(coalesce(nguon, '{}'::jsonb), '{dang_lam}', coalesce(nguon->'dang_lam', jsonb_build_object('id', ${sqlQ(id)}, 'luc', now())) || ${patch}::jsonb) WHERE ma = ${sqlQ(KENH.may)};`); } catch { /* tiến độ là phụ, không làm hỏng lượt */ } };
-const buoc = (ten) => { buocNay = ten; ghiDangLam(sqlQ(JSON.stringify({ id, buoc: ten, so: BUOC.indexOf(ten) + 1, tong: BUOC.length, buoc_luc: new Date().toISOString(), loi: null }))); };
+const buoc = (ten) => { buocNay = ten; ghiDangLam(sqlQ(JSON.stringify({ id, buoc: ten, so: BUOC.indexOf(ten) + 1, tong: BUOC.length, buoc_luc: new Date().toISOString(), loi: null, chi_tiet: null }))); };
+/** chi tiết TRONG bước (anh 03/11/2026: "suốt từ nãy vẫn ở đây" — bước viết 5–15 phút không nhích gì trên bảng): lượt viết k/4, số lỗi kiểm, ảnh k/n… */
+const chiTiet = (chu) => ghiDangLam(sqlQ(JSON.stringify({ chi_tiet: chu, chi_tiet_luc: new Date().toISOString() })));
 process.on('exit', (ma) => { if (!KENH.may || !buocNay) return;
   try { sqlBox(ma ? `UPDATE xv_may SET nguon = jsonb_set(nguon, '{dang_lam,loi}', ${sqlQ(JSON.stringify(`hỏng ở bước ${buocNay} (mã ${ma})`))}::jsonb) WHERE ma = ${sqlQ(KENH.may)} AND nguon->'dang_lam'->>'id' = ${sqlQ(id)};`
     : `UPDATE xv_may SET nguon = nguon - 'dang_lam' WHERE ma = ${sqlQ(KENH.may)} AND nguon->'dang_lam'->>'id' = ${sqlQ(id)};`); } catch { /* bỏ qua */ } });
@@ -187,6 +189,7 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
   if (!chuDe && !ghArg) { console.error('chưa có tập — cần --chu-de (hoặc kênh có máy Studio để chọn đề theo góc)'); process.exit(2); }
   let loi = sua ? await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
   for (let lan = 1; lan <= 4 && !(sua && !loi.length && lan === 1); lan++) {
+    chiTiet(`lượt viết ${lan}/4${loi.length ? ` · lượt trước ${loi.length} lỗi kiểm` : ''} · đang gọi máy viết`);
     const them = loi.length ? ` --loi ${tmp}/loi.txt --cu ${tmp}/tap.json` : '';
     if (loi.length) { writeFileSync(join(RA, 'loi.txt'), loi.map((x) => `- ${x}`).join('\n')); len(join(RA, 'loi.txt'), `${tmp}/loi.txt`); len(tepTap, `${tmp}/tap.json`); }
     try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe && !boDeCu ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTua ? ` --nguon ${q(nguonTua)}` : ''}${them}`)); }
@@ -196,6 +199,7 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     if (suaCanh && khoaLoi() === false) writeFileSync(tepTap, truoc);
     loi = await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8'));
     console.log(loi.length ? `✗ lượt viết ${lan}: ${loi.length} lỗi\n  ${loi.join('\n  ')}` : `✓ lượt viết ${lan}: kiểm sạch`);
+    chiTiet(loi.length ? `lượt viết ${lan}/4 · ${loi.length} lỗi kiểm sự thật — viết lại` : `lượt viết ${lan}/4 · kiểm sạch`);
     if (!loi.length) break;
   }
   execFileSync('ssh', [BOX, `rm -rf ${tmp}`]);

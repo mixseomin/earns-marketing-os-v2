@@ -15,7 +15,7 @@ let chuDe = arg('chu-de');
 // GÓC + HOOK SPY (anh 02/11/2026: "làm video mà không có hook thì ai ở lại, không có góc thì ai tìm"): --goc-hook <tệp> = JSON { goc, hooks[], da_lam[] } từ
 // may-dung.mts --goc-hook. Bản sửa (--cu) giữ đúng góc + hook + tiêu đề của bản trước, không chọn lại.
 type Hook = { id: string; chu: string; ngay: number; page: string };
-const gh = arg('goc-hook') ? JSON.parse(readFileSync(arg('goc-hook')!, 'utf8')) as { goc: { sp: number; id: number; loai: string; ten: string }; hooks: Hook[]; da_lam: string[] } : null;
+const gh = arg('goc-hook') ? JSON.parse(readFileSync(arg('goc-hook')!, 'utf8')) as { goc: { sp: number; id: number; loai: string; ten: string }; hooks: Hook[]; da_lam: string[]; ket_qua?: { chu_de: string; tieu_de: string; xem: number; moi_ngay: number; tuoi: number }[] } : null;
 const cuTap = arg('cu') ? JSON.parse(readFileSync(arg('cu')!, 'utf8')) as { hook?: { qc: string; goc: string }; goc?: unknown; tieu_de?: string; chu_de?: string } : null;
 let hookChon: { qc: string; goc: string } | null = cuTap?.hook ?? null, tieuDeChon: string | null = cuTap?.hook ? cuTap.tieu_de ?? null : null;
 chuDe ??= cuTap?.chu_de;
@@ -41,7 +41,7 @@ if (!chuDe && gh) {
   for (let lan = 1; lan <= 3 && !chuDe; lan++) {
     const c = await sinhJson({ schema: ChonDe, model: 'claude-sonnet-5-5', max_tokens: 2000, ten: 'chọn đề lịch sử theo góc',
       system: `Bạn chọn đề cho kênh "${K.ten}" (${K.do_dai}). Chuyện phải CÓ THẬT, có tư liệu Wikipedia dày, có chuyển động trên bản đồ, hợp GÓC khán giả bên dưới, chưa làm. Tiêu đề lấy từ MỘT hook QC thật (chạy lâu = đã chứng minh giữ người xem), sửa nhẹ cho đúng chuyện — không viết hook mới.`,
-      user: `GÓC (spy #${gh.goc.id} · ${gh.goc.loai}): ${gh.goc.ten}\nHOOK CÓ BẰNG CHỨNG (id · bằng chứng · chữ):\n${gh.hooks.map((h) => `- ${h.id} · ${bangChungHook(h)} · ${h.chu}`).join('\n')}\nĐÃ LÀM (tránh):\n${gh.da_lam.map((x) => `- ${x}`).join('\n') || '(chưa có)'}${loiChon ? `\nLẦN TRƯỚC SAI: ${loiChon}` : ''}` });
+      user: `GÓC (spy #${gh.goc.id} · ${gh.goc.loai}): ${gh.goc.ten}\nHOOK CÓ BẰNG CHỨNG (id · bằng chứng · chữ):\n${gh.hooks.map((h) => `- ${h.id} · ${bangChungHook(h)} · ${h.chu}`).join('\n')}\nĐÃ LÀM (tránh):\n${gh.da_lam.map((x) => `- ${x}`).join('\n') || '(chưa có)'}${gh.ket_qua?.length ? `\nKẾT QUẢ CÁC TẬP ĐÃ ĐĂNG (lượt xem / ngày · tổng · chủ đề · tiêu đề) — chọn chuyện CÙNG KIỂU tập đứng đầu (loại nhân vật, thời kỳ, kiểu bí ẩn / nghịch lý), tránh kiểu tập đứng cuối:\n${gh.ket_qua.slice(0, 12).map((x) => `- ${x.moi_ngay}/ngày · ${x.xem} · ${x.chu_de} · ${x.tieu_de}`).join('\n')}` : ''}${loiChon ? `\nLẦN TRƯỚC SAI: ${loiChon}` : ''}` });
     if (!c.ok) { loiChon = c.loi; continue; }
     const h = gh.hooks.find((x) => x.id === c.data.hook_id); if (!h) { loiChon = `hook_id "${c.data.hook_id}" không có trong danh sách`; continue; }
     const thieu: string[] = []; for (const t of c.data.nguon) { const p = (await goiWiki({ action: 'query', titles: t, redirects: '1' })).query?.pages?.[0]; if (!p || p.missing) thieu.push(t); }

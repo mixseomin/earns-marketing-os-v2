@@ -18,7 +18,7 @@ const arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? pr
 const KENH = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'));
 const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
 const thu = ((d) => (d === 0 ? 7 : d))(new Date(`${hom}T12:00:00+07:00`).getUTCDay());
-const tele = (chu) => { try { execFileSync('ssh', [BOX, 'set -a; . /root/.secrets/mine-tg.env; set +a; curl -s -o /dev/null https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage --data-urlencode chat_id=$TG_CHAT --data-urlencode text@-'], { input: chu }); } catch (e) { console.log(`⚠ Telegram: ${e.message}`); } };
+const tele = (chu, html = false) => { try { execFileSync('ssh', [BOX, `set -a; . /root/.secrets/mine-tg.env; set +a; curl -s -o /dev/null https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage --data-urlencode chat_id=$TG_CHAT${html ? ' --data-urlencode parse_mode=HTML' : ''} --data-urlencode text@-`], { input: chu }); } catch (e) { console.log(`⚠ Telegram: ${e.message}`); } };
 
 const danhDau = (ma, dl) => { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
   try { sqlBox(`UPDATE xv_may SET nguon = ${dl ? `jsonb_set(coalesce(nguon, '{}'::jsonb), '{dang_lam}', ${q1(JSON.stringify(dl))}::jsonb)` : "coalesce(nguon, '{}'::jsonb) - 'dang_lam'"} WHERE ma = ${q1(ma)};`); } catch (e) { console.log(`⚠ dấu đang làm: ${e.message}`); } };
@@ -72,6 +72,18 @@ for (const [k, K] of Object.entries(KENH)) {
     }
   }
   try { bao.push(box(`scripts/may-dung.mts --may ${K.may} --so-kenh`).split('\n').pop()); } catch (e) { bao.push(`⚠ đo số kênh hỏng: ${String(e.stderr || e.message).trim().split('\n').pop()}`); }
+  // BẢNG TUẦN (kênh tự động bước 5): Chủ nhật, lượt đầu từ gio_tap — lượt xem từng tập + đề xuất tăng nhịp khi ≥ 3 tập đã đăng ≥ 2 ngày và trung vị lượt xem/ngày ≥ 300
+  // (chỉ ĐỀ XUẤT; đổi lich_tap là anh duyệt). Dấu ~/.cache/lich-su-<k>-tuan-<ngày> để mỗi Chủ nhật gửi một lần.
+  const dauTuan = join(homedir(), '.cache', `lich-su-${k}-tuan-${hom}`);
+  if (thu === 7 && gioNay >= (K.gio_tap ?? '00:00') && !existsSync(dauTuan)) {
+    const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
+    const ds = sqlBox(`SELECT coalesce(json_agg(json_build_object('t', v.dang->>'title', 'xem', v.luot_xem, 'ngay', v.da_dang->'youtube'->>'ngay', 'url', v.da_dang->'youtube'->>'url') ORDER BY v.id)::text, '[]') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)} AND v.da_dang ? 'youtube';`);
+    const vs = JSON.parse(ds || '[]').map((v) => ({ ...v, tuoi: Math.max(1, Math.round((Date.now() - Date.parse(`${v.ngay}T12:00:00+07:00`)) / 86_400_000)) })).map((v) => ({ ...v, md: Math.round((v.xem ?? 0) / v.tuoi) }));
+    const du = vs.filter((v) => v.tuoi >= 2).map((v) => v.md).sort((a, b) => a - b), tv = du.length ? du[Math.floor(du.length / 2)] : 0;
+    const bang = vs.sort((a, b) => b.md - a.md).map((v) => `${String(v.md).padStart(6)}/ngày ${String(v.xem ?? 0).padStart(7)}  ${String(v.t ?? '').slice(0, 40).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}`).join('\n');
+    tele(`📊 ${K.ten_kenh ?? K.ten} · tuần tới ${hom}\n<pre>${bang || '(chưa có tập đã đăng)'}</pre>\n${du.length >= 3 && tv >= 300 ? `Đề xuất: trung vị ${tv} lượt xem/ngày — tăng từ ${(K.lich_tap ?? []).length} lên 5 tập/tuần? (anh duyệt thì đổi lich_tap trong kenh.json)` : `Trung vị ${tv} lượt xem/ngày (${du.length} tập ≥ 2 ngày) — giữ ${(K.lich_tap ?? []).length} tập/tuần`}`, true);
+    writeFileSync(dauTuan, '1');
+  }
   const chu = `📺 ${K.ten} · ${hom}\n${bao.join('\n')}`; console.log(chu);
   if (bao.some((x) => /tập mới|hỏng|tự làm lại/.test(x))) tele(chu);   // ngày chỉ đo số thì không làm ồn Telegram
 }

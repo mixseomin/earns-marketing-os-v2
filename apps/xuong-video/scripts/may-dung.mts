@@ -251,7 +251,13 @@ if (a.includes('--nap')) {
   const g = [...gocs].sort((g1, g2) => (dem.get(g1.id) ?? 0) - (dem.get(g2.id) ?? 0))[0];
   if (!g) { console.error(`✗ máy ${ma}: nhóm spy chưa có góc nào`); process.exit(1); }
   const hooks = hooksCho(g, daCo.length); if (!hooks.length) { console.error(`✗ máy ${ma}: hết hook QC chưa dùng`); process.exit(1); }
-  console.log(JSON.stringify({ goc: { sp: g.sp, id: g.id, loai: g.loai, ten: g.ten }, hooks, da_lam: daCo.map((x) => x.chu_de).filter(Boolean) }));
+  // KẾT QUẢ CÁC TẬP ĐÃ ĐĂNG (kênh tự động bước 5, 02/11/2026): lượt xem / ngày từ lúc đăng — máy viết chọn chuyện cùng kiểu tập thắng, tránh kiểu tập thua
+  const { NGAY_DANG_SQL } = await import('../src/lib/xuong-video/luot-xem-db');
+  const ketQua = ((await db.execute(sql`SELECT v.chu_de, v.dang->>'title' AS tieu_de, v.luot_xem AS xem, ${sql.raw(NGAY_DANG_SQL)} AS ngay FROM xv_may_video v
+    WHERE v.may_id = ${m.id} AND v.luot_xem IS NOT NULL AND ${sql.raw(NGAY_DANG_SQL)} IS NOT NULL`)) as unknown as { chu_de: string; tieu_de: string; xem: number; ngay: string }[])
+    .map((x) => ({ ...x, tuoi: Math.max(1, Math.round((Date.now() - Date.parse(`${String(x.ngay).slice(0, 10)}T12:00:00+07:00`)) / 86_400_000)) }))
+    .map((x) => ({ chu_de: x.chu_de, tieu_de: x.tieu_de, xem: Number(x.xem), moi_ngay: Math.round(Number(x.xem) / x.tuoi), tuoi: x.tuoi })).sort((a1, b1) => b1.moi_ngay - a1.moi_ngay);
+  console.log(JSON.stringify({ goc: { sp: g.sp, id: g.id, loai: g.loai, ten: g.ten }, hooks, da_lam: daCo.map((x) => x.chu_de).filter(Boolean), ket_qua: ketQua }));
 } else if (a.includes('--so-kenh')) {
   // SỐ KÊNH SẢN PHẨM (02/11/2026 — mos2 › Tài sản › Kênh sản phẩm): máy la_san_pham → đọc lại lượt xem từng video đã đăng + người đăng ký kênh YouTube
   // → kenh_so_ngay (kenh youtube, san_pham 'may:<mã>', hien = tổng lượt xem cộng dồn, so_muc = số video đã đăng, chi_tiet = { videos, nguoi_dk, kenh_url, ten }).

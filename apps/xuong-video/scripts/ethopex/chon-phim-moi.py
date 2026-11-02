@@ -77,11 +77,12 @@ chinh.sort(key=lambda x: -x["diem"])
 # XEN KẼ THỂ LOẠI (lần chạy đầu 02/11/2026: 25/40 phim đầu là phim rồng fantasy — "dragon" trùng mẫu): mỗi vòng lấy một phim điểm cao nhất của từng thể loại,
 # thứ tự vòng theo tỷ lệ thắng đo được (vô danh → hối hận → fantasy → mafia → tỷ phú → khác); trong một thể loại vẫn theo điểm
 import collections as _co
-_theo = _co.OrderedDict((m, [x for x in chinh if x["nhom"] == m]) for m in ["vo_danh", "hoi_han", "fantasy", "mafia", "ty_phu", "khac", "tinh_cam", "me_con"])
+_theo = _co.OrderedDict((m, [x for x in chinh if x["nhom"] == m]) for m in ["vo_danh", "hoi_han", "fantasy", "mafia", "ty_phu", "khac"])
 ds = []
 while len(ds) < SO and any(_theo.values()):
     for m, l in _theo.items():
         if l and len(ds) < SO: ds.append(l.pop(0))
+ds += [x for x in chinh if x["nhom"] in ("tinh_cam", "me_con")][:SO - len(ds)]   # tình cảm 3% · mẹ con 4%: chỉ lấp chỗ trống, không chia suất
 bu = []
 if "--them" in sys.argv:   # BỔ SUNG (phim-moi.py them, anh 23/10/2026 "cần cái thay thế dự phòng"): giữ nguyên danh sách + thứ tự cũ, chỉ nối phim mới vào cuối tới đủ SO
     cu = json.loads(q("select coalesce(gia_tri, '[]'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_200_phim'") or "[]"); co = {str(x["id"]) for x in cu}

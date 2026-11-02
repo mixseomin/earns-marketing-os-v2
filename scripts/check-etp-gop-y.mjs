@@ -328,6 +328,8 @@ const LUAT = [
   { card: 'nhan-phim-0211', tep: "apps/web/src/components/etp-view.tsx", co: "{ key: 'nhan', header: 'Người nhận'", vi: "tab Phim cột Người nhận" },
   { card: 'nhan-phim-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "or giu_boi_nguoi_khac(cid, pl.get(\"ad_account_id\"))): raise ChanLuat(ly_)", vi: "máy không lên camp phim người khác đang giữ" },
   { card: 'nhan-phim-0211', tep: "apps/web/src/lib/actions/etp-phim.ts", co: "// DỰ PHÒNG: Ethopex chỉ trả chi tiết cho bản trong WORKSPACE", vi: "ngăn phim đọc mô tả trang nguồn khi Ethopex 404" },
+  { card: 'nhan-phim-0211', tep: "apps/web/src/lib/etp-doc.ts", co: "for (const [ma, r] of nhTheo) if (!coDong.has(ma))", vi: 'phim đang nhận luôn có dòng trên tab Phim' },
+  { card: 'nhan-phim-0211', tep: "apps/web/src/components/etp-view.tsx", co: "p.nhan?.trang_thai === 'giu' ? 'Đang nhận'", vi: 'trạng thái Đang nhận lọc được' },
   // anh 02/11/2026 duyệt review luật (mục 2, 3, 7 + T30 ROAS): chấm creative không tắt camp lãi · ROAS trước clone · dừng clone đổi creative · nhật ký team · sổ luật đối chứng + 7 ngày
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", co: "where c.trang_thai = 'ACTIVE' and g.tat and {KHONG_ROAS} and {KHONG_LAI3} order by 1", vi: "luật chấm không tắt camp lãi 3 ngày đã khép" },
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", cam: "tự tắt mọi loại camp, kể cả đang lãi", vi: "luật chấm không còn tắt camp đang lãi" },

@@ -317,10 +317,16 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     else if (i < TEST_HIEN) phims.push({ content_id: n(x.id), ten: x.ten ?? null, the_loai: null, bo: null, locale: x.locale ?? null, nguon: x.nguon ?? null, nhom_goc: null, moc: null, doi_chay: 0,
       creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, trang: null, test, ung_vien: true });
   });
-  const nhR = await run<{ content_id: string; nguoi: string | null; het_luc: string; trang_thai: string }>(sql`select distinct on (content_id) content_id, nguoi, het_luc::text het_luc, trang_thai
-      from etp.phim_nhan_v where trang_thai in ('giu', 'da_len') order by content_id, nhan_luc desc`).catch(() => []);
+  // PHIM ĐANG NHẬN (anh 02/11/2026 "phim đang nhận thì phải thể hiện trên tab phim"): mọi phim còn người giữ / đã lên — phim chưa có dòng (ngoài 200 phim đầu, chưa camp) thêm dòng
+  const nhR = await run<{ content_id: string; nguoi: string | null; het_luc: string; trang_thai: string; ten: string | null; locale: string | null; url: string | null }>(sql`select distinct on (n.content_id) n.content_id, n.nguoi, n.het_luc::text het_luc, n.trang_thai,
+      coalesce(v.ten, p.ten) ten, coalesce(v.locale, p.locale) locale, coalesce(v.url, p.url) url
+      from etp.phim_nhan_v n left join etp.thu_vien_phim v using (content_id) left join etp.phim p using (content_id) where n.trang_thai in ('giu', 'da_len') order by n.content_id, n.nhan_luc desc`).catch(() => []);
   const nhTheo = new Map(nhR.map((r) => [n(r.content_id), r]));
   for (const p of phims) { const r = nhTheo.get(p.content_id); p.nhan = r ? { nguoi: r.nguoi, het_luc: r.het_luc, trang_thai: r.trang_thai } : null; }
+  const coDong = new Set(phims.map((p) => p.content_id));
+  for (const [ma, r] of nhTheo) if (!coDong.has(ma))
+    phims.push({ content_id: ma, ten: r.ten, the_loai: null, bo: null, locale: r.locale, nguon: r.url && r.url.includes('//') ? r.url.split('/')[2]! : null, nhom_goc: null, moc: null, doi_chay: 0,
+      creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, trang: null, test: null, nhan: { nguoi: r.nguoi, het_luc: r.het_luc, trang_thai: r.trang_thai } });
   const [soNgay, tatNgay, boRow] = await Promise.all([
     run<{ c: number; d: string; chi: string; thu: string }>(sql`select camp_id c, ngay::text d, chi, thu from ${SN} where chi > 0 or thu > 0`),
     runNha<{ d: string; n: string }>(sql`select (luc at time zone 'UTC')::date::text d, count(distinct camp_id) n from etp.nhat_ky where viec = 'tat' and ok group by 1`),   // nhật ký máy nhà — xem người khác thì không có

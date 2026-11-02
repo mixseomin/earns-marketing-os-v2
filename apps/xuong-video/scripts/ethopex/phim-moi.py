@@ -98,7 +98,7 @@ def poster(n=60):
             if im: im.thumbnail((W, H)); to.paste(im, (x, y))
             d.text((x + 4, y + H + 2), f"{p['id']} · {TLM.doan(p['ten'])}", fill="yellow"); d.text((x + 4, y + H + 17), p["ten"][:30], fill="white")   # thể loại máy đoán — Claude sửa: the-loai.py --gan
         f = os.path.join(ra, f"to-{k // 30 + 1}.jpg"); to.save(f, quality=85); print("TỜ POSTER (iMac):", f)
-    print("→ Claude xem (kèm thể loại máy đoán dưới mã, sai thì ssh box3: the-loai.py --gan <id>=<thể loại>): phim-moi.py poster-ok <id…> · phim-moi.py poster-loai <id…> --ghi '<lý do>'   (mã:", " ".join(str(p["id"]) for p, _ in o) + ")")
+    print("→ Claude xem — CHỈ duyệt phim diễn viên Âu-Mỹ (Trung / Á / Ấn / hoạt hình → poster-loai --nhom <nhóm>) (kèm thể loại máy đoán dưới mã, sai thì ssh box3: the-loai.py --gan <id>=<thể loại>): phim-moi.py poster-ok <id…> · phim-moi.py poster-loai <id…> --ghi '<lý do>'   (mã:", " ".join(str(p["id"]) for p, _ in o) + ")")
 
 def don_mac():
     """PHIM XONG LÀ DỌN KHỎI iMAC (23/10/2026: ổ iMac đầy còn 183 MB → ffmpeg chết giữa lô). Từ 28/10/2026 (anh: "phải lưu lên drive chứ?") KHÔNG XOÁ nữa mà
@@ -197,8 +197,12 @@ if __name__ == "__main__":
     elif a[0] == "don": don_mac()   # cất tay lên Drive (giữ phim / lô đang chờ trên máy)
     elif a[0] == "them": them(int(ids[0]) if ids else len(khoa(KDS, "[]")) + 200)
     elif a[0] == "poster": poster(int(ids[0]) if ids else 60)
-    elif a[0] == "poster-ok": ghi({i: ("poster_ok", g) for i in ids})
-    elif a[0] == "poster-loai": ghi({i: ("poster_loai", g or "poster") for i in ids})
+    elif a[0] == "poster-ok":   # duyệt poster = khẳng định diễn viên Âu-Mỹ (anh 29/10/2026 chỉ chạy phim Âu-Mỹ; 02/11/2026 phim Trung 155143 lọt lô test vì bước poster không ghi nhóm gốc)
+        ghi({i: ("poster_ok", g) for i in ids}); sql("".join(f"insert into etp.phim (content_id, nhom_goc) values ({int(i)}, 'au_my') on conflict (content_id) do update set nhom_goc = coalesce(etp.phim.nhom_goc, 'au_my');" for i in ids))
+    elif a[0] == "poster-loai":   # --nhom trung|an|latin|dong_a|da_mau|hoat_hinh: loại vì diễn viên ngoài Âu-Mỹ → ghi luôn etp.phim.nhom_goc (cột Nhóm gốc tab Phim)
+        nh = a[a.index("--nhom") + 1] if "--nhom" in a else None
+        ghi({i: ("poster_loai", g or (f"nhóm gốc {nh}" if nh else "poster")) for i in ids})
+        if nh: sql("".join(f"insert into etp.phim (content_id, nhom_goc) values ({int(i)}, '{nh}') on conflict (content_id) do update set nhom_goc = excluded.nhom_goc;" for i in ids))
     elif a[0] == "cat": cat(san=int(a[a.index("--san") + 1])) if "--san" in a else cat(int(ids[0]) if ids else CHI_TIEU)
     elif a[0] == "gop": gop(a[1])
     elif a[0] == "len": len_(a[1])

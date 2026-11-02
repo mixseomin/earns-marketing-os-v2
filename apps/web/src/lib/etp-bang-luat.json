@@ -18,6 +18,8 @@
                    "tat": { "tep": "ethopex-tat-off.json", "ten": "OFF", "mo_ta": "luật OFF: camp ≥ 7 ngày, tiêu &gt; $10 từ trước tới nay, ROI &lt; −50%", "cot": "Lãi", "luat": "OFF (≥ 7 ngày, tiêu > $10, ROI < −50%)", "ai": "anh (chat 29/10/2026: rule phải tự vận hành, không chờ anh tắt) — máy chạy" } },
     "thang_tat": { "ma": null,  "huong": "tat", "nhan": ["✕", "Bản thang lỗ", "#f87171", "dang"], "nhat_ky": ["tat", "^bản thang lỗ"],
                    "tat": { "tep": "ethopex-tat-thang.json", "ten": "BẢN THANG LỖ", "mo_ta": "bản thang bộ 2 đã chi ≥ 1 ngày ngân sách mà ROI ≤ −30%", "cot": "Lãi", "luat": "bản thang lỗ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%)", "ai": "anh (chat 29/10/2026: rule phải tự vận hành, không chờ anh tắt) — máy chạy", "nha": true } },
+    "tat_r0":    { "ma": "r0",  "huong": "tat", "nhan": ["✕", "R0 · ROAS không tiêu", "#f87171", "dang"], "de_xuat": "tat", "nhat_ky": ["tat", "^R0 "],
+                   "tat": { "tep": "ethopex-tat-r0.json", "ten": "R0", "mo_ta": "luật R0: camp ★ ROAS 3 ngày đã khép gần như không tiêu (&lt; $0.5) — thầu không thắng, trả ngân sách cho việc khác (anh 02/11)", "cot": "Lãi", "luat": "R0 (★ ROAS 3 ngày đã khép không tiêu, chi < $0.5)", "ai": "anh (chat 02/11/2026: camp ROAS 3 ngày ko tiêu tiền — cần cơ chế dồn ngân sách sang việc khác) — máy chạy" } },
     "tat_roas":  { "ma": "rl",  "huong": "tat", "nhan": ["✕", "RL · ROAS lỗ", "#f87171", "dang"], "de_xuat": "tat", "nhat_ky": ["tat", "^RL "],
                    "tat": { "tep": "ethopex-tat-rl.json", "ten": "RL", "mo_ta": "luật RL: camp ★ ROAS 2 ngày đã khép ĐỀU lỗ, cộng 2 ngày chi &gt; $20, ROI &lt; 0%", "cot": "Lãi 2n", "luat": "RL (★ ROAS 2 ngày đã khép đều lỗ, chi > $20, ROI < 0%)", "ai": "anh (chat 30/10/2026: thêm luật tắt ROAS cho khớp mọi luật, không luật ngầm) — máy chạy" } },
     "tat_g10":   { "ma": "g10", "huong": "tat", "nhan": ["✕", "G10 sắp tắt", "#f87171", "dang"], "de_xuat": "tat", "nhat_ky": ["tat", "^G10 \\("],
@@ -64,6 +66,7 @@
     "t7":        ["✕ T7", "#f87171", "tat"],
     "d24":       ["✕ D24", "#f87171", "tat", "D24 · dừng > 24 giờ"],
     "rl":        ["✕ RL", "#f87171", "tat", "RL · ROAS lỗ 2 ngày"],
+    "r0":        ["✕ R0", "#f87171", "tat", "R0 · ROAS không tiêu"],
     "dung_dem":  ["☾ Dừng đêm", "#f87171", null, "Dừng đêm"]
   }
 }

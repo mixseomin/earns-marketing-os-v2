@@ -158,7 +158,13 @@ async function quaChuoi(p0: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promi
   const { x_kiem: kiem, ...p } = p0 as ThamSoChu & { x_kiem?: (d: unknown) => string | null };
   // script thiếu duyệt → dừng (chot-tien.ts); giá ước = trường hợp xấu nhất (rơi tới Anthropic, viết hết max_tokens) — lượt nhỏ dưới ngưỡng tự chạy (5.000₫, chot-tien.ts) tự chạy
   chotTien('gọi Claude', { cents: giaChuCents(p.model, Math.ceil(JSON.stringify([p.system ?? '', p.messages ?? '']).length / 3), Number(p.max_tokens) || 0) });
-  const ds = await duongChu(p.model); const loi: string[] = [];
+  // CẦU DAO (03/11/2026: đêm nay người bán ckey lỗi liên tục, mỗi lượt viết vẫn thử lại từ đầu → 16 phút / lượt): đường hỏng trong 20 phút qua xuống CUỐI hàng,
+  // đường vừa chạy tốt lên ĐẦU. Sổ dùng chung mọi tiến trình trên máy: /var/tmp/claude-duong.json { "<tên> <model>": { hong?: ms, tot?: ms } }.
+  const SO = '/var/tmp/claude-duong.json', fs = await import('node:fs'); let so: Record<string, { hong?: number; tot?: number }> = {}; try { so = JSON.parse(fs.readFileSync(SO, 'utf8')); } catch { /* chưa có */ }
+  const ghiSo = (k: string, v: { hong?: number; tot?: number }) => { try { const cu = (() => { try { return JSON.parse(fs.readFileSync(SO, 'utf8')); } catch { return {}; } })(); cu[k] = v; fs.writeFileSync(SO, JSON.stringify(cu)); } catch { /* phụ */ } };
+  const khoaD = (d: DuongChu) => `${d.ten} ${d.model}`, bay = Date.now();
+  const hang = (d: DuongChu) => { const x = so[khoaD(d)] ?? {}; return x.hong && bay - x.hong < 20 * 60_000 && !(x.tot && x.tot > x.hong) ? 2 : x.tot && bay - x.tot < 60 * 60_000 ? 0 : 1; };
+  const ds = (await duongChu(p.model)).map((d, i) => ({ d, i })).sort((a, b) => hang(a.d) - hang(b.d) || a.i - b.i).map((x) => x.d); const loi: string[] = [];
   if (!ds.length) throw new Error('Thiếu khoá Claude trên máy chủ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)');
   const f = p.output_config?.format;
   for (let i = 0; i < ds.length; i++) {
@@ -180,15 +186,16 @@ async function quaChuoi(p0: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promi
       if (kiem && f && r.stop_reason !== 'max_tokens' && !cuoi) {
         let du: unknown = (r as { parsed_output?: unknown }).parsed_output;
         if (!du && f.parse) try { du = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join('')); } catch { du = null; }
-        const lk = du ? kiem(du) : 'không đọc được JSON theo khuôn'; if (lk) { loi.push(`${d.ten} ${d.model}: ${lk}`); continue; }
+        const lk = du ? kiem(du) : 'không đọc được JSON theo khuôn'; if (lk) { loi.push(`${d.ten} ${d.model}: ${lk}`); ghiSo(khoaD(d), { hong: Date.now() }); continue; }
       }
       const x = (r.usage as { x_ckey?: { cost?: number } }).x_ckey?.cost;
+      ghiSo(khoaD(d), { tot: Date.now() });
       if (loi.length) console.error('[claude] dự phòng:', loi.join(' · '), '→', d.ten);
       return Object.assign(r, { model: d.ten === 'anthropic' ? p.model : `${d.ten}:${p.model}`, ...(d.ten === 'ckey' && typeof x === 'number' ? { vnd: x } : {}) });
     } catch (e) {
       const m = e instanceof Anthropic.APIError ? `${e.status}: ${e.message}` : e instanceof Error ? e.message : String(e);
       if (cuoi) throw Object.assign(e instanceof Error ? e : new Error(m), { message: [...loi, `${d.ten}: ${m}`].join(' · ') });
-      loi.push(`${d.ten} ${d.model}: ${m.slice(0, 160)}`);
+      loi.push(`${d.ten} ${d.model}: ${m.slice(0, 160)}`); ghiSo(khoaD(d), { hong: Date.now() });
     }
   }
   throw new Error(loi.join(' · '));

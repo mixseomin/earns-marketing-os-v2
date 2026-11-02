@@ -133,6 +133,10 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
       const yt = hookTu((await hookYoutube(nhomHook.join('-'), cumNhom)).map((v) => ({ library_id: `yt:${v.id}`, dong: v.title, ngay: v.views, page_ten: 'YouTube' })))
         .filter((h) => !hookDaDung.has(h.id) && !hookNhom.some((x) => x.chu.toLowerCase() === h.chu.toLowerCase())).slice(0, 40);
       const ytDat = await xet(yt); hookNhom.push(...ytDat);
+      // ĐẨY CỤM CỦA NHÓM LÊN ĐẦU HÀNG CÀO META (spy-on-tc scripts/cao.sh › tu_ke): lượt cào đang chạy chen các cụm này ngay, lượt sau có hook QC thật
+      try { const fs = await import('node:fs'), f = '/opt/spy/tep/uu-tien-tu.txt', co = new Set((fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '').split('\n').map((l) => l.split('\t')[0]));
+        const moi = cumNhom.filter((c) => c && !co.has(c)); if (moi.length) { fs.appendFileSync(f, moi.map((c) => `${c}\tUS\n`).join('')); console.log(`· đẩy ${moi.length} cụm nhóm ${nhomHook.join(', ')} lên đầu hàng cào Meta`); } }
+      catch (e) { console.error(`· không ghi được sổ ưu tiên cào: ${(e as Error).message}`); }
       console.log(`· kho QC Meta mỏng → hook YouTube nhiều lượt xem: Ngọc giữ ${ytDat.length}/${yt.length} (nhóm ${nhomHook.join(', ')})`);
     }
   }

@@ -219,7 +219,13 @@ const khoNay = docKho().tai_san;
 const namAnh = (ten, md) => { const y = (t) => [...String(t ?? '').matchAll(/\b(1[0-9]{3}|20[0-9]{2})\b/g)].map((m) => Number(m[1]));
   // CHỈ DateTimeOriginal (năm của ảnh); DateTime là lúc tệp được tải lên Commons (2014, 2019…) — tính vào là ảnh nào cũng thành ảnh mới
   const g = y(md?.DateTimeOriginal?.value); if (g.length) return Math.min(...g); const t = y(ten); return t.length ? Math.min(...t) : null; };
-const timAnhThat = async (cum, nam = null) => { for (const q1 of nam > 0 ? cum.flatMap((q) => [`${q} ${nam}`, q]) : cum) {
+// NGỌC XÉT TỪNG ẢNH (kênh tự động bước 2): ứng viên qua lọc tên + năm còn phải được Ngọc nhìn và xác nhận đúng người / vật / nơi / thời của cảnh
+// (box3 xet-anh.mts → cham-dang › xetAnhCanh, sổ đệm theo ảnh + cảnh). Tối đa 3 ứng viên mỗi tranh; Ngọc không trả lời = không dùng ảnh đó.
+let xetConLai = 0;
+const ngocDuyetAnh = async (ten, moTa, nam) => { if (xetConLai-- <= 0) return false; const c = await commons(ten); if (!c?.thumb) return false;
+  try { const o = JSON.parse(box(`scripts/lich-su/xet-anh.mts ${q(c.thumb)} ${q(ten)} ${q(moTa ?? '')} ${nam ?? '-'}`).split('\n').pop());
+    if (o.dung !== true) console.log(`  · Ngọc loại ảnh ${ten}: ${o.ly_do}`); return o.dung === true; } catch { return false; } };
+const timAnhThat = async (cum, nam = null, moTa = null) => { xetConLai = 3; for (const q1 of nam > 0 ? cum.flatMap((q) => [`${q} ${nam}`, q]) : cum) {
     const r = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', list: 'search', srnamespace: '6', srlimit: '10', srsearch: `${q1} filetype:bitmap`, format: 'json', formatversion: '2' })}`)).json();
     // ĐÚNG CHỦ THỂ (02/11/2026, Alaska: "Seward" ra thẻ bóng chày cầu thủ Ed Seward, "russian soldier 1867" ra tranh huy hiệu Romania): tên tệp phải chứa MỌI từ
     // chính của cụm tìm (≥ 3 chữ, bỏ năm / từ nối) — máy tìm của Commons trả cả kết quả chỉ khớp một từ
@@ -227,17 +233,20 @@ const timAnhThat = async (cum, nam = null) => { for (const q1 of nam > 0 ? cum.f
     const ds = (r.query?.search ?? []).map((x) => x.title).filter((x) => /\.(jpe?g|png)$/i.test(x) && !/\b(map|karte|carte|mapa|diagram|logo|flag|coat of arms|chart)\b/i.test(x)
       && tuChinh.every((w) => boDau(x).toLowerCase().includes(w.replace(/s$/, ''))));
     if (!ds.length) continue;
-    if (!(nam > 0)) return ds[0];
-    const ii = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', titles: ds.join('|'), prop: 'imageinfo', iiprop: 'extmetadata', format: 'json', formatversion: '2' })}`)).json();
-    const md = new Map((ii.query?.pages ?? []).map((p) => [p.title, p.imageinfo?.[0]?.extmetadata]));
-    const t = ds.find((x) => { const y = namAnh(x, md.get(x)); return y == null || y <= nam + 20; });
-    if (t) return t; } return null; };
+    let hop = ds;
+    if (nam > 0) { const ii = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', titles: ds.join('|'), prop: 'imageinfo', iiprop: 'extmetadata', format: 'json', formatversion: '2' })}`)).json();
+      const md = new Map((ii.query?.pages ?? []).map((p) => [p.title, p.imageinfo?.[0]?.extmetadata]));
+      hop = ds.filter((x) => { const y = namAnh(x, md.get(x)); return y == null || y <= nam + 20; }); }
+    for (const t of hop) { if (xetConLai <= 0) return null; if (await ngocDuyetAnh(t, moTa, nam)) return t; } } return null; };
 const cumTranh = (tr) => [...new Set([...(tr.ref || []).map((r) => r.replace(/_/g, ' ')), ...((tr.mo_ta || '').match(/\b[A-Z][a-z]+(?:[ -](?:el|al|de|of|the|[A-Z][a-z]+))+/g) || [])])].slice(0, 5);
 if (KENH.may) { let namCanh = null; for (const c of tap.cau) { namCanh = c.canh.nam ?? namCanh; const tr = c.canh.tranh; if (!tr) continue;
+  // MỌI ảnh Commons đang dùng (máy viết chọn, hoặc bộ tìm chọn trước khi có bước này) qua Ngọc một lần (tr.ngoc_ok = tệp đã duyệt); Ngọc loại → bỏ, bộ tìm dưới tìm ảnh khác
+  if (tr.commons && tr.ngoc_ok !== tr.commons) { xetConLai = 1;
+    if (await ngocDuyetAnh(tr.commons, tr.mo_ta, namCanh)) tr.ngoc_ok = tr.commons; else { delete tr.commons; delete tr.commons_url; delete tr.anh; tr.tim_that = false; tr.tim_nam = namCanh; } }
   // ảnh máy TỰ TÌM trước khi có luật đúng thời (tim_that, chưa ghi tim_nam) → tìm lại theo năm; ảnh do máy viết chọn (không tim_that) giữ nguyên
   if (tr.tim_that && tr.commons && tr.tim_nam !== namCanh) { delete tr.commons; delete tr.commons_url; tr.tim_that = false; }
   if (tr.commons || tr.tim_that) continue; tr.tim_that = true; tr.tim_nam = namCanh;
-  const t = await timAnhThat(cumTranh(tr), namCanh); if (t) { console.log(`✓ ảnh thật cho tranh "${(tr.mo_ta || '').slice(0, 50)}…": ${t}`); tr.commons = t; delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; } } }
+  const t = await timAnhThat(cumTranh(tr), namCanh, tr.mo_ta); if (t) { console.log(`✓ ảnh thật cho tranh "${(tr.mo_ta || '').slice(0, 50)}…": ${t} (Ngọc duyệt)`); tr.commons = t; tr.ngoc_ok = t; delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; } } }
 if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons)) console.log('⚠ tập không có ảnh lịch sử thật nào — Phòng Nội dung sẽ chặn (nen_url trống)');
 // đã có ảnh chỉ khi TỆP còn thật (tệp ghi trong tập mà đã mất / hỏng thì tải lại — không tin dòng ghi)
 // TỆP GẮN ĐÚNG ẢNH (02/11/2026, Alaska: đổi ảnh Commons mà tệp tên cố định "<tập>-<cảnh>-c.jpg" còn nằm đó → máy không tải ảnh mới, video + thumbnail vẫn

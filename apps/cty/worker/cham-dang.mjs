@@ -207,6 +207,31 @@ export async function xetHinhAi(ds) {
   return ra;
 }
 
+/** NGỌC XÉT ẢNH THẬT CHO MỘT CẢNH (02/11/2026, kế hoạch kênh tự động bước 2 — Alaska lọt ảnh xe Iveco, thẻ bóng chày "Ed Seward", tòa Capitol 2020):
+ *  ds = [{ url, ten, mo_ta, nam }] → mỗi mục { dung: bool, ly_do } | null (hỏng). Đúng = ảnh cho thấy đúng người / vật / nơi của cảnh và đúng thời (± một thế hệ);
+ *  chân dung / bản khắc / tranh cùng thời của đúng nhân vật là đúng. Sổ xet-anh.json theo md5(url|mo_ta|nam). */
+export async function xetAnhCanh(ds) {
+  if (!MODEL_NGOC) return ds.map(() => null);
+  const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'xet-anh.json');
+  let so = {}; try { so = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* chưa có sổ */ }
+  const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`${x.url}|${x.mo_ta}|${x.nam ?? ''}`).digest('hex');
+  const system = 'You check whether a real archive photo / painting fits ONE scene of a history video. Reply with ONE JSON only: {"dung":true|false,"ly_do":"one short sentence in Vietnamese"}. '
+    + 'dung = the image shows the right person / object / place of the scene AND looks like it comes from that era (a portrait, engraving or painting of the right person from their lifetime is fine; a modern photo, a namesake, an unrelated object, a modern vehicle or building for a 19th-century scene is NOT).';
+  const ra = []; let moi = 0;
+  for (const x of ds) {
+    const k = khoa(x);
+    if (!(k in so)) {
+      const o = await hoiNgoc({ luot: 'xet-anh', system, max_tokens: 200, cho: 90000, content: [{ type: 'image', source: { type: 'url', url: x.url } },
+        { type: 'text', text: `FILE: ${x.ten ?? ''}\nSCENE (${x.nam ?? 'year unknown'}): ${x.mo_ta ?? ''}` }] });
+      if (o === undefined) { ra.push(null); continue; }
+      so[k] = o; moi++;
+    }
+    ra.push({ dung: so[k].dung !== false, ly_do: String(so[k].ly_do ?? '').slice(0, 200) });
+  }
+  if (moi) { try { fs.mkdirSync(path.dirname(tep), { recursive: true }); fs.writeFileSync(tep, JSON.stringify(so)); } catch (e) { console.error('xet-anh: không ghi được sổ', e.message); } }
+  return ra;
+}
+
 /** NGỌC CHẤM THUMBNAIL (02/11/2026, anh: "thumb rất rất quan trọng — thiết kế + review đúng chuẩn"). ds = [{ title, url }] → mỗi mục { chan[], canh[] } | null (hỏng).
  *  Chuẩn: đọc được ở cỡ ô điện thoại (~160 px ngang), ≤ 5 từ chữ to, chủ thể rõ một cái, không rối, không lặp nguyên tiêu đề, khớp chuyện, không lỗi AI / logo lạ.
  *  Sổ xet-thumb.json theo md5(title|url) — url mang dấu nội dung ảnh (thumb.mjs) nên ảnh đổi là xét lại. */

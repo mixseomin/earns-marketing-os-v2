@@ -23,6 +23,7 @@ html, body { background: var(--navy); overflow: hidden; }
 .mark i { color: var(--gold); font-style: normal; }
 </style></head>
 <body><div id="k"></div>
+<script src="../../../shot-code/nen-troi.js"></script>
 <script>
 const P = new URLSearchParams(location.search), F = P.get('f') || 's-intro', T = Number(P.get('t') ?? 99);
 const LOGO_URL = 'logo/wordmark.png', ICON_URL = 'logo/icon.png';   // ve-brand.mjs chép logo thật vào đây
@@ -39,9 +40,13 @@ const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x)), ease = (x) => 1 
 const mark = (px) => `<img src="${LOGO_URL}" style="height:${px * 1.05}px;display:inline-block;vertical-align:top">`;
 
 // ---------- nền trời: ảnh thật + lớp navy ----------
+// đoạn mở đầu (s-intro / n-intro) quay theo T → nền trời chuyển động (shot-code/nen-troi.js, chung với camera lá số); khung tĩnh giữ nền đứng
+const DONG = (F === 's-intro' || F === 'n-intro') && T < 99;
 const nen = (w, h, seed, phu = .72) => {   // phu = độ đậm lớp navy trên ảnh (chữ dày thì đậm hơn)
   el(`<img class="abs" src="${TROI_URL}" style="inset:0;width:${w}px;height:${h}px;object-fit:cover;object-position:${['50% 50%', '30% 40%', '70% 55%'][seed % 3]}">`);
   el(`<div class="abs" style="inset:0;background:radial-gradient(ellipse at 50% 38%, rgba(15,34,64,${phu - .25}) 0%, rgba(11,26,46,${phu}) 55%, rgba(8,19,34,${Math.min(.95, phu + .15)}) 100%)"></div>`);
+  if (DONG) { const anh = k.querySelector('img'), cv = el(`<canvas class="abs" style="inset:0" width="${w}" height="${h}"></canvas>`);
+    NenTroi.ve(T, { anh, cv, sao: NenTroi.tao({ w, h }), w, h, day: 0.05 }); }   // đẩy vào 5%/giây: 1,6 s mới thấy trời trôi
 };
 
 // ---------- HÌNH TẬP MINH HOẠ (G3 sẽ thay) ----------

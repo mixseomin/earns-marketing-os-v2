@@ -1,0 +1,15 @@
+{
+  "_ghi": "Tập thử camera đi trong lá số (G3 Astrolas, 03/11/2026) — không giọng, chữ chỉ nêu điều có trong dữ liệu lá số site (lich-su/la-so/steve-jobs.json). Quay: node dung.mjs --trang la-so.html --cau la-so-mau.json --ra <ra>.mp4",
+  "DAI": 16.5,
+  "la_so": "../lich-su/la-so/steve-jobs.svg",
+  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+  "playlist": { "ten": "Chart Chapters", "mau": "#E6B800", "ic": "☉" },
+  "cau": [
+    { "tu": 0, "den": 3.2, "nhin": { "dung": 1 }, "chu": "Steve Jobs.<br>Born February 24, 1955." },
+    { "tu": 3.2, "den": 6.6, "nhin": { "sao": "Sun" }, "chu": "His Sun sits in Pisces,<br>in the 6th house." },
+    { "tu": 6.6, "den": 10, "nhin": { "nha": 10 }, "chu": "His 10th house, career and public life,<br>holds Jupiter and Uranus." },
+    { "tu": 10, "den": 13.4, "nhin": { "goc": ["Venus", "Jupiter"] }, "chu": "Venus opposes Jupiter,<br>almost exact." },
+    { "tu": 13.4, "den": 16.5, "nhin": { "toan": 1 }, "chu": "Every life moves in chapters.<br>What chapter are you in?" }
+  ]
+}

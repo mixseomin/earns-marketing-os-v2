@@ -84,16 +84,16 @@
       {
         "ma": "G2",
         "ten": "Bộ nhận diện",
-        "viec": "brand/astrolas/: logo + chuông, màu/font astrolas.com, góc logo, màn cuối, khuôn ảnh bìa nhãn playlist · 03/11 anh BÁC tờ đầu (logo gõ chữ thay logo thật) → máy vẽ chỉ dùng wordmark + icon thật của astrolas.com, thiếu thì dừng; anh yêu cầu hình chart dùng theme NEBULA của site. 03/11 vẽ lại trên iMac: wordmark + icon-512 thật tải từ astrolas.com (logo/), lá số Steve Jobs theme Nebula chụp từ astrolas.com/c/steve-jobs (hinh/), nền ảnh thật Pexels Dải Ngân Hà (anh/). 3 tờ duyệt ra/to-duyet-*.png — chờ anh duyệt",
+        "viec": "brand/astrolas/: logo + chuông, màu/font astrolas.com, góc logo, màn cuối, khuôn ảnh bìa nhãn playlist · 03/11 anh BÁC tờ đầu (logo gõ chữ thay logo thật) → máy vẽ chỉ dùng wordmark + icon thật của astrolas.com, thiếu thì dừng; anh yêu cầu hình chart dùng theme NEBULA của site. 03/11 vẽ lại trên iMac: wordmark + icon-512 thật tải từ astrolas.com (logo/), lá số Steve Jobs theme Nebula = SVG vector nhúng font Hamburg (lich-su/la-so/, lay.mjs), nền ảnh thật Pexels Dải Ngân Hà (anh/). 3 tờ duyệt ra/to-duyet-*.png — chờ anh duyệt",
         "anh": "duyệt ảnh",
         "trang_thai": "cho_anh"
       },
       {
         "ma": "G3",
         "ten": "Theme hình",
-        "viec": "engraving 9:16 cho máy dựng (Opus viết một lần, báo giá trước), rồi paper-lantern",
+        "viec": "Chart Chapters = CAMERA ĐI TRONG LÁ SỐ THẬT (anh 03/11/2026 'làm cả đi', thay engraving Opus): la-so/lay.mjs lấy SVG Nebula + dữ liệu nhà / sao / góc chiếu từ astrolas.com/c/<slug>; shot-code/la-so.html mỗi câu kể nhìn vào { dung | sao | nha | goc | cung | toan } — camera trượt + phóng, phần đó sáng, còn lại tối, nhãn ô thông tin lấy từ dữ liệu; 0đ, 16,5 s quay 12 s trên iMac. Tập thử ra/la-so-mau.mp4 chờ anh duyệt. Còn: paper-lantern cho Sky Calendar",
         "anh": "duyệt tờ khung + tiền Opus",
-        "trang_thai": "chua"
+        "trang_thai": "cho_anh"
       },
       {
         "ma": "G4",

@@ -1,0 +1,123 @@
+<!doctype html>
+<!-- CAMERA ĐI TRONG LÁ SỐ — theme Chart Chapters kênh YouTube Astrolas (G3, anh 03/11/2026: "các thành phần của lá số khi zoom lên… chi tiết khi kể truyện" → "làm cả đi").
+     Lá số = SVG thật theme Nebula của astrolas.com (lich-su/la-so/lay.mjs lấy về, font ký hiệu đã nhúng). Site gắn nhãn từng phần → mỗi câu kể chỉ một chỗ:
+     camera trượt + phóng vào đúng nhà / sao / góc chiếu / cung, phần đó sáng, phần còn lại tối đi. Hình là hàm thuần của t (window.__seek) → shot-code/dung.mjs quay. 0đ.
+     CAU = {
+       DAI: giây, la_so: đường tới <slug>.svg, du_lieu: nội dung <slug>.json (bỏ trống thì trang tự đọc tệp .json cạnh .svg; nhãn ô thông tin lấy từ đây, không gõ tay),
+       nen: ảnh nền thật, logo: wordmark thật, playlist: { ten, mau, ic },
+       cau: [{ chu, tu, den, nhin }] — nhin ∈ { toan } | { dung } (dựng từng lớp theo thứ tự site) | { sao: 'Sun' } | { nha: 10 } | { goc: ['Venus','Jupiter'] } | { cung: 'Pisces' }
+     } -->
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: PF; src: url(../lich-su/brand/astrolas/fonts/PlayfairDisplay.ttf); font-weight: 400 900; }
+@font-face { font-family: IN; src: url(../lich-su/brand/astrolas/fonts/Inter.ttf); font-weight: 100 900; }
+@font-face { font-family: CG; src: url(../lich-su/brand/astrolas/fonts/CormorantGaramond-Italic.ttf); font-style: italic; font-weight: 300 700; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #0B1A2E; overflow: hidden; }
+#k { position: relative; width: 1080px; height: 1920px; overflow: hidden; color: #fff; font-family: IN, sans-serif; }
+.abs { position: absolute; }
+#nen-anh { inset: 0; width: 1080px; height: 1920px; object-fit: cover; }
+#phu { inset: 0; background: radial-gradient(ellipse at 50% 38%, rgba(15,34,64,.5) 0%, rgba(11,26,46,.76) 55%, rgba(8,19,34,.9) 100%); }
+/* ô lá số: cửa sổ tròn mép mềm — phóng vào thì như nhìn qua thấu kính, không lộ cạnh vuông */
+#o { left: 30px; top: 290px; width: 1020px; height: 1020px; -webkit-mask-image: radial-gradient(circle closest-side, #000 86%, transparent 100%); }
+#o svg { width: 1020px; height: 1020px; display: block; }
+.chip { display: inline-flex; align-items: center; gap: .45em; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #0B1A2E; padding: .42em .8em .38em; border-radius: .3em; }
+#nhan { left: 0; right: 0; top: 1300px; text-align: center; font: 600 38px CG, serif; font-style: italic; color: #F4D971; }
+#cau { left: 70px; right: 70px; top: 1370px; text-align: center; font: 800 52px/1.2 IN; text-shadow: 0 3px 0 #0B1A2E, 0 0 18px rgba(0,0,0,.6); }
+</style></head>
+<body><div id="k">
+  <img id="nen-anh" class="abs">
+  <div id="phu" class="abs"></div>
+  <div id="goc" class="abs" style="left:64px;top:150px;display:flex;flex-direction:column;gap:20px;align-items:flex-start;opacity:.92"></div>
+  <div id="o" class="abs"></div>
+  <div id="nhan" class="abs"></div>
+  <div id="cau" class="abs"></div>
+</div>
+<script>
+const ease = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
+const lerp = (a, b, k) => a + (b - a) * k;
+const KY = { Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇' };
+const THU = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
+const CHUYEN = 0.9;   // giây trượt camera đầu mỗi câu
+let C, svg, VB0, nhom, canh = [];
+
+// tệp cục bộ: fetch() không đọc file:// trong Chromium → XHR (dung.mjs mở trình duyệt với --allow-file-access-from-files)
+const doc = (url) => new Promise((ok, loi) => { const x = new XMLHttpRequest(); x.open('GET', url); x.onload = () => (x.status === 0 || x.status === 200) && x.responseText ? ok(x.responseText) : loi(new Error('không đọc được ' + url)); x.onerror = () => loi(new Error('không đọc được ' + url)); x.send(); });
+const tai = (src) => new Promise((ok, loi) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => loi(new Error('không tải được ' + src)); i.src = src; });
+function hop(els) {   // khung bao chung của nhiều phần tử, toạ độ viewBox — đo trên màn rồi đổi ngược (getBBox bỏ qua transform của chính nhóm sao → lệch)
+  const m = svg.getScreenCTM().inverse(), pt = svg.createSVGPoint(), doi = (x, y) => { pt.x = x; pt.y = y; const q = pt.matrixTransform(m); return [q.x, q.y]; };
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const e of els) { const r = e.getBoundingClientRect(); if (!r.width && !r.height) continue;
+    const [a, b] = doi(r.left, r.top), [c, d] = doi(r.right, r.bottom); x0 = Math.min(x0, a); y0 = Math.min(y0, b); x1 = Math.max(x1, c); y1 = Math.max(y1, d); }
+  if (x0 === Infinity) throw new Error('khung rỗng');
+  return [x0, y0, x1 - x0, y1 - y0];
+}
+// cỡ khung theo ĐƯỜNG CHÉO: cửa sổ tròn — hai sao ở hai góc chéo khung vuông sẽ bị mặt nạ cắt nếu đo theo cạnh
+const vuong = ([x, y, w, h], he, min = 150) => { const s = Math.max(min, Math.hypot(w, h) * he); return [x + w / 2 - s / 2, y + h / 2 - s / 2, s, s]; };
+
+// mỗi câu → { vb: viewBox đích, sang: Set phần tử được sáng (null = tất cả), nhan: chữ ô thông tin, dung: dựng lớp }
+// phần nhìn được của một sao: ký hiệu + số độ + ký hiệu cung + chấm vị trí — KHÔNG lấy 'tick' (vạch trên vòng nhà, nằm xa tận trong → kéo lệch khung)
+const sao = (ten) => { const g = [...svg.querySelectorAll(`[data-planet="${ten}"]`)]; const ph = g.flatMap((e) => [...e.querySelectorAll('[data-subpart="icon"],[data-subpart="coord"],[data-subpart="sign-glyph"],[data-subpart="dot"]')]);
+  return { g, ph: ph.length ? ph : g }; };
+function dich(q) {
+  const n = q.nhin || { toan: 1 }, D = C.du_lieu;
+  if (n.toan || n.dung) return { vb: VB0, sang: null, nhan: n.dung ? `${D.nguoi.name || ''}` : '', dung: !!n.dung };
+  if (n.sao) { const { g: els, ph } = sao(n.sao); if (!els.length) throw new Error('không có sao ' + n.sao);
+    const s = D.sao.find((x) => x.ten === n.sao);
+    return { vb: vuong(hop(ph), 2.2, 170), sang: new Set(els), nhan: `${KY[n.sao] || ''} ${n.sao} · ${s.cung} · ${THU(s.nha)} house${s.nghich ? ' · retrograde' : ''}` }; }
+  if (n.nha) { const g = svg.querySelector(`[data-cusp-degree][data-house="${n.nha}"]`);   // sao cũng mang data-house — nhà chọn qua data-cusp-degree if (!g) throw new Error('không có nhà ' + n.nha);
+    const o = D.sao.filter((x) => x.nha === n.nha && KY[x.ten]); const els = [g, ...o.flatMap((x) => sao(x.ten).g)];
+    return { vb: vuong(hop([g, ...o.flatMap((x) => sao(x.ten).ph)]), 0.95, 220), sang: new Set(els), to: g.querySelector('[data-subpart="arc"] path'),
+      nhan: `${THU(n.nha)} house` + (o.length ? ` · ${o.map((x) => `${KY[x.ten]} ${x.ten}`).join(' · ')}` : '') }; }
+  if (n.goc) { const [a, b] = n.goc; const g = svg.querySelector(`[data-aspect][data-body1="${a}"][data-body2="${b}"]`) || svg.querySelector(`[data-aspect][data-body1="${b}"][data-body2="${a}"]`);
+    if (!g) throw new Error(`không có góc chiếu ${a}–${b}`);
+    const els = [g, ...sao(a).g, ...sao(b).g];
+    return { vb: vuong(hop([g, ...sao(a).ph, ...sao(b).ph]), 1.25, 220), sang: new Set(els), day: g, nhan: `${KY[a] || ''} ${a} ${g.dataset.aspect.toLowerCase()} ${KY[b] || ''} ${b} · ${g.dataset.orb}°` }; }
+  if (n.cung) { const g = svg.querySelector(`[data-zodiac="${n.cung}"]`); if (!g) throw new Error('không có cung ' + n.cung);
+    const o = C.du_lieu.sao.filter((x) => x.cung === n.cung && KY[x.ten]); const els = [g, ...o.flatMap((x) => sao(x.ten).g)];
+    return { vb: vuong(hop([g, ...o.flatMap((x) => sao(x.ten).ph)]), 0.95, 220), sang: new Set(els), nhan: n.cung + (o.length ? ` · ${o.map((x) => `${KY[x.ten]} ${x.ten}`).join(' · ')}` : '') }; }
+  throw new Error('nhin lạ: ' + JSON.stringify(n));
+}
+
+window.__dung = async () => {
+  C = window.CAU;
+  if (!C.du_lieu) C.du_lieu = JSON.parse(await doc(C.la_so.replace(/\.svg$/, '.json')));
+  const [, , txt] = await Promise.all([tai(C.nen).then((i) => { document.getElementById('nen-anh').src = i.src; }), tai(C.logo),
+    doc(C.la_so)]);
+  document.getElementById('o').innerHTML = txt;
+  svg = document.querySelector('#o svg'); svg.setAttribute('width', 1020); svg.setAttribute('height', 1020); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  const [cx, cy] = C.du_lieu.tam, r = C.du_lieu.ban_kinh[0]; VB0 = [cx - r * 1.08, cy - r * 1.08, r * 2.16, r * 2.16];
+  const pl = C.playlist || { ten: 'Chart Chapters', mau: '#E6B800', ic: '☉' };
+  document.getElementById('goc').innerHTML = `<img src="${C.logo}" style="height:61px;display:block"><span class="chip" style="font-size:30px;background:${pl.mau}">${pl.ic} ${pl.ten}</span>`;
+  // nhóm đổi độ sáng: sao, góc chiếu, nhà (theo nhãn site); lớp để dựng dần
+  nhom = [...svg.querySelectorAll('[data-planet], [data-aspect], [data-cusp-degree], [data-zodiac]')];
+  const lop = (m) => svg.querySelector(`[data-layer="${m}"]`);
+  C._lop = [['angles'], ['zodiac', 'degrees', 'spark'], ['planets'], ['aspects'], ['houses'], ['branding', 'birth-info']].map((ds) => ds.map(lop).filter(Boolean));
+  svg.setAttribute('viewBox', '0 0 ' + svg.viewBox.baseVal.width + ' ' + svg.viewBox.baseVal.height); canh = C.cau.map(dich);   // đo khung khi viewBox còn gốc
+  await document.fonts.ready;
+};
+
+function trangThai(i) { return canh[Math.max(0, Math.min(canh.length - 1, i))]; }
+window.__seek = (t) => {
+  let i = C.cau.findIndex((q) => t < q.den); if (i < 0) i = C.cau.length - 1;
+  const q = C.cau[i], cu = i > 0 ? trangThai(i - 1) : { vb: VB0, sang: null }, moi = trangThai(i);
+  const k = ease((t - q.tu) / CHUYEN), troi = Math.max(0, Math.min(1, (t - q.tu) / Math.max(0.1, q.den - q.tu)));
+  // camera: trượt từ khung câu trước sang khung câu này, rồi đẩy vào chậm 6% cho khung không đứng
+  const day = 1 - 0.06 * ease(troi), vb = moi.vb.map((v, j) => lerp(cu.vb[j], v, k));
+  const s = vb[2] * (k >= 1 ? day : 1), cxv = vb[0] + vb[2] / 2, cyv = vb[1] + vb[3] / 2;
+  svg.setAttribute('viewBox', `${cxv - s / 2} ${cyv - s / 2} ${s} ${s}`);
+  // độ sáng: phần được chọn sáng, còn lại tối dần
+  const op = (st, e) => (!st.sang || st.sang.has(e) || [...st.sang].some((x) => x.contains(e) || e.contains(x)) ? 1 : 0.12);
+  for (const e of nhom) e.style.opacity = lerp(op(cu, e), op(moi, e), k);
+  // tô nhà / làm đậm góc chiếu của câu đang kể
+  for (const st of canh) { if (st.to) { st.to.setAttribute('fill', st === moi ? '#E6B800' : 'gray'); st.to.setAttribute('fill-opacity', st === moi ? (0.06 + 0.12 * k).toFixed(3) : '0.06'); }
+    if (st.day) st.day.querySelectorAll('line, path').forEach((l) => { if (!l.dataset.w0) l.dataset.w0 = l.getAttribute('stroke-width') || '1'; l.setAttribute('stroke-width', st === moi ? Number(l.dataset.w0) * (1 + 2.5 * k) : l.dataset.w0); }); }
+  // dựng từng lớp theo thứ tự site (data-step-index)
+  C._lop.forEach((ds, j) => { const a = moi.dung ? ease((troi * (C._lop.length + 1) - j) / 1.2) : 1; ds.forEach((e) => { e.style.opacity = a; }); });
+  // chữ: ô thông tin (từ dữ liệu lá số) + câu kể, mờ vào đầu câu, mờ ra cuối câu
+  const hien = Math.min(ease((t - q.tu) / 0.35), ease((q.den - t) / 0.3));
+  const nh = document.getElementById('nhan'), cc = document.getElementById('cau');
+  nh.textContent = moi.nhan; nh.style.opacity = moi.nhan ? ease((t - q.tu - 0.4) / 0.4) * hien : 0;
+  cc.innerHTML = q.chu; cc.style.opacity = hien;
+};
+</script></body></html>

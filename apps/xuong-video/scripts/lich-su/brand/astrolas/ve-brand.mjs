@@ -52,19 +52,11 @@ writeFileSync(join(ANH, 'nguon.json'), JSON.stringify(PEXELS, null, 1) + '\n');
 const thieuAnh = Object.keys(PEXELS).filter((t) => !existsSync(join(ANH, `${t}.jpg`)));
 if (thieuAnh.length) { console.error(`✗ thiếu ảnh nền thật: ${thieuAnh.join(', ')} — không tải được Pexels. Dừng, không vẽ nền trơn.`); await tr.close(); process.exit(3); }
 
-// LÁ SỐ THEME NEBULA THẬT (anh 03/11/2026: hình chart dùng theme Nebula của site) → hinh/chart-<slug>-nebula.png, nền trong.
-// Chụp từ astrolas.com/c/<slug>: bấm nút theme 🔮 Nebula của khung lá số rồi chụp #chart-wheel-natal ở tỉ lệ 3×. Không chụp được → dừng.
-const HINH = join(DIR, 'hinh'); mkdirSync(HINH, { recursive: true });
-for (const slug of ['steve-jobs']) { const f = join(HINH, `chart-${slug}-nebula.png`); if (existsSync(f)) continue;
-  const pg = await tr.newPage({ viewport: { width: 1400, height: 1100 }, deviceScaleFactor: 3 });
-  try { await pg.goto(`https://astrolas.com/c/${slug}`, { waitUntil: 'networkidle', timeout: 60000 });
-    if (!(await pg.evaluate(() => { const b = document.querySelector('[data-ccw-theme="nebula"]'); b?.click(); return !!b; }))) throw new Error('không thấy nút theme Nebula');
-    await pg.waitForTimeout(2500);
-    // nền trong: tắt nền của trang + mọi khối bọc lá số (không thì ảnh mang theo ô vuông navy), ẩn lớp sao canvas
-    await pg.evaluate(() => { document.querySelectorAll('canvas').forEach((c) => { c.style.display = 'none'; });
-      for (let e = document.querySelector('#chart-wheel-natal'); e; e = e.parentElement) { e.style.setProperty('background', 'transparent', 'important'); e.style.setProperty('box-shadow', 'none', 'important'); } });
-    await (await pg.$('#chart-wheel-natal')).screenshot({ path: f, omitBackground: true });
-  } catch (e) { console.error(`✗ không chụp được lá số Nebula ${slug}: ${e.message}. Dừng.`); await tr.close(); process.exit(3); } finally { await pg.close(); } }
+// LÁ SỐ THEME NEBULA THẬT (anh 03/11/2026: hình chart dùng theme Nebula của site; SVG phải nhúng font Hamburg để ký hiệu hành tinh hiện đúng)
+// → lich-su/la-so/<slug>.svg do la-so/lay.mjs lấy (vector, phóng không vỡ). Chưa có thì gọi nó; nó dừng thì máy này dừng.
+const LA_SO = join(DIR, '../../la-so');
+for (const slug of ['steve-jobs']) if (!existsSync(join(LA_SO, `${slug}.svg`))) {
+  try { execFileSync(process.execPath, [join(LA_SO, 'lay.mjs'), slug], { stdio: 'inherit' }); } catch { console.error(`✗ không lấy được lá số ${slug}. Dừng.`); await tr.close(); process.exit(3); } }
 
 const page = await tr.newPage();
 const chup = async (f, t, ra) => { const [w, h] = KHUNG[f]; await page.setViewportSize({ width: w, height: h });
@@ -92,7 +84,7 @@ const to = (tieu, phu, the) => `<!doctype html><meta charset="utf-8"><style>body
   h1{font:800 44px Inter;margin:0 0 6px}p.p{color:#9fb0c8;margin:0 0 34px;font-size:22px;max-width:2600px}figcaption{margin-top:12px;color:#c9d4e3;font-size:21px;line-height:1.35}
   .g{display:flex;flex-wrap:wrap;gap:40px 34px;align-items:flex-start}</style><h1>${tieu}</h1><p class="p">${phu}</p><div class="g">${the}</div>`;
 const TO = {
-  'to-duyet-short': to('Astrolas · Short dọc 9:16 (1080×1920)', 'Logo + icon thật của astrolas.com · lá số Steve Jobs theme Nebula chụp thẳng từ astrolas.com/c/steve-jobs · nền ảnh thật Pexels. Trăng của Sky Calendar còn là minh hoạ tạm (G3 làm paper-lantern).', [
+  'to-duyet-short': to('Astrolas · Short dọc 9:16 (1080×1920)', 'Logo + icon thật của astrolas.com · lá số Steve Jobs theme Nebula (SVG vector của astrolas.com/c/steve-jobs, font ký hiệu nhúng) · nền ảnh thật Pexels. Trăng của Sky Calendar còn là minh hoạ tạm (G3 làm paper-lantern).', [
     o('s-intro', '1. Mở đầu (khung cuối) — vòng vàng + chữ ký + chuông, 1,6 s · xem mo-dau-doc.mp4', 420),
     o('s-giua-cc', '2. Giữa video · Chart Chapters — chữ ký góc trái trên + nhãn playlist; phụ đề giữa dưới', 420),
     o('s-giua-sc', '3. Giữa video · Sky Calendar — cùng khung, nhãn xanh trăng', 420),

@@ -151,6 +151,28 @@ Hiện trạng đo 02/11: studio đã có 2 tầng cho kênh — Phim = Kênh (`
 
 Làm CHUNG cho mọi kênh của studio (Yesterday's News Tonight cũng dùng được), không làm riêng Astrolas. Lịch làm tập chuyển từ cấp kênh xuống cấp playlist; trần đăng vẫn tính ở cấp kênh.
 
+## Roadmap tới khi kênh tự vận hành (đề xuất 02/11/2026 — chờ anh duyệt)
+
+"Tự vận hành" = anh không phải làm gì; máy tự chọn chủ đề → viết → kiểm → dựng → Phòng Nội dung chấm → đăng vào đúng playlist → đo → điều chỉnh suất playlist; Claude chỉ vào khi Telegram báo kẹt (tập tự làm lại 3 lần vẫn hỏng). Mẫu đã chạy được: Yesterday's News Tonight (việc nền iMac `com.earns.lich-su-lam-tap` mỗi giờ, `chay-kenh.mjs`, tự làm lại tập kẹt) — Astrolas nối vào cùng đường, KHÔNG thêm tiến trình nền mới.
+
+| Giai đoạn | Việc | Có sẵn / phải dựng | Anh làm gì |
+|---|---|---|---|
+| G0 Chốt | mảng chuyện, 2 playlist đầu (Chart Chapters + Lịch trời), họ hình, tên playlist | — | chốt |
+| G1 Tầng Playlist chung | playlist trong `kenh.json`, `tap.playlist`, lịch theo playlist trong `chay-kenh.mjs`, bảng mos2 Kênh social chia theo playlist; chạy thử trên YNT | dựng | không |
+| G2 Bộ nhận diện | `scripts/lich-su/brand/astrolas/`: logo + chuông, màu/font từ astrolas.com, góc logo, màn cuối, khuôn ảnh bìa nhãn playlist | dựng (mẫu `brand/yesterdays-news-tonight/ve-brand.py`) | duyệt ảnh |
+| G3 Theme hình | engraving 9:16 cho máy dựng (Opus viết MỘT lần, báo giá trước), rồi paper-lantern | dựng | duyệt tờ khung; duyệt tiền Opus |
+| G4 Dữ liệu thật | script lấy mốc ZR / Profection / bầu trời từ astrolas.com; danh sách người nổi tiếng có giờ sinh tin được (bắt đầu 6 trang `/c/`); bổ sung `su-that/astrolas.md`; lịch thực/trăng tự tính từ ephemeris | dựng | không |
+| G5 Khuôn kịch bản | khuôn "Chart Chapters" + "Lịch trời" trong `kenh.json` (giọng bí ẩn, ít đùa, CTA tra chương của bạn); luật kiểm: số lá số phải khớp dữ liệu G4 | dựng | duyệt kịch bản mẫu |
+| G6 Tập mẫu | 1 tập Steve Jobs dựng trọn → anh duyệt video; rồi làm sẵn 3 tập dự trữ | chạy | duyệt video |
+| G7 Đăng | mở khoá mục YouTube @astrolasapp; tạo 2 playlist + "Start here" + bố cục trang kênh (con làm qua br profile kênh, một lần); hàm youtube trong `/Users/htuan/puzzle-books/scripts/dang-br.mjs` chọn playlist lúc đăng + tiền tố tiêu đề (hiện chưa có playlist) | dựng | không |
+| G8 Tự chạy | thêm Astrolas vào `chay-kenh.mjs` (lịch theo playlist, trần 1 bài/ngày kênh mới); hàng chờ chủ đề mỗi playlist tự bổ sung (người nổi tiếng kế, kỳ trăng/thực sắp tới) | dựng | không |
+| G9 Đo + tự điều chỉnh | đã có: lượt xem / người đăng ký (`may-dung.mts --so-kenh`). Thêm: link UTM theo playlist → GA4 click về site + đăng ký Member; luật: playlist kém sau N tập thì giảm suất, tốt thì tăng; báo Telegram tuần | dựng | đọc báo cáo |
+| G10 Mở rộng | playlist 3 (công cụ, hologram-hud); kênh JA / ES khi site mở locale (tài khoản mới, `ban.<nn>`) | dựng sau | duyệt mở ngôn ngữ |
+
+Mốc "tự vận hành": hết G8 (kênh chạy 3 tập/tuần không ai chạm); G9 làm nó tự tốt lên.
+Chi phí chạy ước: vài nghìn tới dưới 10.000₫ một tập → ~3 tập/tuần ≈ 100–130k₫/tháng; một lần: Opus viết theme (báo giá khi tới G3).
+Không tự động được (luôn cần người): tiền vượt 5.000₫ một lượt ngoài đường đã duyệt, sự cố tài khoản / bản quyền, quyết định mở ngôn ngữ.
+
 ## Việc kế (chỉ khi anh chốt)
 
 1. Kịch bản mẫu đánh số "Chart Chapters: Steve Jobs" — mốc ZR / Profection lấy từ astrolas.com.

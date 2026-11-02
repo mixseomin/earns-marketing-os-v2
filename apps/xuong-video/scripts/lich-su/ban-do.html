@@ -233,7 +233,9 @@ window.__seek = (t) => {
       x.fillStyle = i % 2 ? '#111' : '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(d, 0, 4); x.restore(); });
     else dong.forEach((d, i) => chuVien(d, W / 2, y0 + i * (sz * 1.15) + (1 - out(kep(u / 0.35))) * -40, sz, '#9e2b25', 'rgba(248,240,222,.97)', 'center', 900)); x.globalAlpha = 1; } }
   // phụ đề: các chữ của câu đang đọc, chữ đang nói sáng màu
-  const tu = C.tu.filter((w) => w.cau === k);
+  // VÒNG KHÉP KẾT TẬP bắt đầu (0,2 giây sau chữ cuối) → phụ đề câu chốt tắt, không để viền tròn cắt ngang chữ (03/11/2026: Ngọc chặn khung "…istory didn't forget he…")
+  const tHetLoi = C.tu.at(-1)?.b ?? Infinity, tatPhuDe = !!(s.c.ket && LC && t > tHetLoi + 0.2);
+  const tu = tatPhuDe ? [] : C.tu.filter((w) => w.cau === k);
   const FP = (z) => (LC ? `400 ${Math.round(z * 1.08)}px Anton, Impact, sans-serif` : `900 ${z}px Montserrat, "Helvetica Neue", Arial, sans-serif`);
   if (tu.length) { x.font = FP(68);   // nhóm chữ theo BỀ RỘNG (≤ khung − lề), tối đa 4 chữ — không tràn mép
     // nhóm theo bề rộng, tối đa 4 chữ, hết câu là ngắt dòng

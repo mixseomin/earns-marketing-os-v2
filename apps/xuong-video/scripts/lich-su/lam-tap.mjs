@@ -311,7 +311,7 @@ writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
 // 03/11/2026 (Constantinople): ảnh chính của bài là ẢNH GHÉP 6 tranh → Ngọc chặn thumbnail "rối". Giờ xét MỌI ảnh của các bài nguồn (ảnh chính trước), bỏ ảnh ghép /
 // bản đồ / cờ / logo / biểu tượng, Ngọc xét lần lượt (tối đa 6 lượt), giữ tối đa 3 ảnh đạt → tap.anh_bia (ảnh đầu) + tap.anh_bia_ds (thumb.mjs thử lần lượt).
 if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons && c.canh.tranh?.anh) && !(tap.anh_bia_ds?.length && tap.anh_bia_ds.every((x) => existsSync(join(KHO, x.anh))))) {
-  const BO = /collage|montage|mixcollage|\bmix\b|map|karte|carte|mapa|flag|coat.of.arms|logo|icon|symbol|seal|signature|locator|diagram|chart|\.svg$/i, ds = [], tim = [];
+  const BO = /collage|montage|mixcollage|\bmix\b|map|karte|carte|mapa|projection|territor|extent|borders|flag|coat.of.arms|logo|icon|symbol|seal|signature|locator|diagram|chart|\.svg$/i, ds = [], tim = [];
   for (const u of tap.nguon ?? []) {
     const tua = decodeURIComponent(u.split('/wiki/')[1] || '').replace(/_/g, ' '), lang = (u.match(/\/\/(\w+)\.wikipedia/) || [])[1] || 'en'; if (!tua) continue;
     const r = await (await tai(`https://${lang}.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', prop: 'pageimages|images', piprop: 'name', imlimit: '40', titles: tua, redirects: '1', format: 'json', formatversion: '2' })}`)).json();
@@ -323,10 +323,19 @@ if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons && c.canh.tranh?.anh)
   const tuChuyen = new Set(boDau(`${tap.chu_de ?? ''} ${tap.tieu_de ?? ''} ${(tap.nguon ?? []).map((u) => decodeURIComponent(u.split('/wiki/')[1] || '')).join(' ')}`).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !['with', 'from', 'after', 'that', 'this', 'what', 'when', 'were', 'their', 'empire', 'years', 'history'].includes(w)));
   const diem = (x, i) => boDau(x.ten).toLowerCase().split(/[^a-z0-9]+/).filter((w) => tuChuyen.has(w)).length + (i === 0 ? 1 : 0);
   tim.splice(0, tim.length, ...tim.map((x, i) => ({ ...x, d: diem(x, i) })).sort((a1, b1) => b1.d - a1.d));
-  const moTaBia = (tua) => `Cover image for a history video. STORY: ${tap.chu_de ?? ''} (Wikipedia article: ${tua}). Any period painting, engraving or old photo of a main person, place, army, ship or event of this story is fine; a modern photo, a map or an unrelated person is not.`;
+  const moTaBia = (tua) => `THUMBNAIL background for a history video. STORY: ${tap.chu_de ?? ''} (Wikipedia: ${tua}). Fine: a period painting, engraving or old photo of a main person, place, army, ship or event of this story WITH ONE CLEAR SUBJECT that is still recognisable when shrunk to 160 px (a portrait is ideal). Not fine: a modern photo, a map, an unrelated person, a collage of several pictures, a faded crowd scene, a document.`;
+  // CHÂN DUNG NHÂN VẬT CHÍNH LÊN ĐẦU (03/11/2026: ảnh bài nguồn toàn ảnh ghép / cảnh đông người → thumbnail không có chủ thể): ảnh chính bài Wikipedia của từng
+  // nhân vật có tên trong tập (kho nhân vật › ten) — gần như luôn là chân dung, một chủ thể rõ
+  // tra theo MÃ kho (tiếng Anh: mehmed_ii → "Mehmed II") — tên kho là tiếng Việt; bỏ vai chung (lính, đám đông, thành viên…)
+  const tenAnh = (ma) => ma.split('_').map((w) => (/^(i|ii|iii|iv|v|vi|vii|viii|ix|x|xi|xii)$/.test(w) ? w.toUpperCase() : w[0].toUpperCase() + w.slice(1))).join(' ');
+  const nguoi = [...new Set(tap.cau.flatMap((c) => (c.canh.nguoi ?? []).map((n) => n.anh)).filter((ma) => khoNay[ma]?.loai === 'nhan_vat' && !/soldier|member|guard|crowd|people|army|citizen|worker|sailor|_tactical|peasant|merchant/.test(ma)))].slice(0, 4);
+  for (const ma of nguoi.reverse()) {
+    const r = await (await tai(`https://en.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', generator: 'search', gsrsearch: tenAnh(ma), gsrlimit: '1', prop: 'pageimages', piprop: 'name', format: 'json', formatversion: '2' })}`)).json();
+    const pg = r.query?.pages?.[0], pi = pg?.pageimage; if (pi && /\.(jpe?g|png)$/i.test(pi) && !BO.test(pi)) tim.unshift({ ten: `File:${pi.replace(/_/g, ' ')}`, tua: pg.title, d: 99 });
+  }
   let xet = 0;
   for (const { ten: tep, tua } of tim) {
-    if (ds.length >= 3 || xet >= 8) break; xet++; xetConLai = 1;
+    if (ds.length >= 3 || xet >= 10) break; xet++; xetConLai = 1;
     if (!(await ngocDuyetAnh(tep, moTaBia(tua), null))) continue;
     const c = await commons(tep); if (!c?.thumb) continue;
     const f = join(KHO, 'tranh', `${id}-bia-${dauCommons(tep)}.jpg`);

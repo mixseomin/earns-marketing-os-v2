@@ -411,7 +411,7 @@ const LUAT = [
   { card: 'nha-0311', tep: 'apps/xuong-video/scripts/ethopex/kiem-phim-18.py', co: 'def nha_phim_cam(cid):', vi: 'phim bị cấm 18+ tự nhả nhận (anh 03/11/2026)' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: "bat_dau < now() - interval '1 hour'", vi: 'thợ chết: việc dang quá 1 giờ thì xếp lại' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: 'try: pr.wait(timeout=45 * 60)', vi: 'thợ cắt: trần 45 phút / phim (cũ 3 giờ)' },
-  { card: 'cat-0211', tep: 'apps/xuong-video/scripts/ethopex/cat_drive.py', co: '"--max-duration", tran, "--cutoff-mode", "soft"]', vi: 'dọn Drive có trần thời gian (mặc định 5 phút), không chặn lô cắt' },
+  { card: 'cat-0211', tep: 'apps/xuong-video/scripts/ethopex/cat_drive.py', co: '"--max-duration", tran, "--cutoff-mode", "hard"]', vi: 'dọn Drive có trần thời gian (mặc định 5 phút), không chặn lô cắt' },
   { card: 'cat-0211', tep: 'apps/xuong-video/scripts/ethopex/phim-moi.py', co: 'if shutil.disk_usage(C).free / 1e9 < 30 and don_mac() < 15: return print(', vi: 'phim-moi cat: ổ còn ≥ 30 GB thì cắt luôn, không chờ rclone dọn lên Drive (02/11/2026 lô kẹt 26 phút)' },
   { card: 'bo2-0211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'BO_PL = [] if EA.XEM else [str(x) for x in _ch("bo_tat_phim_lo", [])]', vi: 'luật PL tắt camp nhỏ của phim lỗ 7 ngày ở bộ trong etp.cau_hinh.bo_tat_phim_lo (anh 02/11/2026)' },
   { card: 'bo2-0211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tat_pl": m(tat_pl)', vi: 'PL xuất ra --json để worker tắt (báo trước một nhịp)' },

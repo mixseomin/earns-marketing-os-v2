@@ -260,7 +260,7 @@ if (a.includes('--nap')) {
   const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
   const ds = (await db.execute(sql`SELECT id, ma, ten, dang FROM xv_may WHERE la_san_pham ${lay('--may') ? sql`AND ma = ${ma}` : sql``}`)) as unknown as { id: number; ma: string; ten: string; dang: { nen: string; br?: { kenh_id?: string; handle?: string } }[] }[];
   for (const m of ds) {
-    await docLaiLuotXem(db, Number(m.id));
+    await docLaiLuotXem(db, Number(m.id), 50);   // kênh nội dung đo mỗi giờ (việc nền chạy-kênh) — đọc lại số cũ hơn 50 phút
     const yt = (m.dang ?? []).find((x) => x.nen === 'youtube')?.br, trang = yt?.kenh_id ? await trangKenhYoutube(yt.kenh_id) : { nguoiDk: null, anh: null }, sub = trang.nguoiDk;
     const vs = (await db.execute(sql`SELECT slug, dang->>'title' AS tieu_de, da_dang->'youtube'->>'url' AS url, da_dang->'youtube'->>'ngay' AS ngay, luot_xem_nen->>'youtube' AS xem
       FROM xv_may_video WHERE may_id = ${m.id} AND da_dang ? 'youtube'`)) as unknown as { slug: string; tieu_de: string | null; url: string | null; ngay: string | null; xem: string | null }[];

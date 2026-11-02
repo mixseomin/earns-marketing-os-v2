@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // LƯỢT HẰNG NGÀY CỦA CÁC KÊNH LỊCH SỬ (02/11/2026 — anh: "cần cơ chế sx liên tục và đăng lên định kỳ để duy trì kênh", duyệt 3 tập/tuần + tiến trình nền).
-// Việc nền iMac:com.earns.lich-su-lam-tap (apps/cty/cong-ty/viec-nen.json) gọi mỗi ngày. Với mỗi kênh trong kenh.json có `may` (máy Studio) + `lich_tap`:
+// Việc nền iMac:com.earns.lich-su-lam-tap (apps/cty/cong-ty/viec-nen.json) gọi MỖI GIỜ (đo số kênh mỗi lượt; làm tập theo lịch). Với mỗi kênh trong kenh.json có `may` (máy Studio) + `lich_tap`:
 //   1. hôm nay là ngày làm tập (lich_tap: thứ trong tuần, 1 = Thứ Hai … 7 = Chủ nhật, giờ VN) và chưa có tập hôm nay → lam-tap.mjs --kenh <k> --id <mã máy>-<ngày>
 //      (chủ đề + hook theo góc spy của máy, viết → kiểm → dựng → đẩy Studio → nạp máy đăng; Phòng Nội dung chấm, máy đăng tự đăng theo nhịp an toàn)
 //   2. mọi ngày: may-dung.mts --so-kenh (lượt xem + người đăng ký → mos2 › Tài sản › Kênh sản phẩm)
 //   3. báo Telegram (kênh cty): tập mới + tiền thật của lượt, hoặc lỗi nguyên văn.
 //   node scripts/lich-su/chay-kenh.mjs [--kenh parody] [--ep]   (--ep: làm tập kể cả không phải ngày lịch)
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, unlinkSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BOX, box, sqlBox } from './box3.mjs';
@@ -25,7 +26,12 @@ const danhDau = (ma, dl) => { const q1 = (x) => `'${String(x).replace(/'/g, "''"
 for (const [k, K] of Object.entries(KENH)) {
   if (k.startsWith('_') || !K.may || (arg('kenh') && arg('kenh') !== k)) continue;
   const bao = [];
-  if ((K.lich_tap ?? []).includes(thu) || process.argv.includes('--ep')) {
+  // việc nền chạy MỖI GIỜ (02/11/2026 anh: đo kênh tần suất cao hơn) → làm tập chỉ từ gio_tap trở đi của ngày lịch; khoá ~/.cache/lich-su-<k>.khoa (pid) chống lượt chồng
+  const gioNay = new Date().toLocaleTimeString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
+  const khoa = join(homedir(), '.cache', `lich-su-${k}.khoa`), dangChay = (() => { try { process.kill(Number(readFileSync(khoa, 'utf8')), 0); return true; } catch { return false; } })();
+  if (dangChay && !process.argv.includes('--ep')) bao.push('lượt làm tập trước còn chạy — lượt này chỉ đo số');
+  else if (((K.lich_tap ?? []).includes(thu) && gioNay >= (K.gio_tap ?? '00:00')) || process.argv.includes('--ep')) {
+    writeFileSync(khoa, String(process.pid));
     const id = `${K.may}-${hom.replace(/-/g, '')}`;
     if (existsSync(join(DIR, 'tap', `${id}.json`)) && !process.argv.includes('--ep')) bao.push(`tập ${id} đã có — bỏ qua`);
     else {
@@ -34,7 +40,7 @@ for (const [k, K] of Object.entries(KENH)) {
       danhDau(K.may, { id, luc: new Date().toISOString() });
       const r = spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', id, '--nn', 'en', '--kenh', k], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20 });
       const ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra);
-      danhDau(K.may, null);
+      danhDau(K.may, null); try { unlinkSync(khoa); } catch { /* đã gỡ */ }
       const tien = [...ra.matchAll(/~(\d+)₫/g)].reduce((t, m) => t + Number(m[1]), 0);
       const tap = existsSync(join(DIR, 'tap', `${id}.json`)) ? JSON.parse(readFileSync(join(DIR, 'tap', `${id}.json`), 'utf8')) : null;
       bao.push(r.status ? `✗ tập ${id} hỏng (mã ${r.status}): ${ra.trim().split('\n').slice(-3).join(' · ').slice(0, 500)}`

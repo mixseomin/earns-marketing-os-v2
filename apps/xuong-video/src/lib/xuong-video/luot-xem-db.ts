@@ -5,9 +5,11 @@ import { luotXemCacNen, tokenFacebook } from './luot-xem';
 /** Ngày đăng sớm nhất của video (nền nào đăng trước) — để xét "sau ≥ 7 ngày". */
 export const NGAY_DANG_SQL = `least((da_dang->'youtube'->>'ngay')::date, (da_dang->'facebook'->>'ngay')::date, (da_dang->'instagram'->>'ngay')::date)`;
 
-export async function docLaiLuotXem(db: { execute: (q: ReturnType<typeof sql>) => Promise<unknown> }, mayId: number | null): Promise<{ doc: number; tong: number }> {
+/** cuHonPhut: chỉ đọc lại video có số cũ hơn chừng này (mặc định 12 giờ — đo theo dạng, nhiều máy). Kênh nội dung đo MỖI GIỜ (--so-kenh) truyền 50 phút
+ *  (02/11/2026: video vừa đăng đo lúc 1 lượt xem rồi giữ số đó 12 giờ trong khi YouTube đã 512). */
+export async function docLaiLuotXem(db: { execute: (q: ReturnType<typeof sql>) => Promise<unknown> }, mayId: number | null, cuHonPhut = 720): Promise<{ doc: number; tong: number }> {
   const ds = (await db.execute(sql`SELECT id, da_dang FROM xv_may_video WHERE (da_dang ? 'youtube' OR da_dang ? 'facebook') AND (${mayId}::int IS NULL OR may_id = ${mayId}::int)
-    AND (luot_xem_luc IS NULL OR luot_xem_luc < now() - interval '12 hours')`)) as unknown as { id: number; da_dang: Record<string, { url?: string | null }> }[];
+    AND (luot_xem_luc IS NULL OR luot_xem_luc < now() - make_interval(mins => ${cuHonPhut}::int))`)) as unknown as { id: number; da_dang: Record<string, { url?: string | null }> }[];
   const tk = await tokenFacebook(); let doc = 0;
   for (const v of ds) {
     const nen = await luotXemCacNen(v.da_dang, tk); if (!Object.keys(nen).length) continue;

@@ -79,7 +79,8 @@ if (process.argv.includes('--chi-hook')) {
     const chuDang = `${c.data.tieu_de}\n${c.data.mo_ta_dang}`;
     if (/[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chuDang)) { loi = 'tiêu đề / mô tả có tiếng Việt — phải viết bằng ngôn ngữ của tập'; continue; }
     const tm = tuMayTrong(chuDang); if (tm.length) { loi = `có cụm từ máy bị cấm: ${tm.join(', ')}`; continue; }
-    const lh = loiHook([c.data.tieu_de], h.chu); if (lh.length) { loi = `tiêu đề: ${lh.join('; ')} — giữ nhiều chữ của hook gốc hơn, chỉ thay phần chủ thể cho đúng chuyện`; continue; }
+    const lh = loiHook([c.data.tieu_de], h.chu); if (lh.length) { loi = `tiêu đề: ${lh.join('; ')} — hook ${h.id} không ráp được với chuyện này, đã bỏ khỏi danh sách; chọn hook khác và giữ ≥ 35% chữ của nó`;
+      if (gh.hooks.length > 1) gh.hooks = gh.hooks.filter((x) => x.id !== h.id); continue; }
     writeFileSync(ra, JSON.stringify({ hook: { qc: h.id, goc: h.chu }, goc: gh.goc, tieu_de: c.data.tieu_de, mo_ta_dang: c.data.mo_ta_dang }, null, 1));
     console.log(`✓ gắn hook ${h.id} "${h.chu}" → "${c.data.tieu_de}" (${Math.round(c.tokens.vnd ?? 0)}₫)`); process.exit(0);
   }

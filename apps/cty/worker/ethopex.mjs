@@ -475,7 +475,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       from etp.creative r join etp.cham_cong g using (creative_id) left join etp.phim p using (content_id) left join etp.cham h using (creative_id)
       where g.duoc_len and r.tu_choi is null and r.content_id is not null and h.luc > now() - interval '3 days' and r.creative_id not in (${boQua})
         and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
-        and not exists (select 1 from etp.phim_nhan_v n join etp.tai_khoan t on t.nguoi_id = n.nguoi_id and not t.nha where n.content_id = r.content_id and n.trang_thai = 'giu')   -- phim người trong đội đang nhận → khối NHẬN PHIM dưới lên ở tài khoản họ
+        and not exists (select 1 from etp.phim_nhan_v n where n.content_id = r.content_id and n.trang_thai = 'giu' and n.nguoi_id not in (select nguoi_id from etp.tai_khoan where nha))   -- người nhà = có tài khoản nhà (cùng định nghĩa view phim_nhan_td; Tuấn David có cả tk không phải nhà) · phim người trong đội đang nhận → khối NHẬN PHIM dưới lên ở tài khoản họ
         and (not exists (select 1 from etp.camp c where c.content_id = r.content_id)   -- phim CHƯA TỪNG có camp (phim có camp đã bị luật tắt vì lỗ thì không tự lên lại)
           -- hoặc KT cho phim ĐANG CHẠY chưa có camp kể chuyện (anh 29/10/2026 "sx loại video KT cho các phim chưa có nhưng đang lên camp live triệt để … làm đi")
           or (r.dang = 'kể chuyện' and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')

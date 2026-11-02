@@ -11,6 +11,7 @@ import { PhamViLuu, useKhoaLuu } from '@/components/ui/table-prefs';
 import { datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/actions/etp-sua';
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import type { TrangPhim } from '@/lib/etp-doc';
+import { Dem } from '@/components/etp-so';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
@@ -673,7 +674,7 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
   const noi = useNoi<{ ma: string; kieu: 'dx' | 'dk' }>();
   const ds = (NHOM.find(([k]) => k === nhom) ?? NHOM[0]!)[2].map((m) => theo.get(m)).filter((x): x is SoLuat => !!x);
   const T = ({ v }: { v: number | null | undefined }) => (v == null ? <span style={{ color: MO }}>—</span> : <KeToan v={v} mau={v ? mauLai(v) : undefined} />);
-  const N = ({ v }: { v: number | null | undefined }) => <span style={{ color: !v ? MO : undefined, fontVariantNumeric: 'tabular-nums' }}>{v ?? '—'}</span>;
+  const N = Dem;   // số đếm mờ khi 0 — component chung etp-so.tsx
   const so = (v: number | null | undefined) => v ?? -1e9;
   const c = (key: string, header: string, group: string | undefined, get: (l: SoLuat) => number | null | undefined, kieu: 'tien' | 'roi' | 'so' | 'pct', title: string): DataColumn<SoLuat> =>
     ({ key, header, group, title, cell: (l) => { const v = get(l); return kieu === 'tien' ? <T v={v} /> : kieu === 'roi' ? <RoiSo r={v} /> : kieu === 'pct' ? <N v={v == null ? null : Math.round(v)} /> : <N v={v} />; }, sortValue: (l) => so(get(l)) });
@@ -2357,16 +2358,27 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       ? <span style={{ fontSize: 12, whiteSpace: 'nowrap', cursor: 'help' }} title={`hạng ${p.test.hang}/${p.test.tong} · điểm ${p.test.diem}\n${p.test.vi_sao}${p.test.tt ? `\nhàng chờ phim mới: ${TT_MOI[p.test.tt] ?? p.test.tt}` : '\nchưa vào hàng chờ phim mới'}`}>
           <span style={{ color: '#38bdf8' }}>🧪 có thể test #{p.test.hang}</span>{p.test.tt ? <span style={{ color: MO }}> · {TT_MOI[p.test.tt] ?? p.test.tt}</span> : null}</span>
       : <span style={{ color: MO }}>—</span>;
+  // BỘ LỌC THEO TIÊU CHÍ CHỌN PHIM (anh 02/11/2026 "cần bộ lọc theo các tiêu chí như nguồn phim, thể loại… mà insight vừa nãy phân tích"): cột danh mục chữ →
+  // thanh lọc tự động của DataTable (chọn nhiều + gom nhóm). Tỷ lệ phim thắng (lãi ≥ $20) đo trên 357 phim cả đội test 19/10–30/10 — cùng số với chon-phim-moi.py
+  const NGUON_PH: Record<string, string> = { reelshort: 'ReelShort', netshort: 'NetShort', dramabox: 'DramaBox', dramaboxdb: 'DramaBox' };
+  const NHOM_PH: Record<string, string> = { vo_danh: 'Vô danh lật ngược', hoi_han: 'Hối hận', fantasy: 'Fantasy / rồng / thần', mafia: 'Mafia', ty_phu: 'Tỷ phú', me_con: 'Mẹ con', tinh_cam: 'Tình cảm', khac: 'Khác' };
+  const nguonPh = (p: PhimEtpKho) => NGUON_PH[(p.nguon ?? '').replace(/^www\./, '').split('.')[0]!] ?? (p.nguon ? 'Khác' : '—');
+  const ttPh = (p: PhimEtpKho) => (p.moc ? 'Đã cất' : p.camp ? 'Đã có camp' : p.test ? 'Có thể test' : p.ws_moi ? 'Mới thêm, chưa camp' : '—');
   const cotPh: DataColumn<PhimEtpKho>[] = [
     { key: 'ten', header: 'Phim', align: 'left', cell: (p) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Hex bo={p.bo} info={p.bo ? du.boTk[p.bo] : undefined} />{p.ten ?? p.content_id} <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{p.locale ?? ''} {p.nguon ?? ''}</span></span>, sortValue: (p) => p.ten ?? '' },
+    { key: 'tt_ph', header: 'Trạng thái', align: 'left', title: 'Có thể test (qua lọc chọn phim mới) · Đã có camp · Đã cất (máy cất, không mở camp mới) · Mới thêm vào workspace, chưa camp', cell: (p) => <span style={{ fontSize: 12, color: p.moc ? '#94a3b8' : p.camp ? undefined : p.test ? '#38bdf8' : MO }}>{ttPh(p)}</span>, sortValue: ttPh },
+    { key: 'nguon_ph', header: 'Nguồn', align: 'left', title: 'tỷ lệ phim thắng: ReelShort 14,5% · NetShort 3,2% · DramaBox 2,1% (bộ chọn loại DramaBox)', cell: (p) => <span style={{ fontSize: 12 }}>{nguonPh(p)}</span>, sortValue: nguonPh },
+    { key: 'tieng_ph', header: 'Tiếng', align: 'left', title: 'tỷ lệ phim thắng: EN 5,8% · ES 3,3%', cell: (p) => <span style={{ fontSize: 12, color: p.locale ? undefined : MO }}>{(p.locale ?? '—').toUpperCase()}</span>, sortValue: (p) => (p.locale ?? '').toUpperCase() || null },
+    { key: 'nhom_ph', header: 'Nhóm chọn phim', align: 'left', title: 'nhóm thể loại bộ chọn phim đoán từ tên (phim chưa test) — tỷ lệ thắng: vô danh 15% · hối hận 13% · fantasy 11% · mafia 9% · tỷ phú 7% · mẹ con 4% · tình cảm 3% (sói bị loại)', cell: (p) => <span style={{ fontSize: 12, color: p.test?.nhom ? undefined : MO }}>{p.test?.nhom ? NHOM_PH[p.test.nhom] ?? p.test.nhom : '—'}</span>, sortValue: (p) => (p.test?.nhom ? NHOM_PH[p.test.nhom] ?? p.test.nhom : null) },
+    { key: 'qc_fb', header: 'QC FB đang bật', title: 'số QC Facebook app gốc đang bật cho phim (spy) · hover: tổng QC + số Page — 0 = spy chưa thấy. Đo 02/11 trên 214 phim đội test: tỷ lệ thắng ~10% với 0–30 QC, > 30 QC 28,6% (số spy là hiện tại, không phải lúc test)', loc: 'so', cell: (p) => (p.test ? <span title={`tổng ${p.test.qc} QC · ${p.test.page} Page`}><Dem v={p.test.qc_dang} /></span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => p.test?.qc_dang ?? null },
     { key: 'test', header: 'Test', align: 'left', title: 'đã cất (máy cất phim, không mở camp mới) · có thể test (qua lọc chọn phim mới — hạng điểm cao trước, hover xem lý do) — 200 phim đầu chưa có camp cũng hiện dòng', cell: (p) => <OTest p={p} />, sortValue: (p) => (p.moc ? -1 : p.test ? p.test.hang : 1e9) },
     { key: 'trang', header: 'Trang phim', align: 'left', title: 'bản phim trong workspace Ethopex (Content › thêm phim): đủ mô tả + cốt truyện + ảnh + link tập 1 thì máy mới lên camp — hover xem chi tiết', cell: (p) => <OTrang p={p} />, sortValue: (p) => trangCap(p.trang) },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (p) => <span style={{ fontSize: 12 }}>{tl(p.the_loai)}</span>, sortValue: (p) => p.the_loai ?? '' },
     // anh 27/10/2026 "chia thành các cột độc lập": số creative · camp đang bật · camp tạm dừng · tổng camp (không archived)
-    { key: 'cr', header: 'Creative', title: 'số creative (video) khác nhau của phim', cell: (p) => p.creative, sortValue: (p) => p.creative },
-    { key: 'sl', header: 'Camp bật', title: 'camp ACTIVE (gồm camp đã bật chờ tới giờ chạy)', cell: (p) => p.chay, sortValue: (p) => p.chay },
-    { key: 'dung', header: 'Tạm dừng', title: 'camp PAUSED: lịch giờ, luật T7, luật chấm, tắt tay', cell: (p) => p.camp - p.chay, sortValue: (p) => p.camp - p.chay },
-    { key: 'tong', header: 'Tổng camp', title: 'mọi camp của phim trừ camp đã lưu trữ', cell: (p) => p.camp, sortValue: (p) => p.camp },
+    { key: 'cr', header: 'Creative', title: 'số creative (video) khác nhau của phim', cell: (p) => <Dem v={p.creative} />, sortValue: (p) => p.creative },
+    { key: 'sl', header: 'Camp bật', title: 'camp ACTIVE (gồm camp đã bật chờ tới giờ chạy)', cell: (p) => <Dem v={p.chay} />, sortValue: (p) => p.chay },
+    { key: 'dung', header: 'Tạm dừng', title: 'camp PAUSED: lịch giờ, luật T7, luật chấm, tắt tay', cell: (p) => <Dem v={p.camp - p.chay} />, sortValue: (p) => p.camp - p.chay },
+    { key: 'tong', header: 'Tổng camp', title: 'mọi camp của phim trừ camp đã lưu trữ', cell: (p) => <Dem v={p.camp} />, sortValue: (p) => p.camp },
     ...soCot<PhimEtpKho>('nay', (p) => p.nay), ...soCot<PhimEtpKho>('qua', (p) => p.qua), ...(khNay ? [] : soCot<PhimEtpKho>('kh', (p) => phKh.get(p.content_id) ?? KHONG)),
   ];
   const ngayGanNhat = du.ngay.filter((r) => ngayKh(r.ngay)).map((r) => ({ ...r, ...(du.demNgay[r.ngay] ?? { camp_moi: 0, cr_moi: 0, tat: 0 }) }));
@@ -2389,7 +2401,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
           { key: 'thu', header: 'Thu', cell: (r) => <Tien v={r.thu} />, sortValue: (r) => r.thu, total: (rs) => <KeToan v={rs.reduce((a, r) => a + r.thu, 0)} /> },
           { key: 'lai', header: 'Lãi', cell: (r) => <LaiCot s={r} />, sortValue: (r) => r.thu - r.chi, total: (rs) => <KeToan v={rs.reduce((a, r) => a + r.thu - r.chi, 0)} /> },
           { key: 'roi', header: 'ROI', cell: (r) => <Roi s={r} />, sortValue: (r) => roiOf(r) ?? -1e9 },
-          { key: 'camp', header: 'Camp có chi', cell: (r) => r.camp, sortValue: (r) => r.camp },
+          { key: 'camp', header: 'Camp có chi', cell: (r) => <Dem v={r.camp} />, sortValue: (r) => r.camp },
           { key: 'cm', header: 'Camp mới lên', cell: (r) => (r.camp_moi ? `+${r.camp_moi}` : '—'), sortValue: (r) => r.camp_moi, total: (rs) => `+${rs.reduce((a, r) => a + r.camp_moi, 0)}` },
           { key: 'crm', header: 'Creative mới', cell: (r) => (r.cr_moi ? `+${r.cr_moi}` : '—'), sortValue: (r) => r.cr_moi, total: (rs) => `+${rs.reduce((a, r) => a + r.cr_moi, 0)}` },
           { key: 'tat', header: 'Camp tắt', title: 'camp máy / anh tắt trong ngày (nhật ký luật)', cell: (r) => (r.tat ? <span style={{ color: '#f87171' }}>{r.tat}</span> : '—'), sortValue: (r) => r.tat, total: (rs) => String(rs.reduce((a, r) => a + r.tat, 0)) }]} />;

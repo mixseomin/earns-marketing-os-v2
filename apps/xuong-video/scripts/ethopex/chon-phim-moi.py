@@ -65,7 +65,9 @@ uu = [dict(zip(["id", "locale", "ten", "nguon", "url", "so_qc", "so_qc_dang", "s
       qs("select id, locale, ten, nguon, url, so_qc, so_qc_dang, so_page from ethopex_uu_tien where locale in ('en','es')").splitlines() if r]
 kho = [dict(zip(["id", "locale", "ten", "nguon", "url"], (r.split("\t") + [""] * 5)[:5])) for r in
        qs("select id, locale, ten, nguon, url from ethopex_content where locale in ('en','es') and nguon in ('reelshort','netshort') order by tao desc limit 8000").splitlines() if r]
-def loai(x): return int(x["id"]) in da or x["id"] in cam or bool(TU_18.search(x["ten"] or "")) or chuan(x["ten"])[:24] in da_ten
+# BẢN WORKSPACE (etp.trang_phim.content_id) không phải phim thư viện — thu_vien_phim.py lượt nạp bù 02/11 kéo nhầm vào ethopex_content; camp dùng mã phim gốc (ref_id)
+ws_ban = {x for x in q("select content_id from etp.trang_phim").split() if x.isdigit()}
+def loai(x): return x["id"] in ws_ban or int(x["id"]) in da or x["id"] in cam or bool(TU_18.search(x["ten"] or "")) or chuan(x["ten"])[:24] in da_ten
 chinh, _thay = [], set()
 for x in uu + kho:   # spy trước: cùng phim thì giữ bản có số QC app gốc
     k = (chuan(x["ten"]), x["locale"])
@@ -78,7 +80,10 @@ if "--co-the-test" in sys.argv:
     # phim đã bị quy trình phim mới LOẠI (poster / soát 18+ / cắt / cổng — phim-moi.py, sổ ethopex_phim_moi_tt) thì không còn là "có thể test"
     tt = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_phim_moi_tt'") or "{}")
     chinh = [x for x in chinh if not str((tt.get(str(x["id"])) or {}).get("tt", "")).endswith("_loai")]
-    v = json.dumps({"luc": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(), "ds": [{k: x.get(k) for k in ("id", "locale", "ten", "nguon", "url", "diem", "nhom", "vi_sao")} for x in chinh]},
+    # SỐ QC FB của app gốc cho MỌI ứng viên (anh 02/11/2026 "film nào đang chạy nhiều ads fb… cũng là tiêu chí chọn film") — spy ethopex_uu_tien; không có = spy chưa thấy (0)
+    sq = {r.split("\t")[0]: r.split("\t")[1:] for r in qs("select id, coalesce(so_qc_dang, 0), coalesce(so_qc, 0), coalesce(so_page, 0) from ethopex_uu_tien").splitlines() if r}
+    for x in chinh: x["qc_dang"], x["qc"], x["page"] = (int(v_) for v_ in sq.get(str(x["id"]), ["0", "0", "0"]))
+    v = json.dumps({"luc": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(), "ds": [{k: x.get(k) for k in ("id", "locale", "ten", "nguon", "url", "diem", "nhom", "vi_sao", "qc_dang", "qc", "page")} for x in chinh]},
                    ensure_ascii=False).replace("'", "''")
     r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], capture_output=True, text=True,   # ~7.000 phim: qua stdin, không qua tham số
                        input=f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_co_the_test', '{v}'::jsonb) on conflict (ten) do update set gia_tri = excluded.gia_tri")

@@ -23,7 +23,8 @@ def chay(T, het=False):
         while p <= TRANG_MAX:
             r = urllib.request.Request(f"{MB}/api/v2/contents?page={p}&page_size=100&content_type_id=1&is_ref=0&hl={hl}", headers={"authorization": "Bearer " + T, "user-agent": "mos2-etp"})
             d = json.load(urllib.request.urlopen(r, timeout=90)).get("data") or []; trang += 1
-            moi = [x for x in d if int(x["content_id"]) not in co and (x.get("locale") or "").lower() == hl]
+            # bỏ BẢN WORKSPACE (có ref_id / user_id): danh sách is_ref=0 trả lẫn bản người trong đội vừa "thêm content" — đó là bản trỏ về phim gốc, không phải phim thư viện
+            moi = [x for x in d if int(x["content_id"]) not in co and (x.get("locale") or "").lower() == hl and not x.get("ref_id") and not x.get("user_id")]
             for x in moi:
                 rows.append({"id": int(x["content_id"]), "locale": hl, "ten": x.get("title"), "url": x.get("redirect_url") or None, "tao": x.get("created_at"), "anh": x.get("thumbnail")})
                 co.add(int(x["content_id"]))

@@ -6,6 +6,7 @@ import { SimpleTable, StatsStrip } from '@/components/ui';
 import { taiTong2, type SoTong2 } from '@/lib/actions/etp-tong2';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import type { VeWidget } from '@/components/etp-tong2';
+import { Dem } from '@/components/etp-so';
 
 type ST = { chi: number; thu: number };
 const cong = (rs: ST[]) => rs.reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
@@ -101,7 +102,7 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
         </div>
         <SimpleTable rows={pb.nhom} getRowKey={(k) => k.ma} columns={[
           { key: 'ten', header: 'Nhóm', cell: (k) => <span title="3 ngày đã khép gần nhất · camp mới < 3 ngày tính là test">{k.ten}</span> },
-          { key: 'camp', header: 'Camp', align: 'right', cell: (k) => k.camp },
+          { key: 'camp', header: 'Camp', align: 'right', cell: (k) => <Dem v={k.camp} /> },
           { key: 'ns', header: 'Đang', align: 'right', cell: (k) => { const l = lech(k); return <b style={{ color: l === 'tren' ? DO : l === 'duoi' ? '#f59e0b' : undefined, fontVariantNumeric: 'tabular-nums' }} title={l === 'tren' ? 'cao hơn mục tiêu' : l === 'duoi' ? 'thấp hơn mục tiêu' : 'trong mục tiêu'}>{tien(k.ns)}</b>; } },
           { key: 'muc', header: 'Mục tiêu', align: 'right', cell: (k) => (!k.muc ? '—' : k.muc[0] === k.muc[1] ? tien(k.muc[0]) : `${tien(k.muc[0])}–${tien(k.muc[1])}`) },
           { key: 'roi', header: 'ROI 3n', align: 'right', cell: (k) => { const r = roi({ chi: k.chi3, thu: k.thu3 }); return <span style={{ color: r == null ? MO : r >= 0 ? XANH : DO }}>{pct(r)}</span>; } },
@@ -135,7 +136,7 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
         { key: 'chi', header: 'Chi', align: 'right', cell: (p) => tien(p.k.chi) },
         { key: 'lai', header: 'Lãi', align: 'right', cell: (p) => <span style={{ color: mauLai(p.k.thu - p.k.chi) }}>{tien(p.k.thu - p.k.chi)}</span> },
         { key: 'roi', header: 'ROI', align: 'right', cell: (p) => { const r = roi(p.k), t = roi(p.t); return <span title={t == null ? undefined : `kỳ trước cùng độ dài: ${pct(t)}`}>{pct(r)}{r != null && t != null ? <small style={{ color: r >= t ? XANH : DO, marginLeft: 4 }}>{r >= t ? '▲' : '▼'}{Math.abs(r - t).toFixed(0)}</small> : null}</span>; } },
-        { key: 'camp', header: 'Camp bật', align: 'right', title: 'camp ACTIVE lúc này · tổng ngân sách / ngày', cell: (p) => <span title={`ngân sách ${tien(p.ns)}/ngày`}>{p.camp}</span> },
+        { key: 'camp', header: 'Camp bật', align: 'right', title: 'camp ACTIVE lúc này · tổng ngân sách / ngày', cell: (p) => <span title={`ngân sách ${tien(p.ns)}/ngày`}><Dem v={p.camp} /></span> },
         { key: 'duong', header: 'ROI 7 ngày', title: 'ROI từng ngày, 7 ngày đã khép', cell: (p) => <DuongRoi v={p.duong} /> },
       ]} />;
     },
@@ -190,7 +191,7 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
           {lam.length ? <SimpleTable rows={lam} getRowKey={(r) => `${r.viec}|${r.luat}`} hideHeader columns={[
             { key: 'v', header: 'Việc', cell: (r) => TEN_VIEC[r.viec] ?? r.viec },
             { key: 'l', header: 'Luật', cell: (r) => (r.viec === 'tat' || r.viec === 'giam' ? <a href={`?t=camp&l=all&lu=${encodeURIComponent(`lam:${r.viec}:${r.luat}`)}`} style={{ color: 'inherit' }} title="mở các camp máy đã làm theo luật này">{r.luat}</a> : r.luat) },
-            { key: 'n', header: 'Camp', align: 'right', cell: (r) => r.n },
+            { key: 'n', header: 'Camp', align: 'right', cell: (r) => <Dem v={r.n} /> },
           ]} /> : <span style={{ color: MO }}>máy chưa làm gì trong kỳ</span>}</div>
       </div>;
     },

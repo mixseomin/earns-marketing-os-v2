@@ -49,7 +49,7 @@ export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: str
   trang?: TrangPhim | null; ws_moi?: boolean;
   /** CÓ THỂ TEST (anh 02/11/2026): phim qua lọc chọn phim mới (chon-phim-moi.py --co-the-test — nguồn, tiếng, thể loại, chưa ai lên, không cấm / 18+ / bị loại)
    *  hạng trong danh sách điểm cao trước · tt = trạng thái trong quy trình phim mới nếu đã vào hàng chờ (poster_ok, da_cat…). ung_vien = dòng chỉ để thấy phim chưa có camp */
-  test?: { hang: number; tong: number; diem: number; vi_sao: string; tt: string | null } | null; ung_vien?: boolean };
+  test?: { hang: number; tong: number; diem: number; vi_sao: string; tt: string | null; nhom: string | null; qc_dang: number; qc: number; page: number } | null; ung_vien?: boolean };
 export type TrangPhim = { ws: number; nguoi: string | null; tao: string | null; mo_ta: number; cot_truyen: number; nguon: string | null; redirect_url: string | null;
   link_ok: boolean | null; link_loi: string | null; link_luc: string | null; thieu: string[] };
 export type ChamCr = { luc: string; may: string | null; ket: string | null; meta: number | null; afs: number | null; loi: string | null;
@@ -304,12 +304,12 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   // (dong-bo mỗi lượt); TEST_HIEN phim điểm cao nhất chưa có dòng thì thêm dòng ung_vien
   const TEST_HIEN = 200;
   const [ctR, ttR2] = await Promise.all([
-    run<{ ds: { id: number; locale: string; ten: string; nguon: string; diem: number; vi_sao: string }[] | null }>(sql`select gia_tri->'ds' ds from xv_khoa_ngoai where ten = 'ethopex_co_the_test'`).catch(() => []),
+    run<{ ds: { id: number; locale: string; ten: string; nguon: string; diem: number; vi_sao: string; nhom?: string; qc_dang?: number; qc?: number; page?: number }[] | null }>(sql`select gia_tri->'ds' ds from xv_khoa_ngoai where ten = 'ethopex_co_the_test'`).catch(() => []),
     run<{ tt: Record<string, { tt?: string }> | null }>(sql`select gia_tri tt from xv_khoa_ngoai where ten = 'ethopex_phim_moi_tt'`).catch(() => []),
   ]);
   const ctDs = ctR[0]?.ds ?? [], ttMoi = ttR2[0]?.tt ?? {}, phTheo = new Map(phims.map((p) => [p.content_id, p]));
   ctDs.forEach((x, i) => {
-    const test = { hang: i + 1, tong: ctDs.length, diem: n(x.diem), vi_sao: x.vi_sao ?? '', tt: ttMoi[String(x.id)]?.tt ?? null };
+    const test = { hang: i + 1, tong: ctDs.length, diem: n(x.diem), vi_sao: x.vi_sao ?? '', tt: ttMoi[String(x.id)]?.tt ?? null, nhom: x.nhom ?? null, qc_dang: n(x.qc_dang ?? 0), qc: n(x.qc ?? 0), page: n(x.page ?? 0) };
     const p = phTheo.get(n(x.id));
     if (p) p.test = test;
     else if (i < TEST_HIEN) phims.push({ content_id: n(x.id), ten: x.ten ?? null, the_loai: null, bo: null, locale: x.locale ?? null, nguon: x.nguon ?? null, nhom_goc: null, moc: null, doi_chay: 0,

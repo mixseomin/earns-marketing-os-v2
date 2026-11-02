@@ -83,7 +83,7 @@ def trang_chua_san(content_id, tk):
     CHƯA THÊM bản chỉ chặn ở tài khoản NHÀ: đo 7 ngày tới 02/11 — Nhà 101/101 phim lên camp đều có bản của chính Nhà, còn camp đội chạy cả phim không có bản
     (Sơn 23/110, Kiên 12/35) → với đội thiếu bản không phải thiếu trang đích; bản CÓ mà thiếu mô tả / link thì chặn mọi tài khoản."""
     if q("select coalesce(max(cap_nhat), 'epoch') > now() - interval '2 hours' from etp.trang_phim") != "t": return None
-    ng = q(f"select nguoi_id || '|' || nha || '|' || nguoi from etp.tai_khoan where ad_account_id = {int(tk or 0)}") if str(tk or "").isdigit() else ""
+    ng = q(f"select nguoi_id || '|' || case when nha then 't' else 'f' end || '|' || nguoi from etp.tai_khoan where ad_account_id = {int(tk or 0)}") if str(tk or "").isdigit() else ""
     if ng.count("|") < 2: return None
     ng_id, nha_, ng_ten = ng.split("|", 2)
     r = q(f"select content_id || '|' || array_to_string(thieu, ', ') from etp.trang_phim_v where ref_id = {int(content_id)} and nguoi_id = {int(ng_id)} order by cardinality(thieu), sua desc limit 1")

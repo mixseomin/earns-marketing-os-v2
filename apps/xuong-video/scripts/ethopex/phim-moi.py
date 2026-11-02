@@ -146,7 +146,8 @@ def gop(ten):
 
 def cat(dat=CHI_TIEU, san=0):
     """san > 0: CẮT SẴN san phim cho ngày kế tiếp không theo chỉ tiêu (Ethopex chỉ nhận lịch hôm nay / ngày mai — lô ngày kia cắt trước, lên sau 07:00)"""
-    if don_mac() < 15: return print("ổ iMac còn dưới 15 GB sau khi dọn — không cắt (cắt một phim cần ~1–2 GB tạm); báo anh")
+    import shutil   # ổ còn ≥ 30 GB thì cắt luôn, không chờ dọn lên Drive (02/11/2026: rclone move chặn lô 26 phút khi ổ còn 39 GB trống)
+    if shutil.disk_usage(C).free / 1e9 < 30 and don_mac() < 15: return print("ổ iMac còn dưới 15 GB sau khi dọn — không cắt (cắt một phim cần ~1–2 GB tạm); báo anh")
     lich, _ = chon_ngay(); print(f"cắt cho ngày {NGAY_LEN} (lịch {lich})", flush=True)
     ds, tt, dem, ty_le, chua, san_, hom_nay = so_lieu()
     can = max(0, dat - hom_nay); so = min(len(san_), math.ceil(can / max(ty_le, 0.2))) if not san else min(len(san_), san)

@@ -268,6 +268,10 @@ const LUAT = [
   { card: 'roas-cl-0211', tep: 'apps/etp/canh-bao.py', cam: "ten not like '★%'", vi: 'cảnh báo không lọc camp ROAS theo tên' },
   { card: 'roas-cl-0211', tep: 'apps/web/src/lib/etp-doc.ts', cam: "c.ten like '★%'", vi: 'màn etp không lọc camp ROAS theo tên' },
   { card: 'roas-cl-0211', tep: 'apps/web/src/components/etp-view.tsx', cam: 'laRoas(c.ten)', vi: 'màn etp truyền cả camp (chiến lược) vào laRoas' },
+  // anh 02/11/2026 "bật phần góp ý cho tk của Sơn": người có quyền etp thấy nút Góp ý trên etp.on.tc, chỉ đụng card mình gửi
+  { card: 'gopy-son-0211', tep: 'apps/web/src/app/layout.tsx', co: "const coGopY = u?.role === 'admin' || (host === 'etp.on.tc' && !!(await quyenEtp(u)));", vi: 'nút góp ý cho người team etp' },
+  { card: 'gopy-son-0211', tep: 'apps/web/src/lib/actions/gop-y-mos2.ts', co: "if (me.role !== 'admin' && !(hom === 'mos2' && laTrangEtp(String(input.trang || '')) && (await quyenEtp(me))))", vi: 'gửi góp ý: người team chỉ từ trang etp' },
+  { card: 'gopy-son-0211', tep: 'apps/web/src/lib/actions/gop-y-mos2.ts', co: "AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})`}\n    RETURNING id, project_id", vi: 'người team chỉ trả lời card của mình' },
   { card: 1501, tep: 'apps/web/src/components/etp-tong2.tsx', cam: "borderColor: ra ?", vi: 'widget Tổng quan 2 không ghi đè borderColor lên shorthand border của Panel (React xoá viền → trắng gắt)' },
   { card: 1501, tep: 'apps/web/src/components/etp-tong2.tsx', co: "border: `1px solid ${ra ? '#f87171' : sua ? 'var(--accent)' : 'var(--line)'}`", vi: 'viền widget viết đủ shorthand, mặc định var(--line)' },
   { card: 1502, tep: 'apps/web/src/components/ui/chon2.tsx', co: "autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}", vi: 'ô chọn không tự focus ô tìm trên màn cảm ứng (bàn phím điện thoại bật che danh sách)' },

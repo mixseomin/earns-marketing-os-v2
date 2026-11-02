@@ -9,6 +9,7 @@ import '@mos2/bang/bang.css';
 import { readTablePrefs } from '@/lib/table-prefs';
 import { getCurrentUser } from '@/lib/auth';
 import { GopYMos2 } from '@/components/gop-y-mos2';
+import { quyenEtp } from '@/lib/etp-quyen';
 
 // Google Analytics 4 — property "MOS2" (mos2.on.tc). Public measurement ID, not a secret.
 const GA_ID = 'G-GBENC4P7CB';
@@ -54,6 +55,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // via /api/auth/verify.) Only costs a getCurrentUser on mos2.on.tc renders.
   const host = (await headers()).get('host')?.split(':')[0] || '';
   const u = await getCurrentUser();
+  // nút góp ý: admin mọi host; etp.on.tc thêm người có quyền etp (anh 02/11/2026 "bật phần góp ý cho tk của Sơn")
+  const coGopY = u?.role === 'admin' || (host === 'etp.on.tc' && !!(await quyenEtp(u)));
   if (host === 'mos2.on.tc' && u && u.role === 'viewer') redirect('https://user.on.tc/review');
   // Cột/sort/lọc của MỌI bảng — đọc ở đây để lần sơn đầu đã đúng (hết nháy khi F5).
   const tablePrefs = await readTablePrefs();
@@ -80,8 +83,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <TablePrefsProvider value={tablePrefs}>
           <RootProviders>
             {children}
-            {/* Hòm góp ý của chính MOS2 — admin mới thấy (kênh của người chủ; nhân sự có 🚩 blocker). city.on.tc: hòm riêng 'city' (/tasks-city). */}
-            {u?.role === 'admin' && <GopYMos2 hom={host === 'city.on.tc' ? 'city' : 'mos2'} tren={host === 'etp.on.tc'} />}
+            {/* Hòm góp ý của chính MOS2 — admin (kênh của người chủ; nhân sự có 🚩 blocker) + người team etp trên etp.on.tc. city.on.tc: hòm riêng 'city' (/tasks-city). */}
+            {coGopY && <GopYMos2 hom={host === 'city.on.tc' ? 'city' : 'mos2'} tren={host === 'etp.on.tc'} />}
           </RootProviders>
         </TablePrefsProvider>
       </body>

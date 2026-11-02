@@ -9,6 +9,7 @@
 import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { getCurrentUser } from '@/lib/auth';
+import { quyenEtp } from '@/lib/etp-quyen';
 import { setBacklinkSite, setBacklinkSchedule } from '@/lib/actions/architecture';
 
 export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; luc: string; anh: string[];
@@ -23,6 +24,9 @@ export type TinTraoDoi = { nguoi: string; noiDung: string; xuLy: string | null; 
 const HOM_GOP_Y = ['mos2', 'city'];
 const homCua = (x: unknown) => (typeof x === 'string' && HOM_GOP_Y.includes(x) ? x : 'mos2');
 
+/** NGƯỜI TRONG TEAM ETP (anh 02/11/2026 "bật phần góp ý cho tk của Sơn"): người có quyền etp (etp.quyen) gửi góp ý được — chỉ từ trang etp.on.tc,
+ *  card rơi hòm mos2 như của anh (/tasks-etp lọc theo source_url). Ngoài admin, mỗi người chỉ đọc / trả lời luồng card CHÍNH MÌNH gửi. */
+const laTrangEtp = (u: string) => { try { return new URL(u).hostname === 'etp.on.tc'; } catch { return false; } };
 const homNayVN = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
 
 /** Gửi góp ý về MOS2 → một card pending trên plays `mos2`, follow hôm nay (nằm trong ô
@@ -32,7 +36,8 @@ export async function guiGopYMos2(input: {
   loai: string; noiDung: string; trang: string; anhUrls: string[]; nguCanh?: string; hom?: string;
 }): Promise<{ ok: boolean; id?: number; error?: string }> {
   const me = await getCurrentUser(), hom = homCua(input.hom);
-  if (!me || me.role !== 'admin') return { ok: false, error: 'not found' };
+  if (!me) return { ok: false, error: 'not found' };
+  if (me.role !== 'admin' && !(hom === 'mos2' && laTrangEtp(String(input.trang || '')) && (await quyenEtp(me)))) return { ok: false, error: 'not found' };
   const db = getDb();
   if (!db) return { ok: false, error: 'no db' };
   const noiDung = input.noiDung.trim();
@@ -119,12 +124,14 @@ export async function dsGopYCuaToi(homVao?: string): Promise<GopYCuaToi[]> {
 
 /** Luồng trao đổi của một card góp ý MOS2 (prep_payload.trao_doi). */
 export async function docTraoDoiCard(taskId: number): Promise<TinTraoDoi[]> {
-  if (!(await getCurrentUser())) return [];
+  const me = await getCurrentUser();
+  if (!me) return [];
   const db = getDb();
   if (!db) return [];
   const r = await db.execute(sql`
     SELECT prep_payload->'trao_doi' AS td FROM human_tasks
-    WHERE id = ${taskId} AND project_id IN ('mos2', 'city') AND prep_payload->>'source_platform' = 'feedback' LIMIT 1`);
+    WHERE id = ${taskId} AND project_id IN ('mos2', 'city') AND prep_payload->>'source_platform' = 'feedback'
+      ${me.role === 'admin' ? sql`` : sql`AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})`} LIMIT 1`);
   const td = (r as unknown as Array<{ td: unknown }>)[0]?.td;
   return Array.isArray(td) ? (td as TinTraoDoi[]) : [];
 }
@@ -161,6 +168,7 @@ export async function guiTraoDoiCard(input: {
           COALESCE(prep_payload->'trao_doi', '[]'::jsonb) || ${JSON.stringify(tin)}::jsonb, true),
         updated_at = now()
     WHERE id = ${input.taskId} AND project_id IN ('mos2', 'city') AND prep_payload->>'source_platform' = 'feedback'
+      ${me.role === 'admin' ? sql`` : sql`AND lower(prep_payload->'trao_doi'->0->>'nguoi') = lower(${me.email})`}
     RETURNING id, project_id`);
   const hom = (up as unknown as Array<{ id: number; project_id: string }>)[0]?.project_id;
   if (!hom) return { ok: false, error: 'Không phải card góp ý mos2 / city.' };

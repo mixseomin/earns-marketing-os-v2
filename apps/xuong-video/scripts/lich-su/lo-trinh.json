@@ -84,9 +84,9 @@
       {
         "ma": "G2",
         "ten": "Bộ nhận diện",
-        "viec": "brand/astrolas/: logo + chuông, màu/font astrolas.com, góc logo, màn cuối, khuôn ảnh bìa nhãn playlist · 03/11 đã có TỜ DUYỆT ĐẦU (brand/astrolas/ra/to-duyet-short|ngang|kenh.png + mo-dau-doc|ngang.mp4): logo đang là chữ gõ tạm, ảnh đại diện / banner nền vẽ code (bản thật ảnh Pexels), hình tập minh hoạ tạm (G3)",
+        "viec": "brand/astrolas/: logo + chuông, màu/font astrolas.com, góc logo, màn cuối, khuôn ảnh bìa nhãn playlist · 03/11 anh BÁC tờ đầu (logo gõ chữ thay logo thật) → máy vẽ chỉ dùng wordmark + icon thật của astrolas.com, thiếu thì dừng; anh yêu cầu hình chart dùng theme NEBULA của site. Đang chờ đường lấy logo + Nebula (máy cloud bị chặn astrolas.com)",
         "anh": "duyệt ảnh",
-        "trang_thai": "cho_anh"
+        "trang_thai": "dang"
       },
       {
         "ma": "G3",

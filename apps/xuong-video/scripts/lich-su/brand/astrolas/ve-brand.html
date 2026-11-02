@@ -1,7 +1,7 @@
 <!doctype html>
 <!-- BỘ NHẬN DIỆN KÊNH YOUTUBE ASTROLAS (G2 lộ trình, 03/11/2026) — mọi khung vẽ ở đây, ve-brand.mjs chụp ra ra/<khung>.png (+ đoạn mở đầu mp4).
      Màu + font lấy từ mẫu QC Astrolas của studio (mau/astrolas-*.json › kieu_chu): navy #0B1A2E, vàng #E6B800, chữ trắng, Playfair Display Black.
-     LOGO: bản này GÕ CHỮ TẠM "astrolas" (máy cloud không tải được astrolas.com) — bản thật thay bằng https://astrolas.com/images/logo/wordmark-on-dark@2x.png (biến LOGO_URL).
+     LOGO + ICON: CHỈ dùng tệp thật của astrolas.com trong logo/ (ve-brand.mjs lấy về: wordmark-on-dark + icon) — anh 03/11/2026 cấm chữ gõ thay logo. Thiếu tệp thì máy dừng.
      HÌNH TẬP trong khung giữa video / ảnh bìa = MINH HOẠ TẠM vẽ code; hình thật là theme engraving / paper-lantern của G3.
      ?f=<khung>&t=<giây> — t chỉ dùng cho khung động (s-intro, n-intro). -->
 <html><head><meta charset="utf-8">
@@ -24,7 +24,7 @@ html, body { background: var(--navy); overflow: hidden; }
 <body><div id="k"></div>
 <script>
 const P = new URLSearchParams(location.search), F = P.get('f') || 's-intro', T = Number(P.get('t') ?? 99);
-const LOGO_URL = null;   // bản thật: 'wordmark-on-dark@2x.png' (tải về cạnh tệp này) — null = gõ chữ tạm
+const LOGO_URL = 'logo/wordmark.png', ICON_URL = 'logo/icon.png';   // ve-brand.mjs chép logo thật vào đây
 const PL = { cc: { ten: 'Chart Chapters', mau: '#E6B800', ic: '☉' }, sc: { ten: 'Sky Calendar', mau: '#8EC5FF', ic: '☽' } };
 const KICH = { 's-intro': [1080, 1920], 's-giua-cc': [1080, 1920], 's-giua-sc': [1080, 1920], 's-vung': [1080, 1920], 's-cuoi': [1080, 1920], 's-bia-cc': [1080, 1920], 's-bia-sc': [1080, 1920],
   'n-intro': [1920, 1080], 'n-giua-cc': [1920, 1080], 'n-giua-sc': [1920, 1080], 'n-cuoi': [1920, 1080], 'n-bia-cc': [1280, 720], 'n-bia-sc': [1280, 720],
@@ -34,7 +34,8 @@ const el = (html) => { k.insertAdjacentHTML('beforeend', html); return k.lastEle
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x)), ease = (x) => 1 - Math.pow(1 - clamp(x), 3);
 
 // ---------- chữ ký (wordmark) ----------
-const mark = (px, mau = '#fff') => LOGO_URL ? `<img src="${LOGO_URL}" style="height:${px * 1.05}px">`
+const mark = (px) => `<img src="${LOGO_URL}" style="height:${px * 1.05}px;display:block">`;
+const _boChuGo = (px, mau = '#fff') => false
   : `<span class="mark" style="font-size:${px}px;color:${mau}">astrol<i>a</i>s</span>`;
 
 // ---------- nền trời (sao theo hạt giống — khung nào cũng giống nhau) ----------
@@ -116,10 +117,8 @@ const VE = {
   's-bia-cc'() { bia('cc', 'THE YEAR<br>HE WAS<br>FIRED', 'Steve Jobs · 1985', false); },
   's-bia-sc'() { bia('sc', 'THE ECLIPSE<br>THAT SAVED<br>COLUMBUS', 'Jamaica · 1504', false); },
   'avatar'() { nen(W, H, 9);
-    el(`<svg class="abs" style="inset:0" width="${W}" height="${H}"><circle cx="400" cy="400" r="300" fill="none" stroke="#E6B800" stroke-width="14"/>
-      <circle cx="400" cy="400" r="270" fill="none" stroke="#E6B800" stroke-width="3" opacity=".6"/></svg>`);
-    el(`<div class="abs pf" style="left:0;right:0;top:170px;text-align:center;font-size:420px;line-height:1;color:#fff">a</div>`);
-    el(`<div class="abs" style="left:556px;top:214px;font:400 92px 'DejaVu Sans';color:#E6B800">✦</div>`); },
+    el(`<svg class="abs" style="inset:0" width="${W}" height="${H}"><circle cx="400" cy="400" r="330" fill="none" stroke="#E6B800" stroke-width="12"/></svg>`);
+    el(`<img class="abs" src="${ICON_URL}" style="left:180px;top:180px;width:440px;height:440px;object-fit:contain">`); },
   // BANNER 2560×1440 — vùng an toàn mọi thiết bị 1546×423 ở giữa (khung đứt)
   'banner'() { nen(W, H, 21);
     el(`<svg class="abs" style="inset:0" width="${W}" height="${H}">${banhXe(300, 720, 250, ['', ''], .55)}${trang(2290, 640, 120, .8)}</svg>`);
@@ -168,5 +167,6 @@ function bia(pl, tieu, phu, ngang) {
     el(`<div class="abs" style="left:0;right:0;top:150px;text-align:center">${mark(48)}</div>`); }
 }
 VE[F]();
-document.fonts.ready.then(() => { window.__xong = true; });
+Promise.all([document.fonts.ready, ...[...document.images].map((im) => im.decode().catch(() => { throw new Error(`không tải được ${im.getAttribute('src')}`); }))])
+  .then(() => { window.__xong = true; }, (e) => { window.__loi = String(e.message || e); });
 </script></body></html>

@@ -5,7 +5,7 @@
 import { createRequire } from 'node:module';
 const { chromium } = createRequire(import.meta.url)('playwright');   // Playwright cài chung máy (iMac / box) — require tìm cả NODE_PATH
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -16,10 +16,34 @@ const KHUNG = { 's-intro': [1080, 1920], 's-giua-cc': [1080, 1920], 's-giua-sc':
   'n-intro': [1920, 1080], 'n-giua-cc': [1920, 1080], 'n-giua-sc': [1920, 1080], 'n-cuoi': [1920, 1080], 'n-bia-cc': [1280, 720], 'n-bia-sc': [1280, 720],
   avatar: [800, 800], banner: [2560, 1440], 'bang-mau': [1920, 1080] };
 
+// LOGO + ICON THẬT (anh 03/11/2026: cấm chữ gõ thay logo) → logo/wordmark.png + logo/icon.png. Nguồn theo thứ tự:
+//   1. repo site trên máy (ASTROLAS_REPO, mặc định iMac /Users/htuan/Me/GitHub/Astrolas.com) › public/images/logo + public (favicon / apple-touch-icon)
+//   2. tải astrolas.com (wordmark-on-dark@2x.png; icon theo <link rel=icon|apple-touch-icon> của trang chủ)
+// Không có cả hai → DỪNG (mã 3), không vẽ gì.
+const LOGO = join(DIR, 'logo'); mkdirSync(LOGO, { recursive: true });
+const SITE = process.env.ASTROLAS_REPO ?? '/Users/htuan/Me/GitHub/Astrolas.com';
+const lonNhat = (ds) => ds.filter((f) => existsSync(f)).sort((a, b) => statSync(b).size - statSync(a).size)[0];
+const quet = (d, re) => { try { return readdirSync(d).filter((f) => re.test(f)).map((f) => join(d, f)); } catch { return []; } };
+async function tai(url, ra) { try { const r = await fetch(url); if (!r.ok) return false; writeFileSync(ra, Buffer.from(await r.arrayBuffer())); return true; } catch { return false; } }
+if (!existsSync(join(LOGO, 'wordmark.png'))) {
+  const f = lonNhat([join(SITE, 'public/images/logo/wordmark-on-dark@2x.png'), ...quet(join(SITE, 'public/images/logo'), /wordmark.*dark.*\.png$/i)]);
+  if (f) copyFileSync(f, join(LOGO, 'wordmark.png')); else await tai('https://astrolas.com/images/logo/wordmark-on-dark@2x.png', join(LOGO, 'wordmark.png'));
+}
+if (!existsSync(join(LOGO, 'icon.png'))) {
+  const f = lonNhat([...quet(join(SITE, 'public/images/logo'), /(icon|mark|symbol).*\.png$/i), ...quet(join(SITE, 'public'), /(apple-touch-icon|android-chrome-512|icon-512|favicon-512).*\.png$/i)]);
+  if (f) copyFileSync(f, join(LOGO, 'icon.png'));
+  else { const html = await fetch('https://astrolas.com/').then((r) => r.text()).catch(() => '');
+    const ds = [...html.matchAll(/<link[^>]+rel=["'](?:apple-touch-icon|icon)["'][^>]*href=["']([^"']+\.png)["']/gi)].map((m) => new URL(m[1], 'https://astrolas.com/').href);
+    for (const u of [...ds, 'https://astrolas.com/apple-touch-icon.png']) if (await tai(u, join(LOGO, 'icon.png'))) break; }
+}
+const thieu = ['wordmark.png', 'icon.png'].filter((f) => !existsSync(join(LOGO, f)));
+if (thieu.length) { console.error(`✗ thiếu logo thật: ${thieu.join(', ')} — không có repo site (${SITE}) và không tải được astrolas.com. Dừng, không vẽ chữ thay logo.`); process.exit(3); }
+
 const tr = await chromium.launch();
 const page = await tr.newPage();
 const chup = async (f, t, ra) => { const [w, h] = KHUNG[f]; await page.setViewportSize({ width: w, height: h });
-  await page.goto(`${URL0}?f=${f}${t != null ? `&t=${t}` : ''}`); await page.waitForFunction(() => window.__xong === true); await page.screenshot({ path: ra }); };
+  await page.goto(`${URL0}?f=${f}${t != null ? `&t=${t}` : ''}`); await page.waitForFunction(() => window.__xong === true || !!window.__loi);
+  const loi = await page.evaluate(() => window.__loi); if (loi) throw new Error(`${f}: ${loi}`); await page.screenshot({ path: ra }); };
 for (const f of Object.keys(KHUNG)) { await chup(f, null, join(RA, `${f}.png`)); console.log(`✓ ${f}`); }
 
 // CHUÔNG + ĐOẠN MỞ ĐẦU (1,6 s: vòng vàng 0–0,55 s, chữ ký 0,25–0,7 s, khẩu hiệu 0,55–0,9 s, giữ tới 1,6 s; chuông ở 0,08 s)
@@ -42,7 +66,7 @@ const to = (tieu, phu, the) => `<!doctype html><meta charset="utf-8"><style>body
   h1{font:800 44px Inter;margin:0 0 6px}p.p{color:#9fb0c8;margin:0 0 34px;font-size:22px;max-width:2600px}figcaption{margin-top:12px;color:#c9d4e3;font-size:21px;line-height:1.35}
   .g{display:flex;flex-wrap:wrap;gap:40px 34px;align-items:flex-start}</style><h1>${tieu}</h1><p class="p">${phu}</p><div class="g">${the}</div>`;
 const TO = {
-  'to-duyet-short': to('Astrolas · Short dọc 9:16 (1080×1920)', 'Logo đang là CHỮ GÕ TẠM (Playfair Black) — bản thật thay bằng wordmark của astrolas.com. Hình bánh xe lá số / trăng là MINH HOẠ TẠM, hình thật là theme G3 (engraving / paper-lantern).', [
+  'to-duyet-short': to('Astrolas · Short dọc 9:16 (1080×1920)', 'Logo + icon thật của astrolas.com. Hình bánh xe lá số / trăng là MINH HOẠ TẠM — hình thật là chart theme Nebula của site.', [
     o('s-intro', '① Mở đầu (khung cuối) — vòng vàng + chữ ký + chuông, 1,6 s · xem mo-dau-doc.mp4', 420),
     o('s-giua-cc', '② Giữa video · Chart Chapters — chữ ký góc trái trên + nhãn playlist; phụ đề giữa dưới', 420),
     o('s-giua-sc', '③ Giữa video · Sky Calendar — cùng khung, nhãn xanh trăng', 420),

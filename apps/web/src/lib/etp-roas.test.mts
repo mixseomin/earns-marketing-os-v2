@@ -6,6 +6,10 @@ for (const t of ['★ ROAS 1 · Y roas 1 duplicate by 65720', 'Dup by 68596 ROAS
   assert.ok(laRoas(t), t);
 for (const t of ['Dup by 68596 5', 'Dup by 68624 1', 'S_FB_Prosaic_ROASTED_x2', '2110 Number One Nobody EN - canh that', null, ''])
   assert.ok(!laRoas(t), String(t));
+assert.ok(laRoas('ROAS1.2_S_FB_The-Dragons-Silly-Captive_167292_EN_EP8_x3_D_69343') && laRoas('ROAS1.1_S_2210 Step Back EN'));
+assert.ok(laRoas({ ten: 'S_FB_Dragons_x10', chien_luoc: 'LOWEST_COST_WITH_MIN_ROAS' }));   // Kiên: không đặt tên vẫn là ROAS
+assert.ok(!laRoas({ ten: '★ ROAS 1 · Y roas 1 duplicate by 65720', chien_luoc: 'LOWEST_COST_WITHOUT_CAP' }));   // chiến lược thật thắng tên
+assert.ok(laRoas({ ten: 'Dup by 66168 ROAS 1.1', chien_luoc: null }) && !laRoas({ ten: 'S_FB_x1' }));
 assert.strictEqual(mucRoas('Dup by 68596 ROAS 1.1'), 1.1);
 assert.strictEqual(mucRoas('★ X roas 1 duplicate by 65720'), 1);
 assert.strictEqual(mucRoas('S_FB_x10_D69655_ROAS1'), null);

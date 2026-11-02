@@ -55,14 +55,13 @@ def dem_dang_chay(content_id):
     (~500 lượt gọi, 3–4 phút mỗi lần tạo camp)."""
     n = 0; DEM_CR.clear()
     if NGOAI:   # kho camp người trong team (dong-bo.py) — không có cột đồng bộ; camp ROAS (mọi kiểu tên) không chiếm chỗ; camp máy vừa tạo đọc lại ở nhịp sau
-        for l in q(f"select camp_id, coalesce(creative_id, 0), ten from etp.camp_ngoai where content_id = {int(content_id)} and ad_account_id in ({_TK_SQL}) and trang_thai = 'ACTIVE'").splitlines():
-            _, cr, ten = l.split("|", 2)
-            if CONG.la_roas(ten): continue
+        for l in q(f"select camp_id, coalesce(creative_id, 0) from etp.camp_ngoai where content_id = {int(content_id)} and ad_account_id in ({_TK_SQL}) and trang_thai = 'ACTIVE' and not la_roas").splitlines():
+            _, cr = l.split("|", 1)
             n += 1; DEM_CR[int(cr)] = DEM_CR.get(int(cr), 0) + 1
         return n
     rows = q(f"""select camp_id, coalesce(creative_id, 0) from etp.camp c where content_id = {int(content_id)}
                  and (camp_id in (select camp_id from etp.camp_dang_chay) or coalesce(dong_bo, '') not in ('done', 'synced'))
-                 and ten not like '% duplicate by %' and ten not like '★%'""").splitlines()   # view gồm camp tạm dừng theo lịch giờ · camp ROAS ★ không chiếm chỗ (dạng riêng, anh 26/10/2026)
+                 and not la_roas""").splitlines()   # view gồm camp tạm dừng theo lịch giờ · camp ROAS ★ không chiếm chỗ (dạng riêng, anh 26/10/2026)
     for l in rows:
         _, cr = l.split("|"); n += 1; DEM_CR[int(cr)] = DEM_CR.get(int(cr), 0) + 1
     # camp vừa tạo chưa vào kho (đồng bộ 10 phút): lấy từ sổ nhật ký studio
@@ -82,7 +81,7 @@ def dem_tk(content_id, tk):
     loc = f" and ad_account_id = {int(tk)}" if str(tk or "").isdigit() else ""
     return int(q(f"""select count(*) from etp.camp where content_id = {int(content_id)}{loc}
                      and (camp_id in (select camp_id from etp.camp_dang_chay) or coalesce(dong_bo, '') not in ('done', 'synced'))
-                     and ten not like '% duplicate by %' and ten not like '★%'""") or 0)
+                     and not la_roas""") or 0)
 
 # MỘT ĐOẠN VIDEO TỐI ĐA 3 CAMP ĐANG CHẠY (anh duyệt 23/10/2026 sau Step Back: 12 camp cùng đoạn 692–757s tự đấu giá với nhau, ROI +199% → −11% trong một ngày).
 # Nhân bản mà creative đã đủ 3 camp → tự đổi sang creative khác CÙNG PHIM (đạt CTA, chưa bị Meta từ chối, còn < 3 camp, mới nhất trước);

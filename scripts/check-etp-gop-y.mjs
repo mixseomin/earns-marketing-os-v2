@@ -86,7 +86,7 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'const ROAS_LAI = 75;', vi: 'trang etp cùng ngưỡng lên ROAS $75' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "chay(NB, [String(v.m.id), '--roas', String(v.muc)", vi: 'máy tự lên ROAS camp đủ điều kiện' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: 'if ly and mien_cham: kq["mien_cham"] = ly; ly = None', vi: 'camp ROAS không qua cổng chấm (anh 29/10/2026 "Camp roas lên ko cần chấm lại")' },
-  { card: 0, tep: 'apps/etp/lich-gio.py', co: "KHONG_ROAS = \"not (c.ten like '★%' or c.ten like '% duplicate by %')\"", vi: 'luật chấm không tắt camp ★ ROAS' },
+  { card: 0, tep: 'apps/etp/lich-gio.py', co: 'KHONG_ROAS = "not c.la_roas"', vi: 'luật chấm không tắt camp ★ ROAS' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: 'fs.utimesSync(khoa, t, t)', vi: 'khoá nhịp có nhịp tim (nhịp dài lên ROAS không bị nhịp khác chen)' },
   // 28–29/10/2026 — bộ lọc trang Camp (chat): Luật theo đúng thẻ đang hiện, Tuổi, Cây dùng DataTable
   { card: 0, tep: V, mot: 'const chipCamp = (du: DuLieuEtp', vi: 'thẻ luật và bộ lọc Luật cùng một nguồn' },
@@ -216,7 +216,7 @@ const LUAT = [
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "const nbEnv = { ETP_SUA_NGUOI: String(ng) }", vi: 'nhân bản / ROAS team đi phiên Ethopex của chính người đó' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "m.id > 0 && !seTat.has(m.id) && !giu[`nb:${m.id}`]", vi: 'không nhân bản camp đang chờ tắt' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO } from './ethopex.mjs';", vi: 'một danh sách mức ROAS + một chỗ ghi ngày G10 + sổ luật chung cho nhà và team' },
-  { card: 0, tep: 'apps/etp/cong.py', co: 'la_roas = lambda ten: " duplicate by " in (ten or "") or (ten or "").lstrip().startswith("★") or bool(_ROAS_TEAM.search(ten or ""))', vi: 'nhận camp ROAS team đặt tên kiểu _ROAS1 / (ROAS) / Dup by' },
+  { card: 0, tep: 'apps/etp/cong.py', co: 'return " duplicate by " in ten or ten.lstrip().startswith("★") or bool(_ROAS_TEAM.search(ten))', vi: 'nhận camp ROAS team đặt tên kiểu _ROAS1 / (ROAS) / Dup by' },
   // hàng góp ý 31/10/2026
   { card: 1492, tep: 'apps/etp/dong-bo.py', co: "g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d)", vi: 'bản nhân bản của team thừa hưởng phim + creative từ camp gốc ghi trong tên' },
   { card: 1493, tep: 'apps/web/src/components/etp-view.tsx', co: "<span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} />", vi: 'loại + số bản nhân dạt phải ô camp ở cây' },
@@ -258,6 +258,16 @@ const LUAT = [
   { card: 'bh-0211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if bh and (not moi or bh.startswith("bão hoà")): raise ChanLuat', vi: 'nhà: phim bão hoà chặn cả creative mới; luật khác chỉ chặn nhân bản' },
   { card: 'bh-0211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if not ep and not NGOAI:   # CỔNG BÃO HOÀ PHIM', vi: 'team không bị cổng bão hoà chặn (anh: chỉ cảnh báo); camp ROAS đi roas_main không qua cổng' },
   { card: 'bh-0211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'chan_phim = {} if EA.XEM else', vi: 'luật NB chạy cho team không bị cổng bão hoà chặn' },
+  // anh 02/11/2026 "đổi đi để nhận diện đầy đủ. Camp của Kiên nhiều cái ko set tên": camp ROAS nhận theo CHIẾN LƯỢC THẦU THẬT (source_bidding_strategy), tên chỉ khi chưa có
+  { card: 'roas-cl-0211', tep: 'packages/db/migrations/0401_etp_la_roas_chien_luoc.sql', co: "case when chien_luoc is not null then chien_luoc = 'LOWEST_COST_WITH_MIN_ROAS'", vi: 'cột la_roas: chiến lược thầu trước tên' },
+  { card: 'roas-cl-0211', tep: 'apps/etp/dong-bo.py', co: '"chien_luoc": c.get("source_bidding_strategy")} for c in ngoai]', vi: 'kho team lưu chiến lược thầu' },
+  { card: 'roas-cl-0211', tep: 'apps/etp/dong-bo.py', co: 'chien_luoc = coalesce(x.cl, c.chien_luoc)', vi: 'kho nhà cập nhật chiến lược thầu mỗi lượt' },
+  { card: 'roas-cl-0211', tep: 'apps/etp/cong.py', co: 'if cl: return cl == "LOWEST_COST_WITH_MIN_ROAS"', vi: 'máy luật: chiến lược thật thắng tên' },
+  { card: 'roas-cl-0211', tep: 'apps/web/src/lib/etp-roas.ts', co: "if (x.chien_luoc) return x.chien_luoc === 'LOWEST_COST_WITH_MIN_ROAS';", vi: 'giao diện: chiến lược thật thắng tên' },
+  { card: 'roas-cl-0211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: "ten not like '★%'", vi: 'nhân bản không lọc camp ROAS theo tên' },
+  { card: 'roas-cl-0211', tep: 'apps/etp/canh-bao.py', cam: "ten not like '★%'", vi: 'cảnh báo không lọc camp ROAS theo tên' },
+  { card: 'roas-cl-0211', tep: 'apps/web/src/lib/etp-doc.ts', cam: "c.ten like '★%'", vi: 'màn etp không lọc camp ROAS theo tên' },
+  { card: 'roas-cl-0211', tep: 'apps/web/src/components/etp-view.tsx', cam: 'laRoas(c.ten)', vi: 'màn etp truyền cả camp (chiến lược) vào laRoas' },
   { card: 1501, tep: 'apps/web/src/components/etp-tong2.tsx', cam: "borderColor: ra ?", vi: 'widget Tổng quan 2 không ghi đè borderColor lên shorthand border của Panel (React xoá viền → trắng gắt)' },
   { card: 1501, tep: 'apps/web/src/components/etp-tong2.tsx', co: "border: `1px solid ${ra ? '#f87171' : sua ? 'var(--accent)' : 'var(--line)'}`", vi: 'viền widget viết đủ shorthand, mặc định var(--line)' },
   { card: 1502, tep: 'apps/web/src/components/ui/chon2.tsx', co: "autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}", vi: 'ô chọn không tự focus ô tìm trên màn cảm ứng (bàn phím điện thoại bật che danh sách)' },
@@ -280,7 +290,7 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'CHAN = cong.phim_chan_len()', vi: 'máy thay camp lọc phim cổng chắc chắn chặn (ngoài Âu-Mỹ · đã cất) trước khi thử lên' },
   { card: 0, tep: 'apps/etp/cong.py', mot: 'LY_AU_MY = "', vi: 'một câu lý do Âu-Mỹ dùng chung cho kiem() và phim_chan_len()' },
   // anh 31/10/2026 "các camp roas của kiên ko thấy đánh dấu vàng": giao diện nhận ROAS team bằng một hàm chung, không chép luật riêng
-  { card: 0, tep: 'apps/web/src/lib/etp-roas.ts', mot: 'const ROAS_TEAM = /(?:^|[\\s_(])ROAS\\d*(?=$|[\\s_)])/;', vi: 'giao diện nhận ROAS team cùng luật với cong.py' },
+  { card: 0, tep: 'apps/web/src/lib/etp-roas.ts', mot: 'const ROAS_TEAM = /(?:^|[\\s_(])ROAS[\\d.]*(?=$|[\\s_)])/;', vi: 'giao diện nhận ROAS team cùng luật với cong.py' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';", vi: 'tô vàng / tab ROAS dùng hàm chung' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', cam: 'const laRoas = (', vi: 'không chép lại luật nhận ROAS chỉ hiểu kiểu nhà' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', cam: '.match(/roas ([\\d.]+) duplicate by (\\d+)/);', vi: 'tab ROAS đọc mức / gốc bằng hàm chung' },

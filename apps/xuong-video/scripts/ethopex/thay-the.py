@@ -39,7 +39,7 @@ def _nap(ten, tep):
 SAP = set()
 def can_thay():
     """phim chỉ còn 1 camp chạy + camp đó sắp tắt → [{content_id, camp_id, ly}]"""
-    ds = qj("""select c.content_id, c.camp_id from etp.camp c where c.trang_thai = 'ACTIVE' and coalesce(c.content_id, 0) > 0 and c.ten not like '★%'
+    ds = qj("""select c.content_id, c.camp_id from etp.camp c where c.trang_thai = 'ACTIVE' and coalesce(c.content_id, 0) > 0 and not c.la_roas
                and c.content_id in (select content_id from etp.camp where trang_thai = 'ACTIVE' group by 1 having count(*) = 1)""")
     xet = {int(r["camp_id"]): r["xet"] for r in qj(f"select camp_id, xet from etp.xet_luat where camp_id in ({','.join(str(int(x['camp_id'])) for x in ds) or 0})")}
     ra = []

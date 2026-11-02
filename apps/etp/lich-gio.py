@@ -85,7 +85,7 @@ def main():
     except Exception: vua_tat = set()
     # camp đang chạy + thể loại (kho etp, đồng bộ 10 phút)
     chay = [(int(c), t or "_khac") for c, t in (l.split("|") for l in q("""select c.camp_id, coalesce(p.the_loai, '') from etp.camp c left join etp.phim p using (content_id)
-        where c.trang_thai = 'ACTIVE' and c.ten not like '% duplicate by %' and c.ten not like '★%'""").splitlines() if "|" in l)]   # camp ROAS miễn lịch giờ (cong.camp_roas)
+        where c.trang_thai = 'ACTIVE' and not c.la_roas""").splitlines() if "|" in l)]   # camp ROAS miễn lịch giờ (cong.camp_roas)
     dang_tat = {int(c): t or "_khac" for c, t in (l.split("|") for l in q("""select l.camp_id, coalesce(p.the_loai, l.the_loai, '') from etp.lich_tat l
         left join etp.camp c using (camp_id) left join etp.phim p on p.content_id = c.content_id""").splitlines() if "|" in l)}
     # camp trong lich_tat đã bị lưu trữ / mất khỏi kho → bỏ khỏi sổ (không bật)
@@ -187,7 +187,7 @@ def cham_mien():
     return ra
 
 # camp ★ ROAS không chịu luật chấm (anh 29/10/2026: "Camp roas lên ko cần chấm lại") — cùng cách nhận diện tên với apps/etp/cong.py la_roas
-KHONG_ROAS = "not (c.ten like '★%' or c.ten like '% duplicate by %')"
+KHONG_ROAS = "not c.la_roas"
 
 def tat_cham():
     """LUẬT CHẤM (anh 26/10/2026: "creative <= 4 điểm chấm META hoặc GG đều tắt camp tự động nếu đang chạy … 5 điểm thì cần review người thật"
@@ -265,7 +265,7 @@ def lap_bao_cao(vn, gio_cuoi=None):
     ns = float(q(f"select coalesce(sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0), 0) from etp.so_ngay where ngay = '{ngay}'") or 0)   # ngân sách cao nhất trong ngày (0340)
     c_ng, t_ng = [float(x) for x in q(f"select coalesce(sum(chi), 0), coalesce(sum(thu), 0) from etp.so_ngay where ngay = '{ngay}'").split("|")]
     c_r, t_r, n_r = [float(x) for x in q(f"""select coalesce(sum(s.chi), 0), coalesce(sum(s.thu), 0), count(*) filter (where c.trang_thai = 'ACTIVE') from etp.camp c
-        left join etp.so_ngay s on s.camp_id = c.camp_id and s.ngay = '{ngay}' where c.ten like '% duplicate by %' or c.ten like '★%'""").split("|")]
+        left join etp.so_ngay s on s.camp_id = c.camp_id and s.ngay = '{ngay}' where c.la_roas""").split("|")]
     het = [l.split("|") for l in q(f"""select s.camp_id, s.chi, c.ngan_sach, s.thu from etp.so_ngay s join etp.camp_dang_chay c using (camp_id)
         where s.ngay = '{ngay}' and c.ngan_sach > 0 and s.chi >= c.ngan_sach order by s.chi desc""").splitlines() if "|" in l]
     moi_nhat = q("select to_char(max(xong) at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI') from etp.dong_bo where xong is not null") or "?"

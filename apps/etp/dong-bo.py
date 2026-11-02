@@ -65,8 +65,8 @@ def main():
         # khác htuan82 được xem → etp.camp_ngoai (chỉ để theo dõi / học, không luật nào đọc)
         tat_ca = EA.ds_tat_ca(); ds = [c for c in tat_ca if EA.la_nha(c)]; ngoai = [c for c in tat_ca if not EA.la_nha(c)]; kq["so_camp"] = len(ds)
         ghi("camp_ngoai", [{"camp_id": c["id"], "ten": re.sub(r"^\d+:\s*", "", c.get("name", "")), "ad_account_id": c.get("ad_account_id"), "trang_thai": c.get("state"),
-                            "ngan_sach": c.get("budget_daily"), "tao": c.get("created_at"), "cap_nhat_etp": c.get("updated_at")} for c in ngoai], ["camp_id"],
-            {"camp_id": "int", "ten": "text", "ad_account_id": "bigint", "trang_thai": "text", "ngan_sach": "numeric", "tao": "timestamptz", "cap_nhat_etp": "timestamptz"})
+                            "ngan_sach": c.get("budget_daily"), "tao": c.get("created_at"), "cap_nhat_etp": c.get("updated_at"), "chien_luoc": c.get("source_bidding_strategy")} for c in ngoai], ["camp_id"],
+            {"camp_id": "int", "ten": "text", "ad_account_id": "bigint", "trang_thai": "text", "ngan_sach": "numeric", "tao": "timestamptz", "cap_nhat_etp": "timestamptz", "chien_luoc": "text"})   # chien_luoc → cột la_roas (0401): camp ROAS team không đặt tên vẫn nhận
         # PHIM / CREATIVE CỦA CAMP NGOÀI lấy từ AD của camp (chi tiết camp), không từ report: report trả nhóm nội dung riêng của team ("Unknown Content" #143938)
         # trong khi ad trỏ đúng phim (#67443 → 94344 Number One Nobody) — anh 28/10/2026. Chỉ camp mới / đổi / chưa có phim
         cu_n = {int(l.split("|")[0]): l.split("|", 1)[1] for l in q("select camp_id || '|' || coalesce(cap_nhat_etp::text, '') from etp.camp_ngoai where content_id is not null and creative_id is not null").splitlines() if l}
@@ -95,9 +95,9 @@ def main():
         except Exception as e: loi.append(f"tai_khoan: {e}")
         # TRẠNG THÁI + NGÂN SÁCH của MỌI camp từ danh sách mỗi lượt (26/10/2026: lệnh bật / tắt / đổi ngân sách qua API control KHÔNG đổi updated_at → camp không
         # vào nhánh "đổi" bên dưới, kho giữ ACTIVE cũ cho camp đã tắt; lượt lịch giờ 12h sẽ ghi camp vừa tắt theo T7 vào sổ lịch rồi 20h bật lại)
-        _tt = json.dumps([{"id": c["id"], "tt": c.get("state"), "ns": c.get("budget_daily")} for c in ds])
-        q(f"""update etp.camp c set trang_thai = x.tt, ngan_sach = coalesce(x.ns, c.ngan_sach), cap_nhat = now() from jsonb_to_recordset($J${_tt}$J$::jsonb) as x(id int, tt text, ns numeric)
-            where c.camp_id = x.id and (c.trang_thai is distinct from x.tt or (x.ns is not null and c.ngan_sach is distinct from x.ns))""")
+        _tt = json.dumps([{"id": c["id"], "tt": c.get("state"), "ns": c.get("budget_daily"), "cl": c.get("source_bidding_strategy")} for c in ds])   # + chiến lược thầu (cột la_roas, 02/11/2026)
+        q(f"""update etp.camp c set trang_thai = x.tt, ngan_sach = coalesce(x.ns, c.ngan_sach), chien_luoc = coalesce(x.cl, c.chien_luoc), cap_nhat = now() from jsonb_to_recordset($J${_tt}$J$::jsonb) as x(id int, tt text, ns numeric, cl text)
+            where c.camp_id = x.id and (c.trang_thai is distinct from x.tt or (x.ns is not null and c.ngan_sach is distinct from x.ns) or (x.cl is not null and c.chien_luoc is distinct from x.cl))""")
         # CAMP GỐC đọc từ TÊN cho MỌI camp mỗi lượt (không chỉ camp vừa đổi trên Ethopex): bản thang / nhân bản cũ đã có trước khi hàm nhận kiểu tên đó
         # vẫn được gắn đúng cây (29/10/2026: 40/41 bản thang trống camp gốc vì không đổi gì nên không được đọc lại chi tiết)
         _goc = json.dumps([{"id": c["id"], "g": EA.goc_tu_ten(c.get("name"))} for c in ds])

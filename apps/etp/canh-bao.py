@@ -88,9 +88,9 @@ def tran_phim(nay):
     if tran <= 0: return 0
     n = 0
     for l in q(f"""with c as (select true nha, ad_account_id tk, content_id, camp_id from etp.camp
-                      where content_id is not null and camp_id in (select camp_id from etp.camp_dang_chay) and ten not like '★%' and ten not like '% duplicate by %'
+                      where content_id is not null and camp_id in (select camp_id from etp.camp_dang_chay) and not la_roas
                     union all select false, c.ad_account_id, c.content_id, c.camp_id from etp.camp_ngoai c join etp.tai_khoan t using (ad_account_id)
-                      where not t.nha and c.trang_thai = 'ACTIVE' and c.content_id is not null and c.ten not like '★%'),
+                      where not t.nha and c.trang_thai = 'ACTIVE' and c.content_id is not null and not c.la_roas),
                   s as (select camp_id, ngay, chi, thu from etp.so_ngay union all select camp_id, ngay, chi, thu from etp.so_ngay_ngoai),
                   d as (select camp_id, count(*) so, bool_and(thu > chi) lai from s where ngay between '{nay}'::date - 3 and '{nay}'::date - 1 and chi >= 1 group by 1)
                 select c.nha, c.tk, c.content_id, count(*), count(*) filter (where d.so >= 2 and d.lai),
@@ -140,7 +140,7 @@ def main():
     # TÀI KHOẢN TEAM LÊN CAMP CHO PHIM ĐANG BÃO HOÀ (anh 02/11/2026: "tk team chỉ cảnh báo") — không chặn, báo mỗi tài khoản × phim một lần mỗi ngày
     for l in q(f"""select c.ad_account_id, c.content_id, count(*), coalesce(max(t.nguoi), '?'), max(b.ten), max(b.chan_nb) from etp.camp_ngoai c
                    join etp.tai_khoan t using (ad_account_id) join etp.phim_bao_hoa b using (content_id)
-                   where not t.nha and b.chan_nb like 'bão hoà%' and c.tao > now() - interval '24 hours' and c.ten not like '★%' group by 1, 2""").splitlines():
+                   where not t.nha and b.chan_nb like 'bão hoà%' and c.tao > now() - interval '24 hours' and not c.la_roas group by 1, 2""").splitlines():
         tk, cid, so, nguoi, ten, ly = l.split("|", 5)
         bao("bao_hoa_team", "vang", f"bao_hoa_team:{tk}:{cid}:{nay}", f"Tài khoản {tk} · {nguoi} vừa lên {so} camp cho phim đang bão hoà {ten[:50]} (#{cid}) — {ly}. Nhà đã ngừng mở camp phim này; team chỉ báo, không chặn"); n += 1
     l = q("select lan, coalesce(loi, '') from etp.dong_bo where xong is not null order by lan desc limit 1")

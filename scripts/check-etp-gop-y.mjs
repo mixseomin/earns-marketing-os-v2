@@ -419,6 +419,7 @@ const LUAT = [
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tat2": m(tat2), "tat1": m(tat1),', vi: 'luật T1 xuất ra cho worker (báo trước một nhịp rồi tắt)' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'dat = [(cid, chu) for cid, chu in dat if not _ts_ly(cid)]', vi: 'luật TS siết tăng bậc: không tăng 07–15h VN, không tăng khi hôm qua lãi 0–50% (02/11)' },
   { card: 'chat', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"tat1":      { "ma": "t1",', vi: 'sổ luật chung có T1' },
+  { card: 'chat', tep: 'apps/etp/dong-bo.py', co: "where not exists (select 1 from etp.so_luat s where s.ma = e->>'ma')) from etp.so_luat", vi: 'luật mới lên tab Luật ngay lượt đầu, không đợi tròn giờ' },
   { card: 'chat', tep: V, co: 'const camps = useMemo(() => du.camps.filter((c) => BO_LOC.every(([, f]) => f(c))), [du.camps, BO_LOC]);', vi: 'cây / bảng camp lọc qua MỘT danh sách bộ lọc có tên (BO_LOC) — để chỉ ra ô nào ẩn camp đang tìm' },
   { card: 'chat', tep: V, co: '<Chon2 chan={chanLoc.loc} value={loc}', vi: 'ô Lọc viền đỏ khi đang ẩn camp người dùng tìm' },
   { card: 'chat', tep: V, co: 'onTimDoi={setTimCay} khiTimTrong={giaiTim()}', vi: 'tìm ra 0 dòng: nói bộ lọc nào ẩn / camp ở người nào (link mở)' },

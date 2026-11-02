@@ -314,7 +314,9 @@ def main():
     print((r.stdout or r.stderr).strip()[-300:])
     # ── SỐ THẬT TỪNG LUẬT (trang ?t=luat, anh 29/10/2026 "luật cũng cần định kỳ review lại dựa vào số liệu thực tế") — mỗi giờ một lần, ~1 giây
     try:
-        if q("select coalesce(max(luc), 'epoch') < now() - interval '55 minutes' from etp.so_luat") == "t":
+        # + LUẬT MỚI chạy lượt đầu (máy luật ghi xet_luat có mã chưa có ở so_luat) → chạy ngay, không đợi tròn giờ (anh 02/11/2026: thêm T1 mà tab Luật chưa thấy)
+        if q("select coalesce(max(luc), 'epoch') < now() - interval '55 minutes' or exists (select 1 from etp.xet_luat x, jsonb_array_elements(x.xet) e"
+             " where not exists (select 1 from etp.so_luat s where s.ma = e->>'ma')) from etp.so_luat") == "t":
             r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "so-luat.py")], capture_output=True, text=True, timeout=180)
             print((r.stdout or r.stderr).strip()[-300:])
     except Exception as e: print(f"so-luat: {e}")

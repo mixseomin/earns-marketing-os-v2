@@ -103,9 +103,10 @@ export function MiniMonth({ month, sel, byDate, onPick, onNavMonth, today, showN
           );
         })}
       </div>
-      <div style={{ marginTop: 8, fontSize: 10, color: 'var(--fg-4)', display: 'flex', alignItems: 'center', gap: 5 }}>
+      {/* có số trên ô thì người gọi tự vẽ chú thích theo loại (ui/lich-nho) — không thêm dòng chấm trùng */}
+      {!soTrenO && <div style={{ marginTop: 8, fontSize: 10, color: 'var(--fg-4)', display: 'flex', alignItems: 'center', gap: 5 }}>
         <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} /> ngày có {itemNoun}
-      </div>
+      </div>}
     </div>
   );
 }

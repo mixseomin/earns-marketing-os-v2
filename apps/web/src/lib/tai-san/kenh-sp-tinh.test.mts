@@ -48,4 +48,13 @@ import { tomLoTrinh, cayLoTrinh } from './kenh-sp-tinh';
   assert.strictEqual(c[2]!.phu, 'tầng playlist');                 // anh "không" → không thêm đuôi
   assert.strictEqual(c[3]!.phu, 'logo · anh: duyệt ảnh');
   assert.strictEqual(tomLoTrinh({ giai_doan: [{ ma: 'G0', ten: 'x', viec: '', anh: '', trang_thai: 'xong' }] }).chu, '🧭 xong lộ trình'); }
-console.log('kenh-sp-tinh: 15/15 ok');
+import { cayPlaylist, locGap } from './kenh-sp-tinh';
+{ const c = cayPlaylist({ giai_doan: [], playlist: [
+    { ma: 'b', ten: 'Sau', trang_thai: 'sau', khi: 'G10' },
+    { ma: 'a', ten: 'Đầu', trang_thai: 'de_xuat', mo_dau: true, ho_hinh: 'engraving', ngay: 'Thứ 2', trang_dich: 'ZR' }] });
+  assert.deepStrictEqual(c.map((x) => x.chu), ['📂 Playlist (2)', '📝 Đầu · đề xuất · mở đầu', '○ Sau · mở sau · G10']);
+  assert.strictEqual(c[1]!.phu, 'hình engraving · ngày Thứ 2 · → ZR');
+  assert.deepStrictEqual(cayPlaylist({ giai_doan: [] }), []);
+  const r = ['A', 'a1', 'a2', 'B', 'b1', 'C', 'c1'];
+  assert.deepStrictEqual(locGap(r, (x) => (x === x.toUpperCase() ? x : null), new Set(['A', 'C'])), ['A', 'B', 'b1', 'C']); }
+console.log('kenh-sp-tinh: 16/16 ok');

@@ -8,7 +8,7 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { DataTable, Panel, type DataColumn } from '@/components/ui';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { extLinkProps } from '@/lib/external-url';
-import { cayKeHoach, cayLoTrinh, lichKenh, tomLoTrinh, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { cayKeHoach, cayLoTrinh, cayPlaylist, lichKenh, locGap, tomLoTrinh, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LichNho, type LoaiLichNho } from '@/components/ui/lich-nho';
@@ -28,10 +28,10 @@ const CHANG: Record<VideoKenh['trangThai'], { chu: string; mau: string }> = {
 type Dong = { loai: 'kenh'; k: KenhSp } | { loai: 'video'; k: KenhSp; v: VideoKenh }
   /** dòng KẾ HOẠCH trong cây: nhóm (tiêu đề nhóm) hoặc một mục lịch (sản xuất / đăng) */
   | { loai: 'ke'; k: KenhSp; id: string; nhom?: boolean; chu: string; phu?: string; mau?: string; ngay?: string | null };
-/** CÂY của một kênh: 🧭 Lộ trình (lo-trinh.json, nếu kênh có khai) + ▶ Đang sản xuất + 🗓 Lịch (cayKeHoach — thuần, tự kiểm) rồi 🎬 Đã làm (chặng từng video).
+/** CÂY của một kênh: 🧭 Lộ trình + 📂 Playlist (lo-trinh.json, nếu kênh có khai) + ▶ Đang sản xuất + 🗓 Lịch (cayKeHoach — thuần, tự kiểm) rồi 🎬 Đã làm (chặng từng video).
  *  Lịch tháng vẫn ở LỊCH NHỎ trong menu ⋯. */
 function cayKenh(k: KenhSp): Dong[] {
-  return [...(k.loTrinh ? cayLoTrinh(k.loTrinh) : []).map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
+  return [...(k.loTrinh ? [...cayLoTrinh(k.loTrinh), ...cayPlaylist(k.loTrinh)] : []).map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
     ...k.videos.map((v) => ({ loai: 'video' as const, k, v }))];
 }
 const LOAI_LICH: LoaiLichNho = {
@@ -45,17 +45,25 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   const router = useRouter(), coLo = kenh.some((k) => k.ke.dangLam && !k.ke.dangLam.loi);
   useEffect(() => { if (!coLo) return; const t = setInterval(() => router.refresh(), 15_000); return () => clearInterval(t); }, [coLo, router]);
   const moCay = new Set(moUrl.split(',').filter(Boolean));
+  // từng KHỐI trong cây (Lộ trình / Playlist / Đang sản xuất / Lịch / Đã làm) đóng mở riêng, nhớ trên URL: ?kenh_gap=<mã>:<khối>,…
+  const [gapUrl, datGapUrl] = useShallowParam('kenh_gap', '');
+  const gap = new Set(gapUrl.split(',').filter(Boolean));
+  const doiGap = (khoa: string) => { const n = new Set(gap); if (n.has(khoa)) n.delete(khoa); else n.add(khoa); datGapUrl([...n].join(',')); };
   if (!kenh.length) return null;
   const doi = (ma: string) => { const n = new Set(moCay); if (n.has(ma)) n.delete(ma); else n.add(ma); datMoUrl([...n].join(',')); };
-  const dong: Dong[] = kenh.flatMap((k) => [{ loai: 'kenh' as const, k }, ...(moCay.has(k.ma) ? cayKenh(k) : [])]);
+  const dong: Dong[] = kenh.flatMap((k) => [{ loai: 'kenh' as const, k },
+    ...(moCay.has(k.ma) ? locGap(cayKenh(k), (d) => (d.loai === 'ke' && d.nhom ? `${k.ma}:${d.id}` : null), gap) : [])]);
   const laK = (d: Dong): d is Extract<Dong, { loai: 'kenh' }> => d.loai === 'kenh';
   const vd = (d: Dong): VideoKenh | null => (d.loai === 'video' ? d.v : null);
   const chiKenh = <R,>(f: (k: KenhSp) => R) => (d: Dong) => (laK(d) ? f(d.k) : null);
   const cot: DataColumn<Dong>[] = [
     { key: 'kenh', header: 'Kênh', align: 'left', width: 320, sortValue: (d) => d.k.ten,
       cell: (d) => {
-        if (d.loai === 'ke') return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: d.nhom ? 18 : 30, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap' }}>
+        if (d.loai === 'ke') return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: d.nhom ? 4 : 30, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap' }}>
           {!d.nhom && <span style={{ color: 'var(--fg-4)' }}>└</span>}
+          {d.nhom && (() => { const kh = `${d.k.ma}:${d.id}`, dong_ = gap.has(kh);
+            return <button type="button" onClick={(e) => { e.stopPropagation(); doiGap(kh); }} title={dong_ ? 'mở khối' : 'gập khối'}
+              style={{ width: 14, border: 'none', background: 'none', color: 'var(--fg-2)', cursor: 'pointer', padding: 0 }}>{dong_ ? '▸' : '▾'}</button>; })()}
           <span style={{ fontWeight: d.nhom ? 700 : 400, color: d.mau ?? (d.nhom ? 'var(--fg-1)' : undefined) }}>{d.chu}</span>
           {d.phu && <span style={{ color: 'var(--fg-3)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis' }} title={d.phu}>{d.phu}</span>}</span>;
         if (!laK(d)) { const v = d.v, c = CHANG[v.trangThai];

@@ -1,22 +1,148 @@
 {
-  "_ghi": "LỘ TRÌNH KÊNH NỘI DUNG (anh 02/11/2026: 'dựng phần kênh nội dung và Studio để còn follow theo'). Chung cho mọi kênh của studio, khoá = mã máy (xv_may.ma). mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh → 🧭 Lộ trình) và Studio (phim kênh › 📖 Phim) cùng đọc tệp này. trang_thai: cho_anh (chờ anh chốt / duyệt) · dang (đang làm) · chua (chưa tới) · xong. Đổi giai đoạn = sửa tệp này + commit, không ghi chỗ khác. Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs chỉ đọc kenh.json).",
+  "_ghi": "LỘ TRÌNH KÊNH NỘI DUNG (anh 02/11/2026: 'dựng phần kênh nội dung và Studio để còn follow theo'). Chung cho mọi kênh của studio, khoá = mã máy (xv_may.ma). mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh → 🧭 Lộ trình) và Studio (phim kênh › 📖 Phim) cùng đọc tệp này. playlist: các playlist theo kế hoạch (trang_thai: de_xuat = chờ G0 chốt · mo = đã mở trên YouTube · sau = mở sau · tam_dung), G1 chuyển sang kenh.json khi máy làm tập theo playlist. trang_thai giai đoạn: cho_anh (chờ anh chốt / duyệt) · dang (đang làm) · chua (chưa tới) · xong. Đổi giai đoạn = sửa tệp này + commit, không ghi chỗ khác. Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs chỉ đọc kenh.json).",
   "astrolas": {
     "ten": "Astrolas · YouTube @astrolasapp",
     "plan": "apps/xuong-video/docs/astrolas-youtube.md",
     "muc_tieu": "kênh tự vận hành: máy tự chọn chủ đề → viết → kiểm → dựng → Phòng Nội dung chấm → đăng đúng playlist → đo → chỉnh suất playlist; Claude chỉ vào khi Telegram báo kẹt",
     "cap_nhat": "2026-11-02",
+    "playlist": [
+      {
+        "ma": "chart-chapters",
+        "ten": "Chart Chapters",
+        "tien_to": "Chart Chapters: …",
+        "noi_dung": "đời người nổi tiếng theo chương lá số (vd Steve Jobs bị đuổi 1985, quay lại 1997 rơi vào chương ZR nào)",
+        "ho_hinh": "engraving (kể chuyện)",
+        "ngay": "Thứ 2 + Thứ 6",
+        "trang_dich": "Zodiacal Releasing, Annual Profections, /c/<người>",
+        "mo_dau": true,
+        "trang_thai": "de_xuat"
+      },
+      {
+        "ma": "lich-troi",
+        "ten": "Lịch trời",
+        "tien_to": "(tên EN chờ chốt)",
+        "noi_dung": "trăng trong tuần + nhật/nguyệt thực đổi lịch sử (Columbus 1504, Thales 585 TCN), đăng sát ngày có thực",
+        "ho_hinh": "paper-lantern",
+        "ngay": "Thứ 4",
+        "trang_dich": "Moon Phase, Lunation Analyzer, Today's sky",
+        "mo_dau": true,
+        "trang_thai": "de_xuat"
+      },
+      {
+        "ma": "start-here",
+        "ten": "Start here",
+        "tien_to": "",
+        "noi_dung": "video giới thiệu kênh, đầu trang chủ kênh",
+        "ho_hinh": "khung thương hiệu",
+        "ngay": "—",
+        "trang_dich": "astrolas.com",
+        "mo_dau": false,
+        "trang_thai": "sau",
+        "khi": "G7"
+      },
+      {
+        "ma": "myth-behind",
+        "ten": "The Myth Behind",
+        "tien_to": "The Myth Behind: …",
+        "noi_dung": "thần thoại sau mỗi vị trí: Chiron, Lilith, Psyche và Eros…; kết \"What's your Chiron sign?\"",
+        "ho_hinh": "engraving (kể chuyện)",
+        "ngay": "chưa xếp",
+        "trang_dich": "42 trang *-sign + /sign/*",
+        "mo_dau": false,
+        "trang_thai": "sau",
+        "khi": "khi 2 playlist đầu giữ người xem tốt"
+      },
+      {
+        "ma": "cong-cu",
+        "ten": "Công cụ / số liệu",
+        "tien_to": "(chờ chốt)",
+        "noi_dung": "Profections, ZR, mẹo dùng từng công cụ",
+        "ho_hinh": "hologram-hud",
+        "ngay": "chưa xếp",
+        "trang_dich": "từng công cụ astrolas.com",
+        "mo_dau": false,
+        "trang_thai": "sau",
+        "khi": "G10"
+      }
+    ],
     "giai_doan": [
-      { "ma": "G0", "ten": "Chốt", "viec": "mảng chuyện, 2 playlist đầu (Chart Chapters + Lịch trời), họ hình, tên playlist, lịch ngày đăng, hạn mức tiền mỗi tập", "anh": "chốt", "trang_thai": "cho_anh" },
-      { "ma": "G1", "ten": "Tầng Playlist chung", "viec": "playlist trong kenh.json, tap.playlist, lịch theo playlist trong chay-kenh.mjs, bảng Kênh nội dung chia theo playlist; chạy thử trên Yesterday's News Tonight", "anh": "không", "trang_thai": "chua" },
-      { "ma": "G2", "ten": "Bộ nhận diện", "viec": "brand/astrolas/: logo + chuông, màu/font astrolas.com, góc logo, màn cuối, khuôn ảnh bìa nhãn playlist", "anh": "duyệt ảnh", "trang_thai": "chua" },
-      { "ma": "G3", "ten": "Theme hình", "viec": "engraving 9:16 cho máy dựng (Opus viết một lần, báo giá trước), rồi paper-lantern", "anh": "duyệt tờ khung + tiền Opus", "trang_thai": "chua" },
-      { "ma": "G4", "ten": "Dữ liệu thật", "viec": "script lấy mốc ZR / Profection / bầu trời từ astrolas.com; danh sách người nổi tiếng có giờ sinh tin được; su-that/astrolas.md; lịch thực / trăng từ ephemeris", "anh": "không", "trang_thai": "chua" },
-      { "ma": "G5", "ten": "Khuôn kịch bản", "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4", "anh": "duyệt kịch bản mẫu", "trang_thai": "chua" },
-      { "ma": "G6", "ten": "Tập mẫu", "viec": "1 tập Steve Jobs dựng trọn → anh duyệt; rồi 3 tập dự trữ", "anh": "duyệt video", "trang_thai": "chua" },
-      { "ma": "G7", "ten": "Đăng", "viec": "mở khoá mục YouTube @astrolasapp; 2 playlist + Start here + bố cục trang kênh; máy đăng chọn playlist + tiền tố tiêu đề", "anh": "không", "trang_thai": "chua" },
-      { "ma": "G8", "ten": "Tự chạy", "viec": "Astrolas vào chay-kenh.mjs (lịch theo playlist, trần 1 bài/ngày); hàng chờ chủ đề mỗi playlist tự bổ sung", "anh": "không", "trang_thai": "chua" },
-      { "ma": "G9", "ten": "Đo + tự điều chỉnh", "viec": "UTM theo playlist → GA4 click + đăng ký Member; playlist kém giảm suất, tốt tăng suất; báo Telegram tuần", "anh": "đọc báo cáo", "trang_thai": "chua" },
-      { "ma": "G10", "ten": "Mở rộng", "viec": "playlist 3 (công cụ, hologram-hud); kênh JA / ES khi astrolas.com mở locale", "anh": "duyệt mở ngôn ngữ", "trang_thai": "chua" }
+      {
+        "ma": "G0",
+        "ten": "Chốt",
+        "viec": "mảng chuyện, 2 playlist đầu (Chart Chapters + Lịch trời), họ hình, tên playlist, lịch ngày đăng, hạn mức tiền mỗi tập",
+        "anh": "chốt",
+        "trang_thai": "cho_anh"
+      },
+      {
+        "ma": "G1",
+        "ten": "Tầng Playlist chung",
+        "viec": "playlist trong kenh.json, tap.playlist, lịch theo playlist trong chay-kenh.mjs, bảng Kênh nội dung chia theo playlist; chạy thử trên Yesterday's News Tonight",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G2",
+        "ten": "Bộ nhận diện",
+        "viec": "brand/astrolas/: logo + chuông, màu/font astrolas.com, góc logo, màn cuối, khuôn ảnh bìa nhãn playlist",
+        "anh": "duyệt ảnh",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G3",
+        "ten": "Theme hình",
+        "viec": "engraving 9:16 cho máy dựng (Opus viết một lần, báo giá trước), rồi paper-lantern",
+        "anh": "duyệt tờ khung + tiền Opus",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G4",
+        "ten": "Dữ liệu thật",
+        "viec": "script lấy mốc ZR / Profection / bầu trời từ astrolas.com; danh sách người nổi tiếng có giờ sinh tin được; su-that/astrolas.md; lịch thực / trăng từ ephemeris",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G5",
+        "ten": "Khuôn kịch bản",
+        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4",
+        "anh": "duyệt kịch bản mẫu",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G6",
+        "ten": "Tập mẫu",
+        "viec": "1 tập Steve Jobs dựng trọn → anh duyệt; rồi 3 tập dự trữ",
+        "anh": "duyệt video",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G7",
+        "ten": "Đăng",
+        "viec": "mở khoá mục YouTube @astrolasapp; 2 playlist + Start here + bố cục trang kênh; máy đăng chọn playlist + tiền tố tiêu đề",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G8",
+        "ten": "Tự chạy",
+        "viec": "Astrolas vào chay-kenh.mjs (lịch theo playlist, trần 1 bài/ngày); hàng chờ chủ đề mỗi playlist tự bổ sung",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G9",
+        "ten": "Đo + tự điều chỉnh",
+        "viec": "UTM theo playlist → GA4 click + đăng ký Member; playlist kém giảm suất, tốt tăng suất; báo Telegram tuần",
+        "anh": "đọc báo cáo",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G10",
+        "ten": "Mở rộng",
+        "viec": "playlist 3 (công cụ, hologram-hud); kênh JA / ES khi astrolas.com mở locale",
+        "anh": "duyệt mở ngôn ngữ",
+        "trang_thai": "chua"
+      }
     ]
   }
 }

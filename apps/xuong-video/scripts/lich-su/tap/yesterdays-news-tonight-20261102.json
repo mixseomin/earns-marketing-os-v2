@@ -24,11 +24,11 @@
   "https://en.wikipedia.org/wiki/Thutmose_III"
  ],
  "may_viet": {
-  "model": "shopaikey:claude-sonnet-5-5",
-  "luc": "2026-11-02T06:59:34.764Z",
+  "model": "ckey:claude-sonnet-5-5",
+  "luc": "2026-11-02T07:06:09.342Z",
   "tokens": {
-   "in": 21295,
-   "out": 19690
+   "in": 26110,
+   "out": 13460
   }
  },
  "cau": [
@@ -121,7 +121,7 @@
    }
   },
   {
-   "chu": "Hatshepsut was born between fifteen oh five and fourteen ninety-five BC, to Thutmose the First.",
+   "chu": "Hatshepsut was born between fifteen oh five and fourteen ninety-five BC, to Pharaoh Thutmose the First.",
    "su_that": [
     {
      "gia_tri": "1505",
@@ -137,6 +137,11 @@
      "gia_tri": "Thutmose I",
      "nguon": 0,
      "trich": "Hatshepsut was born between 1505 and 1495 BC as eldest daughter of Thutmose I and his great royal wife, Ahmose."
+    },
+    {
+     "gia_tri": "First",
+     "nguon": 2,
+     "trich": "He was the first pharaoh after Thutmose I to cross the Euphrates River, doing so during his campaign against Mitanni."
     }
    ],
    "canh": {
@@ -713,6 +718,7 @@
     "nhin": [
      "@Luxor"
     ],
+    "nam": -1471,
     "nhan": [
      {
       "chu": "Karnak",

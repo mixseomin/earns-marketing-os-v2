@@ -200,8 +200,13 @@ for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr || tr
   if (!existsSync(f) && tr.commons) { const c = await commons(tr.commons); if (c) { const u = c.thumb.replace(/\/\d+px-/, '/1600px-');
     writeFileSync(f, Buffer.from(await (await tai(u)).arrayBuffer())); tr.commons_url = c.thumb; tr.commons_trang = c.trang; console.log(`✓ tranh ${k + 1}: Commons ${tr.commons}`); } }
   if (!existsSync(f)) { const ref = (tr.ref || []).map((r) => khoNay[r]?.dang?.goc).filter(Boolean), bt = `/tmp/${id}-tranh-${k + 1}.jpg`;
-    const out = box(`scripts/lich-su/tranh-sinh.mts ${bt} ${q(tr.mo_ta)} ${ref.map(q).join(' ')}`); console.log(out); tien += Number(out.match(/~(\d+)₫/)?.[1] ?? 0);
-    ve(bt, f); execFileSync('ssh', [BOX, `rm -f ${bt}`]); }
+    // tranh là PHỤ HOẠ: cổng ảnh hỏng / hết giờ thì thử lại một lần, vẫn hỏng thì bỏ tranh khỏi cảnh (bản đồ + nhân vật vẫn kể được) — không sập cả tập
+    // (02/11/2026: tập Hatshepsut đã viết xong, sinh xong 4 nhân vật, chết ở TimeoutError của một tranh)
+    for (let lan = 1; lan <= 2 && !existsSync(f); lan++) {
+      try { const out = box(`scripts/lich-su/tranh-sinh.mts ${bt} ${q(tr.mo_ta)} ${ref.map(q).join(' ')}`); console.log(out); tien += Number(out.match(/~(\d+)₫/)?.[1] ?? 0);
+        ve(bt, f); execFileSync('ssh', [BOX, `rm -f ${bt}`]); }
+      catch (e) { console.log(`⚠ tranh ${k + 1} lượt ${lan} hỏng: ${String(e.stderr || e.message).trim().split('\n').pop().slice(0, 160)}`); } }
+    if (!existsSync(f)) { console.log(`⚠ bỏ tranh câu ${k + 1} (cổng ảnh không trả) — cảnh giữ bản đồ + nhân vật`); delete c.canh.tranh; continue; } }
   const lopDir = join(KHO, `${ten}-lop`); spawnSync('swift', [join(DIR, '../shot-code/tach-lop.swift'), f, lopDir], { stdio: 'ignore' });
   const lop = existsSync(join(lopDir, 'lop.json')) ? JSON.parse(readFileSync(join(lopDir, 'lop.json'), 'utf8')) : [];
   tr.anh = `${ten}.jpg`; tr.lia ??= k % 2 ? 20 : -24;

@@ -190,7 +190,7 @@ if (!r.ok) { console.error(`✗ ${r.loi}`); process.exit(1); }
 const d = r.data;
 // BẢN RỖNG / CỤT = HỎNG (02/11/2026: cổng chợ trả JSON hợp khuôn nhưng 0 câu → lam-tap ghi tệp rỗng, 3 lượt sửa sau đều đánh vào bản rỗng): dưới nửa khuôn
 // tối thiểu thì thoát mã 1 — lam-tap coi là "máy viết hỏng" và gọi lại, không ghi đè tệp tập
-const toiThieu = Math.ceil((K.khuon?.[0] ?? K.khuon?.min ?? 20) / 2);
+const toiThieu = Math.ceil(Number(K.cau?.[0] ?? 20) / 2);   // K.cau = [ít nhất, nhiều nhất] câu (khuon là luật chữ, không phải số — bản đầu đọc nhầm khuon[0] → NaN → không chặn gì)
 if ((d.cau?.length ?? 0) < toiThieu) { console.error(`✗ máy viết trả bản cụt: ${d.cau?.length ?? 0} câu (< ${toiThieu}) — ${r.model}`); process.exit(1); }
 // về khuôn dung-tap.mjs: bỏ trường rỗng / null để máy dựng tự điền
 const gon = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== false && !(Array.isArray(v) && !v.length)));

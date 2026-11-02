@@ -33,6 +33,10 @@ def ghi(ten, k, v):
     q(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('{ten}', '{{}}'::jsonb) on conflict (ten) do nothing")
     q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{k}', '{j}'::jsonb) where ten = '{ten}'")
 
+def nha_phim_cam(cid):
+    """PHIM BỊ CẤM THÌ NHẢ NHẬN (anh 03/11/2026 "phải chọn phim khác thay thế và nhả film này ra chứ"): người đang giữ mà chưa lên camp → trả, phim kế trong hàng thay vào"""
+    q(f"update etp.phim_nhan n set tra_luc = now() where content_id = {int(cid)} and tra_luc is null and het_luc > now() and not exists (select 1 from etp.camp c where c.content_id = n.content_id and c.tao >= n.nhan_luc)")
+
 def spy_db():
     for l in open("/root/.secrets/spy.env"):
         l = l.strip().removeprefix("export ")
@@ -77,7 +81,8 @@ if __name__ == "__main__":
     if a[:1] == ["--soat"]:
         cid, kq, gc = str(int(a[1])), a[2], (a[3] if len(a) > 3 else "")
         ghi("ethopex_soat_18", cid, {"ok": kq == "ok", "luc": now(), "ghi": gc})
-        if kq != "ok": ghi("ethopex_phim_cam", cid, {"ly_do": gc or "soát hình 18+ không đạt", "luc": now()})
+        if kq != "ok":
+            ghi("ethopex_phim_cam", cid, {"ly_do": gc or "soát hình 18+ không đạt", "luc": now()}); nha_phim_cam(cid)
         else:   # SOÁT LẠI ĐẠT GỠ LỆNH CẤM DO SOÁT CŨ (anh 03/11/2026 "Mech King -> Sửa luật chấm"): chỉ gỡ cấm do soát (AI soát poster / soát hình), cấm tay (--cam) giữ nguyên;
             # bản cấm cũ cất sang sổ ethopex_phim_cam_go (không xoá dấu vết)
             cu = json.loads(q(f"select gia_tri->'{cid}' from xv_khoa_ngoai where ten='ethopex_phim_cam'") or "null")
@@ -87,7 +92,7 @@ if __name__ == "__main__":
                 print(f"gỡ cấm cũ phim {cid} (bản cũ cất ở ethopex_phim_cam_go)")
         print(f"đã ghi soát 18+ phim {cid}: {kq}"); sys.exit(0)
     if a[:1] == ["--cam"]:
-        ghi("ethopex_phim_cam", str(int(a[1])), {"ly_do": a[2] if len(a) > 2 else "18+", "luc": now()}); print(f"đã cấm phim {a[1]}"); sys.exit(0)
+        ghi("ethopex_phim_cam", str(int(a[1])), {"ly_do": a[2] if len(a) > 2 else "18+", "luc": now()}); nha_phim_cam(str(int(a[1]))); print(f"đã cấm phim {a[1]}"); sys.exit(0)
     loi = kiem(a[0])
     print(f"PHIM18 CHAN: {loi}" if loi else f"PHIM18 OK: phim {a[0]} không trong danh sách cấm, không dính từ khoá, đã soát hình")
     sys.exit(2 if loi else 0)

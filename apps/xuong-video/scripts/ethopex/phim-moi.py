@@ -166,6 +166,14 @@ def cat(dat=CHI_TIEU, san=0):
     ds, tt, dem, ty_le, chua, san_, hom_nay = so_lieu()
     can = max(0, dat - hom_nay); so = min(len(san_), math.ceil(can / max(ty_le, 0.2))) if not san else min(len(san_), san)
     if not so: return print("không có phim sẵn để cắt (poster_ok) → phim-moi.py poster" if (can or san) else "đủ chỉ tiêu ngày đích — muốn cắt sẵn cho ngày kia: phim-moi.py cat --san 45")
+    # SOÁT POSTER 18+ TRƯỚC KHI CẮT (anh 03/11/2026: 6/15 phim lô pm-02112145 cắt xong mới bị AI soát poster cấm — phí cắt + phí nhận): soat_18_ai.py trên box3 (ckey, ~36₫/phim),
+    # phim bị cấm loại khỏi lô, lấy phim kế cho đủ số
+    ung = san_[:so * 2]
+    if ung:
+        r = subprocess.run(["ssh", B, f"{ENV}; python3 apps/etp/soat_18_ai.py {' '.join(str(p['id']) for p in ung)} --ghi"], capture_output=True, text=True, timeout=1800)
+        print((r.stdout.strip().splitlines() or ["soát poster: không có kết quả"])[-1], flush=True)
+        cam = khoa("ethopex_phim_cam"); soat = khoa("ethopex_soat_18")
+        san_ = [p for p in san_ if str(p["id"]) not in cam and (soat.get(str(p["id"])) or {}).get("ok") is not False]
     phim = san_[:so]; ten = "pm-" + vn().strftime("%d%m%H%M"); print(f"cắt {so} phim (cần {can} phim lên, tỷ lệ đạt {ty_le:.0%}) → lô {ten}", flush=True)
     ra = cat_hang(phim, ten)   # gop() bên trong đã ghi trạng thái từng phim + in việc kế
 

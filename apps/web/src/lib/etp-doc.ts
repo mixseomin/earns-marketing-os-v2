@@ -70,7 +70,7 @@ export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt —
   boTk: Record<string, { ten: string; tk: string; page: string; tk_id: number; page_id: number; chi_phim_moi?: boolean; mui_gio?: string }>;
   /** REPORT THEO NGƯỜI (anh 28/10/2026): người dùng Ethopex của từng tài khoản QC (etp.tai_khoan) · người đang xem (?ng=) · người nhà (tài khoản bộ 1/2/3 — luật chỉ áp ở đây).
    *  Xem người khác: camp + số từ etp.camp_ngoai / so_ngay_ngoai (chỉ xem, máy luật không đụng) */
-  nguoi: { ds: { id: number; ten: string; tk: number; nha: boolean }[]; dang: number | null; nha: number | null; ngoai: boolean };
+  nguoi: { ds: { id: number; ten: string; tk: number; nha: boolean }[]; dang: number | null; nha: number | null; ngoai: boolean; doi?: boolean };   // doi = ?ng=team: nhà + mọi người gộp, chỉ xem
   /** LỊCH SỬ BẬC NGÂN SÁCH từng camp (anh 27/10/2026 "show danh sách thay đổi bậc khi hover vào, ghi chi tiết dạng timeline"): tạo / nhân bản / thang / ROAS / sang bộ / tăng / giảm đã làm được (ok), 30 ngày */
   /** XÉT LUẬT TỪNG CAMP của máy luật (etp.xet_luat, luat-ethopex.py --json, anh 28/10/2026): luật → điều kiện [tên, giá trị, ngưỡng, đạt], kết đạt/gần/xa/khong_ap, máy có xếp */
   xetLuat: Record<number, XetLuat[]>; xetLuc: string | null;
@@ -166,14 +166,21 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const nguoiDs = (await run<{ id: number; ten: string; tk: string; nha: boolean }>(sql`select nguoi_id id, max(nguoi) ten, count(*) tk, bool_or(nha) nha from etp.tai_khoan
       where nguoi_id is not null group by nguoi_id order by bool_or(nha) desc, max(nguoi)`).catch(() => [])).map((r) => ({ id: n(r.id), ten: String(r.ten ?? `#${r.id}`), tk: n(r.tk), nha: !!r.nha }));
   const nhaId = nguoiDs.find((x) => x.nha)?.id ?? null;
-  const dangId = Number(ng) > 0 && nguoiDs.some((x) => x.id === Number(ng)) ? Number(ng) : nhaId;
-  const ngoai = dangId != null && dangId !== nhaId;
+  // TEAM (anh 02/11/2026 "thêm 1 option là Team để chọn xem cả team"): ?ng=team → camp + số của nhà VÀ mọi người gộp một; chỉ xem như xem người khác (luật / nhật ký nhà không nạp)
+  const doi = ng === 'team' && nguoiDs.length > 1;
+  const dangId = doi ? null : Number(ng) > 0 && nguoiDs.some((x) => x.id === Number(ng)) ? Number(ng) : nhaId;
+  const ngoai = doi || (dangId != null && dangId !== nhaId);
+  const cuaNg = (cot: ReturnType<typeof sql>) => (doi ? sql`true` : sql`${cot} = ${dangId}`);   // điều kiện "tài khoản của người đang xem" — Team = mọi tài khoản
   // bảng số theo ngày + bảng camp của người đang xem (alias giữ tên so_ngay / c để các câu dưới dùng chung)
   // dữ liệu CHỈ CÓ Ở NHÀ (luật, chấm, nhật ký, lịch sử bậc, ROAS, sản xuất) — xem người khác thì không nạp (anh 28/10/2026 "tối ưu tốc độ load nhất là khi đổi tk thành viên")
   const runNha = <T,>(q: ReturnType<typeof sql>) => (ngoai ? Promise.resolve([] as T[]) : run<T>(q));
   // creative trong camp của người đang xem (camp_ngoai) — lọc bảng dùng chung theo creative (chấm, hàng chấm) khi ?ng=; xem nhà thì không lọc
-  const crNguoi = (cot: ReturnType<typeof sql>, va = false) => (ngoai ? sql` ${va ? sql`and` : sql`where`} ${cot} in (select k.creative_id from etp.camp_ngoai k join etp.tai_khoan t on t.ad_account_id = k.ad_account_id where t.nguoi_id = ${dangId} and k.creative_id > 0)` : sql``);
-  const SN = ngoai ? sql`(select x.* from etp.so_ngay_ngoai x join etp.camp_ngoai k using (camp_id) join etp.tai_khoan t on t.ad_account_id = k.ad_account_id where t.nguoi_id = ${dangId}) so_ngay` : sql`etp.so_ngay`;
+  const crNguoi = (cot: ReturnType<typeof sql>, va = false) => (ngoai && !doi ? sql` ${va ? sql`and` : sql`where`} ${cot} in (select k.creative_id from etp.camp_ngoai k join etp.tai_khoan t on t.ad_account_id = k.ad_account_id where t.nguoi_id = ${dangId} and k.creative_id > 0)` : sql``);
+  const SN = doi ? sql`(select camp_id, ngay, chi, thu from etp.so_ngay union all select camp_id, ngay, chi, thu from etp.so_ngay_ngoai) so_ngay`
+    : ngoai ? sql`(select x.* from etp.so_ngay_ngoai x join etp.camp_ngoai k using (camp_id) join etp.tai_khoan t on t.ad_account_id = k.ad_account_id where t.nguoi_id = ${dangId}) so_ngay` : sql`etp.so_ngay`;
+  // bảng camp người đang xem — Team = camp nhà (etp.camp) + camp mọi người (camp_ngoai), cùng khuôn cột camp_ngoai; nhà giữ bộ tài khoản
+  const CN = doi ? sql`(select camp_id, ten, bo, ad_account_id, trang_thai, ngan_sach, etp.creative_cua(creative_id, ten) creative_id, content_id, tao, null::text phim_ten from etp.camp
+      union all select camp_id, ten, null, ad_account_id, trang_thai, ngan_sach, creative_id, content_id, tao, phim_ten from etp.camp_ngoai)` : sql`(select *, null::text bo from etp.camp_ngoai)`;
   // số mỗi camp: tháng / hôm qua / hôm nay
   const soCamp = sql`select camp_id,
       sum(chi) filter (where ngay >= ${dauThang}::date) tc, sum(thu) filter (where ngay >= ${dauThang}::date) tt,
@@ -183,10 +190,10 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const [ngay, camps, cauHinh, nhatKy, xetR, lsBacR, canhBao, dongBo, tl] = await Promise.all([   // thứ tự PHẢI khớp các câu bên dưới (xet_luat trước lịch sử bậc)
     run<{ ngay: string; chi: string; thu: string; camp: string; ns: string | null }>(sql`select ngay::text ngay, sum(chi) chi, sum(thu) thu, count(*) filter (where chi > 0) camp, ${ngoai ? sql`null::numeric` : sql`sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0)`} ns from ${SN} group by ngay having sum(chi) > 0 or sum(thu) > 0 order by ngay`),
     ngoai ? run<Record<string, unknown>>(sql`with s as (${soCamp})
-      select c.camp_id, c.ten, null bo, c.trang_thai, null giao, c.ngan_sach, c.creative_id, c.content_id, null goc, null lich, c.tao::text tao, null loi, null roas, null chien_luoc,
+      select c.camp_id, c.ten, c.bo, c.trang_thai, null giao, c.ngan_sach, c.creative_id, c.content_id, null goc, null lich, c.tao::text tao, null loi, null roas, null chien_luoc,
         coalesce(p.ten, c.phim_ten) phim, p.the_loai, null dang, null doan, 0 cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, false lich_tat, null nuoc
-      from etp.camp_ngoai c join etp.tai_khoan t on t.ad_account_id = c.ad_account_id left join etp.phim p on p.content_id = c.content_id left join s on s.camp_id = c.camp_id
-      where t.nguoi_id = ${dangId} and c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`) : run<Record<string, unknown>>(sql`with s as (${soCamp}),
+      from ${CN} c ${doi ? sql`left` : sql``} join etp.tai_khoan t on t.ad_account_id = c.ad_account_id left join etp.phim p on p.content_id = c.content_id left join s on s.camp_id = c.camp_id
+      where ${cuaNg(sql`t.nguoi_id`)} and c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`) : run<Record<string, unknown>>(sql`with s as (${soCamp}),
         cd as (select cr.doan, count(*) filter (where c.trang_thai = 'ACTIVE') chay from etp.camp c join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) where cr.doan is not null group by cr.doan)
       select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.ngan_sach, etp.creative_cua(c.creative_id, c.ten) creative_id, c.content_id, c.goc, c.lich::text lich, c.tao::text tao, c.loi, c.roas, c.chien_luoc,
         p.ten phim, p.the_loai, cr.dang, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat,
@@ -198,7 +205,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     runNha<DuLieuEtp['nhatKy'][number]>(sql`select luc::text luc, viec, camp_id, truoc, sau, ok, loi, luat, ai from etp.nhat_ky order by luc desc limit 300`),
     // XEM NGƯỜI (anh 30/10/2026 "theo dõi … thời điểm lên bậc … chỉ đề xuất"): xét luật = máy luật nhà chấm camp người đó (apps/etp/de-xuat-ngoai.py, chỉ đề xuất);
     // lịch sử bậc = sổ etp.bac_ngoai (trigger 0373) kèm ROI lúc đổi + máy đã đề xuất trước đó bao lâu (etp.de_xuat_bac, 0374)
-    run<{ camp_id: number; luc: string; xet: XetLuat[] }>(ngoai ? sql`select camp_id, luc::text luc, xet from etp.xet_luat_ngoai where nguoi_id = ${dangId}` : sql`select camp_id, luc::text luc, xet from etp.xet_luat`).catch(() => [] as { camp_id: number; luc: string; xet: XetLuat[] }[]),
+    run<{ camp_id: number; luc: string; xet: XetLuat[] }>(ngoai ? sql`select camp_id, luc::text luc, xet from etp.xet_luat_ngoai where ${cuaNg(sql`nguoi_id`)}` : sql`select camp_id, luc::text luc, xet from etp.xet_luat`).catch(() => [] as { camp_id: number; luc: string; xet: XetLuat[] }[]),
     run<{ camp_id: number; luc: string; viec: string; truoc: string | null; sau: string | null; luat: string | null; ai: string | null }>(ngoai ? sql`select b.camp_id, b.luc::text luc,
         case b.kieu when 'tao' then 'tao_camp' when 'nhan_ban' then 'nhan_ban' when 'sua' then (case when b.moi > b.cu then 'tang' else 'giam' end) end viec,
         b.cu::text truoc, b.moi::text sau,
@@ -215,7 +222,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
           (b.kieu = 'sua' and b.moi > b.cu and d.camp_id = b.camp_id and d.ns = b.cu and d.loai in ('tang', 'dau_phien', 'tang30'))
           or (b.kieu = 'sua' and b.moi < b.cu and d.camp_id = b.camp_id and d.ns = b.cu and d.loai in ('ha', 'giam'))
           or (b.kieu = 'nhan_ban' and d.camp_id = b.goc_id and d.loai = 'nb'))) m on true
-      where t.nguoi_id = ${dangId} and b.luc > now() - interval '30 days' order by b.luc`
+      where ${cuaNg(sql`t.nguoi_id`)} and b.luc > now() - interval '30 days' order by b.luc`
       : sql`select n.camp_id, n.luc::text luc, n.viec, n.truoc, n.sau, left(n.luat, 400) luat, n.ai
       from etp.nhat_ky n join etp.camp c on c.camp_id = n.camp_id and c.trang_thai <> 'ARCHIVED'
       where n.ok and n.viec in ('tao_camp', 'nhan_ban', 'roas', 'sang_bo', 'tang', 'giam') and n.luc > now() - interval '30 days' order by n.luc`).catch(() => []),
@@ -331,7 +338,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     // đọc đề xuất máy luật chạy cho họ (de-xuat-ngoai.py → etp.de_xuat_bac, mỗi giờ) — chỉ lượt gần nhất, camp còn chạy. Chỉ đề xuất, không lệnh nào chạy.
     run<DuLieuEtp['bao'][number]>(ngoai
       ? sql`select d.luat nhom, d.camp_id, d.chu, d.lan_cuoi::text luc from etp.de_xuat_bac d join etp.camp_ngoai k using (camp_id)
-            where d.nguoi_id = ${dangId} and k.trang_thai = 'ACTIVE' and d.lan_cuoi >= (select max(lan_cuoi) - interval '30 minutes' from etp.de_xuat_bac where nguoi_id = ${dangId})
+            where ${cuaNg(sql`d.nguoi_id`)} and k.trang_thai = 'ACTIVE' and d.lan_cuoi >= (select max(x.lan_cuoi) - interval '30 minutes' from etp.de_xuat_bac x where x.nguoi_id = d.nguoi_id)
             order by d.luat, d.camp_id`
       : sql`select nhom, camp_id, chu, luc::text luc from etp.bao order by nhom, camp_id`).catch(() => [] as DuLieuEtp['bao']),
     // ứng viên lên ROAS (anh 29/10/2026 "nới điều kiện lên roas là ROI >= 75$"): lãi 30 ngày ≥ $75 là đủ (máy luật moc30, worker tự lên); hiện từ $50 để thấy camp sắp đủ.
@@ -375,7 +382,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) ?? null, anh: (i.anh as string) ?? null, camp: 0, chay: 0, cung_doan: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 },
       ngay_dau: null, s18: null, sd: null, sd_cho: false, giao: [] });
   }
-  return { nguoi: { ds: nguoiDs, dang: dangId, nha: nhaId, ngoai }, luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, creatives: [...crMap.values()], phims, thuVien,
+  return { nguoi: { ds: nguoiDs, dang: dangId, nha: nhaId, ngoai, doi }, luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, creatives: [...crMap.values()], phims, thuVien,
     thayThe: ttR.map((r) => ({ ...r, id: n(r.id), content_id: n(r.content_id), camp_cu: n(r.camp_cu), creative_id: r.creative_id == null ? null : n(r.creative_id), camp_moi: r.camp_moi == null ? null : n(r.camp_moi) })),
     pheu: pheuR.map((r) => ({ c: n(r.c), d: r.d, h: n(r.h), n: n(r.n), v: n(r.v), sh: n(r.sh), sn: n(r.sn), sv: n(r.sv), sg: n(r.sg) })), diemCham: Object.fromEntries(dcR.map((r) => [n(r.creative_id), r.cham])), soLuat: slR.map((r) => ({ ma: r.ma, luc: r.luc, ...r.so })),
     cauHinh, nhatKy, xetLuat: Object.fromEntries(xetR.map((r) => [Number(r.camp_id), r.xet])), xetLuc: xetR.reduce<string | null>((m, r) => (!m || r.luc > m ? r.luc : m), null), lsBac: lsBacR.reduce<DuLieuEtp['lsBac']>((m, r) => { (m[r.camp_id] ??= []).push({ luc: r.luc, viec: r.viec, truoc: r.truoc, sau: r.sau, luat: r.luat, ai: r.ai }); return m; }, {}), canhBao, dongBo: dongBo[0] ?? null, theLoai: tl[0]?.gia_tri?.the_loai ?? {}, soNgay: soNgay.map((r) => ({ c: n(r.c), d: r.d, chi: n(r.chi), thu: n(r.thu) })), demNgay, boTk,

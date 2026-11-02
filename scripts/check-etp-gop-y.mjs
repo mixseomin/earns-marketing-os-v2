@@ -104,7 +104,7 @@ const LUAT = [
   { card: 1482, tep: 'apps/web/src/components/etp-view.tsx', co: "color: `rgba(196,181,253,${(0.55 + 0.45 * (bac / (BAC_NS.length - 1))).toFixed(2)})`", cam: 'rgba(103,232,249,${(0.35', vi: 'số ngân sách cột bậc màu tím nhẹ, bậc $1 không chìm' },
   { card: 1483, tep: 'apps/web/src/components/etp-view.tsx', co: "const top = y - CHONG + h <= H - 8 ? y - CHONG", cam: 'const top = y + 12 + h <= H - 8', vi: 'thẻ nổi đè lên con trỏ, không còn khe phải băng qua dòng khác' },
   { card: 1483, tep: 'apps/web/src/components/etp-view.tsx', co: "window.addEventListener('mousemove', (e) => { CHUOT.x = e.clientX; CHUOT.y = e.clientY; }", vi: 'thẻ đặt theo vị trí chuột lúc mở' },
-  { card: 1484, tep: 'apps/web/src/components/etp-view.tsx', co: "max={maxLai(sd)} mo nhom />", vi: 'biểu đồ dòng phim (tổng) vẽ cột rỗng viền màu, khác cột đặc của camp' },
+  { card: 1484, tep: 'apps/web/src/components/etp-view.tsx', co: "max={maxLai(sd)} mo nhom n=", vi: 'biểu đồ dòng phim (tổng) vẽ cột rỗng viền màu, khác cột đặc của camp' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '.etp-cay tr.dt-nhom>td::after{content:', vi: 'dòng phim sáng hơn + bóng mờ dưới chân (anh chat 29/10/2026)' },
   // phim QC kể chuyện VideoExpress (chat 29/10/2026 — anh: "lần sau kiểu đéo gì mày cũng lặp lại lỗi này?")
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', cam: 'Image.open(poster).convert("RGBA").resize((W, H))', vi: 'thẻ cuối không kéo méo poster khác 9:16 (mất tên phim)' },
@@ -162,7 +162,7 @@ const LUAT = [
   { card: 0, tep: 'apps/etp/ethopex_api.py', co: 'if XEM and body is not None and not duong.startswith("/api/v1/report"): raise NgoaiNha(', vi: 'chế độ xem người chặn mọi lệnh ghi' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'K_CAMP, K_SO = ("etp.camp_ngoai", "etp.so_ngay_ngoai") if EA.XEM else ("etp.camp", "etp.so_ngay")', vi: 'máy luật đọc kho theo chế độ (nhà / xem người)' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "deXuat ? ' · máy đề xuất (chỉ đề xuất, không làm)' : ' · máy đã xếp làm'", vi: 'camp người khác: bảng xét ghi là đề xuất' },
-  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'from etp.xet_luat_ngoai where nguoi_id = ${dangId}', vi: 'xem người: cột Luật đọc đề xuất của máy luật nhà' },
+  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'from etp.xet_luat_ngoai where ${cuaNg(sql`nguoi_id`)}', vi: 'xem người: cột Luật đọc đề xuất của máy luật nhà' },
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "'máy chưa đề xuất') end luat", vi: 'xem người: lịch sử bậc so với lúc máy đề xuất' },
   // anh 30/10/2026 "Show nhiều nhất data có thể": kiểu xem Lên bậc (bảng phẳng mọi mốc + ROI trước / sau) + nạp lịch sử từ bản sao lưu
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "const XEM_CAMP_V = ['cay', 'bang', 'lich', 'bac'] as const;", vi: 'tab Camp có kiểu xem Lên bậc' },
@@ -396,6 +396,11 @@ const LUAT = [
   { card: 'chat', tep: 'apps/web/src/components/etp-tong2.tsx', co: 'const hep = kt.w < 700;', vi: 'Tổng quan 2 điện thoại: một widget một lúc, không lưới 12 cột' },
   { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tong2.ts', co: 'const cua = (n: number | undefined) => chiNg == null || n === chiNg;', vi: 'Tổng quan 2: vai người chỉ nhận số của mình' },
   { card: 'chat', tep: V, co: "chiXem ? TABS.filter((t) => t !== 'tong2')", vi: 'Tổng quan 2 chỉ chủ thấy (bản thử)' },
+  { card: 'chat', tep: V, co: "options={[{ value: 'team', label:", vi: 'ô Người có mục Team (cả đội) đứng đầu' },
+  { card: 'chat', tep: 'apps/web/src/lib/etp-doc.ts', co: "const doi = ng === 'team' && nguoiDs.length > 1;", vi: 'Team = nhà + mọi người gộp (?ng=team)' },
+  { card: 'chat', tep: 'apps/web/src/lib/etp-quyen.ts', co: "export const ngCua = (q: QuyenEtp, ng?: string) => (q.vai === 'nguoi' ? String(q.nguoiId) : ng);", vi: 'vai người không chọn được Team / người khác (ép ?ng về chính mình)' },
+  { card: 'chat', tep: V, co: 'max={maxLai(sd)} nhom n={demCamp(rs)[i]} />', vi: 'dòng phim: số camp có chi mỗi ngày dưới cột hiệu suất' },
+  { card: 'chat', tep: V, co: 'mo nhom n={demCamp(rs)[ngay.length]} />', vi: 'dòng phim: số camp có chi hôm nay dưới cột nay' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

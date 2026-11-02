@@ -1494,7 +1494,8 @@ const O0 = ({ v, t, cot, s }: { v: number | null; t: string; cot: string; s?: So
 // bỏ cột biểu đồ riêng; s = số ngày đó, max = |lãi| lớn nhất của dòng, mo = hôm nay (đang chạy, nhạt)
 // anh 27/10/2026 "khoảng cách gọn lại cho chart cao hơn": đường 0 dịch theo dòng — dòng toàn lãi thì 0 nằm đáy, cột dùng trọn 22px; dòng có lỗ chia theo tỉ lệ lãi lớn nhất / lỗ lớn nhất
 // nhom = dòng PHIM / dòng tổng (góp ý #1484 anh 29/10/2026 "đổi cách trình bày chart của Phim để phân biệt với chart của camp"): cột rỗng viền màu + số đậm, camp giữ cột đặc
-const O = ({ v, t, cot, s, max, mo, nhom }: { v: number | null; t: string; cot: string; s?: SoTien; max?: { p: number; n: number }; mo?: boolean; nhom?: boolean }) => {
+// n = số camp có chi trong ngày đó (anh 02/11/2026 "dòng phim, chart hiệu suất, thêm số camp trong ngày tương ứng ở dưới") — chỉ dòng phim / dòng tổng truyền
+const O = ({ v, t, cot, s, max, mo, nhom, n }: { v: number | null; t: string; cot: string; s?: SoTien; max?: { p: number; n: number }; mo?: boolean; nhom?: boolean; n?: number }) => {
   if (s == null || max == null) return <O0 v={v} t={t} cot={cot} s={s} />;
   // cột camp NHỎ hơn cột phim (góp ý #1485 anh 29/10/2026 "cột ROI của camp bé hơn cột ROI của phim"): phim cao 22 · rộng đủ ô, camp cao 15 · hẹp hơn
   const H = nhom ? 22 : 15, le = nhom ? 3 : 8, tong = max.p + max.n, y0 = tong > 0 ? Math.round((H * max.p) / tong) : H;   // y0 = khoảng từ đỉnh xuống đường 0
@@ -1505,7 +1506,8 @@ const O = ({ v, t, cot, s, max, mo, nhom }: { v: number | null; t: string; cot: 
       <span style={{ position: 'absolute', left: 0, right: 0, top: Math.min(y0, H - 1), height: 1, background: 'var(--line)' }} />
       {h ? <span style={{ position: 'absolute', left: le, right: le, borderRadius: 2, ...(nhom ? { background: `${lai >= 0 ? '#4ade80' : '#f87171'}26`, border: `1.5px solid ${lai >= 0 ? '#4ade80' : '#f87171'}`, boxSizing: 'border-box' as const } : { background: lai >= 0 ? '#4ade80' : '#f87171' }), ...(lai >= 0 ? { top: Math.max(0, y0 - h), height: Math.min(h, y0) } : { top: y0, height: Math.min(h, H - y0) }) }} /> : null}
     </span>
-    <span data-cot={`${cot}-so`} style={{ fontSize: 10.5, lineHeight: '12px', marginTop: 2, color: mau, fontVariantNumeric: 'tabular-nums', fontWeight: nhom ? 700 : undefined }}>{soO(v, s, '')}</span></span>;
+    <span data-cot={`${cot}-so`} style={{ fontSize: 10.5, lineHeight: '12px', marginTop: 2, color: mau, fontVariantNumeric: 'tabular-nums', fontWeight: nhom ? 700 : undefined }}>{soO(v, s, '')}</span>
+    {n != null ? <span data-cot={`${cot}-camp`} title={`${n} camp có chi trong ngày`} style={{ fontSize: 9.5, lineHeight: '11px', color: n ? 'var(--fg-2)' : 'var(--fg-3)', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{n} camp</span> : null}</span>;
 };
 // CỜ NƯỚC GIAO + NHÓM GỐC PHIM (anh 29/10/2026 "các camp hãy thêm icon quốc gia target … phim Ấn, Tàu, Âu… phải tách"): camp đều nhắm cùng 39 nước,
 // cờ = nước nhận nhiều chi nhất 7 ngày (etp.camp_nuoc); nhóm gốc chấm trên poster (etp.phim.nhom_goc — hoạt hình chỉ khi nhìn ra tranh vẽ, AI nhìn thật xếp theo ngoại hình)
@@ -1534,8 +1536,8 @@ function MocPhim({ ph, chay }: { ph: PhimEtpKho | undefined; chay: number }) {
 const maxLai = (ds: (SoTien | undefined)[]) => { const l = ds.map((x) => (x ? x.thu - x.chi : 0)); return { p: Math.max(0, ...l), n: Math.max(0, ...l.map((x) => -x)) }; };
 // BIỂU ĐỒ NGÀY TRONG NGĂN ĐIỆN THOẠI (anh 28/10/2026 "bấm vào đây trên mobile thì cho xem chart chi tiết như trên pc"): 6 ngày trọn + hôm nay,
 // cột lãi/lỗ cùng cách vẽ ô O của cây trên máy tính (đường 0 theo tỉ lệ lãi lớn nhất / lỗ lớn nhất), dưới mỗi cột ROI · chi · lãi của ngày
-function BieuNgay({ ngay, sd, nay }: { ngay: string[]; sd: (SoTien | undefined)[]; nay: SoTien }) {
-  const cot = [...ngay.map((d, i) => ({ t: `${d.slice(8, 10)}/${d.slice(5, 7)}`, s: sd[i] ?? { chi: 0, thu: 0 }, mo: false })), { t: 'nay', s: nay, mo: true }];
+function BieuNgay({ ngay, sd, nay, n }: { ngay: string[]; sd: (SoTien | undefined)[]; nay: SoTien; n?: number[] }) {   // n = số camp có chi mỗi ngày (ô cuối = hôm nay) — ngăn phim
+  const cot = [...ngay.map((d, i) => ({ t: `${d.slice(8, 10)}/${d.slice(5, 7)}`, s: sd[i] ?? { chi: 0, thu: 0 }, mo: false, n: n?.[i] })), { t: 'nay', s: nay, mo: true, n: n?.[ngay.length] }];
   const mx = maxLai(cot.map((x) => x.s)), H = 70, tong = mx.p + mx.n, y0 = tong > 0 ? Math.round((H * mx.p) / tong) : H;
   const tc = cot.reduce((a, x) => ({ chi: a.chi + x.s.chi, thu: a.thu + x.s.thu }), { chi: 0, thu: 0 });
   return <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 6px 6px' }}>
@@ -1552,6 +1554,7 @@ function BieuNgay({ ngay, sd, nay }: { ngay: string[]; sd: (SoTien | undefined)[
           <span style={{ fontSize: 11, fontWeight: 600, color: mau }}>{r == null ? '—' : `${r}%`}</span>
           <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>{x.s.chi ? `$${x.s.chi.toFixed(x.s.chi < 10 ? 2 : 0)}` : '·'}</span>
           <span style={{ fontSize: 10, color: Math.abs(lai) < 0.005 ? 'var(--fg-3)' : mauLai(lai) }}>{x.s.chi || x.s.thu ? `${lai < 0 ? '−' : '+'}${Math.abs(lai).toFixed(Math.abs(lai) < 10 ? 2 : 0)}` : ''}</span>
+          {x.n != null ? <span title={`${x.n} camp có chi trong ngày`} style={{ fontSize: 10, color: x.n ? 'var(--fg-2)' : 'var(--fg-3)' }}>{x.n} camp</span> : null}
         </div>; })}
     </div>
   </div>;
@@ -1676,6 +1679,8 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   // tổng các ngày trọn + hôm nay (ô cuối, chỉ số ngay.length) của một nhóm camp — dòng phim / dòng tổng của bảng
   const tongNgay = (rs: CampEtpKho[]): SoTien[] => [...ngay.map((d) => rs.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 })),
     rs.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 })];
+  // số camp có chi mỗi ngày, cùng thứ tự với tongNgay (ô cuối = hôm nay)
+  const demCamp = (rs: CampEtpKho[]): number[] => [...ngay.map((d) => rs.filter((c) => (so.get(c.camp_id)?.get(d)?.chi ?? 0) > 0).length), rs.filter((c) => c.nay.chi > 0).length];
   const cotCay: DataColumn<CampEtpKho>[] = [
     { key: 'camp', header: 'Phim → camp gốc → bản nhân', align: 'left', width: 260, cellTitle: (c) => c.ten ?? undefined, sortValue: (c) => c.camp_id,
       // loại (CC…) + số bản nhân (x9 / ⚠) DẠT PHẢI ô, thẳng một cột ở mọi tầng cây — trước bám sau số camp nên thụt theo tầng (anh 31/10/2026 #1493 "cho sang phải")
@@ -1696,9 +1701,9 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
     ...(coLich ? [{ key: 'lich', header: 'Lịch giờ', align: 'left' as const, cell: (c: CampEtpKho) => <LichCamp c={c} du={du} tl={tlC} gon />, sortValue: (c: CampEtpKho) => tlC(c.the_loai) }] : []),
     ...ngay.map((d, i): DataColumn<CampEtpKho> => ({ key: `roi${i}`, header: `${d.slice(8, 10)}/${d.slice(5, 7)}`, align: 'center', width: 56, title: `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)} — lọc 🔍 theo %`,
       cell: (c) => { const sd = sd7(c); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={maxLai([...sd, c.nay])} />; }, sortValue: (c) => roi(sd7(c)[i]),
-      total: (rs) => { const sd = tongNgay(rs); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả nhóm ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i]} max={maxLai(sd)} nhom />; } })),
+      total: (rs) => { const sd = tongNgay(rs); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả nhóm ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i]} max={maxLai(sd)} nhom n={demCamp(rs)[i]} />; } })),
     { key: 'nay', header: 'nay', align: 'center', width: 56, title: 'ROI hôm nay — lọc 🔍 theo %', cell: (c) => <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={maxLai([...sd7(c), c.nay])} mo />, sortValue: (c) => roi(c.nay),
-      total: (rs) => { const sd = tongNgay(rs), sn = sd[ngay.length]; return <O cot="roi-nay" v={roi(sn)} t="ROI cả nhóm hôm nay" s={sn} max={maxLai(sd)} mo nhom />; } },   // hôm nay = ô SAU ngày cuối (sd[ngay.length]); số cứng [7] lệch khi bảng còn 6 ngày → dòng phim trống NAY (#1489)
+      total: (rs) => { const sd = tongNgay(rs), sn = sd[ngay.length]; return <O cot="roi-nay" v={roi(sn)} t="ROI cả nhóm hôm nay" s={sn} max={maxLai(sd)} mo nhom n={demCamp(rs)[ngay.length]} />; } },   // hôm nay = ô SAU ngày cuối (sd[ngay.length]); số cứng [7] lệch khi bảng còn 6 ngày → dòng phim trống NAY (#1489)
     // TỔNG CHI TRONG KHUNG THỜI GIAN đang chọn (anh 29/10/2026) — cùng nguồn laiKy với cột lãi; dòng phim / dòng tổng cộng lại
     { key: 'chi', header: `Chi ${tenKy.toLowerCase()}`, width: 124, title: `tổng chi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <Tien v={laiKy(c).chi} />, sortValue: (c) => Math.round(laiKy(c).chi * 100) / 100,
       total: (rs) => <Tien v={rs.reduce((a, c) => a + laiKy(c).chi, 0)} /> },
@@ -1815,9 +1820,9 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
             {hep ? null : <span style={{ gridColumn: '6 / -1', display: 'flex', gap: 4, overflow: 'hidden' }}><LoaiPhim ds={p.all} lai={laiDai} /></span>}
             </span>
             {(() => { const sd = ngay.map((d) => p.all.reduce((a, c) => { const x = so.get(c.camp_id)?.get(d); return { chi: a.chi + (x?.chi ?? 0), thu: a.thu + (x?.thu ?? 0) }; }, { chi: 0, thu: 0 }));
-              const sn = p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }), mx = coQua ? undefined : maxLai([...ngayHien.map((d) => sd[ngay.indexOf(d)]), sn]);
-              return <>{ngayHien.map((d) => ngay.indexOf(d)).map((i) => <O key={i} cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả phim ${ngay[i]!.slice(8, 10)}/${ngay[i]!.slice(5, 7)}`} s={sd[i]} max={mx} />)}
-                {coQua ? <O cot="roi-qua" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.qua.chi, thu: a.thu + c.qua.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm qua" /> : null}<O cot="roi-nay" v={roi(sn)} t="ROI cả phim hôm nay" s={coQua ? undefined : sn} max={mx} mo /></>; })()}
+              const sn = p.all.reduce((a, c) => ({ chi: a.chi + c.nay.chi, thu: a.thu + c.nay.thu }), { chi: 0, thu: 0 }), mx = coQua ? undefined : maxLai([...ngayHien.map((d) => sd[ngay.indexOf(d)]), sn]), dc = demCamp(p.all);
+              return <>{ngayHien.map((d) => ngay.indexOf(d)).map((i) => <O key={i} cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả phim ${ngay[i]!.slice(8, 10)}/${ngay[i]!.slice(5, 7)}`} s={sd[i]} max={mx} n={dc[i]} />)}
+                {coQua ? <O cot="roi-qua" v={roi(p.all.reduce((a, c) => ({ chi: a.chi + c.qua.chi, thu: a.thu + c.qua.thu }), { chi: 0, thu: 0 }))} t="ROI cả phim hôm qua" /> : null}<O cot="roi-nay" v={roi(sn)} t="ROI cả phim hôm nay" s={coQua ? undefined : sn} max={mx} mo n={coQua ? undefined : dc[ngay.length]} /></>; })()}
             <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={p.all.reduce((a, c) => { const x = laiKy(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 })} /></span>
           </summary>
           {/* NHANH (anh 27/10/2026 "load chậm quá"): phần gập KHÔNG dựng — trước dựng sẵn mọi camp của mọi phim = 9 MB HTML, 776 biểu đồ */}
@@ -2296,12 +2301,13 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       ...[2, 3, 5, 7].map((n) => ({ value: `l${n}`, label: `Lỗ ${n} ngày liên tiếp`, nhom: 'Liên tiếp từng ngày (ngày đã khép)', title: `${n} ngày trọn gần nhất ngày nào cũng có chi và đều âm`, tim: `lo lien tiep ${n} ngay` }))]} />;
   const [dangDoiNguoi, doiNguoi] = useTransition();   // đổi người = nạp trang mới từ máy chủ — hiện "đang tải…" ngay, trang cũ vẫn dùng được tới khi trang mới về
   // NGƯỜI (anh 28/10/2026 "xem được report của từng người"): đổi người = nạp lại dữ liệu từ máy chủ (?ng=); người nhà bỏ tham số; bỏ lọc bộ (bộ chỉ có ở nhà)
-  const tenNguoi = (du.nguoi.ngoai ? du.nguoi.ds.find((x) => x.id === du.nguoi.dang) : du.nguoi.ds.find((x) => x.nha))?.ten ?? 'Nhà';
+  const tenNguoi = du.nguoi.doi ? 'Team' : (du.nguoi.ngoai ? du.nguoi.ds.find((x) => x.id === du.nguoi.dang) : du.nguoi.ds.find((x) => x.nha))?.ten ?? 'Nhà';
   // URL xem một người — chung cho bấm chọn (router.push) và ⌘ / Ctrl-click mở tab mới (#1496)
   const urlNguoi = (v: string) => { const u = new URL(location.href); if (!v || Number(v) === du.nguoi.nha) u.searchParams.delete('ng'); else u.searchParams.set('ng', v); u.searchParams.delete('b'); u.searchParams.delete('ngan'); return u; };
-  const nguoiSel = () => (du.nguoi.ds.length > 1 ? <>{dangDoiNguoi ? <span style={{ fontSize: 11, color: '#60a5fa' }}>đang tải…</span> : null}<Chon2 value={du.nguoi.dang == null || !du.nguoi.ngoai ? '' : String(du.nguoi.dang)} nhan="Người" align="left" title="xem camp + report theo người dùng Ethopex (tài khoản QC của người đó) — người khác chỉ xem, luật không áp"
+  const nguoiSel = () => (du.nguoi.ds.length > 1 ? <>{dangDoiNguoi ? <span style={{ fontSize: 11, color: '#60a5fa' }}>đang tải…</span> : null}<Chon2 value={du.nguoi.doi ? 'team' : du.nguoi.dang == null || !du.nguoi.ngoai ? '' : String(du.nguoi.dang)} nhan="Người" align="left" title="xem camp + report theo người dùng Ethopex (tài khoản QC của người đó) — người khác chỉ xem, luật không áp"
     onChange={(v) => { const u = urlNguoi(v); doiNguoi(() => router.push(`${u.pathname}${u.search}`)); }} href={(v) => urlNguoi(v).href}
-    options={du.nguoi.ds.filter((x) => !x.nha).map((x) => ({ value: String(x.id), label: `${x.ten} · ${x.tk} TK`, ngan: x.ten }))} rong={`${du.nguoi.ds.find((x) => x.nha)?.ten ?? 'Nhà'} (nhà)`} /></> : null);
+    // TEAM (anh 02/11/2026): nhà + mọi người gộp một, chỉ xem — đứng đầu danh sách
+    options={[{ value: 'team', label: `Team · cả đội · ${du.nguoi.ds.reduce((a, x) => a + x.tk, 0)} TK`, ngan: 'Team' }, ...du.nguoi.ds.filter((x) => !x.nha).map((x) => ({ value: String(x.id), label: `${x.ten} · ${x.tk} TK`, ngan: x.ten }))]} rong={`${du.nguoi.ds.find((x) => x.nha)?.ten ?? 'Nhà'} (nhà)`} /></> : null);
   const boSel = () => (!boCo.length ? null : <Chon2 value={boHieu} onChange={(v) => doi({ bo: v }, () => setBoLoc(v))} nhan="TK" align="left" title="lọc camp theo bộ tài khoản QC (tài khoản + Page)"
     options={boCo.map((b) => ({ value: b, label: `Bộ ${b}${gon ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''} · ${du.boTk[b]?.mui_gio ?? 'múi giờ ?'}`, ngan: `Bộ ${b}`, tim: `bộ ${b} ${du.boTk[b]?.ten ?? ''}`, dem: du.camps.filter((c) => c.bo === b && c.trang_thai === 'ACTIVE').length }))} />);
   // LÊN DÒNG DÍNH (anh 01/11/2026 #1499 "chuyển chọn ngày lên trên + sticky (vẫn cho chọn)", #1500 "chuyển cả bộ TK vào sau chỗ chọn người + sticky; phần chọn Người cũng cho đổi ở sticky"):
@@ -2369,7 +2375,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
         <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{!gon && coBo ? boSel() : null}{!gon && coKy ? kySel() : null}
           {du.nguoi.ngoai && quyen?.cheDo?.duoc.bao && du.nguoi.dang != null ? <CheDoLuatO nguoiId={du.nguoi.dang} c={quyen.cheDo} /> : null}
-          {du.nguoi.ngoai && !(quyen?.sua != null && du.nguoi.dang === quyen.sua) ? <span title="camp + số của tài khoản QC người này — chỉ để theo dõi / học; cột Luật = máy luật ĐỀ XUẤT cho camp người này (không thao tác), rê ô ngân sách xem lịch sử lên bậc + máy đề xuất trước bao lâu; nút bật / tắt không áp"
+          {du.nguoi.ngoai && !(quyen?.sua != null && du.nguoi.dang === quyen.sua) ? <span title={du.nguoi.doi ? 'camp + số của CẢ ĐỘI (nhà + mọi người) gộp một — chỉ để theo dõi; luật / bật tắt không áp ở chế độ Team'
+              : 'camp + số của tài khoản QC người này — chỉ để theo dõi / học; cột Luật = máy luật ĐỀ XUẤT cho camp người này (không thao tác), rê ô ngân sách xem lịch sử lên bậc + máy đề xuất trước bao lâu; nút bật / tắt không áp'}
             style={{ background: 'rgba(168,85,247,.18)', color: '#d8b4fe', border: '1px solid rgba(168,85,247,.5)', borderRadius: 8, padding: '2px 8px', fontWeight: 600, fontSize: 12 }}>👁 chỉ xem</span> : null}</span>
       </div>
       {/* MỐC BẬT DÒNG DÍNH (anh 01/11/2026 "sticky chưa hiện khi đang scroll ở gần Heros"): máy tính bật ngay khi dòng tiêu đề (cụm Người · TK · kỳ) BẮT ĐẦU trôi khỏi màn (cuộn > 12px = lề trên trang), không đợi tới đỉnh / hết hero; điện thoại dòng gọn chỉ có số → vẫn đợi qua hết hero */}
@@ -2480,7 +2487,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12 }}>
             <div style={{ fontWeight: 700, fontSize: 14, lineHeight: 1.3, paddingRight: 28 }}>{ds[0]?.phim ?? `#${nganPhim}`}</div>
             <div style={{ color: 'var(--fg-2)' }}>{ds.filter((c) => c.trang_thai === 'ACTIVE').length}/{ds.length} camp đang bật · ngân sách ${ds.filter((c) => c.trang_thai === 'ACTIVE').reduce((a, c) => a + c.ngan_sach, 0)}/ngày</div>
-            <BieuNgay ngay={ngay6} sd={ngay6.map((d) => cong((c) => soCamp(c.camp_id, d)))} nay={cong((c) => c.nay)} />
+            <BieuNgay ngay={ngay6} sd={ngay6.map((d) => cong((c) => soCamp(c.camp_id, d)))} nay={cong((c) => c.nay)} n={[...ngay6.map((d) => ds.filter((c) => (soCamp(c.camp_id, d)?.chi ?? 0) > 0).length), ds.filter((c) => c.nay.chi > 0).length]} />
             <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>Từng camp — bấm để mở ngăn camp</div>
             {xep.map((c) => <div key={c.camp_id} onClick={() => doi({ ngan: `camp:${c.camp_id}` }, () => { setNganPhim(null); setNganCamp(c.camp_id); })}
               style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr) 36px 44px 44px 70px', gap: 6, alignItems: 'center', padding: '6px 0', borderTop: '1px solid var(--line)', cursor: 'pointer', opacity: c.trang_thai === 'ACTIVE' ? 1 : 0.5, fontVariantNumeric: 'tabular-nums' }}>

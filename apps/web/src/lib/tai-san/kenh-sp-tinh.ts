@@ -15,10 +15,14 @@ export type KenhSp = {
   videos: VideoKenh[];
   /** KẾ HOẠCH kênh (anh 02/11/2026: "show plan cụ thể — lịch đăng bài, bài đã sx, đang sx"): lịch làm tập (kenh.json lich_tap + gio_tap), tập đang làm
    *  (xv_may.nguon.dang_lam — chay-kenh.mjs ghi), lịch đăng dự kiến của máy đăng (xv_lich_du_kien) */
-  ke: { lichTap: string | null; tapKe: string[]; dangLam: { id: string; luc: string } | null; lichDang: { ngay: string; gio: string | null; nen: string; tieuDe: string }[] };
+  ke: { lichTap: string | null; tapKe: string[]; dangLam: DangLam | null; lichDang: { ngay: string; gio: string | null; nen: string; tieuDe: string }[];
+    /** giờ VN sớm nhất máy đăng được đăng bài của kênh (xv_may.dang[].gio_tu) */ gioDang: string | null };
   /** social trỏ về kênh (bài short dẫn link kênh) — tab Tài sản gắn theo khung ?ky= */
   social?: import('./social-tro-ve-tinh').TroVe | null;
 };
+
+/** tập đang trong lò (xv_may.nguon.dang_lam — chay-kenh ghi lúc bắt đầu, lam-tap ghi từng bước; hỏng thì giữ kèm loi) */
+export type DangLam = { id: string; luc: string; buoc?: string; so?: number; tong?: number; buoc_luc?: string; loi?: string | null };
 
 const lui = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10);
 
@@ -58,4 +62,29 @@ export function lichKenh(k: Pick<KenhSp, 'videos' | 'ke'>): OLich[] {
   for (const v of k.videos) { them(v.ngayLam, 'lam', v.ten); if (v.trangThai === 'da_dang') them(v.ngayDang, 'dang', v.ten); }
   for (const l of k.ke.lichDang) them(l.ngay, 'hen', `${l.gio ?? ''} ${l.nen} · ${l.tieuDe}`.trim());
   return [...m.values()].sort((a, b) => a.ngay.localeCompare(b.ngay));
+}
+
+/** CÂY KẾ HOẠCH của kênh (anh 02/11/2026: "nhìn được realtime quá trình sx, lên lịch ở đây"): khối ▶ Đang sản xuất (tập trong lò, bước k/n, từ giờ nào)
+ *  + khối 🗓 Lịch (bài chờ đăng lúc nào, bài chờ chấm / sửa lại, lượt làm tập kế). Thuần — component chỉ vẽ. Giờ hiện theo giờ VN. */
+export type DongKe = { id: string; nhom?: boolean; chu: string; phu?: string; mau?: string };
+const gioVn = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
+const thuNgay = (ymd: string) => `${THU[new Date(`${ymd}T00:00:00Z`).getUTCDay() || 7]} ${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
+export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()): DongKe[] {
+  const ra: DongKe[] = [], d = k.ke.dangLam;
+  if (d) {
+    const phut = Math.max(0, Math.round((bayGio - Date.parse(d.buoc_luc ?? d.luc)) / 60_000)), tong = Math.max(0, Math.round((bayGio - Date.parse(d.luc)) / 60_000));
+    ra.push({ id: 'sx', nhom: true, chu: '▶ Đang sản xuất', phu: `bắt đầu ${gioVn(d.luc)} · ${tong} phút` });
+    ra.push({ id: 'sx/1', chu: d.id, mau: d.loi ? 'var(--bad)' : 'var(--warn)',
+      phu: d.loi ? d.loi : d.buoc ? `bước ${d.so}/${d.tong} · ${d.buoc} · ${phut} phút` : 'đang khởi động' });
+  }
+  const lich: DongKe[] = [];
+  for (const v of k.videos) {
+    if (v.trangThai === 'duyet') { const h = k.ke.lichDang.find((l) => l.tieuDe && v.ten.startsWith(l.tieuDe.replace(/\s*#shorts\s*/i, '').slice(0, 30)));
+      lich.push({ id: `l/${v.slug}`, chu: `📤 ${v.ten}`, mau: 'var(--accent)', phu: h ? `đăng ${thuNgay(h.ngay)} ${h.gio ?? ''}`.trim() : `DUYỆT · máy đăng lấy ở khung từ ${k.ke.gioDang ?? '19:00'} giờ VN (trần 1 bài/ngày)` }); }
+    else if (v.trangThai === 'cho_cham') lich.push({ id: `l/${v.slug}`, chu: `⏳ ${v.ten}`, phu: 'chờ Phòng Nội dung chấm' });
+    else if (v.trangThai === 'sua_lai') lich.push({ id: `l/${v.slug}`, chu: `🔧 ${v.ten}`, mau: 'var(--bad)', phu: 'SỬA LẠI · việc nền tự làm lại mỗi giờ (tối đa 3 lần)' });
+  }
+  for (const t of k.ke.tapKe) lich.push({ id: `l/sx/${t}`, chu: '🛠 làm tập mới', phu: `${thuNgay(t.slice(0, 10))} ${t.slice(11)}`.trim() });
+  if (lich.length) ra.push({ id: 'lich', nhom: true, chu: '🗓 Lịch', phu: k.ke.lichTap ? `làm tập ${k.ke.lichTap} · đăng từ ${k.ke.gioDang ?? '19:00'} giờ VN` : undefined }, ...lich);
+  return ra;
 }

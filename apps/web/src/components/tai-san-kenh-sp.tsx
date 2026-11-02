@@ -7,7 +7,9 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { DataTable, Panel, type DataColumn } from '@/components/ui';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { extLinkProps } from '@/lib/external-url';
-import { lichKenh, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { cayKeHoach, lichKenh, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { LichNho, type LoaiLichNho } from '@/components/ui/lich-nho';
 import { cotSocial, nhomSocial } from './tai-san-social';
 
@@ -24,9 +26,9 @@ const CHANG: Record<VideoKenh['trangThai'], { chu: string; mau: string }> = {
 type Dong = { loai: 'kenh'; k: KenhSp } | { loai: 'video'; k: KenhSp; v: VideoKenh }
   /** dòng KẾ HOẠCH trong cây: nhóm (tiêu đề nhóm) hoặc một mục lịch (sản xuất / đăng) */
   | { loai: 'ke'; k: KenhSp; id: string; nhom?: boolean; chu: string; phu?: string; mau?: string; ngay?: string | null };
-/** CÂY của một kênh: danh sách video đã làm (chặng). Lịch sản xuất + lịch đăng nằm ở LỊCH NHỎ trong menu ⋯ (ui/lich-nho — component lịch dùng chung). */
+/** CÂY của một kênh: ▶ Đang sản xuất + 🗓 Lịch (cayKeHoach — thuần, tự kiểm) rồi 🎬 Đã làm (chặng từng video). Lịch tháng vẫn ở LỊCH NHỎ trong menu ⋯. */
 function cayKenh(k: KenhSp): Dong[] {
-  return [{ loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
+  return [...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
     ...k.videos.map((v) => ({ loai: 'video' as const, k, v }))];
 }
 const LOAI_LICH: LoaiLichNho = {
@@ -36,6 +38,9 @@ const LOAI_LICH: LoaiLichNho = {
 export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?: number }) {
   // cây mở / gập NẰM TRÊN URL (YDNI: F5 mở ra đúng như đang thấy) — ?kenh_mo=<mã>,<mã>
   const [moUrl, datMoUrl] = useShallowParam('kenh_mo', '');
+  // TRỰC TIẾP: có tập đang trong lò (lam-tap ghi bước) → làm mới bảng 15 giây/lần; không có thì đứng yên
+  const router = useRouter(), coLo = kenh.some((k) => k.ke.dangLam && !k.ke.dangLam.loi);
+  useEffect(() => { if (!coLo) return; const t = setInterval(() => router.refresh(), 15_000); return () => clearInterval(t); }, [coLo, router]);
   const moCay = new Set(moUrl.split(',').filter(Boolean));
   if (!kenh.length) return null;
   const doi = (ma: string) => { const n = new Set(moCay); if (n.has(ma)) n.delete(ma); else n.add(ma); datMoUrl([...n].join(',')); };
@@ -67,7 +72,9 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
             { label: 'Video', items: [{ label: `${moCay.has(k.ma) ? 'Ẩn' : 'Hiện'} danh sách video (${n})`, emoji: '🌳', onClick: () => doi(k.ma) }] },
             ...(k.kenhUrl ? [{ label: 'Kênh', items: [{ label: 'Mở kênh YouTube', emoji: '▶️', href: k.kenhUrl, external: true }] }] : []),
           ]} />
-          <span style={{ color: k.chay ? 'var(--ok)' : 'var(--fg-4)', fontSize: 11 }}>{k.chay ? 'đang chạy' : 'chưa bật đăng'}</span></span>;
+          {k.ke.dangLam ? <span style={{ color: k.ke.dangLam.loi ? 'var(--bad)' : 'var(--warn)', fontSize: 11, whiteSpace: 'nowrap' }} title={k.ke.dangLam.loi ?? `${k.ke.dangLam.id} · ${k.ke.dangLam.buoc ?? ''}`}>
+              {k.ke.dangLam.loi ? '✗ tập hỏng' : `▶ đang làm ${k.ke.dangLam.so ?? '?'}/${k.ke.dangLam.tong ?? 8}`}</span>
+            : <span style={{ color: k.chay ? 'var(--ok)' : 'var(--fg-4)', fontSize: 11 }}>{k.chay ? 'đang chạy' : 'chưa bật đăng'}</span>}</span>;
       } },
     ...cotSocial<Dong>(chiKenh((k) => k.social), kySocial),
     { key: 'tap', header: 'Tập', width: 64, sortValue: (d) => d.k.tap, cellTitle: (d) => (laK(d) ? `${d.k.tap} tập đã làm (không tính bản cất)` : undefined),
@@ -84,7 +91,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
     { key: 'so', header: 'Số tới', width: 72, sortValue: (d) => d.k.ngaySo, cell: (d) => (!laK(d) ? null : d.k.ngaySo ? ngayVn(d.k.ngaySo) : <span style={mo}>chưa đo</span>) },
   ];
   return (
-    <Panel title="📺 Kênh nội dung" subtitle={'kênh nội dung là sản phẩm (video trọn chuyện) · ▸ / ⋯ › danh sách video · "–" = chưa đo (khác 0) · số đọc hằng ngày từ trang YouTube công khai'}>
+    <Panel title="📺 Kênh nội dung" subtitle={'kênh nội dung là sản phẩm (video trọn chuyện) · ▸ mở: đang sản xuất · lịch · đã làm · "–" = chưa đo (khác 0) · số đọc mỗi giờ từ trang YouTube công khai'}>
       <DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
         minWidth={320 + 260 + 64 + 84 + 76 + 116 + 88 + 96 + 96 + 84 + 72} card />
     </Panel>

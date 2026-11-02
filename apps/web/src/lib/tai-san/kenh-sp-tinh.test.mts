@@ -20,6 +20,17 @@ assert.deepStrictEqual(lichSanXuat([], '09:30', '2026-11-02', '12:00'), { chu: n
 import { lichKenh } from './kenh-sp-tinh';
 { const o = lichKenh({ videos: [{ slug: 'a', ten: 'A', ngayLam: '2026-11-02', trangThai: 'da_dang', ngayDang: '2026-11-03', url: null, xem: 5, giay: 170 },
     { slug: 'b', ten: 'B', ngayLam: '2026-11-02', trangThai: 'cho_cham', ngayDang: null, url: null, xem: null, giay: 170 }],
-  ke: { lichTap: 'x', tapKe: ['2026-11-04 09:30'], dangLam: null, lichDang: [{ ngay: '2026-11-04', gio: '20:00', nen: 'youtube', tieuDe: 'B' }] } });
+  ke: { lichTap: 'x', gioDang: '21:00', tapKe: ['2026-11-04 09:30'], dangLam: null, lichDang: [{ ngay: '2026-11-04', gio: '20:00', nen: 'youtube', tieuDe: 'B' }] } });
   assert.deepStrictEqual(o.map((x) => `${x.ngay} ${x.loai} ${x.so}`), ['2026-11-02 lam 2', '2026-11-03 dang 1', '2026-11-04 sx 1', '2026-11-04 hen 1']); }
-console.log('kenh-sp-tinh: 8/8 ok');
+import { cayKeHoach } from './kenh-sp-tinh';
+{ const v = (slug: string, trangThai: 'duyet' | 'cho_cham' | 'da_dang') => ({ slug, ten: slug.toUpperCase(), ngayLam: null, trangThai, ngayDang: null, url: null, xem: null, giay: null });
+  const ke = { lichTap: 'Thứ Hai · 09:30', gioDang: '21:00', tapKe: ['2026-11-04 09:30'], lichDang: [], dangLam: { id: 'tap-x', luc: '2026-11-02T15:00:00Z', buoc: 'dựng (giọng + hình)', so: 5, tong: 8, buoc_luc: '2026-11-02T15:20:00Z' } };
+  const r = cayKeHoach({ videos: [v('a', 'duyet'), v('b', 'cho_cham'), v('c', 'da_dang')], ke }, Date.parse('2026-11-02T15:25:00Z'));
+  assert.deepStrictEqual(r.map((x) => x.chu), ['▶ Đang sản xuất', 'tap-x', '🗓 Lịch', '📤 A', '⏳ B', '🛠 làm tập mới']);
+  assert.strictEqual(r[1]!.phu, 'bước 5/8 · dựng (giọng + hình) · 5 phút');   // giờ VN, phút tính từ lúc vào bước
+  assert.strictEqual(r[5]!.phu, 'Thứ Tư 04/11 09:30');
+  // không có gì trong lò, không lịch → cây kế hoạch rỗng (chỉ còn khối Đã làm)
+  assert.deepStrictEqual(cayKeHoach({ videos: [v('c', 'da_dang')], ke: { ...ke, dangLam: null, tapKe: [] } }), []);
+  // tập hỏng giữa chừng → dòng đỏ mang lỗi
+  assert.strictEqual(cayKeHoach({ videos: [], ke: { ...ke, dangLam: { ...ke.dangLam, loi: 'hỏng ở bước dựng (mã 1)' } } })[1]!.phu, 'hỏng ở bước dựng (mã 1)'); }
+console.log('kenh-sp-tinh: 12/12 ok');

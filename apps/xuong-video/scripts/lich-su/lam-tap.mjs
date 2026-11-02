@@ -16,7 +16,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { BOX, box, len, ve, q } from './box3.mjs';
+import { BOX, box, len, ve, q, sqlBox } from './box3.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const co = (k) => process.argv.includes(`--${k}`);
@@ -140,8 +140,20 @@ async function kiem(tap, nguonChu) {
   return loi;
 }
 
+// TIẾN ĐỘ TRỰC TIẾP (anh 02/11/2026: "nhìn được realtime quá trình sx ở Tài sản"): mỗi bước ghi xv_may.nguon.dang_lam { id, luc, buoc, so, tong, buoc_luc }
+// → mos2 › Tài sản › Kênh nội dung hiện "▶ Đang sản xuất" (tự làm mới 15 giây). Xong thì gỡ; hỏng thì giữ lại kèm loi để bảng hiện đỏ (chay-kenh gỡ ở lượt sau).
+const BUOC = ['gắn hook', 'viết kịch bản', 'kho + ảnh thật', 'Ngọc soi hình', 'dựng (giọng + hình)', 'đẩy Studio', 'thumbnail', 'nạp máy đăng'];
+let buocNay = null;
+const sqlQ = (x) => `'${String(x).replace(/'/g, "''")}'`;
+const ghiDangLam = (patch) => { if (!KENH.may) return; try { sqlBox(`UPDATE xv_may SET nguon = jsonb_set(coalesce(nguon, '{}'::jsonb), '{dang_lam}', coalesce(nguon->'dang_lam', jsonb_build_object('id', ${sqlQ(id)}, 'luc', now())) || ${patch}::jsonb) WHERE ma = ${sqlQ(KENH.may)};`); } catch { /* tiến độ là phụ, không làm hỏng lượt */ } };
+const buoc = (ten) => { buocNay = ten; ghiDangLam(sqlQ(JSON.stringify({ id, buoc: ten, so: BUOC.indexOf(ten) + 1, tong: BUOC.length, buoc_luc: new Date().toISOString(), loi: null }))); };
+process.on('exit', (ma) => { if (!KENH.may || !buocNay) return;
+  try { sqlBox(ma ? `UPDATE xv_may SET nguon = jsonb_set(nguon, '{dang_lam,loi}', ${sqlQ(JSON.stringify(`hỏng ở bước ${buocNay} (mã ${ma})`))}::jsonb) WHERE ma = ${sqlQ(KENH.may)} AND nguon->'dang_lam'->>'id' = ${sqlQ(id)};`
+    : `UPDATE xv_may SET nguon = nguon - 'dang_lam' WHERE ma = ${sqlQ(KENH.may)} AND nguon->'dang_lam'->>'id' = ${sqlQ(id)};`); } catch { /* bỏ qua */ } });
+
 // ---------- 0. GẮN HOOK cho tập đã có (--gan-hook): kênh có máy đăng mà tập chưa có góc / hook spy → máy viết chọn hook + tiêu đề + mô tả đăng, lời đọc giữ nguyên ----------
 if (co('gan-hook') && KENH.may && existsSync(tepTap)) {
+  buoc('gắn hook');
   const t0 = JSON.parse(readFileSync(tepTap, 'utf8'));
   // hook cũ chỉ giữ khi chữ đăng qua được luật phòng chấm (từ máy / tiếng Việt) — 02/11/2026 Alaska giữ "Unlock the…" + mô tả tiếng Việt rồi bị SỬA LẠI lần hai
   const { tuMayTrong } = await import('../../../cty/worker/cham-dang.mjs'), chuCu = `${t0.tieu_de ?? ''}\n${t0.mo_ta_dang ?? ''}`;
@@ -163,6 +175,7 @@ const khoaLoi = () => { if (!loiCu) return; const t = JSON.parse(readFileSync(te
   t.cau.forEach((c, i) => Object.assign(c, loiCu[i])); writeFileSync(tepTap, JSON.stringify(t, null, 1) + '\n'); return true; };
 const sua = (co('sua') || suaCanh) && existsSync(tepTap) && existsSync(join(RA, 'nguon.txt'));   // --sua: không viết lại từ đầu, đưa lỗi của bản đang có cho máy viết sửa
 if (!existsSync(tepTap) || co('viet-lai') || sua) {
+  buoc('viết kịch bản');
   const tmp = `/tmp/lich-su-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${tmp}`]); len(tepKho, `${tmp}/kho.json`);
   // GÓC + HOOK SPY: kênh có máy Studio (kenh.json may) mà chưa có chủ đề → lấy góc dùng ít nhất + hook QC của máy, máy viết tự chọn chuyện hợp góc
   let ghArg = '';
@@ -190,6 +203,7 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
 if (co('chi-viet')) process.exit(0);
 
 // ---------- 3. KHO + TRANH ----------
+buoc('kho + ảnh thật');
 const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
 let tien = 0;
 const dungToi = new Set(tap.cau.flatMap((c) => [...(c.canh.nguoi || []), ...(c.canh.xe || []), ...(c.canh.co || [])].map((m) => m.anh).concat(c.canh.tranh?.ref || [])));
@@ -282,6 +296,7 @@ if (tien) console.log(`tiền kho + tranh lượt này ~${tien}₫`);
 // 4a. NGỌC SOI HÌNH TRƯỚC (02/11/2026): 8 khung giữa cảnh (vài giây) → xet-truoc.mts (box3, đúng hàm xetHinhAi của Phòng Nội dung). Chặn chắc chắn thì dừng ở đây
 // — trước đây phải dựng xong cả tập (~11 phút) Ngọc mới thấy chữ bị hình đè (Alaska: thợ mỏ đè "Skagway"). --bo-soat-truoc: bỏ bước này.
 if (!co('chi-day') && !arg('khung') && !co('bo-soat-truoc')) {
+  buoc('Ngọc soi hình');
   const dir = join(RA, 'soat-truoc'); rmSync(dir, { recursive: true, force: true });
   const r = spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, '--soat', dir], { stdio: 'inherit' }); if (r.status) process.exit(r.status);
   const ds = readdirSync(dir).filter((f) => /^k-\d+\.jpg$/.test(f)).sort((a, b) => parseInt(a.slice(2)) - parseInt(b.slice(2)));
@@ -292,12 +307,14 @@ if (!co('chi-day') && !arg('khung') && !co('bo-soat-truoc')) {
   console.log(`✓ Ngọc soi ${ds.length} khung trước dựng: qua`);
 }
 // --chi-day: video đã dựng, chỉ đẩy lại Studio (không quay lại 5.900 khung)
+buoc('dựng (giọng + hình)');
 const dung = co('chi-day') && existsSync(join(RA, `${id}.mp4`)) ? { status: 0 } : spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, ...(arg('khung') ? ['--khung', arg('khung'), '--khung-ra', join(RA, 'khung.jpg')] : [])], { stdio: 'inherit' });
 if (dung.status) process.exit(dung.status);
 if (arg('khung')) process.exit(0);
 const mp4 = join(RA, `${id}.mp4`), xem = join(RA, `${id}-xem.mp4`);
 if (!co('chi-day')) execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-vf', 'scale=540:-2', '-c:v', 'libx264', '-crf', '30', '-preset', 'veryfast', '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', xem]);
 console.log(`✓ ${mp4}\n✓ ${xem}`);
+buoc('đẩy Studio');
 // 5. STUDIO: mỗi kênh một phim, tập này thành một tập trong phim đó — anh quản / duyệt trong studio.on.tc. Gửi BẢN PHÁT HÀNH nén (1080p H.264 crf 23 trần 6 Mbps — lớp chấm in lá cải khó nén,
 // bản gốc máy quay ~350 MB/3 phút) qua /var/tmp (đĩa; /tmp box3 là ổ RAM 512 MB) — hỏng ở bất kỳ khâu nào chỉ báo, không làm mất video đã dựng
 { const ban = join(RA, `${id}-ban.mp4`), bt = `/var/tmp/tap-day-${id}`; let kq = null, giay = 0;
@@ -313,9 +330,11 @@ console.log(`✓ ${mp4}\n✓ ${xem}`);
     writeFileSync(join(RA, 'canh.json'), JSON.stringify(canhDs.map((x) => ({ k: x.k, bd: x.bd, kt: x.kt, anh: `${bt}/canh-${x.k + 1}.jpg` })))); len(join(RA, 'canh.json'), `${bt}/canh.json`);
     kq = JSON.parse(box(`scripts/lich-su/tap-day.mts ${bt}/tap.json ${bt}/tap.mp4 ${khung.join(' ')} --canh ${bt}/canh.json --kho ${bt}/kho.json`).split('\n').pop()); console.log(`✓ Studio phim #${kq.phim} · tập #${kq.tap} · ${kq.canh} cảnh storyboard · ${kq.thanh_phan} thành phần · https://studio.on.tc/?m=phim&mId=${kq.phim} · ${kq.url}`); }
   catch (e) { console.log(`⚠ đẩy Studio hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ')}`); }
+  buoc('thumbnail');
   // 5b. THUMBNAIL (anh 02/11/2026: "thumb rất rất quan trọng, không dùng thumb YouTube tự sinh"): thumb.mjs viết chữ + dựng + Ngọc chấm; chặn thì dừng, không nạp máy đăng
   if (KENH.may) { const r = spawnSync(process.execPath, [join(DIR, 'thumb.mjs'), '--id', id], { stdio: 'inherit' }); if (r.status) process.exit(r.status);
     Object.assign(tap, { thumb: JSON.parse(readFileSync(tepTap, 'utf8')).thumb }); }
+  buoc('nạp máy đăng');
   // 6. MÁY ĐĂNG: kênh có máy Studio → tập thành một video của máy (mẫu video-ngoai: URL R2 + 3 khung), Phòng Nội dung chấm rồi máy đăng chung tự đăng theo nhịp
   if (KENH.may && kq) try {
     const anhThat = tap.cau.map((c) => c.canh.tranh?.commons_url).filter(Boolean);

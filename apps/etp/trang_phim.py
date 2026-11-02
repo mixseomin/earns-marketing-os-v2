@@ -8,7 +8,7 @@ Phim phải được "thêm content" vào workspace của người chạy thì c
   · bản chưa đọc chi tiết: mô tả / cốt truyện NULL = chưa biết (không tính thiếu, cổng nhan-ban không chặn) — chạy tay --het đọc lại mọi bản
   · link tập 1: GET trang ReelShort / NetShort / DramaBox; 404 / 410 = chết, 403 / 429 / lỗi mạng = chưa kiểm được (không chặn); kiểm lại mỗi KIEM_LAI giờ
 CHỈ ĐỌC Ethopex — không gửi lệnh ghi nào. dong-bo.py gọi chay(q) mỗi lượt; chạy tay: python3 trang_phim.py"""
-import json, os, sys, urllib.error, urllib.request
+import json, os, sys, urllib.error, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 import datetime as dt
 
@@ -21,9 +21,11 @@ def _doc(T, duong):
     return json.load(urllib.request.urlopen(r, timeout=60))
 
 def _link(url):
-    """→ (ok, lỗi): True 2xx/3xx · False 404/410 · None kiểm không được"""
+    """→ (ok, lỗi): True 2xx/3xx · False 404/410 · None kiểm không được. Không phải http (vd 'movie' = bước Movie có sẵn của Ethopex, phát ngay trên
+    Ethopex) → None, ghi rõ, không chặn. Đường dẫn có dấu / chữ Nhật (NetShort es / ja) được mã hoá trước khi gọi."""
+    if not url.startswith("http"): return (None, f"trang Ethopex: {url}")
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers={"user-agent": UA}), timeout=20) as r: return (r.status < 400, None)
+        with urllib.request.urlopen(urllib.request.Request(urllib.parse.quote(url, safe=":/?&=%#@+,;~"), headers={"user-agent": UA}), timeout=20) as r: return (r.status < 400, None)
     except urllib.error.HTTPError as e: return (False, f"HTTP {e.code}") if e.code in (404, 410) else (None, f"HTTP {e.code}")
     except Exception as e: return (None, type(e).__name__)
 

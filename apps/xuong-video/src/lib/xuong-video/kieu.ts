@@ -127,6 +127,9 @@ export type KinhThanh = {
   /** Phim thể loại 'may_dung' (may-dung.ts): mẫu + đề + chữ đăng; nền = ảnh AI theo chủ đề (null = dải màu bìa). Nguồn đề: puzzle-books day-studio.mjs. */
   may_dung?: { mau: import('./may-dung-mau').MauMayDung; du_an: string; slug: string; chu_de: string; de: import('./may-dung-do-chu').DeMotDung;
     dang: { title?: string; description?: string; link?: string; book?: string; words?: string[] }; nen_url?: string | null; nen_prompt?: string | null } | null;
+  /** PHIM KÊNH (scripts/lich-su/tap-day.mts, anh 02/11/2026 "mỗi kênh có một file Studio quản lý"): mã máy đăng (xv_may.ma) + mã hồ sơ kênh (kenh.json).
+   *  Có `may` → tab 📖 Phim hiện 🧭 Lộ trình kênh nếu scripts/lich-su/lo-trinh.json khai máy đó. */
+  may?: string; kenh?: string;
   phong_cach?: string;          // "3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm" — nối vào đầu mọi prompt ảnh/video
   /** CHẤT LIỆU HÌNH (anh 16/10/2026 "phải tách thể loại film ra"): người thật / hoạt hình — quyết định cổng soi mặt + sổ bề ngoài; '' = tự nhận từ phong_cach (chatLieuPhim) */
   chat_lieu?: '' | 'nguoi_that' | 'hoat_hinh' | 've_2d';
@@ -363,7 +366,7 @@ export function chanChuModel(ngonNgu: string | undefined, o: { phongCach?: strin
 export const KINH_THANH_MAC_DINH: Required<KinhThanh> = {
   phong_cach: '', chat_lieu: '', dung: '', ti_le: '9:16', do_phan_giai: '720p',
   mo_hinh_anh: 'gemini-nano-banana-2.1', mo_hinh_video: 'veo-3.1-lite-generate-preview', mo_hinh_chu: 'claude-opus-5-5', ngon_ngu: 'vi', the_loai: '', goi: '', vat_dac_trung: '', vat_dac_trung_id: 0, logline: '', chu_de: '', qc: { ten: '', link: '', diem_noi_bat: '', doi_tuong: '', uu_dai: '', thi_truong: '', anh: [] },
-  may_dung: null, giong_dan: null, nguoi_ke: '', cam_xuc_qc: false, series: null, luu_tru: false, nhip_stop_motion: false, phu_de: false, look: '', khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '', keyframe_sua_3d: true, keyframe_hai_buoc: true,
+  may_dung: null, may: '', kenh: '', giong_dan: null, nguoi_ke: '', cam_xuc_qc: false, series: null, luu_tru: false, nhip_stop_motion: false, phu_de: false, look: '', khong_loi: false, ban_do: '', template: null, tu_template: null, bang_ti_le: '', keyframe_sua_3d: true, keyframe_hai_buoc: true,
 };
 /** Chất liệu hình của phim: khai tay trong kinh thánh, không thì đọc chữ phong cách. Không đoán được → 'hoat_hinh' an toàn (không bật cổng soi mặt
  *  trên phim chưa rõ) — phim người thật nào phong cách không nói rõ thì chọn tay. */

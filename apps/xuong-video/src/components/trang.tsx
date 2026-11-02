@@ -3,6 +3,7 @@
 // Storyboard = bảng cảnh: mỗi dòng một cảnh (xương sống dữ liệu); keyframe sinh → chọn → duyệt → video. Canvas node + timeline (G2/G3)
 // là hai cách nhìn khác của cùng bảng này, không có dữ liệu riêng.
 import { MayDungPanel } from './may-dung-ui';
+import { LoTrinhKenh } from './lo-trinh-kenh';
 import { TuDong } from './may-ui';
 import { Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useModalParam } from '@/lib/use-modal-param';
@@ -289,6 +290,7 @@ function PhimDrawer({ id, tapDau, khoa, onClose, onXoa, khoaUrl = KHOA_CHINH }: 
                 {phim.kinh_thanh?.template && <TemplatePanel phim={phim} onChanged={tai} onMoPhim={(pid) => modal.open('phim', pid)} onMoPhimChong={(pid) => chong.open('phim', pid)} />}
                 {phim.loai === 'quang_cao' && !phim.kinh_thanh?.template && <GocSpyPanel phim={phim} onChanged={tai} />}
                 {phim.loai === 'may_dung' && <MayDungPanel phim={phim} />}
+                <LoTrinhKenh may={phim.kinh_thanh?.may} />
                 <KinhThanhForm phim={phim} khoa={khoa} onSaved={tai} />
               </>}
               {/* 🧩 THÀNH PHẦN: cây đầy đủ là CỘT RIÊNG bên trong (sidebar trái chỉ còn một nút) + chi tiết món đang chọn bên phải */}

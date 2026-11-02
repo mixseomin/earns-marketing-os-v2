@@ -1,5 +1,6 @@
 'use client';
 // Panel "📺 Kênh nội dung" của tab Tài sản (anh 02/11/2026: kênh nội dung là SẢN PHẨM — video full, social short đổ traffic về sau).
+// Kênh có LỘ TRÌNH (apps/xuong-video/scripts/lich-su/lo-trinh.json, vd Astrolas G0–G10): dòng kênh hiện giai đoạn đang đứng, ▸ mở có khối 🧭 Lộ trình đầu cây.
 // Một kênh một dòng: ảnh đại diện (trang YouTube, may-dung --so-kenh) · menu ⋯ (mở phim Studio của kênh, danh sách video, mở kênh) · khối Social trỏ về ·
 // tập đã làm / chờ đăng / đã đăng, người đăng ký, lượt xem cộng dồn + 7 ngày. ▸ mở CÂY video của kênh ngay dưới dòng (chặng + ngày đăng + lượt xem từng video).
 // Số từ lib/tai-san/kenh-sp.ts.
@@ -7,7 +8,7 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { DataTable, Panel, type DataColumn } from '@/components/ui';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { extLinkProps } from '@/lib/external-url';
-import { cayKeHoach, lichKenh, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { cayKeHoach, cayLoTrinh, lichKenh, tomLoTrinh, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LichNho, type LoaiLichNho } from '@/components/ui/lich-nho';
@@ -18,6 +19,7 @@ const ngayVn = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` :
 const mo: React.CSSProperties = { color: 'var(--fg-4)' };
 const tang = (n: number | null) => (n == null ? <span style={mo}>–</span> : <span style={{ color: n > 0 ? 'var(--ok)' : 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{n > 0 ? '+' : ''}{so(n)}</span>);
 const STUDIO = 'https://studio.on.tc';
+const REPO = 'https://github.com/mixseomin/earns-marketing-os-v2/blob/main';
 const CHANG: Record<VideoKenh['trangThai'], { chu: string; mau: string }> = {
   chua_xuat: { chu: 'chưa xuất', mau: 'var(--fg-4)' }, cho_cham: { chu: 'chờ Phòng Nội dung chấm', mau: 'var(--warn)' }, duyet: { chu: 'DUYỆT · chờ đăng', mau: 'var(--accent)' },
   sua_lai: { chu: 'SỬA LẠI', mau: 'var(--bad)' }, da_dang: { chu: 'đã đăng', mau: 'var(--ok)' },
@@ -26,9 +28,10 @@ const CHANG: Record<VideoKenh['trangThai'], { chu: string; mau: string }> = {
 type Dong = { loai: 'kenh'; k: KenhSp } | { loai: 'video'; k: KenhSp; v: VideoKenh }
   /** dòng KẾ HOẠCH trong cây: nhóm (tiêu đề nhóm) hoặc một mục lịch (sản xuất / đăng) */
   | { loai: 'ke'; k: KenhSp; id: string; nhom?: boolean; chu: string; phu?: string; mau?: string; ngay?: string | null };
-/** CÂY của một kênh: ▶ Đang sản xuất + 🗓 Lịch (cayKeHoach — thuần, tự kiểm) rồi 🎬 Đã làm (chặng từng video). Lịch tháng vẫn ở LỊCH NHỎ trong menu ⋯. */
+/** CÂY của một kênh: 🧭 Lộ trình (lo-trinh.json, nếu kênh có khai) + ▶ Đang sản xuất + 🗓 Lịch (cayKeHoach — thuần, tự kiểm) rồi 🎬 Đã làm (chặng từng video).
+ *  Lịch tháng vẫn ở LỊCH NHỎ trong menu ⋯. */
 function cayKenh(k: KenhSp): Dong[] {
-  return [...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
+  return [...(k.loTrinh ? cayLoTrinh(k.loTrinh) : []).map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
     ...k.videos.map((v) => ({ loai: 'video' as const, k, v }))];
 }
 const LOAI_LICH: LoaiLichNho = {
@@ -69,11 +72,14 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
           {k.kenhUrl ? <a {...extLinkProps(k.kenhUrl)} style={{ fontWeight: 700, color: 'inherit' }}>{k.ten}</a> : <b>{k.ten}</b>}
           <MenuBaCham tieuDe="Kênh nội dung" phu={k.ten} title={`Quản lý ${k.ten}`} chen={<LichNho o={lichKenh(k)} loai={LOAI_LICH} itemNoun="video" chan={k.ke.lichTap ? `làm tập ${k.ke.lichTap}` : null} />} groups={[
             ...(k.phimId ? [{ label: 'Studio', items: [{ label: 'Mở phim Studio của kênh', emoji: '🎬', href: `${STUDIO}/?m=phim&mId=${k.phimId}`, external: true }] }] : []),
+            ...(k.loTrinh?.plan ? [{ label: 'Kế hoạch', items: [{ label: 'Mở tệp kế hoạch kênh', emoji: '🧭', href: `${REPO}/${k.loTrinh.plan}`, external: true }] }] : []),
             { label: 'Video', items: [{ label: `${moCay.has(k.ma) ? 'Ẩn' : 'Hiện'} danh sách video (${n})`, emoji: '🌳', onClick: () => doi(k.ma) }] },
             ...(k.kenhUrl ? [{ label: 'Kênh', items: [{ label: 'Mở kênh YouTube', emoji: '▶️', href: k.kenhUrl, external: true }] }] : []),
           ]} />
           {k.ke.dangLam ? <span style={{ color: k.ke.dangLam.loi ? 'var(--bad)' : 'var(--warn)', fontSize: 11, whiteSpace: 'nowrap' }} title={k.ke.dangLam.loi ?? `${k.ke.dangLam.id} · ${k.ke.dangLam.buoc ?? ''}`}>
               {k.ke.dangLam.loi ? '✗ hỏng' : `▶ ${k.ke.dangLam.so ?? '?'}/${k.ke.dangLam.tong ?? 8}`}</span>
+            : k.loTrinh && tomLoTrinh(k.loTrinh).hienTai ? <button type="button" onClick={(e) => { e.stopPropagation(); if (!moCay.has(k.ma)) doi(k.ma); }} title="kênh đang theo lộ trình — bấm mở 🧭 Lộ trình"
+                style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: tomLoTrinh(k.loTrinh).mau, fontSize: 11, whiteSpace: 'nowrap' }}>{tomLoTrinh(k.loTrinh).chu}</button>
             : <span style={{ color: k.chay ? 'var(--ok)' : 'var(--fg-4)', fontSize: 11 }}>{k.chay ? 'đang chạy' : 'chưa bật đăng'}</span>}</span>;
       } },
     ...cotSocial<Dong>(chiKenh((k) => k.social), kySocial),

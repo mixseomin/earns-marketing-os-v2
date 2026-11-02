@@ -8,6 +8,7 @@ Lập 02/11/2026 (iMac). Chat mới nối tiếp: đọc hết tệp này, rồi
 - Đang chờ anh chọn: (a) mảng kể chuyện, (b) hướng gộp 3 họ hình, (c) mở 2 loạt trước.
 - Bước kế khi anh chốt: viết **một** kịch bản mẫu đánh số theo khuôn phim #1195 (đề xuất "Chart Chapters: Steve Jobs") + một khung ảnh có đủ lớp thương hiệu → anh duyệt → mới dựng.
 - Kênh YouTube Astrolas trong sổ máy đăng đang khoá (`nghi_den` 2099-12-31). Không mở khoá khi chưa có video được duyệt.
+- **Chỗ anh follow (dựng 02/11/2026, migration 0411):** mos2 › Tài sản › 📺 Kênh nội dung, dòng Astrolas (▸ mở → 🧭 Lộ trình G0–G10, menu ⋯ → phim Studio / tệp kế hoạch) và Studio › phim "Astrolas" › 📖 Phim (khối 🧭 Lộ trình kênh). Cả hai đọc `apps/xuong-video/scripts/lich-su/lo-trinh.json`. **Mỗi lần đổi giai đoạn: sửa `trang_thai` + `cap_nhat` trong tệp đó rồi commit** — không ghi tiến độ chỗ khác. Panel chỉ đếm tập kênh (`de.loai = 'video-ngoai'`), 36 video FB Dạng × Góc không lẫn vào.
 
 ## Luật cứng của mạch này
 

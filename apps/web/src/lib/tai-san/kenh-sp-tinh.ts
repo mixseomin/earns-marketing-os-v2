@@ -17,6 +17,8 @@ export type KenhSp = {
    *  (xv_may.nguon.dang_lam — chay-kenh.mjs ghi), lịch đăng dự kiến của máy đăng (xv_lich_du_kien) */
   ke: { lichTap: string | null; tapKe: string[]; dangLam: DangLam | null; lichDang: { ngay: string; gio: string | null; nen: string; tieuDe: string }[];
     /** giờ VN sớm nhất máy đăng được đăng bài của kênh (xv_may.dang[].gio_tu) */ gioDang: string | null };
+  /** LỘ TRÌNH kênh (apps/xuong-video/scripts/lich-su/lo-trinh.json theo mã máy — anh 02/11/2026 "dựng phần kênh nội dung và Studio để còn follow theo"); null = kênh không khai lộ trình */
+  loTrinh?: LoTrinh | null;
   /** social trỏ về kênh (bài short dẫn link kênh) — tab Tài sản gắn theo khung ?ky= */
   social?: import('./social-tro-ve-tinh').TroVe | null;
 };
@@ -90,4 +92,27 @@ export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()
   for (const t of k.ke.tapKe) lich.push({ id: `l/sx/${t}`, chu: '🛠 làm tập mới', phu: `${thuNgay(t.slice(0, 10))} ${t.slice(11)}`.trim() });
   if (lich.length) ra.push({ id: 'lich', nhom: true, chu: '🗓 Lịch', phu: k.ke.lichTap ? `làm tập ${k.ke.lichTap} · đăng từ ${k.ke.gioDang ?? '19:00'} giờ VN` : undefined }, ...lich);
   return ra;
+}
+
+/** LỘ TRÌNH KÊNH (lo-trinh.json, chung mọi kênh studio): các giai đoạn G0…Gn, mỗi giai đoạn một trạng thái. Giai đoạn đang đứng = cái đầu tiên chưa xong. */
+export type TrangThaiGd = 'cho_anh' | 'dang' | 'chua' | 'xong';
+export type GiaiDoan = { ma: string; ten: string; viec: string; anh: string; trang_thai: TrangThaiGd };
+export type LoTrinh = { ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; giai_doan: GiaiDoan[] };
+const GD: Record<TrangThaiGd, { ic: string; chu: string; mau: string }> = {
+  xong: { ic: '✅', chu: 'xong', mau: 'var(--ok)' }, dang: { ic: '▶', chu: 'đang làm', mau: 'var(--warn)' },
+  cho_anh: { ic: '⏸', chu: 'chờ anh', mau: 'var(--accent)' }, chua: { ic: '○', chu: 'chưa tới', mau: 'var(--fg-4)' },
+};
+/** Tóm một dòng cho dòng kênh: "🧭 G0 Chốt · chờ anh chốt" / "🧭 xong lộ trình". Thuần. */
+export function tomLoTrinh(lt: LoTrinh): { xong: number; tong: number; hienTai: GiaiDoan | null; chu: string; mau: string } {
+  const ds = lt.giai_doan ?? [], xong = ds.filter((g) => g.trang_thai === 'xong').length, h = ds.find((g) => g.trang_thai !== 'xong') ?? null;
+  if (!h) return { xong, tong: ds.length, hienTai: null, chu: '🧭 xong lộ trình', mau: 'var(--ok)' };
+  const t = GD[h.trang_thai] ?? GD.chua;
+  return { xong, tong: ds.length, hienTai: h, chu: `🧭 ${h.ma} ${h.ten} · ${h.trang_thai === 'cho_anh' ? (h.anh && h.anh !== 'không' ? `chờ anh ${h.anh}` : 'chờ anh') : t.chu}`, mau: t.mau };
+}
+/** Khối 🧭 Lộ trình trong cây kênh: dòng nhóm (x/n xong · đang ở đâu) + mỗi giai đoạn một dòng (trạng thái · việc · anh làm gì). Thuần. */
+export function cayLoTrinh(lt: LoTrinh): DongKe[] {
+  const t = tomLoTrinh(lt), ngay = lt.cap_nhat ? ` · cập nhật ${lt.cap_nhat.slice(8, 10)}/${lt.cap_nhat.slice(5, 7)}` : '';
+  return [{ id: 'lt', nhom: true, chu: `🧭 Lộ trình (${t.xong}/${t.tong} xong)`, phu: `${t.hienTai ? `đang ở ${t.hienTai.ma}` : 'đã tự vận hành'}${ngay}${lt.muc_tieu ? ` · đích: ${lt.muc_tieu}` : ''}` },
+    ...(lt.giai_doan ?? []).map((g): DongKe => { const s = GD[g.trang_thai] ?? GD.chua;
+      return { id: `lt/${g.ma}`, chu: `${s.ic} ${g.ma} ${g.ten} · ${s.chu}`, mau: s.mau, phu: `${g.viec}${g.anh && g.anh !== 'không' ? ` · anh: ${g.anh}` : ''}` }; })];
 }

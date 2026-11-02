@@ -139,6 +139,17 @@ async function kiem(tap, nguonChu) {
   return loi;
 }
 
+// ---------- 0. GẮN HOOK cho tập đã có (--gan-hook): kênh có máy đăng mà tập chưa có góc / hook spy → máy viết chọn hook + tiêu đề + mô tả đăng, lời đọc giữ nguyên ----------
+if (co('gan-hook') && KENH.may && existsSync(tepTap)) {
+  const t0 = JSON.parse(readFileSync(tepTap, 'utf8'));
+  if (t0.hook?.goc) console.log(`tập đã có hook "${t0.hook.goc}" — bỏ qua gắn hook`);
+  else { const tmp = `/tmp/gan-hook-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${tmp}`]);
+    const f = join(RA, 'goc-hook.json'); writeFileSync(f, box(`scripts/may-dung.mts --may ${KENH.may} --goc-hook`).split('\n').pop()); len(f, `${tmp}/goc-hook.json`); len(tepTap, `${tmp}/tap.json`);
+    console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/gan.json --id ${id} --nn ${nn} --kenh ${kenhId} --chi-hook --goc-hook ${tmp}/goc-hook.json --cu ${tmp}/tap.json`).split('\n').pop());
+    ve(`${tmp}/gan.json`, join(RA, 'gan-hook.json')); execFileSync('ssh', [BOX, `rm -rf ${tmp}`]);
+    Object.assign(t0, JSON.parse(readFileSync(join(RA, 'gan-hook.json'), 'utf8'))); writeFileSync(tepTap, JSON.stringify(t0, null, 1) + '\n'); }
+}
+
 // ---------- 1. VIẾT ----------
 // --sua-canh: giọng đã đọc — máy viết chỉ sửa cảnh; lời đọc + sự thật khoá cứng (máy chép đè lại bản cũ sau mỗi lượt), không tốn tiền giọng lại
 const suaCanh = co('sua-canh') && existsSync(tepTap), loiCu = suaCanh ? JSON.parse(readFileSync(tepTap, 'utf8')).cau.map((c) => ({ chu: c.chu, su_that: c.su_that })) : null;
@@ -205,7 +216,8 @@ const cumTranh = (tr) => [...new Set([...(tr.ref || []).map((r) => r.replace(/_/
 if (KENH.may) for (const c of tap.cau) { const tr = c.canh.tranh; if (!tr || tr.commons || tr.tim_that) continue; tr.tim_that = true;
   const t = await timAnhThat(cumTranh(tr)); if (t) { console.log(`✓ ảnh thật cho tranh "${(tr.mo_ta || '').slice(0, 50)}…": ${t}`); tr.commons = t; delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; } }
 if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons)) console.log('⚠ tập không có ảnh lịch sử thật nào — Phòng Nội dung sẽ chặn (nen_url trống)');
-for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr || tr.anh) continue;
+// đã có ảnh chỉ khi TỆP còn thật (tệp ghi trong tập mà đã mất / hỏng thì tải lại — không tin dòng ghi)
+for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr || (tr.anh && existsSync(join(KHO, tr.anh)))) continue;
   const ten = `tranh/${id}-${k + 1}${tr.commons ? '-c' : ''}`, f = join(KHO, `${ten}.jpg`); mkdirSync(join(KHO, 'tranh'), { recursive: true });
   // ẢNH LỊCH SỬ THẬT trước (Wikimedia Commons, public domain — luật ảnh thật của Phòng Nội dung); không có tệp thì AI vẽ theo mo_ta
   // ẢNH TẢI VỀ PHẢI LÀ ẢNH THẬT (02/11/2026: xin bản 1600px của ảnh gốc nhỏ hơn → Commons trả trang HTML lỗi, máy dựng chết "cannot be decoded"):

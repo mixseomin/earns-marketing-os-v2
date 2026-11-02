@@ -59,6 +59,26 @@ for (const t of tua) { const p = (await goiWiki({ action: 'query', prop: 'extrac
 if (!nguon.length) { console.error('✗ không có nguồn nào'); process.exit(1); }
 writeFileSync(`${ra}.nguon.txt`, nguon.map((n, i) => `### [${i}] ${n.tua} — ${n.url}\n${n.chu}`).join('\n\n'));
 
+// ---------- CHỈ GẮN HOOK (--chi-hook): tập đã dựng xong, lời đọc giữ nguyên — chọn hook QC hợp chuyện + chỉnh nhẹ thành tiêu đề + mô tả đăng ----------
+// (02/11/2026: tập Alaska dựng trước khi có luật góc / hook spy → Phòng Nội dung chặn; gắn hook không được đọc giọng lại). In JSON ra tệp <ra>.
+if (process.argv.includes('--chi-hook')) {
+  if (!gh || !cuTap) { console.error('--chi-hook cần --goc-hook và --cu <tập.json>'); process.exit(2); }
+  const cu = cuTap as unknown as { tieu_de: string; chu_de: string; cau: { chu: string }[] };
+  const Gan = z.object({ hook_id: z.string(), tieu_de: z.string().describe('hook QC đó SỬA NHẸ cho đúng chuyện này: giữ ≥ 50% chữ gốc, không thêm con số không có trong hook, ≤ 95 ký tự, không gạch dài'),
+    mo_ta_dang: z.string().describe('mô tả YouTube 2–4 câu đúng ngôn ngữ tập, giọng của kênh, không link, không spoil cú chốt'), ly_do: z.string() });
+  let loi = '';
+  for (let lan = 1; lan <= 3; lan++) {
+    const c = await sinhJson({ schema: Gan, model: 'claude-sonnet-5-5', max_tokens: 1500, ten: 'gắn hook tập lịch sử',
+      system: `Kênh "${K.ten}". Tập đã dựng xong, KHÔNG đổi lời đọc. Chọn MỘT hook QC thật (chạy lâu = đã chứng minh giữ người xem) hợp nhất với chuyện, chỉnh nhẹ thành tiêu đề video; viết mô tả đăng.`,
+      user: `CHUYỆN: ${cu.chu_de}\nTIÊU ĐỀ CŨ: ${cu.tieu_de}\nLỜI ĐỌC:\n${cu.cau.map((x) => x.chu).join(' ').slice(0, 3000)}\nGÓC (spy #${gh.goc.id}): ${gh.goc.ten}\nHOOK QC (id · ngày chạy · chữ):\n${gh.hooks.map((h) => `- ${h.id} · ${h.ngay} ngày · ${h.chu}`).join('\n')}${loi ? `\nLẦN TRƯỚC SAI: ${loi}` : ''}` });
+    if (!c.ok) { loi = c.loi; continue; }
+    const h = gh.hooks.find((x) => x.id === c.data.hook_id); if (!h) { loi = `hook_id "${c.data.hook_id}" không có trong danh sách`; continue; }
+    writeFileSync(ra, JSON.stringify({ hook: { qc: h.id, goc: h.chu }, goc: gh.goc, tieu_de: c.data.tieu_de, mo_ta_dang: c.data.mo_ta_dang }, null, 1));
+    console.log(`✓ gắn hook ${h.id} "${h.chu}" → "${c.data.tieu_de}" (${Math.round(c.tokens.vnd ?? 0)}₫)`); process.exit(0);
+  }
+  console.error(`✗ gắn hook hỏng 3 lần: ${loi}`); process.exit(1);
+}
+
 // ---------- khuôn trả về ----------
 const Dich = z.string().describe('ĐÍCH trên bản đồ: "BOL" (mã ISO-3 Natural Earth của nước hôm nay) · "RUS@19,54,23,56" (mảnh nước nằm trong khung lon0,lat0,lon1,lat1 — dùng cho vùng tách rời / một phần nước) · "@Ceuta" (tên thành phố tiếng Anh) · "-68.15,-16.5" (lon,lat)');
 const TheoChu = z.string().describe('MỘT chữ đúng y như trong câu chu của cảnh này (máy so không dấu câu)');

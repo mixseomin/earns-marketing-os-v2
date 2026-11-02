@@ -312,6 +312,7 @@ const LUAT = [
   { card: 'qc-fb-0211', tep: "apps/web/src/components/etp-view.tsx", co: "title={p.test ? 'chưa tra — máy cào spy chưa tới phim này' : undefined}>—</span>", vi: "phim chưa tra QC FB hiện — mờ, không hiện 0" },
   { card: 'phim-ydni-0211', tep: "apps/web/src/components/etp-view.tsx", cam: "🧪", vi: 'tab Phim không emoji, không lặp chữ có thể test' },
   { card: 'phim-ydni-0211', tep: "apps/web/src/components/etp-view.tsx", cam: "— chưa thêm</span>", vi: 'trang phim trống in — mờ' },
+  { card: 'phim-ydni-0211', tep: "apps/web/src/components/etp-view.tsx", cam: "{p.ten ?? p.content_id} <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{p.locale ?? ''} {p.nguon ?? ''}</span>", vi: 'ô tên phim không lặp tiếng / nguồn' },
   // anh 02/11/2026 duyệt review luật (mục 2, 3, 7 + T30 ROAS): chấm creative không tắt camp lãi · ROAS trước clone · dừng clone đổi creative · nhật ký team · sổ luật đối chứng + 7 ngày
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", co: "where c.trang_thai = 'ACTIVE' and g.tat and {KHONG_ROAS} and {KHONG_LAI3} order by 1", vi: "luật chấm không tắt camp lãi 3 ngày đã khép" },
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", cam: "tự tắt mọi loại camp, kể cả đang lãi", vi: "luật chấm không còn tắt camp đang lãi" },

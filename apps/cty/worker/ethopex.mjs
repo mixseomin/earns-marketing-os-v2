@@ -480,7 +480,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
           -- hoặc KT cho phim ĐANG CHẠY chưa có camp kể chuyện (anh 29/10/2026 "sx loại video KT cho các phim chưa có nhưng đang lên camp live triệt để … làm đi")
           or (r.dang = 'kể chuyện' and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')
               and not exists (select 1 from etp.camp c join etp.creative k on k.creative_id = c.creative_id where c.content_id = r.content_id and k.dang = 'kể chuyện')))
-      order by h.luc limit 4) x`)).trim() || '[]');
+      -- phim đang được NHẬN đứng đầu hàng (02/11/2026: phim nhận 172341 chấm sạch phải đợi sau 213 creative cũ) — nhận Tự động là lên camp ngay nhịp kế
+      order by exists (select 1 from etp.phim_nhan_v n where n.content_id = r.content_id and n.trang_thai = 'giu') desc, h.luc limit 4) x`)).trim() || '[]');
     const da = [];
     for (const x of ds) {
       const a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();

@@ -115,6 +115,10 @@ async function kiem(tap, nguonChu) {
       if (ts.loai !== loai) loi.push(`${K}: "${m.anh}" là ${ts.loai}, không dùng được làm ${loai}`);
       const hop = [nam, namCuoi].filter((v) => v != null).some((v) => v >= ts.tu && v <= ts.den); if ((nam != null || namCuoi != null) && !hop) loi.push(`${K} (năm ${nam}${namCuoi !== nam ? `→${namCuoi}` : ''}): "${m.anh}" chỉ đúng ${ts.tu}–${ts.den} — ở câu này thay bằng ${loai === 'co' ? 'cờ ĐÚNG năm đó (khai tai_san_moi một cờ mới với tệp Commons của thời đó)' : 'món đúng thời (khai tai_san_moi mới)'} hoặc bỏ ${loai === 'co' ? 'cờ' : 'món'} khỏi câu`); }
     for (const r of cv.tranh?.ref || []) if (!kho[r] && !moi[r]) loi.push(`${K}: tranh tham chiếu "${r}" không có`); });
+  // CẢNH SỐNG (kênh dài): câu nào chỉ có bản đồ trơn (không người / tranh / xe / mũi tên / cờ / dấu / đường kẻ) — tỉ lệ cảnh sống + không quá N câu trơn liền nhau
+  if (KENH.canh_song) { const song = ds.map((c) => ['nguoi', 'xe', 'ten', 'co', 'dau', 'ke'].some((f) => (c.canh[f] || []).length) || !!c.canh.tranh);
+    const tl = song.filter(Boolean).length / ds.length; if (tl < KENH.canh_song.ti_le) loi.push(`chỉ ${Math.round(tl * 100)}% câu có chuyển động ngoài camera — kênh ${kenhId} cần ≥ ${Math.round(KENH.canh_song.ti_le * 100)}% (thêm nhân vật đổi dáng / mũi tên / cờ / dấu vào câu trơn)`);
+    let lien = 0; song.forEach((v, k) => { lien = v ? 0 : lien + 1; if (lien === KENH.canh_song.tron_lien_toi_da + 1) loi.push(`câu ${k + 1 - KENH.canh_song.tron_lien_toi_da}–${k + 1}: ${lien} câu liền chỉ có bản đồ trơn — thêm chuyển động vào ít nhất một câu`); }); }
   if (!ds[0]?.canh?.mo || !ds[0]?.canh?.chu_to) loi.push('câu 1: thiếu hook (mo + chu_to)');
   if (!ds.at(-1)?.canh?.ket) loi.push('câu cuối: thiếu thẻ kết ket');
   const cuoi = coMoc ? (KENH.cau_cuoi[nn] ?? KENH.cau_cuoi.en) : null;
@@ -183,14 +187,18 @@ writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
 if (tien) console.log(`tiền kho + tranh lượt này ~${tien}₫`);
 
 // ---------- 4. DỰNG ----------
-const dung = spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, ...(arg('khung') ? ['--khung', arg('khung'), '--khung-ra', join(RA, 'khung.jpg')] : [])], { stdio: 'inherit' });
+// --chi-day: video đã dựng, chỉ đẩy lại Studio (không quay lại 5.900 khung)
+const dung = co('chi-day') && existsSync(join(RA, `${id}.mp4`)) ? { status: 0 } : spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, ...(arg('khung') ? ['--khung', arg('khung'), '--khung-ra', join(RA, 'khung.jpg')] : [])], { stdio: 'inherit' });
 if (dung.status) process.exit(dung.status);
 if (arg('khung')) process.exit(0);
 const mp4 = join(RA, `${id}.mp4`), xem = join(RA, `${id}-xem.mp4`);
-execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-vf', 'scale=720:-2', '-c:v', 'libx264', '-crf', '27', '-preset', 'veryfast', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', xem]);
+if (!co('chi-day')) execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-vf', 'scale=720:-2', '-c:v', 'libx264', '-crf', '27', '-preset', 'veryfast', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', xem]);
 console.log(`✓ ${mp4}\n✓ ${xem}`);
-// 5. STUDIO: mỗi kênh một phim, tập này thành một tập trong phim đó (video R2 + kịch bản) — anh quản / duyệt trong studio.on.tc
-{ const bt = `/tmp/tap-day-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${bt}`]); len(tepTap, `${bt}/tap.json`); len(mp4, `${bt}/tap.mp4`);
-  try { const kq = JSON.parse(box(`scripts/lich-su/tap-day.mts ${bt}/tap.json ${bt}/tap.mp4`).split('\n').pop()); console.log(`✓ Studio phim #${kq.phim} · tập #${kq.tap} · https://studio.on.tc/?m=phim&mId=${kq.phim} · ${kq.url}`); }
+// 5. STUDIO: mỗi kênh một phim, tập này thành một tập trong phim đó — anh quản / duyệt trong studio.on.tc. Gửi BẢN PHÁT HÀNH nén (1080p H.264 crf 23 trần 6 Mbps — lớp chấm in lá cải khó nén,
+// bản gốc máy quay ~350 MB/3 phút) qua /var/tmp (đĩa; /tmp box3 là ổ RAM 512 MB) — hỏng ở bất kỳ khâu nào chỉ báo, không làm mất video đã dựng
+{ const ban = join(RA, `${id}-ban.mp4`), bt = `/var/tmp/tap-day-${id}`;
+  try { execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-c:v', 'libx264', '-crf', '23', '-maxrate', '6M', '-bufsize', '12M', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'copy', '-movflags', '+faststart', ban]);
+    execFileSync('ssh', [BOX, `mkdir -p ${bt}`]); len(tepTap, `${bt}/tap.json`); len(ban, `${bt}/tap.mp4`);
+    const kq = JSON.parse(box(`scripts/lich-su/tap-day.mts ${bt}/tap.json ${bt}/tap.mp4`).split('\n').pop()); console.log(`✓ Studio phim #${kq.phim} · tập #${kq.tap} · https://studio.on.tc/?m=phim&mId=${kq.phim} · ${kq.url}`); }
   catch (e) { console.log(`⚠ đẩy Studio hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ')}`); }
-  execFileSync('ssh', [BOX, `rm -rf ${bt}`]); }
+  try { execFileSync('ssh', [BOX, `rm -rf ${bt}`]); } catch {} }

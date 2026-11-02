@@ -220,7 +220,7 @@ window.__seek = (t) => {
   if (s.c.chu_to) { const al = kep(u / 0.25) * (1 - kep((u - 3.2) / 0.4)); if (al) { x.globalAlpha = al; const sz = LC ? 96 : 76; x.font = LC ? `400 ${sz}px Anton, Impact, sans-serif` : `900 ${sz}px Cinzel, Georgia, serif`;
     const tu = s.c.chu_to.split(' '), dong = []; let l = ''; for (const w of tu) { const th = l ? `${l} ${w}` : w; if (x.measureText(th).width > W - 140) { dong.push(l); l = w; } else l = th; } dong.push(l);
     // chữ hook tránh vòng đỏ: đích nằm nửa trên khung (Greenland sát mép bản đồ, camera không hạ được) → chữ xuống dưới đích
-    const vy = (s.c.vong || []).map((p) => chieu(...p)[1]), y0 = vy.length && Math.min(...vy) < 300 + dong.length * sz * 1.15 + 140 ? Math.max(...vy) + 200 : 300;
+    const vy = (s.c.vong || []).map((p) => chieu(...p)[1]), y0 = vy.length && Math.min(...vy) < 300 + dong.length * sz * 1.15 + 140 ? Math.max(...vy) + 200 : LC ? 400 : 300;   // lá cải: tít to hơn, chừa ô năm góc trên
     if (LC) dong.forEach((d, i) => { const k = kep((u - i * 0.12) / 0.3); if (!k) return; x.save(); x.translate(W / 2, y0 + i * sz * 1.32); x.rotate(-0.045); x.scale(nay_(k), nay_(k));
       x.font = `400 ${sz}px Anton, Impact, sans-serif`; const tw = x.measureText(d).width + 60; x.fillStyle = '#111'; x.fillRect(-tw / 2 + 10, -sz * 0.62 + 12, tw, sz * 1.24); x.fillStyle = i % 2 ? '#ffe14d' : '#e8352b'; x.fillRect(-tw / 2, -sz * 0.62, tw, sz * 1.24);
       x.fillStyle = i % 2 ? '#111' : '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(d, 0, 4); x.restore(); });

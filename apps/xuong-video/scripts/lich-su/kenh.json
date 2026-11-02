@@ -98,7 +98,7 @@
    "Khúc ngoặt lớn nhất đóng con dấu ở chữ ngoặt. 3–4 câu cuối = hậu quả hôm nay + câu đùa chốt gọi lại running gag; câu cuối là câu chốt gọn, cảnh cuối ket \"{ket}\"."
   ],
   "giong_van": "GIỌNG PARODY: phát thanh viên bản tin nghiêm túc đọc chuyện vô lý — mỉa mai tỉnh bơ, nói giảm (\"a bold financial decision\"), so sánh hiện đại (bất động sản, ứng dụng, đánh giá một sao), tự châm chọc nhẹ. Cái hài nằm ở QUYẾT ĐỊNH và người có quyền lực, KHÔNG đùa về dân tộc, tôn giáo, người bản địa, nạn nhân, chết chóc. Không chửi thề, không dung tục. Đùa nhưng SỰ THẬT vẫn đúng tuyệt đối: câu đùa không được chứa năm / con số / tên hiệp ước / so sánh nhất bịa ra; đùa bằng cách nói, không bằng cách đổi sự thật. Câu đùa không cần su_that (mảng rỗng); câu kể sự việc thì bắt buộc.",
-  "hinh_ca_tap": "Cả tập: ≥ 4 nhân vật khác nhau (dùng KHO trước), mỗi người có tên đang hành động đứng trong cảnh của họ; ≥ 3 mũi tên hoặc phương tiện; cờ ở mỗi lần chủ quyền đổi; 2–3 tranh; 3–4 con dấu (chữ con dấu kiểu tít lá cải: SOLD, OOPS, GOLD!, FOLLY?). Câu đùa vẫn phải có cảnh nhìn được (giữ camera, nhân vật đổi dáng, con dấu). Tài sản mới tối đa 3 nhân vật.",
+  "hinh_ca_tap": "Cả tập: ≥ 4 nhân vật khác nhau (dùng KHO trước), mỗi người có tên đang hành động đứng trong cảnh của họ; ≥ 3 mũi tên hoặc phương tiện; cờ ở mỗi lần chủ quyền đổi; 2–3 tranh; 3–4 con dấu (chữ con dấu kiểu tít lá cải: SOLD, OOPS, GOLD!, FOLLY?). Câu đùa vẫn phải có cảnh nhìn được (giữ camera, nhân vật đổi dáng, con dấu). Tài sản mới tối đa 3 nhân vật. Ít nhất 60% câu có thứ CHUYỂN ĐỘNG ngoài camera (nhân vật đứng / đổi dáng, tranh, phương tiện, mũi tên, cờ, con dấu, đường kẻ); không bao giờ hai câu liền nhau chỉ có bản đồ trơn — video 3 phút mà bản đồ đứng yên là người xem lướt đi.",
   "mau_dat": [
    "#e8352b",
    "#1f7ae0",
@@ -135,6 +135,10 @@
    "talk about",
    "needless to say",
    "fun fact"
-  ]
+  ],
+  "canh_song": {
+   "ti_le": 0.6,
+   "tron_lien_toi_da": 1
+  }
  }
 }

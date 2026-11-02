@@ -63,13 +63,16 @@ if (!chuDe && gh) {
   }
   if (!chuDe) { console.error(`✗ chọn đề theo góc hỏng 3 lần: ${loiChon}`); process.exit(1); }
 }
+// bản cũ (--cu) mang sẵn danh sách nguồn → dùng lại, không tìm lại bằng câu chủ đề (03/11/2026: chủ đề là câu tóm dài → tìm Wikipedia ra 0 → --chi-thumb chết "không có nguồn nào")
+const cheDoChi = process.argv.includes('--chi-thumb') || process.argv.includes('--chi-hook');
+if (!tua.length && (cuTap as { nguon?: string[] } | null)?.nguon?.length) tua = (cuTap as { nguon: string[] }).nguon.map((u) => decodeURIComponent(u.split('/wiki/')[1] || '').replace(/_/g, ' ')).filter(Boolean);
 if (!tua.length) tua = ((await goiWiki({ action: 'query', list: 'search', srsearch: chuDe, srlimit: '3' })).query?.search ?? []).map((x: { title: string }) => x.title);
 const nguon: { tua: string; url: string; chu: string }[] = [];
 for (const t of tua) { const p = (await goiWiki({ action: 'query', prop: 'extracts', explaintext: '1', redirects: '1', titles: t })).query?.pages?.[0];
   // bài ĐÃ CHỈ ĐỊNH mà không đọc được → dừng (thiếu một bài là mọi trích dẫn từ bài đó thành sai); tự tìm thì bỏ qua bài hỏng
   if (!p?.extract) { if (arg('nguon')) { console.error(`✗ không đọc được bài nguồn "${t}" — dừng, không viết với nguồn thiếu`); process.exit(1); } console.error(`⚠ không đọc được bài "${t}"`); continue; }
   nguon.push({ tua: p.title, url: `https://${nn}.wikipedia.org/wiki/${encodeURIComponent(p.title.replace(/ /g, '_'))}`, chu: p.extract.replace(/\n{2,}/g, '\n').slice(0, 22000) }); }
-if (!nguon.length) { console.error('✗ không có nguồn nào'); process.exit(1); }
+if (!nguon.length && !cheDoChi) { console.error('✗ không có nguồn nào'); process.exit(1); }   // chế độ chỉ hook / chỉ thumbnail không cần nguồn
 writeFileSync(`${ra}.nguon.txt`, nguon.map((n, i) => `### [${i}] ${n.tua} — ${n.url}\n${n.chu}`).join('\n\n'));
 
 // ---------- CHỈ GẮN HOOK (--chi-hook): tập đã dựng xong, lời đọc giữ nguyên — chọn hook QC hợp chuyện + chỉnh nhẹ thành tiêu đề + mô tả đăng ----------

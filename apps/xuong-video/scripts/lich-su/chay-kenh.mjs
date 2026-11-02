@@ -7,7 +7,7 @@
 //   3. báo Telegram (kênh cty): tập mới + tiền thật của lượt, hoặc lỗi nguyên văn.
 //   node scripts/lich-su/chay-kenh.mjs [--kenh parody] [--ep]   (--ep: làm tập kể cả không phải ngày lịch)
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFileSync, existsSync, writeFileSync, unlinkSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, unlinkSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -26,6 +26,30 @@ const danhDau = (ma, dl) => { const q1 = (x) => `'${String(x).replace(/'/g, "''"
 for (const [k, K] of Object.entries(KENH)) {
   if (k.startsWith('_') || !K.may || (arg('kenh') && arg('kenh') !== k)) continue;
   const bao = [];
+  // TẬP KẸT TỰ LÀM TIẾP (02/11/2026, kế hoạch "kênh tự động hoàn toàn" bước 1): tập của kênh trong 10 ngày chưa đăng → đọc trạng thái trong DB máy đăng
+  //   chưa nạp / chưa xuất / Phòng Nội dung bắt SỬA LẠI → lam-tap --id <tập> --gan-hook (giọng + ảnh dùng lại, hook / tiêu đề phạm luật thì gắn lại), kiểm chữ lỗi → thêm --sua
+  //   chờ chấm / đã DUYỆT chờ máy đăng (20:00) → để yên. Mỗi tập tối đa 3 lần tự làm (tap.tu_dong.lan), quá thì báo Telegram MỘT lần.
+  const dangLamTiep = (() => { try { process.kill(Number(readFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), 'utf8')), 0); return true; } catch { return false; } })();
+  if (!dangLamTiep) for (const f of readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json'))) {
+    const tep = join(DIR, 'tap', f); if (Date.now() - statSync(tep).mtimeMs > 10 * 86_400_000) continue;
+    const t = JSON.parse(readFileSync(tep, 'utf8')); if ((t.kenh ?? 'saga') !== k || t.id === undefined) continue;
+    const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
+    const r0 = sqlBox(`SELECT coalesce(json_build_object('xuat', v.xuat_luc IS NOT NULL, 'ket', v.cham->>'ket', 'chan', v.cham->'chan_cung', 'dang', v.da_dang->'youtube'->>'url')::text, '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)} AND v.slug = ${q1(t.id)};`);
+    const st = r0 ? JSON.parse(r0) : null;
+    if (st?.dang) continue;                                         // đã đăng
+    if (st?.xuat && (!st.ket || st.ket === 'DUYET')) continue;      // chờ Phòng Nội dung / chờ máy đăng
+    const td = t.tu_dong ?? { lan: 0 };
+    if (td.lan >= 3) { if (!td.da_bao) { tele(`⚠ ${K.ten}: tập ${t.id} tự làm lại 3 lần vẫn kẹt — cần anh xem\n${td.loi ?? ''}\n${JSON.stringify(st?.chan ?? [])}`); t.tu_dong = { ...td, da_bao: true }; writeFileSync(tep, JSON.stringify(t, null, 1) + '\n'); } continue; }
+    writeFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), String(process.pid));
+    const chay = (them) => spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', t.id, '--gan-hook', ...them], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20 });
+    let r = chay([]), ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`;
+    if (r.status === 4 && /tập có lỗi/.test(ra)) { r = chay(['--sua']); ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; }
+    try { unlinkSync(join(homedir(), '.cache', `lich-su-${k}.khoa`)); } catch { /* đã gỡ */ }
+    const t2 = JSON.parse(readFileSync(tep, 'utf8')); t2.tu_dong = { lan: td.lan + 1, luc: new Date().toISOString(), loi: r.status ? ra.trim().split('\n').slice(-3).join(' · ').slice(0, 400) : null };
+    writeFileSync(tep, JSON.stringify(t2, null, 1) + '\n');
+    bao.push(r.status ? `⚠ tự làm lại tập ${t.id} (lần ${td.lan + 1}/3) hỏng: ${t2.tu_dong.loi}` : `✓ tự làm lại tập ${t.id} (${st ? `Phòng Nội dung: ${st.ket ?? 'chưa xuất'}` : 'chưa nạp'}) → đã nạp lại, chờ chấm`);
+    break;   // một tập mỗi lượt — lượt giờ sau làm tập kế
+  }
   // việc nền chạy MỖI GIỜ (02/11/2026 anh: đo kênh tần suất cao hơn) → làm tập chỉ từ gio_tap trở đi của ngày lịch; khoá ~/.cache/lich-su-<k>.khoa (pid) chống lượt chồng
   const gioNay = new Date().toLocaleTimeString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
   const khoa = join(homedir(), '.cache', `lich-su-${k}.khoa`), dangChay = (() => { try { process.kill(Number(readFileSync(khoa, 'utf8')), 0); return true; } catch { return false; } })();
@@ -49,5 +73,5 @@ for (const [k, K] of Object.entries(KENH)) {
   }
   try { bao.push(box(`scripts/may-dung.mts --may ${K.may} --so-kenh`).split('\n').pop()); } catch (e) { bao.push(`⚠ đo số kênh hỏng: ${String(e.stderr || e.message).trim().split('\n').pop()}`); }
   const chu = `📺 ${K.ten} · ${hom}\n${bao.join('\n')}`; console.log(chu);
-  if (bao.some((x) => /tập mới|hỏng/.test(x))) tele(chu);   // ngày chỉ đo số thì không làm ồn Telegram
+  if (bao.some((x) => /tập mới|hỏng|tự làm lại/.test(x))) tele(chu);   // ngày chỉ đo số thì không làm ồn Telegram
 }

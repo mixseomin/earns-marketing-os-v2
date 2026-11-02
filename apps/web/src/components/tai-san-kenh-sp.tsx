@@ -7,8 +7,8 @@ import { useState } from 'react';
 import { DataTable, Panel, type DataColumn } from '@/components/ui';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { extLinkProps } from '@/lib/external-url';
-import { lichKenh, type KenhSp, type OLich, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
-import { MiniMonth, type CalItem } from '@/components/ui/month-calendar';
+import { lichKenh, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { LichNho, type LoaiLichNho } from '@/components/ui/lich-nho';
 import { cotSocial, nhomSocial } from './tai-san-social';
 
 const so = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleString('vi-VN'));
@@ -24,32 +24,14 @@ const CHANG: Record<VideoKenh['trangThai'], { chu: string; mau: string }> = {
 type Dong = { loai: 'kenh'; k: KenhSp } | { loai: 'video'; k: KenhSp; v: VideoKenh }
   /** dòng KẾ HOẠCH trong cây: nhóm (tiêu đề nhóm) hoặc một mục lịch (sản xuất / đăng) */
   | { loai: 'ke'; k: KenhSp; id: string; nhom?: boolean; chu: string; phu?: string; mau?: string; ngay?: string | null };
-/** CÂY của một kênh: danh sách video đã làm (chặng). Lịch sản xuất + lịch đăng nằm ở LỊCH NHỎ trong menu ⋯ (LichMini). */
+/** CÂY của một kênh: danh sách video đã làm (chặng). Lịch sản xuất + lịch đăng nằm ở LỊCH NHỎ trong menu ⋯ (ui/lich-nho — component lịch dùng chung). */
 function cayKenh(k: KenhSp): Dong[] {
   return [{ loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
     ...k.videos.map((v) => ({ loai: 'video' as const, k, v }))];
 }
-const LOAI_LICH: Record<OLich['loai'], { chu: string; mau: string; ten: string }> = {
-  sx: { chu: '🛠', mau: '#f59e0b', ten: 'làm tập' }, lam: { chu: '🎬', mau: '#8b5cf6', ten: 'làm xong' }, hen: { chu: '🗓', mau: '#3c9bff', ten: 'hẹn đăng' }, dang: { chu: '✅', mau: '#22c55e', ten: 'đã đăng' },
+const LOAI_LICH: LoaiLichNho = {
+  sx: { ic: '🛠', mau: '#f59e0b', ten: 'làm tập' }, lam: { ic: '🎬', mau: '#8b5cf6', ten: 'làm xong' }, hen: { ic: '🗓', mau: '#3c9bff', ten: 'hẹn đăng' }, dang: { ic: '✅', mau: '#22c55e', ten: 'đã đăng' },
 };
-/** LỊCH KẾ HOẠCH kênh TRONG MENU ⋯ (anh 02/11/2026: "show calendar + số video, hover ra chi tiết" → "mini calendar trong dropmenu"): lịch tháng nhỏ,
- *  góc ô = số video của ngày, rê chuột ra từng loại (🛠 làm tập · 🎬 làm xong · 🗓 hẹn đăng · ✅ đã đăng) + tên video. */
-function LichMini({ k }: { k: KenhSp }) {
-  const [thang, datThang] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
-  const byDate = new Map<string, CalItem[]>();
-  for (const o of lichKenh(k)) { const it: CalItem = { id: `${o.ngay}-${o.loai}`, date: o.ngay, label: `${LOAI_LICH[o.loai].chu} ${o.so} ${LOAI_LICH[o.loai].ten}`, title: o.chiTiet.join('\n'), color: LOAI_LICH[o.loai].mau };
-    byDate.set(o.ngay, [...(byDate.get(o.ngay) ?? []), it]); }
-  const so = (it: CalItem) => Number(String(it.label).split(' ')[1]) || 0;
-  return (
-    <div style={{ width: 236, fontFamily: 'var(--font-sans)' }}>
-      <MiniMonth month={thang} sel={new Set()} byDate={byDate} onPick={() => {}} onNavMonth={(d) => datThang((m) => new Date(m.getFullYear(), m.getMonth() + d, 1))} itemNoun="video" soTrenO={so} />
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: 4, fontSize: 10, color: 'var(--fg-3)' }}>
-        {(Object.keys(LOAI_LICH) as OLich['loai'][]).map((x) => <span key={x} style={{ whiteSpace: 'nowrap' }}><span style={{ color: LOAI_LICH[x].mau }}>●</span> {LOAI_LICH[x].chu} {LOAI_LICH[x].ten}</span>)}
-      </div>
-      {k.ke.lichTap && <div style={{ marginTop: 4, fontSize: 10, color: 'var(--fg-4)', whiteSpace: 'nowrap' }}>làm tập {k.ke.lichTap}</div>}
-    </div>
-  );
-}
 
 export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?: number }) {
   const [moCay, datMoCay] = useState<Set<string>>(() => new Set());
@@ -78,7 +60,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
             style={{ width: 16, border: 'none', background: 'none', color: 'var(--fg-2)', cursor: 'pointer', padding: 0 }}>{moCay.has(k.ma) ? '▾' : '▸'}</button>
           {k.anh ? <img src={k.anh} alt="" width={22} height={22} style={{ borderRadius: '50%', flex: 'none' }} /> : <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg-3)', flex: 'none' }} />}
           {k.kenhUrl ? <a {...extLinkProps(k.kenhUrl)} style={{ fontWeight: 700, color: 'inherit' }}>{k.ten}</a> : <b>{k.ten}</b>}
-          <MenuBaCham tieuDe="Kênh nội dung" phu={k.ten} title={`Quản lý ${k.ten}`} chen={<LichMini k={k} />} groups={[
+          <MenuBaCham tieuDe="Kênh nội dung" phu={k.ten} title={`Quản lý ${k.ten}`} chen={<LichNho o={lichKenh(k)} loai={LOAI_LICH} itemNoun="video" chan={k.ke.lichTap ? `làm tập ${k.ke.lichTap}` : null} />} groups={[
             ...(k.phimId ? [{ label: 'Studio', items: [{ label: 'Mở phim Studio của kênh', emoji: '🎬', href: `${STUDIO}/?m=phim&mId=${k.phimId}`, external: true }] }] : []),
             { label: 'Video', items: [{ label: `${moCay.has(k.ma) ? 'Ẩn' : 'Hiện'} danh sách video (${n})`, emoji: '🌳', onClick: () => doi(k.ma) }] },
             ...(k.kenhUrl ? [{ label: 'Kênh', items: [{ label: 'Mở kênh YouTube', emoji: '▶️', href: k.kenhUrl, external: true }] }] : []),

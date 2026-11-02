@@ -91,3 +91,4 @@ export { TienDo } from './tien-do';   // thuần, KHÔNG từ cay.tsx ('use clie
 // instead of dumping the full list and forcing the user to search.
 export { DaiLuong, ThanhChang, type NutLuong } from './dai-luong';
 export { NgayLich } from './ngay-lich';
+export { LichNho, type OLichNho, type LoaiLichNho } from './lich-nho';

@@ -106,15 +106,8 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
     const con = hookNhom.filter((h) => !hookDaDung.has(h.id));
     const chung = con.length ? Array.from({ length: Math.min(6, con.length) }, (_, k) => con[(i * 3 + k) % con.length]!) : [];
     return [...rieng, ...chung.filter((h, k, ds) => !rieng.some((r) => r.id === h.id) && ds.findIndex((x) => x.id === h.id) === k)].slice(0, 6); };
-  // NGUỒN HOOK THỨ HAI — YOUTUBE NHIỀU LƯỢT XEM (anh duyệt 02/11/2026: Alaska kẹt cả buổi chờ lượt cào Meta tới nhóm lịch sử): kho QC Meta còn < 3 câu chưa dùng
-  // → tìm YouTube theo cụm của nhóm spy (goc_sp.cum), lấy tiêu đề video ≥ 300.000 lượt xem (lượt xem = bằng chứng giữ người, đúng nền đăng). Đệm 3 ngày / nhóm
-  // (~/.cache/hook-yt/<nhóm>.json). Ngọc vẫn lọc lệch ngách / hứa sai như hook QC; một hook vẫn chỉ một bài. QC Meta luôn đứng trước.
-  if (hookNhom.filter((h) => !hookDaDung.has(h.id)).length + hookCuaQc.size < 3) {
-    const cum = ((await spy`select cum from goc_sp where id = any(${nhomHook})`) as unknown as { cum: string[] | null }[]).flatMap((x) => x.cum ?? []);
-    const yt = hookTu((await hookYoutube(nhomHook.join('-'), cum)).map((v) => ({ library_id: `yt:${v.id}`, dong: v.title, ngay: v.views, page_ten: 'YouTube' })))
-      .filter((h) => !hookNhom.some((x) => x.chu.toLowerCase() === h.chu.toLowerCase()));
-    hookNhom.push(...yt); console.log(`· kho QC Meta mỏng → thêm ${yt.length} hook YouTube nhiều lượt xem (nhóm ${nhomHook.join(', ')})`);
-  }
+  // cụm tìm của nhóm (nguồn hook YouTube dưới — chỉ dùng khi kho QC Meta SAU khi Ngọc lọc còn mỏng)
+  const cumNhom = ((await spy`select cum from goc_sp where id = any(${nhomHook})`) as unknown as { cum: string[] | null }[]).flatMap((x) => x.cum ?? []);
   await spy.end();
   // NGỌC LỌC KHO HOOK TRƯỚC KHI SINH (31/10/2026): cùng phép xét của Phòng Nội dung (cham-dang.mjs › xetHookAi — lệch ngách / hứa điều thương hiệu không có),
   // hook bị chặn thì không đưa cho AI viết — sinh ra là bài SỬA LẠI, đốt tiền. Xét 100 hook nhóm chạy lâu nhất (câu đã xét đọc sổ xet-hook.json, không tốn lại) + QC gắn góc; vài đồng một hook.
@@ -129,6 +122,15 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
     const truoc = hookNhom.length + hookCuaQc.size, nhomDat = await xet(hookNhom.slice(0, 100)), qcDat = new Set((await xet([...hookCuaQc.values()])).map((h) => h.id));
     hookNhom.splice(0, hookNhom.length, ...nhomDat); for (const k of [...hookCuaQc.keys()]) if (!qcDat.has(k)) hookCuaQc.delete(k);
     console.log(`· Ngọc lọc kho hook: giữ ${hookNhom.length + hookCuaQc.size}/${truoc}`);
+    // NGUỒN HOOK THỨ HAI — YOUTUBE NHIỀU LƯỢT XEM (anh duyệt 02/11/2026: Alaska kẹt cả buổi chờ lượt cào Meta tới nhóm lịch sử): SAU khi Ngọc lọc mà kho QC Meta
+    // còn < 3 câu chưa dùng → tìm YouTube theo cụm của nhóm spy (goc_sp.cum), lấy tiêu đề video ≥ 300.000 lượt xem (lượt xem = bằng chứng giữ người, đúng nền đăng).
+    // Đệm 3 ngày / nhóm (~/.cache/hook-yt/<nhóm>.json). Ngọc lọc y như hook QC; một hook vẫn chỉ một bài; QC Meta luôn đứng trước.
+    if (hookNhom.filter((h) => !hookDaDung.has(h.id)).length + hookCuaQc.size < 3) {
+      const yt = hookTu((await hookYoutube(nhomHook.join('-'), cumNhom)).map((v) => ({ library_id: `yt:${v.id}`, dong: v.title, ngay: v.views, page_ten: 'YouTube' })))
+        .filter((h) => !hookDaDung.has(h.id) && !hookNhom.some((x) => x.chu.toLowerCase() === h.chu.toLowerCase())).slice(0, 40);
+      const ytDat = await xet(yt); hookNhom.push(...ytDat);
+      console.log(`· kho QC Meta mỏng → hook YouTube nhiều lượt xem: Ngọc giữ ${ytDat.length}/${yt.length} (nhóm ${nhomHook.join(', ')})`);
+    }
   }
   hookNhom.unshift(...thangKenh);   // video thắng của kênh: đã chứng minh trên đúng tệp người xem của máy, không qua kho spy
   console.log(`· hook QC gốc: ${hookNhom.length} hook nhóm (chạy lâu nhất ${hookNhom[0]?.ngay ?? 0} ngày), ${hookCuaQc.size} QC gắn góc, ${hookDaDung.size} đã dùng ở bài đang chờ`);

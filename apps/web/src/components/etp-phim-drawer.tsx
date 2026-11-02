@@ -29,6 +29,7 @@ function ONhan({ id }: { id: number }) {
   return <div style={{ marginTop: 8, fontSize: 12.5 }}>
     {n ? <div>{n.trang_thai === 'da_len' ? <><b>{n.nguoi}</b> đã lên camp{n.len_luc ? ` ${gio(n.len_luc)}` : ''}</> : <><b>{n.cua_toi ? 'Bạn' : n.nguoi}</b> đang giữ tới {gio(n.het_luc)}</>}</div>
       : <div style={{ color: MO }}>Chưa ai nhận</div>}
+    {n?.ghi ? <div style={{ marginTop: 4, fontSize: 12, color: ['loi', 'loai_18', 'cham_chan', 'loi_sinh'].includes(n.buoc ?? '') ? '#f87171' : MO }}>Tiến độ: {n.ghi}</div> : null}
     {!n ? <button type="button" disabled={ban} onClick={() => lam(() => nhanPhimEtp(id))} style={{ ...nut, borderColor: 'var(--accent, #38bdf8)', color: 'var(--accent, #38bdf8)' }}>Nhận phim (giữ 24 giờ)</button>
       : n.cua_toi && n.trang_thai === 'giu' ? <button type="button" disabled={ban} onClick={() => lam(() => traPhimEtp(id))} style={nut}>Trả phim</button> : null}
     {loi ? <div style={{ marginTop: 6, color: '#f87171' }}>{loi}</div> : null}

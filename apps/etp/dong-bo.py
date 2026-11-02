@@ -294,6 +294,10 @@ def main():
         if r.returncode: loi.append(f"co_the_test: {(r.stderr or r.stdout).strip()[-200:]}")
         else: kq.update(json.loads(r.stdout.strip().splitlines()[-1]))
     except Exception as e: loi.append(f"thu_vien: {e}")
+    # ── NHẬN PHIM TỰ ĐỘNG (anh 02/11/2026): soát 18+ AI cho phim mới nhận + báo bước hỏng — nhan_tu_dong.py (máy sinh / chấm / lên camp chạy ở chỗ của chúng)
+    try:
+        import nhan_tu_dong; kq.update(nhan_tu_dong.chay(q))
+    except Exception as e: loi.append(f"nhan_tu_dong: {e}")
     # ── nhật ký luật
     try:
         nk = khoa("ethopex_nhat_ky", "[]"); rows = []

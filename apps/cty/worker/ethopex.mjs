@@ -475,6 +475,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       from etp.creative r join etp.cham_cong g using (creative_id) left join etp.phim p using (content_id) left join etp.cham h using (creative_id)
       where g.duoc_len and r.tu_choi is null and r.content_id is not null and h.luc > now() - interval '3 days' and r.creative_id not in (${boQua})
         and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
+        and not exists (select 1 from etp.phim_nhan_v n join etp.tai_khoan t on t.nguoi_id = n.nguoi_id and not t.nha where n.content_id = r.content_id and n.trang_thai = 'giu')   -- phim người trong đội đang nhận → khối NHẬN PHIM dưới lên ở tài khoản họ
         and (not exists (select 1 from etp.camp c where c.content_id = r.content_id)   -- phim CHƯA TỪNG có camp (phim có camp đã bị luật tắt vì lỗ thì không tự lên lại)
           -- hoặc KT cho phim ĐANG CHẠY chưa có camp kể chuyện (anh 29/10/2026 "sx loại video KT cho các phim chưa có nhưng đang lên camp live triệt để … làm đi")
           or (r.dang = 'kể chuyện' and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')
@@ -491,9 +492,40 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     }
     const ok = da.filter((d) => d.r.ok);
     if (ok.length) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🎬 <b>PHIM MỚI LÊN CAMP</b> — chấm Sạch xong lên luôn ($1, lịch hôm nay)\n` + ok.map((d) => `#${d.r.moi} · bộ ${esc(d.x.bo)} · ${esc(d.x.ten || 'phim ' + d.x.content_id)} (cr #${d.x.creative_id})`).join('\n') }); gui++; }
-    for (const d of da.filter((d) => !d.r.ok)) { bq[d.x.creative_id] = { luc: new Date().toISOString(), loi: String(d.r.loi || '').slice(0, 200) }; console.error(`lên camp phim mới #${d.x.creative_id}: ${String(d.r.loi).slice(0, 160)}`); }
+    for (const d of da.filter((d) => !d.r.ok)) {
+      bq[d.x.creative_id] = { luc: new Date().toISOString(), loi: String(d.r.loi || '').slice(0, 200) }; console.error(`lên camp phim mới #${d.x.creative_id}: ${String(d.r.loi).slice(0, 160)}`);
+      // phim đang được NHẬN (anh 02/11/2026 "có lỗi thì phải báo lại ở danh sách phim Nhận") → ghi lỗi vào sổ nhận, tab Phim / ngăn phim hiện ngay
+      await chayPsql(`update etp.phim_nhan set loi = $L$lên camp lỗi: ${String(d.r.loi || 'không rõ').slice(0, 220).replace(/\$L\$/g, '')}$L$, loi_luc = now() where content_id = ${Number(d.x.content_id)} and tra_luc is null and het_luc > now()`).catch(() => {});
+    }
     fs.writeFileSync(TEP_BQ, JSON.stringify(bq));
   } catch (e) { console.error('phim mới lên camp:', e.message); }
+  // NHẬN PHIM TỰ ĐỘNG — ĐỘI (anh 02/11/2026: "Khi nhận phim thì nếu là Tự động thì hệ thống sẽ phải tự lên camp luôn"): phim người trong đội ở chế độ Tự động đang giữ, creative
+  // kể chuyện tạo sau lúc nhận đã chấm Sạch (view etp.phim_nhan_td buoc cho_len) → nhan-ban.py --creative ở TÀI KHOẢN NGƯỜI NHẬN, bằng phiên Ethopex của họ (ETP_SUA_NGUOI),
+  // khuôn = camp gần nhất của người đó cùng tiếng. Lỗi → etp.phim_nhan.loi (tab Phim / ngăn phim hiện, nhan_tu_dong.py báo Telegram); lên được thì xoá lỗi.
+  // Phim do NHÀ nhận đi khối PHIM MỚI ở trên (bộ của phim) như phim mới thường.
+  try {
+    const ds = JSON.parse((await chayPsql(`select coalesce(json_agg(x), '[]') from (select t.id, t.content_id, t.nguoi_id, r.creative_id, coalesce(r.lang, 'en') lang, coalesce(v.ten, '') ten,
+        (select k.camp_id from etp.camp_ngoai k join etp.tai_khoan a using (ad_account_id) left join etp.phim p on p.content_id = k.content_id
+          where a.nguoi_id = t.nguoi_id and coalesce(p.locale, 'en') like coalesce(r.lang, 'en') || '%' order by (k.trang_thai = 'ACTIVE') desc, k.tao desc limit 1) khuon
+      from etp.phim_nhan_td t join etp.phim_nhan n using (id) join etp.creative r on r.content_id = t.content_id and r.dang = 'kể chuyện' and r.cap_nhat >= n.nhan_luc
+      join etp.cham_cong g on g.creative_id = r.creative_id and g.duoc_len left join etp.thu_vien_phim v on v.content_id = t.content_id
+      where t.buoc = 'cho_len' and t.tu_dong and t.nguoi_id not in (select nguoi_id from etp.tai_khoan where nha) and r.tu_choi is null
+        and not exists (select 1 from etp.camp_ngoai c where c.creative_id = r.creative_id) order by t.id limit 3) x`)).trim() || '[]');
+    for (const x of ds) {
+      const a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();
+      let r;
+      if (!x.khuon) r = { ok: false, loi: 'người nhận chưa có camp nào cùng tiếng để làm khuôn (Ad Set / pixel / Page) — lên tay camp đầu tiên' };
+      else try {
+        r = JSON.parse((await new Promise((ok, hong) => execFile('python3', [NB, String(x.khuon), '--creative', String(x.creative_id), '--content', String(x.content_id),
+          '--ten', `NHAN ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ke chuyen`, '--that', '--lich', 'today',
+          '--luat', 'nhận phim tự động — KT chấm sạch → lên camp ở tài khoản người nhận', '--ai', 'anh (chat 02/11/2026: nhận phim Tự động thì tự lên camp) — máy chạy'],
+          { timeout: 600_000, maxBuffer: 8 << 20, env: { ...process.env, ETP_SUA_NGUOI: String(x.nguoi_id) } }, (e, out, err) => (e && !String(out).trim() ? hong(new Error((err || e.message).slice(-300))) : ok(out))))).trim().split('\n').pop());
+      } catch (e) { r = { ok: false, loi: e.message }; }
+      await chayPsql(r.ok ? `update etp.phim_nhan set loi = null, loi_luc = null where id = ${Number(x.id)}`
+        : `update etp.phim_nhan set loi = $L$lên camp lỗi: ${String(r.loi || 'không rõ').slice(0, 220).replace(/\$L\$/g, '')}$L$, loi_luc = now() where id = ${Number(x.id)}`);
+      if (r.ok) await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🎬 <b>PHIM NHẬN LÊN CAMP</b> — #${r.moi ?? '?'} · ${esc(x.ten || 'phim ' + x.content_id)} (${esc(String(x.lang).toUpperCase())}) ở tài khoản người nhận` });
+    }
+  } catch (e) { console.error('nhận phim lên camp:', e.message); }
   // DỌN ĐOẠN QUÁ TẢI (A, anh duyệt 25/10/2026): 3 giờ / lần — đoạn > trần camp trùng (etp.cau_hinh.tran_trung, 20 từ 28/10/2026): camp dư không lãi thay sang góc khác cùng phim (thay-tu-choi.py --don-doan).
   // Không tắt camp, không đụng camp lãi; hết góc thì xếp hàng cắt góc mới. Báo một tin khi có thay đổi.
   try {

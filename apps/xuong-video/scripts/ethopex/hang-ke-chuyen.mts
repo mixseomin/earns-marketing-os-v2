@@ -21,8 +21,14 @@ const dsCau = ((await q<{ gia_tri: { id: string; ten: string; url: string; nguon
 // + MỌI phim đang có camp nhà có link trang phim (etp.phim) — danh sách cầu chỉ là phim mới, thiếu phim đang lãi nhất (Number One, Nobody lần chạy đầu 29/10)
 const dsNha = await q<{ id: string; ten: string; url: string; nguon: string; locale: string }>(sql`SELECT p.content_id::text id, p.ten, p.url, p.nguon, p.locale FROM etp.phim p
   WHERE coalesce(p.url, '') <> '' AND EXISTS (SELECT 1 FROM etp.camp c WHERE c.content_id = p.content_id)`);
-const daCo = new Set(dsCau.map((p) => p.id));
-const ds = [...dsCau, ...dsNha.filter((p) => !daCo.has(p.id))];
+// PHIM NHẬN TỰ ĐỘNG (anh 02/11/2026 "nhận phim thì nếu là Tự động thì hệ thống sẽ phải tự lên camp luôn"): phim người ở chế độ Tự động đang giữ, đã soát 18+,
+// chờ máy sinh (view etp.phim_nhan_td buoc cho_sinh / loi_sinh) → BẬC 4000, đứng trên mọi bậc; link / tên lấy từ thư viện phim (etp.thu_vien_phim)
+const dsNhan = await q<{ id: string; ten: string; url: string; nguon: string; locale: string }>(sql`SELECT t.content_id::text id, coalesce(v.ten, '') ten, coalesce(v.url, '') url,
+    split_part(split_part(coalesce(v.url, ''), '//', 2), '/', 1) nguon, coalesce(v.locale, 'en') locale
+  FROM etp.phim_nhan_td t LEFT JOIN etp.thu_vien_phim v USING (content_id) WHERE t.tu_dong AND t.buoc IN ('cho_sinh', 'loi_sinh')`).catch(() => []);
+const nhan = new Set(dsNhan.map((p) => p.id));
+const daCo = new Set([...dsNhan, ...dsCau].map((p) => p.id));
+const ds = [...dsNhan, ...dsCau.filter((p) => !nhan.has(p.id)), ...dsNha.filter((p) => !daCo.has(p.id))];
 const tt = ((await q<{ gia_tri: Record<string, { tt: string }> }>(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_phim_moi_tt'`))[0]?.gia_tri ?? {});
 const so14 = new Map((await q<{ content_id: number; chi: number; thu: number }>(sql`SELECT c.content_id, coalesce(sum(n.chi), 0)::float chi, coalesce(sum(n.thu), 0)::float thu
   FROM etp.camp c JOIN etp.so_ngay n USING (camp_id) WHERE n.ngay >= current_date - 14 AND c.content_id IS NOT NULL GROUP BY 1`)).map((r) => [Number(r.content_id), r]));
@@ -45,7 +51,7 @@ const thay = new Set((await q<{ content_id: number }>(sql`SELECT content_id FROM
 const hang = ds.map((p, i) => {
   const id = Number(p.id), s = so14.get(id), k = kc.get(id), lai = s ? s.thu - s.chi : 0;
   const bo = chan18(id) ?? (cho.has(id) ? 'đã có bản chờ chạy / vừa sinh' : tt[p.id]?.tt === 'poster_loai' ? 'poster bị loại (soát phim mới)' : k && k.thua >= 2 && !k.thang ? `kể chuyện đã thua ${k.thua} lần, chưa thắng` : !p.url ? 'thiếu link trang phim' : null);
-  const diem = !coKt.has(id) && thay.has(id) ? 3000 + lai : !coKt.has(id) && live.has(id) ? 2000 + lai : !s ? 500 - Math.min(i, 399) : lai > 0 ? 1000 + lai : 100 + lai;
+  const diem = nhan.has(p.id) ? 4000 : !coKt.has(id) && thay.has(id) ? 3000 + lai : !coKt.has(id) && live.has(id) ? 2000 + lai : !s ? 500 - Math.min(i, 399) : lai > 0 ? 1000 + lai : 100 + lai;
   return { content_id: id, ten: p.ten, url: p.url, nguon: p.nguon, lang: p.locale?.startsWith('es') ? 'es' : 'en', diem: Math.round(diem * 100) / 100, lai14: Math.round(lai * 100) / 100, chi14: Math.round((s?.chi ?? 0) * 100) / 100, kc: k ?? null, bo };
 }).filter((x) => !x.bo).sort((a, b) => b.diem - a.diem).slice(0, so);
 console.log(JSON.stringify(hang));

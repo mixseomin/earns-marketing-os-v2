@@ -51,7 +51,7 @@ export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: str
    *  hạng trong danh sách điểm cao trước · tt = trạng thái trong quy trình phim mới nếu đã vào hàng chờ (poster_ok, da_cat…). ung_vien = dòng chỉ để thấy phim chưa có camp */
   test?: { hang: number; tong: number; diem: number; vi_sao: string; tt: string | null; nhom: string | null; qc_dang: number | null; qc: number | null; page: number | null; qc_tra: string | null } | null; ung_vien?: boolean;
   /** NHẬN PHIM (etp.phim_nhan_v — anh 02/11/2026): người đang giữ quyền lên camp (24 giờ) hoặc đã lên */
-  nhan?: { nguoi: string | null; het_luc: string; trang_thai: string } | null };
+  nhan?: { nguoi: string | null; het_luc: string; trang_thai: string; buoc?: string | null; ghi?: string | null } | null };
 export type TrangPhim = { ws: number; nguoi: string | null; tao: string | null; mo_ta: number; cot_truyen: number; nguon: string | null; redirect_url: string | null;
   link_ok: boolean | null; link_loi: string | null; link_luc: string | null; thieu: string[] };
 export type ChamCr = { luc: string; may: string | null; ket: string | null; meta: number | null; afs: number | null; loi: string | null;
@@ -322,11 +322,13 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       coalesce(v.ten, p.ten) ten, coalesce(v.locale, p.locale) locale, coalesce(v.url, p.url) url
       from etp.phim_nhan_v n left join etp.thu_vien_phim v using (content_id) left join etp.phim p using (content_id) where n.trang_thai in ('giu', 'da_len') order by n.content_id, n.nhan_luc desc`).catch(() => []);
   const nhTheo = new Map(nhR.map((r) => [n(r.content_id), r]));
-  for (const p of phims) { const r = nhTheo.get(p.content_id); p.nhan = r ? { nguoi: r.nguoi, het_luc: r.het_luc, trang_thai: r.trang_thai } : null; }
+  // TIẾN ĐỘ NHẬN (anh 02/11/2026 "có lỗi thì phải báo lại ở danh sách phim Nhận"): bước + ghi chú từ view etp.phim_nhan_td (soát 18+ → máy sinh → chấm → lên camp)
+  const tdTheo = new Map((await run<{ content_id: string; buoc: string; ghi: string | null }>(sql`select distinct on (content_id) content_id, buoc, ghi from etp.phim_nhan_td order by content_id, id desc`).catch(() => [])).map((r) => [n(r.content_id), r]));
+  for (const p of phims) { const r = nhTheo.get(p.content_id), t = tdTheo.get(p.content_id); p.nhan = r ? { nguoi: r.nguoi, het_luc: r.het_luc, trang_thai: r.trang_thai, buoc: t?.buoc ?? null, ghi: t?.ghi ?? null } : null; }
   const coDong = new Set(phims.map((p) => p.content_id));
   for (const [ma, r] of nhTheo) if (!coDong.has(ma))
     phims.push({ content_id: ma, ten: r.ten, the_loai: null, bo: null, locale: r.locale, nguon: r.url && r.url.includes('//') ? r.url.split('/')[2]! : null, nhom_goc: null, moc: null, doi_chay: 0,
-      creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, trang: null, test: null, nhan: { nguoi: r.nguoi, het_luc: r.het_luc, trang_thai: r.trang_thai } });
+      creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, trang: null, test: null, nhan: { nguoi: r.nguoi, het_luc: r.het_luc, trang_thai: r.trang_thai, buoc: tdTheo.get(ma)?.buoc ?? null, ghi: tdTheo.get(ma)?.ghi ?? null } });
   const [soNgay, tatNgay, boRow] = await Promise.all([
     run<{ c: number; d: string; chi: string; thu: string }>(sql`select camp_id c, ngay::text d, chi, thu from ${SN} where chi > 0 or thu > 0`),
     runNha<{ d: string; n: string }>(sql`select (luc at time zone 'UTC')::date::text d, count(distinct camp_id) n from etp.nhat_ky where viec = 'tat' and ok group by 1`),   // nhật ký máy nhà — xem người khác thì không có

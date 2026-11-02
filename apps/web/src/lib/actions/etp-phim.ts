@@ -79,7 +79,7 @@ export async function docPhimEtp(id: number): Promise<{ ok: true; phim: PhimNoiD
 
 // ── NHẬN PHIM (anh 02/11/2026: "các thành viên vào chọn film sẽ pick ra và nhận quyền. Sau 1 ngày ko lên camp thì sẽ lại release cho người khác")
 // người nhận = người etp của tài khoản đang đăng nhập (etp.quyen.nguoi_id); admin mos2 nhận cho tài khoản nhà. Trạng thái do view etp.phim_nhan_v tính.
-export type NhanPhim = { nguoi_id: number; nguoi: string | null; nhan_luc: string; het_luc: string; trang_thai: 'giu' | 'da_len'; len_luc: string | null; cua_toi: boolean };
+export type NhanPhim = { nguoi_id: number; nguoi: string | null; nhan_luc: string; het_luc: string; trang_thai: 'giu' | 'da_len'; len_luc: string | null; cua_toi: boolean; buoc?: string | null; ghi?: string | null };
 const GIO_GIU = 24;
 
 async function nguoiCua() {
@@ -94,8 +94,8 @@ async function nguoiCua() {
 
 /** người đang giữ phim (còn hạn hoặc đã lên camp), null = trống */
 async function dangGiu(ma: number) {
-  const r = (await getDb()!.execute(sql`select nguoi_id, nguoi, nhan_luc::text nhan_luc, het_luc::text het_luc, trang_thai, len_luc::text len_luc from etp.phim_nhan_v
-      where content_id = ${ma} and trang_thai in ('giu', 'da_len') order by nhan_luc desc limit 1`)) as unknown as Omit<NhanPhim, 'cua_toi'>[];
+  const r = (await getDb()!.execute(sql`select v.nguoi_id, v.nguoi, v.nhan_luc::text nhan_luc, v.het_luc::text het_luc, v.trang_thai, v.len_luc::text len_luc, t.buoc, t.ghi
+      from etp.phim_nhan_v v left join etp.phim_nhan_td t using (id) where v.content_id = ${ma} and v.trang_thai in ('giu', 'da_len') order by v.nhan_luc desc limit 1`)) as unknown as Omit<NhanPhim, 'cua_toi'>[];   // + tiến độ (view phim_nhan_td)
   return r[0] ?? null;
 }
 

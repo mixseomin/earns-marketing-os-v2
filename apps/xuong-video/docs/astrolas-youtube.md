@@ -132,6 +132,10 @@ Phần phải dựng (chỉ khi anh duyệt):
 - **Sản xuất: một tập gốc EN, các bản ngôn ngữ là biến thể của cùng tập.** Dùng lại bố cục cảnh + hình; dịch kịch bản, đọc lại bằng giọng bản ngữ, dựng lại chữ trên hình. Mốc lá số và sự thật giữ nguyên (không phụ thuộc ngôn ngữ). Câu đùa / chơi chữ phải viết lại cho ngôn ngữ đó, không dịch thẳng.
 - **Phát hành: mỗi ngôn ngữ một kênh YouTube** (Astrolas, Astrolas en Español, Astrolas 日本語), cùng khung thương hiệu, cùng cấu trúc loạt / playlist. Lý do: chữ in trên hình; thuật toán phát theo khán giả từng ngôn ngữ; trần đăng tính theo tài khoản nên mỗi kênh có trần riêng mà không spam.
 - **Trong studio:** Kênh → Loạt → Tập giữ nguyên; thêm chiều ngôn ngữ ở tầng Tập (tập gốc + bản `es`, `ja` trỏ về tập gốc) và ở tầng Kênh (mỗi kênh ngôn ngữ một mục đăng trong `xv_may.dang` có `ngon_ngu`, máy đăng chỉ lấy bản đúng ngôn ngữ). Khung thương hiệu chung, chỉ khác giọng đọc theo ngôn ngữ + câu màn cuối dịch.
+Hồ sơ trong studio KHÔNG tách theo ngôn ngữ (chốt đề xuất 02/11):
+- Một máy `astrolas`, một phim quản lý kênh, một tệp tập. Chỉ tách ở ĐẦU RA: mỗi ngôn ngữ một video (`xv_may_video`, có `ngon_ngu` + slug tập gốc) và một mục đăng kênh ngôn ngữ đó.
+- Tệp tập (`scripts/lich-su/tap/<id>.json`): phần không đổi theo ngôn ngữ để chung — `canh` (bố cục, hình, nhân vật, năm), `su_that`, `nguon`, `goc`. Phần chữ đổi theo ngôn ngữ để trong `ban.<nn>`: `tieu_de`, `mo_ta_dang`, `hook`, `giong`, và theo từng câu `chu` + `canh.chu_to` (+ chữ con dấu). Dịch giữ đúng số câu để câu nào khớp cảnh nấy; thời lượng cảnh tính lại theo tiếng đọc mới.
+- Sửa cảnh một lần → mọi ngôn ngữ ăn theo. Khác cách hiện tại của máy lịch sử (tập ES viết riêng thành tệp riêng: bolivia-mar-es, brasil-es).
 - **Thứ tự mở:** EN trước. ES / JA chỉ mở khi astrolas.com có trang đích ngôn ngữ đó công khai (ít nhất trang công cụ được trỏ + trang đăng ký); JA đang dịch dở nên có thể đi trước ES nếu xong trước. Mở ngôn ngữ mới = tài khoản YouTube mới (lập tài khoản theo luật chung, có proxy).
 
 ## Việc kế (chỉ khi anh chốt)

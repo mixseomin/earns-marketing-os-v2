@@ -695,7 +695,9 @@ except Exception as e:
 # R0 — ★ ROAS KHÔNG TIÊU (anh 02/11/2026 #72924: "camp ROAS này đang âm mà lại có 3 ngày liên tiếp ko tiêu tiền. Cần có cơ chế xử lý để dồn ngân sách sang việc khác"):
 # camp ROAS bật, đã lên > R0_NGAY + 1 ngày, R0_NGAY ngày đã khép gần nhất cộng chi < $R0_CHI (thầu ROAS không thắng phiên nào) → báo trước một nhịp rồi máy tắt, cùng
 # đường RL. D24 (khoảng dừng > 24 giờ) miễn camp ROAS và RL đòi có chi → trước đây camp ROAS đứng không luật nào xử, vẫn giữ ngân sách trong trần ngày.
-R0_NGAY, R0_CHI = 3, 0.5
+R0_NGAY, R0_CHI, R0_PHAN = 3, 0.5, 0.05
+# mốc chi THEO NGÂN SÁCH (02/11/2026: #72924 $20/ngày tiêu $0.85 trong 3 ngày — lọt mốc cứng $0.5): < max($0.5, 5% ngân sách 3 ngày) — camp $20 = $3, camp $1 = $0.5
+r0_chi = lambda ns: max(R0_CHI, round(R0_PHAN * R0_NGAY * float(ns or 0), 2))
 tat_r0 = []
 try:
     if _ROAS & _bat:
@@ -704,10 +706,10 @@ try:
             if int(cid) in {int(x[0] or 0) for x in tat_roas}: continue
             t = _tao.get(cid)
             if not t or (dt.datetime.now(dt.timezone.utc) - t).days < R0_NGAY + 1: continue
-            a = _g0.get(cid) or _g0.get(str(cid)) or {"chi": 0.0, "thu": 0.0}
-            if a["chi"] >= R0_CHI: continue
-            c = _cm.get(cid) or {}; tr = tron.get(cid) or tron.get(str(cid)) or {"chi": 0.0, "thu": 0.0}
-            tat_r0.append((cid, f"#{(c.get('name') or '')[:80]} · {R0_NGAY} ngày đã khép chi ${a['chi']:.2f} · lãi ${a['thu'] - a['chi']:+.2f} · đang giữ ${float(c.get('budget_daily') or 0):g}/ngày · cả chặng lãi ${tr['thu'] - tr['chi']:+.2f} → TẮT (luật R0: ★ ROAS {R0_NGAY} ngày không tiêu)"))
+            a = _g0.get(cid) or _g0.get(str(cid)) or {"chi": 0.0, "thu": 0.0}; c = _cm.get(cid) or {}
+            if a["chi"] >= r0_chi(c.get("budget_daily")): continue
+            tr = tron.get(cid) or tron.get(str(cid)) or {"chi": 0.0, "thu": 0.0}
+            tat_r0.append((cid, f"#{(c.get('name') or '')[:80]} · {R0_NGAY} ngày đã khép chi ${a['chi']:.2f} · lãi ${a['thu'] - a['chi']:+.2f} · đang giữ ${float(c.get('budget_daily') or 0):g}/ngày · cả chặng lãi ${tr['thu'] - tr['chi']:+.2f} → TẮT (luật R0: ★ ROAS {R0_NGAY} ngày chi < ${r0_chi(c.get('budget_daily')):g})"))
 except Exception as e:
     loi_may.append((0, f"luật R0 (ROAS không tiêu) lỗi: {str(e)[:80]}"))
 _rl = {int(x[0] or 0) for x in tat_roas + tat_r0}; tang30 = [x for x in tang30 if int(x[0] or 0) not in _rl]   # một camp một quyết định: RL thắng ★ ROAS thắng → $30
@@ -790,8 +792,8 @@ def _xet_luat():
                  ["Chi 2 ngày", f((ag_ or {}).get("chi"), "$"), f"> ${ROAS_CHI}", bool(ag_) and ag_["chi"] > ROAS_CHI], ["ROI 2 ngày", f(rg_, "%"), f"< {ROAS_ROI}%", rg_ is not None and rg_ < ROAS_ROI]],
                 "tat_roas" if int(cid) in vao["tat_roas"] else None, lo=None if rg_ is None else rg_ < 0))
             _a0 = _g("_g0"); _t0 = _tao.get(cid); _tu0 = (dt.datetime.now(dt.timezone.utc) - _t0).days if _t0 else None
-            ls.append(L("r0", "R0 · ROAS không tiêu", f"Camp ★ ROAS đã lên > {R0_NGAY + 1} ngày, {R0_NGAY} ngày đã khép gần nhất cộng chi < ${R0_CHI:g} (thầu ROAS không thắng) → báo trước một nhịp rồi máy tắt, trả ngân sách cho việc khác (anh 02/11/2026).",
-                [["Tuổi camp", "—" if _tu0 is None else f"{_tu0} ngày", f"> {R0_NGAY} ngày", _tu0 is not None and _tu0 >= R0_NGAY + 1], [f"Chi {R0_NGAY} ngày đã khép", f((_a0 or {}).get("chi", 0.0), "$"), f"< ${R0_CHI:g}", (_a0 or {}).get("chi", 0.0) < R0_CHI]],
+            ls.append(L("r0", "R0 · ROAS không tiêu", f"Camp ★ ROAS đã lên > {R0_NGAY + 1} ngày, {R0_NGAY} ngày đã khép gần nhất cộng chi < max(${R0_CHI:g}, {R0_PHAN:.0%} ngân sách {R0_NGAY} ngày) (thầu ROAS không thắng) → báo trước một nhịp rồi máy tắt, trả ngân sách cho việc khác (anh 02/11/2026).",
+                [["Tuổi camp", "—" if _tu0 is None else f"{_tu0} ngày", f"> {R0_NGAY} ngày", _tu0 is not None and _tu0 >= R0_NGAY + 1], [f"Chi {R0_NGAY} ngày đã khép", f((_a0 or {}).get("chi", 0.0), "$"), f"< ${r0_chi(ns):g}", (_a0 or {}).get("chi", 0.0) < r0_chi(ns)]],
                 "tat_r0" if int(cid) in vao["tat_r0"] else None, tien=1))
             ns = float(a.get("budget") or 0); du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
             r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None

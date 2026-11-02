@@ -466,7 +466,7 @@ const LUAT = [
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/chon-phim-moi.py', co: 'NGUON = {"reelshort": 100, "netshort": 35}   # DramaBox / dramaboxdb: loại', vi: 'chọn phim mới: lọc nguồn ReelShort / NetShort, bỏ DramaBox' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/chon-phim-moi.py', co: 'da |= {int(x) for x in q("select distinct content_id from etp.camp_ngoai where content_id > 0").split() if x.isdigit()}', vi: 'chọn phim mới: bỏ phim đội đã lên' },
   { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tong2.ts', co: "select khoa, gia_tri from etp.cau_hinh where khoa in ('phan_bo', 'tran_ngay')", vi: 'Tổng quan 2 phân bổ ngân sách: mục tiêu đọc cấu hình phan_bo + trần ngày' },
-  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'R0_NGAY, R0_CHI = 3, 0.5', vi: 'luật R0: camp ★ ROAS 3 ngày đã khép không tiêu → báo trước rồi tắt (#72924)' },
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'R0_NGAY, R0_CHI, R0_PHAN = 3, 0.5, 0.05', vi: 'luật R0: camp ★ ROAS 3 ngày đã khép chi < max($0.5, 5% ngân sách) → báo trước rồi tắt (#72924)' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tat_roas": m(tat_roas), "tat_r0": m(tat_r0),', vi: 'luật R0 xuất ra cho worker' },
   { card: 'chat', tep: 'apps/etp/cat_phim.py', co: 'if not team_lai and so_thu >= N:   # thử đủ N camp có chi, chưa camp nào lãi', vi: 'cất phim khi thử đủ 4 camp có chi mà chưa camp nào lãi' },
   { card: 'chat', tep: 'apps/etp/cat_phim.py', co: 'if ct in bh:   # bão hoà mà lỗ: cất kể cả phim từng có camp lãi', vi: 'cất phim bão hoà mà ROI phim cả hệ âm' },

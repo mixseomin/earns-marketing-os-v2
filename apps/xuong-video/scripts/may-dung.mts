@@ -52,16 +52,20 @@ async function spCua(ma: string) {
 
 /** Video YouTube nhiều lượt xem theo các cụm tìm (yt-dlp trên box3, không cần khoá API). Đệm 3 ngày theo khoá nhóm. Trả [{ id, title, views }] ≥ 300.000 lượt, nhiều trước. */
 async function hookYoutube(khoa: string, cum: string[]): Promise<{ id: string; title: string; views: number }[]> {
-  const fs = await import('node:fs'), { execFileSync } = await import('node:child_process'), dir = `${process.env.HOME}/.cache/hook-yt`, tep = `${dir}/${khoa}.json`;
+  const fs = await import('node:fs'), { execFileSync } = await import('node:child_process'), dir = `${process.env.HOME}/.cache/hook-yt-2`, tep = `${dir}/${khoa}.json`;
   try { const c = JSON.parse(fs.readFileSync(tep, 'utf8')); if (Date.now() - c.luc < 3 * 86_400_000 && c.ds?.length) return c.ds; } catch { /* chưa có đệm */ }
   const ra = new Map<string, { id: string; title: string; views: number }>();
-  for (const q of cum.slice(0, 6)) {
+  // tìm cả biến thể câu hỏi của cụm ("why … ") — tiêu đề nhiều lượt xem nhất thường là NHÃN chủ đề ("WW1 - Oversimplified"), Ngọc loại 39/40 vì nhạt (02/11/2026)
+  for (const q of cum.slice(0, 6).flatMap((c) => [c, `why ${c}`])) {
     try {
       const j = JSON.parse(execFileSync('yt-dlp', ['--flat-playlist', '-J', `ytsearch40:${q}`], { encoding: 'utf8', timeout: 90_000, maxBuffer: 32 << 20 }));
       for (const e of j.entries ?? []) if (e.id && e.title && Number(e.view_count) >= 300_000) ra.set(e.id, { id: e.id, title: e.title, views: Number(e.view_count) });
     } catch (e) { console.error(`· hook YouTube "${q}": ${String((e as Error).message).split('\n')[0].slice(0, 120)}`); }
   }
-  const ds = [...ra.values()].sort((a, b) => b.views - a.views);
+  // chỉ giữ tiêu đề có HÌNH DẠNG HOOK (câu hỏi / mở bằng why-how-what-the day… / so sánh nhất / con số gây tò mò), bỏ nhãn chủ đề + tên series ("|", "(Part n)", #thẻ)
+  const hinhHook = (t: string) => !/\s[|]\s|\(part \d|#\w|oversimplified/i.test(t) && (/\?$/.test(t.trim()) || /^(why|how|what|when|where|who|the (day|man|woman|time|year|night)|this|imagine|nobody|no one|you|they)\b/i.test(t.trim())
+    || /\b(worst|strangest|weirdest|craziest|deadliest|dumbest|most|never|only|secret|forgotten|real reason)\b/i.test(t));
+  const ds = [...ra.values()].filter((v) => hinhHook(v.title)).sort((a, b) => b.views - a.views);
   if (ds.length) { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(tep, JSON.stringify({ luc: Date.now(), ds })); }
   return ds;
 }

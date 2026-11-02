@@ -97,7 +97,7 @@ for (const [k, K] of Object.entries(KENH)) {
       // ĐANG SẢN XUẤT: dấu trên máy studio (xv_may.nguon.dang_lam) — mos2 › Tài sản › Kênh nội dung hiện tập đang làm; xong (đạt hay hỏng) thì gỡ
       danhDau(K.may, { id, luc: new Date().toISOString() });
       const r = chayLamTap(id, ['--id', id, '--nn', 'en', '--kenh', k, ...(pl ? ['--playlist', pl] : [])], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
-      const ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra);
+      let ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra);   // let: phía dưới nối thêm dòng quá giờ / đã giao thợ máy (const → TypeError, 03/11/2026)
       danhDau(K.may, null); try { unlinkSync(khoa); } catch { /* đã gỡ */ }
       const tien = [...ra.matchAll(/~(\d+)₫/g)].reduce((t, m) => t + Number(m[1]), 0);
       const tap = existsSync(join(DIR, 'tap', `${id}.json`)) ? JSON.parse(readFileSync(join(DIR, 'tap', `${id}.json`), 'utf8')) : null;

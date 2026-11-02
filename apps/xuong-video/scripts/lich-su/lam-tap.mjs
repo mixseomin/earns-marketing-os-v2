@@ -30,7 +30,8 @@ const tepTap = join(DIR, 'tap', `${id}.json`), RA = join(KHO, id), tepKho = join
 const chuDe = arg('chu-de') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).chu_de : null);   // tập đã có: chủ đề lấy từ tệp tập
 // bộ bài nguồn: --nguon khi viết mới; tập đã có thì GIỮ đúng bộ bài cũ (tap.nguon là URL wiki) — sửa / viết lại mà để máy tự tìm theo chủ đề là
 // đổi nguồn ngầm, mọi trích dẫn cũ thành "không có trong nguồn" (dính 02/11/2026: alaska-parody --sua-canh lấy nhầm Anchorage + Alaska)
-const nguonTua = (arg('nguon') ?? (existsSync(tepTap) ? (JSON.parse(readFileSync(tepTap, 'utf8')).nguon || []).map((u) => decodeURIComponent(u.split('/wiki/')[1] || '').replace(/_/g, ' ')).filter(Boolean).join('|') : '')) || null;
+// đọc LẠI mỗi lần dùng (03/11/2026: tính một lần lúc khởi động khi tập chưa có → lượt sửa không có --nguon, bộ viết tự tìm bằng câu chủ đề → 'không có nguồn nào')
+const nguonTuaF = () => (arg('nguon') ?? (existsSync(tepTap) ? (JSON.parse(readFileSync(tepTap, 'utf8')).nguon || []).map((u) => decodeURIComponent(u.split('/wiki/')[1] || '').replace(/_/g, ' ')).filter(Boolean).join('|') : '')) || null;
 const nn = arg('nn') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).ngon_ngu : null) ?? 'en';
 const kenhId = arg('kenh') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).kenh : null) ?? 'saga';
 const KENH0 = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId];
@@ -200,7 +201,7 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     chiTiet(`lượt viết ${lan}/4${loi.length ? ` · lượt trước ${loi.length} lỗi kiểm` : ''} · đang gọi máy viết`);
     const them = loi.length ? ` --loi ${tmp}/loi.txt --cu ${tmp}/tap.json` : '';
     if (loi.length) { writeFileSync(join(RA, 'loi.txt'), loi.map((x) => `- ${x}`).join('\n')); len(join(RA, 'loi.txt'), `${tmp}/loi.txt`); len(tepTap, `${tmp}/tap.json`); }
-    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe && !boDeCu ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${plMa ? ` --playlist ${q(plMa)}` : ''}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTua ? ` --nguon ${q(nguonTua)}` : ''}${them}`)); }
+    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe && !boDeCu ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${plMa ? ` --playlist ${q(plMa)}` : ''}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTuaF() ? ` --nguon ${q(nguonTuaF())}` : ''}${them}`)); }
     catch (e) { console.log(`✗ lượt viết ${lan}: máy viết hỏng — ${String(e.stderr || e.message).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}`); if (!existsSync(tepTap)) continue; loi = loi.length ? loi : ['(lượt trước hỏng, viết lại)']; continue; }
     const truoc = suaCanh ? readFileSync(tepTap, 'utf8') : null;
     ve(`${tmp}/tap.json`, tepTap); ve(`${tmp}/tap.json.nguon.txt`, join(RA, 'nguon.txt'));

@@ -89,7 +89,7 @@
   "theme": "la_cai",
   "nhac": "nhay",
   "sfx": "hai",
-  "max_tokens": 32000,
+  "max_tokens": 48000,
   "khuon": [
    "TRỌN MỘT CHUYỆN từ đầu tới cuối — có mở, leo thang, khúc ngoặt, hậu quả, kết. KHÔNG móc sang phần 2.",
    "Câu 1 = HOOK: sự thật sốc nhất kể bằng giọng tỉnh bơ, ≤ 14 từ. Cảnh 1: mo=true, chu_to (tít báo lá cải), vong quanh chỗ lạ. Câu 2–3 = vì sao đáng xem tiếp (một câu đùa + một lời hứa).",
@@ -147,7 +147,11 @@
     "ma": "full-stories",
     "ten": "Full Stories",
     "tien_to": "",
-    "lich_tap": [1, 3, 5],
+    "lich_tap": [
+     1,
+     3,
+     5
+    ],
     "_ghi": "G1 chạy thử tầng playlist (02/11/2026): một playlist, cùng lịch Thứ 2/4/6 như trước, không tiền tố → tiêu đề và nhịp làm tập không đổi. Chưa có playlist trên YouTube (yt) — máy đăng gắn playlist ở G7."
    }
   ],

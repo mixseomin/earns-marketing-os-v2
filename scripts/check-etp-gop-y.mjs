@@ -36,7 +36,7 @@ const LUAT = [
   { card: 0, tep: V, cam: '`chặn: ${ch.chan_boi}`', vi: 'không in chuỗi mã chặn trần' },
   // 29/10/2026 — một camp một quyết định: luật tắt thắng mọi luật khác (ở nguồn) + lệnh tắt hỏng vì lỗi máy thì nhịp sau thử lại
   // kiểm Ý chứ không kiểm nguyên dòng: thêm luật tắt mới vào tập (vd tat_l3) vẫn xanh; bỏ lọc ở danh sách tăng / giảm / nhân bản là đỏ
-  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '_SE_TAT = {int(x[0] or 0) for v in (tat2, tat_d24', vi: 'có tập camp trong danh sách tắt (T2 · D24 · …)' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '_SE_TAT = {int(x[0] or 0) for v in (tat2, tat1, tat_d24', vi: 'có tập camp trong danh sách tắt (T2 · D24 · …)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'not in _SE_TAT] for v in (tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, tang30, moc30))', vi: 'camp sắp tắt bị gỡ khỏi tăng / giảm / nhân bản / thay creative / lên ROAS' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: 'if (seTat.has(m.id)) continue;   // không nhân bản camp đang trong danh sách tắt', vi: 'không nhân bản camp sắp tắt' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: 'if (!ok && ly) giu.ds[m.id]', vi: 'tắt hỏng vì lỗi máy không bị giữ tới hết ngày' },
@@ -415,6 +415,10 @@ const LUAT = [
   { card: 'chat', tep: 'apps/web/src/lib/etp-quyen.ts', co: "export const ngCua = (q: QuyenEtp, ng?: string) => (q.vai === 'nguoi' ? String(q.nguoiId) : ng);", vi: 'vai người không chọn được Team / người khác (ép ?ng về chính mình)' },
   { card: 'chat', tep: V, co: 'max={maxLai(sd)} nhom n={demCamp(rs)[i]} />', vi: 'dòng phim: số camp có chi mỗi ngày dưới cột hiệu suất' },
   { card: 'chat', tep: V, co: 'mo nhom n={demCamp(rs)[ngay.length]} />', vi: 'dòng phim: số camp có chi hôm nay dưới cột nay' },
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'T1_ROI, T1_CHI, T1_PHAN = -30, 1.0, 0.8', vi: 'luật T1: ngày đầu ROI < −30%, chi ≥ min($1, 80% ngân sách) → tắt (02/11)' },
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tat2": m(tat2), "tat1": m(tat1),', vi: 'luật T1 xuất ra cho worker (báo trước một nhịp rồi tắt)' },
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'dat = [(cid, chu) for cid, chu in dat if not _ts_ly(cid)]', vi: 'luật TS siết tăng bậc: không tăng 07–15h VN, không tăng khi hôm qua lãi 0–50% (02/11)' },
+  { card: 'chat', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"tat1":      { "ma": "t1",', vi: 'sổ luật chung có T1' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

@@ -2,6 +2,8 @@
   "_ghi": "SỔ LUẬT CHUNG etp (anh 01/11/2026: 'chắp vá à. Tìm nguyên nhân gốc' — G10 thiếu ở chỗ này chỗ kia vì danh sách luật chép tay ở 7 tệp). MỘT nguồn: máy luật luat-ethopex.py (tự kiểm: khoá xuất ra phải có ở đây), worker ethopex.mjs + etp-tu-dong.mjs (luật tắt, luật hạ), de-xuat-ngoai.py (loại đề xuất), so-luat.py (nhận luật trong nhật ký), etp-doc.ts + etp-view.tsx (thẻ, bộ lọc, Gần tăng/giảm/tắt, bản luật, Đã làm theo). Thêm luật = thêm một mục ở đây + điều kiện trong máy luật; không sửa danh sách nào khác.",
   "_khoa": "khoa = tên danh sách máy luật xuất ra (--json, etp.bao). nhan = [ký hiệu, tên thẻ, màu, 'dang' | 'gan'] · huong = tang | giam | tat (lọc Gần tăng / giảm / tắt) · ma = mã thẻ xét luật · de_xuat = loại đề xuất bậc cho team · nhat_ky = [việc, regex chữ --luat] để nhận lần máy làm · tat = máy tự tắt (báo trước một nhịp; ngay = tắt luôn) · ha = máy tự đổi ngân sách theo '→ $X' (tu_dong: chạy không cần công tắc).",
   "khoa": {
+    "tat1":      { "ma": "t1",  "huong": "tat", "nhan": ["✕", "T1 sắp tắt", "#f87171", "dang"], "de_xuat": "tat", "nhat_ky": ["tat", "^T1 "],
+                   "tat": { "tep": "ethopex-tat1.json", "ten": "T1", "mo_ta": "luật T1: ngày có chi đầu tiên đã khép ROI &lt; −30% (hoặc không có thu), chi ≥ min($1, 80% ngân sách) — cắt sau 1 ngày như cách Kim Kiên (anh 02/11)", "cot": "Lãi", "luat": "T1 (ngày đầu ROI < −30%, chi ≥ min($1, 80% ngân sách))", "ai": "anh (chat 02/11/2026: thêm luật T1 sau phân tích cách Kiên đóng camp) — máy chạy" } },
     "tat2":      { "ma": "t2",  "huong": "tat", "nhan": ["✕", "T2 sắp tắt", "#f87171", "dang"], "de_xuat": "tat", "nhat_ky": ["tat", "^T2 "],
                    "tat": { "tep": "ethopex-tat2.json", "ten": "T2", "mo_ta": "luật T2: 2 ngày có chi đầu tiên đã khép ROI &lt; −20% (anh 27/10), chi ≥ min($2.5, 80% ngân sách 2 ngày) — camp $1 cũng bị cắt (anh 01/11)", "cot": "Lãi 2n", "luat": "T2 (2 ngày đầu ROI < −20%, chi ≥ min($2.5, 80% ngân sách 2 ngày))", "ai": "anh (chat 27/10/2026: đặt luật mới T2 — 2 ngày đầu ROI < −20% — và dừng T7) — máy chạy" } },
     "tat_d24":   { "ma": "d24", "huong": "tat", "nhan": ["✕", "Dừng > 24h", "#f87171", "dang"], "de_xuat": "tat", "nhat_ky": ["tat", "^D24|dừng > 24"],
@@ -54,6 +56,7 @@
     "l3":        ["✕ L3", "#f87171", "tat"],
     "l4":        ["✕ L4", "#f87171", "tat"],
     "pl":        ["✕ PL", "#f87171", "tat", "PL · phim lỗ 7 ngày"],
+    "t1":        ["✕ T1", "#f87171", "tat"],
     "t2":        ["✕ T2", "#f87171", "tat"],
     "off":       ["✕ OFF", "#f87171", "tat"],
     "l7":        ["✕ L7", "#f87171", "tat"],

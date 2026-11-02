@@ -18,6 +18,7 @@
 //   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }] } → trạng thái máy đăng thời gian thực (mos2 Lịch đăng › ⚡ Máy đăng)
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
+//   --goc-hook --may <mã>          in JSON { goc, hooks[], da_lam[] } cho tập kế của máy video ngoài (kênh lịch sử lam-tap.mjs) — cùng kho góc + hook với --sinh-kho
 //   --so-kenh [--may <mã>]          SỐ KÊNH SẢN PHẨM (xv_may.la_san_pham): lượt xem từng video + người đăng ký YouTube → kenh_so_ngay 'may:<mã>' (mos2 › Tài sản), 0₫
 //   --luot-xem                     ĐO THEO DẠNG: đọc lại lượt xem YouTube + Facebook mọi video đã đăng (cũ hơn 12 giờ) → bảng trung bình máy × dạng, 0₫
 //   --sinh-game <N>                dạng game Only ONE: tiêu đề theo KHUNG video thắng của kênh (≥ 500 lượt sau 7 ngày, đọc lại lượt xem YouTube trước) + góc spy dùng ít nhất → nạp + dựng, 0₫
@@ -47,6 +48,65 @@ async function spCua(ma: string) {
   const lm = LINK_MAY[ma] ?? { link: `https://${r[0]?.site_dich ?? ''}/`, nhan: nhanTen };
   const sp = { ma, ten: r[0]!.ten, ngach: r[0]!.ngach, site: r[0]!.site_dich, link: lm.link, nhan: lm.nhan, mo_ta: r[0]!.muc_dich, ...(lm.book ? { book: lm.book } : {}), ...(r[0]!.phong_cach ? { phong_cach: r[0]!.phong_cach } : {}) };
   return sp;
+}
+
+/** KHO GÓC + HOOK của một máy (dùng chung --sinh-kho và --goc-hook, 02/11/2026): góc spy của nhóm máy (goc_sp), hook = dòng đầu QC chạy lâu nhất khớp
+ *  nhóm (+ hook_sp lân cận) đã qua Ngọc lọc, video thắng của kênh đứng đầu, hook đã nằm trong bài đang chờ thì bỏ. Không có hook nào → dừng (bài hook tự nghĩ bị chặn). */
+async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<typeof spCua>>) {
+  const m = { id: mayId };
+  const dongMay = ((await db.execute(sql`SELECT goc_sp, hook_sp FROM xv_may WHERE ma = ${ma}`)) as unknown as { goc_sp: number[] | null; hook_sp: number[] | null }[])[0];
+  const nhom = (dongMay?.goc_sp ?? []).map(Number), nhomHook = [...new Set([...nhom, ...(dongMay?.hook_sp ?? []).map(Number)])];   // hook_sp: nhóm lân cận CHỈ để mượn hook (migration 0382)
+  if (!nhom.length) { console.error(`máy ${ma} chưa gắn nhóm góc spy (goc_sp)`); process.exit(1); }
+  const fs = await import('node:fs'), url = process.env.SPY_DATABASE_URL ?? fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13);
+  const spy = (await import('postgres')).default(url!, { max: 1, prepare: false });
+  const gocs = (await spy`select sp_id as sp, id, loai, ten, coalesce(qc_ids, '{}') as qc_ids from goc where sp_id = any(${nhom}) order by id`) as unknown as { sp: number; id: number; loai: string; ten: string; qc_ids: string[] }[];
+  // NGÔN NGỮ THEO THỊ TRƯỜNG của nhóm góc (31/10/2026, Giỗ Chạp): nhóm thị trường VN → đề + chữ đăng tiếng Việt; dạng cần giọng tiếng Anh (heygen Vincent) / câu nói ngoại ngữ thì bỏ
+  const tt = ((await spy`select thi_truong from goc_sp where id = any(${nhom})`) as unknown as { thi_truong: string[] | null }[]).flatMap((x) => x.thi_truong ?? []);
+  // HOOK GỐC TỪ QC THẬT (anh 31/10/2026, "rule quan trọng"): dòng đầu của QC chạy LÂU NHẤT khớp nhóm góc (biểu thức liên quan của spy, \b → \y cho Postgres),
+  // đúng ngôn ngữ thị trường, 20–140 ký tự, bỏ trùng chữ. Góc có QC gắn sẵn (goc.qc_ids) thì QC của góc đứng trước. AI chọn một, sửa nhẹ (may-de.ts › kiemDe).
+  const vi = tt.length > 0 && tt.every((t) => /^VN/i.test(t));
+  // QC phải NÓI VỀ ngách ngay phần đầu (280 ký tự đầu khớp biểu thức liên quan) — khớp ở cuối thân QC = QC chủ đề khác (#875 xe đưa đón du thuyền lọt vào máy khách sạn)
+  type HookDong = { id: string; chu: string; ngay: number; page: string };
+  const hookTu = (rows: { library_id: string; dong: string; ngay: number; page_ten: string | null }[]) => { const thay = new Set<string>(), ra: HookDong[] = [];
+    for (const r of rows) { const chu = sachHook(r.dong), k = chu.toLowerCase(); if (chu.length < 20 || chu.length > 140 || thay.has(k) || /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu) !== vi) continue; thay.add(k); ra.push({ id: String(r.library_id), chu, ngay: Number(r.ngay) || 0, page: String(r.page_ten ?? '') }); }
+    return ra; };
+  const hookNhom = hookTu((await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta
+    where bat_dau is not null and left(noi_dung, 280) ~* any(select replace(lien_quan, '\\b', '\\y') from goc_sp where id = any(${nhomHook}) and lien_quan is not null)
+    order by (coalesce(lan_cuoi, now()) - bat_dau) desc, bien_the desc nulls last limit 400`) as never).slice(0, 100);
+  // VIDEO THẮNG của chính máy (anh duyệt 31/10/2026: hook đã chứng minh = QC spy chạy lâu HOẶC video kênh ≥ 500 lượt sau 7 ngày) → đứng ĐẦU kho hook
+  const { THANG_LUOT_XEM, THANG_SAU_NGAY } = await import('../src/lib/xuong-video/luot-xem');
+  const { docLaiLuotXem, NGAY_DANG_SQL } = await import('../src/lib/xuong-video/luot-xem-db'); await docLaiLuotXem(db, Number(m.id));
+  const thangKenh: HookDong[] = ((await db.execute(sql`SELECT id, dang->>'title' AS title, luot_xem FROM xv_may_video WHERE may_id = ${m.id} AND luot_xem >= ${THANG_LUOT_XEM}
+    AND ${sql.raw(NGAY_DANG_SQL)} <= current_date - ${THANG_SAU_NGAY}::int ORDER BY luot_xem DESC LIMIT 10`)) as unknown as { id: number; title: string; luot_xem: number }[])
+    .map((v) => ({ id: `kenh:${v.id}`, chu: sachHook(v.title.replace(/\s*#\w+/g, '')), ngay: v.luot_xem, page: `video thắng của kênh (${v.luot_xem} lượt xem)` }));
+  const qcGoc = [...new Set(gocs.flatMap((g) => g.qc_ids ?? []))];
+  const hookCuaQc = new Map(hookTu(qcGoc.length ? (await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta where library_id = any(${qcGoc})`) as never : []).map((h) => [h.id, h]));
+  /** 6 hook cho một góc: QC của góc trước, rồi QC chạy lâu của nhóm (xoay theo thứ tự để các bài không cùng một hook). */
+  // hook QC spy dùng NGUYÊN VĂN → hook nằm trong bất kỳ bài chưa cất nào (kể cả bài bị chặn) không đưa lại — trả về kho chỉ khi bài đó được cất
+  // (31/10: trả hook của bài SỬA LẠI về kho → bài mới trùng tiêu đề bài cũ, vòng lặp phí). Hook video thắng của kênh (kenh:) thì dùng nhiều lần, mỗi lần đổi chủ thể.
+  // hook dùng NGUYÊN VĂN → một hook chỉ một bài đang chờ đăng của máy (31/10/2026: 5 bài Front Porch cùng một câu → Phòng Nội dung chặn trùng tiêu đề)
+  const hookDaDung = new Set(((await db.execute(sql`SELECT v.dang->'hook'->>'qc' AS qc FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false) AND v.dang->'hook'->>'qc' IS NOT NULL AND v.dang->'hook'->>'qc' NOT LIKE 'kenh:%'`)) as unknown as { qc: string }[]).map((x) => x.qc));
+  const hooksCho = (g: { qc_ids: string[] }, i: number): HookDong[] => { const rieng = (g.qc_ids ?? []).map((id) => hookCuaQc.get(String(id))).filter((x): x is HookDong => !!x && !hookDaDung.has(x.id)).slice(0, 3);
+    const con = hookNhom.filter((h) => !hookDaDung.has(h.id));
+    const chung = con.length ? Array.from({ length: Math.min(6, con.length) }, (_, k) => con[(i * 3 + k) % con.length]!) : [];
+    return [...rieng, ...chung.filter((h, k, ds) => !rieng.some((r) => r.id === h.id) && ds.findIndex((x) => x.id === h.id) === k)].slice(0, 6); };
+  await spy.end();
+  // NGỌC LỌC KHO HOOK TRƯỚC KHI SINH (31/10/2026): cùng phép xét của Phòng Nội dung (cham-dang.mjs › xetHookAi — lệch ngách / hứa điều thương hiệu không có),
+  // hook bị chặn thì không đưa cho AI viết — sinh ra là bài SỬA LẠI, đốt tiền. Xét 100 hook nhóm chạy lâu nhất (câu đã xét đọc sổ xet-hook.json, không tốn lại) + QC gắn góc; vài đồng một hook.
+  {
+    const { xetHookAi } = await import('../../cty/worker/cham-dang.mjs');
+    const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
+    const muc = ((await db.execute(sql`SELECT muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { muc_dich: string | null }[])[0]?.muc_dich ?? null;
+    const xet = async (ds: HookDong[]) => { const loi = await xetHookAi(ds.map((h) => ({ qc: h.id, ma, nhan: sp.nhan, muc_dich: muc, su_that: suThat, goc: h.chu, dong: [h.chu] }))); return ds.filter((_, k) => !loi[k]); };
+    const truoc = hookNhom.length + hookCuaQc.size, nhomDat = await xet(hookNhom.slice(0, 100)), qcDat = new Set((await xet([...hookCuaQc.values()])).map((h) => h.id));
+    hookNhom.splice(0, hookNhom.length, ...nhomDat); for (const k of [...hookCuaQc.keys()]) if (!qcDat.has(k)) hookCuaQc.delete(k);
+    console.log(`· Ngọc lọc kho hook: giữ ${hookNhom.length + hookCuaQc.size}/${truoc}`);
+  }
+  hookNhom.unshift(...thangKenh);   // video thắng của kênh: đã chứng minh trên đúng tệp người xem của máy, không qua kho spy
+  console.log(`· hook QC gốc: ${hookNhom.length} hook nhóm (chạy lâu nhất ${hookNhom[0]?.ngay ?? 0} ngày), ${hookCuaQc.size} QC gắn góc, ${hookDaDung.size} đã dùng ở bài đang chờ`);
+  // KHÔNG có hook QC thì DỪNG: bài hook tự viết bị Phòng Nội dung chặn (cham-dang luật 8) — sinh ra là đốt tiền (31/10: Sidecue / MilitaryCalc / Giỗ Chạp 17 bài SỬA LẠI)
+  if (!hookNhom.length && !hookCuaQc.size) { console.error(`✗ máy ${ma}: nhóm spy ${nhomHook.join(', ')} (góc + hook_sp) chưa có QC nào khớp làm hook — cần cào QC cho nhóm (hoặc gắn nhóm lân cận) trước khi sinh`); process.exit(1); }
+  return { tt, gocs, hookNhom, hookCuaQc, hookDaDung, hooksCho };
 }
 
 if (a.includes('--nap')) {
@@ -125,58 +185,7 @@ if (a.includes('--nap')) {
   const DANG_TAT_CA = ['lam-tuong', 'dung-sai', 'top-n', 'so-sanh', 'spot-the-fake', 'cau-do-meo', 'vat-lac-loai', 'canh-dong', 'giai-thich-giong', ...(dl ? ['cau-noi-theo-nuoc'] : [])];
   const DANG_VIDEO = lay('--dang') ? DANG_TAT_CA.filter((d) => d === lay('--dang')) : DANG_TAT_CA;
   if (!DANG_VIDEO.length) { console.error(`--dang ${lay('--dang')} không phải dạng video (${DANG_TAT_CA.join(', ')})`); process.exit(1); }
-  const dongMay = ((await db.execute(sql`SELECT goc_sp, hook_sp FROM xv_may WHERE ma = ${ma}`)) as unknown as { goc_sp: number[] | null; hook_sp: number[] | null }[])[0];
-  const nhom = (dongMay?.goc_sp ?? []).map(Number), nhomHook = [...new Set([...nhom, ...(dongMay?.hook_sp ?? []).map(Number)])];   // hook_sp: nhóm lân cận CHỈ để mượn hook (migration 0382)
-  if (!nhom.length) { console.error(`máy ${ma} chưa gắn nhóm góc spy (goc_sp)`); process.exit(1); }
-  const fs = await import('node:fs'), url = process.env.SPY_DATABASE_URL ?? fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13);
-  const spy = (await import('postgres')).default(url!, { max: 1, prepare: false });
-  const gocs = (await spy`select sp_id as sp, id, loai, ten, coalesce(qc_ids, '{}') as qc_ids from goc where sp_id = any(${nhom}) order by id`) as unknown as { sp: number; id: number; loai: string; ten: string; qc_ids: string[] }[];
-  // NGÔN NGỮ THEO THỊ TRƯỜNG của nhóm góc (31/10/2026, Giỗ Chạp): nhóm thị trường VN → đề + chữ đăng tiếng Việt; dạng cần giọng tiếng Anh (heygen Vincent) / câu nói ngoại ngữ thì bỏ
-  const tt = ((await spy`select thi_truong from goc_sp where id = any(${nhom})`) as unknown as { thi_truong: string[] | null }[]).flatMap((x) => x.thi_truong ?? []);
-  // HOOK GỐC TỪ QC THẬT (anh 31/10/2026, "rule quan trọng"): dòng đầu của QC chạy LÂU NHẤT khớp nhóm góc (biểu thức liên quan của spy, \b → \y cho Postgres),
-  // đúng ngôn ngữ thị trường, 20–140 ký tự, bỏ trùng chữ. Góc có QC gắn sẵn (goc.qc_ids) thì QC của góc đứng trước. AI chọn một, sửa nhẹ (may-de.ts › kiemDe).
-  const vi = tt.length > 0 && tt.every((t) => /^VN/i.test(t));
-  // QC phải NÓI VỀ ngách ngay phần đầu (280 ký tự đầu khớp biểu thức liên quan) — khớp ở cuối thân QC = QC chủ đề khác (#875 xe đưa đón du thuyền lọt vào máy khách sạn)
-  type HookDong = { id: string; chu: string; ngay: number; page: string };
-  const hookTu = (rows: { library_id: string; dong: string; ngay: number; page_ten: string | null }[]) => { const thay = new Set<string>(), ra: HookDong[] = [];
-    for (const r of rows) { const chu = sachHook(r.dong), k = chu.toLowerCase(); if (chu.length < 20 || chu.length > 140 || thay.has(k) || /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu) !== vi) continue; thay.add(k); ra.push({ id: String(r.library_id), chu, ngay: Number(r.ngay) || 0, page: String(r.page_ten ?? '') }); }
-    return ra; };
-  const hookNhom = hookTu((await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta
-    where bat_dau is not null and left(noi_dung, 280) ~* any(select replace(lien_quan, '\\b', '\\y') from goc_sp where id = any(${nhomHook}) and lien_quan is not null)
-    order by (coalesce(lan_cuoi, now()) - bat_dau) desc, bien_the desc nulls last limit 400`) as never).slice(0, 100);
-  // VIDEO THẮNG của chính máy (anh duyệt 31/10/2026: hook đã chứng minh = QC spy chạy lâu HOẶC video kênh ≥ 500 lượt sau 7 ngày) → đứng ĐẦU kho hook
-  const { THANG_LUOT_XEM, THANG_SAU_NGAY } = await import('../src/lib/xuong-video/luot-xem');
-  const { docLaiLuotXem, NGAY_DANG_SQL } = await import('../src/lib/xuong-video/luot-xem-db'); await docLaiLuotXem(db, Number(m.id));
-  const thangKenh: HookDong[] = ((await db.execute(sql`SELECT id, dang->>'title' AS title, luot_xem FROM xv_may_video WHERE may_id = ${m.id} AND luot_xem >= ${THANG_LUOT_XEM}
-    AND ${sql.raw(NGAY_DANG_SQL)} <= current_date - ${THANG_SAU_NGAY}::int ORDER BY luot_xem DESC LIMIT 10`)) as unknown as { id: number; title: string; luot_xem: number }[])
-    .map((v) => ({ id: `kenh:${v.id}`, chu: sachHook(v.title.replace(/\s*#\w+/g, '')), ngay: v.luot_xem, page: `video thắng của kênh (${v.luot_xem} lượt xem)` }));
-  const qcGoc = [...new Set(gocs.flatMap((g) => g.qc_ids ?? []))];
-  const hookCuaQc = new Map(hookTu(qcGoc.length ? (await spy`select library_id, split_part(noi_dung, E'\n', 1) as dong, (coalesce(lan_cuoi, now())::date - bat_dau::date) as ngay, page_ten from qc_meta where library_id = any(${qcGoc})`) as never : []).map((h) => [h.id, h]));
-  /** 6 hook cho một góc: QC của góc trước, rồi QC chạy lâu của nhóm (xoay theo thứ tự để các bài không cùng một hook). */
-  // hook QC spy dùng NGUYÊN VĂN → hook nằm trong bất kỳ bài chưa cất nào (kể cả bài bị chặn) không đưa lại — trả về kho chỉ khi bài đó được cất
-  // (31/10: trả hook của bài SỬA LẠI về kho → bài mới trùng tiêu đề bài cũ, vòng lặp phí). Hook video thắng của kênh (kenh:) thì dùng nhiều lần, mỗi lần đổi chủ thể.
-  // hook dùng NGUYÊN VĂN → một hook chỉ một bài đang chờ đăng của máy (31/10/2026: 5 bài Front Porch cùng một câu → Phòng Nội dung chặn trùng tiêu đề)
-  const hookDaDung = new Set(((await db.execute(sql`SELECT v.dang->'hook'->>'qc' AS qc FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false) AND v.dang->'hook'->>'qc' IS NOT NULL AND v.dang->'hook'->>'qc' NOT LIKE 'kenh:%'`)) as unknown as { qc: string }[]).map((x) => x.qc));
-  const hooksCho = (g: { qc_ids: string[] }, i: number): HookDong[] => { const rieng = (g.qc_ids ?? []).map((id) => hookCuaQc.get(String(id))).filter((x): x is HookDong => !!x && !hookDaDung.has(x.id)).slice(0, 3);
-    const con = hookNhom.filter((h) => !hookDaDung.has(h.id));
-    const chung = con.length ? Array.from({ length: Math.min(6, con.length) }, (_, k) => con[(i * 3 + k) % con.length]!) : [];
-    return [...rieng, ...chung.filter((h, k, ds) => !rieng.some((r) => r.id === h.id) && ds.findIndex((x) => x.id === h.id) === k)].slice(0, 6); };
-  await spy.end();
-  // NGỌC LỌC KHO HOOK TRƯỚC KHI SINH (31/10/2026): cùng phép xét của Phòng Nội dung (cham-dang.mjs › xetHookAi — lệch ngách / hứa điều thương hiệu không có),
-  // hook bị chặn thì không đưa cho AI viết — sinh ra là bài SỬA LẠI, đốt tiền. Xét 100 hook nhóm chạy lâu nhất (câu đã xét đọc sổ xet-hook.json, không tốn lại) + QC gắn góc; vài đồng một hook.
-  {
-    const { xetHookAi } = await import('../../cty/worker/cham-dang.mjs');
-    const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
-    const muc = ((await db.execute(sql`SELECT muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { muc_dich: string | null }[])[0]?.muc_dich ?? null;
-    const xet = async (ds: HookDong[]) => { const loi = await xetHookAi(ds.map((h) => ({ qc: h.id, ma, nhan: sp.nhan, muc_dich: muc, su_that: suThat, goc: h.chu, dong: [h.chu] }))); return ds.filter((_, k) => !loi[k]); };
-    const truoc = hookNhom.length + hookCuaQc.size, nhomDat = await xet(hookNhom.slice(0, 100)), qcDat = new Set((await xet([...hookCuaQc.values()])).map((h) => h.id));
-    hookNhom.splice(0, hookNhom.length, ...nhomDat); for (const k of [...hookCuaQc.keys()]) if (!qcDat.has(k)) hookCuaQc.delete(k);
-    console.log(`· Ngọc lọc kho hook: giữ ${hookNhom.length + hookCuaQc.size}/${truoc}`);
-  }
-  hookNhom.unshift(...thangKenh);   // video thắng của kênh: đã chứng minh trên đúng tệp người xem của máy, không qua kho spy
-  console.log(`· hook QC gốc: ${hookNhom.length} hook nhóm (chạy lâu nhất ${hookNhom[0]?.ngay ?? 0} ngày), ${hookCuaQc.size} QC gắn góc, ${hookDaDung.size} đã dùng ở bài đang chờ`);
-  // KHÔNG có hook QC thì DỪNG: bài hook tự viết bị Phòng Nội dung chặn (cham-dang luật 8) — sinh ra là đốt tiền (31/10: Sidecue / MilitaryCalc / Giỗ Chạp 17 bài SỬA LẠI)
-  if (!hookNhom.length && !hookCuaQc.size) { console.error(`✗ máy ${ma}: nhóm spy ${nhomHook.join(', ')} (góc + hook_sp) chưa có QC nào khớp làm hook — cần cào QC cho nhóm (hoặc gắn nhóm lân cận) trước khi sinh`); process.exit(1); }
+  const { tt, gocs, hooksCho, hookDaDung } = await khoGocHook(ma, Number(m.id), sp);
   if (tt.length && tt.every((t) => /^VN/i.test(t))) { (sp as { ngon_ngu?: 'vi' }).ngon_ngu = 'vi'; DANG_VIDEO.splice(0, DANG_VIDEO.length, ...DANG_VIDEO.filter((d) => d !== 'giai-thich-giong' && d !== 'cau-noi-theo-nuoc')); console.log('· máy thị trường VN: viết tiếng Việt'); }
   const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.dang->>'title' AS title FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; title: string | null }[];
   const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);
@@ -198,6 +207,17 @@ if (a.includes('--nap')) {
     ra.push(`${x.ok ? '✓' : '⚠'} #${g.id} ${d} → ${kq.de.slug} (${Math.round(kq.vnd)}₫)${x.ok ? '' : ` · dựng ✗ ${x.loi}`}`); n++;
   }
   console.log(ra.join('\n')); console.log(`sinh kho ${ma}: ${n}/${N} đề, ${Math.round(vnd)}₫`);
+} else if (a.includes('--goc-hook')) {
+  // GÓC + HOOK CHO MỘT TẬP của máy làm video ngoài (kênh lịch sử — lam-tap.mjs gọi, 02/11/2026): góc dùng ít nhất của nhóm spy máy + tối đa 6 hook QC chưa dùng
+  // + chủ đề các tập đã làm (máy viết tránh lặp). In JSON; không có góc / hook → mã 1 (cùng luật --sinh-kho). 0₫ (Ngọc lọc dùng sổ xét sẵn, câu mới vài đồng).
+  const m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
+  const sp = await spCua(ma), { gocs, hooksCho } = await khoGocHook(ma, Number(m.id), sp);
+  const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.chu_de FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; chu_de: string | null }[];
+  const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);
+  const g = [...gocs].sort((g1, g2) => (dem.get(g1.id) ?? 0) - (dem.get(g2.id) ?? 0))[0];
+  if (!g) { console.error(`✗ máy ${ma}: nhóm spy chưa có góc nào`); process.exit(1); }
+  const hooks = hooksCho(g, daCo.length); if (!hooks.length) { console.error(`✗ máy ${ma}: hết hook QC chưa dùng`); process.exit(1); }
+  console.log(JSON.stringify({ goc: { sp: g.sp, id: g.id, loai: g.loai, ten: g.ten }, hooks, da_lam: daCo.map((x) => x.chu_de).filter(Boolean) }));
 } else if (a.includes('--so-kenh')) {
   // SỐ KÊNH SẢN PHẨM (02/11/2026 — mos2 › Tài sản › Kênh sản phẩm): máy la_san_pham → đọc lại lượt xem từng video đã đăng + người đăng ký kênh YouTube
   // → kenh_so_ngay (kenh youtube, san_pham 'may:<mã>', hien = tổng lượt xem cộng dồn, so_muc = số video đã đăng, chi_tiet = { videos, nguoi_dk, kenh_url, ten }).

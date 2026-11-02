@@ -1,5 +1,5 @@
 {
- "_ghi": "HỒ SƠ KÊNH cho máy kênh lịch sử (02/11/2026). Một kênh = dữ liệu: khuôn độ dài, giọng văn máy viết, thẻ kết, giọng đọc, theme hình (ban-do.html), nhạc + tiếng động. Tập ghi tap.kenh; thiếu = saga. Thêm kênh = thêm một mục ở đây, không sửa máy.",
+ "_ghi": "HỒ SƠ KÊNH cho máy kênh lịch sử (02/11/2026). Một kênh = dữ liệu: khuôn độ dài, giọng văn máy viết, thẻ kết, giọng đọc, theme hình (ban-do.html), nhạc + tiếng động. Tập ghi tap.kenh; thiếu = saga. Thêm kênh = thêm một mục ở đây, không sửa máy. may = mã máy Studio (xv_may) của kênh: có thì chủ đề + hook lấy theo góc spy của máy (may-dung.mts --goc-hook) và tập dựng xong nạp vào máy đó (mẫu video-ngoai) cho máy đăng chung. lich_tap = thứ trong tuần làm tập tự động (1 = Thứ Hai … 7 = Chủ nhật, giờ VN) — chay-kenh.mjs (việc nền iMac:com.earns.lich-su-lam-tap) đọc.",
  "saga": {
   "ten": "Kênh lịch sử bản đồ (khuôn Saga, Shorts mồi)",
   "cau": [
@@ -140,6 +140,12 @@
    "ti_le": 0.6,
    "tron_lien_toi_da": 1
   },
-  "toi_da_giay": 179
+  "toi_da_giay": 179,
+  "may": "yesterdays-news-tonight",
+  "lich_tap": [
+   1,
+   3,
+   5
+  ]
  }
 }

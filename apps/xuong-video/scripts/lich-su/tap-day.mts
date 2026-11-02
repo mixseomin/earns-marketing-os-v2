@@ -8,8 +8,8 @@ import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { uploadToR2 } from '../../src/lib/r2';
 
-const [tepTap, mp4] = process.argv.slice(2);
-if (!tepTap || !mp4) { console.error('tsx tap-day.mts <tập.json> <video.mp4>'); process.exit(2); }
+const [tepTap, mp4, ...tepKhung] = process.argv.slice(2);   // khung (jpg) tuỳ chọn → R2 xuong-video/lich-su/tap/<id>-khung-<i>.jpg, trả về khung[] cho máy đăng
+if (!tepTap || !mp4) { console.error('tsx tap-day.mts <tập.json> <video.mp4> [khung.jpg…]'); process.exit(2); }
 const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
 const kenhId = tap.kenh ?? 'saga', K = JSON.parse(readFileSync(new URL('./kenh.json', import.meta.url), 'utf8'))[kenhId];
 const db = getDb()!, q = async <T,>(s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as T[];
@@ -28,5 +28,7 @@ let tapId = co;
 if (co) await db.execute(sql`UPDATE xv_tap SET ten = ${tap.tieu_de}, kich_ban = ${kichBan}, tom_tat = ${tap.chu_de ?? tap.tieu_de}, video_url = ${url}, thoi_luong_s = ${giay}, ho_so = ${JSON.stringify(hoSo)}::jsonb, trang_thai = 'nhap', updated_at = now() WHERE id = ${co}`);
 else { const so = (await q<{ n: number }>(sql`SELECT COALESCE(MAX(so), 0) + 1 AS n FROM xv_tap WHERE phim_id = ${phim}`))[0]!.n;
   tapId = (await q<{ id: number }>(sql`INSERT INTO xv_tap (phim_id, so, ten, kich_ban, tom_tat, trang_thai, video_url, thoi_luong_s, ho_so) VALUES (${phim}, ${so}, ${tap.tieu_de}, ${kichBan}, ${tap.chu_de ?? tap.tieu_de}, 'nhap', ${url}, ${giay}, ${JSON.stringify(hoSo)}::jsonb) RETURNING id`))[0]!.id; }
-console.log(JSON.stringify({ phim, tap: tapId, url, giay }));
+const khung: string[] = [];
+for (const [i, f] of tepKhung.entries()) { const u = await uploadToR2(`xuong-video/lich-su/tap/${tap.id}-khung-${i}.jpg`, readFileSync(f), 'image/jpeg'); if (u) khung.push(u); }
+console.log(JSON.stringify({ phim, tap: tapId, url, giay, khung }));
 process.exit(0);

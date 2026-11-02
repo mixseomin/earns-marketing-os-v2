@@ -14,6 +14,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, copyFi
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
+import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const co = (k) => process.argv.includes(`--${k}`);
@@ -123,6 +124,12 @@ async function kiem(tap, nguonChu) {
   if (KENH.canh_song) { const song = ds.map((c) => ['nguoi', 'xe', 'ten', 'co', 'dau', 'ke'].some((f) => (c.canh[f] || []).length) || !!c.canh.tranh);
     const tl = song.filter(Boolean).length / ds.length; if (tl < KENH.canh_song.ti_le) loi.push(`chỉ ${Math.round(tl * 100)}% câu có chuyển động ngoài camera — kênh ${kenhId} cần ≥ ${Math.round(KENH.canh_song.ti_le * 100)}% (thêm nhân vật đổi dáng / mũi tên / cờ / dấu vào câu trơn)`);
     let lien = 0; song.forEach((v, k) => { lien = v ? 0 : lien + 1; if (lien === KENH.canh_song.tron_lien_toi_da + 1) loi.push(`câu ${k + 1 - KENH.canh_song.tron_lien_toi_da}–${k + 1}: ${lien} câu liền chỉ có bản đồ trơn — thêm chuyển động vào ít nhất một câu`); }); }
+  // HOOK + MÔ TẢ (kênh có máy đăng): tiêu đề qua đúng luật hook của Phòng Nội dung (hook-qc.mjs — giữ ≥ 35% chữ QC gốc, không thêm số); mô tả đăng có thật
+  if (KENH.may) { if (!tap.hook?.goc) loi.push('tập chưa gắn hook QC spy (tap.hook) — máy đăng sẽ bị Phòng Nội dung chặn');
+    else loi.push(...loiHook([tap.tieu_de], tap.hook.goc).map((x) => `tiêu đề: ${x}`));
+    if (!tap.goc?.id) loi.push('tập chưa gắn góc spy (tap.goc)');
+    if (!tap.mo_ta_dang || tap.mo_ta_dang.length < 80) loi.push('mô tả đăng (mo_ta_dang) thiếu hoặc dưới 80 ký tự'); }
+  for (const [k, c] of ds.entries()) if (c.canh.tranh?.commons && !c.canh.tranh.anh && !(await commons(c.canh.tranh.commons))) loi.push(`câu ${k + 1}: tranh Commons "${c.canh.tranh.commons}" không tồn tại — tên tệp có thật hoặc null (AI vẽ)`);
   if (!ds[0]?.canh?.mo || !ds[0]?.canh?.chu_to) loi.push('câu 1: thiếu hook (mo + chu_to)');
   if (!ds.at(-1)?.canh?.ket) loi.push('câu cuối: thiếu thẻ kết ket');
   const cuoi = coMoc ? (KENH.cau_cuoi[nn] ?? KENH.cau_cuoi.en) : null;
@@ -143,13 +150,17 @@ const khoaLoi = () => { if (!loiCu) return; const t = JSON.parse(readFileSync(te
   t.cau.forEach((c, i) => Object.assign(c, loiCu[i])); writeFileSync(tepTap, JSON.stringify(t, null, 1) + '\n'); return true; };
 const sua = (co('sua') || suaCanh) && existsSync(tepTap) && existsSync(join(RA, 'nguon.txt'));   // --sua: không viết lại từ đầu, đưa lỗi của bản đang có cho máy viết sửa
 if (!existsSync(tepTap) || co('viet-lai') || sua) {
-  if (!chuDe) { console.error('chưa có tập — cần --chu-de'); process.exit(2); }
   const tmp = `/tmp/lich-su-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${tmp}`]); len(tepKho, `${tmp}/kho.json`);
+  // GÓC + HOOK SPY: kênh có máy Studio (kenh.json may) mà chưa có chủ đề → lấy góc dùng ít nhất + hook QC của máy, máy viết tự chọn chuyện hợp góc
+  let ghArg = '';
+  if (!chuDe && KENH.may) { const f = join(RA, 'goc-hook.json'); writeFileSync(f, box(`scripts/may-dung.mts --may ${KENH.may} --goc-hook`).split('\n').pop()); len(f, `${tmp}/goc-hook.json`); ghArg = ` --goc-hook ${tmp}/goc-hook.json`;
+    const g = JSON.parse(readFileSync(f, 'utf8')); console.log(`góc spy #${g.goc.id} ${g.goc.ten} · ${g.hooks.length} hook QC`); }
+  if (!chuDe && !ghArg) { console.error('chưa có tập — cần --chu-de (hoặc kênh có máy Studio để chọn đề theo góc)'); process.exit(2); }
   let loi = sua ? await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
   for (let lan = 1; lan <= 4 && !(sua && !loi.length && lan === 1); lan++) {
     const them = loi.length ? ` --loi ${tmp}/loi.txt --cu ${tmp}/tap.json` : '';
     if (loi.length) { writeFileSync(join(RA, 'loi.txt'), loi.map((x) => `- ${x}`).join('\n')); len(join(RA, 'loi.txt'), `${tmp}/loi.txt`); len(tepTap, `${tmp}/tap.json`); }
-    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json --chu-de ${q(chuDe)} --nn ${nn} --id ${id} --kenh ${kenhId}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTua ? ` --nguon ${q(nguonTua)}` : ''}${them}`)); }
+    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTua ? ` --nguon ${q(nguonTua)}` : ''}${them}`)); }
     catch (e) { console.log(`✗ lượt viết ${lan}: máy viết hỏng — ${String(e.stderr || e.message).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}`); if (!existsSync(tepTap)) continue; loi = loi.length ? loi : ['(lượt trước hỏng, viết lại)']; continue; }
     const truoc = suaCanh ? readFileSync(tepTap, 'utf8') : null;
     ve(`${tmp}/tap.json`, tepTap); ve(`${tmp}/tap.json.nguon.txt`, join(RA, 'nguon.txt'));
@@ -187,6 +198,9 @@ for (const t of tap.tai_san_moi || []) {
 const khoNay = docKho().tai_san;
 for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr || tr.anh) continue;
   const ten = `tranh/${id}-${k + 1}`, f = join(KHO, `${ten}.jpg`); mkdirSync(join(KHO, 'tranh'), { recursive: true });
+  // ẢNH LỊCH SỬ THẬT trước (Wikimedia Commons, public domain — luật ảnh thật của Phòng Nội dung); không có tệp thì AI vẽ theo mo_ta
+  if (!existsSync(f) && tr.commons) { const c = await commons(tr.commons); if (c) { const u = c.thumb.replace(/\/\d+px-/, '/1600px-');
+    writeFileSync(f, Buffer.from(await (await tai(u)).arrayBuffer())); tr.commons_url = c.thumb; tr.commons_trang = c.trang; console.log(`✓ tranh ${k + 1}: Commons ${tr.commons}`); } }
   if (!existsSync(f)) { const ref = (tr.ref || []).map((r) => khoNay[r]?.dang?.goc).filter(Boolean), bt = `/tmp/${id}-tranh-${k + 1}.jpg`;
     const out = box(`scripts/lich-su/tranh-sinh.mts ${bt} ${q(tr.mo_ta)} ${ref.map(q).join(' ')}`); console.log(out); tien += Number(out.match(/~(\d+)₫/)?.[1] ?? 0);
     ve(bt, f); execFileSync('ssh', [BOX, `rm -f ${bt}`]); }
@@ -207,9 +221,23 @@ if (!co('chi-day')) execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-vf
 console.log(`✓ ${mp4}\n✓ ${xem}`);
 // 5. STUDIO: mỗi kênh một phim, tập này thành một tập trong phim đó — anh quản / duyệt trong studio.on.tc. Gửi BẢN PHÁT HÀNH nén (1080p H.264 crf 23 trần 6 Mbps — lớp chấm in lá cải khó nén,
 // bản gốc máy quay ~350 MB/3 phút) qua /var/tmp (đĩa; /tmp box3 là ổ RAM 512 MB) — hỏng ở bất kỳ khâu nào chỉ báo, không làm mất video đã dựng
-{ const ban = join(RA, `${id}-ban.mp4`), bt = `/var/tmp/tap-day-${id}`;
+{ const ban = join(RA, `${id}-ban.mp4`), bt = `/var/tmp/tap-day-${id}`; let kq = null, giay = 0;
   try { execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-c:v', 'libx264', '-crf', '23', '-maxrate', '6M', '-bufsize', '12M', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'copy', '-movflags', '+faststart', ban]);
     execFileSync('ssh', [BOX, `mkdir -p ${bt}`]); len(tepTap, `${bt}/tap.json`); len(ban, `${bt}/tap.mp4`);
-    const kq = JSON.parse(box(`scripts/lich-su/tap-day.mts ${bt}/tap.json ${bt}/tap.mp4`).split('\n').pop()); console.log(`✓ Studio phim #${kq.phim} · tập #${kq.tap} · https://studio.on.tc/?m=phim&mId=${kq.phim} · ${kq.url}`); }
+    // 3 khung (12 % · 50 % · 85 %) cho Studio + Phòng Nội dung chấm hình
+    giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp4], { encoding: 'utf8' }));
+    const khung = [0.12, 0.5, 0.85].map((x, i) => { const f = join(RA, `khung-${i}.jpg`); execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(giay * x), '-i', mp4, '-frames:v', '1', '-vf', 'scale=540:-2', '-q:v', '4', f]); len(f, `${bt}/khung-${i}.jpg`); return `${bt}/khung-${i}.jpg`; });
+    kq = JSON.parse(box(`scripts/lich-su/tap-day.mts ${bt}/tap.json ${bt}/tap.mp4 ${khung.join(' ')}`).split('\n').pop()); console.log(`✓ Studio phim #${kq.phim} · tập #${kq.tap} · https://studio.on.tc/?m=phim&mId=${kq.phim} · ${kq.url}`); }
   catch (e) { console.log(`⚠ đẩy Studio hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ')}`); }
+  // 6. MÁY ĐĂNG: kênh có máy Studio → tập thành một video của máy (mẫu video-ngoai: URL R2 + 3 khung), Phòng Nội dung chấm rồi máy đăng chung tự đăng theo nhịp
+  if (KENH.may && kq) try {
+    const anhThat = tap.cau.map((c) => c.canh.tranh?.commons_url).filter(Boolean);
+    const moTa = `${tap.mo_ta_dang}${anhThat.length ? '\n\nImages: Wikimedia Commons (public domain). Maps: Natural Earth.' : ''}`;
+    const nap = [{ slug: id, chu_de: tap.chu_de, mau: 'video-ngoai', nen_url: anhThat[0] ?? null,
+      de: { loai: 'video-ngoai', video_url: kq.url, giay: Math.round(giay * 100) / 100, khung: kq.khung ?? [], tom_tat: tap.chu_de },
+      dang: { title: tap.tieu_de, description: moTa, link: null, loai: 'thuong', goc: tap.goc, hook: tap.hook } }];
+    writeFileSync(join(RA, 'nap.json'), JSON.stringify(nap)); len(join(RA, 'nap.json'), `${bt}/nap.json`);
+    console.log(box(`scripts/may-dung.mts --may ${KENH.may} --nap < ${bt}/nap.json`)); console.log(box(`scripts/may-dung.mts --may ${KENH.may} --xuat ${id}`).split('\n').slice(-2).join(' · '));
+    console.log(`✓ nạp máy ${KENH.may} · https://studio.on.tc (Máy › ${KENH.may}) · Phòng Nội dung chấm ở lượt kế`);
+  } catch (e) { console.log(`⚠ nạp máy đăng hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ')}`); }
   try { execFileSync('ssh', [BOX, `rm -rf ${bt}`]); } catch {} }

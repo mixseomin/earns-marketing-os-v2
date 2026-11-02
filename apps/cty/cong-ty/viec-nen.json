@@ -826,6 +826,25 @@
     "moi_giay": 3600
    },
    "ghi_chu": "Anh duyệt 31/10/2026: máy tự bấm chấp nhận giá mới trên ckey.vn (phiên chỉ có ở profile br #10 iMac). Chỉ mở trình duyệt khi ckey-tuyen.json (box3) có người bán báo đổi giá; chốt: giá ra mới ≤ người đắt nhất còn sống cùng dòng, ngoài dòng thì tăng ≤ 50%."
+  },
+  {
+   "nhan": "iMac:com.earns.lich-su-lam-tap",
+   "ten": "Kênh lịch sử - làm tập + đo số kênh",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video/scripts/lich-su/chay-kenh.mjs"
+   ],
+   "thu_muc": "/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/lich-su-lam-tap.log",
+   "hen": {
+    "luc": [
+     "09:30"
+    ]
+   },
+   "ghi_chu": "Anh duyệt 02/11/2026: 3 tập/tuần (Thứ Hai · Tư · Sáu — kenh.json lich_tap) cho kênh Yesterday's News Tonight (máy studio yesterdays-news-tonight); ngày nào cũng đo số kênh → mos2 › Tài sản › Kênh sản phẩm. Mỗi tập ~7.000–10.000₫, báo Telegram tiền thật. Đăng do máy đăng chung (com.earns.may-dang-lien-tuc) lo theo nhịp an toàn."
   }
  ]
 }

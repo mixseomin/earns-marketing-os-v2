@@ -9,8 +9,16 @@ import { z } from 'zod/v4';
 import { sinhJson } from '../../src/lib/xuong-video/claude';
 
 const arg = (k: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : undefined; };
-const ra = process.argv[2], chuDe = arg('chu-de'), nn = arg('nn') ?? 'en', id = arg('id');
-if (!ra || !chuDe || !id) { console.error('tsx viet-tap.mts <ra.json> --chu-de "…" --nn en --id <id>'); process.exit(2); }
+const ra = process.argv[2], nn = arg('nn') ?? 'en', id = arg('id');
+let chuDe = arg('chu-de');
+// GÓC + HOOK SPY (anh 02/11/2026: "làm video mà không có hook thì ai ở lại, không có góc thì ai tìm"): --goc-hook <tệp> = JSON { goc, hooks[], da_lam[] } từ
+// may-dung.mts --goc-hook. Bản sửa (--cu) giữ đúng góc + hook + tiêu đề của bản trước, không chọn lại.
+type Hook = { id: string; chu: string; ngay: number; page: string };
+const gh = arg('goc-hook') ? JSON.parse(readFileSync(arg('goc-hook')!, 'utf8')) as { goc: { sp: number; id: number; loai: string; ten: string }; hooks: Hook[]; da_lam: string[] } : null;
+const cuTap = arg('cu') ? JSON.parse(readFileSync(arg('cu')!, 'utf8')) as { hook?: { qc: string; goc: string }; goc?: unknown; tieu_de?: string; chu_de?: string } : null;
+let hookChon: { qc: string; goc: string } | null = cuTap?.hook ?? null, tieuDeChon: string | null = cuTap?.hook ? cuTap.tieu_de ?? null : null;
+chuDe ??= cuTap?.chu_de;
+if (!ra || !id || (!chuDe && !gh)) { console.error('tsx viet-tap.mts <ra.json> (--chu-de "…" | --goc-hook <tệp>) --nn en --id <id>'); process.exit(2); }
 // HỒ SƠ KÊNH (kenh.json): khuôn độ dài, giọng văn, thẻ kết của kênh — saga (Shorts mồi) / parody (trọn chuyện, lá cải)…
 const kenhId = arg('kenh') ?? 'saga', K = JSON.parse(readFileSync(new URL('./kenh.json', import.meta.url), 'utf8'))[kenhId];
 if (!K) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
@@ -23,6 +31,25 @@ const WIKI = `https://${nn}.wikipedia.org/w/api.php`;
 const goiWiki = async (q: Record<string, string>): Promise<any> => { for (let i = 1; ; i++) { const r = await fetch(`${WIKI}?${new URLSearchParams({ format: 'json', formatversion: '2', ...q })}`, { headers: { 'User-Agent': 'studio-lich-su/1.0 (studio.on.tc; admin@mixseo.net)' } });
   const t = await r.text(); try { if (r.ok) return JSON.parse(t); } catch { /* thử lại */ } if (i >= 5) throw new Error(`Wikipedia ${r.status}: ${t.slice(0, 120)}`); await new Promise((ok) => setTimeout(ok, 3000 * i)); } };
 let tua = arg('nguon')?.split('|').filter(Boolean) ?? [];
+// CHỌN ĐỀ THEO GÓC (lượt chữ nhỏ, vài chục đồng): chưa có chủ đề → máy chọn một chuyện lịch sử CÓ THẬT hợp góc + bài Wikipedia nguồn + hook QC + tiêu đề
+if (!chuDe && gh) {
+  const ChonDe = z.object({ chu_de: z.string().describe('câu hỏi chủ đề tiếng Anh, một chuyện lịch sử có thật kể được bằng bản đồ (đất đổi chủ, mua bán, chia ranh giới, chiến tranh, di cư)'),
+    nguon: z.array(z.string()).describe(`2–3 tựa bài ${nn}.wikipedia.org CÓ THẬT, đúng y tựa (vd "Alaska Purchase")`), hook_id: z.string().describe('id của hook QC chọn'),
+    tieu_de: z.string().describe('tiêu đề video = hook QC đó SỬA NHẸ cho chuyện này: giữ ≥ 50% chữ gốc, chỉ thay chủ thể / chi tiết; ≤ 95 ký tự; không dấu gạch dài'), ly_do: z.string() });
+  let loiChon = '';
+  for (let lan = 1; lan <= 3 && !chuDe; lan++) {
+    const c = await sinhJson({ schema: ChonDe, model: 'claude-sonnet-5-5', max_tokens: 2000, ten: 'chọn đề lịch sử theo góc',
+      system: `Bạn chọn đề cho kênh "${K.ten}" (${K.do_dai}). Chuyện phải CÓ THẬT, có tư liệu Wikipedia dày, có chuyển động trên bản đồ, hợp GÓC khán giả bên dưới, chưa làm. Tiêu đề lấy từ MỘT hook QC thật (chạy lâu = đã chứng minh giữ người xem), sửa nhẹ cho đúng chuyện — không viết hook mới.`,
+      user: `GÓC (spy #${gh.goc.id} · ${gh.goc.loai}): ${gh.goc.ten}\nHOOK QC (id · ngày chạy · chữ):\n${gh.hooks.map((h) => `- ${h.id} · ${h.ngay} ngày · ${h.chu}`).join('\n')}\nĐÃ LÀM (tránh):\n${gh.da_lam.map((x) => `- ${x}`).join('\n') || '(chưa có)'}${loiChon ? `\nLẦN TRƯỚC SAI: ${loiChon}` : ''}` });
+    if (!c.ok) { loiChon = c.loi; continue; }
+    const h = gh.hooks.find((x) => x.id === c.data.hook_id); if (!h) { loiChon = `hook_id "${c.data.hook_id}" không có trong danh sách`; continue; }
+    const thieu: string[] = []; for (const t of c.data.nguon) { const p = (await goiWiki({ action: 'query', titles: t, redirects: '1' })).query?.pages?.[0]; if (!p || p.missing) thieu.push(t); }
+    if (thieu.length || c.data.nguon.length < 2) { loiChon = `bài Wikipedia không có: ${thieu.join(', ') || '(ít hơn 2 bài)'}`; continue; }
+    chuDe = c.data.chu_de; tua = c.data.nguon; hookChon = { qc: h.id, goc: h.chu }; tieuDeChon = c.data.tieu_de;
+    console.log(`đề theo góc #${gh.goc.id}: ${chuDe} · nguồn ${tua.join(' | ')} · hook ${h.id} "${h.chu}" → "${tieuDeChon}" (${Math.round(c.tokens.vnd ?? 0)}₫)`);
+  }
+  if (!chuDe) { console.error(`✗ chọn đề theo góc hỏng 3 lần: ${loiChon}`); process.exit(1); }
+}
 if (!tua.length) tua = ((await goiWiki({ action: 'query', list: 'search', srsearch: chuDe, srlimit: '3' })).query?.search ?? []).map((x: { title: string }) => x.title);
 const nguon: { tua: string; url: string; chu: string }[] = [];
 for (const t of tua) { const p = (await goiWiki({ action: 'query', prop: 'extracts', explaintext: '1', redirects: '1', titles: t })).query?.pages?.[0];
@@ -52,11 +79,13 @@ const Canh = z.object({
   nguoi: z.array(z.object({ anh: z.string().describe('mã tài sản loại nhan_vat'), ten: z.string().describe('tên hiện dưới chân (tên người hoặc vai: "Spanish soldiers")'),
     dang: z.array(z.object({ chu: TheoChu, dang: z.string().describe(`một dáng trong: ${kho.dang_chuan.filter((d) => d !== 'goc').join(', ')}`) })).describe('đổi dáng đúng lúc đọc chữ chu (1–2 lần)') })).describe('0–2 nhân vật; người phải SỐNG / tồn tại đúng năm cảnh'),
   dau: z.array(z.object({ chu: TheoChu, text: z.string().describe('chữ con dấu ≤ 2 từ VIẾT HOA đúng ngôn ngữ tập: SOLD, LOST, STRANDED, VENDIDO…') })).describe('con dấu đỏ đóng xuống ở chữ ngoặt (cả tập 1–2 cái)'),
-  tranh: z.object({ mo_ta: z.string().describe('cảnh minh hoạ điện ảnh, tiếng Anh, tả người / nơi / thời / hành động cụ thể, đúng trang phục vũ khí thời đó'), tu_chu: TheoChu, den_chu: TheoChu,
+  tranh: z.object({ commons: z.string().nullable().describe('ƯU TIÊN: tên tệp Wikimedia Commons CÓ THẬT ("File:….jpg") — tranh / ảnh / bản đồ / văn kiện THẬT của đúng sự kiện (public domain). Không chắc có tệp thì null'),
+    mo_ta: z.string().describe('cảnh minh hoạ điện ảnh, tiếng Anh, tả người / nơi / thời / hành động cụ thể, đúng trang phục vũ khí thời đó (AI vẽ khi commons null)'), tu_chu: TheoChu, den_chu: TheoChu,
     ref: z.array(z.string()).describe('mã nhân vật kho có mặt trong tranh (giữ đúng mặt)') }).nullable().describe('tranh đầy khung chen giữa bản đồ từ chữ tu_chu tới den_chu — khoảnh khắc kịch tính nhất (cả tập 1–2 tranh)'),
   ket: z.string().nullable().describe(`CHỈ cảnh cuối: thẻ kết "${ketNN}"`),
 });
 const Ra = z.object({
+  mo_ta_dang: z.string().describe('mô tả YouTube đúng ngôn ngữ tập: 2–4 câu kể tập này nói gì (giọng của kênh, không spoil cú chốt), không link, không hashtag rác, không dấu gạch dài'),
   tieu_de: z.string().describe('tiêu đề video đúng ngôn ngữ tập, công thức "Why does X own Y?" / "¿Por qué…?"'),
   cau: z.array(z.object({ chu: z.string().describe('MỘT câu lời đọc'), su_that: z.array(z.object({ gia_tri: z.string().describe('năm / con số / tên người / tên hiệp ước trong câu'), nguon: z.number().int(), trich: z.string().describe('đoạn chép NGUYÊN VĂN từ nguồn [nguon] chứng minh giá_trị (≤ 220 ký tự)') })),
     canh: Canh })),
@@ -84,7 +113,7 @@ HÌNH:
 - Nhân vật luôn quay về mục tiêu của cảnh — máy lo, chỉ cần chọn đúng người và dáng.
 - NGƯỜI CÓ TÊN đang hành động trong câu (quyết định, bán, mua, ký, đánh, phát hiện) PHẢI đứng trong cảnh đó bằng nguoi — không có trong KHO thì khai tai_san_moi. Cả tập ≥ 2 nhân vật khác nhau.
 - Cảnh có cờ / nhân vật / phương tiện PHẢI có nam (năm sự việc của cảnh) — máy kiểm đồ đúng thời theo năm đó; cờ nước hôm nay không cắm vào cảnh quá khứ.
-- HOOK câu 1 = sự thật gây sốc nhất của chuyện (con số, cái giá, nghịch lý: "Russia sold this land for two cents an acre."), không phải câu tả địa lý.
+${hookChon ? `- HOOK TỪ QC THẬT (bắt buộc): tiêu đề video = "${tieuDeChon}". Câu 1 lời đọc + chu_to phải bám hook QC gốc "${hookChon.goc}" (giữ chữ chính của nó, đổi chủ thể cho đúng chuyện) và vẫn là SỰ THẬT có su_that.\n` : ''}- HOOK câu 1 = sự thật gây sốc nhất của chuyện (con số, cái giá, nghịch lý: "Russia sold this land for two cents an acre."), không phải câu tả địa lý.
 - Mỗi câu ${K.khong_nguon_toi_da ? '(trừ câu đùa / câu chốt cuối)' : '(trừ câu móc cuối)'} có ≥ 1 su_that — kể cả hook (hook phải ĐÚNG: "gần chạm" khác "chạm"). Ô năm (nam) chỉ ghi năm có trong su_that của tập; không rõ năm thì null.
 - Đích ISO@khung phải là khung có ĐẤT của đúng nước đó hôm nay (đất Canada là CAN, không phải GBR) — chủ thời xưa ghi ở to.chu. Được dùng cả hai phía kinh tuyến 180 (máy tự nối lưới).`;
 const user = `CHỦ ĐỀ: ${chuDe}
@@ -99,7 +128,8 @@ if (!r.ok) { console.error(`✗ ${r.loi}`); process.exit(1); }
 const d = r.data;
 // về khuôn dung-tap.mjs: bỏ trường rỗng / null để máy dựng tự điền
 const gon = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== false && !(Array.isArray(v) && !v.length)));
-const tap = { id, kenh: kenhId, tieu_de: d.tieu_de, ngon_ngu: nn, chu_de: chuDe, giong: { voice: K.giong },
+const tap = { id, kenh: kenhId, tieu_de: tieuDeChon ?? d.tieu_de, ngon_ngu: nn, chu_de: chuDe, mo_ta_dang: d.mo_ta_dang,
+  ...(hookChon ? { hook: hookChon } : {}), ...(gh ? { goc: gh.goc } : cuTap?.goc ? { goc: cuTap.goc } : {}), giong: { voice: K.giong },
   nguon: nguon.map((n) => n.url), may_viet: { model: r.model, luc: new Date().toISOString(), tokens: r.tokens },
   cau: d.cau.map((c) => ({ chu: c.chu, su_that: c.su_that, canh: gon({ ...c.canh, to: c.canh.to.map((t) => gon(t)), tranh: c.canh.tranh ? { ...c.canh.tranh, anh: null } : null }) })),
   tai_san_moi: d.tai_san_moi };

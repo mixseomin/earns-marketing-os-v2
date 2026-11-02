@@ -55,7 +55,7 @@ const giayTep = (f: string) => Number(execSync(`ffprobe -v error -show_entries f
 const tai = (url: string, f: string) => execFileSync('curl', ['-sSfL', '-o', f, url]);
 
 // ── 4. THẺ CUỐI = MẪU ĐIỂM CHẠM CTA v2 (anh 29/10/2026 "Cta đang theo mẫu điểm chạm nào nhìn lởm thế?"): thẻ cuối của studio (ảnh AI + chữ trắng) KHÔNG phải mẫu
-// đang chạy — mọi creative Ethopex (cả bản kể chuyện thắng #55604) kết bằng cat-canh.py: nút đỏ nhún từ giây 3 + poster SẠCH + "WHAT HAPPENS NEXT?" + giọng CTA v2 (cta_qc.py).
+// đang chạy — mọi creative Ethopex (cả bản kể chuyện thắng #55604) kết bằng cat-canh.py: nút đỏ chỉ ở thẻ cuối (bỏ nút đè từ giây 3, anh 02/11/2026) + poster SẠCH + "WHAT HAPPENS NEXT?" + giọng CTA v2 (cta_qc.py).
 // --cta=<url bản xuất studio> (in ra ở vx-nap-tap.mts): lấy thân phim = mọi cảnh trừ cảnh thẻ cuối, ghép CTA v2 → <thư mục>/<tập>-cta-v2.mp4 (bản để lên creative)
 const urlXuat = gia('cta');
 if (urlXuat) {

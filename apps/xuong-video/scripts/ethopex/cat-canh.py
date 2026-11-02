@@ -116,8 +116,9 @@ def _dung1(nguon, tu, den, tmp, cta, out, giong):
     V = gx.dur(giong) / TOC_GIONG if giong else 0
     TC = max(2.5, V - VAO_TRUOC + 0.5); T = L + TC
     # NÚT TỪ GIÂY NÀO (ETP_NUT_TU, 29/10/2026 — KT #62014 El gran: chấm AFS / Meta coi nút "MÍRALA GRATIS" gắn suốt thân phim là NÚT GIẢ, chấm lại vẫn 4):
-    # mặc định giây 3 như mọi creative; "cuoi" = nút chỉ hiện ở THẺ CUỐI (từ cú cắt sang poster), số = giây cụ thể
-    _nt = os.environ.get("ETP_NUT_TU", "3"); nut_tu = L if _nt == "cuoi" else float(_nt)
+    # mặc định "cuoi" = nút chỉ hiện ở THẺ CUỐI (từ cú cắt sang poster) cho MỌI kiểu (anh 02/11/2026 "Bỏ ngay nút đè giây 3 cho mọi kiểu": đo 25/10–02/11 cùng phim,
+    # bản nút đè từ giây 3 −7% ROI vs bản CTA cũ +33%, thua 9/10 phim; Kiên không nút giữa video); số = giây cụ thể (chỉ khi anh bảo thử)
+    _nt = os.environ.get("ETP_NUT_TU", "cuoi"); nut_tu = L if _nt == "cuoi" else float(_nt)
     vao = ["-i", nguon, "-loop", "1", "-t", f"{T}", "-i", tmp + "-nut.png", "-loop", "1", "-t", f"{TC}", "-i", tmp + "-the-cuoi.png"]
     am = f"[0:a]atrim={tu}:{den},asetpts=PTS-STARTPTS,afade=in:d=0.3,afade=out:st={L - VAO_TRUOC - 0.2 if giong else L - 0.3}:d={VAO_TRUOC + 0.2 if giong else 0.3},apad=pad_dur={TC}[nen]"
     if giong:

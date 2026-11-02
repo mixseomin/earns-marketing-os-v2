@@ -268,6 +268,15 @@ const LUAT = [
   { card: 'roas-cl-0211', tep: 'apps/etp/canh-bao.py', cam: "ten not like '★%'", vi: 'cảnh báo không lọc camp ROAS theo tên' },
   { card: 'roas-cl-0211', tep: 'apps/web/src/lib/etp-doc.ts', cam: "c.ten like '★%'", vi: 'màn etp không lọc camp ROAS theo tên' },
   { card: 'roas-cl-0211', tep: 'apps/web/src/components/etp-view.tsx', cam: 'laRoas(c.ten)', vi: 'màn etp truyền cả camp (chiến lược) vào laRoas' },
+  // anh 02/11/2026 "Đồng bộ và làm theo đề xuất vào đây" (tab Phim): trang phim workspace Ethopex — đồng bộ, cổng nhan-ban, cảnh báo, cột Trang phim
+  { card: 'trang-phim-0211', tep: "packages/db/migrations/0403_etp_trang_phim.sql", co: "create or replace view etp.trang_phim_v", vi: "view trang phim + cột thiếu" },
+  { card: 'trang-phim-0211', tep: "apps/etp/dong-bo.py", co: "import trang_phim; kq.update(trang_phim.chay(q, EA.T_NHA))", vi: "đồng bộ trang phim workspace mỗi lượt" },
+  { card: 'trang-phim-0211', tep: "apps/etp/trang_phim.py", co: "return (False, f\"HTTP {e.code}\") if e.code in (404, 410) else (None, f\"HTTP {e.code}\")", vi: "chỉ 404/410 là link chết; 403/429/mạng không chặn" },
+  { card: 'trang-phim-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "if not ep and (ly_ := trang_chua_san(cid, pl.get(\"ad_account_id\"))): raise ChanLuat(ly_)", vi: "cổng trang phim trước khi lên camp thường" },
+  { card: 'trang-phim-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "interval '2 hours' from etp.trang_phim\") != \"t\": return None", vi: "kho trang phim cũ thì cổng không chặn" },
+  { card: 'trang-phim-0211', tep: "apps/etp/canh-bao.py", co: "bao(\"trang_phim_thieu\", \"vang\"", vi: "cảnh báo trang phim thiếu" },
+  { card: 'trang-phim-0211', tep: "apps/web/src/components/etp-view.tsx", co: "{ key: 'trang', header: 'Trang phim'", vi: "tab Phim có cột Trang phim" },
+  { card: 'trang-phim-0211', tep: "apps/web/src/lib/etp-doc.ts", co: "trang: tp(r), ws_moi: true });", vi: "tab Phim hiện phim mới thêm chưa có camp" },
   // anh 02/11/2026 duyệt review luật (mục 2, 3, 7 + T30 ROAS): chấm creative không tắt camp lãi · ROAS trước clone · dừng clone đổi creative · nhật ký team · sổ luật đối chứng + 7 ngày
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", co: "where c.trang_thai = 'ACTIVE' and g.tat and {KHONG_ROAS} and {KHONG_LAI3} order by 1", vi: "luật chấm không tắt camp lãi 3 ngày đã khép" },
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", cam: "tự tắt mọi loại camp, kể cả đang lãi", vi: "luật chấm không còn tắt camp đang lãi" },

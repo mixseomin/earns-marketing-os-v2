@@ -277,6 +277,10 @@ def main():
                              "them": {k: x.get(k) for k in ("account_controls_status", "ads_restricted", "picture_url", "link", "available", "facebook_bm_id", "is_published", "used_by_asset_group", "cache_status") if x.get(k) is not None}})
         ghi("tai_nguyen", rows, ["loai", "id"], {"loai": "text", "id": "bigint", "external_id": "text", "ten": "text", "trang_thai": "text", "them": "jsonb"})
     except Exception as e: loi.append(f"tai_nguyen: {e}")
+    # ── TRANG PHIM TRONG WORKSPACE (anh 02/11/2026: tab Phim — phim đã "thêm content" chưa, đủ mô tả / cốt truyện / link tập 1 chưa): trang_phim.py, chỉ đọc Ethopex
+    try:
+        import trang_phim; kq.update(trang_phim.chay(q, EA.T_NHA))
+    except Exception as e: loi.append(f"trang_phim: {e}")
     # ── nhật ký luật
     try:
         nk = khoa("ethopex_nhat_ky", "[]"); rows = []

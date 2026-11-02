@@ -76,6 +76,19 @@ def dem_dang_chay(content_id):
     except Exception: pass
     return n
 
+def trang_chua_san(content_id, tk):
+    """CỔNG TRANG PHIM (anh 02/11/2026, tab Phim etp.on.tc): camp chỉ có trang đích khi phim đã được "thêm content" vào workspace Ethopex của NGƯỜI SỞ HỮU
+    tài khoản (etp.trang_phim, apps/etp/trang_phim.py) và bản đó đủ mô tả + cốt truyện + ảnh + link tập 1 còn sống (view trang_phim_v.thieu — Ethopex tự
+    sinh, có lúc trượt: 174841 Merman 02/11). → lý do chặn, hoặc None. Kho trang phim quá 2 giờ chưa đồng bộ → không chặn (lỗi đồng bộ không khoá mọi camp)."""
+    if q("select coalesce(max(cap_nhat), 'epoch') > now() - interval '2 hours' from etp.trang_phim") != "t": return None
+    ng = q(f"select nguoi_id || '|' || nguoi from etp.tai_khoan where ad_account_id = {int(tk or 0)}") if str(tk or "").isdigit() else ""
+    if "|" not in ng: return None
+    ng_id, ng_ten = ng.split("|", 1)
+    r = q(f"select content_id || '|' || array_to_string(thieu, ', ') from etp.trang_phim_v where ref_id = {int(content_id)} and nguoi_id = {int(ng_id)} order by cardinality(thieu), sua desc limit 1")
+    if not r: return f"phim {content_id} chưa được thêm vào workspace Ethopex của {ng_ten} (Content › thêm phim) — camp sẽ không có trang đích"
+    ws, thieu = r.split("|", 1)
+    return f"trang phim {content_id} (bản workspace #{ws} của {ng_ten}) còn thiếu: {thieu} — mở lại trên Ethopex cho máy sinh / sửa rồi mới lên camp" if thieu else None
+
 def dem_tk(content_id, tk):
     """TRẦN 30 CAMP / PHIM THEO TỪNG TÀI KHOẢN NHÀ (anh 02/11/2026 "Set lại 30 cho mọi camp nhà. Và theo từng tk"): camp đang chạy / đang đồng bộ
     của phim ở ĐÚNG tài khoản sẽ nhận camp mới; camp ROAS ★ không chiếm chỗ. Thiếu tài khoản trong payload → đếm cả phim (chặt hơn, không lọt)."""
@@ -291,6 +304,7 @@ def main(a):
         if not NGOAI and not ep and str(bo) in BO_CHI_PHIM_LAI:   # mọi đường mở camp (creative mới, clone, thang) — phim mới / phim lỗ ở bộ này không mở thêm
             pc, pt = (float(x or 0) for x in (q(f"select coalesce(sum(s.chi), 0), coalesce(sum(s.thu), 0) from etp.so_ngay s join etp.camp c using (camp_id) where c.bo = '{bo}' and c.content_id = {int(cid)} and s.ngay between (now() at time zone 'UTC')::date - 7 and (now() at time zone 'UTC')::date - 1") or "0|0").split("|"))
             if pt <= pc: raise ChanLuat(f"bộ {bo} chỉ mở camp cho phim đã lãi 7 ngày ở bộ này — phim {cid}: chi ${pc:.2f} · lãi ${pt - pc:+.2f} (etp.cau_hinh.bo_chi_phim_lai, anh 02/11/2026)")
+        if not ep and (ly_ := trang_chua_san(cid, pl.get("ad_account_id"))): raise ChanLuat(ly_)   # cổng trang phim (anh 02/11/2026); ROAS đi roas_main, không qua đây
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)
         if chan: raise ChanLuat(chan)
         n = dem_dang_chay(cid)

@@ -41,7 +41,12 @@ export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: str
   nhom_goc: string | null;
   /** PHIM CHẠM MỐC (anh 31/10/2026: "film đã chạm mốc ko nên mở thêm mà trong đội vẫn còn chạy thì có cảnh báo"): lúc máy cất phim (etp.phim.thu_vong = 'cat', apps/etp/cat_phim.py)
    *  · doi_chay = số camp đội (camp ngoài) đang chạy phim này */
-  moc: string | null; doi_chay: number };
+  moc: string | null; doi_chay: number;
+  /** TRANG PHIM trong workspace Ethopex của người đang xem (etp.trang_phim_v — apps/etp/trang_phim.py, anh 02/11/2026): null = chưa thêm content.
+   *  ws_moi = phim đã thêm vào workspace nhưng chưa có camp nào (dòng chỉ để thấy phim mới) */
+  trang?: TrangPhim | null; ws_moi?: boolean };
+export type TrangPhim = { ws: number; nguoi: string | null; tao: string | null; mo_ta: number; cot_truyen: number; nguon: string | null; redirect_url: string | null;
+  link_ok: boolean | null; link_loi: string | null; link_luc: string | null; thieu: string[] };
 export type ChamCr = { luc: string; may: string | null; ket: string | null; meta: number | null; afs: number | null; loi: string | null;
   lop: { chu?: { luc: string; noi_dung: string; loi: string[]; cta: string[] }; giong?: { luc: string; noi_dung: string; ngon_ngu: string | null; loi: string[] };
     anh?: { luc: string; url?: string; giay?: number; khung_url?: string[] /* các khung Worker cắt (Cloudflare); url = tờ khung bản cũ */; khung_mau?: string /* gọn: mẫu '{n}' + so_khung thay danh sách — dựng lại bằng khungUrl() ở etp-view */; so_khung?: number }; noi_dung?: { luc: string; tom_tat: string } };
@@ -274,7 +279,21 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     x.camp++; if (c.trang_thai === 'ACTIVE') x.chay++; if (c.creative_id) x._cr.add(c.creative_id); x.thang = cong(x.thang, c.thang); x.qua = cong(x.qua, c.qua); x.nay = cong(x.nay, c.nay);
     phMap.set(c.content_id, x);
   }
-  const phims = [...phMap.values()].map(({ _cr, ...p }) => ({ ...p, creative: _cr.size }));
+  const phims: PhimEtpKho[] = [...phMap.values()].map(({ _cr, ...p }) => ({ ...p, creative: _cr.size }));
+  // TRANG PHIM (anh 02/11/2026 "Đồng bộ và làm theo đề xuất vào đây"): bản workspace Ethopex của người đang xem (team = mọi người) — mỗi phim lấy bản đủ nhất;
+  // phim mới thêm (30 ngày) chưa có camp cũng hiện một dòng để thấy trước khi lên camp. Cổng nhan-ban.py đọc cùng view.
+  const tpR = await run<Record<string, unknown>>(sql`select content_id, ref_id, nguoi, ten, locale, nguon, redirect_url, mo_ta, cot_truyen, link_ok, link_loi, link_luc::text link_luc, tao::text tao, thieu
+      from etp.trang_phim_v where ref_id is not null ${doi ? sql`` : sql`and nguoi_id = ${dangId}`} order by cardinality(thieu), sua desc`).catch(() => [] as Record<string, unknown>[]);
+  const tpTheo = new Map<number, Record<string, unknown>>();
+  for (const r of tpR) if (!tpTheo.has(n(r.ref_id))) tpTheo.set(n(r.ref_id), r);
+  const tp = (r: Record<string, unknown>): TrangPhim => ({ ws: n(r.content_id), nguoi: (r.nguoi as string) ?? null, tao: (r.tao as string) ?? null, mo_ta: n(r.mo_ta), cot_truyen: n(r.cot_truyen),
+    nguon: (r.nguon as string) ?? null, redirect_url: (r.redirect_url as string) ?? null, link_ok: r.link_ok == null ? null : !!r.link_ok, link_loi: (r.link_loi as string) ?? null,
+    link_luc: (r.link_luc as string) ?? null, thieu: Array.isArray(r.thieu) ? (r.thieu as string[]) : [] });
+  for (const p of phims) { const r = tpTheo.get(p.content_id); p.trang = r ? tp(r) : null; }
+  const coPhim = new Set(phims.map((p) => p.content_id)), moc30 = Date.now() - 30 * 86400_000;
+  for (const [ref, r] of tpTheo) if (!coPhim.has(ref) && r.tao && Date.parse(String(r.tao)) > moc30)
+    phims.push({ content_id: ref, ten: (r.ten as string) ?? null, the_loai: null, bo: null, locale: (r.locale as string) ?? null, nguon: (r.nguon as string) ?? null, nhom_goc: null, moc: null, doi_chay: 0,
+      creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, trang: tp(r), ws_moi: true });
   const [soNgay, tatNgay, boRow] = await Promise.all([
     run<{ c: number; d: string; chi: string; thu: string }>(sql`select camp_id c, ngay::text d, chi, thu from ${SN} where chi > 0 or thu > 0`),
     runNha<{ d: string; n: string }>(sql`select (luc at time zone 'UTC')::date::text d, count(distinct camp_id) n from etp.nhat_ky where viec = 'tat' and ok group by 1`),   // nhật ký máy nhà — xem người khác thì không có

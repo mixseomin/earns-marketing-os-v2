@@ -10,6 +10,7 @@ import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolba
 import { PhamViLuu, useKhoaLuu } from '@/components/ui/table-prefs';
 import { datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/actions/etp-sua';
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
+import type { TrangPhim } from '@/lib/etp-doc';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
@@ -2303,8 +2304,19 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     ...soCot<CreativeEtpKho>('nay', (r) => r.nay), ...soCot<CreativeEtpKho>('qua', (r) => r.qua), ...(khNay ? [] : soCot<CreativeEtpKho>('kh', (r) => crKh.get(r.creative_id) ?? KHONG)),
     { key: 'tuoi', header: 'Tuổi (ngày)', title: 'số NGÀY từ camp đầu tiên dùng creative — bão hoà thường sau vài ngày · lọc 🔍 > 2 = hơn 2 ngày', cell: (r) => tuoiChu(tuoiNgay(r.ngay_dau)), sortValue: (r) => tuoiLoc(tuoiNgay(r.ngay_dau)) },
   ];
+  // TRANG PHIM (anh 02/11/2026): bản workspace Ethopex đủ chưa — chưa thêm / thiếu mô tả, cốt truyện, ảnh, link tập 1 (máy chặn lên camp) / đủ
+  const trangCap = (t: TrangPhim | null | undefined) => (!t ? 0 : t.thieu.length ? 1 : t.link_ok == null ? 2 : 3);
+  const OTrang = ({ p }: { p: PhimEtpKho }) => {
+    const t = p.trang;
+    if (!t) return <span style={{ color: MO, fontSize: 12 }} title="chưa thêm vào workspace Ethopex của người đang xem — máy không lên camp mới cho phim này">— chưa thêm</span>;
+    const chu = `bản workspace #${t.ws} · ${t.nguoi ?? '?'} thêm ${vn(t.tao)}\nmô tả ${t.mo_ta} ký tự · cốt truyện ${t.cot_truyen} ký tự\nlink tập 1 (${t.nguon ?? '—'}): ${t.link_ok == null ? `chưa kiểm được${t.link_loi ? ` (${t.link_loi})` : ''}` : t.link_ok ? 'sống' : `chết (${t.link_loi ?? ''})`}${t.link_luc ? ` · kiểm ${vn(t.link_luc)}` : ''}`;
+    return <span title={chu} style={{ fontSize: 12, whiteSpace: 'nowrap', cursor: 'help' }}>
+      {t.thieu.length ? <span style={{ color: '#f87171' }}>⚠ thiếu {t.thieu.join(', ')}</span> : <span style={{ color: '#4ade80' }}>✓ đủ{t.link_ok == null ? <span style={{ color: MO }}> · link chưa kiểm</span> : null}</span>}
+      {p.ws_moi ? <span style={{ color: '#fbbf24' }}> · mới thêm, chưa camp</span> : null}</span>;
+  };
   const cotPh: DataColumn<PhimEtpKho>[] = [
     { key: 'ten', header: 'Phim', align: 'left', cell: (p) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Hex bo={p.bo} info={p.bo ? du.boTk[p.bo] : undefined} />{p.ten ?? p.content_id} <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{p.locale ?? ''} {p.nguon ?? ''}</span></span>, sortValue: (p) => p.ten ?? '' },
+    { key: 'trang', header: 'Trang phim', align: 'left', title: 'bản phim trong workspace Ethopex (Content › thêm phim): đủ mô tả + cốt truyện + ảnh + link tập 1 thì máy mới lên camp — hover xem chi tiết', cell: (p) => <OTrang p={p} />, sortValue: (p) => trangCap(p.trang) },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (p) => <span style={{ fontSize: 12 }}>{tl(p.the_loai)}</span>, sortValue: (p) => p.the_loai ?? '' },
     // anh 27/10/2026 "chia thành các cột độc lập": số creative · camp đang bật · camp tạm dừng · tổng camp (không archived)
     { key: 'cr', header: 'Creative', title: 'số creative (video) khác nhau của phim', cell: (p) => p.creative, sortValue: (p) => p.creative },

@@ -143,6 +143,14 @@ def main():
                    where not t.nha and b.chan_nb like 'bão hoà%' and c.tao > now() - interval '24 hours' and not c.la_roas group by 1, 2""").splitlines():
         tk, cid, so, nguoi, ten, ly = l.split("|", 5)
         bao("bao_hoa_team", "vang", f"bao_hoa_team:{tk}:{cid}:{nay}", f"Tài khoản {tk} · {nguoi} vừa lên {so} camp cho phim đang bão hoà {ten[:50]} (#{cid}) — {ly}. Nhà đã ngừng mở camp phim này; team chỉ báo, không chặn"); n += 1
+    # TRANG PHIM THIẾU (anh 02/11/2026, tab Phim): phim thêm vào workspace Ethopex > 30 phút mà Ethopex chưa sinh đủ mô tả / cốt truyện, thiếu ảnh / link tập 1,
+    # hoặc link tập 1 trả 404 — nhan-ban.py đã chặn lên camp phim đó; báo mỗi bản × kiểu thiếu một lần (sửa xong rồi thiếu kiểu khác thì báo lại)
+    try:
+        for l in q("""select content_id, coalesce(ref_id, 0), coalesce(nguoi, '?'), coalesce(ten, ''), array_to_string(thieu, ', ') from etp.trang_phim_v
+                       where cardinality(thieu) > 0 and tao < now() - interval '30 minutes' and tao > now() - interval '14 days'""").splitlines():
+            ws, ref, nguoi, ten, thieu = l.split("|", 4)
+            bao("trang_phim_thieu", "vang", f"trang_phim_thieu:{ws}:{thieu}", f"Trang phim {ten[:50]} (#{ref}, bản workspace #{ws} của {nguoi}) còn thiếu: {thieu} — máy không lên camp phim này tới khi đủ (mở lại trên Ethopex cho máy sinh / sửa)")
+    except Exception as e: print(f"trang_phim_thieu: {e}")
     l = q("select lan, coalesce(loi, '') from etp.dong_bo where xong is not null order by lan desc limit 1")
     if l and l.split("|", 1)[1]: bao("dong_bo_tre", "vang", f"dong_bo:{nay}:{now.hour}", f"Lượt đồng bộ kho etp #{l.split('|')[0]} lỗi: {l.split('|', 1)[1][:200]}"); n += 1
     print(json.dumps({"canh_bao_moi_thu": n}))

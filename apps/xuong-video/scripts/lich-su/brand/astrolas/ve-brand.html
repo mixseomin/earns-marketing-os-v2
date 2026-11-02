@@ -1,0 +1,172 @@
+<!doctype html>
+<!-- BỘ NHẬN DIỆN KÊNH YOUTUBE ASTROLAS (G2 lộ trình, 03/11/2026) — mọi khung vẽ ở đây, ve-brand.mjs chụp ra ra/<khung>.png (+ đoạn mở đầu mp4).
+     Màu + font lấy từ mẫu QC Astrolas của studio (mau/astrolas-*.json › kieu_chu): navy #0B1A2E, vàng #E6B800, chữ trắng, Playfair Display Black.
+     LOGO: bản này GÕ CHỮ TẠM "astrolas" (máy cloud không tải được astrolas.com) — bản thật thay bằng https://astrolas.com/images/logo/wordmark-on-dark@2x.png (biến LOGO_URL).
+     HÌNH TẬP trong khung giữa video / ảnh bìa = MINH HOẠ TẠM vẽ code; hình thật là theme engraving / paper-lantern của G3.
+     ?f=<khung>&t=<giây> — t chỉ dùng cho khung động (s-intro, n-intro). -->
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: PF; src: url(fonts/PlayfairDisplay.ttf); font-weight: 400 900; }
+@font-face { font-family: IN; src: url(fonts/Inter.ttf); font-weight: 100 900; }
+@font-face { font-family: CG; src: url(fonts/CormorantGaramond-Italic.ttf); font-style: italic; font-weight: 300 700; }
+:root { --navy: #0B1A2E; --navy2: #132B4D; --gold: #E6B800; --gold2: #F4D971; --ivory: #F5F0E1; --moon: #8EC5FF; --white: #fff; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--navy); overflow: hidden; }
+#k { position: relative; overflow: hidden; background: var(--navy); color: var(--white); font-family: IN, sans-serif; }
+.pf { font-family: PF, serif; font-weight: 900; }
+.cg { font-family: CG, serif; font-style: italic; font-weight: 500; }
+.abs { position: absolute; }
+.chip { display: inline-flex; align-items: center; gap: .45em; font-family: IN; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--navy); padding: .42em .8em .38em; border-radius: .3em; }
+.vung { position: absolute; border: 4px dashed rgba(255, 80, 80, .9); color: #ff8a8a; font: 600 26px IN; padding: 10px; background: rgba(255, 60, 60, .08); }
+.mark { font-family: PF; font-weight: 900; letter-spacing: -.01em; line-height: 1; }
+.mark i { color: var(--gold); font-style: normal; }
+</style></head>
+<body><div id="k"></div>
+<script>
+const P = new URLSearchParams(location.search), F = P.get('f') || 's-intro', T = Number(P.get('t') ?? 99);
+const LOGO_URL = null;   // bản thật: 'wordmark-on-dark@2x.png' (tải về cạnh tệp này) — null = gõ chữ tạm
+const PL = { cc: { ten: 'Chart Chapters', mau: '#E6B800', ic: '☉' }, sc: { ten: 'Sky Calendar', mau: '#8EC5FF', ic: '☽' } };
+const KICH = { 's-intro': [1080, 1920], 's-giua-cc': [1080, 1920], 's-giua-sc': [1080, 1920], 's-vung': [1080, 1920], 's-cuoi': [1080, 1920], 's-bia-cc': [1080, 1920], 's-bia-sc': [1080, 1920],
+  'n-intro': [1920, 1080], 'n-giua-cc': [1920, 1080], 'n-giua-sc': [1920, 1080], 'n-cuoi': [1920, 1080], 'n-bia-cc': [1280, 720], 'n-bia-sc': [1280, 720],
+  'avatar': [800, 800], 'banner': [2560, 1440], 'bang-mau': [1920, 1080] };
+const [W, H] = KICH[F]; const k = document.getElementById('k'); k.style.width = W + 'px'; k.style.height = H + 'px';
+const el = (html) => { k.insertAdjacentHTML('beforeend', html); return k.lastElementChild; };
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x)), ease = (x) => 1 - Math.pow(1 - clamp(x), 3);
+
+// ---------- chữ ký (wordmark) ----------
+const mark = (px, mau = '#fff') => LOGO_URL ? `<img src="${LOGO_URL}" style="height:${px * 1.05}px">`
+  : `<span class="mark" style="font-size:${px}px;color:${mau}">astrol<i>a</i>s</span>`;
+
+// ---------- nền trời (sao theo hạt giống — khung nào cũng giống nhau) ----------
+function sao(w, h, n, seed = 7, mo = 1) {
+  let s = seed; const r = () => (s = (s * 16807) % 2147483647) / 2147483647; let c = '';
+  for (let i = 0; i < n; i++) { const x = r() * w, y = r() * h, z = r(); c += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(0.6 + z * z * 2.4).toFixed(2)}" fill="#fff" opacity="${(0.25 + z * 0.7) * mo}"/>`; }
+  return c;
+}
+const nen = (w, h, seed) => el(`<svg class="abs" style="inset:0" width="${w}" height="${h}"><defs>
+  <radialGradient id="g${seed}" cx="50%" cy="38%" r="75%"><stop offset="0" stop-color="#1B3A66"/><stop offset=".55" stop-color="#0F2240"/><stop offset="1" stop-color="#081322"/></radialGradient></defs>
+  <rect width="${w}" height="${h}" fill="url(#g${seed})"/>${sao(w, h, Math.round(w * h / 9000), seed)}</svg>`);
+
+// ---------- HÌNH TẬP MINH HOẠ (G3 sẽ thay) ----------
+// Chart Chapters: bánh xe lá số nét khắc, một cung chương sáng vàng, hai mốc năm
+function banhXe(cx, cy, R, nam = ['1985', '1997'], mo = 1) {
+  const cung = '♈♉♊♋♌♍♎♏♐♑♒♓'.split('').map((g) => g + '︎');
+  let s = `<g opacity="${mo}" stroke="#E9DFC4" fill="none">`;
+  for (let i = 0; i < 46; i++) s += `<circle cx="${cx}" cy="${cy}" r="${R * (0.30 + i * 0.0035)}" stroke-width="0.6" opacity=".35"/>`;   // nét khắc đồng tâm
+  s += `<circle cx="${cx}" cy="${cy}" r="${R}" stroke-width="${R * .012}"/><circle cx="${cx}" cy="${cy}" r="${R * .8}" stroke-width="${R * .006}"/><circle cx="${cx}" cy="${cy}" r="${R * .46}" stroke-width="${R * .006}"/>`;
+  for (let i = 0; i < 12; i++) { const a = (i * 30 - 90) * Math.PI / 180, b = ((i + .5) * 30 - 90) * Math.PI / 180;
+    s += `<line x1="${cx + Math.cos(a) * R * .46}" y1="${cy + Math.sin(a) * R * .46}" x2="${cx + Math.cos(a) * R}" y2="${cy + Math.sin(a) * R}" stroke-width="${R * .005}"/>`;
+    s += `<text x="${cx + Math.cos(b) * R * .9}" y="${cy + Math.sin(b) * R * .9}" fill="#E9DFC4" stroke="none" font-family="DejaVu Sans" font-size="${R * .085}" text-anchor="middle" dominant-baseline="central">${cung[i]}</text>`; }
+  // cung chương sáng: 135° → 215°
+  const arc = (r, a0, a1) => { const p = (a) => [cx + Math.cos((a - 90) * Math.PI / 180) * r, cy + Math.sin((a - 90) * Math.PI / 180) * r]; const [x0, y0] = p(a0), [x1, y1] = p(a1); return `M${x0} ${y0} A${r} ${r} 0 0 1 ${x1} ${y1}`; };
+  s += `<path d="${arc(R * .63, 135, 215)}" stroke="#E6B800" stroke-width="${R * .14}" opacity=".9" stroke-linecap="butt"/>`;
+  s += `<path d="${arc(R * .63, 135, 215)}" stroke="#FFF3B8" stroke-width="${R * .02}"/>`;
+  const moc = (a, chu) => { const x = cx + Math.cos((a - 90) * Math.PI / 180) * R * 1.08, y = cy + Math.sin((a - 90) * Math.PI / 180) * R * 1.08;
+    return `<circle cx="${cx + Math.cos((a - 90) * Math.PI / 180) * R}" cy="${cy + Math.sin((a - 90) * Math.PI / 180) * R}" r="${R * .025}" fill="#E6B800" stroke="none"/>
+      <text x="${x}" y="${y}" fill="#F4D971" stroke="none" font-family="PF" font-weight="900" font-size="${R * .1}" text-anchor="middle" dominant-baseline="central">${chu}</text>`; };
+  return s + moc(135, nam[0]) + moc(215, nam[1]) + '</g>';
+}
+// Sky Calendar: dãy pha trăng + một vầng trăng lớn bị che (nguyệt thực)
+function trang(cx, cy, R, mo = 1) {
+  let s = `<g opacity="${mo}"><defs><radialGradient id="tr" cx="40%" cy="38%" r="70%"><stop offset="0" stop-color="#FFE9C9"/><stop offset=".7" stop-color="#E7B98A"/><stop offset="1" stop-color="#A2472E"/></radialGradient>
+    <radialGradient id="quang" r="50%"><stop offset="0" stop-color="#ffb070" stop-opacity=".45"/><stop offset="1" stop-color="#ffb070" stop-opacity="0"/></radialGradient></defs>
+    <circle cx="${cx}" cy="${cy}" r="${R * 2}" fill="url(#quang)"/><circle cx="${cx}" cy="${cy}" r="${R}" fill="url(#tr)"/>
+    <circle cx="${cx + R * .55}" cy="${cy - R * .1}" r="${R * 1.02}" fill="#0B1A2E" opacity=".55"/>`;
+  for (let i = 0; i < 8; i++) { const sp = R * .42, x = cx - 3.5 * sp + i * sp, y = cy + R * 1.7, r = R * .16, f = i / 7;
+    s += `<circle cx="${x}" cy="${y}" r="${r}" fill="#F5F0E1" opacity=".9"/><circle cx="${x + (f - .5) * 4 * r}" cy="${y}" r="${r * 1.02}" fill="#0F2240" opacity="${Math.abs(f - .5) < .07 ? 0 : 1}"/>`; }
+  return s + '</g>';
+}
+const hinh = (pl, w, h, cx, cy, R) => el(`<svg class="abs" style="inset:0" width="${w}" height="${h}">${pl === 'cc' ? banhXe(cx, cy, R) : trang(cx, cy, R)}</svg>`);
+
+// ---------- lớp cố định ----------
+const gocLogo = (px, x, y, pl) => el(`<div class="abs" style="left:${x}px;top:${y}px;display:flex;flex-direction:column;gap:${px * .35}px;align-items:flex-start;opacity:.92">
+  ${mark(px)}${pl ? `<span class="chip" style="font-size:${px * .52}px;background:${PL[pl].mau}">${PL[pl].ic} ${PL[pl].ten}</span>` : ''}</div>`);
+const phuDe = (chu, px, x, y, w) => el(`<div class="abs" style="left:${x}px;top:${y}px;width:${w}px;text-align:center;font:800 ${px}px/1.18 IN;color:#fff;
+  text-shadow:0 3px 0 #0B1A2E,0 0 18px rgba(0,0,0,.6)">${chu}</div>`);
+
+// ---------- các khung ----------
+const VE = {
+  // MỞ ĐẦU (0–1,0 s): vòng vàng vẽ dần + chữ ký mờ vào, chuông ở 0,08 s (ve-brand.mjs ghép tiếng)
+  's-intro'() { nen(W, H, 3); intro(W / 2, H / 2 - 40, 330, 150); },
+  'n-intro'() { nen(W, H, 3); intro(W / 2, H / 2 - 20, 300, 132); },
+  's-giua-cc'() { nen(W, H, 11); hinh('cc', W, H, W / 2, H * .43, 400); gocLogo(58, 64, 150, 'cc');
+    phuDe('In 1985, the board voted him out<br>of his own company.', 54, 80, 1300, W - 160); },
+  's-giua-sc'() { nen(W, H, 12); hinh('sc', W, H, W / 2, H * .38, 250); gocLogo(58, 64, 150, 'sc');
+    phuDe('Columbus knew the Moon would<br>turn red that night.', 54, 80, 1300, W - 160); },
+  // VÙNG AN TOÀN SHORTS: phần YouTube đè lên (tiêu đề / kênh dưới, nút bên phải, thanh trên) — chữ + logo phải nằm ngoài
+  's-vung'() { VE['s-giua-cc']();
+    el(`<div class="vung" style="left:0;right:0;top:0;height:120px">thanh trên YouTube</div>`);
+    el(`<div class="vung" style="right:0;width:150px;top:760px;bottom:420px">nút<br>thích<br>bình<br>luận<br>chia<br>sẻ</div>`);
+    el(`<div class="vung" style="left:0;right:0;bottom:0;height:420px">tên kênh · tiêu đề · nhạc (YouTube đè)</div>`); },
+  's-cuoi'() { nen(W, H, 5); cuoi(W / 2, H * .44, 1); },
+  'n-cuoi'() { nen(W, H, 5);
+    el(`<div class="abs" style="left:0;right:0;top:120px;text-align:center"><div class="cg" style="font-size:54px;color:var(--gold2)">See your own chart</div>
+      <div class="pf" style="font-size:96px;margin-top:6px">free at astrolas.com</div></div>`);
+    el(`<div class="vung" style="left:160px;top:430px;width:680px;height:383px">video kế (YouTube end screen gắn)</div>`);
+    el(`<div class="vung" style="left:1080px;top:430px;width:680px;height:383px">playlist cùng loạt</div>`);
+    el(`<div class="vung" style="left:870px;top:870px;width:180px;height:180px;border-radius:50%;text-align:center;padding-top:62px">Đăng ký</div>`);
+    el(`<div class="abs" style="right:70px;bottom:40px">${mark(44)}</div>`); },
+  'n-giua-cc'() { nen(W, H, 11); hinh('cc', W, H, W * .5, H * .47, 360); gocLogo(46, 56, 48, 'cc');
+    phuDe('In 1985, the board voted him out of his own company.', 50, 160, 900, W - 320); },
+  'n-giua-sc'() { nen(W, H, 12); hinh('sc', W, H, W * .5, H * .38, 210); gocLogo(46, 56, 48, 'sc');
+    phuDe('Columbus knew the Moon would turn red that night.', 50, 160, 900, W - 320); },
+  // ẢNH BÌA video ngang 1280×720: nhãn playlist trái trên, chữ ký phải trên (dưới phải để trống — YouTube đè thời lượng)
+  'n-bia-cc'() { bia('cc', 'THE YEAR<br>HE WAS<br>FIRED', 'Steve Jobs · 1985', true); },
+  'n-bia-sc'() { bia('sc', 'THE ECLIPSE<br>THAT SAVED<br>COLUMBUS', 'Jamaica · 1504', true); },
+  's-bia-cc'() { bia('cc', 'THE YEAR<br>HE WAS<br>FIRED', 'Steve Jobs · 1985', false); },
+  's-bia-sc'() { bia('sc', 'THE ECLIPSE<br>THAT SAVED<br>COLUMBUS', 'Jamaica · 1504', false); },
+  'avatar'() { nen(W, H, 9);
+    el(`<svg class="abs" style="inset:0" width="${W}" height="${H}"><circle cx="400" cy="400" r="300" fill="none" stroke="#E6B800" stroke-width="14"/>
+      <circle cx="400" cy="400" r="270" fill="none" stroke="#E6B800" stroke-width="3" opacity=".6"/></svg>`);
+    el(`<div class="abs pf" style="left:0;right:0;top:170px;text-align:center;font-size:420px;line-height:1;color:#fff">a</div>`);
+    el(`<div class="abs" style="left:556px;top:214px;font:400 92px 'DejaVu Sans';color:#E6B800">✦</div>`); },
+  // BANNER 2560×1440 — vùng an toàn mọi thiết bị 1546×423 ở giữa (khung đứt)
+  'banner'() { nen(W, H, 21);
+    el(`<svg class="abs" style="inset:0" width="${W}" height="${H}">${banhXe(300, 720, 250, ['', ''], .55)}${trang(2290, 640, 120, .8)}</svg>`);
+    el(`<div class="abs" style="left:${(W - 1546) / 2}px;top:${(H - 423) / 2}px;width:1546px;height:423px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+      ${mark(150)}<div class="cg" style="font-size:52px;color:var(--gold2)">Know yourself, read the sky</div>
+      <div style="font:600 30px IN;letter-spacing:.12em;text-transform:uppercase;color:#cfd8e6">New stories Mon · Wed · Fri</div></div>`);
+    el(`<div class="vung" style="left:${(W - 1546) / 2}px;top:${(H - 423) / 2}px;width:1546px;height:423px;background:none;padding:6px">vùng an toàn 1546×423 (điện thoại)</div>`); },
+  'bang-mau'() { k.style.background = '#0B1A2E';
+    const o = (m, ten, ghi) => `<div style="display:flex;gap:22px;align-items:center"><div style="width:120px;height:120px;border-radius:16px;background:${m};box-shadow:0 0 0 2px rgba(255,255,255,.15)"></div>
+      <div><div style="font:800 30px IN">${ten}</div><div style="font:500 24px IN;color:#9fb0c8">${m} · ${ghi}</div></div></div>`;
+    el(`<div class="abs" style="left:90px;top:80px;right:90px;display:grid;grid-template-columns:1fr 1fr;gap:60px">
+      <div style="display:grid;gap:30px"><div style="font:800 28px IN;letter-spacing:.14em;color:#9fb0c8">MÀU (từ mẫu QC Astrolas)</div>
+        ${o('#0B1A2E', 'Navy đêm', 'nền mọi khung')}${o('#E6B800', 'Vàng Astrolas', 'chữ ký · nhãn Chart Chapters')}${o('#FFFFFF', 'Trắng', 'chữ chính · phụ đề')}
+        ${o('#8EC5FF', 'Xanh trăng', 'nhãn Sky Calendar (mới)')}${o('#F4D971', 'Vàng nhạt', 'chữ nghiêng phụ')}</div>
+      <div style="display:grid;gap:34px;align-content:start"><div style="font:800 28px IN;letter-spacing:.14em;color:#9fb0c8">CHỮ</div>
+        <div><div class="pf" style="font-size:92px;line-height:1">Playfair Black</div><div style="font:500 24px IN;color:#9fb0c8">tiêu đề · ảnh bìa · chữ ký (font mẫu QC Astrolas)</div></div>
+        <div><div style="font:800 64px IN">Inter ExtraBold</div><div style="font:500 24px IN;color:#9fb0c8">phụ đề · nhãn playlist</div></div>
+        <div><div class="cg" style="font-size:72px;color:var(--gold2)">Cormorant Italic</div><div style="font:500 24px IN;color:#9fb0c8">câu phụ: "See your own chart", khẩu hiệu</div></div>
+        <div style="display:flex;gap:18px;margin-top:10px"><span class="chip" style="font-size:30px;background:#E6B800">☉ Chart Chapters</span><span class="chip" style="font-size:30px;background:#8EC5FF">☽ Sky Calendar</span></div></div></div>`); },
+};
+function intro(cx, cy, R, px) {
+  const a = ease(T / .55), b = ease((T - .25) / .45), c = ease((T - .55) / .35);
+  el(`<svg class="abs" style="inset:0" width="${W}" height="${H}"><circle cx="${cx}" cy="${cy}" r="${R}" fill="none" stroke="#E6B800" stroke-width="6"
+    stroke-dasharray="${2 * Math.PI * R}" stroke-dashoffset="${2 * Math.PI * R * (1 - a)}" transform="rotate(-90 ${cx} ${cy})"/>
+    <circle cx="${cx}" cy="${cy}" r="${R * 1.0 + 40 * b}" fill="none" stroke="#E6B800" stroke-width="2" opacity="${0.6 * (1 - b)}"/></svg>`);
+  el(`<div class="abs" style="left:0;right:0;top:${cy - px * .62}px;text-align:center;opacity:${b};transform:translateY(${(1 - b) * 24}px)">${mark(px)}</div>`);
+  el(`<div class="abs cg" style="left:0;right:0;top:${cy + R + 50}px;text-align:center;font-size:${px * .36}px;color:#F4D971;opacity:${c}">Know yourself, read the sky</div>`);
+}
+function cuoi(cx, cy) {
+  el(`<svg class="abs" style="inset:0" width="${W}" height="${H}"><circle cx="${cx}" cy="${cy}" r="450" fill="none" stroke="#E6B800" stroke-width="5"/><circle cx="${cx}" cy="${cy}" r="425" fill="none" stroke="#E6B800" stroke-width="1.5" opacity=".5"/></svg>`);
+  el(`<div class="abs" style="left:0;right:0;top:${cy - 175}px;text-align:center"><div class="cg" style="font-size:66px;color:var(--gold2)">See your own chart</div>
+    <div class="pf" style="font-size:118px;line-height:1.05;margin-top:10px">free at<br>astrolas.com</div></div>`);
+  el(`<div class="abs" style="left:0;right:0;top:${cy + 520}px;text-align:center;font:700 34px IN;letter-spacing:.16em;color:#cfd8e6">LINK IN DESCRIPTION</div>`);
+}
+function bia(pl, tieu, phu, ngang) {
+  nen(W, H, pl === 'cc' ? 31 : 32);
+  if (ngang) { hinh(pl, W, H, W * .74, H * .5, pl === 'cc' ? 250 : 150);
+    el(`<div class="abs" style="left:52px;top:44px"><span class="chip" style="font-size:24px;background:${PL[pl].mau}">${PL[pl].ic} ${PL[pl].ten}</span></div>`);
+    el(`<div class="abs" style="right:44px;top:40px">${mark(40)}</div>`);
+    el(`<div class="abs pf" style="left:52px;top:150px;width:640px;font-size:${pl === 'cc' ? 104 : 88}px;line-height:.98;color:#fff;text-shadow:0 6px 0 #081322">${tieu.replace(/(FIRED|COLUMBUS)/, '<span style="color:' + PL[pl].mau + '">$1</span>')}</div>`);
+    el(`<div class="abs cg" style="left:56px;bottom:56px;font-size:44px;color:#F4D971">${phu}</div>`);
+  } else { hinh(pl, W, H, W / 2, H * .66, pl === 'cc' ? 380 : 230);
+    el(`<div class="abs" style="left:0;right:0;top:250px;display:flex;justify-content:center"><span class="chip" style="font-size:34px;background:${PL[pl].mau}">${PL[pl].ic} ${PL[pl].ten}</span></div>`);
+    el(`<div class="abs pf" style="left:60px;right:60px;top:360px;text-align:center;font-size:132px;line-height:.98;text-shadow:0 8px 0 #081322">${tieu.replace(/(FIRED|COLUMBUS)/, '<span style="color:' + PL[pl].mau + '">$1</span>')}</div>`);
+    el(`<div class="abs cg" style="left:0;right:0;top:${pl === 'cc' ? 820 : 900}px;text-align:center;font-size:56px;color:#F4D971">${phu}</div>`);
+    el(`<div class="abs" style="left:0;right:0;top:150px;text-align:center">${mark(48)}</div>`); }
+}
+VE[F]();
+document.fonts.ready.then(() => { window.__xong = true; });
+</script></body></html>

@@ -5,7 +5,8 @@
 // Tài nguyên ở /Users/htuan/.cache/lich-su/: ne_50m.geojson + ảnh địa hình dia-hinh-*.jpg (Natural Earth, cắt bằng sips từ NE1_HR_LC_SR_W.tif),
 // ảnh nền giấy, nv/<nhân vật>.png (AI vẽ + tach-lop.swift), <id>/giong.mp3 + moc-tho.json, <id>/<id>.mp4.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { BOX, box, len } from './box3.mjs';
@@ -186,8 +187,18 @@ cauObj.huong = huong; writeFileSync(cauTep, JSON.stringify(cauObj));
 // ---------- quay hình + tiếng ----------
 const dung = (them) => { const r = spawnSync(process.execPath, [join(DIR, '../shot-code/dung.mjs'), '--trang', join(DIR, 'ban-do.html'), '--cau', cauTep, '--rong', '1080', '--cao', '1920', '--fps', '30', ...them], { stdio: 'inherit' }); if (r.status) process.exit(r.status); };
 if (arg('khung')) { dung(['--ra', '/dev/null', '--khung', arg('khung'), '--khung-ra', resolve(arg('khung-ra'))]); process.exit(0); }
+// --soat <thư mục>: 8 khung GIỮA CẢNH rải đều (đúng cách tap-day chọn khung soát cho Ngọc) — lam-tap cho Ngọc xem trước khi dựng cả tập
+if (arg('soat')) { const ds = canh.length <= 8 ? canh : Array.from({ length: 8 }, (_, i) => canh[Math.round((i * (canh.length - 1)) / 7)]);
+  dung(['--ra', '/dev/null', '--khung', ds.map((s) => ((s.bd + s.kt) / 2).toFixed(2)).join(','), '--khung-ra', `${resolve(arg('soat'))}/`]); process.exit(0); }
 const hinh = join(RA, 'hinh.mp4'), ra = join(RA, `${tap.id}.mp4`);
-dung(['--ra', hinh]);
+// ĐOẠN = CẢNH, khoá = nội dung cảnh + cảnh trước (camera bay từ đó) + chữ phụ đề trong cảnh + phần chung của tập + mã trang dựng + dấu tệp ảnh.
+// Lượt sau chỉ đổi vài cảnh (gắn hook, sửa một cảnh) → các cảnh khác dùng lại từ kho, dung.mjs còn so khung đầu + cuối từng byte trước khi dùng.
+{ const { createHash } = await import('node:crypto'), h = (o) => createHash('sha1').update(typeof o === 'string' ? o : JSON.stringify(o)).digest('hex').slice(0, 16);
+  const { canh: _c, tu: _t, ...chung } = cauObj, dauTep = Object.values(cauObj.nv || {}).map((u) => { try { const st = statSync(fileURLToPath(u)); return `${u}:${st.size}:${st.mtimeMs}`; } catch { return u; } });
+  const goc = h([chung, dauTep, readFileSync(join(DIR, 'ban-do.html'), 'utf8')]);
+  const doan = canh.map((s, k) => ({ bd: k ? s.bd : 0, khoa: h([goc, canh[k - 1] ?? null, s, tu.filter((w) => w.a >= s.bd - 1 && w.a < s.kt + 1)]) }));
+  const doanTep = join(RA, 'doan.json'); writeFileSync(doanTep, JSON.stringify(doan));
+  dung(['--ra', hinh, '--doan', doanTep, '--kho', join(homedir(), '.cache', 'lich-su', '_doan')]); }
 // TIẾNG ĐỘNG KHỚP HÌNH (0đ, tổng hợp số học): vút khi camera nhảy xa · thịch khi đóng dấu / cắm cờ · giấy khi sang tranh · trống trầm khi đổi năm ·
 // chuông nhẹ khi một nước được nhắc tên. Lịch theo giây tuyệt đối; trộn dưới giọng.
 const SR = 48000, N = Math.ceil(DAI * SR), sfx = new Float32Array(N); let hat = 11; const rnd = () => ((hat = (hat * 1103515245 + 12345) % 2147483648) / 2147483648) * 2 - 1;

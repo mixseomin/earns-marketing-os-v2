@@ -10,7 +10,7 @@
 // 5. STUDIO: tap-day.mts (box3) → phim Studio của kênh + một tập (video R2, kịch bản).
 // 4. DỰNG: dung-tap.mjs (giọng box3 ~2.500₫ một lần, bản đồ, hiệu ứng, tiếng động) → <id>.mp4 + <id>-xem.mp4 (540p gửi xem — dưới 30 MB kể cả tập 3 phút lá cải) ở /Users/htuan/.cache/lich-su/<id>/.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
@@ -142,7 +142,10 @@ async function kiem(tap, nguonChu) {
 // ---------- 0. GẮN HOOK cho tập đã có (--gan-hook): kênh có máy đăng mà tập chưa có góc / hook spy → máy viết chọn hook + tiêu đề + mô tả đăng, lời đọc giữ nguyên ----------
 if (co('gan-hook') && KENH.may && existsSync(tepTap)) {
   const t0 = JSON.parse(readFileSync(tepTap, 'utf8'));
-  if (t0.hook?.goc) console.log(`tập đã có hook "${t0.hook.goc}" — bỏ qua gắn hook`);
+  // hook cũ chỉ giữ khi chữ đăng qua được luật phòng chấm (từ máy / tiếng Việt) — 02/11/2026 Alaska giữ "Unlock the…" + mô tả tiếng Việt rồi bị SỬA LẠI lần hai
+  const { tuMayTrong } = await import('../../../cty/worker/cham-dang.mjs'), chuCu = `${t0.tieu_de ?? ''}\n${t0.mo_ta_dang ?? ''}`;
+  const hongCu = tuMayTrong(chuCu).length || (t0.ngon_ngu ?? 'en') !== 'vi' && /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chuCu);
+  if (t0.hook?.goc && !hongCu) console.log(`tập đã có hook "${t0.hook.goc}" — bỏ qua gắn hook`);
   else { const tmp = `/tmp/gan-hook-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${tmp}`]);
     const f = join(RA, 'goc-hook.json'); writeFileSync(f, box(`scripts/may-dung.mts --may ${KENH.may} --goc-hook`).split('\n').pop()); len(f, `${tmp}/goc-hook.json`); len(tepTap, `${tmp}/tap.json`);
     console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/gan.json --id ${id} --nn ${nn} --kenh ${kenhId} --chi-hook --goc-hook ${tmp}/goc-hook.json --cu ${tmp}/tap.json`).split('\n').pop());
@@ -242,6 +245,18 @@ writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
 if (tien) console.log(`tiền kho + tranh lượt này ~${tien}₫`);
 
 // ---------- 4. DỰNG ----------
+// 4a. NGỌC SOI HÌNH TRƯỚC (02/11/2026): 8 khung giữa cảnh (vài giây) → xet-truoc.mts (box3, đúng hàm xetHinhAi của Phòng Nội dung). Chặn chắc chắn thì dừng ở đây
+// — trước đây phải dựng xong cả tập (~11 phút) Ngọc mới thấy chữ bị hình đè (Alaska: thợ mỏ đè "Skagway"). --bo-soat-truoc: bỏ bước này.
+if (!co('chi-day') && !arg('khung') && !co('bo-soat-truoc')) {
+  const dir = join(RA, 'soat-truoc'); rmSync(dir, { recursive: true, force: true });
+  const r = spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, '--soat', dir], { stdio: 'inherit' }); if (r.status) process.exit(r.status);
+  const ds = readdirSync(dir).filter((f) => /^k-\d+\.jpg$/.test(f)).sort((a, b) => parseInt(a.slice(2)) - parseInt(b.slice(2)));
+  const den = `/var/tmp/xet-truoc-${id}`; execFileSync('ssh', [BOX, `rm -rf ${den} && mkdir -p ${den}`]); for (const f of ds) len(join(dir, f), `${den}/${f}`);
+  const kq = JSON.parse(box(`scripts/lich-su/xet-truoc.mts ${q(id)} ${q(tap.tieu_de)} ${ds.map((f) => `${den}/${f}`).join(' ')}`).split('\n').pop());
+  for (const c of kq.canh) console.log(`⚠ Ngọc (trước dựng): ${c}`);
+  if (kq.chan.length) { console.error(`✗ Ngọc chặn hình trước khi dựng:\n  ${kq.chan.join('\n  ')}\n  khung: ${dir}`); process.exit(4); }
+  console.log(`✓ Ngọc soi ${ds.length} khung trước dựng: qua`);
+}
 // --chi-day: video đã dựng, chỉ đẩy lại Studio (không quay lại 5.900 khung)
 const dung = co('chi-day') && existsSync(join(RA, `${id}.mp4`)) ? { status: 0 } : spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, ...(arg('khung') ? ['--khung', arg('khung'), '--khung-ra', join(RA, 'khung.jpg')] : [])], { stdio: 'inherit' });
 if (dung.status) process.exit(dung.status);

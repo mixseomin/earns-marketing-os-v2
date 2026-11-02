@@ -83,6 +83,8 @@ function muiTen(a, b, k, mau) {   // mũi tên quân vẽ dần
   x.restore();
 }
 
+// khung xuất thẳng từ canvas cho shot-code/dung.mjs (nhanh hơn chụp màn hình; mọi thứ hiện trên màn đều vẽ trong canvas #c)
+window.__khung = () => c.toDataURL('image/jpeg', 0.92).split(',')[1];
 window.__seek = (t) => {
   const ds = C.canh; let k = ds.findIndex((s) => t < s.kt); if (k < 0) k = ds.length - 1;
   const s = ds[k], tr = ds[k - 1], u = t - s.bd;

@@ -19,7 +19,9 @@ const kho = JSON.parse(readFileSync(arg('kho') ?? new URL('./kho.json', import.m
 
 // ---------- nguồn Wikipedia (0đ) ----------
 const WIKI = `https://${nn}.wikipedia.org/w/api.php`;
-const goiWiki = async (q: Record<string, string>) => (await (await fetch(`${WIKI}?${new URLSearchParams({ format: 'json', formatversion: '2', ...q })}`, { headers: { 'User-Agent': 'studio-lich-su/1.0 (studio.on.tc)' } })).json()) as any;
+// Wikipedia trả 429 "too many requests" (chữ, không JSON) khi gọi dồn → thử lại có giãn, tối đa 5 lần
+const goiWiki = async (q: Record<string, string>): Promise<any> => { for (let i = 1; ; i++) { const r = await fetch(`${WIKI}?${new URLSearchParams({ format: 'json', formatversion: '2', ...q })}`, { headers: { 'User-Agent': 'studio-lich-su/1.0 (studio.on.tc; admin@mixseo.net)' } });
+  const t = await r.text(); try { if (r.ok) return JSON.parse(t); } catch { /* thử lại */ } if (i >= 5) throw new Error(`Wikipedia ${r.status}: ${t.slice(0, 120)}`); await new Promise((ok) => setTimeout(ok, 3000 * i)); } };
 let tua = arg('nguon')?.split('|').filter(Boolean) ?? [];
 if (!tua.length) tua = ((await goiWiki({ action: 'query', list: 'search', srsearch: chuDe, srlimit: '3' })).query?.search ?? []).map((x: { title: string }) => x.title);
 const nguon: { tua: string; url: string; chu: string }[] = [];

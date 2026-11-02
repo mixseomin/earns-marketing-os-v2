@@ -191,8 +191,12 @@ function client(): KhachChu | null {
 export async function sinhJson<T>(o: { schema: z.ZodType<T>; system: string; user: string; model?: string; max_tokens?: number; ten?: string }): Promise<{ ok: true; data: T; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string }> {
   const c = client(); if (!c) return { ok: false, loi: 'thiếu khoá chữ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)' };
   try {
-    const r = await c.messages.parse({ model: o.model ?? 'claude-haiku-4-5', max_tokens: o.max_tokens ?? 2000, system: o.system, messages: [{ role: 'user', content: o.user }], output_config: { format: zodOutputFormat(o.schema as unknown as Parameters<typeof zodOutputFormat>[0]) } });
-    const data = (r as { parsed_output?: T }).parsed_output; if (!data) return { ok: false, loi: 'mô hình không trả đúng khuôn JSON' };
+    const p = { model: o.model ?? 'claude-haiku-4-5', max_tokens: o.max_tokens ?? 2000, system: o.system, messages: [{ role: 'user', content: o.user }], output_config: { format: zodOutputFormat(o.schema as unknown as Parameters<typeof zodOutputFormat>[0]) } };
+    // LƯỢT DÀI (kịch bản trọn chuyện 3 phút, max_tokens > 16k): SDK từ chối gọi không-stream khi ước > 10 phút → đi stream, tự đọc JSON theo khuôn zod
+    const r = (p.max_tokens > 16000 ? await c.messages.stream(p).finalMessage() : await c.messages.parse(p)) as TinChu;
+    if (r.stop_reason === 'max_tokens') return { ok: false, loi: `viết chưa hết đã chạm trần ${p.max_tokens} token` };
+    let data = (r as { parsed_output?: T }).parsed_output;
+    if (!data) { const t = r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''); try { data = o.schema.parse(JSON.parse(layJson(t))); } catch (e) { return { ok: false, loi: `mô hình không trả đúng khuôn JSON: ${(e as Error).message.slice(0, 200)}` }; } }
     return { ok: true, data, model: r.model, tokens: tkCua(r) };
   } catch (e) { return { ok: false, loi: loiGoi(e) }; }
 }

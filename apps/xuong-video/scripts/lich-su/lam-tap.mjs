@@ -28,7 +28,8 @@ const kenhId = arg('kenh') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepT
 const KENH = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId];
 if (!KENH) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
 mkdirSync(RA, { recursive: true });
-const box = (lenh) => execFileSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx ${lenh}`], { encoding: 'utf8', maxBuffer: 64 << 20 }).trim();
+// duyệt chi một lần (anh vừa bảo làm) đi theo lệnh sang box3 — chot-tien.ts trên box đọc DUYET_SINH_1_LAN
+const box = (lenh) => execFileSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && ${process.env.DUYET_SINH_1_LAN === '1' ? 'DUYET_SINH_1_LAN=1 ' : ''}NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx ${lenh}`], { encoding: 'utf8', maxBuffer: 64 << 20 }).trim();
 const len = (f, dich) => execFileSync('scp', ['-q', f, `${BOX}:${dich}`]);
 const ve = (nguon, dich) => execFileSync('scp', ['-q', '-r', `${BOX}:${nguon}`, dich]);
 const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;

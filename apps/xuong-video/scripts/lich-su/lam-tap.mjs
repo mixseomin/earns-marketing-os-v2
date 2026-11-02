@@ -172,7 +172,8 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
   execFileSync('ssh', [BOX, `rm -rf ${tmp}`]);
   if (loi.length) { console.error('✗ máy viết 4 lượt vẫn lỗi — dừng, không tốn tiền giọng / ảnh'); process.exit(4); }
 } else { const loi = existsSync(join(RA, 'nguon.txt')) ? await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
-  if (loi.length) { console.error(`✗ tập có lỗi:\n  ${loi.join('\n  ')}`); process.exit(4); } }
+  // --chi-day chỉ đẩy lại bản đã dựng lên Studio (không viết, không tốn tiền) → lỗi kiểm chỉ cảnh báo; máy đăng vẫn do Phòng Nội dung chặn
+  if (loi.length) { console.error(`${co('chi-day') ? '⚠' : '✗'} tập có lỗi:\n  ${loi.join('\n  ')}`); if (!co('chi-day')) process.exit(4); } }
 if (co('chi-viet')) process.exit(0);
 
 // ---------- 3. KHO + TRANH ----------
@@ -227,7 +228,12 @@ console.log(`✓ ${mp4}\n✓ ${xem}`);
     // 3 khung (12 % · 50 % · 85 %) cho Studio + Phòng Nội dung chấm hình
     giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp4], { encoding: 'utf8' }));
     const khung = [0.12, 0.5, 0.85].map((x, i) => { const f = join(RA, `khung-${i}.jpg`); execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(giay * x), '-i', mp4, '-frames:v', '1', '-vf', 'scale=540:-2', '-q:v', '4', f]); len(f, `${bt}/khung-${i}.jpg`); return `${bt}/khung-${i}.jpg`; });
-    kq = JSON.parse(box(`scripts/lich-su/tap-day.mts ${bt}/tap.json ${bt}/tap.mp4 ${khung.join(' ')}`).split('\n').pop()); console.log(`✓ Studio phim #${kq.phim} · tập #${kq.tap} · https://studio.on.tc/?m=phim&mId=${kq.phim} · ${kq.url}`); }
+    // STORYBOARD: keyframe giữa mỗi cảnh (cau.json của máy dựng: bd / kt từng câu) + kho.json → tap-day ghi cảnh + thành phần vào phim Studio của kênh
+    const cauJ = JSON.parse(readFileSync(join(RA, 'cau.json'), 'utf8')), canhDs = cauJ.canh.map((c, k) => { const f = join(RA, `canh-${k + 1}.jpg`);
+      execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String((c.bd + c.kt) / 2), '-i', mp4, '-frames:v', '1', '-vf', 'scale=540:-2', '-q:v', '4', f]); return { k, bd: c.bd, kt: c.kt, f }; });
+    execFileSync('scp', ['-q', ...canhDs.map((x) => x.f), tepKho, `${BOX}:${bt}/`]);
+    writeFileSync(join(RA, 'canh.json'), JSON.stringify(canhDs.map((x) => ({ k: x.k, bd: x.bd, kt: x.kt, anh: `${bt}/canh-${x.k + 1}.jpg` })))); len(join(RA, 'canh.json'), `${bt}/canh.json`);
+    kq = JSON.parse(box(`scripts/lich-su/tap-day.mts ${bt}/tap.json ${bt}/tap.mp4 ${khung.join(' ')} --canh ${bt}/canh.json --kho ${bt}/kho.json`).split('\n').pop()); console.log(`✓ Studio phim #${kq.phim} · tập #${kq.tap} · ${kq.canh} cảnh storyboard · ${kq.thanh_phan} thành phần · https://studio.on.tc/?m=phim&mId=${kq.phim} · ${kq.url}`); }
   catch (e) { console.log(`⚠ đẩy Studio hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ')}`); }
   // 6. MÁY ĐĂNG: kênh có máy Studio → tập thành một video của máy (mẫu video-ngoai: URL R2 + 3 khung), Phòng Nội dung chấm rồi máy đăng chung tự đăng theo nhịp
   if (KENH.may && kq) try {

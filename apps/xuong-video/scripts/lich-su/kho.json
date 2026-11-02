@@ -226,7 +226,9 @@
    "huong": {
     "goc": "phai",
     "suy_nghi": "phai",
-    "chi_tay": "phai"
+    "chi_tay": "phai",
+    "buon": "phai",
+    "khoanh_tay": "phai"
    }
   },
   "william_seward": {
@@ -253,7 +255,10 @@
    "tap_dau": "alaska-a",
    "huong": {
     "goc": "phai",
-    "chi_tay": "phai"
+    "chi_tay": "phai",
+    "noi_dong": "phai",
+    "ngac_nhien": "thang",
+    "khoanh_tay": "phai"
    }
   },
   "eduard_de_stoeckl": {
@@ -280,7 +285,8 @@
    "tap_dau": "alaska-a",
    "huong": {
     "goc": "phai",
-    "cuoi": "phai"
+    "cuoi": "phai",
+    "chi_tay": "phai"
    }
   },
   "co_de_quoc_nga_1858": {
@@ -669,6 +675,176 @@
     "goc": "trai",
     "chi_tay": "trai"
    }
+  },
+  "promyshlennik": {
+   "loai": "nhan_vat",
+   "ten": "Người săn lông thú Nga",
+   "tu": 1780,
+   "den": 1820,
+   "ghi": "Russian promyshlennik fur trapper of the 1790s: stocky man in his forties, thick dark beard, weathered face, long greasy sheepskin coat over a rough linen shirt, fur cap, knee-high leather boots, holding a spear and a bundle of sea otter pelts",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 863,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/promyshlennik/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/promyshlennik/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/promyshlennik/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/promyshlennik/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/promyshlennik/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/promyshlennik/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/promyshlennik/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/promyshlennik/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/promyshlennik/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/promyshlennik/suy_nghi.png"
+   },
+   "que": "RUS",
+   "tap_dau": "alaska-parody",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai",
+    "suy_nghi": "phai",
+    "cuoi": "phai",
+    "khoanh_tay": "thang"
+   }
+  },
+  "russian_soldier": {
+   "loai": "nhan_vat",
+   "ten": "Lính Nga ở Sitka",
+   "tu": 1855,
+   "den": 1881,
+   "ghi": "Russian imperial infantry soldier, 1867: young man with a brown moustache, dark green tunic with brass buttons and white cross-belts, black leather shako with a brass eagle plate, dark trousers tucked into boots, standing stiffly at attention",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 864,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/russian_soldier/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/russian_soldier/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/russian_soldier/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/russian_soldier/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/russian_soldier/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/russian_soldier/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/russian_soldier/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/russian_soldier/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/russian_soldier/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/russian_soldier/suy_nghi.png"
+   },
+   "que": "RUS",
+   "tap_dau": "alaska-parody",
+   "huong": {
+    "goc": "trai",
+    "ngac_nhien": "trai",
+    "chi_tay": "phai"
+   }
+  },
+  "gold_miner": {
+   "loai": "nhan_vat",
+   "ten": "Người đào vàng Klondike",
+   "tu": 1896,
+   "den": 1900,
+   "ghi": "Klondike gold prospector, 1896: bearded man in his thirties, wide brim felt hat, red flannel shirt, muddy canvas trousers held by braces, heavy boots, carrying a pickaxe over one shoulder and a rolled canvas pack",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 865,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/gold_miner/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/gold_miner/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/gold_miner/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/gold_miner/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/gold_miner/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/gold_miner/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/gold_miner/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/gold_miner/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/gold_miner/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/gold_miner/suy_nghi.png"
+   },
+   "que": "CAN",
+   "tap_dau": "alaska-parody",
+   "huong": {
+    "goc": "phai",
+    "noi_dong": "phai",
+    "cuoi": "phai",
+    "chi_tay": "phai",
+    "ngac_nhien": "phai"
+   }
+  },
+  "grand_duke_konstantin": {
+   "loai": "nhan_vat",
+   "ten": "Đại công tước Konstantin",
+   "tu": 1855,
+   "den": 1892,
+   "ghi": "Russian grand duke in 1857: thirty-year-old clean-shaven man with short dark side-parted hair, dark green naval officer's coat with gold epaulettes, high collar and a blue sash, holding a folded paper memorandum, standing stiff and earnest",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 874,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/grand_duke_konstantin/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/grand_duke_konstantin/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/grand_duke_konstantin/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/grand_duke_konstantin/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/grand_duke_konstantin/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/grand_duke_konstantin/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/grand_duke_konstantin/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/grand_duke_konstantin/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/grand_duke_konstantin/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/grand_duke_konstantin/suy_nghi.png"
+   },
+   "que": "RUS",
+   "tap_dau": "alaska-parody",
+   "huong": {
+    "goc": "phai",
+    "noi_dong": "thang",
+    "chi_tay": "phai"
+   }
+  },
+  "settler": {
+   "loai": "nhan_vat",
+   "ten": "Người định cư Alaska 1916",
+   "tu": 1900,
+   "den": 1930,
+   "ghi": "Alaskan settler of 1916: man in his thirties with a moustache, brown wool suit, waistcoat, flat cap and mud-caked boots, holding a small hand axe and a folded newspaper, thin cold light",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 2/11/2026",
+   "studio_thanh_phan": 875,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/settler/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/settler/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/settler/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/settler/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/settler/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/settler/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/settler/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/settler/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/settler/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/settler/suy_nghi.png"
+   },
+   "que": "USA",
+   "tap_dau": "alaska-parody",
+   "huong": {
+    "goc": "trai",
+    "chi_tay": "phai",
+    "buon": "trai"
+   }
+  },
+  "co_my_1912": {
+   "loai": "co",
+   "ten": "Cờ Hoa Kỳ bốn mươi tám sao",
+   "tu": 1912,
+   "den": 1959,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_United_States_(1912-1959).svg",
+   "studio_thanh_phan": 876,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_my_1912/goc.png"
+   },
+   "tap_dau": "alaska-parody"
+  },
+  "co_my_1959": {
+   "loai": "co",
+   "ten": "Cờ Hoa Kỳ bốn mươi chín sao",
+   "tu": 1959,
+   "den": 1960,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:US_flag_49_stars.svg",
+   "studio_thanh_phan": 877,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_my_1959/goc.png"
+   },
+   "tap_dau": "alaska-parody"
   }
  }
 }

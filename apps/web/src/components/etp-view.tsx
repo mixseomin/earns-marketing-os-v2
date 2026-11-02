@@ -1562,7 +1562,7 @@ function BieuNgay({ ngay, sd, nay, n }: { ngay: string[]; sd: (SoTien | undefine
           <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>{x.s.chi ? `$${x.s.chi.toFixed(x.s.chi < 10 ? 2 : 0)}` : '·'}</span>
           <span style={{ fontSize: 10, color: Math.abs(lai) < 0.005 ? 'var(--fg-3)' : mauLai(lai) }}>{x.s.chi || x.s.thu ? `${lai < 0 ? '−' : '+'}${Math.abs(lai).toFixed(Math.abs(lai) < 10 ? 2 : 0)}` : '\u00a0'}</span>
           {/* #1503: một dòng, canh giữa như ô trên — dòng lãi rỗng vẫn giữ chiều cao để các ô thẳng hàng */}
-          {x.n != null ? <span title={`${x.n} camp có chi trong ngày`} style={{ fontSize: 10, color: x.n ? 'var(--fg-2)' : 'var(--fg-3)', whiteSpace: 'nowrap', textAlign: 'center' }}>{x.n} camp</span> : null}
+          {x.n != null ? <span title={`${x.n} camp có chi trong ngày`} style={{ fontSize: 10, color: x.n ? 'var(--fg-2)' : 'var(--fg-3)', textAlign: 'center', lineHeight: 1.15 }}>{x.n}<br /><span style={{ fontSize: 9, opacity: 0.75 }}>camp</span></span> : null}
         </div>; })}
     </div>
   </div>;

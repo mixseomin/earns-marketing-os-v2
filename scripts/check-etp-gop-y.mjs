@@ -419,7 +419,7 @@ const LUAT = [
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tat2": m(tat2), "tat1": m(tat1),', vi: 'luật T1 xuất ra cho worker (báo trước một nhịp rồi tắt)' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'dat = [(cid, chu) for cid, chu in dat if not _ts_ly(cid)]', vi: 'luật TS siết tăng bậc: không tăng 07–15h VN, không tăng khi hôm qua lãi 0–50% (02/11)' },
   { card: 'chat', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"tat1":      { "ma": "t1",', vi: 'sổ luật chung có T1' },
-  { card: 1503, tep: V, co: "style={{ fontSize: 10, color: x.n ? 'var(--fg-2)' : 'var(--fg-3)', whiteSpace: 'nowrap', textAlign: 'center' }}>{x.n} camp</span>", vi: 'số camp dưới biểu đồ ngăn phim: một dòng, canh giữa' },
+  { card: 1503, tep: V, co: "textAlign: 'center', lineHeight: 1.15 }}>{x.n}<br /><span style={{ fontSize: 9, opacity: 0.75 }}>camp</span></span>", vi: 'số camp dưới biểu đồ ngăn phim: số trên, chữ camp dưới, canh giữa cột' },
   { card: 1504, tep: V, co: 'max={maxLai([...sd, c.nay])} bac={bacO(c.camp_id, d)} />', vi: 'ô ngày của camp: chấm màu + hover liệt kê tăng / giảm bậc trong ngày' },
   { card: 1504, tep: V, co: '`\\n\\nĐổi bậc trong ngày:\\n${bac.map((x) => `• ${x.chu}`).join(\'\\n\')}`', vi: 'hover ô ngày có mục Đổi bậc trong ngày' },
   { card: 'chat', tep: 'apps/etp/dong-bo.py', co: "where not exists (select 1 from etp.so_luat s where s.ma = e->>'ma')) from etp.so_luat", vi: 'luật mới lên tab Luật ngay lượt đầu, không đợi tròn giờ' },

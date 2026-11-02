@@ -243,6 +243,7 @@ export async function chamMoi(sql) {
     from xv_may_video v join xv_may m on m.id = v.may_id
     where not coalesce(v.luu_tru, false) and v.xuat_luc is not null
       and (v.cham is null or v.cham->>'xuat' is distinct from v.xuat_luc::text or v.cham->>'dang' is distinct from md5(v.dang::text)
+           or (m.mau = 'video-ngoai' and v.cham->>'thumb' is distinct from v.de->'thumb'->>'url')   -- thumbnail đổi là chấm lại
            or (v.dang->>'loai' = 'bai' and v.cham->>'ket' is distinct from 'DUYET')   -- bài viết chưa DUYỆT: xét lại mỗi lượt (bản gửi phòng có thể đã đổi)
            or (v.cham->>'ket' = 'DUYET' and (select count(*) from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') > 1))
     order by v.id`;
@@ -252,13 +253,20 @@ export async function chamMoi(sql) {
   const suThatCua = (ma) => { if (!suThat.has(ma)) { try { suThat.set(ma, fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')); } catch { suThat.set(ma, null); } } return suThat.get(ma); };
   const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), goc: v.dang?.hook?.goc, luot_xem: v.dang?.hook?.luot_xem ?? (String(v.dang?.hook?.qc ?? '').startsWith('kenh:') ? v.dang?.hook?.ngay : undefined), dong: dongHookBai(v.dang?.title, v.de) })));
   const hinh = await xetHinhAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), anh: [...(v.de?.soat ?? (v.khung?.length ? v.khung : v.anh) ?? [])].filter((u) => /^https:\/\//.test(u)).slice(0, 8) })));
+  // THUMBNAIL (02/11/2026, anh: "không dùng thumb YouTube tự sinh"): video full (mẫu video-ngoai, kênh lịch sử) bắt buộc có thumbnail thiết kế (de.thumb.url,
+  // lich-su/thumb.mjs) và Ngọc chấm đạt — thiếu / không đạt là chặn cứng, máy đăng không lấy.
+  const thumb = await xetThumbAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), url: v.mau === 'video-ngoai' ? v.de?.thumb?.url ?? null : null })));
+  ds.forEach((v, i) => { if (v.mau !== 'video-ngoai') return; const h = hinh[i] ?? { chan: [], canh: [] };
+    if (!v.de?.thumb?.url) h.chan = [...h.chan, 'thiếu thumbnail thiết kế (lich-su/thumb.mjs) — không dùng thumbnail YouTube tự sinh'];
+    else if (thumb[i]) { h.chan = [...h.chan, ...thumb[i].chan]; h.canh = [...h.canh, ...thumb[i].canh]; }
+    hinh[i] = h; });
   for (const [i, v] of ds.entries()) {
     let kiem;
     if (v.dang?.loai === 'bai') {   // bài viết: chờ kiem-bai chấm đúng bản (md5 chữ đăng); chưa nộp thì nộp, đang chờ thì để lượt sau
       const k = await kiemBaiViet(v); if (k === 'CHO') continue; kiem = k;
     }
     const r = doBaiDang({ ...v, xuat_luc: v.xuat, goc_loi: loiGoc[i], hook_loi: loiHookNgach[i], hinh: hinh[i], su_that: suThatCua(v.ma), kiem }, '');
-    await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
+    await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, thumb: v.de?.thumb?.url ?? null, luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
     kq.cham++; r.ket === 'DUYET' ? kq.duyet++ : kq.sua++;
     const t = (kq.theoMau[v.ma] ??= { ten: v.ten, n: 0, sua: 0, loi: {} }); t.n++;
     if (r.ket !== 'DUYET') { t.sua++; for (const l of r.chan_cung.length ? r.chan_cung : [`điểm ${r.diem}/10 < ${DIEM_DUYET}`]) t.loi[l] = (t.loi[l] ?? 0) + 1; }

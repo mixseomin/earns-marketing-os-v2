@@ -279,12 +279,15 @@ console.log(`✓ ${mp4}\n✓ ${xem}`);
     writeFileSync(join(RA, 'canh.json'), JSON.stringify(canhDs.map((x) => ({ k: x.k, bd: x.bd, kt: x.kt, anh: `${bt}/canh-${x.k + 1}.jpg` })))); len(join(RA, 'canh.json'), `${bt}/canh.json`);
     kq = JSON.parse(box(`scripts/lich-su/tap-day.mts ${bt}/tap.json ${bt}/tap.mp4 ${khung.join(' ')} --canh ${bt}/canh.json --kho ${bt}/kho.json`).split('\n').pop()); console.log(`✓ Studio phim #${kq.phim} · tập #${kq.tap} · ${kq.canh} cảnh storyboard · ${kq.thanh_phan} thành phần · https://studio.on.tc/?m=phim&mId=${kq.phim} · ${kq.url}`); }
   catch (e) { console.log(`⚠ đẩy Studio hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ')}`); }
+  // 5b. THUMBNAIL (anh 02/11/2026: "thumb rất rất quan trọng, không dùng thumb YouTube tự sinh"): thumb.mjs viết chữ + dựng + Ngọc chấm; chặn thì dừng, không nạp máy đăng
+  if (KENH.may) { const r = spawnSync(process.execPath, [join(DIR, 'thumb.mjs'), '--id', id], { stdio: 'inherit' }); if (r.status) process.exit(r.status);
+    Object.assign(tap, { thumb: JSON.parse(readFileSync(tepTap, 'utf8')).thumb }); }
   // 6. MÁY ĐĂNG: kênh có máy Studio → tập thành một video của máy (mẫu video-ngoai: URL R2 + 3 khung), Phòng Nội dung chấm rồi máy đăng chung tự đăng theo nhịp
   if (KENH.may && kq) try {
     const anhThat = tap.cau.map((c) => c.canh.tranh?.commons_url).filter(Boolean);
     const moTa = `${tap.mo_ta_dang}${anhThat.length ? '\n\nImages: Wikimedia Commons (public domain). Maps: Natural Earth.' : ''}`;
     const nap = [{ slug: id, chu_de: tap.chu_de, mau: 'video-ngoai', nen_url: anhThat[0] ?? null,
-      de: { loai: 'video-ngoai', video_url: kq.url, giay: Math.round(giay * 100) / 100, khung: kq.khung ?? [], soat: kq.soat ?? [], tom_tat: tap.chu_de },
+      de: { loai: 'video-ngoai', video_url: kq.url, giay: Math.round(giay * 100) / 100, khung: kq.khung ?? [], soat: kq.soat ?? [], tom_tat: tap.chu_de, thumb: tap.thumb?.url ? { url: tap.thumb.url, chu: tap.thumb.chu } : null },
       dang: { title: tap.tieu_de, description: moTa, link: null, loai: 'thuong', goc: tap.goc, hook: tap.hook } }];
     writeFileSync(join(RA, 'nap.json'), JSON.stringify(nap)); len(join(RA, 'nap.json'), `${bt}/nap.json`);
     console.log(box(`scripts/may-dung.mts --may ${KENH.may} --nap < ${bt}/nap.json`)); console.log(box(`scripts/may-dung.mts --may ${KENH.may} --xuat ${id}`).split('\n').slice(-2).join(' · '));

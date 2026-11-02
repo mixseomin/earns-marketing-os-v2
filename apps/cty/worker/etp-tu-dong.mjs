@@ -77,7 +77,7 @@ export async function nhipTuDong(tg, { giay = 1500 } = {}) {
     const k = keHoach(kq, { ...cfg, giu, nbLoi }, st.cho || {});
     const lam = [];
     for (const v of k.viec) {
-      let r; try { r = dongCuoi(await py(SUA, [String(ng), v.viec === 'tat' ? 'tat' : 'ns', String(v.id), ...(v.viec === 'ns' ? [String(v.d)] : []), '--may'], {}, 120)); } catch (e) { r = { ok: false, loi: e.message }; }
+      let r; try { r = dongCuoi(await py(SUA, [String(ng), v.viec === 'tat' ? 'tat' : 'ns', String(v.id), ...(v.viec === 'ns' ? [String(v.d)] : []), '--may', '--luat', String(v.luat || '').slice(0, 300), '--ai', 'Luật tự động tài khoản team (anh 31/10/2026)'], {}, 120)); } catch (e) { r = { ok: false, loi: e.message }; }
       lam.push({ v, r });
     }
     await ghiG10(lam.filter(({ v, r }) => daGuiG10(r) && v.luat === 'G10').map(({ v }) => v.id));

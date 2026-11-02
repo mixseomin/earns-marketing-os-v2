@@ -674,12 +674,16 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
       <b style={{ textDecoration: 'underline dotted' }}>{l.ten}</b>{l.dung ? <span style={{ color: MO }}> · tạm dừng</span> : null}</span>, sortValue: (l) => l.ten },
     c('lan', 'Lần làm', '14', (l) => l.so.lan, 'so', 'số lần máy luật đã làm trong 14 ngày'), c('camp', 'Camp', '14', (l) => l.so.camp, 'so', 'số camp khác nhau'),
     c('do', 'Đo được', '14', (l) => l.so.do_duoc, 'so', 'số lần có đủ ngày trước + sau để đo (lần mới làm hôm nay / hôm qua chưa có ngày sau)'),
+    c('lan7', 'Lần làm 7n', '7', (l) => l.so.k7?.lan, 'so', 'số lần máy luật đã làm trong 7 ngày gần nhất'),
   ];
   const cotSau: DataColumn<SoLuat>[] = [
     c('lt', 'Lãi/ngày trước', 'kq', (l) => l.so.lai_ngay_truoc, 'tien', 'lãi mỗi camp mỗi ngày, 2 ngày trước khi máy làm'), c('ls', 'Lãi/ngày sau', 'kq', (l) => l.so.lai_ngay_sau, 'tien', 'lãi mỗi camp mỗi ngày, 2 ngày sau khi máy làm'),
     c('dl', 'Chênh lãi/ngày', 'kq', lai, 'tien', 'sau − trước'), c('rt', 'ROI trước', 'kq', (l) => l.so.roi_truoc, 'roi', 'ROI 2 ngày trước'), c('rs', 'ROI sau', 'kq', (l) => l.so.roi_sau, 'roi', 'ROI 2 ngày sau'),
     c('ct', 'Chi/ngày trước', 'kq', (l) => l.so.chi_ngay_truoc, 'tien', 'chi mỗi camp mỗi ngày trước'), c('cs', 'Chi/ngày sau', 'kq', (l) => l.so.chi_ngay_sau, 'tien', 'chi mỗi camp mỗi ngày sau'),
     c('tot', '% lần lãi tăng', 'kq', (l) => l.so.ti_le_tot, 'pct', 'phần trăm số lần lãi/ngày sau cao hơn trước'),
+    c('dc', 'Chênh đối chứng', 'kq', (l) => l.so.dc_chenh, 'tien', 'sau − trước của camp Nhà cùng ngày, cùng ngân sách, đang lãi mà KHÔNG bị tăng — phần tụt tự nhiên vì luật chọn đúng ngày đẹp'),
+    c('hq', 'Hiệu quả thật', 'kq', (l) => l.so.hieu_qua, 'tien', 'lãi/ngày mỗi lần tăng sinh ra thật = chênh của camp được tăng − chênh đối chứng (14 ngày)'),
+    c('hq7', 'Hiệu quả 7n', 'kq', (l) => l.so.k7?.hieu_qua, 'tien', 'hiệu quả thật, chỉ tính các lần trong 7 ngày gần nhất'),
   ];
   const nb = (k: 'tat_ca' | 'cung_cr' | 'khac_cr', f: 'n' | 'lai' | 'roi') => (l: SoLuat) => l.so[k]?.[f];
   const goc = (k: string, f: 'n' | 'roi') => (l: SoLuat) => l.so.theo_goc?.[k]?.[f];
@@ -707,7 +711,7 @@ function BanLuat({ du }: { du: DuLieuEtp }) {
           return <span key={i}>{i ? <span style={{ color: MO }}> · </span> : null}<b style={{ color: giu ? 'var(--fg-2)' : '#f59e0b' }}>{x.lam}</b>{ds.length === 1 && x.vi ? <span style={{ color: 'var(--fg-2)' }}> — {x.vi}</span> : null}</span>; })}</span>; },
     sortValue: (l) => l.de_xuat.map(dxChu).filter((x) => x.lam !== 'Giữ').length };
   const cot = [cotDau[0]!, cotDx, ...cotDau.slice(1), ...(nhom === 'tat' ? cotTat : nhom === 'tang' ? [...cotSau, ...cotNb] : cotSau), ...cotNay];   // đề xuất ngay sau tên luật: thấy không cần kéo ngang
-  const NHOM_COT = [{ key: '14', label: '14 ngày qua', color: '#94a3b8' }, { key: 'kq', label: '2 ngày trước → 2 ngày sau khi máy làm', color: '#22d3ee' }, { key: 'nb', label: 'Bản nhân bản (từ lúc lên)', color: '#a78bfa' },
+  const NHOM_COT = [{ key: '14', label: '14 ngày qua', color: '#94a3b8' }, { key: '7', label: '7 ngày', color: '#cbd5e1' }, { key: 'kq', label: '2 ngày trước → 2 ngày sau khi máy làm', color: '#22d3ee' }, { key: 'nb', label: 'Bản nhân bản (từ lúc lên)', color: '#a78bfa' },
     { key: 'tat', label: 'Camp bị tắt', color: '#f87171' }, { key: 'nay', label: 'Bây giờ', color: '#fbbf24' }];
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
     <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>

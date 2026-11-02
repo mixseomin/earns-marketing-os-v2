@@ -16,7 +16,7 @@ import json, os, subprocess, sys, time
 
 KET = len(sys.argv) == 3 and sys.argv[1].isdigit() and sys.argv[2] == "ket"
 if not KET and (len(sys.argv) < 4 or not sys.argv[1].isdigit() or sys.argv[2] not in ("ns", "bat", "tat") or not sys.argv[3].isdigit()):
-    print(json.dumps({"ok": False, "loi": "dùng: sua-ngoai.py <nguoi_id> ns|bat|tat <camp_id> [ngân sách] · sua-ngoai.py <nguoi_id> ket < phiên"})); sys.exit(2)
+    print(json.dumps({"ok": False, "loi": "dùng: sua-ngoai.py <nguoi_id> ns|bat|tat <camp_id> [ngân sách] [--may] [--luat …] [--ai …] · sua-ngoai.py <nguoi_id> ket < phiên"})); sys.exit(2)
 NG, VIEC, CID = int(sys.argv[1]), sys.argv[2], (0 if KET else int(sys.argv[3]))
 os.environ["ETP_SUA_NGUOI"] = str(NG); os.environ.pop("ETP_XEM_NGUOI", None)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -30,7 +30,23 @@ def doc():
     c = EA.api(f"/api/v1/campaigns/{CID}")["campaign"]
     return {"ns": c.get("budget_daily"), "tt": c.get("state")}
 
-def ra(**k): print(json.dumps({"viec": VIEC, "id": CID, **k}, ensure_ascii=False)); sys.exit(0 if k.get("ok") else 1)
+_arg = lambda k: sys.argv[sys.argv.index(k) + 1] if k in sys.argv[:-1] else None
+LUAT_, AI_ = _arg("--luat"), _arg("--ai")
+
+def ra(**k):
+    print(json.dumps({"viec": VIEC, "id": CID, **k}, ensure_ascii=False))
+    # NHẬT KÝ (anh 02/11/2026 duyệt review luật: việc trên tài khoản team không có vết nào trong etp.nhat_ky → sổ luật không đo được): cùng đường ghi
+    # với Nhà (nhat_ky.ghi → dong-bo chép sang etp.nhat_ky); ns ghi là tang / giam như lam-ethopex.
+    if not KET and CID and os.environ.get("DATABASE_URL"):
+        try:
+            import nhat_ky
+            tr, sa = (k.get("truoc") or {}).get("ns"), (k.get("sau") or {}).get("ns")
+            viec = VIEC if VIEC != "ns" else ("giam" if tr is not None and len(sys.argv) > 4 and sys.argv[4].isdigit() and int(sys.argv[4]) < float(tr) else "tang")
+            q = lambda c: subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-c", c], capture_output=True, text=True, timeout=30).stdout.strip()
+            nhat_ky.ghi(q, {"viec": viec, "id": CID, "truoc": tr, "sau": sa, "ok": k.get("ok"), "loi": k.get("loi"),
+                            "luat": LUAT_ or ("máy tự làm (Luật tự động)" if MAY else "tay trên etp.on.tc"), "ai": AI_ or f"người etp #{NG}"})
+        except Exception as e: print(f"nhật ký lỗi: {e}", file=sys.stderr)
+    sys.exit(0 if k.get("ok") else 1)
 
 def ket():
     """KẾT NỐI: người dán Token ở app.ethopex.dev/profile (nút Copy — cùng access_token phiên đăng nhập) → kiểm đúng là phiên CỦA NGƯỜI ĐÓ rồi mới cất"""

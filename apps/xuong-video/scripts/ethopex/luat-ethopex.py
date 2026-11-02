@@ -649,6 +649,9 @@ tat_pl, tat_l4, tat_l3, tat_d24, tat_l, tat7, tat2, tat1, tu_choi, dau_phien, da
 # team "_D<gốc>_ROAS1" / "Dup by <gốc> ROAS 1.1" / "<tên gốc>_D2 (ROAS)" (31/10/2026: Luật tự động của Sơn — trước chỉ nhận kiểu nhà, gốc Sơn đã có ROAS vẫn vào moc30)
 _goc_roas = CONG.goc_roas(ds_camp)
 moc30 = [x for x in moc30 if int(x[0] or 0) not in _goc_roas]
+# ROAS TRƯỚC NHÂN BẢN (anh 02/11/2026 duyệt review luật: 7 ngày camp ROAS +18%, clone thường −7%): camp gốc đủ lên ROAS mà chưa có camp ★ → lượt này
+# chỉ lên ROAS, không nhân bản thường; có ROAS rồi mới tới lượt luật NB.
+_roas_truoc = {int(x[0] or 0) for x in moc30}; nb = [x for x in nb if int(x[0] or 0) not in _roas_truoc]
 # LUẬT TẮT THẮNG MỌI LUẬT KHÁC — xếp ở NGUỒN (anh 29/10/2026 "các luật khác thì sao? đã fix triệt để chưa?"): #65656 chạm D24 mà không tắt vì
 # cùng lúc nằm trong danh sách giảm bậc, bước giảm của nhịp chạy trước giành camp. Một camp chỉ mang MỘT quyết định: camp trong danh sách tắt
 # (tự tắt, báo trước một nhịp: T2 · D24 · L3 · OFF · bản thang lỗ — 29/10/2026 không còn luật chờ anh tắt) bị gỡ khỏi mọi danh sách tăng / giảm / nhân bản / thay creative — worker,
@@ -657,7 +660,10 @@ _SE_TAT = {int(x[0] or 0) for v in (tat2, tat1, tat_d24, tat_l3, tat_l4, tat_pl,
 tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, tang30, moc30 = ([x for x in v if int(x[0] or 0) not in _SE_TAT] for v in (tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, tang30, moc30))
 # ★ ROAS THẮNG → $30 (anh 28/10/2026 "thêm rule tăng roas thắng lên $30"): camp ROAS vẫn miễn mọi luật khác, riêng T30 áp cùng ngưỡng —
 # đang $20, ≥ 2/3 ngày đã khép tiêu > 80% ngân sách, ROI các ngày đó > 80% → máy tự tăng $20 → $30 (cùng đường tang30 của worker)
-tang30 += [(cid, "★ ROAS thắng · " + s_) for cid, s_ in _tang30_goc if int(cid or 0) in _ROAS]
+# T30 CHO ★ ROAS TẠM DỪNG (anh 02/11/2026 duyệt review luật): so-luat đo có đối chứng — mỗi lần $20 → $30 mất $5.87/ngày so với camp $20 cùng ngày
+# không tăng (14 lần). Dừng tới khi đo lại (etp ?t=luat, cột Hiệu quả); bật lại = đổi T30_ROAS_DUNG = False.
+T30_ROAS_DUNG = True
+tang30 += [] if T30_ROAS_DUNG else [(cid, "★ ROAS thắng · " + s_) for cid, s_ in _tang30_goc if int(cid or 0) in _ROAS]
 tat_roas = []
 try:
     if _ROAS & _bat:
@@ -751,7 +757,7 @@ def _xet_luat():
                 "tat_roas" if int(cid) in vao["tat_roas"] else None, lo=None if rg_ is None else rg_ < 0))
             ns = float(a.get("budget") or 0); du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
             r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None
-            ls.append(L("t30", "★ ROAS thắng · $20 → $30", f"Camp ROAS đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách ($16), ROI các ngày đó > {T30_ROI}% → máy tự tăng $30.",
+            ls.append(L("t30", "★ ROAS thắng · $20 → $30", ("Đang tạm dừng (02/11/2026, đo có đối chứng −$5.87/ngày mỗi lần tăng) — máy không tăng. " if T30_ROAS_DUNG else "") + f"Camp ROAS đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách ($16), ROI các ngày đó > {T30_ROI}% → máy tự tăng $30.",
                 [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], ["Ngày tiêu > $16", f"{len(du30)}/3", f"≥ {T30_NGAY}", len(du30) >= T30_NGAY], ["ROI các ngày đó", f(r30, "%"), f"> {T30_ROI}%", r30 is not None and r30 > T30_ROI]],
                 "tang30" if int(cid) in vao["tang30"] else None, tien=1))
             ls.append(L_g10(cid, ns)); ra[int(cid)] = ls; continue

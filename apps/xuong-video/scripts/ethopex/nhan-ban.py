@@ -67,7 +67,8 @@ def dem_dang_chay(content_id):
     # camp vừa tạo chưa vào kho (đồng bộ 10 phút): lấy từ sổ nhật ký studio
     try:
         moi = json.loads(q("""select coalesce(jsonb_agg(x), '[]'::jsonb)::text from xv_khoa_ngoai, jsonb_array_elements(gia_tri) x where ten = 'ethopex_nhat_ky'
-                              and x->>'viec' in ('tao_camp', 'nhan_ban') and (x->>'ok')::boolean and to_timestamp(x->>'luc', 'HH24:MI DD/MM/YYYY') > (now() at time zone 'Asia/Ho_Chi_Minh') - interval '15 minutes'""") or "[]")
+                              and x->>'viec' in ('tao_camp', 'nhan_ban') and (x->>'ok')::boolean and to_timestamp(x->>'luc', 'HH24:MI DD/MM/YYYY') > (now() at time zone 'Asia/Ho_Chi_Minh') - interval '15 minutes'
+                              and x->>'nguoi' is null""") or "[]")   # dòng của tài khoản team (nguoi) không tính vào trần Nhà
         da = {int(l.split("|")[0]) for l in rows}
         for x in moi:
             if int(x.get("content") or x.get("content_id") or 0) == int(content_id) and int(x.get("moi") or x.get("id") or 0) not in da:
@@ -88,6 +89,7 @@ def dem_tk(content_id, tk):
 # phim chưa có creative nào như vậy → xếp hàng cắt GÓC MỚI ['ethopex_can_goc_moi'] (sua-cta.py trên iMac cắt + đẩy, rồi nhân bản lại) và dừng.
 # 28/10/2026 anh: "ko nhất thiết phải cắt bản mới và ko set tối đa 3 camp mỗi đoạn nữa vì có rule tắt và giảm bậc rồi. Tuy nhiên tìm điểm bão hoà hợp lý để set max camp trùng"
 # → trần = etp.cau_hinh.tran_trung (mặc định 20): đo 22–27/10 trên creative thắng (nhà + team), bản 1–20 ROI +58…+72% tiêu ~$30/camp, bản 21–30 chỉ tiêu $13, 31+ $5 / ROI +28% — Meta hết phân phối
+CLONE_KHAC_CR_DEN = dt.date(2026, 11, 9)   # tạm dừng clone đổi creative (anh 02/11/2026) — hết ngày này máy tự mở lại
 TRAN_DOAN = int(float(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'tran_trung'), '20')") or 20))
 def doan_cua():
     """creative → đoạn (content, tu, den) từ studio — hai creative cùng mốc là CÙNG ĐOẠN (bản CTA cũ + bản sửa CTA của Step Back #52951 / #53594, 24/10/2026)"""
@@ -260,7 +262,8 @@ class ChanLuat(ValueError):
 def ghi_nhat_ky(kq, luat, ai):
     import nhat_ky   # apps/etp/nhat_ky.py — một đường ghi, chặn dòng lỗi lặp (nhịp gọi lại mỗi phút khi cổng chặn)
     nhat_ky.ghi(q, {"viec": kq.get("viec") or "nhan_ban", "id": kq.get("moi") or kq.get("goc"), "goc": kq.get("goc"),
-                    "truoc": None, "sau": (kq.get("ns") or 1) if kq.get("ok") else None, "ok": kq.get("ok"), "loi": kq.get("loi"), "luat": luat or "(không ghi luật)", "ai": ai or "?", "content": kq.get("content"), "creative": kq.get("creative")})
+                    "truoc": None, "sau": (kq.get("ns") or 1) if kq.get("ok") else None, "ok": kq.get("ok"), "loi": kq.get("loi"), "luat": luat or "(không ghi luật)", "ai": ai or "?", "content": kq.get("content"), "creative": kq.get("creative"),
+                    **({"nguoi": EA.SUA or EA.XEM} if NGOAI else {})})   # team cũng ghi (anh 02/11/2026: sổ luật đo được việc máy làm cho Sơn / Kiên); nguoi tách khỏi đếm Nhà
 
 def main(a):
     goc = int(a[0]); that = "--that" in a
@@ -315,6 +318,11 @@ def main(a):
         if ep: kq["viec"] = "sang_bo"
         elif not moi:   # clone GIỮ NGUYÊN creative gốc tới trần TRAN_DOAN camp chạy / đoạn (anh 28/10/2026); đoạn đã đủ trần → creative khác cùng phim
             if dem_doan(cr) >= TRAN_DOAN:
+                # TẠM DỪNG CLONE SANG CREATIVE KHÁC (anh 02/11/2026 duyệt review luật: 74 clone đổi creative ROI −1%, clone giữ creative +46%) tới hết
+                # CLONE_KHAC_CR_DEN để đo lại — đoạn đủ trần thì chặn, vẫn xếp hàng cắt góc mới; creative mới đi đường --creative (camp mới), không qua đây.
+                if dt.date.today() <= CLONE_KHAC_CR_DEN:
+                    xep_goc_moi(goc, cid, ten)
+                    raise ChanLuat(f"đoạn creative #{cr} đã {dem_doan(cr)} camp chạy (trần {TRAN_DOAN}) — clone sang creative khác tạm dừng tới {CLONE_KHAC_CR_DEN:%d/%m} (đo lại), đã xếp hàng cắt góc mới")
                 khac = creative_clone(cid, cr)
                 if not khac:
                     xep_goc_moi(goc, cid, ten)
@@ -360,7 +368,7 @@ def main(a):
         kq.update(ok=None, chan=True, loi=str(e)[:240])   # bỏ qua theo luật — nhật ký ok NULL
     except Exception as e:
         kq["loi"] = str(e)[:240]
-    if that and not NGOAI: ghi_nhat_ky(kq, luat, ai)
+    if that: ghi_nhat_ky(kq, luat, ai)
     print(json.dumps(kq, ensure_ascii=False))
 
 def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False):
@@ -416,7 +424,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
         if not NGOAI: ghi_bo(cid, bo)
     except Exception as e:
         kq["loi"] = str(e)[:240]
-    if that and not NGOAI: ghi_nhat_ky(kq, luat, ai)
+    if that: ghi_nhat_ky(kq, luat, ai)
     print(json.dumps(kq, ensure_ascii=False))
 
 if __name__ == "__main__":

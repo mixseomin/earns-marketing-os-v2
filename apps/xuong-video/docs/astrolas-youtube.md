@@ -121,6 +121,19 @@ Phần phải dựng (chỉ khi anh duyệt):
 3. Khuôn kịch bản "Chart Chapters" trong `kenh.json` + script lấy mốc ZR / Profection từ astrolas.com.
 4. Trường `loat` trên tập → máy đăng gắn playlist YouTube + tiền tố tiêu đề; bảng Kênh social hiện loạt ở từng dòng Lịch.
 
+## Ngôn ngữ EN → ES → JA (vòng 5, đề xuất 02/11/2026 — chưa dựng)
+
+Đo 02/11:
+- astrolas.com `config/app.php` `public_locales` = chỉ `en`, `vi`. Tệp `lang/es.json`, `ja.json` có nhưng chưa mở công khai; dịch nội dung ja đang dở (followup #486), es chưa bắt đầu (#459). → Video ES/JA lúc này dẫn người xem về trang tiếng Anh.
+- Máy lịch sử đã chạy được ES: `tap.ngon_ngu`, `kenh.json` có `tu.es`, `ket.es`; nhưng tập ES đang được VIẾT RIÊNG (bolivia-mar-es, brasil-es), không phải bản dịch của tập EN.
+- YouTube multi-language audio: nguồn 2026 nói ngược nhau về Shorts; video của mình có chữ in trên hình (tiêu đề, nhãn, chữ chạy) nên track tiếng thay không dịch được chữ trên hình.
+
+Đề xuất:
+- **Sản xuất: một tập gốc EN, các bản ngôn ngữ là biến thể của cùng tập.** Dùng lại bố cục cảnh + hình; dịch kịch bản, đọc lại bằng giọng bản ngữ, dựng lại chữ trên hình. Mốc lá số và sự thật giữ nguyên (không phụ thuộc ngôn ngữ). Câu đùa / chơi chữ phải viết lại cho ngôn ngữ đó, không dịch thẳng.
+- **Phát hành: mỗi ngôn ngữ một kênh YouTube** (Astrolas, Astrolas en Español, Astrolas 日本語), cùng khung thương hiệu, cùng cấu trúc loạt / playlist. Lý do: chữ in trên hình; thuật toán phát theo khán giả từng ngôn ngữ; trần đăng tính theo tài khoản nên mỗi kênh có trần riêng mà không spam.
+- **Trong studio:** Kênh → Loạt → Tập giữ nguyên; thêm chiều ngôn ngữ ở tầng Tập (tập gốc + bản `es`, `ja` trỏ về tập gốc) và ở tầng Kênh (mỗi kênh ngôn ngữ một mục đăng trong `xv_may.dang` có `ngon_ngu`, máy đăng chỉ lấy bản đúng ngôn ngữ). Khung thương hiệu chung, chỉ khác giọng đọc theo ngôn ngữ + câu màn cuối dịch.
+- **Thứ tự mở:** EN trước. ES / JA chỉ mở khi astrolas.com có trang đích ngôn ngữ đó công khai (ít nhất trang công cụ được trỏ + trang đăng ký); JA đang dịch dở nên có thể đi trước ES nếu xong trước. Mở ngôn ngữ mới = tài khoản YouTube mới (lập tài khoản theo luật chung, có proxy).
+
 ## Việc kế (chỉ khi anh chốt)
 
 1. Kịch bản mẫu đánh số "Chart Chapters: Steve Jobs" — mốc ZR / Profection lấy từ astrolas.com.

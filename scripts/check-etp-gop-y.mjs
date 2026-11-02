@@ -339,6 +339,8 @@ const LUAT = [
   { card: 'nhan-tu-dong-0211', tep: "apps/cty/worker/ethopex.mjs", co: "env: { ...process.env, ETP_SUA_NGUOI: String(x.nguoi_id) }", vi: "phim đội nhận lên camp ở tài khoản người nhận" },
   { card: 'nhan-tu-dong-0211', tep: "apps/cty/worker/ethopex.mjs", co: "where content_id = ${Number(d.x.content_id)} and tra_luc is null and het_luc > now()", vi: "lỗi lên camp nhánh nhà ghi vào sổ nhận phim" },
   { card: 'nhan-tu-dong-0211', tep: "apps/web/src/components/etp-view.tsx", co: "{ key: 'td_nhan', header: 'Tiến độ nhận'", vi: "tab Phim cột tiến độ nhận + lỗi" },
+  { card: 'menu-phim-0211', tep: "apps/web/src/components/etp-view.tsx", co: "</button><MenuPhim p={p} /></span>, sortValue: (p) => p.ten ?? '' },", vi: 'cột khoá Phim có menu ⋯ (primitive MenuBaCham) Nhận / Trả phim' },
+  { card: 'menu-phim-0211', tep: "apps/web/src/components/etp-view.tsx", co: "label: 'Nhận phim (giữ 24 giờ)', emoji: '＋', onClick: () => void lam(() => nhanPhimEtp(p.content_id))", vi: 'menu phim gọi cùng server action nhận phim' },
   // anh 02/11/2026 duyệt review luật (mục 2, 3, 7 + T30 ROAS): chấm creative không tắt camp lãi · ROAS trước clone · dừng clone đổi creative · nhật ký team · sổ luật đối chứng + 7 ngày
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", co: "where c.trang_thai = 'ACTIVE' and g.tat and {KHONG_ROAS} and {KHONG_LAI3} order by 1", vi: "luật chấm không tắt camp lãi 3 ngày đã khép" },
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", cam: "tự tắt mọi loại camp, kể cả đang lãi", vi: "luật chấm không còn tắt camp đang lãi" },

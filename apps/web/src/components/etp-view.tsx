@@ -13,6 +13,8 @@ import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import type { TrangPhim } from '@/lib/etp-doc';
 import { Dem } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
+import { MenuBaCham } from '@/components/ui/menu-ba-cham';
+import { nhanPhimEtp, traPhimEtp } from '@/lib/actions/etp-phim';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
@@ -664,6 +666,20 @@ function TabTaiNguyen({ du, khCamp }: { du: DuLieuEtp; kh: Kh; khCamp: Map<numbe
 // điều kiện + ngưỡng đọc THẲNG từ lượt xét của máy luật (etp.xet_luat — không chép tay), số thật từ apps/etp/so-luat.py (nhật ký máy + số ngày Ethopex, mỗi giờ)
 const TEN_NHOM_LUAT: Record<string, string> = { tang: 'Tăng chi — tăng bậc, nhân bản', giam: 'Giảm chi — hạ bậc', tat: 'Tắt camp' };
 const NHOM_LUAT: [string, string, string[]][] = Object.entries(TEN_NHOM_LUAT).map(([k, ten]) => [k, ten, Object.entries(BANG_LUAT.the).filter(([, v]) => v[2] === k).map(([ma]) => ma)]);   // nhóm theo sổ luật chung
+/** MENU "⋯" CỘT KHOÁ CHÍNH của tab Phim (anh 02/11/2026: "cột key chính luôn có kèm 1 nút dropdown ở bên phải … với Phim thêm chức năng Nhận/trả phim") —
+ *  primitive nhà MenuBaCham; Nhận / Trả gọi cùng server action với ngăn phim, xong làm mới trang; lỗi (người khác đang giữ…) báo ngay */
+function MenuPhim({ p }: { p: PhimEtpKho }) {
+  const router = useRouter();
+  const lam = async (f: () => Promise<{ ok: true } | { loi: string }>) => { const r = await f(); if ('loi' in r) window.alert(r.loi); router.refresh(); };
+  const giu = p.nhan?.trang_thai === 'giu';
+  return <MenuBaCham tieuDe="Phim" phu={p.ten ?? `#${p.content_id}`} title={`Thao tác phim #${p.content_id}`} groups={[
+    { label: 'Xem', items: [{ label: 'Nội dung, điểm, tiến độ', emoji: '▸', onClick: () => openEntityDrawer('etp-phim', p.content_id) }] },
+    { label: 'Nhận phim', items: p.nhan?.trang_thai === 'da_len' ? [{ label: `${p.nhan.nguoi ?? '?'} đã lên camp`, emoji: '✓', onClick: () => openEntityDrawer('etp-phim', p.content_id) }]
+      : giu ? [{ label: `Trả phim (${p.nhan!.nguoi ?? '?'} đang giữ)`, emoji: '↩', onClick: () => void lam(() => traPhimEtp(p.content_id)) }]
+      : [{ label: 'Nhận phim (giữ 24 giờ)', emoji: '＋', onClick: () => void lam(() => nhanPhimEtp(p.content_id)) }] },
+  ]} />;
+}
+
 function BanLuat({ du }: { du: DuLieuEtp }) {
   const theo = new Map(du.soLuat.map((l) => [l.ma, l])); const luc = du.soLuat.reduce<string | null>((m, l) => (!m || l.luc > m ? l.luc : m), null);
   const khac = du.soLuat.filter((l) => !NHOM_LUAT.some(([, , ds]) => ds.includes(l.ma)));
@@ -2362,7 +2378,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     cho_cham: 'Chờ chấm', cham_chan: 'Chấm chặn', cho_len: 'Chờ lên camp', loi: 'Lỗi', da_len: 'Đã lên camp', tay: 'Chế độ tay' };
   const ttPh = (p: PhimEtpKho) => (p.moc ? 'Đã cất' : p.nhan?.trang_thai === 'giu' ? 'Đang nhận' : p.camp ? 'Đã có camp' : p.test ? 'Có thể test' : p.ws_moi ? 'Mới thêm, chưa camp' : '—');   // Đang nhận: anh 02/11/2026
   const cotPh: DataColumn<PhimEtpKho>[] = [
-    { key: 'ten', header: 'Phim', align: 'left', cell: (p) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Hex bo={p.bo} info={p.bo ? du.boTk[p.bo] : undefined} /><button type="button" onClick={() => openEntityDrawer('etp-phim', p.content_id)} title={`phim #${p.content_id} — bấm xem nội dung, điểm, trang phim`} style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{p.ten ?? p.content_id}</button></span>, sortValue: (p) => p.ten ?? '' },   // tiếng / nguồn đã có cột riêng (YDNI: không lặp)
+    { key: 'ten', header: 'Phim', align: 'left', cell: (p) => <span style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}><Hex bo={p.bo} info={p.bo ? du.boTk[p.bo] : undefined} /><button type="button" onClick={() => openEntityDrawer('etp-phim', p.content_id)} title={`${p.ten ?? ''} · phim #${p.content_id} — bấm xem nội dung, điểm, trang phim`} style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.ten ?? p.content_id}</button><MenuPhim p={p} /></span>, sortValue: (p) => p.ten ?? '' },   // tiếng / nguồn đã có cột riêng (YDNI: không lặp)
     { key: 'tt_ph', header: 'Trạng thái', align: 'left', title: 'Có thể test (qua lọc chọn phim mới — nguồn, tiếng, thể loại, ít QC FB, chưa ai lên) · Đã có camp · Đã cất (máy cất, không mở camp mới) · Mới thêm vào workspace, chưa camp', cell: (p) => <span style={{ fontSize: 12, color: p.moc || !p.camp && !p.test ? MO : 'var(--fg-2)' }} title={p.moc ? `máy cất phim lúc ${vn(p.moc)} — không mở camp mới` : undefined}>{ttPh(p)}</span>, sortValue: ttPh },
     { key: 'nhan', header: 'Người nhận', align: 'left', title: 'người đang giữ quyền lên camp phim (bấm tên phim → Nhận phim): giữ 24 giờ, quá hạn chưa lên camp tự nhả; đã lên camp thì giữ luôn', cell: (p) => (p.nhan ? <span style={{ fontSize: 12 }} title={p.nhan.trang_thai === 'giu' ? `giữ tới ${vn(p.nhan.het_luc)}` : 'đã lên camp'}>{p.nhan.nguoi ?? '?'}<span style={{ color: MO }}> · {p.nhan.trang_thai === 'giu' ? `còn ${Math.max(0, Math.ceil((Date.parse(p.nhan.het_luc) - Date.now()) / 3_600_000))}h` : 'đã lên'}</span></span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => (p.nhan ? p.nhan.nguoi ?? '?' : 'Chưa ai nhận') },
     { key: 'td_nhan', header: 'Tiến độ nhận', align: 'left', width: 260, title: 'phim đang nhận — bước đang làm: soát 18+ (AI) → máy sinh kể chuyện → chấm → lên camp ở tài khoản người nhận; đỏ = dừng vì lỗi / bị chặn (lý do ngay trong ô)', cell: (p) => (p.nhan?.ghi ? <span title={p.nhan.ghi} style={{ fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: ['loi', 'loai_18', 'cham_chan', 'loi_sinh'].includes(p.nhan.buoc ?? '') ? '#f87171' : p.nhan.buoc === 'da_len' ? '#4ade80' : undefined }}>{p.nhan.ghi}</span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => (p.nhan?.buoc ? TD_NHAN[p.nhan.buoc] ?? p.nhan.buoc : null) },

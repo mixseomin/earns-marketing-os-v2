@@ -314,7 +314,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     const test = { hang: i + 1, tong: ctDs.length, diem: n(x.diem), vi_sao: x.vi_sao ?? '', tt: ttMoi[String(x.id)]?.tt ?? null, nhom: x.nhom ?? null, qc_dang: x.qc_dang == null ? null : n(x.qc_dang), qc: x.qc == null ? null : n(x.qc), page: x.page == null ? null : n(x.page), qc_tra: x.qc_tra ?? null };
     const p = phTheo.get(n(x.id));
     if (p) p.test = test;
-    else if (i < TEST_HIEN) phims.push({ content_id: n(x.id), ten: x.ten ?? null, the_loai: null, bo: null, locale: x.locale ?? null, nguon: x.nguon ?? null, nhom_goc: null, moc: null, doi_chay: 0,
+    else if (i < TEST_HIEN) phims.push({ content_id: n(x.id), ten: x.ten ?? null, the_loai: null, bo: null, locale: x.locale ?? null, nguon: x.nguon ?? null, nhom_goc: (phInfo.get(n(x.id))?.nhom_goc as string) ?? null, moc: null, doi_chay: 0,
       creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, trang: null, test, ung_vien: true });
   });
   // PHIM ĐANG NHẬN (anh 02/11/2026 "phim đang nhận thì phải thể hiện trên tab phim"): mọi phim còn người giữ / đã lên — phim chưa có dòng (ngoài 200 phim đầu, chưa camp) thêm dòng
@@ -327,7 +327,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   for (const p of phims) { const r = nhTheo.get(p.content_id), t = tdTheo.get(p.content_id); p.nhan = r ? { nguoi: r.nguoi, het_luc: r.het_luc, trang_thai: r.trang_thai, buoc: t?.buoc ?? null, ghi: t?.ghi ?? null } : null; }
   const coDong = new Set(phims.map((p) => p.content_id));
   for (const [ma, r] of nhTheo) if (!coDong.has(ma))
-    phims.push({ content_id: ma, ten: r.ten, the_loai: null, bo: null, locale: r.locale, nguon: r.url && r.url.includes('//') ? r.url.split('/')[2]! : null, nhom_goc: null, moc: null, doi_chay: 0,
+    phims.push({ content_id: ma, ten: r.ten, the_loai: null, bo: null, locale: r.locale, nguon: r.url && r.url.includes('//') ? r.url.split('/')[2]! : null, nhom_goc: (phInfo.get(ma)?.nhom_goc as string) ?? null, moc: null, doi_chay: 0,
       creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, trang: null, test: null, nhan: { nguoi: r.nguoi, het_luc: r.het_luc, trang_thai: r.trang_thai, buoc: tdTheo.get(ma)?.buoc ?? null, ghi: tdTheo.get(ma)?.ghi ?? null } });
   const [soNgay, tatNgay, boRow] = await Promise.all([
     run<{ c: number; d: string; chi: string; thu: string }>(sql`select camp_id c, ngay::text d, chi, thu from ${SN} where chi > 0 or thu > 0`),

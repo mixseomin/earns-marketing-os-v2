@@ -374,6 +374,8 @@ const LUAT = [
   { card: 'nhan-0211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'raise ChanLuat(f"phim mới {cid} chưa nhận', vi: 'luật bắt buộc: phim mới của Nhà phải nhận trước khi lên camp đầu (anh 02/11/2026)' },
   { card: 'cta-kien-0211', tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'rong = round(W * 0.86); dong = gx.ngat_can(ten, 26)[:2]', vi: 'CTA mẫu Kiên: ô tối rộng 86% khung, sát đáy, tên phim vàng to' },
   { card: 'cta-kien-0211', tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'O_CUOI = 5.0', vi: 'CTA mẫu Kiên: ô tên phim + WATCH NOW 5 giây cuối (đo 6 creative thắng của Kiên 02/11/2026)' },
+  { card: 'goc-0211', tep: 'apps/web/src/lib/etp-doc.ts', co: 'nhom_goc: (phInfo.get(n(x.id))?.nhom_goc as string) ?? null', vi: 'phim Có thể test đọc nhóm gốc từ etp.phim (không gán cứng null)' },
+  { card: 'goc-0211', tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'goc_ph', header: 'Nhóm gốc'", vi: 'tab Phim có cột Nhóm gốc (Âu-Mỹ / Trung…) — anh 02/11/2026' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: "bat_dau < now() - interval '1 hour'", vi: 'thợ chết: việc dang quá 1 giờ thì xếp lại' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: 'try: pr.wait(timeout=45 * 60)', vi: 'thợ cắt: trần 45 phút / phim (cũ 3 giờ)' },
   { card: 'cat-0211', tep: 'apps/xuong-video/scripts/ethopex/cat_drive.py', co: '"--max-duration", tran, "--cutoff-mode", "soft"]', vi: 'dọn Drive có trần thời gian (mặc định 5 phút), không chặn lô cắt' },

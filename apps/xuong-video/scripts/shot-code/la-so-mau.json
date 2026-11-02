@@ -1,15 +1,79 @@
 {
-  "_ghi": "Tập thử camera đi trong lá số (G3 Astrolas, 03/11/2026) — không giọng, chữ chỉ nêu điều có trong dữ liệu lá số site (lich-su/la-so/steve-jobs.json). Quay: node dung.mjs --trang la-so.html --cau la-so-mau.json --ra <ra>.mp4",
-  "DAI": 16.5,
-  "la_so": "../lich-su/la-so/steve-jobs.svg",
-  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
-  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
-  "playlist": { "ten": "Chart Chapters", "mau": "#E6B800", "ic": "☉" },
-  "cau": [
-    { "tu": 0, "den": 3.2, "nhin": { "dung": 1 }, "chu": "Steve Jobs.<br>Born February 24, 1955." },
-    { "tu": 3.2, "den": 6.6, "nhin": { "sao": "Sun" }, "chu": "His Sun sits in Pisces,<br>in the 6th house." },
-    { "tu": 6.6, "den": 10, "nhin": { "nha": 10 }, "chu": "His 10th house, career and public life,<br>holds Jupiter and Uranus." },
-    { "tu": 10, "den": 13.4, "nhin": { "goc": ["Venus", "Jupiter"] }, "chu": "Venus opposes Jupiter,<br>almost exact." },
-    { "tu": 13.4, "den": 16.5, "nhin": { "toan": 1 }, "chu": "Every life moves in chapters.<br>What chapter are you in?" }
-  ]
+ "_ghi": "Tập thử Chart Chapters có cảnh minh hoạ (anh 03/11/2026: thiếu người, đồ vật, nơi chốn). Cảnh: lich-su/tranh-sinh.mts --phong nét khắc đồng (~110₫/cảnh). Chữ lá số chỉ nêu điều có trong la-so/steve-jobs.json.",
+ "la_so": "../lich-su/la-so/steve-jobs.svg",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "Chart Chapters",
+  "mau": "#E6B800",
+  "ic": "☉"
+ },
+ "DAI": 23.6,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.4,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sj-1976-garage.jpg",
+    "kieu": "day"
+   },
+   "chu": "1976. Two young men build<br>a computer in a garage.",
+   "nhan": "1976 · Los Altos, California"
+  },
+  {
+   "tu": 3.4,
+   "den": 6.6,
+   "nhin": {
+    "dung": 1
+   },
+   "chu": "One of them was Steve Jobs,<br>born February 24, 1955."
+  },
+  {
+   "tu": 6.6,
+   "den": 10.2,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
+    "kieu": "trai"
+   },
+   "chu": "1985. Apple's board strips him<br>of his role. He leaves.",
+   "nhan": "1985 · Cupertino"
+  },
+  {
+   "tu": 10.2,
+   "den": 13.8,
+   "nhin": {
+    "nha": 10
+   },
+   "chu": "His 10th house, career and public life,<br>holds Jupiter and Uranus."
+  },
+  {
+   "tu": 13.8,
+   "den": 17.2,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sj-1997-stage.jpg",
+    "kieu": "lui"
+   },
+   "chu": "1997. He comes back.",
+   "nhan": "1997 · Macworld, Boston"
+  },
+  {
+   "tu": 17.2,
+   "den": 20.8,
+   "nhin": {
+    "goc": [
+     "Venus",
+     "Jupiter"
+    ]
+   },
+   "chu": "Venus opposes Jupiter,<br>almost exact."
+  },
+  {
+   "tu": 20.8,
+   "den": 23.6,
+   "nhin": {
+    "toan": 1
+   },
+   "chu": "Every life moves in chapters.<br>What chapter are you in?"
+  }
+ ]
 }

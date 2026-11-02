@@ -5,7 +5,9 @@
      CAU = {
        DAI: giây, la_so: đường tới <slug>.svg, du_lieu: nội dung <slug>.json (bỏ trống thì trang tự đọc tệp .json cạnh .svg; nhãn ô thông tin lấy từ đây, không gõ tay),
        nen: ảnh nền thật, logo: wordmark thật, playlist: { ten, mau, ic },
-       cau: [{ chu, tu, den, nhin }] — nhin ∈ { toan } | { dung } (dựng từng lớp theo thứ tự site) | { sao: 'Sun' } | { nha: 10 } | { goc: ['Venus','Jupiter'] } | { cung: 'Pisces' }
+       cau: [{ chu, tu, den, nhin, nhan? }] — nhin ∈ { toan } | { dung } (dựng từng lớp theo thứ tự site) | { sao: 'Sun' } | { nha: 10 } | { goc: ['Venus','Jupiter'] } | { cung: 'Pisces' }
+         | { tranh: 'đường ảnh 9:16', kieu: 'day'|'lui'|'trai'|'phai'|'len' } — cảnh minh hoạ đầy khung (người, nơi chốn, đồ vật; anh 03/11/2026 "hình minh hoạ, con người, đối tượng, đồ vật… ko thấy có gì cả")
+           hoà chéo với lá số, Ken Burns theo kieu; nhan = chữ ô thông tin tự đặt (vd "1985 · Cupertino"), bỏ trống thì cảnh lá số tự lấy từ dữ liệu
      } -->
 <html><head><meta charset="utf-8">
 <style>
@@ -20,6 +22,10 @@ html, body { background: #0B1A2E; overflow: hidden; }
 #sao { inset: 0; }
 #phu { inset: 0; background: radial-gradient(ellipse at 50% 38%, rgba(15,34,64,.5) 0%, rgba(11,26,46,.76) 55%, rgba(8,19,34,.9) 100%); }
 /* ô lá số: cửa sổ tròn mép mềm — phóng vào thì như nhìn qua thấu kính, không lộ cạnh vuông */
+#tranh { inset: 0; overflow: hidden; }
+#tranh img { position: absolute; inset: 0; width: 1080px; height: 1920px; object-fit: cover; opacity: 0; will-change: transform, opacity; }
+#toi-tren { left: 0; right: 0; top: 0; height: 420px; background: linear-gradient(to top, rgba(8,19,34,0) 0%, rgba(8,19,34,.72) 100%); opacity: 0; }   /* logo + nhãn playlist đọc được trên tranh sáng */
+#toi-day { left: 0; right: 0; bottom: 0; height: 900px; background: linear-gradient(to bottom, rgba(8,19,34,0) 0%, rgba(8,19,34,.78) 55%, rgba(8,19,34,.92) 100%); opacity: 0; }
 #o { left: 30px; top: 290px; width: 1020px; height: 1020px; -webkit-mask-image: radial-gradient(circle closest-side, #000 86%, transparent 100%); }
 #o svg { width: 1020px; height: 1020px; display: block; }
 .chip { display: inline-flex; align-items: center; gap: .45em; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #0B1A2E; padding: .42em .8em .38em; border-radius: .3em; }
@@ -30,6 +36,9 @@ html, body { background: #0B1A2E; overflow: hidden; }
   <img id="nen-anh" class="abs">
   <div id="phu" class="abs"></div>
   <canvas id="sao" class="abs" width="1080" height="1920"></canvas>
+  <div id="tranh" class="abs"></div>
+  <div id="toi-day" class="abs"></div>
+  <div id="toi-tren" class="abs"></div>
   <div id="goc" class="abs" style="left:64px;top:150px;display:flex;flex-direction:column;gap:20px;align-items:flex-start;opacity:.92"></div>
   <div id="o" class="abs"></div>
   <div id="nhan" class="abs"></div>
@@ -67,6 +76,8 @@ const sao = (ten) => { const g = [...svg.querySelectorAll(`[data-planet="${ten}"
   return { g, ph: ph.length ? ph : g }; };
 function dich(q) {
   const n = q.nhin || { toan: 1 }, D = C.du_lieu;
+  if (n.tranh) { const im = document.createElement('img'); im.src = n.tranh; document.getElementById('tranh').appendChild(im);
+    return { tranh: im, kieu: n.kieu || 'day', vb: null, sang: null, nhan: q.nhan || '' }; }
   if (n.toan || n.dung) return { vb: VB0, sang: null, nhan: n.dung ? `${D.nguoi.name || ''}` : '', dung: !!n.dung };
   if (n.sao) { const { g: els, ph } = sao(n.sao); if (!els.length) throw new Error('không có sao ' + n.sao);
     const s = D.sao.find((x) => x.ten === n.sao);
@@ -102,6 +113,8 @@ window.__dung = async () => {
   const lop = (m) => svg.querySelector(`[data-layer="${m}"]`);
   C._lop = [['angles'], ['zodiac', 'degrees', 'spark'], ['planets'], ['aspects'], ['houses'], ['branding', 'birth-info']].map((ds) => ds.map(lop).filter(Boolean));
   svg.setAttribute('viewBox', '0 0 ' + svg.viewBox.baseVal.width + ' ' + svg.viewBox.baseVal.height); canh = C.cau.map(dich);   // đo khung khi viewBox còn gốc
+  canh.forEach((st, j) => { st.q = C.cau[j]; if (!st.nhan && C.cau[j].nhan) st.nhan = C.cau[j].nhan; });
+  await Promise.all(canh.filter((st) => st.tranh).map((st) => st.tranh.decode().catch(() => { throw new Error('không tải được tranh ' + st.tranh.getAttribute('src')); })));
   SAO = NenTroi.tao({ w: 1080, h: 1920, n: 170 });
   await document.fonts.ready;
 };
@@ -110,19 +123,32 @@ function trangThai(i) { return canh[Math.max(0, Math.min(canh.length - 1, i))]; 
 window.__seek = (t) => {
   veNen(t);
   let i = C.cau.findIndex((q) => t < q.den); if (i < 0) i = C.cau.length - 1;
-  const q = C.cau[i], cu = i > 0 ? trangThai(i - 1) : { vb: VB0, sang: null }, moi = trangThai(i), cuVb = cu.di ? cu.di[1] : cu.vb;   // câu lia xong đứng ở sao sau
+  const q = C.cau[i], cu = i > 0 ? trangThai(i - 1) : { vb: VB0, sang: null }, moi = trangThai(i);
+  // camera lá số khi rời câu trước: câu lia xong đứng ở sao sau; cảnh tranh không có camera → lùi về cảnh lá số gần nhất
+  const vbCuoi = (j) => { for (; j >= 0; j--) { const st = canh[j]; if (!st.tranh) return st.di ? st.di[1] : st.vb; } return VB0; };
+  const cuVb = vbCuoi(i - 1), moiVb = moi.tranh ? cuVb : moi.vb;
   const k = ease((t - q.tu) / CHUYEN), troi = Math.max(0, Math.min(1, (t - q.tu) / Math.max(0.1, q.den - q.tu)));
   // camera: trượt từ khung câu trước sang khung câu này, rồi đẩy vào chậm 6% cho khung không đứng
   const day = 1 - 0.06 * ease(troi);
-  let vb = moi.vb.map((v, j) => lerp(cuVb[j], v, k));
+  let vb = moiVb.map((v, j) => lerp(cuVb[j], v, k));
   if (moi.di) { const u = ease((t - q.tu - CHUYEN) / Math.max(0.5, q.den - q.tu - CHUYEN - 0.5)); if (u > 0) vb = moi.di[0].map((v, j) => lerp(v, moi.di[1][j], u)); }
   const s = vb[2] * (k >= 1 && !moi.di ? day : 1), cxv = vb[0] + vb[2] / 2, cyv = vb[1] + vb[3] / 2;
   svg.setAttribute('viewBox', `${cxv - s / 2} ${cyv - s / 2} ${s} ${s}`);
   // độ sáng: phần được chọn sáng, còn lại tối dần
   const op = (st, e) => (!st.sang || st.sang.has(e) || [...st.sang].some((x) => x.contains(e) || e.contains(x)) ? 1 : 0.12);
-  for (const e of nhom) e.style.opacity = lerp(op(cu, e), op(moi, e), k);
+  const opT = (st, e) => (st.tranh ? op(canh.slice(0, canh.indexOf(st)).reverse().find((x) => !x.tranh) || { sang: null }, e) : op(st, e));
+  for (const e of nhom) e.style.opacity = lerp(opT(cu, e), opT(moi, e), k);
+  // cảnh tranh: hoà chéo với lá số / tranh trước, Ken Burns theo kieu, chạy tiếp cả lúc đang mờ ra
+  const laSo = (moi.tranh ? 0 : 1) * k + (cu.tranh ? 0 : 1) * (1 - k);
+  document.getElementById('o').style.opacity = laSo; document.getElementById('toi-day').style.opacity = 1 - laSo; document.getElementById('toi-tren').style.opacity = 1 - laSo;
+  for (const st of canh) { if (!st.tranh) continue;
+    const o = st === moi ? k : st === cu ? 1 - k : 0; st.tranh.style.opacity = o; if (!o) continue;
+    const u = Math.max(0, Math.min(1.2, (t - st.q.tu) / Math.max(0.5, st.q.den - st.q.tu))), e = ease(Math.min(1, u)) + Math.max(0, u - 1) * 0.5;
+    const KB = { day: [1.04, 1.16, 0, 0], lui: [1.16, 1.04, 0, 0], trai: [1.14, 1.14, 40, -40], phai: [1.14, 1.14, -40, 40], len: [1.12, 1.16, 0, 0] }[st.kieu] || [1.04, 1.16, 0, 0];
+    const sc = lerp(KB[0], KB[1], e), tx = lerp(KB[2], KB[3], e), ty = st.kieu === 'len' ? lerp(50, -50, e) : 0;
+    st.tranh.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${sc.toFixed(4)})`; }
   // tô nhà / làm đậm góc chiếu của câu đang kể
-  for (const st of canh) { if (st.to) { st.to.setAttribute('fill', st === moi ? '#E6B800' : 'gray'); st.to.setAttribute('fill-opacity', st === moi ? (0.06 + 0.12 * k).toFixed(3) : '0.06'); }
+  for (const st of canh) { if (st.to) { st.to.setAttribute('fill', st === moi || st === cu ? '#E6B800' : 'gray'); st.to.setAttribute('fill-opacity', (0.06 + 0.12 * (st === moi ? k : st === cu ? 1 - k : 0)).toFixed(3)); }
     if (st.day) st.day.querySelectorAll('line, path').forEach((l) => { if (!l.dataset.w0) l.dataset.w0 = l.getAttribute('stroke-width') || '1'; l.setAttribute('stroke-width', st === moi ? Number(l.dataset.w0) * (1 + 2.5 * k) : l.dataset.w0); }); }
   // dựng từng lớp theo thứ tự site (data-step-index)
   C._lop.forEach((ds, j) => { const a = moi.dung ? ease((troi * (C._lop.length + 1) - j) / 1.2) : 1; ds.forEach((e) => { e.style.opacity = a; }); });

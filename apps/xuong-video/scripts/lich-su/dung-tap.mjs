@@ -168,7 +168,7 @@ canh.forEach((s, k) => { for (const n of s.c.nguoi || []) if (n.tre == null && A
   if (lech.length) { console.error(`✗ đạo cụ lệch thời:\n  ${[...new Set(lech)].join('\n  ')}`); process.exit(3); } }
 const cauTep = join(RA, 'cau.json');
 let huong = {};
-const cauObj = { DAI, theme: KENH.theme, ket_mau: KENH.ket, vi_tuyen: VT, nen: pathToFileURL(join(KHO, tap.nen.anh)).href, geo: G, tu, canh,
+const cauObj = { DAI, theme: KENH.theme, ket_mau: KENH.ket, tcn: (tap.ngon_ngu || 'en') === 'es' ? 'a. C.' : 'BC', vi_tuyen: VT, nen: pathToFileURL(join(KHO, tap.nen.anh)).href, geo: G, tu, canh,
   dia_hinh: tap.dia_hinh ? { ...tap.dia_hinh, anh: pathToFileURL(join(KHO, tap.dia_hinh.anh)).href } : null,
   nv: await (async () => { const nv = {}; for (const s of canh) for (const m of [...(s.c.nguoi || []), ...(s.c.xe || []), ...(s.c.co || [])]) {
     const ds = ['goc', ...(Array.isArray(m.dang) ? m.dang.map((x) => x[1]) : [])]; for (const d of ds) nv[`${m.anh}:${d}`] ??= pathToFileURL(await tepDang(m.anh, d)).href; }

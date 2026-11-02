@@ -1,0 +1,1086 @@
+{
+ "id": "yesterdays-news-tonight-20261102",
+ "kenh": "parody",
+ "tieu_de": "She ruled Egypt before Cleopatra and called herself Pharaoh",
+ "ngon_ngu": "en",
+ "chu_de": "How did Hatshepsut become pharaoh of Egypt and rule as a female king?",
+ "mo_ta_dang": "Hatshepsut started as a queen, became a regent, and ended up wearing the ceremonial beard of a pharaoh. This bulletin from the distant past covers how she took the title, what her fleet brought home from Punt, and how Egypt handled her legacy afterward. It is read by an anchor who stays perfectly calm throughout.",
+ "hook": {
+  "qc": "1028268183532894",
+  "goc": "She ruled Egypt before Cleopatra and called herself Pharaoh. 👑"
+ },
+ "goc": {
+  "sp": 2680,
+  "id": 66904,
+  "loai": "ai_cach_giai",
+  "ten": "Người học lịch sử qua podcast và video"
+ },
+ "giong": {
+  "voice": "Daniel"
+ },
+ "nguon": [
+  "https://en.wikipedia.org/wiki/Hatshepsut",
+  "https://en.wikipedia.org/wiki/Eighteenth_Dynasty_of_Egypt",
+  "https://en.wikipedia.org/wiki/Thutmose_III"
+ ],
+ "may_viet": {
+  "model": "shopaikey:claude-sonnet-5-5",
+  "luc": "2026-11-02T06:59:34.764Z",
+  "tokens": {
+   "in": 21295,
+   "out": 19690
+  }
+ },
+ "cau": [
+  {
+   "chu": "She ruled Egypt and called herself Pharaoh, false beard included.",
+   "su_that": [
+    {
+     "gia_tri": "pharaoh",
+     "nguon": 0,
+     "trich": "Several years into her regency, Hatshepsut assumed the position of pharaoh and adopted the full royal titulary, making her a co-ruler alongside Thutmose III."
+    },
+    {
+     "gia_tri": "false beard",
+     "nguon": 0,
+     "trich": "traditionally male Ancient Egyptian garb, such as a false beard and ram's horns"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1472,
+    "mo": true,
+    "chu_to": "PHARAOH WITH A FALSE BEARD",
+    "to": [
+     {
+      "noi": "EGY",
+      "chu": "EGY"
+     }
+    ],
+    "vong": [
+     "@Luxor"
+    ],
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "beard",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "She wanted the top job, and the beard was part of the dress code.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1472,
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "code",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Stay to the end for the full reign, plus the cleanup afterward.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1472,
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "reign",
+        "dang": "cuoi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Hatshepsut was born between fifteen oh five and fourteen ninety-five BC, to Thutmose the First.",
+   "su_that": [
+    {
+     "gia_tri": "1505",
+     "nguon": 0,
+     "trich": "Hatshepsut was born between 1505 and 1495 BC as eldest daughter of Thutmose I and his great royal wife, Ahmose."
+    },
+    {
+     "gia_tri": "1495",
+     "nguon": 0,
+     "trich": "Hatshepsut was born between 1505 and 1495 BC as eldest daughter of Thutmose I and his great royal wife, Ahmose."
+    },
+    {
+     "gia_tri": "Thutmose I",
+     "nguon": 0,
+     "trich": "Hatshepsut was born between 1505 and 1495 BC as eldest daughter of Thutmose I and his great royal wife, Ahmose."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1505,
+    "to": [
+     {
+      "noi": "EGY",
+      "chu": "EGY"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "born",
+        "dang": "ngac_nhien"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "After her father died, she married her half-brother, Thutmose the Second, at fourteen or fifteen.",
+   "su_that": [
+    {
+     "gia_tri": "Thutmose II",
+     "nguon": 0,
+     "trich": "Hatshepsut was then married to Thutmose II, her half-brother and father's heir, when she was fourteen or fifteen years old."
+    },
+    {
+     "gia_tri": "fourteen or fifteen",
+     "nguon": 0,
+     "trich": "Hatshepsut was then married to Thutmose II, her half-brother and father's heir, when she was fourteen or fifteen years old."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1495,
+    "nguoi": [
+     {
+      "anh": "thutmose_ii",
+      "ten": "Thutmose II",
+      "dang": [
+       {
+        "chu": "fifteen",
+        "dang": "ngac_nhien"
+       }
+      ]
+     },
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "married",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "It was a small wedding, since both families were the same family.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1495,
+    "nguoi": [
+     {
+      "anh": "thutmose_ii",
+      "ten": "Thutmose II",
+      "dang": [
+       {
+        "chu": "same",
+        "dang": "suy_nghi"
+       }
+      ]
+     },
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "wedding",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Together they had at least one daughter, Princess Neferure.",
+   "su_that": [
+    {
+     "gia_tri": "Princess Neferure",
+     "nguon": 0,
+     "trich": "The couple had together at least one daughter, Princess Neferure"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1495,
+    "nguoi": [
+     {
+      "anh": "thutmose_ii",
+      "ten": "Thutmose II",
+      "dang": [
+       {
+        "chu": "Princess",
+        "dang": "cuoi"
+       }
+      ]
+     },
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "daughter",
+        "dang": "cuoi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Then Thutmose the Second died, and Hatshepsut became regent for the underage Thutmose the Third.",
+   "su_that": [
+    {
+     "gia_tri": "regent",
+     "nguon": 0,
+     "trich": "Upon the death of her husband and half-brother Thutmose II, she had initially ruled as regent to her stepson, Thutmose III, who inherited the throne at the age of two."
+    },
+    {
+     "gia_tri": "underage",
+     "nguon": 0,
+     "trich": "Upon the death of Thutmose II, the underage Thutmose III became the pharaoh of Egypt."
+    },
+    {
+     "gia_tri": "1479",
+     "nguon": 0,
+     "trich": "while she initially served as regent for young Thutmose III from his accession in c. 1479 BC"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1479,
+    "to": [
+     {
+      "noi": "EGY",
+      "chu": "EGY"
+     }
+    ],
+    "nhay": [
+     "@Luxor"
+    ],
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "regent",
+        "dang": "chi_tay"
+       }
+      ]
+     },
+     {
+      "anh": "thutmose_iii",
+      "ten": "Thutmose III",
+      "dang": [
+       {
+        "chu": "underage",
+        "dang": "ngac_nhien"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "By year seven, around fourteen seventy-two BC, the regent had promoted herself to pharaoh.",
+   "su_that": [
+    {
+     "gia_tri": "Year 7",
+     "nguon": 0,
+     "trich": "Hatshepsut eventually assumed the position of pharaoh alongside him by Year 7 of his reign, c. 1472 BC"
+    },
+    {
+     "gia_tri": "1472",
+     "nguon": 0,
+     "trich": "Hatshepsut eventually assumed the position of pharaoh alongside him by Year 7 of his reign, c. 1472 BC"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1472,
+    "to": [
+     {
+      "noi": "EGY",
+      "chu": "EGY"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "pharaoh",
+        "dang": "chi_tay"
+       }
+      ]
+     },
+     {
+      "anh": "thutmose_iii",
+      "ten": "Thutmose III",
+      "dang": [
+       {
+        "chu": "promoted",
+        "dang": "suy_nghi"
+       }
+      ]
+     }
+    ],
+    "dau": [
+     {
+      "chu": "pharaoh",
+      "text": "PHARAOH"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "She shared his regnal count, which backdated her rule to year one.",
+   "su_that": [
+    {
+     "gia_tri": "Year 1",
+     "nguon": 0,
+     "trich": "Hatshepsut shared Thutmose III's existing regnal count, effectively back-dating her accession as pharaoh to Year 1, when she had been merely regent."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1472,
+    "nam_sau": {
+     "chu": "backdated",
+     "nam": -1479
+    },
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "shared",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Few promotions arrive with a start date already in the past.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1479,
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "past",
+        "dang": "cuoi"
+       }
+      ]
+     },
+     {
+      "anh": "thutmose_iii",
+      "ten": "Thutmose III",
+      "dang": [
+       {
+        "chu": "already",
+        "dang": "suy_nghi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The Oracle of Amun declared her pharaoh, and she had it carved on her monuments.",
+   "su_that": [
+    {
+     "gia_tri": "Oracle of Amun",
+     "nguon": 0,
+     "trich": "The Oracle of Amun proclaimed that it was the will of Amun that Hatshepsut be pharaoh, further strengthening her position."
+    },
+    {
+     "gia_tri": "carved on her monuments",
+     "nguon": 0,
+     "trich": "She reiterated Amun's support by having these proclamations by the god Amun carved on her monuments"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Luxor"
+    ],
+    "nam": -1472,
+    "nhay": [
+     "@Luxor"
+    ],
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "carved",
+        "dang": "noi_mo"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In statues she appeared as a male pharaoh, with a false beard and ram's horns.",
+   "su_that": [
+    {
+     "gia_tri": "male pharaoh",
+     "nguon": 0,
+     "trich": "she took on traditionally male roles and was depicted as a male pharaoh, with physically masculine traits and traditionally male garb."
+    },
+    {
+     "gia_tri": "false beard and ram's horns",
+     "nguon": 0,
+     "trich": "traditionally male Ancient Egyptian garb, such as a false beard and ram's horns"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1472,
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "beard",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ],
+    "tranh": {
+     "commons": null,
+     "mo_ta": "Illustrated scene of the female pharaoh Hatshepsut seated on a throne in a New Kingdom Egyptian palace hall, wearing a blue and gold striped nemes headcloth with a golden uraeus cobra, a white pleated shendyt kilt, a wide beaded gold collar and a long braided false ceremonial beard, with a carved granite statue of her in the same pose behind her",
+     "tu_chu": "statues",
+     "den_chu": "horns",
+     "ref": [
+      "hatshepsut"
+     ],
+     "anh": null
+    }
+   }
+  },
+  {
+   "chu": "Experts call the beard symbolic, which is a polite word for mandatory.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1472,
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "mandatory",
+        "dang": "nam_dam"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In fourteen seventy-one BC, she funded an expedition to the Land of Punt.",
+   "su_that": [
+    {
+     "gia_tri": "1471",
+     "nguon": 0,
+     "trich": "She was certainly pharaoh by Year 9, the date of the Punt expedition, c. 1471 BC"
+    },
+    {
+     "gia_tri": "Land of Punt",
+     "nguon": 0,
+     "trich": "She oversaw the preparations and funding for a mission to the Land of Punt."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY",
+     "ERI"
+    ],
+    "nam": -1471,
+    "nhan": [
+     {
+      "chu": "Land of Punt",
+      "o": "ERI"
+     }
+    ],
+    "xe": [
+     {
+      "anh": "egyptian_ship",
+      "tu": "EGY",
+      "den": "ERI"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "funded",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "It returned with thirty-one live myrrh trees and frankincense.",
+   "su_that": [
+    {
+     "gia_tri": "31",
+     "nguon": 0,
+     "trich": "Hatshepsut's delegation returned from Punt bearing 31 live myrrh trees and other luxuries such as frankincense."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY",
+     "ERI"
+    ],
+    "nam": -1471,
+    "nhan": [
+     {
+      "chu": "Land of Punt",
+      "o": "ERI"
+     }
+    ],
+    "xe": [
+     {
+      "anh": "egyptian_ship",
+      "tu": "ERI",
+      "den": "EGY"
+     }
+    ],
+    "tranh": {
+     "commons": null,
+     "mo_ta": "Painted illustration of an ancient Egyptian trading ship sailing home across the Red Sea, deck crowded with live myrrh trees in woven baskets and sacks of frankincense resin, sailors pulling ropes under a striped linen sail, New Kingdom era",
+     "tu_chu": "returned",
+     "den_chu": "frankincense",
+     "ref": [],
+     "anh": null
+    }
+   }
+  },
+  {
+   "chu": "Other delegations bring back magnets, but hers brought back thirty-one trees.",
+   "su_that": [
+    {
+     "gia_tri": "31",
+     "nguon": 0,
+     "trich": "Hatshepsut's delegation returned from Punt bearing 31 live myrrh trees and other luxuries such as frankincense."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Luxor"
+    ],
+    "nam": -1471,
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "trees",
+        "dang": "cuoi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "She ground the charred frankincense into eyeliner, the resin's first recorded use.",
+   "su_that": [
+    {
+     "gia_tri": "kohl eyeliner",
+     "nguon": 0,
+     "trich": "Hatshepsut would grind the charred frankincense into kohl eyeliner. This is the first recorded use of the resin."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Luxor"
+    ],
+    "nam": -1471,
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "eyeliner",
+        "dang": "suy_nghi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "At Karnak she raised twin obelisks, the tallest in the world at the time.",
+   "su_that": [
+    {
+     "gia_tri": "Karnak",
+     "nguon": 0,
+     "trich": "Following the tradition of most pharaohs, Hatshepsut had monuments constructed at the Temple of Karnak."
+    },
+    {
+     "gia_tri": "twin obelisks",
+     "nguon": 0,
+     "trich": "She had twin obelisks erected at the entrance to the temple which at the time of building were the tallest in the world."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Luxor"
+    ],
+    "nhan": [
+     {
+      "chu": "Karnak",
+      "o": "@Luxor"
+     }
+    ],
+    "vong": [
+     "@Luxor"
+    ]
+   }
+  },
+  {
+   "chu": "Later she ordered two more, but one broke during construction, so a third replaced it.",
+   "su_that": [
+    {
+     "gia_tri": "two more obelisks",
+     "nguon": 0,
+     "trich": "Later, she ordered the construction of two more obelisks to celebrate her 16th year as pharaoh; one of the obelisks broke during construction, and a third was therefore constructed to replace it."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Aswan"
+    ],
+    "dau": [
+     {
+      "chu": "broke",
+      "text": "OOPS"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The broken one still sits in Aswan, now classified as educational.",
+   "su_that": [
+    {
+     "gia_tri": "Aswan",
+     "nguon": 0,
+     "trich": "The broken obelisk was left at its quarrying site in Aswan, where it remains."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Aswan"
+    ],
+    "nhay": [
+     "@Aswan"
+    ]
+   }
+  },
+  {
+   "chu": "Around fourteen fifty-eight BC, Hatshepsut died, and Thutmose the Third ruled alone.",
+   "su_that": [
+    {
+     "gia_tri": "1458",
+     "nguon": 2,
+     "trich": "He became sole ruler after Hatshepsut's death around 1458 BC."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1458,
+    "to": [
+     {
+      "noi": "EGY",
+      "chu": "EGY"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "thutmose_iii",
+      "ten": "Thutmose III",
+      "dang": [
+       {
+        "chu": "alone",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "He went on to fight between seventeen and twenty campaigns, all victorious.",
+   "su_that": [
+    {
+     "gia_tri": "between 17 and 20",
+     "nguon": 2,
+     "trich": "Thutmose III conducted between 17 and 20 military campaigns, all victorious"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY",
+     "SYR"
+    ],
+    "nam": -1458,
+    "nhan": [
+     {
+      "chu": "Syria",
+      "o": "SYR"
+     }
+    ],
+    "ten": [
+     {
+      "tu": "EGY",
+      "den": "SYR"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "thutmose_iii",
+      "ten": "Thutmose III",
+      "dang": [
+       {
+        "chu": "fight",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Near the end of his reign, her statues were destroyed and her monuments defaced.",
+   "su_that": [
+    {
+     "gia_tri": "statues destroyed",
+     "nguon": 0,
+     "trich": "her statues were destroyed, her monuments were defaced, and many of her achievements were ascribed to other pharaohs."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "dau": [
+     {
+      "chu": "destroyed",
+      "text": "ERASED"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Later, a Nineteenth Dynasty king altered her temple of Pakhet to swap in his own name.",
+   "su_that": [
+    {
+     "gia_tri": "Nineteenth Dynasty",
+     "nguon": 0,
+     "trich": "some of its insides were altered by Seti I of the Nineteenth Dynasty in an attempt to have his name replace that of Hatshepsut"
+    },
+    {
+     "gia_tri": "Pakhet",
+     "nguon": 0,
+     "trich": "Hatshepsut built the Temple of Pakhet at Beni Hasan in the Minya Governorate south of Al Minya."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ]
+   }
+  },
+  {
+   "chu": "The Abydos, Saqqara, and Ramesseum king lists all leave her out.",
+   "su_that": [
+    {
+     "gia_tri": "Abydos, Saqqara and Ramesseum",
+     "nguon": 1,
+     "trich": "The Abydos, Saqqara and Ramesseum king lists, all from the New Kingdom of Egypt"
+    },
+    {
+     "gia_tri": "omit Hatshepsut",
+     "nguon": 1,
+     "trich": "though they omit Hatshepsut and the Amarna pharaohs as a form of damnatio memoriae"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1458,
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "out",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ],
+    "dau": [
+     {
+      "chu": "lists",
+      "text": "OMITTED"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "It was a bold approach to record keeping.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1458,
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "bold",
+        "dang": "suy_nghi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Today she is remembered as the longest-reigning woman pharaoh of an indigenous dynasty.",
+   "su_that": [
+    {
+     "gia_tri": "longest-reigning woman pharaoh",
+     "nguon": 1,
+     "trich": "the longest-reigning woman pharaoh of an indigenous dynasty"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "to": [
+     {
+      "noi": "EGY",
+      "chu": "EGY"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Her mortuary temple at Deir el-Bahari is considered a masterpiece of ancient architecture.",
+   "su_that": [
+    {
+     "gia_tri": "Deir el-Bahari",
+     "nguon": 0,
+     "trich": "She built hers in a complex at Deir el-Bahari."
+    },
+    {
+     "gia_tri": "masterpiece",
+     "nguon": 0,
+     "trich": "Located opposite the city of Luxor, it is considered to be a masterpiece of ancient architecture."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Luxor"
+    ],
+    "nhan": [
+     {
+      "chu": "Deir el-Bahari",
+      "o": "@Luxor"
+     }
+    ],
+    "tranh": {
+     "commons": null,
+     "mo_ta": "Wide cinematic illustration of the Mortuary Temple of Hatshepsut at Deir el-Bahari: three tiers of pillared terraces joined by long ramps, built against steep golden limestone cliffs above the Nile valley, bright desert light",
+     "tu_chu": "mortuary",
+     "den_chu": "architecture",
+     "ref": [],
+     "anh": null
+    }
+   }
+  },
+  {
+   "chu": "In the end, she collected the throne, the title, and the beard.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1458,
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "beard",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "That is how a queen became pharaoh.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "EGY"
+    ],
+    "nam": -1458,
+    "nguoi": [
+     {
+      "anh": "hatshepsut",
+      "ten": "Hatshepsut",
+      "dang": [
+       {
+        "chu": "pharaoh",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ],
+    "ket": "THE END"
+   }
+  }
+ ],
+ "tai_san_moi": [
+  {
+   "id": "hatshepsut",
+   "loai": "nhan_vat",
+   "ten": "Hatshepsut (nữ pharaoh)",
+   "mo_ta_en": "Ancient Egyptian woman pharaoh, about thirty years old, slender, smooth tan skin, dark almond eyes with black kohl liner, blue and gold striped nemes headcloth topped with a golden uraeus cobra, white pleated shendyt kilt, wide beaded gold collar, long braided false ceremonial beard strapped under the chin, holding a crook and a flail",
+   "tu": -1505,
+   "den": -1458,
+   "que": "EGY",
+   "commons": null
+  },
+  {
+   "id": "thutmose_ii",
+   "loai": "nhan_vat",
+   "ten": "Thutmose II (vua Ai Cập)",
+   "mo_ta_en": "Young Egyptian king in his early twenties, slim, short dark hair under a blue striped nemes headcloth with a golden uraeus cobra, dark kohl-lined eyes, white pleated kilt, wide gold beaded collar, holding a crook",
+   "tu": -1495,
+   "den": -1479,
+   "que": "EGY",
+   "commons": null
+  },
+  {
+   "id": "thutmose_iii",
+   "loai": "nhan_vat",
+   "ten": "Thutmose III (vua Ai Cập)",
+   "mo_ta_en": "Egyptian pharaoh, a boy at first and a strong man later, broad shoulders, strong jaw, prominent nose, dark kohl-lined eyes, blue war crown (khepresh) with a golden uraeus cobra, white pleated kilt, wide gold beaded collar, holding a curved khopesh sword",
+   "tu": -1479,
+   "den": -1425,
+   "que": "EGY",
+   "commons": null
+  },
+  {
+   "id": "egyptian_ship",
+   "loai": "phuong_tien",
+   "ten": "Thuyền buồm Ai Cập cổ",
+   "mo_ta_en": "Ancient Egyptian wooden sailing ship, long narrow hull with high curved papyrus-shaped prow and stern, one square striped linen sail, steering oars at the back, painted red and blue, a row of oars along the sides",
+   "tu": -1550,
+   "den": -1100,
+   "que": null,
+   "commons": null
+  }
+ ]
+}

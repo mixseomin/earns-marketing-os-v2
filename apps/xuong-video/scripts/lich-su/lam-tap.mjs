@@ -88,7 +88,8 @@ async function kiem(tap, nguonChu) {
   const nhanVat = new Set(ds.flatMap((c) => (c.canh.nguoi || []).map((n) => n.anh))); if (nhanVat.size < 2) loi.push(`cả tập chỉ có ${nhanVat.size} nhân vật — cần ≥ 2 (người có tên đang hành động phải đứng trong cảnh)`);
   ds.forEach((c, k) => { const K = `câu ${k + 1}`, cv = c.canh, ws = new Set(c.chu.split(/\s+/).map(chuan));
     if (k === 0 && !(c.su_that || []).length) loi.push(`${K}: hook không có su_that — hook phải là sự thật có nguồn`);
-    for (const n of [cv.nam, cv.nam_sau?.nam]) if (n != null && !namNguon.has(n)) loi.push(`${K}: ô năm ${n} không có trong nguồn — ghi năm có nguồn hoặc null`);
+    // năm TRƯỚC CÔNG NGUYÊN ghi số âm (-1472) — nguồn viết "1472 BC" → so theo trị tuyệt đối
+    for (const n of [cv.nam, cv.nam_sau?.nam]) if (n != null && !namNguon.has(Math.abs(n))) loi.push(`${K}: ô năm ${n} không có trong nguồn — ghi năm có nguồn hoặc null`);
     for (const cm of KENH.cam_cum || []) if (` ${phang(c.chu).replace(/[^a-z' ]/g, ' ')} `.includes(` ${cm} `)) loi.push(`${K}: cụm hài kiểu AI "${cm}" — bỏ, để cú lật tự đứng (luật viết hài của kênh)`);
     if (/[—–→…]|\.\.\./.test(c.chu)) loi.push(`${K}: còn dấu vết AI (— – → …) trong "${c.chu}"`);
     for (const s of c.su_that || []) { const tr = phang(s.trich).replace(/^["']|["']$/g, ''); if (nguonP.includes(tr)) continue;

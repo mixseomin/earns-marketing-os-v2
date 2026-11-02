@@ -35,6 +35,8 @@ let COS = Math.cos((54 * Math.PI) / 180);
 let cam = { lon: 0, lat: 0, z: 1 }, rung = [0, 0];
 const chieu = (lon, lat) => { const s = 12 * cam.z; return [W / 2 + (lon - cam.lon) * s * COS + rung[0], H * 0.42 - (lat - cam.lat) * s + rung[1]]; };
 
+// NĂM TRƯỚC CÔNG NGUYÊN: tập ghi số âm (-1472) → hiện "1472 BC" (C.tcn theo ngôn ngữ tập: BC / a. C.), không bao giờ in dấu trừ
+const chuNam = (n) => (n < 0 ? `${-n} ${C.tcn || 'BC'}` : String(n));
 window.__dung = async () => {
   C = window.CAU; LC = C.theme === 'la_cai';
   if (LC) { const p = document.createElement('canvas'); p.width = p.height = 10; const g = p.getContext('2d'); g.fillStyle = '#2a2a2a'; g.beginPath(); g.arc(5, 5, 2.2, 0, 7); g.fill(); chamIn = x.createPattern(p, 'repeat'); }
@@ -212,10 +214,10 @@ window.__seek = (t) => {
   const doiNam = s.c.nam_sau && u >= s.c.nam_sau[0] ? u - s.c.nam_sau[0] : (namTr !== s.c.nam ? u : 9), nayN = 1 + 0.12 * Math.max(0, 1 - doiNam / 0.3) * Math.sin(Math.min(1, doiNam / 0.3) * Math.PI);
   if (nam != null && LC) { x.save(); x.translate(225, 214); x.rotate(-0.06); x.scale(nayN * 1.1, nayN * 1.1);
     x.fillStyle = '#111'; x.fillRect(-160 + 10, -62 + 12, 320, 124); x.fillStyle = '#e8352b'; x.fillRect(-160, -62, 320, 124); x.strokeStyle = '#ffe14d'; x.lineWidth = 6; x.strokeRect(-150, -52, 300, 104);
-    chuDam(String(nam), 0, 4, 100, '#fff', '#111', 'Bangers, Impact, sans-serif'); x.restore(); }
+    chuDam(chuNam(nam), 0, 4, nam < 0 ? 72 : 100, '#fff', '#111', 'Bangers, Impact, sans-serif'); x.restore(); }
   else if (nam != null) { x.save(); x.translate(225, 214); x.scale(nayN, nayN); x.translate(-225, -214); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 18; x.fillStyle = '#2b1d10'; x.beginPath(); x.roundRect(60, 150, 330, 128, 10); x.fill(); x.restore();
     x.strokeStyle = '#c9a45c'; x.lineWidth = 3; x.beginPath(); x.roundRect(70, 160, 310, 108, 6); x.stroke();
-    x.font = '900 88px Cinzel, Georgia, serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f0dcae'; x.fillText(String(nam), 225, 218); x.restore(); }
+    x.font = `900 ${nam < 0 ? 60 : 88}px Cinzel, Georgia, serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = '#f0dcae'; x.fillText(chuNam(nam), 225, 218); x.restore(); }
   // chữ to mở (cảnh đầu)
   if (s.c.chu_to) { const al = kep(u / 0.25) * (1 - kep((u - 3.2) / 0.4)); if (al) { x.globalAlpha = al; const sz = LC ? 96 : 76; x.font = LC ? `400 ${sz}px Anton, Impact, sans-serif` : `900 ${sz}px Cinzel, Georgia, serif`;
     const tu = s.c.chu_to.split(' '), dong = []; let l = ''; for (const w of tu) { const th = l ? `${l} ${w}` : w; if (x.measureText(th).width > W - 140) { dong.push(l); l = w; } else l = th; } dong.push(l);

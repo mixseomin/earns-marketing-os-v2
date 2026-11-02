@@ -10,7 +10,7 @@ thêm tên phim) + dòng vàng "WHAT HAPPENS NEXT?" (KHÔNG mũi tên / icon ch�
 - Phóng lên 1080x1920 (lanczos, 0đ) khi nguồn < 1080p — báo rõ nguồn gốc trong ghi chú lô. Phim THẮNG: nâng nguồn bằng Topaz trước (nang-hd.py, chặn phim chưa thắng).
 - Mọi chữ (nút, dòng hỏi) qua luật chữ studio (ghep-b.chu_studio).
 Dùng: python3 cat-canh.py <nguon.mp4> <tu_giay> <den_giay> <poster.png> <font.json|-> <CTA> <ra.mp4> [giong.mp3|-] [cau_hoi]"""
-import json, os, sys, importlib.util
+import json, os, re, sys, importlib.util
 from PIL import Image, ImageDraw
 
 D = os.path.dirname(os.path.abspath(__file__))
@@ -43,7 +43,17 @@ def the_cuoi_anh(poster, hoi, ra):
     for dong in gx.ngat_can(hoi, 22): gx.ve_dong(d, y, dong, f, True, 8, mau=gx.VANG); y += 84
     im.convert("RGB").save(ra)
 
+# CTA MẪU KIÊN LÀ MẶC ĐỊNH CHO MỌI CREATIVE (anh 02/11/2026: "CTA hãy học cách của phim của Kiên" → "Tại sao vẫn là CTA cũ": KT / camp thay thế máy tự sinh
+# vẫn ra nút suốt video + thẻ poster + giọng). Mọi đường dựng (cat-cuoi-lo, dung-lo-dai, vx-ke-chuyen KT, kieu-moi, sua-cta…) đều qua dung() → ở đây rẽ sang
+# dung_tap: video sạch, ô tên phim + WATCH NOW 5 giây cuối, không thẻ cuối, không giọng. ETP_CTA=cu chỉ khi anh bảo dựng lại kiểu cũ.
+MAU_CTA = os.environ.get("ETP_CTA", "kien")
+NUT_KIEN = {"en": "WATCH NOW", "es": "VER AHORA"}
 def dung(nguon, tu, den, poster, cfg, cta, out, giong=None, hoi="WHAT HAPPENS NEXT?"):
+    if MAU_CTA == "kien":
+        ten = os.environ.get("ETP_TEN", "").strip()
+        if not ten: raise SystemExit("CTA mẫu Kiên cần tên phim (env ETP_TEN) — người gọi cat-canh phải truyền")
+        es = bool(re.search(r"M[IÍ]RALA|GRATIS|M[AÁ]S INFO", cta or "", re.I))
+        return dung_tap(nguon, tu, den, ten, out, nut=NUT_KIEN["es" if es else "en"])
     for chu in (cta, hoi):
         if CQ.sai_luat(chu): raise SystemExit(f"CTA CHAN: chữ '{chu}' dính '{CQ.sai_luat(chu)}' — luật CTA (cta_qc.py): không Tap/Click/Toca, không mũi tên")
     tmp = os.path.splitext(out)[0]; cta, hoi = [x.replace("\n", " ") for x in gb.chu_studio(cta, hoi)]

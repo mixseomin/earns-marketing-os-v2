@@ -177,7 +177,7 @@ if __name__ == "__main__":
     a = sys.argv[1:]
     if not a: sys.exit(__doc__)
     kh = json.load(open(a[0])); src, ra = os.path.expanduser(kh["nguon"]), os.path.expanduser(kh["ra"]); os.makedirs(ra, exist_ok=True)
-    cta = CQ.CTA["es" if kh.get("lang") == "es" else "en"]; os.environ["ETP_NUT_TU"] = "cuoi"
+    cta = CQ.CTA["es" if kh.get("lang") == "es" else "en"]; os.environ["ETP_NUT_TU"] = "cuoi"; os.environ.setdefault("ETP_TEN", kh.get("ten") or "")   # CTA mẫu Kiên cần tên phim
     for kieu in (a[1:] or list(KIEU)):
         kiem_thoai(src, cac_doan(kh[kieu]))
         tm = os.path.join(ra, f"_{kieu}"); than = KIEU[kieu](src, kh[kieu], tm); L = gx.dur(than)

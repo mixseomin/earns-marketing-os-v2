@@ -30,7 +30,7 @@ const tepTap = `${D}/tap.json`;
 if (!existsSync(tepTap)) {
   const q = (s: string) => execFileSync('ssh', ['root@167.233.241.16', `cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; psql "$DATABASE_URL" -tAc ${JSON.stringify(s)}`], { encoding: 'utf8' }).trim();
   const canh = JSON.parse(q(`select json_agg(json_build_object('id',id,'so',thu_tu,'giay',thoi_luong_s,'loi',loi_thoai,'anh',prompt_anh,'dong',prompt_video,'chu',chu_man,'pd',phan_doan) order by thu_tu) from xv_canh where tap_id=${tap}`));
-  const meta = JSON.parse(q(`select row_to_json(x) from (select p.id phim, p.poster_url, p.kinh_thanh->>'ngon_ngu' lang, (select mo_ta from xv_nhan_vat where phim_id=p.id and loai='nhan_vat' limit 1) cast_ from xv_tap t join xv_phim p on p.id=t.phim_id where t.id=${tap}) x`));
+  const meta = JSON.parse(q(`select row_to_json(x) from (select p.id phim, p.poster_url, p.kinh_thanh->>'ngon_ngu' lang, split_part(coalesce(p.kinh_thanh->'qc'->>'ten', ''), ' — ', 1) ten_phim, (select mo_ta from xv_nhan_vat where phim_id=p.id and loai='nhan_vat' limit 1) cast_ from xv_tap t join xv_phim p on p.id=t.phim_id where t.id=${tap}) x`));
   writeFileSync(tepTap, JSON.stringify({ meta, canh }, null, 1));
 }
 const { meta, canh } = JSON.parse(readFileSync(tepTap, 'utf8')) as { meta: { phim: number; poster_url: string; lang: string; cast_: string }; canh: Canh[] };
@@ -63,7 +63,7 @@ if (urlXuat) {
   const nguon = `${D}/xuat-studio.mp4`, ra = `${D}/${tap}-cta-v2.mp4`, E = new URL('.', import.meta.url).pathname;
   tai(urlXuat, nguon);
   const [nut, giong] = execFileSync('python3', ['-c', `import importlib.util as u,json;s=u.spec_from_file_location('c',${JSON.stringify(`${E}cta_qc.py`)});m=u.module_from_spec(s);s.loader.exec_module(m);c=m.CTA[${JSON.stringify(meta.lang === 'es' ? 'es' : 'en')}];print(json.dumps([c['nut'],c['giong']]))`], { encoding: 'utf8' }).trim().split('\n').map((x) => x).slice(-1).map((x) => JSON.parse(x) as string[])[0]!;
-  console.log(execFileSync('python3', [`${E}cat-canh.py`, nguon, '0', than.toFixed(1), `${D}/poster.png`, '-', nut!, ra, giong!], { encoding: 'utf8', env: { ...process.env, ETP_LOI_DAN: '1' } }).trim());
+  console.log(execFileSync('python3', [`${E}cat-canh.py`, nguon, '0', than.toFixed(1), `${D}/poster.png`, '-', nut!, ra, giong!], { encoding: 'utf8', env: { ...process.env, ETP_LOI_DAN: '1', ETP_TEN: String(meta.ten_phim ?? '') } }).trim());
   // CỔNG KẾT QUẢ (anh 29/10/2026 "lần sau kiểu đéo gì mày cũng lặp lại lỗi này?") — đo bản ra, sai thì ĐỎ, không đưa tệp đi lên creative:
   // (1) không câm: mọi giây của thân phim phải có tiếng (giọng kể / nhạc) — lần đầu bộ xuất bỏ giọng, cả MP4 −91 dB mà không ai đo
   // (2) giọng CTA không đè câu kể cuối: câu cuối dứt trước cú cắt (giọng cảnh cuối ngắn hơn giây phát), cat-canh chạy ETP_LOI_DAN=1 (vào sau cú cắt)

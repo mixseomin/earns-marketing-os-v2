@@ -8,10 +8,10 @@ không thêm bảng. Giá trị là chữ ngắn để gom nhóm (vd cta.nut_mau
 import json
 
 # MẪU ĐANG DỰNG (cat-canh.py + cta_qc.py, 28/10/2026) — đổi mẫu ở nguồn thì đổi luôn ở đây, sổ mới phân biệt được bản cũ / bản mới
-MAU_CTA = "v2"            # cta_qc.CTA giọng v2 (EN cắt "Tap", ES đọc lại không "Toca") — luật CTA Support 22/10/2026
-NUT = {"nut_mau": "do", "nut_kieu": "nhun_nhe", "nut_tu_giay": 3}            # cat-canh.py: NÚT ĐỎ CTA nhún nhẹ từ giây 3 tới hết
-THE_CUOI = {"the_cuoi": "poster_sach+hoi_vang"}                               # thẻ cuối = poster sạch + dòng vàng câu hỏi, không mũi tên / Tap
-GIONG = {"en": "george_v2", "es": "aria_v2"}                                 # assets/ethopex/cta-<lang>-<giọng>.mp3
+MAU_CTA = "kien"          # 02/11/2026: CTA mẫu Kiên mặc định (cat-canh MAU_CTA) — trước đó "v2" = cta_qc.CTA giọng v2 (EN cắt "Tap", ES đọc lại không "Toca") — luật CTA Support 22/10/2026
+NUT = {"nut_mau": "do", "nut_kieu": "o_ten_phim_day", "nut_tu_giay": "5s_cuoi"}   # cat-canh.py mẫu Kiên: ô tên phim + WATCH NOW 5 giây cuối (cũ: nút nhún từ giây 3)
+THE_CUOI = {"the_cuoi": "khong"}   # mẫu Kiên: không thẻ cuối (cũ: poster_sach+hoi_vang)                               # thẻ cuối = poster sạch + dòng vàng câu hỏi, không mũi tên / Tap
+GIONG = {"en": "khong", "es": "khong"}   # mẫu Kiên: không giọng CTA (cũ: george_v2 / aria_v2)                                 # assets/ethopex/cta-<lang>-<giọng>.mp3
 BO_CUC = "giu_bo_cuc_app_goc"                                                # tên phim trên đầu, phụ đề thoại giữa, tóm tắt dưới đáy (bản B cảnh phim thật)
 
 

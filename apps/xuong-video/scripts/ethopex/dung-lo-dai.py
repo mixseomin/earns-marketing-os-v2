@@ -62,7 +62,7 @@ def lam(phim, goc, ra_dir):
         src, moc = ghep(tm, 1)
         tu, den, cam = chon_khung(src, moc)
         if tu is None: return {"content_id": int(cid), "loi": f"không có khung 2–3' sạch (giây dính từ cấm: {cam[:12]})"}
-        r = subprocess.run(["python3", os.path.join(D, "cat-canh.py"), src, str(tu), str(den), pst, "-"] + args, capture_output=True, text=True)
+        r = subprocess.run(["python3", os.path.join(D, "cat-canh.py"), src, str(tu), str(den), pst, "-"] + args, capture_output=True, text=True, env={**os.environ, "ETP_TEN": ten})   # CTA mẫu Kiên cần tên phim
         if r.returncode != 0: return {"content_id": int(cid), "loi": (r.stdout + r.stderr)[-300:]}
         tap_dau = 1 + sum(1 for m in moc[:-1] if m <= tu)
         return {"content_id": int(cid), "lang": loc, "ten": ten, "tu_tap": tap_dau, "tu": tu, "den": den, "moc_tap": moc, "file": ra, "giay": round(giay(ra), 1)}

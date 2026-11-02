@@ -16,7 +16,8 @@
 html, body { background: #0B1A2E; overflow: hidden; }
 #k { position: relative; width: 1080px; height: 1920px; overflow: hidden; color: #fff; font-family: IN, sans-serif; }
 .abs { position: absolute; }
-#nen-anh { inset: 0; width: 1080px; height: 1920px; object-fit: cover; }
+#nen-anh { inset: 0; width: 1080px; height: 1920px; object-fit: cover; transform-origin: 50% 38%; }
+#sao { inset: 0; }
 #phu { inset: 0; background: radial-gradient(ellipse at 50% 38%, rgba(15,34,64,.5) 0%, rgba(11,26,46,.76) 55%, rgba(8,19,34,.9) 100%); }
 /* ô lá số: cửa sổ tròn mép mềm — phóng vào thì như nhìn qua thấu kính, không lộ cạnh vuông */
 #o { left: 30px; top: 290px; width: 1020px; height: 1020px; -webkit-mask-image: radial-gradient(circle closest-side, #000 86%, transparent 100%); }
@@ -28,6 +29,7 @@ html, body { background: #0B1A2E; overflow: hidden; }
 <body><div id="k">
   <img id="nen-anh" class="abs">
   <div id="phu" class="abs"></div>
+  <canvas id="sao" class="abs" width="1080" height="1920"></canvas>
   <div id="goc" class="abs" style="left:64px;top:150px;display:flex;flex-direction:column;gap:20px;align-items:flex-start;opacity:.92"></div>
   <div id="o" class="abs"></div>
   <div id="nhan" class="abs"></div>
@@ -39,6 +41,24 @@ const lerp = (a, b, k) => a + (b - a) * k;
 const KY = { Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇' };
 const THU = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 const CHUYEN = 0.9;   // giây trượt camera đầu mỗi câu
+// NỀN TRỜI CHUYỂN ĐỘNG (anh 03/11/2026 "nền trời có chuyển động… đc ko"): ảnh thật xoay chậm quanh một tâm như trời đêm quay quanh cực,
+// biên độ ±6° chu kỳ 120 s (có giới hạn → phóng 1,22 là đủ che góc ở mọi độ dài video) + lớp sao lấp lánh trôi nhanh hơn ảnh (thị sai). Thuần theo t.
+const XOAY_DO = 6, XOAY_CHU_KY = 120, PHONG_NEN = 1.22;
+let SAO = [];
+function veNen(t) {
+  const goc = XOAY_DO * Math.sin((2 * Math.PI * t) / XOAY_CHU_KY), tho = 1 + 0.015 * Math.sin((2 * Math.PI * t) / 37);
+  document.getElementById('nen-anh').style.transform = `rotate(${goc.toFixed(4)}deg) scale(${(PHONG_NEN * tho).toFixed(4)})`;
+  const cv = document.getElementById('sao'), g = cv.getContext('2d'); g.clearRect(0, 0, 1080, 1920);
+  const a = (goc * 1.4 * Math.PI) / 180, cx = 540, cy = 730, ca = Math.cos(a), sa = Math.sin(a);
+  for (const s of SAO) {
+    const x = cx + (s.x - cx) * ca - (s.y - cy) * sa, y = cy + (s.x - cx) * sa + (s.y - cy) * ca;
+    const sang = s.m * (0.55 + 0.45 * Math.sin(t * s.f + s.p)) ** 2;
+    g.globalAlpha = sang; g.fillStyle = s.v ? '#FFE9B0' : '#FFFFFF';
+    g.beginPath(); g.arc(x, y, s.r, 0, 2 * Math.PI); g.fill();
+    if (s.r > 1.6) { g.globalAlpha = sang * 0.25; g.beginPath(); g.arc(x, y, s.r * 3.2, 0, 2 * Math.PI); g.fill(); }
+  }
+  g.globalAlpha = 1;
+}
 let C, svg, VB0, nhom, canh = [];
 
 // tệp cục bộ: fetch() không đọc file:// trong Chromium → XHR (dung.mjs mở trình duyệt với --allow-file-access-from-files)
@@ -94,11 +114,14 @@ window.__dung = async () => {
   const lop = (m) => svg.querySelector(`[data-layer="${m}"]`);
   C._lop = [['angles'], ['zodiac', 'degrees', 'spark'], ['planets'], ['aspects'], ['houses'], ['branding', 'birth-info']].map((ds) => ds.map(lop).filter(Boolean));
   svg.setAttribute('viewBox', '0 0 ' + svg.viewBox.baseVal.width + ' ' + svg.viewBox.baseVal.height); canh = C.cau.map(dich);   // đo khung khi viewBox còn gốc
+  let h = 11; const rnd = () => ((h = (h * 16807) % 2147483647) / 2147483647);   // sao theo hạt giống: khung nào cũng giống nhau
+  SAO = Array.from({ length: 170 }, () => { const z = rnd(); return { x: -200 + rnd() * 1480, y: -200 + rnd() * 2320, r: 0.6 + z * z * 2.2, m: 0.35 + z * 0.6, f: 0.8 + rnd() * 2.6, p: rnd() * 6.283, v: rnd() < 0.18 }; });
   await document.fonts.ready;
 };
 
 function trangThai(i) { return canh[Math.max(0, Math.min(canh.length - 1, i))]; }
 window.__seek = (t) => {
+  veNen(t);
   let i = C.cau.findIndex((q) => t < q.den); if (i < 0) i = C.cau.length - 1;
   const q = C.cau[i], cu = i > 0 ? trangThai(i - 1) : { vb: VB0, sang: null }, moi = trangThai(i);
   const k = ease((t - q.tu) / CHUYEN), troi = Math.max(0, Math.min(1, (t - q.tu) / Math.max(0.1, q.den - q.tu)));

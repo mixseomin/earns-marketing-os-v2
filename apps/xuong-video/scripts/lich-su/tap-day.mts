@@ -13,11 +13,13 @@ if (!tepTap || !mp4) { console.error('tsx tap-day.mts <tập.json> <video.mp4> [
 const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
 const kenhId = tap.kenh ?? 'saga', K = JSON.parse(readFileSync(new URL('./kenh.json', import.meta.url), 'utf8'))[kenhId];
 const db = getDb()!, q = async <T,>(s: ReturnType<typeof sql>) => (await db.execute(s)) as unknown as T[];
-const PHIM = `Kênh lịch sử · ${K.ten}`;
-let phim = (await q<{ id: number }>(sql`SELECT id FROM xv_phim WHERE ten = ${PHIM} LIMIT 1`))[0]?.id;
+// PHIM STUDIO CỦA KÊNH (anh 02/11/2026: "mỗi kênh có một file Studio quản lý"): tìm theo mã máy / mã kênh ghi trong kinh_thanh (đổi tên phim không đẻ phim mới);
+// tên phim = tên công khai của kênh (kenh.json ten_kenh)
+const PHIM = K.ten_kenh ?? `Kênh lịch sử · ${K.ten}`, khoaPhim = K.may ?? kenhId;
+let phim = (await q<{ id: number }>(sql`SELECT id FROM xv_phim WHERE kinh_thanh->>'may' = ${khoaPhim} OR (kinh_thanh->>'may' IS NULL AND ten = ${PHIM}) ORDER BY id LIMIT 1`))[0]?.id;
 if (!phim) phim = (await q<{ id: number }>(sql`INSERT INTO xv_phim (project, ten, loai, mo_ta, kinh_thanh, trang_thai) VALUES ('studio', ${PHIM}, 'short',
   ${`Các tập kênh "${kenhId}" dựng bằng code (bản đồ + nhân vật kho chung). Khuôn: ${K.do_dai}; giọng đọc ${K.giong}; theme ${K.theme}. Máy: apps/xuong-video/scripts/lich-su/lam-tap.mjs --kenh ${kenhId}; hồ sơ kênh: kenh.json`},
-  ${JSON.stringify({ chat_lieu: 've_2d', the_loai: 'tai_lieu', ti_le: '9:16', kenh: kenhId, theme: K.theme })}::jsonb, 'nhap') RETURNING id`))[0]!.id;
+  ${JSON.stringify({ chat_lieu: 've_2d', the_loai: 'tai_lieu', ti_le: '9:16', kenh: kenhId, may: khoaPhim, theme: K.theme })}::jsonb, 'nhap') RETURNING id`))[0]!.id;
 const giay = Math.round(Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp4], { encoding: 'utf8' })));
 const url = await uploadToR2(`xuong-video/lich-su/tap/${tap.id}.mp4`, readFileSync(mp4), 'video/mp4');
 if (!url) { console.error('✗ tải R2 hỏng'); process.exit(1); }

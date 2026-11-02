@@ -45,7 +45,8 @@ for (const [k, K] of Object.entries(KENH)) {
     const vietLai = (t.cau?.length ?? 0) < 5 ? ['--viet-lai'] : [];
     const chay = (them) => spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', t.id, ...(vietLai.length ? vietLai : ['--gan-hook']), ...them], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20 });
     let r = chay([]), ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`;
-    if (r.status === 4 && /tập có lỗi/.test(ra)) { r = chay(['--sua']); ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; }
+    process.stdout.write(ra);   // nhật ký việc nền giữ trọn đầu ra lam-tap (trước chỉ có một dòng tóm tắt — không đọc được gốc lỗi)
+    if (r.status === 4 && /tập có lỗi/.test(ra)) { r = chay(['--sua']); ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra); }
     try { unlinkSync(join(homedir(), '.cache', `lich-su-${k}.khoa`)); } catch { /* đã gỡ */ }
     const t2 = JSON.parse(readFileSync(tep, 'utf8')); t2.tu_dong = { lan: td.lan + 1, luc: new Date().toISOString(), loi: r.status ? ra.trim().split('\n').slice(-3).join(' · ').slice(0, 400) : null };
     writeFileSync(tep, JSON.stringify(t2, null, 1) + '\n');

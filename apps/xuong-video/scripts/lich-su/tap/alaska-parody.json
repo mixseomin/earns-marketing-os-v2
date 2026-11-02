@@ -1,0 +1,1379 @@
+{
+ "id": "alaska-parody",
+ "kenh": "parody",
+ "tieu_de": "Why did Russia sell Alaska for two cents an acre?",
+ "ngon_ngu": "en",
+ "chu_de": "How Russia sold Alaska to the United States for two cents an acre, and how Seward's Folly became the 49th state",
+ "giong": {
+  "voice": "Daniel"
+ },
+ "nguon": [
+  "https://en.wikipedia.org/wiki/Alaska_Purchase",
+  "https://en.wikipedia.org/wiki/Russian_colonization_of_North_America",
+  "https://en.wikipedia.org/wiki/History_of_Alaska"
+ ],
+ "may_viet": {
+  "model": "ckey:claude-sonnet-5-5",
+  "luc": "2026-11-02T02:51:55.535Z",
+  "tokens": {
+   "in": 43484,
+   "out": 11344
+  }
+ },
+ "cau": [
+  {
+   "chu": "Russia sold Alaska for two cents an acre.",
+   "su_that": [
+    {
+     "gia_tri": "two cents an acre",
+     "nguon": 0,
+     "trich": "At an original cost of $0.02 per acre ($0.38 per acre in 2025), the United States had grown by 586,412 sq mi (1,518,800 km2)."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1867,
+    "mo": true,
+    "chu_to": "TWO CENTS AN ACRE",
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "vong": [
+     "-152,64"
+    ],
+    "dau": [
+     {
+      "chu": "sold",
+      "text": "SOLD"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The seller had just lost the Crimean War, which makes almost any asking price look responsible.",
+   "su_that": [
+    {
+     "gia_tri": "Crimean War",
+     "nguon": 0,
+     "trich": "Alexander II of Russia, having faced a catastrophic defeat in the Crimean War, began exploring the possibility of selling the state's Alaskan possessions"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "co": [
+     {
+      "anh": "co_de_quoc_nga_1858",
+      "o": "-135.3,57.05"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "alexander_ii",
+      "ten": "Alexander II",
+      "dang": [
+       {
+        "chu": "lost",
+        "dang": "buon"
+       },
+       {
+        "chu": "responsible",
+        "dang": "suy_nghi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Stay for the flag that refused to come down.",
+   "su_that": [
+    {
+     "gia_tri": "not be pulled down",
+     "nguon": 0,
+     "trich": "then entangled its claws around the spar so that it could not be pulled down any further"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nhay": [
+     "-135.3,57.05"
+    ],
+    "co": [
+     {
+      "anh": "co_de_quoc_nga_1858",
+      "o": "-135.3,57.05"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "russian_soldier",
+      "ten": "Russian soldiers",
+      "dang": [
+       {
+        "chu": "flag",
+        "dang": "ngac_nhien"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In seventeen ninety-nine, a fur company got a charter to run the whole colony.",
+   "su_that": [
+    {
+     "gia_tri": "1799",
+     "nguon": 0,
+     "trich": "They arrived in Alaska in 1732, and in 1799 the Russian-American Company (RAC) received a charter to hunt for fur."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "160,56",
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1799,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nhay": [
+     "-152,64"
+    ],
+    "ten": [
+     {
+      "tu": "160,56",
+      "den": "-152,64"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "promyshlennik",
+      "ten": "Russian fur traders",
+      "dang": [
+       {
+        "chu": "charter",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "It came for sea otters, and it hunted until three hundred thousand were almost gone.",
+   "su_that": [
+    {
+     "gia_tri": "three hundred thousand",
+     "nguon": 0,
+     "trich": "By the 1850s, a population of once 300,000 sea otters, who were skinned for their valuable fur, was almost extinct"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1799,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "promyshlennik",
+      "ten": "Russian fur traders",
+      "dang": [
+       {
+        "chu": "hunted",
+        "dang": "suy_nghi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "About seven hundred Russians enforced sovereignty over a territory twice as large as Texas.",
+   "su_that": [
+    {
+     "gia_tri": "700",
+     "nguon": 0,
+     "trich": "About 700 Russians enforced sovereignty in a territory over twice as large as Texas."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1799,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nhay": [
+     "-152,64"
+    ],
+    "nguoi": [
+     {
+      "anh": "promyshlennik",
+      "ten": "Russian fur traders",
+      "dang": [
+       {
+        "chu": "sovereignty",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "That is not a colony, that is a very confident hunting trip.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1799,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "promyshlennik",
+      "ten": "Russian fur traders",
+      "dang": [
+       {
+        "chu": "confident",
+        "dang": "cuoi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The Russians never fully colonized Alaska, and mostly they clung to the coast.",
+   "su_that": [
+    {
+     "gia_tri": "never fully colonized",
+     "nguon": 1,
+     "trich": "The Russians never fully colonized Alaska. For the most part, they clung to the coast and shunned the interior."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1799,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "promyshlennik",
+      "ten": "Russian fur traders",
+      "dang": [
+       {
+        "chu": "clung",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The colony was never very profitable, because shipping anything there cost more than the thing itself.",
+   "su_that": [
+    {
+     "gia_tri": "never very profitable",
+     "nguon": 1,
+     "trich": "Though the Alaskan colony was never very profitable because of the costs of transportation, most Russian traders were determined to keep the land for themselves."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1799,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "promyshlennik",
+      "ten": "Russian fur traders",
+      "dang": [
+       {
+        "chu": "shipping",
+        "dang": "suy_nghi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In eighteen fifty-seven, the Tsar's younger brother wrote a memo predicting the Americans would take Alaska anyway.",
+   "su_that": [
+    {
+     "gia_tri": "1857",
+     "nguon": 0,
+     "trich": "Grand Duke Konstantin, a younger brother of the Tsar, began to press for the handover of Russian America to the United States in 1857."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72",
+     "30.3,59.9"
+    ],
+    "nam": 1857,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nhan": [
+     {
+      "chu": "St. Petersburg",
+      "o": "30.3,59.9"
+     }
+    ],
+    "nhay": [
+     "30.3,59.9"
+    ],
+    "nguoi": [
+     {
+      "anh": "grand_duke_konstantin",
+      "ten": "Grand Duke Konstantin",
+      "dang": [
+       {
+        "chu": "wrote",
+        "dang": "noi_dong"
+       },
+       {
+        "chu": "predicting",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Alexander the Second read it and wrote that the idea was worth considering.",
+   "su_that": [
+    {
+     "gia_tri": "worth considering",
+     "nguon": 0,
+     "trich": "Konstantin's letter was shown to his brother, Tsar Alexander II, who wrote \"this idea is worth considering\" on the front page."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1857,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "alexander_ii",
+      "ten": "Alexander II",
+      "dang": [
+       {
+        "chu": "considering",
+        "dang": "suy_nghi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The empire then considered it for a decade, which in imperial terms is a snap decision.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1857,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "alexander_ii",
+      "ten": "Alexander II",
+      "dang": [
+       {
+        "chu": "decade",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The colony was hard to defend, and the British were next door in Canada.",
+   "su_that": [
+    {
+     "gia_tri": "British",
+     "nguon": 0,
+     "trich": "the hard-to-defend colony would be easily conquered by British forces based in neighboring Canada in any future conflict"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72",
+     "CAN@-141,49,-95,70"
+    ],
+    "nam": 1857,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     },
+     {
+      "noi": "CAN@-141,49,-95,70",
+      "chu": "GBR"
+     }
+    ],
+    "nhan": [
+     {
+      "chu": "British North America",
+      "o": "CAN@-141,49,-95,70"
+     }
+    ],
+    "ten": [
+     {
+      "tu": "CAN@-141,49,-95,70",
+      "den": "-135.3,57.05"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "So Russia offered the land to Washington, hoping a friend across the water would offset the British.",
+   "su_that": [
+    {
+     "gia_tri": "offset the plans of Britain",
+     "nguon": 0,
+     "trich": "The Russian government discussed the proposal in 1857 and 1858 and offered to sell the territory to the United States, hoping that its presence in the region would offset the plans of Britain."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72",
+     "-77,38.9"
+    ],
+    "nam": 1857,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nhay": [
+     "-77,38.9"
+    ],
+    "ten": [
+     {
+      "tu": "30.3,59.9",
+      "den": "-77,38.9"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In eighteen sixty-seven, Stoeckl and Seward negotiated all night and signed at four in the morning.",
+   "su_that": [
+    {
+     "gia_tri": "1867",
+     "nguon": 0,
+     "trich": "The negotiations concluded after an all-night session with the signing of the treaty at 04:00 on March 30, 1867."
+    },
+    {
+     "gia_tri": "William Seward",
+     "nguon": 0,
+     "trich": "To this end, William H. Seward, the U.S. secretary of state at the time, entered into negotiations with Russian diplomat Eduard de Stoeckl towards the United States' acquisition of Alaska after the American Civil War."
+    },
+    {
+     "gia_tri": "Eduard de Stoeckl",
+     "nguon": 0,
+     "trich": "Seward and Steckel agreed to a treaty for the sale on March 30, 1867."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "-77,38.9",
+     "-135.3,57.05"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "ten": [
+     {
+      "tu": "-77,38.9",
+      "den": "-135.3,57.05"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "william_seward",
+      "ten": "William Seward",
+      "dang": [
+       {
+        "chu": "night",
+        "dang": "noi_dong"
+       }
+      ]
+     },
+     {
+      "anh": "eduard_de_stoeckl",
+      "ten": "Eduard de Stoeckl",
+      "dang": [
+       {
+        "chu": "signed",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ],
+    "tranh": {
+     "mo_ta": "Two diplomats in 1860s frock coats lean over a treaty by lamplight before dawn, ink bottle and rolled maps on the table, one still holding a pen, heavy curtains behind them",
+     "tu_chu": "signed",
+     "den_chu": "morning",
+     "ref": [
+      "william_seward",
+      "eduard_de_stoeckl"
+     ],
+     "anh": null
+    }
+   }
+  },
+  {
+   "chu": "The price was seven point two million dollars.",
+   "su_that": [
+    {
+     "gia_tri": "seven point two million dollars",
+     "nguon": 0,
+     "trich": "The purchase price was set at $7.2 million (equivalent to $136 million in 2025), or about 2 cents per acre ($4.74/km2)."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "william_seward",
+      "ten": "William Seward",
+      "dang": [
+       {
+        "chu": "million",
+        "dang": "ngac_nhien"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Opponents called it Seward's Folly, Seward's Icebox and Walrussia.",
+   "su_that": [
+    {
+     "gia_tri": "Seward's Folly",
+     "nguon": 0,
+     "trich": "Some opponents labeled the purchase as \"Seward's Folly\" or \"Seward's Icebox\" as they contended that the United States had acquired useless land."
+    },
+    {
+     "gia_tri": "Walrussia",
+     "nguon": 0,
+     "trich": "to some the purchase was known as \"Seward's folly\", \"Walrussia\", or \"Seward's icebox\"."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "dau": [
+     {
+      "chu": "Folly",
+      "text": "FOLLY?"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Three nicknames is not a scandal, it is a branding problem.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "william_seward",
+      "ten": "William Seward",
+      "dang": [
+       {
+        "chu": "scandal",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The Senate approved the treaty thirty-seven votes to two.",
+   "su_that": [
+    {
+     "gia_tri": "thirty-seven votes to two",
+     "nguon": 0,
+     "trich": "The United States Senate approved the treaty by a vote of 37 to 2."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "-77,38.9"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "RUS"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "william_seward",
+      "ten": "William Seward",
+      "dang": [
+       {
+        "chu": "approved",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "On the eighteenth of October the flag came down in Sitka.",
+   "su_that": [
+    {
+     "gia_tri": "Sitka",
+     "nguon": 0,
+     "trich": "The transfer ceremony took place in Sitka on October 18, 1867."
+    },
+    {
+     "gia_tri": "October 18, 1867",
+     "nguon": 0,
+     "trich": "The United States flag was raised on October 18, 1867, now called Alaska Day, and the region changed from the Julian calendar to the Gregorian calendar."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "-135.3,57.05"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhay": [
+     "-135.3,57.05"
+    ],
+    "co": [
+     {
+      "anh": "co_de_quoc_nga_1858",
+      "o": "-137,58"
+     },
+     {
+      "anh": "co_my_1867",
+      "o": "-135.3,57.05"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "russian_soldier",
+      "ten": "Russian soldiers",
+      "dang": [
+       {
+        "chu": "flag",
+        "dang": "ngac_nhien"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The Russian eagle caught its claws on the spar, and it took three soldiers to get it down.",
+   "su_that": [
+    {
+     "gia_tri": "caught its claws",
+     "nguon": 0,
+     "trich": "then entangled its claws around the spar so that it could not be pulled down any further"
+    },
+    {
+     "gia_tri": "three soldiers",
+     "nguon": 0,
+     "trich": "only the third soldier was able to bring the unwilling eagle down to the ground"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "-135.3,57.05"
+    ],
+    "nam": 1867,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhay": [
+     "-135.3,57.05"
+    ],
+    "co": [
+     {
+      "anh": "co_my_1867",
+      "o": "-135.3,57.05"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "russian_soldier",
+      "ten": "Russian soldiers",
+      "dang": [
+       {
+        "chu": "soldiers",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ],
+    "tranh": {
+     "mo_ta": "Russian soldiers in dark green tunics stand on a wooden parade ground in Sitka in 1867 while a black and gold double-headed eagle flag hangs stuck halfway up a tall spar, one soldier clinging to the pole, wet hills and a log governor's house behind",
+     "tu_chu": "caught",
+     "den_chu": "down",
+     "ref": [
+      "russian_soldier"
+     ],
+     "anh": null
+    }
+   }
+  },
+  {
+   "chu": "In eighteen ninety-six, gold was found in the Yukon and thousands of miners walked north.",
+   "su_that": [
+    {
+     "gia_tri": "1896",
+     "nguon": 0,
+     "trich": "Alaska would remain sparsely populated until the Klondike Gold Rush began in 1896."
+    },
+    {
+     "gia_tri": "thousands of miners",
+     "nguon": 2,
+     "trich": "In 1896, the discovery of gold in Yukon Territory in neighboring Canada, brought many thousands of miners and new settlers to Alaska"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "CAN@-141,60,-134,66",
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1896,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhay": [
+     "-139.4,64.06"
+    ],
+    "ten": [
+     {
+      "tu": "-135.3,59.46",
+      "den": "-139.4,64.06"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "gold_miner",
+      "ten": "Gold miners",
+      "dang": [
+       {
+        "chu": "walked",
+        "dang": "noi_dong"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Alaska made money on the trip, because it sat on the easiest route.",
+   "su_that": [
+    {
+     "gia_tri": "easiest route",
+     "nguon": 2,
+     "trich": "Alaska greatly profited because it was along the easiest transportation route to the Yukon goldfields."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1896,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhay": [
+     "-135.3,59.46"
+    ],
+    "nguoi": [
+     {
+      "anh": "gold_miner",
+      "ten": "Gold miners",
+      "dang": [
+       {
+        "chu": "money",
+        "dang": "cuoi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Towns like Skagway owe their existence to a gold rush in another country.",
+   "su_that": [
+    {
+     "gia_tri": "Skagway",
+     "nguon": 2,
+     "trich": "Numerous new cities, such as Skagway, Alaska, owe their existence to a gold rush in Canada."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "CAN@-141,60,-134,66"
+    ],
+    "nam": 1896,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhan": [
+     {
+      "chu": "Skagway",
+      "o": "-135.3,59.46"
+     }
+    ],
+    "nhay": [
+     "-135.3,59.46"
+    ],
+    "nguoi": [
+     {
+      "anh": "gold_miner",
+      "ten": "Gold miners",
+      "dang": [
+       {
+        "chu": "rush",
+        "dang": "noi_dong"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Skagway was less a town than a toll booth.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "CAN@-141,60,-134,66"
+    ],
+    "nam": 1896,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhan": [
+     {
+      "chu": "Skagway",
+      "o": "-135.3,59.46"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "gold_miner",
+      "ten": "Gold miners",
+      "dang": [
+       {
+        "chu": "toll",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In eighteen ninety-nine, gold turned up at Nome, inside the purchase.",
+   "su_that": [
+    {
+     "gia_tri": "1899",
+     "nguon": 2,
+     "trich": "In 1899, gold was found in Alaska itself in Nome, and several towns subsequently began to be built, such as Fairbanks and Ruby."
+    },
+    {
+     "gia_tri": "Nome",
+     "nguon": 2,
+     "trich": "Alaska greatly profited because it was along the easiest transportation route to the Yukon goldfields."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1899,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhay": [
+     "-165.4,64.5"
+    ],
+    "nguoi": [
+     {
+      "anh": "gold_miner",
+      "ten": "Gold miners",
+      "dang": [
+       {
+        "chu": "gold",
+        "dang": "cuoi"
+       }
+      ]
+     }
+    ],
+    "dau": [
+     {
+      "chu": "gold",
+      "text": "GOLD!"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The icebox had been keeping something cold and shiny at the back.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1899,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhay": [
+     "-165.4,64.5"
+    ],
+    "nguoi": [
+     {
+      "anh": "gold_miner",
+      "ten": "Gold miners",
+      "dang": [
+       {
+        "chu": "shiny",
+        "dang": "ngac_nhien"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The editors who had called it a polar bear garden had been looking at the wrong layer.",
+   "su_that": [
+    {
+     "gia_tri": "polar bear garden",
+     "nguon": 0,
+     "trich": "Editorials contended that taxpayer money had been wasted on a \"polar bear garden\"."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1899,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "dau": [
+     {
+      "chu": "garden",
+      "text": "GARDEN"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In nineteen twelve, Congress made it a territory.",
+   "su_that": [
+    {
+     "gia_tri": "1912",
+     "nguon": 2,
+     "trich": "Alaska was granted territorial status in 1912 by the United States of America."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72",
+     "-77,38.9"
+    ],
+    "nam": 1912,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "ten": [
+     {
+      "tu": "-77,38.9",
+      "den": "-152,64"
+     }
+    ],
+    "co": [
+     {
+      "anh": "co_my_1912",
+      "o": "-152,64"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "By nineteen sixteen its population was about fifty-eight thousand.",
+   "su_that": [
+    {
+     "gia_tri": "1916",
+     "nguon": 2,
+     "trich": "By 1916, its population was about 58,000."
+    },
+    {
+     "gia_tri": "fifty-eight thousand",
+     "nguon": 2,
+     "trich": "By 1916, its population was about 58,000."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1916,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhay": [
+     "-149.9,61.2"
+    ],
+    "co": [
+     {
+      "anh": "co_my_1912",
+      "o": "-152,64"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "settler",
+      "ten": "Alaskan settlers",
+      "dang": [
+       {
+        "chu": "population",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "An earlier statehood bill had failed because too few people lived there.",
+   "su_that": [
+    {
+     "gia_tri": "statehood bill",
+     "nguon": 2,
+     "trich": "James Wickersham, a Delegate to Congress, introduced Alaska's first statehood bill, but it failed due to the small population and lack of interest from Alaskans."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1916,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "co": [
+     {
+      "anh": "co_my_1912",
+      "o": "-152,64"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "settler",
+      "ten": "Alaskan settlers",
+      "dang": [
+       {
+        "chu": "failed",
+        "dang": "buon"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In nineteen fifty-nine, Alaska became a state.",
+   "su_that": [
+    {
+     "gia_tri": "1959",
+     "nguon": 2,
+     "trich": "Alaska was granted U.S. statehood on January 3, 1959."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72",
+     "-77,38.9"
+    ],
+    "nam": 1959,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "nhay": [
+     "-152,64"
+    ],
+    "ten": [
+     {
+      "tu": "-77,38.9",
+      "den": "-152,64"
+     }
+    ],
+    "co": [
+     {
+      "anh": "co_my_1959",
+      "o": "-152,64"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Two cents an acre, an eagle that would not let go, and an icebox nobody wanted in the kitchen.",
+   "su_that": [
+    {
+     "gia_tri": "two cents an acre",
+     "nguon": 0,
+     "trich": "At an original cost of $0.02 per acre ($0.38 per acre in 2025), the United States had grown by 586,412 sq mi (1,518,800 km2)."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1959,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "vong": [
+     "-152,64"
+    ],
+    "co": [
+     {
+      "anh": "co_my_1959",
+      "o": "-152,64"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Seward's Folly is now Alaska, and the icebox was the vault.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "USA@-170,54,-130,72"
+    ],
+    "nam": 1959,
+    "to": [
+     {
+      "noi": "USA@-170,54,-130,72",
+      "chu": "USA"
+     }
+    ],
+    "vong": [
+     "-152,64"
+    ],
+    "nhay": [
+     "-152,64"
+    ],
+    "co": [
+     {
+      "anh": "co_my_1959",
+      "o": "-152,64"
+     }
+    ],
+    "ket": "THE END"
+   }
+  }
+ ],
+ "tai_san_moi": [
+  {
+   "id": "grand_duke_konstantin",
+   "loai": "nhan_vat",
+   "ten": "Đại công tước Konstantin",
+   "mo_ta_en": "Russian grand duke in 1857: thirty-year-old clean-shaven man with short dark side-parted hair, dark green naval officer's coat with gold epaulettes, high collar and a blue sash, holding a folded paper memorandum, standing stiff and earnest",
+   "tu": 1855,
+   "den": 1892,
+   "que": "RUS",
+   "commons": null
+  },
+  {
+   "id": "settler",
+   "loai": "nhan_vat",
+   "ten": "Người định cư Alaska 1916",
+   "mo_ta_en": "Alaskan settler of 1916: man in his thirties with a moustache, brown wool suit, waistcoat, flat cap and mud-caked boots, holding a small hand axe and a folded newspaper, thin cold light",
+   "tu": 1900,
+   "den": 1930,
+   "que": "USA",
+   "commons": null
+  },
+  {
+   "id": "co_my_1912",
+   "loai": "co",
+   "ten": "Cờ Hoa Kỳ bốn mươi tám sao",
+   "mo_ta_en": "",
+   "tu": 1912,
+   "den": 1959,
+   "que": null,
+   "commons": "File:US flag 48 stars.svg"
+  },
+  {
+   "id": "co_my_1959",
+   "loai": "co",
+   "ten": "Cờ Hoa Kỳ bốn mươi chín sao",
+   "mo_ta_en": "",
+   "tu": 1959,
+   "den": 1960,
+   "que": null,
+   "commons": "File:US flag 49 stars.svg"
+  }
+ ]
+}

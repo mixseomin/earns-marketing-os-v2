@@ -26,7 +26,8 @@ let tua = arg('nguon')?.split('|').filter(Boolean) ?? [];
 if (!tua.length) tua = ((await goiWiki({ action: 'query', list: 'search', srsearch: chuDe, srlimit: '3' })).query?.search ?? []).map((x: { title: string }) => x.title);
 const nguon: { tua: string; url: string; chu: string }[] = [];
 for (const t of tua) { const p = (await goiWiki({ action: 'query', prop: 'extracts', explaintext: '1', redirects: '1', titles: t })).query?.pages?.[0];
-  if (!p?.extract) { console.error(`⚠ không đọc được bài "${t}"`); continue; }
+  // bài ĐÃ CHỈ ĐỊNH mà không đọc được → dừng (thiếu một bài là mọi trích dẫn từ bài đó thành sai); tự tìm thì bỏ qua bài hỏng
+  if (!p?.extract) { if (arg('nguon')) { console.error(`✗ không đọc được bài nguồn "${t}" — dừng, không viết với nguồn thiếu`); process.exit(1); } console.error(`⚠ không đọc được bài "${t}"`); continue; }
   nguon.push({ tua: p.title, url: `https://${nn}.wikipedia.org/wiki/${encodeURIComponent(p.title.replace(/ /g, '_'))}`, chu: p.extract.replace(/\n{2,}/g, '\n').slice(0, 22000) }); }
 if (!nguon.length) { console.error('✗ không có nguồn nào'); process.exit(1); }
 writeFileSync(`${ra}.nguon.txt`, nguon.map((n, i) => `### [${i}] ${n.tua} — ${n.url}\n${n.chu}`).join('\n\n'));

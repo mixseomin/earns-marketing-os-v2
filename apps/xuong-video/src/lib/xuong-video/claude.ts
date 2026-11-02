@@ -212,7 +212,8 @@ function client(): KhachChu | null {
     parse: (p) => quaChuoi(p, (d, q) => (d.jsonTay ? tao(d, q) : d.c.messages.parse(q as unknown as Parameters<Anthropic['messages']['parse']>[0]) as unknown as Promise<TinChu>)),
     // LUỒNG ĐỨNG IM GIỮA CHỪNG (03/11/2026): đã bắt đầu trả lời rồi im — timeout 90 giây của SDK không bắt (chỉ tính tới phản hồi đầu) → 120 giây không có sự kiện mới
     // thì huỷ luồng, chuỗi sang đường kế (thay vì đợi trần 25 phút của lệnh box3)
-    stream: (p) => ({ finalMessage: () => quaChuoi(p, (d, q) => { const ac = new AbortController(); let t = setTimeout(() => ac.abort(new Error('luồng im 120 giây')), 120_000);
+    // sự kiện ĐẦU TIÊN được chờ 5 phút (lời nhắc dài — Anthropic có lúc > 2 phút mới gửi sự kiện đầu, 03/11/2026 bị huỷ oan "Request was aborted"), sau đó 120 giây giữa hai sự kiện
+    stream: (p) => ({ finalMessage: () => quaChuoi(p, (d, q) => { const ac = new AbortController(); let t = setTimeout(() => ac.abort(new Error('chưa có sự kiện đầu sau 5 phút')), 300_000);
       const st = d.c.messages.stream(q as unknown as Anthropic.MessageStreamParams, { signal: ac.signal });
       st.on('streamEvent', () => { clearTimeout(t); t = setTimeout(() => ac.abort(new Error('luồng im 120 giây')), 120_000); });
       return (st.finalMessage() as Promise<TinChu>).finally(() => clearTimeout(t)); }) }),

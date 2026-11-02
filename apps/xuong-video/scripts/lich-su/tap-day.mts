@@ -7,6 +7,9 @@ import { execFileSync } from 'node:child_process';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { uploadToR2 } from '../../src/lib/r2';
+import { createHash } from 'node:crypto';
+// TÊN TỆP R2 MANG DẤU NỘI DUNG (03/11/2026: tên cố định <tập>.mp4 → CDN img.on.tc trả bản cũ 181 s sau khi dựng lại 179 s, Phòng Nội dung không chấm lại vì URL không đổi)
+const dau = (b: Buffer) => createHash('md5').update(b).digest('hex').slice(0, 10);
 
 // tsx tap-day.mts <tập.json> <video.mp4> [khung.jpg…] [--canh <canh.json> --kho <kho.json>]
 //   khung → R2 xuong-video/lich-su/tap/<id>-khung-<i>.jpg (khung[] cho máy đăng) · --canh = STORYBOARD: [{ k, bd, kt, anh }] mỗi câu một cảnh (keyframe giữa cảnh)
@@ -27,7 +30,7 @@ if (!phim) phim = (await q<{ id: number }>(sql`INSERT INTO xv_phim (project, ten
   ${`Các tập kênh "${kenhId}" dựng bằng code (bản đồ + nhân vật kho chung). Khuôn: ${K.do_dai}; giọng đọc ${K.giong}; theme ${K.theme}. Máy: apps/xuong-video/scripts/lich-su/lam-tap.mjs --kenh ${kenhId}; hồ sơ kênh: kenh.json`},
   ${JSON.stringify({ chat_lieu: 've_2d', the_loai: 'tai_lieu', ti_le: '9:16', kenh: kenhId, may: khoaPhim, theme: K.theme })}::jsonb, 'nhap') RETURNING id`))[0]!.id;
 const giay = Math.round(Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp4], { encoding: 'utf8' })));
-const url = await uploadToR2(`xuong-video/lich-su/tap/${tap.id}.mp4`, readFileSync(mp4), 'video/mp4');
+const bMp4 = readFileSync(mp4), url = await uploadToR2(`xuong-video/lich-su/tap/${tap.id}-${dau(bMp4)}.mp4`, bMp4, 'video/mp4');
 if (!url) { console.error('✗ tải R2 hỏng'); process.exit(1); }
 const kichBan = tap.cau.map((c: { chu: string; su_that?: unknown[] }, i: number) => `${i + 1}. ${c.chu}${c.su_that?.length ? '' : '  [câu đùa]'}`).join('\n') + `\n\nNguồn:\n${(tap.nguon || []).join('\n')}`;
 const hoSo = { ma_tap: tap.id, kenh: kenhId, playlist: tap.playlist ?? null, ngon_ngu: tap.ngon_ngu, chu_de: tap.chu_de, tep: `apps/xuong-video/scripts/lich-su/tap/${tap.id}.json` };
@@ -37,7 +40,7 @@ if (co) await db.execute(sql`UPDATE xv_tap SET ten = ${tap.tieu_de}, kich_ban = 
 else { const so = (await q<{ n: number }>(sql`SELECT COALESCE(MAX(so), 0) + 1 AS n FROM xv_tap WHERE phim_id = ${phim}`))[0]!.n;
   tapId = (await q<{ id: number }>(sql`INSERT INTO xv_tap (phim_id, so, ten, kich_ban, tom_tat, trang_thai, video_url, thoi_luong_s, ho_so) VALUES (${phim}, ${so}, ${tap.tieu_de}, ${kichBan}, ${tap.chu_de ?? tap.tieu_de}, 'nhap', ${url}, ${giay}, ${JSON.stringify(hoSo)}::jsonb) RETURNING id`))[0]!.id; }
 const khung: string[] = [];
-for (const [i, f] of tepKhung.entries()) { const u = await uploadToR2(`xuong-video/lich-su/tap/${tap.id}-khung-${i}.jpg`, readFileSync(f), 'image/jpeg'); if (u) khung.push(u); }
+for (const [i, f] of tepKhung.entries()) { const b = readFileSync(f), u = await uploadToR2(`xuong-video/lich-su/tap/${tap.id}-khung-${i}-${dau(b)}.jpg`, b, 'image/jpeg'); if (u) khung.push(u); }
 
 // ---------- STORYBOARD: mỗi câu một cảnh (cập nhật theo thứ tự cảnh — không xoá) ----------
 type CanhTap = { nhin?: string[]; nam?: number; chu_to?: string; ket?: string; to?: { noi: string; chu?: string }[]; ten?: unknown[]; ke?: { nhan?: string }[]; xe?: { anh: string }[]; co?: { anh: string }[];
@@ -48,7 +51,7 @@ if (lay('canh')) {
   const ds = JSON.parse(readFileSync(lay('canh')!, 'utf8')) as { k: number; bd: number; kt: number; anh: string | null }[];
   for (const x of ds) {
     const c = tap.cau[x.k] as { chu: string; canh: CanhTap }, cv = c.canh ?? {};
-    const anh = x.anh ? await uploadToR2(`xuong-video/lich-su/tap/${tap.id}/canh-${x.k + 1}.jpg`, readFileSync(x.anh), 'image/jpeg') : null;
+    const bA = x.anh ? readFileSync(x.anh) : null, anh = bA ? await uploadToR2(`xuong-video/lich-su/tap/${tap.id}/canh-${x.k + 1}-${dau(bA)}.jpg`, bA, 'image/jpeg') : null;
     const nv = (cv.nguoi ?? []).map((n) => khoTs[n.anh]?.ten ?? n.ten);
     const viec = [
       ...(cv.to ?? []).map((t) => `tô ${t.noi}${t.chu ? ` (chủ ${t.chu})` : ''}`), ...((cv.ten ?? []).length ? [`${(cv.ten ?? []).length} mũi tên`] : []),

@@ -1,6 +1,6 @@
 'use server';
 // NGĂN PHIM (anh 02/11/2026 "Ko có khả năng xem nội dung phim đang có là gì!!!?"): mở theo mã phim thư viện (= content_id của camp) — đọc nội dung thật
-// từ Ethopex (GET api-multi-be /api/v2/movie/groups/{group_id}, group_id ở etp.thu_vien do apps/etp/thu_vien_phim.py ghi), lưu đệm 7 ngày ở etp.noi_dung_phim;
+// từ Ethopex (GET api-multi-be /api/v2/movie/groups/{group_id}, group_id ở etp.thu_vien_phim do apps/etp/thu_vien_phim.py ghi), lưu đệm 7 ngày ở etp.noi_dung_phim;
 // kèm bảng điểm chọn phim (xv_khoa_ngoai['ethopex_co_the_test'] — chon-phim-moi.py), trang phim workspace, số camp. CHỈ ĐỌC Ethopex.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
@@ -23,7 +23,7 @@ export async function docPhimEtp(id: number): Promise<{ ok: true; phim: PhimNoiD
   const db = getDb()!, ma = Math.trunc(Number(id));
   if (!(ma > 0)) return { loi: 'mã phim không hợp lệ' };
   const run = async <T,>(q: ReturnType<typeof sql>) => (await db.execute(q)) as unknown as T[];
-  const [tv] = await run<{ nhom_id: string | null; ten: string | null; locale: string | null; anh: string | null; url: string | null }>(sql`select nhom_id, ten, locale, anh, url from etp.thu_vien where content_id = ${ma}`);
+  const [tv] = await run<{ nhom_id: string | null; ten: string | null; locale: string | null; anh: string | null; url: string | null }>(sql`select nhom_id, ten, locale, anh, url from etp.thu_vien_phim where content_id = ${ma}`);
   const [ph] = await run<{ ten: string | null; locale: string | null; nguon: string | null }>(sql`select ten, locale, nguon from etp.phim where content_id = ${ma}`);
   // nội dung: bản đệm < 7 ngày, không có thì gọi Ethopex theo group_id
   let nd: Record<string, unknown> | null = null, docLuc: string | null = null, loiDoc: string | null = null;
@@ -39,7 +39,7 @@ export async function docPhimEtp(id: number): Promise<{ ok: true; phim: PhimNoiD
         if (nd) { await db.execute(sql`insert into etp.noi_dung_phim (content_id, du_lieu) values (${ma}, ${JSON.stringify(nd)}::jsonb) on conflict (content_id) do update set du_lieu = excluded.du_lieu, luc = now()`); docLuc = new Date().toISOString(); }
       }
     } catch (e) { loiDoc = `không đọc được Ethopex: ${(e as Error).message.slice(0, 120)}`; }
-  } else loiDoc = 'phim chưa có trong kho thư viện (etp.thu_vien) — chưa biết group_id để đọc nội dung';
+  } else loiDoc = 'phim chưa có trong kho thư viện (etp.thu_vien_phim) — chưa biết group_id để đọc nội dung';
   const [ct] = await run<{ x: Record<string, unknown>; i: string; tong: string }>(sql`select x, i, jsonb_array_length(gia_tri->'ds') tong from xv_khoa_ngoai, jsonb_array_elements(gia_tri->'ds') with ordinality t(x, i)
       where ten = 'ethopex_co_the_test' and x->>'id' = ${String(ma)}`);
   const trang = await run<{ content_id: string; nguoi: string | null; thieu: string[] }>(sql`select content_id, nguoi, thieu from etp.trang_phim_v where ref_id = ${ma} order by sua desc`);

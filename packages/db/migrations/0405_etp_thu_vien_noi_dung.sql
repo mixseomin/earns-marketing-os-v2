@@ -1,6 +1,6 @@
 -- XEM NỘI DUNG PHIM (anh 02/11/2026 "Ko có khả năng xem nội dung phim đang có là gì"): ngăn phim trên etp.on.tc đọc nội dung thật từ Ethopex
 -- (GET api-multi-be /api/v2/movie/groups/{group_id}: tóm tắt, mô tả, cốt truyện, thẻ, poster, link tập 1).
---   etp.thu_vien: mã phim thư viện → group_id + poster (apps/etp/thu_vien_phim.py ghi cùng lúc với kho spy ethopex_content)
+--   (khối etp.thu_vien dưới đây là no-op: trùng tên bảng thư viện creative đã có — bảng đúng ở 0406 etp.thu_vien_phim)
 --   etp.noi_dung_phim: bản nội dung đã đọc (lưu đệm 7 ngày — mở lại ngăn không gọi Ethopex)
 create table if not exists etp.thu_vien (
   content_id bigint primary key,

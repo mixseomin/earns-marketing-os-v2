@@ -197,7 +197,7 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "    </span>\n    {sua ? <SuaCamp c={c} /> : null}\n  </span>);", vi: '✎ nằm ngoài vùng rê thẻ bậc (không mở chồng thẻ lịch sử bậc)' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "background: 'var(--bg-1)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>{/* AnchoredPopover không tự có nền", vi: 'ô ✎ có nền (không trong suốt lẫn vào bảng)' },
   // anh 31/10/2026 "cho các tk quyền bật tắt Luật tự động hay chỉ thông báo qua Telegram" — Chat riêng với bot; Tự động chỉ tk Sơn (vai admin etp)
-  { card: 0, tep: 'apps/web/src/lib/etp-quyen.ts', co: "return { bao: true, tuDong: adm && q.vai !== 'nguoi' };", vi: 'Tự động chỉ cho người có vai admin etp; vai người chỉ Chỉ báo' },
+  { card: 0, tep: 'apps/web/src/lib/etp-quyen.ts', co: "return { bao: true, tuDong: adm && q.vai !== 'nguoi' && batNgoai };", vi: 'Tự động chỉ cho người có vai admin etp (và công tắc tu_dong_ngoai_nha bật); vai người chỉ Chỉ báo' },
   { card: 0, tep: 'apps/web/src/lib/actions/etp-sua.ts', co: "if (cheDo === 'tu_dong' && !(await hetPhienEthopex(nguoiId)))", vi: 'Tự động cần phiên Ethopex riêng còn hạn' },
   { card: 0, tep: 'apps/cty/worker/tg-phong.mjs', co: "if (process.env.TG_CHAT && chatTin != null && String(chatTin) !== String(process.env.TG_CHAT)) {", vi: 'tin chat riêng với bot không vào phòng / thư ký (không thành lệnh của anh)' },
   { card: 0, tep: 'apps/cty/worker/etp-rieng.mjs', co: "where d.bao_luc is null and d.lan_dau > coalesce(c.tg_luc, now()) and d.lan_cuoi > now() - interval '2 hours'", vi: 'nhắn riêng chỉ đề xuất mới sau lúc nối, mỗi đề xuất một lần' },
@@ -344,6 +344,9 @@ const LUAT = [
   { card: 'nhan-tu-dong-0211', tep: "apps/cty/worker/ethopex.mjs", co: "order by nhan desc, h.luc limit 4", vi: 'phim đang nhận đứng đầu hàng lên camp nhánh nhà' },
   { card: 'nhan-tu-dong-0211', tep: "apps/cty/worker/ethopex.mjs", co: "n.trang_thai = 'giu' and n.nguoi_id not in (select nguoi_id from etp.tai_khoan where nha))", cam: "join etp.tai_khoan t on t.nguoi_id = n.nguoi_id and not t.nha", vi: 'hàng nhà: người nhà = có tài khoản nhà (không coi Tuấn David là đội vì có tk ngoài)' },
   { card: 'nhan-tu-dong-0211', tep: "apps/cty/worker/ethopex.mjs", co: "if (!d.x.nhan) bq[d.x.creative_id] =", vi: 'phim đang nhận lên camp lỗi không vào bỏ qua 24 giờ (thử lại nhịp sau)' },
+  { card: 'tu-dong-chi-nha-0211', tep: "packages/db/migrations/0409_etp_tu_dong_chi_nha.sql", co: "values ('tu_dong_ngoai_nha', 'false'::jsonb", vi: 'công tắc tự động ngoài Nhà mặc định tắt (anh: ko làm gì tự động ngoài tk Nhà)' },
+  { card: 'tu-dong-chi-nha-0211', tep: "packages/db/migrations/0409_etp_tu_dong_chi_nha.sql", co: "etp.tu_dong(n.nguoi_id)", cam: "c.nguoi_id = n.nguoi_id and c.che_do = 'tu_dong'", vi: 'view nhận phim đọc hàm chung etp.tu_dong' },
+  { card: 'tu-dong-chi-nha-0211', tep: "apps/cty/worker/etp-tu-dong.mjs", co: "c.che_do = 'tu_dong' and etp.tu_dong(c.nguoi_id) and", vi: 'luật tự động đội qua công tắc tu_dong_ngoai_nha' },
   { card: 'nhan-tu-dong-0211', tep: "apps/xuong-video/scripts/ethopex/vx-nap-tap.mts", co: "SELECT id, coalesce(so_hien, thu_tu)::float8 AS thu_tu, thoai, loi_thoai FROM xv_canh", vi: 'máy sinh nạp tập: thu_tu numeric ép số (tên tệp + chiThuTu)' },
   // anh 02/11/2026 duyệt review luật (mục 2, 3, 7 + T30 ROAS): chấm creative không tắt camp lãi · ROAS trước clone · dừng clone đổi creative · nhật ký team · sổ luật đối chứng + 7 ngày
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", co: "where c.trang_thai = 'ACTIVE' and g.tat and {KHONG_ROAS} and {KHONG_LAI3} order by 1", vi: "luật chấm không tắt camp lãi 3 ngày đã khép" },

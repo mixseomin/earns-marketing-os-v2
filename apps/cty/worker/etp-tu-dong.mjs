@@ -62,9 +62,9 @@ const bang = (ds) => '<pre>' + [`${'Camp'.padEnd(8)}${'Việc'.padEnd(14)}Kết 
 
 export async function nhipTuDong(tg, { giay = 1500 } = {}) {
   const ds = JSON.parse(await psql(`select coalesce(json_agg(r), '[]') from (select c.nguoi_id, c.tg_chat from etp.che_do_luat c, xv_khoa_ngoai k
-      where k.ten = 'ethopex_nguoi' and c.che_do = 'tu_dong' and (k.gia_tri->(c.nguoi_id::text)->>'het')::timestamptz > now() + interval '5 minutes'
+      where k.ten = 'ethopex_nguoi' and c.che_do = 'tu_dong' and etp.tu_dong(c.nguoi_id) and (k.gia_tri->(c.nguoi_id::text)->>'het')::timestamptz > now() + interval '5 minutes'
         and exists (select 1 from etp.quyen q where q.vai = 'admin' and q.nguoi_id = c.nguoi_id)) r`) || '[]');
-  if (!ds.length) return 0;
+  if (!ds.length) return 0;   // etp.tu_dong(): công tắc tu_dong_ngoai_nha tắt (anh 02/11/2026 "ko làm gì tự động ngoài tk Nhà", migration 0409) → không người nào
   const tt = docJ(path.join(DATA(), 'ethopex-tu-tang.json'), null);
   const cfg = { giamTu: String(await psql("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'").catch(() => '')).trim() !== 'false',
     gbDuyet: !!docJ(path.join(DATA(), 'ethopex-luat-duyet.json'), {}).gb_tu_giam, tran: tt && Date.now() < Date.parse(tt.den) ? Number(tt.tran) || 0 : 0 };

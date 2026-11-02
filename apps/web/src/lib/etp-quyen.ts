@@ -39,7 +39,9 @@ export async function quyenCheDo(q: QuyenEtp, nguoiId: number): Promise<CheDoLua
   const cua = q.vai === 'chu' || q.nguoiId === nguoiId;
   if (!cua) return { bao: false, tuDong: false };
   const adm = ((await getDb()!.execute(sql`select 1 from etp.quyen where vai = 'admin' and nguoi_id = ${nguoiId} limit 1`)) as unknown as unknown[]).length > 0;
-  return { bao: true, tuDong: adm && q.vai !== 'nguoi' };
+  // công tắc tu_dong_ngoai_nha (migration 0409, anh 02/11/2026 "ko làm gì tự động ngoài tk Nhà"): tắt thì không ai được chọn Tự động
+  const batNgoai = ((await getDb()!.execute(sql`select 1 from etp.cau_hinh where khoa = 'tu_dong_ngoai_nha' and gia_tri = 'true'::jsonb`)) as unknown as unknown[]).length > 0;
+  return { bao: true, tuDong: adm && q.vai !== 'nguoi' && batNgoai };
 }
 export async function docCheDo(q: QuyenEtp, nguoiId: number | null): Promise<CheDoLuat | null> {
   if (nguoiId == null) return null;

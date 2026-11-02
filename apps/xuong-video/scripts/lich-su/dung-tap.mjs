@@ -38,8 +38,8 @@ const tho = JSON.parse(readFileSync(join(RA, 'moc-tho.json'), 'utf8'));
 let GIONG = join(RA, 'giong.mp3');
 { const goc = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', GIONG], { encoding: 'utf8' })), tran = KENH.toi_da_giay;
   if (tran && goc + (KENH.duoi ?? 1.2) > tran) { const f = Math.round(((goc + (KENH.duoi ?? 1.2)) / tran) * 1000) / 1000;
-    if (f > 1.15) console.warn(`⚠ giọng ${goc.toFixed(1)}s quá trần ${tran}s cần ${f}× — chỉ tăng 1,15×, kịch bản nên ngắn lại`);
-    const he = Math.min(1.15, f), ra = join(RA, 'giong-phat.mp3'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', GIONG, '-filter:a', `atempo=${he}`, '-b:a', '192k', ra]); GIONG = ra;
+    if (f > 1.18) console.warn(`⚠ giọng ${goc.toFixed(1)}s quá trần ${tran}s cần ${f}× — chỉ tăng 1,18×, phần dư rút ở đuôi kết`);
+    const he = Math.min(1.18, f), ra = join(RA, 'giong-phat.mp3'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', GIONG, '-filter:a', `atempo=${he}`, '-b:a', '192k', ra]); GIONG = ra;
     for (const o of tho) { o.character_start_times_seconds = o.character_start_times_seconds.map((v) => v / he); o.character_end_times_seconds = o.character_end_times_seconds.map((v) => v / he); }
     console.log(`giọng ${goc.toFixed(1)}s → ${(goc / he).toFixed(1)}s (×${he}, trần kênh ${tran}s)`); } }
 const kt = tho.flatMap((o) => o.characters.map((ch, i) => ({ ch, a: o.character_start_times_seconds[i], b: o.character_end_times_seconds[i] })));
@@ -50,7 +50,11 @@ if (cur) tu.push(cur);
 let i = 0; const canh = tap.cau.map((c, k) => { const n = c.chu.trim().split(/\s+/).length; const ds = tu.slice(i, i + n); ds.forEach((w) => (w.cau = k)); i += n; return { bd: k ? ds[0]?.a ?? 0 : 0, c: Object.assign(c.canh, { _dua: !(c.su_that || []).length }) }; });
 if (i !== tu.length) console.warn(`⚠ số chữ giọng (${tu.length}) lệch số chữ kịch bản (${i}) — phụ đề có thể lệch câu`);
 const giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', GIONG], { encoding: 'utf8' }));
-const DAI = Math.round((giay + (KENH.duoi ?? 1.2)) * 100) / 100;   // đuôi sau chữ cuối: thẻ kết (lá cải: vòng khép + THE END)
+// VIDEO KHÔNG BAO GIỜ VƯỢT TRẦN KÊNH (03/11/2026: giọng 204 s, tăng tốc chỉ tới 1,15× → video 181 s > 180 s Shorts): thiếu chỗ thì rút đuôi kết (≥ 1,2 s);
+// vẫn quá trần thì DỪNG có lỗi, không xuất video quá trần (kịch bản phải ngắn lại)
+const DUOI = KENH.toi_da_giay ? Math.min(KENH.duoi ?? 1.2, Math.max(1.2, KENH.toi_da_giay - giay - 0.1)) : (KENH.duoi ?? 1.2);
+if (KENH.toi_da_giay && giay + DUOI > KENH.toi_da_giay) { console.error(`✗ video ${(giay + DUOI).toFixed(1)}s vượt trần kênh ${KENH.toi_da_giay}s kể cả khi tăng tốc giọng 1,18× + rút đuôi — kịch bản phải ngắn lại`); process.exit(5); }
+const DAI = Math.round((giay + DUOI) * 100) / 100;   // đuôi sau chữ cuối: thẻ kết (lá cải: vòng khép + THE END)
 canh.forEach((s, k) => (s.kt = canh[k + 1]?.bd ?? DAI));
 
 // ---------- bản đồ: chỉ nước nằm trong vùng các cảnh nhìn tới (nhẹ trang) ----------

@@ -56,7 +56,9 @@ for (const [k, K] of Object.entries(KENH)) {
   if (dangChay && !process.argv.includes('--ep')) bao.push('lượt làm tập trước còn chạy — lượt này chỉ đo số');
   else if (((K.lich_tap ?? []).includes(thu) && gioNay >= (K.gio_tap ?? '00:00')) || process.argv.includes('--ep')) {
     writeFileSync(khoa, String(process.pid));
-    const id = `${K.may}-${hom.replace(/-/g, '')}`;
+    // --ep (làm thêm tập ngoài lịch): mã ngày đã có tập thì lấy hậu tố -2, -3… — không chạy đè lên tập đã đăng
+    let id = `${K.may}-${hom.replace(/-/g, '')}`;
+    if (process.argv.includes('--ep')) for (let n = 2; existsSync(join(DIR, 'tap', `${id}.json`)); n++) id = `${K.may}-${hom.replace(/-/g, '')}-${n}`;
     if (existsSync(join(DIR, 'tap', `${id}.json`)) && !process.argv.includes('--ep')) bao.push(`tập ${id} đã có — bỏ qua`);
     else {
       // lam-tap tự dừng trước khi tốn tiền giọng / ảnh nếu máy viết 4 lượt vẫn lỗi; DUYET_SINH_1_LAN cho lượt có lịch anh đã duyệt (02/11/2026: 3 tập/tuần)

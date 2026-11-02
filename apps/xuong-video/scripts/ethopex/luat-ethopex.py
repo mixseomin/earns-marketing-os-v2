@@ -574,12 +574,18 @@ tat_l7 = []
 # L4 — LỖ ĐỀU ≥ 4 NGÀY → TẮT (anh 29/10/2026 "L4 bật đi", sau #68970 lọt L7 ở −29%): 7 ngày đã khép, ≥ L4_NGAY ngày có chi, chi ≥ L4_CHI, ROI < L4_ROI% → tắt hẳn.
 # Đo camp $1: 130 camp lỗ < −20% sau 4 ngày có chi, phần chạy tiếp chi $149 lãi −$38 (ROI −25%), 12 camp gỡ được cộng chỉ +$9.5, không camp nào thành camp thắng.
 L4_CHI, L4_NGAY, L4_ROI = 5.0, 4, -20
+import importlib.util as _iuc
+_sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
+try: _ROAS = CONG.camp_roas() | {int(c["id"]) for c in ds_camp if CONG.la_roas(c)}
+except Exception as e: _ROAS = {int(c["id"]) for c in ds_camp if CONG.la_roas(c)}; loi_may.append((0, f"không đọc được danh sách camp ROAS trong kho: {str(e)[:80]}"))
+# L4 ÁP CẢ ★ ROAS (anh 03/11/2026 "set rule thế nào để nó tự xử lý": 11 camp ROAS Number One tiêu $3–9/ngày, lỗ dồn −13%, lọt RL / R0 / G10 — RL đòi
+# 2 ngày chi > $20, G10 đòi 3 ngày chi ≥ 1 ngày ngân sách; camp ROAS tiêu ít mà lỗ đều không luật nào xử). Cùng ngưỡng L4 đã đo trên camp thường.
 tat_l4 = []
 try:
     _d7 = {dt.date.fromisoformat(d(i)) for i in range(1, 8)}
     _l3id = {x[0] for x in tat_l3}
     for _c, (_ten, _ds) in _ng.items():
-        if _c not in _dc or _c in _D24 or _c in _l3id: continue
+        if _c not in _dc or _c in _D24 or (_c in _l3id and _c not in _ROAS): continue   # camp ROAS: L3 / D24 không áp (_bo_roas) → L4 xét luôn
         _x = [x for x in _ds if x[0] in _d7]
         _ca, _ta = sum(x[1] for x in _x), sum(x[2] for x in _x)
         if len(_x) < L4_NGAY or _ca < L4_CHI or (_ta - _ca) / _ca * 100 >= L4_ROI: continue
@@ -652,13 +658,9 @@ dung_dem = []
 # ra khỏi MỌI danh sách luật ở trên (tắt / T7 / tăng / giảm / hạ / nhân bản / thang / dừng đêm / T30 / thay creative) — chỉ còn luật tắt ROAS của Support:
 # LUẬT RL (ROAS lỗ): 2 ngày đã khép ĐỀU có chi và ĐỀU lỗ, cộng 2 ngày chi > $20, ROI < 0% → báo trước một nhịp rồi MÁY TỰ TẮT, cùng đường T2 / L3 / L4 / OFF
 # (anh 30/10/2026: "Thêm luật tắt cho khớp mọi thứ để nhìn rõ trên màn hình. Ko đc để luật ngầm nào" — trước đó chỉ báo Telegram chờ anh bấm, thẻ xét luật không có điều kiện nào).
-import importlib.util as _iuc
-_sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
 ROAS_CHI, ROAS_ROI = 20, 0   # anh 28/10/2026: "camp lãi sao lại đòi tắt" — chỉ báo khi LỖ (ROI < 0%); bản Support 26/10 là < 30% báo cả camp đang lãi
-try: _ROAS = CONG.camp_roas() | {int(c["id"]) for c in ds_camp if CONG.la_roas(c)}
-except Exception as e: _ROAS = {int(c["id"]) for c in ds_camp if CONG.la_roas(c)}; loi_may.append((0, f"không đọc được danh sách camp ROAS trong kho: {str(e)[:80]}"))
 _bo_roas = lambda ds: [x for x in ds if int(x[0] or 0) not in _ROAS]
-tat_pl, tat_l4, tat_l3, tat_d24, tat_l, tat7, tat2, tat1, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7 = map(_bo_roas, (tat_pl, tat_l4, tat_l3, tat_d24, tat_l, tat7, tat2, tat1, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7))
+tat_pl, tat_l3, tat_d24, tat_l, tat7, tat2, tat1, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7 = map(_bo_roas, (tat_pl, tat_l3, tat_d24, tat_l, tat7, tat2, tat1, tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, thang_tat, dung_dem, moc30, tang30, theo, gan_t7))
 # gốc đã có camp ★ ROAS (đọc thẳng danh sách camp Ethopex — camp vừa tạo chưa cần chờ kho) → không lên ROAS lại. Mọi kiểu tên: nhà "duplicate by <gốc>",
 # team "_D<gốc>_ROAS1" / "Dup by <gốc> ROAS 1.1" / "<tên gốc>_D2 (ROAS)" (31/10/2026: Luật tự động của Sơn — trước chỉ nhận kiểu nhà, gốc Sơn đã có ROAS vẫn vào moc30)
 _goc_roas = CONG.goc_roas(ds_camp)

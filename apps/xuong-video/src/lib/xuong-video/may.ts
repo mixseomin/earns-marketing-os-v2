@@ -113,6 +113,12 @@ export async function xuatVideo(db: Db, videoId: number): Promise<{ ok: true; ur
     await db.execute(sql`UPDATE xv_may_video SET video_url = NULL, khung = '[]'::jsonb, anh = '[]'::jsonb, giay = NULL, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
     return { ok: true, url: `poll:${String(r.slug)}` };
   }
+  // VIDEO NGOÀI (kênh lịch sử bản đồ, 02/11/2026): video + khung đã nằm trên R2 (lam-tap.mjs → tap-day.mts) — "xuất" = chốt đúng bản đó, không dựng lại
+  if ((r.de as { loai?: string } | null)?.loai === 'video-ngoai') {
+    const d = r.de as { video_url: string; giay: number; khung: string[] };
+    await db.execute(sql`UPDATE xv_may_video SET video_url = ${d.video_url}, khung = ${JSON.stringify(d.khung ?? [])}::jsonb, anh = '[]'::jsonb, giay = ${d.giay}, xuat_luc = now(), updated_at = now() WHERE id = ${videoId}`);
+    return { ok: true, url: d.video_url };
+  }
   // BÀI VIẾT (Quora / Substack / Medium…, 28/10/2026): chữ dài, không dựng ffmpeg — "xuất" = chốt bản để Phòng Nội dung (kiem-bai) chấm đúng bản; ảnh bìa = nen_url nạp sẵn
   if ((r.de as { loai?: string } | null)?.loai === 'bai-viet') {
     const truyBai = (r.de as { truy?: string }).truy;   // chưa nạp ảnh bìa → ảnh thật Pexels theo de.truy, không trùng trong máy (như video)

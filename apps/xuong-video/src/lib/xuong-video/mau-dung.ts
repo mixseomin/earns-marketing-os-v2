@@ -18,7 +18,9 @@ import { anhLacLoai, assLacLoai, kichBanLacLoai, lenhLacLoai, nhipLacLoai, truyV
 import { anhCarousel, assCarousel, kichBanCarousel, lenhCarousel, trangCarousel, truyVanCarousel, truyVanThemCarousel, type DeCarousel } from './may-dung-carousel';
 import type { MauMayDung } from './may-dung-mau';
 
-export type DeMay = DeMotDung | DeScam | DeLand | DeThi | DeCanh | DeGiaiThich | DeAnh | DeTop | DeLat | DeSoSanh | DeCauNoi | DeGia | DeLacLoai | DePoll | DeCarousel;
+export type DeMay = DeMotDung | DeScam | DeLand | DeThi | DeCanh | DeGiaiThich | DeAnh | DeTop | DeLat | DeSoSanh | DeCauNoi | DeGia | DeLacLoai | DePoll | DeCarousel | DeNgoai;
+/** Đề VIDEO NGOÀI (kênh lịch sử bản đồ, 02/11/2026): video đã dựng xong ở máy khác + đẩy R2 — máy đăng chỉ cần URL, giây, khung để Phòng Nội dung chấm. */
+export interface DeNgoai { loai: 'video-ngoai'; video_url: string; giay: number; khung: string[]; tom_tat?: string; nguon?: string }
 /** Đề bình chọn (X poll): không tệp. loai 'binh-chon' để xuatVideo / Phòng Nội dung nhận ra. */
 export interface DePoll { loai: 'binh-chon'; cau_hoi: string; lua: string[]; ngay?: number }
 export type ShotMau = { tu: number; den: number; canh: string; hanh_dong: string };
@@ -40,6 +42,7 @@ export const BO_DUNG: Record<MauMayDung, BoDung> = {
   'bai-anh': { ass: (de) => assAnh(de as DeAnh), lenh: (o) => lenhAnh({ ...o, de: o.de as DeAnh }), shots: (de) => kichBanAnh(de as DeAnh).shots, dai: () => 2, anh: (de) => anhAnh(de as DeAnh), truyVanAnh: (de) => truyVanBaiAnh(de as DeAnh), chiAnh: true },
   'top-n': { ass: (de) => assTop(de as DeTop), lenh: (o) => lenhTop({ ...o, de: o.de as DeTop }), shots: (de) => kichBanTop(de as DeTop).shots, dai: (de) => nhipTop(de as DeTop).DAI, anh: (de) => anhTop(de as DeTop), truyVanAnh: (de) => truyVanTop(de as DeTop), truyVanThem: (de) => truyVanThemTop(de as DeTop), amThat: true },
   'carousel': { ass: (de) => assCarousel(de as DeCarousel), lenh: (o) => lenhCarousel({ ...o, de: o.de as DeCarousel }), shots: (de) => kichBanCarousel(de as DeCarousel).shots, dai: (de) => trangCarousel(de as DeCarousel).n, anh: (de) => anhCarousel(de as DeCarousel), truyVanAnh: (de) => truyVanCarousel(de as DeCarousel), truyVanThem: (de) => truyVanThemCarousel(de as DeCarousel), chiAnh: true },
+  'video-ngoai': { ass: () => '', lenh: () => { throw new Error('video ngoài đã dựng sẵn (xuatVideo chốt URL trực tiếp)'); }, shots: (de) => [{ tu: 0, den: Number((de as DeNgoai).giay) || 0, canh: 'Video dựng sẵn', hanh_dong: (de as DeNgoai).tom_tat ?? '' }], dai: (de) => Number((de as DeNgoai).giay) || 0 },
   'binh-chon': { ass: () => '', lenh: () => { throw new Error('bình chọn không dựng tệp (xuatVideo chốt bản trực tiếp)'); }, shots: (de) => [{ tu: 0, den: 0, canh: 'Poll', hanh_dong: `${(de as DePoll).cau_hoi} — ${(de as DePoll).lua.join(' / ')}` }], dai: () => 0 },
   'lac-loai': { ass: (de) => assLacLoai(de as DeLacLoai), lenh: (o) => lenhLacLoai({ ...o, de: o.de as DeLacLoai }), shots: (de) => kichBanLacLoai(de as DeLacLoai).shots, dai: (de) => nhipLacLoai(de as DeLacLoai).DAI, anh: (de) => anhLacLoai(de as DeLacLoai), truyVanAnh: (de) => truyVanLacLoai(de as DeLacLoai), amThat: true },
   'cai-nao-gia': { ass: (de) => assGia(de as DeGia), lenh: (o) => lenhGia({ ...o, de: o.de as DeGia }), shots: (de) => kichBanGia(de as DeGia).shots, dai: (de) => nhipGia(de as DeGia).DAI, anh: (de) => anhGia(de as DeGia), truyVanAnh: (de) => truyVanGia(de as DeGia), amThat: true },

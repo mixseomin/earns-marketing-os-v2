@@ -41,7 +41,7 @@ const HIDDEN_DOMAINS = new Set<string>(['techwhiff.com', 'loginwiz.com']);
 // Map domain → MOS2 project id + visual label.
 // GA4 property ID không hardcode ở đây — auto-pulled từ ga4-properties.json
 // (35 sites, daily cron). Xem lib/projects/ga4-properties.ts.
-// nhom 'shopdy' = site bán hàng trên Shopdy (project bra): cùng cột đo, nhưng là nhóm tài sản riêng (tab Tài sản tách bảng).
+// nhom 'shopdy' = site Shopdy (project bra, đã dừng) — docSeoSites lọc bỏ, không hiện ở đâu nữa (anh 02/11/2026).
 const SITE_META: Record<string, { project?: string; emoji: string; review?: string; nhom?: 'shopdy' }> = {
   'militarymarkdown.com': { project: 'militarymarkdown', emoji: '🪖', review: '2026-10-25' },  // dormant husk (pivoted to militarycalc): 31 impr/0 clk 07-27 → quarterly, not 2-wk
   'militarycalc.com': { project: 'militarycalc', emoji: '🪖', review: '2026-09-20' },  // 08-30 review: 668 impr / 0 click / pos TB 61.3, GROWTH theo script (impr +11%, URL +33%) nhưng click = 0 ở CẢ HAI cửa sổ. Head terms nằm pos 62-93 (bah calculator 86.8, gi bill calculator 83.2, mha calculator 84.8) → KHÔNG có cần gạt snippet: CTR-opportunity 0, striking-distance 0, question 0. Cùng chẩn đoán với visagps 08-16: thiếu AUTHORITY, không thiếu content. Trang chủ ăn 344/668 impr (51%) ở pos 80.9. GEO gate SẠCH (GPTBot/OAI-SearchBot/ClaudeBot/PerplexityBot/Google-Extended đều 200, llms.txt 200, robots mở). Sửa được + đã ship: trang chủ trước đó KHÔNG phát JSON-LD nào (chỉ Organization của layout) trong khi /bah/2026-changes phát đủ Article+WebApplication+ItemList+Offer → thêm WebSite+WebApplication+ItemList (commit 1e654f4). Và bắt được lỗi deploy toàn site: Next gửi s-maxage=31536000 nên CF giữ HTML MỘT NĂM — trang chủ đang ở tuổi 2,8 ngày trong khi origin đã có bản mới; purge CF nay là bước [5/5] của deploy.sh (a51db39). recheck: pos của trang chủ + head terms có nhúc nhích sau khi có backlink chưa; nếu vẫn pos 80+ thì cần gạt duy nhất là link, đừng sửa content nữa
@@ -228,7 +228,8 @@ export async function docSeoSites(): Promise<DocSites> {
     const series = tsPayload ? pickSiteSeries(tsPayload, r.domain) : null;
     return [r.domain, series?.points || []] as [string, GscDailyPoint[]];
   }));
-  return { ok: true, rows: out, timeseries, updated };
+  // SHOPDY ĐÃ BỎ KHỎI MOS2 (anh 02/11/2026 — dự án Bra/Shopdy dừng hẳn 30/10): site nhom 'shopdy' không vào bảng nào
+  return { ok: true, rows: out.filter((r) => r.nhom !== 'shopdy'), timeseries, updated };
 }
 
 /** Tổng GSC của MỘT bảng (mỗi nhóm tài sản tính riêng, không cộng site Shopdy vào site nhà). */
@@ -241,8 +242,8 @@ export function tongGsc(rows: RowData[]) {
   return { imps, clicks, pages, sitemap, avgPos: imps > 0 ? weighted / imps : 0 };
 }
 
-/** Hai bảng tài sản website: site nhà + site Shopdy (cùng cột, nhóm riêng). `d` truyền từ tab để không đọc 13 nguồn hai lần. */
-export async function SeoSitesPanel({ d }: { d?: DocSites } = {}) {
+/** Bảng tài sản website (site Shopdy đã bỏ khỏi mos2 02/11/2026). `d` truyền từ tab để không đọc 13 nguồn hai lần. */
+export async function SeoSitesPanel({ d, kySocial }: { d?: DocSites; kySocial?: number } = {}) {
   const doc = d ?? (await docSeoSites());
   if (!doc.ok) {
     return (
@@ -251,10 +252,9 @@ export async function SeoSitesPanel({ d }: { d?: DocSites } = {}) {
       </Panel>
     );
   }
-  const nha = doc.rows.filter((r) => r.nhom !== 'shopdy');
-  const shopdy = doc.rows.filter((r) => r.nhom === 'shopdy');
+  const nha = doc.rows;
   const bang = (rows: RowData[]) => (
-    <SeoSitesTable rows={rows} totals={tongGsc(rows)}
+    <SeoSitesTable rows={rows} totals={tongGsc(rows)} kySocial={kySocial}
       timeseries={Object.fromEntries(rows.map((r) => [r.domain, doc.timeseries[r.domain] ?? []]))} />
   );
   return (
@@ -262,11 +262,6 @@ export async function SeoSitesPanel({ d }: { d?: DocSites } = {}) {
       <Panel title="🌐 Website" subtitle={`GSC live (+ GA4-only) · ${nha.length} site · last sync ${doc.updated}`} actions={<RefreshGscBtn />}>
         {bang(nha)}
       </Panel>
-      {shopdy.length > 0 && (
-        <Panel title="🛍 Site Shopdy" subtitle={`project bra · ${shopdy.length} site · GA4-only (Shopdy không cấp Search Console) · cùng cột với Website`}>
-          {bang(shopdy)}
-        </Panel>
-      )}
     </>
   );
 }

@@ -43,7 +43,7 @@ export function gopBo(sp: SpNut[]): { dong: SpNut[]; con: Map<string, SpNut[]> }
   }
   return { dong, con };
 }
-export type SpNut = { khoa: string; ten: string; /** ảnh sản phẩm (thumbnail nền tảng / cover Directus / ảnh mặt tiền) */ anh: string | null;
+export type SpNut = { /** social trỏ về sản phẩm (tab Tài sản, khung ?ky=) */ social?: import('./social-tro-ve-tinh').TroVe | null; khoa: string; ten: string; /** ảnh sản phẩm (thumbnail nền tảng / cover Directus / ảnh mặt tiền) */ anh: string | null;
   /** mã trên nền tảng (permalink Gumroad, listing id Etsy, sku/ISBN KDP…) */ ma: string | null; /** định dạng / sku (bìa mềm, bìa cứng, ebook…) */ phu: string | null; url: string | null;
   trangThai: TrangThaiSp; /** tiến độ quy trình sản xuất ('1/5'), máy ghi ở dòng đầu ghi chú: '▶ quy trình 1/5 · xong: … · kế: …' */ tienDo?: string; ke?: string; /** bản xem để anh duyệt NGAY TRONG MOS2 (listing_config.xem, scripts/xem.mjs ghi) */ xem?: XemDuyet | null; /** ngày anh duyệt (listing_config.duyet) */ duyet?: string | null; /** dấu vân tay bản xem lúc anh duyệt */ duyetBam?: string | null; /** ngày đăng dự kiến (YYYY-MM-DD) theo lịch đăng */ dangDuKien?: string | null; /** bộ sách (listing_config.series) */ series?: BoSach | null; /** id dòng Directus products (để bấm Duyệt) */ idSo?: string; gia: number | null; /** mã tiền của giá (USD mặc định; Etsy FrontPorchZ niêm yết VND) — hiện đúng tiền, không tự quy đổi */ tienTe?: string; views7d: number | null; don: number | null; tien: number | null; ky: Ky; canhBao: string | null; ghiChu: string | null };
 /** Tài khoản vault đứng sau shop — để biết đăng nhập bằng gì, mở drawer tài khoản. */

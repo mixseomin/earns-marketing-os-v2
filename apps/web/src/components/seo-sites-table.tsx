@@ -8,6 +8,8 @@ import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
 import { SiteMenu } from './site-menu';
 import { ContactsDrawer } from './contacts-drawer';
 import { DataTable, type DataColumn, type DataGroup } from './ui/data-table';
+import { cotSocial } from './tai-san-social';
+import type { TroVe } from '@/lib/tai-san/social-tro-ve-tinh';
 
 // Domains whose Subs number is backed by a browsable Mailjet contact list (mirrors contacts/route.ts).
 const CONTACT_DOMAINS = new Set(['militarycalc.com', 'govcalcs.com', 'visagps.com', 'mintalmanac.com', 'steamsolo.com']);
@@ -16,8 +18,10 @@ export interface RowData {
   domain: string;
   emoji: string;
   project?: string;
-  /** Nhóm tài sản: site Shopdy (project bra, GA4-only) tách bảng riêng khỏi site nhà. */
+  /** Nhóm tài sản: 'shopdy' = site Shopdy (đã bỏ khỏi mos2 02/11/2026 — docSeoSites lọc). */
   nhom?: 'shopdy';
+  /** Social trỏ về site (tab Tài sản, khung ?ky=) — undefined = bảng không có cột này (tab SEO). */
+  social?: TroVe | null;
   ga4PropertyId?: string;
   clarityId?: string;   // Microsoft Clarity project (map in adfond page-events.js)
   // Live (GA4 realtime)
@@ -81,6 +85,8 @@ interface Props {
   rows: RowData[];
   timeseries: Record<string, GscDailyPoint[]>;
   totals: { imps: number; clicks: number; pages: number; sitemap: number; avgPos: number };
+  /** khung (ngày) của cột Social trỏ về — chỉ tab Tài sản truyền */
+  kySocial?: number;
 }
 
 // Group order = the toggle + the column render order. Colours = the SEO reference hues; the
@@ -109,7 +115,7 @@ const breakdown = (by: Record<string, number> | null | undefined, suffix = '') =
     : null;
 const sum = (rows: RowData[], pick: (r: RowData) => number | null | undefined) => rows.reduce((s, r) => s + (pick(r) ?? 0), 0);
 
-export function SeoSitesTable({ rows, timeseries, totals }: Props) {
+export function SeoSitesTable({ rows, timeseries, totals, kySocial }: Props) {
   const [openDomain, setOpenDomain] = useState<string | null>(null);
   const [openSrc, setOpenSrc] = useState<'google' | 'bing'>('google');
   const [contactsDomain, setContactsDomain] = useState<string | null>(null);
@@ -406,6 +412,8 @@ export function SeoSitesTable({ rows, timeseries, totals }: Props) {
       total: (rows) => sum(rows, (r) => r.subscribers).toLocaleString(),
     },
   ];
+  // SOCIAL TRỎ VỀ (tab Tài sản truyền social; tab SEO không truyền → không có cột)
+  if (rows.some((r) => r.social !== undefined)) columns.splice(1, 0, cotSocial<RowData>((r) => r.social, kySocial ?? 7));
 
   const openPoints = openDomain ? timeseries[openDomain] || [] : [];
   const openBing = openDomain ? (rows.find((r) => r.domain === openDomain)?.bing_ts_30d || []) : [];

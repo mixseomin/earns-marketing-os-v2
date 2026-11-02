@@ -93,11 +93,12 @@ export async function docBamTheoTrang(): Promise<Map<string, number>> {
   for (const r of rows) ra.set(`${r.nen}|${r.trang}`, r.n);
   return ra;
 }
-export async function docBamBaiDang(): Promise<Map<string, number>> {
+/** ngay = khung đo (mặc định 7 — Social / Thành phố; Tài sản › Social trỏ về chọn 7 / 30 / 90). */
+export async function docBamBaiDang(ngay = 7): Promise<Map<string, number>> {
   const sql = db(), ra = new Map<string, number>(); if (!sql) return ra;
   const rows = await sql<{ nen: string; site: string; n: number }[]>`
     SELECT split_part(nguon, ' / ', 1) AS nen, site, count(*)::int AS n FROM phien_khach
-    WHERE nguon LIKE '% / short' AND NOT noi_bo AND bat_dau > now() - interval '7 days' GROUP BY 1, 2`;
+    WHERE nguon LIKE '% / short' AND NOT noi_bo AND bat_dau > now() - make_interval(days => ${Math.max(1, Math.min(365, Math.round(ngay)))}) GROUP BY 1, 2`;
   for (const r of rows) ra.set(`${r.nen}|${r.site}`, r.n);
   return ra;
 }

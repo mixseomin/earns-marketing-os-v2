@@ -12,6 +12,7 @@ import { TienDo } from '@/components/ui/tien-do';
 import { DataTable, Drawer, EntityRef, FilterChips, LinkChip, NgayLich, Panel, Pill, SelectField, Tabs, type DataColumn } from '@/components/ui';
 import { useModalParam } from '@/lib/use-modal-param';
 import { BanXem, canDuyet } from './tai-san-ban-xem';
+import { cotSocial } from './tai-san-social';
 import { BaoCaoAppStore } from './tai-san-bao-cao-app';
 import { extLinkProps, wrapExternalUrl } from '@/lib/external-url';
 import { useShallowParam } from '@/lib/url-shallow';
@@ -99,7 +100,7 @@ function demTt(sp: SpNut[]): Record<TrangThaiSp, number> {
   return Object.fromEntries(TT_SP.map((t) => [t.key, sp.filter((x) => x.trangThai === t.key).length])) as Record<TrangThaiSp, number>;
 }
 
-export function TaiSanView({ ban }: { ban: TaiSanBan }) {
+export function TaiSanView({ ban, kySocial = 7 }: { ban: TaiSanBan; kySocial?: number }) {
   const [loc, datLoc] = useShallowParam('tt', 'all');
   const [sh, datSh] = useShallowParam('sh', '');   // khoá shop đang chọn ('' = shop mặc định)
   const modal = useModalParam('sp');   // ?sp=sp&spId=<khoa> — F5/share mở lại đúng sản phẩm
@@ -129,7 +130,7 @@ export function TaiSanView({ ban }: { ban: TaiSanBan }) {
           {ds.map((d) => <DongShopTrai key={d.s.khoa} d={d} loc={loc} chon={d === dangChon} onChon={() => datSh(d.s.khoa)} />)}
         </nav>
         <div style={{ flex: '999 1 520px', minWidth: 0 }}>
-          {dangChon && <ShopChiTiet s={dangChon.s} sp={sp} onMo={(k) => modal.open('sp', k)} />}
+          {dangChon && <ShopChiTiet kySocial={kySocial} s={dangChon.s} sp={sp} onMo={(k) => modal.open('sp', k)} />}
         </div>
       </div>
       {/* key = sản phẩm: chuyển sang sản phẩm khác khi drawer đang mở thì DỰNG LẠI, không mang trạng thái của cái trước
@@ -179,7 +180,8 @@ function CacTap({ ds, onMo }: { ds: SpNut[]; onMo: (khoa: string) => void }) {
 }
 
 /** Phần phải: đầu shop (tài khoản, link, số) + bảng sản phẩm của shop đang chọn. */
-function ShopChiTiet({ s, sp, onMo }: { s: ShopNut; sp: SpNut[]; onMo: (khoa: string) => void }) {
+function ShopChiTiet({ s, sp, onMo, kySocial }: { s: ShopNut; sp: SpNut[]; onMo: (khoa: string) => void; kySocial: number }) {
+  const cot = useMemo(() => [...COT.slice(0, 2), cotSocial<SpNut>((x) => x.social, kySocial), ...COT.slice(2)], [kySocial]);
   const d = demTt(s.sp);
   // Bộ sách = MỘT dòng trong bảng, mặc định bung sẵn các tập (bấm dòng bộ để gập/mở)
   const bo = useMemo(() => gopBo(sp), [sp]);
@@ -202,7 +204,7 @@ function ShopChiTiet({ s, sp, onMo }: { s: ShopNut; sp: SpNut[]; onMo: (khoa: st
         <div style={{ fontSize: 11.5, ...phu }}>{`${s.sp.length} sản phẩm${dong ? ` · ${dong}` : ''}${s.ghiChu ? ` · ${s.ghiChu}` : ''}`}</div>
       </div>
       {sp.length
-        ? <DataTable rows={bo.dong} columns={COT} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900 /* cột cố định ~700 + tên ≥200 */} pageSize={50} fixedLayout card={{ render: TheSp, minWidth: 280 }}
+        ? <DataTable rows={bo.dong} columns={cot} getRowKey={(x) => x.khoa} persistKey="tai-san-sp" minWidth={900 /* cột cố định ~700 + tên ≥200 */} pageSize={50} fixedLayout card={{ render: TheSp, minWidth: 280 }}
             onRowClick={(x) => (bo.con.has(x.khoa) ? datMoBo((m) => { const n = new Set(m ?? bo.con.keys()); if (n.has(x.khoa)) n.delete(x.khoa); else n.add(x.khoa); return n; }) : onMo(x.khoa))}
             rowTitle={(x) => (bo.con.has(x.khoa) ? (moBo.has(x.khoa) ? 'bấm để gập các tập' : 'bấm để xem các tập') : 'bấm để xem chi tiết')}
             renderExpanded={(x) => (bo.con.has(x.khoa) && moBo.has(x.khoa) ? <CacTap ds={bo.con.get(x.khoa)!} onMo={onMo} /> : null)} />

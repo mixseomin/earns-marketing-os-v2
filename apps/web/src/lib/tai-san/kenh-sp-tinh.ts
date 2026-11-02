@@ -8,6 +8,8 @@ export type KenhSp = {
   ma: string; ten: string; chay: boolean; kenhUrl: string | null;
   tap: number; choDang: number; daDang: number;
   xem: number | null; xem7: number | null; nguoiDk: number | null; nguoiDk7: number | null; ngaySo: string | null; dangCuoi: string | null;
+  /** social trỏ về kênh (bài short dẫn link kênh) — tab Tài sản gắn theo khung ?ky= */
+  social?: import('./social-tro-ve-tinh').TroVe | null;
 };
 
 const lui = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10);

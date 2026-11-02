@@ -36,7 +36,7 @@ export const dynamic = 'force-dynamic';
 
 // Trang chủ = trung tâm điều hành (anh chốt 16/09/2026): PHỦ (camp · nền tảng · nguồn · hạ tầng) dọn từ
 // /p/<id>/phu về đây, phần còn lại của trang chủ cũ (12 panel xếp dọc) chia theo CÂU HỎI: tiền về chưa (Doanh thu),
-// mình đang có gì sinh tiền (Tài sản: website · site Shopdy · shop → sản phẩm, 05/10), chỉ số nội bộ một site (SEO),
+// mình đang có gì sinh tiền (Tài sản: website · kênh nội dung · shop → sản phẩm), chỉ số nội bộ một site (SEO),
 // gửi có tới không (Email), danh sách dự án (Dự án). Trên cùng luôn là
 // số tiền + Cần chú ý; mỗi lượt chỉ đọc dữ liệu của tab đang mở. Lệnh MT5 (strategy-lab/orders) cũng về đây (16/09).
 // Thứ tự tab: cookie `home-tabs` (kéo-thả ở HomeTabs; nối bằng '.', dấu phẩy không hợp lệ trong cookie-value), thiếu key nào thì key đó xếp cuối theo mặc định.
@@ -45,7 +45,7 @@ const usd = (v: number) => (v ? `$${v.toFixed(2)}` : '—');
 const cho = <div style={{ fontSize: 11, color: 'var(--fg-3)', fontFamily: 'var(--font-mono)', marginBottom: 16 }}>đang đọc…</div>;
 const pill = (active: boolean): React.CSSProperties => ({ padding: '3px 9px', fontSize: 11, borderRadius: 999, border: '1px solid var(--line)', textDecoration: 'none', background: 'var(--bg-2)', ...(active ? { borderColor: 'var(--fg-2)', color: 'var(--fg-1)' } : { color: 'var(--fg-3)' }) });
 
-export default async function HomePage({ searchParams }: { searchParams: Promise<{ tab?: string; p?: string; days?: string; tv?: string }> }) {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ tab?: string; p?: string; days?: string; tv?: string; ky?: string }> }) {
   const sp = await searchParams;
   const tab: HomeTab = TABS.includes(sp.tab as HomeTab) ? (sp.tab as HomeTab) : HOME_TAB_MAC_DINH;
   const thuTu = ((await cookies()).get(HOME_TABS_COOKIE)?.value ?? '').split('.').filter((k): k is HomeTab => TABS.includes(k as HomeTab));
@@ -106,7 +106,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
             <AwarenessFunnelPanel />
           </>}
 
-          {tab === 'taisan' && <Suspense fallback={cho}><TaiSanTab /></Suspense>}
+          {tab === 'taisan' && <Suspense fallback={cho}><TaiSanTab ky={sp.ky} /></Suspense>}
           {tab === 'seo' && <Suspense fallback={cho}><SeoTab /></Suspense>}
 
           {tab === 'email' && <>

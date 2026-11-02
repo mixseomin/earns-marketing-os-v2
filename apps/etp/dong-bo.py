@@ -285,6 +285,10 @@ def main():
     # (EN/ES) vào kho spy ethopex_content, rồi chon-phim-moi.py --co-the-test chấm lại (đọc kho, ~3 giây) → xv_khoa_ngoai['ethopex_co_the_test'] cho tab Phim
     try:
         import thu_vien_phim; kq.update(thu_vien_phim.chay(EA.T_NHA))
+        # số QC FB tra theo tên phim (máy cào spy đã tra từ khoá etp_phim) → bộ chấm trừ / loại phim nhiều QC (anh 02/11/2026 "ít camp fb")
+        r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "qc-fb-phim.py"), "--dem"], capture_output=True, text=True, timeout=300)
+        if r.returncode: loi.append(f"qc_fb_phim: {(r.stderr or r.stdout).strip()[-200:]}")
+        else: kq.update(json.loads(r.stdout.strip().splitlines()[-1]))
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "chon-phim-moi.py"), "--co-the-test"],
                            capture_output=True, text=True, timeout=300)
         if r.returncode: loi.append(f"co_the_test: {(r.stderr or r.stdout).strip()[-200:]}")

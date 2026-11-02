@@ -53,12 +53,19 @@ THE_LOAI = [   # (mã, điểm, mẫu tên) — đoán thể loại từ tên ph
     ("tinh_cam", -15, r"\bmarry|marriage|bride|contract (wife|marriage)|divorce|ex-wife|ex-husband|esposa|boda|divorcio|matrimonio"),
 ]
 SOI = re.compile(r"alpha|\bluna\b|wolf|lycan|\bmat(e|es|ed)\b|\blobo|\balfa\b", re.I)   # sói 3% → loại (cả "Wolf God", "Female Mates")
+# ÍT QC FACEBOOK (anh 02/11/2026: "film càng chạy nhiều ads thì càng ko hiệu quả. Nên đây cũng là tiêu chí chọn film (ít camp fb)" — thay điểm cộng
+# cho phim nhiều QC app gốc trước đó): số QC FB đang bật tra theo TÊN PHIM (qc-fb-phim.py, xv_khoa_ngoai['ethopex_qc_fb_phim']); chỉ áp cho phim ĐÃ TRA:
+# 0 QC +20 · 1–5 +10 · 6–24 0 · ≥ QC_NHIEU (trang đầu Thư viện QC gần đầy) → loại. Chưa tra: không cộng / trừ.
+QC_NHIEU = 25
+QC_FB = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_qc_fb_phim'") or "{}")
 def cham(x):
     if x["nguon"] not in NGUON or x["locale"] not in TIENG or SOI.search(x["ten"] or ""): return None
+    fb = QC_FB.get(str(x["id"]))
+    if fb and fb["qc_dang"] >= QC_NHIEU: return None
     tl = [(m, d) for m, d, mau in THE_LOAI if re.search(mau, x["ten"] or "", re.I)]
-    spy = min(20, int(x.get("so_qc_dang") or 0) + 2 * int(x.get("so_page") or 0))
-    x["diem"] = NGUON[x["nguon"]] + TIENG[x["locale"]] + sum(d for _, d in tl) + spy; x["nhom"] = tl[0][0] if tl else "khac"
-    x["vi_sao"] = " · ".join([x["nguon"], x["locale"]] + [m for m, _ in tl] + ([f"app gốc {x.get('so_qc_dang')} QC đang chạy · {x.get('so_page')} Page"] if spy else []))
+    it = (20 if fb["qc_dang"] == 0 else 10 if fb["qc_dang"] <= 5 else 0) if fb else 0
+    x["diem"] = NGUON[x["nguon"]] + TIENG[x["locale"]] + sum(d for _, d in tl) + it; x["nhom"] = tl[0][0] if tl else "khac"
+    x["vi_sao"] = " · ".join([x["nguon"], x["locale"]] + [m for m, _ in tl] + ([f"FB {fb['qc_dang']} QC đang bật · {fb['page']} Page (tra theo tên)"] if fb else []))
     return x
 # 3. ứng viên = phim app gốc đang chạy QC (spy) + kho Ethopex ReelShort / NetShort mới nhất; gộp trùng tên + tiếng
 uu = [dict(zip(["id", "locale", "ten", "nguon", "url", "so_qc", "so_qc_dang", "so_page"], r.split("\t"))) for r in
@@ -80,10 +87,11 @@ if "--co-the-test" in sys.argv:
     # phim đã bị quy trình phim mới LOẠI (poster / soát 18+ / cắt / cổng — phim-moi.py, sổ ethopex_phim_moi_tt) thì không còn là "có thể test"
     tt = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_phim_moi_tt'") or "{}")
     chinh = [x for x in chinh if not str((tt.get(str(x["id"])) or {}).get("tt", "")).endswith("_loai")]
-    # SỐ QC FB của app gốc cho MỌI ứng viên (anh 02/11/2026 "film nào đang chạy nhiều ads fb… cũng là tiêu chí chọn film") — spy ethopex_uu_tien; không có = spy chưa thấy (0)
-    sq = {r.split("\t")[0]: r.split("\t")[1:] for r in qs("select id, coalesce(so_qc_dang, 0), coalesce(so_qc, 0), coalesce(so_page, 0) from ethopex_uu_tien").splitlines() if r}
-    for x in chinh: x["qc_dang"], x["qc"], x["page"] = (int(v_) for v_ in sq.get(str(x["id"]), ["0", "0", "0"]))
-    v = json.dumps({"luc": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(), "ds": [{k: x.get(k) for k in ("id", "locale", "ten", "nguon", "url", "diem", "nhom", "vi_sao", "qc_dang", "qc", "page")} for x in chinh]},
+    # số QC tra theo TÊN PHIM (qc-fb-phim.py) — phim chưa tra: qc_tra = null (cột hiện "chưa tra"), không lấy số gắn link của ethopex_uu_tien (thiếu, dễ hiểu nhầm là 0)
+    for x in chinh:
+        fb = QC_FB.get(str(x["id"]))
+        x["qc_dang"], x["qc"], x["page"], x["qc_tra"] = (fb["qc_dang"], fb["qc"], fb["page"], fb["tra"]) if fb else (None, None, None, None)
+    v = json.dumps({"luc": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(), "ds": [{k: x.get(k) for k in ("id", "locale", "ten", "nguon", "url", "diem", "nhom", "vi_sao", "qc_dang", "qc", "page", "qc_tra")} for x in chinh]},
                    ensure_ascii=False).replace("'", "''")
     r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], capture_output=True, text=True,   # ~7.000 phim: qua stdin, không qua tham số
                        input=f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_co_the_test', '{v}'::jsonb) on conflict (ten) do update set gia_tri = excluded.gia_tri")

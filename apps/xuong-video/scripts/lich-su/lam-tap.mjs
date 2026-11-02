@@ -62,6 +62,10 @@ const SO_NN = { en: 'zero one two three four five six seven eight nine ten eleve
 const SO = new Set((SO_NN[nn] ?? SO_NN.en).split(' '));
 const NHAT = /^(biggest|largest|longest|oldest|smallest|first|only|richest|deadliest|tallest|highest|mayor|primero|primera|unico|unica)$/;
 async function tuSua(tap) { const kho = docKho().tai_san, ghi = [];
+  // MÃ VAI / NGƯỜI KHÔNG GẮN NĂM (kho dùng lại mọi tập): máy viết hay đặt "russian_soldier_1867" → bỏ đuôi năm ở mã + mọi chỗ gọi; cờ thì giữ năm (cờ đổi theo thời)
+  for (const t of tap.tai_san_moi || []) { const moi = t.loai === 'co' ? t.id : t.id.replace(/_1[0-9]{3}$|_20[0-9]{2}$/, ''); if (moi === t.id) continue;
+    const cu = t.id; t.id = moi; ghi.push(`mã ${cu} → ${moi}`);
+    for (const c of tap.cau) { for (const m of [...(c.canh.nguoi || []), ...(c.canh.xe || [])]) if (m.anh === cu) m.anh = moi; if (c.canh.tranh?.ref) c.canh.tranh.ref = c.canh.tranh.ref.map((r) => (r === cu ? moi : r)); } }
   for (const t of [...(tap.tai_san_moi || [])]) { if (kho[t.id] || t.loai !== 'co' || !t.commons || (await commons(t.commons))) continue;
     const hop = (await timCommons(t.commons)).find((x) => { const n = (x.match(/\b1[0-9]{3}\b|\b20[0-9]{2}\b/g) || []).map(Number); if (!n.length) return false; const a = Math.min(...n), b = n.length > 1 ? Math.max(...n) : a; return a <= t.den && b >= t.tu; });
     if (hop) { ghi.push(`cờ ${t.id}: "${t.commons}" → "${hop}"`); t.commons = hop; continue; }

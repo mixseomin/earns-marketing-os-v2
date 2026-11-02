@@ -500,11 +500,22 @@ except Exception as e:
 # xét khi camp có 1–2 ngày đã khép có chi (camp già để T2 / L3 / L4). Tắt hẳn, báo trước một nhịp, cùng đường T2. Camp ROAS không áp (_bo_roas).
 T1_ROI, T1_CHI, T1_PHAN = -30, 1.0, 0.8
 t1_chi = lambda ns: min(T1_CHI, round(T1_PHAN * float(ns or 0), 2)) if ns else T1_CHI
+# CHỜ 6 GIỜ ĐẦU NGÀY MỚI + THA CAMP HÔM NAY LÃI (anh 02/11/2026 "delay T1 khoảng 4-6 tiếng đầu ngày mới để review" → "ok. Làm luôn"; #74078 ngày đầu −34%, hôm nay +52%):
+# đo 367 camp Nhà ngày đầu lỗ > 30%: ngày 2 lãi ≥ 30% (40 camp) → ngày 2 +$46, từ ngày 3 +$51 (ROI +11%); ngày 2 lãi 0–30% / lỗ → về sau −12% / −23%.
+# Ngày Ethopex mới (07:00 VN) chạy chưa đủ T1_CHO giờ → chưa xét (số hôm nay còn mỏng, doanh thu về trễ); đủ giờ mà ROI hôm nay ≥ T1_THA% (chi ≥ $0.3) → tha hôm nay
+T1_CHO, T1_THA = 6, 30
+_gio_ngay = (vn.hour - 7) % 24
+def _t1_nay(c):
+    h = hom.get(c) or hom.get(str(c)) or {}
+    return roi(h) if h.get("chi", 0) >= 0.3 else None
 tat1 = []
 try:
     _t2s = {x[0] for x in tat2}   # đã chạm T2 thì để T2 (một camp một luật)
     for _c, (_ten, _ds) in _n2.items():
+        if _gio_ngay < T1_CHO: break
         if _c not in _dc or _c in _t2s or not 1 <= len(_ds) <= 2: continue
+        _rn = _t1_nay(_c)
+        if _rn is not None and _rn >= T1_THA: continue
         _c1, _t1 = _ds[0]; _ca, _ta = sum(x[0] for x in _ds), sum(x[1] for x in _ds)
         _r1, _ra = (_t1 - _c1) / _c1 * 100, (_ta - _ca) / _ca * 100
         _ng1 = t1_chi(_ns2.get(_c))
@@ -766,9 +777,11 @@ def _xet_luat():
         # T1 — tắt sau ngày có chi đầu tiên (02/11/2026)
         c1 = ds2[0][0] if ds2 else 0.0; r1 = (ds2[0][1] - c1) / c1 * 100 if c1 else None; ng1 = t1_chi(ns)
         ca1 = sum(x[0] for x in ds2[:2]); ra1 = (sum(x[1] for x in ds2[:2]) - ca1) / ca1 * 100 if ca1 else None
-        ls.append(L("t1", "T1 · tắt sau ngày đầu", f"Camp có 1–2 ngày đã khép có chi, ngày đầu chi ≥ min(${T1_CHI:g}, {T1_PHAN:.0%} ngân sách) và ROI < {T1_ROI}% (không có thu = −100%), mọi ngày đã khép vẫn < {T1_ROI}% → máy tắt hẳn (cách Kim Kiên đóng camp — anh 02/11/2026).",
+        rn1 = _t1_nay(cid)
+        ls.append(L("t1", "T1 · tắt sau ngày đầu", f"Camp có 1–2 ngày đã khép có chi, ngày đầu chi ≥ min(${T1_CHI:g}, {T1_PHAN:.0%} ngân sách) và ROI < {T1_ROI}% (không có thu = −100%), mọi ngày đã khép vẫn < {T1_ROI}% → máy tắt hẳn (cách Kim Kiên đóng camp — anh 02/11/2026). Xét từ {(7 + T1_CHO) % 24}:00 VN (ngày mới chạy đủ {T1_CHO} giờ); hôm nay ROI ≥ {T1_THA}% thì tha hôm đó.",
             [["Số ngày đã khép có chi", f"{len(ds2)} ngày", "1–2 ngày", 1 <= len(ds2) <= 2], ["Chi ngày đầu", f(c1, "$"), f"≥ ${ng1:g}", c1 >= ng1],
-             ["ROI ngày đầu", f(r1, "%"), f"< {T1_ROI}%", r1 is not None and r1 < T1_ROI], ["ROI mọi ngày đã khép", f(ra1, "%"), f"< {T1_ROI}%", ra1 is not None and ra1 < T1_ROI]],
+             ["ROI ngày đầu", f(r1, "%"), f"< {T1_ROI}%", r1 is not None and r1 < T1_ROI], ["ROI mọi ngày đã khép", f(ra1, "%"), f"< {T1_ROI}%", ra1 is not None and ra1 < T1_ROI],
+             ["Ngày mới đã chạy", f"{_gio_ngay} giờ", f"≥ {T1_CHO} giờ ({(7 + T1_CHO) % 24}:00 VN)", _gio_ngay >= T1_CHO], ["ROI hôm nay (chi ≥ $0.3)", f(rn1, "%"), f"< {T1_THA}% (≥ {T1_THA}% thì tha hôm nay)", rn1 is None or rn1 < T1_THA]],
             "tat1" if int(cid) in vao["tat1"] else None, tien=1, lo=(r1 is not None and r1 < 0) or (ra1 is not None and ra1 < 0)))
         c2 = sum(x[0] for x in ds2[:2]); t2_ = sum(x[1] for x in ds2[:2]); r2 = (t2_ - c2) / c2 * 100 if c2 else None
         ca = sum(x[0] for x in ds2); ra_ = (sum(x[1] for x in ds2) - ca) / ca * 100 if ca else None

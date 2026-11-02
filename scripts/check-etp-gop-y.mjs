@@ -433,6 +433,8 @@ const LUAT = [
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tat2": m(tat2), "tat1": m(tat1),', vi: 'luật T1 xuất ra cho worker (báo trước một nhịp rồi tắt)' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'dat = [(cid, chu) for cid, chu in dat if not _ts_ly(cid)]', vi: 'luật TS siết tăng bậc: không tăng 07–15h VN, không tăng khi hôm qua lãi 0–50% (02/11)' },
   { card: 'chat', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"tat1":      { "ma": "t1",', vi: 'sổ luật chung có T1' },
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'T1_CHO, T1_THA = 6, 30', vi: 'T1 chờ ngày mới chạy đủ 6 giờ (13:00 VN), tha camp hôm nay ROI ≥ 30%' },
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if _rn is not None and _rn >= T1_THA: continue', vi: 'T1 tha camp hôm nay lãi ≥ 30%' },
   { card: 1506, tep: V, co: "['ro', (c) => !roLoc || (roLoc === 'co') === laRoas(c)]", vi: 'ô lọc ROAS (★ ROAS / không ROAS) nằm trong danh sách bộ lọc chung' },
   { card: 1506, tep: V, co: '{laiSel()}{tuoiSel()}{luatSel()}{dangSel()}{roSel()}</> : null}', vi: 'ô lọc ROAS hiện trên hàng lọc máy tính' },
   { card: 1507, tep: V, co: 'return bac?.length ? <ONgayBac bac={bac} tieu={tieu}>{o}</ONgayBac> : o;', vi: 'đổi bậc trong ngày = thẻ nổi (KhungNoi + DongBac), không tooltip chữ thô' },

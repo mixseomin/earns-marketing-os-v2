@@ -10,7 +10,12 @@ Dùng: python3 cat_phim.py [--that]   (không --that = chạy khô, in sẽ làm
 Trong script khác: import cat_phim; bao, doi_bo = cat_phim.xet(that=True)   → doi_bo = {content_id: bộ nên lên}"""
 import json, os, subprocess, sys
 
-MAC = {"chi": 25, "roi": -30, "chi_doi_bo": 50, "so_bo": 2, "bo": ["1", "2", "3"]}
+MAC = {"chi": 25, "roi": -30, "chi_doi_bo": 50, "so_bo": 2, "bo": ["1", "2", "3"], "so_thu": 4}
+# CẤT THEO SỐ LẦN THỬ + BÃO HOÀ (anh 02/11/2026 "Đã có luật drop film nếu thử nhiều lần mà ko thành công chưa?" · "hoặc đến lúc film bão hoà" ·
+# "Phải show pending, chạm vào cột Luật của dòng Phim"):
+#   thử so_thu camp có chi (≥ $1) mà chưa camp nào lãi → cất (đo 19/10–02/11: 29 phim chạm mốc 4 camp, 0 phim về sau thắng; chi sau mốc $142, lãi −$53)
+#     — camp thứ so_thu − 1 chưa lãi → 'sap_cat' (chờ, hiện trên dòng phim etp) · phim bão hoà (etp.phim_bao_hoa) mà ROI phim cả hệ hôm qua < 0 → cất, ghi "bão hoà: …",
+#     hết bão hoà / hết lỗ thì tự mở lại (camp lãi cũ KHÔNG mở lại phim bão hoà). Mốc thử dùng cùng cau_hinh.cat_phim (so_thu).
 
 def _q(s):
     r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-c", s], capture_output=True, text=True, timeout=60)
@@ -27,11 +32,11 @@ def so_phim():
     """mỗi phim có camp nhà: chi / thu cộng dồn, có camp lãi không, các bộ đã thử, trạng thái thang · team 14 ngày"""
     return _qj("""with c as (select c.content_id, c.camp_id, coalesce(c.bo, '') bo, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu
                              from etp.camp c left join etp.so_ngay n using (camp_id) where coalesce(c.content_id, 0) > 0 group by 1, 2, 3),
-                       p as (select content_id, round(sum(chi), 2) chi, round(sum(thu), 2) thu, count(*) so_camp, bool_or(chi >= 3 and thu > chi) lai,
+                       p as (select content_id, round(sum(chi), 2) chi, round(sum(thu), 2) thu, count(*) so_camp, count(*) filter (where chi >= 1) so_thu, bool_or(chi >= 3 and thu > chi) lai,
                                     array_agg(distinct bo) filter (where bo <> '') bo from c group by 1),
                        t as (select cn.content_id, sum(n.chi) chi, sum(n.thu) thu from etp.camp_ngoai cn join etp.so_ngay_ngoai n using (camp_id)
                              where n.ngay >= current_date - 14 and coalesce(cn.content_id, 0) > 0 group by 1)
-                  select p.*, f.thu_vong, f.thu_bo, f.ten, round(coalesce(t.chi, 0), 2) team_chi, round(coalesce(t.thu, 0), 2) team_thu,
+                  select p.*, f.thu_vong, f.thu_bo, f.thu_ly, f.ten, round(coalesce(t.chi, 0), 2) team_chi, round(coalesce(t.thu, 0), 2) team_thu,
                          (select count(*) from etp.camp_ngoai cn where cn.content_id = p.content_id and cn.trang_thai = 'ACTIVE') doi_chay
                   from p left join etp.phim f using (content_id) left join t using (content_id)""")
 
@@ -39,18 +44,38 @@ def dat(content, vong, ly, that, bo=None):
     v = lambda x: "null" if x is None else f"'{s_(x)}'"
     if that: _q(f"update etp.phim set thu_vong = {v(vong)}, thu_ly = {v(ly)}, thu_bo = {v(bo)}, thu_luc = now() where content_id = {int(content)}")
 
+def bao_hoa_lo():
+    """{content_id: lý do} — phim đang bão hoà (etp.phim_bao_hoa.bao_hoa) mà ROI phim cả hệ ngày đã khép gần nhất < 0"""
+    ra = {}
+    for r in _qj("select content_id, bao_hoa, roi from etp.phim_bao_hoa where bao_hoa is not null"):
+        ds = [x for x in (r.get("roi") or []) if x.get("roi") is not None]
+        if ds and float(ds[-1]["roi"]) < 0: ra[int(r["content_id"])] = f"bão hoà: {r['bao_hoa']}"[:300]
+    return ra
+
 def xet(that=False):
-    ch = cau_hinh(); bao, doi_bo = [], {}
+    ch = cau_hinh(); bao, doi_bo = [], {}; N = int(ch["so_thu"]); bh = bao_hoa_lo()
     for p in so_phim():
         ct, chi, thu, vong = int(p["content_id"]), float(p["chi"] or 0), float(p["thu"] or 0), p.get("thu_vong")
-        ten = p.get("ten") or f"phim {ct}"
+        ten = p.get("ten") or f"phim {ct}"; so_thu = int(p.get("so_thu") or 0)
         team_lai = float(p["team_chi"] or 0) >= 10 and float(p["team_thu"] or 0) > float(p["team_chi"] or 0)
+        if ct in bh:   # bão hoà mà lỗ: cất kể cả phim từng có camp lãi
+            if vong != "cat" or not str(p.get("thu_ly") or "").startswith("bão hoà"): dat(ct, "cat", bh[ct], that); bao.append(f"cất phim {ct} {ten}: {bh[ct]}")
+            continue
+        if vong == "cat" and str(p.get("thu_ly") or "").startswith("bão hoà"):
+            dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: hết bão hoà lỗ"); continue
         if p.get("lai") or (vong == "cat" and team_lai):
             if vong: dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: {'camp nhà lãi' if p.get('lai') else 'team lãi 14 ngày'}")
             continue
         roi = (thu - chi) / chi * 100 if chi else 0
         lo = chi >= float(ch["chi"]) and roi < float(ch["roi"])
         so = f"chi ${chi:.0f} · thu ${thu:.0f} · ROI {roi:.0f}% · {p['so_camp']} camp · bộ {','.join(sorted(p.get('bo') or [])) or '?'}"
+        if not team_lai and so_thu >= N:   # thử đủ N camp có chi, chưa camp nào lãi
+            if vong != "cat": dat(ct, "cat", f"thử {so_thu} camp chưa camp nào lãi · {so}", that); bao.append(f"cất phim {ct} {ten}: thử {so_thu} camp chưa camp nào lãi ({so})")
+            continue
+        if not team_lai and so_thu == N - 1 and vong in (None, "sap_cat"):   # chờ: camp thử thứ N là lần cuối
+            if vong != "sap_cat" or p.get("thu_ly") != f"đã thử {so_thu}/{N} camp chưa lãi · {so}": dat(ct, "sap_cat", f"đã thử {so_thu}/{N} camp chưa lãi · {so}", that)
+            continue
+        if vong == "sap_cat" and so_thu < N - 1: dat(ct, None, None, that)
         if vong == "doi_bo" and (roi >= float(ch["roi"]) or chi < float(ch["chi_doi_bo"])):   # vòng 2 đang thử bộ mới: giữ bộ đích tới khi chi chạm chi_doi_bo
             doi_bo[ct] = p.get("thu_bo") or ""; continue
         if not lo: continue

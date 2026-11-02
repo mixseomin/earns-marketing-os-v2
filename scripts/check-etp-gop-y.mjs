@@ -412,7 +412,7 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'if int(x["content_id"]) in CHAN: continue', vi: 'phim đã cất (và phim ngoài Âu-Mỹ) không mở dòng thay mới' },
   { card: 0, tep: 'apps/etp/cat_phim.py', co: 'if p.get("lai") or (vong == "cat" and team_lai):', vi: 'phim cất tự mở lại khi camp nhà / team lãi' },
   // anh 31/10/2026 "film đã chạm mốc ko nên mở thêm mà trong đội vẫn còn chạy thì có cảnh báo ở film đó cho mọi người nắm đc"
-  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "case when thu_vong = 'cat' then thu_luc end moc from etp.phim", vi: 'dữ liệu phim mang mốc cất' },
+  { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: "case when thu_vong = 'cat' then thu_luc end moc, thu_vong, thu_ly from etp.phim", vi: 'dữ liệu phim mang mốc cất' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "<MocPhim ph={phCua.get(Number(k))}", vi: 'nhãn chạm mốc ở dòng phim bảng camp' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "<MocPhim ph={du.phims.find((x) => x.content_id === Number(p.k))}", vi: 'nhãn chạm mốc ở dòng phim cây' },
   { card: 0, tep: 'apps/etp/cat_phim.py', co: 'đội còn {p[\'doi_chay\']} camp chạy phim này', vi: 'tin cất phim báo số camp đội còn chạy' },
@@ -467,6 +467,9 @@ const LUAT = [
   { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tong2.ts', co: "select khoa, gia_tri from etp.cau_hinh where khoa in ('phan_bo', 'tran_ngay')", vi: 'Tổng quan 2 phân bổ ngân sách: mục tiêu đọc cấu hình phan_bo + trần ngày' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'R0_NGAY, R0_CHI = 3, 0.5', vi: 'luật R0: camp ★ ROAS 3 ngày đã khép không tiêu → báo trước rồi tắt (#72924)' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tat_roas": m(tat_roas), "tat_r0": m(tat_r0),', vi: 'luật R0 xuất ra cho worker' },
+  { card: 'chat', tep: 'apps/etp/cat_phim.py', co: 'if not team_lai and so_thu >= N:   # thử đủ N camp có chi, chưa camp nào lãi', vi: 'cất phim khi thử đủ 4 camp có chi mà chưa camp nào lãi' },
+  { card: 'chat', tep: 'apps/etp/cat_phim.py', co: 'if ct in bh:   # bão hoà mà lỗ: cất kể cả phim từng có camp lãi', vi: 'cất phim bão hoà mà ROI phim cả hệ âm' },
+  { card: 'chat', tep: V, co: '? <ChipPhim ph={phCua.get(k)} bh={bhCua.get(k)} /> : null; } },', vi: 'cột Luật dòng phim: thẻ vòng thử (đã cất / sắp cất / đổi bộ) + bão hoà' },
   { card: 1503, tep: V, co: "textAlign: 'center', lineHeight: 1.15 }}>{x.n}<br /><span style={{ fontSize: 9, opacity: 0.75 }}>camp</span></span>", vi: 'số camp dưới biểu đồ ngăn phim: số trên, chữ camp dưới, canh giữa cột' },
   { card: 1504, tep: V, co: 'max={maxLai([...sd, c.nay])} bac={bacO(c.camp_id, d)} />', vi: 'ô ngày của camp: chấm màu + hover liệt kê tăng / giảm bậc trong ngày' },
   { card: 1504, tep: V, co: '<div style={{ fontSize: 11, color: \'var(--fg-3, #777)\', margin: \'0 0 6px\' }}>Đổi bậc trong ngày</div>', vi: 'hover ô ngày có mục Đổi bậc trong ngày (thẻ nổi #1507)' },

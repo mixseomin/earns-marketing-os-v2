@@ -1,0 +1,136 @@
+<!doctype html>
+<!-- BẦU TRỜI LÚC SINH — mẫu dựng video giải thích lá số cho kênh YouTube Astrolas (anh 02/11/2026 duyệt dạng 4). Hình là hàm thuần của t (window.__seek)
+     → shot-code/dung.mjs quay từng khung. Số thiên văn tính ở bau-troi-tinh.js (thuần, có tự kiểm). CAU = {
+       sinh: ISO UTC, vi, kinh, noi, gio_dia_phuong, nen: ảnh nền thật, logo: wordmark thật của astrolas.com,
+       cau: [{ chu, tu, den, canh }]  — mốc giây từng câu (từ giọng có mốc), canh ∈ hook | troi | mat-troi | moc | moc-troi | trang | la-so | ket
+       tu: [{ chu, tu, den }] — mốc từng chữ cho phụ đề } -->
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;background:#05070f}canvas{display:block}</style>
+<script src="bau-troi-tinh.js"></script>
+</head><body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const c = document.getElementById('c'), x = c.getContext('2d'), W = 1080, H = 1920, R = Math.PI / 180;
+const VANG = '#e9c97a', CHU = '#f4f1e8', MO = 'rgba(244,241,232,0.55)';
+const KY = { Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄' };
+const KY_CUNG = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'].map((s) => s + '︎');
+const FONT_KY = '"Apple Symbols","Segoe UI Symbol","Noto Sans Symbols",serif';
+let C, nen, logo, sao = [], ms0, asc0, kd0;
+const tai = (src) => new Promise((ok) => { if (!src) return ok(null); const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
+const ease = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
+const pha = (t, a, b) => ease((t - a) / Math.max(0.001, b - a));
+
+window.__dung = async () => {
+  C = window.CAU; ms0 = Date.parse(C.sinh);
+  [nen, logo] = await Promise.all([tai(C.nen), tai(C.logo)]);
+  let s = 7; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+  sao = Array.from({ length: 420 }, () => ({ a: rnd() * 360, r: Math.sqrt(rnd()) * 1500, m: 0.4 + rnd() * 1.6, l: 0.3 + rnd() * 0.7 }));
+  asc0 = BauTroi.cungMoc(ms0, C.vi, C.kinh); kd0 = BauTroi.kinhDo(ms0);
+};
+
+function veNen(t) {
+  if (nen) { const k = Math.max(W / nen.width, H / nen.height) * 1.12, dx = (W - nen.width * k) / 2 - t * 3, dy = (H - nen.height * k) / 2; x.drawImage(nen, dx, dy, nen.width * k, nen.height * k); }
+  else { x.fillStyle = '#05070f'; x.fillRect(0, 0, W, H); }
+  x.fillStyle = 'rgba(5,7,18,0.55)'; x.fillRect(0, 0, W, H);
+  x.save(); x.translate(W / 2, H * 0.42); x.rotate(t * 0.004);
+  for (const p of sao) { x.globalAlpha = p.l * (0.6 + 0.4 * Math.sin(t * 2 + p.a)); x.fillStyle = '#fff'; x.beginPath(); x.arc(p.r * Math.cos(p.a * R), p.r * Math.sin(p.a * R), p.m, 0, 7); x.fill(); }
+  x.restore(); x.globalAlpha = 1;
+}
+function chu(s, cx, cy, size, mau = CHU, font = 'Georgia,serif', rong = 900, can = 'center') {
+  x.font = `${size}px ${font}`; x.fillStyle = mau; x.textAlign = can; x.textBaseline = 'middle';
+  const tu = s.split(' '), dong = []; let d = '';
+  for (const w of tu) { const th = d ? d + ' ' + w : w; if (x.measureText(th).width > rong && d) { dong.push(d); d = w; } else d = th; }
+  dong.push(d); dong.forEach((l, i) => x.fillText(l, cx, cy + (i - (dong.length - 1) / 2) * size * 1.22));
+}
+// BÁNH XE 12 CUNG: cung Mọc ở bên TRÁI (9 giờ), hoàng đạo ngược chiều kim đồng hồ — đúng lối vẽ lá số
+const goc = (lon, asc) => (180 + (lon - asc)) * R;
+const diem = (lon, asc, r, cx, cy) => [cx + r * Math.cos(goc(lon, asc)), cy - r * Math.sin(goc(lon, asc))];
+function veBanhXe(asc, cx, cy, r, hien, nhan) {
+  x.save(); x.globalAlpha = hien;
+  x.strokeStyle = VANG; x.lineWidth = 3; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.stroke();
+  x.lineWidth = 1.5; x.beginPath(); x.arc(cx, cy, r * 0.78, 0, 7); x.stroke();
+  for (let i = 0; i < 12; i++) {
+    const [a1, b1] = diem(i * 30, asc, r, cx, cy), [a2, b2] = diem(i * 30, asc, r * 0.78, cx, cy);
+    x.beginPath(); x.moveTo(a1, b1); x.lineTo(a2, b2); x.stroke();
+    const [gx, gy] = diem(i * 30 + 15, asc, r * 0.89, cx, cy);
+    x.font = `${r * 0.11}px ${FONT_KY}`; x.fillStyle = nhan === i ? '#fff' : VANG; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(KY_CUNG[i], gx, gy);
+  }
+  // đường chân trời: cung Mọc (trái) — cung Lặn (phải)
+  x.strokeStyle = 'rgba(255,255,255,0.75)'; x.lineWidth = 2.5; x.setLineDash([14, 10]);
+  x.beginPath(); x.moveTo(cx - r * 1.12, cy); x.lineTo(cx + r * 1.12, cy); x.stroke(); x.setLineDash([]);
+  x.restore();
+}
+function veThienThe(ten, lon, asc, cx, cy, r, hien, to = 1) {
+  const [px, py] = diem(lon, asc, r, cx, cy);
+  x.save(); x.globalAlpha = hien;
+  const g = x.createRadialGradient(px, py, 0, px, py, 46 * to); g.addColorStop(0, ten === 'Sun' ? 'rgba(255,214,120,0.9)' : 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = g; x.beginPath(); x.arc(px, py, 46 * to, 0, 7); x.fill();
+  x.font = `${44 * to}px ${FONT_KY}`; x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(KY[ten] + '︎', px, py);
+  x.restore();
+}
+const nhanCung = (lon) => `${BauTroi.cungCua(lon)} ${Math.floor(BauTroi.chuan(lon) % 30)}°`;
+function the(s, cx, cy, size = 40) {   // thẻ chữ nhỏ có nền
+  x.font = `${size}px Georgia,serif`; const w = x.measureText(s).width + 44;
+  x.fillStyle = 'rgba(8,10,24,0.78)'; x.strokeStyle = VANG; x.lineWidth = 2;
+  x.beginPath(); x.roundRect(cx - w / 2, cy - size * 0.85, w, size * 1.7, 18); x.fill(); x.stroke();
+  x.fillStyle = CHU; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(s, cx, cy);
+}
+const gio = (ms) => new Date(ms + C.lech_gio * 3600e3).toISOString().slice(11, 16);
+function phuDe(t) {   // phụ đề: câu đang đọc, chữ đã đọc sáng, chữ chưa đọc mờ
+  const cau = C.cau.find((q) => t >= q.tu && t < q.den + 0.25); if (!cau || cau.canh === 'hook') return;
+  const tu = C.tu.filter((w) => w.tu >= cau.tu - 0.05 && w.tu < cau.den + 0.05);
+  x.font = '46px Georgia,serif'; x.textAlign = 'left'; x.textBaseline = 'middle';
+  const dong = []; let d = [], rong = 0;
+  for (const w of tu) { const wd = x.measureText(w.chu + ' ').width; if (rong + wd > 920 && d.length) { dong.push(d); d = []; rong = 0; } d.push({ ...w, wd }); rong += wd; }
+  if (d.length) dong.push(d);
+  const y0 = H - 300 - (dong.length - 1) * 30;
+  x.fillStyle = 'rgba(5,7,18,0.6)'; x.beginPath(); x.roundRect(60, y0 - 50, W - 120, dong.length * 62 + 40, 22); x.fill();
+  dong.forEach((l, i) => { let px = (W - l.reduce((a, w) => a + w.wd, 0)) / 2; for (const w of l) { x.fillStyle = t >= w.tu ? CHU : MO; x.fillText(w.chu, px, y0 + i * 62); px += w.wd; } });
+}
+
+window.__seek = (t) => {
+  veNen(t);
+  const q = C.cau.find((k) => t < k.den + 0.25) ?? C.cau.at(-1), i = C.cau.indexOf(q), u = pha(t, q.tu, q.den);
+  const cx = W / 2, cy = H * 0.43, r = 400;
+  if (q.canh === 'hook') {
+    x.globalAlpha = pha(t, q.tu, q.tu + 0.6); chu(q.chu, cx, H * 0.42, 74, CHU, 'Georgia,serif', 900); x.globalAlpha = 1;
+  } else if (q.canh === 'troi') {   // chân trời phía Đông lúc bình minh, đồng hồ chạy tới giờ sinh
+    const g = x.createLinearGradient(0, H * 0.35, 0, H * 0.62); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(255,150,80,${0.45 * u})`);
+    x.fillStyle = g; x.fillRect(0, 0, W, H * 0.62);
+    const dat = () => { const gd = x.createLinearGradient(0, H * 0.6, 0, H); gd.addColorStop(0, 'rgba(3,4,10,0.7)'); gd.addColorStop(1, 'rgba(3,4,10,0.35)'); x.fillStyle = gd; x.fillRect(0, H * 0.62, W, H * 0.38); };
+    dat();
+    const sy = H * 0.66 - u * 150; const sg = x.createRadialGradient(cx, sy, 0, cx, sy, 120); sg.addColorStop(0, 'rgba(255,224,150,1)'); sg.addColorStop(1, 'rgba(255,170,90,0)');
+    x.fillStyle = sg; x.beginPath(); x.arc(cx, sy, 120, 0, 7); x.fill(); x.save(); x.beginPath(); x.rect(0, H * 0.62, W, H * 0.38); x.clip(); veNen(t); dat(); x.restore();
+    chu('EAST', cx, H * 0.645, 34, MO, 'Arial,sans-serif');
+    the(`${C.noi} · ${C.ngay_chu} · ${gio(ms0 - (1 - u) * 5400e3)}`, cx, H * 0.18, 42);
+  } else {
+    // từ đây là bánh xe; cung Mọc + thiên thể theo cảnh
+    let asc = asc0, msTrang = ms0, hienKhac = 0, nhan = null;
+    if (q.canh === 'moc-troi') { asc = BauTroi.cungMoc(ms0 + u * 3 * 3600e3, C.vi, C.kinh); }
+    if (q.canh === 'trang') msTrang = ms0 + u * 2 * 86400e3;
+    if (q.canh === 'la-so' || q.canh === 'ket') hienKhac = q.canh === 'ket' ? 0.35 : pha(t, q.tu, q.tu + 1.2);
+    const hien = q.canh === 'ket' ? 0.35 : q.canh === 'mat-troi' ? pha(t, q.tu, q.tu + 1) : 1;
+    if (q.canh === 'moc' || q.canh === 'moc-troi') nhan = Math.floor(asc / 30);
+    veBanhXe(asc, cx, cy, r, hien, nhan);
+    veThienThe('Sun', kd0.Sun, asc, cx, cy, r * 0.62, hien, 1.2);
+    if (q.canh === 'mat-troi') the(`Sun · ${nhanCung(kd0.Sun)}`, cx, cy + r + 110);
+    if (q.canh === 'moc' || q.canh === 'moc-troi') {
+      const [ax, ay] = [cx - r * 1.12, cy]; x.fillStyle = VANG; x.beginPath(); x.arc(ax + 10, ay, 14, 0, 7); x.fill();
+      the(`Rising · ${nhanCung(asc)}`, cx, cy + r + 110);
+      if (q.canh === 'moc-troi') the(`${gio(ms0 + u * 3 * 3600e3)}  (+${(u * 3).toFixed(1)} h)`, cx, cy - r - 110, 40);
+    }
+    if (q.canh === 'trang' || q.canh === 'la-so' || q.canh === 'ket') {
+      const lonT = BauTroi.kinhDo(msTrang).Moon; veThienThe('Moon', lonT, asc, cx, cy, r * 0.62, q.canh === 'ket' ? 0.35 : 1, 1.1);
+      if (q.canh === 'trang') { the(`Moon · ${nhanCung(lonT)}`, cx, cy + r + 110); the(`+${(u * 2).toFixed(1)} days`, cx, cy - r - 110, 40); }
+    }
+    if (hienKhac) for (const ten of ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']) veThienThe(ten, kd0[ten], asc, cx, cy, r * (0.48 + (['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn'].indexOf(ten) % 2) * 0.12), hienKhac, 0.85);
+    if (q.canh === 'ket') {
+      const a = pha(t, q.tu, q.tu + 0.8);
+      if (logo) { const w = 760, h = logo.height * w / logo.width; x.globalAlpha = a; x.drawImage(logo, cx - w / 2, H * 0.3 - h / 2, w, h); x.globalAlpha = 1; }
+      x.globalAlpha = a; chu('Free birth chart', cx, H * 0.47, 60, CHU); chu('astrolas.com', cx, H * 0.53, 72, VANG, 'Georgia,serif'); x.globalAlpha = 1;
+    }
+  }
+  if (i > 0 && logo && q.canh !== 'ket') { const w = 230, h = logo.height * w / logo.width; x.globalAlpha = 0.85; x.drawImage(logo, 40, 60, w, h); x.globalAlpha = 1; }
+  phuDe(t);
+};
+window.__khung = () => c.toDataURL('image/jpeg', 0.92).split(',')[1];
+</script></body></html>

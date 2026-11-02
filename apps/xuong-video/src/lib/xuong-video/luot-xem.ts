@@ -20,12 +20,16 @@ export const docNguoiDangKy = (html: string): number | null => {
   const he = m[2] === 'K' ? 1e3 : m[2] === 'M' ? 1e6 : m[2] === 'B' ? 1e9 : 1, so = Number((m[1] ?? '').replace(/,/g, ''));
   return Number.isFinite(so) ? Math.round(so * he) : null;
 };
-/** Người đăng ký kênh YouTube (kenh_id UC…) — trang công khai, cookie đồng ý để box3 không bị đẩy sang trang consent (đo 02/11/2026). */
-export async function nguoiDangKyYoutube(kenhId: string): Promise<number | null> {
+/** Ảnh đại diện kênh (thẻ og:image của trang kênh, cỡ s900) → cỡ s176 cho bảng. Thuần. */
+export const docAnhKenh = (html: string): string | null => { const m = html.match(/<meta property="og:image" content="([^"]+)"/); return m ? m[1]!.replace(/=s\d+-/, '=s176-') : null; };
+/** TRANG KÊNH YouTube (kenh_id UC…) một lượt tải → người đăng ký + ảnh đại diện — trang công khai, cookie đồng ý để box3 không bị đẩy sang trang consent
+ *  (đo 02/11/2026). Kênh thêm vào Tài sản tự có ảnh qua lượt này (may-dung.mts --so-kenh), không ai dán tay. */
+export async function trangKenhYoutube(kenhId: string): Promise<{ nguoiDk: number | null; anh: string | null }> {
   try {
     const r = await fetch(`https://www.youtube.com/channel/${kenhId}`, { headers: { 'User-Agent': UA, 'Accept-Language': 'en', Cookie: 'CONSENT=YES+1; SOCS=CAI' }, signal: AbortSignal.timeout(20_000) });
-    return r.ok ? docNguoiDangKy(await r.text()) : null;
-  } catch { return null; }
+    if (!r.ok) return { nguoiDk: null, anh: null };
+    const h = await r.text(); return { nguoiDk: docNguoiDangKy(h), anh: docAnhKenh(h) };
+  } catch { return { nguoiDk: null, anh: null }; }
 }
 /** Mã video Facebook trong link reel / video (facebook.com/reel/<id>/, /videos/<id>). Thuần. */
 export const maFacebook = (url: string): string | null => (url.match(/\/(?:reel|videos)\/(\d+)/) ?? [])[1] ?? null;

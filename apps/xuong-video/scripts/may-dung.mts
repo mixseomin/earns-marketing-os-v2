@@ -222,16 +222,16 @@ if (a.includes('--nap')) {
   // SỐ KÊNH SẢN PHẨM (02/11/2026 — mos2 › Tài sản › Kênh sản phẩm): máy la_san_pham → đọc lại lượt xem từng video đã đăng + người đăng ký kênh YouTube
   // → kenh_so_ngay (kenh youtube, san_pham 'may:<mã>', hien = tổng lượt xem cộng dồn, so_muc = số video đã đăng, chi_tiet = { videos, nguoi_dk, kenh_url, ten }).
   // mos2 tính 7 ngày từ các bản ghi ngày (như video short). Không đọc được → để trống, không ghi 0 giả. 0₫.
-  const { docLaiLuotXem } = await import('../src/lib/xuong-video/luot-xem-db'), { nguoiDangKyYoutube } = await import('../src/lib/xuong-video/luot-xem');
+  const { docLaiLuotXem } = await import('../src/lib/xuong-video/luot-xem-db'), { trangKenhYoutube } = await import('../src/lib/xuong-video/luot-xem');
   const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
   const ds = (await db.execute(sql`SELECT id, ma, ten, dang FROM xv_may WHERE la_san_pham ${lay('--may') ? sql`AND ma = ${ma}` : sql``}`)) as unknown as { id: number; ma: string; ten: string; dang: { nen: string; br?: { kenh_id?: string; handle?: string } }[] }[];
   for (const m of ds) {
     await docLaiLuotXem(db, Number(m.id));
-    const yt = (m.dang ?? []).find((x) => x.nen === 'youtube')?.br, sub = yt?.kenh_id ? await nguoiDangKyYoutube(yt.kenh_id) : null;
+    const yt = (m.dang ?? []).find((x) => x.nen === 'youtube')?.br, trang = yt?.kenh_id ? await trangKenhYoutube(yt.kenh_id) : { nguoiDk: null, anh: null }, sub = trang.nguoiDk;
     const vs = (await db.execute(sql`SELECT slug, dang->>'title' AS tieu_de, da_dang->'youtube'->>'url' AS url, da_dang->'youtube'->>'ngay' AS ngay, luot_xem_nen->>'youtube' AS xem
       FROM xv_may_video WHERE may_id = ${m.id} AND da_dang ? 'youtube'`)) as unknown as { slug: string; tieu_de: string | null; url: string | null; ngay: string | null; xem: string | null }[];
     const videos = vs.filter((v) => v.xem != null).map((v) => ({ slug: v.slug, url: v.url ?? undefined, tieuDe: (v.tieu_de ?? v.slug).replace(/\s*#shorts\s*/i, ''), ngayDang: v.ngay ?? undefined, xem: Number(v.xem) }));
-    const ten = m.ten.split('·').pop()!.trim(), chiTiet = { videos, nguoi_dk: sub, kenh_url: yt?.handle ? `https://www.youtube.com/${yt.handle}` : null, ten, ma: m.ma };
+    const ten = m.ten.split('·').pop()!.trim(), chiTiet = { videos, nguoi_dk: sub, anh: trang.anh, kenh_url: yt?.handle ? `https://www.youtube.com/${yt.handle}` : null, ten, ma: m.ma };
     await db.execute(sql`INSERT INTO kenh_so_ngay (kenh, san_pham, ngay, hien, tuong_tac, click, so_muc, chi_tiet, nguon, cap_nhat)
       VALUES ('youtube', ${`may:${m.ma}`}, ${hom}, ${videos.reduce((t, v) => t + v.xem, 0)}, 0, 0, ${vs.length}, ${JSON.stringify(chiTiet)}::jsonb, 'may-dung --so-kenh', now())
       ON CONFLICT (kenh, san_pham, ngay) DO UPDATE SET hien = EXCLUDED.hien, so_muc = EXCLUDED.so_muc, chi_tiet = EXCLUDED.chi_tiet, nguon = EXCLUDED.nguon, cap_nhat = now()`);

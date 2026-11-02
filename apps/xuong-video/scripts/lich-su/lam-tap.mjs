@@ -152,9 +152,11 @@ const BUOC = ['gắn hook', 'viết kịch bản', 'kho + ảnh thật', 'Ngọc
 let buocNay = null;
 const sqlQ = (x) => `'${String(x).replace(/'/g, "''")}'`;
 const ghiDangLam = (patch) => { if (!KENH.may) return; try { sqlBox(`UPDATE xv_may SET nguon = jsonb_set(coalesce(nguon, '{}'::jsonb), '{dang_lam}', coalesce(nguon->'dang_lam', jsonb_build_object('id', ${sqlQ(id)}, 'luc', now())) || ${patch}::jsonb) WHERE ma = ${sqlQ(KENH.may)};`); } catch { /* tiến độ là phụ, không làm hỏng lượt */ } };
-const buoc = (ten) => { buocNay = ten; ghiDangLam(sqlQ(JSON.stringify({ id, buoc: ten, so: BUOC.indexOf(ten) + 1, tong: BUOC.length, buoc_luc: new Date().toISOString(), loi: null, chi_tiet: null }))); };
+// tên tập cho bảng (anh 03/11/2026: "phải hiện tên tập đang làm"): tiêu đề, chưa có thì chủ đề — đọc lại tệp tập mỗi bước (bước viết mới sinh ra tên)
+const tenTap = () => { try { const t = JSON.parse(readFileSync(tepTap, 'utf8')); return t.tieu_de || t.chu_de || null; } catch { return null; } };
+const buoc = (ten) => { buocNay = ten; ghiDangLam(sqlQ(JSON.stringify({ id, ten: tenTap(), buoc: ten, so: BUOC.indexOf(ten) + 1, tong: BUOC.length, buoc_luc: new Date().toISOString(), loi: null, chi_tiet: null }))); };
 /** chi tiết TRONG bước (anh 03/11/2026: "suốt từ nãy vẫn ở đây" — bước viết 5–15 phút không nhích gì trên bảng): lượt viết k/4, số lỗi kiểm, ảnh k/n… */
-const chiTiet = (chu) => ghiDangLam(sqlQ(JSON.stringify({ chi_tiet: chu, chi_tiet_luc: new Date().toISOString() })));
+const chiTiet = (chu) => ghiDangLam(sqlQ(JSON.stringify({ ten: tenTap(), chi_tiet: chu, chi_tiet_luc: new Date().toISOString() })));
 process.on('exit', (ma) => { if (!KENH.may || !buocNay) return;
   try { sqlBox(ma ? `UPDATE xv_may SET nguon = jsonb_set(nguon, '{dang_lam,loi}', ${sqlQ(JSON.stringify(`hỏng ở bước ${buocNay} (mã ${ma})`))}::jsonb) WHERE ma = ${sqlQ(KENH.may)} AND nguon->'dang_lam'->>'id' = ${sqlQ(id)};`
     : `UPDATE xv_may SET nguon = nguon - 'dang_lam' WHERE ma = ${sqlQ(KENH.may)} AND nguon->'dang_lam'->>'id' = ${sqlQ(id)};`); } catch { /* bỏ qua */ } });

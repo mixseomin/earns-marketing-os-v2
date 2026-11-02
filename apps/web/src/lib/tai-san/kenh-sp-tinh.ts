@@ -29,7 +29,7 @@ export type KenhSp = {
 
 /** tập đang trong lò (xv_may.nguon.dang_lam — chay-kenh ghi lúc bắt đầu, lam-tap ghi từng bước; hỏng thì giữ kèm loi) */
 export type TapCho = { id: string; chu_de: string | null; cau: number; lan: number; loi: string | null; tho: string | null };
-export type DangLam = { id: string; luc: string; buoc?: string; so?: number; tong?: number; buoc_luc?: string; loi?: string | null; chi_tiet?: string | null };
+export type DangLam = { id: string; luc: string; buoc?: string; so?: number; tong?: number; buoc_luc?: string; loi?: string | null; chi_tiet?: string | null; /** tên tập (tiêu đề / chủ đề) */ ten?: string | null };
 
 const lui = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10);
 
@@ -80,7 +80,7 @@ export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()
   const ra: DongKe[] = [], d = k.ke.dangLam;
   if (d) {
     const phut = Math.max(0, Math.round((bayGio - Date.parse(d.buoc_luc ?? d.luc)) / 60_000)), tong = Math.max(0, Math.round((bayGio - Date.parse(d.luc)) / 60_000));
-    ra.push({ id: 'sx', nhom: true, chu: '▶ Đang sản xuất', phu: `bắt đầu ${gioVn(d.luc)} · ${tong} phút` });
+    ra.push({ id: 'sx', nhom: true, chu: `▶ Đang sản xuất: ${d.ten ?? d.id}`, phu: `bắt đầu ${gioVn(d.luc)} · ${tong} phút` });
     // bước đứng TRƯỚC (cột hẹp cắt phần phụ — YDNI một dòng), mã tập xuống phần phụ
     // một bước đứng > 30 phút (bước dài nhất ~10–15 phút) = nghi treo → đỏ ngay, không đợi trần giờ của lam-tap
     const dung = !d.loi && phut > 30;

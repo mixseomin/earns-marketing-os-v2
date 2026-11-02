@@ -19,7 +19,9 @@ type Hook = { id: string; chu: string; ngay: number; page: string };
 const gh = arg('goc-hook') ? JSON.parse(readFileSync(arg('goc-hook')!, 'utf8')) as { goc: { sp: number; id: number; loai: string; ten: string }; hooks: Hook[]; da_lam: string[]; ket_qua?: { chu_de: string; tieu_de: string; xem: number; moi_ngay: number; tuoi: number }[] } : null;
 const cuTap = arg('cu') ? JSON.parse(readFileSync(arg('cu')!, 'utf8')) as { hook?: { qc: string; goc: string }; goc?: unknown; tieu_de?: string; chu_de?: string } : null;
 let hookChon: { qc: string; goc: string } | null = cuTap?.hook ?? null, tieuDeChon: string | null = cuTap?.hook ? cuTap.tieu_de ?? null : null;
-chuDe ??= cuTap?.chu_de;
+// chủ đề của bản cũ chỉ KHOÁ khi bản đó đã có hook (đã qua bước chọn đề + hook). Bản cũ chưa có hook (bản rỗng / hỏng) mà có --goc-hook → chọn lại đề + hook
+// (03/11/2026: tập Constantinople — sửa trên bản chưa có hook, chủ đề cũ bỏ qua bước chọn hook → 4 lượt viết đều bị kiểm chặn "chưa gắn hook")
+if (cuTap?.hook || !gh) chuDe ??= cuTap?.chu_de;
 if (!ra || !id || (!chuDe && !gh && !process.argv.includes('--chi-thumb'))) { console.error('tsx viet-tap.mts <ra.json> (--chu-de "…" | --goc-hook <tệp>) --nn en --id <id>'); process.exit(2); }
 // HỒ SƠ KÊNH (kenh.json): khuôn độ dài, giọng văn, thẻ kết của kênh — saga (Shorts mồi) / parody (trọn chuyện, lá cải)…
 const kenhId = arg('kenh') ?? 'saga', K0 = JSON.parse(readFileSync(new URL('./kenh.json', import.meta.url), 'utf8'))[kenhId];

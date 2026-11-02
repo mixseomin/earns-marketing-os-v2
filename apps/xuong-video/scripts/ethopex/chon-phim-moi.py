@@ -90,6 +90,9 @@ if "--co-the-test" in sys.argv:
     # phim đã bị quy trình phim mới LOẠI (poster / soát 18+ / cắt / cổng — phim-moi.py, sổ ethopex_phim_moi_tt) thì không còn là "có thể test"
     tt = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_phim_moi_tt'") or "{}")
     chinh = [x for x in chinh if not str((tt.get(str(x["id"])) or {}).get("tt", "")).endswith("_loai")]
+    # phim đã chấm nhóm gốc NGOÀI Âu-Mỹ (etp.phim.nhom_goc) không còn là "có thể test" (anh 02/11/2026); chưa chấm vẫn ở danh sách — tab Phim hiện "Chưa rõ nhóm gốc", không cho Nhận
+    ngoai = set(q("select content_id from etp.phim where nhom_goc is not null and nhom_goc <> 'au_my'").split())
+    chinh = [x for x in chinh if str(x["id"]) not in ngoai]
     # số QC tra theo TÊN PHIM (qc-fb-phim.py) — phim chưa tra: qc_tra = null (cột hiện "chưa tra"), không lấy số gắn link của ethopex_uu_tien (thiếu, dễ hiểu nhầm là 0)
     for x in chinh:
         fb = QC_FB.get(str(x["id"]))

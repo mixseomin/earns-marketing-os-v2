@@ -102,6 +102,9 @@ async function dangGiu(ma: number) {
 export async function nhanPhimEtp(id: number): Promise<{ ok: true; nhan: NhanPhim } | { loi: string }> {
   const ng = await nguoiCua(); if (!ng) return { loi: 'không có quyền etp' };
   const ma = Math.trunc(Number(id)); if (!(ma > 0)) return { loi: 'mã phim không hợp lệ' };
+  // CHỈ NHẬN PHIM ĐÃ XÁC ĐỊNH ÂU-MỸ (anh 02/11/2026) — trigger etp_phim_nhan_au_my (0410) chặn ở DB, đây báo lý do gọn cho nút
+  const goc = ((await getDb()!.execute(sql`select nhom_goc from etp.phim where content_id = ${ma}`)) as unknown as { nhom_goc: string | null }[])[0]?.nhom_goc ?? null;
+  if (goc !== 'au_my') return { loi: goc ? `phim nhóm gốc '${goc}' — chỉ nhận phim Âu-Mỹ` : 'phim chưa xác định nhóm gốc — chỉ nhận phim đã xác định Âu-Mỹ (cột Nhóm gốc)' };
   const g = await dangGiu(ma);
   if (g && g.nguoi_id !== ng.nguoiId) return { loi: g.trang_thai === 'da_len' ? `${g.nguoi ?? '?'} đã lên camp phim này` : `${g.nguoi ?? '?'} đang giữ tới ${new Date(g.het_luc).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}` };
   if (!g) await getDb()!.execute(sql`insert into etp.phim_nhan (content_id, nguoi_id, nguoi, het_luc, ai_nhan) values (${ma}, ${ng.nguoiId}, ${ng.ten}, now() + make_interval(hours => ${GIO_GIU}), ${ng.userId})`);

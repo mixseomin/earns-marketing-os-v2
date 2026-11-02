@@ -370,6 +370,8 @@ const LUAT = [
   { card: 1501, tep: 'apps/web/src/components/etp-tong2.tsx', co: "border: `1px solid ${ra ? '#f87171' : sua ? 'var(--accent)' : 'var(--line)'}`", vi: 'viền widget viết đủ shorthand, mặc định var(--line)' },
   { card: 1502, tep: 'apps/web/src/components/ui/chon2.tsx', co: "autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}", vi: 'ô chọn không tự focus ô tìm trên màn cảm ứng (bàn phím điện thoại bật che danh sách)' },
   { card: 1502, tep: 'apps/web/src/components/ui/chon2.tsx', cam: '<input autoFocus value={q}', vi: 'không quay lại autoFocus vô điều kiện' },
+  { card: 'nhan-0211', tep: 'apps/xuong-video/scripts/ethopex/phim-moi.py', co: 'insert into etp.phim_nhan (content_id, nguoi_id, nguoi, het_luc)', vi: 'lô cắt phim mới tự nhận phim cho Nhà trước khi cắt; phim người trong đội đang giữ thì bỏ' },
+  { card: 'nhan-0211', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'raise ChanLuat(f"phim mới {cid} chưa nhận', vi: 'luật bắt buộc: phim mới của Nhà phải nhận trước khi lên camp đầu (anh 02/11/2026)' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: "bat_dau < now() - interval '1 hour'", vi: 'thợ chết: việc dang quá 1 giờ thì xếp lại' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: 'try: pr.wait(timeout=45 * 60)', vi: 'thợ cắt: trần 45 phút / phim (cũ 3 giờ)' },
   { card: 'cat-0211', tep: 'apps/xuong-video/scripts/ethopex/cat_drive.py', co: '"--max-duration", tran, "--cutoff-mode", "soft"]', vi: 'dọn Drive có trần thời gian (mặc định 5 phút), không chặn lô cắt' },

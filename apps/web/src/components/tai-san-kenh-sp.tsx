@@ -4,7 +4,7 @@
 import { DataTable, Panel, type DataColumn } from '@/components/ui';
 import { extLinkProps } from '@/lib/external-url';
 import type { KenhSp } from '@/lib/tai-san/kenh-sp-tinh';
-import { cotSocial } from './tai-san-social';
+import { cotSocial, nhomSocial } from './tai-san-social';
 
 const so = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleString('vi-VN'));
 const ngayVn = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : '–');
@@ -18,7 +18,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
       cell: (k) => <span style={{ fontFamily: 'var(--font-sans)' }}>
         {k.kenhUrl ? <a {...extLinkProps(k.kenhUrl)} style={{ fontWeight: 700, color: 'inherit' }}>{k.ten}</a> : <b>{k.ten}</b>}
         <span style={{ color: k.chay ? 'var(--ok)' : 'var(--fg-4)', fontSize: 11, marginLeft: 6 }}>{k.chay ? 'đang chạy' : 'chưa bật đăng'}</span></span> },
-    cotSocial<KenhSp>((k) => k.social, kySocial),
+    ...cotSocial<KenhSp>((k) => k.social, kySocial),
     { key: 'tap', header: 'Tập', width: 64, sortValue: (k) => k.tap, cellTitle: (k) => `${k.tap} tập đã làm (không tính bản cất)`, cell: (k) => so(k.tap) },
     { key: 'cho', header: 'Chờ đăng', width: 84, sortValue: (k) => k.choDang, cell: (k) => (k.choDang ? <b style={{ color: 'var(--warn)' }}>{k.choDang}</b> : <span style={mo}>0</span>) },
     { key: 'da', header: 'Đã đăng', width: 76, sortValue: (k) => k.daDang, cell: (k) => so(k.daDang) },
@@ -31,7 +31,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   ];
   return (
     <Panel title="📺 Kênh nội dung" subtitle={'kênh nội dung là sản phẩm (video trọn chuyện) · "–" = chưa đo (khác 0) · số đọc hằng ngày từ trang YouTube công khai'}>
-      <DataTable rows={kenh} columns={cot} getRowKey={(k) => k.ma} persistKey="tai-san-kenh-sp" fixedLayout minWidth={240 + 250 + 64 + 84 + 76 + 116 + 88 + 96 + 96 + 84 + 72} card />
+      <DataTable rows={kenh} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(k) => k.ma} persistKey="tai-san-kenh-sp" fixedLayout minWidth={240 + 260 + 64 + 84 + 76 + 116 + 88 + 96 + 96 + 84 + 72} card />
     </Panel>
   );
 }

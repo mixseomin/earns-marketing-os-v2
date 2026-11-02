@@ -3,25 +3,27 @@
 // số đo trong khung thời gian chọn ở đầu tab (7 / 30 / 90 ngày, ?ky=). Số tính ở lib/tai-san/social-tro-ve*.ts. "–" = chưa có số (khác 0).
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { FilterChips, type DataColumn } from '@/components/ui';
+import type { DataGroup } from '@/components/ui/data-table';
 import { KY_SOCIAL, type TroVe } from '@/lib/tai-san/social-tro-ve-tinh';
 
 const so = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleString('vi-VN'));
 const NHAN_NEN: Record<string, string> = { youtube: 'YouTube', facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok', x: 'X', twitter: 'X', pinterest: 'Pinterest', dailymotion: 'Dailymotion', quora: 'Quora', threads: 'Threads' };
 
-export function OSocial({ t }: { t: TroVe | null | undefined }) {
-  if (!t) return <span style={{ color: 'var(--fg-4)' }}>chưa có kênh</span>;
-  return (
-    <span title={`${t.kenh} kênh social trỏ về (${t.nen.map((n) => NHAN_NEN[n] ?? n).join(', ')}) · ${t.ky} ngày: ${t.bai} bài, ${so(t.xem)} lượt xem bài đó${t.khach == null ? '' : `, ${so(t.khach)} khách vào site từ bài`}`}
-      style={{ fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
-      <b>{t.kenh}</b><span style={{ color: 'var(--fg-3)' }}> kênh · {t.bai} bài · {so(t.xem)} xem{t.khach == null ? '' : ` · ${so(t.khach)} khách`}</span>
-    </span>
-  );
-}
+/** KHỐI CỘT "Social" (anh 02/11/2026: chia khối + màu như GSC / Bing) — dải tiêu đề màu riêng, bật / tắt ở menu Columns như mọi khối. */
+export const nhomSocial = (ky: number): DataGroup => ({ key: 'social', label: `Social trỏ về · ${ky} ngày`, color: '#e1306c' });
 
-/** Cột "Social trỏ về" cho DataTable bất kỳ — get lấy TroVe của dòng. */
-export function cotSocial<T>(get: (r: T) => TroVe | null | undefined, ky: number): DataColumn<T> {
-  return { key: 'social', header: `Social trỏ về · ${ky} ngày`, align: 'left', width: 250, sortValue: (r) => get(r)?.kenh ?? null,
-    title: `kênh social đang trỏ về · bài / lượt xem / khách trong ${ky} ngày (chọn khung ở đầu tab)`, cell: (r) => <OSocial t={get(r)} /> };
+/** 4 cột số của khối Social cho DataTable bất kỳ — get lấy TroVe của dòng. "–" = chưa có số (khác 0). */
+export function cotSocial<T>(get: (r: T) => TroVe | null | undefined, ky: number): DataColumn<T>[] {
+  const nenCua = (t: TroVe | null | undefined) => (t ? t.nen.map((n) => NHAN_NEN[n] ?? n).join(', ') : 'chưa có kênh social nào trỏ về');
+  const o = (n: number | null | undefined, dam = false) => <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: dam ? 700 : 400, color: n ? undefined : 'var(--fg-4)' }}>{so(n)}</span>;
+  return [
+    { key: 'so_kenh', group: 'social', header: 'Kênh', width: 64, sortValue: (r) => get(r)?.kenh ?? null, title: 'số tài khoản social đang trỏ về (mọi thời điểm)',
+      cellTitle: (r) => nenCua(get(r)), cell: (r) => o(get(r)?.kenh ?? null, true) },
+    { key: 'so_bai', group: 'social', header: 'Bài', width: 60, sortValue: (r) => get(r)?.bai ?? null, title: `bài đăng trong ${ky} ngày`, cell: (r) => o(get(r) ? get(r)!.bai : null) },
+    { key: 'so_xem', group: 'social', header: 'Xem', width: 72, sortValue: (r) => get(r)?.xem ?? null, title: `lượt xem các bài đăng trong ${ky} ngày`, cell: (r) => o(get(r)?.xem ?? null) },
+    { key: 'so_khach', group: 'social', header: 'Khách', width: 64, sortValue: (r) => get(r)?.khach ?? null, title: `khách vào site từ bài social trong ${ky} ngày (sổ phiên adfond; sản phẩm trên chợ không đo được)`,
+      cell: (r) => o(get(r)?.khach ?? null, true) },
+  ];
 }
 
 /** Chọn khung thời gian cho mọi khối social trỏ về của tab (URL ?ky= — server đọc lại). */

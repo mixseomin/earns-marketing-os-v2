@@ -8,7 +8,7 @@ import type { GscDailyPoint } from '@/lib/projects/gsc-timeseries';
 import { SiteMenu } from './site-menu';
 import { ContactsDrawer } from './contacts-drawer';
 import { DataTable, type DataColumn, type DataGroup } from './ui/data-table';
-import { cotSocial } from './tai-san-social';
+import { cotSocial, nhomSocial } from './tai-san-social';
 import type { TroVe } from '@/lib/tai-san/social-tro-ve-tinh';
 
 // Domains whose Subs number is backed by a browsable Mailjet contact list (mirrors contacts/route.ts).
@@ -413,7 +413,8 @@ export function SeoSitesTable({ rows, timeseries, totals, kySocial }: Props) {
     },
   ];
   // SOCIAL TRỎ VỀ (tab Tài sản truyền social; tab SEO không truyền → không có cột)
-  if (rows.some((r) => r.social !== undefined)) columns.splice(1, 0, cotSocial<RowData>((r) => r.social, kySocial ?? 7));
+  const coSocial = rows.some((r) => r.social !== undefined);
+  if (coSocial) columns.splice(1, 0, ...cotSocial<RowData>((r) => r.social, kySocial ?? 7));
 
   const openPoints = openDomain ? timeseries[openDomain] || [] : [];
   const openBing = openDomain ? (rows.find((r) => r.domain === openDomain)?.bing_ts_30d || []) : [];
@@ -435,7 +436,7 @@ export function SeoSitesTable({ rows, timeseries, totals, kySocial }: Props) {
         rows={rows}
         columns={columns}
         getRowKey={(r) => r.domain}
-        groups={GROUPS}
+        groups={coSocial ? [GROUPS[0]!, nhomSocial(kySocial ?? 7), ...GROUPS.slice(1)] : GROUPS}
         persistKey="seo_cols"
         minWidth={640}
         rowTitle={(r) => `Ô số → mở tool (GSC/GA/Bing) · ô chart → chi tiết ${r.domain}`}

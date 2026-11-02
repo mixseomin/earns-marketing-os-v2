@@ -32,6 +32,18 @@ export function useTablePref(persistKey?: string): TablePref {
   return (persistKey ? all[persistKey] : undefined) ?? EMPTY;
 }
 
+// PHẠM VI LƯU (etp 02/11/2026 anh: "layout, filter, search… thì ko được thông nhau như vậy" — ô tìm gõ ở phần Sơn sang phần Nhà vẫn còn → 0 dòng):
+// trang bọc <PhamViLuu value="…"> thì MỌI bảng bên trong lưu cột / sắp xếp / lọc / ô tìm / độ rộng theo khoá `<persistKey>~<phạm vi>` — mỗi phạm vi một bộ riêng.
+// Dấu ~ (không phải @ — @ là ký tự cấm trong tên cookie).
+const PhamViCtx = createContext('');
+export function PhamViLuu({ value, children }: { value: string; children: ReactNode }) {
+  return <PhamViCtx.Provider value={value}>{children}</PhamViCtx.Provider>;
+}
+export function useKhoaLuu(k?: string): string | undefined {
+  const p = useContext(PhamViCtx);
+  return k && p ? `${k}~${p}` : k;
+}
+
 export const tblCookie = (k: string) => `tbl.${k}`;
 
 // Ghi MỘT mảnh vào cookie của bảng. Đọc-gộp-ghi vì có 4 người ghi (cột/sort/lọc/view) — ghi đè cả

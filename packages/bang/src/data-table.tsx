@@ -6,7 +6,7 @@ import { useTableSort, type SortSpec, type ThSort } from './use-table-sort';
 import { AnchoredPopover } from './anchored-popover';
 import { COL_FILTER_OPS, isNullaryOp, isRangeOp, khoangTach, khoangGhep, matchColFilter } from './col-filter';
 import { usePaged, Pager } from './phan-trang';
-import { useTablePref, writeTablePref } from './table-prefs';
+import { useKhoaLuu, useTablePref, writeTablePref } from './table-prefs';
 import { readShallowParam, writeShallowParam } from './url-shallow';
 import { cotDanhMuc, chuoiTim, gomNhom, locChon, docChon, type CotLoc } from './loc-tu-dong';
 import { LocChonNhieu, ChonGomNhom } from './thanh-loc';
@@ -184,11 +184,12 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 const TONG_BG = 'color-mix(in srgb, var(--accent, #60a5fa) 14%, var(--bg-2))';   // nền dòng tổng
 const RONG_MAC_DINH = 96;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
 export function DataTable<T>({
-  rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
+  rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
   stickyFirst = true, stickyCols, fixedLayout = false,
   serverSort, serverFilter, hopCuon = false, tree, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true, onTimDoi, khiTimTrong,
 }: DataTableProps<T>) {
+  const persistKey = useKhoaLuu(persistKeyGoc);   // + phạm vi lưu của trang (PhamViLuu) — mỗi phạm vi một bộ cột / sort / lọc / ô tìm riêng
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
   // KÉO GIÃN CỘT (keo-rong.ts — 17/10/2026, anh: "dùng DataTable mà không resize được"): mép phải mỗi tiêu đề có tay nắm; bề ngang nhớ theo
   // persistKey (localStorage, đọc sau khi gắn để không lệch SSR); có cột đã kéo → bảng chuyển table-layout fixed để bề ngang được tôn trọng.
@@ -625,7 +626,12 @@ export function DataTable<T>({
               <input
                 value={q} onChange={(e) => setQ(e.target.value)}
                 placeholder={searchPlaceholder ?? 'lọc bảng…'}
-                style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'var(--fg-1)', width: 190 }}
+                // Ô TÌM CÓ CHỮ = ĐANG LỌC → sáng viền + nền như ô lọc đang chọn (Chon2 coLoc) — anh 02/11/2026 "highlight khi search có giá trị giống bộ lọc"; 0 dòng thì đỏ
+                data-dang-loc={q.trim() ? (sortedRows.length ? '1' : '0') : undefined}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '3px 9px', borderRadius: 5, color: 'var(--fg-1)', width: 190,
+                  ...(!q.trim() ? { border: '1px solid var(--line)', background: 'var(--bg-2)' }
+                    : sortedRows.length ? { border: '1px solid var(--accent, #60a5fa)', background: 'var(--accent-soft, rgba(59,130,246,.15))' }
+                    : { border: '1px solid #f87171', background: 'rgba(248,113,113,.15)', boxShadow: '0 0 0 2px rgba(248,113,113,.35)' }) }}
               />
               {/* Đang lọc thì phải nói rõ đang nhìn bao nhiêu trên tổng bao nhiêu — không thì bảng
                   ngắn đi trông như mất dữ liệu. */}

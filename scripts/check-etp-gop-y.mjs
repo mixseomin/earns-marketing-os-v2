@@ -136,7 +136,7 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/lib/auth.ts', mot: 'if (r.chi_host && String(r.chi_host).toLowerCase() !== await hostHienTai()) continue;', vi: 'phiên khách một trang chỉ sống trên đúng host của họ' },
   { card: 0, tep: 'apps/web/src/app/api/auth/verify/route.ts', co: "if (u.role === 'viewer' && !u.chiHost) return", vi: 'cổng SSO cho khách một trang qua, viewer thường vẫn 403' },
   { card: 0, tep: 'apps/etp/deploy/etp.on.tc.nginx', co: 'proxy_set_header Cookie $http_cookie; proxy_set_header Host $host; }', vi: 'cổng auth_request etp gửi Host thật (khách etp mới qua được)' },
-  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "<EtpView chiXem={quyen.vai !== 'chu'}", vi: 'không phải chủ (admin mos2) thì ẩn nút ghi của nhà' },
+  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "chiXem={quyen.vai !== 'chu'}", vi: 'không phải chủ (admin mos2) thì ẩn nút ghi của nhà' },
   { card: 0, tep: 'apps/web/src/lib/actions/etp-lich.ts', co: "me.role === 'admin' ? me.email : null", vi: 'đặt lịch giờ chỉ admin' },
   { card: 1486, tep: 'apps/web/src/components/etp-view.tsx', co: "label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><BadgeDang d={d} ngan />", vi: 'ô lọc Loại hiện badge màu như cột LOẠI' },
   { card: 1486, tep: 'apps/web/src/components/etp-view.tsx', cam: "label: `${m} · ${d}`, dem:", vi: 'ô lọc Loại không quay lại chữ trơn' },
@@ -422,6 +422,11 @@ const LUAT = [
   { card: 'chat', tep: V, co: 'const camps = useMemo(() => du.camps.filter((c) => BO_LOC.every(([, f]) => f(c))), [du.camps, BO_LOC]);', vi: 'cây / bảng camp lọc qua MỘT danh sách bộ lọc có tên (BO_LOC) — để chỉ ra ô nào ẩn camp đang tìm' },
   { card: 'chat', tep: V, co: '<Chon2 chan={chanLoc.loc} value={loc}', vi: 'ô Lọc viền đỏ khi đang ẩn camp người dùng tìm' },
   { card: 'chat', tep: V, co: 'onTimDoi={setTimCay} khiTimTrong={giaiTim()}', vi: 'tìm ra 0 dòng: nói bộ lọc nào ẩn / camp ở người nào (link mở)' },
+  { card: 'chat', tep: V, co: '<PhamViLuu value={phamViNg(du)}>', vi: 'bảng / ô tìm / lọc cột / độ rộng lưu riêng theo người đang xem (không thông nhau)' },
+  { card: 'chat', tep: 'apps/web/src/app/etp/page.tsx', co: "<EtpView key={du.nguoi.doi ? 'team' : `ng${du.nguoi.dang ?? 'nha'}`}", vi: 'đổi người = dựng lại trang, bộ lọc không mang sang' },
+  { card: 'chat', tep: V, co: "['b', 'ngan', 'l', 'lu', 'd', 'll', 'tu', 'p'].includes(k)", vi: 'đổi người bỏ bộ lọc trang + tham số bảng của phạm vi cũ trên URL' },
+  { card: 'chat', tep: 'packages/bang/src/data-table.tsx', co: "data-dang-loc={q.trim() ? (sortedRows.length ? '1' : '0') : undefined}", vi: 'ô tìm có chữ sáng viền như ô lọc đang chọn, 0 dòng thì đỏ' },
+  { card: 'chat', tep: 'packages/bang/src/data-table.tsx', co: 'const persistKey = useKhoaLuu(persistKeyGoc);', vi: 'DataTable lưu theo phạm vi của trang (PhamViLuu)' },
   { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tim.ts', co: "if (!qu || qu.vai === 'nguoi' || k.length < 3) return [];", vi: 'tìm camp người khác: vai người không được biết camp người khác' },
 ];
 

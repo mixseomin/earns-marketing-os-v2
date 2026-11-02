@@ -7,6 +7,7 @@ import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoan
 import BANG_LUAT from '@/lib/etp-bang-luat.json';   // SỔ LUẬT CHUNG — mọi thẻ / nhóm / hướng / bộ lọc luật đọc từ đây (anh 01/11/2026 "tìm nguyên nhân gốc")
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
 import { AnchoredPopover, DataTable, Drawer, EmptyState, FilterChips, ListToolbar, Pager, Segmented, StatsStrip, usePaged, type DataColumn, type SegmentedOption } from '@/components/ui';
+import { PhamViLuu, useKhoaLuu } from '@/components/ui/table-prefs';
 import { datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/actions/etp-sua';
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import type { CheDoLuat } from '@/lib/etp-quyen';
@@ -62,6 +63,9 @@ const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat
   : c.lich_tat ? { chu: 'dừng theo giờ', mau: '#f59e0b', t: 'tạm dừng theo lịch giờ — máy tự bật lại khi tới khung BẬT' }
   : choGio(c) ? { chu: `chờ ${conLai(c.lich!)} nữa`, mau: '#f59e0b', t: `hẹn chạy từ ${vn(c.lich)}` }
   : c.trang_thai === 'ACTIVE' ? { chu: 'chạy', mau: '#4ade80', t: 'đang chạy' } : { chu: 'dừng', mau: 'var(--fg-2)', t: 'tắt' };
+// PHẠM VI LƯU THEO NGƯỜI ĐANG XEM (anh 02/11/2026 "layout, filter, search… thì ko được thông nhau"): bảng (cột / sắp xếp / lọc cột / ô tìm / độ rộng) và cây mở-gập
+// lưu riêng cho Nhà · từng người · Team. Nhà để phạm vi rỗng = giữ nguyên bộ đã lưu từ trước
+const phamViNg = (du: DuLieuEtp) => (du.nguoi.doi ? 'team' : du.nguoi.ngoai && du.nguoi.dang != null ? `ng${du.nguoi.dang}` : '');
 const dangChay = (c: Pick<CampEtpKho, 'trang_thai' | 'lich'>) => c.trang_thai === 'ACTIVE' && !choGio(c);
 // CAMP ROAS (nhà ★ … duplicate by · team "Dup by <gốc> ROAS 1.1" / "_ROAS1" / "(ROAS)") — luật nhận ở lib/etp-roas.ts, cùng apps/etp/cong.py la_roas
 const MAU_ROAS = '#facc15';   // camp ROAS tô vàng ở cây / bảng camp (anh 27/10/2026)
@@ -1589,11 +1593,12 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const [giai, setGiai] = useState(false);   // chú giải GẬP mặc định, cả máy tính (anh 27/10/2026 "bỏ ẩn hết mấy cái này") — bấm nút Chú giải mới hiện
   // LƯU TRẠNG THÁI MỞ / GẬP của cây (anh 27/10/2026 "lưu lại trạng thái collapse này"): phim 'p<id>' · camp gốc 'c<id>' — localStorage của người xem
   // (tiện ích riêng mỗi người, đọc sau khi gắn trang để không lệch hydrate; hỏng / bị chặn thì coi như gập hết)
+  const khoaMo = useKhoaLuu('etp-cay-mo')!;   // mở / gập riêng theo người đang xem (phamViNg)
   const [moCay, setMoCay] = useState<Set<string>>(new Set());
-  useEffect(() => { try { setMoCay(new Set(JSON.parse(localStorage.getItem('etp-cay-mo') ?? '[]') as string[])); } catch { /* không có localStorage */ } }, []);
+  useEffect(() => { try { setMoCay(new Set(JSON.parse(localStorage.getItem(khoaMo) ?? '[]') as string[])); } catch { /* không có localStorage */ } }, [khoaMo]);
   // ks: nhiều khoá một lần — MỞ PHIM = MỞ HẾT CÁC TẦNG CAMP BÊN TRONG (anh 28/10/2026 "khi mở thì mở hết các level camp ra luôn"); gập phim chỉ gập phim
   const doiMo = (k: string | string[], mo: boolean) => setMoCay((cu) => { const ks = Array.isArray(k) ? k : [k]; if (ks.every((x) => cu.has(x) === mo)) return cu; const n = new Set(cu); for (const x of ks) { if (mo) n.add(x); else n.delete(x); }
-    try { localStorage.setItem('etp-cay-mo', JSON.stringify([...n])); } catch { /* bỏ qua */ } return n; });
+    try { localStorage.setItem(khoaMo, JSON.stringify([...n])); } catch { /* bỏ qua */ } return n; });
   const tuoi = (c: CampEtpKho) => tuoiNgay(c.tao);
   const ngay = [6, 5, 4, 3, 2, 1].map((k) => new Date(Date.parse(du.nay) - k * 86_400_000).toISOString().slice(0, 10));
   const soN = hep ? Math.max(1, Math.min(6, Math.floor(((rong || 360) - 330) / 42))) : 6;
@@ -2317,7 +2322,10 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   // NGƯỜI (anh 28/10/2026 "xem được report của từng người"): đổi người = nạp lại dữ liệu từ máy chủ (?ng=); người nhà bỏ tham số; bỏ lọc bộ (bộ chỉ có ở nhà)
   const tenNguoi = du.nguoi.doi ? 'Team' : (du.nguoi.ngoai ? du.nguoi.ds.find((x) => x.id === du.nguoi.dang) : du.nguoi.ds.find((x) => x.nha))?.ten ?? 'Nhà';
   // URL xem một người — chung cho bấm chọn (router.push) và ⌘ / Ctrl-click mở tab mới (#1496)
-  const urlNguoi = (v: string) => { const u = new URL(location.href); if (!v || Number(v) === du.nguoi.nha) u.searchParams.delete('ng'); else u.searchParams.set('ng', v); u.searchParams.delete('b'); u.searchParams.delete('ngan'); return u; };
+  // đổi người = sang phạm vi lưu khác: bỏ mọi bộ lọc trang (Lọc · Luật · Loại · TK · Lãi/lỗ · Tuổi · Phim · ngăn) + tham số bảng (ô tìm / lọc cột / gom) của phạm vi cũ trên URL
+  // — người kia dùng bộ đã lưu của riêng họ (anh 02/11/2026 "layout, filter, search… thì ko được thông nhau"); giữ tab, kiểu xem, kỳ
+  const urlNguoi = (v: string) => { const u = new URL(location.href); if (!v || Number(v) === du.nguoi.nha) u.searchParams.delete('ng'); else u.searchParams.set('ng', v);
+    for (const k of [...u.searchParams.keys()]) if (['b', 'ngan', 'l', 'lu', 'd', 'll', 'tu', 'p'].includes(k) || /^etp-.+\.(q|flt|g)$/.test(k)) u.searchParams.delete(k); return u; };
   const nguoiSel = () => (du.nguoi.ds.length > 1 ? <>{dangDoiNguoi ? <span style={{ fontSize: 11, color: '#60a5fa' }}>đang tải…</span> : null}<Chon2 value={du.nguoi.doi ? 'team' : du.nguoi.dang == null || !du.nguoi.ngoai ? '' : String(du.nguoi.dang)} nhan="Người" align="left" title="xem camp + report theo người dùng Ethopex (tài khoản QC của người đó) — người khác chỉ xem, luật không áp"
     onChange={(v) => { const u = urlNguoi(v); doiNguoi(() => router.push(`${u.pathname}${u.search}`)); }} href={(v) => urlNguoi(v).href}
     // TEAM (anh 02/11/2026): nhà + mọi người gộp một, chỉ xem — đứng đầu danh sách
@@ -2384,7 +2392,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
     <ChiXem.Provider value={chiXem}>
-    <SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
+    <PhamViLuu value={phamViNg(du)}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
     <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > (gon ? h.offsetTop + h.offsetHeight : 12); if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}@keyframes etpXoay{to{transform:rotate(360deg)}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
     {/* TRÀN HẾT BỀ NGANG MÀN (anh 29/10/2026 "tại sao màn hình ko tràn hết sang 2 bên"): trước khoá maxWidth 1600 căn giữa — màn 1930px thừa hai lề trống, bảng Cây bị cắt cột phải */}
@@ -2553,7 +2561,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         </KhungNoi>; })() : null}
     </div>
     </div>
-    </SuaCampCtx.Provider>
+    </SuaCampCtx.Provider></PhamViLuu>
     </ChiXem.Provider>
   );
 }

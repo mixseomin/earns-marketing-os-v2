@@ -28,6 +28,8 @@ const dsNhan = await q<{ id: string; ten: string; url: string; nguon: string; lo
   FROM etp.phim_nhan_td t LEFT JOIN etp.thu_vien_phim v USING (content_id) WHERE t.tu_dong AND t.buoc IN ('cho_sinh', 'loi_sinh')`).catch(() => []);
 const nhan = new Set(dsNhan.map((p) => p.id));
 const daCo = new Set([...dsNhan, ...dsCau].map((p) => p.id));
+// PHIM MỚI CẮT $0 TRƯỚC (anh 03/11/2026: "dừng lại … Từ giờ ưu tiên cắt từ phim trước cho rẻ $0"): máy sinh KT (tốn tiền AI) KHÔNG làm cho phim chưa có camp nhà
+// (danh sách cầu + phim Nhà nhận) — phim mới đi dây chuyền cắt cảnh phim (phim-moi.py). KT chỉ còn cho phim đã có camp (thay camp / đang chạy / đang lãi).
 const ds = [...dsNhan, ...dsCau.filter((p) => !nhan.has(p.id)), ...dsNha.filter((p) => !daCo.has(p.id))];
 const tt = ((await q<{ gia_tri: Record<string, { tt: string }> }>(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_phim_moi_tt'`))[0]?.gia_tri ?? {});
 const so14 = new Map((await q<{ content_id: number; chi: number; thu: number }>(sql`SELECT c.content_id, coalesce(sum(n.chi), 0)::float chi, coalesce(sum(n.thu), 0)::float thu
@@ -53,6 +55,6 @@ const hang = ds.map((p, i) => {
   const bo = chan18(id) ?? (cho.has(id) ? 'đã có bản chờ chạy / vừa sinh' : tt[p.id]?.tt === 'poster_loai' ? 'poster bị loại (soát phim mới)' : k && k.thua >= 2 && !k.thang ? `kể chuyện đã thua ${k.thua} lần, chưa thắng` : !p.url ? 'thiếu link trang phim' : null);
   const diem = nhan.has(p.id) ? 4000 : !coKt.has(id) && thay.has(id) ? 3000 + lai : !coKt.has(id) && live.has(id) ? 2000 + lai : !s ? 500 - Math.min(i, 399) : lai > 0 ? 1000 + lai : 100 + lai;
   return { content_id: id, ten: p.ten, url: p.url, nguon: p.nguon, lang: p.locale?.startsWith('es') ? 'es' : 'en', diem: Math.round(diem * 100) / 100, lai14: Math.round(lai * 100) / 100, chi14: Math.round((s?.chi ?? 0) * 100) / 100, kc: k ?? null, bo };
-}).filter((x) => !x.bo).sort((a, b) => b.diem - a.diem).slice(0, so);
+}).filter((x) => !x.bo && coCamp.has(x.content_id)).sort((a, b) => b.diem - a.diem).slice(0, so);   // phim chưa có camp nhà → cắt $0, không sinh KT (anh 03/11/2026)
 console.log(JSON.stringify(hang));
 process.exit(0);

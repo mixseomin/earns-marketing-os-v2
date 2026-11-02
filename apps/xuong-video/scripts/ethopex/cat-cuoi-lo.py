@@ -71,7 +71,7 @@ def chon(src, moc, so_ban=1):
         if ra and e > ra[-1][0]: continue   # không chồng khung đã chọn
         for d in range(DAI_MAX, DAI_MIN - 1, -5):
             s = round(e - d, 1)
-            if s >= tu0 and sach(s, e): ra.append((s, e)); break
+            if s >= tu0 and (sach(s, e) or d == DAI_MIN): ra.append((s, e)); break   # không có khung sạch trọn → lấy khung ngắn nhất, cat-canh CẮT BỎ giây cấm (anh 03/11/2026 "ko cần liền mạch")
     return ra, cam
 
 def lam(p, goc, ra_dir, so_ban=1):

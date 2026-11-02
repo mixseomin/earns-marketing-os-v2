@@ -152,11 +152,11 @@ if __name__ == "__main__":
     # CỔNG THOẠI (20/10/2026, Meta từ chối #65717/#65719 "Adult Sexual Exploitation"): phụ đề/chữ trong đoạn dính mua bán dâm, quan hệ,
     # đe doạ lột đồ → KHÔNG cắt (kiem-thoai.py đọc chữ mỗi giây bằng Vision macOS)
     k = __import__("subprocess").run(["python3", os.path.join(D, "kiem-thoai.py"), a[0], a[1], a[2]], capture_output=True, text=True)
-    if os.environ.get("ETP_KIEU") == "tap":   # kiểu tập nguyên: giây thoại cấm (kiem-thoai) + giây cấm cat-cuoi-lo đã đọc (ETP_CAM) → BỎ những giây đó, không bỏ cả tập
+    if os.environ.get("ETP_KIEU") == "tap" or MAU_CTA == "kien":   # CẮT BỎ GIÂY NHẠY CẢM, không bỏ cả đoạn (anh 03/11/2026 "cảnh nào nhạy cảm, vi phạm rule thì cứ cắt bỏ, ko cần liền mạch") · kiểu tập nguyên: giây thoại cấm (kiem-thoai) + giây cấm cat-cuoi-lo đã đọc (ETP_CAM) → BỎ những giây đó, không bỏ cả tập
         import re as _re
         cam = [float(x) for x in _re.findall(r"THOAI CHAN: (\d+(?:\.\d+)?)s «", k.stdout)] + [float(x) for x in os.environ.get("ETP_CAM", "").split(",") if x.strip()]
         if k.returncode != 0 and not cam: sys.exit(k.stdout.strip() or k.stderr.strip() or "THOAI CHAN: không đọc được phụ đề")
-        dung_tap(a[0], float(a[1]), float(a[2]), os.environ.get("ETP_TEN") or "Watch the full story", a[6], cam=cam); sys.exit(0)
+        dung_tap(a[0], float(a[1]), float(a[2]), os.environ.get("ETP_TEN") or "Watch the full story", a[6], nut=NUT_KIEN["es" if re.search(r"M[IÍ]RALA|GRATIS", a[5] if len(a) > 5 else "", re.I) else "en"], cam=cam); sys.exit(0)
     if k.returncode != 0: sys.exit(k.stdout.strip() or k.stderr.strip() or "THOAI CHAN: không đọc được phụ đề")
     dung(a[0], float(a[1]), float(a[2]), a[3], json.load(open(a[4])) if a[4] != "-" else None, a[5], a[6],
          a[7] if len(a) > 7 and a[7] != "-" else None, a[8] if len(a) > 8 else "WHAT HAPPENS NEXT?")

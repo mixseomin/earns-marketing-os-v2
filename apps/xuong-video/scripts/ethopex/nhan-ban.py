@@ -308,10 +308,10 @@ def main(a):
             tran = float(q("select coalesce((select gia_tri::text::numeric from etp.cau_hinh where khoa = 'tran_camp'), 30)") or 30)
             ns = float((d.get("campaign") or {}).get("budget_daily") or 0)
             if ns < tran: raise ChanLuat(f"camp gốc #{goc} mới ${ns:g}/ngày, chưa chạm trần ${tran:g} — chưa clone (tăng ngân sách camp gốc trước)")
-        if not moi and not ep:   # CỔNG BÃO HOÀ PHIM (B, anh 25/10/2026): mọi đường nhân bản (luật NB, góc mới, soát đoạn) — phim đang tụt thì không nhân thêm camp
+        if not ep and not NGOAI:   # CỔNG BÃO HOÀ PHIM (B, anh 25/10/2026): mọi đường mở camp thường của nhà — nhân bản, thang, góc mới, CREATIVE MỚI (02/11/2026 "không lên camp mới"); camp ROAS đi roas_main, không qua cổng này; tài khoản team chỉ cảnh báo (canh-bao.py bao_hoa_team)
             try: bh = q(f"select chan_nb from etp.phim_bao_hoa where content_id = {int(cid)} and chan_nb is not null")
             except Exception: bh = ""
-            if bh: raise ChanLuat(f"phim {cid} đang bão hoà — {bh} → không nhân bản thêm (dồn tiền sang phim khác)")
+            if bh and (not moi or bh.startswith("bão hoà")): raise ChanLuat(f"phim {cid} đang bão hoà — {bh} → không mở thêm camp (dồn tiền sang phim khác)")   # creative mới chỉ chặn khi đúng lý do bão hoà (lên thêm camp mà ROI giảm / giảm 2 ngày liền)
         ad0 = pl["campaign"]["ad_groups"][0]["ads"][0]; cr = ad0["creative_id"]
         if ep: kq["viec"] = "sang_bo"
         elif not moi:   # clone GIỮ NGUYÊN creative gốc tới trần TRAN_DOAN camp chạy / đoạn (anh 28/10/2026); đoạn đã đủ trần → creative khác cùng phim

@@ -348,7 +348,7 @@ try:
         if m and tao(c) > gio24 and phim_cua.get(int(m.group(1))): ban_phim[phim_cua[int(m.group(1))]] = ban_phim.get(phim_cua[int(m.group(1))], 0) + 1
     bat = {c["id"] for c in ds_camp if c.get("state") == "ACTIVE"}
     # CỔNG BÃO HOÀ PHIM (B, anh 25/10/2026 "rule hoá"): phim ROI hôm qua < 50% hoặc tụt dưới 70% hôm kia → không nhân thêm (etp.phim_bao_hoa, canh-bao.py tính)
-    try: chan_phim = {int(l.split("|")[0]): l.split("|", 1)[1] for l in q("select content_id, chan_nb from etp.phim_bao_hoa where chan_nb is not null").splitlines() if "|" in l}
+    try: chan_phim = {} if EA.XEM else {int(l.split("|")[0]): l.split("|", 1)[1] for l in q("select content_id, chan_nb from etp.phim_bao_hoa where chan_nb is not null").splitlines() if "|" in l}   # team chỉ cảnh báo (anh 02/11/2026)
     except Exception: chan_phim = {}
     # NGHỈ SAU LỖI (25/10/2026: 16.751 lần nhân bản thất bại trong nhật ký — luật đề xuất lại cùng camp bị chặn ở MỖI nhịp, #67663 3 lần / phút):
     # camp gốc nhân bản lỗi trong 6 giờ qua thì bỏ qua lượt này

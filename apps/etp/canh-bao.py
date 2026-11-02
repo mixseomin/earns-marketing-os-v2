@@ -9,6 +9,8 @@ Ngày = ngày Ethopex (UTC). Các dò (ngưỡng ở đầu tệp):
   dong_bo_tre  lượt đồng bộ gần nhất lỗi
   phim_bao_hoa  > 10 camp và ROI phim giảm 2 ngày liền (bảng etp.phim_bao_hoa: chan_nb cho luật NB, bao_hoa cho Telegram / etp / extension)
   roas_gan / roas_dat  camp ROI ≥ 50% ổn định 2–3 ngày: chi ≥ $70 sắp đủ, ≥ $100 đủ tiêu chí bid ROAS (một lần mỗi camp mỗi mức)
+  phim_bao_hoa thêm luật "lên thêm camp mà ROI phim cả hệ giảm" (02/11/2026) — mọi số phim tính trên nhà + team
+  bao_hoa_team   tài khoản team lên camp mới cho phim đang bão hoà — chỉ báo, không chặn (anh 02/11/2026)
   tran_phim_vuot  một phim có > etp.cau_hinh.tran_phim camp đang chạy trong MỘT tài khoản (nhà: máy đã chặn mở thêm; team: chỉ báo) — mỗi ngày một lần
   tran_phim_mo    phim đủ trần ở một tài khoản nhà và MỌI camp đang chạy lãi đều (3 ngày đã khép, ≥ 2 ngày có chi ≥ $1, ngày nào cũng thu > chi)
                   → đề xuất anh mở thêm chỗ (anh 02/11/2026: "khi nào tất cả 30 cùng lãi đều và ổn định mới đề xuất mở thêm slot")"""
@@ -29,16 +31,26 @@ def bao(loai, muc, khoa, chu):
 #   bao_hoa (D — Telegram / etp / extension): > 10 camp đang chạy và ROI phim giảm 2 ngày liền (mỗi ngày chi ≥ $5)
 CM_CHI, CM_ROI = 20, 20   # clone mới: chi ≥ $20 trong 2 ngày khép mà ROI < 20% → chặn nhân bản phim
 BH_CAMP, NB_ROI_PHIM, NB_GIU = 10, 50, 0.8   # 0.7 → 0.8 (anh 25/10/2026: Number One 148% → 106% vẫn > 100% nhưng giảm sâu thì cũng phải dừng nhân bản)
+_NGOAI = "ad_account_id in (select ad_account_id from etp.tai_khoan where not nha)"
+_SO = f"""select k.content_id, k.tao, s.ngay, s.chi, s.thu from etp.so_ngay s join etp.camp k using (camp_id) union all
+         select k.content_id, k.tao, s.ngay, s.chi, s.thu from etp.so_ngay_ngoai s join etp.camp_ngoai k using (camp_id) where k.{_NGOAI}"""
 def bao_hoa_phim(nay):
     d = [(nay - dt.timedelta(days=k)).isoformat() for k in (1, 2, 3)]
     # đếm theo view etp.camp_dang_chay (gồm camp tạm dừng vì LỊCH GIỜ) — khung TẮT không được làm phim rơi khỏi bảng bão hoà
-    rows = q(f"""with c as (select content_id, count(*) so from etp.camp_dang_chay where content_id is not null group by 1),
-                 s as (select k.content_id, s.ngay, sum(s.chi) chi, sum(s.thu) thu from etp.so_ngay s join etp.camp k using (camp_id)
+    # CẢ HỆ (anh 02/11/2026 "của từng film"): nhà + tài khoản team cùng giành một tệp người xem → ROI phim, số camp, clone mới đều tính trên mọi tài khoản
+    rows = q(f"""with c as (select content_id, count(*) so from (select content_id from etp.camp_dang_chay union all
+                        select content_id from etp.camp_ngoai where trang_thai = 'ACTIVE' and {_NGOAI}) x where content_id is not null group by 1),
+                 s as (select content_id, ngay, sum(chi) chi, sum(thu) thu from ({_SO}) s
                        where s.ngay in ('{d[0]}', '{d[1]}', '{d[2]}') group by 1, 2)
              select c.content_id, coalesce(p.ten, ''), c.so, coalesce(json_agg(json_build_object('d', s.ngay, 'chi', round(s.chi, 2), 'thu', round(s.thu, 2)) order by s.ngay) filter (where s.ngay is not null), '[]')
              from c left join s using (content_id) left join etp.phim p using (content_id) where c.so > 0 group by 1, 2, 3""").splitlines()
-    moi_cua = {int(l.split("|")[0]): (float(l.split("|")[1]), float(l.split("|")[2])) for l in q(f"""select k.content_id, sum(s.chi), sum(s.thu) from etp.so_ngay s join etp.camp k using (camp_id)
-        where s.ngay in ('{d[0]}', '{d[1]}') and k.content_id is not null and s.ngay - (k.tao at time zone 'utc')::date <= 2 group by 1""").splitlines() if l.count("|") == 2}
+    moi_cua = {int(l.split("|")[0]): (float(l.split("|")[1]), float(l.split("|")[2])) for l in q(f"""select content_id, sum(chi), sum(thu) from ({_SO}) s
+        where s.ngay in ('{d[0]}', '{d[1]}') and content_id is not null and s.ngay - (s.tao at time zone 'utc')::date <= 2 group by 1""").splitlines() if l.count("|") == 2}
+    # camp MỚI lên mỗi ngày đã khép (mọi tài khoản, kể cả ROAS — ROAS không bị chặn nhưng vẫn là thêm camp giành tệp người xem)
+    len_moi = {}
+    for l in q(f"""select content_id, (tao at time zone 'utc')::date, count(*) from (select content_id, tao from etp.camp union all
+                     select content_id, tao from etp.camp_ngoai where {_NGOAI}) x where content_id is not null and (tao at time zone 'utc')::date in ('{d[0]}', '{d[1]}') group by 1, 2""").splitlines():
+        cid, ng, so = l.split("|"); len_moi.setdefault(int(cid), {})[ng] = int(so)
     out, n = [], 0
     for l in rows:
         cid, ten, so, js = l.split("|", 3); so = int(so); ng = {x["d"]: x for x in json.loads(js)}
@@ -50,11 +62,18 @@ def bao_hoa_phim(nay):
             elif r2 is not None and r2 > 0 and r1 < NB_GIU * r2: chan = f"ROI phim tụt {r2:+.0f}% → {r1:+.0f}% (giảm {round((1 - r1 / r2) * 100)}%, ngưỡng {round((1 - NB_GIU) * 100)}%)"
         cm = moi_cua.get(int(cid))   # CLONE MỚI KHÔNG ĂN (anh 26/10/2026 "làm đi": ¡Atrás! camp cũ +42% mà clone ≤ 2 ngày chỉ +2%) — clone mới 2 ngày khép ROI < 20% → ngừng nhân bản
         if not chan and cm and cm[0] >= CM_CHI and (cm[1] - cm[0]) / cm[0] * 100 < CM_ROI: chan = f"clone mới (≤ 2 ngày tuổi) 2 ngày khép ROI {(cm[1] - cm[0]) / cm[0] * 100:+.0f}% < {CM_ROI}% trên ${cm[0]:.0f} — nhân bản thêm không ăn"
+        # Lý do bắt đầu bằng "bão hoà" được ưu tiên ghi vào chan_nb: nhan-ban.py chặn CREATIVE MỚI chỉ với lý do này; nhân bản thì lý do nào cũng chặn
+        # LÊN THÊM CAMP MÀ ROI PHIM GIẢM (anh 02/11/2026: "sau mỗi lần nhân bản, lên thêm camp mà tổng thể ROI giảm có thể coi là chạm mức bão hoà cần theo dõi
+        # và không lên camp mới"): phim có camp mới lên trong 2 ngày đã khép, ROI cả hệ hôm qua thấp hơn ngày TRƯỚC đợt lên → chặn mở camp mới (trừ ROAS).
+        # Hết đợt lên mới (2 ngày không thêm camp) thì luật này tự nhả; các luật trên vẫn giữ nếu ROI còn thấp.
+        lm = len_moi.get(int(cid), {}); goc = (x3, r3, d[2]) if lm.get(d[1]) else (x2, r2, d[1])
+        if lm and x1 and x1["chi"] >= 10 and r1 is not None and goc[0] and goc[0]["chi"] >= 5 and goc[1] is not None and r1 < goc[1]:
+            chan = f"bão hoà theo dõi: lên thêm {sum(lm.values())} camp mà ROI phim cả hệ {goc[1]:+.0f}% ({goc[2][8:]}/{goc[2][5:7]}) → {r1:+.0f}% hôm qua"
         bh = None
         if so > BH_CAMP and None not in (r1, r2, r3) and all(x and x["chi"] >= 5 for x in (x1, x2, x3)) and r3 > r2 > r1:
             bh = f"{so} camp đang chạy · ROI phim {r3:+.0f}% → {r2:+.0f}% → {r1:+.0f}% (3 ngày) — camp tự giành cùng tệp người xem"
             bao("phim_bao_hoa", "vang", f"phim_bao_hoa:{cid}:{nay}", f"⚠ PHIM BÃO HOÀ: {ten[:50]} (#{cid}) — {bh}. Máy đã dừng nhân bản phim này; đoạn quá tải đang được dọn sang góc mới."); n += 1
-            chan = chan or f"bão hoà: ROI phim giảm 2 ngày liền ({r3:+.0f}% → {r2:+.0f}% → {r1:+.0f}%)"
+            chan = chan if chan and chan.startswith("bão hoà") else f"bão hoà: ROI phim giảm 2 ngày liền ({r3:+.0f}% → {r2:+.0f}% → {r1:+.0f}%)"
         roi = [{"d": k, "chi": v["chi"], "thu": v["thu"], "roi": None if r(v) is None else round(r(v))} for k, v in sorted(ng.items())]
         out.append({"content_id": int(cid), "ten": ten, "so_camp": so, "roi": roi, "chan_nb": chan, "bao_hoa": bh})
     j = json.dumps(out, ensure_ascii=False).replace("$J$", "")
@@ -118,6 +137,12 @@ def main():
              f"Camp #{i} SẮP ĐỦ bid ROAS — chi ${float(chi):.0f}/${ROAS_DAT}, ROI {roi}%, ổn định ≥ 50% · ${float(ns):g}/ngày ≈ {max(1, round((ROAS_DAT - float(chi)) / max(float(ns) * 0.7, 1)))} ngày nữa — {ten[:70]}")); n += 1
     n += bao_hoa_phim(now.date())
     n += tran_phim(nay)
+    # TÀI KHOẢN TEAM LÊN CAMP CHO PHIM ĐANG BÃO HOÀ (anh 02/11/2026: "tk team chỉ cảnh báo") — không chặn, báo mỗi tài khoản × phim một lần mỗi ngày
+    for l in q(f"""select c.ad_account_id, c.content_id, count(*), coalesce(max(t.nguoi), '?'), max(b.ten), max(b.chan_nb) from etp.camp_ngoai c
+                   join etp.tai_khoan t using (ad_account_id) join etp.phim_bao_hoa b using (content_id)
+                   where not t.nha and b.chan_nb like 'bão hoà%' and c.tao > now() - interval '24 hours' and c.ten not like '★%' group by 1, 2""").splitlines():
+        tk, cid, so, nguoi, ten, ly = l.split("|", 5)
+        bao("bao_hoa_team", "vang", f"bao_hoa_team:{tk}:{cid}:{nay}", f"Tài khoản {tk} · {nguoi} vừa lên {so} camp cho phim đang bão hoà {ten[:50]} (#{cid}) — {ly}. Nhà đã ngừng mở camp phim này; team chỉ báo, không chặn"); n += 1
     l = q("select lan, coalesce(loi, '') from etp.dong_bo where xong is not null order by lan desc limit 1")
     if l and l.split("|", 1)[1]: bao("dong_bo_tre", "vang", f"dong_bo:{nay}:{now.hour}", f"Lượt đồng bộ kho etp #{l.split('|')[0]} lỗi: {l.split('|', 1)[1][:200]}"); n += 1
     print(json.dumps({"canh_bao_moi_thu": n}))

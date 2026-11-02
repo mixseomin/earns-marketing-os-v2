@@ -720,8 +720,12 @@ _rl = {int(x[0] or 0) for x in tat_roas + tat_r0}; tang30 = [x for x in tang30 i
 # worker ghi khi hạ xong) có G10_THEO ngày đã khép SAU ngày hạ mà ROI vẫn < G10_ROI% → báo trước một nhịp rồi máy tắt (cùng đường L3 / RL).
 # Đang theo dõi thì khoá tăng / nhân bản / lên ROAS; qua được thì hết theo dõi, kém lại thì hạ lại.
 G10_NS, G10_DICH, G10_ROI, G10_THEO = 15, 10, 15, 2
+# NHÁNH KÉM ĐI (anh 02/11/2026 "có, thêm luôn" — team: "những camp mà last 5 day có tín hiệu rois kém đi … giảm budget theo dõi 2 ngày tiếp, vẫn kém thì off"):
+# ROI 3 ngày đã khép chưa dưới 15% nhưng tụt còn < G10_KEM_TI × ROI 4 ngày trước (D−7..D−4, chi ≥ 1 ngày ngân sách) và < G10_KEM_ROI% → cũng hạ về $10, theo dõi + tắt như G10
+G10_KEM_TI, G10_KEM_ROI = 0.5, 30
 g10, tat_g10, _g10_theo = [], [], {}
 _d3s = {dt.date.fromisoformat(d(i)) for i in (1, 2, 3)}
+_d4s = {dt.date.fromisoformat(d(i)) for i in (4, 5, 6, 7)}
 try:
     try: _g10 = {int(k): dt.date.fromisoformat(v) for k, v in json.loads(q("select gia_tri::text from etp.cau_hinh where khoa = 'g10'") or "{}").items()}
     except Exception: _g10 = {}
@@ -739,10 +743,15 @@ try:
                 continue
         if ns <= G10_NS: continue
         x3 = [x for x in _ds if x[0] in _d3s]; c3, t3 = sum(x[1] for x in x3), sum(x[2] for x in x3)
-        if len(x3) < 3 or c3 < ns or (t3 - c3) / c3 * 100 >= G10_ROI: continue   # chạy đủ 3 ngày: cả 3 ngày đã khép đều có chi (anh 31/10/2026 "ROI 3 ngày và phải chạy từ 3 ngày trở lên")
+        if len(x3) < 3 or c3 < ns: continue   # chạy đủ 3 ngày: cả 3 ngày đã khép đều có chi (anh 31/10/2026 "ROI 3 ngày và phải chạy từ 3 ngày trở lên")
+        r3_ = (t3 - c3) / c3 * 100
+        x4 = [x for x in _ds if x[0] in _d4s]; c4, t4 = sum(x[1] for x in x4), sum(x[2] for x in x4); r4_ = (t4 - c4) / c4 * 100 if c4 else None
+        kem = r3_ >= G10_ROI and r4_ is not None and c4 >= ns and r3_ < G10_KEM_ROI and r3_ < G10_KEM_TI * r4_
+        if r3_ >= G10_ROI and not kem: continue
         try: ly = NT.chan_giam(api, cid)
         except Exception: ly = None
-        if not ly: g10.append((cid, f"#{ten_} · ${ns:g} → ${G10_DICH} · 3 ngày đã khép chi ${c3:.2f} · lãi ${t3 - c3:+.2f} · ROI {(t3 - c3) / c3 * 100:+.1f}% < {G10_ROI}% (luật G10 — hướng dẫn team)"))
+        if not ly: g10.append((cid, f"#{ten_} · ${ns:g} → ${G10_DICH} · 3 ngày đã khép chi ${c3:.2f} · lãi ${t3 - c3:+.2f} · ROI {r3_:+.1f}%" + (
+            f" · kém đi: 4 ngày trước ROI {r4_:+.0f}% → 3 ngày gần {r3_:+.0f}% (< {G10_KEM_TI:.0%} và < {G10_KEM_ROI}%) (luật G10 nhánh kém đi — hướng dẫn team)" if kem else f" < {G10_ROI}% (luật G10 — hướng dẫn team)")))
 except Exception as e:
     loi_may.append((0, f"luật G10 lỗi: {str(e)[:80]}"))
 _g10_cam = {int(x[0]) for x in g10 + tat_g10} | set(_g10_theo)
@@ -772,6 +781,17 @@ def _xet_luat():
             [["Ngân sách", f"${ns:g}", f"> ${G10_NS}", ns > G10_NS], ["Ngày có chi (3 ngày đã khép)", f"{len(_x)}/3", "đủ 3 ngày", len(_x) >= 3], ["Chi 3 ngày đã khép", f(c3, "$"), f"≥ 1 ngày ngân sách", bool(ns) and c3 >= ns], ["ROI 3 ngày đã khép", f(r3, "%"), f"< {G10_ROI}%", r3 is not None and r3 < G10_ROI]],
             "g10" if int(cid) in vao["g10"] else "tat_g10" if int(cid) in vao["tat_g10"] else None,
             f"đã hạ về ${G10_DICH} ngày {theo_:%d/%m} — đang theo dõi {G10_THEO} ngày đã khép, khoá tăng" if theo_ else None, tien=2, lo=None if r3 is None else r3 < G10_ROI)
+    def L_g10k(cid, ns):
+        _g = (_ng.get(int(cid)) or [None, []])[1]
+        x3, x4 = [x for x in _g if x[0] in _d3s], [x for x in _g if x[0] in _d4s]
+        c3, t3, c4, t4 = sum(x[1] for x in x3), sum(x[2] for x in x3), sum(x[1] for x in x4), sum(x[2] for x in x4)
+        r3, r4 = ((t3 - c3) / c3 * 100 if c3 >= 0.3 else None), ((t4 - c4) / c4 * 100 if c4 >= 0.3 else None)
+        vao_ = "g10" if int(cid) in vao["g10"] and any(int(x[0]) == int(cid) and "kém đi" in x[1] for x in g10) else None
+        return L("g10k", "G10 · ROI kém đi → $10, rồi tắt", f"Nhánh kém đi của G10 (team 02/11/2026: 'last 5 day có tín hiệu ROI kém đi'): ngân sách > ${G10_NS}, đủ 3 ngày đã khép có chi, chi 3 ngày ≥ 1 ngày ngân sách, 4 ngày trước chi ≥ 1 ngày ngân sách, ROI 3 ngày gần < {G10_KEM_TI:.0%} ROI 4 ngày trước và < {G10_KEM_ROI}% → hạ về ${G10_DICH}; {G10_THEO} ngày sau vẫn < {G10_ROI}% → tắt.",
+            [["Ngân sách", f"${ns:g}", f"> ${G10_NS}", ns > G10_NS], ["Ngày có chi (3 ngày đã khép)", f"{len(x3)}/3", "đủ 3 ngày", len(x3) >= 3],
+             ["Chi 3 ngày gần", f(c3, "$"), "≥ 1 ngày ngân sách", bool(ns) and c3 >= ns], ["Chi 4 ngày trước", f(c4, "$"), "≥ 1 ngày ngân sách", bool(ns) and c4 >= ns],
+             ["ROI 4 ngày trước → 3 ngày gần", f"{f(r4, '%')} → {f(r3, '%')}", f"< {G10_KEM_TI:.0%} và < {G10_KEM_ROI}%", r3 is not None and r4 is not None and r3 < G10_KEM_ROI and r3 < G10_KEM_TI * r4]],
+            vao_, None, tien=2, lo=None if r3 is None else r3 < G10_KEM_ROI)
     ra = {}
     for cid in sorted(_dc):
         a = thang.get(cid) or thang.get(str(cid)) or {"chi": 0.0, "thu": 0.0, "budget": 0.0}
@@ -800,7 +820,7 @@ def _xet_luat():
             ls.append(L("t30", "★ ROAS thắng · $20 → $30", ("Đang tạm dừng — máy không tăng. " if T30_ROAS_DUNG else "Đang theo dõi (02/11/2026: mới 3 lần đo, +$1.80/ngày so với đối chứng; sổ luật dòng t30_roas). ") + f"Camp ROAS đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách ($16), ROI các ngày đó > {T30_ROI}% → máy tự tăng $30.",
                 [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], ["Ngày tiêu > $16", f"{len(du30)}/3", f"≥ {T30_NGAY}", len(du30) >= T30_NGAY], ["ROI các ngày đó", f(r30, "%"), f"> {T30_ROI}%", r30 is not None and r30 > T30_ROI]],
                 "tang30" if int(cid) in vao["tang30"] else None, tien=1))
-            ls.append(L_g10(cid, ns)); ra[int(cid)] = ls; continue
+            ls.append(L_g10(cid, ns)); ls.append(L_g10k(cid, ns)); ra[int(cid)] = ls; continue
         # T2 — tắt sau 2 ngày có chi đầu tiên
         ds2 = _n2.get(int(cid), [None, []])[1] if "_n2" in globals() else []
         # T1 — tắt sau ngày có chi đầu tiên (02/11/2026)
@@ -880,7 +900,7 @@ def _xet_luat():
             ls.append(L("t30", "T30 · $20 → $30", ("Đang tạm dừng (02/11/2026: so với camp $20 cùng ngày không tăng, mỗi lần lên $30 mất $8.99/ngày) — máy không tăng. " if T30_THUONG_DUNG else "") + f"Camp đang $20, {T30N_NGAY} ngày đã khép: chi TB ≥ {T30N_SP}% ngân sách (${T30N_SP / 100 * 20:g}/ngày), ROI ≥ {T30N_ROI}% → máy tự lên $30.",
                 [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], [f"Chi TB {T30N_NGAY} ngày", f((g5["chi"] / T30N_NGAY) if g5 else None, "$"), f"≥ ${T30N_SP / 100 * 20:g}", bool(g5 and g5["chi"] >= T30N_SP / 100 * 20 * T30N_NGAY)], [f"ROI {T30N_NGAY} ngày", f(r5, "%"), f"≥ {T30N_ROI}%", r5 is not None and r5 >= T30N_ROI]],
                 "tang30" if int(cid) in vao["tang30"] else None, tien=1))
-        ls.append(L_g10(cid, ns)); ra[int(cid)] = ls
+        ls.append(L_g10(cid, ns)); ls.append(L_g10k(cid, ns)); ra[int(cid)] = ls
     return ra
 if JSON:
     m = lambda ds: [{"id": i, "chu": s, **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s in ds]

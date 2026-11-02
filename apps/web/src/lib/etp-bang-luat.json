@@ -52,6 +52,7 @@
     "nb":        ["🧬 Nhân bản", "#a78bfa", "tang"],
     "thang_nb":  ["⧉ Thang", "#60a5fa", "tang"],
     "g10":       ["↓ G10 về $10", "#fb923c", "giam"],
+    "g10k":      ["↓ G10 kém đi", "#fb923c", "giam"],
     "gb":        ["↓ Giảm bậc", "#fb923c", null],
     "giam_ngay": ["↓ Giảm trong ngày", "#fb923c", null],
     "giam_som":  ["↓ Giảm sớm", "#fb923c", null],

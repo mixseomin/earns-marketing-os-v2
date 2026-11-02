@@ -387,7 +387,7 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '        if ns <= G10_NS: continue', vi: 'G10 lọc ngân sách > $15 đúng bộ lọc team' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if len(x3) < 3 or c3 < ns', vi: 'G10 chỉ xét camp chạy đủ 3 ngày (anh 31/10/2026)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"đủ 3 ngày", len(_x) >= 3]', vi: 'thẻ G10: chưa đủ 3 ngày là Không áp, không phải Gần' },
-  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L_g10(cid, ns)); ra[int(cid)] = ls; continue', vi: 'thẻ G10 có cả ở camp ★ ROAS' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'ls.append(L_g10(cid, ns)); ls.append(L_g10k(cid, ns)); ra[int(cid)] = ls; continue', vi: 'thẻ G10 (cả nhánh kém đi) có ở camp ★ ROAS' },
   { card: 0, tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"g10":       ["↓ G10 về $10", "#fb923c", "giam"]', vi: 'bản luật có nhóm Giảm chứa G10' },
   // anh 31/10/2026 "Bộ lọc, danh sách,.... phải có G10 chứ?": chip sắp chạm / dải lọc, chế độ Tự động tk team đều có G10
   { card: 0, tep: V, co: "const XET_CHIP: Record<string, [string, string]> = Object.fromEntries(Object.entries(BANG_LUAT.the)", vi: 'chip + dải lọc lấy từ sổ luật chung (có G10)' },
@@ -495,6 +495,7 @@ const LUAT = [
   { card: 1509, tep: V, co: "const laCN = (d: string) => new Date(`${d}T00:00:00Z`).getUTCDay() === 0;", vi: 'nhận Chủ nhật theo ngày Ethopex' },
   { card: 1510, tep: V, co: "{the.length > 1 ? <span style={{ flex: 'none', fontSize: 10, color: 'var(--fg-2)', border: '1px solid var(--line)', borderRadius: 8, padding: '0 4px' }}>+{the.length - 1}</span> : null}", vi: 'ô Luật dòng phim: một thẻ + "+N", không nhồi nhiều thẻ bị cắt' },
   { card: 1510, tep: V, co: "{noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={340} cao={320} noi={noi}>", vi: 'hover thẻ phim = thẻ nổi khuôn chung, không tooltip thô' },
+  { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'kem = r3_ >= G10_ROI and r4_ is not None and c4 >= ns and r3_ < G10_KEM_ROI and r3_ < G10_KEM_TI * r4_', vi: 'G10 nhánh kém đi: ROI 3 ngày < nửa ROI 4 ngày trước và < 30% → hạ $10, theo dõi, tắt' },
   { card: 1503, tep: V, co: "textAlign: 'center', lineHeight: 1.15 }}>{x.n}<br /><span style={{ fontSize: 9, opacity: 0.75 }}>camp</span></span>", vi: 'số camp dưới biểu đồ ngăn phim: số trên, chữ camp dưới, canh giữa cột' },
   { card: 1504, tep: V, co: 'max={maxLai([...sd, c.nay])} bac={bacO(c.camp_id, d)} />', vi: 'ô ngày của camp: chấm màu + hover liệt kê tăng / giảm bậc trong ngày' },
   { card: 1504, tep: V, co: '<div style={{ fontSize: 11, color: \'var(--fg-3, #777)\', margin: \'0 0 6px\' }}>Đổi bậc trong ngày</div>', vi: 'hover ô ngày có mục Đổi bậc trong ngày (thẻ nổi #1507)' },

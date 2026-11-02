@@ -34,6 +34,7 @@ import importlib.util as _iuc
 _sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
 # TRẦN CAMP / PHIM: BỎ (anh 28/10/2026: "ko set tối đa … vì có rule tắt và giảm bậc rồi" — trần 30 từ 22/10 bỏ cùng trần 3 camp/đoạn; giới hạn còn lại = trần camp trùng đoạn
 # tran_trung (điểm bão hoà) + cổng bão hoà phim). etp.cau_hinh.tran_phim > 0 thì đặt lại trần; 0 / không có = không trần
+# 02/11/2026 anh đặt lại tran_phim = 30, tính THEO TỪNG TÀI KHOẢN NHÀ (dem_tk); tài khoản team không áp
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 TRAN_PHIM = int(float(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'tran_phim'), '0')") or 0)) or 10**6
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
@@ -74,6 +75,14 @@ def dem_dang_chay(content_id):
                 n += 1; c = int(x.get("creative") or x.get("creative_id") or 0); DEM_CR[c] = DEM_CR.get(c, 0) + 1
     except Exception: pass
     return n
+
+def dem_tk(content_id, tk):
+    """TRẦN 30 CAMP / PHIM THEO TỪNG TÀI KHOẢN NHÀ (anh 02/11/2026 "Set lại 30 cho mọi camp nhà. Và theo từng tk"): camp đang chạy / đang đồng bộ
+    của phim ở ĐÚNG tài khoản sẽ nhận camp mới; camp ROAS ★ không chiếm chỗ. Thiếu tài khoản trong payload → đếm cả phim (chặt hơn, không lọt)."""
+    loc = f" and ad_account_id = {int(tk)}" if str(tk or "").isdigit() else ""
+    return int(q(f"""select count(*) from etp.camp where content_id = {int(content_id)}{loc}
+                     and (camp_id in (select camp_id from etp.camp_dang_chay) or coalesce(dong_bo, '') not in ('done', 'synced'))
+                     and ten not like '% duplicate by %' and ten not like '★%'""") or 0)
 
 # MỘT ĐOẠN VIDEO TỐI ĐA 3 CAMP ĐANG CHẠY (anh duyệt 23/10/2026 sau Step Back: 12 camp cùng đoạn 692–757s tự đấu giá với nhau, ROI +199% → −11% trong một ngày).
 # Nhân bản mà creative đã đủ 3 camp → tự đổi sang creative khác CÙNG PHIM (đạt CTA, chưa bị Meta từ chối, còn < 3 camp, mới nhất trước);
@@ -285,7 +294,8 @@ def main(a):
         n = dem_dang_chay(cid)
         if moi and DEM_CR.get(int(moi["creative"]), 0) > 0:   # một creative một camp mới (25/10/2026: hai lượt lên camp chạy cùng lúc tạo trùng 3 camp)
             raise ChanLuat(f"creative #{moi['creative']} đã có camp đang chạy / vừa tạo — không tạo camp thứ hai")
-        if n >= TRAN_PHIM and not ep: raise ChanLuat(f"phim {cid} đã {n} camp đang chạy (trần {TRAN_PHIM}) — chỗ còn lại để creative mới khi camp thua tắt")
+        if not ep and not NGOAI and (ntk := dem_tk(cid, pl.get("ad_account_id"))) >= TRAN_PHIM:   # trần tính theo TỪNG tài khoản nhà (anh 02/11/2026)
+            raise ChanLuat(f"phim {cid} đã {ntk} camp đang chạy ở tài khoản {pl.get('ad_account_id')} (trần {TRAN_PHIM}/tài khoản) — chỗ còn lại để creative mới khi camp thua tắt")
         if thang:   # thang nhân bản: chỉ bộ 2, bậc mới phải cao hơn ngân sách camp gốc
             ns = float((d.get("campaign") or {}).get("budget_daily") or 0)
             if str(bo) not in THANG_BO: raise ChanLuat(f"thang nhân bản chỉ áp dụng bộ {', '.join(THANG_BO)} (camp gốc thuộc bộ {bo}) — bộ khác giữ tăng bậc (etp.cau_hinh.thang_bo)")

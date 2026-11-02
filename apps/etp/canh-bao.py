@@ -8,7 +8,10 @@ Ngày = ngày Ethopex (UTC). Các dò (ngưỡng ở đầu tệp):
   tu_choi_loat ≥ TU_CHOI_LOAT ad bị Meta từ chối cùng lúc (khả năng Page / tên miền bị gắn cờ)
   dong_bo_tre  lượt đồng bộ gần nhất lỗi
   phim_bao_hoa  > 10 camp và ROI phim giảm 2 ngày liền (bảng etp.phim_bao_hoa: chan_nb cho luật NB, bao_hoa cho Telegram / etp / extension)
-  roas_gan / roas_dat  camp ROI ≥ 50% ổn định 2–3 ngày: chi ≥ $70 sắp đủ, ≥ $100 đủ tiêu chí bid ROAS (một lần mỗi camp mỗi mức)"""
+  roas_gan / roas_dat  camp ROI ≥ 50% ổn định 2–3 ngày: chi ≥ $70 sắp đủ, ≥ $100 đủ tiêu chí bid ROAS (một lần mỗi camp mỗi mức)
+  tran_phim_vuot  một phim có > etp.cau_hinh.tran_phim camp đang chạy trong MỘT tài khoản (nhà: máy đã chặn mở thêm; team: chỉ báo) — mỗi ngày một lần
+  tran_phim_mo    phim đủ trần ở một tài khoản nhà và MỌI camp đang chạy lãi đều (3 ngày đã khép, ≥ 2 ngày có chi ≥ $1, ngày nào cũng thu > chi)
+                  → đề xuất anh mở thêm chỗ (anh 02/11/2026: "khi nào tất cả 30 cùng lãi đều và ổn định mới đề xuất mở thêm slot")"""
 import datetime as dt, json, os, subprocess
 CHI_VUOT, ROI_SUP_CHI, ROI_SUP, TU_CHOI_LOAT = 1.6, 100, -35, 5
 ROAS_GAN, ROAS_DAT = 70, 100   # bid ROAS: báo sắp đủ từ $70 chi, đủ từ $100 (Support 24/10/2026)
@@ -59,6 +62,33 @@ def bao_hoa_phim(nay):
           select content_id, ten, so_camp, roi, chan_nb, bao_hoa from jsonb_to_recordset($J${j}$J$::jsonb) as x(content_id int, ten text, so_camp int, roi jsonb, chan_nb text, bao_hoa text); commit;""")
     return n
 
+def tran_phim(nay):
+    """TRẦN CAMP / PHIM THEO TỪNG TÀI KHOẢN (anh 02/11/2026: "Set lại 30 cho mọi camp nhà. Và theo từng tk. Có cảnh báo nếu film nhiều camp hơn mức đó").
+    Đếm camp đang chạy (nhà: etp.camp_dang_chay; team: ACTIVE), camp ROAS ★ không tính — cùng cách đếm với nhan-ban.py dem_tk."""
+    tran = int(float(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'tran_phim'), '0')") or 0))
+    if tran <= 0: return 0
+    n = 0
+    for l in q(f"""with c as (select true nha, ad_account_id tk, content_id, camp_id from etp.camp
+                      where content_id is not null and camp_id in (select camp_id from etp.camp_dang_chay) and ten not like '★%' and ten not like '% duplicate by %'
+                    union all select false, c.ad_account_id, c.content_id, c.camp_id from etp.camp_ngoai c join etp.tai_khoan t using (ad_account_id)
+                      where not t.nha and c.trang_thai = 'ACTIVE' and c.content_id is not null and c.ten not like '★%'),
+                  s as (select camp_id, ngay, chi, thu from etp.so_ngay union all select camp_id, ngay, chi, thu from etp.so_ngay_ngoai),
+                  d as (select camp_id, count(*) so, bool_and(thu > chi) lai from s where ngay between '{nay}'::date - 3 and '{nay}'::date - 1 and chi >= 1 group by 1)
+                select c.nha, c.tk, c.content_id, count(*), count(*) filter (where d.so >= 2 and d.lai),
+                  coalesce((select t.nguoi from etp.tai_khoan t where t.ad_account_id = c.tk), '?'),
+                  coalesce((select max(x.bo) from etp.camp x where x.ad_account_id = c.tk), ''),
+                  coalesce((select p.ten from etp.phim p where p.content_id = c.content_id), (select max(x.phim_ten) from etp.camp_ngoai x where x.content_id = c.content_id), '')
+                from c left join d using (camp_id) group by 1, 2, 3 having count(*) >= {tran}""").splitlines():
+        nha, tk, cid, so, on, nguoi, bo, ten = l.split("|", 7); nha, so, on = nha == "t", int(so), int(on)
+        nhan = f"tk {tk} · {nguoi}" + (f" · bộ {bo}" if nha and bo else "")
+        if so > tran:
+            bao("tran_phim_vuot", "vang", f"tran_phim_vuot:{tk}:{cid}:{nay}", f"Phim {ten[:50]} (#{cid}) đang chạy {so} camp ở {nhan} — vượt trần {tran}/tài khoản · "
+                + ("máy đã chặn mở thêm, camp đang chạy giữ nguyên" if nha else "tài khoản team chưa áp trần, chỉ báo")); n += 1
+        if nha and on == so:
+            bao("tran_phim_mo", "vang", f"tran_phim_mo:{tk}:{cid}:{nay}", f"ĐỀ XUẤT MỞ THÊM CHỖ: phim {ten[:50]} (#{cid}) đủ {so}/{tran} camp ở {nhan}, cả {so} camp lãi đều "
+                f"mọi ngày đã khép (3 ngày, ≥ 2 ngày có chi) — anh quyết nâng trần etp.cau_hinh.tran_phim"); n += 1
+    return n
+
 def main():
     now = dt.datetime.now(dt.timezone.utc); nay = now.date().isoformat(); qua = (now.date() - dt.timedelta(days=1)).isoformat(); n = 0
     for l in q(f"""select c.camp_id, c.ten, c.ngan_sach, s.chi from etp.camp c join etp.so_ngay s on s.camp_id = c.camp_id and s.ngay = '{nay}'
@@ -87,6 +117,7 @@ def main():
             (f"★ Camp #{i} ĐỦ TIÊU CHÍ BID ROAS — chi ${float(chi):.0f}, ROI {roi}%, ổn định 2–3 ngày ≥ 50% — {ten[:70]} (etp.on.tc › Camp › ★ Đủ bid ROAS)" if dat else
              f"Camp #{i} SẮP ĐỦ bid ROAS — chi ${float(chi):.0f}/${ROAS_DAT}, ROI {roi}%, ổn định ≥ 50% · ${float(ns):g}/ngày ≈ {max(1, round((ROAS_DAT - float(chi)) / max(float(ns) * 0.7, 1)))} ngày nữa — {ten[:70]}")); n += 1
     n += bao_hoa_phim(now.date())
+    n += tran_phim(nay)
     l = q("select lan, coalesce(loi, '') from etp.dong_bo where xong is not null order by lan desc limit 1")
     if l and l.split("|", 1)[1]: bao("dong_bo_tre", "vang", f"dong_bo:{nay}:{now.hour}", f"Lượt đồng bộ kho etp #{l.split('|')[0]} lỗi: {l.split('|', 1)[1][:200]}"); n += 1
     print(json.dumps({"canh_bao_moi_thu": n}))

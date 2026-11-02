@@ -311,7 +311,7 @@ writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
 // 03/11/2026 (Constantinople): ảnh chính của bài là ẢNH GHÉP 6 tranh → Ngọc chặn thumbnail "rối". Giờ xét MỌI ảnh của các bài nguồn (ảnh chính trước), bỏ ảnh ghép /
 // bản đồ / cờ / logo / biểu tượng, Ngọc xét lần lượt (tối đa 6 lượt), giữ tối đa 3 ảnh đạt → tap.anh_bia (ảnh đầu) + tap.anh_bia_ds (thumb.mjs thử lần lượt).
 if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons && c.canh.tranh?.anh) && !(tap.anh_bia_ds?.length && tap.anh_bia_ds.every((x) => existsSync(join(KHO, x.anh))))) {
-  const BO = /collage|montage|mixcollage|\bmix\b|map|karte|carte|mapa|projection|territor|extent|borders|flag|coat.of.arms|logo|icon|symbol|seal|signature|locator|diagram|chart|\.svg$/i, ds = [], tim = [];
+  const BO = /collage|montage|mixcollage|\bmix\b|map|karte|carte|mapa|projection|territor|extent|expansion|borders|flag|coat.of.arms|logo|icon|symbol|seal|signature|locator|diagram|chart|\.svg$/i, ds = [], tim = [];
   for (const u of tap.nguon ?? []) {
     const tua = decodeURIComponent(u.split('/wiki/')[1] || '').replace(/_/g, ' '), lang = (u.match(/\/\/(\w+)\.wikipedia/) || [])[1] || 'en'; if (!tua) continue;
     const r = await (await tai(`https://${lang}.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', prop: 'pageimages|images', piprop: 'name', imlimit: '40', titles: tua, redirects: '1', format: 'json', formatversion: '2' })}`)).json();

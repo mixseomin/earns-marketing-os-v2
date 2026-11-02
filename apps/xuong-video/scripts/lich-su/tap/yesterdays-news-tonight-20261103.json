@@ -1,0 +1,1302 @@
+{
+ "id": "yesterdays-news-tonight-20261103",
+ "kenh": "parody",
+ "playlist": "full-stories",
+ "tieu_de": "History gets a lot easier to understand when you stop looking at Istanbul one capital at a time",
+ "ngon_ngu": "en",
+ "chu_de": "How a small Turkoman beylik founded around 1299 became the Ottoman Empire, moved its capital from Bursa to Edirne to Istanbul after twenty-one-year-old Mehmed II took Constantinople in 1453, and kept changing until the empire ended",
+ "mo_ta_dang": "A twenty-one-year-old sultan takes Constantinople, and the story of how his empire got there, and how it ended, is a lot clearer on a map. We follow the Ottomans from a small beylik in Anatolia through Bursa, Edirne, Otranto and Vienna to the day the sultanate was abolished in Ankara. Expect stuck cannons, bold job titles, and a very patient decline.",
+ "hook": {
+  "qc": "1404884278256118",
+  "goc": "History gets a lot easier to understand when you stop looking at events one chapter at a time."
+ },
+ "goc": {
+  "sp": 2680,
+  "id": 66905,
+  "loai": "ai_cach_giai",
+  "ten": "Hỏi đáp ngay khi đang nghe podcast"
+ },
+ "giong": {
+  "voice": "Daniel"
+ },
+ "nguon": [
+  "https://en.wikipedia.org/wiki/History_of_the_Ottoman_Empire",
+  "https://en.wikipedia.org/wiki/Ottoman%E2%80%93Habsburg_wars",
+  "https://en.wikipedia.org/wiki/Spanish%E2%80%93Ottoman_Wars"
+ ],
+ "may_viet": {
+  "model": "shopaikey:claude-sonnet-5-5",
+  "luc": "2026-11-02T18:13:02.871Z",
+  "tokens": {
+   "in": 34802,
+   "out": 11794
+  }
+ },
+ "cau": [
+  {
+   "chu": "History gets a lot easier to understand once Istanbul falls to a twenty-one-year-old.",
+   "su_that": [
+    {
+     "gia_tri": "21",
+     "nguon": 0,
+     "trich": "demonstrated his martial prowess by capturing Constantinople on 29 May 1453, at the age of 21."
+    },
+    {
+     "gia_tri": "Istanbul",
+     "nguon": 0,
+     "trich": "As Sultan Mehmed II conquered Constantinople (today named Istanbul) in 1453,"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Istanbul"
+    ],
+    "nam": 1453,
+    "mo": true,
+    "chu_to": "ONE CAPITAL AT A TIME",
+    "to": [
+     {
+      "noi": "@Istanbul",
+      "chu": "OTTO"
+     }
+    ],
+    "vong": [
+     "@Istanbul"
+    ],
+    "nguoi": [
+     {
+      "anh": "mehmed_ii",
+      "ten": "Sultan Mehmed II",
+      "dang": [
+       {
+        "chu": "falls",
+        "dang": "nam_dam"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Most people mark twenty-one with a cake, a toast, and a capital.",
+   "su_that": [
+    {
+     "gia_tri": "21",
+     "nguon": 0,
+     "trich": "demonstrated his martial prowess by capturing Constantinople on 29 May 1453, at the age of 21."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Istanbul"
+    ],
+    "nam": 1453,
+    "nhay": [
+     "@Istanbul"
+    ],
+    "nguoi": [
+     {
+      "anh": "mehmed_ii",
+      "ten": "Sultan Mehmed II",
+      "dang": [
+       {
+        "chu": "capital",
+        "dang": "cuoi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Stay until the end for an empire that kept changing addresses.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "@Bursa",
+     "@Edirne",
+     "@Istanbul"
+    ],
+    "ten": [
+     {
+      "tu": "@Bursa",
+      "den": "@Edirne"
+     },
+     {
+      "tu": "@Edirne",
+      "den": "@Istanbul"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Around twelve ninety-nine, a Turkoman chieftain founded a small beylik just south of Constantinople.",
+   "su_that": [
+    {
+     "gia_tri": "1299",
+     "nguon": 0,
+     "trich": "The Ottoman Empire was founded c. 1299 by Turkoman chieftain Osman I as a small beylik in northwestern Anatolia just south of the Byzantine capital Constantinople."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "TUR@26,38.5,33,42"
+    ],
+    "nam": 1299,
+    "to": [
+     {
+      "noi": "TUR@29.8,39.5,31.5,40.8",
+      "chu": "OTTO"
+     }
+    ],
+    "nhay": [
+     "TUR@29.8,39.5,31.5,40.8"
+    ],
+    "nguoi": [
+     {
+      "anh": "ottoman_soldier",
+      "ten": "Ottoman riders",
+      "dang": [
+       {
+        "chu": "founded",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "As empires go, it was a starter home.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "TUR@26,38.5,33,42"
+    ],
+    "nam": 1299,
+    "nhay": [
+     "TUR@29.8,39.5,31.5,40.8"
+    ],
+    "nguoi": [
+     {
+      "anh": "ottoman_soldier",
+      "ten": "Ottoman riders",
+      "dang": [
+       {
+        "chu": "home",
+        "dang": "cuoi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In thirteen twenty-six, the Ottoman Turks captured nearby Bursa and made it their capital.",
+   "su_that": [
+    {
+     "gia_tri": "1326",
+     "nguon": 0,
+     "trich": "In 1326, the Ottoman Turks captured nearby Bursa, cutting off Asia Minor from Byzantine control and making Bursa their capital."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "TUR@27.5,39.3,31.5,41.2"
+    ],
+    "nam": 1326,
+    "to": [
+     {
+      "noi": "TUR@28.5,39.8,29.8,40.6",
+      "chu": "OTTO"
+     }
+    ],
+    "ten": [
+     {
+      "tu": "TUR@30.3,39.6,31.2,40.2",
+      "den": "@Bursa"
+     }
+    ],
+    "co": [
+     {
+      "anh": "co_ottoman_early",
+      "o": "@Bursa"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "ottoman_soldier",
+      "ten": "Ottoman soldiers",
+      "dang": [
+       {
+        "chu": "captured",
+        "dang": "nam_dam"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "They first crossed into Europe in thirteen fifty-two.",
+   "su_that": [
+    {
+     "gia_tri": "1352",
+     "nguon": 0,
+     "trich": "The Ottoman Turks first crossed into Europe in 1352"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "TUR@25.5,39.5,29,42"
+    ],
+    "nam": 1352,
+    "nhan": [
+     {
+      "chu": "Dardanelles",
+      "o": "26.4,40.2"
+     }
+    ],
+    "ten": [
+     {
+      "tu": "TUR@26.3,39.9,27.3,40.4",
+      "den": "TUR@26.2,40.9,27.6,41.6"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "ottoman_soldier",
+      "ten": "Ottoman soldiers",
+      "dang": [
+       {
+        "chu": "crossed",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "By thirteen sixty-nine, the capital had moved again, this time to Edirne.",
+   "su_that": [
+    {
+     "gia_tri": "1369",
+     "nguon": 0,
+     "trich": "moving their capital to Edirne (Adrianople) in 1369"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Bursa",
+     "@Edirne"
+    ],
+    "nam": 1369,
+    "to": [
+     {
+      "noi": "TUR@28.5,39.8,31.5,40.8",
+      "chu": "OTTO"
+     },
+     {
+      "noi": "TUR@26.2,41.2,27.8,41.9",
+      "chu": "OTTO"
+     }
+    ],
+    "ten": [
+     {
+      "tu": "@Bursa",
+      "den": "@Edirne"
+     }
+    ],
+    "co": [
+     {
+      "anh": "co_ottoman_early",
+      "o": "@Edirne"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "ottoman_soldier",
+      "ten": "Ottoman soldiers",
+      "dang": [
+       {
+        "chu": "moved",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Two capitals in, the dynasty went house hunting, and the listing was Constantinople.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "@Edirne",
+     "@Istanbul"
+    ],
+    "nam": 1369,
+    "nhay": [
+     "@Istanbul"
+    ],
+    "ten": [
+     {
+      "tu": "@Edirne",
+      "den": "@Istanbul"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "ottoman_soldier",
+      "ten": "Ottoman soldiers",
+      "dang": [
+       {
+        "chu": "hunting",
+        "dang": "suy_nghi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In fourteen fifty-three, Sultan Mehmed the Second captured Constantinople on May twenty-ninth.",
+   "su_that": [
+    {
+     "gia_tri": "1453",
+     "nguon": 0,
+     "trich": "As Sultan Mehmed II conquered Constantinople (today named Istanbul) in 1453,"
+    },
+    {
+     "gia_tri": "Mehmed II",
+     "nguon": 0,
+     "trich": "As Sultan Mehmed II conquered Constantinople (today named Istanbul) in 1453,"
+    },
+    {
+     "gia_tri": "29 May 1453",
+     "nguon": 0,
+     "trich": "demonstrated his martial prowess by capturing Constantinople on 29 May 1453, at the age of 21."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Istanbul"
+    ],
+    "nam": 1453,
+    "to": [
+     {
+      "noi": "@Istanbul",
+      "chu": "OTTO"
+     }
+    ],
+    "co": [
+     {
+      "anh": "co_ottoman_early",
+      "o": "@Istanbul"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "mehmed_ii",
+      "ten": "Sultan Mehmed II",
+      "dang": [
+       {
+        "chu": "captured",
+        "dang": "nam_dam"
+       }
+      ]
+     }
+    ],
+    "dau": [
+     {
+      "chu": "captured",
+      "text": "TAKEN"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "He met the Orthodox patriarch, and the church kept its autonomy and land.",
+   "su_that": [
+    {
+     "gia_tri": "Orthodox patriarch",
+     "nguon": 0,
+     "trich": "Mehmed met with the Orthodox patriarch, Gennadios and worked out an arrangement in which the Eastern Orthodox Church, in exchange for being able to maintain its autonomy and land, accepted Ottoman authority."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Istanbul"
+    ],
+    "nam": 1453,
+    "nhay": [
+     "@Istanbul"
+    ],
+    "nguoi": [
+     {
+      "anh": "mehmed_ii",
+      "ten": "Sultan Mehmed II",
+      "dang": [
+       {
+        "chu": "met",
+        "dang": "chi_tay"
+       },
+       {
+        "chu": "land",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "He also took the title Kayser-i Rûm, which means Roman Emperor.",
+   "su_that": [
+    {
+     "gia_tri": "Kayser-i Rûm",
+     "nguon": 0,
+     "trich": "Mehmed II assumed the title of Kayser-i Rûm (literally Caesar Romanus, i.e. Roman Emperor.)"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Istanbul"
+    ],
+    "nam": 1453,
+    "nguoi": [
+     {
+      "anh": "mehmed_ii",
+      "ten": "Sultan Mehmed II",
+      "dang": [
+       {
+        "chu": "title",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ],
+    "dau": [
+     {
+      "chu": "Emperor",
+      "text": "EMPEROR?"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Quite a title for a family that started with a small beylik.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "@Istanbul"
+    ],
+    "nam": 1453,
+    "nguoi": [
+     {
+      "anh": "mehmed_ii",
+      "ten": "Sultan Mehmed II",
+      "dang": [
+       {
+        "chu": "title",
+        "dang": "khoanh_tay"
+       },
+       {
+        "chu": "beylik",
+        "dang": "ngac_nhien"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "To back the claim, his forces invaded Otranto and Apulia on July twenty-eighth, fourteen eighty.",
+   "su_that": [
+    {
+     "gia_tri": "28 July 1480",
+     "nguon": 0,
+     "trich": "and then continued with the Ottoman invasion of Otranto and Apulia on 28 July 1480."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "19.45,40.45",
+     "18.49,40.15"
+    ],
+    "nam": 1480,
+    "nhay": [
+     "18.49,40.15"
+    ],
+    "xe": [
+     {
+      "anh": "ottoman_galley",
+      "tu": "19.45,40.45",
+      "den": "18.49,40.15"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "mehmed_ii",
+      "ten": "Sultan Mehmed II",
+      "dang": [
+       {
+        "chu": "invaded",
+        "dang": "nam_dam"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "After Mehmed died on May third, fourteen eighty-one, the push deeper into Italy was cancelled.",
+   "su_that": [
+    {
+     "gia_tri": "3 May 1481",
+     "nguon": 0,
+     "trich": "after Mehmed II's death on 3 May 1481, plans for penetrating deeper into the Italian peninsula with fresh new reinforcements were given up on and cancelled"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "19.45,40.45",
+     "18.49,40.15"
+    ],
+    "nam": 1481,
+    "xe": [
+     {
+      "anh": "ottoman_galley",
+      "tu": "18.49,40.15",
+      "den": "19.45,40.45"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "mehmed_ii",
+      "ten": "Sultan Mehmed II",
+      "dang": [
+       {
+        "chu": "died",
+        "dang": "buon"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Rome kept its address.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "@Rome"
+    ],
+    "nam": 1481,
+    "vong": [
+     "@Rome"
+    ],
+    "nguoi": [
+     {
+      "anh": "ottoman_soldier",
+      "ten": "Ottoman troops",
+      "dang": [
+       {
+        "chu": "kept",
+        "dang": "buon"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In fifteen twenty-nine, Suleiman launched an army of about one hundred twenty thousand men.",
+   "su_that": [
+    {
+     "gia_tri": "1529",
+     "nguon": 1,
+     "trich": "Despite this, the Ottoman sultan was slow to react and only came to the aid of his vassal when he launched an army of about 120,000 men on 10 May 1529."
+    },
+    {
+     "gia_tri": "120,000",
+     "nguon": 1,
+     "trich": "Despite this, the Ottoman sultan was slow to react and only came to the aid of his vassal when he launched an army of about 120,000 men on 10 May 1529."
+    },
+    {
+     "gia_tri": "Suleiman",
+     "nguon": 1,
+     "trich": "Ottoman sultan Suleiman the Magnificent easily wrested from Ferdinand most of the gains he had achieved in the previous two years"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "TUR@26,40.5,29,42",
+     "HUN"
+    ],
+    "nam": 1529,
+    "ten": [
+     {
+      "tu": "TUR@26.2,40.9,27.6,41.6",
+      "den": "HUN@18.4,46.5,20,47.5"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "suleiman_i",
+      "ten": "Suleiman the Magnificent",
+      "dang": [
+       {
+        "chu": "launched",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "He arrived at Vienna on September twenty-seventh.",
+   "su_that": [
+    {
+     "gia_tri": "27 September 1529",
+     "nguon": 1,
+     "trich": "The Sultan arrived at Vienna on 27 September 1529."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Vienna",
+     "HUN"
+    ],
+    "nam": 1529,
+    "nhay": [
+     "@Vienna"
+    ],
+    "ten": [
+     {
+      "tu": "HUN@18.4,46.5,20,47.5",
+      "den": "@Vienna"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "suleiman_i",
+      "ten": "Suleiman the Magnificent",
+      "dang": [
+       {
+        "chu": "arrived",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The defending army was some sixteen thousand strong, outnumbered roughly seven to one.",
+   "su_that": [
+    {
+     "gia_tri": "16,000",
+     "nguon": 1,
+     "trich": "Ferdinand's army was some 16,000 strong"
+    },
+    {
+     "gia_tri": "7 to 1",
+     "nguon": 1,
+     "trich": "he was outnumbered roughly 7 to 1 and the walls of Vienna were an invitation to Ottoman cannon"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Vienna"
+    ],
+    "nam": 1529,
+    "nhay": [
+     "@Vienna"
+    ],
+    "nguoi": [
+     {
+      "anh": "suleiman_i",
+      "ten": "Suleiman the Magnificent",
+      "dang": [
+       {
+        "chu": "outnumbered",
+        "dang": "khoanh_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "The heavy cannons never reached Vienna, because they got stuck in mud after heavy rainfall.",
+   "su_that": [
+    {
+     "gia_tri": "heavy rainfall",
+     "nguon": 1,
+     "trich": "However, the heavy cannons on which the Ottomans relied to breach the walls were all abandoned on the way to Vienna, after they got stuck in mud due to heavy rainfall."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "HUN",
+     "@Vienna"
+    ],
+    "nam": 1529,
+    "xe": [
+     {
+      "anh": "ottoman_cannon",
+      "tu": "HUN@18.4,46.5,20,47.5",
+      "den": "17.63,47.69"
+     }
+    ],
+    "dau": [
+     {
+      "chu": "mud",
+      "text": "STUCK"
+     }
+    ],
+    "tranh": {
+     "commons": null,
+     "mo_ta": "Cinematic painting of Ottoman soldiers in 1529 heaving a huge bronze cannon on a wooden carriage through deep mud on a road under heavy rain, oxen straining at the ropes, men in turbans and sodden cloaks, gray sky",
+     "tu_chu": "cannons",
+     "den_chu": "rainfall",
+     "ref": [],
+     "anh": "tranh/yesterdays-news-tonight-20261103-20.jpg",
+     "tim_that": true,
+     "tim_nam": 1529,
+     "lia": 20,
+     "lop": "tranh/yesterdays-news-tonight-20261103-20-lop.png",
+     "lop_hop_tep": "tranh/yesterdays-news-tonight-20261103-20-lop.json"
+    }
+   }
+  },
+  {
+   "chu": "On October fourteenth, the Ottomans abandoned the siege.",
+   "su_that": [
+    {
+     "gia_tri": "14 October",
+     "nguon": 1,
+     "trich": "on 14 October the Ottomans abandoned the siege"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Vienna",
+     "HUN"
+    ],
+    "nam": 1529,
+    "ten": [
+     {
+      "tu": "@Vienna",
+      "den": "HUN@18.4,46.5,20,47.5"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "suleiman_i",
+      "ten": "Suleiman the Magnificent",
+      "dang": [
+       {
+        "chu": "abandoned",
+        "dang": "buon"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "They had brought an army, heavy cannons, and no plan for rain.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "@Vienna"
+    ],
+    "nam": 1529,
+    "nguoi": [
+     {
+      "anh": "suleiman_i",
+      "ten": "Suleiman the Magnificent",
+      "dang": [
+       {
+        "chu": "rain",
+        "dang": "ngac_nhien"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "In sixteen eighty-three, just before the Battle of Vienna, the empire reached its maximum territorial extent.",
+   "su_that": [
+    {
+     "gia_tri": "1683",
+     "nguon": 0,
+     "trich": "The empire reached its maximum territorial extent in 1683, on the eve of the Battle of Vienna."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "DZA",
+     "YEM",
+     "HUN"
+    ],
+    "nam": 1683,
+    "to": [
+     {
+      "noi": "HUN@18.4,45.7,22.5,48.5",
+      "chu": "OTTO"
+     },
+     {
+      "noi": "SRB",
+      "chu": "OTTO"
+     },
+     {
+      "noi": "BGR",
+      "chu": "OTTO"
+     },
+     {
+      "noi": "GRC",
+      "chu": "OTTO"
+     },
+     {
+      "noi": "TUR",
+      "chu": "OTTO"
+     },
+     {
+      "noi": "IRQ",
+      "chu": "OTTO"
+     },
+     {
+      "noi": "EGY",
+      "chu": "OTTO"
+     },
+     {
+      "noi": "DZA",
+      "chu": "OTTO"
+     },
+     {
+      "noi": "YEM",
+      "chu": "OTTO"
+     }
+    ],
+    "nhay": [
+     "@Vienna"
+    ],
+    "nguoi": [
+     {
+      "anh": "ottoman_soldier",
+      "ten": "Ottoman soldiers",
+      "dang": [
+       {
+        "chu": "maximum",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "From sixteen ninety-nine onward, it began to lose territory over the next two centuries.",
+   "su_that": [
+    {
+     "gia_tri": "1699",
+     "nguon": 0,
+     "trich": "From 1699 onwards, the Ottoman Empire began to lose territory over the course of the next two centuries"
+    },
+    {
+     "gia_tri": "two centuries",
+     "nguon": 0,
+     "trich": "From 1699 onwards, the Ottoman Empire began to lose territory over the course of the next two centuries"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "HUN",
+     "TUR"
+    ],
+    "nam": 1699,
+    "ten": [
+     {
+      "tu": "HUN@18.4,45.7,22.5,48.5",
+      "den": "SRB"
+     },
+     {
+      "tu": "SRB",
+      "den": "TUR"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "ottoman_soldier",
+      "ten": "Ottoman soldiers",
+      "dang": [
+       {
+        "chu": "lose",
+        "dang": "buon"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Two centuries is a patient pace for downsizing.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "HUN",
+     "TUR"
+    ],
+    "nam": 1699,
+    "nguoi": [
+     {
+      "anh": "ottoman_soldier",
+      "ten": "Ottoman soldiers",
+      "dang": [
+       {
+        "chu": "downsizing",
+        "dang": "suy_nghi"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "By the early nineteenth century, its leaders tried numerous administrative reforms, with varying degrees of success.",
+   "su_that": [
+    {
+     "gia_tri": "early 19th century",
+     "nguon": 0,
+     "trich": "the need to modernise was evident to the empire's leaders by the early 19th century, and numerous administrative reforms were implemented"
+    },
+    {
+     "gia_tri": "varying degrees of success",
+     "nguon": 0,
+     "trich": "in an attempt to forestall the decline of the empire, with varying degrees of success."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "TUR"
+    ],
+    "nhay": [
+     "@Istanbul"
+    ],
+    "ten": [
+     {
+      "tu": "@Istanbul",
+      "den": "@Edirne"
+     },
+     {
+      "tu": "@Istanbul",
+      "den": "@Ankara"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Varying degrees of success is how history writes a three-star review.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "TUR"
+    ],
+    "nhay": [
+     "@Istanbul"
+    ],
+    "ten": [
+     {
+      "tu": "@Ankara",
+      "den": "@Istanbul"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "On November first, nineteen twenty-two, the government in Ankara officially abolished the sultanate.",
+   "su_that": [
+    {
+     "gia_tri": "1 November 1922",
+     "nguon": 0,
+     "trich": "The sultanate was officially abolished by the Government of the Turkish Grand National Assembly in Ankara on 1 November 1922"
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Ankara"
+    ],
+    "nam": 1922,
+    "nhay": [
+     "@Ankara"
+    ],
+    "dau": [
+     {
+      "chu": "abolished",
+      "text": "ABOLISHED"
+     }
+    ],
+    "tranh": {
+     "commons": null,
+     "mo_ta": "Cinematic painting of members of the Turkish Grand National Assembly in 1922 seated in a plain wooden hall in Ankara, men in dark suits, army uniforms and sheepskin caps, a speaker at a podium, many hands raised",
+     "tu_chu": "Ankara",
+     "den_chu": "abolished",
+     "ref": [],
+     "anh": "tranh/yesterdays-news-tonight-20261103-28.jpg",
+     "tim_that": true,
+     "tim_nam": 1922,
+     "lia": 20,
+     "lop": "tranh/yesterdays-news-tonight-20261103-28-lop.png",
+     "lop_hop_tep": "tranh/yesterdays-news-tonight-20261103-28-lop.json"
+    }
+   }
+  },
+  {
+   "chu": "The Allies had partitioned the empire's remaining territory after defeat in World War One.",
+   "su_that": [
+    {
+     "gia_tri": "World War I",
+     "nguon": 0,
+     "trich": "The empire came to an end in the aftermath of its defeat in World War I, when its remaining territory was partitioned by the Allies."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "TUR",
+     "SYR",
+     "IRQ"
+    ],
+    "to": [
+     {
+      "noi": "SYR",
+      "chu": "ALLY"
+     },
+     {
+      "noi": "IRQ",
+      "chu": "ALLY"
+     }
+    ],
+    "ke": [
+     {
+      "tu": "36.0,36.8",
+      "den": "42.3,37.1",
+      "nhan": "New borders"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "At Tehran, the first agenda item was Turkey's participation in World War Two by the end of nineteen forty-three.",
+   "su_that": [
+    {
+     "gia_tri": "Tehran conference",
+     "nguon": 0,
+     "trich": "The first item on the agenda of the Tehran conference was the issue of Turkey's participation in World War II by the end of 1943."
+    },
+    {
+     "gia_tri": "1943",
+     "nguon": 0,
+     "trich": "The first item on the agenda of the Tehran conference was the issue of Turkey's participation in World War II by the end of 1943."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "51.39,35.69",
+     "@Ankara"
+    ],
+    "nam": 1943,
+    "nhay": [
+     "51.39,35.69"
+    ],
+    "ten": [
+     {
+      "tu": "51.39,35.69",
+      "den": "@Ankara"
+     }
+    ],
+    "nguoi": [
+     {
+      "anh": "stalin",
+      "ten": "Joseph Stalin",
+      "dang": [
+       {
+        "chu": "agenda",
+        "dang": "chi_tay"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Over more than six hundred years, the Ottoman Empire left a profound legacy in customs, culture, and cuisine.",
+   "su_that": [
+    {
+     "gia_tri": "600 years",
+     "nguon": 0,
+     "trich": "Throughout its more than 600 years of existence, the Ottoman Empire has left a profound legacy in the Middle East and Southeast Europe"
+    },
+    {
+     "gia_tri": "customs, culture, and cuisine",
+     "nguon": 0,
+     "trich": "as can be seen in the customs, culture, and cuisine of the various countries that were once part of its realm."
+    }
+   ],
+   "canh": {
+    "nhin": [
+     "@Cairo",
+     "@Belgrade",
+     "@Baghdad",
+     "@Istanbul"
+    ],
+    "ten": [
+     {
+      "tu": "@Istanbul",
+      "den": "@Cairo"
+     },
+     {
+      "tu": "@Istanbul",
+      "den": "@Belgrade"
+     },
+     {
+      "tu": "@Istanbul",
+      "den": "@Baghdad"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Most empires leave ruins, and this one left a menu.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "@Cairo",
+     "@Belgrade",
+     "@Baghdad",
+     "@Istanbul"
+    ],
+    "ten": [
+     {
+      "tu": "@Cairo",
+      "den": "@Istanbul"
+     },
+     {
+      "tu": "@Belgrade",
+      "den": "@Istanbul"
+     }
+    ]
+   }
+  },
+  {
+   "chu": "Not bad for a starter home.",
+   "su_that": [],
+   "canh": {
+    "nhin": [
+     "TUR"
+    ],
+    "nhay": [
+     "@Istanbul"
+    ],
+    "ket": "THE END"
+   }
+  }
+ ],
+ "tai_san_moi": [
+  {
+   "id": "ottoman_soldier",
+   "loai": "nhan_vat",
+   "ten": "Binh lính Ottoman",
+   "mo_ta_en": "Ottoman soldier of the 1300s to 1600s, stocky man with a thick black mustache, white turban wrapped around a rounded red felt cap, long red quilted coat with a wide sash, round metal shield on one arm, curved sabre at the belt",
+   "tu": 1299,
+   "den": 1700,
+   "que": "TUR",
+   "commons": null
+  },
+  {
+   "id": "mehmed_ii",
+   "loai": "nhan_vat",
+   "ten": "Sultan Mehmed II (Mehmed Kẻ Chinh Phục)",
+   "mo_ta_en": "Ottoman sultan Mehmed II, a man in his twenties to forties, long hooked nose, thin dark mustache, large rounded white turban, red silk caftan with gold embroidery and a fur-trimmed collar",
+   "tu": 1444,
+   "den": 1481,
+   "que": "TUR",
+   "commons": null
+  },
+  {
+   "id": "suleiman_i",
+   "loai": "nhan_vat",
+   "ten": "Sultan Suleiman Đại Đế",
+   "mo_ta_en": "Ottoman sultan Suleiman the Magnificent, a man in his thirties to sixties, long narrow face, thin mustache and short pointed beard, very tall white turban with a jewel at the front, dark fur-trimmed kaftan with wide sleeves and gold trim",
+   "tu": 1520,
+   "den": 1566,
+   "que": "TUR",
+   "commons": null
+  },
+  {
+   "id": "ottoman_galley",
+   "loai": "phuong_tien",
+   "ten": "Thuyền galley Ottoman",
+   "mo_ta_en": "Ottoman war galley, long low wooden hull with rows of oars, a single triangular lateen sail, red pennants at the mast",
+   "tu": 1450,
+   "den": 1600,
+   "que": null,
+   "commons": null
+  },
+  {
+   "id": "ottoman_cannon",
+   "loai": "phuong_tien",
+   "ten": "Đại bác công thành Ottoman",
+   "mo_ta_en": "Large bronze Ottoman siege cannon on a heavy wooden carriage with spoked wheels, hauled by oxen",
+   "tu": 1450,
+   "den": 1700,
+   "que": null,
+   "commons": null
+  },
+  {
+   "id": "co_ottoman_early",
+   "loai": "co",
+   "ten": "Cờ Ottoman thời đầu",
+   "mo_ta_en": "",
+   "tu": 1299,
+   "den": 1844,
+   "que": null,
+   "commons": "File:Flag of the Ottoman Empire.svg"
+  }
+ ],
+ "tu_dong": {
+  "lan": 1,
+  "luc": "2026-11-02T18:33:38.602Z",
+  "loi": "} ·  · Node.js v25.6.1",
+  "tho": "2026-11-02T18:33:44.318Z"
+ },
+ "anh_bia": {
+  "commons": "File:Bellini, Gentile - Sultan Mehmet II.jpg",
+  "commons_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/Bellini%2C_Gentile_-_Sultan_Mehmet_II.jpg/960px-Bellini%2C_Gentile_-_Sultan_Mehmet_II.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+  "commons_trang": "https://commons.wikimedia.org/wiki/File:Bellini,_Gentile_-_Sultan_Mehmet_II.jpg",
+  "anh": "tranh/yesterdays-news-tonight-20261103-bia-9b92d034.jpg",
+  "tu": "Mehmed II"
+ },
+ "anh_bia_ds": [
+  {
+   "commons": "File:Bellini, Gentile - Sultan Mehmet II.jpg",
+   "commons_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6e/Bellini%2C_Gentile_-_Sultan_Mehmet_II.jpg/960px-Bellini%2C_Gentile_-_Sultan_Mehmet_II.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "commons_trang": "https://commons.wikimedia.org/wiki/File:Bellini,_Gentile_-_Sultan_Mehmet_II.jpg",
+   "anh": "tranh/yesterdays-news-tonight-20261103-bia-9b92d034.jpg",
+   "tu": "Mehmed II"
+  },
+  {
+   "commons": "File:EmperorSuleiman.jpg",
+   "commons_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e9/EmperorSuleiman.jpg/960px-EmperorSuleiman.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "commons_trang": "https://commons.wikimedia.org/wiki/File:EmperorSuleiman.jpg",
+   "anh": "tranh/yesterdays-news-tonight-20261103-bia-b3450ae3.jpg",
+   "tu": "Suleiman the Magnificent"
+  }
+ ],
+ "chu_de_chon": "How did the Ottoman Empire lose its largest European city after 500 years of rule?"
+}

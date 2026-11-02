@@ -156,6 +156,7 @@ const Canh = z.object({
   ket: z.string().nullable().describe(`CHỈ cảnh cuối: thẻ kết "${ketNN}"`),
 });
 const Ra = z.object({
+  chu_de_that: z.string().describe('MỘT câu tiếng Anh tóm ĐÚNG chuyện mà bản kịch bản này thật sự kể (nhân vật chính · sự kiện · thời gian) — máy dùng câu này làm chủ đề tập cho thumbnail + Phòng Nội dung chấm'),
   mo_ta_dang: z.string().describe('mô tả YouTube đúng ngôn ngữ tập: 2–4 câu kể tập này nói gì (giọng của kênh, không spoil cú chốt), không link, không hashtag rác, không dấu gạch dài'),
   tieu_de: z.string().describe('tiêu đề video đúng ngôn ngữ tập, công thức "Why does X own Y?" / "¿Por qué…?"'),
   cau: z.array(z.object({ chu: z.string().describe('MỘT câu lời đọc'), su_that: z.array(z.object({ gia_tri: z.string().describe('năm / con số / tên người / tên hiệp ước trong câu'), nguon: z.number().int(), trich: z.string().describe('đoạn chép NGUYÊN VĂN từ nguồn [nguon] chứng minh giá_trị (≤ 220 ký tự)') })),
@@ -206,7 +207,8 @@ const d = r.data;
 if ((d.cau?.length ?? 0) < toiThieuCau) { console.error(`✗ máy viết trả bản cụt: ${d.cau?.length ?? 0} câu (< ${toiThieuCau}) — ${r.model}`); process.exit(1); }
 // về khuôn dung-tap.mjs: bỏ trường rỗng / null để máy dựng tự điền
 const gon = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== false && !(Array.isArray(v) && !v.length)));
-const tap = { id, kenh: kenhId, ...(plMa ? { playlist: plMa } : {}), tieu_de: tieuDeChon ?? d.tieu_de, ngon_ngu: nn, chu_de: chuDe, mo_ta_dang: d.mo_ta_dang,
+// chủ đề tập = câu máy viết tóm đúng chuyện nó đã viết (03/11/2026: đề chọn 'mất thành phố lớn nhất' mà kịch bản kể cả đế chế → thumbnail + Ngọc chấm lệch)
+const tap = { id, kenh: kenhId, ...(plMa ? { playlist: plMa } : {}), tieu_de: tieuDeChon ?? d.tieu_de, ngon_ngu: nn, chu_de: d.chu_de_that?.trim() || chuDe, chu_de_chon: chuDe, mo_ta_dang: d.mo_ta_dang,
   ...(hookChon ? { hook: hookChon } : {}), ...(gh ? { goc: gh.goc } : cuTap?.goc ? { goc: cuTap.goc } : {}), giong: { voice: K.giong },
   nguon: nguon.map((n) => n.url), may_viet: { model: r.model, luc: new Date().toISOString(), tokens: r.tokens },
   cau: d.cau.map((c) => ({ chu: c.chu, su_that: c.su_that, canh: gon({ ...c.canh, to: c.canh.to.map((t) => gon(t)), tranh: c.canh.tranh ? { ...c.canh.tranh, anh: null } : null }) })),

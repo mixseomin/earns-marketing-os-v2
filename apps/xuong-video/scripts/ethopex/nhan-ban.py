@@ -320,6 +320,8 @@ def main(a):
         if not NGOAI and not ep and str(bo) in BO_CHI_PHIM_LAI and not nhan_boi_chu_tk(cid, pl.get("ad_account_id")):   # phim chủ tài khoản đang nhận thì miễn (anh 02/11/2026 "Bộ 2") · mọi đường mở camp (creative mới, clone, thang) — phim mới / phim lỗ ở bộ này không mở thêm
             pc, pt = (float(x or 0) for x in (q(f"select coalesce(sum(s.chi), 0), coalesce(sum(s.thu), 0) from etp.so_ngay s join etp.camp c using (camp_id) where c.bo = '{bo}' and c.content_id = {int(cid)} and s.ngay between (now() at time zone 'UTC')::date - 7 and (now() at time zone 'UTC')::date - 1") or "0|0").split("|"))
             if pt <= pc: raise ChanLuat(f"bộ {bo} chỉ mở camp cho phim đã lãi 7 ngày ở bộ này — phim {cid}: chi ${pc:.2f} · lãi ${pt - pc:+.2f} (etp.cau_hinh.bo_chi_phim_lai, anh 02/11/2026)")
+        if not NGOAI and not ep and moi and q(f"select 1 from etp.camp where content_id = {int(cid)} limit 1") != "1" and not nhan_boi_chu_tk(cid, pl.get("ad_account_id")):   # NHẬN PHIM BẮT BUỘC (anh 02/11/2026 "cho vào luật bắt buộc"): phim mới của Nhà phải được nhận trước khi lên camp đầu
+            raise ChanLuat(f"phim mới {cid} chưa nhận — nhận phim trên etp.on.tc (tab Phim) trước khi lên camp (luật bắt buộc, anh 02/11/2026)")
         if not ep and (ly_ := trang_chua_san(cid, pl.get("ad_account_id")) or giu_boi_nguoi_khac(cid, pl.get("ad_account_id"))): raise ChanLuat(ly_)   # + phim người khác đang giữ (anh 02/11/2026)   # cổng trang phim (anh 02/11/2026); ROAS đi roas_main, không qua đây
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)
         if chan: raise ChanLuat(chan)

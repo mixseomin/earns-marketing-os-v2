@@ -114,6 +114,15 @@ def cat_hang(phim, ten, so_tho=2):
     """CẮT QUA HÀNG ĐỢI etp.viec (bước 5, 24/10/2026): mỗi phim một việc → thợ apps/etp/tho.py trên iMac (so_tho luồng) — máy khác muốn góp sức chỉ cần
     chạy `tho.py --lo <lô>` cùng lúc. Hết việc thì gộp kết quả thành <ra>/lo.json + tờ soát như đường cũ (dot-phim-moi.cat_ds)."""
     ra = os.path.join(C, "ra", ten); os.makedirs(ra, exist_ok=True)
+    # NHẬN PHIM BẮT BUỘC (anh 02/11/2026 "cho vào luật bắt buộc"): phim vào lô cắt = Nhà nhận trước (etp.phim_nhan giữ 24 giờ, như nút Nhận trên etp.on.tc);
+    # phim người trong đội đang giữ thì bỏ khỏi lô. nhan-ban.py chặn lên camp đầu cho phim mới chưa nhận.
+    ids = ",".join(str(int(p["id"])) for p in phim) or "0"
+    khac = set(sql(f"select content_id from etp.phim_nhan_v where content_id in ({ids}) and trang_thai in ('giu', 'da_len') and nguoi_id not in (select nguoi_id from etp.tai_khoan where nha)").split())
+    if khac: print(f"bỏ {len(khac)} phim người trong đội đang nhận: {' '.join(sorted(khac))}", flush=True); phim = [p for p in phim if str(p["id"]) not in khac]
+    sql(f"""insert into etp.phim_nhan (content_id, nguoi_id, nguoi, het_luc)
+            select x::bigint, g.nguoi_id, coalesce((select nguoi from etp.phim_nhan where nguoi_id = g.nguoi_id and nguoi is not null order by id desc limit 1), 'Nhà'), now() + interval '24 hours'
+            from unnest(array[{",".join(str(int(p["id"])) for p in phim) or "0"}]) x, (select nguoi_id from etp.tai_khoan where nha order by nguoi_id limit 1) g
+            where x <> 0 and not exists (select 1 from etp.phim_nhan_v n where n.content_id = x and n.trang_thai in ('giu', 'da_len'))""")
     j = json.dumps([{"content_id": int(p["id"]), "du_lieu": {"locale": p.get("locale"), "nguon": p.get("nguon"), "ten": p.get("ten"), "url": p.get("url"), "so_ban": 2}} for p in phim], ensure_ascii=False).replace("$J$", "")
     sql(f"insert into etp.viec (loai, lo, content_id, du_lieu) select 'cat', '{ten}', content_id, du_lieu from jsonb_to_recordset($J${j}$J$::jsonb) as x(content_id int, du_lieu jsonb) on conflict do nothing")
     print(f"đã xếp {len(phim)} việc cắt vào hàng đợi etp.viec (lô {ten}) — thợ iMac {so_tho} luồng; máy khác góp sức: python3 apps/etp/tho.py --lo {ten}", flush=True)

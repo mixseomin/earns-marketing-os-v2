@@ -34,7 +34,11 @@ const goiWiki = async (q: Record<string, string>): Promise<any> => { for (let i 
 let tua = arg('nguon')?.split('|').filter(Boolean) ?? [];
 // CHỌN ĐỀ THEO GÓC (lượt chữ nhỏ, vài chục đồng): chưa có chủ đề → máy chọn một chuyện lịch sử CÓ THẬT hợp góc + bài Wikipedia nguồn + hook QC + tiêu đề
 if (!chuDe && gh) {
-  const ChonDe = z.object({ chu_de: z.string().describe('câu hỏi chủ đề tiếng Anh, một chuyện lịch sử có thật kể được bằng bản đồ (đất đổi chủ, mua bán, chia ranh giới, chiến tranh, di cư)'),
+  // CHỦ ĐỀ ĐƯỢC PHÉP (02/11/2026: máy chọn vụ Điện Capitol 06/01/2021 cho kênh lịch sử hài): chuyện xảy ra TRƯỚC mốc của kênh (kenh.json chu_de_truoc, mặc định 1950),
+  // không chính trị đương đại / xung đột còn đang diễn ra / thảm kịch mà nạn nhân, thân nhân còn sống. Máy kiểm năm ở dưới (nam_chinh), không chỉ dặn.
+  const moc = Number(K.chu_de_truoc ?? 1950);
+  const ChonDe = z.object({ chu_de: z.string().describe(`câu hỏi chủ đề tiếng Anh, một chuyện lịch sử có thật kể được bằng bản đồ (đất đổi chủ, mua bán, chia ranh giới, chiến tranh, di cư), xảy ra TRƯỚC năm ${moc}; cấm chính trị đương đại, xung đột còn đang diễn ra, thảm kịch còn người sống trong cuộc`),
+    nam_chinh: z.number().int().describe('năm chính của chuyện (âm = trước Công nguyên)'),
     nguon: z.array(z.string()).describe(`2–3 tựa bài ${nn}.wikipedia.org CÓ THẬT, đúng y tựa (vd "Alaska Purchase")`), hook_id: z.string().describe('id của hook QC chọn'),
     tieu_de: z.string().describe('tiêu đề video = hook QC đó SỬA NHẸ cho chuyện này: giữ ≥ 50% chữ gốc, chỉ thay chủ thể / chi tiết; ≤ 95 ký tự; không dấu gạch dài'), ly_do: z.string() });
   let loiChon = '';
@@ -44,6 +48,7 @@ if (!chuDe && gh) {
       user: `GÓC (spy #${gh.goc.id} · ${gh.goc.loai}): ${gh.goc.ten}\nHOOK CÓ BẰNG CHỨNG (id · bằng chứng · chữ):\n${gh.hooks.map((h) => `- ${h.id} · ${bangChungHook(h)} · ${h.chu}`).join('\n')}\nĐÃ LÀM (tránh):\n${gh.da_lam.map((x) => `- ${x}`).join('\n') || '(chưa có)'}${gh.ket_qua?.length ? `\nKẾT QUẢ CÁC TẬP ĐÃ ĐĂNG (lượt xem / ngày · tổng · chủ đề · tiêu đề) — chọn chuyện CÙNG KIỂU tập đứng đầu (loại nhân vật, thời kỳ, kiểu bí ẩn / nghịch lý), tránh kiểu tập đứng cuối:\n${gh.ket_qua.slice(0, 12).map((x) => `- ${x.moi_ngay}/ngày · ${x.xem} · ${x.chu_de} · ${x.tieu_de}`).join('\n')}` : ''}${loiChon ? `\nLẦN TRƯỚC SAI: ${loiChon}` : ''}` });
     if (!c.ok) { loiChon = c.loi; continue; }
     const h = gh.hooks.find((x) => x.id === c.data.hook_id); if (!h) { loiChon = `hook_id "${c.data.hook_id}" không có trong danh sách`; continue; }
+    if (c.data.nam_chinh >= moc) { loiChon = `chuyện năm ${c.data.nam_chinh} — kênh chỉ làm chuyện trước năm ${moc}, chọn chuyện khác`; continue; }
     const thieu: string[] = []; for (const t of c.data.nguon) { const p = (await goiWiki({ action: 'query', titles: t, redirects: '1' })).query?.pages?.[0]; if (!p || p.missing) thieu.push(t); }
     if (thieu.length || c.data.nguon.length < 2) { loiChon = `bài Wikipedia không có: ${thieu.join(', ') || '(ít hơn 2 bài)'}`; continue; }
     chuDe = c.data.chu_de; tua = c.data.nguon; hookChon = { qc: h.id, goc: h.chu }; tieuDeChon = c.data.tieu_de;
@@ -183,6 +188,10 @@ ${nguon.map((n, i) => `[${i}] ${n.tua}\n${n.chu.slice(0, 16000)}`).join('\n\n')}
 const r = await sinhJson({ schema: Ra, system, user, model: 'claude-sonnet-5-5', max_tokens: K.max_tokens ?? 12000, ten: 'viết tập lịch sử' });
 if (!r.ok) { console.error(`✗ ${r.loi}`); process.exit(1); }
 const d = r.data;
+// BẢN RỖNG / CỤT = HỎNG (02/11/2026: cổng chợ trả JSON hợp khuôn nhưng 0 câu → lam-tap ghi tệp rỗng, 3 lượt sửa sau đều đánh vào bản rỗng): dưới nửa khuôn
+// tối thiểu thì thoát mã 1 — lam-tap coi là "máy viết hỏng" và gọi lại, không ghi đè tệp tập
+const toiThieu = Math.ceil((K.khuon?.[0] ?? K.khuon?.min ?? 20) / 2);
+if ((d.cau?.length ?? 0) < toiThieu) { console.error(`✗ máy viết trả bản cụt: ${d.cau?.length ?? 0} câu (< ${toiThieu}) — ${r.model}`); process.exit(1); }
 // về khuôn dung-tap.mjs: bỏ trường rỗng / null để máy dựng tự điền
 const gon = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== false && !(Array.isArray(v) && !v.length)));
 const tap = { id, kenh: kenhId, tieu_de: tieuDeChon ?? d.tieu_de, ngon_ngu: nn, chu_de: chuDe, mo_ta_dang: d.mo_ta_dang,

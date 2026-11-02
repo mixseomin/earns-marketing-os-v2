@@ -161,11 +161,18 @@ async function quaChuoi(p: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promis
   for (let i = 0; i < ds.length; i++) {
     const d = ds[i]!; const cuoi = i === ds.length - 1;
     try {
-      const r = await goi(d, { ...(d.jsonTay ? dangJsonTay(p) : p), model: d.model });
+      let tay = d.jsonTay, r: TinChu;
+      try { r = await goi(d, { ...(tay ? dangJsonTay(p) : p), model: d.model }); }
+      catch (e) {
+        // Anthropic từ chối khuôn structured output quá lớn ("compiled grammar is too large" — khuôn kịch bản kênh lịch sử, 02/11/2026: lưới cuối của chuỗi
+        // hỏng 100% ở bước viết) → cùng đường, chuyển JSON TAY (dặn trong lời nhắc + tự đọc theo khuôn zod), không bỏ đường
+        if (!tay && f && e instanceof Anthropic.APIError && e.status === 400 && /grammar is too large/i.test(e.message)) { tay = true; r = await goi(d, { ...dangJsonTay(p), model: d.model }); }
+        else throw e;
+      }
       if (r.stop_reason === 'refusal' && !cuoi) { loi.push(`${d.ten} ${d.model}: từ chối`); continue; }
       if (f) {   // có khuôn JSON: chuẩn hoá chữ về đúng khối JSON (bên bán lại hay bọc ```json) + tự đọc khi đường không đọc hộ
         for (const b of r.content) if (b.type === 'text') b.text = layJson(b.text);
-        if (d.jsonTay && f.parse && r.stop_reason !== 'max_tokens') r.parsed_output = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''));
+        if (tay && f.parse && r.stop_reason !== 'max_tokens') r.parsed_output = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''));
       }
       const x = (r.usage as { x_ckey?: { cost?: number } }).x_ckey?.cost;
       if (loi.length) console.error('[claude] dự phòng:', loi.join(' · '), '→', d.ten);

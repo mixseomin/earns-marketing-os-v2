@@ -66,18 +66,20 @@ def dung(nguon, tu, den, poster, cfg, cta, out, giong=None, hoi="WHAT HAPPENS NE
 
 # KIỂU "TẬP NGUYÊN" (anh 28/10/2026 "thử thêm cách của Kiên"): một tập trọn, KHÔNG nút CTA giữa video, KHÔNG giọng CTA; 3 giây cuối hiện ô tên phim (vàng)
 # + nút đỏ "WATCH NOW" góc dưới phải — đúng mẫu creative thắng của Kim Kiên (#54757 / #53591 / #54460 / #53830, xem tờ khung 28/10/2026). Chữ qua luật CTA.
-O_CUOI = 3.0
+O_CUOI = 5.0   # đo lại 02/11/2026 trên 6 creative thắng của Kiên (#54757 #54755 #53591 #60982…): ô tên phim + WATCH NOW hiện ~5 giây cuối, giữa đáy khung
 def the_ten(ten, nut, ra):
     from PIL import ImageFont
     im = Image.new("RGBA", (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(im, "RGBA")
-    ft, fn = ImageFont.truetype(gx.FA, 44), ImageFont.truetype(gx.FA, 34)
-    dong = gx.ngat_can(ten, 22)[:2]; rong = max(max(d.textlength(x, font=ft) for x in dong), d.textlength(nut, font=fn) + 80) + 60
-    cao = 40 + 54 * len(dong) + 84; x0, y0 = W - 40 - rong, H - 300 - cao
-    d.rounded_rectangle([x0, y0, x0 + rong, y0 + cao], 22, fill=(20, 20, 20, 215))
-    y = y0 + 26
-    for x in dong: d.text((x0 + rong / 2, y), x, font=ft, fill=gx.VANG, anchor="ma"); y += 54
-    bw = d.textlength(nut, font=fn) + 80; bx = x0 + (rong - bw) / 2
-    d.rounded_rectangle([bx, y + 10, bx + bw, y + 70], 30, fill=(229, 57, 53, 255)); d.text((bx + bw / 2, y + 40), nut, font=fn, fill=(255, 255, 255), anchor="mm")
+    # MẪU KIÊN đo 02/11/2026 (anh "CTA hãy học cách của phim của Kiên"): ô tối rộng ~86% khung sát đáy, tên phim vàng 1 dòng to, nút đỏ WATCH NOW giữa
+    ft, fn = ImageFont.truetype(gx.FA, 60), ImageFont.truetype(gx.FA, 44)
+    rong = round(W * 0.86); dong = gx.ngat_can(ten, 26)[:2]
+    while max(d.textlength(x, font=ft) for x in dong) > rong - 60 and ft.size > 36: ft = ImageFont.truetype(gx.FA, ft.size - 4)
+    cao = 36 + 70 * len(dong) + 104; x0, y0 = (W - rong) / 2, H - 110 - cao
+    d.rounded_rectangle([x0, y0, x0 + rong, y0 + cao], 26, fill=(20, 20, 20, 205))
+    y = y0 + 30
+    for x in dong: d.text((x0 + rong / 2, y), x, font=ft, fill=gx.VANG, anchor="ma"); y += 70
+    bw = d.textlength(nut, font=fn) + 120; bx = x0 + (rong - bw) / 2
+    d.rounded_rectangle([bx, y + 8, bx + bw, y + 84], 38, fill=(229, 57, 53, 255)); d.text((bx + bw / 2, y + 46), nut, font=fn, fill=(255, 255, 255), anchor="mm")
     im.save(ra)
 
 def dung_tap(nguon, tu, den, ten, out, nut="WATCH NOW", cam=()):

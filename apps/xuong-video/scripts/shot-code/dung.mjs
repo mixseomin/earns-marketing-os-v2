@@ -38,6 +38,7 @@ if (arg('khung')) {   // chỉ chụp vài khung để soát nhanh → ghép m�
 const n = Math.round(cau.DAI * fps), bd = Date.now();
 // bản TRUNG GIAN (lam-tap nén lại bản phát hành crf 23): Mac mã hoá bằng phần cứng VideoToolbox, máy khác libx264 — libx264 medium là chỗ nghẽn khi khung đã nhanh
 const x264 = process.platform === 'darwin' ? ['-c:v', 'h264_videotoolbox', '-b:v', '16M', '-pix_fmt', 'yuv420p', '-allow_sw', '1'] : ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', '-preset', 'medium', '-threads', '2'];
+const DAU_MA = (await import('node:crypto')).createHash('md5').update(`${x264.join(' ')}|${fps}|${arg('rong', 1080)}x${arg('cao', 1920)}`).digest('hex').slice(0, 6);
 // ---------- DỰNG SONG SONG + DÙNG LẠI ĐOẠN (02/11/2026, anh: "tăng tốc độ dựng"): trang là hàm thuần của t → chia khung thành ĐOẠN (cảnh, --doan), mỗi đoạn một
 // tệp mp4 riêng do N trang Chromium dựng cùng lúc (--song, mặc định 2: đo 02/11 trên iMac GPU — 2 trang 18 ms/khung, 4 trang 27 ms vì chung một GPU), rồi ghép không mã hoá lại. --kho <thư mục>: đoạn có khoá trùng lần trước thì
 // dùng lại — chỉ sau khi dựng lại khung đầu + cuối của đoạn và so khớp từng byte với lần trước (bắt cả phụ thuộc ngầm mà khoá không thấy).
@@ -60,7 +61,8 @@ if (!nenVideo && !tieng) {
     await q.evaluate((x) => window.__seek(x), t); return q.screenshot({ type: 'jpeg', quality: 92 }); };
   let dungLai = 0, daDung = 0;
   const lam = async (q, d) => {
-    const tep = join(tam, `${String(d.i).padStart(4, '0')}.mp4`), kTep = kho && d.khoa ? join(kho, `${d.khoa}-${d.f1 - d.f0}`) : null;
+    // khoá kho có DẤU BỘ MÃ HOÁ (03/11/2026: đoạn libx264 của lượt cũ ghép chung đoạn VideoToolbox → luồng H.264 hỏng 'Invalid NAL unit size') — đổi bộ mã / tham số là đoạn cũ không bao giờ được dùng lại
+    const tep = join(tam, `${String(d.i).padStart(4, '0')}.mp4`), kTep = kho && d.khoa ? join(kho, `${d.khoa}-${d.f1 - d.f0}-${DAU_MA}`) : null;
     if (kTep && fs.existsSync(`${kTep}.mp4`) && fs.existsSync(`${kTep}.json`)) {
       const cu = JSON.parse(fs.readFileSync(`${kTep}.json`, 'utf8')), dau = sha(await chupO(q, d.f0 / fps)), cuoi = sha(await chupO(q, (d.f1 - 1) / fps));
       if (cu.dau === dau && cu.cuoi === cuoi) { fs.copyFileSync(`${kTep}.mp4`, tep); dungLai++; return; }
@@ -76,7 +78,11 @@ if (!nenVideo && !tieng) {
   await Promise.all(trang.map(async (q) => { for (let d; (d = hang.shift());) await lam(q, d); }));
   const ds_ = join(tam, 'ds.txt'); fs.writeFileSync(ds_, doan.map((d) => `file '${join(tam, `${String(d.i).padStart(4, '0')}.mp4`)}'`).join('\n'));
   const r = await new Promise((res) => spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', ds_, '-c', 'copy', '-movflags', '+faststart', ra], { stdio: 'inherit' }).on('close', res));
-  if (r) throw new Error('ghép đoạn hỏng'); fs.rmSync(tam, { recursive: true, force: true }); await b.close();
+  if (r) throw new Error('ghép đoạn hỏng');
+  // GIẢI MÃ THỬ TOÀN BỘ trước khi trả (03/11/2026: video hỏng NAL lọt tới Studio + máy đăng) — có lỗi giải mã là dừng, không đưa đi
+  const loiGiai = await new Promise((res) => { let e = ''; const g = spawn('ffmpeg', ['-v', 'error', '-i', ra, '-f', 'null', '-'], { stdio: ['ignore', 'ignore', 'pipe'] }); g.stderr.on('data', (x) => { e += x; }); g.on('close', () => res(e.trim())); });
+  if (loiGiai) throw new Error(`video ghép ra bị lỗi giải mã (${loiGiai.split('\n').length} dòng): ${loiGiai.split('\n')[0]}`);
+  fs.rmSync(tam, { recursive: true, force: true }); await b.close();
   console.log(`${ra} · ${n} khung · ${doan.length} đoạn (${dungLai} dùng lại) · ${trang.length} trang · ${((Date.now() - bd) / 1000).toFixed(0)}s`); process.exit(0);
 }
 const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', nenVideo ? 'png' : 'mjpeg', '-i', '-',

@@ -251,12 +251,8 @@ def payload(goc_id, lich, moi=None, bo=None, thang=None, roas=None, ns_roas=20, 
         goc_ten = re.sub(r"\s*\((nhan ban \d+|thang \$\d+) cua \d+\)$", "", c["name"])
         so = 1 + sum(1 for x in api("/api/v1/campaigns?page_size=500")["data"] if re.search(rf"\(nhan ban \d+ cua {goc_id}\)$", x.get("name", "")))
         ten = f"{goc_ten} (thang ${thang:g} cua {goc_id})" if thang else f"{goc_ten} (nhan ban {so} cua {goc_id})"
-        if not roas and not NGOAI and _nap("cta", "kiem-cta.py").kiem(a.get("creative_id")):   # CTA cũ → thay bằng bản sửa của chính đoạn đó
-            sua = ban_sua(a.get("creative_id"))
-            if not sua:
-                xep_dung_lai(goc_id, a.get("creative_id"), a.get("content_id"), c["name"])
-                raise ValueError(f"creative #{a.get('creative_id')} CTA cũ, chưa có bản sửa — đã xếp hàng dựng lại (ethopex_cho_dung_lai)")
-            a = {**a, "creative_id": sua}; ten = f"{goc_ten} cta-sua " + (f"(thang ${thang:g} cua {goc_id})" if thang else f"(nhan ban {so} cua {goc_id})")   # giữ nhãn thang — luật nhận bản thang theo tên
+        # NHÂN BẢN GIỮ NGUYÊN CREATIVE CỦA CAMP GỐC (anh 02/11/2026 "$1. Lên đi" — nhân bản từ bản CTA cũ): trước đây CTA cũ bị đổi sang bản sửa CTA
+        # (ethopex_cta_thay, nút đè từ giây 3) hoặc chặn + xếp hàng dựng lại → đo cùng phim 25/10–02/11: bản sửa −7% vs CTA cũ +33%, thua 9/10 phim. Bỏ đổi.
     # BỎ mọi mã định danh + mốc thời gian của camp GỐC (chạy khô 22/10/2026: source_payload Ad Set mang campaign_id FB + start_time của camp gốc
     # → gửi nguyên là gắn nhầm vào camp gốc / chạy theo lịch cũ). Lịch của bản mới do type_run quyết.
     BO = {"id", "campaign_id", "adset_id", "account_id", "start_time", "end_time", "stop_time", "created_time", "updated_time", "effective_status", "configured_status", "issues_info"}

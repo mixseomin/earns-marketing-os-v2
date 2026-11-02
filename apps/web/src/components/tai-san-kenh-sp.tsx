@@ -73,7 +73,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
             ...(k.kenhUrl ? [{ label: 'Kênh', items: [{ label: 'Mở kênh YouTube', emoji: '▶️', href: k.kenhUrl, external: true }] }] : []),
           ]} />
           {k.ke.dangLam ? <span style={{ color: k.ke.dangLam.loi ? 'var(--bad)' : 'var(--warn)', fontSize: 11, whiteSpace: 'nowrap' }} title={k.ke.dangLam.loi ?? `${k.ke.dangLam.id} · ${k.ke.dangLam.buoc ?? ''}`}>
-              {k.ke.dangLam.loi ? '✗ tập hỏng' : `▶ đang làm ${k.ke.dangLam.so ?? '?'}/${k.ke.dangLam.tong ?? 8}`}</span>
+              {k.ke.dangLam.loi ? '✗ hỏng' : `▶ ${k.ke.dangLam.so ?? '?'}/${k.ke.dangLam.tong ?? 8}`}</span>
             : <span style={{ color: k.chay ? 'var(--ok)' : 'var(--fg-4)', fontSize: 11 }}>{k.chay ? 'đang chạy' : 'chưa bật đăng'}</span>}</span>;
       } },
     ...cotSocial<Dong>(chiKenh((k) => k.social), kySocial),
@@ -84,7 +84,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
     { key: 'dk', header: 'Người đăng ký', width: 116, sortValue: (d) => d.k.nguoiDk, cell: (d) => (laK(d) ? <b style={{ fontVariantNumeric: 'tabular-nums' }}>{so(d.k.nguoiDk)}</b> : null) },
     { key: 'dk7', header: 'ĐK 7 ngày', width: 88, sortValue: (d) => d.k.nguoiDk7, cell: (d) => (laK(d) ? tang(d.k.nguoiDk7) : null) },
     { key: 'xem', header: 'Lượt xem', width: 96, sortValue: (d) => (laK(d) ? d.k.xem : vd(d)?.xem ?? null), cellTitle: (d) => (laK(d) ? 'cộng dồn mọi video đã đăng' : 'lượt xem video này'),
-      cell: (d) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{so(laK(d) ? d.k.xem : vd(d)?.xem ?? null)}</span> },
+      cell: (d) => (d.loai === 'ke' ? null : <span style={{ fontVariantNumeric: 'tabular-nums' }}>{so(laK(d) ? d.k.xem : vd(d)?.xem ?? null)}</span>) },
     { key: 'xem7', header: 'Xem 7 ngày', width: 96, sortValue: (d) => d.k.xem7, cell: (d) => (laK(d) ? tang(d.k.xem7) : null) },
     { key: 'dang', header: 'Đăng', width: 84, sortValue: (d) => (laK(d) ? d.k.dangCuoi : vd(d)?.ngayDang ?? null), cellTitle: (d) => (laK(d) ? 'ngày đăng gần nhất' : 'ngày đăng video'),
       cell: (d) => ngayVn(laK(d) ? d.k.dangCuoi : vd(d)?.ngayDang ?? null) },

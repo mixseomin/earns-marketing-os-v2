@@ -74,8 +74,8 @@ export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()
   if (d) {
     const phut = Math.max(0, Math.round((bayGio - Date.parse(d.buoc_luc ?? d.luc)) / 60_000)), tong = Math.max(0, Math.round((bayGio - Date.parse(d.luc)) / 60_000));
     ra.push({ id: 'sx', nhom: true, chu: '▶ Đang sản xuất', phu: `bắt đầu ${gioVn(d.luc)} · ${tong} phút` });
-    ra.push({ id: 'sx/1', chu: d.id, mau: d.loi ? 'var(--bad)' : 'var(--warn)',
-      phu: d.loi ? d.loi : d.buoc ? `bước ${d.so}/${d.tong} · ${d.buoc} · ${phut} phút` : 'đang khởi động' });
+    // bước đứng TRƯỚC (cột hẹp cắt phần phụ — YDNI một dòng), mã tập xuống phần phụ
+    ra.push({ id: 'sx/1', chu: d.loi ? `✗ ${d.loi}` : d.buoc ? `bước ${d.so}/${d.tong} · ${d.buoc} · ${phut} phút` : 'đang khởi động', mau: d.loi ? 'var(--bad)' : 'var(--warn)', phu: d.id });
   }
   const lich: DongKe[] = [];
   for (const v of k.videos) {

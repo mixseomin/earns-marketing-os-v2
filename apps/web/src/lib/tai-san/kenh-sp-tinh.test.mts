@@ -26,11 +26,11 @@ import { cayKeHoach } from './kenh-sp-tinh';
 { const v = (slug: string, trangThai: 'duyet' | 'cho_cham' | 'da_dang') => ({ slug, ten: slug.toUpperCase(), ngayLam: null, trangThai, ngayDang: null, url: null, xem: null, giay: null });
   const ke = { lichTap: 'Thứ Hai · 09:30', gioDang: '21:00', tapKe: ['2026-11-04 09:30'], lichDang: [], dangLam: { id: 'tap-x', luc: '2026-11-02T15:00:00Z', buoc: 'dựng (giọng + hình)', so: 5, tong: 8, buoc_luc: '2026-11-02T15:20:00Z' } };
   const r = cayKeHoach({ videos: [v('a', 'duyet'), v('b', 'cho_cham'), v('c', 'da_dang')], ke }, Date.parse('2026-11-02T15:25:00Z'));
-  assert.deepStrictEqual(r.map((x) => x.chu), ['▶ Đang sản xuất', 'tap-x', '🗓 Lịch', '📤 A', '⏳ B', '🛠 làm tập mới']);
-  assert.strictEqual(r[1]!.phu, 'bước 5/8 · dựng (giọng + hình) · 5 phút');   // giờ VN, phút tính từ lúc vào bước
+  assert.deepStrictEqual(r.map((x) => x.chu), ['▶ Đang sản xuất', 'bước 5/8 · dựng (giọng + hình) · 5 phút', '🗓 Lịch', '📤 A', '⏳ B', '🛠 làm tập mới']);
+  assert.strictEqual(r[1]!.phu, 'tap-x');   // phút tính từ lúc vào bước; mã tập ở phần phụ
   assert.strictEqual(r[5]!.phu, 'Thứ Tư 04/11 09:30');
   // không có gì trong lò, không lịch → cây kế hoạch rỗng (chỉ còn khối Đã làm)
   assert.deepStrictEqual(cayKeHoach({ videos: [v('c', 'da_dang')], ke: { ...ke, dangLam: null, tapKe: [] } }), []);
   // tập hỏng giữa chừng → dòng đỏ mang lỗi
-  assert.strictEqual(cayKeHoach({ videos: [], ke: { ...ke, dangLam: { ...ke.dangLam, loi: 'hỏng ở bước dựng (mã 1)' } } })[1]!.phu, 'hỏng ở bước dựng (mã 1)'); }
+  assert.strictEqual(cayKeHoach({ videos: [], ke: { ...ke, dangLam: { ...ke.dangLam, loi: 'hỏng ở bước dựng (mã 1)' } } })[1]!.chu, '✗ hỏng ở bước dựng (mã 1)'); }
 console.log('kenh-sp-tinh: 12/12 ok');

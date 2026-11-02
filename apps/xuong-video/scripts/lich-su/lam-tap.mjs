@@ -208,8 +208,12 @@ if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons)) console.log('⚠ t�
 for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr || tr.anh) continue;
   const ten = `tranh/${id}-${k + 1}${tr.commons ? '-c' : ''}`, f = join(KHO, `${ten}.jpg`); mkdirSync(join(KHO, 'tranh'), { recursive: true });
   // ẢNH LỊCH SỬ THẬT trước (Wikimedia Commons, public domain — luật ảnh thật của Phòng Nội dung); không có tệp thì AI vẽ theo mo_ta
-  if (!existsSync(f) && tr.commons) { const c = await commons(tr.commons); if (c) { const u = c.thumb.replace(/\/\d+px-/, '/1600px-');
-    writeFileSync(f, Buffer.from(await (await tai(u)).arrayBuffer())); tr.commons_url = c.thumb; tr.commons_trang = c.trang; console.log(`✓ tranh ${k + 1}: Commons ${tr.commons}`); } }
+  // ẢNH TẢI VỀ PHẢI LÀ ẢNH THẬT (02/11/2026: xin bản 1600px của ảnh gốc nhỏ hơn → Commons trả trang HTML lỗi, máy dựng chết "cannot be decoded"):
+  // thử 1600px rồi bản thu nhỏ API trả; nhận khi content-type là image; không bản nào được thì bỏ tệp Commons, tranh quay về AI vẽ
+  if (!existsSync(f) && tr.commons) { const c = await commons(tr.commons);
+    for (const u of c ? [c.thumb.replace(/\/\d+px-/, '/1600px-'), c.thumb] : []) { const r = await tai(u);
+      if (r.ok && /^image\//.test(r.headers.get('content-type') || '')) { writeFileSync(f, Buffer.from(await r.arrayBuffer())); tr.commons_url = c.thumb; tr.commons_trang = c.trang; console.log(`✓ tranh ${k + 1}: Commons ${tr.commons}`); break; } }
+    if (!existsSync(f)) { console.log(`⚠ tranh ${k + 1}: tải Commons ${tr.commons} không ra ảnh — AI vẽ`); delete tr.commons; } }
   if (!existsSync(f)) { const ref = (tr.ref || []).map((r) => khoNay[r]?.dang?.goc).filter(Boolean), bt = `/tmp/${id}-tranh-${k + 1}.jpg`;
     // tranh là PHỤ HOẠ: cổng ảnh hỏng / hết giờ thì thử lại một lần, vẫn hỏng thì bỏ tranh khỏi cảnh (bản đồ + nhân vật vẫn kể được) — không sập cả tập
     // (02/11/2026: tập Hatshepsut đã viết xong, sinh xong 4 nhân vật, chết ở TimeoutError của một tranh)

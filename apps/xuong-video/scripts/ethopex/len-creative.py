@@ -14,7 +14,9 @@ from concurrent.futures import ThreadPoolExecutor
 import sys as _s; _s.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import xuong as XG; import cat_drive as CD
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
-GOC = "https://img.on.tc/kho/ethopex/thanh-pham/2026-10"
+# KHO THÀNH PHẨM xếp theo THÁNG lúc đẩy (kho phat): đường video lấy từ chính URL kho trả về (khoKho bên dưới), KHÔNG ghi cứng tháng — 02/11/2026 mọi creative
+# đẩy từ 01/11 mang link .../2026-10/… → 404, Meta "Unable to fetch video file from URL", camp error. Giọng CTA tải một lần tháng 10 → giữ cố định.
+GIONG_GOC = "https://img.on.tc/kho/ethopex/thanh-pham/2026-10"
 sh = lambda c, **k: subprocess.run(c, shell=True, capture_output=True, text=True, **k)
 
 def ascii_(s):
@@ -47,6 +49,9 @@ def main(lo_f, ma, dang):
     with ThreadPoolExecutor(8) as ex: list(ex.map(day, lo))
     r = sh(f"""ssh {B} 'cd /var/lib/ethopex/creative/{ma} && for f in {ma}-*.mp4; do b=${{f%.mp4}}; ffmpeg -v error -y -ss 2 -i $f -frames:v 1 -q:v 3 $b.jpg; ffmpeg -v error -y -sseof -1.5 -i $f -frames:v 1 -q:v 3 tc-$b.jpg; echo "$b|$(ffprobe -v error -show_entries format=duration -of csv=p=0 $f)|$(kho phat $f ethopex thanh-pham $f | tail -1)|$(kho phat $b.jpg ethopex thanh-pham $b.jpg | tail -1)|$(kho phat tc-$b.jpg ethopex thanh-pham tc-$b.jpg | tail -1)"; done'""", timeout=3600)
     anh = {l.split("|")[0]: l.split("|") for l in r.stdout.splitlines() if l.count("|") == 4}
+    goc = {os.path.dirname(v[2]) for v in anh.values() if v[2].startswith("http")}
+    if len(goc) != 1: raise RuntimeError(f"kho phat không trả đúng một thư mục cho lô {ma}: {sorted(goc) or r.stderr[-200:]}")
+    GOC = goc.pop()
     XG.bao("day", ma, "đẩy video lên kho xong · viết chữ QC", 0, len(lo), ep=True)
     # 2. chữ QC
     ids = ",".join(sorted({str(x["content_id"]) for x in lo}))
@@ -71,7 +76,7 @@ EOF'""", timeout=3600)
     # 4. studio
     import importlib.util as iu
     s_ = iu.spec_from_file_location("cq", os.path.join(D, "cta_qc.py")); CQ = iu.module_from_spec(s_); s_.loader.exec_module(CQ)
-    giong = {"en": f"{GOC}/cta-en-george-v2.mp3", "es": f"{GOC}/cta-es-aria-v2.mp3"}
+    giong = {"en": f"{GIONG_GOC}/cta-en-george-v2.mp3", "es": f"{GIONG_GOC}/cta-es-aria-v2.mp3"}
     st, pm = [], {}
     for x, c in zip(lo, crs):
         a = anh.get(x["ten_tep"][:-4]); x["creative_id"] = c

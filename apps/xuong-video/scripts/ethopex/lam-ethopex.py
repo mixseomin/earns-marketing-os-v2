@@ -140,6 +140,11 @@ def tat_loat(ids, luat, ai, t7=False, ep=False):
         kq["da_tat"] = [c for c in kq["gui"] if ds2.get(c) == "PAUSED"]; kq["chua"] = [c for c in kq["gui"] if ds2.get(c) != "PAUSED"]
     for c in kq["da_tat"] + kq["lich"]:
         ghi_nhat_ky({"viec": "tat", "id": c, "ok": True, "truoc": {"ns": ds[c].get("budget_daily"), "tt": "ACTIVE"}, "sau": {"ns": ds[c].get("budget_daily"), "tt": "PAUSED"}}, luat, ai)
+    # ETHOPEX ÁP CHẬM (02/11/2026 #73533: L3 gửi 07:55:10, Ethopex áp 07:58:51 — quá 60 giây đọc lại): lệnh ĐÃ GỬI vẫn ghi nhật ký, kèm câu "đọc lại chưa thấy"
+    # (cùng mẫu lệnh hạ G10 31/10) — trước đây bỏ không ghi, camp dừng sau đó hiện "tắt tay … tắt ngoài máy" dù chính máy luật tắt
+    for c in kq["chua"]:
+        ghi_nhat_ky({"viec": "tat", "id": c, "ok": False, "loi": "đã gửi lệnh tắt — Ethopex chưa áp sau 60 giây (đọc lại chưa thấy PAUSED)",
+                     "truoc": {"ns": ds[c].get("budget_daily"), "tt": "ACTIVE"}, "sau": {"ns": ds[c].get("budget_daily"), "tt": "PAUSED"}}, luat, ai)
     return kq
 
 def main(a):

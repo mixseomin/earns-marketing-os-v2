@@ -155,7 +155,7 @@ def nhat_ky_tat(cid, luc_utc):
         _NK = json.loads(subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", "select gia_tri::text from xv_khoa_ngoai where ten='ethopex_nhat_ky'"], capture_output=True, text=True).stdout.strip() or "[]")
     best = None
     for x in _NK:
-        if x.get("viec") != "tat" or not x.get("ok") or int(x.get("id") or 0) != int(cid): continue
+        if x.get("viec") != "tat" or not (x.get("ok") or "đọc lại" in (x.get("loi") or "")) or int(x.get("id") or 0) != int(cid): continue   # lệnh gửi mà Ethopex áp chậm cũng là lệnh của máy (#73533)
         try: t = dt.datetime.strptime(x["luc"], "%H:%M %d/%m/%Y").replace(tzinfo=dt.timezone(dt.timedelta(hours=7)))
         except Exception: continue
         d = abs((t - luc_utc).total_seconds())
@@ -178,7 +178,10 @@ def ly_do_dong(c):
         # tắt qua API = lệnh của mình → LUẬT + AI DUYỆT lấy từ nhật ký luật (anh 22/10/2026: "phải ghi rõ lý do tắt camp thuộc rule nào")
         if h.get("source") == "api":
             nk = nhat_ky_tat(c["id"], dt.datetime.fromisoformat(str(h["created_at"]).replace("Z", "+00:00")))
-            cau = (f"tắt qua API — luật: {nk['luat']} · duyệt: {nk.get('ai') or '?'}" if nk else cau + " (không thấy dòng nhật ký luật — tắt ngoài máy)")
+            # không khớp dòng nhật ký: lệnh API bằng khoá Ethopex nhà nhưng không phải lệnh máy luật đã ghi — KHÔNG phải tắt tay trên web (nguồn web thì source = web);
+            # trước 02/11/2026 lệnh máy luật Ethopex áp chậm > 60 giây cũng không được ghi (#73533 L3) — nói đúng hai khả năng, không gán "tắt tay"
+            cau = (f"tắt qua API — luật: {nk['luat']} · duyệt: {nk.get('ai') or '?'}" if nk else
+                   f"lệnh API bằng khoá Ethopex của {h.get('actor_name') or '?'} — không có dòng nhật ký luật khớp (script ngoài máy luật, hoặc lệnh máy luật Ethopex áp chậm chưa được ghi trước 02/11)")
     else: cau = f"{h.get('actor_type_label') or ai or 'hệ thống'} Ethopex tự tắt" + (f" ({h.get('actor_name')})" if h.get("actor_name") else "")
     if md: cau += " · " + ", ".join(f"{k}={str(v)[:40]}" for k, v in list(md.items())[:3])
     t = tron.get(c["id"]) or tron.get(str(c["id"]))

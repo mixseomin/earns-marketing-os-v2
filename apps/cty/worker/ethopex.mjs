@@ -471,7 +471,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     for (const k of Object.keys(bq)) if (Date.now() - Date.parse(bq[k].luc) > 86_400_000) delete bq[k];
     const boQua = Object.keys(bq).map(Number).filter(Boolean).join(',') || '0';
     const ds = JSON.parse((await chayPsql(`select coalesce(json_agg(x), '[]') from (select r.creative_id, r.content_id, coalesce(r.lang, 'en') lang, coalesce(r.lo, '') lo, coalesce(p.ten, '') ten,
-        coalesce(r.dang, '') dang, coalesce(r.tu, 0) tu, coalesce(r.den, 0) den, coalesce((select gia_tri->>(r.content_id::text) from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2') bo
+        coalesce(r.dang, '') dang, coalesce(r.tu, 0) tu, coalesce(r.den, 0) den, coalesce((select gia_tri->>(r.content_id::text) from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2') bo,
+        exists (select 1 from etp.phim_nhan_v n where n.content_id = r.content_id and n.trang_thai = 'giu') nhan
       from etp.creative r join etp.cham_cong g using (creative_id) left join etp.phim p using (content_id) left join etp.cham h using (creative_id)
       where g.duoc_len and r.tu_choi is null and r.content_id is not null and h.luc > now() - interval '3 days' and r.creative_id not in (${boQua})
         and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
@@ -481,7 +482,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
           or (r.dang = 'kể chuyện' and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')
               and not exists (select 1 from etp.camp c join etp.creative k on k.creative_id = c.creative_id where c.content_id = r.content_id and k.dang = 'kể chuyện')))
       -- phim đang được NHẬN đứng đầu hàng (02/11/2026: phim nhận 172341 chấm sạch phải đợi sau 213 creative cũ) — nhận Tự động là lên camp ngay nhịp kế
-      order by exists (select 1 from etp.phim_nhan_v n where n.content_id = r.content_id and n.trang_thai = 'giu') desc, h.luc limit 4) x`)).trim() || '[]');
+      order by nhan desc, h.luc limit 4) x`)).trim() || '[]');
     const da = [];
     for (const x of ds) {
       const a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();
@@ -494,7 +495,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     const ok = da.filter((d) => d.r.ok);
     if (ok.length) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🎬 <b>PHIM MỚI LÊN CAMP</b> — chấm Sạch xong lên luôn ($1, lịch hôm nay)\n` + ok.map((d) => `#${d.r.moi} · bộ ${esc(d.x.bo)} · ${esc(d.x.ten || 'phim ' + d.x.content_id)} (cr #${d.x.creative_id})`).join('\n') }); gui++; }
     for (const d of da.filter((d) => !d.r.ok)) {
-      bq[d.x.creative_id] = { luc: new Date().toISOString(), loi: String(d.r.loi || '').slice(0, 200) }; console.error(`lên camp phim mới #${d.x.creative_id}: ${String(d.r.loi).slice(0, 160)}`);
+      // phim đang NHẬN không vào bỏ qua 24 giờ (lượt nhận chỉ 24 giờ: anh sửa xong — vd thêm phim vào workspace — thì nhịp sau thử lại ngay, lỗi hiện ở sổ nhận)
+      if (!d.x.nhan) bq[d.x.creative_id] = { luc: new Date().toISOString(), loi: String(d.r.loi || '').slice(0, 200) }; console.error(`lên camp phim mới #${d.x.creative_id}: ${String(d.r.loi).slice(0, 160)}`);
       // phim đang được NHẬN (anh 02/11/2026 "có lỗi thì phải báo lại ở danh sách phim Nhận") → ghi lỗi vào sổ nhận, tab Phim / ngăn phim hiện ngay
       await chayPsql(`update etp.phim_nhan set loi = $L$lên camp lỗi: ${String(d.r.loi || 'không rõ').slice(0, 220).replace(/\$L\$/g, '')}$L$, loi_luc = now() where content_id = ${Number(d.x.content_id)} and tra_luc is null and het_luc > now()`).catch(() => {});
     }

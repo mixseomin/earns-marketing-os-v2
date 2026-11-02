@@ -30,3 +30,16 @@ export function gopTroVe(ds: BaiDich[], khachMien: Map<string, number> | null, k
 }
 export const khopSite = (domain: string) => { const g = mienGoc(khoaDich(domain) ?? ''); return (k: string) => mienGoc(k) === g; };
 export const khopDuong = (url: string | null | undefined) => { const c = khoaDich(url); return (k: string) => !!c && (k === c || k.startsWith(`${c}/`)); };
+
+/** LỊCH SOCIAL TRỎ VỀ (anh 02/11/2026: lịch nhỏ như Kênh nội dung, trong menu ⋯ của site có kênh social trỏ về): mỗi việc một sự kiện { dich, loai, ngay, chu }
+ *  — lam = video làm xong chờ đăng, hen = lịch đăng dự kiến của máy, dang = bài đã đăng (mỗi nền một bài). Gộp theo ngày × loại cho ui/lich-nho (OLichNho). */
+export type SuKienLich = { dich: string; loai: 'lam' | 'hen' | 'dang'; ngay: string; chu: string };
+export const LOAI_LICH_SOCIAL = {
+  lam: { ic: '🎬', mau: '#8b5cf6', ten: 'làm xong' }, hen: { ic: '🗓', mau: '#3c9bff', ten: 'hẹn đăng' }, dang: { ic: '✅', mau: '#22c55e', ten: 'đã đăng' },
+} as const;
+export function lichTroVe(ds: SuKienLich[], khop: (khoa: string) => boolean): { ngay: string; loai: string; so: number; chiTiet: string[] }[] {
+  const g = new Map<string, { ngay: string; loai: string; so: number; chiTiet: string[] }>();
+  for (const e of ds) { if (!khop(e.dich)) continue; const k = `${e.ngay}|${e.loai}`, x = g.get(k) ?? { ngay: e.ngay, loai: e.loai, so: 0, chiTiet: [] };
+    x.so += 1; if (x.chiTiet.length < 8) x.chiTiet.push(e.chu); g.set(k, x); }
+  return [...g.values()].sort((a, b) => a.ngay.localeCompare(b.ngay) || a.loai.localeCompare(b.loai));
+}

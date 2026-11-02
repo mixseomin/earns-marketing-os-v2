@@ -24,7 +24,7 @@ export async function TaiSanTab({ ky: kyThu }: { ky?: string } = {}) {
   // SOCIAL TRỎ VỀ (anh 02/11/2026): mỗi site / sản phẩm / kênh nội dung — số kênh social trỏ về + số trong khung ky ngày
   const homNay = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
   const tro = await docSocialTroVe(ky, homNay).catch((e: Error) => { ban.loi.push(`social trỏ về: ${e.message}`); return null; });
-  if (tro) { if (sites.ok) for (const r of sites.rows) r.social = tro.site(r.domain); for (const sh of ban.shops) for (const x of sh.sp) x.social = tro.duong(x.url); }
+  if (tro) { if (sites.ok) for (const r of sites.rows) { r.social = tro.site(r.domain); r.lichSocial = tro.lich(r.domain); } for (const sh of ban.shops) for (const x of sh.sp) x.social = tro.duong(x.url); }
   const kenhSp0 = await docKenhSp(new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' })).catch((e: Error) => { ban.loi.push(`kênh sản phẩm (xv_may.la_san_pham): ${e.message}`); return []; });
   const kenhSp = kenhSp0.map((k) => ({ ...k, social: tro ? tro.duong(k.kenhUrl) : null }));
   const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }), vid = tinhVideo(vso instanceof Error ? [] : vso.dongs, hom);

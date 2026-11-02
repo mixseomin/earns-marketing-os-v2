@@ -46,8 +46,9 @@ function buildGroups(domain: string, project: string | undefined, ga4: string | 
   return groups;
 }
 
-export function SiteMenu({ domain, project, ga4PropertyId, clarityId, onOpenDetail }: {
+export function SiteMenu({ domain, project, ga4PropertyId, clarityId, onOpenDetail, chen }: {
   domain: string; project?: string; ga4PropertyId?: string; clarityId?: string; onOpenDetail?: () => void;
+  /** khối chèn dưới tiêu đề — bảng Website đưa lịch nhỏ social trỏ về khi site có kênh social */ chen?: React.ReactNode;
 }) {
-  return <MenuBaCham tieuDe="Site Menu" phu={domain} title={`Manage ${domain}`} groups={buildGroups(domain, project, ga4PropertyId, clarityId, onOpenDetail)} />;
+  return <MenuBaCham tieuDe="Site Menu" phu={domain} title={`Manage ${domain}`} chen={chen} groups={buildGroups(domain, project, ga4PropertyId, clarityId, onOpenDetail)} />;
 }

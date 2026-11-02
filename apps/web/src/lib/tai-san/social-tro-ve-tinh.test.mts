@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { gopTroVe, khoaDich, khopDuong, khopSite, type BaiDich } from './social-tro-ve-tinh';
+import { gopTroVe, khoaDich, khopDuong, khopSite, lichTroVe, type BaiDich, type SuKienLich } from './social-tro-ve-tinh';
 
 assert.strictEqual(khoaDich('https://www.RatesByRoom.com/hotel-scam-check/?utm_source=x'), 'ratesbyroom.com/hotel-scam-check');
 assert.strictEqual(khoaDich('clane.app/sidecue'), 'clane.app/sidecue');
@@ -17,4 +17,12 @@ assert.deepStrictEqual(gopTroVe(ds, khach, 7, '2026-11-02', khopDuong('https://f
 assert.strictEqual(gopTroVe(ds, khach, 7, '2026-11-02', khopDuong('https://frontporchpuzzles.gumroad.com/l/khac'), false), null);
 // không bài nào trong kỳ: tài khoản vẫn đếm, xem = null (chưa có số), không phải 0
 assert.deepStrictEqual(gopTroVe(ds, null, 7, '2026-11-20', khopSite('ratesbyroom.com'), true), { ky: 7, taiKhoan: 2, nen: ['x', 'youtube'], bai: 0, xem: null, khach: null });
-console.log('social-tro-ve-tinh: 7/7 ok');
+// lịch: gộp theo ngày × loại, chỉ đích khớp site, chi tiết giữ tên bài
+const sk: SuKienLich[] = [
+  { dich: 'ratesbyroom.com/a', loai: 'dang', ngay: '2026-11-01', chu: 'youtube · A' }, { dich: 'ratesbyroom.com', loai: 'dang', ngay: '2026-11-01', chu: 'x · B' },
+  { dich: 'ratesbyroom.com', loai: 'hen', ngay: '2026-11-03', chu: 'facebook 19:00 · C' }, { dich: 'pickjot.com', loai: 'dang', ngay: '2026-11-01', chu: 'youtube · D' },
+];
+assert.deepStrictEqual(lichTroVe(sk, khopSite('ratesbyroom.com')), [
+  { ngay: '2026-11-01', loai: 'dang', so: 2, chiTiet: ['youtube · A', 'x · B'] }, { ngay: '2026-11-03', loai: 'hen', so: 1, chiTiet: ['facebook 19:00 · C'] }]);
+assert.deepStrictEqual(lichTroVe(sk, khopSite('steamsolo.com')), [], 'site không có kênh trỏ về = lịch rỗng (menu không hiện lịch)');
+console.log('social-tro-ve-tinh: 9/9 ok');

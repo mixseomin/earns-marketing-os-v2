@@ -9,7 +9,8 @@ import { SiteMenu } from './site-menu';
 import { ContactsDrawer } from './contacts-drawer';
 import { DataTable, type DataColumn, type DataGroup } from './ui/data-table';
 import { cotSocial, nhomSocial } from './tai-san-social';
-import type { TroVe } from '@/lib/tai-san/social-tro-ve-tinh';
+import { LOAI_LICH_SOCIAL, type TroVe } from '@/lib/tai-san/social-tro-ve-tinh';
+import { LichNho, type OLichNho } from './ui/lich-nho';
 
 // Domains whose Subs number is backed by a browsable Mailjet contact list (mirrors contacts/route.ts).
 const CONTACT_DOMAINS = new Set(['militarycalc.com', 'govcalcs.com', 'visagps.com', 'mintalmanac.com', 'steamsolo.com']);
@@ -22,6 +23,8 @@ export interface RowData {
   nhom?: 'shopdy';
   /** Social trỏ về site (tab Tài sản, khung ?ky=) — undefined = bảng không có cột này (tab SEO). */
   social?: TroVe | null;
+  /** Lịch social trỏ về (làm xong / hẹn đăng / đã đăng) — có thì menu ⋯ hiện lịch nhỏ như Kênh nội dung (anh 02/11/2026). */
+  lichSocial?: OLichNho[];
   ga4PropertyId?: string;
   clarityId?: string;   // Microsoft Clarity project (map in adfond page-events.js)
   // Live (GA4 realtime)
@@ -148,7 +151,8 @@ export function SeoSitesTable({ rows, timeseries, totals, kySocial }: Props) {
             ? <Link href={`/p/${r.project}`} style={{ color: 'var(--fg-1)', textDecoration: 'none', fontWeight: 600 }}>{r.emoji} {r.domain}</Link>
             : <span style={{ color: 'var(--fg-1)', fontWeight: 500 }}>{r.emoji} {r.domain}</span>}
           <SiteMenu domain={r.domain} project={r.project} ga4PropertyId={r.ga4PropertyId} clarityId={r.clarityId}
-            onOpenDetail={() => openDrawer(r.domain, 'google')} />
+            onOpenDetail={() => openDrawer(r.domain, 'google')}
+            chen={r.lichSocial?.length ? <LichNho o={r.lichSocial} loai={LOAI_LICH_SOCIAL} itemNoun="bài" chan="kênh social trỏ về site" /> : undefined} />
         </>
       ),
       total: (rows) => `TOTAL (${rows.length})`,

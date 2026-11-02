@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  distDir: process.env.NEXT_DIST_DIR || '.next',   // deploy.sh dựng trên box vào .next.new rồi thay liền lúc khởi động lại (02/11/2026: dựng thẳng vào .next = 500 suốt lúc dựng)
   reactStrictMode: true,
   poweredByHeader: false,
   eslint: {

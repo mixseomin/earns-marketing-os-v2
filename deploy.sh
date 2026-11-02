@@ -100,12 +100,10 @@ fi
 # before that build, so they are not re-run here. Manual `./deploy.sh` (no SKIP_BUILD) still builds on
 # the server via the fallback below.
 if [ "${SKIP_BUILD:-0}" = "1" ] && [ -f apps/web/.next.new/BUILD_ID ]; then
-  rm -rf apps/web/.next.old
-  [ -e apps/web/.next ] && mv apps/web/.next apps/web/.next.old   # two renames = sub-ms gap; restart follows
-  mv apps/web/.next.new apps/web/.next
-  rm -rf apps/web/.next.old
-  echo "✓ Web build swapped in (prebuilt on runner — no server rebuild)"
-  WEB_RESTART=true
+  # KHÔNG thay .next ở đây: server cũ còn chạy tới bước 6 (sau store / studio / cty… ~60s) mà đọc bản dựng MỚI → trả 500
+  # (02/11/2026 23:26–23:27: 30 lỗi 500 trên etp.on.tc, anh: "FIX ĐỂ KO BAO GIỜ LỖI KHI DEPLOY"). Thay ngay trước khi khởi động lại (bước 6).
+  echo "✓ Web build sẵn ở .next.new (prebuilt on runner) — thay cùng lúc khởi động lại"
+  WEB_SWAP=true; WEB_RESTART=true
 else
   WEB_CHANGED=false
   if [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qE "^apps/web/"; then
@@ -127,9 +125,11 @@ else
     node scripts/check-client-db.mjs || { echo "✗ Client-DB guard failed — abort deploy"; exit 1; }
     # heap-cap: box 4GB swap-tight → next build worker bị OS OOM-kill (SIGKILL). Cap để node GC sớm +
     # fail gracefully thay vì SIGKILL. ~3GB đủ (đã verify build lọt). Bỏ khi nâng RAM (CX33 8GB).
-    NODE_OPTIONS="--max-old-space-size=3072" npm run build:web
-    echo "✓ Web build done"
-    WEB_RESTART=true
+    # dựng vào .next.new (next.config distDir đọc NEXT_DIST_DIR) — dựng thẳng vào .next làm server đang chạy trả 500 suốt lúc dựng
+    rm -rf apps/web/.next.new
+    NEXT_DIST_DIR=.next.new NODE_OPTIONS="--max-old-space-size=3072" npm run build:web
+    echo "✓ Web build done (.next.new)"
+    WEB_SWAP=true; WEB_RESTART=true
   else
     echo "↺ Skip build (no source changes)"
   fi
@@ -271,10 +271,26 @@ if command -v pixel-agents >/dev/null 2>&1; then
   fi
 fi
 
+# 5z. vhost etp.on.tc cài từ repo (có trang "đang cập nhật" tự tải lại khi mos2-web khởi động lại) — chỉ khi tệp đổi
+if ! cmp -s apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc; then
+  cp /etc/nginx/sites-enabled/etp.on.tc /tmp/etp.on.tc.nginx.cu 2>/dev/null
+  cp apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx etp.on.tc cập nhật" \
+    || { echo "✗ nginx etp.on.tc lỗi — trả bản cũ"; cp /tmp/etp.on.tc.nginx.cu /etc/nginx/sites-enabled/etp.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
+fi
+
 # 6. Restart mos2-web CHỈ khi web có bản mới / deps đổi (anh chốt 13/10/2026: deploy app con không được kéo mos2 khởi động lại).
 if [ "${WEB_RESTART:-false}" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-web; then
+  # THAY BẢN DỰNG + KHỞI ĐỘNG LẠI LIỀN NHAU (02/11/2026): hai lần đổi tên + restart cách nhau mili giây, server cũ không bao giờ đọc bản mới
+  if [ "${WEB_SWAP:-false}" = "true" ] && [ -f apps/web/.next.new/BUILD_ID ]; then
+    rm -rf apps/web/.next.old
+    [ -e apps/web/.next ] && mv apps/web/.next apps/web/.next.old
+    mv apps/web/.next.new apps/web/.next
+  fi
   systemctl restart mos2-web
-  sleep 1
+  rm -rf apps/web/.next.old
+  # chờ server trả lời thật (nginx các host *.on.tc tự hiện trang "đang cập nhật" + tải lại trong lúc chờ) — tối đa 60s
+  for i in $(seq 1 60); do curl -s -o /dev/null -m 2 -w "%{http_code}" http://127.0.0.1:3821/api/auth/verify | grep -qE "^[234]" && break; sleep 1; done
+  echo "✓ mos2-web trả lời sau ${i}s"
   systemctl is-active mos2-web && echo "✓ mos2-web active" || (echo "✗ mos2-web failed"; systemctl status mos2-web --no-pager | tail -20; exit 1)
 else
   echo "↺ mos2-web: không có bản mới, không khởi động lại"

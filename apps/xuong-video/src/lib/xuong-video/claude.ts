@@ -183,6 +183,8 @@ async function quaChuoi(p0: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promi
         for (const b of r.content) if (b.type === 'text') b.text = layJson(b.text);
         if (tay && f.parse && r.stop_reason !== 'max_tokens') r.parsed_output = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''));
       }
+      // chạm TRẦN token = đường đó viết lan man / không dừng (03/11/2026: một cổng ăn hết 48.000 token cho kịch bản thường ~22.000) → đường hỏng, sang đường kế
+      if (f && r.stop_reason === 'max_tokens' && !cuoi) { loi.push(`${d.ten} ${d.model}: chạm trần ${p.max_tokens} token`); ghiSo(khoaD(d), { hong: Date.now() }); continue; }
       if (kiem && f && r.stop_reason !== 'max_tokens' && !cuoi) {
         let du: unknown = (r as { parsed_output?: unknown }).parsed_output;
         if (!du && f.parse) try { du = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join('')); } catch { du = null; }

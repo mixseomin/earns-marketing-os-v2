@@ -15,7 +15,9 @@ const PW = process.env.DO_MAN_PW || `${process.env.HOME}/Me/Earns/courseforge-de
 const { chromium } = createRequire(import.meta.url)(PW);
 const cau = JSON.parse(readFileSync(arg('cau'), 'utf8')), fps = Number(arg('fps', 30)), ra = arg('ra'), tieng = arg('tieng'), nenVideo = arg('nen-video');
 
-const b = await chromium.launch({ args: ['--allow-file-access-from-files'] });
+// GPU THẬT (Metal) trên Mac: đo 02/11/2026 trang bản đồ 53 → 16 ms/khung (headless mặc định vẽ canvas bằng CPU qua SwiftShader)
+const GPU = process.platform === 'darwin' ? ['--use-angle=metal', '--enable-gpu', '--ignore-gpu-blocklist', '--enable-gpu-rasterization'] : [];
+const b = await chromium.launch({ args: ['--allow-file-access-from-files', ...GPU] });
 const p = await b.newPage({ viewport: { width: Number(arg('rong', 1080)), height: Number(arg('cao', 1920)) } });
 await p.goto(pathToFileURL(resolve(arg('trang'))).href);
 await p.evaluate(async (c) => { window.CAU = c; await window.__dung(); }, cau);
@@ -34,14 +36,15 @@ if (arg('khung')) {   // chỉ chụp vài khung để soát nhanh → ghép m�
   ff.stdin.end(); await new Promise((r) => ff.on('close', r)); await b.close(); console.log(out); process.exit(0);
 }
 const n = Math.round(cau.DAI * fps), bd = Date.now();
-const x264 = ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', '-preset', 'medium'];
+// bản TRUNG GIAN (lam-tap nén lại bản phát hành crf 23): Mac mã hoá bằng phần cứng VideoToolbox, máy khác libx264 — libx264 medium là chỗ nghẽn khi khung đã nhanh
+const x264 = process.platform === 'darwin' ? ['-c:v', 'h264_videotoolbox', '-b:v', '16M', '-pix_fmt', 'yuv420p', '-allow_sw', '1'] : ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', '-preset', 'medium', '-threads', '2'];
 // ---------- DỰNG SONG SONG + DÙNG LẠI ĐOẠN (02/11/2026, anh: "tăng tốc độ dựng"): trang là hàm thuần của t → chia khung thành ĐOẠN (cảnh, --doan), mỗi đoạn một
-// tệp mp4 riêng do N trang Chromium dựng cùng lúc (--song, mặc định số nhân − 2, tối đa 6), rồi ghép không mã hoá lại. --kho <thư mục>: đoạn có khoá trùng lần trước thì
+// tệp mp4 riêng do N trang Chromium dựng cùng lúc (--song, mặc định 2: đo 02/11 trên iMac GPU — 2 trang 18 ms/khung, 4 trang 27 ms vì chung một GPU), rồi ghép không mã hoá lại. --kho <thư mục>: đoạn có khoá trùng lần trước thì
 // dùng lại — chỉ sau khi dựng lại khung đầu + cuối của đoạn và so khớp từng byte với lần trước (bắt cả phụ thuộc ngầm mà khoá không thấy).
 // Nền video (--nen-video) / ghép tiếng (--tieng) vẫn đi đường một trang như cũ.
 if (!nenVideo && !tieng) {
   const { cpus } = await import('node:os'), { createHash } = await import('node:crypto'), fs = await import('node:fs'), { join } = await import('node:path');
-  const song = Math.max(1, Number(arg('song', Math.min(6, Math.max(1, cpus().length - 2))))), kho = arg('kho'), tam = `${ra}.doan`;
+  const song = Math.max(1, Number(arg('song', 2))), kho = arg('kho'), tam = `${ra}.doan`;
   fs.rmSync(tam, { recursive: true, force: true }); fs.mkdirSync(tam, { recursive: true }); if (kho) fs.mkdirSync(kho, { recursive: true });
   // đoạn: theo --doan [{bd, kt, khoa}] (giây) — không có thì chia đều theo số trang
   const ds = arg('doan') ? JSON.parse(readFileSync(arg('doan'), 'utf8')).map((d) => ({ f0: Math.round(d.bd * fps), khoa: d.khoa }))

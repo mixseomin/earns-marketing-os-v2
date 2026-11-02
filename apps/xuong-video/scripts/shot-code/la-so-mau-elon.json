@@ -1,0 +1,65 @@
+{
+ "DAI": 19.3,
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "Chart Chapters",
+  "mau": "#E6B800",
+  "ic": "☉"
+ },
+ "_ghi": "Thử Chart Chapters: góc chiếu đối xuyên lá số (Saturn–Neptune 0,3°) + cung có 2 sao. Chữ chỉ nêu điều có trong lich-su/la-so/elon-musk.json.",
+ "la_so": "../lich-su/la-so/elon-musk.svg",
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.2,
+   "nhin": {
+    "dung": 1
+   },
+   "chu": "Elon Musk.<br>Born June 28, 1971."
+  },
+  {
+   "tu": 3.2,
+   "den": 6.6,
+   "nhin": {
+    "sao": "Sun"
+   },
+   "chu": "His Sun is in Cancer,<br>hidden in the 12th house."
+  },
+  {
+   "tu": 6.6,
+   "den": 10.2,
+   "nhin": {
+    "goc": [
+     "Saturn",
+     "Neptune"
+    ]
+   },
+   "chu": "Saturn opposes Neptune<br>across the whole chart."
+  },
+  {
+   "tu": 10.2,
+   "den": 13.6,
+   "nhin": {
+    "nha": 11
+   },
+   "chu": "Venus and Saturn<br>share his 11th house."
+  },
+  {
+   "tu": 13.6,
+   "den": 16.8,
+   "nhin": {
+    "cung": "Virgo"
+   },
+   "chu": "His Moon and Pluto<br>both sit in Virgo."
+  },
+  {
+   "tu": 16.8,
+   "den": 19.3,
+   "nhin": {
+    "toan": 1
+   },
+   "chu": "What chapter are you in?"
+  }
+ ]
+}

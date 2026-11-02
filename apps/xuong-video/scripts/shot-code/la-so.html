@@ -77,8 +77,10 @@ function dich(q) {
       nhan: `${THU(n.nha)} house` + (o.length ? ` · ${o.map((x) => `${KY[x.ten]} ${x.ten}`).join(' · ')}` : '') }; }
   if (n.goc) { const [a, b] = n.goc; const g = svg.querySelector(`[data-aspect][data-body1="${a}"][data-body2="${b}"]`) || svg.querySelector(`[data-aspect][data-body1="${b}"][data-body2="${a}"]`);
     if (!g) throw new Error(`không có góc chiếu ${a}–${b}`);
-    const els = [g, ...sao(a).g, ...sao(b).g];
-    return { vb: vuong(hop([g, ...sao(a).ph, ...sao(b).ph]), 1.25, 220), sang: new Set(els), day: g, nhan: `${KY[a] || ''} ${a} ${g.dataset.aspect.toLowerCase()} ${KY[b] || ''} ${b} · ${g.dataset.orb}°` }; }
+    const els = [g, ...sao(a).g, ...sao(b).g], ca = vuong(hop([g, ...sao(a).ph, ...sao(b).ph]), 1.25, 220);
+    // góc chiếu RỘNG (khung chung > 60% lá số — đối đỉnh, tam hợp xa): lùi ra cả lá số thì hai sao nhỏ xíu sát mép → phóng vào sao đầu rồi LIA dọc đường góc chiếu sang sao sau
+    const di = ca[2] > 0.6 * VB0[2] ? [vuong(hop(sao(a).ph), 2.0, 200), vuong(hop(sao(b).ph), 2.0, 200)] : null;
+    return { vb: di ? di[0] : ca, di, sang: new Set(els), day: g, nhan: `${KY[a] || ''} ${a} ${g.dataset.aspect.toLowerCase()} ${KY[b] || ''} ${b} · ${g.dataset.orb}°` }; }
   if (n.cung) { const g = svg.querySelector(`[data-zodiac="${n.cung}"]`); if (!g) throw new Error('không có cung ' + n.cung);
     const o = C.du_lieu.sao.filter((x) => x.cung === n.cung && KY[x.ten]); const els = [g, ...o.flatMap((x) => sao(x.ten).g)];
     return { vb: vuong(hop([g, ...o.flatMap((x) => sao(x.ten).ph)]), 0.95, 220), sang: new Set(els), nhan: n.cung + (o.length ? ` · ${o.map((x) => `${KY[x.ten]} ${x.ten}`).join(' · ')}` : '') }; }
@@ -108,11 +110,13 @@ function trangThai(i) { return canh[Math.max(0, Math.min(canh.length - 1, i))]; 
 window.__seek = (t) => {
   veNen(t);
   let i = C.cau.findIndex((q) => t < q.den); if (i < 0) i = C.cau.length - 1;
-  const q = C.cau[i], cu = i > 0 ? trangThai(i - 1) : { vb: VB0, sang: null }, moi = trangThai(i);
+  const q = C.cau[i], cu = i > 0 ? trangThai(i - 1) : { vb: VB0, sang: null }, moi = trangThai(i), cuVb = cu.di ? cu.di[1] : cu.vb;   // câu lia xong đứng ở sao sau
   const k = ease((t - q.tu) / CHUYEN), troi = Math.max(0, Math.min(1, (t - q.tu) / Math.max(0.1, q.den - q.tu)));
   // camera: trượt từ khung câu trước sang khung câu này, rồi đẩy vào chậm 6% cho khung không đứng
-  const day = 1 - 0.06 * ease(troi), vb = moi.vb.map((v, j) => lerp(cu.vb[j], v, k));
-  const s = vb[2] * (k >= 1 ? day : 1), cxv = vb[0] + vb[2] / 2, cyv = vb[1] + vb[3] / 2;
+  const day = 1 - 0.06 * ease(troi);
+  let vb = moi.vb.map((v, j) => lerp(cuVb[j], v, k));
+  if (moi.di) { const u = ease((t - q.tu - CHUYEN) / Math.max(0.5, q.den - q.tu - CHUYEN - 0.5)); if (u > 0) vb = moi.di[0].map((v, j) => lerp(v, moi.di[1][j], u)); }
+  const s = vb[2] * (k >= 1 && !moi.di ? day : 1), cxv = vb[0] + vb[2] / 2, cyv = vb[1] + vb[3] / 2;
   svg.setAttribute('viewBox', `${cxv - s / 2} ${cyv - s / 2} ${s} ${s}`);
   // độ sáng: phần được chọn sáng, còn lại tối dần
   const op = (st, e) => (!st.sang || st.sang.has(e) || [...st.sang].some((x) => x.contains(e) || e.contains(x)) ? 1 : 0.12);

@@ -19,6 +19,9 @@ const ngayVn = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` :
 const mo: React.CSSProperties = { color: 'var(--fg-4)' };
 const tang = (n: number | null) => (n == null ? <span style={mo}>–</span> : <span style={{ color: n > 0 ? 'var(--ok)' : 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{n > 0 ? '+' : ''}{so(n)}</span>);
 const STUDIO = 'https://studio.on.tc';
+// THỤT CÂY (anh 02/11/2026 #1513 "trình bày ngu"): ▾ của khối con đứng thẳng dưới ẢNH kênh (nút 16 + khe 6), không cùng cột với ▾ của kênh;
+// mục trong khối thụt sâu thêm một nấc (└ dưới chữ của khối) — nhìn là ra ba tầng kênh → khối → mục.
+const THUT_NHOM = 22, THUT_MUC = 44;
 const REPO = 'https://github.com/mixseomin/earns-marketing-os-v2/blob/main';
 const CHANG: Record<VideoKenh['trangThai'], { chu: string; mau: string }> = {
   chua_xuat: { chu: 'chưa xuất', mau: 'var(--fg-4)' }, cho_cham: { chu: 'chờ Phòng Nội dung chấm', mau: 'var(--warn)' }, duyet: { chu: 'DUYỆT · chờ đăng', mau: 'var(--accent)' },
@@ -59,7 +62,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   const cot: DataColumn<Dong>[] = [
     { key: 'kenh', header: 'Kênh', align: 'left', width: 320, sortValue: (d) => d.k.ten,
       cell: (d) => {
-        if (d.loai === 'ke') return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: d.nhom ? 4 : 30, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap' }}>
+        if (d.loai === 'ke') return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: d.nhom ? THUT_NHOM : THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap' }}>
           {!d.nhom && <span style={{ color: 'var(--fg-4)' }}>└</span>}
           {d.nhom && (() => { const kh = `${d.k.ma}:${d.id}`, dong_ = gap.has(kh);
             return <button type="button" onClick={(e) => { e.stopPropagation(); doiGap(kh); }} title={dong_ ? 'mở khối' : 'gập khối'}
@@ -67,7 +70,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
           <span style={{ fontWeight: d.nhom ? 700 : 400, color: d.mau ?? (d.nhom ? 'var(--fg-1)' : undefined) }}>{d.chu}</span>
           {d.phu && <span style={{ color: 'var(--fg-3)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis' }} title={d.phu}>{d.phu}</span>}</span>;
         if (!laK(d)) { const v = d.v, c = CHANG[v.trangThai];
-          return <span style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: 30, fontFamily: 'var(--font-sans)', minWidth: 0 }}>
+          return <span style={{ display: 'flex', alignItems: 'center', gap: 6, paddingLeft: THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0 }}>
             <span style={{ color: 'var(--fg-4)' }}>└</span>
             {v.url ? <a {...extLinkProps(v.url)} style={{ color: 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={v.ten}>{v.ten}</a>
               : <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={v.ten}>{v.ten}</span>}

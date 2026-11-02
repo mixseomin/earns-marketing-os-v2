@@ -33,13 +33,21 @@ export const khopDuong = (url: string | null | undefined) => { const c = khoaDic
 
 /** LỊCH SOCIAL TRỎ VỀ (anh 02/11/2026: lịch nhỏ như Kênh nội dung, trong menu ⋯ của site có kênh social trỏ về): mỗi việc một sự kiện { dich, loai, ngay, chu }
  *  — lam = video làm xong chờ đăng, hen = lịch đăng dự kiến của máy, dang = bài đã đăng (mỗi nền một bài). Gộp theo ngày × loại cho ui/lich-nho (OLichNho). */
-export type SuKienLich = { dich: string; loai: 'lam' | 'hen' | 'dang'; ngay: string; chu: string };
+export type SuKienLich = { dich: string; loai: 'lam' | 'hen' | 'dang'; ngay: string; chu: string; url?: string | null };
+/** Một nền của bài (xv_may_video.da_dang[nen]): máy đăng hẹn giờ trên nền (FB Graph scheduled) ghi { hen: true, luc } NGAY lúc hẹn — chưa tới luc là HẸN ĐĂNG,
+ *  không phải đã đăng (anh 02/11/2026 #1511: ô ngày mai hiện xanh "đã đăng"). */
+export const daLenThat = (v: { hen?: boolean | null; luc?: string | null }, nayIso: string) => !(v.hen && v.luc && v.luc > nayIso);
+/** Link mở được của bài trên nền: url thật giữ nguyên; hẹn giờ FB chỉ có mã — fb-hen-api:<video> → trang reel, fb-hen:<id> → facebook.com/<id>; còn lại null. */
+export const linkBai = (url: string | null | undefined): string | null => {
+  if (!url) return null; if (/^https?:\/\//i.test(url)) return url;
+  const m = url.match(/^fb-hen(-api)?:(\d+)/); return m ? (m[1] ? `https://www.facebook.com/reel/${m[2]}/` : `https://www.facebook.com/${m[2]}`) : null;
+};
 export const LOAI_LICH_SOCIAL = {
   lam: { ic: '🎬', mau: '#8b5cf6', ten: 'làm xong' }, hen: { ic: '🗓', mau: '#3c9bff', ten: 'hẹn đăng' }, dang: { ic: '✅', mau: '#22c55e', ten: 'đã đăng' },
 } as const;
-export function lichTroVe(ds: SuKienLich[], khop: (khoa: string) => boolean): { ngay: string; loai: string; so: number; chiTiet: string[] }[] {
-  const g = new Map<string, { ngay: string; loai: string; so: number; chiTiet: string[] }>();
-  for (const e of ds) { if (!khop(e.dich)) continue; const k = `${e.ngay}|${e.loai}`, x = g.get(k) ?? { ngay: e.ngay, loai: e.loai, so: 0, chiTiet: [] };
-    x.so += 1; if (x.chiTiet.length < 8) x.chiTiet.push(e.chu); g.set(k, x); }
+export function lichTroVe(ds: SuKienLich[], khop: (khoa: string) => boolean): { ngay: string; loai: string; so: number; chiTiet: string[]; muc: { chu: string; url: string | null }[] }[] {
+  const g = new Map<string, { ngay: string; loai: string; so: number; chiTiet: string[]; muc: { chu: string; url: string | null }[] }>();
+  for (const e of ds) { if (!khop(e.dich)) continue; const k = `${e.ngay}|${e.loai}`, x = g.get(k) ?? { ngay: e.ngay, loai: e.loai, so: 0, chiTiet: [], muc: [] };
+    x.so += 1; if (x.chiTiet.length < 8) { x.chiTiet.push(e.chu); x.muc.push({ chu: e.chu, url: e.url ?? null }); } g.set(k, x); }
   return [...g.values()].sort((a, b) => a.ngay.localeCompare(b.ngay) || a.loai.localeCompare(b.loai));
 }

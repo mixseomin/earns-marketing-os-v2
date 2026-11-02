@@ -49,6 +49,7 @@ export interface DataGroup {
   label: string;
   color?: string;        // 6-digit hex accent (#rrggbb) — tints the chip, header band + column
   defaultOn?: boolean;   // default true
+  title?: string;        // câu đầy đủ hiện khi hover (dải tiêu đề + chip menu Columns) — label giữ ngắn một dòng
 }
 
 // Cùng dữ liệu — hai cách nhìn: bảng dày (nhiều cột) hoặc lưới THẺ (glanceable, mỗi dòng 1 card).
@@ -539,7 +540,7 @@ export function DataTable<T>({
         {dai.map((d) => { const g = d.g ? groupMeta.get(d.g) : undefined; return (
           <th key={`${d.g ?? '-'}:${d.i}`} colSpan={d.n} style={{ ...baseHead, textAlign: 'center', color: g?.color ?? 'var(--fg-2)', fontWeight: 700, backgroundColor: 'var(--bg-2)',
             backgroundImage: g?.color ? `linear-gradient(${band(g.color)}, ${band(g.color)})` : undefined, borderLeft: d.i ? '1px solid var(--line)' : undefined,
-            borderBottom: g ? `2px solid ${g.color ?? 'var(--line)'}` : undefined, ...(stickyFirst && d.i === 0 ? { position: 'sticky', left: 0, zIndex: 4 } : {}) }}>{g?.label ?? ''}</th>
+            borderBottom: g ? `2px solid ${g.color ?? 'var(--line)'}` : undefined, ...(stickyFirst && d.i === 0 ? { position: 'sticky', left: 0, zIndex: 4 } : {}) }} title={g?.title}>{g?.label ?? ''}</th>
         ); })}
       </tr>
     );
@@ -660,14 +661,14 @@ export function DataTable<T>({
               {groups.map((g) => {
                 const on = shown[g.key] !== false;
                 return (
-                  <button key={g.key} type="button" onClick={() => toggle(g.key)}
+                  <button key={g.key} type="button" onClick={() => toggle(g.key)} title={g.title}
                     style={{
                       padding: '4px 9px', borderRadius: 4, textAlign: 'left',
                       background: on ? band(g.color) ?? 'var(--bg-1)' : 'transparent',
                       border: `1px solid ${on ? g.color ?? 'var(--line)' : 'transparent'}`,
                       color: on ? g.color ?? 'var(--fg-1)' : 'var(--fg-3)',
                       cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)',
-                      textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: on ? 600 : 400,
+                      textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: on ? 600 : 400, whiteSpace: 'nowrap',
                     }}>
                     {on ? '✓ ' : '  '}{g.label}
                   </button>

@@ -10,7 +10,7 @@ const so = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleStri
 const NHAN_NEN: Record<string, string> = { youtube: 'YouTube', facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok', x: 'X', twitter: 'X', pinterest: 'Pinterest', dailymotion: 'Dailymotion', quora: 'Quora', threads: 'Threads' };
 
 /** KHỐI CỘT "Social" (anh 02/11/2026: chia khối + màu như GSC / Bing) — dải tiêu đề màu riêng, bật / tắt ở menu Columns như mọi khối. */
-export const nhomSocial = (ky: number): DataGroup => ({ key: 'social', label: `Social trỏ về · ${ky} ngày`, color: '#e1306c' });
+export const nhomSocial = (ky: number): DataGroup => ({ key: 'social', label: `Social ${ky}D`, title: `Social trỏ về · ${ky} ngày`, color: '#e1306c' });
 
 /** 4 cột số của khối Social cho DataTable bất kỳ — get lấy TroVe của dòng. "–" = chưa có số (khác 0). */
 export function cotSocial<T>(get: (r: T) => TroVe | null | undefined, ky: number): DataColumn<T>[] {

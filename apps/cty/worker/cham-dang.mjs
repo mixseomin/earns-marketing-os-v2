@@ -118,6 +118,8 @@ export function doBaiDang(v, ten = '') {
   // 8 · BÀI VIẾT (Quora / Substack / Medium…, 28/10/2026): nội dung dài phải qua Phòng Nội dung kiem-bai đúng bản này (v.kiem = kết quả của bản)
   if (d.loai === 'bai') { if (!d.html && !mo) chan.push('bài viết không có nội dung'); if (v.kiem !== 'DUYET') chan.push(`Phòng Nội dung (kiem-bai) chưa DUYỆT bản này: ${v.kiem ?? 'chưa nộp'}`); }
   // 5 · giọng văn
+  // 9 · HÌNH (Ngọc xem ảnh — xetHinhAi): lỗi chắc chặn, chưa chắc / lệch chủ đề chỉ cảnh báo
+  if (v.hinh) { chan.push(...v.hinh.chan); canh.push(...v.hinh.canh); }
   const gach = (chu.match(/[—–]/g) || []).length; if (gach) chan.push(`${gach} gạch ngang dài`);
   // ngôn ngữ đúng thị trường (29/10/2026: đề Sidecue dung-sai-40165 viết tiếng Việt vẫn DUYỆT): máy thị trường US/global không được có chữ tiếng Việt.
   // Cùng regex với may-de.ts › CHU_VIET (máy sinh đề chặn trước khi nạp; phòng này chặn mọi nguồn khác).
@@ -157,10 +159,46 @@ async function ketNoi() {
   return (await import('postgres')).default(process.env.DATABASE_URL, { max: 1, prepare: false, connect_timeout: 5 });
 }
 
+/** NGỌC XEM HÌNH (anh duyệt 02/11/2026 — trước đó phòng chỉ đọc chữ + URL ảnh, cả lớp lỗi HÌNH lọt: ô năm đè tít hook, chữ ảnh bìa tràn khỏi vùng hiển thị,
+ *  5 câu liền bản đồ đứng yên). Mô hình của Ngọc nhìn tối đa 8 ảnh của bài (de.soat = keyframe rải đều của phim dài · khung = 3 khung video · anh = ảnh bài ảnh)
+ *  qua proxy công ty (~25₫ / ảnh). Lỗi CHẮC (chữ đè / tràn mép / không đọc được, nền phẳng, lỗi vẽ AI rõ, logo / watermark lạ, nhạy cảm) → chặn cứng;
+ *  không chắc / lệch chủ đề → cảnh báo. Một bộ ảnh + tiêu đề chỉ xét MỘT lần (sổ xet-hinh.json); proxy / mô hình hỏng → không chặn, lượt sau xét lại.
+ *  ds = [{ title, anh: [url] }] → [{ chan: [], canh: [] } | null]. */
+export async function xetHinhAi(ds) {
+  if (!MODEL_NGOC) return ds.map(() => null);
+  const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'xet-hinh.json');
+  let so = {}; try { so = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* chưa có sổ */ }
+  const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`${x.title}|${x.anh.join('|')}`).digest('hex');
+  const system = 'You are the visual QA reviewer of a social video team. You see frames of ONE post (a short video or an image post). Reply with ONE JSON only: '
+    + '{"chu_loi":true|false,"nen_phang":true|false,"loi_ai":true|false,"logo_la":true|false,"nhay_cam":true|false,"lech_chu_de":true|false,"chac":true|false,"ly_do":"one short sentence in Vietnamese naming the frame number"}. '
+    + 'chu_loi = on-screen text overlaps other text / is cut off at the frame edge / is unreadable against its background. nen_phang = text on a flat colour background with no real image. '
+    + 'loi_ai = obvious AI drawing errors (melted faces, extra fingers or limbs, garbled pseudo-text in the picture). logo_la = third-party brand logo or stock watermark visible. '
+    + 'nhay_cam = nudity, gore, hate symbols. lech_chu_de = the pictures do not match the post title. chac = you are confident about every true flag. Map / illustration / paper-cut styles are fine.';
+  const ra = []; let moi = 0;
+  for (const x of ds) {
+    if (!x.anh?.length) { ra.push(null); continue; }
+    const k = khoa(x);
+    if (!(k in so)) {
+      try {
+        const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ngoc', 'x-cty-luot': `xet-hinh-${Date.now()}`, 'x-cty-phong': 'noi-dung' },
+          body: JSON.stringify({ model: MODEL_NGOC, max_tokens: 300, temperature: 0, system, messages: [{ role: 'user', content: [
+            ...x.anh.flatMap((u, i) => [{ type: 'text', text: `Frame ${i + 1}:` }, { type: 'image', source: { type: 'url', url: u } }]), { type: 'text', text: `POST TITLE: ${x.title}` }] }] }), signal: AbortSignal.timeout(120000) });
+        const j = await r.json(); if (!r.ok) { ra.push(null); continue; }
+        const txt = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(''); so[k] = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1)); moi++;
+      } catch { ra.push(null); continue; }
+    }
+    const o = so[k], ly = ` (Ngọc: ${String(o.ly_do || '').slice(0, 160)})`, cung = [o.chu_loi && 'chữ trên hình đè / tràn mép / không đọc được', o.nen_phang && 'chữ trên nền màu phẳng, không ảnh thật',
+      o.loi_ai && 'lỗi vẽ AI rõ (mặt / tay / chữ rác)', o.logo_la && 'logo / watermark lạ trên hình', o.nhay_cam && 'hình nhạy cảm'].filter(Boolean);
+    ra.push({ chan: o.chac && cung.length ? [`hình: ${cung.join(' + ')}${ly}`] : [], canh: [...(!o.chac && cung.length ? [`hình (chưa chắc): ${cung.join(' + ')}${ly}`] : []), ...(o.lech_chu_de ? [`hình lệch chủ đề tiêu đề${ly}`] : [])] });
+  }
+  if (moi) { try { fs.mkdirSync(path.dirname(tep), { recursive: true }); fs.writeFileSync(tep, JSON.stringify(so)); } catch (e) { console.error('xet-hinh: không ghi được sổ', e.message); } }
+  return ra;
+}
+
 /** Chấm mọi video đang dùng chưa chấm hoặc đã xuất lại sau lần chấm. Trả { cham, duyet, sua, theoMau: { mau: { n, loi: {lỗi: số} } } }. */
 export async function chamMoi(sql) {
   // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng
-  const ds = await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, m.muc_dich, v.anh,
+  const ds = await sql`select v.id, v.slug, v.de, v.nen_url, v.video_url, v.xuat_luc::text as xuat, v.dang, md5(v.dang::text) as dang_md5, m.ma, m.ten, m.mau, m.goc_sp, m.muc_dich, v.anh, v.khung,
       true as can_goc,   -- 31/10/2026: mọi bài phải có góc (trước: chỉ bài tạo từ MOC_GOC)
       (select count(*)::int from xv_may_video w where w.may_id = v.may_id and not coalesce(w.luu_tru, false) and w.dang->>'title' = v.dang->>'title') as trung
     from xv_may_video v join xv_may m on m.id = v.may_id
@@ -174,12 +212,13 @@ export async function chamMoi(sql) {
   const suThat = new Map();   // tệp sự thật đã kiểm của từng máy (apps/xuong-video/su-that/<máy>.md) — không có thì null
   const suThatCua = (ma) => { if (!suThat.has(ma)) { try { suThat.set(ma, fs.readFileSync(new URL(`../../xuong-video/su-that/${ma}.md`, import.meta.url), 'utf8')); } catch { suThat.set(ma, null); } } return suThat.get(ma); };
   const loiHookNgach = await xetHookAi(ds.map((v) => ({ qc: v.dang?.loai !== 'bai' ? v.dang?.hook?.qc : null, ma: v.ma, nhan: v.ten, muc_dich: v.muc_dich, su_that: suThatCua(v.ma), goc: v.dang?.hook?.goc, luot_xem: v.dang?.hook?.luot_xem ?? (String(v.dang?.hook?.qc ?? '').startsWith('kenh:') ? v.dang?.hook?.ngay : undefined), dong: dongHookBai(v.dang?.title, v.de) })));
+  const hinh = await xetHinhAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), anh: [...(v.de?.soat ?? (v.khung?.length ? v.khung : v.anh) ?? [])].filter((u) => /^https:\/\//.test(u)).slice(0, 8) })));
   for (const [i, v] of ds.entries()) {
     let kiem;
     if (v.dang?.loai === 'bai') {   // bài viết: chờ kiem-bai chấm đúng bản (md5 chữ đăng); chưa nộp thì nộp, đang chờ thì để lượt sau
       const k = await kiemBaiViet(v); if (k === 'CHO') continue; kiem = k;
     }
-    const r = doBaiDang({ ...v, xuat_luc: v.xuat, goc_loi: loiGoc[i], hook_loi: loiHookNgach[i], su_that: suThatCua(v.ma), kiem }, '');
+    const r = doBaiDang({ ...v, xuat_luc: v.xuat, goc_loi: loiGoc[i], hook_loi: loiHookNgach[i], hinh: hinh[i], su_that: suThatCua(v.ma), kiem }, '');
     await sql`update xv_may_video set cham = ${sql.json({ ...r, xuat: v.xuat, dang: v.dang_md5, luc: new Date().toISOString(), boi: 'may-do' })} where id = ${v.id}`;
     kq.cham++; r.ket === 'DUYET' ? kq.duyet++ : kq.sua++;
     const t = (kq.theoMau[v.ma] ??= { ten: v.ten, n: 0, sua: 0, loi: {} }); t.n++;

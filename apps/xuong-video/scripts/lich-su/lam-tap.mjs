@@ -240,7 +240,7 @@ console.log(`✓ ${mp4}\n✓ ${xem}`);
     const anhThat = tap.cau.map((c) => c.canh.tranh?.commons_url).filter(Boolean);
     const moTa = `${tap.mo_ta_dang}${anhThat.length ? '\n\nImages: Wikimedia Commons (public domain). Maps: Natural Earth.' : ''}`;
     const nap = [{ slug: id, chu_de: tap.chu_de, mau: 'video-ngoai', nen_url: anhThat[0] ?? null,
-      de: { loai: 'video-ngoai', video_url: kq.url, giay: Math.round(giay * 100) / 100, khung: kq.khung ?? [], tom_tat: tap.chu_de },
+      de: { loai: 'video-ngoai', video_url: kq.url, giay: Math.round(giay * 100) / 100, khung: kq.khung ?? [], soat: kq.soat ?? [], tom_tat: tap.chu_de },
       dang: { title: tap.tieu_de, description: moTa, link: null, loai: 'thuong', goc: tap.goc, hook: tap.hook } }];
     writeFileSync(join(RA, 'nap.json'), JSON.stringify(nap)); len(join(RA, 'nap.json'), `${bt}/nap.json`);
     console.log(box(`scripts/may-dung.mts --may ${KENH.may} --nap < ${bt}/nap.json`)); console.log(box(`scripts/may-dung.mts --may ${KENH.may} --xuat ${id}`).split('\n').slice(-2).join(' · '));

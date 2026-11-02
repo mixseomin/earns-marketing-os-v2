@@ -3,7 +3,7 @@
 // Một kênh một dòng: ảnh đại diện (trang YouTube, may-dung --so-kenh) · menu ⋯ (mở phim Studio của kênh, danh sách video, mở kênh) · khối Social trỏ về ·
 // tập đã làm / chờ đăng / đã đăng, người đăng ký, lượt xem cộng dồn + 7 ngày. ▸ mở CÂY video của kênh ngay dưới dòng (chặng + ngày đăng + lượt xem từng video).
 // Số từ lib/tai-san/kenh-sp.ts.
-import { useState } from 'react';
+import { useShallowParam } from '@/lib/url-shallow';
 import { DataTable, Panel, type DataColumn } from '@/components/ui';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { extLinkProps } from '@/lib/external-url';
@@ -34,9 +34,11 @@ const LOAI_LICH: LoaiLichNho = {
 };
 
 export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?: number }) {
-  const [moCay, datMoCay] = useState<Set<string>>(() => new Set());
+  // cây mở / gập NẰM TRÊN URL (YDNI: F5 mở ra đúng như đang thấy) — ?kenh_mo=<mã>,<mã>
+  const [moUrl, datMoUrl] = useShallowParam('kenh_mo', '');
+  const moCay = new Set(moUrl.split(',').filter(Boolean));
   if (!kenh.length) return null;
-  const doi = (ma: string) => datMoCay((s) => { const n = new Set(s); if (n.has(ma)) n.delete(ma); else n.add(ma); return n; });
+  const doi = (ma: string) => { const n = new Set(moCay); if (n.has(ma)) n.delete(ma); else n.add(ma); datMoUrl([...n].join(',')); };
   const dong: Dong[] = kenh.flatMap((k) => [{ loai: 'kenh' as const, k }, ...(moCay.has(k.ma) ? cayKenh(k) : [])]);
   const laK = (d: Dong): d is Extract<Dong, { loai: 'kenh' }> => d.loai === 'kenh';
   const vd = (d: Dong): VideoKenh | null => (d.loai === 'video' ? d.v : null);

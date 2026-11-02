@@ -43,7 +43,7 @@ for (const [i, f] of tepKhung.entries()) { const u = await uploadToR2(`xuong-vid
 type CanhTap = { nhin?: string[]; nam?: number; chu_to?: string; ket?: string; to?: { noi: string; chu?: string }[]; ten?: unknown[]; ke?: { nhan?: string }[]; xe?: { anh: string }[]; co?: { anh: string }[];
   dau?: { text: string }[]; nguoi?: { anh: string; ten: string; dang?: { dang: string }[] }[]; tranh?: { mo_ta?: string; commons?: string } };
 const khoTs = lay('kho') ? (JSON.parse(readFileSync(lay('kho')!, 'utf8')).tai_san as Record<string, { loai: string; ten: string; ghi?: string; tu?: number; den?: number; dang?: Record<string, string> }>) : {};
-let soCanh = 0;
+let soCanh = 0; const anhCanh: string[] = [];
 if (lay('canh')) {
   const ds = JSON.parse(readFileSync(lay('canh')!, 'utf8')) as { k: number; bd: number; kt: number; anh: string | null }[];
   for (const x of ds) {
@@ -63,7 +63,7 @@ if (lay('canh')) {
       keyframe_url = coalesce(${anh}, keyframe_url), chu_man = ${chuMan}, trang_thai = 'xong', updated_at = now() WHERE id = ${cu}`);
     else await db.execute(sql`INSERT INTO xv_canh (tap_id, thu_tu, canh, hanh_dong, loi_thoai, thoi_luong_s, phat_s, nhan_vat, keyframe_url, chu_man, trang_thai)
       VALUES (${tapId}, ${tt}, ${canh}, ${viec.join(' · ') || 'giữ khung'}, ${c.chu}, ${dai}, ${x.bd}, ${JSON.stringify(nv)}::jsonb, ${anh}, ${chuMan}, 'xong')`);
-    soCanh++;
+    if (anh) anhCanh.push(anh); soCanh++;
   }
 }
 // ---------- THÀNH PHẦN của phim kênh: món kho tập dùng (cập nhật theo tên — không xoá); dáng = biến thể nhóm 'dang' ----------
@@ -82,5 +82,7 @@ if (lay('kho')) {
     soTp++;
   }
 }
-console.log(JSON.stringify({ phim, tap: tapId, url, giay, khung, canh: soCanh, thanh_phan: soTp }));
+// soat = 8 keyframe rải đều suốt tập — Phòng Nội dung (Ngọc xem hình) soi cả phim dài, không chỉ 3 khung
+const soat = anhCanh.length <= 8 ? anhCanh : Array.from({ length: 8 }, (_, i) => anhCanh[Math.round((i * (anhCanh.length - 1)) / 7)]!);
+console.log(JSON.stringify({ phim, tap: tapId, url, giay, khung, canh: soCanh, thanh_phan: soTp, soat }));
 process.exit(0);

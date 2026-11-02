@@ -37,7 +37,7 @@ def co_rclone():
     return DICH is not None
 
 
-def cat(min_age="24h", giu=()):
+def cat(min_age="24h", giu=(), tran="5m"):
     """cất mọi tệp nặng đã nằm yên ≥ min_age; giu = thư mục tương đối (vd 'ra/pm-26101408') còn đang dùng → không đụng. Trả số GB trống sau khi cất."""
     if not co_rclone():
         print(f"cất Drive: máy chưa có rclone remote nào trong {REMOTE} — bỏ qua (máy giữ nguyên tệp)", flush=True); return shutil.disk_usage(os.path.expanduser("~")).free / 1e9
@@ -47,7 +47,8 @@ def cat(min_age="24h", giu=()):
         print("cất Drive: lượt khác đang chạy — bỏ qua", flush=True); return shutil.disk_usage(os.path.expanduser("~")).free / 1e9
     giu = [d.strip("/") for d in giu if d and os.path.isdir(os.path.join(GOC, d.strip("/")))]   # chỉ thư mục có thật (trường 'ghi' của da_cat đôi khi là câu báo lỗi, không phải tên lô)
     lenh = NEN + ["rclone", "move", GOC, DICH, "--min-age", min_age, "--transfers", "8", "--drive-chunk-size", "64M", "--tpslimit", "8", "--log-file", LOG, "--log-level", "INFO",
-            "--stats-one-line", "--stats", "0"]
+            "--stats-one-line", "--stats", "0",
+            "--max-duration", tran, "--cutoff-mode", "soft"]   # TRẦN THỜI GIAN (02/11/2026: dọn Drive chặn lô cắt 26 phút) — hết giờ thì dừng nhận tệp mới, phần còn lại lượt sau cất tiếp
     # --filter giữ đúng thứ tự luật (giữ → nhận đuôi nặng → bỏ còn lại); trộn --include với --exclude thì rclone tự báo "thứ tự không xác định"
     # (01/11/2026) — tức thư mục đang dùng có thể bị cất mất giữa lô
     for d in giu: lenh += ["--filter", f"- /{d}/**"]

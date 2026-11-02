@@ -19,8 +19,8 @@ def sql(cau):
     return r.stdout.strip()
 
 def quet_chet():
-    """việc 'dang' của máy này quá 4 giờ (hơn hạn 3 giờ của một việc cắt) = tiến trình đã chết → trả về hàng chờ, không nằm kẹt mãi"""
-    r = sql(f"update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | thợ chết giữa chừng, xếp lại' where trang_thai = 'dang' and may = '{MAY}' and bat_dau < now() - interval '4 hours' returning id")
+    """việc 'dang' của máy này quá 1 giờ (hơn trần 15 phút tải + 45 phút cắt) = tiến trình đã chết → trả về hàng chờ, không nằm kẹt mãi"""
+    r = sql(f"update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | thợ chết giữa chừng, xếp lại' where trang_thai = 'dang' and may = '{MAY}' and bat_dau < now() - interval '1 hour' returning id")
     if r: print(f"[{MAY}] xếp lại việc kẹt: {r.replace(chr(10), ' ')}", flush=True)
 def nhan(lo):
     dk = f"and lo = '{lo}'" if lo else ""
@@ -40,14 +40,14 @@ def cat(v):
     d, cid, lo = v["du_lieu"], str(v["content_id"]), v["lo"]
     tm = os.path.join(N, cid); ra = os.path.join(C, "ra", lo, f"p-{cid}"); os.makedirs(ra, exist_ok=True)
     if not (os.path.isdir(tm) and any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm))):
-        os.makedirs(tm, exist_ok=True); subprocess.run(["python3", os.path.join(E, "tai-tap.py"), d.get("url", ""), tm, "8"], capture_output=True, text=True, timeout=1800)
+        os.makedirs(tm, exist_ok=True); subprocess.run(["python3", os.path.join(E, "tai-tap.py"), d.get("url", ""), tm, "8"], capture_output=True, text=True, timeout=900)   # tải 8 tập ≤ 15 phút (02/11/2026: trần cũ 30 phút)
     if not any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm)): return [], "không tải được tập miễn phí"
     tsv = os.path.join(ra, "lo.tsv"); open(tsv, "w").write(f"{cid}\t{d.get('locale', 'en')}\t{d.get('nguon', '')}\t{d.get('ten', '')}\t{d.get('url', '')}\n")
     h = time.localtime().tm_hour   # đêm 22h–8h: nice (đủ lõi); ngày: chế độ nền (máy người dùng không giật) — cùng luật dot-phim-moi.uu_tien
     uu = ["nice", "-n", "10"] if (h >= 22 or h < 8) else (["taskpolicy", "-b"] if sys.platform == "darwin" else ["nice", "-n", "15"])
     # cả nhóm tiến trình: quá giờ thì giết luôn cat-canh / ffmpeg con cháu (25/10/2026: 3 ffmpeg treo mồ côi 8 giờ sau khi thợ bỏ việc)
     pr = subprocess.Popen([*uu, "python3", os.path.join(E, "cat-cuoi-lo.py"), N, tsv, ra, "1", str(d.get("so_ban", 2))], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-    try: pr.wait(timeout=3 * 3600)
+    try: pr.wait(timeout=45 * 60)   # một phim cắt 2 đoạn đo 5–11 phút → trần 45 phút (trần cũ 3 giờ làm lô kẹt cả buổi, 02/11/2026)
     except subprocess.TimeoutExpired:
         try: os.killpg(pr.pid, 9)
         except Exception: pass

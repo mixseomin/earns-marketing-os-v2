@@ -308,20 +308,29 @@ writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
 // ẢNH BÌA THẬT — LƯỚI CUỐI (03/11/2026, tập Constantinople: không tranh nào có ảnh Commons qua được lọc tên + năm + Ngọc → thumbnail hỏng, Phòng Nội dung chặn):
 // lấy ẢNH CHÍNH của bài Wikipedia nguồn (pageimages — luôn là ảnh / tranh thật của chính chuyện), Ngọc xét với chủ đề tập, tải về → tap.anh_bia
 // (nền thumbnail + ảnh thật của bài đăng). Đã có thì dùng lại.
-if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons && c.canh.tranh?.anh) && !(tap.anh_bia?.anh && existsSync(join(KHO, tap.anh_bia.anh)))) {
+// 03/11/2026 (Constantinople): ảnh chính của bài là ẢNH GHÉP 6 tranh → Ngọc chặn thumbnail "rối". Giờ xét MỌI ảnh của các bài nguồn (ảnh chính trước), bỏ ảnh ghép /
+// bản đồ / cờ / logo / biểu tượng, Ngọc xét lần lượt (tối đa 6 lượt), giữ tối đa 3 ảnh đạt → tap.anh_bia (ảnh đầu) + tap.anh_bia_ds (thumb.mjs thử lần lượt).
+if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons && c.canh.tranh?.anh) && !(tap.anh_bia_ds?.length && tap.anh_bia_ds.every((x) => existsSync(join(KHO, x.anh))))) {
+  const BO = /collage|montage|mixcollage|\bmix\b|map|karte|carte|mapa|flag|coat.of.arms|logo|icon|symbol|seal|signature|locator|diagram|chart|\.svg$/i, ds = [], tim = [];
   for (const u of tap.nguon ?? []) {
     const tua = decodeURIComponent(u.split('/wiki/')[1] || '').replace(/_/g, ' '), lang = (u.match(/\/\/(\w+)\.wikipedia/) || [])[1] || 'en'; if (!tua) continue;
-    const r = await (await tai(`https://${lang}.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', prop: 'pageimages', piprop: 'name', titles: tua, redirects: '1', format: 'json', formatversion: '2' })}`)).json();
-    const pi = r.query?.pages?.[0]?.pageimage; if (!pi || !/\.(jpe?g|png)$/i.test(pi)) continue;
-    const tep = `File:${pi.replace(/_/g, ' ')}`; xetConLai = 1;
+    const r = await (await tai(`https://${lang}.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', prop: 'pageimages|images', piprop: 'name', imlimit: '40', titles: tua, redirects: '1', format: 'json', formatversion: '2' })}`)).json();
+    const pg = r.query?.pages?.[0]; if (!pg) continue;
+    for (const ten of [pg.pageimage ? `File:${pg.pageimage.replace(/_/g, ' ')}` : null, ...(pg.images ?? []).map((x) => x.title)])
+      if (ten && /\.(jpe?g|png)$/i.test(ten) && !BO.test(ten) && !tim.some((x) => x.ten === ten)) tim.push({ ten, tua });
+  }
+  let xet = 0;
+  for (const { ten: tep, tua } of tim) {
+    if (ds.length >= 3 || xet >= 6) break; xet++; xetConLai = 1;
     if (!(await ngocDuyetAnh(tep, tap.chu_de, null))) continue;
     const c = await commons(tep); if (!c?.thumb) continue;
     const f = join(KHO, 'tranh', `${id}-bia-${dauCommons(tep)}.jpg`);
-    for (const uu of [c.thumb.replace(/\/\d+px-/, '/1600px-'), c.thumb]) { const rr = await tai(uu); if (rr.ok && /^image\//.test(rr.headers.get('content-type') || '')) { writeFileSync(f, Buffer.from(await rr.arrayBuffer())); break; } }
+    if (!existsSync(f)) for (const uu of [c.thumb.replace(/\/\d+px-/, '/1600px-'), c.thumb]) { const rr = await tai(uu); if (rr.ok && /^image\//.test(rr.headers.get('content-type') || '')) { writeFileSync(f, Buffer.from(await rr.arrayBuffer())); break; } }
     if (!existsSync(f)) continue;
-    tap.anh_bia = { commons: tep, commons_url: c.thumb, commons_trang: c.trang, anh: `tranh/${id}-bia-${dauCommons(tep)}.jpg`, tu: tua };
-    console.log(`✓ ảnh bìa thật (ảnh chính bài "${tua}"): ${tep} (Ngọc duyệt)`); break;
+    ds.push({ commons: tep, commons_url: c.thumb, commons_trang: c.trang, anh: `tranh/${id}-bia-${dauCommons(tep)}.jpg`, tu: tua });
+    console.log(`✓ ảnh bìa thật ${ds.length}: ${tep} (bài "${tua}", Ngọc duyệt)`);
   }
+  if (ds.length) { tap.anh_bia = ds[0]; tap.anh_bia_ds = ds; }
 }
 if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons) && !tap.anh_bia) console.log('⚠ tập không có ảnh lịch sử thật nào — Phòng Nội dung sẽ chặn (nen_url trống)');
 writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');

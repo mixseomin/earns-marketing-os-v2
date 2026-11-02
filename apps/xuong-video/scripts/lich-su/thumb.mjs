@@ -33,23 +33,31 @@ if (!tap.thumb?.chu || co('viet-lai')) {
   tap.thumb = JSON.parse(readFileSync(join(RA, 'thumb.json'), 'utf8')).thumb; writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
 }
 
-// 2. DỰNG
+// 2–3. DỰNG + NGỌC CHẤM, THỬ ẢNH KẾ KHI BỊ CHẶN VÌ ẢNH (03/11/2026, Constantinople: ảnh bìa là ảnh ghép 6 tranh → Ngọc chặn "rối, không chủ thể" → cả lượt dừng):
+// ứng viên = ảnh máy viết chọn trước, rồi mọi ảnh thật khác của tập (tranh Commons + ảnh bìa); tối đa 3 ảnh. Bị chặn vì CHỮ (khó đọc, nhiều chữ, tràn, lặp tiêu đề) thì đổi ảnh vô ích → dừng.
 const PW = process.env.DO_MAN_PW || `${process.env.HOME}/Me/Earns/courseforge-demo/node_modules/playwright`;
 const { chromium } = createRequire(import.meta.url)(PW);
 const ra = join(RA, `${id}-thumb.jpg`);
-const b = await chromium.launch({ args: ['--allow-file-access-from-files'] });
-const p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
-await p.goto(pathToFileURL(join(DIR, 'thumb.html')).href);
-const do_ = await p.evaluate(async (t) => { window.THUMB = t; return window.__dung(); },
-  { chu: tap.thumb.chu, phu: tap.thumb.phu, anh: pathToFileURL(join(KHO, tap.thumb.anh)).href, kenh: K.ten_kenh ?? K.ten, bao: K.thumb_bao ?? null });
-for (const ql of [90, 82, 74]) { writeFileSync(ra, await p.screenshot({ type: 'jpeg', quality: ql })); if (statSync(ra).size < 1.9e6) break; }
-await b.close();
-console.log(`✓ ${ra} · chữ ${do_.co}px ${do_.dong} dòng · ${(statSync(ra).size / 1e6).toFixed(2)} MB`);
-
-// 3. NGỌC CHẤM
-const den = `/var/tmp/xet-thumb-${id}.jpg`; len(ra, den);
-const kq = JSON.parse(box(`scripts/lich-su/xet-thumb.mts ${q(id)} ${q(tap.tieu_de)} ${den} ${q(tap.chu_de ?? '')} ${q(tap.thumb.commons ?? '')}`).split('\n').pop());
-tap.thumb = { ...tap.thumb, url: kq.url, xet: { chan: kq.chan, canh: kq.canh, luc: new Date().toISOString() } }; writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
-for (const c of kq.canh) console.log(`⚠ Ngọc (thumbnail): ${c}`);
+for (const x of tap.anh_bia_ds ?? []) if (x?.anh && x.commons) anhTap.set(x.commons, x.anh);
+const ungVien = [[tap.thumb.commons, tap.thumb.anh], ...[...anhTap].filter(([c]) => c !== tap.thumb.commons)].slice(0, 3);
+let kq = null;
+for (const [i, [commons, anh]] of ungVien.entries()) {
+  const b = await chromium.launch({ args: ['--allow-file-access-from-files'] });
+  const p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
+  await p.goto(pathToFileURL(join(DIR, 'thumb.html')).href);
+  const do_ = await p.evaluate(async (t) => { window.THUMB = t; return window.__dung(); },
+    { chu: tap.thumb.chu, phu: tap.thumb.phu, anh: pathToFileURL(join(KHO, anh)).href, kenh: K.ten_kenh ?? K.ten, bao: K.thumb_bao ?? null });
+  for (const ql of [90, 82, 74]) { writeFileSync(ra, await p.screenshot({ type: 'jpeg', quality: ql })); if (statSync(ra).size < 1.9e6) break; }
+  await b.close();
+  console.log(`✓ ${ra} · ảnh ${i + 1}/${ungVien.length} ${commons} · chữ ${do_.co}px ${do_.dong} dòng · ${(statSync(ra).size / 1e6).toFixed(2)} MB`);
+  const den = `/var/tmp/xet-thumb-${id}.jpg`; len(ra, den);
+  kq = JSON.parse(box(`scripts/lich-su/xet-thumb.mts ${q(id)} ${q(tap.tieu_de)} ${den} ${q(tap.chu_de ?? '')} ${q(commons ?? '')}`).split('\n').pop());
+  tap.thumb = { ...tap.thumb, anh, commons, url: kq.url, xet: { chan: kq.chan, canh: kq.canh, luc: new Date().toISOString() } }; writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
+  for (const c of kq.canh) console.log(`⚠ Ngọc (thumbnail): ${c}`);
+  if (!kq.chan.length) break;
+  const viChu = kq.chan.some((c) => /chữ khó đọc|quá 5 từ|tràn|lặp nguyên tiêu đề/.test(c)) && !kq.chan.some((c) => /chủ thể|rối|lệch|AI|logo|nhạy cảm/.test(c));
+  console.log(`· Ngọc chặn ảnh ${i + 1}: ${kq.chan.join(' · ')}${viChu ? ' — lỗi CHỮ, đổi ảnh không giúp' : i + 1 < ungVien.length ? ' — thử ảnh kế' : ''}`);
+  if (viChu) break;
+}
 if (kq.chan.length) { console.error(`✗ Ngọc chặn thumbnail:\n  ${kq.chan.join('\n  ')}\n  ${ra}`); process.exit(4); }
 console.log(`✓ Ngọc duyệt thumbnail · ${kq.url}`);

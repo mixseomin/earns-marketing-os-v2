@@ -38,7 +38,7 @@ export function AssigneeCell({ taskId, name, assignedId, onChange }: {
       {at && createPortal(
         <>
           <div onMouseDown={() => setAt(null)} style={{ position: 'fixed', inset: 0, zIndex: 299 }} />
-          <div onMouseDown={(e) => e.stopPropagation()} style={{ position: 'fixed', left: at.left, top: at.top, maxHeight: at.maxHeight, overflowY: 'auto', zIndex: 300, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.55)', padding: 4, width: 210, maxHeight: '60vh', overflowY: 'auto' }}>
+          <div onMouseDown={(e) => e.stopPropagation()} style={{ position: 'fixed', left: at.left, top: at.top, zIndex: 300, background: 'var(--bg-1)', border: '1px solid var(--line-2)', borderRadius: 6, boxShadow: '0 10px 30px rgba(0,0,0,.55)', padding: 4, width: 210, maxHeight: '60vh', overflowY: 'auto' }}>
             <input value={qf} onChange={(e) => setQf(e.target.value)} placeholder="tìm nhân sự…" autoComplete="off"
               style={{ width: '100%', padding: '4px 7px', marginBottom: 4, background: 'var(--bg-2)', border: '1px solid var(--line)', borderRadius: 4, color: 'var(--fg-0)', fontSize: 11, boxSizing: 'border-box' }} />
             {members == null && <div style={{ padding: '6px 8px', fontSize: 11, color: 'var(--fg-4)' }}>loading…</div>}

@@ -4,7 +4,8 @@
 // 7 ngày = bản ghi mới nhất − bản ghi gần nhất có ngày ≤ hôm nay − 7; chưa có mốc đó = null ("–", chưa đo ≠ 0).
 
 export type SoNgayKenh = { ngay: string; xem: number; daDang: number; nguoiDk: number | null };
-export type VideoKenh = { slug: string; ten: string; /** ngày làm xong (bản xuất, không có thì ngày nạp) */ ngayLam: string | null; trangThai: 'chua_xuat' | 'cho_cham' | 'duyet' | 'sua_lai' | 'da_dang'; ngayDang: string | null; url: string | null; xem: number | null; giay: number | null };
+export type VideoKenh = { slug: string; ten: string; /** ngày làm xong (bản xuất, không có thì ngày nạp) */ ngayLam: string | null; trangThai: 'chua_xuat' | 'cho_cham' | 'duyet' | 'sua_lai' | 'da_dang'; ngayDang: string | null; url: string | null; xem: number | null; giay: number | null;
+  /** mã playlist của tập (xv_may_video.dang.playlist — lam-tap ghi lúc nạp; G1) — null = tập cũ chưa chia playlist */ playlist?: string | null };
 export type KenhSp = {
   ma: string; ten: string; chay: boolean; kenhUrl: string | null;
   tap: number; choDang: number; daDang: number;
@@ -18,6 +19,8 @@ export type KenhSp = {
   ke: { lichTap: string | null; tapKe: string[]; dangLam: DangLam | null; lichDang: { ngay: string; gio: string | null; nen: string; tieuDe: string }[];
     /** giờ VN sớm nhất máy đăng được đăng bài của kênh (xv_may.dang[].gio_tu) */ gioDang: string | null;
     /** tập đang dở chưa nạp máy đăng (xv_may.nguon.tap_cho — chay-kenh.mjs ghi mỗi lượt) */ tapCho?: TapCho[] };
+  /** PLAYLIST THẬT của kênh (kenh.json › playlist — máy làm tập chạy theo đây; G1 tầng playlist chung): lịch + số từng playlist. [] = kênh chưa chia playlist */
+  playlist?: PlaylistKenh[];
   /** LỘ TRÌNH kênh (apps/xuong-video/scripts/lich-su/lo-trinh.json theo mã máy — anh 02/11/2026 "dựng phần kênh nội dung và Studio để còn follow theo"); null = kênh không khai lộ trình */
   loTrinh?: LoTrinh | null;
   /** social trỏ về kênh (bài short dẫn link kênh) — tab Tài sản gắn theo khung ?ky= */
@@ -105,7 +108,7 @@ export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()
 export type TrangThaiGd = 'cho_anh' | 'dang' | 'chua' | 'xong';
 export type GiaiDoan = { ma: string; ten: string; viec: string; anh: string; trang_thai: TrangThaiGd };
 /** PLAYLIST theo kế hoạch (lo-trinh.json › playlist; G1 chuyển sang kenh.json khi máy làm tập theo playlist). */
-export type TrangThaiPl = 'de_xuat' | 'mo' | 'sau' | 'tam_dung';
+export type TrangThaiPl = 'de_xuat' | 'chot' | 'mo' | 'sau' | 'tam_dung';
 export type PlaylistKh = { ma: string; ten: string; tien_to?: string; noi_dung?: string; ho_hinh?: string; ngay?: string; trang_dich?: string; mo_dau?: boolean; trang_thai: TrangThaiPl; khi?: string };
 export type LoTrinh = { ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[] };
 const GD: Record<TrangThaiGd, { ic: string; chu: string; mau: string }> = {
@@ -128,7 +131,7 @@ export function cayLoTrinh(lt: LoTrinh): DongKe[] {
 }
 
 const PL: Record<TrangThaiPl, { ic: string; chu: string; mau: string }> = {
-  mo: { ic: '▶', chu: 'đang mở', mau: 'var(--ok)' }, de_xuat: { ic: '📝', chu: 'đề xuất', mau: 'var(--accent)' },
+  mo: { ic: '▶', chu: 'đang mở', mau: 'var(--ok)' }, chot: { ic: '✔', chu: 'đã chốt', mau: 'var(--accent)' }, de_xuat: { ic: '📝', chu: 'đề xuất', mau: 'var(--accent)' },
   sau: { ic: '○', chu: 'mở sau', mau: 'var(--fg-4)' }, tam_dung: { ic: '⏸', chu: 'tạm dừng', mau: 'var(--warn)' },
 };
 /** Khối 📂 Playlist trong cây kênh: playlist theo kế hoạch, playlist mở đầu đứng trước. Thuần. */
@@ -136,7 +139,7 @@ export function cayPlaylist(lt: LoTrinh): DongKe[] {
   const ds = [...(lt.playlist ?? [])].sort((a, b) => Number(!!b.mo_dau) - Number(!!a.mo_dau));
   if (!ds.length) return [];
   const mo = ds.filter((p) => p.trang_thai === 'mo').length, dau = ds.filter((p) => p.mo_dau).length;
-  return [{ id: 'pl', nhom: true, chu: `📂 Playlist (${ds.length})`, phu: `${mo} đang mở · ${dau} mở đầu${ds.some((p) => p.trang_thai === 'de_xuat') ? ' · đề xuất chờ G0 chốt' : ''}` },
+  return [{ id: 'pl', nhom: true, chu: `📂 Playlist (${ds.length})`, phu: `${mo} đang mở · ${dau} mở đầu${ds.some((p) => p.trang_thai === 'de_xuat') ? ' · đề xuất chờ G0 chốt' : ds.some((p) => p.trang_thai === 'chot') ? ' · đã chốt, mở trên YouTube ở G7' : ''}` },
     ...ds.map((p): DongKe => { const s = PL[p.trang_thai] ?? PL.sau;
       return { id: `pl/${p.ma}`, chu: `${s.ic} ${p.ten} · ${s.chu}${p.mo_dau ? ' · mở đầu' : p.khi ? ` · ${p.khi}` : ''}`, mau: s.mau,
         phu: [p.noi_dung, p.ho_hinh && `hình ${p.ho_hinh}`, p.ngay && p.ngay !== '—' && `ngày ${p.ngay}`, p.trang_dich && `→ ${p.trang_dich}`, p.tien_to && `tiêu đề "${p.tien_to}"`].filter(Boolean).join(' · ') }; })];
@@ -146,4 +149,36 @@ export function cayPlaylist(lt: LoTrinh): DongKe[] {
 export function locGap<T>(rows: T[], khoaNhom: (r: T) => string | null, gap: ReadonlySet<string>): T[] {
   let dangGap = false;
   return rows.filter((r) => { const k = khoaNhom(r); if (k != null) { dangGap = gap.has(k); return true; } return !dangGap; });
+}
+
+/** PLAYLIST THẬT (kenh.json › playlist — cùng luật với apps/xuong-video/scripts/lich-su/playlist.mjs): lịch làm tập + số tập / đã đăng / lượt xem từng playlist. */
+export type PlaylistHs = { ma: string; ten: string; tien_to?: string; lich_tap?: number[]; gio_tap?: string; trang_dich?: string; yt?: Record<string, string> };
+export type HoSoKenhLich = { lich_tap?: number[]; gio_tap?: string; playlist?: PlaylistHs[] };
+export type PlaylistKenh = { ma: string; ten: string; tienTo: string | null; lich: string | null; trangDich: string | null; coYt: boolean; tap: number; daDang: number; xem: number | null };
+/** Lịch làm tập của kênh: có playlist thì từng playlist một lịch (giờ riêng hoặc giờ kênh), lượt kế gộp lại theo thời gian; không thì lịch kênh như cũ. Thuần. */
+export function lichKenhHs(h: HoSoKenhLich | undefined, hom: string, gioNay: string, n = 3): { chu: string | null; ke: string[]; theo: Record<string, string | null> } {
+  const pls = h?.playlist ?? [];
+  if (!pls.length) { const l = lichSanXuat(h?.lich_tap ?? [], h?.gio_tap ?? null, hom, gioNay, n); return { ...l, theo: {} }; }
+  const ls = pls.map((p) => ({ p, l: lichSanXuat(p.lich_tap ?? [], p.gio_tap ?? h?.gio_tap ?? null, hom, gioNay, n) }));
+  return { chu: ls.filter((x) => x.l.chu).map((x) => (pls.length > 1 ? `${x.p.ten}: ${x.l.chu}` : x.l.chu)).join(' | ') || null,
+    ke: ls.flatMap((x) => x.l.ke).sort().slice(0, n), theo: Object.fromEntries(ls.map((x) => [x.p.ma, x.l.chu])) };
+}
+/** Số từng playlist từ video của kênh; tập chưa gắn playlist (tập trước G1) gom vào dòng "chưa gắn playlist" khi có. Thuần. */
+export function soTheoPlaylist(pls: PlaylistHs[], theo: Record<string, string | null>, videos: Pick<VideoKenh, 'playlist' | 'trangThai' | 'xem'>[]): PlaylistKenh[] {
+  if (!pls.length) return [];
+  const dem = (vs: typeof videos) => ({ tap: vs.length, daDang: vs.filter((v) => v.trangThai === 'da_dang').length,
+    xem: vs.some((v) => v.xem != null) ? vs.reduce((t, v) => t + (v.xem ?? 0), 0) : null });
+  const ma = new Set(pls.map((p) => p.ma)), le = videos.filter((v) => !v.playlist || !ma.has(v.playlist));
+  return [...pls.map((p) => ({ ma: p.ma, ten: p.ten, tienTo: p.tien_to?.trim() || null, lich: theo[p.ma] ?? null, trangDich: p.trang_dich ?? null,
+      coYt: !!Object.values(p.yt ?? {}).some(Boolean), ...dem(videos.filter((v) => v.playlist === p.ma)) })),
+    ...(le.length ? [{ ma: '', ten: 'chưa gắn playlist', tienTo: null, lich: null, trangDich: null, coYt: false, ...dem(le) }] : [])];
+}
+/** Khối 📂 Playlist từ playlist THẬT (kenh.json). Thuần. */
+export function cayPlaylistThat(ds: PlaylistKenh[]): DongKe[] {
+  if (!ds.length) return [];
+  const so = (n: number | null) => (n == null ? '–' : n.toLocaleString('vi-VN'));
+  return [{ id: 'pl', nhom: true, chu: `📂 Playlist (${ds.filter((p) => p.ma).length})`, phu: 'lịch làm tập theo playlist · trần đăng 1 bài/ngày tính chung cả kênh' },
+    ...ds.map((p): DongKe => ({ id: `pl/${p.ma || '_'}`, chu: p.ma ? `▶ ${p.ten}` : `· ${p.ten}`, mau: p.ma ? undefined : 'var(--fg-3)',
+      phu: [p.lich && `làm tập ${p.lich}`, `${p.tap} tập · ${p.daDang} đã đăng · ${so(p.xem)} xem`, p.tienTo && `tiêu đề "${p.tienTo}: …"`, p.trangDich && `→ ${p.trangDich}`,
+        p.ma && (p.coYt ? 'có playlist YouTube' : 'chưa có playlist YouTube (G7)')].filter(Boolean).join(' · ') }))];
 }

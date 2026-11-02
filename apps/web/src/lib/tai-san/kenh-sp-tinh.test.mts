@@ -57,4 +57,20 @@ import { cayPlaylist, locGap } from './kenh-sp-tinh';
   assert.deepStrictEqual(cayPlaylist({ giai_doan: [] }), []);
   const r = ['A', 'a1', 'a2', 'B', 'b1', 'C', 'c1'];
   assert.deepStrictEqual(locGap(r, (x) => (x === x.toUpperCase() ? x : null), new Set(['A', 'C'])), ['A', 'B', 'b1', 'C']); }
-console.log('kenh-sp-tinh: 16/16 ok');
+import { lichKenhHs, soTheoPlaylist, cayPlaylistThat } from './kenh-sp-tinh';
+{ // 02/11/2026 Thứ Hai 12:00 — kênh một playlist giữ đúng chữ lịch cũ; hai playlist ghi tên + gộp lượt kế
+  const h1 = { gio_tap: '09:30', playlist: [{ ma: 'full-stories', ten: 'Full Stories', lich_tap: [1, 3, 5] }] };
+  const l1 = lichKenhHs(h1, '2026-11-02', '12:00', 2);
+  assert.deepStrictEqual([l1.chu, l1.ke], ['Thứ Hai · Thứ Tư · Thứ Sáu · 09:30', ['2026-11-04 09:30', '2026-11-06 09:30']]);
+  assert.deepStrictEqual(lichKenhHs({ lich_tap: [3], gio_tap: '09:30' }, '2026-11-02', '12:00', 1), { chu: 'Thứ Tư · 09:30', ke: ['2026-11-04 09:30'], theo: {} });
+  const h2 = { gio_tap: '09:30', playlist: [{ ma: 'a', ten: 'A', lich_tap: [1, 5] }, { ma: 'b', ten: 'B', lich_tap: [3], gio_tap: '14:00' }] };
+  const l2 = lichKenhHs(h2, '2026-11-02', '12:00', 3);
+  assert.deepStrictEqual([l2.chu, l2.ke], ['A: Thứ Hai · Thứ Sáu · 09:30 | B: Thứ Tư · 14:00', ['2026-11-04 14:00', '2026-11-06 09:30', '2026-11-09 09:30']]);
+  const v = (playlist: string | null, trangThai: 'da_dang' | 'cho_cham', xem: number | null) => ({ playlist, trangThai, xem });
+  const s = soTheoPlaylist(h2.playlist, l2.theo, [v('a', 'da_dang', 100), v('a', 'cho_cham', null), v(null, 'da_dang', 7), v('xoa', 'da_dang', 3)]);
+  assert.deepStrictEqual(s.map((p) => [p.ma, p.tap, p.daDang, p.xem]), [['a', 2, 1, 100], ['b', 0, 0, null], ['', 2, 2, 10]]);
+  assert.deepStrictEqual(soTheoPlaylist([], {}, [v(null, 'da_dang', 1)]), []);
+  const c = cayPlaylistThat(s);
+  assert.deepStrictEqual(c.map((x) => x.chu), ['📂 Playlist (2)', '▶ A', '▶ B', '· chưa gắn playlist']);
+  assert.strictEqual(c[1]!.phu, 'làm tập Thứ Hai · Thứ Sáu · 09:30 · 2 tập · 1 đã đăng · 100 xem · chưa có playlist YouTube (G7)'); }
+console.log('kenh-sp-tinh: 17/17 ok');

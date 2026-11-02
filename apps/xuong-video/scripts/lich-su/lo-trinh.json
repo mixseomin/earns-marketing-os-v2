@@ -1,10 +1,10 @@
 {
-  "_ghi": "LỘ TRÌNH KÊNH NỘI DUNG (anh 02/11/2026: 'dựng phần kênh nội dung và Studio để còn follow theo'). Chung cho mọi kênh của studio, khoá = mã máy (xv_may.ma). mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh → 🧭 Lộ trình) và Studio (phim kênh › 📖 Phim) cùng đọc tệp này. playlist: các playlist theo kế hoạch (trang_thai: de_xuat = chờ G0 chốt · mo = đã mở trên YouTube · sau = mở sau · tam_dung), G1 chuyển sang kenh.json khi máy làm tập theo playlist. trang_thai giai đoạn: cho_anh (chờ anh chốt / duyệt) · dang (đang làm) · chua (chưa tới) · xong. Đổi giai đoạn = sửa tệp này + commit, không ghi chỗ khác. Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs chỉ đọc kenh.json).",
+  "_ghi": "LỘ TRÌNH KÊNH NỘI DUNG (anh 02/11/2026: 'dựng phần kênh nội dung và Studio để còn follow theo'). Chung cho mọi kênh của studio, khoá = mã máy (xv_may.ma). mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh → 🧭 Lộ trình) và Studio (phim kênh › 📖 Phim) cùng đọc tệp này. playlist: các playlist theo kế hoạch (trang_thai: de_xuat = chờ G0 chốt · chot = đã chốt, chưa mở · mo = đã mở trên YouTube · sau = mở sau · tam_dung), G1 chuyển sang kenh.json khi máy làm tập theo playlist. trang_thai giai đoạn: cho_anh (chờ anh chốt / duyệt) · dang (đang làm) · chua (chưa tới) · xong. Đổi giai đoạn = sửa tệp này + commit, không ghi chỗ khác. Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs chỉ đọc kenh.json).",
   "astrolas": {
     "ten": "Astrolas · YouTube @astrolasapp",
     "plan": "apps/xuong-video/docs/astrolas-youtube.md",
     "muc_tieu": "kênh tự vận hành: máy tự chọn chủ đề → viết → kiểm → dựng → Phòng Nội dung chấm → đăng đúng playlist → đo → chỉnh suất playlist; Claude chỉ vào khi Telegram báo kẹt",
-    "cap_nhat": "2026-11-02",
+    "cap_nhat": "2026-11-03",
     "playlist": [
       {
         "ma": "chart-chapters",
@@ -15,18 +15,19 @@
         "ngay": "Thứ 2 + Thứ 6",
         "trang_dich": "Zodiacal Releasing, Annual Profections, /c/<người>",
         "mo_dau": true,
-        "trang_thai": "de_xuat"
+        "trang_thai": "chot"
       },
       {
-        "ma": "lich-troi",
-        "ten": "Lịch trời",
-        "tien_to": "(tên EN chờ chốt)",
+        "ma": "sky-calendar",
+        "ten": "Sky Calendar",
+        "tien_to": "Sky Calendar: …",
         "noi_dung": "trăng trong tuần + nhật/nguyệt thực đổi lịch sử (Columbus 1504, Thales 585 TCN), đăng sát ngày có thực",
         "ho_hinh": "paper-lantern",
         "ngay": "Thứ 4",
         "trang_dich": "Moon Phase, Lunation Analyzer, Today's sky",
         "mo_dau": true,
-        "trang_thai": "de_xuat"
+        "trang_thai": "chot",
+        "ghi": "tên EN tạm đặt 03/11 (anh chưa chọn) — đổi được tới G7"
       },
       {
         "ma": "start-here",
@@ -69,16 +70,16 @@
       {
         "ma": "G0",
         "ten": "Chốt",
-        "viec": "mảng chuyện, 2 playlist đầu (Chart Chapters + Lịch trời), họ hình, tên playlist, lịch ngày đăng, hạn mức tiền mỗi tập",
+        "viec": "ĐÃ CHỐT (anh, 03/11/2026): mảng chính = đời người nổi tiếng theo chương lá số; 2 playlist mở đầu Chart Chapters (engraving, Thứ 2 + Thứ 6) + Sky Calendar (paper-lantern, Thứ 4); hạn mức dưới 10.000₫/tập trên đường đã duyệt; ngưỡng playlist kém chốt ở G9",
         "anh": "chốt",
-        "trang_thai": "cho_anh"
+        "trang_thai": "xong"
       },
       {
         "ma": "G1",
         "ten": "Tầng Playlist chung",
-        "viec": "playlist trong kenh.json, tap.playlist, lịch theo playlist trong chay-kenh.mjs, bảng Kênh nội dung chia theo playlist; chạy thử trên Yesterday's News Tonight",
+        "viec": "playlist trong kenh.json, tap.playlist, lịch theo playlist trong chay-kenh.mjs, bảng Kênh nội dung chia theo playlist; chạy thử trên Yesterday's News Tonight · đã dựng 03/11: playlist.mjs + kenh.json › playlist (YNT một playlist Full Stories, lịch không đổi) — xong khi lượt làm tập YNT kế chạy qua đường playlist",
         "anh": "không",
-        "trang_thai": "chua"
+        "trang_thai": "dang"
       },
       {
         "ma": "G2",

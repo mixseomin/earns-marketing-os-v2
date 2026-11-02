@@ -4,7 +4,9 @@ Lập 02/11/2026 (iMac). Chat mới nối tiếp: đọc hết tệp này, rồi
 
 ## Trạng thái hiện tại — đọc trước
 
-- **CHƯA DỰNG GÌ.** Anh chửi nặng 02/11 khi Claude tự dựng lại bằng Three.js lúc chưa được bảo: "chưa nói cứ nhảy vào làm". Mọi bước dưới đây chỉ làm khi anh chốt trong câu mới nhất.
+- **03/11/2026 anh chốt G0** theo đề xuất: mảng chính "đời người nổi tiếng theo chương lá số"; 2 playlist mở đầu **Chart Chapters** (engraving, Thứ 2 + Thứ 6) + **Sky Calendar** (paper-lantern, Thứ 4 — tên EN con tạm đặt, đổi được tới G7); hạn mức dưới 10.000₫/tập trên đường đã duyệt; ngưỡng "playlist kém" để G9 chốt.
+- **G1 (tầng Playlist chung) đã dựng 03/11:** `scripts/lich-su/playlist.mjs` (luật + hàm, test `playlist.test.mts`), `kenh.json › playlist[]` (lịch làm tập theo playlist, khoá đè hồ sơ kênh, tiền tố tiêu đề), chay-kenh → lam-tap → viet-tap / dung-tap / thumb / tap-day mang `playlist`, máy đăng nhận `dang.playlist` + tiêu đề có tiền tố, mos2 Kênh nội dung chia số theo playlist. Chạy thử: YNT một playlist "Full Stories" cùng lịch Thứ 2/4/6 — G1 xong khi lượt làm tập YNT kế chạy qua đường này.
+- (trước 03/11) **CHƯA DỰNG GÌ.** Anh chửi nặng 02/11 khi Claude tự dựng lại bằng Three.js lúc chưa được bảo: "chưa nói cứ nhảy vào làm". Mọi bước dưới đây chỉ làm khi anh chốt trong câu mới nhất.
 - Đang chờ anh chọn: (a) mảng kể chuyện, (b) hướng gộp 3 họ hình, (c) mở 2 loạt trước.
 - Bước kế khi anh chốt: viết **một** kịch bản mẫu đánh số theo khuôn phim #1195 (đề xuất "Chart Chapters: Steve Jobs") + một khung ảnh có đủ lớp thương hiệu → anh duyệt → mới dựng.
 - Kênh YouTube Astrolas trong sổ máy đăng đang khoá (`nghi_den` 2099-12-31). Không mở khoá khi chưa có video được duyệt.

@@ -1,17 +1,20 @@
 #!/usr/bin/env node
 // LƯỢT HẰNG NGÀY CỦA CÁC KÊNH LỊCH SỬ (02/11/2026 — anh: "cần cơ chế sx liên tục và đăng lên định kỳ để duy trì kênh", duyệt 3 tập/tuần + tiến trình nền).
-// Việc nền iMac:com.earns.lich-su-lam-tap (apps/cty/cong-ty/viec-nen.json) gọi MỖI GIỜ (đo số kênh mỗi lượt; làm tập theo lịch). Với mỗi kênh trong kenh.json có `may` (máy Studio) + `lich_tap`:
+// Việc nền iMac:com.earns.lich-su-lam-tap (apps/cty/cong-ty/viec-nen.json) gọi MỖI GIỜ (đo số kênh mỗi lượt; làm tập theo lịch). Với mỗi kênh trong kenh.json có `may` (máy Studio) + lịch (`lich_tap` của kênh, hoặc của từng playlist):
 //   1. hôm nay là ngày làm tập (lich_tap: thứ trong tuần, 1 = Thứ Hai … 7 = Chủ nhật, giờ VN) và chưa có tập hôm nay → lam-tap.mjs --kenh <k> --id <mã máy>-<ngày>
 //      (chủ đề + hook theo góc spy của máy, viết → kiểm → dựng → đẩy Studio → nạp máy đăng; Phòng Nội dung chấm, máy đăng tự đăng theo nhịp an toàn)
 //   2. mọi ngày: may-dung.mts --so-kenh (lượt xem + người đăng ký → mos2 › Tài sản › Kênh sản phẩm)
 //   3. báo Telegram (kênh cty): tập mới + tiền thật của lượt, hoặc lỗi nguyên văn.
-//   node scripts/lich-su/chay-kenh.mjs [--kenh parody] [--ep]   (--ep: làm tập kể cả không phải ngày lịch)
+//   node scripts/lich-su/chay-kenh.mjs [--kenh parody] [--ep [--playlist <mã>]]   (--ep: làm tập kể cả không phải ngày lịch)
+// PLAYLIST (G1, 02/11/2026): kênh có kenh.json › playlist thì lịch làm tập là lịch của từng playlist (playlist.mjs › lichHomNay) và lam-tap nhận --playlist;
+//   cấu hình playlist sai (trùng ngày, trùng mã…) → không làm tập, báo Telegram nguyên văn.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, existsSync, writeFileSync, unlinkSync, readdirSync, statSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BOX, box, sqlBox } from './box3.mjs';
+import { kiemPlaylist, lichHomNay, tapMoiTuan, timPlaylist } from './playlist.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 const arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : null; };
@@ -72,8 +75,14 @@ for (const [k, K] of Object.entries(KENH)) {
   // việc nền chạy MỖI GIỜ (02/11/2026 anh: đo kênh tần suất cao hơn) → làm tập chỉ từ gio_tap trở đi của ngày lịch; khoá ~/.cache/lich-su-<k>.khoa (pid) chống lượt chồng
   const gioNay = new Date().toLocaleTimeString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
   const khoa = join(homedir(), '.cache', `lich-su-${k}.khoa`), dangChay = (() => { try { process.kill(Number(readFileSync(khoa, 'utf8')), 0); return true; } catch { return false; } })();
+  const loiPl = kiemPlaylist(K), lich = lichHomNay(K, thu, gioNay);
+  // --ep: playlist theo --playlist, không thì playlist của lịch hôm nay, không thì playlist đầu (kênh có chia playlist)
+  const plEp = process.argv.includes('--ep') ? (arg('playlist') ?? lich.playlist ?? K.playlist?.[0]?.ma ?? null) : null;
   if (dangChay && !process.argv.includes('--ep')) bao.push('lượt làm tập trước còn chạy — lượt này chỉ đo số');
-  else if (((K.lich_tap ?? []).includes(thu) && gioNay >= (K.gio_tap ?? '00:00')) || process.argv.includes('--ep')) {
+  else if (loiPl.length) bao.push(`✗ cấu hình playlist sai — không làm tập: ${loiPl.join(' · ')}`);
+  else if (plEp && (() => { try { timPlaylist(K, plEp); return false; } catch (e) { bao.push(`✗ ${e.message}`); return true; } })()) { /* đã báo */ }
+  else if (lich.den || process.argv.includes('--ep')) {
+    const pl = plEp ?? lich.playlist;
     writeFileSync(khoa, String(process.pid));
     // --ep (làm thêm tập ngoài lịch): mã ngày đã có tập thì lấy hậu tố -2, -3… — không chạy đè lên tập đã đăng
     let id = `${K.may}-${hom.replace(/-/g, '')}`;
@@ -83,7 +92,7 @@ for (const [k, K] of Object.entries(KENH)) {
       // lam-tap tự dừng trước khi tốn tiền giọng / ảnh nếu máy viết 4 lượt vẫn lỗi; DUYET_SINH_1_LAN cho lượt có lịch anh đã duyệt (02/11/2026: 3 tập/tuần)
       // ĐANG SẢN XUẤT: dấu trên máy studio (xv_may.nguon.dang_lam) — mos2 › Tài sản › Kênh nội dung hiện tập đang làm; xong (đạt hay hỏng) thì gỡ
       danhDau(K.may, { id, luc: new Date().toISOString() });
-      const r = spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', id, '--nn', 'en', '--kenh', k], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
+      const r = spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', id, '--nn', 'en', '--kenh', k, ...(pl ? ['--playlist', pl] : [])], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
       const ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra);
       danhDau(K.may, null); try { unlinkSync(khoa); } catch { /* đã gỡ */ }
       const tien = [...ra.matchAll(/~(\d+)₫/g)].reduce((t, m) => t + Number(m[1]), 0);
@@ -91,7 +100,7 @@ for (const [k, K] of Object.entries(KENH)) {
       if (r.signal) ra += `\n✗ quá giờ 100 phút — lượt bị dừng (${r.signal})`;
       if (r.status !== 0 && giaoTho(k, id, ra)) ra += '\n🔧 đã giao Mạnh (thợ máy) tìm gốc + sửa';
       bao.push(r.status !== 0 ? `✗ tập ${id} hỏng (mã ${r.status ?? r.signal}): ${ra.trim().split('\n').slice(-3).join(' · ').slice(0, 500)}`
-        : `✓ tập mới ${id}: ${tap?.tieu_de ?? '?'}\n  ${tap?.chu_de ?? ''}\n  ~${tien.toLocaleString('vi-VN')}₫ · Studio › Máy › ${K.may} · ${/✓ nạp máy/.test(ra) ? 'đã nạp máy đăng, chờ Phòng Nội dung chấm' : '⚠ chưa nạp máy đăng'}`);
+        : `✓ tập mới ${id}${pl ? ` [${pl}]` : ''}: ${tap?.tieu_de ?? '?'}\n  ${tap?.chu_de ?? ''}\n  ~${tien.toLocaleString('vi-VN')}₫ · Studio › Máy › ${K.may} · ${/✓ nạp máy/.test(ra) ? 'đã nạp máy đăng, chờ Phòng Nội dung chấm' : '⚠ chưa nạp máy đăng'}`);
     }
   }
   try { bao.push(box(`scripts/may-dung.mts --may ${K.may} --so-kenh`).split('\n').pop()); } catch (e) { bao.push(`⚠ đo số kênh hỏng: ${String(e.stderr || e.message).trim().split('\n').pop()}`); }
@@ -104,7 +113,7 @@ for (const [k, K] of Object.entries(KENH)) {
     const vs = JSON.parse(ds || '[]').map((v) => ({ ...v, tuoi: Math.max(1, Math.round((Date.now() - Date.parse(`${v.ngay}T12:00:00+07:00`)) / 86_400_000)) })).map((v) => ({ ...v, md: Math.round((v.xem ?? 0) / v.tuoi) }));
     const du = vs.filter((v) => v.tuoi >= 2).map((v) => v.md).sort((a, b) => a - b), tv = du.length ? du[Math.floor(du.length / 2)] : 0;
     const bang = vs.sort((a, b) => b.md - a.md).map((v) => `${String(v.md).padStart(6)}/ngày ${String(v.xem ?? 0).padStart(7)}  ${String(v.t ?? '').slice(0, 40).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}`).join('\n');
-    tele(`📊 ${K.ten_kenh ?? K.ten} · tuần tới ${hom}\n<pre>${bang || '(chưa có tập đã đăng)'}</pre>\n${du.length >= 3 && tv >= 300 ? `Đề xuất: trung vị ${tv} lượt xem/ngày — tăng từ ${(K.lich_tap ?? []).length} lên 5 tập/tuần? (anh duyệt thì đổi lich_tap trong kenh.json)` : `Trung vị ${tv} lượt xem/ngày (${du.length} tập ≥ 2 ngày) — giữ ${(K.lich_tap ?? []).length} tập/tuần`}`, true);
+    tele(`📊 ${K.ten_kenh ?? K.ten} · tuần tới ${hom}\n<pre>${bang || '(chưa có tập đã đăng)'}</pre>\n${du.length >= 3 && tv >= 300 ? `Đề xuất: trung vị ${tv} lượt xem/ngày — tăng từ ${tapMoiTuan(K)} lên 5 tập/tuần? (anh duyệt thì đổi lich_tap của playlist trong kenh.json)` : `Trung vị ${tv} lượt xem/ngày (${du.length} tập ≥ 2 ngày) — giữ ${tapMoiTuan(K)} tập/tuần`}`, true);
     writeFileSync(dauTuan, '1');
   }
   const chu = `📺 ${K.ten} · ${hom}\n${bao.join('\n')}`; console.log(chu);

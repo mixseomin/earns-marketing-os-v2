@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
 import { BOX, box, len, ve, q, sqlBox } from './box3.mjs';
+import { apPlaylist, playlistCuaTap, timPlaylist, tieuDeDang } from './playlist.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const co = (k) => process.argv.includes(`--${k}`);
@@ -32,8 +33,13 @@ const chuDe = arg('chu-de') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tep
 const nguonTua = (arg('nguon') ?? (existsSync(tepTap) ? (JSON.parse(readFileSync(tepTap, 'utf8')).nguon || []).map((u) => decodeURIComponent(u.split('/wiki/')[1] || '').replace(/_/g, ' ')).filter(Boolean).join('|') : '')) || null;
 const nn = arg('nn') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).ngon_ngu : null) ?? 'en';
 const kenhId = arg('kenh') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).kenh : null) ?? 'saga';
-const KENH = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId];
-if (!KENH) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
+const KENH0 = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId];
+if (!KENH0) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
+// PLAYLIST (G1 tầng playlist chung, playlist.mjs): --playlist khi viết mới; tập đã có thì theo tap.playlist. Hồ sơ kênh đè khoá của playlist (theme, khuôn…);
+// tiêu đề đăng gắn tiền tố playlist lúc nạp máy đăng (tiêu đề trong tệp tập giữ nguyên để luật hook kiểm đúng chữ).
+const plMa = playlistCuaTap(KENH0, arg('playlist') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).playlist : null) ?? null);
+let PL, KENH;
+try { PL = timPlaylist(KENH0, plMa); KENH = apPlaylist(KENH0, plMa); } catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
 mkdirSync(RA, { recursive: true });
 const docKho = () => JSON.parse(readFileSync(tepKho, 'utf8'));
 
@@ -192,7 +198,7 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     chiTiet(`lượt viết ${lan}/4${loi.length ? ` · lượt trước ${loi.length} lỗi kiểm` : ''} · đang gọi máy viết`);
     const them = loi.length ? ` --loi ${tmp}/loi.txt --cu ${tmp}/tap.json` : '';
     if (loi.length) { writeFileSync(join(RA, 'loi.txt'), loi.map((x) => `- ${x}`).join('\n')); len(join(RA, 'loi.txt'), `${tmp}/loi.txt`); len(tepTap, `${tmp}/tap.json`); }
-    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe && !boDeCu ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTua ? ` --nguon ${q(nguonTua)}` : ''}${them}`)); }
+    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe && !boDeCu ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${plMa ? ` --playlist ${q(plMa)}` : ''}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTua ? ` --nguon ${q(nguonTua)}` : ''}${them}`)); }
     catch (e) { console.log(`✗ lượt viết ${lan}: máy viết hỏng — ${String(e.stderr || e.message).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}`); if (!existsSync(tepTap)) continue; loi = loi.length ? loi : ['(lượt trước hỏng, viết lại)']; continue; }
     const truoc = suaCanh ? readFileSync(tepTap, 'utf8') : null;
     ve(`${tmp}/tap.json`, tepTap); ve(`${tmp}/tap.json.nguon.txt`, join(RA, 'nguon.txt'));
@@ -212,6 +218,7 @@ if (co('chi-viet')) process.exit(0);
 // ---------- 3. KHO + TRANH ----------
 buoc('kho + ảnh thật');
 const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
+if (plMa) tap.playlist = plMa;   // ghi lại cùng tệp tập ở cuối bước 3
 let tien = 0;
 const dungToi = new Set(tap.cau.flatMap((c) => [...(c.canh.nguoi || []), ...(c.canh.xe || []), ...(c.canh.co || [])].map((m) => m.anh).concat(c.canh.tranh?.ref || [])));
 for (const t of tap.tai_san_moi || []) {
@@ -348,7 +355,7 @@ buoc('đẩy Studio');
     const moTa = `${tap.mo_ta_dang}${anhThat.length ? '\n\nImages: Wikimedia Commons (public domain). Maps: Natural Earth.' : ''}`;
     const nap = [{ slug: id, chu_de: tap.chu_de, mau: 'video-ngoai', nen_url: anhThat[0] ?? null,
       de: { loai: 'video-ngoai', video_url: kq.url, giay: Math.round(giay * 100) / 100, khung: kq.khung ?? [], soat: kq.soat ?? [], tom_tat: tap.chu_de, thumb: tap.thumb?.url ? { url: tap.thumb.url, chu: tap.thumb.chu, nguon: tap.thumb.commons ?? null } : null },
-      dang: { title: tap.tieu_de, description: moTa, link: null, loai: 'thuong', goc: tap.goc, hook: tap.hook } }];
+      dang: { title: tieuDeDang(tap.tieu_de, PL), description: moTa, link: null, loai: 'thuong', goc: tap.goc, hook: tap.hook, playlist: tap.playlist ?? null } }];
     writeFileSync(join(RA, 'nap.json'), JSON.stringify(nap)); len(join(RA, 'nap.json'), `${bt}/nap.json`);
     console.log(box(`scripts/may-dung.mts --may ${KENH.may} --nap < ${bt}/nap.json`)); console.log(box(`scripts/may-dung.mts --may ${KENH.may} --xuat ${id}`).split('\n').slice(-2).join(' · '));
     console.log(`✓ nạp máy ${KENH.may} · https://studio.on.tc (Máy › ${KENH.may}) · Phòng Nội dung chấm ở lượt kế`);

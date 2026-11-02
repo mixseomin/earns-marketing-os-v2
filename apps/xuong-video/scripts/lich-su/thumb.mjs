@@ -12,12 +12,13 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { KHO } from './dia-ly.mjs';
 import { BOX, box, len, ve, q } from './box3.mjs';
+import { apPlaylist, playlistCuaTap } from './playlist.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 const arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : null; }, co = (k) => process.argv.includes(`--${k}`);
 const id = arg('id'); if (!id) { console.error('node thumb.mjs --id <tập> [--viet-lai]'); process.exit(2); }
 const tepTap = join(DIR, 'tap', `${id}.json`), tap = JSON.parse(readFileSync(tepTap, 'utf8'));
-const kenhId = tap.kenh ?? 'saga', K = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId], nn = tap.ngon_ngu ?? 'en';
+const kenhId = tap.kenh ?? 'saga', K = apPlaylist(JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId], playlistCuaTap(JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId], tap.playlist ?? null)), nn = tap.ngon_ngu ?? 'en';
 const RA = join(KHO, id); mkdirSync(RA, { recursive: true });
 
 // 1. CHỮ

@@ -4,7 +4,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { changVideo, lichSanXuat, tinhSoKenh, type DangLam, type KenhSp, type LoTrinh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
+import { changVideo, lichKenhHs, soTheoPlaylist, tinhSoKenh, type DangLam, type HoSoKenhLich, type KenhSp, type LoTrinh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
 
 /** Đọc một tệp JSON của máy làm tập (apps/xuong-video/scripts/lich-su/<tệp>) — cwd của web có thể là gốc repo hoặc apps/web. */
 function docTepLichSu<T>(tep: string): T | null {
@@ -14,9 +14,9 @@ function docTepLichSu<T>(tep: string): T | null {
   console.warn(`kenh-sp: không đọc được apps/xuong-video/scripts/lich-su/${tep}`);
   return null;
 }
-/** Hồ sơ kênh của máy làm tập (kenh.json — MỘT nguồn với việc nền chay-kenh.mjs): lich_tap + gio_tap theo mã máy. */
-function hoSoKenh(): Record<string, { lich_tap?: number[]; gio_tap?: string }> {
-  const k = docTepLichSu<Record<string, { may?: string; lich_tap?: number[]; gio_tap?: string }>>('kenh.json') ?? {};
+/** Hồ sơ kênh của máy làm tập (kenh.json — MỘT nguồn với việc nền chay-kenh.mjs): lich_tap + gio_tap + playlist theo mã máy. */
+function hoSoKenh(): Record<string, HoSoKenhLich> {
+  const k = docTepLichSu<Record<string, HoSoKenhLich & { may?: string }>>('kenh.json') ?? {};
   return Object.fromEntries(Object.values(k).filter((x) => x && typeof x === 'object' && x.may).map((x) => [x.may!, x]));
 }
 /** Lộ trình kênh theo mã máy (lo-trinh.json — chung mọi kênh studio; Studio đọc cùng tệp). */
@@ -42,22 +42,26 @@ export async function docKenhSp(hom: string): Promise<KenhSp[]> {
     AND chi_tiet->>'anh' IS NOT NULL ORDER BY san_pham, ngay DESC`)) as unknown as { san_pham: string; anh: string }[];
   const phim = (await d.execute(sql`SELECT id, kinh_thanh->>'may' AS may FROM xv_phim WHERE kinh_thanh->>'may' IN ${may.map((m) => m.ma)} ORDER BY id`)) as unknown as { id: number; may: string }[];
   const vids = (await d.execute(sql`SELECT m.ma, v.slug, coalesce(v.dang->>'title', v.chu_de, v.slug) AS ten, v.xuat_luc IS NOT NULL AS xuat, v.cham->>'ket' AS cham, v.giay, (coalesce(v.xuat_luc, v.created_at) AT TIME ZONE 'Asia/Ho_Chi_Minh')::date::text AS ngay_lam,
-      v.da_dang ? 'youtube' AS da_dang, v.da_dang->'youtube'->>'ngay' AS ngay, v.da_dang->'youtube'->>'url' AS url, (v.luot_xem_nen->>'youtube')::int AS xem
+      v.da_dang ? 'youtube' AS da_dang, v.dang->>'playlist' AS playlist, v.da_dang->'youtube'->>'ngay' AS ngay, v.da_dang->'youtube'->>'url' AS url, (v.luot_xem_nen->>'youtube')::int AS xem
     FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.la_san_pham AND v.de->>'loai' = 'video-ngoai' AND NOT coalesce(v.luu_tru, false) ORDER BY v.created_at DESC`)) as unknown as
-    { ma: string; slug: string; ten: string; xuat: boolean; cham: string | null; giay: string | null; ngay_lam: string | null; da_dang: boolean; ngay: string | null; url: string | null; xem: number | null }[];
+    { ma: string; slug: string; ten: string; xuat: boolean; cham: string | null; giay: string | null; ngay_lam: string | null; da_dang: boolean; playlist: string | null; ngay: string | null; url: string | null; xem: number | null }[];
   const lich = ((await d.execute(sql`SELECT ds FROM xv_lich_du_kien`)) as unknown as { ds: { may: string; ngay: string; gio?: string; nen: string; title?: string }[] }[]).flatMap((r) => r.ds ?? []);
   const hs = hoSoKenh(), lt = loTrinhKenh(), gioNay = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
   return may.map((m) => {
     const ds: SoNgayKenh[] = so.filter((r) => r.san_pham === `may:${m.ma}`).map((r) => ({ ngay: r.ngay.slice(0, 10), xem: Number(r.hien), daDang: Number(r.so_muc), nguoiDk: r.nguoi_dk == null ? null : Number(r.nguoi_dk) }));
-    const handle = (m.dang ?? []).find((x) => x.nen === 'youtube')?.br?.handle;
+    const handle = (m.dang ?? []).find((x) => x.nen === 'youtube')?.br?.handle, l = lichKenhHs(hs[m.ma], hom, gioNay);
+    const videos = vids.filter((v) => v.ma === m.ma).map((v) => ({ slug: v.slug, ten: v.ten.replace(/\s*#shorts\s*/i, ''), ngayLam: v.ngay_lam, trangThai: changVideo({ daDang: v.da_dang, xuat: v.xuat, cham: v.cham }),
+      ngayDang: v.ngay?.slice(0, 10) ?? null, url: v.url, xem: v.xem, giay: v.giay == null ? null : Number(v.giay),
+      // tập không ghi playlist (làm trước G1) của kênh chỉ MỘT playlist → playlist đó (cùng luật playlist.mjs › playlistCuaTap)
+      playlist: v.playlist ?? (hs[m.ma]?.playlist?.length === 1 ? hs[m.ma]!.playlist![0]!.ma : null) }));
     return { ma: m.ma, ten: m.ten.split('·').pop()!.trim(), chay: m.chay, kenhUrl: handle ? `https://www.youtube.com/${handle}` : null,
       tap: m.tap, choDang: m.cho_dang, daDang: m.da_dang, dangCuoi: m.dang_cuoi, ...tinhSoKenh(ds, hom),
       phimId: phim.find((p) => p.may === m.ma)?.id ?? null, loTrinh: lt[m.ma] ?? null, anh: anh.find((a) => a.san_pham === `may:${m.ma}`)?.anh ?? null,
-      ke: (() => { const l = lichSanXuat(hs[m.ma]?.lich_tap ?? [], hs[m.ma]?.gio_tap ?? null, hom, gioNay);
+      playlist: soTheoPlaylist(hs[m.ma]?.playlist ?? [], l.theo, videos),
+      ke: (() => {
         return { lichTap: l.chu, tapKe: l.ke, dangLam: m.dang_lam ?? null, tapCho: m.tap_cho ?? [], gioDang: (m.dang ?? []).find((x) => x.nen === 'youtube')?.gio_tu ?? null,
           lichDang: lich.filter((x) => x.may === m.ma && x.ngay >= hom).sort((a, b) => `${a.ngay}${a.gio ?? ''}`.localeCompare(`${b.ngay}${b.gio ?? ''}`)).slice(0, 10)
             .map((x) => ({ ngay: x.ngay, gio: x.gio ?? null, nen: x.nen, tieuDe: x.title ?? '' })) }; })(),
-      videos: vids.filter((v) => v.ma === m.ma).map((v) => ({ slug: v.slug, ten: v.ten.replace(/\s*#shorts\s*/i, ''), ngayLam: v.ngay_lam, trangThai: changVideo({ daDang: v.da_dang, xuat: v.xuat, cham: v.cham }),
-        ngayDang: v.ngay?.slice(0, 10) ?? null, url: v.url, xem: v.xem, giay: v.giay == null ? null : Number(v.giay) })) };
+      videos };
   });
 }

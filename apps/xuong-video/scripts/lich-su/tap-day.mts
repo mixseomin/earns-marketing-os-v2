@@ -30,7 +30,7 @@ const giay = Math.round(Number(execFileSync('ffprobe', ['-v', 'error', '-show_en
 const url = await uploadToR2(`xuong-video/lich-su/tap/${tap.id}.mp4`, readFileSync(mp4), 'video/mp4');
 if (!url) { console.error('✗ tải R2 hỏng'); process.exit(1); }
 const kichBan = tap.cau.map((c: { chu: string; su_that?: unknown[] }, i: number) => `${i + 1}. ${c.chu}${c.su_that?.length ? '' : '  [câu đùa]'}`).join('\n') + `\n\nNguồn:\n${(tap.nguon || []).join('\n')}`;
-const hoSo = { ma_tap: tap.id, kenh: kenhId, ngon_ngu: tap.ngon_ngu, chu_de: tap.chu_de, tep: `apps/xuong-video/scripts/lich-su/tap/${tap.id}.json` };
+const hoSo = { ma_tap: tap.id, kenh: kenhId, playlist: tap.playlist ?? null, ngon_ngu: tap.ngon_ngu, chu_de: tap.chu_de, tep: `apps/xuong-video/scripts/lich-su/tap/${tap.id}.json` };
 const co = (await q<{ id: number }>(sql`SELECT id FROM xv_tap WHERE phim_id = ${phim} AND ho_so->>'ma_tap' = ${tap.id} LIMIT 1`))[0]?.id;
 let tapId = co;
 if (co) await db.execute(sql`UPDATE xv_tap SET ten = ${tap.tieu_de}, kich_ban = ${kichBan}, tom_tat = ${tap.chu_de ?? tap.tieu_de}, video_url = ${url}, thoi_luong_s = ${giay}, ho_so = ${JSON.stringify(hoSo)}::jsonb, trang_thai = 'nhap', updated_at = now() WHERE id = ${co}`);

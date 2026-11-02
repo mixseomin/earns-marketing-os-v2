@@ -11,14 +11,16 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { BOX, box, len } from './box3.mjs';
 import { geo, tamVung, chuan, TP_NHAC, dichCua, diem, isoVung, datThaiBinh, kinh, vong, khungDoi } from './dia-ly.mjs';
+import { apPlaylist, playlistCuaTap } from './playlist.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const DIR = dirname(fileURLToPath(import.meta.url)), KHO = `${process.env.HOME}/.cache/lich-su`;
 const tepTap = resolve(DIR, process.argv[2]), tap = JSON.parse(readFileSync(tepTap, 'utf8')), RA = join(KHO, tap.id);
 mkdirSync(RA, { recursive: true });
 // KÊNH (kenh.json, tap.kenh — thiếu = saga): theme hình ban-do.html, bảng màu đất, nhạc nền, bộ tiếng động
-const KENH = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[tap.kenh ?? 'saga'];
-if (!KENH) throw new Error(`không có kênh "${tap.kenh}" trong kenh.json`);
+const KENH0 = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[tap.kenh ?? 'saga'];
+if (!KENH0) throw new Error(`không có kênh "${tap.kenh}" trong kenh.json`);
+const KENH = apPlaylist(KENH0, playlistCuaTap(KENH0, tap.playlist ?? null));   // playlist đè theme / nhạc / tiếng động / trần thời lượng của kênh (playlist.mjs)
 
 // ---------- giọng (box3, một lần) ----------
 // giọng gắn với ĐÚNG lời đọc: lời trong tệp tập đổi (máy viết lại) thì đọc lại, không dùng giọng cũ lệch chữ

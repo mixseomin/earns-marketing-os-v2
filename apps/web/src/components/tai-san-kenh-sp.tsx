@@ -8,7 +8,7 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { DataTable, Panel, type DataColumn } from '@/components/ui';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { extLinkProps } from '@/lib/external-url';
-import { cayKeHoach, cayLoTrinh, cayPlaylist, lichKenh, locGap, tomLoTrinh, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { cayKeHoach, cayLoTrinh, cayPlaylist, cayPlaylistThat, lichKenh, locGap, tomLoTrinh, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { LichNho, type LoaiLichNho } from '@/components/ui/lich-nho';
@@ -34,7 +34,9 @@ type Dong = { loai: 'kenh'; k: KenhSp } | { loai: 'video'; k: KenhSp; v: VideoKe
 /** CÂY của một kênh: 🧭 Lộ trình + 📂 Playlist (lo-trinh.json, nếu kênh có khai) + ▶ Đang sản xuất + 🗓 Lịch (cayKeHoach — thuần, tự kiểm) rồi 🎬 Đã làm (chặng từng video).
  *  Lịch tháng vẫn ở LỊCH NHỎ trong menu ⋯. */
 function cayKenh(k: KenhSp): Dong[] {
-  return [...(k.loTrinh ? [...cayLoTrinh(k.loTrinh), ...cayPlaylist(k.loTrinh)] : []).map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
+  // 📂 Playlist: playlist THẬT (kenh.json, máy đang chạy theo) nếu kênh đã chia; chưa thì playlist theo kế hoạch (lo-trinh.json)
+  const pl = k.playlist?.length ? cayPlaylistThat(k.playlist) : k.loTrinh ? cayPlaylist(k.loTrinh) : [];
+  return [...[...(k.loTrinh ? cayLoTrinh(k.loTrinh) : []), ...pl].map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
     ...k.videos.map((v) => ({ loai: 'video' as const, k, v }))];
 }
 const LOAI_LICH: LoaiLichNho = {
@@ -75,7 +77,8 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
             <span style={{ color: 'var(--fg-4)' }}>└</span>
             {v.url ? <a {...extLinkProps(v.url)} style={{ color: 'inherit', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={v.ten}>{v.ten}</a>
               : <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={v.ten}>{v.ten}</span>}
-            <span style={{ color: c.mau, fontSize: 11, whiteSpace: 'nowrap' }}>{c.chu}</span></span>; }
+            <span style={{ color: c.mau, fontSize: 11, whiteSpace: 'nowrap' }}>{c.chu}</span>
+            {v.playlist && <span style={{ color: 'var(--fg-3)', fontSize: 11, whiteSpace: 'nowrap' }} title="playlist của tập">📂 {d.k.playlist?.find((p) => p.ma === v.playlist)?.ten ?? v.playlist}</span>}</span>; }
         const k = d.k, n = k.videos.length;
         return <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)' }}>
           <button type="button" onClick={(e) => { e.stopPropagation(); doi(k.ma); }} title={`${moCay.has(k.ma) ? 'ẩn' : 'hiện'} ${n} video của kênh`}

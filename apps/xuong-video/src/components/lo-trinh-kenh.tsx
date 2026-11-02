@@ -7,10 +7,10 @@ import type { CSSProperties } from 'react';
 
 type TrangThai = 'cho_anh' | 'dang' | 'chua' | 'xong';
 type GiaiDoan = { ma: string; ten: string; viec: string; anh: string; trang_thai: TrangThai };
-type Playlist = { ma: string; ten: string; tien_to?: string; noi_dung?: string; ho_hinh?: string; ngay?: string; trang_dich?: string; mo_dau?: boolean; trang_thai: 'de_xuat' | 'mo' | 'sau' | 'tam_dung'; khi?: string };
+type Playlist = { ma: string; ten: string; tien_to?: string; noi_dung?: string; ho_hinh?: string; ngay?: string; trang_dich?: string; mo_dau?: boolean; trang_thai: 'de_xuat' | 'chot' | 'mo' | 'sau' | 'tam_dung'; khi?: string };
 type LoTrinh = { ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: Playlist[]; giai_doan: GiaiDoan[] };
 const PL: Record<Playlist['trang_thai'], { ic: string; chu: string; mau: string }> = {
-  mo: { ic: '▶', chu: 'đang mở', mau: 'var(--green)' }, de_xuat: { ic: '📝', chu: 'đề xuất', mau: 'var(--accent)' },
+  mo: { ic: '▶', chu: 'đang mở', mau: 'var(--green)' }, chot: { ic: '✔', chu: 'đã chốt', mau: 'var(--accent)' }, de_xuat: { ic: '📝', chu: 'đề xuất', mau: 'var(--accent)' },
   sau: { ic: '○', chu: 'mở sau', mau: 'var(--fg-4)' }, tam_dung: { ic: '⏸', chu: 'tạm dừng', mau: 'var(--warn)' },
 };
 const tomTat: CSSProperties = { cursor: 'pointer', fontWeight: 700, fontSize: 12, userSelect: 'none' };
@@ -39,7 +39,7 @@ export function LoTrinhKenh({ may }: { may: string | undefined }) {
       </div>
       {lt.muc_tieu && <div style={mono}>Đích: {lt.muc_tieu}</div>}
       {!!lt.playlist?.length && <details open>
-        <summary style={tomTat}>📂 Playlist ({lt.playlist.length}) <span style={{ ...mono, fontWeight: 400 }}>· đề xuất chờ G0 chốt, mở đầu đứng trước</span></summary>
+        <summary style={tomTat}>📂 Playlist ({lt.playlist.length}) <span style={{ ...mono, fontWeight: 400 }}>· mở đầu đứng trước · mở trên YouTube ở G7</span></summary>
         <div style={{ display: 'grid', gridTemplateColumns: 'auto auto minmax(0, 1fr)', gap: '4px 12px', alignItems: 'baseline', fontSize: 12, marginTop: 6 }}>
           {[...lt.playlist].sort((a, b) => Number(!!b.mo_dau) - Number(!!a.mo_dau)).map((p) => { const t = PL[p.trang_thai] ?? PL.sau;
             return [

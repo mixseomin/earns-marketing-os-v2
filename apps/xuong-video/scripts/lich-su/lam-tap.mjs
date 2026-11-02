@@ -319,10 +319,15 @@ if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons && c.canh.tranh?.anh)
     for (const ten of [pg.pageimage ? `File:${pg.pageimage.replace(/_/g, ' ')}` : null, ...(pg.images ?? []).map((x) => x.title)])
       if (ten && /\.(jpe?g|png)$/i.test(ten) && !BO.test(ten) && !tim.some((x) => x.ten === ten)) tim.push({ ten, tua });
   }
+  // XẾP THEO ĐỘ GẦN CHUYỆN (Wikipedia trả ảnh theo vần A–Z → Ngọc xét Arabia 1914, Karl XII… trước): tên tệp trùng chữ với chủ đề + tiêu đề + tên bài lên trước, ảnh chính bài +1
+  const tuChuyen = new Set(boDau(`${tap.chu_de ?? ''} ${tap.tieu_de ?? ''} ${(tap.nguon ?? []).map((u) => decodeURIComponent(u.split('/wiki/')[1] || '')).join(' ')}`).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !['with', 'from', 'after', 'that', 'this', 'what', 'when', 'were', 'their', 'empire', 'years', 'history'].includes(w)));
+  const diem = (x, i) => boDau(x.ten).toLowerCase().split(/[^a-z0-9]+/).filter((w) => tuChuyen.has(w)).length + (i === 0 ? 1 : 0);
+  tim.splice(0, tim.length, ...tim.map((x, i) => ({ ...x, d: diem(x, i) })).sort((a1, b1) => b1.d - a1.d));
+  const moTaBia = (tua) => `Cover image for a history video. STORY: ${tap.chu_de ?? ''} (Wikipedia article: ${tua}). Any period painting, engraving or old photo of a main person, place, army, ship or event of this story is fine; a modern photo, a map or an unrelated person is not.`;
   let xet = 0;
   for (const { ten: tep, tua } of tim) {
-    if (ds.length >= 3 || xet >= 6) break; xet++; xetConLai = 1;
-    if (!(await ngocDuyetAnh(tep, tap.chu_de, null))) continue;
+    if (ds.length >= 3 || xet >= 8) break; xet++; xetConLai = 1;
+    if (!(await ngocDuyetAnh(tep, moTaBia(tua), null))) continue;
     const c = await commons(tep); if (!c?.thumb) continue;
     const f = join(KHO, 'tranh', `${id}-bia-${dauCommons(tep)}.jpg`);
     if (!existsSync(f)) for (const uu of [c.thumb.replace(/\/\d+px-/, '/1600px-'), c.thumb]) { const rr = await tai(uu); if (rr.ok && /^image\//.test(rr.headers.get('content-type') || '')) { writeFileSync(f, Buffer.from(await rr.arrayBuffer())); break; } }

@@ -51,3 +51,7 @@ if (process.argv[1]?.endsWith('hook-qc.mjs') && process.argv.includes('--tu-kiem
   t.deepEqual(soNgoaiSuThat(['AI translator 165+ languages'], null), [], 'chưa có tệp sự thật = không đoán');
   console.log('hook-qc: 10 ca đạt'); process.exit(0);
 }
+
+/** BẰNG CHỨNG của một hook trong kho (dùng chung mọi chỗ đưa hook cho AI / người đọc): QC spy = số ngày chạy · 'kenh:' = video thắng của chính kênh ·
+ *  'yt:' = video YouTube cùng ngách nhiều lượt xem (nguồn thứ hai, anh duyệt 02/11/2026 khi kho QC Meta cạn). h.ngay = ngày chạy hoặc lượt xem theo nguồn. */
+export const bangChungHook = (h) => String(h.id).startsWith('kenh:') ? `our own video, ${h.ngay} views` : String(h.id).startsWith('yt:') ? `YouTube video in this niche, ${h.ngay} views` : `ad ran ${h.ngay} days`;

@@ -211,13 +211,24 @@ const khoNay = docKho().tai_san;
 // ẢNH LỊCH SỬ THẬT BẮT BUỘC cho kênh có máy đăng (Phòng Nội dung chặn bài không ảnh thật — 02/11/2026 tập Hatshepsut SỬA LẠI vì cả 3 tranh là AI vẽ dù
 // prompt dặn ưu tiên Commons): tranh chưa có tệp Commons → máy tự tìm theo tên nhân vật trong tranh rồi theo cụm danh từ riêng nhiều chữ của mô tả
 // ("Deir el-Bahari"), chỉ nhận ảnh chụp / tranh (jpg / png, bỏ bản đồ / sơ đồ / logo). Tìm một lần mỗi tranh (tim_that) — không thấy thì giữ tranh AI.
-const timAnhThat = async (cum) => { for (const q1 of cum) {
+// ĐÚNG THỜI (02/11/2026, Alaska: tìm "russian soldier" cho cảnh 1867 ra ảnh xe quân sự Iveco hiện đại): tìm kèm năm cảnh trước, rồi đọc ngày gốc của ảnh
+// (extmetadata DateTimeOriginal / DateTime, thiếu thì năm trong tên tệp) — ảnh muộn hơn năm cảnh quá 20 năm là ảnh thời khác, bỏ.
+const namAnh = (ten, md) => { const ys = [...`${md?.DateTimeOriginal?.value ?? ''} ${md?.DateTime?.value ?? ''} ${ten}`.matchAll(/\b(1[0-9]{3}|20[0-9]{2})\b/g)].map((m) => Number(m[1])); return ys.length ? Math.min(...ys) : null; };
+const timAnhThat = async (cum, nam = null) => { for (const q1 of nam > 0 ? cum.flatMap((q) => [`${q} ${nam}`, q]) : cum) {
     const r = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', list: 'search', srnamespace: '6', srlimit: '10', srsearch: `${q1} filetype:bitmap`, format: 'json', formatversion: '2' })}`)).json();
-    const t = (r.query?.search ?? []).map((x) => x.title).find((x) => /\.(jpe?g|png)$/i.test(x) && !/\b(map|karte|carte|mapa|diagram|logo|flag|coat of arms|chart)\b/i.test(x));
+    const ds = (r.query?.search ?? []).map((x) => x.title).filter((x) => /\.(jpe?g|png)$/i.test(x) && !/\b(map|karte|carte|mapa|diagram|logo|flag|coat of arms|chart)\b/i.test(x));
+    if (!ds.length) continue;
+    if (!(nam > 0)) return ds[0];
+    const ii = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', titles: ds.join('|'), prop: 'imageinfo', iiprop: 'extmetadata', format: 'json', formatversion: '2' })}`)).json();
+    const md = new Map((ii.query?.pages ?? []).map((p) => [p.title, p.imageinfo?.[0]?.extmetadata]));
+    const t = ds.find((x) => { const y = namAnh(x, md.get(x)); return y == null || y <= nam + 20; });
     if (t) return t; } return null; };
 const cumTranh = (tr) => [...new Set([...(tr.ref || []).map((r) => r.replace(/_/g, ' ')), ...((tr.mo_ta || '').match(/\b[A-Z][a-z]+(?:[ -](?:el|al|de|of|the|[A-Z][a-z]+))+/g) || [])])].slice(0, 5);
-if (KENH.may) for (const c of tap.cau) { const tr = c.canh.tranh; if (!tr || tr.commons || tr.tim_that) continue; tr.tim_that = true;
-  const t = await timAnhThat(cumTranh(tr)); if (t) { console.log(`✓ ảnh thật cho tranh "${(tr.mo_ta || '').slice(0, 50)}…": ${t}`); tr.commons = t; delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; } }
+if (KENH.may) { let namCanh = null; for (const c of tap.cau) { namCanh = c.canh.nam ?? namCanh; const tr = c.canh.tranh; if (!tr) continue;
+  // ảnh máy TỰ TÌM trước khi có luật đúng thời (tim_that, chưa ghi tim_nam) → tìm lại theo năm; ảnh do máy viết chọn (không tim_that) giữ nguyên
+  if (tr.tim_that && tr.commons && tr.tim_nam !== namCanh) { delete tr.commons; delete tr.commons_url; tr.tim_that = false; }
+  if (tr.commons || tr.tim_that) continue; tr.tim_that = true; tr.tim_nam = namCanh;
+  const t = await timAnhThat(cumTranh(tr), namCanh); if (t) { console.log(`✓ ảnh thật cho tranh "${(tr.mo_ta || '').slice(0, 50)}…": ${t}`); tr.commons = t; delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; } } }
 if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons)) console.log('⚠ tập không có ảnh lịch sử thật nào — Phòng Nội dung sẽ chặn (nen_url trống)');
 // đã có ảnh chỉ khi TỆP còn thật (tệp ghi trong tập mà đã mất / hỏng thì tải lại — không tin dòng ghi)
 for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr || (tr.anh && existsSync(join(KHO, tr.anh)))) continue;

@@ -7,6 +7,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod/v4';
 import { sinhJson } from '../../src/lib/xuong-video/claude';
+import { bangChungHook } from '../../src/lib/xuong-video/hook-qc.mjs';
 
 const arg = (k: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : undefined; };
 const ra = process.argv[2], nn = arg('nn') ?? 'en', id = arg('id');
@@ -40,7 +41,7 @@ if (!chuDe && gh) {
   for (let lan = 1; lan <= 3 && !chuDe; lan++) {
     const c = await sinhJson({ schema: ChonDe, model: 'claude-sonnet-5-5', max_tokens: 2000, ten: 'chọn đề lịch sử theo góc',
       system: `Bạn chọn đề cho kênh "${K.ten}" (${K.do_dai}). Chuyện phải CÓ THẬT, có tư liệu Wikipedia dày, có chuyển động trên bản đồ, hợp GÓC khán giả bên dưới, chưa làm. Tiêu đề lấy từ MỘT hook QC thật (chạy lâu = đã chứng minh giữ người xem), sửa nhẹ cho đúng chuyện — không viết hook mới.`,
-      user: `GÓC (spy #${gh.goc.id} · ${gh.goc.loai}): ${gh.goc.ten}\nHOOK QC (id · ngày chạy · chữ):\n${gh.hooks.map((h) => `- ${h.id} · ${h.ngay} ngày · ${h.chu}`).join('\n')}\nĐÃ LÀM (tránh):\n${gh.da_lam.map((x) => `- ${x}`).join('\n') || '(chưa có)'}${loiChon ? `\nLẦN TRƯỚC SAI: ${loiChon}` : ''}` });
+      user: `GÓC (spy #${gh.goc.id} · ${gh.goc.loai}): ${gh.goc.ten}\nHOOK CÓ BẰNG CHỨNG (id · bằng chứng · chữ):\n${gh.hooks.map((h) => `- ${h.id} · ${bangChungHook(h)} · ${h.chu}`).join('\n')}\nĐÃ LÀM (tránh):\n${gh.da_lam.map((x) => `- ${x}`).join('\n') || '(chưa có)'}${loiChon ? `\nLẦN TRƯỚC SAI: ${loiChon}` : ''}` });
     if (!c.ok) { loiChon = c.loi; continue; }
     const h = gh.hooks.find((x) => x.id === c.data.hook_id); if (!h) { loiChon = `hook_id "${c.data.hook_id}" không có trong danh sách`; continue; }
     const thieu: string[] = []; for (const t of c.data.nguon) { const p = (await goiWiki({ action: 'query', titles: t, redirects: '1' })).query?.pages?.[0]; if (!p || p.missing) thieu.push(t); }
@@ -71,7 +72,7 @@ if (process.argv.includes('--chi-hook')) {
   for (let lan = 1; lan <= 3; lan++) {
     const c = await sinhJson({ schema: Gan, model: 'claude-sonnet-5-5', max_tokens: 1500, ten: 'gắn hook tập lịch sử',
       system: `Kênh "${K.ten}". Tập đã dựng xong, KHÔNG đổi lời đọc. Chọn MỘT hook QC thật (chạy lâu = đã chứng minh giữ người xem) hợp nhất với chuyện, chỉnh nhẹ thành tiêu đề video; viết mô tả đăng.`,
-      user: `CHUYỆN: ${cu.chu_de}\nTIÊU ĐỀ CŨ: ${cu.tieu_de}\nLỜI ĐỌC:\n${cu.cau.map((x) => x.chu).join(' ').slice(0, 3000)}\nGÓC (spy #${gh.goc.id}): ${gh.goc.ten}\nHOOK QC (id · ngày chạy · chữ):\n${gh.hooks.map((h) => `- ${h.id} · ${h.ngay} ngày · ${h.chu}`).join('\n')}${loi ? `\nLẦN TRƯỚC SAI: ${loi}` : ''}` });
+      user: `CHUYỆN: ${cu.chu_de}\nTIÊU ĐỀ CŨ: ${cu.tieu_de}\nLỜI ĐỌC:\n${cu.cau.map((x) => x.chu).join(' ').slice(0, 3000)}\nGÓC (spy #${gh.goc.id}): ${gh.goc.ten}\nHOOK CÓ BẰNG CHỨNG (id · bằng chứng · chữ):\n${gh.hooks.map((h) => `- ${h.id} · ${bangChungHook(h)} · ${h.chu}`).join('\n')}${loi ? `\nLẦN TRƯỚC SAI: ${loi}` : ''}` });
     if (!c.ok) { loi = c.loi; continue; }
     const h = gh.hooks.find((x) => x.id === c.data.hook_id); if (!h) { loi = `hook_id "${c.data.hook_id}" không có trong danh sách`; continue; }
     // cùng luật phòng chấm (cham-dang › doBaiDang): chữ đăng sai ngôn ngữ / có từ máy là bài bị chặn sau khi dựng — bắt ở đây cho viết lại

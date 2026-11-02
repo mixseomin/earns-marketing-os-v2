@@ -57,7 +57,8 @@ async function hoiNgoc({ luot, system, content, max_tokens = 200, cho = 60000 })
 }
 export async function xetHookAi(ds) {
   // hook từ VIDEO THẮNG của chính kênh (qc 'kenh:<id>', anh duyệt 31/10/2026) không nằm trong kho spy — Ngọc được nói rõ nguồn + lượt xem
-  const ids = [...new Set(ds.map((x) => x.qc).filter((q) => q && !String(q).startsWith('kenh:')).map(String))]; if (!ds.some((x) => x.qc) || !MODEL_NGOC) return ds.map(() => null);
+  const ngoaiSpy = (q) => /^(kenh|yt):/.test(String(q));   // video thắng của kênh · video YouTube nhiều lượt xem (nguồn thứ hai 02/11/2026) — không nằm trong qc_meta
+  const ids = [...new Set(ds.map((x) => x.qc).filter((q) => q && !ngoaiSpy(q)).map(String))]; if (!ds.some((x) => x.qc) || !MODEL_NGOC) return ds.map(() => null);
   let dau = new Map();
   if (ids.length) try { const spy = await moSpy(); try { dau = new Map((await spy`select library_id::text as qc, left(noi_dung, 500) as chu from qc_meta where library_id::text = any(${ids})`).map((r) => [r.qc, r.chu])); } finally { await spy.end(); } }
   catch (e) { return ds.map(() => null); }
@@ -69,7 +70,7 @@ export async function xetHookAi(ds) {
   const khoa = (x) => `${x.ma}|${(x.goc && x.dong.every((d) => chuan(d) === chuan(x.goc)) ? [x.goc] : x.dong).map(chuan).join(' / ')}`;
   const hoi = async (x) => {
     const system = 'You check whether a social post hook borrowed from another company\'s ad fits OUR brand. Reply with ONE JSON only: {"cung_ngach":true|false,"hua_sai":true|false,"nhat":true|false,"ly_do":"one short sentence in Vietnamese"}. cung_ngach = the original ad is about the same topic and audience as our brand (a person stopped by this hook would plausibly want our brand). hua_sai = the hook as used promises something our brand does not do or a number our facts do not support. nhat = the line would NOT stop a stranger scrolling: a product label or feature list ("Birth Chart / Personal Insight", "Astrology software suite for professionals"), a sentence cut off mid-thought, or a flat statement with no curiosity, tension, situation or payoff.';
-    const user = `OUR BRAND: ${x.nhan}\nWHAT IT IS: ${x.muc_dich ?? ''}\nFACTS: ${(x.su_that ?? 'none').slice(0, 1500)}\n\n${String(x.qc).startsWith('kenh:') ? `ORIGINAL: our own channel's short that already got ${x.luot_xem ?? '?'} views: "${x.goc ?? ''}"` : `ORIGINAL AD (opening): ${dau.get(String(x.qc)) ?? '(not found)'}`}\n\nHOOK LINES WE USE:\n${x.dong.join('\n')}`;
+    const user = `OUR BRAND: ${x.nhan}\nWHAT IT IS: ${x.muc_dich ?? ''}\nFACTS: ${(x.su_that ?? 'none').slice(0, 1500)}\n\n${String(x.qc).startsWith('kenh:') ? `ORIGINAL: our own channel's short that already got ${x.luot_xem ?? '?'} views: "${x.goc ?? ''}"` : String(x.qc).startsWith('yt:') ? `ORIGINAL: title of a YouTube video (not an ad) that got ${x.luot_xem ?? '?'} views: "${x.goc ?? ''}" — judge cung_ngach as: would its viewers plausibly watch our channel` : `ORIGINAL AD (opening): ${dau.get(String(x.qc)) ?? '(not found)'}`}\n\nHOOK LINES WE USE:\n${x.dong.join('\n')}`;
     {
       const o = await hoiNgoc({ luot: 'xet-hook', system, content: user }); if (o === undefined) return undefined;   // hỏng = không chặn, không ghi sổ (lượt sau xét lại)
       const loi = [o.cung_ngach === false && 'hook mượn từ QC khác ngách', o.hua_sai === true && 'hook hứa điều thương hiệu không có', o.nhat === true && 'hook nhạt (nhãn sản phẩm / câu cụt / không gây tò mò)'].filter(Boolean);

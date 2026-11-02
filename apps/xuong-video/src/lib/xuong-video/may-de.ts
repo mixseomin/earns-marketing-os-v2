@@ -6,7 +6,7 @@ import { z } from 'zod/v4';
 import type { MauMayDung } from './may-dung-mau';
 import type { DeNapMay } from './may';
 import { giaChuCents } from './kieu';
-import { loiHook, dongHookBai } from './hook-qc.mjs';
+import { loiHook, dongHookBai, bangChungHook } from './hook-qc.mjs';
 
 /** Dạng trong kho (scripts/ke-hoach-goc/dang-bai.json) → mẫu studio dựng được. Dạng chưa có mẫu → null (ô để máy đăng dùng bài kho như cũ). */
 export const MAU_CUA_DANG: Record<string, MauMayDung | null> = {
@@ -196,7 +196,7 @@ export function vanNguoiDung(goc: GocDe, dang_bai: string, daDung: string[], ngo
   return [`ANGLE (${LOAI_VI[goc.loai] ?? goc.loai}): "${goc.ten}"${goc.mo_ta ? ` — ${goc.mo_ta}` : ''}.`,
     ngonNgu !== 'vi' && CHU_VIET.test(`${goc.ten} ${goc.mo_ta ?? ''}`) ? 'The angle above is an internal note in Vietnamese: translate its meaning and write EVERYTHING in English.' : '',
     `Format "${dang_bai}": ${MO_TA_DANG[dang_bai] ?? ''}`,
-    hooks.length ? `PROVEN AD HOOKS (first lines of real ads that kept running for months — they work):\n${hooks.map((h) => `- [${h.id}] (${h.id.startsWith('kenh:') ? `our own video, ${h.ngay} views` : `${h.ngay} days`}) "${h.chu}"`).join('\n')}\nHooks with an id starting "kenh:" are OUR OWN best videos: keep their frame word for word but change the specific subject (country, word, item, number) to this post's angle, never repeat the same title. For the others, pick the ONE that best fits the angle and use it WORD FOR WORD as the hook (post title${MO_TA_DANG[dang_bai] && /hook|móc/i.test(MO_TA_DANG[dang_bai]!) ? ' and the on-screen hook' : ''}) — it has been proven for months, your rewrite has not. Edit ONLY when needed: remove a brand / app / advertiser name, flip his/her to fit the angle, or drop a claim our product cannot keep; then change the fewest words and keep its rhythm and its promise (never bolt the product or the angle onto it — the body of the post connects the hook to the angle). Put its id in hook_qc.` : '',
+    hooks.length ? `PROVEN AD HOOKS (first lines of real ads that kept running for months — they work):\n${hooks.map((h) => `- [${h.id}] (${bangChungHook(h)}) "${h.chu}"`).join('\n')}\nHooks with an id starting "kenh:" are OUR OWN best videos: keep their frame word for word but change the specific subject (country, word, item, number) to this post's angle, never repeat the same title. For the others, pick the ONE that best fits the angle and use it WORD FOR WORD as the hook (post title${MO_TA_DANG[dang_bai] && /hook|móc/i.test(MO_TA_DANG[dang_bai]!) ? ' and the on-screen hook' : ''}) — it has been proven for months, your rewrite has not. Edit ONLY when needed: remove a brand / app / advertiser name, flip his/her to fit the angle, or drop a claim our product cannot keep; then change the fewest words and keep its rhythm and its promise (never bolt the product or the angle onto it — the body of the post connects the hook to the angle). Put its id in hook_qc.` : '',
     daDung.length ? `Hooks already used (write something different): ${daDung.slice(0, 12).map((t) => `"${t}"`).join('; ')}` : '',
     'Return the JSON now.'].filter(Boolean).join('\n');
 }

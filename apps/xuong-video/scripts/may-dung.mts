@@ -50,6 +50,22 @@ async function spCua(ma: string) {
   return sp;
 }
 
+/** Video YouTube nhiều lượt xem theo các cụm tìm (yt-dlp trên box3, không cần khoá API). Đệm 3 ngày theo khoá nhóm. Trả [{ id, title, views }] ≥ 300.000 lượt, nhiều trước. */
+async function hookYoutube(khoa: string, cum: string[]): Promise<{ id: string; title: string; views: number }[]> {
+  const fs = await import('node:fs'), { execFileSync } = await import('node:child_process'), dir = `${process.env.HOME}/.cache/hook-yt`, tep = `${dir}/${khoa}.json`;
+  try { const c = JSON.parse(fs.readFileSync(tep, 'utf8')); if (Date.now() - c.luc < 3 * 86_400_000 && c.ds?.length) return c.ds; } catch { /* chưa có đệm */ }
+  const ra = new Map<string, { id: string; title: string; views: number }>();
+  for (const q of cum.slice(0, 6)) {
+    try {
+      const j = JSON.parse(execFileSync('yt-dlp', ['--flat-playlist', '-J', `ytsearch40:${q}`], { encoding: 'utf8', timeout: 90_000, maxBuffer: 32 << 20 }));
+      for (const e of j.entries ?? []) if (e.id && e.title && Number(e.view_count) >= 300_000) ra.set(e.id, { id: e.id, title: e.title, views: Number(e.view_count) });
+    } catch (e) { console.error(`· hook YouTube "${q}": ${String((e as Error).message).split('\n')[0].slice(0, 120)}`); }
+  }
+  const ds = [...ra.values()].sort((a, b) => b.views - a.views);
+  if (ds.length) { fs.mkdirSync(dir, { recursive: true }); fs.writeFileSync(tep, JSON.stringify({ luc: Date.now(), ds })); }
+  return ds;
+}
+
 /** KHO GÓC + HOOK của một máy (dùng chung --sinh-kho và --goc-hook, 02/11/2026): góc spy của nhóm máy (goc_sp), hook = dòng đầu QC chạy lâu nhất khớp
  *  nhóm (+ hook_sp lân cận) đã qua Ngọc lọc, video thắng của kênh đứng đầu, hook đã nằm trong bài đang chờ thì bỏ. Không có hook nào → dừng (bài hook tự nghĩ bị chặn). */
 async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<typeof spCua>>) {
@@ -90,6 +106,15 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
     const con = hookNhom.filter((h) => !hookDaDung.has(h.id));
     const chung = con.length ? Array.from({ length: Math.min(6, con.length) }, (_, k) => con[(i * 3 + k) % con.length]!) : [];
     return [...rieng, ...chung.filter((h, k, ds) => !rieng.some((r) => r.id === h.id) && ds.findIndex((x) => x.id === h.id) === k)].slice(0, 6); };
+  // NGUỒN HOOK THỨ HAI — YOUTUBE NHIỀU LƯỢT XEM (anh duyệt 02/11/2026: Alaska kẹt cả buổi chờ lượt cào Meta tới nhóm lịch sử): kho QC Meta còn < 3 câu chưa dùng
+  // → tìm YouTube theo cụm của nhóm spy (goc_sp.cum), lấy tiêu đề video ≥ 300.000 lượt xem (lượt xem = bằng chứng giữ người, đúng nền đăng). Đệm 3 ngày / nhóm
+  // (~/.cache/hook-yt/<nhóm>.json). Ngọc vẫn lọc lệch ngách / hứa sai như hook QC; một hook vẫn chỉ một bài. QC Meta luôn đứng trước.
+  if (hookNhom.filter((h) => !hookDaDung.has(h.id)).length + hookCuaQc.size < 3) {
+    const cum = ((await spy`select cum from goc_sp where id = any(${nhomHook})`) as unknown as { cum: string[] | null }[]).flatMap((x) => x.cum ?? []);
+    const yt = hookTu((await hookYoutube(nhomHook.join('-'), cum)).map((v) => ({ library_id: `yt:${v.id}`, dong: v.title, ngay: v.views, page_ten: 'YouTube' })))
+      .filter((h) => !hookNhom.some((x) => x.chu.toLowerCase() === h.chu.toLowerCase()));
+    hookNhom.push(...yt); console.log(`· kho QC Meta mỏng → thêm ${yt.length} hook YouTube nhiều lượt xem (nhóm ${nhomHook.join(', ')})`);
+  }
   await spy.end();
   // NGỌC LỌC KHO HOOK TRƯỚC KHI SINH (31/10/2026): cùng phép xét của Phòng Nội dung (cham-dang.mjs › xetHookAi — lệch ngách / hứa điều thương hiệu không có),
   // hook bị chặn thì không đưa cho AI viết — sinh ra là bài SỬA LẠI, đốt tiền. Xét 100 hook nhóm chạy lâu nhất (câu đã xét đọc sổ xet-hook.json, không tốn lại) + QC gắn góc; vài đồng một hook.
@@ -100,7 +125,7 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
     for (const [k, h] of [...hookCuaQc]) if (tuMayTrong(h.chu).length) hookCuaQc.delete(k);
     const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
     const muc = ((await db.execute(sql`SELECT muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { muc_dich: string | null }[])[0]?.muc_dich ?? null;
-    const xet = async (ds: HookDong[]) => { const loi = await xetHookAi(ds.map((h) => ({ qc: h.id, ma, nhan: sp.nhan, muc_dich: muc, su_that: suThat, goc: h.chu, dong: [h.chu] }))); return ds.filter((_, k) => !loi[k]); };
+    const xet = async (ds: HookDong[]) => { const loi = await xetHookAi(ds.map((h) => ({ qc: h.id, ma, nhan: sp.nhan, muc_dich: muc, su_that: suThat, goc: h.chu, dong: [h.chu], luot_xem: h.ngay }))); return ds.filter((_, k) => !loi[k]); };
     const truoc = hookNhom.length + hookCuaQc.size, nhomDat = await xet(hookNhom.slice(0, 100)), qcDat = new Set((await xet([...hookCuaQc.values()])).map((h) => h.id));
     hookNhom.splice(0, hookNhom.length, ...nhomDat); for (const k of [...hookCuaQc.keys()]) if (!qcDat.has(k)) hookCuaQc.delete(k);
     console.log(`· Ngọc lọc kho hook: giữ ${hookNhom.length + hookCuaQc.size}/${truoc}`);

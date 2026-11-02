@@ -94,6 +94,33 @@ Xếp kênh:
 
 Trong studio: khung thương hiệu là một cấu hình chung của máy Astrolas (`xv_may.phong_cach`); mỗi loạt chỉ khai phong cách + tiền tố tên.
 
+## Tổ chức trong studio (vòng 4, đề xuất 02/11/2026 — chưa dựng)
+
+Hiện trạng đo 02/11:
+- Studio đã có MỘT máy `astrolas` (xv_may, mẫu `canh-dong`, một chuỗi `phong_cach` "celestial, purple/gold"), 36 video, toàn bài Dạng × Góc lên FB Page Eyes On Stars (#632). Mục YouTube @astrolasapp trong `xv_may.dang` đang khoá.
+- Kênh Yesterday's News Tonight chạy bằng hồ sơ kênh `apps/xuong-video/scripts/lich-su/kenh.json` (mục `parody`: `may`, `lich_tap`, `gio_tap`, `ten_kenh`, giọng, theme, khuôn) + bộ nhận diện `scripts/lich-su/brand/yesterdays-news-tonight/` + máy chạy `chay-kenh.mjs`. Bảng mos2 Tài sản › Kênh social đọc `lich_tap`/`gio_tap` (`apps/web/src/lib/tai-san/kenh-sp.ts`).
+- Máy đăng chưa có khái niệm playlist (grep `playlist` trong scripts đăng: không có).
+
+Cây đề xuất: **Kênh → Loạt → Tập**.
+
+| Tầng | Là gì | Chứa gì | Nằm ở đâu |
+|---|---|---|---|
+| Kênh | máy `astrolas` (một, không tách) | khung thương hiệu: giọng, logo + chuông, màu, font, góc logo, màn cuối, khuôn ảnh bìa; tài khoản đăng; sự thật đã kiểm; góc spy | `xv_may` astrolas + `scripts/lich-su/brand/astrolas/` |
+| Loạt | một playlist YouTube | tên + tiền tố tiêu đề, họ hình (theme), khuôn kịch bản, ngày trong tuần, trang đích trên site, mã playlist | một mục hồ sơ trong `kenh.json`, cùng `may: astrolas` |
+| Tập | một video | kịch bản đánh số, ghi `loat` | `scripts/lich-su/tap/*.json` → `xv_may_video` |
+
+Vì sao không tách mỗi loạt thành một máy: trần đăng và khoảng cách 3 giờ của máy đăng tính theo tài khoản; nhiều máy cùng đăng một kênh thì mỗi máy tự tính trần riêng → vượt trần kênh mới và chồng lịch. Một máy giữ một trần chung, các loạt chia nhau suất.
+
+Lịch: kênh mới trần 1 bài/ngày → các loạt KHÔNG trùng ngày (vd thứ 2 + thứ 6 "Chart Chapters", thứ 4 "Lịch trời"); `chay-kenh.mjs` đánh dấu `nguon.dang_lam` theo máy nên hai loạt cùng ngày sẽ giẫm nhau.
+
+FB Eyes On Stars giữ dòng bài Dạng × Góc hiện tại (đang đo ở bước 7 kế hoạch chính), không đưa sang YouTube để kênh YouTube giữ một khung nhận diện.
+
+Phần phải dựng (chỉ khi anh duyệt):
+1. `brand/astrolas/`: logo + chuông, màn cuối, khuôn ảnh bìa có nhãn loạt (theo mẫu `brand/yesterdays-news-tonight/ve-brand.py`).
+2. Theme `engraving` 9:16 cho máy dựng lịch sử (chuyển từ lemo-opuscar), sau đó `paper-lantern`.
+3. Khuôn kịch bản "Chart Chapters" trong `kenh.json` + script lấy mốc ZR / Profection từ astrolas.com.
+4. Trường `loat` trên tập → máy đăng gắn playlist YouTube + tiền tố tiêu đề; bảng Kênh social hiện loạt ở từng dòng Lịch.
+
 ## Việc kế (chỉ khi anh chốt)
 
 1. Kịch bản mẫu đánh số "Chart Chapters: Steve Jobs" — mốc ZR / Profection lấy từ astrolas.com.

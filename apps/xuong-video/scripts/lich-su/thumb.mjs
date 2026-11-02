@@ -21,6 +21,9 @@ const kenhId = tap.kenh ?? 'saga', K = JSON.parse(readFileSync(join(DIR, 'kenh.j
 const RA = join(KHO, id); mkdirSync(RA, { recursive: true });
 
 // 1. CHỮ
+// ảnh nền thumbnail phải còn là ảnh Commons đang dùng trong tập (đổi ảnh tranh → chọn lại, kẻo thumbnail giữ ảnh đã bị loại — Alaska 02/11/2026)
+const anhTap = new Map(tap.cau.map((c) => c.canh?.tranh).filter((t) => t?.anh && t?.commons).map((t) => [t.commons, t.anh]));
+if (tap.thumb?.commons && anhTap.get(tap.thumb.commons) !== tap.thumb.anh) { console.log(`· ảnh nền thumbnail cũ (${tap.thumb.commons}) không còn trong tập — viết lại`); delete tap.thumb; }
 if (!tap.thumb?.chu || co('viet-lai')) {
   const tmp = `/var/tmp/thumb-${id}`; execFileSync('ssh', [BOX, `rm -rf ${tmp} && mkdir -p ${tmp}`]); len(tepTap, `${tmp}/tap.json`);
   console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/thumb.json --id ${q(id)} --nn ${nn} --kenh ${kenhId} --chi-thumb --cu ${tmp}/tap.json`).split('\n').pop());

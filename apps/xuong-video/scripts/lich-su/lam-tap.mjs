@@ -236,8 +236,13 @@ if (KENH.may) { let namCanh = null; for (const c of tap.cau) { namCanh = c.canh.
   const t = await timAnhThat(cumTranh(tr), namCanh); if (t) { console.log(`✓ ảnh thật cho tranh "${(tr.mo_ta || '').slice(0, 50)}…": ${t}`); tr.commons = t; delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; } } }
 if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons)) console.log('⚠ tập không có ảnh lịch sử thật nào — Phòng Nội dung sẽ chặn (nen_url trống)');
 // đã có ảnh chỉ khi TỆP còn thật (tệp ghi trong tập mà đã mất / hỏng thì tải lại — không tin dòng ghi)
-for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr || (tr.anh && existsSync(join(KHO, tr.anh)))) continue;
-  const ten = `tranh/${id}-${k + 1}${tr.commons ? '-c' : ''}`, f = join(KHO, `${ten}.jpg`); mkdirSync(join(KHO, 'tranh'), { recursive: true });
+// TỆP GẮN ĐÚNG ẢNH (02/11/2026, Alaska: đổi ảnh Commons mà tệp tên cố định "<tập>-<cảnh>-c.jpg" còn nằm đó → máy không tải ảnh mới, video + thumbnail vẫn
+// là ảnh sai): tên tệp Commons mang dấu của chính tệp Commons; tệp ghi trong tập không khớp ảnh đang chọn (hoặc là tệp Commons mà tranh không còn Commons) thì bỏ.
+const dauCommons = (t) => createHash('md5').update(String(t)).digest('hex').slice(0, 8);
+for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr) continue;
+  if (tr.anh && /-c(-[0-9a-f]{8})?\.jpg$/.test(tr.anh) && (!tr.commons || !tr.anh.endsWith(`-c-${dauCommons(tr.commons)}.jpg`))) { delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; }
+  if (tr.anh && existsSync(join(KHO, tr.anh))) continue;
+  const ten = `tranh/${id}-${k + 1}${tr.commons ? `-c-${dauCommons(tr.commons)}` : ''}`, f = join(KHO, `${ten}.jpg`); mkdirSync(join(KHO, 'tranh'), { recursive: true });
   // ẢNH LỊCH SỬ THẬT trước (Wikimedia Commons, public domain — luật ảnh thật của Phòng Nội dung); không có tệp thì AI vẽ theo mo_ta
   // ẢNH TẢI VỀ PHẢI LÀ ẢNH THẬT (02/11/2026: xin bản 1600px của ảnh gốc nhỏ hơn → Commons trả trang HTML lỗi, máy dựng chết "cannot be decoded"):
   // thử 1600px rồi bản thu nhỏ API trả; nhận khi content-type là image; không bản nào được thì bỏ tệp Commons, tranh quay về AI vẽ

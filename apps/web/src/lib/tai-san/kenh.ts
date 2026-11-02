@@ -60,10 +60,11 @@ export async function docLuotNguon(): Promise<Record<string, Record<string, numb
 }
 
 /** Video short: bản ghi kenh_so_ngay 15 ngày gần nhất của 4 nền video (đủ cho 7 ngày + kỳ trước) + tên sách từ kenh_sp. Tính ở video-tinh.ts. */
+// san_pham 'may:<mã>' = kênh sản phẩm (xv_may.la_san_pham) — panel riêng (kenh-sp.ts), không trộn vào bảng video short
 export async function docVideoSo(): Promise<{ dongs: DongSo[]; tenSp: Record<string, string> }> {
   const d = getDb(); if (!d) return { dongs: [], tenSp: {} };
   const rows = (await d.execute(sql`SELECT kenh, san_pham, ngay::text AS ngay, chi_tiet FROM kenh_so_ngay
-    WHERE kenh IN ('youtube','tiktok','fb-reels','ig-reels') AND ngay >= current_date - 15`)) as unknown as { kenh: string; san_pham: string; ngay: string; chi_tiet: { videos?: VideoSo[]; vaoShop7?: number; vaoShopChung7?: number } | null }[];
+    WHERE kenh IN ('youtube','tiktok','fb-reels','ig-reels') AND ngay >= current_date - 15 AND san_pham NOT LIKE 'may:%'`)) as unknown as { kenh: string; san_pham: string; ngay: string; chi_tiet: { videos?: VideoSo[]; vaoShop7?: number; vaoShopChung7?: number } | null }[];
   const ten = (await d.execute(sql`SELECT DISTINCT ON (san_pham) san_pham, ten FROM kenh_sp`)) as unknown as { san_pham: string; ten: string }[];
   return {
     dongs: rows.map((r) => ({ kenh: r.kenh, sanPham: r.san_pham, ngay: r.ngay.slice(0, 10), videos: r.chi_tiet?.videos ?? [],

@@ -13,6 +13,20 @@ export async function luotXemYoutube(url: string): Promise<number | null> {
   } catch { return null; }
 }
 
+/** Số người đăng ký trên trang kênh ("1.2K subscribers" / "6 subscribers" / "No subscribers") → số. Thuần. */
+export const docNguoiDangKy = (html: string): number | null => {
+  if (/"No subscribers"|>No subscribers</.test(html)) return 0;
+  const m = html.match(/([\d.,]+)([KMB]?) subscribers?/); if (!m) return null;
+  const he = m[2] === 'K' ? 1e3 : m[2] === 'M' ? 1e6 : m[2] === 'B' ? 1e9 : 1, so = Number((m[1] ?? '').replace(/,/g, ''));
+  return Number.isFinite(so) ? Math.round(so * he) : null;
+};
+/** Người đăng ký kênh YouTube (kenh_id UC…) — trang công khai, cookie đồng ý để box3 không bị đẩy sang trang consent (đo 02/11/2026). */
+export async function nguoiDangKyYoutube(kenhId: string): Promise<number | null> {
+  try {
+    const r = await fetch(`https://www.youtube.com/channel/${kenhId}`, { headers: { 'User-Agent': UA, 'Accept-Language': 'en', Cookie: 'CONSENT=YES+1; SOCS=CAI' }, signal: AbortSignal.timeout(20_000) });
+    return r.ok ? docNguoiDangKy(await r.text()) : null;
+  } catch { return null; }
+}
 /** Mã video Facebook trong link reel / video (facebook.com/reel/<id>/, /videos/<id>). Thuần. */
 export const maFacebook = (url: string): string | null => (url.match(/\/(?:reel|videos)\/(\d+)/) ?? [])[1] ?? null;
 /** Lượt xem Facebook qua Graph (`<id>?fields=views`) — token Page bất kỳ đã opt-in app đọc được (đo 31/10/2026). */

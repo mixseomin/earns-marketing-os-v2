@@ -18,6 +18,7 @@
 //   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }] } → trạng thái máy đăng thời gian thực (mos2 Lịch đăng › ⚡ Máy đăng)
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
+//   --so-kenh [--may <mã>]          SỐ KÊNH SẢN PHẨM (xv_may.la_san_pham): lượt xem từng video + người đăng ký YouTube → kenh_so_ngay 'may:<mã>' (mos2 › Tài sản), 0₫
 //   --luot-xem                     ĐO THEO DẠNG: đọc lại lượt xem YouTube + Facebook mọi video đã đăng (cũ hơn 12 giờ) → bảng trung bình máy × dạng, 0₫
 //   --sinh-game <N>                dạng game Only ONE: tiêu đề theo KHUNG video thắng của kênh (≥ 500 lượt sau 7 ngày, đọc lại lượt xem YouTube trước) + góc spy dùng ít nhất → nạp + dựng, 0₫
 //   --sinh-kho <N>                 lấp kho VIDEO cho máy: N đề theo góc spy chưa dùng, dạng ra MP4 xoay vòng → nạp + dựng (TỐN TIỀN chữ AI — lô lớn duyệt qua Telegram)
@@ -197,6 +198,25 @@ if (a.includes('--nap')) {
     ra.push(`${x.ok ? '✓' : '⚠'} #${g.id} ${d} → ${kq.de.slug} (${Math.round(kq.vnd)}₫)${x.ok ? '' : ` · dựng ✗ ${x.loi}`}`); n++;
   }
   console.log(ra.join('\n')); console.log(`sinh kho ${ma}: ${n}/${N} đề, ${Math.round(vnd)}₫`);
+} else if (a.includes('--so-kenh')) {
+  // SỐ KÊNH SẢN PHẨM (02/11/2026 — mos2 › Tài sản › Kênh sản phẩm): máy la_san_pham → đọc lại lượt xem từng video đã đăng + người đăng ký kênh YouTube
+  // → kenh_so_ngay (kenh youtube, san_pham 'may:<mã>', hien = tổng lượt xem cộng dồn, so_muc = số video đã đăng, chi_tiet = { videos, nguoi_dk, kenh_url, ten }).
+  // mos2 tính 7 ngày từ các bản ghi ngày (như video short). Không đọc được → để trống, không ghi 0 giả. 0₫.
+  const { docLaiLuotXem } = await import('../src/lib/xuong-video/luot-xem-db'), { nguoiDangKyYoutube } = await import('../src/lib/xuong-video/luot-xem');
+  const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
+  const ds = (await db.execute(sql`SELECT id, ma, ten, dang FROM xv_may WHERE la_san_pham ${lay('--may') ? sql`AND ma = ${ma}` : sql``}`)) as unknown as { id: number; ma: string; ten: string; dang: { nen: string; br?: { kenh_id?: string; handle?: string } }[] }[];
+  for (const m of ds) {
+    await docLaiLuotXem(db, Number(m.id));
+    const yt = (m.dang ?? []).find((x) => x.nen === 'youtube')?.br, sub = yt?.kenh_id ? await nguoiDangKyYoutube(yt.kenh_id) : null;
+    const vs = (await db.execute(sql`SELECT slug, dang->>'title' AS tieu_de, da_dang->'youtube'->>'url' AS url, da_dang->'youtube'->>'ngay' AS ngay, luot_xem_nen->>'youtube' AS xem
+      FROM xv_may_video WHERE may_id = ${m.id} AND da_dang ? 'youtube'`)) as unknown as { slug: string; tieu_de: string | null; url: string | null; ngay: string | null; xem: string | null }[];
+    const videos = vs.filter((v) => v.xem != null).map((v) => ({ slug: v.slug, url: v.url ?? undefined, tieuDe: (v.tieu_de ?? v.slug).replace(/\s*#shorts\s*/i, ''), ngayDang: v.ngay ?? undefined, xem: Number(v.xem) }));
+    const ten = m.ten.split('·').pop()!.trim(), chiTiet = { videos, nguoi_dk: sub, kenh_url: yt?.handle ? `https://www.youtube.com/${yt.handle}` : null, ten, ma: m.ma };
+    await db.execute(sql`INSERT INTO kenh_so_ngay (kenh, san_pham, ngay, hien, tuong_tac, click, so_muc, chi_tiet, nguon, cap_nhat)
+      VALUES ('youtube', ${`may:${m.ma}`}, ${hom}, ${videos.reduce((t, v) => t + v.xem, 0)}, 0, 0, ${vs.length}, ${JSON.stringify(chiTiet)}::jsonb, 'may-dung --so-kenh', now())
+      ON CONFLICT (kenh, san_pham, ngay) DO UPDATE SET hien = EXCLUDED.hien, so_muc = EXCLUDED.so_muc, chi_tiet = EXCLUDED.chi_tiet, nguon = EXCLUDED.nguon, cap_nhat = now()`);
+    console.log(`${m.ma}: ${vs.length} video đã đăng · ${videos.reduce((t, v) => t + v.xem, 0)} lượt xem · ${sub ?? '?'} người đăng ký`);
+  }
 } else if (a.includes('--luot-xem')) {
   // ĐO THEO DẠNG (bước 7): đọc lại lượt xem YouTube mọi video đã đăng của MỌI máy (cũ hơn 12 giờ) rồi in trung bình theo máy × dạng — 0₫
   const { docLaiLuotXem } = await import('../src/lib/xuong-video/luot-xem-db');

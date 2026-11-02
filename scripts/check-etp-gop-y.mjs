@@ -458,6 +458,7 @@ const LUAT = [
   { card: 'chat', tep: 'apps/etp/cong.py', co: 'if tr: return LY_TRUNG.format(ct, tr[0], tr[1])', vi: 'không lên camp mới trùng phim với người trong đội (hai chiều)' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/chon-phim-moi.py', co: 'NGUON = {"reelshort": 100, "netshort": 35}   # DramaBox / dramaboxdb: loại', vi: 'chọn phim mới: lọc nguồn ReelShort / NetShort, bỏ DramaBox' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/chon-phim-moi.py', co: 'da |= {int(x) for x in q("select distinct content_id from etp.camp_ngoai where content_id > 0").split() if x.isdigit()}', vi: 'chọn phim mới: bỏ phim đội đã lên' },
+  { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tong2.ts', co: "select khoa, gia_tri from etp.cau_hinh where khoa in ('phan_bo', 'tran_ngay')", vi: 'Tổng quan 2 phân bổ ngân sách: mục tiêu đọc cấu hình phan_bo + trần ngày' },
   { card: 1503, tep: V, co: "textAlign: 'center', lineHeight: 1.15 }}>{x.n}<br /><span style={{ fontSize: 9, opacity: 0.75 }}>camp</span></span>", vi: 'số camp dưới biểu đồ ngăn phim: số trên, chữ camp dưới, canh giữa cột' },
   { card: 1504, tep: V, co: 'max={maxLai([...sd, c.nay])} bac={bacO(c.camp_id, d)} />', vi: 'ô ngày của camp: chấm màu + hover liệt kê tăng / giảm bậc trong ngày' },
   { card: 1504, tep: V, co: '<div style={{ fontSize: 11, color: \'var(--fg-3, #777)\', margin: \'0 0 6px\' }}>Đổi bậc trong ngày</div>', vi: 'hover ô ngày có mục Đổi bậc trong ngày (thẻ nổi #1507)' },

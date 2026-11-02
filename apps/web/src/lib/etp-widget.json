@@ -111,6 +111,18 @@
         5,
         8
       ]
+    },
+    "phan_bo": {
+      "ten": "Phân bổ ngân sách",
+      "mo_ta": "ngân sách camp đang bật so với trần ngày · từng nhóm (lãi ≥ 30% · lãi 0–30% · test · lỗ nhẹ · lỗ nặng) đang bao nhiêu, mục tiêu, cách làm — kế hoạch 02/11",
+      "min": [
+        6,
+        5
+      ],
+      "mac": [
+        12,
+        8
+      ]
     }
   },
   "template": {
@@ -335,6 +347,33 @@
           "y": 7,
           "w": 12,
           "h": 11
+        }
+      ]
+    },
+    "phan_bo": {
+      "ten": "Phân bổ ngân sách",
+      "muc": "trần ngày + ngân sách từng nhóm so với kế hoạch, tài khoản, biểu đồ ngày",
+      "o": [
+        {
+          "ma": "phan_bo",
+          "x": 0,
+          "y": 0,
+          "w": 7,
+          "h": 10
+        },
+        {
+          "ma": "tk",
+          "x": 7,
+          "y": 0,
+          "w": 5,
+          "h": 10
+        },
+        {
+          "ma": "bieu_do_ngay",
+          "x": 0,
+          "y": 10,
+          "w": 12,
+          "h": 8
         }
       ]
     }

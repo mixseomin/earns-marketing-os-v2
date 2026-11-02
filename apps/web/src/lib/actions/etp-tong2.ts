@@ -22,6 +22,9 @@ export type SoTong2 = {
   /** thẻ luật nhịp tới theo nhóm (etp.bao) · việc máy đã làm theo luật từng ngày (etp.nhat_ky ok, tên luật theo sổ luật chung) — chỉ nhà */
   baoNhom: { nhom: string; n: number }[]; daLam: { d: string; viec: string; luat: string; n: number }[];
   phim: { p: number; ten: string; n: number; chi: number; thu: number }[];
+  /** PHÂN BỔ NGÂN SÁCH (anh 02/11/2026 "kế hoạch này hãy cho vào Tổng quan 2"): camp nhà đang bật chia nhóm theo 3 ngày đã khép (sống, mỗi lần tải) + mục tiêu / cách làm
+   *  đọc etp.cau_hinh 'phan_bo' (sửa kế hoạch = sửa cấu hình, không cần deploy) · trần ngày etp.cau_hinh 'tran_ngay' — chỉ nhà */
+  phanBo: { tran: number | null; tong: number; nhom: { ma: string; ten: string; camp: number; ns: number; chi3: number; thu3: number; muc: [number, number] | null; cach: string }[] } | null;
 };
 
 const so = (v: unknown) => Number(v ?? 0) || 0;
@@ -31,7 +34,7 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
   if (!q) return { loi: 'không có quyền' };
   const db = getDb()!, run = async <T,>(x: ReturnType<typeof sql>) => (await db.execute(x)) as unknown as T[];
   const nha = xemNha(q), chiNg = q.vai === 'nguoi' ? q.nguoiId : null;
-  const [nguoi, nguoiNgay, tk, tkNgay, tkNay, gioNgay, bao, phim, boRow, lam] = await Promise.all([
+  const [nguoi, nguoiNgay, tk, tkNgay, tkNay, gioNgay, bao, phim, boRow, lam, pbNhom, pbCh] = await Promise.all([
     run<{ id: number; ten: string; nha: boolean }>(sql`select distinct on (nguoi_id) nguoi_id::int id, nguoi ten, nha from etp.so_nguoi order by nguoi_id, ngay desc`),
     run<{ n: number; d: string; chi: string; thu: string; camp: number }>(sql`select nguoi_id::int n, ngay::text d, chi, thu, camp::int camp from etp.so_nguoi where ngay >= current_date - 40`),
     run<{ id: number; ten: string | null; n: number; nha: boolean }>(sql`select t.ad_account_id::int id, r.ten, t.nguoi_id::int n, t.nha from etp.tai_khoan t left join etp.tai_nguyen r on r.loai = 'tk_qc' and r.id = t.ad_account_id`),
@@ -59,6 +62,13 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
     run<{ gia_tri: Record<string, { tk: string | number }> | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_bo_tk'`),
     nha ? run<{ d: string; viec: string; luat: string | null; n: number }>(sql`select (luc at time zone 'UTC')::date::text d, viec, luat, count(distinct camp_id)::int n from etp.nhat_ky
       where luc > now() - interval '40 days' and viec in ('tat', 'giam', 'tang', 'nhan_ban') and (ok or (viec = 'giam' and loi like '%đọc lại%')) group by 1, 2, 3`) : Promise.resolve([]),
+    // nhóm camp nhà đang bật theo 3 ngày đã khép (cùng ngưỡng kế hoạch 02/11): mới < 3 ngày = test · lãi ≥ 30% · lãi 0–30% · lỗ 0 tới −15% · lỗ > 15% · chưa đủ số (chi 3 ngày < $1)
+    nha ? run<{ ma: string; camp: number; ns: string; chi3: string; thu3: string }>(sql`with x as (select c.camp_id, c.ngan_sach ns, c.tao,
+        coalesce(sum(s.chi) filter (where s.ngay between current_date - 3 and current_date - 1), 0) chi3, coalesce(sum(s.thu) filter (where s.ngay between current_date - 3 and current_date - 1), 0) thu3
+        from etp.camp c left join etp.so_ngay s using (camp_id) where c.trang_thai = 'ACTIVE' group by c.camp_id)
+      select case when tao > now() - interval '3 days' then 'test' when chi3 >= 1 and thu3 >= chi3 * 1.3 then 'lai_cao' when chi3 >= 1 and thu3 >= chi3 then 'lai_mong'
+        when chi3 >= 1 and thu3 >= chi3 * 0.85 then 'lo_nhe' when chi3 >= 1 then 'lo_nang' else 'chua_so' end ma, count(*)::int camp, sum(ns) ns, sum(chi3) chi3, sum(thu3) thu3 from x group by 1`) : Promise.resolve([]),
+    nha ? run<{ khoa: string; gia_tri: unknown }>(sql`select khoa, gia_tri from etp.cau_hinh where khoa in ('phan_bo', 'tran_ngay')`) : Promise.resolve([]),
   ]);
   const boCua = new Map(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [Number(b.tk), k]));
   const tkN = new Map(tk.map((t) => [t.id, t.n]));
@@ -80,5 +90,11 @@ export async function taiTong2(): Promise<SoTong2 | { loi: string }> {
     daLam: [...lam.reduce((m, r) => { const k = `${r.d}|${r.viec}|${luatDaLam(r.viec, r.luat)}`; m.set(k, (m.get(k) ?? 0) + r.n); return m; }, new Map<string, number>())]
       .map(([k, n]) => { const [d, viec, ten] = k.split('|'); return { d: d!, viec: viec!, luat: ten!, n }; }),
     phim: phim.filter((x) => cua(x.n)).map((x) => ({ p: x.p, ten: x.ten ?? `#${x.p}`, n: x.n, chi: so(x.chi), thu: so(x.thu) })),
+    phanBo: nha ? (() => {
+      const ch = Object.fromEntries(pbCh.map((r) => [r.khoa, r.gia_tri])) as { phan_bo?: { nhom?: { ma: string; ten: string; muc?: [number, number] | null; cach?: string }[] }; tran_ngay?: number | null };
+      const dem = new Map(pbNhom.map((r) => [r.ma, r]));
+      const nhom = (ch.phan_bo?.nhom ?? []).map((k) => { const r = dem.get(k.ma); return { ma: k.ma, ten: k.ten, camp: r?.camp ?? 0, ns: so(r?.ns), chi3: so(r?.chi3), thu3: so(r?.thu3), muc: k.muc ?? null, cach: k.cach ?? '' }; });
+      return { tran: ch.tran_ngay == null ? null : so(ch.tran_ngay), tong: pbNhom.reduce((a, r) => a + so(r.ns), 0), nhom };
+    })() : null,
   };
 }

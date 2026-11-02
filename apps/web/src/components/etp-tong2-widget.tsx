@@ -83,6 +83,33 @@ export function useVeSo(ky: { tu: string; den: string }): Record<string, VeWidge
 
   const cho = <span style={{ color: MO, fontSize: 12 }}>đang tải số…</span>;
   return {
+    // PHÂN BỔ NGÂN SÁCH (anh 02/11/2026 "kế hoạch này hãy cho vào Tổng quan 2"): ngân sách camp nhà đang bật so với trần ngày + từng nhóm so với mục tiêu kế hoạch
+    // (nhóm tính sống trên máy chủ theo 3 ngày đã khép; mục tiêu / cách làm = etp.cau_hinh 'phan_bo', sửa không cần deploy)
+    phan_bo: () => {
+      if (!s) return cho;
+      const pb = s.phanBo;
+      if (!pb) return <span style={{ color: MO, fontSize: 12 }}>kế hoạch phân bổ chỉ có ở tài khoản nhà</span>;
+      const tran = pb.tran, dung = tran ? Math.min(1, pb.tong / tran) : 0;
+      const tongMuc = pb.nhom.reduce((a, k) => a + (k.muc ? k.muc[1] : 0), 0);
+      const lech = (k: (typeof pb.nhom)[number]) => (!k.muc ? null : k.ns > k.muc[1] + 0.5 ? 'tren' : k.ns < k.muc[0] - 0.5 ? 'duoi' : null);
+      return <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12 }}>
+        <div title="tổng ngân sách ngày các camp nhà đang bật so với trần ngày (etp.cau_hinh tran_ngay — cổng chung chặn mọi lệnh làm vượt)">
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}><b style={{ fontSize: 16, fontVariantNumeric: 'tabular-nums' }}>{tien(pb.tong)}</b>
+            <span style={{ color: MO }}>/ngày đang bật{tran ? ` · trần ${tien(tran)} · còn ${tien(Math.max(0, tran - pb.tong))}` : ' · chưa đặt trần'}</span>
+            {tran ? <span style={{ marginLeft: 'auto', color: MO }} title="trần − tổng mục tiêu cao của các nhóm: chỗ chừa cho tăng bậc">đệm kế hoạch {tien(Math.max(0, tran - tongMuc))}</span> : null}</div>
+          {tran ? <div style={{ height: 6, borderRadius: 3, background: 'var(--line)', marginTop: 4, overflow: 'hidden' }}><div style={{ width: `${(dung * 100).toFixed(1)}%`, height: '100%', background: dung > 0.95 ? DO : XANH }} /></div> : null}
+        </div>
+        <SimpleTable rows={pb.nhom} getRowKey={(k) => k.ma} columns={[
+          { key: 'ten', header: 'Nhóm', cell: (k) => <span title="3 ngày đã khép gần nhất · camp mới < 3 ngày tính là test">{k.ten}</span> },
+          { key: 'camp', header: 'Camp', align: 'right', cell: (k) => k.camp },
+          { key: 'ns', header: 'Đang', align: 'right', cell: (k) => { const l = lech(k); return <b style={{ color: l === 'tren' ? DO : l === 'duoi' ? '#f59e0b' : undefined, fontVariantNumeric: 'tabular-nums' }} title={l === 'tren' ? 'cao hơn mục tiêu' : l === 'duoi' ? 'thấp hơn mục tiêu' : 'trong mục tiêu'}>{tien(k.ns)}</b>; } },
+          { key: 'muc', header: 'Mục tiêu', align: 'right', cell: (k) => (!k.muc ? '—' : k.muc[0] === k.muc[1] ? tien(k.muc[0]) : `${tien(k.muc[0])}–${tien(k.muc[1])}`) },
+          { key: 'roi', header: 'ROI 3n', align: 'right', cell: (k) => { const r = roi({ chi: k.chi3, thu: k.thu3 }); return <span style={{ color: r == null ? MO : r >= 0 ? XANH : DO }}>{pct(r)}</span>; } },
+          { key: 'lai', header: 'Lãi/ngày', align: 'right', cell: (k) => <span style={{ color: mauLai(k.thu3 - k.chi3) }}>{tien((k.thu3 - k.chi3) / 3)}</span> },
+          { key: 'cach', header: 'Cách làm', cell: (k) => <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{k.cach}</span> },
+        ]} />
+      </div>;
+    },
     nam_nhanh: () => {
       if (!s || !x) return cho;
       const quaS = cong(s.nguoiNgay.filter((r) => r.d === x.qua)), tb7 = cong(s.nguoiNgay.filter((r) => r.d >= congNgay(s.nay, -7) && r.d < s.nay)), laiTb = (tb7.thu - tb7.chi) / 7;

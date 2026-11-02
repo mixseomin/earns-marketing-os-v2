@@ -12,6 +12,9 @@ const NGUON_ANH = /^https:\/\/([a-z0-9-]+\.)*(pexels\.com|pixabay\.com|unsplash\
 const TU_MAY = ['delve', 'leverage', 'utilize', 'crucial', 'vital', 'comprehensive', 'robust', 'streamline', 'moreover', 'furthermore', 'seamless',
   'game-changer', 'cutting-edge', 'state-of-the-art', "in today's world", 'in the realm of', "it's worth noting", 'in conclusion', 'unlock the'];
 const DIEM_DUYET = 7;
+/** Cụm từ máy có trong chữ (chữ thường). Dùng chung: phòng chấm (doBaiDang) + máy sinh lọc kho hook trước khi đưa AI (may-dung › khoGocHook) + bộ viết tập lịch sử,
+ *  để hook QC mang "unlock the" không lọt vào bài rồi bị chặn sau khi đã dựng (Alaska 02/11/2026). 'vital signs' là thuật ngữ y khoa (29/10/2026 chặn oan). */
+export const tuMayTrong = (chu) => { const t = String(chu).toLowerCase().replace(/vital signs?/g, ''); return TU_MAY.filter((w) => t.includes(w)); };
 export const MOC_GOC = '2026-10-25T17:00:00Z';   // 00:00 26/10/2026 giờ VN: mốc cũ (bài tạo từ đây bắt buộc có góc) — 31/10/2026 bỏ mốc, MỌI bài phải có góc (xem luật 7)
 /** Kiểm góc của các bài với kho spy (DB spy: SPY_DATABASE_URL hoặc /root/.secrets/spy.env). ds = [{ goc, goc_sp }] → mảng lỗi (null = đạt) cùng thứ tự.
  *  Không đọc được kho spy → mọi bài có góc nhận lỗi "không kiểm được" (chặn chứ không cho qua mù). */
@@ -132,8 +135,7 @@ export function doBaiDang(v, ten = '') {
   // ngôn ngữ đúng thị trường (29/10/2026: đề Sidecue dung-sai-40165 viết tiếng Việt vẫn DUYỆT): máy thị trường US/global không được có chữ tiếng Việt.
   // Cùng regex với may-de.ts › CHU_VIET (máy sinh đề chặn trước khi nạp; phòng này chặn mọi nguồn khác).
   if (!MAY_TIENG_VIET.has(v.ma ?? '') && /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu)) chan.push('chữ đăng có tiếng Việt — kênh tiếng Anh');
-  // 'vital signs' là thuật ngữ y khoa (đề NREMT / EMT — 29/10/2026 chặn oan), không phải từ máy 'vital'
-  const tm = TU_MAY.filter((w) => thuong.replace(/vital signs?/g, '').includes(w)); if (tm.length) chan.push(`từ máy: ${tm.join(', ')}`);
+  const tm = tuMayTrong(thuong); if (tm.length) chan.push(`từ máy: ${tm.join(', ')}`);
   const tag = (chu.match(/(^|\s)#\w+/g) || []).length; if (tag > 3) canh.push(`${tag} hashtag (tối đa 3)`);
   if (mo.length < 80) canh.push('chữ đăng quá mỏng, chưa cho người xem điều gì dùng được');
   const diem = chan.length ? Math.min(6, 10 - canh.length) : Math.max(0, 10 - canh.length);

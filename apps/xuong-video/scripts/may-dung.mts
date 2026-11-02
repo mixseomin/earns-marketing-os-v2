@@ -94,7 +94,10 @@ async function khoGocHook(ma: string, mayId: number, sp: Awaited<ReturnType<type
   // NGỌC LỌC KHO HOOK TRƯỚC KHI SINH (31/10/2026): cùng phép xét của Phòng Nội dung (cham-dang.mjs › xetHookAi — lệch ngách / hứa điều thương hiệu không có),
   // hook bị chặn thì không đưa cho AI viết — sinh ra là bài SỬA LẠI, đốt tiền. Xét 100 hook nhóm chạy lâu nhất (câu đã xét đọc sổ xet-hook.json, không tốn lại) + QC gắn góc; vài đồng một hook.
   {
-    const { xetHookAi } = await import('../../cty/worker/cham-dang.mjs');
+    const { xetHookAi, tuMayTrong } = await import('../../cty/worker/cham-dang.mjs');
+    // hook dùng gần nguyên văn → hook mang cụm từ máy phòng chấm cấm thì bài chắc chắn bị chặn: loại bằng máy trước, không tốn lượt Ngọc
+    for (const ds of [hookNhom]) ds.splice(0, ds.length, ...ds.filter((h) => !tuMayTrong(h.chu).length));
+    for (const [k, h] of [...hookCuaQc]) if (tuMayTrong(h.chu).length) hookCuaQc.delete(k);
     const suThat = await import('node:fs').then((f) => { try { return f.readFileSync(new URL(`../su-that/${ma}.md`, import.meta.url), 'utf8'); } catch { return null; } });
     const muc = ((await db.execute(sql`SELECT muc_dich FROM xv_may WHERE ma = ${ma}`)) as unknown as { muc_dich: string | null }[])[0]?.muc_dich ?? null;
     const xet = async (ds: HookDong[]) => { const loi = await xetHookAi(ds.map((h) => ({ qc: h.id, ma, nhan: sp.nhan, muc_dich: muc, su_that: suThat, goc: h.chu, dong: [h.chu] }))); return ds.filter((_, k) => !loi[k]); };

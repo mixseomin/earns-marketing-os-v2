@@ -48,6 +48,7 @@ window.__dung = async () => {
 };
 const vePoly = (ring) => { x.beginPath(); ring.forEach(([lo, la], i) => { const [px, py] = chieu(lo, la); i ? x.lineTo(px, py) : x.moveTo(px, py); }); x.closePath(); };
 const phan = (iso, vung) => (mien[iso] || []).filter((p) => !vung || (p.bb[2] >= vung[0] && p.bb[0] <= vung[2] && p.bb[3] >= vung[1] && p.bb[1] <= vung[3]));
+const nhanSau = [];   // nhãn tên nơi chờ vẽ cuối khung (trên xe + người)
 function chuVien(t, px, py, size, mau = '#2b2116', vien = 'rgba(248,240,222,.95)', can = 'center', dam = 700, font = FONT_TEN()) {
   if (LC) { chuDam(t, px, py, size * 1.05, '#fff', '#111', font, can); return; }
   x.font = `${dam} ${size}px ${font}`; x.textAlign = can; x.textBaseline = 'middle'; x.lineJoin = 'round';
@@ -131,7 +132,7 @@ window.__seek = (t) => {
   for (const c of s.c.tp || []) { const q = u - c.t; if (q < 0) continue; const [px, py] = chieu(...c.o);
     for (let i = 0; i < 2; i++) { const r = ((q * 0.8 + i * 0.5) % 1); x.strokeStyle = `rgba(43,29,16,${(1 - r) * 0.8})`; x.lineWidth = 4; x.beginPath(); x.arc(px, py, 10 + r * 60, 0, 7); x.stroke(); }
     x.fillStyle = '#2b1d10'; x.beginPath(); x.arc(px, py, 11, 0, 7); x.fill(); x.fillStyle = '#f0dcae'; x.beginPath(); x.arc(px, py, 5, 0, 7); x.fill();
-    x.globalAlpha = kep(q / 0.3); chuVien(c.ten, px, py - 44, 42, '#2b1d10'); x.globalAlpha = 1; }
+    { const al_ = kep(q / 0.3); nhanSau.push(() => { x.globalAlpha = al_; chuVien(c.ten, px, py - 44, 42, '#2b1d10'); x.globalAlpha = 1; }); } }
   // mũi tên quân
   for (const m of s.c.ten || []) muiTen(m.tu, m.den, out(kep((u - 0.4) / 1.4)), m.mau);
   // phương tiện chạy theo đường cong (ảnh minh hoạ nhìn ngang; đi sang trái thì lật)
@@ -160,7 +161,7 @@ window.__seek = (t) => {
   // nhãn + ghim
   (s.c.nhan || []).forEach((n, i) => { const al = kep((u - 0.5 - i * 0.25) / 0.4); if (!al) return; const [px, py] = chieu(...n.o); x.globalAlpha = al;
     if (n.ghim) { x.fillStyle = '#2b2116'; x.beginPath(); x.arc(px, py, 10, 0, 7); x.fill(); x.fillStyle = '#e8d9b8'; x.beginPath(); x.arc(px, py, 4, 0, 7); x.fill(); }
-    chuVien(n.chu, px, py - (n.ghim ? 52 : 0), n.chu === n.chu.toUpperCase() ? 50 : 46, '#2b2116'); x.globalAlpha = 1; });
+    x.globalAlpha = 1; nhanSau.push(() => { x.globalAlpha = al; chuVien(n.chu, px, py - (n.ghim ? 52 : 0), n.chu === n.chu.toUpperCase() ? 50 : 46, '#2b2116'); x.globalAlpha = 1; }); });
   // người phẳng bước vào
   const dsNv = s.c.nguoi || [];
   dsNv.forEach((n, i) => { const al = out(kep((u - (n.tre ?? 0.5 + i * 0.35)) / 0.55)); if (!al) return;
@@ -184,6 +185,8 @@ window.__seek = (t) => {
       x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 30; x.shadowOffsetY = 12; x.drawImage(img, -w / 2, -h, w, h); x.restore();
       x.globalAlpha = al; chuVien(n.ten, cx, H * 0.735 + 34 + (1 - al) * 120, 36, '#2b1d10'); x.globalAlpha = 1; }
     else { const [px, py] = chieu(...n.o); x.globalAlpha = al; nguoi(px, py + (1 - al) * 60, n.mu, n.mau, n.ten, u); x.globalAlpha = 1; } });
+  // NHÃN TÊN NƠI vẽ SAU xe + người (02/11/2026, Ngọc chặn Alaska: thợ mỏ đi tới Skagway đứng đè chữ Skagway) — mọi nhãn điểm / nhãn vùng nằm trên lớp hình
+  nhanSau.forEach((f) => f()); nhanSau.length = 0;
   // TRANH CẢNH đầy khung chen giữa bản đồ (tranh.tu → tranh.den, giây trong cảnh): máy đẩy chậm, lớp nhân vật trước trôi lệch nền (chiều sâu),
   // bụi bay trong nắng, chuyển mềm 0,35 s — bản đồ kể "ở đâu", tranh kể "chuyện gì"
   const tr_ = s.c.tranh;

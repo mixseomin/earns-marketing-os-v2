@@ -65,7 +65,8 @@ if (process.argv.includes('--chi-hook')) {
   if (!gh || !cuTap) { console.error('--chi-hook cần --goc-hook và --cu <tập.json>'); process.exit(2); }
   const cu = cuTap as unknown as { tieu_de: string; chu_de: string; cau: { chu: string }[] };
   const Gan = z.object({ hook_id: z.string(), tieu_de: z.string().describe('hook QC đó SỬA NHẸ cho đúng chuyện này: giữ ≥ 50% chữ gốc, không thêm con số không có trong hook, ≤ 95 ký tự, không gạch dài'),
-    mo_ta_dang: z.string().describe('mô tả YouTube 2–4 câu đúng ngôn ngữ tập, giọng của kênh, không link, không spoil cú chốt'), ly_do: z.string() });
+    mo_ta_dang: z.string().describe(`mô tả YouTube 2–4 câu viết bằng ${nn === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'} (ngôn ngữ của tập — KHÔNG tiếng Việt), giọng của kênh, không link, không spoil cú chốt`), ly_do: z.string() });
+  const { tuMayTrong } = await import('../../../cty/worker/cham-dang.mjs');
   let loi = '';
   for (let lan = 1; lan <= 3; lan++) {
     const c = await sinhJson({ schema: Gan, model: 'claude-sonnet-5-5', max_tokens: 1500, ten: 'gắn hook tập lịch sử',
@@ -73,6 +74,10 @@ if (process.argv.includes('--chi-hook')) {
       user: `CHUYỆN: ${cu.chu_de}\nTIÊU ĐỀ CŨ: ${cu.tieu_de}\nLỜI ĐỌC:\n${cu.cau.map((x) => x.chu).join(' ').slice(0, 3000)}\nGÓC (spy #${gh.goc.id}): ${gh.goc.ten}\nHOOK QC (id · ngày chạy · chữ):\n${gh.hooks.map((h) => `- ${h.id} · ${h.ngay} ngày · ${h.chu}`).join('\n')}${loi ? `\nLẦN TRƯỚC SAI: ${loi}` : ''}` });
     if (!c.ok) { loi = c.loi; continue; }
     const h = gh.hooks.find((x) => x.id === c.data.hook_id); if (!h) { loi = `hook_id "${c.data.hook_id}" không có trong danh sách`; continue; }
+    // cùng luật phòng chấm (cham-dang › doBaiDang): chữ đăng sai ngôn ngữ / có từ máy là bài bị chặn sau khi dựng — bắt ở đây cho viết lại
+    const chuDang = `${c.data.tieu_de}\n${c.data.mo_ta_dang}`;
+    if (/[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chuDang)) { loi = 'tiêu đề / mô tả có tiếng Việt — phải viết bằng ngôn ngữ của tập'; continue; }
+    const tm = tuMayTrong(chuDang); if (tm.length) { loi = `có cụm từ máy bị cấm: ${tm.join(', ')}`; continue; }
     writeFileSync(ra, JSON.stringify({ hook: { qc: h.id, goc: h.chu }, goc: gh.goc, tieu_de: c.data.tieu_de, mo_ta_dang: c.data.mo_ta_dang }, null, 1));
     console.log(`✓ gắn hook ${h.id} "${h.chu}" → "${c.data.tieu_de}" (${Math.round(c.tokens.vnd ?? 0)}₫)`); process.exit(0);
   }

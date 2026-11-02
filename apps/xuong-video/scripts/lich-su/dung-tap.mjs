@@ -14,6 +14,9 @@ const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 
 const DIR = dirname(fileURLToPath(import.meta.url)), KHO = `${process.env.HOME}/.cache/lich-su`, BOX = 'root@167.233.241.16';
 const tepTap = resolve(DIR, process.argv[2]), tap = JSON.parse(readFileSync(tepTap, 'utf8')), RA = join(KHO, tap.id);
 mkdirSync(RA, { recursive: true });
+// KÊNH (kenh.json, tap.kenh — thiếu = saga): theme hình ban-do.html, bảng màu đất, nhạc nền, bộ tiếng động
+const KENH = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[tap.kenh ?? 'saga'];
+if (!KENH) throw new Error(`không có kênh "${tap.kenh}" trong kenh.json`);
 
 // ---------- giọng (box3, một lần) ----------
 // giọng gắn với ĐÚNG lời đọc: lời trong tệp tập đổi (máy viết lại) thì đọc lại, không dùng giọng cũ lệch chữ
@@ -31,10 +34,10 @@ const tu = []; let cur = null;
 for (const k of kt) { if (/\s/.test(k.ch)) { if (cur) tu.push(cur); cur = null; continue; } cur ? (cur.chu += k.ch, cur.b = k.b) : (cur = { chu: k.ch, a: k.a, b: k.b }); }
 if (cur) tu.push(cur);
 // gán chữ vào câu theo số chữ của từng câu trong tệp tập
-let i = 0; const canh = tap.cau.map((c, k) => { const n = c.chu.trim().split(/\s+/).length; const ds = tu.slice(i, i + n); ds.forEach((w) => (w.cau = k)); i += n; return { bd: k ? ds[0]?.a ?? 0 : 0, c: c.canh }; });
+let i = 0; const canh = tap.cau.map((c, k) => { const n = c.chu.trim().split(/\s+/).length; const ds = tu.slice(i, i + n); ds.forEach((w) => (w.cau = k)); i += n; return { bd: k ? ds[0]?.a ?? 0 : 0, c: Object.assign(c.canh, { _dua: !(c.su_that || []).length }) }; });
 if (i !== tu.length) console.warn(`⚠ số chữ giọng (${tu.length}) lệch số chữ kịch bản (${i}) — phụ đề có thể lệch câu`);
 const giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', join(RA, 'giong.mp3')], { encoding: 'utf8' }));
-const DAI = Math.round((giay + 1.2) * 100) / 100;
+const DAI = Math.round((giay + (KENH.duoi ?? 1.2)) * 100) / 100;   // đuôi sau chữ cuối: thẻ kết (lá cải: vòng khép + THE END)
 canh.forEach((s, k) => (s.kt = canh[k + 1]?.bd ?? DAI));
 
 // ---------- bản đồ: chỉ nước nằm trong vùng các cảnh nhìn tới (nhẹ trang) ----------
@@ -45,7 +48,7 @@ canh.forEach((s, k) => (s.kt = canh[k + 1]?.bd ?? DAI));
 // từ trên cao xuống; ảnh địa hình cắt tự động đúng vùng tập từ Natural Earth (bộ đệm theo khung).
 { const ds = canh.flatMap((s) => [...(s.c.nhin || []), ...(s.c.to || []).map((t) => (typeof t === 'string' ? t : t.noi))]).filter((d) => typeof d === 'string').map((d) => { try { const h = dichCua(d).h; return (h[0] + h[2]) / 2; } catch { return 0; } });
   if (tap.thai_binh ?? (ds.some((x) => x > 120) && ds.some((x) => x < -120))) datThaiBinh(true); }
-const MAU = ['#9e2b25', '#c8763a', '#d8b25a', '#7f9a5c', '#3f5c7a', '#c98f4a', '#6d86a0', '#8a5a8c', '#b05a3c'], mauNuoc = new Map();
+const MAU = KENH.mau_dat, mauNuoc = new Map();
 const mauCua = (iso) => { const k = Array.isArray(iso) ? iso.join() : iso; if (!mauNuoc.has(k)) mauNuoc.set(k, MAU[mauNuoc.size % MAU.length]); return mauNuoc.get(k); };
 const hopCanh = (c) => (c.nhin?.length ? c.nhin : (c.to || []).map((t) => (typeof t === 'string' ? t : t.noi ?? (t.iso && !Array.isArray(t.iso) ? (t.vung ? `${t.iso}@${t.vung}` : t.iso) : null))).filter(Boolean))
   .map((d) => dichCua(d).h).reduce((h, b) => (h ? [Math.min(h[0], b[0]), Math.min(h[1], b[1]), Math.max(h[2], b[2]), Math.max(h[3], b[3])] : b), null);
@@ -155,7 +158,7 @@ canh.forEach((s, k) => { for (const n of s.c.nguoi || []) if (n.tre == null && A
   if (lech.length) { console.error(`✗ đạo cụ lệch thời:\n  ${[...new Set(lech)].join('\n  ')}`); process.exit(3); } }
 const cauTep = join(RA, 'cau.json');
 let huong = {};
-const cauObj = { DAI, vi_tuyen: VT, nen: pathToFileURL(join(KHO, tap.nen.anh)).href, geo: G, tu, canh,
+const cauObj = { DAI, theme: KENH.theme, ket_mau: KENH.ket, vi_tuyen: VT, nen: pathToFileURL(join(KHO, tap.nen.anh)).href, geo: G, tu, canh,
   dia_hinh: tap.dia_hinh ? { ...tap.dia_hinh, anh: pathToFileURL(join(KHO, tap.dia_hinh.anh)).href } : null,
   nv: await (async () => { const nv = {}; for (const s of canh) for (const m of [...(s.c.nguoi || []), ...(s.c.xe || []), ...(s.c.co || [])]) {
     const ds = ['goc', ...(Array.isArray(m.dang) ? m.dang.map((x) => x[1]) : [])]; for (const d of ds) nv[`${m.anh}:${d}`] ??= pathToFileURL(await tepDang(m.anh, d)).href; }
@@ -178,11 +181,19 @@ dung(['--ra', hinh]);
 // TIẾNG ĐỘNG KHỚP HÌNH (0đ, tổng hợp số học): vút khi camera nhảy xa · thịch khi đóng dấu / cắm cờ · giấy khi sang tranh · trống trầm khi đổi năm ·
 // chuông nhẹ khi một nước được nhắc tên. Lịch theo giây tuyệt đối; trộn dưới giọng.
 const SR = 48000, N = Math.ceil(DAI * SR), sfx = new Float32Array(N); let hat = 11; const rnd = () => ((hat = (hat * 1103515245 + 12345) % 2147483648) / 2147483648) * 2 - 1;
-const dat = (t, len, f, vol) => { const o = Math.round(t * SR); for (let i = 0; i < len * SR && o + i < N; i++) if (o + i >= 0) sfx[o + i] += f(i / SR) * vol; };
+const dat = (t, len, f, vol) => { const o = Math.round(t * SR); for (let i = 0; i < len * SR && o + i < N; i++) { const v = f(i / SR); if (o + i >= 0) sfx[o + i] += v * vol; } };
 const AMT = { vut: (t) => { const k = t / 0.6; return rnd() * Math.sin(Math.PI * k) * (0.3 + 0.7 * k) * 0.5; }, thich: (t) => Math.sin(2 * Math.PI * (90 - 40 * t) * t) * Math.exp(-t * 14) + (t < 0.01 ? rnd() * 0.5 : 0),
   giay: (t) => rnd() * (Math.sin(t * 90) > 0.3 ? 1 : 0.25) * Math.exp(-t * 3) * 0.35, trong: (t) => Math.sin(2 * Math.PI * 62 * t) * Math.exp(-t * 6) + Math.sin(2 * Math.PI * 124 * t) * Math.exp(-t * 12) * 0.3,
   ting: (t) => (Math.sin(2 * Math.PI * 1318 * t) + 0.4 * Math.sin(2 * Math.PI * 1976 * t)) * Math.exp(-t * 5) * 0.35 };
 const LEN = { vut: 0.6, thich: 0.5, giay: 0.6, trong: 0.9, ting: 1.0 };
+// bộ tiếng HÀI (kênh parody): vút = còi trượt lên · con dấu = boing lò xo · nhắc tên = pốp · tranh = tách máy ảnh · đổi năm = trống dồn ngắn
+if (KENH.sfx === 'hai') { const pha = (f) => { let ph = 0, t0 = 0; return (t) => { ph += 2 * Math.PI * f(t) * (t - t0); t0 = t; return Math.sin(ph); }; };
+  AMT.vut = (t) => { if (t === 0) AMT._v = pha((u) => 420 + 1500 * (u / 0.6) ** 1.6); return AMT._v(t) * Math.sin(Math.PI * Math.min(1, t / 0.6)) * 0.35; };
+  AMT.thich = (t) => { if (t === 0) AMT._b = pha((u) => 180 + 260 * Math.exp(-u * 3) * (1 + 0.35 * Math.sin(u * 55))); return AMT._b(t) * Math.exp(-t * 3.2) * 0.6 + (t < 0.012 ? rnd() * 0.4 : 0); };
+  AMT.ting = (t) => Math.sin(2 * Math.PI * (700 - 300 * Math.min(1, t / 0.06)) * t) * Math.exp(-t * 28) * 0.7;
+  AMT.giay = (t) => (t < 0.02 || (t > 0.09 && t < 0.11) ? rnd() * 0.9 : 0) * Math.exp(-(t % 0.09) * 60);
+  AMT.trong = (t) => rnd() * (Math.sin(2 * Math.PI * 22 * t) > 0 ? 1 : 0.2) * Math.exp(-((t - 0.45) ** 2) * 12) * 0.35 + (t > 0.62 ? Math.sin(2 * Math.PI * 70 * t) * Math.exp(-(t - 0.62) * 9) : 0);
+  Object.assign(LEN, { thich: 1.0, ting: 0.25, giay: 0.3, trong: 1.1 }); }
 let namCu = null;
 canh.forEach((s, k) => { const tr = canh[k - 1]; const a = tr ? tr.c : null; const xa = a ? Math.hypot((s.c.tam[0] - a.tam[0]) * 0.59, s.c.tam[1] - a.tam[1]) : 0;
   if (xa > 6 || (!tr && s.c.mo)) dat(s.bd, LEN.vut, AMT.vut, 0.9);
@@ -194,9 +205,19 @@ canh.forEach((s, k) => { const tr = canh[k - 1]; const a = tr ? tr.c : null; con
 const wavSfx = join(RA, 'sfx.wav'); { let dinh = 0; for (const v of sfx) dinh = Math.max(dinh, Math.abs(v)); const g = dinh > 0.95 ? 0.95 / dinh : 1;
   const b = Buffer.alloc(44 + N * 2); b.write('RIFF', 0); b.writeUInt32LE(36 + N * 2, 4); b.write('WAVEfmt ', 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(SR, 24); b.writeUInt32LE(SR * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(N * 2, 40);
   for (let i = 0; i < N; i++) b.writeInt16LE(Math.round(Math.max(-1, Math.min(1, sfx[i] * g)) * 32767), 44 + i * 2); writeFileSync(wavSfx, b); }
-// nhạc nền: hợp âm trầm thở chậm, nằm dưới giọng ~22 dB (0đ, không bản quyền)
+const ghiWav = (f, mau) => { let dinh = 0; for (const v of mau) dinh = Math.max(dinh, Math.abs(v)); const g = dinh > 0.95 ? 0.95 / dinh : 1, n = mau.length;
+  const b = Buffer.alloc(44 + n * 2); b.write('RIFF', 0); b.writeUInt32LE(36 + n * 2, 4); b.write('WAVEfmt ', 8); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(SR, 24); b.writeUInt32LE(SR * 2, 28); b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i++) b.writeInt16LE(Math.round(Math.max(-1, Math.min(1, mau[i] * g)) * 32767), 44 + i * 2); writeFileSync(f, b); };
+// nhạc nền (0đ, không bản quyền): tram = hợp âm trầm thở chậm; nhay = nhạc nảy kiểu bản tin hài (gảy rải hợp âm C–G–Am–F 112 bpm + bass + hi-hat nhẹ)
 const nhac = `0.05*sin(2*PI*98*t)*(0.6+0.4*sin(2*PI*0.08*t))+0.04*sin(2*PI*146.8*t)*(0.6+0.4*sin(2*PI*0.06*t+1))+0.03*sin(2*PI*196*t)*(0.5+0.5*sin(2*PI*0.05*t+2))`;
-const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, '-i', join(RA, 'giong.mp3'), '-f', 'lavfi', '-t', String(DAI), '-i', `aevalsrc='${nhac}':s=48000`, '-i', wavSfx,
+let vaoNhac = ['-f', 'lavfi', '-t', String(DAI), '-i', `aevalsrc='${nhac}':s=48000`];
+if (KENH.nhac === 'nhay') { const m = new Float32Array(N), BUOC = 60 / 112 / 2, HOP = [[261.6, 329.6, 392, 523.3], [196, 246.9, 293.7, 392], [220, 261.6, 329.6, 440], [174.6, 220, 261.6, 349.2]], MAU_R = [0, 2, 1, 3, 2, 1, 3, 2];
+  for (let b = 0; b * BUOC < DAI; b++) { const h = HOP[Math.floor(b / 8) % 4], f = h[MAU_R[b % 8]], o = Math.round(b * BUOC * SR);
+    for (let i = 0; i < 0.5 * SR && o + i < N; i++) { const t = i / SR; m[o + i] += (Math.sin(2 * Math.PI * f * t) + 0.35 * Math.sin(4 * Math.PI * f * t)) * Math.exp(-t * 9) * 0.22; }
+    if (b % 4 === 0 || b % 4 === 3) for (let i = 0; i < 0.45 * SR && o + i < N; i++) { const t = i / SR; m[o + i] += Math.sin(2 * Math.PI * (h[0] / 2) * t) * Math.exp(-t * 5) * 0.32; }
+    if (b % 2 === 1) for (let i = 0; i < 0.05 * SR && o + i < N; i++) m[o + i] += rnd() * Math.exp(-(i / SR) * 90) * 0.08; }
+  const f = join(RA, 'nhac.wav'); ghiWav(f, m.map((v) => v * 0.25)); vaoNhac = ['-i', f]; }
+const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, '-i', join(RA, 'giong.mp3'), ...vaoNhac, '-i', wavSfx,
   '-filter_complex', '[1:a]volume=1.0[g];[2:a]volume=0.5,afade=t=in:d=1.5,afade=t=out:st=' + (DAI - 1.5) + ':d=1.5[n];[3:a]volume=0.35[s];[g][n][s]amix=inputs=3:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5[a]',
   '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-t', String(DAI), '-movflags', '+faststart', ra], { stdio: 'inherit' });
 if (r.status) process.exit(r.status);

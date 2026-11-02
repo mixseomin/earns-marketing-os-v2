@@ -11,6 +11,10 @@ import { sinhJson } from '../../src/lib/xuong-video/claude';
 const arg = (k: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : undefined; };
 const ra = process.argv[2], chuDe = arg('chu-de'), nn = arg('nn') ?? 'en', id = arg('id');
 if (!ra || !chuDe || !id) { console.error('tsx viet-tap.mts <ra.json> --chu-de "…" --nn en --id <id>'); process.exit(2); }
+// HỒ SƠ KÊNH (kenh.json): khuôn độ dài, giọng văn, thẻ kết của kênh — saga (Shorts mồi) / parody (trọn chuyện, lá cải)…
+const kenhId = arg('kenh') ?? 'saga', K = JSON.parse(readFileSync(new URL('./kenh.json', import.meta.url), 'utf8'))[kenhId];
+if (!K) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
+const ketNN = K.ket[nn] ?? K.ket.en, cuoiNN = K.cau_cuoi ? (K.cau_cuoi[nn] ?? K.cau_cuoi.en) : null;
 const kho = JSON.parse(readFileSync(arg('kho') ?? new URL('./kho.json', import.meta.url), 'utf8')) as { tai_san: Record<string, { loai: string; ten: string; tu: number; den: number; dang?: Record<string, string> }>; dang_chuan: string[] };
 
 // ---------- nguồn Wikipedia (0đ) ----------
@@ -47,7 +51,7 @@ const Canh = z.object({
   dau: z.array(z.object({ chu: TheoChu, text: z.string().describe('chữ con dấu ≤ 2 từ VIẾT HOA đúng ngôn ngữ tập: SOLD, LOST, STRANDED, VENDIDO…') })).describe('con dấu đỏ đóng xuống ở chữ ngoặt (cả tập 1–2 cái)'),
   tranh: z.object({ mo_ta: z.string().describe('cảnh minh hoạ điện ảnh, tiếng Anh, tả người / nơi / thời / hành động cụ thể, đúng trang phục vũ khí thời đó'), tu_chu: TheoChu, den_chu: TheoChu,
     ref: z.array(z.string()).describe('mã nhân vật kho có mặt trong tranh (giữ đúng mặt)') }).nullable().describe('tranh đầy khung chen giữa bản đồ từ chữ tu_chu tới den_chu — khoảnh khắc kịch tính nhất (cả tập 1–2 tranh)'),
-  ket: z.string().nullable().describe(`CHỈ cảnh cuối: thẻ kết ${nn === 'es' ? '"PARTE 2"' : '"PART 2"'}`),
+  ket: z.string().nullable().describe(`CHỈ cảnh cuối: thẻ kết "${ketNN}"`),
 });
 const Ra = z.object({
   tieu_de: z.string().describe('tiêu đề video đúng ngôn ngữ tập, công thức "Why does X own Y?" / "¿Por qué…?"'),
@@ -62,40 +66,37 @@ const Ra = z.object({
 
 const khoChu = Object.entries(kho.tai_san).map(([k, v]) => `- ${k} · ${v.loai} · ${v.ten} · ${v.tu}–${v.den}`).join('\n');
 const ngonNgu = nn === 'es' ? 'tiếng Tây Ban Nha (giọng trung tính Mỹ Latin, người bản ngữ viết)' : 'tiếng Anh (Mỹ, người bản ngữ viết)';
-const system = `Bạn viết kịch bản Shorts 45–65 giây cho một kênh YouTube lịch sử dựng bằng bản đồ động + nhân vật phẳng (kiểu History Matters / quảng cáo Saga).
+const system = `Bạn viết kịch bản ${K.do_dai} cho một kênh YouTube lịch sử dựng bằng bản đồ động + nhân vật phẳng (kiểu History Matters / quảng cáo Saga).
 NGÔN NGỮ LỜI ĐỌC VÀ MỌI CHỮ TRÊN HÌNH: ${ngonNgu}. Chỉ trường "ten" của tai_san_moi viết tiếng Việt.
-KHUÔN DẠNG A (bắt buộc):
-- 9–11 câu, tổng ${nn === 'es' ? '140–185' : '130–170'} từ. Mỗi câu = một cảnh.
-- Câu 1 = HOOK nghịch lý / điều lạ thấy được trên bản đồ hôm nay, ≤ 14 từ. Cảnh 1: mo=true, chu_to, vong quanh chỗ lạ.
-- Câu 2 = gọi tên nơi đó + nó nằm đâu. Rồi lùi về quá khứ một câu có năm.
-- 3–4 nhịp leo thang, mỗi nhịp một chuyển động trên bản đồ (đổi màu chủ quyền, mũi tên, phương tiện, cờ cắm, nhân vật bước vào).
-- Câu áp chót = khúc ngoặt (đóng con dấu ở chữ ngoặt). Câu cuối = móc sang phần 2: nêu câu hỏi còn treo rồi "${nn === 'es' ? 'Eso, en la segunda parte.' : "That's part two."}" (cảnh cuối ket).
+KHUÔN KÊNH "${K.ten}" (bắt buộc):
+- ${K.cau_noi} câu, tổng ${K.tu_noi[nn] ?? K.tu_noi.en} từ. Mỗi câu = một cảnh.
+${K.khuon.map((d: string) => `- ${d.replace('{cau_cuoi}', cuoiNN ?? '').replace('{ket}', ketNN)}`).join('\n')}
 - Năm và số đọc thành CHỮ như người dẫn nói (${nn === 'es' ? '"en mil ochocientos sesenta y siete", "siete millones"' : '"in eighteen sixty-seven", "seven point two million dollars"'}) — máy đọc theo chữ, phụ đề hiện đúng chữ đó.
-- Câu ngắn, động từ mạnh, giọng kể chuyện tò mò. CẤM: dấu gạch dài (— –), "→", "…", ngoặc kép kiểu AI, "Imagine", "Let's dive", "fascinating", "In conclusion", câu hỏi tu từ liên tiếp.
+- ${K.giong_van} CẤM: dấu gạch dài (— –), "→", "…", ngoặc kép kiểu AI, "Imagine", "Let's dive", "fascinating", "In conclusion", câu hỏi tu từ liên tiếp.
 SỰ THẬT (kênh sai một chi tiết là mất uy tín): CHỈ dùng sự thật có trong NGUỒN. Mỗi năm, con số, tên người, tên hiệp ước trong câu phải có một dòng su_that với trich chép NGUYÊN VĂN từ nguồn (copy y hệt từng ký tự). Không có trong nguồn thì không nói.
 HÌNH:
 - Nhân vật / phương tiện / cờ dùng mã trong KHO; thiếu thì khai trong tai_san_moi (người thật: tả đúng ngoại hình chân dung lịch sử; vai chung: "Spanish conquistador 1500s"…). Mỗi món phải ĐÚNG THỜI của cảnh (năm cảnh nằm trong tu–den) — máy dừng dựng nếu lệch.
-- Cả tập: ≥ 2 cảnh có nhân vật, ≥ 1 mũi tên hoặc phương tiện, cờ ở mỗi lần chủ quyền đổi, 1–2 tranh, 1–2 con dấu. Cảnh không cần thì để mảng rỗng / null.
+- ${K.hinh_ca_tap} Cảnh không cần thì để mảng rỗng / null.
 - Mã ISO-3 theo Natural Earth (Nga RUS, Mỹ USA, Pháp FRA, Anh GBR, Tây Ban Nha ESP, Ma-rốc MAR, Bolivia BOL…). Nơi đã mất tên / không còn là nước: dùng mảnh nước hôm nay "ISO@lon0,lat0,lon1,lat1" + nhan tên cũ.
 - Nhân vật luôn quay về mục tiêu của cảnh — máy lo, chỉ cần chọn đúng người và dáng.
 - NGƯỜI CÓ TÊN đang hành động trong câu (quyết định, bán, mua, ký, đánh, phát hiện) PHẢI đứng trong cảnh đó bằng nguoi — không có trong KHO thì khai tai_san_moi. Cả tập ≥ 2 nhân vật khác nhau.
 - Cảnh có cờ / nhân vật / phương tiện PHẢI có nam (năm sự việc của cảnh) — máy kiểm đồ đúng thời theo năm đó; cờ nước hôm nay không cắm vào cảnh quá khứ.
 - HOOK câu 1 = sự thật gây sốc nhất của chuyện (con số, cái giá, nghịch lý: "Russia sold this land for two cents an acre."), không phải câu tả địa lý.
-- Mỗi câu (trừ câu móc cuối) có ≥ 1 su_that — kể cả hook (hook phải ĐÚNG: "gần chạm" khác "chạm"). Ô năm (nam) chỉ ghi năm có trong su_that của tập; không rõ năm thì null.
+- Mỗi câu ${K.khong_nguon_toi_da ? '(trừ câu đùa / câu chốt cuối)' : '(trừ câu móc cuối)'} có ≥ 1 su_that — kể cả hook (hook phải ĐÚNG: "gần chạm" khác "chạm"). Ô năm (nam) chỉ ghi năm có trong su_that của tập; không rõ năm thì null.
 - Đích ISO@khung phải là khung có ĐẤT của đúng nước đó hôm nay (đất Canada là CAN, không phải GBR) — chủ thời xưa ghi ở to.chu. Được dùng cả hai phía kinh tuyến 180 (máy tự nối lưới).`;
 const user = `CHỦ ĐỀ: ${chuDe}
 MÃ TẬP: ${id}
 KHO (mã · loại · tên · năm dùng được):
 ${khoChu}
-${arg('loi') ? `\nLẦN TRƯỚC MÁY KIỂM BÁO LỖI — sửa hết, giữ phần đúng:\n${readFileSync(arg('loi')!, 'utf8')}\nBản lần trước:\n${readFileSync(arg('cu')!, 'utf8').slice(0, 40000)}\n` : ''}
+${arg('loi') ? `\nLẦN TRƯỚC MÁY KIỂM BÁO LỖI — sửa hết, giữ phần đúng:\n${readFileSync(arg('loi')!, 'utf8')}\nBản lần trước:\n${readFileSync(arg('cu')!, 'utf8').slice(0, 120000)}\n` : ''}
 NGUỒN:
 ${nguon.map((n, i) => `[${i}] ${n.tua}\n${n.chu.slice(0, 16000)}`).join('\n\n')}`;
-const r = await sinhJson({ schema: Ra, system, user, model: 'claude-sonnet-5-5', max_tokens: 12000, ten: 'viết tập lịch sử' });
+const r = await sinhJson({ schema: Ra, system, user, model: 'claude-sonnet-5-5', max_tokens: K.max_tokens ?? 12000, ten: 'viết tập lịch sử' });
 if (!r.ok) { console.error(`✗ ${r.loi}`); process.exit(1); }
 const d = r.data;
 // về khuôn dung-tap.mjs: bỏ trường rỗng / null để máy dựng tự điền
 const gon = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== false && !(Array.isArray(v) && !v.length)));
-const tap = { id, dang: 'A', tieu_de: d.tieu_de, ngon_ngu: nn, chu_de: chuDe, giong: { voice: 'George' },
+const tap = { id, kenh: kenhId, tieu_de: d.tieu_de, ngon_ngu: nn, chu_de: chuDe, giong: { voice: K.giong },
   nguon: nguon.map((n) => n.url), may_viet: { model: r.model, luc: new Date().toISOString(), tokens: r.tokens },
   cau: d.cau.map((c) => ({ chu: c.chu, su_that: c.su_that, canh: gon({ ...c.canh, to: c.canh.to.map((t) => gon(t)), tranh: c.canh.tranh ? { ...c.canh.tranh, anh: null } : null }) })),
   tai_san_moi: d.tai_san_moi };

@@ -7,6 +7,7 @@
 //    thật (nước / thành phố Natural Earth), đồ đúng thời, cờ mới có tệp Commons thật. Sai → gửi lỗi về máy viết sửa (tối đa 3 lượt), vẫn sai thì DỪNG.
 // 3. KHO (chỉ món còn thiếu, dùng lại mãi): cờ tải Commons; nhân vật vẽ gốc + 9 dáng (box3 kho-sinh.mts ~1.100₫) → nền trong (nen-trong.swift) → R2 +
 //    Studio phim #1186 (kho-day.mts) → kho.json. Tranh cảnh: box3 tranh-sinh.mts (~110₫) + tách lớp trước (tach-lop.swift) cho chiều sâu.
+// 5. STUDIO: tap-day.mts (box3) → phim Studio của kênh + một tập (video R2, kịch bản).
 // 4. DỰNG: dung-tap.mjs (giọng box3 ~2.500₫ một lần, bản đồ, hiệu ứng, tiếng động) → <id>.mp4 + <id>-xem.mp4 (720p gửi xem) ở /Users/htuan/.cache/lich-su/<id>/.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync } from 'node:fs';
@@ -17,9 +18,15 @@ import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const co = (k) => process.argv.includes(`--${k}`);
 const DIR = dirname(fileURLToPath(import.meta.url)), BOX = 'root@167.233.241.16', GOC_BOX = '/opt/earns-marketing-os-v2/apps/xuong-video';
-const id = arg('id'), nn = arg('nn', 'en'), chuDe = arg('chu-de');
+const id = arg('id'), chuDe = arg('chu-de');
 if (!id) { console.error('node lam-tap.mjs --id <id> --nn en|es --chu-de "…"'); process.exit(2); }
 const tepTap = join(DIR, 'tap', `${id}.json`), RA = join(KHO, id), tepKho = join(DIR, 'kho.json');
+// KÊNH (kenh.json): --kenh khi viết mới; tập đã có thì theo tap.kenh — khuôn kiểm (số câu / từ / câu cuối / tỉ lệ câu đùa không nguồn) đi theo kênh
+// ngôn ngữ: --nn khi viết mới; tập đã có thì theo tap.ngon_ngu (kiểm tập ES không bị đòi câu móc tiếng Anh)
+const nn = arg('nn') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).ngon_ngu : null) ?? 'en';
+const kenhId = arg('kenh') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).kenh : null) ?? 'saga';
+const KENH = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId];
+if (!KENH) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
 mkdirSync(RA, { recursive: true });
 const box = (lenh) => execFileSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx ${lenh}`], { encoding: 'utf8', maxBuffer: 64 << 20 }).trim();
 const len = (f, dich) => execFileSync('scp', ['-q', f, `${BOX}:${dich}`]);
@@ -65,20 +72,23 @@ async function tuSua(tap) { const kho = docKho().tai_san, ghi = [];
   if (ghi.length) { writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n'); console.log(`máy tự sửa: ${ghi.join(' · ')}`); } return tap; }
 async function kiem(tap, nguonChu) {
   const loi = [], kho = docKho().tai_san, moi = Object.fromEntries((tap.tai_san_moi || []).map((t) => [t.id, t])), nguonP = phang(nguonChu);
-  const ds = tap.cau, tu = ds.map((c) => c.chu).join(' ').split(/\s+/).length, [t0, t1] = nn === 'es' ? [115, 200] : [105, 185];   // ~45–70 s giọng
-  if (ds.length < 8 || ds.length > 12) loi.push(`có ${ds.length} câu — khuôn là 9–11 câu`);
-  if (tu < t0 || tu > t1) loi.push(`tổng ${tu} từ — khuôn ${nn === 'es' ? '140–185' : '130–170'} từ`);
+  const ds = tap.cau, tu = ds.map((c) => c.chu).join(' ').split(/\s+/).length, [t0, t1] = KENH.tu[nn] ?? KENH.tu.en, coMoc = !!KENH.cau_cuoi;
+  if (ds.length < KENH.cau[0] || ds.length > KENH.cau[1]) loi.push(`có ${ds.length} câu — khuôn kênh ${kenhId} là ${KENH.cau_noi} câu`);
+  if (tu < t0 || tu > t1) loi.push(`tổng ${tu} từ — khuôn kênh ${kenhId} ${KENH.tu_noi[nn] ?? KENH.tu_noi.en} từ`);
+  // kênh có câu đùa (parody): câu không su_that được phép tới tỉ lệ khong_nguon_toi_da — vẫn cấm con số / so sánh nhất không nguồn trong câu đùa
+  const khongNguon = ds.slice(0, coMoc ? -1 : undefined).filter((c) => !(c.su_that || []).length).length, choPhep = Math.floor(ds.length * (KENH.khong_nguon_toi_da || 0));
+  if (khongNguon > choPhep) loi.push(`${khongNguon} câu không có su_that — kênh ${kenhId} cho tối đa ${choPhep}${choPhep ? ' câu đùa' : ''}; câu kể sự việc phải có nguồn`);
   let nam = null; const namNguon = new Set(([...ds.flatMap((c) => (c.su_that || []).map((x) => `${x.gia_tri} ${x.trich}`)), nguonChu].join(' ').match(/\b\d{3,4}\b/g) || []).map(Number));   // ô năm phải là năm CÓ trong nguồn
   const nhanVat = new Set(ds.flatMap((c) => (c.canh.nguoi || []).map((n) => n.anh))); if (nhanVat.size < 2) loi.push(`cả tập chỉ có ${nhanVat.size} nhân vật — cần ≥ 2 (người có tên đang hành động phải đứng trong cảnh)`);
   ds.forEach((c, k) => { const K = `câu ${k + 1}`, cv = c.canh, ws = new Set(c.chu.split(/\s+/).map(chuan));
-    if (k < ds.length - 1 && !(c.su_that || []).length) loi.push(`${K}: không có su_that nào — mọi câu kể (cả hook) phải có nguồn`);
+    if (k === 0 && !(c.su_that || []).length) loi.push(`${K}: hook không có su_that — hook phải là sự thật có nguồn`);
     for (const n of [cv.nam, cv.nam_sau?.nam]) if (n != null && !namNguon.has(n)) loi.push(`${K}: ô năm ${n} không có trong nguồn — ghi năm có nguồn hoặc null`);
     if (/[—–→…]|\.\.\./.test(c.chu)) loi.push(`${K}: còn dấu vết AI (— – → …) trong "${c.chu}"`);
     for (const s of c.su_that || []) { const tr = phang(s.trich).replace(/^["']|["']$/g, ''); if (nguonP.includes(tr)) continue;
       const w = tr.split(' '), sh = []; for (let i = 0; i + 6 <= w.length; i++) sh.push(w.slice(i, i + 6).join(' ')); const trung = sh.filter((x) => nguonP.includes(x)).length;
       if (!sh.length || trung / sh.length < 0.6) loi.push(`${K}: sự thật "${s.gia_tri}" — đoạn trích không có NGUYÊN VĂN trong nguồn: "${s.trich.slice(0, 120)}"`); }
     // MỌI con số / so sánh nhất trong câu phải có su_that riêng (giá trị nhắc đúng nó) — hook "biggest island … three thousand miles" từng lọt vì chỉ có 1 su_that cho cả câu
-    if (k < ds.length - 1) { const gt = (c.su_that || []).map((x) => phang(`${x.gia_tri}`)).join(' | ');
+    if (k < ds.length - 1 || !coMoc) { const gt = (c.su_that || []).map((x) => phang(`${x.gia_tri}`)).join(' | ');
       const cum = []; let cur = []; for (const w of c.chu.split(/\s+/)) { const x = chuan(w).replace(/-/g, ' '); if (x && x.split(' ').every((y) => SO.has(y)) && !(cur.length === 0 && /^(one|a|un|una|uno)$/.test(x))) cur.push(chuan(w)); else { if (cur.length) cum.push(cur); cur = []; } } if (cur.length) cum.push(cur);
       // đếm nhỏ ("two cities") không phải số liệu tranh cãi → bỏ qua; số lớn, năm, tiền thì mỗi số một dòng su_that
       const soDong = (c.su_that || []).filter((x) => /\d/.test(x.gia_tri)).length; let thieu = 0;
@@ -101,7 +111,8 @@ async function kiem(tap, nguonChu) {
     for (const r of cv.tranh?.ref || []) if (!kho[r] && !moi[r]) loi.push(`${K}: tranh tham chiếu "${r}" không có`); });
   if (!ds[0]?.canh?.mo || !ds[0]?.canh?.chu_to) loi.push('câu 1: thiếu hook (mo + chu_to)');
   if (!ds.at(-1)?.canh?.ket) loi.push('câu cuối: thiếu thẻ kết ket');
-  if (!(nn === 'es' ? /segunda parte/i : /part two/i).test(ds.at(-1)?.chu || '')) loi.push(`câu cuối: phải kết bằng câu móc "${nn === 'es' ? 'Eso, en la segunda parte.' : "That's part two."}"`);
+  const cuoi = coMoc ? (KENH.cau_cuoi[nn] ?? KENH.cau_cuoi.en) : null;
+  if (cuoi && !phang(ds.at(-1)?.chu || '').includes(phang(cuoi).replace(/[.!]$/, '').split(' ').slice(-2).join(' '))) loi.push(`câu cuối: phải kết bằng câu móc "${cuoi}"`);
   for (const t of tap.tai_san_moi || []) { if (kho[t.id]) continue;
     if (t.loai === 'co') { if (!t.commons) loi.push(`cờ mới "${t.id}" thiếu tên tệp Commons`); else if (!(await commons(t.commons))) { const g = await timCommons(t.commons); loi.push(`cờ mới "${t.id}": tệp Commons "${t.commons}" không tồn tại${g.length ? ` — tệp CÓ THẬT gần nhất (chọn cái đúng thời, hoặc bỏ cờ): ${g.map((x) => `"${x}"`).join(', ')}` : ' — bỏ cờ này'}`); } }
     else if (!t.mo_ta_en?.trim()) loi.push(`tài sản mới "${t.id}" thiếu mo_ta_en`);
@@ -119,7 +130,7 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
   for (let lan = 1; lan <= 4 && !(sua && !loi.length && lan === 1); lan++) {
     const them = loi.length ? ` --loi ${tmp}/loi.txt --cu ${tmp}/tap.json` : '';
     if (loi.length) { writeFileSync(join(RA, 'loi.txt'), loi.map((x) => `- ${x}`).join('\n')); len(join(RA, 'loi.txt'), `${tmp}/loi.txt`); len(tepTap, `${tmp}/tap.json`); }
-    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json --chu-de ${q(chuDe)} --nn ${nn} --id ${id} --kho ${tmp}/kho.json${arg('nguon') ? ` --nguon ${q(arg('nguon'))}` : ''}${them}`)); }
+    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json --chu-de ${q(chuDe)} --nn ${nn} --id ${id} --kenh ${kenhId} --kho ${tmp}/kho.json${arg('nguon') ? ` --nguon ${q(arg('nguon'))}` : ''}${them}`)); }
     catch (e) { console.log(`✗ lượt viết ${lan}: máy viết hỏng — ${String(e.stderr || e.message).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}`); if (!existsSync(tepTap)) continue; loi = loi.length ? loi : ['(lượt trước hỏng, viết lại)']; continue; }
     ve(`${tmp}/tap.json`, tepTap); ve(`${tmp}/tap.json.nguon.txt`, join(RA, 'nguon.txt'));
     loi = await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8'));
@@ -172,3 +183,8 @@ if (arg('khung')) process.exit(0);
 const mp4 = join(RA, `${id}.mp4`), xem = join(RA, `${id}-xem.mp4`);
 execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-vf', 'scale=720:-2', '-c:v', 'libx264', '-crf', '27', '-preset', 'veryfast', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', xem]);
 console.log(`✓ ${mp4}\n✓ ${xem}`);
+// 5. STUDIO: mỗi kênh một phim, tập này thành một tập trong phim đó (video R2 + kịch bản) — anh quản / duyệt trong studio.on.tc
+{ const bt = `/tmp/tap-day-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${bt}`]); len(tepTap, `${bt}/tap.json`); len(mp4, `${bt}/tap.mp4`);
+  try { const kq = JSON.parse(box(`scripts/lich-su/tap-day.mts ${bt}/tap.json ${bt}/tap.mp4`).split('\n').pop()); console.log(`✓ Studio phim #${kq.phim} · tập #${kq.tap} · https://studio.on.tc/?m=phim&mId=${kq.phim} · ${kq.url}`); }
+  catch (e) { console.log(`⚠ đẩy Studio hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ')}`); }
+  execFileSync('ssh', [BOX, `rm -rf ${bt}`]); }

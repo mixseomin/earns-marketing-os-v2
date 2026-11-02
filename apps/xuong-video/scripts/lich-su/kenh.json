@@ -1,0 +1,115 @@
+{
+ "_ghi": "HỒ SƠ KÊNH cho máy kênh lịch sử (02/11/2026). Một kênh = dữ liệu: khuôn độ dài, giọng văn máy viết, thẻ kết, giọng đọc, theme hình (ban-do.html), nhạc + tiếng động. Tập ghi tap.kenh; thiếu = saga. Thêm kênh = thêm một mục ở đây, không sửa máy.",
+ "saga": {
+  "ten": "Kênh lịch sử bản đồ (khuôn Saga, Shorts mồi)",
+  "cau": [
+   8,
+   12
+  ],
+  "cau_noi": "9–11",
+  "tu": {
+   "en": [
+    105,
+    185
+   ],
+   "es": [
+    115,
+    200
+   ]
+  },
+  "tu_noi": {
+   "en": "130–170",
+   "es": "140–185"
+  },
+  "do_dai": "Shorts 45–65 giây",
+  "khong_nguon_toi_da": 0,
+  "ket": {
+   "en": "PART 2",
+   "es": "PARTE 2"
+  },
+  "cau_cuoi": {
+   "en": "That's part two.",
+   "es": "Eso, en la segunda parte."
+  },
+  "giong": "George",
+  "theme": "giay",
+  "nhac": "tram",
+  "sfx": "nhe",
+  "max_tokens": 12000,
+  "khuon": [
+   "Câu 1 = HOOK nghịch lý / điều lạ thấy được trên bản đồ hôm nay, ≤ 14 từ. Cảnh 1: mo=true, chu_to, vong quanh chỗ lạ.",
+   "Câu 2 = gọi tên nơi đó + nó nằm đâu. Rồi lùi về quá khứ một câu có năm.",
+   "3–4 nhịp leo thang, mỗi nhịp một chuyển động trên bản đồ (đổi màu chủ quyền, mũi tên, phương tiện, cờ cắm, nhân vật bước vào).",
+   "Câu áp chót = khúc ngoặt (đóng con dấu ở chữ ngoặt). Câu cuối = móc sang phần 2: nêu câu hỏi còn treo rồi \"{cau_cuoi}\" (cảnh cuối ket)."
+  ],
+  "giong_van": "Câu ngắn, động từ mạnh, giọng kể chuyện tò mò.",
+  "hinh_ca_tap": "Cả tập: ≥ 2 cảnh có nhân vật, ≥ 1 mũi tên hoặc phương tiện, cờ ở mỗi lần chủ quyền đổi, 1–2 tranh, 1–2 con dấu.",
+  "mau_dat": [
+   "#9e2b25",
+   "#c8763a",
+   "#d8b25a",
+   "#7f9a5c",
+   "#3f5c7a",
+   "#c98f4a",
+   "#6d86a0",
+   "#8a5a8c",
+   "#b05a3c"
+  ],
+  "duoi": 1.2
+ },
+ "parody": {
+  "ten": "Kênh lịch sử parody (bản tin lá cải, trọn một chuyện, miễn phí)",
+  "cau": [
+   26,
+   40
+  ],
+  "cau_noi": "28–36",
+  "tu": {
+   "en": [
+    330,
+    470
+   ],
+   "es": [
+    360,
+    520
+   ]
+  },
+  "tu_noi": {
+   "en": "360–440",
+   "es": "390–480"
+  },
+  "do_dai": "video TRỌN MỘT CHUYỆN 2,5–3,5 phút (đầu tới cuối, không phần 2)",
+  "khong_nguon_toi_da": 0.45,
+  "ket": {
+   "en": "THE END",
+   "es": "FIN"
+  },
+  "cau_cuoi": null,
+  "giong": "Daniel",
+  "theme": "la_cai",
+  "nhac": "nhay",
+  "sfx": "hai",
+  "max_tokens": 32000,
+  "khuon": [
+   "TRỌN MỘT CHUYỆN từ đầu tới cuối — có mở, leo thang, khúc ngoặt, hậu quả, kết. KHÔNG móc sang phần 2.",
+   "Câu 1 = HOOK: sự thật sốc nhất kể bằng giọng tỉnh bơ, ≤ 14 từ. Cảnh 1: mo=true, chu_to (tít báo lá cải), vong quanh chỗ lạ. Câu 2–3 = vì sao đáng xem tiếp (một câu đùa + một lời hứa).",
+   "Thân chuyện chia 4–5 HỒI, mỗi hồi 5–7 câu, mỗi hồi mở bằng một năm mới (ô năm đổi). Mỗi hồi có ít nhất một chuyển động bản đồ (đổi màu chủ quyền, mũi tên, phương tiện, cờ cắm) và một nhân vật bước vào.",
+   "Mỗi 2–3 câu một câu ĐÙA ngắn (mỉa tỉnh bơ, so sánh hiện đại, nói giảm nói tránh kiểu phát thanh viên). Có 1–2 câu đùa chạy suốt tập (running gag) quay lại ở cuối.",
+   "Khúc ngoặt lớn nhất đóng con dấu ở chữ ngoặt. 3–4 câu cuối = hậu quả hôm nay + câu đùa chốt gọi lại running gag; câu cuối là câu chốt gọn, cảnh cuối ket \"{ket}\"."
+  ],
+  "giong_van": "GIỌNG PARODY: phát thanh viên bản tin nghiêm túc đọc chuyện vô lý — mỉa mai tỉnh bơ, nói giảm (\"a bold financial decision\"), so sánh hiện đại (bất động sản, ứng dụng, đánh giá một sao), tự châm chọc nhẹ. Cái hài nằm ở QUYẾT ĐỊNH và người có quyền lực, KHÔNG đùa về dân tộc, tôn giáo, người bản địa, nạn nhân, chết chóc. Không chửi thề, không dung tục. Đùa nhưng SỰ THẬT vẫn đúng tuyệt đối: câu đùa không được chứa năm / con số / tên hiệp ước / so sánh nhất bịa ra; đùa bằng cách nói, không bằng cách đổi sự thật. Câu đùa không cần su_that (mảng rỗng); câu kể sự việc thì bắt buộc.",
+  "hinh_ca_tap": "Cả tập: ≥ 4 nhân vật khác nhau (dùng KHO trước), mỗi người có tên đang hành động đứng trong cảnh của họ; ≥ 3 mũi tên hoặc phương tiện; cờ ở mỗi lần chủ quyền đổi; 2–3 tranh; 3–4 con dấu (chữ con dấu kiểu tít lá cải: SOLD, OOPS, GOLD!, FOLLY?). Câu đùa vẫn phải có cảnh nhìn được (giữ camera, nhân vật đổi dáng, con dấu). Tài sản mới tối đa 3 nhân vật.",
+  "mau_dat": [
+   "#e8352b",
+   "#1f7ae0",
+   "#ffc21a",
+   "#18b39b",
+   "#ff5fa8",
+   "#8a3ffc",
+   "#ff8a1f",
+   "#3fbf4f",
+   "#00b7e8"
+  ],
+  "duoi": 3.4
+ }
+}

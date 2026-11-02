@@ -214,9 +214,11 @@ export async function xetAnhCanh(ds) {
   if (!MODEL_NGOC) return ds.map(() => null);
   const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'xet-anh.json');
   let so = {}; try { so = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* chưa có sổ */ }
-  const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`${x.url}|${x.mo_ta}|${x.nam ?? ''}`).digest('hex');
+  const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`v2|${x.url}|${x.mo_ta}|${x.nam ?? ''}`).digest('hex');   // v2: câu hỏi mới (v1 loại oan chân dung vì đòi cả cảnh)
   const system = 'You check whether a real archive photo / painting fits ONE scene of a history video. Reply with ONE JSON only: {"dung":true|false,"ly_do":"one short sentence in Vietnamese"}. '
-    + 'dung = the image shows the right person / object / place of the scene AND looks like it comes from that era (a portrait, engraving or painting of the right person from their lifetime is fine; a modern photo, a namesake, an unrelated object, a modern vehicle or building for a 19th-century scene is NOT).';
+    + 'The image only illustrates the scene: it does NOT need to show the whole scene. dung = true when it shows AT LEAST ONE main person, object or place named in the scene, '
+    + 'and it plausibly comes from that era (a portrait, engraving or painting of a named person made in their lifetime is fine; an old photo or map-free view of the right place is fine). '
+    + 'dung = false for: a modern photo / modern vehicle / modern building for a past scene, a namesake (different person with the same name), or something unrelated to the scene.';
   const ra = []; let moi = 0;
   for (const x of ds) {
     const k = khoa(x);

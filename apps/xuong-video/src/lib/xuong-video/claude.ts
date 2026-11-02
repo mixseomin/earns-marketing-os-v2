@@ -129,7 +129,10 @@ async function nguoiBanCkey(k: string, model: string): Promise<string[]> {
 const duongChu = async (model: string): Promise<DuongChu[]> => {
   const ds: DuongChu[] = [];
   const kc = process.env.CKEY_API_KEY, ks = process.env.SHOPAIKEY_API_KEY, ka = process.env.ANTHROPIC_API_KEY;
-  const ke = (key: string, baseURL: string) => new Anthropic({ apiKey: key, baseURL, defaultHeaders: { authorization: `Bearer ${key}` }, maxRetries: 1 });
+  // CỔNG CHỢ (ckey / ShopAIKey): người bán treo thì chuyển NGAY sang người kế — 90 giây tới lúc bắt đầu trả lời (SDK chỉ tính tới khi có phản hồi, luồng chữ dài
+  // sau đó không bị cắt), không tự thử lại (chuỗi dự phòng chính là lần thử lại). Trước: mặc định 10 phút × 2 lần mỗi người bán → 02/11/2026 tập lịch sử đứng
+  // 18 phút ở bước viết vì 4 người bán ckey cùng treo.
+  const ke = (key: string, baseURL: string) => new Anthropic({ apiKey: key, baseURL, defaultHeaders: { authorization: `Bearer ${key}` }, maxRetries: 0, timeout: 90_000 });
   // người bán: danh sách sống của Phòng Tài nguyên (ckey-tuyen.ts) trước; tự dò danh mục chỉ là lưới khi tệp chưa có dòng cho model này
   if (kc) { const co = nguoiBanTuyen(model), them = (await nguoiBanCkey(kc, model)).filter((m) => !co.includes(m)); for (const m of [...co, ...them]) ds.push({ ten: 'ckey', c: ke(kc, 'https://api.xah.io'), model: m, jsonTay: true }); }   // jsonTay: ckey trả JSON hỏng với output_config từ 28/10 ("Unterminated fractional number…") → mọi lượt rơi sang Anthropic ~7× giá; dặn khuôn trong system như ShopAIKey
   if (ks && /^claude-/.test(model)) ds.push({ ten: 'shopaikey', c: ke(ks, 'https://api.shopaikey.com'), model, jsonTay: true });

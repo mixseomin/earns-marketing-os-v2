@@ -179,14 +179,17 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
   const tmp = `/tmp/lich-su-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${tmp}`]); len(tepKho, `${tmp}/kho.json`);
   // GÓC + HOOK SPY: kênh có máy Studio (kenh.json may) mà chưa có chủ đề → lấy góc dùng ít nhất + hook QC của máy, máy viết tự chọn chuyện hợp góc
   let ghArg = '';
-  if (!chuDe && KENH.may) { const f = join(RA, 'goc-hook.json'); writeFileSync(f, box(`scripts/may-dung.mts --may ${KENH.may} --goc-hook`).split('\n').pop()); len(f, `${tmp}/goc-hook.json`); ghArg = ` --goc-hook ${tmp}/goc-hook.json`;
+  // kênh có máy đăng mà tập chưa có hook spy (bản rỗng / hỏng giữa chừng) → chọn LẠI đề + góc + hook theo góc, không giữ chủ đề cũ
+  // (02/11/2026: --viet-lai giữ chủ đề cũ, không có hook → 4 lượt viết đều bị kiểm chặn "chưa gắn hook")
+  const boDeCu = KENH.may && !arg('chu-de') && !(existsSync(tepTap) && JSON.parse(readFileSync(tepTap, 'utf8')).hook?.goc);
+  if ((!chuDe || boDeCu) && KENH.may) { const f = join(RA, 'goc-hook.json'); writeFileSync(f, box(`scripts/may-dung.mts --may ${KENH.may} --goc-hook`).split('\n').pop()); len(f, `${tmp}/goc-hook.json`); ghArg = ` --goc-hook ${tmp}/goc-hook.json`;
     const g = JSON.parse(readFileSync(f, 'utf8')); console.log(`góc spy #${g.goc.id} ${g.goc.ten} · ${g.hooks.length} hook QC`); }
   if (!chuDe && !ghArg) { console.error('chưa có tập — cần --chu-de (hoặc kênh có máy Studio để chọn đề theo góc)'); process.exit(2); }
   let loi = sua ? await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
   for (let lan = 1; lan <= 4 && !(sua && !loi.length && lan === 1); lan++) {
     const them = loi.length ? ` --loi ${tmp}/loi.txt --cu ${tmp}/tap.json` : '';
     if (loi.length) { writeFileSync(join(RA, 'loi.txt'), loi.map((x) => `- ${x}`).join('\n')); len(join(RA, 'loi.txt'), `${tmp}/loi.txt`); len(tepTap, `${tmp}/tap.json`); }
-    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTua ? ` --nguon ${q(nguonTua)}` : ''}${them}`)); }
+    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe && !boDeCu ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTua ? ` --nguon ${q(nguonTua)}` : ''}${them}`)); }
     catch (e) { console.log(`✗ lượt viết ${lan}: máy viết hỏng — ${String(e.stderr || e.message).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}`); if (!existsSync(tepTap)) continue; loi = loi.length ? loi : ['(lượt trước hỏng, viết lại)']; continue; }
     const truoc = suaCanh ? readFileSync(tepTap, 'utf8') : null;
     ve(`${tmp}/tap.json`, tepTap); ve(`${tmp}/tap.json.nguon.txt`, join(RA, 'nguon.txt'));
@@ -298,7 +301,7 @@ if (tien) console.log(`tiền kho + tranh lượt này ~${tien}₫`);
 if (!co('chi-day') && !arg('khung') && !co('bo-soat-truoc')) {
   buoc('Ngọc soi hình');
   const dir = join(RA, 'soat-truoc'); rmSync(dir, { recursive: true, force: true });
-  const r = spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, '--soat', dir], { stdio: 'inherit' }); if (r.status) process.exit(r.status);
+  const r = spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, '--soat', dir], { stdio: 'inherit', timeout: 10 * 60_000 }); if (r.status) process.exit(r.status);
   const ds = readdirSync(dir).filter((f) => /^k-\d+\.jpg$/.test(f)).sort((a, b) => parseInt(a.slice(2)) - parseInt(b.slice(2)));
   const den = `/var/tmp/xet-truoc-${id}`; execFileSync('ssh', [BOX, `rm -rf ${den} && mkdir -p ${den}`]); for (const f of ds) len(join(dir, f), `${den}/${f}`);
   const kq = JSON.parse(box(`scripts/lich-su/xet-truoc.mts ${q(id)} ${q(tap.tieu_de)} ${ds.map((f) => `${den}/${f}`).join(' ')}`).split('\n').pop());
@@ -308,7 +311,7 @@ if (!co('chi-day') && !arg('khung') && !co('bo-soat-truoc')) {
 }
 // --chi-day: video đã dựng, chỉ đẩy lại Studio (không quay lại 5.900 khung)
 buoc('dựng (giọng + hình)');
-const dung = co('chi-day') && existsSync(join(RA, `${id}.mp4`)) ? { status: 0 } : spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, ...(arg('khung') ? ['--khung', arg('khung'), '--khung-ra', join(RA, 'khung.jpg')] : [])], { stdio: 'inherit' });
+const dung = co('chi-day') && existsSync(join(RA, `${id}.mp4`)) ? { status: 0 } : spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, ...(arg('khung') ? ['--khung', arg('khung'), '--khung-ra', join(RA, 'khung.jpg')] : [])], { stdio: 'inherit', timeout: 45 * 60_000 })   // dựng + giọng: trần 45 phút (treo thì lượt hỏng có mã, việc nền tự làm lại);
 if (dung.status) process.exit(dung.status);
 if (arg('khung')) process.exit(0);
 const mp4 = join(RA, `${id}.mp4`), xem = join(RA, `${id}-xem.mp4`);
@@ -332,7 +335,7 @@ buoc('đẩy Studio');
   catch (e) { console.log(`⚠ đẩy Studio hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ')}`); }
   buoc('thumbnail');
   // 5b. THUMBNAIL (anh 02/11/2026: "thumb rất rất quan trọng, không dùng thumb YouTube tự sinh"): thumb.mjs viết chữ + dựng + Ngọc chấm; chặn thì dừng, không nạp máy đăng
-  if (KENH.may) { const r = spawnSync(process.execPath, [join(DIR, 'thumb.mjs'), '--id', id], { stdio: 'inherit' }); if (r.status) process.exit(r.status);
+  if (KENH.may) { const r = spawnSync(process.execPath, [join(DIR, 'thumb.mjs'), '--id', id], { stdio: 'inherit', timeout: 15 * 60_000 }); if (r.status) process.exit(r.status);
     Object.assign(tap, { thumb: JSON.parse(readFileSync(tepTap, 'utf8')).thumb }); }
   buoc('nạp máy đăng');
   // 6. MÁY ĐĂNG: kênh có máy Studio → tập thành một video của máy (mẫu video-ngoai: URL R2 + 3 khung), Phòng Nội dung chấm rồi máy đăng chung tự đăng theo nhịp

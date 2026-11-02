@@ -43,14 +43,18 @@ for (const [k, K] of Object.entries(KENH)) {
     writeFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), String(process.pid));
     // kịch bản rỗng / cụt (cổng AI chập chờn trả bản 0 câu — 02/11/2026) → viết lại từ đầu; có kịch bản thì giữ, chỉ làm tiếp
     const vietLai = (t.cau?.length ?? 0) < 5 ? ['--viet-lai'] : [];
-    const chay = (them) => spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', t.id, ...(vietLai.length ? vietLai : ['--gan-hook']), ...them], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20 });
+    const chay = (them) => spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', t.id, ...(vietLai.length ? vietLai : ['--gan-hook']), ...them], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
     let r = chay([]), ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`;
     process.stdout.write(ra);   // nhật ký việc nền giữ trọn đầu ra lam-tap (trước chỉ có một dòng tóm tắt — không đọc được gốc lỗi)
     if (r.status === 4 && /tập có lỗi/.test(ra)) { r = chay(['--sua']); ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra); }
     try { unlinkSync(join(homedir(), '.cache', `lich-su-${k}.khoa`)); } catch { /* đã gỡ */ }
-    const t2 = JSON.parse(readFileSync(tep, 'utf8')); t2.tu_dong = { lan: td.lan + 1, luc: new Date().toISOString(), loi: r.status ? ra.trim().split('\n').slice(-3).join(' · ').slice(0, 400) : null };
+    const hong = r.status !== 0, loiTxt = r.signal ? `quá giờ (${Math.round(100)} phút) — bị dừng ${r.signal}` : ra.trim().split('\n').slice(-3).join(' · ').slice(0, 400);
+    const t2 = JSON.parse(readFileSync(tep, 'utf8')); t2.tu_dong = { lan: td.lan + 1, luc: new Date().toISOString(), loi: hong ? loiTxt : null };
+    // dấu "đang làm" trên máy (bảng mos2): lam-tap bị giết vì quá giờ không kịp tự gỡ → hỏng thì ghi lỗi lên dấu, xong thì gỡ
+    if (hong) { try { sqlBox(`UPDATE xv_may SET nguon = jsonb_set(nguon, '{dang_lam,loi}', ${q1(JSON.stringify(`lần ${td.lan + 1}/3 hỏng: ${loiTxt.slice(0, 160)}`))}::jsonb) WHERE ma = ${q1(K.may)} AND nguon ? 'dang_lam';`); } catch { /* phụ */ } }
+    else danhDau(K.may, null);
     writeFileSync(tep, JSON.stringify(t2, null, 1) + '\n');
-    bao.push(r.status ? `⚠ tự làm lại tập ${t.id} (lần ${td.lan + 1}/3) hỏng: ${t2.tu_dong.loi}` : `✓ tự làm lại tập ${t.id} (${st ? `Phòng Nội dung: ${st.ket ?? 'chưa xuất'}` : 'chưa nạp'}) → đã nạp lại, chờ chấm`);
+    bao.push(hong ? `⚠ tự làm lại tập ${t.id} (lần ${td.lan + 1}/3) hỏng: ${t2.tu_dong.loi}` : `✓ tự làm lại tập ${t.id} (${st ? `Phòng Nội dung: ${st.ket ?? 'chưa xuất'}` : 'chưa nạp'}) → đã nạp lại, chờ chấm`);
     break;   // một tập mỗi lượt — lượt giờ sau làm tập kế
   }
   // việc nền chạy MỖI GIỜ (02/11/2026 anh: đo kênh tần suất cao hơn) → làm tập chỉ từ gio_tap trở đi của ngày lịch; khoá ~/.cache/lich-su-<k>.khoa (pid) chống lượt chồng
@@ -67,12 +71,13 @@ for (const [k, K] of Object.entries(KENH)) {
       // lam-tap tự dừng trước khi tốn tiền giọng / ảnh nếu máy viết 4 lượt vẫn lỗi; DUYET_SINH_1_LAN cho lượt có lịch anh đã duyệt (02/11/2026: 3 tập/tuần)
       // ĐANG SẢN XUẤT: dấu trên máy studio (xv_may.nguon.dang_lam) — mos2 › Tài sản › Kênh nội dung hiện tập đang làm; xong (đạt hay hỏng) thì gỡ
       danhDau(K.may, { id, luc: new Date().toISOString() });
-      const r = spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', id, '--nn', 'en', '--kenh', k], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20 });
+      const r = spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', id, '--nn', 'en', '--kenh', k], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
       const ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra);
       danhDau(K.may, null); try { unlinkSync(khoa); } catch { /* đã gỡ */ }
       const tien = [...ra.matchAll(/~(\d+)₫/g)].reduce((t, m) => t + Number(m[1]), 0);
       const tap = existsSync(join(DIR, 'tap', `${id}.json`)) ? JSON.parse(readFileSync(join(DIR, 'tap', `${id}.json`), 'utf8')) : null;
-      bao.push(r.status ? `✗ tập ${id} hỏng (mã ${r.status}): ${ra.trim().split('\n').slice(-3).join(' · ').slice(0, 500)}`
+      if (r.signal) ra += `\n✗ quá giờ 100 phút — lượt bị dừng (${r.signal})`;
+      bao.push(r.status !== 0 ? `✗ tập ${id} hỏng (mã ${r.status ?? r.signal}): ${ra.trim().split('\n').slice(-3).join(' · ').slice(0, 500)}`
         : `✓ tập mới ${id}: ${tap?.tieu_de ?? '?'}\n  ${tap?.chu_de ?? ''}\n  ~${tien.toLocaleString('vi-VN')}₫ · Studio › Máy › ${K.may} · ${/✓ nạp máy/.test(ra) ? 'đã nạp máy đăng, chờ Phòng Nội dung chấm' : '⚠ chưa nạp máy đăng'}`);
     }
   }

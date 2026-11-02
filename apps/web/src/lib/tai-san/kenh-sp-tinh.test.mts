@@ -33,4 +33,7 @@ import { cayKeHoach } from './kenh-sp-tinh';
   assert.deepStrictEqual(cayKeHoach({ videos: [v('c', 'da_dang')], ke: { ...ke, dangLam: null, tapKe: [] } }), []);
   // tập hỏng giữa chừng → dòng đỏ mang lỗi
   assert.strictEqual(cayKeHoach({ videos: [], ke: { ...ke, dangLam: { ...ke.dangLam, loi: 'hỏng ở bước dựng (mã 1)' } } })[1]!.chu, '✗ hỏng ở bước dựng (mã 1)'); }
-console.log('kenh-sp-tinh: 12/12 ok');
+// một bước đứng quá 30 phút → đỏ, ghi "đứng"
+{ const ke = { lichTap: null, gioDang: null, tapKe: [], lichDang: [], dangLam: { id: 't', luc: '2026-11-02T15:00:00Z', buoc: 'viết kịch bản', so: 2, tong: 8, buoc_luc: '2026-11-02T15:00:00Z' } };
+  const r = cayKeHoach({ videos: [], ke }, Date.parse('2026-11-02T15:45:00Z'))[1]!; assert.strictEqual(r.chu, 'bước 2/8 · viết kịch bản · ⚠ đứng 45 phút'); assert.strictEqual(r.mau, 'var(--bad)'); }
+console.log('kenh-sp-tinh: 14/14 ok');

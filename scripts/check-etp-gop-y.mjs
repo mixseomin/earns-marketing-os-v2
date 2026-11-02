@@ -277,6 +277,9 @@ const LUAT = [
   { card: 'trang-phim-0211', tep: "apps/etp/canh-bao.py", co: "bao(\"trang_phim_thieu\", \"vang\"", vi: "cảnh báo trang phim thiếu" },
   { card: 'trang-phim-0211', tep: "apps/web/src/components/etp-view.tsx", co: "{ key: 'trang', header: 'Trang phim'", vi: "tab Phim có cột Trang phim" },
   { card: 'trang-phim-0211', tep: "apps/web/src/lib/etp-doc.ts", co: "trang: tp(r), ws_moi: true });", vi: "tab Phim hiện phim mới thêm chưa có camp" },
+  { card: 'trang-phim-0211', tep: "apps/etp/trang_phim.py", co: "it[\"_link\"] = dr if dr.startswith(\"http\") else (pg.get(dr)", vi: "link tập 1 theo chuỗi detail → trang con" },
+  { card: 'trang-phim-0211', tep: "apps/etp/trang_phim.py", co: "mo_ta = len(it.get(\"description\") or \"\") if it is not None else so_cu(1)", vi: "bản chưa đọc chi tiết = chưa biết, không tính thiếu" },
+  { card: 'trang-phim-0211', tep: "packages/db/migrations/0404_etp_trang_phim_chua_doc.sql", co: "alter column mo_ta drop not null", vi: "mô tả NULL = chưa đọc" },
   // anh 02/11/2026 duyệt review luật (mục 2, 3, 7 + T30 ROAS): chấm creative không tắt camp lãi · ROAS trước clone · dừng clone đổi creative · nhật ký team · sổ luật đối chứng + 7 ngày
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", co: "where c.trang_thai = 'ACTIVE' and g.tat and {KHONG_ROAS} and {KHONG_LAI3} order by 1", vi: "luật chấm không tắt camp lãi 3 ngày đã khép" },
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", cam: "tự tắt mọi loại camp, kể cả đang lãi", vi: "luật chấm không còn tắt camp đang lãi" },

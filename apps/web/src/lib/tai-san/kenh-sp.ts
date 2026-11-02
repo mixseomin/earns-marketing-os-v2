@@ -14,7 +14,7 @@ export async function docKenhSp(hom: string): Promise<KenhSp[]> {
     { ma: string; ten: string; chay: boolean; dang: { nen: string; br?: { handle?: string } }[]; tap: number; cho_dang: number; da_dang: number; dang_cuoi: string | null }[];
   if (!may.length) return [];
   const so = (await d.execute(sql`SELECT san_pham, ngay::text AS ngay, hien, so_muc, chi_tiet->>'nguoi_dk' AS nguoi_dk FROM kenh_so_ngay
-    WHERE kenh = 'youtube' AND san_pham = ANY(${may.map((m) => `may:${m.ma}`)}) AND ngay >= current_date - 30`)) as unknown as
+    WHERE kenh = 'youtube' AND san_pham IN ${may.map((m) => `may:${m.ma}`)} AND ngay >= current_date - 30`)) as unknown as
     { san_pham: string; ngay: string; hien: number; so_muc: number; nguoi_dk: string | null }[];
   return may.map((m) => {
     const ds: SoNgayKenh[] = so.filter((r) => r.san_pham === `may:${m.ma}`).map((r) => ({ ngay: r.ngay.slice(0, 10), xem: Number(r.hien), daDang: Number(r.so_muc), nguoiDk: r.nguoi_dk == null ? null : Number(r.nguoi_dk) }));

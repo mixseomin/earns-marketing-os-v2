@@ -7,7 +7,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod/v4';
 import { sinhJson } from '../../src/lib/xuong-video/claude';
-import { bangChungHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { bangChungHook, loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
 
 const arg = (k: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : undefined; };
 const ra = process.argv[2], nn = arg('nn') ?? 'en', id = arg('id');
@@ -79,6 +79,7 @@ if (process.argv.includes('--chi-hook')) {
     const chuDang = `${c.data.tieu_de}\n${c.data.mo_ta_dang}`;
     if (/[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chuDang)) { loi = 'tiêu đề / mô tả có tiếng Việt — phải viết bằng ngôn ngữ của tập'; continue; }
     const tm = tuMayTrong(chuDang); if (tm.length) { loi = `có cụm từ máy bị cấm: ${tm.join(', ')}`; continue; }
+    const lh = loiHook([c.data.tieu_de], h.chu); if (lh.length) { loi = `tiêu đề: ${lh.join('; ')} — giữ nhiều chữ của hook gốc hơn, chỉ thay phần chủ thể cho đúng chuyện`; continue; }
     writeFileSync(ra, JSON.stringify({ hook: { qc: h.id, goc: h.chu }, goc: gh.goc, tieu_de: c.data.tieu_de, mo_ta_dang: c.data.mo_ta_dang }, null, 1));
     console.log(`✓ gắn hook ${h.id} "${h.chu}" → "${c.data.tieu_de}" (${Math.round(c.tokens.vnd ?? 0)}₫)`); process.exit(0);
   }

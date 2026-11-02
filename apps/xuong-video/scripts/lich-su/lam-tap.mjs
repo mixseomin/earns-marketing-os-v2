@@ -144,7 +144,8 @@ if (co('gan-hook') && KENH.may && existsSync(tepTap)) {
   const t0 = JSON.parse(readFileSync(tepTap, 'utf8'));
   // hook cũ chỉ giữ khi chữ đăng qua được luật phòng chấm (từ máy / tiếng Việt) — 02/11/2026 Alaska giữ "Unlock the…" + mô tả tiếng Việt rồi bị SỬA LẠI lần hai
   const { tuMayTrong } = await import('../../../cty/worker/cham-dang.mjs'), chuCu = `${t0.tieu_de ?? ''}\n${t0.mo_ta_dang ?? ''}`;
-  const hongCu = tuMayTrong(chuCu).length || (t0.ngon_ngu ?? 'en') !== 'vi' && /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chuCu);
+  const hongCu = tuMayTrong(chuCu).length || (t0.ngon_ngu ?? 'en') !== 'vi' && /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chuCu)
+    || (t0.hook?.goc && loiHook([t0.tieu_de ?? ''], t0.hook.goc).length);   // tiêu đề sửa quá xa hook gốc (cùng luật phòng chấm)
   if (t0.hook?.goc && !hongCu) console.log(`tập đã có hook "${t0.hook.goc}" — bỏ qua gắn hook`);
   else { const tmp = `/tmp/gan-hook-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${tmp}`]);
     const f = join(RA, 'goc-hook.json'); writeFileSync(f, box(`scripts/may-dung.mts --may ${KENH.may} --goc-hook`).split('\n').pop()); len(f, `${tmp}/goc-hook.json`); len(tepTap, `${tmp}/tap.json`);

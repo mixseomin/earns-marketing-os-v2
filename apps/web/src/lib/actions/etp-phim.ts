@@ -16,6 +16,8 @@ export type PhimNoiDung = {
   diem: { hang: number; tong: number; diem: number; ct: [string, number][]; qc_dang: number | null; qc_tra: string | null } | null;
   trang: { ws: number; nguoi: string | null; thieu: string[] }[];
   camp: { nha: number; doi: number; chay: number };
+  /** VIDEO CHỜ DUYỆT LÊN CAMP (anh 03/11/2026 "làm sao tao xem đc chúng trên etp"): đoạn đã cắt + soát 18+ + dựng CTA, chưa đưa lên Ethopex — sổ xv_khoa_ngoai['ethopex_cho_duyet'] */
+  cho_duyet: { doan: number; giay: number; url: string; anh: string | null; lo: string | null; cta: string | null }[];
 };
 
 export async function docPhimEtp(id: number): Promise<{ ok: true; phim: PhimNoiDung } | { loi: string }> {
@@ -63,6 +65,7 @@ export async function docPhimEtp(id: number): Promise<{ ok: true; phim: PhimNoiD
   const trang = await run<{ content_id: string; nguoi: string | null; thieu: string[] }>(sql`select content_id, nguoi, thieu from etp.trang_phim_v where ref_id = ${ma} order by sua desc`);
   const [cp] = await run<{ nha: string; doi: string; chay: string }>(sql`select (select count(*) from etp.camp where content_id = ${ma}) nha, (select count(*) from etp.camp_ngoai where content_id = ${ma}) doi,
       (select count(*) from etp.camp where content_id = ${ma} and trang_thai = 'ACTIVE') + (select count(*) from etp.camp_ngoai where content_id = ${ma} and trang_thai = 'ACTIVE') chay`);
+  const [cd] = await run<{ ds: PhimNoiDung['cho_duyet'] | null }>(sql`select gia_tri->${String(ma)} ds from xv_khoa_ngoai where ten = 'ethopex_cho_duyet'`);
   const s = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
   const url = s(nd?.redirect_url) ?? tv?.url ?? null;
   return { ok: true, phim: {
@@ -74,6 +77,7 @@ export async function docPhimEtp(id: number): Promise<{ ok: true; phim: PhimNoiD
       qc_dang: ct.x.qc_dang == null ? null : Number(ct.x.qc_dang), qc_tra: (ct.x.qc_tra as string) ?? null } : null,
     trang: trang.map((t) => ({ ws: Number(t.content_id), nguoi: t.nguoi, thieu: Array.isArray(t.thieu) ? t.thieu : [] })),
     camp: { nha: Number(cp?.nha ?? 0), doi: Number(cp?.doi ?? 0), chay: Number(cp?.chay ?? 0) },
+    cho_duyet: Array.isArray(cd?.ds) ? cd.ds.slice().sort((a, b) => a.doan - b.doan) : [],
   } };
 }
 

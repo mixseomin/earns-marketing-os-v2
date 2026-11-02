@@ -390,6 +390,8 @@ const LUAT = [
   { card: 'cta-kien-0211', tep: 'apps/xuong-video/scripts/ethopex/vx-ke-chuyen.mts', co: "ETP_TEN: String(meta.ten_phim ?? '')", vi: 'KT kể chuyện truyền tên phim cho CTA mẫu Kiên' },
   { card: 'cta-kien-0211', tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'return dung_tap(nguon, tu, den, ten, out, nut=NUT_KIEN["es" if es else "en"])', vi: 'dung() rẽ sang dung_tap khi mẫu Kiên' },
   { card: 'cta-kien-0211', tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'MAU_CTA = os.environ.get("ETP_CTA", "kien")', vi: 'CTA mẫu Kiên là MẶC ĐỊNH cho mọi creative (anh 02/11/2026 "Tại sao vẫn là CTA cũ")' },
+  { card: 'cho-duyet-0311', tep: 'apps/web/src/lib/actions/etp-phim.ts', co: "where ten = 'ethopex_cho_duyet'", vi: 'đọc sổ video chờ duyệt' },
+  { card: 'cho-duyet-0311', tep: 'apps/web/src/components/etp-phim-drawer.tsx', co: 'Video chờ duyệt lên camp ·', vi: 'ngăn phim etp hiện video chờ duyệt lên camp (anh 03/11/2026)' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: "bat_dau < now() - interval '1 hour'", vi: 'thợ chết: việc dang quá 1 giờ thì xếp lại' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: 'try: pr.wait(timeout=45 * 60)', vi: 'thợ cắt: trần 45 phút / phim (cũ 3 giờ)' },
   { card: 'cat-0211', tep: 'apps/xuong-video/scripts/ethopex/cat_drive.py', co: '"--max-duration", tran, "--cutoff-mode", "soft"]', vi: 'dọn Drive có trần thời gian (mặc định 5 phút), không chặn lô cắt' },

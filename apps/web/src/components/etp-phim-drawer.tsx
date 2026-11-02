@@ -81,6 +81,16 @@ export function EtpPhimDrawer({ id, onClose }: { id: number; onClose: () => void
           <Doan nhan="Mô tả" chu={p.mo_ta} />
         </div>
       </div>
+      {/* VIDEO CHỜ DUYỆT LÊN CAMP (anh 03/11/2026): xem từng đoạn đã dựng trước khi anh xác nhận lên camp — preload none, bấm mới tải */}
+      {p.cho_duyet.length ? <div style={{ padding: '0 16px 16px' }}>
+        <div style={{ fontSize: 12, color: MO, marginBottom: 8 }} title="đã cắt + soát 18+ + dựng CTA mẫu Kiên — chưa đưa lên Ethopex, chưa có camp">Video chờ duyệt lên camp · {p.cho_duyet.length} đoạn</div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          {p.cho_duyet.map((v) => <div key={v.url} style={{ width: 200 }}>
+            <video src={v.url} poster={v.anh ?? undefined} controls preload="none" playsInline style={{ width: '100%', aspectRatio: '9 / 16', borderRadius: 8, background: '#000', display: 'block' }} />
+            <div style={{ fontSize: 11.5, color: 'var(--fg-2)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>đoạn {v.doan}s · {v.giay}s</div>
+          </div>)}
+        </div>
+      </div> : null}
     </Drawer>
   );
 }

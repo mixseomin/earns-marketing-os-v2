@@ -345,7 +345,9 @@ if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons && c.canh.tranh?.anh)
     const pg = r.query?.pages?.[0], pi = pg?.pageimage; if (pi && /\.(jpe?g|png)$/i.test(pi) && !BO.test(pi)) tim.unshift({ ten: `File:${pi.replace(/_/g, ' ')}`, tua: pg.title, d: 99 });
   }
   let xet = 0;
+  const daXet = new Set();   // chân dung nhân vật + ảnh chính bài có thể là CÙNG một tệp (03/11/2026: "Ba trieu cuoi voi" vào ảnh bìa 2 lần)
   for (const { ten: tep, tua } of tim) {
+    if (daXet.has(tep)) continue; daXet.add(tep);
     if (ds.length >= 3 || xet >= 10) break; xet++; xetConLai = 1;
     if (!(await ngocDuyetAnh(tep, moTaBia(tua), null))) continue;
     const c = await commons(tep); if (!c?.thumb) continue;

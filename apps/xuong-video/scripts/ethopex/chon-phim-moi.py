@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """CHỌN PHIM MỚI ĐỂ CHUẨN BỊ CREATIVE (anh 23/10/2026: "phân tích để chọn ra 200 phim để chuẩn bị creatives… 200 phim là phim MỚI để theo plan hôm trước").
-Cách chọn (theo lô 19/10): phim mà CHÍNH APP GỐC đang chạy nhiều QC nhất (spy.on.tc view ethopex_uu_tien: số QC, QC đang chạy, số Page) = cầu thật đã được
+Cách chọn MỚI (anh 02/11/2026, xem khối CHẤM ĐIỂM): lọc nguồn ReelShort / NetShort · EN trước ES · thể loại thắng · loại sói, DramaBox, phim đội đã lên;
+số QC app gốc chỉ là điểm phụ. Cách cũ (lô 19/10–02/11): phim mà CHÍNH APP GỐC đang chạy nhiều QC nhất (spy.on.tc view ethopex_uu_tien: số QC, QC đang chạy, số Page) = cầu thật đã được
 app gốc trả tiền chứng minh. Bỏ: phim đã có camp Ethopex / đã dựng studio, phim cấm (ethopex_phim_cam, sổ bỏ phim), tên gợi dục / 18+ (kiem-phim-18 lớp chữ).
 Chỉ EN + ES (anh 19/10/2026). Thiếu 200 thì bù bằng phim CÙNG THỂ LOẠI với phim đang thắng (tỷ phú ẩn thân, kẻ vô danh lật ngược, gia đình hối hận, mẹ đơn thân
 + tỷ phú, Alpha/Luna) trong kho Ethopex nguồn ReelShort/DramaBox/NetShort, mới nhất trước.
@@ -34,44 +35,54 @@ TU_18 = re.compile(r"(\bsex|sexy|naked|nude|lust|seduc|bed ?mate|one night|mistr
                    r"|boyfriend's (dad|father)|bestie's (dad|father)|husband's (brother|boss)|playboy|toy\b|slave|owns? (me|my)|amante|desnud|sexo|seducci|lujuria"
                    r"|noche de pasi|cuerpo|cama|prohibid|padrastro|t[ií]o pol[ií]tico)", re.I)
 
-# 2. ứng viên chính: app gốc đang chạy QC (spy)
+# PHIM ĐỘI ĐÃ LÊN (anh 02/11/2026 "ko lên camp trùng với các thành viên trong đội"): mọi phim có camp của người trong đội (etp.camp_ngoai, mọi trạng thái) — không test lại
+da |= {int(x) for x in q("select distinct content_id from etp.camp_ngoai where content_id > 0").split() if x.isdigit()}
+da_ten |= {chuan(re.split(r" (?:EN|ES) - ", re.sub(r"^(\d+:\s*)?(TEST\s+)?\d\S*\s+", "", t))[0])[:24] for t in q("select ten from etp.camp_ngoai").splitlines()}
+
+# 2. CHẤM ĐIỂM (anh 02/11/2026 "sửa phương pháp chọn phim" — đo 357 phim cả đội test 19/10–30/10, phim thắng = lãi ≥ $20):
+#   nguồn: ReelShort 14,5% · NetShort 3,2% · DramaBox 2,1% · tiếng: EN 5,8% · ES 3,3% · nhóm diễn viên: Âu-Mỹ 12,9% · Trung / hoạt hình 0% (cổng lên camp đã chặn)
+#   thể loại: vô danh lật ngược 15% · hối hận 13% · fantasy 11% · mafia 9% · tỷ phú 7% · mẹ con 4% · sói 3% · tình cảm 3%
+#   danh sách cũ xếp theo số QC app gốc (65% DramaBox) → 147 phim test, 2 thắng (1%), −$683. Số QC app gốc giờ chỉ là điểm phụ trong nhóm đã lọc.
+NGUON = {"reelshort": 100, "netshort": 35}   # DramaBox / dramaboxdb: loại
+TIENG = {"en": 20, "es": 0}
+THE_LOAI = [   # (mã, điểm, mẫu tên) — đoán thể loại từ tên phim (phim chưa test chưa có etp.phim.the_loai)
+    ("vo_danh", 45, r"nobody|homeless|beggar|\bbum\b|\bpoor\b|underdog|janitor|loser|nobod|unwanted|outcast|vagabund|mendig|\bnadie\b|pobre|desprecia"),
+    ("hoi_han", 35, r"regret|too late|remorse|grovel|beg(s|ging)? (for|me)|arrepent|demasiado tarde|se arrepient"),
+    ("fantasy", 25, r"dragon|goddess|\bgods?\b|immortal|magic|sorcer|sword|realm|deity|divine|celestial|dios|diosa|inmortal|mag[ií]a"),
+    ("mafia", 15, r"mafia|\bdon\b|mob boss|cartel|capo"),
+    ("ty_phu", 15, r"billionaire|heir|\bceo\b|tycoon|millionaire|magnate|multimillon|millonari|heredero|magnate"),
+    ("me_con", -25, r"single mom|runaway mom|mommy|twins|triplets|quintuplet|madre soltera|gemelos|trillizos"),
+    ("tinh_cam", -15, r"\bmarry|marriage|bride|contract (wife|marriage)|divorce|ex-wife|ex-husband|esposa|boda|divorcio|matrimonio"),
+]
+SOI = re.compile(r"alpha|\bluna\b|werewolf|lycan|\bmated?\b|\blobo|\balfa\b", re.I)   # sói 3% → loại
+def cham(x):
+    if x["nguon"] not in NGUON or x["locale"] not in TIENG or SOI.search(x["ten"] or ""): return None
+    tl = [(m, d) for m, d, mau in THE_LOAI if re.search(mau, x["ten"] or "", re.I)]
+    spy = min(20, int(x.get("so_qc_dang") or 0) + 2 * int(x.get("so_page") or 0))
+    x["diem"] = NGUON[x["nguon"]] + TIENG[x["locale"]] + sum(d for _, d in tl) + spy
+    x["vi_sao"] = " · ".join([x["nguon"], x["locale"]] + [m for m, _ in tl] + ([f"app gốc {x.get('so_qc_dang')} QC đang chạy · {x.get('so_page')} Page"] if spy else []))
+    return x
+# 3. ứng viên = phim app gốc đang chạy QC (spy) + kho Ethopex ReelShort / NetShort mới nhất; gộp trùng tên + tiếng
 uu = [dict(zip(["id", "locale", "ten", "nguon", "url", "so_qc", "so_qc_dang", "so_page"], r.split("\t"))) for r in
       qs("select id, locale, ten, nguon, url, so_qc, so_qc_dang, so_page from ethopex_uu_tien where locale in ('en','es')").splitlines() if r]
+kho = [dict(zip(["id", "locale", "ten", "nguon", "url"], (r.split("\t") + [""] * 5)[:5])) for r in
+       qs("select id, locale, ten, nguon, url from ethopex_content where locale in ('en','es') and nguon in ('reelshort','netshort') order by tao desc limit 8000").splitlines() if r]
 def loai(x): return int(x["id"]) in da or x["id"] in cam or bool(TU_18.search(x["ten"] or "")) or chuan(x["ten"])[:24] in da_ten
 chinh, _thay = [], set()
-for x in uu:   # gộp trùng: cùng tên + tiếng (spy ghép một phim vào nhiều mã content)
+for x in uu + kho:   # spy trước: cùng phim thì giữ bản có số QC app gốc
     k = (chuan(x["ten"]), x["locale"])
-    if loai(x) or k in _thay: continue
+    if loai(x) or k in _thay or not cham(x): continue
     _thay.add(k); chinh.append(x)
-diem = lambda x: int(x["so_qc_dang"] or 0) * 3 + int(x["so_page"] or 0) * 5 + int(x["so_qc"] or 0)
-for x in chinh: x["diem"] = diem(x); x["vi_sao"] = f"app gốc: {x['so_qc_dang']} QC đang chạy · {x['so_page']} Page · {x['so_qc']} QC tổng"
 chinh.sort(key=lambda x: -x["diem"])
-
-# 3. bù: cùng thể loại phim đang thắng, kho Ethopex nguồn có tập miễn phí, mới nhất trước
-THANG = {"tỷ phú ẩn thân": r"billionaire|heir|ceo|tycoon|millionaire|multimillon|millonari|heredero|magnate",
-         "vô danh lật ngược": r"nobody|homeless|beggar|bum|poor|underdog|vagabund|mendig|pobre|nadie|loser|janitor",
-         "gia đình hối hận": r"regret|too late|brother|sister|family|father|daddy|arrepent|hermano|demasiado tarde|familia",
-         "mẹ đơn thân": r"single mom|runaway|mommy|twins|triplets|madre soltera|gemelos|mam[aá]",
-         "Alpha/Luna": r"alpha|luna|werewolf|lycan|mate|lobo|alfa"}
-can = SO - len(chinh); bu = []
-if can > 0:
-    co = {x["id"] for x in chinh}
-    for r in qs("select id, locale, ten, nguon, url from ethopex_content where locale in ('en','es') and nguon in ('reelshort','dramabox','netshort') order by tao desc limit 6000").splitlines():
-        i, loc, ten, ng, url = (r.split("\t") + [""] * 5)[:5]
-        if i in co or loai({"id": i, "ten": ten}) or (chuan(ten), loc) in _thay: continue
-        tl = [k for k, m in THANG.items() if re.search(m, ten or "", re.I)]
-        if not tl: continue
-        _thay.add((chuan(ten), loc)); bu.append({"id": i, "locale": loc, "ten": ten, "nguon": ng, "url": url, "diem": len(tl), "vi_sao": "cùng thể loại phim đang thắng: " + ", ".join(tl)})
-        if len(bu) >= can * 3: break
-    bu.sort(key=lambda x: -x["diem"]); bu = bu[:can]
-ds = (chinh + bu)[:SO]
+bu = []
+ds = chinh[:SO]
 if "--them" in sys.argv:   # BỔ SUNG (phim-moi.py them, anh 23/10/2026 "cần cái thay thế dự phòng"): giữ nguyên danh sách + thứ tự cũ, chỉ nối phim mới vào cuối tới đủ SO
     cu = json.loads(q("select coalesce(gia_tri, '[]'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_200_phim'") or "[]"); co = {str(x["id"]) for x in cu}
     ds = cu + [x for x in ds if str(x["id"]) not in co][:max(0, SO - len(cu))]
 v = json.dumps([{k: x.get(k) for k in ("id", "locale", "ten", "nguon", "url", "vi_sao")} for x in ds], ensure_ascii=False).replace("'", "''")
 q(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_200_phim', '{v}'::jsonb) on conflict (ten) do update set gia_tri = excluded.gia_tri")
 if "--json" in sys.argv: print(json.dumps(ds, ensure_ascii=False)); sys.exit(0)
-print(f"đã dùng {len(da)} phim · spy {len(uu)} → còn {len(chinh)} phim mới có QC app gốc · bù {len(bu)} cùng thể loại → {len(ds)} phim")
+print(f"đã dùng {len(da)} phim (nhà + đội) · ứng viên spy {len(uu)} + kho {len(kho)} → qua lọc {len(chinh)} phim → lấy {len(ds)}")
 import collections
 print("theo tiếng:", dict(collections.Counter(x["locale"] for x in ds)), "· theo nguồn:", dict(collections.Counter(x["nguon"] for x in ds)))
 for n, x in enumerate(ds[:40], 1): print(f"{n:3}. [{x['locale']}] {x['ten'][:55]:55} {x['nguon']:9} {x['vi_sao']}")

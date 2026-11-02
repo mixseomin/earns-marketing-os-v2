@@ -4,6 +4,7 @@ kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=F
   bỏ trần NGÀY + trần BỘ (hai trần đó cộng ngân sách camp NHÀ trong etp.camp — tiền của người đó không tính vào, cũng không bị trần nhà chặn).
   CHỈ PHIM ÂU-MỸ (anh 29/10/2026 "dừng các phim ngoài âu mỹ … chặn thể loại này khi lên camp target US"): phim có etp.phim.nhom_goc khác au_my
   (trung / an / latin / hoat_hinh / dong_a / da_mau) → chặn mọi việc tăng chi (tạo camp, nhân bản kể cả ROAS, bật lại, tăng). Phim chưa chấm nhóm → chấm poster ngay, thiếu poster thì 4 khung video creative đã chấm (apps/etp/nhom_goc.py, ckey ~13–36₫), không chấm được → chặn (anh 29/10/2026 "làm cho kín").
+  KHÔNG TRÙNG PHIM VỚI ĐỘI (anh 02/11/2026): tạo camp / nhân bản (kể cả ROAS) phim mà người khác trong đội đang có camp chạy → chặn, hai chiều (Nhà ↔ team).
   PHIM ĐÃ CẤT (anh 31/10/2026): etp.phim.thu_vong = 'cat' (apps/etp/cat_phim.py) → chặn tạo camp / nhân bản phim đó; camp đang chạy vẫn để luật tắt xử.
   viec: tang | bat | nhan_ban | tao_camp (làm tăng chi) · giam | tat (luôn cho qua — dừng khẩn vẫn phải hạ được chi)
 Đọc etp.cau_hinh (dung_khan · tran_ngay · tran_camp · tran_bo) + etp.camp (tổng ngân sách camp đang bật). Lỗi đọc kho → CHẶN (an toàn trước, không đoán).
@@ -17,6 +18,7 @@ def _q(s):
     return r.stdout.strip()
 
 LY_AU_MY = "phim nhóm gốc '{}' — chỉ chạy phim Âu-Mỹ (anh 29/10/2026: dừng các phim ngoài Âu-Mỹ, chặn khi lên camp; nhóm chấm trên poster, etp.phim.nhom_goc)"
+LY_TRUNG = "phim #{0} đang có {1} camp chạy của {2} — không lên camp trùng phim với người trong đội (anh 02/11/2026: tránh bão hoà phim)"
 LY_CAT = "phim #{0} đã cất ({1}) — thử đủ creative + đủ bộ mà chưa camp nào lãi; tự mở lại khi camp nhà / team lãi, mở tay: python3 apps/etp/cat_phim.py --mo {0}"
 
 def phim_chan_len():
@@ -27,6 +29,18 @@ def phim_chan_len():
     for l in _q("select content_id, coalesce(nhom_goc, ''), coalesce(thu_vong, ''), coalesce(thu_ly, '') from etp.phim where (nhom_goc is not null and nhom_goc <> 'au_my') or thu_vong = 'cat'").splitlines():
         cid, ng, tv, tl = l.split("|", 3)
         ra[int(cid)] = LY_AU_MY.format(ng) if ng and ng != "au_my" else LY_CAT.format(cid, tl)
+    for cid, (n, ai) in trung_doi().items(): ra.setdefault(cid, LY_TRUNG.format(cid, n, ai))   # máy chọn việc của NHÀ: phim đội đang chạy
+    return ra
+
+def trung_doi(nguoi_id=None):
+    """KHÔNG LÊN CAMP TRÙNG PHIM VỚI ĐỘI (anh 02/11/2026 "chiến lược giờ sẽ ko lên camp trùng với các thành viên trong đội để ko ảnh hưởng chất lượng bão hoà của film"):
+    {content_id: (số camp đang chạy, tên người)} của NGƯỜI KHÁC — nguoi_id=None: xét từ phía Nhà (mọi người trong đội) · có nguoi_id: xét từ phía người đó (Nhà + người còn lại)."""
+    ngoai = f"and t.nguoi_id <> {int(nguoi_id)}" if nguoi_id is not None else ""
+    nha = "union all select c.content_id, 'Nhà' from etp.camp c where c.trang_thai = 'ACTIVE' and c.content_id > 0" if nguoi_id is not None else ""
+    ra = {}
+    for l in _q(f"""select content_id, count(*), string_agg(distinct ai, ', ') from (select k.content_id, t.nguoi ai from etp.camp_ngoai k join etp.tai_khoan t using (ad_account_id)
+                     where k.trang_thai = 'ACTIVE' and k.content_id > 0 and not t.nha {ngoai} {nha}) x group by 1""").splitlines():
+        cid, n, ai = l.split("|", 2); ra[int(cid)] = (int(n), ai)
     return ra
 
 def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False):
@@ -43,6 +57,10 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         if ct and viec in ("nhan_ban", "tao_camp"):   # PHIM ĐÃ CẤT (anh 31/10/2026): thử đủ creative + đủ bộ, team không lãi → thôi lên camp mới (apps/etp/cat_phim.py)
             cl = _q(f"select coalesce(thu_ly, '') from etp.phim where content_id = {int(ct)} and thu_vong = 'cat'")
             if cl: return LY_CAT.format(ct, cl)
+            # KHÔNG TRÙNG PHIM VỚI ĐỘI (anh 02/11/2026): mọi camp mới (phim mới, nhân bản, kể cả ROAS) — camp đang chạy giữ nguyên, luật tắt xử như cũ
+            ng_id = _q(f"select t.nguoi_id from etp.camp_ngoai k join etp.tai_khoan t using (ad_account_id) where k.camp_id = {int(camp_id)}") if ngoai and camp_id else None
+            tr = trung_doi(int(ng_id) if ng_id else None).get(int(ct)) if (not ngoai or ng_id) else None
+            if tr: return LY_TRUNG.format(ct, tr[0], tr[1])
         ch = {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
         if ch.get("dung_khan"): return "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"
         if ch.get("dung_camp_moi") and viec in ("nhan_ban", "tao_camp"): return "ĐANG DỪNG LÊN CAMP MỚI (anh 25/10/2026: chờ rà soát hết creative + quy trình soát) — tăng / giảm / thay creative vẫn chạy"

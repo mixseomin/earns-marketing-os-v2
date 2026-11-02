@@ -314,7 +314,10 @@ function tinhLuat({ c, ba, bao, boThang, thangMuc, xet }: VaoLuat) {
   const ds = dieuKienLuat(c, ba, boThang, thangMuc);
   const xep = (l: LuatO) => (l.k === '✕' ? 0 : l.k === '↓' ? 1 : 2);
   const tuBao = (bao ?? []).filter((b) => LUAT_NHAN[b.nhom]);
-  const daXep = tuBao.filter((b) => LUAT_NHAN[b.nhom]![3] === 'dang'), ganBao = tuBao.filter((b) => LUAT_NHAN[b.nhom]![3] === 'gan');
+  // LUẬT TẮT THẮNG MỌI LUẬT (03/11/2026 "L4 chạy chưa? Đéo thấy ở chỗ nào?"): etp.bao đến theo thứ tự tên nhóm → 'g10_theo' đứng trước 'tat_l4', chip ⏸ G10 che ✕ L4.
+  // Xếp theo hướng như máy luật: ✕ tắt → ↓ / ⏸ giảm → còn lại.
+  const hang = (b: { nhom: string }) => { const k = LUAT_NHAN[b.nhom]![0]; return k === '✕' ? 0 : k === '↓' || k === '⏸' ? 1 : 2; };
+  const daXep = tuBao.filter((b) => LUAT_NHAN[b.nhom]![3] === 'dang').sort((a, b) => hang(a) - hang(b)), ganBao = tuBao.filter((b) => LUAT_NHAN[b.nhom]![3] === 'gan').sort((a, b) => hang(a) - hang(b));
   const tuSo = (b: { nhom: string }, dac: boolean) => ({ chip: `${LUAT_NHAN[b.nhom]![0]} ${LUAT_NHAN[b.nhom]![1]}`, mau: LUAT_NHAN[b.nhom]![2], dac });
   const du = ds.filter((l) => l.dk.every((d) => d.dat)).sort((a, b) => xep(a) - xep(b));
   const gan = ds.filter((l) => { const t = l.dk.filter((d) => !d.dat).length; return t >= 1 && t <= (l.ganThieu ?? 1); }).sort((a, b) => xep(a) - xep(b));

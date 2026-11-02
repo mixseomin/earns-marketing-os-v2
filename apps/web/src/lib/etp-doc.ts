@@ -49,7 +49,9 @@ export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: str
   trang?: TrangPhim | null; ws_moi?: boolean;
   /** CÓ THỂ TEST (anh 02/11/2026): phim qua lọc chọn phim mới (chon-phim-moi.py --co-the-test — nguồn, tiếng, thể loại, chưa ai lên, không cấm / 18+ / bị loại)
    *  hạng trong danh sách điểm cao trước · tt = trạng thái trong quy trình phim mới nếu đã vào hàng chờ (poster_ok, da_cat…). ung_vien = dòng chỉ để thấy phim chưa có camp */
-  test?: { hang: number; tong: number; diem: number; vi_sao: string; tt: string | null; nhom: string | null; qc_dang: number | null; qc: number | null; page: number | null; qc_tra: string | null } | null; ung_vien?: boolean };
+  test?: { hang: number; tong: number; diem: number; vi_sao: string; tt: string | null; nhom: string | null; qc_dang: number | null; qc: number | null; page: number | null; qc_tra: string | null } | null; ung_vien?: boolean;
+  /** NHẬN PHIM (etp.phim_nhan_v — anh 02/11/2026): người đang giữ quyền lên camp (24 giờ) hoặc đã lên */
+  nhan?: { nguoi: string | null; het_luc: string; trang_thai: string } | null };
 export type TrangPhim = { ws: number; nguoi: string | null; tao: string | null; mo_ta: number; cot_truyen: number; nguon: string | null; redirect_url: string | null;
   link_ok: boolean | null; link_loi: string | null; link_luc: string | null; thieu: string[] };
 export type ChamCr = { luc: string; may: string | null; ket: string | null; meta: number | null; afs: number | null; loi: string | null;
@@ -315,6 +317,10 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     else if (i < TEST_HIEN) phims.push({ content_id: n(x.id), ten: x.ten ?? null, the_loai: null, bo: null, locale: x.locale ?? null, nguon: x.nguon ?? null, nhom_goc: null, moc: null, doi_chay: 0,
       creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, trang: null, test, ung_vien: true });
   });
+  const nhR = await run<{ content_id: string; nguoi: string | null; het_luc: string; trang_thai: string }>(sql`select distinct on (content_id) content_id, nguoi, het_luc::text het_luc, trang_thai
+      from etp.phim_nhan_v where trang_thai in ('giu', 'da_len') order by content_id, nhan_luc desc`).catch(() => []);
+  const nhTheo = new Map(nhR.map((r) => [n(r.content_id), r]));
+  for (const p of phims) { const r = nhTheo.get(p.content_id); p.nhan = r ? { nguoi: r.nguoi, het_luc: r.het_luc, trang_thai: r.trang_thai } : null; }
   const [soNgay, tatNgay, boRow] = await Promise.all([
     run<{ c: number; d: string; chi: string; thu: string }>(sql`select camp_id c, ngay::text d, chi, thu from ${SN} where chi > 0 or thu > 0`),
     runNha<{ d: string; n: string }>(sql`select (luc at time zone 'UTC')::date::text d, count(distinct camp_id) n from etp.nhat_ky where viec = 'tat' and ok group by 1`),   // nhật ký máy nhà — xem người khác thì không có

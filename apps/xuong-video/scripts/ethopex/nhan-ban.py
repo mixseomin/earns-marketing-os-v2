@@ -91,6 +91,14 @@ def trang_chua_san(content_id, tk):
     ws, thieu = r.split("|", 1)
     return f"trang phim {content_id} (bản workspace #{ws} của {ng_ten}) còn thiếu: {thieu} — mở lại trên Ethopex cho máy sinh / sửa rồi mới lên camp" if thieu else None
 
+def giu_boi_nguoi_khac(content_id, tk):
+    """NHẬN PHIM (anh 02/11/2026: thành viên nhận phim, giữ quyền 24 giờ, quá hạn chưa lên camp thì nhả): phim đang được NGƯỜI KHÁC giữ (etp.phim_nhan_v giu)
+    → lý do chặn; người sở hữu tài khoản đang giữ / đã lên / chưa ai nhận → None"""
+    ng = q(f"select nguoi_id from etp.tai_khoan where ad_account_id = {int(tk or 0)}") if str(tk or "").isdigit() else ""
+    if not ng.isdigit(): return None
+    r = q(f"select coalesce(nguoi, '?') || '|' || to_char(het_luc at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') from etp.phim_nhan_v where content_id = {int(content_id)} and trang_thai = 'giu' and nguoi_id <> {int(ng)} order by nhan_luc desc limit 1")
+    return f"phim {content_id} đang được {r.split('|')[0]} giữ quyền lên camp tới {r.split('|')[1]} (nhận phim trên etp.on.tc)" if "|" in r else None
+
 def dem_tk(content_id, tk):
     """TRẦN 30 CAMP / PHIM THEO TỪNG TÀI KHOẢN NHÀ (anh 02/11/2026 "Set lại 30 cho mọi camp nhà. Và theo từng tk"): camp đang chạy / đang đồng bộ
     của phim ở ĐÚNG tài khoản sẽ nhận camp mới; camp ROAS ★ không chiếm chỗ. Thiếu tài khoản trong payload → đếm cả phim (chặt hơn, không lọt)."""
@@ -306,7 +314,7 @@ def main(a):
         if not NGOAI and not ep and str(bo) in BO_CHI_PHIM_LAI:   # mọi đường mở camp (creative mới, clone, thang) — phim mới / phim lỗ ở bộ này không mở thêm
             pc, pt = (float(x or 0) for x in (q(f"select coalesce(sum(s.chi), 0), coalesce(sum(s.thu), 0) from etp.so_ngay s join etp.camp c using (camp_id) where c.bo = '{bo}' and c.content_id = {int(cid)} and s.ngay between (now() at time zone 'UTC')::date - 7 and (now() at time zone 'UTC')::date - 1") or "0|0").split("|"))
             if pt <= pc: raise ChanLuat(f"bộ {bo} chỉ mở camp cho phim đã lãi 7 ngày ở bộ này — phim {cid}: chi ${pc:.2f} · lãi ${pt - pc:+.2f} (etp.cau_hinh.bo_chi_phim_lai, anh 02/11/2026)")
-        if not ep and (ly_ := trang_chua_san(cid, pl.get("ad_account_id"))): raise ChanLuat(ly_)   # cổng trang phim (anh 02/11/2026); ROAS đi roas_main, không qua đây
+        if not ep and (ly_ := trang_chua_san(cid, pl.get("ad_account_id")) or giu_boi_nguoi_khac(cid, pl.get("ad_account_id"))): raise ChanLuat(ly_)   # + phim người khác đang giữ (anh 02/11/2026)   # cổng trang phim (anh 02/11/2026); ROAS đi roas_main, không qua đây
         chan = cong(cid, pl["campaign"]["ad_groups"][0]["ads"][0]["creative_id"], ten)
         if chan: raise ChanLuat(chan)
         n = dem_dang_chay(cid)

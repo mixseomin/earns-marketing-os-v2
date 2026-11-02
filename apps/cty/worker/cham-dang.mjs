@@ -202,6 +202,38 @@ export async function xetHinhAi(ds) {
   return ra;
 }
 
+/** NGỌC CHẤM THUMBNAIL (02/11/2026, anh: "thumb rất rất quan trọng — thiết kế + review đúng chuẩn"). ds = [{ title, url }] → mỗi mục { chan[], canh[] } | null (hỏng).
+ *  Chuẩn: đọc được ở cỡ ô điện thoại (~160 px ngang), ≤ 5 từ chữ to, chủ thể rõ một cái, không rối, không lặp nguyên tiêu đề, khớp chuyện, không lỗi AI / logo lạ.
+ *  Sổ xet-thumb.json theo md5(title|url) — url mang dấu nội dung ảnh (thumb.mjs) nên ảnh đổi là xét lại. */
+export async function xetThumbAi(ds) {
+  if (!MODEL_NGOC) return ds.map(() => null);
+  const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'xet-thumb.json');
+  let so = {}; try { so = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* chưa có sổ */ }
+  const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`${x.title}|${x.url}`).digest('hex');
+  const system = 'You are the thumbnail reviewer of a YouTube channel. You see ONE vertical thumbnail and the video title. Judge it the way it appears in a phone feed (about 160 px wide). Reply with ONE JSON only: '
+    + '{"kho_doc":true|false,"nhieu_chu":true|false,"tran":true|false,"mo":true|false,"roi":true|false,"lap_tieu_de":true|false,"lech":true|false,"loi_ai":true|false,"logo_la":true|false,"nhay_cam":true|false,"chac":true|false,"ly_do":"one short sentence in Vietnamese"}. '
+    + 'kho_doc = the big text is not readable at small size (thin, low contrast, too small). nhieu_chu = more than 5 words of big text. tran = text cut off or touching the edge. '
+    + 'mo = no single clear subject (face / object) recognisable at small size. roi = cluttered, the eye has no single focal point. lap_tieu_de = the big text repeats the title word for word instead of adding to it. '
+    + 'lech = the picture or text does not match the title. loi_ai = obvious AI drawing errors. logo_la = third-party logo or stock watermark. nhay_cam = nudity, gore, hate symbols. chac = you are confident about every true flag. '
+    + 'A tabloid / comic newspaper style with a channel label is intended.';
+  const ra = []; let moi = 0;
+  for (const x of ds) {
+    if (!x.url) { ra.push(null); continue; }
+    const k = khoa(x);
+    if (!(k in so)) {
+      const o = await hoiNgoc({ luot: 'xet-thumb', system, max_tokens: 300, cho: 120000, content: [{ type: 'image', source: { type: 'url', url: x.url } }, { type: 'text', text: `VIDEO TITLE: ${x.title}` }] });
+      if (o === undefined) { ra.push(null); continue; }
+      so[k] = o; moi++;
+    }
+    const o = so[k], ly = ` (Ngọc: ${String(o.ly_do || '').slice(0, 160)})`;
+    const loi = [o.kho_doc && 'chữ khó đọc ở cỡ nhỏ', o.nhieu_chu && 'quá 5 từ chữ to', o.tran && 'chữ tràn / sát mép', o.mo && 'không có chủ thể rõ', o.roi && 'rối, không có điểm nhìn',
+      o.lap_tieu_de && 'chữ lặp nguyên tiêu đề', o.lech && 'lệch tiêu đề / chuyện', o.loi_ai && 'lỗi vẽ AI', o.logo_la && 'logo / watermark lạ', o.nhay_cam && 'hình nhạy cảm'].filter(Boolean);
+    ra.push({ chan: o.chac && loi.length ? [`thumbnail: ${loi.join(' + ')}${ly}`] : [], canh: !o.chac && loi.length ? [`thumbnail (chưa chắc): ${loi.join(' + ')}${ly}`] : [] });
+  }
+  if (moi) { try { fs.mkdirSync(path.dirname(tep), { recursive: true }); fs.writeFileSync(tep, JSON.stringify(so)); } catch (e) { console.error('xet-thumb: không ghi được sổ', e.message); } }
+  return ra;
+}
+
 /** Chấm mọi video đang dùng chưa chấm hoặc đã xuất lại sau lần chấm. Trả { cham, duyet, sua, theoMau: { mau: { n, loi: {lỗi: số} } } }. */
 export async function chamMoi(sql) {
   // chấm lại khi xuất lại (xuat) HOẶC chữ đăng đổi (dang = md5 của dang) — đổi tiêu đề mà không xuất lại vẫn phải qua phòng

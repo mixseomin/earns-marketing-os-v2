@@ -1,0 +1,54 @@
+<!doctype html>
+<!-- THUMBNAIL KÊNH LỊCH SỬ (02/11/2026, anh: "thumb rất rất quan trọng — thiết kế + review đúng chuẩn, không dùng thumb YouTube tự sinh").
+     Dọc 1080×1920 (Shorts / video dọc). Chuẩn: MỘT ảnh thật chủ thể rõ (Commons của chính chuyện) chiếm phần lớn khung · chữ to 2–4 từ đọc được ở cỡ ô điện thoại
+     (chữ vàng viền đen dày, chiếm ≥ 80% bề ngang) · một điểm nhấn màu (nhãn đỏ) · nhãn kênh nhỏ để nhận ra · không gì quan trọng sát mép.
+     Dữ liệu: window.THUMB = { chu, phu, anh (file://), kenh, theme } rồi gọi window.__dung(). thumb.mjs chụp. -->
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Bangers&display=swap" rel="stylesheet">
+<style>
+:root { --vang: #ffe14d; --do: #e3262b; --den: #111; --giay: #fbfaf5; }
+html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: #1a1612; }
+#khung { position: relative; width: 1080px; height: 1920px; overflow: hidden;
+  background: radial-gradient(circle at 50% 35%, #3a2f25 0%, #15110d 70%); }
+#cham { position: absolute; inset: 0; background-image: radial-gradient(rgba(255,255,255,.07) 2.2px, transparent 2.6px); background-size: 14px 14px; }
+#bao { position: absolute; left: 0; right: 0; top: 70px; height: 150px; background: var(--do); transform: rotate(-2deg); box-shadow: 0 10px 0 var(--den);
+  display: flex; align-items: center; justify-content: center; }
+#bao span { font: 400 82px/1 Anton, Impact, sans-serif; color: #fff; letter-spacing: 2px; text-shadow: 5px 5px 0 var(--den); white-space: nowrap; }
+#anh { position: absolute; left: 70px; right: 70px; top: 300px; height: 1000px; background: var(--giay); padding: 26px 26px 26px; transform: rotate(2.2deg);
+  box-shadow: 0 30px 60px rgba(0,0,0,.6), 14px 14px 0 var(--den); }
+#anh img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; filter: contrast(1.18) saturate(1.25) brightness(1.04); display: block; }
+#anh::after { content: ''; position: absolute; inset: 26px; background-image: radial-gradient(rgba(0,0,0,.18) 1.6px, transparent 2px); background-size: 9px 9px; mix-blend-mode: multiply; }
+.bang { position: absolute; width: 230px; height: 64px; background: rgba(235,220,170,.85); }
+#phu { position: absolute; top: 250px; right: 40px; transform: rotate(7deg); background: var(--vang); color: var(--den); padding: 18px 30px 14px;
+  font: 400 64px/1 Bangers, Impact, sans-serif; letter-spacing: 3px; box-shadow: 9px 9px 0 var(--den); border: 6px solid var(--den); white-space: nowrap; z-index: 3; }
+#chu { position: absolute; left: 40px; right: 40px; top: 1310px; height: 470px; display: flex; align-items: center; justify-content: center; text-align: center; z-index: 4; }
+#chu div { font: 400 200px/0.98 Anton, Impact, sans-serif; color: var(--vang); -webkit-text-stroke: 16px var(--den); paint-order: stroke fill;
+  text-shadow: 12px 12px 0 var(--den); text-transform: uppercase; }
+#kenh { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%); background: var(--den); color: #fff; padding: 12px 26px;
+  font: 400 40px/1 Anton, Impact, sans-serif; letter-spacing: 3px; border: 4px solid var(--vang); white-space: nowrap; }
+</style></head><body>
+<div id="khung"><div id="cham"></div>
+  <div id="bao"><span id="bao-chu"></span></div>
+  <div id="anh"><img id="img"><div class="bang" style="left:-50px;top:-10px;transform:rotate(-28deg)"></div><div class="bang" style="right:-50px;top:-10px;transform:rotate(26deg)"></div></div>
+  <div id="phu"></div>
+  <div id="chu"><div id="chu-to"></div></div>
+  <div id="kenh"></div>
+</div>
+<script>
+window.__dung = async () => {
+  const T = window.THUMB;
+  document.getElementById('bao-chu').textContent = T.bao || 'BREAKING HISTORY';
+  document.getElementById('phu').textContent = T.phu;
+  document.getElementById('kenh').textContent = T.kenh;
+  const el = document.getElementById('chu-to'); el.textContent = T.chu;
+  const img = document.getElementById('img'); img.src = T.anh; await img.decode();
+  await document.fonts.ready;
+  // chữ to: lớn nhất mà vẫn nằm trong hộp (≤ 2 dòng, không tràn ngang) — đọc được ở cỡ ô điện thoại
+  const hop = document.getElementById('chu');
+  for (let s = 260; s >= 110; s -= 6) { el.style.fontSize = `${s}px`; const dong = Math.round(el.offsetHeight / (s * 0.98));
+    if (el.scrollWidth <= hop.clientWidth && el.offsetHeight <= hop.clientHeight && dong <= 2) break; }
+  // nhãn phụ: không tràn mép phải
+  const p = document.getElementById('phu'); for (let s = 64; s >= 36 && p.getBoundingClientRect().left < 40; s -= 4) p.style.fontSize = `${s}px`;
+  return { co: parseInt(el.style.fontSize), dong: Math.round(el.offsetHeight / (parseInt(el.style.fontSize) * 0.98)) };
+};
+</script></body></html>

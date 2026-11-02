@@ -18,7 +18,7 @@ const gh = arg('goc-hook') ? JSON.parse(readFileSync(arg('goc-hook')!, 'utf8')) 
 const cuTap = arg('cu') ? JSON.parse(readFileSync(arg('cu')!, 'utf8')) as { hook?: { qc: string; goc: string }; goc?: unknown; tieu_de?: string; chu_de?: string } : null;
 let hookChon: { qc: string; goc: string } | null = cuTap?.hook ?? null, tieuDeChon: string | null = cuTap?.hook ? cuTap.tieu_de ?? null : null;
 chuDe ??= cuTap?.chu_de;
-if (!ra || !id || (!chuDe && !gh)) { console.error('tsx viet-tap.mts <ra.json> (--chu-de "…" | --goc-hook <tệp>) --nn en --id <id>'); process.exit(2); }
+if (!ra || !id || (!chuDe && !gh && !process.argv.includes('--chi-thumb'))) { console.error('tsx viet-tap.mts <ra.json> (--chu-de "…" | --goc-hook <tệp>) --nn en --id <id>'); process.exit(2); }
 // HỒ SƠ KÊNH (kenh.json): khuôn độ dài, giọng văn, thẻ kết của kênh — saga (Shorts mồi) / parody (trọn chuyện, lá cải)…
 const kenhId = arg('kenh') ?? 'saga', K = JSON.parse(readFileSync(new URL('./kenh.json', import.meta.url), 'utf8'))[kenhId];
 if (!K) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
@@ -82,6 +82,35 @@ if (process.argv.includes('--chi-hook')) {
     console.log(`✓ gắn hook ${h.id} "${h.chu}" → "${c.data.tieu_de}" (${Math.round(c.tokens.vnd ?? 0)}₫)`); process.exit(0);
   }
   console.error(`✗ gắn hook hỏng 3 lần: ${loi}`); process.exit(1);
+}
+
+// ---------- CHỈ CHỮ THUMBNAIL (--chi-thumb, 02/11/2026 anh: "thumb rất rất quan trọng, phải có thiết kế + review đúng chuẩn, không dùng thumb YouTube tự sinh") ----------
+// Chuẩn ngành: 2–4 từ, BỔ SUNG tiêu đề (không lặp lại), một cảm xúc / một câu hỏi bỏ ngỏ, đọc được ở cỡ ô điện thoại; ảnh nền = ảnh thật của chuyện có mặt / vật rõ nhất.
+// In JSON { thumb: { chu, phu, anh } } ra tệp <ra>. thumb.mjs (iMac) dựng ảnh, Phòng Nội dung chấm (cham-dang › xetThumbAi).
+if (process.argv.includes('--chi-thumb')) {
+  if (!cuTap) { console.error('--chi-thumb cần --cu <tập.json>'); process.exit(2); }
+  const cu = cuTap as unknown as { tieu_de: string; chu_de: string; cau: { chu: string; canh?: { tranh?: { anh?: string; commons?: string; mo_ta?: string } } }[] };
+  const anh = cu.cau.map((c) => c.canh?.tranh).filter((t): t is { anh: string; commons: string; mo_ta?: string } => !!t?.anh && !!t?.commons);
+  if (!anh.length) { console.error('tập chưa có ảnh thật (tranh.commons) để làm nền thumbnail'); process.exit(3); }
+  const Th = z.object({ chu: z.string().describe(`chữ to trên thumbnail, 2–4 TỪ, VIẾT HOA, ${nn === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'}, KHÔNG lặp lại tiêu đề mà nói phần tiêu đề chưa nói (con số sốc / lời phán / câu hỏi bỏ ngỏ), giọng lá cải hài của kênh, không gạch dài, không dấu chấm`),
+    phu: z.string().describe(`dòng nhỏ kiểu tít báo lá cải ≤ 5 từ, VIẾT HOA (vd "SHOCKING DEAL", "EXCLUSIVE"), ${nn === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'}`),
+    anh: z.number().int().describe('số thứ tự ảnh nền trong danh sách (chủ thể rõ nhất, có mặt người / vật dễ nhận ra ở cỡ nhỏ)'), ly_do: z.string() });
+  const { tuMayTrong } = await import('../../../cty/worker/cham-dang.mjs');
+  let loi = '';
+  for (let lan = 1; lan <= 3; lan++) {
+    const c = await sinhJson({ schema: Th, model: 'claude-sonnet-5-5', max_tokens: 800, ten: 'chữ thumbnail tập lịch sử',
+      system: `Kênh "${K.ten}" — bản tin lá cải hài về chuyện lịch sử thật. Viết chữ cho thumbnail YouTube dọc 9:16. Người xem lướt nhanh trên điện thoại: chữ phải đọc được trong nửa giây và làm họ muốn biết thêm.`,
+      user: `TIÊU ĐỀ: ${cu.tieu_de}\nCHUYỆN: ${cu.chu_de}\nLỜI ĐỌC (đầu):\n${cu.cau.map((x) => x.chu).join(' ').slice(0, 1500)}\nẢNH THẬT CÓ SẴN:\n${anh.map((t, i) => `${i}. ${t.commons} — ${t.mo_ta ?? ''}`).join('\n')}${loi ? `\nLẦN TRƯỚC SAI: ${loi}` : ''}` });
+    if (!c.ok) { loi = c.loi; continue; }
+    const t = c.data, tu = t.chu.trim().split(/\s+/).length;
+    if (tu < 2 || tu > 4) { loi = `chữ to có ${tu} từ (phải 2–4)`; continue; }
+    if (/[—–]/.test(t.chu + t.phu)) { loi = 'có gạch dài'; continue; }
+    if (tuMayTrong(`${t.chu} ${t.phu}`).length) { loi = 'có cụm từ máy bị cấm'; continue; }
+    if (!anh[t.anh]) { loi = `ảnh ${t.anh} không có`; continue; }
+    writeFileSync(ra, JSON.stringify({ thumb: { chu: t.chu.toUpperCase(), phu: t.phu.toUpperCase(), anh: anh[t.anh].anh, commons: anh[t.anh].commons } }, null, 1));
+    console.log(`✓ thumbnail "${t.chu}" / "${t.phu}" · ảnh ${anh[t.anh].commons} (${Math.round(c.tokens.vnd ?? 0)}₫)`); process.exit(0);
+  }
+  console.error(`✗ chữ thumbnail hỏng 3 lần: ${loi}`); process.exit(1);
 }
 
 // ---------- khuôn trả về ----------

@@ -41,6 +41,17 @@ export async function kiemGoc(ds) {
  *  Đo 31/10/2026: chữ khớp ngách nằm ở ký tự 300–1.300 cả ở QC đúng lẫn QC lệch (#875 xe đưa đón du thuyền ở 750) → không kiểm bằng từ khoá được.
  *  ds = [{ qc, ma, nhan, muc_dich, su_that, dong }] → mảng lỗi (null = đạt). Mỗi cặp (máy, QC) hỏi một lần; proxy / mô hình hỏng → không chặn, ghi cảnh báo. */
 const MODEL_NGOC = (() => { try { return (/^model:\s*(\S+)/m.exec(fs.readFileSync(new URL('../cong-ty/nhan-su/ngoc/SOUL.md', import.meta.url), 'utf8')) ?? [])[1] ?? null; } catch { return null; } })();
+/** HỎI NGỌC MỘT LƯỢT qua proxy công ty (một chỗ cho xét hook + xem hình): trả object JSON trong câu trả lời, hoặc undefined khi proxy / mô hình / JSON hỏng
+ *  (người gọi KHÔNG chặn bài vì lỗi máy, và không ghi sổ để lượt sau xét lại) — lỗi ghi ra log, không nuốt im. */
+async function hoiNgoc({ luot, system, content, max_tokens = 200, cho = 60000 }) {
+  try {
+    const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ngoc', 'x-cty-luot': `${luot}-${Date.now()}`, 'x-cty-phong': 'noi-dung' },
+      body: JSON.stringify({ model: MODEL_NGOC, max_tokens, temperature: 0, system, messages: [{ role: 'user', content }] }), signal: AbortSignal.timeout(cho) });
+    const j = await r.json(); if (!r.ok) { console.error(`hỏi Ngọc (${luot}): proxy ${r.status} ${JSON.stringify(j).slice(0, 160)}`); return undefined; }
+    const txt = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+    return JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
+  } catch (e) { console.error(`hỏi Ngọc (${luot}): ${String(e.message).slice(0, 160)}`); return undefined; }
+}
 export async function xetHookAi(ds) {
   // hook từ VIDEO THẮNG của chính kênh (qc 'kenh:<id>', anh duyệt 31/10/2026) không nằm trong kho spy — Ngọc được nói rõ nguồn + lượt xem
   const ids = [...new Set(ds.map((x) => x.qc).filter((q) => q && !String(q).startsWith('kenh:')).map(String))]; if (!ds.some((x) => x.qc) || !MODEL_NGOC) return ds.map(() => null);
@@ -56,14 +67,11 @@ export async function xetHookAi(ds) {
   const hoi = async (x) => {
     const system = 'You check whether a social post hook borrowed from another company\'s ad fits OUR brand. Reply with ONE JSON only: {"cung_ngach":true|false,"hua_sai":true|false,"nhat":true|false,"ly_do":"one short sentence in Vietnamese"}. cung_ngach = the original ad is about the same topic and audience as our brand (a person stopped by this hook would plausibly want our brand). hua_sai = the hook as used promises something our brand does not do or a number our facts do not support. nhat = the line would NOT stop a stranger scrolling: a product label or feature list ("Birth Chart / Personal Insight", "Astrology software suite for professionals"), a sentence cut off mid-thought, or a flat statement with no curiosity, tension, situation or payoff.';
     const user = `OUR BRAND: ${x.nhan}\nWHAT IT IS: ${x.muc_dich ?? ''}\nFACTS: ${(x.su_that ?? 'none').slice(0, 1500)}\n\n${String(x.qc).startsWith('kenh:') ? `ORIGINAL: our own channel's short that already got ${x.luot_xem ?? '?'} views: "${x.goc ?? ''}"` : `ORIGINAL AD (opening): ${dau.get(String(x.qc)) ?? '(not found)'}`}\n\nHOOK LINES WE USE:\n${x.dong.join('\n')}`;
-    try {
-      const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ngoc', 'x-cty-luot': `xet-hook-${Date.now()}`, 'x-cty-phong': 'noi-dung' },
-        body: JSON.stringify({ model: MODEL_NGOC, max_tokens: 200, temperature: 0, system, messages: [{ role: 'user', content: user }] }), signal: AbortSignal.timeout(60000) });
-      const j = await r.json(); if (!r.ok) return undefined;   // hỏng = không chặn, không ghi sổ (lượt sau xét lại)
-      const txt = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(''), o = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
+    {
+      const o = await hoiNgoc({ luot: 'xet-hook', system, content: user }); if (o === undefined) return undefined;   // hỏng = không chặn, không ghi sổ (lượt sau xét lại)
       const loi = [o.cung_ngach === false && 'hook mượn từ QC khác ngách', o.hua_sai === true && 'hook hứa điều thương hiệu không có', o.nhat === true && 'hook nhạt (nhãn sản phẩm / câu cụt / không gây tò mò)'].filter(Boolean);
       return loi.length ? `${loi.join(' + ')} (Ngọc: ${String(o.ly_do || '').slice(0, 140)})` : null;
-    } catch { return undefined; }
+    }
   };
   const ra = []; let moi = 0;
   for (const x of ds) {
@@ -179,13 +187,10 @@ export async function xetHinhAi(ds) {
     if (!x.anh?.length) { ra.push(null); continue; }
     const k = khoa(x);
     if (!(k in so)) {
-      try {
-        const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ngoc', 'x-cty-luot': `xet-hinh-${Date.now()}`, 'x-cty-phong': 'noi-dung' },
-          body: JSON.stringify({ model: MODEL_NGOC, max_tokens: 300, temperature: 0, system, messages: [{ role: 'user', content: [
-            ...x.anh.flatMap((u, i) => [{ type: 'text', text: `Frame ${i + 1}:` }, { type: 'image', source: { type: 'url', url: u } }]), { type: 'text', text: `POST TITLE: ${x.title}` }] }] }), signal: AbortSignal.timeout(120000) });
-        const j = await r.json(); if (!r.ok) { ra.push(null); continue; }
-        const txt = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join(''); so[k] = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1)); moi++;
-      } catch { ra.push(null); continue; }
+      const o = await hoiNgoc({ luot: 'xet-hinh', system, max_tokens: 300, cho: 120000, content: [
+        ...x.anh.flatMap((u, i) => [{ type: 'text', text: `Frame ${i + 1}:` }, { type: 'image', source: { type: 'url', url: u } }]), { type: 'text', text: `POST TITLE: ${x.title}` }] });
+      if (o === undefined) { ra.push(null); continue; }   // hỏng = không chặn, không ghi sổ (hoiNgoc đã ghi log)
+      so[k] = o; moi++;
     }
     const o = so[k], ly = ` (Ngọc: ${String(o.ly_do || '').slice(0, 160)})`, cung = [o.chu_loi && 'chữ trên hình đè / tràn mép / không đọc được', o.nen_phang && 'chữ trên nền màu phẳng, không ảnh thật',
       o.loi_ai && 'lỗi vẽ AI rõ (mặt / tay / chữ rác)', o.logo_la && 'logo / watermark lạ trên hình', o.nhay_cam && 'hình nhạy cảm'].filter(Boolean);

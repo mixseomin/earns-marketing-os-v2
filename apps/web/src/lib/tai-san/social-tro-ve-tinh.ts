@@ -4,7 +4,7 @@
 // bỏ "/" cuối và query. Site khớp mọi khoá cùng tên miền gốc; sản phẩm / kênh khớp đúng đường dẫn (hoặc đường dẫn con).
 
 export const KY_SOCIAL = [7, 30, 90] as const;
-export type TroVe = { ky: number; kenh: number; nen: string[]; bai: number; xem: number | null; khach: number | null };
+export type TroVe = { ky: number; /** số TÀI KHOẢN social (nền + tài khoản) có bài trỏ về, mọi lúc */ taiKhoan: number; nen: string[]; bai: number; xem: number | null; khach: number | null };
 export type BaiDich = { dich: string; nen: string; tk: string; ngay: string | null; xem: number | null };
 
 export const khoaDich = (u: string | null | undefined): string | null => {
@@ -15,7 +15,7 @@ export const khoaDich = (u: string | null | undefined): string | null => {
 export const mienGoc = (khoa: string) => (khoa.split('/')[0] ?? '').split('.').slice(-2).join('.');
 const lui = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10);
 
-/** Gộp bài theo đích: kenh = tài khoản (nền + tài khoản) có bài trỏ về đích (mọi lúc); bai / xem = bài đăng trong ky ngày tới hom.
+/** Gộp bài theo đích: taiKhoan = số tài khoản (nền + tài khoản) có bài trỏ về đích (mọi lúc); bai = bài đăng trong ky ngày tới hom; xem = lượt xem cộng dồn TỚI NAY của các bài đó.
  *  khach (site) = phiên từ bài đăng trong kỳ theo tên miền (sổ phiên adfond, khoá miền gốc); null = đích không có mã đo (sản phẩm trên chợ). */
 export function gopTroVe(ds: BaiDich[], khachMien: Map<string, number> | null, ky: number, hom: string, khop: (khoa: string) => boolean, laSite: boolean): TroVe | null {
   const cua = ds.filter((b) => khop(b.dich)); if (!cua.length) return null;
@@ -23,7 +23,7 @@ export function gopTroVe(ds: BaiDich[], khachMien: Map<string, number> | null, k
   const xems = trong.map((b) => b.xem).filter((x): x is number => x != null);
   const mien = laSite ? [...new Set(cua.map((b) => mienGoc(b.dich)))] : [];
   return {
-    ky, kenh: new Set(cua.map((b) => `${b.nen}|${b.tk}`)).size, nen: [...new Set(cua.map((b) => b.nen))].sort(), bai: trong.length,
+    ky, taiKhoan: new Set(cua.map((b) => `${b.nen}|${b.tk}`)).size, nen: [...new Set(cua.map((b) => b.nen))].sort(), bai: trong.length,
     xem: xems.length ? xems.reduce((t, x) => t + x, 0) : null,
     khach: laSite && khachMien ? mien.reduce((t, m) => t + (khachMien.get(m) ?? 0), 0) : null,
   };

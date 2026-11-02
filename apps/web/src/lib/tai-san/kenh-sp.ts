@@ -11,6 +11,7 @@ function hoSoKenh(): Record<string, { lich_tap?: number[]; gio_tap?: string }> {
     try { const k = JSON.parse(readFileSync(join(goc, 'apps/xuong-video/scripts/lich-su/kenh.json'), 'utf8')) as Record<string, { may?: string; lich_tap?: number[]; gio_tap?: string }>;
       return Object.fromEntries(Object.values(k).filter((x) => x && typeof x === 'object' && x.may).map((x) => [x.may!, x])); } catch { /* thử gốc khác */ }
   }
+  console.warn('kenh-sp: không đọc được apps/xuong-video/scripts/lich-su/kenh.json — Kênh nội dung không có lịch làm tập');
   return {};
 }
 

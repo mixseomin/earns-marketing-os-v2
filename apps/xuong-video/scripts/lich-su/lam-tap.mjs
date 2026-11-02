@@ -15,10 +15,11 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { BOX, box, len, ve, q } from './box3.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const co = (k) => process.argv.includes(`--${k}`);
-const DIR = dirname(fileURLToPath(import.meta.url)), BOX = 'root@167.233.241.16', GOC_BOX = '/opt/earns-marketing-os-v2/apps/xuong-video';
+const DIR = dirname(fileURLToPath(import.meta.url));
 const id = arg('id');
 if (!id) { console.error('node lam-tap.mjs --id <id> --nn en|es --chu-de "…"'); process.exit(2); }
 const tepTap = join(DIR, 'tap', `${id}.json`), RA = join(KHO, id), tepKho = join(DIR, 'kho.json');
@@ -33,11 +34,6 @@ const kenhId = arg('kenh') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepT
 const KENH = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId];
 if (!KENH) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
 mkdirSync(RA, { recursive: true });
-// duyệt chi một lần (anh vừa bảo làm) đi theo lệnh sang box3 — chot-tien.ts trên box đọc DUYET_SINH_1_LAN
-const box = (lenh) => execFileSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && ${process.env.DUYET_SINH_1_LAN === '1' ? 'DUYET_SINH_1_LAN=1 ' : ''}NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx ${lenh}`], { encoding: 'utf8', maxBuffer: 64 << 20 }).trim();
-const len = (f, dich) => execFileSync('scp', ['-q', f, `${BOX}:${dich}`]);
-const ve = (nguon, dich) => execFileSync('scp', ['-q', '-r', `${BOX}:${nguon}`, dich]);
-const q = (s) => `'${String(s).replace(/'/g, `'\\''`)}'`;
 const docKho = () => JSON.parse(readFileSync(tepKho, 'utf8'));
 
 // ---------- 2. KIỂM ----------

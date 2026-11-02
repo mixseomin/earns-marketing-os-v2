@@ -10,18 +10,17 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BOX, box, sqlBox } from './box3.mjs';
 
-const DIR = dirname(fileURLToPath(import.meta.url)), BOX = 'root@167.233.241.16', GOC_BOX = '/opt/earns-marketing-os-v2/apps/xuong-video';
+const DIR = dirname(fileURLToPath(import.meta.url));
 const arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : null; };
 const KENH = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'));
 const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
 const thu = ((d) => (d === 0 ? 7 : d))(new Date(`${hom}T12:00:00+07:00`).getUTCDay());
-const box = (lenh) => execFileSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx ${lenh}`], { encoding: 'utf8', maxBuffer: 64 << 20 }).trim();
 const tele = (chu) => { try { execFileSync('ssh', [BOX, 'set -a; . /root/.secrets/mine-tg.env; set +a; curl -s -o /dev/null https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage --data-urlencode chat_id=$TG_CHAT --data-urlencode text@-'], { input: chu }); } catch (e) { console.log(`⚠ Telegram: ${e.message}`); } };
 
 const danhDau = (ma, dl) => { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
-  const cauSql = `UPDATE xv_may SET nguon = ${dl ? `jsonb_set(coalesce(nguon, '{}'::jsonb), '{dang_lam}', ${q1(JSON.stringify(dl))}::jsonb)` : "coalesce(nguon, '{}'::jsonb) - 'dang_lam'"} WHERE ma = ${q1(ma)};`;
-  try { execFileSync('ssh', [BOX, 'cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -qtA'], { input: cauSql }); } catch (e) { console.log(`⚠ dấu đang làm: ${e.message}`); } };
+  try { sqlBox(`UPDATE xv_may SET nguon = ${dl ? `jsonb_set(coalesce(nguon, '{}'::jsonb), '{dang_lam}', ${q1(JSON.stringify(dl))}::jsonb)` : "coalesce(nguon, '{}'::jsonb) - 'dang_lam'"} WHERE ma = ${q1(ma)};`); } catch (e) { console.log(`⚠ dấu đang làm: ${e.message}`); } };
 
 for (const [k, K] of Object.entries(KENH)) {
   if (k.startsWith('_') || !K.may || (arg('kenh') && arg('kenh') !== k)) continue;

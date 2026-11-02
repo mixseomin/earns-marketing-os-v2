@@ -17,10 +17,10 @@ export function cotSocial<T>(get: (r: T) => TroVe | null | undefined, ky: number
   const nenCua = (t: TroVe | null | undefined) => (t ? t.nen.map((n) => NHAN_NEN[n] ?? n).join(', ') : 'chưa có kênh social nào trỏ về');
   const o = (n: number | null | undefined, dam = false) => <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: dam ? 700 : 400, color: n ? undefined : 'var(--fg-4)' }}>{so(n)}</span>;
   return [
-    { key: 'so_kenh', group: 'social', header: 'Kênh', width: 64, sortValue: (r) => get(r)?.kenh ?? null, title: 'số tài khoản social đang trỏ về (mọi thời điểm)',
-      cellTitle: (r) => nenCua(get(r)), cell: (r) => o(get(r)?.kenh ?? null, true) },
+    { key: 'so_tk', group: 'social', header: 'Tài khoản', width: 76, sortValue: (r) => get(r)?.taiKhoan ?? null, title: 'số tài khoản social có bài trỏ về (mọi thời điểm)',
+      cellTitle: (r) => nenCua(get(r)), cell: (r) => o(get(r)?.taiKhoan ?? null, true) },
     { key: 'so_bai', group: 'social', header: 'Bài', width: 60, sortValue: (r) => get(r)?.bai ?? null, title: `bài đăng trong ${ky} ngày`, cell: (r) => o(get(r) ? get(r)!.bai : null) },
-    { key: 'so_xem', group: 'social', header: 'Xem', width: 72, sortValue: (r) => get(r)?.xem ?? null, title: `lượt xem các bài đăng trong ${ky} ngày`, cell: (r) => o(get(r)?.xem ?? null) },
+    { key: 'so_xem', group: 'social', header: 'Xem tới nay', width: 88, sortValue: (r) => get(r)?.xem ?? null, title: `lượt xem CỘNG DỒN tới nay của các bài đăng trong ${ky} ngày (không phải lượt xem phát sinh trong ${ky} ngày)`, cell: (r) => o(get(r)?.xem ?? null) },
     { key: 'so_khach', group: 'social', header: 'Khách', width: 64, sortValue: (r) => get(r)?.khach ?? null, title: `khách vào site từ bài social trong ${ky} ngày (sổ phiên adfond; sản phẩm trên chợ không đo được)`,
       cell: (r) => o(get(r)?.khach ?? null, true) },
   ];
@@ -32,7 +32,7 @@ export function ChonKySocial({ ky }: { ky: number }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--fg-3)' }}>
       <span>Social trỏ về · khung</span>
-      <FilterChips value={String(ky)} options={KY_SOCIAL.map((k) => ({ value: String(k), label: `${k} ngày` }))}
+      <FilterChips urlKey="ky" value={String(ky)} options={KY_SOCIAL.map((k) => ({ value: String(k), label: `${k} ngày` }))}
         onChange={(v: string) => { const q = new URLSearchParams(sp?.toString()); q.set('ky', v); router.replace(`${path}?${q.toString()}`, { scroll: false }); }} />
     </div>
   );

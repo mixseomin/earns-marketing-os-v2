@@ -1,44 +1,23 @@
 'use client';
-// MENU "⋯" DÙNG CHUNG cho dòng bảng (tách từ SiteMenu bảng Website, 02/11/2026 — Kênh nội dung dùng cùng): nhóm mục, mục là link (trong / ngoài) hoặc nút;
-// vẽ qua portal để overflow-x của bảng không cắt; bấm ngoài / Esc đóng. YDNI: mỗi mục MỘT dòng (không xuống hàng) — menu nở theo mục dài nhất.
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+// MENU "⋯" DÙNG CHUNG cho dòng bảng (tách từ SiteMenu bảng Website, 02/11/2026 — Kênh nội dung dùng cùng): nhóm mục, mục là link (trong / ngoài) hoặc nút,
+// tuỳ chọn khối chèn dưới tiêu đề (vd lịch nhỏ). Neo + portal + bấm ngoài đóng + lật ở mép màn = primitive nhà AnchoredPopover (@mos2/bang), KHÔNG tự dựng.
+// YDNI: mỗi mục MỘT dòng (không xuống hàng) — menu nở theo mục dài nhất.
+import { useEffect, useRef, useState } from 'react';
 import { wrapExternalUrl } from '@/lib/external-url';
-import { anchoredPos } from '@/lib/anchored-pos';
+import { AnchoredPopover } from './anchored-popover';
 
 export type MucMenu = { label: string; emoji: string; href?: string; external?: boolean; onClick?: () => void };
 export type NhomMenu = { label: string; items: MucMenu[] };
 
 export function MenuBaCham({ tieuDe, phu, groups, title, chen }: { tieuDe: string; phu: string; groups: NhomMenu[]; title?: string; /** khối chèn dưới tiêu đề (vd lịch kế hoạch nhỏ của kênh) */ chen?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const neoRef = useRef<DOMRect | null>(null);
-
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => {
-      if (menuRef.current?.contains(e.target as Node) || btnRef.current?.contains(e.target as Node)) return;
-      setOpen(false); setPos(null);
-    };
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { setOpen(false); setPos(null); } };
-    document.addEventListener('mousedown', onDown);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
+    return () => document.removeEventListener('keydown', onKey);
   }, [open]);
-
-  // VỊ TRÍ THEO KÍCH THƯỚC THẬT (YDNI lớp nổi neo vào nút — anh 02/11/2026 "bấm một đằng đi một nẻo"): đặt theo chiều cao ƯỚC thì khi lật lên trên menu
-  // thật thấp hơn ước → hở một khoảng giữa menu và nút. Vẽ ẩn một nhịp, đo menu thật, rồi mới đặt: mép trái = mép trái nút, xuống dưới; chỉ lật ở mép màn.
-  function toggle() {
-    if (open) { setOpen(false); setPos(null); return; }
-    neoRef.current = btnRef.current?.getBoundingClientRect() ?? null;
-    setPos(null); setOpen(true);
-  }
-  useLayoutEffect(() => {
-    if (!open || pos || !menuRef.current || !neoRef.current) return;
-    setPos(anchoredPos(neoRef.current, menuRef.current.offsetWidth, menuRef.current.scrollHeight));
-  }, [open, pos]);
 
   const itemStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
@@ -48,17 +27,15 @@ export function MenuBaCham({ tieuDe, phu, groups, title, chen }: { tieuDe: strin
 
   return (
     <>
-      <button ref={btnRef} type="button" onClick={(e) => { e.stopPropagation(); toggle(); }}
+      <button ref={btnRef} type="button" onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
         title={title ?? tieuDe}
         style={{ marginLeft: 8, padding: '1px 6px', fontSize: 13, lineHeight: 1, color: open ? 'var(--fg-1)' : 'var(--fg-3)',
           background: open ? 'var(--bg-3)' : 'transparent', border: '1px solid var(--line)', borderRadius: 5, cursor: 'pointer' }}>
         ⋯
       </button>
-      {open && createPortal(
-        <div ref={menuRef} onClick={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', top: pos?.top ?? 0, left: pos?.left ?? -9999, visibility: pos ? 'visible' : 'hidden', zIndex: 1000, minWidth: 218, maxWidth: 420, width: 'max-content',
-            background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.45)', padding: 4, maxHeight: pos?.maxHeight, overflowY: 'auto' }}>
+      <AnchoredPopover anchorRef={btnRef} open={open} onClose={() => setOpen(false)} zIndex={1000}>
+        <div style={{ minWidth: 218, maxWidth: 420, width: 'max-content', background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.45)', padding: 4 }}>
           <div style={{ padding: '4px 10px 5px', marginBottom: 2, borderBottom: '1px solid var(--line)' }}>
             <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>{tieuDe}</div>
             <div style={{ fontSize: 10, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{phu}</div>
@@ -86,9 +63,8 @@ export function MenuBaCham({ tieuDe, phu, groups, title, chen }: { tieuDe: strin
               ))}
             </div>
           ))}
-        </div>,
-        document.body,
-      )}
+        </div>
+      </AnchoredPopover>
     </>
   );
 }

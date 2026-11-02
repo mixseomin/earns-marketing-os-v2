@@ -8,10 +8,11 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { BOX, box, len } from './box3.mjs';
 import { geo, tamVung, chuan, TP_NHAC, dichCua, diem, isoVung, datThaiBinh, kinh, vong, khungDoi } from './dia-ly.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
-const DIR = dirname(fileURLToPath(import.meta.url)), KHO = `${process.env.HOME}/.cache/lich-su`, BOX = 'root@167.233.241.16';
+const DIR = dirname(fileURLToPath(import.meta.url)), KHO = `${process.env.HOME}/.cache/lich-su`;
 const tepTap = resolve(DIR, process.argv[2]), tap = JSON.parse(readFileSync(tepTap, 'utf8')), RA = join(KHO, tap.id);
 mkdirSync(RA, { recursive: true });
 // KÊNH (kenh.json, tap.kenh — thiếu = saga): theme hình ban-do.html, bảng màu đất, nhạc nền, bộ tiếng động
@@ -22,9 +23,9 @@ if (!KENH) throw new Error(`không có kênh "${tap.kenh}" trong kenh.json`);
 // giọng gắn với ĐÚNG lời đọc: lời trong tệp tập đổi (máy viết lại) thì đọc lại, không dùng giọng cũ lệch chữ
 const loiDoc = tap.cau.map((c) => c.chu.trim()).join(' '), tepLoi = join(RA, 'giong.txt');
 if (!existsSync(join(RA, 'moc-tho.json')) || process.argv.includes('--giong-lai') || (existsSync(tepLoi) && readFileSync(tepLoi, 'utf8') !== loiDoc)) {
-  execFileSync('scp', ['-q', tepTap, `${BOX}:/tmp/tap-${tap.id}.json`]);
-  console.log(execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && cd apps/xuong-video && ../../node_modules/.bin/tsx scripts/lich-su/giong.mts /tmp/tap-${tap.id}.json /tmp/ra-${tap.id} && rm -f /tmp/tap-${tap.id}.json`], { encoding: 'utf8' }).trim());
-  execFileSync('scp', ['-q', `${BOX}:/tmp/ra-${tap.id}/*`, RA]); execFileSync('ssh', [BOX, `rm -rf /tmp/ra-${tap.id}`]);
+  len(tepTap, `/tmp/tap-${tap.id}.json`);
+  console.log(box(`scripts/lich-su/giong.mts /tmp/tap-${tap.id}.json /tmp/ra-${tap.id}`));
+  execFileSync('scp', ['-q', `${BOX}:/tmp/ra-${tap.id}/*`, RA]); execFileSync('ssh', [BOX, `rm -rf /tmp/ra-${tap.id} /tmp/tap-${tap.id}.json`]);
 }
 // mốc ký tự → chữ {chu, a, b}
 writeFileSync(tepLoi, loiDoc);

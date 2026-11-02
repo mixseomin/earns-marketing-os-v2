@@ -284,6 +284,16 @@ const LUAT = [
   { card: 'trang-phim-0211', tep: "apps/etp/trang_phim.py", co: "urllib.parse.quote(url, safe=\":/?&=%#@+,;~\")", vi: "link NetShort có dấu được mã hoá" },
   { card: 'trang-phim-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "— tài khoản nhà chỉ lên camp phim đã thêm\" if nha_ == \"t\" else None", vi: 'chưa thêm bản chỉ chặn tài khoản nhà (đội chạy được phim không có bản)' },
   { card: 'trang-phim-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "case when nha then 't' else 'f' end", vi: 'cổng đọc đúng cờ nhà (boolean nối chuỗi ra true, không phải t)' },
+  // anh 02/11/2026 "làm mới thư viện đi. Và phim nào có thể test thì đánh dấu vào. phim cất cũng thế"
+  { card: 'thu-vien-0211', tep: "apps/etp/thu_vien_phim.py", co: "/api/v2/contents?page={p}&page_size=100&content_type_id=1&is_ref=0&hl={hl}", vi: "làm mới thư viện phim EN/ES từ Ethopex" },
+  { card: 'thu-vien-0211', tep: "apps/etp/thu_vien_phim.py", cam: "nguon, ma_goc, nap_luc)", vi: "không ghi cột tự tính nguon / ma_goc" },
+  { card: 'thu-vien-0211', tep: "apps/etp/dong-bo.py", co: "import thu_vien_phim; kq.update(thu_vien_phim.chay(EA.T_NHA))", vi: "đồng bộ thư viện mỗi lượt" },
+  { card: 'thu-vien-0211', tep: "apps/etp/dong-bo.py", co: "\"chon-phim-moi.py\"), \"--co-the-test\"]", vi: "chấm phim có thể test mỗi lượt" },
+  { card: 'thu-vien-0211', tep: "apps/xuong-video/scripts/ethopex/chon-phim-moi.py", co: "if \"--co-the-test\" in sys.argv:", vi: "chế độ có thể test không đụng hàng chờ 200 phim" },
+  { card: 'thu-vien-0211', tep: "apps/xuong-video/scripts/ethopex/chon-phim-moi.py", co: ".get(\"tt\", \"\")).endswith(\"_loai\")]", vi: "phim bị quy trình phim mới loại không còn là có thể test" },
+  { card: 'thu-vien-0211', tep: "apps/xuong-video/scripts/ethopex/chon-phim-moi.py", co: "da = {int(x) for x in q(\"select distinct content_id from etp.camp where content_id > 0\").split() if x.isdigit()}", vi: "phim đã lên đọc từ kho etp" },
+  { card: 'thu-vien-0211', tep: "apps/web/src/components/etp-view.tsx", co: "{ key: 'test', header: 'Test'", vi: "tab Phim cột Test (có thể test / đã cất)" },
+  { card: 'thu-vien-0211', tep: "apps/web/src/lib/etp-doc.ts", co: "trang: null, test, ung_vien: true });", vi: "tab Phim hiện 200 phim có thể test chưa có camp" },
   // anh 02/11/2026 duyệt review luật (mục 2, 3, 7 + T30 ROAS): chấm creative không tắt camp lãi · ROAS trước clone · dừng clone đổi creative · nhật ký team · sổ luật đối chứng + 7 ngày
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", co: "where c.trang_thai = 'ACTIVE' and g.tat and {KHONG_ROAS} and {KHONG_LAI3} order by 1", vi: "luật chấm không tắt camp lãi 3 ngày đã khép" },
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", cam: "tự tắt mọi loại camp, kể cả đang lãi", vi: "luật chấm không còn tắt camp đang lãi" },

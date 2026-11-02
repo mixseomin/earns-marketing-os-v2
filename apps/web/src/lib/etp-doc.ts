@@ -46,7 +46,10 @@ export type PhimEtpKho = { content_id: number; ten: string | null; the_loai: str
   thu?: { vong: string; ly: string | null } | null;
   /** TRANG PHIM trong workspace Ethopex của người đang xem (etp.trang_phim_v — apps/etp/trang_phim.py, anh 02/11/2026): null = chưa thêm content.
    *  ws_moi = phim đã thêm vào workspace nhưng chưa có camp nào (dòng chỉ để thấy phim mới) */
-  trang?: TrangPhim | null; ws_moi?: boolean };
+  trang?: TrangPhim | null; ws_moi?: boolean;
+  /** CÓ THỂ TEST (anh 02/11/2026): phim qua lọc chọn phim mới (chon-phim-moi.py --co-the-test — nguồn, tiếng, thể loại, chưa ai lên, không cấm / 18+ / bị loại)
+   *  hạng trong danh sách điểm cao trước · tt = trạng thái trong quy trình phim mới nếu đã vào hàng chờ (poster_ok, da_cat…). ung_vien = dòng chỉ để thấy phim chưa có camp */
+  test?: { hang: number; tong: number; diem: number; vi_sao: string; tt: string | null } | null; ung_vien?: boolean };
 export type TrangPhim = { ws: number; nguoi: string | null; tao: string | null; mo_ta: number; cot_truyen: number; nguon: string | null; redirect_url: string | null;
   link_ok: boolean | null; link_loi: string | null; link_luc: string | null; thieu: string[] };
 export type ChamCr = { luc: string; may: string | null; ket: string | null; meta: number | null; afs: number | null; loi: string | null;
@@ -297,6 +300,21 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   for (const [ref, r] of tpTheo) if (!coPhim.has(ref) && r.tao && Date.parse(String(r.tao)) > moc30)
     phims.push({ content_id: ref, ten: (r.ten as string) ?? null, the_loai: null, bo: null, locale: (r.locale as string) ?? null, nguon: (r.nguon as string) ?? null, nhom_goc: null, moc: null, doi_chay: 0,
       creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, trang: tp(r), ws_moi: true });
+  // CÓ THỂ TEST (anh 02/11/2026 "phim nào có thể test thì đánh dấu vào. phim cất cũng thế" — phim cất = p.moc): danh sách chon-phim-moi.py --co-the-test
+  // (dong-bo mỗi lượt); TEST_HIEN phim điểm cao nhất chưa có dòng thì thêm dòng ung_vien
+  const TEST_HIEN = 200;
+  const [ctR, ttR2] = await Promise.all([
+    run<{ ds: { id: number; locale: string; ten: string; nguon: string; diem: number; vi_sao: string }[] | null }>(sql`select gia_tri->'ds' ds from xv_khoa_ngoai where ten = 'ethopex_co_the_test'`).catch(() => []),
+    run<{ tt: Record<string, { tt?: string }> | null }>(sql`select gia_tri tt from xv_khoa_ngoai where ten = 'ethopex_phim_moi_tt'`).catch(() => []),
+  ]);
+  const ctDs = ctR[0]?.ds ?? [], ttMoi = ttR2[0]?.tt ?? {}, phTheo = new Map(phims.map((p) => [p.content_id, p]));
+  ctDs.forEach((x, i) => {
+    const test = { hang: i + 1, tong: ctDs.length, diem: n(x.diem), vi_sao: x.vi_sao ?? '', tt: ttMoi[String(x.id)]?.tt ?? null };
+    const p = phTheo.get(n(x.id));
+    if (p) p.test = test;
+    else if (i < TEST_HIEN) phims.push({ content_id: n(x.id), ten: x.ten ?? null, the_loai: null, bo: null, locale: x.locale ?? null, nguon: x.nguon ?? null, nhom_goc: null, moc: null, doi_chay: 0,
+      creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, trang: null, test, ung_vien: true });
+  });
   const [soNgay, tatNgay, boRow] = await Promise.all([
     run<{ c: number; d: string; chi: string; thu: string }>(sql`select camp_id c, ngay::text d, chi, thu from ${SN} where chi > 0 or thu > 0`),
     runNha<{ d: string; n: string }>(sql`select (luc at time zone 'UTC')::date::text d, count(distinct camp_id) n from etp.nhat_ky where viec = 'tat' and ok group by 1`),   // nhật ký máy nhà — xem người khác thì không có

@@ -18,11 +18,9 @@ api = lambda p: json.load(urllib.request.urlopen(urllib.request.Request("https:/
 api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 
 # 1. phim đã dùng: có camp Ethopex (mọi trạng thái) + đã dựng studio + phim cấm
-def ct(c):
-    try: return api(f"/api/v1/campaigns/{c['id']}")["ad_groups"][0]["ads"][0].get("content_id")
-    except Exception: return None
-CAMPS = api("/api/v1/campaigns?page_size=500")["data"]
-with ThreadPoolExecutor(12) as ex: da = {x for x in ex.map(ct, CAMPS) if x}
+# đọc KHO etp (dong-bo 10 phút: mọi camp nhà, mọi trạng thái, kèm content_id) thay ~900 lượt gọi chi tiết camp qua API (anh 02/11/2026: chạy định kỳ cho cột Test)
+CAMPS = [{"name": t} for t in q("select ten from etp.camp").splitlines()]
+da = {int(x) for x in q("select distinct content_id from etp.camp where content_id > 0").split() if x.isdigit()}
 chuan = lambda t: re.sub(r"[^a-z0-9]", "", re.sub(r"\(doblado\)|（dubbed）|\(dubbed\)", "", (t or "").lower()))
 # phim đã test theo TÊN (cùng phim có thể mang mã content khác giữa lô — vd The Triplets' Final Regret): lõi tên camp sau mã lô, trước " EN - "/" ES - "
 da_ten = {chuan(re.split(r" (?:EN|ES) - ", re.sub(r"^(\d+:\s*)?(TEST\s+)?\d\S*\s+", "", c["name"]))[0])[:24] for c in CAMPS}
@@ -74,6 +72,18 @@ for x in uu + kho:   # spy trước: cùng phim thì giữ bản có số QC app
     if loai(x) or k in _thay or not cham(x): continue
     _thay.add(k); chinh.append(x)
 chinh.sort(key=lambda x: -x["diem"])
+# CÓ THỂ TEST (anh 02/11/2026 "phim nào có thể test thì đánh dấu vào"): --co-the-test = chấm xong ghi TOÀN BỘ phim qua lọc (điểm cao trước) vào
+# xv_khoa_ngoai['ethopex_co_the_test'] cho tab Phim etp.on.tc, KHÔNG đụng hàng chờ ethopex_200_phim. dong-bo.py chạy mỗi 6 giờ / khi thư viện có phim mới.
+if "--co-the-test" in sys.argv:
+    # phim đã bị quy trình phim mới LOẠI (poster / soát 18+ / cắt / cổng — phim-moi.py, sổ ethopex_phim_moi_tt) thì không còn là "có thể test"
+    tt = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_phim_moi_tt'") or "{}")
+    chinh = [x for x in chinh if not str((tt.get(str(x["id"])) or {}).get("tt", "")).endswith("_loai")]
+    v = json.dumps({"luc": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(), "ds": [{k: x.get(k) for k in ("id", "locale", "ten", "nguon", "url", "diem", "nhom", "vi_sao")} for x in chinh]},
+                   ensure_ascii=False).replace("'", "''")
+    r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], capture_output=True, text=True,   # ~7.000 phim: qua stdin, không qua tham số
+                       input=f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_co_the_test', '{v}'::jsonb) on conflict (ten) do update set gia_tri = excluded.gia_tri")
+    if r.returncode: raise SystemExit(r.stderr[-300:])
+    print(json.dumps({"co_the_test": len(chinh)})); sys.exit(0)
 # XEN KẼ THỂ LOẠI (lần chạy đầu 02/11/2026: 25/40 phim đầu là phim rồng fantasy — "dragon" trùng mẫu): mỗi vòng lấy một phim điểm cao nhất của từng thể loại,
 # thứ tự vòng theo tỷ lệ thắng đo được (vô danh → hối hận → fantasy → mafia → tỷ phú → khác); trong một thể loại vẫn theo điểm
 import collections as _co

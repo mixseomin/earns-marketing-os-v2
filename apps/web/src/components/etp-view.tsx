@@ -2330,8 +2330,17 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       {t.thieu.length ? <span style={{ color: '#f87171' }}>⚠ thiếu {t.thieu.join(', ')}</span> : <span style={{ color: '#4ade80' }}>✓ đủ{t.link_ok == null ? <span style={{ color: MO }}> · link chưa kiểm</span> : null}</span>}
       {p.ws_moi ? <span style={{ color: '#fbbf24' }}> · mới thêm, chưa camp</span> : null}</span>;
   };
+  // CÓ THỂ TEST / ĐÃ CẤT (anh 02/11/2026): phim cất = máy đã cất (etp.phim.thu_vong 'cat' — không mở camp mới); có thể test = qua lọc chọn phim mới, kèm hạng + trạng thái hàng chờ
+  const TT_MOI: Record<string, string> = { poster_ok: 'poster đạt', da_cat: 'đã cắt', cat_loi: 'cắt lỗi', da_len: 'đã lên' };
+  const OTest = ({ p }: { p: PhimEtpKho }) => p.moc
+    ? <span style={{ color: '#94a3b8', fontSize: 12, whiteSpace: 'nowrap' }} title={`máy đã cất phim lúc ${vn(p.moc)} — không mở camp mới (cat_phim.py)`}>⏹ đã cất {vn(p.moc)}</span>
+    : p.test
+      ? <span style={{ fontSize: 12, whiteSpace: 'nowrap', cursor: 'help' }} title={`hạng ${p.test.hang}/${p.test.tong} · điểm ${p.test.diem}\n${p.test.vi_sao}${p.test.tt ? `\nhàng chờ phim mới: ${TT_MOI[p.test.tt] ?? p.test.tt}` : '\nchưa vào hàng chờ phim mới'}`}>
+          <span style={{ color: '#38bdf8' }}>🧪 có thể test #{p.test.hang}</span>{p.test.tt ? <span style={{ color: MO }}> · {TT_MOI[p.test.tt] ?? p.test.tt}</span> : null}</span>
+      : <span style={{ color: MO }}>—</span>;
   const cotPh: DataColumn<PhimEtpKho>[] = [
     { key: 'ten', header: 'Phim', align: 'left', cell: (p) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Hex bo={p.bo} info={p.bo ? du.boTk[p.bo] : undefined} />{p.ten ?? p.content_id} <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{p.locale ?? ''} {p.nguon ?? ''}</span></span>, sortValue: (p) => p.ten ?? '' },
+    { key: 'test', header: 'Test', align: 'left', title: 'đã cất (máy cất phim, không mở camp mới) · có thể test (qua lọc chọn phim mới — hạng điểm cao trước, hover xem lý do) — 200 phim đầu chưa có camp cũng hiện dòng', cell: (p) => <OTest p={p} />, sortValue: (p) => (p.moc ? -1 : p.test ? p.test.hang : 1e9) },
     { key: 'trang', header: 'Trang phim', align: 'left', title: 'bản phim trong workspace Ethopex (Content › thêm phim): đủ mô tả + cốt truyện + ảnh + link tập 1 thì máy mới lên camp — hover xem chi tiết', cell: (p) => <OTrang p={p} />, sortValue: (p) => trangCap(p.trang) },
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (p) => <span style={{ fontSize: 12 }}>{tl(p.the_loai)}</span>, sortValue: (p) => p.the_loai ?? '' },
     // anh 27/10/2026 "chia thành các cột độc lập": số creative · camp đang bật · camp tạm dừng · tổng camp (không archived)

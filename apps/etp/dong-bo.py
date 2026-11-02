@@ -281,6 +281,15 @@ def main():
     try:
         import trang_phim; kq.update(trang_phim.chay(q, EA.T_NHA))
     except Exception as e: loi.append(f"trang_phim: {e}")
+    # ── THƯ VIỆN PHIM + CÓ THỂ TEST (anh 02/11/2026 "làm mới thư viện đi. Và phim nào có thể test thì đánh dấu vào"): nạp phim mới của thư viện Ethopex
+    # (EN/ES) vào kho spy ethopex_content, rồi chon-phim-moi.py --co-the-test chấm lại (đọc kho, ~3 giây) → xv_khoa_ngoai['ethopex_co_the_test'] cho tab Phim
+    try:
+        import thu_vien_phim; kq.update(thu_vien_phim.chay(EA.T_NHA))
+        r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "chon-phim-moi.py"), "--co-the-test"],
+                           capture_output=True, text=True, timeout=300)
+        if r.returncode: loi.append(f"co_the_test: {(r.stderr or r.stdout).strip()[-200:]}")
+        else: kq.update(json.loads(r.stdout.strip().splitlines()[-1]))
+    except Exception as e: loi.append(f"thu_vien: {e}")
     # ── nhật ký luật
     try:
         nk = khoa("ethopex_nhat_ky", "[]"); rows = []

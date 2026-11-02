@@ -32,7 +32,7 @@ if (!existsSync(join(LOGO, 'wordmark.png'))) {
 if (!existsSync(join(LOGO, 'icon.png'))) {
   const f = lonNhat([...quet(join(SITE, 'public/images/logo'), /(icon|mark|symbol).*\.png$/i), ...quet(join(SITE, 'public'), /(apple-touch-icon|android-chrome-512|icon-512|favicon-512).*\.png$/i)]);
   if (f) copyFileSync(f, join(LOGO, 'icon.png'));
-  else { const html = await fetch('https://astrolas.com/').then((r) => r.text()).catch(() => '');
+  else if (!(await tai('https://astrolas.com/images/logo/icon-512.png', join(LOGO, 'icon.png')))) { const html = await fetch('https://astrolas.com/').then((r) => r.text()).catch(() => '');
     const ds = [...html.matchAll(/<link[^>]+rel=["'](?:apple-touch-icon|icon)["'][^>]*href=["']([^"']+\.png)["']/gi)].map((m) => new URL(m[1], 'https://astrolas.com/').href);
     for (const u of [...ds, 'https://astrolas.com/apple-touch-icon.png']) if (await tai(u, join(LOGO, 'icon.png'))) break; }
 }
@@ -40,6 +40,32 @@ const thieu = ['wordmark.png', 'icon.png'].filter((f) => !existsSync(join(LOGO, 
 if (thieu.length) { console.error(`✗ thiếu logo thật: ${thieu.join(', ')} — không có repo site (${SITE}) và không tải được astrolas.com. Dừng, không vẽ chữ thay logo.`); process.exit(3); }
 
 const tr = await chromium.launch();
+
+// ẢNH NỀN THẬT (luật nền lớn = ảnh thật, skill design/stock-photo-apis) → anh/<tên>.jpg + anh/nguon.json (link trang nguồn). Pexels, free thương mại.
+const ANH = join(DIR, 'anh'); mkdirSync(ANH, { recursive: true });
+const PEXELS = { 'troi': { id: 7925847, trang: 'https://www.pexels.com/photo/starry-sky-during-night-time-7925847/', ghi: 'Dải Ngân Hà — nền mọi khung' } };
+const UA = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 Chrome/130 Safari/537.36' };   // Pexels WAF chặn UA mặc định
+for (const [ten, a] of Object.entries(PEXELS)) { const f = join(ANH, `${ten}.jpg`); if (existsSync(f)) continue;
+  const r = await fetch(`https://images.pexels.com/photos/${a.id}/pexels-photo-${a.id}.jpeg?auto=compress&w=2560`, { headers: UA }).catch(() => null);
+  if (r?.ok) writeFileSync(f, Buffer.from(await r.arrayBuffer())); }
+writeFileSync(join(ANH, 'nguon.json'), JSON.stringify(PEXELS, null, 1) + '\n');
+const thieuAnh = Object.keys(PEXELS).filter((t) => !existsSync(join(ANH, `${t}.jpg`)));
+if (thieuAnh.length) { console.error(`✗ thiếu ảnh nền thật: ${thieuAnh.join(', ')} — không tải được Pexels. Dừng, không vẽ nền trơn.`); await tr.close(); process.exit(3); }
+
+// LÁ SỐ THEME NEBULA THẬT (anh 03/11/2026: hình chart dùng theme Nebula của site) → hinh/chart-<slug>-nebula.png, nền trong.
+// Chụp từ astrolas.com/c/<slug>: bấm nút theme 🔮 Nebula của khung lá số rồi chụp #chart-wheel-natal ở tỉ lệ 3×. Không chụp được → dừng.
+const HINH = join(DIR, 'hinh'); mkdirSync(HINH, { recursive: true });
+for (const slug of ['steve-jobs']) { const f = join(HINH, `chart-${slug}-nebula.png`); if (existsSync(f)) continue;
+  const pg = await tr.newPage({ viewport: { width: 1400, height: 1100 }, deviceScaleFactor: 3 });
+  try { await pg.goto(`https://astrolas.com/c/${slug}`, { waitUntil: 'networkidle', timeout: 60000 });
+    if (!(await pg.evaluate(() => { const b = document.querySelector('[data-ccw-theme="nebula"]'); b?.click(); return !!b; }))) throw new Error('không thấy nút theme Nebula');
+    await pg.waitForTimeout(2500);
+    // nền trong: tắt nền của trang + mọi khối bọc lá số (không thì ảnh mang theo ô vuông navy), ẩn lớp sao canvas
+    await pg.evaluate(() => { document.querySelectorAll('canvas').forEach((c) => { c.style.display = 'none'; });
+      for (let e = document.querySelector('#chart-wheel-natal'); e; e = e.parentElement) { e.style.setProperty('background', 'transparent', 'important'); e.style.setProperty('box-shadow', 'none', 'important'); } });
+    await (await pg.$('#chart-wheel-natal')).screenshot({ path: f, omitBackground: true });
+  } catch (e) { console.error(`✗ không chụp được lá số Nebula ${slug}: ${e.message}. Dừng.`); await tr.close(); process.exit(3); } finally { await pg.close(); } }
+
 const page = await tr.newPage();
 const chup = async (f, t, ra) => { const [w, h] = KHUNG[f]; await page.setViewportSize({ width: w, height: h });
   await page.goto(`${URL0}?f=${f}${t != null ? `&t=${t}` : ''}`); await page.waitForFunction(() => window.__xong === true || !!window.__loi);
@@ -66,20 +92,20 @@ const to = (tieu, phu, the) => `<!doctype html><meta charset="utf-8"><style>body
   h1{font:800 44px Inter;margin:0 0 6px}p.p{color:#9fb0c8;margin:0 0 34px;font-size:22px;max-width:2600px}figcaption{margin-top:12px;color:#c9d4e3;font-size:21px;line-height:1.35}
   .g{display:flex;flex-wrap:wrap;gap:40px 34px;align-items:flex-start}</style><h1>${tieu}</h1><p class="p">${phu}</p><div class="g">${the}</div>`;
 const TO = {
-  'to-duyet-short': to('Astrolas · Short dọc 9:16 (1080×1920)', 'Logo + icon thật của astrolas.com. Hình bánh xe lá số / trăng là MINH HOẠ TẠM — hình thật là chart theme Nebula của site.', [
-    o('s-intro', '① Mở đầu (khung cuối) — vòng vàng + chữ ký + chuông, 1,6 s · xem mo-dau-doc.mp4', 420),
-    o('s-giua-cc', '② Giữa video · Chart Chapters — chữ ký góc trái trên + nhãn playlist; phụ đề giữa dưới', 420),
-    o('s-giua-sc', '③ Giữa video · Sky Calendar — cùng khung, nhãn xanh trăng', 420),
-    o('s-vung', '④ Vùng YouTube đè lên Short (đỏ) — chữ + logo đều nằm ngoài', 420),
-    o('s-cuoi', '⑤ Màn cuối chung — "See your own chart free at astrolas.com"', 420),
-    o('s-bia-cc', '⑥ Ảnh bìa Short · Chart Chapters', 420), o('s-bia-sc', '⑦ Ảnh bìa Short · Sky Calendar', 420)].join('')),
+  'to-duyet-short': to('Astrolas · Short dọc 9:16 (1080×1920)', 'Logo + icon thật của astrolas.com · lá số Steve Jobs theme Nebula chụp thẳng từ astrolas.com/c/steve-jobs · nền ảnh thật Pexels. Trăng của Sky Calendar còn là minh hoạ tạm (G3 làm paper-lantern).', [
+    o('s-intro', '1. Mở đầu (khung cuối) — vòng vàng + chữ ký + chuông, 1,6 s · xem mo-dau-doc.mp4', 420),
+    o('s-giua-cc', '2. Giữa video · Chart Chapters — chữ ký góc trái trên + nhãn playlist; phụ đề giữa dưới', 420),
+    o('s-giua-sc', '3. Giữa video · Sky Calendar — cùng khung, nhãn xanh trăng', 420),
+    o('s-vung', '4. Vùng YouTube đè lên Short (đỏ) — chữ + logo đều nằm ngoài', 420),
+    o('s-cuoi', '5. Màn cuối chung — "See your own chart free at astrolas.com"', 420),
+    o('s-bia-cc', '6. Ảnh bìa Short · Chart Chapters', 420), o('s-bia-sc', '7. Ảnh bìa Short · Sky Calendar', 420)].join('')),
   'to-duyet-ngang': to('Astrolas · Video ngang 16:9 (1920×1080) + ảnh bìa 1280×720', 'Cùng một khung thương hiệu với Short: chữ ký cùng góc trái trên, nhãn playlist, phụ đề, màn cuối, khuôn ảnh bìa chỉ đổi màu nhãn theo playlist.', [
-    o('n-intro', '① Mở đầu (khung cuối) · xem mo-dau-ngang.mp4', 820), o('n-giua-cc', '② Giữa video · Chart Chapters', 820), o('n-giua-sc', '③ Giữa video · Sky Calendar', 820),
-    o('n-cuoi', '④ Màn cuối 20 s — ô đỏ là chỗ YouTube gắn end screen (video kế · playlist · Đăng ký)', 820),
-    o('n-bia-cc', '⑤ Ảnh bìa · Chart Chapters — góc dưới phải để trống (YouTube đè thời lượng)', 820), o('n-bia-sc', '⑥ Ảnh bìa · Sky Calendar', 820)].join('')),
-  'to-duyet-kenh': to('Astrolas · Trang kênh + bảng màu', 'Ảnh đại diện + banner: nền đang VẼ CODE — theo luật cũ của anh, bản thật dùng ẢNH THẬT free (Pexels), máy cloud bị chặn Pexels nên chưa lấy được.', [
-    o('avatar', '① Ảnh đại diện 800×800 (YouTube cắt tròn)', 520), o('banner', '② Banner 2560×1440 — khung đứt = phần điện thoại thấy', 1500),
-    o('bang-mau', '③ Bảng màu + chữ + nhãn playlist', 1100)].join('')),
+    o('n-intro', '1. Mở đầu (khung cuối) · xem mo-dau-ngang.mp4', 820), o('n-giua-cc', '2. Giữa video · Chart Chapters', 820), o('n-giua-sc', '3. Giữa video · Sky Calendar', 820),
+    o('n-cuoi', '4. Màn cuối 20 s — ô đỏ là chỗ YouTube gắn end screen (video kế · playlist · Đăng ký)', 820),
+    o('n-bia-cc', '5. Ảnh bìa · Chart Chapters — góc dưới phải để trống (YouTube đè thời lượng)', 820), o('n-bia-sc', '6. Ảnh bìa · Sky Calendar', 820)].join('')),
+  'to-duyet-kenh': to('Astrolas · Trang kênh + bảng màu', 'Ảnh đại diện + banner: nền ảnh thật Pexels (Dải Ngân Hà, nguồn ở anh/nguon.json) dưới lớp navy, icon + wordmark thật của astrolas.com, lá số theme Nebula của site.', [
+    o('avatar', '1. Ảnh đại diện 800×800 (YouTube cắt tròn)', 520), o('banner', '2. Banner 2560×1440 — khung đứt = phần điện thoại thấy', 1500),
+    o('bang-mau', '3. Bảng màu + chữ + nhãn playlist', 1100)].join('')),
 };
 for (const [ten, html] of Object.entries(TO)) {
   const f = join(RA, `.${ten}.html`); writeFileSync(f, html);

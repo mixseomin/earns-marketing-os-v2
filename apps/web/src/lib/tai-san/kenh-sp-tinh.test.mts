@@ -36,4 +36,16 @@ import { cayKeHoach } from './kenh-sp-tinh';
 // một bước đứng quá 30 phút → đỏ, ghi "đứng"
 { const ke = { lichTap: null, gioDang: null, tapKe: [], lichDang: [], dangLam: { id: 't', luc: '2026-11-02T15:00:00Z', buoc: 'viết kịch bản', so: 2, tong: 8, buoc_luc: '2026-11-02T15:00:00Z' } };
   const r = cayKeHoach({ videos: [], ke }, Date.parse('2026-11-02T15:45:00Z'))[1]!; assert.strictEqual(r.chu, 'bước 2/8 · viết kịch bản · ⚠ đứng 45 phút'); assert.strictEqual(r.mau, 'var(--bad)'); }
-console.log('kenh-sp-tinh: 14/14 ok');
+import { tomLoTrinh, cayLoTrinh } from './kenh-sp-tinh';
+{ const lt = { cap_nhat: '2026-11-02', giai_doan: [
+    { ma: 'G0', ten: 'Chốt', viec: 'chốt mảng', anh: 'chốt', trang_thai: 'xong' as const },
+    { ma: 'G1', ten: 'Playlist', viec: 'tầng playlist', anh: 'không', trang_thai: 'cho_anh' as const },
+    { ma: 'G2', ten: 'Nhận diện', viec: 'logo', anh: 'duyệt ảnh', trang_thai: 'chua' as const }] };
+  const t = tomLoTrinh(lt);
+  assert.deepStrictEqual([t.xong, t.tong, t.hienTai?.ma, t.chu], [1, 3, 'G1', '🧭 G1 Playlist · chờ anh']);
+  const c = cayLoTrinh(lt);
+  assert.deepStrictEqual(c.map((x) => x.chu), ['🧭 Lộ trình (1/3 xong)', '✅ G0 Chốt · xong', '⏸ G1 Playlist · chờ anh', '○ G2 Nhận diện · chưa tới']);
+  assert.strictEqual(c[2]!.phu, 'tầng playlist');                 // anh "không" → không thêm đuôi
+  assert.strictEqual(c[3]!.phu, 'logo · anh: duyệt ảnh');
+  assert.strictEqual(tomLoTrinh({ giai_doan: [{ ma: 'G0', ten: 'x', viec: '', anh: '', trang_thai: 'xong' }] }).chu, '🧭 xong lộ trình'); }
+console.log('kenh-sp-tinh: 15/15 ok');

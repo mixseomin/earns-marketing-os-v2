@@ -30,10 +30,10 @@ export async function docKenhSp(hom: string): Promise<KenhSp[]> {
   const anh = (await d.execute(sql`SELECT DISTINCT ON (san_pham) san_pham, chi_tiet->>'anh' AS anh FROM kenh_so_ngay WHERE kenh = 'youtube' AND san_pham IN ${may.map((m) => `may:${m.ma}`)}
     AND chi_tiet->>'anh' IS NOT NULL ORDER BY san_pham, ngay DESC`)) as unknown as { san_pham: string; anh: string }[];
   const phim = (await d.execute(sql`SELECT id, kinh_thanh->>'may' AS may FROM xv_phim WHERE kinh_thanh->>'may' IN ${may.map((m) => m.ma)} ORDER BY id`)) as unknown as { id: number; may: string }[];
-  const vids = (await d.execute(sql`SELECT m.ma, v.slug, coalesce(v.dang->>'title', v.chu_de, v.slug) AS ten, v.xuat_luc IS NOT NULL AS xuat, v.cham->>'ket' AS cham, v.giay,
+  const vids = (await d.execute(sql`SELECT m.ma, v.slug, coalesce(v.dang->>'title', v.chu_de, v.slug) AS ten, v.xuat_luc IS NOT NULL AS xuat, v.cham->>'ket' AS cham, v.giay, (coalesce(v.xuat_luc, v.created_at) AT TIME ZONE 'Asia/Ho_Chi_Minh')::date::text AS ngay_lam,
       v.da_dang ? 'youtube' AS da_dang, v.da_dang->'youtube'->>'ngay' AS ngay, v.da_dang->'youtube'->>'url' AS url, (v.luot_xem_nen->>'youtube')::int AS xem
     FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.la_san_pham AND NOT coalesce(v.luu_tru, false) ORDER BY v.created_at DESC`)) as unknown as
-    { ma: string; slug: string; ten: string; xuat: boolean; cham: string | null; giay: string | null; da_dang: boolean; ngay: string | null; url: string | null; xem: number | null }[];
+    { ma: string; slug: string; ten: string; xuat: boolean; cham: string | null; giay: string | null; ngay_lam: string | null; da_dang: boolean; ngay: string | null; url: string | null; xem: number | null }[];
   const lich = ((await d.execute(sql`SELECT ds FROM xv_lich_du_kien`)) as unknown as { ds: { may: string; ngay: string; gio?: string; nen: string; title?: string }[] }[]).flatMap((r) => r.ds ?? []);
   const hs = hoSoKenh(), gioNay = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
   return may.map((m) => {
@@ -46,7 +46,7 @@ export async function docKenhSp(hom: string): Promise<KenhSp[]> {
         return { lichTap: l.chu, tapKe: l.ke, dangLam: m.dang_lam ?? null,
           lichDang: lich.filter((x) => x.may === m.ma && x.ngay >= hom).sort((a, b) => `${a.ngay}${a.gio ?? ''}`.localeCompare(`${b.ngay}${b.gio ?? ''}`)).slice(0, 10)
             .map((x) => ({ ngay: x.ngay, gio: x.gio ?? null, nen: x.nen, tieuDe: x.title ?? '' })) }; })(),
-      videos: vids.filter((v) => v.ma === m.ma).map((v) => ({ slug: v.slug, ten: v.ten.replace(/\s*#shorts\s*/i, ''), trangThai: changVideo({ daDang: v.da_dang, xuat: v.xuat, cham: v.cham }),
+      videos: vids.filter((v) => v.ma === m.ma).map((v) => ({ slug: v.slug, ten: v.ten.replace(/\s*#shorts\s*/i, ''), ngayLam: v.ngay_lam, trangThai: changVideo({ daDang: v.da_dang, xuat: v.xuat, cham: v.cham }),
         ngayDang: v.ngay?.slice(0, 10) ?? null, url: v.url, xem: v.xem, giay: v.giay == null ? null : Number(v.giay) })) };
   });
 }

@@ -7,7 +7,8 @@ import { useState } from 'react';
 import { DataTable, Panel, type DataColumn } from '@/components/ui';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { extLinkProps } from '@/lib/external-url';
-import type { KenhSp, VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { lichKenh, type KenhSp, type OLich, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { MonthCalendar, type CalItem } from '@/components/ui/month-calendar';
 import { cotSocial, nhomSocial } from './tai-san-social';
 
 const so = (n: number | null | undefined) => (n == null ? '–' : n.toLocaleString('vi-VN'));
@@ -23,19 +24,24 @@ const CHANG: Record<VideoKenh['trangThai'], { chu: string; mau: string }> = {
 type Dong = { loai: 'kenh'; k: KenhSp } | { loai: 'video'; k: KenhSp; v: VideoKenh }
   /** dòng KẾ HOẠCH trong cây: nhóm (tiêu đề nhóm) hoặc một mục lịch (sản xuất / đăng) */
   | { loai: 'ke'; k: KenhSp; id: string; nhom?: boolean; chu: string; phu?: string; mau?: string; ngay?: string | null };
-const NHAN_NEN: Record<string, string> = { youtube: 'YouTube', facebook: 'Facebook', instagram: 'Instagram', tiktok: 'TikTok', x: 'X' };
-const ngayGio = (s: string) => { const [d, g] = s.split(' '); return `${d!.slice(8, 10)}/${d!.slice(5, 7)}${g ? ` ${g}` : ''}`; };
-/** CÂY của một kênh (anh 02/11/2026: show plan cụ thể): 🛠 sản xuất (đang làm + lượt kế) · 🎬 đã làm (từng video, chặng) · 🗓 lịch đăng dự kiến của máy đăng */
+/** CÂY của một kênh: danh sách video đã làm (chặng). Lịch sản xuất + lịch đăng nằm ở LỊCH THÁNG ngay dưới bảng (lichKenh). */
 function cayKenh(k: KenhSp): Dong[] {
-  const ke = k.ke, ra: Dong[] = [];
-  ra.push({ loai: 'ke', k, id: 'sx', nhom: true, chu: '🛠 Sản xuất', phu: ke.lichTap ? `lịch ${ke.lichTap}` : 'chưa có lịch làm tập' });
-  if (ke.dangLam) ra.push({ loai: 'ke', k, id: 'dang', chu: `đang làm ${ke.dangLam.id}`, phu: `từ ${new Date(ke.dangLam.luc).toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' })}`, mau: 'var(--warn)' });
-  for (const t of ke.tapKe) ra.push({ loai: 'ke', k, id: `ke-${t}`, chu: `lượt làm tập ${ngayGio(t)}`, phu: 'tự động (việc nền iMac)', ngay: t.slice(0, 10) });
-  ra.push({ loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' });
-  for (const v of k.videos) ra.push({ loai: 'video', k, v });
-  ra.push({ loai: 'ke', k, id: 'dang-lich', nhom: true, chu: '🗓 Lịch đăng', phu: ke.lichDang.length ? 'dự kiến của máy đăng chung (nhịp an toàn)' : k.chay ? 'máy đăng chưa xếp lượt nào' : 'chưa bật đăng — chưa có lịch' });
-  for (const l of ke.lichDang) ra.push({ loai: 'ke', k, id: `lich-${l.ngay}-${l.gio}-${l.nen}`, chu: `${ngayGio(`${l.ngay}${l.gio ? ` ${l.gio}` : ''}`)} · ${NHAN_NEN[l.nen.split(':')[0]!] ?? l.nen}`, phu: l.tieuDe, ngay: l.ngay });
-  return ra;
+  return [{ loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
+    ...k.videos.map((v) => ({ loai: 'video' as const, k, v }))];
+}
+const LOAI_LICH: Record<OLich['loai'], { chu: string; mau: string; ten: string }> = {
+  sx: { chu: '🛠', mau: '#f59e0b', ten: 'làm tập' }, lam: { chu: '🎬', mau: '#8b5cf6', ten: 'làm xong' }, hen: { chu: '🗓', mau: '#3c9bff', ten: 'hẹn đăng' }, dang: { chu: '✅', mau: '#22c55e', ten: 'đã đăng' },
+};
+/** LỊCH KẾ HOẠCH kênh (anh 02/11/2026: "show calendar + số video là đẹp, hover vào ra chi tiết"): mỗi ngày một ô số theo loại, rê chuột ra tên từng video / lượt. */
+function LichKenh({ k }: { k: KenhSp }) {
+  const items: CalItem[] = lichKenh(k).map((o) => ({ id: `${o.ngay}-${o.loai}`, date: o.ngay, label: `${LOAI_LICH[o.loai].chu} ${o.so} ${LOAI_LICH[o.loai].ten}`,
+    title: o.chiTiet.join('\n'), color: LOAI_LICH[o.loai].mau, done: o.loai === 'dang' || o.loai === 'lam', dim: o.loai === 'sx' || o.loai === 'hen' }));
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div style={{ fontSize: 12, color: 'var(--fg-3)', margin: '0 0 6px' }}>📅 Kế hoạch <b style={{ color: 'var(--fg-1)' }}>{k.ten}</b>{k.ke.lichTap ? ` · làm tập ${k.ke.lichTap}` : ''}{k.chay ? '' : ' · chưa bật đăng'}</div>
+      <MonthCalendar items={items} itemNoun="video" legend={(Object.keys(LOAI_LICH) as OLich['loai'][]).map((x) => ({ color: LOAI_LICH[x].mau, label: `${LOAI_LICH[x].chu} ${LOAI_LICH[x].ten}` }))} />
+    </div>
+  );
 }
 
 export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?: number }) {
@@ -61,13 +67,13 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
             <span style={{ color: c.mau, fontSize: 11, whiteSpace: 'nowrap' }}>{c.chu}</span></span>; }
         const k = d.k, n = k.videos.length;
         return <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)' }}>
-          <button type="button" onClick={(e) => { e.stopPropagation(); doi(k.ma); }} disabled={!n} title={n ? `${moCay.has(k.ma) ? 'ẩn' : 'hiện'} ${n} video của kênh` : 'kênh chưa có video'}
-            style={{ width: 16, border: 'none', background: 'none', color: n ? 'var(--fg-2)' : 'var(--fg-4)', cursor: n ? 'pointer' : 'default', padding: 0 }}>{moCay.has(k.ma) ? '▾' : '▸'}</button>
+          <button type="button" onClick={(e) => { e.stopPropagation(); doi(k.ma); }} title={`${moCay.has(k.ma) ? 'ẩn' : 'hiện'} ${n} video + lịch kế hoạch của kênh`}
+            style={{ width: 16, border: 'none', background: 'none', color: 'var(--fg-2)', cursor: 'pointer', padding: 0 }}>{moCay.has(k.ma) ? '▾' : '▸'}</button>
           {k.anh ? <img src={k.anh} alt="" width={22} height={22} style={{ borderRadius: '50%', flex: 'none' }} /> : <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--bg-3)', flex: 'none' }} />}
           {k.kenhUrl ? <a {...extLinkProps(k.kenhUrl)} style={{ fontWeight: 700, color: 'inherit' }}>{k.ten}</a> : <b>{k.ten}</b>}
           <MenuBaCham tieuDe="Kênh nội dung" phu={k.ten} title={`Quản lý ${k.ten}`} groups={[
             ...(k.phimId ? [{ label: 'Studio', items: [{ label: 'Mở phim Studio của kênh', emoji: '🎬', href: `${STUDIO}/?m=phim&mId=${k.phimId}`, external: true }] }] : []),
-            { label: 'Video', items: [{ label: `${moCay.has(k.ma) ? 'Ẩn' : 'Hiện'} danh sách video (${n})`, emoji: '🌳', onClick: () => doi(k.ma) }] },
+            { label: 'Video', items: [{ label: `${moCay.has(k.ma) ? 'Ẩn' : 'Hiện'} video + lịch kế hoạch (${n})`, emoji: '🌳', onClick: () => doi(k.ma) }] },
             ...(k.kenhUrl ? [{ label: 'Kênh', items: [{ label: 'Mở kênh YouTube', emoji: '▶️', href: k.kenhUrl, external: true }] }] : []),
           ]} />
           <span style={{ color: k.chay ? 'var(--ok)' : 'var(--fg-4)', fontSize: 11 }}>{k.chay ? 'đang chạy' : 'chưa bật đăng'}</span></span>;
@@ -90,6 +96,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
     <Panel title="📺 Kênh nội dung" subtitle={'kênh nội dung là sản phẩm (video trọn chuyện) · ▸ / ⋯ › danh sách video · "–" = chưa đo (khác 0) · số đọc hằng ngày từ trang YouTube công khai'}>
       <DataTable rows={dong} columns={cot} groups={[nhomSocial(kySocial)]} getRowKey={(d) => (laK(d) ? d.k.ma : d.loai === 'ke' ? `${d.k.ma}/ke/${d.id}` : `${d.k.ma}/${d.v.slug}`)} persistKey="tai-san-kenh-sp" fixedLayout
         minWidth={320 + 260 + 64 + 84 + 76 + 116 + 88 + 96 + 96 + 84 + 72} card />
+      {kenh.filter((k) => moCay.has(k.ma)).map((k) => <LichKenh key={k.ma} k={k} />)}
     </Panel>
   );
 }

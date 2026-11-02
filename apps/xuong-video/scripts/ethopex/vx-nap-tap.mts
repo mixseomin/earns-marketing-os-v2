@@ -21,7 +21,8 @@ const tapId = Number(process.argv[2]); const D = process.argv[3]!;
 if (!tapId || !D || !existsSync(`${D}/so.json`)) { console.error('cần <tap_id> <thư mục có so.json>'); process.exit(1); }
 const db = getDb()!;
 const so = JSON.parse(readFileSync(`${D}/so.json`, 'utf8')) as { giong?: string; canh: Record<string, { anhUuid?: string; vidUuid?: string; amGiay?: number }> };
-const canh = (await db.execute(sql`SELECT id, thu_tu, thoai, loi_thoai FROM xv_canh WHERE tap_id = ${tapId} AND coalesce(phan_doan, '') <> 'cta' ORDER BY thu_tu, id`)) as unknown as { id: number; thu_tu: number; thoai: { loi: string; nhan_vat?: string }[] | null; loi_thoai: string }[];
+// thu_tu là numeric(…,4) từ 0392 (shot con 7.1) — driver trả '1.0000' → tên tệp am-1.0000.mp3 không có, chiThuTu không khớp mapCanh (số) → ép số như mapCanh (02/11/2026)
+const canh = (await db.execute(sql`SELECT id, coalesce(so_hien, thu_tu)::float8 AS thu_tu, thoai, loi_thoai FROM xv_canh WHERE tap_id = ${tapId} AND coalesce(phan_doan, '') <> 'cta' ORDER BY thu_tu, id`)) as unknown as { id: number; thu_tu: number; thoai: { loi: string; nhan_vat?: string }[] | null; loi_thoai: string }[];
 const giay = (f: string) => Number(execSync(`ffprobe -v error -show_entries format=duration -of csv=p=0 ${JSON.stringify(f)}`, { encoding: 'utf8' }).trim());
 const thieu = canh.filter((c) => !['am', 'anh', 'vid'].every((k) => existsSync(`${D}/${k}-${c.thu_tu}.${k === 'am' ? 'mp3' : k === 'anh' ? 'jpg' : 'mp4'}`)));
 if (thieu.length) { console.error(`thiếu tệp cho cảnh ${thieu.map((c) => `#${c.thu_tu}`).join(' ')} — chạy lại vx-ke-chuyen.mts trên iMac`); process.exit(1); }

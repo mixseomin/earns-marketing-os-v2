@@ -9,7 +9,7 @@ import { anchoredPos } from '@/lib/anchored-pos';
 export type MucMenu = { label: string; emoji: string; href?: string; external?: boolean; onClick?: () => void };
 export type NhomMenu = { label: string; items: MucMenu[] };
 
-export function MenuBaCham({ tieuDe, phu, groups, title }: { tieuDe: string; phu: string; groups: NhomMenu[]; title?: string }) {
+export function MenuBaCham({ tieuDe, phu, groups, title, chen }: { tieuDe: string; phu: string; groups: NhomMenu[]; title?: string; /** khối chèn dưới tiêu đề (vd lịch kế hoạch nhỏ của kênh) */ chen?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -30,7 +30,7 @@ export function MenuBaCham({ tieuDe, phu, groups, title }: { tieuDe: string; phu
   function toggle() {
     if (open) { setOpen(false); return; }
     const r = btnRef.current?.getBoundingClientRect();
-    if (r) setPos(anchoredPos(r, 218, 380));
+    if (r) setPos(anchoredPos(r, chen ? 262 : 218, chen ? 560 : 380));   // có khối chèn (lịch) thì menu rộng + cao hơn
     setOpen(true);
   }
 
@@ -57,6 +57,7 @@ export function MenuBaCham({ tieuDe, phu, groups, title }: { tieuDe: string; phu
             <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>{tieuDe}</div>
             <div style={{ fontSize: 10, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{phu}</div>
           </div>
+          {chen && <div style={{ padding: '6px 8px 4px', borderBottom: '1px solid var(--line)' }}>{chen}</div>}
           {groups.map((g) => (
             <div key={g.label}>
               <div style={{ padding: '6px 10px 2px', fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--fg-3)', fontFamily: 'var(--font-mono)' }}>{g.label}</div>

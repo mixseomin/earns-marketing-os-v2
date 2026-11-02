@@ -60,7 +60,7 @@ const MODES: { key: CalMode; label: string }[] = [
 
 // MINI-MONTH: lưới tháng thu nhỏ (như sidebar Google Calendar). Ngày hôm nay khoanh, ngày đang chọn
 // tô nền accent, ngày có việc có 1 chấm nhỏ ở dưới → liếc là biết cả tháng chỗ nào có việc. Bấm ngày = nhảy.
-export function MiniMonth({ month, sel, byDate, onPick, onNavMonth, today, showNav = true, itemNoun = 'việc' }: {
+export function MiniMonth({ month, sel, byDate, onPick, onNavMonth, today, showNav = true, itemNoun = 'việc', soTrenO }: {
   month: Date; sel: Set<string>; byDate: Map<string, CalItem[]>; onPick: (d: Date) => void; onNavMonth: (dir: 1 | -1) => void; today?: string;
   /** Mục trên lịch này gọi là gì — "việc" (mặc định), "doanh thu"… Dùng cho chú thích + tooltip. */
   itemNoun?: string;
@@ -68,6 +68,8 @@ export function MiniMonth({ month, sel, byDate, onPick, onNavMonth, today, showN
    *  có hai lần "August 2026" với hai cặp ◀ ▶ làm đúng một việc. Tuần/Ngày thì phải giữ: lúc đó
    *  ◀ ▶ ở trên nhảy tuần/ngày, không có cách nào khác để lật tháng. */
   showNav?: boolean;
+  /** Ghi SỐ ở góc ô thay chấm: tổng của ngày (soTrenO(mục) = số mỗi mục góp, vd số video) — lịch kế hoạch kênh trong menu ⋯ (02/11/2026). */
+  soTrenO?: (it: CalItem) => number;
 }) {
   const m = month.getMonth();
   const todayStr = today || ymd(new Date());
@@ -87,14 +89,16 @@ export function MiniMonth({ month, sel, byDate, onPick, onNavMonth, today, showN
           const ds = ymd(d); const inM = d.getMonth() === m; const isToday = ds === todayStr; const isSel = sel.has(ds);
           const its = byDate.get(ds) || []; const dot = its[0]?.color || 'var(--accent)';
           return (
-            <button key={ds} type="button" onClick={() => onPick(d)} title={its.length ? `${its.length} ${itemNoun}` : undefined}
+            <button key={ds} type="button" onClick={() => onPick(d)} title={its.length ? its.map((x) => (x.title ? `${x.label}\n${x.title}` : x.label)).join('\n') : undefined}
               // Ngày/tuần đang chọn = tint NHẸ (không tô đặc chói), chỉ đủ để phân biệt; hôm nay = khoanh cyan.
               style={{ position: 'relative', height: 28, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 border: `1px solid ${isToday ? 'var(--neon-cyan)' : isSel ? 'color-mix(in srgb, var(--accent) 34%, transparent)' : 'transparent'}`, borderRadius: 7, cursor: 'pointer', fontSize: 11, fontWeight: isToday ? 800 : isSel ? 700 : 500,
                 background: isSel ? 'color-mix(in srgb, var(--accent) 18%, transparent)' : isToday ? 'color-mix(in srgb, var(--neon-cyan) 13%, transparent)' : 'transparent',
                 color: isToday ? 'var(--neon-cyan)' : isSel ? 'var(--fg-1)' : !inM ? 'var(--fg-4)' : 'var(--fg-2)', opacity: isSel ? 1 : inM ? 1 : 0.45 }}>
               {d.getDate()}
-              {its.length > 0 && <span style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: '50%', background: dot }} />}
+              {its.length > 0 && !soTrenO && <span style={{ position: 'absolute', bottom: 3, width: 4, height: 4, borderRadius: '50%', background: dot }} />}
+              {its.length > 0 && soTrenO && <span style={{ position: 'absolute', top: -3, right: -2, minWidth: 13, height: 13, padding: '0 3px', boxSizing: 'border-box', borderRadius: 7, fontSize: 8.5, fontWeight: 800,
+                lineHeight: '13px', color: '#fff', background: dot }}>{its.reduce((t, x) => t + soTrenO(x), 0)}</span>}
             </button>
           );
         })}

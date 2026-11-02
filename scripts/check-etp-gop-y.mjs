@@ -370,6 +370,7 @@ const LUAT = [
   { card: 1501, tep: 'apps/web/src/components/etp-tong2.tsx', co: "border: `1px solid ${ra ? '#f87171' : sua ? 'var(--accent)' : 'var(--line)'}`", vi: 'viền widget viết đủ shorthand, mặc định var(--line)' },
   { card: 1502, tep: 'apps/web/src/components/ui/chon2.tsx', co: "autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}", vi: 'ô chọn không tự focus ô tìm trên màn cảm ứng (bàn phím điện thoại bật che danh sách)' },
   { card: 1502, tep: 'apps/web/src/components/ui/chon2.tsx', cam: '<input autoFocus value={q}', vi: 'không quay lại autoFocus vô điều kiện' },
+  { card: 'cat-0211', tep: 'apps/xuong-video/scripts/ethopex/phim-moi.py', co: 'if shutil.disk_usage(C).free / 1e9 < 30 and don_mac() < 15: return print(', vi: 'phim-moi cat: ổ còn ≥ 30 GB thì cắt luôn, không chờ rclone dọn lên Drive (02/11/2026 lô kẹt 26 phút)' },
   { card: 'bo2-0211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'BO_PL = [] if EA.XEM else [str(x) for x in _ch("bo_tat_phim_lo", [])]', vi: 'luật PL tắt camp nhỏ của phim lỗ 7 ngày ở bộ trong etp.cau_hinh.bo_tat_phim_lo (anh 02/11/2026)' },
   { card: 'bo2-0211', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tat_pl": m(tat_pl)', vi: 'PL xuất ra --json để worker tắt (báo trước một nhịp)' },
   { card: 'bo2-0211', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"tat_pl":    { "ma": "pl"', vi: 'PL có mục trong sổ luật chung (worker, trang etp đọc từ đây)' },

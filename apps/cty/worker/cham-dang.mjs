@@ -210,7 +210,7 @@ export async function xetThumbAi(ds) {
   if (!MODEL_NGOC) return ds.map(() => null);
   const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'xet-thumb.json');
   let so = {}; try { so = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* chưa có sổ */ }
-  const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`${x.title}|${x.url}`).digest('hex');
+  const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`${x.title}|${x.url}|${x.nguon ?? ''}`).digest('hex');
   const system = 'You are the thumbnail reviewer of a YouTube channel. You see ONE vertical thumbnail and the video title. Judge it the way it appears in a phone feed (about 160 px wide). Reply with ONE JSON only: '
     + '{"kho_doc":true|false,"nhieu_chu":true|false,"tran":true|false,"mo":true|false,"roi":true|false,"lap_tieu_de":true|false,"lech":true|false,"loi_ai":true|false,"logo_la":true|false,"nhay_cam":true|false,"chac":true|false,"ly_do":"one short sentence in Vietnamese"}. '
     + 'kho_doc = the big text is not readable at small size (thin, low contrast, too small). nhieu_chu = more than 5 words of big text. tran = text cut off or touching the edge. '
@@ -222,7 +222,7 @@ export async function xetThumbAi(ds) {
     if (!x.url) { ra.push(null); continue; }
     const k = khoa(x);
     if (!(k in so)) {
-      const o = await hoiNgoc({ luot: 'xet-thumb', system, max_tokens: 300, cho: 120000, content: [{ type: 'image', source: { type: 'url', url: x.url } }, { type: 'text', text: `VIDEO TITLE: ${x.title}` }] });
+      const o = await hoiNgoc({ luot: 'xet-thumb', system, max_tokens: 300, cho: 120000, content: [{ type: 'image', source: { type: 'url', url: x.url } }, { type: 'text', text: `VIDEO TITLE: ${x.title}${x.chu_de ? `\nSTORY: ${x.chu_de}` : ''}${x.nguon ? `\nBACKGROUND PHOTO SOURCE FILE: ${x.nguon} — set lech=true if this file is about a different person / thing than the story (e.g. a namesake)` : ''}` }] });
       if (o === undefined) { ra.push(null); continue; }
       so[k] = o; moi++;
     }
@@ -256,7 +256,7 @@ export async function chamMoi(sql) {
   const hinh = await xetHinhAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), anh: [...(v.de?.soat ?? (v.khung?.length ? v.khung : v.anh) ?? [])].filter((u) => /^https:\/\//.test(u)).slice(0, 8) })));
   // THUMBNAIL (02/11/2026, anh: "không dùng thumb YouTube tự sinh"): video full (mẫu video-ngoai, kênh lịch sử) bắt buộc có thumbnail thiết kế (de.thumb.url,
   // lich-su/thumb.mjs) và Ngọc chấm đạt — thiếu / không đạt là chặn cứng, máy đăng không lấy.
-  const thumb = await xetThumbAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), url: v.mau === 'video-ngoai' ? v.de?.thumb?.url ?? null : null })));
+  const thumb = await xetThumbAi(ds.map((v) => ({ title: String(v.dang?.title ?? ''), url: v.mau === 'video-ngoai' ? v.de?.thumb?.url ?? null : null, chu_de: v.de?.tom_tat ?? null, nguon: v.de?.thumb?.nguon ?? null })));
   ds.forEach((v, i) => { if (v.mau !== 'video-ngoai') return; const h = hinh[i] ?? { chan: [], canh: [] };
     if (!v.de?.thumb?.url) h.chan = [...h.chan, 'thiếu thumbnail thiết kế (lich-su/thumb.mjs) — không dùng thumbnail YouTube tự sinh'];
     else if (thumb[i]) { h.chan = [...h.chan, ...thumb[i].chan]; h.canh = [...h.canh, ...thumb[i].canh]; }

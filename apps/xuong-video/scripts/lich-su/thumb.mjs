@@ -43,7 +43,7 @@ console.log(`✓ ${ra} · chữ ${do_.co}px ${do_.dong} dòng · ${(statSync(ra)
 
 // 3. NGỌC CHẤM
 const den = `/var/tmp/xet-thumb-${id}.jpg`; len(ra, den);
-const kq = JSON.parse(box(`scripts/lich-su/xet-thumb.mts ${q(id)} ${q(tap.tieu_de)} ${den}`).split('\n').pop());
+const kq = JSON.parse(box(`scripts/lich-su/xet-thumb.mts ${q(id)} ${q(tap.tieu_de)} ${den} ${q(tap.chu_de ?? '')} ${q(tap.thumb.commons ?? '')}`).split('\n').pop());
 tap.thumb = { ...tap.thumb, url: kq.url, xet: { chan: kq.chan, canh: kq.canh, luc: new Date().toISOString() } }; writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
 for (const c of kq.canh) console.log(`⚠ Ngọc (thumbnail): ${c}`);
 if (kq.chan.length) { console.error(`✗ Ngọc chặn thumbnail:\n  ${kq.chan.join('\n  ')}\n  ${ra}`); process.exit(4); }

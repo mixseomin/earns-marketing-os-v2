@@ -217,7 +217,11 @@ const khoNay = docKho().tai_san;
 const namAnh = (ten, md) => { const ys = [...`${md?.DateTimeOriginal?.value ?? ''} ${md?.DateTime?.value ?? ''} ${ten}`.matchAll(/\b(1[0-9]{3}|20[0-9]{2})\b/g)].map((m) => Number(m[1])); return ys.length ? Math.min(...ys) : null; };
 const timAnhThat = async (cum, nam = null) => { for (const q1 of nam > 0 ? cum.flatMap((q) => [`${q} ${nam}`, q]) : cum) {
     const r = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', list: 'search', srnamespace: '6', srlimit: '10', srsearch: `${q1} filetype:bitmap`, format: 'json', formatversion: '2' })}`)).json();
-    const ds = (r.query?.search ?? []).map((x) => x.title).filter((x) => /\.(jpe?g|png)$/i.test(x) && !/\b(map|karte|carte|mapa|diagram|logo|flag|coat of arms|chart)\b/i.test(x));
+    // ĐÚNG CHỦ THỂ (02/11/2026, Alaska: "Seward" ra thẻ bóng chày cầu thủ Ed Seward, "russian soldier 1867" ra tranh huy hiệu Romania): tên tệp phải chứa MỌI từ
+    // chính của cụm tìm (≥ 3 chữ, bỏ năm / từ nối) — máy tìm của Commons trả cả kết quả chỉ khớp một từ
+    const tuChinh = boDau(q1).toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 3 && !/^\d+$/.test(w) && !['the', 'and', 'of', 'del', 'des', 'von'].includes(w));
+    const ds = (r.query?.search ?? []).map((x) => x.title).filter((x) => /\.(jpe?g|png)$/i.test(x) && !/\b(map|karte|carte|mapa|diagram|logo|flag|coat of arms|chart)\b/i.test(x)
+      && tuChinh.every((w) => boDau(x).toLowerCase().includes(w.replace(/s$/, ''))));
     if (!ds.length) continue;
     if (!(nam > 0)) return ds[0];
     const ii = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', titles: ds.join('|'), prop: 'imageinfo', iiprop: 'extmetadata', format: 'json', formatversion: '2' })}`)).json();

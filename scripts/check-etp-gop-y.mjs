@@ -90,7 +90,7 @@ const LUAT = [
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: 'fs.utimesSync(khoa, t, t)', vi: 'khoá nhịp có nhịp tim (nhịp dài lên ROAS không bị nhịp khác chen)' },
   // 28–29/10/2026 — bộ lọc trang Camp (chat): Luật theo đúng thẻ đang hiện, Tuổi, Cây dùng DataTable
   { card: 0, tep: V, mot: 'const chipCamp = (du: DuLieuEtp', vi: 'thẻ luật và bộ lọc Luật cùng một nguồn' },
-  { card: 0, tep: V, co: '.filter(hopLuat)', vi: 'bộ lọc Luật áp lên danh sách camp' },
+  { card: 0, tep: V, co: "['luat', hopLuat]", vi: 'bộ lọc Luật áp lên danh sách camp' },
   { card: 0, tep: V, co: '{laiSel()}{tuoiSel()}{luatSel()}', vi: 'ô lọc Tuổi trên thanh lọc' },
   { card: 0, tep: V, co: 'const bangCay = hep ? null : <DataTable', vi: 'Cây máy tính dùng DataTable (lọc từng cột)' },
   { card: 0, tep: 'packages/bang/src/col-filter.ts', co: "case 'KHOẢNG':", vi: 'DataTable lọc khoảng số từ–đến (29/10/2026)' },
@@ -176,7 +176,7 @@ const LUAT = [
   // anh 31/10/2026 "bố cục lại chỗ này" (YDNI): tab gãy hai dòng vì một hàng nhồi tab + kỳ + kiểu xem + 6 ô lọc; hai bộ lọc trùng nghĩa
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: '.etp-thanh [data-comp="ui.Segmented"] button,.etp-thanh [data-comp="ui.Segmented"] a{white-space:nowrap}', vi: 'nhãn tab không gãy dòng' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "<span className=\"etp-xuong\" style={{ flexBasis: '100%', height: 0 }} />", vi: 'kiểu xem + bộ lọc xuống hàng 2, tab + kỳ hàng 1' },
-  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', mot: 'locTuDong={false} />;   // TT / Luật / Loại tự sinh', vi: 'cây camp không có bộ lọc tự sinh trùng ô Lọc / Luật / Loại' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', mot: 'locTuDong={false} onTimDoi={onTimDoi} khiTimTrong={khiTimTrong} />;   // TT / Luật / Loại tự sinh', vi: 'cây camp không có bộ lọc tự sinh trùng ô Lọc / Luật / Loại' },
   // anh 31/10/2026 PHÂN QUYỀN: Sơn admin (xem hết + sửa camp của Sơn), Kiên chỉ phần của Kiên — dữ liệu cắt TRÊN MÁY CHỦ, một chỗ gác
   { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "du={quyen.vai === 'nguoi' ? catChoNguoi(du, quyen.nguoiId!) : du}", vi: 'vai người nhận dữ liệu đã cắt trên máy chủ' },
   { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "docEtp(ngCua(quyen, mot('ng')), true)", vi: 'vai người không đổi được ?ng= sang người khác' },
@@ -304,7 +304,7 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: 'persistKey="etp-cay" minWidth={1100} fixedLayout', vi: 'Cây table-layout fixed: bề rộng cột theo khai báo, máy nào cũng như nhau' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'dem', header: '', align: 'left', cell: () => null },", vi: 'Cây: cột đệm cuối nhận khoảng thừa, không hở giữa bảng' },
   // anh 30/10/2026 "?ng=115…&b=2 sao ko thấy data": ?b= còn sót lọc camp người khác (không thuộc bộ nào) ra 0 dòng
-  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: ".filter((c) => !boHieu || c.bo === boHieu)", vi: 'lọc bộ chỉ áp khi bộ có trong dữ liệu đang xem' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "['bo', (c) => !boHieu || c.bo === boHieu]", vi: 'lọc bộ chỉ áp khi bộ có trong dữ liệu đang xem' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', cam: ".filter((c) => !boLoc || c.bo === boLoc)", vi: 'không lọc bộ thẳng theo URL' },
   // anh 30/10/2026 lên Dragon Lord bằng creative tk Sơn: dòng hàng chấm lỗi 'không có trong kho' phải tự về hàng chờ khi creative vào kho
   { card: 0, tep: 'apps/web/src/app/api/ext/etp-cham/route.ts', co: "where trang_thai = 'loi' and loi like 'creative không có trong kho%'", vi: 'hàng chấm tự gỡ lỗi không-có-trong-kho khi creative đã vào kho' },
@@ -419,6 +419,10 @@ const LUAT = [
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: '"tat2": m(tat2), "tat1": m(tat1),', vi: 'luật T1 xuất ra cho worker (báo trước một nhịp rồi tắt)' },
   { card: 'chat', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'dat = [(cid, chu) for cid, chu in dat if not _ts_ly(cid)]', vi: 'luật TS siết tăng bậc: không tăng 07–15h VN, không tăng khi hôm qua lãi 0–50% (02/11)' },
   { card: 'chat', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"tat1":      { "ma": "t1",', vi: 'sổ luật chung có T1' },
+  { card: 'chat', tep: V, co: 'const camps = useMemo(() => du.camps.filter((c) => BO_LOC.every(([, f]) => f(c))), [du.camps, BO_LOC]);', vi: 'cây / bảng camp lọc qua MỘT danh sách bộ lọc có tên (BO_LOC) — để chỉ ra ô nào ẩn camp đang tìm' },
+  { card: 'chat', tep: V, co: '<Chon2 chan={chanLoc.loc} value={loc}', vi: 'ô Lọc viền đỏ khi đang ẩn camp người dùng tìm' },
+  { card: 'chat', tep: V, co: 'onTimDoi={setTimCay} khiTimTrong={giaiTim()}', vi: 'tìm ra 0 dòng: nói bộ lọc nào ẩn / camp ở người nào (link mở)' },
+  { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tim.ts', co: "if (!qu || qu.vai === 'nguoi' || k.length < 3) return [];", vi: 'tìm camp người khác: vai người không được biết camp người khác' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

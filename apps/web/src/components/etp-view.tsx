@@ -21,6 +21,7 @@ const SuaCampCtx = createContext<{ het: string | null } | null>(null);   // null
 import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhanNang, PhimEtpKho, SoLuat, SoTien, ThayThe, ThuVienMuc, XetLuat } from '@/lib/etp-doc';
 import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
+import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 
 type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'tv' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -1575,7 +1576,7 @@ function oThay(key: string, t: ThayThe): React.ReactNode {
   if (key === 'cr') return t.creative_id ? <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>cr #{t.creative_id}</span> : null;
   return null;
 }
-function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp, moPhim }: { moCamp?: (id: number) => void; moPhim?: (k: string) => void; camps: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent) => void; dongCr?: () => void }) {
+function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp, moPhim, onTimDoi, khiTimTrong }: { onTimDoi?: (q: string) => void; khiTimTrong?: React.ReactNode; moCamp?: (id: number) => void; moPhim?: (k: string) => void; camps: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent) => void; dongCr?: () => void }) {
   const coLich = du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true, LT = luoiTrong(coLich);
   const { boThang, thangMuc } = soThang(du);   // lịch giờ đang tắt → không có cột lịch
   const tlC = (k: string | null) => (k ? du.theLoai[k] ?? k : '—');
@@ -1755,7 +1756,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       const l = loiNb.get(c.camp_id); if (l) return `Vạch ĐỎ — máy không nhân bản được camp này (${l.lan} lần thử trong 24 giờ): ${loiThuong(l.loi)}`;
       if (!giam(c)) return undefined; const r3 = ngay.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d))); return `Vạch CAM — ROI giảm 2 ngày liền: ${ngay.slice(-3).map((d, i) => `${d.slice(8, 10)}/${d.slice(5, 7)} ${r3[i]}%`).join(' → ')}`; }}
     searchText={(c) => `${c.camp_id} ${c.ten ?? ''} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tlC(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…"
-    dauThanh={nutCay} thanhDinh="var(--etp-dinh, 0px)" locTuDong={false} />;   // TT / Luật / Loại tự sinh trùng nghĩa ô Lọc · Luật · Loại trên thanh tab
+    dauThanh={nutCay} thanhDinh="var(--etp-dinh, 0px)" locTuDong={false} onTimDoi={onTimDoi} khiTimTrong={khiTimTrong} />;   // TT / Luật / Loại tự sinh trùng nghĩa ô Lọc · Luật · Loại trên thanh tab
   return (
     <div ref={gocCay} className="etp-cay" style={{ padding: '0 4px' }}>
       <style>{CSS_CAY}</style>
@@ -2215,11 +2216,24 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const locTuoi = useCallback((c: CampEtpKho) => { const m = /^(\d+)-(\d*)$/.exec(tuoiChon); if (!m) return true; const t = tuoiNgay(c.tao); if (t == null) return false;
     return t >= Number(m[1]) && (m[2] === '' || t < Number(m[2])); }, [tuoiChon]);
   // lọc "Đã tắt theo" luật tự bỏ qua ô Lọc trạng thái (camp đã tắt không bao giờ Đang chạy) — ô Lọc giữ nguyên Đang chạy, không phải đổi sang Tất cả
-  const camps = useMemo(() => du.camps.filter((c) => loc === 'all' || luatLoc.startsWith(`${DA_LAM}tat:`) || (loc === 'chay' ? dangChay(c) : loc === 'cho' ? choGio(c) : loc === 'tat' ? c.trang_thai !== 'ACTIVE' : loc === 'roas' ? roasDat.has(c.camp_id)
+  const hopLoc = useCallback((c: CampEtpKho) => loc === 'all' || luatLoc.startsWith(`${DA_LAM}tat:`) || (loc === 'chay' ? dangChay(c) : loc === 'cho' ? choGio(c) : loc === 'tat' ? c.trang_thai !== 'ACTIVE' : loc === 'roas' ? roasDat.has(c.camp_id)
     : loc === 'luat' ? (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')
     : loc === 'ganluat' ? (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')
-    : loc === 'gtang' ? !!ganMap.get(c.camp_id)?.tang : loc === 'ggiam' ? !!ganMap.get(c.camp_id)?.giam : loc === 'gtat' ? !!ganMap.get(c.camp_id)?.tat : c.cung_doan > tranT)).filter(hopLuat)
-    .filter((c) => !phimLoc || xemCamp !== 'bang' || c.content_id === phimLoc).filter((c) => !dangLoc || c.dang === dangLoc).filter((c) => !boHieu || c.bo === boHieu).filter(locLai).filter(locTuoi), [du.camps, loc, roasDat, ganMap, baoCampBang, hopLuat, phimLoc, xemCamp, dangLoc, boHieu, locLai, locTuoi]);
+    : loc === 'gtang' ? !!ganMap.get(c.camp_id)?.tang : loc === 'ggiam' ? !!ganMap.get(c.camp_id)?.giam : loc === 'gtat' ? !!ganMap.get(c.camp_id)?.tat : c.cung_doan > tranT), [loc, luatLoc, roasDat, ganMap, baoCampBang, tranT]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // BỘ LỌC CAMP CÓ TÊN (anh 02/11/2026 "tại sao ko còn hiện camp nào? Filter nào gây ra phải highlight chứ?"): MỘT danh sách vừa lọc cây / bảng, vừa chỉ ra
+  // ô lọc nào đang ẩn camp người dùng gõ trong ô tìm (ô đó viền đỏ) — thêm bộ lọc mới thì thêm vào đây, không lọc riêng chỗ khác
+  const BO_LOC = useMemo((): [string, (c: CampEtpKho) => boolean][] => [['loc', hopLoc], ['luat', hopLuat], ['phim', (c) => !phimLoc || xemCamp !== 'bang' || c.content_id === phimLoc],
+    ['dang', (c) => !dangLoc || c.dang === dangLoc], ['bo', (c) => !boHieu || c.bo === boHieu], ['lai', locLai], ['tuoi', locTuoi]], [hopLoc, hopLuat, phimLoc, xemCamp, dangLoc, boHieu, locLai, locTuoi]);
+  const camps = useMemo(() => du.camps.filter((c) => BO_LOC.every(([, f]) => f(c))), [du.camps, BO_LOC]);
+  // Ô TÌM CÂY / BẢNG CAMP RA 0 DÒNG → nói vì sao: camp khớp có trong dữ liệu nhưng bộ lọc nào ẩn (ô đó viền đỏ), hay camp nằm ở người khác (hỏi kho, kèm link mở)
+  const [timCay, setTimCay] = useState('');
+  const khopTim = useMemo(() => { const t = timCay.trim().toLowerCase().split(/\s+/).filter(Boolean); return t.length ? du.camps.filter((c) => { const x = `${c.camp_id} ${c.ten ?? ''} ${c.phim ?? ''} ${c.creative_id ?? ''}`.toLowerCase(); return t.every((k) => x.includes(k)); }) : []; }, [du.camps, timCay]);
+  const anTim = khopTim.length > 0 && !khopTim.some((c) => BO_LOC.every(([, f]) => f(c)));
+  const chanLoc = useMemo(() => (anTim ? Object.fromEntries(BO_LOC.map(([k, f]) => [k, khopTim.filter((c) => !f(c)).length] as const).filter(([, n]) => n > 0)
+    .map(([k, n]) => [k, `ô này đang ẩn ${n} camp khớp "${timCay.trim()}" — chọn lại để thấy`])) : {}) as Record<string, string>, [anTim, BO_LOC, khopTim, timCay]);
+  const [noiKhac, setNoiKhac] = useState<{ q: string; ds: CampNoiKhac[] } | null>(null);
+  useEffect(() => { const k = timCay.trim(); if (k.length < 3 || khopTim.length) return;
+    const t = setTimeout(() => { timCampNoiKhac(k).then((ds) => setNoiKhac({ q: k, ds })).catch(() => {}); }, 400); return () => clearTimeout(t); }, [timCay, khopTim.length]);
 
   const soLoc = tab === 'camp' && camps.length !== du.camps.length ? camps : tab === 'roas' ? campRoas : null;   // null = không lọc → dải số tính cả kho
   const nguon = soLoc ?? du.camps;
@@ -2286,15 +2300,15 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       ...(khong ? [{ value: KHONG_LUAT, label: 'Không chạm luật', nhom: 'Khác', dem: khong }] : []),
       ...[...lamKy.reduce((a, t) => a.set(`${t.viec}:${t.ma}`, (a.get(`${t.viec}:${t.ma}`) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1])
         .map(([k, dem]) => { const [viec, ...ma] = k.split(':'); return { value: DA_LAM + k, label: `${viec === 'tat' ? '⏹' : '↓'} ${ma.join(':')}`, nhom: NHOM_LAM[viec!] ?? viec!, dem }; })]; }, [du.camps, lamKy, chipMap]);
-  const luatSel = () => <Chon2 value={luatLoc} onChange={(v) => doi({ luat: v }, () => setLuatLoc(v))} nhan="Luật" title="lọc camp theo thẻ luật đang hiện ở cột Luật (đang chạm: viền liền · sắp chạm: viền nét đứt)" options={luatOpts} />;
-  const dangSel = () => <Chon2 value={dangLoc} onChange={(v) => doi({ dang: v }, () => setDangLoc(v))} nhan="Loại" title="lọc camp theo loại creative"
+  const luatSel = () => <Chon2 chan={chanLoc.luat} value={luatLoc} onChange={(v) => doi({ luat: v }, () => setLuatLoc(v))} nhan="Luật" title="lọc camp theo thẻ luật đang hiện ở cột Luật (đang chạm: viền liền · sắp chạm: viền nét đứt)" options={luatOpts} />;
+  const dangSel = () => <Chon2 chan={chanLoc.dang} value={dangLoc} onChange={(v) => doi({ dang: v }, () => setDangLoc(v))} nhan="Loại" title="lọc camp theo loại creative"
     // #1486: mỗi dòng = ĐÚNG badge cột LOẠI (BadgeDang ngắn, cùng màu MAU_DANG) + tên loại; chữ tìm + nhãn gọn trên nút giữ dạng chữ
     options={Object.entries(MA_DANG).map(([d, m]) => ({ value: d, label: <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><BadgeDang d={d} ngan /><span>{d}</span></span>,
       tim: `${m} ${d}`, ngan: `${m} · ${d}`, dem: du.camps.filter((c) => c.dang === d).length })).filter((o) => o.dem)} />;
   const TUOI_MUC = [['0-1', 'Dưới 1 ngày'], ['1-2', '1–2 ngày'], ['2-3', '2–3 ngày'], ['3-7', '3–7 ngày'], ['7-14', '7–14 ngày'], ['14-30', '14–30 ngày'], ['30-', 'Trên 30 ngày']] as const;
-  const tuoiSel = () => <Chon2 value={tuoiChon} onChange={(v) => doi({ tu: v }, () => setTuoiChon(v))} nhan="Tuổi" title="lọc camp theo tuổi (tính từ lúc lên camp)"
+  const tuoiSel = () => <Chon2 chan={chanLoc.tuoi} value={tuoiChon} onChange={(v) => doi({ tu: v }, () => setTuoiChon(v))} nhan="Tuổi" title="lọc camp theo tuổi (tính từ lúc lên camp)"
     options={TUOI_MUC.map(([v, t]) => { const [a, b] = v.split('-'); return { value: v, label: t, dem: du.camps.filter((c) => { const x = tuoiNgay(c.tao); return x != null && x >= Number(a) && (b === '' || x < Number(b)); }).length }; }).filter((o) => o.dem)} />;
-  const laiSel = () => <Chon2 value={laiLoc} onChange={(v) => doi({ ll: v }, () => setLaiLoc(v))} nhan="Lãi/lỗ" title="lọc camp lãi / lỗ — theo kỳ đang chọn, hoặc lỗ N ngày đã khép gần nhất"
+  const laiSel = () => <Chon2 chan={chanLoc.lai} value={laiLoc} onChange={(v) => doi({ ll: v }, () => setLaiLoc(v))} nhan="Lãi/lỗ" title="lọc camp lãi / lỗ — theo kỳ đang chọn, hoặc lỗ N ngày đã khép gần nhất"
     options={[{ value: 'lai', label: 'Lãi trong kỳ', nhom: `Kỳ đang chọn (${khNhan})` }, { value: 'lo', label: 'Lỗ trong kỳ', nhom: `Kỳ đang chọn (${khNhan})` },
       ...[3, 5, 7, 10, 14].map((n) => ({ value: `c${n}`, label: `Lỗ cộng dồn ${n} ngày`, nhom: 'Lỗ N ngày đã khép gần nhất', title: `tổng lãi ${n} ngày trọn gần nhất (không tính hôm nay) < 0`, tim: `lo ${n} ngay cong don` })),
       ...[3, 5, 7].map((n) => ({ value: `g${n}`, label: `Lãi ${n} ngày liên tiếp`, nhom: 'Liên tiếp từng ngày (ngày đã khép)', title: `${n} ngày trọn gần nhất ngày nào cũng có chi và đều lãi`, tim: `lai lien tiep ${n} ngay` })),
@@ -2308,7 +2322,15 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     onChange={(v) => { const u = urlNguoi(v); doiNguoi(() => router.push(`${u.pathname}${u.search}`)); }} href={(v) => urlNguoi(v).href}
     // TEAM (anh 02/11/2026): nhà + mọi người gộp một, chỉ xem — đứng đầu danh sách
     options={[{ value: 'team', label: `Team · cả đội · ${du.nguoi.ds.reduce((a, x) => a + x.tk, 0)} TK`, ngan: 'Team' }, ...du.nguoi.ds.filter((x) => !x.nha).map((x) => ({ value: String(x.id), label: `${x.ten} · ${x.tk} TK`, ngan: x.ten }))]} rong={`${du.nguoi.ds.find((x) => x.nha)?.ten ?? 'Nhà'} (nhà)`} /></> : null);
-  const boSel = () => (!boCo.length ? null : <Chon2 value={boHieu} onChange={(v) => doi({ bo: v }, () => setBoLoc(v))} nhan="TK" align="left" title="lọc camp theo bộ tài khoản QC (tài khoản + Page)"
+  const TEN_LOC: Record<string, string> = { loc: 'Lọc', luat: 'Luật', phim: 'Phim', dang: 'Loại', bo: 'TK', lai: 'Lãi/lỗ', tuoi: 'Tuổi' };
+  const giaiTim = (): React.ReactNode => {
+    const k = timCay.trim(); if (!k) return null;
+    if (anTim) return <span style={{ color: '#f87171' }}>Có {khopTim.length} camp khớp nhưng đang bị ẩn bởi ô lọc {Object.keys(chanLoc).map((x) => TEN_LOC[x] ?? x).join(' · ')} (viền đỏ phía trên) — chọn lại ô đó để thấy.</span>;
+    const ds = noiKhac?.q === k ? noiKhac.ds.filter((x) => du.nguoi.doi || x.nguoi_id !== (du.nguoi.ngoai ? du.nguoi.dang : du.nguoi.nha)) : [];
+    if (!ds.length) return null;
+    return <span>Không có trong phần <b>{tenNguoi}</b>, nhưng có ở: {ds.map((x, i) => <Fragment key={x.nguoi_id}>{i ? ' · ' : ''}<a href={urlNguoi(x.nha ? '' : String(x.nguoi_id)).href} style={{ color: '#60a5fa' }}>{x.nguoi}{x.nha ? ' (nhà)' : ''}</a> {x.so} camp{x.chay ? `, ${x.chay} đang chạy` : ''}{x.so === 1 ? ` (#${x.vi_du})` : ''}</Fragment>)}{du.nguoi.ds.length > 1 && !du.nguoi.doi ? <> · <a href={urlNguoi('team').href} style={{ color: '#60a5fa' }}>xem Team</a></> : null}</span>;
+  };
+  const boSel = () => (!boCo.length ? null : <Chon2 chan={chanLoc.bo} value={boHieu} onChange={(v) => doi({ bo: v }, () => setBoLoc(v))} nhan="TK" align="left" title="lọc camp theo bộ tài khoản QC (tài khoản + Page)"
     options={boCo.map((b) => ({ value: b, label: `Bộ ${b}${gon ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''} · ${du.boTk[b]?.mui_gio ?? 'múi giờ ?'}`, ngan: `Bộ ${b}`, tim: `bộ ${b} ${du.boTk[b]?.ten ?? ''}`, dem: du.camps.filter((c) => c.bo === b && c.trang_thai === 'ACTIVE').length }))} />);
   // LÊN DÒNG DÍNH (anh 01/11/2026 #1499 "chuyển chọn ngày lên trên + sticky (vẫn cho chọn)", #1500 "chuyển cả bộ TK vào sau chỗ chọn người + sticky; phần chọn Người cũng cho đổi ở sticky"):
   // máy tính: Người · TK · kỳ đứng LIỀN một cụm (anh 01/11/2026 "chọn kỳ cũng cho lên cùng dòng với Người, TK") — ở dòng tiêu đề khi chưa cuộn, ở dòng số gọn dính khi đã cuộn; hàng tab / hàng lọc không còn hai ô này.
@@ -2345,7 +2367,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       {tab === 'camp' && xemCamp !== 'lich' && xemCamp !== 'bac' && (!gon || moLoc) ? <div style={gon ? { display: 'flex', flexDirection: 'column', gap: 6, width: '100%' } : { display: 'contents' }}>
       {(() => { const dem: Record<string, number> = { all: du.camps.length, chay: chay.length, cho: choChay.length, tat: du.camps.filter((c) => c.trang_thai !== 'ACTIVE').length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), cung: du.camps.filter((c) => c.cung_doan > tranT).length, roas: roasDat.size, luat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
         const m = (value: string, label: string, nhom: string, title?: string): Chon2Muc => ({ value, label, nhom, dem: dem[value], title });
-        return <Chon2 value={loc} onChange={(v) => doiLoc(v as (typeof LOC_CAMP)[number])} nhan="Lọc" anRong title="lọc camp theo trạng thái / luật / ngưỡng" options={[
+        return <Chon2 chan={chanLoc.loc} value={loc} onChange={(v) => doiLoc(v as (typeof LOC_CAMP)[number])} nhan="Lọc" anRong title="lọc camp theo trạng thái / luật / ngưỡng" options={[
           { value: 'all', label: 'Tất cả', dem: dem.all },   // "Tất cả" luôn đứng ĐẦU, cùng chữ với mọi ô lọc (anh 27/10/2026)
           m('chay', 'Đang chạy', 'Trạng thái'), m('cho', 'Chờ giờ chạy', 'Trạng thái'), m('tat', 'Đã tắt', 'Trạng thái'),
           m('luat', '⚑ Chạm luật', 'Luật máy', 'luật đang xếp làm ở nhịp này'), m('ganluat', '◌ Sắp chạm luật', 'Luật máy'),
@@ -2429,13 +2451,13 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       ) : tab === 'camp' && xemCamp === 'bac' ? (
         <LenBac du={du} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
-        <CayCamp camps={camps} du={du} hep={hep} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
+        <CayCamp camps={camps} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
       ) : tab === 'camp' ? (
         <>
         <TongPhim du={du} ckh={ckh} anh={anh} tl={tl} khTen={khNhan} chon={phimLoc} onChon={doiPhim} />
         <DaiLuat opts={luatOpts} chon={luatLoc} onChon={(t) => { const mo = !!t && !t.startsWith(DA_LAM); doi({ luat: t, ...(mo ? { loc: 'all' as const } : {}) }, () => { setLuatLoc(t); if (mo) setLoc('all'); }); }} />
         <DataTable rows={camps} columns={cotCamp} groups={NHOM} groupHeader rowStyle={(c) => (hetNs(c) ? { opacity: 0.5 } : undefined)} rowTitle={(c) => (hetNs(c) ? `đã tiêu $${c.nay.chi.toFixed(2)} ≥ ngân sách $${c.ngan_sach}/ngày — Meta gần như ngừng chi tới 07:00` : undefined)} defaultSort={[{ key: 'tao', dir: 'desc' }]} getRowKey={(c) => String(c.camp_id)} persistKey="etp-camp" minWidth={1400} pageSize={100}
-          searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tl(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…" locTuDong={false} />
+          searchText={(c) => `${c.camp_id} ${c.ten} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tl(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…" locTuDong={false} onTimDoi={setTimCay} khiTimTrong={giaiTim()} />
         </>
       ) : choNang ? (
         <div style={{ padding: 24, color: 'var(--fg-2)', fontSize: 12 }}>Đang tải dữ liệu tab…</div>

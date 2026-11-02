@@ -7,12 +7,13 @@ import { AnchoredPopover } from './anchored-popover';
 
 export interface Chon2Muc { value: string; label: ReactNode; nhom?: string; dem?: number; title?: string; tim?: string; /** nhãn gọn trên nút (danh sách vẫn hiện label đủ) */ ngan?: string }
 
-export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong, href }: {
+export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', title, minWidth, align = 'left', anRong, href, chan }: {
   value: string; onChange: (v: string) => void; options: Chon2Muc[];
   /** chữ đứng trước giá trị trên nút: "Luật", "Loại"… */ nhan?: string;
   /** nhãn khi value = '' (mục "tất cả" tự thêm đầu danh sách) */ rong?: string;
   title?: string; minWidth?: number; align?: 'left' | 'right';
   /** true = không tự thêm mục '' (danh sách đã có đủ lựa chọn) */ anRong?: boolean;
+  /** ô lọc này đang ẨN thứ người dùng đang tìm → viền đỏ + câu giải thích ở hover (etp 02/11/2026 "filter nào gây ra phải highlight") */ chan?: string;
   /** đường dẫn của từng lựa chọn → mục là link thật: ⌘ / Ctrl / ⇧ / chuột giữa mở TAB MỚI, bấm thường vẫn onChange (anh 31/10/2026 etp #1496) */ href?: (v: string) => string;
 }) {
   const ref = useRef<HTMLButtonElement | null>(null);
@@ -35,9 +36,9 @@ export function Chon2({ value, onChange, options, nhan, rong = 'Tất cả', tit
   const coLoc = !!dang && dang.value !== '' && (dang.ngan ?? dang.label) !== rong;
   return (
     <>
-      <button ref={ref} type="button" data-comp="ui.Chon2" title={title} onClick={() => setMo((v) => !v)}
+      <button ref={ref} type="button" data-comp="ui.Chon2" title={chan ? `${chan}${title ? `\n${title}` : ''}` : title} onClick={() => setMo((v) => !v)}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '3px 8px', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap', minWidth, maxWidth: '100%', flex: 'none',
-          border: `1px solid ${coLoc ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, background: coLoc ? 'var(--accent-soft, rgba(59,130,246,.15))' : 'var(--bg-1, #111)', color: 'inherit' }}>
+          border: `1px solid ${chan ? '#f87171' : coLoc ? 'var(--accent, #60a5fa)' : 'var(--line)'}`, background: chan ? 'rgba(248,113,113,.15)' : coLoc ? 'var(--accent-soft, rgba(59,130,246,.15))' : 'var(--bg-1, #111)', color: 'inherit', boxShadow: chan ? '0 0 0 2px rgba(248,113,113,.35)' : undefined }}>
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1, textAlign: 'left' }}>{nhan ? <span style={{ color: 'var(--fg-2)' }}>{nhan}: </span> : null}{dang?.ngan ?? dang?.label ?? rong}</span>
         <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>▾</span>
       </button>

@@ -162,6 +162,10 @@ interface DataTableProps<T> {
   thanhDinh?: string;
   /** false = bỏ ô lọc danh mục tự sinh theo cột (TT / Luật / Loại…) khi trang đã có bộ lọc riêng cùng nghĩa — tránh hai bộ lọc trùng */
   locTuDong?: boolean;
+  /** báo chữ đang tìm ra ngoài (trang tự giải thích vì sao 0 dòng — etp 02/11/2026: bộ lọc nào ẩn, camp của người khác) */
+  onTimDoi?: (q: string) => void;
+  /** dòng giải thích thêm dưới "Không dòng nào khớp …" khi ô tìm ra 0 dòng */
+  khiTimTrong?: ReactNode;
 }
 
 const baseCell: CSSProperties = { padding: '3px 5px', fontSize: 12, fontFamily: 'var(--font-mono)', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' };
@@ -183,7 +187,7 @@ export function DataTable<T>({
   rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
   stickyFirst = true, stickyCols, fixedLayout = false,
-  serverSort, serverFilter, hopCuon = false, tree, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true,
+  serverSort, serverFilter, hopCuon = false, tree, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true, onTimDoi, khiTimTrong,
 }: DataTableProps<T>) {
   const pref = useTablePref(persistKey);   // server đọc cookie sẵn → khởi tạo ĐÚNG ngay lần render đầu
   // KÉO GIÃN CỘT (keo-rong.ts — 17/10/2026, anh: "dùng DataTable mà không resize được"): mép phải mỗi tiêu đề có tay nắm; bề ngang nhớ theo
@@ -220,6 +224,7 @@ export function DataTable<T>({
     }, 400);
     return () => clearTimeout(t);
   }, [q, persistKey, searchUrlKey]);
+  useEffect(() => { onTimDoi?.(q); }, [q]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // Lọc theo TỪNG CỘT (kiểu Adminer): mỗi cột 1 toán tử (=/</LIKE/REGEXP/IN…) + giá trị, áp trên
   // sortValue của cột. Popup lọc mở từ nút 🔍 hiện khi hover header. Nhớ theo persistKey như sort/cột.
@@ -711,7 +716,7 @@ export function DataTable<T>({
           ); })])}
           {!sortedRows.length && (
             <div style={{ gridColumn: '1 / -1', textAlign: 'center', color: 'var(--fg-3)', fontSize: 12, padding: '20px 5px', fontFamily: 'var(--font-mono)' }}>
-              {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : anyColFilter ? 'Không dòng nào khớp bộ lọc — sửa/xoá ở thanh lọc trên bảng hoặc nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
+              {q.trim() ? <>Không dòng nào khớp &quot;{q.trim()}&quot;.{khiTimTrong ? <div style={{ marginTop: 6, fontFamily: 'var(--font-sans, inherit)', fontSize: 12, color: 'var(--fg-2)' }}>{khiTimTrong}</div> : null}</> : anyColFilter ? 'Không dòng nào khớp bộ lọc — sửa/xoá ở thanh lọc trên bảng hoặc nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
             </div>
           )}
         </div>
@@ -769,7 +774,7 @@ export function DataTable<T>({
             }))]; })}
             {!sortedRows.length && (
               <tr><td colSpan={visible.length} style={{ ...baseCell, textAlign: 'center', color: 'var(--fg-3)', whiteSpace: 'normal', padding: '10px 5px' }}>
-                {q.trim() ? `Không dòng nào khớp "${q.trim()}".` : anyColFilter ? 'Không dòng nào khớp bộ lọc — sửa/xoá ở thanh lọc trên bảng hoặc nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
+                {q.trim() ? <>Không dòng nào khớp &quot;{q.trim()}&quot;.{khiTimTrong ? <div style={{ marginTop: 6, fontFamily: 'var(--font-sans, inherit)', fontSize: 12, color: 'var(--fg-2)' }}>{khiTimTrong}</div> : null}</> : anyColFilter ? 'Không dòng nào khớp bộ lọc — sửa/xoá ở thanh lọc trên bảng hoặc nút 🔍 trên tiêu đề cột.' : 'Không có dữ liệu.'}
               </td></tr>
             )}
             {hasTotals && sortedRows.length > 0 && !(theoTrang && cotDo.w.length) && hangTong()}

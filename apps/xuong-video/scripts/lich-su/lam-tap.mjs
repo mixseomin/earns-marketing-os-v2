@@ -18,11 +18,12 @@ import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const co = (k) => process.argv.includes(`--${k}`);
 const DIR = dirname(fileURLToPath(import.meta.url)), BOX = 'root@167.233.241.16', GOC_BOX = '/opt/earns-marketing-os-v2/apps/xuong-video';
-const id = arg('id'), chuDe = arg('chu-de');
+const id = arg('id');
 if (!id) { console.error('node lam-tap.mjs --id <id> --nn en|es --chu-de "…"'); process.exit(2); }
 const tepTap = join(DIR, 'tap', `${id}.json`), RA = join(KHO, id), tepKho = join(DIR, 'kho.json');
 // KÊNH (kenh.json): --kenh khi viết mới; tập đã có thì theo tap.kenh — khuôn kiểm (số câu / từ / câu cuối / tỉ lệ câu đùa không nguồn) đi theo kênh
 // ngôn ngữ: --nn khi viết mới; tập đã có thì theo tap.ngon_ngu (kiểm tập ES không bị đòi câu móc tiếng Anh)
+const chuDe = arg('chu-de') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).chu_de : null);   // tập đã có: chủ đề lấy từ tệp tập
 const nn = arg('nn') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).ngon_ngu : null) ?? 'en';
 const kenhId = arg('kenh') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).kenh : null) ?? 'saga';
 const KENH = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId];
@@ -132,7 +133,12 @@ async function kiem(tap, nguonChu) {
 }
 
 // ---------- 1. VIẾT ----------
-const sua = co('sua') && existsSync(tepTap) && existsSync(join(RA, 'nguon.txt'));   // --sua: không viết lại từ đầu, đưa lỗi của bản đang có cho máy viết sửa
+// --sua-canh: giọng đã đọc — máy viết chỉ sửa cảnh; lời đọc + sự thật khoá cứng (máy chép đè lại bản cũ sau mỗi lượt), không tốn tiền giọng lại
+const suaCanh = co('sua-canh') && existsSync(tepTap), loiCu = suaCanh ? JSON.parse(readFileSync(tepTap, 'utf8')).cau.map((c) => ({ chu: c.chu, su_that: c.su_that })) : null;
+const khoaLoi = () => { if (!loiCu) return; const t = JSON.parse(readFileSync(tepTap, 'utf8'));
+  if (t.cau.length !== loiCu.length) { console.log(`⚠ máy viết đổi số câu ${loiCu.length} → ${t.cau.length} — bỏ bản này`); return false; }
+  t.cau.forEach((c, i) => Object.assign(c, loiCu[i])); writeFileSync(tepTap, JSON.stringify(t, null, 1) + '\n'); return true; };
+const sua = (co('sua') || suaCanh) && existsSync(tepTap) && existsSync(join(RA, 'nguon.txt'));   // --sua: không viết lại từ đầu, đưa lỗi của bản đang có cho máy viết sửa
 if (!existsSync(tepTap) || co('viet-lai') || sua) {
   if (!chuDe) { console.error('chưa có tập — cần --chu-de'); process.exit(2); }
   const tmp = `/tmp/lich-su-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${tmp}`]); len(tepKho, `${tmp}/kho.json`);
@@ -140,9 +146,11 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
   for (let lan = 1; lan <= 4 && !(sua && !loi.length && lan === 1); lan++) {
     const them = loi.length ? ` --loi ${tmp}/loi.txt --cu ${tmp}/tap.json` : '';
     if (loi.length) { writeFileSync(join(RA, 'loi.txt'), loi.map((x) => `- ${x}`).join('\n')); len(join(RA, 'loi.txt'), `${tmp}/loi.txt`); len(tepTap, `${tmp}/tap.json`); }
-    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json --chu-de ${q(chuDe)} --nn ${nn} --id ${id} --kenh ${kenhId} --kho ${tmp}/kho.json${arg('nguon') ? ` --nguon ${q(arg('nguon'))}` : ''}${them}`)); }
+    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json --chu-de ${q(chuDe)} --nn ${nn} --id ${id} --kenh ${kenhId}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${arg('nguon') ? ` --nguon ${q(arg('nguon'))}` : ''}${them}`)); }
     catch (e) { console.log(`✗ lượt viết ${lan}: máy viết hỏng — ${String(e.stderr || e.message).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}`); if (!existsSync(tepTap)) continue; loi = loi.length ? loi : ['(lượt trước hỏng, viết lại)']; continue; }
+    const truoc = suaCanh ? readFileSync(tepTap, 'utf8') : null;
     ve(`${tmp}/tap.json`, tepTap); ve(`${tmp}/tap.json.nguon.txt`, join(RA, 'nguon.txt'));
+    if (suaCanh && khoaLoi() === false) writeFileSync(tepTap, truoc);
     loi = await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8'));
     console.log(loi.length ? `✗ lượt viết ${lan}: ${loi.length} lỗi\n  ${loi.join('\n  ')}` : `✓ lượt viết ${lan}: kiểm sạch`);
     if (!loi.length) break;

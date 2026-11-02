@@ -29,6 +29,15 @@ if (!existsSync(join(RA, 'moc-tho.json')) || process.argv.includes('--giong-lai'
 // mốc ký tự → chữ {chu, a, b}
 writeFileSync(tepLoi, loiDoc);
 const tho = JSON.parse(readFileSync(join(RA, 'moc-tho.json'), 'utf8'));
+// TRẦN THỜI LƯỢNG của kênh (kenh.json toi_da_giay — YouTube Shorts ≤ 180 s): giọng dài hơn trần thì TĂNG TỐC giọng (atempo, ≤ 1,15×, giữ cao độ) và co mốc
+// từng chữ theo cùng hệ số — không đọc lại, 0đ. Quá 1,15× vẫn không vừa thì báo, không ép giọng nhanh tới mức nghe lạ.
+let GIONG = join(RA, 'giong.mp3');
+{ const goc = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', GIONG], { encoding: 'utf8' })), tran = KENH.toi_da_giay;
+  if (tran && goc + (KENH.duoi ?? 1.2) > tran) { const f = Math.round(((goc + (KENH.duoi ?? 1.2)) / tran) * 1000) / 1000;
+    if (f > 1.15) console.warn(`⚠ giọng ${goc.toFixed(1)}s quá trần ${tran}s cần ${f}× — chỉ tăng 1,15×, kịch bản nên ngắn lại`);
+    const he = Math.min(1.15, f), ra = join(RA, 'giong-phat.mp3'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', GIONG, '-filter:a', `atempo=${he}`, '-b:a', '192k', ra]); GIONG = ra;
+    for (const o of tho) { o.character_start_times_seconds = o.character_start_times_seconds.map((v) => v / he); o.character_end_times_seconds = o.character_end_times_seconds.map((v) => v / he); }
+    console.log(`giọng ${goc.toFixed(1)}s → ${(goc / he).toFixed(1)}s (×${he}, trần kênh ${tran}s)`); } }
 const kt = tho.flatMap((o) => o.characters.map((ch, i) => ({ ch, a: o.character_start_times_seconds[i], b: o.character_end_times_seconds[i] })));
 const tu = []; let cur = null;
 for (const k of kt) { if (/\s/.test(k.ch)) { if (cur) tu.push(cur); cur = null; continue; } cur ? (cur.chu += k.ch, cur.b = k.b) : (cur = { chu: k.ch, a: k.a, b: k.b }); }
@@ -36,7 +45,7 @@ if (cur) tu.push(cur);
 // gán chữ vào câu theo số chữ của từng câu trong tệp tập
 let i = 0; const canh = tap.cau.map((c, k) => { const n = c.chu.trim().split(/\s+/).length; const ds = tu.slice(i, i + n); ds.forEach((w) => (w.cau = k)); i += n; return { bd: k ? ds[0]?.a ?? 0 : 0, c: Object.assign(c.canh, { _dua: !(c.su_that || []).length }) }; });
 if (i !== tu.length) console.warn(`⚠ số chữ giọng (${tu.length}) lệch số chữ kịch bản (${i}) — phụ đề có thể lệch câu`);
-const giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', join(RA, 'giong.mp3')], { encoding: 'utf8' }));
+const giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', GIONG], { encoding: 'utf8' }));
 const DAI = Math.round((giay + (KENH.duoi ?? 1.2)) * 100) / 100;   // đuôi sau chữ cuối: thẻ kết (lá cải: vòng khép + THE END)
 canh.forEach((s, k) => (s.kt = canh[k + 1]?.bd ?? DAI));
 
@@ -217,7 +226,7 @@ if (KENH.nhac === 'nhay') { const m = new Float32Array(N), BUOC = 60 / 112 / 2, 
     if (b % 4 === 0 || b % 4 === 3) for (let i = 0; i < 0.45 * SR && o + i < N; i++) { const t = i / SR; m[o + i] += Math.sin(2 * Math.PI * (h[0] / 2) * t) * Math.exp(-t * 5) * 0.32; }
     if (b % 2 === 1) for (let i = 0; i < 0.05 * SR && o + i < N; i++) m[o + i] += rnd() * Math.exp(-(i / SR) * 90) * 0.08; }
   const f = join(RA, 'nhac.wav'); ghiWav(f, m.map((v) => v * 0.25)); vaoNhac = ['-i', f]; }
-const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, '-i', join(RA, 'giong.mp3'), ...vaoNhac, '-i', wavSfx,
+const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, '-i', GIONG, ...vaoNhac, '-i', wavSfx,
   '-filter_complex', '[1:a]volume=1.0[g];[2:a]volume=0.5,afade=t=in:d=1.5,afade=t=out:st=' + (DAI - 1.5) + ':d=1.5[n];[3:a]volume=0.35[s];[g][n][s]amix=inputs=3:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5[a]',
   '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-t', String(DAI), '-movflags', '+faststart', ra], { stdio: 'inherit' });
 if (r.status) process.exit(r.status);

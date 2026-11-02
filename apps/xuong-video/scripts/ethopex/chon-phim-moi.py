@@ -54,12 +54,12 @@ THE_LOAI = [   # (mã, điểm, mẫu tên) — đoán thể loại từ tên ph
     ("me_con", -25, r"single mom|runaway mom|mommy|twins|triplets|quintuplet|madre soltera|gemelos|trillizos"),
     ("tinh_cam", -15, r"\bmarry|marriage|bride|contract (wife|marriage)|divorce|ex-wife|ex-husband|esposa|boda|divorcio|matrimonio"),
 ]
-SOI = re.compile(r"alpha|\bluna\b|werewolf|lycan|\bmated?\b|\blobo|\balfa\b", re.I)   # sói 3% → loại
+SOI = re.compile(r"alpha|\bluna\b|wolf|lycan|\bmat(e|es|ed)\b|\blobo|\balfa\b", re.I)   # sói 3% → loại (cả "Wolf God", "Female Mates")
 def cham(x):
     if x["nguon"] not in NGUON or x["locale"] not in TIENG or SOI.search(x["ten"] or ""): return None
     tl = [(m, d) for m, d, mau in THE_LOAI if re.search(mau, x["ten"] or "", re.I)]
     spy = min(20, int(x.get("so_qc_dang") or 0) + 2 * int(x.get("so_page") or 0))
-    x["diem"] = NGUON[x["nguon"]] + TIENG[x["locale"]] + sum(d for _, d in tl) + spy
+    x["diem"] = NGUON[x["nguon"]] + TIENG[x["locale"]] + sum(d for _, d in tl) + spy; x["nhom"] = tl[0][0] if tl else "khac"
     x["vi_sao"] = " · ".join([x["nguon"], x["locale"]] + [m for m, _ in tl] + ([f"app gốc {x.get('so_qc_dang')} QC đang chạy · {x.get('so_page')} Page"] if spy else []))
     return x
 # 3. ứng viên = phim app gốc đang chạy QC (spy) + kho Ethopex ReelShort / NetShort mới nhất; gộp trùng tên + tiếng
@@ -74,8 +74,15 @@ for x in uu + kho:   # spy trước: cùng phim thì giữ bản có số QC app
     if loai(x) or k in _thay or not cham(x): continue
     _thay.add(k); chinh.append(x)
 chinh.sort(key=lambda x: -x["diem"])
+# XEN KẼ THỂ LOẠI (lần chạy đầu 02/11/2026: 25/40 phim đầu là phim rồng fantasy — "dragon" trùng mẫu): mỗi vòng lấy một phim điểm cao nhất của từng thể loại,
+# thứ tự vòng theo tỷ lệ thắng đo được (vô danh → hối hận → fantasy → mafia → tỷ phú → khác); trong một thể loại vẫn theo điểm
+import collections as _co
+_theo = _co.OrderedDict((m, [x for x in chinh if x["nhom"] == m]) for m in ["vo_danh", "hoi_han", "fantasy", "mafia", "ty_phu", "khac", "tinh_cam", "me_con"])
+ds = []
+while len(ds) < SO and any(_theo.values()):
+    for m, l in _theo.items():
+        if l and len(ds) < SO: ds.append(l.pop(0))
 bu = []
-ds = chinh[:SO]
 if "--them" in sys.argv:   # BỔ SUNG (phim-moi.py them, anh 23/10/2026 "cần cái thay thế dự phòng"): giữ nguyên danh sách + thứ tự cũ, chỉ nối phim mới vào cuối tới đủ SO
     cu = json.loads(q("select coalesce(gia_tri, '[]'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_200_phim'") or "[]"); co = {str(x["id"]) for x in cu}
     ds = cu + [x for x in ds if str(x["id"]) not in co][:max(0, SO - len(cu))]

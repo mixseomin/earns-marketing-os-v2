@@ -53,6 +53,23 @@
     "iMac:com.earns.studio-shot-code"
    ],
    "chi_phi": "0 (Chromium + ffmpeg trên iMac, ~55 giây CPU mỗi video)"
+  },
+  {
+   "id": "kenh-lich-su",
+   "ten": "Kênh lịch sử: sản xuất tập trọn chuyện + đo số kênh",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "09:30 giờ VN mỗi ngày trên iMac — làm tập Thứ Hai · Tư · Sáu (kenh.json lich_tap), đo số kênh mọi ngày",
+   "mo_ta": "Kênh nội dung là sản phẩm (Yesterday's News Tonight, anh duyệt 02/11/2026: 3 tập/tuần). Mỗi tập: góc + hook QC spy nhóm #2680 → máy viết chọn chuyện có thật + Wikipedia → kiểm sự thật / hook → dựng bản đồ lá cải + giọng → Studio phim + máy studio yesterdays-news-tonight (video-ngoai) → Phòng Nội dung chấm → máy đăng chung đăng theo nhịp an toàn. Số kênh → mos2 › Tài sản › Kênh sản phẩm.",
+   "ma": "apps/xuong-video/scripts/lich-su/chay-kenh.mjs → lam-tap.mjs (viet-tap.mts · dung-tap.mjs · tap-day.mts) + may-dung.mts --so-kenh",
+   "chu_tri": "long",
+   "lam": [
+    "may"
+   ],
+   "khi": "09:30 mỗi ngày (iMac)",
+   "lich": [
+    "iMac:com.earns.lich-su-lam-tap"
+   ],
+   "chi_phi": "~7.000–10.000₫ / tập (giọng ElevenLabs ~6.500₫ + nhân vật mới khi thiếu), 3 tập/tuần ≈ 100.000–130.000₫/tháng; đo số 0₫"
   }
  ]
 }

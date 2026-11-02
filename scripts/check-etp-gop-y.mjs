@@ -349,6 +349,7 @@ const LUAT = [
   { card: 'tu-dong-chi-nha-0211', tep: "apps/cty/worker/etp-tu-dong.mjs", co: "c.che_do = 'tu_dong' and etp.tu_dong(c.nguoi_id) and", vi: 'luật tự động đội qua công tắc tu_dong_ngoai_nha' },
   { card: 'l4-roas-0311', tep: "apps/xuong-video/scripts/ethopex/luat-ethopex.py", co: "(_c in _l3id and _c not in _ROAS)", vi: 'L4 xét cả camp ★ ROAS (ROAS tiêu ít lỗ đều lọt RL / R0 / G10)' },
   { card: 'l4-roas-0311', tep: "apps/xuong-video/scripts/ethopex/luat-ethopex.py", co: "= map(_bo_roas, (tat_pl, tat_l3,", cam: "= map(_bo_roas, (tat_pl, tat_l4,", vi: 'tat_l4 không bị lọc bỏ camp ROAS' },
+  { card: 'l4-roas-0311', tep: "apps/xuong-video/scripts/ethopex/luat-ethopex.py", co: "ls.append(_the_l4(cid)); ls.append(L_g10(cid, ns));", vi: 'thẻ xét luật camp ★ ROAS có L4' },
   { card: 'kho-thang-0311', tep: "apps/xuong-video/scripts/ethopex/len-creative.py", co: 'GOC = goc.pop()', cam: 'GOC = "https://img.on.tc/kho/ethopex/thanh-pham/2026-', vi: 'link video creative lấy từ URL kho trả về, không ghi cứng tháng (01/11 → 404)' },
   { card: 'cta-cuoi-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "# NHÂN BẢN GIỮ NGUYÊN CREATIVE CỦA CAMP GỐC", cam: 'CTA cũ, chưa có bản sửa — đã xếp hàng dựng lại', vi: 'nhân bản không đổi CTA cũ sang bản sửa (anh 02/11/2026)' },
   { card: 'cta-cuoi-0211', tep: "apps/xuong-video/scripts/ethopex/cat-canh.py", co: '_nt = os.environ.get("ETP_NUT_TU", "cuoi")', cam: 'os.environ.get("ETP_NUT_TU", "3")', vi: 'nút CTA chỉ ở thẻ cuối cho mọi kiểu — bỏ nút đè từ giây 3 (anh 02/11/2026)' },

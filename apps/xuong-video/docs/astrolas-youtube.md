@@ -138,6 +138,19 @@ Hồ sơ trong studio KHÔNG tách theo ngôn ngữ (chốt đề xuất 02/11):
 - Sửa cảnh một lần → mọi ngôn ngữ ăn theo. Khác cách hiện tại của máy lịch sử (tập ES viết riêng thành tệp riêng: bolivia-mar-es, brasil-es).
 - **Thứ tự mở:** EN trước. ES / JA chỉ mở khi astrolas.com có trang đích ngôn ngữ đó công khai (ít nhất trang công cụ được trỏ + trang đăng ký); JA đang dịch dở nên có thể đi trước ES nếu xong trước. Mở ngôn ngữ mới = tài khoản YouTube mới (lập tài khoản theo luật chung, có proxy).
 
+## Studio tổ chức theo YouTube: Kênh → Playlist → Video (vòng 6, đề xuất 02/11/2026 — chưa dựng)
+
+Hiện trạng đo 02/11: studio đã có 2 tầng cho kênh — Phim = Kênh (`xv_phim` #1195 Yesterday's News Tonight, `kinh_thanh.may` trỏ máy đăng) → Tập = Video (`xv_tap` 1182, 1198; tệp `scripts/lich-su/tap/*.json`) → bản xuất `xv_may_video`. Thiếu tầng Playlist.
+
+Ánh xạ đề xuất:
+| YouTube | Studio | Ghi chú |
+|---|---|---|
+| Kênh | Phim loại kênh (`xv_phim`) nối máy `astrolas` | MỘT kênh studio "Astrolas"; các kênh YouTube EN/ES/JA là nơi đăng của nó (mục `xv_may.dang` có `ngon_ngu`) |
+| Playlist | tầng mới: danh sách playlist khai trong hồ sơ kênh (`kenh.json`, cạnh `lich_tap`) | mã, tên, tiền tố tiêu đề, theme, khuôn kịch bản, ngày trong tuần, trang đích, mã playlist YouTube theo ngôn ngữ |
+| Video | Tập (`xv_tap` + tệp tập) ghi `playlist` | bản ngôn ngữ trong `ban.<nn>`; mỗi ngôn ngữ một `xv_may_video` |
+
+Làm CHUNG cho mọi kênh của studio (Yesterday's News Tonight cũng dùng được), không làm riêng Astrolas. Lịch làm tập chuyển từ cấp kênh xuống cấp playlist; trần đăng vẫn tính ở cấp kênh.
+
 ## Việc kế (chỉ khi anh chốt)
 
 1. Kịch bản mẫu đánh số "Chart Chapters: Steve Jobs" — mốc ZR / Profection lấy từ astrolas.com.

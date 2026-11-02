@@ -123,6 +123,11 @@ def cat_hang(phim, ten, so_tho=2):
             select x::bigint, g.nguoi_id, coalesce((select nguoi from etp.phim_nhan where nguoi_id = g.nguoi_id and nguoi is not null order by id desc limit 1), 'Nhà'), now() + interval '24 hours'
             from unnest(array[{",".join(str(int(p["id"])) for p in phim) or "0"}]) x, (select nguoi_id from etp.tai_khoan where nha order by nguoi_id limit 1) g
             where x <> 0 and not exists (select 1 from etp.phim_nhan_v n where n.content_id = x and n.trang_thai in ('giu', 'da_len'))""")
+    # THÊM VÀO WORKSPACE NHÀ ngay lúc nhận (anh 03/11/2026 — camp nhà chỉ lên phim đã có trong workspace): ensure-clone như nút Clone app Ethopex, idempotent
+    T = sql("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
+    for p in phim:
+        try: urllib.request.urlopen(urllib.request.Request(f"https://api-multi-be.ethopex.dev/api/v2/contents/{int(p['id'])}/ensure-clone", method="POST", headers={"authorization": "Bearer " + T, "user-agent": "mos2-etp"}), timeout=60)
+        except Exception as e: print(f"thêm workspace phim {p['id']} lỗi: {e}", flush=True)
     j = json.dumps([{"content_id": int(p["id"]), "du_lieu": {"locale": p.get("locale"), "nguon": p.get("nguon"), "ten": p.get("ten"), "url": p.get("url"), "so_ban": 2}} for p in phim], ensure_ascii=False).replace("$J$", "")
     sql(f"insert into etp.viec (loai, lo, content_id, du_lieu) select 'cat', '{ten}', content_id, du_lieu from jsonb_to_recordset($J${j}$J$::jsonb) as x(content_id int, du_lieu jsonb) on conflict do nothing")
     print(f"đã xếp {len(phim)} việc cắt vào hàng đợi etp.viec (lô {ten}) — thợ iMac {so_tho} luồng; máy khác góp sức: python3 apps/etp/tho.py --lo {ten}", flush=True)

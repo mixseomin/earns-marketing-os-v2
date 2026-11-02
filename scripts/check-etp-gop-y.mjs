@@ -282,7 +282,7 @@ const LUAT = [
   { card: 'trang-phim-0211', tep: "packages/db/migrations/0404_etp_trang_phim_chua_doc.sql", co: "alter column mo_ta drop not null", vi: "mô tả NULL = chưa đọc" },
   { card: 'trang-phim-0211', tep: "apps/etp/trang_phim.py", co: "if not url.startswith(\"http\"): return (None, f\"trang Ethopex: {url}\")", vi: "bước Movie của Ethopex không bị coi là link chết" },
   { card: 'trang-phim-0211', tep: "apps/etp/trang_phim.py", co: "urllib.parse.quote(url, safe=\":/?&=%#@+,;~\")", vi: "link NetShort có dấu được mã hoá" },
-  { card: 'trang-phim-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "— tài khoản nhà chỉ lên camp phim đã thêm\" if nha_ == \"t\" else None", vi: 'chưa thêm bản chỉ chặn tài khoản nhà (đội chạy được phim không có bản)' },
+  { card: 'trang-phim-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "if nha_ != \"t\": return None", vi: 'chưa thêm bản chỉ xử ở tài khoản nhà (đội chạy được phim không có bản); nhà thì máy tự thêm (03/11/2026)' },
   { card: 'trang-phim-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "case when nha then 't' else 'f' end", vi: 'cổng đọc đúng cờ nhà (boolean nối chuỗi ra true, không phải t)' },
   // anh 02/11/2026 "làm mới thư viện đi. Và phim nào có thể test thì đánh dấu vào. phim cất cũng thế"
   { card: 'thu-vien-0211', tep: "apps/etp/thu_vien_phim.py", co: "/api/v2/contents?page={p}&page_size=100&content_type_id=1&is_ref=0&hl={hl}", vi: "làm mới thư viện phim EN/ES từ Ethopex" },
@@ -398,6 +398,8 @@ const LUAT = [
   { card: 'cat0-0311', tep: 'apps/xuong-video/scripts/ethopex/cat-cuoi-lo.py', co: 'if s >= tu0 and (sach(s, e) or d == DAI_MIN)', vi: 'không có khung sạch trọn vẫn lấy khung, cắt bỏ giây cấm' },
   { card: 'cat0-0311', tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'if os.environ.get("ETP_KIEU") == "tap" or MAU_CTA == "kien":', vi: 'cắt bỏ giây nhạy cảm trong đoạn, không bỏ cả đoạn (anh 03/11/2026)' },
   { card: 'cat0-0311', tep: 'apps/xuong-video/scripts/ethopex/hang-ke-chuyen.mts', co: '.filter((x) => !x.bo && coCamp.has(x.content_id))', vi: 'máy sinh KT không làm phim chưa có camp — phim mới cắt $0 (anh 03/11/2026)' },
+  { card: 'ws-0311', tep: 'apps/xuong-video/scripts/ethopex/phim-moi.py', co: '/ensure-clone", method="POST"', vi: 'lô phim mới thêm vào workspace Nhà ngay lúc nhận' },
+  { card: 'ws-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'ws = them_ws(content_id)', vi: 'cổng trang phim tự thêm phim vào workspace Nhà (ensure-clone) thay vì đẩy việc cho anh (03/11/2026)' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: "bat_dau < now() - interval '1 hour'", vi: 'thợ chết: việc dang quá 1 giờ thì xếp lại' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: 'try: pr.wait(timeout=45 * 60)', vi: 'thợ cắt: trần 45 phút / phim (cũ 3 giờ)' },
   { card: 'cat-0211', tep: 'apps/xuong-video/scripts/ethopex/cat_drive.py', co: '"--max-duration", tran, "--cutoff-mode", "soft"]', vi: 'dọn Drive có trần thời gian (mặc định 5 phút), không chặn lô cắt' },

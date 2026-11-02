@@ -87,9 +87,27 @@ def trang_chua_san(content_id, tk):
     if ng.count("|") < 2: return None
     ng_id, nha_, ng_ten = ng.split("|", 2)
     r = q(f"select content_id || '|' || array_to_string(thieu, ', ') from etp.trang_phim_v where ref_id = {int(content_id)} and nguoi_id = {int(ng_id)} order by cardinality(thieu), sua desc limit 1")
-    if not r: return f"phim {content_id} chưa được thêm vào workspace Ethopex của {ng_ten} (Content › thêm phim) — tài khoản nhà chỉ lên camp phim đã thêm" if nha_ == "t" else None
+    if not r:
+        if nha_ != "t": return None
+        # TỰ THÊM VÀO WORKSPACE (anh 03/11/2026: "Mày ko thêm thì đợi bố mày làm à?") — đúng nút Clone của app Ethopex: POST api-multi-be /api/v2/contents/<id>/ensure-clone
+        # (đọc từ mã app 03/11/2026, idempotent). Thêm xong Ethopex sinh trang (mô tả / cốt truyện / link) — lượt đồng bộ kế (dong-bo, 10 phút) thấy bản mới thì camp lên.
+        ws = them_ws(content_id)
+        return (f"phim {content_id} vừa được máy thêm vào workspace Ethopex của {ng_ten} (bản #{ws}) — chờ đồng bộ trang phim rồi lên camp ở lượt sau" if ws
+                else f"phim {content_id} chưa có trong workspace Ethopex của {ng_ten} và máy thêm không được (ensure-clone lỗi) — tài khoản nhà chỉ lên camp phim đã thêm")
     ws, thieu = r.split("|", 1)
     return f"trang phim {content_id} (bản workspace #{ws} của {ng_ten}) còn thiếu: {thieu} — mở lại trên Ethopex cho máy sinh / sửa rồi mới lên camp" if thieu else None
+
+def them_ws(content_id):
+    """thêm phim thư viện vào workspace Nhà (ensure-clone, idempotent) → mã bản workspace, None khi lỗi"""
+    import urllib.request
+    T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
+    try:
+        r = urllib.request.urlopen(urllib.request.Request(f"https://api-multi-be.ethopex.dev/api/v2/contents/{int(content_id)}/ensure-clone", method="POST",
+                                                          headers={"authorization": "Bearer " + T, "user-agent": "mos2-etp"}), timeout=60)
+        d = json.load(r); d = d.get("data", d) if isinstance(d, dict) else {}
+        return int(d.get("id") or 0) or None
+    except Exception:
+        return None
 
 def giu_boi_nguoi_khac(content_id, tk):
     """NHẬN PHIM (anh 02/11/2026: thành viên nhận phim, giữ quyền 24 giờ, quá hạn chưa lên camp thì nhả): phim đang được NGƯỜI KHÁC giữ (etp.phim_nhan_v giu)

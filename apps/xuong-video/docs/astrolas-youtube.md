@@ -15,6 +15,7 @@ Lập 02/11/2026 (iMac). Chat mới nối tiếp: đọc hết tệp này, rồi
 - **CẤM** dùng profile br htuan82 cho Astrolas. Không mở mos2 / studio bằng trình duyệt tự động.
 - Sinh AI ước dưới 5.000₫ (cộng dồn cả lượt) thì tự chạy rồi báo tiền thật; trên ngưỡng phải hỏi.
 - Mốc lá số (ngày giờ, chương Zodiacal Releasing, Profection) **lấy từ chính astrolas.com (Swiss Ephemeris) qua script**, không để mô hình tự đoán. Chuyện lịch sử cần tệp sự thật đã kiểm như `/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video/su-that/`.
+- **Anh dặn 02/11/2026: thiết kế CHUNG trước (dùng cho mọi kênh studio, không làm riêng Astrolas), rồi vào từng giai đoạn; cái ĐẦU TIÊN của mỗi giai đoạn phải trình anh review trước** (playlist đầu tiên, ảnh nhận diện đầu tiên, theme đầu tiên, kịch bản đầu tiên, video đầu tiên…). Anh chưa duyệt cái đầu thì không làm tiếp các cái sau.
 - Đăng bài chỉ qua một đường máy đăng (`dang-may.mjs`), không viết script đăng riêng.
 
 ## Vì sao làm lại

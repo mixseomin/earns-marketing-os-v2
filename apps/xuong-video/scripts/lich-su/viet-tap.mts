@@ -74,7 +74,7 @@ KHUÔN KÊNH "${K.ten}" (bắt buộc):
 - ${K.cau_noi} câu, tổng ${K.tu_noi[nn] ?? K.tu_noi.en} từ. Mỗi câu = một cảnh.
 ${K.khuon.map((d: string) => `- ${d.replace('{cau_cuoi}', cuoiNN ?? '').replace('{ket}', ketNN)}`).join('\n')}
 - Năm và số đọc thành CHỮ như người dẫn nói (${nn === 'es' ? '"en mil ochocientos sesenta y siete", "siete millones"' : '"in eighteen sixty-seven", "seven point two million dollars"'}) — máy đọc theo chữ, phụ đề hiện đúng chữ đó.
-- ${K.giong_van} CẤM: dấu gạch dài (— –), "→", "…", ngoặc kép kiểu AI, "Imagine", "Let's dive", "fascinating", "In conclusion", câu hỏi tu từ liên tiếp.
+- ${K.giong_van}${K.luat_hai ? `\nLUẬT VIẾT HÀI (bắt buộc cho mọi câu đùa):\n${K.luat_hai.map((l: string) => `  · ${l}`).join('\n')}\n-` : ''} CẤM: dấu gạch dài (— –), "→", "…", ngoặc kép kiểu AI, "Imagine", "Let's dive", "fascinating", "In conclusion", câu hỏi tu từ liên tiếp.
 SỰ THẬT (kênh sai một chi tiết là mất uy tín): CHỈ dùng sự thật có trong NGUỒN. Mỗi năm, con số, tên người, tên hiệp ước trong câu phải có một dòng su_that với trich chép NGUYÊN VĂN từ nguồn (copy y hệt từng ký tự). Không có trong nguồn thì không nói.
 HÌNH:
 - Nhân vật / phương tiện / cờ dùng mã trong KHO; thiếu thì khai trong tai_san_moi (người thật: tả đúng ngoại hình chân dung lịch sử; vai chung: "Spanish conquistador 1500s"…). Mỗi món phải ĐÚNG THỜI của cảnh (năm cảnh nằm trong tu–den) — máy dừng dựng nếu lệch.

@@ -84,6 +84,7 @@ async function kiem(tap, nguonChu) {
   ds.forEach((c, k) => { const K = `câu ${k + 1}`, cv = c.canh, ws = new Set(c.chu.split(/\s+/).map(chuan));
     if (k === 0 && !(c.su_that || []).length) loi.push(`${K}: hook không có su_that — hook phải là sự thật có nguồn`);
     for (const n of [cv.nam, cv.nam_sau?.nam]) if (n != null && !namNguon.has(n)) loi.push(`${K}: ô năm ${n} không có trong nguồn — ghi năm có nguồn hoặc null`);
+    for (const cm of KENH.cam_cum || []) if (` ${phang(c.chu).replace(/[^a-z' ]/g, ' ')} `.includes(` ${cm} `)) loi.push(`${K}: cụm hài kiểu AI "${cm}" — bỏ, để cú lật tự đứng (luật viết hài của kênh)`);
     if (/[—–→…]|\.\.\./.test(c.chu)) loi.push(`${K}: còn dấu vết AI (— – → …) trong "${c.chu}"`);
     for (const s of c.su_that || []) { const tr = phang(s.trich).replace(/^["']|["']$/g, ''); if (nguonP.includes(tr)) continue;
       const w = tr.split(' '), sh = []; for (let i = 0; i + 6 <= w.length; i++) sh.push(w.slice(i, i + 6).join(' ')); const trung = sh.filter((x) => nguonP.includes(x)).length;

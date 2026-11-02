@@ -110,6 +110,31 @@
    "#3fbf4f",
    "#00b7e8"
   ],
-  "duoi": 3.4
+  "duoi": 3.4,
+  "luat_hai_nguon": "Rút từ skill humor (github.com/BaesTheorem/exobrain-harness/.claude/skills/humor/SKILL.md — benign violation, Greg Dean two-story, lỗi hài kiểu AI), viết lại cho giọng phát thanh viên parody; repo không ghi giấy phép nên không chép nguyên văn.",
+  "luat_hai": [
+   "Một câu đùa = kỳ vọng bị phá nhưng vô hại, BẤT NGỜ NẰM Ở CHỮ CUỐI câu. Đặt chữ lật ngược ở cuối, xoá mọi chữ sau nó.",
+   "Câu đùa phải bám CHÍNH chi tiết thật vừa kể (giá, năm, quyết định, tên người) — dán được sang chuyện khác là câu đùa hỏng, bỏ.",
+   "Hai nhịp lập khuôn, nhịp ba phá khuôn (rule of three) — món lạc loài để cuối, cùng nhịp đọc phẳng như hai món trước.",
+   "Callback: gieo một chi tiết ở hồi đầu, bắn lại ở cuối tập (running gag) — khán giả nhận ra là cười.",
+   "Tỉnh bơ tuyệt đối: phát thanh viên nghiêm túc, không bao giờ tự cười, không \"funny enough\", \"ironically\", \"believe it or not\", \"plot twist\", không giải thích vì sao buồn cười.",
+   "Ít mà đắt: tối đa một câu đùa sau mỗi 2 câu kể; câu kể giữ thẳng làm nền cho câu đùa nổi lên.",
+   "Nói giảm kiểu bản tin cho chuyện lớn (\"a bold financial decision\"), nói to kiểu quảng cáo cho chuyện nhỏ — lệch thang là chỗ cười.",
+   "Đùa vào kẻ có quyền và quyết định của họ (vua, bộ trưởng, quốc hội, công ty); KHÔNG đùa vào dân thường, người bản địa, nạn nhân, chết chóc.",
+   "CẤM lỗi hài kiểu AI: chơi chữ phản xạ, câu đùa chung chung (\"am I right\"), ngẫu nhiên vô nghĩa, câu đùa mỗi dòng, thêm vế sau chữ chốt làm mềm cú lật."
+  ],
+  "cam_cum": [
+   "funny enough",
+   "ironically",
+   "believe it or not",
+   "plot twist",
+   "spoiler alert",
+   "am i right",
+   "lol",
+   "you can't make this up",
+   "talk about",
+   "needless to say",
+   "fun fact"
+  ]
  }
 }

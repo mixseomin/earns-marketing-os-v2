@@ -201,7 +201,12 @@ function client(): KhachChu | null {
   return { messages: {
     create: (p) => quaChuoi(p, tao),
     parse: (p) => quaChuoi(p, (d, q) => (d.jsonTay ? tao(d, q) : d.c.messages.parse(q as unknown as Parameters<Anthropic['messages']['parse']>[0]) as unknown as Promise<TinChu>)),
-    stream: (p) => ({ finalMessage: () => quaChuoi(p, (d, q) => d.c.messages.stream(q as unknown as Anthropic.MessageStreamParams).finalMessage() as Promise<TinChu>) }),
+    // LUỒNG ĐỨNG IM GIỮA CHỪNG (03/11/2026): đã bắt đầu trả lời rồi im — timeout 90 giây của SDK không bắt (chỉ tính tới phản hồi đầu) → 120 giây không có sự kiện mới
+    // thì huỷ luồng, chuỗi sang đường kế (thay vì đợi trần 25 phút của lệnh box3)
+    stream: (p) => ({ finalMessage: () => quaChuoi(p, (d, q) => { const ac = new AbortController(); let t = setTimeout(() => ac.abort(new Error('luồng im 120 giây')), 120_000);
+      const st = d.c.messages.stream(q as unknown as Anthropic.MessageStreamParams, { signal: ac.signal });
+      st.on('streamEvent', () => { clearTimeout(t); t = setTimeout(() => ac.abort(new Error('luồng im 120 giây')), 120_000); });
+      return (st.finalMessage() as Promise<TinChu>).finally(() => clearTimeout(t)); }) }),
   } };
 }
 /** LƯỢT CHỮ RA JSON THEO KHUÔN ZOD cho mọi máy ngoài phim (máy sinh đề theo góc — may-de.ts, 27/10/2026): cùng chuỗi dự phòng, cùng sổ tiền. Mặc định Haiku qua ckey

@@ -20,7 +20,7 @@ export const MOC_GOC = '2026-10-25T17:00:00Z';   // 00:00 26/10/2026 giờ VN: m
  *  Không đọc được kho spy → mọi bài có góc nhận lỗi "không kiểm được" (chặn chứ không cho qua mù). */
 import fs from 'node:fs';
 import path from 'node:path';
-import { loiHook, dongHookBai, soNgoaiSuThat, sachHook } from '../../xuong-video/src/lib/xuong-video/hook-qc.mjs';
+import { loiHook, dongHookBai, soNgoaiSuThat, sachHook, CHU_VIET, chuManHinh } from '../../xuong-video/src/lib/xuong-video/hook-qc.mjs';
 async function moSpy() {
   let url = process.env.SPY_DATABASE_URL;
   if (!url) { const fs = await import('node:fs'); url = fs.readFileSync('/root/.secrets/spy.env', 'utf8').split('\n').find((l) => l.startsWith('DATABASE_URL='))?.slice(13); }
@@ -134,8 +134,12 @@ export function doBaiDang(v, ten = '') {
   if (v.hinh) { chan.push(...v.hinh.chan); canh.push(...v.hinh.canh); }
   const gach = (chu.match(/[—–]/g) || []).length; if (gach) chan.push(`${gach} gạch ngang dài`);
   // ngôn ngữ đúng thị trường (29/10/2026: đề Sidecue dung-sai-40165 viết tiếng Việt vẫn DUYỆT): máy thị trường US/global không được có chữ tiếng Việt.
-  // Cùng regex với may-de.ts › CHU_VIET (máy sinh đề chặn trước khi nạp; phòng này chặn mọi nguồn khác).
-  if (!MAY_TIENG_VIET.has(v.ma ?? '') && /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chu)) chan.push('chữ đăng có tiếng Việt — kênh tiếng Anh');
+  // Cùng regex với máy sinh (hook-qc.mjs › CHU_VIET, may-de.ts kiemDe chặn trước khi nạp; phòng này chặn mọi nguồn khác).
+  if (!MAY_TIENG_VIET.has(v.ma ?? '')) {
+    if (CHU_VIET.test(chu)) chan.push('chữ đăng có tiếng Việt — kênh tiếng Anh');
+    // 02/11/2026: chữ TRÊN MÀN video (de) trước đây không soát — 3 video MilitaryCalc tiếng Việt DUYỆT 10 điểm rồi lên Page
+    const man = chuManHinh(v.de); if (CHU_VIET.test(man)) chan.push(`chữ trên màn video có tiếng Việt — kênh tiếng Anh ("${(man.split('\n').find((l) => CHU_VIET.test(l)) ?? '').slice(0, 60)}")`);
+  }
   const tm = tuMayTrong(thuong); if (tm.length) chan.push(`từ máy: ${tm.join(', ')}`);
   const tag = (chu.match(/(^|\s)#\w+/g) || []).length; if (tag > 3) canh.push(`${tag} hashtag (tối đa 3)`);
   if (mo.length < 80) canh.push('chữ đăng quá mỏng, chưa cho người xem điều gì dùng được');
@@ -370,6 +374,8 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   const tot = { nen_url: 'https://images.pexels.com/photos/1/p.jpeg?w=1080', video_url: 'https://img.on.tc/v.mp4', xuat_luc: '2026-10-18',
     dang: { title: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds', description: 'Scam: fake deadline · asks for card by chat. Never pay through a link in a message. Call the hotel on its official number. Checklist: https://ratesbyroom.com/hotel-scam-check/', link: 'https://ratesbyroom.com/hotel-scam-check/', goc: { sp: 179, id: 1, loai: 'ai_noi_dau', ten: 'x' }, hook: { qc: '123', goc: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds' } } };   // mọi bài phải có góc + hook từ QC spy (31/10/2026)
   t.equal(doBaiDang(tot).ket, 'DUYET', 'bài đủ thì DUYỆT');
+  t.ok(doBaiDang({ ...tot, de: { ket: ['MilitaryCalc', 'Xem công cụ tại militarycalc.com'] } }).chan_cung.some((x) => x.includes('trên màn')), 'chữ trên màn tiếng Việt = chặn (#740, 02/11/2026)');
+  t.equal(doBaiDang({ ...tot, ma: 'giochap-van-khan', de: { ket: ['Xem công cụ'] } }).chan_cung.some((x) => x.includes('trên màn')), false, 'máy tiếng Việt thì được');
   t.equal(doBaiDang({ ...tot, video_url: null, dang: { ...tot.dang, loai: 'link' } }).ket, 'DUYET', 'bài link không video vẫn DUYỆT');
   t.ok(doBaiDang({ ...tot, video_url: null }).chan_cung.includes('chưa có bản xuất'), 'bài video thiếu video thì chặn');
   t.ok(doBaiDang({ ...tot, nen_url: null }).chan_cung.some((x) => x.includes('ảnh thật')), 'thiếu ảnh thật = chặn cứng');

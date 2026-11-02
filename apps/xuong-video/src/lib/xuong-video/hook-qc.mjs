@@ -36,6 +36,17 @@ export function soNgoaiSuThat(dong, suThat) {
   const co = cacSo(suThat); return [...new Set(dong.flatMap((d) => [...cacSo(d)]))].filter((x) => !co.has(x));
 }
 
+/** CHỮ TIẾNG VIỆT — một regex cho máy sinh (may-de.ts › kiemDe) lẫn Phòng Nội dung (cham-dang.mjs). Chỉ dấu RIÊNG tiếng Việt (ơ ư + dấu thanh chồng);
+ *  bỏ â ê ô ă đ vì tiếng Pháp / Croatia có (tên sân bay "Ruđer Bošković", "Val-d'Oise" từng bị bắt oan). */
+export const CHU_VIET = /[ơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i;
+/** Mọi chữ NGƯỜI XEM THẤY trong video (de: câu trên màn, dòng kết, tiêu đề màn, mục…) — bỏ trường máy (truy ảnh, khung, soát, âm). 02/11/2026: phòng chỉ
+ *  soát tiêu đề + mô tả nên 3 video MilitaryCalc chữ màn tiếng Việt ("Xem công cụ tại militarycalc.com") vẫn DUYỆT và lên Page. Thuần. */
+const KHOA_MAY = new Set(['truy', 'am', 'kieu', 'soat', 'khung', 'thumb', 'video_url', 'loai', 'anh', 'nen', 'tom_tat', 'giay']);
+export function chuManHinh(de) {
+  const ra = [], di = (v, k) => { if (KHOA_MAY.has(k)) return; if (typeof v === 'string') ra.push(v); else if (Array.isArray(v)) v.forEach((x) => di(x, '')); else if (v && typeof v === 'object') for (const [kk, vv] of Object.entries(v)) di(vv, kk); };
+  di(de ?? {}, ''); return ra.join('\n');
+}
+
 if (process.argv[1]?.endsWith('hook-qc.mjs') && process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert');
   const goc = 'Did you know that the moment you were born is the most important moment of your life?';
@@ -49,7 +60,11 @@ if (process.argv[1]?.endsWith('hook-qc.mjs') && process.argv.includes('--tu-kiem
   t.deepEqual(dongHookBai('T', { moc: '' }), ['T'], 'mẫu không có câu trên màn = chỉ kiểm tiêu đề');
   t.deepEqual(soNgoaiSuThat(['AI translator 165+ languages'], '- Recognizes about 100 spoken languages.'), ['165'], 'số ngoài sự thật = lộ (#855)');
   t.deepEqual(soNgoaiSuThat(['AI translator 165+ languages'], null), [], 'chưa có tệp sự thật = không đoán');
-  console.log('hook-qc: 10 ca đạt'); process.exit(0);
+  t.ok(CHU_VIET.test(chuManHinh({ ket: ['MilitaryCalc', 'Xem công cụ tại militarycalc.com'] })), 'dòng kết tiếng Việt = lộ (#740)');
+  t.ok(CHU_VIET.test(chuManHinh({ cau: [{ khang_dinh: 'BAH chỉ phụ thuộc vào quân hàm', truy: 'military housing' }] })), 'câu trên màn tiếng Việt = lộ (#748)');
+  t.ok(!CHU_VIET.test(chuManHinh({ san_bay: [{ ten: 'Dubrovnik Ruđer Bošković Airport', tp: "Paris (Roissy-en-France, Val-d'Oise)" }] })), 'tên riêng Pháp / Croatia không bắt oan');
+  t.ok(!CHU_VIET.test(chuManHinh({ truy: 'chữ máy tiếng Việt', cau: [{ khang_dinh: 'BAH depends on rank' }] })), 'trường máy (truy ảnh) không tính');
+  console.log('hook-qc: 14 ca đạt'); process.exit(0);
 }
 
 /** BẰNG CHỨNG của một hook trong kho (dùng chung mọi chỗ đưa hook cho AI / người đọc): QC spy = số ngày chạy · 'kenh:' = video thắng của chính kênh ·

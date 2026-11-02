@@ -6,7 +6,7 @@ import { z } from 'zod/v4';
 import type { MauMayDung } from './may-dung-mau';
 import type { DeNapMay } from './may';
 import { giaChuCents } from './kieu';
-import { loiHook, dongHookBai, bangChungHook } from './hook-qc.mjs';
+import { loiHook, dongHookBai, bangChungHook, CHU_VIET, chuManHinh } from './hook-qc.mjs';
 
 /** Dạng trong kho (scripts/ke-hoach-goc/dang-bai.json) → mẫu studio dựng được. Dạng chưa có mẫu → null (ô để máy đăng dùng bài kho như cũ). */
 export const MAU_CUA_DANG: Record<string, MauMayDung | null> = {
@@ -123,7 +123,7 @@ export interface HookQc { id: string; chu: string; ngay: number; page: string }
 export { giuHook, GIU_HOOK_TOI_THIEU } from './hook-qc.mjs';
 
 /** Chữ có dấu tiếng Việt (ă â đ ê ô ơ ư + các thanh) — chữ đăng tiếng Anh không bao giờ có. */
-export const CHU_VIET = /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i;
+export { CHU_VIET };   // một regex cho máy sinh + Phòng Nội dung (hook-qc.mjs)
 /** Kiểm đề + chữ đăng theo đúng luật Phòng Nội dung (cham-dang.mjs) trước khi nạp — sai thì trả lỗi để sinh lại. Thuần. */
 /** Hook AI đã chọn theo mã — khớp dễ dãi: mô hình hay bỏ tiền tố / ngoặc ("kenh:931" → "931", "[1998…]"). 31/10/2026: 5/6 đề eSIMfares hỏng "chưa chọn hook" vì thế, 449₫ phí. Thuần. */
 export const timHook = (ds: HookQc[] | undefined, ma: string | undefined): HookQc | null => {
@@ -148,7 +148,7 @@ export function kiemDe(x: { mau: MauMayDung; dang_bai: string; de: Record<string
   }
   // chữ đăng + chữ trên video phải tiếng Anh (thị trường US): góc spy là ghi chú tiếng Việt, mô hình rẻ hay viết theo — 29/10/2026 đề Sidecue dung-sai-40165 ra tiếng Việt
   // mà vẫn DUYỆT. Trừ mẫu câu nói (bản ngữ có thể là tiếng Việt).
-  if (x.ngon_ngu !== 'vi' && x.mau !== 'cau-noi' && CHU_VIET.test(`${chu}\n${JSON.stringify(x.de)}`)) loi.push('có chữ tiếng Việt — viết toàn bộ bằng tiếng Anh (góc chỉ là ghi chú tiếng Việt, hãy dịch ý)');
+  if (x.ngon_ngu !== 'vi' && x.mau !== 'cau-noi' && CHU_VIET.test(`${chu}\n${chuManHinh(x.de)}`)) loi.push('có chữ tiếng Việt — viết toàn bộ bằng tiếng Anh (góc chỉ là ghi chú tiếng Việt, hãy dịch ý)');
   const tm = TU_MAY.filter((w) => thuong.includes(w)); if (tm.length) loi.push(`từ máy: ${tm.join(', ')}`);
   if (x.description.length < 80) loi.push('chữ đăng quá mỏng');
   if ((chu.match(/(^|\s)#\w+/g) || []).length > 3) loi.push('quá 3 hashtag');

@@ -49,6 +49,9 @@ def main():
         so[r["c"]][r["d"]] = (r["chi"], r["thu"])
         if r["ns"]: ns_ngay[r["d"]].setdefault(round(r["ns"]), []).append(r["c"])   # chỉ camp Nhà có ngân sách từng ngày → kho đối chứng
     cr = {r["c"]: r["cr"] for r in qj("select camp_id c, creative_id cr from etp.camp")}
+    # T30 TÁCH HAI NHÁNH (anh 02/11/2026 "dừng T30 cho camp thường, theo dõi kỹ cho ROAS vì chưa có đủ data"): lần T30 trên camp ★ ROAS đo riêng ở t30_roas
+    la_roas = {r["c"] for r in qj("select camp_id c from etp.camp where la_roas")}
+    T30_ROAS_DU = 10   # đủ bao nhiêu lần đo có đối chứng thì sổ luật mới phán Giữ / Siết cho nhánh ROAS
     import datetime as dt
     homqua = dt.datetime.now(dt.timezone.utc).date() - dt.timedelta(days=1)
     def cong(c, d0, d1):
@@ -67,7 +70,7 @@ def main():
     def tinh(m, mau):
         """số đo của một luật trên một tập lần làm (14 ngày hoặc 7 ngày) — một hàm cho cả hai cửa sổ"""
         o = {}
-        if m in ("tang", "dau_phien", "t30"):
+        if m in ("tang", "dau_phien", "t30", "t30_roas"):
             do = [a for a in mau if a["sau"][2] and a["truoc"][2]]
             tc, tt, tn = (sum(a["truoc"][i] for a in do) for i in range(3)); sc, st, sn = (sum(a["sau"][i] for a in do) for i in range(3))
             tot = sum(1 for a in do if (a["sau"][1] - a["sau"][0]) / a["sau"][2] > (a["truoc"][1] - a["truoc"][0]) / a["truoc"][2])
@@ -75,7 +78,7 @@ def main():
                      roi_truoc=roi(tc, tt), roi_sau=roi(sc, st), chi_ngay_truoc=round(tc / tn, 2) if tn else None, chi_ngay_sau=round(sc / sn, 2) if sn else None, ti_le_tot=round(tot / len(do) * 100) if do else None)
             # đối chứng: mỗi lần tăng lấy TB chênh lãi/ngày của nhóm đối chứng cùng ngày, cùng ngân sách; cộng các lần có ≥ 3 camp đối chứng
             cap = [(a, [((s_[1] - s_[0]) / s_[2]) - ((t_[1] - t_[0]) / t_[2]) for t_, s_ in a["dc"]]) for a in do if len(a.get("dc") or []) >= 3]
-            if len(cap) >= 5:
+            if len(cap) >= (1 if m == "t30_roas" else 5):   # nhánh ROAS hiện số ngay từ lần đầu (đang theo dõi), phán chỉ khi đủ T30_ROAS_DU
                 dc = sum(sum(v) / len(v) for _, v in cap) / len(cap)
                 dl = sum((a["sau"][1] - a["sau"][0]) / a["sau"][2] - (a["truoc"][1] - a["truoc"][0]) / a["truoc"][2] for a, _ in cap) / len(cap)
                 o.update(dc_n=len(cap), dc_chenh=round(dc, 2), chenh_tang=round(dl, 2), hieu_qua=round(dl - dc, 2))
@@ -109,6 +112,7 @@ def main():
     for h in hd:
         m = ma_cua(h["viec"], h["luat"])
         if not m: continue
+        if m == "t30" and h["camp_id"] in la_roas: m = "t30_roas"
         x = ra[m]; x["lan"] += 1; x["camp"].add(h["camp_id"]); D = dt.date.fromisoformat(h["d"]); x.setdefault("ngay", []).append(D)
         t = cong(h["camp_id"], D - dt.timedelta(days=2), D - dt.timedelta(days=1))
         if h["viec"] == "nhan_ban":
@@ -122,7 +126,7 @@ def main():
             try: ns0 = float(h["truoc"])
             except (TypeError, ValueError): ns0 = None
             x["mau"].append({"D": D, "camp": h["camp_id"], "truoc": t, "sau": s, "roi_dai": int(m_.group(2)) if m_ else None, "ns": [h["truoc"], h["sau"]],
-                             "dc": doi_chung(h["camp_id"], D, ns0) if ns0 and m in ("tang", "dau_phien", "t30") and s[2] and t[2] else []})
+                             "dc": doi_chung(h["camp_id"], D, ns0) if ns0 and m in ("tang", "dau_phien", "t30", "t30_roas") and s[2] and t[2] else []})
     # camp đang chạm / gần chạm từng luật + điều kiện hay kẹt nhất (từ lượt xét mới nhất của máy luật)
     xet = qj("""select x->>'ma' ma, x->>'ten' ten, x->>'mo_ta' mo_ta, x->>'ket' ket, x->>'ghi' ghi, x->'dk' dk from etp.xet_luat t, jsonb_array_elements(t.xet) x
       where t.luc > now() - interval '3 hours'""")
@@ -139,13 +143,15 @@ def main():
         so_ = {"lan": x["lan"], "camp": len(x["camp"]), "ngay": NGAY}
         so_.update(tinh(m, mau)); k7 = tinh(m, [a for a in mau if a["D"] > homqua - dt.timedelta(days=7)])
         so_["k7"] = {"lan": sum(1 for d_ in x.get("ngay", []) if d_ > homqua - dt.timedelta(days=7)), **k7}
-        if m in ("tang", "dau_phien", "t30"):
+        if m in ("tang", "dau_phien", "t30", "t30_roas"):
             do = [a for a in mau if a["sau"][2] and a["truoc"][2]]
             if len(do) >= 10:
                 lt, ls_, hq = so_["lai_ngay_truoc"], so_["lai_ngay_sau"], so_.get("hieu_qua")
-                if m in ("tang", "dau_phien", "t30"):
+                if m in ("tang", "dau_phien", "t30", "t30_roas"):
                     am = [a for a in mau if a["roi_dai"] is not None and a["roi_dai"] < 0]
-                    if hq is not None:   # có đối chứng → phán theo hiệu quả thật, không theo sau − trước (luôn âm vì chọn đúng ngày đẹp)
+                    if m == "t30_roas" and (so_.get("dc_n") or 0) < T30_ROAS_DU:
+                        pass   # nhánh ROAS chưa đủ lần — dòng "Đang theo dõi" ở dưới
+                    elif hq is not None:   # có đối chứng → phán theo hiệu quả thật, không theo sau − trước (luôn âm vì chọn đúng ngày đẹp)
                         dx.append(DX("Siết điều kiện tăng", f"so với camp cùng mức không tăng, mỗi lần tăng làm mất ${-hq:.2f}/ngày.", "đo nhóm nào kéo xuống (giờ tăng, ROI hôm qua) rồi chặn nhóm đó.") if hq < 0
                                   else DX("Giữ", f"so với camp cùng mức không tăng, mỗi lần tăng thêm ${hq:.2f}/ngày (sau − trước thô {ls_ - lt:+.2f}).", None))
                     elif lt is not None and ls_ is not None:
@@ -179,6 +185,9 @@ def main():
                     dx.append(DX("Siết điều kiện nhân bản", f"clone đang lỗ (ROI {so_['tat_ca']['roi']}%).", "chỉ nhân bản camp gốc lãi đều hơn."))
                 else:
                     dx.append(DX("Giữ", f"clone lãi (ROI {so_['tat_ca']['roi']}%).", None))
+        if m == "t30_roas" and (so_.get("dc_n") or 0) < T30_ROAS_DU:
+            hq_ = so_.get("hieu_qua")
+            dx.append(DX("Đang theo dõi", f"mới {so_.get('dc_n') or 0}/{T30_ROAS_DU} lần đo có đối chứng" + (f", hiệu quả tới giờ {hq_:+.2f}$/ngày mỗi lần" if hq_ is not None else "") + " — chưa đủ để kết luận.", None))
         if L:
             so_["dang"] = {k: L.get(k, 0) for k in ("dat", "gan", "xa", "khong_ap")}
             kt = L["ket_o"].most_common(2)

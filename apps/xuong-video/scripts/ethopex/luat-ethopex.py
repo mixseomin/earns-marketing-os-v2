@@ -674,9 +674,11 @@ _SE_TAT = {int(x[0] or 0) for v in (tat2, tat1, tat_d24, tat_l3, tat_l4, tat_pl,
 tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, tang30, moc30 = ([x for x in v if int(x[0] or 0) not in _SE_TAT] for v in (tu_choi, dau_phien, dat, giam, ha, nb, thang_nb, tang30, moc30))
 # ★ ROAS THẮNG → $30 (anh 28/10/2026 "thêm rule tăng roas thắng lên $30"): camp ROAS vẫn miễn mọi luật khác, riêng T30 áp cùng ngưỡng —
 # đang $20, ≥ 2/3 ngày đã khép tiêu > 80% ngân sách, ROI các ngày đó > 80% → máy tự tăng $20 → $30 (cùng đường tang30 của worker)
-# T30 CHO ★ ROAS TẠM DỪNG (anh 02/11/2026 duyệt review luật): so-luat đo có đối chứng — mỗi lần $20 → $30 mất $5.87/ngày so với camp $20 cùng ngày
-# không tăng (14 lần). Dừng tới khi đo lại (etp ?t=luat, cột Hiệu quả); bật lại = đổi T30_ROAS_DUNG = False.
-T30_ROAS_DUNG = True
+# T30 THEO SỐ ĐO CÓ ĐỐI CHỨNG (anh 02/11/2026 "dừng T30 cho camp thường, theo dõi kỹ cho ROAS vì chưa có đủ data"): so với camp $20 cùng ngày, đang lãi,
+# không bị tăng — camp thường lên $30 mất $8.99/ngày mỗi lần (10 lần) → DỪNG; ★ ROAS +$1.80/ngày (3 lần, chưa đủ) → CHẠY, so-luat tách dòng t30_roas
+# theo dõi tới ≥ 10 lần (etp ?t=luat). Đổi lại = sửa hai cờ dưới. tang30 tới đây chỉ còn camp thường (camp ROAS đã ra ở _bo_roas).
+T30_THUONG_DUNG, T30_ROAS_DUNG = True, False
+if T30_THUONG_DUNG: tang30 = []
 tang30 += [] if T30_ROAS_DUNG else [(cid, "★ ROAS thắng · " + s_) for cid, s_ in _tang30_goc if int(cid or 0) in _ROAS]
 tat_roas = []
 try:
@@ -771,7 +773,7 @@ def _xet_luat():
                 "tat_roas" if int(cid) in vao["tat_roas"] else None, lo=None if rg_ is None else rg_ < 0))
             ns = float(a.get("budget") or 0); du30 = [n[cid] for n in (ngay3 if "ngay3" in globals() else []) if cid in n and n[cid]["chi"] > T30_SP / 100 * 20]
             r30 = roi({"chi": sum(x["chi"] for x in du30), "thu": sum(x["thu"] for x in du30)}) if du30 else None
-            ls.append(L("t30", "★ ROAS thắng · $20 → $30", ("Đang tạm dừng (02/11/2026, đo có đối chứng −$5.87/ngày mỗi lần tăng) — máy không tăng. " if T30_ROAS_DUNG else "") + f"Camp ROAS đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách ($16), ROI các ngày đó > {T30_ROI}% → máy tự tăng $30.",
+            ls.append(L("t30", "★ ROAS thắng · $20 → $30", ("Đang tạm dừng — máy không tăng. " if T30_ROAS_DUNG else "Đang theo dõi (02/11/2026: mới 3 lần đo, +$1.80/ngày so với đối chứng; sổ luật dòng t30_roas). ") + f"Camp ROAS đang $20, ≥ {T30_NGAY}/3 ngày đã khép tiêu > {T30_SP}% ngân sách ($16), ROI các ngày đó > {T30_ROI}% → máy tự tăng $30.",
                 [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], ["Ngày tiêu > $16", f"{len(du30)}/3", f"≥ {T30_NGAY}", len(du30) >= T30_NGAY], ["ROI các ngày đó", f(r30, "%"), f"> {T30_ROI}%", r30 is not None and r30 > T30_ROI]],
                 "tang30" if int(cid) in vao["tang30"] else None, tien=1))
             ls.append(L_g10(cid, ns)); ra[int(cid)] = ls; continue
@@ -851,7 +853,7 @@ def _xet_luat():
                 "nb" if int(cid) in vao["nb"] else None))
             g5 = ngay5.get(cid) if "ngay5" in globals() else None; r5 = roi(g5) if g5 and g5["chi"] else None
             # mô tả luật hiện ở cột Luật của MỌI người trong team (etp vai người) → không ghi tên người (nới 29/10/2026 theo cách một tk team chạy; anh 31/10/2026 Kiên không thấy phần người khác)
-            ls.append(L("t30", "T30 · $20 → $30", f"Camp đang $20, {T30N_NGAY} ngày đã khép: chi TB ≥ {T30N_SP}% ngân sách (${T30N_SP / 100 * 20:g}/ngày), ROI ≥ {T30N_ROI}% → máy tự lên $30.",
+            ls.append(L("t30", "T30 · $20 → $30", ("Đang tạm dừng (02/11/2026: so với camp $20 cùng ngày không tăng, mỗi lần lên $30 mất $8.99/ngày) — máy không tăng. " if T30_THUONG_DUNG else "") + f"Camp đang $20, {T30N_NGAY} ngày đã khép: chi TB ≥ {T30N_SP}% ngân sách (${T30N_SP / 100 * 20:g}/ngày), ROI ≥ {T30N_ROI}% → máy tự lên $30.",
                 [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], [f"Chi TB {T30N_NGAY} ngày", f((g5["chi"] / T30N_NGAY) if g5 else None, "$"), f"≥ ${T30N_SP / 100 * 20:g}", bool(g5 and g5["chi"] >= T30N_SP / 100 * 20 * T30N_NGAY)], [f"ROI {T30N_NGAY} ngày", f(r5, "%"), f"≥ {T30N_ROI}%", r5 is not None and r5 >= T30N_ROI]],
                 "tang30" if int(cid) in vao["tang30"] else None, tien=1))
         ls.append(L_g10(cid, ns)); ra[int(cid)] = ls

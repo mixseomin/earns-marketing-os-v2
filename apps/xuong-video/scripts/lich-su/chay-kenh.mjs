@@ -9,7 +9,7 @@
 // PLAYLIST (G1, 02/11/2026): kênh có kenh.json › playlist thì lịch làm tập là lịch của từng playlist (playlist.mjs › lichHomNay) và lam-tap nhận --playlist;
 //   cấu hình playlist sai (trùng ngày, trùng mã…) → không làm tập, báo Telegram nguyên văn.
 import { execFileSync, spawnSync } from 'node:child_process';
-import { readFileSync, existsSync, writeFileSync, unlinkSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync, unlinkSync, readdirSync, statSync, mkdirSync, openSync, closeSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -27,6 +27,10 @@ const tele = (chu, html = false) => { try { execFileSync('ssh', [BOX, `set -a; .
 // iMac, mỗi 5 phút) kèm đuôi nhật ký — Mạnh tìm gốc, sửa trong apps/xuong-video, push, chạy lại, trả lời trên Telegram. Trả true khi đã xếp (khoá đang chờ thì không xếp đôi).
 const giaoTho = (k, tap, ra) => { try { return execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2/apps/cty && CTY_DATA_DIR=/var/lib/cty node worker/tho-may-viec.mjs --them 'kenh:${k}|${tap}'`],
   { input: ra.trim().split('\n').slice(-40).join('\n'), encoding: 'utf8', timeout: 60_000 }).trim() === '1'; } catch (e) { console.log(`⚠ không giao được thợ máy: ${e.message.split('\n')[0]}`); return false; } };
+// lam-tap GHI NHẬT KÝ NGAY KHI CHẠY (03/11/2026: spawnSync giữ đầu ra tới cuối lượt → lượt viết hỏng 3 lần không ai đọc được lỗi): đầu ra vào
+// /Users/htuan/.cache/lich-su/<tập>/lam-tap.log (tail -f được), đọc lại vào `stdout` khi xong — bên gọi giữ nguyên cách dùng { status, signal, stdout, stderr }
+const chayLamTap = (id, args, opt) => { const dir = join(homedir(), '.cache', 'lich-su', id); mkdirSync(dir, { recursive: true }); const f = join(dir, 'lam-tap.log'), fd = openSync(f, 'w');
+  try { const r = spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), ...args], { ...opt, stdio: ['ignore', fd, fd] }); return { ...r, stdout: readFileSync(f, 'utf8'), stderr: '' }; } finally { closeSync(fd); } };
 const danhDau = (ma, dl) => { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
   try { sqlBox(`UPDATE xv_may SET nguon = ${dl ? `jsonb_set(coalesce(nguon, '{}'::jsonb), '{dang_lam}', ${q1(JSON.stringify(dl))}::jsonb)` : "coalesce(nguon, '{}'::jsonb) - 'dang_lam'"} WHERE ma = ${q1(ma)};`); } catch (e) { console.log(`⚠ dấu đang làm: ${e.message}`); } };
 
@@ -50,7 +54,7 @@ for (const [k, K] of Object.entries(KENH)) {
     writeFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), String(process.pid));
     // kịch bản rỗng / cụt (cổng AI chập chờn trả bản 0 câu — 02/11/2026) → viết lại từ đầu; có kịch bản thì giữ, chỉ làm tiếp
     const vietLai = (t.cau?.length ?? 0) < 5 ? ['--viet-lai'] : [];
-    const chay = (them) => spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', t.id, ...(vietLai.length ? vietLai : ['--gan-hook']), ...them], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
+    const chay = (them) => chayLamTap(t.id, ['--id', t.id, ...(vietLai.length ? vietLai : ['--gan-hook']), ...them], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
     let r = chay([]), ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`;
     process.stdout.write(ra);   // nhật ký việc nền giữ trọn đầu ra lam-tap (trước chỉ có một dòng tóm tắt — không đọc được gốc lỗi)
     if (r.status === 4 && /tập có lỗi/.test(ra)) { r = chay(['--sua']); ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra); }
@@ -92,7 +96,7 @@ for (const [k, K] of Object.entries(KENH)) {
       // lam-tap tự dừng trước khi tốn tiền giọng / ảnh nếu máy viết 4 lượt vẫn lỗi; DUYET_SINH_1_LAN cho lượt có lịch anh đã duyệt (02/11/2026: 3 tập/tuần)
       // ĐANG SẢN XUẤT: dấu trên máy studio (xv_may.nguon.dang_lam) — mos2 › Tài sản › Kênh nội dung hiện tập đang làm; xong (đạt hay hỏng) thì gỡ
       danhDau(K.may, { id, luc: new Date().toISOString() });
-      const r = spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', id, '--nn', 'en', '--kenh', k, ...(pl ? ['--playlist', pl] : [])], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
+      const r = chayLamTap(id, ['--id', id, '--nn', 'en', '--kenh', k, ...(pl ? ['--playlist', pl] : [])], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
       const ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra);
       danhDau(K.may, null); try { unlinkSync(khoa); } catch { /* đã gỡ */ }
       const tien = [...ra.matchAll(/~(\d+)₫/g)].reduce((t, m) => t + Number(m[1]), 0);

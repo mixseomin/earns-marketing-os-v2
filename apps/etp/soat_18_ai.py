@@ -12,6 +12,7 @@ K18 = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-vide
 LUAT = """You screen a short-drama POSTER (plus title and synopsis) before it is advertised on Facebook. Answer with the tool.
 dat = false if the POSTER shows ANY of: blood, wounds or gore · a gun, knife or other weapon (held, pointed or displayed) · sexual or suggestive content (lingerie,
 underwear, cleavage-focused framing, seductive pose) · shirtless people embracing / kissing, couples in bed · nudity or near-nudity. Otherwise dat = true.
+NOT a weapon (do not fail for it): robots, mecha, armor, spaceships or other sci-fi machines, magic effects, crowns / scepters as costume (anh 03/11/2026: Mech King bị loại oan vì robot).
 The synopsis only helps you understand the poster — judge the IMAGE. vi_pham = the violated items (empty when dat = true). ly_do = one short sentence in Vietnamese.
 Title: """
 

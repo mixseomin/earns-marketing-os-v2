@@ -78,6 +78,13 @@ if __name__ == "__main__":
         cid, kq, gc = str(int(a[1])), a[2], (a[3] if len(a) > 3 else "")
         ghi("ethopex_soat_18", cid, {"ok": kq == "ok", "luc": now(), "ghi": gc})
         if kq != "ok": ghi("ethopex_phim_cam", cid, {"ly_do": gc or "soát hình 18+ không đạt", "luc": now()})
+        else:   # SOÁT LẠI ĐẠT GỠ LỆNH CẤM DO SOÁT CŨ (anh 03/11/2026 "Mech King -> Sửa luật chấm"): chỉ gỡ cấm do soát (AI soát poster / soát hình), cấm tay (--cam) giữ nguyên;
+            # bản cấm cũ cất sang sổ ethopex_phim_cam_go (không xoá dấu vết)
+            cu = json.loads(q(f"select gia_tri->'{cid}' from xv_khoa_ngoai where ten='ethopex_phim_cam'") or "null")
+            if cu and re.match(r"(AI soát poster|soát hình)", str(cu.get("ly_do", ""))):
+                ghi("ethopex_phim_cam_go", cid, {**cu, "go_luc": now(), "go_vi": gc or "soát lại đạt"})
+                q(f"update xv_khoa_ngoai set gia_tri = gia_tri - '{cid}' where ten='ethopex_phim_cam'")
+                print(f"gỡ cấm cũ phim {cid} (bản cũ cất ở ethopex_phim_cam_go)")
         print(f"đã ghi soát 18+ phim {cid}: {kq}"); sys.exit(0)
     if a[:1] == ["--cam"]:
         ghi("ethopex_phim_cam", str(int(a[1])), {"ly_do": a[2] if len(a) > 2 else "18+", "luc": now()}); print(f"đã cấm phim {a[1]}"); sys.exit(0)

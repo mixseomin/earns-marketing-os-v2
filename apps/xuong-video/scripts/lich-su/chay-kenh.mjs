@@ -20,6 +20,10 @@ const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh
 const thu = ((d) => (d === 0 ? 7 : d))(new Date(`${hom}T12:00:00+07:00`).getUTCDay());
 const tele = (chu, html = false) => { try { execFileSync('ssh', [BOX, `set -a; . /root/.secrets/mine-tg.env; set +a; curl -s -o /dev/null https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage --data-urlencode chat_id=$TG_CHAT${html ? ' --data-urlencode parse_mode=HTML' : ''} --data-urlencode text@-`], { input: chu }); } catch (e) { console.log(`⚠ Telegram: ${e.message}`); } };
 
+// HỎNG → GIAO THỢ MÁY (anh 03/11/2026: "thế này mà cho tự chạy … không có ai sửa à?"): xếp việc `kenh:<kênh>|<tập>` vào hàng của Mạnh (apps/cty/may/tho-may.mjs,
+// iMac, mỗi 5 phút) kèm đuôi nhật ký — Mạnh tìm gốc, sửa trong apps/xuong-video, push, chạy lại, trả lời trên Telegram. Trả true khi đã xếp (khoá đang chờ thì không xếp đôi).
+const giaoTho = (k, tap, ra) => { try { return execFileSync('ssh', [BOX, `cd /opt/earns-marketing-os-v2/apps/cty && CTY_DATA_DIR=/var/lib/cty node worker/tho-may-viec.mjs --them 'kenh:${k}|${tap}'`],
+  { input: ra.trim().split('\n').slice(-40).join('\n'), encoding: 'utf8', timeout: 60_000 }).trim() === '1'; } catch (e) { console.log(`⚠ không giao được thợ máy: ${e.message.split('\n')[0]}`); return false; } };
 const danhDau = (ma, dl) => { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
   try { sqlBox(`UPDATE xv_may SET nguon = ${dl ? `jsonb_set(coalesce(nguon, '{}'::jsonb), '{dang_lam}', ${q1(JSON.stringify(dl))}::jsonb)` : "coalesce(nguon, '{}'::jsonb) - 'dang_lam'"} WHERE ma = ${q1(ma)};`); } catch (e) { console.log(`⚠ dấu đang làm: ${e.message}`); } };
 
@@ -53,8 +57,9 @@ for (const [k, K] of Object.entries(KENH)) {
     // dấu "đang làm" trên máy (bảng mos2): lam-tap bị giết vì quá giờ không kịp tự gỡ → hỏng thì ghi lỗi lên dấu, xong thì gỡ
     if (hong) { try { sqlBox(`UPDATE xv_may SET nguon = jsonb_set(nguon, '{dang_lam,loi}', ${q1(JSON.stringify(`lần ${td.lan + 1}/3 hỏng: ${loiTxt.slice(0, 160)}`))}::jsonb) WHERE ma = ${q1(K.may)} AND nguon ? 'dang_lam';`); } catch { /* phụ */ } }
     else danhDau(K.may, null);
+    if (hong && giaoTho(k, t.id, ra)) t2.tu_dong.tho = new Date().toISOString();
     writeFileSync(tep, JSON.stringify(t2, null, 1) + '\n');
-    bao.push(hong ? `⚠ tự làm lại tập ${t.id} (lần ${td.lan + 1}/3) hỏng: ${t2.tu_dong.loi}` : `✓ tự làm lại tập ${t.id} (${st ? `Phòng Nội dung: ${st.ket ?? 'chưa xuất'}` : 'chưa nạp'}) → đã nạp lại, chờ chấm`);
+    bao.push(hong ? `⚠ tự làm lại tập ${t.id} (lần ${td.lan + 1}/3) hỏng: ${t2.tu_dong.loi}${t2.tu_dong.tho ? '\n🔧 đã giao Mạnh (thợ máy) tìm gốc + sửa' : ''}` : `✓ tự làm lại tập ${t.id} (${st ? `Phòng Nội dung: ${st.ket ?? 'chưa xuất'}` : 'chưa nạp'}) → đã nạp lại, chờ chấm`);
     break;   // một tập mỗi lượt — lượt giờ sau làm tập kế
   }
   // việc nền chạy MỖI GIỜ (02/11/2026 anh: đo kênh tần suất cao hơn) → làm tập chỉ từ gio_tap trở đi của ngày lịch; khoá ~/.cache/lich-su-<k>.khoa (pid) chống lượt chồng
@@ -77,6 +82,7 @@ for (const [k, K] of Object.entries(KENH)) {
       const tien = [...ra.matchAll(/~(\d+)₫/g)].reduce((t, m) => t + Number(m[1]), 0);
       const tap = existsSync(join(DIR, 'tap', `${id}.json`)) ? JSON.parse(readFileSync(join(DIR, 'tap', `${id}.json`), 'utf8')) : null;
       if (r.signal) ra += `\n✗ quá giờ 100 phút — lượt bị dừng (${r.signal})`;
+      if (r.status !== 0 && giaoTho(k, id, ra)) ra += '\n🔧 đã giao Mạnh (thợ máy) tìm gốc + sửa';
       bao.push(r.status !== 0 ? `✗ tập ${id} hỏng (mã ${r.status ?? r.signal}): ${ra.trim().split('\n').slice(-3).join(' · ').slice(0, 500)}`
         : `✓ tập mới ${id}: ${tap?.tieu_de ?? '?'}\n  ${tap?.chu_de ?? ''}\n  ~${tien.toLocaleString('vi-VN')}₫ · Studio › Máy › ${K.may} · ${/✓ nạp máy/.test(ra) ? 'đã nạp máy đăng, chờ Phòng Nội dung chấm' : '⚠ chưa nạp máy đăng'}`);
     }

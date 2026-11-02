@@ -17,6 +17,9 @@ const REPO = path.join(os.homedir(), 'Me/GitHub/spy-on-tc'), CLAUDE = '/opt/home
 // MÁY ĐĂNG (anh 25/10/2026 "cho Mạnh quản lý luôn"): việc `dang:lo|<máy>|<nền>` do Phòng Nội dung xếp — chạy trong bản puzzle-books của iMac (bản chạy lượt 20:00),
 // bản đó là repo GIT từ 25/10/2026 (anh: lượt máy không phụ thuộc MacBook) — sửa + commit ngay tại đây; đăng bù đúng MỘT bài qua đường thường (nhịp an toàn vẫn quyết).
 const DANG = path.join(os.homedir(), 'puzzle-books');
+// KÊNH NỘI DUNG (anh 03/11/2026: "thế này mà cho tự chạy … không có ai sửa à?"): việc `kenh:<kênh>|<tập>` do chay-kenh.mjs xếp khi một lượt làm tập hỏng —
+// chạy trong repo mos2 trên iMac, sửa CHỈ apps/xuong-video, kiểm (tsc + tự kiểm) rồi commit + push (GHA deploy box3), chạy lại lượt làm tập.
+const MOS2 = path.join(os.homedir(), 'Me/GitHub/earns-marketing-os-v2');
 // QUYỀN HẸP: đọc / sửa CHỈ trong repo spy-on-tc; lệnh: ssh tới box3 + VPS máy cào, git trong repo, deploy của repo, bài tự kiểm. Không web, không hỏi, không lan việc.
 const QUYEN = ['Read', 'Glob', 'Grep', `Edit(/${REPO}/**)`, `Write(/${REPO}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(ssh ${VPS}:*)`,
   `Bash(ssh -o BatchMode=yes ${VPS}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(./deploy.sh)',
@@ -33,9 +36,10 @@ if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log('Mạnh đang 
 const model = (soul.match(/claude-code:([\w.-]+)/) || [])[1] || 'sonnet';
 const r0 = JSON.parse(thu ? box(`cd ${APP} && CTY_DATA_DIR=${DATA} node -e "const s=require('fs').existsSync('${DATA}/tho-may.json')?JSON.parse(require('fs').readFileSync('${DATA}/tho-may.json','utf8')):{hang:[]};const v=(s.hang||[]).find(x=>x.tt==='cho');console.log(JSON.stringify(v?{viec:v}:{ly_do:'không có việc'}))"`) : viec('--lay'));
 if (!r0.viec) { log(`không nhận việc: ${r0.ly_do}`); process.exit(0); }
-const v = r0.viec, chu = v.chu.replace(/<[^>]+>/g, ''), laDang = v.khoa.startsWith('dang:');
+const v = r0.viec, chu = v.chu.replace(/<[^>]+>/g, ''), laDang = v.khoa.startsWith('dang:'), laKenh = v.khoa.startsWith('kenh:');
+const [kenhMa = '', tapMa = ''] = laKenh ? v.khoa.slice(5).split('|') : [];
 const [, mayMa = '', nenMa = ''] = laDang ? v.khoa.slice(5).split('|') : [];
-const git = (...a) => execFileSync('git', ['-C', laDang ? DANG : REPO, ...a], { encoding: 'utf8' }).trim();   // máy đăng: repo git puzzle-books trên iMac (25/10/2026)
+const git = (...a) => execFileSync('git', ['-C', laDang ? DANG : laKenh ? MOS2 : REPO, ...a], { encoding: 'utf8' }).trim();   // máy đăng: repo git puzzle-books trên iMac (25/10/2026)
 
 const giao = `Bạn là Mạnh, thợ máy của Phòng Tài nguyên (công ty AI của anh Tuấn). Máy cào spy.on.tc vừa báo lỗi, bạn phải tìm GỐC, sửa, kiểm, rồi báo lại — anh không ngồi máy.
 
@@ -94,7 +98,36 @@ sửa tệp ngoài ${DANG} · in khoá / mật khẩu / token.
 
 KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó 3–6 dòng tiếng Việt cho anh đọc trên Telegram:
 lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit) · đã đăng bù chưa (link bài) / vì sao không. Viết gọn, xưng "con", gọi "anh".`;
-const loiGiao = laDang ? giaoDang : giao, quyen = laDang ? QUYEN_DANG : QUYEN, noiChay = laDang ? DANG : REPO;
+const XV = `${MOS2}/apps/xuong-video`;
+const QUYEN_KENH = ['Read', 'Glob', 'Grep', `Edit(/${XV}/**)`, `Write(/${XV}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`,
+  'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add apps/xuong-video/:*)', 'Bash(git commit:*)', 'Bash(git push origin main)', `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`,
+  'Bash(node apps/xuong-video/scripts/:*)', 'Bash(node --check:*)', 'Bash(node_modules/.bin/tsx:*)', 'Bash(./node_modules/.bin/tsc -p apps/xuong-video/tsconfig.json --noEmit)',
+  'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(ls:*)'];
+const giaoKenh = `Bạn là Mạnh, thợ máy của công ty AI của anh Tuấn, nay quản lý cả DÂY CHUYỀN KÊNH NỘI DUNG (video lịch sử tự động: viết → dựng → Studio → thumbnail → Phòng Nội dung chấm → máy đăng).
+Một lượt làm tập vừa HỎNG. Bạn phải tìm GỐC, sửa, kiểm, chạy lại cho tập lên được, rồi báo lại — anh không ngồi máy.
+
+CẢNH BÁO (${v.luc}) · kênh ${kenhMa} · tập ${tapMa}:
+${chu}
+
+HẠ TẦNG (đọc trước: ${XV}/scripts/lich-su/lam-tap.mjs phần đầu, chay-kenh.mjs, kenh.json; /${MOS2}/CLAUDE.md):
+- iMac (máy này, repo ${MOS2}): lam-tap.mjs điều phối từng bước; dung-tap.mjs + ../shot-code/dung.mjs dựng; thumb.mjs; tập ở scripts/lich-su/tap/<id>.json; nhật ký việc nền ~/.cache/lich-su-lam-tap.log, tệp dựng ~/.cache/lich-su/<id>/.
+- box3 ${BOX} (bản deploy /opt/earns-marketing-os-v2, chạy qua box3.mjs › box()): viet-tap.mts (máy viết, chuỗi cổng AI src/lib/xuong-video/claude.ts: ckey → ShopAIKey → Anthropic), tap-day.mts, may-dung.mts, xet-*.mts.
+  Sổ: cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -c "…" — xv_may (nguon.dang_lam = tiến độ), xv_may_video (cham, xuat_luc, da_dang).
+- Mã sửa ở iMac, lên box3 bằng git push origin main (GHA deploy ~2 phút; chờ bằng ${os.homedir()}/bin/gh-watch deploy.yml). KHÔNG rsync / scp mã lên box3.
+
+CÁCH LÀM:
+1. Đọc lỗi nguyên văn (cảnh báo + đuôi nhật ký + tệp tập). Phân loại: (a) lỗi mã / dữ liệu → sửa GỐC trong apps/xuong-video (một lần cho cả lớp lỗi, không vá riêng tập này);
+   (b) cổng AI / mạng chập chờn tạm thời → không sửa mã, chạy lại; (c) cần tiền mới / khoá mới / tài khoản / quyết định nội dung → CAN_ANH.
+2. Kiểm: node --check tệp đã sửa, ./node_modules/.bin/tsc -p apps/xuong-video/tsconfig.json --noEmit (mã thoát 0), bài tự kiểm liên quan nếu có.
+3. git add đúng tệp đã sửa (chỉ apps/xuong-video/…) + git commit (tiếng Việt: gốc + cách sửa) + git push origin main + gh-watch deploy.yml.
+4. Chạy lại: node apps/xuong-video/scripts/lich-su/chay-kenh.mjs --kenh ${kenhMa} (việc nền tự làm tiếp đúng tập kẹt). Đọc kết quả; vẫn hỏng thì sửa tiếp trong giới hạn thời gian.
+
+CẤM: nới luật Phòng Nội dung (apps/cty — không được sửa) hay luật kiểm của lam-tap để "cho qua" · lách luật hook / góc spy · đổi lich_tap, trần đăng, giờ đăng · xoá dữ liệu, git revert / reset / checkout ·
+sửa tệp ngoài apps/xuong-video · in khoá / token · mua / nạp tiền · đăng bài bằng tay.
+
+KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó 3–6 dòng tiếng Việt cho anh đọc trên Telegram:
+lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit) · chạy lại ra sao (tập đã nạp máy đăng chưa). Viết gọn, xưng "con", gọi "anh".`;
+const loiGiao = laDang ? giaoDang : laKenh ? giaoKenh : giao, quyen = laDang ? QUYEN_DANG : laKenh ? QUYEN_KENH : QUYEN, noiChay = laDang ? DANG : laKenh ? MOS2 : REPO;
 if (thu) { console.log(loiGiao); process.exit(0); }
 try { viec(`--nhan ${v.id}`); } catch (e) { log(`báo nhận lỗi: ${e.message.split('\n')[0]}`); }
 log(`nhận việc #${v.id} ${v.khoa} · model ${model}`);

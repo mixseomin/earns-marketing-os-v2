@@ -11,7 +11,9 @@ import fs from 'node:fs';
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const TEP = () => `${DATA()}/tho-may.json`;
 export const TRAN_NGAY = 6, TREO_PHUT = 45;
-export const LOAI_SUA = /^(lan|box3|vps|dang):/;   // khoá cảnh báo thợ máy được nhận (xetCanhBao trong tai-nguyen.mjs · soiMayDang trong cham-dang.mjs)
+// kenh: = dây chuyền KÊNH NỘI DUNG (kênh lịch sử, apps/xuong-video/scripts/lich-su — anh 03/11/2026: "thế này mà cho tự chạy … không có ai sửa à?"):
+// chay-kenh.mjs xếp `kenh:<kênh>|<tập>` khi một lượt làm tập hỏng
+export const LOAI_SUA = /^(lan|box3|vps|dang|kenh):/;   // khoá cảnh báo thợ máy được nhận (xetCanhBao trong tai-nguyen.mjs · soiMayDang trong cham-dang.mjs · chay-kenh.mjs)
 const ngayVN = (t = Date.now()) => new Date(t + 7 * 36e5).toISOString().slice(0, 10);
 
 /** Thuần — thêm việc cho các cảnh báo mới; bỏ khoá không thuộc thợ máy, bỏ khoá đang chờ / đang làm (không xếp đôi). */
@@ -45,6 +47,7 @@ async function tg(phuong, body) {
 }
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const traLoi = (v, html) => tg('sendMessage', { parse_mode: 'HTML', text: html.slice(0, 3900), ...(v.tg?.topic ? { message_thread_id: v.tg.topic } : {}), ...(v.tg?.msg ? { reply_parameters: { message_id: v.tg.msg, allow_sending_without_reply: true } } : {}) });
+const tenViec = (v) => (String(v.khoa).startsWith('kenh:') ? 'Kênh nội dung tự sửa' : String(v.khoa).startsWith('dang:') ? 'Máy đăng tự sửa' : 'Spy tự sửa máy cào');
 const KET = { da_sua: '✅ Đã sửa', khong_sua: '⚠️ Không sửa được', can_anh: '🙋 Cần anh quyết', treo: '⏱ Hết giờ' };
 
 if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
@@ -54,6 +57,7 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     let { st, them } = themViec({}, [{ khoa: 'lan:doi_thu', chu: 'đứng' }, { khoa: 'het:08wY', chu: 'khoá hết hạn' }, { khoa: 'taisan:17', chu: 'VPS' }, { khoa: 'vps:may-cao-vn:tai', chu: 'tải' }, { khoa: 'canh|r|dailymotion', chu: 'bị chặn' }], { luc: t0, msg: 9 });
     assert.strictEqual(them, 2, 'chỉ nhận việc máy móc (lan / vps), bỏ khoá 2proxy + tài sản + cảnh báo tài khoản');
     assert.strictEqual(themViec({}, [{ khoa: 'dang:lo|m|instagram', chu: 'lỡ' }]).them, 1, 'nhận lỡ lượt máy đăng');
+    assert.strictEqual(themViec({}, [{ khoa: 'kenh:parody|tap-1', chu: 'hỏng ở bước viết' }]).them, 1, 'nhận lượt hỏng của kênh nội dung');
     assert.strictEqual(themViec(st, [{ khoa: 'lan:doi_thu', chu: 'lại' }], { luc: t0 }).them, 0, 'khoá đang chờ: không xếp đôi');
     let r = layViec(st, t0); assert.strictEqual(r.viec.khoa, 'lan:doi_thu', 'lấy việc cũ nhất'); st = r.st;
     assert.strictEqual(layViec(st, t0 + 6e4).viec, null, 'đang có việc: không lấy thêm');
@@ -68,11 +72,13 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     const r = layViec(doc()); ghi(r.st); console.log(JSON.stringify(r.viec ? { viec: r.viec } : { ly_do: r.ly_do }));
   } else if (a[0] === '--nhan') {
     const v = doc().hang.find((x) => x.id === id); if (!v) throw new Error('không có việc ' + id);
-    await traLoi(v, `<b>🔧 Spy tự sửa máy cào</b> đã nhận: ${esc(v.chu.replace(/<[^>]+>/g, ''))} — đang tìm gốc (tối đa 30 phút).`); console.log('ok');
+    await traLoi(v, `<b>🔧 ${tenViec(v)}</b> đã nhận: ${esc(v.chu.replace(/<[^>]+>/g, '').slice(0, 600))} — đang tìm gốc (tối đa 30 phút).`); console.log('ok');
   } else if (a[0] === '--bao') {
     const ket = KET[a[2]] ? a[2] : 'khong_sua', chu = fs.readFileSync(0, 'utf8').trim(), st = doc(), v = st.hang.find((x) => x.id === id); if (!v) throw new Error('không có việc ' + id);
     v.tt = ket === 'da_sua' ? 'xong' : 'ket'; v.ket = ket; v.xong = new Date().toISOString(); v.ket_qua = chu.slice(0, 2000); ghi(st);
-    const j = await traLoi(v, `<b>🔧 Spy tự sửa máy cào · ${KET[ket]}</b>\n${esc(chu)}`); console.log(j.ok ? 'ok' : JSON.stringify(j).slice(0, 200));
+    const j = await traLoi(v, `<b>🔧 ${tenViec(v)} · ${KET[ket]}</b>\n${esc(chu)}`); console.log(j.ok ? 'ok' : JSON.stringify(j).slice(0, 200));
+  } else if (a[0] === '--them') {   // xếp một việc từ ngoài (chay-kenh.mjs): --them <khoá> , chữ cảnh báo ở stdin. In số việc đã thêm (0 = khoá đang chờ / không thuộc thợ máy)
+    console.log(themTuCanhBao([{ khoa: a[1], chu: fs.readFileSync(0, 'utf8').trim().slice(0, 3000) }], {}));
   } else if (a[0] === '--xem') console.log(JSON.stringify(doc(), null, 1));
-  else { console.error('dùng: --lay | --nhan <id> | --bao <id> <da_sua|khong_sua|can_anh> | --xem | --tu-kiem'); process.exit(2); }
+  else { console.error('dùng: --lay | --nhan <id> | --bao <id> <da_sua|khong_sua|can_anh> | --them <khoá> (chữ ở stdin) | --xem | --tu-kiem'); process.exit(2); }
 }

@@ -95,7 +95,32 @@ def trang_chua_san(content_id, tk):
         return (f"phim {content_id} vừa được máy thêm vào workspace Ethopex của {ng_ten} (bản #{ws}) — chờ đồng bộ trang phim rồi lên camp ở lượt sau" if ws
                 else f"phim {content_id} chưa có trong workspace Ethopex của {ng_ten} và máy thêm không được (ensure-clone lỗi) — tài khoản nhà chỉ lên camp phim đã thêm")
     ws, thieu = r.split("|", 1)
+    if thieu and nha_ == "t" and ("mô tả" in thieu or "cốt truyện" in thieu) and dien_trang(ws):
+        # TỰ ĐIỀN MÔ TẢ / CỐT TRUYỆN (anh 03/11/2026 — bản gốc thư viện không có mô tả thì Ethopex không tự sinh cho bản workspace): từ tóm tắt của phim, $0
+        return f"trang phim {content_id} (bản workspace #{ws}) vừa được máy điền mô tả + cốt truyện từ tóm tắt — chờ đồng bộ trang phim rồi lên camp ở lượt sau"
     return f"trang phim {content_id} (bản workspace #{ws} của {ng_ten}) còn thiếu: {thieu} — mở lại trên Ethopex cho máy sinh / sửa rồi mới lên camp" if thieu else None
+
+def dien_trang(ws):
+    """bản workspace thiếu mô tả / cốt truyện → điền từ tóm tắt (short_description) bằng PUT api-multi-be /api/v2/movie/contents/<ws> (lệnh lưu của app Ethopex,
+    gửi lại nguyên bản + 2 trường) → True khi lưu được. Không gọi AI ($0)."""
+    import html, urllib.request
+    T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'"); H = {"authorization": "Bearer " + T, "user-agent": "mos2-etp", "content-type": "application/json"}
+    u = f"https://api-multi-be.ethopex.dev/api/v2/movie/contents/{int(ws)}"
+    try:
+        it = json.load(urllib.request.urlopen(urllib.request.Request(u, headers=H), timeout=60))["item"]
+        tt = (it.get("short_description") or "").strip(); ten = (it.get("title") or "").strip()
+        if not tt: return False
+        moi = {}
+        if not (it.get("storyline") or "").strip(): moi["storyline"] = tt
+        if not (it.get("description") or "").strip():
+            doan = "".join(f"<p>{html.escape(x.strip())}</p>" for x in tt.split("\n") if x.strip())
+            moi["description"] = (f"<h2>Introduction</h2><p><strong>{html.escape(ten)}</strong> is a short drama series.</p><h2>The Story</h2>{doan}"
+                                  f"<h2>Watch Now</h2><p>Watch the full series of {html.escape(ten)} free.</p>")
+        if not moi: return False
+        urllib.request.urlopen(urllib.request.Request(u, data=json.dumps({**it, **moi}).encode(), headers=H, method="PUT"), timeout=60)
+        return True
+    except Exception:
+        return False
 
 def them_ws(content_id):
     """thêm phim thư viện vào workspace Nhà (ensure-clone, idempotent) → mã bản workspace, None khi lỗi"""

@@ -194,8 +194,19 @@ for (const t of tap.tai_san_moi || []) {
   writeFileSync(tepKho, JSON.stringify(k, null, 1) + '\n'); console.log(`✓ kho + ${t.id} (${t.loai}) · Studio thành phần #${kq.thanh_phan}`);
 }
 const khoNay = docKho().tai_san;
+// ẢNH LỊCH SỬ THẬT BẮT BUỘC cho kênh có máy đăng (Phòng Nội dung chặn bài không ảnh thật — 02/11/2026 tập Hatshepsut SỬA LẠI vì cả 3 tranh là AI vẽ dù
+// prompt dặn ưu tiên Commons): tranh chưa có tệp Commons → máy tự tìm theo tên nhân vật trong tranh rồi theo cụm danh từ riêng nhiều chữ của mô tả
+// ("Deir el-Bahari"), chỉ nhận ảnh chụp / tranh (jpg / png, bỏ bản đồ / sơ đồ / logo). Tìm một lần mỗi tranh (tim_that) — không thấy thì giữ tranh AI.
+const timAnhThat = async (cum) => { for (const q1 of cum) {
+    const r = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', list: 'search', srnamespace: '6', srlimit: '10', srsearch: `${q1} filetype:bitmap`, format: 'json', formatversion: '2' })}`)).json();
+    const t = (r.query?.search ?? []).map((x) => x.title).find((x) => /\.(jpe?g|png)$/i.test(x) && !/\b(map|karte|carte|mapa|diagram|logo|flag|coat of arms|chart)\b/i.test(x));
+    if (t) return t; } return null; };
+const cumTranh = (tr) => [...new Set([...(tr.ref || []).map((r) => r.replace(/_/g, ' ')), ...((tr.mo_ta || '').match(/\b[A-Z][a-z]+(?:[ -](?:el|al|de|of|the|[A-Z][a-z]+))+/g) || [])])].slice(0, 5);
+if (KENH.may) for (const c of tap.cau) { const tr = c.canh.tranh; if (!tr || tr.commons || tr.tim_that) continue; tr.tim_that = true;
+  const t = await timAnhThat(cumTranh(tr)); if (t) { console.log(`✓ ảnh thật cho tranh "${(tr.mo_ta || '').slice(0, 50)}…": ${t}`); tr.commons = t; delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; } }
+if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons)) console.log('⚠ tập không có ảnh lịch sử thật nào — Phòng Nội dung sẽ chặn (nen_url trống)');
 for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr || tr.anh) continue;
-  const ten = `tranh/${id}-${k + 1}`, f = join(KHO, `${ten}.jpg`); mkdirSync(join(KHO, 'tranh'), { recursive: true });
+  const ten = `tranh/${id}-${k + 1}${tr.commons ? '-c' : ''}`, f = join(KHO, `${ten}.jpg`); mkdirSync(join(KHO, 'tranh'), { recursive: true });
   // ẢNH LỊCH SỬ THẬT trước (Wikimedia Commons, public domain — luật ảnh thật của Phòng Nội dung); không có tệp thì AI vẽ theo mo_ta
   if (!existsSync(f) && tr.commons) { const c = await commons(tr.commons); if (c) { const u = c.thumb.replace(/\/\d+px-/, '/1600px-');
     writeFileSync(f, Buffer.from(await (await tai(u)).arrayBuffer())); tr.commons_url = c.thumb; tr.commons_trang = c.trang; console.log(`✓ tranh ${k + 1}: Commons ${tr.commons}`); } }

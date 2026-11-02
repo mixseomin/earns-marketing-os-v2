@@ -1,6 +1,6 @@
 'use client';
 // MENU "⋯" DÙNG CHUNG cho dòng bảng (tách từ SiteMenu bảng Website, 02/11/2026 — Kênh nội dung dùng cùng): nhóm mục, mục là link (trong / ngoài) hoặc nút;
-// vẽ qua portal để overflow-x của bảng không cắt; bấm ngoài / Esc đóng.
+// vẽ qua portal để overflow-x của bảng không cắt; bấm ngoài / Esc đóng. YDNI: mỗi mục MỘT dòng (không xuống hàng) — menu nở theo mục dài nhất.
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { wrapExternalUrl } from '@/lib/external-url';
@@ -37,7 +37,7 @@ export function MenuBaCham({ tieuDe, phu, groups, title }: { tieuDe: string; phu
   const itemStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left',
     padding: '5px 10px', fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--fg-1)',
-    textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4,
+    textDecoration: 'none', background: 'none', border: 'none', cursor: 'pointer', borderRadius: 4, whiteSpace: 'nowrap',
   };
 
   return (
@@ -50,7 +50,7 @@ export function MenuBaCham({ tieuDe, phu, groups, title }: { tieuDe: string; phu
       </button>
       {open && pos && createPortal(
         <div ref={menuRef} onClick={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 1000, width: 218,
+          style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 1000, minWidth: 218, maxWidth: 420, width: 'max-content',
             background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8,
             boxShadow: '0 8px 24px rgba(0,0,0,0.45)', padding: 4, maxHeight: '70vh', overflowY: 'auto' }}>
           <div style={{ padding: '4px 10px 5px', marginBottom: 2, borderBottom: '1px solid var(--line)' }}>

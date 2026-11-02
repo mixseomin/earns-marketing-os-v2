@@ -1,5 +1,5 @@
 {
- "_ghi": "HỒ SƠ KÊNH cho máy kênh lịch sử (02/11/2026). Một kênh = dữ liệu: khuôn độ dài, giọng văn máy viết, thẻ kết, giọng đọc, theme hình (ban-do.html), nhạc + tiếng động. Tập ghi tap.kenh; thiếu = saga. Thêm kênh = thêm một mục ở đây, không sửa máy. may = mã máy Studio (xv_may) của kênh: có thì chủ đề + hook lấy theo góc spy của máy (may-dung.mts --goc-hook) và tập dựng xong nạp vào máy đó (mẫu video-ngoai) cho máy đăng chung. lich_tap = thứ trong tuần làm tập tự động (1 = Thứ Hai … 7 = Chủ nhật, giờ VN) — chay-kenh.mjs (việc nền iMac:com.earns.lich-su-lam-tap) đọc. ten_kenh = tên công khai của kênh — cũng là tên phim Studio quản lý kênh (tap-day.mts tìm phim theo mã máy, không theo tên).",
+ "_ghi": "HỒ SƠ KÊNH cho máy kênh lịch sử (02/11/2026). Một kênh = dữ liệu: khuôn độ dài, giọng văn máy viết, thẻ kết, giọng đọc, theme hình (ban-do.html), nhạc + tiếng động. Tập ghi tap.kenh; thiếu = saga. Thêm kênh = thêm một mục ở đây, không sửa máy. may = mã máy Studio (xv_may) của kênh: có thì chủ đề + hook lấy theo góc spy của máy (may-dung.mts --goc-hook) và tập dựng xong nạp vào máy đó (mẫu video-ngoai) cho máy đăng chung. lich_tap = thứ trong tuần làm tập tự động (1 = Thứ Hai … 7 = Chủ nhật, giờ VN) — chay-kenh.mjs (việc nền iMac:com.earns.lich-su-lam-tap) đọc. ten_kenh = tên công khai của kênh — cũng là tên phim Studio quản lý kênh (tap-day.mts tìm phim theo mã máy, không theo tên). gio_tap = giờ VN việc nền làm tập (khớp hen.luc của iMac:com.earns.lich-su-lam-tap trong apps/cty/cong-ty/viec-nen.json) — mos2 Tài sản đọc để hiện lịch sản xuất.",
  "saga": {
   "ten": "Kênh lịch sử bản đồ (khuôn Saga, Shorts mồi)",
   "cau": [
@@ -147,6 +147,7 @@
    3,
    5
   ],
-  "ten_kenh": "Yesterday's News Tonight"
+  "ten_kenh": "Yesterday's News Tonight",
+  "gio_tap": "09:30"
  }
 }

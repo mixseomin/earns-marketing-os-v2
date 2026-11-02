@@ -19,6 +19,10 @@ const thu = ((d) => (d === 0 ? 7 : d))(new Date(`${hom}T12:00:00+07:00`).getUTCD
 const box = (lenh) => execFileSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx ${lenh}`], { encoding: 'utf8', maxBuffer: 64 << 20 }).trim();
 const tele = (chu) => { try { execFileSync('ssh', [BOX, 'set -a; . /root/.secrets/mine-tg.env; set +a; curl -s -o /dev/null https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage --data-urlencode chat_id=$TG_CHAT --data-urlencode text@-'], { input: chu }); } catch (e) { console.log(`⚠ Telegram: ${e.message}`); } };
 
+const danhDau = (ma, dl) => { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
+  const cauSql = `UPDATE xv_may SET nguon = ${dl ? `jsonb_set(coalesce(nguon, '{}'::jsonb), '{dang_lam}', ${q1(JSON.stringify(dl))}::jsonb)` : "coalesce(nguon, '{}'::jsonb) - 'dang_lam'"} WHERE ma = ${q1(ma)};`;
+  try { execFileSync('ssh', [BOX, 'cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -qtA'], { input: cauSql }); } catch (e) { console.log(`⚠ dấu đang làm: ${e.message}`); } };
+
 for (const [k, K] of Object.entries(KENH)) {
   if (k.startsWith('_') || !K.may || (arg('kenh') && arg('kenh') !== k)) continue;
   const bao = [];
@@ -27,8 +31,11 @@ for (const [k, K] of Object.entries(KENH)) {
     if (existsSync(join(DIR, 'tap', `${id}.json`)) && !process.argv.includes('--ep')) bao.push(`tập ${id} đã có — bỏ qua`);
     else {
       // lam-tap tự dừng trước khi tốn tiền giọng / ảnh nếu máy viết 4 lượt vẫn lỗi; DUYET_SINH_1_LAN cho lượt có lịch anh đã duyệt (02/11/2026: 3 tập/tuần)
+      // ĐANG SẢN XUẤT: dấu trên máy studio (xv_may.nguon.dang_lam) — mos2 › Tài sản › Kênh nội dung hiện tập đang làm; xong (đạt hay hỏng) thì gỡ
+      danhDau(K.may, { id, luc: new Date().toISOString() });
       const r = spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', id, '--nn', 'en', '--kenh', k], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20 });
       const ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra);
+      danhDau(K.may, null);
       const tien = [...ra.matchAll(/~(\d+)₫/g)].reduce((t, m) => t + Number(m[1]), 0);
       const tap = existsSync(join(DIR, 'tap', `${id}.json`)) ? JSON.parse(readFileSync(join(DIR, 'tap', `${id}.json`), 'utf8')) : null;
       bao.push(r.status ? `✗ tập ${id} hỏng (mã ${r.status}): ${ra.trim().split('\n').slice(-3).join(' · ').slice(0, 500)}`

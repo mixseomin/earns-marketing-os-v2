@@ -56,7 +56,7 @@ if (lay('canh')) {
       ...(cv.nguoi ?? []).map((n) => `${khoTs[n.anh]?.ten ?? n.ten}${n.dang?.length ? ` (${n.dang.map((d) => d.dang).join(' → ')})` : ''}`),
       ...(cv.dau ?? []).map((d) => `con dấu ${d.text}`), ...(cv.tranh ? [`tranh: ${cv.tranh.commons ?? cv.tranh.mo_ta ?? ''}`] : []),
     ];
-    const canh = `Bản đồ: ${(cv.nhin ?? []).join(', ') || '—'}${cv.nam ? ` · năm ${cv.nam}` : ''}`, chuMan = [cv.chu_to, ...(cv.dau ?? []).map((d) => d.text), cv.ket].filter(Boolean).join(' · ') || null;
+    const canh = `Bản đồ: ${(cv.nhin ?? []).join(', ') || '—'}${cv.nam ? ` · năm ${cv.nam}` : ''}`, chuMan = [cv.chu_to, ...(cv.dau ?? []).map((d) => d.text), cv.ket].filter(Boolean).join(' · ');   // chu_man NOT NULL (mặc định '')
     const tt = x.k + 1, dai = Math.max(1, Math.round(x.kt - x.bd));
     const cu = (await q<{ id: number }>(sql`SELECT id FROM xv_canh WHERE tap_id = ${tapId} AND thu_tu = ${tt} LIMIT 1`))[0]?.id;
     if (cu) await db.execute(sql`UPDATE xv_canh SET canh = ${canh}, hanh_dong = ${viec.join(' · ') || 'giữ khung'}, loi_thoai = ${c.chu}, thoi_luong_s = ${dai}, phat_s = ${x.bd}, nhan_vat = ${JSON.stringify(nv)}::jsonb,

@@ -79,13 +79,15 @@ def dem_dang_chay(content_id):
 def trang_chua_san(content_id, tk):
     """CỔNG TRANG PHIM (anh 02/11/2026, tab Phim etp.on.tc): camp chỉ có trang đích khi phim đã được "thêm content" vào workspace Ethopex của NGƯỜI SỞ HỮU
     tài khoản (etp.trang_phim, apps/etp/trang_phim.py) và bản đó đủ mô tả + cốt truyện + ảnh + link tập 1 còn sống (view trang_phim_v.thieu — Ethopex tự
-    sinh, có lúc trượt: 174841 Merman 02/11). → lý do chặn, hoặc None. Kho trang phim quá 2 giờ chưa đồng bộ → không chặn (lỗi đồng bộ không khoá mọi camp)."""
+    sinh, có lúc trượt: 174841 Merman 02/11). → lý do chặn, hoặc None. Kho trang phim quá 2 giờ chưa đồng bộ → không chặn (lỗi đồng bộ không khoá mọi camp).
+    CHƯA THÊM bản chỉ chặn ở tài khoản NHÀ: đo 7 ngày tới 02/11 — Nhà 101/101 phim lên camp đều có bản của chính Nhà, còn camp đội chạy cả phim không có bản
+    (Sơn 23/110, Kiên 12/35) → với đội thiếu bản không phải thiếu trang đích; bản CÓ mà thiếu mô tả / link thì chặn mọi tài khoản."""
     if q("select coalesce(max(cap_nhat), 'epoch') > now() - interval '2 hours' from etp.trang_phim") != "t": return None
-    ng = q(f"select nguoi_id || '|' || nguoi from etp.tai_khoan where ad_account_id = {int(tk or 0)}") if str(tk or "").isdigit() else ""
-    if "|" not in ng: return None
-    ng_id, ng_ten = ng.split("|", 1)
+    ng = q(f"select nguoi_id || '|' || nha || '|' || nguoi from etp.tai_khoan where ad_account_id = {int(tk or 0)}") if str(tk or "").isdigit() else ""
+    if ng.count("|") < 2: return None
+    ng_id, nha_, ng_ten = ng.split("|", 2)
     r = q(f"select content_id || '|' || array_to_string(thieu, ', ') from etp.trang_phim_v where ref_id = {int(content_id)} and nguoi_id = {int(ng_id)} order by cardinality(thieu), sua desc limit 1")
-    if not r: return f"phim {content_id} chưa được thêm vào workspace Ethopex của {ng_ten} (Content › thêm phim) — camp sẽ không có trang đích"
+    if not r: return f"phim {content_id} chưa được thêm vào workspace Ethopex của {ng_ten} (Content › thêm phim) — tài khoản nhà chỉ lên camp phim đã thêm" if nha_ == "t" else None
     ws, thieu = r.split("|", 1)
     return f"trang phim {content_id} (bản workspace #{ws} của {ng_ten}) còn thiếu: {thieu} — mở lại trên Ethopex cho máy sinh / sửa rồi mới lên camp" if thieu else None
 

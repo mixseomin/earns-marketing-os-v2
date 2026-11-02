@@ -2308,7 +2308,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const trangCap = (t: TrangPhim | null | undefined) => (!t ? 0 : t.thieu.length ? 1 : t.link_ok == null ? 2 : 3);
   const OTrang = ({ p }: { p: PhimEtpKho }) => {
     const t = p.trang;
-    if (!t) return <span style={{ color: MO, fontSize: 12 }} title="chưa thêm vào workspace Ethopex của người đang xem — máy không lên camp mới cho phim này">— chưa thêm</span>;
+    if (!t) return <span style={{ color: MO, fontSize: 12 }} title="chưa thêm vào workspace Ethopex của người đang xem — tài khoản nhà: máy không lên camp mới cho phim này; tài khoản đội: chỉ để biết">— chưa thêm</span>;
     const chu = `bản workspace #${t.ws} · ${t.nguoi ?? '?'} thêm ${vn(t.tao)}\nmô tả ${t.mo_ta} ký tự · cốt truyện ${t.cot_truyen} ký tự\nlink tập 1 (${t.nguon ?? '—'}): ${t.link_ok == null ? `chưa kiểm được${t.link_loi ? ` (${t.link_loi})` : ''}` : t.link_ok ? 'sống' : `chết (${t.link_loi ?? ''})`}${t.link_luc ? ` · kiểm ${vn(t.link_luc)}` : ''}`;
     return <span title={chu} style={{ fontSize: 12, whiteSpace: 'nowrap', cursor: 'help' }}>
       {t.thieu.length ? <span style={{ color: '#f87171' }}>⚠ thiếu {t.thieu.join(', ')}</span> : <span style={{ color: '#4ade80' }}>✓ đủ{t.link_ok == null ? <span style={{ color: MO }}> · link chưa kiểm</span> : null}</span>}

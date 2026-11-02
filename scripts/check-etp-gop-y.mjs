@@ -282,6 +282,7 @@ const LUAT = [
   { card: 'trang-phim-0211', tep: "packages/db/migrations/0404_etp_trang_phim_chua_doc.sql", co: "alter column mo_ta drop not null", vi: "mô tả NULL = chưa đọc" },
   { card: 'trang-phim-0211', tep: "apps/etp/trang_phim.py", co: "if not url.startswith(\"http\"): return (None, f\"trang Ethopex: {url}\")", vi: "bước Movie của Ethopex không bị coi là link chết" },
   { card: 'trang-phim-0211', tep: "apps/etp/trang_phim.py", co: "urllib.parse.quote(url, safe=\":/?&=%#@+,;~\")", vi: "link NetShort có dấu được mã hoá" },
+  { card: 'trang-phim-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "— tài khoản nhà chỉ lên camp phim đã thêm\" if nha_ == \"t\" else None", vi: 'chưa thêm bản chỉ chặn tài khoản nhà (đội chạy được phim không có bản)' },
   // anh 02/11/2026 duyệt review luật (mục 2, 3, 7 + T30 ROAS): chấm creative không tắt camp lãi · ROAS trước clone · dừng clone đổi creative · nhật ký team · sổ luật đối chứng + 7 ngày
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", co: "where c.trang_thai = 'ACTIVE' and g.tat and {KHONG_ROAS} and {KHONG_LAI3} order by 1", vi: "luật chấm không tắt camp lãi 3 ngày đã khép" },
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", cam: "tự tắt mọi loại camp, kể cả đang lãi", vi: "luật chấm không còn tắt camp đang lãi" },

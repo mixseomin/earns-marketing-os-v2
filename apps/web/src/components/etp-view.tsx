@@ -1500,13 +1500,15 @@ const O0 = ({ v, t, cot, s }: { v: number | null; t: string; cot: string; s?: So
 // anh 27/10/2026 "khoảng cách gọn lại cho chart cao hơn": đường 0 dịch theo dòng — dòng toàn lãi thì 0 nằm đáy, cột dùng trọn 22px; dòng có lỗ chia theo tỉ lệ lãi lớn nhất / lỗ lớn nhất
 // nhom = dòng PHIM / dòng tổng (góp ý #1484 anh 29/10/2026 "đổi cách trình bày chart của Phim để phân biệt với chart của camp"): cột rỗng viền màu + số đậm, camp giữ cột đặc
 // n = số camp có chi trong ngày đó (anh 02/11/2026 "dòng phim, chart hiệu suất, thêm số camp trong ngày tương ứng ở dưới") — chỉ dòng phim / dòng tổng truyền
-const O = ({ v, t, cot, s, max, mo, nhom, n }: { v: number | null; t: string; cot: string; s?: SoTien; max?: { p: number; n: number }; mo?: boolean; nhom?: boolean; n?: number }) => {
+// bac = các lần đổi bậc của camp trong ngày đó (anh 02/11/2026 #1504 "hover vào chart ngày thì show thêm thông tin tăng giảm bậc") — chấm màu góc ô + dòng trong hover
+const O = ({ v, t, cot, s, max, mo, nhom, n, bac }: { v: number | null; t: string; cot: string; s?: SoTien; max?: { p: number; n: number }; mo?: boolean; nhom?: boolean; n?: number; bac?: { mau: string; chu: string }[] }) => {
   if (s == null || max == null) return <O0 v={v} t={t} cot={cot} s={s} />;
   // cột camp NHỎ hơn cột phim (góp ý #1485 anh 29/10/2026 "cột ROI của camp bé hơn cột ROI của phim"): phim cao 22 · rộng đủ ô, camp cao 15 · hẹp hơn
   const H = nhom ? 22 : 15, le = nhom ? 3 : 8, tong = max.p + max.n, y0 = tong > 0 ? Math.round((H * max.p) / tong) : H;   // y0 = khoảng từ đỉnh xuống đường 0
   const lai = s.thu - s.chi, h = tong > 0 ? Math.max(lai ? 2 : 0, Math.round((Math.abs(lai) / tong) * H)) : 0, mau = v == null ? 'var(--fg-3)' : v >= 50 ? '#4ade80' : v >= 0 ? '#f59e0b' : '#f87171';
-  return <span data-cot={cot} data-cot-can="giua" title={`${t}${s.chi ? ` · chi ${usd(s.chi)} · lãi ${usd(lai)}` : ' · chưa chi'}`} style={{ width: 38, alignSelf: 'stretch', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+  return <span data-cot={cot} data-cot-can="giua" title={`${t}${s.chi ? ` · chi ${usd(s.chi)} · lãi ${usd(lai)}` : ' · chưa chi'}${bac?.length ? `\n\nĐổi bậc trong ngày:\n${bac.map((x) => `• ${x.chu}`).join('\n')}` : ''}`} style={{ position: 'relative', width: 38, alignSelf: 'stretch', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
     background: mo ? 'rgba(59,130,246,.12)' : undefined, boxShadow: mo ? 'inset 1px 0 rgba(59,130,246,.35), inset -1px 0 rgba(59,130,246,.35)' : undefined }}>
+    {bac?.length ? <span data-cot={`${cot}-bac`} style={{ position: 'absolute', top: 0, right: 1, width: 6, height: 6, borderRadius: 3, background: bac[bac.length - 1]!.mau, boxShadow: '0 0 0 1px var(--bg-0, #0b0b0c)' }} /> : null}
     <span style={{ position: 'relative', width: 30, height: H }}>
       <span style={{ position: 'absolute', left: 0, right: 0, top: Math.min(y0, H - 1), height: 1, background: 'var(--line)' }} />
       {h ? <span style={{ position: 'absolute', left: le, right: le, borderRadius: 2, ...(nhom ? { background: `${lai >= 0 ? '#4ade80' : '#f87171'}26`, border: `1.5px solid ${lai >= 0 ? '#4ade80' : '#f87171'}`, boxSizing: 'border-box' as const } : { background: lai >= 0 ? '#4ade80' : '#f87171' }), ...(lai >= 0 ? { top: Math.max(0, y0 - h), height: Math.min(h, y0) } : { top: y0, height: Math.min(h, H - y0) }) }} /> : null}
@@ -1558,8 +1560,9 @@ function BieuNgay({ ngay, sd, nay, n }: { ngay: string[]; sd: (SoTien | undefine
           </span>
           <span style={{ fontSize: 11, fontWeight: 600, color: mau }}>{r == null ? '—' : `${r}%`}</span>
           <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>{x.s.chi ? `$${x.s.chi.toFixed(x.s.chi < 10 ? 2 : 0)}` : '·'}</span>
-          <span style={{ fontSize: 10, color: Math.abs(lai) < 0.005 ? 'var(--fg-3)' : mauLai(lai) }}>{x.s.chi || x.s.thu ? `${lai < 0 ? '−' : '+'}${Math.abs(lai).toFixed(Math.abs(lai) < 10 ? 2 : 0)}` : ''}</span>
-          {x.n != null ? <span title={`${x.n} camp có chi trong ngày`} style={{ fontSize: 10, color: x.n ? 'var(--fg-2)' : 'var(--fg-3)' }}>{x.n} camp</span> : null}
+          <span style={{ fontSize: 10, color: Math.abs(lai) < 0.005 ? 'var(--fg-3)' : mauLai(lai) }}>{x.s.chi || x.s.thu ? `${lai < 0 ? '−' : '+'}${Math.abs(lai).toFixed(Math.abs(lai) < 10 ? 2 : 0)}` : '\u00a0'}</span>
+          {/* #1503: một dòng, canh giữa như ô trên — dòng lãi rỗng vẫn giữ chiều cao để các ô thẳng hàng */}
+          {x.n != null ? <span title={`${x.n} camp có chi trong ngày`} style={{ fontSize: 10, color: x.n ? 'var(--fg-2)' : 'var(--fg-3)', whiteSpace: 'nowrap', textAlign: 'center' }}>{x.n} camp</span> : null}
         </div>; })}
     </div>
   </div>;
@@ -1593,6 +1596,13 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const [giai, setGiai] = useState(false);   // chú giải GẬP mặc định, cả máy tính (anh 27/10/2026 "bỏ ẩn hết mấy cái này") — bấm nút Chú giải mới hiện
   // LƯU TRẠNG THÁI MỞ / GẬP của cây (anh 27/10/2026 "lưu lại trạng thái collapse này"): phim 'p<id>' · camp gốc 'c<id>' — localStorage của người xem
   // (tiện ích riêng mỗi người, đọc sau khi gắn trang để không lệch hydrate; hỏng / bị chặn thì coi như gập hết)
+  // ĐỔI BẬC THEO NGÀY ETHOPEX (UTC) của từng camp — ô ngày của dòng camp chấm màu + liệt kê trong hover (#1504); dùng chung tên / màu VIEC_BAC của thẻ lịch sử bậc
+  const bacNgay = useMemo(() => { const m = new Map<string, { mau: string; chu: string }[]>();
+    for (const [id, ls] of Object.entries(du.lsBac)) for (const x of ls) { const t = Date.parse(x.luc); if (!t) continue; const [ten, mau] = VIEC_BAC[x.viec] ?? [x.viec, '#94a3b8'];
+      const k = `${id}|${new Date(t).toISOString().slice(0, 10)}`, so = x.truoc && x.sau ? ` $${x.truoc} → $${x.sau}` : x.sau ? ` $${x.sau}` : '';
+      (m.get(k) ?? m.set(k, []).get(k)!).push({ mau, chu: `${ten}${so} lúc ${gioVn(x.luc).slice(0, 5)}${x.luat ? ` — ${luatThuong(x.luat).slice(0, 180)}` : ''}` }); }
+    return m; }, [du.lsBac]);
+  const bacO = (id: number, d: string) => bacNgay.get(`${id}|${d}`);
   const khoaMo = useKhoaLuu('etp-cay-mo')!;   // mở / gập riêng theo người đang xem (phamViNg)
   const [moCay, setMoCay] = useState<Set<string>>(new Set());
   useEffect(() => { try { setMoCay(new Set(JSON.parse(localStorage.getItem(khoaMo) ?? '[]') as string[])); } catch { /* không có localStorage */ } }, [khoaMo]);
@@ -1652,8 +1662,8 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
           <span data-cot="dau-hieu" style={{ fontSize: 11, overflow: 'hidden' }}>{l ? <span style={{ color: '#f87171' }} title={`nhân bản lỗi ${l.lan} lần / 24h`}>⚠{l.lan}</span> : n ? <span title={`${n} bản nhân`}>x{n}</span> : null}</span>
         </span>
         {(() => { const sd = ngayHien.map((d) => so.get(c.camp_id)?.get(d)), mx = coQua ? undefined : maxLai([...sd, c.nay]);
-          return <>{ngayHien.map((d, i) => <O key={d} cot={`roi-${ngay.indexOf(d)}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={mx} />)}
-            {coQua ? <O cot="roi-qua" v={roi(c.qua)} t="ROI hôm qua" s={c.qua} /> : null}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={mx} mo={!coQua} /></>; })()}
+          return <>{ngayHien.map((d, i) => <O key={d} cot={`roi-${ngay.indexOf(d)}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={mx} bac={bacO(c.camp_id, d)} />)}
+            {coQua ? <O cot="roi-qua" v={roi(c.qua)} t="ROI hôm qua" s={c.qua} /> : null}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={mx} mo={!coQua} bac={bacO(c.camp_id, du.nay)} /></>; })()}
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={laiC} /></span>
       </div>) : (
       <div className="dong" data-camp-dong={c.camp_id} style={{ display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, alignItems: 'center', padding: '3px 0 3px 12px', fontSize: 12, borderTop: '1px solid var(--line)',
@@ -1668,7 +1678,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
           {coLich ? <span data-cot="lich" style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}><LichCamp c={c} du={du} tl={tlC} gon /></span> : null}
         </span>
         {(() => { const sd = ngay.map((d) => so.get(c.camp_id)?.get(d)), mx = maxLai([...sd, c.nay]);
-          return <>{ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={mx} />)}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={mx} mo /></>; })()}
+          return <>{ngay.map((d, i) => <O key={d} cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={mx} bac={bacO(c.camp_id, d)} />)}<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={mx} mo bac={bacO(c.camp_id, du.nay)} /></>; })()}
         <span data-cot="lai" data-cot-can="phai" style={{ textAlign: 'right' }}><LaiCot s={laiC} /></span>
       </div>);
     return ds.length ? <details open={moCay.has(`c${c.camp_id}`)} onToggle={(e) => doiMo(`c${c.camp_id}`, e.currentTarget.open)}><summary style={{ cursor: 'pointer' }}>{hang}</summary>{moCay.has(`c${c.camp_id}`) ? sapXep(ds).map((x) => <Fragment key={x.camp_id}>{Dong({ c: x, cap: cap + 1 })}</Fragment>) : null}</details> : hang;
@@ -1706,9 +1716,9 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
     { key: 'loai', header: 'Loại', align: 'left', width: 52, cell: (c) => <BadgeDang d={c.dang} ngan />, sortValue: (c) => c.dang ?? '' },
     ...(coLich ? [{ key: 'lich', header: 'Lịch giờ', align: 'left' as const, cell: (c: CampEtpKho) => <LichCamp c={c} du={du} tl={tlC} gon />, sortValue: (c: CampEtpKho) => tlC(c.the_loai) }] : []),
     ...ngay.map((d, i): DataColumn<CampEtpKho> => ({ key: `roi${i}`, header: `${d.slice(8, 10)}/${d.slice(5, 7)}`, align: 'center', width: 56, title: `ROI ngày ${d.slice(8, 10)}/${d.slice(5, 7)} — lọc 🔍 theo %`,
-      cell: (c) => { const sd = sd7(c); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={maxLai([...sd, c.nay])} />; }, sortValue: (c) => roi(sd7(c)[i]),
+      cell: (c) => { const sd = sd7(c); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i] ?? { chi: 0, thu: 0 }} max={maxLai([...sd, c.nay])} bac={bacO(c.camp_id, d)} />; }, sortValue: (c) => roi(sd7(c)[i]),
       total: (rs) => { const sd = tongNgay(rs); return <O cot={`roi-${i}`} v={roi(sd[i])} t={`ROI cả nhóm ${d.slice(8, 10)}/${d.slice(5, 7)}`} s={sd[i]} max={maxLai(sd)} nhom n={demCamp(rs)[i]} />; } })),
-    { key: 'nay', header: 'nay', align: 'center', width: 56, title: 'ROI hôm nay — lọc 🔍 theo %', cell: (c) => <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={maxLai([...sd7(c), c.nay])} mo />, sortValue: (c) => roi(c.nay),
+    { key: 'nay', header: 'nay', align: 'center', width: 56, title: 'ROI hôm nay — lọc 🔍 theo %', cell: (c) => <O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} max={maxLai([...sd7(c), c.nay])} mo bac={bacO(c.camp_id, du.nay)} />, sortValue: (c) => roi(c.nay),
       total: (rs) => { const sd = tongNgay(rs), sn = sd[ngay.length]; return <O cot="roi-nay" v={roi(sn)} t="ROI cả nhóm hôm nay" s={sn} max={maxLai(sd)} mo nhom n={demCamp(rs)[ngay.length]} />; } },   // hôm nay = ô SAU ngày cuối (sd[ngay.length]); số cứng [7] lệch khi bảng còn 6 ngày → dòng phim trống NAY (#1489)
     // TỔNG CHI TRONG KHUNG THỜI GIAN đang chọn (anh 29/10/2026) — cùng nguồn laiKy với cột lãi; dòng phim / dòng tổng cộng lại
     { key: 'chi', header: `Chi ${tenKy.toLowerCase()}`, width: 124, title: `tổng chi ${tenKy.toLowerCase()} (theo chu kỳ đang chọn)`, cell: (c) => <Tien v={laiKy(c).chi} />, sortValue: (c) => Math.round(laiKy(c).chi * 100) / 100,

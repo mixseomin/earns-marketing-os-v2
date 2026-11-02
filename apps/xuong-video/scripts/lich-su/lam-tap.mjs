@@ -215,7 +215,9 @@ const khoNay = docKho().tai_san;
 // ("Deir el-Bahari"), chỉ nhận ảnh chụp / tranh (jpg / png, bỏ bản đồ / sơ đồ / logo). Tìm một lần mỗi tranh (tim_that) — không thấy thì giữ tranh AI.
 // ĐÚNG THỜI (02/11/2026, Alaska: tìm "russian soldier" cho cảnh 1867 ra ảnh xe quân sự Iveco hiện đại): tìm kèm năm cảnh trước, rồi đọc ngày gốc của ảnh
 // (extmetadata DateTimeOriginal / DateTime, thiếu thì năm trong tên tệp) — ảnh muộn hơn năm cảnh quá 20 năm là ảnh thời khác, bỏ.
-const namAnh = (ten, md) => { const ys = [...`${md?.DateTimeOriginal?.value ?? ''} ${md?.DateTime?.value ?? ''} ${ten}`.matchAll(/\b(1[0-9]{3}|20[0-9]{2})\b/g)].map((m) => Number(m[1])); return ys.length ? Math.min(...ys) : null; };
+// ngày gốc trong dữ liệu ảnh THẮNG năm trong tên tệp (Alaska: "William Seward (1867) and COVID-19…" là ảnh chụp tòa Capitol năm 2020 — lấy năm nhỏ nhất thì lọt)
+const namAnh = (ten, md) => { const y = (t) => [...String(t ?? '').matchAll(/\b(1[0-9]{3}|20[0-9]{2})\b/g)].map((m) => Number(m[1]));
+  const g = y(`${md?.DateTimeOriginal?.value ?? ''} ${md?.DateTime?.value ?? ''}`); if (g.length) return Math.max(...g); const t = y(ten); return t.length ? Math.min(...t) : null; };
 const timAnhThat = async (cum, nam = null) => { for (const q1 of nam > 0 ? cum.flatMap((q) => [`${q} ${nam}`, q]) : cum) {
     const r = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', list: 'search', srnamespace: '6', srlimit: '10', srsearch: `${q1} filetype:bitmap`, format: 'json', formatversion: '2' })}`)).json();
     // ĐÚNG CHỦ THỂ (02/11/2026, Alaska: "Seward" ra thẻ bóng chày cầu thủ Ed Seward, "russian soldier 1867" ra tranh huy hiệu Romania): tên tệp phải chứa MỌI từ

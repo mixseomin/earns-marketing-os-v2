@@ -65,6 +65,9 @@ def cham(x):
     tl = [(m, d) for m, d, mau in THE_LOAI if re.search(mau, x["ten"] or "", re.I)]
     it = (20 if fb["qc_dang"] == 0 else 10 if fb["qc_dang"] <= 5 else 0) if fb else 0
     x["diem"] = NGUON[x["nguon"]] + TIENG[x["locale"]] + sum(d for _, d in tl) + it; x["nhom"] = tl[0][0] if tl else "khac"
+    # BẢNG ĐIỂM từng tiêu chí (anh 02/11/2026 "bộ chấm điểm cho phim để xem cái nào nên lên camp trước") — ngăn phim etp.on.tc hiện nguyên bảng này
+    x["diem_ct"] = [[f"nguồn {x['nguon']}", NGUON[x["nguon"]]], [f"tiếng {x['locale']}", TIENG[x["locale"]]]] + [[f"thể loại {m}", d] for m, d in tl] \
+                   + [[f"QC FB {fb['qc_dang']} đang bật" if fb else "QC FB chưa tra", it]]
     x["vi_sao"] = " · ".join([x["nguon"], x["locale"]] + [m for m, _ in tl] + ([f"FB {fb['qc_dang']} QC đang bật · {fb['page']} Page (tra theo tên)"] if fb else []))
     return x
 # 3. ứng viên = phim app gốc đang chạy QC (spy) + kho Ethopex ReelShort / NetShort mới nhất; gộp trùng tên + tiếng
@@ -91,7 +94,7 @@ if "--co-the-test" in sys.argv:
     for x in chinh:
         fb = QC_FB.get(str(x["id"]))
         x["qc_dang"], x["qc"], x["page"], x["qc_tra"] = (fb["qc_dang"], fb["qc"], fb["page"], fb["tra"]) if fb else (None, None, None, None)
-    v = json.dumps({"luc": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(), "ds": [{k: x.get(k) for k in ("id", "locale", "ten", "nguon", "url", "diem", "nhom", "vi_sao", "qc_dang", "qc", "page", "qc_tra")} for x in chinh]},
+    v = json.dumps({"luc": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(), "ds": [{k: x.get(k) for k in ("id", "locale", "ten", "nguon", "url", "diem", "nhom", "vi_sao", "qc_dang", "qc", "page", "qc_tra", "diem_ct")} for x in chinh]},
                    ensure_ascii=False).replace("'", "''")
     r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-f", "-"], capture_output=True, text=True,   # ~7.000 phim: qua stdin, không qua tham số
                        input=f"insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_co_the_test', '{v}'::jsonb) on conflict (ten) do update set gia_tri = excluded.gia_tri")

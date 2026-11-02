@@ -313,6 +313,13 @@ const LUAT = [
   { card: 'phim-ydni-0211', tep: "apps/web/src/components/etp-view.tsx", cam: "🧪", vi: 'tab Phim không emoji, không lặp chữ có thể test' },
   { card: 'phim-ydni-0211', tep: "apps/web/src/components/etp-view.tsx", cam: "— chưa thêm</span>", vi: 'trang phim trống in — mờ' },
   { card: 'phim-ydni-0211', tep: "apps/web/src/components/etp-view.tsx", cam: "{p.ten ?? p.content_id} <span style={{ color: 'var(--fg-2)', fontSize: 11 }}>{p.locale ?? ''} {p.nguon ?? ''}</span>", vi: 'ô tên phim không lặp tiếng / nguồn' },
+  { card: 'ngan-phim-0211', tep: "apps/web/src/lib/entity-drawer.ts", co: "'contact', 'etp-phim']", vi: "ngăn phim etp đăng ký vào host chung (xếp chồng, URL)" },
+  { card: 'ngan-phim-0211', tep: "apps/web/src/components/entity-drawer-host.tsx", co: "case 'etp-phim': return <EtpPhimDrawer id={id} onClose={onClose} />;", vi: "host mở ngăn phim theo mã" },
+  { card: 'ngan-phim-0211', tep: "apps/web/src/components/etp-view.tsx", co: "onClick={() => openEntityDrawer('etp-phim', p.content_id)}", vi: "bấm tên phim mở ngăn nội dung" },
+  { card: 'ngan-phim-0211', tep: "apps/web/src/lib/actions/etp-phim.ts", co: "/api/v2/movie/groups/${encodeURIComponent(String(tv.nhom_id))}", vi: "ngăn phim đọc nội dung thật từ Ethopex" },
+  { card: 'ngan-phim-0211', tep: "apps/etp/thu_vien_phim.py", co: "insert into etp.thu_vien (content_id, nhom_id", vi: "thư viện ghi group_id + poster cho ngăn phim" },
+  { card: 'ngan-phim-0211', tep: "apps/xuong-video/scripts/ethopex/chon-phim-moi.py", co: "x[\"diem_ct\"] = ", vi: "bảng điểm từng tiêu chí" },
+  { card: 'ngan-phim-0211', tep: "apps/web/src/components/etp-view.tsx", co: "defaultSort={[{ key: 'hang', dir: 'asc' }]}", vi: "tab Phim xếp theo hạng điểm" },
   // anh 02/11/2026 duyệt review luật (mục 2, 3, 7 + T30 ROAS): chấm creative không tắt camp lãi · ROAS trước clone · dừng clone đổi creative · nhật ký team · sổ luật đối chứng + 7 ngày
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", co: "where c.trang_thai = 'ACTIVE' and g.tat and {KHONG_ROAS} and {KHONG_LAI3} order by 1", vi: "luật chấm không tắt camp lãi 3 ngày đã khép" },
   { card: 'review-luat-0211', tep: "apps/etp/lich-gio.py", cam: "tự tắt mọi loại camp, kể cả đang lãi", vi: "luật chấm không còn tắt camp đang lãi" },

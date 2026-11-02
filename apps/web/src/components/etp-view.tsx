@@ -12,6 +12,7 @@ import { datCheDoLuat, ketNoiEthopex, suaCampNgoai, taoMaTelegram } from '@/lib/
 import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import type { TrangPhim } from '@/lib/etp-doc';
 import { Dem } from '@/components/etp-so';
+import { openEntityDrawer } from '@/lib/entity-drawer';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
@@ -2359,9 +2360,10 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const nguonPh = (p: PhimEtpKho) => NGUON_PH[(p.nguon ?? '').replace(/^www\./, '').split('.')[0]!] ?? (p.nguon ? 'Khác' : '—');
   const ttPh = (p: PhimEtpKho) => (p.moc ? 'Đã cất' : p.camp ? 'Đã có camp' : p.test ? 'Có thể test' : p.ws_moi ? 'Mới thêm, chưa camp' : '—');
   const cotPh: DataColumn<PhimEtpKho>[] = [
-    { key: 'ten', header: 'Phim', align: 'left', cell: (p) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Hex bo={p.bo} info={p.bo ? du.boTk[p.bo] : undefined} /><span title={`phim #${p.content_id}`}>{p.ten ?? p.content_id}</span></span>, sortValue: (p) => p.ten ?? '' },   // tiếng / nguồn đã có cột riêng (YDNI: không lặp)
+    { key: 'ten', header: 'Phim', align: 'left', cell: (p) => <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Hex bo={p.bo} info={p.bo ? du.boTk[p.bo] : undefined} /><button type="button" onClick={() => openEntityDrawer('etp-phim', p.content_id)} title={`phim #${p.content_id} — bấm xem nội dung, điểm, trang phim`} style={{ all: 'unset', cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{p.ten ?? p.content_id}</button></span>, sortValue: (p) => p.ten ?? '' },   // tiếng / nguồn đã có cột riêng (YDNI: không lặp)
     { key: 'tt_ph', header: 'Trạng thái', align: 'left', title: 'Có thể test (qua lọc chọn phim mới — nguồn, tiếng, thể loại, ít QC FB, chưa ai lên) · Đã có camp · Đã cất (máy cất, không mở camp mới) · Mới thêm vào workspace, chưa camp', cell: (p) => <span style={{ fontSize: 12, color: p.moc || !p.camp && !p.test ? MO : 'var(--fg-2)' }} title={p.moc ? `máy cất phim lúc ${vn(p.moc)} — không mở camp mới` : undefined}>{ttPh(p)}</span>, sortValue: ttPh },
     { key: 'hang', header: 'Hạng', title: 'hạng trong danh sách có thể test (điểm cao trước) — hover: điểm, lý do, trạng thái hàng chờ phim mới', cell: (p) => (p.test ? <span style={{ fontVariantNumeric: 'tabular-nums', cursor: 'help' }} title={`điểm ${p.test.diem} · ${p.test.vi_sao}${p.test.tt ? `\nhàng chờ phim mới: ${TT_MOI[p.test.tt] ?? p.test.tt}` : ''}`}>{p.test.hang}</span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => p.test?.hang ?? null },
+    { key: 'diem', header: 'Điểm', title: 'điểm chọn phim (chon-phim-moi.py): nguồn + tiếng + thể loại + ít QC FB — bấm tên phim xem bảng điểm từng tiêu chí', cell: (p) => (p.test ? <span style={{ fontVariantNumeric: 'tabular-nums' }}>{p.test.diem}</span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => p.test?.diem ?? null },
     { key: 'nguon_ph', header: 'Nguồn', align: 'left', title: 'tỷ lệ phim thắng: ReelShort 14,5% · NetShort 3,2% · DramaBox 2,1% (bộ chọn loại DramaBox)', cell: (p) => <span style={{ fontSize: 12 }}>{nguonPh(p)}</span>, sortValue: nguonPh },
     { key: 'tieng_ph', header: 'Tiếng', align: 'left', title: 'tỷ lệ phim thắng: EN 5,8% · ES 3,3%', cell: (p) => <span style={{ fontSize: 12, color: p.locale ? undefined : MO }}>{(p.locale ?? '—').toUpperCase()}</span>, sortValue: (p) => (p.locale ?? '').toUpperCase() || null },
     { key: 'nhom_ph', header: 'Nhóm chọn phim', align: 'left', title: 'nhóm thể loại bộ chọn phim đoán từ tên (phim chưa test) — tỷ lệ thắng: vô danh 15% · hối hận 13% · fantasy 11% · mafia 9% · tỷ phú 7% · mẹ con 4% · tình cảm 3% (sói bị loại)', cell: (p) => <span style={{ fontSize: 12, color: p.test?.nhom ? undefined : MO }}>{p.test?.nhom ? NHOM_PH[p.test.nhom] ?? p.test.nhom : '—'}</span>, sortValue: (p) => (p.test?.nhom ? NHOM_PH[p.test.nhom] ?? p.test.nhom : null) },
@@ -2588,7 +2590,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       ) : tab === 'tn' ? (
         <TabTaiNguyen du={du} kh={kh} khCamp={khCamp} />
       ) : tab === 'phim' ? (
-        <DataTable rows={du.phims} columns={cotPh} groups={NHOM} groupHeader getRowKey={(p) => String(p.content_id)} persistKey="etp-phim" minWidth={1200} pageSize={100}
+        <DataTable rows={du.phims} columns={cotPh} groups={NHOM} groupHeader getRowKey={(p) => String(p.content_id)} persistKey="etp-phim" minWidth={1200} pageSize={100} defaultSort={[{ key: 'hang', dir: 'asc' }]}
           searchText={(p) => `${p.content_id} ${p.ten ?? ''} ${tl(p.the_loai)}`} searchPlaceholder="Tìm phim, thể loại…" />
       ) : (
         <>

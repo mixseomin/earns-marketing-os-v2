@@ -41,7 +41,9 @@ for (const [k, K] of Object.entries(KENH)) {
     const td = t.tu_dong ?? { lan: 0 };
     if (td.lan >= 3) { if (!td.da_bao) { tele(`⚠ ${K.ten}: tập ${t.id} tự làm lại 3 lần vẫn kẹt — cần anh xem\n${td.loi ?? ''}\n${JSON.stringify(st?.chan ?? [])}`); t.tu_dong = { ...td, da_bao: true }; writeFileSync(tep, JSON.stringify(t, null, 1) + '\n'); } continue; }
     writeFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), String(process.pid));
-    const chay = (them) => spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', t.id, '--gan-hook', ...them], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20 });
+    // kịch bản rỗng / cụt (cổng AI chập chờn trả bản 0 câu — 02/11/2026) → viết lại từ đầu; có kịch bản thì giữ, chỉ làm tiếp
+    const vietLai = (t.cau?.length ?? 0) < 5 ? ['--viet-lai'] : [];
+    const chay = (them) => spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), '--id', t.id, ...(vietLai.length ? vietLai : ['--gan-hook']), ...them], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20 });
     let r = chay([]), ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`;
     if (r.status === 4 && /tập có lỗi/.test(ra)) { r = chay(['--sua']); ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; }
     try { unlinkSync(join(homedir(), '.cache', `lich-su-${k}.khoa`)); } catch { /* đã gỡ */ }

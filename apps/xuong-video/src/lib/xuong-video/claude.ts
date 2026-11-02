@@ -152,7 +152,10 @@ const dangJsonTay = (p: ThamSoChu): ThamSoChu => {
   return { ...con, system };
 };
 type TinChu = Anthropic.Message & { parsed_output?: unknown; vnd?: number };
-async function quaChuoi(p: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promise<TinChu>): Promise<TinChu> {
+async function quaChuoi(p0: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promise<TinChu>): Promise<TinChu> {
+  // x_kiem (không gửi đi): kiểm KẾT QUẢ đã đọc theo khuôn — đường trả bản hợp khuôn mà rỗng / cụt thì coi như hỏng, sang đường kế NGAY trong lần gọi này
+  // (02/11/2026: một người bán ckey trả kịch bản 0 câu hợp khuôn → cả lượt viết hỏng, gọi lại thì chuỗi chọn đúng người đó trước, 4 lượt như nhau)
+  const { x_kiem: kiem, ...p } = p0 as ThamSoChu & { x_kiem?: (d: unknown) => string | null };
   // script thiếu duyệt → dừng (chot-tien.ts); giá ước = trường hợp xấu nhất (rơi tới Anthropic, viết hết max_tokens) — lượt nhỏ dưới ngưỡng tự chạy (5.000₫, chot-tien.ts) tự chạy
   chotTien('gọi Claude', { cents: giaChuCents(p.model, Math.ceil(JSON.stringify([p.system ?? '', p.messages ?? '']).length / 3), Number(p.max_tokens) || 0) });
   const ds = await duongChu(p.model); const loi: string[] = [];
@@ -173,6 +176,11 @@ async function quaChuoi(p: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promis
       if (f) {   // có khuôn JSON: chuẩn hoá chữ về đúng khối JSON (bên bán lại hay bọc ```json) + tự đọc khi đường không đọc hộ
         for (const b of r.content) if (b.type === 'text') b.text = layJson(b.text);
         if (tay && f.parse && r.stop_reason !== 'max_tokens') r.parsed_output = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''));
+      }
+      if (kiem && f && r.stop_reason !== 'max_tokens' && !cuoi) {
+        let du: unknown = (r as { parsed_output?: unknown }).parsed_output;
+        if (!du && f.parse) try { du = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join('')); } catch { du = null; }
+        const lk = du ? kiem(du) : 'không đọc được JSON theo khuôn'; if (lk) { loi.push(`${d.ten} ${d.model}: ${lk}`); continue; }
       }
       const x = (r.usage as { x_ckey?: { cost?: number } }).x_ckey?.cost;
       if (loi.length) console.error('[claude] dự phòng:', loi.join(' · '), '→', d.ten);
@@ -198,10 +206,10 @@ function client(): KhachChu | null {
 }
 /** LƯỢT CHỮ RA JSON THEO KHUÔN ZOD cho mọi máy ngoài phim (máy sinh đề theo góc — may-de.ts, 27/10/2026): cùng chuỗi dự phòng, cùng sổ tiền. Mặc định Haiku qua ckey
  *  (vài chục đồng một lượt). Trả dữ liệu đã parse + token/tiền; lỗi → ok:false với câu đọc được. */
-export async function sinhJson<T>(o: { schema: z.ZodType<T>; system: string; user: string; model?: string; max_tokens?: number; ten?: string }): Promise<{ ok: true; data: T; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string }> {
+export async function sinhJson<T>(o: { schema: z.ZodType<T>; system: string; user: string; model?: string; max_tokens?: number; ten?: string; /** kiểm kết quả: trả câu lỗi → chuỗi sang đường kế */ kiem?: (d: T) => string | null }): Promise<{ ok: true; data: T; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string }> {
   const c = client(); if (!c) return { ok: false, loi: 'thiếu khoá chữ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)' };
   try {
-    const p = { model: o.model ?? 'claude-haiku-4-5', max_tokens: o.max_tokens ?? 2000, system: o.system, messages: [{ role: 'user', content: o.user }], output_config: { format: zodOutputFormat(o.schema as unknown as Parameters<typeof zodOutputFormat>[0]) } };
+    const p = { model: o.model ?? 'claude-haiku-4-5', max_tokens: o.max_tokens ?? 2000, system: o.system, messages: [{ role: 'user', content: o.user }], output_config: { format: zodOutputFormat(o.schema as unknown as Parameters<typeof zodOutputFormat>[0]) }, ...(o.kiem ? { x_kiem: o.kiem } : {}) };
     // LƯỢT DÀI (kịch bản trọn chuyện 3 phút, max_tokens > 16k): SDK từ chối gọi không-stream khi ước > 10 phút → đi stream, tự đọc JSON theo khuôn zod
     const r = (p.max_tokens > 16000 ? await c.messages.stream(p).finalMessage() : await c.messages.parse(p)) as TinChu;
     if (r.stop_reason === 'max_tokens') return { ok: false, loi: `viết chưa hết đã chạm trần ${p.max_tokens} token` };

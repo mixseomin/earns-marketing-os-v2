@@ -185,13 +185,16 @@ ${khoChu}
 ${process.argv.includes('--chi-canh') ? '\nCHẾ ĐỘ CHỈ SỬA CẢNH: giọng đã đọc xong — GIỮ NGUYÊN TỪNG CHỮ trường chu và su_that của mọi câu, cùng số câu, cùng thứ tự. Chỉ sửa canh (và tai_san_moi nếu cần món mới). Chữ gọi dáng / dấu / tranh phải là chữ có trong câu hiện tại.\n' : ''}${arg('loi') ? `\nLẦN TRƯỚC MÁY KIỂM BÁO LỖI — sửa hết, giữ phần đúng:\n${readFileSync(arg('loi')!, 'utf8')}\nBản lần trước:\n${readFileSync(arg('cu')!, 'utf8').slice(0, 120000)}\n` : ''}
 NGUỒN:
 ${nguon.map((n, i) => `[${i}] ${n.tua}\n${n.chu.slice(0, 16000)}`).join('\n\n')}`;
-const r = await sinhJson({ schema: Ra, system, user, model: 'claude-sonnet-5-5', max_tokens: K.max_tokens ?? 12000, ten: 'viết tập lịch sử' });
+const toiThieuCau = Math.ceil(Number(K.cau?.[0] ?? 20) / 2);
+// bản dưới nửa số câu tối thiểu = cổng đó hỏng → chuỗi sang cổng kế ngay trong lần gọi (claude.ts › x_kiem), không đốt cả lượt viết
+const r = await sinhJson({ schema: Ra, system, user, model: 'claude-sonnet-5-5', max_tokens: K.max_tokens ?? 12000, ten: 'viết tập lịch sử',
+  kiem: (d) => ((d.cau?.length ?? 0) < toiThieuCau ? `bản cụt ${d.cau?.length ?? 0} câu (< ${toiThieuCau})` : null) });
 if (!r.ok) { console.error(`✗ ${r.loi}`); process.exit(1); }
 const d = r.data;
 // BẢN RỖNG / CỤT = HỎNG (02/11/2026: cổng chợ trả JSON hợp khuôn nhưng 0 câu → lam-tap ghi tệp rỗng, 3 lượt sửa sau đều đánh vào bản rỗng): dưới nửa khuôn
 // tối thiểu thì thoát mã 1 — lam-tap coi là "máy viết hỏng" và gọi lại, không ghi đè tệp tập
-const toiThieu = Math.ceil(Number(K.cau?.[0] ?? 20) / 2);   // K.cau = [ít nhất, nhiều nhất] câu (khuon là luật chữ, không phải số — bản đầu đọc nhầm khuon[0] → NaN → không chặn gì)
-if ((d.cau?.length ?? 0) < toiThieu) { console.error(`✗ máy viết trả bản cụt: ${d.cau?.length ?? 0} câu (< ${toiThieu}) — ${r.model}`); process.exit(1); }
+// lưới cuối (cổng cuối chuỗi cũng trả cụt): K.cau = [ít nhất, nhiều nhất] câu
+if ((d.cau?.length ?? 0) < toiThieuCau) { console.error(`✗ máy viết trả bản cụt: ${d.cau?.length ?? 0} câu (< ${toiThieuCau}) — ${r.model}`); process.exit(1); }
 // về khuôn dung-tap.mjs: bỏ trường rỗng / null để máy dựng tự điền
 const gon = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== false && !(Array.isArray(v) && !v.length)));
 const tap = { id, kenh: kenhId, tieu_de: tieuDeChon ?? d.tieu_de, ngon_ngu: nn, chu_de: chuDe, mo_ta_dang: d.mo_ta_dang,

@@ -11,7 +11,7 @@ export type NhomMenu = { label: string; items: MucMenu[] };
 
 export function MenuBaCham({ tieuDe, phu, groups, title, chen }: { tieuDe: string; phu: string; groups: NhomMenu[]; title?: string; /** khối chèn dưới tiêu đề (vd lịch kế hoạch nhỏ của kênh) */ chen?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number; maxHeight: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -52,7 +52,7 @@ export function MenuBaCham({ tieuDe, phu, groups, title, chen }: { tieuDe: strin
         <div ref={menuRef} onClick={(e) => e.stopPropagation()}
           style={{ position: 'fixed', top: pos.top, left: pos.left, zIndex: 1000, minWidth: 218, maxWidth: 420, width: 'max-content',
             background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.45)', padding: 4, maxHeight: '70vh', overflowY: 'auto' }}>
+            boxShadow: '0 8px 24px rgba(0,0,0,0.45)', padding: 4, maxHeight: pos.maxHeight, overflowY: 'auto' }}>
           <div style={{ padding: '4px 10px 5px', marginBottom: 2, borderBottom: '1px solid var(--line)' }}>
             <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--fg-4)', fontFamily: 'var(--font-mono)' }}>{tieuDe}</div>
             <div style={{ fontSize: 10, color: 'var(--fg-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{phu}</div>

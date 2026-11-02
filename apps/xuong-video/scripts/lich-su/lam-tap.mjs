@@ -86,8 +86,9 @@ async function tuSua(tap) { const kho = docKho().tai_san, ghi = [];
   // THÀNH PHỐ KHÔNG CÓ TRONG NATURAL EARTH ("@Hue", "@Otranto" — 03/11/2026 lặp 2 tập, máy viết sửa mãi không xong): máy tự đổi thành toạ độ "lon,lat" lấy từ
   // Wikipedia (prop=coordinates); không tìm được thì để nguyên cho máy viết sửa như cũ
   const toaDo = new Map(), doi = async (v) => { if (typeof v !== 'string' || !v.startsWith('@') || TP.has(chuan(v.slice(1)))) return v;
-    const ten = v.slice(1); if (!toaDo.has(ten)) { let ra = null; try { const r = await (await tai(`https://en.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', prop: 'coordinates', titles: ten, redirects: '1', format: 'json', formatversion: '2' })}`)).json();
-      const c = r.query?.pages?.[0]?.coordinates?.[0]; if (c) ra = `${Math.round(c.lon * 100) / 100},${Math.round(c.lat * 100) / 100}`; } catch { /* để máy viết sửa */ } toaDo.set(ten, ra); }
+    // tìm "<tên> city" (tên trơn hay trúng trang nghĩa khác — "Hue" = màu sắc), lấy kết quả đầu có toạ độ, kể cả toạ độ phụ (Otranto không có toạ độ chính)
+    const ten = v.slice(1); if (!toaDo.has(ten)) { let ra = null; try { const r = await (await tai(`https://en.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', generator: 'search', gsrsearch: `${ten} city`, gsrlimit: '3', prop: 'coordinates', coprimary: 'all', format: 'json', formatversion: '2' })}`)).json();
+      const c = (r.query?.pages ?? []).sort((a1, b1) => (a1.index ?? 9) - (b1.index ?? 9)).map((pg) => pg.coordinates?.[0]).find(Boolean); if (c) ra = `${Math.round(c.lon * 100) / 100},${Math.round(c.lat * 100) / 100}`; } catch { /* để máy viết sửa */ } toaDo.set(ten, ra); }
     const ra = toaDo.get(ten); if (ra) ghi.push(`thành phố ${ten} → toạ độ ${ra}`); return ra ?? v; };
   const duyet = async (o) => { if (Array.isArray(o)) { for (let i = 0; i < o.length; i++) o[i] = typeof o[i] === 'object' && o[i] ? (await duyet(o[i]), o[i]) : await doi(o[i]); return; }
     for (const [k, v] of Object.entries(o)) { if (v && typeof v === 'object') await duyet(v); else o[k] = await doi(v); } };

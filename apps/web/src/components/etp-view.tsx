@@ -2460,7 +2460,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   // URL xem một người — chung cho bấm chọn (router.push) và ⌘ / Ctrl-click mở tab mới (#1496)
   // đổi người = sang phạm vi lưu khác: bỏ mọi bộ lọc trang (Lọc · Luật · Loại · TK · Lãi/lỗ · Tuổi · Phim · ngăn) + tham số bảng (ô tìm / lọc cột / gom) của phạm vi cũ trên URL
   // — người kia dùng bộ đã lưu của riêng họ (anh 02/11/2026 "layout, filter, search… thì ko được thông nhau"); giữ tab, kiểu xem, kỳ
-  const urlNguoi = (v: string) => { const u = new URL(location.href); if (!v || Number(v) === du.nguoi.nha) u.searchParams.delete('ng'); else u.searchParams.set('ng', v);
+  // render phía máy chủ không có location (03/11/2026: ReferenceError làm sập /etp từ 22:54 02/11) → dựng từ tham số trang máy chủ nhận (dauVao), trình duyệt dùng location.href
+  const urlNguoi = (v: string) => { const u = new URL(typeof location !== 'undefined' ? location.href : `https://etp.on.tc/etp?${new URLSearchParams(Object.entries(dauVao ?? {}).filter((x): x is [string, string] => typeof x[1] === 'string' && x[1] !== ''))}`); if (!v || Number(v) === du.nguoi.nha) u.searchParams.delete('ng'); else u.searchParams.set('ng', v);
     for (const k of [...u.searchParams.keys()]) if (['b', 'ngan', 'l', 'lu', 'd', 'll', 'tu', 'p', 'ro'].includes(k) || /^etp-.+\.(q|flt|g)$/.test(k)) u.searchParams.delete(k); return u; };
   const nguoiSel = () => (du.nguoi.ds.length > 1 ? <>{dangDoiNguoi ? <span style={{ fontSize: 11, color: '#60a5fa' }}>đang tải…</span> : null}<Chon2 value={du.nguoi.doi ? 'team' : du.nguoi.dang == null || !du.nguoi.ngoai ? '' : String(du.nguoi.dang)} nhan="Người" align="left" title="xem camp + report theo người dùng Ethopex (tài khoản QC của người đó) — người khác chỉ xem, luật không áp"
     onChange={(v) => { const u = urlNguoi(v); doiNguoi(() => router.push(`${u.pathname}${u.search}`)); }} href={(v) => urlNguoi(v).href}

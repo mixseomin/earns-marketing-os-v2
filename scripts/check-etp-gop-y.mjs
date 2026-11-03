@@ -413,6 +413,7 @@ const LUAT = [
   { card: 'cham-0311', tep: 'packages/db/migrations/0412_etp_tieu_chi_kien_robot.sql', co: 'robots, mecha, armor or sci-fi machines fighting each other', vi: 'robot/mecha đánh nhau không máu không phải bạo lực (Mech King)' },
   { card: 'cham-0311', tep: 'packages/db/migrations/0412_etp_tieu_chi_kien_robot.sql', co: 'only in the LAST ~5 seconds a dark box near the bottom shows the drama title', vi: 'tiêu chí CTA chấm mẫu Kiên = 10 (anh 03/11/2026)' },
   { card: 'ws-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'and ("mô tả" in thieu or "cốt truyện" in thieu) and dien_trang(ws):', vi: 'trang phim Nhà thiếu mô tả / cốt truyện thì máy tự điền từ tóm tắt ($0) thay vì chặn chờ (03/11/2026)' },
+  { card: 'ssr-0311', tep: 'apps/web/src/components/etp-view.tsx', co: "new URL(typeof location !== 'undefined' ? location.href : `https://etp.on.tc/etp?", cam: 'const urlNguoi = (v: string) => { const u = new URL(location.href);', vi: 'link chọn người dựng được cả khi render máy chủ (không location) — trước đó /etp sập ReferenceError (03/11/2026)' },
   { card: 'dong-0311', tep: 'apps/web/src/components/etp-view.tsx', co: "label: 'Chạy tự động tới khi lên camp…'", vi: 'menu ⋯ tab Phim có Chạy tự động (dòng phim, anh 03/11/2026)' },
   { card: 'dong-0311', tep: 'apps/web/src/components/etp-view.tsx', co: "tab === 'dong' ? (", vi: 'tab Dòng phim' },
   { card: 'dong-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: 'const ket = (b: BuocDong) =>', vi: 'ô bước hiện KẸT + nút FIX (quá hạn / im)' },

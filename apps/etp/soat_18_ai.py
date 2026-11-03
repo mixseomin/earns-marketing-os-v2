@@ -13,6 +13,9 @@ LUAT = """You screen a short-drama POSTER (plus title and synopsis) before it is
 dat = false if the POSTER shows ANY of: blood, wounds or gore · a gun, knife or other weapon (held, pointed or displayed) · sexual or suggestive content (lingerie,
 underwear, cleavage-focused framing, seductive pose) · shirtless people embracing / kissing, couples in bed · nudity or near-nudity. Otherwise dat = true.
 NOT a weapon (do not fail for it): robots, mecha, armor, spaceships or other sci-fi machines, magic effects, crowns / scepters as costume (anh 03/11/2026: Mech King bị loại oan vì robot).
+NOT a violation either (anh 03/11/2026: Dragonborn Bloodcore + My Choice Makes the Dragon King bị loại oan): fantasy armor / costumes with no weapon actually visible,
+dragons and other creatures, glowing magic veins, dark markings / tattoos / cracks on skin that are a fantasy effect (only fail for wounds when blood or open injury is visible).
+Fail only for a violation you can clearly SEE. If you are unsure or find no clear violation, dat = true — never fail "to be safe".
 The synopsis only helps you understand the poster — judge the IMAGE. vi_pham = the violated items (empty when dat = true). ly_do = one short sentence in Vietnamese.
 Title: """
 

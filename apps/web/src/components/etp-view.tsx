@@ -1614,7 +1614,9 @@ const NHOM_GOC: Record<string, [string, string, string]> = {   // [chữ, màu, 
   au_my: ['Âu-Mỹ', 'var(--fg-3)', 'diễn viên Âu-Mỹ'], trung: ['🇨🇳 Trung', '#f87171', 'diễn viên Trung Quốc'], an: ['🇮🇳 Ấn', '#fb923c', 'diễn viên Ấn Độ'],
   latin: ['Latin', '#fbbf24', 'diễn viên Latin'], dong_a: ['Đông Á', '#f472b6', 'diễn viên Hàn / Nhật / Đông Nam Á'], da_mau: ['Da màu', '#a78bfa', 'diễn viên da màu'],
   hoat_hinh: ['🎨 Hoạt hình', '#60a5fa', 'nhìn như tranh vẽ / hoạt hình (không tính phim AI nhìn như người thật)'] };
-const NhomGoc = ({ g }: { g: string | null | undefined }) => { const x = g ? NHOM_GOC[g] : undefined; return x ? <span title={`Nhóm gốc phim: ${x[2]} — chấm trên poster`} style={{ fontSize: 10.5, fontWeight: 500, color: x[1], border: `1px solid ${x[1]}55`, borderRadius: 4, padding: '0 4px', whiteSpace: 'nowrap' }}>{x[0]}</span> : null; };
+const NhomGoc = ({ g }: { g: string | null | undefined }) => { const x = g ? NHOM_GOC[g] : undefined;
+  if (g === 'au_my') return <span title="Nhóm gốc phim: diễn viên Âu-Mỹ — chấm trên poster" style={{ fontSize: 10, lineHeight: 1, flex: 'none' }}>🇺🇸</span>;   // Âu-Mỹ = cờ nhỏ, gọn (anh 04/11/2026)
+  return x ? <span title={`Nhóm gốc phim: ${x[2]} — chấm trên poster`} style={{ fontSize: 10.5, fontWeight: 500, color: x[1], border: `1px solid ${x[1]}55`, borderRadius: 4, padding: '0 4px', whiteSpace: 'nowrap' }}>{x[0]}</span> : null; };
 // PHIM CHẠM MỐC (anh 31/10/2026: "film đã chạm mốc ko nên mở thêm mà trong đội vẫn còn chạy thì có cảnh báo ở film đó cho mọi người nắm đc"): máy cất phim
 // (apps/etp/cat_phim.py — Nhà thử đủ creative + đủ bộ, chi ≥ mức thử, chưa camp nào lãi) → nhãn đỏ khi đội / Nhà còn camp chạy, xám khi không còn ai chạy
 function MocPhim({ ph, chay }: { ph: PhimEtpKho | undefined; chay: number }) {

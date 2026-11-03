@@ -372,7 +372,7 @@ const LUAT = [
   { card: 'duyet-camp-0311', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: "if (me?.role !== 'admin') return { loi: 'chỉ admin được duyệt lên camp' }", vi: 'chỉ admin duyệt lên camp' },
   { card: 'poster-0311', tep: 'apps/etp/deploy/etp.on.tc.nginx', co: 'location = /api/ethopex/anh', vi: 'nginx etp.on.tc cho đường poster đi qua (thiếu → 302 về /, ảnh hỏng)' },
   { card: 'poster-0311', tep: 'deploy.sh', co: 'cp apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc', vi: 'deploy tự cài vhost etp.on.tc từ repo' },
-  { card: 'poster-oan-0311', tep: 'apps/etp/soat_18_ai.py', co: 'never fail "to be safe"', vi: 'AI soát poster không loại khi không thấy vi phạm rõ; giáp / rồng / vân phép thuật không tính (anh 03/11/2026)' },
+  { card: 'poster-oan-0311', tep: 'apps/etp/soat_18_ai.py', co: 'The sexual / suggestive rules above stay STRICT', vi: 'AI soát poster: vũ khí / vết thương chỉ loại khi thấy rõ, giáp / rồng / vân phép thuật không tính; luật gợi cảm giữ chặt (anh 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/etp/dong_phim.py', co: 'CHỜ ANH BẮT ĐẦU', vi: 'dòng phim LT dừng trước bước lên camp tới khi anh bắt đầu (anh 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'not _lt.get("bat_dau") and (cm := camp_moi_hom_nay(cid))', vi: 'phim lộ trình đã bắt đầu được miễn luật một camp (anh chọn A 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/etp/tho.py', co: '"ETP_KIEU": d["kieu"]', vi: 'thợ cắt truyền kiểu tập trọn cho dòng LT' },

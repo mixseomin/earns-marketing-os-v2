@@ -5,7 +5,7 @@ Hai loại, xử khác nhau — mọi bước (cat-cuoi-lo, len-creative, phim-m
 Lỗi không nhận ra loại nào → coi là KỸ THUẬT (thử lại tốn ít; bỏ oan một phim thì mất cả phim)."""
 import re, time
 THU_LAI, NGHI = 2, 20
-NOI_DUNG = re.compile(r"THOAI CHAN: \d+s|THOAI CHAN: \d+ khung|PHIM18|18\+|khung cuối sạch|từ chối|rejected|Adult Sexual|STUDIO SAI|CTA không đạt", re.I)
+NOI_DUNG = re.compile(r"THOAI CHAN: \d+s|THOAI CHAN: \d+ khung|PHIM18|18\+|khung cuối sạch|từ chối|rejected|Adult Sexual|STUDIO SAI|CTA không đạt|ngắn hơn khung", re.I)   # "ngắn hơn khung" = phim không còn khung sạch đủ dài (cắt bỏ giây cấm) — NỘI DUNG, không cắt lại (03/11/2026: coi là kỹ thuật → sua-cta cắt lại 5 phim mỗi 10 phút, ~3 giờ/lượt, treo box3)
 
 def ky_thuat(loi):
     """True = lỗi kỹ thuật (thử lại được); False = bị loại vì nội dung; None = không lỗi"""

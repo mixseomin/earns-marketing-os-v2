@@ -414,6 +414,8 @@ const LUAT = [
   { card: 'cham-0311', tep: 'packages/db/migrations/0412_etp_tieu_chi_kien_robot.sql', co: 'only in the LAST ~5 seconds a dark box near the bottom shows the drama title', vi: 'tiêu chí CTA chấm mẫu Kiên = 10 (anh 03/11/2026)' },
   { card: 'ws-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'and ("mô tả" in thieu or "cốt truyện" in thieu) and dien_trang(ws):', vi: 'trang phim Nhà thiếu mô tả / cốt truyện thì máy tự điền từ tóm tắt ($0) thay vì chặn chờ (03/11/2026)' },
   { card: 'ssr-0311', tep: 'apps/web/src/components/etp-view.tsx', co: "new URL(typeof location !== 'undefined' ? location.href : `https://etp.on.tc/etp?", cam: 'const urlNguoi = (v: string) => { const u = new URL(location.href);', vi: 'link chọn người dựng được cả khi render máy chủ (không location) — trước đó /etp sập ReferenceError (03/11/2026)' },
+  { card: 'box3-0311', tep: 'apps/xuong-video/scripts/ethopex/loi_ky_thuat.py', co: '|ngắn hơn khung", re.I)', vi: 'đoạn ngắn hơn khung = lỗi nội dung, không cắt lại (gốc treo box3 03/11/2026)' },
+  { card: 'box3-0311', tep: 'apps/xuong-video/scripts/ethopex/sua-cta.py', co: 'and int(m.get("lan") or 0) < 2:', vi: 'góc mới thử lại tối đa 2 lượt' },
   { card: 'box3-0311', tep: 'apps/xuong-video/scripts/ethopex/cam_box3.py', co: 'def cam(viec="dựng video"):', vi: 'CẤM dựng video trên box3 (anh 03/11/2026)' },
   { card: 'box3-0311', tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'import cam_box3; cam_box3.cam()', vi: 'cat-canh không dựng trên box3' },
   { card: 'box3-0311', tep: 'apps/xuong-video/scripts/ethopex/cat-cuoi-lo.py', co: 'import cam_box3; cam_box3.cam()', vi: 'cat-cuoi-lo không dựng trên box3' },

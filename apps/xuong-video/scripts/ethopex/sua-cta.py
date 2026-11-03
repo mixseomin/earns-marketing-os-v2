@@ -106,7 +106,10 @@ def goc_moi(ma, bao, nb):
         g = [x for x in g if not any(float(x["tu"]) < d and float(x["den"]) > t for t, d in da)][:3]
         try: loi = " ".join(str(x.get("loi")) for x in json.load(open(os.path.join(rg, "lo.json"))) if x.get("loi"))
         except Exception: loi = "không có lo.json"
-        if not g and LK.ky_thuat(loi) is True: bao.append(f"góc mới phim {cid}: lỗi kỹ thuật ({loi[:80]}) — giữ trong hàng, lượt sau cắt lại"); hang[cid]["giu"] = True; continue
+        if not g and LK.ky_thuat(loi) is True and int(m.get("lan") or 0) < 2:   # TRẦN 2 LƯỢT THỬ LẠI (03/11/2026: không trần → 5 phim cắt lại mỗi 10 phút suốt đêm, treo box3)
+            bao.append(f"góc mới phim {cid}: lỗi kỹ thuật ({loi[:80]}) — giữ trong hàng, thử lại lượt sau (lần {int(m.get('lan') or 0) + 1}/2)"); hang[cid]["giu"] = True
+            sql(f"update xv_khoa_ngoai set gia_tri = jsonb_set(gia_tri, '{{{cid},lan}}', to_jsonb({int(m.get('lan') or 0) + 1})) where ten='ethopex_can_goc_moi'"); continue
+        if not g and LK.ky_thuat(loi) is True: bao.append(f"góc mới phim {cid}: lỗi kỹ thuật 3 lượt liền ({loi[:80]}) — gỡ khỏi hàng, không cắt lại nữa"); continue
         if g: dung += [{**x, "lo": "goc", "goc": m.get("goc")} for x in g]; viec[cid] = m; bao.append(f"góc mới phim {cid} ({ten[:30]}): {len(g)} góc " + ", ".join(f"{x['tu']:.0f}–{x['den']:.0f}s" for x in g))
         else: bao.append(f"góc mới phim {cid} ({ten[:30]}): hết khung cuối tập sạch chưa dùng — phim đã khai thác hết phần tập miễn phí")
     if dung:

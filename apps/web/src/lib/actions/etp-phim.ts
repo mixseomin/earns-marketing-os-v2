@@ -7,8 +7,8 @@ import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 
-const CDN = 'https://acdn.dofez.com';   // CDN ảnh của Ethopex (app.ethopex.dev cdn-url: assetCdnBaseUrl mặc định)
-const anhUrl = (p: unknown) => (typeof p === 'string' && p.trim() ? (/^https?:\/\//.test(p) ? p : `${CDN}/${p.replace(/^\/+/, '')}`) : null);
+// ảnh tương đối đi qua cùng miền /api/ethopex/anh (03/11/2026: trình duyệt không tải được CDN thẳng); CDN gốc ở route đó
+const anhUrl = (p: unknown) => (typeof p === 'string' && p.trim() ? (/^https?:\/\//.test(p) ? p : `/api/ethopex/anh?p=${encodeURIComponent(p.replace(/^\/+/, ''))}`) : null);
 
 export type PhimNoiDung = {
   id: number; ten: string | null; locale: string | null; nguon: string | null; anh: string | null; url: string | null;

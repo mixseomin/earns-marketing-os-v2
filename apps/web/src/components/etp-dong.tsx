@@ -61,7 +61,7 @@ function DongCay({ d, xong }: { d: DongPhim; xong: () => void }) {
   return <>
     <tr style={{ borderTop: '1px solid var(--line)' }}>
       <td style={{ padding: '4px 6px', maxWidth: 340 }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-        <span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', width: 12, color: 'var(--fg-3)', fontSize: 10 }}>{doan.length || d.camps.length ? (mo ? '▼' : '▶') : ''}</span>
+        <span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', width: 12, flex: 'none', textAlign: 'center', color: 'var(--fg-3)', fontSize: 10 }}>{doan.length || d.camps.length ? (mo ? '▼' : '▶') : ''}</span>
         {d.anh ? <img src={d.anh} alt="" style={{ width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
         <div style={{ minWidth: 0 }}><a onClick={() => openEntityDrawer('etp-phim', d.content_id)} title={d.ten ?? ''} style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.ten ?? `phim #${d.content_id}`}</a>
           <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{LOAI_DE[d.loai] ?? d.loai} · {ngayGio(d.tao_luc)}{doan.length ? ` · ${doan.length} video` : ''}{d.camps.length ? ` · ${d.camps.length} camp` : ''}</span></div></div></td>

@@ -11,7 +11,7 @@ export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
 export type BuocDong = { buoc: string; thu_tu: number; trang_thai: string; bat_dau: string | null; ket_thuc: string | null; han_giay: number; lan: number; ghi: string | null; nhip: string | null; fix: boolean };
 export type DongPhim = { id: number; content_id: number; ten: string | null; the_loai: string | null; loai: string; ai: string | null; trang_thai: string; ly_do: string | null;
-  camp_id: number | null; creative_id: number | null; tao_luc: string; xong_luc: string | null; buoc: BuocDong[] };
+  camp_id: number | null; creative_id: number | null; anh: string | null; tao_luc: string; xong_luc: string | null; buoc: BuocDong[] };
 
 // MỘT SỔ LOẠI NỘI DUNG — dạng = nhãn etp.creative.dang (cùng sổ MAU_DANG của etp-view / DANG_CHUAN của diem_cham.py); chay = máy dòng phim làm được
 const LOAI: Omit<LoaiNoiDung, 'vi_du'>[] = [
@@ -76,6 +76,7 @@ export async function chayDong(contentId: number, loai: string, theLoai: string)
 export async function docDong(): Promise<{ dong: DongPhim[]; may: { may: string; nhip: string }[]; luc: string } | { loi: string }> {
   if (!(await quyen())) return { loi: 'không có quyền' };
   const dong = await run<DongPhim>(sql`select p.id, p.content_id, p.ten, p.the_loai, p.loai, p.ai, p.trang_thai, p.ly_do, p.camp_id, p.creative_id, p.tao_luc::text tao_luc, p.xong_luc::text xong_luc,
+      (select t.anh from etp.trang_phim t where t.content_id = p.content_id and t.anh is not null order by t.cap_nhat desc limit 1) anh,
       coalesce((select json_agg(json_build_object('buoc', b.buoc, 'thu_tu', b.thu_tu, 'trang_thai', b.trang_thai, 'bat_dau', b.bat_dau, 'ket_thuc', b.ket_thuc, 'han_giay', b.han_giay,
         'lan', b.lan, 'ghi', b.ghi, 'nhip', b.nhip, 'fix', b.fix) order by b.thu_tu) from etp.dong_buoc b where b.dong_id = p.id), '[]'::json) buoc
     from etp.dong_phim p order by p.id desc limit 100`);

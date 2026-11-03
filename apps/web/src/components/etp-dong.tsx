@@ -60,6 +60,10 @@ function TheDong({ d, xong }: { d: DongPhim; xong: () => void }) {
   const pct = Math.round(((soXong + (hien?.trang_thai === 'dang' && ph != null ? ph : 0)) / Math.max(ds.length, 1)) * 100);
   const daLam = ds.length ? soXong / (ds.length - 1) : 0;
   return <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: '12px 14px', background: 'var(--bg-1)' }}>
+    <div style={{ display: 'flex', gap: 14 }}>
+    {d.anh ? <img src={d.anh} alt="" style={{ width: 72, height: 102, objectFit: 'cover', borderRadius: 8, flex: 'none', border: '1px solid var(--line)' }} />
+      : <div style={{ width: 72, height: 102, borderRadius: 8, flex: 'none', display: 'grid', placeItems: 'center', background: 'var(--bg-2)', fontSize: 26 }}>🎬</div>}
+    <div style={{ flex: 1, minWidth: 0 }}>
     <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
       <a onClick={() => openEntityDrawer('etp-phim', d.content_id)} style={{ cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>{d.ten ?? `phim #${d.content_id}`}</a>
       <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>{LOAI_DE[d.loai] ?? d.loai}</span>
@@ -74,13 +78,12 @@ function TheDong({ d, xong }: { d: DongPhim; xong: () => void }) {
       <div style={{ position: 'absolute', top: 12, left: '6%', width: `${Math.min(1, daLam) * 88}%`, height: 2, background: '#22c55e' }} />
       {ds.map((b) => <NutBuoc key={b.buoc} d={d} b={b} xong={xong} />)}
     </div>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ flex: 1, height: 6, borderRadius: 3, background: 'var(--line)', overflow: 'hidden' }}>
-        <div style={{ width: `${pct}%`, height: '100%', background: d.trang_thai === 'loi' ? '#ef4444' : d.trang_thai === 'dung' ? '#f59e0b' : '#22c55e', transition: 'width .4s' }} /></div>
-      <span style={{ fontSize: 12, fontVariantNumeric: 'tabular-nums', color: 'var(--fg-2)', width: 38, textAlign: 'right' }}>{pct}%</span>
+    <div style={{ position: 'relative', height: 22, borderRadius: 11, background: 'var(--bg-2)', border: '1px solid var(--line)', overflow: 'hidden' }}>
+      <div style={{ width: `${pct}%`, height: '100%', background: d.trang_thai === 'loi' ? '#dc2626' : d.trang_thai === 'dung' ? '#d97706' : pct >= 100 ? '#16a34a' : '#2563eb', transition: 'width .4s' }} />
+      <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: 12, fontWeight: 700, color: '#fff', textShadow: '0 1px 2px #000a', whiteSpace: 'nowrap', overflow: 'hidden' }}>
+        {pct}%{ghi ? <span style={{ fontWeight: 500, marginLeft: 8, overflow: 'hidden', textOverflow: 'ellipsis' }}>· {d.camp_id ? `camp #${d.camp_id} · ` : ''}{ghi}</span> : null}</span>
     </div>
-    {ghi ? <div style={{ marginTop: 6, fontSize: 12, color: d.trang_thai === 'dung' ? '#fbbf24' : d.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)' }}>
-      {d.camp_id ? <b style={{ color: '#4ade80' }}>camp #{d.camp_id} · </b> : null}{ghi}</div> : null}
+    </div></div>
   </div>;
 }
 

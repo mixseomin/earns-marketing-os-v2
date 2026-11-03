@@ -45,7 +45,9 @@ function DongCay({ d, xong }: { d: DongPhim; xong: () => void }) {
   const b = (k: string) => d.buoc.find((x) => x.buoc === (BUOC_COT[k] ?? k));
   const kq = (k: string) => b(k)?.ket_qua ?? null;
   const ttB = (x?: BuocDong) => (x ? (ket(x) ? 'loi' : x.trang_thai) : 'cho');
-  const cr = kq('creative')?.ds ?? []; const sach = new Set((kq('creative')?.sach ?? []).map((x) => x.creative_id));
+  const k1 = kq('creative') as ({ creative_id?: number; tu?: number; den?: number } & NonNullable<BuocDong['ket_qua']>) | null;   // CC / KT: một creative, ket_qua là chính creative đó
+  const cr = k1?.ds ?? (k1?.creative_id ? [{ creative_id: k1.creative_id, tu: k1.tu, den: k1.den }] : []);
+  const sach = new Set((k1?.sach ?? (k1?.creative_id && b('creative')?.trang_thai === 'xong' ? [{ creative_id: k1.creative_id }] : [])).map((x) => x.creative_id));
   const doan = cr.length ? cr : (kq('soat')?.doan ?? kq('cat')?.doan ?? []);
   const chamXong = b('creative')?.trang_thai === 'xong';
   const ttDong = d.trang_thai === 'chay' && d.buoc.length && d.buoc.every((x) => x.trang_thai === 'xong' || x.trang_thai === 'bo_qua') ? 'xong' : d.trang_thai;

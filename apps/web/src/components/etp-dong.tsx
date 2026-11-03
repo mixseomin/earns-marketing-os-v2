@@ -65,7 +65,7 @@ function O({ tt, chu, t, fix, bam, menu, xem }: { tt: string; chu?: string; t?: 
     {fix ? <button className="btn" onClick={fix} style={{ padding: '0 4px', fontSize: 10, lineHeight: '14px', color: '#fca5a5', borderColor: '#7f1d1d' }}>FIX</button> : null}</div></td>;
 }
 
-function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: (id: number) => void }) {
+function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCamp?: (id: number) => void; con?: boolean }) {
   const [mo, setMo] = useState(() => d.buoc.some((x) => ['dang', 'loi', 'dung'].includes(x.trang_thai)));   // thư mục: đang làm / lỗi thì mở sẵn
   const [menu, setMenu] = useState<{ b: BuocDong; x: number; y: number } | null>(null);   // xử lý tay tại ô
   const [cho, setCho] = useState<Record<string, string>>({});   // bước vừa bấm chạy lại → ⏳ chờ máy tới khi bat_dau đổi
@@ -99,13 +99,16 @@ function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: 
     cham: cr.length ? `${sach.size} sạch${chamXong && cr.length - sach.size ? ` · ${cr.length - sach.size} chặn` : ''}` : '', camp: so.camp ? `${so.camp} camp` : '',
     chay: so.camp ? `${so.chay} chạy${so.chi > 0 ? ` · ${lai >= 0 ? '+' : ''}$${lai.toFixed(2)}` : ''}` : '' };
   return <>
-    <tr style={{ borderTop: '2px solid var(--line)', background: 'rgba(96,165,250,.10)' }}>   {/* dòng phim (thư mục) khác màu dòng creative (anh 03/11/2026) */}
+    <tr style={con ? { background: 'rgba(96,165,250,.04)' } : { borderTop: '2px solid var(--line)', background: 'rgba(96,165,250,.10)' }}>   {/* dòng phim (thư mục) khác màu dòng creative (anh 03/11/2026) */}
+      {con ? <td style={{ padding: '3px 6px 3px 24px' }}><span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--fg-1)' }}>
+        <span style={{ display: 'inline-block', width: 12, fontSize: 10, color: 'var(--fg-3)' }}>{mo ? '▼' : '▶'}</span>📂 {LOAI_DE[d.loai] ?? d.loai}</span>
+        <span style={{ fontSize: 10, color: 'var(--fg-3)', marginLeft: 6 }}>{ngayGio(d.tao_luc)}</span></td> :
       <td style={{ padding: '4px 6px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', width: 12, flex: 'none', textAlign: 'center', color: 'var(--fg-3)', fontSize: 10 }}>{mo ? '▼' : '▶'}</span>
         {d.anh ? <img src={d.anh} alt="" onMouseEnter={(e) => datXem({ anh: d.anh, chu: d.ten ?? '', x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ cursor: 'zoom-in', width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
         <div style={{ minWidth: 0 }}><a onClick={() => openEntityDrawer('etp-phim', d.content_id)} title={d.ten ?? ''} style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.ten ?? `phim #${d.content_id}`}</a>
-          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{LOAI_DE[d.loai] ?? d.loai} · {ngayGio(d.tao_luc)}</span></div></div></td>
-      {COT_PHIM.map(([k]) => <React.Fragment key={k}>{oBuoc(b(k), undefined, k === 'poster' && d.anh ? { anh: d.anh, chu: tB(b(k)) } : undefined)}</React.Fragment>)}
+          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{LOAI_DE[d.loai] ?? d.loai} · {ngayGio(d.tao_luc)}</span></div></div></td>}
+      {con ? <td colSpan={COT_PHIM.length} /> : COT_PHIM.map(([k]) => <React.Fragment key={k}>{oBuoc(b(k), undefined, k === 'poster' && d.anh ? { anh: d.anh, chu: tB(b(k)) } : undefined)}</React.Fragment>)}
       {COT_CR.map(([k, , bk]) => <React.Fragment key={k}>{kt && k === 'cat' ? oBuoc(b('creative'), cr.length ? `${cr.length} đã sinh` : b('creative')?.trang_thai === 'dang' ? 'đang sinh' : undefined)
         : kt && k === 'soat' ? <O tt="bo_qua" t="KT không cắt phim nên không có bước xem lại đoạn" /> : oBuoc(b(bk), tong[k] || undefined)}</React.Fragment>)}
       <td style={{ padding: '2px 6px', fontSize: 11, color: d.trang_thai === 'dung' ? '#fbbf24' : d.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)' }}>
@@ -132,7 +135,7 @@ function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: 
       const xemCr = id && crs[String(id)] ? crs[String(id)] : null;
       const lai_ = camp ? camp.thu - camp.chi : 0;
       return <tr key={id ?? `d${i}`}>
-        <td style={{ padding: '2px 6px 2px 34px', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <td style={{ padding: `2px 6px 2px ${con ? 52 : 34}px`, fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {xemCr?.anh ? <img src={xemCr.anh} alt="" onMouseEnter={(e) => datXem({ ...xemCr, chu: `creative #${id} · đoạn ${g}`, x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ width: 16, height: 28, objectFit: 'cover', borderRadius: 2, verticalAlign: 'middle', marginRight: 6, cursor: 'zoom-in' }} /> : <span style={{ marginRight: 6 }}>└</span>}
           {id ? `Creative #${id}` : kt ? 'Video kể chuyện' : `Đoạn ${i + 1}`} <span style={{ color: 'var(--fg-3)' }}>{kt ? 'máy sinh' : g}</span></td>
         <td colSpan={COT_PHIM.length} />
@@ -150,6 +153,36 @@ function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: 
       <td style={{ padding: '2px 6px 2px 34px', fontSize: 11, color: 'var(--fg-2)' }}>└ camp #{c.id} <span style={{ color: 'var(--fg-3)' }}>creative #{c.cr}</span></td>
       <td colSpan={COT_PHIM.length + 4} /><O bam={moCamp ? () => moCamp(c.id) : undefined} tt="xong" chu={`#${c.id}`} />
       <O bam={moCamp ? () => moCamp(c.id) : undefined} tt={c.tt === 'ACTIVE' ? 'xong' : 'cho'} chu={c.chi > 0 ? `${l >= 0 ? '+' : ''}$${l.toFixed(2)}` : c.tt === 'ACTIVE' ? 'chạy' : 'tắt'} /><td /><td /></tr>; }) : null}
+  </>;
+}
+
+// MỘT PHIM = MỘT THƯ MỤC, bên trong MỖI LOẠI NỘI DUNG một thư mục con (anh 03/11/2026 "đủ 1 bộ creative cho mọi loại nội dung"): phim chỉ có một dòng
+// đang chạy thì vẽ thẳng như trước; nhiều loại → dòng phim (bước cấp phim + tổng) rồi 📂 từng loại → creative
+function NhomPhim({ ds, xong, moCamp }: { ds: DongPhim[]; xong: () => void; moCamp?: (id: number) => void }) {
+  const [mo, setMo] = useState(true);
+  if (ds.length === 1) return <DongCay d={ds[0]!} xong={xong} moCamp={moCamp} />;
+  const d0 = [...ds].sort((a, b) => a.id - b.id)[0]!; const b = (k: string) => d0.buoc.find((x) => x.buoc === k);
+  const so = ds.reduce((a, d) => ({ camp: a.camp + (d.so?.camp ?? 0), chay: a.chay + (d.so?.chay ?? 0), chi: a.chi + (d.so?.chi ?? 0), thu: a.thu + (d.so?.thu ?? 0) }), { camp: 0, chay: 0, chi: 0, thu: 0 });
+  const nCr = ds.reduce((a, d) => { const k = d.buoc.find((x) => x.buoc === 'creative')?.ket_qua as { ds?: unknown[]; creative_id?: number } | null | undefined; return a + (k?.ds?.length ?? (k?.creative_id ? 1 : 0)); }, 0);
+  const nDoan = ds.reduce((a, d) => a + (d.buoc.find((x) => x.buoc === 'cat')?.ket_qua?.doan?.length ?? 0), 0);
+  const dangLam = ds.filter((d) => d.buoc.some((x) => x.trang_thai === 'dang')).length, loi = ds.filter((d) => d.trang_thai === 'loi' || d.trang_thai === 'dung').length;
+  const lai = so.thu - so.chi;
+  const Chip = ({ c, children }: { c?: string; children: React.ReactNode }) => <span style={{ padding: '2px 8px', borderRadius: 5, background: 'var(--bg-2)', color: c ?? 'var(--fg-1)', whiteSpace: 'nowrap', fontSize: 11 }}>{children}</span>;
+  return <>
+    <tr style={{ borderTop: '2px solid var(--line)', background: 'rgba(96,165,250,.12)' }}>
+      <td style={{ padding: '4px 6px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', width: 12, flex: 'none', textAlign: 'center', color: 'var(--fg-3)', fontSize: 10 }}>{mo ? '▼' : '▶'}</span>
+        {d0.anh ? <img src={d0.anh} alt="" onMouseEnter={(e) => datXem({ anh: d0.anh, chu: d0.ten ?? '', x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ cursor: 'zoom-in', width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
+        <div style={{ minWidth: 0 }}><a onClick={() => openEntityDrawer('etp-phim', d0.content_id)} title={d0.ten ?? ''} style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d0.ten ?? `phim #${d0.content_id}`}</a>
+          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{ds.length} loại nội dung: {ds.map((d) => LOAI_DE[d.loai] ?? d.loai).join(' · ')}</span></div></div></td>
+      {COT_PHIM.map(([k]) => { const x = b(k); const tt = x ? (ket(x) ? 'loi' : x.trang_thai) : 'cho'; return <O key={k} tt={tt} chu={x?.bat_dau && x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : ''} t={x?.ghi ?? undefined} xem={k === 'poster' && d0.anh ? { anh: d0.anh } : undefined} />; })}
+      <td colSpan={COT_CR.length} style={{ padding: '2px 4px' }}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {dangLam ? <Chip c="#bfdbfe">▶ {dangLam} loại đang làm</Chip> : null}{loi ? <Chip c="#fca5a5">! {loi} loại lỗi / dừng</Chip> : null}
+        <Chip>{nDoan} đoạn cắt · {nCr} creative</Chip>{so.camp ? <Chip>{so.camp} camp · {so.chay} chạy</Chip> : <Chip c="var(--fg-3)">chưa lên camp</Chip>}
+        {so.chi > 0 ? <Chip c={lai >= 0 ? '#86efac' : '#fca5a5'}>chi ${so.chi.toFixed(2)} · lãi {lai >= 0 ? '+' : ''}${lai.toFixed(2)}</Chip> : null}</div></td>
+      <td /><td />
+    </tr>
+    {mo ? [...ds].sort((a, b) => a.id - b.id).map((d) => <DongCay key={d.id} d={d} xong={xong} moCamp={moCamp} con />) : null}
   </>;
 }
 
@@ -184,7 +217,7 @@ export function TabDong({ moCamp }: { moCamp?: (id: number) => void } = {}) {
           <tr style={{ fontSize: 11, color: 'var(--fg-3)', textAlign: 'center' }}><th style={{ textAlign: 'left', padding: '0 6px', fontWeight: 500 }}>Phim → creative → camp</th>
             {COT_PHIM.map(([k, t]) => <th key={k} title={TEN_BUOC[k]?.[1]} style={{ fontWeight: 500 }}>{t}</th>)}
             {COT_CR.map(([k, t, bk]) => <th key={k} title={TEN_BUOC[bk]?.[1]} style={{ fontWeight: 500 }}>{t}</th>)}<th style={{ textAlign: 'left', fontWeight: 500, padding: '0 6px' }}>Đang làm</th><th /></tr></thead>
-        <tbody>{du.dong.map((d) => <DongCay key={d.id} d={d} xong={() => void tai()} moCamp={moCamp} />)}</tbody>
+        <tbody>{[...du.dong.reduce((m, d) => m.set(d.content_id, [...(m.get(d.content_id) ?? []), d]), new Map<number, DongPhim[]>()).values()].map((g) => <NhomPhim key={g[0]!.content_id} ds={g} xong={() => void tai()} moCamp={moCamp} />)}</tbody>
       </table></div>}
   </div>;
 }

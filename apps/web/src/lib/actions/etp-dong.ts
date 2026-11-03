@@ -66,8 +66,8 @@ export async function chayDong(contentId: number, loai: string, theLoai: string)
   const [ph] = await run<{ ten: string | null; nhom_goc: string | null }>(sql`select coalesce(p.ten, v.ten) ten, p.nhom_goc from (select ${id}::int content_id) k
     left join etp.phim p using (content_id) left join etp.thu_vien_phim v using (content_id)`);
   if (ph?.nhom_goc !== 'au_my') return { loi: ph?.nhom_goc ? `phim nhóm gốc '${ph.nhom_goc}' — chỉ chạy phim Âu-Mỹ` : 'phim chưa xác định nhóm gốc — chỉ chạy phim đã xác định Âu-Mỹ (cột Nhóm gốc)' };
-  const [dang] = await run<{ id: number }>(sql`select id from etp.dong_phim where content_id = ${id} and trang_thai = 'chay'`);
-  if (dang) return { loi: `phim đang có dòng #${dang.id} chạy` };
+  const [dang] = await run<{ id: number }>(sql`select id from etp.dong_phim where content_id = ${id} and loai = ${loai} and trang_thai = 'chay'`);   // một phim nhiều loại cùng lúc (0415), mỗi loại một dòng
+  if (dang) return { loi: `phim đang có dòng #${dang.id} loại ${loai} chạy` };
   if (theLoai) await db().execute(sql`update xv_khoa_ngoai set gia_tri = jsonb_set(coalesce(gia_tri, '{}'::jsonb), ${'{' + id + '}'}::text[],
       jsonb_build_object('tl', ${theLoai}::text, 'ten', ${ph?.ten ?? ''}::text, 'nguon', 'anh'), true) where ten = 'ethopex_the_loai'`);   // thể loại anh chọn đè máy đoán (the-loai.py đọc cùng sổ)
   const [r] = await run<{ id: number }>(sql`insert into etp.dong_phim (content_id, ten, the_loai, loai, ai) values (${id}, ${ph?.ten ?? null}, ${theLoai || null}, ${loai}, ${me.displayName ?? me.email ?? 'admin'}) returning id`);

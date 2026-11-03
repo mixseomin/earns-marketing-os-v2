@@ -54,7 +54,7 @@ export async function docCheDo(q: QuyenEtp, nguoiId: number | null): Promise<Che
 const GIU = ['nhe', 'luc', 'nay', 'ngay', 'camps', 'creatives', 'phims', 'soNgay', 'demNgay', 'theLoai', 'xetLuat', 'xetLuc', 'lsBac'] as const;
 type Giu = (typeof GIU)[number];
 const RONG: Omit<DuLieuEtp, Giu | 'nguoi' | 'cauHinh'> = {
-  thuVien: [], nhatKy: [], canhBao: [], dongBo: null, boTk: {}, pheu: [], diemCham: {}, soLuat: [], thayThe: [], moRong: [], taiNguyen: [], mayTho: [],
+  thuVien: [], nhatKy: [], canhBao: [], dongBo: null, boTk: {}, pheu: [], diemCham: {}, soLuat: [], thayThe: [], moRong: [], dongChay: [], taiNguyen: [], mayTho: [],
   hangDoi: { cho: 0, dang: 0, xong: 0, loi: 0 }, bao: [], daLam: [], roas: [], roasChay: [], baoHoa: [], nbLoi: [], quet: {}, tieuChi: [], cham: {}, dangSx: [], chamHang: {},
   lichGio: [], khungSo: [], lichTat: [], khungGio: [], khungNay: '', chamTat: { bat: false, camp: [], mienLuc: null }, phot: [],
 };

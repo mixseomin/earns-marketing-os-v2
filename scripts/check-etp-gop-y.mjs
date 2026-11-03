@@ -467,6 +467,7 @@ const LUAT = [
   { card: 'mr-0411', tep: 'apps/etp/dong_phim.py', co: 'def b_camp_mr(d, truoc):', vi: 'tab Sản xuất lên đủ số camp anh chọn' },
   { card: 'mr-0411', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: "and not _mr and (cm := camp_moi_hom_nay(cid)):", vi: 'mở rộng anh bấm miễn luật một camp mỗi lần' },
   { card: 'mr-0411', tep: 'apps/web/src/components/etp-dong.tsx', co: 'setXong(r.id); router.refresh();', cam: "u.searchParams.set('t', 'dong'); window.location.href", vi: 'gửi form ở yên trang, link sang tab Sản xuất lọc đúng phim (anh 04/11/2026 cấm di chuyển)' },
+  { card: 'mr-0411', tep: 'apps/web/src/components/etp-view.tsx', co: '◌ SX {x.loai}', vi: 'dòng phim hiện nhãn đang sản xuất, bấm sang tab Sản xuất lọc đúng phim (anh 04/11/2026)' },
   { card: 'mr-0411', tep: 'apps/etp/mo_rong.py', co: 'def k_cua(n): return 0 if n >= DICH else max(1, math.ceil(DAU * (1 - n / DICH)))', vi: 'plan mở rộng có cường độ: 6 → 1 camp khi gần 30 (anh 04/11/2026)' },
   { card: 'mr-0411', tep: 'apps/etp/dong-bo.py', co: 'import mo_rong; kq.update(mo_rong.chay(q))', vi: 'plan tự tính mỗi lượt đồng bộ, không cần chat' },
   { card: 'mr-0411', tep: 'apps/web/src/components/etp-view.tsx', co: '<b>mở rộng +{m.k} camp</b>', vi: 'Cây camp hiện dòng plan mở rộng dưới phim' },

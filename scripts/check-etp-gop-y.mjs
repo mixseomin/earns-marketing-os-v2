@@ -380,6 +380,7 @@ const LUAT = [
   { card: 'badge-cap-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: 'cap = 3 }: {', vi: 'badge 3 cấp: phim đặc · loại viền · creative chữ (anh 03/11/2026)' },
   { card: 'xep-sx-0311', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: 'order by (${hang}), p.id desc', vi: 'Sản xuất: đang sx → đang chạy → lỗi / dừng → chờ tới lượt (anh 03/11/2026)' },
   { card: 'nhan-lai-0311', tep: 'apps/etp/dong_phim.py', co: 'nhan_lai(cid)   # poster qua', vi: 'poster qua (cả sau bỏ chặn) thì Nhà nhận lại phim — không kẹt chưa nhận ở bước camp' },
+  { card: 'cat-khep-0311', tep: 'apps/etp/cat_phim.py', co: "n.ngay < (now() at time zone 'utc')::date", vi: 'luật cất phim chỉ đếm ngày đã khép (phim test rộng không bị sắp cất ngày đầu)' },
   { card: 'lo-trinh-0311', tep: 'apps/etp/dong_phim.py', co: 'CHỜ ANH BẮT ĐẦU', vi: 'dòng phim LT dừng trước bước lên camp tới khi anh bắt đầu (anh 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'not _lt.get("bat_dau") and (cm := camp_moi_hom_nay(cid))', vi: 'phim lộ trình đã bắt đầu được miễn luật một camp (anh chọn A 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/etp/tho.py', co: '"ETP_KIEU": d["kieu"]', vi: 'thợ cắt truyền kiểu tập trọn cho dòng LT' },

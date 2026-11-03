@@ -31,7 +31,8 @@ def cau_hinh():
 def so_phim():
     """mỗi phim có camp nhà: chi / thu cộng dồn, có camp lãi không, các bộ đã thử, trạng thái thang · team 14 ngày"""
     return _qj("""with c as (select c.content_id, c.camp_id, coalesce(c.bo, '') bo, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu
-                             from etp.camp c left join etp.so_ngay n using (camp_id) where coalesce(c.content_id, 0) > 0 group by 1, 2, 3),
+                             from etp.camp c left join etp.so_ngay n on n.camp_id = c.camp_id and n.ngay < (now() at time zone 'utc')::date   -- CHỈ NGÀY ĐÃ KHÉP (03/11/2026: phim test rộng 169553 lên 5 camp 16:12, vài giờ sau đã 'sắp cất 3/4 camp chưa lãi' vì đếm ngày đang chạy — chưa qua khung 0h–7h)
+                             where coalesce(c.content_id, 0) > 0 group by 1, 2, 3),
                        p as (select content_id, round(sum(chi), 2) chi, round(sum(thu), 2) thu, count(*) so_camp, count(*) filter (where chi >= 1) so_thu, bool_or(chi >= 3 and thu > chi) lai,
                                     array_agg(distinct bo) filter (where bo <> '') bo from c group by 1),
                        t as (select cn.content_id, sum(n.chi) chi, sum(n.thu) thu from etp.camp_ngoai cn join etp.so_ngay_ngoai n using (camp_id)

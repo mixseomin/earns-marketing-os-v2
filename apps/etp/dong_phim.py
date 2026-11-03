@@ -233,7 +233,8 @@ def b_camp_lt(d, truoc):
     if not lo_trinh(d["content_id"]).get("bat_dau"):
         return "cho", f"sẵn {len(sach)} creative sạch → {len(sach)} camp × $1 ≈ ${len(sach)}/ngày (bộ 2, T2 cắt lỗ) — CHỜ ANH BẮT ĐẦU", None
     xong, loi, gan = [], [], []   # gan: creative → camp (tab Dòng phim vẽ mỗi video một ô)
-    for x in sach:
+    for i_, x in enumerate(sach):
+        sql(f"update etp.dong_buoc set ghi = {s(f'anh đã duyệt — đang lên camp {i_ + 1}/{len(sach)} (creative #{x["creative_id"]})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")   # trang Sản xuất thấy tiến độ ngay sau khi anh bấm
         lang = x.get("lang") or "en"; ten = re.sub(r"['\"$`\\]", "", x.get("ten") or f"dp{d['id']} phim {d['content_id']}")
         rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --bo 2 --creative {int(x["creative_id"])} --content {d["content_id"]} --ten "{ten}" --that --lich today --luat "lộ trình test rộng (anh 03/11/2026: 8-10 USD/phim + T2)" --ai "dòng phim LT — anh bắt đầu"'""", 900)
         j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}

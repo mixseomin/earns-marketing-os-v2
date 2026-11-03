@@ -96,7 +96,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   const le = camps.filter((c) => !cr.some((x) => x.creative_id === c.cr));
   const nCat = doanCat.length || (b('cat')?.trang_thai === 'xong' ? ds.length : 0); const tienCat = /(\d+\/\d+)/.exec(b('cat')?.ghi ?? '')?.[1];
   const tong: Record<string, string> = { cat: b('cat')?.trang_thai === 'dang' ? (tienCat ? `${tienCat} đoạn` : '') : nCat ? `${nCat} đoạn` : '', soat: ds.length ? `${cr.length || doanSach.length}/${doanCat.length || ds.length} sạch` : '', len: cr.length ? `${cr.length} đã lên` : '',
-    cham: cr.length ? `${sach.size} sạch${chamXong && cr.length - sach.size ? ` · ${cr.length - sach.size} chặn` : ''}` : '', camp: so.camp ? `${so.camp} camp` : /CHỜ ANH BẮT ĐẦU/.test(b('camp')?.ghi ?? '') ? '👆 chờ anh duyệt' : '',
+    cham: cr.length ? `${sach.size} sạch${chamXong && cr.length - sach.size ? ` · ${cr.length - sach.size} chặn` : ''}` : '', camp: so.camp && b('camp')?.trang_thai === 'xong' ? `${so.camp} camp` : /đang lên camp (\d+\/\d+)/.exec(b('camp')?.ghi ?? '') ? `⏳ đang lên ${/(\d+\/\d+)/.exec(b('camp')!.ghi!)![1]}` : d.duyet && /CHỜ ANH/.test(b('camp')?.ghi ?? '') ? '⏳ đã duyệt · máy đang nhận' : /CHỜ ANH BẮT ĐẦU/.test(b('camp')?.ghi ?? '') ? '👆 chờ anh duyệt' : so.camp ? `${so.camp} camp` : '',
     chay: so.camp ? `${so.chay} chạy${so.chi > 0 ? ` · ${lai >= 0 ? '+' : ''}$${lai.toFixed(2)}` : ''}` : '' };
   return <>
     <tr style={con ? { background: 'rgba(96,165,250,.04)' } : { borderTop: '2px solid var(--line)', background: 'rgba(96,165,250,.10)' }}>   {/* dòng phim (thư mục) khác màu dòng creative (anh 03/11/2026) */}
@@ -146,7 +146,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
         {kt ? <O tt="bo_qua" /> : <O tt={id || doanSach.some((y) => y.tu === x.tu) ? 'xong' : ttB(b('soat'))} />}
         <O tt={id ? 'xong' : b('creative')?.trang_thai === 'dang' ? 'dang' : 'cho'} chu={id ? `#${id}` : ''} xem={xemCr ? { ...xemCr, chu: `creative #${id} · đoạn ${g}` } : undefined} />
         <O tt={tCham} chu={tCham === 'dung' ? 'bị chặn' : tCham === 'dang' ? 'đang chấm' : ''} xem={xemCr ? { ...xemCr, chu: `creative #${id} · ${tCham === 'xong' ? 'chấm sạch' : tCham === 'dung' ? 'bị cổng chấm chặn' : 'đang chấm'}` } : undefined} />
-        <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} menu={!camp && id && sach.has(id) ? moMenu(b('camp')) : undefined} tt={camp ? 'xong' : id && sach.has(id) ? ttB(b('camp')) : 'cho'} chu={camp ? `#${camp.id}` : id && sach.has(id) && b('camp')?.trang_thai === 'dang' ? 'chờ anh' : ''} />
+        <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} menu={!camp && id && sach.has(id) ? moMenu(b('camp')) : undefined} tt={camp ? 'xong' : id && sach.has(id) ? ttB(b('camp')) : 'cho'} chu={camp ? `#${camp.id}` : id && sach.has(id) && b('camp')?.trang_thai === 'dang' ? (d.duyet ? '⏳ đang lên' : 'chờ anh') : ''} />
         <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} tt={camp ? (camp.tt === 'ACTIVE' ? 'xong' : 'cho') : 'cho'} chu={camp ? (camp.chi > 0 ? `${lai_ >= 0 ? '+' : ''}$${lai_.toFixed(2)}` : camp.tt === 'ACTIVE' ? 'chạy' : 'tắt') : ''}
           t={camp ? `camp #${camp.id} · $${camp.ns ?? '?'}/ngày · chi $${camp.chi.toFixed(2)} · thu $${camp.thu.toFixed(2)} — bấm xem chi tiết` : undefined} />
         <td /><td />

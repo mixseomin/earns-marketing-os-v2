@@ -197,6 +197,15 @@ def cung_doan_dang_chay(cr):
         return f"{x[0]}:{x[1]}-{x[2]}" if x and x[0] != "cr" else None
     dc = d(cr)
     return next((c for c in ids[:-1] if dc and d(c) == dc), None) if dc else None
+def camp_moi_hom_nay(content_id):
+    """LUẬT MỘT CAMP MỖI LẦN (anh 03/11/2026: "Chỉ đc lên từng camp mỗi lần. Luật."): phim đã có một camp MỚI (tao_camp, không tính nhân bản thang) trong
+    ngày (giờ VN) hoặc camp của phim còn đang đồng bộ → mã camp đó, creative khác của phim chờ lượt sau. Gốc: lô pm-03110155 lên 2 đoạn = 2 camp cùng lúc,
+    rồi lượt chạy lại thêm 2 nữa → Elf King 4 camp một lúc."""
+    r = q(f"""select coalesce((select x->>'id' from xv_khoa_ngoai, jsonb_array_elements(gia_tri) x where ten = 'ethopex_nhat_ky' and x->>'viec' = 'tao_camp'
+              and (x->>'ok')::boolean and x->>'nguoi' is null and (x->>'content')::text = '{int(content_id)}'
+              and to_timestamp(x->>'luc', 'HH24:MI DD/MM/YYYY')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date order by x->>'luc' desc limit 1),
+              (select camp_id::text from etp.camp where content_id = {int(content_id)} and coalesce(dong_bo, '') not in ('done', 'synced', 'error') limit 1), '')""")
+    return r or None
 def creative_khac(content_id, bo_qua):
     dat = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_dat'") or "{}")
     tc = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_tu_choi'") or "{}")
@@ -384,6 +393,8 @@ def main(a):
         n = dem_dang_chay(cid)
         if moi and DEM_CR.get(int(moi["creative"]), 0) > 0:   # một creative một camp mới (25/10/2026: hai lượt lên camp chạy cùng lúc tạo trùng 3 camp)
             raise ChanLuat(f"creative #{moi['creative']} đã có camp đang chạy / vừa tạo — không tạo camp thứ hai")
+        if moi and not ep and (cm := camp_moi_hom_nay(cid)):
+            raise ChanLuat(f"phim {cid} đã lên camp mới #{cm} hôm nay — mỗi lần chỉ lên MỘT camp cho một phim, creative #{moi['creative']} chờ lượt sau (luật anh 03/11/2026)")
         if moi and not ep and (tr := cung_doan_dang_chay(int(moi["creative"]))):
             raise ChanLuat(f"creative #{moi['creative']} cùng đoạn với creative #{tr} đã có camp đang chạy / vừa tạo — không lên trùng đoạn (anh 03/11/2026)")
         if not ep and not NGOAI and (ntk := dem_tk(cid, pl.get("ad_account_id"))) >= TRAN_PHIM:   # trần tính theo TỪNG tài khoản nhà (anh 02/11/2026)

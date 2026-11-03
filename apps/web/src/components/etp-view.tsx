@@ -69,10 +69,11 @@ const lyDoDung = (c: { dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?:
 // KIỂU DỪNG (anh 03/11/2026 "mọi camp tắt đều phải có lý do… thêm 1 icon phụ bên cạnh chữ dừng để biết ngay kiểu tắt"): đọc MỌI nguồn có sẵn, không chỉ nhật ký máy luật —
 // ⚙ máy luật tắt (L3 / G10…) · ⚠ lỗi tạo / đồng bộ (etp.camp.loi, dong_bo = error) · ⏳ Ethopex / Meta đang duyệt (dong_bo chưa xong) · ✋ tắt ngoài máy luật (tay trên Ethopex / tạo sẵn dừng)
 const kieuDung = (c: { dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?: string | null; giao?: string | null }): { ky: string; chu: string; t: string } => {
-  if (c.dong) { const l = /^([A-Z][A-Z0-9]{0,3})\b/.exec(c.dong.ly_do)?.[1]; return { ky: '⚙', chu: `máy tắt${l ? ` · ${l}` : ''}`, t: `máy luật tắt lúc ${c.dong.luc}\n${c.dong.ly_do}` }; }
-  if (c.dong_bo === 'error' || c.loi) return { ky: '⚠', chu: 'lỗi tạo camp', t: `camp chưa từng chạy — Ethopex báo lỗi khi tạo / đồng bộ:\n${c.loi ?? c.dong_bo}` };
-  if (c.dong_bo && !['done', 'synced'].includes(c.dong_bo)) return { ky: '⏳', chu: 'Meta đang duyệt', t: `camp mới đang ở bước ${c.dong_bo} — duyệt xong tự chạy theo lịch` };
-  return { ky: '✋', chu: 'tắt ngoài máy', t: `không có ghi chép máy luật — tắt bằng tay trên Ethopex, hoặc camp tạo sẵn ở trạng thái dừng${c.giao ? ` (Ethopex: ${c.giao})` : ''}` };
+  if (c.dong) { const ma = c.dong.ma && c.dong.ma !== 'Tay / không ghi luật' ? c.dong.ma : null;
+    return { ky: '⚙', chu: `máy tắt${ma ? ` · ${ma}` : ''}`, t: [`⚙ Máy luật tắt${ma ? ` · ${ma}` : ''}`, `Lúc: ${c.dong.luc}`, c.dong.dieu ? `Luật: ${c.dong.dieu}` : `Lý do: ${c.dong.ly_do}`, c.dong.duyet ? `Duyệt: ${c.dong.duyet}` : null].filter(Boolean).join('\n') }; }
+  if (c.dong_bo === 'error' || c.loi) return { ky: '⚠', chu: 'lỗi tạo camp', t: ['⚠ Lỗi tạo camp — camp chưa từng chạy', `Ethopex báo: ${(c.loi ?? c.dong_bo ?? '').replace(/\s+/g, ' ').slice(0, 220)}`].join('\n') };
+  if (c.dong_bo && !['done', 'synced'].includes(c.dong_bo)) return { ky: '⏳', chu: 'Meta đang duyệt', t: ['⏳ Meta / Ethopex đang duyệt', `Bước: ${c.dong_bo}`, 'Duyệt xong camp tự chạy theo lịch'].join('\n') };
+  return { ky: '✋', chu: 'tắt ngoài máy', t: ['✋ Tắt ngoài máy luật', 'Không có ghi chép của máy luật — tắt bằng tay trên Ethopex, hoặc camp tạo sẵn ở trạng thái dừng', c.giao ? `Ethopex: ${c.giao}` : null].filter(Boolean).join('\n') };
 };
 const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean; dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?: string | null }): { chu: string; mau: string; t: string } =>
   c.giao === 'DISAPPROVED' ? { chu: '⛔ Meta từ chối', mau: '#f87171', t: 'Meta từ chối' }

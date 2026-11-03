@@ -28,7 +28,8 @@ export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; tran
   /** nước GIAO thật 7 ngày (etp.camp_nuoc, migration 0368) — g mã nước, c chi, t thu; nhiều chi nhất trước */
   nuoc: { g: string; c: number; t: number }[];
   /** LÝ DO DỪNG (anh 02/11/2026 "hover vào status dừng thì show lý do dừng, ai dừng"): từ lịch sử camp Ethopex + nhật ký luật (máy luật ghi mỗi nhịp, etp.bao nhóm 'dong') — chỉ Nhà */
-  dong?: { luc: string; ly_do: string } | null;
+  /** lý do dừng có CẤU TRÚC (03/11/2026 anh 'trình bày cho chuẩn'): ma = mã luật theo sổ luật chung (luatDaLam), dieu = điều kiện luật, duyet = ai duyệt luật */
+  dong?: { luc: string; ly_do: string; ma?: string | null; dieu?: string | null; duyet?: string | null } | null;
   /** ROAS goal thật đang đặt trên Ethopex (Ad Set) + bid strategy cấp campaign — camp ROAS ★ (migration 0339) */
   roas: number | null; chien_luoc: string | null };
 export type CreativeEtpKho = { creative_id: number; content_id: number | null; phim: string | null; the_loai: string | null; dang: string | null; doan: string | null; tu: number | null; den: number | null;
@@ -444,7 +445,9 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   }
   // lý do dừng gắn vào camp (một nguồn cho ô trạng thái ở cây / bảng / ngăn): "… · dừng lúc HH:MM DD/MM · lý do: … · tháng này …"
   const dongCua = new Map(bao.filter((b) => b.nhom === 'dong').map((b) => { const m = /dừng lúc ([^·]+?) · lý do: (.+?)(?: · tháng này.*)?$/.exec(b.chu); return [b.camp_id, m ? { luc: m[1]!.trim(), ly_do: m[2]!.trim() } : null] as const; }));
-  for (const c of cs) if (c.trang_thai !== 'ACTIVE') c.dong = dongCua.get(c.camp_id) ?? null;
+  const tatCua = new Map(daLam.filter((x) => x.viec === 'tat').map((x) => [x.camp_id, x.ma]));
+  for (const c of cs) if (c.trang_thai !== 'ACTIVE') { const g = dongCua.get(c.camp_id); c.dong = g ? { ...g, ma: tatCua.get(c.camp_id) ?? null,
+    dieu: /luật:\s*(.+?)(?: · duyệt:|$)/.exec(g.ly_do)?.[1]?.trim() ?? null, duyet: /duyệt:\s*(.+?)(?:\s+—\s*máy chạy)?$/.exec(g.ly_do)?.[1]?.trim() ?? null } : null; }
   return { nguoi: { ds: nguoiDs, dang: dangId, nha: nhaId, ngoai, doi }, luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, creatives: [...crMap.values()], phims, thuVien,
     thayThe: ttR.map((r) => ({ ...r, id: n(r.id), content_id: n(r.content_id), camp_cu: n(r.camp_cu), creative_id: r.creative_id == null ? null : n(r.creative_id), camp_moi: r.camp_moi == null ? null : n(r.camp_moi) })),
     pheu: pheuR.map((r) => ({ c: n(r.c), d: r.d, h: n(r.h), n: n(r.n), v: n(r.v), sh: n(r.sh), sn: n(r.sn), sv: n(r.sv), sg: n(r.sg) })), diemCham: Object.fromEntries(dcR.map((r) => [n(r.creative_id), r.cham])), soLuat: slR.map((r) => ({ ma: r.ma, luc: r.luc, ...r.so })),

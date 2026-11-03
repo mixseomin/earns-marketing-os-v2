@@ -10,7 +10,7 @@ import { quyenEtp } from '@/lib/etp-quyen';
 export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string; cach: string; gia: string; thoi_gian: string; chay: boolean; khoa?: string;
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
 export type BuocDong = { buoc: string; thu_tu: number; trang_thai: string; bat_dau: string | null; ket_thuc: string | null; han_giay: number; lan: number; ghi: string | null; nhip: string | null; fix: boolean; ket_qua: { ds?: { creative_id: number; tu?: number; den?: number }[]; sach?: { creative_id: number }[]; doan?: { tu: number; den: number }[] } | null };
-export type CampDong = { id: number; tt: string | null; cr: number | null; ns: number | null; chi: number; thu: number };
+export type CampDong = { id: number; tt: string | null; db: string | null; cr: number | null; ns: number | null; chi: number; thu: number };
 export type DongPhim = { id: number; content_id: number; ten: string | null; the_loai: string | null; loai: string; ai: string | null; trang_thai: string; ly_do: string | null;
   camp_id: number | null; creative_id: number | null; anh: string | null; duyet: boolean | null; so: { camp: number; chay: number; chi: number; thu: number } | null; tao_luc: string; xong_luc: string | null; buoc: BuocDong[] };
 
@@ -105,7 +105,7 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0): P
 export async function docChiTiet(dongId: number): Promise<{ camps: CampDong[]; crs: Record<string, { anh: string | null; video: string | null }> } | { loi: string }> {
   if (!(await quyen())) return { loi: 'không có quyền' };
   const id = Math.trunc(Number(dongId));
-  const camps = await run<CampDong>(sql`select c.camp_id::int id, c.trang_thai tt, c.creative_id::int cr, c.ngan_sach::float ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu
+  const camps = await run<CampDong>(sql`select c.camp_id::int id, c.trang_thai tt, c.dong_bo db, c.creative_id::int cr, c.ngan_sach::float ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu
       from etp.dong_phim p join etp.camp c on c.content_id = p.content_id and c.tao >= p.tao_luc left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s on s.camp_id = c.camp_id
       where p.id = ${id} order by c.camp_id`);
   const [r] = await run<{ crs: Record<string, { anh: string | null; video: string | null }> }>(sql`select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video)), '{}'::json) crs

@@ -98,7 +98,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   const nCat = doanCat.length || (b('cat')?.trang_thai === 'xong' ? ds.length : 0); const tienCat = /(\d+\/\d+)/.exec(b('cat')?.ghi ?? '')?.[1];
   const tong: Record<string, string> = { cat: b('cat')?.trang_thai === 'dang' ? (tienCat ? `${tienCat} đoạn` : '') : nCat ? `${nCat} đoạn` : '', soat: ds.length ? `${cr.length || doanSach.length}/${doanCat.length || ds.length} sạch` : '', len: cr.length ? `${cr.length} đã lên` : '',
     cham: cr.length ? `${sach.size} sạch${chamXong && cr.length - sach.size ? ` · ${cr.length - sach.size} chặn` : ''}` : '', camp: so.camp && b('camp')?.trang_thai === 'xong' ? `${so.camp} camp` : /đang lên camp (\d+\/\d+)/.exec(b('camp')?.ghi ?? '') ? `⏳ đang lên ${/(\d+\/\d+)/.exec(b('camp')!.ghi!)![1]}` : d.duyet && /CHỜ ANH/.test(b('camp')?.ghi ?? '') ? '⏳ đã duyệt · máy đang nhận' : /CHỜ ANH BẮT ĐẦU/.test(b('camp')?.ghi ?? '') ? '👆 chờ anh duyệt' : so.camp ? `${so.camp} camp` : '',
-    chay: so.camp ? `${so.chay} chạy${so.chi > 0 ? ` · ${lai >= 0 ? '+' : ''}$${lai.toFixed(2)}` : ''}` : '' };
+    chay: so.camp ? `${so.chay}/${so.camp} chạy${so.chi > 0 ? ` · ${lai >= 0 ? '+' : ''}$${lai.toFixed(2)}` : ''}` : '' };
   return <>
     <tr style={con ? { background: 'rgba(96,165,250,.04)' } : { borderTop: '2px solid var(--line)', background: 'rgba(96,165,250,.10)' }}>   {/* dòng phim (thư mục) khác màu dòng creative (anh 03/11/2026) */}
       {con ? <td style={{ padding: '3px 6px 3px 24px' }}><span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--fg-1)' }}>
@@ -171,7 +171,6 @@ function NhomPhim({ ds, xong, moCamp }: { ds: DongPhim[]; xong: () => void; moCa
   const nDoan = ds.reduce((a, d) => a + (d.buoc.find((x) => x.buoc === 'cat')?.ket_qua?.doan?.length ?? 0), 0);
   const dangLam = ds.filter((d) => d.buoc.some((x) => x.trang_thai === 'dang')).length, loi = ds.filter((d) => d.trang_thai === 'loi' || d.trang_thai === 'dung').length;
   const lai = so.thu - so.chi;
-  const Chip = ({ c, children }: { c?: string; children: React.ReactNode }) => <span style={{ padding: '2px 8px', borderRadius: 5, background: 'var(--bg-2)', color: c ?? 'var(--fg-1)', whiteSpace: 'nowrap', fontSize: 11 }}>{children}</span>;
   return <>
     <tr style={{ borderTop: '2px solid var(--line)', background: 'rgba(96,165,250,.12)' }}>
       <td style={{ padding: '4px 6px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
@@ -180,11 +179,21 @@ function NhomPhim({ ds, xong, moCamp }: { ds: DongPhim[]; xong: () => void; moCa
         <div style={{ minWidth: 0 }}><a onClick={() => openEntityDrawer('etp-phim', d0.content_id)} title={d0.ten ?? ''} style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d0.ten ?? `phim #${d0.content_id}`}</a>
           <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{ds.length} loại nội dung: {ds.map((d) => LOAI_DE[d.loai] ?? d.loai).join(' · ')}</span></div></div></td>
       {COT_PHIM.map(([k]) => { const x = b(k); const tt = x ? (ket(x) ? 'loi' : x.trang_thai) : 'cho'; return <O key={k} tt={tt} chu={x?.bat_dau && x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : ''} t={x?.ghi ?? undefined} xem={k === 'poster' && d0.anh ? { anh: d0.anh } : undefined} />; })}
-      <td colSpan={COT_CR.length} style={{ padding: '2px 4px' }}><div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {dangLam ? <Chip c="#bfdbfe">▶ {dangLam} loại đang làm</Chip> : null}{loi ? <Chip c="#fca5a5">! {loi} loại lỗi / dừng</Chip> : null}
-        <Chip>{nDoan} đoạn cắt · {nCr} creative</Chip>{so.camp ? <Chip>{so.camp} camp · {so.chay} chạy</Chip> : <Chip c="var(--fg-3)">chưa lên camp</Chip>}
-        {so.chi > 0 ? <Chip c={lai >= 0 ? '#86efac' : '#fca5a5'}>chi ${so.chi.toFixed(2)} · lãi {lai >= 0 ? '+' : ''}${lai.toFixed(2)}</Chip> : null}</div></td>
-      <td /><td />
+      {/* dòng phim tổng hợp ĐÚNG CỘT (anh 03/11/2026 "có hàng có cột đàng hoàng thì dùng"): mỗi cột cấp creative = tổng của mọi loại */}
+      {(() => { const tt = (k: string) => { const bs = ds.map((d) => d.buoc.find((x) => x.buoc === k)).filter((x): x is BuocDong => !!x);
+          return bs.some((x) => x.trang_thai === 'dang') ? 'dang' : bs.some((x) => x.trang_thai === 'loi' || ket(x)) ? 'loi' : bs.some((x) => x.trang_thai === 'dung') ? 'dung' : bs.length && bs.every((x) => x.trang_thai === 'xong' || x.trang_thai === 'bo_qua') ? 'xong' : 'cho'; };
+        const nSach = ds.reduce((a, d) => { const k = d.buoc.find((x) => x.buoc === 'creative')?.ket_qua as { sach?: unknown[]; creative_id?: number } | null | undefined; return a + (k?.sach?.length ?? (k?.creative_id && d.buoc.find((x) => x.buoc === 'creative')?.trang_thai === 'xong' ? 1 : 0)); }, 0);
+        const nSoat = ds.reduce((a, d) => a + (d.buoc.find((x) => x.buoc === 'soat')?.ket_qua?.doan?.length ?? 0), 0);
+        return <>
+          <O tt={tt('cat')} chu={nDoan ? `${nDoan} đoạn` : ''} t="tổng đoạn cắt / video sinh của mọi loại" />
+          <O tt={tt('soat')} chu={nDoan ? `${nSoat}/${nDoan} sạch` : ''} />
+          <O tt={tt('creative')} chu={nCr ? `${nCr} creative` : ''} />
+          <O tt={tt('creative')} chu={nCr ? `${nSach} sạch` : ''} />
+          <O tt={so.camp ? 'xong' : tt('camp')} chu={so.camp ? `${so.camp} camp` : 'chưa lên'} />
+          <O tt={so.chay ? 'xong' : so.camp ? 'dang' : 'cho'} chu={so.camp ? `${so.chay}/${so.camp} chạy${so.chi > 0 ? ` · ${lai >= 0 ? '+' : ''}$${lai.toFixed(2)}` : ''}` : ''} t={so.chi > 0 ? `chi $${so.chi.toFixed(2)} · thu $${so.thu.toFixed(2)}` : undefined} />
+        </>; })()}
+      <td style={{ padding: '2px 6px', fontSize: 11, color: loi ? '#f87171' : 'var(--fg-2)' }}>{dangLam ? `${dangLam} loại đang làm` : ''}{loi ? `${dangLam ? ' · ' : ''}${loi} loại lỗi / dừng` : ''}</td><td />
+
     </tr>
     {mo ? [...ds].sort((a, b) => a.id - b.id).map((d) => <DongCay key={d.id} d={d} xong={xong} moCamp={moCamp} con />) : null}
   </>;

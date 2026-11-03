@@ -86,11 +86,13 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0): P
   const dk = loc === 'dang' ? dangL : loc === 'loi' ? coLoi : loc === 'tat_ca' ? sql`true` : sql`(${dangL} or ${coLoi} or ${xongLuc} > now() - interval '1 day')`;
   const t = `%${tim.trim()}%`;
   const loctim = tim.trim() ? sql`and (p.ten ilike ${t} or p.content_id::text = ${tim.trim()} or p.id::text = ${tim.trim()})` : sql``;
-  const dong = await run<DongPhim>(sql`select p.id, p.content_id, p.ten, p.the_loai, p.loai, p.ai, p.trang_thai, p.ly_do, p.camp_id, p.creative_id, p.tao_luc::text tao_luc, p.xong_luc::text xong_luc,
+  const dong = await run<DongPhim>(sql`select p.id, p.content_id, coalesce(p.ten, (select v.ten from etp.thu_vien_phim v where v.content_id = p.content_id limit 1)) ten, p.the_loai, p.loai, p.ai, p.trang_thai, p.ly_do, p.camp_id, p.creative_id, p.tao_luc::text tao_luc, p.xong_luc::text xong_luc,
       (select case when a like 'http%' then a else '/api/ethopex/anh?p=' || ltrim(a, '/') end from (select coalesce((select t.anh from etp.trang_phim t where t.content_id = p.content_id and t.anh is not null order by t.cap_nhat desc limit 1), (select v.anh from etp.thu_vien_phim v where v.content_id = p.content_id and v.anh is not null limit 1)) a) x) anh,   -- ảnh tương đối → qua cùng miền /api/ethopex/anh
       ((select gia_tri->p.content_id::text from etp.cau_hinh where khoa = 'lo_trinh')->>'bat_dau')::boolean duyet,   -- anh đã bấm Duyệt lên camp
       (select json_build_object('camp', count(*), 'chay', count(*) filter (where c.trang_thai = 'ACTIVE'), 'chi', coalesce(sum(s.chi), 0), 'thu', coalesce(sum(s.thu), 0))
-        from etp.camp c left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id) where c.content_id = p.content_id and c.tao >= p.tao_luc) so,
+        from etp.camp c left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id) where c.content_id = p.content_id and c.tao >= p.tao_luc
+          and (c.camp_id = p.camp_id or c.creative_id in (select (e->>'creative_id')::int from etp.dong_buoc b, jsonb_array_elements(case when jsonb_typeof(b.ket_qua->'ds') = 'array' then b.ket_qua->'ds' else jsonb_build_array(b.ket_qua) end) e
+            where b.dong_id = p.id and b.buoc = 'creative' and e ? 'creative_id'))) so,   -- CHỈ camp của creative thuộc dòng này (03/11/2026: 3 loại cùng phim đếm chung 5 camp thành 15)
       coalesce((select json_agg(json_build_object('buoc', b.buoc, 'thu_tu', b.thu_tu, 'trang_thai', b.trang_thai, 'bat_dau', b.bat_dau, 'ket_thuc', b.ket_thuc, 'han_giay', b.han_giay,
         'lan', b.lan, 'ghi', b.ghi, 'nhip', b.nhip, 'fix', b.fix, 'ket_qua', b.ket_qua) order by b.thu_tu) from etp.dong_buoc b where b.dong_id = p.id), '[]'::json) buoc
     from etp.dong_phim p where ${dk} ${loctim} order by (${coLoi}) desc, (${dangL}) desc, p.id desc limit ${TRANG} offset ${Math.max(0, Math.trunc(trang)) * TRANG}`);

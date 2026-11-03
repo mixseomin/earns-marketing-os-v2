@@ -356,7 +356,7 @@ const LUAT = [
   { card: 'cam-thay-cr-0311', tep: 'apps/cty/worker/ethopex.mjs', cam: "chay(THAY, ['--don-doan']", vi: 'Phòng Ethopex không dọn đoạn (đổi creative camp không bị từ chối)' },
   { card: 'dong-truc-quan-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: 'function DongCay(', cam: '<DataTable rows={du.dong}', vi: 'tab Dòng phim: cây phim → video / camp, mỗi dòng một hàng ô bước tô màu (anh 03/11/2026 "dạng tree… tốn diện tích")' },
   { card: 'dong-truc-quan-0311', tep: 'apps/etp/dong_phim.py', co: 'def tien_do(dong, buoc):', vi: 'bước cắt ghi tiến độ N/M cho thanh %' },
-  { card: 'dong-truc-quan-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: '{id ? `Creative #${id}` : `Đoạn ${i + 1}`}', vi: 'mỗi creative một dòng con, bấm camp mở ngăn chi tiết (cắt → xem lại → đưa lên → chấm → camp → chạy), không chỉ một camp' },
+  { card: 'dong-truc-quan-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: "{id ? `Creative #${id}` : kt ? 'Video kể chuyện' : `Đoạn ${i + 1}`}", vi: 'mỗi creative một dòng con, bấm camp mở ngăn chi tiết (cắt → xem lại → đưa lên → chấm → camp → chạy), không chỉ một camp' },
   { card: 'poster-0311', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: "'/api/ethopex/anh?p='", cam: "'https://acdn.dofez.com/' ||", vi: 'poster dòng phim đi qua cùng miền (trình duyệt anh không tải được CDN thẳng)' },
   { card: 'dong-tay-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: 'Huỷ và chạy lại bước này', vi: 'bấm ô bước (đang lâu / lỗi) ra menu chạy lại / dừng dòng ngay tại ô (anh 03/11/2026)' },
   { card: 'dong-xem-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: 'function KhungXem()', vi: 'rê ô bước Ảnh bìa / Đưa lên / Chấm thấy poster, ảnh + video creative (anh 03/11/2026)' },

@@ -6,6 +6,7 @@
 Dùng: cat-cuoi-lo.py <thư mục phim> <lo.tsv: id\\tlocale\\tnguon\\tten\\turl> <thư mục ra> [song_song=3] [so_ban=1]  → <ra>/lo.json
 so_ban > 1 (anh 22/10/2026: phim âm "thêm góc khác, ko limit để còn tìm hướng sớm"): mỗi phim tới so_ban khung, kết ở các chỗ hết tập khác nhau."""
 import csv, json, os, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 from concurrent.futures import ThreadPoolExecutor
 import importlib.util
 D = os.path.dirname(os.path.abspath(__file__))

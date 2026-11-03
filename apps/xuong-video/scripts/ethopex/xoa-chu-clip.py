@@ -5,6 +5,7 @@
 vùng đó trong đúng quãng đó (boxblur), phần còn lại giữ nguyên. Không có chữ thì chép nguyên.
 Dùng: xoa-chu-clip.py <vào.mp4|url> <ra.mp4>   → in JSON {vung: [[tu, den, x, y, w, h], …]}"""
 import json, os, subprocess, sys, tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 D = os.path.dirname(os.path.abspath(__file__)); MAY = os.path.expanduser("~/.cache/ethopex/hop-chu"); FPS = 5; DEM = 0.04
 def may():
     src = os.path.join(D, "hop-chu.swift")

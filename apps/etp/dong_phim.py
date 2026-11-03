@@ -206,6 +206,33 @@ def b_chay(d, truoc):
 
 HAM = {"nhan": b_nhan, "ws": b_ws, "poster": b_poster, "cat": b_cat, "soat": b_soat, "creative": b_creative, "camp": b_camp, "chay": b_chay}
 
+# ---------------- dựng dự phòng cho studio (anh 03/11/2026: "Cấm mày ren video trên box3" · "CF lỗi thì lùi về iMAC") ----------------
+# studio (apps/xuong-video/src/lib/xuong-video/may-dung-cf.ts) dựng ở máy Cloudflare; lỗi thì xếp xv_dung_imac (0414) và chờ. iMac KÉO việc
+# (box3 không ssh được tới iMac): tải thư mục lượt về, ffmpeg tại iMac, đẩy MP4 về đúng chỗ trên box3.
+FONTS = os.path.join(R, "..", "xuong-video", "public", "fonts")
+def dung_imac():
+    try: j = sql(f"""update xv_dung_imac set trang_thai = 'dang', may = '{MAY}', bat_dau = now() where id = (select id from xv_dung_imac where trang_thai = 'cho'
+               and tao > now() - interval '25 minutes' order by id for update skip locked limit 1) returning json_build_object('id', id, 'thu_muc', thu_muc, 'args', args, 'ra', ra)""")
+    except Exception as e: return print(f"hàng dựng dự phòng chưa đọc được: {str(e)[:120]}", flush=True) if "does not exist" not in str(e) else None
+    if not j: return
+    v = json.loads(j); t0 = time.time(); tm = os.path.join(C, "dung-imac", str(v["id"])); os.makedirs(tm, exist_ok=True)
+    try:
+        r = subprocess.run(["rsync", "-a", "--exclude", v["ra"], f"{B}:{v['thu_muc'].rstrip('/')}/", tm + "/"], capture_output=True, text=True, timeout=600)
+        if r.returncode: raise RuntimeError(f"tải đầu vào: {r.stderr[-200:]}")
+        args = [a.replace("@DIR@", tm).replace("@FONTS@", os.path.abspath(FONTS)) for a in v["args"]]
+        r = subprocess.run(["ffmpeg", *args], capture_output=True, text=True, timeout=15 * 60)
+        ra = os.path.join(tm, v["ra"])
+        if r.returncode or not os.path.exists(ra): raise RuntimeError(f"ffmpeg: {r.stderr[-300:]}")
+        r = subprocess.run(["scp", "-q", ra, f"{B}:{v['thu_muc'].rstrip('/')}/{v['ra']}"], capture_output=True, text=True, timeout=600)
+        if r.returncode: raise RuntimeError(f"đẩy MP4 về box3: {r.stderr[-200:]}")
+        sql(f"update xv_dung_imac set trang_thai = 'xong', xong = now(), giay = {time.time() - t0:.1f} where id = {v['id']}")
+        print(f"[{time.strftime('%H:%M:%S')}] dựng dự phòng #{v['id']} xong ({time.time() - t0:.0f}s)", flush=True)
+    except Exception as e:
+        sql(f"update xv_dung_imac set trang_thai = 'loi', xong = now(), loi = {s(str(e)[:400])} where id = {v['id']}")
+        print(f"[{time.strftime('%H:%M:%S')}] dựng dự phòng #{v['id']} lỗi: {str(e)[:200]}", flush=True)
+    finally:
+        subprocess.run(["mv", tm, os.path.expanduser(f"~/.Trash/dung-imac-{v['id']}")], capture_output=True)   # không xoá thẳng (luật nhà) — vào Thùng rác
+
 # ---------------- vòng chính ----------------
 def doc_dong():
     j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai,
@@ -230,7 +257,10 @@ def lam_buoc(d, buoc):
     print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} · {buoc} → {ket} · {ghi[:160]}", flush=True)
 
 CHAY = {}   # (dòng, bước) → (thread, lần chạy cuối)
+DUNG = [None]
 def vong():
+    if not (DUNG[0] and DUNG[0].is_alive()):   # một lệnh dựng dự phòng một lúc (iMac còn cắt phim cho dòng phim)
+        DUNG[0] = threading.Thread(target=dung_imac, daemon=True); DUNG[0].start()
     sql(f"insert into etp.dong_may (may, nhip, pid) values ('{MAY}', now(), {os.getpid()}) on conflict (may) do update set nhip = now(), pid = excluded.pid")
     for d in doc_dong():
         bs = d.get("buoc") or {}

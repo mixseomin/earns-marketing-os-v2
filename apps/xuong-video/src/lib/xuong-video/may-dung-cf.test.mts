@@ -25,10 +25,10 @@ assert.ok(nhan!.args[1] === '@DIR@/nen.jpg' && nhan!.ra === 'ra.mp4' && khoaNhan
 assert.equal((await readFile(ra)).length, 20_000, 'MP4 trả về ghi đúng chỗ');
 
 const b = await dungFfmpeg(['LOI', ra], { thuMuc, fontsDir: '/f', ra, chayTaiCho });
-assert.ok(b.noi === 'box3' && soTaiCho() === 1 && /500/.test(b.loiCf!), 'cloudflare lỗi → dựng tại box3, giữ lý do');
+assert.ok(b.noi === 'tai_cho' && soTaiCho() === 1 && /500/.test(b.loiCf!), 'cloudflare lỗi (máy không phải box3) → dựng tại chỗ, giữ lý do');
 
 delete process.env.DUNG_CF_URL;
 const c = await dungFfmpeg(['-x', ra], { thuMuc, fontsDir: '/f', ra, chayTaiCho });
-assert.ok(c.noi === 'box3' && soTaiCho() === 2, 'không cấu hình → tại chỗ như cũ');
+assert.ok(c.noi === 'tai_cho' && soTaiCho() === 2, 'không cấu hình (máy không phải box3) → tại chỗ');
 sv.close(); await rm(thuMuc, { recursive: true });
 console.log('✓ may-dung-cf: đổi đường dẫn · gửi đầu vào + nhận MP4 · lỗi → dựng tại box3 · không cấu hình → tại chỗ');

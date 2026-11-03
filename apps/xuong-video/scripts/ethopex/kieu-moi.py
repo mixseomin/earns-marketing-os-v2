@@ -11,6 +11,7 @@ Kiểu (nhãn kho etp — một sổ với MAU_DANG / MA_DANG của etp-view.tsx
   tin_nhan  "tin nhắn"        — mở bằng màn chat điện thoại (tin hiện từng dòng, tiếng ting), rồi vào cảnh thật
 Dùng (iMac): python3 kieu-moi.py <ke-hoach.json> [kiểu…]  → <ra>/<kiểu>.mp4 + in đường tệp. Nạp thư viện: thu-vien-them.mts --content=… --dang=…"""
 import importlib.util, json, os, re, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 from PIL import Image, ImageDraw, ImageFont
 
 D = os.path.dirname(os.path.abspath(__file__))

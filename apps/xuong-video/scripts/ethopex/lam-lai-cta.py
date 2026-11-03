@@ -4,6 +4,7 @@ theo rule mới, khi làm mới chụp ảnh để review"). Cùng đoạn tu–
 nút + giọng + thẻ cuối theo cta_qc.CTA (không mũi tên). Ra <ra>/c-<id>-<tu>.mp4 + <ra>/to-c-<id>-<tu>.jpg (tờ 8 khung để review) + <ra>/lo.json.
 Dùng: lam-lai-cta.py <lo.json cũ (content_id, lang, ten, tu, den [, nguon_qc = mã QC spy | dai = true])> <thư mục ra> [song_song=3]"""
 import importlib.util, json, os, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 from concurrent.futures import ThreadPoolExecutor
 D = os.path.dirname(os.path.abspath(__file__)); N = os.path.expanduser("~/.cache/ethopex/nguon")
 _s = importlib.util.spec_from_file_location("ccl", os.path.join(D, "cat-cuoi-lo.py")); CCL = importlib.util.module_from_spec(_s); _s.loader.exec_module(CCL)

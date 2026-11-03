@@ -5,6 +5,7 @@ Mỗi phim (thư mục do tai-tap.py tải: tap01.mp4 …, poster.jpg): ghép c�
 → đọc chữ cả nguồn một lần (kiem-thoai) chọn khung 2–3' KHÔNG dính từ cấm → cat-canh.py (nút CTA + giọng CTA + thẻ cuối; cổng thoại kiểm lại).
 Dùng: dung-lo-dai.py <thư mục chứa các phim> <phim.tsv: id\\tnguon\\tlocale\\tten\\turl> <thư mục ra> [song_song=3]"""
 import csv, json, os, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageFilter
 

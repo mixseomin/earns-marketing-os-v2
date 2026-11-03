@@ -8,6 +8,7 @@ Từ một đoạn nguồn [tu, den]:
 Bản ra dài đúng (den - tu) giây, mốc 0 = tu → đưa vào cat-canh.py <ra> 0 <den-tu> … như nguồn thường.
 Dùng: che-thoai.py <nguồn.mp4> <tu> <den> <ra.mp4> [--che "a-b,c-d"]"""
 import importlib.util, json, os, subprocess, sys, tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 D = os.path.dirname(os.path.abspath(__file__))
 _s = importlib.util.spec_from_file_location("kt", os.path.join(D, "kiem-thoai.py")); KT = importlib.util.module_from_spec(_s); _s.loader.exec_module(KT)
 FPS, LE = 4, 0.15

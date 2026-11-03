@@ -14,6 +14,7 @@ có lãi (ROI tháng ≥ 50%, chi ≥ $3) mang creative CTA cũ chưa có bản 
 Phim bị đánh dấu cấm ở soát 18+ (ethopex_soat_18 ok=false) thì bỏ qua, báo lại.
 Chạy trên box3 (etp-sua-tu-choi.timer, cổng chữ đọc bằng tesseract — kiem-thoai.doc_linux) hoặc iMac (Vision), gọi ở cuối mỗi đợt lên camp (dot-phim-moi.py): python3 sua-cta.py [--chi <creative cũ> …] [--khong-nb] [--khong-truoc]"""
 import fcntl, glob, importlib.util, json, os, subprocess, sys, time
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import loi_ky_thuat as LK; import soat_doan as SD
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 N, Q = os.path.join(C, "nguon"), os.path.join(C, "nguon-qc")

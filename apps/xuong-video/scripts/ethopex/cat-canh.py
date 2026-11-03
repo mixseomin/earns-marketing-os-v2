@@ -11,6 +11,7 @@ thêm tên phim) + dòng vàng "WHAT HAPPENS NEXT?" (KHÔNG mũi tên / icon ch�
 - Mọi chữ (nút, dòng hỏi) qua luật chữ studio (ghep-b.chu_studio).
 Dùng: python3 cat-canh.py <nguon.mp4> <tu_giay> <den_giay> <poster.png> <font.json|-> <CTA> <ra.mp4> [giong.mp3|-] [cau_hoi]"""
 import json, os, re, sys, importlib.util
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 from PIL import Image, ImageDraw
 
 D = os.path.dirname(os.path.abspath(__file__))

@@ -7,6 +7,7 @@ cho len-creative.py (creative MỚI, máy chấm lại như mọi creative). Kh�
   · còn lại < GIU (40%) thời lượng, hoặc lỗi nằm ở thoại cả video (khung dính ≥ 60% số khung)
 Chạy (iMac):  python3 cat-bo-cham.py <mã lô ra> <creative_id…>   → ~/.cache/ethopex/ra/<mã>/lo.json, rồi: len-creative.py <lo.json> <mã> "<dạng>" --da-soat"""
 import json, os, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 D = os.path.dirname(os.path.abspath(__file__)); C = os.path.expanduser("~/.cache/ethopex")
 B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 GIU, THE_CUOI, TRAN_KHUNG = 0.4, 6.0, 0.6

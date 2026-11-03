@@ -104,7 +104,7 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0): P
 export async function docChiTiet(dongId: number): Promise<{ camps: CampDong[]; crs: Record<string, { anh: string | null; video: string | null }> } | { loi: string }> {
   if (!(await quyen())) return { loi: 'không có quyền' };
   const id = Math.trunc(Number(dongId));
-  const camps = await run<CampDong>(sql`select c.camp_id id, c.trang_thai tt, c.creative_id cr, c.ngan_sach ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu
+  const camps = await run<CampDong>(sql`select c.camp_id::int id, c.trang_thai tt, c.creative_id::int cr, c.ngan_sach::float ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu
       from etp.dong_phim p join etp.camp c on c.content_id = p.content_id and c.tao >= p.tao_luc left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id)
       where p.id = ${id} order by c.camp_id`);
   const [r] = await run<{ crs: Record<string, { anh: string | null; video: string | null }> }>(sql`select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video)), '{}'::json) crs

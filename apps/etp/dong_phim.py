@@ -105,10 +105,15 @@ def b_nhan(d):
     if doi: return "dung", f"{doi} (đội) đang giữ phim này", None
     co = sql(f"select string_agg(camp_id::text, ' ') from etp.camp where content_id = {cid} and (trang_thai = 'ACTIVE' or coalesce(dong_bo, '') not in ('done', 'synced', 'error'))")
     if co: return "dung", f"phim đã có camp đang chạy: #{co} — mỗi lần chỉ lên một camp cho một phim (luật anh 03/11/2026)", None
-    sql(f"""insert into etp.phim_nhan (content_id, nguoi_id, nguoi, het_luc)
-            select {cid}, g.nguoi_id, 'Nhà', now() + interval '24 hours' from (select nguoi_id from etp.tai_khoan where nha order by nguoi_id limit 1) g
-            where not exists (select 1 from etp.phim_nhan_v n where n.content_id = {cid} and n.trang_thai in ('giu', 'da_len'))""")
+    nhan_lai(cid)
     return "xong", "Nhà nhận phim (giữ 24 giờ), nhóm gốc Âu-Mỹ, không trong sổ cấm", None
+
+def nhan_lai(cid):
+    """Nhà giữ phim nếu chưa ai giữ — dùng ở bước Nhận và SAU KHI POSTER QUA (03/11/2026: poster cấm → kiem-phim-18 nha_phim_cam trả phim; anh bỏ chặn + FIX
+    poster thì dòng chạy tiếp nhưng phim đã 'tra' → nhan-ban chặn 'phim mới chưa nhận', 2 phim kẹt ở bước camp)"""
+    sql(f"""insert into etp.phim_nhan (content_id, nguoi_id, nguoi, het_luc)
+            select {int(cid)}, g.nguoi_id, 'Nhà', now() + interval '24 hours' from (select nguoi_id from etp.tai_khoan where nha order by nguoi_id limit 1) g
+            where not exists (select 1 from etp.phim_nhan_v n where n.content_id = {int(cid)} and n.trang_thai in ('giu', 'da_len'))""")
 
 TRANG = r'''
 import importlib.util, sys, json
@@ -134,6 +139,7 @@ def b_poster(d):
     v = khoa_studio("ethopex_soat_18").get(str(cid)) or {}
     if v.get("ok") is False: return "dung", f"soát 18+: {v.get('ghi', 'cấm')}", None
     if rc: return "loi", f"soát poster lỗi (mã {rc}): {out[-200:]}", None
+    nhan_lai(cid)   # poster qua (kể cả sau khi bỏ chặn) → phim phải đang được Nhà giữ
     return "xong", (out.splitlines() or ["poster sạch"])[-1][:300], None
 
 def b_cat(d):

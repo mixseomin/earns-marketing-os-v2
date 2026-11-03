@@ -392,6 +392,8 @@ const LUAT = [
   { card: 1516, tep: 'apps/web/src/components/etp-view.tsx', co: "['ky', (c) => kh === 'tat_ca' ||", vi: 'chọn kỳ ở trên thì danh sách camp lọc theo kỳ' },
   { card: 'the-noi-0311', tep: 'apps/web/src/components/etp-view.tsx', co: 'function DongMoc({ ds,', vi: 'dòng thời gian mốc dùng chung (thẻ bậc + thẻ lý do dừng)' },
   { card: 'the-noi-0311', tep: 'apps/web/src/components/etp-view.tsx', co: '<ReDung c={p.c}>', vi: 'chip luật đã tắt mở thẻ lý do dừng cùng khuôn thẻ bậc' },
+  { card: 'the-noi-0311', tep: 'apps/web/src/components/etp-view.tsx', co: '{/* cùng khung thẻ bậc (TheBac) */}', vi: 'thẻ lý do dừng có khung cố định như thẻ bậc' },
+  { card: 'the-noi-0311', tep: 'apps/web/src/lib/etp-doc.ts', co: 'maSo: maLuat(r.viec, r.luat)', vi: 'mã luật chỉ khi khớp sổ luật, không lấy chữ đầu câu' },
   { card: 'lo-trinh-0311', tep: 'apps/etp/dong_phim.py', co: 'CHỜ ANH BẮT ĐẦU', vi: 'dòng phim LT dừng trước bước lên camp tới khi anh bắt đầu (anh 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'not _lt.get("bat_dau") and (cm := camp_moi_hom_nay(cid))', vi: 'phim lộ trình đã bắt đầu được miễn luật một camp (anh chọn A 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/etp/tho.py', co: '"ETP_KIEU": d["kieu"]', vi: 'thợ cắt truyền kiểu tập trọn cho dòng LT' },

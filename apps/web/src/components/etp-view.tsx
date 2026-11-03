@@ -266,9 +266,10 @@ function DongBac({ ls }: { ls: DuLieuEtp['lsBac'][number] }) {
 // THẺ LÝ DO DỪNG — cùng khuôn thẻ bậc: đầu = camp nào, dòng lớn = kiểu dừng, dưới = mốc (Lúc · Luật · Duyệt / Ethopex báo)
 function TheDung({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ten'> & Parameters<typeof kieuDung>[0] }) {
   const k = kieuDung(c);
-  return <><DauCamp c={c} />
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}><b style={{ fontSize: 14, color: k.mau }}>{k.ky} {k.ten}</b></div>
-    <DongMoc ds={k.moc} /></>;
+  return <div style={{ width: 380, maxWidth: '92vw', maxHeight: 420, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>   {/* cùng khung thẻ bậc (TheBac) */}
+    <DauCamp c={c} />
+    <div style={{ marginBottom: 8 }}><b style={{ fontSize: 13, color: k.mau }}>{k.ky} {k.ten}</b></div>
+    <DongMoc ds={k.moc} /></div>;
 }
 // Ô RÊ RA THẺ LÝ DO DỪNG (ô TT, chip ✕ luật ở cột Luật) — thẻ nổi chung (useNoi + KhungNoi: trễ mở, ✕ + Esc)
 function ReDung({ c, children }: { c: Parameters<typeof TheDung>[0]['c']; children: React.ReactNode }) {

@@ -13,6 +13,8 @@ const NHAT_KY_LUAT = Object.values(BANG_LUAT.khoa).flatMap((v) => {
   const viec = x.nhat_ky[0]!, ten = x.tat?.ten ?? x.ha?.ten ?? (viec === 'tat' || viec === 'giam' ? (x.ma ?? '').toUpperCase() : x.nhan?.[1] ?? (x.ma ?? '').toUpperCase());
   return [{ viec, re: new RegExp(x.nhat_ky[1]!), ten }];
 });
+/** mã luật CHỈ khi khớp sổ luật chung (không lấy chữ đầu câu ghi làm mã — 03/11/2026 thẻ dừng hiện 'creative cắt từ QC spy ReelShort' như một mã luật) */
+export const maLuat = (viec: string, luat: string | null) => NHAT_KY_LUAT.find((k) => k.viec === viec && k.re.test(luat ?? ''))?.ten ?? null;
 export const luatDaLam = (viec: string, luat: string | null) => NHAT_KY_LUAT.find((k) => k.viec === viec && k.re.test(luat ?? ''))?.ten
   ?? ((luat ?? '').split(/ \(| —| ·/)[0]!.trim().slice(0, 40) || 'Tay / không ghi luật');
 
@@ -389,7 +391,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const daLam = (await runNha<{ camp_id: number; viec: string; luat: string | null; luc: string; ngay: string }>(sql`select distinct on (n.camp_id, n.viec) n.camp_id, n.viec, n.luat,
       n.luc::text luc, (n.luc at time zone 'UTC')::date::text ngay from etp.nhat_ky n join etp.camp c using (camp_id)
       where (n.viec = 'tat' and (n.ok or n.loi like '%đọc lại%') and c.trang_thai <> 'ACTIVE') or (n.viec = 'giam' and (n.ok or n.loi like '%đọc lại%'))
-      order by n.camp_id, n.viec, n.luc desc`).catch(() => [])).map((r) => ({ camp_id: n(r.camp_id), viec: r.viec, ma: luatDaLam(r.viec, r.luat), luc: String(r.luc), ngay: String(r.ngay) }));
+      order by n.camp_id, n.viec, n.luc desc`).catch(() => [])).map((r) => ({ camp_id: n(r.camp_id), viec: r.viec, ma: luatDaLam(r.viec, r.luat), maSo: maLuat(r.viec, r.luat), luc: String(r.luc), ngay: String(r.ngay) }));
   const [taiNguyen, mayTho, hd, bao, roas, baoHoa, nbLoi, phot, tieuChi, cham, chamHang, roasChay, viecSx, choCamp] = await Promise.all([
     run<DuLieuEtp['taiNguyen'][number]>(sql`select loai, id, external_id, ten, trang_thai, them from etp.tai_nguyen order by loai, ten`),
     run<Record<string, unknown>>(sql`select may, count(*) filter (where trang_thai = 'xong') xong, count(*) filter (where trang_thai = 'loi') loi, count(*) filter (where trang_thai = 'dang') dang,
@@ -445,7 +447,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   }
   // lý do dừng gắn vào camp (một nguồn cho ô trạng thái ở cây / bảng / ngăn): "… · dừng lúc HH:MM DD/MM · lý do: … · tháng này …"
   const dongCua = new Map(bao.filter((b) => b.nhom === 'dong').map((b) => { const m = /dừng lúc ([^·]+?) · lý do: (.+?)(?: · tháng này.*)?$/.exec(b.chu); return [b.camp_id, m ? { luc: m[1]!.trim(), ly_do: m[2]!.trim() } : null] as const; }));
-  const tatCua = new Map(daLam.filter((x) => x.viec === 'tat').map((x) => [x.camp_id, x.ma]));
+  const tatCua = new Map(daLam.filter((x) => x.viec === 'tat').map((x) => [x.camp_id, x.maSo]));
   for (const c of cs) if (c.trang_thai !== 'ACTIVE') { const g = dongCua.get(c.camp_id); c.dong = g ? { ...g, ma: tatCua.get(c.camp_id) ?? null,
     dieu: /luật:\s*(.+?)(?: · duyệt:|$)/.exec(g.ly_do)?.[1]?.trim() ?? null, duyet: /duyệt:\s*(.+?)(?:\s+—\s*máy chạy)?$/.exec(g.ly_do)?.[1]?.trim() ?? null } : null; }
   return { nguoi: { ds: nguoiDs, dang: dangId, nha: nhaId, ngoai, doi }, luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, creatives: [...crMap.values()], phims, thuVien,

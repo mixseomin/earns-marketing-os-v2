@@ -65,12 +65,20 @@ const choGio = (c: Pick<CampEtpKho, 'trang_thai' | 'lich'>) => c.trang_thai === 
 // CHỮ TRẠNG THÁI MỘT CHỖ (anh 29/10/2026: camp hẹn lịch hiện 'chạy' — phải là "chờ 2h nữa"): chấm TT + cột Trạng thái cùng đọc hàm này
 const conLai = (iso: string) => { const p = Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 60000)); return p >= 60 ? `${Math.floor(p / 60)}h${p % 60 >= 10 ? `${p % 60}p` : ''}` : `${p}p`; };
 // LÝ DO DỪNG cho hover ô trạng thái (anh 02/11/2026 "hover vào status dừng thì show lý do dừng, ai dừng") — c.dong do etp-doc gắn từ ghi chép máy luật
-const lyDoDung = (c: { dong?: CampEtpKho['dong'] }) => (c.dong ? `dừng lúc ${c.dong.luc}\n${c.dong.ly_do}` : 'tắt — chưa có ghi chép lý do (máy luật đọc lịch sử camp mỗi nhịp; camp người khác chưa có)');
-const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean; dong?: CampEtpKho['dong'] }): { chu: string; mau: string; t: string } =>
-  c.giao === 'DISAPPROVED' ? { chu: 'Meta từ chối', mau: '#f87171', t: 'Meta từ chối' }
+const lyDoDung = (c: { dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?: string | null; giao?: string | null }) => kieuDung(c).t;   // một nguồn với icon kiểu dừng (kieuDung)
+// KIỂU DỪNG (anh 03/11/2026 "mọi camp tắt đều phải có lý do… thêm 1 icon phụ bên cạnh chữ dừng để biết ngay kiểu tắt"): đọc MỌI nguồn có sẵn, không chỉ nhật ký máy luật —
+// ⚙ máy luật tắt (L3 / G10…) · ⚠ lỗi tạo / đồng bộ (etp.camp.loi, dong_bo = error) · ⏳ Ethopex / Meta đang duyệt (dong_bo chưa xong) · ✋ tắt ngoài máy luật (tay trên Ethopex / tạo sẵn dừng)
+const kieuDung = (c: { dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?: string | null; giao?: string | null }): { ky: string; chu: string; t: string } => {
+  if (c.dong) { const l = /^([A-Z][A-Z0-9]{0,3})\b/.exec(c.dong.ly_do)?.[1]; return { ky: '⚙', chu: `máy tắt${l ? ` · ${l}` : ''}`, t: `máy luật tắt lúc ${c.dong.luc}\n${c.dong.ly_do}` }; }
+  if (c.dong_bo === 'error' || c.loi) return { ky: '⚠', chu: 'lỗi tạo camp', t: `camp chưa từng chạy — Ethopex báo lỗi khi tạo / đồng bộ:\n${c.loi ?? c.dong_bo}` };
+  if (c.dong_bo && !['done', 'synced'].includes(c.dong_bo)) return { ky: '⏳', chu: 'Meta đang duyệt', t: `camp mới đang ở bước ${c.dong_bo} — duyệt xong tự chạy theo lịch` };
+  return { ky: '✋', chu: 'tắt ngoài máy', t: `không có ghi chép máy luật — tắt bằng tay trên Ethopex, hoặc camp tạo sẵn ở trạng thái dừng${c.giao ? ` (Ethopex: ${c.giao})` : ''}` };
+};
+const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean; dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?: string | null }): { chu: string; mau: string; t: string } =>
+  c.giao === 'DISAPPROVED' ? { chu: '⛔ Meta từ chối', mau: '#f87171', t: 'Meta từ chối' }
   : c.lich_tat ? { chu: 'dừng theo giờ', mau: '#f59e0b', t: 'tạm dừng theo lịch giờ — máy tự bật lại khi tới khung BẬT' }
   : choGio(c) ? { chu: `chờ ${conLai(c.lich!)} nữa`, mau: '#f59e0b', t: `hẹn chạy từ ${vn(c.lich)}` }
-  : c.trang_thai === 'ACTIVE' ? { chu: 'chạy', mau: '#4ade80', t: 'đang chạy' } : { chu: 'dừng', mau: 'var(--fg-2)', t: lyDoDung(c) };
+  : c.trang_thai === 'ACTIVE' ? { chu: 'chạy', mau: '#4ade80', t: 'đang chạy' } : (() => { const k = kieuDung(c); return { chu: `${k.ky} ${k.chu}`, mau: k.ky === '⚠' ? '#f87171' : k.ky === '⏳' ? '#60a5fa' : 'var(--fg-2)', t: k.t }; })();
 // PHẠM VI LƯU THEO NGƯỜI ĐANG XEM (anh 02/11/2026 "layout, filter, search… thì ko được thông nhau"): bảng (cột / sắp xếp / lọc cột / ô tìm / độ rộng) và cây mở-gập
 // lưu riêng cho Nhà · từng người · Team. Nhà để phạm vi rỗng = giữ nguyên bộ đã lưu từ trước
 const phamViNg = (du: DuLieuEtp) => (du.nguoi.doi ? 'team' : du.nguoi.ngoai && du.nguoi.dang != null ? `ng${du.nguoi.dang}` : '');
@@ -79,7 +87,7 @@ const dangChay = (c: Pick<CampEtpKho, 'trang_thai' | 'lich'>) => c.trang_thai ==
 const MAU_ROAS = '#facc15';   // camp ROAS tô vàng ở cây / bảng camp (anh 27/10/2026)
 // đã tiêu ≥ ngân sách ngày → Meta gần như ngừng phân phối tới lúc ngân sách nạp lại 07:00 VN (anh 26/10/2026: dòng đó để mờ hơn)
 const hetNs = (c: Pick<CampEtpKho, 'trang_thai' | 'ngan_sach' | 'nay'>) => c.trang_thai === 'ACTIVE' && c.ngan_sach > 0 && c.nay.chi >= c.ngan_sach;
-const TT = ({ c }: { c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean; dong?: CampEtpKho['dong'] } }) => {
+const TT = ({ c }: { c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat?: boolean; dong?: CampEtpKho['dong']; loi?: string | null; dong_bo?: string | null } }) => {
   const lich = choGio(c);
   const [mau, chu] = c.giao === 'DISAPPROVED' ? [MAU_DEN.loi, 'Meta từ chối'] : c.lich_tat ? [MAU_DEN.phong, 'tạm dừng theo lịch giờ — máy tự bật lại khi tới khung BẬT'] : lich ? [MAU_DEN.cho, `lịch ${vn(c.lich)}`] : c.trang_thai === 'ACTIVE' ? [MAU_DEN.chay, 'đang chạy'] : [MAU_DEN.tat, lyDoDung(c)];
   return <Den mau={mau} t={chu} song={c.trang_thai === 'ACTIVE' && !lich && c.giao !== 'DISAPPROVED'} />;

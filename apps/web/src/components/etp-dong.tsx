@@ -23,118 +23,97 @@ const ngayGio = (iso: string | null) => { if (!iso) return '—'; const d = new 
 const phut = (a: string | null, b: string | null) => { if (!a) return null; const s = ((b ? Date.parse(b) : Date.now()) - Date.parse(a)) / 1000; return s < 60 ? `${Math.round(s)}s` : s < 3600 ? `${Math.round(s / 60)}p` : `${Math.floor(s / 3600)}h${String(Math.round((s % 3600) / 60)).padStart(2, '0')}`; };
 const ket = (b: BuocDong) => b.trang_thai === 'dang' && (Date.now() - Date.parse(b.bat_dau ?? '') > b.han_giay * 1000 || Date.now() - Date.parse(b.nhip ?? b.bat_dau ?? '') > 600_000);
 
-// TÊN BƯỚC CHO NGƯỜI XEM (anh 03/11/2026 "tab đó trình bày toàn số, ko trực quan"): mỗi dòng một thẻ, 8 bước nối như thanh tiến độ, câu "đang làm gì" + thanh % từ 'N/M'
-const DE: Record<string, string> = { nhan: 'Nhận phim', ws: 'Trang phim', poster: 'Kiểm ảnh bìa', cat: 'Cắt video', soat: 'Xem lại video', creative: 'Đưa lên + chấm', camp: 'Lên camp', chay: 'Camp chạy' };
-const LOAI_DE: Record<string, string> = { CC: 'Cảnh cuối tập', KT: 'Kể chuyện', LT: 'Test rộng — mỗi tập một video' };
-const soPhan = (t: string | null) => { const m = (t ?? '').match(/(\d+)\s*\/\s*(\d+)/); const a = Number(m?.[1]), b = Number(m?.[2]); return b > 0 ? Math.min(1, a / b) : null; };
+// CÂY PHIM → VIDEO / CAMP (anh 03/11/2026 "trình bày dạng tree từ phim -> các camp / video: mỗi dòng là 1 table các bước, highlight từng bước thành công,
+// đang xử lý. Ko trình bày như bây giờ, tốn diện tích"): dòng phim = 8 ô bước của dòng; dòng con = mỗi video (đoạn → creative → chấm → camp → chạy).
+const COT: [string, string][] = [['nhan', 'Nhận'], ['ws', 'Trang'], ['poster', 'Ảnh bìa'], ['cat', 'Cắt'], ['soat', 'Xem lại'], ['len', 'Đưa lên'], ['cham', 'Chấm'], ['camp', 'Lên camp'], ['chay', 'Chạy']];
+const BUOC_COT: Record<string, string> = { len: 'creative', cham: 'creative' };   // dòng phim: hai cột Đưa lên / Chấm cùng là bước creative
+const LOAI_DE: Record<string, string> = { CC: 'Cảnh cuối', KT: 'Kể chuyện', LT: 'Test rộng' };
+const NEN: Record<string, string> = { xong: '#14532d', dang: '#1e3a8a', chay: '#1e3a8a', dung: '#78350f', loi: '#7f1d1d', cho: 'transparent', bo_qua: 'transparent' };
+const CHU: Record<string, string> = { xong: '#86efac', dang: '#bfdbfe', chay: '#bfdbfe', dung: '#fcd34d', loi: '#fca5a5', cho: 'var(--fg-3)', bo_qua: 'var(--fg-3)' };
+const KY: Record<string, string> = { xong: '✓', dang: '▶', chay: '▶', dung: '⏸', loi: '!', cho: '·', bo_qua: '–' };
 
-function NutBuoc({ d, b, xong }: { d: DongPhim; b: BuocDong; xong: () => void }) {
-  const [dang, setDang] = useState(false);
-  const ke = ket(b); const tt = ke ? 'loi' : b.trang_thai;
-  const [mau] = MAU[tt] ?? ['#6b7280'];
-  const coFix = d.trang_thai !== 'huy' && (b.trang_thai === 'loi' || b.trang_thai === 'dung' || ke);
-  const t = `${DE[b.buoc] ?? b.buoc} · ${MAU[b.trang_thai]?.[1] ?? b.trang_thai}${b.lan > 1 ? ` · lần ${b.lan}` : ''}\nbắt đầu ${ngayGio(b.bat_dau)} · xong ${ngayGio(b.ket_thuc)}`
-    + `${ke ? '\n⚠ KẸT: quá hạn hoặc máy im > 10 phút' : ''}${b.ghi ? `\n\n${b.ghi}` : ''}\n\n${TEN_BUOC[b.buoc]?.[1] ?? ''}`;
-  const ky = tt === 'xong' ? '✓' : tt === 'dang' || tt === 'chay' ? '▶' : tt === 'loi' ? '!' : tt === 'dung' ? '⏸' : tt === 'bo_qua' ? '–' : '';
-  return <div title={t} style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: tt === 'bo_qua' ? 0.4 : 1 }}>
-    <span style={{ width: 26, height: 26, borderRadius: 13, display: 'grid', placeItems: 'center', fontSize: 13, fontWeight: 700, zIndex: 1,
-      background: tt === 'cho' ? 'var(--bg-1)' : mau, color: tt === 'cho' ? 'var(--fg-3)' : '#0b0b0f', border: `2px solid ${mau}`,
-      boxShadow: tt === 'dang' ? `0 0 0 4px ${mau}33` : undefined, animation: tt === 'dang' ? 'pulse 1.6s ease-in-out infinite' : undefined }}>{ky}</span>
-    <span style={{ fontSize: 12, fontWeight: tt === 'dang' ? 700 : 500, color: tt === 'cho' ? 'var(--fg-3)' : 'var(--fg-1)', textAlign: 'center', whiteSpace: 'nowrap' }}>{DE[b.buoc] ?? b.buoc}</span>
-    <span style={{ fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'nowrap' }}>{tt === 'bo_qua' ? 'bỏ qua' : b.bat_dau ? (b.ket_thuc ? phut(b.bat_dau, b.ket_thuc) : `${phut(b.bat_dau, null)}…`) : ''}</span>
-    {coFix ? <button className="btn" disabled={dang} style={{ padding: '0 6px', fontSize: 11, lineHeight: '16px', color: '#fca5a5', borderColor: '#7f1d1d' }}
-      onClick={async () => { setDang(true); const r = await fixBuoc(d.id, b.buoc); setDang(false); if ('loi' in r) window.alert(r.loi); xong(); }}>FIX</button> : null}
-  </div>;
+function O({ tt, chu, t, fix }: { tt: string; chu?: string; t?: string; fix?: () => void }) {
+  return <td title={t} style={{ padding: 2 }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 24, borderRadius: 5, fontSize: 11, whiteSpace: 'nowrap',
+    background: NEN[tt] ?? 'transparent', color: CHU[tt] ?? 'var(--fg-3)', border: tt === 'cho' || tt === 'bo_qua' ? '1px dashed var(--line)' : 'none', fontWeight: tt === 'dang' ? 700 : 500,
+    animation: tt === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>
+    <span>{KY[tt] ?? ''}</span>{chu ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 74 }}>{chu}</span> : null}
+    {fix ? <button className="btn" onClick={fix} style={{ padding: '0 4px', fontSize: 10, lineHeight: '14px', color: '#fca5a5', borderColor: '#7f1d1d' }}>FIX</button> : null}</div></td>;
 }
 
-function TheDong({ d, xong }: { d: DongPhim; xong: () => void }) {
-  const ds = Object.keys(TEN_BUOC).map((k) => d.buoc.find((b) => b.buoc === k)).filter((b): b is BuocDong => !!b);
-  const hien = ds.find((b) => b.trang_thai === 'dang' || b.trang_thai === 'loi' || b.trang_thai === 'dung') ?? ds.find((b) => b.trang_thai === 'cho');
-  const soXong = ds.filter((b) => b.trang_thai === 'xong' || b.trang_thai === 'bo_qua').length;
-  const [m, c] = MAU[d.trang_thai] ?? ['#6b7280', d.trang_thai];
-  const cau = d.trang_thai === 'xong' || (!hien && ds.length && soXong === ds.length) ? `Xong sau ${phut(d.tao_luc, d.xong_luc ?? ds[ds.length - 1]?.ket_thuc ?? null)}${d.camp_id ? ` — camp #${d.camp_id} đang chạy` : ''}`
-    : d.trang_thai === 'huy' ? `Đã dừng${d.ly_do ? `: ${d.ly_do}` : ''}`
-    : hien ? `${hien.trang_thai === 'dang' ? 'Đang' : hien.trang_thai === 'loi' ? 'Lỗi ở' : hien.trang_thai === 'dung' ? 'Dừng ở' : 'Chờ'} bước ${ds.indexOf(hien) + 1}/${ds.length} · ${DE[hien.buoc]}` : c;
-  const ghi = d.trang_thai === 'dung' || d.trang_thai === 'loi' ? d.ly_do ?? hien?.ghi : hien?.ghi;
-  const ph = soPhan(ghi ?? null);
-  const pct = Math.round(((soXong + (hien?.trang_thai === 'dang' && ph != null ? ph : 0)) / Math.max(ds.length, 1)) * 100);
-  const daLam = ds.length ? soXong / (ds.length - 1) : 0;
-  return <div style={{ border: '1px solid var(--line)', borderRadius: 10, padding: '12px 14px', background: 'var(--bg-1)' }}>
-    <div style={{ display: 'flex', gap: 14 }}>
-    {d.anh ? <img src={d.anh} alt="" style={{ width: 72, height: 102, objectFit: 'cover', borderRadius: 8, flex: 'none', border: '1px solid var(--line)' }} />
-      : <div style={{ width: 72, height: 102, borderRadius: 8, flex: 'none', display: 'grid', placeItems: 'center', background: 'var(--bg-2)', fontSize: 26 }}>🎬</div>}
-    <div style={{ flex: 1, minWidth: 0 }}>
-    <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-      <a onClick={() => openEntityDrawer('etp-phim', d.content_id)} style={{ cursor: 'pointer', fontWeight: 700, fontSize: 14 }}>{d.ten ?? `phim #${d.content_id}`}</a>
-      <span style={{ fontSize: 12, color: 'var(--fg-2)' }}>{LOAI_DE[d.loai] ?? d.loai}</span>
-      <span title={`dòng #${d.id} · ${d.ai ?? ''} · tạo ${ngayGio(d.tao_luc)}`} style={{ fontSize: 11, color: 'var(--fg-3)' }}>bắt đầu {ngayGio(d.tao_luc)}</span>
-      <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: m }}>
-        <span style={{ width: 8, height: 8, borderRadius: 4, background: m }} />{cau}</span>
-      {d.trang_thai === 'chay' || d.trang_thai === 'dung' || d.trang_thai === 'loi'
-        ? <button className="btn" style={{ fontSize: 11 }} onClick={async () => { if (!window.confirm(`Dừng hẳn dòng ${d.ten ?? d.content_id}?`)) return; await dungDong(d.id); xong(); }}>Dừng</button> : null}
-    </div>
-    <div style={{ position: 'relative', display: 'flex', margin: '14px 0 8px' }}>
-      <div style={{ position: 'absolute', top: 12, left: '6%', right: '6%', height: 2, background: 'var(--line)' }} />
-      <div style={{ position: 'absolute', top: 12, left: '6%', width: `${Math.min(1, daLam) * 88}%`, height: 2, background: '#22c55e' }} />
-      {ds.map((b) => <NutBuoc key={b.buoc} d={d} b={b} xong={xong} />)}
-    </div>
-    <div style={{ position: 'relative', height: 22, borderRadius: 11, background: 'var(--bg-2)', border: '1px solid var(--line)', overflow: 'hidden' }}>
-      <div style={{ width: `${pct}%`, height: '100%', background: d.trang_thai === 'loi' ? '#dc2626' : d.trang_thai === 'dung' ? '#d97706' : pct >= 100 ? '#16a34a' : '#2563eb', transition: 'width .4s' }} />
-      <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: 12, fontWeight: 700, color: '#fff', textShadow: '0 1px 2px #000a', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-        {pct}%{ghi ? <span style={{ fontWeight: 500, marginLeft: 8, overflow: 'hidden', textOverflow: 'ellipsis' }}>· {ghi}</span> : null}</span>
-    </div>
-    <LoVideo d={d} ds={ds} />
-    </div></div>
-  </div>;
-}
-
-// MỖI VIDEO MỘT Ô (anh 03/11/2026 "mỗi phim giờ phải lên nhiều camp, trong đó chỉ thấy 1 camp 1 phim"): đoạn cắt → creative (chấm) → camp (trạng thái, chi, lãi)
-function LoVideo({ d, ds }: { d: DongPhim; ds: BuocDong[] }) {
-  const kq = (k: string) => ds.find((b) => b.buoc === k)?.ket_qua ?? null;
+function DongCay({ d, xong }: { d: DongPhim; xong: () => void }) {
+  const [mo, setMo] = useState(true);
+  const b = (k: string) => d.buoc.find((x) => x.buoc === (BUOC_COT[k] ?? k));
+  const kq = (k: string) => b(k)?.ket_qua ?? null;
+  const ttB = (x?: BuocDong) => (x ? (ket(x) ? 'loi' : x.trang_thai) : 'cho');
   const cr = kq('creative')?.ds ?? []; const sach = new Set((kq('creative')?.sach ?? []).map((x) => x.creative_id));
-  const doan = kq('soat')?.doan ?? kq('cat')?.doan ?? [];
-  const daCham = ds.find((b) => b.buoc === 'creative')?.trang_thai === 'xong';
-  const o = cr.length ? cr.map((x) => ({ k: `c${x.creative_id}`, tu: x.tu, den: x.den, cr: x.creative_id, camp: d.camps.find((c) => c.cr === x.creative_id) ?? null }))
-    : doan.map((x, i) => ({ k: `d${i}`, tu: x.tu, den: x.den, cr: null as number | null, camp: null as DongPhim['camps'][number] | null }));
-  const le = d.camps.filter((c) => !o.some((x) => x.camp?.id === c.id));
-  if (!o.length && !le.length) return null;
-  const Hop = ({ tieu, phu, mau, t }: { tieu: string; phu: string; mau: string; t: string }) => <div title={t} style={{ minWidth: 92, padding: '5px 8px', borderRadius: 8, border: `1px solid ${mau}66`, background: `${mau}14` }}>
-    <div style={{ fontSize: 12, fontWeight: 700, color: mau, whiteSpace: 'nowrap' }}>{tieu}</div><div style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{phu}</div></div>;
-  const oCamp = (c: DongPhim['camps'][number]) => { const lai = c.thu - c.chi; return { tieu: `camp #${c.id}`, mau: c.tt === 'ACTIVE' ? (c.chi > 0 && lai < 0 ? '#f87171' : '#4ade80') : '#9ca3af',
-    phu: `${c.tt === 'ACTIVE' ? 'chạy' : 'tắt'} · $${c.ns ?? '?'}${c.chi > 0 ? ` · lãi ${lai >= 0 ? '+' : ''}$${lai.toFixed(2)}` : ''}` }; };
-  return <div style={{ marginTop: 10 }}>
-    <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 5 }}>{o.length} video{d.camps.length ? ` · ${d.camps.length} camp (${d.camps.filter((c) => c.tt === 'ACTIVE').length} đang chạy)` : ''}</div>
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-      {o.map((x, i) => { const g = x.tu != null && x.den != null ? `${Math.round(x.tu)}–${Math.round(x.den)}s` : '';
-        if (x.camp) { const v = oCamp(x.camp); return <Hop key={x.k} tieu={`Video ${i + 1} · ${v.tieu}`} phu={v.phu} mau={v.mau} t={`đoạn ${g} · creative #${x.cr}`} />; }
-        if (x.cr) { const s_ = sach.has(x.cr); return <Hop key={x.k} tieu={`Video ${i + 1}`} phu={!daCham && !s_ ? `#${x.cr} · đang chấm` : s_ ? `#${x.cr} · sạch, chờ lên camp` : `#${x.cr} · bị chặn`}
-          mau={!daCham && !s_ ? '#60a5fa' : s_ ? '#22c55e' : '#f59e0b'} t={`đoạn ${g} · creative #${x.cr}`} />; }
-        return <Hop key={x.k} tieu={`Video ${i + 1}`} phu={`đã cắt · ${g}`} mau="#a78bfa" t={`đoạn ${g} — chờ soát / đưa lên`} />; })}
-      {le.map((c) => { const v = oCamp(c); return <Hop key={`l${c.id}`} tieu={v.tieu} phu={v.phu} mau={v.mau} t={`creative #${c.cr}`} />; })}
-    </div>
-  </div>;
+  const doan = cr.length ? cr : (kq('soat')?.doan ?? kq('cat')?.doan ?? []);
+  const chamXong = b('creative')?.trang_thai === 'xong';
+  const ttDong = d.trang_thai === 'chay' && d.buoc.length && d.buoc.every((x) => x.trang_thai === 'xong' || x.trang_thai === 'bo_qua') ? 'xong' : d.trang_thai;
+  const hien = d.buoc.find((x) => ['dang', 'loi', 'dung'].includes(x.trang_thai));
+  const ghi = d.trang_thai === 'dung' || d.trang_thai === 'loi' ? d.ly_do ?? hien?.ghi : hien?.ghi ?? (ttDong === 'xong' ? `xong sau ${phut(d.tao_luc, d.xong_luc ?? d.buoc[d.buoc.length - 1]?.ket_thuc ?? null)}` : null);
+  const fixF = (x?: BuocDong) => x && d.trang_thai !== 'huy' && (x.trang_thai === 'loi' || x.trang_thai === 'dung' || ket(x))
+    ? async () => { const r = await fixBuoc(d.id, x.buoc); if ('loi' in r) window.alert(r.loi); xong(); } : undefined;
+  const tB = (x?: BuocDong) => x ? `${TEN_BUOC[x.buoc]?.[0] ?? x.buoc} · ${MAU[x.trang_thai]?.[1] ?? x.trang_thai}\nbắt đầu ${ngayGio(x.bat_dau)} · xong ${ngayGio(x.ket_thuc)}${x.ghi ? `\n\n${x.ghi}` : ''}` : '';
+  const conCamp = (c?: DongPhim['camps'][number] | null) => c ? { tt: c.tt === 'ACTIVE' ? 'xong' : 'cho', chu: c.chi > 0 ? `${c.thu - c.chi >= 0 ? '+' : ''}$${(c.thu - c.chi).toFixed(2)}` : c.tt === 'ACTIVE' ? 'chạy' : 'tắt' } : null;
+  const le = d.camps.filter((c) => !cr.some((x) => x.creative_id === c.cr));
+  return <>
+    <tr style={{ borderTop: '1px solid var(--line)' }}>
+      <td style={{ padding: '4px 6px', maxWidth: 340 }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+        <span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', width: 12, color: 'var(--fg-3)', fontSize: 10 }}>{doan.length || d.camps.length ? (mo ? '▼' : '▶') : ''}</span>
+        {d.anh ? <img src={d.anh} alt="" style={{ width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
+        <div style={{ minWidth: 0 }}><a onClick={() => openEntityDrawer('etp-phim', d.content_id)} title={d.ten ?? ''} style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.ten ?? `phim #${d.content_id}`}</a>
+          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{LOAI_DE[d.loai] ?? d.loai} · {ngayGio(d.tao_luc)}{doan.length ? ` · ${doan.length} video` : ''}{d.camps.length ? ` · ${d.camps.length} camp` : ''}</span></div></div></td>
+      {COT.map(([k]) => { const x = b(k); const tt = ttB(x); return <O key={k} tt={tt} chu={x?.bat_dau ? (x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : `${phut(x.bat_dau, null)}…`) : ''} t={tB(x)} fix={k === 'cham' ? undefined : fixF(x)} />; })}
+      <td style={{ padding: '2px 6px', fontSize: 11, color: d.trang_thai === 'dung' ? '#fbbf24' : d.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)', maxWidth: 320 }}>
+        <div title={ghi ?? ''} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ghi ?? ''}</div></td>
+      <td style={{ padding: 2 }}>{d.trang_thai === 'chay' || d.trang_thai === 'dung' || d.trang_thai === 'loi'
+        ? <button className="btn" style={{ fontSize: 10, padding: '0 6px' }} onClick={async () => { if (!window.confirm(`Dừng hẳn dòng ${d.ten ?? d.content_id}?`)) return; await dungDong(d.id); xong(); }}>Dừng</button> : null}</td>
+    </tr>
+    {mo ? doan.map((x, i) => {
+      const id = 'creative_id' in x ? (x as { creative_id: number }).creative_id : null; const camp = id ? d.camps.find((c) => c.cr === id) ?? null : null; const cc = conCamp(camp);
+      const g = x.tu != null && x.den != null ? `${Math.round(x.tu)}–${Math.round(x.den)}s` : '';
+      const tCham = id ? (sach.has(id) ? 'xong' : chamXong ? 'dung' : 'dang') : 'cho';
+      return <tr key={id ?? i} style={{ background: 'var(--bg-1)' }}>
+        <td style={{ padding: '2px 6px 2px 40px', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>└ Video {i + 1} <span style={{ color: 'var(--fg-3)' }}>{g}</span></td>
+        <O tt="bo_qua" /><O tt="bo_qua" /><O tt="bo_qua" />
+        <O tt="xong" chu={g} />
+        <O tt={id || (kq('soat')?.doan ?? []).length ? 'xong' : ttB(b('soat'))} />
+        <O tt={id ? 'xong' : b('creative')?.trang_thai === 'dang' ? 'dang' : 'cho'} chu={id ? `#${id}` : ''} />
+        <O tt={tCham} chu={tCham === 'dung' ? 'bị chặn' : tCham === 'dang' ? 'đang chấm' : ''} />
+        <O tt={camp ? 'xong' : sach.has(id ?? -1) ? ttB(b('camp')) : 'cho'} chu={camp ? `#${camp.id}` : sach.has(id ?? -1) && b('camp')?.trang_thai === 'dang' ? 'chờ anh' : ''} />
+        <O tt={cc?.tt ?? 'cho'} chu={cc?.chu} t={camp ? `camp #${camp.id} · $${camp.ns ?? '?'}/ngày · chi $${camp.chi.toFixed(2)} · thu $${camp.thu.toFixed(2)}` : undefined} />
+        <td /><td />
+      </tr>; }) : null}
+    {mo ? le.map((c) => { const cc = conCamp(c)!; return <tr key={`c${c.id}`} style={{ background: 'var(--bg-1)' }}>
+      <td style={{ padding: '2px 6px 2px 40px', fontSize: 11, color: 'var(--fg-2)' }}>└ camp #{c.id}</td>
+      {COT.slice(0, 7).map(([k]) => <O key={k} tt="bo_qua" />)}<O tt="xong" chu={`#${c.id}`} /><O tt={cc.tt} chu={cc.chu} /><td /><td /></tr>; }) : null}
+  </>;
 }
 
 export function TabDong() {
   const [du, setDu] = useState<Awaited<ReturnType<typeof docDong>> | null>(null);
+  const [cu, setCu] = useState(false);
   const tai = useCallback(async () => setDu(await docDong()), []);
   useEffect(() => { void tai(); const t = setInterval(() => void tai(), 10_000); return () => clearInterval(t); }, [tai]);
   if (!du) return <div style={{ padding: 16, color: 'var(--fg-2)' }}>Đang tải…</div>;
   if ('loi' in du) return <EmptyState icon="⚠" title={du.loi} />;
   const may = du.may[0]; const im = may ? (Date.now() - Date.parse(may.nhip)) / 1000 : null;
   const dangChay = du.dong.filter((d) => d.trang_thai === 'chay' || d.trang_thai === 'dung' || d.trang_thai === 'loi');
-  const cu = du.dong.filter((d) => !dangChay.includes(d));
+  const ds = cu ? du.dong : dangChay;
   return <div>
-    <style>{'@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}'}</style>
-    <div style={{ display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, color: 'var(--fg-2)', margin: '0 0 10px', flexWrap: 'wrap' }}>
+    <style>{'@keyframes etpNhip{0%,100%{opacity:1}50%{opacity:.55}}'}</style>
+    <div style={{ display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px', flexWrap: 'wrap' }}>
       <span title="apps/etp/dong_phim.py trên iMac — báo sống mỗi 10 giây">máy chạy: {may ? <><b style={{ color: im! < 60 ? '#4ade80' : '#f87171' }}>{may.may}</b> {im! < 60 ? 'đang sống' : `im ${Math.round(im! / 60)} phút`}</> : <b style={{ color: '#f87171' }}>chưa bật</b>}</span>
-      <span>thêm phim: tab Phim → menu ⋯ → <b>Chạy tự động tới khi lên camp</b></span>
-      <span style={{ color: 'var(--fg-3)' }}>rê chuột vào từng bước để xem giờ + chi tiết</span>
+      <span>thêm phim: tab Phim → ⋯ → <b>Chạy tự động tới khi lên camp</b></span>
+      <label style={{ display: 'inline-flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={cu} onChange={(e) => setCu(e.target.checked)} />hiện cả dòng đã xong / đã dừng ({du.dong.length - dangChay.length})</label>
     </div>
-    {!du.dong.length ? <EmptyState icon="🎬" title="Chưa có phim nào chạy tự động" /> : null}
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{dangChay.map((d) => <TheDong key={d.id} d={d} xong={() => void tai()} />)}</div>
-    {cu.length ? <details style={{ marginTop: 14 }}><summary style={{ cursor: 'pointer', fontSize: 12, color: 'var(--fg-2)' }}>Đã xong / đã dừng ({cu.length})</summary>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>{cu.map((d) => <TheDong key={d.id} d={d} xong={() => void tai()} />)}</div></details> : null}
+    {!ds.length ? <EmptyState icon="🎬" title="Không có phim nào đang chạy tự động" /> : <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1180 }}>
+        <colgroup><col style={{ width: 300 }} />{COT.map(([k]) => <col key={k} style={{ width: 78 }} />)}<col /><col style={{ width: 52 }} /></colgroup>
+        <thead><tr style={{ fontSize: 11, color: 'var(--fg-3)', textAlign: 'center' }}><th style={{ textAlign: 'left', padding: '0 6px', fontWeight: 500 }}>Phim → video / camp</th>
+          {COT.map(([k, t]) => <th key={k} title={TEN_BUOC[BUOC_COT[k] ?? k]?.[1]} style={{ fontWeight: 500 }}>{t}</th>)}<th style={{ textAlign: 'left', fontWeight: 500, padding: '0 6px' }}>Đang làm</th><th /></tr></thead>
+        <tbody>{ds.map((d) => <DongCay key={d.id} d={d} xong={() => void tai()} />)}</tbody>
+      </table></div>}
   </div>;
 }
 

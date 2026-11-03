@@ -158,7 +158,8 @@ def b_creative(d, truoc):
         sql(f"update etp.dong_buoc set ket_qua = {js(x)} where dong_id = {d['id']} and buoc = 'creative'"); sql(f"update etp.dong_phim set creative_id = {int(x['creative_id'])} where id = {d['id']}")
         cr = x["creative_id"]; tr = {"ket_qua": x}
     c = sql(f"select duoc_len::text || chr(9) || coalesce(chan_boi, '') || chr(9) || coalesce(cho_duyet, '') from etp.cham_cong where creative_id = {int(cr)}").split("\t")
-    if len(c) < 2 or c[0] == "": return "cho", f"creative #{cr} đã tải — chờ máy chấm (etp.cham_hang)", tr["ket_qua"]
+    c += [""] * (3 - len(c))   # psql .strip() cắt tab cuối khi chan_boi / cho_duyet rỗng — đừng đọc thành "chưa chấm" (03/11/2026: dòng #1 chờ oan 30 phút)
+    if c[0] == "": return "cho", f"creative #{cr} đã tải — chờ máy chấm (etp.cham_hang)", tr["ket_qua"]
     if c[0] == "true": return "xong", f"creative #{cr} chấm sạch", tr["ket_qua"]
     return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if len(c) > 2 and c[2] else 'chặn'}: {c[1][:200]}", tr["ket_qua"]
 

@@ -238,9 +238,20 @@ function client(): KhachChu | null {
     // thì huỷ luồng, chuỗi sang đường kế (thay vì đợi trần 25 phút của lệnh box3)
     // sự kiện ĐẦU TIÊN được chờ 5 phút (lời nhắc dài — Anthropic có lúc > 2 phút mới gửi sự kiện đầu, 03/11/2026 bị huỷ oan "Request was aborted"), sau đó 120 giây giữa hai sự kiện
     stream: (p) => ({ finalMessage: () => quaChuoi(p, (d, q, sig) => { const ac = new AbortController(); sig?.addEventListener('abort', () => ac.abort(sig.reason)); let t = setTimeout(() => ac.abort(new Error('chưa có sự kiện đầu sau 5 phút')), 300_000);
-      const st = d.c.messages.stream(q as unknown as Anthropic.MessageStreamParams, { signal: ac.signal });
-      st.on('streamEvent', () => { clearTimeout(t); t = setTimeout(() => ac.abort(new Error('luồng im 120 giây')), 120_000); });
-      return (st.finalMessage() as Promise<TinChu>).finally(() => clearTimeout(t)); }) }),
+      const nhip = () => { clearTimeout(t); t = setTimeout(() => ac.abort(new Error('luồng im 120 giây')), 120_000); };
+      if (d.ten === 'anthropic') { const st = d.c.messages.stream(q as unknown as Anthropic.MessageStreamParams, { signal: ac.signal }); st.on('streamEvent', nhip);
+        return (st.finalMessage() as Promise<TinChu>).finally(() => clearTimeout(t)); }
+      // CỔNG CHỢ TỰ ĐỌC LUỒNG (03/11/2026): bộ gom luồng của SDK chết 100% với người bán ckey ("Cannot set properties of undefined (setting 'output_tokens')" —
+      // message_start của họ thiếu usage) → mọi lượt viết dài trước nay chưa từng đi được ckey, luôn rơi sang ShopAIKey sau vài phút. Đọc sự kiện thô, gom chữ + usage.
+      return (async () => { const tin = { id: '', type: 'message', role: 'assistant', model: q.model, content: [] as { type: 'text'; text: string; citations: null }[], stop_reason: null as Anthropic.Message['stop_reason'], stop_sequence: null, usage: { input_tokens: 0, output_tokens: 0 } as Record<string, unknown> };
+        let chu = '';
+        const ls = await d.c.messages.create({ ...(q as unknown as Anthropic.MessageCreateParamsStreaming), stream: true }, { signal: ac.signal });
+        for await (const e of ls) { nhip(); const x = e as unknown as { type: string; message?: { id?: string; usage?: Record<string, unknown> }; delta?: { type?: string; text?: string; stop_reason?: Anthropic.Message['stop_reason'] }; usage?: Record<string, unknown> };
+          if (x.type === 'message_start') { tin.id = x.message?.id ?? ''; Object.assign(tin.usage, x.message?.usage ?? {}); }
+          else if (x.type === 'content_block_delta' && x.delta?.type === 'text_delta') chu += x.delta.text ?? '';
+          else if (x.type === 'message_delta') { if (x.delta?.stop_reason) tin.stop_reason = x.delta.stop_reason; Object.assign(tin.usage, x.usage ?? {}); } }
+        tin.content = [{ type: 'text', text: chu, citations: null }];
+        return tin as unknown as TinChu; })().finally(() => clearTimeout(t)); }) }),
   } };
 }
 /** LƯỢT CHỮ RA JSON THEO KHUÔN ZOD cho mọi máy ngoài phim (máy sinh đề theo góc — may-de.ts, 27/10/2026): cùng chuỗi dự phòng, cùng sổ tiền. Mặc định Haiku qua ckey

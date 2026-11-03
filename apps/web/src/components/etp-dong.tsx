@@ -25,8 +25,9 @@ const ket = (b: BuocDong) => b.trang_thai === 'dang' && (Date.now() - Date.parse
 
 // CÂY PHIM → CREATIVE → CAMP, ĐÚNG CẤP (anh 03/11/2026 "sao lại có Chuẩn bị phim rồi lại cắt?"): bước CẤP PHIM (1 lần / phim) và bước CẤP CREATIVE (mỗi creative 1 lần)
 // tách cột — dòng phim = 4 ô bước phim + 5 ô TỔNG của creative; dòng creative = chỉ 5 ô của nó. Không còn hàng "Chuẩn bị phim" lặp bước.
-const COT_PHIM: [string, string][] = [['nhan', 'Nhận'], ['ws', 'Trang'], ['poster', 'Ảnh bìa'], ['cat', 'Cắt']];
-const COT_CR: [string, string, string][] = [['soat', 'Xem lại', 'soat'], ['len', 'Đưa lên', 'creative'], ['cham', 'Chấm', 'creative'], ['camp', 'Lên camp', 'camp'], ['chay', 'Chạy', 'chay']];   // [cột, tên, bước dòng]
+// CẮT / SINH VIDEO LÀ CẤP CREATIVE (anh 03/11/2026 "tại sao cắt lại nằm ở phim? mỗi creative ko cần cắt hay sinh video độc lập à?"): mỗi creative là một đoạn cắt (hoặc một video sinh) riêng
+const COT_PHIM: [string, string][] = [['nhan', 'Nhận'], ['ws', 'Trang'], ['poster', 'Ảnh bìa']];
+const COT_CR: [string, string, string][] = [['cat', 'Cắt / sinh', 'cat'], ['soat', 'Xem lại', 'soat'], ['len', 'Đưa lên', 'creative'], ['cham', 'Chấm', 'creative'], ['camp', 'Lên camp', 'camp'], ['chay', 'Chạy', 'chay']];   // [cột, tên, bước dòng]
 const LOAI_DE: Record<string, string> = { CC: 'Cảnh cuối', KT: 'Kể chuyện', LT: 'Test rộng' };
 const NEN: Record<string, string> = { xong: '#14532d', dang: '#1e3a8a', chay: '#1e3a8a', dung: '#78350f', loi: '#7f1d1d', cho: 'transparent', bo_qua: 'transparent' };
 const CHU: Record<string, string> = { xong: '#86efac', dang: '#bfdbfe', chay: '#bfdbfe', dung: '#fcd34d', loi: '#fca5a5', cho: 'var(--fg-3)', bo_qua: 'var(--fg-3)' };
@@ -90,7 +91,8 @@ function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: 
   const so = d.so ?? { camp: 0, chay: 0, chi: 0, thu: 0 }; const lai = so.thu - so.chi;
   const camps = ct?.camps ?? []; const crs = ct?.crs ?? {};
   const le = camps.filter((c) => !cr.some((x) => x.creative_id === c.cr));
-  const tong: Record<string, string> = { soat: ds.length ? `${cr.length || doanSach.length}/${doanCat.length || ds.length} sạch` : '', len: cr.length ? `${cr.length} đã lên` : '',
+  const nCat = doanCat.length || (b('cat')?.trang_thai === 'xong' ? ds.length : 0); const tienCat = /(\d+\/\d+)/.exec(b('cat')?.ghi ?? '')?.[1];
+  const tong: Record<string, string> = { cat: b('cat')?.trang_thai === 'dang' ? (tienCat ? `${tienCat} đoạn` : '') : nCat ? `${nCat} đoạn` : '', soat: ds.length ? `${cr.length || doanSach.length}/${doanCat.length || ds.length} sạch` : '', len: cr.length ? `${cr.length} đã lên` : '',
     cham: cr.length ? `${sach.size} sạch${chamXong && cr.length - sach.size ? ` · ${cr.length - sach.size} chặn` : ''}` : '', camp: so.camp ? `${so.camp} camp` : '',
     chay: so.camp ? `${so.chay} chạy${so.chi > 0 ? ` · ${lai >= 0 ? '+' : ''}$${lai.toFixed(2)}` : ''}` : '' };
   return <>
@@ -130,6 +132,7 @@ function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: 
           {xemCr?.anh ? <img src={xemCr.anh} alt="" onMouseEnter={(e) => datXem({ ...xemCr, chu: `creative #${id} · đoạn ${g}`, x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ width: 16, height: 28, objectFit: 'cover', borderRadius: 2, verticalAlign: 'middle', marginRight: 6, cursor: 'zoom-in' }} /> : <span style={{ marginRight: 6 }}>└</span>}
           {id ? `Creative #${id}` : `Đoạn ${i + 1}`} <span style={{ color: 'var(--fg-3)' }}>{g}</span></td>
         <td colSpan={COT_PHIM.length} />
+        <O tt="xong" chu={g} t={`đoạn cắt ${g}`} />
         <O tt={id || doanSach.some((y) => y.tu === x.tu) ? 'xong' : ttB(b('soat'))} />
         <O tt={id ? 'xong' : b('creative')?.trang_thai === 'dang' ? 'dang' : 'cho'} chu={id ? `#${id}` : ''} xem={xemCr ? { ...xemCr, chu: `creative #${id} · đoạn ${g}` } : undefined} />
         <O tt={tCham} chu={tCham === 'dung' ? 'bị chặn' : tCham === 'dang' ? 'đang chấm' : ''} xem={xemCr ? { ...xemCr, chu: `creative #${id} · ${tCham === 'xong' ? 'chấm sạch' : tCham === 'dung' ? 'bị cổng chấm chặn' : 'đang chấm'}` } : undefined} />
@@ -141,7 +144,7 @@ function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: 
     {mo && ds.length > 50 ? <tr><td colSpan={12} style={{ padding: '2px 34px', fontSize: 11, color: 'var(--fg-3)' }}>… còn {ds.length - 50} creative — mở ngăn phim để xem đủ</td></tr> : null}
     {mo ? le.map((c) => { const l = c.thu - c.chi; return <tr key={`c${c.id}`}>
       <td style={{ padding: '2px 6px 2px 34px', fontSize: 11, color: 'var(--fg-2)' }}>└ camp #{c.id} <span style={{ color: 'var(--fg-3)' }}>creative #{c.cr}</span></td>
-      <td colSpan={COT_PHIM.length + 3} /><O bam={moCamp ? () => moCamp(c.id) : undefined} tt="xong" chu={`#${c.id}`} />
+      <td colSpan={COT_PHIM.length + 4} /><O bam={moCamp ? () => moCamp(c.id) : undefined} tt="xong" chu={`#${c.id}`} />
       <O bam={moCamp ? () => moCamp(c.id) : undefined} tt={c.tt === 'ACTIVE' ? 'xong' : 'cho'} chu={c.chi > 0 ? `${l >= 0 ? '+' : ''}$${l.toFixed(2)}` : c.tt === 'ACTIVE' ? 'chạy' : 'tắt'} /><td /><td /></tr>; }) : null}
   </>;
 }
@@ -170,7 +173,7 @@ export function TabDong({ moCamp }: { moCamp?: (id: number) => void } = {}) {
     </div>
     {!du.dong.length ? <EmptyState icon="🎬" title={tim ? 'Không có phim khớp' : 'Không có phim nào trong mục này'} /> : <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1180 }}>
-        <colgroup><col style={{ width: 290 }} />{COT_PHIM.map(([k]) => <col key={k} style={{ width: 70 }} />)}{COT_CR.map(([k]) => <col key={k} style={{ width: 92 }} />)}<col /><col style={{ width: 60 }} /></colgroup>
+        <colgroup><col style={{ width: 290 }} />{COT_PHIM.map(([k]) => <col key={k} style={{ width: 70 }} />)}{COT_CR.map(([k]) => <col key={k} style={{ width: 90 }} />)}<col /><col style={{ width: 60 }} /></colgroup>
         <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-0, #0b0b0f)', zIndex: 2 }}>
           <tr style={{ fontSize: 10, color: 'var(--fg-3)', textAlign: 'center' }}><th /><th colSpan={COT_PHIM.length} style={{ fontWeight: 500, borderBottom: '1px solid var(--line)' }}>CẤP PHIM (1 lần)</th>
             <th colSpan={COT_CR.length} style={{ fontWeight: 500, borderBottom: '1px solid var(--line)' }}>CẤP CREATIVE (dòng phim = tổng · dòng con = từng creative)</th><th /><th /></tr>

@@ -79,7 +79,7 @@ export async function docDong(): Promise<{ dong: DongPhim[]; may: { may: string;
       (select coalesce(json_agg(json_build_object('id', c.camp_id, 'tt', c.trang_thai, 'cr', c.creative_id, 'ns', c.ngan_sach,
         'chi', (select coalesce(sum(s.chi), 0) from etp.so_ngay s where s.camp_id = c.camp_id), 'thu', (select coalesce(sum(s.thu), 0) from etp.so_ngay s where s.camp_id = c.camp_id)) order by c.camp_id), '[]'::json)
         from etp.camp c where c.content_id = p.content_id and c.tao >= p.tao_luc) camps,
-      (select case when t.anh like 'http%' then t.anh else 'https://acdn.dofez.com/' || ltrim(t.anh, '/') end from etp.trang_phim t where t.content_id = p.content_id and t.anh is not null order by t.cap_nhat desc limit 1) anh,   -- ảnh lưu tương đối → gốc CDN như soat_18_ai.py
+      (select case when a like 'http%' then a else 'https://acdn.dofez.com/' || ltrim(a, '/') end from (select coalesce((select t.anh from etp.trang_phim t where t.content_id = p.content_id and t.anh is not null order by t.cap_nhat desc limit 1), (select v.anh from etp.thu_vien_phim v where v.content_id = p.content_id and v.anh is not null limit 1)) a) x) anh,   -- ảnh lưu tương đối → gốc CDN như soat_18_ai.py
       coalesce((select json_agg(json_build_object('buoc', b.buoc, 'thu_tu', b.thu_tu, 'trang_thai', b.trang_thai, 'bat_dau', b.bat_dau, 'ket_thuc', b.ket_thuc, 'han_giay', b.han_giay,
         'lan', b.lan, 'ghi', b.ghi, 'nhip', b.nhip, 'fix', b.fix, 'ket_qua', b.ket_qua) order by b.thu_tu) from etp.dong_buoc b where b.dong_id = p.id), '[]'::json) buoc
     from etp.dong_phim p order by p.id desc limit 100`);

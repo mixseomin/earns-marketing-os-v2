@@ -200,7 +200,7 @@ NGUỒN:
 ${nguon.map((n, i) => `[${i}] ${n.tua}\n${n.chu.slice(0, 16000)}`).join('\n\n')}`;
 const toiThieuCau = Math.ceil(Number(K.cau?.[0] ?? 20) / 2);
 // bản dưới nửa số câu tối thiểu = cổng đó hỏng → chuỗi sang cổng kế ngay trong lần gọi (claude.ts › x_kiem), không đốt cả lượt viết
-const r = await sinhJson({ schema: Ra, system, user, model: 'claude-sonnet-5-5', max_tokens: K.max_tokens ?? 12000, ten: 'viết tập lịch sử',
+const r = await sinhJson({ schema: Ra, system, user, model: 'claude-sonnet-5-5', max_tokens: K.max_tokens ?? 12000, ten: 'viết tập lịch sử', dua: 3,
   kiem: (d) => ((d.cau?.length ?? 0) < toiThieuCau ? `bản cụt ${d.cau?.length ?? 0} câu (< ${toiThieuCau})` : null) });
 if (!r.ok) { console.error(`✗ ${r.loi}`); process.exit(1); }
 const d = r.data;

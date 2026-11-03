@@ -9,14 +9,14 @@
 //    Studio phim #1186 (kho-day.mts) → kho.json. Tranh cảnh: box3 tranh-sinh.mts (~110₫) + tách lớp trước (tach-lop.swift) cho chiều sâu.
 // 5. STUDIO: tap-day.mts (box3) → phim Studio của kênh + một tập (video R2, kịch bản).
 // 4. DỰNG: dung-tap.mjs (giọng box3 ~2.500₫ một lần, bản đồ, hiệu ứng, tiếng động) → <id>.mp4 + <id>-xem.mp4 (540p gửi xem — dưới 30 MB kể cả tập 3 phút lá cải) ở /Users/htuan/.cache/lich-su/<id>/.
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { BOX, box, len, ve, q, sqlBox } from './box3.mjs';
+import { BOX, box, len, ve, q, sqlBox, boxA, chay, lenA, veA, sshA, songSong } from './box3.mjs';
 import { apPlaylist, playlistCuaTap, timPlaylist, tieuDeDang } from './playlist.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
@@ -234,22 +234,22 @@ const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
 if (plMa) tap.playlist = plMa;   // ghi lại cùng tệp tập ở cuối bước 3
 let tien = 0;
 const dungToi = new Set(tap.cau.flatMap((c) => [...(c.canh.nguoi || []), ...(c.canh.xe || []), ...(c.canh.co || [])].map((m) => m.anh).concat(c.canh.tranh?.ref || [])));
-for (const t of tap.tai_san_moi || []) {
-  if (docKho().tai_san[t.id] || !dungToi.has(t.id)) continue;   // món khai mà không cảnh nào dùng (cờ máy đã gỡ) → không tốn tiền sinh
+// SONG SONG (03/11/2026, anh: "chạy song song"): mỗi món kho độc lập (vẽ ckey → tách nền → đẩy Studio) — 3 món cùng lúc; ghi kho.json đọc-sửa-ghi liền một nhịp (không await giữa) nên không giẫm nhau
+await songSong((tap.tai_san_moi || []).filter((t) => !docKho().tai_san[t.id] && dungToi.has(t.id)), 3, async (t) => {   // món khai mà không cảnh nào dùng (cờ máy đã gỡ) → không tốn tiền sinh
   const tam = join(KHO, 'kho', t.id), png = join(tam, 'png'); mkdirSync(png, { recursive: true });
   let nguonGhi = t.loai === 'co' ? null : `AI vẽ (ckey Nano Banana 2) + tách nền Vision, ${new Date().toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`;
   if (t.loai === 'co') { const c = await commons(t.commons); writeFileSync(join(png, 'goc.png'), Buffer.from(await (await tai(c.thumb)).arrayBuffer())); nguonGhi = c.trang; }
   else {
     const dang = t.loai === 'nhan_vat' ? docKho().dang_chuan.join(',') : 'goc', bt = `/tmp/kho-${t.id}`;
-    const out = box(`scripts/lich-su/kho-sinh.mts ${bt} ${q(`mota:${t.loai}:${t.mo_ta_en}`)} ${dang}`); console.log(out); tien += Number(out.match(/~(\d+)₫/)?.[1] ?? 0);
-    ve(`${bt}/.`, tam); execFileSync('ssh', [BOX, `rm -rf ${bt}`]);
-    for (const f of readdirSync(tam).filter((x) => x.endsWith('.jpg'))) console.log(execFileSync('swift', [join(DIR, 'nen-trong.swift'), join(tam, f), join(png, f.replace(/\.jpg$/, '.png'))], { encoding: 'utf8' }).trim());
+    const out = await boxA(`scripts/lich-su/kho-sinh.mts ${bt} ${q(`mota:${t.loai}:${t.mo_ta_en}`)} ${dang}`); console.log(out); tien += Number(out.match(/~(\d+)₫/)?.[1] ?? 0);
+    await veA(`${bt}/.`, tam); await sshA(`rm -rf ${bt}`);
+    await Promise.all(readdirSync(tam).filter((x) => x.endsWith('.jpg')).map(async (f) => console.log((await chay('swift', [join(DIR, 'nen-trong.swift'), join(tam, f), join(png, f.replace(/\.jpg$/, '.png'))])).trim())));
   }
-  const bt = `/tmp/kho-day-${t.id}`; execFileSync('ssh', [BOX, `rm -rf ${bt} && mkdir -p ${bt}`]); execFileSync('scp', ['-q', ...readdirSync(png).map((f) => join(png, f)), `${BOX}:${bt}/`]);
-  const kq = JSON.parse(box(`scripts/lich-su/kho-day.mts ${bt} ${t.id} ${t.loai} ${q(t.ten)} ${q(t.mo_ta_en || t.ten)} ${t.tu} ${t.den}`).split('\n').pop()); execFileSync('ssh', [BOX, `rm -rf ${bt}`]);
+  const bt = `/tmp/kho-day-${t.id}`; await sshA(`rm -rf ${bt} && mkdir -p ${bt}`); await lenA(readdirSync(png).map((f) => join(png, f)), `${bt}/`);
+  const kq = JSON.parse((await boxA(`scripts/lich-su/kho-day.mts ${bt} ${t.id} ${t.loai} ${q(t.ten)} ${q(t.mo_ta_en || t.ten)} ${t.tu} ${t.den}`)).split('\n').pop()); await sshA(`rm -rf ${bt}`);
   const k = docKho(); k.tai_san[t.id] = { loai: t.loai, ten: t.ten, tu: t.tu, den: t.den, ghi: t.mo_ta_en || '', nguon: nguonGhi, studio_thanh_phan: kq.thanh_phan, dang: kq.dang, ...(t.que ? { que: t.que } : {}), tap_dau: id };
   writeFileSync(tepKho, JSON.stringify(k, null, 1) + '\n'); console.log(`✓ kho + ${t.id} (${t.loai}) · Studio thành phần #${kq.thanh_phan}`);
-}
+});
 const khoNay = docKho().tai_san;
 // ẢNH LỊCH SỬ THẬT BẮT BUỘC cho kênh có máy đăng (Phòng Nội dung chặn bài không ảnh thật — 02/11/2026 tập Hatshepsut SỬA LẠI vì cả 3 tranh là AI vẽ dù
 // prompt dặn ưu tiên Commons): tranh chưa có tệp Commons → máy tự tìm theo tên nhân vật trong tranh rồi theo cụm danh từ riêng nhiều chữ của mô tả
@@ -262,11 +262,11 @@ const namAnh = (ten, md) => { const y = (t) => [...String(t ?? '').matchAll(/\b(
   const g = y(md?.DateTimeOriginal?.value); if (g.length) return Math.min(...g); const t = y(ten); return t.length ? Math.min(...t) : null; };
 // NGỌC XÉT TỪNG ẢNH (kênh tự động bước 2): ứng viên qua lọc tên + năm còn phải được Ngọc nhìn và xác nhận đúng người / vật / nơi / thời của cảnh
 // (box3 xet-anh.mts → cham-dang › xetAnhCanh, sổ đệm theo ảnh + cảnh). Tối đa 3 ứng viên mỗi tranh; Ngọc không trả lời = không dùng ảnh đó.
-let xetConLai = 0;
-const ngocDuyetAnh = async (ten, moTa, nam) => { if (xetConLai-- <= 0) return false; const c = await commons(ten); if (!c?.thumb) return false;
-  try { const o = JSON.parse(box(`scripts/lich-su/xet-anh.mts ${q(c.thumb)} ${q(ten)} ${q(moTa ?? '')} ${nam ?? '-'}`).split('\n').pop());
+// lượt xét còn lại tính RIÊNG mỗi tranh (dem.con) — các tranh tìm song song, không dùng chung một biến đếm
+const ngocDuyetAnh = async (ten, moTa, nam, dem = { con: 1 }) => { if (dem.con-- <= 0) return false; const c = await commons(ten); if (!c?.thumb) return false;
+  try { const o = JSON.parse((await boxA(`scripts/lich-su/xet-anh.mts ${q(c.thumb)} ${q(ten)} ${q(moTa ?? '')} ${nam ?? '-'}`)).split('\n').pop());
     if (o.dung !== true) console.log(`  · Ngọc loại ảnh ${ten}: ${o.ly_do}`); return o.dung === true; } catch { return false; } };
-const timAnhThat = async (cum, nam = null, moTa = null) => { xetConLai = 3; for (const q1 of nam > 0 ? cum.flatMap((q) => [`${q} ${nam}`, q]) : cum) {
+const timAnhThat = async (cum, nam = null, moTa = null) => { const dem = { con: 3 }; for (const q1 of nam > 0 ? cum.flatMap((q) => [`${q} ${nam}`, q]) : cum) {
     const r = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', list: 'search', srnamespace: '6', srlimit: '10', srsearch: `${q1} filetype:bitmap`, format: 'json', formatversion: '2' })}`)).json();
     // ĐÚNG CHỦ THỂ (02/11/2026, Alaska: "Seward" ra thẻ bóng chày cầu thủ Ed Seward, "russian soldier 1867" ra tranh huy hiệu Romania): tên tệp phải chứa MỌI từ
     // chính của cụm tìm (≥ 3 chữ, bỏ năm / từ nối) — máy tìm của Commons trả cả kết quả chỉ khớp một từ
@@ -278,23 +278,25 @@ const timAnhThat = async (cum, nam = null, moTa = null) => { xetConLai = 3; for 
     if (nam > 0) { const ii = await (await tai(`https://commons.wikimedia.org/w/api.php?${new URLSearchParams({ action: 'query', titles: ds.join('|'), prop: 'imageinfo', iiprop: 'extmetadata', format: 'json', formatversion: '2' })}`)).json();
       const md = new Map((ii.query?.pages ?? []).map((p) => [p.title, p.imageinfo?.[0]?.extmetadata]));
       hop = ds.filter((x) => { const y = namAnh(x, md.get(x)); return y == null || y <= nam + 20; }); }
-    for (const t of hop) { if (xetConLai <= 0) return null; if (await ngocDuyetAnh(t, moTa, nam)) return t; } } return null; };
+    for (const t of hop) { if (dem.con <= 0) return null; if (await ngocDuyetAnh(t, moTa, nam, dem)) return t; } } return null; };
 const cumTranh = (tr) => [...new Set([...(tr.ref || []).map((r) => r.replace(/_/g, ' ')), ...((tr.mo_ta || '').match(/\b[A-Z][a-z]+(?:[ -](?:el|al|de|of|the|[A-Z][a-z]+))+/g) || [])])].slice(0, 5);
-if (KENH.may) { let namCanh = null; for (const c of tap.cau) { namCanh = c.canh.nam ?? namCanh; const tr = c.canh.tranh; if (!tr) continue;
+// SONG SONG: năm cảnh tính trước theo thứ tự câu, rồi 4 tranh tìm / xét cùng lúc
+if (KENH.may) { let n0 = null; const viec = tap.cau.map((c) => { n0 = c.canh.nam ?? n0; return { c, namCanh: n0 }; }).filter((x) => x.c.canh.tranh);
+  await songSong(viec, 4, async ({ c, namCanh }) => { const tr = c.canh.tranh;
   // MỌI ảnh Commons đang dùng (máy viết chọn, hoặc bộ tìm chọn trước khi có bước này) qua Ngọc một lần (tr.ngoc_ok = tệp đã duyệt); Ngọc loại → bỏ, bộ tìm dưới tìm ảnh khác
-  if (tr.commons && tr.ngoc_ok !== tr.commons) { xetConLai = 1;
+  if (tr.commons && tr.ngoc_ok !== tr.commons) {
     if (await ngocDuyetAnh(tr.commons, tr.mo_ta, namCanh)) tr.ngoc_ok = tr.commons; else { delete tr.commons; delete tr.commons_url; delete tr.anh; tr.tim_that = false; tr.tim_nam = namCanh; } }
   // ảnh máy TỰ TÌM trước khi có luật đúng thời (tim_that, chưa ghi tim_nam) → tìm lại theo năm; ảnh do máy viết chọn (không tim_that) giữ nguyên
   if (tr.tim_that && tr.commons && tr.tim_nam !== namCanh) { delete tr.commons; delete tr.commons_url; tr.tim_that = false; }
-  if (tr.commons || tr.tim_that) continue; tr.tim_that = true; tr.tim_nam = namCanh;
-  const t = await timAnhThat(cumTranh(tr), namCanh, tr.mo_ta); if (t) { console.log(`✓ ảnh thật cho tranh "${(tr.mo_ta || '').slice(0, 50)}…": ${t} (Ngọc duyệt)`); tr.commons = t; tr.ngoc_ok = t; delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; } } }
+  if (tr.commons || tr.tim_that) return; tr.tim_that = true; tr.tim_nam = namCanh;
+  const t = await timAnhThat(cumTranh(tr), namCanh, tr.mo_ta); if (t) { console.log(`✓ ảnh thật cho tranh "${(tr.mo_ta || '').slice(0, 50)}…": ${t} (Ngọc duyệt)`); tr.commons = t; tr.ngoc_ok = t; delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; } }); }
 // đã có ảnh chỉ khi TỆP còn thật (tệp ghi trong tập mà đã mất / hỏng thì tải lại — không tin dòng ghi)
 // TỆP GẮN ĐÚNG ẢNH (02/11/2026, Alaska: đổi ảnh Commons mà tệp tên cố định "<tập>-<cảnh>-c.jpg" còn nằm đó → máy không tải ảnh mới, video + thumbnail vẫn
 // là ảnh sai): tên tệp Commons mang dấu của chính tệp Commons; tệp ghi trong tập không khớp ảnh đang chọn (hoặc là tệp Commons mà tranh không còn Commons) thì bỏ.
 const dauCommons = (t) => createHash('md5').update(String(t)).digest('hex').slice(0, 8);
-for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr) continue;
+await songSong([...tap.cau.entries()].filter(([, c]) => c.canh.tranh), 3, async ([k, c]) => { const tr = c.canh.tranh;
   if (tr.anh && /-c(-[0-9a-f]{8})?\.jpg$/.test(tr.anh) && (!tr.commons || !tr.anh.endsWith(`-c-${dauCommons(tr.commons)}.jpg`))) { delete tr.anh; delete tr.lop; delete tr.lop_hop_tep; }
-  if (tr.anh && existsSync(join(KHO, tr.anh))) continue;
+  if (tr.anh && existsSync(join(KHO, tr.anh))) return;
   const ten = `tranh/${id}-${k + 1}${tr.commons ? `-c-${dauCommons(tr.commons)}` : ''}`, f = join(KHO, `${ten}.jpg`); mkdirSync(join(KHO, 'tranh'), { recursive: true });
   // ẢNH LỊCH SỬ THẬT trước (Wikimedia Commons, public domain — luật ảnh thật của Phòng Nội dung); không có tệp thì AI vẽ theo mo_ta
   // ẢNH TẢI VỀ PHẢI LÀ ẢNH THẬT (02/11/2026: xin bản 1600px của ảnh gốc nhỏ hơn → Commons trả trang HTML lỗi, máy dựng chết "cannot be decoded"):
@@ -307,14 +309,14 @@ for (const [k, c] of tap.cau.entries()) { const tr = c.canh.tranh; if (!tr) cont
     // tranh là PHỤ HOẠ: cổng ảnh hỏng / hết giờ thì thử lại một lần, vẫn hỏng thì bỏ tranh khỏi cảnh (bản đồ + nhân vật vẫn kể được) — không sập cả tập
     // (02/11/2026: tập Hatshepsut đã viết xong, sinh xong 4 nhân vật, chết ở TimeoutError của một tranh)
     for (let lan = 1; lan <= 2 && !existsSync(f); lan++) {
-      try { const out = box(`scripts/lich-su/tranh-sinh.mts ${bt} ${q(tr.mo_ta)} ${ref.map(q).join(' ')}`); console.log(out); tien += Number(out.match(/~(\d+)₫/)?.[1] ?? 0);
-        ve(bt, f); execFileSync('ssh', [BOX, `rm -f ${bt}`]); }
+      try { const out = await boxA(`scripts/lich-su/tranh-sinh.mts ${bt} ${q(tr.mo_ta)} ${ref.map(q).join(' ')}`); console.log(out); tien += Number(out.match(/~(\d+)₫/)?.[1] ?? 0);
+        await veA(bt, f); await sshA(`rm -f ${bt}`); }
       catch (e) { console.log(`⚠ tranh ${k + 1} lượt ${lan} hỏng: ${String(e.stderr || e.message).trim().split('\n').pop().slice(0, 160)}`); } }
-    if (!existsSync(f)) { console.log(`⚠ bỏ tranh câu ${k + 1} (cổng ảnh không trả) — cảnh giữ bản đồ + nhân vật`); delete c.canh.tranh; continue; } }
-  const lopDir = join(KHO, `${ten}-lop`); spawnSync('swift', [join(DIR, '../shot-code/tach-lop.swift'), f, lopDir], { stdio: 'ignore' });
+    if (!existsSync(f)) { console.log(`⚠ bỏ tranh câu ${k + 1} (cổng ảnh không trả) — cảnh giữ bản đồ + nhân vật`); delete c.canh.tranh; return; } }
+  const lopDir = join(KHO, `${ten}-lop`); await chay('swift', [join(DIR, '../shot-code/tach-lop.swift'), f, lopDir]).catch(() => {});
   const lop = existsSync(join(lopDir, 'lop.json')) ? JSON.parse(readFileSync(join(lopDir, 'lop.json'), 'utf8')) : [];
   tr.anh = `${ten}.jpg`; tr.lia ??= k % 2 ? 20 : -24;
-  if (lop[0]) { copyFileSync(join(lopDir, 'lop-0.png'), join(KHO, `${ten}-lop.png`)); writeFileSync(join(KHO, `${ten}-lop.json`), JSON.stringify(lop[0])); tr.lop = `${ten}-lop.png`; tr.lop_hop_tep = `${ten}-lop.json`; } }
+  if (lop[0]) { copyFileSync(join(lopDir, 'lop-0.png'), join(KHO, `${ten}-lop.png`)); writeFileSync(join(KHO, `${ten}-lop.json`), JSON.stringify(lop[0])); tr.lop = `${ten}-lop.png`; tr.lop_hop_tep = `${ten}-lop.json`; } });
 writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
 // ẢNH BÌA THẬT — LƯỚI CUỐI (03/11/2026, tập Constantinople: không tranh nào có ảnh Commons qua được lọc tên + năm + Ngọc → thumbnail hỏng, Phòng Nội dung chặn):
 // lấy ẢNH CHÍNH của bài Wikipedia nguồn (pageimages — luôn là ảnh / tranh thật của chính chuyện), Ngọc xét với chủ đề tập, tải về → tap.anh_bia
@@ -344,18 +346,18 @@ if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons && c.canh.tranh?.anh)
     const r = await (await tai(`https://en.wikipedia.org/w/api.php?${new URLSearchParams({ action: 'query', generator: 'search', gsrsearch: tenAnh(ma), gsrlimit: '1', prop: 'pageimages', piprop: 'name', format: 'json', formatversion: '2' })}`)).json();
     const pg = r.query?.pages?.[0], pi = pg?.pageimage; if (pi && /\.(jpe?g|png)$/i.test(pi) && !BO.test(pi)) tim.unshift({ ten: `File:${pi.replace(/_/g, ' ')}`, tua: pg.title, d: 99 });
   }
-  let xet = 0;
   const daXet = new Set();   // chân dung nhân vật + ảnh chính bài có thể là CÙNG một tệp (03/11/2026: "Ba trieu cuoi voi" vào ảnh bìa 2 lần)
-  for (const { ten: tep, tua } of tim) {
-    if (daXet.has(tep)) continue; daXet.add(tep);
-    if (ds.length >= 3 || xet >= 10) break; xet++; xetConLai = 1;
-    if (!(await ngocDuyetAnh(tep, moTaBia(tua), null))) continue;
-    const c = await commons(tep); if (!c?.thumb) continue;
-    const f = join(KHO, 'tranh', `${id}-bia-${dauCommons(tep)}.jpg`);
-    if (!existsSync(f)) for (const uu of [c.thumb.replace(/\/\d+px-/, '/1600px-'), c.thumb]) { const rr = await tai(uu); if (rr.ok && /^image\//.test(rr.headers.get('content-type') || '')) { writeFileSync(f, Buffer.from(await rr.arrayBuffer())); break; } }
-    if (!existsSync(f)) continue;
-    ds.push({ commons: tep, commons_url: c.thumb, commons_trang: c.trang, anh: `tranh/${id}-bia-${dauCommons(tep)}.jpg`, tu: tua });
-    console.log(`✓ ảnh bìa thật ${ds.length}: ${tep} (bài "${tua}", Ngọc duyệt)`);
+  const xetDs = tim.filter((x) => !daXet.has(x.ten) && daXet.add(x.ten)).slice(0, 10);
+  // SONG SONG: Ngọc xét từng loạt 3 ảnh cùng lúc, giữ thứ tự độ gần chuyện; đủ 3 ảnh đạt thì thôi
+  for (let i = 0; i < xetDs.length && ds.length < 3; i += 3) {
+    const dat = await Promise.all(xetDs.slice(i, i + 3).map(async (x) => ((await ngocDuyetAnh(x.ten, moTaBia(x.tua), null)) ? x : null)));
+    for (const x of dat) { if (!x || ds.length >= 3) continue; const { ten: tep, tua } = x;
+      const c = await commons(tep); if (!c?.thumb) continue;
+      const f = join(KHO, 'tranh', `${id}-bia-${dauCommons(tep)}.jpg`);
+      if (!existsSync(f)) for (const uu of [c.thumb.replace(/\/\d+px-/, '/1600px-'), c.thumb]) { const rr = await tai(uu); if (rr.ok && /^image\//.test(rr.headers.get('content-type') || '')) { writeFileSync(f, Buffer.from(await rr.arrayBuffer())); break; } }
+      if (!existsSync(f)) continue;
+      ds.push({ commons: tep, commons_url: c.thumb, commons_trang: c.trang, anh: `tranh/${id}-bia-${dauCommons(tep)}.jpg`, tu: tua });
+      console.log(`✓ ảnh bìa thật ${ds.length}: ${tep} (bài "${tua}", Ngọc duyệt)`); }
   }
   if (ds.length) { tap.anh_bia = ds[0]; tap.anh_bia_ds = ds; }
 }
@@ -366,21 +368,42 @@ if (tien) console.log(`tiền kho + tranh lượt này ~${tien}₫`);
 // ---------- 4. DỰNG ----------
 // 4a. NGỌC SOI HÌNH TRƯỚC (02/11/2026): 8 khung giữa cảnh (vài giây) → xet-truoc.mts (box3, đúng hàm xetHinhAi của Phòng Nội dung). Chặn chắc chắn thì dừng ở đây
 // — trước đây phải dựng xong cả tập (~11 phút) Ngọc mới thấy chữ bị hình đè (Alaska: thợ mỏ đè "Skagway"). --bo-soat-truoc: bỏ bước này.
+// SONG SONG (03/11/2026, anh: "tối ưu thời gian, chạy song song"): việc con chạy nền, dòng in mang nhãn; trần giờ giết cả nhóm tiến trình (trình dựng / ffmpeg con của nó)
+const chayNen = (nhan, args, tran) => { const con = spawn(process.execPath, args, { detached: true, stdio: ['ignore', 'pipe', 'pipe'] });
+  for (const [s1, out] of [[con.stdout, process.stdout], [con.stderr, process.stderr]]) { let du = ''; s1.on('data', (b) => { du += b; const ds = du.split('\n'); du = ds.pop(); for (const l of ds) out.write(`[${nhan}] ${l}\n`); }); }
+  const giet = () => { try { process.kill(-con.pid, 'SIGKILL'); } catch { /* đã thoát */ } };
+  const t = setTimeout(() => { console.error(`✗ [${nhan}] quá ${tran / 60_000} phút — dừng`); giet(); }, tran);
+  process.on('exit', giet);
+  return { giet, xong: new Promise((ok) => con.on('close', (ma, sig) => { clearTimeout(t); ok(ma ?? (sig ? 1 : 0)); })) }; };
+// 4-. THUMBNAIL CHẠY NỀN từ đây: chỉ cần kịch bản + ảnh bìa (xong ở bước 3), không cần video → làm cùng lúc với soi + dựng (~5–8 phút gối vào thời gian dựng)
+rmSync(join(RA, 'thumb-kq.json'), { force: true });
+const nenThumb = KENH.may && !arg('khung') ? chayNen('thumb', [join(DIR, 'thumb.mjs'), '--id', id, '--rieng'], 15 * 60_000) : null;
+// 4a. NGỌC SOI HÌNH TRƯỚC (02/11/2026): 8 khung giữa cảnh (vài giây) → xet-truoc.mts (box3, đúng hàm xetHinhAi của Phòng Nội dung). Chặn chắc chắn thì dừng
+// — trước đây phải dựng xong cả tập (~11 phút) Ngọc mới thấy chữ bị hình đè (Alaska: thợ mỏ đè "Skagway"). --bo-soat-truoc: bỏ bước này.
+// Ngọc xét (~1–2 phút) chạy CÙNG LÚC với dựng: chặn thì huỷ bản đang dựng, qua thì bản dựng đã đi được một đoạn.
+let soi = null;
 if (!co('chi-day') && !arg('khung') && !co('bo-soat-truoc')) {
   buoc('Ngọc soi hình');
   const dir = join(RA, 'soat-truoc'); rmSync(dir, { recursive: true, force: true });
   const r = spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, '--soat', dir], { stdio: 'inherit', timeout: 10 * 60_000 }); if (r.status) process.exit(r.status);
   const ds = readdirSync(dir).filter((f) => /^k-\d+\.jpg$/.test(f)).sort((a, b) => parseInt(a.slice(2)) - parseInt(b.slice(2)));
   const den = `/var/tmp/xet-truoc-${id}`; execFileSync('ssh', [BOX, `rm -rf ${den} && mkdir -p ${den}`]); for (const f of ds) len(join(dir, f), `${den}/${f}`);
-  const kq = JSON.parse(box(`scripts/lich-su/xet-truoc.mts ${q(id)} ${q(tap.tieu_de)} ${ds.map((f) => `${den}/${f}`).join(' ')}`).split('\n').pop());
-  for (const c of kq.canh) console.log(`⚠ Ngọc (trước dựng): ${c}`);
-  if (kq.chan.length) { console.error(`✗ Ngọc chặn hình trước khi dựng:\n  ${kq.chan.join('\n  ')}\n  khung: ${dir}`); process.exit(4); }
-  console.log(`✓ Ngọc soi ${ds.length} khung trước dựng: qua`);
+  soi = { dir, so: ds.length, p: boxA(`scripts/lich-su/xet-truoc.mts ${q(id)} ${q(tap.tieu_de)} ${ds.map((f) => `${den}/${f}`).join(' ')}`) };
 }
 // --chi-day: video đã dựng, chỉ đẩy lại Studio (không quay lại 5.900 khung)
+const nenDung = co('chi-day') && existsSync(join(RA, `${id}.mp4`)) ? null
+  : chayNen('dựng', [join(DIR, 'dung-tap.mjs'), tepTap, ...(arg('khung') ? ['--khung', arg('khung'), '--khung-ra', join(RA, 'khung.jpg')] : [])], 45 * 60_000);   // dựng + giọng: trần 45 phút (treo thì lượt hỏng có mã, việc nền tự làm lại)
+if (soi) {
+  const kq = JSON.parse((await soi.p).split('\n').pop());
+  for (const c of kq.canh) console.log(`⚠ Ngọc (trước dựng): ${c}`);
+  if (kq.chan.length) { nenDung?.giet(); nenThumb?.giet(); console.error(`✗ Ngọc chặn hình trước khi dựng:\n  ${kq.chan.join('\n  ')}\n  khung: ${soi.dir}`); process.exit(4); }
+  console.log(`✓ Ngọc soi ${soi.so} khung trước dựng: qua`);
+}
 buoc('dựng (giọng + hình)');
-const dung = co('chi-day') && existsSync(join(RA, `${id}.mp4`)) ? { status: 0 } : spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, ...(arg('khung') ? ['--khung', arg('khung'), '--khung-ra', join(RA, 'khung.jpg')] : [])], { stdio: 'inherit', timeout: 45 * 60_000 })   // dựng + giọng: trần 45 phút (treo thì lượt hỏng có mã, việc nền tự làm lại);
-if (dung.status) process.exit(dung.status);
+const maDung = nenDung ? await nenDung.xong : 0;
+if (maDung) { nenThumb?.giet(); process.exit(maDung); }
+// --den-thumb: chạy thử phần song song (soi + dựng + thumbnail) rồi dừng — không đẩy Studio, không nạp máy đăng
+if (co('den-thumb')) { const ma = nenThumb ? await nenThumb.xong : 0; console.log(`✓ thử song song xong · thumbnail mã ${ma} · ${join(RA, 'thumb-kq.json')}`); process.exit(ma); }
 if (arg('khung')) process.exit(0);
 const mp4 = join(RA, `${id}.mp4`), xem = join(RA, `${id}-xem.mp4`);
 if (!co('chi-day')) execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-vf', 'scale=540:-2', '-c:v', 'libx264', '-crf', '30', '-preset', 'veryfast', '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', xem]);
@@ -403,8 +426,10 @@ buoc('đẩy Studio');
   catch (e) { console.log(`⚠ đẩy Studio hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ')}`); }
   buoc('thumbnail');
   // 5b. THUMBNAIL (anh 02/11/2026: "thumb rất rất quan trọng, không dùng thumb YouTube tự sinh"): thumb.mjs viết chữ + dựng + Ngọc chấm; chặn thì dừng, không nạp máy đăng
-  if (KENH.may) { const r = spawnSync(process.execPath, [join(DIR, 'thumb.mjs'), '--id', id], { stdio: 'inherit', timeout: 15 * 60_000 }); if (r.status) process.exit(r.status);
-    Object.assign(tap, { thumb: JSON.parse(readFileSync(tepTap, 'utf8')).thumb }); }
+  // thumbnail đã chạy nền từ trước bước dựng — đợi nó xong, gộp kết quả vào tệp tập (đọc lại tệp: dung-tap có thể đã tự sửa tệp trong lúc dựng)
+  if (nenThumb) { const ma = await nenThumb.xong, tk = join(RA, 'thumb-kq.json'); if (existsSync(tk)) { const th = JSON.parse(readFileSync(tk, 'utf8')).thumb, t1 = JSON.parse(readFileSync(tepTap, 'utf8'));
+      t1.thumb = th; writeFileSync(tepTap, JSON.stringify(t1, null, 1) + '\n'); tap.thumb = th; }
+    if (ma) process.exit(ma); }
   buoc('nạp máy đăng');
   // 6. MÁY ĐĂNG: kênh có máy Studio → tập thành một video của máy (mẫu video-ngoai: URL R2 + 3 khung), Phòng Nội dung chấm rồi máy đăng chung tự đăng theo nhịp
   if (KENH.may && kq) try {

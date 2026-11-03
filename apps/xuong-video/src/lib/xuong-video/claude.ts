@@ -152,10 +152,10 @@ const dangJsonTay = (p: ThamSoChu): ThamSoChu => {
   return { ...con, system };
 };
 type TinChu = Anthropic.Message & { parsed_output?: unknown; vnd?: number };
-async function quaChuoi(p0: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promise<TinChu>): Promise<TinChu> {
+async function quaChuoi(p0: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu, sig?: AbortSignal) => Promise<TinChu>): Promise<TinChu> {
   // x_kiem (không gửi đi): kiểm KẾT QUẢ đã đọc theo khuôn — đường trả bản hợp khuôn mà rỗng / cụt thì coi như hỏng, sang đường kế NGAY trong lần gọi này
   // (02/11/2026: một người bán ckey trả kịch bản 0 câu hợp khuôn → cả lượt viết hỏng, gọi lại thì chuỗi chọn đúng người đó trước, 4 lượt như nhau)
-  const { x_kiem: kiem, ...p } = p0 as ThamSoChu & { x_kiem?: (d: unknown) => string | null };
+  const { x_kiem: kiem, x_dua: _dua, ...p } = p0 as ThamSoChu & { x_kiem?: (d: unknown) => string | null; x_dua?: number };
   // script thiếu duyệt → dừng (chot-tien.ts); giá ước = trường hợp xấu nhất (rơi tới Anthropic, viết hết max_tokens) — lượt nhỏ dưới ngưỡng tự chạy (5.000₫, chot-tien.ts) tự chạy
   chotTien('gọi Claude', { cents: giaChuCents(p.model, Math.ceil(JSON.stringify([p.system ?? '', p.messages ?? '']).length / 3), Number(p.max_tokens) || 0) });
   // CẦU DAO (03/11/2026: đêm nay người bán ckey lỗi liên tục, mỗi lượt viết vẫn thử lại từ đầu → 16 phút / lượt): đường hỏng trong 20 phút qua xuống CUỐI hàng,
@@ -167,38 +167,62 @@ async function quaChuoi(p0: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promi
   const ds = (await duongChu(p.model)).map((d, i) => ({ d, i })).sort((a, b) => hang(a.d) - hang(b.d) || a.i - b.i).map((x) => x.d); const loi: string[] = [];
   if (!ds.length) throw new Error('Thiếu khoá Claude trên máy chủ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)');
   const f = p.output_config?.format;
-  for (let i = 0; i < ds.length; i++) {
-    const d = ds[i]!; const cuoi = i === ds.length - 1;
+  // MỘT ĐƯỜNG: trả tin hợp lệ, hoặc ném lỗi mang câu lý do (đã ghi sổ cầu dao). `cuoi` = đường cuối của chuỗi, nhận cả bản từ chối / kiểm không đạt.
+  const thu = async (d: DuongChu, cuoi: boolean, sig?: AbortSignal): Promise<TinChu> => {
+    let tay = d.jsonTay, r: TinChu;
     try {
-      let tay = d.jsonTay, r: TinChu;
-      try { r = await goi(d, { ...(tay ? dangJsonTay(p) : p), model: d.model }); }
+      try { r = await goi(d, { ...(tay ? dangJsonTay(p) : p), model: d.model }, sig); }
       catch (e) {
         // Anthropic từ chối khuôn structured output quá lớn ("compiled grammar is too large" — khuôn kịch bản kênh lịch sử, 02/11/2026: lưới cuối của chuỗi
         // hỏng 100% ở bước viết) → cùng đường, chuyển JSON TAY (dặn trong lời nhắc + tự đọc theo khuôn zod), không bỏ đường
-        if (!tay && f && e instanceof Anthropic.APIError && e.status === 400 && /grammar is too large/i.test(e.message)) { tay = true; r = await goi(d, { ...dangJsonTay(p), model: d.model }); }
+        if (!tay && f && e instanceof Anthropic.APIError && e.status === 400 && /grammar is too large/i.test(e.message)) { tay = true; r = await goi(d, { ...dangJsonTay(p), model: d.model }, sig); }
         else throw e;
       }
-      if (r.stop_reason === 'refusal' && !cuoi) { loi.push(`${d.ten} ${d.model}: từ chối`); continue; }
-      if (f) {   // có khuôn JSON: chuẩn hoá chữ về đúng khối JSON (bên bán lại hay bọc ```json) + tự đọc khi đường không đọc hộ
-        for (const b of r.content) if (b.type === 'text') b.text = layJson(b.text);
-        if (tay && f.parse && r.stop_reason !== 'max_tokens') r.parsed_output = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''));
-      }
-      // chạm TRẦN token = đường đó viết lan man / không dừng (03/11/2026: một cổng ăn hết 48.000 token cho kịch bản thường ~22.000) → đường hỏng, sang đường kế
-      if (f && r.stop_reason === 'max_tokens' && !cuoi) { loi.push(`${d.ten} ${d.model}: chạm trần ${p.max_tokens} token`); ghiSo(khoaD(d), { hong: Date.now() }); continue; }
-      if (kiem && f && r.stop_reason !== 'max_tokens' && !cuoi) {
-        let du: unknown = (r as { parsed_output?: unknown }).parsed_output;
-        if (!du && f.parse) try { du = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join('')); } catch { du = null; }
-        const lk = du ? kiem(du) : 'không đọc được JSON theo khuôn'; if (lk) { loi.push(`${d.ten} ${d.model}: ${lk}`); ghiSo(khoaD(d), { hong: Date.now() }); continue; }
-      }
-      const x = (r.usage as { x_ckey?: { cost?: number } }).x_ckey?.cost;
-      ghiSo(khoaD(d), { tot: Date.now() });
-      if (loi.length) console.error('[claude] dự phòng:', loi.join(' · '), '→', d.ten);
-      return Object.assign(r, { model: d.ten === 'anthropic' ? p.model : `${d.ten}:${p.model}`, ...(d.ten === 'ckey' && typeof x === 'number' ? { vnd: x } : {}) });
     } catch (e) {
       const m = e instanceof Anthropic.APIError ? `${e.status}: ${e.message}` : e instanceof Error ? e.message : String(e);
-      if (cuoi) throw Object.assign(e instanceof Error ? e : new Error(m), { message: [...loi, `${d.ten}: ${m}`].join(' · ') });
-      loi.push(`${d.ten} ${d.model}: ${m.slice(0, 160)}`); ghiSo(khoaD(d), { hong: Date.now() });
+      if (!sig?.aborted) ghiSo(khoaD(d), { hong: Date.now() });
+      throw Object.assign(new Error(`${d.ten} ${d.model}: ${m.slice(0, 160)}`), { goc: e });
     }
+    const hong = (ly: string) => { ghiSo(khoaD(d), { hong: Date.now() }); return new Error(`${d.ten} ${d.model}: ${ly}`); };
+    if (r.stop_reason === 'refusal' && !cuoi) throw new Error(`${d.ten} ${d.model}: từ chối`);
+    if (f) {   // có khuôn JSON: chuẩn hoá chữ về đúng khối JSON (bên bán lại hay bọc ```json) + tự đọc khi đường không đọc hộ
+      for (const b of r.content) if (b.type === 'text') b.text = layJson(b.text);
+      if (tay && f.parse && r.stop_reason !== 'max_tokens') r.parsed_output = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join(''));
+    }
+    // chạm TRẦN token = đường đó viết lan man / không dừng (03/11/2026: một cổng ăn hết 48.000 token cho kịch bản thường ~22.000) → đường hỏng, sang đường kế
+    if (f && r.stop_reason === 'max_tokens' && !cuoi) throw hong(`chạm trần ${p.max_tokens} token`);
+    if (kiem && f && r.stop_reason !== 'max_tokens' && !cuoi) {
+      let du: unknown = (r as { parsed_output?: unknown }).parsed_output;
+      if (!du && f.parse) try { du = f.parse(r.content.map((b) => (b.type === 'text' ? b.text : '')).join('')); } catch { du = null; }
+      const lk = du ? kiem(du) : 'không đọc được JSON theo khuôn'; if (lk) throw hong(lk);
+    }
+    const x = (r.usage as { x_ckey?: { cost?: number } }).x_ckey?.cost;
+    ghiSo(khoaD(d), { tot: Date.now() });
+    return Object.assign(r, { model: d.ten === 'anthropic' ? p.model : `${d.ten}:${p.model}`, ...(d.ten === 'ckey' && typeof x === 'number' ? { vnd: x } : {}) });
+  };
+  const xong = (r: TinChu, d: DuongChu) => { if (loi.length) console.error('[claude] dự phòng:', loi.join(' · '), '→', d.ten); return r; };
+  // ĐUA (x_dua = n, 03/11/2026, anh: "dùng ckey api chạy song song"): lượt dài (kịch bản 22k token, 5–7 phút) gửi CÙNG LÚC cho n đường CHỢ (ckey / ShopAIKey) —
+  // bản hợp lệ đầu tiên thắng, các đường còn lại bị huỷ; đường nào hỏng thì đường chợ kế vào thay ngay. Trước: thử lần lượt, mỗi người bán treo mất 90 giây – 5 phút,
+  // bước viết tập Bà Triệu đứng 1 giờ 40 phút. Anthropic chính hãng KHÔNG vào đua (giá gấp ~30 lần) — chỉ là lưới khi mọi đường chợ đã hỏng.
+  // thứ tự đua: đường tốt nhất của MỖI cổng lên trước (một người bán ckey + ShopAIKey cùng chạy, không phải 3 người bán ckey cùng chết một lúc), rồi phần còn lại theo sổ
+  const dua = Math.max(1, Number(p0.x_dua) || 1), cho0 = ds.filter((d) => d.ten !== 'anthropic'), dau = cho0.filter((d, i) => cho0.findIndex((x) => x.ten === d.ten) === i), cho = [...dau, ...cho0.filter((d) => !dau.includes(d))];
+  if (dua > 1 && cho.length > 1) {
+    const ac = new AbortController(); let ke = 0;
+    const r = await new Promise<{ r: TinChu; d: DuongChu } | null>((ok) => {
+      let dangChay = 0;
+      const mo = () => { while (dangChay < dua && ke < cho.length) { const d = cho[ke++]!; dangChay++;
+        thu(d, false, ac.signal).then((r) => { if (!ac.signal.aborted) { ac.abort(new Error('đường khác đã xong')); ok({ r, d }); } },
+          (e) => { if (!ac.signal.aborted) loi.push((e as Error).message); dangChay--; if (!ac.signal.aborted) { mo(); if (!dangChay) ok(null); } }); } };
+      mo();
+    });
+    if (r) return xong(r.r, r.d);
+    const con = ds.filter((d) => d.ten === 'anthropic'); if (!con.length) throw new Error(loi.join(' · '));
+    return xong(await thu(con[0]!, true).catch((e) => { throw Object.assign((e as { goc?: Error }).goc ?? e, { message: [...loi, (e as Error).message].join(' · ') }); }), con[0]!);
+  }
+  for (let i = 0; i < ds.length; i++) {
+    const d = ds[i]!, cuoi = i === ds.length - 1;
+    try { return xong(await thu(d, cuoi), d); }
+    catch (e) { if (cuoi) throw Object.assign((e as { goc?: Error }).goc ?? (e as Error), { message: [...loi, (e as Error).message].join(' · ') }); loi.push((e as Error).message); }
   }
   throw new Error(loi.join(' · '));
 }
@@ -206,14 +230,14 @@ async function quaChuoi(p0: ThamSoChu, goi: (d: DuongChu, q: ThamSoChu) => Promi
 type KhachChu = { messages: { create(p: ThamSoChu): Promise<TinChu>; parse(p: ThamSoChu): Promise<TinChu>; stream(p: ThamSoChu): { finalMessage(): Promise<TinChu> } } };
 function client(): KhachChu | null {
   if (!process.env.CKEY_API_KEY && !process.env.SHOPAIKEY_API_KEY && !process.env.ANTHROPIC_API_KEY) return null;
-  const tao = (d: DuongChu, q: ThamSoChu) => d.c.messages.create({ ...(q as unknown as Anthropic.MessageCreateParamsNonStreaming), stream: false }) as Promise<TinChu>;
+  const tao = (d: DuongChu, q: ThamSoChu, sig?: AbortSignal) => d.c.messages.create({ ...(q as unknown as Anthropic.MessageCreateParamsNonStreaming), stream: false }, { signal: sig }) as Promise<TinChu>;
   return { messages: {
     create: (p) => quaChuoi(p, tao),
-    parse: (p) => quaChuoi(p, (d, q) => (d.jsonTay ? tao(d, q) : d.c.messages.parse(q as unknown as Parameters<Anthropic['messages']['parse']>[0]) as unknown as Promise<TinChu>)),
+    parse: (p) => quaChuoi(p, (d, q, sig) => (d.jsonTay ? tao(d, q, sig) : d.c.messages.parse(q as unknown as Parameters<Anthropic['messages']['parse']>[0], { signal: sig }) as unknown as Promise<TinChu>)),
     // LUỒNG ĐỨNG IM GIỮA CHỪNG (03/11/2026): đã bắt đầu trả lời rồi im — timeout 90 giây của SDK không bắt (chỉ tính tới phản hồi đầu) → 120 giây không có sự kiện mới
     // thì huỷ luồng, chuỗi sang đường kế (thay vì đợi trần 25 phút của lệnh box3)
     // sự kiện ĐẦU TIÊN được chờ 5 phút (lời nhắc dài — Anthropic có lúc > 2 phút mới gửi sự kiện đầu, 03/11/2026 bị huỷ oan "Request was aborted"), sau đó 120 giây giữa hai sự kiện
-    stream: (p) => ({ finalMessage: () => quaChuoi(p, (d, q) => { const ac = new AbortController(); let t = setTimeout(() => ac.abort(new Error('chưa có sự kiện đầu sau 5 phút')), 300_000);
+    stream: (p) => ({ finalMessage: () => quaChuoi(p, (d, q, sig) => { const ac = new AbortController(); sig?.addEventListener('abort', () => ac.abort(sig.reason)); let t = setTimeout(() => ac.abort(new Error('chưa có sự kiện đầu sau 5 phút')), 300_000);
       const st = d.c.messages.stream(q as unknown as Anthropic.MessageStreamParams, { signal: ac.signal });
       st.on('streamEvent', () => { clearTimeout(t); t = setTimeout(() => ac.abort(new Error('luồng im 120 giây')), 120_000); });
       return (st.finalMessage() as Promise<TinChu>).finally(() => clearTimeout(t)); }) }),
@@ -221,10 +245,10 @@ function client(): KhachChu | null {
 }
 /** LƯỢT CHỮ RA JSON THEO KHUÔN ZOD cho mọi máy ngoài phim (máy sinh đề theo góc — may-de.ts, 27/10/2026): cùng chuỗi dự phòng, cùng sổ tiền. Mặc định Haiku qua ckey
  *  (vài chục đồng một lượt). Trả dữ liệu đã parse + token/tiền; lỗi → ok:false với câu đọc được. */
-export async function sinhJson<T>(o: { schema: z.ZodType<T>; system: string; user: string; model?: string; max_tokens?: number; ten?: string; /** kiểm kết quả: trả câu lỗi → chuỗi sang đường kế */ kiem?: (d: T) => string | null }): Promise<{ ok: true; data: T; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string }> {
+export async function sinhJson<T>(o: { schema: z.ZodType<T>; system: string; user: string; model?: string; max_tokens?: number; ten?: string; /** kiểm kết quả: trả câu lỗi → chuỗi sang đường kế */ kiem?: (d: T) => string | null; /** số đường chợ gửi cùng lúc (quaChuoi › ĐUA) */ dua?: number }): Promise<{ ok: true; data: T; model: string; tokens: { in: number; out: number; vnd?: number } } | { ok: false; loi: string }> {
   const c = client(); if (!c) return { ok: false, loi: 'thiếu khoá chữ (CKEY_API_KEY / SHOPAIKEY_API_KEY / ANTHROPIC_API_KEY)' };
   try {
-    const p = { model: o.model ?? 'claude-haiku-4-5', max_tokens: o.max_tokens ?? 2000, system: o.system, messages: [{ role: 'user', content: o.user }], output_config: { format: zodOutputFormat(o.schema as unknown as Parameters<typeof zodOutputFormat>[0]) }, ...(o.kiem ? { x_kiem: o.kiem } : {}) };
+    const p = { model: o.model ?? 'claude-haiku-4-5', max_tokens: o.max_tokens ?? 2000, system: o.system, messages: [{ role: 'user', content: o.user }], output_config: { format: zodOutputFormat(o.schema as unknown as Parameters<typeof zodOutputFormat>[0]) }, ...(o.kiem ? { x_kiem: o.kiem } : {}), ...(o.dua ? { x_dua: o.dua } : {}) };
     // LƯỢT DÀI (kịch bản trọn chuyện 3 phút, max_tokens > 16k): SDK từ chối gọi không-stream khi ước > 10 phút → đi stream, tự đọc JSON theo khuôn zod
     const r = (p.max_tokens > 16000 ? await c.messages.stream(p).finalMessage() : await c.messages.parse(p)) as TinChu;
     if (r.stop_reason === 'max_tokens') return { ok: false, loi: `viết chưa hết đã chạm trần ${p.max_tokens} token` };

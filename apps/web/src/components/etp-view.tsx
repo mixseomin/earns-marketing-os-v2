@@ -1882,10 +1882,11 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const nhanPhim = (k: string) => { const p = phimMap.get(k); if (!p) return `#${k}`;
     return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}
       <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }} title={p.all[0]?.phim ?? ''}>{p.all[0]?.phim ?? `#${k}`}</b><NhomGoc g={nhomCua.get(Number(k))} /><MocPhim ph={phCua.get(Number(k))} chay={p.all.filter((c) => c.trang_thai === 'ACTIVE').length} />
-      <span title="camp đang chạy / tổng" style={{ color: 'var(--fg-2)', fontWeight: 400 }}>{p.all.filter((c) => c.trang_thai === 'ACTIVE').length}/{p.all.length}</span>
-      {(du.dongChay ?? []).filter((x) => x.content_id === Number(k)).map((x) => <a key={x.id} href={`?t=dong&sxq=${k}`} onClick={(e) => e.stopPropagation()}
-        title={`dòng sản xuất #${x.id} · ${x.loai}${x.so_camp ? ` · +${x.so_camp} camp` : ''} · đang ở bước ${x.buoc ?? '—'} — bấm xem ở tab Sản xuất`}
-        style={{ color: '#60a5fa', fontWeight: 400, fontSize: 11, textDecoration: 'none' }}>◌ SX {x.loai}{x.so_camp ? ` +${x.so_camp}` : ''} · {x.buoc ?? '—'}</a>)}
+      {(() => { const ds = (du.dongChay ?? []).filter((x) => x.content_id === Number(k)); if (!ds.length) return null;   // BADGE NHỎ NHẤP NHÁY số camp đang sản xuất — chi tiết ở hover, bấm sang tab Sản xuất (Ctrl/⌘ = tab mới) (anh 04/11/2026)
+        const so = ds.reduce((a, x) => a + (x.so_camp ?? 1), 0);
+        return <a href={`?t=dong&sxq=${k}`} onClick={(e) => e.stopPropagation()} title={ds.map((x) => `dòng sản xuất #${x.id} · ${x.loai}${x.so_camp ? ` · +${x.so_camp} camp` : ''} · bước ${x.buoc ?? '—'}`).join('\n') + '\nbấm: sang tab Sản xuất (Ctrl/⌘: tab mới)'}
+          style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#1d4ed8', color: '#fff', fontSize: 10, fontWeight: 700,
+            textDecoration: 'none', boxShadow: '0 0 6px #60a5fa', animation: 'etpDen 1.6s ease-in-out infinite' }}>{so}</a>; })()}
       {(() => { const kt = ktCua.get(Number(k)); return kt ? <span title={kt === 'dang_sinh' ? 'máy đang sinh bản kể chuyện (KT) VideoExpress cho phim này — xong tự lên creative, chấm Sạch thì lên camp' : 'bản kể chuyện (KT) đã xong, đang lên creative / chờ chấm'} style={{ color: '#a78bfa', fontWeight: 400, opacity: kt === 'dang_sinh' ? 0.6 : 0.9, fontSize: 11 }}>◌ KT {kt === 'dang_sinh' ? 'đang sinh' : 'sẵn sàng'}</span> : null; })()}
       {p.b?.bao_hoa ? <span title={p.b.bao_hoa} style={{ color: '#f59e0b', fontWeight: 400 }}>⚠ bão hoà</span> : null}
       {p.loi ? <span title={`${p.loi} camp không nhân bản được trong 24 giờ`} style={{ color: '#f87171' }}>⚠{p.loi}</span> : null}

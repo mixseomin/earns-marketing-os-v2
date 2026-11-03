@@ -46,8 +46,9 @@ def cat(v):
     h = time.localtime().tm_hour   # đêm 22h–8h: nice (đủ lõi); ngày: chế độ nền (máy người dùng không giật) — cùng luật dot-phim-moi.uu_tien
     uu = ["nice", "-n", "10"] if (h >= 22 or h < 8) else (["taskpolicy", "-b"] if sys.platform == "darwin" else ["nice", "-n", "15"])
     # cả nhóm tiến trình: quá giờ thì giết luôn cat-canh / ffmpeg con cháu (25/10/2026: 3 ffmpeg treo mồ côi 8 giờ sau khi thợ bỏ việc)
-    pr = subprocess.Popen([*uu, "python3", os.path.join(E, "cat-cuoi-lo.py"), N, tsv, ra, "1", str(d.get("so_ban", 2))], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-    try: pr.wait(timeout=45 * 60)   # một phim cắt 2 đoạn đo 5–11 phút → trần 45 phút (trần cũ 3 giờ làm lô kẹt cả buổi, 02/11/2026)
+    pr = subprocess.Popen([*uu, "python3", os.path.join(E, "cat-cuoi-lo.py"), N, tsv, ra, "1", str(d.get("so_ban", 2))], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
+                          env={**os.environ, **({"ETP_KIEU": d["kieu"]} if d.get("kieu") else {})})   # kieu=tap: mỗi tập một đoạn (dòng phim LT, anh 03/11/2026)
+    try: pr.wait(timeout=(100 if d.get("kieu") == "tap" else 45) * 60)   # LT đọc chữ cả phim + dựng tới 10 đoạn   # một phim cắt 2 đoạn đo 5–11 phút → trần 45 phút (trần cũ 3 giờ làm lô kẹt cả buổi, 02/11/2026)
     except subprocess.TimeoutExpired:
         try: os.killpg(pr.pid, 9)
         except Exception: pass

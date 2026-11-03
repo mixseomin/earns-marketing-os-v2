@@ -21,9 +21,13 @@ sys.path.insert(0, E); import loi_ky_thuat as LK
 B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 C = os.path.expanduser("~/.cache/ethopex"); MAY = socket.gethostname().split(".")[0]
 KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (dot-phim-moi.KHUON)
-LOAI = {"CC": "cảnh cuối", "KT": "kể chuyện"}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
+LOAI = {"CC": "cảnh cuối", "KT": "kể chuyện", "LT": "tập nguyên"}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
 BO_QUA = {"KT": {"cat", "soat"}}                 # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt — không cắt phim
-HAN_RIENG = {("KT", "creative"): 4 * 3600}       # máy sinh KT làm tuần tự ~40–70 phút/phim, có hàng đợi
+HAN_RIENG = {("KT", "creative"): 4 * 3600, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu
+# LT — LỘ TRÌNH TEST RỘNG (anh 03/11/2026 "Lên $8-10/phim + T2 thì sẽ cắt sớm đc lỗ và tìm nhanh đc camp lãi" · chọn A: miễn luật một camp ngày test rộng):
+# cắt MỖI TẬP một creative (kiểu Kiên, tập trọn ETP_KIEU=tap, tới 10 đoạn) → soát → tải + chấm TẤT CẢ đoạn sạch → DỪNG chờ anh bắt đầu
+# (etp.cau_hinh 'lo_trinh' {content_id: {bat_dau: true}}) → lên mỗi creative một camp $1 (nhan-ban miễn luật một camp khi phim ở lo_trinh) → T2 cắt lỗ.
+def lo_trinh(cid): return json.loads(sql(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'lo_trinh'), '{{}}'::jsonb)::text") or "{}")       # máy sinh KT làm tuần tự ~40–70 phút/phim, có hàng đợi
 BUOC = [("nhan", 300), ("ws", 3600), ("poster", 900), ("cat", 4200), ("soat", 1800), ("creative", 3600), ("camp", 1200), ("chay", 7200)]   # (bước, hạn giây) — Mạnh huỷ khi quá
 CHO_LAI = 60          # bước trả "cho" → quay lại sau ngần này giây
 TRAN_CAT = 2          # tối đa 2 dòng cắt cùng lúc (iMac)
@@ -112,7 +116,7 @@ def b_cat(d):
     r = sql(f"select ten, url, locale, nguon from ethopex_content where id = {cid}", spy=True).split("\t")
     if len(r) < 2 or not r[1]: return "loi", "không tìm thấy link tập trong ethopex_content (spy)", None
     sql(f"""delete from etp.viec where lo = '{lo}';   -- lô riêng của dòng: chạy lại bước = xếp lại từ đầu
-            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 2})}) on conflict do nothing""")
+            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else 2, **({"kieu": "tap"} if d.get("loai") == "LT" else {})})}) on conflict do nothing""")
     rc, out = chay_tien_trinh(d["id"], "cat", ["python3", os.path.join(R, "tho.py"), "--lo", lo, "--so-tho", "1"], dict(BUOC)["cat"] - 60)
     kq = json.loads(sql(f"select coalesce(ket_qua, '[]'::jsonb)::text || chr(9) || coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1").split("\t")[0] or "[]")
     loi = sql(f"select coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1")
@@ -136,6 +140,7 @@ def b_soat(d, truoc):
 
 def b_creative(d, truoc):
     if d.get("loai") == "KT": return b_creative_kt(d)
+    if d.get("loai") == "LT": return b_creative_lt(d, truoc)
     tr = (d.get("buoc") or {}).get("creative") or {}
     cr = (tr.get("ket_qua") or {}).get("creative_id")
     if not cr:   # lượt đầu: tải MỘT đoạn (luật một camp mỗi lần, anh 03/11/2026)
@@ -157,6 +162,28 @@ def b_creative(d, truoc):
     if c[0] == "true": return "xong", f"creative #{cr} chấm sạch", tr["ket_qua"]
     return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if len(c) > 2 and c[2] else 'chặn'}: {c[1][:200]}", tr["ket_qua"]
 
+def b_creative_lt(d, truoc):
+    """LT: tải MỌI đoạn sạch (mỗi tập một creative) → chờ chấm hết → xong khi còn ≥ 1 creative được lên"""
+    tr = (d.get("buoc") or {}).get("creative") or {}; ds = (tr.get("ket_qua") or {}).get("ds")
+    if not ds:
+        doan = (truoc.get("soat") or {}).get("doan") or []
+        if not doan: return "loi", "bước soát không để lại đoạn sạch", None
+        ma = f"dp{d['id']}lt"; lf = os.path.join(C, "ra", f"dp{d['id']}", f"len-{ma}.json")
+        json.dump([{**x, "lo": f"dp{d['id']}"} for x in doan], open(lf, "w"), ensure_ascii=False)
+        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "len-creative.py"), lf, ma, "tap nguyen", "--da-soat"], dict(BUOC)["creative"] - 300, {"ETP_KHONG_CAT": "1"})
+        lj = os.path.join(C, "ra", ma, "len.json"); kq = json.load(open(lj)) if os.path.exists(lj) else []
+        ds = [y for y in kq if y.get("ok") and y.get("creative_id")]
+        if not ds:
+            g = " ".join(str(y.get("loi")) for y in kq) or out[-300:]
+            return ("loi" if rc == -9 or not kq or LK.ky_thuat(g) is not False else "dung"), f"tải creative không ra: {g[:300]}", None
+        sql(f"update etp.dong_buoc set ket_qua = {js({'ds': ds})} where dong_id = {d['id']} and buoc = 'creative'")
+    ids = ",".join(str(int(x["creative_id"])) for x in ds)
+    c = dict(l.split("\t")[:2] for l in sql(f"select creative_id, coalesce(duoc_len::text, '') from etp.cham_cong where creative_id in ({ids})").splitlines() if "\t" in l)
+    if any(c.get(str(x["creative_id"]), "") == "" for x in ds): return "cho", f"{len(ds)} creative đã tải — chờ máy chấm ({sum(1 for v in c.values() if v)} / {len(ds)} xong)", {"ds": ds}
+    sach = [x for x in ds if c.get(str(x["creative_id"])) == "true"]
+    if not sach: return "dung", f"cả {len(ds)} creative bị cổng chấm chặn / giữ", {"ds": ds}
+    return "xong", f"{len(sach)}/{len(ds)} creative chấm sạch: " + ", ".join(f"#{x['creative_id']}" for x in sach), {"ds": ds, "sach": sach}
+
 def b_creative_kt(d):
     """KT: dòng đứng đầu hàng đợi máy sinh kể chuyện (hang-ke-chuyen.mts bậc 5000) → chờ creative kể chuyện MỚI của phim (tạo sau lúc bước này bắt đầu) → cổng chấm"""
     v = sql(f"""select coalesce(r.creative_id::text, '') || chr(9) || coalesce(g.duoc_len::text, '') || chr(9) || coalesce(g.chan_boi, '') || chr(9) || coalesce(g.cho_duyet, '')
@@ -174,7 +201,23 @@ def b_creative_kt(d):
     if v[1] == "true": return "xong", f"creative kể chuyện #{cr} chấm sạch", kq
     return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if v[3] else 'chặn'}: {v[2][:200]}", kq
 
+def b_camp_lt(d, truoc):
+    sach = (truoc.get("creative") or {}).get("sach") or []
+    if not sach: return "loi", "chưa có creative sạch", None
+    if not lo_trinh(d["content_id"]).get("bat_dau"):
+        return "cho", f"sẵn {len(sach)} creative sạch → {len(sach)} camp × $1 ≈ ${len(sach)}/ngày (bộ 2, T2 cắt lỗ) — CHỜ ANH BẮT ĐẦU", None
+    xong, loi = [], []
+    for x in sach:
+        lang = x.get("lang") or "en"; ten = re.sub(r"['\"$`\\]", "", x.get("ten") or f"dp{d['id']} phim {d['content_id']}")
+        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --bo 2 --creative {int(x["creative_id"])} --content {d["content_id"]} --ten "{ten}" --that --lich today --luat "lộ trình test rộng (anh 03/11/2026: 8-10 USD/phim + T2)" --ai "dòng phim LT — anh bắt đầu"'""", 900)
+        j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}
+        (xong if j.get("ok") and j.get("moi") else loi).append(j.get("moi") or f"#{x['creative_id']}: {(j.get('loi') or out[-120:])[:120]}")
+    if not xong: return "dung", "không lên được camp nào: " + " · ".join(map(str, loi))[:400], None
+    sql(f"update etp.dong_phim set camp_id = {int(xong[0])} where id = {d['id']}")
+    return "xong", f"lên {len(xong)} camp $1: " + ", ".join(f"#{c}" for c in xong) + (f" · chặn {len(loi)}: " + " · ".join(map(str, loi))[:300] if loi else ""), {"camp_id": int(xong[0]), "camps": xong}
+
 def b_camp(d, truoc):
+    if d.get("loai") == "LT": return b_camp_lt(d, truoc)
     x = truoc.get("creative") or {}
     if not x.get("creative_id"): return "loi", "chưa có creative", None
     lang = x.get("lang") or "en"; ten = re.sub(r"['\"$`\\]", "", x.get("ten") or f"dp{d['id']} phim {d['content_id']}")

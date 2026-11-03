@@ -393,7 +393,8 @@ def main(a):
         n = dem_dang_chay(cid)
         if moi and DEM_CR.get(int(moi["creative"]), 0) > 0:   # một creative một camp mới (25/10/2026: hai lượt lên camp chạy cùng lúc tạo trùng 3 camp)
             raise ChanLuat(f"creative #{moi['creative']} đã có camp đang chạy / vừa tạo — không tạo camp thứ hai")
-        if moi and not ep and (cm := camp_moi_hom_nay(cid)):
+        _lt = json.loads(q(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'lo_trinh'), '{{}}'::jsonb)::text") or "{}")   # phim ở lộ trình test rộng, anh đã bắt đầu → miễn luật một camp (anh 03/11/2026 chọn A)
+        if moi and not ep and not _lt.get("bat_dau") and (cm := camp_moi_hom_nay(cid)):
             raise ChanLuat(f"phim {cid} đã lên camp mới #{cm} hôm nay — mỗi lần chỉ lên MỘT camp cho một phim, creative #{moi['creative']} chờ lượt sau (luật anh 03/11/2026)")
         if moi and not ep and (tr := cung_doan_dang_chay(int(moi["creative"]))):
             raise ChanLuat(f"creative #{moi['creative']} cùng đoạn với creative #{tr} đã có camp đang chạy / vừa tạo — không lên trùng đoạn (anh 03/11/2026)")

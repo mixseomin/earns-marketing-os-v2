@@ -48,6 +48,19 @@ def box(lenh, timeout=1800):
     return r.returncode, (r.stdout + r.stderr).strip()
 def khoa_studio(ten): return json.loads(sql(f"select coalesce(gia_tri, '{{}}'::jsonb)::text from xv_khoa_ngoai where ten = '{ten}'") or "{}")
 
+def tien_do(dong, buoc):
+    """câu tiến độ cho người xem trong lúc bước chạy (tab Dòng phim vẽ thanh từ 'N/M') — None = không có số riêng"""
+    try:
+        if buoc == "cat":
+            ra = os.path.join(C, "ra", f"dp{dong}"); thu = next((os.path.join(ra, x) for x in os.listdir(ra) if x.startswith("p-")), None)
+            if not thu: return "đang tải tập phim"
+            cid = os.path.basename(thu)[2:]; tap = os.path.join(C, "nguon", cid, "tap.json")
+            m = len(json.load(open(tap))) if os.path.exists(tap) else 0
+            n = len([x for x in os.listdir(thu) if x.endswith(".mp4") and not x.endswith(".goc.mp4") and x[:2] in ("t-", "c-")])
+            return f"đang đọc chữ trên phim (trước khi cắt) · 0/{m or '?'} video" if not n else f"đã cắt {n}/{m or '?'} video"
+    except Exception: return None
+    return None
+
 def chay_tien_trinh(dong, buoc, lenh, han, env=None):
     """Popen cả nhóm tiến trình, ghi pid; giết khi hết hạn hoặc khi bước bị đặt huy (Mạnh / nút Dừng / FIX) → (mã, đuôi stdout)"""
     log = os.path.join(C, "dong", f"{dong}-{buoc}.log"); os.makedirs(os.path.dirname(log), exist_ok=True)
@@ -64,7 +77,8 @@ def chay_tien_trinh(dong, buoc, lenh, han, env=None):
                 except Exception: pass
                 pr.wait(); f.close()
                 return -9, f"bị huỷ sau {int(time.time() - t0)}s ({'quá hạn' if time.time() - t0 > han else 'Mạnh / nút Dừng yêu cầu'}) — nhật ký (iMac): {log}"
-            sql(f"update etp.dong_buoc set nhip = now() where dong_id = {dong} and buoc = '{buoc}'")
+            td = tien_do(dong, buoc) if int(time.time() - t0) % 30 < 5 else None   # 30 giây một lần: câu tiến độ cho tab Dòng phim
+            sql(f"update etp.dong_buoc set nhip = now(){f', ghi = {s(td)}' if td else ''} where dong_id = {dong} and buoc = '{buoc}'")
     finally:
         with KHOA: DANG.pop((dong, buoc), None)
     f.close()

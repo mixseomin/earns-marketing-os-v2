@@ -354,6 +354,8 @@ const LUAT = [
   { card: 'cam-thay-cr-0311', tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', cam: 'ds = camps if lo is not None else cung_creative(', vi: 'thay-tu-choi không thay trước camp khác cùng creative' },
   { card: 'cam-thay-cr-0311', tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', co: 'lan = False   # CHỈ AD ĐANG BỊ META TỪ CHỐI', vi: 'thay-tu-choi chỉ ad đang bị từ chối' },
   { card: 'cam-thay-cr-0311', tep: 'apps/cty/worker/ethopex.mjs', cam: "chay(THAY, ['--don-doan']", vi: 'Phòng Ethopex không dọn đoạn (đổi creative camp không bị từ chối)' },
+  { card: 'dong-truc-quan-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: 'function TheDong(', cam: '<DataTable rows={du.dong}', vi: 'tab Dòng phim: thẻ + thanh bước trực quan, không bảng số (anh 03/11/2026 "toàn số, ko trực quan")' },
+  { card: 'dong-truc-quan-0311', tep: 'apps/etp/dong_phim.py', co: 'def tien_do(dong, buoc):', vi: 'bước cắt ghi tiến độ N/M cho thanh %' },
   { card: 'lo-trinh-0311', tep: 'apps/etp/dong_phim.py', co: 'CHỜ ANH BẮT ĐẦU', vi: 'dòng phim LT dừng trước bước lên camp tới khi anh bắt đầu (anh 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'not _lt.get("bat_dau") and (cm := camp_moi_hom_nay(cid))', vi: 'phim lộ trình đã bắt đầu được miễn luật một camp (anh chọn A 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/etp/tho.py', co: '"ETP_KIEU": d["kieu"]', vi: 'thợ cắt truyền kiểu tập trọn cho dòng LT' },

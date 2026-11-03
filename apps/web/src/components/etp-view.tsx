@@ -2364,7 +2364,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const BO_LOC = useMemo((): [string, (c: CampEtpKho) => boolean][] => [['loc', hopLoc], ['luat', hopLuat], ['phim', (c) => !phimLoc || xemCamp !== 'bang' || c.content_id === phimLoc],
     ['dang', (c) => !dangLoc || c.dang === dangLoc], ['bo', (c) => !boHieu || c.bo === boHieu], ['lai', locLai], ['tuoi', locTuoi], ['ro', (c) => !roLoc || (roLoc === 'co') === laRoas(c)],
     // #1516 (anh 03/11/2026 'đã chọn time period ở trên thì mọi thứ ở dưới cũng phải lọc theo'): kỳ ≠ Tất cả → chỉ camp có chi trong kỳ hoặc tạo trong kỳ
-    ['ky', (c) => kh === 'tat_ca' || (khCamp.get(c.camp_id)?.chi ?? 0) > 0 || (!!c.tao && ngayKh(c.tao.slice(0, 10)))]], [kh, khCamp, ngayKh, hopLoc, hopLuat, phimLoc, xemCamp, dangLoc, boHieu, locLai, locTuoi, roLoc]);
+    // luôn giữ camp ĐANG CHẠY + camp có chi HÔM NAY: cột Hôm nay / Hôm qua là cột cố định, không được lệch theo kỳ (03/11/2026: chọn Hôm qua bỏ 29 camp mới → bảng 'Lãi nay' $126 ≠ hero $110)
+    ['ky', (c) => kh === 'tat_ca' || c.trang_thai === 'ACTIVE' || c.nay.chi > 0 || c.qua.chi > 0 || (khCamp.get(c.camp_id)?.chi ?? 0) > 0 || (!!c.tao && ngayKh(c.tao.slice(0, 10)))]], [kh, khCamp, ngayKh, hopLoc, hopLuat, phimLoc, xemCamp, dangLoc, boHieu, locLai, locTuoi, roLoc]);
   const camps = useMemo(() => du.camps.filter((c) => BO_LOC.every(([, f]) => f(c))), [du.camps, BO_LOC]);
   // Ô TÌM CÂY / BẢNG CAMP RA 0 DÒNG → nói vì sao: camp khớp có trong dữ liệu nhưng bộ lọc nào ẩn (ô đó viền đỏ), hay camp nằm ở người khác (hỏi kho, kèm link mở)
   const [timCay, setTimCay] = useState('');

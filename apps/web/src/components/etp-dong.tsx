@@ -32,6 +32,17 @@ const NEN: Record<string, string> = { xong: '#14532d', dang: '#1e3a8a', chay: '#
 const CHU: Record<string, string> = { xong: '#86efac', dang: '#bfdbfe', chay: '#bfdbfe', dung: '#fcd34d', loi: '#fca5a5', cho: 'var(--fg-3)', bo_qua: 'var(--fg-3)' };
 const KY: Record<string, string> = { xong: '✓', dang: '▶', chay: '▶', dung: '⏸', loi: '!', cho: '·', bo_qua: '–' };
 
+// NÚT CÓ DẤU HIỆU ĐÃ NHẬN (YDNI 03/11/2026: "bấm vào bất kỳ cái nào cũng phải có 1 dấu hiệu để biết đã nhận, rồi mới xử lý thực sự"): bấm → ⏳ + khoá ngay,
+// xong → ✓ tại chỗ, lỗi → chữ đỏ tại chỗ. Một khuôn cho mọi nút của tab.
+function NutGui({ chu, dang = 'đang gửi…', xong = '✓ đã nhận', lam, hoi, mau, nho }: { chu: React.ReactNode; dang?: string; xong?: string; lam: () => Promise<{ loi?: string } | unknown>; hoi?: string; mau?: string; nho?: boolean }) {
+  const [tt, setTt] = useState<'' | 'dang' | 'xong' | 'loi'>(''); const [loi, setLoi] = useState('');
+  return <button className="btn" disabled={tt === 'dang'} style={{ fontSize: nho ? 10 : undefined, padding: nho ? '0 6px' : undefined, color: tt === 'loi' ? '#f87171' : tt === 'xong' ? '#4ade80' : mau, opacity: tt === 'dang' ? 0.8 : 1 }}
+    onClick={async (e) => { e.stopPropagation(); if (hoi && !window.confirm(hoi)) return; setTt('dang'); setLoi('');
+      try { const r = await lam(); const l = r && typeof r === 'object' && 'loi' in r ? String((r as { loi: string }).loi) : ''; if (l) { setLoi(l); setTt('loi'); } else { setTt('xong'); setTimeout(() => setTt(''), 2500); } }
+      catch (er) { setLoi(String(er).slice(0, 120)); setTt('loi'); } }}>
+    {tt === 'dang' ? `⏳ ${dang}` : tt === 'xong' ? xong : tt === 'loi' ? `✕ ${loi || 'lỗi'}` : chu}</button>;
+}
+
 // XEM TRƯỚC KHI RÊ (anh 03/11/2026 "các bước cụ thể xem được như hình poster, creative khi hover vào"): một khung nổi dùng chung cho cả bảng
 type Xem = { anh?: string | null; video?: string | null; chu?: string; x: number; y: number };
 let datXem: (v: Xem | null) => void = () => {};
@@ -55,7 +66,8 @@ function O({ tt, chu, t, fix, bam, menu, xem }: { tt: string; chu?: string; t?: 
 
 function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: (id: number) => void }) {
   const [mo, setMo] = useState(() => d.buoc.some((x) => x.trang_thai !== 'xong' && x.trang_thai !== 'bo_qua'));   // thư mục: đang làm / lỗi thì mở sẵn, xong thì gập
-  const [menu, setMenu] = useState<{ b: BuocDong; x: number; y: number } | null>(null);   // XỬ LÝ TAY TẠI Ô (anh 03/11/2026: bước lâu / lỗi phải reset, fix, dừng ngay tại vị trí đó)
+  const [menu, setMenu] = useState<{ b: BuocDong; x: number; y: number } | null>(null);
+  const [cho, setCho] = useState<Record<string, string>>({});   // bước vừa bấm chạy lại → ô hiện ⏳ "chờ máy nhận" tới khi máy thật sự nhận (bat_dau đổi)   // XỬ LÝ TAY TẠI Ô (anh 03/11/2026: bước lâu / lỗi phải reset, fix, dừng ngay tại vị trí đó)
   const b = (k: string) => d.buoc.find((x) => x.buoc === (BUOC_COT[k] ?? k));
   const kq = (k: string) => b(k)?.ket_qua ?? null;
   const ttB = (x?: BuocDong) => (x ? (ket(x) ? 'loi' : x.trang_thai) : 'cho');
@@ -93,7 +105,7 @@ function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: 
       <td style={{ padding: '2px 6px', fontSize: 11, color: d.trang_thai === 'dung' ? '#fbbf24' : d.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)', maxWidth: 320 }}>
         <div title={ghi ?? ''} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ghi ?? ''}</div></td>
       <td style={{ padding: 2 }}>{d.trang_thai === 'chay' || d.trang_thai === 'dung' || d.trang_thai === 'loi'
-        ? <button className="btn" style={{ fontSize: 10, padding: '0 6px' }} onClick={async () => { if (!window.confirm(`Dừng hẳn dòng ${d.ten ?? d.content_id}?`)) return; await dungDong(d.id); xong(); }}>Dừng</button> : null}</td>
+        ? <NutGui nho chu="Dừng" dang="đang dừng…" xong="✓ đã dừng" hoi={`Dừng hẳn dòng ${d.ten ?? d.content_id}?`} lam={async () => { const r = await dungDong(d.id); xong(); return r; }} /> : null}</td>
     </tr>
     {menu ? <tr><td colSpan={12} style={{ padding: 0, border: 0 }}><div onClick={() => setMenu(null)} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
       <div style={{ position: 'fixed', left: Math.min(menu.x, window.innerWidth - 300), top: Math.min(menu.y + 8, window.innerHeight - 240), zIndex: 61, width: 290, padding: 10, borderRadius: 8,
@@ -102,14 +114,16 @@ function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: 
         <div style={{ color: 'var(--fg-3)', marginBottom: 6 }}>bắt đầu {ngayGio(menu.b.bat_dau)} · {menu.b.ket_thuc ? `xong ${ngayGio(menu.b.ket_thuc)}` : `đã chạy ${phut(menu.b.bat_dau, null) ?? '—'} / hạn ${Math.round(menu.b.han_giay / 60)} phút`}{menu.b.lan > 1 ? ` · lần ${menu.b.lan}` : ''}</div>
         {menu.b.ghi ? <div style={{ maxHeight: 90, overflow: 'auto', color: 'var(--fg-2)', marginBottom: 8, whiteSpace: 'pre-wrap' }}>{menu.b.ghi}</div> : null}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <button className="btn" onClick={async () => { const r = await fixBuoc(d.id, menu.b.buoc); setMenu(null); if ('loi' in r) window.alert(r.loi); xong(); }}>
-            ↻ {menu.b.trang_thai === 'dang' ? 'Huỷ và chạy lại bước này' : 'Chạy lại bước này (FIX)'}</button>
-          <button className="btn" style={{ color: '#fca5a5' }} onClick={async () => { if (!window.confirm(`Dừng hẳn dòng ${d.ten ?? d.content_id}?`)) return; await dungDong(d.id); setMenu(null); xong(); }}>⏹ Dừng cả dòng phim</button>
+          <NutGui chu={`↻ ${menu.b.trang_thai === 'dang' ? 'Huỷ và chạy lại bước này' : 'Chạy lại bước này (FIX)'}`} dang="đang gửi lệnh chạy lại…" xong="✓ đã gửi — chờ máy nhận"
+            lam={async () => { const b0 = menu.b; const r = await fixBuoc(d.id, b0.buoc); if (!('loi' in r)) { setCho((c) => ({ ...c, [b0.buoc]: b0.bat_dau ?? '' })); setTimeout(() => setMenu(null), 900); xong(); } return r; }} />
+          <NutGui chu="⏹ Dừng cả dòng phim" mau="#fca5a5" dang="đang dừng…" xong="✓ đã dừng" hoi={`Dừng hẳn dòng ${d.ten ?? d.content_id}?`}
+            lam={async () => { const r = await dungDong(d.id); setTimeout(() => setMenu(null), 900); xong(); return r; }} />
         </div></div></td></tr> : null}
     {mo ? <tr style={{ background: 'var(--bg-1)' }}>
       <td style={{ padding: '2px 6px 2px 40px', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>📁 Chuẩn bị phim</td>
       {COT.map(([k]) => { const x = b(k); const tt = ttB(x); const lau = !!x && x.trang_thai === 'dang' && Date.now() - Date.parse(x.bat_dau ?? '') > x.han_giay * 500;
-        return <O key={k} tt={tt} chu={x?.bat_dau ? (x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : `${phut(x.bat_dau, null)}…${lau ? ' ⚠' : ''}`) : ''} t={`${tB(x)}${x && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? '\n\nbấm để chạy lại / dừng' : ''}`}
+        const doiMay = !!x && cho[x.buoc] !== undefined && (x.bat_dau ?? '') === cho[x.buoc];
+        return <O key={k} tt={doiMay ? 'dang' : tt} chu={doiMay ? '⏳ chờ máy' : x?.bat_dau ? (x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : `${phut(x.bat_dau, null)}…${lau ? ' ⚠' : ''}`) : ''} t={`${tB(x)}${x && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? '\n\nbấm để chạy lại / dừng' : ''}`}
           menu={x && d.trang_thai !== 'huy' && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? (e) => setMenu({ b: x, x: e.clientX, y: e.clientY }) : undefined}
           xem={k === 'poster' && d.anh ? { anh: d.anh, chu: `${tB(x)}` } : undefined} />; })}
       <td /><td /></tr> : null}

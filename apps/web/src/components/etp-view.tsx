@@ -1878,14 +1878,14 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const phCua = useMemo(() => new Map(du.phims.map((x) => [x.content_id, x])), [du.phims]);
   const bhCua = useMemo(() => new Map((du.baoHoa ?? []).map((x) => [x.content_id, x])), [du.baoHoa]);
   const nhanPhim = (k: string) => { const p = phimMap.get(k); if (!p) return `#${k}`;
-    return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}
+    return <span style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, width: '100%' }}>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}
       <b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 520 }} title={p.all[0]?.phim ?? ''}>{p.all[0]?.phim ?? `#${k}`}</b><NhomGoc g={nhomCua.get(Number(k))} /><MocPhim ph={phCua.get(Number(k))} chay={p.all.filter((c) => c.trang_thai === 'ACTIVE').length} />
       <span title="camp đang chạy / tổng" style={{ color: 'var(--fg-2)', fontWeight: 400 }}>{p.all.filter((c) => c.trang_thai === 'ACTIVE').length}/{p.all.length}</span>
-      {Number(k) > 0 ? <NutMoRong cid={Number(k)} k={du.moRong?.find((m) => m.content_id === Number(k))?.k} /> : null}
       {(() => { const kt = ktCua.get(Number(k)); return kt ? <span title={kt === 'dang_sinh' ? 'máy đang sinh bản kể chuyện (KT) VideoExpress cho phim này — xong tự lên creative, chấm Sạch thì lên camp' : 'bản kể chuyện (KT) đã xong, đang lên creative / chờ chấm'} style={{ color: '#a78bfa', fontWeight: 400, opacity: kt === 'dang_sinh' ? 0.6 : 0.9, fontSize: 11 }}>◌ KT {kt === 'dang_sinh' ? 'đang sinh' : 'sẵn sàng'}</span> : null; })()}
       {p.b?.bao_hoa ? <span title={p.b.bao_hoa} style={{ color: '#f59e0b', fontWeight: 400 }}>⚠ bão hoà</span> : null}
       {p.loi ? <span title={`${p.loi} camp không nhân bản được trong 24 giờ`} style={{ color: '#f87171' }}>⚠{p.loi}</span> : null}
-      {p.sut ? <span title={`${p.sut} camp lãi giảm 2 ngày liền`} style={{ color: '#f87171' }}>↘{p.sut}</span> : null}</span>; };
+      {p.sut ? <span title={`${p.sut} camp lãi giảm 2 ngày liền`} style={{ color: '#f87171' }}>↘{p.sut}</span> : null}
+      {Number(k) > 0 ? <span style={{ marginLeft: 'auto', paddingLeft: 8 }}><NutMoRong cid={Number(k)} k={du.moRong?.find((m) => m.content_id === Number(k))?.k} /></span> : null}</span>; };   // nút ＋ mở rộng dạt phải ô phim (anh 04/11/2026)
   const doiMoBang = (ks: string[], mo: boolean) => doiMo(ks.flatMap((k) => { if (!k.startsWith('g:')) return [`c${k}`]; const p = phimMap.get(k.slice(2));
     return [`p${k.slice(2)}`, ...(mo && p ? p.all.filter((c) => con.m.has(c.camp_id)).map((c) => `c${c.camp_id}`) : [])]; }), mo);   // mở phim = mở hết tầng camp bên trong (anh 28/10/2026)
   // CAMP THAY THẾ (anh 29/10/2026): phim chỉ còn 1 camp sắp tắt → dòng MỜ cùng nhóm phim, đậm dần theo bước (etp.thay_the, máy thay-the.py). Dòng giả mang camp_id âm,

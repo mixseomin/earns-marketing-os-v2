@@ -29,6 +29,7 @@
     "gan_t7":    { "huong": "tat", "nhan": ["✕", "Gần T7", "#f87171", "gan"] },
     "g10":       { "ma": "g10", "huong": "giam", "nhan": ["↓", "G10 về $10", "#fb923c", "dang"], "de_xuat": "ha", "nhat_ky": ["giam", "^G10 · "], "ha": { "ten": "G10", "tu_dong": true } },
     "g10_theo":  { "ma": "g10", "huong": "giam", "nhan": ["⏸", "G10 theo dõi", "#fb923c", "dang"] },
+    "cho_duoi":  { "huong": "tat", "nhan": ["⏳", "Chờ đuôi ngày", "#fbbf24", "gan"] },
     "ha":        { "ma": "gb",  "huong": "giam", "nhan": ["↓", "Giảm bậc", "#fb923c", "dang"], "de_xuat": "ha" },
     "giam":      { "ma": "roi_tut", "nhan": ["↘", "ROI tụt", "#f59e0b", "dang"], "de_xuat": "giam" },
     "tang":      { "ma": "tang", "huong": "tang", "nhan": ["↑", "Tăng bậc", "#4ade80", "dang"], "de_xuat": "tang", "nhat_ky": ["tang", "(đủ điều kiện tăng bậc|ĐỦ ĐIỀU KIỆN TĂNG BẬC|^TB tăng bậc)"] },

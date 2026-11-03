@@ -81,9 +81,37 @@ function TheDong({ d, xong }: { d: DongPhim; xong: () => void }) {
     <div style={{ position: 'relative', height: 22, borderRadius: 11, background: 'var(--bg-2)', border: '1px solid var(--line)', overflow: 'hidden' }}>
       <div style={{ width: `${pct}%`, height: '100%', background: d.trang_thai === 'loi' ? '#dc2626' : d.trang_thai === 'dung' ? '#d97706' : pct >= 100 ? '#16a34a' : '#2563eb', transition: 'width .4s' }} />
       <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: 12, fontWeight: 700, color: '#fff', textShadow: '0 1px 2px #000a', whiteSpace: 'nowrap', overflow: 'hidden' }}>
-        {pct}%{ghi ? <span style={{ fontWeight: 500, marginLeft: 8, overflow: 'hidden', textOverflow: 'ellipsis' }}>· {d.camp_id ? `camp #${d.camp_id} · ` : ''}{ghi}</span> : null}</span>
+        {pct}%{ghi ? <span style={{ fontWeight: 500, marginLeft: 8, overflow: 'hidden', textOverflow: 'ellipsis' }}>· {ghi}</span> : null}</span>
     </div>
+    <LoVideo d={d} ds={ds} />
     </div></div>
+  </div>;
+}
+
+// MỖI VIDEO MỘT Ô (anh 03/11/2026 "mỗi phim giờ phải lên nhiều camp, trong đó chỉ thấy 1 camp 1 phim"): đoạn cắt → creative (chấm) → camp (trạng thái, chi, lãi)
+function LoVideo({ d, ds }: { d: DongPhim; ds: BuocDong[] }) {
+  const kq = (k: string) => ds.find((b) => b.buoc === k)?.ket_qua ?? null;
+  const cr = kq('creative')?.ds ?? []; const sach = new Set((kq('creative')?.sach ?? []).map((x) => x.creative_id));
+  const doan = kq('soat')?.doan ?? kq('cat')?.doan ?? [];
+  const daCham = ds.find((b) => b.buoc === 'creative')?.trang_thai === 'xong';
+  const o = cr.length ? cr.map((x) => ({ k: `c${x.creative_id}`, tu: x.tu, den: x.den, cr: x.creative_id, camp: d.camps.find((c) => c.cr === x.creative_id) ?? null }))
+    : doan.map((x, i) => ({ k: `d${i}`, tu: x.tu, den: x.den, cr: null as number | null, camp: null as DongPhim['camps'][number] | null }));
+  const le = d.camps.filter((c) => !o.some((x) => x.camp?.id === c.id));
+  if (!o.length && !le.length) return null;
+  const Hop = ({ tieu, phu, mau, t }: { tieu: string; phu: string; mau: string; t: string }) => <div title={t} style={{ minWidth: 92, padding: '5px 8px', borderRadius: 8, border: `1px solid ${mau}66`, background: `${mau}14` }}>
+    <div style={{ fontSize: 12, fontWeight: 700, color: mau, whiteSpace: 'nowrap' }}>{tieu}</div><div style={{ fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{phu}</div></div>;
+  const oCamp = (c: DongPhim['camps'][number]) => { const lai = c.thu - c.chi; return { tieu: `camp #${c.id}`, mau: c.tt === 'ACTIVE' ? (c.chi > 0 && lai < 0 ? '#f87171' : '#4ade80') : '#9ca3af',
+    phu: `${c.tt === 'ACTIVE' ? 'chạy' : 'tắt'} · $${c.ns ?? '?'}${c.chi > 0 ? ` · lãi ${lai >= 0 ? '+' : ''}$${lai.toFixed(2)}` : ''}` }; };
+  return <div style={{ marginTop: 10 }}>
+    <div style={{ fontSize: 11, color: 'var(--fg-3)', marginBottom: 5 }}>{o.length} video{d.camps.length ? ` · ${d.camps.length} camp (${d.camps.filter((c) => c.tt === 'ACTIVE').length} đang chạy)` : ''}</div>
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+      {o.map((x, i) => { const g = x.tu != null && x.den != null ? `${Math.round(x.tu)}–${Math.round(x.den)}s` : '';
+        if (x.camp) { const v = oCamp(x.camp); return <Hop key={x.k} tieu={`Video ${i + 1} · ${v.tieu}`} phu={v.phu} mau={v.mau} t={`đoạn ${g} · creative #${x.cr}`} />; }
+        if (x.cr) { const s_ = sach.has(x.cr); return <Hop key={x.k} tieu={`Video ${i + 1}`} phu={!daCham && !s_ ? `#${x.cr} · đang chấm` : s_ ? `#${x.cr} · sạch, chờ lên camp` : `#${x.cr} · bị chặn`}
+          mau={!daCham && !s_ ? '#60a5fa' : s_ ? '#22c55e' : '#f59e0b'} t={`đoạn ${g} · creative #${x.cr}`} />; }
+        return <Hop key={x.k} tieu={`Video ${i + 1}`} phu={`đã cắt · ${g}`} mau="#a78bfa" t={`đoạn ${g} — chờ soát / đưa lên`} />; })}
+      {le.map((c) => { const v = oCamp(c); return <Hop key={`l${c.id}`} tieu={v.tieu} phu={v.phu} mau={v.mau} t={`creative #${c.cr}`} />; })}
+    </div>
   </div>;
 }
 

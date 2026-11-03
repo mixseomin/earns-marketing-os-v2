@@ -11,7 +11,7 @@ export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
 export type BuocDong = { buoc: string; thu_tu: number; trang_thai: string; bat_dau: string | null; ket_thuc: string | null; han_giay: number; lan: number; ghi: string | null; nhip: string | null; fix: boolean; ket_qua: { ds?: { creative_id: number; tu?: number; den?: number }[]; sach?: { creative_id: number }[]; doan?: { tu: number; den: number }[] } | null };
 export type DongPhim = { id: number; content_id: number; ten: string | null; the_loai: string | null; loai: string; ai: string | null; trang_thai: string; ly_do: string | null;
-  camp_id: number | null; creative_id: number | null; anh: string | null; camps: { id: number; tt: string | null; cr: number | null; ns: number | null; chi: number; thu: number }[]; tao_luc: string; xong_luc: string | null; buoc: BuocDong[] };
+  camp_id: number | null; creative_id: number | null; anh: string | null; crs: Record<string, { anh: string | null; video: string | null }>; camps: { id: number; tt: string | null; cr: number | null; ns: number | null; chi: number; thu: number }[]; tao_luc: string; xong_luc: string | null; buoc: BuocDong[] };
 
 // MỘT SỔ LOẠI NỘI DUNG — dạng = nhãn etp.creative.dang (cùng sổ MAU_DANG của etp-view / DANG_CHUAN của diem_cham.py); chay = máy dòng phim làm được
 const LOAI: Omit<LoaiNoiDung, 'vi_du'>[] = [
@@ -79,6 +79,7 @@ export async function docDong(): Promise<{ dong: DongPhim[]; may: { may: string;
       (select coalesce(json_agg(json_build_object('id', c.camp_id, 'tt', c.trang_thai, 'cr', c.creative_id, 'ns', c.ngan_sach,
         'chi', (select coalesce(sum(s.chi), 0) from etp.so_ngay s where s.camp_id = c.camp_id), 'thu', (select coalesce(sum(s.thu), 0) from etp.so_ngay s where s.camp_id = c.camp_id)) order by c.camp_id), '[]'::json)
         from etp.camp c where c.content_id = p.content_id and c.tao >= p.tao_luc) camps,
+      (select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video)), '{}'::json) from etp.creative r where r.content_id = p.content_id and (r.anh is not null or r.video is not null)) crs,   -- ảnh / video creative cho thẻ rê
       (select case when a like 'http%' then a else '/api/ethopex/anh?p=' || ltrim(a, '/') end from (select coalesce((select t.anh from etp.trang_phim t where t.content_id = p.content_id and t.anh is not null order by t.cap_nhat desc limit 1), (select v.anh from etp.thu_vien_phim v where v.content_id = p.content_id and v.anh is not null limit 1)) a) x) anh,   -- ảnh tương đối → qua cùng miền /api/ethopex/anh (trình duyệt không tải được CDN thẳng)
       coalesce((select json_agg(json_build_object('buoc', b.buoc, 'thu_tu', b.thu_tu, 'trang_thai', b.trang_thai, 'bat_dau', b.bat_dau, 'ket_thuc', b.ket_thuc, 'han_giay', b.han_giay,
         'lan', b.lan, 'ghi', b.ghi, 'nhip', b.nhip, 'fix', b.fix, 'ket_qua', b.ket_qua) order by b.thu_tu) from etp.dong_buoc b where b.dong_id = p.id), '[]'::json) buoc

@@ -32,8 +32,21 @@ const NEN: Record<string, string> = { xong: '#14532d', dang: '#1e3a8a', chay: '#
 const CHU: Record<string, string> = { xong: '#86efac', dang: '#bfdbfe', chay: '#bfdbfe', dung: '#fcd34d', loi: '#fca5a5', cho: 'var(--fg-3)', bo_qua: 'var(--fg-3)' };
 const KY: Record<string, string> = { xong: '✓', dang: '▶', chay: '▶', dung: '⏸', loi: '!', cho: '·', bo_qua: '–' };
 
-function O({ tt, chu, t, fix, bam, menu }: { tt: string; chu?: string; t?: string; fix?: () => void; bam?: () => void; menu?: (e: React.MouseEvent) => void }) {
-  return <td title={t} onClick={menu ?? bam} style={{ padding: 2, cursor: bam || menu ? 'pointer' : undefined }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 24, borderRadius: 5, fontSize: 11, whiteSpace: 'nowrap',
+// XEM TRƯỚC KHI RÊ (anh 03/11/2026 "các bước cụ thể xem được như hình poster, creative khi hover vào"): một khung nổi dùng chung cho cả bảng
+type Xem = { anh?: string | null; video?: string | null; chu?: string; x: number; y: number };
+let datXem: (v: Xem | null) => void = () => {};
+function KhungXem() {
+  const [v, setV] = useState<Xem | null>(null); datXem = setV;
+  if (!v) return null;
+  const W = v.video ? 240 : 200; const left = Math.min(v.x + 14, window.innerWidth - W - 12); const top = Math.max(8, Math.min(v.y - 60, window.innerHeight - 440));
+  return <div style={{ position: 'fixed', left, top, zIndex: 70, width: W, padding: 6, borderRadius: 8, background: 'var(--bg-1)', border: '1px solid var(--line)', boxShadow: '0 8px 24px rgba(0,0,0,.55)', pointerEvents: 'none' }}>
+    {v.video ? <video src={v.video} poster={v.anh ?? undefined} autoPlay muted loop playsInline style={{ width: '100%', borderRadius: 5, display: 'block' }} />
+      : v.anh ? <img src={v.anh} alt="" style={{ width: '100%', borderRadius: 5, display: 'block' }} /> : null}
+    {v.chu ? <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 4, whiteSpace: 'pre-wrap' }}>{v.chu}</div> : null}</div>;
+}
+function O({ tt, chu, t, fix, bam, menu, xem }: { tt: string; chu?: string; t?: string; fix?: () => void; bam?: () => void; menu?: (e: React.MouseEvent) => void; xem?: Omit<Xem, 'x' | 'y'> }) {
+  return <td title={xem ? undefined : t} onClick={menu ?? bam} onMouseEnter={xem ? (e) => datXem({ ...xem, x: e.clientX, y: e.clientY }) : undefined} onMouseLeave={xem ? () => datXem(null) : undefined}
+    style={{ padding: 2, cursor: bam || menu ? 'pointer' : xem ? 'zoom-in' : undefined }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 24, borderRadius: 5, fontSize: 11, whiteSpace: 'nowrap',
     background: NEN[tt] ?? 'transparent', color: CHU[tt] ?? 'var(--fg-3)', border: tt === 'cho' || tt === 'bo_qua' ? '1px dashed var(--line)' : 'none', fontWeight: tt === 'dang' ? 700 : 500,
     animation: tt === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>
     <span>{KY[tt] ?? ''}</span>{chu ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 74 }}>{chu}</span> : null}
@@ -61,12 +74,13 @@ function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: 
     <tr style={{ borderTop: '1px solid var(--line)' }}>
       <td style={{ padding: '4px 6px', maxWidth: 340 }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', width: 12, flex: 'none', textAlign: 'center', color: 'var(--fg-3)', fontSize: 10 }}>{doan.length || d.camps.length ? (mo ? '▼' : '▶') : ''}</span>
-        {d.anh ? <img src={d.anh} alt="" style={{ width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
+        {d.anh ? <img src={d.anh} alt="" onMouseEnter={(e) => datXem({ anh: d.anh, chu: d.ten ?? '', x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ cursor: 'zoom-in', width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
         <div style={{ minWidth: 0 }}><a onClick={() => openEntityDrawer('etp-phim', d.content_id)} title={d.ten ?? ''} style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.ten ?? `phim #${d.content_id}`}</a>
           <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{LOAI_DE[d.loai] ?? d.loai} · {ngayGio(d.tao_luc)}{doan.length ? ` · ${doan.length} video` : ''}{d.camps.length ? ` · ${d.camps.length} camp` : ''}</span></div></div></td>
       {COT.map(([k]) => { const x = b(k); const tt = ttB(x); const lau = !!x && x.trang_thai === 'dang' && Date.now() - Date.parse(x.bat_dau ?? '') > x.han_giay * 500;
         return <O key={k} tt={tt} chu={x?.bat_dau ? (x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : `${phut(x.bat_dau, null)}…${lau ? ' ⚠' : ''}`) : ''} t={`${tB(x)}${x && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? '\n\nbấm để chạy lại / dừng' : ''}`}
-          menu={x && d.trang_thai !== 'huy' && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? (e) => setMenu({ b: x, x: e.clientX, y: e.clientY }) : undefined} />; })}
+          menu={x && d.trang_thai !== 'huy' && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? (e) => setMenu({ b: x, x: e.clientX, y: e.clientY }) : undefined}
+          xem={k === 'poster' && d.anh ? { anh: d.anh, chu: `${tB(x)}` } : undefined} />; })}
       <td style={{ padding: '2px 6px', fontSize: 11, color: d.trang_thai === 'dung' ? '#fbbf24' : d.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)', maxWidth: 320 }}>
         <div title={ghi ?? ''} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ghi ?? ''}</div></td>
       <td style={{ padding: 2 }}>{d.trang_thai === 'chay' || d.trang_thai === 'dung' || d.trang_thai === 'loi'
@@ -88,12 +102,12 @@ function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: 
       const g = x.tu != null && x.den != null ? `${Math.round(x.tu)}–${Math.round(x.den)}s` : '';
       const tCham = id ? (sach.has(id) ? 'xong' : chamXong ? 'dung' : 'dang') : 'cho';
       return <tr key={id ?? i} style={{ background: 'var(--bg-1)' }}>
-        <td style={{ padding: '2px 6px 2px 40px', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>└ {id ? `Creative #${id}` : `Đoạn ${i + 1}`} <span style={{ color: 'var(--fg-3)' }}>{g}</span></td>
+        <td style={{ padding: '2px 6px 2px 40px', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>{id && d.crs[String(id)]?.anh ? <img src={d.crs[String(id)]!.anh!} alt="" onMouseEnter={(e) => datXem({ ...d.crs[String(id)]!, chu: `creative #${id} · đoạn ${g}`, x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ width: 16, height: 28, objectFit: 'cover', borderRadius: 2, verticalAlign: 'middle', marginRight: 4, cursor: 'zoom-in' }} /> : '└ '}{id ? `Creative #${id}` : `Đoạn ${i + 1}`} <span style={{ color: 'var(--fg-3)' }}>{g}</span></td>
         <O tt="bo_qua" /><O tt="bo_qua" /><O tt="bo_qua" />
         <O tt="xong" chu={g} />
         <O tt={id || (kq('soat')?.doan ?? []).length ? 'xong' : ttB(b('soat'))} />
-        <O tt={id ? 'xong' : b('creative')?.trang_thai === 'dang' ? 'dang' : 'cho'} chu={id ? `#${id}` : ''} />
-        <O tt={tCham} chu={tCham === 'dung' ? 'bị chặn' : tCham === 'dang' ? 'đang chấm' : ''} />
+        <O tt={id ? 'xong' : b('creative')?.trang_thai === 'dang' ? 'dang' : 'cho'} chu={id ? `#${id}` : ''} xem={id && d.crs[String(id)] ? { ...d.crs[String(id)], chu: `creative #${id} · đoạn ${g}` } : undefined} />
+        <O tt={tCham} chu={tCham === 'dung' ? 'bị chặn' : tCham === 'dang' ? 'đang chấm' : ''} xem={id && d.crs[String(id)] ? { ...d.crs[String(id)], chu: `creative #${id} · ${tCham === 'xong' ? 'chấm sạch' : tCham === 'dung' ? 'bị cổng chấm chặn' : 'đang chấm'}` } : undefined} />
         <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} tt={camp ? 'xong' : sach.has(id ?? -1) ? ttB(b('camp')) : 'cho'} chu={camp ? `#${camp.id}` : sach.has(id ?? -1) && b('camp')?.trang_thai === 'dang' ? 'chờ anh' : ''} />
         <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} tt={cc?.tt ?? 'cho'} chu={cc?.chu} t={camp ? `camp #${camp.id} · $${camp.ns ?? '?'}/ngày · chi $${camp.chi.toFixed(2)} · thu $${camp.thu.toFixed(2)} — bấm xem chi tiết` : undefined} />
         <td /><td />
@@ -119,6 +133,7 @@ export function TabDong({ moCamp }: { moCamp?: (id: number) => void } = {}) {
   const ds = cu ? du.dong : dangChay;
   return <div>
     <style>{'@keyframes etpNhip{0%,100%{opacity:1}50%{opacity:.55}}'}</style>
+    <KhungXem />
     <div style={{ display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px', flexWrap: 'wrap' }}>
       <span title="apps/etp/dong_phim.py trên iMac — báo sống mỗi 10 giây">máy chạy: {may ? <><b style={{ color: im! < 60 ? '#4ade80' : '#f87171' }}>{may.may}</b> {im! < 60 ? 'đang sống' : `im ${Math.round(im! / 60)} phút`}</> : <b style={{ color: '#f87171' }}>chưa bật</b>}</span>
       <span>thêm phim: tab Phim → ⋯ → <b>Chạy tự động tới khi lên camp</b></span>

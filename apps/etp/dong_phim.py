@@ -245,6 +245,10 @@ def b_camp_lt(d, truoc):
 
 def b_camp(d, truoc):
     if d.get("loai") == "LT": return b_camp_lt(d, truoc)
+    # BỘ CREATIVE ĐỦ LOẠI TRƯỚC, CHƯA LÊN CAMP (anh 03/11/2026 "phải làm đủ 1 bộ creative cho mọi loại nội dung trước. Chưa lên camp"):
+    # phim có etp.cau_hinh lo_trinh[cid].bo mà anh chưa bắt đầu → mọi loại (CC / KT …) dừng ở đây, giữ creative đã chấm
+    lt = lo_trinh(d["content_id"])
+    if lt.get("bo") and not lt.get("bat_dau"): return "cho", "bộ creative đủ loại — chưa lên camp, CHỜ ANH BẮT ĐẦU", None
     x = truoc.get("creative") or {}
     if not x.get("creative_id"): return "loi", "chưa có creative", None
     lang = x.get("lang") or "en"; ten = re.sub(r"['\"$`\\]", "", x.get("ten") or f"dp{d['id']} phim {d['content_id']}")

@@ -18,6 +18,9 @@ Dùng: dong_phim.py (vòng chính) · dong_phim.py mot [giây] (một vòng, th�
 import datetime as dt, json, os, re, signal, socket, subprocess, sys, threading, time
 R = os.path.dirname(os.path.abspath(__file__)); E = os.path.join(R, "..", "xuong-video", "scripts", "ethopex")
 sys.path.insert(0, E); import loi_ky_thuat as LK
+# MỘT kết nối ssh dùng chung (ControlMaster) cho mọi câu SQL / lệnh box3 — mỗi câu một ssh mới thì >10 dòng song song vượt MaxStartups của sshd box3,
+# box3 đóng kết nối ("Connection closed by … port 22", 04/11/2026)
+SSH = ["ssh", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20", "-o", "ControlMaster=auto", "-o", f"ControlPath={os.path.expanduser('~/.ssh/cm-etp-dong-%r@%h')}", "-o", "ControlPersist=10m"]
 B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 C = os.path.expanduser("~/.cache/ethopex"); MAY = socket.gethostname().split(".")[0]
 KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (dot-phim-moi.KHUON)
@@ -36,7 +39,7 @@ KHOA = threading.Lock()
 
 def sql(cau, spy=False):
     nen = ". /root/.secrets/spy.env" if spy else ENV
-    r = subprocess.run(["ssh", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20", B, f'{nen}; psql "$DATABASE_URL" -qtA -F"\t" -v ON_ERROR_STOP=1 -f -'],
+    r = subprocess.run([*SSH, B, f'{nen}; psql "$DATABASE_URL" -qtA -F"\t" -v ON_ERROR_STOP=1 -f -'],
                        input=cau, capture_output=True, text=True, timeout=180)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-300:])
     return r.stdout.strip()
@@ -44,7 +47,7 @@ def s(v): return "null" if v is None else "$Q$" + str(v).replace("$Q$", "") + "$
 def js(v): return "$J$" + json.dumps(v, ensure_ascii=False).replace("$J$", "") + "$J$::jsonb"
 def box(lenh, timeout=1800):
     """lệnh trên box3 (trong /opt/earns-marketing-os-v2, có env) — trả (mã thoát, stdout+stderr)"""
-    r = subprocess.run(["ssh", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20", B, f"{ENV}; timeout {int(timeout)} {lenh}"], capture_output=True, text=True, timeout=timeout + 60)
+    r = subprocess.run([*SSH, B, f"{ENV}; timeout {int(timeout)} {lenh}"], capture_output=True, text=True, timeout=timeout + 60)
     return r.returncode, (r.stdout + r.stderr).strip()
 def khoa_studio(ten): return json.loads(sql(f"select coalesce(gia_tri, '{{}}'::jsonb)::text from xv_khoa_ngoai where ten = '{ten}'") or "{}")
 

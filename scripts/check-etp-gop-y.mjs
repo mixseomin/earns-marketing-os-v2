@@ -58,7 +58,7 @@ const LUAT = [
   // CAMP THAY THẾ (anh 29/10/2026): phim còn 1 camp sắp tắt → lên camp thay ngay, rút kinh nghiệm, lên theo bộ định dạng, dòng mờ trên Cây
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'else "gan" if thieu == 1 and lo is not False else "xa"', vi: 'luật tắt: camp đang lãi không bao giờ "gần chạm" (L4 hiện trên camp +177%, 29/10/2026)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'ghi="camp cũ không còn sắp tắt"', vi: 'camp thay tự huỷ khi camp cũ hết sắp tắt' },
-  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'TAT_MA = ("l3", "l4", "t2", "off", "d24")', vi: 'camp thay: sắp tắt = luật tắt hẳn đạt / gần chạm' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'TAT_MA = ("t1", "l3", "l4", "t2", "off", "d24")', vi: 'camp thay: sắp tắt = luật tắt hẳn đạt / gần chạm' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'for x in ung_vien(content, c0.get("creative_id"), bh["huong"])', vi: 'camp thay chọn creative theo hướng rút kinh nghiệm (chẩn đoán camp cũ)' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'nhom.setdefault(x.get("dang") or "?", [])', vi: 'camp thay lên theo bộ: mỗi dạng một camp' },
   { card: 0, tep: 'apps/cty/worker/ethopex.mjs', co: "'apps/xuong-video/scripts/ethopex/thay-the.py'), ['--that'", vi: 'nhịp ethopex chạy máy thay camp' },
@@ -460,6 +460,8 @@ const LUAT = [
   { card: 'cham-0311', tep: 'packages/db/migrations/0412_etp_tieu_chi_kien_robot.sql', co: 'only in the LAST ~5 seconds a dark box near the bottom shows the drama title', vi: 'tiêu chí CTA chấm mẫu Kiên = 10 (anh 03/11/2026)' },
   { card: 'ws-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'and ("mô tả" in thieu or "cốt truyện" in thieu) and dien_trang(ws):', vi: 'trang phim Nhà thiếu mô tả / cốt truyện thì máy tự điền từ tóm tắt ($0) thay vì chặn chờ (03/11/2026)' },
   { card: 'ssr-0311', tep: 'apps/web/src/components/etp-view.tsx', co: "new URL(typeof location !== 'undefined' ? location.href : `https://etp.on.tc/etp?", cam: 'const urlNguoi = (v: string) => { const u = new URL(location.href);', vi: 'link chọn người dựng được cả khi render máy chủ (không location) — trước đó /etp sập ReferenceError (03/11/2026)' },
+  { card: 'thay-0411', tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'TAT_MA = ("t1", "l3"', vi: 'camp thay thế: T1 là luật tắt; phim mọi camp đều sắp tắt (không chỉ phim 1 camp) — anh 04/11/2026' },
+  { card: 'thay-0411', tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'if all(ly for _, ly in cs):', cam: 'having count(*) = 1)', vi: 'không còn điều kiện chỉ phim đúng một camp' },
   { card: 'box3-0311', tep: 'apps/xuong-video/scripts/ethopex/loi_ky_thuat.py', co: '|ngắn hơn khung", re.I)', vi: 'đoạn ngắn hơn khung = lỗi nội dung, không cắt lại (gốc treo box3 03/11/2026)' },
   { card: 'box3-0311', tep: 'apps/xuong-video/scripts/ethopex/sua-cta.py', co: 'and int(m.get("lan") or 0) < 2:', vi: 'góc mới thử lại tối đa 2 lượt' },
   { card: 'box3-0311', tep: 'apps/xuong-video/scripts/ethopex/cam_box3.py', co: 'def cam(viec="dựng video"):', vi: 'CẤM dựng video trên box3 (anh 03/11/2026)' },

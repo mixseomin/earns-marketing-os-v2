@@ -25,7 +25,7 @@ def qj(s): return json.loads(q(f"select coalesce(json_agg(t), '[]') from ({s}) t
 THAT = "--that" in sys.argv
 # mỗi camp mới chờ Ethopex đồng bộ ~1 phút → trần mỗi nhịp để nhịp ethopex (32 phút) không bị giữ; phim còn thiếu lên ở nhịp sau
 TOI_DA = int(next((sys.argv[i + 1] for i, x in enumerate(sys.argv[:-1]) if x == "--toi-da"), 15)); DA_LEN = [0]
-TAT_MA = ("l3", "l4", "t2", "off", "d24")   # luật tắt hẳn camp (cùng mã etp.xet_luat)
+TAT_MA = ("t1", "l3", "l4", "t2", "off", "d24")   # luật tắt hẳn camp (cùng mã etp.xet_luat) — + T1 (anh 04/11/2026: Freezing Point 2 camp sắp ✕ T1 mà không có camp thay)
 HOOK_GAP, GIU_GAP = 1.25, 0.8               # chi/lượt hiện ≥ 1.25× camp lãi → hook yếu · thu/lượt hiện ≤ 0.8× → không giữ chân
 vn = lambda: (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y")
 s_ = lambda t: str(t or "").replace("'", "''")
@@ -36,16 +36,20 @@ DOI_BO = {}   # {content_id: bộ đích} — vòng 2 thang chuyển hướng (c
 def _nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(D, tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 
-SAP = set()
+SAP = set(); SAP_PHIM = {}
 def can_thay():
-    """phim chỉ còn 1 camp chạy + camp đó sắp tắt → [{content_id, camp_id, ly}]"""
-    ds = qj("""select c.content_id, c.camp_id from etp.camp c where c.trang_thai = 'ACTIVE' and coalesce(c.content_id, 0) > 0 and not c.la_roas
-               and c.content_id in (select content_id from etp.camp where trang_thai = 'ACTIVE' group by 1 having count(*) = 1)""")
+    """MỌI camp đang chạy của phim (không tính ★ ROAS) đều sắp tắt → [{content_id, camp_id, ly}] — camp_id = camp sắp tắt đầu tiên của phim.
+    Trước 04/11/2026 chỉ xét phim còn ĐÚNG MỘT camp: phim 2 camp cùng sắp tắt (Freezing Point #76613 + #76614 ✕ T1) không bao giờ có camp thay."""
+    ds = qj("""select c.content_id, c.camp_id from etp.camp c where c.trang_thai = 'ACTIVE' and coalesce(c.content_id, 0) > 0 and not c.la_roas order by c.content_id, c.camp_id""")
     xet = {int(r["camp_id"]): r["xet"] for r in qj(f"select camp_id, xet from etp.xet_luat where camp_id in ({','.join(str(int(x['camp_id'])) for x in ds) or 0})")}
-    ra = []
+    theo = {}
     for x in ds:
         dinh = [e for e in xet.get(int(x["camp_id"]), []) if e.get("ma") in TAT_MA and (e.get("vao") or e.get("ket") in ("dat", "gan"))]
-        if dinh: ra.append({**x, "ly": " · ".join(f"{e['ten'].split(' · ')[0]} {'sắp tắt' if e.get('vao') or e.get('ket') == 'dat' else 'gần chạm'}" for e in dinh)})
+        theo.setdefault(int(x["content_id"]), []).append((x, " · ".join(f"{e['ten'].split(' · ')[0]} {'sắp tắt' if e.get('vao') or e.get('ket') == 'dat' else 'gần chạm'}" for e in dinh)))
+    ra = []
+    for cid, cs in theo.items():
+        if all(ly for _, ly in cs):   # không còn camp nào khoẻ
+            ra.append({**cs[0][0], "ly": " | ".join(f"#{x['camp_id']} {ly}" for x, ly in cs)})
     return ra
 
 def chan_doan(camp, content):
@@ -162,7 +166,8 @@ def main():
     except Exception as e: bao.append(f"lỗi thang chuyển hướng: {str(e)[:120]}")
     sys.path.insert(0, ETP); import cong
     CHAN = cong.phim_chan_len()   # phim cổng chắc chắn chặn (ngoài Âu-Mỹ · đã cất) → không mở dòng, không thử lên (31/10/2026: 445/450 lần thử bị chặn Âu-Mỹ)
-    global SAP; CAN = can_thay(); SAP = {int(x["camp_id"]) for x in CAN}
+    global SAP, SAP_PHIM; CAN = can_thay(); SAP = {int(x["camp_id"]) for x in CAN}
+    SAP_PHIM = {int(x["content_id"]): {int(c[1:].split(" ")[0]) for c in x["ly"].split(" | ")} for x in CAN}   # phim → mọi camp sắp tắt của phim
     # 4. camp thay đã chạy → xong; phim đã có camp khác chạy (ngoài camp cũ) → huỷ
     for r in qj("select id, content_id, camp_cu, buoc, camp_moi, ghi from etp.thay_the where buoc not in ('chay', 'huy')"):
         # xong khi camp thay đầu tiên đã có chi VÀ không còn dạng nào đang chờ chấm (ghi rỗng) — còn chờ thì nhịp sau vẫn thử lên nốt dạng đó
@@ -170,7 +175,7 @@ def main():
             ghi(r["id"], buoc="huy", ghi=CHAN[int(r["content_id"])][:300]); bo_hang_cat(r["content_id"]); continue
         if r.get("camp_moi") and not (r.get("ghi") or "").strip() and q(f"select 1 from etp.camp c join etp.so_ngay n using (camp_id) where c.camp_id = {int(r['camp_moi'])} and n.chi > 0 limit 1"):
             ghi(r["id"], buoc="chay"); continue
-        if r["buoc"] != "len_lich" and q(f"select count(*) from etp.camp where trang_thai = 'ACTIVE' and content_id = {int(r['content_id'])} and camp_id <> {int(r['camp_cu'])}") not in ("", "0"):
+        if r["buoc"] != "len_lich" and any(int(c) not in SAP_PHIM.get(int(r["content_id"]), set()) for c in q(f"select camp_id from etp.camp where trang_thai = 'ACTIVE' and not la_roas and content_id = {int(r['content_id'])} and camp_id <> {int(r['camp_cu'])} and camp_id <> coalesce({int(r.get('camp_moi') or 0)}, 0)").split()):   # còn camp KHOẺ khác (không sắp tắt, không phải camp thay)
             ghi(r["id"], buoc="huy", ghi="phim đã có camp khác đang chạy"); bo_hang_cat(r["content_id"]); continue
         # camp cũ vẫn chạy mà không còn sắp tắt (luật hết 'gần' — vd sửa 29/10/2026: camp lãi bị xếp "L4 gần chạm") và chưa lên camp thay nào → huỷ
         if r["buoc"] != "len_lich" and int(r["camp_cu"]) not in SAP and q(f"select 1 from etp.camp where camp_id = {int(r['camp_cu'])} and trang_thai = 'ACTIVE'"):

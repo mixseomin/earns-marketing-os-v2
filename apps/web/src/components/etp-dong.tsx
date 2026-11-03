@@ -4,7 +4,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { EmptyState, FormModal, FormModalFooter, FormModalSection, SelectField } from '@/components/ui';
 import { openEntityDrawer } from '@/lib/entity-drawer';
-import { chayDong, docChiTiet, docDong, dungDong, fixBuoc, formDong, type CampDong, type DongPhim, type BuocDong, type LoaiNoiDung, type LocDong } from '@/lib/actions/etp-dong';
+import { batDauCamp, chayDong, docChiTiet, docDong, dungDong, fixBuoc, formDong, type CampDong, type DongPhim, type BuocDong, type LoaiNoiDung, type LocDong } from '@/lib/actions/etp-dong';
 
 const TEN_BUOC: Record<string, [string, string]> = {
   nhan: ['Nhận', 'Nhận phim: nhóm gốc Âu-Mỹ, không trong sổ cấm 18+, đội không giữ, phim chưa có camp → Nhà nhận'],
@@ -96,7 +96,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   const le = camps.filter((c) => !cr.some((x) => x.creative_id === c.cr));
   const nCat = doanCat.length || (b('cat')?.trang_thai === 'xong' ? ds.length : 0); const tienCat = /(\d+\/\d+)/.exec(b('cat')?.ghi ?? '')?.[1];
   const tong: Record<string, string> = { cat: b('cat')?.trang_thai === 'dang' ? (tienCat ? `${tienCat} đoạn` : '') : nCat ? `${nCat} đoạn` : '', soat: ds.length ? `${cr.length || doanSach.length}/${doanCat.length || ds.length} sạch` : '', len: cr.length ? `${cr.length} đã lên` : '',
-    cham: cr.length ? `${sach.size} sạch${chamXong && cr.length - sach.size ? ` · ${cr.length - sach.size} chặn` : ''}` : '', camp: so.camp ? `${so.camp} camp` : '',
+    cham: cr.length ? `${sach.size} sạch${chamXong && cr.length - sach.size ? ` · ${cr.length - sach.size} chặn` : ''}` : '', camp: so.camp ? `${so.camp} camp` : /CHỜ ANH BẮT ĐẦU/.test(b('camp')?.ghi ?? '') ? '👆 chờ anh duyệt' : '',
     chay: so.camp ? `${so.chay} chạy${so.chi > 0 ? ` · ${lai >= 0 ? '+' : ''}$${lai.toFixed(2)}` : ''}` : '' };
   return <>
     <tr style={con ? { background: 'rgba(96,165,250,.04)' } : { borderTop: '2px solid var(--line)', background: 'rgba(96,165,250,.10)' }}>   {/* dòng phim (thư mục) khác màu dòng creative (anh 03/11/2026) */}
@@ -123,6 +123,9 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
         <div style={{ color: 'var(--fg-3)', marginBottom: 6 }}>bắt đầu {ngayGio(menu.b.bat_dau)} · {menu.b.ket_thuc ? `xong ${ngayGio(menu.b.ket_thuc)}` : `đã chạy ${phut(menu.b.bat_dau, null) ?? '—'} / hạn ${Math.round(menu.b.han_giay / 60)} phút`}{menu.b.lan > 1 ? ` · lần ${menu.b.lan}` : ''}</div>
         {menu.b.ghi ? <div style={{ maxHeight: 90, overflow: 'auto', color: 'var(--fg-2)', marginBottom: 8, whiteSpace: 'pre-wrap' }}>{menu.b.ghi}</div> : null}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {menu.b.buoc === 'camp' && /CHỜ ANH BẮT ĐẦU/.test(menu.b.ghi ?? '') ? <NutGui chu={`▶ Duyệt lên camp — ${sach.size || 1} camp × $1 ≈ $${sach.size || 1}/ngày`} mau="#4ade80" dang="đang gửi duyệt…" xong="✓ đã duyệt — máy lên camp ở vòng kế"
+            hoi={`Duyệt lên ${sach.size || 1} camp $1 (bộ 2) cho phim ${d.ten ?? d.content_id}? Áp cho mọi loại nội dung của phim này.`}
+            lam={async () => { const r = await batDauCamp(d.id); if (!('loi' in r)) { setTimeout(() => setMenu(null), 1200); xong(); } return r; }} /> : null}
           <NutGui chu={`↻ ${menu.b.trang_thai === 'dang' ? 'Huỷ và chạy lại bước này' : 'Chạy lại bước này (FIX)'}`} dang="đang gửi lệnh chạy lại…" xong="✓ đã gửi — chờ máy nhận"
             lam={async () => { const b0 = menu.b; const r = await fixBuoc(d.id, b0.buoc); if (!('loi' in r)) { setCho((c) => ({ ...c, [b0.buoc]: b0.bat_dau ?? '' })); setTimeout(() => setMenu(null), 900); xong(); } return r; }} />
           <NutGui chu="⏹ Dừng cả dòng phim" mau="#fca5a5" dang="đang dừng…" xong="✓ đã dừng" hoi={`Dừng hẳn dòng ${d.ten ?? d.content_id}?`}
@@ -143,7 +146,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
         {kt ? <O tt="bo_qua" /> : <O tt={id || doanSach.some((y) => y.tu === x.tu) ? 'xong' : ttB(b('soat'))} />}
         <O tt={id ? 'xong' : b('creative')?.trang_thai === 'dang' ? 'dang' : 'cho'} chu={id ? `#${id}` : ''} xem={xemCr ? { ...xemCr, chu: `creative #${id} · đoạn ${g}` } : undefined} />
         <O tt={tCham} chu={tCham === 'dung' ? 'bị chặn' : tCham === 'dang' ? 'đang chấm' : ''} xem={xemCr ? { ...xemCr, chu: `creative #${id} · ${tCham === 'xong' ? 'chấm sạch' : tCham === 'dung' ? 'bị cổng chấm chặn' : 'đang chấm'}` } : undefined} />
-        <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} tt={camp ? 'xong' : id && sach.has(id) ? ttB(b('camp')) : 'cho'} chu={camp ? `#${camp.id}` : id && sach.has(id) && b('camp')?.trang_thai === 'dang' ? 'chờ anh' : ''} />
+        <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} menu={!camp && id && sach.has(id) ? moMenu(b('camp')) : undefined} tt={camp ? 'xong' : id && sach.has(id) ? ttB(b('camp')) : 'cho'} chu={camp ? `#${camp.id}` : id && sach.has(id) && b('camp')?.trang_thai === 'dang' ? 'chờ anh' : ''} />
         <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} tt={camp ? (camp.tt === 'ACTIVE' ? 'xong' : 'cho') : 'cho'} chu={camp ? (camp.chi > 0 ? `${lai_ >= 0 ? '+' : ''}$${lai_.toFixed(2)}` : camp.tt === 'ACTIVE' ? 'chạy' : 'tắt') : ''}
           t={camp ? `camp #${camp.id} · $${camp.ns ?? '?'}/ngày · chi $${camp.chi.toFixed(2)} · thu $${camp.thu.toFixed(2)} — bấm xem chi tiết` : undefined} />
         <td /><td />

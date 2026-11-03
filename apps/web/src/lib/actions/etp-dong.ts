@@ -112,6 +112,18 @@ export async function docChiTiet(dongId: number): Promise<{ camps: CampDong[]; c
   return { camps, crs: r?.crs ?? {} };
 }
 
+/** ANH DUYỆT LÊN CAMP ngay trên ô "chờ anh" (anh 03/11/2026 "nút chờ anh phải cho tao bấm duyệt luôn trên đó"): đặt etp.cau_hinh lo_trinh[phim].bat_dau →
+ *  máy chạy dòng lên mỗi creative sạch một camp $1 ở vòng kế (cổng luật nhan-ban vẫn chặn như thường). Chỉ admin. */
+export async function batDauCamp(dongId: number): Promise<{ ok: true } | { loi: string }> {
+  const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được duyệt lên camp' };
+  const [d] = await run<{ content_id: number }>(sql`select content_id from etp.dong_phim where id = ${Math.trunc(Number(dongId))} and trang_thai = 'chay'`);
+  if (!d) return { loi: 'dòng không còn chạy' };
+  await db().execute(sql`insert into etp.cau_hinh (khoa, gia_tri) values ('lo_trinh', jsonb_build_object(${String(d.content_id)}::text, jsonb_build_object('bat_dau', true, 'ai', ${me.displayName ?? me.email ?? 'admin'}::text, 'luc', now()::text)))
+    on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{}'::jsonb) || jsonb_build_object(${String(d.content_id)}::text,
+      coalesce(etp.cau_hinh.gia_tri->${String(d.content_id)}, '{}'::jsonb) || jsonb_build_object('bat_dau', true, 'ai', ${me.displayName ?? me.email ?? 'admin'}::text, 'luc', now()::text))`);
+  return { ok: true };
+}
+
 /** FIX: máy chạy dòng giết tiến trình bước (nếu còn), chạy lại bước đó + các bước sau, mở lại dòng */
 export async function fixBuoc(dongId: number, buoc: string): Promise<{ ok: true } | { loi: string }> {
   if (!(await quyen())) return { loi: 'không có quyền' };

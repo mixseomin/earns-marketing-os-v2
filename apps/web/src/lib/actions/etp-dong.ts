@@ -11,7 +11,7 @@ export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
 export type BuocDong = { buoc: string; thu_tu: number; trang_thai: string; bat_dau: string | null; ket_thuc: string | null; han_giay: number; lan: number; ghi: string | null; nhip: string | null; fix: boolean; ket_qua: { ds?: { creative_id: number; tu?: number; den?: number }[]; sach?: { creative_id: number }[]; doan?: { tu: number; den: number }[] } | null };
 export type CampDong = { id: number; tt: string | null; db: string | null; cr: number | null; ns: number | null; chi: number; thu: number };
-export type DongPhim = { id: number; content_id: number; ten: string | null; the_loai: string | null; loai: string; ai: string | null; trang_thai: string; ly_do: string | null;
+export type DongPhim = { id: number; content_id: number; ten: string | null; the_loai: string | null; loai: string; so_camp: number | null; ai: string | null; trang_thai: string; ly_do: string | null;
   camp_id: number | null; creative_id: number | null; anh: string | null; duyet: boolean | null; so: { camp: number; chay: number; chi: number; thu: number } | null; tao_luc: string; xong_luc: string | null; buoc: BuocDong[] };
 
 // MỘT SỔ LOẠI NỘI DUNG — dạng = nhãn etp.creative.dang (cùng sổ MAU_DANG của etp-view / DANG_CHUAN của diem_cham.py); chay = máy dòng phim làm được
@@ -43,7 +43,7 @@ const db = () => getDb()!;
 const run = async <T,>(s: ReturnType<typeof sql>) => (await db().execute(s)) as unknown as T[];
 
 /** form chọn: loại nội dung (kèm 2 ví dụ creative lãi nhất 14 ngày của đúng dạng) + danh sách thể loại + thể loại máy đang gắn cho phim */
-export async function formDong(contentId: number): Promise<{ loai: LoaiNoiDung[]; theLoai: Record<string, string>; tlPhim: string | null; ten: string | null; nhomGoc: string | null } | { loi: string }> {
+export async function formDong(contentId: number): Promise<{ loai: LoaiNoiDung[]; theLoai: Record<string, string>; tlPhim: string | null; ten: string | null; nhomGoc: string | null; dangChay: number; kPlan: number | null; sanCr: number; lyPlan: string | null } | { loi: string }> {
   if (!(await quyen())) return { loi: 'chỉ chủ / admin chạy dòng phim tự động (tài khoản Nhà)' };
   const id = Math.trunc(Number(contentId));
   const vd = await run<{ dang: string; creative_id: number; video: string; phim: string | null; lai: number; chi: number }>(sql`
@@ -56,10 +56,13 @@ export async function formDong(contentId: number): Promise<{ loai: LoaiNoiDung[]
   const [ph] = await run<{ ten: string | null; nhom_goc: string | null }>(sql`select coalesce(p.ten, v.ten) ten, p.nhom_goc from (select ${id}::int content_id) k
     left join etp.phim p using (content_id) left join etp.thu_vien_phim v using (content_id)`);
   return { loai: LOAI.map((l) => ({ ...l, vi_du: vd.filter((v) => v.dang === l.dang).map(({ dang: _d, ...v }) => v) })), theLoai: tl?.gia_tri?.the_loai ?? {},
-    tlPhim: gan?.tl ?? null, ten: ph?.ten ?? null, nhomGoc: ph?.nhom_goc ?? null };
+    tlPhim: gan?.tl ?? null, ten: ph?.ten ?? null, nhomGoc: ph?.nhom_goc ?? null, ...(await (async () => {   // mở rộng: số camp đang chạy + plan máy tính (etp.mo_rong) để điền sẵn ô Số camp mới
+      const [x] = await run<{ n: number; k: number | null; san: number; ly: string | null }>(sql`select (select count(*)::int from etp.camp where content_id = ${id} and trang_thai = 'ACTIVE' and not la_roas) n,
+        m.k, coalesce(m.san, 0) san, m.ly from (select 1) o left join etp.mo_rong m on m.content_id = ${id}`);
+      return { dangChay: x?.n ?? 0, kPlan: x?.k ?? null, sanCr: x?.san ?? 0, lyPlan: x?.ly ?? null }; })()) };
 }
 
-export async function chayDong(contentId: number, loai: string, theLoai: string): Promise<{ ok: true; id: number } | { loi: string }> {
+export async function chayDong(contentId: number, loai: string, theLoai: string, soCamp?: number): Promise<{ ok: true; id: number } | { loi: string }> {
   const me = await quyen(); if (!me) return { loi: 'chỉ chủ / admin chạy dòng phim tự động' };
   const id = Math.trunc(Number(contentId)); if (!(id > 0)) return { loi: 'mã phim không hợp lệ' };
   const l = LOAI.find((x) => x.ma === loai); if (!l) return { loi: 'loại nội dung lạ' }; if (!l.chay) return { loi: `${l.ten}: ${l.khoa}` };
@@ -70,7 +73,8 @@ export async function chayDong(contentId: number, loai: string, theLoai: string)
   if (dang) return { loi: `phim đang có dòng #${dang.id} loại ${loai} chạy` };
   if (theLoai) await db().execute(sql`update xv_khoa_ngoai set gia_tri = jsonb_set(coalesce(gia_tri, '{}'::jsonb), ${'{' + id + '}'}::text[],
       jsonb_build_object('tl', ${theLoai}::text, 'ten', ${ph?.ten ?? ''}::text, 'nguon', 'anh'), true) where ten = 'ethopex_the_loai'`);   // thể loại anh chọn đè máy đoán (the-loai.py đọc cùng sổ)
-  const [r] = await run<{ id: number }>(sql`insert into etp.dong_phim (content_id, ten, the_loai, loai, ai) values (${id}, ${ph?.ten ?? null}, ${theLoai || null}, ${loai}, ${me.displayName ?? me.email ?? 'admin'}) returning id`);
+  const so = soCamp ? Math.trunc(Number(soCamp)) : null; if (so != null && !(so >= 1 && so <= 30)) return { loi: 'số camp mới phải từ 1 tới 30' };   // MỞ RỘNG phim đang chạy (0416, anh 04/11/2026)
+  const [r] = await run<{ id: number }>(sql`insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp) values (${id}, ${ph?.ten ?? null}, ${theLoai || null}, ${loai}, ${me.displayName ?? me.email ?? 'admin'}, ${so}) returning id`);
   return r ? { ok: true, id: r.id } : { loi: 'không ghi được' };
 }
 
@@ -91,7 +95,7 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0): P
     when ${coLoi} then 2 else 3 end`;
   const t = `%${tim.trim()}%`;
   const loctim = tim.trim() ? sql`and (p.ten ilike ${t} or p.content_id::text = ${tim.trim()} or p.id::text = ${tim.trim()})` : sql``;
-  const dong = await run<DongPhim>(sql`select p.id, p.content_id, coalesce(p.ten, (select v.ten from etp.thu_vien_phim v where v.content_id = p.content_id limit 1)) ten, p.the_loai, p.loai, p.ai, p.trang_thai, p.ly_do, p.camp_id, p.creative_id, p.tao_luc::text tao_luc, p.xong_luc::text xong_luc,
+  const dong = await run<DongPhim>(sql`select p.id, p.content_id, coalesce(p.ten, (select v.ten from etp.thu_vien_phim v where v.content_id = p.content_id limit 1)) ten, p.the_loai, p.loai, p.so_camp, p.ai, p.trang_thai, p.ly_do, p.camp_id, p.creative_id, p.tao_luc::text tao_luc, p.xong_luc::text xong_luc,
       (select case when a like 'http%' then a else '/api/ethopex/anh?p=' || ltrim(a, '/') end from (select coalesce((select t.anh from etp.trang_phim t where t.content_id = p.content_id and t.anh is not null order by t.cap_nhat desc limit 1), (select v.anh from etp.thu_vien_phim v where v.content_id = p.content_id and v.anh is not null limit 1)) a) x) anh,   -- ảnh tương đối → qua cùng miền /api/ethopex/anh
       ((select gia_tri->p.content_id::text from etp.cau_hinh where khoa = 'lo_trinh')->>'bat_dau')::boolean duyet,   -- anh đã bấm Duyệt lên camp
       (select json_build_object('camp', count(*), 'chay', count(*) filter (where c.trang_thai = 'ACTIVE'), 'chi', coalesce(sum(s.chi), 0), 'thu', coalesce(sum(s.thu), 0))

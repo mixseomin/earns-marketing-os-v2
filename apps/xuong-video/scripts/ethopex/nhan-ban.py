@@ -394,7 +394,8 @@ def main(a):
         if moi and DEM_CR.get(int(moi["creative"]), 0) > 0:   # một creative một camp mới (25/10/2026: hai lượt lên camp chạy cùng lúc tạo trùng 3 camp)
             raise ChanLuat(f"creative #{moi['creative']} đã có camp đang chạy / vừa tạo — không tạo camp thứ hai")
         _lt = json.loads(q(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'lo_trinh'), '{{}}'::jsonb)::text") or "{}")   # phim ở lộ trình test rộng, anh đã bắt đầu → miễn luật một camp (anh 03/11/2026 chọn A)
-        if moi and not ep and not _lt.get("bat_dau") and (cm := camp_moi_hom_nay(cid)):
+        _mr = q(f"select 1 from etp.dong_phim where content_id = {int(cid)} and trang_thai = 'chay' and coalesce(so_camp, 0) > 0 limit 1") == "1"   # anh bấm mở rộng, chọn số camp (04/11/2026) → miễn luật một camp
+        if moi and not ep and not _lt.get("bat_dau") and not _mr and (cm := camp_moi_hom_nay(cid)):
             raise ChanLuat(f"phim {cid} đã lên camp mới #{cm} hôm nay — mỗi lần chỉ lên MỘT camp cho một phim, creative #{moi['creative']} chờ lượt sau (luật anh 03/11/2026)")
         if moi and not ep and (tr := cung_doan_dang_chay(int(moi["creative"]))):
             raise ChanLuat(f"creative #{moi['creative']} cùng đoạn với creative #{tr} đã có camp đang chạy / vừa tạo — không lên trùng đoạn (anh 03/11/2026)")

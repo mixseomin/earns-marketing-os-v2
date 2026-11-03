@@ -147,7 +147,7 @@ def b_cat(d):
     r = sql(f"select ten, url, locale, nguon from ethopex_content where id = {cid}", spy=True).split("\t")
     if len(r) < 2 or not r[1]: return "loi", "không tìm thấy link tập trong ethopex_content (spy)", None
     sql(f"""delete from etp.viec where lo = '{lo}';   -- lô riêng của dòng: chạy lại bước = xếp lại từ đầu
-            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else 2, **({"kieu": "tap"} if d.get("loai") == "LT" else {})})}) on conflict do nothing""")
+            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) + 1) if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {})})}) on conflict do nothing""")
     rc, out = chay_tien_trinh(d["id"], "cat", ["python3", os.path.join(R, "tho.py"), "--lo", lo, "--so-tho", "1"], dict(BUOC)["cat"] - 60)
     kq = json.loads(sql(f"select coalesce(ket_qua, '[]'::jsonb)::text || chr(9) || coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1").split("\t")[0] or "[]")
     loi = sql(f"select coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1")
@@ -171,7 +171,7 @@ def b_soat(d, truoc):
 
 def b_creative(d, truoc):
     if d.get("loai") == "KT": return b_creative_kt(d)
-    if d.get("loai") == "LT": return b_creative_lt(d, truoc)
+    if d.get("loai") == "LT" or (d.get("so_camp") and d.get("loai") != "KT"): return b_creative_lt(d, truoc)   # mở rộng: tải MỌI đoạn sạch
     tr = (d.get("buoc") or {}).get("creative") or {}
     cr = (tr.get("ket_qua") or {}).get("creative_id")
     if not cr:   # lượt đầu: tải MỘT đoạn (luật một camp mỗi lần, anh 03/11/2026)
@@ -250,7 +250,30 @@ def b_camp_lt(d, truoc):
     sql(f"update etp.dong_phim set camp_id = {int(xong[0])} where id = {d['id']}")
     return "xong", f"lên {len(xong)} camp $1: " + ", ".join(f"#{c}" for c in xong) + (f" · chặn {len(loi)}: " + " · ".join(map(str, loi))[:300] if loi else ""), {"camp_id": int(xong[0]), "camps": xong, "gan": gan}
 
+def b_camp_mr(d, truoc):
+    """MỞ RỘNG (anh bấm ＋ ở dòng phim, chọn số camp): creative sạch vừa làm + creative sạch có sẵn chưa có camp của phim → lên đúng so_camp camp $1 (bộ của phim)"""
+    cr = truoc.get("creative") or {}; moi = [int(x["creative_id"]) for x in (cr.get("sach") or ([cr] if cr.get("creative_id") else []))]
+    san = [int(x) for x in sql(f"""select r.creative_id from etp.creative r join etp.cham_cong g using (creative_id) where r.content_id = {d['content_id']} and g.duoc_len and r.tu_choi is null
+                                   and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id) order by r.creative_id desc""").split() if x.isdigit()]
+    ds = list(dict.fromkeys(moi + san))[:int(d["so_camp"])]
+    if not ds: return "dung", "không có creative sạch nào để lên camp", None
+    bo = sql(f"select coalesce((select gia_tri->>'{d['content_id']}' from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2')") or "2"
+    xong, loi = [], []
+    for i_, c in enumerate(ds):
+        sql(f"update etp.dong_buoc set ghi = {s(f'đang lên camp {i_ + 1}/{len(ds)} (creative #{c})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")
+        lang = sql(f"select coalesce(lang, 'en') from etp.creative where creative_id = {c}") or "en"
+        ten = re.sub(r"[^ -~]|['\"$`\\]", "", f"dp{d['id']} {d.get('ten') or ''} {lang.upper()} - mo rong #{c}")
+        rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --bo {bo} --creative {c} --content {d["content_id"]} --ten "{ten}" --that --lich today --luat "mở rộng phim — anh chọn {d['so_camp']} camp (etp.on.tc)" --ai "anh (etp.on.tc: nút mở rộng ở dòng phim, 04/11/2026)"'""", 900)
+        j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None) or {}
+        if j.get("ok") and j.get("moi"): xong.append(int(j["moi"]))
+        else: loi.append(f"#{c}: {(j.get('loi') or out[-120:])[:120]}")
+    if not xong: return "dung", "không lên được camp nào: " + " · ".join(loi)[:400], None
+    sql(f"update etp.dong_phim set camp_id = {xong[0]} where id = {d['id']}")
+    thieu = int(d["so_camp"]) - len(xong)
+    return "xong", f"lên {len(xong)}/{d['so_camp']} camp $1: " + ", ".join(f"#{c}" for c in xong) + (f" · thiếu {thieu} (không đủ creative sạch)" if thieu > 0 and not loi else "") + (f" · chặn: {' · '.join(loi)}"[:300] if loi else ""), {"camp_id": xong[0], "camps": xong}
+
 def b_camp(d, truoc):
+    if d.get("so_camp"): return b_camp_mr(d, truoc)
     if d.get("loai") == "LT": return b_camp_lt(d, truoc)
     # BỘ CREATIVE ĐỦ LOẠI TRƯỚC, CHƯA LÊN CAMP (anh 03/11/2026 "phải làm đủ 1 bộ creative cho mọi loại nội dung trước. Chưa lên camp"):
     # phim có etp.cau_hinh lo_trinh[cid].bo mà anh chưa bắt đầu → mọi loại (CC / KT …) dừng ở đây, giữ creative đã chấm
@@ -316,7 +339,7 @@ def dung_imac():
 
 # ---------------- vòng chính ----------------
 def doc_dong():
-    j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai,
+    j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai, p.so_camp,
                (select json_object_agg(b.buoc, json_build_object('trang_thai', b.trang_thai, 'ket_qua', b.ket_qua, 'lan', b.lan, 'fix', b.fix, 'huy', b.huy,
                        'tuoi', extract(epoch from now() - coalesce(b.nhip, b.bat_dau))::int)) from etp.dong_buoc b where b.dong_id = p.id) buoc
                from etp.dong_phim p where p.trang_thai = 'chay' or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.fix) order by p.id) x""")
@@ -346,7 +369,7 @@ def vong():
     for d in doc_dong():
         bs = d.get("buoc") or {}
         if not bs:   # dòng mới (web vừa tạo): dựng 8 bước — hạn từng bước khai MỘT chỗ ở đây
-            bq = BO_QUA.get(d.get("loai") or "CC", set())
+            bq = BO_QUA.get(d.get("loai") or "CC", set()) | ({"nhan", "ws", "poster"} if d.get("so_camp") else set())   # mở rộng: phim đã live, bỏ nhận / trang / poster
             sql("insert into etp.dong_buoc (dong_id, buoc, thu_tu, han_giay, trang_thai) values " + ", ".join(
                 f"({d['id']}, '{b}', {i}, {HAN_RIENG.get((d.get('loai'), b), h)}, '{'bo_qua' if b in bq else 'cho'}')" for i, (b, h) in enumerate(BUOC, 1)) + " on conflict do nothing")
             print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} ({d.get('loai')}) — dựng bước", flush=True); continue

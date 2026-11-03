@@ -114,7 +114,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   return <>
     <tr style={con ? { background: 'rgba(96,165,250,.04)' } : { borderTop: '2px solid var(--line)', background: 'rgba(96,165,250,.10)' }}>   {/* dòng phim (thư mục) khác màu dòng creative (anh 03/11/2026) */}
       {con ? <td style={{ padding: '3px 6px 3px 24px' }}><span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--fg-1)' }}>
-        <span style={{ display: 'inline-block', width: 12, fontSize: 10, color: 'var(--fg-3)' }}>{mo ? '▼' : '▶'}</span>📂 {LOAI_DE[d.loai] ?? d.loai}</span>
+        <span style={{ display: 'inline-block', width: 12, fontSize: 10, color: 'var(--fg-3)' }}>{mo ? '▼' : '▶'}</span>📂 {LOAI_DE[d.loai] ?? d.loai}{d.so_camp ? <b style={{ color: '#4ade80', marginLeft: 6 }}>＋{d.so_camp} camp</b> : null}</span>
         <span style={{ fontSize: 10, color: 'var(--fg-3)', marginLeft: 6 }}>{ngayGio(d.tao_luc)}</span></td> :
       <td style={{ padding: '4px 6px' }}><div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
         <span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', width: 12, flex: 'none', textAlign: 'center', color: 'var(--fg-3)', fontSize: 10 }}>{mo ? '▼' : '▶'}</span>
@@ -247,16 +247,23 @@ export function TabDong({ moCamp }: { moCamp?: (id: number) => void } = {}) {
   </div>;
 }
 
-export function FormChayDong({ contentId, onClose }: { contentId: number; onClose: () => void }) {
+export function FormChayDong({ contentId, onClose, moRong }: { contentId: number; onClose: () => void; /** mở rộng phim đang chạy: hỏi thêm số camp mới (anh 04/11/2026) */ moRong?: boolean }) {
   const [f, setF] = useState<Awaited<ReturnType<typeof formDong>> | null>(null);
   const [loai, setLoai] = useState('CC'); const [tl, setTl] = useState(''); const [gui, setGui] = useState(false); const [loi, setLoi] = useState<string | null>(null);
-  useEffect(() => { void formDong(contentId).then((r) => { setF(r); if (!('loi' in r)) setTl(r.tlPhim ?? ''); }); }, [contentId]);
+  const [soCamp, setSoCamp] = useState(1);
+  useEffect(() => { void formDong(contentId).then((r) => { setF(r); if (!('loi' in r)) { setTl(r.tlPhim ?? ''); if (r.kPlan) setSoCamp(r.kPlan); } }); }, [contentId]);
   const ok = f && !('loi' in f);
-  return <FormModal kind="generic" action="create" title={<>▶ Chạy tự động tới khi lên camp</>} idText={`PHIM #${contentId}`} subtitle={ok ? f.ten ?? undefined : undefined} width="md" onClose={onClose}>
+  return <FormModal kind="generic" action="create" title={<>{moRong ? '＋ Mở rộng phim — thêm camp mới' : '▶ Chạy tự động tới khi lên camp'}</>} idText={`PHIM #${contentId}`} subtitle={ok ? f.ten ?? undefined : undefined} width="md" onClose={onClose}>
     {!f ? <FormModalSection><div style={{ color: 'var(--fg-2)' }}>Đang tải…</div></FormModalSection>
       : 'loi' in f ? <FormModalSection><div style={{ color: '#f87171' }}>{f.loi}</div></FormModalSection> : <>
       <FormModalSection>
         {f.nhomGoc !== 'au_my' ? <div style={{ color: '#f87171', marginBottom: 10 }}>Phim {f.nhomGoc ? `nhóm gốc '${f.nhomGoc}'` : 'chưa xác định nhóm gốc'} — chỉ chạy phim Âu-Mỹ.</div> : null}
+        {moRong ? <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 13, fontWeight: 600 }}>Số camp mới <input type="number" min={1} max={30} value={soCamp} onChange={(e) => setSoCamp(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
+            style={{ width: 70, marginLeft: 8, padding: '3px 6px', background: 'var(--bg-2, #111)', color: 'inherit', border: '1px solid var(--line)', borderRadius: 6 }} /></label>
+          <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 4 }}>đang chạy {f.dangChay} camp · creative sạch sẵn {f.sanCr} → cần sản xuất ~{Math.max(0, soCamp - f.sanCr)} · máy đề xuất {f.kPlan ?? '—'}{f.lyPlan ? ` (${f.lyPlan})` : ''}</div>
+          <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>Tab Sản xuất làm hết: cắt phần thiếu → soát + chấm → lên đủ {soCamp} camp $1 (bộ của phim) → chờ camp chạy.</div>
+        </div> : null}
         <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Loại nội dung QC</div>
         <div style={{ display: 'grid', gap: 8 }}>
           {f.loai.map((l: LoaiNoiDung) => <label key={l.ma} style={{ display: 'block', border: `1px solid ${loai === l.ma ? '#60a5fa' : 'var(--line)'}`, borderRadius: 8, padding: '10px 12px',
@@ -288,10 +295,10 @@ export function FormChayDong({ contentId, onClose }: { contentId: number; onClos
       <FormModalFooter>
         <button className="btn" onClick={onClose}>Huỷ</button>
         <button className="btn primary" disabled={gui || f.nhomGoc !== 'au_my' || !tl} title={!tl ? 'chọn thể loại trước' : undefined} onClick={async () => {
-          setGui(true); setLoi(null); const r = await chayDong(contentId, loai, tl); setGui(false);
+          setGui(true); setLoi(null); const r = await chayDong(contentId, loai, tl, moRong ? soCamp : undefined); setGui(false);
           if ('loi' in r) return setLoi(r.loi);
           onClose(); const u = new URL(window.location.href); u.searchParams.set('t', 'dong'); window.location.href = u.toString();
-        }}>{gui ? 'Đang gửi…' : '▶ Chạy tự động'}</button>
+        }}>{gui ? 'Đang gửi…' : moRong ? `＋ Lên ${soCamp} camp` : '▶ Chạy tự động'}</button>
       </FormModalFooter>
     </>}
   </FormModal>;

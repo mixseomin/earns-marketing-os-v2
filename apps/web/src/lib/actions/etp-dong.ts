@@ -10,8 +10,9 @@ import { quyenEtp } from '@/lib/etp-quyen';
 export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string; cach: string; gia: string; thoi_gian: string; chay: boolean; khoa?: string;
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
 export type BuocDong = { buoc: string; thu_tu: number; trang_thai: string; bat_dau: string | null; ket_thuc: string | null; han_giay: number; lan: number; ghi: string | null; nhip: string | null; fix: boolean; ket_qua: { ds?: { creative_id: number; tu?: number; den?: number }[]; sach?: { creative_id: number }[]; doan?: { tu: number; den: number }[] } | null };
+export type CampDong = { id: number; tt: string | null; cr: number | null; ns: number | null; chi: number; thu: number };
 export type DongPhim = { id: number; content_id: number; ten: string | null; the_loai: string | null; loai: string; ai: string | null; trang_thai: string; ly_do: string | null;
-  camp_id: number | null; creative_id: number | null; anh: string | null; crs: Record<string, { anh: string | null; video: string | null }>; camps: { id: number; tt: string | null; cr: number | null; ns: number | null; chi: number; thu: number }[]; tao_luc: string; xong_luc: string | null; buoc: BuocDong[] };
+  camp_id: number | null; creative_id: number | null; anh: string | null; so: { camp: number; chay: number; chi: number; thu: number } | null; tao_luc: string; xong_luc: string | null; buoc: BuocDong[] };
 
 // MỘT SỔ LOẠI NỘI DUNG — dạng = nhãn etp.creative.dang (cùng sổ MAU_DANG của etp-view / DANG_CHUAN của diem_cham.py); chay = máy dòng phim làm được
 const LOAI: Omit<LoaiNoiDung, 'vi_du'>[] = [
@@ -73,19 +74,42 @@ export async function chayDong(contentId: number, loai: string, theLoai: string)
   return r ? { ok: true, id: r.id } : { loi: 'không ghi được' };
 }
 
-export async function docDong(): Promise<{ dong: DongPhim[]; may: { may: string; nhip: string }[]; luc: string } | { loi: string }> {
+// CHỊU TẢI LỚN (anh 03/11/2026 "khi có 100000 creative thì trông nó thế nào?"): danh sách dòng lọc + phân trang ở máy chủ (50 / trang), số tổng của từng phim
+// máy chủ tính (creative / sạch / camp / chạy / chi / thu); chi tiết creative + camp chỉ tải khi mở thư mục phim (docChiTiet)
+const TRANG = 50;
+export type LocDong = 'mac_dinh' | 'dang' | 'loi' | 'tat_ca';
+export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0): Promise<{ dong: DongPhim[]; tong: number; dem: Record<LocDong, number>; may: { may: string; nhip: string }[]; luc: string } | { loi: string }> {
   if (!(await quyen())) return { loi: 'không có quyền' };
+  const xongLuc = sql`coalesce(p.xong_luc, case when not exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.trang_thai not in ('xong', 'bo_qua')) then (select max(b.ket_thuc) from etp.dong_buoc b where b.dong_id = p.id) end)`;
+  const coLoi = sql`(p.trang_thai in ('dung', 'loi') or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.trang_thai in ('loi', 'dung')))`;
+  const dangL = sql`(p.trang_thai = 'chay' and ${xongLuc} is null)`;
+  const dk = loc === 'dang' ? dangL : loc === 'loi' ? coLoi : loc === 'tat_ca' ? sql`true` : sql`(${dangL} or ${coLoi} or ${xongLuc} > now() - interval '1 day')`;
+  const t = `%${tim.trim()}%`;
+  const loctim = tim.trim() ? sql`and (p.ten ilike ${t} or p.content_id::text = ${tim.trim()} or p.id::text = ${tim.trim()})` : sql``;
   const dong = await run<DongPhim>(sql`select p.id, p.content_id, p.ten, p.the_loai, p.loai, p.ai, p.trang_thai, p.ly_do, p.camp_id, p.creative_id, p.tao_luc::text tao_luc, p.xong_luc::text xong_luc,
-      (select coalesce(json_agg(json_build_object('id', c.camp_id, 'tt', c.trang_thai, 'cr', c.creative_id, 'ns', c.ngan_sach,
-        'chi', (select coalesce(sum(s.chi), 0) from etp.so_ngay s where s.camp_id = c.camp_id), 'thu', (select coalesce(sum(s.thu), 0) from etp.so_ngay s where s.camp_id = c.camp_id)) order by c.camp_id), '[]'::json)
-        from etp.camp c where c.content_id = p.content_id and c.tao >= p.tao_luc) camps,
-      (select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video)), '{}'::json) from etp.creative r where r.content_id = p.content_id and (r.anh is not null or r.video is not null)) crs,   -- ảnh / video creative cho thẻ rê
-      (select case when a like 'http%' then a else '/api/ethopex/anh?p=' || ltrim(a, '/') end from (select coalesce((select t.anh from etp.trang_phim t where t.content_id = p.content_id and t.anh is not null order by t.cap_nhat desc limit 1), (select v.anh from etp.thu_vien_phim v where v.content_id = p.content_id and v.anh is not null limit 1)) a) x) anh,   -- ảnh tương đối → qua cùng miền /api/ethopex/anh (trình duyệt không tải được CDN thẳng)
+      (select case when a like 'http%' then a else '/api/ethopex/anh?p=' || ltrim(a, '/') end from (select coalesce((select t.anh from etp.trang_phim t where t.content_id = p.content_id and t.anh is not null order by t.cap_nhat desc limit 1), (select v.anh from etp.thu_vien_phim v where v.content_id = p.content_id and v.anh is not null limit 1)) a) x) anh,   -- ảnh tương đối → qua cùng miền /api/ethopex/anh
+      (select json_build_object('camp', count(*), 'chay', count(*) filter (where c.trang_thai = 'ACTIVE'), 'chi', coalesce(sum(s.chi), 0), 'thu', coalesce(sum(s.thu), 0))
+        from etp.camp c left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id) where c.content_id = p.content_id and c.tao >= p.tao_luc) so,
       coalesce((select json_agg(json_build_object('buoc', b.buoc, 'thu_tu', b.thu_tu, 'trang_thai', b.trang_thai, 'bat_dau', b.bat_dau, 'ket_thuc', b.ket_thuc, 'han_giay', b.han_giay,
         'lan', b.lan, 'ghi', b.ghi, 'nhip', b.nhip, 'fix', b.fix, 'ket_qua', b.ket_qua) order by b.thu_tu) from etp.dong_buoc b where b.dong_id = p.id), '[]'::json) buoc
-    from etp.dong_phim p order by p.id desc limit 100`);
+    from etp.dong_phim p where ${dk} ${loctim} order by (${coLoi}) desc, (${dangL}) desc, p.id desc limit ${TRANG} offset ${Math.max(0, Math.trunc(trang)) * TRANG}`);
+  const [d] = await run<Record<LocDong | 'tong', number>>(sql`select count(*) filter (where ${dk} ${loctim}) tong, count(*) filter (where ${dangL} or ${coLoi} or ${xongLuc} > now() - interval '1 day') mac_dinh,
+      count(*) filter (where ${dangL}) dang, count(*) filter (where ${coLoi}) loi, count(*) tat_ca from etp.dong_phim p`);
   const may = await run<{ may: string; nhip: string }>(sql`select may, nhip::text nhip from etp.dong_may`);
-  return { dong, may, luc: new Date().toISOString() };
+  const n = (k: LocDong | 'tong') => Number(d?.[k] ?? 0);
+  return { dong, tong: n('tong'), dem: { mac_dinh: n('mac_dinh'), dang: n('dang'), loi: n('loi'), tat_ca: n('tat_ca') }, may, luc: new Date().toISOString() };
+}
+
+/** chi tiết thư mục phim: camp của dòng (creative → camp, chi / thu) + ảnh / video creative */
+export async function docChiTiet(dongId: number): Promise<{ camps: CampDong[]; crs: Record<string, { anh: string | null; video: string | null }> } | { loi: string }> {
+  if (!(await quyen())) return { loi: 'không có quyền' };
+  const id = Math.trunc(Number(dongId));
+  const camps = await run<CampDong>(sql`select c.camp_id id, c.trang_thai tt, c.creative_id cr, c.ngan_sach ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu
+      from etp.dong_phim p join etp.camp c on c.content_id = p.content_id and c.tao >= p.tao_luc left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id)
+      where p.id = ${id} order by c.camp_id`);
+  const [r] = await run<{ crs: Record<string, { anh: string | null; video: string | null }> }>(sql`select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video)), '{}'::json) crs
+      from etp.dong_phim p join etp.creative r on r.content_id = p.content_id where p.id = ${id} and (r.anh is not null or r.video is not null)`);
+  return { camps, crs: r?.crs ?? {} };
 }
 
 /** FIX: máy chạy dòng giết tiến trình bước (nếu còn), chạy lại bước đó + các bước sau, mở lại dòng */

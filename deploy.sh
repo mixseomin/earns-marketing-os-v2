@@ -199,6 +199,13 @@ fi
 if ! cmp -s deploy/nginx-cty.conf /etc/nginx/sites-enabled/cty.on.tc; then
   cp deploy/nginx-cty.conf /etc/nginx/sites-enabled/cty.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx cty.on.tc cài/cập nhật" || { echo "✗ nginx cty.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/cty.on.tc; }
 fi
+# vhost etp.on.tc cài từ repo (apps/etp/deploy/etp.on.tc.nginx) — trước đây cài tay nên thêm đường mới (03/11/2026 /api/ethopex/anh) không tới máy chủ.
+# Cấu hình mới lỗi thì TRẢ LẠI bản đang chạy (không xoá vhost: etp.on.tc là trang anh dùng hằng ngày)
+if ! cmp -s apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc; then
+  cp /etc/nginx/sites-enabled/etp.on.tc /tmp/etp.on.tc.truoc 2>/dev/null
+  cp apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx etp.on.tc cài/cập nhật" \
+    || { echo "✗ nginx etp.on.tc: cấu hình lỗi — trả bản cũ"; cp /tmp/etp.on.tc.truoc /etc/nginx/sites-enabled/etp.on.tc && systemctl reload nginx; }
+fi
 CTY_CHANGED=false
 # Văn phòng pixel chỉ đọc hồ sơ nhân sự + script bơm + unit của nó → chỉ khởi động lại khi mấy thứ đó đổi
 # (trước đây mọi lần sửa apps/cty đều khởi động lại 2 văn phòng, mỗi cái ~34s → 68s mỗi deploy).

@@ -21,6 +21,7 @@ server {
   location = /robots.txt { auth_request off; default_type text/plain; return 200 "User-agent: *\nDisallow: /\n"; }
   location = / { proxy_pass http://127.0.0.1:3821/etp$is_args$args; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto https; proxy_read_timeout 120s; }
   location ~ ^/(etp(/[A-Za-z0-9._-]+)?|icon\.svg|manifest\.webmanifest)$ { proxy_pass http://127.0.0.1:3821; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto https; proxy_read_timeout 120s; }
+  location = /api/ethopex/anh { proxy_pass http://127.0.0.1:3821; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto https; }   # poster phim qua cùng miền (03/11/2026: thiếu dòng này → 302 về /, ảnh hỏng)
   location /_next/ { proxy_pass http://127.0.0.1:3821; proxy_http_version 1.1; proxy_set_header Host $host; }
   location / { return 302 /; }
 }

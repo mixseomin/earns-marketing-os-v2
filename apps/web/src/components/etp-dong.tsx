@@ -93,7 +93,8 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   const kt = d.loai === 'KT';
   const so = d.so ?? { camp: 0, chay: 0, chi: 0, thu: 0 }; const lai = so.thu - so.chi;
   const camps = ct?.camps ?? []; const crs = ct?.crs ?? {};
-  const le = camps.filter((c) => !cr.some((x) => x.creative_id === c.cr));
+  // camp lẻ = camp của dòng NÀY (dòng phim cũ chỉ ghi camp_id) mà chưa khớp creative — không lấy camp của loại khác cùng phim (03/11/2026: 5 camp Test rộng lạc vào thư mục Cảnh cuối)
+  const le = camps.filter((c) => c.id === d.camp_id && !cr.some((x) => x.creative_id === c.cr));
   const nCat = doanCat.length || (b('cat')?.trang_thai === 'xong' ? ds.length : 0); const tienCat = /(\d+\/\d+)/.exec(b('cat')?.ghi ?? '')?.[1];
   const tong: Record<string, string> = { cat: b('cat')?.trang_thai === 'dang' ? (tienCat ? `${tienCat} đoạn` : '') : nCat ? `${nCat} đoạn` : '', soat: ds.length ? `${cr.length || doanSach.length}/${doanCat.length || ds.length} sạch` : '', len: cr.length ? `${cr.length} đã lên` : '',
     cham: cr.length ? `${sach.size} sạch${chamXong && cr.length - sach.size ? ` · ${cr.length - sach.size} chặn` : ''}` : '', camp: so.camp && b('camp')?.trang_thai === 'xong' ? `${so.camp} camp` : /đang lên camp (\d+\/\d+)/.exec(b('camp')?.ghi ?? '') ? `⏳ đang lên ${/(\d+\/\d+)/.exec(b('camp')!.ghi!)![1]}` : d.duyet && /CHỜ ANH/.test(b('camp')?.ghi ?? '') ? '⏳ đã duyệt · máy đang nhận' : /CHỜ ANH BẮT ĐẦU/.test(b('camp')?.ghi ?? '') ? '👆 chờ anh duyệt' : so.camp ? `${so.camp} camp` : '',

@@ -298,6 +298,9 @@ def main():
     try:
         import nhan_tu_dong; kq.update(nhan_tu_dong.chay(q))
     except Exception as e: loi.append(f"nhan_tu_dong: {e}")
+    try:   # PLAN MỞ RỘNG CAMP THEO PHIM (anh 04/11/2026) — mo_rong.py ghi etp.mo_rong, Cây camp vẽ dòng mờ
+        import mo_rong; kq.update(mo_rong.chay(q))
+    except Exception as e: loi.append(f"mo_rong: {e}")
     # ── nhật ký luật
     try:
         nk = khoa("ethopex_nhat_ky", "[]"); rows = []

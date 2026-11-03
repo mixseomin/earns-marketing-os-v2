@@ -26,7 +26,7 @@ import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 const ChiXem = createContext(false);
 /** người xem sửa được camp trong danh sách đang xem (admin etp xem chính tài khoản của mình — anh 31/10/2026 Sơn "được edit camp của Sơn") */
 const SuaCampCtx = createContext<{ het: string | null } | null>(null);   // null = không có quyền sửa · het = phiên Ethopex riêng còn hạn tới (null = chưa kết nối)
-import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, PhanNang, PhimEtpKho, SoLuat, SoTien, ThayThe, ThuVienMuc, XetLuat } from '@/lib/etp-doc';
+import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, MoRong, PhanNang, PhimEtpKho, SoLuat, SoTien, ThayThe, ThuVienMuc, XetLuat } from '@/lib/etp-doc';
 import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
@@ -1699,6 +1699,22 @@ function oThay(key: string, t: ThayThe): React.ReactNode {
   if (key === 'cr') return t.creative_id ? <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>cr #{t.creative_id}</span> : null;
   return null;
 }
+// PLAN MỞ RỘNG (etp.mo_rong — apps/etp/mo_rong.py mỗi lượt đồng bộ, anh 04/11/2026 "các plan đó làm sao nhìn đc trên này tự động"): dòng mờ dưới phim,
+// camp_id giả = −(1e6 + phim) để không đụng dòng thay (−id thay_the)
+const MR_TT: Record<string, [string, string, number]> = { them: ['nên thêm ngay', '#4ade80', 0.85], cho_do: ['chờ đo lượt trước', '#facc15', 0.55], giu: ['giữ — ROI tụt', '#f59e0b', 0.45] };
+const MR_ID = (cid: number) => -(1_000_000 + cid);
+const tieuMoRong = (m: MoRong) => [`Mở rộng: +${m.k} camp · ${MR_TT[m.trang_thai]?.[0] ?? m.trang_thai}`, m.ly ? `Cách tính: ${m.ly}` : null,
+  `3 ngày đã khép: chi $${m.chi3.toFixed(2)} · lãi $${m.lai3.toFixed(2)} · ROI ${m.roi3 ?? '—'}%${m.roi_truoc != null ? ` (3 ngày trước đó ${m.roi_truoc}%)` : ''}`,
+  `Đang chạy ${m.n} camp · creative sạch chưa có camp: ${m.san} · cần sản xuất: ${m.can_sx}`,
+  'Công thức (apps/etp/mo_rong.py): đích 30 camp/phim · lãi ≥ 20% → ⌈6×(1−n/30)⌉ · hoà 0–20% → 1 · lỗ → camp thay thế · mỗi lượt đo lại tổng thể phim', `tính lúc ${vn(m.luc)}`].filter(Boolean).join('\n');
+function oMoRong(key: string, m: MoRong): React.ReactNode {
+  const [chu, mau] = MR_TT[m.trang_thai] ?? [m.trang_thai, 'var(--fg-2)'];
+  if (key === 'camp') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}><span style={{ color: mau }}>＋</span><b>mở rộng +{m.k} camp</b></span>;
+  if (key === 'tt') return <span style={{ fontSize: 11, color: mau }}>{chu}</span>;
+  if (key === 'luat') return <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>sẵn {m.san} · cần sx {m.can_sx}</span>;
+  if (key === 'cr') return m.roi3 != null ? <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>ROI 3 ngày {m.roi3}%</span> : null;
+  return null;
+}
 function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp, moPhim, onTimDoi, khiTimTrong }: { onTimDoi?: (q: string) => void; khiTimTrong?: React.ReactNode; moCamp?: (id: number) => void; moPhim?: (k: string) => void; camps: CampEtpKho[]; du: DuLieuEtp; hep?: boolean; laiKy: (c: CampEtpKho) => SoTien; tenKy: string; moCr?: (cr: number, e: React.MouseEvent) => void; dongCr?: () => void }) {
   const coLich = du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true, LT = luoiTrong(coLich);
   const { boThang, thangMuc } = soThang(du);   // lịch giờ đang tắt → không có cột lịch
@@ -1870,8 +1886,13 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       creative_id: t.creative_id, content_id: t.content_id, goc: null, lich: null, tao: t.tao, loi: null, phim: null, the_loai: null, dang: null, doan: null, cung_doan: 0,
       thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, lich_tat: false, roas: null, chien_luoc: null, nuoc: [] })); }, [camps, du.thayThe]);
   const thayCua = useMemo(() => new Map((du.thayThe ?? []).map((t) => [-t.id, t])), [du.thayThe]);
+  const moRongCua = useMemo(() => new Map((du.moRong ?? []).map((m) => [MR_ID(m.content_id), m])), [du.moRong]);
+  const moRongRows = useMemo(() => { const coPhim = new Set(camps.map((c) => c.content_id));
+    return (du.moRong ?? []).filter((m) => coPhim.has(m.content_id)).map((m): CampEtpKho => ({ camp_id: MR_ID(m.content_id), ten: `mở rộng +${m.k} camp`, bo: null, trang_thai: 'MO_RONG', giao: null, ngan_sach: 0,
+      creative_id: null, content_id: m.content_id, goc: null, lich: null, tao: m.luc, loi: null, phim: null, the_loai: null, dang: null, doan: null, cung_doan: 0,
+      thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, lich_tat: false, roas: null, chien_luoc: null, nuoc: [] })); }, [camps, du.moRong]);
   const cotCayThay: DataColumn<CampEtpKho>[] = cotCay.map((col) => ({ ...col,
-    cell: (c: CampEtpKho, i: number) => { const t = c.camp_id < 0 ? thayCua.get(c.camp_id) : undefined; return t ? oThay(col.key, t) : col.cell(c, i); },
+    cell: (c: CampEtpKho, i: number) => { if (c.camp_id < 0) { const m = moRongCua.get(c.camp_id); if (m) return oMoRong(col.key, m); } const t = c.camp_id < 0 ? thayCua.get(c.camp_id) : undefined; return t ? oThay(col.key, t) : col.cell(c, i); },
     sortValue: col.sortValue ? (c: CampEtpKho) => (c.camp_id < 0 ? -1e9 : col.sortValue!(c)) : undefined,
     total: col.total ? (rs: CampEtpKho[]) => col.total!(rs.filter((x) => x.camp_id > 0)) : undefined }));
   // MỞ HẾT · CHÚ GIẢI — máy tính: đứng đầu thanh tìm của bảng (dính khi cuộn, anh 31/10/2026 bố cục lại) · điện thoại: hàng nút dính riêng như cũ
@@ -1883,12 +1904,14 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
           return <button onClick={() => doiMo(tatCa, !moHet)} title={moHet ? 'gập mọi phim' : 'mở mọi phim + bản nhân bản'} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: 'inherit', cursor: 'pointer' }}>{moHet ? '⊟ Gập hết' : '⊞ Mở hết'}</button>; })()}
     {<button onClick={() => setGiai((v) => !v)} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: 'inherit', cursor: 'pointer' }}>{giai ? 'Ẩn chú giải' : 'Chú giải'}</button>}
   </>;
-  const bangCay = hep ? null : <DataTable rows={thayRows.length ? [...camps, ...thayRows] : camps} columns={cotCayThay} getRowKey={(c) => String(c.camp_id)} persistKey="etp-cay" minWidth={1100} fixedLayout defaultSort={[{ key: 'lai', dir: 'desc' }]}
+  const bangCay = hep ? null : <DataTable rows={thayRows.length || moRongRows.length ? [...camps, ...thayRows, ...moRongRows] : camps} columns={cotCayThay} getRowKey={(c) => String(c.camp_id)} persistKey="etp-cay" minWidth={1100} fixedLayout defaultSort={[{ key: 'lai', dir: 'desc' }]}
     tree={{ parent: (c) => (c.goc ? String(c.goc) : null), open: moBang, onOpen: doiMoBang }} groupBy={{ value: (c) => String(c.content_id ?? 0), label: nhanPhim }}
     rowData={(c) => ({ 'camp-dong': c.camp_id })}
-    rowStyle={(c) => { if (c.camp_id < 0) { const t = thayCua.get(c.camp_id); return { opacity: THAY_BUOC[t?.buoc ?? '']?.[1] ?? 0.3, fontStyle: 'italic' }; }
+    rowStyle={(c) => { if (c.camp_id < 0 && moRongCua.has(c.camp_id)) return { opacity: MR_TT[moRongCua.get(c.camp_id)!.trang_thai]?.[2] ?? 0.4, fontStyle: 'italic' };
+      if (c.camp_id < 0) { const t = thayCua.get(c.camp_id); return { opacity: THAY_BUOC[t?.buoc ?? '']?.[1] ?? 0.3, fontStyle: 'italic' }; }
       const mau = loiNb.get(c.camp_id) ? '#ef4444' : giam(c) ? '#f59e0b' : null; return mau ? { boxShadow: `inset 3px 0 ${mau}`, background: `${mau}14` } : undefined; }}
-    rowTitle={(c) => { if (c.camp_id < 0) { const t = thayCua.get(c.camp_id); return t ? tieuThay(t) : undefined; }
+    rowTitle={(c) => { if (c.camp_id < 0 && moRongCua.has(c.camp_id)) return tieuMoRong(moRongCua.get(c.camp_id)!);
+      if (c.camp_id < 0) { const t = thayCua.get(c.camp_id); return t ? tieuThay(t) : undefined; }
       const l = loiNb.get(c.camp_id); if (l) return `Vạch ĐỎ — máy không nhân bản được camp này (${l.lan} lần thử trong 24 giờ): ${loiThuong(l.loi)}`;
       if (!giam(c)) return undefined; const r3 = ngay.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d))); return `Vạch CAM — ROI giảm 2 ngày liền: ${ngay.slice(-3).map((d, i) => `${d.slice(8, 10)}/${d.slice(5, 7)} ${r3[i]}%`).join(' → ')}`; }}
     searchText={(c) => `${c.camp_id} ${c.ten ?? ''} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tlC(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…"

@@ -1,0 +1,284 @@
+#!/usr/bin/env python3
+"""MÁY CHẠY DÒNG PHIM (anh 03/11/2026: "khi tao chọn phim xong, form hỏi thêm về thể loại rồi hệ thống tự động chạy xuyên suốt ko cần đến mày + tao đến khi
+lên được camp. Nếu có vấn đề về policy… thì chủ động dừng lại dòng phim đó. Mọi thứ trên 1 dòng phim đó, có thời gian bắt đầu, kết thúc mỗi step. Có nút để FIX").
+Chạy trên iMac (launchd com.htuan.etp-dong-phim, KeepAlive) — cắt / soát đoạn / tải creative đều chạy ở iMac. Kho: etp.dong_phim + etp.dong_buoc (migration 0413).
+Thằng Mạnh (apps/etp/manh.py, box3 timer 2 phút) canh phía sau: bước quá hạn / tiến trình chết / máy này im → huỷ, FIX tự một lần, báo Telegram.
+
+8 bước, mỗi bước gọi ĐÚNG công cụ đang dùng (không chép lại luật):
+  nhan      Nhận phim     nhóm gốc Âu-Mỹ · không trong sổ cấm 18+ · đội không giữ · phim chưa có camp → ghi etp.phim_nhan (Nhà)
+  ws        Trang phim    nhan-ban.trang_chua_san: thêm workspace (ensure-clone) + điền mô tả / cốt truyện → chờ đồng bộ tới khi đủ
+  poster    Soát poster   apps/etp/soat_18_ai.py --ghi → cấm thì dừng
+  cat       Cắt đoạn      etp.viec lô dp<dòng> → tho.py (tải tập + cat-cuoi-lo, CTA kiểu Kiên)
+  soat      Soát đoạn     soat_doan.py lo (máy soát Claude, chuỗi rẻ) → giữ đoạn ok; không còn đoạn ok thì dừng
+  creative  Tải + chấm    len-creative.py (MỘT đoạn — luật một camp mỗi lần) → chờ cổng chấm etp.cham_cong: chặn / chờ duyệt thì dừng
+  camp      Lên camp      nhan-ban.py --bo 2 --creative … --lich today (mọi cổng luật nằm ở đó) → chặn thì dừng
+  chay      Camp chạy     chờ Ethopex đồng bộ xong + ACTIVE
+Kết quả bước: xong · dung (policy / luật — máy chủ động dừng dòng) · loi (kỹ thuật) · cho (chưa tới — máy quay lại sau, bước vẫn đang).
+Dùng: dong_phim.py (vòng chính) · dong_phim.py mot [giây] (một vòng, thử)"""
+import datetime as dt, json, os, re, signal, socket, subprocess, sys, threading, time
+R = os.path.dirname(os.path.abspath(__file__)); E = os.path.join(R, "..", "xuong-video", "scripts", "ethopex")
+sys.path.insert(0, E); import loi_ky_thuat as LK
+B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
+C = os.path.expanduser("~/.cache/ethopex"); MAY = socket.gethostname().split(".")[0]
+KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (dot-phim-moi.KHUON)
+LOAI = {"CC": "cảnh cuối", "KT": "kể chuyện"}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
+BO_QUA = {"KT": {"cat", "soat"}}                 # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt — không cắt phim
+HAN_RIENG = {("KT", "creative"): 4 * 3600}       # máy sinh KT làm tuần tự ~40–70 phút/phim, có hàng đợi
+BUOC = [("nhan", 300), ("ws", 3600), ("poster", 900), ("cat", 4200), ("soat", 1800), ("creative", 3600), ("camp", 1200), ("chay", 7200)]   # (bước, hạn giây) — Mạnh huỷ khi quá
+CHO_LAI = 60          # bước trả "cho" → quay lại sau ngần này giây
+TRAN_CAT = 2          # tối đa 2 dòng cắt cùng lúc (iMac)
+DANG = {}             # (dòng, bước) → Popen đang chạy — để Mạnh / nút Dừng giết được
+KHOA = threading.Lock()
+
+def sql(cau, spy=False):
+    nen = ". /root/.secrets/spy.env" if spy else ENV
+    r = subprocess.run(["ssh", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20", B, f'{nen}; psql "$DATABASE_URL" -qtA -F"\t" -v ON_ERROR_STOP=1 -f -'],
+                       input=cau, capture_output=True, text=True, timeout=180)
+    if r.returncode: raise RuntimeError(r.stderr.strip()[-300:])
+    return r.stdout.strip()
+def s(v): return "null" if v is None else "$Q$" + str(v).replace("$Q$", "") + "$Q$"
+def js(v): return "$J$" + json.dumps(v, ensure_ascii=False).replace("$J$", "") + "$J$::jsonb"
+def box(lenh, timeout=1800):
+    """lệnh trên box3 (trong /opt/earns-marketing-os-v2, có env) — trả (mã thoát, stdout+stderr)"""
+    r = subprocess.run(["ssh", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20", B, f"{ENV}; timeout {int(timeout)} {lenh}"], capture_output=True, text=True, timeout=timeout + 60)
+    return r.returncode, (r.stdout + r.stderr).strip()
+def khoa_studio(ten): return json.loads(sql(f"select coalesce(gia_tri, '{{}}'::jsonb)::text from xv_khoa_ngoai where ten = '{ten}'") or "{}")
+
+def chay_tien_trinh(dong, buoc, lenh, han, env=None):
+    """Popen cả nhóm tiến trình, ghi pid; giết khi hết hạn hoặc khi bước bị đặt huy (Mạnh / nút Dừng / FIX) → (mã, đuôi stdout)"""
+    log = os.path.join(C, "dong", f"{dong}-{buoc}.log"); os.makedirs(os.path.dirname(log), exist_ok=True)
+    f = open(log, "w")
+    pr = subprocess.Popen(lenh, stdout=f, stderr=subprocess.STDOUT, start_new_session=True, env={**os.environ, **(env or {})})
+    with KHOA: DANG[(dong, buoc)] = pr
+    sql(f"update etp.dong_buoc set pid = {pr.pid}, may = '{MAY}' where dong_id = {dong} and buoc = '{buoc}'")
+    t0 = time.time()
+    try:
+        while pr.poll() is None:
+            time.sleep(5)
+            if time.time() - t0 > han or sql(f"select huy from etp.dong_buoc where dong_id = {dong} and buoc = '{buoc}'") == "t":
+                try: os.killpg(pr.pid, signal.SIGKILL)
+                except Exception: pass
+                pr.wait(); f.close()
+                return -9, f"bị huỷ sau {int(time.time() - t0)}s ({'quá hạn' if time.time() - t0 > han else 'Mạnh / nút Dừng yêu cầu'}) — nhật ký (iMac): {log}"
+            sql(f"update etp.dong_buoc set nhip = now() where dong_id = {dong} and buoc = '{buoc}'")
+    finally:
+        with KHOA: DANG.pop((dong, buoc), None)
+    f.close()
+    return pr.returncode, open(log).read()[-3000:]
+
+# ---------------- các bước: (dòng dict) → (kết, ghi, kết quả) ----------------
+def b_nhan(d):
+    cid = d["content_id"]
+    goc = sql(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {cid}")
+    if goc != "au_my": return "dung", f"nhóm gốc phim là '{goc or 'chưa rõ'}' — chỉ chạy phim Âu-Mỹ (luật anh 02/11/2026)", None
+    if str(cid) in khoa_studio("ethopex_phim_cam"): return "dung", "phim nằm trong sổ cấm 18+ (ethopex_phim_cam)", None
+    doi = sql(f"select coalesce(max(nguoi), '') from etp.phim_nhan_v where content_id = {cid} and trang_thai in ('giu', 'da_len') and nguoi_id not in (select nguoi_id from etp.tai_khoan where nha)")
+    if doi: return "dung", f"{doi} (đội) đang giữ phim này", None
+    co = sql(f"select string_agg(camp_id::text, ' ') from etp.camp where content_id = {cid} and (trang_thai = 'ACTIVE' or coalesce(dong_bo, '') not in ('done', 'synced', 'error'))")
+    if co: return "dung", f"phim đã có camp đang chạy: #{co} — mỗi lần chỉ lên một camp cho một phim (luật anh 03/11/2026)", None
+    sql(f"""insert into etp.phim_nhan (content_id, nguoi_id, nguoi, het_luc)
+            select {cid}, g.nguoi_id, 'Nhà', now() + interval '24 hours' from (select nguoi_id from etp.tai_khoan where nha order by nguoi_id limit 1) g
+            where not exists (select 1 from etp.phim_nhan_v n where n.content_id = {cid} and n.trang_thai in ('giu', 'da_len'))""")
+    return "xong", "Nhà nhận phim (giữ 24 giờ), nhóm gốc Âu-Mỹ, không trong sổ cấm", None
+
+TRANG = r'''
+import importlib.util, sys, json
+s = importlib.util.spec_from_file_location("nb", "apps/xuong-video/scripts/ethopex/nhan-ban.py"); m = importlib.util.module_from_spec(s); sys.argv = ["nb"]; s.loader.exec_module(m)
+tk = m.q("select ad_account_id from etp.tai_khoan where nha and ad_account_id is not null order by nguoi_id limit 1")
+print(json.dumps({"ly": m.trang_chua_san(%d, tk)}, ensure_ascii=False))
+'''
+def b_ws(d):
+    rc, out = box(f"python3 - <<'PYEOF'\n{TRANG % d['content_id']}\nPYEOF", 300)
+    m = re.findall(r'^\{"ly".*$', out, re.M)
+    if not m: return "loi", f"không đọc được cổng trang phim: {out[-200:]}", None
+    ly = json.loads(m[-1])["ly"]
+    if not ly: return "xong", "trang phim Nhà đủ mô tả + cốt truyện + ảnh + link tập 1", None
+    if "vừa được máy" in ly or "còn thiếu" in ly:
+        box("systemctl start --no-block etp-dong-bo", 30)   # đồng bộ kho trang phim ngay, không chờ 10 phút
+        return "cho", ly, None
+    return "dung", ly, None
+
+def b_poster(d):
+    cid = d["content_id"]
+    rc, out = box(f"python3 apps/etp/soat_18_ai.py {cid} --ghi", 600)
+    if str(cid) in khoa_studio("ethopex_phim_cam"): return "dung", f"AI soát poster cấm 18+: {(out.splitlines() or [''])[-1][:200]}", None
+    v = khoa_studio("ethopex_soat_18").get(str(cid)) or {}
+    if v.get("ok") is False: return "dung", f"soát 18+: {v.get('ghi', 'cấm')}", None
+    if rc: return "loi", f"soát poster lỗi (mã {rc}): {out[-200:]}", None
+    return "xong", (out.splitlines() or ["poster sạch"])[-1][:300], None
+
+def b_cat(d):
+    cid, lo = d["content_id"], f"dp{d['id']}"
+    r = sql(f"select ten, url, locale, nguon from ethopex_content where id = {cid}", spy=True).split("\t")
+    if len(r) < 2 or not r[1]: return "loi", "không tìm thấy link tập trong ethopex_content (spy)", None
+    sql(f"""delete from etp.viec where lo = '{lo}';   -- lô riêng của dòng: chạy lại bước = xếp lại từ đầu
+            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 2})}) on conflict do nothing""")
+    rc, out = chay_tien_trinh(d["id"], "cat", ["python3", os.path.join(R, "tho.py"), "--lo", lo, "--so-tho", "1"], dict(BUOC)["cat"] - 60)
+    kq = json.loads(sql(f"select coalesce(ket_qua, '[]'::jsonb)::text || chr(9) || coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1").split("\t")[0] or "[]")
+    loi = sql(f"select coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1")
+    ok = [x for x in kq if x.get("file") and not x.get("loi") and os.path.exists(x["file"])]
+    if ok: return "xong", f"cắt {len(ok)} đoạn: " + ", ".join(f"{x['tu']:.0f}–{x['den']:.0f}s" for x in ok), {"doan": ok, "lo": lo}
+    g = loi or " ".join(str(x.get("loi")) for x in kq) or out[-200:]
+    return ("loi" if rc == -9 or LK.ky_thuat(g) is not False else "dung"), f"không ra đoạn nào: {g[:300]}", None
+
+def b_soat(d, truoc):
+    doan = (truoc.get("cat") or {}).get("doan") or []
+    if not doan: return "loi", "bước cắt không để lại đoạn nào", None
+    thu = os.path.join(C, "ra", f"dp{d['id']}", "soat"); os.makedirs(thu, exist_ok=True)
+    json.dump(doan, open(os.path.join(thu, "lo.json"), "w"), ensure_ascii=False)
+    rc, out = chay_tien_trinh(d["id"], "soat", ["python3", os.path.join(E, "soat_doan.py"), "lo", thu], dict(BUOC)["soat"] - 60)
+    if rc == -9: return "loi", out[-300:], None
+    s_ = khoa_studio("ethopex_soat_doan"); k = lambda x: f"{int(x['content_id'])}:{int(round(float(x['tu'])))}-{int(round(float(x['den'])))}"
+    ok = [x for x in doan if (s_.get(k(x)) or {}).get("ok") is True]
+    cam = [f"{k(x)}: {(s_.get(k(x)) or {}).get('ghi', 'chưa có kết quả')[:120]}" for x in doan if x not in ok]
+    if not ok: return "dung", "soát đoạn: không còn đoạn sạch — " + " · ".join(cam)[:500], None
+    return "xong", f"{len(ok)}/{len(doan)} đoạn sạch" + (f" · bỏ {' · '.join(cam)}"[:400] if cam else ""), {"doan": ok}
+
+def b_creative(d, truoc):
+    if d.get("loai") == "KT": return b_creative_kt(d)
+    tr = (d.get("buoc") or {}).get("creative") or {}
+    cr = (tr.get("ket_qua") or {}).get("creative_id")
+    if not cr:   # lượt đầu: tải MỘT đoạn (luật một camp mỗi lần, anh 03/11/2026)
+        doan = ((truoc.get("soat") or {}).get("doan") or [])[:1]
+        if not doan: return "loi", "bước soát không để lại đoạn sạch", None
+        ma = f"dp{d['id']}l{tr.get('lan') or 1}"; lf = os.path.join(C, "ra", f"dp{d['id']}", f"len-{ma}.json")
+        json.dump([{**x, "lo": f"dp{d['id']}"} for x in doan], open(lf, "w"), ensure_ascii=False)
+        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "len-creative.py"), lf, ma, "canh cuoi", "--da-soat"], dict(BUOC)["creative"] - 300, {"ETP_KHONG_CAT": "1"})
+        lj = os.path.join(C, "ra", ma, "len.json")
+        kq = json.load(open(lj)) if os.path.exists(lj) else []
+        x = next((y for y in kq if y.get("ok") and y.get("creative_id")), None)
+        if not x:
+            g = " ".join(str(y.get("loi")) for y in kq) or out[-300:]
+            return ("loi" if rc == -9 or not kq or LK.ky_thuat(g) is not False else "dung"), f"tải creative không ra: {g[:300]}", None
+        sql(f"update etp.dong_buoc set ket_qua = {js(x)} where dong_id = {d['id']} and buoc = 'creative'"); sql(f"update etp.dong_phim set creative_id = {int(x['creative_id'])} where id = {d['id']}")
+        cr = x["creative_id"]; tr = {"ket_qua": x}
+    c = sql(f"select duoc_len::text || chr(9) || coalesce(chan_boi, '') || chr(9) || coalesce(cho_duyet, '') from etp.cham_cong where creative_id = {int(cr)}").split("\t")
+    if len(c) < 2 or c[0] == "": return "cho", f"creative #{cr} đã tải — chờ máy chấm (etp.cham_hang)", tr["ket_qua"]
+    if c[0] == "true": return "xong", f"creative #{cr} chấm sạch", tr["ket_qua"]
+    return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if len(c) > 2 and c[2] else 'chặn'}: {c[1][:200]}", tr["ket_qua"]
+
+def b_creative_kt(d):
+    """KT: dòng đứng đầu hàng đợi máy sinh kể chuyện (hang-ke-chuyen.mts bậc 5000) → chờ creative kể chuyện MỚI của phim (tạo sau lúc bước này bắt đầu) → cổng chấm"""
+    v = sql(f"""select coalesce(r.creative_id::text, '') || chr(9) || coalesce(g.duoc_len::text, '') || chr(9) || coalesce(g.chan_boi, '') || chr(9) || coalesce(g.cho_duyet, '')
+                || chr(9) || coalesce(r.lang, 'en') || chr(9) || coalesce(r.tu, 0) || chr(9) || coalesce(r.den, 0)
+                from etp.creative r left join etp.cham_cong g using (creative_id)
+                where r.content_id = {d['content_id']} and r.dang = 'kể chuyện' and r.tu_choi is null
+                  and r.cap_nhat >= (select bat_dau from etp.dong_buoc where dong_id = {d['id']} and buoc = 'creative') order by r.creative_id desc limit 1""").split("\t")
+    if not v or not v[0]:
+        tv = sql(f"select coalesce(trang_thai, '') || ' ' || coalesce(left(ghi, 160), '') from etp.thu_vien where content_id = {d['content_id']} and dang = 'kể chuyện' and tao >= (select bat_dau from etp.dong_buoc where dong_id = {d['id']} and buoc = 'creative') order by id desc limit 1")
+        if tv.startswith("loai") or tv.startswith("loi_may"): return "loi", f"máy sinh kể chuyện hỏng: {tv[:300]}", None
+        return "cho", f"máy sinh kể chuyện: {tv or 'phim đứng đầu hàng đợi (bậc 5000), chờ máy nhận'}"[:300], None
+    cr = int(v[0]); kq = {"creative_id": cr, "lang": v[4], "tu": float(v[5] or 0), "den": float(v[6] or 0), "ten": f"dp{d['id']} {re.sub(r'[^ -~]', '', d.get('ten') or '')} {v[4].upper()} - ke chuyen"}
+    sql(f"update etp.dong_phim set creative_id = {cr} where id = {d['id']}")
+    if v[1] == "": return "cho", f"creative kể chuyện #{cr} đã lên — chờ máy chấm", kq
+    if v[1] == "true": return "xong", f"creative kể chuyện #{cr} chấm sạch", kq
+    return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if v[3] else 'chặn'}: {v[2][:200]}", kq
+
+def b_camp(d, truoc):
+    x = truoc.get("creative") or {}
+    if not x.get("creative_id"): return "loi", "chưa có creative", None
+    lang = x.get("lang") or "en"; ten = re.sub(r"['\"$`\\]", "", x.get("ten") or f"dp{d['id']} phim {d['content_id']}")
+    rc, out = box(f"""bash -c 'cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON["en"])} --bo 2 --creative {int(x["creative_id"])} --content {d["content_id"]} --ten "{ten}" --that --lich today --luat "dòng phim tự động #{d["id"]} (etp.on.tc)" --ai "anh (etp.on.tc: Chạy tự động dòng phim, 03/11/2026)"'""", 900)
+    j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{") and '"ok"' in l), None)
+    if not j: return "loi", f"nhan-ban không trả kết quả: {out[-300:]}", None
+    if j.get("ok") and j.get("moi"):
+        sql(f"update etp.dong_phim set camp_id = {int(j['moi'])} where id = {d['id']}")
+        return "xong", f"lên camp #{j['moi']} ($1, bộ 2, lịch hôm nay)", {"camp_id": int(j["moi"])}
+    g = j.get("loi") or out[-200:]
+    if j.get("ok") is None: return ("cho" if "lượt sau" in g else "dung"), f"cổng luật chặn: {g[:400]}", None   # ChanLuat; trang vừa sửa → thử lại
+    return "loi", f"Ethopex lỗi tạo camp: {g[:400]}", None
+
+DOC_CAMP = r'''
+import sys, json; sys.path.insert(0, "apps/etp"); import ethopex_api as EA
+c = next((x for x in EA.api("/api/v1/campaigns?page_size=200")["data"] if int(x["id"]) == %d), {})
+print(json.dumps({k: c.get(k) for k in ("state", "sync_status", "error")}))
+'''
+def b_chay(d, truoc):
+    camp = (truoc.get("camp") or {}).get("camp_id") or d.get("camp_id")
+    if not camp: return "loi", "chưa có camp", None
+    rc, out = box(f"python3 - <<'PYEOF'\n{DOC_CAMP % int(camp)}\nPYEOF", 120)
+    j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{")), None)
+    if not j: return "cho", f"chưa đọc được trạng thái camp #{camp}: {out[-150:]}", None
+    if j.get("error"): return "loi", f"camp #{camp} lỗi đồng bộ: {j['error']}", None
+    if j.get("sync_status") == "done" and j.get("state") == "ACTIVE": return "xong", f"camp #{camp} đang chạy (ACTIVE)", {"camp_id": camp}
+    if j.get("sync_status") == "done" and j.get("state") == "PAUSED": return "dung", f"camp #{camp} đồng bộ xong nhưng PAUSED (có người / máy luật tắt)", None
+    return "cho", f"camp #{camp} {j.get('state')} · {j.get('sync_status')} — chờ Ethopex kiểm ad", None
+
+HAM = {"nhan": b_nhan, "ws": b_ws, "poster": b_poster, "cat": b_cat, "soat": b_soat, "creative": b_creative, "camp": b_camp, "chay": b_chay}
+
+# ---------------- vòng chính ----------------
+def doc_dong():
+    j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai,
+               (select json_object_agg(b.buoc, json_build_object('trang_thai', b.trang_thai, 'ket_qua', b.ket_qua, 'lan', b.lan, 'fix', b.fix, 'huy', b.huy,
+                       'tuoi', extract(epoch from now() - coalesce(b.nhip, b.bat_dau))::int)) from etp.dong_buoc b where b.dong_id = p.id) buoc
+               from etp.dong_phim p where p.trang_thai = 'chay' or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.fix) order by p.id) x""")
+    return json.loads(j or "[]")
+
+def lam_buoc(d, buoc):
+    truoc = {k: (v.get("ket_qua") or {}) for k, v in (d.get("buoc") or {}).items() if v.get("trang_thai") == "xong"}
+    try: ket, ghi, kq = HAM[buoc](d) if buoc in ("nhan", "ws", "poster", "cat") else HAM[buoc](d, truoc)
+    except Exception as e: ket, ghi, kq = "loi", f"{type(e).__name__}: {str(e)[:300]}", None
+    if sql(f"select huy::text from etp.dong_buoc where dong_id = {d['id']} and buoc = '{buoc}'") == "true" and ket != "xong":
+        ket, ghi = "loi", f"bị huỷ (Mạnh / nút Dừng) — {ghi}"
+    if ket == "cho":
+        sql(f"update etp.dong_buoc set ghi = {s(ghi)}, nhip = now(){', ket_qua = ' + js(kq) if kq else ''} where dong_id = {d['id']} and buoc = '{buoc}' and trang_thai = 'dang'")
+        return
+    sql(f"""update etp.dong_buoc set trang_thai = '{ket}', ket_thuc = now(), ghi = {s(ghi)}, nhip = now(), pid = null, huy = false{', ket_qua = ' + js(kq) if kq is not None else ''}
+            where dong_id = {d['id']} and buoc = '{buoc}' and trang_thai = 'dang'""")
+    if ket in ("dung", "loi"): sql(f"update etp.dong_phim set trang_thai = '{ket}', ly_do = {s(f'{buoc}: {ghi}')}, xong_luc = now() where id = {d['id']} and trang_thai = 'chay'")
+    elif buoc == "chay": sql(f"update etp.dong_phim set trang_thai = 'xong', ly_do = {s(ghi)}, xong_luc = now() where id = {d['id']}")
+    print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} · {buoc} → {ket} · {ghi[:160]}", flush=True)
+
+CHAY = {}   # (dòng, bước) → (thread, lần chạy cuối)
+def vong():
+    sql(f"insert into etp.dong_may (may, nhip, pid) values ('{MAY}', now(), {os.getpid()}) on conflict (may) do update set nhip = now(), pid = excluded.pid")
+    for d in doc_dong():
+        bs = d.get("buoc") or {}
+        if not bs:   # dòng mới (web vừa tạo): dựng 8 bước — hạn từng bước khai MỘT chỗ ở đây
+            bq = BO_QUA.get(d.get("loai") or "CC", set())
+            sql("insert into etp.dong_buoc (dong_id, buoc, thu_tu, han_giay, trang_thai) values " + ", ".join(
+                f"({d['id']}, '{b}', {i}, {HAN_RIENG.get((d.get('loai'), b), h)}, '{'bo_qua' if b in bq else 'cho'}')" for i, (b, h) in enumerate(BUOC, 1)) + " on conflict do nothing")
+            print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} ({d.get('loai')}) — dựng bước", flush=True); continue
+        # FIX (nút / Mạnh): giết tiến trình bước nếu còn, đưa bước về chờ, mở lại dòng
+        for b, v in bs.items():
+            if v.get("fix"):
+                with KHOA: pr = DANG.get((d["id"], b))
+                if pr:
+                    try: os.killpg(pr.pid, signal.SIGKILL)
+                    except Exception: pass
+                t = CHAY.get((d["id"], b))
+                if t and t[0].is_alive(): bs = None; break   # luồng cũ chưa thoát hẳn (vừa giết) → FIX ở vòng sau, kẻo luồng cũ ghi đè lượt mới
+                sql(f"""update etp.dong_buoc set trang_thai = 'cho', fix = false, huy = false, bat_dau = null, ket_thuc = null, pid = null, ghi = 'FIX — chạy lại', ket_qua = case when '{b}' = 'creative' then null else ket_qua end
+                        where dong_id = {d['id']} and buoc = '{b}';
+                        update etp.dong_buoc set trang_thai = 'cho', bat_dau = null, ket_thuc = null, ghi = null, ket_qua = null, lan = 0 where dong_id = {d['id']} and thu_tu > (select thu_tu from etp.dong_buoc where dong_id = {d['id']} and buoc = '{b}');
+                        update etp.dong_phim set trang_thai = 'chay', ly_do = null, xong_luc = null, bao_luc = null where id = {d['id']} and trang_thai <> 'huy'""")
+                print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} FIX bước {b}", flush=True); bs = None; break
+        if bs is None or d["trang_thai"] != "chay": continue
+        # Mạnh / nút Dừng đặt huy cho bước đang chạy → giết tiến trình
+        for b, v in bs.items():
+            if v.get("huy"):
+                with KHOA: pr = DANG.get((d["id"], b))
+                if pr:
+                    try: os.killpg(pr.pid, signal.SIGKILL)
+                    except Exception: pass
+        dang = [b for b, _ in BUOC if (bs.get(b) or {}).get("trang_thai") == "dang"]
+        ke = dang[0] if dang else next((b for b, _ in BUOC if (bs.get(b) or {}).get("trang_thai") == "cho"), None)
+        if not ke: continue
+        t = CHAY.get((d["id"], ke))
+        if t and t[0].is_alive(): continue
+        if dang and t and time.time() - t[1] < CHO_LAI: continue   # bước đang "chờ": quay lại sau CHO_LAI giây
+        if ke == "cat" and not dang and sum(1 for (i, b), (th, _) in CHAY.items() if b == "cat" and th.is_alive()) >= TRAN_CAT: continue
+        if not dang:
+            sql(f"update etp.dong_buoc set trang_thai = 'dang', bat_dau = now(), nhip = now(), lan = lan + 1, may = '{MAY}' where dong_id = {d['id']} and buoc = '{ke}' and trang_thai = 'cho'")
+            bs.setdefault(ke, {})["lan"] = (bs.get(ke) or {}).get("lan", 0) + 1
+        th = threading.Thread(target=lam_buoc, args=(d, ke), daemon=True); th.start(); CHAY[(d["id"], ke)] = (th, time.time())
+
+def main(a):
+    if a and a[0] == "mot": vong(); time.sleep(int(a[1]) if len(a) > 1 else 60); return   # một vòng rồi chờ các bước vừa bật (thử)
+    print(f"[{MAY}] máy chạy dòng phim bắt đầu (pid {os.getpid()})", flush=True)
+    while True:
+        try: vong()
+        except Exception as e: print(f"vòng lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
+        time.sleep(10)
+
+if __name__ == "__main__": main(sys.argv[1:])

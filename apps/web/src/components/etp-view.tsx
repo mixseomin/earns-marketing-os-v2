@@ -15,6 +15,7 @@ import { Dem } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { nhanPhimEtp, traPhimEtp } from '@/lib/actions/etp-phim';
+import { FormChayDong, TabDong } from '@/components/etp-dong';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
@@ -29,7 +30,7 @@ import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 
-type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'tv' | 'tn' | 'luat';
+type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
 const tuoiNgay = (iso: string | null | undefined) => (iso ? Math.max(0, (Date.now() - Date.parse(iso)) / 86_400_000) : null);
 const tuoiChu = (d: number | null) => (d == null ? '—' : d < 10 ? d.toFixed(1) : String(Math.floor(d)));
@@ -675,12 +676,14 @@ function MenuPhim({ p }: { p: PhimEtpKho }) {
   const router = useRouter();
   const lam = async (f: () => Promise<{ ok: true } | { loi: string }>) => { const r = await f(); if ('loi' in r) window.alert(r.loi); router.refresh(); };
   const giu = p.nhan?.trang_thai === 'giu';
-  return <MenuBaCham tieuDe="Phim" phu={p.ten ?? `#${p.content_id}`} title={`Thao tác phim #${p.content_id}`} groups={[
+  const [chay, setChay] = useState(false);   // form Chạy tự động (dòng phim, anh 03/11/2026)
+  return <>{chay ? <FormChayDong contentId={p.content_id} onClose={() => setChay(false)} /> : null}<MenuBaCham tieuDe="Phim" phu={p.ten ?? `#${p.content_id}`} title={`Thao tác phim #${p.content_id}`} groups={[
     { label: 'Xem', items: [{ label: 'Nội dung, điểm, tiến độ', emoji: '▸', onClick: () => openEntityDrawer('etp-phim', p.content_id) }] },
     { label: 'Nhận phim', items: p.nhan?.trang_thai === 'da_len' ? [{ label: `${p.nhan.nguoi ?? '?'} đã lên camp`, emoji: '✓', onClick: () => openEntityDrawer('etp-phim', p.content_id) }]
       : giu ? [{ label: `Trả phim (${p.nhan!.nguoi ?? '?'} đang giữ)`, emoji: '↩', onClick: () => void lam(() => traPhimEtp(p.content_id)) }]
       : [{ label: 'Nhận phim (giữ 24 giờ)', emoji: '＋', onClick: () => void lam(() => nhanPhimEtp(p.content_id)) }] },
-  ]} />;
+    { label: 'Tự động', items: [{ label: 'Chạy tự động tới khi lên camp…', emoji: '▶', onClick: () => setChay(true) }] },
+  ]} /></>;
 }
 
 function BanLuat({ du }: { du: DuLieuEtp }) {
@@ -2095,7 +2098,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
     </div>
   );
 }
-const TABS: Tab[] = ['tong', 'tong2', 'camp', 'roas', 'creative', 'phim', 'tv', 'tn', 'luat'];
+const TABS: Tab[] = ['tong', 'tong2', 'camp', 'roas', 'creative', 'phim', 'dong', 'tv', 'tn', 'luat'];
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'cung', 'roas'] as const;
 // ghép phần nặng tải bù vào bản nhẹ (PhanNang ở etp-doc) — component đọc du.* như cũ
 const ghepNang = (d: DuLieuEtp, x: PhanNang): DuLieuEtp => ({ ...d, nhe: false, pheu: x.pheu, diemCham: x.diemCham, thuVien: x.thuVien,
@@ -2486,7 +2489,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       {!gon ? <style>{'.etp-thanh [data-comp="ui.Segmented"] button,.etp-thanh [data-comp="ui.Segmented"] a{white-space:nowrap}.etp-thanh>*{flex-shrink:0}'}</style> : null}
       <Segmented<Tab> value={tab} onChange={doiTab} hrefFor={(t) => urlCua({ ...hienTai, tab: t, xemCamp: 'cay', xemCr: 'hq' }).href} options={([
         { value: 'tong', label: 'Tổng quan' }, { value: 'tong2', label: 'Tổng quan 2', title: 'bản thử dạng widget kéo thả + template — chỉ chủ thấy tới khi hoàn thiện' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
-        { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }] satisfies SegmentedOption<Tab>[]).filter((o) => tabsHien.includes(o.value))} />
+        { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'dong', label: 'Dòng phim', title: 'phim chạy tự động tới khi lên camp — 8 bước, giờ bắt đầu / kết thúc, FIX từng bước (anh 03/11/2026)' }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }] satisfies SegmentedOption<Tab>[]).filter((o) => tabsHien.includes(o.value))} />
       {/* ĐIỆN THOẠI: hàng 1 = tab (cuộn ngang) · hàng 2 = kiểu xem (biểu tượng) + kỳ (ô chọn) + nút Lọc; bảng lọc chỉ mở khi bấm Lọc */}
       {gon && coKy ? kySel() : null}
       {!gon && (tab === 'camp' || tab === 'creative') ? <span className="etp-xuong" style={{ flexBasis: '100%', height: 0 }} /> : null}
@@ -2611,6 +2614,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       ) : tab === 'creative' ? (
         <DataTable rows={du.creatives} columns={cotCr} groups={NHOM} groupHeader getRowKey={(r) => String(r.creative_id)} persistKey="etp-creative" minWidth={1400} pageSize={100}
           searchText={(r) => `${r.creative_id} ${r.phim ?? ''} ${r.dang ?? ''} ${tl(r.the_loai)}`} searchPlaceholder="Tìm creative, phim, dạng…" />
+      ) : tab === 'dong' ? (
+        <TabDong />
       ) : tab === 'tv' ? (
         <TabThuVien du={du} tl={tl} />
       ) : tab === 'tn' ? (

@@ -1,0 +1,10 @@
+[Unit]
+Description=ETP Manh canh dong phim (buoc ket / may chay dong chet -> huy + FIX + Telegram)
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/earns-marketing-os-v2
+EnvironmentFile=/opt/earns-marketing-os-v2/.env.production
+ExecStart=/usr/bin/python3 /opt/earns-marketing-os-v2/apps/etp/manh.py
+TimeoutStartSec=5min

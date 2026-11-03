@@ -1,0 +1,10 @@
+[Unit]
+Description=ETP Manh canh dong phim moi 2 phut (box3)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

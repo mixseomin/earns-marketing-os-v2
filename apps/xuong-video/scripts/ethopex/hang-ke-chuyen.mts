@@ -26,6 +26,13 @@ const dsNha = await q<{ id: string; ten: string; url: string; nguon: string; loc
 const dsNhan = await q<{ id: string; ten: string; url: string; nguon: string; locale: string }>(sql`SELECT t.content_id::text id, coalesce(v.ten, '') ten, coalesce(v.url, '') url,
     split_part(split_part(coalesce(v.url, ''), '//', 2), '/', 1) nguon, coalesce(v.locale, 'en') locale
   FROM etp.phim_nhan_td t LEFT JOIN etp.thu_vien_phim v USING (content_id) WHERE t.tu_dong AND t.buoc IN ('cho_sinh', 'loi_sinh')`).catch(() => []);
+// DÒNG PHIM KT (anh 03/11/2026, etp.on.tc tab Dòng phim — chọn loại nội dung KT): dòng đang ở bước Tải + chấm → BẬC 5000, trên mọi bậc, không cần camp nhà trước
+const dsDong = await q<{ id: string; ten: string; url: string; nguon: string; locale: string }>(sql`SELECT d.content_id::text id, coalesce(v.ten, d.ten, '') ten, coalesce(v.url, '') url,
+    split_part(split_part(coalesce(v.url, ''), '//', 2), '/', 1) nguon, coalesce(v.locale, 'en') locale
+  FROM etp.dong_phim d JOIN etp.dong_buoc b ON b.dong_id = d.id AND b.buoc = 'creative' AND b.trang_thai = 'dang' LEFT JOIN etp.thu_vien_phim v USING (content_id)
+  WHERE d.trang_thai = 'chay' AND d.loai = 'KT'`).catch(() => []);
+const dong = new Set(dsDong.map((p) => p.id));
+dsNhan.unshift(...dsDong.filter((p) => !dsNhan.some((x) => x.id === p.id)));
 const nhan = new Set(dsNhan.map((p) => p.id));
 const daCo = new Set([...dsNhan, ...dsCau].map((p) => p.id));
 // PHIM MỚI CẮT $0 TRƯỚC (anh 03/11/2026: "dừng lại … Từ giờ ưu tiên cắt từ phim trước cho rẻ $0"): máy sinh KT (tốn tiền AI) KHÔNG làm cho phim chưa có camp nhà
@@ -53,8 +60,8 @@ const thay = new Set((await q<{ content_id: number }>(sql`SELECT content_id FROM
 const hang = ds.map((p, i) => {
   const id = Number(p.id), s = so14.get(id), k = kc.get(id), lai = s ? s.thu - s.chi : 0;
   const bo = chan18(id) ?? (cho.has(id) ? 'đã có bản chờ chạy / vừa sinh' : tt[p.id]?.tt === 'poster_loai' ? 'poster bị loại (soát phim mới)' : k && k.thua >= 2 && !k.thang ? `kể chuyện đã thua ${k.thua} lần, chưa thắng` : !p.url ? 'thiếu link trang phim' : null);
-  const diem = nhan.has(p.id) ? 4000 : !coKt.has(id) && thay.has(id) ? 3000 + lai : !coKt.has(id) && live.has(id) ? 2000 + lai : !s ? 500 - Math.min(i, 399) : lai > 0 ? 1000 + lai : 100 + lai;
+  const diem = dong.has(p.id) ? 5000 : nhan.has(p.id) ? 4000 : !coKt.has(id) && thay.has(id) ? 3000 + lai : !coKt.has(id) && live.has(id) ? 2000 + lai : !s ? 500 - Math.min(i, 399) : lai > 0 ? 1000 + lai : 100 + lai;
   return { content_id: id, ten: p.ten, url: p.url, nguon: p.nguon, lang: p.locale?.startsWith('es') ? 'es' : 'en', diem: Math.round(diem * 100) / 100, lai14: Math.round(lai * 100) / 100, chi14: Math.round((s?.chi ?? 0) * 100) / 100, kc: k ?? null, bo };
-}).filter((x) => !x.bo && coCamp.has(x.content_id)).sort((a, b) => b.diem - a.diem).slice(0, so);   // phim chưa có camp nhà → cắt $0, không sinh KT (anh 03/11/2026)
+}).filter((x) => !x.bo && (coCamp.has(x.content_id) || dong.has(String(x.content_id)))).sort((a, b) => b.diem - a.diem).slice(0, so);   // phim chưa có camp nhà → cắt $0, không sinh KT (anh 03/11/2026)
 console.log(JSON.stringify(hang));
 process.exit(0);

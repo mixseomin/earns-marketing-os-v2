@@ -278,6 +278,14 @@ if ! cmp -s apps/etp/deploy/etp.on.tc.nginx /etc/nginx/sites-enabled/etp.on.tc; 
     || { echo "✗ nginx etp.on.tc lỗi — trả bản cũ"; cp /tmp/etp.on.tc.nginx.cu /etc/nginx/sites-enabled/etp.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
 fi
 
+# 5z2. thằng Mạnh canh dòng phim (apps/etp/manh.py, anh 03/11/2026) — cài / cập nhật unit khi tệp đổi, bật timer
+for u in etp-manh.service etp-manh.timer; do
+  if ! cmp -s "apps/etp/deploy/$u" "/etc/systemd/system/$u"; then cp "apps/etp/deploy/$u" "/etc/systemd/system/$u" && MANH_DOI=true; fi
+done
+if [ "${MANH_DOI:-false}" = "true" ]; then systemctl daemon-reload; fi
+systemctl is-enabled --quiet etp-manh.timer 2>/dev/null || systemctl enable --now etp-manh.timer >/dev/null 2>&1
+systemctl is-active --quiet etp-manh.timer && echo "✓ etp-manh.timer active" || echo "✗ etp-manh.timer chưa chạy (không chặn deploy)"
+
 # 6. Restart mos2-web CHỈ khi web có bản mới / deps đổi (anh chốt 13/10/2026: deploy app con không được kéo mos2 khởi động lại).
 if [ "${WEB_RESTART:-false}" = "true" ] || [ "$DEPS_CHANGED" = "true" ] || ! systemctl is-active --quiet mos2-web; then
   # THAY BẢN DỰNG + KHỞI ĐỘNG LẠI LIỀN NHAU (02/11/2026): hai lần đổi tên + restart cách nhau mili giây, server cũ không bao giờ đọc bản mới

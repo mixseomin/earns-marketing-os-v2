@@ -61,6 +61,18 @@ def tien_do(dong, buoc):
     except Exception: return None
     return None
 
+def giet_cay(pid):
+    """giết CẢ CÂY con cháu trước, rồi nhóm của bước (03/11/2026: Huỷ và chạy lại bước cắt dòng #2 — tho.py chết nhưng cat-cuoi-lo nó mở bằng
+    start_new_session là nhóm khác, sống mồ côi 1 giờ, hai lượt cắt cùng ghi một thư mục). Phải gom con cháu TRƯỚC khi giết cha (chết rồi ppid = 1, hết dò)."""
+    ds, hang = [], [pid]
+    while hang:
+        c = hang.pop(); ds.append(c)
+        hang += [int(x) for x in subprocess.run(["pgrep", "-P", str(c)], capture_output=True, text=True).stdout.split()]
+    for x in reversed(ds):
+        for f_ in (lambda: os.killpg(os.getpgid(x), signal.SIGKILL), lambda: os.kill(x, signal.SIGKILL)):
+            try: f_()
+            except Exception: pass
+
 def chay_tien_trinh(dong, buoc, lenh, han, env=None):
     """Popen cả nhóm tiến trình, ghi pid; giết khi hết hạn hoặc khi bước bị đặt huy (Mạnh / nút Dừng / FIX) → (mã, đuôi stdout)"""
     log = os.path.join(C, "dong", f"{dong}-{buoc}.log"); os.makedirs(os.path.dirname(log), exist_ok=True)
@@ -73,8 +85,7 @@ def chay_tien_trinh(dong, buoc, lenh, han, env=None):
         while pr.poll() is None:
             time.sleep(5)
             if time.time() - t0 > han or sql(f"select huy from etp.dong_buoc where dong_id = {dong} and buoc = '{buoc}'") == "t":
-                try: os.killpg(pr.pid, signal.SIGKILL)
-                except Exception: pass
+                giet_cay(pr.pid)
                 pr.wait(); f.close()
                 return -9, f"bị huỷ sau {int(time.time() - t0)}s ({'quá hạn' if time.time() - t0 > han else 'Mạnh / nút Dừng yêu cầu'}) — nhật ký (iMac): {log}"
             td = tien_do(dong, buoc) if int(time.time() - t0) % 30 < 5 else None   # 30 giây một lần: câu tiến độ cho tab Dòng phim
@@ -332,9 +343,7 @@ def vong():
         for b, v in bs.items():
             if v.get("fix"):
                 with KHOA: pr = DANG.get((d["id"], b))
-                if pr:
-                    try: os.killpg(pr.pid, signal.SIGKILL)
-                    except Exception: pass
+                if pr: giet_cay(pr.pid)
                 t = CHAY.get((d["id"], b))
                 if t and t[0].is_alive(): bs = None; break   # luồng cũ chưa thoát hẳn (vừa giết) → FIX ở vòng sau, kẻo luồng cũ ghi đè lượt mới
                 sql(f"""update etp.dong_buoc set trang_thai = 'cho', fix = false, huy = false, bat_dau = null, ket_thuc = null, pid = null, ghi = 'FIX — chạy lại', ket_qua = case when '{b}' = 'creative' then null else ket_qua end
@@ -347,9 +356,7 @@ def vong():
         for b, v in bs.items():
             if v.get("huy"):
                 with KHOA: pr = DANG.get((d["id"], b))
-                if pr:
-                    try: os.killpg(pr.pid, signal.SIGKILL)
-                    except Exception: pass
+                if pr: giet_cay(pr.pid)
         dang = [b for b, _ in BUOC if (bs.get(b) or {}).get("trang_thai") == "dang"]
         ke = dang[0] if dang else next((b for b, _ in BUOC if (bs.get(b) or {}).get("trang_thai") == "cho"), None)
         if not ke: continue

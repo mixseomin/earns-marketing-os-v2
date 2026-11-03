@@ -56,11 +56,19 @@ function KhungXem() {
       : v.anh ? <img src={v.anh} alt="" style={{ width: '100%', borderRadius: 5, display: 'block' }} /> : null}
     {v.chu ? <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 4, whiteSpace: 'pre-wrap' }}>{v.chu}</div> : null}</div>;
 }
-function O({ tt, chu, t, fix, bam, menu, xem }: { tt: string; chu?: string; t?: string; fix?: () => void; bam?: () => void; menu?: (e: React.MouseEvent) => void; xem?: Omit<Xem, 'x' | 'y'> }) {
+// BADGE THEO CẤP (anh 03/11/2026 "thiết kế badge khác đi ở từng nhóm, thể hiện rõ cấp bậc"):
+// 1 = PHIM: khối đặc, chữ đậm, cao 26 · 2 = LOẠI NỘI DUNG: chỉ viền màu + nền nhạt, cao 22 · 3 = CREATIVE: dấu + chữ màu, không nền, cao 18
+const VIEN: Record<string, string> = { xong: '#22c55e', dang: '#3b82f6', chay: '#3b82f6', dung: '#f59e0b', loi: '#ef4444', cho: 'var(--line)', bo_qua: 'var(--line)' };
+function O({ tt, chu, t, fix, bam, menu, xem, cap = 3 }: { tt: string; chu?: string; t?: string; fix?: () => void; bam?: () => void; menu?: (e: React.MouseEvent) => void; xem?: Omit<Xem, 'x' | 'y'>; cap?: 1 | 2 | 3 }) {
+  const trong = tt === 'cho' || tt === 'bo_qua';
+  const kieu: React.CSSProperties = cap === 1
+    ? { height: 26, borderRadius: 6, fontSize: 12, fontWeight: 700, background: trong ? 'transparent' : VIEN[tt], color: trong ? 'var(--fg-3)' : '#fff', border: trong ? '1px dashed var(--line)' : 'none' }
+    : cap === 2
+    ? { height: 22, borderRadius: 11, fontSize: 11, fontWeight: 600, background: trong ? 'transparent' : NEN[tt], color: CHU[tt] ?? 'var(--fg-3)', border: `1px ${trong ? 'dashed' : 'solid'} ${VIEN[tt] ?? 'var(--line)'}` }
+    : { height: 18, borderRadius: 3, fontSize: 10.5, fontWeight: 500, background: 'transparent', color: trong ? 'var(--fg-3)' : VIEN[tt], border: 'none', opacity: trong ? 0.5 : 1 };
   return <td title={xem ? undefined : t} onClick={menu ?? bam} onMouseEnter={xem ? (e) => datXem({ ...xem, x: e.clientX, y: e.clientY }) : undefined} onMouseLeave={xem ? () => datXem(null) : undefined}
-    style={{ padding: 2, cursor: bam || menu ? 'pointer' : xem ? 'zoom-in' : undefined }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 24, borderRadius: 5, fontSize: 11, whiteSpace: 'nowrap',
-    background: NEN[tt] ?? 'transparent', color: CHU[tt] ?? 'var(--fg-3)', border: tt === 'cho' || tt === 'bo_qua' ? '1px dashed var(--line)' : 'none', fontWeight: tt === 'dang' ? 700 : 500,
-    animation: tt === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>
+    style={{ padding: cap === 3 ? '1px 2px' : 2, cursor: bam || menu ? 'pointer' : xem ? 'zoom-in' : undefined }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, whiteSpace: 'nowrap',
+    ...kieu, animation: tt === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>
     <span>{KY[tt] ?? ''}</span>{chu ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 74 }}>{chu}</span> : null}
     {fix ? <button className="btn" onClick={fix} style={{ padding: '0 4px', fontSize: 10, lineHeight: '14px', color: '#fca5a5', borderColor: '#7f1d1d' }}>FIX</button> : null}</div></td>;
 }
@@ -88,7 +96,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   const moMenu = (x?: BuocDong) => x && d.trang_thai !== 'huy' && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? (e: React.MouseEvent) => setMenu({ b: x, x: e.clientX, y: e.clientY }) : undefined;
   const oBuoc = (x: BuocDong | undefined, chu?: string, xem?: Omit<Xem, 'x' | 'y'>) => { const doiMay = !!x && cho[x.buoc] !== undefined && (x.bat_dau ?? '') === cho[x.buoc];
     const lau = !!x && x.trang_thai === 'dang' && Date.now() - Date.parse(x.bat_dau ?? '') > x.han_giay * 500;
-    return <O tt={doiMay ? 'dang' : ttB(x)} chu={doiMay ? '⏳ chờ máy' : chu ?? (x?.bat_dau ? (x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : `${phut(x.bat_dau, null)}${lau ? ' ⚠' : ''}`) : '')} t={tB(x)} menu={moMenu(x)} xem={xem} />; };
+    return <O cap={con ? 2 : 1} tt={doiMay ? 'dang' : ttB(x)} chu={doiMay ? '⏳ chờ máy' : chu ?? (x?.bat_dau ? (x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : `${phut(x.bat_dau, null)}${lau ? ' ⚠' : ''}`) : '')} t={tB(x)} menu={moMenu(x)} xem={xem} />; };
   // KT (kể chuyện): mỗi creative là một video MÁY SINH (VideoExpress) từ tóm tắt phim, không cắt → cột Cắt / sinh đọc bước sinh (creative), Xem lại bỏ qua
   const kt = d.loai === 'KT';
   const so = d.so ?? { camp: 0, chay: 0, chi: 0, thu: 0 }; const lai = so.thu - so.chi;
@@ -178,19 +186,19 @@ function NhomPhim({ ds, xong, moCamp }: { ds: DongPhim[]; xong: () => void; moCa
         {d0.anh ? <img src={d0.anh} alt="" onMouseEnter={(e) => datXem({ anh: d0.anh, chu: d0.ten ?? '', x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ cursor: 'zoom-in', width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
         <div style={{ minWidth: 0 }}><a onClick={() => openEntityDrawer('etp-phim', d0.content_id)} title={d0.ten ?? ''} style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d0.ten ?? `phim #${d0.content_id}`}</a>
           <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{ds.length} loại nội dung: {ds.map((d) => LOAI_DE[d.loai] ?? d.loai).join(' · ')}</span></div></div></td>
-      {COT_PHIM.map(([k]) => { const x = b(k); const tt = x ? (ket(x) ? 'loi' : x.trang_thai) : 'cho'; return <O key={k} tt={tt} chu={x?.bat_dau && x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : ''} t={x?.ghi ?? undefined} xem={k === 'poster' && d0.anh ? { anh: d0.anh } : undefined} />; })}
+      {COT_PHIM.map(([k]) => { const x = b(k); const tt = x ? (ket(x) ? 'loi' : x.trang_thai) : 'cho'; return <O cap={1} key={k} tt={tt} chu={x?.bat_dau && x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : ''} t={x?.ghi ?? undefined} xem={k === 'poster' && d0.anh ? { anh: d0.anh } : undefined} />; })}
       {/* dòng phim tổng hợp ĐÚNG CỘT (anh 03/11/2026 "có hàng có cột đàng hoàng thì dùng"): mỗi cột cấp creative = tổng của mọi loại */}
       {(() => { const tt = (k: string) => { const bs = ds.map((d) => d.buoc.find((x) => x.buoc === k)).filter((x): x is BuocDong => !!x);
           return bs.some((x) => x.trang_thai === 'dang') ? 'dang' : bs.some((x) => x.trang_thai === 'loi' || ket(x)) ? 'loi' : bs.some((x) => x.trang_thai === 'dung') ? 'dung' : bs.length && bs.every((x) => x.trang_thai === 'xong' || x.trang_thai === 'bo_qua') ? 'xong' : 'cho'; };
         const nSach = ds.reduce((a, d) => { const k = d.buoc.find((x) => x.buoc === 'creative')?.ket_qua as { sach?: unknown[]; creative_id?: number } | null | undefined; return a + (k?.sach?.length ?? (k?.creative_id && d.buoc.find((x) => x.buoc === 'creative')?.trang_thai === 'xong' ? 1 : 0)); }, 0);
         const nSoat = ds.reduce((a, d) => a + (d.buoc.find((x) => x.buoc === 'soat')?.ket_qua?.doan?.length ?? 0), 0);
         return <>
-          <O tt={tt('cat')} chu={nDoan ? `${nDoan} đoạn` : ''} t="tổng đoạn cắt / video sinh của mọi loại" />
-          <O tt={tt('soat')} chu={nDoan ? `${nSoat}/${nDoan} sạch` : ''} />
-          <O tt={tt('creative')} chu={nCr ? `${nCr} creative` : ''} />
-          <O tt={tt('creative')} chu={nCr ? `${nSach} sạch` : ''} />
-          <O tt={so.camp ? 'xong' : tt('camp')} chu={so.camp ? `${so.camp} camp` : 'chưa lên'} />
-          <O tt={so.chay ? 'xong' : so.camp ? 'dang' : 'cho'} chu={so.camp ? `${so.chay}/${so.camp} chạy${so.chi > 0 ? ` · ${lai >= 0 ? '+' : ''}$${lai.toFixed(2)}` : ''}` : ''} t={so.chi > 0 ? `chi $${so.chi.toFixed(2)} · thu $${so.thu.toFixed(2)}` : undefined} />
+          <O cap={1} tt={tt('cat')} chu={nDoan ? `${nDoan} đoạn` : ''} t="tổng đoạn cắt / video sinh của mọi loại" />
+          <O cap={1} tt={tt('soat')} chu={nDoan ? `${nSoat}/${nDoan} sạch` : ''} />
+          <O cap={1} tt={tt('creative')} chu={nCr ? `${nCr} creative` : ''} />
+          <O cap={1} tt={tt('creative')} chu={nCr ? `${nSach} sạch` : ''} />
+          <O cap={1} tt={so.camp ? 'xong' : tt('camp')} chu={so.camp ? `${so.camp} camp` : 'chưa lên'} />
+          <O cap={1} tt={so.chay ? 'xong' : so.camp ? 'dang' : 'cho'} chu={so.camp ? `${so.chay}/${so.camp} chạy${so.chi > 0 ? ` · ${lai >= 0 ? '+' : ''}$${lai.toFixed(2)}` : ''}` : ''} t={so.chi > 0 ? `chi $${so.chi.toFixed(2)} · thu $${so.thu.toFixed(2)}` : undefined} />
         </>; })()}
       <td style={{ padding: '2px 6px', fontSize: 11, color: loi ? '#f87171' : 'var(--fg-2)' }}>{dangLam ? `${dangLam} loại đang làm` : ''}{loi ? `${dangLam ? ' · ' : ''}${loi} loại lỗi / dừng` : ''}</td><td />
 

@@ -2,6 +2,7 @@
 // DÒNG PHIM TỰ ĐỘNG (anh 03/11/2026, etp.on.tc): FormChayDong = form hỏi loại nội dung QC (KT / CC / CT…, mô tả + cách làm + giá + ví dụ thật) + thể loại;
 // TabDong = mỗi phim một dòng, 8 bước có giờ bắt đầu / kết thúc, nút FIX từng bước, Dừng dòng. Máy: apps/etp/dong_phim.py (iMac) · canh: apps/etp/manh.py (box3).
 import React, { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { EmptyState, FormModal, FormModalFooter, FormModalSection, SelectField } from '@/components/ui';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { TRE_MO } from '@/lib/etp-tre';
@@ -214,8 +215,9 @@ function NhomPhim({ ds, xong, moCamp }: { ds: DongPhim[]; xong: () => void; moCa
 const LOC: [LocDong, string][] = [['mac_dinh', 'Đang làm · lỗi · xong 24h'], ['dang', 'Đang làm'], ['loi', 'Lỗi / dừng'], ['tat_ca', 'Tất cả']];
 export function TabDong({ moCamp }: { moCamp?: (id: number) => void } = {}) {
   const [du, setDu] = useState<Awaited<ReturnType<typeof docDong>> | null>(null);
-  const [loc, setLoc] = useState<LocDong>('mac_dinh'); const [tim, setTim] = useState(''); const [trang, setTrang] = useState(0);
+  const [loc, setLoc] = useState<LocDong>('mac_dinh'); const [tim, setTim] = useState(() => (typeof location === 'undefined' ? '' : new URLSearchParams(location.search).get('sxq') ?? '')); const [trang, setTrang] = useState(0);   // ?sxq= lọc phim (link từ form mở rộng, anh 04/11/2026)
   const tai = useCallback(async () => setDu(await docDong(loc, tim, trang)), [loc, tim, trang]);
+  useEffect(() => { const u = new URL(location.href); if (tim) u.searchParams.set('sxq', tim); else u.searchParams.delete('sxq'); if (u.href !== location.href) history.replaceState(null, '', u); }, [tim]);
   useEffect(() => { void tai(); const t = setInterval(() => void tai(), 10_000); return () => clearInterval(t); }, [tai]);
   if (!du) return <div style={{ padding: 16, color: 'var(--fg-2)' }}>Đang tải…</div>;
   if ('loi' in du) return <EmptyState icon="⚠" title={du.loi} />;
@@ -250,11 +252,16 @@ export function TabDong({ moCamp }: { moCamp?: (id: number) => void } = {}) {
 export function FormChayDong({ contentId, onClose, moRong }: { contentId: number; onClose: () => void; /** mở rộng phim đang chạy: hỏi thêm số camp mới (anh 04/11/2026) */ moRong?: boolean }) {
   const [f, setF] = useState<Awaited<ReturnType<typeof formDong>> | null>(null);
   const [loai, setLoai] = useState('CC'); const [tl, setTl] = useState(''); const [gui, setGui] = useState(false); const [loi, setLoi] = useState<string | null>(null);
-  const [soCamp, setSoCamp] = useState(1);
+  const [soCamp, setSoCamp] = useState(1); const [xong, setXong] = useState<number | null>(null); const router = useRouter();
   useEffect(() => { void formDong(contentId).then((r) => { setF(r); if (!('loi' in r)) { setTl(r.tlPhim ?? ''); if (r.kPlan) setSoCamp(r.kPlan); } }); }, [contentId]);
   const ok = f && !('loi' in f);
   return <FormModal kind="generic" action="create" title={<>{moRong ? '＋ Mở rộng phim — thêm camp mới' : '▶ Chạy tự động tới khi lên camp'}</>} idText={`PHIM #${contentId}`} subtitle={ok ? f.ten ?? undefined : undefined} width="md" onClose={onClose}>
-    {!f ? <FormModalSection><div style={{ color: 'var(--fg-2)' }}>Đang tải…</div></FormModalSection>
+    {xong ? <><FormModalSection>
+        <div style={{ fontSize: 14, color: '#4ade80', fontWeight: 600 }}>✓ Đã xếp dòng #{xong}{moRong ? ` — lên ${soCamp} camp` : ''}</div>
+        <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 6 }}>Tab Sản xuất tự làm tiếp: cắt phần thiếu → soát + chấm → lên camp → chờ camp chạy. Bước kẹt thì thằng Mạnh huỷ + FIX và báo Telegram.</div>
+        <a href={`?t=dong&sxq=${contentId}`} style={{ display: 'inline-block', marginTop: 10, color: '#60a5fa' }}>Xem tiến độ ở tab Sản xuất (lọc phim #{contentId}) →</a>
+      </FormModalSection><FormModalFooter><button className="btn primary" onClick={onClose}>Đóng</button></FormModalFooter></>
+      : !f ? <FormModalSection><div style={{ color: 'var(--fg-2)' }}>Đang tải…</div></FormModalSection>
       : 'loi' in f ? <FormModalSection><div style={{ color: '#f87171' }}>{f.loi}</div></FormModalSection> : <>
       <FormModalSection>
         {f.nhomGoc !== 'au_my' ? <div style={{ color: '#f87171', marginBottom: 10 }}>Phim {f.nhomGoc ? `nhóm gốc '${f.nhomGoc}'` : 'chưa xác định nhóm gốc'} — chỉ chạy phim Âu-Mỹ.</div> : null}
@@ -297,7 +304,7 @@ export function FormChayDong({ contentId, onClose, moRong }: { contentId: number
         <button className="btn primary" disabled={gui || f.nhomGoc !== 'au_my' || !tl} title={!tl ? 'chọn thể loại trước' : undefined} onClick={async () => {
           setGui(true); setLoi(null); const r = await chayDong(contentId, loai, tl, moRong ? soCamp : undefined); setGui(false);
           if ('loi' in r) return setLoi(r.loi);
-          onClose(); const u = new URL(window.location.href); u.searchParams.set('t', 'dong'); window.location.href = u.toString();
+          setXong(r.id); router.refresh();   // Ở YÊN trang (anh 04/11/2026 "cấm di chuyển") — form đổi thành kết quả + link tab Sản xuất lọc đúng phim
         }}>{gui ? 'Đang gửi…' : moRong ? `＋ Lên ${soCamp} camp` : '▶ Chạy tự động'}</button>
       </FormModalFooter>
     </>}

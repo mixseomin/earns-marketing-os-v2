@@ -552,6 +552,22 @@ _D24 = {x[0]: x for x in tat_d24}
 # Ngưỡng chi mỗi ngày = min($1, 60% ngân sách ngày đó) (anh 01/11/2026 #69314: camp $1 chi $0.7–0.98/ngày lỗ 5 ngày liền mà không tắt — $1 cứng không bao giờ chạm).
 # Đo 21 ngày: 116 camp lọt $1 cứng nhưng dính ngưỡng mới, 3 ngày KẾ chi $84 · lãi −$27 · ROI −32%.
 L3_CHI, L3_PHAN = 1.0, 0.6
+# ĐUÔI NGÀY KẾ (anh 03/11/2026, chọn "Cả hai": #65714 / #65736 / #72920 / #73282 bị G10 tắt 07:48 khi ngày mới vừa mở — "thêm đoạn đuôi trong ngày tiếp theo"):
+# L3 / G10 tới ngưỡng thì CHƯA tắt ngay — cho chạy phần đầu ngày đang chạy tới khi chi ≥ DUOI_PHAN ngân sách hoặc tới DUOI_GIO giờ VN; đoạn đuôi đó
+# cũng dưới ngưỡng của luật thì mới tắt, có lãi đạt ngưỡng thì giữ (ngày đó khép xong luật xét lại với số mới).
+DUOI_PHAN, DUOI_GIO = 0.5, 19
+cho_duoi = []
+def duoi(c, ns, nguong, ten_, luat_):
+    """→ True = được tắt; False = chờ đuôi / đuôi đạt ngưỡng (đã ghi cho_duoi)"""
+    h = hom.get(c) or hom.get(str(c)) or hom.get(int(c)) or {}
+    ch, th = float(h.get("chi") or 0), float(h.get("thu") or 0)
+    du = ch >= DUOI_PHAN * float(ns or 0) or vn.hour >= DUOI_GIO
+    r = (th - ch) / ch * 100 if ch else None
+    if not du:
+        cho_duoi.append((c, f"#{ten_[:70]} · {luat_} tới ngưỡng — chờ đuôi ngày đang chạy: chi ${ch:.2f}/{DUOI_PHAN:.0%} × ${float(ns or 0):g}, tới {DUOI_GIO}:00 VN mới xét")); return False
+    if r is not None and r >= nguong:
+        cho_duoi.append((c, f"#{ten_[:70]} · {luat_} tới ngưỡng nhưng đuôi ngày đang chạy lãi: chi ${ch:.2f} · ROI {r:+.0f}% ≥ {nguong}% → GIỮ")); return False
+    return True
 l3_chi = lambda ns: min(L3_CHI, round(L3_PHAN * float(ns), 2)) if ns else L3_CHI
 tat_l3 = []
 try:
@@ -561,6 +577,7 @@ try:
         _m = {x[0]: x for x in _ds}
         if not all(k in _m and _m[k][1] >= l3_chi(_m[k][3]) and _m[k][2] < _m[k][1] for k in _d3): continue
         _ca, _ta = sum(_m[k][1] for k in _d3), sum(_m[k][2] for k in _d3)
+        if not duoi(_c, _m[_d3[0]][3], 0, _ten, "L3"): continue
         tat_l3.append((_c, f"#{_ten[:70]} · 3 ngày đã khép lỗ liền: chi ${_ca:.2f} · lãi ${_ta - _ca:+.2f} · ROI {(_ta - _ca) / _ca * 100:+.0f}% → TẮT (luật L3: lỗ 3 ngày đã khép liền, mỗi ngày chi ≥ min(${L3_CHI:g}, {L3_PHAN:.0%} ngân sách))"))
     tat_l3.sort(key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))
 except Exception as e:
@@ -740,7 +757,7 @@ try:
             sau = sorted(x for x in _ds if x[0] > ngay_ha)[:G10_THEO]
             if len(sau) < G10_THEO: _g10_theo[int(cid)] = ngay_ha; continue
             cs, ts = sum(x[1] for x in sau), sum(x[2] for x in sau)
-            if cs > 0 and (ts - cs) / cs * 100 < G10_ROI:
+            if cs > 0 and (ts - cs) / cs * 100 < G10_ROI and duoi(int(cid), ns, G10_ROI, ten_, "G10"):
                 tat_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% → TẮT (luật G10: vẫn < {G10_ROI}%)"))
                 continue
         if ns <= G10_NS: continue
@@ -922,7 +939,7 @@ if JSON:
         if _p.returncode: loi_may.append((0, f"ghi xét luật lỗi: {_p.stderr.strip()[:80]}"))
     except Exception as e:
         loi_may.append((0, f"xét luật lỗi: {str(e)[:80]}"))
-    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat1": m(tat1), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7)}
+    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat1": m(tat1), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7)}
     # SỔ LUẬT CHUNG (apps/web/src/lib/etp-bang-luat.json): mọi danh sách máy luật xuất ra phải có mục ở sổ — thiếu là trang etp / bộ lọc / worker không biết luật đó (gốc vụ G10 01/11/2026)
     _thieu = sorted(k for k in ra_ if k != "luc" and k not in BANG_LUAT["khoa"])
     if _thieu: ra_["loi_may"] = ra_.get("loi_may", []) + [{"id": 0, "chu": f"luật chưa có trong sổ luật chung etp-bang-luat.json: {', '.join(_thieu)}"}]
@@ -937,6 +954,7 @@ in_("CẦN TẮT — OFF (camp ≥ 7 ngày, tiêu > $10 từ trước tới nay,
 in_(f"LUẬT RL (camp ★ ROAS, 2 ngày đã khép đều lỗ, cộng chi > ${ROAS_CHI} mà ROI < {ROAS_ROI}%) — BÁO TRƯỚC MỘT NHỊP RỒI MÁY TỰ TẮT:", tat_roas, "(không)")
 in_(f"LUẬT G10 (ngân sách > ${G10_NS}, 3 ngày đã khép ROI < {G10_ROI}%, kể cả ★ ROAS) — MÁY HẠ THẲNG VỀ ${G10_DICH}:", g10, "(không)")
 in_(f"LUẬT G10 — ĐÃ HẠ VỀ ${G10_DICH}, {G10_THEO} NGÀY SAU VẪN ROI < {G10_ROI}% — BÁO TRƯỚC MỘT NHỊP RỒI MÁY TỰ TẮT:", tat_g10, "(không)")
+in_(f"ĐUÔI NGÀY KẾ (L3 / G10 tới ngưỡng — chờ đoạn đuôi ngày đang chạy: chi ≥ {DUOI_PHAN:.0%} ngân sách hoặc {DUOI_GIO}:00 VN; đuôi đạt ngưỡng thì giữ):", cho_duoi, "(không)")
 in_("AD BỊ META TỪ CHỐI — thay creative sạch:", tu_choi)
 in_("LÃI ĐẦU PHIÊN — TĂNG LUÔN $2/$3 (ROI hôm nay > 50%, chi ≥ $0,5):", dau_phien, "(chưa có)")
 in_("THANG NHÂN BẢN BỘ 2 — MỞ BẢN MỚI Ở BẬC KẾ (không đổi ngân sách camp đang chạy):", thang_nb, "(chưa có)")

@@ -354,6 +354,8 @@ const LUAT = [
   { card: 'cam-thay-cr-0311', tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', cam: 'ds = camps if lo is not None else cung_creative(', vi: 'thay-tu-choi không thay trước camp khác cùng creative' },
   { card: 'cam-thay-cr-0311', tep: 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py', co: 'lan = False   # CHỈ AD ĐANG BỊ META TỪ CHỐI', vi: 'thay-tu-choi chỉ ad đang bị từ chối' },
   { card: 'cam-thay-cr-0311', tep: 'apps/cty/worker/ethopex.mjs', cam: "chay(THAY, ['--don-doan']", vi: 'Phòng Ethopex không dọn đoạn (đổi creative camp không bị từ chối)' },
+  { card: 'duoi-0311', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if not duoi(_c, _m[_d3[0]][3], 0, _ten, "L3"): continue', vi: 'L3 chờ đuôi ngày đang chạy trước khi tắt (anh 03/11/2026)' },
+  { card: 'duoi-0311', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'and duoi(int(cid), ns, G10_ROI, ten_, "G10"):', vi: 'G10 chờ đuôi ngày đang chạy trước khi tắt (anh 03/11/2026)' },
   { card: 'l4-roas-0311', tep: "apps/web/src/components/etp-view.tsx", co: "const daXep = tuBao.filter((b) => LUAT_NHAN[b.nhom]![3] === 'dang').sort((a, b) => hang(a) - hang(b))", vi: 'chip luật: luật tắt (✕) đứng trước G10 theo dõi' },
   { card: 'kho-thang-0311', tep: "apps/xuong-video/scripts/ethopex/len-creative.py", co: 'GOC = goc.pop()', cam: 'GOC = "https://img.on.tc/kho/ethopex/thanh-pham/2026-', vi: 'link video creative lấy từ URL kho trả về, không ghi cứng tháng (01/11 → 404)' },
   { card: 'cta-cuoi-0211', tep: "apps/xuong-video/scripts/ethopex/nhan-ban.py", co: "# NHÂN BẢN GIỮ NGUYÊN CREATIVE CỦA CAMP GỐC", cam: 'CTA cũ, chưa có bản sửa — đã xếp hàng dựng lại', vi: 'nhân bản không đổi CTA cũ sang bản sửa (anh 02/11/2026)' },

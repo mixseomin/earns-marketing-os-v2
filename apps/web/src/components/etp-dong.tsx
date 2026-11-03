@@ -100,14 +100,17 @@ export function TabDong() {
   if (!du) return <div style={{ padding: 16, color: 'var(--fg-2)' }}>Đang tải…</div>;
   if ('loi' in du) return <EmptyState icon="⚠" title={du.loi} />;
   const may = du.may[0]; const im = may ? (Date.now() - Date.parse(may.nhip)) / 1000 : null;
-  const dangChay = du.dong.filter((d) => d.trang_thai === 'chay' || d.trang_thai === 'dung' || d.trang_thai === 'loi');
+  // MẶC ĐỊNH (anh 03/11/2026 "bảng này lưu và show mọi quá trình sx; default hiện phim / camp đang làm, vừa làm xong (1 ngày) hoặc bị lỗi; còn lại ẩn khi đang chạy ổn định")
+  const xongLuc = (d: DongPhim) => d.xong_luc ?? (d.buoc.every((x) => x.trang_thai === 'xong' || x.trang_thai === 'bo_qua') ? d.buoc[d.buoc.length - 1]?.ket_thuc ?? null : null);
+  const dangChay = du.dong.filter((d) => { const x = xongLuc(d);
+    return d.trang_thai === 'dung' || d.trang_thai === 'loi' || (d.trang_thai === 'chay' && !x) || (!!x && Date.now() - Date.parse(x) < 86_400_000) || d.buoc.some((b) => b.trang_thai === 'loi' || b.trang_thai === 'dung'); });
   const ds = cu ? du.dong : dangChay;
   return <div>
     <style>{'@keyframes etpNhip{0%,100%{opacity:1}50%{opacity:.55}}'}</style>
     <div style={{ display: 'flex', gap: 16, alignItems: 'center', fontSize: 12, color: 'var(--fg-2)', margin: '0 0 8px', flexWrap: 'wrap' }}>
       <span title="apps/etp/dong_phim.py trên iMac — báo sống mỗi 10 giây">máy chạy: {may ? <><b style={{ color: im! < 60 ? '#4ade80' : '#f87171' }}>{may.may}</b> {im! < 60 ? 'đang sống' : `im ${Math.round(im! / 60)} phút`}</> : <b style={{ color: '#f87171' }}>chưa bật</b>}</span>
       <span>thêm phim: tab Phim → ⋯ → <b>Chạy tự động tới khi lên camp</b></span>
-      <label style={{ display: 'inline-flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={cu} onChange={(e) => setCu(e.target.checked)} />hiện cả dòng đã xong / đã dừng ({du.dong.length - dangChay.length})</label>
+      <label style={{ display: 'inline-flex', gap: 4, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={cu} onChange={(e) => setCu(e.target.checked)} />hiện cả phim đã chạy ổn định / đã huỷ ({du.dong.length - dangChay.length})</label>
     </div>
     {!ds.length ? <EmptyState icon="🎬" title="Không có phim nào đang chạy tự động" /> : <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1180 }}>

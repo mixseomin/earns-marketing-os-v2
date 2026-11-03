@@ -1,0 +1,84 @@
+{
+ "_ghi": "Demo Start here: giới thiệu kênh, dùng lại tranh + lá số của các loạt (0đ thêm).",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "Start here",
+  "mau": "#F5F0E1",
+  "ic": "★"
+ },
+ "la_so": "../lich-su/la-so/steve-jobs.svg",
+ "DAI": 21.4,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.0,
+   "nhin": {
+    "dung": 1
+   },
+   "chu": "Every life has chapters."
+  },
+  {
+   "tu": 3.0,
+   "den": 6.0,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
+    "kieu": "trai"
+   },
+   "chu": "Real people.<br>Real turning points.",
+   "nhan": "Chart Chapters"
+  },
+  {
+   "tu": 6.0,
+   "den": 9.0,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sc-1504-trang-do.jpg",
+    "kieu": "len"
+   },
+   "chu": "Skies that changed history.",
+   "nhan": "Sky Calendar"
+  },
+  {
+   "tu": 9.0,
+   "den": 12.0,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/my-chiron-day.jpg",
+    "kieu": "day"
+   },
+   "chu": "And the myths<br>written in the stars.",
+   "nhan": "The Myth Behind"
+  },
+  {
+   "tu": 12.0,
+   "den": 15.2,
+   "nhin": {
+    "nha": 10
+   },
+   "chu": "All read from real charts."
+  },
+  {
+   "tu": 15.2,
+   "den": 18.6,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "New stories every week.",
+   "the": {
+    "lon": "Mon · Wed · Fri",
+    "dong": [
+     "Chart Chapters",
+     "Sky Calendar"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 18.6,
+   "den": 21.4,
+   "nhin": {
+    "toan": 1
+   },
+   "chu": "See your own chart<br>free at astrolas.com."
+  }
+ ]
+}

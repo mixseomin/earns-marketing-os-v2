@@ -1,0 +1,75 @@
+{
+ "_ghi": "Demo The Myth Behind (nét khắc đồng): Chiron. Lá số Steve Jobs: Chiron Aquarius nhà 5 (la-so/steve-jobs.json).",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "The Myth Behind",
+  "mau": "#C9A7FF",
+  "ic": "✦"
+ },
+ "la_so": "../lich-su/la-so/steve-jobs.svg",
+ "DAI": 20.6,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.6,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/my-chiron-day.jpg",
+    "kieu": "day"
+   },
+   "chu": "Chiron was the wisest centaur.<br>He taught heroes like Achilles.",
+   "nhan": "Greek myth · Mount Pelion"
+  },
+  {
+   "tu": 3.6,
+   "den": 7.2,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/my-chiron-ten.jpg",
+    "kieu": "trai"
+   },
+   "chu": "A stray arrow from Heracles<br>wounded him. It never healed.",
+   "nhan": "The wounded healer"
+  },
+  {
+   "tu": 7.2,
+   "den": 10.8,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/my-chiron-sao.jpg",
+    "kieu": "len"
+   },
+   "chu": "He gave up his immortality.<br>Zeus set him among the stars."
+  },
+  {
+   "tu": 10.8,
+   "den": 14.2,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "In 1977 a new body was found<br>between Saturn and Uranus.",
+   "the": {
+    "lon": "⚷",
+    "duoi": "Chiron · 1977",
+    "dong": [
+     "Found by Charles Kowal"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 14.2,
+   "den": 17.8,
+   "nhin": {
+    "sao": "Chiron"
+   },
+   "chu": "In Steve Jobs's chart, Chiron sits<br>in Aquarius, in the 5th house."
+  },
+  {
+   "tu": 17.8,
+   "den": 20.6,
+   "nhin": {
+    "toan": 1
+   },
+   "chu": "What's your Chiron sign?<br>Find it free at astrolas.com."
+  }
+ ]
+}

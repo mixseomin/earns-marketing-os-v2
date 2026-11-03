@@ -1,0 +1,79 @@
+{
+ "_ghi": "Demo Sky Calendar (paper-lantern): nguyệt thực 29/02/1504 của Columbus + dải pha trăng tuần 03–09/11/2026 tính thật (bau-troi-tinh.js).",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "Sky Calendar",
+  "mau": "#8EC5FF",
+  "ic": "☽"
+ },
+ "DAI": 21.0,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.6,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sc-1503-tau.jpg",
+    "kieu": "trai"
+   },
+   "chu": "1503. Columbus and his crew<br>are stranded on Jamaica.",
+   "nhan": "1503 · St. Ann's Bay, Jamaica"
+  },
+  {
+   "tu": 3.6,
+   "den": 7.0,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sc-1504-almanac.jpg",
+    "kieu": "day"
+   },
+   "chu": "His almanac of star tables<br>predicts a lunar eclipse.",
+   "nhan": "Regiomontanus's Ephemerides"
+  },
+  {
+   "tu": 7.0,
+   "den": 10.2,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "He tells the islanders:<br>tonight, the Moon will bleed.",
+   "the": {
+    "lon": "Feb 29",
+    "duoi": "1504",
+    "dong": [
+     "Total lunar eclipse",
+     "visible from Jamaica"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 10.2,
+   "den": 13.8,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sc-1504-trang-do.jpg",
+    "kieu": "len"
+   },
+   "chu": "That night, it turns red.",
+   "nhan": "February 29, 1504"
+  },
+  {
+   "tu": 13.8,
+   "den": 18.2,
+   "nhin": {
+    "trang_tuan": {
+     "tu": "2026-11-03",
+     "so": 7
+    }
+   },
+   "chu": "Your Moon this week:<br>a New Moon on Monday."
+  },
+  {
+   "tu": 18.2,
+   "den": 21.0,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "See tonight's sky<br>free at astrolas.com."
+  }
+ ]
+}

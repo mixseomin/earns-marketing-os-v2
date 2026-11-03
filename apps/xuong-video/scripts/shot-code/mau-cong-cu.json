@@ -1,0 +1,168 @@
+{
+ "_ghi": "Demo công cụ Annual Profections (Steve Jobs): cung Mọc Xử Nữ (đỉnh nhà 1 = 172,3°); tuổi n → cung thứ (n mod 12)+1; 30 và 42 tuổi đều vào Song Ngư, chủ năm Jupiter (Jupiter gốc ở Cự Giải nhà 10 — la-so/steve-jobs.json).",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "Chart Tools",
+  "mau": "#5FCFE8",
+  "ic": "◎"
+ },
+ "la_so": "../lich-su/la-so/steve-jobs.svg",
+ "DAI": 29.6,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.4,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/pf-valens.jpg",
+    "kieu": "day"
+   },
+   "chu": "Ancient astrologers used<br>a simple clock for each year.",
+   "nhan": "2nd century · Alexandria"
+  },
+  {
+   "tu": 3.4,
+   "den": 6.2,
+   "nhin": {
+    "dung": 1
+   },
+   "chu": "It's called Annual Profections.<br>Here is Steve Jobs's chart."
+  },
+  {
+   "tu": 6.2,
+   "den": 7.2,
+   "chuyen": 0.45,
+   "nhin": {
+    "cung": "Virgo"
+   },
+   "chu": "Each birthday, your year moves<br>one sign around your chart.",
+   "the": {
+    "lon": "0",
+    "duoi": "age",
+    "dong": [
+     "Virgo"
+    ],
+    "vi": "tren"
+   }
+  },
+  {
+   "tu": 7.2,
+   "den": 8.2,
+   "chuyen": 0.45,
+   "nhin": {
+    "cung": "Libra"
+   },
+   "chu": "Each birthday, your year moves<br>one sign around your chart.",
+   "the": {
+    "lon": "1",
+    "duoi": "age",
+    "dong": [
+     "Libra"
+    ],
+    "vi": "tren"
+   }
+  },
+  {
+   "tu": 8.2,
+   "den": 9.2,
+   "chuyen": 0.45,
+   "nhin": {
+    "cung": "Scorpio"
+   },
+   "chu": "Each birthday, your year moves<br>one sign around your chart.",
+   "the": {
+    "lon": "2",
+    "duoi": "age",
+    "dong": [
+     "Scorpio"
+    ],
+    "vi": "tren"
+   }
+  },
+  {
+   "tu": 9.2,
+   "den": 10.2,
+   "chuyen": 0.45,
+   "nhin": {
+    "cung": "Sagittarius"
+   },
+   "chu": "Each birthday, your year moves<br>one sign around your chart.",
+   "the": {
+    "lon": "3",
+    "duoi": "age",
+    "dong": [
+     "Sagittarius"
+    ],
+    "vi": "tren"
+   }
+  },
+  {
+   "tu": 10.2,
+   "den": 13.8,
+   "nhin": {
+    "cung": "Pisces"
+   },
+   "chu": "At 30, his year landed on Pisces.<br>Year lord: Jupiter.",
+   "the": {
+    "lon": "30",
+    "duoi": "1985",
+    "dong": [
+     "7th sign from Virgo: Pisces"
+    ],
+    "vi": "tren"
+   }
+  },
+  {
+   "tu": 13.8,
+   "den": 16.8,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
+    "kieu": "trai"
+   },
+   "chu": "The year he lost Apple.",
+   "nhan": "1985 · Cupertino"
+  },
+  {
+   "tu": 16.8,
+   "den": 20.4,
+   "nhin": {
+    "cung": "Pisces"
+   },
+   "chu": "Twelve years later, at 42,<br>Pisces came back.",
+   "the": {
+    "lon": "42",
+    "duoi": "1997",
+    "dong": [
+     "Pisces again · Jupiter again"
+    ],
+    "vi": "tren"
+   }
+  },
+  {
+   "tu": 20.4,
+   "den": 23.4,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sj-1997-stage.jpg",
+    "kieu": "lui"
+   },
+   "chu": "The year he returned.",
+   "nhan": "1997 · Macworld, Boston"
+  },
+  {
+   "tu": 23.4,
+   "den": 26.8,
+   "nhin": {
+    "sao": "Jupiter"
+   },
+   "chu": "His Jupiter sits in the 10th house,<br>career and public life."
+  },
+  {
+   "tu": 26.8,
+   "den": 29.6,
+   "nhin": {
+    "toan": 1
+   },
+   "chu": "Find your year lord<br>free at astrolas.com."
+  }
+ ]
+}

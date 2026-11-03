@@ -52,7 +52,7 @@ def mot(camp, tu_choi, dat):
     kq = {"camp": camp, "ok": False}
     d = api(f"/api/v1/campaigns/{camp}"); a = d["ad_groups"][0]["ads"][0]
     cu, cid = a.get("creative_id"), a.get("content_id")
-    lan = str(cu) in tu_choi and not bi_tu_choi(a)   # creative đã bị từ chối ở camp khác → thay luôn ở camp này trước khi Meta từ chối tiếp
+    lan = False   # CHỈ AD ĐANG BỊ META TỪ CHỐI (anh 03/11/2026: "Cấm tự ý đổi creative") — bỏ thay trước cho camp khác cùng creative
     if not bi_tu_choi(a) and not lan: return {**kq, "ok": True, "viec": "khong_tu_choi"}
     if not lan and khoa("ethopex_thay_cho_duyet").get(str(camp)) == cu: return {**kq, "ok": True, "viec": "cho_meta_duyet"}   # vừa thay, Meta chưa duyệt lại
     ly = str(a.get("error") or a.get("delivery_status"))[:300] if not lan else f"creative #{cu} đã bị Meta từ chối ở camp khác ({str((tu_choi.get(str(cu)) or {}).get('ly_do', ''))[:120]})"
@@ -153,10 +153,11 @@ def don_doan(that=True):
     return kq
 
 if __name__ == "__main__":
-    # CẤM TỰ THAY CREATIVE (anh 03/11/2026) — tệp này không còn được chạy; cổng ethopex_api cũng chặn mọi lệnh {"ads": …}.
-    sys.exit("thay-tu-choi: cấm máy tự thay creative (anh 03/11/2026) — ad bị Meta từ chối chỉ báo anh")
     a = sys.argv[1:]
-    if "--don-doan" in a: don_doan(that="--thu" not in a); sys.exit(0)
+    # DỌN ĐOẠN đổi creative camp không bị từ chối → cấm (anh 03/11/2026: "Cấm tự ý đổi creative"); --thu vẫn chỉ in
+    if "--don-doan" in a:
+        if "--thu" not in a: sys.exit("thay-tu-choi --don-doan: cấm tự ý đổi creative (anh 03/11/2026) — chỉ ad bị Meta từ chối mới được đổi")
+        don_doan(that=False); sys.exit(0)
     camps = [int(x) for x in a[a.index("--camp") + 1:] if x.isdigit()] if "--camp" in a else [c["id"] for c in api("/api/v1/campaigns?page_size=500")["data"] if c.get("state") == "ACTIVE"]
     # camp ROAS (★ … duplicate by) chạy BÀI ĐĂNG CŨ, không có creative để thay — dạng riêng, miễn luật (anh 26/10/2026)
     import importlib.util as _iuc
@@ -166,7 +167,7 @@ if __name__ == "__main__":
     def an_toan(c):
         try: return mot(c, tu_choi, dat)
         except Exception as e: return {"camp": c, "ok": False, "loi": f"{type(e).__name__}: {str(e)[:150]}"}
-    for lo in (camps, None):   # lượt 2: camp khác cùng creative vừa bị từ chối
-        ds = camps if lo is not None else cung_creative(set(camps), khoa("ethopex_tu_choi"))
+    for lo in (camps,):   # chỉ camp có ad bị từ chối — bỏ lượt 2 (camp khác cùng creative) theo anh 03/11/2026
+        ds = camps
         for k in map(an_toan, ds):   # tuần tự: hai camp cùng phim không giành cùng một creative thay, số camp / đoạn đọc đúng
             if k.get("viec") not in ("khong_tu_choi", "cho_meta_duyet"): print(json.dumps(k, ensure_ascii=False), flush=True)

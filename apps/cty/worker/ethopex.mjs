@@ -18,6 +18,7 @@ export const LUAT_HA_SO = Object.entries(BANG_LUAT.khoa).filter(([, v]) => v.ha?
 const LUAT = path.join(REPO, 'apps/xuong-video/scripts/ethopex/luat-ethopex.py');
 const LAM = path.join(REPO, 'apps/xuong-video/scripts/ethopex/lam-ethopex.py');
 const NB = path.join(REPO, 'apps/xuong-video/scripts/ethopex/nhan-ban.py');
+const THAY = path.join(REPO, 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py');
 const LICH = path.join(REPO, 'apps/etp/lich-gio.py');   // báo cáo giờ + nút 📊 Report
 const THE_LOAI = path.join(REPO, 'apps/xuong-video/scripts/ethopex/the-loai.py');
 const SO_NGAY = path.join(REPO, 'apps/xuong-video/scripts/ethopex/so-ngay.py');
@@ -448,8 +449,18 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       gui++;
     }
   } catch (e) { console.error('canh-bao etp:', e.message); }
-  // AD BỊ META TỪ CHỐI: CHỈ BÁO (khối tu_choi trong tin luật) — cấm máy tự thay creative (anh 03/11/2026: "Cấm tự ý thay creative hoàn toàn");
-  // cổng apps/etp/ethopex_api.py chặn mọi lệnh {"ads": …} nên thay-tu-choi / don-doan không còn được gọi.
+  // AD BỊ META TỪ CHỐI → ĐỔI CREATIVE KHÁC CHO ĐÚNG AD ĐÓ (anh 03/11/2026: "Đổi creative khác cho ad bị meta từ chối. Cấm tự ý đổi creative."):
+  // thay-tu-choi.py chỉ camp có ad đang DISAPPROVED (bỏ thay trước camp khác cùng creative, bỏ dọn đoạn); cổng apps/etp/ethopex_api.py đọc lại ad, chưa bị từ chối thì chặn.
+  const tc = (kq.tu_choi || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id));
+  if (tc.length) {
+    let ra = []; try { ra = (await chay(THAY, ['--camp', ...tc.map((m) => String(m.id))], 600)).trim().split('\n').filter((l) => l.startsWith('{')).map((l) => JSON.parse(l)); } catch (e) { ra = tc.map((m) => ({ camp: m.id, ok: false, loi: e.message })); }
+    const xong = new Set(ra.filter((r) => r.ok).map((r) => r.camp));
+    const dong = ra.map((r) => (r.ok ? `🔁 #${r.camp} creative #${r.creative_cu} → <b>#${r.creative_moi}</b> · đã Update` + (r.bat ? (r.bat.ok ? ' · ▶ đã bật lại' : ` · ⚠️ chưa bật lại được: ${esc(r.bat.loi || '?')}`) : '') + ' · chờ Meta duyệt lại' : r.viec === 'cho_dung' ? `⏳ #${r.camp} creative #${r.creative_cu}: ${esc(r.loi)}` : `⚠️ #${r.camp} chưa thay được: ${esc(r.loi || 'không rõ')}`) +
+      (r.ly_do ? `\n   ↳ lý do Meta: ${esc(String(r.ly_do).slice(0, 160))}` : '')).join('\n');
+    if (dong) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>AD BỊ META TỪ CHỐI → ĐỔI CREATIVE KHÁC</b> — chỉ ad bị từ chối, camp khác không đụng\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` }); gui++; }
+    kq.tu_choi = (kq.tu_choi || []).filter((m) => !xong.has(Number(m.id)));
+    for (const id of xong) lamRoi.add(id);
+  }
   // PHIM MỚI CHẤM SẠCH → LÊN CAMP NGAY (anh 28/10/2026: "Xong phim nào thì lên camp luôn phim đó"): trước đây len-sau-cham.py chỉ chạy tay trên iMac → creative chấm Sạch
   // nằm im (kho 51 góc). Mỗi nhịp: creative chấm Sạch, chưa có camp, PHIM CHƯA TỪNG CÓ CAMP (phim mới) → nhan-ban.py --creative trên khuôn cùng tiếng, ở bộ của phim
   // (sổ ethopex_phim_tk; phim mới → bộ 2), lịch today, $1. Tối đa 4 creative / nhịp (mỗi lần tạo chờ Ethopex đồng bộ ~1 phút). Cổng thật vẫn ở nhan-ban (chấm, rào chắn, 18+, CTA).

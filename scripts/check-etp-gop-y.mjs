@@ -356,7 +356,7 @@ const LUAT = [
   { card: 'cam-thay-cr-0311', tep: 'apps/cty/worker/ethopex.mjs', cam: "chay(THAY, ['--don-doan']", vi: 'Phòng Ethopex không dọn đoạn (đổi creative camp không bị từ chối)' },
   { card: 'dong-truc-quan-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: 'function DongCay(', cam: '<DataTable rows={du.dong}', vi: 'tab Dòng phim: cây phim → video / camp, mỗi dòng một hàng ô bước tô màu (anh 03/11/2026 "dạng tree… tốn diện tích")' },
   { card: 'dong-truc-quan-0311', tep: 'apps/etp/dong_phim.py', co: 'def tien_do(dong, buoc):', vi: 'bước cắt ghi tiến độ N/M cho thanh %' },
-  { card: 'dong-truc-quan-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: '└ Video {i + 1}', vi: 'mỗi video một dòng con (cắt → xem lại → đưa lên → chấm → camp → chạy), không chỉ một camp' },
+  { card: 'dong-truc-quan-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: '└ {id ? `Creative #${id}`', vi: 'mỗi creative một dòng con, bấm camp mở ngăn chi tiết (cắt → xem lại → đưa lên → chấm → camp → chạy), không chỉ một camp' },
   { card: 'poster-0311', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: "'/api/ethopex/anh?p='", cam: "'https://acdn.dofez.com/' ||", vi: 'poster dòng phim đi qua cùng miền (trình duyệt anh không tải được CDN thẳng)' },
   { card: 'lo-trinh-0311', tep: 'apps/etp/dong_phim.py', co: 'CHỜ ANH BẮT ĐẦU', vi: 'dòng phim LT dừng trước bước lên camp tới khi anh bắt đầu (anh 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'not _lt.get("bat_dau") and (cm := camp_moi_hom_nay(cid))', vi: 'phim lộ trình đã bắt đầu được miễn luật một camp (anh chọn A 03/11/2026)' },

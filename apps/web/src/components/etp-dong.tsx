@@ -32,15 +32,15 @@ const NEN: Record<string, string> = { xong: '#14532d', dang: '#1e3a8a', chay: '#
 const CHU: Record<string, string> = { xong: '#86efac', dang: '#bfdbfe', chay: '#bfdbfe', dung: '#fcd34d', loi: '#fca5a5', cho: 'var(--fg-3)', bo_qua: 'var(--fg-3)' };
 const KY: Record<string, string> = { xong: '✓', dang: '▶', chay: '▶', dung: '⏸', loi: '!', cho: '·', bo_qua: '–' };
 
-function O({ tt, chu, t, fix }: { tt: string; chu?: string; t?: string; fix?: () => void }) {
-  return <td title={t} style={{ padding: 2 }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 24, borderRadius: 5, fontSize: 11, whiteSpace: 'nowrap',
+function O({ tt, chu, t, fix, bam }: { tt: string; chu?: string; t?: string; fix?: () => void; bam?: () => void }) {
+  return <td title={t} onClick={bam} style={{ padding: 2, cursor: bam ? 'pointer' : undefined }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, height: 24, borderRadius: 5, fontSize: 11, whiteSpace: 'nowrap',
     background: NEN[tt] ?? 'transparent', color: CHU[tt] ?? 'var(--fg-3)', border: tt === 'cho' || tt === 'bo_qua' ? '1px dashed var(--line)' : 'none', fontWeight: tt === 'dang' ? 700 : 500,
     animation: tt === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>
     <span>{KY[tt] ?? ''}</span>{chu ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 74 }}>{chu}</span> : null}
     {fix ? <button className="btn" onClick={fix} style={{ padding: '0 4px', fontSize: 10, lineHeight: '14px', color: '#fca5a5', borderColor: '#7f1d1d' }}>FIX</button> : null}</div></td>;
 }
 
-function DongCay({ d, xong }: { d: DongPhim; xong: () => void }) {
+function DongCay({ d, xong, moCamp }: { d: DongPhim; xong: () => void; moCamp?: (id: number) => void }) {
   const [mo, setMo] = useState(true);
   const b = (k: string) => d.buoc.find((x) => x.buoc === (BUOC_COT[k] ?? k));
   const kq = (k: string) => b(k)?.ket_qua ?? null;
@@ -76,23 +76,23 @@ function DongCay({ d, xong }: { d: DongPhim; xong: () => void }) {
       const g = x.tu != null && x.den != null ? `${Math.round(x.tu)}–${Math.round(x.den)}s` : '';
       const tCham = id ? (sach.has(id) ? 'xong' : chamXong ? 'dung' : 'dang') : 'cho';
       return <tr key={id ?? i} style={{ background: 'var(--bg-1)' }}>
-        <td style={{ padding: '2px 6px 2px 40px', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>└ Video {i + 1} <span style={{ color: 'var(--fg-3)' }}>{g}</span></td>
+        <td style={{ padding: '2px 6px 2px 40px', fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap' }}>└ {id ? `Creative #${id}` : `Đoạn ${i + 1}`} <span style={{ color: 'var(--fg-3)' }}>{g}</span></td>
         <O tt="bo_qua" /><O tt="bo_qua" /><O tt="bo_qua" />
         <O tt="xong" chu={g} />
         <O tt={id || (kq('soat')?.doan ?? []).length ? 'xong' : ttB(b('soat'))} />
         <O tt={id ? 'xong' : b('creative')?.trang_thai === 'dang' ? 'dang' : 'cho'} chu={id ? `#${id}` : ''} />
         <O tt={tCham} chu={tCham === 'dung' ? 'bị chặn' : tCham === 'dang' ? 'đang chấm' : ''} />
-        <O tt={camp ? 'xong' : sach.has(id ?? -1) ? ttB(b('camp')) : 'cho'} chu={camp ? `#${camp.id}` : sach.has(id ?? -1) && b('camp')?.trang_thai === 'dang' ? 'chờ anh' : ''} />
-        <O tt={cc?.tt ?? 'cho'} chu={cc?.chu} t={camp ? `camp #${camp.id} · $${camp.ns ?? '?'}/ngày · chi $${camp.chi.toFixed(2)} · thu $${camp.thu.toFixed(2)}` : undefined} />
+        <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} tt={camp ? 'xong' : sach.has(id ?? -1) ? ttB(b('camp')) : 'cho'} chu={camp ? `#${camp.id}` : sach.has(id ?? -1) && b('camp')?.trang_thai === 'dang' ? 'chờ anh' : ''} />
+        <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} tt={cc?.tt ?? 'cho'} chu={cc?.chu} t={camp ? `camp #${camp.id} · $${camp.ns ?? '?'}/ngày · chi $${camp.chi.toFixed(2)} · thu $${camp.thu.toFixed(2)} — bấm xem chi tiết` : undefined} />
         <td /><td />
       </tr>; }) : null}
     {mo ? le.map((c) => { const cc = conCamp(c)!; return <tr key={`c${c.id}`} style={{ background: 'var(--bg-1)' }}>
       <td style={{ padding: '2px 6px 2px 40px', fontSize: 11, color: 'var(--fg-2)' }}>└ camp #{c.id}</td>
-      {COT.slice(0, 7).map(([k]) => <O key={k} tt="bo_qua" />)}<O tt="xong" chu={`#${c.id}`} /><O tt={cc.tt} chu={cc.chu} /><td /><td /></tr>; }) : null}
+      {COT.slice(0, 7).map(([k]) => <O key={k} tt="bo_qua" />)}<O bam={moCamp ? () => moCamp(c.id) : undefined} tt="xong" chu={`#${c.id}`} /><O bam={moCamp ? () => moCamp(c.id) : undefined} tt={cc.tt} chu={cc.chu} /><td /><td /></tr>; }) : null}
   </>;
 }
 
-export function TabDong() {
+export function TabDong({ moCamp }: { moCamp?: (id: number) => void } = {}) {
   const [du, setDu] = useState<Awaited<ReturnType<typeof docDong>> | null>(null);
   const [cu, setCu] = useState(false);
   const tai = useCallback(async () => setDu(await docDong()), []);
@@ -115,9 +115,9 @@ export function TabDong() {
     {!ds.length ? <EmptyState icon="🎬" title="Không có phim nào đang chạy tự động" /> : <div style={{ overflowX: 'auto' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', minWidth: 1180 }}>
         <colgroup><col style={{ width: 300 }} />{COT.map(([k]) => <col key={k} style={{ width: 78 }} />)}<col /><col style={{ width: 52 }} /></colgroup>
-        <thead><tr style={{ fontSize: 11, color: 'var(--fg-3)', textAlign: 'center' }}><th style={{ textAlign: 'left', padding: '0 6px', fontWeight: 500 }}>Phim → video / camp</th>
+        <thead><tr style={{ fontSize: 11, color: 'var(--fg-3)', textAlign: 'center' }}><th style={{ textAlign: 'left', padding: '0 6px', fontWeight: 500 }}>Phim → creative → camp</th>
           {COT.map(([k, t]) => <th key={k} title={TEN_BUOC[BUOC_COT[k] ?? k]?.[1]} style={{ fontWeight: 500 }}>{t}</th>)}<th style={{ textAlign: 'left', fontWeight: 500, padding: '0 6px' }}>Đang làm</th><th /></tr></thead>
-        <tbody>{ds.map((d) => <DongCay key={d.id} d={d} xong={() => void tai()} />)}</tbody>
+        <tbody>{ds.map((d) => <DongCay key={d.id} d={d} xong={() => void tai()} moCamp={moCamp} />)}</tbody>
       </table></div>}
   </div>;
 }

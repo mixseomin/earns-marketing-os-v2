@@ -2616,7 +2616,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         <DataTable rows={du.creatives} columns={cotCr} groups={NHOM} groupHeader getRowKey={(r) => String(r.creative_id)} persistKey="etp-creative" minWidth={1400} pageSize={100}
           searchText={(r) => `${r.creative_id} ${r.phim ?? ''} ${r.dang ?? ''} ${tl(r.the_loai)}`} searchPlaceholder="Tìm creative, phim, dạng…" />
       ) : tab === 'dong' ? (
-        <TabDong />
+        <TabDong moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} />
       ) : tab === 'tv' ? (
         <TabThuVien du={du} tl={tl} />
       ) : tab === 'tn' ? (

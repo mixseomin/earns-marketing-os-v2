@@ -15,7 +15,7 @@ import { Dem } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { nhanPhimEtp, traPhimEtp } from '@/lib/actions/etp-phim';
-import { FormChayDong, TabDong } from '@/components/etp-dong';
+import { DongHoSx, FormChayDong, TabDong } from '@/components/etp-dong';
 import { TRE_MO } from '@/lib/etp-tre';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
@@ -1724,9 +1724,8 @@ function BadgeSx({ cid, ds }: { cid: number; ds: DuLieuEtp['dongChay'] }) {
     window.addEventListener('etp-dong-moi', f); return () => window.removeEventListener('etp-dong-moi', f); }, [cid]);
   const d = [...ds, ...them.filter((x) => !ds.some((y) => y.id === x.id))].filter((x) => x.content_id === cid); if (!d.length) return null;
   const so = d.reduce((a, x) => a + (x.so_camp ?? 1), 0);
-  return <a href={`?t=dong&sxq=${cid}`} onClick={(e) => e.stopPropagation()} title={d.map((x) => `dòng sản xuất #${x.id} · ${x.loai}${x.so_camp ? ` · +${x.so_camp} camp` : ''} · bước ${x.buoc ?? '—'}`).join('\n') + '\nbấm: sang tab Sản xuất (Ctrl/⌘: tab mới)'}
-    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: '#1d4ed8', color: '#fff', fontSize: 10, fontWeight: 700,
-      textDecoration: 'none', boxShadow: '0 0 6px #60a5fa', animation: 'etpDen 1.6s ease-in-out infinite' }}>{so}</a>;
+  const t = d.map((x) => `dòng sản xuất #${x.id} · ${x.loai}${x.so_camp ? ` · +${x.so_camp} camp` : ''} · bước ${x.buoc ?? '—'}`).join('\n') + '\nbấm: sang tab Sản xuất (Ctrl/⌘: tab mới)';
+  return <DongHoSx buoc={d[d.length - 1]!.cac_buoc ?? []} so={so} title={t} href={`?t=dong&sxq=${cid}`} />;   // nhiều dòng cùng phim: đồng hồ theo dòng mới nhất, số = tổng camp
 }
 /** NÚT ＋ Ở DÒNG PHIM (anh 04/11/2026 "thêm 1 nút ở dòng film … mở ra form để chọn: số camp mới, thể loại film → submit là xong. Còn lại cho tab SX xử lý") */
 function NutMoRong({ cid, k }: { cid: number; k?: number }) {

@@ -104,7 +104,7 @@ export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt —
   thayThe: ThayThe[];
   moRong: MoRong[];
   /** dòng sản xuất đang chạy theo phim (etp.dong_phim) — Cây camp hiện nhãn ◌ SX ở dòng phim (anh 04/11/2026 "giờ đéo biết vừa bấm tạo cho film nào") */
-  dongChay: { content_id: number; id: number; loai: string; so_camp: number | null; buoc: string | null }[];
+  dongChay: { content_id: number; id: number; loai: string; so_camp: number | null; buoc: string | null; cac_buoc?: { buoc: string; trang_thai: string }[] }[];
   /** tab Tài nguyên: tài khoản QC · Page · pixel · tên miền (Ethopex) + máy thợ (hàng đợi etp.viec) */
   taiNguyen: { loai: string; id: number; external_id: string | null; ten: string | null; trang_thai: string | null; them: Record<string, unknown> }[];
   mayTho: { may: string; xong: number; loi: number; dang: number; cuoi: string | null; giay_tb: number | null }[];
@@ -356,7 +356,8 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       from etp.creative cr left join etp.phim p using (content_id) left join s on s.cr = cr.creative_id left join etp.cham ch using (creative_id) where cr.video is not null and cr.content_id is not null`).catch(() => [] as Record<string, unknown>[]),
     runNha<ThayThe>(sql`select id, content_id, camp_cu, buoc, creative_id, camp_moi, ghi, tao::text tao, bai_hoc, bo_camp from etp.thay_the where buoc not in ('chay', 'huy') order by id`).catch(() => [] as ThayThe[]),
     runNha<MoRong>(sql`select content_id, n, chi3::float chi3, lai3::float lai3, roi3, roi_truoc, k, san, can_sx, trang_thai, ly, luc::text luc from etp.mo_rong where k > 0`).catch(() => [] as MoRong[]),
-    runNha<DuLieuEtp['dongChay'][number]>(sql`select d.content_id, d.id, d.loai, d.so_camp, (select b.buoc from etp.dong_buoc b where b.dong_id = d.id and b.trang_thai in ('dang', 'cho') order by b.thu_tu limit 1) buoc
+    runNha<DuLieuEtp['dongChay'][number]>(sql`select d.content_id, d.id, d.loai, d.so_camp, (select b.buoc from etp.dong_buoc b where b.dong_id = d.id and b.trang_thai in ('dang', 'cho') order by b.thu_tu limit 1) buoc,
+      coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai) order by b.thu_tu) from etp.dong_buoc b where b.dong_id = d.id), '[]'::json) cac_buoc
       from etp.dong_phim d where d.trang_thai = 'chay' order by d.id`).catch(() => [] as DuLieuEtp['dongChay']),
   ]);
   // gộp: bản thư viện đã lên Ethopex (creative_id) mang số chạy của creative đó; bản chưa lên đứng riêng

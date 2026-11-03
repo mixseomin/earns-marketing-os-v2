@@ -29,6 +29,20 @@ const ket = (b: BuocDong) => b.trang_thai === 'dang' && (Date.now() - Date.parse
 // CẮT / SINH VIDEO LÀ CẤP CREATIVE (anh 03/11/2026 "tại sao cắt lại nằm ở phim? mỗi creative ko cần cắt hay sinh video độc lập à?"): mỗi creative là một đoạn cắt (hoặc một video sinh) riêng
 const COT_PHIM: [string, string][] = [['nhan', 'Nhận'], ['ws', 'Trang'], ['poster', 'Ảnh bìa']];
 const COT_CR: [string, string, string][] = [['cat', 'Cắt / sinh', 'cat'], ['soat', 'Xem lại', 'soat'], ['len', 'Đưa lên', 'creative'], ['cham', 'Chấm', 'creative'], ['camp', 'Lên camp', 'camp'], ['chay', 'Chạy', 'chay']];   // [cột, tên, bước dòng]
+/** ĐỒNG HỒ TIẾN ĐỘ (anh 04/11/2026 "thiết kế giống cái đồng hồ công tơ mét với các node là tiến độ … ở giữa vẫn là số" · "các bước là chính các phần này và màu sắc như hiện trạng"):
+ *  vòng cung 9 nút = đúng 9 cột tab Sản xuất (COT_PHIM + COT_CR), màu = MAU của tab; giữa là số camp đang sản xuất. Cây camp (etp-view BadgeSx) dùng. */
+export const NUT_SX: [string, string, string][] = [...COT_PHIM.map(([k, t]): [string, string, string] => [k, t, k]), ...COT_CR];
+export function DongHoSx({ buoc, so, title, href }: { buoc: { buoc: string; trang_thai: string }[]; so: number; title: string; href: string }) {
+  const R = 10, C = 13, goc0 = 150, quet = 240, n = NUT_SX.length;   // cung 240° mở phía dưới như công-tơ-mét
+  const xy = (g: number) => [C + R * Math.cos((g * Math.PI) / 180), C + R * Math.sin((g * Math.PI) / 180)];
+  const tt = (b: string) => buoc.find((x) => x.buoc === b)?.trang_thai ?? 'cho';
+  return <a href={href} onClick={(e) => e.stopPropagation()} title={title} style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', textDecoration: 'none' }}>
+    <svg width={26} height={26} viewBox="0 0 26 26">
+      {NUT_SX.map(([k, , b], i) => { const [x, y] = xy(goc0 + (quet * i) / (n - 1)); const t = tt(b); const m = (MAU[t] ?? MAU.cho!)[0];
+        return <circle key={k} cx={x} cy={y} r={t === 'dang' ? 2.4 : 1.9} fill={m} style={t === 'dang' ? { animation: 'etpDen 1.6s ease-in-out infinite' } : undefined}><title>{NUT_SX[i]![1]}: {MAU[t]?.[1] ?? t}</title></circle>; })}
+      <text x={C} y={C + 3.5} textAnchor="middle" fontSize={10} fontWeight={700} fill="#fff">{so}</text>
+    </svg></a>;
+}
 const LOAI_DE: Record<string, string> = { CC: 'Cảnh cuối', KT: 'Kể chuyện', LT: 'Test rộng' };
 const NEN: Record<string, string> = { xong: '#14532d', dang: '#1e3a8a', chay: '#1e3a8a', dung: '#78350f', loi: '#7f1d1d', cho: 'transparent', bo_qua: 'transparent' };
 const CHU: Record<string, string> = { xong: '#86efac', dang: '#bfdbfe', chay: '#bfdbfe', dung: '#fcd34d', loi: '#fca5a5', cho: 'var(--fg-3)', bo_qua: 'var(--fg-3)' };

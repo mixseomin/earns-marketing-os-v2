@@ -52,7 +52,7 @@ function TheDong({ d, xong }: { d: DongPhim; xong: () => void }) {
   const hien = ds.find((b) => b.trang_thai === 'dang' || b.trang_thai === 'loi' || b.trang_thai === 'dung') ?? ds.find((b) => b.trang_thai === 'cho');
   const soXong = ds.filter((b) => b.trang_thai === 'xong' || b.trang_thai === 'bo_qua').length;
   const [m, c] = MAU[d.trang_thai] ?? ['#6b7280', d.trang_thai];
-  const cau = d.trang_thai === 'xong' ? `Xong sau ${phut(d.tao_luc, d.xong_luc)}${d.camp_id ? ` — camp #${d.camp_id} đang chạy` : ''}`
+  const cau = d.trang_thai === 'xong' || (!hien && ds.length && soXong === ds.length) ? `Xong sau ${phut(d.tao_luc, d.xong_luc ?? ds[ds.length - 1]?.ket_thuc ?? null)}${d.camp_id ? ` — camp #${d.camp_id} đang chạy` : ''}`
     : d.trang_thai === 'huy' ? `Đã dừng${d.ly_do ? `: ${d.ly_do}` : ''}`
     : hien ? `${hien.trang_thai === 'dang' ? 'Đang' : hien.trang_thai === 'loi' ? 'Lỗi ở' : hien.trang_thai === 'dung' ? 'Dừng ở' : 'Chờ'} bước ${ds.indexOf(hien) + 1}/${ds.length} · ${DE[hien.buoc]}` : c;
   const ghi = d.trang_thai === 'dung' || d.trang_thai === 'loi' ? d.ly_do ?? hien?.ghi : hien?.ghi;

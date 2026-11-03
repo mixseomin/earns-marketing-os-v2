@@ -153,6 +153,8 @@ def don_doan(that=True):
     return kq
 
 if __name__ == "__main__":
+    # CẤM TỰ THAY CREATIVE (anh 03/11/2026) — tệp này không còn được chạy; cổng ethopex_api cũng chặn mọi lệnh {"ads": …}.
+    sys.exit("thay-tu-choi: cấm máy tự thay creative (anh 03/11/2026) — ad bị Meta từ chối chỉ báo anh")
     a = sys.argv[1:]
     if "--don-doan" in a: don_doan(that="--thu" not in a); sys.exit(0)
     camps = [int(x) for x in a[a.index("--camp") + 1:] if x.isdigit()] if "--camp" in a else [c["id"] for c in api("/api/v1/campaigns?page_size=500")["data"] if c.get("state") == "ACTIVE"]

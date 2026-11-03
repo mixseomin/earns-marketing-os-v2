@@ -13,6 +13,7 @@ Dùng: sys.path.insert(0, '<repo>/apps/etp'); from ethopex_api import api"""
 import json, os, re, subprocess, urllib.request
 
 class NgoaiNha(RuntimeError): pass
+class CamThayCreative(NgoaiNha): pass
 
 def _q(s):
     # trên box3 đọc thẳng DATABASE_URL; trên iMac (the-loai / phim-moi… nạp module này) đọc qua ssh box3 — 28/10/2026 gãy phim-moi poster vì thiếu DATABASE_URL
@@ -158,10 +159,10 @@ def api(duong, body=None, timeout=90):
         # ĐỦ MỌI TRANG (29/10/2026: report tách dòng theo camp × phim — khung 9 ngày 1818 dòng / 2 trang; chỉ đọc trang 1 thì camp ở trang 2 thành $0,
         # máy luật không xét nhân bản / T30 cho #65722 $20 đang lãi). Mọi caller đi qua đây — không tự gọi report thẳng.
         d = doc_het(duong, body if isinstance(body, dict) else None, timeout); d["rows"] = loc_report(d.get("rows")); return d
-    if body is not None and isinstance(body, dict) and body.get("ads"):   # thay creative: {"ads": [{"ad_id"}]} → camp của ad
-        nha_ad = {int(c.get("ad_id") or 0) for c in camp_nha().values()} | {int(x) for x in _q("select ad_id from etp.camp where ad_id is not null and bo is not null").split() if x.isdigit()}
-        la = [int(a.get("ad_id") or 0) for a in body["ads"] if int(a.get("ad_id") or 0) not in nha_ad]
-        if la: raise NgoaiNha(f"ad {la} không thuộc tài khoản nhà — không gửi")
+    if body is not None and isinstance(body, dict) and body.get("ads") and not duong.endswith("/campaigns/facebook"):
+        # CẤM MÁY TỰ THAY CREATIVE TRONG CAMP ĐANG CÓ (anh 03/11/2026: "Cấm tự ý thay creative hoàn toàn") — sau khi thay-tu-choi tự đổi creative 11 camp
+        # (cả 4 camp ACTIVE chưa bị Meta từ chối). Mọi đường (thay-tu-choi, don-doan, sua-cta, soat_doan) đi qua đây → chặn một chỗ. Ad bị từ chối chỉ BÁO anh.
+        raise CamThayCreative(f"cấm máy tự thay creative trong camp ({duong}) — anh 03/11/2026; ad bị Meta từ chối chỉ báo")
     ids = _id_cham(duong, body if not isinstance(body, list) else {"x": body})
     if body is not None and duong.endswith("/campaigns/facebook"):   # tạo camp mới: tài khoản đích (ad_account_id trong payload) phải là tài khoản nhà
         tk = set(int(x) for x in re.findall(r'"ad_account_id":\s*"?(\d+)', json.dumps(body)))
@@ -179,6 +180,8 @@ def api(duong, body=None, timeout=90):
     return _goi(duong, body, timeout)
 
 if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
+    try: api("/api/v1/campaigns/update", {"ads": [{"ad_id": 1, "creative_id": 2}]}); raise SystemExit("LỌT: thay creative trong camp")
+    except CamThayCreative as e: print("chặn đúng: thay creative ·", str(e)[:50])
     n = camp_nha(); print("camp nhà", len(n), "· tài khoản", sorted(TK))
     assert all(int(c["ad_account_id"]) in TK for c in n.values())
     ngoai = next((int(c["id"]) for c in _goi("/api/v1/campaigns?page_size=1000&page=1")["data"] if int(c.get("ad_account_id") or 0) not in TK), None)

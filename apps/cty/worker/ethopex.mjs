@@ -19,7 +19,6 @@ const LUAT = path.join(REPO, 'apps/xuong-video/scripts/ethopex/luat-ethopex.py')
 const LAM = path.join(REPO, 'apps/xuong-video/scripts/ethopex/lam-ethopex.py');
 const NB = path.join(REPO, 'apps/xuong-video/scripts/ethopex/nhan-ban.py');
 const LICH = path.join(REPO, 'apps/etp/lich-gio.py');   // báo cáo giờ + nút 📊 Report
-const THAY = path.join(REPO, 'apps/xuong-video/scripts/ethopex/thay-tu-choi.py');
 const THE_LOAI = path.join(REPO, 'apps/xuong-video/scripts/ethopex/the-loai.py');
 const SO_NGAY = path.join(REPO, 'apps/xuong-video/scripts/ethopex/so-ngay.py');
 const TEP = () => path.join(DATA(), 'ethopex-da-bao.json');
@@ -46,7 +45,7 @@ export async function ghiG10(ids) {
 /** Nhóm báo: tiêu đề · nút cho mỗi mục (null = chỉ báo). dich = ngân sách đích lấy từ chữ "→ $X". */
 const NHOM = [
   ['thang_nb', '🪜 <b>THANG NHÂN BẢN</b> — bộ 2: camp chạm luật tăng (như bộ 1) → thay vì tăng ngân sách, máy mở bản mới ở bậc kế, creative khác cùng phim; camp gốc giữ ngân sách', null],
-  ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — Edit camp, thay creative sạch đã duyệt cùng phim', null],
+  ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — máy KHÔNG tự thay creative (anh 03/11/2026), anh quyết', null],
   ['dau_phien', '⇑ <b>LÃI ĐẦU PHIÊN</b> — ROI hôm nay > 50%, tăng luôn $2/$3', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
   ['tang', '↑ <b>ĐỦ ĐIỀU KIỆN TĂNG BẬC</b> — ROI 30 ngày (camp mới: từ lúc lên) ≥ 50%, Spending > 50%', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
   ['ha', '↓ <b>GIẢM BẬC</b> — sáng: hôm qua ROI < 0% và 3 ngày < 20% (vừa tăng thì bỏ điều kiện 3 ngày) · mọi nhịp: camp ≥ $15 tiêu đều, ROI 1–2 ngày < 30% (Support) · $20 vừa tăng mà hôm nay âm cũng giảm · luôn từng bậc $20 → $15 → $10; sau giảm khoá tăng 6 giờ, hồi lại thì lên lại', (m) => (m.dich ? [{ text: `↓ #${m.id} về $${m.dich}`, callback_data: `et:giam:${m.id}:${m.dich}` }, { text: 'Giữ', callback_data: `et:bo:${m.id}` }] : null)],
@@ -449,18 +448,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       gui++;
     }
   } catch (e) { console.error('canh-bao etp:', e.message); }
-  // AD BỊ META TỪ CHỐI → MÁY TỰ THAY CREATIVE NGAY (anh 23/10/2026: "vào xem nguyên nhân fix rồi tự replace creative ngay"): thay-tu-choi.py đọc lý do,
-  // thay bằng creative sạch cùng phim đạt CTA (chưa bị từ chối) qua Update camp; chưa có thì xếp hàng dựng góc mới (sua-cta.py iMac). Không tắt / xoá camp.
-  const tc = (kq.tu_choi || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id));
-  if (tc.length) {
-    let ra = []; try { ra = (await chay(THAY, ['--camp', ...tc.map((m) => String(m.id))], 600)).trim().split('\n').filter((l) => l.startsWith('{')).map((l) => JSON.parse(l)); } catch (e) { ra = tc.map((m) => ({ camp: m.id, ok: false, loi: e.message })); }
-    const xong = new Set(ra.filter((r) => r.ok).map((r) => r.camp));
-    const dong = ra.map((r) => (r.ok ? `🔁 #${r.camp} creative #${r.creative_cu} → <b>#${r.creative_moi}</b> · đã Update` + (r.bat ? (r.bat.ok ? ' · ▶ đã bật lại' : ` · ⚠️ chưa bật lại được: ${esc(r.bat.loi || '?')}`) : '') + ' · chờ Meta duyệt lại' : r.viec === 'cho_dung' ? `⏳ #${r.camp} creative #${r.creative_cu}: ${esc(r.loi)}` : `⚠️ #${r.camp} chưa thay được: ${esc(r.loi || 'không rõ')}`) +
-      (r.ly_do ? `\n   ↳ lý do Meta: ${esc(String(r.ly_do).slice(0, 160))}` : '')).join('\n');
-    if (dong) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY TỰ THAY CREATIVE BỊ META TỪ CHỐI</b> — thay creative sạch + bật lại camp\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` }); gui++; }
-    kq.tu_choi = (kq.tu_choi || []).filter((m) => !xong.has(Number(m.id)));
-    for (const id of xong) lamRoi.add(id);
-  }
+  // AD BỊ META TỪ CHỐI: CHỈ BÁO (khối tu_choi trong tin luật) — cấm máy tự thay creative (anh 03/11/2026: "Cấm tự ý thay creative hoàn toàn");
+  // cổng apps/etp/ethopex_api.py chặn mọi lệnh {"ads": …} nên thay-tu-choi / don-doan không còn được gọi.
   // PHIM MỚI CHẤM SẠCH → LÊN CAMP NGAY (anh 28/10/2026: "Xong phim nào thì lên camp luôn phim đó"): trước đây len-sau-cham.py chỉ chạy tay trên iMac → creative chấm Sạch
   // nằm im (kho 51 góc). Mỗi nhịp: creative chấm Sạch, chưa có camp, PHIM CHƯA TỪNG CÓ CAMP (phim mới) → nhan-ban.py --creative trên khuôn cùng tiếng, ở bộ của phim
   // (sổ ethopex_phim_tk; phim mới → bộ 2), lịch today, $1. Tối đa 4 creative / nhịp (mỗi lần tạo chờ Ethopex đồng bộ ~1 phút). Cổng thật vẫn ở nhan-ban (chấm, rào chắn, 18+, CTA).
@@ -529,17 +518,6 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       if (r.ok) await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🎬 <b>PHIM NHẬN LÊN CAMP</b> — #${r.moi ?? '?'} · ${esc(x.ten || 'phim ' + x.content_id)} (${esc(String(x.lang).toUpperCase())}) ở tài khoản người nhận` });
     }
   } catch (e) { console.error('nhận phim lên camp:', e.message); }
-  // DỌN ĐOẠN QUÁ TẢI (A, anh duyệt 25/10/2026): 3 giờ / lần — đoạn > trần camp trùng (etp.cau_hinh.tran_trung, 20 từ 28/10/2026): camp dư không lãi thay sang góc khác cùng phim (thay-tu-choi.py --don-doan).
-  // Không tắt camp, không đụng camp lãi; hết góc thì xếp hàng cắt góc mới. Báo một tin khi có thay đổi.
-  try {
-    const tepDd = path.join(DATA(), 'ethopex-don-doan.json'), dd = docJ(tepDd, {});
-    if (!dd.luc || Date.now() - Date.parse(dd.luc) > 3 * 3600_000) {
-      fs.writeFileSync(tepDd, JSON.stringify({ luc: new Date().toISOString() }));
-      const ra = (await chay(THAY, ['--don-doan'], 900)).trim().split('\n').filter((l) => l.startsWith('{')).map((l) => JSON.parse(l));
-      const dong = ra.map((r) => (r.viec === 'thay' ? (r.ok ? `🔀 #${r.camp} creative #${r.creative_cu} → <b>#${r.creative_moi}</b>` : `⚠️ #${r.camp} chưa thay được: ${esc(r.loi || '?')}`) : `⏳ #${r.camp}: hết góc khác — đã xếp cắt góc mới`) + ` · ROI 3 ngày ${r.roi3}% · đoạn ${esc(r.doan)}`).join('\n');
-      if (dong) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>DỌN ĐOẠN QUÁ TẢI</b> — đoạn vượt trần camp trùng (điểm bão hoà, 20): giữ số camp tốt nhất bằng trần, camp dư không lãi sang góc khác cùng phim (không tắt, không đụng camp lãi)\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` }); gui++; }
-    }
-  } catch (e) { console.error('don-doan:', e.message); }
   // NHÂN BẢN CAMP THẮNG (luật NB, anh 22/10/2026: tự động + "nhân bản thì cũng báo lên tele"): máy tạo bản $1 qua nhan-ban.py (khuôn của camp gốc,
   // chặn 30 camp đang chạy / phim), giờ yên thì báo im lặng; bản lịch Today trong khung 21h–5h (giờ Mỹ đang mua), ngoài khung để Tomorrow.
   const daNb = [];

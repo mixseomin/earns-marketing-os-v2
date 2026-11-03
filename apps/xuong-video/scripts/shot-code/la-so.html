@@ -198,7 +198,8 @@ window.__seek = (t) => {
   // dựng từng lớp theo thứ tự site (data-step-index)
   // thẻ số liệu của câu đang kể
   const th = document.getElementById('the');
-  if (q.the) { th.innerHTML = `<div class="lon">${q.the.lon ?? ''}</div>${q.the.duoi ? `<div class="duoi">${q.the.duoi}</div>` : ''}${(q.the.dong || []).map((d) => `<div class="dong">${d}</div>`).join('')}`;
+  if (q.the) { const dai = String(q.the.lon ?? '').length;   // số to: chuỗi dài (vd "Mon · Wed · Fri") thu nhỏ cho vừa một dòng
+    th.innerHTML = `<div class="lon" style="font-size:${dai > 12 ? 76 : dai > 7 ? 96 : 120}px">${q.the.lon ?? ''}</div>${q.the.duoi ? `<div class="duoi">${q.the.duoi}</div>` : ''}${(q.the.dong || []).map((d) => `<div class="dong">${d}</div>`).join('')}`;
     th.style.top = { tren: '300px', giua: '700px' }[q.the.vi] || '930px';   // vi: tren | giua | (dưới, mặc định) — tránh che chỗ camera đang nhìn
     th.style.opacity = Math.min(ease((t - q.tu - 0.25) / 0.4), ease((q.den - t) / 0.3)); } else th.style.opacity = 0;
   C._lop.forEach((ds, j) => { const a = moi.dung ? ease((troi * (C._lop.length + 1) - j) / 1.2) : 1; ds.forEach((e) => { e.style.opacity = a; }); });

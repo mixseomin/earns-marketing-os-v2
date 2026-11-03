@@ -92,7 +92,8 @@ def doc(video, tu, den):
         subprocess.run(["ffmpeg", "-v", "error", "-ss", str(tu), "-t", str(den - tu), "-i", video, "-vf", "fps=1,scale=540:-2", f"{t}/k%04d.png"], check=True)
         anh = [f"{t}/{a}" for a in sorted(os.listdir(t))]
         if sys.platform != "darwin": return [(tu + i, c) for i, c in enumerate(doc_linux(anh))]   # box3: không có Vision → tesseract
-        r = subprocess.run([may_doc()] + anh, capture_output=True, text=True, check=True, timeout=600)
+        # hạn theo số khung (03/11/2026: lô kiểu tập đọc cả phim 169553 = 2242 khung, hạn cứng 600s cắt ngang → lô ra 0 đoạn); ~0,5s/khung, tối thiểu 600s
+        r = subprocess.run([may_doc()] + anh, capture_output=True, text=True, check=True, timeout=max(600, int(0.5 * len(anh))))
         return [(tu + i, json.loads(l)["chu"]) for i, l in enumerate(r.stdout.splitlines())]
 
 def tu_kiem():

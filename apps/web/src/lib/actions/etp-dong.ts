@@ -84,6 +84,11 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0): P
   const coLoi = sql`(p.trang_thai in ('dung', 'loi') or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.trang_thai in ('loi', 'dung')))`;
   const dangL = sql`(p.trang_thai = 'chay' and ${xongLuc} is null)`;
   const dk = loc === 'dang' ? dangL : loc === 'loi' ? coLoi : loc === 'tat_ca' ? sql`true` : sql`(${dangL} or ${coLoi} or ${xongLuc} > now() - interval '1 day')`;
+  // THỨ TỰ (anh 03/11/2026 "cái đang sx lên đầu, rồi đến nhóm đang chạy. Cái nào chưa đến lượt chờ thì ở dưới"):
+  // 0 đang sản xuất (có bước đang chạy) · 1 camp đang chạy · 2 lỗi / dừng · 3 chờ tới lượt
+  const hang = sql`case when exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.trang_thai = 'dang') then 0
+    when exists (select 1 from etp.camp c where c.content_id = p.content_id and c.tao >= p.tao_luc and c.trang_thai = 'ACTIVE') then 1
+    when ${coLoi} then 2 else 3 end`;
   const t = `%${tim.trim()}%`;
   const loctim = tim.trim() ? sql`and (p.ten ilike ${t} or p.content_id::text = ${tim.trim()} or p.id::text = ${tim.trim()})` : sql``;
   const dong = await run<DongPhim>(sql`select p.id, p.content_id, coalesce(p.ten, (select v.ten from etp.thu_vien_phim v where v.content_id = p.content_id limit 1)) ten, p.the_loai, p.loai, p.ai, p.trang_thai, p.ly_do, p.camp_id, p.creative_id, p.tao_luc::text tao_luc, p.xong_luc::text xong_luc,
@@ -95,7 +100,7 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0): P
             where b.dong_id = p.id and b.buoc = 'creative' and e ? 'creative_id'))) so,   -- CHỈ camp của creative thuộc dòng này (03/11/2026: 3 loại cùng phim đếm chung 5 camp thành 15)
       coalesce((select json_agg(json_build_object('buoc', b.buoc, 'thu_tu', b.thu_tu, 'trang_thai', b.trang_thai, 'bat_dau', b.bat_dau, 'ket_thuc', b.ket_thuc, 'han_giay', b.han_giay,
         'lan', b.lan, 'ghi', b.ghi, 'nhip', b.nhip, 'fix', b.fix, 'ket_qua', b.ket_qua) order by b.thu_tu) from etp.dong_buoc b where b.dong_id = p.id), '[]'::json) buoc
-    from etp.dong_phim p where ${dk} ${loctim} order by (${coLoi}) desc, (${dangL}) desc, p.id desc limit ${TRANG} offset ${Math.max(0, Math.trunc(trang)) * TRANG}`);
+    from etp.dong_phim p where ${dk} ${loctim} order by (${hang}), p.id desc limit ${TRANG} offset ${Math.max(0, Math.trunc(trang)) * TRANG}`);
   const [d] = await run<Record<LocDong | 'tong', number>>(sql`select count(*) filter (where ${dk} ${loctim}) tong, count(*) filter (where ${dangL} or ${coLoi} or ${xongLuc} > now() - interval '1 day') mac_dinh,
       count(*) filter (where ${dangL}) dang, count(*) filter (where ${coLoi}) loi, count(*) tat_ca from etp.dong_phim p`);
   const may = await run<{ may: string; nhip: string }>(sql`select may, nhip::text nhip from etp.dong_may`);

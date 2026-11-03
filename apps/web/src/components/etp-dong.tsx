@@ -2,7 +2,6 @@
 // DÒNG PHIM TỰ ĐỘNG (anh 03/11/2026, etp.on.tc): FormChayDong = form hỏi loại nội dung QC (KT / CC / CT…, mô tả + cách làm + giá + ví dụ thật) + thể loại;
 // TabDong = mỗi phim một dòng, 8 bước có giờ bắt đầu / kết thúc, nút FIX từng bước, Dừng dòng. Máy: apps/etp/dong_phim.py (iMac) · canh: apps/etp/manh.py (box3).
 import React, { useCallback, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { EmptyState, FormModal, FormModalFooter, FormModalSection, SelectField } from '@/components/ui';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { TRE_MO } from '@/lib/etp-tre';
@@ -252,7 +251,7 @@ export function TabDong({ moCamp }: { moCamp?: (id: number) => void } = {}) {
 export function FormChayDong({ contentId, onClose, moRong }: { contentId: number; onClose: () => void; /** mở rộng phim đang chạy: hỏi thêm số camp mới (anh 04/11/2026) */ moRong?: boolean }) {
   const [f, setF] = useState<Awaited<ReturnType<typeof formDong>> | null>(null);
   const [loai, setLoai] = useState('CC'); const [tl, setTl] = useState(''); const [gui, setGui] = useState(false); const [loi, setLoi] = useState<string | null>(null);
-  const [soCamp, setSoCamp] = useState(1); const [xong, setXong] = useState<number | null>(null); const router = useRouter();
+  const [soCamp, setSoCamp] = useState(1); const [xong, setXong] = useState<number | null>(null);
   useEffect(() => { void formDong(contentId).then((r) => { setF(r); if (!('loi' in r)) { setTl(r.tlPhim ?? ''); if (r.kPlan) setSoCamp(r.kPlan); } }); }, [contentId]);
   const ok = f && !('loi' in f);
   return <FormModal kind="generic" action="create" title={<>{moRong ? '＋ Mở rộng phim — thêm camp mới' : '▶ Chạy tự động tới khi lên camp'}</>} idText={`PHIM #${contentId}`} subtitle={ok ? f.ten ?? undefined : undefined} width="md" onClose={onClose}>
@@ -304,7 +303,8 @@ export function FormChayDong({ contentId, onClose, moRong }: { contentId: number
         <button className="btn primary" disabled={gui || f.nhomGoc !== 'au_my' || !tl} title={!tl ? 'chọn thể loại trước' : undefined} onClick={async () => {
           setGui(true); setLoi(null); const r = await chayDong(contentId, loai, tl, moRong ? soCamp : undefined); setGui(false);
           if ('loi' in r) return setLoi(r.loi);
-          setXong(r.id); router.refresh();   // Ở YÊN trang (anh 04/11/2026 "cấm di chuyển") — form đổi thành kết quả + link tab Sản xuất lọc đúng phim
+          setXong(r.id);   // Ở YÊN trang, KHÔNG tải lại trang (anh 04/11/2026 "ko đc F5 cả page") — chỉ báo badge của đúng phim thêm số
+          window.dispatchEvent(new CustomEvent('etp-dong-moi', { detail: { content_id: contentId, id: r.id, loai, so_camp: moRong ? soCamp : null, buoc: null } }));
         }}>{gui ? 'Đang gửi…' : moRong ? `＋ Lên ${soCamp} camp` : '▶ Chạy tự động'}</button>
       </FormModalFooter>
     </>}

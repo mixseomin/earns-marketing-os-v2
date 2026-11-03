@@ -2200,8 +2200,10 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const tranT = tranTrung(du);
   const [nganCamp, setNganCamp] = useState<number | null>(Number(/^camp:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1]) || null);
   const [nganPhim, setNganPhim] = useState<string | null>(/^phim:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1] ?? null);   // ngăn biểu đồ cả phim (điện thoại)
-  const laNguoi = quyen?.vai === 'nguoi', tabsHien = laNguoi ? TAB_NGUOI : chiXem ? TABS.filter((t) => t !== 'tong2') : TABS;   // Tổng quan 2 (widget) chỉ chủ thấy tới khi hoàn thiện (anh 01/11/2026)
+  // Sản xuất (dòng phim nhà) chỉ hiện khi đang xem tài khoản Tuấn David (nhà) — không ở người khác / Team (anh 03/11/2026)
+  const laNguoi = quyen?.vai === 'nguoi', tabsHien = (laNguoi ? TAB_NGUOI : chiXem ? TABS.filter((t) => t !== 'tong2') : TABS).filter((t) => t !== 'dong' || (!duGoc.nguoi.ngoai && !duGoc.nguoi.doi));   // Tổng quan 2 (widget) chỉ chủ thấy tới khi hoàn thiện (anh 01/11/2026)
   const [tab, setTab] = useState<Tab>(tabsHien.includes(dauVao?.t as Tab) ? (dauVao!.t as Tab) : 'tong');
+  useEffect(() => { if (!tabsHien.includes(tab)) setTab('tong'); }, [tabsHien, tab]);   // đổi người khi đang ở tab chỉ-nhà (Sản xuất) → về Tổng quan
   // ?lu= luật · ?d= loại creative — bộ lọc giữ qua F5 (anh 27/10/2026 "bộ lọc cũng phải lưu theo F5")
   const [luatLoc, setLuatLoc] = useState(dauVao?.lu ?? '');
   const [dangLoc, setDangLoc] = useState(dauVao?.d ?? '');

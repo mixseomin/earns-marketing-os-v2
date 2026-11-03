@@ -79,7 +79,7 @@ const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat
   c.giao === 'DISAPPROVED' ? { chu: '⛔ Meta từ chối', mau: '#f87171', t: 'Meta từ chối' }
   : c.lich_tat ? { chu: 'dừng theo giờ', mau: '#f59e0b', t: 'tạm dừng theo lịch giờ — máy tự bật lại khi tới khung BẬT' }
   : choGio(c) ? { chu: `chờ ${conLai(c.lich!)} nữa`, mau: '#f59e0b', t: `hẹn chạy từ ${vn(c.lich)}` }
-  : c.trang_thai === 'ACTIVE' ? { chu: 'chạy', mau: '#4ade80', t: 'đang chạy' } : (() => { const k = kieuDung(c); return { chu: `${k.ky} ${k.chu}`, mau: k.ky === '⚠' ? '#f87171' : k.ky === '⏳' ? '#60a5fa' : 'var(--fg-2)', t: k.t }; })();
+  : c.trang_thai === 'ACTIVE' ? { chu: 'chạy', mau: '#4ade80', t: 'đang chạy' } : (() => { const k = kieuDung(c); return { chu: `${k.ky} dừng`, mau: k.ky === '⚠' ? '#f87171' : k.ky === '⏳' ? '#60a5fa' : 'var(--fg-2)', t: k.t }; })();
 // PHẠM VI LƯU THEO NGƯỜI ĐANG XEM (anh 02/11/2026 "layout, filter, search… thì ko được thông nhau"): bảng (cột / sắp xếp / lọc cột / ô tìm / độ rộng) và cây mở-gập
 // lưu riêng cho Nhà · từng người · Team. Nhà để phạm vi rỗng = giữ nguyên bộ đã lưu từ trước
 const phamViNg = (du: DuLieuEtp) => (du.nguoi.doi ? 'team' : du.nguoi.ngoai && du.nguoi.dang != null ? `ng${du.nguoi.dang}` : '');
@@ -315,7 +315,7 @@ function dieuKienLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' 
     { ten: `tuổi ${tuoi.toFixed(1)} ≥ 7 ngày`, dat: tuoi >= 7 }] });
   return ra;
 }
-type VaoLuat = { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao' | 'ten' | 'bo' | 'camp_id' | 'phim'>; ba: SoTien; bao?: { nhom: string; chu: string }[]; boThang: string[]; thangMuc: number[]; xet?: XetLuat[];
+type VaoLuat = { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao' | 'ten' | 'bo' | 'camp_id' | 'phim'> & { trang_thai?: string; dong?: CampEtpKho['dong'] }; ba: SoTien; bao?: { nhom: string; chu: string }[]; boThang: string[]; thangMuc: number[]; xet?: XetLuat[];
   /** camp người khác (?ng=): bảng xét là ĐỀ XUẤT của máy luật nhà, không ai làm (anh 30/10/2026 "chỉ đề xuất, ko tự ý update") */
   deXuat?: boolean };
 // MỘT chỗ tính luật cho chip (Cây) và ngăn camp (điện thoại) — THỨ TỰ NGUỒN: máy luật đã xếp (etp.bao 'dang', chip đặc) → luật đủ điều kiện theo số trang →
@@ -412,6 +412,9 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
 }
 function ChipLuat(p: VaoLuat) {
   const noi = useNoi<{ id: 0 }>(); const t = tinhLuat(p);
+  // CAMP ĐÃ TẮT THEO LUẬT → luật hiện ở CỘT LUẬT (anh 03/11/2026 "nếu tắt theo Luật thì show bên cột Luật"): chip ✕ <mã> đã tắt, hover = lý do có cấu trúc (kieuDung)
+  const maTat = p.c.trang_thai && p.c.trang_thai !== 'ACTIVE' && p.c.dong?.ma && p.c.dong.ma !== 'Tay / không ghi luật' ? p.c.dong.ma : null;
+  if (maTat) return <span title={kieuDung(p.c).t} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, padding: '0 6px', borderRadius: 4, border: '1px solid #7f1d1d', color: '#fca5a5', whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>✕ {maTat} đã tắt</span>;
   if (!t.chinh && !t.xet) return <span style={{ color: 'var(--fg-3, #777)' }}>·</span>;
   // camp không chạm luật nào vẫn rê được: ô hiện "…" (anh 28/10/2026 "hiển thị (...) là được")
   const R = t.xet ? 760 : 340;

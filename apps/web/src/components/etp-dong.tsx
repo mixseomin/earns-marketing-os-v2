@@ -32,7 +32,7 @@ const COT_CR: [string, string, string][] = [['cat', 'Cắt / sinh', 'cat'], ['so
 /** ĐỒNG HỒ TIẾN ĐỘ (anh 04/11/2026 "thiết kế giống cái đồng hồ công tơ mét với các node là tiến độ … ở giữa vẫn là số" · "các bước là chính các phần này và màu sắc như hiện trạng"):
  *  vòng cung 9 nút = đúng 9 cột tab Sản xuất (COT_PHIM + COT_CR), màu = MAU của tab; giữa là số camp đang sản xuất. Cây camp (etp-view BadgeSx) dùng. */
 export const NUT_SX: [string, string, string][] = [...COT_PHIM.map(([k, t]): [string, string, string] => [k, t, k]), ...COT_CR];
-export function DongHoSx({ buoc, so, title, href }: { buoc: { buoc: string; trang_thai: string }[]; so: number; title: string; href: string }) {
+export function DongHoSx({ buoc, so, title, href, ket }: { buoc: { buoc: string; trang_thai: string }[]; so: number; title: string; href: string; /** dòng đã kết thúc: xong / dung / loi → số giữa đổi màu (giữ 24 giờ) */ ket?: string }) {
   const R = 10, C = 13, goc0 = 150, quet = 240, n = NUT_SX.length;   // cung 240° mở phía dưới như công-tơ-mét
   const xy = (g: number) => [C + R * Math.cos((g * Math.PI) / 180), C + R * Math.sin((g * Math.PI) / 180)];
   const tt = (b: string) => buoc.find((x) => x.buoc === b)?.trang_thai ?? 'cho';
@@ -40,7 +40,7 @@ export function DongHoSx({ buoc, so, title, href }: { buoc: { buoc: string; tran
     <svg width={26} height={26} viewBox="0 0 26 26">
       {NUT_SX.map(([k, , b], i) => { const [x, y] = xy(goc0 + (quet * i) / (n - 1)); const t = tt(b); const m = (MAU[t] ?? MAU.cho!)[0];
         return <circle key={k} cx={x} cy={y} r={t === 'dang' ? 2.4 : 1.9} fill={m} style={t === 'dang' ? { animation: 'etpDen 1.6s ease-in-out infinite' } : undefined}><title>{`${NUT_SX[i]![1]}: ${MAU[t]?.[1] ?? t}`}</title></circle>; })}
-      <text x={C} y={C + 3.5} textAnchor="middle" fontSize={10} fontWeight={700} fill="#fff">{so}</text>
+      <text x={C} y={C + 3.5} textAnchor="middle" fontSize={10} fontWeight={700} fill={ket === 'xong' ? '#22c55e' : ket === 'dung' ? '#f59e0b' : ket === 'loi' ? '#ef4444' : '#fff'}>{so}</text>
     </svg></a>;
 }
 const LOAI_DE: Record<string, string> = { CC: 'Cảnh cuối', KT: 'Kể chuyện', LT: 'Test rộng' };

@@ -1724,8 +1724,10 @@ function BadgeSx({ cid, ds }: { cid: number; ds: DuLieuEtp['dongChay'] }) {
     window.addEventListener('etp-dong-moi', f); return () => window.removeEventListener('etp-dong-moi', f); }, [cid]);
   const d = [...ds, ...them.filter((x) => !ds.some((y) => y.id === x.id))].filter((x) => x.content_id === cid); if (!d.length) return null;
   const so = d.reduce((a, x) => a + (x.so_camp ?? 1), 0);
-  const t = d.map((x) => `dòng sản xuất #${x.id} · ${x.loai}${x.so_camp ? ` · +${x.so_camp} camp` : ''} · bước ${x.buoc ?? '—'}`).join('\n') + '\nbấm: sang tab Sản xuất (Ctrl/⌘: tab mới)';
-  return <DongHoSx buoc={d[d.length - 1]!.cac_buoc ?? []} so={so} title={t} href={`?t=dong&sxq=${cid}`} />;   // nhiều dòng cùng phim: đồng hồ theo dòng mới nhất, số = tổng camp
+  const TT_DONG: Record<string, string> = { chay: 'đang chạy', xong: '✓ xong', dung: '⛔ dừng', loi: '✕ lỗi' };
+  const t = d.map((x) => `dòng sản xuất #${x.id} · ${x.loai}${x.so_camp ? ` · +${x.so_camp} camp` : ''} · ${TT_DONG[x.trang_thai ?? 'chay'] ?? x.trang_thai}${x.trang_thai && x.trang_thai !== 'chay' ? (x.camp_id ? ` · camp #${x.camp_id}` : '') + (x.ly_do ? `\n   ${x.ly_do.slice(0, 220)}` : '') : ` · bước ${x.buoc ?? '—'}`}`).join('\n') + '\nbấm: sang tab Sản xuất (Ctrl/⌘: tab mới)';
+  const cuoi = [...d].reverse().find((x) => (x.trang_thai ?? 'chay') === 'chay') ?? d[d.length - 1]!;   // đang chạy thì đồng hồ theo dòng đang chạy; hết rồi thì dòng mới nhất (giữ 24 giờ)
+  return <DongHoSx buoc={cuoi.cac_buoc ?? []} so={so} title={t} href={`?t=dong&sxq=${cid}`} ket={(cuoi.trang_thai ?? 'chay') === 'chay' ? undefined : cuoi.trang_thai} />;   // nhiều dòng cùng phim: đồng hồ theo dòng mới nhất, số = tổng camp
 }
 /** NÚT ＋ Ở DÒNG PHIM (anh 04/11/2026 "thêm 1 nút ở dòng film … mở ra form để chọn: số camp mới, thể loại film → submit là xong. Còn lại cho tab SX xử lý") */
 function NutMoRong({ cid, k }: { cid: number; k?: number }) {

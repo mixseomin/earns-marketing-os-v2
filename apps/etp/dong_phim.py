@@ -150,11 +150,15 @@ def b_cat(d):
     r = sql(f"select ten, url, locale, nguon from ethopex_content where id = {cid}", spy=True).split("\t")
     if len(r) < 2 or not r[1]: return "loi", "không tìm thấy link tập trong ethopex_content (spy)", None
     sql(f"""delete from etp.viec where lo = '{lo}';   -- lô riêng của dòng: chạy lại bước = xếp lại từ đầu
-            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) + 1) if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {})})}) on conflict do nothing""")
+            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(4, int(d.get("so_camp") or 0) + 3) if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {})})}) on conflict do nothing""")
     rc, out = chay_tien_trinh(d["id"], "cat", ["python3", os.path.join(R, "tho.py"), "--lo", lo, "--so-tho", "1"], dict(BUOC)["cat"] - 60)
     kq = json.loads(sql(f"select coalesce(ket_qua, '[]'::jsonb)::text || chr(9) || coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1").split("\t")[0] or "[]")
     loi = sql(f"select coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1")
     ok = [x for x in kq if x.get("file") and not x.get("loi") and os.path.exists(x["file"])]
+    if d.get("so_camp"):   # MỞ RỘNG: bỏ khung chồng lên đoạn đã có creative của phim (04/11/2026 dòng #35 cắt lại đúng đoạn #64977 → cổng trùng đoạn chặn hết)
+        da = [tuple(map(float, l.split("\t"))) for l in sql(f"select tu, den from etp.creative where content_id = {cid} and tu is not null and den is not null").splitlines() if l.count("\t") == 1]
+        bo = [x for x in ok if any(float(x["tu"]) < b and float(x["den"]) > a for a, b in da)]; ok = [x for x in ok if x not in bo]
+        if not ok: return "dung", f"mọi khung cuối tập cắt được đều trùng đoạn đã có creative ({len(bo)} khung) — phim hết khung mới", None
     if ok: return "xong", f"cắt {len(ok)} đoạn: " + ", ".join(f"{x['tu']:.0f}–{x['den']:.0f}s" for x in ok), {"doan": ok, "lo": lo}
     g = loi or " ".join(str(x.get("loi")) for x in kq) or out[-200:]
     return ("loi" if rc == -9 or LK.ky_thuat(g) is not False else "dung"), f"không ra đoạn nào: {g[:300]}", None
@@ -354,6 +358,8 @@ def lam_buoc(d, buoc):
     except Exception as e: ket, ghi, kq = "loi", f"{type(e).__name__}: {str(e)[:300]}", None
     if sql(f"select huy::text from etp.dong_buoc where dong_id = {d['id']} and buoc = '{buoc}'") == "true" and ket != "xong":
         ket, ghi = "loi", f"bị huỷ (Mạnh / nút Dừng) — {ghi}"
+    if ket == "loi" and re.search(r"ssh:|Connection (closed|reset|refused)|kex_exchange|Operation timed out|Broken pipe", ghi or "") and int(((d.get("buoc") or {}).get(buoc) or {}).get("lan") or 1) < 3:
+        ket, ghi = "cho", f"lỗi mạng tới box3, thử lại — {ghi[:200]}"   # LỖI MẠNG TỰ THỬ LẠI (04/11/2026: 3 dòng chết vì box3 ngắt ssh) — tối đa 3 lượt
     if ket == "cho":
         sql(f"update etp.dong_buoc set ghi = {s(ghi)}, nhip = now(){', ket_qua = ' + js(kq) if kq else ''} where dong_id = {d['id']} and buoc = '{buoc}' and trang_thai = 'dang'")
         return

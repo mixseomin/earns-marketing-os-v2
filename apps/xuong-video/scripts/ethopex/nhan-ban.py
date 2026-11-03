@@ -183,6 +183,20 @@ def dem_doan(cr):
     if _DOAN is None: _DOAN = doan_cua()
     d = _DOAN.get(cr)
     return sum(n for c, n in DEM_CR.items() if (_DOAN.get(c) == d if d else c == cr))
+def cung_doan_dang_chay(cr):
+    """creative mới cr trùng ĐOẠN (cùng phim + cùng mốc giây) với camp đang chạy / vừa tạo dù creative mang mã khác → mã creative đó, không thì None.
+    03/11/2026 lô pm-03110155: máy tự lên 8 camp lúc 03:12–03:51, Claude chạy tay `phim-moi.py len` lại → tải lại thành creative mới #64996–#65005, cổng
+    'một creative một camp' chỉ so mã nên lên trùng 8 camp (Elf King 4 camp cho 2 đoạn), anh bắt tắt. Đoạn lấy từ etp.creative.doan, thiếu thì từ studio."""
+    global _DOAN
+    if _DOAN is None: _DOAN = doan_cua()
+    ids = [c for c, n in DEM_CR.items() if n > 0 and c != cr] + [cr]
+    db = dict(l.split("|", 1) for l in q(f"select creative_id || '|' || doan from etp.creative where doan is not null and creative_id in ({','.join(str(int(c)) for c in ids)})").splitlines() if "|" in l)
+    def d(c):
+        if db.get(str(c)): return db[str(c)]
+        x = _DOAN.get(c)
+        return f"{x[0]}:{x[1]}-{x[2]}" if x and x[0] != "cr" else None
+    dc = d(cr)
+    return next((c for c in ids[:-1] if dc and d(c) == dc), None) if dc else None
 def creative_khac(content_id, bo_qua):
     dat = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_cta_dat'") or "{}")
     tc = json.loads(q("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_tu_choi'") or "{}")
@@ -370,6 +384,8 @@ def main(a):
         n = dem_dang_chay(cid)
         if moi and DEM_CR.get(int(moi["creative"]), 0) > 0:   # một creative một camp mới (25/10/2026: hai lượt lên camp chạy cùng lúc tạo trùng 3 camp)
             raise ChanLuat(f"creative #{moi['creative']} đã có camp đang chạy / vừa tạo — không tạo camp thứ hai")
+        if moi and not ep and (tr := cung_doan_dang_chay(int(moi["creative"]))):
+            raise ChanLuat(f"creative #{moi['creative']} cùng đoạn với creative #{tr} đã có camp đang chạy / vừa tạo — không lên trùng đoạn (anh 03/11/2026)")
         if not ep and not NGOAI and (ntk := dem_tk(cid, pl.get("ad_account_id"))) >= TRAN_PHIM:   # trần tính theo TỪNG tài khoản nhà (anh 02/11/2026)
             raise ChanLuat(f"phim {cid} đã {ntk} camp đang chạy ở tài khoản {pl.get('ad_account_id')} (trần {TRAN_PHIM}/tài khoản) — chỗ còn lại để creative mới khi camp thua tắt")
         if thang:   # thang nhân bản: chỉ bộ 2, bậc mới phải cao hơn ngân sách camp gốc

@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { EmptyState, FormModal, FormModalFooter, FormModalSection, SelectField } from '@/components/ui';
 import { openEntityDrawer } from '@/lib/entity-drawer';
+import { TRE_MO } from '@/lib/etp-tre';
 import { batDauCamp, chayDong, docChiTiet, docDong, dungDong, fixBuoc, formDong, type CampDong, type DongPhim, type BuocDong, type LoaiNoiDung, type LocDong } from '@/lib/actions/etp-dong';
 
 const TEN_BUOC: Record<string, [string, string]> = {
@@ -46,9 +47,12 @@ function NutGui({ chu, dang = 'đang gửi…', xong = '✓ đã nhận', lam, h
 
 // XEM TRƯỚC KHI RÊ (anh 03/11/2026 "các bước cụ thể xem được như hình poster, creative khi hover vào"): một khung nổi dùng chung cho cả bảng
 type Xem = { anh?: string | null; video?: string | null; chu?: string; x: number; y: number };
-let datXem: (v: Xem | null) => void = () => {};
+let datXemNgay: (v: Xem | null) => void = () => {};
+let henXem: number | undefined;
+// rê trễ TRE_MO (chung etp-view, #1514) mới mở; rời là tắt ngay
+const datXem = (v: Xem | null) => { window.clearTimeout(henXem); if (!v) { datXemNgay(null); return; } henXem = window.setTimeout(() => datXemNgay(v), TRE_MO); };
 function KhungXem() {
-  const [v, setV] = useState<Xem | null>(null); datXem = setV;
+  const [v, setV] = useState<Xem | null>(null); datXemNgay = setV;
   if (!v) return null;
   const W = v.video ? 240 : 200; const left = Math.min(v.x + 14, window.innerWidth - W - 12); const top = Math.max(8, Math.min(v.y - 60, window.innerHeight - 440));
   return <div style={{ position: 'fixed', left, top, zIndex: 70, width: W, padding: 6, borderRadius: 8, background: 'var(--bg-1)', border: '1px solid var(--line)', boxShadow: '0 8px 24px rgba(0,0,0,.55)', pointerEvents: 'none' }}>

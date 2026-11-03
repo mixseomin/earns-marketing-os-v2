@@ -395,7 +395,7 @@ const LUAT = [
   { card: 'the-noi-0311', tep: 'apps/web/src/components/etp-view.tsx', co: '{/* cùng khung thẻ bậc (TheBac) */}', vi: 'thẻ lý do dừng có khung cố định như thẻ bậc' },
   { card: 'the-noi-0311', tep: 'apps/web/src/lib/etp-doc.ts', co: 'maSo: maLuat(r.viec, r.luat)', vi: 'mã luật chỉ khi khớp sổ luật, không lấy chữ đầu câu' },
   { card: 'hero-ky-0311', tep: 'apps/web/src/components/etp-view.tsx', co: "BO_LOC.every(([k, f]) => k === 'ky' || f(c))", vi: 'dải số không tính bộ lọc kỳ (hôm nay không đổi theo kỳ)' },
-  { card: 'hero-ky-0311', tep: 'apps/web/src/components/etp-view.tsx', co: '`Kỳ trước · ${kyTruoc.nhan}`', cam: "label: 'Lãi hôm nay', value: <Lai s={nay} />", vi: 'hero theo kỳ đang chọn + kỳ trước cùng độ dài (anh 03/11/2026)' },
+  { card: 'hero-ky-0311', tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'nay', label: 'Lãi hôm nay', value: <Lai s={nay} />", vi: 'hero giữ ô hôm nay + hôm qua cố định, ô 3 theo kỳ (anh 03/11/2026: ai bảo xoá)' },
   { card: 'lo-trinh-0311', tep: 'apps/etp/dong_phim.py', co: 'CHỜ ANH BẮT ĐẦU', vi: 'dòng phim LT dừng trước bước lên camp tới khi anh bắt đầu (anh 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'not _lt.get("bat_dau") and (cm := camp_moi_hom_nay(cid))', vi: 'phim lộ trình đã bắt đầu được miễn luật một camp (anh chọn A 03/11/2026)' },
   { card: 'lo-trinh-0311', tep: 'apps/etp/tho.py', co: '"ETP_KIEU": d["kieu"]', vi: 'thợ cắt truyền kiểu tập trọn cho dòng LT' },

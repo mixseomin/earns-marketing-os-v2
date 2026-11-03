@@ -2446,14 +2446,6 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   ];
   const ngayGanNhat = du.ngay.filter((r) => ngayKh(r.ngay)).map((r) => ({ ...r, ...(du.demNgay[r.ngay] ?? { camp_moi: 0, cr_moi: 0, tat: 0 }) }));
   const khTong = soLoc ? (khNay ? nay : cong(soLoc.map((c) => ckh(c.camp_id)))) : cong(ngayGanNhat);
-  // KỲ TRƯỚC cùng độ dài (anh 03/11/2026 "Lãi hôm nay thì liên quan gì đến Time frame kia?"): hero đi theo kỳ đang chọn — ô 1 kỳ chọn, ô 2 kỳ ngay trước để so
-  const kyTruoc = useMemo(() => { if (kh === 'tat_ca') return null; const d = (x: string) => Date.parse(`${x}T00:00:00Z`), f = (t: number) => new Date(t).toISOString().slice(0, 10);
-    const dai = Math.round((d(khK.den) - d(khK.tu)) / 86_400_000) + 1; const den = f(d(khK.tu) - 86_400_000), tu = f(d(khK.tu) - dai * 86_400_000);
-    const trong = (x: string) => x >= tu && x <= den;
-    const s = soLoc ? (() => { const ids = new Set(soLoc.map((c) => c.camp_id)); return du.soNgay.filter((r) => ids.has(r.c) && trong(r.d)).reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 }); })()
-      : du.ngay.filter((r) => trong(r.ngay)).reduce((a, r) => ({ chi: a.chi + r.chi, thu: a.thu + r.thu }), { chi: 0, thu: 0 });
-    return { s, nhan: dai === 1 ? `${den.slice(8, 10)}/${den.slice(5, 7)}` : `${tu.slice(8, 10)}/${tu.slice(5, 7)} – ${den.slice(8, 10)}/${den.slice(5, 7)}` }; }, [kh, khK.tu, khK.den, soLoc, du.soNgay, du.ngay]);
-  const doiLai = kyTruoc && kyTruoc.s.chi > 0 ? ((khTong.thu - khTong.chi) - (kyTruoc.s.thu - kyTruoc.s.chi)) : null;
   // DỰ KIẾN HÔM NAY (anh 24/10/2026 "show dự kiến lên chart"): chi cả ngày = max(chi đến giờ, 90% tổng ngân sách camp đang chạy — các ngày qua chi đạt ~85–95%);
   // ROI = trung bình ROI hôm nay đến giờ và ROI hôm qua (doanh thu về trễ nên ROI giữa ngày thường thấp hơn cuối ngày); khoảng = ROI ± 7 điểm
   const duKien = (() => {
@@ -2597,15 +2589,16 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       <div ref={heroRef} style={{ margin: gon ? '8px 0' : '12px 0', ...(tab === 'tong2' ? { display: 'none' } : {}) }}>{/* Tổng quan 2: widget Nắm nhanh thay dải số này — nhường chỗ để lưới vừa một màn (anh 01/11/2026) */}
         {gon ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }} title={`Camp chạy ${chay.length} · ngân sách $${chay.reduce((a, c) => a + c.ngan_sach, 0)}/ngày · đoạn vượt 3 camp ${new Set(du.camps.filter((c) => c.cung_doan > tranT).map((c) => c.doan)).size} · cảnh báo 24h ${du.canhBao.filter((c) => Date.now() - Date.parse(c.luc) < 86_400_000).length}`}>
-            {([[khNhan, khTong], ...(kyTruoc ? [['Kỳ trước', kyTruoc.s]] : [])] as [string, SoTien][]).map(([ten, s]) => (
+            {([['H.nay', nay], ['H.qua', qua], [khNhan, khTong]] as [string, SoTien][]).map(([ten, s]) => (
               <div key={ten} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px' }}>
                 <div style={{ fontSize: 10, color: 'var(--fg-2)' }}>{ten} · <Roi s={s} /></div>
                 <div style={{ fontWeight: 700, fontSize: 15 }}><Lai s={s} /></div>
               </div>))}
           </div>
         ) : <StatsStrip cards={[
-          { key: 'kh', label: `Lãi · ${khNhan}`, value: <Lai s={khTong} />, sub: <span>ROI <Roi s={khTong} /> · chi {usd(khTong.chi)}{khNay ? ' · ngày chưa khép' : ''}</span> },
-          ...(kyTruoc ? [{ key: 'truoc', label: `Kỳ trước · ${kyTruoc.nhan}`, value: <Lai s={kyTruoc.s} />, sub: <span>ROI <Roi s={kyTruoc.s} /> · chi {usd(kyTruoc.s.chi)}{doiLai != null ? <> · <b style={{ color: doiLai >= 0 ? '#4ade80' : '#f87171' }}>{doiLai >= 0 ? '+' : '−'}{usd(Math.abs(doiLai))}</b> so kỳ trước</> : null}</span> }] : []),
+          { key: 'nay', label: 'Lãi hôm nay', value: <Lai s={nay} />, sub: <span>ROI <Roi s={nay} /> · chi {usd(nay.chi)}</span> },   // CỐ ĐỊNH, không theo kỳ (anh 03/11/2026)
+          { key: 'qua', label: 'Lãi hôm qua', value: <Lai s={qua} />, sub: <span>ROI <Roi s={qua} /> · chi {usd(qua.chi)}</span> },
+          { key: 'kh', label: `Lãi ${khNhan.toLowerCase()}`, value: <Lai s={khTong} />, sub: <span>ROI <Roi s={khTong} /> · chi {usd(khTong.chi)}</span> },   // ô theo kỳ đang chọn
           { key: 'camp', label: 'Camp chạy', value: chay.length, sub: `${choChay.length ? `${choChay.length} chờ giờ · ` : ''}${nguon.filter((c) => c.trang_thai !== 'ACTIVE').length} đã tắt` },
           // TỔNG NGÂN SÁCH (anh 27/10/2026 "thêm hero tổng ngân sách"): mọi camp ACTIVE (đang chạy + chờ giờ), theo bộ lọc đang chọn như các ô khác
           { key: 'ns', label: 'Tổng ngân sách', value: `$${[...chay, ...choChay].reduce((a, c) => a + c.ngan_sach, 0)}/ngày`, sub: `đang chạy $${chay.reduce((a, c) => a + c.ngan_sach, 0)}${choChay.length ? ` · chờ giờ $${choChay.reduce((a, c) => a + c.ngan_sach, 0)}` : ''} · đã chi hôm nay ${usd(nay.chi)}` },

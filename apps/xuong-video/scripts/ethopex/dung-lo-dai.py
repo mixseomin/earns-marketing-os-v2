@@ -4,7 +4,7 @@ Mỗi phim (thư mục do tai-tap.py tải: tap01.mp4 …, poster.jpg): ghép c�
 ưu tiên kết đúng chỗ hết tập (cliffhanger của app), không thì cắt ở ~170s → poster thẻ cuối 1080x1920 (poster sát trên, tên phim thoát dải tối)
 → đọc chữ cả nguồn một lần (kiem-thoai) chọn khung 2–3' KHÔNG dính từ cấm → cat-canh.py (nút CTA + giọng CTA + thẻ cuối; cổng thoại kiểm lại).
 Dùng: dung-lo-dai.py <thư mục chứa các phim> <phim.tsv: id\\tnguon\\tlocale\\tten\\turl> <thư mục ra> [song_song=3]"""
-import csv, json, os, subprocess, sys
+import csv, json, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 from concurrent.futures import ThreadPoolExecutor
 from PIL import Image, ImageFilter
@@ -17,8 +17,13 @@ DAI_MIN, DAI_MAX, CAT_NGAN = 120, 180, 170
 
 def giay(f): return float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).strip() or 0)
 
+# tập gốc tai-tap.py = tapNN.mp4 ĐÚNG khuôn. "tap* .mp4" lỏng (03/11/2026) vơ cả tapNN-chuan.mp4 của chính bước chuẩn hoá → mỗi lượt chuẩn hoá chồng
+# một lớp (tap01-chuan-chuan-chuan-chuan.mp4, 14 GB thừa ở ~/.cache/ethopex/nguon) và tệp ghép lặp mỗi tập nhiều lần → mốc hết tập sai.
+TAP_MAU = "tap{[0-9][0-9],[0-9][0-9][0-9]}.mp4"   # cùng khuôn cho rclone --include
+def la_tap(f): return re.fullmatch(r"tap\d{2,3}\.mp4", f) is not None
+
 def ghep(thu_muc, tu_tap=1):
-    taps = sorted(f for f in os.listdir(thu_muc) if f.startswith("tap") and f.endswith(".mp4"))[tu_tap - 1:]
+    taps = sorted(f for f in os.listdir(thu_muc) if la_tap(f))[tu_tap - 1:]
     ds = os.path.join(thu_muc, f"ds{tu_tap}.txt"); ra = os.path.join(thu_muc, f"ghep{tu_tap}.mp4")
     open(ds, "w").write("".join(f"file '{os.path.join(thu_muc, t)}'\n" for t in taps))
     # chuẩn hoá về cùng thông số rồi ghép (tập có thể khác bitrate / kích thước)

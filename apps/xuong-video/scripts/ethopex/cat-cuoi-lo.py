@@ -23,8 +23,8 @@ sys.path.insert(0, D); import loi_ky_thuat as LK; import cat_drive as CD
 
 def ghep_mo(tm):
     """ghép các tập còn mở (tập ≤ 20s là bản cụt của tập khoá — DramaBox trả 15s)"""
-    CD.keo_thu_muc(tm, "tap*.mp4")   # tập đã cất lên Drive (cat_drive.py) → kéo về trước khi liệt kê
-    taps = sorted(f for f in os.listdir(tm) if f.startswith("tap") and f.endswith(".mp4"))
+    CD.keo_thu_muc(tm, DL.TAP_MAU)   # tập đã cất lên Drive (cat_drive.py) → kéo về trước khi liệt kê
+    taps = sorted(f for f in os.listdir(tm) if DL.la_tap(f))
     taps = [t for t in taps if DL.giay(os.path.join(tm, t)) > 20]
     ds = os.path.join(tm, "ds-cuoi.txt"); ra = os.path.join(tm, "ghep-cuoi.mp4")
     # ghép giữ mã chỉ khi mọi tập cùng thông số — 22/10/2026 DramaBox 156881 tập 6 là 720x1282 → concat cụt còn 215/392s, đoạn ra 3,6s.

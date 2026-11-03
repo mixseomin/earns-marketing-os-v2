@@ -15,7 +15,9 @@ GOC = os.path.expanduser("~/.cache/ethopex")
 REMOTE = ("gdrive", "khodrive")
 # máy nền: macOS taskpolicy -b, Linux nice + ionice (taskpolicy không có trên Linux → lệnh cất trên box3 vỡ FileNotFoundError).
 # ionice lớp 2 mức 7 (thấp nhất mà vẫn tới lượt) — lớp 3 "idle" chỉ được đọc đĩa khi không ai dùng: lô cắt ghi liên tục → cất chỉ ~1 MB/s (đo 01/11/2026)
-NEN = ["taskpolicy", "-b"] if sys.platform == "darwin" else ["nice", "-n", "19", "ionice", "-c", "2", "-n", "7"]
+# macOS KHÔNG dùng taskpolicy -b: tầng nền bóp cả MẠNG — đo 03/11/2026 cùng lệnh rclone: có -b 0,8 MiB/s (lượt 5 phút cất 0,5 GB, tồn 46 GB,
+# ổ iMac 98%), bỏ -b 24–30 MiB/s. Chỉ hạ ưu tiên CPU bằng nice.
+NEN = ["nice", "-n", "19"] if sys.platform == "darwin" else ["nice", "-n", "19", "ionice", "-c", "2", "-n", "7"]
 DUOI = ("mp4", "mov", "mkv", "webm", "wav", "m4a", "mp3", "aac")
 LOG = os.path.join(GOC, "cat-drive.log")
 # 8 luồng · mảnh 64 MB · ≤ 8 lệnh/giây (đo 28/10/2026: 4 luồng mảnh 8 MB chỉ ~13 Mbit/s trên mạng 254 Mbps, client_id dùng chung của rclone còn bị 403 "Quota exceeded … per minute")

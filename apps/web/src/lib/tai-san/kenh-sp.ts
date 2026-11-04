@@ -33,13 +33,13 @@ function docNguonYTuong(so: Record<string, SoKenh>): Record<string, { ma: string
 
 export async function docKenhSp(hom: string): Promise<KenhSp[]> {
   const d = getDb(); if (!d) return [];
-  const may = (await d.execute(sql`SELECT m.id, m.ma, m.ten, m.chay, m.dang, m.nguon->'dang_lam' AS dang_lam, m.nguon->'tap_cho' AS tap_cho,
+  const may = (await d.execute(sql`SELECT m.id, m.ma, m.ten, m.chay, m.dang, m.nguon->'dang_lam' AS dang_lam, m.nguon->'dang_lam_ds' AS dang_lam_ds, m.nguon->'tap_cho' AS tap_cho,
       count(v.id) FILTER (WHERE NOT coalesce(v.luu_tru, false))::int AS tap,
       count(v.id) FILTER (WHERE NOT coalesce(v.luu_tru, false) AND v.video_url IS NOT NULL AND NOT (v.da_dang ? 'youtube'))::int AS cho_dang,
       count(v.id) FILTER (WHERE v.da_dang ? 'youtube')::int AS da_dang,
       max(v.da_dang->'youtube'->>'ngay') AS dang_cuoi
     FROM xv_may m LEFT JOIN xv_may_video v ON v.may_id = m.id AND v.de->>'loai' = 'video-ngoai' WHERE m.la_san_pham GROUP BY m.id ORDER BY m.id`)) as unknown as
-    { ma: string; ten: string; chay: boolean; dang_lam: DangLam | null; tap_cho: TapCho[] | null; dang: { nen: string; gio_tu?: string; br?: { handle?: string } }[]; tap: number; cho_dang: number; da_dang: number; dang_cuoi: string | null }[];
+    { ma: string; ten: string; chay: boolean; dang_lam: DangLam | null; dang_lam_ds: Record<string, DangLam> | null; tap_cho: TapCho[] | null; dang: { nen: string; gio_tu?: string; br?: { handle?: string } }[]; tap: number; cho_dang: number; da_dang: number; dang_cuoi: string | null }[];
   if (!may.length) return [];
   const so = (await d.execute(sql`SELECT san_pham, ngay::text AS ngay, hien, so_muc, chi_tiet->>'nguoi_dk' AS nguoi_dk FROM kenh_so_ngay
     WHERE kenh = 'youtube' AND san_pham IN ${may.map((m) => `may:${m.ma}`)} AND ngay >= current_date - 30`)) as unknown as
@@ -65,8 +65,9 @@ export async function docKenhSp(hom: string): Promise<KenhSp[]> {
       tap: m.tap, choDang: m.cho_dang, daDang: m.da_dang, dangCuoi: m.dang_cuoi, ...tinhSoKenh(ds, hom),
       phimId: phim.find((p) => p.may === m.ma)?.id ?? null, so: lt[m.ma] ?? null, nguoi: (() => { const t = lt[m.ma]?.nguoi_tep; const x = t ? docTepLichSu<{ nguoi: NguoiLaSo[]; rodden_dung_nha?: string[] }>(t) : null; return x ? { ds: x.nguoi, dungNha: x.rodden_dung_nha ?? ['AA'] } : null; })(), yTuongTuSinh: lt[m.ma] ? yTuongTuSinh(lt[m.ma]!, nguonY, hom) : [], anh: anh.find((a) => a.san_pham === `may:${m.ma}`)?.anh ?? null,
       playlist: soTheoPlaylist(hs[m.ma]?.playlist ?? [], l.theo, videos),
+      // ke.dangLam: nguon.dang_lam (một dấu / máy) = dạng cũ trước 05/11/2026, đọc tới khi lượt cuối viết dạng cũ xong; dang_lam_ds = mỗi tập một dấu
       ke: (() => {
-        return { lichTap: l.chu, tapKe: l.ke, dangLam: m.dang_lam ?? null, tapCho: m.tap_cho ?? [], gioDang: (m.dang ?? []).find((x) => x.nen === 'youtube')?.gio_tu ?? null,
+        return { lichTap: l.chu, tapKe: l.ke, dangLam: [...(m.dang_lam?.id ? [m.dang_lam] : []), ...Object.values(m.dang_lam_ds ?? {})].sort((a, b) => a.luc.localeCompare(b.luc)), tapCho: m.tap_cho ?? [], gioDang: (m.dang ?? []).find((x) => x.nen === 'youtube')?.gio_tu ?? null,
           lichDang: lich.filter((x) => x.may === m.ma && x.ngay >= hom).sort((a, b) => `${a.ngay}${a.gio ?? ''}`.localeCompare(`${b.ngay}${b.gio ?? ''}`)).slice(0, 10)
             .map((x) => ({ ngay: x.ngay, gio: x.gio ?? null, nen: x.nen, tieuDe: x.title ?? '' })) }; })(),
       videos };

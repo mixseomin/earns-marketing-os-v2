@@ -2,7 +2,7 @@
 // Cây: Kênh (kenh.json một mục, `may` = máy đăng, trần đăng tính ở đây) → Playlist (kenh.json › playlist[]) → Tập (tap.playlist).
 // Mỗi playlist: { ma, ten, tien_to?, lich_tap: [thứ 1–7], gio_tap?, trang_dich?, yt?: { <ngôn ngữ>: <mã playlist YouTube> }, + khoá đè hồ sơ kênh (DE) }.
 // Lịch làm tập nằm ở playlist; kênh không khai playlist thì dùng lich_tap / gio_tap của kênh như trước (không đổi gì).
-// Hai playlist KHÔNG được trùng ngày: một máy một dấu nguon.dang_lam (hai lượt cùng ngày giẫm nhau) + kênh mới trần 1 bài/ngày.
+// Hai playlist KHÔNG được trùng ngày: mỗi tập một dấu nguon.dang_lam_ds[<tập>] nhưng khoá chống chồng của chay-kenh vẫn một lượt / kênh + kênh mới trần 1 bài/ngày.
 
 /** khoá playlist được đè lên hồ sơ kênh (khuôn kịch bản, giọng, theme… theo loạt) */
 export const DE = ['theme', 'khuon', 'giong_van', 'giong', 'nhac', 'sfx', 'ket', 'cau_cuoi', 'do_dai', 'cau', 'cau_noi', 'tu', 'tu_noi', 'chu_de_truoc', 'toi_da_giay', 'luat_hai', 'hinh_ca_tap'];

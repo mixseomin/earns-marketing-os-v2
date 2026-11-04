@@ -46,7 +46,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   // cây mở / gập NẰM TRÊN URL (YDNI: F5 mở ra đúng như đang thấy) — ?kenh_mo=<mã>,<mã>
   const [moUrl, datMoUrl] = useShallowParam('kenh_mo', '');
   // TRỰC TIẾP: có tập đang trong lò (lam-tap ghi bước) → làm mới bảng 15 giây/lần; không có thì đứng yên
-  const router = useRouter(), coLo = kenh.some((k) => k.ke.dangLam && !k.ke.dangLam.loi);
+  const router = useRouter(), coLo = kenh.some((k) => k.ke.dangLam.some((d) => !d.loi));
   // luôn làm mới (60 giây; 15 giây khi có tập trong lò) — trước chỉ khi lúc mở trang đã có tập chạy → mở trang lúc rảnh thì không bao giờ thấy tập mới bắt đầu
   useEffect(() => { const t = setInterval(() => router.refresh(), coLo ? 15_000 : 60_000); return () => clearInterval(t); }, [coLo, router]);
   const moCay = new Set(moUrl.split(',').filter(Boolean));
@@ -68,6 +68,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
         if (d.loai === 'ke') return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: d.nhom ? THUT_NHOM : THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap' }}>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, ...(d.o ? { width: O_CHU - (d.nhom ? THUT_NHOM : THUT_MUC), flex: 'none', overflow: 'hidden' } : { flex: 1 }) }}>
           {!d.nhom && <span style={{ color: 'var(--fg-4)' }}>└</span>}
+          {d.dongHo && <span style={{ alignSelf: 'center', flex: 'none' }} title={d.phu}><DongHo nut={nutTuanTu(d.dongHo.tong, d.dongHo.so, d.dongHo.loi)} so={d.dongHo.so || '?'} ket={d.dongHo.loi ? 'loi' : undefined} co={22} /></span>}
           {d.nhom && (() => { const kh = `${d.k.ma}:${d.id}`, dong_ = gap.has(kh);
             return <button type="button" onClick={(e) => { e.stopPropagation(); doiGap(kh); }} title={dong_ ? 'mở khối' : 'gập khối'}
               style={{ width: 14, border: 'none', background: 'none', color: 'var(--fg-2)', cursor: 'pointer', padding: 0 }}>{dong_ ? '▸' : '▾'}</button>; })()}
@@ -99,11 +100,12 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
             { label: 'Video', items: [{ label: `${moCay.has(k.ma) ? 'Ẩn' : 'Hiện'} danh sách video (${n})`, emoji: '🌳', onClick: () => doi(k.ma) }] },
             ...(k.kenhUrl ? [{ label: 'Kênh', items: [{ label: 'Mở kênh YouTube', emoji: '▶️', href: k.kenhUrl, external: true }] }] : []),
           ]} />
-          {k.ke.dangLam ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: k.ke.dangLam.loi ? 'var(--bad)' : 'var(--warn)', fontSize: 11, whiteSpace: 'nowrap' }}
-              title={k.ke.dangLam.loi ?? `đang sản xuất ${k.ke.dangLam.id} · bước ${k.ke.dangLam.so ?? '?'}/${k.ke.dangLam.tong ?? 8}: ${k.ke.dangLam.buoc ?? ''}`}>
-              {/* ĐỒNG HỒ TIẾN ĐỘ như etp (anh 04/11/2026): mỗi nút một bước máy làm tập, giữa là bước đang chạy */}
-              <DongHo nut={nutTuanTu(k.ke.dangLam.tong ?? 8, k.ke.dangLam.so ?? 0, !!k.ke.dangLam.loi)} so={k.ke.dangLam.so ?? '?'} ket={k.ke.dangLam.loi ? 'loi' : undefined} co={22} />
-              {k.ke.dangLam.loi ? '✗ hỏng' : k.ke.dangLam.buoc ?? ''}</span>
+          {/* dòng kênh = TỔNG (anh 05/11/2026): số tập đang sản xuất, hỏng thì đỏ; đồng hồ từng tập nằm ở dòng của tập trong ▶ Đang sản xuất — bấm mở cây */}
+          {k.ke.dangLam.length ? (() => { const hong = k.ke.dangLam.filter((d) => d.loi).length, n = k.ke.dangLam.length;
+            return <button type="button" onClick={(e) => { e.stopPropagation(); if (!moCay.has(k.ma)) doi(k.ma); }}
+              title={k.ke.dangLam.map((d) => `${d.ten ?? d.id} · ${d.loi ? `✗ ${d.loi}` : `bước ${d.so ?? '?'}/${d.tong ?? 8}: ${d.buoc ?? 'khởi động'}`}`).join('\n')}
+              style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: hong ? 'var(--bad)' : 'var(--warn)', fontSize: 11, whiteSpace: 'nowrap' }}>
+              ▶ {n} đang sx{hong ? ` · ${hong} hỏng` : ''}</button>; })()
             : k.so && tomLoTrinh(k.so).hienTai ? <button type="button" onClick={(e) => { e.stopPropagation(); if (!moCay.has(k.ma)) doi(k.ma); }} title="kênh đang theo lộ trình — bấm mở 🧭 Lộ trình"
                 style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: tomLoTrinh(k.so).mau, fontSize: 11, whiteSpace: 'nowrap' }}>{tomLoTrinh(k.so).chu}</button>
             : <span style={{ color: k.chay ? 'var(--ok)' : 'var(--fg-4)', fontSize: 11 }}>{k.chay ? 'đang chạy' : 'chưa bật đăng'}</span>}</span>;

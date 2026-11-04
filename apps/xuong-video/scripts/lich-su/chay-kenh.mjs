@@ -13,7 +13,7 @@ import { readFileSync, existsSync, writeFileSync, unlinkSync, readdirSync, statS
 import { homedir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BOX, box, sqlBox } from './box3.mjs';
+import { BOX, box, sqlBox, dauDangLam } from './box3.mjs';
 import { kiemPlaylist, lichHomNay, tapMoiTuan, timPlaylist } from './playlist.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
@@ -31,8 +31,7 @@ const giaoTho = (k, tap, ra) => { try { return execFileSync('ssh', [BOX, `cd /op
 // /Users/htuan/.cache/lich-su/<tập>/lam-tap.log (tail -f được), đọc lại vào `stdout` khi xong — bên gọi giữ nguyên cách dùng { status, signal, stdout, stderr }
 const chayLamTap = (id, args, opt) => { const dir = join(homedir(), '.cache', 'lich-su', id); mkdirSync(dir, { recursive: true }); const f = join(dir, 'lam-tap.log'), fd = openSync(f, 'w');
   try { const r = spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), ...args], { ...opt, stdio: ['ignore', fd, fd] }); return { ...r, stdout: readFileSync(f, 'utf8'), stderr: '' }; } finally { closeSync(fd); } };
-const danhDau = (ma, dl) => { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
-  try { sqlBox(`UPDATE xv_may SET nguon = ${dl ? `jsonb_set(coalesce(nguon, '{}'::jsonb), '{dang_lam}', ${q1(JSON.stringify(dl))}::jsonb)` : "coalesce(nguon, '{}'::jsonb) - 'dang_lam'"} WHERE ma = ${q1(ma)};`); } catch (e) { console.log(`⚠ dấu đang làm: ${e.message}`); } };
+const danhDau = (ma, id, dl) => { try { dauDangLam(ma, id, dl); } catch (e) { console.log(`⚠ dấu đang làm: ${e.message}`); } };
 
 for (const [k, K] of Object.entries(KENH)) {
   if (k.startsWith('_') || !K.may || (arg('kenh') && arg('kenh') !== k)) continue;
@@ -62,8 +61,8 @@ for (const [k, K] of Object.entries(KENH)) {
     const hong = r.status !== 0, loiTxt = r.signal ? `quá giờ (${Math.round(100)} phút) — bị dừng ${r.signal}` : ra.trim().split('\n').slice(-3).join(' · ').slice(0, 400);
     const t2 = JSON.parse(readFileSync(tep, 'utf8')); t2.tu_dong = { lan: td.lan + 1, luc: new Date().toISOString(), loi: hong ? loiTxt : null };
     // dấu "đang làm" trên máy (bảng mos2): lam-tap bị giết vì quá giờ không kịp tự gỡ → hỏng thì ghi lỗi lên dấu, xong thì gỡ
-    if (hong) { try { sqlBox(`UPDATE xv_may SET nguon = jsonb_set(nguon, '{dang_lam,loi}', ${q1(JSON.stringify(`lần ${td.lan + 1}/3 hỏng: ${loiTxt.slice(0, 160)}`))}::jsonb) WHERE ma = ${q1(K.may)} AND nguon ? 'dang_lam';`); } catch { /* phụ */ } }
-    else danhDau(K.may, null);
+    if (hong) { try { dauDangLam(K.may, t.id, { loi: `lần ${td.lan + 1}/3 hỏng: ${loiTxt.slice(0, 160)}` }, { chiKhiCo: true }); } catch { /* phụ */ } }
+    else danhDau(K.may, t.id, null);
     if (hong && giaoTho(k, t.id, ra)) t2.tu_dong.tho = new Date().toISOString();
     writeFileSync(tep, JSON.stringify(t2, null, 1) + '\n');
     bao.push(hong ? `⚠ tự làm lại tập ${t.id} (lần ${td.lan + 1}/3) hỏng: ${t2.tu_dong.loi}${t2.tu_dong.tho ? '\n🔧 đã giao Mạnh (thợ máy) tìm gốc + sửa' : ''}` : `✓ tự làm lại tập ${t.id} (${st ? `Phòng Nội dung: ${st.ket ?? 'chưa xuất'}` : 'chưa nạp'}) → đã nạp lại, chờ chấm`);
@@ -94,11 +93,11 @@ for (const [k, K] of Object.entries(KENH)) {
     if (existsSync(join(DIR, 'tap', `${id}.json`)) && !process.argv.includes('--ep')) bao.push(`tập ${id} đã có — bỏ qua`);
     else {
       // lam-tap tự dừng trước khi tốn tiền giọng / ảnh nếu máy viết 4 lượt vẫn lỗi; DUYET_SINH_1_LAN cho lượt có lịch anh đã duyệt (02/11/2026: 3 tập/tuần)
-      // ĐANG SẢN XUẤT: dấu trên máy studio (xv_may.nguon.dang_lam) — mos2 › Tài sản › Kênh nội dung hiện tập đang làm; xong (đạt hay hỏng) thì gỡ
-      danhDau(K.may, { id, luc: new Date().toISOString() });
+      // ĐANG SẢN XUẤT: dấu của tập trên máy studio (xv_may.nguon.dang_lam_ds[<tập>], box3.mjs › dauDangLam) — mos2 › Tài sản › Kênh nội dung hiện tập đang làm; xong (đạt hay hỏng) thì gỡ
+      danhDau(K.may, id, { id, luc: new Date().toISOString() });
       const r = chayLamTap(id, ['--id', id, '--nn', 'en', '--kenh', k, ...(pl ? ['--playlist', pl] : [])], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
       let ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra);   // let: phía dưới nối thêm dòng quá giờ / đã giao thợ máy (const → TypeError, 03/11/2026)
-      danhDau(K.may, null); try { unlinkSync(khoa); } catch { /* đã gỡ */ }
+      danhDau(K.may, id, null); try { unlinkSync(khoa); } catch { /* đã gỡ */ }
       const tien = [...ra.matchAll(/~(\d+)₫/g)].reduce((t, m) => t + Number(m[1]), 0);
       const tap = existsSync(join(DIR, 'tap', `${id}.json`)) ? JSON.parse(readFileSync(join(DIR, 'tap', `${id}.json`), 'utf8')) : null;
       if (r.signal) ra += `\n✗ quá giờ 100 phút — lượt bị dừng (${r.signal})`;

@@ -16,8 +16,8 @@ export type KenhSp = {
   /** video của kênh (cây dưới dòng kênh): trạng thái theo chặng — chưa xuất → chờ chấm → DUYỆT / SỬA LẠI (Phòng Nội dung) → đã đăng */
   videos: VideoKenh[];
   /** KẾ HOẠCH kênh (anh 02/11/2026: "show plan cụ thể — lịch đăng bài, bài đã sx, đang sx"): lịch làm tập (kenh.json lich_tap + gio_tap), tập đang làm
-   *  (xv_may.nguon.dang_lam — chay-kenh.mjs ghi), lịch đăng dự kiến của máy đăng (xv_lich_du_kien) */
-  ke: { lichTap: string | null; tapKe: string[]; dangLam: DangLam | null; lichDang: { ngay: string; gio: string | null; nen: string; tieuDe: string }[];
+   *  (xv_may.nguon.dang_lam_ds — mỗi tập một dấu, nhiều tập chạy song song được; chay-kenh / lam-tap ghi qua box3.mjs › dauDangLam), lịch đăng dự kiến của máy đăng (xv_lich_du_kien) */
+  ke: { lichTap: string | null; tapKe: string[]; dangLam: DangLam[]; lichDang: { ngay: string; gio: string | null; nen: string; tieuDe: string }[];
     /** giờ VN sớm nhất máy đăng được đăng bài của kênh (xv_may.dang[].gio_tu) */ gioDang: string | null;
     /** tập đang dở chưa nạp máy đăng (xv_may.nguon.tap_cho — chay-kenh.mjs ghi mỗi lượt) */ tapCho?: TapCho[] };
   /** PLAYLIST THẬT của kênh (kenh.json › playlist — máy làm tập chạy theo đây; G1 tầng playlist chung): lịch + số từng playlist. [] = kênh chưa chia playlist */
@@ -33,8 +33,9 @@ export type KenhSp = {
   social?: import('./social-tro-ve-tinh').TroVe | null;
 };
 
-/** tập đang trong lò (xv_may.nguon.dang_lam — chay-kenh ghi lúc bắt đầu, lam-tap ghi từng bước; hỏng thì giữ kèm loi) */
+/** tập đang dở chưa nạp máy đăng (xv_may.nguon.tap_cho) */
 export type TapCho = { id: string; chu_de: string | null; cau: number; lan: number; loi: string | null; tho: string | null };
+/** một tập đang trong lò (xv_may.nguon.dang_lam_ds[<tập>] — chay-kenh ghi lúc bắt đầu, lam-tap ghi từng bước; hỏng thì giữ kèm loi) */
 export type DangLam = { id: string; luc: string; buoc?: string; so?: number; tong?: number; buoc_luc?: string; loi?: string | null; chi_tiet?: string | null; /** tên tập (tiêu đề / chủ đề) */ ten?: string | null };
 
 const lui = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10);
@@ -71,7 +72,7 @@ export function lichKenh(k: Pick<KenhSp, 'videos' | 'ke'>): OLich[] {
   const m = new Map<string, OLich>(), them = (ngay: string | null | undefined, loai: OLich['loai'], chu: string) => { if (!ngay) return; const key = `${ngay}|${loai}`;
     const o = m.get(key) ?? { ngay, loai, so: 0, chiTiet: [] }; o.so++; o.chiTiet.push(chu); m.set(key, o); };
   for (const t of k.ke.tapKe) them(t.slice(0, 10), 'sx', `lượt làm tập tự động ${t.slice(11)}`);
-  if (k.ke.dangLam) them(k.ke.dangLam.luc.slice(0, 10), 'sx', `đang làm ${k.ke.dangLam.id}`);
+  for (const d of k.ke.dangLam) them(d.luc.slice(0, 10), 'sx', `đang làm ${d.id}`);
   for (const v of k.videos) { them(v.ngayLam, 'lam', v.ten); if (v.trangThai === 'da_dang') them(v.ngayDang, 'dang', v.ten); }
   for (const l of k.ke.lichDang) them(l.ngay, 'hen', `${l.gio ?? ''} ${l.nen} · ${l.tieuDe}`.trim());
   return [...m.values()].sort((a, b) => a.ngay.localeCompare(b.ngay));
@@ -81,23 +82,25 @@ export function lichKenh(k: Pick<KenhSp, 'videos' | 'ke'>): OLich[] {
  *  + khối 🗓 Lịch (bài chờ đăng lúc nào, bài chờ chấm / sửa lại, lượt làm tập kế). Thuần — component chỉ vẽ. Giờ hiện theo giờ VN. */
 export type DongKe = { id: string; nhom?: boolean; chu: string; phu?: string; mau?: string;
   /** MỌI LINK RA NGĂN (anh 04/11/2026 "mọi link đều phải ra drawer"): nút trên dòng mở ngăn loại / mã — không có url mở tab ngoài */ ngan?: { loai: 'mau' | 'mo_dau' | 'nguoi'; id: string }; nganChu?: string;
+  /** ĐỒNG HỒ của tập đang sản xuất (anh 05/11/2026: "đồng hồ nằm ở dòng của video đang sx"): bước so / tong, hỏng thì đỏ */ dongHo?: { so: number; tong: number; loi: boolean };
   /** ô số thẳng cột (bảng thống kê mẫu) + tên cột ở dòng nhóm */ o?: (number | null)[]; oTieuDe?: string[] };
 const gioVn = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
 const thuNgay = (ymd: string) => `${THU[new Date(`${ymd}T00:00:00Z`).getUTCDay() || 7]} ${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()): DongKe[] {
-  const ra: DongKe[] = [], d = k.ke.dangLam;
-  if (d) {
-    const phut = Math.max(0, Math.round((bayGio - Date.parse(d.buoc_luc ?? d.luc)) / 60_000)), tong = Math.max(0, Math.round((bayGio - Date.parse(d.luc)) / 60_000));
-    ra.push({ id: 'sx', nhom: true, chu: `▶ Đang sản xuất: ${d.ten ?? d.id}`, phu: `bắt đầu ${gioVn(d.luc)} · ${tong} phút` });
-    // bước đứng TRƯỚC (cột hẹp cắt phần phụ — YDNI một dòng), mã tập xuống phần phụ
-    // một bước đứng > 30 phút (bước dài nhất ~10–15 phút) = nghi treo → đỏ ngay, không đợi trần giờ của lam-tap
-    const dung = !d.loi && phut > 30;
-    ra.push({ id: 'sx/1', chu: d.loi ? `✗ ${d.loi}` : d.buoc ? `bước ${d.so}/${d.tong} · ${d.buoc} · ${dung ? `⚠ đứng ${phut} phút` : `${phut} phút`}` : 'đang khởi động',
-      mau: d.loi || dung ? 'var(--bad)' : 'var(--warn)', phu: d.chi_tiet ? `${d.chi_tiet} · ${d.id}` : d.id });
-  }
+  const ra: DongKe[] = [], ds = k.ke.dangLam;
+  // ▶ Đang sản xuất: một dòng / tập (đồng hồ bước ở đầu dòng, tên tập là chữ chính, bước + phút + chi tiết + mã ở phần phụ) — N tập song song là N dòng
+  // một bước đứng > 30 phút (bước dài nhất ~10–15 phút) = nghi treo → đỏ ngay, không đợi trần giờ của lam-tap
+  const dongSx = ds.map((d): DongKe => {
+    const phut = Math.max(0, Math.round((bayGio - Date.parse(d.buoc_luc ?? d.luc)) / 60_000)), dung = !d.loi && phut > 30;
+    return { id: `sx/${d.id}`, chu: d.ten ?? d.id, mau: d.loi || dung ? 'var(--bad)' : 'var(--warn)', dongHo: { so: d.so ?? 0, tong: d.tong ?? 8, loi: !!d.loi || dung },
+      phu: [d.loi ? `✗ ${d.loi}` : d.buoc ? `bước ${d.so}/${d.tong} · ${d.buoc} · ${dung ? `⚠ đứng ${phut} phút` : `${phut} phút`}` : 'đang khởi động', d.chi_tiet, d.id].filter(Boolean).join(' · ') };
+  });
   // tập đang dở (chưa nạp máy đăng, không phải tập đang chạy): hiện để không "biến mất" giữa hai lượt
-  const cho = (k.ke.tapCho ?? []).filter((t) => t.id !== d?.id);
-  if (cho.length) { if (!d) ra.push({ id: 'sx', nhom: true, chu: '▶ Đang sản xuất', phu: 'không có tập nào đang chạy · việc nền chạy lại mỗi giờ' });
+  const cho = (k.ke.tapCho ?? []).filter((t) => !ds.some((d) => d.id === t.id));
+  if (ds.length || cho.length) {
+    const som = ds.reduce<string | null>((m, d) => (!m || d.luc < m ? d.luc : m), null);
+    ra.push({ id: 'sx', nhom: true, chu: `▶ Đang sản xuất${ds.length > 1 ? ` (${ds.length})` : ''}`,
+      phu: som ? `${ds.length} tập · sớm nhất bắt đầu ${gioVn(som)} · ${Math.max(0, Math.round((bayGio - Date.parse(som)) / 60_000))} phút` : 'không có tập nào đang chạy · việc nền chạy lại mỗi giờ' }, ...dongSx);
     for (const t of cho) ra.push({ id: `cho/${t.id}`, chu: `⏸ ${t.chu_de ?? t.id}`, mau: t.lan >= 3 ? 'var(--bad)' : 'var(--fg-2)',
       phu: [t.lan ? `đã tự làm lại ${t.lan}/3` : 'chờ lượt giờ sau', t.tho ? '🔧 đã giao Mạnh sửa' : null, t.loi ? `lỗi: ${t.loi}` : null, t.id].filter(Boolean).join(' · ') }); }
   const lich: DongKe[] = [];

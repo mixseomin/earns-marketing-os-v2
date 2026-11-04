@@ -20,22 +20,29 @@ assert.deepStrictEqual(lichSanXuat([], '09:30', '2026-11-02', '12:00'), { chu: n
 import { lichKenh } from './kenh-sp-tinh';
 { const o = lichKenh({ videos: [{ slug: 'a', ten: 'A', ngayLam: '2026-11-02', trangThai: 'da_dang', ngayDang: '2026-11-03', url: null, xem: 5, giay: 170 },
     { slug: 'b', ten: 'B', ngayLam: '2026-11-02', trangThai: 'cho_cham', ngayDang: null, url: null, xem: null, giay: 170 }],
-  ke: { lichTap: 'x', gioDang: '21:00', tapKe: ['2026-11-04 09:30'], dangLam: null, lichDang: [{ ngay: '2026-11-04', gio: '20:00', nen: 'youtube', tieuDe: 'B' }] } });
+  ke: { lichTap: 'x', gioDang: '21:00', tapKe: ['2026-11-04 09:30'], dangLam: [], lichDang: [{ ngay: '2026-11-04', gio: '20:00', nen: 'youtube', tieuDe: 'B' }] } });
   assert.deepStrictEqual(o.map((x) => `${x.ngay} ${x.loai} ${x.so}`), ['2026-11-02 lam 2', '2026-11-03 dang 1', '2026-11-04 sx 1', '2026-11-04 hen 1']); }
 import { cayKeHoach } from './kenh-sp-tinh';
 { const v = (slug: string, trangThai: 'duyet' | 'cho_cham' | 'da_dang') => ({ slug, ten: slug.toUpperCase(), ngayLam: null, trangThai, ngayDang: null, url: null, xem: null, giay: null });
-  const ke = { lichTap: 'Thứ Hai · 09:30', gioDang: '21:00', tapKe: ['2026-11-04 09:30'], lichDang: [], dangLam: { id: 'tap-x', luc: '2026-11-02T15:00:00Z', buoc: 'dựng (giọng + hình)', so: 5, tong: 8, buoc_luc: '2026-11-02T15:20:00Z' } };
+  const ke = { lichTap: 'Thứ Hai · 09:30', gioDang: '21:00', tapKe: ['2026-11-04 09:30'], lichDang: [], dangLam: [{ id: 'tap-x', luc: '2026-11-02T15:00:00Z', buoc: 'dựng (giọng + hình)', so: 5, tong: 8, buoc_luc: '2026-11-02T15:20:00Z' }] };
   const r = cayKeHoach({ videos: [v('a', 'duyet'), v('b', 'cho_cham'), v('c', 'da_dang')], ke }, Date.parse('2026-11-02T15:25:00Z'));
-  assert.deepStrictEqual(r.map((x) => x.chu), ['▶ Đang sản xuất: tap-x', 'bước 5/8 · dựng (giọng + hình) · 5 phút', '🗓 Lịch', '📤 A', '⏳ B', '🛠 làm tập mới']);
-  assert.strictEqual(r[1]!.phu, 'tap-x');   // phút tính từ lúc vào bước; mã tập ở phần phụ
+  assert.deepStrictEqual(r.map((x) => x.chu), ['▶ Đang sản xuất', 'tap-x', '🗓 Lịch', '📤 A', '⏳ B', '🛠 làm tập mới']);
+  assert.strictEqual(r[1]!.phu, 'bước 5/8 · dựng (giọng + hình) · 5 phút · tap-x');   // phút tính từ lúc vào bước; mã tập cuối phần phụ
+  assert.deepStrictEqual(r[1]!.dongHo, { so: 5, tong: 8, loi: false });   // đồng hồ nằm ở dòng của tập
   assert.strictEqual(r[5]!.phu, 'Thứ Tư 04/11 09:30');
   // không có gì trong lò, không lịch → cây kế hoạch rỗng (chỉ còn khối Đã làm)
-  assert.deepStrictEqual(cayKeHoach({ videos: [v('c', 'da_dang')], ke: { ...ke, dangLam: null, tapKe: [] } }), []);
+  assert.deepStrictEqual(cayKeHoach({ videos: [v('c', 'da_dang')], ke: { ...ke, dangLam: [], tapKe: [] } }), []);
   // tập hỏng giữa chừng → dòng đỏ mang lỗi
-  assert.strictEqual(cayKeHoach({ videos: [], ke: { ...ke, dangLam: { ...ke.dangLam, loi: 'hỏng ở bước dựng (mã 1)' } } })[1]!.chu, '✗ hỏng ở bước dựng (mã 1)'); }
+  { const h = cayKeHoach({ videos: [], ke: { ...ke, dangLam: [{ ...ke.dangLam[0]!, loi: 'hỏng ở bước dựng (mã 1)' }] } })[1]!;
+    assert.ok(h.phu!.startsWith('✗ hỏng ở bước dựng (mã 1)')); assert.strictEqual(h.mau, 'var(--bad)'); assert.strictEqual(h.dongHo!.loi, true); }
+  // NHIỀU TẬP CÙNG LÚC (anh 05/11/2026 "nếu làm 10 video cùng 1 lúc"): mỗi tập một dòng + một đồng hồ, nhóm đếm số tập
+  { const ds = Array.from({ length: 10 }, (_, i) => ({ id: `t${i}`, ten: `Tập ${i}`, luc: '2026-11-02T15:00:00Z', buoc: 'viết kịch bản', so: (i % 8) + 1, tong: 8, buoc_luc: '2026-11-02T15:20:00Z' }));
+    const m = cayKeHoach({ videos: [], ke: { ...ke, tapKe: [], dangLam: ds } }, Date.parse('2026-11-02T15:25:00Z'));
+    assert.strictEqual(m[0]!.chu, '▶ Đang sản xuất (10)'); assert.strictEqual(m.filter((x) => x.dongHo).length, 10);
+    assert.deepStrictEqual(m.slice(1).map((x) => x.dongHo!.so), [1, 2, 3, 4, 5, 6, 7, 8, 1, 2]); } }
 // một bước đứng quá 30 phút → đỏ, ghi "đứng"
-{ const ke = { lichTap: null, gioDang: null, tapKe: [], lichDang: [], dangLam: { id: 't', luc: '2026-11-02T15:00:00Z', buoc: 'viết kịch bản', so: 2, tong: 8, buoc_luc: '2026-11-02T15:00:00Z' } };
-  const r = cayKeHoach({ videos: [], ke }, Date.parse('2026-11-02T15:45:00Z'))[1]!; assert.strictEqual(r.chu, 'bước 2/8 · viết kịch bản · ⚠ đứng 45 phút'); assert.strictEqual(r.mau, 'var(--bad)'); }
+{ const ke = { lichTap: null, gioDang: null, tapKe: [], lichDang: [], dangLam: [{ id: 't', luc: '2026-11-02T15:00:00Z', buoc: 'viết kịch bản', so: 2, tong: 8, buoc_luc: '2026-11-02T15:00:00Z' }] };
+  const r = cayKeHoach({ videos: [], ke }, Date.parse('2026-11-02T15:45:00Z'))[1]!; assert.strictEqual(r.phu, 'bước 2/8 · viết kịch bản · ⚠ đứng 45 phút · t'); assert.strictEqual(r.mau, 'var(--bad)'); assert.strictEqual(r.dongHo!.loi, true); }
 import { tomLoTrinh, cayLoTrinh } from './kenh-sp-tinh';
 { const lt = { cap_nhat: '2026-11-02', giai_doan: [
     { ma: 'G0', ten: 'Chốt', viec: 'chốt mảng', anh: 'chốt', trang_thai: 'xong' as const },

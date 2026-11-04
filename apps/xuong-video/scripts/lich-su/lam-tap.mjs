@@ -16,7 +16,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { BOX, box, len, ve, q, sqlBox, boxA, chay, lenA, veA, sshA, songSong } from './box3.mjs';
+import { BOX, box, len, ve, q, sqlBox, boxA, chay, lenA, veA, sshA, songSong, dauDangLam } from './box3.mjs';
 import { apPlaylist, playlistCuaTap, timPlaylist, tieuDeDang } from './playlist.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
@@ -172,20 +172,19 @@ async function kiem(tap, nguonChu) {
   return loi;
 }
 
-// TIẾN ĐỘ TRỰC TIẾP (anh 02/11/2026: "nhìn được realtime quá trình sx ở Tài sản"): mỗi bước ghi xv_may.nguon.dang_lam { id, luc, buoc, so, tong, buoc_luc }
+// TIẾN ĐỘ TRỰC TIẾP (anh 02/11/2026: "nhìn được realtime quá trình sx ở Tài sản"): mỗi bước ghi dấu của tập vào xv_may.nguon.dang_lam_ds[<tập>] (box3.mjs › dauDangLam)
 // → mos2 › Tài sản › Kênh nội dung hiện "▶ Đang sản xuất" (tự làm mới 15 giây). Xong thì gỡ; hỏng thì giữ lại kèm loi để bảng hiện đỏ (chay-kenh gỡ ở lượt sau).
 const BUOC = ['gắn hook', 'viết kịch bản', 'kho + ảnh thật', 'Ngọc soi hình', 'dựng (giọng + hình)', 'đẩy Studio', 'thumbnail', 'nạp máy đăng'];
 let buocNay = null;
 const sqlQ = (x) => `'${String(x).replace(/'/g, "''")}'`;
-const ghiDangLam = (patch) => { if (!KENH.may) return; try { sqlBox(`UPDATE xv_may SET nguon = jsonb_set(coalesce(nguon, '{}'::jsonb), '{dang_lam}', coalesce(nguon->'dang_lam', jsonb_build_object('id', ${sqlQ(id)}, 'luc', now())) || ${patch}::jsonb) WHERE ma = ${sqlQ(KENH.may)};`); } catch { /* tiến độ là phụ, không làm hỏng lượt */ } };
+const ghiDangLam = (patch) => { if (!KENH.may) return; try { dauDangLam(KENH.may, id, patch); } catch { /* tiến độ là phụ, không làm hỏng lượt */ } };
 // tên tập cho bảng (anh 03/11/2026: "phải hiện tên tập đang làm"): tiêu đề, chưa có thì chủ đề — đọc lại tệp tập mỗi bước (bước viết mới sinh ra tên)
 const tenTap = () => { try { const t = JSON.parse(readFileSync(tepTap, 'utf8')); return t.tieu_de || t.chu_de || null; } catch { return null; } };
-const buoc = (ten) => { buocNay = ten; ghiDangLam(sqlQ(JSON.stringify({ id, ten: tenTap(), buoc: ten, so: BUOC.indexOf(ten) + 1, tong: BUOC.length, buoc_luc: new Date().toISOString(), loi: null, chi_tiet: null }))); };
+const buoc = (ten) => { buocNay = ten; ghiDangLam({ id, ten: tenTap(), buoc: ten, so: BUOC.indexOf(ten) + 1, tong: BUOC.length, buoc_luc: new Date().toISOString(), loi: null, chi_tiet: null }); };
 /** chi tiết TRONG bước (anh 03/11/2026: "suốt từ nãy vẫn ở đây" — bước viết 5–15 phút không nhích gì trên bảng): lượt viết k/4, số lỗi kiểm, ảnh k/n… */
-const chiTiet = (chu) => ghiDangLam(sqlQ(JSON.stringify({ ten: tenTap(), chi_tiet: chu, chi_tiet_luc: new Date().toISOString() })));
+const chiTiet = (chu) => ghiDangLam({ ten: tenTap(), chi_tiet: chu, chi_tiet_luc: new Date().toISOString() });
 process.on('exit', (ma) => { if (!KENH.may || !buocNay) return;
-  try { sqlBox(ma ? `UPDATE xv_may SET nguon = jsonb_set(nguon, '{dang_lam,loi}', ${sqlQ(JSON.stringify(`hỏng ở bước ${buocNay} (mã ${ma})`))}::jsonb) WHERE ma = ${sqlQ(KENH.may)} AND nguon->'dang_lam'->>'id' = ${sqlQ(id)};`
-    : `UPDATE xv_may SET nguon = nguon - 'dang_lam' WHERE ma = ${sqlQ(KENH.may)} AND nguon->'dang_lam'->>'id' = ${sqlQ(id)};`); } catch { /* bỏ qua */ } });
+  try { dauDangLam(KENH.may, id, ma ? { loi: `hỏng ở bước ${buocNay} (mã ${ma})` } : null, { chiKhiCo: true }); } catch { /* bỏ qua */ } });
 
 // ---------- 0. GẮN HOOK cho tập đã có (--gan-hook): kênh có máy đăng mà tập chưa có góc / hook spy → máy viết chọn hook + tiêu đề + mô tả đăng, lời đọc giữ nguyên ----------
 if (co('gan-hook') && KENH.may && existsSync(tepTap)) {

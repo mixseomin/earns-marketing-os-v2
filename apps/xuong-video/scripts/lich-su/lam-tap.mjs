@@ -464,7 +464,9 @@ buoc('đẩy Studio');
     const moTa = `${tap.mo_ta_dang}${anhThat.length ? '\n\nImages: Wikimedia Commons (public domain). Maps: Natural Earth.' : ''}`;
     const nap = [{ slug: id, chu_de: tap.chu_de, mau: 'video-ngoai', nen_url: anhThat[0] ?? null,
       de: { loai: 'video-ngoai', video_url: kq.url, giay: Math.round(giay * 100) / 100, khung: kq.khung ?? [], soat: kq.soat ?? [], tom_tat: tap.chu_de, thumb: tap.thumb?.url ? { url: tap.thumb.url, chu: tap.thumb.chu, nguon: tap.thumb.commons ?? null } : null },
-      dang: { title: tieuDeDang(tap.tieu_de, PL), description: moTa, link: null, loai: 'thuong', goc: tap.goc, hook: tap.hook, playlist: tap.playlist ?? null } }];
+      dang: { title: tieuDeDang(tap.tieu_de, PL), description: moTa, link: null, loai: 'thuong', goc: tap.goc, hook: tap.hook, playlist: tap.playlist ?? null,
+        // mẫu + ý tưởng trong sổ kênh (so-kenh.json) — mos2 Kênh nội dung đếm số tập theo mẫu, đổi trạng thái ý tưởng (kênh chưa có sổ: null)
+        mau: tap.mau ?? null, y_tuong: tap.y_tuong ?? null } }];
     writeFileSync(join(RA, 'nap.json'), JSON.stringify(nap)); len(join(RA, 'nap.json'), `${bt}/nap.json`);
     console.log(box(`scripts/may-dung.mts --may ${KENH.may} --nap < ${bt}/nap.json`)); console.log(box(`scripts/may-dung.mts --may ${KENH.may} --xuat ${id}`).split('\n').slice(-2).join(' · '));
     console.log(`✓ nạp máy ${KENH.may} · https://studio.on.tc (Máy › ${KENH.may}) · Phòng Nội dung chấm ở lượt kế`);

@@ -82,8 +82,8 @@ import { caySoKenh, cayMau, cayHangCho, trangThaiY } from './kenh-sp-tinh';
     hang_cho: [{ ma: 'a', mau: 'cc', chu_de: 'A', trang_thai: 'demo' as const }, { ma: 'b', mau: 'cc', chu_de: 'B', trang_thai: 'chua' as const, ngay: '2027-02-10' },
       { ma: 'c', mau: 'ts', chu_de: 'C', trang_thai: 'san_sang' as const }, { ma: 'd', mau: 'cc', chu_de: 'D', trang_thai: 'chua' as const }] };
   const s = caySoKenh(so); assert.strictEqual(s[0]!.chu, '📘 Sổ kênh'); assert.strictEqual(s.length, 1 + 3 + 2); assert.ok(s[3]!.chu.includes('astrolas.com'));
-  const m = cayMau(so); assert.strictEqual(m[0]!.chu, '🧩 Mẫu đã duyệt (2)'); assert.strictEqual(m[1]!.url, 'https://img.on.tc/a.mp4'); assert.strictEqual(m[1]!.urlChu, '▶ xem demo');
-  assert.ok(m[1]!.phu!.includes('playlist Chart Chapters')); assert.strictEqual(m[2]!.url, undefined); assert.ok(m[2]!.phu!.includes('máy tự sinh'));
+  const m = cayMau(so); assert.strictEqual(m[0]!.chu, '🧩 Mẫu đã duyệt (2)'); assert.deepStrictEqual(m[1]!.ngan, { loai: 'mau', id: 'cc' }); assert.strictEqual(m[1]!.nganChu, '▶ xem');
+  assert.ok(m[1]!.phu!.includes('playlist Chart Chapters')); assert.strictEqual(m[2]!.nganChu, 'mở'); assert.ok(m[2]!.phu!.includes('máy tự sinh'));
   // tập thật có slug = mã ý tưởng → đè trạng thái sổ; đã đăng thắng đã làm
   assert.strictEqual(trangThaiY(so.hang_cho[3]!, [{ slug: 'd', trangThai: 'cho_cham' }]), 'da_lam');
   assert.strictEqual(trangThaiY(so.hang_cho[3]!, [{ slug: 'd', trangThai: 'cho_cham' }, { slug: 'd', trangThai: 'da_dang' }]), 'da_dang');
@@ -108,5 +108,17 @@ import { cayNguoi } from './kenh-sp-tinh';
 { const s = { ngay: 4, thang: 8, nam: 1961, gio: 19, phut: 24, noi: 'Honolulu' };
   const r = cayNguoi([{ slug: 't', ten: 'Taylor', sinh: s, rodden: 'DD' }, { slug: 'e', ten: 'Einstein', sinh: s, rodden: 'AA', khong_dung: 'múi giờ 1879' }, { slug: 'o', ten: 'Obama', sinh: s, rodden: 'AA', nguon: 'https://x' }], ['AA']);
   assert.deepStrictEqual(r.map((x) => x.chu), ['👤 Lá số người nổi tiếng (3)', '✅ AA · Obama', '⚠ DD · Taylor', '✗ AA · Einstein']);
-  assert.ok(r[1]!.phu!.startsWith('04/08/1961 19:24 · Honolulu · dùng đủ')); assert.strictEqual(r[1]!.urlChu, 'nguồn'); assert.ok(r[2]!.phu!.includes('không dùng cung Mọc / nhà')); assert.ok(r[3]!.phu!.includes('múi giờ 1879')); }
+  assert.ok(r[1]!.phu!.startsWith('04/08/1961 19:24 · Honolulu · dùng đủ')); assert.deepStrictEqual(r[1]!.ngan, { loai: 'nguoi', id: 'o' }); assert.ok(r[2]!.phu!.includes('không dùng cung Mọc / nhà')); assert.ok(r[3]!.phu!.includes('múi giờ 1879')); }
 console.log('kenh-sp-tinh: sổ người đạt');
+// SỐ THEO MẪU + bảng bài/video trong ngăn (mới nhất trên cùng)
+import { thongKeMau, dongMau } from './kenh-sp-tinh';
+{ const so = { giai_doan: [], mau: [{ ma: 'cc', ten: 'CC', loai: 'short' as const }, { ma: 'tw', ten: 'TW', loai: 'short' as const }],
+    hang_cho: [{ ma: 'a', mau: 'cc', chu_de: 'A', trang_thai: 'demo' as const }, { ma: 'b', mau: 'cc', chu_de: 'B', trang_thai: 'chua' as const }, { ma: 'c', mau: 'cc', chu_de: 'C', trang_thai: 'chua' as const }] };
+  const v = (slug: string, trangThai: 'da_dang' | 'cho_cham', o: object = {}) => ({ slug, ten: slug, ngayLam: '2026-11-01', trangThai, ngayDang: trangThai === 'da_dang' ? '2026-11-03' : null, url: null, xem: trangThai === 'da_dang' ? 100 : null, giay: 30, ...o });
+  const vids = [v('b', 'da_dang'), v('x', 'cho_cham', { mau: 'cc', ngayLam: '2026-11-04' }), v('k', 'cho_cham')];   // b = ý tưởng b đã đăng · x khai mẫu · k không thuộc mẫu nào
+  const t = thongKeMau(so, vids, [{ ma: 'tw-1', mau: 'tw', chu_de: 'Moon', trang_thai: 'chua', utc: '2026-11-09T07:01Z', ngay: '2026-11-09' }]);
+  const cc = t.get('cc')!; assert.deepStrictEqual([cc.keHoach, cc.sanSang, cc.demo, cc.daLam, cc.daDang, cc.xem], [1, 0, 1, 1, 1, 100]);
+  assert.strictEqual(t.get('tw')!.keHoach, 1);
+  // bảng của mẫu: tập x (04/11) → tập b (đăng 03/11) → ý tưởng không ngày; ý tưởng b đã thành tập thì không lặp
+  assert.deepStrictEqual(dongMau(cc).map((d) => (d.loai === 'video' ? `v:${d.v.slug}` : `y:${d.y.ma}`)), ['v:x', 'v:b', 'y:a', 'y:c']); }
+console.log('kenh-sp-tinh: số theo mẫu đạt');

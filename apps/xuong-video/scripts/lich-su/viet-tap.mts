@@ -22,7 +22,7 @@ let hookChon: { qc: string; goc: string } | null = cuTap?.hook ?? null, tieuDeCh
 // chủ đề của bản cũ chỉ KHOÁ khi bản đó đã có hook (đã qua bước chọn đề + hook). Bản cũ chưa có hook (bản rỗng / hỏng) mà có --goc-hook → chọn lại đề + hook
 // (03/11/2026: tập Constantinople — sửa trên bản chưa có hook, chủ đề cũ bỏ qua bước chọn hook → 4 lượt viết đều bị kiểm chặn "chưa gắn hook")
 if (cuTap?.hook || !gh) chuDe ??= cuTap?.chu_de;
-if (!ra || !id || (!chuDe && !gh && !process.argv.includes('--chi-thumb'))) { console.error('tsx viet-tap.mts <ra.json> (--chu-de "…" | --goc-hook <tệp>) --nn en --id <id>'); process.exit(2); }
+if (!ra || !id || (!chuDe && !gh && !process.argv.includes('--chi-thumb') && !process.argv.includes('--chi-rut'))) { console.error('tsx viet-tap.mts <ra.json> (--chu-de "…" | --goc-hook <tệp>) --nn en --id <id>'); process.exit(2); }
 // HỒ SƠ KÊNH (kenh.json): khuôn độ dài, giọng văn, thẻ kết của kênh — saga (Shorts mồi) / parody (trọn chuyện, lá cải)…
 const kenhId = arg('kenh') ?? 'saga', K0 = JSON.parse(readFileSync(new URL('./kenh.json', import.meta.url), 'utf8'))[kenhId];
 if (!K0) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
@@ -104,6 +104,37 @@ if (process.argv.includes('--chi-hook')) {
     console.log(`✓ gắn hook ${h.id} "${h.chu}" → "${c.data.tieu_de}" (${Math.round(c.tokens.vnd ?? 0)}₫)`); process.exit(0);
   }
   console.error(`✗ gắn hook hỏng 3 lần: ${loi}`); process.exit(1);
+}
+
+// ---------- CHỈ RÚT GỌN LỜI ĐỌC (--chi-rut <đích từ>, 04/11/2026) ----------
+// Kịch bản dài quá khuôn mà mọi thứ khác đã đúng: bắt máy viết chép lại cả bản 22k token để bớt 40 từ thì nó trả y nguyên (tập 04/11: 435 → 435 → 435 qua 3 lượt).
+// Ở đây chỉ gửi các câu dài nhất, máy trả câu mới cho đúng những câu đó; chữ cảnh đang gọi (dáng / dấu / tranh / năm) phải còn nguyên trong câu. In tệp tập đã rút ra <ra>.
+if (process.argv.includes('--chi-rut')) {
+  type Cau = { chu: string; su_that?: { gia_tri: string }[]; canh: { nguoi?: { dang?: { chu: string }[] }[]; dau?: { chu: string }[]; tranh?: { tu_chu?: string; den_chu?: string } | null; nam_sau?: { chu: string } | null } };
+  const cu = cuTap as unknown as { cau: Cau[] } & Record<string, unknown>, dich = Number(arg('chi-rut'));
+  if (!cu || !dich) { console.error('--chi-rut <đích từ> cần --cu <tập.json>'); process.exit(2); }
+  const dem = (t: string) => t.trim().split(/\s+/).length, tong = () => cu.cau.reduce((t, c) => t + dem(c.chu), 0);
+  const giu = (c: Cau) => [...(c.canh.nguoi ?? []).flatMap((n) => (n.dang ?? []).map((d) => d.chu)), ...(c.canh.dau ?? []).map((d) => d.chu), c.canh.tranh?.tu_chu, c.canh.tranh?.den_chu, c.canh.nam_sau?.chu].filter((x): x is string => !!x);
+  const phang = (t: string) => ` ${t.toLowerCase().replace(/[^a-z0-9áéíóúñü' ]+/g, ' ').replace(/\s+/g, ' ')} `;
+  const Rut = z.object({ sua: z.array(z.object({ cau: z.number().int().describe('số câu (1 = câu đầu)'), chu: z.string().describe('lời đọc mới, ngắn hơn') })) });
+  let loi = '';
+  for (let lan = 1; lan <= 3 && tong() > dich; lan++) {
+    const can = tong() - dich, chon = cu.cau.map((c, k) => ({ k, n: dem(c.chu) })).filter((x) => x.k > 0 && x.k < cu.cau.length - 1).sort((a, b) => b.n - a.n).slice(0, Math.min(14, Math.ceil(can / 3) + 4));
+    const r = await sinhJson({ schema: Rut, model: 'claude-sonnet-5-5', max_tokens: 3000, ten: 'rút gọn lời đọc tập lịch sử',
+      system: `Biên tập lời đọc bản tin lá cải hài về lịch sử thật ("${K0.ten}"). Rút ngắn các câu được đưa cho tổng cộng BỚT ÍT NHẤT ${can} từ. Giữ đúng sự thật, giữ nhịp hài, giữ ngôn ngữ của câu (${nn === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh'}). Bỏ chữ đệm, mệnh đề phụ, tính từ thừa. Mỗi câu mới PHẢI còn nguyên văn mọi cụm trong "giữ" (cảnh đang gọi tới) và mọi năm / con số / tên riêng của câu cũ. Năm và số viết bằng chữ như câu cũ. CẤM gạch dài, "…", "→". Chỉ trả những câu đã đổi.`,
+      user: `${chon.map(({ k }) => { const c = cu.cau[k]!; return `câu ${k + 1} (${dem(c.chu)} từ): ${c.chu}\n  giữ: ${JSON.stringify(giu(c))}\n  sự thật: ${(c.su_that ?? []).map((x) => x.gia_tri).join(' | ')}`; }).join('\n')}${loi ? `\nLẦN TRƯỚC: ${loi}` : ''}` });
+    if (!r.ok) { loi = r.loi; continue; }
+    const hong: string[] = []; let bot = 0;
+    for (const x of r.data.sua) { const c = cu.cau[x.cau - 1]; if (!c || !chon.some((y) => y.k === x.cau - 1)) continue;
+      const thieu = giu(c).filter((g) => !phang(x.chu).includes(phang(g).trim() ? ` ${phang(g).trim()} ` : ' '));
+      if (thieu.length || /[—–→…]/.test(x.chu) || dem(x.chu) >= dem(c.chu)) { hong.push(`câu ${x.cau}: ${thieu.length ? `mất chữ ${JSON.stringify(thieu)}` : 'không ngắn hơn / có dấu cấm'}`); continue; }
+      bot += dem(c.chu) - dem(x.chu); c.chu = x.chu.trim(); }
+    loi = hong.length ? `${hong.join('; ')} — còn thừa ${Math.max(0, tong() - dich)} từ` : `còn thừa ${Math.max(0, tong() - dich)} từ`;
+    console.log(`· rút lượt ${lan}: bớt ${bot} từ → ${tong()} từ (đích ${dich})${hong.length ? ` · bỏ qua ${hong.length} câu: ${hong.join('; ').slice(0, 200)}` : ''} (${Math.round(r.tokens.vnd ?? 0)}₫)`);
+  }
+  writeFileSync(ra, JSON.stringify(cu, null, 1) + '\n');
+  if (tong() > dich) { console.error(`✗ rút gọn 3 lượt vẫn ${tong()} từ > ${dich}`); process.exit(1); }
+  console.log(`✓ rút gọn còn ${tong()} từ`); process.exit(0);
 }
 
 // ---------- CHỈ CHỮ THUMBNAIL (--chi-thumb, 02/11/2026 anh: "thumb rất rất quan trọng, phải có thiết kế + review đúng chuẩn, không dùng thumb YouTube tự sinh") ----------

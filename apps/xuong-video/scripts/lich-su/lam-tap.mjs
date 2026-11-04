@@ -224,6 +224,15 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
   let loi = sua ? await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
   for (let lan = 1; lan <= 4 && !(sua && !loi.length && lan === 1); lan++) {
     chiTiet(`lượt viết ${lan}/4${loi.length ? ` · lượt trước ${loi.length} lỗi kiểm` : ''} · đang gọi máy viết`);
+    // DÀI QUÁ KHUÔN → rút gọn riêng các câu dài (viet-tap --chi-rut), không bắt máy viết chép lại cả bản (nó trả y nguyên); rồi kiểm lại, còn lỗi khác mới viết lại
+    if (loi.some((x) => /PHẢI BỎ ÍT NHẤT/.test(x))) {
+      const dich = (KENH.tu[nn] ?? KENH.tu.en)[1] - 10; len(tepTap, `${tmp}/tap.json`);
+      try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/rut.json --id ${id} --nn ${nn} --kenh ${kenhId} --cu ${tmp}/tap.json --chi-rut ${dich}`)); ve(`${tmp}/rut.json`, tepTap); }
+      catch (e) { console.log(`⚠ rút gọn hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}`); }
+      loi = await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8'));
+      console.log(loi.length ? `✗ sau rút gọn: ${loi.length} lỗi\n  ${loi.join('\n  ')}` : '✓ sau rút gọn: kiểm sạch');
+      if (!loi.length) break;
+    }
     const them = loi.length ? ` --loi ${tmp}/loi.txt --cu ${tmp}/tap.json` : '';
     if (loi.length) { writeFileSync(join(RA, 'loi.txt'), loi.map((x) => `- ${x}`).join('\n')); len(join(RA, 'loi.txt'), `${tmp}/loi.txt`); len(tepTap, `${tmp}/tap.json`); }
     try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe && !boDeCu ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${plMa ? ` --playlist ${q(plMa)}` : ''}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTuaF() ? ` --nguon ${q(nguonTuaF())}` : ''}${them}`)); }

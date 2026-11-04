@@ -1733,6 +1733,26 @@ function BadgeSx({ cid, ds, kt }: { cid: number; ds: DuLieuEtp['dongChay']; /** 
     const t = `${x.id ? `đợt sản xuất #${x.id}` : 'máy sinh kể chuyện (thư viện)'} · ${x.loai}${x.so_camp ? ` · +${x.so_camp} camp` : ''} · ${TT_DONG[tt] ?? tt}${tt !== 'chay' ? (x.camp_id ? ` · camp #${x.camp_id}` : '') + (x.ly_do ? `\n${x.ly_do.slice(0, 240)}` : '') : ` · bước ${x.buoc ?? '—'}`}\nbấm: sang ${x.id ? 'tab Sản xuất' : 'Thư viện'} (Ctrl/⌘: tab mới)`;
     return <span key={`${x.id}-${i}`} style={{ opacity: tt === 'chay' ? 1 : 0.6 }}><DongHoSx buoc={x.cac_buoc ?? []} so={tt === 'chay' ? (x.so_camp ?? 1) : (x.so_len ?? 0)} title={t} href={x.id ? `?t=dong&sxq=${cid}` : `?t=tv&tvq=${cid}`} ket={tt === 'chay' ? undefined : tt} /></span>; })}</span>;
 }
+/** ĐỒNG HỒ HẤP THỤ (anh 04/11/2026 "show thêm 1 đồng hồ nữa về các chỉ số này cho từng phim"): kim = ROI biên 14 ngày đã khép của phim (mỗi $1 chi thêm đem về bao nhiêu),
+ *  dải −50…+50%; vùng đỏ < 0 quá bão hoà · vàng 0–15% gần đỉnh · xanh ≥ 15% còn hút. Số: apps/etp/mo_rong.py (etp.mo_rong.roi_bien / r2 / pha). */
+const PHA_HT: Record<string, [string, string, string]> = { hut: ['còn hút', '#22c55e', 'tăng mạnh — cho nhân bản giữ nguyên creative + nâng ngân sách'], dinh: ['gần đỉnh', '#facc15', 'chỉ tăng bằng creative MỚI (đoạn / góc khác), không nhân bản trùng'],
+  bao_hoa: ['quá bão hoà', '#ef4444', 'ngừng thêm camp; hạ / tắt camp lỗ nhất tới khi ROI biên ≥ 0; dồn tiền sang phim còn hút'], it_so: ['chưa đủ số', '#6b7280', 'cần ≥ 6 ngày chi ≥ $5 và tổng ≥ $150 trong 14 ngày'] };
+function DongHoHapThu({ m }: { m?: MoRong }) {
+  if (!m) return null;
+  const pha = m.pha ?? 'it_so', [ten, mau, cach] = PHA_HT[pha] ?? PHA_HT.it_so!, v = m.roi_bien;
+  const C = 13, R = 10, goc = (x: number) => 180 + (Math.max(-50, Math.min(50, x)) + 50) / 100 * 180;   // −50 → trái · +50 → phải (nửa vòng trên)
+  const xy = (g: number, r = R) => [C + r * Math.cos((g * Math.PI) / 180), C + 2 + r * Math.sin((g * Math.PI) / 180)];
+  const cung = (a: number, b: number, c: string) => { const [x1, y1] = xy(goc(a)), [x2, y2] = xy(goc(b)); return <path d={`M ${x1} ${y1} A ${R} ${R} 0 0 1 ${x2} ${y2}`} stroke={c} strokeWidth={2.6} fill="none" opacity={0.85} />; };
+  const [kx, ky] = xy(goc(v ?? 0), R - 2);
+  const t = `Độ hấp thụ phim — ${ten}${v != null ? `\nROI biên 14 ngày: ${v > 0 ? '+' : ''}${v}% (mỗi $1 chi thêm đem về $${(1 + v / 100).toFixed(2)}) · độ tin R² ${m.r2 ?? '—'} · chi TB $${m.chi_tb ?? '—'}/ngày` : ''}\nCách tăng: ${cach}`;
+  return <span title={t} style={{ display: 'inline-block', width: 26, height: 26, flex: 'none' }}>
+    <svg width={26} height={26} viewBox="0 0 26 26">
+      {cung(-50, 0, '#ef4444')}{cung(0, 15, '#facc15')}{cung(15, 50, '#22c55e')}
+      {v != null ? <line x1={C} y1={C + 2} x2={kx} y2={ky} stroke="#fff" strokeWidth={1.6} strokeLinecap="round" /> : null}
+      <circle cx={C} cy={C + 2} r={1.6} fill="#fff" />
+      <text x={C} y={24.5} textAnchor="middle" fontSize={6.5} fontWeight={700} fill={mau}>{v == null ? '—' : `${v > 0 ? '+' : ''}${v}`}</text>
+    </svg></span>;
+}
 /** NÚT ＋ Ở DÒNG PHIM (anh 04/11/2026 "thêm 1 nút ở dòng film … mở ra form để chọn: số camp mới, thể loại film → submit là xong. Còn lại cho tab SX xử lý") */
 function NutMoRong({ cid, k }: { cid: number; k?: number }) {
   const [mo, setMo] = useState(false);
@@ -1862,7 +1882,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} />
         {l ? <span style={{ color: '#f87171', fontSize: 11 }} title={`nhân bản lỗi ${l.lan} lần / 24h: ${loiThuong(l.loi)}`}>⚠{l.lan}</span> : n ? <span style={{ color: 'var(--fg-2)', fontSize: 11, minWidth: 22, textAlign: 'right' }} title={`${n} bản nhân`}>x{n}</span> : <span style={{ minWidth: 22 }} />}</span></span>; } },
     { key: 'tt', header: 'TT', align: 'left', width: 74, title: 'trạng thái camp trên Ethopex', total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k)   // ĐỒNG HỒ CÁC ĐỢT SẢN XUẤT ở dòng phim, sát mép phải → ngay cạnh ＋ (cột Tuổi) (anh 04/11/2026)
-      ? <span style={{ display: 'flex', justifyContent: 'flex-end', whiteSpace: 'nowrap' }}><BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /></span> : null; }, cell: (c) => { const x = ttCamp(c); const o = <span title={c.trang_thai === 'ACTIVE' ? x.t : undefined} style={{ display: 'block', fontSize: 11, color: x.mau, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.chu}</span>; return c.trang_thai === 'ACTIVE' || c.giao === 'DISAPPROVED' ? o : <ReDung c={c}>{o}</ReDung>; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
+      ? <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}><DongHoHapThu m={du.moRong?.find((x) => x.content_id === k)} /><BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /></span> : null; }, cell: (c) => { const x = ttCamp(c); const o = <span title={c.trang_thai === 'ACTIVE' ? x.t : undefined} style={{ display: 'block', fontSize: 11, color: x.mau, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.chu}</span>; return c.trang_thai === 'ACTIVE' || c.giao === 'DISAPPROVED' ? o : <ReDung c={c}>{o}</ReDung>; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
     { key: 'tuoi', header: 'Tuổi', width: 52, title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: (c) => (c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : undefined), cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)),
       // NÚT ＋ MỞ RỘNG ở dòng PHIM, thẳng một cột (anh 04/11/2026 "phải thẳng cột") — dòng tổng bảng (nhiều phim) không có
       total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <NutMoRong cid={k} /> : null; } },   // ＋ thẳng cột trong cột Tuổi (hẹp 52); đồng hồ các đợt ở ô TT ngay bên trái
@@ -1917,7 +1937,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const thayCua = useMemo(() => new Map((du.thayThe ?? []).map((t) => [-t.id, t])), [du.thayThe]);
   const moRongCua = useMemo(() => new Map((du.moRong ?? []).map((m) => [MR_ID(m.content_id), m])), [du.moRong]);
   const moRongRows = useMemo(() => { const coPhim = new Set(camps.map((c) => c.content_id));
-    return (du.moRong ?? []).filter((m) => coPhim.has(m.content_id)).map((m): CampEtpKho => ({ camp_id: MR_ID(m.content_id), ten: `mở rộng +${m.k} camp`, bo: null, trang_thai: 'MO_RONG', giao: null, ngan_sach: 0,
+    return (du.moRong ?? []).filter((m) => m.k > 0 && coPhim.has(m.content_id)).map((m): CampEtpKho => ({ camp_id: MR_ID(m.content_id), ten: `mở rộng +${m.k} camp`, bo: null, trang_thai: 'MO_RONG', giao: null, ngan_sach: 0,
       creative_id: null, content_id: m.content_id, goc: null, lich: null, tao: m.luc, loi: null, phim: null, the_loai: null, dang: null, doan: null, cung_doan: 0,
       thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, lich_tat: false, roas: null, chien_luoc: null, nuoc: [] })); }, [camps, du.moRong]);
   const cotCayThay: DataColumn<CampEtpKho>[] = cotCay.map((col) => ({ ...col,

@@ -8,6 +8,9 @@ Chỉ ĐỌC số + GHI plan ($0, không AI, không tạo camp). Một chỗ kha
 import json, math
 
 DICH, DAU, HOA, LAI, TUT = 30, 6, 0, 20, 10
+# ĐỘ HẤP THỤ (anh 04/11/2026): ROI biên 14 ngày đã khép = (hệ số hồi quy thu ~ chi theo ngày − 1) × 100; cần ≥ 6 ngày chi ≥ $5 và tổng ≥ $150
+HUT, BIEN_NGAY, BIEN_CHI = 15, 6, 150
+def pha_cua(rb): return "it_so" if rb is None else "hut" if rb >= HUT else "dinh" if rb >= 0 else "bao_hoa"
 
 def k_cua(n): return 0 if n >= DICH else max(1, math.ceil(DAU * (1 - n / DICH)))
 
@@ -19,11 +22,15 @@ def chay(q):
                    sum(n.chi) filter (where n.ngay between current_date - 6 and current_date - 4) chi_t,
                    sum(n.thu) filter (where n.ngay between current_date - 6 and current_date - 4) thu_t
             from etp.so_ngay n join etp.camp c using (camp_id) where n.ngay >= current_date - 6 group by 1),
+      b as (select content_id, round(((regr_slope(thu, chi) - 1) * 100)::numeric)::int roi_bien, round(regr_r2(thu, chi)::numeric, 2) r2, round(avg(chi)::numeric, 1) chi_tb
+            from (select c.content_id, n.ngay, sum(n.chi) chi, sum(n.thu) thu from etp.so_ngay n join etp.camp c using (camp_id)
+                  where n.ngay between current_date - 14 and current_date - 1 and c.content_id > 0 group by 1, 2 having sum(n.chi) >= 5) d
+            group by 1 having count(*) >= %d and sum(chi) >= %d),
       san as (select r.content_id, count(*) k from etp.creative r join etp.cham_cong g using (creative_id)
               where g.duoc_len and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id) group by 1)
       select a.content_id, a.n, extract(epoch from now() - a.dau) / 86400 tuoi, (a.moi at time zone 'UTC')::date >= current_date - 1 moi_chua_khep,
-             coalesce(s.chi3, 0) chi3, coalesce(s.thu3, 0) thu3, s.chi_t, s.thu_t, coalesce(san.k, 0) san
-      from a left join s using (content_id) left join san using (content_id)) x""") or "[]")
+             coalesce(s.chi3, 0) chi3, coalesce(s.thu3, 0) thu3, s.chi_t, s.thu_t, coalesce(san.k, 0) san, b.roi_bien, b.r2, b.chi_tb
+      from a left join s using (content_id) left join san using (content_id) left join b using (content_id)) x""" % (BIEN_NGAY, BIEN_CHI)) or "[]")
     ghi = []
     for r in rows:
         n, chi, thu, san = int(r["n"]), float(r["chi3"]), float(r["thu3"]), int(r["san"])
@@ -38,13 +45,15 @@ def chay(q):
         if tt == "them" and r["moi_chua_khep"]: tt, ly = "cho_do", ly + " · lượt trước chưa đủ 1 ngày khép — chờ đo"
         elif tt == "them" and roi_t is not None and roi < roi_t - TUT: tt, ly = "giu", ly + f" · ROI tụt {roi_t}% → {roi}% sau lượt trước — giữ"
         ghi.append({"content_id": int(r["content_id"]), "n": n, "chi3": round(chi, 2), "lai3": round(thu - chi, 2), "roi3": roi, "roi_truoc": roi_t, "k": k,
-                    "san": san, "can_sx": max(0, k - san) if tt == "them" else 0, "trang_thai": tt, "ly": ly})
+                    "san": san, "can_sx": max(0, k - san) if tt == "them" else 0, "trang_thai": tt, "ly": ly,
+                    "roi_bien": r.get("roi_bien"), "r2": r.get("r2"), "pha": pha_cua(r.get("roi_bien")), "chi_tb": r.get("chi_tb")})
     j = json.dumps(ghi, ensure_ascii=False).replace("$J$", "")
     q(f"""delete from etp.mo_rong where content_id not in (select (x->>'content_id')::int from jsonb_array_elements($J${j}$J$::jsonb) x);
-          insert into etp.mo_rong (content_id, n, chi3, lai3, roi3, roi_truoc, k, san, can_sx, trang_thai, ly, luc)
-          select content_id, n, chi3, lai3, roi3, roi_truoc, k, san, can_sx, trang_thai, ly, now() from jsonb_to_recordset($J${j}$J$::jsonb)
-            as x(content_id int, n int, chi3 numeric, lai3 numeric, roi3 int, roi_truoc int, k int, san int, can_sx int, trang_thai text, ly text)
+          insert into etp.mo_rong (content_id, n, chi3, lai3, roi3, roi_truoc, k, san, can_sx, trang_thai, ly, roi_bien, r2, pha, chi_tb, luc)
+          select content_id, n, chi3, lai3, roi3, roi_truoc, k, san, can_sx, trang_thai, ly, roi_bien, r2, pha, chi_tb, now() from jsonb_to_recordset($J${j}$J$::jsonb)
+            as x(content_id int, n int, chi3 numeric, lai3 numeric, roi3 int, roi_truoc int, k int, san int, can_sx int, trang_thai text, ly text, roi_bien int, r2 numeric, pha text, chi_tb numeric)
           on conflict (content_id) do update set n = excluded.n, chi3 = excluded.chi3, lai3 = excluded.lai3, roi3 = excluded.roi3, roi_truoc = excluded.roi_truoc,
-            k = excluded.k, san = excluded.san, can_sx = excluded.can_sx, trang_thai = excluded.trang_thai, ly = excluded.ly, luc = now()""")
+            k = excluded.k, san = excluded.san, can_sx = excluded.can_sx, trang_thai = excluded.trang_thai, ly = excluded.ly,
+            roi_bien = excluded.roi_bien, r2 = excluded.r2, pha = excluded.pha, chi_tb = excluded.chi_tb, luc = now()""")
     them = [g for g in ghi if g["trang_thai"] == "them"]
     return {"mo_rong_phim": len(them), "mo_rong_camp": sum(g["k"] for g in them), "mo_rong_can_sx": sum(g["can_sx"] for g in them)}

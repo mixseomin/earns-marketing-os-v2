@@ -14,7 +14,7 @@ import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 const ENV_STUDIO = '/opt/earns-marketing-os-v2/.env.production';
-export const SAN = { shopaikey: 5, kie: 500, runpod: 2, plenxai: 100, vast: 2, elevenlabs: 1000, fal: 5, ke: 5000 };   // $ / credit / $ / ₫ — dưới mức này là báo
+export const SAN = { tokenhot: 2, flatkey: 2, shopaikey: 5, kie: 500, runpod: 2, plenxai: 100, vast: 2, elevenlabs: 1000, fal: 5, ke: 5000 };   // $ / credit / $ / ₫ — dưới mức này là báo
 export const NGAY_CON = 3; export const GIO_BAO = '08:00'; export const GIO_DON = '03:00';
 /** Giá R2 (cloudflare.com/r2/pricing, gói Standard): lưu $0,015/GB-tháng sau 10 GB miễn phí · lớp A $4,50/triệu sau 1 triệu · lớp B $0,36/triệu sau 10 triệu · xoá + băng thông ra: 0. */
 export const GIA_R2 = { gb: 0.015, gbFree: 10, a: 4.5, aFree: 1e6, b: 0.36, bFree: 10e6 };
@@ -23,8 +23,8 @@ export const NGUONG_R2 = { thangVnd: 100000, tangGb: 10 };
 const VND = 26000;   // $1 ≈ 26.000₫ (cùng tỷ giá báo cáo studio)
 const LOP_B = new Set(['GetObject', 'HeadObject', 'HeadBucket', 'GetBucketLocation', 'GetBucketEncryption', 'GetBucketCors', 'GetBucketLifecycleConfiguration']);
 const MIEN_PHI = new Set(['DeleteObject', 'DeleteObjects', 'DeleteBucket', 'AbortMultipartUpload']);
-const DON = { shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit', vast: '$', elevenlabs: 'credit', fal: '$', ke: 'credit' };
-const TEN = { plenxai: 'PlenX AI', shopaikey: 'ShopAIKey', kie: 'Kie.ai', runpod: 'RunPod', ckey: 'ckey.vn', vast: 'Vast.ai', elevenlabs: 'ElevenLabs', anthropic: 'Anthropic', google: 'Google', fal: 'fal.ai', ke: 'Keywords Everywhere' };
+const DON = { tokenhot: '$', flatkey: '$', shopaikey: '$', kie: 'credit', runpod: '$', ckey: '₫', plenxai: 'credit', vast: '$', elevenlabs: 'credit', fal: '$', ke: 'credit' };
+const TEN = { tokenhot: 'TokenHot', flatkey: 'FlatKey', plenxai: 'PlenX AI', shopaikey: 'ShopAIKey', kie: 'Kie.ai', runpod: 'RunPod', ckey: 'ckey.vn', vast: 'Vast.ai', elevenlabs: 'ElevenLabs', anthropic: 'Anthropic', google: 'Google', fal: 'fal.ai', ke: 'Keywords Everywhere' };
 
 const so = (x, d = 2) => Number(x).toLocaleString('vi-VN', { maximumFractionDigits: d });
 const hien = (k, v) => (DON[k] === '$' ? `$${so(v)}` : DON[k] === '₫' ? `${so(v, 0)}₫` : `${so(v, 0)} ${DON[k]}`);
@@ -141,11 +141,27 @@ export function tieuSpy(ngay) {
 export const docEnvTep = (f) => { try { return Object.fromEntries(fs.readFileSync(f, 'utf8').split('\n').map((l) => l.match(/^([A-Z0-9_]+)=(.*)$/)).filter(Boolean).map((m) => [m[1], m[2].replace(/^["']|["']$/g, '')])); } catch { return {}; } };
 const lay = async (url, o = {}) => { const r = await fetch(url, { ...o, signal: AbortSignal.timeout(20000) }); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(`HTTP ${r.status}`); return j; };
 
+/** KHOÁ CỔNG TỪ VAULT MOS2 (platform_accounts.api_token_enc, mã bằng MOS2_SECRET_KEY) — cổng anh đưa khoá ở chat (TokenHot #686, FlatKey #687, 04/11/2026)
+ *  không cần ghi thêm biến vào .env; câu SQL đi qua stdin để khoá giải mã không nằm trên dòng lệnh. */
+export function khoaVault(e, nen) {
+  if (!e.DATABASE_URL || !e.MOS2_SECRET_KEY) throw new Error('thiếu DATABASE_URL / MOS2_SECRET_KEY');
+  const out = execFileSync('psql', [e.DATABASE_URL, '-tA', '-v', `k=${e.MOS2_SECRET_KEY}`], { encoding: 'utf8', timeout: 20000,
+    input: `select pgp_sym_decrypt(decode(api_token_enc, 'base64'), :'k') from platform_accounts where platform_key = '${nen.replace(/[^a-z0-9_-]/g, '')}' and api_token_enc is not null and status = 'active' order by id limit 1;` });
+  const k = out.trim(); if (!k) throw new Error(`vault chưa có khoá ${nen}`); return k;
+}
+/** Cổng kiểu new-api (OpenAI-compatible): số dư = hạn mức khoá − đã dùng (total_usage tính bằng cent). Khoá đặt "không giới hạn" thì API không cho biết số dư tài khoản. */
+const soDuNewApi = async (goc, k) => { const h = { headers: { authorization: `Bearer ${k}` } };
+  const [a, b] = await Promise.all([lay(`${goc}/v1/dashboard/billing/subscription`, h), lay(`${goc}/v1/dashboard/billing/usage?start_date=2026-01-01&end_date=2099-01-01`, h)]);
+  if (!(a.hard_limit_usd < 1e6)) throw new Error(`khoá không giới hạn — số dư chỉ xem ở console (đã dùng $${(b.total_usage / 100).toFixed(2)})`);
+  return Math.round((a.hard_limit_usd - b.total_usage / 100) * 100) / 100; };
+
 /** Đọc số dư mọi cổng có API. Trả { du: {k: số | null}, loi: {k: lý do} } — lỗi một cổng không làm hỏng cổng khác. */
 export async function docSoDu() {
   const e = { ...docEnvTep(ENV_STUDIO), ...process.env }; const du = {}, loi = {};
   const thu = async (k, f) => { try { du[k] = await f(); } catch (x) { du[k] = null; loi[k] = String(x.message ?? x).slice(0, 80); } };
   await Promise.all([
+    thu('tokenhot', async () => soDuNewApi('https://tokenhot.ai', khoaVault(e, 'tokenhot'))),
+    thu('flatkey', async () => soDuNewApi('https://router.flatkey.ai', khoaVault(e, 'flatkey'))),
     thu('shopaikey', async () => { if (!e.SHOPAIKEY_API_KEY) throw new Error('thiếu khoá'); const h = { headers: { authorization: `Bearer ${e.SHOPAIKEY_API_KEY}` } };
       const [a, b] = await Promise.all([lay('https://api.shopaikey.com/v1/dashboard/billing/subscription', h), lay('https://api.shopaikey.com/v1/dashboard/billing/usage', h)]);
       return Math.round((a.hard_limit_usd - b.total_usage / 100) * 100) / 100; }),

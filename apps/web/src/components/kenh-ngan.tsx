@@ -59,7 +59,7 @@ function NganMau({ k, ma, onClose, moVideo }: { k: KenhSp; ma: string; onClose: 
     { key: 'xem', header: 'Lượt xem', width: 90, sortValue: (r) => (r.loai === 'video' ? r.v.xem : null), cell: (r) => (r.loai === 'video' ? so(r.v.xem) : <span style={{ color: 'var(--fg-4)' }}>–</span>) },
   ];
   return <>
-    <ModalHeader kind="kenh" action="view" title={`${mau.loai === 'dai' ? '🎞' : '📱'} ${mau.ten}`} subtitle={`${k.ten} · mẫu đã duyệt`} onClose={onClose} />
+    <ModalHeader kind="kenh" action="view" title={`${mau.loai === 'dai' ? '🎞' : '📱'} ${mau.ten}`} subtitle={`${k.ten} · ${mau.cho_duyet ? "⏳ mẫu mới, chờ anh duyệt demo" : "mẫu đã duyệt"}`} onClose={onClose} />
     <div style={{ display: 'grid', gridTemplateColumns: `${mau.loai === 'dai' ? 480 : 260}px minmax(280px, 1fr) minmax(300px, 1fr)`, gap: 20, margin: '14px 0 18px', alignItems: 'start' }}>
       {mau.demo ? <Video src={mau.demo} doc={mau.loai !== 'dai'} /> : <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>chưa có video demo</div>}
       <Luoi>

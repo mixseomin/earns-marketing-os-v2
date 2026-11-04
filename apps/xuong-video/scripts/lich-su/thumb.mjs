@@ -36,12 +36,15 @@ if (!tap.thumb?.chu || co('viet-lai')) {
 }
 
 // 2–3. DỰNG + NGỌC CHẤM, THỬ ẢNH KẾ KHI BỊ CHẶN VÌ ẢNH (03/11/2026, Constantinople: ảnh bìa là ảnh ghép 6 tranh → Ngọc chặn "rối, không chủ thể" → cả lượt dừng):
-// ứng viên = ảnh máy viết chọn trước, rồi mọi ảnh thật khác của tập (tranh Commons + ảnh bìa); tối đa 3 ảnh. Bị chặn vì CHỮ (khó đọc, nhiều chữ, tràn, lặp tiêu đề) thì đổi ảnh vô ích → dừng.
+// ứng viên = ảnh máy viết chọn trước, rồi mọi ảnh thật khác của tập (ảnh bìa trước, tranh Commons sau); tối đa 5 ảnh. Bị chặn vì CHỮ (khó đọc, nhiều chữ, tràn, lặp tiêu đề) thì đổi ảnh vô ích → dừng.
 const PW = process.env.DO_MAN_PW || `${process.env.HOME}/Me/Earns/courseforge-demo/node_modules/playwright`;
 const { chromium } = createRequire(import.meta.url)(PW);
 const ra = join(RA, `${id}-thumb.jpg`);
 for (const x of tap.anh_bia_ds ?? []) if (x?.anh && x.commons) anhTap.set(x.commons, x.anh);
-const ungVien = [[tap.thumb.commons, tap.thumb.anh], ...[...anhTap].filter(([c]) => c !== tap.thumb.commons)].slice(0, 3);
+// 04/11/2026 (tập săn phù thuỷ): 3 ứng viên đầu toàn chân dung người phụ, Ngọc chặn "lệch chuyện"; tranh hành quyết phù thuỷ (ảnh bìa thứ 3, đúng chuyện nhất) không được thử.
+// Giờ: ảnh máy viết chọn → ảnh bìa đã qua Ngọc (xét theo chủ đề) → tranh cảnh còn lại; tối đa 5 ảnh.
+const bia = new Set((tap.anh_bia_ds ?? []).map((x) => x?.commons).filter(Boolean));
+const ungVien = [[tap.thumb.commons, tap.thumb.anh], ...[...anhTap].filter(([c]) => c !== tap.thumb.commons).sort(([a], [b]) => Number(bia.has(b)) - Number(bia.has(a)))].slice(0, 5);
 let kq = null;
 for (const [i, [commons, anh]] of ungVien.entries()) {
   const b = await chromium.launch({ args: ['--allow-file-access-from-files'] });

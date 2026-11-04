@@ -459,6 +459,7 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
 // thanh 24 giờ ghi chữ từng khung + kim giờ hiện tại, số camp đã đạt luật đang chờ khung (theo hướng, từ etp.bao — cùng nguồn chip ⏳)
 const CHU_KHUNG: Record<string, string> = { doi: 'máy đang tự tăng · giảm · tắt camp theo luật', nap: 'máy chỉ nạp thêm cho camp đã tiêu hết + ROI hôm nay ≥ 30%', bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung đổi' };
 function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
+  const noi = useNoi<{ id: 0 }>();   // gọi trước mọi lệnh return sớm (luật hook)
   const [h, setH] = useState<number | null>(null);
   useEffect(() => { const f = () => setH(gioVnNay()); f(); const t = setInterval(f, 30_000); return () => clearInterval(t); }, []);
   const cho = useMemo(() => {
@@ -477,9 +478,10 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   const nen = (kg: string, sang: boolean) => kg === 'bang' ? `repeating-linear-gradient(135deg, #47556966 0 6px, #33415566 6px 12px)` : `${KHUNG_TEN[kg as 'doi'][2]}${sang ? 'cc' : '55'}`;
   const gioChu = `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
   const so = (n: number, nhan: string, m: string) => <span style={{ color: n ? m : 'var(--fg-3, #777)', fontWeight: 600 }}>{nhan}{n}</span>;
-  const giai = `Khung máy tự đổi camp (giờ VN, cả 3 bộ) — bây giờ ${gioChu} · ${ten}, ${k === 'doi' ? 'hết' : 'mở khung kế'} ${String(het).padStart(2, '0')}:00 (còn ${con})\n${KD.doi[0]}–${KD.doi[1]}h  ${KHUNG_TEN.doi[0]} ${CHU_KHUNG.doi}\n${KD.nap[0]}–${KD.nap[1]}h  ${KHUNG_TEN.nap[0]} ${CHU_KHUNG.nap}\ncòn lại  ${KHUNG_TEN.bang[0]} ${CHU_KHUNG.bang}\n⏳ = camp đã đạt luật, chờ khung (chip ⏳ ở cột Luật)`;
+  const o: React.CSSProperties = { padding: '3px 6px', borderTop: '1px solid var(--line)', verticalAlign: 'top' };   // khung nổi chuẩn của trang (như chip luật / BangXet)
+  const dong = ([['doi', KD.doi], ['nap', KD.nap], ['bang', [KD.nap[1], KD.doi[0]]]] as const).map(([kg, [tu, den]]) => ({ kg, gio: `${String(tu).padStart(2, '0')}:00–${String(den).padStart(2, '0')}:00` }));
   return (
-    <span title={giai} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'help', whiteSpace: 'nowrap' }}>
+    <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'help', whiteSpace: 'nowrap' }}>
       <b style={{ color: mau }}>{bt}{gon ? '' : ` ${ten}`}</b><span style={{ color: 'var(--fg-3, #777)' }}>{k === 'doi' ? 'hết' : 'mở'} {String(het).padStart(2, '0')}:00</span>
       <div style={{ position: 'relative', width: gon ? 96 : 200 }}>
         <div style={{ display: 'flex', height: 14, borderRadius: 4, overflow: 'hidden', border: '1px solid var(--line)' }}>
@@ -491,6 +493,17 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
         <div style={{ position: 'absolute', top: -2, bottom: -2, left: `${(h / 24) * 100}%`, width: 2, borderRadius: 1, background: 'var(--fg-1)', pointerEvents: 'none' }} />
       </div>
       {k !== 'doi' ? <span style={{ display: 'inline-flex', gap: 5 }}><span style={{ color: 'var(--fg-3, #777)' }}>⏳</span>{so(cho.tang.size, '↑', '#4ade80')}{so(cho.giam.size, '↓', '#fb923c')}{so(cho.tat.size, '✕', '#f87171')}</span> : null}
+      {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={300} noi={noi}><div style={{ width: 460, padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}><b style={{ fontSize: 13 }}>Khung máy tự đổi camp</b><span style={{ color: 'var(--fg-2)' }}>giờ VN · cả 3 bộ</span></div>
+        <div style={{ marginBottom: 8 }}>Bây giờ <b>{gioChu}</b> · <b style={{ color: mau }}>{bt} {ten}</b> · {k === 'doi' ? 'hết khung' : 'mở khung kế'} <b>{String(het).padStart(2, '0')}:00</b> (còn {con})</div>
+        <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>
+          <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}><th style={o}>Khung</th><th style={o}>Giờ</th><th style={o}>Máy làm gì</th></tr></thead>
+          <tbody>{dong.map(({ kg, gio }) => <tr key={kg} style={{ background: kg === k ? `${KHUNG_TEN[kg][2]}22` : undefined }}>
+            <td style={{ ...o, whiteSpace: 'nowrap', color: KHUNG_TEN[kg][2], fontWeight: kg === k ? 700 : 500 }}>{KHUNG_TEN[kg][0]} {KHUNG_TEN[kg][1]}{kg === k ? ' ←' : ''}</td>
+            <td style={{ ...o, whiteSpace: 'nowrap' }}>{gio}</td><td style={o}>{CHU_KHUNG[kg]}</td></tr>)}</tbody>
+        </table>
+        {k !== 'doi' ? <div style={{ marginTop: 8 }}>⏳ Camp đã đạt luật, chờ tới <b>{KD.doi[0]}:00</b>: {so(cho.tang.size, '↑ tăng ', '#4ade80')} · {so(cho.giam.size, '↓ giảm ', '#fb923c')} · {so(cho.tat.size, '✕ tắt ', '#f87171')} <span style={{ color: 'var(--fg-3, #777)' }}>— xem chip ⏳ ở cột Luật</span></div> : null}
+      </div></KhungNoi> : null}
     </span>
   );
 }

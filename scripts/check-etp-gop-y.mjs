@@ -480,6 +480,8 @@ const LUAT = [
   { card: 'ht-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'ht', header: 'Thị trường', align: 'center', width: 40,", vi: 'tab Camp: cột Hấp thụ riêng' },
   { card: 'ht-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'ht_ph', header: 'Thị trường',", vi: 'tab Phim: cột Hấp thụ cho team' },
   { card: 'ht-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "if (!m || m.roi_bien == null || (m.pha ?? 'it_so') === 'it_so') return null;", vi: 'chưa đủ số thì không hiện' },
+  { card: 'nhan-tat-0411', tep: 'apps/etp/dong_phim.py', co: 'rc, out = box(f"python3 apps/etp/nhom_goc.py {cid} --ghi", 300)', vi: 'bước Nhận tự chấm nhóm gốc khi chưa có (anh 04/11/2026)' },
+  { card: 'nhan-tat-0411', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: "if _nhan_bb and not NGOAI and not ep and moi", vi: 'luật nhận bắt buộc theo công tắc nhan_bat_buoc (tạm tắt)' },
   { card: 'sx-ph-0411', tep: 'apps/etp/dong_phim.py', co: 'bq = BO_QUA.get(d.get("loai") or "CC", set()) | ({"nhan", "ws", "poster"} if live else set())', vi: 'mở rộng chỉ bỏ cổng nhận / trang / poster khi phim đang có camp Nhà chạy' },
   { card: 'sx-ph-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "...(!laNguoi && !du.nguoi.ngoai && !du.nguoi.doi ? [{ key: 'sx_ph', header: 'Sản xuất'", vi: 'tab Phim có cột Sản xuất (đồng hồ + ＋) chỉ ở tk Nhà (anh 04/11/2026)' },
   { card: 'doi-0411', tep: 'apps/web/src/lib/etp-doc.ts', co: 'if (!ngoai) for (const r of await run<{ c: number; ten: string | null }>(sql`select content_id c, max(phim_ten) ten from etp.camp_ngoai', vi: 'tab Phim Nhà hiện cả phim chỉ team chạy (anh 04/11/2026)' },

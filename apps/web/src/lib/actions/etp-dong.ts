@@ -68,7 +68,7 @@ export async function chayDong(contentId: number, loai: string, theLoai: string,
   const l = LOAI.find((x) => x.ma === loai); if (!l) return { loi: 'loại nội dung lạ' }; if (!l.chay) return { loi: `${l.ten}: ${l.khoa}` };
   const [ph] = await run<{ ten: string | null; nhom_goc: string | null }>(sql`select coalesce(p.ten, v.ten) ten, p.nhom_goc from (select ${id}::int content_id) k
     left join etp.phim p using (content_id) left join etp.thu_vien_phim v using (content_id)`);
-  if (ph?.nhom_goc !== 'au_my') return { loi: ph?.nhom_goc ? `phim nhóm gốc '${ph.nhom_goc}' — chỉ chạy phim Âu-Mỹ` : 'phim chưa xác định nhóm gốc — chỉ chạy phim đã xác định Âu-Mỹ (cột Nhóm gốc)' };
+  if (ph?.nhom_goc && ph.nhom_goc !== 'au_my') return { loi: `phim nhóm gốc '${ph.nhom_goc}' — chỉ chạy phim Âu-Mỹ` };   // chưa có nhóm gốc: bước Nhận của dòng tự chấm poster (anh 04/11/2026 "chạy đủ các bước")
   const [dang] = await run<{ id: number }>(sql`select id from etp.dong_phim where content_id = ${id} and loai = ${loai} and trang_thai = 'chay'`);   // một phim nhiều loại cùng lúc (0415), mỗi loại một dòng
   if (dang) return { loi: `phim đang có dòng #${dang.id} loại ${loai} chạy` };
   if (theLoai) await db().execute(sql`update xv_khoa_ngoai set gia_tri = jsonb_set(coalesce(gia_tri, '{}'::jsonb), ${'{' + id + '}'}::text[],

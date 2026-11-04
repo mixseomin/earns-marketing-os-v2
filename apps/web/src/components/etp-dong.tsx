@@ -277,7 +277,8 @@ export function FormChayDong({ contentId, onClose, moRong }: { contentId: number
       : !f ? <FormModalSection><div style={{ color: 'var(--fg-2)' }}>Đang tải…</div></FormModalSection>
       : 'loi' in f ? <FormModalSection><div style={{ color: '#f87171' }}>{f.loi}</div></FormModalSection> : <>
       <FormModalSection>
-        {f.nhomGoc !== 'au_my' ? <div style={{ color: '#f87171', marginBottom: 10 }}>Phim {f.nhomGoc ? `nhóm gốc '${f.nhomGoc}'` : 'chưa xác định nhóm gốc'} — chỉ chạy phim Âu-Mỹ.</div> : null}
+        {!f.nhomGoc ? <div style={{ color: 'var(--fg-2)', marginBottom: 10 }}>Chưa có nhóm gốc — máy tự chấm poster ở bước Nhận (~36₫), không phải Âu-Mỹ thì dòng tự dừng.</div> : null}
+        {f.nhomGoc && f.nhomGoc !== 'au_my' ? <div style={{ color: '#f87171', marginBottom: 10 }}>Phim nhóm gốc '{f.nhomGoc}' — chỉ chạy phim Âu-Mỹ.</div> : null}
         {moRong ? <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 13, fontWeight: 600 }}>Số camp mới <input type="number" min={1} max={30} value={soCamp} onChange={(e) => setSoCamp(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
             style={{ width: 70, marginLeft: 8, padding: '3px 6px', background: 'var(--bg-2, #111)', color: 'inherit', border: '1px solid var(--line)', borderRadius: 6 }} /></label>
@@ -314,7 +315,7 @@ export function FormChayDong({ contentId, onClose, moRong }: { contentId: number
       </FormModalSection>
       <FormModalFooter>
         <button className="btn" onClick={onClose}>Huỷ</button>
-        <button className="btn primary" disabled={gui || f.nhomGoc !== 'au_my' || !tl} title={!tl ? 'chọn thể loại trước' : undefined} onClick={async () => {
+        <button className="btn primary" disabled={gui || (!!f.nhomGoc && f.nhomGoc !== 'au_my')} title={!tl ? 'chưa chọn thể loại — máy dùng thể loại tự đoán' : undefined} onClick={async () => {
           setGui(true); setLoi(null); const r = await chayDong(contentId, loai, tl, moRong ? soCamp : undefined); setGui(false);
           if ('loi' in r) return setLoi(r.loi);
           setXong(r.id);   // Ở YÊN trang, KHÔNG tải lại trang (anh 04/11/2026 "ko đc F5 cả page") — chỉ báo badge của đúng phim thêm số

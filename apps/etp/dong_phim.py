@@ -102,18 +102,24 @@ def chay_tien_trinh(dong, buoc, lenh, han, env=None):
 def b_nhan(d):
     cid = d["content_id"]
     goc = sql(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {cid}")
+    if not goc:   # CHẤM NHÓM GỐC NGAY (anh 04/11/2026 "chạy đủ các bước, kể cả phân tích loại phim, nhóm gốc"): AI nhìn poster ~36₫ (apps/etp/nhom_goc.py --ghi)
+        rc, out = box(f"python3 apps/etp/nhom_goc.py {cid} --ghi", 300)
+        goc = sql(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {cid}")
+        if not goc: return "loi", f"chưa chấm được nhóm gốc trên poster: {out[-200:]}", None
     if goc != "au_my": return "dung", f"nhóm gốc phim là '{goc or 'chưa rõ'}' — chỉ chạy phim Âu-Mỹ (luật anh 02/11/2026)", None
     if str(cid) in khoa_studio("ethopex_phim_cam"): return "dung", "phim nằm trong sổ cấm 18+ (ethopex_phim_cam)", None
-    doi = sql(f"select coalesce(max(nguoi), '') from etp.phim_nhan_v where content_id = {cid} and trang_thai in ('giu', 'da_len') and nguoi_id not in (select nguoi_id from etp.tai_khoan where nha)")
+    nhan_bb = sql("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'nhan_bat_buoc'), 'true')") != "false"   # tạm bỏ nhận (anh 04/11/2026)
+    doi = "" if not nhan_bb else sql(f"select coalesce(max(nguoi), '') from etp.phim_nhan_v where content_id = {cid} and trang_thai in ('giu', 'da_len') and nguoi_id not in (select nguoi_id from etp.tai_khoan where nha)")
     if doi: return "dung", f"{doi} (đội) đang giữ phim này", None
     co = sql(f"select string_agg(camp_id::text, ' ') from etp.camp where content_id = {cid} and (trang_thai = 'ACTIVE' or coalesce(dong_bo, '') not in ('done', 'synced', 'error'))")
     if co: return "dung", f"phim đã có camp đang chạy: #{co} — mỗi lần chỉ lên một camp cho một phim (luật anh 03/11/2026)", None
     nhan_lai(cid)
-    return "xong", "Nhà nhận phim (giữ 24 giờ), nhóm gốc Âu-Mỹ, không trong sổ cấm", None
+    return "xong", ("Nhà nhận phim (giữ 24 giờ), " if nhan_bb else "") + "nhóm gốc Âu-Mỹ, không trong sổ cấm", None
 
 def nhan_lai(cid):
     """Nhà giữ phim nếu chưa ai giữ — dùng ở bước Nhận và SAU KHI POSTER QUA (03/11/2026: poster cấm → kiem-phim-18 nha_phim_cam trả phim; anh bỏ chặn + FIX
     poster thì dòng chạy tiếp nhưng phim đã 'tra' → nhan-ban chặn 'phim mới chưa nhận', 2 phim kẹt ở bước camp)"""
+    if sql("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'nhan_bat_buoc'), 'true')") == "false": return   # tạm bỏ nhận (anh 04/11/2026, 0418)
     sql(f"""insert into etp.phim_nhan (content_id, nguoi_id, nguoi, het_luc)
             select {int(cid)}, g.nguoi_id, 'Nhà', now() + interval '24 hours' from (select nguoi_id from etp.tai_khoan where nha order by nguoi_id limit 1) g
             where not exists (select 1 from etp.phim_nhan_v n where n.content_id = {int(cid)} and n.trang_thai in ('giu', 'da_len'))""")

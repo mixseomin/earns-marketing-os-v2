@@ -28,12 +28,16 @@ export function dungDuoc(than, nguoi) {
   if (than.ten === 'Moon' && !CO_GIO.includes(nguoi.rodden)) return { dung: false, vi: `Trăng của ${nguoi.ten} cần giờ sinh (đang ${nguoi.rodden})` };
   return { dung: true };
 }
+/** "1°05'" → 65 phút cung (so độ lệch; parseFloat bỏ mất phần phút) */
+export const phut = (l) => { const m = /(\d+)°\s*(\d+)?/.exec(l ?? ''); return m ? +m[1] * 60 + +(m[2] ?? 0) : Infinity; };
 const xet = (a, b, A, B) => { const x = dungDuoc(a, A), y = dungDuoc(b, B); return !x.dung ? x : !y.dung ? y : { dung: true }; };
 
 async function lay(tr, A, B, rel) {
   const s = A.sinh, t = B.sinh;
-  const u = `${SITE}?` + new URLSearchParams({ name: A.ten, day: s.ngay, month: s.thang, year: s.nam, hour: s.gio, minute: s.phut, location: s.noi, lat: s.vi, lng: s.kinh,
-    name2: B.ten, day2: t.ngay, month2: t.thang, year2: t.nam, hour2: t.gio, minute2: t.phut, location2: t.noi, lat2: t.vi, lng2: t.kinh, rel_type: rel === 'partnership' ? 'partner' : rel });   // site: romantic (Romance / Attraction / Challenges / Sexual conflict) · partner (Empathy / Harmony / Teamwork / Challenges)
+  // không có giờ sinh (hạng X): site nhận giờ trưa + unknown_time — Trăng / cung Mọc / nhà của người đó đã bị cờ dung chặn
+  const gio = (x, hau) => (x.gio == null ? { [`hour${hau}`]: 12, [`minute${hau}`]: 0, [`unknown_time${hau}`]: 'on' } : { [`hour${hau}`]: x.gio, [`minute${hau}`]: x.phut });
+  const u = `${SITE}?` + new URLSearchParams({ name: A.ten, day: s.ngay, month: s.thang, year: s.nam, ...gio(s, ''), location: s.noi, lat: s.vi, lng: s.kinh,
+    name2: B.ten, day2: t.ngay, month2: t.thang, year2: t.nam, ...gio(t, '2'), location2: t.noi, lat2: t.vi, lng2: t.kinh, rel_type: rel === 'partnership' ? 'partner' : rel });   // site: romantic (Romance / Attraction / Challenges / Sexual conflict) · partner (Empathy / Harmony / Teamwork / Challenges)
   const p = await tr.newPage({ viewport: { width: 1400, height: 1100 } });
   await p.goto(u, { waitUntil: 'networkidle', timeout: 90000 });
   await p.evaluate(() => document.querySelectorAll('[data-ccw-theme="nebula"]').forEach((b) => b.click())); await p.waitForTimeout(2500);
@@ -45,7 +49,7 @@ async function lay(tr, A, B, rel) {
     const diem = [...document.querySelectorAll('.syn-score__card')].map((c) => ({ truc: c.dataset.axis, ten: chu(c.querySelector('.syn-score__name')), mo_ta: chu(c.querySelector('.syn-score__desc')),
       diem: Number(chu(c.querySelector('.syn-score__num'))), so_goc: Number(chu(c.querySelector('summary')).match(/\d+/)?.[0] ?? 0) }));
     const giai = [...document.querySelectorAll('.syn-interp-item')].filter((it) => it.dataset.noData === '0').map((it) => {
-      const than = [...it.querySelectorAll('[data-entity-key]')].map((e) => e.dataset.entityKey).filter((k, i, a) => a.indexOf(k) === i);
+      const than = [...it.querySelectorAll('[data-entity-key]')].map((e) => e.dataset.entityKey);   // đúng hai: sao của A rồi sao của B (cùng tên được — Neptune × Neptune)
       const nha = [...it.querySelectorAll('.sa-house-info')].map((e) => Number(chu(e).replace(/\D/g, '')) || null);
       const tt = it.querySelector('[title*="°)"]')?.getAttribute('title') ?? '', d = it.querySelector('.aspect-interp-item__desc');
       return { tam: it.dataset.mood, a: than[0], b: than[1], nha_a: nha[0] ?? null, nha_b: nha[1] ?? null, goc: tt.split(' (')[0], lech: tt.match(/orb ([^,]+)/)?.[1]?.trim() ?? null,
@@ -61,6 +65,7 @@ function tuKiem() {
   const loi = [], AA = { ten: 'A', rodden: 'AA' }, DD = { ten: 'D', rodden: 'DD' }, Bh = { ten: 'B', rodden: 'B' };
   if (!dungDuoc({ ten: 'Venus' }, DD).dung) loi.push('Kim tinh của người hạng DD vẫn dùng được (chỉ cần ngày sinh)');
   if (dungDuoc({ ten: 'Moon' }, DD).dung) loi.push('Trăng của người hạng DD phải bị chặn');
+  if (phut("1°05'") !== 65 || phut("0°20'") >= phut("1°00'")) loi.push('đọc độ lệch sai');
   if (!dungDuoc({ ten: 'Moon' }, Bh).dung) loi.push('Trăng của người hạng B dùng được');
   if (dungDuoc({ ten: 'Ascendant' }, Bh).dung || !dungDuoc({ ten: 'Ascendant' }, AA).dung) loi.push('cung Mọc chỉ cho hạng AA');
   return loi;
@@ -87,7 +92,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
       const giai = r.giai.map((g) => ({ ...g, ...xet({ ten: g.a }, { ten: g.b }, A, B), the_he: theHe(g.a, g.b) })), luoi = r.luoi.map((g) => ({ ...g, ...xet({ ten: g.a }, { ten: g.b }, A, B), the_he: theHe(g.a, g.b) }));
       writeFileSync(join(DIR, 'hop', `${c.ma}.json`), JSON.stringify({ ma: c.ma, a: { slug: A.slug, ten: A.ten, rodden: A.rodden }, b: { slug: B.slug, ten: B.ten, rodden: B.rodden }, rel: c.rel,
         nguon: r.url, lay_luc: new Date().toISOString().slice(0, 10), diem: r.diem, luoi, giai, moc: c.moc ?? [] }, null, 1) + '\n');
-      const d = giai.filter((g) => g.dung && !g.the_he), chot = d.sort((x, y) => parseFloat(x.lech) - parseFloat(y.lech))[0];
+      const d = giai.filter((g) => g.dung && !g.the_he), chot = [...d].sort((x, y) => phut(x.lech) - phut(y.lech))[0];
       console.log(`✓ ${c.ma}: ${r.luoi.length} góc chiếu · ${giai.length} lời giải (${d.length} dùng được, bỏ góc thế hệ) · ${r.diem.map((x) => `${x.ten} ${x.diem}`).join(' · ')}${chot ? ` · khít nhất: ${chot.a} ${chot.goc} ${chot.b} ${chot.lech}` : ''}`);
     }
   } finally { await tr.close(); }

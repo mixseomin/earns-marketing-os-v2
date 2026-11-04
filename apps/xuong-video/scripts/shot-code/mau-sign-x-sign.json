@@ -1,0 +1,124 @@
+{
+ "_ghi": "Demo Sign × Sign (mẫu chờ duyệt, 05/11/2026): chữ trong ngoặc nguyên văn bài astrolas.com/en/blog/leo-and-sagittarius-compatibility (la-so/cung-cap.json). Vòng hoàng đạo mượn từ lá số Nebula của site, ẩn hết lớp riêng của người (chi_vong).",
+ "demo": true,
+ "kenh": "astrolas",
+ "mau": "sign-x-sign",
+ "playlist_ma": "sign-x-sign",
+ "y_tuong": "sx-leo-sagittarius",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "Sign × Sign",
+  "mau": "#FFB86B",
+  "ic": "×"
+ },
+ "DAI": 25.4,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.4,
+   "nhin": {
+    "cap_cung": [
+     "Leo",
+     "Sagittarius"
+    ]
+   },
+   "chu": "Leo and Sagittarius.<br>Easy match, or trouble?",
+   "the": {
+    "lon": "♌︎ × ♐︎",
+    "duoi": "Leo × Sagittarius",
+    "dong": [],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 3.4,
+   "den": 8.0,
+   "nhin": {
+    "cap_cung": [
+     "Leo",
+     "Sagittarius"
+    ]
+   },
+   "chu": "Sagittarius is four signs from Leo:<br>a trine. Both are Fire.",
+   "the": {
+    "lon": "Trine",
+    "duoi": "Fire · Fire",
+    "dong": [
+     "“You get each other’s energy",
+     "without translation.”"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 8.0,
+   "den": 12.6,
+   "nhin": {
+    "cap_cung": [
+     "Leo",
+     "Sagittarius"
+    ]
+   },
+   "chu": "Where it clicks:<br>“Humor is a real glue here.”",
+   "the": {
+    "lon": "✓",
+    "duoi": "Where it clicks",
+    "dong": [
+     "“You both forgive quickly.”"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 12.6,
+   "den": 17.4,
+   "nhin": {
+    "cap_cung": [
+     "Leo",
+     "Sagittarius"
+    ]
+   },
+   "chu": "Where it clashes: Fixed Leo wants devotion,<br>mutable Sagittarius wants space.",
+   "the": {
+    "lon": "Fixed × Mutable",
+    "duoi": "Where it clashes",
+    "dong": [
+     "“Sagittarius’s candor can",
+     "bruise Leo’s pride.”"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 17.4,
+   "den": 21.8,
+   "nhin": {
+    "cap_cung": [
+     "Leo",
+     "Sagittarius"
+    ]
+   },
+   "chu": "Sagittarius: “soften the delivery,<br>not the truth.”",
+   "the": {
+    "lon": "How to make it work",
+    "duoi": "",
+    "dong": [
+     "“Plan adventures together,",
+     "not only separately.”"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 21.8,
+   "den": 25.4,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Sun signs are only the start.<br>Compare your charts free at astrolas.com."
+  }
+ ],
+ "la_so": "../lich-su/la-so/steve-jobs.svg",
+ "chi_vong": true
+}

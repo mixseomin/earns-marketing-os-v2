@@ -1,0 +1,1082 @@
+{
+ "ma": "prince-harry--meghan-markle",
+ "a": {
+  "slug": "prince-harry",
+  "ten": "Prince Harry, Duke of Sussex",
+  "rodden": "A"
+ },
+ "b": {
+  "slug": "meghan-markle",
+  "ten": "Meghan, Duchess of Sussex (Meghan Markle)",
+  "rodden": "AA"
+ },
+ "rel": "romantic",
+ "nguon": "https://astrolas.com/synastry-chart?name=Prince+Harry%2C+Duke+of+Sussex&day=15&month=9&year=1984&hour=16&minute=20&location=Paddington%2C+London%2C+UK&lat=51.5154&lng=-0.1755&name2=Meghan%2C+Duchess+of+Sussex+%28Meghan+Markle%29&day2=4&month2=8&year2=1981&hour2=4&minute2=46&location2=Canoga+Park%2C+Los+Angeles%2C+California%2C+USA&lat2=34.2011&lng2=-118.5981&rel_type=romantic",
+ "lay_luc": "2026-11-04",
+ "diem": [
+  {
+   "truc": "romance",
+   "ten": "Romance",
+   "mo_ta": "Attraction, affection, bonding",
+   "diem": 30,
+   "so_goc": 4
+  },
+  {
+   "truc": "attraction",
+   "ten": "Harmony & attraction",
+   "mo_ta": "Easygoing, harmonious, in tune",
+   "diem": 58,
+   "so_goc": 9
+  },
+  {
+   "truc": "challenge",
+   "ten": "Challenges",
+   "mo_ta": "Differences, friction, pressure",
+   "diem": 53,
+   "so_goc": 16
+  },
+  {
+   "truc": "sex_conflict",
+   "ten": "Sexual conflict",
+   "mo_ta": "Passion, drama, clashes",
+   "diem": 21,
+   "so_goc": 2
+  }
+ ],
+ "luoi": [
+  {
+   "a": "Sun",
+   "b": "Uranus",
+   "goc": "Sextile",
+   "lech": 3.1,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Neptune",
+   "goc": "Square",
+   "lech": 0.63,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Chiron",
+   "goc": "Trine",
+   "lech": 0.36,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Lilith",
+   "goc": "Sextile",
+   "lech": 1.41,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Ascendant",
+   "goc": "Sextile",
+   "lech": 1.34,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Moon",
+   "goc": "Sesquiquadrate",
+   "lech": 1.44,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Jupiter",
+   "goc": "Sesquiquadrate",
+   "lech": 0.34,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Saturn",
+   "goc": "Sesquiquadrate",
+   "lech": 0.48,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Uranus",
+   "goc": "Opposition",
+   "lech": 4.71,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Neptune",
+   "goc": "Quincunx",
+   "lech": 0.98,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Pluto",
+   "goc": "Quincunx",
+   "lech": 0.52,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Chiron",
+   "goc": "Conjunction",
+   "lech": 1.25,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Lilith",
+   "goc": "Opposition",
+   "lech": 3.02,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Ascendant",
+   "goc": "Sextile",
+   "lech": 2.95,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Pluto",
+   "goc": "Semi-Square",
+   "lech": 1.65,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Neptune",
+   "goc": "Sextile",
+   "lech": 4.61,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Pluto",
+   "goc": "Conjunction",
+   "lech": 4.15,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Sun",
+   "goc": "Trine",
+   "lech": 4.95,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Venus",
+   "goc": "Square",
+   "lech": 3.81,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 4.9,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Mean Node",
+   "goc": "Sesquiquadrate",
+   "lech": 0.85,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Moon",
+   "goc": "Square",
+   "lech": 1.34,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Jupiter",
+   "goc": "Square",
+   "lech": 3.11,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Saturn",
+   "goc": "Square",
+   "lech": 2.3,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Sun",
+   "goc": "Square",
+   "lech": 0.85,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Venus",
+   "goc": "Sextile",
+   "lech": 0.29,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Mars",
+   "goc": "Trine",
+   "lech": 1.39,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "MC",
+   "goc": "Quincunx",
+   "lech": 1.04,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Sun",
+   "goc": "Trine",
+   "lech": 2.12,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Moon",
+   "goc": "Sextile",
+   "lech": 4.98,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Mercury",
+   "goc": "Trine",
+   "lech": 4.28,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Venus",
+   "goc": "Square",
+   "lech": 3.26,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Mars",
+   "goc": "Quincunx",
+   "lech": 1.57,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Jupiter",
+   "goc": "Sextile",
+   "lech": 3.2,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Saturn",
+   "goc": "Sextile",
+   "lech": 4.02,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Ascendant",
+   "goc": "Sesquiquadrate",
+   "lech": 0.59,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "MC",
+   "goc": "Trine",
+   "lech": 1.93,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Sun",
+   "goc": "Sesquiquadrate",
+   "lech": 1.67,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Mean Node",
+   "goc": "Square",
+   "lech": 0.54,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Sun",
+   "goc": "Sextile",
+   "lech": 3.45,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Moon",
+   "goc": "Trine",
+   "lech": 3.65,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Mercury",
+   "goc": "Sextile",
+   "lech": 2.95,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Venus",
+   "goc": "Square",
+   "lech": 4.59,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Jupiter",
+   "goc": "Trine",
+   "lech": 1.87,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Saturn",
+   "goc": "Trine",
+   "lech": 2.69,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Pluto",
+   "goc": "Sesquiquadrate",
+   "lech": 1.7,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Ascendant",
+   "goc": "Semi-Square",
+   "lech": 0.74,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "MC",
+   "goc": "Sextile",
+   "lech": 3.26,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Moon",
+   "goc": "Opposition",
+   "lech": 3.73,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Mercury",
+   "goc": "Trine",
+   "lech": 4.43,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Saturn",
+   "goc": "Opposition",
+   "lech": 4.7,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Mean Node",
+   "goc": "Trine",
+   "lech": 0.06,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Moon",
+   "goc": "Trine",
+   "lech": 4.07,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Mercury",
+   "goc": "Sextile",
+   "lech": 4.76,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Uranus",
+   "goc": "Opposition",
+   "lech": 4.78,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Mean Node",
+   "goc": "Sextile",
+   "lech": 0.27,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Sun",
+   "goc": "Quincunx",
+   "lech": 0.59,
+   "tran": 2,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Prince Harry, Duke of Sussex cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Venus",
+   "goc": "Trine",
+   "lech": 1.73,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Prince Harry, Duke of Sussex cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Mars",
+   "goc": "Opposition",
+   "lech": 0.04,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Prince Harry, Duke of Sussex cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Jupiter",
+   "goc": "Square",
+   "lech": 4.73,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Prince Harry, Duke of Sussex cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Uranus",
+   "goc": "Semi-Square",
+   "lech": 0.36,
+   "tran": 2,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Prince Harry, Duke of Sussex cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "MC",
+   "goc": "Square",
+   "lech": 0.4,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Prince Harry, Duke of Sussex cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Venus",
+   "goc": "Sextile",
+   "lech": 3.92,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Prince Harry, Duke of Sussex cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  }
+ ],
+ "giai": [
+  {
+   "tam": "tense",
+   "a": "Ascendant",
+   "b": "Mars",
+   "nha_a": 1,
+   "nha_b": 12,
+   "goc": "Opposition",
+   "lech": "0°02'",
+   "tieu_de": "Prince Harry, Duke of Sussex provocative and competitive attraction (Conjunct the Descendant - DSC).",
+   "chu": "Prince Harry, Duke of Sussex provocative and competitive attraction (Conjunct the Descendant - DSC). When Meghan, Duchess of Sussex (Meghan Markle)'s Mars opposes Prince Harry, Duke of Sussex's Ascendant, it sits right on Prince Harry, Duke of Sussex's Descendant (House 7 - the house of relationships). Meghan, Duchess of Sussex (Meghan Markle) brings an enormous energy, passion and even a combative streak directly into the relationship with Prince Harry, Duke of Sussex. This is an indicator of extremely strong sexual magnetism, but it also harbors a high risk of power conflict, where Meghan, Duchess of Sussex (Meghan Markle) tends to overwhelm, criticize or provoke Prince Harry, Duke of Sussex. This relationship is never boring but is very prone to exploding if control is lacking.",
+   "dung": false,
+   "vi": "Ascendant của Prince Harry, Duke of Sussex cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Saturn",
+   "b": "Venus",
+   "nha_a": 9,
+   "nha_b": 3,
+   "goc": "Sextile",
+   "lech": "0°17'",
+   "tieu_de": "Serene stability and solid commitment.",
+   "chu": "Serene stability and solid commitment. This is a wonderful foundation for those seeking a practical and safe relationship. Meghan, Duchess of Sussex (Meghan Markle)'s love (Venus) is easily protected and directed by Prince Harry, Duke of Sussex (Saturn). They rarely have major disagreements about finances, spending habits or the principles of shared life. Although it is not an explosively passionate love, the appreciation, loyalty and sense of building a shared future help their affection grow ever deeper and more enduring over time.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Moon",
+   "b": "Jupiter",
+   "nha_a": 4,
+   "nha_b": 3,
+   "goc": "Sesquiquadrate",
+   "lech": "0°20'",
+   "tieu_de": "Frustration between emotion and complacency.",
+   "chu": "Frustration between emotion and complacency. This minor aspect brings a lingering discomfort when Prince Harry, Duke of Sussex's mood is dismissed by Meghan, Duchess of Sussex (Meghan Markle) with \"sermons\" or a know-it-all attitude. When Prince Harry, Duke of Sussex is sad, Meghan, Duchess of Sussex (Meghan Markle)'s overly carefree attitude leaves Prince Harry, Duke of Sussex feeling that their emotions are being trivialized, leading to a tendency to sulk or withdraw. Meghan, Duchess of Sussex (Meghan Markle) responds with irritation at seeing their effort to lighten the mood rejected. It takes patience to break this loop: Meghan, Duchess of Sussex (Meghan Markle) needs to stop \"lecturing\" about emotions, and Prince Harry, Duke of Sussex needs to be more open to receiving positive energy from Meghan, Duchess of Sussex (Meghan Markle).",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Ascendant",
+   "b": "Uranus",
+   "nha_a": 1,
+   "nha_b": 5,
+   "goc": "Semi-Square",
+   "lech": "0°22'",
+   "tieu_de": "Minor friction born of erratic behavior.",
+   "chu": "Minor friction born of erratic behavior. Petty annoyances arise when Meghan, Duchess of Sussex (Meghan Markle)'s eccentric habits, impatience, or rebellious attitude occasionally disrupt or provoke Prince Harry, Duke of Sussex's everyday reactions and style. It causes mild irritation but usually is not strong enough to break the overall structure.",
+   "dung": false,
+   "vi": "Ascendant của Prince Harry, Duke of Sussex cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Moon",
+   "b": "Saturn",
+   "nha_a": 4,
+   "nha_b": 3,
+   "goc": "Sesquiquadrate",
+   "lech": "0°29'",
+   "tieu_de": "Frustration and an underlying emotional barrier.",
+   "chu": "Frustration and an underlying emotional barrier. This tense aspect brings a lingering irritation. Whenever Prince Harry, Duke of Sussex needs to lean on someone, Meghan, Duchess of Sussex (Meghan Markle) tends to make excuses about being busy with work or use duty to deflect, leaving Prince Harry, Duke of Sussex feeling wounded in their self-esteem and reacting by sulking and closing off their heart. Meghan, Duchess of Sussex (Meghan Markle) in turn takes this as a reason to grow even more distant. To resolve it, Meghan, Duchess of Sussex (Meghan Markle) must actively remove the coldness and Prince Harry, Duke of Sussex must stop withdrawing into the role of victim.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Moon",
+   "b": "Pluto",
+   "nha_a": 4,
+   "nha_b": 4,
+   "goc": "Quincunx",
+   "lech": "0°31'",
+   "tieu_de": "Prince Harry, Duke of Sussex \"phase mismatch\" between emotion and transformation.",
+   "chu": "Prince Harry, Duke of Sussex \"phase mismatch\" between emotion and transformation. Because they share no element or modality, Prince Harry, Duke of Sussex's instinctive need for comfort completely fails to match Meghan, Duchess of Sussex (Meghan Markle)'s complex psychological approach. When Prince Harry, Duke of Sussex is sad and needs a hug, Meghan, Duchess of Sussex (Meghan Markle) instead analyzes the deep, harsh causes behind that sadness, leaving Prince Harry, Duke of Sussex feeling \"dissected\" rather than loved. These underlying pressures cause severe drains of energy. To resolve it, Meghan, Duchess of Sussex (Meghan Markle) must stop playing the \"psychologist\" at every turn, while Prince Harry, Duke of Sussex needs to be less sensitive to Meghan, Duchess of Sussex (Meghan Markle)'s blunt words.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Uranus",
+   "b": "Ascendant",
+   "nha_a": 11,
+   "nha_b": 1,
+   "goc": "Sesquiquadrate",
+   "lech": "0°35'",
+   "tieu_de": "Latent tension due to a sense of instability.",
+   "chu": "Latent tension due to a sense of instability. Prince Harry, Duke of Sussex persistent state of tension exists when Meghan, Duchess of Sussex (Meghan Markle) feels that Prince Harry, Duke of Sussex's unpredictable presence and yearning for freedom secretly threaten their own stability and personal space. Conversely, Prince Harry, Duke of Sussex feels that Meghan, Duchess of Sussex (Meghan Markle)'s \"outer shell\" is creating invisible barriers that hold back their own creativity and independence.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Ascendant",
+   "b": "Sun",
+   "nha_a": 1,
+   "nha_b": 1,
+   "goc": "Quincunx",
+   "lech": "0°35'",
+   "tieu_de": "Prince Harry, Duke of Sussex misalignment between essence and expression.",
+   "chu": "Prince Harry, Duke of Sussex misalignment between essence and expression. Because these two points share neither the same element nor the same quality, Meghan, Duchess of Sussex (Meghan Markle)'s core ego seems unable to \"tune in\" with Prince Harry, Duke of Sussex's outward style and first impression. Meghan, Duchess of Sussex (Meghan Markle)'s way of life or the way Meghan, Duchess of Sussex (Meghan Markle) asserts themselves may inadvertently leave Prince Harry, Duke of Sussex flustered or uncomfortable, requiring both to keep making concessions and adjustments in order to reconcile.",
+   "dung": false,
+   "vi": "Ascendant của Prince Harry, Duke of Sussex cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Sun",
+   "b": "Neptune",
+   "nha_a": 8,
+   "nha_b": 5,
+   "goc": "Square",
+   "lech": "0°38'",
+   "tieu_de": "False idealization and the risk of disillusionment.",
+   "chu": "False idealization and the risk of disillusionment. The Square creates great confusion and bewilderment. Prince Harry, Duke of Sussex is easily captivated and raises Meghan, Duchess of Sussex (Meghan Markle) onto a perfect pedestal, convincing themselves they have found a \"soulmate.\" However, Meghan, Duchess of Sussex (Meghan Markle) tends to be evasive, vague, or unintentionally (even intentionally) deceives and hides the truth from Prince Harry, Duke of Sussex. This aspect demands enormous effort to remove the rose-colored lens; otherwise, Prince Harry, Duke of Sussex will become the \"victim\" of undeserved sacrifices and taste bitter disappointment.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Saturn",
+   "b": "Sun",
+   "nha_a": 9,
+   "nha_b": 1,
+   "goc": "Square",
+   "lech": "0°51'",
+   "tieu_de": "The challenge of limitation and the burden of responsibility.",
+   "chu": "The challenge of limitation and the burden of responsibility. This is a very difficult aspect, making commitment become a burden. Meghan, Duchess of Sussex (Meghan Markle)'s ego and need to shine continually collide with Prince Harry, Duke of Sussex's rules, limits and sternness. Prince Harry, Duke of Sussex tends to become overly controlling, judgmental or \"parental,\" while Meghan, Duchess of Sussex (Meghan Markle) feels bound, criticized, or obligated to act out of duty. These challenges are very hard to change and require both to understand each other on a spiritual level in order to be tolerant and accepting.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Moon",
+   "b": "Neptune",
+   "nha_a": 4,
+   "nha_b": 5,
+   "goc": "Quincunx",
+   "lech": "0°59'",
+   "tieu_de": "Prince Harry, Duke of Sussex \"phase mismatch\" between the need for safety and ideals.",
+   "chu": "Prince Harry, Duke of Sussex \"phase mismatch\" between the need for safety and ideals. Because they share no element or modality, the way Prince Harry, Duke of Sussex seeks comfort is completely different from the way Meghan, Duchess of Sussex (Meghan Markle) expresses romance or spirituality. Prince Harry, Duke of Sussex may need concrete acts of care to feel reassured, but Meghan, Duchess of Sussex (Meghan Markle) instead offers only vague promises or distant ideals, leaving Prince Harry, Duke of Sussex with an underlying feeling of disappointment. To sustain it, Meghan, Duchess of Sussex (Meghan Markle) needs to learn to show more practical concern, while Prince Harry, Duke of Sussex must open their mind to receive Meghan, Duchess of Sussex (Meghan Markle)'s subtle, nonverbal language of affection.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Saturn",
+   "b": "MC",
+   "nha_a": 9,
+   "nha_b": 10,
+   "goc": "Quincunx",
+   "lech": "1°02'",
+   "tieu_de": "The phase mismatch between discipline and career direction.",
+   "chu": "The phase mismatch between discipline and career direction. The way Prince Harry, Duke of Sussex sets safety principles or Prince Harry, Duke of Sussex's practical advice seems completely at odds with Meghan, Duchess of Sussex (Meghan Markle)'s work environment or goals. Prince Harry, Duke of Sussex may try to help Meghan, Duchess of Sussex (Meghan Markle) organize their work but with the wrong method or too rigidly, causing discomfort and underlying friction. Both need to adjust so that Prince Harry, Duke of Sussex's caution does not spoil Meghan, Duchess of Sussex (Meghan Markle)'s rhythm of development.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Sun",
+   "b": "Ascendant",
+   "nha_a": 8,
+   "nha_b": 1,
+   "goc": "Sextile",
+   "lech": "1°20'",
+   "tieu_de": "Natural support for self-expression.",
+   "chu": "Natural support for self-expression. Prince Harry, Duke of Sussex's (Sun) ego blends easily with Meghan, Duchess of Sussex (Meghan Markle)'s (ASC) outer style and conduct. Prince Harry, Duke of Sussex's presence and vitality naturally cheer on the way Meghan, Duchess of Sussex (Meghan Markle) expresses themselves, while Meghan, Duchess of Sussex (Meghan Markle) feels comfortable and safe beside Prince Harry, Duke of Sussex's authentic ego. They find each other's way of life very pleasant.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Jupiter",
+   "b": "Moon",
+   "nha_a": 12,
+   "nha_b": 3,
+   "goc": "Square",
+   "lech": "1°20'",
+   "tieu_de": "Emotional excess and bubble-like expectations.",
+   "chu": "Emotional excess and bubble-like expectations. Though it is a square (usually indicating conflict that is hard to resolve), with Jupiter it is rarely destructive. The conflict here mainly comes from exaggeration: Prince Harry, Duke of Sussex may promise to give Meghan, Duchess of Sussex (Meghan Markle) more emotional security than Prince Harry, Duke of Sussex can actually provide, sometimes leaving Meghan, Duchess of Sussex (Meghan Markle) disappointed. Or, Prince Harry, Duke of Sussex may respond to Meghan, Duchess of Sussex (Meghan Markle)'s deep sorrows with a \"toxic positivity\" attitude (advising Meghan, Duchess of Sussex (Meghan Markle) to cheer up instead of listening). The couple tends to indulge each other's bad habits (such as overeating or spending extravagantly to comfort emotions), requiring them to establish realistic boundaries.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Saturn",
+   "b": "Mars",
+   "nha_a": 9,
+   "nha_b": 12,
+   "goc": "Trine",
+   "lech": "1°23'",
+   "tieu_de": "Prince Harry, Duke of Sussex smooth flow of patience and achievement.",
+   "chu": "Prince Harry, Duke of Sussex smooth flow of patience and achievement. This configuration brings an extremely solid foundation of strength. Meghan, Duchess of Sussex (Meghan Markle)'s natural impulsiveness innately harmonizes with the limits and structure of safety that Prince Harry, Duke of Sussex establishes. Prince Harry, Duke of Sussex serves as a solid anchor helping Meghan, Duchess of Sussex (Meghan Markle) act with reassurance, while Meghan, Duchess of Sussex (Meghan Markle) adds vitality so that Prince Harry, Duke of Sussex does not fall into stagnation. Together they can bear great responsibilities without feeling it is a burden that drains their strength.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Moon",
+   "b": "Moon",
+   "nha_a": 4,
+   "nha_b": 3,
+   "goc": "Sesquiquadrate",
+   "lech": "1°26'",
+   "tieu_de": "Mild annoyance over daily habits.",
+   "chu": "Mild annoyance over daily habits. This aspect creates small, scattered, petty frictions in everyday life. Prince Harry, Duke of Sussex sometimes feels Meghan, Duchess of Sussex (Meghan Markle)'s reactions are a bit excessive or Meghan, Duchess of Sussex (Meghan Markle)'s habits are not to their liking, and vice versa. These discomforts are not big enough to break the emotional connection, but require both not to let irritation accumulate over time into harsh judgments.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Uranus",
+   "b": "Mars",
+   "nha_a": 11,
+   "nha_b": 12,
+   "goc": "Quincunx",
+   "lech": "1°34'",
+   "tieu_de": "Prince Harry, Duke of Sussex phase misalignment between action and change.",
+   "chu": "Prince Harry, Duke of Sussex phase misalignment between action and change. Because they share neither element nor quality, the way Meghan, Duchess of Sussex (Meghan Markle) solves problems and Prince Harry, Duke of Sussex's unpredictability seem impossible to reconcile. Meghan, Duchess of Sussex (Meghan Markle)'s actions may be inadvertently disrupted by Prince Harry, Duke of Sussex's last-minute changes, creating latent frustration. This conflict, though less dramatic than the Square, is harder to resolve, requiring both to compromise considerably.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Mercury",
+   "b": "Pluto",
+   "nha_a": 8,
+   "nha_b": 4,
+   "goc": "Semi-Square",
+   "lech": "1°39'",
+   "tieu_de": "Minor friction due to suspiciousness in speech.",
+   "chu": "Minor friction due to suspiciousness in speech. This interaction creates petty ripples. Occasionally Meghan, Duchess of Sussex (Meghan Markle) launches probing, sarcastic questions that make Prince Harry, Duke of Sussex uneasy or feel untrusted. Though it does not entirely break communication, it creates an atmosphere of constant mild wariness, requiring the couple not to let scrutiny accumulate into major resentment.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Neptune",
+   "b": "Sun",
+   "nha_a": 12,
+   "nha_b": 1,
+   "goc": "Sesquiquadrate",
+   "lech": "1°40'",
+   "tieu_de": "Tension between self-esteem and vagueness.",
+   "chu": "Tension between self-esteem and vagueness. This minor aspect brings discomfort when Meghan, Duchess of Sussex (Meghan Markle)'s ego feels it is not met by Prince Harry, Duke of Sussex in a clear and direct way. When Meghan, Duchess of Sussex (Meghan Markle) tries to impose clarity, Prince Harry, Duke of Sussex tends to play the victim, retreating into their own world to defend themselves. This wears down the energy of both sides. To resolve it, Meghan, Duchess of Sussex (Meghan Markle) needs to be less demanding, while Prince Harry, Duke of Sussex must stop using silence or tears to shirk responsibility.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Ascendant",
+   "b": "Venus",
+   "nha_a": 1,
+   "nha_b": 3,
+   "goc": "Trine",
+   "lech": "1°44'",
+   "tieu_de": "Prince Harry, Duke of Sussex smooth flow of romance and beauty.",
+   "chu": "Prince Harry, Duke of Sussex smooth flow of romance and beauty. Prince Harry, Duke of Sussex perfect connection where Meghan, Duchess of Sussex (Meghan Markle)'s affection fully harmonizes with Prince Harry, Duke of Sussex's social \"mask.\" Meghan, Duchess of Sussex (Meghan Markle) innately loves and supports the way Prince Harry, Duke of Sussex interacts with the environment, and Prince Harry, Duke of Sussex feels that Meghan, Duchess of Sussex (Meghan Markle)'s love is a wonderful source of solace. The couple shares many values and aesthetic tastes and easily creates a romantic, cheerful atmosphere when they appear together.",
+   "dung": false,
+   "vi": "Ascendant của Prince Harry, Duke of Sussex cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Uranus",
+   "b": "MC",
+   "nha_a": 11,
+   "nha_b": 10,
+   "goc": "Trine",
+   "lech": "1°56'",
+   "tieu_de": "The smooth flow of progress and unconventional achievement.",
+   "chu": "The smooth flow of progress and unconventional achievement. Prince Harry, Duke of Sussex's need for freedom and creativity fully harmonizes with Meghan, Duchess of Sussex (Meghan Markle)'s career direction. Prince Harry, Duke of Sussex acts as a natural catalyst, continuously bringing innovation that helps Meghan, Duchess of Sussex (Meghan Markle) reach their goals quickly and in an extremely interesting way. Meghan, Duchess of Sussex (Meghan Markle) welcomes Prince Harry, Duke of Sussex's somewhat \"eccentric\" ideas without feeling threatened, creating a perfect combination for modern or reformist projects.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Uranus",
+   "b": "Sun",
+   "nha_a": 11,
+   "nha_b": 1,
+   "goc": "Trine",
+   "lech": "2°07'",
+   "tieu_de": "The smooth flow of freedom and individuality.",
+   "chu": "The smooth flow of freedom and individuality. An extremely ideal connection for couples who dislike constraint. Meghan, Duchess of Sussex (Meghan Markle)'s need for self-expression is fully in tune with Prince Harry, Duke of Sussex's need for freedom and innovation. Prince Harry, Duke of Sussex helps Meghan, Duchess of Sussex (Meghan Markle) develop their ego naturally, breaking boring rules without causing any disruption or tension. Respect for personal space is maintained by both in a rhythmic manner.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Jupiter",
+   "b": "Saturn",
+   "nha_a": 12,
+   "nha_b": 3,
+   "goc": "Square",
+   "lech": "2°18'",
+   "tieu_de": "Conflict between expansion and obstruction.",
+   "chu": "Conflict between expansion and obstruction. The square indicates conflicts that are hard to resolve and strong patterns of resistance. Prince Harry, Duke of Sussex's craving for freedom, expansion, and optimistic impulsiveness continually clashes with Meghan, Duchess of Sussex (Meghan Markle)'s strict limits and rules. Prince Harry, Duke of Sussex may find Meghan, Duchess of Sussex (Meghan Markle) too pessimistic, restraining, or parental, while Meghan, Duchess of Sussex (Meghan Markle) regards Prince Harry, Duke of Sussex as unrealistic, wasteful, or irresponsible. This angle requires continual compromise and adjustment.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Moon",
+   "b": "Ascendant",
+   "nha_a": 4,
+   "nha_b": 1,
+   "goc": "Sextile",
+   "lech": "2°57'",
+   "tieu_de": "Gentle support for a sense of safety.",
+   "chu": "Gentle support for a sense of safety. Prince Harry, Duke of Sussex pleasant connection where Meghan, Duchess of Sussex (Meghan Markle)'s outward style and manner of conduct (ASC) easily soothe and meet Prince Harry, Duke of Sussex's emotional needs (Moon). Prince Harry, Duke of Sussex feels Meghan, Duchess of Sussex (Meghan Markle) is an approachable person, easy to open up to emotionally. Conversely, Prince Harry, Duke of Sussex's care and attention reinforce Meghan, Duchess of Sussex (Meghan Markle)'s confidence in the way they interact with the surrounding environment.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Sun",
+   "b": "Uranus",
+   "nha_a": 8,
+   "nha_b": 5,
+   "goc": "Sextile",
+   "lech": "3°06'",
+   "tieu_de": "Exhilarating and pleasant innovation.",
+   "chu": "Exhilarating and pleasant innovation. This favorable aspect allows the couple to easily connect and enjoy each other's differences. Meghan, Duchess of Sussex (Meghan Markle) brings fresh ideas, freedom, and exciting experiences that help Prince Harry, Duke of Sussex broaden their personal horizons. In return, Prince Harry, Duke of Sussex respects and supports Meghan, Duchess of Sussex (Meghan Markle)'s originality. The relationship is like a wonderful friendship, where the two stimulate each other's independence without feeling threatened.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Jupiter",
+   "b": "Jupiter",
+   "nha_a": 12,
+   "nha_b": 3,
+   "goc": "Square",
+   "lech": "3°07'",
+   "tieu_de": "Prince Harry, Duke of Sussex great difference in how the world is viewed.",
+   "chu": "Prince Harry, Duke of Sussex great difference in how the world is viewed. The square shows an inability to understand each other's worldview. Although Jupiter incompatibility rarely causes a relationship to break apart immediately, these irreconcilable spiritual differences can smolder and eventually lead to a parting when the two people grow in two completely different directions.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Uranus",
+   "b": "Jupiter",
+   "nha_a": 11,
+   "nha_b": 3,
+   "goc": "Sextile",
+   "lech": "3°12'",
+   "tieu_de": "Inspiration and openness to the new.",
+   "chu": "Inspiration and openness to the new. Prince Harry, Duke of Sussex wonderful aspect for intellectual and spiritual growth. Prince Harry, Duke of Sussex's independent character and original perspectives stimulate Meghan, Duchess of Sussex (Meghan Markle)'s optimism and desire to expand. They are extremely open to each other's viewpoints, easily accepting difference and together creating a free atmosphere where both have their own space to grow without feeling constrained.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Uranus",
+   "b": "Venus",
+   "nha_a": 11,
+   "nha_b": 3,
+   "goc": "Square",
+   "lech": "3°16'",
+   "tieu_de": "Instability and conflict between commitment and freedom.",
+   "chu": "Instability and conflict between commitment and freedom. The Square creates a very fierce yet challenging attraction. Meghan, Duchess of Sussex (Meghan Markle)'s need for attachment and love constantly collides with Prince Harry, Duke of Sussex's need for absolute independence. The competition between the need for individuation and the need for relationship makes an individual often chase after partners who are unavailable or far away. Although this unconsciously satisfies the need for independence, it is essentially like \"shooting oneself in the foot\". Relationships with this tense interaction very easily end as suddenly as they began.",
+   "dung": true,
+   "the_he": false
+  }
+ ],
+ "moc": [
+  {
+   "ngay": "2016-07",
+   "chu": "Harry and Meghan are set up on a blind date by a mutual friend.",
+   "nguon": "https://en.wikipedia.org/wiki/Prince_Harry,_Duke_of_Sussex"
+  },
+  {
+   "ngay": "2016-11-08",
+   "chu": "Harry's office issues a statement confirming the relationship.",
+   "nguon": "https://en.wikipedia.org/wiki/Prince_Harry,_Duke_of_Sussex"
+  },
+  {
+   "ngay": "2017-11-27",
+   "chu": "Their engagement is announced by Prince Charles.",
+   "nguon": "https://en.wikipedia.org/wiki/Prince_Harry,_Duke_of_Sussex"
+  },
+  {
+   "ngay": "2018-05-19",
+   "chu": "They marry at St George's Chapel, Windsor Castle.",
+   "nguon": "https://en.wikipedia.org/wiki/Prince_Harry,_Duke_of_Sussex"
+  },
+  {
+   "ngay": "2020-01-18",
+   "chu": "The Palace announces they will step back from royal duties.",
+   "nguon": "https://en.wikipedia.org/wiki/Prince_Harry,_Duke_of_Sussex"
+  }
+ ]
+}

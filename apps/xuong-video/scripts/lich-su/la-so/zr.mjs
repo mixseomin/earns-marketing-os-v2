@@ -90,6 +90,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   mkdirSync(join(DIR, 'zr'), { recursive: true }); let hong = 0;
   for (const n of ds) {
     if (n.khong_dung || !dung.includes(n.rodden)) { console.log(`- ${n.slug}: hạng ${n.rodden}${n.khong_dung ? ' (đánh dấu không dùng)' : ''} — Lot theo cung Mọc, không dùng ZR`); if (chon.length) hong++; continue; }
+    if (!n.utc) { console.log(`- ${n.slug}: chưa chốt giờ UTC lúc sinh trong sổ (múi giờ / giờ mùa hè lịch sử chưa rõ) — không đối chiếu được, chưa dùng ZR`); if (chon.length) hong++; continue; }
     const ra = { ten: n.ten, rodden: n.rodden, nguon: SITE, lay_luc: new Date().toISOString().slice(0, 10), lot: {}, lot_do: {}, ban_ngay: null }; const loi = [];
     for (const lt of ['spirit', 'fortune']) { const s = await laySite(n, lt), d = doiChieu(n, lt, s);
       loi.push(...d.loi.map((x) => `${lt}: ${x}`)); ra.lot[lt] = s.ky; ra.lot_do[lt] = d.lotDo; ra.ban_ngay = s.ban_ngay; }

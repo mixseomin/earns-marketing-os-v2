@@ -1,0 +1,971 @@
+{
+ "ma": "john-lennon--yoko-ono",
+ "a": {
+  "slug": "john-lennon",
+  "ten": "John Lennon",
+  "rodden": "DD"
+ },
+ "b": {
+  "slug": "yoko-ono",
+  "ten": "Yoko Ono",
+  "rodden": "A"
+ },
+ "rel": "romantic",
+ "nguon": "https://astrolas.com/synastry-chart?name=John+Lennon&day=9&month=10&year=1940&hour=18&minute=30&location=Liverpool%2C+UK&lat=53.4084&lng=-2.9916&name2=Yoko+Ono&day2=18&month2=2&year2=1933&hour2=20&minute2=30&location2=Tokyo%2C+Japan&lat2=35.6762&lng2=139.6503&rel_type=romantic",
+ "lay_luc": "2026-11-04",
+ "diem": [
+  {
+   "truc": "romance",
+   "ten": "Romance",
+   "mo_ta": "Attraction, affection, bonding",
+   "diem": 12,
+   "so_goc": 1
+  },
+  {
+   "truc": "attraction",
+   "ten": "Harmony & attraction",
+   "mo_ta": "Easygoing, harmonious, in tune",
+   "diem": 29,
+   "so_goc": 4
+  },
+  {
+   "truc": "challenge",
+   "ten": "Challenges",
+   "mo_ta": "Differences, friction, pressure",
+   "diem": 42,
+   "so_goc": 9
+  },
+  {
+   "truc": "sex_conflict",
+   "ten": "Sexual conflict",
+   "mo_ta": "Passion, drama, clashes",
+   "diem": 39,
+   "so_goc": 2
+  }
+ ],
+ "luoi": [
+  {
+   "a": "Sun",
+   "b": "Sun",
+   "goc": "Sesquiquadrate",
+   "lech": 1.89,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Venus",
+   "goc": "Trine",
+   "lech": 2.48,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Uranus",
+   "goc": "Opposition",
+   "lech": 4.28,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Lilith",
+   "goc": "Sesquiquadrate",
+   "lech": 1.25,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Lilith",
+   "goc": "Trine",
+   "lech": 1.03,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Trăng của John Lennon cần giờ sinh (đang DD)",
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Ascendant",
+   "goc": "Trine",
+   "lech": 4.87,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "Trăng của John Lennon cần giờ sinh (đang DD)",
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Mercury",
+   "goc": "Trine",
+   "lech": 0.67,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Saturn",
+   "goc": "Square",
+   "lech": 1.18,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Neptune",
+   "goc": "Sextile",
+   "lech": 0.52,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Mean Node",
+   "goc": "Trine",
+   "lech": 0.22,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "MC",
+   "goc": "Trine",
+   "lech": 0.75,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "MC của Yoko Ono cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Sun",
+   "goc": "Opposition",
+   "lech": 3.84,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Mercury",
+   "goc": "Opposition",
+   "lech": 4.68,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Lilith",
+   "goc": "Square",
+   "lech": 0.7,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Lilith",
+   "goc": "Trine",
+   "lech": 0.15,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Venus",
+   "goc": "Square",
+   "lech": 0.09,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Mars",
+   "goc": "Trine",
+   "lech": 1.43,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Saturn",
+   "goc": "Square",
+   "lech": 3.95,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Neptune",
+   "goc": "Trine",
+   "lech": 4.62,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "MC",
+   "goc": "Sextile",
+   "lech": 4.39,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "MC của Yoko Ono cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Venus",
+   "goc": "Square",
+   "lech": 0.57,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Mars",
+   "goc": "Trine",
+   "lech": 1.91,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Saturn",
+   "goc": "Square",
+   "lech": 3.48,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Neptune",
+   "goc": "Trine",
+   "lech": 4.14,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Mean Node",
+   "goc": "Sextile",
+   "lech": 4.88,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "MC",
+   "goc": "Sextile",
+   "lech": 3.91,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "MC của Yoko Ono cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Sun",
+   "goc": "Square",
+   "lech": 3.83,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Jupiter",
+   "goc": "Trine",
+   "lech": 4.86,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 3.92,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Uranus",
+   "b": "Chiron",
+   "goc": "Conjunction",
+   "lech": 1.82,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "MC",
+   "goc": "Semi-Square",
+   "lech": 1.25,
+   "tran": 2,
+   "xa": false,
+   "dung": false,
+   "vi": "MC của Yoko Ono cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Saturn",
+   "goc": "Sesquiquadrate",
+   "lech": 1.29,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 4.4,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Neptune",
+   "b": "Chiron",
+   "goc": "Trine",
+   "lech": 2.29,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Jupiter",
+   "goc": "Semi-Square",
+   "lech": 1.51,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Lilith",
+   "goc": "Sextile",
+   "lech": 1.67,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Ascendant",
+   "goc": "Sextile",
+   "lech": 4.23,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "Ascendant của Yoko Ono cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Sun",
+   "goc": "Quincunx",
+   "lech": 1.19,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Mars",
+   "goc": "Semi-Square",
+   "lech": 0.44,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Lilith",
+   "goc": "Sextile",
+   "lech": 1.95,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Sun",
+   "goc": "Semi-Square",
+   "lech": 1.01,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Moon",
+   "goc": "Trine",
+   "lech": 2.24,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Venus",
+   "goc": "Sextile",
+   "lech": 0.41,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Mars",
+   "goc": "Quincunx",
+   "lech": 1.75,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Saturn",
+   "goc": "Sextile",
+   "lech": 3.64,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Ascendant",
+   "goc": "Opposition",
+   "lech": 4.96,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Yoko Ono cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "MC",
+   "goc": "Square",
+   "lech": 4.07,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Yoko Ono cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Moon",
+   "goc": "Sextile",
+   "lech": 0.55,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Venus",
+   "goc": "Trine",
+   "lech": 3.2,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Saturn",
+   "goc": "Trine",
+   "lech": 0.85,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Chiron",
+   "goc": "Sesquiquadrate",
+   "lech": 1.85,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Ascendant",
+   "goc": "Conjunction",
+   "lech": 2.17,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "Ascendant của Yoko Ono cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "MC",
+   "goc": "Square",
+   "lech": 1.28,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "MC của Yoko Ono cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Jupiter",
+   "goc": "Quincunx",
+   "lech": 0.98,
+   "tran": 2,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Uranus",
+   "goc": "Conjunction",
+   "lech": 0.84,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Pluto",
+   "goc": "Square",
+   "lech": 1.92,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Mercury",
+   "goc": "Sextile",
+   "lech": 0.83,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Neptune",
+   "goc": "Trine",
+   "lech": 2.02,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Chiron",
+   "goc": "Sesquiquadrate",
+   "lech": 1.68,
+   "tran": 2,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Mean Node",
+   "goc": "Sextile",
+   "lech": 1.28,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Ascendant",
+   "goc": "Square",
+   "lech": 1.35,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "MC",
+   "goc": "Opposition",
+   "lech": 2.25,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  }
+ ],
+ "giai": [
+  {
+   "tam": "tense",
+   "a": "Jupiter",
+   "b": "Venus",
+   "nha_a": 1,
+   "nha_b": 5,
+   "goc": "Square",
+   "lech": "0°05'",
+   "tieu_de": "Excess and bubble-like expectations in love.",
+   "chu": "Excess and bubble-like expectations in love. Although it is a square, the material emphasizes that the interaction between Venus and Jupiter is still rarely destructive, but usually brings \"shared joys in every type of aspect.\" The conflict here is not hatred, but a lack of moderation. John Lennon may promise too much, be too naively optimistic, or spend extravagantly to please Yoko Ono, leading to financial troubles or disappointment when reality does not meet expectations. They need to learn to control impulsiveness and establish discipline.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mercury",
+   "b": "Neptune",
+   "nha_a": 7,
+   "nha_b": 11,
+   "goc": "Sextile",
+   "lech": "0°31'",
+   "tieu_de": "Inspiring communication and subtle empathy.",
+   "chu": "Inspiring communication and subtle empathy. This is a wonderful connection helping reason and intuition supplement each other. John Lennon easily uses words to shape and clarify Yoko Ono's dreams, spiritual perceptions, or artistic ideas. Conversely, Yoko Ono's altruism and imagination help John Lennon's way of talking become more supple, flexible, and full of compassion. They very much enjoy discussing humanistic, psychological, or artistic subjects.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Saturn",
+   "b": "Venus",
+   "nha_a": 1,
+   "nha_b": 5,
+   "goc": "Square",
+   "lech": "0°34'",
+   "tieu_de": "An emotional barrier and a feeling of burden.",
+   "chu": "An emotional barrier and a feeling of burden. This is an extremely harsh karmic lesson. Yoko Ono's yearning for romance, joy and love (Venus) continually runs up against John Lennon's cold, distant, strict or \"parental\" \"wall\" (Saturn). According to the author, this aspect makes the relationship riddled with sacrifice and misunderstanding. Yoko Ono feels unloved, rejected or limited; while John Lennon feels Yoko Ono demands too much and is impractical. Sadly, even when the relationship no longer brings benefit, they find it very hard to leave each other due to the feeling of being trapped in obligations or a covert dependence.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mercury",
+   "b": "Mercury",
+   "nha_a": 7,
+   "nha_b": 5,
+   "goc": "Trine",
+   "lech": "0°40'",
+   "tieu_de": "John Lennon smooth flow of understanding.",
+   "chu": "John Lennon smooth flow of understanding. Much like the Sextile, the couple enjoys wonderful mental harmony and easily connect their thinking. Both share the same communication \"frequency,\" helping them analyze problems quickly and logically, rarely allowing serious misunderstandings to arise. This is a solid foundation that helps them discuss every issue in life peacefully.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mercury",
+   "b": "MC",
+   "nha_a": 7,
+   "nha_b": 10,
+   "goc": "Trine",
+   "lech": "0°45'",
+   "tieu_de": "John Lennon smooth flow of ideas and achievement.",
+   "chu": "John Lennon smooth flow of ideas and achievement. John Lennon natural harmony between the way John Lennon thinks and communicates and Yoko Ono's career path. John Lennon is a wonderful source of intellectual support, helping Yoko Ono plan and process work-related information smoothly. In turn, Yoko Ono's achievements and standing give John Lennon an inspiring topic to share and take pride in.",
+   "dung": false,
+   "vi": "MC của Yoko Ono cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "MC",
+   "b": "Mercury",
+   "nha_a": 10,
+   "nha_b": 5,
+   "goc": "Sextile",
+   "lech": "0°50'",
+   "tieu_de": "Intellectual support and effective communication for ambition.",
+   "chu": "Intellectual support and effective communication for ambition. John Lennon favorable connection that allows ideas to be exchanged easily. Yoko Ono instinctively understands what John Lennon wants to achieve in society and provides useful advice, information, or communication networks to help John Lennon realize those goals. They can discuss each other's work constructively.",
+   "dung": false,
+   "vi": "MC của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "tam": "neutral",
+   "a": "Ascendant",
+   "b": "Uranus",
+   "nha_a": 1,
+   "nha_b": 7,
+   "goc": "Conjunction",
+   "lech": "0°50'",
+   "tieu_de": "An \"electric\" attraction and personal awakening.",
+   "chu": "An \"electric\" attraction and personal awakening. Yoko Ono's Uranus sits right on John Lennon's Ascendant. Yoko Ono brings a groundbreaking, exciting and unpredictable energy that acts directly upon John Lennon's appearance and the way John Lennon expresses themselves. The relationship often begins with an extremely strong and sudden magnetism. Yoko Ono stimulates John Lennon's independence, helping John Lennon feel liberated from old patterns. However, the great risk is that Yoko Ono's erratic nature may make John Lennon feel a lack of stability, and Yoko Ono's overly large craving for freedom may hinder the capacity for long-term commitment.",
+   "dung": false,
+   "vi": "Ascendant của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Ascendant",
+   "b": "Jupiter",
+   "nha_a": 1,
+   "nha_b": 12,
+   "goc": "Quincunx",
+   "lech": "0°59'",
+   "tieu_de": "John Lennon misalignment between ideals and conduct.",
+   "chu": "John Lennon misalignment between ideals and conduct. The way Yoko Ono seeks growth, their religious/philosophical beliefs or Yoko Ono's advice is entirely \"out of sync\" with the way John Lennon interacts with the surrounding environment. Yoko Ono's good intentions and generosity may come at the wrong moment or leave John Lennon flustered because they do not know how to apply them to their personal reality. It demands constant concession so that Yoko Ono's grand expectations do not inadvertently leave John Lennon feeling overwhelmed.",
+   "dung": false,
+   "vi": "Ascendant của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Mercury",
+   "b": "Saturn",
+   "nha_a": 7,
+   "nha_b": 4,
+   "goc": "Square",
+   "lech": "1°11'",
+   "tieu_de": "Blockage in communication and a feeling of being judged.",
+   "chu": "Blockage in communication and a feeling of being judged. This aspect creates a major and pressure-filled barrier. John Lennon (Mercury) frequently feels their ideas or words rejected, criticized, or coldly limited by Yoko Ono (Saturn). Gradually, John Lennon becomes reticent, afraid of speaking wrongly, or chooses silence to avoid being judged. Conversely, Yoko Ono feels John Lennon's thinking is unrealistic, rash, or lacking discipline. Communication between them easily becomes heavy, dry, and full of defensiveness.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Uranus",
+   "b": "MC",
+   "nha_a": 1,
+   "nha_b": 10,
+   "goc": "Semi-Square",
+   "lech": "1°15'",
+   "tieu_de": "Minor friction due to eccentric ideas.",
+   "chu": "Minor friction due to eccentric ideas. Petty annoyances arise when John Lennon's unusual habits, impatience or rebellious attitude occasionally disrupt Yoko Ono's focus on work, causing mild irritation but usually not strong enough to break the overall structure of the relationship.",
+   "dung": false,
+   "vi": "MC của Yoko Ono cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Neptune",
+   "b": "Saturn",
+   "nha_a": 6,
+   "nha_b": 4,
+   "goc": "Sesquiquadrate",
+   "lech": "1°17'",
+   "tieu_de": "Underlying frustration from an invisible barrier.",
+   "chu": "Underlying frustration from an invisible barrier. Persistent tension occurs when Yoko Ono feels their efforts to build commitment are continually thrown off course by John Lennon's vagueness and lack of clarity. Meanwhile, John Lennon feels that Yoko Ono's rigid limits drain their inspiration and spiritual freedom. Both need absolute honesty to break through this constraint.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Jupiter",
+   "b": "Mars",
+   "nha_a": 1,
+   "nha_b": 12,
+   "goc": "Trine",
+   "lech": "1°26'",
+   "tieu_de": "John Lennon smooth flow of achievement and confidence.",
+   "chu": "John Lennon smooth flow of achievement and confidence. Yoko Ono's capacity for action fully harmonizes with John Lennon's life philosophy and guidance. John Lennon's Jupiter brings tolerance, kindness, and luck, helping to naturally direct Yoko Ono's Mars ambition. The couple is capable of extremely excellent teamwork because they always trust, protect, and support each other's actions without any rivalry.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Pluto",
+   "b": "Jupiter",
+   "nha_a": 5,
+   "nha_b": 12,
+   "goc": "Semi-Square",
+   "lech": "1°31'",
+   "tieu_de": "Minor friction due to disagreement over control.",
+   "chu": "Minor friction due to disagreement over control. Petty annoyances arise when Yoko Ono's sometimes overly grandiose, confident attitude occasionally collides with John Lennon's suspiciousness and desire to take charge in everyday decisions. It creates an atmosphere prone to irritability when discussing matters of a directional nature.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Sun",
+   "b": "Sun",
+   "nha_a": 6,
+   "nha_b": 5,
+   "goc": "Sesquiquadrate",
+   "lech": "1°53'",
+   "tieu_de": "Tension and stubbornness.",
+   "chu": "Tension and stubbornness. This is a minor aspect of a tense nature. The egos of John Lennon and Yoko Ono sit in a \"misaligned\" position with each other, leading to difficulty agreeing on how to solve problems. When the ego is threatened, both tend to be defensive and stubbornly defend their own viewpoint. It requires both to be far more flexible so as not to step on each other's pride.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Saturn",
+   "b": "Mars",
+   "nha_a": 1,
+   "nha_b": 12,
+   "goc": "Trine",
+   "lech": "1°55'",
+   "tieu_de": "John Lennon smooth flow of patience and achievement.",
+   "chu": "John Lennon smooth flow of patience and achievement. This configuration brings an extremely solid foundation of strength. Yoko Ono's natural impulsiveness innately harmonizes with the limits and structure of safety that John Lennon establishes. John Lennon serves as a solid anchor helping Yoko Ono act with reassurance, while Yoko Ono adds vitality so that John Lennon does not fall into stagnation. Together they can bear great responsibilities without feeling it is a burden that drains their strength.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Ascendant",
+   "b": "Pluto",
+   "nha_a": 1,
+   "nha_b": 10,
+   "goc": "Square",
+   "lech": "1°55'",
+   "tieu_de": "Fierce conflict over control and conduct.",
+   "chu": "Fierce conflict over control and conduct. The square creates a confrontation full of pressure and karma. Yoko Ono's need for control, jealousy, suspicion, or manipulative nature (Pluto) repeatedly clashes with John Lennon's style, habits, and approach to the world (ASC). John Lennon feels that Yoko Ono is a suffocating, dangerous force always trying to bend or destroy John Lennon's personal image. Conversely, Yoko Ono feels that John Lennon's outer expression is artificial, shallow, or a threat to Yoko Ono's power. The relationship frequently falls into a state of extreme tension.",
+   "dung": false,
+   "vi": "Ascendant của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "MC",
+   "b": "Neptune",
+   "nha_a": 10,
+   "nha_b": 11,
+   "goc": "Trine",
+   "lech": "2°01'",
+   "tieu_de": "John Lennon smooth flow of dreams and achievement.",
+   "chu": "John Lennon smooth flow of dreams and achievement. John Lennon natural harmony between Yoko Ono's dreamy, spiritual world and John Lennon's ambition. Yoko Ono naturally understands the deep aspirations within John Lennon's career and is always there to soothe and inspire, helping John Lennon avoid being swept up in rigid pragmatism. John Lennon feels their career is more meaningful, romantic, and devotional thanks to Yoko Ono's selfless worldview.",
+   "dung": false,
+   "vi": "MC của John Lennon cần giờ sinh hạng AA (đang DD)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Sun",
+   "b": "Venus",
+   "nha_a": 6,
+   "nha_b": 5,
+   "goc": "Trine",
+   "lech": "2°29'",
+   "tieu_de": "Natural flow and harmony.",
+   "chu": "Natural flow and harmony. The flow of affection between the two is extremely smooth. The two easily accept and love each other's true selves without having to try to change one another. Yoko Ono finds the way John Lennon reveals their ego very charming, while John Lennon feels Yoko Ono's love is an abundant source of nourishment for their self-respect. The relationship is filled with warmth, tolerance, and romance.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Saturn",
+   "b": "Saturn",
+   "nha_a": 1,
+   "nha_b": 4,
+   "goc": "Square",
+   "lech": "3°29'",
+   "tieu_de": "The classic karmic relationship (the 7-year crisis).",
+   "chu": "The classic karmic relationship (the 7-year crisis). This is an extremely challenging interaction, powerfully activating karmic lessons and often accompanied by harsh barriers. John Lennon's limitations and responsibilities continually collide with Yoko Ono's structure of safety. It demands an enormous compromise. If it cannot be overcome, it easily leads to deadlock or breakup; but if handled well, it will push the relationship to a completely new level of bonding and maturity.",
+   "dung": true,
+   "the_he": false
+  }
+ ],
+ "moc": [
+  {
+   "ngay": "1966-11-07",
+   "chu": "Lennon and Ono first meet at the Indica Gallery in London.",
+   "nguon": "https://en.wikipedia.org/wiki/Yoko_Ono"
+  },
+  {
+   "ngay": "1969-03-20",
+   "chu": "They marry at the registry office in Gibraltar.",
+   "nguon": "https://en.wikipedia.org/wiki/Yoko_Ono"
+  },
+  {
+   "ngay": "1969-05-26",
+   "chu": "They begin their bed-in for peace at the Queen Elizabeth Hotel in Montreal.",
+   "nguon": "https://en.wikipedia.org/wiki/Yoko_Ono"
+  },
+  {
+   "ngay": "1973-07",
+   "chu": "The couple separate.",
+   "nguon": "https://en.wikipedia.org/wiki/Yoko_Ono"
+  },
+  {
+   "ngay": "1980-12-08",
+   "chu": "Lennon is shot outside the Dakota, their New York home.",
+   "nguon": "https://en.wikipedia.org/wiki/Yoko_Ono"
+  }
+ ]
+}

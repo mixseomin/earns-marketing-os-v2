@@ -598,6 +598,156 @@
         "mau": "chart-chapters",
         "chu_de": "Madonna",
         "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-brad-pitt--angelina-jolie",
+        "mau": "chart-vs-chart",
+        "chu_de": "Brad Pitt × Angelina Jolie",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-brad-pitt--jennifer-aniston",
+        "mau": "chart-vs-chart",
+        "chu_de": "Brad Pitt × Jennifer Aniston",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-king-charles-iii--princess-diana",
+        "mau": "chart-vs-chart",
+        "chu_de": "King Charles III × Diana, Princess of Wales",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-king-charles-iii--queen-camilla",
+        "mau": "chart-vs-chart",
+        "chu_de": "King Charles III × Queen Camilla",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-prince-harry--meghan-markle",
+        "mau": "chart-vs-chart",
+        "chu_de": "Prince Harry, Duke of Sussex × Meghan, Duchess of Sussex (Meghan Markle)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-prince-william--kate-middleton",
+        "mau": "chart-vs-chart",
+        "chu_de": "William, Prince of Wales × Catherine, Princess of Wales (Kate Middleton)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-johnny-depp--amber-heard",
+        "mau": "chart-vs-chart",
+        "chu_de": "Johnny Depp × Amber Heard",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-kim-kardashian--kanye-west",
+        "mau": "chart-vs-chart",
+        "chu_de": "Kim Kardashian × Kanye West (Ye)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-john-lennon--yoko-ono",
+        "mau": "chart-vs-chart",
+        "chu_de": "John Lennon × Yoko Ono",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-john-f-kennedy--jacqueline-kennedy",
+        "mau": "chart-vs-chart",
+        "chu_de": "John F. Kennedy × Jacqueline Kennedy Onassis",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-marilyn-monroe--joe-dimaggio",
+        "mau": "chart-vs-chart",
+        "chu_de": "Marilyn Monroe × Joe DiMaggio",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-marilyn-monroe--arthur-miller",
+        "mau": "chart-vs-chart",
+        "chu_de": "Marilyn Monroe × Arthur Miller",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-elvis-presley--priscilla-presley",
+        "mau": "chart-vs-chart",
+        "chu_de": "Elvis Presley × Priscilla Presley",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-beyonce--jay-z",
+        "mau": "chart-vs-chart",
+        "chu_de": "Beyoncé × Jay-Z (Shawn Carter)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-taylor-swift--travis-kelce",
+        "mau": "chart-vs-chart",
+        "chu_de": "Taylor Swift × Travis Kelce",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-barack-obama--michelle-obama",
+        "mau": "chart-vs-chart",
+        "chu_de": "Barack Obama × Michelle Obama",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-steve-jobs--bill-gates",
+        "mau": "chart-vs-chart",
+        "chu_de": "Steve Jobs × Bill Gates",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "cvc-john-lennon--paul-mccartney",
+        "mau": "chart-vs-chart",
+        "chu_de": "John Lennon × Paul McCartney",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ls-brad-pitt--angelina-jolie",
+        "mau": "love-story-charts",
+        "chu_de": "Brad Pitt & Angelina Jolie: the wedding, the split",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "ls-king-charles-iii--princess-diana",
+        "mau": "love-story-charts",
+        "chu_de": "King Charles III & Diana, Princess of Wales: the wedding, the split",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ls-johnny-depp--amber-heard",
+        "mau": "love-story-charts",
+        "chu_de": "Johnny Depp & Amber Heard: the wedding, the split",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ls-kim-kardashian--kanye-west",
+        "mau": "love-story-charts",
+        "chu_de": "Kim Kardashian & Kanye West (Ye): the wedding, the split",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ls-elvis-presley--priscilla-presley",
+        "mau": "love-story-charts",
+        "chu_de": "Elvis Presley & Priscilla Presley: the wedding, the split",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ls-marilyn-monroe--joe-dimaggio",
+        "mau": "love-story-charts",
+        "chu_de": "Marilyn Monroe & Joe DiMaggio: the wedding, the split",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "sx-leo-sagittarius",
+        "mau": "sign-x-sign",
+        "chu_de": "Leo × Sagittarius",
+        "trang_thai": "demo"
       }
     ],
     "nguon_y_tuong": [

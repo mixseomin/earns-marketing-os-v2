@@ -274,6 +274,456 @@
    "rodden": "A",
    "nguon": "https://www.astrotheme.com/astrology/Michael_Jackson",
    "ghi": "theo trí nhớ / tự truyện · Lois Rodden"
+  },
+  {
+   "slug": "brad-pitt",
+   "ten": "Brad Pitt",
+   "sinh": {
+    "ngay": 18,
+    "thang": 12,
+    "nam": 1963,
+    "gio": 6,
+    "phut": 31,
+    "noi": "Shawnee, Oklahoma, USA",
+    "vi": 35.3273,
+    "kinh": -96.9253
+   },
+   "utc": "1963-12-18T12:31Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Brad_Pitt",
+   "ghi": "From memory or autobiography · múi giờ: CST UTC-6"
+  },
+  {
+   "slug": "angelina-jolie",
+   "ten": "Angelina Jolie",
+   "sinh": {
+    "ngay": 4,
+    "thang": 6,
+    "nam": 1975,
+    "gio": 9,
+    "phut": 9,
+    "noi": "Los Angeles, California, USA",
+    "vi": 34.0522,
+    "kinh": -118.2437
+   },
+   "utc": "1975-06-04T16:09Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Angelina_Jolie",
+   "ghi": "birth certificate or birth record · múi giờ: PDT UTC-7"
+  },
+  {
+   "slug": "jennifer-aniston",
+   "ten": "Jennifer Aniston",
+   "sinh": {
+    "ngay": 11,
+    "thang": 2,
+    "nam": 1969,
+    "gio": 22,
+    "phut": 22,
+    "noi": "Los Angeles, California, USA",
+    "vi": 34.0522,
+    "kinh": -118.2437
+   },
+   "utc": "1969-02-12T06:22Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Jennifer_Aniston",
+   "ghi": "birth certificate or birth record · múi giờ: PST UTC-8"
+  },
+  {
+   "slug": "king-charles-iii",
+   "ten": "King Charles III",
+   "sinh": {
+    "ngay": 14,
+    "thang": 11,
+    "nam": 1948,
+    "gio": 21,
+    "phut": 14,
+    "noi": "London (Buckingham Palace), UK",
+    "vi": 51.5074,
+    "kinh": -0.1278
+   },
+   "utc": "1948-11-14T21:14Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Charles_III",
+   "ghi": "News report · múi giờ: GMT UTC+0 (BST 1948 kết thúc 31/10)"
+  },
+  {
+   "slug": "princess-diana",
+   "ten": "Diana, Princess of Wales",
+   "sinh": {
+    "ngay": 1,
+    "thang": 7,
+    "nam": 1961,
+    "gio": 19,
+    "phut": 45,
+    "noi": "Sandringham, Norfolk, UK",
+    "vi": 52.8311,
+    "kinh": 0.51
+   },
+   "utc": "1961-07-01T18:45Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Diana,_Princess_of_Wales",
+   "ghi": "From memory or autobiography · múi giờ: BST UTC+1"
+  },
+  {
+   "slug": "queen-camilla",
+   "ten": "Queen Camilla",
+   "sinh": {
+    "ngay": 17,
+    "thang": 7,
+    "nam": 1947,
+    "gio": 7,
+    "phut": 10,
+    "noi": "London, UK",
+    "vi": 51.5074,
+    "kinh": -0.1278
+   },
+   "utc": "1947-07-17T05:10Z",
+   "rodden": "B",
+   "nguon": "https://www.astrotheme.com/astrology/Camilla,_Queen_consort_of_the_United_Kingdom",
+   "ghi": "Biography · múi giờ: BDST UTC+2 (giờ mùa hè kép 13/04–10/08/1947)"
+  },
+  {
+   "slug": "prince-harry",
+   "ten": "Prince Harry, Duke of Sussex",
+   "sinh": {
+    "ngay": 15,
+    "thang": 9,
+    "nam": 1984,
+    "gio": 16,
+    "phut": 20,
+    "noi": "Paddington, London, UK",
+    "vi": 51.5154,
+    "kinh": -0.1755
+   },
+   "utc": "1984-09-15T15:20Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Prince_Harry,_Duke_of_Sussex",
+   "ghi": "News report · múi giờ: BST UTC+1"
+  },
+  {
+   "slug": "meghan-markle",
+   "ten": "Meghan, Duchess of Sussex (Meghan Markle)",
+   "sinh": {
+    "ngay": 4,
+    "thang": 8,
+    "nam": 1981,
+    "gio": 4,
+    "phut": 46,
+    "noi": "Canoga Park, Los Angeles, California, USA",
+    "vi": 34.2011,
+    "kinh": -118.5981
+   },
+   "utc": "1981-08-04T11:46Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Meghan_Markle",
+   "ghi": "birth certificate or birth record · múi giờ: PDT UTC-7"
+  },
+  {
+   "slug": "prince-william",
+   "ten": "William, Prince of Wales",
+   "sinh": {
+    "ngay": 21,
+    "thang": 6,
+    "nam": 1982,
+    "gio": 21,
+    "phut": 3,
+    "noi": "Paddington, London, UK",
+    "vi": 51.5154,
+    "kinh": -0.1755
+   },
+   "utc": "1982-06-21T20:03Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/William,_Prince_of_Wales",
+   "ghi": "birth certificate or birth record · múi giờ: BST UTC+1"
+  },
+  {
+   "slug": "kate-middleton",
+   "ten": "Catherine, Princess of Wales (Kate Middleton)",
+   "sinh": {
+    "ngay": 9,
+    "thang": 1,
+    "nam": 1982,
+    "gio": 19,
+    "phut": 0,
+    "noi": "Reading, Berkshire, UK",
+    "vi": 51.4543,
+    "kinh": -0.9781
+   },
+   "utc": "1982-01-09T19:00Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Catherine,_Princess_of_Wales",
+   "ghi": "From memory or autobiography · múi giờ: GMT UTC+0"
+  },
+  {
+   "slug": "johnny-depp",
+   "ten": "Johnny Depp",
+   "sinh": {
+    "ngay": 9,
+    "thang": 6,
+    "nam": 1963,
+    "gio": 8,
+    "phut": 44,
+    "noi": "Owensboro, Kentucky, USA",
+    "vi": 37.7719,
+    "kinh": -87.1112
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Johnny_Depp",
+   "ghi": "birth certificate or birth record · múi giờ: Múi Central; năm 1963 Kentucky giờ mùa hè theo địa phương (CST -6 hay CDT -5) chưa chắc"
+  },
+  {
+   "slug": "amber-heard",
+   "ten": "Amber Heard",
+   "sinh": {
+    "ngay": 22,
+    "thang": 4,
+    "nam": 1986,
+    "gio": null,
+    "phut": null,
+    "noi": "Austin, Texas, USA",
+    "vi": 30.2672,
+    "kinh": -97.7431
+   },
+   "utc": null,
+   "rodden": "X",
+   "nguon": "https://www.astrotheme.com/astrology/Amber_Heard",
+   "ghi": "Date without time of birth · múi giờ: không có giờ"
+  },
+  {
+   "slug": "kim-kardashian",
+   "ten": "Kim Kardashian",
+   "sinh": {
+    "ngay": 21,
+    "thang": 10,
+    "nam": 1980,
+    "gio": 10,
+    "phut": 46,
+    "noi": "Los Angeles, California, USA",
+    "vi": 34.0522,
+    "kinh": -118.2437
+   },
+   "utc": "1980-10-21T17:46Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Kim_Kardashian",
+   "ghi": "birth certificate or birth record · múi giờ: PDT UTC-7 (DST 1980 hết 26/10)"
+  },
+  {
+   "slug": "kanye-west",
+   "ten": "Kanye West (Ye)",
+   "sinh": {
+    "ngay": 8,
+    "thang": 6,
+    "nam": 1977,
+    "gio": 8,
+    "phut": 45,
+    "noi": "Atlanta, Georgia, USA",
+    "vi": 33.749,
+    "kinh": -84.388
+   },
+   "utc": "1977-06-08T12:45Z",
+   "rodden": "C",
+   "nguon": "https://www.astrotheme.com/astrology/Kanye_West",
+   "ghi": "Accuracy in question · múi giờ: EDT UTC-4"
+  },
+  {
+   "slug": "john-lennon",
+   "ten": "John Lennon",
+   "sinh": {
+    "ngay": 9,
+    "thang": 10,
+    "nam": 1940,
+    "gio": 18,
+    "phut": 30,
+    "noi": "Liverpool, UK",
+    "vi": 53.4084,
+    "kinh": -2.9916
+   },
+   "utc": "1940-10-09T17:30Z",
+   "rodden": "DD",
+   "nguon": "https://www.astrotheme.com/astrology/John_Lennon",
+   "ghi": "Conflicting/unverified · múi giờ: BST UTC+1 (1940 giữ BST cả mùa đông)"
+  },
+  {
+   "slug": "yoko-ono",
+   "ten": "Yoko Ono",
+   "sinh": {
+    "ngay": 18,
+    "thang": 2,
+    "nam": 1933,
+    "gio": 20,
+    "phut": 30,
+    "noi": "Tokyo, Japan",
+    "vi": 35.6762,
+    "kinh": 139.6503
+   },
+   "utc": "1933-02-18T11:30Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Yoko_Ono",
+   "ghi": "From memory or autobiography · múi giờ: JST UTC+9"
+  },
+  {
+   "slug": "jacqueline-kennedy",
+   "ten": "Jacqueline Kennedy Onassis",
+   "sinh": {
+    "ngay": 28,
+    "thang": 7,
+    "nam": 1929,
+    "gio": 14,
+    "phut": 30,
+    "noi": "Southampton, New York, USA",
+    "vi": 40.8843,
+    "kinh": -72.3895
+   },
+   "utc": null,
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Jacqueline_Kennedy_Onassis",
+   "ghi": "From memory or autobiography · múi giờ: Có lẽ EDT UTC-4 (giờ mùa hè địa phương NY 1929, chưa kiểm được cho Southampton)"
+  },
+  {
+   "slug": "joe-dimaggio",
+   "ten": "Joe DiMaggio",
+   "sinh": {
+    "ngay": 25,
+    "thang": 11,
+    "nam": 1914,
+    "gio": 7,
+    "phut": 0,
+    "noi": "Martinez, California, USA",
+    "vi": 38.0194,
+    "kinh": -122.1341
+   },
+   "utc": "1914-11-25T15:00Z",
+   "rodden": "C",
+   "nguon": "https://www.astrotheme.com/astrology/Joe_Dimaggio",
+   "ghi": "Accuracy in question · múi giờ: PST UTC-8"
+  },
+  {
+   "slug": "arthur-miller",
+   "ten": "Arthur Miller",
+   "sinh": {
+    "ngay": 17,
+    "thang": 10,
+    "nam": 1915,
+    "gio": 5,
+    "phut": 12,
+    "noi": "New York City (Manhattan), New York, USA",
+    "vi": 40.7128,
+    "kinh": -74.006
+   },
+   "utc": "1915-10-17T10:12Z",
+   "rodden": "C",
+   "nguon": "https://www.astrotheme.com/astrology/Arthur_Miller",
+   "ghi": "Original source not known · múi giờ: EST UTC-5 (chưa có DST năm 1915)"
+  },
+  {
+   "slug": "priscilla-presley",
+   "ten": "Priscilla Presley",
+   "sinh": {
+    "ngay": 24,
+    "thang": 5,
+    "nam": 1945,
+    "gio": 22,
+    "phut": 40,
+    "noi": "Brooklyn, New York, USA",
+    "vi": 40.6782,
+    "kinh": -73.9442
+   },
+   "utc": "1945-05-25T02:40Z",
+   "rodden": "B",
+   "nguon": "https://www.astrotheme.com/astrology/Priscilla_Presley",
+   "ghi": "Biography · Lois Rodden · múi giờ: EWT UTC-4 (giờ chiến tranh)"
+  },
+  {
+   "slug": "jay-z",
+   "ten": "Jay-Z (Shawn Carter)",
+   "sinh": {
+    "ngay": 4,
+    "thang": 12,
+    "nam": 1969,
+    "gio": 0,
+    "phut": 10,
+    "noi": "Brooklyn, New York, USA",
+    "vi": 40.6782,
+    "kinh": -73.9442
+   },
+   "utc": "1969-12-04T05:10Z",
+   "rodden": "C",
+   "nguon": "https://www.astrotheme.com/astrology/Jay-Z",
+   "ghi": "Accuracy in question · múi giờ: EST UTC-5"
+  },
+  {
+   "slug": "travis-kelce",
+   "ten": "Travis Kelce",
+   "sinh": {
+    "ngay": 5,
+    "thang": 10,
+    "nam": 1989,
+    "gio": 5,
+    "phut": 49,
+    "noi": "Westlake, Ohio, USA",
+    "vi": 41.4553,
+    "kinh": -81.9179
+   },
+   "utc": "1989-10-05T09:49Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Travis_Kelce",
+   "ghi": "birth certificate or birth record · múi giờ: EDT UTC-4 (DST 1989 hết 29/10)"
+  },
+  {
+   "slug": "michelle-obama",
+   "ten": "Michelle Obama",
+   "sinh": {
+    "ngay": 17,
+    "thang": 1,
+    "nam": 1964,
+    "gio": null,
+    "phut": null,
+    "noi": "Chicago, Illinois, USA",
+    "vi": 41.8781,
+    "kinh": -87.6298
+   },
+   "utc": null,
+   "rodden": "X",
+   "nguon": "https://www.astrotheme.com/astrology/Michelle_Obama",
+   "ghi": "Date without time of birth · múi giờ: không có giờ"
+  },
+  {
+   "slug": "bill-gates",
+   "ten": "Bill Gates",
+   "sinh": {
+    "ngay": 28,
+    "thang": 10,
+    "nam": 1955,
+    "gio": 22,
+    "phut": 0,
+    "noi": "Seattle, Washington, USA",
+    "vi": 47.6062,
+    "kinh": -122.3321
+   },
+   "utc": "1955-10-29T06:00Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Bill_Gates",
+   "ghi": "From memory or autobiography · múi giờ: PST UTC-8"
+  },
+  {
+   "slug": "paul-mccartney",
+   "ten": "Paul McCartney",
+   "sinh": {
+    "ngay": 18,
+    "thang": 6,
+    "nam": 1942,
+    "gio": 14,
+    "phut": 0,
+    "noi": "Liverpool, UK",
+    "vi": 53.4084,
+    "kinh": -2.9916
+   },
+   "utc": "1942-06-18T12:00Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Paul_McCartney",
+   "ghi": "From memory or autobiography · múi giờ: BDST UTC+2 (giờ mùa hè kép 05/04–09/08/1942)"
   }
  ]
 }

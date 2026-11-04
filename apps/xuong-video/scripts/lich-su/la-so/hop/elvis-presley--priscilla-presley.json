@@ -1,0 +1,1162 @@
+{
+ "ma": "elvis-presley--priscilla-presley",
+ "a": {
+  "slug": "elvis-presley",
+  "ten": "Elvis Presley",
+  "rodden": "AA"
+ },
+ "b": {
+  "slug": "priscilla-presley",
+  "ten": "Priscilla Presley",
+  "rodden": "B"
+ },
+ "rel": "romantic",
+ "nguon": "https://astrolas.com/synastry-chart?name=Elvis+Presley&day=8&month=1&year=1935&hour=4&minute=35&location=Tupelo%2C+Mississippi%2C+USA&lat=34.2576&lng=-88.7034&name2=Priscilla+Presley&day2=24&month2=5&year2=1945&hour2=22&minute2=40&location2=Brooklyn%2C+New+York%2C+USA&lat2=40.6782&lng2=-73.9442&rel_type=romantic",
+ "lay_luc": "2026-11-04",
+ "diem": [
+  {
+   "truc": "romance",
+   "ten": "Romance",
+   "mo_ta": "Attraction, affection, bonding",
+   "diem": 16,
+   "so_goc": 2
+  },
+  {
+   "truc": "attraction",
+   "ten": "Harmony & attraction",
+   "mo_ta": "Easygoing, harmonious, in tune",
+   "diem": 21,
+   "so_goc": 3
+  },
+  {
+   "truc": "challenge",
+   "ten": "Challenges",
+   "mo_ta": "Differences, friction, pressure",
+   "diem": 45,
+   "so_goc": 12
+  },
+  {
+   "truc": "sex_conflict",
+   "ten": "Sexual conflict",
+   "mo_ta": "Passion, drama, clashes",
+   "diem": 45,
+   "so_goc": 4
+  }
+ ],
+ "luoi": [
+  {
+   "a": "Sun",
+   "b": "Sun",
+   "goc": "Sesquiquadrate",
+   "lech": 1.29,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Mars",
+   "goc": "Square",
+   "lech": 0.25,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Jupiter",
+   "goc": "Trine",
+   "lech": 0.46,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Lilith",
+   "goc": "Square",
+   "lech": 4.28,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Sun",
+   "goc": "Square",
+   "lech": 1.5,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Mars",
+   "goc": "Semi-Square",
+   "lech": 0.04,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Neptune",
+   "goc": "Quincunx",
+   "lech": 1.74,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Ascendant",
+   "goc": "Sextile",
+   "lech": 4.08,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "Ascendant của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "MC",
+   "goc": "Trine",
+   "lech": 1.53,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Venus",
+   "goc": "Square",
+   "lech": 0.49,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Jupiter",
+   "goc": "Trine",
+   "lech": 4.62,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Chiron",
+   "goc": "Trine",
+   "lech": 4.65,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Lilith",
+   "goc": "Square",
+   "lech": 0.8,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Sun",
+   "goc": "Trine",
+   "lech": 4.16,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Uranus",
+   "goc": "Sesquiquadrate",
+   "lech": 1.73,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Neptune",
+   "goc": "Trine",
+   "lech": 4.4,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Chiron",
+   "goc": "Trine",
+   "lech": 2.41,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "MC",
+   "goc": "Square",
+   "lech": 1.12,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "MC của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Mercury",
+   "goc": "Quincunx",
+   "lech": 1.05,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Mars",
+   "goc": "Opposition",
+   "lech": 4.16,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Saturn",
+   "goc": "Square",
+   "lech": 3.78,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Uranus",
+   "goc": "Trine",
+   "lech": 0.2,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 4.66,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Mean Node",
+   "goc": "Square",
+   "lech": 1.66,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Mars",
+   "goc": "Quincunx",
+   "lech": 1.08,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Jupiter",
+   "goc": "Sextile",
+   "lech": 0.38,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Neptune",
+   "goc": "Semi-Square",
+   "lech": 0.7,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Venus",
+   "goc": "Sextile",
+   "lech": 2.95,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Saturn",
+   "goc": "Sesquiquadrate",
+   "lech": 1.69,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Chiron",
+   "goc": "Quincunx",
+   "lech": 1.21,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Lilith",
+   "goc": "Trine",
+   "lech": 4.23,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Mean Node",
+   "goc": "Sesquiquadrate",
+   "lech": 0.43,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "MC",
+   "goc": "Trine",
+   "lech": 4.75,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "MC của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Venus",
+   "goc": "Conjunction",
+   "lech": 4.7,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Uranus",
+   "goc": "Semi-Square",
+   "lech": 0.14,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Uranus",
+   "b": "Chiron",
+   "goc": "Quincunx",
+   "lech": 0.54,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "MC",
+   "goc": "Opposition",
+   "lech": 2.99,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "MC của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Moon",
+   "goc": "Sextile",
+   "lech": 2.83,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Mercury",
+   "goc": "Trine",
+   "lech": 2.66,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Jupiter",
+   "goc": "Conjunction",
+   "lech": 3.24,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Uranus",
+   "goc": "Square",
+   "lech": 1.81,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Neptune",
+   "b": "Mean Node",
+   "goc": "Sextile",
+   "lech": 3.28,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "MC",
+   "goc": "Semi-Square",
+   "lech": 1.04,
+   "tran": 2,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Venus",
+   "goc": "Square",
+   "lech": 2.34,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Chiron",
+   "goc": "Sextile",
+   "lech": 1.82,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Lilith",
+   "goc": "Square",
+   "lech": 3.62,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Sun",
+   "goc": "Conjunction",
+   "lech": 1.74,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Neptune",
+   "goc": "Trine",
+   "lech": 1.5,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 2.91,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Lilith",
+   "goc": "Sesquiquadrate",
+   "lech": 1.25,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Ascendant",
+   "goc": "Quincunx",
+   "lech": 0.84,
+   "tran": 2,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Venus",
+   "goc": "Trine",
+   "lech": 3.57,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Mars",
+   "goc": "Trine",
+   "lech": 2.24,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Neptune",
+   "goc": "Semi-Square",
+   "lech": 0.46,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Lilith",
+   "goc": "Sextile",
+   "lech": 2.28,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Ascendant",
+   "goc": "Sesquiquadrate",
+   "lech": 1.87,
+   "tran": 2,
+   "xa": false,
+   "dung": false,
+   "vi": "Ascendant của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Sun",
+   "goc": "Trine",
+   "lech": 1.67,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Jupiter",
+   "goc": "Sesquiquadrate",
+   "lech": 0.83,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Neptune",
+   "goc": "Trine",
+   "lech": 1.91,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Chiron",
+   "goc": "Trine",
+   "lech": 4.9,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "MC",
+   "goc": "Square",
+   "lech": 1.37,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "MC của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Mercury",
+   "goc": "Quincunx",
+   "lech": 0.58,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Mars",
+   "goc": "Trine",
+   "lech": 4.62,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Uranus",
+   "goc": "Opposition",
+   "lech": 0.27,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Pluto",
+   "goc": "Trine",
+   "lech": 4.2,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Mean Node",
+   "goc": "Quincunx",
+   "lech": 1.2,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Moon",
+   "goc": "Semi-Square",
+   "lech": 0.22,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Mercury",
+   "goc": "Sesquiquadrate",
+   "lech": 0.05,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Chiron",
+   "goc": "Conjunction",
+   "lech": 0.12,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  }
+ ],
+ "giai": [
+  {
+   "tam": "tense",
+   "a": "Moon",
+   "b": "Mars",
+   "nha_a": 3,
+   "nha_b": 3,
+   "goc": "Semi-Square",
+   "lech": "0°02'",
+   "tieu_de": "Petty friction and impatience.",
+   "chu": "Petty friction and impatience. This aspect creates small frictions in everyday life. Priscilla Presley's habits or haste sometimes startle or irritate Elvis Presley, while Elvis Presley's fluctuating moods occasionally throw a wrench into Priscilla Presley's plans. It does not lead to a breakup, but requires give-and-take to avoid petty quarrels that wear away the affection.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "MC",
+   "b": "Mercury",
+   "nha_a": 10,
+   "nha_b": 4,
+   "goc": "Sesquiquadrate",
+   "lech": "0°03'",
+   "tieu_de": "Simmering frustration from differences in thinking and direction.",
+   "chu": "Simmering frustration from differences in thinking and direction. Elvis Presley persistent tension when Priscilla Presley feels that their opinions and advice are always brushed aside by Elvis Presley or undervalued in career decisions. Elvis Presley feels that Priscilla Presley's analysis is a psychological burden steering their career off course.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Uranus",
+   "b": "Uranus",
+   "nha_a": 5,
+   "nha_b": 5,
+   "goc": "Semi-Square",
+   "lech": "0°08'",
+   "tieu_de": "Minor friction regarding independence.",
+   "chu": "Minor friction regarding independence. Petty, generational differences regarding the degree of freedom and unconventionality. Occasionally one person's rebellious character or urge to break out causes mild confusion for the other, but it has little major effect on the relationship overall.",
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mars",
+   "b": "Uranus",
+   "nha_a": 10,
+   "nha_b": 5,
+   "goc": "Trine",
+   "lech": "0°12'",
+   "tieu_de": "Elvis Presley smooth flow of innovation and energy.",
+   "chu": "Elvis Presley smooth flow of innovation and energy. Priscilla Presley's need for freedom and unconventionality is entirely in harmony with the way Elvis Presley drives action. This connection helps them easily carry out unconventional goals together or take part in stimulating activities without encountering obstacles or imposition from the other.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "MC",
+   "b": "Moon",
+   "nha_a": 10,
+   "nha_b": 10,
+   "goc": "Semi-Square",
+   "lech": "0°13'",
+   "tieu_de": "Minor friction between mood and responsibility.",
+   "chu": "Minor friction between mood and responsibility. Petty disturbances arise when Priscilla Presley's shifting moods, sensitivity, or need to be comforted occasionally interrupt Elvis Presley's focus on work or social image, causing mild irritations in daily life.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Sun",
+   "b": "Mars",
+   "nha_a": 2,
+   "nha_b": 3,
+   "goc": "Square",
+   "lech": "0°15'",
+   "tieu_de": "Fierce conflict and power confrontation.",
+   "chu": "Fierce conflict and power confrontation. This is a very challenging configuration, creating a stubborn \"confrontation\" due to each person's defense mechanisms. Although it produces extremely powerful physical or sexual magnetism, this energy easily turns into anger and conflict. Elvis Presley may find Priscilla Presley too aggressive, impulsive, or demanding, while Priscilla Presley feels Elvis Presley is too authoritarian, arrogant, and fond of giving orders. This relationship demands enormous effort in adjustment and compromise so that this fierce energy does not become destructive.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Ascendant",
+   "b": "Uranus",
+   "nha_a": 1,
+   "nha_b": 5,
+   "goc": "Opposition",
+   "lech": "0°16'",
+   "tieu_de": "Elvis Presley sudden, partnership-oriented attraction (Conjunct the Descendant - DSC).",
+   "chu": "Elvis Presley sudden, partnership-oriented attraction (Conjunct the Descendant - DSC). When Priscilla Presley's Uranus opposes Elvis Presley's Ascendant, it is in effect sitting right on Elvis Presley's Descendant (House 7 - the house of relationships). Priscilla Presley brings sudden change, unconventionality and unpredictability directly into Elvis Presley's area of relationships. This is an extremely strong \"electric\" pull, promising an immensely exciting and different relationship. However, Priscilla Presley's need for independence may run counter to Elvis Presley's effort to build commitment, leaving the relationship without stability and liable to end as suddenly as it began.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Jupiter",
+   "b": "Jupiter",
+   "nha_a": 11,
+   "nha_b": 8,
+   "goc": "Sextile",
+   "lech": "0°23'",
+   "tieu_de": "Compatibility of outlook on life and mutual encouragement of growth.",
+   "chu": "Compatibility of outlook on life and mutual encouragement of growth. This favorable angle shows that the two people easily inspire each other at a high intellectual level. The differences in their worldviews complement each other very well, bringing broadening and opportunities to learn without giving rise to judgment.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Sun",
+   "b": "Jupiter",
+   "nha_a": 2,
+   "nha_b": 8,
+   "goc": "Trine",
+   "lech": "0°28'",
+   "tieu_de": "Elvis Presley flow of luck, joy, and growth.",
+   "chu": "Elvis Presley flow of luck, joy, and growth. This interaction is extremely smooth and serene. The capacity for self-development and expansion unfolds naturally without much effort. Both share common beliefs, ethics, or a philosophy of life. Priscilla Presley's presence automatically brings light, opportunity, and a sense that \"everything will be all right\" to Elvis Presley's life. This is an extremely ideal connection for sustaining long-term happiness.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Mercury",
+   "b": "Venus",
+   "nha_a": 2,
+   "nha_b": 3,
+   "goc": "Square",
+   "lech": "0°29'",
+   "tieu_de": "Friction between reason and emotional values.",
+   "chu": "Friction between reason and emotional values. The Square creates confrontation and patterns of resistance that are hard to resolve. Elvis Presley's logical, clear-cut, and at times critical mode of analysis (Mercury) can clash strongly with Priscilla Presley's value system, spending habits, or need to be loved (Venus). Elvis Presley may find Priscilla Presley too emotional, superficial, or lazy, while Priscilla Presley feels Elvis Presley is dry, unromantic, and overly scrutinizing. This configuration demands constant adjustment: Elvis Presley must learn to speak more tactfully, and Priscilla Presley needs to learn to receive feedback more objectively.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Ascendant",
+   "b": "Mercury",
+   "nha_a": 1,
+   "nha_b": 4,
+   "goc": "Quincunx",
+   "lech": "0°35'",
+   "tieu_de": "Elvis Presley misalignment between communication and first impression.",
+   "chu": "Elvis Presley misalignment between communication and first impression. The way Priscilla Presley conveys ideas and thoughts is entirely \"out of sync\" with Elvis Presley's familiar mode of reacting. Priscilla Presley's words may be misunderstood by Elvis Presley, or Elvis Presley may have outward behaviors that leave Priscilla Presley flustered, unsure how to communicate properly. This difference creates a nagging feeling and requires both sides to keep making concessions and striving to decode the other's true language.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Jupiter",
+   "b": "Neptune",
+   "nha_a": 11,
+   "nha_b": 9,
+   "goc": "Semi-Square",
+   "lech": "0°42'",
+   "tieu_de": "Minor friction born of vagueness in belief.",
+   "chu": "Minor friction born of vagueness in belief. Priscilla Presley's sometimes overly dreamy, evasive, or unclear attitude occasionally disrupts Elvis Presley's confidence and optimism. Although it does not entirely break the shared orientation, this petty lack of transparency easily irritates Elvis Presley.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Neptune",
+   "b": "MC",
+   "nha_a": 9,
+   "nha_b": 10,
+   "goc": "Semi-Square",
+   "lech": "1°02'",
+   "tieu_de": "Minor friction from a dreamy, impractical attitude.",
+   "chu": "Minor friction from a dreamy, impractical attitude. Petty annoyances arise when Elvis Presley's sometimes overly absent-minded, forgetful, or indecisive attitude occasionally interrupts Priscilla Presley's focus or delays Priscilla Presley's work plans, causing mild irritation but not enough to break the core direction.",
+   "dung": false,
+   "vi": "MC của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Mars",
+   "b": "Mercury",
+   "nha_a": 10,
+   "nha_b": 4,
+   "goc": "Quincunx",
+   "lech": "1°03'",
+   "tieu_de": "The phase mismatch between thinking and problem-solving.",
+   "chu": "The phase mismatch between thinking and problem-solving. What Priscilla Presley says and how Elvis Presley acts seem to have no common ground. When Priscilla Presley offers logical advice, Elvis Presley may misunderstand and act in a completely opposite way, causing frustration and an underlying drain of energy. The conflict here stems from being \"out of sync,\" requiring both to continually make concessions and patiently adjust the way they convey and receive information.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Jupiter",
+   "b": "Mars",
+   "nha_a": 11,
+   "nha_b": 3,
+   "goc": "Quincunx",
+   "lech": "1°05'",
+   "tieu_de": "Elvis Presley phase misalignment between the method and the grand orientation.",
+   "chu": "Elvis Presley phase misalignment between the method and the grand orientation. Priscilla Presley's drive and Elvis Presley's faith do not speak the same language. Priscilla Presley's hasty, instinctive actions may unintentionally break Elvis Presley's grand plans. Conversely, Elvis Presley's philosophical, expansive advice leaves Priscilla Presley feeling that it is fanciful, detached from reality, and of no help toward the immediate goal. This underlying friction demands that both continually adjust so that their working rhythms fit together.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Venus",
+   "b": "MC",
+   "nha_a": 2,
+   "nha_b": 10,
+   "goc": "Square",
+   "lech": "1°07'",
+   "tieu_de": "Conflict between the need for enjoyment and work responsibility.",
+   "chu": "Conflict between the need for enjoyment and work responsibility. The square creates a clash between the emotional world and ambition. Elvis Presley's need to be loved, to spend time relaxing, having fun or spending money (Venus) continually confronts the demanding requirements of Priscilla Presley's career (MC). Elvis Presley may feel Priscilla Presley is too ambitious, cold or neglectful of affection; while Priscilla Presley feels Elvis Presley seems lazy, demands too much attention, or that Elvis Presley's habits are obstructing their momentum of advancement.",
+   "dung": false,
+   "vi": "MC của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Sun",
+   "b": "Sun",
+   "nha_a": 2,
+   "nha_b": 5,
+   "goc": "Sesquiquadrate",
+   "lech": "1°17'",
+   "tieu_de": "Tension and stubbornness.",
+   "chu": "Tension and stubbornness. This is a minor aspect of a tense nature. The egos of Elvis Presley and Priscilla Presley sit in a \"misaligned\" position with each other, leading to difficulty agreeing on how to solve problems. When the ego is threatened, both tend to be defensive and stubbornly defend their own viewpoint. It requires both to be far more flexible so as not to step on each other's pride.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Moon",
+   "b": "Sun",
+   "nha_a": 3,
+   "nha_b": 5,
+   "goc": "Square",
+   "lech": "1°30'",
+   "tieu_de": "Elvis Presley conflict of needs that nonetheless creates a strong attraction.",
+   "chu": "Elvis Presley conflict of needs that nonetheless creates a strong attraction. This aspect creates a direct conflict between the two people's needs. Person Elvis Presley (Moon) may feel Priscilla Presley is too selfish or cold, while the person carrying the Sun (person Priscilla Presley) may become insensitive, imposing, or inclined to control Elvis Presley's emotions. However, it should be noted that this Square still creates a very strong bond and the relationship can function well if supported by other positive factors in the chart.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Moon",
+   "b": "MC",
+   "nha_a": 3,
+   "nha_b": 10,
+   "goc": "Trine",
+   "lech": "1°32'",
+   "tieu_de": "Elvis Presley smooth flow of nurturing and achievement.",
+   "chu": "Elvis Presley smooth flow of nurturing and achievement. An excellent harmony between the inner life (Elvis Presley) and public goals (Priscilla Presley). Elvis Presley is instinctively a solid support base, providing peace and emotional soothing so that Priscilla Presley can develop their career most brilliantly. In return, Priscilla Presley's standing and direction bring a sense of shelter, reassurance, and pride to Elvis Presley's Moon.",
+   "dung": false,
+   "vi": "MC của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Saturn",
+   "b": "Saturn",
+   "nha_a": 3,
+   "nha_b": 7,
+   "goc": "Sesquiquadrate",
+   "lech": "1°41'",
+   "tieu_de": "Underlying frustration caused by a generational barrier or personal limits.",
+   "chu": "Underlying frustration caused by a generational barrier or personal limits. There is a persistent tension when Elvis Presley's sense of obligation and sternness occasionally obstructs or creates a heavy feeling for Priscilla Presley. It requires both to be more flexible, avoiding the use of rigid rules to judge the other.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Venus",
+   "b": "Uranus",
+   "nha_a": 2,
+   "nha_b": 5,
+   "goc": "Sesquiquadrate",
+   "lech": "1°44'",
+   "tieu_de": "Underlying frustration over a feeling of instability.",
+   "chu": "Underlying frustration over a feeling of instability. This aspect brings a persistent tension. When Elvis Presley craves firm commitment or familiar affectionate habits, Priscilla Presley instead acts rebellious or wants to keep absolute personal space. Elvis Presley feels this love is too precarious, while Priscilla Presley feels bound by Elvis Presley. Both need to concede to avoid turning Priscilla Presley's independence into a reason to evade love.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Moon",
+   "b": "Neptune",
+   "nha_a": 3,
+   "nha_b": 9,
+   "goc": "Quincunx",
+   "lech": "1°44'",
+   "tieu_de": "Elvis Presley \"phase mismatch\" between the need for safety and ideals.",
+   "chu": "Elvis Presley \"phase mismatch\" between the need for safety and ideals. Because they share no element or modality, the way Elvis Presley seeks comfort is completely different from the way Priscilla Presley expresses romance or spirituality. Elvis Presley may need concrete acts of care to feel reassured, but Priscilla Presley instead offers only vague promises or distant ideals, leaving Elvis Presley with an underlying feeling of disappointment. To sustain it, Priscilla Presley needs to learn to show more practical concern, while Elvis Presley must open their mind to receive Priscilla Presley's subtle, nonverbal language of affection.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Neptune",
+   "b": "Uranus",
+   "nha_a": 9,
+   "nha_b": 5,
+   "goc": "Square",
+   "lech": "1°49'",
+   "tieu_de": "Conflict between rebellion and vagueness, evasion.",
+   "chu": "Conflict between rebellion and vagueness, evasion. This is an aspect that creates a major barrier in ideals and in how one confronts the truth. Priscilla Presley's impulsiveness, love of stirring things up, and demand for sudden change continually collide with Elvis Presley's evasive, dreamy, and self-deceiving nature. Under pressure from Priscilla Presley, Elvis Presley often uses ambiguity, silence, or evasion to cope, making Priscilla Presley all the more angry and eager to break the relationship. This configuration demands a deep karmic lesson about perceiving reality.",
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "tam": "tense",
+   "a": "Pluto",
+   "b": "Venus",
+   "nha_a": 8,
+   "nha_b": 3,
+   "goc": "Square",
+   "lech": "2°20'",
+   "tieu_de": "Power struggle and control in love.",
+   "chu": "Power struggle and control in love. This is an exceedingly fierce configuration. The author warns that this tense aspect can lead to \"serious power issues, often related to control through sex.\" Elvis Presley (Pluto) tends to be jealous, possessive, or to use hidden manipulation to dominate Priscilla Presley (Venus). Priscilla Presley may feel suffocated or exploited in this relationship. Emotional \"battles of wits\" occur frequently, and the relationship is at risk of falling apart if both do not learn to let go of possessiveness.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Neptune",
+   "b": "Mercury",
+   "nha_a": 9,
+   "nha_b": 4,
+   "goc": "Trine",
+   "lech": "2°40'",
+   "tieu_de": "Elvis Presley flow of wordless understanding (telepathy).",
+   "chu": "Elvis Presley flow of wordless understanding (telepathy). The couple shares an extremely strong intuitive connection in communication. Often, before Priscilla Presley has even finished a sentence, Elvis Presley can already sense the true intention behind it. Elvis Presley's presence softens all the harshness in Priscilla Presley's words, bringing an atmosphere of communication that is deeply tolerant and gentle. They rarely have big quarrels because both readily sympathize with and forgive each other's small faults.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Neptune",
+   "b": "Moon",
+   "nha_a": 9,
+   "nha_b": 10,
+   "goc": "Sextile",
+   "lech": "2°50'",
+   "tieu_de": "Intuitive empathy and healing.",
+   "chu": "Intuitive empathy and healing. Elvis Presley favorable aspect that lets the two people's intuition complement each other subtly. Elvis Presley (Neptune) uses romance, selflessness, and imagination to soothe Priscilla Presley's (Moon) unconscious insecurities. In return, Priscilla Presley's safe nurturing provides a peaceful harbor for Elvis Presley's spiritual or artistic world. They share a telepathic understanding, able to sense each other's sadness without needing words.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Saturn",
+   "b": "Venus",
+   "nha_a": 3,
+   "nha_b": 3,
+   "goc": "Sextile",
+   "lech": "2°57'",
+   "tieu_de": "Serene stability and solid commitment.",
+   "chu": "Serene stability and solid commitment. This is a wonderful foundation for those seeking a practical and safe relationship. Priscilla Presley's love (Venus) is easily protected and directed by Elvis Presley (Saturn). They rarely have major disagreements about finances, spending habits or the principles of shared life. Although it is not an explosively passionate love, the appreciation, loyalty and sense of building a shared future help their affection grow ever deeper and more enduring over time.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Uranus",
+   "b": "MC",
+   "nha_a": 5,
+   "nha_b": 10,
+   "goc": "Opposition",
+   "lech": "2°59'",
+   "tieu_de": "Polarization between family freedom and public ambition (Conjunction with the IC).",
+   "chu": "Polarization between family freedom and public ambition (Conjunction with the IC). When Elvis Presley's Uranus opposes Priscilla Presley's MC, it is essentially sitting right on Priscilla Presley's IC. Elvis Presley brings sudden change, unconventionality and unpredictability into Priscilla Presley's roots, home and private life. Although Elvis Presley may help Priscilla Presley break free from old family patterns, this constant instability on the home front may pull Priscilla Presley away from focusing on their career. Priscilla Presley may feel that family life with Elvis Presley is too chaotic, affecting their ability to maintain a solid position in society.",
+   "dung": false,
+   "vi": "MC của Priscilla Presley cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "tam": "neutral",
+   "a": "Neptune",
+   "b": "Jupiter",
+   "nha_a": 9,
+   "nha_b": 8,
+   "goc": "Conjunction",
+   "lech": "3°14'",
+   "tieu_de": "Spiritual amplification and the risk of blindness.",
+   "chu": "Spiritual amplification and the risk of blindness. Elvis Presley (Neptune) casts a fog of spirituality and idealization over Priscilla Presley's ideology and beliefs (Jupiter). Although it brings transcendence and deep religious or spiritual experiences, this configuration readily lets Priscilla Presley's \"expanding\" energy inflate Elvis Presley's \"illusions.\" The couple may together pursue unrealistic ideals or deceive themselves about the true potential of the relationship.",
+   "dung": true,
+   "the_he": false
+  }
+ ],
+ "moc": [
+  {
+   "ngay": "1959-09-13",
+   "chu": "Priscilla, 14, meets Elvis, 24, at his home in Bad Nauheim, West Germany.",
+   "nguon": "https://en.wikipedia.org/wiki/Priscilla_Presley"
+  },
+  {
+   "ngay": "1967-05-01",
+   "chu": "They marry at the Aladdin Hotel in Las Vegas.",
+   "nguon": "https://en.wikipedia.org/wiki/Priscilla_Presley"
+  },
+  {
+   "ngay": "1968-02-01",
+   "chu": "Their daughter Lisa Marie is born.",
+   "nguon": "https://en.wikipedia.org/wiki/Priscilla_Presley"
+  },
+  {
+   "ngay": "1972-02-23",
+   "chu": "The couple separate.",
+   "nguon": "https://en.wikipedia.org/wiki/Priscilla_Presley"
+  },
+  {
+   "ngay": "1973-10-09",
+   "chu": "Their divorce is finalized.",
+   "nguon": "https://en.wikipedia.org/wiki/Priscilla_Presley"
+  },
+  {
+   "ngay": "1977-08-16",
+   "chu": "Elvis dies in Memphis, Tennessee, aged 42.",
+   "nguon": "https://en.wikipedia.org/wiki/Elvis_Presley"
+  }
+ ]
+}

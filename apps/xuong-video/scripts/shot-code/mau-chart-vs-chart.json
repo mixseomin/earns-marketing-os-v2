@@ -1,0 +1,98 @@
+{
+ "_ghi": "Demo Chart vs Chart (mẫu chờ duyệt, 05/11/2026): synastry kiểu partner của site cho Jobs × Gates (la-so/hop.mjs). Số + câu trong ngoặc là nguyên văn site; mốc 1997 từ sổ cặp (Wikipedia).",
+ "demo": true,
+ "kenh": "astrolas",
+ "mau": "chart-vs-chart",
+ "playlist_ma": "chart-vs-chart",
+ "y_tuong": "cvc-steve-jobs--bill-gates",
+ "la_so": "../lich-su/la-so/hop/steve-jobs--bill-gates.svg",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "Chart vs Chart",
+  "mau": "#FF8FB1",
+  "ic": "♡"
+ },
+ "DAI": 27.6,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.6,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Rivals for 30 years.<br>Their charts score teamwork:",
+   "the": {
+    "lon": "100",
+    "duoi": "/100 · Teamwork & shared goals",
+    "dong": [
+     "Steve Jobs × Bill Gates"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 3.6,
+   "den": 7.0,
+   "nhin": {
+    "toan": 1
+   },
+   "chu": "Two birth charts,<br>one wheel.",
+   "nhan": "Steve Jobs · Bill Gates"
+  },
+  {
+   "tu": 7.0,
+   "den": 11.4,
+   "nhin": {
+    "cheo": [
+     "person-a:Moon",
+     "person-b:Moon"
+    ]
+   },
+   "chu": "Moon on Moon, half a degree apart:<br>“a sense of familiarity.”"
+  },
+  {
+   "tu": 11.4,
+   "den": 15.8,
+   "nhin": {
+    "cheo": [
+     "person-a:Venus",
+     "person-b:Saturn"
+    ]
+   },
+   "chu": "His Venus, his Saturn:<br>“building for the long term.”"
+  },
+  {
+   "tu": 15.8,
+   "den": 20.0,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "1997: Microsoft buys<br>$150 million of Apple shares.",
+   "the": {
+    "lon": "$150M",
+    "duoi": "August 6, 1997",
+    "dong": [
+     "Microsoft invests in Apple"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 20.0,
+   "den": 24.2,
+   "nhin": {
+    "diem": 1
+   },
+   "chu": "Challenges: 65.<br>Rivals, after all."
+  },
+  {
+   "tu": 24.2,
+   "den": 27.6,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Compare any two charts<br>free at astrolas.com."
+  }
+ ]
+}

@@ -1,0 +1,1001 @@
+{
+ "ma": "king-charles-iii--queen-camilla",
+ "a": {
+  "slug": "king-charles-iii",
+  "ten": "King Charles III",
+  "rodden": "A"
+ },
+ "b": {
+  "slug": "queen-camilla",
+  "ten": "Queen Camilla",
+  "rodden": "B"
+ },
+ "rel": "romantic",
+ "nguon": "https://astrolas.com/synastry-chart?name=King+Charles+III&day=14&month=11&year=1948&hour=21&minute=14&location=London+%28Buckingham+Palace%29%2C+UK&lat=51.5074&lng=-0.1278&name2=Queen+Camilla&day2=17&month2=7&year2=1947&hour2=7&minute2=10&location2=London%2C+UK&lat2=51.5074&lng2=-0.1278&rel_type=romantic",
+ "lay_luc": "2026-11-04",
+ "diem": [
+  {
+   "truc": "romance",
+   "ten": "Romance",
+   "mo_ta": "Attraction, affection, bonding",
+   "diem": 18,
+   "so_goc": 1
+  },
+  {
+   "truc": "attraction",
+   "ten": "Harmony & attraction",
+   "mo_ta": "Easygoing, harmonious, in tune",
+   "diem": 41,
+   "so_goc": 5
+  },
+  {
+   "truc": "challenge",
+   "ten": "Challenges",
+   "mo_ta": "Differences, friction, pressure",
+   "diem": 61,
+   "so_goc": 17
+  },
+  {
+   "truc": "sex_conflict",
+   "ten": "Sexual conflict",
+   "mo_ta": "Passion, drama, clashes",
+   "diem": 45,
+   "so_goc": 5
+  }
+ ],
+ "luoi": [
+  {
+   "a": "Sun",
+   "b": "Sun",
+   "goc": "Trine",
+   "lech": 1.37,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Mercury",
+   "goc": "Trine",
+   "lech": 2.5,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Jupiter",
+   "goc": "Conjunction",
+   "lech": 4.73,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Uranus",
+   "goc": "Quincunx",
+   "lech": 1.42,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Neptune",
+   "goc": "Semi-Square",
+   "lech": 0.8,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Lilith",
+   "goc": "Sextile",
+   "lech": 3.83,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Chiron",
+   "goc": "Opposition",
+   "lech": 2.09,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Ascendant",
+   "goc": "Square",
+   "lech": 4.5,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "Ascendant của Queen Camilla cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Moon",
+   "goc": "Trine",
+   "lech": 3.08,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Venus",
+   "goc": "Trine",
+   "lech": 3.62,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Saturn",
+   "goc": "Square",
+   "lech": 2.99,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Uranus",
+   "goc": "Sesquiquadrate",
+   "lech": 1.88,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Chiron",
+   "goc": "Conjunction",
+   "lech": 4.44,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Ascendant",
+   "goc": "Square",
+   "lech": 2.03,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Queen Camilla cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Mercury",
+   "goc": "Square",
+   "lech": 3.54,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 4,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Lilith",
+   "goc": "Square",
+   "lech": 2.21,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Mean Node",
+   "goc": "Sesquiquadrate",
+   "lech": 1.68,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "MC",
+   "goc": "Opposition",
+   "lech": 3.82,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Queen Camilla cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Mercury",
+   "goc": "Quincunx",
+   "lech": 1.03,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Uranus",
+   "goc": "Opposition",
+   "lech": 2.89,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Ascendant",
+   "goc": "Sesquiquadrate",
+   "lech": 1.02,
+   "tran": 2,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Queen Camilla cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Chiron",
+   "goc": "Sextile",
+   "lech": 2.63,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Mean Node",
+   "goc": "Quincunx",
+   "lech": 0.18,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Moon",
+   "goc": "Sextile",
+   "lech": 4.77,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Mercury",
+   "goc": "Semi-Square",
+   "lech": 0.35,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Chiron",
+   "goc": "Sextile",
+   "lech": 2.75,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Lilith",
+   "goc": "Sesquiquadrate",
+   "lech": 1.67,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Chiron",
+   "goc": "Trine",
+   "lech": 2.59,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Moon",
+   "goc": "Square",
+   "lech": 4.09,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Venus",
+   "goc": "Square",
+   "lech": 3.55,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Mars",
+   "goc": "Trine",
+   "lech": 2.85,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Saturn",
+   "goc": "Sextile",
+   "lech": 4.18,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 1.75,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Neptune",
+   "b": "Lilith",
+   "goc": "Square",
+   "lech": 4.47,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Mean Node",
+   "goc": "Sesquiquadrate",
+   "lech": 0.57,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "MC",
+   "goc": "Opposition",
+   "lech": 1.56,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Queen Camilla cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Jupiter",
+   "goc": "Square",
+   "lech": 1.13,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Pluto",
+   "goc": "Conjunction",
+   "lech": 4.18,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Pluto",
+   "b": "MC",
+   "goc": "Trine",
+   "lech": 3.99,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Queen Camilla cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Sun",
+   "goc": "Trine",
+   "lech": 4.43,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Mean Node",
+   "goc": "Opposition",
+   "lech": 1.48,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "MC",
+   "goc": "Sesquiquadrate",
+   "lech": 0.66,
+   "tran": 2,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Queen Camilla cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Moon",
+   "goc": "Trine",
+   "lech": 3,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Venus",
+   "goc": "Trine",
+   "lech": 2.47,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Mars",
+   "goc": "Square",
+   "lech": 1.76,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Jupiter",
+   "goc": "Trine",
+   "lech": 4.65,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Pluto",
+   "goc": "Quincunx",
+   "lech": 0.66,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Chiron",
+   "goc": "Opposition",
+   "lech": 1.41,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Ascendant",
+   "goc": "Square",
+   "lech": 1,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Queen Camilla cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Saturn",
+   "goc": "Conjunction",
+   "lech": 4.53,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Neptune",
+   "goc": "Sextile",
+   "lech": 2.81,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Chiron",
+   "goc": "Square",
+   "lech": 2.9,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Ascendant",
+   "goc": "Conjunction",
+   "lech": 0.49,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Moon",
+   "goc": "Square",
+   "lech": 3.27,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Venus",
+   "goc": "Square",
+   "lech": 2.73,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Mars",
+   "goc": "Sextile",
+   "lech": 2.03,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Saturn",
+   "goc": "Trine",
+   "lech": 3.36,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Pluto",
+   "goc": "Trine",
+   "lech": 0.93,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Mean Node",
+   "goc": "Semi-Square",
+   "lech": 1.39,
+   "tran": 2,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "MC",
+   "goc": "Conjunction",
+   "lech": 0.74,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  }
+ ],
+ "giai": [
+  {
+   "tam": "tense",
+   "a": "Saturn",
+   "b": "Mercury",
+   "nha_a": 2,
+   "nha_b": 12,
+   "goc": "Semi-Square",
+   "lech": "0°21'",
+   "tieu_de": "Minor friction over strictness in speech.",
+   "chu": "Minor friction over strictness in speech. King Charles III's at-times overly serious or principled attitude occasionally makes Queen Camilla feel deflated when enthusiastically sharing ideas. Conversely, Queen Camilla's talkativeness or constant shifting of viewpoints irritates King Charles III somewhat. It only creates short-lived silences or irritation, requiring King Charles III to loosen the strictness in everyday communication.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Sun",
+   "b": "Neptune",
+   "nha_a": 4,
+   "nha_b": 3,
+   "goc": "Semi-Square",
+   "lech": "0°48'",
+   "tieu_de": "Covert annoyance over evasiveness.",
+   "chu": "Covert annoyance over evasiveness. This aspect does not erupt into major disillusionment but creates small, scattered frictions. King Charles III occasionally feels irritated when Queen Camilla behaves impractically, forgets promises, or reacts too sentimentally. King Charles III easily develops a nagging feeling and mild bewilderment about the other's sincerity, requiring both not to let these ambiguities accumulate into big misunderstandings.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "MC",
+   "b": "Pluto",
+   "nha_a": 10,
+   "nha_b": 1,
+   "goc": "Trine",
+   "lech": "0°56'",
+   "tieu_de": "King Charles III smooth flow of power and achievement.",
+   "chu": "King Charles III smooth flow of power and achievement. King Charles III wonderful combination of Queen Camilla's transformative energy and King Charles III's ambitions. Queen Camilla is naturally a powerful backing, providing psychological strength and sharpness so that King Charles III can confidently conquer the heights of their career. King Charles III's social success does not make Queen Camilla feel threatened; on the contrary, they share power harmoniously and enjoy the standing achieved together.",
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Mars",
+   "b": "Ascendant",
+   "nha_a": 5,
+   "nha_b": 1,
+   "goc": "Sesquiquadrate",
+   "lech": "1°01'",
+   "tieu_de": "Underlying frustration from a feeling of being pushed.",
+   "chu": "Underlying frustration from a feeling of being pushed. There exists a persistent tense state when Queen Camilla feels that King Charles III's presence and demands for action covertly exert pressure on and threaten their personal space. In return, King Charles III feels that the way Queen Camilla builds their outward image is an invisible obstacle to their own passions and drive.",
+   "dung": false,
+   "vi": "Ascendant của Queen Camilla cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Mars",
+   "b": "Mercury",
+   "nha_a": 5,
+   "nha_b": 12,
+   "goc": "Quincunx",
+   "lech": "1°02'",
+   "tieu_de": "The phase mismatch between thinking and problem-solving.",
+   "chu": "The phase mismatch between thinking and problem-solving. What Queen Camilla says and how King Charles III acts seem to have no common ground. When Queen Camilla offers logical advice, King Charles III may misunderstand and act in a completely opposite way, causing frustration and an underlying drain of energy. The conflict here stems from being \"out of sync,\" requiring both to continually make concessions and patiently adjust the way they convey and receive information.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Pluto",
+   "b": "Jupiter",
+   "nha_a": 1,
+   "nha_b": 4,
+   "goc": "Square",
+   "lech": "1°08'",
+   "tieu_de": "Fierce power struggle over ideology.",
+   "chu": "Fierce power struggle over ideology. Jupiter's (Queen Camilla) expansive energy and craving for freedom collide strongly with Pluto's (King Charles III) need for control. King Charles III may feel Queen Camilla's philosophy of life or carefree optimism is a threat, and from there seeks to impose, manipulate, or shatter Queen Camilla's ideas. Conversely, Queen Camilla may inadvertently inflate King Charles III's domineering nature. It is absolutely necessary to avoid turning the relationship into a battlefield of judgment and coercion of beliefs.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Sun",
+   "b": "Sun",
+   "nha_a": 4,
+   "nha_b": 12,
+   "goc": "Trine",
+   "lech": "1°22'",
+   "tieu_de": "Wonderful flow and resonance.",
+   "chu": "Wonderful flow and resonance. Favorable aspects such as the Trine make it very easy for the two people to harmonize in shared activities and when handling matters of the external world. The two share the same element (Fire, Earth, Air, or Water), so the ego energy flows very smoothly. However, it should also be noted that despite a very serene surface, deeper, more hidden issues are sometimes hard to understand thoroughly.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Sun",
+   "b": "Uranus",
+   "nha_a": 4,
+   "nha_b": 11,
+   "goc": "Quincunx",
+   "lech": "1°25'",
+   "tieu_de": "The \"misalignment\" in the need for freedom and identity.",
+   "chu": "The \"misalignment\" in the need for freedom and identity. Because they share neither element nor modality, King Charles III's ego and Queen Camilla's unconventional nature seem to have no point of intersection. The way Queen Camilla expresses independence leaves King Charles III deeply bewildered and insecure, while the way King Charles III asserts themselves leaves Queen Camilla feeling suffocated without understanding why. This covert tension demands considerable compromise: King Charles III needs to be more open to the unusual, and Queen Camilla must readjust the way they express freedom so as not to wound King Charles III's self-esteem.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Neptune",
+   "b": "MC",
+   "nha_a": 4,
+   "nha_b": 10,
+   "goc": "Opposition",
+   "lech": "1°34'",
+   "tieu_de": "King Charles III polarization between family ideals and public ambition (Conjunction IC).",
+   "chu": "King Charles III polarization between family ideals and public ambition (Conjunction IC). When King Charles III's Neptune opposes Queen Camilla's MC, it actually lies right on Queen Camilla's Imum Coeli (IC). All of King Charles III's romance and altruism, but also possibly King Charles III's vagueness, illusions, or secrets, are channeled into Queen Camilla's roots, home, and private life. This creates a powerful pull that makes Queen Camilla want to retreat from the outer world and immerse in the private, dreamy space that King Charles III creates. Queen Camilla may struggle to maintain focus on their career when the family home holds too many illusions or demands too much unconditional sacrifice.",
+   "dung": false,
+   "vi": "MC của Queen Camilla cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Neptune",
+   "b": "Pluto",
+   "nha_a": 4,
+   "nha_b": 1,
+   "goc": "Sextile",
+   "lech": "1°45'",
+   "tieu_de": "Generational support between intuition and power.",
+   "chu": "Generational support between intuition and power. This is an extremely common aspect over the past half-century, so many modern couples share this connection. King Charles III's sensitivity, selflessness, and imagination are supported by Queen Camilla's psychological strength and ability to see through problems. King Charles III's gentleness helps soothe Queen Camilla's harsh intensity, while Queen Camilla helps King Charles III powerfully realize or protect their ideals.",
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "tam": "tense",
+   "a": "Mercury",
+   "b": "Uranus",
+   "nha_a": 4,
+   "nha_b": 11,
+   "goc": "Sesquiquadrate",
+   "lech": "1°53'",
+   "tieu_de": "Frustration and obstinacy in the face of change.",
+   "chu": "Frustration and obstinacy in the face of change. This aspect brings underlying tension when King Charles III's thinking is continually challenged by Queen Camilla's erratic communication or overly extreme ideas. When disagreeing, King Charles III tends to cling to logic to refute Queen Camilla, while Queen Camilla uses an attitude of dismissiveness or rebellion to prove they are right. Both need to lower their intellectual ego to avoid words becoming a weapon that shocks each other.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Mercury",
+   "b": "Ascendant",
+   "nha_a": 4,
+   "nha_b": 1,
+   "goc": "Square",
+   "lech": "2°02'",
+   "tieu_de": "Conflict between thought and outward behavior.",
+   "chu": "Conflict between thought and outward behavior. The Square creates marked friction and misunderstanding. How King Charles III thinks, speaks, or analyzes issues continually collides with Queen Camilla's style, habits, or way of approaching the world. Queen Camilla may feel King Charles III is too nitpicking, scrutinizing, or talkative, spoiling their image. Conversely, King Charles III may find Queen Camilla's outward expression shallow, illogical, or unreasonable. This requires major adjustment so that King Charles III's manner of communication does not offend or cause misunderstanding for Queen Camilla's style.",
+   "dung": false,
+   "vi": "Ascendant của Queen Camilla cần giờ sinh hạng AA (đang B)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "MC",
+   "b": "Mars",
+   "nha_a": 10,
+   "nha_b": 11,
+   "goc": "Sextile",
+   "lech": "2°02'",
+   "tieu_de": "Dynamic support and effective cooperation.",
+   "chu": "Dynamic support and effective cooperation. An excellent connection for working together. Queen Camilla's drive and mode of action (Mars) naturally support what King Charles III wants to achieve in society. Queen Camilla instinctively knows how to encourage King Charles III at the right time without applying pressure. They can become an outstanding pair of business partners or colleagues, where one person's energy becomes leverage for the other's success.",
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Sun",
+   "b": "Mercury",
+   "nha_a": 4,
+   "nha_b": 12,
+   "goc": "Trine",
+   "lech": "2°30'",
+   "tieu_de": "Perfect intellectual resonance.",
+   "chu": "Perfect intellectual resonance. This connection brings a natural fluency in communication. The two rarely have to strive to understand each other's intentions. Queen Camilla's thinking aligns completely with King Charles III's goals and self-expression. King Charles III finds Queen Camilla extremely intelligent and sharp, while Queen Camilla regards King Charles III as a great source of inspiration for their mind. They are wonderful conversation partners.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "MC",
+   "b": "Venus",
+   "nha_a": 10,
+   "nha_b": 12,
+   "goc": "Square",
+   "lech": "2°44'",
+   "tieu_de": "Conflict between the need for pleasure and work responsibilities.",
+   "chu": "Conflict between the need for pleasure and work responsibilities. The Square creates a collision between the world of affection and ambition. Queen Camilla's need to be loved, to spend time relaxing, having fun, or spending money (Venus) continually confronts the demanding requirements of King Charles III's career (MC). Queen Camilla may feel King Charles III is too ambitious, cold, or neglectful of affection; while King Charles III feels Queen Camilla seems lazy, demands excessive attention, or that Queen Camilla's habits are hindering their momentum toward advancement.",
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Ascendant",
+   "b": "Neptune",
+   "nha_a": 1,
+   "nha_b": 3,
+   "goc": "Sextile",
+   "lech": "2°49'",
+   "tieu_de": "Subtle support and gentle empathy.",
+   "chu": "Subtle support and gentle empathy. King Charles III beautiful connection where Queen Camilla's intuition, compassion, and romance easily harmonize with King Charles III's outer style. Queen Camilla helps King Charles III express himself or herself in a more subtle, selfless, and emotionally rich way. King Charles III feels that Queen Camilla's presence brings a peace and understanding that need no words, creating a very pleasant and soothing atmosphere of interaction.",
+   "dung": false,
+   "vi": "Ascendant của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Neptune",
+   "b": "Mars",
+   "nha_a": 4,
+   "nha_b": 11,
+   "goc": "Trine",
+   "lech": "2°51'",
+   "tieu_de": "King Charles III smooth flow of tolerance and action for ideals.",
+   "chu": "King Charles III smooth flow of tolerance and action for ideals. Queen Camilla's impulsiveness and natural combativeness are softened by King Charles III's understanding and romance. Their relationship rarely shows fierce confrontation because King Charles III innately knows how to use gentleness and selflessness to soothe Queen Camilla's flares of anger. They easily work together in an atmosphere of calm and wordless understanding.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Mars",
+   "b": "Uranus",
+   "nha_a": 5,
+   "nha_b": 11,
+   "goc": "Opposition",
+   "lech": "2°53'",
+   "tieu_de": "Polarization between drive and rebellion.",
+   "chu": "Polarization between drive and rebellion. The relationship faces completely opposite approaches. When King Charles III wants to push action forward directly, Queen Camilla tends to create disruption or sudden change to protect personal freedom. To avoid the energy canceling each other out, they need to view the two planets as two viewpoints that need to be synthesized and learn to compromise.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Mercury",
+   "b": "Saturn",
+   "nha_a": 4,
+   "nha_b": 1,
+   "goc": "Square",
+   "lech": "2°59'",
+   "tieu_de": "Blockage in communication and a feeling of being judged.",
+   "chu": "Blockage in communication and a feeling of being judged. This aspect creates a major and pressure-filled barrier. King Charles III (Mercury) frequently feels their ideas or words rejected, criticized, or coldly limited by Queen Camilla (Saturn). Gradually, King Charles III becomes reticent, afraid of speaking wrongly, or chooses silence to avoid being judged. Conversely, Queen Camilla feels King Charles III's thinking is unrealistic, rash, or lacking discipline. Communication between them easily becomes heavy, dry, and full of defensiveness.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mercury",
+   "b": "Moon",
+   "nha_a": 4,
+   "nha_b": 12,
+   "goc": "Trine",
+   "lech": "3°05'",
+   "tieu_de": "King Charles III smooth flow of understanding.",
+   "chu": "King Charles III smooth flow of understanding. Much like the Sextile, this is an ideal connection for emotional communication. Queen Camilla never feels hesitant to reveal vulnerability to King Charles III, because King Charles III instinctively knows how to use words to soothe and comfort Queen Camilla. The alignment between Queen Camilla's emotions and King Charles III's logic flows so naturally that they rarely have to argue to understand each other's intentions.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "MC",
+   "b": "Moon",
+   "nha_a": 10,
+   "nha_b": 12,
+   "goc": "Square",
+   "lech": "3°16'",
+   "tieu_de": "Conflict between emotional needs and career goals.",
+   "chu": "Conflict between emotional needs and career goals. The Square creates marked tension between two areas of life. Queen Camilla's need to be cared for, longing for emotional security, and daily habits (Moon) continually collide with King Charles III's ambition, time, and energy devoted to career (MC). Queen Camilla may feel abandoned, self-pitying, or believe King Charles III is too cold and work-focused. Meanwhile, King Charles III feels that Queen Camilla's emotional demands or mood swings are obstacles hindering their momentum toward advancement. This requires major compromise to balance career and family.",
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "MC",
+   "b": "Saturn",
+   "nha_a": 10,
+   "nha_b": 1,
+   "goc": "Trine",
+   "lech": "3°22'",
+   "tieu_de": "King Charles III smooth flow of patience and achievement.",
+   "chu": "King Charles III smooth flow of patience and achievement. King Charles III gentle harmony between responsibility and honor. Queen Camilla naturally brings a sense of stability and reliability, helping King Charles III confidently pursue major goals in society without fear of risk. King Charles III's career and standing are reinforced by Queen Camilla's organization. This is a wonderful foundation for couples who wish to build a lasting legacy or estate together.",
+   "dung": false,
+   "vi": "MC của King Charles III cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  }
+ ],
+ "moc": [
+  {
+   "ngay": "1973-07-04",
+   "chu": "Camilla marries Andrew Parker Bowles at the Guards' Chapel, London.",
+   "nguon": "https://en.wikipedia.org/wiki/Queen_Camilla"
+  },
+  {
+   "ngay": "1995-03-03",
+   "chu": "Camilla's divorce from Parker Bowles is finalised.",
+   "nguon": "https://en.wikipedia.org/wiki/Queen_Camilla"
+  },
+  {
+   "ngay": "2005-02-10",
+   "chu": "Clarence House announces the engagement of Charles and Camilla.",
+   "nguon": "https://en.wikipedia.org/wiki/Queen_Camilla"
+  },
+  {
+   "ngay": "2005-04-09",
+   "chu": "Charles and Camilla marry at Windsor Guildhall.",
+   "nguon": "https://en.wikipedia.org/wiki/Queen_Camilla"
+  },
+  {
+   "ngay": "2023-05-06",
+   "chu": "They are crowned together at Westminster Abbey.",
+   "nguon": "https://en.wikipedia.org/wiki/Queen_Camilla"
+  }
+ ]
+}

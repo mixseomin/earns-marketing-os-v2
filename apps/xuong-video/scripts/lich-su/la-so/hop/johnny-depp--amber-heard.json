@@ -1,0 +1,1008 @@
+{
+ "ma": "johnny-depp--amber-heard",
+ "a": {
+  "slug": "johnny-depp",
+  "ten": "Johnny Depp",
+  "rodden": "AA"
+ },
+ "b": {
+  "slug": "amber-heard",
+  "ten": "Amber Heard",
+  "rodden": "X"
+ },
+ "rel": "romantic",
+ "nguon": "https://astrolas.com/synastry-chart?name=Johnny+Depp&day=9&month=6&year=1963&hour=8&minute=44&location=Owensboro%2C+Kentucky%2C+USA&lat=37.7719&lng=-87.1112&name2=Amber+Heard&day2=22&month2=4&year2=1986&hour2=12&minute2=0&unknown_time2=on&location2=Austin%2C+Texas%2C+USA&lat2=30.2672&lng2=-97.7431&rel_type=romantic",
+ "lay_luc": "2026-11-04",
+ "diem": [
+  {
+   "truc": "romance",
+   "ten": "Romance",
+   "mo_ta": "Attraction, affection, bonding",
+   "diem": 26,
+   "so_goc": 2
+  },
+  {
+   "truc": "attraction",
+   "ten": "Harmony & attraction",
+   "mo_ta": "Easygoing, harmonious, in tune",
+   "diem": 79,
+   "so_goc": 10
+  },
+  {
+   "truc": "challenge",
+   "ten": "Challenges",
+   "mo_ta": "Differences, friction, pressure",
+   "diem": 38,
+   "so_goc": 13
+  },
+  {
+   "truc": "sex_conflict",
+   "ten": "Sexual conflict",
+   "mo_ta": "Passion, drama, clashes",
+   "diem": 27,
+   "so_goc": 3
+  }
+ ],
+ "luoi": [
+  {
+   "a": "Sun",
+   "b": "Sun",
+   "goc": "Semi-Square",
+   "lech": 0.7,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Jupiter",
+   "goc": "Square",
+   "lech": 4.23,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Uranus",
+   "goc": "Opposition",
+   "lech": 4.08,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Ascendant",
+   "goc": "Semi-Square",
+   "lech": 0.53,
+   "tran": 2,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Amber Heard cần giờ sinh hạng AA (đang X)",
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Mars",
+   "goc": "Conjunction",
+   "lech": 1.42,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Jupiter",
+   "goc": "Sextile",
+   "lech": 0.48,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Chiron",
+   "goc": "Quincunx",
+   "lech": 1.58,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Venus",
+   "goc": "Conjunction",
+   "lech": 0.2,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Mars",
+   "goc": "Sesquiquadrate",
+   "lech": 1.62,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Venus",
+   "goc": "Conjunction",
+   "lech": 0.99,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Mars",
+   "goc": "Sesquiquadrate",
+   "lech": 0.82,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Sun",
+   "goc": "Trine",
+   "lech": 0.89,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Neptune",
+   "goc": "Trine",
+   "lech": 2.55,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 2.88,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Lilith",
+   "goc": "Square",
+   "lech": 2.83,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Mean Node",
+   "goc": "Trine",
+   "lech": 3.3,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Mars",
+   "goc": "Square",
+   "lech": 2.1,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Chiron",
+   "goc": "Sextile",
+   "lech": 2.26,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Moon",
+   "goc": "Sesquiquadrate",
+   "lech": 0.23,
+   "tran": 2,
+   "xa": false,
+   "dung": false,
+   "vi": "Trăng của Amber Heard cần giờ sinh (đang X)",
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Mercury",
+   "goc": "Semi-Square",
+   "lech": 1.51,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Venus",
+   "goc": "Square",
+   "lech": 1.98,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Uranus",
+   "goc": "Sextile",
+   "lech": 0.99,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "MC",
+   "goc": "Sextile",
+   "lech": 1.49,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Amber Heard cần giờ sinh hạng AA (đang X)",
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Sun",
+   "goc": "Trine",
+   "lech": 0.73,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Neptune",
+   "goc": "Trine",
+   "lech": 4.17,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Uranus",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 4.5,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Uranus",
+   "b": "Lilith",
+   "goc": "Square",
+   "lech": 4.45,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Mean Node",
+   "goc": "Trine",
+   "lech": 1.67,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Mars",
+   "goc": "Sextile",
+   "lech": 1.55,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Jupiter",
+   "goc": "Trine",
+   "lech": 0.36,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Chiron",
+   "goc": "Quincunx",
+   "lech": 1.7,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Mars",
+   "goc": "Trine",
+   "lech": 2.24,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Jupiter",
+   "goc": "Opposition",
+   "lech": 4.15,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Saturn",
+   "goc": "Square",
+   "lech": 0.86,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Neptune",
+   "goc": "Trine",
+   "lech": 3.88,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Pluto",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 3.55,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Pluto",
+   "b": "Chiron",
+   "goc": "Square",
+   "lech": 2.09,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Lilith",
+   "goc": "Square",
+   "lech": 3.6,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "MC",
+   "goc": "Sesquiquadrate",
+   "lech": 0.06,
+   "tran": 2,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Amber Heard cần giờ sinh hạng AA (đang X)",
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Mars",
+   "goc": "Sextile",
+   "lech": 3.01,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Jupiter",
+   "goc": "Conjunction",
+   "lech": 1.1,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Chiron",
+   "goc": "Square",
+   "lech": 3.16,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Mean Node",
+   "goc": "Semi-Square",
+   "lech": 0.03,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Sun",
+   "goc": "Opposition",
+   "lech": 3.31,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Mercury",
+   "goc": "Quincunx",
+   "lech": 0.95,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Uranus",
+   "goc": "Semi-Square",
+   "lech": 1.47,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Neptune",
+   "goc": "Sextile",
+   "lech": 0.13,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Pluto",
+   "goc": "Conjunction",
+   "lech": 0.47,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Lilith",
+   "goc": "Quincunx",
+   "lech": 0.41,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Ascendant",
+   "goc": "Square",
+   "lech": 3.13,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Amber Heard cần giờ sinh hạng AA (đang X)",
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Venus",
+   "goc": "Sextile",
+   "lech": 2.82,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Saturn",
+   "goc": "Sesquiquadrate",
+   "lech": 1.53,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Uranus",
+   "goc": "Quincunx",
+   "lech": 0.15,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Lilith",
+   "goc": "Semi-Square",
+   "lech": 1.21,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "MC",
+   "goc": "Square",
+   "lech": 2.33,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Amber Heard cần giờ sinh hạng AA (đang X)",
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Sun",
+   "goc": "Square",
+   "lech": 1.96,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Jupiter",
+   "goc": "Sesquiquadrate",
+   "lech": 1.58,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Mean Node",
+   "goc": "Square",
+   "lech": 0.45,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Ascendant",
+   "goc": "Conjunction",
+   "lech": 2.13,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "Ascendant của Amber Heard cần giờ sinh hạng AA (đang X)",
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Uranus",
+   "goc": "Trine",
+   "lech": 4.63,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  }
+ ],
+ "giai": [
+  {
+   "tam": "tense",
+   "a": "Pluto",
+   "b": "MC",
+   "nha_a": 2,
+   "nha_b": 10,
+   "goc": "Sesquiquadrate",
+   "lech": "0°04'",
+   "tieu_de": "Hidden oppression due to manipulative pressure.",
+   "chu": "Hidden oppression due to manipulative pressure. There exists persistent tension when Amber Heard feels that their career and reputation are quietly threatened by Johnny Depp's hidden motives or harsh control. Conversely, Johnny Depp feels that Amber Heard's ambition is a threat to their own power within the relationship.",
+   "dung": false,
+   "vi": "MC của Amber Heard cần giờ sinh hạng AA (đang X)",
+   "the_he": false
+  },
+  {
+   "tam": "neutral",
+   "a": "Mercury",
+   "b": "Venus",
+   "nha_a": 11,
+   "nha_b": 10,
+   "goc": "Conjunction",
+   "lech": "0°12'",
+   "tieu_de": "Sweet harmony between thought and affection.",
+   "chu": "Sweet harmony between thought and affection. The combination of Mercury and Venus brings an extremely pleasant and inspiring energy. Johnny Depp's thinking and words fully attune to Amber Heard's aesthetic taste and way of loving. Johnny Depp naturally knows how to use words to praise and make Amber Heard happy, while Amber Heard's grace (Venus) softens and gives direction to Johnny Depp's ideas. They very much enjoy talking together, often sharing common interests in art, culture, or entertainment activities.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Saturn",
+   "b": "Moon",
+   "nha_a": 8,
+   "nha_b": 3,
+   "goc": "Sesquiquadrate",
+   "lech": "0°14'",
+   "tieu_de": "Underlying frustration and an emotional barrier.",
+   "chu": "Underlying frustration and an emotional barrier. This tense aspect brings persistent irritation. Whenever Amber Heard needs to lean on someone, Johnny Depp tends to invoke busyness at work or use duty to avoid it, leaving Amber Heard feeling their self-esteem wounded and reacting by sulking and closing off their heart. Johnny Depp then takes that as further reason to grow more distant. To resolve this, Johnny Depp must actively remove the coldness and Amber Heard must stop withdrawing into the role of victim.",
+   "dung": false,
+   "vi": "Trăng của Amber Heard cần giờ sinh (đang X)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Neptune",
+   "b": "Jupiter",
+   "nha_a": 4,
+   "nha_b": 8,
+   "goc": "Trine",
+   "lech": "0°22'",
+   "tieu_de": "Johnny Depp smooth flow of transcendence and unconditional faith.",
+   "chu": "Johnny Depp smooth flow of transcendence and unconditional faith. The couple shares a wonderful spiritual resonance. Johnny Depp brings romantic dreams and ideals, while Amber Heard provides the optimism and opportunity to expand those dreams. They trust each other naturally and often experience together a powerful growth in spiritual awareness and selflessness,.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Moon",
+   "b": "Jupiter",
+   "nha_a": 6,
+   "nha_b": 8,
+   "goc": "Sextile",
+   "lech": "0°29'",
+   "tieu_de": "Empathy and spiritual encouragement.",
+   "chu": "Empathy and spiritual encouragement. Johnny Depp favorable aspect that helps Amber Heard easily understand and soothe Johnny Depp's emotional needs. Amber Heard always knows how to offer positive advice with a broad perspective to help Johnny Depp escape psychological entanglements. Conversely, Johnny Depp provides a solid emotional \"backdrop\" that helps Amber Heard confidently pursue their ideals. They are wonderful companions, bringing each other joy and lightness.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Sun",
+   "b": "Ascendant",
+   "nha_a": 11,
+   "nha_b": 1,
+   "goc": "Semi-Square",
+   "lech": "0°32'",
+   "tieu_de": "Petty friction over personal style.",
+   "chu": "Petty friction over personal style. Small annoyances arise when Johnny Depp's ego, self-esteem, or need for self-assertion occasionally provokes or disrupts Amber Heard's habits, dress, or everyday behavior. It causes mild irritation but rarely breaks the shared foundation.",
+   "dung": false,
+   "vi": "Ascendant của Amber Heard cần giờ sinh hạng AA (đang X)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Sun",
+   "b": "Sun",
+   "nha_a": 11,
+   "nha_b": 10,
+   "goc": "Semi-Square",
+   "lech": "0°42'",
+   "tieu_de": "Friction and covert discomfort.",
+   "chu": "Friction and covert discomfort. Unlike the eruption of the Square, the Semi-Square creates small but persistent frictions relating to the ego. Johnny Depp will occasionally feel that Amber Heard's way of expressing themselves is somewhat grating, or there are small disagreements in life goals. This aspect demands patience and self-awareness so that small irritations do not accumulate into greater resentment.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Uranus",
+   "b": "Sun",
+   "nha_a": 2,
+   "nha_b": 10,
+   "goc": "Trine",
+   "lech": "0°44'",
+   "tieu_de": "The smooth flow of freedom and individuality.",
+   "chu": "The smooth flow of freedom and individuality. An extremely ideal connection for couples who dislike constraint. Amber Heard's need for self-expression is fully in tune with Johnny Depp's need for freedom and innovation. Johnny Depp helps Amber Heard develop their ego naturally, breaking boring rules without causing any disruption or tension. Respect for personal space is maintained by both in a rhythmic manner.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Venus",
+   "b": "Mars",
+   "nha_a": 11,
+   "nha_b": 6,
+   "goc": "Sesquiquadrate",
+   "lech": "0°49'",
+   "tieu_de": "Frustration from an out-of-sync rhythm of loving.",
+   "chu": "Frustration from an out-of-sync rhythm of loving. Johnny Depp persistent tension appears when Amber Heard's efforts to pursue affection or sex frequently run into coldness, avoidance or overly high aesthetic demands from Johnny Depp. When not met, Amber Heard easily becomes irritable, while Johnny Depp withdraws for feeling the partner lacks subtlety. It requires yielding to prevent sex or indulgence from becoming a weapon to punish each other.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Pluto",
+   "b": "Saturn",
+   "nha_a": 2,
+   "nha_b": 5,
+   "goc": "Square",
+   "lech": "0°52'",
+   "tieu_de": "Brutal power struggle and the grip.",
+   "chu": "Brutal power struggle and the grip. This is an exceedingly fierce pattern of conflict, a confrontation between the \"immovable wall\" (Saturn) and the \"unstoppable force\" (Pluto). Amber Heard's limits, conservatism, and efforts to maintain order continually collide with Johnny Depp's instinct to manipulate, craving for control, and destruction. Johnny Depp feels Amber Heard's barriers are a threat and reacts with ruthless intensity or long-held grudges. Amber Heard reacts by freezing their emotions and intensifying their harshness. If the ego is not lowered, the relationship easily becomes a toxic battlefield.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mars",
+   "b": "Sun",
+   "nha_a": 2,
+   "nha_b": 10,
+   "goc": "Trine",
+   "lech": "0°53'",
+   "tieu_de": "Johnny Depp smooth and harmonious flow of energy.",
+   "chu": "Johnny Depp smooth and harmonious flow of energy. Very similar to the Sextile aspect but the harmony occurs more naturally without effort. The two share the same pace of life and easily cooperate in every domain. Amber Heard feels Johnny Depp's actions are entirely in keeping with their will, while Johnny Depp sees Amber Heard as a great source of inspiration. The couple can overcome outer barriers together thanks to this complementary source of energy and wonderfully well-attuned coordination.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "neutral",
+   "a": "Venus",
+   "b": "Venus",
+   "nha_a": 11,
+   "nha_b": 10,
+   "goc": "Conjunction",
+   "lech": "0°59'",
+   "tieu_de": "Absolute resonance in love and value systems.",
+   "chu": "Absolute resonance in love and value systems. The two people share remarkably similar ways of expressing affection, aesthetic taste, playful pastimes and attitudes toward money. This combination brings a wonderful sense of familiarity and ease, because both innately understand how the other wishes to be loved and pampered. This is an excellent indicator of natural harmony in romantic relationships.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Saturn",
+   "b": "Uranus",
+   "nha_a": 8,
+   "nha_b": 5,
+   "goc": "Sextile",
+   "lech": "0°59'",
+   "tieu_de": "Johnny Depp harmonious combination of tradition and innovation.",
+   "chu": "Johnny Depp harmonious combination of tradition and innovation. This aspect allows stability and independence to coexist and support each other. Amber Heard brings freshness and stimulation that help Johnny Depp loosen their principles safely and joyfully. Conversely, Johnny Depp's discipline creates a solid anchor for Amber Heard to freely explore and express their personality without fear of losing direction.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "neutral",
+   "a": "Moon",
+   "b": "Mars",
+   "nha_a": 6,
+   "nha_b": 6,
+   "goc": "Conjunction",
+   "lech": "1°25'",
+   "tieu_de": "An explosion of emotion and passion.",
+   "chu": "An explosion of emotion and passion. This aspect creates an immensely intense instinctual attraction. Amber Heard's energy and decisiveness (Mars) directly stimulate and stir up Johnny Depp's emotional world (Moon). However, this is a very sensitive connection: Amber Heard tends to act hastily, impulsively, or without subtlety, which can very easily scratch Johnny Depp's emotional safety unintentionally. Conversely, Johnny Depp's erratic emotional reactions can make Amber Heard lose patience. This combination brings an intense sexual life but also easily leads to tearful quarrels.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Saturn",
+   "b": "MC",
+   "nha_a": 8,
+   "nha_b": 10,
+   "goc": "Sextile",
+   "lech": "1°29'",
+   "tieu_de": "Practical and enduring support for ambition.",
+   "chu": "Practical and enduring support for ambition. Johnny Depp wonderful connection for long-term cooperation and growth. Johnny Depp's experience, wisdom and discipline (Saturn) naturally support Amber Heard's career goals (MC). Johnny Depp provides practical advice and helps Amber Heard keep their feet on the ground. Amber Heard greatly respects Johnny Depp's judgment, and they can cooperate extremely well on matters related to work or business.",
+   "dung": false,
+   "vi": "MC của Amber Heard cần giờ sinh hạng AA (đang X)",
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Saturn",
+   "b": "Mercury",
+   "nha_a": 8,
+   "nha_b": 9,
+   "goc": "Semi-Square",
+   "lech": "1°31'",
+   "tieu_de": "Minor friction over strictness in speech.",
+   "chu": "Minor friction over strictness in speech. Johnny Depp's at-times overly serious or principled attitude occasionally makes Amber Heard feel deflated when enthusiastically sharing ideas. Conversely, Amber Heard's talkativeness or constant shifting of viewpoints irritates Johnny Depp somewhat. It only creates short-lived silences or irritation, requiring Johnny Depp to loosen the strictness in everyday communication.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Neptune",
+   "b": "Mars",
+   "nha_a": 4,
+   "nha_b": 6,
+   "goc": "Sextile",
+   "lech": "1°33'",
+   "tieu_de": "Inspired and empathetic cooperation.",
+   "chu": "Inspired and empathetic cooperation. This favorable aspect lets Amber Heard's energy of action and Johnny Depp's intuition connect and support each other easily. Johnny Depp's sensitivity and idealism inspire Amber Heard's goals, while Amber Heard's strength helps realize Johnny Depp's dreams. They can cooperate very well, especially in artistic, creative fields or activities that call for compassion.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Ascendant",
+   "b": "Jupiter",
+   "nha_a": 1,
+   "nha_b": 8,
+   "goc": "Sesquiquadrate",
+   "lech": "1°35'",
+   "tieu_de": "An underlying frustration born of differing life philosophies.",
+   "chu": "An underlying frustration born of differing life philosophies. Johnny Depp persistent tension exists when Johnny Depp feels that Amber Heard's \"preachy\" advice or excessive optimism quietly ignores or disrespects the practical way Johnny Depp uses to cope with the world. Conversely, Amber Heard feels that Johnny Depp's outer facade is obstructing Amber Heard's own opportunities for experience and free growth.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Mercury",
+   "b": "Mars",
+   "nha_a": 11,
+   "nha_b": 6,
+   "goc": "Sesquiquadrate",
+   "lech": "1°37'",
+   "tieu_de": "Frustration and obstinacy in defending one's viewpoint.",
+   "chu": "Frustration and obstinacy in defending one's viewpoint. Tension arises when Johnny Depp's arguments are continually challenged by Amber Heard's hasty or imposing behavior. When arguing, both tend to stubbornly defend their ego: Johnny Depp uses sharp, sarcastic words to needle, while Amber Heard uses hot temper to overpower. Concession is needed to avoid turning dialogue into a battlefield of words.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Ascendant",
+   "b": "Sun",
+   "nha_a": 1,
+   "nha_b": 10,
+   "goc": "Square",
+   "lech": "1°58'",
+   "tieu_de": "Conflict between the true ego and the social mask.",
+   "chu": "Conflict between the true ego and the social mask. Johnny Depp configuration that creates marked friction due to patterns of resistance. Amber Heard's drive, ego, and core identity repeatedly clash with the way Johnny Depp wishes to be seen by others or with Johnny Depp's approach to the world. Johnny Depp may feel that Amber Heard is too imposing, that Amber Heard's ego is too large, or that Amber Heard's behavior ruins Johnny Depp's image. Conversely, Amber Heard may find Johnny Depp's outer expression artificial and unnatural. It demands major adjustment so that one person's ego does not offend the other's style.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Saturn",
+   "b": "Venus",
+   "nha_a": 8,
+   "nha_b": 10,
+   "goc": "Square",
+   "lech": "1°59'",
+   "tieu_de": "An emotional barrier and a feeling of burden.",
+   "chu": "An emotional barrier and a feeling of burden. This is an extremely harsh karmic lesson. Amber Heard's yearning for romance, joy and love (Venus) continually runs up against Johnny Depp's cold, distant, strict or \"parental\" \"wall\" (Saturn). According to the author, this aspect makes the relationship riddled with sacrifice and misunderstanding. Amber Heard feels unloved, rejected or limited; while Johnny Depp feels Amber Heard demands too much and is impractical. Sadly, even when the relationship no longer brings benefit, they find it very hard to leave each other due to the feeling of being trapped in obligations or a covert dependence.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Jupiter",
+   "b": "Mars",
+   "nha_a": 9,
+   "nha_b": 6,
+   "goc": "Square",
+   "lech": "2°06'",
+   "tieu_de": "Excessive impulsiveness and exaggerated conflict.",
+   "chu": "Excessive impulsiveness and exaggerated conflict. The square creates irritation due to a lack of moderation in action. Johnny Depp's Jupiter, with its amplifying energy, tends to unintentionally \"add fuel to the fire,\" inflating the impatience or anger inherent in Amber Heard's Mars. Johnny Depp may encourage Amber Heard to act recklessly and waste energy; or conversely, Johnny Depp's overly grand promises make Amber Heard angry at not seeing real results. They are prone to quarreling due to placing misaligned expectations on each other.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Pluto",
+   "b": "Mars",
+   "nha_a": 2,
+   "nha_b": 6,
+   "goc": "Trine",
+   "lech": "2°14'",
+   "tieu_de": "Johnny Depp smooth flow of strength and rebirth.",
+   "chu": "Johnny Depp smooth flow of strength and rebirth. This is an exceedingly solid foundation of strength for the relationship. Amber Heard's ability to act is completely in harmony with Johnny Depp's profound psychological strength. They naturally know how to support each other through the great crises of life. Johnny Depp empowers and instills strength in Amber Heard to act, while Amber Heard willingly devotes their energy to common goals without feeling exploited.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mars",
+   "b": "Neptune",
+   "nha_a": 2,
+   "nha_b": 6,
+   "goc": "Trine",
+   "lech": "2°33'",
+   "tieu_de": "Johnny Depp smooth flow of tolerance and action for the sake of ideals.",
+   "chu": "Johnny Depp smooth flow of tolerance and action for the sake of ideals. Johnny Depp's natural impulsiveness and combativeness are softened by Amber Heard's understanding and romance. Their relationship rarely sees fierce confrontation because Amber Heard innately knows how to use gentleness and selflessness to soothe Johnny Depp's flares of temper. They easily work together in a calm atmosphere of wordless understanding.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mars",
+   "b": "Pluto",
+   "nha_a": 2,
+   "nha_b": 4,
+   "goc": "Sextile",
+   "lech": "2°53'",
+   "tieu_de": "Strategic cooperation and the transformation of energy.",
+   "chu": "Strategic cooperation and the transformation of energy. Johnny Depp favorable connection that helps the couple channel strength and passion toward constructive goals. Amber Heard's sharpness and depth help Johnny Depp act more calculatedly and effectively rather than impulsively. Conversely, Johnny Depp's drive helps realize Amber Heard's plans or deep desires for transformation without giving rise to fierce competition.",
+   "dung": true,
+   "the_he": false
+  }
+ ],
+ "moc": [
+  {
+   "ngay": "2015-02",
+   "chu": "Depp and Heard marry in a civil ceremony.",
+   "nguon": "https://en.wikipedia.org/wiki/Amber_Heard"
+  },
+  {
+   "ngay": "2016-05",
+   "chu": "Heard files for divorce and obtains a temporary restraining order.",
+   "nguon": "https://en.wikipedia.org/wiki/Amber_Heard"
+  },
+  {
+   "ngay": "2022-04-11",
+   "chu": "The Depp v. Heard defamation trial opens in Fairfax County, Virginia.",
+   "nguon": "https://en.wikipedia.org/wiki/Amber_Heard"
+  },
+  {
+   "ngay": "2022-06-01",
+   "chu": "The Depp v. Heard trial concludes.",
+   "nguon": "https://en.wikipedia.org/wiki/Amber_Heard"
+  }
+ ]
+}

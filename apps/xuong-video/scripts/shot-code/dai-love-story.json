@@ -1,0 +1,116 @@
+{
+ "_ghi": "Demo Love Story in Two Charts (mẫu chờ duyệt, 05/11/2026), khổ ngang 16:9: synastry romantic Pitt × Jolie (hop.mjs) + kỳ ZR của Jolie (hạng AA, zr.mjs) ở mốc cưới / nộp đơn ly hôn. Pitt hạng A: không dùng cung Mọc / nhà của Pitt.",
+ "demo": true,
+ "kenh": "astrolas",
+ "mau": "love-story-charts",
+ "playlist_ma": "chart-vs-chart",
+ "y_tuong": "ls-brad-pitt--angelina-jolie",
+ "khung": "ngang",
+ "la_so": "../lich-su/la-so/hop/brad-pitt--angelina-jolie.svg",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "Chart vs Chart",
+  "mau": "#FF8FB1",
+  "ic": "♡"
+ },
+ "DAI": 44.2,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 5.0,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Engaged in 2012. Married in 2014.<br>Divorce filed in 2016.",
+   "the": {
+    "lon": "2016",
+    "duoi": "September 19",
+    "dong": [
+     "Angelina Jolie files for divorce"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 5.0,
+   "den": 9.6,
+   "nhin": {
+    "toan": 1
+   },
+   "chu": "Here are both birth charts,<br>in one wheel.",
+   "nhan": "Brad Pitt · Angelina Jolie"
+  },
+  {
+   "tu": 9.6,
+   "den": 15.6,
+   "nhin": {
+    "cheo": [
+     "person-a:Mars",
+     "person-b:Mars"
+    ]
+   },
+   "chu": "His Mars squares her Mars.<br>The site calls it “fierce competition<br>and head-on conflict.”"
+  },
+  {
+   "tu": 15.6,
+   "den": 21.6,
+   "nhin": {
+    "cheo": [
+     "person-a:Jupiter",
+     "person-b:Mars"
+    ]
+   },
+   "chu": "His Jupiter sits on her Mars:<br>“an amplification of shared energy<br>and fervor.”"
+  },
+  {
+   "tu": 21.6,
+   "den": 27.6,
+   "nhin": {
+    "diem": 1
+   },
+   "chu": "The site scores the pair.<br>Challenges 77. Sexual conflict 70."
+  },
+  {
+   "tu": 27.6,
+   "den": 33.6,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "At the wedding, her Lot of Fortune<br>was in a peak period.",
+   "the": {
+    "lon": "Aquarius ★",
+    "duoi": "Zodiacal Releasing · August 2014",
+    "dong": [
+     "Lot of Fortune, level 2: a peak period"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 33.6,
+   "den": 39.6,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "When she filed for divorce,<br>her Lot of Spirit was at a peak too.",
+   "the": {
+    "lon": "Leo ★",
+    "duoi": "Zodiacal Releasing · September 2016",
+    "dong": [
+     "Lot of Spirit, level 2: a peak period",
+     "inside a level 1 peak: Scorpio"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 39.6,
+   "den": 44.2,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Compare any two charts<br>free at astrolas.com."
+  }
+ ]
+}

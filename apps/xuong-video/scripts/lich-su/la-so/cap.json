@@ -1,0 +1,524 @@
+{
+ "_ghi": "SỔ CẶP cho synastry (Chart vs Chart · Love Story in Two Charts): hai người trong la-so/nguoi.json + kiểu quan hệ (romantic | partner — hai bộ trục điểm của site) + mốc có nguồn. Gom 05/11/2026 từ Astrotheme (giờ sinh, hạng Rodden) + Wikipedia (mốc). la-so/hop.mjs đọc tệp này.",
+ "cap": [
+  {
+   "ma": "brad-pitt--angelina-jolie",
+   "a": "brad-pitt",
+   "b": "angelina-jolie",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "2012-04",
+     "chu": "Pitt and Jolie announce their engagement after seven years together.",
+     "nguon": "https://en.wikipedia.org/wiki/Brad_Pitt"
+    },
+    {
+     "ngay": "2014-08-23",
+     "chu": "They hold a private wedding at Château Miraval, France (legally married on August 14).",
+     "nguon": "https://en.wikipedia.org/wiki/Brad_Pitt"
+    },
+    {
+     "ngay": "2016-09-19",
+     "chu": "Jolie files for divorce from Pitt.",
+     "nguon": "https://en.wikipedia.org/wiki/Brad_Pitt"
+    },
+    {
+     "ngay": "2019-04-12",
+     "chu": "Their divorce becomes legal.",
+     "nguon": "https://en.wikipedia.org/wiki/Brad_Pitt"
+    }
+   ]
+  },
+  {
+   "ma": "brad-pitt--jennifer-aniston",
+   "a": "brad-pitt",
+   "b": "jennifer-aniston",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "2000-07-29",
+     "chu": "Pitt and Aniston marry in a private ceremony in Malibu, California.",
+     "nguon": "https://en.wikipedia.org/wiki/Brad_Pitt"
+    },
+    {
+     "ngay": "2005-01",
+     "chu": "They announce they have decided to separate.",
+     "nguon": "https://en.wikipedia.org/wiki/Brad_Pitt"
+    },
+    {
+     "ngay": "2005-10-02",
+     "chu": "The Los Angeles Superior Court finalizes their divorce.",
+     "nguon": "https://en.wikipedia.org/wiki/Brad_Pitt"
+    }
+   ]
+  },
+  {
+   "ma": "king-charles-iii--princess-diana",
+   "a": "king-charles-iii",
+   "b": "princess-diana",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "1977-11",
+     "chu": "Diana, aged 16, first meets Prince Charles.",
+     "nguon": "https://en.wikipedia.org/wiki/Diana,_Princess_of_Wales"
+    },
+    {
+     "ngay": "1981-02-24",
+     "chu": "Their engagement becomes official.",
+     "nguon": "https://en.wikipedia.org/wiki/Diana,_Princess_of_Wales"
+    },
+    {
+     "ngay": "1981-07-29",
+     "chu": "They marry at St Paul's Cathedral, London.",
+     "nguon": "https://en.wikipedia.org/wiki/Diana,_Princess_of_Wales"
+    },
+    {
+     "ngay": "1992-12",
+     "chu": "Prime Minister John Major announces their separation to Parliament.",
+     "nguon": "https://en.wikipedia.org/wiki/Diana,_Princess_of_Wales"
+    },
+    {
+     "ngay": "1996-08-28",
+     "chu": "Their divorce is finalised.",
+     "nguon": "https://en.wikipedia.org/wiki/Diana,_Princess_of_Wales"
+    }
+   ]
+  },
+  {
+   "ma": "king-charles-iii--queen-camilla",
+   "a": "king-charles-iii",
+   "b": "queen-camilla",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "1973-07-04",
+     "chu": "Camilla marries Andrew Parker Bowles at the Guards' Chapel, London.",
+     "nguon": "https://en.wikipedia.org/wiki/Queen_Camilla"
+    },
+    {
+     "ngay": "1995-03-03",
+     "chu": "Camilla's divorce from Parker Bowles is finalised.",
+     "nguon": "https://en.wikipedia.org/wiki/Queen_Camilla"
+    },
+    {
+     "ngay": "2005-02-10",
+     "chu": "Clarence House announces the engagement of Charles and Camilla.",
+     "nguon": "https://en.wikipedia.org/wiki/Queen_Camilla"
+    },
+    {
+     "ngay": "2005-04-09",
+     "chu": "Charles and Camilla marry at Windsor Guildhall.",
+     "nguon": "https://en.wikipedia.org/wiki/Queen_Camilla"
+    },
+    {
+     "ngay": "2023-05-06",
+     "chu": "They are crowned together at Westminster Abbey.",
+     "nguon": "https://en.wikipedia.org/wiki/Queen_Camilla"
+    }
+   ]
+  },
+  {
+   "ma": "prince-harry--meghan-markle",
+   "a": "prince-harry",
+   "b": "meghan-markle",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "2016-07",
+     "chu": "Harry and Meghan are set up on a blind date by a mutual friend.",
+     "nguon": "https://en.wikipedia.org/wiki/Prince_Harry,_Duke_of_Sussex"
+    },
+    {
+     "ngay": "2016-11-08",
+     "chu": "Harry's office issues a statement confirming the relationship.",
+     "nguon": "https://en.wikipedia.org/wiki/Prince_Harry,_Duke_of_Sussex"
+    },
+    {
+     "ngay": "2017-11-27",
+     "chu": "Their engagement is announced by Prince Charles.",
+     "nguon": "https://en.wikipedia.org/wiki/Prince_Harry,_Duke_of_Sussex"
+    },
+    {
+     "ngay": "2018-05-19",
+     "chu": "They marry at St George's Chapel, Windsor Castle.",
+     "nguon": "https://en.wikipedia.org/wiki/Prince_Harry,_Duke_of_Sussex"
+    },
+    {
+     "ngay": "2020-01-18",
+     "chu": "The Palace announces they will step back from royal duties.",
+     "nguon": "https://en.wikipedia.org/wiki/Prince_Harry,_Duke_of_Sussex"
+    }
+   ]
+  },
+  {
+   "ma": "prince-william--kate-middleton",
+   "a": "prince-william",
+   "b": "kate-middleton",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "2007-04",
+     "chu": "William and Kate end their relationship for a time.",
+     "nguon": "https://en.wikipedia.org/wiki/Catherine,_Princess_of_Wales"
+    },
+    {
+     "ngay": "2010-10",
+     "chu": "William proposes to Kate on Mount Kenya.",
+     "nguon": "https://en.wikipedia.org/wiki/Catherine,_Princess_of_Wales"
+    },
+    {
+     "ngay": "2010-11-16",
+     "chu": "Clarence House announces their engagement.",
+     "nguon": "https://en.wikipedia.org/wiki/Catherine,_Princess_of_Wales"
+    },
+    {
+     "ngay": "2011-04-29",
+     "chu": "They marry at Westminster Abbey.",
+     "nguon": "https://en.wikipedia.org/wiki/Catherine,_Princess_of_Wales"
+    }
+   ]
+  },
+  {
+   "ma": "johnny-depp--amber-heard",
+   "a": "johnny-depp",
+   "b": "amber-heard",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "2015-02",
+     "chu": "Depp and Heard marry in a civil ceremony.",
+     "nguon": "https://en.wikipedia.org/wiki/Amber_Heard"
+    },
+    {
+     "ngay": "2016-05",
+     "chu": "Heard files for divorce and obtains a temporary restraining order.",
+     "nguon": "https://en.wikipedia.org/wiki/Amber_Heard"
+    },
+    {
+     "ngay": "2022-04-11",
+     "chu": "The Depp v. Heard defamation trial opens in Fairfax County, Virginia.",
+     "nguon": "https://en.wikipedia.org/wiki/Amber_Heard"
+    },
+    {
+     "ngay": "2022-06-01",
+     "chu": "The Depp v. Heard trial concludes.",
+     "nguon": "https://en.wikipedia.org/wiki/Amber_Heard"
+    }
+   ]
+  },
+  {
+   "ma": "kim-kardashian--kanye-west",
+   "a": "kim-kardashian",
+   "b": "kanye-west",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "2012-04",
+     "chu": "Kim starts dating longtime friend Kanye West.",
+     "nguon": "https://en.wikipedia.org/wiki/Kim_Kardashian"
+    },
+    {
+     "ngay": "2013-10-21",
+     "chu": "They get engaged on Kim's 33rd birthday.",
+     "nguon": "https://en.wikipedia.org/wiki/Kim_Kardashian"
+    },
+    {
+     "ngay": "2014-05-24",
+     "chu": "They marry at Forte di Belvedere in Florence, Italy.",
+     "nguon": "https://en.wikipedia.org/wiki/Kim_Kardashian"
+    },
+    {
+     "ngay": "2021-02-19",
+     "chu": "Kim officially files for divorce.",
+     "nguon": "https://en.wikipedia.org/wiki/Kim_Kardashian"
+    },
+    {
+     "ngay": "2022-11-29",
+     "chu": "They reach a post-divorce settlement.",
+     "nguon": "https://en.wikipedia.org/wiki/Kim_Kardashian"
+    }
+   ]
+  },
+  {
+   "ma": "john-lennon--yoko-ono",
+   "a": "john-lennon",
+   "b": "yoko-ono",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "1966-11-07",
+     "chu": "Lennon and Ono first meet at the Indica Gallery in London.",
+     "nguon": "https://en.wikipedia.org/wiki/Yoko_Ono"
+    },
+    {
+     "ngay": "1969-03-20",
+     "chu": "They marry at the registry office in Gibraltar.",
+     "nguon": "https://en.wikipedia.org/wiki/Yoko_Ono"
+    },
+    {
+     "ngay": "1969-05-26",
+     "chu": "They begin their bed-in for peace at the Queen Elizabeth Hotel in Montreal.",
+     "nguon": "https://en.wikipedia.org/wiki/Yoko_Ono"
+    },
+    {
+     "ngay": "1973-07",
+     "chu": "The couple separate.",
+     "nguon": "https://en.wikipedia.org/wiki/Yoko_Ono"
+    },
+    {
+     "ngay": "1980-12-08",
+     "chu": "Lennon is shot outside the Dakota, their New York home.",
+     "nguon": "https://en.wikipedia.org/wiki/Yoko_Ono"
+    }
+   ]
+  },
+  {
+   "ma": "john-f-kennedy--jacqueline-kennedy",
+   "a": "john-f-kennedy",
+   "b": "jacqueline-kennedy",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "1952-05",
+     "chu": "They meet at a dinner party hosted by journalist Charles L. Bartlett.",
+     "nguon": "https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis"
+    },
+    {
+     "ngay": "1953-06-25",
+     "chu": "Their engagement is officially announced.",
+     "nguon": "https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis"
+    },
+    {
+     "ngay": "1953-09-12",
+     "chu": "They marry at St. Mary's Church in Newport, Rhode Island.",
+     "nguon": "https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis"
+    },
+    {
+     "ngay": "1961-01-20",
+     "chu": "Kennedy is sworn in as president.",
+     "nguon": "https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis"
+    },
+    {
+     "ngay": "1963-11-22",
+     "chu": "Kennedy is assassinated in Dallas.",
+     "nguon": "https://en.wikipedia.org/wiki/Jacqueline_Kennedy_Onassis"
+    }
+   ]
+  },
+  {
+   "ma": "marilyn-monroe--joe-dimaggio",
+   "a": "marilyn-monroe",
+   "b": "joe-dimaggio",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "1954-01-14",
+     "chu": "Monroe and DiMaggio marry at San Francisco City Hall.",
+     "nguon": "https://en.wikipedia.org/wiki/Marilyn_Monroe"
+    },
+    {
+     "ngay": "1954-10",
+     "chu": "Monroe files for divorce after nine months of marriage.",
+     "nguon": "https://en.wikipedia.org/wiki/Marilyn_Monroe"
+    },
+    {
+     "ngay": "1955-10",
+     "chu": "Monroe's divorce from DiMaggio is finalized.",
+     "nguon": "https://en.wikipedia.org/wiki/Marilyn_Monroe"
+    },
+    {
+     "ngay": "1962-08-04",
+     "chu": "Monroe dies at her Los Angeles home, aged 36.",
+     "nguon": "https://en.wikipedia.org/wiki/Marilyn_Monroe"
+    }
+   ]
+  },
+  {
+   "ma": "marilyn-monroe--arthur-miller",
+   "a": "marilyn-monroe",
+   "b": "arthur-miller",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "1956-06-29",
+     "chu": "Monroe and Miller marry in a civil ceremony in White Plains, New York.",
+     "nguon": "https://en.wikipedia.org/wiki/Marilyn_Monroe"
+    },
+    {
+     "ngay": "1961-01",
+     "chu": "Monroe obtains a Mexican divorce from Miller.",
+     "nguon": "https://en.wikipedia.org/wiki/Arthur_Miller"
+    },
+    {
+     "ngay": "1962-08-04",
+     "chu": "Monroe dies at her Los Angeles home, aged 36.",
+     "nguon": "https://en.wikipedia.org/wiki/Marilyn_Monroe"
+    }
+   ]
+  },
+  {
+   "ma": "elvis-presley--priscilla-presley",
+   "a": "elvis-presley",
+   "b": "priscilla-presley",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "1959-09-13",
+     "chu": "Priscilla, 14, meets Elvis, 24, at his home in Bad Nauheim, West Germany.",
+     "nguon": "https://en.wikipedia.org/wiki/Priscilla_Presley"
+    },
+    {
+     "ngay": "1967-05-01",
+     "chu": "They marry at the Aladdin Hotel in Las Vegas.",
+     "nguon": "https://en.wikipedia.org/wiki/Priscilla_Presley"
+    },
+    {
+     "ngay": "1968-02-01",
+     "chu": "Their daughter Lisa Marie is born.",
+     "nguon": "https://en.wikipedia.org/wiki/Priscilla_Presley"
+    },
+    {
+     "ngay": "1972-02-23",
+     "chu": "The couple separate.",
+     "nguon": "https://en.wikipedia.org/wiki/Priscilla_Presley"
+    },
+    {
+     "ngay": "1973-10-09",
+     "chu": "Their divorce is finalized.",
+     "nguon": "https://en.wikipedia.org/wiki/Priscilla_Presley"
+    },
+    {
+     "ngay": "1977-08-16",
+     "chu": "Elvis dies in Memphis, Tennessee, aged 42.",
+     "nguon": "https://en.wikipedia.org/wiki/Elvis_Presley"
+    }
+   ]
+  },
+  {
+   "ma": "beyonce--jay-z",
+   "a": "beyonce",
+   "b": "jay-z",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "2007-12",
+     "chu": "Beyoncé and Jay-Z become engaged.",
+     "nguon": "https://en.wikipedia.org/wiki/Beyonc%C3%A9"
+    },
+    {
+     "ngay": "2008-04-04",
+     "chu": "They marry in a small private ceremony.",
+     "nguon": "https://en.wikipedia.org/wiki/Beyonc%C3%A9"
+    },
+    {
+     "ngay": "2012-01-07",
+     "chu": "Beyoncé gives birth to their first daughter, Blue Ivy, in New York City.",
+     "nguon": "https://en.wikipedia.org/wiki/Beyonc%C3%A9"
+    },
+    {
+     "ngay": "2016-04-23",
+     "chu": "Beyoncé's Lemonade film premieres on HBO alongside the album.",
+     "nguon": "https://en.wikipedia.org/wiki/Beyonc%C3%A9"
+    }
+   ]
+  },
+  {
+   "ma": "taylor-swift--travis-kelce",
+   "a": "taylor-swift",
+   "b": "travis-kelce",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "2023-08",
+     "chu": "Swift begins dating Travis Kelce.",
+     "nguon": "https://en.wikipedia.org/wiki/Taylor_Swift"
+    },
+    {
+     "ngay": "2025-08-26",
+     "chu": "They announce their engagement.",
+     "nguon": "https://en.wikipedia.org/wiki/Travis_Kelce"
+    },
+    {
+     "ngay": "2026-07-03",
+     "chu": "They marry at Madison Square Garden in New York City.",
+     "nguon": "https://en.wikipedia.org/wiki/Travis_Kelce"
+    }
+   ]
+  },
+  {
+   "ma": "barack-obama--michelle-obama",
+   "a": "barack-obama",
+   "b": "michelle-obama",
+   "rel": "romantic",
+   "moc": [
+    {
+     "ngay": "1992-10-03",
+     "chu": "Barack and Michelle marry, officiated by Rev. Jeremiah Wright.",
+     "nguon": "https://en.wikipedia.org/wiki/Michelle_Obama"
+    },
+    {
+     "ngay": "2009-01-20",
+     "chu": "Michelle becomes First Lady as Barack takes office.",
+     "nguon": "https://en.wikipedia.org/wiki/Michelle_Obama"
+    }
+   ]
+  },
+  {
+   "ma": "steve-jobs--bill-gates",
+   "a": "steve-jobs",
+   "b": "bill-gates",
+   "rel": "partner",
+   "moc": [
+    {
+     "ngay": "1994-09-19",
+     "chu": "The court rules against Apple in its 'look and feel' lawsuit against Microsoft.",
+     "nguon": "https://en.wikipedia.org/wiki/Apple_Computer,_Inc._v._Microsoft_Corp."
+    },
+    {
+     "ngay": "1997-08-06",
+     "chu": "Microsoft agrees to buy $150 million of nonvoting Apple stock.",
+     "nguon": "https://en.wikipedia.org/wiki/Apple_Computer,_Inc._v._Microsoft_Corp."
+    },
+    {
+     "ngay": "2011-10-05",
+     "chu": "Jobs dies in Palo Alto; Gates is among those who issue statements.",
+     "nguon": "https://en.wikipedia.org/wiki/Steve_Jobs"
+    }
+   ]
+  },
+  {
+   "ma": "john-lennon--paul-mccartney",
+   "a": "john-lennon",
+   "b": "paul-mccartney",
+   "rel": "partner",
+   "moc": [
+    {
+     "ngay": "1957-07-06",
+     "chu": "Lennon and McCartney first meet at a local church fête.",
+     "nguon": "https://en.wikipedia.org/wiki/Lennon%E2%80%93McCartney"
+    },
+    {
+     "ngay": "1970-04-10",
+     "chu": "McCartney says in a press release he is no longer working with the Beatles.",
+     "nguon": "https://en.wikipedia.org/wiki/Break-up_of_the_Beatles"
+    },
+    {
+     "ngay": "1970-12-31",
+     "chu": "McCartney sues the other three Beatles in London's High Court.",
+     "nguon": "https://en.wikipedia.org/wiki/Break-up_of_the_Beatles"
+    },
+    {
+     "ngay": "1975-01-09",
+     "chu": "The Beatles' partnership is formally dissolved in London.",
+     "nguon": "https://en.wikipedia.org/wiki/Break-up_of_the_Beatles"
+    },
+    {
+     "ngay": "1980-12-08",
+     "chu": "Lennon is shot outside the Dakota in New York.",
+     "nguon": "https://en.wikipedia.org/wiki/Yoko_Ono"
+    }
+   ]
+  }
+ ]
+}

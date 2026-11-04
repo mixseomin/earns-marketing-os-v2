@@ -1,0 +1,945 @@
+{
+ "ma": "prince-william--kate-middleton",
+ "a": {
+  "slug": "prince-william",
+  "ten": "William, Prince of Wales",
+  "rodden": "AA"
+ },
+ "b": {
+  "slug": "kate-middleton",
+  "ten": "Catherine, Princess of Wales (Kate Middleton)",
+  "rodden": "A"
+ },
+ "rel": "romantic",
+ "nguon": "https://astrolas.com/synastry-chart?name=William%2C+Prince+of+Wales&day=21&month=6&year=1982&hour=21&minute=3&location=Paddington%2C+London%2C+UK&lat=51.5154&lng=-0.1755&name2=Catherine%2C+Princess+of+Wales+%28Kate+Middleton%29&day2=9&month2=1&year2=1982&hour2=19&minute2=0&location2=Reading%2C+Berkshire%2C+UK&lat2=51.4543&lng2=-0.9781&rel_type=romantic",
+ "lay_luc": "2026-11-04",
+ "diem": [
+  {
+   "truc": "romance",
+   "ten": "Romance",
+   "mo_ta": "Attraction, affection, bonding",
+   "diem": 41,
+   "so_goc": 3
+  },
+  {
+   "truc": "attraction",
+   "ten": "Harmony & attraction",
+   "mo_ta": "Easygoing, harmonious, in tune",
+   "diem": 69,
+   "so_goc": 9
+  },
+  {
+   "truc": "challenge",
+   "ten": "Challenges",
+   "mo_ta": "Differences, friction, pressure",
+   "diem": 19,
+   "so_goc": 7
+  },
+  {
+   "truc": "sex_conflict",
+   "ten": "Sexual conflict",
+   "mo_ta": "Passion, drama, clashes",
+   "diem": 7,
+   "so_goc": 1
+  }
+ ],
+ "luoi": [
+  {
+   "a": "Sun",
+   "b": "Neptune",
+   "goc": "Opposition",
+   "lech": 4.64,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Sun",
+   "b": "Pluto",
+   "goc": "Trine",
+   "lech": 3.29,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Mercury",
+   "goc": "Quincunx",
+   "lech": 1.27,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Jupiter",
+   "goc": "Trine",
+   "lech": 2.31,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Uranus",
+   "goc": "Quincunx",
+   "lech": 1.84,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Chiron",
+   "goc": "Semi-Square",
+   "lech": 1.91,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "Ascendant",
+   "goc": "Semi-Square",
+   "lech": 0.02,
+   "tran": 2,
+   "xa": false,
+   "dung": false,
+   "vi": "Ascendant của Catherine, Princess of Wales (Kate Middleton) cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Moon",
+   "b": "MC",
+   "goc": "Sextile",
+   "lech": 0.33,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "MC của Catherine, Princess of Wales (Kate Middleton) cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Mercury",
+   "goc": "Trine",
+   "lech": 2.73,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Venus",
+   "goc": "Trine",
+   "lech": 1.75,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Mars",
+   "goc": "Trine",
+   "lech": 1.5,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Jupiter",
+   "goc": "Quincunx",
+   "lech": 1.7,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Lilith",
+   "goc": "Opposition",
+   "lech": 3.05,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mercury",
+   "b": "Mean Node",
+   "goc": "Semi-Square",
+   "lech": 1.25,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Mars",
+   "goc": "Sesquiquadrate",
+   "lech": 0.2,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Neptune",
+   "goc": "Quincunx",
+   "lech": 0.2,
+   "tran": 2,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Pluto",
+   "goc": "Quincunx",
+   "lech": 1.15,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Venus",
+   "b": "Mean Node",
+   "goc": "Sextile",
+   "lech": 2.94,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Mercury",
+   "goc": "Trine",
+   "lech": 2.97,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Venus",
+   "goc": "Trine",
+   "lech": 1.98,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Mars",
+   "goc": "Conjunction",
+   "lech": 1.26,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mars",
+   "b": "Lilith",
+   "goc": "Sextile",
+   "lech": 2.82,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "Pluto",
+   "goc": "Conjunction",
+   "lech": 3.67,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Jupiter",
+   "b": "MC",
+   "goc": "Opposition",
+   "lech": 4.81,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Catherine, Princess of Wales (Kate Middleton) cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Sun",
+   "goc": "Square",
+   "lech": 3.69,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Moon",
+   "goc": "Square",
+   "lech": 3.19,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Lilith",
+   "goc": "Sextile",
+   "lech": 3.49,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Saturn",
+   "b": "Ascendant",
+   "goc": "Sextile",
+   "lech": 4.48,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "Ascendant của Catherine, Princess of Wales (Kate Middleton) cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Mercury",
+   "goc": "Sextile",
+   "lech": 4.74,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Uranus",
+   "b": "Uranus",
+   "goc": "Conjunction",
+   "lech": 1.63,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Neptune",
+   "b": "Saturn",
+   "goc": "Sextile",
+   "lech": 3.7,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Neptune",
+   "b": "Neptune",
+   "goc": "Conjunction",
+   "lech": 0.08,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Neptune",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 1.27,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Pluto",
+   "b": "Sun",
+   "goc": "Square",
+   "lech": 4.96,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Saturn",
+   "goc": "Conjunction",
+   "lech": 2.32,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Neptune",
+   "goc": "Sextile",
+   "lech": 1.3,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Pluto",
+   "b": "Pluto",
+   "goc": "Conjunction",
+   "lech": 2.65,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "a": "Pluto",
+   "b": "Mean Node",
+   "goc": "Square",
+   "lech": 1.44,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Pluto",
+   "b": "Ascendant",
+   "goc": "Sextile",
+   "lech": 4.17,
+   "tran": 3.5,
+   "xa": false,
+   "dung": false,
+   "vi": "Ascendant của Catherine, Princess of Wales (Kate Middleton) cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Mars",
+   "goc": "Sesquiquadrate",
+   "lech": 0.18,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Neptune",
+   "goc": "Quincunx",
+   "lech": 0.18,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Pluto",
+   "goc": "Quincunx",
+   "lech": 1.53,
+   "tran": 2,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Chiron",
+   "b": "Mean Node",
+   "goc": "Sextile",
+   "lech": 2.56,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Neptune",
+   "goc": "Conjunction",
+   "lech": 4.66,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Lilith",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 3.31,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Moon",
+   "goc": "Conjunction",
+   "lech": 4.61,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Mars",
+   "goc": "Square",
+   "lech": 3.62,
+   "tran": 3.5,
+   "xa": false,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Mean Node",
+   "b": "Chiron",
+   "goc": "Sextile",
+   "lech": 3.97,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Neptune",
+   "goc": "Conjunction",
+   "lech": 2.01,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "Ascendant",
+   "b": "Pluto",
+   "goc": "Sextile",
+   "lech": 0.66,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Mercury",
+   "goc": "Square",
+   "lech": 3.78,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Venus",
+   "goc": "Square",
+   "lech": 4.77,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "Jupiter",
+   "goc": "Conjunction",
+   "lech": 4.82,
+   "tran": 3.5,
+   "xa": true,
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "a": "MC",
+   "b": "MC",
+   "goc": "Opposition",
+   "lech": 2.84,
+   "tran": 3.5,
+   "xa": true,
+   "dung": false,
+   "vi": "MC của Catherine, Princess of Wales (Kate Middleton) cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  }
+ ],
+ "giai": [
+  {
+   "tam": "tense",
+   "a": "Moon",
+   "b": "Ascendant",
+   "nha_a": 7,
+   "nha_b": 1,
+   "goc": "Semi-Square",
+   "lech": "0°01'",
+   "tieu_de": "Minor friction over mood and style.",
+   "chu": "Minor friction over mood and style. Petty annoyances arise when William, Prince of Wales's sensitivity, tendency to sulk, or fluctuating moods occasionally disturb or provoke Catherine, Princess of Wales (Kate Middleton)'s everyday reactive habits. It causes mild friction but rarely threatens the durability of the relationship.",
+   "dung": false,
+   "vi": "Ascendant của Catherine, Princess of Wales (Kate Middleton) cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "neutral",
+   "a": "Neptune",
+   "b": "Neptune",
+   "nha_a": 12,
+   "nha_b": 5,
+   "goc": "Conjunction",
+   "lech": "0°05'",
+   "tieu_de": "Absolute resonance in generational dreams and spiritual ideals.",
+   "chu": "Absolute resonance in generational dreams and spiritual ideals. This aspect is extremely common because most relationships occur between people of roughly the same age. The two share a common unconscious value system, compassion, and the illusions of the same era. They easily understand each other's romantic and spiritual needs, but they also risk sinking together into an escape from reality if this generational energy is negative.",
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "tam": "tense",
+   "a": "Venus",
+   "b": "Mars",
+   "nha_a": 5,
+   "nha_b": 3,
+   "goc": "Sesquiquadrate",
+   "lech": "0°12'",
+   "tieu_de": "Frustration from an out-of-sync rhythm of loving.",
+   "chu": "Frustration from an out-of-sync rhythm of loving. William, Prince of Wales persistent tension appears when Catherine, Princess of Wales (Kate Middleton)'s efforts to pursue affection or sex frequently run into coldness, avoidance or overly high aesthetic demands from William, Prince of Wales. When not met, Catherine, Princess of Wales (Kate Middleton) easily becomes irritable, while William, Prince of Wales withdraws for feeling the partner lacks subtlety. It requires yielding to prevent sex or indulgence from becoming a weapon to punish each other.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Venus",
+   "b": "Neptune",
+   "nha_a": 5,
+   "nha_b": 5,
+   "goc": "Quincunx",
+   "lech": "0°12'",
+   "tieu_de": "Phase mismatch between how one loves and understanding.",
+   "chu": "Phase mismatch between how one loves and understanding. Because they share neither element nor quality, William, Prince of Wales's love language is entirely out of rhythm with the way Catherine, Princess of Wales (Kate Middleton) expresses romance. William, Prince of Wales may need practical and clear loving gestures, while Catherine, Princess of Wales (Kate Middleton) expresses an affection too abstract and vague, leaving William, Prince of Wales with a constant feeling of insecurity or of not being loved enough. Catherine, Princess of Wales (Kate Middleton)'s sacrifices are often not acknowledged by William, Prince of Wales in the way Catherine, Princess of Wales (Kate Middleton) wishes, requiring continual adjustment to erase the underlying disappointment.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Moon",
+   "b": "MC",
+   "nha_a": 7,
+   "nha_b": 10,
+   "goc": "Sextile",
+   "lech": "0°20'",
+   "tieu_de": "Empathetic support for ambition.",
+   "chu": "Empathetic support for ambition. William, Prince of Wales pleasant connection that helps the two balance work and affection. William, Prince of Wales's sensitivity and capacity for care help Catherine, Princess of Wales (Kate Middleton) feel more confident and stable on the path to fame. Catherine, Princess of Wales (Kate Middleton) easily recognizes and meets William, Prince of Wales's emotional needs, and at the same time Catherine, Princess of Wales (Kate Middleton)'s work does not become a threat to William, Prince of Wales's inner sense of safety.",
+   "dung": false,
+   "vi": "MC của Catherine, Princess of Wales (Kate Middleton) cần giờ sinh hạng AA (đang A)",
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Ascendant",
+   "b": "Pluto",
+   "nha_a": 1,
+   "nha_b": 3,
+   "goc": "Sextile",
+   "lech": "0°40'",
+   "tieu_de": "Deep support and empowerment for self-expression.",
+   "chu": "Deep support and empowerment for self-expression. William, Prince of Wales strong and well-supporting connection. Catherine, Princess of Wales (Kate Middleton)'s psychological depth, strength, and ability to see through matters easily uplift William, Prince of Wales's confidence and the way William, Prince of Wales interacts with the world. Catherine, Princess of Wales (Kate Middleton) helps William, Prince of Wales overcome personal fears in order to reveal himself or herself in a more powerful and authentic way. William, Prince of Wales feels safe sharing his or her most hidden facets through Catherine, Princess of Wales (Kate Middleton)'s understanding lens without fear of being manipulated.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Venus",
+   "b": "Pluto",
+   "nha_a": 5,
+   "nha_b": 3,
+   "goc": "Quincunx",
+   "lech": "1°09'",
+   "tieu_de": "Phase mismatch between how one loves and obsession.",
+   "chu": "Phase mismatch between how one loves and obsession. Because they share neither element nor quality, the way William, Prince of Wales (Venus) wants to enjoy love is entirely out of rhythm with Catherine, Princess of Wales (Kate Middleton)'s (Pluto) deep emotional intensity and demands. William, Prince of Wales's efforts at gentle romantic expression may be seen by Catherine, Princess of Wales (Kate Middleton) as superficial; conversely, Catherine, Princess of Wales (Kate Middleton)'s fervor leaves William, Prince of Wales feeling pressured and afraid. This friction requires Catherine, Princess of Wales (Kate Middleton) to temper the need for control, and William, Prince of Wales to understand the partner's complex psychological depth.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "neutral",
+   "a": "Mars",
+   "b": "Mars",
+   "nha_a": 9,
+   "nha_b": 3,
+   "goc": "Conjunction",
+   "lech": "1°16'",
+   "tieu_de": "Explosive energy and synchrony in action.",
+   "chu": "Explosive energy and synchrony in action. The two planets of drive occupying the same position create extremely great strength of action and intense passion. William, Prince of Wales and Catherine, Princess of Wales (Kate Middleton) share the same rhythm, the same approach to problems, and the same level of energy. They can be a champion team if aimed at a common goal. However, since Mars is combative in nature, this combination can become a double-edged sword: when there is a disagreement, neither will yield, easily leading to fiery clashes because both have very strong egos.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Moon",
+   "b": "Mercury",
+   "nha_a": 7,
+   "nha_b": 6,
+   "goc": "Quincunx",
+   "lech": "1°16'",
+   "tieu_de": "William, Prince of Wales \"phase mismatch\" between needs and words.",
+   "chu": "William, Prince of Wales \"phase mismatch\" between needs and words. Because they share no element or modality, William, Prince of Wales's emotions and Catherine, Princess of Wales (Kate Middleton)'s mode of analysis seem to speak two completely different languages. When William, Prince of Wales needs emotional comfort, Catherine, Princess of Wales (Kate Middleton) instead offers logical solutions, analyzing right and wrong, which leaves William, Prince of Wales feeling hurt and misunderstood. These underlying frictions demand a great compromise: Catherine, Princess of Wales (Kate Middleton) needs to learn to listen to emotions without judging or \"fixing,\" while William, Prince of Wales needs to stop taking offense when Catherine, Princess of Wales (Kate Middleton) speaks from reason.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Neptune",
+   "b": "Pluto",
+   "nha_a": 12,
+   "nha_b": 3,
+   "goc": "Sextile",
+   "lech": "1°16'",
+   "tieu_de": "Generational support between intuition and power.",
+   "chu": "Generational support between intuition and power. This is an extremely common aspect over the past half-century, so many modern couples share this connection. William, Prince of Wales's sensitivity, selflessness, and imagination are supported by Catherine, Princess of Wales (Kate Middleton)'s psychological strength and ability to see through problems. William, Prince of Wales's gentleness helps soothe Catherine, Princess of Wales (Kate Middleton)'s harsh intensity, while Catherine, Princess of Wales (Kate Middleton) helps William, Prince of Wales powerfully realize or protect their ideals.",
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "tam": "harmonious",
+   "a": "Pluto",
+   "b": "Neptune",
+   "nha_a": 9,
+   "nha_b": 5,
+   "goc": "Sextile",
+   "lech": "1°18'",
+   "tieu_de": "Generational support between intuition and power.",
+   "chu": "Generational support between intuition and power. This is an exceedingly common aspect over the past half-century, so many modern couples share this connection. Catherine, Princess of Wales (Kate Middleton)'s sensitivity, selflessness, and imagination are supported by William, Prince of Wales's psychological strength and ability to see through matters. Catherine, Princess of Wales (Kate Middleton)'s gentleness helps soothe William, Prince of Wales's harsh intensity, while William, Prince of Wales helps Catherine, Princess of Wales (Kate Middleton) realize or protect their ideals in a powerful way.",
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mercury",
+   "b": "Mars",
+   "nha_a": 5,
+   "nha_b": 3,
+   "goc": "Trine",
+   "lech": "1°30'",
+   "tieu_de": "William, Prince of Wales smooth flow of ideas and action.",
+   "chu": "William, Prince of Wales smooth flow of ideas and action. Communication between the two is immensely direct, honest, clear, and effective. William, Prince of Wales is not afraid to share their thoughts, and Catherine, Princess of Wales (Kate Middleton) receives them with enthusiasm. They are very good at solving problems together quickly, without friction or personal wounded pride.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "neutral",
+   "a": "Uranus",
+   "b": "Uranus",
+   "nha_a": 11,
+   "nha_b": 4,
+   "goc": "Conjunction",
+   "lech": "1°38'",
+   "tieu_de": "Generational resonance and the need for independence.",
+   "chu": "Generational resonance and the need for independence. This aspect is extremely common because most relationships occur between people of roughly the same age. It reflects shared generational influences. The two people share the same view on freedom, innovation and attitude toward traditional values. They easily understand each other's need for personal space without feeling threatened.",
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "tam": "tense",
+   "a": "Mercury",
+   "b": "Jupiter",
+   "nha_a": 5,
+   "nha_b": 4,
+   "goc": "Quincunx",
+   "lech": "1°42'",
+   "tieu_de": "Misalignment between logic and faith.",
+   "chu": "Misalignment between logic and faith. How William, Prince of Wales thinks and how Catherine, Princess of Wales (Kate Middleton) seeks meaning in life seem to speak two entirely different languages. When William, Prince of Wales tries to analyze an issue clearly, Catherine, Princess of Wales (Kate Middleton) puts forward distant philosophical viewpoints lacking applicability, leaving William, Prince of Wales feeling let down or not properly heard. This nagging friction requires both to continually adjust: Catherine, Princess of Wales (Kate Middleton) needs to tone down the \"grandiosity\" when communicating, and William, Prince of Wales needs to open their mind more to abstract concepts.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mercury",
+   "b": "Venus",
+   "nha_a": 5,
+   "nha_b": 6,
+   "goc": "Trine",
+   "lech": "1°45'",
+   "tieu_de": "William, Prince of Wales smooth flow of loving words.",
+   "chu": "William, Prince of Wales smooth flow of loving words. Much like the Sextile, this configuration brings a wonderful ability to connect. Expressing affection through words happens immensely naturally without any barriers. William, Prince of Wales easily understands Catherine, Princess of Wales (Kate Middleton)'s desires and preferences, while Catherine, Princess of Wales (Kate Middleton) finds William, Prince of Wales's thinking immensely captivating. They rarely have big quarrels because both instinctively know how to use diplomatic, tactful language to soothe every disagreement and maintain harmony in the relationship.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Moon",
+   "b": "Uranus",
+   "nha_a": 7,
+   "nha_b": 4,
+   "goc": "Quincunx",
+   "lech": "1°50'",
+   "tieu_de": "William, Prince of Wales \"phase mismatch\" between the instinct for safety and the urge to break convention.",
+   "chu": "William, Prince of Wales \"phase mismatch\" between the instinct for safety and the urge to break convention. Because they share no element or modality, the way William, Prince of Wales perceives safety and the way Catherine, Princess of Wales (Kate Middleton) expresses independence seem to speak two completely opposite languages. The surprises Catherine, Princess of Wales (Kate Middleton) brings (meant to make the atmosphere more exciting) unintentionally leave William, Prince of Wales \"shocked\" or feeling threatened. Conversely, William, Prince of Wales's traditional comforting makes Catherine, Princess of Wales (Kate Middleton) cringe as sentimental. This conflict unfolds beneath the surface, requiring both to constantly compromise: Catherine, Princess of Wales (Kate Middleton) needs to restrain their impulsiveness, while William, Prince of Wales must get used to unusual emotional flavors.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mars",
+   "b": "Venus",
+   "nha_a": 9,
+   "nha_b": 6,
+   "goc": "Trine",
+   "lech": "1°59'",
+   "tieu_de": "William, Prince of Wales smooth flow of sexual harmony.",
+   "chu": "William, Prince of Wales smooth flow of sexual harmony. According to the literature, the Trine aspect indicates a wonderful capacity for harmony in sexual needs with the partner. William, Prince of Wales's desire and energy are entirely in tune with the way Catherine, Princess of Wales (Kate Middleton) wishes to be loved and indulged. They rarely encounter hitches in expressing physical affection, bringing a natural foundation of satisfaction that helps soothe other tensions in their shared life.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "neutral",
+   "a": "Ascendant",
+   "b": "Neptune",
+   "nha_a": 1,
+   "nha_b": 5,
+   "goc": "Conjunction",
+   "lech": "2°01'",
+   "tieu_de": "Romantic illusion and a misty allure.",
+   "chu": "Romantic illusion and a misty allure. Catherine, Princess of Wales (Kate Middleton)'s Neptune sits right on William, Prince of Wales's Ascendant. Catherine, Princess of Wales (Kate Middleton) casts a romantic, mysterious and dreamy aura over William, Prince of Wales's appearance as well as the way William, Prince of Wales expresses themselves. The relationship often begins with a magical, miraculous feeling, as if one has met a true \"soulmate\". William, Prince of Wales feels themselves become charming, soft and idealized in Catherine, Princess of Wales (Kate Middleton)'s eyes. However, the extremely great risk is that Catherine, Princess of Wales (Kate Middleton) is in love with an illusion of their own making rather than the real person William, Prince of Wales is. When the \"mask\" falls and reality shows itself, disappointment and the feeling of having been deceived can break the relationship.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Moon",
+   "b": "Jupiter",
+   "nha_a": 7,
+   "nha_b": 4,
+   "goc": "Trine",
+   "lech": "2°19'",
+   "tieu_de": "William, Prince of Wales smooth flow of nurturing and fortune.",
+   "chu": "William, Prince of Wales smooth flow of nurturing and fortune. The Trine creates an almost absolute emotional protection. William, Prince of Wales's intuition and Catherine, Princess of Wales (Kate Middleton)'s wisdom and optimism blend naturally. Catherine, Princess of Wales (Kate Middleton) seems to always appear at just the right moment to bring joy, reassurance, and good opportunities into William, Prince of Wales's inner life. This relationship has an extremely high degree of tolerance; they easily forgive each other's flaws and together enjoy a gentle, happy shared life.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "neutral",
+   "a": "Pluto",
+   "b": "Saturn",
+   "nha_a": 9,
+   "nha_b": 3,
+   "goc": "Conjunction",
+   "lech": "2°19'",
+   "tieu_de": "The fierce collision between limitation and power.",
+   "chu": "The fierce collision between limitation and power. This is an exceedingly powerful karmic link, bringing a sense of heaviness. William, Prince of Wales (Pluto) brings intense emotional intensity and a craving for control imposed directly upon Catherine, Princess of Wales (Kate Middleton)'s boundaries, principles, and defenses (Saturn). On the positive side, this configuration creates an astonishing \"endurance,\" helping the couple overcome all adversity. However, the immense risk is that the relationship becomes suffocating: Catherine, Princess of Wales (Kate Middleton) feels manipulated or threatened by William, Prince of Wales, while William, Prince of Wales feels imprisoned by Catherine, Princess of Wales (Kate Middleton)'s cold rules.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "neutral",
+   "a": "Pluto",
+   "b": "Pluto",
+   "nha_a": 9,
+   "nha_b": 3,
+   "goc": "Conjunction",
+   "lech": "2°39'",
+   "tieu_de": "Resonance over the lessons of power and generational fears.",
+   "chu": "Resonance over the lessons of power and generational fears. Very common, because people born within the same long span of time will share this placement. The two people share a common unconscious system for coping with crises, fears, and survival instincts. They easily understand each other's deep obsessions, but if this energy turns negative, they may together fall into patterns of control or power struggles of an era.",
+   "dung": true,
+   "the_he": true
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mercury",
+   "b": "Mercury",
+   "nha_a": 5,
+   "nha_b": 6,
+   "goc": "Trine",
+   "lech": "2°44'",
+   "tieu_de": "William, Prince of Wales smooth flow of understanding.",
+   "chu": "William, Prince of Wales smooth flow of understanding. Much like the Sextile, the couple enjoys wonderful mental harmony and easily connect their thinking. Both share the same communication \"frequency,\" helping them analyze problems quickly and logically, rarely allowing serious misunderstandings to arise. This is a solid foundation that helps them discuss every issue in life peacefully.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Mars",
+   "b": "Mercury",
+   "nha_a": 9,
+   "nha_b": 6,
+   "goc": "Trine",
+   "lech": "2°58'",
+   "tieu_de": "William, Prince of Wales smooth flow of ideas and action.",
+   "chu": "William, Prince of Wales smooth flow of ideas and action. The communication between the two is immensely frank, honest, clear and effective. Catherine, Princess of Wales (Kate Middleton) is not afraid to share their thoughts, and William, Prince of Wales receives them with enthusiasm. They are very good at solving problems together quickly without allowing friction or personal wounded pride to arise.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "tense",
+   "a": "Saturn",
+   "b": "Moon",
+   "nha_a": 9,
+   "nha_b": 11,
+   "goc": "Square",
+   "lech": "3°11'",
+   "tieu_de": "The repression of emotion and fear.",
+   "chu": "The repression of emotion and fear. This is an extremely challenging configuration. Catherine, Princess of Wales (Kate Middleton)'s need to be soothed and loved runs up against a cold, strict or judgmental \"stone wall\" from William, Prince of Wales. William, Prince of Wales often feels Catherine, Princess of Wales (Kate Middleton)'s emotional reactions are a burden or too childish. The author emphasizes that these difficult aspects cause Catherine, Princess of Wales (Kate Middleton) (Moon) to become withdrawn, fearful, or afraid to reveal their needs. Catherine, Princess of Wales (Kate Middleton) always has the feeling of being emotionally rejected or abandoned, leading to a dry and deeply wounding relationship.",
+   "dung": true,
+   "the_he": false
+  },
+  {
+   "tam": "harmonious",
+   "a": "Sun",
+   "b": "Pluto",
+   "nha_a": 7,
+   "nha_b": 3,
+   "goc": "Trine",
+   "lech": "3°17'",
+   "tieu_de": "William, Prince of Wales flow of strength and deep healing.",
+   "chu": "William, Prince of Wales flow of strength and deep healing. The Trine brings wonderful harmony in the sharing of power. Both easily establish a relationship where trust and psychological depth are placed foremost. Catherine, Princess of Wales (Kate Middleton)'s presence naturally brings a positive rebirth to William, Prince of Wales's ego. William, Prince of Wales feels extremely safe revealing their most vulnerable sides to Catherine, Princess of Wales (Kate Middleton). This is a solid connection that helps the couple weather every storm of life together.",
+   "dung": true,
+   "the_he": false
+  }
+ ],
+ "moc": [
+  {
+   "ngay": "2007-04",
+   "chu": "William and Kate end their relationship for a time.",
+   "nguon": "https://en.wikipedia.org/wiki/Catherine,_Princess_of_Wales"
+  },
+  {
+   "ngay": "2010-10",
+   "chu": "William proposes to Kate on Mount Kenya.",
+   "nguon": "https://en.wikipedia.org/wiki/Catherine,_Princess_of_Wales"
+  },
+  {
+   "ngay": "2010-11-16",
+   "chu": "Clarence House announces their engagement.",
+   "nguon": "https://en.wikipedia.org/wiki/Catherine,_Princess_of_Wales"
+  },
+  {
+   "ngay": "2011-04-29",
+   "chu": "They marry at Westminster Abbey.",
+   "nguon": "https://en.wikipedia.org/wiki/Catherine,_Princess_of_Wales"
+  }
+ ]
+}

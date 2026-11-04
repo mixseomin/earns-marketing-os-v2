@@ -53,7 +53,15 @@ export function kiemTap(tap, k, ma) {
   else if (h?.trang_thai === 'da_dang') loi.push(`ý tưởng ${tap.y_tuong} đã đăng — không làm lại`);
   else if (h && m && h.mau !== m.ma) loi.push(`ý tưởng ${tap.y_tuong} thuộc mẫu ${h.mau}, không phải ${m.ma}`);
   // lá số trong tập: phải lấy theo sổ người (la-so/lay.mjs --nguoi) với hạng Rodden được dùng nhà / cung Mọc — giờ sinh DD / B (vd /c/taylor-swift) không lên video
-  if (tap.la_so) { const ten = tap.la_so.split('/').pop().replace(/\.svg$/, ''), tep = join(DIR, 'la-so', `${ten}.json`), so = JSON.parse(readFileSync(join(DIR, 'la-so/nguoi.json'), 'utf8'));
+  // SYNASTRY (bánh xe đôi la-so/hop/<a>--<b>.svg): tệp hop.mjs phải có; mỗi cảnh cheo phải là góc chiếu được dùng theo hạng Rodden (cờ dung) và không phải góc thế hệ
+  if (tap.la_so && /\/hop\//.test(tap.la_so)) { const ten = tap.la_so.split('/').pop().replace(/\.svg$/, ''), tep = join(DIR, 'la-so/hop', `${ten}.json`);
+    if (!existsSync(tep)) loi.push(`synastry ${ten} chưa lấy (la-so/hop.mjs ${ten.replace('--', ' ')})`);
+    else { const h = JSON.parse(readFileSync(tep, 'utf8'));
+      for (const c of tap.cau ?? []) { const ch = c.nhin?.cheo; if (!ch) continue; const [a, b] = ch.map((x) => x.split(':')[1]);
+        const g = [...(h.giai ?? []), ...(h.luoi ?? [])].find((x) => x.a === a && x.b === b);
+        if (!g) loi.push(`cảnh cheo ${a}–${b}: site không có góc chiếu này giữa ${h.a.ten} và ${h.b.ten}`);
+        else if (!g.dung) loi.push(`cảnh cheo ${a}–${b}: ${g.vi}`); else if (g.the_he) loi.push(`cảnh cheo ${a}–${b}: góc chiếu thế hệ, không làm điểm chính`); } } }
+  else if (tap.la_so) { const ten = tap.la_so.split('/').pop().replace(/\.svg$/, ''), tep = join(DIR, 'la-so', `${ten}.json`), so = JSON.parse(readFileSync(join(DIR, 'la-so/nguoi.json'), 'utf8'));
     const ls = existsSync(tep) ? JSON.parse(readFileSync(tep, 'utf8')) : null, ng = so.nguoi.find((x) => x.slug === ten);
     if (!ls) loi.push(`lá số ${ten} chưa lấy (la-so/lay.mjs --nguoi ${ten})`);
     else if (!ng || !so.rodden_dung_nha.includes(ls.rodden) || ng.khong_dung) loi.push(`lá số ${ten}: giờ sinh ${ls.rodden ?? 'không rõ hạng'}${ng?.khong_dung ? ' · bị đánh dấu không dùng' : ''} — chỉ dùng hạng ${so.rodden_dung_nha.join('/')} lấy theo la-so/nguoi.json`); }

@@ -369,6 +369,7 @@ const LUAT = [
   { card: 'ly-do-poster-0411', tep: 'apps/etp/dong_phim.py', co: 'if l.startswith(f"{cid}: ")', vi: 'bước Ảnh bìa ghi đúng dòng phán của AI, không phải dòng "tổng N₫" (dòng #48 04/11/2026)' },
   { card: 'mau-poster-0411', tep: 'apps/etp/soat_18_ai.py', co: 'Fail blood only for GRAPHIC gore', vi: 'vết máu / bầm trên mặt poster không phải lỗi, chỉ chặn máu me ghê (Big Mistake 171236, anh 04/11/2026)' },
   { card: 'manh-cam-nhan-0411', tep: 'apps/etp/manh.py', co: "d.dau_dung is distinct from {dau}", vi: 'Mạnh mở lại dòng dừng theo DẤU cổng phim (sổ cấm · nhóm gốc · creative đạt CTA) đổi — không đọc chữ lý do (dòng #47, anh 04/11/2026)' },
+  { card: 'tu-nap-0411', tep: 'apps/etp/dong_phim.py', co: 'os.execv(sys.executable, [sys.executable, "-u", os.path.abspath(__file__), *a])', vi: 'máy chạy dòng tự nạp mã mới khi tệp đổi (chạy liền giữ mã cũ — --tay chưa có hiệu lực, dòng #49)' },
   { card: 'tay-trung-doi-0411', tep: 'apps/etp/cong.py', co: 'if (not ngoai or ng_id) and not tay else None', vi: 'camp yêu cầu bằng tay miễn luật không trùng phim với đội — chỉ cấm khi máy tự lên (anh 04/11/2026)' },
   { card: 'tay-trung-doi-0411', tep: 'apps/etp/dong_phim.py', co: '--tay --bo', vi: 'dòng phim (anh bấm chạy) lên camp với --tay' },
   { card: 'xu-ly-0411', tep: 'apps/web/src/components/etp-dong.tsx', co: 'export const xuLy = (tt: string)', vi: 'mọi lý do dừng / lỗi kèm bước giải quyết (anh 04/11/2026)' },

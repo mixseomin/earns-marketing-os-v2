@@ -466,7 +466,18 @@ def vong():
 def main(a):
     if a and a[0] == "mot": vong(); time.sleep(int(a[1]) if len(a) > 1 else 60); return   # một vòng rồi chờ các bước vừa bật (thử)
     print(f"[{MAY}] máy chạy dòng phim bắt đầu (pid {os.getpid()})", flush=True)
+    # TỰ NẠP MÃ MỚI (04/11/2026: tiến trình chạy liền từ 13:49 giữ mã cũ trong bộ nhớ — --tay, lý do poster, chờ KT sửa xong đều chưa có hiệu lực,
+    # dòng #49 vẫn bị chặn trùng đội sau deploy): tệp mã của máy đổi → thôi nhận bước mới, chờ các bước đang chạy xong rồi execv chính nó
+    ma = [os.path.abspath(__file__), os.path.join(E, "loi_ky_thuat.py")]
+    dau = lambda: [os.path.getmtime(f) for f in ma if os.path.exists(f)]
+    goc = dau()
     while True:
+        if dau() != goc:
+            if not any(th.is_alive() for th, _ in CHAY.values()):
+                print(f"[{MAY}] mã máy đổi — nạp lại", flush=True); os.execv(sys.executable, [sys.executable, "-u", os.path.abspath(__file__), *a])
+            try: sql(f"update etp.dong_may set nhip = now() where may = '{MAY}'")   # còn sống trong lúc chờ — Mạnh không báo máy im
+            except Exception: pass
+            time.sleep(10); continue
         try: vong()
         except Exception as e: print(f"vòng lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
         time.sleep(10)

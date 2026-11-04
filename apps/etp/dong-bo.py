@@ -40,6 +40,8 @@ def _roas(sp):
 def ghi(bang, rows, khoa_, cot):
     """upsert rows (list dict) vào etp.<bang>; cot = {tên cột: kiểu}"""
     if not rows: return 0
+    # MỘT KHOÁ MỘT HÀNG (05/11/2026 trang_phim: danh sách lật trang trôi → hai hàng cùng khoá → "ON CONFLICT DO UPDATE cannot affect row a second time", cả bảng không ghi) — hàng sau thắng
+    rows = list({tuple(r.get(k) for k in khoa_): r for r in rows}.values())
     j = json.dumps(rows, ensure_ascii=False, default=str)
     dk = ", ".join(f"{c} {t}" for c, t in cot.items()); cs = ", ".join(cot)
     cap = ", ".join(f"{c} = excluded.{c}" for c in cot if c not in khoa_) + ", cap_nhat = now()"

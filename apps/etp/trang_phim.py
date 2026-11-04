@@ -35,6 +35,13 @@ def chay(q, T, het=False):
         r = _doc(T, f"/api/v2/movie/contents?page={p}&page_size=100"); d = r.get("data") or []; ds += d
         if len(d) < 100 or p >= 50: break
         p += 1
+    # MỘT phim MỘT hàng: phim mới thêm giữa lúc đọc làm danh sách trôi → cùng content_id ở hai trang → upsert chết
+    # "ON CONFLICT DO UPDATE command cannot affect row a second time" (05/11/2026 01:40) — giữ bản updated_at mới nhất
+    gom = {}
+    for x in ds:
+        k = int(x["content_id"])
+        if k not in gom or str(x.get("updated_at") or "") > str(gom[k].get("updated_at") or ""): gom[k] = x
+    ds = list(gom.values())
     cu = {int(l.split("|")[0]): l.split("|")[1:] for l in q("select content_id, coalesce(sua::text, ''), coalesce(mo_ta::text, ''), coalesce(cot_truyen::text, ''), coalesce(redirect_url, '') from etp.trang_phim").splitlines() if l}
     # bản cần đọc chi tiết: mới · đổi updated_at · còn thiếu mô tả / cốt truyện (Ethopex sinh trễ)
     def can(x):

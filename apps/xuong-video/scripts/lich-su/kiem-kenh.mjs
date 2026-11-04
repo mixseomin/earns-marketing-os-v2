@@ -30,7 +30,7 @@ if (process.argv.includes('--thu-tho')) { console.log(viecTho('kenh:parody|yeste
 for (const [k, K] of Object.entries(KENH)) {
   if (k.startsWith('_') || !K.may) continue;
   const ten = K.ten_kenh ?? K.ten, dong = [];
-  const ds = JSON.parse(sqlBox(`SELECT coalesce(json_agg(json_build_object('slug', v.slug, 'xuat', v.xuat_luc IS NOT NULL, 'ket', v.cham->>'ket', 'ngay', v.da_dang->'youtube'->>'ngay', 'url', v.da_dang->'youtube'->>'url', 'tieu_de', v.dang->>'title') ORDER BY v.id)::text, '[]') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)};`) || '[]');
+  const ds = JSON.parse(sqlBox(`SELECT coalesce(json_agg(json_build_object('slug', v.slug, 'xuat', v.xuat_luc IS NOT NULL, 'ket', v.cham->>'ket', 'da_dang', coalesce(v.da_dang, '{}'::jsonb), 'tieu_de', v.dang->>'title') ORDER BY v.id)::text, '[]') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)};`) || '[]');
   if (gio < '20:00') {
     if (!lichHomNay(K, thu, '23:59').den) continue;   // không phải ngày làm tập → không báo
     const id = `${K.may}-${hom.replace(/-/g, '')}`, v = ds.find((x) => x.slug === id), tep = join(DIR, 'tap', `${id}.json`);
@@ -42,9 +42,11 @@ for (const [k, K] of Object.entries(KENH)) {
     } else if (!tap) dong.push(`✗ hôm nay là ngày làm tập (từ ${K.gio_tap ?? '?'}) mà CHƯA CÓ tập ${id} — việc nền iMac:com.earns.lich-su-lam-tap có chạy không? nhật ký /Users/htuan/.cache/lich-su-lam-tap.log (iMac)`);
     else dong.push(`✗ tập ${id} HỎNG${tap.tu_dong ? ` (tự làm lại ${tap.tu_dong.lan}/3)` : ''}: ${(tap.tu_dong?.loi ?? 'chưa nạp máy đăng').slice(0, 300)}\n🔧 ${viecTho(`kenh:${k}|${id}`)}\nnhật ký: /Users/htuan/.cache/lich-su/${id}/lam-tap.log (iMac)`);
   } else {
-    const dang = ds.filter((x) => x.ngay === hom);
-    if (dang.length) for (const x of dang) dong.push(`✓ đã đăng hôm nay: ${x.tieu_de ?? x.slug}\n${x.url ?? ''}`);
-    else { const cho = ds.filter((x) => !x.ngay), duyet = cho.filter((x) => x.ket === 'DUYET').length, chua = cho.filter((x) => x.xuat && !x.ket).length, sua = cho.filter((x) => x.ket && x.ket !== 'DUYET').length;
+    // mọi nền của máy (youtube, facebook:<acct>…): da_dang = { <nền>: { ngay, url } }
+    const homNay = ds.flatMap((x) => Object.entries(x.da_dang ?? {}).filter(([, d]) => d?.ngay === hom || String(d?.luc ?? '').startsWith(hom)).map(([n, d]) => ({ ...x, nen: n, url: d.url })));
+    const dang = homNay;
+    if (dang.length) for (const x of dang) dong.push(`✓ ${x.nen} đã đăng hôm nay: ${x.tieu_de ?? x.slug}\n${x.url ?? ''}`);
+    else { const cho = ds.filter((x) => !x.da_dang?.youtube), duyet = cho.filter((x) => x.ket === 'DUYET').length, chua = cho.filter((x) => x.xuat && !x.ket).length, sua = cho.filter((x) => x.ket && x.ket !== 'DUYET').length;
       dong.push(`✗ hôm nay CHƯA ĐĂNG video nào · hàng chờ: ${duyet} đã DUYỆT, ${chua} chờ chấm, ${sua} bị SỬA LẠI${duyet ? ' — có bài DUYỆT mà không đăng: xem máy đăng /Users/htuan/puzzle-books/scripts/dang-may.mjs (iMac)' : ''}`); }
   }
   tele(`📺 ${ten} · kiểm ${gio} ${hom}\n${dong.join('\n')}`);

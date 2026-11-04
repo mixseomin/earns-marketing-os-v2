@@ -212,7 +212,7 @@ const LUAT = [
   // Bước 4b (anh 31/10/2026): nhân bản + lên ROAS cho tài khoản team trên khuôn camp gốc, bằng phiên của người đó, không dính sổ bộ nhà
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'bo = None if NGOAI else (bo or bo_cua_camp(c) or "1")', vi: 'camp team không bị đổi sang tài khoản / Page bộ nhà' },
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: '**({"nguoi": EA.SUA or EA.XEM} if NGOAI else {})})', vi: 'nhân bản camp team ghi nhật ký kèm nguoi — không tính vào đếm trần Nhà (02/11/2026)' },
-  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'content_id=cid, ngoai=bool(NGOAI))', vi: 'camp team bỏ trần ngày / bộ của nhà, vẫn dừng khẩn / Âu-Mỹ' },
+  { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'content_id=cid, ngoai=bool(NGOAI)', vi: 'camp team bỏ trần ngày / bộ của nhà, vẫn dừng khẩn / Âu-Mỹ' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "const nbEnv = { ETP_SUA_NGUOI: String(ng) }", vi: 'nhân bản / ROAS team đi phiên Ethopex của chính người đó' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "m.id > 0 && !seTat.has(m.id) && !giu[`nb:${m.id}`]", vi: 'không nhân bản camp đang chờ tắt' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO } from './ethopex.mjs';", vi: 'một danh sách mức ROAS + một chỗ ghi ngày G10 + sổ luật chung cho nhà và team' },

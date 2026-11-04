@@ -267,16 +267,22 @@ def b_camp_lt(d, truoc):
     sql(f"update etp.dong_phim set camp_id = {int(xong[0])} where id = {d['id']}")
     return "xong", f"lên {len(xong)} camp $1: " + ", ".join(f"#{c}" for c in xong) + (f" · chặn {len(loi)}: " + " · ".join(map(str, loi))[:300] if loi else ""), {"camp_id": int(xong[0]), "camps": xong, "gan": gan}
 
-def san_cua(cid):
-    """creative sạch (chấm đạt, chưa bị Meta từ chối) chưa có camp của phim — mở rộng dùng lại trước khi cắt mới (anh 04/11/2026 "phim này đã từng cắt thì ở lô mới có tận dụng lại đc ko")"""
-    return int(sql(f"""select count(*) from etp.creative r join etp.cham_cong g using (creative_id) where r.content_id = {int(cid)} and g.duoc_len and r.tu_choi is null
-                       and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)""") or 0)
+def san_dung_lai(cid):
+    """creative DÙNG LẠI ĐƯỢC của phim — ĐÚNG các cổng nhan-ban.py sẽ chặn (04/11/2026: dòng #49/#50 phim 167292 đếm creative CTA cũ là 'có sẵn', bỏ cắt,
+    tới bước Lên camp cả 6 bị chặn 'chưa đạt luật CTA mới'): chấm đạt · ĐẠT CTA mới (etp.creative.cta_dat) · chưa bị Meta từ chối · chưa có camp ·
+    không cùng đoạn với camp đang chạy / đang đồng bộ của phim. MỘT chỗ — bước dựng dòng và bước Lên camp cùng gọi."""
+    return [int(x) for x in sql(f"""select r.creative_id from etp.creative r join etp.cham_cong g using (creative_id)
+        where r.content_id = {int(cid)} and g.duoc_len and r.cta_dat and r.tu_choi is null
+          and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
+          and (r.doan is null or r.doan not in (select k.doan from etp.camp c join etp.creative k using (creative_id) where c.content_id = {int(cid)} and k.doan is not null
+                                                and (c.trang_thai = 'ACTIVE' or coalesce(c.dong_bo, '') not in ('done', 'synced', 'error'))))
+        order by r.creative_id desc""").split() if x.isdigit()]
+def san_cua(cid): return len(san_dung_lai(cid))
 
 def b_camp_mr(d, truoc):
     """MỞ RỘNG (anh bấm ＋ ở dòng phim, chọn số camp): creative sạch vừa làm + creative sạch có sẵn chưa có camp của phim → lên đúng so_camp camp $1 (bộ của phim)"""
     cr = truoc.get("creative") or {}; moi = [int(x["creative_id"]) for x in (cr.get("sach") or ([cr] if cr.get("creative_id") else []))]
-    san = [int(x) for x in sql(f"""select r.creative_id from etp.creative r join etp.cham_cong g using (creative_id) where r.content_id = {d['content_id']} and g.duoc_len and r.tu_choi is null
-                                   and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id) order by r.creative_id desc""").split() if x.isdigit()]
+    san = san_dung_lai(d["content_id"])
     ds = list(dict.fromkeys(moi + san))[:int(d["so_camp"])]
     if not ds: return "dung", "không có creative sạch nào để lên camp", None
     bo = sql(f"select coalesce((select gia_tri->>'{d['content_id']}' from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2')") or "2"

@@ -57,7 +57,7 @@ def chay(q):
                   group by 1, 2 having sum(chi) >= 5) d
             group by 1 having count(*) >= %d and sum(chi) >= %d),   -- ngưỡng SƠ BỘ (SB_NGAY / SB_CHI); dưới BIEN_NGAY ngày đồng hồ vẽ mờ
       san as (select r.content_id, count(*) k from etp.creative r join etp.cham_cong g using (creative_id)
-              where g.duoc_len and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id) group by 1)
+              where g.duoc_len and r.cta_dat and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id) group by 1)   -- cùng cổng dong_phim.san_dung_lai: phải ĐẠT CTA mới (04/11/2026 phim 167292 đếm 10, thật 0)
       select a.content_id, a.n, extract(epoch from now() - a.dau) / 86400 tuoi, (a.moi at time zone 'UTC')::date >= current_date - 1 moi_chua_khep,
              coalesce(s.chi3, 0) chi3, coalesce(s.thu3, 0) thu3, s.chi_t, s.thu_t, coalesce(san.k, 0) san, b.roi_bien, b.r2, b.chi_tb, b.so_ngay
       from a left join s using (content_id) left join san using (content_id) left join b using (content_id)

@@ -334,7 +334,7 @@ function dieuKienLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' 
       { ten: `hôm nay chi ${pct(c.nay.chi)}% ngân sách ≥ 30%`, dat: c.nay.chi >= Math.max(0.3 * ns, 0.3) },
       { ten: `ROI hôm nay ${phanTram(rn)} ≤ −5%`, dat: rn != null && rn <= -5 },
       { ten: `ROI hôm qua ${phanTram(rq)} < +50%`, dat: rq == null || rq < 50 }] });
-    ra.push({ k: '↓', mau: '#fb923c', chip: `↓ $${ns}→$${xu} sáng mai`, ten: `Giảm bậc sáng mai (6h–13h) $${ns} → $${xu}`, dk: [
+    ra.push({ k: '↓', mau: '#fb923c', chip: `↓ $${ns}→$${xu} mai ${KD.doi[0]}h`, ten: `Giảm bậc ngày mai (${KD.doi[0]}h–${KD.doi[1]}h, số trọn hôm nay) $${ns} → $${xu}`, dk: [
       { ten: `hôm nay chi ${pct(c.nay.chi)}% ngân sách ≥ 50%`, dat: c.nay.chi >= 0.5 * ns },
       { ten: `ROI hôm nay ${phanTram(rn)} < 0%`, dat: rn != null && rn < 0 },
       { ten: `ROI 3 ngày ${phanTram(r3)} < +20%`, dat: r3 == null || r3 < 20 }] });

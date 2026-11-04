@@ -158,7 +158,7 @@ async function xuChuBoPhim(tg, x) {
 }
 // DUYỆT ĐỔI LUẬT TRÊN TELEGRAM (anh 22/10/2026: "báo chi tiết qua tele rồi ta duyệt"): nút el:ok:<mã> / el:no:<mã> → DATA/ethopex-luat-duyet.json
 //   ld_siet     — luật LD chỉ tăng khi ROI hôm qua ≥ 0% và ROI tháng ≥ 0% (luat-ethopex.py đọc tệp này)
-//   gb_tu_giam  — máy tự giảm bậc theo luật GB (phiên sáng 6–13h, số trọn ngày hôm qua), không tắt camp nào; báo một tin
+//   gb_tu_giam  — máy tự giảm bậc theo luật GB (khung đổi camp 15–21h, số trọn ngày hôm qua), không tắt camp nào; báo một tin
 const TEP_DUYET = () => path.join(DATA(), 'ethopex-luat-duyet.json');
 export const LUAT_DOI = {
   ld_siet: { ten: 'Siết luật LD (lãi đầu phiên)', ap: 'Từ nhịp kế: camp hôm qua lỗ hoặc lỗ cả tháng không được tự tăng nhờ lãi đầu phiên.' },

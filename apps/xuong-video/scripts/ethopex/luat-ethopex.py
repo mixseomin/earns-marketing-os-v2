@@ -15,6 +15,7 @@ ROI_TANG = 50
 HQ_NHO, HQ_NHO_MIN = 0.5, 2.0   # sàn $2 (anh 28/10/2026 "cấm viết chung chung, chi nhỏ là bao nhiêu — set tối thiểu $2"): chi nhỏ = chi hôm qua < max($2, 50% ngân sách) · luật B1: chi hôm qua dưới tỷ lệ này của ngân sách hiện tại thì ROI hôm qua âm không chặn tăng trong ngày
 roi_min = float(ARGS[0]) if ARGS else 20; sp_min = float(ARGS[1]) if len(ARGS) > 1 else 50; JSON = '--json' in sys.argv
 BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))   # sổ luật chung (anh 01/11/2026)
+KD = BANG_LUAT["khung_doi"]   # khung máy tự đổi camp (anh 04/11/2026) — mốc giờ luật GB / đuôi đọc từ đây, cùng worker ethopex.mjs + trang etp
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 # API Ethopex chậm / quá giờ (23/10/2026 21:49 "The read operation timed out" thành tin báo động giả) → mọi lượt gọi tự thử lại 3 lần, nghỉ 5–10s.
 # Lỗi 4xx không thử lại. Còn lỗi sau 3 lần mới vào nhóm loi_may (báo nhanh, tự xoá) — KHÔNG bao giờ nhét vào nhóm bị Meta từ chối.
@@ -222,11 +223,11 @@ def _ts_ly(cid):
     if ry is not None and 0 <= ry < TS_HQ: return f"hôm qua {ry:+.0f}% (0–{TS_HQ}%)"
     return None
 dat = [(cid, chu) for cid, chu in dat if not _ts_ly(cid)]
-# GIẢM BẬC (luật GB): chỉ phiên sáng (6–13h VN), trên số TRỌN ngày hôm qua: ngân sách > $1, hôm qua đã tiêu ≥ 50% ngân sách, ROI hôm qua < 0% và ROI 3 ngày < 20%
+# GIẢM BẬC (luật GB): chỉ trong KHUNG ĐỔI CAMP (KD.doi, 15–21h VN — anh 05/11/2026; trước: phiên sáng 6/9–13h), trên số TRỌN ngày hôm qua: ngân sách > $1, hôm qua đã tiêu ≥ 50% ngân sách, ROI hôm qua < 0% và ROI 3 ngày < 20%
 # → xuống một bậc; lỗ nặng (ROI hôm qua < −50% và tiêu đủ ngân sách) → hai bậc. ROI 0–50% là VÙNG GIỮ (không tăng, không giảm).
 # Camp vừa tăng mà ngày trọn kế tiếp âm → giảm luôn, không xét ROI 3 ngày (anh 24/10/2026), từng bậc một: $20 → $15 → $10.
 ha = []
-if (9 if GB_9H else 6) <= vn.hour < 13:   # gb_9h duyệt: ngày UTC hôm qua khép 07:00 VN + ~2 giờ cho đợt chi cuối → 9h mới đủ số trọn
+if KD["doi"][0] <= vn.hour < KD["doi"][1]:   # khung đổi camp: máy chỉ tự giảm trong khung này → GB chấm đúng lúc đó (số hôm qua đã khép từ ~9h, gb_9h không còn cần)
     for cid, a in thang.items():
         ns = a["budget"]; y = hqua.get(cid)
         if ns <= 1 or not y or y["chi"] < 0.5 * ns: continue
@@ -555,7 +556,7 @@ L3_CHI, L3_PHAN = 1.0, 0.6
 # ĐUÔI NGÀY KẾ (anh 03/11/2026, chọn "Cả hai": #65714 / #65736 / #72920 / #73282 bị G10 tắt 07:48 khi ngày mới vừa mở — "thêm đoạn đuôi trong ngày tiếp theo"):
 # L3 / G10 tới ngưỡng thì CHƯA tắt ngay — cho chạy phần đầu ngày đang chạy tới khi chi ≥ DUOI_PHAN ngân sách hoặc tới DUOI_GIO giờ VN; đoạn đuôi đó
 # cũng dưới ngưỡng của luật thì mới tắt, có lãi đạt ngưỡng thì giữ (ngày đó khép xong luật xét lại với số mới).
-DUOI_PHAN, DUOI_GIO = 0.5, 19
+DUOI_PHAN, DUOI_GIO = 0.5, KD["doi"][0]   # mốc đuôi = đầu khung đổi camp (anh 05/11/2026; trước 19h → chỉ còn 19–21h để xử, đuôi dính giờ xấu 15–19h)
 cho_duoi = []
 def duoi(c, ns, nguong, ten_, luat_):
     """→ True = được tắt; False = chờ đuôi / đuôi đạt ngưỡng (đã ghi cho_duoi)"""

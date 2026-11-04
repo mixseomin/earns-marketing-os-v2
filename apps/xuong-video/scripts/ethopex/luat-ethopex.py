@@ -629,7 +629,10 @@ try:
         _ns = float(c.get("budget_daily") or 0)
         _m = {x[0]: x for x in (_ng.get(_c) or [None, []])[1]}
         _c3, _t3 = sum(_m[k][1] for k in _d3 if k in _m), sum(_m[k][2] for k in _d3 if k in _m); _r3 = (_t3 - _c3) / _c3 * 100 if _c3 >= 0.3 else None
-        _pl_xet[_c] = [[f"Phim {_f} · chi 7 ngày ở bộ {_b}", f"${_pc:.2f}", f"≥ ${PL_CHI:g}", _pc >= PL_CHI], ["ROI phim 7 ngày", "—" if _pr is None else f"{_pr:+.0f}%", f"< {PL_ROI}%", _pr is not None and _pr < PL_ROI],
+        # TUỔI CAMP (góp ý #1527 anh 04/11/2026 "camp này vừa lên thì rule này ko hợp lý"): camp chưa chạy đủ 3 ngày đã khép thì "chưa đủ số" là do MỚI LÊN, không phải
+        # do chi không ra — trước đây vẫn tính đạt → phim đang lỗ thì máy tắt luôn camp vừa lên. Camp tạo trước ngày khép đầu tiên của cửa sổ 3 ngày mới xét.
+        _t0 = _tao.get(c["id"]); _du3 = _t0 is not None and _t0.date() < min(_d3)
+        _pl_xet[_c] = [["Tuổi camp", "—" if _t0 is None else f"{(dt.datetime.now(dt.timezone.utc) - _t0).days} ngày", "chạy qua đủ 3 ngày đã khép", _du3], [f"Phim {_f} · chi 7 ngày ở bộ {_b}", f"${_pc:.2f}", f"≥ ${PL_CHI:g}", _pc >= PL_CHI], ["ROI phim 7 ngày", "—" if _pr is None else f"{_pr:+.0f}%", f"< {PL_ROI}%", _pr is not None and _pr < PL_ROI],
                        ["Ngân sách camp", f"${_ns:g}", f"≤ ${PL_NS:g}", 0 < _ns <= PL_NS], ["ROI camp 3 ngày đã khép", "—" if _r3 is None else f"{_r3:+.0f}%", "< 0% hoặc chưa đủ số", _r3 is None or _r3 < 0]]
         if _c in _da_tat or not all(x[3] for x in _pl_xet[_c]): continue
         _x = [x for x in (_ng.get(_c) or [None, []])[1] if x[0] in _d7]; _ca, _ta = sum(x[1] for x in _x), sum(x[2] for x in _x)

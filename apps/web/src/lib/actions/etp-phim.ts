@@ -2,6 +2,7 @@
 // NGĂN PHIM (anh 02/11/2026 "Ko có khả năng xem nội dung phim đang có là gì!!!?"): mở theo mã phim thư viện (= content_id của camp) — đọc nội dung thật
 // từ Ethopex (GET api-multi-be /api/v2/movie/groups/{group_id}, group_id ở etp.thu_vien_phim do apps/etp/thu_vien_phim.py ghi), lưu đệm 7 ngày ở etp.noi_dung_phim;
 // kèm bảng điểm chọn phim (xv_khoa_ngoai['ethopex_co_the_test'] — chon-phim-moi.py), trang phim workspace, số camp. CHỈ ĐỌC Ethopex.
+import { execFile } from 'node:child_process';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
@@ -131,4 +132,20 @@ export async function nhanCuaPhim(id: number): Promise<NhanPhim | null> {
   const ng = await nguoiCua(); if (!ng) return null;
   const g = await dangGiu(Math.trunc(Number(id)));
   return g ? { ...g, cua_toi: g.nguoi_id === ng.nguoiId } : null;
+}
+
+/** QUÉT + CHẤM LẠI PHIM NGAY (góp ý #1530 anh 04/11/2026 "thêm chức năng quét, chấm lại phim chủ động") — đúng 3 bước dong-bo.py chạy mỗi 6 giờ, $0 (không gọi AI):
+ *  nạp phim mới của thư viện Ethopex (thu_vien_phim) → đếm QC FB theo tên (qc-fb-phim.py --dem) → chấm điểm có thể test (chon-phim-moi.py --co-the-test). Chỉ admin. */
+export async function quetPhimEtp(): Promise<{ ok: true; co_the_test: number | null; ghi: string } | { loi: string }> {
+  const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin' };
+  const R = process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2', E = `${R}/apps/xuong-video/scripts/ethopex`;
+  const chay = (lenh: string[], cwd: string) => new Promise<string>((ok, hong) => execFile('python3', lenh, { cwd, env: process.env, timeout: 300_000, maxBuffer: 8 << 20 },
+    (e, out, err) => (e ? hong(new Error((err || out || String(e)).trim().slice(-200))) : ok(out.trim().split('\n').pop() ?? ''))));
+  try {
+    const tv = await chay(['-c', 'import json, thu_vien_phim, ethopex_api as EA; print(json.dumps(thu_vien_phim.chay(EA.T_NHA), ensure_ascii=False, default=str))'], `${R}/apps/etp`);
+    const qc = await chay(['qc-fb-phim.py', '--dem'], E);
+    const ct = await chay(['chon-phim-moi.py', '--co-the-test'], E);
+    let n: number | null = null; try { n = Number(JSON.parse(ct).co_the_test); } catch { /* in lạ — vẫn báo chữ */ }
+    return { ok: true, co_the_test: n, ghi: `thư viện ${tv.slice(0, 120)} · QC FB ${qc.slice(0, 80)}` };
+  } catch (e) { return { loi: `quét hỏng: ${(e as Error).message}` }; }
 }

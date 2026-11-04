@@ -4,7 +4,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Drawer } from '@/components/ui';
 import { Dem } from '@/components/etp-so';
-import { docPhimEtp, nhanCuaPhim, nhanPhimEtp, traPhimEtp, type NhanPhim, type PhimNoiDung } from '@/lib/actions/etp-phim';
+import { docPhimEtp, type PhimNoiDung } from '@/lib/actions/etp-phim';
 
 const MO = 'var(--fg-3)';
 const ngoai = (u: string) => `https://href.li/?${u}`;   // link ra ngoài che referrer
@@ -16,24 +16,6 @@ function Doan({ nhan, chu }: { nhan: string; chu: string | null }) {
   return <div style={{ marginBottom: 12 }}><div style={{ fontSize: 10.5, color: MO, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 3 }}>{nhan}</div>
     {chu ? <div title={chu} style={{ fontSize: 12.5, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', overflow: 'hidden', whiteSpace: 'pre-wrap' }}>{chu}</div>
       : <div style={{ color: MO }}>—</div>}</div>;
-}
-
-const gio = (iso: string) => new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
-/** NHẬN PHIM (anh 02/11/2026): bấm Nhận = giữ quyền lên camp 24 giờ; quá 24 giờ chưa lên camp thì tự nhả cho người khác; đã lên camp thì giữ luôn */
-function ONhan({ id }: { id: number }) {
-  const [n, setN] = useState<NhanPhim | null | 'tai'>('tai'), [loi, setLoi] = useState<string | null>(null), [ban, setBan] = useState(false);
-  useEffect(() => { let s = true; nhanCuaPhim(id).then((r) => { if (s) setN(r); }).catch(() => { if (s) setN(null); }); return () => { s = false; }; }, [id]);
-  const lam = async (f: () => Promise<{ ok: true } | { loi: string }>) => { setBan(true); setLoi(null); const r = await f(); setBan(false); if ('loi' in r) setLoi(r.loi); setN(await nhanCuaPhim(id)); };
-  const nut = { display: 'block', width: '100%', marginTop: 8, padding: '7px 0', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: 'pointer', fontSize: 13 } as const;
-  if (n === 'tai') return <div style={{ marginTop: 8, color: MO, fontSize: 12 }}>Đang đọc người nhận…</div>;
-  return <div style={{ marginTop: 8, fontSize: 12.5 }}>
-    {n ? <div>{n.trang_thai === 'da_len' ? <><b>{n.nguoi}</b> đã lên camp{n.len_luc ? ` ${gio(n.len_luc)}` : ''}</> : <><b>{n.cua_toi ? 'Bạn' : n.nguoi}</b> đang giữ tới {gio(n.het_luc)}</>}</div>
-      : <div style={{ color: MO }}>Chưa ai nhận</div>}
-    {n?.ghi ? <div style={{ marginTop: 4, fontSize: 12, color: ['loi', 'loai_18', 'cham_chan', 'loi_sinh'].includes(n.buoc ?? '') ? '#f87171' : MO }}>Tiến độ: {n.ghi}</div> : null}
-    {!n ? <button type="button" disabled={ban} onClick={() => lam(() => nhanPhimEtp(id))} style={{ ...nut, borderColor: 'var(--accent, #38bdf8)', color: 'var(--accent, #38bdf8)' }}>Nhận phim (giữ 24 giờ)</button>
-      : n.cua_toi && n.trang_thai === 'giu' ? <button type="button" disabled={ban} onClick={() => lam(() => traPhimEtp(id))} style={nut}>Trả phim</button> : null}
-    {loi ? <div style={{ marginTop: 6, color: '#f87171' }}>{loi}</div> : null}
-  </div>;
 }
 
 export function EtpPhimDrawer({ id, onClose }: { id: number; onClose: () => void }) {
@@ -55,7 +37,6 @@ export function EtpPhimDrawer({ id, onClose }: { id: number; onClose: () => void
           {p.anh ? <img src={p.anh} alt="" referrerPolicy="no-referrer" style={{ width: '100%', borderRadius: 8, display: 'block', border: '1px solid var(--line)' }} />
             : <div style={{ aspectRatio: '3 / 4', borderRadius: 8, border: '1px dashed var(--line)', display: 'grid', placeItems: 'center', color: MO }}>chưa có poster</div>}
           {p.url ? <a href={ngoai(p.url)} target="_blank" rel="noreferrer noopener" style={{ display: 'block', marginTop: 10, textAlign: 'center', padding: '7px 0', borderRadius: 6, border: '1px solid var(--line)', color: 'var(--accent, #38bdf8)', textDecoration: 'none', fontSize: 13 }}>Xem tập 1 ↗</a> : null}
-          <ONhan id={p.id} />
           {p.loi_doc ? <div style={{ marginTop: 8, fontSize: 11.5, color: MO }}>{p.loi_doc}</div> : null}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

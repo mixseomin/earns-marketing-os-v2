@@ -22,6 +22,7 @@ const TeamMemberDrawer = dynamic(() => import('./entity-more-drawers').then((m) 
 const MediaDrawer = dynamic(() => import('./entity-more-drawers').then((m) => m.MediaDrawer), { ssr: false });
 const ContactDrawer = dynamic(() => import('./entity-more-drawers').then((m) => m.ContactDrawer), { ssr: false });
 const EtpPhimDrawer = dynamic(() => import('./etp-phim-drawer').then((m) => m.EtpPhimDrawer), { ssr: false });
+const EtpSxDrawer = dynamic(() => import('./etp-sx-drawer').then((m) => m.EtpSxDrawer), { ssr: false });
 
 // HOST_KINDS lives in @/lib/entity-drawer (single source, shared with EntityRef). The switch
 // below MUST cover exactly those kinds — re-exported here for existing importers.
@@ -66,6 +67,7 @@ function EntityDrawerFrame({ req, onClose }: { req: EntityDrawerReq; onClose: ()
     case 'media': return <MediaDrawer mediaId={id} onClose={onClose} />;
     case 'contact': return <ContactDrawer contactId={id} onClose={onClose} />;
     case 'etp-phim': return <EtpPhimDrawer id={id} onClose={onClose} />;
+    case 'etp-sx': return <EtpSxDrawer id={id} onClose={onClose} />;   // ngăn Sản xuất một phim (#1528)
     default: return null;   // unregistered kind → nothing (EntityRef falls back to deep-link route)
   }
 }

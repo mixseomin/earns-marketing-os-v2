@@ -40,11 +40,11 @@ const COT_CR: [string, string, string][] = [['cat', 'Cắt / sinh', 'cat'], ['so
 /** ĐỒNG HỒ TIẾN ĐỘ (anh 04/11/2026 "thiết kế giống cái đồng hồ công tơ mét với các node là tiến độ … ở giữa vẫn là số" · "các bước là chính các phần này và màu sắc như hiện trạng"):
  *  vòng cung 9 nút = đúng 9 cột tab Sản xuất (COT_PHIM + COT_CR), màu = MAU của tab; giữa là số camp đang sản xuất. Cây camp (etp-view BadgeSx) dùng. */
 export const NUT_SX: [string, string, string][] = [...COT_PHIM.map(([k, t]): [string, string, string] => [k, t, k]), ...COT_CR];
-export function DongHoSx({ buoc, so, title, href, ket }: { buoc: { buoc: string; trang_thai: string }[]; so: number; title: string; href: string; /** dòng đã kết thúc: xong / dung / loi → số giữa đổi màu (giữ 24 giờ) */ ket?: string }) {
+export function DongHoSx({ buoc, so, title, href, ket, bam }: { buoc: { buoc: string; trang_thai: string }[]; so: number; title: string; href: string; /** bấm thường (không Ctrl/⌘/Shift) — mở ngăn thay vì sang trang (#1528) */ bam?: () => void; /** dòng đã kết thúc: xong / dung / loi → số giữa đổi màu (giữ 24 giờ) */ ket?: string }) {
   const R = 10, C = 13, goc0 = 150, quet = 240, n = NUT_SX.length;   // cung 240° mở phía dưới như công-tơ-mét
   const xy = (g: number) => [C + R * Math.cos((g * Math.PI) / 180), C + R * Math.sin((g * Math.PI) / 180)];
   const tt = (b: string) => buoc.find((x) => x.buoc === b)?.trang_thai ?? 'cho';
-  return <a href={href} onClick={(e) => e.stopPropagation()} title={title || undefined} style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', textDecoration: 'none' }}>
+  return <a href={href} onClick={(e) => { e.stopPropagation(); if (bam && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) { e.preventDefault(); bam(); } }} title={title || undefined} style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', textDecoration: 'none' }}>
     <svg width={26} height={26} viewBox="0 0 26 26">
       {NUT_SX.map(([k, , b], i) => { const [x, y] = xy(goc0 + (quet * i) / (n - 1)); const t = tt(b); const m = (MAU[t] ?? MAU.cho!)[0];
         return <circle key={k} cx={x} cy={y} r={t === 'dang' ? 2.4 : 1.9} fill={m} style={t === 'dang' ? { animation: 'etpDen 1.6s ease-in-out infinite' } : undefined} />; })}   {/* không <title> SVG — chi tiết ở thẻ nổi chung (anh 04/11/2026 "tất cả hover đều phải dùng loại này") */}
@@ -259,11 +259,11 @@ function NhomPhim({ ds, xong, moCamp }: { ds: DongPhim[]; xong: () => void; moCa
 }
 
 const LOC: [LocDong, string][] = [['mac_dinh', 'Đang làm · lỗi · xong 24h'], ['dang', 'Đang làm'], ['loi', 'Lỗi / dừng'], ['tat_ca', 'Tất cả']];
-export function TabDong({ moCamp }: { moCamp?: (id: number) => void } = {}) {
+export function TabDong({ moCamp, phim }: { moCamp?: (id: number) => void; /** khoá vào một phim (ngăn Sản xuất #1528): lọc Tất cả, không ghi ?sxq lên URL */ phim?: number } = {}) {
   const [du, setDu] = useState<Awaited<ReturnType<typeof docDong>> | null>(null);
-  const [loc, setLoc] = useState<LocDong>('mac_dinh'); const [tim, setTim] = useState(() => (typeof location === 'undefined' ? '' : new URLSearchParams(location.search).get('sxq') ?? '')); const [trang, setTrang] = useState(0);   // ?sxq= lọc phim (link từ form mở rộng, anh 04/11/2026)
+  const [loc, setLoc] = useState<LocDong>(phim ? 'tat_ca' : 'mac_dinh'); const [tim, setTim] = useState(() => phim ? String(phim) : (typeof location === 'undefined' ? '' : new URLSearchParams(location.search).get('sxq') ?? '')); const [trang, setTrang] = useState(0);   // ?sxq= lọc phim (link từ form mở rộng, anh 04/11/2026)
   const tai = useCallback(async () => setDu(await docDong(loc, tim, trang)), [loc, tim, trang]);
-  useEffect(() => { const u = new URL(location.href); if (tim) u.searchParams.set('sxq', tim); else u.searchParams.delete('sxq'); if (u.href !== location.href) history.replaceState(null, '', u); }, [tim]);
+  useEffect(() => { if (phim) return; const u = new URL(location.href); if (tim) u.searchParams.set('sxq', tim); else u.searchParams.delete('sxq'); if (u.href !== location.href) history.replaceState(null, '', u); }, [tim, phim]);
   useEffect(() => { void tai(); const t = setInterval(() => void tai(), 10_000); return () => clearInterval(t); }, [tai]);
   if (!du) return <div style={{ padding: 16, color: 'var(--fg-2)' }}>Đang tải…</div>;
   if ('loi' in du) return <EmptyState icon="⚠" title={du.loi} />;

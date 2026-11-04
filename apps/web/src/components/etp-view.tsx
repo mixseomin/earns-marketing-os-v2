@@ -15,7 +15,7 @@ import { Dem, KeToan, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNgan } from
 import { lyDoChan, chuChan, type TieuChi } from '@/lib/etp-chan';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
-import { nhanPhimEtp, traPhimEtp } from '@/lib/actions/etp-phim';
+import { quetPhimEtp } from '@/lib/actions/etp-phim';
 import { DongHoSx, FormChayDong, MAU as MAU_DONG, NUT_SX, TabDong, xuLy } from '@/components/etp-dong';
 import { TRE_MO } from '@/lib/etp-tre';
 import type { CheDoLuat } from '@/lib/etp-quyen';
@@ -723,11 +723,18 @@ function MenuPhim({ p }: { p: PhimEtpKho }) {
   const [chay, setChay] = useState(false);   // form Chạy tự động (dòng phim, anh 03/11/2026)
   return <>{chay ? <FormChayDong contentId={p.content_id} onClose={() => setChay(false)} /> : null}<MenuBaCham tieuDe="Phim" phu={p.ten ?? `#${p.content_id}`} title={`Thao tác phim #${p.content_id}`} groups={[
     { label: 'Xem', items: [{ label: 'Nội dung, điểm, tiến độ', emoji: '▸', onClick: () => openEntityDrawer('etp-phim', p.content_id) }] },
-    { label: 'Nhận phim', items: p.nhan?.trang_thai === 'da_len' ? [{ label: `${p.nhan.nguoi ?? '?'} đã lên camp`, emoji: '✓', onClick: () => openEntityDrawer('etp-phim', p.content_id) }]
-      : giu ? [{ label: `Trả phim (${p.nhan!.nguoi ?? '?'} đang giữ)`, emoji: '↩', onClick: () => void lam(() => traPhimEtp(p.content_id)) }]
-      : [{ label: 'Nhận phim (giữ 24 giờ)', emoji: '＋', onClick: () => void lam(() => nhanPhimEtp(p.content_id)) }] },
     { label: 'Tự động', items: [{ label: 'Chạy tự động tới khi lên camp…', emoji: '▶', onClick: () => setChay(true) }] },
   ]} /></>;
+}
+
+// NÚT QUÉT + CHẤM LẠI PHIM (góp ý #1530): chạy ngay 3 bước dong-bo làm mỗi 6 giờ ($0); bấm → ⏳ tại chỗ (YDNI bấm là có dấu hiệu) → ✓ số phim có thể test + làm mới bảng
+function NutQuetPhim() {
+  const router = useRouter(); const [tt, setTt] = useState<'' | 'dang' | 'xong' | 'loi'>(''); const [chu, setChu] = useState('');
+  return <button className="btn" disabled={tt === 'dang'} title="nạp phim mới từ thư viện Ethopex → đếm QC FB theo tên → chấm điểm Có thể test (máy cũng tự chạy mỗi 6 giờ) — $0, ~1–3 phút"
+    style={{ fontSize: 12, color: tt === 'loi' ? '#f87171' : tt === 'xong' ? '#4ade80' : undefined }}
+    onClick={async () => { setTt('dang'); setChu(''); const r = await quetPhimEtp(); if ('loi' in r) { setTt('loi'); setChu(r.loi); return; }
+      setTt('xong'); setChu(r.co_the_test != null ? `${r.co_the_test} phim có thể test` : 'xong'); router.refresh(); }}>
+    {tt === 'dang' ? '⏳ đang quét + chấm lại…' : tt === 'xong' ? `✓ đã chấm lại · ${chu}` : tt === 'loi' ? `✕ ${chu.slice(0, 80)}` : '↻ Quét, chấm lại phim'}</button>;
 }
 
 function BanLuat({ du }: { du: DuLieuEtp }) {
@@ -1030,15 +1037,17 @@ function KhungNoi({ x, y, rong, cao, noi, children, style }: { x: number; y: num
   // ở nửa dưới màn bị đẩy lên xa) — đủ chỗ thì nằm ngay dưới con trỏ, không đủ thì lật lên trên con trỏ, chỉ kẹp mép khi cao hơn cả hai phía
   const ref = useRef<HTMLDivElement>(null); const [h, setH] = useState(cao);
   useLayoutEffect(() => { const el = ref.current; if (!el) return; const f = () => setH(el.offsetHeight); f(); const ro = new ResizeObserver(f); ro.observe(el); return () => ro.disconnect(); }, []);
-  // ĐÈ LÊN CON TRỎ (góp ý #1483 anh 29/10/2026): trước cách con trỏ 12–14px → kéo chuột sang thẻ phải đi qua ô / thẻ luật của dòng khác, thẻ nhảy sang camp đó.
-  // Nay mép thẻ lấn qua con trỏ CHONG px: thẻ mở ra là con trỏ đã nằm trong thẻ, không còn khe phải băng qua
-  const CHONG = 8;
-  const top = y - CHONG + h <= H - 8 ? y - CHONG : y + CHONG - h >= 8 ? y + CHONG - h : Math.max(8, H - h - 8);
+  // ĐẶT BÊN CẠNH CON TRỎ (góp ý #1531 anh 04/11/2026 "hover box phải nằm ngoài vị trí con chuột … đéo ai bấm bên dưới được"): trước thẻ đè lên con trỏ rồi tràn
+  // xuống (#1483) → che mọi dòng phía dưới. Nay mép trái thẻ cách con trỏ CHONG px về bên PHẢI, đầu thẻ ngang dòng đang rê — kéo chuột sang thẻ chỉ đi ngang trong
+  // cùng dòng, không băng qua dòng khác (giữ ý #1483); cột dưới con trỏ để trống bấm được. Không đủ chỗ bên phải thì lật sang trái con trỏ.
+  const CHONG = 4;
+  const left = x + CHONG + rong <= W - 8 ? x + CHONG : Math.max(8, x - CHONG - rong);
+  const top = Math.max(8, Math.min(y - 24, H - h - 8));
   if (typeof document === 'undefined') return null;
   return createPortal((<>
     {/* lớp tô dòng đang mở thẻ (useNoi) — đặt cùng thẻ nên có ở mọi màn (Cây, Bảng, ROAS) */}
     <style>{'.dang-noi,.dang-noi>td{background:var(--hover,rgba(255,255,255,.09))!important}.dang-noi:not(tr),.dang-noi>td:first-child{box-shadow:inset 2px 0 0 #60a5fa}'}</style>
-    <div ref={ref} onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left: Math.max(8, Math.min(x - CHONG, W - rong - 16)), top,
+    <div ref={ref} onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left, top,
       background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', ...style }}>
       <button type="button" onClick={noi.dong} aria-label="Đóng" title="Đóng (Esc)" style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: 12, border: '1px solid var(--line)',
         background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: '20px' }}>✕</button>
@@ -1740,8 +1749,8 @@ function BadgeSx({ cid, ds, kt }: { cid: number; ds: DuLieuEtp['dongChay']; /** 
       tieu: `${TT_DONG[tt] ?? tt}${tt === 'chay' ? ` · bước ${x.buoc ?? '—'}` : x.camp_id ? ` · camp #${x.camp_id}` : ''}`,
       moc: [...(x.ly_do && tt !== 'chay' ? [{ ten: 'Lý do', mau: '#f59e0b', chu: x.ly_do.slice(0, 300) }] : []), ...(xuLy(tt) ? [{ ten: 'Xử lý', mau: '#60a5fa', chu: xuLy(tt)! }] : []),
         ...(x.cac_buoc ?? []).filter((b) => b.trang_thai !== 'bo_qua').map((b) => ({ ten: String(TEN9[b.buoc] ?? b.buoc), mau: (MAU_DONG[b.trang_thai] ?? MAU_DONG.cho!)[0], chu: MAU_DONG[b.trang_thai]?.[1] ?? b.trang_thai })),
-        { ten: 'Bấm', mau: '#64748b', chu: `sang ${x.id ? 'tab Sản xuất' : 'Thư viện'} lọc đúng phim · Ctrl/⌘: tab mới` }] });
-    return <span key={`${x.id}-${i}`} style={{ opacity: tt === 'chay' ? 1 : 0.6 }}><ReThe the={the}><DongHoSx buoc={x.cac_buoc ?? []} so={tt === 'chay' ? (x.so_camp ?? 1) : (x.so_len ?? 0)} title="" href={x.id ? `?t=dong&sxq=${cid}` : `?t=tv&tvq=${cid}`} ket={tt === 'chay' ? undefined : tt} /></ReThe></span>; })}</span>;
+        { ten: 'Bấm', mau: '#64748b', chu: x.id ? 'mở ngăn Sản xuất của phim · Ctrl/⌘: tab Sản xuất mới' : 'sang Thư viện lọc đúng phim · Ctrl/⌘: tab mới' }] });
+    return <span key={`${x.id}-${i}`} style={{ opacity: tt === 'chay' ? 1 : 0.6 }}><ReThe the={the}><DongHoSx buoc={x.cac_buoc ?? []} so={tt === 'xong' ? (x.so_len ?? 0) : (x.so_camp ?? 1)} title="" href={x.id ? `?t=dong&sxq=${cid}` : `?t=tv&tvq=${cid}`} ket={tt === 'chay' ? undefined : tt} bam={x.id ? () => openEntityDrawer('etp-sx', cid) : undefined} /></ReThe></span>; })}</span>;
 }
 /** ĐỒNG HỒ HẤP THỤ (anh 04/11/2026 "show thêm 1 đồng hồ nữa về các chỉ số này cho từng phim"): kim = ROI biên 14 ngày đã khép của phim (mỗi $1 chi thêm đem về bao nhiêu),
  *  dải −50…+50%; vùng đỏ < 0 quá bão hoà · vàng 0–15% gần đỉnh · xanh ≥ 15% còn hút. Số: apps/etp/mo_rong.py (etp.mo_rong.roi_bien / r2 / pha). */
@@ -2538,9 +2547,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       cell: (p: PhimEtpKho) => <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2, whiteSpace: 'nowrap' }}>
         <BadgeSx cid={p.content_id} ds={du.dongChay ?? []} kt={ktPh.get(p.content_id)} /><NutMoRong cid={p.content_id} /></span>, sortValue: sxPh }] : []),
     { key: 'tt_ph', header: 'Trạng thái', align: 'left', title: 'Có thể test (qua lọc chọn phim mới — nguồn, tiếng, thể loại, ít QC FB, chưa ai lên) · Đã có camp · Đã cất (máy cất, không mở camp mới) · Mới thêm vào workspace, chưa camp', cell: (p) => <span style={{ fontSize: 12, color: p.moc || !p.camp && !p.test ? MO : 'var(--fg-2)' }} title={p.moc ? `máy cất phim lúc ${vn(p.moc)} — không mở camp mới` : undefined}>{ttPh(p)}</span>, sortValue: ttPh },
-    { key: 'nhan', header: 'Người nhận', align: 'left', title: 'người đang giữ quyền lên camp phim (bấm tên phim → Nhận phim): giữ 24 giờ, quá hạn chưa lên camp tự nhả; đã lên camp thì giữ luôn', cell: (p) => (p.nhan ? <span style={{ fontSize: 12 }} title={p.nhan.trang_thai === 'giu' ? `giữ tới ${vn(p.nhan.het_luc)}` : 'đã lên camp'}>{p.nhan.nguoi ?? '?'}<span style={{ color: MO }}> · {p.nhan.trang_thai === 'giu' ? `còn ${Math.max(0, Math.ceil((Date.parse(p.nhan.het_luc) - Date.now()) / 3_600_000))}h` : 'đã lên'}</span></span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => (p.nhan ? p.nhan.nguoi ?? '?' : 'Chưa ai nhận') },
-    // Ô = NHÃN BƯỚC NGẮN (TD_NHAN), câu dài + lý do vào hover (anh 02/11/2026: "cột tiến độ dài như…" — YDNI: ô gọn, chi tiết ở hover)
-    { key: 'td_nhan', header: 'Tiến độ nhận', align: 'left', title: 'phim đang nhận — bước đang làm: soát 18+ (AI) → máy sinh kể chuyện → chấm → lên camp ở tài khoản người nhận; đỏ = dừng vì lỗi / bị chặn; hover xem chi tiết + lý do', cell: (p) => (p.nhan?.ghi || p.nhan?.buoc ? <span title={p.nhan.ghi ?? undefined} style={{ fontSize: 12, whiteSpace: 'nowrap', cursor: p.nhan.ghi ? 'help' : undefined, color: ['loi', 'loai_18', 'cham_chan', 'loi_sinh'].includes(p.nhan.buoc ?? '') ? '#f87171' : p.nhan.buoc === 'da_len' ? '#4ade80' : undefined }}>{(p.nhan.buoc ? TD_NHAN[p.nhan.buoc] : null) ?? p.nhan.buoc ?? '…'}</span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => (p.nhan?.buoc ? TD_NHAN[p.nhan.buoc] ?? p.nhan.buoc : null) },
+    // #1530 (anh 04/11/2026 "bỏ tính năng nhận phim này đi"): bỏ cột Người nhận + Tiến độ nhận — tab Sản xuất / đồng hồ sản xuất là chỗ xem tiến độ
     { key: 'hang', header: 'Hạng', title: 'hạng trong danh sách có thể test (điểm cao trước) — hover: điểm, lý do, trạng thái hàng chờ phim mới', cell: (p) => (p.test ? <span style={{ fontVariantNumeric: 'tabular-nums', cursor: 'help' }} title={`điểm ${p.test.diem} · ${p.test.vi_sao}${p.test.tt ? `\nhàng chờ phim mới: ${TT_MOI[p.test.tt] ?? p.test.tt}` : ''}`}>{p.test.hang}</span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => p.test?.hang ?? null },
     { key: 'diem', header: 'Điểm', title: 'điểm chọn phim (chon-phim-moi.py): nguồn + tiếng + thể loại + ít QC FB — bấm tên phim xem bảng điểm từng tiêu chí', cell: (p) => (p.test ? <span style={{ fontVariantNumeric: 'tabular-nums' }}>{p.test.diem}</span> : <span style={{ color: MO }}>—</span>), sortValue: (p) => p.test?.diem ?? null },
     { key: 'nguon_ph', header: 'Nguồn', align: 'left', title: 'tỷ lệ phim thắng: ReelShort 14,5% · NetShort 3,2% · DramaBox 2,1% (bộ chọn loại DramaBox)', cell: (p) => <span style={{ fontSize: 12 }}>{nguonPh(p)}</span>, sortValue: nguonPh },
@@ -2782,6 +2789,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         <TabTaiNguyen du={du} kh={kh} khCamp={khCamp} />
       ) : tab === 'phim' ? (
         <DataTable rows={du.phims} columns={cotPh} groups={NHOM} groupHeader getRowKey={(p) => String(p.content_id)} persistKey="etp-phim" minWidth={1200} pageSize={100} defaultSort={[{ key: 'hang', dir: 'asc' }]}
+          dauThanh={laNguoi || du.nguoi.ngoai || du.nguoi.doi ? undefined : <NutQuetPhim />}
           searchText={(p) => `${p.content_id} ${p.ten ?? ''} ${tl(p.the_loai)}`} searchPlaceholder="Tìm phim, thể loại…" />
       ) : (
         <>

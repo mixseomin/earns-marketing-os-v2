@@ -1,0 +1,94 @@
+{
+ "url": "https://astrolas.com/en/blog/aspects-explained",
+ "lay_luc": "2026-11-04",
+ "tieu_de": "Aspects explained: conjunction, square, trine, opposition, sextile",
+ "mo": [
+  "The five major aspects",
+  "Conjunction (0 degrees)",
+  "Opposition (180 degrees)",
+  "Orbs: how close is close enough",
+  "Applying vs separating",
+  "Hard vs soft: what the words really mean",
+  "Minor aspects, briefly",
+  "How to find the aspects that matter",
+  "Planets and signs tell you what's in a chart. Aspects tell you how the pieces talk to each other. Two people can both have Venus in Scorpio and Mars in Leo; if one has them in a square and the other doesn't, they'll handle desire completely differently.",
+  "If you've been reading sign descriptions and finding them half-right, aspects are usually the missing half. This guide covers the five major aspects, how much \"orb\" (wiggle room) to allow, what applying and separating mean, and how to find the aspects that actually matter in a chart."
+ ],
+ "muc": [
+  {
+   "ten": "What an aspect is",
+   "doan": [
+    "An aspect is an angle between two planets, measured around the zodiac circle. If Venus is at 10 degrees Taurus and Mars is at 10 degrees Leo, they're 90 degrees apart. That's a square.",
+    "The angle decides the relationship. Some angles put planets in signs of the same element (they cooperate). Some put them in signs that clash (they argue). Some fuse them into one thing (they merge). The angle isn't about distance in space; it's about the geometry of the zodiac, and that geometry has been observed to matter for a couple of thousand years.",
+    "Planet Saturn Rules Capricorn Discipline, responsibility, structure",
+    "Planet Mars Rules Aries Action, energy, desire",
+    "Planet Venus Rules Taurus, Libra Love, beauty, values"
+   ]
+  },
+  {
+   "ten": "The five major aspects",
+   "doan": [
+    "Two planets in the same place. They blend. You can't experience one without the other. Sun conjunct Mercury: you think and you are, in the same breath. Venus conjunct Saturn: love and duty arrive together, and you don't easily separate them.",
+    "A conjunction is neither good nor bad. It depends entirely on which planets are merging. Venus-Jupiter is generous. Mars-Pluto is intense. Moon-Saturn is heavy.",
+    "Two planets in compatible elements (fire with air, earth with water), two signs apart. An opportunity that needs a small effort. Sextiles are pleasant but easy to ignore, because they don't force anything. Sun sextile Jupiter: opportunities show up; you still have to walk through the door.",
+    "Two planets three signs apart, in the same mode (both cardinal, both fixed, or both mutable) but clashing elements. They want different things and both push. This is friction that produces work. Mars square Saturn: drive against brakes, which is frustrating at 20 and productive at 40. Most people's biggest achievements trace back to a square somewhere.",
+    "Two planets four signs apart, in the same element. Natural ease; the two planets support each other without being asked. Moon trine Venus: easy affection, people like you and you don't know why. The catch: trines are talents you don't develop because they never demanded anything. The most common note in a professional reading: \"you're not using this.\"",
+    "Two planets six signs apart, facing each other across the chart. Same mode, complementary elements. A tug of war between two things you both want, often experienced through other people: you carry one end, someone in your life carries the other. Sun opposite Moon (a Full Moon birth): self versus needs, sometimes felt as \"I'm never fully at home anywhere.\" The resolution of an opposition is always awareness, not victory."
+   ]
+  },
+  {
+   "ten": "Orbs: how close is close enough",
+   "doan": [
+    "Planets are rarely at the exact angle. The allowed distance from exact is the orb.",
+    "Working orbs, tighter than what many free tools use:",
+    "Conjunction, opposition: up to 8 degrees, 10 if the Sun or Moon is involved",
+    "Square, trine: up to 7 degrees, 8 with the lights",
+    "Sextile: up to 4 degrees",
+    "The closer to exact, the louder the aspect. A square at 0 degrees 30 minutes runs your life. A square at 6 degrees is background noise. If you only have time to read three aspects in a chart, read the three tightest."
+   ]
+  },
+  {
+   "ten": "Applying vs separating",
+   "doan": [
+    "An aspect is applying when the faster planet is moving toward the exact angle, and separating when it has already passed it. Applying aspects feel like something building; separating aspects feel like something already known. In a birth chart the difference is subtle, but in transits it's everything: an applying transit is the event coming, a separating one is the aftermath.",
+    "Astrolas marks each aspect as applying (a) or separating (s) in every table."
+   ]
+  },
+  {
+   "ten": "Hard vs soft: what the words really mean",
+   "doan": [
+    "Squares and oppositions are called hard. Trines and sextiles are called soft. Conjunctions can be either.",
+    "\"Hard\" doesn't mean bad. It means the two planets can't ignore each other; they have to negotiate, and negotiating builds skill. \"Soft\" doesn't mean good. It means the two planets get along without trying, which is comfortable and sometimes lazy.",
+    "A chart with only soft aspects belongs to someone pleasant who may never find out what they're capable of. A chart with only hard aspects belongs to someone who's had to earn everything and probably has. Most charts are a mix, and the mix is the story."
+   ]
+  },
+  {
+   "ten": "Minor aspects, briefly",
+   "doan": [
+    "Quincunx (150 degrees): two planets in signs with nothing in common. Awkward adjustment; a health or work theme in traditional reading. Orb 2 to 3 degrees.",
+    "Semi-square (45) and sesquiquadrate (135): minor friction, like a square at lower volume. Used a lot in midpoint work.",
+    "Quintile (72), semi-sextile (30): subtle; most readers skip them in a first pass.",
+    "Learn the five majors first. The minors are seasoning."
+   ]
+  },
+  {
+   "ten": "How to find the aspects that matter",
+   "doan": [
+    "In any chart, in this order:",
+    "Aspects to the Sun, Moon, and Ascendant. Anything touching the core matters most.",
+    "The tightest aspects overall , whatever planets are involved. Under 2 degrees is loud.",
+    "Any planet with many aspects. Five or more connections make a planet the hub of the chart.",
+    "Patterns: three or more planets forming a shape (T-square, grand trine, stellium). Patterns amplify.",
+    "Aspects to the chart ruler (the planet ruling your rising sign).",
+    "Then stop. A chart can have 30 aspects. The first five you find this way will explain most of what the other 25 are elaborating on."
+   ]
+  },
+  {
+   "ten": "See your aspects",
+   "doan": [
+    "Open the birth chart tool → . The Aspects tab lists every aspect with exact orb and applying/separating state, sorted by tightness, so step 2 above is done for you. Hover any line in the wheel to see which two planets it connects.",
+    "Start with the tightest hard aspect in your chart. That one, more than any sign placement, is usually the thing you'd describe if someone asked what you've struggled with and gotten good at."
+   ]
+  }
+ ]
+}

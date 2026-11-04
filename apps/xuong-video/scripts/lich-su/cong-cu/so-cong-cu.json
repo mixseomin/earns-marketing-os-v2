@@ -1,0 +1,340 @@
+{
+ "_ghi": "Sổ công cụ astrolas.com (lich-su/cong-cu/so-cong-cu.mjs — đừng sửa tay). mo_ta = chữ NGUYÊN VĂN của site; tham = tham số GET dựng link mở thẳng kết quả.",
+ "lay_luc": "2026-11-04",
+ "cong_cu": [
+  {
+   "ma": "birth",
+   "url": "https://astrolas.com/birth",
+   "ten": "Birth chart",
+   "mo_ta": "A full picture of who you are",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng"
+   ]
+  },
+  {
+   "ma": "compatibility",
+   "url": "https://astrolas.com/compatibility",
+   "ten": "Compatibility checker",
+   "mo_ta": "A quick read on how two people fit",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "a_name",
+    "a_day",
+    "a_month",
+    "a_year",
+    "a_hour",
+    "a_minute",
+    "a_location",
+    "a_lat",
+    "a_lng",
+    "b_name",
+    "b_day",
+    "b_month",
+    "b_year",
+    "b_hour",
+    "b_minute",
+    "b_location",
+    "b_lat",
+    "b_lng"
+   ]
+  },
+  {
+   "ma": "synastry-chart",
+   "url": "https://astrolas.com/synastry-chart",
+   "ten": "Synastry - Compare 2 Charts",
+   "mo_ta": "Compare two charts for chemistry",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng",
+    "name2",
+    "day2",
+    "month2",
+    "year2",
+    "hour2",
+    "minute2",
+    "unknown_time2",
+    "location2",
+    "lat2",
+    "lng2",
+    "rel_type"
+   ]
+  },
+  {
+   "ma": "today",
+   "url": "https://astrolas.com/today",
+   "ten": "Today's sky",
+   "mo_ta": "Where the planets are right now",
+   "nguon_mo_ta": "menu Tools",
+   "tham": []
+  },
+  {
+   "ma": "transit",
+   "url": "https://astrolas.com/transit",
+   "ten": "Transit",
+   "mo_ta": "What is being activated now",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng",
+    "transit_datetime",
+    "transit_location",
+    "transit_lat",
+    "transit_lng"
+   ]
+  },
+  {
+   "ma": "moon-phase",
+   "url": "https://astrolas.com/moon-phase",
+   "ten": "Moon Phase",
+   "mo_ta": "Today's and upcoming Moon phases",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng"
+   ]
+  },
+  {
+   "ma": "annual-profections",
+   "url": "https://astrolas.com/annual-profections-v1",
+   "ten": "Annual Profections",
+   "mo_ta": "This year's ruling house & lord",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng",
+    "year_target"
+   ]
+  },
+  {
+   "ma": "daily-profections",
+   "url": "https://astrolas.com/tools/daily-profections",
+   "ten": "Daily Profection",
+   "mo_ta": "Good and hard days at a glance",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng",
+    "target_date",
+    "target_time"
+   ]
+  },
+  {
+   "ma": "zodiacal-releasing",
+   "url": "https://astrolas.com/tools/zodiacal-releasing",
+   "ten": "Zodiacal Releasing",
+   "mo_ta": "Hellenistic chapters of your life",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng",
+    "lot"
+   ]
+  },
+  {
+   "ma": "solar-return",
+   "url": "https://astrolas.com/solar-return-v1",
+   "ten": "Solar Return",
+   "mo_ta": "Themes of your year",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng",
+    "year_target",
+    "sr_location",
+    "sr_lat",
+    "sr_lng"
+   ]
+  },
+  {
+   "ma": "lunar-return",
+   "url": "https://astrolas.com/tools/lunar-return-v1",
+   "ten": "Lunar Return",
+   "mo_ta": "Monthly moods and events",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng",
+    "target_date",
+    "lr_location",
+    "lr_lat",
+    "lr_lng"
+   ]
+  },
+  {
+   "ma": "progression",
+   "url": "https://astrolas.com/progression",
+   "ten": "Progression",
+   "mo_ta": "See your long-term development",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng",
+    "progression_date",
+    "progression_hour",
+    "progression_minute"
+   ]
+  },
+  {
+   "ma": "solar-arc",
+   "url": "https://astrolas.com/solar-arc",
+   "ten": "Solar Arc",
+   "mo_ta": "",
+   "nguon_mo_ta": "meta description",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng",
+    "sa_date"
+   ]
+  },
+  {
+   "ma": "lunation-analyzer",
+   "url": "https://astrolas.com/tools/lunation-analyzer",
+   "ten": "Lunation Analyzer",
+   "mo_ta": "What each New & Full Moon activates",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng",
+    "lu_year",
+    "event_date",
+    "lu_location",
+    "lu_lat",
+    "lu_lng"
+   ]
+  },
+  {
+   "ma": "diurnal-chart",
+   "url": "https://astrolas.com/tools/diurnal-chart",
+   "ten": "Diurnal Chart",
+   "mo_ta": "The day's chart cast where you are",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "name",
+    "day",
+    "month",
+    "year",
+    "hour",
+    "minute",
+    "unknown_time",
+    "location",
+    "lat",
+    "lng",
+    "target_date"
+   ]
+  },
+  {
+   "ma": "horary-chart",
+   "url": "https://astrolas.com/tools/horary-chart",
+   "ten": "Horary Chart",
+   "mo_ta": "Answers a question from the moment it is asked",
+   "nguon_mo_ta": "menu Tools",
+   "tham": [
+    "question",
+    "date",
+    "time",
+    "location",
+    "lat",
+    "lng"
+   ]
+  }
+ ]
+}

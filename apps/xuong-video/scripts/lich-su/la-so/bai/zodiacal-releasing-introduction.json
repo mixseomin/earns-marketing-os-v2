@@ -1,0 +1,103 @@
+{
+ "url": "https://astrolas.com/en/blog/zodiacal-releasing-introduction",
+ "lay_luc": "2026-11-04",
+ "tieu_de": "Zodiacal releasing: the Hellenistic technique that divides a life into chapters",
+ "mo": [
+  "The idea: time released through the signs",
+  "The Lots: Spirit and Fortune",
+  "Period lengths by sign",
+  "The loosing of the bond",
+  "Peak periods: angular from Fortune",
+  "What releasing is good for, and not",
+  "Most timing techniques tell you what's happening this month or this year. Zodiacal releasing does something different: it lays out the whole life as a sequence of chapters, each ruled by a sign and its planet, with peak periods marked in advance. It was described by Vettius Valens in the second century, was almost forgotten for 1,700 years, and has come back in the last two decades as one of the most striking tools in traditional astrology.",
+  "This guide covers what releasing is, the Lots it starts from, the four levels of periods, the loosing of the bond, peak periods, and how to read your own timeline. It assumes you know what houses and rulers are; if you don't, read the fundamentals first."
+ ],
+ "muc": [
+  {
+   "ten": "The idea: time released through the signs",
+   "doan": [
+    "Start at a point in the chart (a Lot). The sign that Lot is in rules the first period of life. When that period ends, the next sign in zodiacal order takes over for its own period, and so on around the zodiac. Each sign's period has a fixed length in years, based on the planetary years of its ruler. When the sequence runs out of signs, it starts again.",
+    "Within each of these big periods, the same procedure runs at a smaller scale: sub-periods of months, then weeks, then days, each cycling through the signs starting from the sign of the parent period. The result is a nested timeline, like a calendar with years, months, weeks, and days, but the lengths are set by the zodiac rather than the Sun and Moon.",
+    "Planet Sun Rules Leo Ego, will, vitality",
+    "Planet Moon Rules Cancer Emotions, intuition, nurturing",
+    "Point Ascendant U Planet Saturn Rules Capricorn Discipline, responsibility, structure"
+   ]
+  },
+  {
+   "ten": "The Lots: Spirit and Fortune",
+   "doan": [
+    "Releasing starts from a Lot (an Arabic part), a calculated point built from the Sun, Moon, and Ascendant. Two Lots are used most:",
+    "The Lot of Spirit is the point of what you do: action, career, intention, the life you make. Releasing from Spirit gives the timeline of your career and public life.",
+    "The Lot of Fortune is the point of what happens to you: body, circumstances, luck, the life you're given. Releasing from Fortune gives the timeline of circumstance and health.",
+    "The two Lots are mirror images (Fortune is Ascendant plus Moon minus Sun for a day birth; Spirit is Ascendant plus Sun minus Moon; reversed for night births). Most modern practice starts with Spirit for questions about work and direction, and checks Fortune alongside it.",
+    "Astrolas also supports releasing from the Lots of Eros (desire and relationships) and Necessity (constraint), which some practitioners use for those specific questions."
+   ]
+  },
+  {
+   "ten": "The four levels",
+   "doan": [
+    "Level 1: the major chapters, years to decades long. A life has roughly four to eight of these.",
+    "Level 2: sub-chapters within each L1, months to a few years.",
+    "Level 3: weeks to months.",
+    "Level 4: days to weeks.",
+    "Most readings work at L1 and L2. L1 gives the shape of the life; L2 gives the shape of the current chapter. L3 and L4 are for fine timing once you've confirmed the technique works for you."
+   ]
+  },
+  {
+   "ten": "Period lengths by sign",
+   "doan": [
+    "Each sign's period is its ruler's planetary years (a traditional set of numbers, not the orbital periods):",
+    "Aries and Scorpio (Mars): 15 years",
+    "Taurus and Libra (Venus): 8 years",
+    "Gemini and Virgo (Mercury): 20 years",
+    "Cancer (Moon): 25 years",
+    "Sagittarius and Pisces (Jupiter): 12 years",
+    "Capricorn (Saturn): 27 years",
+    "Aquarius (Saturn): 30 years",
+    "At L2, the same numbers are months. At L3, they're approximately weeks, and at L4, days. A Capricorn L1 period lasts 27 years; within it, a Capricorn L2 lasts 27 months."
+   ]
+  },
+  {
+   "ten": "The loosing of the bond",
+   "doan": [
+    "One rule that makes releasing more than a simple count. At L2 and below, when the sequence would return to the sign the period started in (having gone all the way around), it doesn't. Instead it jumps to the opposite sign and continues from there. This is the \"loosing of the bond,\" and the periods just after it tend to be turning points: a sudden change of direction within the larger chapter.",
+    "L1 has no loosing of the bond; the major chapters simply cycle through the zodiac in order."
+   ]
+  },
+  {
+   "ten": "Peak periods: angular from Fortune",
+   "doan": [
+    "The most useful part of the technique. Take the sign of the Lot of Fortune. The signs that are angular to it (the same sign, and the 4th, 7th, and 10th signs from it, counting the Fortune sign as 1) are the peak periods.",
+    "When a Level 1 or Level 2 period falls in one of those four signs, it's a peak: a time of heightened activity, visibility, and significance in the area the Lot describes. Spirit periods in the 10th sign from Fortune are the classic career peak. Periods in the 1st sign from Fortune are personally significant. 4th and 7th are somewhat less intense but still marked.",
+    "Valens's own examples, and modern case work, show these peaks lining up with the eminent years of a life with a consistency that surprises people the first time they see it. Peaks are measured from Fortune even when releasing from Spirit, which is one of the details that older software gets wrong and Astrolas gets right."
+   ]
+  },
+  {
+   "ten": "Reading a period",
+   "doan": [
+    "For any period at any level:",
+    "The sign gives the flavor of the chapter.",
+    "The sign's ruler , in your natal chart, is the time lord. Its natal house, sign, and condition describe how the chapter goes. A well-placed ruler gives an easier period; a ruler in hard aspect to malefics gives a harder one.",
+    "The house the period sign occupies (in Whole Sign houses from your Ascendant) names the area of life activated.",
+    "Whether it's a peak period from Fortune.",
+    "Whether the ruler is a benefic or malefic and whether it's the sect light (the Sun for day births, the Moon for night births) or its opposite. This is deep Hellenistic material; the short version is that periods ruled by the benefic of your sect (Jupiter for day charts, Venus for night) tend to be the good ones.",
+    "L1 periods in your own 10th house sign, ruled by a strong planet, and angular from Fortune, are the years that make a career. If you're in one, you probably know."
+   ]
+  },
+  {
+   "ten": "What releasing is good for, and not",
+   "doan": [
+    "Good for: the overall shape of a life; identifying the chapter you're in and when it ends; locating career peaks; understanding why a period of years felt like one thing. It's remarkably good at \"why did everything change at 34.\"",
+    "Not for: predicting specific events on specific days (L3 and L4 exist but are noisy); anything without an accurate birth time, because the Lots depend on the Ascendant and a few degrees of error can change the Lot's sign entirely; substituting for transits, which still describe the actual sky.",
+    "Releasing is a frame. Transits, profections, and returns fill it in."
+   ]
+  },
+  {
+   "ten": "Cast your releasing",
+   "doan": [
+    "Open the zodiacal releasing tool with your birth data. Choose the Lot (Spirit is the default), and the tool lays out L1 and L2 periods with their signs, rulers, dates, loosing-of-the-bond points, and peak periods from Fortune. Expand to L3 and L4 for finer timing.",
+    "Start with L1. Find the chapter you're in and the year it ends. Then find your next peak period from Fortune. Those two facts, the current chapter and the next peak, are worth more than most yearly forecasts, and they came from a method that's nineteen centuries old."
+   ]
+  }
+ ]
+}

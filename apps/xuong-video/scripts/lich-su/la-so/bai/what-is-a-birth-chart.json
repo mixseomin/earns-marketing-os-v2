@@ -1,0 +1,117 @@
+{
+ "url": "https://astrolas.com/en/blog/what-is-a-birth-chart",
+ "lay_luc": "2026-11-04",
+ "tieu_de": "What is a birth chart? A 5-minute primer",
+ "mo": [
+  "The chart is three things layered together",
+  "The Big Three are your starting point",
+  "What the planets do (in one sentence each)",
+  "Aspects - how planets talk to each other",
+  "What you need to calculate a chart",
+  "How to read the wheel itself",
+  "One sentence, three layers",
+  "Common misreadings to skip",
+  "A birth chart is a map of the sky from your exact birth moment. Not a daily horoscope, not your Sun sign read off a calendar - a single specific snapshot of where every major planet sat the second you were born, calculated for the city you were born in. That precision is what makes the rest of astrology actually work.",
+  "This guide gives you a working understanding of what a chart is, what is on it, and how to read the most important pieces. No background needed. By the end you can open your own free chart on Astrolas and recognize what you are looking at.",
+  "A birth chart is not a forecast. It is a snapshot of the sky at the exact moment you arrived, and a vocabulary for the patterns you will live with.",
+  "→ A birth chart is a sky snapshot, not a prediction",
+  "→ It needs date, time, and location of birth to compute",
+  "→ Houses, signs, planets and aspects each carry distinct meaning"
+ ],
+ "muc": [
+  {
+   "ten": "The chart is three things layered together",
+   "doan": [
+    "Every birth chart contains:",
+    "The wheel of zodiac signs - twelve 30-degree slices (Aries, Taurus, Gemini ... Pisces) that form the outermost ring. They are the same sky background everyone is born under.",
+    "Ten planets - Q Sun , W Moon , E Mercury , R Venus , T Mars , Y Jupiter , U Saturn , I Uranus , O Neptune , P Pluto . Each has a unique position the moment you were born. Where they land in the zodiac and how they angle to each other is most of what astrologers read.",
+    "Twelve houses - invisible slices that rotate with the Earth as it spins. The house a planet falls in tells you which area of life its energy plays out: career, relationships, body, home, daily routine.",
+    "The chart is the intersection of those three layers at one moment. Change the moment by ten minutes and the house cusps shift. Change the city and the entire wheel rotates. That is why birth time and birth place actually matter."
+   ]
+  },
+  {
+   "ten": "The Big Three are your starting point",
+   "doan": [
+    "You will see \"Big Three\" tossed around constantly. It refers to your Sun sign, Moon sign, and Rising sign (Ascendant) .",
+    "The Sun describes your core identity, what you naturally want to express, what you grow into.",
+    "The Moon describes your emotional baseline - how you process feelings, what makes you feel safe, what your inner life looks like.",
+    "The Rising / Ascendant is the zodiac sign crossing the eastern horizon at your birth minute. It describes how you come across and the lens through which you take in the world.",
+    "Those three alone cover most of the personality territory people associate with astrology. A Leo Sun, Cancer Moon, Virgo Rising is meaningfully different from a Leo Sun, Scorpio Moon, Aries Rising - even though both are technically \"Leos\"."
+   ]
+  },
+  {
+   "ten": "What the planets do (in one sentence each)",
+   "doan": [
+    "Sun : who you grow into.",
+    "Mercury : how you think, learn, speak.",
+    "Venus : how you love and what you find beautiful.",
+    "Mars : how you fight, want, act.",
+    "Jupiter : where you grow, expand, take risks.",
+    "Saturn : where you face limits, build over time, mature.",
+    "Uranus : where you rebel and innovate.",
+    "Neptune : where you dissolve, dream, lose yourself.",
+    "Pluto : where you transform through pressure.",
+    "Each planet plays out through the sign it is in (the how ) and the house it is in (the where in life )."
+   ]
+  },
+  {
+   "ten": "Aspects - how planets talk to each other",
+   "doan": [
+    "Planets do not act solo. They form geometric angles to each other called aspects , and those connections create the texture of a chart. The five major aspects:",
+    "Conjunction (0°) - joined, working as one",
+    "Sextile (60°) - flowing, opportunity",
+    "Square (90°) - friction, growth through tension",
+    "Trine (120°) - easy, natural talent",
+    "Opposition (180°) - pull between two needs",
+    "Aspects with tight orbs (planets within 3-5 degrees of the exact angle) are the loudest. A natal Saturn square Mars within 2 degrees will shape someone more visibly than a Jupiter trine Neptune within 7 degrees."
+   ]
+  },
+  {
+   "ten": "What you need to calculate a chart",
+   "doan": [
+    "Birth date - month, day, year.",
+    "Birth time - to the minute when possible. The Rising and house cusps shift roughly one degree every four minutes.",
+    "Birth place - city is enough. Astrolas looks up the coordinates and time zone automatically.",
+    "If you do not know your exact birth time, you can still get useful information from the Sun and most planets - they only move about 1° per day. The Moon, Rising, and houses are the parts that need accurate time.",
+    "→ Compute your own chart with exact birth time, date, and location",
+    "→ Identify your Big Three first - Sun, Moon, Ascendant",
+    "→ Read one short article per planet rather than a long overview that tries to cover everything"
+   ]
+  },
+  {
+   "ten": "How to read the wheel itself",
+   "doan": [
+    "The circle looks busy the first time, but it follows a fixed layout.",
+    "The horizontal line is the horizon. The left end is the Ascendant, the eastern horizon at your birth. The right end is the Descendant, the western horizon. Everything above that line was in the visible sky when you were born; everything below it was under the Earth.",
+    "The vertical line (roughly) is the meridian. The top point is the Midheaven (MC), the highest point the zodiac reached overhead. The bottom point is the IC.",
+    "Houses run counterclockwise from the Ascendant: 1st house just below the left horizon, 7th just above the right one, 10th near the top.",
+    "Planets sit at their exact degree. A glyph near the Ascendant line was rising at the time you were born. A glyph near the top was culminating.",
+    "So a chart with most planets in the top half belongs to someone born with most of the planets above the horizon, which traditional astrology reads as a life pointed outward. A chart with most planets on the left side has them clustered around the Ascendant. You can read these large shapes before you know a single sign meaning."
+   ]
+  },
+  {
+   "ten": "One sentence, three layers",
+   "doan": [
+    "The simplest way to turn a chart into words is a sentence with three slots: planet (what), sign (how), house (where).",
+    "Take Mars in Capricorn in the 6th house. Mars is drive and effort. Capricorn is patient, strategic, built for the long haul. The 6th house is daily work and health. Put together: this person puts their effort into routines, works methodically, and probably gets restless when a job has no clear structure.",
+    "Do that for each of the ten planets and you already have a rough reading. Then add the aspects, which tell you which of those sentences argue with each other."
+   ]
+  },
+  {
+   "ten": "Common misreadings to skip",
+   "doan": [
+    "\"My Sun sign is my whole chart.\" The Sun is one of ten planets. People who \"don't feel like their sign\" usually have a strong Moon or Rising in a very different element.",
+    "\"A square is bad luck.\" Squares are pressure. Many of the most productive people have charts full of them.",
+    "\"Empty houses mean nothing happens there.\" Every house has a sign on its cusp and a ruling planet somewhere else in the chart. The area of life still exists; it just runs through that ruler.",
+    "\"Retrograde planets are broken.\" A retrograde planet in a natal chart often points to something you process inwardly or revisit over time, not something that fails."
+   ]
+  },
+  {
+   "ten": "What to do next",
+   "doan": [
+    "Calculate your free birth chart on Astrolas - no signup needed. Look at Taylor Swift's full chart if you want to see one fully populated before yours. When you are ready to go deeper, read the 12 houses explained and start matching your own planets to their house meanings.",
+    "Astrology gets dense fast. Coming back to the chart - to the actual planets, signs, and aspects in front of you - is what keeps the rest grounded."
+   ]
+  }
+ ]
+}

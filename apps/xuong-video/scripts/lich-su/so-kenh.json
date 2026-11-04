@@ -253,7 +253,9 @@
       "Short: chữ và logo ngoài vùng YouTube đè; video dài: 16:9, hình trái · chữ phải",
       "Người còn sống: không vẽ chân dung minh hoạ (chỉ lá số, trang công cụ, cảnh chung)",
       "Câu kết trỏ về astrolas.com (công cụ miễn phí); chủ đề đã đăng không làm lại",
-      "Synastry: góc chiếu chạm cung Mọc / MC / nhà của ai thì người đó phải hạng AA; chạm Trăng thì phải có giờ sinh (AA / A / B); hành tinh khác chỉ cần ngày sinh (la-so/hop.mjs ghi cờ dung từng góc). Bỏ góc chiếu thế hệ (hai sao Uranus / Neptune / Pluto) khỏi tiêu đề tập"
+      "Synastry: góc chiếu chạm cung Mọc / MC / nhà của ai thì người đó phải hạng AA; chạm Trăng thì phải có giờ sinh (AA / A / B); hành tinh khác chỉ cần ngày sinh (la-so/hop.mjs ghi cờ dung từng góc). Bỏ góc chiếu thế hệ (hai sao Uranus / Neptune / Pluto) khỏi tiêu đề tập",
+      "Diễn giải chiêm tinh chỉ là chữ NGUYÊN VĂN của site (lời giải synastry, nghĩa nhà, bài blog, mô tả công cụ — kho lich-su/nguon-site.mjs); cấm tự đặt nghĩa theo kiến thức chiêm tinh chung. Câu dẫn tự viết khai khung: true và không được mang từ nghĩa",
+      "Bài đăng về công cụ: dang.mo_ta có câu mô tả công cụ NGUYÊN VĂN của site (cong-cu/so-cong-cu.json) + dang.link mở THẲNG kết quả của đúng người / cặp (linkCongCu). Máy gác chặn nếu thiếu"
     ],
     "mau": [
       {
@@ -763,7 +765,8 @@
       "giong": "Charlotte",
       "nhac": "troi",
       "ghi": "giọng ElevenLabs qua ckey (Speakvela, 156₫ / câu) đọc chữ trên màn; nhạc nền + tiếng động tự sinh 0đ — shot-code/long-tieng.mjs"
-    }
+    },
+    "luat_nguon": true
   },
   "yesterdays-news-tonight": {
     "ten": "Yesterday's News Tonight · YouTube @yesterdaysnewstonight",

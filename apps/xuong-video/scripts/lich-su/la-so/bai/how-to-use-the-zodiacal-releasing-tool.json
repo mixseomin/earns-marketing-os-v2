@@ -1,0 +1,101 @@
+{
+ "url": "https://astrolas.com/en/blog/how-to-use-the-zodiacal-releasing-tool",
+ "lay_luc": "2026-11-04",
+ "tieu_de": "How to use the Astrolas Zodiacal Releasing tool: find the chapters of your life on one table",
+ "mo": [
+  "What you need before you start",
+  "The controls above the table",
+  "The table, column by column",
+  "How to read the result",
+  "Why do some periods have a star and others do not?",
+  "Is the tool free to use?",
+  "Can I use it without a birth time?",
+  "Zodiacal Releasing is an old Hellenistic timing method that splits a life into long chapters and shorter sub-chapters, each ruled by a zodiac sign. The Astrolas Zodiacal Releasing tool does the arithmetic for you and lays the whole sequence out as a table you can filter, expand and export.",
+  "This guide follows the page as it really works. If the method is new to you, read Zodiacal Releasing: an introduction first, then come back with your birth data ready."
+ ],
+ "muc": [
+  {
+   "ten": "What the tool does",
+   "doan": [
+    "The tool finds the sign of the Lot you choose in your birth chart and releases time from it, sign by sign, using the traditional period lengths for each sign. The first level (L1) gives chapters that can last from a few years to nearly three decades. Each chapter splits into L2 sub-periods, and those split again into L3 and L4 if you want finer timing.",
+    "For every period it shows the start and end dates, your age at the start, the sign, the house that sign occupies in your chart, the planet that rules it and the house that ruler sits in. It also flags the two markers practitioners care about most: peak periods and the Loosing of the Bond."
+   ]
+  },
+  {
+   "ten": "What you need before you start",
+   "doan": [
+    "Your birth time. This matters more here than in most tools. The Lots are calculated from the Ascendant and depend on whether you were born by day or by night, so a wrong time can move the starting sign and shift every date on the table. See why birth time matters ."
+   ]
+  },
+  {
+   "ten": "Step by step",
+   "doan": [
+    "Open the Zodiacal Releasing tool . The Birth Data panel asks for Name, Day, Month, Year, Hour / Minute and City / Location. The hour list includes an Unknown Time option, but for this technique it is better to use your best known time than to leave it blank.",
+    "If you are signed in with saved charts, Switch Profile lets you pick one instead of retyping.",
+    "Pick a Lot in the Releasing from menu. The choices are Lot of Spirit, Lot of Fortune, Lot of Eros and Lot of Necessity. Spirit is the default.",
+    "Press Update. The table appears with your L1 and L2 periods."
+   ]
+  },
+  {
+   "ten": "The controls above the table",
+   "doan": [
+    "Time filter. Whole life shows everything. By year and By age each open two small boxes so you can type a range, for example 2021 to 2030, or age 35 to 45.",
+    "Detail level. Choose how many levels are opened at once: L1, L1 + L2, L1 + L2 + L3, or all four levels. Pair deep levels with a time filter.",
+    "Highlight only. Two checkboxes, Peak Period (marked with a star) and Loosing of the Bond (marked with a lightning bolt). Tick one to hide every row that does not carry that marker. They combine with the time filter.",
+    "The small i icon. Hover it for the legend: the star, the lightning bolt, and two asterisk marks that mean a period was cut short by its parent period or by your filter range.",
+    "Export levels and CSV. Pick how deep the export goes and press CSV to download the timeline as a spreadsheet file."
+   ]
+  },
+  {
+   "ten": "The table, column by column",
+   "doan": [
+    "Click the small arrow at the start of any row to open its sub-periods underneath it."
+   ]
+  },
+  {
+   "ten": "The Analyze window",
+   "doan": [
+    "Press Analyze on any row and a window opens with six numbered parts:",
+    "Period Evaluation. Whether the period is a peak, whether it is a Loosing of the Bond, the activity level (for example Angular) and whether yours is a day or night chart.",
+    "Activated Theme. Keywords for the sign and the life topics of the house it occupies.",
+    "Activating Natal Planets. Any natal planets that sit in that sign.",
+    "Aspects to the Sign. Natal planets aspecting the sign, with degrees and orbs.",
+    "Ruler of the Sign. The ruler's essential condition (such as domicile), its accidental condition (in or out of sect, direct or retrograde, angular or not, morning or evening star) and its own natal aspects.",
+    "A closing summary that ties the house, the sign and the ruler together in a couple of sentences."
+   ]
+  },
+  {
+   "ten": "How to read the result",
+   "doan": [
+    "Start with L1. Note which sign you are in now and which house it occupies. That house describes the broad arena of the current chapter. Then read the ruler and the house it sits in, because the ruler shows how the chapter tends to play out.",
+    "Next, turn on the Peak Period filter. Peaks are the periods where the chapter's themes come to the front. With Spirit, astrologers read them as times of higher visibility in work and reputation. With Fortune, they relate more to body, circumstances and material life. The Part of Fortune and the Lots post explains the difference.",
+    "Then look for the lightning bolt. The Loosing of the Bond is where the L2 sequence, having gone all the way round the zodiac, jumps to the sign opposite instead of carrying on in order. Many people experience it as a turn in direction. It only shows up in long L1 chapters, about seventeen and a half years in.",
+    "Finally, compare with Annual Profections and transits . When all three point to the same house, the date deserves attention."
+   ]
+  },
+  {
+   "ten": "Tips",
+   "doan": [
+    "Run both Spirit and Fortune. They often describe the same years from two angles: what you are doing and what is happening to you.",
+    "Use By age to line up past peaks with years you remember. A good match suggests your birth time is right.",
+    "Keep the detail level low when browsing a whole life, and go deep only inside a short filter window.",
+    "For the house meanings, keep the twelve houses explained open in another tab."
+   ]
+  },
+  {
+   "ten": "Questions people ask",
+   "doan": [
+    "The star marks a peak period, which in this method depends on whether the sign falls in an angular place (1st, 4th, 7th or 10th) counted from the Lot of Fortune. Not every chapter contains one, and some contain several at L2.",
+    "The page, the table, the filters, the Analyze window and the CSV export all work for guests without signing in.",
+    "You can pick Unknown Time, but the result becomes unreliable. The Lots move about one sign every two hours, so the starting sign may be wrong."
+   ]
+  },
+  {
+   "ten": "Try it",
+   "doan": [
+    "Enter your data at /tools/zodiacal-releasing , note your current L1 sign, and check it against the houses in your birth chart.",
+    "Open your birth chart first →"
+   ]
+  }
+ ]
+}

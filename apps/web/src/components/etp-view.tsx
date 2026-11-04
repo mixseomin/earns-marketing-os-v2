@@ -1731,7 +1731,7 @@ function BadgeSx({ cid, ds, kt }: { cid: number; ds: DuLieuEtp['dongChay']; /** 
   const xep = [...d].sort((a, b) => ((a.trang_thai ?? 'chay') === 'chay' ? 0 : 1) - ((b.trang_thai ?? 'chay') === 'chay' ? 0 : 1) || b.id - a.id);
   return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>{xep.map((x, i) => { const tt = x.trang_thai ?? 'chay';
     const t = `${x.id ? `đợt sản xuất #${x.id}` : 'máy sinh kể chuyện (thư viện)'} · ${x.loai}${x.so_camp ? ` · +${x.so_camp} camp` : ''} · ${TT_DONG[tt] ?? tt}${tt !== 'chay' ? (x.camp_id ? ` · camp #${x.camp_id}` : '') + (x.ly_do ? `\n${x.ly_do.slice(0, 240)}` : '') : ` · bước ${x.buoc ?? '—'}`}\nbấm: sang ${x.id ? 'tab Sản xuất' : 'Thư viện'} (Ctrl/⌘: tab mới)`;
-    return <span key={`${x.id}-${i}`} style={{ opacity: tt === 'chay' ? 1 : 0.6 }}><DongHoSx buoc={x.cac_buoc ?? []} so={x.so_camp ?? 1} title={t} href={x.id ? `?t=dong&sxq=${cid}` : `?t=tv&tvq=${cid}`} ket={tt === 'chay' ? undefined : tt} /></span>; })}</span>;
+    return <span key={`${x.id}-${i}`} style={{ opacity: tt === 'chay' ? 1 : 0.6 }}><DongHoSx buoc={x.cac_buoc ?? []} so={tt === 'chay' ? (x.so_camp ?? 1) : (x.so_len ?? 0)} title={t} href={x.id ? `?t=dong&sxq=${cid}` : `?t=tv&tvq=${cid}`} ket={tt === 'chay' ? undefined : tt} /></span>; })}</span>;
 }
 /** NÚT ＋ Ở DÒNG PHIM (anh 04/11/2026 "thêm 1 nút ở dòng film … mở ra form để chọn: số camp mới, thể loại film → submit là xong. Còn lại cho tab SX xử lý") */
 function NutMoRong({ cid, k }: { cid: number; k?: number }) {

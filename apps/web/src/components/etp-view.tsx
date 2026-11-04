@@ -1691,7 +1691,7 @@ function BieuDoGio({ gio }: { gio: GioO }) {
   const pts2 = cot.filter((c) => c.don != null).map((c) => `${cx(c.g)},${y(c.don!)}`).join(' ');
   const g0 = chon ?? het, c0 = cot[g0]!, x = theo.get(g0);
   return <div onMouseLeave={() => setChon(null)}>
-    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11.5, marginBottom: 4, fontVariantNumeric: 'tabular-nums', minHeight: 16 }}>
+    <div style={{ display: 'flex', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden', fontSize: 11, marginBottom: 4, fontVariantNumeric: 'tabular-nums', height: 16 }}>   {/* một dòng cố định — dòng số xuống hàng làm biểu đồ nhảy */}
       <b>{vn(g0)}–{vn(g0 + 1)}</b>
       <span style={{ color: 'var(--fg-2)' }}>chi <b style={{ color: 'var(--fg-1)' }}>{usd(x?.chi ?? 0)}</b></span>
       <span style={{ color: 'var(--fg-2)' }}>thu <b style={{ color: 'var(--fg-1)' }}>{usd(x?.thu ?? 0)}</b></span>
@@ -1712,8 +1712,8 @@ function BieuDoGio({ gio }: { gio: GioO }) {
     </svg>
     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: 'var(--fg-2)', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
       <span>cuối <b style={{ color: mau }}>{usd(cuoi)}</b> lúc {vn(het + 1)}</span>
-      {dinh ? <span>đỉnh <b style={{ color: '#4ade80' }}>{usd(dinh.don!)}</b> {vn(dinh.g + 1)}</span> : null}
-      {day ? <span>đáy <b style={{ color: '#f87171' }}>{usd(day.don!)}</b> {vn(day.g + 1)}</span> : null}
+      {dinh ? <span>đỉnh <b style={{ color: dinh.don! >= 0 ? '#4ade80' : '#f87171' }}>{usd(dinh.don!)}</b> {vn(dinh.g + 1)}</span> : null}
+      {day ? <span>đáy <b style={{ color: day.don! >= 0 ? '#4ade80' : '#f87171' }}>{usd(day.don!)}</b> {vn(day.g + 1)}</span> : null}
       <span style={{ color: 'var(--fg-3)' }}>cột xám = chi mỗi giờ</span>
     </div>
   </div>;

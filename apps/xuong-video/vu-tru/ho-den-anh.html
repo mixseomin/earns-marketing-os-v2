@@ -1,0 +1,114 @@
+<!doctype html>
+<!-- HỐ ĐEN TỪ ẢNH — đường lai: hai ảnh tĩnh AI (xa + cận, scripts/anh-le.mts ~110₫/ảnh), mọi chuyển động do shader: trôi chậm → lao vào tâm, mây và
+     đĩa xoáy vi sai quanh hố (trong nhanh, ngoài chậm), ảnh xa hoà sang ảnh cận đúng lúc cỡ bóng đen khớp nhau, tàn lửa bay xoáy, nhoè hướng tâm khi
+     lao. Tham số ảnh (tâm + bán kính bóng, đo trên ảnh) ở ANH bên dưới. Quay: node vu-tru/quay.mjs vu-tru/ho-den-anh.html --giay=10 -->
+<html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas>
+<script>
+const q = new URLSearchParams(location.search);
+const W = +(q.get('w') || 540), H = +(q.get('h') || 960);
+// tâm bóng đen (0..1 theo ngang / dọc từ TRÊN xuống) + bán kính bóng theo bề ngang ảnh — đo trên ảnh
+const ANH = [
+  { tep: q.get('xa') || 'ra/vt-xa.jpg', tam: [0.493, 0.488], rs: 0.093 },
+  { tep: q.get('gan') || 'ra/vt-gan.jpg', tam: [0.5, 0.496], rs: 0.19 },
+];
+const c = document.getElementById('c'); c.width = W; c.height = H;
+const gl = c.getContext('webgl2', { preserveDrawingBuffer: true });
+const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+window.GPU = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+
+const FS = `#version 300 es
+precision highp float;
+uniform vec2 R; uniform float T;
+uniform sampler2D A0, A1; uniform vec2 C0, C1; uniform float S0, S1, K0, K1;   // tâm, bán kính bóng, tỉ lệ cao/ngang của ảnh
+out vec4 o;
+#define GIAY 10.
+float h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float n(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+  return mix(mix(h(i), h(i + vec2(1, 0)), f.x), mix(h(i + vec2(0, 1)), h(i + 1.), f.x), f.y); }
+float fbm(vec2 p){ float s = 0., a = .5; mat2 m = mat2(1.6, 1.2, -1.2, 1.6); for (int i = 0; i < 5; i++) { s += a * n(p); p = m * p; a *= .5; } return s; }
+mat2 rot(float a){ float c = cos(a), s = sin(a); return mat2(c, -s, s, c); }
+float ease(float x){ return x * x * (3. - 2. * x); }
+
+// đọc ảnh tại toạ độ p (đơn vị = bề ngang ảnh, gốc ở tâm bóng), xoáy vi sai quanh tâm theo 'xoay'
+vec3 docAnh(sampler2D A, vec2 tam, float rs, float k, vec2 p, float xoay){
+  float r = length(p);
+  vec2 pq = rot(xoay * pow(rs / max(r, rs * .9), 1.5)) * p;   // ngoài xa gần như đứng yên
+  vec2 uv = tam + vec2(pq.x, -pq.y / k);
+  return texture(A, vec2(uv.x, uv.y)).rgb;
+}
+// nhoè hướng tâm (lao vào): lấy trung bình vài mẫu dọc tia về tâm
+vec3 anh(sampler2D A, vec2 tam, float rs, float k, vec2 p, float xoay, float nhoe){
+  vec3 s = vec3(0.);
+  for (int i = 0; i < 6; i++) s += docAnh(A, tam, rs, k, p * (1. - nhoe * float(i) / 6.), xoay - float(i) * nhoe * .15);
+  return s / 6.;
+}
+float hat(vec2 p, float co, float nguong){
+  vec2 g = p * co, i = floor(g), f = fract(g) - .5;
+  float r = h(i); if (r < nguong) return 0.;
+  vec2 lech = vec2(h(i + 7.), h(i + 3.)) - .5;
+  return smoothstep(.12, 0., length(f - lech * .6)) * (.6 + .4 * sin(T * 4. + r * 40.));
+}
+
+void main(){
+  vec2 uv = (gl_FragCoord.xy - .5 * R) / R.x;              // đơn vị = bề ngang khung, y hướng lên
+  float t = T, u = clamp(t / GIAY, 0., 1.);
+  // máy: 0–2,4s trôi nhẹ (gần như tĩnh), rồi lao vào tâm; ảnh xa → cận hoà trong [4.6, 6.2]s
+  float lao = ease(clamp((t - 2.2) / (GIAY - 2.2), 0., 1.));
+  float zoom = exp(1.1 * lao * lao + .012 * t);            // phóng tổng ~3,4 lần: cuối clip bóng ≈ 1/3 bề ngang
+  float hoa = ease(clamp((t - 4.6) / 1.6, 0., 1.));
+  // ảnh 0: tâm khung trôi từ giữa ảnh về tâm bóng
+  vec2 lech0 = mix(vec2(.0, -.012 + .0), vec2(0.), ease(clamp(t / 4., 0., 1.))) + vec2(.01 * sin(t * .4), 0.);
+  vec2 p0 = (uv + lech0) / zoom;
+  // ảnh 1 bắt đầu ở cỡ khớp bóng của ảnh 0 lúc hoà: S1 * z1 = S0 * zoom
+  vec2 p1 = uv * S1 / (S0 * zoom);
+  float xoay = .22 * t + 1.1 * lao * lao;                    // góc quay ở mép bóng (rad) — vừa đủ thấy xoáy, không quấn đĩa thành vòng
+  float nhoe = .06 * lao;
+  vec3 a0 = anh(A0, C0, S0, K0, p0, xoay, nhoe);
+  vec3 a1 = anh(A1, C1, S1, K1, p1, xoay * .8 + .6, nhoe);
+  // ảnh cận lúc mới hoà còn nhỏ hơn khung → chỉ hiện trong vùng tròn quanh hố (không lộ dải lặp / viền chữ nhật)
+  float trong = smoothstep(.5, .2, length(p1));               // tròn quanh hố (đơn vị bề ngang ảnh cận): lửa lan dần ra, không lộ khung ảnh
+  vec3 col = mix(a0, a1, hoa * trong);
+
+  // thớ lửa thủ tục chồng lên (giấu nhoè khi phóng ảnh), chỉ trong vành sáng quanh bóng
+  float rr = length(uv) / (S0 * zoom);                       // khoảng cách tính theo bán kính bóng
+  vec2 dir = normalize(rot(3. * log(max(rr, 1.)) - t * 1.8) * uv);
+  float tho = smoothstep(.45, .9, fbm(dir * 3. + vec2(0., rr * 3.5)));
+  float vanh = smoothstep(1.05, 1.4, rr) * exp(-max(rr - 1.4, 0.) / 2.2);
+  col += vec3(1., .45, .08) * tho * vanh * (.15 + .35 * lao);
+  // tàn lửa xoáy vào tâm
+  vec2 sp = rot(t * .5 + 2. / max(rr, .5)) * uv / pow(zoom, .5);
+  col += vec3(1.3, .6, .15) * (hat(sp + vec2(0., t * .01), 40., .93) + hat(sp * 1.7 - t * .015, 40., .95)) * smoothstep(.9, 1.6, rr) * (.5 + lao);
+  // bóng đen sạch (phóng ảnh vẫn tròn, đen tuyền)
+  col *= smoothstep(.93, 1.0, rr);
+  col *= 1. - .3 * dot(uv, uv);
+  o = vec4(col, 1.);
+}`;
+const VS = `#version 300 es
+in vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }`;
+function sh(t, s) { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; }
+const pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(pr); gl.useProgram(pr);
+const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+const la = gl.getAttribLocation(pr, 'a'); gl.enableVertexAttribArray(la); gl.vertexAttribPointer(la, 2, gl.FLOAT, false, 0, 0);
+const U = (k) => gl.getUniformLocation(pr, k);
+gl.viewport(0, 0, W, H);
+
+const tai = (src) => new Promise((ok, loi) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => loi(new Error(src)); i.src = src; });
+Promise.all(ANH.map((a) => tai(a.tep))).then((imgs) => {
+  imgs.forEach((img, i) => {
+    const tx = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, tx);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+    gl.generateMipmap(gl.TEXTURE_2D);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    for (const k of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T]) gl.texParameteri(gl.TEXTURE_2D, k, gl.MIRRORED_REPEAT);
+    gl.uniform1i(U(`A${i}`), i);
+    gl.uniform2f(U(`C${i}`), ANH[i].tam[0], ANH[i].tam[1]);
+    gl.uniform1f(U(`S${i}`), ANH[i].rs);
+    gl.uniform1f(U(`K${i}`), img.height / img.width);
+  });
+  window.ve = (t) => { gl.uniform2f(U('R'), W, H); gl.uniform1f(U('T'), t); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.finish(); };
+  window.ve(0); window.SAN_SANG = true;
+  if (!q.has('w')) { const t0 = performance.now(); (function lap() { window.ve(((performance.now() - t0) / 1000) % 10); requestAnimationFrame(lap); })(); }
+});
+</script></body></html>

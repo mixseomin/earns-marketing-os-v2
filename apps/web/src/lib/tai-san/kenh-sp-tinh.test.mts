@@ -50,6 +50,9 @@ import { cayKeHoach } from './kenh-sp-tinh';
 { const so = { mau: [{ ma: 'a', ten: 'A', loai: 'short' as const, cho_duyet: true }, { ma: 'b', ten: 'B', loai: 'dai' as const, cho_duyet: true, demo: 'https://x/b.mp4' }, { ma: 'c', ten: 'C', loai: 'short' as const }] } as never;
   const r = cayMau(so, new Map()); assert.ok(/1 đã duyệt · 1 chờ duyệt · 1 đang làm demo/.test(r[0]!.chu), r[0]!.chu);
   assert.ok(r.some((x) => /A · 🛠 máy đang làm demo/.test(x.chu))); assert.ok(r.some((x) => /B · ⏳ chờ anh duyệt/.test(x.chu))); }
+import { khungMau } from './kenh-sp-tinh';
+// khổ video: mẫu dài khai khung 9:16 (YNT) phải phát dọc; thiếu khung thì Short 9:16 / dài 16:9
+assert.strictEqual(khungMau({ loai: 'dai', khung: '9:16' }), '9:16'); assert.strictEqual(khungMau({ loai: 'dai' }), '16:9'); assert.strictEqual(khungMau({ loai: 'short' }), '9:16');
 import { tomLoTrinh, cayLoTrinh } from './kenh-sp-tinh';
 { const lt = { cap_nhat: '2026-11-02', giai_doan: [
     { ma: 'G0', ten: 'Chốt', viec: 'chốt mảng', anh: 'chốt', trang_thai: 'xong' as const },

@@ -124,6 +124,8 @@ export type TrangThaiPl = 'de_xuat' | 'chot' | 'mo' | 'sau' | 'tam_dung';
 export type PlaylistKh = { ma: string; ten: string; tien_to?: string; noi_dung?: string; ho_hinh?: string; ngay?: string; trang_dich?: string; mo_dau?: boolean; trang_thai: TrangThaiPl; khi?: string };
 /** MẪU đã duyệt (so-kenh.json › mau): mỗi tập kênh phải thuộc một mẫu (máy gác lich-su/kiem-so-kenh.mjs). */
 export type MauKenh = { ma: string; ten: string; loai: 'short' | 'dai'; /** MẪU LÀ GÌ — cấu trúc + ví dụ cụ thể (anh 05/11/2026) */ mo_ta?: string; /** góc nhu cầu spy mẫu này phục vụ (goc.id của nhóm spy của máy) */ goc_spy?: { id: number; loai: string; ten: string }[]; /** khổ video — thiếu thì Short 9:16, dài 16:9 (kênh YNT dài cũng dọc 9:16) */ khung?: '9:16' | '16:9'; playlist?: string; nhip?: string; kho?: string; trang?: string; sinh?: string; demo?: string; tu_sinh?: string; /** mẫu mới chưa duyệt: chỉ làm demo, máy gác chặn tập thật */ cho_duyet?: boolean };
+/** KHỔ VIDEO của mẫu — MỘT nơi tính (nhãn dòng mẫu, nhãn ngăn mẫu, khung phát demo cùng đọc): mau.khung, thiếu thì Short 9:16 / dài 16:9 (YNT dài vẫn dọc 9:16 — 05/11/2026 khung phát vẽ ngang theo loai) */
+export const khungMau = (m: Pick<MauKenh, 'loai' | 'khung'>): '9:16' | '16:9' => m.khung ?? (m.loai === 'dai' ? '16:9' : '9:16');
 /** Ý TƯỞNG trong hàng chờ (so-kenh.json › hang_cho); trạng thái trong sổ bị tập thật đè (tập slug = mã ý tưởng: đã làm / đã đăng). */
 export type TrangThaiY = 'chua' | 'san_sang' | 'demo' | 'da_lam' | 'da_dang';
 export type YTuong = { ma: string; mau: string; chu_de: string; ngay?: string; trang_thai: TrangThaiY; /** ý tưởng máy tự sinh (so-kenh.json › nguon_y_tuong) — giờ UTC của sự kiện */ tu_sinh?: string; utc?: string };
@@ -207,7 +209,7 @@ export function cayMau(so: SoKenh, tk: Map<string, SoMau> = new Map()): DongKe[]
       ngan: so.mo_dau ? { loai: 'mo_dau', id: '' } : undefined, nganChu: so.mo_dau ? '▶ đoạn mở đầu' : undefined, o: tong, oTieuDe: COT_MAU },
     ...[...ds].sort((a, b) => Number(!!a.cho_duyet) - Number(!!b.cho_duyet)).map((m): DongKe => ({ id: `mau/${m.ma}`, chu: `${m.loai === 'dai' ? '🎞' : '📱'} ${m.ten}${m.cho_duyet ? (m.demo ? ' · ⏳ chờ anh duyệt' : ' · 🛠 máy đang làm demo') : ''}`,
       mau: m.cho_duyet ? (m.demo ? 'var(--warn)' : 'var(--fg-3)') : undefined, ngan: { loai: 'mau', id: m.ma }, nganChu: m.demo ? '▶ xem' : 'mở', o: oMau(tk.get(m.ma)),
-      phu: [m.goc_spy?.length && `góc spy: ${m.goc_spy.map((g) => g.ten).join(' · ')}`, `${m.loai === 'dai' ? 'dài' : 'Short'} ${m.khung ?? (m.loai === 'dai' ? '16:9' : '9:16')}`, m.playlist && `playlist ${pl.get(m.playlist) ?? m.playlist}`, m.nhip, m.kho && `kho ${m.kho}`, m.tu_sinh && 'máy tự sinh ý tưởng'].filter(Boolean).join(' · ') }))];
+      phu: [m.goc_spy?.length && `góc spy: ${m.goc_spy.map((g) => g.ten).join(' · ')}`, `${m.loai === 'dai' ? 'dài' : 'Short'} ${khungMau(m)}`, m.playlist && `playlist ${pl.get(m.playlist) ?? m.playlist}`, m.nhip, m.kho && `kho ${m.kho}`, m.tu_sinh && 'máy tự sinh ý tưởng'].filter(Boolean).join(' · ') }))];
 }
 export const YT: Record<TrangThaiY, { ic: string; chu: string; mau: string; thu: number }> = {
   san_sang: { ic: '⏳', chu: 'sẵn sàng', mau: 'var(--warn)', thu: 0 }, chua: { ic: '○', chu: 'chưa làm', mau: 'var(--fg-2)', thu: 1 }, demo: { ic: '🎬', chu: 'đã có demo', mau: 'var(--accent)', thu: 2 },

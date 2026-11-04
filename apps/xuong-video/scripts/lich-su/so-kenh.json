@@ -38,7 +38,7 @@
         "ngay": "Thứ 3 + Thứ 7",
         "trang_dich": "Synastry (/synastry-chart), Compatibility (/compatibility)",
         "mo_dau": true,
-        "trang_thai": "de_xuat"
+        "trang_thai": "chot"
       },
       {
         "ma": "sign-x-sign",
@@ -49,7 +49,7 @@
         "ngay": "Thứ 5",
         "trang_dich": "/en/blog/<a>-and-<b>-compatibility, /synastry-chart",
         "mo_dau": true,
-        "trang_thai": "de_xuat"
+        "trang_thai": "chot"
       },
       {
         "ma": "start-here",
@@ -377,7 +377,6 @@
         "kho": "vô hạn · mỗi cặp 1–3 tập (góc khít nhất / điểm / mốc chia tay)",
         "trang": "shot-code/la-so.html (cheo + diem)",
         "sinh": "la-so/hop.mjs <a> <b> → kịch bản tay (G5 tự viết)",
-        "cho_duyet": true,
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/chart-vs-chart.mp4?v=1"
       },
       {
@@ -389,7 +388,6 @@
         "kho": "theo sổ cặp la-so/cap.json",
         "trang": "shot-code/la-so.html (khung ngang)",
         "sinh": "hop.mjs + zr.mjs (kỳ ZR của CẢ HAI người ở mỗi mốc quen / cưới / chia tay)",
-        "cho_duyet": true,
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-love-story.mp4?v=1"
       },
       {
@@ -401,7 +399,6 @@
         "kho": "78 cặp cung (đủ một vòng 78 tuần)",
         "trang": "shot-code/la-so.html",
         "sinh": "la-so/cung-cap.mjs → la-so/cung-cap.json (78 bài ghép cung của site, nguyên văn) — kịch bản chỉ lấy câu trong đây",
-        "cho_duyet": true,
         "tu_sinh": "^sx-[a-z]+-[a-z]+$",
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/sign-x-sign.mp4?v=1"
       },
@@ -761,7 +758,12 @@
         "ghi": "sự kiện trời sắp tới (trăng mới / tròn, đổi cung, đổi chiều) — mỗi sự kiện một ý tưởng, 12 bản theo cung Mọc"
       }
     ],
-    "nguoi_tep": "la-so/nguoi.json"
+    "nguoi_tep": "la-so/nguoi.json",
+    "am_thanh": {
+      "giong": "Charlotte",
+      "nhac": "troi",
+      "ghi": "giọng ElevenLabs qua ckey (Speakvela, 156₫ / câu) đọc chữ trên màn; nhạc nền + tiếng động tự sinh 0đ — shot-code/long-tieng.mjs"
+    }
   },
   "yesterdays-news-tonight": {
     "ten": "Yesterday's News Tonight · YouTube @yesterdaysnewstonight",

@@ -476,32 +476,21 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   for (let g = 0; g < 24; g++) { const kg = khungLuc(g); if (doan.at(-1)?.k === kg) doan.at(-1)!.den = g + 1; else doan.push({ k: kg, tu: g, den: g + 1 }); }
   const nen = (kg: string, sang: boolean) => kg === 'bang' ? `repeating-linear-gradient(135deg, #47556966 0 6px, #33415566 6px 12px)` : `${KHUNG_TEN[kg as 'doi'][2]}${sang ? 'cc' : '55'}`;
   const gioChu = `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
-  const so = (n: number, nhan: string, m: string) => <span style={{ color: n ? m : 'var(--fg-3, #777)', fontWeight: 600 }}>{nhan} {n}</span>;
+  const so = (n: number, nhan: string, m: string) => <span style={{ color: n ? m : 'var(--fg-3, #777)', fontWeight: 600 }}>{nhan}{n}</span>;
+  const giai = `Khung máy tự đổi camp (giờ VN, cả 3 bộ) — bây giờ ${gioChu}\n${KD.doi[0]}–${KD.doi[1]}h  ${KHUNG_TEN.doi[0]} ${CHU_KHUNG.doi}\n${KD.nap[0]}–${KD.nap[1]}h  ${KHUNG_TEN.nap[0]} ${CHU_KHUNG.nap}\ncòn lại  ${KHUNG_TEN.bang[0]} ${CHU_KHUNG.bang}\n⏳ = camp đã đạt luật, chờ khung (chip ⏳ ở cột Luật)`;
   return (
-    <div style={{ flexBasis: '100%', border: `1px solid ${mau}66`, borderRadius: 10, padding: gon ? '8px 10px' : '10px 14px', background: `${mau}12`, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 16px' }}>
-        <b style={{ fontSize: gon ? 15 : 18, color: mau, letterSpacing: 0.3 }}>{bt} {ten.toUpperCase()}</b>
-        <span style={{ color: 'var(--fg-2)', fontSize: 13 }}>{CHU_KHUNG[k]}</span>
-        <span style={{ marginLeft: 'auto', fontSize: 13 }}>{k === 'doi' ? 'hết khung đổi' : 'mở khung kế'} <b>{String(het).padStart(2, '0')}:00</b> · còn <b style={{ color: mau }}>{con}</b></span>
-      </div>
-      <div style={{ position: 'relative', paddingTop: 14 }}>
-        <div style={{ position: 'absolute', top: 0, left: `${(h / 24) * 100}%`, transform: 'translateX(-50%)', fontSize: 10.5, fontWeight: 700, color: 'var(--fg-1)', whiteSpace: 'nowrap' }}>▼ {gioChu}</div>
-        <div style={{ display: 'flex', height: gon ? 24 : 30, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--line)' }}>
-          {doan.map((d, i) => { const dang = h >= d.tu && h < d.den, [b2, t2, m2] = KHUNG_TEN[d.k];
-            return <div key={i} title={`${String(d.tu).padStart(2, '0')}:00–${String(d.den).padStart(2, '0')}:00 · ${t2}: ${CHU_KHUNG[d.k]}`} style={{ flex: d.den - d.tu, background: nen(d.k, dang), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: gon ? 10.5 : 12, fontWeight: dang ? 700 : 500,
-              color: d.k === 'bang' ? 'var(--fg-2)' : dang ? '#111' : m2, borderRight: i < doan.length - 1 ? '1px solid var(--line)' : 'none', boxShadow: dang ? `inset 0 0 0 2px ${m2}` : 'none', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              {d.den - d.tu >= 2 ? `${b2} ${gon ? '' : `${t2} `}${d.tu}–${d.den}h` : b2}</div>; })}
+    <div title={giai} style={{ flexBasis: '100%', minWidth: 0, display: 'flex', flexWrap: gon ? 'wrap' : 'nowrap', alignItems: 'center', gap: '4px 10px', fontSize: 12, cursor: 'help', whiteSpace: 'nowrap' }}>
+      <span><b style={{ color: mau }}>{bt} {ten}</b><span style={{ color: 'var(--fg-3, #777)' }}> · {k === 'doi' ? 'hết' : 'mở'} {String(het).padStart(2, '0')}:00 (còn {con})</span></span>
+      <div style={{ position: 'relative', flex: 1, minWidth: gon ? '100%' : 260, maxWidth: 520, order: gon ? 3 : 0 }}>
+        <div style={{ display: 'flex', height: 16, borderRadius: 4, overflow: 'hidden', border: '1px solid var(--line)' }}>
+          {doan.map((d, i) => { const dang = h >= d.tu && h < d.den, [b2, , m2] = KHUNG_TEN[d.k];
+            return <div key={i} style={{ flex: d.den - d.tu, background: nen(d.k, dang), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: dang ? 700 : 500,
+              color: d.k === 'bang' ? 'var(--fg-2)' : dang ? '#111' : m2, borderRight: i < doan.length - 1 ? '1px solid var(--line)' : 'none', overflow: 'hidden' }}>
+              {d.den - d.tu >= 3 ? `${b2} ${d.tu}–${d.den}h` : d.den - d.tu >= 2 ? `${d.tu}–${d.den}` : ''}</div>; })}
         </div>
-        <div style={{ position: 'absolute', top: 12, bottom: 0, left: `${(h / 24) * 100}%`, width: 2, background: 'var(--fg-1)', pointerEvents: 'none' }} />
-        <div style={{ position: 'relative', height: 14, fontSize: 10, color: 'var(--fg-3, #777)' }}>
-          {[0, 3, 6, 9, 12, 15, 18, 21, 24].map((g) => <span key={g} style={{ position: 'absolute', left: `${(g / 24) * 100}%`, transform: g === 0 ? 'none' : g === 24 ? 'translateX(-100%)' : 'translateX(-50%)' }}>{g}h</span>)}
-        </div>
+        <div style={{ position: 'absolute', top: -2, bottom: -2, left: `${(h / 24) * 100}%`, width: 2, borderRadius: 1, background: 'var(--fg-1)', pointerEvents: 'none' }} />
       </div>
-      {k !== 'doi' ? <div style={{ fontSize: 13, display: 'flex', flexWrap: 'wrap', gap: '2px 14px', alignItems: 'baseline' }}>
-        <span style={{ color: 'var(--fg-2)' }}>⏳ Camp đã đạt luật, chờ tới {KD.doi[0]}:00:</span>
-        {so(cho.tang.size, '↑ tăng', '#4ade80')}{so(cho.giam.size, '↓ giảm', '#fb923c')}{so(cho.tat.size, '✕ tắt', '#f87171')}
-        <span style={{ color: 'var(--fg-3, #777)' }}>· chip ⏳ ở cột Luật</span>
-      </div> : null}
+      {k !== 'doi' ? <span style={{ display: 'inline-flex', gap: 8 }}><span style={{ color: 'var(--fg-3, #777)' }}>⏳ chờ {KD.doi[0]}h:</span>{so(cho.tang.size, '↑', '#4ade80')}{so(cho.giam.size, '↓', '#fb923c')}{so(cho.tat.size, '✕', '#f87171')}</span> : null}
     </div>
   );
 }

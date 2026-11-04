@@ -341,7 +341,7 @@
         "kho": "vô hạn theo người",
         "trang": "shot-code/la-so.html (khung ngang)",
         "sinh": "lich-su/dai/sinh-chuong.mjs --slug <người> --moc <moc.json>",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-chart-chapters.mp4",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-chart-chapters.mp4?v=2",
         "tu_sinh": "^ccd-[a-z0-9-]+$"
       },
       {

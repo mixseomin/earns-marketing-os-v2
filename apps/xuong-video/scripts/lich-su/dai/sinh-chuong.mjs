@@ -18,8 +18,10 @@ if (!slug || !tepMoc) { console.error('dùng: --slug <người> --moc <moc.json>
 if (!existsSync(join(LA_SO, `${slug}.json`))) { console.error(`✗ chưa có lá số ${slug}: chạy node lich-su/la-so/lay.mjs ${slug}`); process.exit(3); }
 const D = JSON.parse(readFileSync(join(LA_SO, `${slug}.json`), 'utf8')), M = JSON.parse(readFileSync(tepMoc, 'utf8'));
 const CUNG = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-const NHA = ['self and body', 'money and values', 'siblings and messages', 'home and family', 'children and creativity', 'work and health', 'partners and open rivals',
-  'shared resources and endings', 'travel and beliefs', 'career and reputation', 'friends and hopes', 'hidden matters and retreat'];
+// NGHĨA NHÀ: nguyên văn của astrolas.com (la-so/y-nghia-nha.json, hệ cổ điển) — 3 ý đầu của câu site; không tự đặt nghĩa nhà (04/11/2026 bản tự đặt
+// "6th house: work and health" lệch site "Illness, injuries, hardship…")
+const NHA_SITE = JSON.parse(readFileSync(join(LA_SO, 'y-nghia-nha.json'), 'utf8')).nha;
+const NHA = Array.from({ length: 12 }, (_, i) => { const y = NHA_SITE[String(i + 1)].replace(/\.$/, '').split(/,\s*(?![^()]*\))/).slice(0, 3).join(', '); return y[0].toLowerCase() + y.slice(1); });
 const THU = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 const moc = Math.floor((D.nha.find((x) => x.so === 1)?.dinh ?? NaN) / 30); if (Number.isNaN(moc)) { console.error('✗ lá số thiếu đỉnh nhà 1'); process.exit(3); }
 const namSinh = Number(D.nguoi.year), den = Number(M.den ?? namSinh + 80);

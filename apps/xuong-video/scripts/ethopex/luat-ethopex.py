@@ -742,7 +742,11 @@ G10_NS, G10_DICH, G10_ROI, G10_THEO = 15, 10, 15, 2
 # NHÁNH KÉM ĐI (anh 02/11/2026 "có, thêm luôn" — team: "những camp mà last 5 day có tín hiệu rois kém đi … giảm budget theo dõi 2 ngày tiếp, vẫn kém thì off"):
 # ROI 3 ngày đã khép chưa dưới 15% nhưng tụt còn < G10_KEM_TI × ROI 4 ngày trước (D−7..D−4, chi ≥ 1 ngày ngân sách) và < G10_KEM_ROI% → cũng hạ về $10, theo dõi + tắt như G10
 G10_KEM_TI, G10_KEM_ROI = 0.5, 30
-g10, tat_g10, _g10_theo = [], [], {}
+# G10 HỒI (anh 04/11/2026 "Camp ROAS về $10 theo dõi thì chưa có rule để tăng trở lại" → "ok"): camp G10 đã hạ, đủ G10_THEO ngày đã khép sau ngày hạ, ROI ≥ G10_HOI%
+# và chi ≥ 1 ngày ngân sách → nâng thẳng về ngân sách TRƯỚC lúc hạ (nhật ký G10 'truoc'), gỡ khỏi sổ G10 (worker). Áp cả ★ ROAS — đường tăng duy nhất của camp ROAS
+# (_bo_roas gạt ROAS khỏi mọi luật tăng). Tụt lại thì G10 hạ như cũ. Ngưỡng 30% (cao hơn ngưỡng tắt 15%) để không giật lên xuống.
+G10_HOI = 30
+g10, tat_g10, _g10_theo, hoi_g10 = [], [], {}, []
 _d3s = {dt.date.fromisoformat(d(i)) for i in (1, 2, 3)}
 _d4s = {dt.date.fromisoformat(d(i)) for i in (4, 5, 6, 7)}
 try:
@@ -757,6 +761,11 @@ try:
             sau = sorted(x for x in _ds if x[0] > ngay_ha)[:G10_THEO]
             if len(sau) < G10_THEO: _g10_theo[int(cid)] = ngay_ha; continue
             cs, ts = sum(x[1] for x in sau), sum(x[2] for x in sau)
+            if cs >= ns and (ts - cs) / cs * 100 >= G10_HOI:
+                # ngân sách TRƯỚC lúc hạ = ngân sách thật cao nhất 7 ngày trước ngày hạ (etp.so_ngay.ngan_sach) — không đọc nhật ký lệnh (04/11/2026: #66666 lệnh G10 ghi thất bại mà ngân sách vẫn về $10)
+                truoc_ = q(f"select max(ngan_sach) from etp.so_ngay where camp_id = {int(cid)} and ngay between '{ngay_ha - dt.timedelta(days=7)}' and '{ngay_ha}'")
+                ve = min(30, int(float(truoc_))) if truoc_ and truoc_.replace('.', '', 1).isdigit() and float(truoc_) > ns else None
+                if ve: hoi_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% ≥ {G10_HOI}% → ${G10_DICH} → ${ve} (luật G10 hồi: về ngân sách trước lúc hạ)")); continue
             if cs > 0 and (ts - cs) / cs * 100 < G10_ROI and duoi(int(cid), ns, G10_ROI, ten_, "G10"):
                 tat_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% → TẮT (luật G10: vẫn < {G10_ROI}%)"))
                 continue
@@ -807,7 +816,7 @@ dat, dau_phien, tang30, thang_nb, nb, moc30 = ([x for x in v if int(x[0] or 0) n
 # nhịp tăng 3 giờ, đổi < 6 giờ, khung giờ, bộ…). Ghi etp.xet_luat (migration 0350) ở lượt --json; trang etp hiện khi rê vào camp.
 def _xet_luat():
     vao = {k: {int(x[0] or 0) for x in v} for k, v in (("tat_l3", tat_l3), ("tat_l4", tat_l4), ("tat_pl", tat_pl), ("tat_d24", tat_d24), ("tat2", tat2), ("tat1", tat1), ("tat", tat_l), ("tang", dat), ("dau_phien", dau_phien), ("ha", ha), ("giam", giam), ("nb", nb),
-           ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("dung_dem", dung_dem), ("tat_roas", tat_roas), ("tat_r0", tat_r0), ("g10", g10), ("tat_g10", tat_g10))}
+           ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("dung_dem", dung_dem), ("tat_roas", tat_roas), ("tat_r0", tat_r0), ("g10", g10), ("tat_g10", tat_g10), ("hoi_g10", hoi_g10))}
     giam_tu = q("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'") != "false"
     f = lambda v, dv="": "—" if v is None else (f"{v:+.0f}%" if dv == "%" else f"${v:.2f}" if dv == "$" else f"{v:g}{dv}")
     def L(ma, ten, mo_ta, dk, vao_ds=None, ghi=None, ap=True, tien=0, lo=None):
@@ -963,7 +972,7 @@ if JSON:
         if _p.returncode: loi_may.append((0, f"ghi xét luật lỗi: {_p.stderr.strip()[:80]}"))
     except Exception as e:
         loi_may.append((0, f"xét luật lỗi: {str(e)[:80]}"))
-    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat1": m(tat1), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7)}
+    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat1": m(tat1), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7), "hoi_g10": m(hoi_g10)}
     # SỔ LUẬT CHUNG (apps/web/src/lib/etp-bang-luat.json): mọi danh sách máy luật xuất ra phải có mục ở sổ — thiếu là trang etp / bộ lọc / worker không biết luật đó (gốc vụ G10 01/11/2026)
     _thieu = sorted(k for k in ra_ if k != "luc" and k not in BANG_LUAT["khoa"])
     if _thieu: ra_["loi_may"] = ra_.get("loi_may", []) + [{"id": 0, "chu": f"luật chưa có trong sổ luật chung etp-bang-luat.json: {', '.join(_thieu)}"}]

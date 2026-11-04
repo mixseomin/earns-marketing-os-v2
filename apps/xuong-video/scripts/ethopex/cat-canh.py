@@ -105,7 +105,10 @@ def dung_tap(nguon, tu, den, ten, out, nut="WATCH NOW", cam=()):
         else: kh.append([a_, z_])
     bo = "+".join(f"between(t,{a_ - tu:.2f},{z_ - tu:.2f})" for a_, z_ in kh)
     L = (den - tu) - sum(z_ - a_ for a_, z_ in kh)
-    if L < 30: raise SystemExit(f"bỏ giây cấm xong còn {L:.0f}s — quá ngắn, bỏ tập")
+    # SÀN ĐỘ DÀI theo loại (04/11/2026: 72 phim kể chuyện bị bỏ trong 2 ngày — video kể chuyện chỉ ~33s, bỏ giây cấm còn 19–28s, sàn 30s của tập thật
+    # chặn hết, sau khi đã trả tiền sinh đủ 6 clip): kể chuyện (ETP_LOI_DAN) sàn 15s · tập phim thật 30s
+    SAN = 15 if os.environ.get("ETP_LOI_DAN") else 30
+    if L < SAN: raise SystemExit(f"bỏ giây cấm xong còn {L:.0f}s — dưới sàn {SAN}s, bỏ tập")
     cv = f"select='not({bo})',setpts=N/FRAME_RATE/TB," if bo else ""; ca = f"aselect='not({bo})',asetpts=N/SR/TB," if bo else ""
     loc = (f"[0:v]trim={tu}:{den},setpts=PTS-STARTPTS,fps=30,{cv}scale={W}:{H}:flags=lanczos:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[c];"
            f"[1:v]format=rgba,fade=in:st={L - O_CUOI}:d=0.3:alpha=1[o];[c][o]overlay=0:0:enable='gte(t,{L - O_CUOI})'[v];"

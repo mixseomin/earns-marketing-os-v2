@@ -17,6 +17,11 @@ const TEN_BUOC: Record<string, [string, string]> = {
   camp: ['Lên camp', 'nhan-ban.py: $1, bộ 2, lịch hôm nay — mọi cổng luật ở đó, chặn thì dừng'],
   chay: ['Camp chạy', 'Chờ Ethopex đồng bộ xong + ACTIVE'],
 };
+/** BƯỚC GIẢI QUYẾT đi kèm mọi lý do dừng / lỗi (anh 04/11/2026 "Lý do phải luôn đi kèm Bước giải quyết !! Ko dừng hẳn như vậy") — đúng cơ chế apps/etp/manh.py mục 5 + 6.
+ *  MỘT chỗ: tab Sản xuất và đồng hồ Sản xuất (etp-view BadgeSx) cùng gọi. */
+export const xuLy = (tt: string): string | null => tt === 'dung'
+  ? 'Mạnh tự chạy lại bước này khi cổng của phim đổi (gỡ sổ cấm · nhóm gốc · có creative đạt CTA mới) — sửa luật / gỡ chặn là dòng tự đi tiếp; bấm FIX để chạy lại ngay'
+  : tt === 'loi' ? 'Mạnh tự thử lại bước lỗi: lần đầu ngay, sau đó 2 giờ / lần, tối đa 6 lần trong 3 ngày; bấm FIX để chạy lại ngay' : null;
 export const MAU: Record<string, [string, string]> = { cho: ['#6b7280', 'chờ'], dang: ['#60a5fa', 'đang chạy'], xong: ['#22c55e', 'xong'], dung: ['#f59e0b', 'dừng (policy / luật)'],
   loi: ['#ef4444', 'lỗi'], bo_qua: ['#374151', 'không thuộc loại nội dung này'], chay: ['#60a5fa', 'đang chạy'], huy: ['#6b7280', 'đã huỷ'] };
 const gio = (iso: string | null) => { if (!iso) return '—'; const d = new Date(Date.parse(iso) + 7 * 3600_000); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
@@ -109,7 +114,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   const chamXong = b('creative')?.trang_thai === 'xong';
   const hien = d.buoc.find((x) => ['dang', 'loi', 'dung'].includes(x.trang_thai));
   const tatXong = d.buoc.length > 0 && d.buoc.every((x) => x.trang_thai === 'xong' || x.trang_thai === 'bo_qua');
-  const ghi = d.trang_thai === 'dung' || d.trang_thai === 'loi' ? d.ly_do ?? hien?.ghi : hien?.ghi ?? (tatXong ? `xong sau ${phut(d.tao_luc, d.xong_luc ?? d.buoc[d.buoc.length - 1]?.ket_thuc ?? null)}` : null);
+  const ghi = d.trang_thai === 'dung' || d.trang_thai === 'loi' ? `${d.ly_do ?? hien?.ghi ?? ''}\n→ xử lý: ${xuLy(d.trang_thai)}` : hien?.ghi ?? (tatXong ? `xong sau ${phut(d.tao_luc, d.xong_luc ?? d.buoc[d.buoc.length - 1]?.ket_thuc ?? null)}` : null);
   const tB = (x?: BuocDong) => x ? `${TEN_BUOC[x.buoc]?.[0] ?? x.buoc} · ${MAU[x.trang_thai]?.[1] ?? x.trang_thai}\nbắt đầu ${ngayGio(x.bat_dau)} · xong ${ngayGio(x.ket_thuc)}${x.ghi ? `\n\n${x.ghi}` : ''}\n\nbấm để chạy lại / dừng` : '';
   const moMenu = (x?: BuocDong) => x && d.trang_thai !== 'huy' && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? (e: React.MouseEvent) => setMenu({ b: x, x: e.clientX, y: e.clientY }) : undefined;
   const oBuoc = (x: BuocDong | undefined, chu?: string, xem?: Omit<Xem, 'x' | 'y'>) => { const doiMay = !!x && cho[x.buoc] !== undefined && (x.bat_dau ?? '') === cho[x.buoc];

@@ -38,9 +38,9 @@ def main():
         ghi(f"""update etp.dong_buoc set huy = true, trang_thai = 'loi', ket_thuc = now(), ghi = $G$Mạnh: {ly} — {gc[:200].replace('$G$', '')}$G$, fix = {str(tu_fix).lower()}
                 where dong_id = {dong} and buoc = '{buoc}' and trang_thai = 'dang';
                 update etp.dong_phim set trang_thai = 'loi', ly_do = $G${buoc}: Mạnh — {ly}$G$, xong_luc = now(){', bao_luc = now()' if tu_fix else ''} where id = {dong} and trang_thai = 'chay'""")
-        lam.append(f"dòng #{dong} · {TEN.get(buoc, buoc)} {ly} → {'tự FIX lần ' + str(lan + 1) if tu_fix else 'đã FIX ' + str(lan - 1) + ' lần — DỪNG, chờ anh bấm FIX'}")
+        lam.append(f"dòng #{dong} · {TEN.get(buoc, buoc)} {ly} → {'tự FIX lần ' + str(lan + 1) if tu_fix else 'đã FIX ' + str(lan - 1) + ' lần — Mạnh thử lại sau 2 giờ (tối đa 6 lần)'}")
         bao(f"🚧 <b>Mạnh</b> · phim <b>{ten or cid}</b> (#{cid}) · bước <b>{TEN.get(buoc, buoc)}</b> {ly}\n"
-            + ("→ đã huỷ tiến trình, tự chạy lại bước (FIX tự động)" if tu_fix else "→ đã huỷ, FIX tự đã dùng — dòng DỪNG, bấm FIX trên etp.on.tc tab Dòng phim"))
+            + ("→ đã huỷ tiến trình, tự chạy lại bước (FIX tự động)" if tu_fix else "→ đã huỷ; FIX nhanh đã dùng — Mạnh tự thử lại sau 2 giờ (tối đa 6 lần), không để dòng chết"))
     # 2. máy chạy dòng im
     for l in q(f"""select m.may, extract(epoch from now() - m.nhip)::int, coalesce(extract(epoch from now() - m.bao_luc)::int, 999999) from etp.dong_may m
                   where m.nhip < now() - interval '{IM_MAY} seconds' and exists (select 1 from etp.dong_phim where trang_thai = 'chay')""").splitlines():
@@ -74,6 +74,11 @@ def main():
                      and d.dau_dung is distinct from {dau} returning d.id)
                   update etp.dong_buoc b set fix = true from mo where b.dong_id = mo.id and b.trang_thai in ('dung', 'loi') and not b.fix returning b.dong_id, b.buoc""")
     if r: lam.append(f"mở lại (cổng phim đã đổi): {r.replace(chr(10), ' · ').replace(chr(9), ' ')}")
+    # 6. KHÔNG DỪNG HẲN (anh 04/11/2026 "Lý do phải luôn đi kèm Bước giải quyết !! Ko dừng hẳn như vậy" — dòng #5 đứng 'lỗi' từ hôm qua):
+    #    dòng LỖI KỸ THUẬT (không phải dừng vì luật) → thử lại bước lỗi sau 2 giờ, tối đa 6 lần, trong 3 ngày; hết lượt mới báo anh một lần
+    r = q("""update etp.dong_buoc b set fix = true from etp.dong_phim d where d.id = b.dong_id and d.trang_thai = 'loi' and b.trang_thai = 'loi' and not b.fix
+              and b.lan < 6 and b.ket_thuc < now() - interval '2 hours' and d.tao_luc > now() - interval '3 days' returning b.dong_id, b.buoc, b.lan""") if not THU else ""
+    if r: lam.append(f"thử lại lỗi (2 giờ/lần): {r.replace(chr(10), ' · ').replace(chr(9), ' ')}")
     print("Mạnh:", " · ".join(lam) if lam else "không có gì kẹt")
 
 if __name__ == "__main__": main()

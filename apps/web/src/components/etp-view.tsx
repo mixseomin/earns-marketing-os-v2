@@ -15,7 +15,7 @@ import { Dem } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { nhanPhimEtp, traPhimEtp } from '@/lib/actions/etp-phim';
-import { DongHoSx, FormChayDong, MAU as MAU_DONG, NUT_SX, TabDong } from '@/components/etp-dong';
+import { DongHoSx, FormChayDong, MAU as MAU_DONG, NUT_SX, TabDong, xuLy } from '@/components/etp-dong';
 import { TRE_MO } from '@/lib/etp-tre';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
@@ -1754,7 +1754,7 @@ function BadgeSx({ cid, ds, kt }: { cid: number; ds: DuLieuEtp['dongChay']; /** 
     const TEN9 = Object.fromEntries(NUT_SX.map(([, t, b]) => [b, t]));   // tên bước = đúng cột tab Sản xuất (etp-dong NUT_SX)
     const the = (): TheNoi => ({ ma: x.id ? `đợt #${x.id}` : 'máy sinh KT', ten: `${x.loai}${x.so_camp ? ` · +${x.so_camp} camp` : ''}`, mau: tt === 'chay' ? '#60a5fa' : tt === 'xong' ? '#22c55e' : tt === 'dung' ? '#f59e0b' : '#ef4444',
       tieu: `${TT_DONG[tt] ?? tt}${tt === 'chay' ? ` · bước ${x.buoc ?? '—'}` : x.camp_id ? ` · camp #${x.camp_id}` : ''}`,
-      moc: [...(x.ly_do && tt !== 'chay' ? [{ ten: 'Lý do', mau: '#f59e0b', chu: x.ly_do.slice(0, 300) }] : []),
+      moc: [...(x.ly_do && tt !== 'chay' ? [{ ten: 'Lý do', mau: '#f59e0b', chu: x.ly_do.slice(0, 300) }] : []), ...(xuLy(tt) ? [{ ten: 'Xử lý', mau: '#60a5fa', chu: xuLy(tt)! }] : []),
         ...(x.cac_buoc ?? []).filter((b) => b.trang_thai !== 'bo_qua').map((b) => ({ ten: String(TEN9[b.buoc] ?? b.buoc), mau: (MAU_DONG[b.trang_thai] ?? MAU_DONG.cho!)[0], chu: MAU_DONG[b.trang_thai]?.[1] ?? b.trang_thai })),
         { ten: 'Bấm', mau: '#64748b', chu: `sang ${x.id ? 'tab Sản xuất' : 'Thư viện'} lọc đúng phim · Ctrl/⌘: tab mới` }] });
     return <span key={`${x.id}-${i}`} style={{ opacity: tt === 'chay' ? 1 : 0.6 }}><ReThe the={the}><DongHoSx buoc={x.cac_buoc ?? []} so={tt === 'chay' ? (x.so_camp ?? 1) : (x.so_len ?? 0)} title="" href={x.id ? `?t=dong&sxq=${cid}` : `?t=tv&tvq=${cid}`} ket={tt === 'chay' ? undefined : tt} /></ReThe></span>; })}</span>;

@@ -266,7 +266,7 @@ def b_creative_kt(d):
                 where r.content_id = {d['content_id']} and r.dang = 'kể chuyện' and r.tu_choi is null
                   and r.cap_nhat >= (select bat_dau from etp.dong_buoc where dong_id = {d['id']} and buoc = 'creative') order by r.creative_id desc limit 1""").split("\t")
     if not v or not v[0]:
-        tv = sql(f"select coalesce(trang_thai, '') || ' ' || coalesce(left(ghi, 160), '') from etp.thu_vien where content_id = {d['content_id']} and dang = 'kể chuyện' and tao >= (select bat_dau from etp.dong_buoc where dong_id = {d['id']} and buoc = 'creative') order by id desc limit 1")
+        tv = sql(f"select coalesce(trang_thai, '') || ' ' || coalesce(left(ghi, 160), '') from etp.thu_vien where content_id = {d['content_id']} and dang = 'kể chuyện' and tao >= (select tao_luc from etp.dong_phim where id = {d['id']}) order by id desc limit 1")   # từ lúc TẠO DÒNG, không từ lúc bước bắt đầu: máy sinh bỏ phim trước khi bước chạy (dòng #5: 'loai' 06:49, bước 10:41 → chờ mù 4 giờ)
         if tv.startswith("loai") or tv.startswith("loi_may"): return "loi", f"máy sinh kể chuyện hỏng: {tv[:300]}", None
         return "cho", f"máy sinh kể chuyện: {tv or 'phim đứng đầu hàng đợi (bậc 5000), chờ máy nhận'}"[:300], None
     cr = int(v[0]); kq = {"creative_id": cr, "lang": v[4], "tu": float(v[5] or 0), "den": float(v[6] or 0), "ten": f"dp{d['id']} {re.sub(r'[^ -~]', '', d.get('ten') or '')} {v[4].upper()} - ke chuyen"}

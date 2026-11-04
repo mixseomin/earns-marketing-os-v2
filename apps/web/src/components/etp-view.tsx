@@ -477,21 +477,21 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   const nen = (kg: string, sang: boolean) => kg === 'bang' ? `repeating-linear-gradient(135deg, #47556966 0 6px, #33415566 6px 12px)` : `${KHUNG_TEN[kg as 'doi'][2]}${sang ? 'cc' : '55'}`;
   const gioChu = `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
   const so = (n: number, nhan: string, m: string) => <span style={{ color: n ? m : 'var(--fg-3, #777)', fontWeight: 600 }}>{nhan}{n}</span>;
-  const giai = `Khung máy tự đổi camp (giờ VN, cả 3 bộ) — bây giờ ${gioChu}\n${KD.doi[0]}–${KD.doi[1]}h  ${KHUNG_TEN.doi[0]} ${CHU_KHUNG.doi}\n${KD.nap[0]}–${KD.nap[1]}h  ${KHUNG_TEN.nap[0]} ${CHU_KHUNG.nap}\ncòn lại  ${KHUNG_TEN.bang[0]} ${CHU_KHUNG.bang}\n⏳ = camp đã đạt luật, chờ khung (chip ⏳ ở cột Luật)`;
+  const giai = `Khung máy tự đổi camp (giờ VN, cả 3 bộ) — bây giờ ${gioChu} · ${ten}, ${k === 'doi' ? 'hết' : 'mở khung kế'} ${String(het).padStart(2, '0')}:00 (còn ${con})\n${KD.doi[0]}–${KD.doi[1]}h  ${KHUNG_TEN.doi[0]} ${CHU_KHUNG.doi}\n${KD.nap[0]}–${KD.nap[1]}h  ${KHUNG_TEN.nap[0]} ${CHU_KHUNG.nap}\ncòn lại  ${KHUNG_TEN.bang[0]} ${CHU_KHUNG.bang}\n⏳ = camp đã đạt luật, chờ khung (chip ⏳ ở cột Luật)`;
   return (
-    <div title={giai} style={{ flexBasis: '100%', minWidth: 0, display: 'flex', flexWrap: gon ? 'wrap' : 'nowrap', alignItems: 'center', gap: '4px 10px', fontSize: 12, cursor: 'help', whiteSpace: 'nowrap' }}>
-      <span><b style={{ color: mau }}>{bt} {ten}</b><span style={{ color: 'var(--fg-3, #777)' }}> · {k === 'doi' ? 'hết' : 'mở'} {String(het).padStart(2, '0')}:00 (còn {con})</span></span>
-      <div style={{ position: 'relative', flex: 1, minWidth: gon ? '100%' : 260, maxWidth: 520, order: gon ? 3 : 0 }}>
-        <div style={{ display: 'flex', height: 16, borderRadius: 4, overflow: 'hidden', border: '1px solid var(--line)' }}>
-          {doan.map((d, i) => { const dang = h >= d.tu && h < d.den, [b2, , m2] = KHUNG_TEN[d.k];
+    <span title={giai} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'help', whiteSpace: 'nowrap' }}>
+      <b style={{ color: mau }}>{bt}{gon ? '' : ` ${ten}`}</b><span style={{ color: 'var(--fg-3, #777)' }}>{k === 'doi' ? 'hết' : 'mở'} {String(het).padStart(2, '0')}:00</span>
+      <div style={{ position: 'relative', width: gon ? 96 : 200 }}>
+        <div style={{ display: 'flex', height: 14, borderRadius: 4, overflow: 'hidden', border: '1px solid var(--line)' }}>
+          {doan.map((d, i) => { const dang = h >= d.tu && h < d.den, m2 = KHUNG_TEN[d.k][2];
             return <div key={i} style={{ flex: d.den - d.tu, background: nen(d.k, dang), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: dang ? 700 : 500,
               color: d.k === 'bang' ? 'var(--fg-2)' : dang ? '#111' : m2, borderRight: i < doan.length - 1 ? '1px solid var(--line)' : 'none', overflow: 'hidden' }}>
-              {d.den - d.tu >= 3 ? `${b2} ${d.tu}–${d.den}h` : d.den - d.tu >= 2 ? `${d.tu}–${d.den}` : ''}</div>; })}
+              {!gon && d.den - d.tu >= 6 ? `${d.tu}–${d.den}h` : ''}</div>; })}
         </div>
         <div style={{ position: 'absolute', top: -2, bottom: -2, left: `${(h / 24) * 100}%`, width: 2, borderRadius: 1, background: 'var(--fg-1)', pointerEvents: 'none' }} />
       </div>
-      {k !== 'doi' ? <span style={{ display: 'inline-flex', gap: 8 }}><span style={{ color: 'var(--fg-3, #777)' }}>⏳ chờ {KD.doi[0]}h:</span>{so(cho.tang.size, '↑', '#4ade80')}{so(cho.giam.size, '↓', '#fb923c')}{so(cho.tat.size, '✕', '#f87171')}</span> : null}
-    </div>
+      {k !== 'doi' ? <span style={{ display: 'inline-flex', gap: 5 }}><span style={{ color: 'var(--fg-3, #777)' }}>⏳</span>{so(cho.tang.size, '↑', '#4ade80')}{so(cho.giam.size, '↓', '#fb923c')}{so(cho.tat.size, '✕', '#f87171')}</span> : null}
+    </span>
   );
 }
 function ChipLuat(p: VaoLuat) {

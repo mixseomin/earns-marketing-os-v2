@@ -1,0 +1,311 @@
+{
+ "_ghi": "Chart Chapters dài · Barack Obama — sinh bởi lich-su/dai/sinh-chuong.mjs từ dai/moc-barack-obama.json",
+ "kenh": "astrolas",
+ "mau": "chart-chapters-dai",
+ "playlist_ma": "chart-chapters",
+ "y_tuong": "ccd-barack-obama",
+ "khung": "ngang",
+ "DAI": 53.2,
+ "la_so": "../lich-su/la-so/barack-obama.svg",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "Chart Chapters",
+  "mau": "#E6B800",
+  "ic": "☉"
+ },
+ "cau": [
+  {
+   "tu": 0,
+   "den": 5,
+   "nhin": {
+    "dung": 1
+   },
+   "chu": "This is the sky at the moment Barack Obama was born: August 4, 1961, 7:24 PM, Honolulu."
+  },
+  {
+   "tu": 5,
+   "den": 10.4,
+   "nhin": {
+    "doi": {
+     "tu": 1961,
+     "den": 2026,
+     "dang": 1961,
+     "moc": [
+      {
+       "nam": 1990,
+       "chu": "Harvard Law Review"
+      },
+      {
+       "nam": 1996,
+       "chu": "Illinois Senate"
+      },
+      {
+       "nam": 2004,
+       "chu": "keynote"
+      },
+      {
+       "nam": 2008,
+       "chu": "elected president"
+      }
+     ]
+    }
+   },
+   "chu": "Astrologers kept an old clock for a life. Each birthday, the year moves one sign around the chart.",
+   "nhan": "Annual Profections"
+  },
+  {
+   "tu": 10.4,
+   "den": 15.6,
+   "nhin": {
+    "doi": {
+     "tu": 1961,
+     "den": 2026,
+     "dang": 1990,
+     "moc": [
+      {
+       "nam": 1990,
+       "chu": "Harvard Law Review"
+      },
+      {
+       "nam": 1996,
+       "chu": "Illinois Senate"
+      },
+      {
+       "nam": 2004,
+       "chu": "keynote"
+      },
+      {
+       "nam": 2008,
+       "chu": "elected president"
+      }
+     ]
+    }
+   },
+   "chu": "1990, age 28: a Gemini year. Counted from Aquarius rising, that's the 5th house: children, creativity, joy."
+  },
+  {
+   "tu": 15.6,
+   "den": 20,
+   "nhin": {
+    "doi": {
+     "tu": 1961,
+     "den": 2026,
+     "dang": 1990,
+     "moc": [
+      {
+       "nam": 1990,
+       "chu": "Harvard Law Review"
+      },
+      {
+       "nam": 1996,
+       "chu": "Illinois Senate"
+      },
+      {
+       "nam": 2004,
+       "chu": "keynote"
+      },
+      {
+       "nam": 2008,
+       "chu": "elected president"
+      }
+     ]
+    }
+   },
+   "chu": "He is elected the first Black president of the Harvard Law Review.",
+   "nhan": "Harvard Law Review"
+  },
+  {
+   "tu": 20,
+   "den": 25.2,
+   "nhin": {
+    "doi": {
+     "tu": 1961,
+     "den": 2026,
+     "dang": 1996,
+     "moc": [
+      {
+       "nam": 1990,
+       "chu": "Harvard Law Review"
+      },
+      {
+       "nam": 1996,
+       "chu": "Illinois Senate"
+      },
+      {
+       "nam": 2004,
+       "chu": "keynote"
+      },
+      {
+       "nam": 2008,
+       "chu": "elected president"
+      }
+     ]
+    }
+   },
+   "chu": "1996, age 35: a Capricorn year. Counted from Aquarius rising, that's the 12th house: hidden enemies, calamities, imprisonment."
+  },
+  {
+   "tu": 25.2,
+   "den": 29.6,
+   "nhin": {
+    "doi": {
+     "tu": 1961,
+     "den": 2026,
+     "dang": 1996,
+     "moc": [
+      {
+       "nam": 1990,
+       "chu": "Harvard Law Review"
+      },
+      {
+       "nam": 1996,
+       "chu": "Illinois Senate"
+      },
+      {
+       "nam": 2004,
+       "chu": "keynote"
+      },
+      {
+       "nam": 2008,
+       "chu": "elected president"
+      }
+     ]
+    }
+   },
+   "chu": "He wins a seat in the Illinois State Senate.",
+   "nhan": "Illinois Senate"
+  },
+  {
+   "tu": 29.6,
+   "den": 34.8,
+   "nhin": {
+    "doi": {
+     "tu": 1961,
+     "den": 2026,
+     "dang": 2004,
+     "moc": [
+      {
+       "nam": 1990,
+       "chu": "Harvard Law Review"
+      },
+      {
+       "nam": 1996,
+       "chu": "Illinois Senate"
+      },
+      {
+       "nam": 2004,
+       "chu": "keynote"
+      },
+      {
+       "nam": 2008,
+       "chu": "elected president"
+      }
+     ]
+    }
+   },
+   "chu": "2004, age 42: a Leo year. Counted from Aquarius rising, that's the 7th house: marriage, spouse, business partners."
+  },
+  {
+   "tu": 34.8,
+   "den": 39.2,
+   "nhin": {
+    "doi": {
+     "tu": 1961,
+     "den": 2026,
+     "dang": 2004,
+     "moc": [
+      {
+       "nam": 1990,
+       "chu": "Harvard Law Review"
+      },
+      {
+       "nam": 1996,
+       "chu": "Illinois Senate"
+      },
+      {
+       "nam": 2004,
+       "chu": "keynote"
+      },
+      {
+       "nam": 2008,
+       "chu": "elected president"
+      }
+     ]
+    }
+   },
+   "chu": "His keynote at the Democratic National Convention makes him a national name.",
+   "nhan": "keynote"
+  },
+  {
+   "tu": 39.2,
+   "den": 44.4,
+   "nhin": {
+    "doi": {
+     "tu": 1961,
+     "den": 2026,
+     "dang": 2008,
+     "moc": [
+      {
+       "nam": 1990,
+       "chu": "Harvard Law Review"
+      },
+      {
+       "nam": 1996,
+       "chu": "Illinois Senate"
+      },
+      {
+       "nam": 2004,
+       "chu": "keynote"
+      },
+      {
+       "nam": 2008,
+       "chu": "elected president"
+      }
+     ]
+    }
+   },
+   "chu": "2008, age 47: a Capricorn year. Counted from Aquarius rising, that's the 12th house: hidden enemies, calamities, imprisonment."
+  },
+  {
+   "tu": 44.4,
+   "den": 48.8,
+   "nhin": {
+    "doi": {
+     "tu": 1961,
+     "den": 2026,
+     "dang": 2008,
+     "moc": [
+      {
+       "nam": 1990,
+       "chu": "Harvard Law Review"
+      },
+      {
+       "nam": 1996,
+       "chu": "Illinois Senate"
+      },
+      {
+       "nam": 2004,
+       "chu": "keynote"
+      },
+      {
+       "nam": 2008,
+       "chu": "elected president"
+      }
+     ]
+    }
+   },
+   "chu": "He is elected the 44th President of the United States.",
+   "nhan": "elected president"
+  },
+  {
+   "tu": 48.8,
+   "den": 53.2,
+   "nhin": {
+    "toan": 1
+   },
+   "chu": "Find your own chapters free at astrolas.com.",
+   "nhan": "astrolas.com · Annual Profections"
+  }
+ ]
+}

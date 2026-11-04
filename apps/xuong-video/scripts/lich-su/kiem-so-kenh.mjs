@@ -50,6 +50,11 @@ export function kiemTap(tap, k, ma) {
   if (!tap.y_tuong) loi.push('tập không khai y_tuong (ý tưởng nào trong hàng chờ?)'); else if (!h && !tuSinh) loi.push(`ý tưởng ${tap.y_tuong} không có trong hàng chờ, cũng không đúng khuôn tự sinh của mẫu`);
   else if (h?.trang_thai === 'da_dang') loi.push(`ý tưởng ${tap.y_tuong} đã đăng — không làm lại`);
   else if (h && m && h.mau !== m.ma) loi.push(`ý tưởng ${tap.y_tuong} thuộc mẫu ${h.mau}, không phải ${m.ma}`);
+  // lá số trong tập: phải lấy theo sổ người (la-so/lay.mjs --nguoi) với hạng Rodden được dùng nhà / cung Mọc — giờ sinh DD / B (vd /c/taylor-swift) không lên video
+  if (tap.la_so) { const ten = tap.la_so.split('/').pop().replace(/\.svg$/, ''), tep = join(DIR, 'la-so', `${ten}.json`), so = JSON.parse(readFileSync(join(DIR, 'la-so/nguoi.json'), 'utf8'));
+    const ls = existsSync(tep) ? JSON.parse(readFileSync(tep, 'utf8')) : null, ng = so.nguoi.find((x) => x.slug === ten);
+    if (!ls) loi.push(`lá số ${ten} chưa lấy (la-so/lay.mjs --nguoi ${ten})`);
+    else if (!ng || !so.rodden_dung_nha.includes(ls.rodden) || ng.khong_dung) loi.push(`lá số ${ten}: giờ sinh ${ls.rodden ?? 'không rõ hạng'}${ng?.khong_dung ? ' · bị đánh dấu không dùng' : ''} — chỉ dùng hạng ${so.rodden_dung_nha.join('/')} lấy theo la-so/nguoi.json`); }
   // câu kết: câu cuối của tập phải nhắc tên miền trong dinh_vi.cau_ket (vd "…free at astrolas.com" → astrolas.com)
   const mien = (k.dinh_vi?.cau_ket ?? '').match(/[\w-]+(\.[\w-]+)+/)?.[0], cuoi = (tap.cau ?? []).at(-1)?.chu ?? '';
   if (mien && !cuoi.includes(mien)) loi.push(`câu cuối phải trỏ về ${mien} (dinh_vi.cau_ket "${k.dinh_vi.cau_ket}")`);

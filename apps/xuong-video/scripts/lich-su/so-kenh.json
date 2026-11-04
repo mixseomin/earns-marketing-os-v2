@@ -1,5 +1,5 @@
 {
-  "_ghi": "SỔ KÊNH (anh 04/11/2026: 'cần có nơi tổ chức để sau này lên video mới ko bị chệch hướng' → 'show ở Kênh nội dung'). MỘT nguồn cho người + máy, chung mọi kênh studio, khoá = mã máy (xv_may.ma). Anh đọc ở mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh: 📘 Sổ kênh · 🧩 Mẫu đã duyệt · 💡 Hàng chờ ý tưởng · 🧭 Lộ trình · 📂 Playlist) và Studio (phim kênh › 📖 Phim). Máy gác: lich-su/kiem-so-kenh.mjs (tự kiểm sổ + gác từng tập: mẫu / playlist phải có trong sổ, câu kết đúng, chủ đề không trùng). Phần: dinh_vi · luat[] · mau[] { ma, ten, loai short|dai, playlist, nhip, kho, trang, sinh, demo, tu_sinh? (khuôn mã ý tưởng máy tự sinh — mẫu vô hạn) } · hang_cho[] { ma, mau, chu_de, ngay?, trang_thai chua|san_sang|demo|da_lam|da_dang } · nguon_y_tuong[] { mau, tep (lich-su/<tệp> có su_kien[] { ma, chu, utc }), ngay_toi } — ý tưởng TỰ SINH hiện trong hàng chờ · playlist[] · giai_doan[] (lộ trình). trang_thai playlist: de_xuat · chot · mo · sau · tam_dung; giai đoạn: cho_anh · dang · chua · xong. Đổi sổ = sửa tệp + commit (deploy đọc lại). Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs đọc kenh.json).",
+  "_ghi": "SỔ KÊNH (anh 04/11/2026: 'cần có nơi tổ chức để sau này lên video mới ko bị chệch hướng' → 'show ở Kênh nội dung'). MỘT nguồn cho người + máy, chung mọi kênh studio, khoá = mã máy (xv_may.ma). Anh đọc ở mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh: 📘 Sổ kênh · 🧩 Mẫu đã duyệt · 💡 Hàng chờ ý tưởng · 🧭 Lộ trình · 📂 Playlist) và Studio (phim kênh › 📖 Phim). Máy gác: lich-su/kiem-so-kenh.mjs (tự kiểm sổ + gác từng tập: mẫu / playlist phải có trong sổ, câu kết đúng, chủ đề không trùng). Phần: dinh_vi · luat[] · mau[] { ma, ten, loai short|dai, playlist, nhip, kho, trang, sinh, demo, tu_sinh? (khuôn mã ý tưởng máy tự sinh — mẫu vô hạn) } · hang_cho[] { ma, mau, chu_de, ngay?, trang_thai chua|san_sang|demo|da_lam|da_dang } · nguon_y_tuong[] { mau, tep (lich-su/<tệp> có su_kien[] { ma, chu, utc }), ngay_toi } — ý tưởng TỰ SINH hiện trong hàng chờ · nguoi_tep (sổ người nổi tiếng: giờ sinh + hạng Rodden) · playlist[] · giai_doan[] (lộ trình). trang_thai playlist: de_xuat · chot · mo · sau · tam_dung; giai đoạn: cho_anh · dang · chua · xong. Đổi sổ = sửa tệp + commit (deploy đọc lại). Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs đọc kenh.json).",
   "astrolas": {
     "ten": "Astrolas · YouTube @astrolasapp",
     "plan": "apps/xuong-video/docs/astrolas-youtube.md",
@@ -223,7 +223,8 @@
     },
     "luat": [
       "Mỗi tập thuộc đúng MỘT mẫu đã duyệt và MỘT playlist trong sổ này — không có mẫu = không làm",
-      "Số lá số / thiên văn chỉ lấy từ dữ liệu astrolas.com hoặc bau-troi-tinh.js (đã đối chiếu Swiss Ephemeris ≤ 0,06°, la-so/doi-chieu.mjs)",
+      "Số lá số / thiên văn chỉ lấy từ astrolas.com (lá số dựng theo giờ sinh trong la-so/nguoi.json) hoặc bau-troi-tinh.js — đã đối chiếu ≤ 0,06°, la-so/doi-chieu.mjs",
+      "Cung Mọc / nhà / Profection chỉ cho người có giờ sinh hạng AA (giấy khai sinh) trong la-so/nguoi.json — hạng A / B / DD không dùng (Taylor Swift DD, Lady Gaga DD, Elon Musk B)",
       "Sự thật lịch sử, thần thoại, đời người: có nguồn kiểm được; không bịa, không đoán ngày",
       "Giọng bí ẩn, điềm, ít đùa — không chế giễu chiêm tinh, không hứa hẹn tiên tri",
       "Khung thương hiệu G2: logo + icon thật, nhãn playlist, nền trời thật chuyển động, màn cuối chung",
@@ -388,18 +389,6 @@
         "trang_thai": "demo"
       },
       {
-        "ma": "ccd-taylor-swift",
-        "mau": "chart-chapters-dai",
-        "chu_de": "Taylor Swift: four chapters (máy sinh, chờ giọng)",
-        "trang_thai": "san_sang"
-      },
-      {
-        "ma": "cc-elon-musk",
-        "mau": "chart-chapters",
-        "chu_de": "Elon Musk: Saturn opposite Neptune",
-        "trang_thai": "chua"
-      },
-      {
         "ma": "tw-mercury-rx-scorpio-2026",
         "mau": "this-week",
         "chu_de": "Mercury retrograde in Scorpio · 12 bản cung Mọc",
@@ -516,6 +505,42 @@
         "mau": "start-here",
         "chu_de": "Channel trailer",
         "trang_thai": "demo"
+      },
+      {
+        "ma": "ccd-barack-obama",
+        "mau": "chart-chapters-dai",
+        "chu_de": "Barack Obama: four chapters (máy sinh, chờ giọng)",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "cc-marilyn-monroe",
+        "mau": "chart-chapters",
+        "chu_de": "Marilyn Monroe",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cc-elvis-presley",
+        "mau": "chart-chapters",
+        "chu_de": "Elvis Presley",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cc-cristiano-ronaldo",
+        "mau": "chart-chapters",
+        "chu_de": "Cristiano Ronaldo",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cc-beyonce",
+        "mau": "chart-chapters",
+        "chu_de": "Beyoncé (giờ AA 21:47, không dùng /c/beyonce 22:00)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cc-madonna",
+        "mau": "chart-chapters",
+        "chu_de": "Madonna",
+        "trang_thai": "chua"
       }
     ],
     "nguon_y_tuong": [
@@ -525,6 +550,7 @@
         "ngay_toi": 60,
         "ghi": "sự kiện trời sắp tới (trăng mới / tròn, đổi cung, đổi chiều) — mỗi sự kiện một ý tưởng, 12 bản theo cung Mọc"
       }
-    ]
+    ],
+    "nguoi_tep": "la-so/nguoi.json"
   }
 }

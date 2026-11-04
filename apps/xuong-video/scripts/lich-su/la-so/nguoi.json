@@ -1,0 +1,279 @@
+{
+ "_ghi": "SỔ NGƯỜI NỔI TIẾNG cho các mẫu dùng lá số (G4 kênh Astrolas, 04/11/2026). Giờ sinh + hạng Rodden đọc trên Astrotheme (bản sao Astro-Databank, có ghi nguồn), 04/11/2026. Luật: cung Mọc / nhà / Profection CHỈ cho hạng AA (giấy khai sinh). A = theo trí nhớ: tạm chỉ dùng vị trí sao theo cung. B / DD: chỉ dùng thứ không phụ thuộc giờ. Lá số lấy bằng la-so/lay.mjs --nguoi <slug> (trang /birth của astrolas.com với đúng giờ ở đây, không dùng giờ của trang /c/ — /c/beyonce và /c/lady-gaga đang lệch). utc = giờ quốc tế tính tay từ múi giờ lịch sử; la-so/doi-chieu.mjs so với múi giờ site áp.",
+ "rodden_dung_nha": [
+  "AA"
+ ],
+ "nguoi": [
+  {
+   "slug": "steve-jobs",
+   "ten": "Steve Jobs",
+   "sinh": {
+    "ngay": 24,
+    "thang": 2,
+    "nam": 1955,
+    "gio": 19,
+    "phut": 15,
+    "noi": "San Francisco, California, USA",
+    "vi": 37.7749,
+    "kinh": -122.4194
+   },
+   "utc": "1955-02-25T03:15Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Steve_Jobs",
+   "ghi": "giấy khai sinh · Lois Rodden"
+  },
+  {
+   "slug": "barack-obama",
+   "ten": "Barack Obama",
+   "sinh": {
+    "ngay": 4,
+    "thang": 8,
+    "nam": 1961,
+    "gio": 19,
+    "phut": 24,
+    "noi": "Honolulu, Hawaii, USA",
+    "vi": 21.3069,
+    "kinh": -157.8583
+   },
+   "utc": "1961-08-05T05:24Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Barack_Obama",
+   "ghi": "giấy khai sinh · Pat Taglilatelo"
+  },
+  {
+   "slug": "marilyn-monroe",
+   "ten": "Marilyn Monroe",
+   "sinh": {
+    "ngay": 1,
+    "thang": 6,
+    "nam": 1926,
+    "gio": 9,
+    "phut": 30,
+    "noi": "Los Angeles, California, USA",
+    "vi": 34.0522,
+    "kinh": -118.2437
+   },
+   "utc": "1926-06-01T17:30Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Marilyn_Monroe",
+   "ghi": "giấy khai sinh · Bob Garner"
+  },
+  {
+   "slug": "elvis-presley",
+   "ten": "Elvis Presley",
+   "sinh": {
+    "ngay": 8,
+    "thang": 1,
+    "nam": 1935,
+    "gio": 4,
+    "phut": 35,
+    "noi": "Tupelo, Mississippi, USA",
+    "vi": 34.2576,
+    "kinh": -88.7034
+   },
+   "utc": "1935-01-08T10:35Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Elvis_Presley",
+   "ghi": "giấy khai sinh · Eugene Moore"
+  },
+  {
+   "slug": "beyonce",
+   "ten": "Beyoncé",
+   "sinh": {
+    "ngay": 4,
+    "thang": 9,
+    "nam": 1981,
+    "gio": 21,
+    "phut": 47,
+    "noi": "Houston, Texas, USA",
+    "vi": 29.7604,
+    "kinh": -95.3698
+   },
+   "utc": "1981-09-05T02:47Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Beyonce_Knowles",
+   "ghi": "giấy khai sinh · Claire Nakti — trang /c/beyonce của site dùng 22:00 (lệch 13 phút)"
+  },
+  {
+   "slug": "cristiano-ronaldo",
+   "ten": "Cristiano Ronaldo",
+   "sinh": {
+    "ngay": 5,
+    "thang": 2,
+    "nam": 1985,
+    "gio": 5,
+    "phut": 25,
+    "noi": "Funchal, Madeira, Portugal",
+    "vi": 32.6669,
+    "kinh": -16.9241
+   },
+   "utc": "1985-02-05T05:25Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Cristiano_Ronaldo",
+   "ghi": "giấy khai sinh"
+  },
+  {
+   "slug": "albert-einstein",
+   "ten": "Albert Einstein",
+   "sinh": {
+    "ngay": 14,
+    "thang": 3,
+    "nam": 1879,
+    "gio": 11,
+    "phut": 30,
+    "noi": "Ulm, Germany",
+    "vi": 48.4011,
+    "kinh": 9.9876
+   },
+   "utc": "1879-03-14T10:50Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Albert_Einstein",
+   "ghi": "giấy khai sinh · Lois Rodden — giờ địa phương trung bình (LMT +0:40) năm 1879, phải kiểm múi giờ site áp",
+   "khong_dung": "site áp CET (UTC+1) cho năm 1879 thay vì giờ địa phương Ulm (LMT +0:40) → lá số lệch 20 phút, cung Mọc sai ~1,4° (doi-chieu.mjs bắt 04/11/2026). Dùng lại khi astrolas.com sửa múi giờ lịch sử."
+  },
+  {
+   "slug": "madonna",
+   "ten": "Madonna",
+   "sinh": {
+    "ngay": 16,
+    "thang": 8,
+    "nam": 1958,
+    "gio": 7,
+    "phut": 5,
+    "noi": "Bay City, Michigan, USA",
+    "vi": 43.5945,
+    "kinh": -83.8889
+   },
+   "utc": "1958-08-16T12:05Z",
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Madonna",
+   "ghi": "giấy khai sinh · Lois Rodden — Michigan 1958 dùng giờ EST, phải kiểm múi giờ site áp"
+  },
+  {
+   "slug": "taylor-swift",
+   "ten": "Taylor Swift",
+   "sinh": {
+    "ngay": 13,
+    "thang": 12,
+    "nam": 1989,
+    "gio": 17,
+    "phut": 17,
+    "noi": "Reading, Pennsylvania, USA",
+    "vi": 40.3356,
+    "kinh": -75.9269
+   },
+   "utc": null,
+   "rodden": "DD",
+   "nguon": "https://www.astrotheme.com/birthdays/december-13.htm",
+   "ghi": "giờ sinh chưa từng công bố, nhiều nguồn khác nhau — KHÔNG dùng cung Mọc / nhà / Profection"
+  },
+  {
+   "slug": "lady-gaga",
+   "ten": "Lady Gaga",
+   "sinh": {
+    "ngay": 28,
+    "thang": 3,
+    "nam": 1986,
+    "gio": 9,
+    "phut": 53,
+    "noi": "Manhattan, New York, USA",
+    "vi": 40.7831,
+    "kinh": -73.9712
+   },
+   "utc": null,
+   "rodden": "DD",
+   "nguon": "https://www.astrotheme.com/astrology/Lady_Gaga",
+   "ghi": "conflicting / unverified; trang /c/lady-gaga của site dùng 01:48 Yonkers — KHÔNG dùng cung Mọc / nhà"
+  },
+  {
+   "slug": "elon-musk",
+   "ten": "Elon Musk",
+   "sinh": {
+    "ngay": 28,
+    "thang": 6,
+    "nam": 1971,
+    "gio": 7,
+    "phut": 30,
+    "noi": "Pretoria, South Africa",
+    "vi": -25.7479,
+    "kinh": 28.2293
+   },
+   "utc": "1971-06-28T05:30Z",
+   "rodden": "B",
+   "nguon": "https://www.astrotheme.com/astrology/Elon_Musk",
+   "ghi": "theo tiểu sử Walter Isaacson (2023), không giấy khai sinh — KHÔNG dùng cung Mọc / nhà"
+  },
+  {
+   "slug": "martin-luther-king",
+   "ten": "Martin Luther King Jr.",
+   "sinh": {
+    "ngay": 15,
+    "thang": 1,
+    "nam": 1929,
+    "gio": 12,
+    "phut": 0,
+    "noi": "Atlanta, Georgia, USA",
+    "vi": 33.749,
+    "kinh": -84.388
+   },
+   "utc": "1929-01-15T18:00Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Martin_Luther_King",
+   "ghi": "theo trí nhớ / tự truyện · Lois Rodden"
+  },
+  {
+   "slug": "john-f-kennedy",
+   "ten": "John F. Kennedy",
+   "sinh": {
+    "ngay": 29,
+    "thang": 5,
+    "nam": 1917,
+    "gio": 15,
+    "phut": 0,
+    "noi": "Brookline, Massachusetts, USA",
+    "vi": 42.3318,
+    "kinh": -71.1212
+   },
+   "utc": "1917-05-29T19:00Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/John_Fitzgerald_Kennedy",
+   "ghi": "theo trí nhớ / tự truyện · Lois Rodden"
+  },
+  {
+   "slug": "oprah-winfrey",
+   "ten": "Oprah Winfrey",
+   "sinh": {
+    "ngay": 29,
+    "thang": 1,
+    "nam": 1954,
+    "gio": 4,
+    "phut": 30,
+    "noi": "Kosciusko, Mississippi, USA",
+    "vi": 33.0576,
+    "kinh": -89.5876
+   },
+   "utc": "1954-01-29T10:30Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Oprah_Winfrey",
+   "ghi": "theo trí nhớ / tự truyện · Lois Rodden"
+  },
+  {
+   "slug": "michael-jackson",
+   "ten": "Michael Jackson",
+   "sinh": {
+    "ngay": 29,
+    "thang": 8,
+    "nam": 1958,
+    "gio": 19,
+    "phut": 33,
+    "noi": "Gary, Indiana, USA",
+    "vi": 41.5934,
+    "kinh": -87.3464
+   },
+   "utc": "1958-08-30T01:33Z",
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Michael_Jackson",
+   "ghi": "theo trí nhớ / tự truyện · Lois Rodden"
+  }
+ ]
+}

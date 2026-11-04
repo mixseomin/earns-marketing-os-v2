@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 const DIR = dirname(fileURLToPath(import.meta.url)), NGUONG = 0.25;
 await import(join(DIR, '../../shot-code/bau-troi-tinh.js')); const B = globalThis.BauTroi;
 const lech = (a, b) => Math.abs(((a - b + 540) % 360) - 180);
-const ds = process.argv.slice(2).length ? process.argv.slice(2) : readdirSync(DIR).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5));
+const ds = process.argv.slice(2).length ? process.argv.slice(2) : readdirSync(DIR).filter((f) => f.endsWith('.json') && !['nguoi.json', 'y-nghia-nha.json'].includes(f)).map((f) => f.slice(0, -5));
 let hong = 0;
 for (const s of ds) {
   const d = JSON.parse(readFileSync(join(DIR, `${s}.json`), 'utf8')), n = d.nguoi, sao = (p) => d.sao.find((x) => x.ten === p)?.kinh_do;
@@ -20,7 +20,9 @@ for (const s of ds) {
   const k = B.kinhDo(tot.ms), dong = [], max = { p: '', e: 0 };
   for (const p of ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']) { const e = lech(k[p], sao(p)); dong.push(`${p} ${e.toFixed(2)}°`); if (e > max.e) Object.assign(max, { p, e }); }
   const eA = lech(B.cungMoc(tot.ms, +n.lat, +n.lng), d.nha.find((x) => x.so === 1).dinh); dong.push(`ASC ${eA.toFixed(2)}°`); if (eA > max.e) Object.assign(max, { p: 'ASC', e: eA });
+  // múi giờ site áp so với giờ UTC tính tay trong sổ người (lá số lấy bằng lay.mjs --nguoi): lệch = site đổi giờ địa phương sai (múi giờ lịch sử, LMT…)
+  let tz = ''; if (d.utc_sinh) { const lechPhut = Math.round((tot.ms - Date.parse(d.utc_sinh)) / 60e3); tz = Math.abs(lechPhut) <= 15 ? ' · múi giờ khớp sổ' : ` · ✗ múi giờ site lệch sổ ${lechPhut} phút`; if (Math.abs(lechPhut) > 15) hong++; }
   const dat = max.e <= NGUONG; if (!dat) hong++;
-  console.log(`${dat ? '✓' : '✗'} ${s.padEnd(14)} UTC${tot.q >= 0 ? '+' : ''}${tot.q / 4} · ${dong.join(' · ')} · lệch lớn nhất ${max.p} ${max.e.toFixed(2)}°`);
+  console.log(`${dat && !tz.includes('✗') ? '✓' : '✗'} ${s.padEnd(18)} ${d.rodden ? `[${d.rodden}] ` : ''}UTC${tot.q >= 0 ? '+' : ''}${tot.q / 4} · ${dong.join(' · ')} · lệch lớn nhất ${max.p} ${max.e.toFixed(2)}°${tz}`);
 }
 process.exit(hong ? 1 : 0);

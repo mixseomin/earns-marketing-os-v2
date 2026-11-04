@@ -17,6 +17,12 @@ const slug = arg('slug'), tepMoc = arg('moc');
 if (!slug || !tepMoc) { console.error('dùng: --slug <người> --moc <moc.json>'); process.exit(2); }
 if (!existsSync(join(LA_SO, `${slug}.json`))) { console.error(`✗ chưa có lá số ${slug}: chạy node lich-su/la-so/lay.mjs ${slug}`); process.exit(3); }
 const D = JSON.parse(readFileSync(join(LA_SO, `${slug}.json`), 'utf8')), M = JSON.parse(readFileSync(tepMoc, 'utf8'));
+// GIỜ SINH TIN ĐƯỢC: cung Mọc / nhà / Profection chỉ dựng trên lá số lấy theo sổ người (lay.mjs --nguoi) hạng AA, không bị đánh dấu khong_dung
+// (04/11/2026: /c/taylor-swift dùng giờ DD, /c/beyonce lệch giờ AA 13 phút, site áp sai múi giờ 1879 cho Einstein)
+const SO_NGUOI = JSON.parse(readFileSync(join(LA_SO, 'nguoi.json'), 'utf8')), NG = SO_NGUOI.nguoi.find((x) => x.slug === slug);
+if (!NG || !SO_NGUOI.rodden_dung_nha.includes(NG.rodden) || NG.khong_dung || D.rodden !== NG.rodden) {
+  console.error(`✗ ${slug}: không dựng Chart Chapters — ${!NG ? 'không có trong la-so/nguoi.json' : NG.khong_dung ? `đánh dấu không dùng: ${NG.khong_dung}` : !SO_NGUOI.rodden_dung_nha.includes(NG.rodden) ? `giờ sinh hạng ${NG.rodden} (cần ${SO_NGUOI.rodden_dung_nha.join('/')})` : 'lá số chưa lấy theo sổ người (chạy la-so/lay.mjs --nguoi ' + slug + ')'}`);
+  process.exit(3); }
 const CUNG = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 // NGHĨA NHÀ: nguyên văn của astrolas.com (la-so/y-nghia-nha.json, hệ cổ điển) — 3 ý đầu của câu site; không tự đặt nghĩa nhà (04/11/2026 bản tự đặt
 // "6th house: work and health" lệch site "Illness, injuries, hardship…")

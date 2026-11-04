@@ -1,17 +1,20 @@
 {
- "nguon": "https://astrolas.com/c/elon-musk",
+ "nguon": "https://astrolas.com/birth?name=Madonna&day=16&month=8&year=1958&hour=7&minute=5&location=Bay+City%2C+Michigan%2C+USA&lat=43.5945&lng=-83.8889",
  "theme": "nebula",
- "lay_luc": "2026-11-02T18:55:26.415Z",
+ "lay_luc": "2026-11-04T12:59:52.055Z",
+ "rodden": "AA",
+ "nguon_gio": "https://www.astrotheme.com/astrology/Madonna",
+ "utc_sinh": "1958-08-16T12:05Z",
  "nguoi": {
-  "name": "Elon Musk",
-  "day": 28,
-  "month": 6,
-  "year": 1971,
-  "hour": 7,
-  "minute": 30,
-  "location": "Pretoria, South Africa",
-  "lat": -25.7479,
-  "lng": 28.2293
+  "name": "Madonna",
+  "day": "16",
+  "month": "8",
+  "year": "1958",
+  "hour": "7",
+  "minute": "5",
+  "location": "Bay City, Michigan, USA",
+  "lat": "43.5945",
+  "lng": "-83.8889"
  },
  "viewBox": "0 0 670 670",
  "tam": [
@@ -75,269 +78,269 @@
  "nha": [
   {
    "so": 1,
-   "dinh": 103.6
+   "dinh": 158.3
   },
   {
    "so": 2,
-   "dinh": 139
+   "dinh": 181.5
   },
   {
    "so": 3,
-   "dinh": 175.8
+   "dinh": 210.1
   },
   {
    "so": 4,
-   "dinh": 208.4
+   "dinh": 243.7
   },
   {
    "so": 5,
-   "dinh": 235.5
+   "dinh": 279
   },
   {
    "so": 6,
-   "dinh": 259.4
+   "dinh": 310.9
   },
   {
    "so": 7,
-   "dinh": 283.6
+   "dinh": 338.3
   },
   {
    "so": 8,
-   "dinh": 319
+   "dinh": 1.5
   },
   {
    "so": 9,
-   "dinh": 355.8
+   "dinh": 30.1
   },
   {
    "so": 10,
-   "dinh": 28.4
+   "dinh": 63.7
   },
   {
    "so": 11,
-   "dinh": 55.5
+   "dinh": 99
   },
   {
    "so": 12,
-   "dinh": 79.4
+   "dinh": 130.9
   }
  ],
  "sao": [
   {
    "ten": "Sun",
-   "kinh_do": 95.890627432238,
-   "cung": "Cancer",
+   "kinh_do": 143.11305089841,
+   "cung": "Leo",
    "nha": 12,
    "nghich": false
   },
   {
    "ten": "Moon",
-   "kinh_do": 158.24271216384,
+   "kinh_do": 161.5445954255,
    "cung": "Virgo",
-   "nha": 2,
-   "nghich": false
-  },
-  {
-   "ten": "Mercury",
-   "kinh_do": 104.06656099925,
-   "cung": "Cancer",
    "nha": 1,
    "nghich": false
   },
   {
+   "ten": "Mercury",
+   "kinh_do": 155.65680278606,
+   "cung": "Virgo",
+   "nha": 12,
+   "nghich": true
+  },
+  {
    "ten": "Venus",
-   "kinh_do": 79.396788397727,
-   "cung": "Gemini",
+   "kinh_do": 120.53864577397,
+   "cung": "Leo",
    "nha": 11,
    "nghich": false
   },
   {
    "ten": "Mars",
-   "kinh_do": 320.9056454567,
-   "cung": "Aquarius",
-   "nha": 8,
-   "nghich": false
-  },
-  {
-   "ten": "Jupiter",
-   "kinh_do": 237.64794664773,
-   "cung": "Scorpio",
-   "nha": 5,
-   "nghich": true
-  },
-  {
-   "ten": "Saturn",
-   "kinh_do": 61.122634156301,
-   "cung": "Gemini",
-   "nha": 11,
-   "nghich": false
-  },
-  {
-   "ten": "Uranus",
-   "kinh_do": 189.48209159772,
-   "cung": "Libra",
-   "nha": 3,
-   "nghich": false
-  },
-  {
-   "ten": "Neptune",
-   "kinh_do": 240.81346989417,
-   "cung": "Sagittarius",
-   "nha": 5,
-   "nghich": true
-  },
-  {
-   "ten": "Pluto",
-   "kinh_do": 177.09334969985,
-   "cung": "Virgo",
-   "nha": 3,
-   "nghich": false
-  },
-  {
-   "ten": "Chiron",
-   "kinh_do": 13.697165376603,
-   "cung": "Aries",
+   "kinh_do": 45.386287329403,
+   "cung": "Taurus",
    "nha": 9,
    "nghich": false
   },
   {
-   "ten": "Lilith",
-   "kinh_do": 183.05388550744,
+   "ten": "Jupiter",
+   "kinh_do": 206.39644443037,
    "cung": "Libra",
-   "nha": 3,
-   "nghich": false
-  },
-  {
-   "ten": "Mean Node",
-   "kinh_do": 316.52291858215,
-   "cung": "Aquarius",
-   "nha": 7,
-   "nghich": true
-  },
-  {
-   "ten": "South Node",
-   "kinh_do": 136.52291858215,
-   "cung": "Leo",
-   "nha": 1,
-   "nghich": true
-  },
-  {
-   "ten": "Fortune",
-   "kinh_do": 165.90696814805,
-   "cung": "Virgo",
    "nha": 2,
    "nghich": false
   },
   {
-   "ten": "Vertex",
-   "kinh_do": 323.99739194615,
+   "ten": "Saturn",
+   "kinh_do": 259.14180388541,
+   "cung": "Sagittarius",
+   "nha": 4,
+   "nghich": true
+  },
+  {
+   "ten": "Uranus",
+   "kinh_do": 132.69480736315,
+   "cung": "Leo",
+   "nha": 12,
+   "nghich": false
+  },
+  {
+   "ten": "Neptune",
+   "kinh_do": 212.2994300179,
+   "cung": "Scorpio",
+   "nha": 3,
+   "nghich": false
+  },
+  {
+   "ten": "Pluto",
+   "kinh_do": 151.71915009597,
+   "cung": "Virgo",
+   "nha": 12,
+   "nghich": false
+  },
+  {
+   "ten": "Chiron",
+   "kinh_do": 319.98931686493,
    "cung": "Aquarius",
+   "nha": 6,
+   "nghich": true
+  },
+  {
+   "ten": "Lilith",
+   "kinh_do": 19.73545649731,
+   "cung": "Aries",
    "nha": 8,
+   "nghich": false
+  },
+  {
+   "ten": "Mean Node",
+   "kinh_do": 205.33740829396,
+   "cung": "Libra",
+   "nha": 2,
+   "nghich": true
+  },
+  {
+   "ten": "South Node",
+   "kinh_do": 25.337408293963,
+   "cung": "Aries",
+   "nha": 8,
+   "nghich": true
+  },
+  {
+   "ten": "Fortune",
+   "kinh_do": 176.68245400268,
+   "cung": "Virgo",
+   "nha": 1,
+   "nghich": false
+  },
+  {
+   "ten": "Vertex",
+   "kinh_do": 309.4958021902,
+   "cung": "Aquarius",
+   "nha": 5,
    "nghich": false
   }
  ],
  "goc": [
   {
+   "loai": "Square",
+   "a": "Sun",
+   "b": "Mars",
+   "lech": 7.7
+  },
+  {
    "loai": "Sextile",
    "a": "Sun",
-   "b": "Moon",
-   "lech": 2.4
+   "b": "Jupiter",
+   "lech": 3.3
+  },
+  {
+   "loai": "Trine",
+   "a": "Sun",
+   "b": "Saturn",
+   "lech": 4
   },
   {
    "loai": "Conjunction",
    "a": "Sun",
-   "b": "Mercury",
-   "lech": 8.2
-  },
-  {
-   "loai": "Square",
-   "a": "Sun",
-   "b": "Uranus",
-   "lech": 3.6
-  },
-  {
-   "loai": "Square",
-   "a": "Sun",
    "b": "Pluto",
-   "lech": 8.8
+   "lech": 8.6
   },
   {
-   "loai": "Sextile",
+   "loai": "Conjunction",
    "a": "Moon",
    "b": "Mercury",
-   "lech": 5.8
+   "lech": 5.9
+  },
+  {
+   "loai": "Trine",
+   "a": "Moon",
+   "b": "Mars",
+   "lech": 3.8
   },
   {
    "loai": "Square",
    "a": "Moon",
    "b": "Saturn",
-   "lech": 7.1
+   "lech": 7.6
   },
   {
-   "loai": "Square",
+   "loai": "Conjunction",
    "a": "Moon",
-   "b": "Neptune",
-   "lech": 7.4
-  },
-  {
-   "loai": "Square",
-   "a": "Mercury",
-   "b": "Uranus",
-   "lech": 4.6
-  },
-  {
-   "loai": "Trine",
-   "a": "Venus",
-   "b": "Mars",
-   "lech": 1.5
-  },
-  {
-   "loai": "Square",
-   "a": "Venus",
    "b": "Pluto",
-   "lech": 7.7
+   "lech": 9.8
+  },
+  {
+   "loai": "Sextile",
+   "a": "Mercury",
+   "b": "Neptune",
+   "lech": 3.4
+  },
+  {
+   "loai": "Conjunction",
+   "a": "Mercury",
+   "b": "Pluto",
+   "lech": 3.9
+  },
+  {
+   "loai": "Square",
+   "a": "Venus",
+   "b": "Jupiter",
+   "lech": 4.1
+  },
+  {
+   "loai": "Square",
+   "a": "Venus",
+   "b": "Neptune",
+   "lech": 1.8
   },
   {
    "loai": "Square",
    "a": "Mars",
-   "b": "Jupiter",
-   "lech": 6.7
-  },
-  {
-   "loai": "Opposition",
-   "a": "Jupiter",
-   "b": "Saturn",
-   "lech": 3.5
+   "b": "Uranus",
+   "lech": 2.7
   },
   {
    "loai": "Conjunction",
    "a": "Jupiter",
    "b": "Neptune",
-   "lech": 3.2
+   "lech": 5.9
   },
   {
    "loai": "Sextile",
    "a": "Jupiter",
    "b": "Pluto",
-   "lech": 0.6
-  },
-  {
-   "loai": "Opposition",
-   "a": "Saturn",
-   "b": "Neptune",
-   "lech": 0.3
+   "lech": 5.3
   },
   {
    "loai": "Trine",
    "a": "Saturn",
-   "b": "Pluto",
-   "lech": 4
+   "b": "Uranus",
+   "lech": 6.5
   },
   {
    "loai": "Sextile",
    "a": "Neptune",
    "b": "Pluto",
-   "lech": 3.7
+   "lech": 0.6
   }
  ]
 }

@@ -1,17 +1,20 @@
 {
- "nguon": "https://astrolas.com/c/steve-jobs",
+ "nguon": "https://astrolas.com/birth?name=Steve+Jobs&day=24&month=2&year=1955&hour=19&minute=15&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194",
  "theme": "nebula",
- "lay_luc": "2026-11-02T18:38:33.684Z",
+ "lay_luc": "2026-11-04T12:58:12.628Z",
+ "rodden": "AA",
+ "nguon_gio": "https://www.astrotheme.com/astrology/Steve_Jobs",
+ "utc_sinh": "1955-02-25T03:15Z",
  "nguoi": {
   "name": "Steve Jobs",
-  "day": 24,
-  "month": 2,
-  "year": 1955,
-  "hour": 19,
-  "minute": 15,
+  "day": "24",
+  "month": "2",
+  "year": "1955",
+  "hour": "19",
+  "minute": "15",
   "location": "San Francisco, California, USA",
-  "lat": 37.7749,
-  "lng": -122.4194
+  "lat": "37.7749",
+  "lng": "-122.4194"
  },
  "viewBox": "0 0 670 670",
  "tam": [

@@ -32,6 +32,7 @@ HAN_RIENG = {("KT", "creative"): 4 * 3600, ("LT", "cat"): 2 * 3600, ("LT", "camp
 # (etp.cau_hinh 'lo_trinh' {content_id: {bat_dau: true}}) → lên mỗi creative một camp $1 (nhan-ban miễn luật một camp khi phim ở lo_trinh) → T2 cắt lỗ.
 def lo_trinh(cid): return json.loads(sql(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'lo_trinh'), '{{}}'::jsonb)::text") or "{}")       # máy sinh KT làm tuần tự ~40–70 phút/phim, có hàng đợi
 BUOC = [("nhan", 300), ("ws", 3600), ("poster", 900), ("cat", 4200), ("soat", 1800), ("creative", 3600), ("camp", 1200), ("chay", 7200)]   # (bước, hạn giây) — Mạnh huỷ khi quá
+THU_MANG = {}         # (dòng, bước, lan) → số lượt đã tự thử lại vì lỗi mạng
 CHO_LAI = 60          # bước trả "cho" → quay lại sau ngần này giây
 TRAN_CAT = 2          # tối đa 2 dòng cắt cùng lúc (iMac)
 DANG = {}             # (dòng, bước) → Popen đang chạy — để Mạnh / nút Dừng giết được
@@ -473,8 +474,10 @@ def lam_buoc(d, buoc):
     except Exception as e: ket, ghi, kq = "loi", f"{type(e).__name__}: {str(e)[:300]}", None
     if sql(f"select huy::text from etp.dong_buoc where dong_id = {d['id']} and buoc = '{buoc}'") == "true" and ket != "xong":
         ket, ghi = "loi", f"bị huỷ (Mạnh / nút Dừng) — {ghi}"
-    if ket == "loi" and re.search(r"ssh:|Connection (closed|reset|refused|timed out)|kex_exchange|Operation timed out|Broken pipe|mux_client|Session open refused|Control ?[Ss]ocket", ghi or "") and int(((d.get("buoc") or {}).get(buoc) or {}).get("lan") or 1) < 3:
-        ket, ghi = "cho", f"lỗi mạng tới box3, thử lại — {ghi[:200]}"   # LỖI MẠNG TỰ THỬ LẠI (04/11/2026: 3 dòng chết vì box3 ngắt ssh) — tối đa 3 lượt · mux_client / Session open refused = kênh ssh dùng chung bị box3 từ chối (22:08 04/11: #15 #21 #51)
+    k_mang = (d["id"], buoc, int(((d.get("buoc") or {}).get(buoc) or {}).get("lan") or 0))   # đếm RIÊNG lượt thử lại vì mạng của LẦN bật này — `lan` đếm cả FIX tay và không tăng khi thử lại (05/11/2026: #51 đã FIX 4 lần → không bao giờ được thử lại)
+    if ket == "loi" and re.search(r"ssh:|Connection (closed|reset|refused|timed out)|kex_exchange|Operation timed out|Broken pipe|mux_client|Session open refused|Control ?[Ss]ocket", ghi or "") and THU_MANG.get(k_mang, 0) < 3:
+        THU_MANG[k_mang] = THU_MANG.get(k_mang, 0) + 1
+        ket, ghi = "cho", f"lỗi mạng tới box3, thử lại {THU_MANG[k_mang]}/3 — {ghi[:200]}"   # LỖI MẠNG TỰ THỬ LẠI (04/11/2026: 3 dòng chết vì box3 ngắt ssh) — tối đa 3 lượt · mux_client / Session open refused = kênh ssh dùng chung bị box3 từ chối (22:08 04/11: #15 #21 #51)
     if ket == "cho":
         sql(f"update etp.dong_buoc set ghi = {s(ghi)}, nhip = now(){', ket_qua = ' + js(kq) if kq else ''} where dong_id = {d['id']} and buoc = '{buoc}' and trang_thai = 'dang'")
         return

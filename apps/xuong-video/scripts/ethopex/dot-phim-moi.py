@@ -33,9 +33,9 @@ def cat_ds(phim, ten, n=2):
     dem = [0]
     def tai(p):   # tải 4 phim cùng lúc (mạng, không tốn CPU) — từng phim một thì 30 phim mất hàng giờ
         tm = os.path.join(N, str(p["id"]))
-        if not os.path.exists(os.path.join(tm, "tap-het")):   # chưa dò hết tập miễn phí (tai-tap dùng lại tập có sẵn, chỉ tải tập thiếu)
-            os.makedirs(tm, exist_ok=True); r = sh(f"python3 {D}/tai-tap.py '{p['url']}' {tm} 20", timeout=1500)   # hết tập miễn phí (tai-tap dừng ở tập khoá) — trần 8 cũ bỏ sót tập free cuối (04/11/2026)
-            print("tải", p["id"], p["ten"][:40], (r.stdout.strip().splitlines() or [r.stderr.strip()[-120:]])[-1][:120], flush=True)
+        # luôn gọi tai-tap: tự dùng lại tập có sẵn, tải tập thiếu, đã dò hết (dấu tap-het) thì trả ngay — luật nằm MỘT chỗ ở tai-tap.da_het
+        os.makedirs(tm, exist_ok=True); r = sh(f"python3 {D}/tai-tap.py '{p['url']}' {tm} 20", timeout=1500)   # hết tập miễn phí (tai-tap dừng ở tập khoá) — trần 8 cũ bỏ sót tập free cuối (04/11/2026)
+        print("tải", p["id"], p["ten"][:40], (r.stdout.strip().splitlines() or [r.stderr.strip()[-120:]])[-1][:120], flush=True)
         dem[0] += 1; XG.bao("tai", ten, p["ten"], dem[0], len(phim))
     XG.bao("tai", ten, None, 0, len(phim), ep=True)
     with ThreadPoolExecutor(4) as ex: list(ex.map(tai, phim))

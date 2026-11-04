@@ -42,8 +42,17 @@ def tap_url(goc, html, n):
     m = [sach(x) for x in re.findall(r'(?:https?://www\.dramabox\.com)?/video/\d{11}_[^"\s/]+/\d+_Episode-' + str(n) + r'\b', html)]
     return (m[0] if m[0].startswith("http") else "https://www.dramabox.com" + m[0]) if m else (goc if n == 1 else None)
 
+def da_het(ra):
+    """Đã dò HẾT tập miễn phí và còn đủ tệp → không cần mạng. MỘT chỗ cho mọi nơi gọi (tho / dot-phim-moi / nguon-box / sua-cta cứ gọi tai-tap, không tự kiểm)."""
+    try: k = int(open(os.path.join(ra, "tap-het")).read().strip())
+    except (OSError, ValueError): return False
+    return k > 0 and all(os.path.exists(os.path.join(ra, f"tap{n:02d}.mp4")) for n in range(1, k + 1))
+
 def main(goc, ra, so=3):
     os.makedirs(ra, exist_ok=True)
+    if da_het(ra):
+        kq = json.load(open(os.path.join(ra, "tap.json")))
+        print(json.dumps({"phim": goc, "tap": [(x["tap"], x["giay"]) for x in kq], "poster": os.path.exists(os.path.join(ra, "poster.jpg")), "da_het": True}, ensure_ascii=False)); return
     html1 = lay(goc).decode("utf-8", "ignore"); kq = []
     if "reelshort.com" in goc and "/movie/" in goc:   # link trang phim (vd 80386 /es/movie/…) → đổi sang link tập 1 trên chính trang đó (23/10/2026: tải 0 tập)
         m = re.search(r'href="(/(?:[a-z]{2}/)?episodes/episode-1-[^"]+)"', html1)
@@ -71,7 +80,7 @@ def main(goc, ra, so=3):
         giay = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", ra_tap]).strip() or 0)
         kq.append({"tap": n, "giay": round(giay, 1), "url": u})
     json.dump(kq, open(os.path.join(ra, "tap.json"), "w"), ensure_ascii=False)
-    if het and kq: open(os.path.join(ra, "tap-het"), "w").write(str(len(kq)))   # nơi gọi chỉ bỏ qua tải khi có dấu này (da_het)
+    if het and kq: open(os.path.join(ra, "tap-het"), "w").write(str(len(kq)))   # lần gọi sau thấy dấu này (da_het) thì trả ngay, không dò mạng
     print(json.dumps({"phim": goc, "tap": [(x["tap"], x["giay"]) for x in kq], "poster": os.path.exists(os.path.join(ra, "poster.jpg")) and os.path.getsize(os.path.join(ra, "poster.jpg")) > 2000}, ensure_ascii=False))
 
 if __name__ == "__main__":

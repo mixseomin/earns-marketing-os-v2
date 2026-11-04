@@ -43,8 +43,8 @@ def xong(v, ket_qua, loi=None):
 def cat(v):
     d, cid, lo = v["du_lieu"], str(v["content_id"]), v["lo"]
     tm = os.path.join(N, cid); ra = os.path.join(C, "ra", lo, f"p-{cid}"); os.makedirs(ra, exist_ok=True)
-    if not os.path.exists(os.path.join(tm, "tap-het")):   # chưa dò hết tập miễn phí (tai-tap dùng lại tập có sẵn, chỉ tải tập thiếu)
-        os.makedirs(tm, exist_ok=True); subprocess.run(["python3", os.path.join(E, "tai-tap.py"), d.get("url", ""), tm, str(TAP_TOI_DA)], capture_output=True, text=True, timeout=1500)   # tải HẾT tập miễn phí (tai-tap dừng ở tập khoá đầu tiên)
+    # luôn gọi tai-tap: tự dùng lại tập có sẵn, tải tập thiếu, đã dò hết (dấu tap-het) thì trả ngay — luật nằm MỘT chỗ ở tai-tap.da_het
+    os.makedirs(tm, exist_ok=True); subprocess.run(["python3", os.path.join(E, "tai-tap.py"), d.get("url", ""), tm, str(TAP_TOI_DA)], capture_output=True, text=True, timeout=1500)   # tải HẾT tập miễn phí (tai-tap dừng ở tập khoá đầu tiên)
     if not any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm)): return [], "không tải được tập miễn phí"
     tsv = os.path.join(ra, "lo.tsv"); open(tsv, "w").write(f"{cid}\t{d.get('locale', 'en')}\t{d.get('nguon', '')}\t{d.get('ten', '')}\t{d.get('url', '')}\n")
     h = time.localtime().tm_hour   # đêm 22h–8h: nice (đủ lõi); ngày: chế độ nền (máy người dùng không giật) — cùng luật dot-phim-moi.uu_tien

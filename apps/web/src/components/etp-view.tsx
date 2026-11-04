@@ -30,13 +30,14 @@ const MA_BAN = /^[A-Za-z0-9_-]{8,64}$/;
 async function maBan(): Promise<string | null> { try { const r = await fetch('/etp/ban', { cache: 'no-store' }); if (!r.ok) return null; const m = (await r.text()).trim(); return MA_BAN.test(m) ? m : null; } catch { return null; } }
 async function lamMoiAnToan(router: { refresh: () => void }) { if (await maBan()) router.refresh(); }
 const ChiXem = createContext(false);
+const HoanCtx = createContext<ReturnType<typeof docHoan>>({ luc: null, cu: true, ds: new Map() });   // sổ hoãn khung đổi camp (máy ghi) — chip ⏳ + hàng khung tab Camp cùng đọc
 /** người xem sửa được camp trong danh sách đang xem (admin etp xem chính tài khoản của mình — anh 31/10/2026 Sơn "được edit camp của Sơn") */
 const SuaCampCtx = createContext<{ het: string | null } | null>(null);   // null = không có quyền sửa · het = phiên Ethopex riêng còn hạn tới (null = chưa kết nối)
 import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, MoRong, PhanNang, PhimEtpKho, SoLuat, SoTien, ThayThe, ThuVienMuc, XetLuat } from '@/lib/etp-doc';
 import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
-import { KD, KHUNG_TEN, choKhung, datNap, gioVnNay, hetKhung, khungLuc, type HuongLuat } from '@/lib/etp-khung';
+import { KD, KHUNG_TEN, docHoan, gioVnNay, hetKhung, khungLuc, type HuongLuat } from '@/lib/etp-khung';
 
 type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -375,16 +376,12 @@ function tinhLuat({ c, ba, bao, boThang, thangMuc, xet }: VaoLuat) {
   const xDat = (xet ?? []).find((x) => x.ket === 'dat' && x.ma !== 'roas'), xGan = (xet ?? []).find((x) => x.ket === 'gan');
   const chinh2 = daXep[0] ? chinh : xDat ? { chip: XET_CHIP[xDat.ma]?.[0] ?? xDat.ten, mau: XET_CHIP[xDat.ma]?.[1] ?? '#94a3b8', dac: true }
     : ganBao[0] ? chinh : xGan ? { chip: XET_CHIP[xGan.ma]?.[0] ?? xGan.ten, mau: XET_CHIP[xGan.ma]?.[1] ?? '#94a3b8', dac: false } : xet ? null : chinh;
-  // hướng của chip ĐẠT (tăng / giảm / tắt) — để chip ghi ⏳ giờ máy sẽ làm khi khung đổi camp đang chặn (anh 04/11/2026)
-  const huong: HuongLuat | undefined = !chinh2?.dac ? undefined : daXep[0] ? BAO_HUONG[daXep[0].nhom] : xDat ? HUONG_MA[xDat.ma] : du[0] ? HUONG_K[du[0].k] : undefined;
-  return { chinh: chinh2, daXep, ganBao, hien: [...du, ...gan.filter((l) => !du.includes(l))], xet, huong };
+  return { chinh: chinh2, daXep, ganBao, hien: [...du, ...gan.filter((l) => !du.includes(l))], xet };
 }
 const ChipO = ({ chinh }: { chinh: { chip: string; mau: string; dac: boolean } }) => <span style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   fontSize: 11, padding: '0 6px', borderRadius: 9, color: chinh.mau, border: `1px ${chinh.dac ? 'solid' : 'dashed'} ${chinh.mau}${chinh.dac ? '' : '99'}`, background: chinh.dac ? `${chinh.mau}22` : 'transparent' }}>{chinh.chip}</span>;
 // nhãn chip theo mã luật máy xét (luat-ethopex.py _xet_luat)
 const XET_CHIP: Record<string, [string, string]> = Object.fromEntries(Object.entries(BANG_LUAT.the).map(([k, v]) => [k, [v[0] as string, v[1] as string]]));   // mã thẻ xét luật → [chữ, màu] — từ sổ luật chung
-const HUONG_MA: Record<string, HuongLuat> = Object.fromEntries(Object.values(BANG_LUAT.khoa).flatMap((v) => ('ma' in v && v.ma && 'huong' in v && v.huong ? [[v.ma as string, v.huong as HuongLuat]] : [])));   // mã thẻ xét → hướng, từ sổ luật
-const HUONG_K: Record<string, HuongLuat> = { '✕': 'tat', '↓': 'giam', '↑': 'tang' };   // ký hiệu luật tính tại trang (dieuKienLuat) → hướng
 const KET_XET: Record<XetLuat['ket'], [string, string]> = { dat: ['Đạt', '#4ade80'], gan: ['Gần', '#facc15'], xa: ['Xa', 'var(--fg-3, #777)'], khong_ap: ['Không áp', 'var(--fg-3, #777)'] };
 // BẢNG XÉT LUẬT (anh 28/10/2026: "Cần xem mức độ liên quan của từng camp với các luật khi hover vào" · "show dạng table là dễ hiểu nhất"): mỗi luật một nhóm dòng —
 // Luật (kết đạt / gần / xa, máy có xếp) · Điều kiện · Giá trị thật · Ngưỡng · ✓/✗; số từ CHÍNH máy luật (etp.xet_luat), rê tên luật xem luật đó làm gì
@@ -462,22 +459,15 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   const noi = useNoi<{ id: 0 }>();   // gọi trước mọi lệnh return sớm (luật hook)
   const [h, setH] = useState<number | null>(null);
   useEffect(() => { const f = () => setH(gioVnNay()); f(); const t = setInterval(f, 30_000); return () => clearInterval(t); }, []);
-  const cho = useMemo(() => {
-    if (h == null) return null;
-    const cs = new Map(du.camps.map((c) => [c.camp_id, c])), ds: Record<HuongLuat, Set<number>> = { tang: new Set(), giam: new Set(), tat: new Set() };
-    for (const b of du.bao) { const hg = BAO_HUONG[b.nhom], c = cs.get(b.camp_id); if (!hg || LUAT_NHAN[b.nhom]?.[3] !== 'dang' || !c || c.trang_thai !== 'ACTIVE') continue;
-      if (choKhung(hg, h, datNap(c.nay, c.ngan_sach))) ds[hg].add(b.camp_id); }
-    for (const id of ds.tat) { ds.tang.delete(id); ds.giam.delete(id); }   // một camp một việc: luật tắt thắng
-    return ds;
-  }, [du.bao, du.camps, h]);
-  if (h == null || !cho) return null;
+  const so = useContext(HoanCtx), cho = useMemo(() => { const ds: Record<HuongLuat, number> = { tang: 0, giam: 0, tat: 0 }; for (const v of so.ds.values()) ds[v]++; return ds; }, [so]);   // sổ hoãn của máy, không tự đoán
+  if (h == null) return null;
   const k = khungLuc(h), [bt, ten, mau] = KHUNG_TEN[k], het = hetKhung(h);
   const conPhut = Math.round((((het - h) % 24) + 24) % 24 * 60), con = `${Math.floor(conPhut / 60)} giờ ${String(conPhut % 60).padStart(2, '0')} phút`;
   const doan: { k: ReturnType<typeof khungLuc>; tu: number; den: number }[] = [];
   for (let g = 0; g < 24; g++) { const kg = khungLuc(g); if (doan.at(-1)?.k === kg) doan.at(-1)!.den = g + 1; else doan.push({ k: kg, tu: g, den: g + 1 }); }
   const nen = (kg: string, sang: boolean) => kg === 'bang' ? `repeating-linear-gradient(135deg, #47556966 0 6px, #33415566 6px 12px)` : `${KHUNG_TEN[kg as 'doi'][2]}${sang ? 'cc' : '55'}`;
   const gioChu = `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
-  const so = (n: number, nhan: string, m: string) => <span style={{ color: n ? m : 'var(--fg-3, #777)', fontWeight: 600 }}>{nhan}{n}</span>;
+  const soO = (n: number, nhan: string, m: string) => <span style={{ color: n ? m : 'var(--fg-3, #777)', fontWeight: 600 }}>{nhan}{n}</span>;
   const o: React.CSSProperties = { padding: '3px 6px', borderTop: '1px solid var(--line)', verticalAlign: 'top' };   // khung nổi chuẩn của trang (như chip luật / BangXet)
   const dong = ([['doi', KD.doi], ['nap', KD.nap], ['bang', [KD.nap[1], KD.doi[0]]]] as const).map(([kg, [tu, den]]) => ({ kg, gio: `${String(tu).padStart(2, '0')}:00–${String(den).padStart(2, '0')}:00` }));
   return (
@@ -492,7 +482,7 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
         </div>
         <div style={{ position: 'absolute', top: -2, bottom: -2, left: `${(h / 24) * 100}%`, width: 2, borderRadius: 1, background: 'var(--fg-1)', pointerEvents: 'none' }} />
       </div>
-      {k !== 'doi' ? <span style={{ display: 'inline-flex', gap: 5 }}><span style={{ color: 'var(--fg-3, #777)' }}>⏳</span>{so(cho.tang.size, '↑', '#4ade80')}{so(cho.giam.size, '↓', '#fb923c')}{so(cho.tat.size, '✕', '#f87171')}</span> : null}
+      {k !== 'doi' ? <span style={{ display: 'inline-flex', gap: 5 }}><span style={{ color: 'var(--fg-3, #777)' }}>⏳</span>{soO(cho.tang, '↑', '#4ade80')}{soO(cho.giam, '↓', '#fb923c')}{soO(cho.tat, '✕', '#f87171')}</span> : null}
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={300} noi={noi}><div style={{ width: 460, padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}><b style={{ fontSize: 13 }}>Khung máy tự đổi camp</b><span style={{ color: 'var(--fg-2)' }}>giờ VN · cả 3 bộ</span></div>
         <div style={{ marginBottom: 8 }}>Bây giờ <b>{gioChu}</b> · <b style={{ color: mau }}>{bt} {ten}</b> · {k === 'doi' ? 'hết khung' : 'mở khung kế'} <b>{String(het).padStart(2, '0')}:00</b> (còn {con})</div>
@@ -502,13 +492,14 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
             <td style={{ ...o, whiteSpace: 'nowrap', color: KHUNG_TEN[kg][2], fontWeight: kg === k ? 700 : 500 }}>{KHUNG_TEN[kg][0]} {KHUNG_TEN[kg][1]}{kg === k ? ' ←' : ''}</td>
             <td style={{ ...o, whiteSpace: 'nowrap' }}>{gio}</td><td style={o}>{CHU_KHUNG[kg]}</td></tr>)}</tbody>
         </table>
-        {k !== 'doi' ? <div style={{ marginTop: 8 }}>⏳ Camp đã đạt luật, chờ tới <b>{KD.doi[0]}:00</b>: {so(cho.tang.size, '↑ tăng ', '#4ade80')} · {so(cho.giam.size, '↓ giảm ', '#fb923c')} · {so(cho.tat.size, '✕ tắt ', '#f87171')} <span style={{ color: 'var(--fg-3, #777)' }}>— xem chip ⏳ ở cột Luật</span></div> : null}
+        <div style={{ marginTop: 8, color: 'var(--fg-3, #777)' }}>{so.cu ? `Sổ hoãn của máy ${so.luc ? `cũ (lúc ${new Date(Date.parse(so.luc) + 7 * 3600_000).toISOString().slice(11, 16)})` : 'chưa có'} — máy luật không chạy nhịp gần đây, không hiện số chờ.` : `Số chờ lấy từ sổ hoãn máy ghi lúc ${new Date(Date.parse(so.luc!) + 7 * 3600_000).toISOString().slice(11, 16)} (mỗi nhịp ~30 phút) — đã tính công tắc tự tăng / tự giảm.`}</div>
+        {k !== 'doi' ? <div style={{ marginTop: 8 }}>⏳ Camp đã đạt luật, chờ tới <b>{KD.doi[0]}:00</b>: {soO(cho.tang, '↑ tăng ', '#4ade80')} · {soO(cho.giam, '↓ giảm ', '#fb923c')} · {soO(cho.tat, '✕ tắt ', '#f87171')} <span style={{ color: 'var(--fg-3, #777)' }}>— xem chip ⏳ ở cột Luật</span></div> : null}
       </div></KhungNoi> : null}
     </span>
   );
 }
 function ChipLuat(p: VaoLuat) {
-  const noi = useNoi<{ id: 0 }>(); const t = tinhLuat(p);
+  const noi = useNoi<{ id: 0 }>(); const t = tinhLuat(p), hoanDs = useContext(HoanCtx).ds;
   // CAMP ĐÃ TẮT THEO LUẬT → luật hiện ở CỘT LUẬT (anh 03/11/2026 "nếu tắt theo Luật thì show bên cột Luật"): chip ✕ <mã> đã tắt, hover = lý do có cấu trúc (kieuDung)
   const maTat = p.c.trang_thai && p.c.trang_thai !== 'ACTIVE' ? p.c.dong?.ma ?? null : null;
   if (maTat) return <ReDung c={p.c}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, padding: '0 6px', borderRadius: 4, border: '1px solid #7f1d1d', color: '#fca5a5', whiteSpace: 'nowrap', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>✕ {maTat} đã tắt</span></ReDung>;
@@ -516,7 +507,7 @@ function ChipLuat(p: VaoLuat) {
   // camp không chạm luật nào vẫn rê được: ô hiện "…" (anh 28/10/2026 "hiển thị (...) là được")
   const R = t.xet ? 760 : 340;
   // KHUNG ĐỔI CAMP (anh 04/11/2026): luật đã đạt mà khung giờ đang chặn → ⏳ giờ máy sẽ làm (camp người khác: chỉ đề xuất, không ghi)
-  const cho = t.huong && !p.deXuat ? choKhung(t.huong, gioVnNay(), datNap(p.c.nay, p.c.ngan_sach)) : null;
+  const cho = !p.deXuat && hoanDs.has(p.c.camp_id) ? `${KD.doi[0]}h` : null;   // máy đã đủ luật, hoãn vì khung giờ (sổ hoãn)
   return (
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
       {t.chinh ? <ChipO chinh={t.chinh} /> : <span style={{ color: 'var(--fg-3, #777)', padding: '0 6px' }}>…</span>}
@@ -2411,6 +2402,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const [nganCamp, setNganCamp] = useState<number | null>(Number(/^camp:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1]) || null);
   const [nganPhim, setNganPhim] = useState<string | null>(/^phim:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1] ?? null);   // ngăn biểu đồ cả phim (điện thoại)
   // Sản xuất (dòng phim nhà) chỉ hiện khi đang xem tài khoản Tuấn David (nhà) — không ở người khác / Team (anh 03/11/2026)
+  const hoanSo = useMemo(() => docHoan(duGoc.cauHinh), [duGoc.cauHinh]);   // sổ hoãn khung đổi camp (máy ghi mỗi nhịp)
   const laNguoi = quyen?.vai === 'nguoi', tabsHien = (laNguoi ? TAB_NGUOI : chiXem ? TABS.filter((t) => t !== 'tong2') : TABS).filter((t) => t !== 'dong' || (!duGoc.nguoi.ngoai && !duGoc.nguoi.doi));   // Tổng quan 2 (widget) chỉ chủ thấy tới khi hoàn thiện (anh 01/11/2026)
   const [tab, setTab] = useState<Tab>(tabsHien.includes(dauVao?.t as Tab) ? (dauVao!.t as Tab) : 'tong');
   useEffect(() => { if (!tabsHien.includes(tab)) setTab('tong'); }, [tabsHien, tab]);   // đổi người khi đang ở tab chỉ-nhà (Sản xuất) → về Tổng quan
@@ -2535,7 +2527,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   // lọc "Đã tắt theo" luật tự bỏ qua ô Lọc trạng thái (camp đã tắt không bao giờ Đang chạy) — ô Lọc giữ nguyên Đang chạy, không phải đổi sang Tất cả
   // MỚI LÃI / MỚI LỖ (anh 04/11/2026 "filter ra những camp mới phát hiện là lãi để dồn vào" + "cả điều kiện ở phía đối diện"): camp đang chạy, tuổi < 7 ngày,
   // trong 3 ngày ĐÃ KHÉP gần nhất có ≥ 2 ngày có chi và ngày có chi nào cũng lãi (mlai) / cũng lỗ (mlo) — hôm nay chưa khép không tính
-  const moiMap = useMemo(() => { const m = new Map<number, 'mlai' | 'mlo'>(); const ds = [1, 2, 3].map((k) => new Date(Date.parse(du.nay) - k * 86_400_000).toISOString().slice(0, 10));
+  const moiMap = useMemo(() => { const m = new Map<number, 'mlai' | 'mlo'>(); const ds = [1, 2, 3].map((k) => ngayCong(du.nay, -k));
     for (const c of du.camps) { if (!dangChay(c)) continue; const t = tuoiNgay(c.tao); if (t == null || t >= 7) continue;
       const co = ds.filter((d) => coChi.has(`${c.camp_id}|${d}`)); if (co.length < 2) continue; const l = co.map((d) => laiNgay.get(c.camp_id)?.get(d) ?? 0);
       if (l.every((v) => v > 0)) m.set(c.camp_id, 'mlai'); else if (l.every((v) => v < 0)) m.set(c.camp_id, 'mlo'); }
@@ -2767,7 +2759,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   return (
     // TRANG TỰ CUỘN (body của mos2 khoá cuộn — trong mos2 chỉ vùng nội dung cuộn; etp.on.tc đứng riêng): khung cao đúng màn hình, cuộn bên trong,
     // đầu trang trôi đi, tiêu đề bảng + thanh trang của DataTable dính theo khung này — kéo lên xem hết bảng như bên Ethopex
-    <ChiXem.Provider value={chiXem}>
+    <ChiXem.Provider value={chiXem}><HoanCtx.Provider value={hoanSo}>
     <PhamViLuu value={phamViNg(du)}><SuaCampCtx.Provider value={quyen?.sua != null && du.nguoi.ngoai && du.nguoi.dang === quyen.sua ? { het: quyen.het ?? null } : null}>
     <div ref={cuonRef} onScroll={(e) => { const h = heroRef.current; const g = !!h && e.currentTarget.scrollTop > (gon ? h.offsetTop + h.offsetHeight : 12); if (g !== gonHero) setGonHero(g); }} style={{ height: '100dvh', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
       <style>{'@keyframes etpDen{0%,100%{opacity:1}50%{opacity:.35}}@keyframes etpXoay{to{transform:rotate(360deg)}}.etp-dk>*{max-width:100%;overflow-x:auto;scrollbar-width:none;flex:none}.etp-dk>*::-webkit-scrollbar{display:none}.etp-dk,.etp-dk *{white-space:nowrap}'}</style>
@@ -2941,6 +2933,6 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     </div>
     </div>
     </SuaCampCtx.Provider></PhamViLuu>
-    </ChiXem.Provider>
+    </HoanCtx.Provider></ChiXem.Provider>
   );
 }

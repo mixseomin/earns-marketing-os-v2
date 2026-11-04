@@ -36,6 +36,8 @@ export type KenhSp = {
 /** tập đang dở chưa nạp máy đăng (xv_may.nguon.tap_cho) */
 export type TapCho = { id: string; chu_de: string | null; cau: number; lan: number; loi: string | null; tho: string | null; /** 3 lần kẹt → máy bỏ, lượt kế làm đề khác (05/11/2026) */ bo?: boolean };
 /** một tập đang trong lò (xv_may.nguon.dang_lam_ds[<tập>] — chay-kenh ghi lúc bắt đầu, lam-tap ghi từng bước; hỏng thì giữ kèm loi) */
+/** DEMO MẪU (demo-mau.sh → lam-tap --demo, mã <máy>-demo-<playlist>): không lên kênh, KHÔNG tính vào lịch / đang sản xuất của kênh (anh 05/11/2026) — khối riêng 🧪 */
+export const laDemo = (d: { id: string }) => /-demo-/.test(d.id);
 export type DangLam = { id: string; luc: string; buoc?: string; so?: number; tong?: number; buoc_luc?: string; loi?: string | null; chi_tiet?: string | null; /** tên tập (tiêu đề / chủ đề) */ ten?: string | null };
 
 const lui = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) - n * 86_400_000).toISOString().slice(0, 10);
@@ -72,7 +74,7 @@ export function lichKenh(k: Pick<KenhSp, 'videos' | 'ke'>): OLich[] {
   const m = new Map<string, OLich>(), them = (ngay: string | null | undefined, loai: OLich['loai'], chu: string) => { if (!ngay) return; const key = `${ngay}|${loai}`;
     const o = m.get(key) ?? { ngay, loai, so: 0, chiTiet: [] }; o.so++; o.chiTiet.push(chu); m.set(key, o); };
   for (const t of k.ke.tapKe) them(t.slice(0, 10), 'sx', `lượt làm tập tự động ${t.slice(11)}`);
-  for (const d of k.ke.dangLam) them(d.luc.slice(0, 10), 'sx', `đang làm ${d.id}`);
+  for (const d of k.ke.dangLam) if (!laDemo(d)) them(d.luc.slice(0, 10), 'sx', `đang làm ${d.id}`);
   for (const v of k.videos) { them(v.ngayLam, 'lam', v.ten); if (v.trangThai === 'da_dang') them(v.ngayDang, 'dang', v.ten); }
   for (const l of k.ke.lichDang) them(l.ngay, 'hen', `${l.gio ?? ''} ${l.nen} · ${l.tieuDe}`.trim());
   return [...m.values()].sort((a, b) => a.ngay.localeCompare(b.ngay));
@@ -87,14 +89,14 @@ export type DongKe = { id: string; nhom?: boolean; chu: string; phu?: string; ma
 const gioVn = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
 const thuNgay = (ymd: string) => `${THU[new Date(`${ymd}T00:00:00Z`).getUTCDay() || 7]} ${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()): DongKe[] {
-  const ra: DongKe[] = [], ds = k.ke.dangLam;
+  const ra: DongKe[] = [], ds = k.ke.dangLam.filter((d) => !laDemo(d)), demo = k.ke.dangLam.filter(laDemo);
   // ▶ Đang sản xuất: một dòng / tập (đồng hồ bước ở đầu dòng, tên tập là chữ chính, bước + phút + chi tiết + mã ở phần phụ) — N tập song song là N dòng
   // một bước đứng > 30 phút (bước dài nhất ~10–15 phút) = nghi treo → đỏ ngay, không đợi trần giờ của lam-tap
-  const dongSx = ds.map((d): DongKe => {
+  const dong = (d: DangLam): DongKe => {
     const phut = Math.max(0, Math.round((bayGio - Date.parse(d.buoc_luc ?? d.luc)) / 60_000)), dung = !d.loi && phut > 30;
     return { id: `sx/${d.id}`, chu: d.ten ?? d.id, mau: d.loi || dung ? 'var(--bad)' : 'var(--warn)', dongHo: { so: d.so ?? 0, tong: d.tong ?? 8, loi: !!d.loi || dung },
       phu: [d.loi ? `✗ ${d.loi}` : d.buoc ? `bước ${d.so}/${d.tong} · ${d.buoc} · ${dung ? `⚠ đứng ${phut} phút` : `${phut} phút`}` : 'đang khởi động', d.chi_tiet, d.id].filter(Boolean).join(' · ') };
-  });
+  }, dongSx = ds.map(dong);
   // tập đang dở (chưa nạp máy đăng, không phải tập đang chạy): hiện để không "biến mất" giữa hai lượt
   const cho = (k.ke.tapCho ?? []).filter((t) => !ds.some((d) => d.id === t.id));
   if (ds.length || cho.length) {
@@ -104,6 +106,7 @@ export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()
     for (const t of cho) ra.push(t.bo ? { id: `cho/${t.id}`, chu: `✖ ${t.chu_de ?? t.id}`, mau: 'var(--fg-4)', phu: `bỏ sau 3 lần tự làm lại kẹt · máy tự làm đề khác ở lượt lịch kế · ${t.id}` }
       : { id: `cho/${t.id}`, chu: `⏸ ${t.chu_de ?? t.id}`, mau: t.lan >= 3 ? 'var(--bad)' : 'var(--fg-2)',
       phu: [t.lan ? `đã tự làm lại ${t.lan}/3` : 'chờ lượt giờ sau', t.tho ? '🔧 đã giao Mạnh sửa' : null, t.loi ? `lỗi: ${t.loi}` : null, t.id].filter(Boolean).join(' · ') }); }
+  if (demo.length) ra.push({ id: 'demo', nhom: true, chu: `🧪 Demo mẫu đang làm (${demo.length})`, phu: 'video demo cho anh duyệt mẫu mới — không lên kênh, không tính vào lịch' }, ...demo.map((d) => ({ ...dong(d), id: `demo/${d.id}` })));
   const lich: DongKe[] = [];
   for (const v of k.videos) {
     if (v.trangThai === 'duyet') { const h = k.ke.lichDang.find((l) => l.tieuDe && v.ten.startsWith(l.tieuDe.replace(/\s*#shorts\s*/i, '').slice(0, 30)));

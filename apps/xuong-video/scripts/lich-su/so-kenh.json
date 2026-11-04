@@ -894,7 +894,7 @@
         "khung": "9:16",
         "playlist": "full-stories",
         "nhip": "Thứ 2 · 4 · 6 (3 tập / tuần)",
-        "kho": "vô hạn (Wikipedia, đề theo góc spy)",
+        "kho": "vô hạn — máy chọn đề theo góc spy (mã ý tưởng = mã tập)",
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist full-stories  (demo: lam-tap.mjs --kenh parody --playlist full-stories --demo)",
         "demo": "https://img.on.tc/xuong-video/lich-su/tap/alaska-parody.mp4",
@@ -920,7 +920,8 @@
             "loai": "ai_tinh_huong",
             "ten": "Người đi bộ vô định nghe podcast tội phạm và lịch sử"
           }
-        ]
+        ],
+        "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$"
       },
       {
         "ma": "worst-deals",

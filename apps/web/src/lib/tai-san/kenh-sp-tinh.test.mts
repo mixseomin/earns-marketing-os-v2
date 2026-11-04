@@ -40,6 +40,11 @@ import { cayKeHoach } from './kenh-sp-tinh';
     const m = cayKeHoach({ videos: [], ke: { ...ke, tapKe: [], dangLam: ds } }, Date.parse('2026-11-02T15:25:00Z'));
     assert.strictEqual(m[0]!.chu, '▶ Đang sản xuất (10)'); assert.strictEqual(m.filter((x) => x.dongHo).length, 10);
     assert.deepStrictEqual(m.slice(1).map((x) => x.dongHo!.so), [1, 2, 3, 4, 5, 6, 7, 8, 1, 2]); } }
+// DEMO MẪU không tính vào lịch / đang sản xuất: tập thật ở ▶, demo ở khối 🧪 riêng; lịch tháng không đếm demo
+{ const ke = { lichTap: null, gioDang: null, tapKe: [], lichDang: [], dangLam: [{ id: 'k-20261105-2', ten: 'Thật', luc: '2026-11-04T18:00:00Z', so: 3, tong: 8 }, { id: 'k-demo-tiny-wars', ten: 'Demo', luc: '2026-11-04T18:00:00Z', so: 2, tong: 8 }] };
+  const r = cayKeHoach({ videos: [], ke }, Date.parse('2026-11-04T18:05:00Z'));
+  assert.deepStrictEqual(r.map((x) => x.chu), ['▶ Đang sản xuất', 'Thật', '🧪 Demo mẫu đang làm (1)', 'Demo']);
+  assert.deepStrictEqual(lichKenh({ videos: [], ke }).map((x) => x.so), [1]); }
 // tập đã BỎ (3 lần kẹt) → dòng xám ✖, không đỏ, không "giao Mạnh"
 { const r = cayKeHoach({ videos: [], ke: { lichTap: null, gioDang: null, tapKe: [], lichDang: [], dangLam: [], tapCho: [{ id: 'b', chu_de: 'Bỏ', cau: 30, lan: 3, loi: 'x', tho: null, bo: true }] } });
   assert.strictEqual(r[1]!.chu, '✖ Bỏ'); assert.strictEqual(r[1]!.mau, 'var(--fg-4)'); assert.ok(/đề khác/.test(r[1]!.phu!)); }

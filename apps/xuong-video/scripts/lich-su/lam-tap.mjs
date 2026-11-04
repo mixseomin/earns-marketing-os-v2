@@ -38,7 +38,10 @@ const KENH0 = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId];
 if (!KENH0) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
 // PLAYLIST (G1 tầng playlist chung, playlist.mjs): --playlist khi viết mới; tập đã có thì theo tap.playlist. Hồ sơ kênh đè khoá của playlist (theme, khuôn…);
 // tiêu đề đăng gắn tiền tố playlist lúc nạp máy đăng (tiêu đề trong tệp tập giữ nguyên để luật hook kiểm đúng chữ).
-const plMa = playlistCuaTap(KENH0, arg('playlist') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).playlist : null) ?? null);
+// MỌI TẬP THUỘC MỘT MẪU (anh 05/11/2026: "các phim đã / chờ đăng đều phải thuộc 1 mẫu đúng không?"): không khai --playlist và tệp tập chưa có playlist →
+// lấy playlist của mẫu ĐÃ DUYỆT đầu tiên trong sổ kênh (YNT: Full Stories) — kênh có nhiều playlist thì playlistCuaTap trả null, tập sẽ rơi khỏi mọi mẫu
+const SO_KENH = (() => { try { return JSON.parse(readFileSync(join(DIR, 'so-kenh.json'), 'utf8'))[KENH0.may ?? ''] ?? null; } catch { return null; } })();
+const plMa = playlistCuaTap(KENH0, arg('playlist') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).playlist : null) ?? SO_KENH?.mau?.find((m) => !m.cho_duyet && m.playlist)?.playlist ?? null);
 let PL, KENH;
 try { PL = timPlaylist(KENH0, plMa); KENH = apPlaylist(KENH0, plMa); } catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
 mkdirSync(RA, { recursive: true });
@@ -285,8 +288,10 @@ buoc('kho + ảnh thật');
 const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
 if (plMa) tap.playlist = plMa;   // ghi lại cùng tệp tập ở cuối bước 3
 // MẪU của tập theo SỔ KÊNH (so-kenh.json khoá = mã máy): mẫu trỏ đúng playlist này → tap.mau; --demo = tập làm DEMO cho anh duyệt mẫu (không lên máy đăng)
-{ let so = null; try { so = JSON.parse(readFileSync(join(DIR, 'so-kenh.json'), 'utf8'))[KENH.may ?? '']; } catch { /* kênh chưa có sổ */ }
-  const m = so?.mau?.find((x) => x.playlist === (plMa ?? null)); if (m && !tap.mau) tap.mau = m.ma; if (co('demo')) tap.demo = true; }
+// ý tưởng: mẫu vô hạn (tu_sinh — Full Stories: đề máy chọn theo góc spy) thì mã ý tưởng = mã tập; mẫu có hàng chờ thì khớp chủ đề trong hàng chờ
+{ const so = SO_KENH, m = so?.mau?.find((x) => x.playlist === (plMa ?? null)); if (m && !tap.mau) tap.mau = m.ma; if (co('demo')) tap.demo = true;
+  if (m && !tap.y_tuong) { const h = (so.hang_cho ?? []).find((x) => x.mau === m.ma && x.chu_de && tap.chu_de && x.chu_de.toLowerCase() === tap.chu_de.toLowerCase());
+    tap.y_tuong = h?.ma ?? (m.tu_sinh && new RegExp(m.tu_sinh).test(id) ? id : null); } }
 let tien = 0;
 const dungToi = new Set(tap.cau.flatMap((c) => [...(c.canh.nguoi || []), ...(c.canh.xe || []), ...(c.canh.co || [])].map((m) => m.anh).concat(c.canh.tranh?.ref || [])));
 // SONG SONG (03/11/2026, anh: "chạy song song"): mỗi món kho độc lập (vẽ ckey → tách nền → đẩy Studio) — 3 món cùng lúc; ghi kho.json đọc-sửa-ghi liền một nhịp (không await giữa) nên không giẫm nhau
@@ -491,6 +496,8 @@ buoc('đẩy Studio');
   buoc('nạp máy đăng');
   // DEMO MẪU (--demo): video đã lên Studio / R2 là link demo cho sổ kênh (so-kenh.json › mau[].demo) — KHÔNG nạp máy đăng, mẫu chưa duyệt không được lên kênh
   if (tap.demo || co('demo')) { console.log(`✓ DEMO mẫu ${tap.mau ?? '?'} · ${kq?.url ?? '(chưa có link — đẩy Studio hỏng)'} · không nạp máy đăng`); if (kq?.url) { const t1 = JSON.parse(readFileSync(tepTap, 'utf8')); t1.demo_url = kq.url; writeFileSync(tepTap, JSON.stringify(t1, null, 1) + '\n'); } process.exit(kq?.url ? 0 : 1); }
+  if (SO_KENH) { const { kiemTap } = await import('./kiem-so-kenh.mjs'), t2 = JSON.parse(readFileSync(tepTap, 'utf8')), loiSo = kiemTap({ ...t2, ...tap, playlist_ma: plMa }, SO_KENH, KENH.may);
+    if (loiSo.length) { console.error(`✗ tập sai sổ kênh — không nạp máy đăng:\n  ${loiSo.join('\n  ')}`); process.exit(6); } }
   // 6. MÁY ĐĂNG: kênh có máy Studio → tập thành một video của máy (mẫu video-ngoai: URL R2 + 3 khung), Phòng Nội dung chấm rồi máy đăng chung tự đăng theo nhịp
   if (KENH.may && kq) try {
     const anhThat = [...tap.cau.map((c) => c.canh.tranh?.commons_url), tap.anh_bia?.commons_url].filter(Boolean);

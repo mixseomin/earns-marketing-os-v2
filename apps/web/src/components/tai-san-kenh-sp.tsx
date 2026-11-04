@@ -8,7 +8,7 @@ import { useShallowParam } from '@/lib/url-shallow';
 import { DataTable, Panel, type DataColumn } from '@/components/ui';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { DongHo, nutTuanTu } from '@/components/ui/dong-ho';
-import { cayHangCho, cayKeHoach, cayLoTrinh, cayMau, cayNguoi, caySoKenh, cayPlaylist, cayPlaylistThat, lichKenh, locGap, thongKeMau, tomLoTrinh, COT_MAU, type DongKe, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
+import { cayHangCho, cayKeHoach, laDemo, cayLoTrinh, cayMau, cayNguoi, caySoKenh, cayPlaylist, cayPlaylistThat, lichKenh, locGap, thongKeMau, tomLoTrinh, COT_MAU, type DongKe, type KenhSp, type VideoKenh } from '@/lib/tai-san/kenh-sp-tinh';
 import { CHANG_VIDEO as CHANG, KenhNgan, useNganKenh } from './kenh-ngan';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -46,7 +46,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
   // cây mở / gập NẰM TRÊN URL (YDNI: F5 mở ra đúng như đang thấy) — ?kenh_mo=<mã>,<mã>
   const [moUrl, datMoUrl] = useShallowParam('kenh_mo', '');
   // TRỰC TIẾP: có tập đang trong lò (lam-tap ghi bước) → làm mới bảng 15 giây/lần; không có thì đứng yên
-  const router = useRouter(), coLo = kenh.some((k) => k.ke.dangLam.some((d) => !d.loi));
+  const router = useRouter(), coLo = kenh.some((k) => k.ke.dangLam.some((d) => !d.loi));   // demo đang chạy cũng làm mới nhanh
   // luôn làm mới (60 giây; 15 giây khi có tập trong lò) — trước chỉ khi lúc mở trang đã có tập chạy → mở trang lúc rảnh thì không bao giờ thấy tập mới bắt đầu
   useEffect(() => { const t = setInterval(() => router.refresh(), coLo ? 15_000 : 60_000); return () => clearInterval(t); }, [coLo, router]);
   const moCay = new Set(moUrl.split(',').filter(Boolean));
@@ -101,9 +101,9 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
             ...(k.kenhUrl ? [{ label: 'Kênh', items: [{ label: 'Mở kênh YouTube', emoji: '▶️', href: k.kenhUrl, external: true }] }] : []),
           ]} />
           {/* dòng kênh = TỔNG (anh 05/11/2026): số tập đang sản xuất, hỏng thì đỏ; đồng hồ từng tập nằm ở dòng của tập trong ▶ Đang sản xuất — bấm mở cây */}
-          {k.ke.dangLam.length ? (() => { const hong = k.ke.dangLam.filter((d) => d.loi).length, n = k.ke.dangLam.length;
+          {k.ke.dangLam.some((d) => !laDemo(d)) ? (() => { const that = k.ke.dangLam.filter((d) => !laDemo(d)), hong = that.filter((d) => d.loi).length, n = that.length;   // dòng kênh chỉ đếm tập thật — demo mẫu không tính (anh 05/11/2026)
             return <button type="button" onClick={(e) => { e.stopPropagation(); if (!moCay.has(k.ma)) doi(k.ma); }}
-              title={k.ke.dangLam.map((d) => `${d.ten ?? d.id} · ${d.loi ? `✗ ${d.loi}` : `bước ${d.so ?? '?'}/${d.tong ?? 8}: ${d.buoc ?? 'khởi động'}`}`).join('\n')}
+              title={that.map((d) => `${d.ten ?? d.id} · ${d.loi ? `✗ ${d.loi}` : `bước ${d.so ?? '?'}/${d.tong ?? 8}: ${d.buoc ?? 'khởi động'}`}`).join('\n')}
               style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: hong ? 'var(--bad)' : 'var(--warn)', fontSize: 11, whiteSpace: 'nowrap' }}>
               ▶ {n} đang sx{hong ? ` · ${hong} hỏng` : ''}</button>; })()
             : k.so && tomLoTrinh(k.so).hienTai ? <button type="button" onClick={(e) => { e.stopPropagation(); if (!moCay.has(k.ma)) doi(k.ma); }} title="kênh đang theo lộ trình — bấm mở 🧭 Lộ trình"

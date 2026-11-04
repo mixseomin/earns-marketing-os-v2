@@ -440,6 +440,7 @@ const LUAT = [
   { card: 1530, tep: 'apps/web/src/components/etp-view.tsx', co: '<NutQuetPhim />', vi: 'tab Phim có nút Quét, chấm lại phim' },
   { card: 1530, tep: 'apps/web/src/lib/actions/etp-phim.ts', co: "chay(['chon-phim-moi.py', '--co-the-test'], E)", vi: 'nút quét chạy đúng bộ chấm có thể test' },
   { card: 'tap-free-0411', tep: 'apps/etp/tho.py', co: 'str(TAP_TOI_DA)', cam: 'tm, "8"], capture_output=True', vi: 'thợ cắt tải HẾT tập miễn phí, không trần 8 tập (anh 04/11/2026 #80386 sót tập 9)' },
+  { card: 'mux-0411', tep: 'apps/etp/dong_phim.py', co: 'mux_client|Session open refused', vi: 'lỗi kênh ssh dùng chung (mux) tới box3 là lỗi mạng → tự thử lại, không chết dòng (22:08 04/11/2026 #15 #21 #51)' },
   { card: 'tap-free-0411', tep: 'apps/xuong-video/scripts/ethopex/sua-cta.py', cam: "tai-tap.py '{url}' {tm} 8\"", vi: 'sửa CTA tải hết tập miễn phí' },
   { card: 'the-noi-0311', tep: 'apps/web/src/components/etp-view.tsx', co: 'function DongMoc({ ds,', vi: 'dòng thời gian mốc dùng chung (thẻ bậc + thẻ lý do dừng)' },
   { card: 'the-noi-0311', tep: 'apps/web/src/components/etp-view.tsx', co: '<ReDung c={p.c}>', vi: 'chip luật đã tắt mở thẻ lý do dừng cùng khuôn thẻ bậc' },

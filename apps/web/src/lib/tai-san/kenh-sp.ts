@@ -4,7 +4,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { changVideo, lichKenhHs, soTheoPlaylist, tinhSoKenh, type DangLam, type HoSoKenhLich, type KenhSp, type LoTrinh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
+import { changVideo, lichKenhHs, soTheoPlaylist, tinhSoKenh, type DangLam, type HoSoKenhLich, type KenhSp, type SoKenh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
 
 /** Đọc một tệp JSON của máy làm tập (apps/xuong-video/scripts/lich-su/<tệp>) — cwd của web có thể là gốc repo hoặc apps/web. */
 function docTepLichSu<T>(tep: string): T | null {
@@ -19,10 +19,10 @@ function hoSoKenh(): Record<string, HoSoKenhLich> {
   const k = docTepLichSu<Record<string, HoSoKenhLich & { may?: string }>>('kenh.json') ?? {};
   return Object.fromEntries(Object.values(k).filter((x) => x && typeof x === 'object' && x.may).map((x) => [x.may!, x]));
 }
-/** Lộ trình kênh theo mã máy (lo-trinh.json — chung mọi kênh studio; Studio đọc cùng tệp). */
-function loTrinhKenh(): Record<string, LoTrinh> {
-  const k = docTepLichSu<Record<string, LoTrinh | string>>('lo-trinh.json') ?? {};
-  return Object.fromEntries(Object.entries(k).filter((e): e is [string, LoTrinh] => !e[0].startsWith('_') && typeof e[1] === 'object' && Array.isArray(e[1]?.giai_doan)));
+/** Sổ kênh theo mã máy (so-kenh.json — chung mọi kênh studio; Studio + máy gác lich-su/kiem-so-kenh.mjs đọc cùng tệp). */
+function soKenh(): Record<string, SoKenh> {
+  const k = docTepLichSu<Record<string, SoKenh | string>>('so-kenh.json') ?? {};
+  return Object.fromEntries(Object.entries(k).filter((e): e is [string, SoKenh] => !e[0].startsWith('_') && typeof e[1] === 'object' && Array.isArray(e[1]?.giai_doan)));
 }
 
 export async function docKenhSp(hom: string): Promise<KenhSp[]> {
@@ -46,7 +46,7 @@ export async function docKenhSp(hom: string): Promise<KenhSp[]> {
     FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.la_san_pham AND v.de->>'loai' = 'video-ngoai' AND NOT coalesce(v.luu_tru, false) ORDER BY v.created_at DESC`)) as unknown as
     { ma: string; slug: string; ten: string; xuat: boolean; cham: string | null; giay: string | null; ngay_lam: string | null; da_dang: boolean; playlist: string | null; ngay: string | null; url: string | null; xem: number | null }[];
   const lich = ((await d.execute(sql`SELECT ds FROM xv_lich_du_kien`)) as unknown as { ds: { may: string; ngay: string; gio?: string; nen: string; title?: string }[] }[]).flatMap((r) => r.ds ?? []);
-  const hs = hoSoKenh(), lt = loTrinhKenh(), gioNay = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
+  const hs = hoSoKenh(), lt = soKenh(), gioNay = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
   return may.map((m) => {
     const ds: SoNgayKenh[] = so.filter((r) => r.san_pham === `may:${m.ma}`).map((r) => ({ ngay: r.ngay.slice(0, 10), xem: Number(r.hien), daDang: Number(r.so_muc), nguoiDk: r.nguoi_dk == null ? null : Number(r.nguoi_dk) }));
     const handle = (m.dang ?? []).find((x) => x.nen === 'youtube')?.br?.handle, l = lichKenhHs(hs[m.ma], hom, gioNay);
@@ -56,7 +56,7 @@ export async function docKenhSp(hom: string): Promise<KenhSp[]> {
       playlist: v.playlist ?? (hs[m.ma]?.playlist?.length === 1 ? hs[m.ma]!.playlist![0]!.ma : null) }));
     return { ma: m.ma, ten: m.ten.split('·').pop()!.trim(), chay: m.chay, kenhUrl: handle ? `https://www.youtube.com/${handle}` : null,
       tap: m.tap, choDang: m.cho_dang, daDang: m.da_dang, dangCuoi: m.dang_cuoi, ...tinhSoKenh(ds, hom),
-      phimId: phim.find((p) => p.may === m.ma)?.id ?? null, loTrinh: lt[m.ma] ?? null, anh: anh.find((a) => a.san_pham === `may:${m.ma}`)?.anh ?? null,
+      phimId: phim.find((p) => p.may === m.ma)?.id ?? null, so: lt[m.ma] ?? null, anh: anh.find((a) => a.san_pham === `may:${m.ma}`)?.anh ?? null,
       playlist: soTheoPlaylist(hs[m.ma]?.playlist ?? [], l.theo, videos),
       ke: (() => {
         return { lichTap: l.chu, tapKe: l.ke, dangLam: m.dang_lam ?? null, tapCho: m.tap_cho ?? [], gioDang: (m.dang ?? []).find((x) => x.nen === 'youtube')?.gio_tu ?? null,

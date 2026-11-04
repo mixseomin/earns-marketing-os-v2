@@ -128,7 +128,7 @@ export type KinhThanh = {
   may_dung?: { mau: import('./may-dung-mau').MauMayDung; du_an: string; slug: string; chu_de: string; de: import('./may-dung-do-chu').DeMotDung;
     dang: { title?: string; description?: string; link?: string; book?: string; words?: string[] }; nen_url?: string | null; nen_prompt?: string | null } | null;
   /** PHIM KÊNH (scripts/lich-su/tap-day.mts, anh 02/11/2026 "mỗi kênh có một file Studio quản lý"): mã máy đăng (xv_may.ma) + mã hồ sơ kênh (kenh.json).
-   *  Có `may` → tab 📖 Phim hiện 🧭 Lộ trình kênh nếu scripts/lich-su/lo-trinh.json khai máy đó. */
+   *  Có `may` → tab 📖 Phim hiện 🧭 Lộ trình kênh nếu scripts/lich-su/so-kenh.json khai máy đó. */
   may?: string; kenh?: string;
   phong_cach?: string;          // "3D hoạt hình kiểu Pixar, màu ấm, ánh sáng mềm" — nối vào đầu mọi prompt ảnh/video
   /** CHẤT LIỆU HÌNH (anh 16/10/2026 "phải tách thể loại film ra"): người thật / hoạt hình — quyết định cổng soi mặt + sổ bề ngoài; '' = tự nhận từ phong_cach (chatLieuPhim) */

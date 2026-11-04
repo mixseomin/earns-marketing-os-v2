@@ -39,14 +39,18 @@ for (let ms = bd; ms <= kt; ms += 120e3) {
   truoc = nay;
 }
 const cau = [{ tu: 0, den: 6, chu: `Tonight's sky over ${ten}`, nhan: `${ngay} · ${gioDP(bd)}–${gioDP(kt)}` }];
-for (const s of su) { const t = (s.ms - bd) / 1000 / toc; if (t - (cau.at(-1).den) < 1) continue; cau.push({ tu: +t.toFixed(2), den: +Math.min(dai, t + 6).toFixed(2), chu: s.chu, nhan: s.nhan }); }
-if (dai - cau.at(-1).den > 8) cau.push({ tu: +(dai - 7).toFixed(2), den: dai, chu: 'See your own sky free at astrolas.com', nhan: "astrolas.com · Today's sky" });
+// 7 giây cuối luôn dành cho câu kết (sổ kênh bắt buộc trỏ về astrolas.com) — sự kiện rơi vào đó thì bỏ
+for (const s of su) { const t = (s.ms - bd) / 1000 / toc; if (t - (cau.at(-1).den) < 1 || t + 6 > dai - 7) continue; cau.push({ tu: +t.toFixed(2), den: +(t + 6).toFixed(2), chu: s.chu, nhan: s.nhan }); }
+cau.push({ tu: +(dai - 7).toFixed(2), den: dai, chu: 'See your own sky free at astrolas.com', nhan: "astrolas.com · Today's sky" });
 
 const ra = arg('ra', join(SHOT, `dem-${ma}-${ngay}.json`)), tuongDoi = (p) => relative(dirname(ra), p);
-const CAU = { _ghi: `Tonight's Sky ${ten} ${ngay} — sinh bởi lich-su/dai/sinh-dem.mjs`, DAI: dai, toc: +toc.toFixed(3), huong,
+const CAU = { _ghi: `Tonight's Sky ${ten} ${ngay} — sinh bởi lich-su/dai/sinh-dem.mjs`, kenh: 'astrolas', mau: 'tonights-sky', playlist_ma: 'tonights-sky', y_tuong: `ts-${ma}-${ngay}`, DAI: dai, toc: +toc.toFixed(3), huong,
   noi: { ten, vi, kinh, lech_gio: lg }, bat_dau_utc: new Date(bd).toISOString(),
   sao: tuongDoi(join(SHOT, 'du-lieu-sao/sao.json')), nen_nui: tuongDoi(join(DIR, '../brand/astrolas/anh/nui.jpg')), logo: tuongDoi(join(DIR, '../brand/astrolas/logo/wordmark.png')),
   playlist: { ten: "Tonight's Sky", mau: '#9FB8FF', ic: '✦' }, cau };
+// máy gác sổ kênh: tập phải đúng mẫu / playlist / ý tưởng trong lich-su/so-kenh.json — sai thì không ghi
+const { docSo, kiemTap } = await import(join(DIR, '../kiem-so-kenh.mjs')), loiSo = kiemTap(CAU, docSo().astrolas, 'astrolas');
+if (loiSo.length) { console.error(`✗ tập trái sổ kênh:\n${loiSo.map((l) => `   · ${l}`).join('\n')}`); process.exit(3); }
 writeFileSync(ra, JSON.stringify(CAU, null, 1) + '\n');
 console.log(`✓ ${ra} · ${ten} ${ngay} ${gioDP(bd)}–${gioDP(kt)} (UTC${lg >= 0 ? '+' : ''}${lg}) · ${dai}s phim, ×${Math.round(toc)} · ${su.length} sự kiện`);
 for (const c of cau) console.log(`   ${String(c.tu).padStart(6)}s  ${c.nhan}  ${c.chu}`);

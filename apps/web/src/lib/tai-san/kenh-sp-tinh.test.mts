@@ -74,3 +74,22 @@ import { lichKenhHs, soTheoPlaylist, cayPlaylistThat } from './kenh-sp-tinh';
   assert.deepStrictEqual(c.map((x) => x.chu), ['📂 Playlist (2)', '▶ A', '▶ B', '· chưa gắn playlist']);
   assert.strictEqual(c[1]!.phu, 'làm tập Thứ Hai · Thứ Sáu · 09:30 · 2 tập · 1 đã đăng · 100 xem · chưa có playlist YouTube (G7)'); }
 console.log('kenh-sp-tinh: 17/17 ok');
+// SỔ KÊNH (04/11/2026): 📘 Sổ · 🧩 Mẫu (link demo) · 💡 Hàng chờ (tập thật đè trạng thái trong sổ)
+import { caySoKenh, cayMau, cayHangCho, trangThaiY } from './kenh-sp-tinh';
+{ const so = { giai_doan: [], dinh_vi: { cho_ai: 'người tự xem lá số', dich: 'công cụ miễn phí', cau_ket: '…free at astrolas.com' }, luat: ['một mẫu một tập', 'số khớp site'],
+    playlist: [{ ma: 'cc', ten: 'Chart Chapters', trang_thai: 'chot' as const }],
+    mau: [{ ma: 'cc', ten: 'Chart Chapters', loai: 'short' as const, playlist: 'cc', nhip: 'Thứ 2', demo: 'https://img.on.tc/a.mp4' }, { ma: 'ts', ten: "Tonight's Sky", loai: 'dai' as const, tu_sinh: '^ts-' }],
+    hang_cho: [{ ma: 'a', mau: 'cc', chu_de: 'A', trang_thai: 'demo' as const }, { ma: 'b', mau: 'cc', chu_de: 'B', trang_thai: 'chua' as const, ngay: '2027-02-10' },
+      { ma: 'c', mau: 'ts', chu_de: 'C', trang_thai: 'san_sang' as const }, { ma: 'd', mau: 'cc', chu_de: 'D', trang_thai: 'chua' as const }] };
+  const s = caySoKenh(so); assert.strictEqual(s[0]!.chu, '📘 Sổ kênh'); assert.strictEqual(s.length, 1 + 3 + 2); assert.ok(s[3]!.chu.includes('astrolas.com'));
+  const m = cayMau(so); assert.strictEqual(m[0]!.chu, '🧩 Mẫu đã duyệt (2)'); assert.strictEqual(m[1]!.url, 'https://img.on.tc/a.mp4'); assert.strictEqual(m[1]!.urlChu, '▶ xem demo');
+  assert.ok(m[1]!.phu!.includes('playlist Chart Chapters')); assert.strictEqual(m[2]!.url, undefined); assert.ok(m[2]!.phu!.includes('máy tự sinh'));
+  // tập thật có slug = mã ý tưởng → đè trạng thái sổ; đã đăng thắng đã làm
+  assert.strictEqual(trangThaiY(so.hang_cho[3]!, [{ slug: 'd', trangThai: 'cho_cham' }]), 'da_lam');
+  assert.strictEqual(trangThaiY(so.hang_cho[3]!, [{ slug: 'd', trangThai: 'cho_cham' }, { slug: 'd', trangThai: 'da_dang' }]), 'da_dang');
+  const h = cayHangCho(so, [{ slug: 'd', trangThai: 'da_dang' }]);
+  assert.deepStrictEqual(h.map((x) => x.chu), ['💡 Hàng chờ ý tưởng (4)', '⏳ C', '○ B', '🎬 A', '✅ D']);   // sẵn sàng → chưa làm → demo → đã đăng
+  assert.ok(h[2]!.phu!.includes('10/02/2027'));
+  // kênh chưa khai sổ → không khối nào
+  assert.deepStrictEqual([...caySoKenh({ giai_doan: [] }), ...cayMau({ giai_doan: [] }), ...cayHangCho({ giai_doan: [] }, [])], []); }
+console.log('kenh-sp-tinh: sổ kênh đạt');

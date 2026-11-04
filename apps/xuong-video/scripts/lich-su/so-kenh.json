@@ -1,5 +1,5 @@
 {
-  "_ghi": "LỘ TRÌNH KÊNH NỘI DUNG (anh 02/11/2026: 'dựng phần kênh nội dung và Studio để còn follow theo'). Chung cho mọi kênh của studio, khoá = mã máy (xv_may.ma). mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh → 🧭 Lộ trình) và Studio (phim kênh › 📖 Phim) cùng đọc tệp này. playlist: các playlist theo kế hoạch (trang_thai: de_xuat = chờ G0 chốt · chot = đã chốt, chưa mở · mo = đã mở trên YouTube · sau = mở sau · tam_dung), G1 chuyển sang kenh.json khi máy làm tập theo playlist. trang_thai giai đoạn: cho_anh (chờ anh chốt / duyệt) · dang (đang làm) · chua (chưa tới) · xong. Đổi giai đoạn = sửa tệp này + commit, không ghi chỗ khác. Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs chỉ đọc kenh.json).",
+  "_ghi": "SỔ KÊNH (anh 04/11/2026: 'cần có nơi tổ chức để sau này lên video mới ko bị chệch hướng' → 'show ở Kênh nội dung'). MỘT nguồn cho người + máy, chung mọi kênh studio, khoá = mã máy (xv_may.ma). Anh đọc ở mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh: 📘 Sổ kênh · 🧩 Mẫu đã duyệt · 💡 Hàng chờ ý tưởng · 🧭 Lộ trình · 📂 Playlist) và Studio (phim kênh › 📖 Phim). Máy gác: lich-su/kiem-so-kenh.mjs (tự kiểm sổ + gác từng tập: mẫu / playlist phải có trong sổ, câu kết đúng, chủ đề không trùng). Phần: dinh_vi · luat[] · mau[] { ma, ten, loai short|dai, playlist, nhip, kho, trang, sinh, demo, tu_sinh? (khuôn mã ý tưởng máy tự sinh — mẫu vô hạn) } · hang_cho[] { ma, mau, chu_de, ngay?, trang_thai chua|san_sang|demo|da_lam|da_dang } · playlist[] · giai_doan[] (lộ trình). trang_thai playlist: de_xuat · chot · mo · sau · tam_dung; giai đoạn: cho_anh · dang · chua · xong. Đổi sổ = sửa tệp + commit (deploy đọc lại). Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs đọc kenh.json).",
   "astrolas": {
     "ten": "Astrolas · YouTube @astrolasapp",
     "plan": "apps/xuong-video/docs/astrolas-youtube.md",
@@ -64,6 +64,76 @@
         "mo_dau": false,
         "trang_thai": "sau",
         "khi": "G10"
+      },
+      {
+        "ma": "read-your-chart",
+        "ten": "Read Your Chart",
+        "tien_to": "Read Your Chart: …",
+        "noi_dung": "giải nghĩa một con số / ký hiệu trên lá số",
+        "trang_dich": "astrolas.com",
+        "mo_dau": false,
+        "trang_thai": "sau",
+        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
+      },
+      {
+        "ma": "ask-the-chart",
+        "ten": "Ask the Chart",
+        "tien_to": "Ask the Chart: …",
+        "noi_dung": "câu hỏi người dùng → công cụ → đọc kết quả",
+        "trang_dich": "astrolas.com",
+        "mo_dau": false,
+        "trang_thai": "sau",
+        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
+      },
+      {
+        "ma": "free-60s",
+        "ten": "Free in 60 Seconds",
+        "tien_to": "Free in 60 Seconds: …",
+        "noi_dung": "một công cụ miễn phí từ form tới kết quả",
+        "trang_dich": "astrolas.com",
+        "mo_dau": false,
+        "trang_thai": "sau",
+        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
+      },
+      {
+        "ma": "this-week",
+        "ten": "This Week in Your Chart",
+        "tien_to": "This Week: …",
+        "noi_dung": "sự kiện trời tuần này × 12 cung Mọc",
+        "trang_dich": "astrolas.com",
+        "mo_dau": false,
+        "trang_thai": "sau",
+        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
+      },
+      {
+        "ma": "tonights-sky",
+        "ten": "Tonight's Sky",
+        "tien_to": "Tonight's Sky: …",
+        "noi_dung": "bầu trời đêm thật theo thành phố, 1–3 giờ",
+        "trang_dich": "astrolas.com",
+        "mo_dau": false,
+        "trang_thai": "sau",
+        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
+      },
+      {
+        "ma": "how-the-sky-works",
+        "ten": "How the Sky Works",
+        "tien_to": "How the Sky Works: …",
+        "noi_dung": "giảng 3D cơ chế bầu trời",
+        "trang_dich": "astrolas.com",
+        "mo_dau": false,
+        "trang_thai": "sau",
+        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
+      },
+      {
+        "ma": "geometry",
+        "ten": "The Geometry of Your Chart",
+        "tien_to": "Geometry: …",
+        "noi_dung": "hình học của lá số",
+        "trang_dich": "astrolas.com",
+        "mo_dau": false,
+        "trang_thai": "sau",
+        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
       }
     ],
     "giai_doan": [
@@ -143,6 +213,315 @@
         "viec": "playlist 3 (công cụ, hologram-hud); kênh JA / ES khi astrolas.com mở locale",
         "anh": "duyệt mở ngôn ngữ",
         "trang_thai": "chua"
+      }
+    ],
+    "dinh_vi": {
+      "cho_ai": "người muốn tự hiểu lá số của mình — tiếng Anh, toàn cầu (sau mở ES / JA)",
+      "dich": "dẫn người xem vào công cụ miễn phí của astrolas.com → gói Member ($19.99/tháng · $167.90/năm)",
+      "cau_ket": "…free at astrolas.com",
+      "ngon_ngu": "EN"
+    },
+    "luat": [
+      "Mỗi tập thuộc đúng MỘT mẫu đã duyệt và MỘT playlist trong sổ này — không có mẫu = không làm",
+      "Số lá số / thiên văn chỉ lấy từ dữ liệu astrolas.com hoặc bau-troi-tinh.js (đã đối chiếu Swiss Ephemeris ≤ 0,06°, la-so/doi-chieu.mjs)",
+      "Sự thật lịch sử, thần thoại, đời người: có nguồn kiểm được; không bịa, không đoán ngày",
+      "Giọng bí ẩn, điềm, ít đùa — không chế giễu chiêm tinh, không hứa hẹn tiên tri",
+      "Khung thương hiệu G2: logo + icon thật, nhãn playlist, nền trời thật chuyển động, màn cuối chung",
+      "Short: chữ và logo ngoài vùng YouTube đè; video dài: 16:9, hình trái · chữ phải",
+      "Người còn sống: không vẽ chân dung minh hoạ (chỉ lá số, trang công cụ, cảnh chung)",
+      "Câu kết trỏ về astrolas.com (công cụ miễn phí); chủ đề đã đăng không làm lại"
+    ],
+    "mau": [
+      {
+        "ma": "chart-chapters",
+        "ten": "Chart Chapters",
+        "loai": "short",
+        "playlist": "chart-chapters",
+        "nhip": "Thứ 2 + Thứ 6",
+        "kho": "vô hạn · 1–3 tập / người nổi tiếng",
+        "trang": "shot-code/la-so.html",
+        "sinh": "kịch bản tay (G5 tự viết)",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/la-so-mau.mp4?v=2"
+      },
+      {
+        "ma": "sky-calendar",
+        "ten": "Sky Calendar",
+        "loai": "short",
+        "playlist": "sky-calendar",
+        "nhip": "Thứ 4",
+        "kho": "52 tập trăng / năm + nhật nguyệt thực + chuyện lịch sử",
+        "trang": "shot-code/la-so.html",
+        "sinh": "kịch bản tay (G5)",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-sky-calendar.mp4"
+      },
+      {
+        "ma": "myth-behind",
+        "ten": "The Myth Behind",
+        "loai": "short",
+        "playlist": "myth-behind",
+        "nhip": "sau 2 playlist đầu",
+        "kho": "≈ 50+ tập",
+        "trang": "shot-code/la-so.html",
+        "sinh": "kịch bản tay (G5)",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-myth-behind.mp4"
+      },
+      {
+        "ma": "chart-tools",
+        "ten": "Chart Tools",
+        "loai": "short",
+        "playlist": "cong-cu",
+        "nhip": "sau",
+        "kho": "≈ 30 tập",
+        "trang": "shot-code/la-so.html",
+        "sinh": "kịch bản tay (G5)",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-cong-cu.mp4"
+      },
+      {
+        "ma": "start-here",
+        "ten": "Start here",
+        "loai": "short",
+        "playlist": "start-here",
+        "nhip": "1 lần (G7)",
+        "kho": "1–2 tập",
+        "trang": "shot-code/la-so.html",
+        "sinh": "kịch bản tay",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-start-here.mp4"
+      },
+      {
+        "ma": "read-your-chart",
+        "ten": "Read Your Chart",
+        "loai": "short",
+        "playlist": "read-your-chart",
+        "nhip": "sau",
+        "kho": "≈ 600+ Short",
+        "trang": "shot-code/la-so.html",
+        "sinh": "kịch bản tay (G5)",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-read-your-chart.mp4"
+      },
+      {
+        "ma": "ask-the-chart",
+        "ten": "Ask the Chart",
+        "loai": "short",
+        "playlist": "ask-the-chart",
+        "nhip": "sau",
+        "kho": "≈ 13.900 câu hỏi thật (spy nhóm #9)",
+        "trang": "shot-code/la-so.html",
+        "sinh": "kịch bản tay (G5)",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-ask-the-chart.mp4"
+      },
+      {
+        "ma": "free-60s",
+        "ten": "Free in 60 Seconds",
+        "loai": "short",
+        "playlist": "free-60s",
+        "nhip": "sau",
+        "kho": "16 tập (một công cụ một tập)",
+        "trang": "shot-code/la-so.html",
+        "sinh": "kịch bản tay",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-free-60s.mp4"
+      },
+      {
+        "ma": "this-week",
+        "ten": "This Week in Your Chart",
+        "loai": "short",
+        "playlist": "this-week",
+        "nhip": "theo sự kiện trời",
+        "kho": "≈ 1.000 Short / năm (88 sự kiện × 12 cung Mọc)",
+        "trang": "shot-code/la-so.html",
+        "sinh": "G4: lịch sự kiện theo phút → máy sinh",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-this-week.mp4"
+      },
+      {
+        "ma": "chart-chapters-dai",
+        "ten": "Chart Chapters (long)",
+        "loai": "dai",
+        "playlist": "chart-chapters",
+        "nhip": "1 tập / tuần",
+        "kho": "vô hạn theo người",
+        "trang": "shot-code/la-so.html (khung ngang)",
+        "sinh": "lich-su/dai/sinh-chuong.mjs --slug <người> --moc <moc.json>",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-chart-chapters.mp4",
+        "tu_sinh": "^ccd-[a-z0-9-]+$"
+      },
+      {
+        "ma": "how-the-sky-works",
+        "ten": "How the Sky Works",
+        "loai": "dai",
+        "playlist": "how-the-sky-works",
+        "nhip": "2 tập / tháng",
+        "kho": "≈ 20 bài",
+        "trang": "shot-code/giang-troi.html",
+        "sinh": "bài giảng soạn sẵn (JSON)",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-how-the-sky-works.mp4"
+      },
+      {
+        "ma": "geometry",
+        "ten": "The Geometry of Your Chart",
+        "loai": "dai",
+        "playlist": "geometry",
+        "nhip": "2 tập / tháng",
+        "kho": "≈ 15–20 bài",
+        "trang": "shot-code/giang-troi.html",
+        "sinh": "bài giảng soạn sẵn (JSON)",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-geometry-of-your-chart.mp4?v=2"
+      },
+      {
+        "ma": "tonights-sky",
+        "ten": "Tonight's Sky",
+        "loai": "dai",
+        "playlist": "tonights-sky",
+        "nhip": "mỗi tuần × mỗi thành phố",
+        "kho": "vô hạn",
+        "trang": "shot-code/bau-troi-dem.html",
+        "sinh": "lich-su/dai/sinh-dem.mjs --noi <thành phố> --ngay <ngày>",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-tonights-sky.mp4",
+        "tu_sinh": "^ts-[a-z-]+-\\d{4}-\\d{2}-\\d{2}$"
+      }
+    ],
+    "mo_dau": "https://img.on.tc/xuong-video/demo/astrolas/mo-dau-doc.mp4",
+    "hang_cho": [
+      {
+        "ma": "cc-steve-jobs",
+        "mau": "chart-chapters",
+        "chu_de": "Steve Jobs: the garage, the board, the return",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "ccd-taylor-swift",
+        "mau": "chart-chapters-dai",
+        "chu_de": "Taylor Swift: four chapters (máy sinh, chờ giọng)",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "cc-elon-musk",
+        "mau": "chart-chapters",
+        "chu_de": "Elon Musk: Saturn opposite Neptune",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "tw-mercury-rx-scorpio-2026",
+        "mau": "this-week",
+        "chu_de": "Mercury retrograde in Scorpio · 12 bản cung Mọc",
+        "trang_thai": "demo",
+        "ngay": "2026-10-24"
+      },
+      {
+        "ma": "tw-mercury-rx-pisces-2027",
+        "mau": "this-week",
+        "chu_de": "Mercury retrograde in Pisces · 12 bản cung Mọc",
+        "trang_thai": "chua",
+        "ngay": "2027-02-10"
+      },
+      {
+        "ma": "sc-columbus-1504",
+        "mau": "sky-calendar",
+        "chu_de": "The eclipse that saved Columbus · 1504",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "sc-eclipse-2027-08-02",
+        "mau": "sky-calendar",
+        "chu_de": "Total solar eclipse of 2 August 2027",
+        "trang_thai": "chua",
+        "ngay": "2027-08-02"
+      },
+      {
+        "ma": "my-chiron",
+        "mau": "myth-behind",
+        "chu_de": "Chiron: the wounded healer",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "my-lilith",
+        "mau": "myth-behind",
+        "chu_de": "Lilith: the first woman who refused",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ryc-asc-degree",
+        "mau": "read-your-chart",
+        "chu_de": "What does 22°17' next to AC mean?",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "ryc-retrograde-r",
+        "mau": "read-your-chart",
+        "chu_de": "What does the R next to a planet mean?",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ask-year",
+        "mau": "ask-the-chart",
+        "chu_de": "What will this year bring me? · Annual Profections",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "ask-sun-vs-rising",
+        "mau": "ask-the-chart",
+        "chu_de": "Sun sign or Rising sign: which matters more?",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "f60-birth-chart",
+        "mau": "free-60s",
+        "chu_de": "Birth Chart",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "f60-profections",
+        "mau": "free-60s",
+        "chu_de": "Annual Profections",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ts-london-2026-11-20",
+        "mau": "tonights-sky",
+        "chu_de": "London · 20 Nov 2026",
+        "trang_thai": "demo",
+        "ngay": "2026-11-20"
+      },
+      {
+        "ma": "ts-new-york-2026-11-27",
+        "mau": "tonights-sky",
+        "chu_de": "New York · 27 Nov 2026",
+        "trang_thai": "chua",
+        "ngay": "2026-11-27"
+      },
+      {
+        "ma": "hsw-mercury-retro",
+        "mau": "how-the-sky-works",
+        "chu_de": "Why Mercury goes backwards",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "hsw-eclipses",
+        "mau": "how-the-sky-works",
+        "chu_de": "How eclipses happen",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "geo-ascendant",
+        "mau": "geometry",
+        "chu_de": "What is your Ascendant?",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "geo-house-systems",
+        "mau": "geometry",
+        "chu_de": "Why house systems disagree (Placidus vs Whole Sign)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ct-profections",
+        "mau": "chart-tools",
+        "chu_de": "Annual Profections: the ancient year clock",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "sh-trailer",
+        "mau": "start-here",
+        "chu_de": "Channel trailer",
+        "trang_thai": "demo"
       }
     ]
   }

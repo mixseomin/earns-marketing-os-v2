@@ -1,7 +1,7 @@
 'use client';
 // 🧭 LỘ TRÌNH KÊNH trong tab 📖 Phim của phim kênh (anh 02/11/2026: "dựng phần kênh nội dung và Studio để còn follow theo").
-// Nguồn: scripts/lich-su/lo-trinh.json theo mã máy (kinh_thanh.may) — mos2 › Tài sản › 📺 Kênh nội dung đọc CÙNG tệp. Chỉ hiển thị; đổi giai đoạn = sửa tệp + commit.
-import LT from '../../scripts/lich-su/lo-trinh.json';
+// Nguồn: scripts/lich-su/so-kenh.json (SỔ KÊNH — lộ trình là phần giai_doan) theo mã máy (kinh_thanh.may) — mos2 › Tài sản › 📺 Kênh nội dung đọc CÙNG tệp (đủ sổ: định vị, luật, mẫu, hàng chờ). Chỉ hiển thị; đổi giai đoạn = sửa tệp + commit.
+import LT from '../../scripts/lich-su/so-kenh.json';
 import { mono } from './ui';
 import type { CSSProperties } from 'react';
 

@@ -21,8 +21,9 @@ export type KenhSp = {
     /** tập đang dở chưa nạp máy đăng (xv_may.nguon.tap_cho — chay-kenh.mjs ghi mỗi lượt) */ tapCho?: TapCho[] };
   /** PLAYLIST THẬT của kênh (kenh.json › playlist — máy làm tập chạy theo đây; G1 tầng playlist chung): lịch + số từng playlist. [] = kênh chưa chia playlist */
   playlist?: PlaylistKenh[];
-  /** LỘ TRÌNH kênh (apps/xuong-video/scripts/lich-su/lo-trinh.json theo mã máy — anh 02/11/2026 "dựng phần kênh nội dung và Studio để còn follow theo"); null = kênh không khai lộ trình */
-  loTrinh?: LoTrinh | null;
+  /** SỔ KÊNH (apps/xuong-video/scripts/lich-su/so-kenh.json theo mã máy — anh 04/11/2026 "cần có nơi tổ chức để sau này lên video mới ko bị chệch hướng"):
+   *  định vị + luật + mẫu đã duyệt + hàng chờ ý tưởng + playlist kế hoạch + lộ trình G0…Gn; null = kênh chưa khai sổ */
+  so?: SoKenh | null;
   /** social trỏ về kênh (bài short dẫn link kênh) — tab Tài sản gắn theo khung ?ky= */
   social?: import('./social-tro-ve-tinh').TroVe | null;
 };
@@ -73,7 +74,7 @@ export function lichKenh(k: Pick<KenhSp, 'videos' | 'ke'>): OLich[] {
 
 /** CÂY KẾ HOẠCH của kênh (anh 02/11/2026: "nhìn được realtime quá trình sx, lên lịch ở đây"): khối ▶ Đang sản xuất (tập trong lò, bước k/n, từ giờ nào)
  *  + khối 🗓 Lịch (bài chờ đăng lúc nào, bài chờ chấm / sửa lại, lượt làm tập kế). Thuần — component chỉ vẽ. Giờ hiện theo giờ VN. */
-export type DongKe = { id: string; nhom?: boolean; chu: string; phu?: string; mau?: string };
+export type DongKe = { id: string; nhom?: boolean; chu: string; phu?: string; mau?: string; /** link mở kèm dòng (vd ▶ xem demo) */ url?: string; urlChu?: string };
 const gioVn = (iso: string) => new Date(iso).toLocaleTimeString('en-GB', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
 const thuNgay = (ymd: string) => `${THU[new Date(`${ymd}T00:00:00Z`).getUTCDay() || 7]} ${ymd.slice(8, 10)}/${ymd.slice(5, 7)}`;
 export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()): DongKe[] {
@@ -104,26 +105,32 @@ export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()
   return ra;
 }
 
-/** LỘ TRÌNH KÊNH (lo-trinh.json, chung mọi kênh studio): các giai đoạn G0…Gn, mỗi giai đoạn một trạng thái. Giai đoạn đang đứng = cái đầu tiên chưa xong. */
+/** LỘ TRÌNH KÊNH (so-kenh.json › giai_doan, chung mọi kênh studio): các giai đoạn G0…Gn, mỗi giai đoạn một trạng thái. Giai đoạn đang đứng = cái đầu tiên chưa xong. */
 export type TrangThaiGd = 'cho_anh' | 'dang' | 'chua' | 'xong';
 export type GiaiDoan = { ma: string; ten: string; viec: string; anh: string; trang_thai: TrangThaiGd };
-/** PLAYLIST theo kế hoạch (lo-trinh.json › playlist; G1 chuyển sang kenh.json khi máy làm tập theo playlist). */
+/** PLAYLIST theo kế hoạch (so-kenh.json › playlist; G1 chuyển sang kenh.json khi máy làm tập theo playlist). */
 export type TrangThaiPl = 'de_xuat' | 'chot' | 'mo' | 'sau' | 'tam_dung';
 export type PlaylistKh = { ma: string; ten: string; tien_to?: string; noi_dung?: string; ho_hinh?: string; ngay?: string; trang_dich?: string; mo_dau?: boolean; trang_thai: TrangThaiPl; khi?: string };
-export type LoTrinh = { ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[] };
+/** MẪU đã duyệt (so-kenh.json › mau): mỗi tập kênh phải thuộc một mẫu (máy gác lich-su/kiem-so-kenh.mjs). */
+export type MauKenh = { ma: string; ten: string; loai: 'short' | 'dai'; playlist?: string; nhip?: string; kho?: string; trang?: string; sinh?: string; demo?: string; tu_sinh?: string };
+/** Ý TƯỞNG trong hàng chờ (so-kenh.json › hang_cho); trạng thái trong sổ bị tập thật đè (tập slug = mã ý tưởng: đã làm / đã đăng). */
+export type TrangThaiY = 'chua' | 'san_sang' | 'demo' | 'da_lam' | 'da_dang';
+export type YTuong = { ma: string; mau: string; chu_de: string; ngay?: string; trang_thai: TrangThaiY };
+export type SoKenh = { ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[];
+  dinh_vi?: { cho_ai?: string; dich?: string; cau_ket?: string; ngon_ngu?: string }; luat?: string[]; mau?: MauKenh[]; hang_cho?: YTuong[]; mo_dau?: string };
 const GD: Record<TrangThaiGd, { ic: string; chu: string; mau: string }> = {
   xong: { ic: '✅', chu: 'xong', mau: 'var(--ok)' }, dang: { ic: '▶', chu: 'đang làm', mau: 'var(--warn)' },
   cho_anh: { ic: '⏸', chu: 'chờ anh', mau: 'var(--accent)' }, chua: { ic: '○', chu: 'chưa tới', mau: 'var(--fg-4)' },
 };
 /** Tóm một dòng cho dòng kênh: "🧭 G0 Chốt · chờ anh chốt" / "🧭 xong lộ trình". Thuần. */
-export function tomLoTrinh(lt: LoTrinh): { xong: number; tong: number; hienTai: GiaiDoan | null; chu: string; mau: string } {
+export function tomLoTrinh(lt: SoKenh): { xong: number; tong: number; hienTai: GiaiDoan | null; chu: string; mau: string } {
   const ds = lt.giai_doan ?? [], xong = ds.filter((g) => g.trang_thai === 'xong').length, h = ds.find((g) => g.trang_thai !== 'xong') ?? null;
   if (!h) return { xong, tong: ds.length, hienTai: null, chu: '🧭 xong lộ trình', mau: 'var(--ok)' };
   const t = GD[h.trang_thai] ?? GD.chua;
   return { xong, tong: ds.length, hienTai: h, chu: `🧭 ${h.ma} ${h.ten} · ${h.trang_thai === 'cho_anh' ? (h.anh && h.anh !== 'không' ? `chờ anh ${h.anh}` : 'chờ anh') : t.chu}`, mau: t.mau };
 }
 /** Khối 🧭 Lộ trình trong cây kênh: dòng nhóm (x/n xong · đang ở đâu) + mỗi giai đoạn một dòng (trạng thái · việc · anh làm gì). Thuần. */
-export function cayLoTrinh(lt: LoTrinh): DongKe[] {
+export function cayLoTrinh(lt: SoKenh): DongKe[] {
   const t = tomLoTrinh(lt), ngay = lt.cap_nhat ? ` · cập nhật ${lt.cap_nhat.slice(8, 10)}/${lt.cap_nhat.slice(5, 7)}` : '';
   return [{ id: 'lt', nhom: true, chu: `🧭 Lộ trình (${t.xong}/${t.tong} xong)`, phu: `${t.hienTai ? `đang ở ${t.hienTai.ma}` : 'đã tự vận hành'}${ngay}${lt.muc_tieu ? ` · đích: ${lt.muc_tieu}` : ''}` },
     ...(lt.giai_doan ?? []).map((g): DongKe => { const s = GD[g.trang_thai] ?? GD.chua;
@@ -135,7 +142,7 @@ const PL: Record<TrangThaiPl, { ic: string; chu: string; mau: string }> = {
   sau: { ic: '○', chu: 'mở sau', mau: 'var(--fg-4)' }, tam_dung: { ic: '⏸', chu: 'tạm dừng', mau: 'var(--warn)' },
 };
 /** Khối 📂 Playlist trong cây kênh: playlist theo kế hoạch, playlist mở đầu đứng trước. Thuần. */
-export function cayPlaylist(lt: LoTrinh): DongKe[] {
+export function cayPlaylist(lt: SoKenh): DongKe[] {
   const ds = [...(lt.playlist ?? [])].sort((a, b) => Number(!!b.mo_dau) - Number(!!a.mo_dau));
   if (!ds.length) return [];
   const mo = ds.filter((p) => p.trang_thai === 'mo').length, dau = ds.filter((p) => p.mo_dau).length;
@@ -143,6 +150,41 @@ export function cayPlaylist(lt: LoTrinh): DongKe[] {
     ...ds.map((p): DongKe => { const s = PL[p.trang_thai] ?? PL.sau;
       return { id: `pl/${p.ma}`, chu: `${s.ic} ${p.ten} · ${s.chu}${p.mo_dau ? ' · mở đầu' : p.khi ? ` · ${p.khi}` : ''}`, mau: s.mau,
         phu: [p.noi_dung, p.ho_hinh && `hình ${p.ho_hinh}`, p.ngay && p.ngay !== '—' && `ngày ${p.ngay}`, p.trang_dich && `→ ${p.trang_dich}`, p.tien_to && `tiêu đề "${p.tien_to}"`].filter(Boolean).join(' · ') }; })];
+}
+/** Khối 📘 SỔ KÊNH: cho ai · đích · câu kết · từng luật. Thuần. */
+export function caySoKenh(so: SoKenh): DongKe[] {
+  const d = so.dinh_vi ?? {}, luat = so.luat ?? [];
+  if (!d.cho_ai && !luat.length) return [];
+  return [{ id: 'so', nhom: true, chu: '📘 Sổ kênh', phu: `định vị + ${luat.length} luật · mọi tập phải theo` },
+    ...[d.cho_ai && ['cho', `Cho ai: ${d.cho_ai}`], d.dich && ['dich', `Đích: ${d.dich}`], d.cau_ket && ['ket', `Câu kết bắt buộc: "${d.cau_ket}"`]].filter((x): x is string[] => !!x)
+      .map(([id, chu]): DongKe => ({ id: `so/${id}`, chu: chu! })),
+    ...luat.map((l, i): DongKe => ({ id: `so/l${i}`, chu: `Luật ${i + 1}: ${l}`, mau: 'var(--fg-2)' }))];
+}
+/** Khối 🧩 MẪU ĐÃ DUYỆT: một dòng một mẫu (Short / dài · playlist · nhịp · kho ý tưởng) + link ▶ xem demo. Thuần. */
+export function cayMau(so: SoKenh): DongKe[] {
+  const ds = so.mau ?? []; if (!ds.length) return [];
+  const pl = new Map((so.playlist ?? []).map((p) => [p.ma, p.ten])), n = (l: string) => ds.filter((m) => m.loai === l).length;
+  return [{ id: 'mau', nhom: true, chu: `🧩 Mẫu đã duyệt (${ds.length})`, phu: `${n('short')} Short · ${n('dai')} dài 16:9 · tập ngoài các mẫu này không lên kênh`, url: so.mo_dau, urlChu: so.mo_dau ? '▶ đoạn mở đầu' : undefined },
+    ...ds.map((m): DongKe => ({ id: `mau/${m.ma}`, chu: `${m.loai === 'dai' ? '🎞' : '📱'} ${m.ten}`, url: m.demo, urlChu: m.demo ? '▶ xem demo' : undefined,
+      phu: [m.loai === 'dai' ? 'dài 16:9' : 'Short 9:16', m.playlist && `playlist ${pl.get(m.playlist) ?? m.playlist}`, m.nhip, m.kho && `kho ${m.kho}`, m.tu_sinh && 'máy tự sinh ý tưởng'].filter(Boolean).join(' · ') }))];
+}
+const YT: Record<TrangThaiY, { ic: string; chu: string; mau: string; thu: number }> = {
+  san_sang: { ic: '⏳', chu: 'sẵn sàng', mau: 'var(--warn)', thu: 0 }, chua: { ic: '○', chu: 'chưa làm', mau: 'var(--fg-2)', thu: 1 }, demo: { ic: '🎬', chu: 'đã có demo', mau: 'var(--accent)', thu: 2 },
+  da_lam: { ic: '✔', chu: 'đã làm', mau: 'var(--ok)', thu: 3 }, da_dang: { ic: '✅', chu: 'đã đăng', mau: 'var(--ok)', thu: 4 },
+};
+/** Trạng thái thật của ý tưởng: tập kênh có slug = mã ý tưởng thì đè trạng thái trong sổ (đã đăng > đã làm). Thuần. */
+export function trangThaiY(y: YTuong, videos: Pick<VideoKenh, 'slug' | 'trangThai'>[]): TrangThaiY {
+  const v = videos.filter((x) => x.slug === y.ma);
+  return v.some((x) => x.trangThai === 'da_dang') ? 'da_dang' : v.length ? 'da_lam' : y.trang_thai;
+}
+/** Khối 💡 HÀNG CHỜ Ý TƯỞNG: sẵn sàng → chưa làm (theo ngày) → đã có demo → đã làm → đã đăng. Thuần. */
+export function cayHangCho(so: SoKenh, videos: Pick<VideoKenh, 'slug' | 'trangThai'>[]): DongKe[] {
+  const ds = (so.hang_cho ?? []).map((y) => ({ y, t: trangThaiY(y, videos) })); if (!ds.length) return [];
+  const mau = new Map((so.mau ?? []).map((m) => [m.ma, m.ten])), dem = (t: TrangThaiY) => ds.filter((x) => x.t === t).length;
+  ds.sort((a, b) => YT[a.t].thu - YT[b.t].thu || (a.y.ngay ?? '9').localeCompare(b.y.ngay ?? '9'));
+  return [{ id: 'hc', nhom: true, chu: `💡 Hàng chờ ý tưởng (${ds.length})`, phu: `${dem('san_sang')} sẵn sàng · ${dem('chua')} chưa làm · ${dem('demo')} có demo · ${dem('da_dang')} đã đăng · máy lấy chủ đề kế từ đây` },
+    ...ds.map(({ y, t }): DongKe => ({ id: `hc/${y.ma}`, chu: `${YT[t].ic} ${y.chu_de}`, mau: YT[t].mau,
+      phu: [mau.get(y.mau) ?? y.mau, y.ngay && `${y.ngay.slice(8, 10)}/${y.ngay.slice(5, 7)}/${y.ngay.slice(0, 4)}`, YT[t].chu].filter(Boolean).join(' · ') }))];
 }
 /** ĐÓNG / MỞ từng khối trong cây (anh 02/11/2026 "các phần bên trong đều phải cho đóng mở tuỳ ý"): dòng nhóm luôn giữ, con của nhóm đang gập thì bỏ.
  *  khoaNhom(r) = khoá nhóm nếu r là dòng nhóm, null nếu là dòng con (thuộc nhóm đứng trước gần nhất). Thuần. */

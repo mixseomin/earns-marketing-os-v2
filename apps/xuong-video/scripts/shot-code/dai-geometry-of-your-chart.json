@@ -1,5 +1,9 @@
 {
  "_ghi": "Mẫu dài 16:9 The Geometry of Your Chart (đoạn trích): cung Mọc là gì. Vĩ độ San Francisco 37,8°; cung Mọc tính từ giao điểm hoàng đạo với chân trời đông.",
+ "kenh": "astrolas",
+ "mau": "geometry",
+ "playlist_ma": "geometry",
+ "y_tuong": "geo-ascendant",
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "la_so": "../lich-su/la-so/steve-jobs.svg",
@@ -8,7 +12,7 @@
   "mau": "#C9A7FF",
   "ic": "△"
  },
- "DAI": 34.0,
+ "DAI": 38.4,
  "cau": [
   {
    "tu": 0,
@@ -71,6 +75,15 @@
    },
    "chu": "Flatten the sky, and that rising point becomes the left edge of your chart.",
    "nhan": "Steve Jobs · Virgo rising"
+  },
+  {
+   "tu": 34.0,
+   "den": 38.4,
+   "canh": {
+    "banh": 1
+   },
+   "chu": "See your own Ascendant free at astrolas.com.",
+   "nhan": "astrolas.com · Birth Chart"
   }
  ]
 }

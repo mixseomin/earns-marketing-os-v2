@@ -2,7 +2,9 @@
 
 Lập 02/11/2026 (iMac). Chat mới nối tiếp: đọc hết tệp này, rồi `~/bin/followup list astrolas` xem mục "Video YouTube Astrolas" (nhật ký trạng thái mới nhất nằm ở đó).
 
-## Trạng thái hiện tại — đọc trước
+> **Nguồn hiện hành = SỔ KÊNH** (04/11/2026): mos2 › Tài sản › 📺 Kênh nội dung › Astrolas — 📘 Sổ kênh (định vị, luật) · 🧩 Mẫu đã duyệt (13, ▶ xem demo) · 💡 Hàng chờ ý tưởng · 🧭 Lộ trình · 📂 Playlist. Tệp: `apps/xuong-video/scripts/lich-su/so-kenh.json`; máy gác `scripts/lich-su/kiem-so-kenh.mjs`. Tệp này từ đây chỉ là **lịch sử quyết định** 02–04/11/2026 — không ghi trạng thái ở đây nữa.
+
+## Trạng thái 02–03/11/2026 (lịch sử)
 
 - **03/11/2026 anh chốt G0** theo đề xuất: mảng chính "đời người nổi tiếng theo chương lá số"; 2 playlist mở đầu **Chart Chapters** (engraving, Thứ 2 + Thứ 6) + **Sky Calendar** (paper-lantern, Thứ 4 — tên EN con tạm đặt, đổi được tới G7); hạn mức dưới 10.000₫/tập trên đường đã duyệt; ngưỡng "playlist kém" để G9 chốt.
 - **G1 (tầng Playlist chung) đã dựng 03/11:** `scripts/lich-su/playlist.mjs` (luật + hàm, test `playlist.test.mts`), `kenh.json › playlist[]` (lịch làm tập theo playlist, khoá đè hồ sơ kênh, tiền tố tiêu đề), chay-kenh → lam-tap → viet-tap / dung-tap / thumb / tap-day mang `playlist`, máy đăng nhận `dang.playlist` + tiêu đề có tiền tố, mos2 Kênh nội dung chia số theo playlist. Chạy thử: YNT một playlist "Full Stories" cùng lịch Thứ 2/4/6 — G1 xong khi lượt làm tập YNT kế chạy qua đường này.
@@ -10,7 +12,7 @@ Lập 02/11/2026 (iMac). Chat mới nối tiếp: đọc hết tệp này, rồi
 - Đang chờ anh chọn: (a) mảng kể chuyện, (b) hướng gộp 3 họ hình, (c) mở 2 loạt trước.
 - Bước kế khi anh chốt: viết **một** kịch bản mẫu đánh số theo khuôn phim #1195 (đề xuất "Chart Chapters: Steve Jobs") + một khung ảnh có đủ lớp thương hiệu → anh duyệt → mới dựng.
 - Kênh YouTube Astrolas trong sổ máy đăng đang khoá (`nghi_den` 2099-12-31). Không mở khoá khi chưa có video được duyệt.
-- **Chỗ anh follow (dựng 02/11/2026, migration 0411):** mos2 › Tài sản › 📺 Kênh nội dung, dòng Astrolas (▸ mở → 🧭 Lộ trình G0–G10, menu ⋯ → phim Studio / tệp kế hoạch) và Studio › phim "Astrolas" › 📖 Phim (khối 🧭 Lộ trình kênh). Cả hai đọc `apps/xuong-video/scripts/lich-su/lo-trinh.json` (giai đoạn + 📂 playlist theo kế hoạch: Chart Chapters, Lịch trời mở đầu; Start here, The Myth Behind, Công cụ mở sau). Mọi khối trong cây đóng / mở riêng (mos2 nhớ trên URL `?kenh_gap=`). **Mỗi lần đổi giai đoạn: sửa `trang_thai` + `cap_nhat` trong tệp đó rồi commit** — không ghi tiến độ chỗ khác. Panel chỉ đếm tập kênh (`de.loai = 'video-ngoai'`), 36 video FB Dạng × Góc không lẫn vào.
+- **Chỗ anh follow (dựng 02/11/2026, migration 0411):** mos2 › Tài sản › 📺 Kênh nội dung, dòng Astrolas (▸ mở → 🧭 Lộ trình G0–G10, menu ⋯ → phim Studio / tệp kế hoạch) và Studio › phim "Astrolas" › 📖 Phim (khối 🧭 Lộ trình kênh). Cả hai đọc `apps/xuong-video/scripts/lich-su/so-kenh.json` (trước 04/11/2026 tên lo-trinh.json) (giai đoạn + 📂 playlist theo kế hoạch: Chart Chapters, Lịch trời mở đầu; Start here, The Myth Behind, Công cụ mở sau). Mọi khối trong cây đóng / mở riêng (mos2 nhớ trên URL `?kenh_gap=`). **Mỗi lần đổi giai đoạn: sửa `trang_thai` + `cap_nhat` trong tệp đó rồi commit** — không ghi tiến độ chỗ khác. Panel chỉ đếm tập kênh (`de.loai = 'video-ngoai'`), 36 video FB Dạng × Góc không lẫn vào.
 
 ## Luật cứng của mạch này
 

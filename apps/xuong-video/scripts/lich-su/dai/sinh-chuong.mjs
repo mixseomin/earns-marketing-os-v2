@@ -43,9 +43,12 @@ for (const m of M.moc) {
   truocCung = c;
 }
 them(4.4, { toan: 1 }, 'Find your own chapters free at astrolas.com.', 'astrolas.com · Annual Profections');
-const CAU = { _ghi: `Chart Chapters dài · ${M.ten} — sinh bởi lich-su/dai/sinh-chuong.mjs từ ${tepMoc}`, khung: 'ngang', DAI: cau.at(-1).den,
+const CAU = { _ghi: `Chart Chapters dài · ${M.ten} — sinh bởi lich-su/dai/sinh-chuong.mjs từ ${tepMoc}`, kenh: 'astrolas', mau: 'chart-chapters-dai', playlist_ma: 'chart-chapters', y_tuong: `ccd-${slug}`, khung: 'ngang', DAI: cau.at(-1).den,
   la_so: tg(join(LA_SO, `${slug}.svg`)), nen: tg(join(DIR, '../brand/astrolas/anh/troi.jpg')), logo: tg(join(DIR, '../brand/astrolas/logo/wordmark.png')),
   playlist: { ten: 'Chart Chapters', mau: '#E6B800', ic: '☉' }, cau };
+// máy gác sổ kênh (lich-su/so-kenh.json): sai mẫu / playlist / ý tưởng / câu kết thì không ghi
+const { docSo, kiemTap } = await import(join(DIR, '../kiem-so-kenh.mjs')), loiSo = kiemTap(CAU, docSo().astrolas, 'astrolas');
+if (loiSo.length) { console.error(`✗ tập trái sổ kênh:\n${loiSo.map((l) => `   · ${l}`).join('\n')}`); process.exit(3); }
 writeFileSync(ra, JSON.stringify(CAU, null, 1) + '\n');
 console.log(`✓ ${ra} · ${M.ten} · ${M.moc.length} mốc · ${CAU.DAI}s`);
 for (const c of cau) console.log(`   ${String(c.tu).padStart(6)}s  ${Object.keys(c.nhin)[0].padEnd(5)}  ${c.chu}`);

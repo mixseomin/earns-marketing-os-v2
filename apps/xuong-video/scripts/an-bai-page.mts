@@ -1,0 +1,38 @@
+// ẨN BÀI CŨ CỦA PAGE FACEBOOK (04/11/2026, anh: Page cũ Radar News đổi tên Yesterday's News Tonight → "xoá các bài cũ" → chọn ẨN, không xoá):
+// bài đăng trước mốc --truoc bị ẩn khỏi dòng thời gian (is_hidden=true — bài còn nguyên, bật lại được bằng --hien). Danh sách bài (id, ngày, chữ, link)
+// lưu trước ở /root/an-bai/<page>.json rồi mới ẩn. Chạy chậm (mặc định 3 giây / bài) để Meta không giới hạn. Cùng sổ token + kiểm danh tính với dang-fb-reel.mts.
+//   cd /opt/earns-marketing-os-v2/apps/xuong-video && ../../node_modules/.bin/tsx scripts/an-bai-page.mts --page <id> --truoc 2026-11-04 [--thu] [--hien]
+//     --thu: chỉ ẩn 1 bài rồi đọc lại      --hien: đảo lại (bỏ ẩn mọi bài trong danh sách đã lưu)
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
+import { kiemTrang } from './dang-fb-reel.mts';
+
+const G = 'https://graph.facebook.com/v21.0';
+const arg = (k: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : undefined; }, co = (k: string) => process.argv.includes(`--${k}`);
+const page = arg('page'), truoc = arg('truoc');
+if (!page || (!truoc && !co('hien'))) { console.error('an-bai-page.mts --page <id> --truoc <YYYY-MM-DD> [--thu] | --page <id> --hien'); process.exit(2); }
+const so = JSON.parse(readFileSync(process.env.FB_PAGES_FILE ?? '/root/.secrets/fb-pages.json', 'utf8')) as Record<string, { ten: string; token: string }>;
+const t = await kiemTrang(page, so[page]!.ten);
+const goi = async (u: string, body?: Record<string, string>) => { const r = await fetch(u, body ? { method: 'POST', body: new URLSearchParams(body) } : {}); const j = await r.json() as Record<string, unknown>; if (j.error) throw new Error(JSON.stringify(j.error)); return j; };
+const ngu = (ms: number) => new Promise((o) => setTimeout(o, ms));
+const dir = '/root/an-bai', tep = `${dir}/${page}.json`; mkdirSync(dir, { recursive: true });
+
+type Bai = { id: string; created_time: string; message?: string; permalink_url?: string; an?: boolean };
+let ds: Bai[] = existsSync(tep) ? JSON.parse(readFileSync(tep, 'utf8')) : [];
+if (!ds.length) {
+  let u: string | undefined = `${G}/${page}/published_posts?fields=id,created_time,message,permalink_url&limit=100&access_token=${t.token}`;
+  while (u) { const j = await goi(u) as { data: Bai[]; paging?: { next?: string } }; ds.push(...j.data); u = j.paging?.next; }
+  writeFileSync(tep, JSON.stringify(ds, null, 1)); console.log(`✓ lưu ${ds.length} bài → ${tep}`);
+}
+const lam = co('hien') ? ds.filter((b) => b.an) : ds.filter((b) => !b.an && b.created_time < truoc!);
+console.log(`${co('hien') ? 'bỏ ẩn' : `ẩn bài trước ${truoc}`}: ${lam.length} bài`);
+let xong = 0, loi = 0;
+for (const b of co('thu') ? lam.slice(0, 1) : lam) {
+  try { await goi(`${G}/${b.id}`, { is_hidden: co('hien') ? 'false' : 'true', access_token: t.token }); b.an = !co('hien'); xong++; }
+  catch (e) { loi++; console.log(`✗ ${b.id}: ${(e as Error).message.slice(0, 200)}`); if (loi >= 5 && !xong) break; }
+  writeFileSync(tep, JSON.stringify(ds, null, 1));
+  if (co('thu')) { const l = await goi(`${G}/${b.id}?fields=is_hidden,permalink_url&access_token=${t.token}`); console.log(`đọc lại ${b.id}: is_hidden=${l.is_hidden} · ${l.permalink_url}`); }
+  if (xong % 50 === 0 && xong) console.log(`· ${xong}/${lam.length}`);
+  await ngu(Number(arg('nghi') ?? 3000));
+}
+console.log(`✓ ${xong} bài · lỗi ${loi} · danh sách: ${tep}`);
+process.exit(loi && !xong ? 1 : 0);

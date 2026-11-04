@@ -1674,25 +1674,41 @@ const NHO_GIO = new Map<string, Promise<{ ds: SoGio[]; luc: string | null } | { 
 function BieuDoGio({ gio }: { gio: GioO }) {
   const k = `${gio.ngay}|${gio.camps.join(',')}`;
   const [kq, setKq] = useState<{ ds: SoGio[]; luc: string | null } | { loi: string } | null>(null);
+  const [chon, setChon] = useState<number | null>(null);   // giờ đang rê trên biểu đồ → dòng số cụ thể (anh 05/11/2026 "hover vào thì show số cụ thể")
   useEffect(() => { let song = true; if (!NHO_GIO.has(k)) NHO_GIO.set(k, docGioNgay(gio.camps, gio.ngay)); NHO_GIO.get(k)!.then((x) => song && setKq(x)).catch((e) => song && setKq({ loi: String(e) })); return () => { song = false; }; }, [k]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (!kq) return <div style={{ height: 150, display: 'grid', placeItems: 'center', color: 'var(--fg-3)', fontSize: 11 }}>đang tải số theo giờ…</div>;
   if ('loi' in kq) return <div style={{ color: '#f87171', fontSize: 11 }}>{kq.loi}</div>;
   if (!kq.ds.length) return <div style={{ color: 'var(--fg-3)', fontSize: 11, margin: '4px 0' }}>chưa có số theo giờ cho ngày này (kho giờ từng camp bắt đầu 20/10)</div>;
   const theo = new Map(kq.ds.map((x) => [x.gio, x])), het = Math.max(...kq.ds.map((x) => x.gio));
   let don = 0; const cot = Array.from({ length: 24 }, (_, g) => { const x = theo.get(g); const lai = x ? x.thu - x.chi : 0; if (g <= het) don += lai; return { g, chi: x?.chi ?? 0, lai, don: g <= het ? don : null }; });
-  const W = 368, H = 150, T = 14, B = 128, cw = W / 24, mxChi = Math.max(0.01, ...cot.map((c) => c.chi));
+  const W = 368, H = 150, T = 14, B = 128, mxChi = Math.max(0.01, ...cot.map((c) => c.chi));
   const dons = cot.flatMap((c) => (c.don == null ? [] : [c.don])), lo = Math.min(0, ...dons), hi = Math.max(0, ...dons), y = (v: number) => T + ((hi - v) / (hi - lo || 1)) * (B - T);
-  const pts = cot.filter((c) => c.don != null).map((c) => `${(c.g + 0.5) * cw},${y(c.don!)}`).join(' '), cuoi = dons[dons.length - 1] ?? 0, mau = cuoi >= 0 ? '#4ade80' : '#f87171';
+  const cuoi = dons[dons.length - 1] ?? 0, mau = cuoi >= 0 ? '#4ade80' : '#f87171';
   const dinh = cot.reduce((a, c) => (c.don != null && c.don > (a?.don ?? -Infinity) ? c : a), null as (typeof cot)[number] | null);
   const day = cot.reduce((a, c) => (c.don != null && c.don < (a?.don ?? Infinity) ? c : a), null as (typeof cot)[number] | null);
   const vn = (g: number) => `${String((g + 7) % 24).padStart(2, '0')}h`;
-  return <div>
+  const x0 = 26, cw2 = (W - x0) / 24, cx = (g: number) => x0 + (g + 0.5) * cw2;   // chừa lề trái cho nhãn $0
+  const pts2 = cot.filter((c) => c.don != null).map((c) => `${cx(c.g)},${y(c.don!)}`).join(' ');
+  const g0 = chon ?? het, c0 = cot[g0]!, x = theo.get(g0);
+  return <div onMouseLeave={() => setChon(null)}>
+    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11.5, marginBottom: 4, fontVariantNumeric: 'tabular-nums', minHeight: 16 }}>
+      <b>{vn(g0)}–{vn(g0 + 1)}</b>
+      <span style={{ color: 'var(--fg-2)' }}>chi <b style={{ color: 'var(--fg-1)' }}>{usd(x?.chi ?? 0)}</b></span>
+      <span style={{ color: 'var(--fg-2)' }}>thu <b style={{ color: 'var(--fg-1)' }}>{usd(x?.thu ?? 0)}</b></span>
+      <span style={{ color: 'var(--fg-2)' }}>lãi giờ <b style={{ color: c0.lai >= 0 ? '#4ade80' : '#f87171' }}>{usd(c0.lai)}</b></span>
+      {c0.don != null ? <span style={{ color: 'var(--fg-2)' }}>cộng dồn <b style={{ color: c0.don >= 0 ? '#4ade80' : '#f87171' }}>{usd(c0.don)}</b></span> : <span style={{ color: 'var(--fg-3)' }}>chưa tới giờ này</span>}
+    </div>
     <svg width={W} height={H} style={{ display: 'block' }}>
-      {cot.map((c) => <rect key={c.g} x={c.g * cw + 2} width={cw - 4} y={B - (c.chi / mxChi) * 34} height={(c.chi / mxChi) * 34} fill="var(--fg-3, #666)" opacity={0.35}><title>{`${vn(c.g)}–${vn(c.g + 1)} · chi ${usd(c.chi)} · lãi ${usd(c.lai)}${c.don != null ? ` · cộng dồn ${usd(c.don)}` : ''}`}</title></rect>)}
-      <line x1={0} x2={W} y1={y(0)} y2={y(0)} stroke="var(--line)" strokeDasharray="3 3" />
-      <polyline points={pts} fill="none" stroke={mau} strokeWidth={2} strokeLinejoin="round" />
-      {cot.filter((c) => c.don != null).map((c) => <circle key={c.g} cx={(c.g + 0.5) * cw} cy={y(c.don!)} r={2.2} fill={c.don! >= 0 ? '#4ade80' : '#f87171'}><title>{`${vn(c.g)}–${vn(c.g + 1)} · lãi giờ ${usd(c.lai)} · cộng dồn ${usd(c.don!)}`}</title></circle>)}
-      {[0, 4, 8, 12, 16, 20].map((g) => <text key={g} x={g * cw + 1} y={H - 4} fontSize={9.5} fill="var(--fg-3, #777)">{vn(g)}</text>)}
+      {cot.map((c) => <rect key={c.g} x={x0 + c.g * cw2 + 2} width={cw2 - 4} y={B - (c.chi / mxChi) * 34} height={(c.chi / mxChi) * 34} fill="var(--fg-3, #666)" opacity={c.g === g0 ? 0.7 : 0.35} />)}
+      {/* ĐƯỜNG $0 nổi rõ (anh 05/11/2026 "Highlight dòng $0") — trên đường = đang lãi, dưới = đang lỗ */}
+      <line x1={x0} x2={W} y1={y(0)} y2={y(0)} stroke="var(--fg-2, #aaa)" strokeWidth={1.2} opacity={0.8} />
+      <text x={0} y={y(0) + 3.5} fontSize={10} fontWeight={700} fill="var(--fg-1, #ddd)">$0</text>
+      {chon != null ? <line x1={cx(chon)} x2={cx(chon)} y1={T - 6} y2={B} stroke="var(--fg-2, #aaa)" strokeDasharray="2 3" /> : null}
+      <polyline points={pts2} fill="none" stroke={mau} strokeWidth={2} strokeLinejoin="round" />
+      {cot.filter((c) => c.don != null).map((c) => <circle key={c.g} cx={cx(c.g)} cy={y(c.don!)} r={c.g === g0 ? 4 : 2.2} fill={c.don! >= 0 ? '#4ade80' : '#f87171'} />)}
+      {[0, 4, 8, 12, 16, 20].map((g) => <text key={g} x={x0 + g * cw2 + 1} y={H - 4} fontSize={9.5} fill="var(--fg-3, #777)">{vn(g)}</text>)}
+      {/* vùng rê từng giờ phủ cả chiều cao — rê vào đâu cũng bắt đúng giờ */}
+      {cot.map((c) => <rect key={`r${c.g}`} x={x0 + c.g * cw2} width={cw2} y={0} height={H} fill="transparent" onMouseEnter={() => setChon(c.g)} />)}
     </svg>
     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 11, color: 'var(--fg-2)', marginTop: 2, fontVariantNumeric: 'tabular-nums' }}>
       <span>cuối <b style={{ color: mau }}>{usd(cuoi)}</b> lúc {vn(het + 1)}</span>

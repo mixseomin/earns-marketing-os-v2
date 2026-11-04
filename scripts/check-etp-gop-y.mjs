@@ -484,6 +484,8 @@ const LUAT = [
   { card: 'gio-ngay-0511', tep: 'apps/web/src/components/etp-view.tsx', co: 'gio={{ camps: p.all.map((c) => c.camp_id), ngay: ngay[i]! }}', vi: 'ô ngày cả phim cũng có biểu đồ' },
   { card: 'gio-ngay-0511', tep: 'apps/etp/dong-bo.py', co: 'ghi("so_gio_camp"', vi: 'đồng bộ ghi số camp × giờ' },
   { card: 'gio-ngay-0511', tep: 'apps/web/src/components/etp-view.tsx', co: 'nhom n={demCamp(rs)[i]} gio={{ camps: rs.map((c) => c.camp_id), ngay: d }} />', vi: 'ô tổng nhóm phim trong Cây (DataTable) cũng có biểu đồ' },
+  { card: 'gio-ngay-0511', tep: 'apps/web/src/components/etp-view.tsx', co: 'onMouseEnter={() => setChon(c.g)}', vi: 'rê biểu đồ trong ngày hiện số cụ thể của giờ (anh 05/11/2026)' },
+  { card: 'gio-ngay-0511', tep: 'apps/web/src/components/etp-view.tsx', co: 'fontWeight={700} fill="var(--fg-1, #ddd)">$0</text>', vi: 'đường $0 nổi rõ có nhãn' },
   { card: 'mux-0411', tep: 'apps/etp/dong_phim.py', co: 'THU_MANG.get(k_mang, 0) < 3', cam: '.get("lan") or 1) < 3:', vi: 'trần thử lại vì mạng đếm riêng, không đọc `lan` (lan đếm cả FIX tay)' },
   { card: 'tap-thieu-0511', tep: 'apps/xuong-video/scripts/ethopex/tai-tap.py', co: 'def da_het(ra):', vi: 'luật đã dò hết tập nằm một chỗ ở tai-tap' },
   { card: 'mux-0411', tep: 'apps/etp/dong_phim.py', co: 'mux_client|Session open refused', vi: 'lỗi kênh ssh dùng chung (mux) tới box3 là lỗi mạng → tự thử lại, không chết dòng (22:08 04/11/2026 #15 #21 #51)' },

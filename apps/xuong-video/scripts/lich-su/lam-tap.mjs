@@ -68,7 +68,18 @@ const timCommons = async (ten) => { const goc = ten.replace(/^File:|\.(svg|png)$
 // có thật trong kết quả tìm mà năm ghi trên tên chạm khoảng năm của cờ; không có tệp nào đúng thời → bỏ cờ đó khỏi mọi cảnh (thà không cờ còn hơn cờ sai thời)
 const SO_NN = { en: 'zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty thirty forty fifty sixty seventy eighty ninety hundred thousand million billion half dozen point and',
   es: 'cero uno una dos tres cuatro cinco seis siete ocho nueve diez once doce trece catorce quince dieciseis diecisiete dieciocho diecinueve veinte veintiuno veintidos veintitres veinticuatro veinticinco veintiseis veintisiete veintiocho veintinueve treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento doscientos trescientos cuatrocientos quinientos seiscientos setecientos ochocientos novecientos mil millon millones y punto' };
-const SO = new Set((SO_NN[nn] ?? SO_NN.en).split(' '));
+// THẬP NIÊN đọc thành chữ ("fifteen sixties" = thập niên 1560): từ thập niên thuộc cùng cụm số (04/11/2026: cụm bị tách thành "fifteen" + "sixteen" rời → báo thiếu su_that oan)
+const THAP_NIEN = 'tens twenties thirties forties fifties sixties seventies eighties nineties hundreds';
+const SO = new Set(`${SO_NN[nn] ?? SO_NN.en}${nn === 'en' || !SO_NN[nn] ? ` ${THAP_NIEN}` : ''}`.split(' '));
+// GIÁ TRỊ của một cụm số tiếng Anh đọc thành chữ: "fifteen ninety" → 1590, "fifteen sixties" → 1560, "three hundred" → 300, "two thousand and one" → 2001; không đọc được → null
+const GIA_SO = Object.fromEntries('zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen'.split(' ').map((w, i) => [w, i])
+  .concat('twenty thirty forty fifty sixty seventy eighty ninety'.split(' ').map((w, i) => [w, 20 + 10 * i]))
+  .concat('twenties thirties forties fifties sixties seventies eighties nineties'.split(' ').map((w, i) => [w, 20 + 10 * i]), [['tens', 10], ['hundreds', 0]]));
+const giaCum = (q) => { const w = q.flatMap((x) => x.split('-')).filter((x) => x !== 'and'); if (!w.length || w.some((x) => !(x in GIA_SO) && !/^(hundred|thousand|million|billion)$/.test(x))) return null;
+  // kiểu NĂM: hai nửa không có hundred/thousand ("fifteen ninety", "sixteen twenties", "eighteen sixty seven"); "forty five" là 45, không phải năm
+  if (!w.some((x) => /^(hundred|thousand|million|billion)$/.test(x)) && w.length >= 2 && GIA_SO[w[0]] >= 10 && !(GIA_SO[w[0]] >= 20 && w.length === 2 && GIA_SO[w[1]] < 10)) { const sau = w.slice(1).reduce((t, x) => t + GIA_SO[x], 0); if (sau < 100) return GIA_SO[w[0]] * 100 + sau; }
+  let tong = 0, nay = 0; for (const x of w) { if (x === 'hundred') nay = (nay || 1) * 100; else if (x === 'thousand' || x === 'million' || x === 'billion') { tong += (nay || 1) * { thousand: 1e3, million: 1e6, billion: 1e9 }[x]; nay = 0; } else nay += GIA_SO[x]; }
+  return tong + nay; };
 const NHAT = /^(biggest|largest|longest|oldest|smallest|first|only|richest|deadliest|tallest|highest|mayor|primero|primera|unico|unica)$/;
 async function tuSua(tap) { const kho = docKho().tai_san, ghi = [];
   // MÃ VAI / NGƯỜI KHÔNG GẮN NĂM (kho dùng lại mọi tập): máy viết hay đặt "russian_soldier_1867" → bỏ đuôi năm ở mã + mọi chỗ gọi; cờ thì giữ năm (cờ đổi theo thời)
@@ -102,7 +113,7 @@ async function kiem(tap, nguonChu) {
   // kênh có câu đùa (parody): câu không su_that được phép tới tỉ lệ khong_nguon_toi_da — vẫn cấm con số / so sánh nhất không nguồn trong câu đùa
   const khongNguon = ds.slice(0, coMoc ? -1 : undefined).filter((c) => !(c.su_that || []).length).length, choPhep = Math.floor(ds.length * (KENH.khong_nguon_toi_da || 0));
   if (khongNguon > choPhep) loi.push(`${khongNguon} câu không có su_that — kênh ${kenhId} cho tối đa ${choPhep}${choPhep ? ' câu đùa' : ''}; câu kể sự việc phải có nguồn`);
-  let nam = null; const namNguon = new Set(([...ds.flatMap((c) => (c.su_that || []).map((x) => `${x.gia_tri} ${x.trich}`)), nguonChu].join(' ').match(/\b\d{3,4}\b/g) || []).map(Number));   // ô năm phải là năm CÓ trong nguồn
+  let nam = null; const namNguon = new Set(([...ds.flatMap((c) => (c.su_that || []).map((x) => `${x.gia_tri} ${x.trich}`)), nguonChu].join(' ').match(/\b\d{3,4}(?=s?\b)/g) || []).map(Number));   // ô năm phải là năm CÓ trong nguồn ("1620s" tính là 1620 — 04/11/2026 báo oan)
   const nhanVat = new Set(ds.flatMap((c) => (c.canh.nguoi || []).map((n) => n.anh))); if (nhanVat.size < 2) loi.push(`cả tập chỉ có ${nhanVat.size} nhân vật — cần ≥ 2 (người có tên đang hành động phải đứng trong cảnh)`);
   ds.forEach((c, k) => { const K = `câu ${k + 1}`, cv = c.canh, ws = new Set(c.chu.split(/\s+/).map(chuan));
     if (k === 0 && !(c.su_that || []).length) loi.push(`${K}: hook không có su_that — hook phải là sự thật có nguồn`);
@@ -118,7 +129,8 @@ async function kiem(tap, nguonChu) {
       const cum = []; let cur = []; for (const w of c.chu.split(/\s+/)) { const x = chuan(w).replace(/-/g, ' '); if (x && x.split(' ').every((y) => SO.has(y)) && !(cur.length === 0 && /^(one|a|un|una|uno)$/.test(x))) cur.push(chuan(w)); else { if (cur.length) cum.push(cur); cur = []; } } if (cur.length) cum.push(cur);
       // đếm nhỏ ("two cities") không phải số liệu tranh cãi → bỏ qua; số lớn, năm, tiền thì mỗi số một dòng su_that
       const soDong = (c.su_that || []).filter((x) => /\d/.test(x.gia_tri)).length; let thieu = 0;
-      for (const q of cum) { const nhoi = q.filter((y) => !/^(and|y|point|punto|a)$/.test(y)); if (nhoi.length === 1 && /^(two|three|four|five|six|seven|eight|nine|ten|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)$/.test(nhoi[0])) continue; if (!nhoi.length || nhoi.some((y) => gt.includes(y.split('-')[0]))) continue; if (++thieu > soDong) loi.push(`${K}: con số "${q.join(' ')}" chưa có su_that riêng (mỗi con số một dòng, gia_tri ghi số)`); }
+      const soSt = new Set(((c.su_that || []).map((x) => `${x.gia_tri} ${x.trich}`).join(' ').replace(/(\d),(?=\d{3})/g, '$1').match(/\d+(?:\.\d+)?/g) || []).map(Number));
+      for (const q of cum) { const nhoi = q.filter((y) => !/^(and|y|point|punto|a)$/.test(y)); if (nhoi.length === 1 && /^(two|three|four|five|six|seven|eight|nine|ten|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)$/.test(nhoi[0])) continue; if (!nhoi.length || nhoi.some((y) => gt.includes(y.split('-')[0]))) continue; const gv = giaCum(q); if (gv != null && soSt.has(gv)) continue; if (++thieu > soDong) loi.push(`${K}: con số "${q.join(' ')}" chưa có su_that riêng (mỗi con số một dòng, gia_tri ghi số)`); }
       const tr = (c.su_that || []).map((x) => phang(`${x.gia_tri} ${x.trich}`)).join(' | ');
       const cw = c.chu.split(/\s+/).map(chuan); for (const [i, w] of cw.entries()) if (NHAT.test(w) && !(/^(first|primero|primera)$/.test(w) && (/^(of|de)$/.test(cw[i + 1] || '') || /^(january|february|march|april|may|june|july|august|september|october|november|december)$/.test(cw[i - 1] || ''))) && !tr.includes(w)) loi.push(`${K}: so sánh nhất "${w}" chưa có su_that riêng chứng minh`); }
     const theoChu = [...(cv.nguoi || []).flatMap((n) => (n.dang || []).map((d) => d.chu)), ...(cv.dau || []).map((d) => d.chu), ...(cv.tranh ? [cv.tranh.tu_chu, cv.tranh.den_chu] : []), ...(cv.nam_sau ? [cv.nam_sau.chu] : [])];

@@ -24,6 +24,11 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
+# actions: read = đọc lượt deploy thành công gần nhất làm GỐC SO (bước 'Chọn app cần build')
+permissions:
+  contents: read
+  actions: read
+
 # Build on GitHub-hosted runner (7GB RAM, clean) instead of as.on.tc self-hosted
 # (CX22 4GB, swap-thrashing → next build OOM SIGKILL → wiped .next/static/, served
 # HTML referencing dead CSS hashes; incident 2026-06-28). Server still runs migrations,
@@ -41,8 +46,14 @@ jobs:
       # deploy.sh, lockfile…) — khớp điều kiện WEB_CHANGED/DEPS_CHANGED của deploy.sh nên box không bao giờ phải tự build web.
       - name: Chọn app cần build
         id: chon
+        env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           B="${{ github.event.before }}"
+          # GỐC SO = lượt PUSH deploy THÀNH CÔNG gần nhất, không phải push liền trước (05/11/2026 01:03–01:10 VN etp.on.tc sập trắng: hai lượt mang
+          # etp-khung.ts bị huỷ vì lượt mới chen hàng đợi concurrency, lượt kế chỉ so với push liền trước → không dựng lại web, trang gọi hàm chưa có).
+          # Đọc lỗi / gốc lạ → giữ before như cũ.
+          OK=$(gh api "repos/${{ github.repository }}/actions/workflows/deploy.yml/runs?event=push&status=success&branch=main&per_page=1" --jq '.workflow_runs[0].head_sha' 2>/dev/null || true)
+          if [ -n "$OK" ] && git cat-file -e "$OK^{commit}" 2>/dev/null && git merge-base --is-ancestor "$OK" "${{ github.sha }}"; then echo "gốc so: lượt deploy thành công $OK (push liền trước: $B)"; B="$OK"; fi
           A="${{ inputs.app }}"
           # Chạy tay một app: chỉ dựng app đó, máy chủ chỉ thay + khởi động lại app đó (web chỉ khi chọn web).
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "$A" ] && [ "$A" != "het" ]; then

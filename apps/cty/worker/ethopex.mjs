@@ -491,7 +491,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       const a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();
       const ten = `${x.lo} ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ${a_(x.dang).toLowerCase()} ${Math.round(x.tu)}-${Math.round(x.den)}s`.trim();
       let r; try { r = JSON.parse((await chay(NB, [String(KHUON[x.lang] ?? KHUON.en), '--bo', String(x.bo), '--creative', String(x.creative_id), '--content', String(x.content_id), '--ten', ten,
-        '--that', '--lich', 'today', '--luat', x.dang === 'kể chuyện' ? 'KT (kể chuyện VideoExpress) chấm sạch → lên camp cho phim đang chạy' : 'phim mới chấm sạch → lên camp ngay',
+        // CAMP MỚI CHẠY THEO LỊCH (anh 04/11/2026 "áp dụng thêm việc lên camp mới theo lịch" — như Kiên): bắt đầu 00:00 UTC hôm sau (07:00 VN, đầu ngày Ethopex) → ngày đầu là ngày trọn
+        '--that', '--lich', 'tomorrow', '--luat', x.dang === 'kể chuyện' ? 'KT (kể chuyện VideoExpress) chấm sạch → lên camp cho phim đang chạy (chạy từ 07:00 VN hôm sau)' : 'phim mới chấm sạch → lên camp (chạy từ 07:00 VN hôm sau)',
         '--ai', x.dang === 'kể chuyện' ? 'anh (chat 29/10/2026: sx KT cho phim đang chạy chưa có — làm đi) — máy chạy' : 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy'], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       da.push({ x, r });
     }

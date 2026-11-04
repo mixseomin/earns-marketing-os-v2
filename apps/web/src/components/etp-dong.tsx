@@ -17,7 +17,7 @@ const TEN_BUOC: Record<string, [string, string]> = {
   cat: ['Cắt', 'Tải tập + cắt 2 góc cuối tập, CTA kiểu Kiên (tho.py → cat-cuoi-lo)'],
   soat: ['Soát đoạn', 'Máy soát từng đoạn (Claude) — giữ đoạn sạch, không còn đoạn sạch thì dừng'],
   creative: ['Tải + chấm', 'Tải MỘT đoạn lên creative (KT: chờ máy sinh kể chuyện) → cổng chấm Meta / AFS'],
-  camp: ['Lên camp', 'nhan-ban.py: $1, bộ 2, lịch hôm nay — mọi cổng luật ở đó, chặn thì dừng'],
+  camp: ['Lên camp', 'nhan-ban.py: $1, bộ 2, chạy từ 07:00 VN hôm sau (đầu ngày Ethopex) — mọi cổng luật ở đó, chặn thì dừng'],
   chay: ['Camp chạy', 'Chờ Ethopex đồng bộ xong + ACTIVE'],
 };
 /** BƯỚC GIẢI QUYẾT đi kèm mọi lý do dừng / lỗi (anh 04/11/2026 "Lý do phải luôn đi kèm Bước giải quyết !! Ko dừng hẳn như vậy") — đúng cơ chế apps/etp/manh.py mục 5 + 6.

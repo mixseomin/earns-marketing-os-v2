@@ -61,9 +61,9 @@ const NHOM = [
 const TEN = Object.fromEntries(NHOM.map(([k, t]) => [k, (t.match(/<b>(.*?)<\/b>/) || [, k])[1].toLowerCase()]));
 /** [[nhóm, nutCho, mục mới]] → Map nhóm → mục; camp lặp ở nhóm sau gộp vào mục đầu: cung[] = {k, dich}, nut = nút mọi nhóm, trùng callback_data giữ một. */
 // KHUNG ĐỔI CAMP theo giờ VN (sổ luật chung khung_doi) — hàm thuần, bộ kiểm chéo apps/web/src/lib/etp-khung.test.mts so với khungLuc của trang cho đủ 24 giờ
-export const khungCua = (gio, KD = BANG_LUAT.khung_doi) => { const t = ([a, b]) => gio >= a && gio < b; return t(KD.doi) ? 'doi' : t(KD.nap) ? 'nap' : KD.sang && t(KD.sang) ? 'sang' : 'bang'; };
-/** ngưỡng ROI hôm nay để được tự tăng trong khung chỉ-nạp ('nap' 21–23h · 'sang' 07–15h); null = khung không có nạp */
-export const roiNap = (khung, KD = BANG_LUAT.khung_doi) => (khung === 'nap' ? Number(KD.nap_roi) : khung === 'sang' ? Number(KD.sang_roi) : null);
+export const khungCua = (gio, KD = BANG_LUAT.khung_doi) => { const t = ([a, b]) => (a <= b ? gio >= a && gio < b : gio >= a || gio < b); return t(KD.giam) ? 'giam' : t(KD.tang) ? 'tang' : KD.sang && t(KD.sang) ? 'sang' : 'bang'; };   // tang 21–07 qua nửa đêm (anh 05/11/2026)
+/** ngưỡng ROI hôm nay để được nạp trong khung chỉ-nạp ('sang' 07–15h); null = khung không nạp (tang: tăng đủ luật · giam / bang: không tăng) */
+export const roiNap = (khung, KD = BANG_LUAT.khung_doi) => (khung === 'sang' ? Number(KD.sang_roi) : null);
 export function gopCamp(ds) {
   const ra = new Map(), cua = new Map();
   for (const [k, nutCho, moi] of ds) for (const m of moi) {
@@ -368,7 +368,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // KHUNG ĐỔI CAMP (anh 04/11/2026, cả 3 bộ): số cả team 14 ngày — 00–12h VN ROI +21…+39% (giờ vàng), 15–21h +2% / −10% (kém nhất); đổi giờ vàng thì Meta học lại
   // đúng lúc lãi nhất. 15–21h: mọi luật máy tự tăng / giảm / tắt · 21–23h: CHỈ tự tăng camp đã tiêu ≥ 95% ngân sách hôm nay + ROI hôm nay ≥ 30% (nạp tiền cho đêm —
   // 00–07h VN là cuối ngày ngân sách UTC) · 07–15h: CHỈ tự tăng camp đã tiêu hết + ROI hôm nay ≥ sang_roi% (nạp sáng, anh 05/11/2026) · 23–07h: đóng băng. Ngoài khung luật vẫn chấm + báo, nút Telegram anh bấm vẫn chạy; dừng đêm (anh 25/10) giữ nguyên làm đường khẩn.
-  const KD = BANG_LUAT.khung_doi, khungDoi = khungCua(gioVn, KD), roiN = roiNap(khungDoi, KD);   // khung ở sổ luật chung — trang etp (tab Camp) đọc cùng chỗ · 07–15h 'sang' = nạp sáng (anh 05/11/2026)
+  const KD = BANG_LUAT.khung_doi, khungDoi = khungCua(gioVn, KD), roiN = roiNap(khungDoi, KD);   // khung ở sổ luật chung — trang etp (tab Camp) đọc cùng chỗ · tang 21–07h tăng đủ luật · giam 15–21h giảm/tắt · sang 07–15h chỉ nạp ROI ≥ 100% (anh 05/11/2026 đảo khung)
   // SỔ HOÃN (audit 05/11/2026: tab Camp tự đoán "chờ 15h" theo hướng luật → báo ↓26 cho 26 camp G10 chỉ đang theo dõi, và báo cả giảm khi công tắc tự giảm đang tắt):
   // chính máy làm việc ghi việc nó đã đủ luật + đủ công tắc nhưng hoãn vì khung giờ → etp.cau_hinh 'khung_hoan', trang etp chỉ đọc sổ này
   const HOAN = { tang: new Set(), giam: new Set(), tat: new Set() };
@@ -392,7 +392,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   if (duyet.gb_tu_giam && giamTu) {
     const daGiam = [];
     for (const m of kq.ha || []) {
-      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id) || (khungDoi !== 'doi' && hoan('giam', m))) continue; lamRoi.add(m.id);
+      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id) || (khungDoi !== 'giam' && hoan('giam', m))) continue; lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `giảm bậc (GB) · ${m.chu}`.slice(0, 400), '--ai', `máy tự giảm (anh duyệt luật GB tự giảm ${duyet.gb_tu_giam.luc.slice(0, 10)})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daGiam.push({ m, d, r });
     }
@@ -408,7 +408,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     const daGiam = [];
     for (const m of kq.giam || []) {
       const rg = Number((String(m.chu).match(/3 ngày gần ([+-]?\d+)%/) || [])[1]); const d = Number(dichCua(m));
-      if (!(rg < 0) || !d || lamRoi.has(m.id) || seTat.has(m.id) || (khungDoi !== 'doi' && hoan('giam', m))) continue; lamRoi.add(m.id);
+      if (!(rg < 0) || !d || lamRoi.has(m.id) || seTat.has(m.id) || (khungDoi !== 'giam' && hoan('giam', m))) continue; lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `ROI tụt + đang âm (3 ngày gần ${rg}%) · ${m.chu}`.slice(0, 400), '--ai', 'máy tự giảm (anh duyệt 26/10/2026: ROI tụt mà đang âm)'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daGiam.push({ m, d, r });
     }
@@ -425,7 +425,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   for (const LH of LUAT_HA_SO) {   // mọi luật hạ tự động trong sổ luật chung (G10, H2 — chữ tin + ai lấy từ sổ luật, không ghi cứng)
     const daG10 = [];
     for (const m of kq[LH.khoa] || []) {
-      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id) || (khungDoi !== 'doi' && hoan('giam', m))) continue; lamRoi.add(m.id);
+      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id) || (khungDoi !== 'giam' && hoan('giam', m))) continue; lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `${LH.ten} · ${m.chu}`.slice(0, 400), '--ai', LH.ai], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daG10.push({ m, d, r });
     }
@@ -441,7 +441,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // luật T30 (5 ngày đã khép ROI ≥ 50%, chi TB ≥ $12) — gộp quyền, không nới ngưỡng
   if (tuTang) {
     for (const k of ['hoi_g10', 'dau_phien', 'tang', 'tang30']) for (const m of kq[k] || []) {   // G10 hồi trước (anh 04/11/2026)
-      const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id) || seTat.has(m.id) || ((khungDoi === 'bang' || (roiN != null && !napDuoc.has(String(m.id)))) && hoan('tang', m))) continue;
+      const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id) || seTat.has(m.id) || (!(khungDoi === 'tang' || (khungDoi === 'sang' && napDuoc.has(String(m.id)))) && hoan('tang', m))) continue;
       lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), ...(k === 'hoi_g10' ? ['--ep'] : []), '--luat', `${k === 'hoi_g10' ? 'G10 hồi' : TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', k === 'tang30' ? `máy tự tăng T30 (anh cho phép tự tăng, trần $${tuTang} — gộp 29/10/2026)` : `máy tự tăng (anh cho phép ${Date.parse(tt?.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daTu.push({ k, m, d, r });
@@ -506,7 +506,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       const ten = `${x.lo} ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ${a_(x.dang).toLowerCase()} ${Math.round(x.tu)}-${Math.round(x.den)}s`.trim();
       let r; try { r = JSON.parse((await chay(NB, [String(KHUON[x.lang] ?? KHUON.en), '--bo', String(x.bo), '--creative', String(x.creative_id), '--content', String(x.content_id), '--ten', ten,
         // CAMP MỚI CHẠY THEO LỊCH (anh 04/11/2026 "áp dụng thêm việc lên camp mới theo lịch" — như Kiên): bắt đầu 00:00 UTC hôm sau (07:00 VN, đầu ngày Ethopex) → ngày đầu là ngày trọn
-        '--that', '--lich', 'tomorrow', '--luat', x.dang === 'kể chuyện' ? 'KT (kể chuyện VideoExpress) chấm sạch → lên camp cho phim đang chạy (chạy từ 07:00 VN hôm sau)' : 'phim mới chấm sạch → lên camp (chạy từ 07:00 VN hôm sau)',
+        '--that', '--luat', x.dang === 'kể chuyện' ? 'KT (kể chuyện VideoExpress) chấm sạch → lên camp cho phim đang chạy' : 'phim mới chấm sạch → lên camp',   // giờ chạy do nhan-ban.lich_len quyết (tạo 07–12h VN chạy ngay, ngoài khung hẹn 07:00 hôm sau — anh 05/11/2026)
         '--ai', x.dang === 'kể chuyện' ? 'anh (chat 29/10/2026: sx KT cho phim đang chạy chưa có — làm đi) — máy chạy' : 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy'], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       da.push({ x, r });
     }
@@ -571,7 +571,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);
     const giu = cho._giu?.ngay === homNay ? cho._giu : { ngay: homNay, ds: {} }; delete cho._giu;   // camp lam-ethopex từ chối tắt (đang lãi) — không báo / thử lại trong ngày
-    const ds = (kq[LT.khoa] || []).filter((m) => !lamRoi.has(m.id) && !giu.ds[m.id] && (khungDoi === 'doi' || !hoan('tat', m)));   // ngoài 15–21h: vào sổ hoãn, sổ chờ tự rỗng → 15h báo trước một nhịp lại rồi mới tắt
+    const ds = (kq[LT.khoa] || []).filter((m) => !lamRoi.has(m.id) && !giu.ds[m.id] && (khungDoi === 'giam' || !hoan('tat', m)));   // ngoài 15–21h: vào sổ hoãn, sổ chờ tự rỗng → 15h báo trước một nhịp lại rồi mới tắt
     for (const k of Object.keys(cho)) if (!ds.some((m) => String(m.id) === k)) delete cho[k];   // hết chạm luật → bỏ khỏi sổ chờ
     for (const m of ds) { if (LT.ngay) { tat.push(m); continue; } if (!cho[m.id]) { cho[m.id] = bayGio; moi.push(m); } else if (bayGio - cho[m.id] >= 25 * 60_000) tat.push(m); }   // ngay: tắt luôn nhịp này, không chờ (D24 — anh "dừng ngay lập tức")
     if (moi.length) {

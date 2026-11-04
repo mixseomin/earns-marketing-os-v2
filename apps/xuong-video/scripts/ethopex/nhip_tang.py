@@ -1,13 +1,15 @@
 """NHỊP TĂNG NGÂN SÁCH (anh 21/10/2026 hỏi "có camp nào âm do tăng budget nhanh hơn bình thường"): ngày 21/10 phòng Ethopex chấm luật 30 phút/lần
 mà không có khoảng nghỉ → cùng một camp hiện nút đầu phiên $2 rồi nút tăng $3, $5 → nhiều camp $1→$3→$5 trong 1–3 giờ, có camp $1→$2→$3 trong 2 phút;
 7 camp âm hôm đó đều thuộc nhóm tăng dồn. Luật (kb #261 mục 8: tối đa 2–3 lần tăng/ngày, ưu tiên mốc 21h/24h/8h) → máy giữ:
-  - hai lần tăng cách nhau ít nhất NGHI_GIO giờ
+  - hai lần tăng cách nhau ít nhất NGHI_GIO giờ (24 từ 05/11/2026)
   - KHÔNG giới hạn số lần tăng/ngày (anh 21/10/2026: "ko nhất thiết phải giới hạn ngày tăng max 2 lần") — TOI_DA_NGAY = None; đặt số thì bật lại
 Đọc lịch sử camp Ethopex (/campaigns/<id>/history — mỗi lần đổi có 2 dòng requested + status_changed → gộp các dòng cách nhau < 10 phút).
 Dùng chung: luat-ethopex.py (không hiện nút) + lam-ethopex.py (nút cũ bấm muộn vẫn bị chặn)."""
-import datetime as dt
+import datetime as dt, json, os
+BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))   # sổ luật chung: thang bậc
 
-NGHI_GIO, TOI_DA_NGAY = 3, None
+# NGHI_GIO 3 → 24 (anh 05/11/2026 duyệt: ROI sau tăng tụt ngay và không hồi suốt 48 giờ — một bậc mỗi 24 giờ)
+NGHI_GIO, TOI_DA_NGAY = 24, None
 # GIẢM BẬC (anh 21/10/2026: "camp âm mà budget cao do set vội… giảm dần theo bậc… tránh giảm xong lại bị tăng đệ quy"):
 #   giảm chỉ chấm trên số TRỌN ngày hôm qua (doanh thu về trễ), cách lần đổi ngân sách trước ≥ NGHI_GIAM_GIO; sau khi giảm khoá tăng KHOA_SAU_GIAM_GIO
 #   và muốn tăng lại phải đạt ROI ≥ 50% trên số SAU lần giảm (luat-ethopex.py) — không dùng ROI tháng cũ → hết vòng tăng–giảm.
@@ -15,7 +17,7 @@ NGHI_GIO, TOI_DA_NGAY = 3, None
 # GIẢM GIỐNG TĂNG (anh 25/10/2026: "sao phải đợi đến mai"): giảm tiếp sau một lần GIẢM cách ≥ 3 giờ (bằng nhịp tăng); camp vừa TĂNG mà âm thì giảm NGAY
 # (không chờ) — chỉ khoá TĂNG sau giảm 6 giờ để không vòng tăng–giảm.
 NGHI_GIAM_GIO, KHOA_SAU_GIAM_GIO = 3, 6
-BAC = [1, 2, 3, 5, 7, 10, 15, 20, 30]
+BAC = list(BANG_LUAT["thang"])   # thang bậc = sổ luật chung (gồm $30 — đích T30)
 def xuong(ns, buoc=1):
     """mức thấp hơn ns `buoc` bậc trên thang (tối thiểu $1)"""
     duoi = [b for b in BAC if b < ns - 1e-9]

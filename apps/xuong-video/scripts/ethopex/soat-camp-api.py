@@ -15,8 +15,8 @@ api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung a
 studio = {}
 for l in q("select (kinh_thanh->'ethopex'->>'creative_id'), kinh_thanh->'ethopex'->>'content_id', kinh_thanh->>'ngon_ngu', id from xv_phim where project='ethopex' and kinh_thanh->'ethopex' ? 'creative_id'").splitlines():
     cr, ct, nn, pid = l.split("|"); studio[int(cr)] = (int(ct) if ct else None, nn, int(pid))
-# Mức ngân sách hợp lệ: $1 lúc lên camp, $2 (luật lãi đầu phiên, Dol Dang 21/10/2026), thang $3 → 5 → 7 → 10 → 15 → 20; trần $20/camp (anh 20/10/2026).
-MUC_HOP_LE = {1, 2, 3, 5, 7, 10, 15, 20}
+# Mức ngân sách hợp lệ = thang bậc ở sổ luật chung (anh 05/11/2026); trần $20/camp, $30 chỉ qua T30.
+MUC_HOP_LE = {x for x in json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))["thang"] if x <= 20}
 ds = api("/api/v1/campaigns?page_size=500")["data"]
 loi_tong = 0; content_lp = {}; duyet = {}; bi_tu_choi = []   # content → creative đã được Meta duyệt (để gợi ý thay ad bị từ chối)
 for c in sorted(ds, key=lambda x: x["id"]):

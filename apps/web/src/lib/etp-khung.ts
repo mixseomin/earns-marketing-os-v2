@@ -1,17 +1,20 @@
 // KHUNG MÁY TỰ ĐỔI CAMP (anh 04/11/2026) — đọc sổ luật chung etp-bang-luat.json.khung_doi, cùng chỗ worker apps/cty/worker/ethopex.mjs đọc.
-// doi = mọi luật tự tăng / giảm / tắt · nap = chỉ tự tăng camp đã tiêu ≥ nap_chi × ngân sách hôm nay + ROI hôm nay ≥ nap_roi% · bang = đóng băng.
+// tang = mọi luật tự tăng (21–07h, qua nửa đêm) · giam = mọi luật tự giảm / tắt, không tăng (15–21h) · sang = chỉ nạp camp đã tiêu ≥ nap_chi × ngân sách + ROI hôm nay ≥ sang_roi% (07–15h)
+// (anh 05/11/2026 đảo khung theo số toàn đội — xem _ghi trong sổ luật). bang = đóng băng (không còn giờ nào, giữ cho an toàn).
 import BANG_LUAT from './etp-bang-luat.json';
 
-export type KhungDoi = 'doi' | 'nap' | 'sang' | 'bang';
+export type KhungDoi = 'tang' | 'giam' | 'sang' | 'bang';
 export type HuongLuat = 'tang' | 'giam' | 'tat';
-export const KD = BANG_LUAT.khung_doi as unknown as { doi: [number, number]; nap: [number, number]; nap_chi: number; nap_roi: number; sang: [number, number]; sang_roi: number };
+export const KD = BANG_LUAT.khung_doi as unknown as { tang: [number, number]; giam: [number, number]; sang: [number, number]; sang_roi: number; nap_chi: number; len: [number, number] };
 export const KHUNG_TEN: Record<KhungDoi, [string, string, string]> = {   // [biểu tượng, tên, màu]
-  doi: ['🔧', 'Khung đổi', '#fb923c'], nap: ['⛽', 'Chỉ nạp camp thắng', '#4ade80'], sang: ['☀', 'Nạp sáng', '#22c55e'], bang: ['🔒', 'Đóng băng', '#64748b'] };
+  tang: ['⬆', 'Khung tăng', '#4ade80'], giam: ['🔧', 'Khung giảm · tắt', '#fb923c'], sang: ['☀', 'Nạp sáng', '#22c55e'], bang: ['🔒', 'Đóng băng', '#64748b'] };
+/** giờ VN máy sẽ làm việc đang hoãn theo hướng luật */
+export const gioLam = (huong: HuongLuat) => (huong === 'tang' ? KD.tang[0] : KD.giam[0]);
 
 /** giờ VN hiện tại (số thực, 13.5 = 13:30) */
 export const gioVnNay = (now = Date.now()) => { const d = new Date(now + 7 * 3600_000); return d.getUTCHours() + d.getUTCMinutes() / 60; };
-const trong = (h: number, [a, b]: [number, number]) => h >= a && h < b;
-export const khungLuc = (h: number): KhungDoi => (trong(h, KD.doi) ? 'doi' : trong(h, KD.nap) ? 'nap' : KD.sang && trong(h, KD.sang) ? 'sang' : 'bang');   // cùng thứ tự với khungCua của worker (kiểm chéo ở etp-khung.test.mts)
+const trong = (h: number, [a, b]: [number, number]) => (a <= b ? h >= a && h < b : h >= a || h < b);   // [21, 7] = qua nửa đêm
+export const khungLuc = (h: number): KhungDoi => (trong(h, KD.giam) ? 'giam' : trong(h, KD.tang) ? 'tang' : KD.sang && trong(h, KD.sang) ? 'sang' : 'bang');   // cùng thứ tự với khungCua của worker (kiểm chéo ở etp-khung.test.mts)
 /** khung đang chạy kéo tới mấy giờ (giờ nguyên, 0–23) */
 export const hetKhung = (h: number) => { const k = khungLuc(h); for (let i = 1; i <= 24; i++) { const g = (Math.floor(h) + i) % 24; if (khungLuc(g) !== k) return g; } return Math.floor(h); };
 /** SỔ HOÃN của máy (etp.cau_hinh 'khung_hoan', worker ethopex.mjs ghi mỗi nhịp): camp máy ĐÃ đủ luật + đủ công tắc nhưng hoãn vì khung giờ.

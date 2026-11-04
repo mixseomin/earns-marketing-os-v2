@@ -3,11 +3,12 @@
 // Bản Python cùng ngưỡng: apps/xuong-video/scripts/ethopex/kiem-ngan-sach.sh (báo đủ điều kiện tăng / cần xem giảm-tắt) — đổi ngưỡng thì đổi cả hai.
 // Luật CHỈ ĐỌC + BÁO: mọi tăng / giảm / tắt phải anh duyệt từng camp (gác 'nguoi'); cổng ở bước lên camp (thoại, số camp) chặn bằng máy (gác 'may').
 
-export const THANG = [1, 3, 5, 7, 10, 15, 20] as const;
+import BANG_LUAT from './etp-bang-luat.json';
+export const THANG = (BANG_LUAT.thang as number[]).filter((x) => x <= 20);   // thang bậc = sổ luật chung (anh 05/11/2026)
 export const TRAN_CAMP = 20;
 export const ROI_TOI_THIEU = 20;        // % ROI từ đầu tháng — luật GT (theo dõi / tụt)
 export const ROI_TANG = 50;             // % ROI tháng tối thiểu để TĂNG BẬC (Support Dol 21/10/2026: "chỉ tăng budget những camp rois > 50%")
-export const NGHI_TANG_GIO = 3;         // giờ giữa hai lần tăng (scripts/ethopex/nhip_tang.py)
+export const NGHI_TANG_GIO = 24;        // giờ giữa hai lần tăng (05/11/2026: 3 → 24) (scripts/ethopex/nhip_tang.py)
 export const SPENDING_TOI_THIEU = 50;   // % = chi hôm nay / ngân sách ngày
 export const TEST_TOI_DA = 30;          // camp ĐANG CHẠY / phim đang test — anh 22/10/2026 bỏ trần 2: "camp cùng phim thì chủ động thêm góc khác ok, ko limit để còn tìm hướng sớm"
 export const THANG_TOI_DA = 30;         // camp ĐANG CHẠY / phim thắng (anh 22/10/2026: camp thua tắt thì nhường chỗ cho creative mới; trước 10)
@@ -103,7 +104,7 @@ export function chamLuat(c: CampEtp, ctx: { soCampPhim: number; phimThang: boole
   if (c.ngan_sach > NGAN_SACH_CHUA_CAN_GIO || tbDat) out.push({ ma: 'KG', trang_thai: 'ap', cau: 'Khi tăng: chọn mốc ~21h · ~24h · 8h giờ VN', dk: [] });
   { const ry = roi(c.hom_qua), r3 = roi(c.gan), du = c.ngan_sach > 1 && c.hom_qua.chi >= 0.5 * c.ngan_sach, dat = du && ry != null && ry < 0 && (r3 == null || r3 < 20);
     if (c.trang_thai === 'ACTIVE' && c.ngan_sach > 1) {
-      const xuong = (ns: number, b: number) => { const d = [1, 2, 3, 5, 7, 10, 15, 20, 30].filter((x) => x < ns - 1e-9); return d.length ? d[Math.max(0, d.length - b)]! : null; };
+      const xuong = (ns: number, b: number) => { const d = (BANG_LUAT.thang as number[]).filter((x) => x < ns - 1e-9); return d.length ? d[Math.max(0, d.length - b)]! : null; };
       const buoc = ry != null && ry < -50 && c.hom_qua.chi >= c.ngan_sach ? 2 : 1, dich = xuong(c.ngan_sach, buoc);
       out.push({ ma: 'GB', trang_thai: dat ? 'cham' : ry != null && ry < 0 ? 'gan' : 'ap', cau: dat ? `Giảm $${c.ngan_sach} → $${dich}${buoc === 2 ? ' (lỗ nặng, 2 bậc)' : ''} — phiên sáng, anh duyệt nút ↘` : `ROI hôm qua ${pct(ry)} · 3 ngày ${pct(r3)}`,
         dk: [{ ten: 'Hôm qua đã tiêu ≥ 50% ngân sách', hien: `$${c.hom_qua.chi.toFixed(2)}`, nguong: `≥ $${(0.5 * c.ngan_sach).toFixed(2)}`, dat: du },

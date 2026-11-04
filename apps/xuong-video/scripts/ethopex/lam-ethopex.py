@@ -5,7 +5,7 @@ Chỉ hai việc, đúng API giao diện Ethopex dùng (đọc từ mã app 21/1
   giam <camp_id> <ngân sách>   → cùng API update, chỉ xuống thang (luật GB, nhip_tang.chan_giam)
   bat  <camp_id>               → bật lại (cùng API control, status 'active') — chỉ khi anh lệnh
   tat  <camp_id> [--ep]        → POST /api/v1/campaigns/control/batch/bulk [{entity_type:'campaign', entity_ids:[id], status:'paused'}]
-Chặn: ngân sách phải là mức hợp lệ ($2 · thang $3–20), lớn hơn mức đang chạy, không quá trần $20; camp phải đang ACTIVE; nhịp tăng (nhip_tang.py: ≥ 3 giờ giữa hai lần). Làm xong ĐỌC LẠI camp để xác nhận.
+Chặn: ngân sách phải là mức hợp lệ ($2 · thang $3–20), lớn hơn mức đang chạy, không quá trần $20; camp phải đang ACTIVE; nhịp tăng (nhip_tang.py: ≥ 24 giờ giữa hai lần). Làm xong ĐỌC LẠI camp để xác nhận.
 In một dòng JSON {ok, viec, id, truoc, sau, loi}."""
 import json, os, subprocess, sys, time, urllib.request, importlib.util
 _s = importlib.util.spec_from_file_location("nhip_tang", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhip_tang.py")); NT = importlib.util.module_from_spec(_s); _s.loader.exec_module(NT)
@@ -13,7 +13,8 @@ _s = importlib.util.spec_from_file_location("nhip_tang", os.path.join(os.path.di
 # RÀO CHẮN etp (etp.on.tc bước 3, 24/10/2026): dừng khẩn / trần camp / trần ngày / trần bộ — apps/etp/cong.py
 import importlib.util as _iuc
 _sc = _iuc.spec_from_file_location("etp_cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); CONG = _iuc.module_from_spec(_sc); _sc.loader.exec_module(CONG)
-MUC = {2, 3, 5, 7, 10, 15, 20, 30}   # $30 chỉ qua luật T30 (camp $20 tiêu đủ + ROI cao 2–3 ngày, Support 23/10/2026) — máy tự tăng từ 28/10/2026 (anh: "ko cần xin nữa")
+BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))
+MUC = set(BANG_LUAT["thang"]) - {1}   # thang bậc = sổ luật chung (anh 05/11/2026) · $30 chỉ qua luật T30 (camp $20 tiêu đủ + ROI cao 2–3 ngày, Support 23/10/2026) — máy tự tăng từ 28/10/2026 (anh: "ko cần xin nữa")
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
 

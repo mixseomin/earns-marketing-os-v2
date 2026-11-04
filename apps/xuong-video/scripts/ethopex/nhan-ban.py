@@ -45,6 +45,16 @@ def api(duong, body=None):
     return json.load(urllib.request.urlopen(r, timeout=60))
 api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 js = lambda v: json.loads(v) if isinstance(v, str) and v.strip().startswith("{") else (v or {})
+BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))   # sổ luật chung: khung giờ lên camp (khung_doi.len)
+def lich_len(yeu_cau=None, luc=None):
+    """GIỜ LÊN CAMP — MỘT CHỖ cho mọi đường lên (dòng phim · worker phim mới / KT · nhân bản · ROAS · anh bấm tay). Anh 05/11/2026 chốt theo số toàn đội
+    (apps/etp/phan-tich-gio.py mục D): đồng chi đầu rơi 08–12h VN lãi 72h +$2,85/camp, chiều +$1,25, tối +$0,13, đêm +$0,32 — Meta dồn 53–62% chi 24h đầu
+    vào 6 giờ đầu nên giờ lên quyết định camp học ở khung tốt hay xấu. Tạo trong khung `len` của sổ luật (07–12h VN) → chạy ngay (today); ngoài khung →
+    hẹn 07:00 hôm sau (tomorrow), KỂ CẢ nhân bản ("nhân bản cũng hẹn sáng hôm sau nếu không đúng khung giờ"). --lich today|tomorrow của nơi gọi chỉ là
+    gợi ý cũ, máy tự quyết; chỉ --lich ngay mới ép chạy ngay (lệnh đích danh của anh)."""
+    if yeu_cau == "ngay": return "today"
+    a, b = BANG_LUAT["khung_doi"]["len"]; h = ((luc or dt.datetime.now(dt.timezone.utc)).hour + 7) % 24
+    return "today" if (a <= h < b if a <= b else (h >= a or h < b)) else "tomorrow"
 NGOAI = EA.SUA or EA.XEM   # camp của người trong team (xem docstring) — 0 = nhà; ETP_XEM_NGUOI = chạy khô trên camp thật của người đó (cổng chặn mọi lệnh ghi)
 _TK_SQL = ",".join(str(int(x)) for x in sorted(EA.TK)) or "0"
 
@@ -363,7 +373,7 @@ def main(a):
     goc = int(a[0]); that = "--that" in a
     tay = "--tay" in a   # camp anh yêu cầu bằng tay (dòng phim etp.on.tc) → miễn luật không trùng phim với đội (cong.kiem tay=True), 04/11/2026
     lay = lambda k, md=None: next((a[i + 1] for i, x in enumerate(a[:-1]) if x == k), md)
-    lich, luat, ai = lay("--lich", "tomorrow"), lay("--luat"), lay("--ai")
+    lich, luat, ai = lich_len(lay("--lich")), lay("--luat"), lay("--ai")   # giờ chạy do lich_len quyết (anh 05/11/2026)
     moi = {"creative": int(lay("--creative")), "content": int(lay("--content")), "ten": lay("--ten")} if lay("--creative") else None
     ep = "--ep" in a and bool(lay("--bo")); mien_cham = "--mien-cham" in a   # clone sang bộ khác theo lệnh anh — xem docstring
     bo = lay("--bo"); thang = float(lay("--thang")) if lay("--thang") else None
@@ -374,7 +384,7 @@ def main(a):
         if moi or thang: raise SystemExit("--roas không đi kèm --creative / --thang")
         if not ROAS_MIN <= roas <= ROAS_MAX: raise SystemExit(f"--roas phải trong {ROAS_MIN}–{ROAS_MAX} (Support 26/10/2026)")
         return roas_main(goc, roas, int(float(lay("--ns", "20"))), lich, that, "--tam-dung" in a, luat, ai, lay("--nhan"), "--mien-cham" in a)
-    kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None}
+    kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None, "chay": lich}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep); kq["ten"] = ten; bo = pl.pop("bo")
         ly = None if NGOAI else (None if ep else chan_bo(cid, bo)) or (None if moi or ep else q(f"select etp.bo_chan_mo_camp('{bo}', {int(goc)})"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (0339); camp gốc tự thắng (3 ngày khép ROI ≥ 30%) thì miễn (0372, anh 30/10/2026)
@@ -479,7 +489,7 @@ def main(a):
 
 def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False):
     """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim + mỗi phim một bộ."""
-    kq = {"ok": False, "viec": "roas", "goc": goc, "moi": None, "ten": None, "roas": roas, "loi": None}
+    kq = {"ok": False, "viec": "roas", "goc": goc, "moi": None, "ten": None, "roas": roas, "loi": None, "chay": lich}
     try:
         if not 15 <= ns <= 20: raise ValueError("ngân sách camp ROAS $15–20 (Support 26/10/2026)")
         d, ten, cid, pl = payload(goc, lich, bo=None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")

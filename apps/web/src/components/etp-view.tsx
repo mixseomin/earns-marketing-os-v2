@@ -38,7 +38,7 @@ import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, MoRong, PhanNang, P
 import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
-import { KD, KHUNG_TEN, docHoan, gioVnNay, hetKhung, khungLuc, type HuongLuat } from '@/lib/etp-khung';
+import { KD, KHUNG_TEN, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, type HuongLuat } from '@/lib/etp-khung';
 
 type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -106,7 +106,7 @@ const TT = ({ c }: { c: Parameters<typeof ttCamp>[0] }) => {   // đèn đọc C
 // Ô BẬC NGÂN SÁCH (anh 25/10/2026: "biểu thị hiệu suất từng camp, level bậc nó đang ở để biết sắp được tăng, giảm bậc hoặc bị tắt bỏ"):
 // số $ ngân sách/ngày (anh 26/10/2026 bỏ thang 9 vạch — khó hiểu; bậc thứ mấy vẫn ở hover) · thước ROI hôm nay ba vùng — đỏ ≤ −5% giảm, xám giữ, xanh ≥ +50% tăng (đúng ngưỡng luật trong ngày);
 // chấm rỗng = chưa chi đủ 30% ngân sách (luật chưa xét) · dấu máy luật đang đánh (etp.bao): ↑ tăng · ↓ giảm bậc · ✕ đề xuất tắt · ↘ ROI tụt · ★ bid ROAS
-const BAC_NS = [1, 2, 3, 5, 7, 10, 15, 20, 30];
+const BAC_NS = BANG_LUAT.thang as number[];   // thang bậc = sổ luật chung (anh 05/11/2026)
 // GẦN ĐẠT luật (anh 26/10/2026: "các camp gần đạt tiêu chí tăng hay giảm bậc cũng cần show") — đọc đúng ngưỡng luat-ethopex.py (/opt/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex/luat-ethopex.py, box3):
 // tăng trong ngày ROI hôm nay ≥ +50% · chi ≥ 30% ngân sách · hôm qua ≥ 0% (hoặc chi hôm qua < max($2, 50% ngân sách) — luật B1 26/10, sàn $2 28/10) | giảm trong ngày (ngân sách > $1) ROI ≤ −5% · chi ≥ 30% · hôm qua < +50% | tắt: tiêu > $10 · ROI < −50% · ≥ 7 ngày (ROI/tiêu lấy 30 ngày)
 // dấu mờ ⇡ gần tăng · ⇣ gần giảm · ✕ mờ gần tắt; máy luật đã đánh dấu thật (etp.bao) thì không hiện dấu gần cùng loại
@@ -336,7 +336,7 @@ function dieuKienLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' 
       { ten: `hôm nay chi ${pct(c.nay.chi)}% ngân sách ≥ 30%`, dat: c.nay.chi >= Math.max(0.3 * ns, 0.3) },
       { ten: `ROI hôm nay ${phanTram(rn)} ≤ −5%`, dat: rn != null && rn <= -5 },
       { ten: `ROI hôm qua ${phanTram(rq)} < +50%`, dat: rq == null || rq < 50 }] });
-    ra.push({ k: '↓', mau: '#fb923c', chip: `↓ $${ns}→$${xu} mai ${KD.doi[0]}h`, ten: `Giảm bậc ngày mai (${KD.doi[0]}h–${KD.doi[1]}h, số trọn hôm nay) $${ns} → $${xu}`, dk: [
+    ra.push({ k: '↓', mau: '#fb923c', chip: `↓ $${ns}→$${xu} mai ${KD.giam[0]}h`, ten: `Giảm bậc ngày mai (${KD.giam[0]}h–${KD.giam[1]}h, số trọn hôm nay) $${ns} → $${xu}`, dk: [
       { ten: `hôm nay chi ${pct(c.nay.chi)}% ngân sách ≥ 50%`, dat: c.nay.chi >= 0.5 * ns },
       { ten: `ROI hôm nay ${phanTram(rn)} < 0%`, dat: rn != null && rn < 0 },
       { ten: `ROI 3 ngày ${phanTram(r3)} < +20%`, dat: r3 == null || r3 < 20 }] });
@@ -455,8 +455,8 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
 }
 // KHUNG ĐỔI CAMP — BẢN LỚN (anh 05/11/2026 "show trực quan hơn"): một hàng trọn chiều ngang trên tab Camp — trạng thái chữ to + đếm ngược,
 // thanh 24 giờ ghi chữ từng khung + kim giờ hiện tại, số camp đã đạt luật đang chờ khung (theo hướng, từ etp.bao — cùng nguồn chip ⏳)
-const CHU_KHUNG: Record<string, string> = { doi: 'máy đang tự tăng · giảm · tắt camp theo luật', nap: `máy chỉ nạp thêm cho camp đã tiêu hết + ROI hôm nay ≥ ${KD.nap_roi}%`,
-  sang: `máy chỉ nạp thêm cho camp lãi lớn đã tiêu hết (ROI hôm nay ≥ ${KD.sang_roi}%), một bậc, cách lần tăng trước ≥ 3 giờ — không giảm, không tắt`, bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung đổi' };   // số lấy từ sổ luật chung khung_doi
+const CHU_KHUNG: Record<string, string> = { tang: 'máy tự TĂNG camp theo luật (đầu phiên · tăng bậc · T30), một bậc ≤ ×1,5, cách lần tăng trước ≥ 24 giờ — không giảm, không tắt', giam: 'máy tự GIẢM · TẮT camp theo luật — không tăng',
+  sang: `máy chỉ nạp thêm cho camp lãi lớn đã tiêu hết (ROI hôm nay ≥ ${KD.sang_roi}%), một bậc — không giảm, không tắt`, bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung' };   // số lấy từ sổ luật chung khung_doi
 function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   const noi = useNoi<{ id: 0 }>();   // gọi trước mọi lệnh return sớm (luật hook)
   const [h, setH] = useState<number | null>(null);
@@ -467,14 +467,14 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   const conPhut = Math.round((((het - h) % 24) + 24) % 24 * 60), con = `${Math.floor(conPhut / 60)} giờ ${String(conPhut % 60).padStart(2, '0')} phút`;
   const doan: { k: ReturnType<typeof khungLuc>; tu: number; den: number }[] = [];
   for (let g = 0; g < 24; g++) { const kg = khungLuc(g); if (doan.at(-1)?.k === kg) doan.at(-1)!.den = g + 1; else doan.push({ k: kg, tu: g, den: g + 1 }); }
-  const nen = (kg: string, sang: boolean) => kg === 'bang' ? `repeating-linear-gradient(135deg, #47556966 0 6px, #33415566 6px 12px)` : `${KHUNG_TEN[kg as 'doi'][2]}${sang ? 'cc' : '55'}`;
+  const nen = (kg: string, sang: boolean) => kg === 'bang' ? `repeating-linear-gradient(135deg, #47556966 0 6px, #33415566 6px 12px)` : `${KHUNG_TEN[kg as keyof typeof KHUNG_TEN][2]}${sang ? 'cc' : '55'}`;
   const gioChu = `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
   const soO = (n: number, nhan: string, m: string) => <span style={{ color: n ? m : 'var(--fg-3, #777)', fontWeight: 600 }}>{nhan}{n}</span>;
   const o: React.CSSProperties = { padding: '3px 6px', borderTop: '1px solid var(--line)', verticalAlign: 'top' };   // khung nổi chuẩn của trang (như chip luật / BangXet)
-  const dong = ([['sang', KD.sang], ['doi', KD.doi], ['nap', KD.nap], ['bang', [KD.nap[1], KD.sang[0]]]] as const).map(([kg, [tu, den]]) => ({ kg, gio: `${String(tu).padStart(2, '0')}:00–${String(den).padStart(2, '0')}:00` }));
+  const dong = ([['sang', KD.sang], ['giam', KD.giam], ['tang', KD.tang]] as const).map(([kg, [tu, den]]) => ({ kg, gio: `${String(tu).padStart(2, '0')}:00–${String(den).padStart(2, '0')}:00` }));
   return (
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'help', whiteSpace: 'nowrap' }}>
-      <b style={{ color: mau }}>{bt}{gon ? '' : ` ${ten}`}</b><span style={{ color: 'var(--fg-3, #777)' }}>{k === 'doi' ? 'hết' : 'mở'} {String(het).padStart(2, '0')}:00</span>
+      <b style={{ color: mau }}>{bt}{gon ? '' : ` ${ten}`}</b><span style={{ color: 'var(--fg-3, #777)' }}>{k === 'bang' ? 'mở' : 'hết'} {String(het).padStart(2, '0')}:00</span>
       <div style={{ position: 'relative', width: gon ? 96 : 200 }}>
         <div style={{ display: 'flex', height: 14, borderRadius: 4, overflow: 'hidden', border: '1px solid var(--line)' }}>
           {doan.map((d, i) => { const dang = h >= d.tu && h < d.den, m2 = KHUNG_TEN[d.k][2];
@@ -484,10 +484,10 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
         </div>
         <div style={{ position: 'absolute', top: -2, bottom: -2, left: `${(h / 24) * 100}%`, width: 2, borderRadius: 1, background: 'var(--fg-1)', pointerEvents: 'none' }} />
       </div>
-      {k !== 'doi' ? <span style={{ display: 'inline-flex', gap: 5 }}><span style={{ color: 'var(--fg-3, #777)' }}>⏳</span>{soO(cho.tang, '↑', '#4ade80')}{soO(cho.giam, '↓', '#fb923c')}{soO(cho.tat, '✕', '#f87171')}</span> : null}
+      {cho.tang + cho.giam + cho.tat ? <span style={{ display: 'inline-flex', gap: 5 }}><span style={{ color: 'var(--fg-3, #777)' }}>⏳</span>{soO(cho.tang, '↑', '#4ade80')}{soO(cho.giam, '↓', '#fb923c')}{soO(cho.tat, '✕', '#f87171')}</span> : null}
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={300} noi={noi}><div style={{ width: 460, padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}><b style={{ fontSize: 13 }}>Khung máy tự đổi camp</b><span style={{ color: 'var(--fg-2)' }}>giờ VN · cả 3 bộ</span></div>
-        <div style={{ marginBottom: 8 }}>Bây giờ <b>{gioChu}</b> · <b style={{ color: mau }}>{bt} {ten}</b> · {k === 'doi' ? 'hết khung' : 'mở khung kế'} <b>{String(het).padStart(2, '0')}:00</b> (còn {con})</div>
+        <div style={{ marginBottom: 8 }}>Bây giờ <b>{gioChu}</b> · <b style={{ color: mau }}>{bt} {ten}</b> · {k === 'bang' ? 'mở khung kế' : 'hết khung'} <b>{String(het).padStart(2, '0')}:00</b> (còn {con})</div>
         <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>
           <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}><th style={o}>Khung</th><th style={o}>Giờ</th><th style={o}>Máy làm gì</th></tr></thead>
           <tbody>{dong.map(({ kg, gio }) => <tr key={kg} style={{ background: kg === k ? `${KHUNG_TEN[kg][2]}22` : undefined }}>
@@ -495,7 +495,7 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
             <td style={{ ...o, whiteSpace: 'nowrap' }}>{gio}</td><td style={o}>{CHU_KHUNG[kg]}</td></tr>)}</tbody>
         </table>
         <div style={{ marginTop: 8, color: 'var(--fg-3, #777)' }}>{so.cu ? `Sổ hoãn của máy ${so.luc ? `cũ (lúc ${new Date(Date.parse(so.luc) + 7 * 3600_000).toISOString().slice(11, 16)})` : 'chưa có'} — máy luật không chạy nhịp gần đây, không hiện số chờ.` : `Số chờ lấy từ sổ hoãn máy ghi lúc ${new Date(Date.parse(so.luc!) + 7 * 3600_000).toISOString().slice(11, 16)} (mỗi nhịp ~30 phút) — đã tính công tắc tự tăng / tự giảm.`}</div>
-        {k !== 'doi' ? <div style={{ marginTop: 8 }}>⏳ Camp đã đạt luật, chờ tới <b>{KD.doi[0]}:00</b>: {soO(cho.tang, '↑ tăng ', '#4ade80')} · {soO(cho.giam, '↓ giảm ', '#fb923c')} · {soO(cho.tat, '✕ tắt ', '#f87171')} <span style={{ color: 'var(--fg-3, #777)' }}>— xem chip ⏳ ở cột Luật</span></div> : null}
+        {cho.tang + cho.giam + cho.tat ? <div style={{ marginTop: 8 }}>⏳ Camp đã đạt luật, chờ khung: {soO(cho.tang, `↑ tăng (${KD.tang[0]}h) `, '#4ade80')} · {soO(cho.giam, `↓ giảm (${KD.giam[0]}h) `, '#fb923c')} · {soO(cho.tat, `✕ tắt (${KD.giam[0]}h) `, '#f87171')} <span style={{ color: 'var(--fg-3, #777)' }}>— xem chip ⏳ ở cột Luật</span></div> : null}
       </div></KhungNoi> : null}
     </span>
   );
@@ -509,7 +509,7 @@ function ChipLuat(p: VaoLuat) {
   // camp không chạm luật nào vẫn rê được: ô hiện "…" (anh 28/10/2026 "hiển thị (...) là được")
   const R = t.xet ? 760 : 340;
   // KHUNG ĐỔI CAMP (anh 04/11/2026): luật đã đạt mà khung giờ đang chặn → ⏳ giờ máy sẽ làm (camp người khác: chỉ đề xuất, không ghi)
-  const cho = !p.deXuat && hoanDs.has(p.c.camp_id) ? `${KD.doi[0]}h` : null;   // máy đã đủ luật, hoãn vì khung giờ (sổ hoãn)
+  const cho = !p.deXuat && hoanDs.has(p.c.camp_id) ? `${gioLam(hoanDs.get(p.c.camp_id)!)}h` : null;   // máy đã đủ luật, hoãn vì khung giờ (sổ hoãn) — giờ theo hướng: tăng 21h · giảm/tắt 15h
   return (
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
       {t.chinh ? <ChipO chinh={t.chinh} /> : <span style={{ color: 'var(--fg-3, #777)', padding: '0 6px' }}>…</span>}
@@ -518,7 +518,7 @@ function ChipLuat(p: VaoLuat) {
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
           <span title={p.c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.ten ?? p.c.phim} · ${p.c.ngan_sach}</span></div>
-        {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>. Khung: {KD.doi[0]}–{KD.doi[1]}h mọi luật · {KD.nap[0]}–{KD.nap[1]}h chỉ nạp camp đã tiêu ≥ {KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ {KD.nap_roi}% · còn lại đóng băng.</div> : null}
+        {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>. Khung: {KD.tang[0]}–{KD.tang[1]}h tăng · {KD.giam[0]}–{KD.giam[1]}h giảm / tắt · {KD.sang[0]}–{KD.sang[1]}h chỉ nạp camp đã tiêu ≥ {KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ {KD.sang_roi}%.</div> : null}
         <ThanLuat t={t} deXuat={p.deXuat} /></div></KhungNoi> : null}
     </span>
   );

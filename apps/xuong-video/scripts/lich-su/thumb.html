@@ -39,6 +39,8 @@ window.__dung = async () => {
   const T = window.THUMB;
   document.getElementById('bao-chu').textContent = T.bao || 'BREAKING HISTORY';
   document.getElementById('phu').textContent = T.phu;
+  // BẢN GỌN (05/11/2026, Ngọc chặn Agincourt "nhiều nhãn chữ gây rối mắt"): T.gon → chỉ chữ to + tên kênh, ẩn dòng phụ + nhãn góc
+  if (T.gon) { document.getElementById('phu').style.display = 'none'; const b_ = document.getElementById('bao') || document.getElementById('bao-chu'); if (b_) b_.style.display = 'none'; }
   document.getElementById('kenh').textContent = T.kenh;
   const el = document.getElementById('chu-to'); el.textContent = T.chu;
   const img = document.getElementById('img'); img.src = T.anh; await img.decode();
@@ -48,7 +50,7 @@ window.__dung = async () => {
   for (let s = 260; s >= 110; s -= 6) { el.style.fontSize = `${s}px`; const dong = Math.round(el.offsetHeight / (s * 0.98));
     if (el.scrollWidth <= hop.clientWidth && el.offsetHeight <= hop.clientHeight && dong <= 2) break; }
   // nhãn phụ: không tràn mép phải
-  const p = document.getElementById('phu'); for (let s = 64; s >= 36 && p.getBoundingClientRect().left < 40; s -= 4) p.style.fontSize = `${s}px`;
+  const p = document.getElementById('phu'); for (let s = 64; s >= 36 && !T.gon && p.getBoundingClientRect().left < 40; s -= 4) p.style.fontSize = `${s}px`;
   return { co: parseInt(el.style.fontSize), dong: Math.round(el.offsetHeight / (parseInt(el.style.fontSize) * 0.98)) };
 };
 </script></body></html>

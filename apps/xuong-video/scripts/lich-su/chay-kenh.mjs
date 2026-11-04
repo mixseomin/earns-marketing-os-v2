@@ -50,8 +50,10 @@ for (const [k, K] of Object.entries(KENH)) {
     if (st?.xuat && (!st.ket || st.ket === 'DUYET')) continue;      // chờ Phòng Nội dung / chờ máy đăng
     const td = t.tu_dong ?? { lan: 0 };
     // 3 lần vẫn kẹt → BỎ tập này (tu_dong.bo), lượt lịch kế làm tập MỚI với đề khác (anh 05/11/2026: "sửa triệt để ở quy trình cho tự động hoàn toàn" — không dừng chờ người)
-    if (td.lan >= 3) { if (!td.bo) { t.tu_dong = { ...td, bo: true, bo_luc: new Date().toISOString() }; writeFileSync(tep, JSON.stringify(t, null, 1) + '\n');
-        tele(`⚠ ${K.ten}: tập ${t.id} tự làm lại 3 lần vẫn kẹt → BỎ, lượt kế làm đề khác\n${(td.loi ?? '').slice(0, 300)}\n${JSON.stringify(st?.chan ?? []).slice(0, 200)}`); } continue; }
+    // trần: kẹt ở BƯỚC VIẾT (nội dung không khép) = 3 lần; kẹt ở bước sau (Ngọc chặn hình / thumbnail / dựng — lỗi máy, làm lại gần như 0đ vì giọng + kho đã có) = 6 lần
+    const tran = /máy viết .*lượt vẫn lỗi|tập có lỗi/.test(td.loi ?? '') ? 3 : 6;
+    if (td.lan >= tran) { if (!td.bo) { t.tu_dong = { ...td, bo: true, bo_luc: new Date().toISOString() }; writeFileSync(tep, JSON.stringify(t, null, 1) + '\n');
+        tele(`⚠ ${K.ten}: tập ${t.id} tự làm lại ${tran} lần vẫn kẹt → BỎ, lượt kế làm đề khác\n${(td.loi ?? '').slice(0, 300)}\n${JSON.stringify(st?.chan ?? []).slice(0, 200)}`); } continue; }
     writeFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), String(process.pid));
     // kịch bản rỗng / cụt (cổng AI chập chờn trả bản 0 câu — 02/11/2026) → viết lại từ đầu; có kịch bản thì giữ, chỉ làm tiếp
     const vietLai = (t.cau?.length ?? 0) < 5 ? ['--viet-lai'] : [];

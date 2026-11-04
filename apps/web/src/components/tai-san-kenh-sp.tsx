@@ -36,7 +36,7 @@ type Dong = { loai: 'kenh'; k: KenhSp } | { loai: 'video'; k: KenhSp; v: VideoKe
 function cayKenh(k: KenhSp): Dong[] {
   // 📂 Playlist: playlist THẬT (kenh.json, máy đang chạy theo) nếu kênh đã chia; chưa thì playlist theo kế hoạch (so-kenh.json)
   const pl = k.playlist?.length ? cayPlaylistThat(k.playlist) : k.so ? cayPlaylist(k.so) : [];
-  return [...[...(k.so ? [...caySoKenh(k.so), ...cayMau(k.so), ...cayHangCho(k.so, k.videos), ...cayLoTrinh(k.so)] : []), ...pl].map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
+  return [...[...(k.so ? [...caySoKenh(k.so), ...cayMau(k.so), ...cayHangCho(k.so, k.videos, k.yTuongTuSinh ?? []), ...cayLoTrinh(k.so)] : []), ...pl].map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
     ...k.videos.map((v) => ({ loai: 'video' as const, k, v }))];
 }
 const LOAI_LICH: LoaiLichNho = {

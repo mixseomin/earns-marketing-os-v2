@@ -1,0 +1,824 @@
+{
+ "_ghi": "Lịch sự kiện trời (sinh bởi lich-su/lich-troi.mjs — đừng sửa tay, chạy lại lệnh). Giờ UTC; mos2 hiện giờ VN.",
+ "tu": "2026-11-01",
+ "den": "2027-12-31",
+ "tinh_luc": "2026-11-04",
+ "su_kien": [
+  {
+   "ma": "tw-trang-moi-scorpio-2026-11-09",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Scorpio",
+   "utc": "2026-11-09T07:01Z",
+   "chu": "New Moon in Scorpio"
+  },
+  {
+   "ma": "tw-di-thuan-mercury-scorpio-2026-11-13",
+   "loai": "di_thuan",
+   "sao": "Mercury",
+   "cung": "Scorpio",
+   "utc": "2026-11-13T15:50Z",
+   "chu": "Mercury turns direct in Scorpio"
+  },
+  {
+   "ma": "tw-di-thuan-venus-libra-2026-11-14",
+   "loai": "di_thuan",
+   "sao": "Venus",
+   "cung": "Libra",
+   "utc": "2026-11-14T00:25Z",
+   "chu": "Venus turns direct in Libra"
+  },
+  {
+   "ma": "tw-vao-cung-sun-sagittarius-2026-11-22",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Sagittarius",
+   "utc": "2026-11-22T07:20Z",
+   "chu": "Sagittarius season begins"
+  },
+  {
+   "ma": "tw-trang-tron-gemini-2026-11-24",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Gemini",
+   "utc": "2026-11-24T15:02Z",
+   "chu": "Full Moon in Gemini"
+  },
+  {
+   "ma": "tw-vao-cung-mars-virgo-2026-11-25",
+   "loai": "vao_cung",
+   "sao": "Mars",
+   "cung": "Virgo",
+   "utc": "2026-11-25T23:30Z",
+   "chu": "Mars enters Virgo"
+  },
+  {
+   "ma": "tw-vao-cung-venus-scorpio-2026-12-04",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Scorpio",
+   "utc": "2026-12-04T08:13Z",
+   "chu": "Venus enters Scorpio"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-sagittarius-2026-12-06",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Sagittarius",
+   "utc": "2026-12-06T08:26Z",
+   "chu": "Mercury enters Sagittarius"
+  },
+  {
+   "ma": "tw-trang-moi-sagittarius-2026-12-09",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Sagittarius",
+   "utc": "2026-12-09T00:51Z",
+   "chu": "New Moon in Sagittarius"
+  },
+  {
+   "ma": "tw-di-thuan-saturn-aries-2026-12-10",
+   "loai": "di_thuan",
+   "sao": "Saturn",
+   "cung": "Aries",
+   "utc": "2026-12-10T21:43Z",
+   "chu": "Saturn turns direct in Aries"
+  },
+  {
+   "ma": "tw-nghich-hanh-jupiter-leo-2026-12-13",
+   "loai": "nghich_hanh",
+   "sao": "Jupiter",
+   "cung": "Leo",
+   "utc": "2026-12-13T00:20Z",
+   "chu": "Jupiter turns retrograde in Leo"
+  },
+  {
+   "ma": "tw-vao-cung-sun-capricorn-2026-12-21",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Capricorn",
+   "utc": "2026-12-21T20:46Z",
+   "chu": "Capricorn season begins"
+  },
+  {
+   "ma": "tw-trang-tron-cancer-2026-12-24",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Cancer",
+   "utc": "2026-12-24T01:34Z",
+   "chu": "Full Moon in Cancer"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-capricorn-2026-12-25",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Capricorn",
+   "utc": "2026-12-25T18:14Z",
+   "chu": "Mercury enters Capricorn"
+  },
+  {
+   "ma": "tw-vao-cung-venus-sagittarius-2027-01-07",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Sagittarius",
+   "utc": "2027-01-07T08:52Z",
+   "chu": "Venus enters Sagittarius"
+  },
+  {
+   "ma": "tw-trang-moi-capricorn-2027-01-07",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Capricorn",
+   "utc": "2027-01-07T20:24Z",
+   "chu": "New Moon in Capricorn"
+  },
+  {
+   "ma": "tw-nghich-hanh-mars-virgo-2027-01-10",
+   "loai": "nghich_hanh",
+   "sao": "Mars",
+   "cung": "Virgo",
+   "utc": "2027-01-10T13:41Z",
+   "chu": "Mars turns retrograde in Virgo"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-aquarius-2027-01-13",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Aquarius",
+   "utc": "2027-01-13T06:00Z",
+   "chu": "Mercury enters Aquarius"
+  },
+  {
+   "ma": "tw-vao-cung-sun-aquarius-2027-01-20",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Aquarius",
+   "utc": "2027-01-20T07:27Z",
+   "chu": "Aquarius season begins"
+  },
+  {
+   "ma": "tw-trang-tron-leo-2027-01-22",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Leo",
+   "utc": "2027-01-22T12:18Z",
+   "chu": "Full Moon in Leo"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-pisces-2027-02-01",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Pisces",
+   "utc": "2027-02-01T01:19Z",
+   "chu": "Mercury enters Pisces"
+  },
+  {
+   "ma": "tw-vao-cung-venus-capricorn-2027-02-03",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Capricorn",
+   "utc": "2027-02-03T14:25Z",
+   "chu": "Venus enters Capricorn"
+  },
+  {
+   "ma": "tw-trang-moi-aquarius-2027-02-06",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Aquarius",
+   "utc": "2027-02-06T15:57Z",
+   "chu": "New Moon in Aquarius"
+  },
+  {
+   "ma": "tw-nghich-hanh-mercury-pisces-2027-02-09",
+   "loai": "nghich_hanh",
+   "sao": "Mercury",
+   "cung": "Pisces",
+   "utc": "2027-02-09T17:29Z",
+   "chu": "Mercury turns retrograde in Pisces"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-aquarius-2027-02-18",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Aquarius",
+   "utc": "2027-02-18T12:10Z",
+   "chu": "Mercury enters Aquarius (retrograde)"
+  },
+  {
+   "ma": "tw-vao-cung-sun-pisces-2027-02-18",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Pisces",
+   "utc": "2027-02-18T21:30Z",
+   "chu": "Pisces season begins"
+  },
+  {
+   "ma": "tw-trang-tron-virgo-2027-02-20",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Virgo",
+   "utc": "2027-02-20T23:21Z",
+   "chu": "Full Moon in Virgo"
+  },
+  {
+   "ma": "tw-vao-cung-mars-leo-2027-02-21",
+   "loai": "vao_cung",
+   "sao": "Mars",
+   "cung": "Leo",
+   "utc": "2027-02-21T13:54Z",
+   "chu": "Mars enters Leo (retrograde)"
+  },
+  {
+   "ma": "tw-vao-cung-venus-aquarius-2027-03-01",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Aquarius",
+   "utc": "2027-03-01T06:25Z",
+   "chu": "Venus enters Aquarius"
+  },
+  {
+   "ma": "tw-di-thuan-mercury-aquarius-2027-03-03",
+   "loai": "di_thuan",
+   "sao": "Mercury",
+   "cung": "Aquarius",
+   "utc": "2027-03-03T12:36Z",
+   "chu": "Mercury turns direct in Aquarius"
+  },
+  {
+   "ma": "tw-trang-moi-pisces-2027-03-08",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Pisces",
+   "utc": "2027-03-08T09:32Z",
+   "chu": "New Moon in Pisces"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-pisces-2027-03-18",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Pisces",
+   "utc": "2027-03-18T10:00Z",
+   "chu": "Mercury enters Pisces"
+  },
+  {
+   "ma": "tw-vao-cung-sun-aries-2027-03-20",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Aries",
+   "utc": "2027-03-20T20:22Z",
+   "chu": "Aries season begins"
+  },
+  {
+   "ma": "tw-trang-tron-libra-2027-03-22",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Libra",
+   "utc": "2027-03-22T10:41Z",
+   "chu": "Full Moon in Libra"
+  },
+  {
+   "ma": "tw-vao-cung-venus-pisces-2027-03-26",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Pisces",
+   "utc": "2027-03-26T08:08Z",
+   "chu": "Venus enters Pisces"
+  },
+  {
+   "ma": "tw-di-thuan-mars-leo-2027-04-01",
+   "loai": "di_thuan",
+   "sao": "Mars",
+   "cung": "Leo",
+   "utc": "2027-04-01T13:05Z",
+   "chu": "Mars turns direct in Leo"
+  },
+  {
+   "ma": "tw-trang-moi-aries-2027-04-06",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Aries",
+   "utc": "2027-04-06T23:57Z",
+   "chu": "New Moon in Aries"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-aries-2027-04-08",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Aries",
+   "utc": "2027-04-08T23:15Z",
+   "chu": "Mercury enters Aries"
+  },
+  {
+   "ma": "tw-di-thuan-jupiter-leo-2027-04-13",
+   "loai": "di_thuan",
+   "sao": "Jupiter",
+   "cung": "Leo",
+   "utc": "2027-04-13T02:14Z",
+   "chu": "Jupiter turns direct in Leo"
+  },
+  {
+   "ma": "tw-vao-cung-venus-aries-2027-04-20",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Aries",
+   "utc": "2027-04-20T03:50Z",
+   "chu": "Venus enters Aries"
+  },
+  {
+   "ma": "tw-vao-cung-sun-taurus-2027-04-20",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Taurus",
+   "utc": "2027-04-20T07:14Z",
+   "chu": "Taurus season begins"
+  },
+  {
+   "ma": "tw-trang-tron-scorpio-2027-04-20",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Scorpio",
+   "utc": "2027-04-20T22:25Z",
+   "chu": "Full Moon in Scorpio"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-taurus-2027-04-24",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Taurus",
+   "utc": "2027-04-24T22:10Z",
+   "chu": "Mercury enters Taurus"
+  },
+  {
+   "ma": "tw-trang-moi-taurus-2027-05-06",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Taurus",
+   "utc": "2027-05-06T11:06Z",
+   "chu": "New Moon in Taurus"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-gemini-2027-05-09",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Gemini",
+   "utc": "2027-05-09T01:51Z",
+   "chu": "Mercury enters Gemini"
+  },
+  {
+   "ma": "tw-vao-cung-mars-virgo-2027-05-14",
+   "loai": "vao_cung",
+   "sao": "Mars",
+   "cung": "Virgo",
+   "utc": "2027-05-14T14:48Z",
+   "chu": "Mars enters Virgo"
+  },
+  {
+   "ma": "tw-vao-cung-venus-taurus-2027-05-14",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Taurus",
+   "utc": "2027-05-14T20:56Z",
+   "chu": "Venus enters Taurus"
+  },
+  {
+   "ma": "tw-trang-tron-scorpio-2027-05-20",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Scorpio",
+   "utc": "2027-05-20T10:56Z",
+   "chu": "Full Moon in Scorpio"
+  },
+  {
+   "ma": "tw-vao-cung-sun-gemini-2027-05-21",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Gemini",
+   "utc": "2027-05-21T06:13Z",
+   "chu": "Gemini season begins"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-cancer-2027-05-28",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Cancer",
+   "utc": "2027-05-28T16:59Z",
+   "chu": "Mercury enters Cancer"
+  },
+  {
+   "ma": "tw-trang-moi-gemini-2027-06-04",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Gemini",
+   "utc": "2027-06-04T19:48Z",
+   "chu": "New Moon in Gemini"
+  },
+  {
+   "ma": "tw-vao-cung-venus-gemini-2027-06-08",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Gemini",
+   "utc": "2027-06-08T12:26Z",
+   "chu": "Venus enters Gemini"
+  },
+  {
+   "ma": "tw-nghich-hanh-mercury-cancer-2027-06-10",
+   "loai": "nghich_hanh",
+   "sao": "Mercury",
+   "cung": "Cancer",
+   "utc": "2027-06-10T18:08Z",
+   "chu": "Mercury turns retrograde in Cancer"
+  },
+  {
+   "ma": "tw-trang-tron-sagittarius-2027-06-19",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Sagittarius",
+   "utc": "2027-06-19T00:42Z",
+   "chu": "Full Moon in Sagittarius"
+  },
+  {
+   "ma": "tw-vao-cung-sun-cancer-2027-06-21",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Cancer",
+   "utc": "2027-06-21T14:04Z",
+   "chu": "Cancer season begins"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-gemini-2027-06-26",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Gemini",
+   "utc": "2027-06-26T07:31Z",
+   "chu": "Mercury enters Gemini (retrograde)"
+  },
+  {
+   "ma": "tw-vao-cung-venus-cancer-2027-07-03",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Cancer",
+   "utc": "2027-07-03T01:53Z",
+   "chu": "Venus enters Cancer"
+  },
+  {
+   "ma": "tw-trang-moi-cancer-2027-07-04",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Cancer",
+   "utc": "2027-07-04T03:08Z",
+   "chu": "New Moon in Cancer"
+  },
+  {
+   "ma": "tw-di-thuan-mercury-gemini-2027-07-04",
+   "loai": "di_thuan",
+   "sao": "Mercury",
+   "cung": "Gemini",
+   "utc": "2027-07-04T19:49Z",
+   "chu": "Mercury turns direct in Gemini"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-cancer-2027-07-12",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Cancer",
+   "utc": "2027-07-12T13:45Z",
+   "chu": "Mercury enters Cancer"
+  },
+  {
+   "ma": "tw-vao-cung-mars-libra-2027-07-15",
+   "loai": "vao_cung",
+   "sao": "Mars",
+   "cung": "Libra",
+   "utc": "2027-07-15T05:30Z",
+   "chu": "Mars enters Libra"
+  },
+  {
+   "ma": "tw-trang-tron-capricorn-2027-07-18",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Capricorn",
+   "utc": "2027-07-18T15:45Z",
+   "chu": "Full Moon in Capricorn"
+  },
+  {
+   "ma": "tw-vao-cung-sun-leo-2027-07-23",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Leo",
+   "utc": "2027-07-23T00:57Z",
+   "chu": "Leo season begins"
+  },
+  {
+   "ma": "tw-vao-cung-jupiter-virgo-2027-07-26",
+   "loai": "vao_cung",
+   "sao": "Jupiter",
+   "cung": "Virgo",
+   "utc": "2027-07-26T05:02Z",
+   "chu": "Jupiter enters Virgo"
+  },
+  {
+   "ma": "tw-vao-cung-venus-leo-2027-07-27",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Leo",
+   "utc": "2027-07-27T12:19Z",
+   "chu": "Venus enters Leo"
+  },
+  {
+   "ma": "tw-trang-moi-leo-2027-08-02",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Leo",
+   "utc": "2027-08-02T10:07Z",
+   "chu": "New Moon in Leo"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-leo-2027-08-02",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Leo",
+   "utc": "2027-08-02T10:45Z",
+   "chu": "Mercury enters Leo"
+  },
+  {
+   "ma": "tw-nghich-hanh-saturn-aries-2027-08-09",
+   "loai": "nghich_hanh",
+   "sao": "Saturn",
+   "cung": "Aries",
+   "utc": "2027-08-09T17:47Z",
+   "chu": "Saturn turns retrograde in Aries"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-virgo-2027-08-17",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Virgo",
+   "utc": "2027-08-17T04:35Z",
+   "chu": "Mercury enters Virgo"
+  },
+  {
+   "ma": "tw-trang-tron-aquarius-2027-08-17",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Aquarius",
+   "utc": "2027-08-17T07:33Z",
+   "chu": "Full Moon in Aquarius"
+  },
+  {
+   "ma": "tw-vao-cung-venus-virgo-2027-08-20",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Virgo",
+   "utc": "2027-08-20T19:31Z",
+   "chu": "Venus enters Virgo"
+  },
+  {
+   "ma": "tw-vao-cung-sun-virgo-2027-08-23",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Virgo",
+   "utc": "2027-08-23T08:07Z",
+   "chu": "Virgo season begins"
+  },
+  {
+   "ma": "tw-trang-moi-virgo-2027-08-31",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Virgo",
+   "utc": "2027-08-31T17:40Z",
+   "chu": "New Moon in Virgo"
+  },
+  {
+   "ma": "tw-vao-cung-mars-scorpio-2027-09-02",
+   "loai": "vao_cung",
+   "sao": "Mars",
+   "cung": "Scorpio",
+   "utc": "2027-09-02T01:30Z",
+   "chu": "Mars enters Scorpio"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-libra-2027-09-03",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Libra",
+   "utc": "2027-09-03T11:30Z",
+   "chu": "Mercury enters Libra"
+  },
+  {
+   "ma": "tw-vao-cung-venus-libra-2027-09-14",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Libra",
+   "utc": "2027-09-14T00:14Z",
+   "chu": "Venus enters Libra"
+  },
+  {
+   "ma": "tw-trang-tron-pisces-2027-09-15",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Pisces",
+   "utc": "2027-09-15T23:10Z",
+   "chu": "Full Moon in Pisces"
+  },
+  {
+   "ma": "tw-vao-cung-sun-libra-2027-09-23",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Libra",
+   "utc": "2027-09-23T05:55Z",
+   "chu": "Libra season begins"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-scorpio-2027-09-27",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Scorpio",
+   "utc": "2027-09-27T09:04Z",
+   "chu": "Mercury enters Scorpio"
+  },
+  {
+   "ma": "tw-trang-moi-libra-2027-09-30",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Libra",
+   "utc": "2027-09-30T02:33Z",
+   "chu": "New Moon in Libra"
+  },
+  {
+   "ma": "tw-nghich-hanh-mercury-scorpio-2027-10-07",
+   "loai": "nghich_hanh",
+   "sao": "Mercury",
+   "cung": "Scorpio",
+   "utc": "2027-10-07T14:30Z",
+   "chu": "Mercury turns retrograde in Scorpio"
+  },
+  {
+   "ma": "tw-vao-cung-venus-scorpio-2027-10-08",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Scorpio",
+   "utc": "2027-10-08T03:49Z",
+   "chu": "Venus enters Scorpio"
+  },
+  {
+   "ma": "tw-trang-tron-aries-2027-10-15",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Aries",
+   "utc": "2027-10-15T13:53Z",
+   "chu": "Full Moon in Aries"
+  },
+  {
+   "ma": "tw-vao-cung-mars-sagittarius-2027-10-15",
+   "loai": "vao_cung",
+   "sao": "Mars",
+   "cung": "Sagittarius",
+   "utc": "2027-10-15T22:48Z",
+   "chu": "Mars enters Sagittarius"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-libra-2027-10-16",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Libra",
+   "utc": "2027-10-16T07:33Z",
+   "chu": "Mercury enters Libra (retrograde)"
+  },
+  {
+   "ma": "tw-vao-cung-sun-scorpio-2027-10-23",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Scorpio",
+   "utc": "2027-10-23T15:27Z",
+   "chu": "Scorpio season begins"
+  },
+  {
+   "ma": "tw-di-thuan-mercury-libra-2027-10-28",
+   "loai": "di_thuan",
+   "sao": "Mercury",
+   "cung": "Libra",
+   "utc": "2027-10-28T14:11Z",
+   "chu": "Mercury turns direct in Libra"
+  },
+  {
+   "ma": "tw-trang-moi-scorpio-2027-10-29",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Scorpio",
+   "utc": "2027-10-29T13:35Z",
+   "chu": "New Moon in Scorpio"
+  },
+  {
+   "ma": "tw-vao-cung-venus-sagittarius-2027-11-01",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Sagittarius",
+   "utc": "2027-11-01T07:24Z",
+   "chu": "Venus enters Sagittarius"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-scorpio-2027-11-10",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Scorpio",
+   "utc": "2027-11-10T00:21Z",
+   "chu": "Mercury enters Scorpio"
+  },
+  {
+   "ma": "tw-trang-tron-taurus-2027-11-14",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Taurus",
+   "utc": "2027-11-14T03:33Z",
+   "chu": "Full Moon in Taurus"
+  },
+  {
+   "ma": "tw-vao-cung-sun-sagittarius-2027-11-22",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Sagittarius",
+   "utc": "2027-11-22T13:10Z",
+   "chu": "Sagittarius season begins"
+  },
+  {
+   "ma": "tw-vao-cung-venus-capricorn-2027-11-25",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Capricorn",
+   "utc": "2027-11-25T11:49Z",
+   "chu": "Venus enters Capricorn"
+  },
+  {
+   "ma": "tw-vao-cung-mars-capricorn-2027-11-25",
+   "loai": "vao_cung",
+   "sao": "Mars",
+   "cung": "Capricorn",
+   "utc": "2027-11-25T18:08Z",
+   "chu": "Mars enters Capricorn"
+  },
+  {
+   "ma": "tw-trang-moi-sagittarius-2027-11-28",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Sagittarius",
+   "utc": "2027-11-28T03:25Z",
+   "chu": "New Moon in Sagittarius"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-sagittarius-2027-11-29",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Sagittarius",
+   "utc": "2027-11-29T10:16Z",
+   "chu": "Mercury enters Sagittarius"
+  },
+  {
+   "ma": "tw-trang-tron-gemini-2027-12-13",
+   "loai": "trang_tron",
+   "sao": "Moon",
+   "cung": "Gemini",
+   "utc": "2027-12-13T16:15Z",
+   "chu": "Full Moon in Gemini"
+  },
+  {
+   "ma": "tw-vao-cung-mercury-capricorn-2027-12-18",
+   "loai": "vao_cung",
+   "sao": "Mercury",
+   "cung": "Capricorn",
+   "utc": "2027-12-18T11:49Z",
+   "chu": "Mercury enters Capricorn"
+  },
+  {
+   "ma": "tw-vao-cung-venus-aquarius-2027-12-19",
+   "loai": "vao_cung",
+   "sao": "Venus",
+   "cung": "Aquarius",
+   "utc": "2027-12-19T18:32Z",
+   "chu": "Venus enters Aquarius"
+  },
+  {
+   "ma": "tw-vao-cung-sun-capricorn-2027-12-22",
+   "loai": "vao_cung",
+   "sao": "Sun",
+   "cung": "Capricorn",
+   "utc": "2027-12-22T02:36Z",
+   "chu": "Capricorn season begins"
+  },
+  {
+   "ma": "tw-di-thuan-saturn-aries-2027-12-24",
+   "loai": "di_thuan",
+   "sao": "Saturn",
+   "cung": "Aries",
+   "utc": "2027-12-24T00:12Z",
+   "chu": "Saturn turns direct in Aries"
+  },
+  {
+   "ma": "tw-trang-moi-capricorn-2027-12-27",
+   "loai": "trang_moi",
+   "sao": "Moon",
+   "cung": "Capricorn",
+   "utc": "2027-12-27T20:15Z",
+   "chu": "New Moon in Capricorn"
+  }
+ ]
+}

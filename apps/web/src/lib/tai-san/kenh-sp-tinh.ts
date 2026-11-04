@@ -24,6 +24,8 @@ export type KenhSp = {
   /** SỔ KÊNH (apps/xuong-video/scripts/lich-su/so-kenh.json theo mã máy — anh 04/11/2026 "cần có nơi tổ chức để sau này lên video mới ko bị chệch hướng"):
    *  định vị + luật + mẫu đã duyệt + hàng chờ ý tưởng + playlist kế hoạch + lộ trình G0…Gn; null = kênh chưa khai sổ */
   so?: SoKenh | null;
+  /** ý tưởng tự sinh 60 ngày tới từ nguồn của sổ (so.nguon_y_tuong — vd lịch trời) — hiện trong 💡 Hàng chờ */
+  yTuongTuSinh?: YTuong[];
   /** social trỏ về kênh (bài short dẫn link kênh) — tab Tài sản gắn theo khung ?ky= */
   social?: import('./social-tro-ve-tinh').TroVe | null;
 };
@@ -115,9 +117,10 @@ export type PlaylistKh = { ma: string; ten: string; tien_to?: string; noi_dung?:
 export type MauKenh = { ma: string; ten: string; loai: 'short' | 'dai'; playlist?: string; nhip?: string; kho?: string; trang?: string; sinh?: string; demo?: string; tu_sinh?: string };
 /** Ý TƯỞNG trong hàng chờ (so-kenh.json › hang_cho); trạng thái trong sổ bị tập thật đè (tập slug = mã ý tưởng: đã làm / đã đăng). */
 export type TrangThaiY = 'chua' | 'san_sang' | 'demo' | 'da_lam' | 'da_dang';
-export type YTuong = { ma: string; mau: string; chu_de: string; ngay?: string; trang_thai: TrangThaiY };
+export type YTuong = { ma: string; mau: string; chu_de: string; ngay?: string; trang_thai: TrangThaiY; /** ý tưởng máy tự sinh (so-kenh.json › nguon_y_tuong) — giờ UTC của sự kiện */ tu_sinh?: string; utc?: string };
 export type SoKenh = { ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[];
-  dinh_vi?: { cho_ai?: string; dich?: string; cau_ket?: string; ngon_ngu?: string }; luat?: string[]; mau?: MauKenh[]; hang_cho?: YTuong[]; mo_dau?: string };
+  dinh_vi?: { cho_ai?: string; dich?: string; cau_ket?: string; ngon_ngu?: string }; luat?: string[]; mau?: MauKenh[]; hang_cho?: YTuong[]; mo_dau?: string;
+  nguon_y_tuong?: { mau: string; tep: string; ngay_toi?: number; ghi?: string }[] };
 const GD: Record<TrangThaiGd, { ic: string; chu: string; mau: string }> = {
   xong: { ic: '✅', chu: 'xong', mau: 'var(--ok)' }, dang: { ic: '▶', chu: 'đang làm', mau: 'var(--warn)' },
   cho_anh: { ic: '⏸', chu: 'chờ anh', mau: 'var(--accent)' }, chua: { ic: '○', chu: 'chưa tới', mau: 'var(--fg-4)' },
@@ -177,14 +180,25 @@ export function trangThaiY(y: YTuong, videos: Pick<VideoKenh, 'slug' | 'trangTha
   const v = videos.filter((x) => x.slug === y.ma);
   return v.some((x) => x.trangThai === 'da_dang') ? 'da_dang' : v.length ? 'da_lam' : y.trang_thai;
 }
+/** Ý TƯỞNG TỰ SINH từ một nguồn (vd lịch trời): sự kiện trong [hom, hom + ngay_toi] ngày, bỏ mã đã có trong hàng chờ tay. Thuần. */
+export function yTuongTuSinh(so: SoKenh, nguon: Record<string, { ma: string; chu: string; utc: string }[]>, hom: string): YTuong[] {
+  const co = new Set((so.hang_cho ?? []).map((y) => y.ma)), ra: YTuong[] = [], t0 = Date.parse(`${hom}T00:00:00Z`);
+  for (const n of so.nguon_y_tuong ?? []) for (const s of nguon[n.tep] ?? []) {
+    const t = Date.parse(s.utc); if (co.has(s.ma) || t < t0 || t > t0 + (n.ngay_toi ?? 60) * 86400e3) continue;
+    ra.push({ ma: s.ma, mau: n.mau, chu_de: s.chu, ngay: s.utc.slice(0, 10), utc: s.utc, trang_thai: 'chua', tu_sinh: n.tep }); }
+  return ra;
+}
+const gioVnUtc = (iso: string) => { const d = new Date(Date.parse(iso) + 7 * 3600e3); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()} giờ VN`; };
 /** Khối 💡 HÀNG CHỜ Ý TƯỞNG: sẵn sàng → chưa làm (theo ngày) → đã có demo → đã làm → đã đăng. Thuần. */
-export function cayHangCho(so: SoKenh, videos: Pick<VideoKenh, 'slug' | 'trangThai'>[]): DongKe[] {
-  const ds = (so.hang_cho ?? []).map((y) => ({ y, t: trangThaiY(y, videos) })); if (!ds.length) return [];
+export function cayHangCho(so: SoKenh, videos: Pick<VideoKenh, 'slug' | 'trangThai'>[], tuSinh: YTuong[] = []): DongKe[] {
+  const ds = [...(so.hang_cho ?? []), ...tuSinh].map((y) => ({ y, t: trangThaiY(y, videos) })); if (!ds.length) return [];
   const mau = new Map((so.mau ?? []).map((m) => [m.ma, m.ten])), dem = (t: TrangThaiY) => ds.filter((x) => x.t === t).length;
   ds.sort((a, b) => YT[a.t].thu - YT[b.t].thu || (a.y.ngay ?? '9').localeCompare(b.y.ngay ?? '9'));
-  return [{ id: 'hc', nhom: true, chu: `💡 Hàng chờ ý tưởng (${ds.length})`, phu: `${dem('san_sang')} sẵn sàng · ${dem('chua')} chưa làm · ${dem('demo')} có demo · ${dem('da_dang')} đã đăng · máy lấy chủ đề kế từ đây` },
+  const nTu = tuSinh.length;
+  return [{ id: 'hc', nhom: true, chu: `💡 Hàng chờ ý tưởng (${ds.length})`, phu: `${dem('san_sang')} sẵn sàng · ${dem('chua')} chưa làm${nTu ? ` (${nTu} tự sinh)` : ''} · ${dem('demo')} có demo · ${dem('da_dang')} đã đăng · máy lấy chủ đề kế từ đây` },
     ...ds.map(({ y, t }): DongKe => ({ id: `hc/${y.ma}`, chu: `${YT[t].ic} ${y.chu_de}`, mau: YT[t].mau,
-      phu: [mau.get(y.mau) ?? y.mau, y.ngay && `${y.ngay.slice(8, 10)}/${y.ngay.slice(5, 7)}/${y.ngay.slice(0, 4)}`, YT[t].chu].filter(Boolean).join(' · ') }))];
+      phu: [mau.get(y.mau) ?? y.mau, y.utc ? gioVnUtc(y.utc) : y.ngay && `${y.ngay.slice(8, 10)}/${y.ngay.slice(5, 7)}/${y.ngay.slice(0, 4)}`, YT[t].chu,
+        y.tu_sinh && `tự sinh · ${y.tu_sinh === 'lich-troi.json' ? 'lịch trời' : y.tu_sinh}`].filter(Boolean).join(' · ') }))];
 }
 /** ĐÓNG / MỞ từng khối trong cây (anh 02/11/2026 "các phần bên trong đều phải cho đóng mở tuỳ ý"): dòng nhóm luôn giữ, con của nhóm đang gập thì bỏ.
  *  khoaNhom(r) = khoá nhóm nếu r là dòng nhóm, null nếu là dòng con (thuộc nhóm đứng trước gần nhất). Thuần. */

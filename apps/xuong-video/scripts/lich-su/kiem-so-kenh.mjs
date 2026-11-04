@@ -30,6 +30,11 @@ export function kiemSo(k, ma) {
     if (!TT_Y.has(h.trang_thai)) loi.push(`${ma}: ý tưởng ${h.ma} trạng thái lạ ${h.trang_thai}`);
   }
   if ((k.mau ?? []).length && !k.dinh_vi?.cau_ket) loi.push(`${ma}: có mẫu nhưng thiếu dinh_vi.cau_ket`);
+  for (const n of k.nguon_y_tuong ?? []) {   // nguồn ý tưởng tự sinh: mẫu có thật, tệp có thật, mã mỗi sự kiện đúng khuôn tu_sinh của mẫu
+    const m = mau.get(n.mau); if (!m) { loi.push(`${ma}: nguồn ý tưởng trỏ mẫu ${n.mau} không có`); continue; }
+    if (!existsSync(join(DIR, n.tep))) { loi.push(`${ma}: nguồn ý tưởng ${n.tep} không có (chạy máy sinh của nó)`); continue; }
+    const ds = JSON.parse(readFileSync(join(DIR, n.tep), 'utf8')).su_kien ?? [], sai = m.tu_sinh ? ds.filter((x) => !new RegExp(m.tu_sinh).test(x.ma)) : ds;
+    if (sai.length) loi.push(`${ma}: ${sai.length} ý tưởng trong ${n.tep} không đúng khuôn tu_sinh của mẫu ${n.mau} (vd ${sai[0].ma})`); }
   return loi;
 }
 

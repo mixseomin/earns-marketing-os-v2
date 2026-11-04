@@ -93,3 +93,13 @@ import { caySoKenh, cayMau, cayHangCho, trangThaiY } from './kenh-sp-tinh';
   // kênh chưa khai sổ → không khối nào
   assert.deepStrictEqual([...caySoKenh({ giai_doan: [] }), ...cayMau({ giai_doan: [] }), ...cayHangCho({ giai_doan: [] }, [])], []); }
 console.log('kenh-sp-tinh: sổ kênh đạt');
+// Ý TƯỞNG TỰ SINH (lịch trời): chỉ sự kiện trong 60 ngày tới, bỏ mã đã có trong hàng chờ tay; giờ hiện theo giờ VN
+import { yTuongTuSinh } from './kenh-sp-tinh';
+{ const so = { giai_doan: [], mau: [{ ma: 'tw', ten: 'This Week', loai: 'short' as const }], hang_cho: [{ ma: 'tw-a', mau: 'tw', chu_de: 'A', trang_thai: 'demo' as const }],
+    nguon_y_tuong: [{ mau: 'tw', tep: 'lich-troi.json', ngay_toi: 60 }] };
+  const ng = { 'lich-troi.json': [{ ma: 'tw-a', chu: 'A', utc: '2026-11-09T07:01Z' }, { ma: 'tw-b', chu: 'Mercury turns direct in Scorpio', utc: '2026-11-13T15:50Z' },
+    { ma: 'tw-c', chu: 'xa', utc: '2027-03-01T00:00Z' }, { ma: 'tw-d', chu: 'đã qua', utc: '2026-10-01T00:00Z' }] };
+  const y = yTuongTuSinh(so, ng, '2026-11-04'); assert.deepStrictEqual(y.map((x) => x.ma), ['tw-b']);
+  const h = cayHangCho(so, [], y); assert.ok(h[0]!.phu!.includes('(1 tự sinh)')); const b = h.find((x) => x.id === 'hc/tw-b')!;
+  assert.ok(b.phu!.includes('22:50 13/11/2026 giờ VN'), b.phu); assert.ok(b.phu!.includes('tự sinh · lịch trời')); }
+console.log('kenh-sp-tinh: ý tưởng tự sinh đạt');

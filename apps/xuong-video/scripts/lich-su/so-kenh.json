@@ -1,5 +1,5 @@
 {
-  "_ghi": "SỔ KÊNH (anh 04/11/2026: 'cần có nơi tổ chức để sau này lên video mới ko bị chệch hướng' → 'show ở Kênh nội dung'). MỘT nguồn cho người + máy, chung mọi kênh studio, khoá = mã máy (xv_may.ma). Anh đọc ở mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh: 📘 Sổ kênh · 🧩 Mẫu đã duyệt · 💡 Hàng chờ ý tưởng · 🧭 Lộ trình · 📂 Playlist) và Studio (phim kênh › 📖 Phim). Máy gác: lich-su/kiem-so-kenh.mjs (tự kiểm sổ + gác từng tập: mẫu / playlist phải có trong sổ, câu kết đúng, chủ đề không trùng). Phần: dinh_vi · luat[] · mau[] { ma, ten, loai short|dai, playlist, nhip, kho, trang, sinh, demo, tu_sinh? (khuôn mã ý tưởng máy tự sinh — mẫu vô hạn) } · hang_cho[] { ma, mau, chu_de, ngay?, trang_thai chua|san_sang|demo|da_lam|da_dang } · playlist[] · giai_doan[] (lộ trình). trang_thai playlist: de_xuat · chot · mo · sau · tam_dung; giai đoạn: cho_anh · dang · chua · xong. Đổi sổ = sửa tệp + commit (deploy đọc lại). Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs đọc kenh.json).",
+  "_ghi": "SỔ KÊNH (anh 04/11/2026: 'cần có nơi tổ chức để sau này lên video mới ko bị chệch hướng' → 'show ở Kênh nội dung'). MỘT nguồn cho người + máy, chung mọi kênh studio, khoá = mã máy (xv_may.ma). Anh đọc ở mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh: 📘 Sổ kênh · 🧩 Mẫu đã duyệt · 💡 Hàng chờ ý tưởng · 🧭 Lộ trình · 📂 Playlist) và Studio (phim kênh › 📖 Phim). Máy gác: lich-su/kiem-so-kenh.mjs (tự kiểm sổ + gác từng tập: mẫu / playlist phải có trong sổ, câu kết đúng, chủ đề không trùng). Phần: dinh_vi · luat[] · mau[] { ma, ten, loai short|dai, playlist, nhip, kho, trang, sinh, demo, tu_sinh? (khuôn mã ý tưởng máy tự sinh — mẫu vô hạn) } · hang_cho[] { ma, mau, chu_de, ngay?, trang_thai chua|san_sang|demo|da_lam|da_dang } · nguon_y_tuong[] { mau, tep (lich-su/<tệp> có su_kien[] { ma, chu, utc }), ngay_toi } — ý tưởng TỰ SINH hiện trong hàng chờ · playlist[] · giai_doan[] (lộ trình). trang_thai playlist: de_xuat · chot · mo · sau · tam_dung; giai đoạn: cho_anh · dang · chua · xong. Đổi sổ = sửa tệp + commit (deploy đọc lại). Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs đọc kenh.json).",
   "astrolas": {
     "ten": "Astrolas · YouTube @astrolasapp",
     "plan": "apps/xuong-video/docs/astrolas-youtube.md",
@@ -328,8 +328,9 @@
         "nhip": "theo sự kiện trời",
         "kho": "≈ 1.000 Short / năm (88 sự kiện × 12 cung Mọc)",
         "trang": "shot-code/la-so.html",
-        "sinh": "G4: lịch sự kiện theo phút → máy sinh",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-this-week.mp4"
+        "sinh": "lich-su/lich-troi.mjs → lich-troi.json (sự kiện trời tới phút) → ý tưởng tự sinh tw-…",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-this-week.mp4",
+        "tu_sinh": "^tw-[a-z0-9-]+$"
       },
       {
         "ma": "chart-chapters-dai",
@@ -522,6 +523,14 @@
         "mau": "start-here",
         "chu_de": "Channel trailer",
         "trang_thai": "demo"
+      }
+    ],
+    "nguon_y_tuong": [
+      {
+        "mau": "this-week",
+        "tep": "lich-troi.json",
+        "ngay_toi": 60,
+        "ghi": "sự kiện trời sắp tới (trăng mới / tròn, đổi cung, đổi chiều) — mỗi sự kiện một ý tưởng, 12 bản theo cung Mọc"
       }
     ]
   }

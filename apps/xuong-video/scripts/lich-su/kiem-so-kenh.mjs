@@ -70,7 +70,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log(loi.length ? `✗ ${ma}\n${loi.map((l) => `   · ${l}`).join('\n')}` : `✓ ${ma}: ${(k.mau ?? []).length} mẫu · ${(k.hang_cho ?? []).length} ý tưởng · ${(k.playlist ?? []).length} playlist`); }
   // phá thử: tập sai phải bị chặn (máy gác không được im)
   const k = so.astrolas;
-  if (k?.mau?.length) { const sai = kiemTap({ mau: 'khong-co', cau: [{ chu: 'bye' }] }, k, 'astrolas'), dung = kiemTap({ mau: 'this-week', playlist_ma: 'this-week', y_tuong: 'tw-mercury-rx-pisces-2027', cau: [{ chu: 'See it free at astrolas.com' }] }, k, 'astrolas');
+  if (k?.mau?.length) { const sai = kiemTap({ mau: 'khong-co', cau: [{ chu: 'bye' }] }, k, 'astrolas'), dung = kiemTap({ mau: 'this-week', playlist_ma: 'this-week', y_tuong: 'tw-di-thuan-mercury-scorpio-2026-11-13', cau: [{ chu: 'See it free at astrolas.com' }] }, k, 'astrolas');
     const tuSinh = kiemTap({ mau: 'tonights-sky', playlist_ma: 'tonights-sky', y_tuong: 'ts-paris-2027-01-05', cau: [{ chu: 'See your own sky free at astrolas.com' }] }, k, 'astrolas');
     const saiKhuon = kiemTap({ mau: 'tonights-sky', playlist_ma: 'tonights-sky', y_tuong: 'paris', cau: [{ chu: 'astrolas.com' }] }, k, 'astrolas');
     if (sai.length < 3 || dung.length || tuSinh.length || !saiKhuon.length) { console.log(`✗ tự kiểm máy gác hỏng: sai→${sai.length} · đúng→${dung.join('; ')} · tự sinh→${tuSinh.join('; ')} · sai khuôn→${saiKhuon.length}`); tong++; }

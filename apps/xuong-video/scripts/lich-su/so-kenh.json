@@ -30,6 +30,28 @@
         "ghi": "tên EN tạm đặt 03/11 (anh chưa chọn) — đổi được tới G7"
       },
       {
+        "ma": "chart-vs-chart",
+        "ten": "Chart vs Chart",
+        "tien_to": "Chart vs Chart: …",
+        "noi_dung": "synastry hai người: cặp đôi nổi tiếng, đối thủ, bạn diễn — góc chiếu chéo khít nhất + điểm từng trục của site + mốc quen / cưới / chia tay",
+        "ho_hinh": "bánh xe đôi Nebula + ảnh minh hoạ",
+        "ngay": "Thứ 3 + Thứ 7",
+        "trang_dich": "Synastry (/synastry-chart), Compatibility (/compatibility)",
+        "mo_dau": true,
+        "trang_thai": "de_xuat"
+      },
+      {
+        "ma": "sign-x-sign",
+        "ten": "Sign × Sign",
+        "tien_to": "Aries × Leo: …",
+        "noi_dung": "78 cặp cung Mặt Trời (12 × 13 / 2), mỗi tập trỏ đúng bài ghép cung của site /en/blog/<a>-and-<b>-compatibility",
+        "ho_hinh": "hai ký hiệu cung + vòng hoàng đạo",
+        "ngay": "Thứ 5",
+        "trang_dich": "/en/blog/<a>-and-<b>-compatibility, /synastry-chart",
+        "mo_dau": true,
+        "trang_thai": "de_xuat"
+      },
+      {
         "ma": "start-here",
         "ten": "Start here",
         "tien_to": "",
@@ -230,7 +252,8 @@
       "Khung thương hiệu G2: logo + icon thật, nhãn playlist, nền trời thật chuyển động, màn cuối chung",
       "Short: chữ và logo ngoài vùng YouTube đè; video dài: 16:9, hình trái · chữ phải",
       "Người còn sống: không vẽ chân dung minh hoạ (chỉ lá số, trang công cụ, cảnh chung)",
-      "Câu kết trỏ về astrolas.com (công cụ miễn phí); chủ đề đã đăng không làm lại"
+      "Câu kết trỏ về astrolas.com (công cụ miễn phí); chủ đề đã đăng không làm lại",
+      "Synastry: góc chiếu chạm cung Mọc / MC / nhà của ai thì người đó phải hạng AA; chạm Trăng thì phải có giờ sinh (AA / A / B); hành tinh khác chỉ cần ngày sinh (la-so/hop.mjs ghi cờ dung từng góc). Bỏ góc chiếu thế hệ (hai sao Uranus / Neptune / Pluto) khỏi tiêu đề tập"
     ],
     "mau": [
       {
@@ -344,6 +367,39 @@
         "sinh": "lich-su/dai/sinh-chuong.mjs --slug <người> --moc <moc.json>",
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-chart-chapters.mp4?v=2",
         "tu_sinh": "^ccd-[a-z0-9-]+$"
+      },
+      {
+        "ma": "chart-vs-chart",
+        "ten": "Chart vs Chart",
+        "loai": "short",
+        "playlist": "chart-vs-chart",
+        "nhip": "Thứ 3 + Thứ 7",
+        "kho": "vô hạn · mỗi cặp 1–3 tập (góc khít nhất / điểm / mốc chia tay)",
+        "trang": "shot-code/la-so.html (cheo + diem)",
+        "sinh": "la-so/hop.mjs <a> <b> → kịch bản tay (G5 tự viết)",
+        "cho_duyet": true
+      },
+      {
+        "ma": "love-story-charts",
+        "ten": "Love Story in Two Charts (long)",
+        "loai": "dai",
+        "playlist": "chart-vs-chart",
+        "nhip": "2 tập / tháng",
+        "kho": "theo sổ cặp la-so/cap.json",
+        "trang": "shot-code/la-so.html (khung ngang)",
+        "sinh": "hop.mjs + zr.mjs (kỳ ZR của CẢ HAI người ở mỗi mốc quen / cưới / chia tay)",
+        "cho_duyet": true
+      },
+      {
+        "ma": "sign-x-sign",
+        "ten": "Sign × Sign",
+        "loai": "short",
+        "playlist": "sign-x-sign",
+        "nhip": "Thứ 5",
+        "kho": "78 cặp cung (đủ một vòng 78 tuần)",
+        "trang": "shot-code/la-so.html",
+        "sinh": "bài ghép cung của site — chỉ dùng câu trong bài",
+        "cho_duyet": true
       },
       {
         "ma": "how-the-sky-works",

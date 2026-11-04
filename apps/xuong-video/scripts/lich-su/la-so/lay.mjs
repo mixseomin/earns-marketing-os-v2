@@ -11,6 +11,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { nhungFont } from './font.mjs';
 
 const PW = process.env.DO_MAN_PW || `${process.env.HOME}/Me/Earns/courseforge-demo/node_modules/playwright`;   // như shot-code/dung.mjs
 let chromium; try { ({ chromium } = createRequire(import.meta.url)(PW)); } catch { ({ chromium } = createRequire(import.meta.url)('playwright')); }
@@ -22,19 +23,6 @@ const urlCua = (slug) => { if (!theoNguoi) return `${SITE}/c/${slug}`;
   const n = SO_NGUOI.find((x) => x.slug === slug); if (!n) throw new Error(`${slug} không có trong la-so/nguoi.json`); const s = n.sinh;
   return `${SITE}/birth?` + new URLSearchParams({ name: n.ten, day: s.ngay, month: s.thang, year: s.nam, hour: s.gio, minute: s.phut, location: s.noi, lat: s.vi, lng: s.kinh }); };
 mkdirSync(DIR, { recursive: true });
-
-const fontCache = new Map();
-async function nhungFont(svg) {   // mọi url(...) font trong SVG → data: URL
-  const urls = [...new Set([...svg.matchAll(/url\((['"]?)([^'")]+\.(?:ttf|woff2?|otf)(?:\?[^'")]*)?)\1\)/g)].map((m) => m[2]))];
-  for (const u of urls) {
-    const abs = new URL(u, SITE).href;
-    if (!fontCache.has(abs)) { const r = await fetch(abs); if (!r.ok) throw new Error(`không tải được font ${abs} (${r.status})`);
-      const kieu = abs.match(/\.(ttf|woff2?|otf)/)[1]; fontCache.set(abs, `data:font/${kieu === 'ttf' ? 'ttf' : kieu};base64,${Buffer.from(await r.arrayBuffer()).toString('base64')}`); }
-    svg = svg.split(u).join(fontCache.get(abs));
-  }
-  if (/url\((['"]?)\/fonts\//.test(svg)) throw new Error('còn font trỏ /fonts/ chưa nhúng');
-  return { svg, so: urls.length };
-}
 
 const tr = await chromium.launch();
 try {

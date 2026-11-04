@@ -42,6 +42,8 @@ export function kiemSo(k, ma) {
 export function kiemTap(tap, k, ma) {
   const loi = [], m = (k.mau ?? []).find((x) => x.ma === tap.mau);
   if (!tap.mau) loi.push('tập không khai mau (mẫu đã duyệt nào?)'); else if (!m) loi.push(`mẫu ${tap.mau} không có trong sổ ${ma}`);
+  // mẫu mới (cho_duyet) chỉ làm DEMO cho anh duyệt; tập thật theo mẫu đó chưa được lên kênh (demo khai demo: true)
+  else if (m.cho_duyet && !tap.demo) loi.push(`mẫu ${m.ma} đang chờ anh duyệt demo — chưa làm tập thật`);
   if (!tap.playlist?.ma && !tap.playlist_ma) loi.push('tập không khai playlist');
   const plMa = tap.playlist_ma ?? tap.playlist?.ma;
   if (m && plMa && m.playlist !== plMa) loi.push(`mẫu ${m.ma} thuộc playlist ${m.playlist}, tập lại khai ${plMa}`);
@@ -77,8 +79,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const k = so.astrolas;
   if (k?.mau?.length) { const sai = kiemTap({ mau: 'khong-co', cau: [{ chu: 'bye' }] }, k, 'astrolas'), dung = kiemTap({ mau: 'this-week', playlist_ma: 'this-week', y_tuong: 'tw-di-thuan-mercury-scorpio-2026-11-13', cau: [{ chu: 'See it free at astrolas.com' }] }, k, 'astrolas');
     const tuSinh = kiemTap({ mau: 'tonights-sky', playlist_ma: 'tonights-sky', y_tuong: 'ts-paris-2027-01-05', cau: [{ chu: 'See your own sky free at astrolas.com' }] }, k, 'astrolas');
+    const choDuyet = (k.mau.find((x) => x.cho_duyet) && kiemTap({ mau: k.mau.find((x) => x.cho_duyet).ma, playlist_ma: k.mau.find((x) => x.cho_duyet).playlist, y_tuong: 'x', cau: [{ chu: 'astrolas.com' }] }, k, 'astrolas').some((l) => l.includes('chờ anh duyệt'))) ?? true;
     const saiKhuon = kiemTap({ mau: 'tonights-sky', playlist_ma: 'tonights-sky', y_tuong: 'paris', cau: [{ chu: 'astrolas.com' }] }, k, 'astrolas');
-    if (sai.length < 3 || dung.length || tuSinh.length || !saiKhuon.length) { console.log(`✗ tự kiểm máy gác hỏng: sai→${sai.length} · đúng→${dung.join('; ')} · tự sinh→${tuSinh.join('; ')} · sai khuôn→${saiKhuon.length}`); tong++; }
-    else console.log('✓ phá thử: tập sai bị chặn · tập đúng qua · mã tự sinh đúng khuôn qua · sai khuôn bị chặn'); }
+    if (sai.length < 3 || dung.length || tuSinh.length || !saiKhuon.length || !choDuyet) { console.log(`✗ tự kiểm máy gác hỏng: sai→${sai.length} · đúng→${dung.join('; ')} · tự sinh→${tuSinh.join('; ')} · sai khuôn→${saiKhuon.length} · mẫu chờ duyệt→${choDuyet ? 'chặn' : 'LỌT'}`); tong++; }
+    else console.log('✓ phá thử: tập sai bị chặn · tập đúng qua · mã tự sinh đúng khuôn qua · sai khuôn bị chặn · mẫu chờ duyệt bị chặn'); }
   process.exit(tong ? 1 : 0);
 }

@@ -89,7 +89,10 @@ import { caySoKenh, cayMau, cayHangCho, trangThaiY } from './kenh-sp-tinh';
     hang_cho: [{ ma: 'a', mau: 'cc', chu_de: 'A', trang_thai: 'demo' as const }, { ma: 'b', mau: 'cc', chu_de: 'B', trang_thai: 'chua' as const, ngay: '2027-02-10' },
       { ma: 'c', mau: 'ts', chu_de: 'C', trang_thai: 'san_sang' as const }, { ma: 'd', mau: 'cc', chu_de: 'D', trang_thai: 'chua' as const }] };
   const s = caySoKenh(so); assert.strictEqual(s[0]!.chu, '📘 Sổ kênh'); assert.strictEqual(s.length, 1 + 3 + 2); assert.ok(s[3]!.chu.includes('astrolas.com'));
-  const m = cayMau(so); assert.strictEqual(m[0]!.chu, '🧩 Mẫu đã duyệt (2)'); assert.deepStrictEqual(m[1]!.ngan, { loai: 'mau', id: 'cc' }); assert.strictEqual(m[1]!.nganChu, '▶ xem');
+  const m = cayMau(so); assert.strictEqual(m[0]!.chu, '🧩 Mẫu (2 đã duyệt)');
+  // mẫu chờ duyệt: đếm riêng ở dòng nhóm, xếp CUỐI, ghi rõ ⏳ chờ anh duyệt (không lẫn với mẫu đã duyệt)
+  { const m2 = cayMau({ ...so, mau: [{ ma: 'x', ten: 'Chart vs Chart', loai: 'short' as const, cho_duyet: true }, ...so.mau] });
+    assert.strictEqual(m2[0]!.chu, '🧩 Mẫu (2 đã duyệt · 1 chờ duyệt)'); assert.ok(m2[3]!.chu.endsWith('⏳ chờ anh duyệt')); assert.strictEqual(m2[3]!.mau, 'var(--warn)'); } assert.deepStrictEqual(m[1]!.ngan, { loai: 'mau', id: 'cc' }); assert.strictEqual(m[1]!.nganChu, '▶ xem');
   assert.ok(m[1]!.phu!.includes('playlist Chart Chapters')); assert.strictEqual(m[2]!.nganChu, 'mở'); assert.ok(m[2]!.phu!.includes('máy tự sinh'));
   // tập thật có slug = mã ý tưởng → đè trạng thái sổ; đã đăng thắng đã làm
   assert.strictEqual(trangThaiY(so.hang_cho[3]!, [{ slug: 'd', trangThai: 'cho_cham' }]), 'da_lam');

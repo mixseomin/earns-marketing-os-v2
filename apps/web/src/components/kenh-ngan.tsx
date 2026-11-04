@@ -47,7 +47,7 @@ export function KenhNgan({ kenh }: { kenh: KenhSp[] }) {
 
 function NganMau({ k, ma, onClose, moVideo }: { k: KenhSp; ma: string; onClose: () => void; moVideo: (slug: string) => void }) {
   const mau = k.so?.mau?.find((x) => x.ma === ma);
-  if (!k.so || !mau) return <><ModalHeader kind="generic" action="view" title="Mẫu không còn trong sổ kênh" onClose={onClose} /></>;
+  if (!k.so || !mau) return <><ModalHeader kind="kenh" action="view" title="Mẫu không còn trong sổ kênh" onClose={onClose} /></>;
   const s = thongKeMau(k.so, k.videos, k.yTuongTuSinh ?? []).get(ma)!, rows = dongMau(s), pl = k.so.playlist?.find((p) => p.ma === mau.playlist);
   const cot: DataColumn<DongMau>[] = [
     { key: 'ngay', header: 'Ngày', width: 100, sortValue: (r) => r.ngay, cellTitle: (r) => (r.loai === 'video' ? (r.v.ngayDang ? 'ngày đăng' : 'ngày làm xong') : r.y.utc ? 'giờ sự kiện (UTC)' : 'ngày dự kiến'), cell: (r) => ngayVn(r.ngay) },
@@ -59,7 +59,7 @@ function NganMau({ k, ma, onClose, moVideo }: { k: KenhSp; ma: string; onClose: 
     { key: 'xem', header: 'Lượt xem', width: 90, sortValue: (r) => (r.loai === 'video' ? r.v.xem : null), cell: (r) => (r.loai === 'video' ? so(r.v.xem) : <span style={{ color: 'var(--fg-4)' }}>–</span>) },
   ];
   return <>
-    <ModalHeader kind="generic" action="view" title={`${mau.loai === 'dai' ? '🎞' : '📱'} ${mau.ten}`} subtitle={`${k.ten} · mẫu đã duyệt`} onClose={onClose} />
+    <ModalHeader kind="kenh" action="view" title={`${mau.loai === 'dai' ? '🎞' : '📱'} ${mau.ten}`} subtitle={`${k.ten} · mẫu đã duyệt`} onClose={onClose} />
     <div style={{ display: 'grid', gridTemplateColumns: `${mau.loai === 'dai' ? 480 : 260}px minmax(280px, 1fr) minmax(300px, 1fr)`, gap: 20, margin: '14px 0 18px', alignItems: 'start' }}>
       {mau.demo ? <Video src={mau.demo} doc={mau.loai !== 'dai'} /> : <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>chưa có video demo</div>}
       <Luoi>
@@ -87,7 +87,7 @@ function NganMau({ k, ma, onClose, moVideo }: { k: KenhSp; ma: string; onClose: 
 function NganVideo({ k, v, onClose }: { k: KenhSp; v: VideoKenh; onClose: () => void }) {
   const id = ytId(v.url), c = CHANG_VIDEO[v.trangThai], mau: MauKenh | undefined = k.so?.mau?.find((m) => m.ma === v.mau);
   return <>
-    <ModalHeader kind="generic" action="view" title={v.ten} subtitle={k.ten} onClose={onClose} />
+    <ModalHeader kind="kenh" action="view" title={v.ten} subtitle={k.ten} onClose={onClose} />
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20, marginTop: 14, alignItems: 'start' }}>
       {id ? <iframe src={`https://www.youtube-nocookie.com/embed/${id}`} title={v.ten} allow="encrypted-media; picture-in-picture" allowFullScreen
           style={{ width: '100%', aspectRatio: mau?.loai === 'short' ? '9 / 16' : '16 / 9', maxHeight: '70vh', border: 0, borderRadius: 8, background: '#000' }} />
@@ -113,17 +113,17 @@ function NganVideo({ k, v, onClose }: { k: KenhSp; v: VideoKenh; onClose: () => 
 
 function NganMoDau({ k, onClose }: { k: KenhSp; onClose: () => void }) {
   return <>
-    <ModalHeader kind="generic" action="view" title="▶ Đoạn mở đầu" subtitle={`${k.ten} · gắn đầu mọi tập`} onClose={onClose} />
+    <ModalHeader kind="kenh" action="view" title="▶ Đoạn mở đầu" subtitle={`${k.ten} · gắn đầu mọi tập`} onClose={onClose} />
     <div style={{ marginTop: 14 }}>{k.so?.mo_dau ? <Video src={k.so.mo_dau} doc /> : <span style={{ color: 'var(--fg-3)' }}>Kênh chưa có đoạn mở đầu.</span>}</div>
   </>;
 }
 
 function NganNguoi({ k, slug, onClose }: { k: KenhSp; slug: string; onClose: () => void }) {
   const n = k.nguoi?.ds.find((x) => x.slug === slug), dung = k.nguoi?.dungNha ?? ['AA'];
-  if (!n) return <ModalHeader kind="generic" action="view" title="Người này không còn trong sổ" onClose={onClose} />;
+  if (!n) return <ModalHeader kind="kenh" action="view" title="Người này không còn trong sổ" onClose={onClose} />;
   const s = n.sinh, p2 = (x: number) => String(x).padStart(2, '0'), duNha = !n.khong_dung && dung.includes(n.rodden);
   return <>
-    <ModalHeader kind="generic" action="view" title={n.ten} subtitle={`${k.ten} · lá số người nổi tiếng`} onClose={onClose} />
+    <ModalHeader kind="kenh" action="view" title={n.ten} subtitle={`${k.ten} · lá số người nổi tiếng`} onClose={onClose} />
     <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <Luoi>
         <O k="Sinh">{`${p2(s.ngay)}/${p2(s.thang)}/${s.nam} ${p2(s.gio)}:${p2(s.phut)} · ${s.noi}`}</O>
@@ -140,7 +140,7 @@ function NganNguoi({ k, slug, onClose }: { k: KenhSp; slug: string; onClose: () 
 
 function NganKenh({ k, onClose }: { k: KenhSp; onClose: () => void }) {
   return <>
-    <ModalHeader kind="generic" action="view" title={k.ten} subtitle="kênh nội dung" onClose={onClose} />
+    <ModalHeader kind="kenh" action="view" title={k.ten} subtitle="kênh nội dung" onClose={onClose} />
     <div style={{ display: 'flex', gap: 16, marginTop: 14, alignItems: 'flex-start' }}>
       {k.anh && <img src={k.anh} alt="" width={72} height={72} style={{ borderRadius: '50%', flex: 'none' }} />}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>

@@ -11,7 +11,7 @@ import {
 } from './icons';
 
 export type ModalKind =
-  | 'account' | 'brief' | 'lanes' | 'pipeline' | 'tribe' | 'schedule' | 'generic';
+  | 'account' | 'brief' | 'lanes' | 'pipeline' | 'tribe' | 'schedule' | 'kenh' | 'generic';
 
 const KIND_META: Record<ModalKind, { label: string; color: string; Icon: typeof IconUser }> = {
   account:  { label: 'ACCOUNT',  color: '#60a5fa', Icon: IconUser },
@@ -20,6 +20,7 @@ const KIND_META: Record<ModalKind, { label: string; color: string; Icon: typeof 
   schedule: { label: 'LANES',    color: '#fbbf24', Icon: IconClock },
   pipeline: { label: 'PIPELINE', color: '#2dd4bf', Icon: IconList },
   tribe:    { label: 'TRIBE',    color: '#a78bfa', Icon: IconCommunity },
+  kenh:     { label: 'KÊNH',     color: 'var(--fg-3)', Icon: IconList },
   generic:  { label: 'MODAL',    color: 'var(--fg-3)', Icon: IconGear },
 };
 

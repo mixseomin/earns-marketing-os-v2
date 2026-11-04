@@ -29,7 +29,7 @@ type Dong = { loai: 'kenh'; k: KenhSp } | { loai: 'video'; k: KenhSp; v: VideoKe
   /** dòng KẾ HOẠCH trong cây: nhóm (tiêu đề nhóm) hoặc một mục lịch (sản xuất / đăng) */
   | ({ loai: 'ke'; k: KenhSp; ngay?: string | null } & DongKe);
 /** ô số của bảng thống kê mẫu: cột cố định, thẳng hàng giữa dòng nhóm (tên cột) và từng mẫu */
-const O_RONG = 74;
+const O_RONG = 74, O_CHU = 760;
 /** CÂY của một kênh: 📘 Sổ kênh + 🧩 Mẫu + 💡 Hàng chờ + 🧭 Lộ trình + 📂 Playlist (so-kenh.json, nếu kênh có khai) + ▶ Đang sản xuất + 🗓 Lịch (cayKeHoach — thuần, tự kiểm) rồi 🎬 Đã làm (chặng từng video).
  *  Lịch tháng vẫn ở LỊCH NHỎ trong menu ⋯. */
 function cayKenh(k: KenhSp): Dong[] {
@@ -66,6 +66,7 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
     { key: 'kenh', header: 'Kênh', align: 'left', width: 320, sortValue: (d) => d.k.ten,
       cell: (d) => {
         if (d.loai === 'ke') return <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: d.nhom ? THUT_NHOM : THUT_MUC, fontFamily: 'var(--font-sans)', minWidth: 0, whiteSpace: 'nowrap' }}>
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, minWidth: 0, ...(d.o ? { width: O_CHU - (d.nhom ? THUT_NHOM : THUT_MUC), flex: 'none', overflow: 'hidden' } : { flex: 1 }) }}>
           {!d.nhom && <span style={{ color: 'var(--fg-4)' }}>└</span>}
           {d.nhom && (() => { const kh = `${d.k.ma}:${d.id}`, dong_ = gap.has(kh);
             return <button type="button" onClick={(e) => { e.stopPropagation(); doiGap(kh); }} title={dong_ ? 'mở khối' : 'gập khối'}
@@ -73,8 +74,8 @@ export function TaiSanKenhSp({ kenh, kySocial = 7 }: { kenh: KenhSp[]; kySocial?
           <span style={{ fontWeight: d.nhom ? 700 : 400, color: d.mau ?? (d.nhom ? 'var(--fg-1)' : undefined) }}>{d.chu}</span>
           {d.ngan && <button type="button" onClick={(e) => { e.stopPropagation(); ngan.mo(d.ngan!.loai, d.k.ma, d.ngan!.id); }}
             style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', color: 'var(--accent)', fontSize: 11, whiteSpace: 'nowrap', flex: 'none' }}>{d.nganChu ?? 'mở'}</button>}
-          {d.phu && <span style={{ color: 'var(--fg-3)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', flex: '1 1 0', minWidth: 0 }} title={d.phu}>{d.phu}</span>}
-          {d.o && <span style={{ marginLeft: 'auto', display: 'flex', flex: 'none' }}>{d.o.map((x, i) => <span key={i} data-cot={`mau-${i}`} data-cot-can="phai"
+          {d.phu && <span style={{ color: 'var(--fg-3)', fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', flex: '1 1 0', minWidth: 0 }} title={d.phu}>{d.phu}</span>}</span>
+          {d.o && <span style={{ display: 'flex', flex: 'none' }}>{d.o.map((x, i) => <span key={i} data-cot={`mau-${i}`} data-cot-can="phai"
             title={d.oTieuDe ? undefined : COT_MAU[i]} style={{ width: O_RONG, textAlign: 'right', fontVariantNumeric: 'tabular-nums', fontSize: 11,
               color: d.oTieuDe ? 'var(--fg-3)' : x ? 'var(--fg-1)' : 'var(--fg-4)', fontWeight: d.oTieuDe ? 400 : x ? 600 : 400 }}>
             {d.oTieuDe ? <span title={`tổng: ${so(x)}`}>{d.oTieuDe[i]}</span> : so(x)}</span>)}</span>}</span>;

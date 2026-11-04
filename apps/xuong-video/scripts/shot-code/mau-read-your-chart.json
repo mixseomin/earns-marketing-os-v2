@@ -1,0 +1,91 @@
+{
+ "_ghi": "Demo Read Your Chart: giải nghĩa một con số — 22°17' cạnh AC. Ảnh trang thật astrolas.com/c/steve-jobs (lich-su/cong-cu/sj-natal).",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "la_so": "../lich-su/la-so/steve-jobs.svg",
+ "playlist": {
+  "ten": "Read Your Chart",
+  "mau": "#7FE0B0",
+  "ic": "◐"
+ },
+ "DAI": 22.4,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.0,
+   "nhin": {
+    "dung": 1
+   },
+   "chu": "See the number next to AC?<br>Here's what it means."
+  },
+  {
+   "tu": 3.0,
+   "den": 6.6,
+   "nhin": {
+    "man": "../lich-su/cong-cu/sj-natal.png",
+    "khung": "asc"
+   },
+   "chu": "AC is the Ascendant:<br>the sign rising at your birth.",
+   "nhan": "Steve Jobs · Ascendant"
+  },
+  {
+   "tu": 6.6,
+   "den": 10.0,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "22°17' means 22 degrees<br>and 17 minutes into Virgo.",
+   "the": {
+    "lon": "22°17'",
+    "duoi": "Virgo",
+    "dong": [
+     "22 degrees · 17 minutes"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 10.0,
+   "den": 13.2,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Every sign is 30 degrees wide.<br>Each degree has 60 minutes.",
+   "the": {
+    "lon": "30°",
+    "duoi": "per sign",
+    "dong": [
+     "1° = 60 minutes"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 13.2,
+   "den": 16.6,
+   "nhin": {
+    "man": "../lich-su/cong-cu/sj-natal.png",
+    "khung": "sun"
+   },
+   "chu": "Same for planets: his Sun<br>is 5°45' into Pisces.",
+   "nhan": "Planet positions"
+  },
+  {
+   "tu": 16.6,
+   "den": 19.6,
+   "nhin": {
+    "man": "../lich-su/cong-cu/sj-natal.png",
+    "khung": "planets"
+   },
+   "chu": "Now you can read<br>every row."
+  },
+  {
+   "tu": 19.6,
+   "den": 22.4,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Read your own chart<br>free at astrolas.com."
+  }
+ ]
+}

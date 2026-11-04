@@ -1,0 +1,32 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&hour=19&minute=15&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&year_target=1985",
+ "chup_luc": "2026-11-04T10:23:42.290Z",
+ "rong": 1080,
+ "cao": 6506,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha7": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2940,
+   1008,
+   250
+  ]
+ }
+}

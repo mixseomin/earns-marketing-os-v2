@@ -1,0 +1,18 @@
+[
+ {"ten":"sj-natal","url":"https://astrolas.com/c/steve-jobs","khung":{
+   "angles":{"chu":"^\\s*Angle coordinates","cha":2},
+   "asc":{"chu":"Ascendant[\\s\\S]{0,30}22°17"},
+   "planets":{"chu":"^\\s*Planet positions","cha":2},
+   "sun":{"chu":"^\\s*.?\\s*Sun[\\s\\S]{0,40}5°45"}}},
+ {"ten":"birth-form","url":"https://astrolas.com/birth","khung":{
+   "form":{"chu":"^\\s*New chart from birth data","cha":1},
+   "btn":{"chu":"^\\s*View Chart\\s*$"}}},
+ {"ten":"ap-1985","url":"https://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&hour=19&minute=15&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&year_target=1985","khung":{
+   "tuoi":{"chu":"Annual Profections 1985[\\s\\S]{0,40}Age\\s*30"},
+   "banh":{"chu":"^\\s*Annual profection chart 1985","cha":1},
+   "nha7":{"chu":"House\\s*7[\\s\\S]{0,30}Pisces","cha":1},
+   "chu-nam":{"chu":"^\\s*Lord of the Year\\s*$","cha":1}}},
+ {"ten":"transit-now","url":"https://astrolas.com/transit?name=Steve+Jobs&day=24&month=2&year=1955&hour=19&minute=15&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194","khung":{
+   "dat":{"chu":"^\\s*Transit settings","cha":1},
+   "thuy":{"chu":"Mercury[\\s\\S]{0,60}Scorpio[\\s\\S]{0,40}°"}}}
+]

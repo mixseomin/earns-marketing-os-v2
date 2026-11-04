@@ -1,0 +1,20 @@
+{
+ "nguon": "https://astrolas.com/transit?name=Steve+Jobs&day=24&month=2&year=1955&hour=19&minute=15&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194",
+ "chup_luc": "2026-11-04T10:23:49.389Z",
+ "rong": 1080,
+ "cao": 7800,
+ "khung": {
+  "dat": [
+   2,
+   506,
+   1076,
+   316
+  ],
+  "thuy": [
+   22,
+   3982,
+   1036,
+   190
+  ]
+ }
+}

@@ -1,0 +1,93 @@
+{
+ "_ghi": "Demo Ask the Chart: câu hỏi → Annual Profections. Ảnh trang thật annual-profections-v1 năm 1985 (lich-su/cong-cu/ap-1985): tuổi 30, nhà 7 Song Ngư, chủ năm Jupiter H11.",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "la_so": "../lich-su/la-so/steve-jobs.svg",
+ "playlist": {
+  "ten": "Ask the Chart",
+  "mau": "#FFB86B",
+  "ic": "?"
+ },
+ "DAI": 25.6,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.2,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "One question.<br>One free tool.",
+   "the": {
+    "lon": "?",
+    "dong": [
+     "“What will this year",
+     "bring me?”"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 3.2,
+   "den": 6.4,
+   "nhin": {
+    "man": "../lich-su/cong-cu/ap-1985.png"
+   },
+   "chu": "Open Annual Profections.<br>Enter a birth date.",
+   "nhan": "astrolas.com · Annual Profections"
+  },
+  {
+   "tu": 6.4,
+   "den": 9.4,
+   "nhin": {
+    "man": "../lich-su/cong-cu/ap-1985.png",
+    "khung": "tuoi"
+   },
+   "chu": "Steve Jobs, 1985:<br>age 30."
+  },
+  {
+   "tu": 9.4,
+   "den": 12.8,
+   "nhin": {
+    "man": "../lich-su/cong-cu/ap-1985.png",
+    "khung": "banh"
+   },
+   "chu": "Each year lights up one house.<br>At 30, it's the 7th."
+  },
+  {
+   "tu": 12.8,
+   "den": 16.2,
+   "nhin": {
+    "man": "../lich-su/cong-cu/ap-1985.png",
+    "khung": "nha7"
+   },
+   "chu": "The 7th house: partners<br>and business relations."
+  },
+  {
+   "tu": 16.2,
+   "den": 19.8,
+   "nhin": {
+    "man": "../lich-su/cong-cu/ap-1985.png",
+    "khung": "chu-nam"
+   },
+   "chu": "The year's ruler: Jupiter,<br>in his 11th house."
+  },
+  {
+   "tu": 19.8,
+   "den": 22.8,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
+    "kieu": "trai"
+   },
+   "chu": "That year, he lost Apple.",
+   "nhan": "1985 · Cupertino"
+  },
+  {
+   "tu": 22.8,
+   "den": 25.6,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Ask your own question<br>free at astrolas.com."
+  }
+ ]
+}

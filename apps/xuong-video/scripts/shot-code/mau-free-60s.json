@@ -1,0 +1,87 @@
+{
+ "_ghi": "Demo Free in 60 Seconds: lá số miễn phí từ form tới kết quả. Ảnh trang thật astrolas.com/birth (birth-form) + /c/steve-jobs (sj-natal).",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "la_so": "../lich-su/la-so/steve-jobs.svg",
+ "playlist": {
+  "ten": "Free in 60 Seconds",
+  "mau": "#B4E35D",
+  "ic": "⏱"
+ },
+ "DAI": 21.8,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.2,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Your full birth chart<br>in 60 seconds. Free.",
+   "the": {
+    "lon": "60s",
+    "dong": [
+     "No payment needed"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 3.2,
+   "den": 6.6,
+   "nhin": {
+    "man": "../lich-su/cong-cu/birth-form.png",
+    "khung": "form"
+   },
+   "chu": "Step 1: your date, time<br>and city of birth.",
+   "nhan": "0:10"
+  },
+  {
+   "tu": 6.6,
+   "den": 9.4,
+   "nhin": {
+    "man": "../lich-su/cong-cu/birth-form.png",
+    "khung": "btn",
+    "bam": true
+   },
+   "chu": "Step 2: tap View Chart.",
+   "nhan": "0:20"
+  },
+  {
+   "tu": 9.4,
+   "den": 12.6,
+   "nhin": {
+    "dung": 1
+   },
+   "chu": "Step 3: your chart appears.",
+   "nhan": "0:25"
+  },
+  {
+   "tu": 12.6,
+   "den": 15.8,
+   "nhin": {
+    "man": "../lich-su/cong-cu/sj-natal.png",
+    "khung": "angles"
+   },
+   "chu": "Your Rising sign<br>and the four angles.",
+   "nhan": "0:40"
+  },
+  {
+   "tu": 15.8,
+   "den": 19.0,
+   "nhin": {
+    "man": "../lich-su/cong-cu/sj-natal.png",
+    "khung": "planets"
+   },
+   "chu": "Every planet, sign<br>and house.",
+   "nhan": "0:55"
+  },
+  {
+   "tu": 19.0,
+   "den": 21.8,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Try it free<br>at astrolas.com."
+  }
+ ]
+}

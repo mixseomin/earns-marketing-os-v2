@@ -1,0 +1,92 @@
+{
+ "_ghi": "Demo This Week in Your Chart: Sao Thuỷ nghịch hành ở Bọ Cạp (~24/10 → ~14/11/2026, tính bằng bau-troi-tinh.js, sai số ±1 ngày) + nhà theo cung Mọc (cung trọn). Ảnh trang thật /transit (transit-now).",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "la_so": "../lich-su/la-so/steve-jobs.svg",
+ "playlist": {
+  "ten": "This Week in Your Chart",
+  "mau": "#FF8FA3",
+  "ic": "☿"
+ },
+ "DAI": 19.8,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 3.4,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Mercury is retrograde<br>in Scorpio this week.",
+   "the": {
+    "lon": "☿ Rx",
+    "duoi": "Mercury retrograde",
+    "dong": [
+     "Oct 24 → about Nov 14"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 3.4,
+   "den": 6.6,
+   "nhin": {
+    "man": "../lich-su/cong-cu/transit-now.png",
+    "khung": "dat"
+   },
+   "chu": "Open Transit.<br>Today's date is already set.",
+   "nhan": "astrolas.com · Transit"
+  },
+  {
+   "tu": 6.6,
+   "den": 9.8,
+   "nhin": {
+    "man": "../lich-su/cong-cu/transit-now.png",
+    "khung": "thuy"
+   },
+   "chu": "Find Mercury<br>in the list."
+  },
+  {
+   "tu": 9.8,
+   "den": 13.4,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "Leo rising? Scorpio is your 4th house:<br>home and family.",
+   "the": {
+    "lon": "4th",
+    "duoi": "house · Leo rising",
+    "dong": [
+     "Slow down on home decisions"
+    ],
+    "vi": "giua"
+   }
+  },
+  {
+   "tu": 13.4,
+   "den": 17.0,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "One short for every Rising sign.",
+   "the": {
+    "lon": "12",
+    "duoi": "rising signs",
+    "dong": [
+     "Aries 8th · Taurus 7th · Gemini 6th",
+     "Cancer 5th · Leo 4th · Virgo 3rd",
+     "Libra 2nd · Scorpio 1st · Sag 12th",
+     "Cap 11th · Aquarius 10th · Pisces 9th"
+    ],
+    "vi": "tren"
+   }
+  },
+  {
+   "tu": 17.0,
+   "den": 19.8,
+   "nhin": {
+    "troi": 1
+   },
+   "chu": "See where it lands in your chart<br>free at astrolas.com."
+  }
+ ]
+}

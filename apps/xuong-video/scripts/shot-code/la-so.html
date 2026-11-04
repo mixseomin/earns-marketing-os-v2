@@ -8,6 +8,8 @@
        cau: [{ chu, tu, den, nhin, nhan? }] — nhin ∈ { toan } | { dung } (dựng từng lớp theo thứ tự site) | { sao: 'Sun' } | { nha: 10 } | { goc: ['Venus','Jupiter'] } | { cung: 'Pisces' }
          | { tranh: 'đường ảnh 9:16', kieu: 'day'|'lui'|'trai'|'phai'|'len' } — cảnh minh hoạ đầy khung (người, nơi chốn, đồ vật; anh 03/11/2026 "hình minh hoạ, con người, đối tượng, đồ vật… ko thấy có gì cả")
            hoà chéo với lá số, Ken Burns theo kieu; nhan = chữ ô thông tin tự đặt (vd "1985 · Cupertino"), bỏ trống thì cảnh lá số tự lấy từ dữ liệu
+         | { man: 'đường ảnh chụp trang công cụ (lich-su/cong-cu/chup.mjs)', khung?: '<mã khung trong .json cạnh ảnh>', bam?: true } — trang công cụ THẬT
+           của astrolas.com trong khung điện thoại: camera trượt + phóng tới khung, khoanh viền vàng; bam = vệt chạm vào giữa khung (bấm nút)
          | { troi: 1 } — chỉ nền trời (đi với thẻ the)  | { trang_tuan: { tu: 'YYYY-MM-DD', so: 7 } } — dải pha trăng TÍNH THẬT từng ngày (bau-troi-tinh.js)
        câu nào cũng có thể kèm the: { lon, duoi?, dong: [], vi?: 'tren'|'giua' } — thẻ số liệu kiểu hologram (số to + dòng giải thích), chuyen: giây chuyển cảnh (mặc định 0,9)
        la_so bỏ trống được (loạt không cần lá số như Sky Calendar). Một trang cho mọi loại nội dung kênh: Chart Chapters, Sky Calendar, The Myth Behind, công cụ, Start here.
@@ -32,6 +34,12 @@ html, body { background: #0B1A2E; overflow: hidden; }
 #o { left: 30px; top: 290px; width: 1020px; height: 1020px; -webkit-mask-image: radial-gradient(circle closest-side, #000 86%, transparent 100%); }
 #o svg { width: 1020px; height: 1020px; display: block; }
 .chip { display: inline-flex; align-items: center; gap: .45em; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #0B1A2E; padding: .42em .8em .38em; border-radius: .3em; }
+/* khung điện thoại chứa ảnh chụp trang công cụ */
+#man { left: 60px; top: 330px; width: 960px; height: 960px;   /* dưới nhãn playlist, trên ô nhãn (1300) */ border-radius: 34px; overflow: hidden; background: #0b1a2e; opacity: 0;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.14), 0 30px 80px rgba(0,0,0,.55); }
+#man img { position: absolute; left: 0; top: 0; width: 1080px; transform-origin: 0 0; opacity: 0; }
+#man .vien { position: absolute; border: 6px solid #F4D971; border-radius: 16px; box-shadow: 0 0 26px rgba(244,217,113,.65), inset 0 0 18px rgba(244,217,113,.25); opacity: 0; }
+#man .cham { position: absolute; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%; border: 5px solid #fff; background: rgba(255,255,255,.25); opacity: 0; }
 #bang { inset: 0; }
 #bang .tuan { position: absolute; left: 40px; right: 40px; top: 560px; display: flex; justify-content: space-between; opacity: 0; }
 #bang .ngay { width: 132px; display: flex; flex-direction: column; align-items: center; gap: 14px; font: 700 26px IN; color: #cfd8e6; }
@@ -56,6 +64,7 @@ html, body { background: #0B1A2E; overflow: hidden; }
   <div id="toi-tren" class="abs"></div>
   <div id="goc" class="abs" style="left:64px;top:150px;display:flex;flex-direction:column;gap:20px;align-items:flex-start;opacity:.92"></div>
   <div id="o" class="abs"></div>
+  <div id="man" class="abs"><div class="vien"></div><div class="cham"></div></div>
   <div id="bang" class="abs"></div>
   <div id="the" class="abs"></div>
   <div id="nhan" class="abs"></div>
@@ -112,11 +121,21 @@ function tuanTrang({ tu, so = 7 }) {
   const cuoi = new Date(Date.UTC(y, m - 1, d + so - 1)); hop.dataset.nhan = `${M[m - 1]} ${d}–${cuoi.getUTCDate()}, ${y}`;
   return hop;
 }
+// CẢNH TRANG CÔNG CỤ: ảnh chụp rộng 1080 px trong khung 960×1060 → camera { z, tx, ty } đặt khung giữa màn, chiếm ~88% bề ngang, không lộ mép ảnh
+const MAN = {}, KW = 960, KH = 960;
+function camMan(meta, b) {
+  const z0 = KW / meta.rong; if (!b) return { z: z0, tx: 0, ty: 0 };
+  const [x, y, w, h] = b, z = Math.max(z0, Math.min((KW * 0.88) / w, (KH * 0.7) / h, 2.4));
+  const kep = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  return { z, tx: kep(KW / 2 - (x + w / 2) * z, KW - meta.rong * z, 0), ty: kep(KH * 0.46 - (y + h / 2) * z, KH - meta.cao * z, 0) };
+}
 function dich(q) {
   const n = q.nhin || { toan: 1 }, D = C.du_lieu;
   if (n.tranh) { const im = document.createElement('img'); im.src = n.tranh; document.getElementById('tranh').appendChild(im);
     return { tranh: im, kieu: n.kieu || 'day', vb: null, sang: null, nhan: q.nhan || '' }; }
   if (n.troi) return { bang: true, vb: null, sang: null, nhan: q.nhan || '' };
+  if (n.man) { const M = MAN[n.man], b = n.khung ? M.meta.khung[n.khung] : null; if (n.khung && !b) throw new Error(`không có khung ${n.khung} trong ${n.man}`);
+    return { man: M, hop: b, cam: camMan(M.meta, b), bam: !!n.bam, bang: true, vb: null, sang: null, nhan: q.nhan || '' }; }
   if (n.trang_tuan) return { bang: true, tuan: tuanTrang(n.trang_tuan), vb: null, sang: null, nhan: q.nhan || '' };
   if (!svg) throw new Error('câu cần lá số nhưng CAU không có la_so: ' + JSON.stringify(n));
   if (n.toan || n.dung) return { vb: VB0, sang: null, nhan: n.dung ? `${D.nguoi.name || ''}` : '', dung: !!n.dung };
@@ -154,6 +173,10 @@ window.__dung = async () => {
   nhom = svg ? [...svg.querySelectorAll('[data-planet], [data-aspect], [data-cusp-degree], [data-zodiac]')] : [];
   const lop = (m) => svg?.querySelector(`[data-layer="${m}"]`);
   C._lop = [['angles'], ['zodiac', 'degrees', 'spark'], ['planets'], ['aspects'], ['houses'], ['branding', 'birth-info']].map((ds) => ds.map(lop).filter(Boolean));
+  for (const u of [...new Set(C.cau.map((q) => q.nhin?.man).filter(Boolean))]) {
+    const meta = JSON.parse(await doc(u.replace(/\.png$/, '.json'))), img = document.createElement('img'); img.src = u;
+    document.getElementById('man').prepend(img); await img.decode().catch(() => { throw new Error('không tải được ' + u); }); MAN[u] = { img, meta };
+  }
   if (svg) svg.setAttribute('viewBox', '0 0 ' + svg.viewBox.baseVal.width + ' ' + svg.viewBox.baseVal.height); canh = C.cau.map(dich);   // đo khung khi viewBox còn gốc
   canh.forEach((st, j) => { st.q = C.cau[j]; if (!st.nhan && C.cau[j].nhan) st.nhan = C.cau[j].nhan; if (!st.nhan && st.tuan) st.nhan = st.tuan.dataset.nhan; });
   await Promise.all(canh.filter((st) => st.tranh).map((st) => st.tranh.decode().catch(() => { throw new Error('không tải được tranh ' + st.tranh.getAttribute('src')); })));
@@ -161,6 +184,7 @@ window.__dung = async () => {
   await document.fonts.ready;
 };
 
+const hienCau = (t, q) => Math.min(ease((t - q.tu) / 0.35), ease((q.den - t) / 0.3));
 function trangThai(i) { return canh[Math.max(0, Math.min(canh.length - 1, i))]; }
 window.__seek = (t) => {
   veNen(t);
@@ -186,6 +210,22 @@ window.__seek = (t) => {
   const laSo = coLaSo(moi) * k + coLaSo(cu) * (1 - k), toi = coTranh(moi) * k + coTranh(cu) * (1 - k);
   document.getElementById('o').style.opacity = laSo; document.getElementById('toi-day').style.opacity = toi; document.getElementById('toi-tren').style.opacity = toi;
   for (const st of canh) if (st.tuan) st.tuan.style.opacity = st === moi ? k : st === cu ? 1 - k : 0;
+  // trang công cụ: cùng một ảnh thì camera trượt giữa hai khung; khác ảnh thì hoà chéo
+  const coMan = (st) => (st.man ? 1 : 0), manEl = document.getElementById('man');
+  manEl.style.opacity = coMan(moi) * k + coMan(cu) * (1 - k);
+  if (moi.man || cu.man) {
+    const cungAnh = moi.man && cu.man && moi.man === cu.man, cam = cungAnh ? { z: lerp(cu.cam.z, moi.cam.z, k), tx: lerp(cu.cam.tx, moi.cam.tx, k), ty: lerp(cu.cam.ty, moi.cam.ty, k) } : null;
+    for (const M of Object.values(MAN)) { const st = M === moi.man ? moi : M === cu.man ? cu : null;
+      M.img.style.opacity = !st ? 0 : cungAnh ? 1 : st === moi ? k : 1 - k;
+      const c = cam || st?.cam; if (c) M.img.style.transform = `translate(${c.tx.toFixed(2)}px, ${c.ty.toFixed(2)}px) scale(${c.z.toFixed(4)})`; }
+    const v = manEl.querySelector('.vien'), ch = manEl.querySelector('.cham'), dang = moi.man ? moi : null;
+    if (dang?.hop) { const c = cam || dang.cam, [x, y, w, h] = dang.hop, sau = ease((t - q.tu - (q.chuyen ?? CHUYEN)) / 0.35);
+      Object.assign(v.style, { left: `${x * c.z + c.tx}px`, top: `${y * c.z + c.ty}px`, width: `${w * c.z}px`, height: `${h * c.z}px`, opacity: sau * hienCau(t, q) });
+      const u = Math.max(0, Math.min(1, (t - q.tu - (q.chuyen ?? CHUYEN) - 0.4) / 0.7));
+      if (dang.bam) Object.assign(ch.style, { left: `${(x + w / 2) * c.z + c.tx}px`, top: `${(y + h / 2) * c.z + c.ty}px`, opacity: u > 0 && u < 1 ? (1 - u) : 0, transform: `scale(${0.6 + u * 0.9})` });
+      else ch.style.opacity = 0;
+    } else { v.style.opacity = 0; ch.style.opacity = 0; }
+  }
   for (const st of canh) { if (!st.tranh) continue;
     const o = st === moi ? k : st === cu ? 1 - k : 0; st.tranh.style.opacity = o; if (!o) continue;
     const u = Math.max(0, Math.min(1.2, (t - st.q.tu) / Math.max(0.5, st.q.den - st.q.tu))), e = ease(Math.min(1, u)) + Math.max(0, u - 1) * 0.5;
@@ -204,7 +244,7 @@ window.__seek = (t) => {
     th.style.opacity = Math.min(ease((t - q.tu - 0.25) / 0.4), ease((q.den - t) / 0.3)); } else th.style.opacity = 0;
   C._lop.forEach((ds, j) => { const a = moi.dung ? ease((troi * (C._lop.length + 1) - j) / 1.2) : 1; ds.forEach((e) => { e.style.opacity = a; }); });
   // chữ: ô thông tin (từ dữ liệu lá số) + câu kể, mờ vào đầu câu, mờ ra cuối câu
-  const hien = Math.min(ease((t - q.tu) / 0.35), ease((q.den - t) / 0.3));
+  const hien = hienCau(t, q);
   const nh = document.getElementById('nhan'), cc = document.getElementById('cau');
   nh.textContent = moi.nhan; nh.style.opacity = moi.nhan ? ease((t - q.tu - 0.4) / 0.4) * hien : 0;
   cc.innerHTML = q.chu; cc.style.opacity = hien;

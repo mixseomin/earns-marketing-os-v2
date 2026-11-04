@@ -109,7 +109,10 @@ async function kiem(tap, nguonChu) {
   const loi = [], kho = docKho().tai_san, moi = Object.fromEntries((tap.tai_san_moi || []).map((t) => [t.id, t])), nguonP = phang(nguonChu);
   const ds = tap.cau, tu = ds.map((c) => c.chu).join(' ').split(/\s+/).length, [t0, t1] = KENH.tu[nn] ?? KENH.tu.en, coMoc = !!KENH.cau_cuoi;
   if (ds.length < KENH.cau[0] || ds.length > KENH.cau[1]) loi.push(`có ${ds.length} câu — khuôn kênh ${kenhId} là ${KENH.cau_noi} câu`);
-  if (tu < t0 || tu > t1) loi.push(`tổng ${tu} từ — khuôn kênh ${kenhId} ${KENH.tu_noi[nn] ?? KENH.tu_noi.en} từ`);
+  // DÀI QUÁ KHUÔN: nói rõ phải bỏ bao nhiêu từ + câu nào dài nhất (04/11/2026: chỉ báo tổng số từ thì máy viết rút 514 → 501 qua 2 lượt, không bao giờ tới 440)
+  const dai = ds.map((c, k) => ({ k: k + 1, n: c.chu.split(/\s+/).length })).sort((a, b) => b.n - a.n).slice(0, 6).map((x) => `câu ${x.k} (${x.n} từ)`).join(', ');
+  if (tu > t1) loi.push(`tổng ${tu} từ — khuôn kênh ${kenhId} ${KENH.tu_noi[nn] ?? KENH.tu_noi.en} từ: PHẢI BỎ ÍT NHẤT ${tu - t1 + 10} từ (đích ~${t1 - 10}). Rút các câu dài nhất: ${dai}; bỏ hẳn một câu chuyển ý nếu cần — đừng chỉ đổi vài chữ`);
+  else if (tu < t0) loi.push(`tổng ${tu} từ — khuôn kênh ${kenhId} ${KENH.tu_noi[nn] ?? KENH.tu_noi.en} từ: thêm ít nhất ${t0 - tu} từ`);
   // kênh có câu đùa (parody): câu không su_that được phép tới tỉ lệ khong_nguon_toi_da — vẫn cấm con số / so sánh nhất không nguồn trong câu đùa
   const khongNguon = ds.slice(0, coMoc ? -1 : undefined).filter((c) => !(c.su_that || []).length).length, choPhep = Math.floor(ds.length * (KENH.khong_nguon_toi_da || 0));
   if (khongNguon > choPhep) loi.push(`${khongNguon} câu không có su_that — kênh ${kenhId} cho tối đa ${choPhep}${choPhep ? ' câu đùa' : ''}; câu kể sự việc phải có nguồn`);

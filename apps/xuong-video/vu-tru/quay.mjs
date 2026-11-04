@@ -2,7 +2,7 @@
 // (vẽ theo thời gian, không theo requestAnimationFrame → khung nào cũng đúng, máy chậm không làm lệch nhịp). Chạy CỤC BỘ trên iMac (Chromium của
 // Playwright, GPU Metal) — cấm chạy trình duyệt trên máy chủ.
 //   node vu-tru/quay.mjs vu-tru/ho-den.html --giay=10 [--w=1080 --h=1920 --fps=30 --ra=vu-tru/ra/ho-den.mp4 --anh=nen.jpg --khung=2,5,8]
-// --anh: ảnh nền truyền vào trang (window.ANH) · --khung: chỉ chụp PNG tại các giây đó (soát nhanh, không ra video)
+// --anh: ảnh nền truyền vào trang (window.ANH) · --them=k=v&k2=v2: tham số riêng của trang · --khung: chỉ chụp PNG tại các giây đó (soát nhanh, không ra video)
 import { createRequire } from 'node:module';
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -22,7 +22,7 @@ const br = await chromium.launch({ args: ['--use-angle=metal', '--enable-gpu', '
 const page = await br.newPage({ viewport: { width: W, height: H } });
 page.on('console', (m) => m.type() === 'error' && console.error('trang:', m.text()));
 const anh = arg('anh');
-await page.goto(`${pathToFileURL(trang)}?w=${W}&h=${H}${anh ? `&anh=${encodeURIComponent(pathToFileURL(resolve(anh)).href)}` : ''}`);
+await page.goto(`${pathToFileURL(trang)}?w=${W}&h=${H}${anh ? `&anh=${encodeURIComponent(pathToFileURL(resolve(anh)).href)}` : ''}${arg('them') ? `&${arg('them')}` : ''}`);   // --them=sau=0 → tham số riêng của trang
 await page.waitForFunction(() => window.SAN_SANG === true, null, { timeout: 30000 });
 console.log('GPU:', await page.evaluate(() => window.GPU ?? '?'));
 

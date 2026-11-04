@@ -1,7 +1,10 @@
 <!doctype html>
 <!-- HỐ ĐEN TỪ ẢNH — đường lai: hai ảnh tĩnh AI (xa + cận, scripts/anh-le.mts ~110₫/ảnh), mọi chuyển động do shader: trôi chậm → lao vào tâm, mây và
      đĩa xoáy vi sai quanh hố (trong nhanh, ngoài chậm), ảnh xa hoà sang ảnh cận đúng lúc cỡ bóng đen khớp nhau, tàn lửa bay xoáy, nhoè hướng tâm khi
-     lao. Tham số ảnh (tâm + bán kính bóng, đo trên ảnh) ở ANH bên dưới. Quay: node vu-tru/quay.mjs vu-tru/ho-den-anh.html --giay=10 -->
+     lao. Tham số ảnh (tâm + bán kính bóng, đo trên ảnh) ở ANH bên dưới. Quay: node vu-tru/quay.mjs vu-tru/ho-den-anh.html --giay=10
+     CHIỀU SÂU (anh 04/11/2026 "thiếu chiều sâu 3D"): bản đồ độ sâu của từng ảnh (vu-tru/do-sau.py, Depth Anything V2 cục bộ, <ảnh>-sau.png) → máy tiến
+     tới thì điểm gần phình ra mép nhanh hơn điểm xa (parallax 2.5D) + 4 tầng mây bay qua ống kính ở các độ xa khác nhau + vệt tốc độ hướng tâm.
+     ?sau=0 tắt cả ba (để so). -->
 <html><head><meta charset="utf-8"><style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head>
 <body><canvas id="c"></canvas>
 <script>
@@ -12,6 +15,8 @@ const ANH = [
   { tep: q.get('xa') || 'ra/vt-xa.jpg', tam: [0.493, 0.488], rs: 0.093 },
   { tep: q.get('gan') || 'ra/vt-gan.jpg', tam: [0.5, 0.496], rs: 0.19 },
 ];
+const SAU = q.get('sau') === '0' ? 0 : 1;
+const tepSau = (t) => t.replace(/\.[a-z]+$/, '-sau.png');   // bản đồ độ sâu cạnh ảnh (do-sau.py)
 const c = document.getElementById('c'); c.width = W; c.height = H;
 const gl = c.getContext('webgl2', { preserveDrawingBuffer: true });
 const dbg = gl.getExtension('WEBGL_debug_renderer_info');
@@ -20,7 +25,7 @@ window.GPU = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParamete
 const FS = `#version 300 es
 precision highp float;
 uniform vec2 R; uniform float T;
-uniform sampler2D A0, A1; uniform vec2 C0, C1; uniform float S0, S1, K0, K1;   // tâm, bán kính bóng, tỉ lệ cao/ngang của ảnh
+uniform sampler2D A0, A1, D0, D1; uniform float SAU; uniform vec2 C0, C1; uniform float S0, S1, K0, K1;   // tâm, bán kính bóng, tỉ lệ cao/ngang của ảnh
 out vec4 o;
 #define GIAY 10.
 float h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
@@ -43,6 +48,29 @@ vec3 anh(sampler2D A, vec2 tam, float rs, float k, vec2 p, float xoay, float nho
   for (int i = 0; i < 6; i++) s += docAnh(A, tam, rs, k, p * (1. - nhoe * float(i) / 6.), xoay - float(i) * nhoe * .15);
   return s / 6.;
 }
+// độ sâu (1 = gần, 0 = xa) tại p của ảnh
+float doSau(sampler2D D, vec2 tam, float k, vec2 p){ return texture(D, tam + vec2(p.x, -p.y / k)).r; }
+// MÁY TIẾN dz: điểm ảnh ở p hiện ra tại q = (p + lech·d) / (1 − dz·f(d)) — gần (d→1) phình nhanh, xa (tâm hố) gần như đứng; lech = máy dạt ngang (gần
+// trôi nhiều hơn xa). Tìm p của điểm màn q bằng lặp điểm bất động (độ sâu trơn nên 4 vòng là đủ).
+vec2 tien(sampler2D D, vec2 tam, float k, vec2 q, float dz, vec2 lech){
+  vec2 p = q;
+  for (int i = 0; i < 4; i++) { float d = doSau(D, tam, k, p); p = q * (1. - dz * (.04 + .9 * d * d)) - lech * d; }
+  return p;
+}
+// tầng mây bay qua ống kính: 4 mặt phẳng mây ở độ xa zz (3 → 0,15) tiến dần về máy; xa thì nhỏ + mờ, sát ống kính thì to + nhoè rồi biến mất
+vec4 mayBay(vec2 uv, float pha, vec3 mau){
+  vec4 ra = vec4(0.);
+  for (int i = 3; i >= 0; i--) {                              // vẽ xa trước, gần sau
+    float f = fract(float(i) * .25 + pha);
+    float zz = mix(3., .15, f);
+    vec2 w = uv * zz + vec2(float(i) * 7.3, float(i) * 3.1);
+    float day = smoothstep(.45, .75, fbm(w * 1.6)) * (.55 + .45 * fbm(w * 5.));
+    float a = day * smoothstep(0., .25, f) * smoothstep(1., .8, f) * smoothstep(.1, .45, length(uv)) * .85;
+    vec3 c = mau * (.55 + .7 * fbm(w * 3. + 1.7)) * (.6 + .5 * f);
+    ra.rgb = mix(ra.rgb, c, a); ra.a = ra.a + a * (1. - ra.a);
+  }
+  return ra;
+}
 float hat(vec2 p, float co, float nguong){
   vec2 g = p * co, i = floor(g), f = fract(g) - .5;
   float r = h(i); if (r < nguong) return 0.;
@@ -59,9 +87,11 @@ void main(){
   float hoa = ease(clamp((t - 4.6) / 1.6, 0., 1.));
   // ảnh 0: tâm khung trôi từ giữa ảnh về tâm bóng
   vec2 lech0 = mix(vec2(.0, -.012 + .0), vec2(0.), ease(clamp(t / 4., 0., 1.))) + vec2(.01 * sin(t * .4), 0.);
-  vec2 p0 = (uv + lech0) / zoom;
+  float dz = SAU * (.36 * lao + .04 * sin(t * .7) * (1. - lao));     // máy tiến (chiều sâu), giây đầu thở nhẹ
+  vec2 lechMay = SAU * vec2(.025 * sin(t * .45), .018 * cos(t * .37)) * (1. - .7 * lao); // máy dạt ngang → gần trôi nhiều hơn xa
+  vec2 p0 = tien(D0, C0, K0, (uv + lech0) / zoom, dz, lechMay);
   // ảnh 1 bắt đầu ở cỡ khớp bóng của ảnh 0 lúc hoà: S1 * z1 = S0 * zoom
-  vec2 p1 = uv * S1 / (S0 * zoom);
+  vec2 p1 = tien(D1, C1, K1, uv * S1 / (S0 * zoom), dz * .8, lechMay);
   float xoay = .22 * t + 1.1 * lao * lao;                    // góc quay ở mép bóng (rad) — vừa đủ thấy xoáy, không quấn đĩa thành vòng
   float nhoe = .06 * lao;
   vec3 a0 = anh(A0, C0, S0, K0, p0, xoay, nhoe);
@@ -79,6 +109,12 @@ void main(){
   // tàn lửa xoáy vào tâm
   vec2 sp = rot(t * .5 + 2. / max(rr, .5)) * uv / pow(zoom, .5);
   col += vec3(1.3, .6, .15) * (hat(sp + vec2(0., t * .01), 40., .93) + hat(sp * 1.7 - t * .015, 40., .95)) * smoothstep(.9, 1.6, rr) * (.5 + lao);
+  // tầng mây bay qua ống kính + vệt tốc độ (chiều sâu)
+  vec4 may = mayBay(uv, .04 * t + 1.5 * lao, mix(vec3(.3, .55, 1.), vec3(1., .55, .2), hoa));
+  col = mix(col, may.rgb, may.a * SAU);
+  float goc = atan(uv.y, uv.x), ru = length(uv);
+  float vet = smoothstep(.78, 1., n(vec2(goc * 38., log(ru) * 2.2 - t * 7.))) * smoothstep(.18, .7, ru) * lao * lao;
+  col += vec3(1., .8, .55) * vet * .3 * SAU;
   // bóng đen sạch (phóng ảnh vẫn tròn, đen tuyền)
   col *= smoothstep(.93, 1.0, rr);
   col *= 1. - .3 * dot(uv, uv);
@@ -94,7 +130,16 @@ const U = (k) => gl.getUniformLocation(pr, k);
 gl.viewport(0, 0, W, H);
 
 const tai = (src) => new Promise((ok, loi) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => loi(new Error(src)); i.src = src; });
-Promise.all(ANH.map((a) => tai(a.tep))).then((imgs) => {
+Promise.all([...ANH.map((a) => tai(a.tep)), ...ANH.map((a) => tai(tepSau(a.tep)))]).then((tat) => {
+  const imgs = tat.slice(0, ANH.length);
+  tat.slice(ANH.length).forEach((img, i) => {
+    const tx = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + ANH.length + i); gl.bindTexture(gl.TEXTURE_2D, tx);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    for (const k of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T]) gl.texParameteri(gl.TEXTURE_2D, k, gl.MIRRORED_REPEAT);
+    gl.uniform1i(U(`D${i}`), ANH.length + i);
+  });
+  gl.uniform1f(U('SAU'), SAU);
   imgs.forEach((img, i) => {
     const tx = gl.createTexture(); gl.activeTexture(gl.TEXTURE0 + i); gl.bindTexture(gl.TEXTURE_2D, tx);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);

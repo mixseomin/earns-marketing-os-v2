@@ -9,7 +9,9 @@ Mỗi lượt:
 Dùng: manh.py [--thu] (--thu: chỉ in, không ghi / không báo)"""
 import importlib.util, json, os, subprocess, sys
 THU = "--thu" in sys.argv
-q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-F", "\t", "-c", s], capture_output=True, text=True).stdout.strip()
+# .rstrip("\n"), KHÔNG .strip(): strip cắt luôn tab cuối → cột rỗng cuối hàng mất, "dòng vừa kết thúc" (camp rỗng) chết ValueError mỗi lượt — 180 lần / 3 giờ,
+# Mạnh không báo Telegram, không xếp lại việc kẹt (04/11/2026). Hàng rỗng bỏ ở chỗ dùng (splitlines không sinh hàng rỗng ở giữa).
+q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-F", "\t", "-c", s], capture_output=True, text=True).stdout.rstrip("\n")
 TEN = {"nhan": "Nhận phim", "ws": "Trang phim", "poster": "Soát poster", "cat": "Cắt đoạn", "soat": "Soát đoạn", "creative": "Tải + chấm", "camp": "Lên camp", "chay": "Camp chạy"}
 IM_BUOC, IM_MAY = 600, 180   # giây
 
@@ -58,6 +60,15 @@ def main():
     # 4. việc cắt lô dòng phim kẹt
     r = q("update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | Mạnh: kẹt quá 75 phút, xếp lại' where lo like 'dp%' and trang_thai = 'dang' and bat_dau < now() - interval '75 minutes' returning id") if not THU else ""
     if r: lam.append(f"xếp lại việc cắt kẹt: {r.replace(chr(10), ' ')}")
+    # 5. TỰ MỞ LẠI DÒNG DỪNG OAN (anh 04/11/2026 "Sao con đĩ mày làm chắp vá thế" — sửa luật nhóm gốc xong chỉ FIX tay #48, sót #47 cùng lý do):
+    #    dòng dừng vì một luật mà ĐIỀU KIỆN ĐÓ NAY ĐÃ HẾT → FIX đúng bước đó. Mỗi lý do một câu kiểm, đọc thẳng kho (không đọc chữ lý do để đoán).
+    mo = [("nhan", "nhóm gốc nay Âu-Mỹ", "d.ly_do like 'nhan: nhóm gốc%' and exists (select 1 from etp.phim f where f.content_id = d.content_id and f.nhom_goc = 'au_my')"),
+          ("poster", "đã gỡ khỏi sổ cấm 18+", "d.ly_do like 'poster:%' and not exists (select 1 from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam' and k.gia_tri ? d.content_id::text)"),
+          ("camp", "đã có creative đạt CTA mới", "d.ly_do like '%chưa đạt luật CTA mới%' and exists (select 1 from etp.creative r join etp.cham_cong g using (creative_id) where r.content_id = d.content_id and r.cta_dat and g.duoc_len and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id))")]
+    for buoc, ly, dk in mo:
+        r = q(f"""update etp.dong_buoc b set fix = true from etp.dong_phim d where d.id = b.dong_id and d.trang_thai in ('dung', 'loi') and b.buoc = '{buoc}' and not b.fix
+                  and d.tao_luc > now() - interval '3 days' and {dk} returning b.dong_id""") if not THU else q(f"select d.id from etp.dong_phim d where d.trang_thai in ('dung', 'loi') and {dk}")
+        if r: lam.append(f"mở lại ({ly}): dòng {r.replace(chr(10), ' ')}")
     print("Mạnh:", " · ".join(lam) if lam else "không có gì kẹt")
 
 if __name__ == "__main__": main()

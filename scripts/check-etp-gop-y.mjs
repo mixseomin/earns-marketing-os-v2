@@ -404,6 +404,8 @@ const LUAT = [
   { card: 'khung-doi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "await chayPsql(`insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('khung_hoan',", vi: 'máy ghi sổ hoãn mỗi nhịp — trang etp đọc, không tự đoán (audit 05/11/2026)' },
   { card: 'khung-doi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "((khungDoi === 'bang' || (roiN != null && !napDuoc.has(String(m.id)))) && hoan('tang', m))) continue;", vi: 'tự tăng: 15–21h theo luật · 21–23h / 07–15h chỉ camp tiêu hết + ROI đủ ngưỡng · 23–07h không' },
   { card: 'khung-doi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "const napDuoc = roiN == null ? new Set()", vi: '21–23h / 07–15h chỉ nạp camp đã tiêu ≥ 95% + ROI hôm nay ≥ ngưỡng của khung' },
+  { card: 'nap-sang-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if TS_GIO[0] <= vn.hour < TS_GIO[1] and not _nap_sang(cid):', vi: 'TS chặn tăng 07–15h trừ camp nạp sáng — không thì $3 → $5 buổi sáng không bao giờ chạy' },
+  { card: 'nap-sang-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'TS_GIO, TS_HQ = tuple(KD.get("sang") or (7, 15)), 50', vi: 'giờ TS đọc sổ luật chung' },
   { card: 'nap-sang-0511', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"sang": [7, 15], "sang_roi": 100', vi: 'nạp sáng 07–15h: camp tiêu hết + ROI hôm nay ≥ 100% (anh 05/11/2026)' },
   { card: 'nap-sang-0511', tep: 'apps/web/src/lib/etp-khung.test.mts', co: 'assert.strictEqual(khungCua(g), khungLuc(g)', vi: 'kiểm chéo khung worker ↔ trang cho đủ 24 giờ' },
   { card: 'khung-doi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "filter((m) => !lamRoi.has(m.id) && !giu.ds[m.id] && (khungDoi === 'doi' || !hoan('tat', m)))", vi: 'mọi luật tắt (báo trước một nhịp) chỉ trong 15–21h' },

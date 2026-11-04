@@ -216,9 +216,14 @@ dau_phien = [(cid, chu) for cid, chu in dau_phien if _sau_giam_ok(cid)]
 # tăng của Nhà 19/10–01/11, ROI NGÀY KẾ TIẾP: hôm qua lãi 0–50% → +9% (185 lần, chi $1.899 — mọi khung giờ); tăng lúc 07:00–14:59 VN (ngày Ethopex chạy
 # < 8 giờ) → +26%, ngoài khung → +42–45%; camp chưa có hôm qua tăng trong khung đó +2% (ngoài khung +59%). Hôm qua LỖ (luật B1 / chi nhỏ) vẫn +18–38% → không chặn.
 # Chỉ áp danh sách tăng bậc (tang / tăng trong ngày / thang bộ 2); lãi đầu phiên ($1 → $2–3, đo +47–132%) và T30 giữ nguyên.
-TS_GIO, TS_HQ = (7, 15), 50
+# NẠP SÁNG (anh 05/11/2026): giờ chặn TS = khung 'sang' của sổ luật chung; camp hôm nay đã tiêu ≥ nap_chi × ngân sách + ROI hôm nay ≥ sang_roi% thì
+# KHÔNG bị chặn giờ (đi được $1 → $3 → $5 trong buổi sáng, nhịp tăng ≥ 3 giờ vẫn giữ) — cùng điều kiện worker dùng để cho tăng (ethopex.mjs napDuoc)
+TS_GIO, TS_HQ = tuple(KD.get("sang") or (7, 15)), 50
+def _nap_sang(cid):
+    h = hom.get(cid) or {}; ns = float((thang.get(cid) or {}).get("budget") or 0); ch, th = float(h.get("chi") or 0), float(h.get("thu") or 0)
+    return ns > 0 and ch >= float(KD["nap_chi"]) * ns and th >= (1 + float(KD["sang_roi"]) / 100) * ch
 def _ts_ly(cid):
-    if TS_GIO[0] <= vn.hour < TS_GIO[1]: return f"{vn:%H:%M} — ngày Ethopex mới chạy < 8 giờ, tăng từ 15:00"
+    if TS_GIO[0] <= vn.hour < TS_GIO[1] and not _nap_sang(cid): return f"{vn:%H:%M} — ngày Ethopex mới chạy < 8 giờ, tăng từ {TS_GIO[1]}:00 (trừ camp đã tiêu hết + ROI hôm nay ≥ {KD['sang_roi']}%)"
     y = hqua.get(cid); ry = roi(y) if y and y["chi"] >= 0.3 else None
     if ry is not None and 0 <= ry < TS_HQ: return f"hôm qua {ry:+.0f}% (0–{TS_HQ}%)"
     return None
@@ -940,7 +945,7 @@ def _xet_luat():
                    ["ROI hôm nay (tới đợt chi gần nhất, chi ≥ $0.3)", f(rh, "%"), "≥ 0%", rh is None or rh >= 0], ["Còn bậc trên", f"${ns:g}", "< $20", bool(ke(ns))]]
         cong_b2 = ["Cổng mở bản thang (bộ 2)", _thang_ly.get(int(cid), "mở được"), "mở được", int(cid) not in _thang_ly]
         if b2: dk_tang = dk_tang + [cong_b2]
-        _ts = _ts_ly(cid); dk_ts = ["Siết tăng TS (02/11): sau 15:00 · hôm qua không lãi 0–50%", _ts or "qua", "không chặn", _ts is None]
+        _ts = _ts_ly(cid); dk_ts = [f"Siết tăng TS (02/11): sau {TS_GIO[1]}:00 (nạp sáng: tiêu hết + ROI hôm nay ≥ {KD['sang_roi']}% thì được) · hôm qua không lãi 0–50%", _ts or "qua", "không chặn", _ts is None]
         dk_tang = dk_tang + [dk_ts]
         ls.append(L("thang_nb" if b2 else "tang", "Thang nhân bản (bộ 2)" if b2 else "Tăng bậc",
             ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại." + (f" Bộ 2: camp gốc tiêu TB ≥ ${THANG_CHI_GOC:g}/ngày 3 ngày đã khép mới mở bản thang (29/10)." if b2 else ""),

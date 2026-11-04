@@ -1,5 +1,5 @@
 """CỔNG RÀO CHẮN etp (anh 24/10/2026 — bước 3 etp.on.tc): MỌI lệnh tự động gọi kiem() trước khi gửi lên Ethopex.
-kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False) → None (cho qua) | câu lý do chặn.
+kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False) → None (cho qua) | câu lý do chặn.
   ngoai=True: camp trong tài khoản QC của người trong team (Luật tự động, apps/cty/worker/etp-tu-dong.mjs) — vẫn qua dừng khẩn / Âu-Mỹ / phim cất / trần camp,
   bỏ trần NGÀY + trần BỘ (hai trần đó cộng ngân sách camp NHÀ trong etp.camp — tiền của người đó không tính vào, cũng không bị trần nhà chặn).
   CHỈ PHIM ÂU-MỸ (anh 29/10/2026 "dừng các phim ngoài âu mỹ … chặn thể loại này khi lên camp target US"): phim có etp.phim.nhom_goc khác au_my
@@ -43,7 +43,7 @@ def trung_doi(nguoi_id=None):
         cid, n, ai = l.split("|", 2); ra[int(cid)] = (int(n), ai)
     return ra
 
-def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False):
+def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False):
     if viec not in TANG: return None
     try:
         ct = content_id if content_id is not None else (_q(f"select content_id from etp.camp where camp_id = {int(camp_id)}") or None) if camp_id else None
@@ -59,7 +59,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
             if cl: return LY_CAT.format(ct, cl)
             # KHÔNG TRÙNG PHIM VỚI ĐỘI (anh 02/11/2026): mọi camp mới (phim mới, nhân bản, kể cả ROAS) — camp đang chạy giữ nguyên, luật tắt xử như cũ
             ng_id = _q(f"select t.nguoi_id from etp.camp_ngoai k join etp.tai_khoan t using (ad_account_id) where k.camp_id = {int(camp_id)}") if ngoai and camp_id else None
-            tr = trung_doi(int(ng_id) if ng_id else None).get(int(ct)) if (not ngoai or ng_id) else None
+            # tay=True: camp anh YÊU CẦU BẰNG TAY (dòng phim anh bấm chạy, nhan-ban --tay) → miễn luật này; chỉ cấm khi máy tự lên (anh 04/11/2026 Dragon's Silly Captive)
+            tr = trung_doi(int(ng_id) if ng_id else None).get(int(ct)) if (not ngoai or ng_id) and not tay else None
             if tr: return LY_TRUNG.format(ct, tr[0], tr[1])
         ch = {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
         if ch.get("dung_khan"): return "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"

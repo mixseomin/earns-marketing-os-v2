@@ -473,6 +473,7 @@ const LUAT = [
   { card: 'mr-0411', tep: 'apps/web/src/components/etp-view.tsx', co: '<BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /></span><NutMoRong cid={k} />', vi: 'dòng phim hiện badge nhấp nháy số camp đang sản xuất, bấm sang tab Sản xuất lọc đúng phim (anh 04/11/2026)' },
   { card: 'mr-0411', tep: 'apps/web/src/components/etp-dong.tsx', co: 'export const NUT_SX: [string, string, string][] = [...COT_PHIM.map(', vi: 'đồng hồ tiến độ: 9 nút = đúng 9 cột tab Sản xuất, màu MAU (anh 04/11/2026)' },
   { card: 'mr-0411', tep: 'apps/web/src/components/etp-view.tsx', co: '<DongHoSx buoc={', vi: 'badge sản xuất ở dòng phim là đồng hồ tiến độ' },
+  { card: 'dau-0411', tep: 'apps/etp/dong_phim.py', co: 'if d.get("so_camp") and san_cua(d["content_id"]) >= int(d["so_camp"]): bq |= {"cat", "soat", "creative"}', vi: 'mở rộng dùng lại creative sạch có sẵn, đủ thì không cắt (anh 04/11/2026)' },
   { card: 'dau-0411', tep: 'apps/web/src/lib/etp-doc.ts', co: "or (d.trang_thai in ('xong', 'dung', 'loi') and d.xong_luc > now() - interval '24 hours')", vi: 'đồng hồ giữ dòng đã kết thúc 24 giờ — không mất dấu (anh 04/11/2026)' },
   { card: 'dau-0411', tep: 'apps/etp/dong_phim.py', co: 'LỖI MẠNG TỰ THỬ LẠI', vi: 'lỗi ssh tới box3 tự thử lại 3 lượt' },
   { card: 'dau-0411', tep: 'apps/etp/dong_phim.py', co: 'MỞ RỘNG: bỏ khung chồng lên đoạn đã có creative', vi: 'mở rộng không cắt lại đoạn đã có creative' },

@@ -23,14 +23,18 @@ def chay(q):
                    sum(n.thu) filter (where n.ngay between current_date - 6 and current_date - 4) thu_t
             from etp.so_ngay n join etp.camp c using (camp_id) where n.ngay >= current_date - 6 group by 1),
       b as (select content_id, round(((regr_slope(thu, chi) - 1) * 100)::numeric)::int roi_bien, round(regr_r2(thu, chi)::numeric, 2) r2, round(avg(chi)::numeric, 1) chi_tb
-            from (select c.content_id, n.ngay, sum(n.chi) chi, sum(n.thu) thu from etp.so_ngay n join etp.camp c using (camp_id)
-                  where n.ngay between current_date - 14 and current_date - 1 and c.content_id > 0 group by 1, 2 having sum(n.chi) >= 5) d
+            from (select content_id, ngay, sum(chi) chi, sum(thu) thu from (   -- CẢ TEAM: camp Nhà + camp đội (anh 04/11/2026 "phải đo toàn bộ team chứ ko phải chỉ mỗi tk của tao")
+                    select c.content_id, n.ngay, n.chi, n.thu from etp.so_ngay n join etp.camp c using (camp_id) where n.ngay between current_date - 14 and current_date - 1 and c.content_id > 0
+                    union all select c.content_id, n.ngay, n.chi, n.thu from etp.so_ngay_ngoai n join etp.camp_ngoai c using (camp_id) where n.ngay between current_date - 14 and current_date - 1 and c.content_id > 0) u
+                  group by 1, 2 having sum(chi) >= 5) d
             group by 1 having count(*) >= %d and sum(chi) >= %d),
       san as (select r.content_id, count(*) k from etp.creative r join etp.cham_cong g using (creative_id)
               where g.duoc_len and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id) group by 1)
       select a.content_id, a.n, extract(epoch from now() - a.dau) / 86400 tuoi, (a.moi at time zone 'UTC')::date >= current_date - 1 moi_chua_khep,
              coalesce(s.chi3, 0) chi3, coalesce(s.thu3, 0) thu3, s.chi_t, s.thu_t, coalesce(san.k, 0) san, b.roi_bien, b.r2, b.chi_tb
-      from a left join s using (content_id) left join san using (content_id) left join b using (content_id)) x""" % (BIEN_NGAY, BIEN_CHI)) or "[]")
+      from a left join s using (content_id) left join san using (content_id) left join b using (content_id)
+      union all   -- phim chỉ team chạy (Nhà chưa camp nào đang bật): chỉ đồng hồ thị trường, không plan
+      select b.content_id, 0, 99, false, 0, 0, null, null, 0, b.roi_bien, b.r2, b.chi_tb from b where b.content_id not in (select content_id from a)) x""" % (BIEN_NGAY, BIEN_CHI)) or "[]")
     ghi = []
     for r in rows:
         n, chi, thu, san = int(r["n"]), float(r["chi3"]), float(r["thu3"]), int(r["san"])

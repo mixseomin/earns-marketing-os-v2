@@ -494,6 +494,7 @@ const LUAT = [
   { card: 'noi-0411', tep: 'apps/web/src/components/etp-view.tsx', co: 'function ReThe({ the, children, rong = 380, cao = 320 }', vi: 'mọi hover mới dùng thẻ nổi chung (useNoi + KhungNoi + DongMoc) — anh 04/11/2026' },
   { card: 'noi-0411', tep: 'apps/web/src/components/etp-view.tsx', co: '<ReThe the={() => theHapThu(m, ten)}>', vi: 'đồng hồ Thị trường dùng thẻ nổi chung' },
   { card: 'noi-0411', tep: 'apps/web/src/components/etp-dong.tsx', co: 'title={title || undefined}', vi: 'đồng hồ sản xuất không dùng hover chữ trình duyệt' },
+  { card: 'ht-0411', tep: 'apps/etp/mo_rong.py', co: 'union all select c.content_id, n.ngay, n.chi, n.thu from etp.so_ngay_ngoai n join etp.camp_ngoai c using (camp_id)', vi: 'đồng hồ thị trường đo CẢ TEAM (Nhà + đội) — anh 04/11/2026' },
   { card: 'ht-0411', tep: 'apps/etp/mo_rong.py', co: 'round(((regr_slope(thu, chi) - 1) * 100)::numeric)::int roi_bien', vi: 'ROI biên 14 ngày (độ hấp thụ) mỗi phim (anh 04/11/2026)' },
   { card: 'ht-0411', tep: 'apps/web/src/components/etp-view.tsx', co: 'function DongHoHapThu({ m, ten }: { m?: MoRong; ten?: string | null }) {', vi: 'đồng hồ hấp thụ ở dòng phim' },
   { card: 'g10hoi-0411', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if cs >= ns and (ts - cs) / cs * 100 >= G10_HOI:', vi: 'G10 hồi: 2 ngày đã khép sau hạ ROI ≥ 30% → về ngân sách trước lúc hạ, cả ★ ROAS (anh 04/11/2026)' },

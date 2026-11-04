@@ -1769,15 +1769,15 @@ const theHapThu = (m: MoRong, ten?: string | null): TheNoi => { const [pha, mau,
     { ten: 'ROI biên 14 ngày', mau, so: `${v > 0 ? '+' : ''}${v}%`, chu: `mỗi $1 chi thêm trong ngày đem về $${(1 + v / 100).toFixed(2)}` },
     { ten: 'Đề xuất', mau: '#60a5fa', chu: cach },
     { ten: 'Độ tin (R²)', mau: (m.r2 ?? 0) >= 0.6 ? '#4ade80' : '#f59e0b', so: String(m.r2 ?? '—'), chu: (m.r2 ?? 0) < 0.6 ? 'thấp — các ngày dao động mạnh, đọc thận trọng' : null },
-    { ten: 'Chi trung bình', mau: '#94a3b8', so: `$${m.chi_tb ?? '—'}/ngày`, chu: `${m.n} camp Nhà đang chạy` },
-    { ten: 'Cách tính', mau: '#64748b', chu: 'hồi quy thu ngày theo chi ngày của cả phim, 14 ngày Ethopex đã khép (ngày chi ≥ $5) · xanh ≥ +15% còn hút · vàng 0…+15% gần đỉnh · đỏ < 0 bão hoà' }] }; };
+    { ten: 'Chi trung bình cả team', mau: '#94a3b8', so: `$${m.chi_tb ?? '—'}/ngày`, chu: `Nhà + đội · ${m.n} camp Nhà đang chạy` },
+    { ten: 'Cách tính', mau: '#64748b', chu: 'hồi quy thu ngày theo chi ngày của cả phim — CẢ TEAM (Nhà + đội), 14 ngày Ethopex đã khép (ngày chi ≥ $5) · xanh ≥ +15% còn hút · vàng 0…+15% gần đỉnh · đỏ < 0 bão hoà' }] }; };
 export const tieuHapThu = (m: MoRong) => { const [ten, , cach] = PHA_HT[m.pha ?? 'it_so'] ?? PHA_HT.it_so!; const v = m.roi_bien ?? 0;
   return [`THỊ TRƯỜNG PHIM — ${ten.toUpperCase()}`,
     `• ROI biên 14 ngày: ${v > 0 ? '+' : ''}${v}% — mỗi $1 chi thêm trong ngày đem về $${(1 + v / 100).toFixed(2)}`,
     `• Độ tin (R²): ${m.r2 ?? '—'}${(m.r2 ?? 0) < 0.6 ? ' (thấp — số ngày dao động mạnh, đọc thận trọng)' : ''}`,
     `• Chi trung bình: $${m.chi_tb ?? '—'}/ngày · ${m.n} camp Nhà đang chạy`,
     `• Đề xuất: ${cach}`,
-    '— Cách tính: hồi quy thu ngày theo chi ngày của cả phim, 14 ngày Ethopex đã khép (ngày có chi ≥ $5). Xanh ≥ +15% · vàng 0…+15% · đỏ < 0'].join('\n'); };
+    '— Cách tính: hồi quy thu ngày theo chi ngày của cả phim (Nhà + đội), 14 ngày Ethopex đã khép (ngày có chi ≥ $5). Xanh ≥ +15% · vàng 0…+15% · đỏ < 0'].join('\n'); };
 function DongHoHapThu({ m, ten }: { m?: MoRong; ten?: string | null }) {
   if (!m || m.roi_bien == null || (m.pha ?? 'it_so') === 'it_so') return null;   // chưa đủ số thì không hiện gì (anh 04/11/2026)
   const pha = m.pha!, [, mau] = PHA_HT[pha] ?? PHA_HT.it_so!, v = m.roi_bien;

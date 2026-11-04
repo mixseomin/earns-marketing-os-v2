@@ -38,7 +38,9 @@ if (gocArg.startsWith('mota:')) {
 await Promise.all(ds.split(',').filter((d) => d !== 'goc').map(async (d) => {
   const mo = DANG[d]; if (!mo) { console.log(`✗ ${d}: không có trong danh mục dáng`); return; }
   const prompt = `Edit Image 1: keep EXACTLY the same character — same face, hair, age, outfit, accessories, art style, line work, colours and proportions. Change only the pose and expression: ${mo}. Full body, centered, on a plain pure white background, no ground shadow, no text, letters or logos.`;
-  const r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [goc], tiLe: '2:3' });
+  // THỬ LẠI dáng hỏng (04/11/2026: lam-tap sinh 3 nhân vật song song = ~27 lượt cổng ảnh cùng lúc → vài dáng TimeoutError, nhân vật thiếu dáng vĩnh viễn trong kho)
+  let r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [goc], tiLe: '2:3' });
+  for (let lan = 2; !r.anh && lan <= 3; lan++) { console.log(`· ${d}: ${r.loi} — thử lại lần ${lan}`); await new Promise((o) => setTimeout(o, 5000 * lan)); r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [goc], tiLe: '2:3' }); }
   if (!r.anh) { console.log(`✗ ${d}: ${r.loi}`); return; }
   writeFileSync(join(ra, `${d}.jpg`), r.anh.data); tong += r.nguon.vnd || 0; console.log(`✓ ${d}`);
 }));

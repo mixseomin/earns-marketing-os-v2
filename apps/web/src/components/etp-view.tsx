@@ -2337,6 +2337,11 @@ function NutLamMoi({ dongBo, gon }: { dongBo: DuLieuEtp['dongBo']; gon: boolean 
 type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null; cheDo?: CheDoLuat | null };
 const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
 export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLieuEtp; chiXem?: boolean; quyen?: QuyenXem; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string; ro?: string } }) {
+  // TỰ TẢI LẠI KHI CÓ BẢN MỚI (anh 04/11/2026 "nút này đâu ở tab phim" — tab mở từ trước deploy chạy giao diện cũ): hỏi /etp/ban mỗi phút, mã bản dựng khác lúc nạp → tải lại
+  // ngay khi không có form / ngăn đang mở (không làm mất chữ đang gõ)
+  useEffect(() => { let dau = ''; const hoi = async () => { try { const m = (await (await fetch('/etp/ban', { cache: 'no-store' })).text()).trim(); if (!m) return;
+      if (!dau) { dau = m; return; } if (m !== dau && !document.querySelector('[role="dialog"]')) location.reload(); } catch { /* mạng chập chờn: lượt sau */ } };
+    void hoi(); const t = setInterval(() => void hoi(), 60_000); return () => clearInterval(t); }, []);
   const router = useRouter();
   // TẢI THEO TAB (anh 30/10/2026 "làm tối ưu triệt để đi"): máy chủ gửi bản nhẹ; Creative › Quét / Điểm chạm và Thư viện cần phần nặng → tải bù rồi ghép
   const [nang, setNang] = useState<PhanNang | null>(null);

@@ -295,6 +295,14 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     x.camp++; if (c.trang_thai === 'ACTIVE') x.chay++; if (c.creative_id) x._cr.add(c.creative_id); x.thang = cong(x.thang, c.thang); x.qua = cong(x.qua, c.qua); x.nay = cong(x.nay, c.nay);
     phMap.set(c.content_id, x);
   }
+  // PHIM CHỈ TEAM CHẠY (anh 04/11/2026 "My Ex-Wife is a Secret Billionaire: sao phim này bên Kiên lại có mà bên Nhà ko tìm thấy"): Kiên 63 camp ROI +39% mà Nhà không thấy —
+  // phim có camp đội đang bật nhưng Nhà chưa camp nào cũng vào danh sách (0 camp Nhà, cột doi_chay = số camp đội) để Nhà nhận / mở rộng
+  if (!ngoai) for (const r of await run<{ c: number; ten: string | null }>(sql`select content_id c, max(phim_ten) ten from etp.camp_ngoai where trang_thai = 'ACTIVE' and content_id > 0 group by 1`)) {
+    const c = n(r.c); if (phMap.has(c)) continue; const i = phInfo.get(c) ?? {};
+    phMap.set(c, { content_id: c, ten: (i.ten as string) ?? r.ten, the_loai: (i.the_loai as string) ?? null, bo: (i.bo as string) ?? null, locale: (i.locale as string) ?? null, nguon: (i.nguon as string) ?? null,
+      nhom_goc: (i.nhom_goc as string) ?? null, thu: i.thu_vong ? { vong: String(i.thu_vong), ly: (i.thu_ly as string) ?? null } : null, moc: i.moc ? String(i.moc) : null,
+      doi_chay: doiChay.get(c) ?? 0, creative: 0, camp: 0, chay: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, _cr: new Set<number>() } as PhimEtpKho & { _cr: Set<number> });
+  }
   const phims: PhimEtpKho[] = [...phMap.values()].map(({ _cr, ...p }) => ({ ...p, creative: _cr.size }));
   // TRANG PHIM (anh 02/11/2026 "Đồng bộ và làm theo đề xuất vào đây"): bản workspace Ethopex của người đang xem (team = mọi người) — mỗi phim lấy bản đủ nhất;
   // phim mới thêm (30 ngày) chưa có camp cũng hiện một dòng để thấy trước khi lên camp. Cổng nhan-ban.py đọc cùng view.

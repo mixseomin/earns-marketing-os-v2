@@ -480,6 +480,7 @@ const LUAT = [
   { card: 'ht-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'ht', header: 'Thị trường', align: 'center', width: 40,", vi: 'tab Camp: cột Hấp thụ riêng' },
   { card: 'ht-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'ht_ph', header: 'Thị trường',", vi: 'tab Phim: cột Hấp thụ cho team' },
   { card: 'ht-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "if (!m || m.roi_bien == null || (m.pha ?? 'it_so') === 'it_so') return null;", vi: 'chưa đủ số thì không hiện' },
+  { card: 'doi-0411', tep: 'apps/web/src/lib/etp-doc.ts', co: 'if (!ngoai) for (const r of await run<{ c: number; ten: string | null }>(sql`select content_id c, max(phim_ten) ten from etp.camp_ngoai', vi: 'tab Phim Nhà hiện cả phim chỉ team chạy (anh 04/11/2026)' },
   { card: 'cat-0411', tep: 'apps/etp/cat_phim.py', co: 'if not team_lai and so_thu >= N and thieu:', vi: 'cất phim chỉ khi đã thử đủ CC / CT / KT mỗi dạng ≥ 2 camp (anh 04/11/2026)' },
   { card: 'cat-0411', tep: 'apps/etp/cat_phim.py', co: '"cho_dang_ngay": 3}', vi: 'chờ dạng thiếu quá 3 ngày không lên được thì cất' },
   { card: 'noi-0411', tep: 'apps/web/src/components/etp-view.tsx', co: 'function ReThe({ the, children, rong = 380, cao = 320 }', vi: 'mọi hover mới dùng thẻ nổi chung (useNoi + KhungNoi + DongMoc) — anh 04/11/2026' },

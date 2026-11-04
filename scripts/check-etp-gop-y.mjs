@@ -381,6 +381,8 @@ const LUAT = [
   { card: 'het-nl-kt-0411', tep: 'apps/etp/dong_phim.py', co: 'def sang_ke_chuyen(d, buoc, ghi):', vi: 'hết khung / đoạn sạch / creative bị chặn → tự dựng dòng kể chuyện' },
   { card: 'ma-luat-0411', tep: 'apps/etp/manh.py', co: 'MA_BUOC = {"poster":', vi: 'dấu cổng kèm băm mã luật của bước dừng + ngày cho bước camp — sửa luật là dòng dừng tự chạy lại' },
   { card: 'ma-luat-0411', tep: 'apps/etp/manh.py', co: "b.buoc = split_part(p.ly_do, ':', 1)", vi: 'mở lại cả dòng dừng mà không bước nào ở dung/loi (dòng #11)' },
+  { card: 'don-imac-0411', tep: 'apps/etp/dong_phim.py', co: 'def don_dep():', vi: 'sx xong phim nào trên iMac thì dọn tệp thừa ngay (ra/dp*, nguon/<phim>, vx-kc/<tập>) — anh 04/11/2026' },
+  { card: 'don-imac-0411', tep: 'apps/etp/dong_phim.py', co: 'DON[0] = 0   # phim xong → vòng sau dọn ngay', vi: 'dòng xong là dọn ngay, không chờ nhịp 30 phút' },
   { card: 'xu-ly-0411', tep: 'apps/etp/manh.py', co: '# 6. KHÔNG DỪNG HẲN', vi: 'Mạnh thử lại dòng lỗi kỹ thuật 2 giờ/lần, tối đa 6 lần (dòng #5)' },
   { card: 'xu-ly-0411', tep: 'apps/xuong-video/scripts/ethopex/cat-canh.py', co: 'SAN = 15 if os.environ.get("ETP_LOI_DAN") else 30', vi: 'kể chuyện sàn 15s, tập thật 30s — 72 phim KT bị bỏ vì sàn 30s' },
   { card: 'xu-ly-0411', tep: 'apps/etp/dong_phim.py', co: 'đã xếp lại đầu hàng đợi (bậc 5000), chờ máy nhận', vi: 'bước KT báo rõ máy đã bỏ phim trước đó + đã xếp lại (dòng #5)' },

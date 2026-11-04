@@ -388,6 +388,34 @@ def b_chay(d, truoc):
     if j.get("sync_status") == "done" and j.get("state") == "PAUSED": return "dung", f"camp #{camp} đồng bộ xong nhưng PAUSED (có người / máy luật tắt)", None
     return "cho", f"camp #{camp} {j.get('state')} · {j.get('sync_status')} — chờ Ethopex kiểm ad", None
 
+# DỌN TỆP THỪA TRÊN iMAC NGAY KHI PHIM SẢN XUẤT XONG (anh 04/11/2026 "sx xong phim nào trên iMAC thì dọn file thừa ngay lập tức" — đĩa còn 11 GB,
+# nguon 70 GB · ra 18 GB · vx-kc 4 GB). Chỉ dọn thứ máy tự sinh lại được và không còn ai dùng:
+#   ra/dp<id>*   — đoạn cắt / tệp tải creative của dòng đã XONG (dòng dừng / lỗi: hết 3 ngày Mạnh còn mở lại)
+#   nguon/<phim> — tập gốc tải về, khi phim không còn dòng chạy, không còn việc cắt chờ / đang làm, và 30 phút không ai ghi
+#   vx-kc/<tập>  — clip máy sinh kể chuyện, khi bản đó đã thành creative (thư viện có creative_id) / đã lên; bản bị bỏ thì sau 2 ngày
+DON = [0.0]
+def don_dep():
+    import shutil
+    ds = [l.split("\t") for l in sql("select id, trang_thai, (tao_luc < now() - interval '3 days')::text, content_id from etp.dong_phim").splitlines() if l.count("\t") == 3]
+    xong = {int(i) for i, tt, cu, _ in ds if tt == "xong" or (tt in ("dung", "loi", "huy") and cu == "true")}
+    dung = {c for _, tt, _, c in ds if tt == "chay"} | set(sql("select distinct content_id from etp.viec where trang_thai in ('cho', 'dang') and content_id is not null").split())
+    xa = {t for t in sql("select tap_id from etp.thu_vien where tap_id is not null and (creative_id is not null or trang_thai = 'da_len' or (trang_thai = 'loai' and cap_nhat < now() - interval '2 days'))").split()}
+    bo, tong = [], 0
+    def xoa(p):
+        nonlocal tong
+        tong += sum(os.path.getsize(os.path.join(r, f)) for r, _, fs in os.walk(p) for f in fs if os.path.isfile(os.path.join(r, f)))
+        shutil.rmtree(p, ignore_errors=True); bo.append(os.path.basename(p))
+    for ten in os.listdir(os.path.join(C, "ra")):
+        m = re.fullmatch(r"dp(\d+)(l\w*)?", ten)
+        if m and int(m.group(1)) in xong: xoa(os.path.join(C, "ra", ten))
+    for ten in os.listdir(os.path.join(C, "nguon")):
+        p_ = os.path.join(C, "nguon", ten)
+        if ten.isdigit() and os.path.isdir(p_) and ten not in dung and time.time() - max([os.path.getmtime(p_)] + [os.path.getmtime(os.path.join(r, f)) for r, _, fs in os.walk(p_) for f in fs]) > 1800: xoa(p_)
+    for ten in os.listdir(os.path.join(C, "vx-kc")):
+        p_ = os.path.join(C, "vx-kc", ten)
+        if ten.isdigit() and os.path.isdir(p_) and ten in xa: xoa(p_)
+    if bo: print(f"[{time.strftime('%H:%M:%S')}] dọn {len(bo)} thư mục · {tong / 1e9:.1f} GB ({', '.join(bo[:12])}{' …' if len(bo) > 12 else ''})", flush=True)
+
 HAM = {"nhan": b_nhan, "ws": b_ws, "poster": b_poster, "cat": b_cat, "soat": b_soat, "creative": b_creative, "camp": b_camp, "chay": b_chay}
 
 # ---------------- dựng dự phòng cho studio (anh 03/11/2026: "Cấm mày ren video trên box3" · "CF lỗi thì lùi về iMAC") ----------------
@@ -457,7 +485,9 @@ def lam_buoc(d, buoc):
         except Exception as e: kt = f"chuyển kể chuyện lỗi: {str(e)[:120]}"
         if kt: ghi = f"{ghi[:300]} → {kt}"
     if ket in ("dung", "loi"): sql(f"update etp.dong_phim set trang_thai = '{ket}', ly_do = {s(f'{buoc}: {ghi}')}, xong_luc = now() where id = {d['id']} and trang_thai = 'chay'")
-    elif buoc == "chay": sql(f"update etp.dong_phim set trang_thai = 'xong', ly_do = {s(ghi)}, xong_luc = now() where id = {d['id']}")
+    elif buoc == "chay":
+        sql(f"update etp.dong_phim set trang_thai = 'xong', ly_do = {s(ghi)}, xong_luc = now() where id = {d['id']}")
+        DON[0] = 0   # phim xong → vòng sau dọn ngay
     print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} · {buoc} → {ket} · {ghi[:160]}", flush=True)
 
 CHAY = {}   # (dòng, bước) → (thread, lần chạy cuối)
@@ -466,6 +496,10 @@ def vong():
     if not (DUNG[0] and DUNG[0].is_alive()):   # một lệnh dựng dự phòng một lúc (iMac còn cắt phim cho dòng phim)
         DUNG[0] = threading.Thread(target=dung_imac, daemon=True); DUNG[0].start()
     sql(f"insert into etp.dong_may (may, nhip, pid) values ('{MAY}', now(), {os.getpid()}) on conflict (may) do update set nhip = now(), pid = excluded.pid")
+    if time.time() - DON[0] > 1800:   # dọn khi có phim vừa xong (DON về 0) + quét lại 30 phút / lần cho phần còn lại (máy sinh KT, việc cắt vừa xong)
+        DON[0] = time.time()
+        try: don_dep()
+        except Exception as e: print(f"dọn lỗi: {e}", flush=True)
     for d in doc_dong():
         bs = d.get("buoc") or {}
         if not bs:   # dòng mới (web vừa tạo): dựng 8 bước — hạn từng bước khai MỘT chỗ ở đây

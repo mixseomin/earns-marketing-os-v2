@@ -494,6 +494,7 @@ const LUAT = [
   { card: 'noi-0411', tep: 'apps/web/src/components/etp-view.tsx', co: 'function ReThe({ the, children, rong = 380, cao = 320 }', vi: 'mọi hover mới dùng thẻ nổi chung (useNoi + KhungNoi + DongMoc) — anh 04/11/2026' },
   { card: 'noi-0411', tep: 'apps/web/src/components/etp-view.tsx', co: 'co ? theHapThu(m!, ten) :', vi: 'đồng hồ Thị trường dùng thẻ nổi chung' },
   { card: 'noi-0411', tep: 'apps/web/src/components/etp-dong.tsx', co: 'title={title || undefined}', vi: 'đồng hồ sản xuất không dùng hover chữ trình duyệt' },
+  { card: 'ht-0411', tep: 'apps/etp/mo_rong.py', co: 'def pha_theo_muc(r):', vi: 'pha thị trường theo mức chi hiện tại so với mức chi hấp thụ (anh 04/11/2026 Frozen Outcast)' },
   { card: 'ht-0411', tep: 'apps/etp/mo_rong.py', co: 'SB_NGAY, SB_CHI = 3, 100', vi: 'đồng hồ thị trường sơ bộ từ 3 ngày đã khép (vẽ mờ) — anh 04/11/2026' },
   { card: 'ht-0411', tep: 'apps/etp/mo_rong.py', co: 'union all select c.content_id, n.ngay, n.chi, n.thu from etp.so_ngay_ngoai n join etp.camp_ngoai c using (camp_id)', vi: 'đồng hồ thị trường đo CẢ TEAM (Nhà + đội) — anh 04/11/2026' },
   { card: 'ht-0411', tep: 'apps/etp/mo_rong.py', co: 'round(((regr_slope(thu, chi) - 1) * 100)::numeric)::int roi_bien', vi: 'ROI biên 14 ngày (độ hấp thụ) mỗi phim (anh 04/11/2026)' },

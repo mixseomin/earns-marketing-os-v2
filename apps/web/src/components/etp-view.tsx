@@ -1764,6 +1764,7 @@ const theHapThu = (m: MoRong, ten?: string | null): TheNoi => { const [pha, mau,
   return { ma: `#${m.content_id}`, ten, tieu: `Thị trường · ${pha} · ROI biên ${v > 0 ? '+' : ''}${v}%${sb ? ` · SƠ BỘ (${m.so_ngay} ngày)` : ''}`, mau, moc: [
     ...(sb ? [{ ten: 'Sơ bộ', mau: '#f59e0b', chu: `mới ${m.so_ngay} ngày đã khép có chi ≥ $5 — đủ 6 ngày + $150 mới là số chắc; một ngày lệch có thể đổi pha` }] : []),
     { ten: 'ROI biên 14 ngày', mau, so: `${v > 0 ? '+' : ''}${v}%`, chu: `mỗi $1 chi thêm trong ngày đem về $${(1 + v / 100).toFixed(2)}` },
+    ...(m.muc_hut ? [{ ten: 'Mức chi hấp thụ', mau: '#22c55e', so: `~$${m.muc_hut}/ngày`, chu: `ngày chi cao nhất mà vẫn lãi (cả team, 14 ngày) · đang chi $${m.chi_gan ?? '—'}/ngày${m.chi_gan && m.chi_gan > 0 ? ` → còn ×${(m.muc_hut / m.chi_gan).toFixed(1)}` : ''}` }] : []),
     { ten: 'Đề xuất', mau: '#60a5fa', chu: cach },
     { ten: 'Độ tin (R²)', mau: (m.r2 ?? 0) >= 0.6 ? '#4ade80' : '#f59e0b', so: String(m.r2 ?? '—'), chu: (m.r2 ?? 0) < 0.6 ? 'thấp — các ngày dao động mạnh, đọc thận trọng' : null },
     { ten: 'Chi trung bình cả team', mau: '#94a3b8', so: `$${m.chi_tb ?? '—'}/ngày`, chu: `Nhà + đội · ${m.n} camp Nhà đang chạy` },

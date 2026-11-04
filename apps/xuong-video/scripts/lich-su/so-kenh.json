@@ -1154,7 +1154,8 @@
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau full-story-2  (demo: demo-mau.sh)",
         "mo_ta": "Khuôn Full Story (~3 phút) + SỐ THÀNH HÌNH: đúng lúc giọng đọc tới một con số có nguồn, số hiện to giữa màn đếm chạy lên, kèm hình theo loại — hàng người (1 hình = N người), chồng tiền, đồng hồ quay, thanh phần trăm, đường đo; hai số quân trong một câu thành hai cột so sánh. Số chỉ lấy từ trích dẫn nguồn của câu, không có số bịa; không cần viết lại kịch bản.",
-        "cho_duyet": true
+        "cho_duyet": true,
+        "demo": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-full-story-2-5960e0c784.mp4"
       },
       {
         "ma": "short-60",

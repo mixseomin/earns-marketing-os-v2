@@ -58,6 +58,10 @@ if (!chuDe && gh) {
     if (c.data.nam_chinh >= moc) { loiChon = `chuyện năm ${c.data.nam_chinh} — kênh chỉ làm chuyện trước năm ${moc}, chọn chuyện khác`; continue; }
     const thieu: string[] = []; for (const t of c.data.nguon) { const p = (await goiWiki({ action: 'query', titles: t, redirects: '1' })).query?.pages?.[0]; if (!p || p.missing) thieu.push(t); }
     if (thieu.length || c.data.nguon.length < 2) { loiChon = `bài Wikipedia không có: ${thieu.join(', ') || '(ít hơn 2 bài)'}`; continue; }
+    // tiêu đề chọn ở đây bị ĐÓNG BĂNG cho cả 4 lượt viết (dưới: tieu_de = tieuDeChon ?? d.tieu_de) → nếu nó phạm loiHook
+    // (giữ < 35% chữ hook, hoặc thêm con số không có trong hook) thì lượt viết không bao giờ kiểm sạch được, luôn thoát mã 4.
+    // Bắt ngay tại chỗ sinh — cùng luật --chi-hook ở dưới — để tiêu đề sinh ra đã hợp lệ (03/11 tập witch: tiêu đề thêm "300" → kẹt).
+    const lh = loiHook([c.data.tieu_de], h.chu); if (lh.length) { loiChon = `tiêu đề "${c.data.tieu_de}": ${lh.join('; ')} — giữ ≥ 35% chữ của hook, không thêm con số không có trong hook`; continue; }
     chuDe = c.data.chu_de; tua = c.data.nguon; hookChon = { qc: h.id, goc: h.chu }; tieuDeChon = c.data.tieu_de;
     console.log(`đề theo góc #${gh.goc.id}: ${chuDe} · nguồn ${tua.join(' | ')} · hook ${h.id} "${h.chu}" → "${tieuDeChon}" (${Math.round(c.tokens.vnd ?? 0)}₫)`);
   }

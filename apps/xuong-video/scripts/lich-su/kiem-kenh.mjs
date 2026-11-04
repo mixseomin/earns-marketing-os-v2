@@ -40,6 +40,7 @@ for (const [k, K] of Object.entries(KENH)) {
       let dl = null; try { dl = JSON.parse(sqlBox(`SELECT coalesce(nguon->'dang_lam_ds'->${q1(id)}, 'null')::text FROM xv_may WHERE ma = ${q1(K.may)};`)); } catch { /* phụ */ }
       dong.push(`⏳ tập ${id} đang làm${dl?.buoc ? ` · bước ${dl.buoc}` : ''}${dl?.chi_tiet ? ` · ${dl.chi_tiet}` : ''}`);
     } else if (!tap) dong.push(`✗ hôm nay là ngày làm tập (từ ${K.gio_tap ?? '?'}) mà CHƯA CÓ tập ${id} — việc nền iMac:com.earns.lich-su-lam-tap có chạy không? nhật ký /Users/htuan/.cache/lich-su-lam-tap.log (iMac)`);
+    else if (tap.tu_dong?.bo) dong.push(`✖ tập ${id} đã BỎ sau 3 lần tự làm lại kẹt — lượt lịch kế tự làm đề khác (không cần ai sửa)`);
     else dong.push(`✗ tập ${id} HỎNG${tap.tu_dong ? ` (tự làm lại ${tap.tu_dong.lan}/3)` : ''}: ${(tap.tu_dong?.loi ?? 'chưa nạp máy đăng').slice(0, 300)}\n🔧 ${viecTho(`kenh:${k}|${id}`)}\nnhật ký: /Users/htuan/.cache/lich-su/${id}/lam-tap.log (iMac)`);
   } else {
     // mọi nền của máy (youtube, facebook:<acct>…): da_dang = { <nền>: { ngay, url } }

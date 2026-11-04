@@ -34,7 +34,7 @@ export type KenhSp = {
 };
 
 /** tập đang dở chưa nạp máy đăng (xv_may.nguon.tap_cho) */
-export type TapCho = { id: string; chu_de: string | null; cau: number; lan: number; loi: string | null; tho: string | null };
+export type TapCho = { id: string; chu_de: string | null; cau: number; lan: number; loi: string | null; tho: string | null; /** 3 lần kẹt → máy bỏ, lượt kế làm đề khác (05/11/2026) */ bo?: boolean };
 /** một tập đang trong lò (xv_may.nguon.dang_lam_ds[<tập>] — chay-kenh ghi lúc bắt đầu, lam-tap ghi từng bước; hỏng thì giữ kèm loi) */
 export type DangLam = { id: string; luc: string; buoc?: string; so?: number; tong?: number; buoc_luc?: string; loi?: string | null; chi_tiet?: string | null; /** tên tập (tiêu đề / chủ đề) */ ten?: string | null };
 
@@ -101,7 +101,8 @@ export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()
     const som = ds.reduce<string | null>((m, d) => (!m || d.luc < m ? d.luc : m), null);
     ra.push({ id: 'sx', nhom: true, chu: `▶ Đang sản xuất${ds.length > 1 ? ` (${ds.length})` : ''}`,
       phu: som ? `${ds.length} tập · sớm nhất bắt đầu ${gioVn(som)} · ${Math.max(0, Math.round((bayGio - Date.parse(som)) / 60_000))} phút` : 'không có tập nào đang chạy · việc nền chạy lại mỗi giờ' }, ...dongSx);
-    for (const t of cho) ra.push({ id: `cho/${t.id}`, chu: `⏸ ${t.chu_de ?? t.id}`, mau: t.lan >= 3 ? 'var(--bad)' : 'var(--fg-2)',
+    for (const t of cho) ra.push(t.bo ? { id: `cho/${t.id}`, chu: `✖ ${t.chu_de ?? t.id}`, mau: 'var(--fg-4)', phu: `bỏ sau 3 lần tự làm lại kẹt · máy tự làm đề khác ở lượt lịch kế · ${t.id}` }
+      : { id: `cho/${t.id}`, chu: `⏸ ${t.chu_de ?? t.id}`, mau: t.lan >= 3 ? 'var(--bad)' : 'var(--fg-2)',
       phu: [t.lan ? `đã tự làm lại ${t.lan}/3` : 'chờ lượt giờ sau', t.tho ? '🔧 đã giao Mạnh sửa' : null, t.loi ? `lỗi: ${t.loi}` : null, t.id].filter(Boolean).join(' · ') }); }
   const lich: DongKe[] = [];
   for (const v of k.videos) {

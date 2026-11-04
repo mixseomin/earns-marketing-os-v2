@@ -49,7 +49,9 @@ for (const [k, K] of Object.entries(KENH)) {
     if (st?.dang) continue;                                         // đã đăng
     if (st?.xuat && (!st.ket || st.ket === 'DUYET')) continue;      // chờ Phòng Nội dung / chờ máy đăng
     const td = t.tu_dong ?? { lan: 0 };
-    if (td.lan >= 3) { if (!td.da_bao) { tele(`⚠ ${K.ten}: tập ${t.id} tự làm lại 3 lần vẫn kẹt — cần anh xem\n${td.loi ?? ''}\n${JSON.stringify(st?.chan ?? [])}`); t.tu_dong = { ...td, da_bao: true }; writeFileSync(tep, JSON.stringify(t, null, 1) + '\n'); } continue; }
+    // 3 lần vẫn kẹt → BỎ tập này (tu_dong.bo), lượt lịch kế làm tập MỚI với đề khác (anh 05/11/2026: "sửa triệt để ở quy trình cho tự động hoàn toàn" — không dừng chờ người)
+    if (td.lan >= 3) { if (!td.bo) { t.tu_dong = { ...td, bo: true, bo_luc: new Date().toISOString() }; writeFileSync(tep, JSON.stringify(t, null, 1) + '\n');
+        tele(`⚠ ${K.ten}: tập ${t.id} tự làm lại 3 lần vẫn kẹt → BỎ, lượt kế làm đề khác\n${(td.loi ?? '').slice(0, 300)}\n${JSON.stringify(st?.chan ?? []).slice(0, 200)}`); } continue; }
     writeFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), String(process.pid));
     // kịch bản rỗng / cụt (cổng AI chập chờn trả bản 0 câu — 02/11/2026) → viết lại từ đầu; có kịch bản thì giữ, chỉ làm tiếp
     const vietLai = (t.cau?.length ?? 0) < 5 ? ['--viet-lai'] : [];
@@ -63,7 +65,8 @@ for (const [k, K] of Object.entries(KENH)) {
     // dấu "đang làm" trên máy (bảng mos2): lam-tap bị giết vì quá giờ không kịp tự gỡ → hỏng thì ghi lỗi lên dấu, xong thì gỡ
     if (hong) { try { dauDangLam(K.may, t.id, { loi: `lần ${td.lan + 1}/3 hỏng: ${loiTxt.slice(0, 160)}` }, { chiKhiCo: true }); } catch { /* phụ */ } }
     else danhDau(K.may, t.id, null);
-    if (hong && giaoTho(k, t.id, ra)) t2.tu_dong.tho = new Date().toISOString();
+    // mã 4 = máy viết không khép được nội dung → việc của vòng API (làm lại / bỏ → đề khác), KHÔNG giao Mạnh (Claude CLI); chỉ lỗi mã (crash, mạng…) mới giao thợ máy
+    if (hong && r.status !== 4 && giaoTho(k, t.id, ra)) t2.tu_dong.tho = new Date().toISOString();
     writeFileSync(tep, JSON.stringify(t2, null, 1) + '\n');
     bao.push(hong ? `⚠ tự làm lại tập ${t.id} (lần ${td.lan + 1}/3) hỏng: ${t2.tu_dong.loi}${t2.tu_dong.tho ? '\n🔧 đã giao Mạnh (thợ máy) tìm gốc + sửa' : ''}` : `✓ tự làm lại tập ${t.id} (${st ? `Phòng Nội dung: ${st.ket ?? 'chưa xuất'}` : 'chưa nạp'}) → đã nạp lại, chờ chấm`);
     break;   // một tập mỗi lượt — lượt giờ sau làm tập kế
@@ -73,7 +76,7 @@ for (const [k, K] of Object.entries(KENH)) {
   { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`, daNap = new Set(sqlBox(`SELECT coalesce(string_agg(v.slug, ','), '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)};`).split(',').filter(Boolean));
     const cho = readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json')).map((f) => join(DIR, 'tap', f)).filter((f) => Date.now() - statSync(f).mtimeMs < 10 * 86_400_000)
       .map((f) => JSON.parse(readFileSync(f, 'utf8'))).filter((t) => (t.kenh ?? 'saga') === k && t.id && !daNap.has(t.id))
-      .map((t) => ({ id: t.id, chu_de: t.chu_de ?? null, cau: t.cau?.length ?? 0, lan: t.tu_dong?.lan ?? 0, loi: t.tu_dong?.loi ?? null, tho: t.tu_dong?.tho ?? null }));
+      .map((t) => ({ id: t.id, chu_de: t.chu_de ?? null, cau: t.cau?.length ?? 0, lan: t.tu_dong?.lan ?? 0, loi: t.tu_dong?.loi ?? null, tho: t.tu_dong?.tho ?? null, bo: !!t.tu_dong?.bo }));
     try { sqlBox(`UPDATE xv_may SET nguon = jsonb_set(coalesce(nguon, '{}'::jsonb), '{tap_cho}', ${q1(JSON.stringify(cho))}::jsonb) WHERE ma = ${q1(K.may)};`); } catch { /* phụ */ } }
   // việc nền chạy MỖI GIỜ (02/11/2026 anh: đo kênh tần suất cao hơn) → làm tập chỉ từ gio_tap trở đi của ngày lịch; khoá ~/.cache/lich-su-<k>.khoa (pid) chống lượt chồng
   const gioNay = new Date().toLocaleTimeString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
@@ -89,7 +92,9 @@ for (const [k, K] of Object.entries(KENH)) {
     writeFileSync(khoa, String(process.pid));
     // --ep (làm thêm tập ngoài lịch): mã ngày đã có tập thì lấy hậu tố -2, -3… — không chạy đè lên tập đã đăng
     let id = `${K.may}-${hom.replace(/-/g, '')}`;
-    if (process.argv.includes('--ep')) for (let n = 2; existsSync(join(DIR, 'tap', `${id}.json`)); n++) id = `${K.may}-${hom.replace(/-/g, '')}-${n}`;
+    // tập cùng mã đã BỎ (3 lần kẹt) cũng không chặn: lấy hậu tố kế để làm đề khác
+    const daBo = (f) => { try { return !!JSON.parse(readFileSync(f, 'utf8')).tu_dong?.bo; } catch { return false; } };
+    for (let n = 2; existsSync(join(DIR, 'tap', `${id}.json`)) && (process.argv.includes('--ep') || daBo(join(DIR, 'tap', `${id}.json`))); n++) id = `${K.may}-${hom.replace(/-/g, '')}-${n}`;
     if (existsSync(join(DIR, 'tap', `${id}.json`)) && !process.argv.includes('--ep')) bao.push(`tập ${id} đã có — bỏ qua`);
     else {
       // lam-tap tự dừng trước khi tốn tiền giọng / ảnh nếu máy viết 4 lượt vẫn lỗi; DUYET_SINH_1_LAN cho lượt có lịch anh đã duyệt (02/11/2026: 3 tập/tuần)
@@ -101,7 +106,7 @@ for (const [k, K] of Object.entries(KENH)) {
       const tien = [...ra.matchAll(/~(\d+)₫/g)].reduce((t, m) => t + Number(m[1]), 0);
       const tap = existsSync(join(DIR, 'tap', `${id}.json`)) ? JSON.parse(readFileSync(join(DIR, 'tap', `${id}.json`), 'utf8')) : null;
       if (r.signal) ra += `\n✗ quá giờ 100 phút — lượt bị dừng (${r.signal})`;
-      if (r.status !== 0 && giaoTho(k, id, ra)) ra += '\n🔧 đã giao Mạnh (thợ máy) tìm gốc + sửa';
+      if (r.status !== 0 && r.status !== 4 && giaoTho(k, id, ra)) ra += '\n🔧 đã giao Mạnh (thợ máy) tìm gốc + sửa';   // mã 4 (nội dung không khép) = vòng API tự làm lại, không giao Claude
       bao.push(r.status !== 0 ? `✗ tập ${id} hỏng (mã ${r.status ?? r.signal}): ${ra.trim().split('\n').slice(-3).join(' · ').slice(0, 500)}`
         : `✓ tập mới ${id}${pl ? ` [${pl}]` : ''}: ${tap?.tieu_de ?? '?'}\n  ${tap?.chu_de ?? ''}\n  ~${tien.toLocaleString('vi-VN')}₫ · Studio › Máy › ${K.may} · ${/✓ nạp máy/.test(ra) ? 'đã nạp máy đăng, chờ Phòng Nội dung chấm' : '⚠ chưa nạp máy đăng'}`);
     }

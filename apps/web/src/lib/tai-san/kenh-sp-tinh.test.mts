@@ -40,6 +40,9 @@ import { cayKeHoach } from './kenh-sp-tinh';
     const m = cayKeHoach({ videos: [], ke: { ...ke, tapKe: [], dangLam: ds } }, Date.parse('2026-11-02T15:25:00Z'));
     assert.strictEqual(m[0]!.chu, '▶ Đang sản xuất (10)'); assert.strictEqual(m.filter((x) => x.dongHo).length, 10);
     assert.deepStrictEqual(m.slice(1).map((x) => x.dongHo!.so), [1, 2, 3, 4, 5, 6, 7, 8, 1, 2]); } }
+// tập đã BỎ (3 lần kẹt) → dòng xám ✖, không đỏ, không "giao Mạnh"
+{ const r = cayKeHoach({ videos: [], ke: { lichTap: null, gioDang: null, tapKe: [], lichDang: [], dangLam: [], tapCho: [{ id: 'b', chu_de: 'Bỏ', cau: 30, lan: 3, loi: 'x', tho: null, bo: true }] } });
+  assert.strictEqual(r[1]!.chu, '✖ Bỏ'); assert.strictEqual(r[1]!.mau, 'var(--fg-4)'); assert.ok(/đề khác/.test(r[1]!.phu!)); }
 // một bước đứng quá 30 phút → đỏ, ghi "đứng"
 { const ke = { lichTap: null, gioDang: null, tapKe: [], lichDang: [], dangLam: [{ id: 't', luc: '2026-11-02T15:00:00Z', buoc: 'viết kịch bản', so: 2, tong: 8, buoc_luc: '2026-11-02T15:00:00Z' }] };
   const r = cayKeHoach({ videos: [], ke }, Date.parse('2026-11-02T15:45:00Z'))[1]!; assert.strictEqual(r.phu, 'bước 2/8 · viết kịch bản · ⚠ đứng 45 phút · t'); assert.strictEqual(r.mau, 'var(--bad)'); assert.strictEqual(r.dongHo!.loi, true); }

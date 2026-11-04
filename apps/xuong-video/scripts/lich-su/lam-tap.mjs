@@ -225,7 +225,11 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
   // (02/11/2026: --viet-lai giữ chủ đề cũ, không có hook → 4 lượt viết đều bị kiểm chặn "chưa gắn hook")
   const boDeCu = KENH.may && !arg('chu-de') && !(existsSync(tepTap) && JSON.parse(readFileSync(tepTap, 'utf8')).hook?.goc);
   if ((!chuDe || boDeCu) && KENH.may) { const f = join(RA, 'goc-hook.json'); writeFileSync(f, box(`scripts/may-dung.mts --may ${KENH.may} --goc-hook`).split('\n').pop()); len(f, `${tmp}/goc-hook.json`); ghArg = ` --goc-hook ${tmp}/goc-hook.json`;
-    const g = JSON.parse(readFileSync(f, 'utf8')); console.log(`góc spy #${g.goc.id} ${g.goc.ten} · ${g.hooks.length} hook QC`); }
+    // ĐÃ LÀM của máy chỉ có tập đã nạp; tập làm dở / đã BỎ (3 lần kẹt) nằm ở tệp tập cục bộ → thêm vào danh sách tránh, kẻo máy chọn lại đúng đề vừa kẹt (05/11/2026)
+    const g = JSON.parse(readFileSync(f, 'utf8')), cucBo_ = readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json')).map((x) => { try { return JSON.parse(readFileSync(join(DIR, 'tap', x), 'utf8')); } catch { return null; } })
+      .filter((t) => t && (t.kenh ?? 'saga') === kenhId && t.chu_de).map((t) => `${t.chu_de}${t.tu_dong?.bo ? ' (đã thử, kẹt — tránh hẳn)' : ''}`);
+    g.da_lam = [...new Set([...(g.da_lam ?? []), ...cucBo_])]; writeFileSync(f, JSON.stringify(g)); len(f, `${tmp}/goc-hook.json`);
+    console.log(`góc spy #${g.goc.id} ${g.goc.ten} · ${g.hooks.length} hook QC · tránh ${g.da_lam.length} đề đã làm / đã thử`); }
   if (!chuDe && !ghArg) { console.error('chưa có tập — cần --chu-de (hoặc kênh có máy Studio để chọn đề theo góc)'); process.exit(2); }
   let loi = sua ? await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
   // VÒNG VIẾT (05/11/2026, anh: "sao sx không tự động hoàn toàn được"): viết lại CẢ BẢN kèm danh sách lỗi sửa lỗi cũ rồi đẻ lỗi mới ở câu khác → 4 lượt không khép.

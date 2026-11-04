@@ -474,6 +474,8 @@ const LUAT = [
   { card: 'manh-0511', tep: 'apps/etp/manh.py', co: "b.lan < 10 and b.ket_thuc < now() - interval '10 minutes'", vi: 'lỗi hạ tầng tự thử lại sau 10 phút, không đứng 2 giờ' },
   { card: 'trung-khoa-0511', tep: 'apps/etp/trang_phim.py', co: 'MỘT phim MỘT hàng', vi: 'trang phim bỏ phim trùng giữa các trang trước khi upsert (05/11/2026 lỗi ON CONFLICT)' },
   { card: 'trung-khoa-0511', tep: 'apps/etp/dong-bo.py', co: 'rows = list({tuple(r.get(k) for k in khoa_): r for r in rows}.values())', vi: 'upsert chung của đồng bộ bỏ hàng trùng khoá' },
+  { card: 'hero-ky-0511', tep: 'apps/web/src/components/etp-view.tsx', co: "const theoKy = (k: string) => k === 'ky' || (k === 'lai' && (laiLoc === 'lai' || laiLoc === 'lo'));", vi: 'ô Hôm nay / Hôm qua không theo bộ lọc Lãi/lỗ trong kỳ — đổi kỳ không làm hero nhảy (anh 05/11/2026)' },
+  { card: 'hero-ky-0511', tep: 'apps/web/src/components/etp-view.tsx', co: 'BO_LOC.every(([k, f]) => theoKy(k) || f(c))', vi: 'tập camp ô cố định bỏ mọi bộ lọc theo kỳ' },
   { card: 'mux-0411', tep: 'apps/etp/dong_phim.py', co: 'THU_MANG.get(k_mang, 0) < 3', cam: '.get("lan") or 1) < 3:', vi: 'trần thử lại vì mạng đếm riêng, không đọc `lan` (lan đếm cả FIX tay)' },
   { card: 'tap-thieu-0511', tep: 'apps/xuong-video/scripts/ethopex/tai-tap.py', co: 'def da_het(ra):', vi: 'luật đã dò hết tập nằm một chỗ ở tai-tap' },
   { card: 'mux-0411', tep: 'apps/etp/dong_phim.py', co: 'mux_client|Session open refused', vi: 'lỗi kênh ssh dùng chung (mux) tới box3 là lỗi mạng → tự thử lại, không chết dòng (22:08 04/11/2026 #15 #21 #51)' },

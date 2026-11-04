@@ -2555,8 +2555,13 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     const t = setTimeout(() => { timCampNoiKhac(k).then((ds) => setNoiKhac({ q: k, ds })).catch(() => {}); }, 400); return () => clearTimeout(t); }, [timCay, khopTim.length]);
 
   // dải số KHÔNG tính bộ lọc kỳ ('ky'): kỳ là cửa sổ thời gian (số đã cắt theo kỳ qua ckh / khCamp), không phải lọc camp — gộp vào làm 'hôm nay' đổi theo kỳ (anh 03/11/2026 "chọn hôm qua thì Lãi hôm nay lại tăng")
-  const campsSo = useMemo(() => du.camps.filter((c) => BO_LOC.every(([k, f]) => k === 'ky' || f(c))), [du.camps, BO_LOC]);
+  // BỘ LỌC THEO KỲ = mọi bộ lọc mà tập camp đổi khi đổi kỳ: 'ky' + Lãi/Lỗ "trong kỳ" (anh 05/11/2026 "?ll=lo hero lại hôm nay nhảy lung tung khi đổi Kỳ").
+  // Ô CỐ ĐỊNH (hôm nay / hôm qua / camp chạy) bỏ qua chúng; ô KỲ (khTong) theo đủ bộ lọc trừ 'ky' (kỳ đã cắt số qua ckh)
+  const theoKy = (k: string) => k === 'ky' || (k === 'lai' && (laiLoc === 'lai' || laiLoc === 'lo'));
+  const campsSo = useMemo(() => du.camps.filter((c) => BO_LOC.every(([k, f]) => theoKy(k) || f(c))), [du.camps, BO_LOC, laiLoc]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const campsSoKy = useMemo(() => du.camps.filter((c) => BO_LOC.every(([k, f]) => k === 'ky' || f(c))), [du.camps, BO_LOC]);
   const soLoc = tab === 'camp' && campsSo.length !== du.camps.length ? campsSo : tab === 'roas' ? campRoas : null;   // null = không lọc → dải số tính cả kho
+  const soLocKy = tab === 'camp' && campsSoKy.length !== du.camps.length ? campsSoKy : tab === 'roas' ? campRoas : null;
   const nguon = soLoc ?? du.camps;
   const nay = soLoc ? cong(soLoc.map((c) => c.nay)) : nay0, qua = soLoc ? cong(soLoc.map((c) => c.qua)) : qua0;
   const chay = nguon.filter(dangChay), choChay = nguon.filter(choGio);
@@ -2635,7 +2640,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   // chỉ biểu đồ; bảng ngày + số tổng vẫn đúng kỳ đã chọn
   const ngayBieuDo = ngayGanNhat.length >= 7 ? ngayGanNhat : (() => { const cuoi = ngayGanNhat[ngayGanNhat.length - 1]?.ngay ?? du.nay;
     return du.ngay.filter((r) => r.ngay <= cuoi).slice(-7).map((r) => ({ ...r, ...(du.demNgay[r.ngay] ?? { camp_moi: 0, cr_moi: 0, tat: 0 }) })); })();
-  const khTong = soLoc ? (khNay ? nay : cong(soLoc.map((c) => ckh(c.camp_id)))) : cong(ngayGanNhat);
+  const khTong = soLocKy ? (khNay && soLocKy === soLoc ? nay : cong(soLocKy.map((c) => ckh(c.camp_id)))) : cong(ngayGanNhat);
   // DỰ KIẾN HÔM NAY (anh 24/10/2026 "show dự kiến lên chart"): chi cả ngày = max(chi đến giờ, 90% tổng ngân sách camp đang chạy — các ngày qua chi đạt ~85–95%);
   // ROI = trung bình ROI hôm nay đến giờ và ROI hôm qua (doanh thu về trễ nên ROI giữa ngày thường thấp hơn cuối ngày); khoảng = ROI ± 7 điểm
   const duKien = (() => {

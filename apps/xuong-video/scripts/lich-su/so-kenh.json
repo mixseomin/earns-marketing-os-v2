@@ -377,7 +377,8 @@
         "kho": "vô hạn · mỗi cặp 1–3 tập (góc khít nhất / điểm / mốc chia tay)",
         "trang": "shot-code/la-so.html (cheo + diem)",
         "sinh": "la-so/hop.mjs <a> <b> → kịch bản tay (G5 tự viết)",
-        "cho_duyet": true
+        "cho_duyet": true,
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/chart-vs-chart.mp4?v=1"
       },
       {
         "ma": "love-story-charts",
@@ -388,7 +389,8 @@
         "kho": "theo sổ cặp la-so/cap.json",
         "trang": "shot-code/la-so.html (khung ngang)",
         "sinh": "hop.mjs + zr.mjs (kỳ ZR của CẢ HAI người ở mỗi mốc quen / cưới / chia tay)",
-        "cho_duyet": true
+        "cho_duyet": true,
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-love-story.mp4?v=1"
       },
       {
         "ma": "sign-x-sign",
@@ -400,7 +402,8 @@
         "trang": "shot-code/la-so.html",
         "sinh": "la-so/cung-cap.mjs → la-so/cung-cap.json (78 bài ghép cung của site, nguyên văn) — kịch bản chỉ lấy câu trong đây",
         "cho_duyet": true,
-        "tu_sinh": "^sx-[a-z]+-[a-z]+$"
+        "tu_sinh": "^sx-[a-z]+-[a-z]+$",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/sign-x-sign.mp4?v=1"
       },
       {
         "ma": "how-the-sky-works",

@@ -98,7 +98,7 @@ export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()
       phu: [d.loi ? `✗ ${d.loi}` : d.buoc ? `bước ${d.so}/${d.tong} · ${d.buoc} · ${dung ? `⚠ đứng ${phut} phút` : `${phut} phút`}` : 'đang khởi động', d.chi_tiet, d.id].filter(Boolean).join(' · ') };
   }, dongSx = ds.map(dong);
   // tập đang dở (chưa nạp máy đăng, không phải tập đang chạy): hiện để không "biến mất" giữa hai lượt
-  const cho = (k.ke.tapCho ?? []).filter((t) => !ds.some((d) => d.id === t.id));
+  const cho = (k.ke.tapCho ?? []).filter((t) => !laDemo(t) && !k.ke.dangLam.some((d) => d.id === t.id));   // tập demo dở không phải tập của lịch
   if (ds.length || cho.length) {
     const som = ds.reduce<string | null>((m, d) => (!m || d.luc < m ? d.luc : m), null);
     ra.push({ id: 'sx', nhom: true, chu: `▶ Đang sản xuất${ds.length > 1 ? ` (${ds.length})` : ''}`,

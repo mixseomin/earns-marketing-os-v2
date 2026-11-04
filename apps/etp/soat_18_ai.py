@@ -18,6 +18,9 @@ cleavage in a normal outfit, off-shoulder tops, bare arms / legs, swimwear in a 
 NOT a weapon (do not fail for it): robots, mecha, armor, spaceships or other sci-fi machines, magic effects, crowns / scepters as costume (anh 03/11/2026: Mech King bị loại oan vì robot).
 NOT a violation either (anh 03/11/2026: Dragonborn Bloodcore + My Choice Makes the Dragon King bị loại oan): fantasy armor / costumes with no weapon actually visible,
 dragons and other creatures, glowing magic veins, dark markings / tattoos / cracks on skin that are a fantasy effect (only fail for wounds when blood or open injury is visible).
+BLOOD / WOUNDS (anh 04/11/2026: Big Mistake: Torturing the Hidden Billionaire bị loại oan, phim đang lãi cao): blood smears, cuts, bruises or scratches on a face or body,
+a bleeding lip, a beaten-up look → dat = true. A belt, rope, whip, stick or chain is NOT a weapon. Fail blood only for GRAPHIC gore: gaping open wounds, pools / sprays of blood,
+severed body parts, a corpse in blood.
 For weapons and wounds: fail only when clearly visible; if unsure, those two items pass — never fail them "to be safe".
 Sexual rules stay strict only for real sexual content (lingerie, nudity, intimate embrace with exposed skin, clearly sexual pose); normal fashion passes.
 The synopsis only helps you understand the poster — judge the IMAGE. vi_pham = the violated items (empty when dat = true). ly_do = one short sentence in Vietnamese.

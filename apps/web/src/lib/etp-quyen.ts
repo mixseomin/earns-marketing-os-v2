@@ -68,5 +68,6 @@ export function catChoNguoi(d: DuLieuEtp, nguoiId: number): DuLieuEtp {
   return { ...RONG, ...giu,
     nguoi: { ds: ban ? [ban] : [], dang: nguoiId, nha: null, ngoai: true },
     cauHinh: d.cauHinh.filter((k) => CAU_HINH_NGUOI.has(k.khoa)),
+    moRong: d.moRong.map((m) => ({ ...m, k: 0, san: 0, can_sx: 0 })),   // team thấy độ hấp thụ thị trường của phim (cùng tối ưu, anh 04/11/2026), không thấy plan mở rộng của Nhà
     demNgay: Object.fromEntries(Object.entries(d.demNgay).map(([k, v]) => [k, { ...v, tat: 0 }])) };   // tat = camp máy nhà tắt (nhật ký nhà)
 }

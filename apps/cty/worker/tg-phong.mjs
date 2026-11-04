@@ -5,6 +5,7 @@
 // Chủ đề → phòng: CHU_DE — mỗi phòng giữ mã topic bot đã tạo trong tệp trạng thái của nó. Thêm phòng có chủ đề riêng = thêm một dòng ở đây.
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 export const CHU_DE = { 'an-toan-tk': 'bao-mat-tg.json', 'noi-dung': 'noi-dung-tg.json', 'tai-nguyen': 'tai-nguyen-tg.json' };   // tai-nguyen: 31/10/2026 tin anh trong 🧰 Tài nguyên rơi vào hộp _khac
@@ -314,7 +315,7 @@ if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kie
     t.ok(tk2.some((x) => x.message?.text === 'gia hạn nhé anh'), 'tin trong nhóm anh vẫn tới thư ký');
     if (nhom === undefined) delete process.env.TG_CHAT; else process.env.TG_CHAT = nhom; }
   { // MỌI bộ gửi tin của cty phải bọc ghiNut (05/11/2026: tho-may-viec gửi riêng nên "Cần anh quyết" không có nút)
-    const d = new URL('.', import.meta.url).pathname; for (const f of fs.readdirSync(d).filter((x) => x.endsWith('.mjs'))) for (const l of fs.readFileSync(path.join(d, f), 'utf8').split('\n')) if (/fetch\(`https:\/\/api\.telegram\.org\/bot/.test(l)) t.ok(l.includes('ghiNut'), `${f}: gửi Telegram không qua ghiNut`); }
+    const d = path.dirname(fileURLToPath(import.meta.url)); /* không dùng new URL('.', import.meta.url): webpack (next build cty) coi '.' là module rồi gãy build */ for (const f of fs.readdirSync(d).filter((x) => x.endsWith('.mjs'))) for (const l of fs.readFileSync(path.join(d, f), 'utf8').split('\n')) if (/fetch\(`https:\/\/api\.telegram\.org\/bot/.test(l)) t.ok(l.includes('ghiNut'), `${f}: gửi Telegram không qua ghiNut`); }
   { t.equal(dinhDang('**Gốc** ở `a.mjs`', true), '<b>Gốc</b> ở <code>a.mjs</code>'); t.equal(dinhDang('## Kết quả\n- một\n---\n\n\n\nhai', true), '<b>Kết quả</b>\n• một\n\nhai');
     t.equal(dinhDang('| A | B |\n|---|---|\n| 1 | 2 |', true), '• A · B\n• 1 · 2'); t.equal(dinhDang('Gốc: Page hết bài', true), '<b>Gốc:</b> Page hết bài'); t.equal(dinhDang('a < b & c', false), 'a &lt; b &amp; c', 'tin chữ trơn được thoát');
     t.equal(dinhDang('<pre>A: **x** | y</pre>', true), '<pre>A: **x** | y</pre>', 'bảng số giữ nguyên'); t.equal(dinhDang('<b>Tiêu đề</b> · <a href="https://x.y/a">↗ cty</a>', true), '<b>Tiêu đề</b> · <a href="https://x.y/a">↗ cty</a>', 'thẻ sẵn có giữ nguyên'); t.equal(dinhDang('https: //x', true), 'https: //x'); }

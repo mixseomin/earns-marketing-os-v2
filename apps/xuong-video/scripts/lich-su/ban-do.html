@@ -92,6 +92,7 @@ function muiTen(a, b, k, mau) {   // mũi tên quân vẽ dần
 // khung xuất thẳng từ canvas cho shot-code/dung.mjs (nhanh hơn chụp màn hình; mọi thứ hiện trên màn đều vẽ trong canvas #c)
 window.__khung = () => c.toDataURL('image/jpeg', 0.92).split(',')[1];
 // ---------- SỐ THÀNH HÌNH (Full Story 2.0) ----------
+let nvTren = 1e9;   // ĐỈNH ĐẦU nhân vật cao nhất trong khung đang vẽ (lớp người ghi, lớp số đọc) — số không bao giờ đè nhân vật (anh 05/11/2026: "đó là phần cảm xúc")
 const SO_GIU = 2.6;   // giây thẻ số đứng (đọc kịp số + đơn vị)
 function theSo(chu, nhan, cx, cy, q) {   // thẻ vàng nghiêng, bóng đen, số Anton to; q = 0..1 vào nảy
   x.save(); x.translate(cx, cy); x.rotate(-0.04); const k = nay_(kep(q)); x.scale(k, k);
@@ -134,11 +135,18 @@ function cotSoSanh(a, b, cx, cy, q) {   // hai số cùng loại người trong 
 function veSo(s, t) {
   const ds = (s.c._so || []).filter((so) => t >= so.t - 0.05); if (!ds.length) return;
   const cuoi = ds.at(-1), q = (t - cuoi.t) / 0.7; if (t > cuoi.t + SO_GIU) return;   // số mới nhất đã đọc đứng SO_GIU giây rồi tắt
-  const truoc = ds.length > 1 ? ds.at(-2) : null, cy = H * 0.25;
-  if (truoc && truoc.loai === cuoi.loai && cuoi.loai === 'nguoi' && cuoi.t - truoc.t < 5) { cotSoSanh(truoc, cuoi, W / 2, cy - 20, (t - truoc.t) / 0.8); return; }
-  theSo(demChay(cuoi, q), cuoi.loai === 'nguoi' || cuoi.loai === 'so' ? cuoi.nhan : '', W / 2, cy, q * 2.2); hinhSo(cuoi, W / 2, cy + 250, (t - cuoi.t - 0.3) / 0.9); }
+  // DẢI SỐ: dưới ô năm (y 300) tới trên đầu nhân vật (hoặc trên phụ đề nếu cảnh không có người) — thẻ + hình co lại cho vừa, thiếu chỗ thì chỉ còn thẻ
+  const truoc = ds.length > 1 ? ds.at(-2) : null, day = Math.min(nvTren < 1e9 ? nvTren - 18 : H * 0.76, H * 0.76), tren = 300;
+  if (truoc && truoc.loai === cuoi.loai && cuoi.loai === 'nguoi' && cuoi.t - truoc.t < 5) {   // hai cột so sánh: khối cao 590 (gốc) co theo dải
+    const sc = Math.min(1, (day - tren) / 590); if (sc < 0.35) { theSo(demChay(cuoi, q), cuoi.nhan, W / 2, tren + 110, q * 2.2); return; }
+    x.save(); x.translate(W / 2, tren + 70 * sc); x.scale(sc, sc); cotSoSanh(truoc, cuoi, 0, 0, (t - truoc.t) / 0.8); x.restore(); return; }
+  const cyThe = tren + 100; theSo(demChay(cuoi, q), cuoi.loai === 'nguoi' || cuoi.loai === 'so' ? cuoi.nhan : '', W / 2, cyThe, q * 2.2);
+  const nNg = cuoi.loai === 'nguoi' ? (() => { let dv = 10 ** Math.max(0, Math.floor(Math.log10(cuoi.gia_tri)) - 1); while (cuoi.gia_tri / dv > 40) dv *= 2; return Math.max(1, Math.round(cuoi.gia_tri / dv)); })() : 0;
+  const can = { nguoi: [Math.ceil(nNg / 10) * 74 + 110, -40], tien: [340, -60], thoi_gian: [280, -30], phan_tram: [150, 0], khoang_cach: [150, 0] }[cuoi.loai];
+  if (!can) return; const dinhHinh = cyThe + 190, sc = Math.min(1, (day - dinhHinh) / can[0]); if (sc < 0.3) return;   // không đủ chỗ trên đầu nhân vật → chỉ thẻ số
+  x.save(); x.translate(W / 2, dinhHinh - can[1] * sc); x.scale(sc, sc); hinhSo(cuoi, 0, 0, (t - cuoi.t - 0.3) / 0.9); x.restore(); }
 
-window.__seek = (t) => {
+window.__seek = (t) => { nvTren = 1e9;
   const ds = C.canh; let k = ds.findIndex((s) => t < s.kt); if (k < 0) k = ds.length - 1;
   const s = ds[k], tr = ds[k - 1], u = t - s.bd;
   // camera bay từ cảnh trước tới cảnh này (zoom theo log để bay đều). HOOK (cảnh đầu khai mo): lao từ trên cao xuống điểm lạ.
@@ -232,12 +240,12 @@ window.__seek = (t) => {
     if (img && LC) { const raw = kep((u - (n.tre ?? 0.5 + i * 0.35)) / 0.45), sc = nay_(raw), buoc = Math.floor(u * 8), lac = Math.sin(buoc * 1.7 + i * 2) * 0.035;
       const dan = hinhDan(img, `${n.anh}:${dg ? dg[1] : 'goc'}`, 640), nhun = dg ? 1 + 0.14 * Math.max(0, 1 - (u - dg[0]) / 0.22) : 1, nhay = Math.abs(Math.sin(buoc * 0.9 + i)) * 6;
       x.save(); x.translate(cx, H * 0.735 - nhay); x.rotate(lac + (1 - raw) * (i % 2 ? 0.6 : -0.6)); x.scale((lat ? -1 : 1) * sc * nhun, sc * nhun);
-      x.shadowColor = 'rgba(0,0,0,.4)'; x.shadowOffsetX = 12; x.shadowOffsetY = 14; x.drawImage(dan, -dan.width / 2, -dan.height + 18); x.restore();
+      x.shadowColor = 'rgba(0,0,0,.4)'; x.shadowOffsetX = 12; x.shadowOffsetY = 14; x.drawImage(dan, -dan.width / 2, -dan.height + 18); x.restore(); nvTren = Math.min(nvTren, H * 0.735 - nhay - (dan.height - 18) * sc * nhun);
       if (raw > 0.5) { x.save(); x.translate(cx, H * 0.735 + 40); x.rotate(i % 2 ? 0.04 : -0.04); x.font = '400 40px Anton, Impact, sans-serif'; const tw = x.measureText(n.ten.toUpperCase()).width + 36;
         x.fillStyle = '#111'; x.fillRect(-tw / 2 + 6, -28 + 7, tw, 56); x.fillStyle = '#ffe14d'; x.fillRect(-tw / 2, -28, tw, 56); x.fillStyle = '#111'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(n.ten.toUpperCase(), 0, 2); x.restore(); } }
     else if (img) { const h = 640, w = (img.width / img.height) * h, tho = 1 + 0.008 * Math.sin(u * 2.4 + i);
       x.save(); x.globalAlpha = al; x.translate(cx, H * 0.735 + (1 - al) * 120); x.scale((lat ? -1 : 1) * nay, tho * nay);
-      x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 30; x.shadowOffsetY = 12; x.drawImage(img, -w / 2, -h, w, h); x.restore();
+      x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 30; x.shadowOffsetY = 12; x.drawImage(img, -w / 2, -h, w, h); x.restore(); nvTren = Math.min(nvTren, H * 0.735 - h * tho * nay);
       x.globalAlpha = al; chuVien(n.ten, cx, H * 0.735 + 34 + (1 - al) * 120, 36, '#2b1d10'); x.globalAlpha = 1; }
     else { const [px, py] = chieu(...n.o); x.globalAlpha = al; nguoi(px, py + (1 - al) * 60, n.mu, n.mau, n.ten, u); x.globalAlpha = 1; } });
   // NHÃN TÊN NƠI vẽ SAU xe + người (02/11/2026, Ngọc chặn Alaska: thợ mỏ đi tới Skagway đứng đè chữ Skagway) — mọi nhãn điểm / nhãn vùng nằm trên lớp hình

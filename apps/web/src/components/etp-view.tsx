@@ -1765,7 +1765,9 @@ const PHA_HT: Record<string, [string, string, string]> = { hut: ['còn hút', '#
   bao_hoa: ['quá bão hoà', '#ef4444', 'ngừng thêm camp; hạ / tắt camp lỗ nhất tới khi ROI biên ≥ 0; dồn tiền sang phim còn hút'], it_so: ['chưa đủ số', '#6b7280', 'cần ≥ 6 ngày chi ≥ $5 và tổng ≥ $150 trong 14 ngày'] };
 /** KHUÔN HOVER CHUẨN của độ hấp thụ — mọi chỗ (Cây camp, tab Phim) dùng chung (anh 04/11/2026 "có format chuẩn khi hover cho mọi người") */
 const theHapThu = (m: MoRong, ten?: string | null): TheNoi => { const [pha, mau, cach] = PHA_HT[m.pha ?? 'it_so'] ?? PHA_HT.it_so!; const v = m.roi_bien ?? 0;
-  return { ma: `#${m.content_id}`, ten, tieu: `Thị trường · ${pha} · ROI biên ${v > 0 ? '+' : ''}${v}%`, mau, moc: [
+  const sb = (m.so_ngay ?? 0) < 6;   // sơ bộ: 3–5 ngày đã khép
+  return { ma: `#${m.content_id}`, ten, tieu: `Thị trường · ${pha} · ROI biên ${v > 0 ? '+' : ''}${v}%${sb ? ` · SƠ BỘ (${m.so_ngay} ngày)` : ''}`, mau, moc: [
+    ...(sb ? [{ ten: 'Sơ bộ', mau: '#f59e0b', chu: `mới ${m.so_ngay} ngày đã khép có chi ≥ $5 — đủ 6 ngày + $150 mới là số chắc; một ngày lệch có thể đổi pha` }] : []),
     { ten: 'ROI biên 14 ngày', mau, so: `${v > 0 ? '+' : ''}${v}%`, chu: `mỗi $1 chi thêm trong ngày đem về $${(1 + v / 100).toFixed(2)}` },
     { ten: 'Đề xuất', mau: '#60a5fa', chu: cach },
     { ten: 'Độ tin (R²)', mau: (m.r2 ?? 0) >= 0.6 ? '#4ade80' : '#f59e0b', so: String(m.r2 ?? '—'), chu: (m.r2 ?? 0) < 0.6 ? 'thấp — các ngày dao động mạnh, đọc thận trọng' : null },
@@ -1785,7 +1787,7 @@ function DongHoHapThu({ m, ten }: { m?: MoRong; ten?: string | null }) {
   const xy = (g: number, r = R) => [C + r * Math.cos((g * Math.PI) / 180), C + 2 + r * Math.sin((g * Math.PI) / 180)];
   const cung = (a: number, b: number, c: string) => { const [x1, y1] = xy(goc(a)), [x2, y2] = xy(goc(b)); return <path d={`M ${x1} ${y1} A ${R} ${R} 0 0 1 ${x2} ${y2}`} stroke={c} strokeWidth={2.6} fill="none" opacity={0.85} />; };
   const [kx, ky] = xy(goc(v ?? 0), R - 2);
-  return <ReThe the={() => theHapThu(m, ten)}><span style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', cursor: 'help' }}>
+  return <ReThe the={() => theHapThu(m, ten)}><span style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', cursor: 'help', opacity: (m.so_ngay ?? 0) < 6 ? 0.45 : 1 }}>
     <svg width={26} height={26} viewBox="0 0 26 26">
       {cung(-50, 0, '#ef4444')}{cung(0, 15, '#facc15')}{cung(15, 50, '#22c55e')}
       {v != null ? <line x1={C} y1={C + 2} x2={kx} y2={ky} stroke="#fff" strokeWidth={1.6} strokeLinecap="round" /> : null}

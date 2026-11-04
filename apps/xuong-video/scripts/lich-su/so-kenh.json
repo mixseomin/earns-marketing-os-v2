@@ -1132,30 +1132,29 @@
     ],
     "mau": [
       {
+        "ma": "full-story-2",
+        "ten": "Full Story 2.0 (số thành hình)",
+        "loai": "dai",
+        "khung": "9:16",
+        "nhip": "MẶC ĐỊNH cho mọi tập dài từ 05/11/2026 (anh duyệt) — theo lịch từng playlist",
+        "kho": "vô hạn — đề theo series + góc spy",
+        "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
+        "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau full-story-2  (demo: demo-mau.sh)",
+        "mo_ta": "Khuôn Full Story (~3 phút) + SỐ THÀNH HÌNH: đúng lúc giọng đọc tới một con số có nguồn, số hiện to giữa màn đếm chạy lên, kèm hình theo loại — hàng người (1 hình = N người), chồng tiền, đồng hồ quay, thanh phần trăm, đường đo; hai số quân trong một câu thành hai cột so sánh. Số chỉ lấy từ trích dẫn nguồn của câu, không có số bịa; không cần viết lại kịch bản.",
+        "demo": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-full-story-2-5960e0c784.mp4"
+      },
+      {
         "ma": "full-story",
         "ten": "Full Story (~3 phút)",
         "loai": "dai",
         "khung": "9:16",
-        "nhip": "theo lịch từng playlist",
+        "nhip": "bản cũ — thay bằng Full Story 2.0 từ 05/11/2026",
         "kho": "vô hạn — đề theo series + góc spy",
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau full-story  (demo: demo-mau.sh)",
         "demo": "https://img.on.tc/xuong-video/lich-su/tap/alaska-parody.mp4",
         "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$",
         "mo_ta": "KHUÔN VIDEO dài ~3 phút, dọc 9:16: hook sốc ở câu 1 (chữ to + vòng đỏ) → 4–5 hồi, mỗi hồi mở bằng một năm mới, màu chủ quyền đổi, mũi tên quân, nhân vật bước vào, 2–3 tranh thật → khúc ngoặt đóng dấu → hậu quả hôm nay → THE END. Giọng phát thanh viên lá cải tỉnh bơ. Dùng được cho MỌI playlist."
-      },
-      {
-        "ma": "full-story-2",
-        "ten": "Full Story 2.0 (số thành hình)",
-        "loai": "dai",
-        "khung": "9:16",
-        "nhip": "theo lịch từng playlist",
-        "kho": "vô hạn — đề theo series + góc spy",
-        "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
-        "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau full-story-2  (demo: demo-mau.sh)",
-        "mo_ta": "Khuôn Full Story (~3 phút) + SỐ THÀNH HÌNH: đúng lúc giọng đọc tới một con số có nguồn, số hiện to giữa màn đếm chạy lên, kèm hình theo loại — hàng người (1 hình = N người), chồng tiền, đồng hồ quay, thanh phần trăm, đường đo; hai số quân trong một câu thành hai cột so sánh. Số chỉ lấy từ trích dẫn nguồn của câu, không có số bịa; không cần viết lại kịch bản.",
-        "cho_duyet": true,
-        "demo": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-full-story-2-5960e0c784.mp4"
       },
       {
         "ma": "short-60",

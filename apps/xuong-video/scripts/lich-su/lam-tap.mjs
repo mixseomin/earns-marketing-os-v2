@@ -293,7 +293,7 @@ const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
 if (plMa) tap.playlist = plMa;   // ghi lại cùng tệp tập ở cuối bước 3
 // MẪU + Ý TƯỞNG của tập theo SỔ KÊNH (so-kenh.json khoá = mã máy); --demo = tập làm DEMO cho anh duyệt (không lên máy đăng)
 // ý tưởng: khớp chủ đề trong hàng chờ của playlist; không có thì mẫu vô hạn (tu_sinh — đề máy chọn theo góc spy) lấy mã ý tưởng = mã tập
-{ const so = SO_KENH, m = (so?.mau ?? []).find((x) => x.ma === mauMa); if (mauMa && !tap.mau) tap.mau = mauMa; if (co('demo')) tap.demo = true;
+{ const so = SO_KENH, m = (so?.mau ?? []).find((x) => x.ma === mauMa); if (mauMa && (arg('mau') || !tap.mau)) tap.mau = mauMa;   // --mau đổi mẫu tập đã có (vd áp Full Story 2.0 cho tập chờ đăng) if (co('demo')) tap.demo = true;
   if (m && !tap.y_tuong) { const h = (so.hang_cho ?? []).find((x) => (x.playlist ?? x.mau) === plMa && x.chu_de && tap.chu_de && x.chu_de.toLowerCase() === tap.chu_de.toLowerCase());
     tap.y_tuong = h?.ma ?? (m.tu_sinh && new RegExp(m.tu_sinh).test(id) ? id : null); } }
 let tien = 0;

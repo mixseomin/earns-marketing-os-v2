@@ -73,6 +73,8 @@ interface DataTableProps<T> {
   rowTitle?: (row: T) => string | undefined;
   /** Tô cả dòng theo tín hiệu thật (trạng thái) — như conditional formatting; không dùng để trang trí. */
   rowStyle?: (row: T, index: number) => CSSProperties | undefined;
+  /** DÒNG TRÀN NGANG (mos2 Kênh nội dung 04/11/2026: dòng sổ kênh / luật / mẫu dài bị cột đầu cắt giữa câu): true → chỉ ô cột đầu, colSpan hết các cột đang hiện */
+  fullRow?: (row: T, index: number) => boolean;
   /** Trả nội dung ≠ null → thêm một dòng full-width ngay dưới dòng đó (bảng con mở tại chỗ, YDNI: mặc định đóng). */
   renderExpanded?: (row: T, index: number) => ReactNode;
   /**
@@ -185,7 +187,7 @@ const bandSoft = (hex: string | undefined) => (hex ? `${hex}0f` : undefined);
 const TONG_BG = 'color-mix(in srgb, var(--accent, #60a5fa) 14%, var(--bg-2))';   // nền dòng tổng
 const RONG_MAC_DINH = 96;   // px — bề ngang cột chưa khai width khi bảng ở chế độ fixed
 export function DataTable<T>({
-  rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, renderExpanded,
+  rows, columns, getRowKey, groups, groupHeader, defaultSort, persistKey: persistKeyGoc, onRowClick, minWidth = 640, rowTitle, rowStyle, fullRow, renderExpanded,
   searchText, searchPlaceholder, card, view, onViewChange, defaultView, hideHeader, pageSize, sliced,
   stickyFirst = true, stickyCols, fixedLayout = false,
   serverSort, serverFilter, hopCuon = false, tree, groupBy, rowData, dauThanh, thanhDinh, locTuDong = true, onTimDoi, khiTimTrong,
@@ -758,8 +760,8 @@ export function DataTable<T>({
                     style={{ ...(onRowClick ? { cursor: 'pointer' } : undefined), ...rowStyle?.(row, i) }}
                     onClick={onRowClick ? () => onRowClick(row, i) : undefined}
                     title={rowTitle?.(row)}>
-                  {visible.map((c, ci) => (
-                    <td key={c.key}
+                  {(fullRow?.(row, i) ? visible.slice(0, 1) : visible).map((c, ci) => (
+                    <td key={c.key} colSpan={ci === 0 && fullRow?.(row, i) ? visible.length : undefined}
                         style={cellStyle(c, c.onCellClick ? { cursor: 'pointer' } : undefined, ci)}
                         title={c.cellTitle?.(row, i)}
                         onClick={c.onCellClick ? (e) => { e.stopPropagation(); c.onCellClick!(row, i); } : undefined}>

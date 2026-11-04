@@ -1,2 +1,4 @@
 tham-khao/ma-nguon/
 vu-tru/ra/
+# CAU đã căn mốc theo tiếng (shot-code/long-tieng.mjs sinh lại mỗi lượt)
+scripts/shot-code/.*.tieng.json

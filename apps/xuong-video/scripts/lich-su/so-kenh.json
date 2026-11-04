@@ -168,9 +168,9 @@
       {
         "ma": "G4",
         "ten": "Dữ liệu thật",
-        "viec": "đã có: lá số theo giờ sinh hạng AA (la-so/nguoi.json, lay.mjs --nguoi; 7 người dùng được), bộ tính khớp Swiss Ephemeris ≤ 0,06° + kiểm múi giờ site (doi-chieu.mjs), lịch sự kiện trời tới phút → ý tưởng tự sinh (lich-troi.mjs), tệp sự thật + nghĩa 12 nhà nguyên văn của site. Còn: mốc Zodiacal Releasing từ công cụ site",
+        "viec": "đã có: lá số theo giờ sinh hạng AA (la-so/nguoi.json, lay.mjs --nguoi; 7 người dùng được), bộ tính khớp Swiss Ephemeris ≤ 0,06° + kiểm múi giờ site (doi-chieu.mjs), lịch sự kiện trời tới phút → ý tưởng tự sinh (lich-troi.mjs), tệp sự thật + nghĩa 12 nhà nguyên văn của site, kỳ Zodiacal Releasing L1/L2 (Spirit + Fortune) của 7 người AA lấy từ công cụ site và tự tính lại khớp từng kỳ (la-so/zr.mjs → la-so/zr/<người>.json, kyTai(zr, ngày) cho kịch bản)",
         "anh": "không",
-        "trang_thai": "dang"
+        "trang_thai": "xong"
       },
       {
         "ma": "G5",

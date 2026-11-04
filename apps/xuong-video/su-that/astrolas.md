@@ -22,6 +22,7 @@ Use ONLY these facts about Astrolas. Source: https://astrolas.com/, https://astr
 ## Free tool pages (sitemap, 04/11/2026) — link the exact page the video talks about
 - Birth chart: https://astrolas.com/birth · Compatibility checker: https://astrolas.com/compatibility · Synastry: https://astrolas.com/synastry-chart
 - Today's sky: https://astrolas.com/today · Transits: https://astrolas.com/transit · Moon phase: https://astrolas.com/moon-phase
+- Zodiacal Releasing tool (free): pick a Lot (Spirit, Fortune, Eros, Necessity), it releases time-lord periods L1 to L4, marks peak periods and the loosing of the bond; 360-day years (Valens). Studio pulls L1/L2 for AA-rated people: la-so/zr.mjs.
 - Annual Profections: https://astrolas.com/annual-profections-v1 · Daily Profections: https://astrolas.com/tools/daily-profections · Zodiacal Releasing: https://astrolas.com/tools/zodiacal-releasing
 - Solar Return: https://astrolas.com/solar-return-v1 · Lunar Return: https://astrolas.com/tools/lunar-return-v1 · Secondary Progression: https://astrolas.com/progression · Solar Arc: https://astrolas.com/solar-arc
 - Lunation Analyzer: https://astrolas.com/tools/lunation-analyzer · Diurnal chart: https://astrolas.com/tools/diurnal-chart · Horary chart: https://astrolas.com/tools/horary-chart

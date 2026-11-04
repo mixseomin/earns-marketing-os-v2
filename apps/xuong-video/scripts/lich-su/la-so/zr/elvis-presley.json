@@ -1,0 +1,2243 @@
+{
+ "ten": "Elvis Presley",
+ "rodden": "AA",
+ "nguon": "https://astrolas.com/tools/zodiacal-releasing",
+ "lay_luc": "2026-11-04",
+ "lot": {
+  "spirit": [
+   {
+    "cap": 1,
+    "cung": "Capricorn",
+    "tu": "1935-01-08",
+    "den": "1961-08-19",
+    "tuoi": [
+     0,
+     26
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Capricorn",
+    "tu": "1935-01-08",
+    "den": "1937-03-28",
+    "tuoi": [
+     0,
+     2
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aquarius",
+    "tu": "1937-03-28",
+    "den": "1939-09-14",
+    "tuoi": [
+     2,
+     4
+    ],
+    "nha": 3,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Pisces",
+    "tu": "1939-09-14",
+    "den": "1940-09-08",
+    "tuoi": [
+     4,
+     5
+    ],
+    "nha": 4,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aries",
+    "tu": "1940-09-08",
+    "den": "1941-12-02",
+    "tuoi": [
+     5,
+     6
+    ],
+    "nha": 5,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Taurus",
+    "tu": "1941-12-02",
+    "den": "1942-07-30",
+    "tuoi": [
+     6,
+     7
+    ],
+    "nha": 6,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Gemini",
+    "tu": "1942-07-30",
+    "den": "1944-03-21",
+    "tuoi": [
+     7,
+     9
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "1944-03-21",
+    "den": "1946-04-10",
+    "tuoi": [
+     9,
+     11
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "1946-04-10",
+    "den": "1947-11-01",
+    "tuoi": [
+     11,
+     12
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "1947-11-01",
+    "den": "1949-06-23",
+    "tuoi": [
+     12,
+     14
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "1949-06-23",
+    "den": "1950-02-18",
+    "tuoi": [
+     14,
+     15
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "1950-02-18",
+    "den": "1951-05-14",
+    "tuoi": [
+     15,
+     16
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "1951-05-14",
+    "den": "1952-05-08",
+    "tuoi": [
+     16,
+     17
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": true
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "1952-05-08",
+    "den": "1954-05-28",
+    "tuoi": [
+     17,
+     19
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": true,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "1954-05-28",
+    "den": "1955-12-19",
+    "tuoi": [
+     19,
+     20
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "1955-12-19",
+    "den": "1957-08-10",
+    "tuoi": [
+     20,
+     22
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "1957-08-10",
+    "den": "1958-04-07",
+    "tuoi": [
+     22,
+     23
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "1958-04-07",
+    "den": "1959-07-01",
+    "tuoi": [
+     23,
+     24
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "1959-07-01",
+    "den": "1960-06-25",
+    "tuoi": [
+     24,
+     25
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": true
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "1960-06-25",
+    "den": "1961-08-19",
+    "tuoi": [
+     25,
+     26
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": true,
+    "bao_truoc": false
+   },
+   {
+    "cap": 1,
+    "cung": "Aquarius",
+    "tu": "1961-08-19",
+    "den": "1991-03-15",
+    "tuoi": [
+     26,
+     56
+    ],
+    "nha": 3,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aquarius",
+    "tu": "1961-08-19",
+    "den": "1964-02-05",
+    "tuoi": [
+     26,
+     29
+    ],
+    "nha": 3,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Pisces",
+    "tu": "1964-02-05",
+    "den": "1965-01-30",
+    "tuoi": [
+     29,
+     30
+    ],
+    "nha": 4,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aries",
+    "tu": "1965-01-30",
+    "den": "1966-04-25",
+    "tuoi": [
+     30,
+     31
+    ],
+    "nha": 5,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Taurus",
+    "tu": "1966-04-25",
+    "den": "1966-12-21",
+    "tuoi": [
+     31,
+     31
+    ],
+    "nha": 6,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Gemini",
+    "tu": "1966-12-21",
+    "den": "1968-08-12",
+    "tuoi": [
+     31,
+     33
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "1968-08-12",
+    "den": "1970-09-01",
+    "tuoi": [
+     33,
+     35
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "1970-09-01",
+    "den": "1972-03-24",
+    "tuoi": [
+     35,
+     37
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "1972-03-24",
+    "den": "1973-11-14",
+    "tuoi": [
+     37,
+     38
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "1973-11-14",
+    "den": "1974-07-12",
+    "tuoi": [
+     38,
+     39
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "1974-07-12",
+    "den": "1975-10-05",
+    "tuoi": [
+     39,
+     40
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "1975-10-05",
+    "den": "1976-09-29",
+    "tuoi": [
+     40,
+     41
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Capricorn",
+    "tu": "1976-09-29",
+    "den": "1978-12-18",
+    "tuoi": [
+     41,
+     43
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": true
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "1978-12-18",
+    "den": "1980-07-10",
+    "tuoi": [
+     43,
+     45
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": true,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "1980-07-10",
+    "den": "1982-03-02",
+    "tuoi": [
+     45,
+     47
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "1982-03-02",
+    "den": "1982-10-28",
+    "tuoi": [
+     47,
+     47
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "1982-10-28",
+    "den": "1984-01-21",
+    "tuoi": [
+     47,
+     49
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "1984-01-21",
+    "den": "1985-01-15",
+    "tuoi": [
+     49,
+     50
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Capricorn",
+    "tu": "1985-01-15",
+    "den": "1987-04-05",
+    "tuoi": [
+     50,
+     52
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": true
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "1987-04-05",
+    "den": "1988-10-26",
+    "tuoi": [
+     52,
+     53
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": true,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "1988-10-26",
+    "den": "1990-06-18",
+    "tuoi": [
+     53,
+     55
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "1990-06-18",
+    "den": "1991-02-13",
+    "tuoi": [
+     55,
+     56
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "1991-02-13",
+    "den": "1991-03-15",
+    "tuoi": [
+     56,
+     56
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 1,
+    "cung": "Pisces",
+    "tu": "1991-03-15",
+    "den": "2003-01-11",
+    "tuoi": [
+     56,
+     68
+    ],
+    "nha": 4,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Pisces",
+    "tu": "1991-03-15",
+    "den": "1992-03-09",
+    "tuoi": [
+     56,
+     57
+    ],
+    "nha": 4,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aries",
+    "tu": "1992-03-09",
+    "den": "1993-06-02",
+    "tuoi": [
+     57,
+     58
+    ],
+    "nha": 5,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Taurus",
+    "tu": "1993-06-02",
+    "den": "1994-01-28",
+    "tuoi": [
+     58,
+     59
+    ],
+    "nha": 6,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Gemini",
+    "tu": "1994-01-28",
+    "den": "1995-09-20",
+    "tuoi": [
+     59,
+     60
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "1995-09-20",
+    "den": "1997-10-09",
+    "tuoi": [
+     60,
+     62
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "1997-10-09",
+    "den": "1999-05-02",
+    "tuoi": [
+     62,
+     64
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "1999-05-02",
+    "den": "2000-12-22",
+    "tuoi": [
+     64,
+     65
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "2000-12-22",
+    "den": "2001-08-19",
+    "tuoi": [
+     65,
+     66
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "2001-08-19",
+    "den": "2002-11-12",
+    "tuoi": [
+     66,
+     67
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "2002-11-12",
+    "den": "2003-01-11",
+    "tuoi": [
+     67,
+     68
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 1,
+    "cung": "Aries",
+    "tu": "2003-01-11",
+    "den": "2017-10-24",
+    "tuoi": [
+     68,
+     82
+    ],
+    "nha": 5,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aries",
+    "tu": "2003-01-11",
+    "den": "2004-04-05",
+    "tuoi": [
+     68,
+     69
+    ],
+    "nha": 5,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Taurus",
+    "tu": "2004-04-05",
+    "den": "2004-12-01",
+    "tuoi": [
+     69,
+     69
+    ],
+    "nha": 6,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Gemini",
+    "tu": "2004-12-01",
+    "den": "2006-07-24",
+    "tuoi": [
+     69,
+     71
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "2006-07-24",
+    "den": "2008-08-12",
+    "tuoi": [
+     71,
+     73
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "2008-08-12",
+    "den": "2010-03-05",
+    "tuoi": [
+     73,
+     75
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "2010-03-05",
+    "den": "2011-10-26",
+    "tuoi": [
+     75,
+     76
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "2011-10-26",
+    "den": "2012-06-22",
+    "tuoi": [
+     76,
+     77
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "2012-06-22",
+    "den": "2013-09-15",
+    "tuoi": [
+     77,
+     78
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "2013-09-15",
+    "den": "2014-09-10",
+    "tuoi": [
+     78,
+     79
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Capricorn",
+    "tu": "2014-09-10",
+    "den": "2016-11-28",
+    "tuoi": [
+     79,
+     81
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aquarius",
+    "tu": "2016-11-28",
+    "den": "2017-10-24",
+    "tuoi": [
+     81,
+     82
+    ],
+    "nha": 3,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 1,
+    "cung": "Taurus",
+    "tu": "2017-10-24",
+    "den": "2025-09-12",
+    "tuoi": [
+     82,
+     90
+    ],
+    "nha": 6,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Taurus",
+    "tu": "2017-10-24",
+    "den": "2018-06-21",
+    "tuoi": [
+     82,
+     83
+    ],
+    "nha": 6,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Gemini",
+    "tu": "2018-06-21",
+    "den": "2020-02-11",
+    "tuoi": [
+     83,
+     85
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "2020-02-11",
+    "den": "2022-03-02",
+    "tuoi": [
+     85,
+     87
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "2022-03-02",
+    "den": "2023-09-23",
+    "tuoi": [
+     87,
+     88
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "2023-09-23",
+    "den": "2025-05-15",
+    "tuoi": [
+     88,
+     90
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "2025-05-15",
+    "den": "2025-09-12",
+    "tuoi": [
+     90,
+     90
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 1,
+    "cung": "Gemini",
+    "tu": "2025-09-12",
+    "den": "2045-05-30",
+    "tuoi": [
+     90,
+     110
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Gemini",
+    "tu": "2025-09-12",
+    "den": "2027-05-05",
+    "tuoi": [
+     90,
+     92
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "2027-05-05",
+    "den": "2029-05-24",
+    "tuoi": [
+     92,
+     94
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "2029-05-24",
+    "den": "2030-12-15",
+    "tuoi": [
+     94,
+     95
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "2030-12-15",
+    "den": "2032-08-06",
+    "tuoi": [
+     95,
+     97
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "2032-08-06",
+    "den": "2033-04-03",
+    "tuoi": [
+     97,
+     98
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "2033-04-03",
+    "den": "2034-06-27",
+    "tuoi": [
+     98,
+     99
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "2034-06-27",
+    "den": "2035-06-22",
+    "tuoi": [
+     99,
+     100
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   }
+  ],
+  "fortune": [
+   {
+    "cap": 1,
+    "cung": "Libra",
+    "tu": "1935-01-08",
+    "den": "1942-11-27",
+    "tuoi": [
+     0,
+     7
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "1935-01-08",
+    "den": "1935-09-05",
+    "tuoi": [
+     0,
+     0
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "1935-09-05",
+    "den": "1936-11-28",
+    "tuoi": [
+     0,
+     1
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "1936-11-28",
+    "den": "1937-11-23",
+    "tuoi": [
+     1,
+     2
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Capricorn",
+    "tu": "1937-11-23",
+    "den": "1940-02-11",
+    "tuoi": [
+     2,
+     5
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aquarius",
+    "tu": "1940-02-11",
+    "den": "1942-07-30",
+    "tuoi": [
+     5,
+     7
+    ],
+    "nha": 3,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Pisces",
+    "tu": "1942-07-30",
+    "den": "1942-11-27",
+    "tuoi": [
+     7,
+     7
+    ],
+    "nha": 4,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 1,
+    "cung": "Scorpio",
+    "tu": "1942-11-27",
+    "den": "1957-09-09",
+    "tuoi": [
+     7,
+     22
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "1942-11-27",
+    "den": "1944-02-20",
+    "tuoi": [
+     7,
+     9
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "1944-02-20",
+    "den": "1945-02-14",
+    "tuoi": [
+     9,
+     10
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Capricorn",
+    "tu": "1945-02-14",
+    "den": "1947-05-05",
+    "tuoi": [
+     10,
+     12
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aquarius",
+    "tu": "1947-05-05",
+    "den": "1949-10-21",
+    "tuoi": [
+     12,
+     14
+    ],
+    "nha": 3,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Pisces",
+    "tu": "1949-10-21",
+    "den": "1950-10-16",
+    "tuoi": [
+     14,
+     15
+    ],
+    "nha": 4,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aries",
+    "tu": "1950-10-16",
+    "den": "1952-01-09",
+    "tuoi": [
+     15,
+     17
+    ],
+    "nha": 5,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Taurus",
+    "tu": "1952-01-09",
+    "den": "1952-09-05",
+    "tuoi": [
+     17,
+     17
+    ],
+    "nha": 6,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Gemini",
+    "tu": "1952-09-05",
+    "den": "1954-04-28",
+    "tuoi": [
+     17,
+     19
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "1954-04-28",
+    "den": "1956-05-17",
+    "tuoi": [
+     19,
+     21
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "1956-05-17",
+    "den": "1957-09-09",
+    "tuoi": [
+     21,
+     22
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 1,
+    "cung": "Sagittarius",
+    "tu": "1957-09-09",
+    "den": "1969-07-08",
+    "tuoi": [
+     22,
+     34
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "1957-09-09",
+    "den": "1958-09-04",
+    "tuoi": [
+     22,
+     23
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Capricorn",
+    "tu": "1958-09-04",
+    "den": "1960-11-22",
+    "tuoi": [
+     23,
+     25
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aquarius",
+    "tu": "1960-11-22",
+    "den": "1963-05-11",
+    "tuoi": [
+     25,
+     28
+    ],
+    "nha": 3,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Pisces",
+    "tu": "1963-05-11",
+    "den": "1964-05-05",
+    "tuoi": [
+     28,
+     29
+    ],
+    "nha": 4,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aries",
+    "tu": "1964-05-05",
+    "den": "1965-07-29",
+    "tuoi": [
+     29,
+     30
+    ],
+    "nha": 5,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Taurus",
+    "tu": "1965-07-29",
+    "den": "1966-03-26",
+    "tuoi": [
+     30,
+     31
+    ],
+    "nha": 6,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Gemini",
+    "tu": "1966-03-26",
+    "den": "1967-11-16",
+    "tuoi": [
+     31,
+     32
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "1967-11-16",
+    "den": "1969-07-08",
+    "tuoi": [
+     32,
+     34
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 1,
+    "cung": "Capricorn",
+    "tu": "1969-07-08",
+    "den": "1996-02-17",
+    "tuoi": [
+     34,
+     61
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Capricorn",
+    "tu": "1969-07-08",
+    "den": "1971-09-26",
+    "tuoi": [
+     34,
+     36
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aquarius",
+    "tu": "1971-09-26",
+    "den": "1974-03-14",
+    "tuoi": [
+     36,
+     39
+    ],
+    "nha": 3,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Pisces",
+    "tu": "1974-03-14",
+    "den": "1975-03-09",
+    "tuoi": [
+     39,
+     40
+    ],
+    "nha": 4,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aries",
+    "tu": "1975-03-09",
+    "den": "1976-06-01",
+    "tuoi": [
+     40,
+     41
+    ],
+    "nha": 5,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Taurus",
+    "tu": "1976-06-01",
+    "den": "1977-01-27",
+    "tuoi": [
+     41,
+     42
+    ],
+    "nha": 6,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Gemini",
+    "tu": "1977-01-27",
+    "den": "1978-09-19",
+    "tuoi": [
+     42,
+     43
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "1978-09-19",
+    "den": "1980-10-08",
+    "tuoi": [
+     43,
+     45
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "1980-10-08",
+    "den": "1982-05-01",
+    "tuoi": [
+     45,
+     47
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "1982-05-01",
+    "den": "1983-12-22",
+    "tuoi": [
+     47,
+     48
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "1983-12-22",
+    "den": "1984-08-18",
+    "tuoi": [
+     48,
+     49
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "1984-08-18",
+    "den": "1985-11-11",
+    "tuoi": [
+     49,
+     50
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "1985-11-11",
+    "den": "1986-11-06",
+    "tuoi": [
+     50,
+     51
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": true
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "1986-11-06",
+    "den": "1988-11-25",
+    "tuoi": [
+     51,
+     53
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": true,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "1988-11-25",
+    "den": "1990-06-18",
+    "tuoi": [
+     53,
+     55
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "1990-06-18",
+    "den": "1992-02-08",
+    "tuoi": [
+     55,
+     57
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "1992-02-08",
+    "den": "1992-10-05",
+    "tuoi": [
+     57,
+     57
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "1992-10-05",
+    "den": "1993-12-29",
+    "tuoi": [
+     57,
+     58
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "1993-12-29",
+    "den": "1994-12-24",
+    "tuoi": [
+     58,
+     59
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": true
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "1994-12-24",
+    "den": "1996-02-17",
+    "tuoi": [
+     59,
+     61
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": true,
+    "bao_truoc": false
+   },
+   {
+    "cap": 1,
+    "cung": "Aquarius",
+    "tu": "1996-02-17",
+    "den": "2025-09-12",
+    "tuoi": [
+     61,
+     90
+    ],
+    "nha": 3,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aquarius",
+    "tu": "1996-02-17",
+    "den": "1998-08-05",
+    "tuoi": [
+     61,
+     63
+    ],
+    "nha": 3,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Pisces",
+    "tu": "1998-08-05",
+    "den": "1999-07-31",
+    "tuoi": [
+     63,
+     64
+    ],
+    "nha": 4,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aries",
+    "tu": "1999-07-31",
+    "den": "2000-10-23",
+    "tuoi": [
+     64,
+     65
+    ],
+    "nha": 5,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Taurus",
+    "tu": "2000-10-23",
+    "den": "2001-06-20",
+    "tuoi": [
+     65,
+     66
+    ],
+    "nha": 6,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Gemini",
+    "tu": "2001-06-20",
+    "den": "2003-02-10",
+    "tuoi": [
+     66,
+     68
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "2003-02-10",
+    "den": "2005-03-01",
+    "tuoi": [
+     68,
+     70
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "2005-03-01",
+    "den": "2006-09-22",
+    "tuoi": [
+     70,
+     71
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "2006-09-22",
+    "den": "2008-05-14",
+    "tuoi": [
+     71,
+     73
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "2008-05-14",
+    "den": "2009-01-09",
+    "tuoi": [
+     73,
+     74
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "2009-01-09",
+    "den": "2010-04-04",
+    "tuoi": [
+     74,
+     75
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "2010-04-04",
+    "den": "2011-03-30",
+    "tuoi": [
+     75,
+     76
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Capricorn",
+    "tu": "2011-03-30",
+    "den": "2013-06-17",
+    "tuoi": [
+     76,
+     78
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": true
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "2013-06-17",
+    "den": "2015-01-08",
+    "tuoi": [
+     78,
+     80
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": true,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "2015-01-08",
+    "den": "2016-08-30",
+    "tuoi": [
+     80,
+     81
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "2016-08-30",
+    "den": "2017-04-27",
+    "tuoi": [
+     81,
+     82
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "2017-04-27",
+    "den": "2018-07-21",
+    "tuoi": [
+     82,
+     83
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Sagittarius",
+    "tu": "2018-07-21",
+    "den": "2019-07-16",
+    "tuoi": [
+     83,
+     84
+    ],
+    "nha": 1,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Capricorn",
+    "tu": "2019-07-16",
+    "den": "2021-10-03",
+    "tuoi": [
+     84,
+     86
+    ],
+    "nha": 2,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": true
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "2021-10-03",
+    "den": "2023-04-26",
+    "tuoi": [
+     86,
+     88
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": true,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "2023-04-26",
+    "den": "2024-12-16",
+    "tuoi": [
+     88,
+     89
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Libra",
+    "tu": "2024-12-16",
+    "den": "2025-08-13",
+    "tuoi": [
+     89,
+     90
+    ],
+    "nha": 11,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Scorpio",
+    "tu": "2025-08-13",
+    "den": "2025-09-12",
+    "tuoi": [
+     90,
+     90
+    ],
+    "nha": 12,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 1,
+    "cung": "Pisces",
+    "tu": "2025-09-12",
+    "den": "2037-07-11",
+    "tuoi": [
+     90,
+     102
+    ],
+    "nha": 4,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Pisces",
+    "tu": "2025-09-12",
+    "den": "2026-09-07",
+    "tuoi": [
+     90,
+     91
+    ],
+    "nha": 4,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Aries",
+    "tu": "2026-09-07",
+    "den": "2027-12-01",
+    "tuoi": [
+     91,
+     92
+    ],
+    "nha": 5,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Taurus",
+    "tu": "2027-12-01",
+    "den": "2028-07-28",
+    "tuoi": [
+     92,
+     93
+    ],
+    "nha": 6,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Gemini",
+    "tu": "2028-07-28",
+    "den": "2030-03-20",
+    "tuoi": [
+     93,
+     95
+    ],
+    "nha": 7,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Cancer",
+    "tu": "2030-03-20",
+    "den": "2032-04-08",
+    "tuoi": [
+     95,
+     97
+    ],
+    "nha": 8,
+    "dinh": true,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Leo",
+    "tu": "2032-04-08",
+    "den": "2033-10-30",
+    "tuoi": [
+     97,
+     98
+    ],
+    "nha": 9,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   },
+   {
+    "cap": 2,
+    "cung": "Virgo",
+    "tu": "2033-10-30",
+    "den": "2035-06-22",
+    "tuoi": [
+     98,
+     100
+    ],
+    "nha": 10,
+    "dinh": false,
+    "nhay": false,
+    "bao_truoc": false
+   }
+  ]
+ },
+ "lot_do": {
+  "spirit": 297.15,
+  "fortune": 207.57
+ },
+ "ban_ngay": false
+}

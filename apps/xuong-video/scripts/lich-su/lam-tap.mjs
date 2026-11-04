@@ -92,6 +92,13 @@ async function tuSua(tap) { const kho = docKho().tai_san, ghi = [];
     tap.tai_san_moi = tap.tai_san_moi.filter((x) => x !== t); for (const c of tap.cau) c.canh.co = (c.canh.co || []).filter((m) => m.anh !== t.id); ghi.push(`cờ ${t.id}: không có tệp Commons đúng thời → bỏ khỏi tập`); }
   // cờ lệch thời ở một cảnh → gỡ cờ khỏi cảnh đó (cờ chỉ là phụ hoạ; người / xe lệch thời thì vẫn trả máy viết vì nó là chuyện)
   const tsAll = { ...docKho().tai_san, ...Object.fromEntries((tap.tai_san_moi || []).map((t) => [t.id, t])) }; let nam = null;
+  // CẢNH HÔM NAY chưa khai năm (thừa năm cảnh trước) mà dùng món thời nay (den ≥ 2000) và lời đọc nói "now / today…" → máy tự ghi nam = năm nay
+  // (05/11/2026: "visitor chỉ đúng 2000–2100" ở câu "Now visitors tour the field" thừa năm 1415 — lỗi bookkeeping, không phải lỗi chuyện)
+  const NAY = new Date().getFullYear(), homNay = /\b(now|today|nowadays|these days|to this day|still|hoy|ahora|todavía|hoy en día|actualmente)\b/i;
+  tap.cau.forEach((c, k) => { nam = c.canh.nam ?? nam; if (c.canh.nam != null || nam == null || !homNay.test(c.chu)) return;
+    const mon = [...(c.canh.nguoi || []), ...(c.canh.xe || []), ...(c.canh.co || [])].map((m) => tsAll[m.anh]).filter(Boolean);
+    if (mon.length && mon.every((t) => t.den >= 2000) && mon.some((t) => nam < t.tu)) { c.canh.nam = NAY; nam = NAY; ghi.push(`câu ${k + 1}: cảnh hôm nay → năm ${NAY}`); } });
+  nam = null;
   tap.cau.forEach((c, k) => { nam = c.canh.nam ?? nam; const ns = [nam, c.canh.nam_sau?.nam ?? nam].filter((v) => v != null);
     c.canh.co = (c.canh.co || []).filter((m) => { const t = tsAll[m.anh]; const ok = !t || !ns.length || ns.some((v) => v >= t.tu && v <= t.den); if (!ok) ghi.push(`câu ${k + 1}: gỡ cờ ${m.anh} (${t.tu}–${t.den}) khỏi năm ${ns.join('→')}`); return ok; }); });
   // THÀNH PHỐ KHÔNG CÓ TRONG NATURAL EARTH ("@Hue", "@Otranto" — 03/11/2026 lặp 2 tập, máy viết sửa mãi không xong): máy tự đổi thành toạ độ "lon,lat" lấy từ
@@ -116,7 +123,7 @@ async function kiem(tap, nguonChu) {
   // kênh có câu đùa (parody): câu không su_that được phép tới tỉ lệ khong_nguon_toi_da — vẫn cấm con số / so sánh nhất không nguồn trong câu đùa
   const khongNguon = ds.slice(0, coMoc ? -1 : undefined).filter((c) => !(c.su_that || []).length).length, choPhep = Math.floor(ds.length * (KENH.khong_nguon_toi_da || 0));
   if (khongNguon > choPhep) loi.push(`${khongNguon} câu không có su_that — kênh ${kenhId} cho tối đa ${choPhep}${choPhep ? ' câu đùa' : ''}; câu kể sự việc phải có nguồn`);
-  let nam = null; const namNguon = new Set(([...ds.flatMap((c) => (c.su_that || []).map((x) => `${x.gia_tri} ${x.trich}`)), nguonChu].join(' ').match(/\b\d{3,4}(?=s?\b)/g) || []).map(Number));   // ô năm phải là năm CÓ trong nguồn ("1620s" tính là 1620 — 04/11/2026 báo oan)
+  let nam = null; const namNguon = new Set(([...ds.flatMap((c) => (c.su_that || []).map((x) => `${x.gia_tri} ${x.trich}`)), nguonChu].join(' ').match(/\b\d{3,4}(?=s?\b)/g) || []).map(Number)).add(new Date().getFullYear());   // ô năm phải là năm CÓ trong nguồn; năm nay luôn hợp lệ (cảnh "hôm nay" — 05/11/2026 bắt oan 4 lần) ·  ("1620s" tính là 1620 — 04/11/2026 báo oan)
   const nhanVat = new Set(ds.flatMap((c) => (c.canh.nguoi || []).map((n) => n.anh))); if (nhanVat.size < 2) loi.push(`cả tập chỉ có ${nhanVat.size} nhân vật — cần ≥ 2 (người có tên đang hành động phải đứng trong cảnh)`);
   ds.forEach((c, k) => { const K = `câu ${k + 1}`, cv = c.canh, ws = new Set(c.chu.split(/\s+/).map(chuan));
     if (k === 0 && !(c.su_that || []).length) loi.push(`${K}: hook không có su_that — hook phải là sự thật có nguồn`);
@@ -221,8 +228,13 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     const g = JSON.parse(readFileSync(f, 'utf8')); console.log(`góc spy #${g.goc.id} ${g.goc.ten} · ${g.hooks.length} hook QC`); }
   if (!chuDe && !ghArg) { console.error('chưa có tập — cần --chu-de (hoặc kênh có máy Studio để chọn đề theo góc)'); process.exit(2); }
   let loi = sua ? await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
-  for (let lan = 1; lan <= 4 && !(sua && !loi.length && lan === 1); lan++) {
-    chiTiet(`lượt viết ${lan}/4${loi.length ? ` · lượt trước ${loi.length} lỗi kiểm` : ''} · đang gọi máy viết`);
+  // VÒNG VIẾT (05/11/2026, anh: "sao sx không tự động hoàn toàn được"): viết lại CẢ BẢN kèm danh sách lỗi sửa lỗi cũ rồi đẻ lỗi mới ở câu khác → 4 lượt không khép.
+  // Nay: lỗi còn lại toàn CỤC BỘ (câu N / tài sản mới / tiêu đề / mô tả) → viet-tap --chi-sua chỉ vá đúng các câu đó, phần còn lại khoá cứng, lỗi chỉ giảm;
+  // chỉ lỗi toàn bản (số câu, tỉ lệ không nguồn, < 2 nhân vật, chưa gắn hook) mới viết lại cả bản (tối đa 4 lần). Tổng tối đa 8 lượt.
+  const cucBo = (x) => /^câu (\d+|cuối)/.test(x) || /^(cờ mới|tài sản mới|nhân vật mới) "/.test(x) || /^tiêu đề: /.test(x) || /^mô tả đăng/.test(x);
+  const TONG_LUOT = 8; let vietCa = 0;
+  for (let lan = 1; lan <= TONG_LUOT && !(sua && !loi.length && lan === 1); lan++) {
+    chiTiet(`lượt viết ${lan}/${TONG_LUOT}${loi.length ? ` · lượt trước ${loi.length} lỗi kiểm` : ''} · đang gọi máy viết`);
     // DÀI QUÁ KHUÔN → rút gọn riêng các câu dài (viet-tap --chi-rut), không bắt máy viết chép lại cả bản (nó trả y nguyên); rồi kiểm lại, còn lỗi khác mới viết lại
     if (loi.some((x) => /PHẢI BỎ ÍT NHẤT/.test(x))) {
       const dich = (KENH.tu[nn] ?? KENH.tu.en)[1] - 10; len(tepTap, `${tmp}/tap.json`);
@@ -236,6 +248,17 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     }
     const them = loi.length ? ` --loi ${tmp}/loi.txt --cu ${tmp}/tap.json` : '';
     if (loi.length) { writeFileSync(join(RA, 'loi.txt'), loi.map((x) => `- ${x}`).join('\n')); len(join(RA, 'loi.txt'), `${tmp}/loi.txt`); len(tepTap, `${tmp}/tap.json`); }
+    // CHỈ VÁ CÂU LỖI: mọi lỗi còn lại đều cục bộ → máy viết chỉ nhận các câu đó (viet-tap --chi-sua); vá hỏng thì rơi xuống viết lại cả bản
+    if (loi.length && loi.every(cucBo)) {
+      let vaXong = false;
+      try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/sua.json --id ${id} --nn ${nn} --kenh ${kenhId}${plMa ? ` --playlist ${q(plMa)}` : ''} --kho ${tmp}/kho.json --cu ${tmp}/tap.json --chi-sua ${tmp}/loi.txt`)); ve(`${tmp}/sua.json`, tepTap); vaXong = true; }
+      catch (e) { console.log(`✗ lượt ${lan} vá câu lỗi hỏng — ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ').slice(0, 300)} → viết lại cả bản`); }
+      if (vaXong) { loi = await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8'));
+        console.log(loi.length ? `✗ lượt ${lan} (vá câu): còn ${loi.length} lỗi\n  ${loi.join('\n  ')}` : `✓ lượt ${lan} (vá câu): kiểm sạch`);
+        chiTiet(loi.length ? `lượt viết ${lan}/${TONG_LUOT} · vá câu lỗi · còn ${loi.length} lỗi` : `lượt viết ${lan}/${TONG_LUOT} · kiểm sạch`);
+        if (!loi.length) break; continue; }
+    }
+    if (++vietCa > 4) { console.log('✗ đã viết lại cả bản 4 lần — dừng'); break; }
     try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe && !boDeCu ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${plMa ? ` --playlist ${q(plMa)}` : ''}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTuaF() ? ` --nguon ${q(nguonTuaF())}` : ''}${them}`)); }
     catch (e) { console.log(`✗ lượt viết ${lan}: máy viết hỏng — ${String(e.stderr || e.message).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}`); if (!existsSync(tepTap)) continue; loi = loi.length ? loi : ['(lượt trước hỏng, viết lại)']; continue; }
     const truoc = suaCanh ? readFileSync(tepTap, 'utf8') : null;
@@ -243,11 +266,11 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     if (suaCanh && khoaLoi() === false) writeFileSync(tepTap, truoc);
     loi = await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8'));
     console.log(loi.length ? `✗ lượt viết ${lan}: ${loi.length} lỗi\n  ${loi.join('\n  ')}` : `✓ lượt viết ${lan}: kiểm sạch`);
-    chiTiet(loi.length ? `lượt viết ${lan}/4 · ${loi.length} lỗi kiểm sự thật — viết lại` : `lượt viết ${lan}/4 · kiểm sạch`);
+    chiTiet(loi.length ? `lượt viết ${lan}/${TONG_LUOT} · ${loi.length} lỗi kiểm sự thật — ${loi.every(cucBo) ? 'vá câu lỗi' : 'viết lại'}` : `lượt viết ${lan}/${TONG_LUOT} · kiểm sạch`);
     if (!loi.length) break;
   }
   execFileSync('ssh', [BOX, `rm -rf ${tmp}`]);
-  if (loi.length) { console.error('✗ máy viết 4 lượt vẫn lỗi — dừng, không tốn tiền giọng / ảnh'); process.exit(4); }
+  if (loi.length) { console.error(`✗ máy viết ${TONG_LUOT} lượt vẫn lỗi — dừng, không tốn tiền giọng / ảnh`); process.exit(4); }
 } else { const loi = existsSync(join(RA, 'nguon.txt')) ? await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
   // --chi-day chỉ đẩy lại bản đã dựng lên Studio (không viết, không tốn tiền) → lỗi kiểm chỉ cảnh báo; máy đăng vẫn do Phòng Nội dung chặn
   if (loi.length) { console.error(`${co('chi-day') ? '⚠' : '✗'} tập có lỗi:\n  ${loi.join('\n  ')}`); if (!co('chi-day')) process.exit(4); } }

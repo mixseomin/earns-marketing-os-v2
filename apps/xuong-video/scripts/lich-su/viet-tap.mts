@@ -22,7 +22,7 @@ let hookChon: { qc: string; goc: string } | null = cuTap?.hook ?? null, tieuDeCh
 // chủ đề của bản cũ chỉ KHOÁ khi bản đó đã có hook (đã qua bước chọn đề + hook). Bản cũ chưa có hook (bản rỗng / hỏng) mà có --goc-hook → chọn lại đề + hook
 // (03/11/2026: tập Constantinople — sửa trên bản chưa có hook, chủ đề cũ bỏ qua bước chọn hook → 4 lượt viết đều bị kiểm chặn "chưa gắn hook")
 if (cuTap?.hook || !gh) chuDe ??= cuTap?.chu_de;
-if (!ra || !id || (!chuDe && !gh && !process.argv.includes('--chi-thumb') && !process.argv.includes('--chi-rut'))) { console.error('tsx viet-tap.mts <ra.json> (--chu-de "…" | --goc-hook <tệp>) --nn en --id <id>'); process.exit(2); }
+if (!ra || !id || (!chuDe && !gh && !process.argv.includes('--chi-thumb') && !process.argv.includes('--chi-rut') && !process.argv.includes('--chi-sua'))) { console.error('tsx viet-tap.mts <ra.json> (--chu-de "…" | --goc-hook <tệp>) --nn en --id <id>'); process.exit(2); }
 // HỒ SƠ KÊNH (kenh.json): khuôn độ dài, giọng văn, thẻ kết của kênh — saga (Shorts mồi) / parody (trọn chuyện, lá cải)…
 const kenhId = arg('kenh') ?? 'saga', K0 = JSON.parse(readFileSync(new URL('./kenh.json', import.meta.url), 'utf8'))[kenhId];
 if (!K0) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
@@ -210,6 +210,70 @@ const Ra = z.object({
 // không cắt được 40% nên phải ÉP ngân sách từ ngay bản đầu). Số lấy từ hồ sơ kênh: trần = tu[1], trung bình = giữa khuôn, trần một câu = tu[1] / số câu ít nhất.
 const budg = (K.tu?.[nn] ?? K.tu?.en) as [number, number] | undefined;
 const tbCau = budg ? Math.round((budg[0] + budg[1]) / 2 / (((K.cau?.[0] ?? 20) + (K.cau?.[1] ?? 36)) / 2)) : null;
+
+// ---------- CHỈ SỬA CÂU BỊ BẮT LỖI (--chi-sua <loi.txt>, 05/11/2026) ----------
+// Anh: "Sao quá trình sx không thể tự động hoàn toàn được?" — gốc: lượt viết lại CẢ BẢN kèm danh sách lỗi (--loi) sửa lỗi cũ rồi đẻ lỗi mới ở câu khác
+// (tập Agincourt 05/11: lượt 1 shakespeare + french_men_at_arms → lượt 2 largest + visitor → …), 4 lượt không khép. Thống kê 370 lỗi kiểm qua các tập: 190 "không
+// có trong KHO", 42 so sánh nhất thiếu su_that, 21 con số thiếu su_that, 15 món lệch thời — toàn lỗi CỤC BỘ một câu. Ở đây máy viết chỉ nhận đúng các câu bị
+// bắt lỗi (+ câu trước / sau để nối mạch, + kho, + nguồn) và trả câu mới cho đúng những câu đó; mọi câu khác KHOÁ CỨNG → mỗi lượt lỗi chỉ giảm, không đẻ thêm.
+// Lỗi toàn bản (số câu, tổng từ, tỉ lệ câu không nguồn, < 2 nhân vật, chưa gắn hook) không thuộc chế độ này → thoát mã 3, lam-tap viết lại cả bản. In tệp đã vá ra <ra>.
+if (process.argv.includes('--chi-sua')) {
+  type CauT = z.infer<typeof Ra>['cau'][number]; type TsMoi = z.infer<typeof Ra>['tai_san_moi'][number];
+  const cu = cuTap as unknown as { cau: CauT[]; tai_san_moi?: TsMoi[]; tieu_de?: string; mo_ta_dang?: string } & Record<string, unknown>;
+  const loiTxt = readFileSync(arg('chi-sua')!, 'utf8').split('\n').map((x) => x.replace(/^- /, '').trim()).filter(Boolean);
+  if (!cu?.cau || !loiTxt.length) { console.error('--chi-sua <loi.txt> cần --cu <tập.json>'); process.exit(2); }
+  const theoCau = new Map<number, string[]>(), tsLoi: string[] = [], khac: string[] = []; let loiTieuDe = '', loiMoTa = '';
+  const them = (k: number, l: string) => theoCau.set(k, [...(theoCau.get(k) ?? []), l]);
+  for (const l of loiTxt) { let m: RegExpMatchArray | null;
+    if ((m = l.match(/^câu (\d+)(?: \([^)]*\))?: (.*)$/s))) them(Number(m[1]), m[2]!);
+    else if ((m = l.match(/^câu (\d+)–(\d+): (.*)$/s))) { for (let k = Number(m[1]); k <= Number(m[2]); k++) them(k, m[3]!); }
+    else if ((m = l.match(/^câu cuối: (.*)$/s))) them(cu.cau.length, m[1]!);
+    else if (/^(cờ mới|tài sản mới|nhân vật mới) "/.test(l)) tsLoi.push(l);
+    else if (/^tiêu đề: /.test(l)) loiTieuDe += `${l.slice(9)}; `;
+    else if (/^mô tả đăng/.test(l)) loiMoTa += `${l}; `;
+    else khac.push(l); }
+  if (khac.length) { console.error(`✗ --chi-sua chỉ vá lỗi cục bộ — có lỗi toàn bản, phải viết lại: ${khac.join(' · ')}`); process.exit(3); }
+  // món các câu lỗi đang gọi mà chưa khai → máy viết phải khai trong tai_san_moi (lỗi "không có trong KHO" = 190/370 lỗi kiểm)
+  const khai = new Set((cu.tai_san_moi ?? []).map((t) => t.id)), tsHienCo = cu.tai_san_moi ?? [];
+  const namCua = (k: number) => { let nam: number | null = null; for (let i = 0; i < k && i < cu.cau.length; i++) nam = cu.cau[i]!.canh.nam ?? nam; return nam; };
+  const dem = (t: string) => t.trim().split(/\s+/).length;
+  const Sua = z.object({
+    sua: z.array(z.object({ cau: z.number().int().describe('số câu (1 = câu đầu) — CHỈ các câu được đưa'), chu: z.string().describe('lời đọc mới (có thể giữ nguyên nếu chỉ sửa cảnh / sự thật)'),
+      su_that: Ra.shape.cau.element.shape.su_that, canh: Canh })),
+    tai_san_moi: z.array(Ra.shape.tai_san_moi.element).describe('món cần khai mới hoặc khai lại (sửa tu–den / mo_ta_en / commons) — chỉ món các câu sửa dùng; món đã có trong KHO không khai'),
+    tieu_de: z.string().nullable().describe('chỉ khi có lỗi tiêu đề, else null'), mo_ta_dang: z.string().nullable().describe('chỉ khi có lỗi mô tả đăng, else null') });
+  const ks = [...theoCau.keys()].filter((k) => k >= 1 && k <= cu.cau.length).sort((a, b) => a - b);
+  if (!ks.length && !tsLoi.length && !loiTieuDe && !loiMoTa) { console.error('✗ --chi-sua: không có lỗi nào vá được'); process.exit(3); }
+  const ngonNgu = nn === 'es' ? 'tiếng Tây Ban Nha' : 'tiếng Anh';
+  const r = await sinhJson({ schema: Sua, model: 'claude-sonnet-5-5', max_tokens: 12000, ten: 'vá câu lỗi tập lịch sử',
+    system: `Bạn vá kịch bản bản tin lá cải hài về lịch sử thật ("${K.ten}"). Máy kiểm đã bắt lỗi ở MỘT SỐ CÂU; bạn chỉ sửa đúng những câu đó, mọi câu khác đã khoá. Luật cứng:
+- Mỗi câu trả về = câu hoàn chỉnh (chu + su_that + canh), ${ngonNgu}, nối mạch với câu trước / sau đã cho. Độ dài không quá câu cũ + 3 từ. Không dùng — – → … .
+- MỌI con số / năm / so sánh nhất (largest, oldest, first, only…) trong câu phải có một dòng su_that riêng, trich chép NGUYÊN VĂN từ nguồn bên dưới; nguồn không có thì BỎ con số / so sánh đó khỏi câu.
+- Nhân vật / phương tiện / cờ trong canh: mã trong KHO, hoặc khai trong tai_san_moi với tu–den PHỦ năm của cảnh. Cảnh kể chuyện HÔM NAY (du khách, bảo tàng, hiện nay…) thì ghi nam = ${new Date().getFullYear()}.
+- Chữ gọi dáng / dấu / tranh / nam_sau (chu) phải là chữ CÓ trong câu mới. Dáng chỉ trong: ${kho.dang_chuan.filter((d) => d !== 'goc').join(', ')}.
+- Câu 1 giữ mo + chu_to + vong; câu cuối giữ ket "${ketNN}"${cuoiNN ? ` và câu móc "${cuoiNN}"` : ''}.`,
+    user: `${ks.map((k) => { const c = cu.cau[k - 1]!; return `=== câu ${k} (năm hiệu lực ${namCua(k) ?? 'chưa khai'}) ===\nchu: ${c.chu}\n${k > 1 ? `câu trước: ${cu.cau[k - 2]!.chu}\n` : ''}${k < cu.cau.length ? `câu sau: ${cu.cau[k]!.chu}\n` : ''}su_that: ${JSON.stringify(c.su_that)}\ncanh: ${JSON.stringify(c.canh)}\nLỖI:\n${theoCau.get(k)!.map((x) => `- ${x}`).join('\n')}`; }).join('\n\n')}
+${tsLoi.length ? `\n=== lỗi tài sản mới ===\n${tsLoi.map((x) => `- ${x}`).join('\n')}` : ''}${loiTieuDe ? `\n=== lỗi tiêu đề "${cu.tieu_de ?? ''}" ===\n${loiTieuDe}` : ''}${loiMoTa ? `\n=== lỗi mô tả đăng ===\n${loiMoTa}` : ''}
+=== tai_san_moi đang khai ===
+${JSON.stringify(tsHienCo)}
+=== KHO (mã · loại · năm đúng) ===
+${Object.entries(kho.tai_san).map(([id, t]) => `${id} · ${t.loai} · ${t.tu}–${t.den}`).join('\n')}
+=== NGUỒN ===
+${nguon.map((n, i) => `[${i}] ${n.tua}\n${n.chu.slice(0, 16000)}`).join('\n\n')}` });
+  if (!r.ok) { console.error(`✗ vá câu: ${r.loi}`); process.exit(1); }
+  const d = r.data, ghi: string[] = [], boQua: string[] = [];
+  for (const x of d.sua) { const c = cu.cau[x.cau - 1]; if (!c || !theoCau.has(x.cau)) { boQua.push(`câu ${x.cau} không được đưa`); continue; }
+    if (/[—–→…]/.test(x.chu)) { boQua.push(`câu ${x.cau}: có dấu cấm`); continue; }
+    if (dem(x.chu) > dem(c.chu) + 3) { boQua.push(`câu ${x.cau}: dài hơn câu cũ ${dem(x.chu) - dem(c.chu)} từ`); continue; }
+    cu.cau[x.cau - 1] = { chu: x.chu.trim(), su_that: x.su_that, canh: x.canh } as CauT; ghi.push(`câu ${x.cau}`); }
+  for (const t of d.tai_san_moi) { if (kho.tai_san[t.id]) continue; const i = tsHienCo.findIndex((y) => y.id === t.id); if (i >= 0) tsHienCo[i] = t; else tsHienCo.push(t); ghi.push(`${khai.has(t.id) ? 'khai lại' : 'khai'} ${t.id}`); }
+  cu.tai_san_moi = tsHienCo;
+  if (loiTieuDe && d.tieu_de) { cu.tieu_de = d.tieu_de; ghi.push('tiêu đề'); }
+  if (loiMoTa && d.mo_ta_dang) { cu.mo_ta_dang = d.mo_ta_dang; ghi.push('mô tả đăng'); }
+  writeFileSync(ra, JSON.stringify(cu, null, 1) + '\n');
+  console.log(`✓ vá ${ghi.join(', ') || 'không câu nào'}${boQua.length ? ` · bỏ qua: ${boQua.join('; ')}` : ''} · ${r.model} ~${Math.round(r.tokens.vnd ?? 0)}₫`);
+  process.exit(ghi.length ? 0 : 1);
+}
 const capCau = budg ? Math.round(budg[1] / (K.cau?.[0] ?? 20)) : null;
 const khoChu = Object.entries(kho.tai_san).map(([k, v]) => `- ${k} · ${v.loai} · ${v.ten} · ${v.tu}–${v.den}`).join('\n');
 const ngonNgu = nn === 'es' ? 'tiếng Tây Ban Nha (giọng trung tính Mỹ Latin, người bản ngữ viết)' : 'tiếng Anh (Mỹ, người bản ngữ viết)';

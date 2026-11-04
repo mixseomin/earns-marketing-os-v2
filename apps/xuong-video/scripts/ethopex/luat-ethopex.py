@@ -542,7 +542,7 @@ _t24 = {}
 try:
     _t1_co = {int(x[0]) for x in tat1} | {int(x[0]) for x in tat2}
     def _q_ktra(cau):   # q() nuốt lỗi SQL (stdout rỗng, không ném) → 05/11/2026 join using (camp_id) sai mà T1 24h im lặng ra 0; khối này đòi psql thoát 0
-        r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", "-v", "ON_ERROR_STOP=1", cau], capture_output=True, text=True)
+        r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-v", "ON_ERROR_STOP=1", "-tAc", cau], capture_output=True, text=True)   # -v trước -c: "-tAc" lấy đối số kế làm lệnh
         if r.returncode != 0: raise RuntimeError(r.stderr.strip()[:160])
         return r.stdout.strip()
     for _l in _q_ktra("""with d as (select camp_id, min(ngay::timestamp + (gio || ' hours')::interval) t0 from etp.so_gio_camp where chi > 0 group by 1)

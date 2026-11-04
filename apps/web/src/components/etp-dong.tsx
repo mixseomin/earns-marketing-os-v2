@@ -23,7 +23,7 @@ const TEN_BUOC: Record<string, [string, string]> = {
 /** BƯỚC GIẢI QUYẾT đi kèm mọi lý do dừng / lỗi (anh 04/11/2026 "Lý do phải luôn đi kèm Bước giải quyết !! Ko dừng hẳn như vậy") — đúng cơ chế apps/etp/manh.py mục 5 + 6.
  *  MỘT chỗ: tab Sản xuất và đồng hồ Sản xuất (etp-view BadgeSx) cùng gọi. */
 export const xuLy = (tt: string): string | null => tt === 'dung'
-  ? 'Mạnh tự chạy lại bước này khi cổng của phim đổi (gỡ sổ cấm · nhóm gốc · có creative đạt CTA mới) — sửa luật / gỡ chặn là dòng tự đi tiếp; bấm FIX để chạy lại ngay'
+  ? 'Mạnh tự chạy lại bước này khi cổng của phim đổi (gỡ sổ cấm · nhóm gốc · có creative đạt CTA mới) hoặc khi mã luật của bước đổi; dừng ở Lên camp thì thử lại mỗi ngày; hết đoạn cắt / đoạn sạch / creative bị chặn thì tự chuyển sang dòng kể chuyện; bấm FIX để chạy lại ngay'
   : tt === 'loi' ? 'Mạnh tự thử lại bước lỗi: lần đầu ngay, sau đó 2 giờ / lần, tối đa 6 lần trong 3 ngày; bấm FIX để chạy lại ngay' : null;
 export const MAU: Record<string, [string, string]> = { cho: ['#6b7280', 'chờ'], dang: ['#60a5fa', 'đang chạy'], xong: ['#22c55e', 'xong'], dung: ['#f59e0b', 'dừng (policy / luật)'],
   loi: ['#ef4444', 'lỗi'], bo_qua: ['#374151', 'không thuộc loại nội dung này'], chay: ['#60a5fa', 'đang chạy'], huy: ['#6b7280', 'đã huỷ'] };

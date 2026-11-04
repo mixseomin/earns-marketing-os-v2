@@ -7,13 +7,24 @@ Mỗi lượt:
   3. dòng vừa kết thúc (xong / dừng vì policy / lỗi) → báo Telegram một lần
   4. việc cắt lô dòng phim (etp.viec lô dp*) 'dang' quá 75 phút → xếp lại hàng chờ (tho.py chỉ tự quét việc của chính máy nó)
 Dùng: manh.py [--thu] (--thu: chỉ in, không ghi / không báo)"""
-import importlib.util, json, os, subprocess, sys
+import hashlib, importlib.util, json, os, subprocess, sys
 THU = "--thu" in sys.argv
 # .rstrip("\n"), KHÔNG .strip(): strip cắt luôn tab cuối → cột rỗng cuối hàng mất, "dòng vừa kết thúc" (camp rỗng) chết ValueError mỗi lượt — 180 lần / 3 giờ,
 # Mạnh không báo Telegram, không xếp lại việc kẹt (04/11/2026). Hàng rỗng bỏ ở chỗ dùng (splitlines không sinh hàng rỗng ở giữa).
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-F", "\t", "-c", s], capture_output=True, text=True).stdout.rstrip("\n")
 TEN = {"nhan": "Nhận phim", "ws": "Trang phim", "poster": "Soát poster", "cat": "Cắt đoạn", "soat": "Soát đoạn", "creative": "Tải + chấm", "camp": "Lên camp", "chay": "Camp chạy"}
 IM_BUOC, IM_MAY = 600, 180   # giây
+# MÃ LUẬT CỦA TỪNG BƯỚC (04/11/2026: nới luật máu poster + miễn trùng đội cho camp tay mà 11 + 2 dòng dừng cũ vẫn đứng — dấu cổng không thấy luật đổi):
+# bước dừng ở đâu thì băm tệp làm luật bước đó; sửa tệp → dấu đổi → dòng tự chạy lại bước dừng một lần. Bước Lên camp thêm NGÀY: cổng camp
+# (bão hoà, ngân sách, trùng đội) đổi theo số mỗi ngày → mỗi ngày thử lại một lần.
+G = os.path.dirname(os.path.abspath(__file__)); XE = os.path.join(G, "..", "xuong-video", "scripts", "ethopex")
+MA_BUOC = {"poster": [f"{G}/soat_18_ai.py"], "soat": [f"{XE}/soat_doan.py"], "cat": [f"{G}/dong_phim.py", f"{G}/tho.py"],
+           "creative": [f"{G}/dong_phim.py", f"{XE}/len-creative.py", f"{G}/cong.py"], "camp": [f"{G}/dong_phim.py", f"{G}/cong.py", f"{XE}/nhan-ban.py"]}
+def bam(tep):
+    h = hashlib.md5()
+    for f in tep:
+        if os.path.exists(f): h.update(open(f, "rb").read())
+    return h.hexdigest()[:10]
 
 def bao(chu):
     if THU: return print("[TG]", chu)
@@ -66,13 +77,17 @@ def main():
     dau = """concat_ws('|', (select (k.gia_tri ? d.content_id::text)::text from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam'),
              (select f.nhom_goc from etp.phim f where f.content_id = d.content_id),
              (select count(*) from etp.creative r join etp.cham_cong g using (creative_id) where r.content_id = d.content_id and r.cta_dat and g.duoc_len
-                and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)))"""
+                and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)),
+             case split_part(d.ly_do, ':', 1) """ + " ".join(f"when '{k}' then '{bam(v)}'" for k, v in MA_BUOC.items()) + f""" else '{bam([f"{G}/dong_phim.py"])}' end,
+             case when split_part(d.ly_do, ':', 1) = 'camp' then to_char(now() at time zone 'Asia/Ho_Chi_Minh', 'YYYYMMDD') end)"""
     if THU: r = q(f"select d.id, d.dau_dung, {dau} from etp.dong_phim d where d.trang_thai = 'dung' and d.tao_luc > now() - interval '3 days'")
     else:
         q(f"update etp.dong_phim d set dau_dung = {dau} where d.trang_thai = 'dung' and d.dau_dung is null")
         r = q(f"""with mo as (update etp.dong_phim d set dau_dung = null where d.trang_thai = 'dung' and d.tao_luc > now() - interval '3 days'
                      and d.dau_dung is distinct from {dau} returning d.id)
-                  update etp.dong_buoc b set fix = true from mo where b.dong_id = mo.id and b.trang_thai in ('dung', 'loi') and not b.fix returning b.dong_id, b.buoc""")
+                  update etp.dong_buoc b set fix = true from mo join etp.dong_phim p on p.id = mo.id where b.dong_id = mo.id and not b.fix
+                    and (b.trang_thai in ('dung', 'loi') or (b.buoc = split_part(p.ly_do, ':', 1) and not exists (select 1 from etp.dong_buoc x where x.dong_id = mo.id and x.trang_thai in ('dung', 'loi'))))
+                  returning b.dong_id, b.buoc""")
     if r: lam.append(f"mở lại (cổng phim đã đổi): {r.replace(chr(10), ' · ').replace(chr(9), ' ')}")
     # 6. KHÔNG DỪNG HẲN (anh 04/11/2026 "Lý do phải luôn đi kèm Bước giải quyết !! Ko dừng hẳn như vậy" — dòng #5 đứng 'lỗi' từ hôm qua):
     #    dòng LỖI KỸ THUẬT (không phải dừng vì luật) → thử lại bước lỗi sau 2 giờ, tối đa 6 lần, trong 3 ngày; hết lượt mới báo anh một lần

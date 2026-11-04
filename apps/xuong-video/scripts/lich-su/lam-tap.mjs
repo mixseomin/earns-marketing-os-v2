@@ -171,6 +171,10 @@ async function kiem(tap, nguonChu) {
   // HOOK + MÔ TẢ (kênh có máy đăng): tiêu đề qua đúng luật hook của Phòng Nội dung (hook-qc.mjs — giữ ≥ 35% chữ QC gốc, không thêm số); mô tả đăng có thật
   if (KENH.may) { if (!tap.hook?.goc) loi.push('tập chưa gắn hook QC spy (tap.hook) — máy đăng sẽ bị Phòng Nội dung chặn');
     else loi.push(...loiHook([tap.tieu_de], tap.hook.goc).map((x) => `tiêu đề: ${x}`));
+    // TIÊU ĐỀ NÓI ĐÚNG CHUYỆN (05/11/2026: tập Agincourt mượn hook "Before the largest cavalry charge in history…" — đó là Vienna 1683; Ngọc chặn thumbnail "lệch tiêu đề"):
+    // so sánh nhất trong tiêu đề (largest, only…) phải có một sự thật của tập chứng minh, không thì sửa tiêu đề (lỗi cục bộ → --chi-sua viết lại tiêu đề)
+    { const stTap = phang(tap.cau.flatMap((c) => (c.su_that || []).map((x) => `${x.gia_tri} ${x.trich}`)).join(' | '));
+      for (const w of String(tap.tieu_de || '').split(/\s+/).map(chuan)) if (NHAT.test(w) && !/^(first|primero|primera)$/.test(w) && !stTap.includes(w)) loi.push(`tiêu đề: so sánh nhất "${w}" không có sự thật nào trong tập chứng minh — sửa tiêu đề cho đúng chuyện của tập (giữ khung hook)`); }
     if (!tap.goc?.id) loi.push('tập chưa gắn góc spy (tap.goc)');
     if (!tap.mo_ta_dang || tap.mo_ta_dang.length < 80) loi.push('mô tả đăng (mo_ta_dang) thiếu hoặc dưới 80 ký tự'); }
   for (const [k, c] of ds.entries()) if (c.canh.tranh?.commons && !c.canh.tranh.anh && !(await commons(c.canh.tranh.commons))) loi.push(`câu ${k + 1}: tranh Commons "${c.canh.tranh.commons}" không tồn tại — tên tệp có thật hoặc null (AI vẽ)`);

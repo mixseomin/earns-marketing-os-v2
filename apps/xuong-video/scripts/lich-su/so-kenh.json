@@ -1141,7 +1141,8 @@
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau full-story-2  (demo: demo-mau.sh)",
         "mo_ta": "Khuôn Full Story (~3 phút) + SỐ THÀNH HÌNH: đúng lúc giọng đọc tới một con số có nguồn, số hiện to giữa màn đếm chạy lên, kèm hình theo loại — hàng người (1 hình = N người), chồng tiền, đồng hồ quay, thanh phần trăm, đường đo; hai số quân trong một câu thành hai cột so sánh. Số chỉ lấy từ trích dẫn nguồn của câu, không có số bịa; không cần viết lại kịch bản.",
-        "demo": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-full-story-2-5960e0c784.mp4"
+        "demo": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-full-story-2-5960e0c784.mp4",
+        "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$"
       },
       {
         "ma": "full-story",
@@ -1167,7 +1168,8 @@
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau short-60  (demo: demo-mau.sh)",
         "demo": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-tiny-wars-b0b2c77134.mp4",
         "cho_duyet": true,
-        "mo_ta": "KHUÔN VIDEO Short 45–60 giây, dọc 9:16: 9–10 câu, 105–120 từ — hook chữ to 0–2 giây → 2 nhịp leo thang (mỗi nhịp một năm + một chuyển động bản đồ + một nhân vật) → cú lật cuối đóng dấu → THE END. Xem xong nhớ được một sự thật để kể lại; mồi kéo người xem sang bản Full Story cùng playlist. Demo: Tiny Wars (chiến tranh Anh–Zanzibar 38 phút)."
+        "mo_ta": "KHUÔN VIDEO Short 45–60 giây, dọc 9:16: 9–10 câu, 105–120 từ — hook chữ to 0–2 giây → 2 nhịp leo thang (mỗi nhịp một năm + một chuyển động bản đồ + một nhân vật) → cú lật cuối đóng dấu → THE END. Xem xong nhớ được một sự thật để kể lại; mồi kéo người xem sang bản Full Story cùng playlist. Demo: Tiny Wars (chiến tranh Anh–Zanzibar 38 phút).",
+        "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$"
       }
     ],
     "hang_cho": [

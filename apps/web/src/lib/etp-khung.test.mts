@@ -1,10 +1,12 @@
 import assert from 'node:assert';
-import { khungLuc, hetKhung, choKhung, datNap, gioVnNay } from './etp-khung';
+import { khungLuc, hetKhung, gioVnNay, docHoan } from './etp-khung';
 
 assert.deepStrictEqual([0, 7, 14.9, 15, 20.9, 21, 22.5, 23, 23.9].map(khungLuc), ['bang', 'bang', 'bang', 'doi', 'doi', 'nap', 'nap', 'bang', 'bang']);
 assert.strictEqual(hetKhung(3), 15); assert.strictEqual(hetKhung(16), 21); assert.strictEqual(hetKhung(21.5), 23); assert.strictEqual(hetKhung(23.2), 15);
-assert.strictEqual(choKhung('tat', 16), null); assert.strictEqual(choKhung('tat', 2), '15h'); assert.strictEqual(choKhung('tat', 22), '15h');
-assert.strictEqual(choKhung('tang', 22, true), null); assert.strictEqual(choKhung('tang', 22, false), '15h'); assert.strictEqual(choKhung('giam', 22, true), '15h');
-assert.strictEqual(datNap({ chi: 0.96, thu: 1.3 }, 1), true); assert.strictEqual(datNap({ chi: 0.9, thu: 2 }, 1), false); assert.strictEqual(datNap({ chi: 1, thu: 1.2 }, 1), false);
 assert.strictEqual(Math.floor(gioVnNay(Date.UTC(2026, 10, 4, 17, 30))), 0);   // 17:30 UTC = 00:30 VN
+const now = Date.UTC(2026, 10, 5, 0, 0), luc = new Date(now - 20 * 60_000).toISOString();
+const h = docHoan([{ khoa: 'khung_hoan', gia_tri: { luc, tang: [1, 2], giam: [3], tat: [2] } }], now);
+assert.strictEqual(h.ds.get(1), 'tang'); assert.strictEqual(h.ds.get(2), 'tat'); assert.strictEqual(h.ds.get(3), 'giam'); assert.strictEqual(h.ds.size, 3);
+assert.strictEqual(docHoan([{ khoa: 'khung_hoan', gia_tri: { luc: new Date(now - 3 * 3600_000).toISOString(), tang: [1] } }], now).ds.size, 0);   // sổ cũ (máy không chạy) → không hứa
+assert.strictEqual(docHoan([], now).ds.size, 0);
 console.log('etp-khung: đạt');

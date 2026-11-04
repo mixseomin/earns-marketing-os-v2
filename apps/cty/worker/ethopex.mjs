@@ -366,6 +366,10 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // 00–07h VN là cuối ngày ngân sách UTC) · 23–15h: đóng băng. Ngoài khung luật vẫn chấm + báo, nút Telegram anh bấm vẫn chạy; dừng đêm (anh 25/10) giữ nguyên làm đường khẩn.
   const KD = BANG_LUAT.khung_doi, trongKD = ([a, b]) => gioVn >= a && gioVn < b;   // khung ở sổ luật chung — trang etp (tab Camp) đọc cùng chỗ
   const khungDoi = trongKD(KD.doi) ? 'doi' : trongKD(KD.nap) ? 'nap' : 'bang';
+  // SỔ HOÃN (audit 05/11/2026: tab Camp tự đoán "chờ 15h" theo hướng luật → báo ↓26 cho 26 camp G10 chỉ đang theo dõi, và báo cả giảm khi công tắc tự giảm đang tắt):
+  // chính máy làm việc ghi việc nó đã đủ luật + đủ công tắc nhưng hoãn vì khung giờ → etp.cau_hinh 'khung_hoan', trang etp chỉ đọc sổ này
+  const HOAN = { tang: new Set(), giam: new Set(), tat: new Set() };
+  const hoan = (k, m) => { HOAN[k].add(Number(m.id)); return true; };   // máy ĐỦ luật nhưng khung giờ chặn → ghi sổ hoãn (trang etp đọc), không làm
   const napDem = khungDoi !== 'nap' ? new Set() : new Set(String(await chayPsql(`select camp_id from etp.so_ngay where ngay = (now() at time zone 'utc')::date and ngan_sach > 0 and chi >= ${Number(KD.nap_chi)} * ngan_sach and thu >= ${1 + Number(KD.nap_roi) / 100} * chi`).catch(() => '')).split(/\s+/).filter(Boolean));
   const tt = docJ(path.join(DATA(), 'ethopex-tu-tang.json'), null);
   const tuTang = tt && Date.now() < Date.parse(tt.den) ? Number(tt.tran) || 0 : 0;
@@ -381,10 +385,10 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // CÔNG TẮC MÁY TỰ GIẢM BẬC (anh 27/10/2026: "Tạm dừng rule giảm bậc tự động"): etp.cau_hinh.giam_tu_dong = false → cả hai đường tự giảm (GB + ROI tụt đang âm)
   // dừng; luật vẫn chạy, vẫn báo + ra nút ↓ để anh tự bấm. Không có dòng cấu hình = bật như cũ.
   const giamTu = String(await chayPsql("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'").catch(() => '')).trim() !== 'false';
-  if (duyet.gb_tu_giam && giamTu && khungDoi === 'doi') {
+  if (duyet.gb_tu_giam && giamTu) {
     const daGiam = [];
     for (const m of kq.ha || []) {
-      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id)) continue; lamRoi.add(m.id);
+      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id) || (khungDoi !== 'doi' && hoan('giam', m))) continue; lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `giảm bậc (GB) · ${m.chu}`.slice(0, 400), '--ai', `máy tự giảm (anh duyệt luật GB tự giảm ${duyet.gb_tu_giam.luc.slice(0, 10)})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daGiam.push({ m, d, r });
     }
@@ -396,11 +400,11 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   }
   // MÁY TỰ GIẢM BẬC CAMP ROI TỤT ĐANG ÂM (anh 26/10/2026: "giảm bậc mày tự set theo rule nếu camp đó đang âm"): mục ROI TỤT có ROI 3 ngày gần < 0%
   // và có bậc dưới ("→ $X") → lam-ethopex giam một bậc (cùng chặn của lam: đổi < 6 giờ, camp phải bật, mức trên thang); không tắt. ROI 3 ngày gần ≥ 0% vẫn chỉ ra nút.
-  if (giamTu && khungDoi === 'doi') {
+  if (giamTu) {
     const daGiam = [];
     for (const m of kq.giam || []) {
       const rg = Number((String(m.chu).match(/3 ngày gần ([+-]?\d+)%/) || [])[1]); const d = Number(dichCua(m));
-      if (!(rg < 0) || !d || lamRoi.has(m.id) || seTat.has(m.id)) continue; lamRoi.add(m.id);
+      if (!(rg < 0) || !d || lamRoi.has(m.id) || seTat.has(m.id) || (khungDoi !== 'doi' && hoan('giam', m))) continue; lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `ROI tụt + đang âm (3 ngày gần ${rg}%) · ${m.chu}`.slice(0, 400), '--ai', 'máy tự giảm (anh duyệt 26/10/2026: ROI tụt mà đang âm)'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daGiam.push({ m, d, r });
     }
@@ -414,10 +418,10 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // mà rois vẫn kém, mình off đi"; anh lệnh làm, áp cả ★ ROAS): camp chạm G10 → lam-ethopex giam về $10 (cùng chặn của lam: đổi < 6 giờ, camp phải bật);
   // hạ xong ghi etp.cau_hinh 'g10' {camp: ngày hạ UTC} — máy luật đếm ngày đã khép SAU ngày đó, kém tiếp thì tat_g10 (LUAT_TAT, báo trước một nhịp rồi tắt).
   // Không theo công tắc giam_tu_dong (công tắc đó dừng bộ giảm bậc cũ, G10 là luật riêng anh lệnh).
-  for (const LH of khungDoi === 'doi' ? LUAT_HA_SO : []) {   // mọi luật hạ tự động trong sổ luật chung (G10, H2 — chữ tin + ai lấy từ sổ luật, không ghi cứng)
+  for (const LH of LUAT_HA_SO) {   // mọi luật hạ tự động trong sổ luật chung (G10, H2 — chữ tin + ai lấy từ sổ luật, không ghi cứng)
     const daG10 = [];
     for (const m of kq[LH.khoa] || []) {
-      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id)) continue; lamRoi.add(m.id);
+      const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id) || (khungDoi !== 'doi' && hoan('giam', m))) continue; lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `${LH.ten} · ${m.chu}`.slice(0, 400), '--ai', LH.ai], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daG10.push({ m, d, r });
     }
@@ -431,9 +435,9 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // MỘT QUYỀN TỰ TĂNG, TRẦN $30 (anh 29/10/2026 "mày đc tự nâng đến $30 rồi nên gộp lại"): trước là hai quyền tách — tự tăng bậc trần $20 (24/10) + T30 lên $30 (28/10)
   // → tin "MÁY TỰ TĂNG … trần $20" trong khi máy vẫn lên $30. Nay một trần trong ethopex-tu-tang.json (tran 30): thang BAC dừng ở $20 nên $20 → $30 vẫn CHỈ đi qua
   // luật T30 (5 ngày đã khép ROI ≥ 50%, chi TB ≥ $12) — gộp quyền, không nới ngưỡng
-  if (tuTang && khungDoi !== 'bang') {
+  if (tuTang) {
     for (const k of ['hoi_g10', 'dau_phien', 'tang', 'tang30']) for (const m of kq[k] || []) {   // G10 hồi trước (anh 04/11/2026)
-      const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id) || seTat.has(m.id) || (khungDoi === 'nap' && !napDem.has(String(m.id)))) continue;
+      const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id) || seTat.has(m.id) || ((khungDoi === 'bang' || (khungDoi === 'nap' && !napDem.has(String(m.id)))) && hoan('tang', m))) continue;
       lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), ...(k === 'hoi_g10' ? ['--ep'] : []), '--luat', `${k === 'hoi_g10' ? 'G10 hồi' : TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', k === 'tang30' ? `máy tự tăng T30 (anh cho phép tự tăng, trần $${tuTang} — gộp 29/10/2026)` : `máy tự tăng (anh cho phép ${Date.parse(tt?.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daTu.push({ k, m, d, r });
@@ -563,7 +567,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);
     const giu = cho._giu?.ngay === homNay ? cho._giu : { ngay: homNay, ds: {} }; delete cho._giu;   // camp lam-ethopex từ chối tắt (đang lãi) — không báo / thử lại trong ngày
-    const ds = (kq[LT.khoa] || []).filter((m) => khungDoi === 'doi' && !lamRoi.has(m.id) && !giu.ds[m.id]);   // ngoài 15–21h: sổ chờ tự rỗng → 15h báo trước một nhịp lại rồi mới tắt
+    const ds = (kq[LT.khoa] || []).filter((m) => !lamRoi.has(m.id) && !giu.ds[m.id] && (khungDoi === 'doi' || !hoan('tat', m)));   // ngoài 15–21h: vào sổ hoãn, sổ chờ tự rỗng → 15h báo trước một nhịp lại rồi mới tắt
     for (const k of Object.keys(cho)) if (!ds.some((m) => String(m.id) === k)) delete cho[k];   // hết chạm luật → bỏ khỏi sổ chờ
     for (const m of ds) { if (LT.ngay) { tat.push(m); continue; } if (!cho[m.id]) { cho[m.id] = bayGio; moi.push(m); } else if (bayGio - cho[m.id] >= 25 * 60_000) tat.push(m); }   // ngay: tắt luôn nhịp này, không chờ (D24 — anh "dừng ngay lập tức")
     if (moi.length) {
@@ -589,6 +593,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       gui++;
   }
   }
+  for (const id of HOAN.tat) { HOAN.tang.delete(id); HOAN.giam.delete(id); }   // một camp một việc: tắt thắng
+  await chayPsql(`insert into etp.cau_hinh (khoa, gia_tri, ghi, ai) values ('khung_hoan', $J$${JSON.stringify({ luc: new Date().toISOString(), khung: khungDoi, ...Object.fromEntries(Object.entries(HOAN).map(([k, v]) => [k, [...v]])) })}$J$::jsonb, 'việc máy đã đủ luật nhưng hoãn vì khung đổi camp — ethopex.mjs ghi mỗi nhịp, trang etp đọc', 'ethopex.mjs') on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()`).catch((e) => console.error('khung_hoan:', e.message));
   // ★ CAMP ROAS CHẠM LUẬT TẮT: đã chuyển vào LUAT_TAT (luật RL, máy tự tắt) ngày 30/10/2026 — nút et:tatr ở xuNut chỉ còn cho tin cũ
   // DỪNG ĐÊM (anh 25/10/2026 chat: "Trong phiên 9h tối đến 5h sáng mà các camp âm tăng nhanh hơn thì phải chủ động dừng luôn"): anh lệnh đích danh luật
   // này nên máy tắt qua lam-ethopex với người duyệt "anh (chat …)"; lam-ethopex vẫn từ chối camp ROI cộng dồn > 20% (camp lãi không bị tắt). Không tự bật lại.

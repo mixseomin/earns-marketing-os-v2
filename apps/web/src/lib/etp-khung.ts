@@ -14,12 +14,12 @@ const trong = (h: number, [a, b]: [number, number]) => h >= a && h < b;
 export const khungLuc = (h: number): KhungDoi => (trong(h, KD.doi) ? 'doi' : trong(h, KD.nap) ? 'nap' : 'bang');
 /** khung đang chạy kéo tới mấy giờ (giờ nguyên, 0–23) */
 export const hetKhung = (h: number) => { const k = khungLuc(h); for (let i = 1; i <= 24; i++) { const g = (Math.floor(h) + i) % 24; if (khungLuc(g) !== k) return g; } return Math.floor(h); };
-/** camp đạt điều kiện nạp đêm (21–23h) theo số hôm nay */
-export const datNap = (nay: { chi: number; thu: number }, nganSach: number) => nganSach > 0 && nay.chi >= KD.nap_chi * nganSach && nay.thu >= (1 + KD.nap_roi / 100) * nay.chi;
-
-/** luật hướng `huong` đã đạt nhưng khung giờ đang chặn → giờ máy sẽ làm (vd "15h"); null = máy làm ngay nhịp này */
-export function choKhung(huong: HuongLuat, h: number, nap?: boolean): string | null {
-  const k = khungLuc(h);
-  if (k === 'doi' || (k === 'nap' && huong === 'tang' && nap)) return null;
-  return `${KD.doi[0]}h`;
+/** SỔ HOÃN của máy (etp.cau_hinh 'khung_hoan', worker ethopex.mjs ghi mỗi nhịp): camp máy ĐÃ đủ luật + đủ công tắc nhưng hoãn vì khung giờ.
+ *  Trang chỉ đọc sổ này — không tự đoán từ hướng luật (audit 05/11/2026: đoán ra ↓26 cho 26 camp G10 chỉ đang theo dõi). Sổ cũ hơn HAN_PHUT = máy không chạy → bỏ, không hứa. */
+export const HAN_PHUT = 90;
+export function docHoan(cauHinh: { khoa: string; gia_tri: unknown }[], now = Date.now()): { luc: string | null; cu: boolean; ds: Map<number, HuongLuat> } {
+  const g = cauHinh.find((k) => k.khoa === 'khung_hoan')?.gia_tri as (Partial<Record<HuongLuat, number[]>> & { luc?: string }) | undefined;
+  const luc = g?.luc ?? null, cu = !luc || now - Date.parse(luc) > HAN_PHUT * 60_000, ds = new Map<number, HuongLuat>();
+  if (!cu) for (const h of ['tang', 'giam', 'tat'] as const) for (const id of g?.[h] ?? []) ds.set(Number(id), h);   // tắt ghi sau cùng = tắt thắng
+  return { luc, cu, ds };
 }

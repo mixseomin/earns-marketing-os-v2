@@ -347,7 +347,10 @@ writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');
 // (nền thumbnail + ảnh thật của bài đăng). Đã có thì dùng lại.
 // 03/11/2026 (Constantinople): ảnh chính của bài là ẢNH GHÉP 6 tranh → Ngọc chặn thumbnail "rối". Giờ xét MỌI ảnh của các bài nguồn (ảnh chính trước), bỏ ảnh ghép /
 // bản đồ / cờ / logo / biểu tượng, Ngọc xét lần lượt (tối đa 6 lượt), giữ tối đa 3 ảnh đạt → tap.anh_bia (ảnh đầu) + tap.anh_bia_ds (thumb.mjs thử lần lượt).
-if (KENH.may && !tap.cau.some((c) => c.canh.tranh?.commons && c.canh.tranh?.anh) && !(tap.anh_bia_ds?.length && tap.anh_bia_ds.every((x) => existsSync(join(KHO, x.anh))))) {
+// 04/11/2026 (tập săn phù thuỷ): tập có ĐÚNG MỘT tranh Commons (vua James VI) → thumbnail chỉ có một ứng viên, Ngọc chặn "lệch chuyện" là hết đường.
+// Giờ tìm ảnh bìa khi tập có dưới 3 ảnh thật — thumb.mjs luôn có vài ảnh để thử.
+const soAnhThat = tap.cau.filter((c) => c.canh.tranh?.commons && c.canh.tranh?.anh).length;
+if (KENH.may && soAnhThat < 3 && !(tap.anh_bia_ds?.length && tap.anh_bia_ds.every((x) => existsSync(join(KHO, x.anh))))) {
   const BO = /collage|montage|mixcollage|\bmix\b|map|karte|carte|mapa|projection|territor|extent|expansion|borders|flag|coat.of.arms|logo|icon|symbol|seal|signature|locator|diagram|chart|\.svg$/i, ds = [], tim = [];
   for (const u of tap.nguon ?? []) {
     const tua = decodeURIComponent(u.split('/wiki/')[1] || '').replace(/_/g, ' '), lang = (u.match(/\/\/(\w+)\.wikipedia/) || [])[1] || 'en'; if (!tua) continue;

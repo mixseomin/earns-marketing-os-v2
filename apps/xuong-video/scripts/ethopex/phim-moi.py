@@ -4,7 +4,7 @@ Theo TRẠNG THÁI từng phim, không theo dải hạng: phim bị loại thì 
 Trạng thái: studio xv_khoa_ngoai['ethopex_phim_moi_tt'] {id: {tt, luc, ghi, lan}} — danh sách = ['ethopex_200_phim'] (chon-phim-moi.py, xếp theo cầu app gốc)
   (chưa có) → poster_ok | poster_loai          soát poster (Claude xem tờ poster: cởi trần ôm hôn, máu, súng, gợi dục → loại)
   poster_ok → da_cat | cat_loi | cat_loai       cắt 2 góc (cat-cuoi-lo; cat_loi = lỗi kỹ thuật, cắt lại tối đa 2 lần; cat_loai = không còn khung sạch / thoại cấm)
-  da_cat    → da_len | soat_loai | cong_loai    soát 18+ tờ khung (Claude → kiem-phim-18 --soat) → len-creative (cổng chữ) → nhan-ban --bo 2 --lich today
+  da_cat    → da_len | soat_loai | cong_loai    soát 18+ tờ khung (Claude → kiem-phim-18 --soat) → len-creative (cổng chữ) → nhan-ban --bo 2 (giờ chạy do lich_len quyết)
 Hằng ngày trên iMac (mỗi bước in việc kế tiếp):
   1. phim-moi.py tinh                 bảng đếm + dự trữ đủ mấy ngày + hôm nay đã lên bao nhiêu
   2. phim-moi.py them [so]            dự trữ < 2 ngày → chon-phim-moi.py --them (nối thêm, giữ thứ tự cũ)

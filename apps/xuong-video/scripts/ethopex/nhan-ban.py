@@ -6,19 +6,19 @@ Cùng đường nút Duplicate của Ethopex (form create-facebook?sourceCampId=
 Chặn: camp gốc phải đang bật; phim đã có ≥ TRAN_PHIM camp ĐANG CHẠY thì thôi (camp đã tắt không tính — camp thua tắt đi là nhường chỗ).
 Chạy trên box3 (khoá ở studio):
   python3 nhan-ban.py <camp_gốc>            → in payload (chạy khô, không tạo gì)
-  python3 nhan-ban.py <camp_gốc> --that [--lich today|tomorrow] [--luat "…"] [--ai "…"]   → tạo, đọc lại, ghi nhật ký (ethopex_nhat_ky)
+  python3 nhan-ban.py <camp_gốc> --that [--luat "…"] [--ai "…"]   → tạo, đọc lại, ghi nhật ký (ethopex_nhat_ky)
     Clone GIỮ NGUYÊN creative gốc tới trần tran_trung camp chạy / đoạn (28/10/2026), đủ trần mới đổi creative khác cùng phim; mọi camp mới / clone chỉ dùng creative máy chấm SẠCH; chỉ clone camp gốc
     đã chạm trần ngân sách (etp.cau_hinh.tran_camp, $30) (anh 25/10/2026).
   python3 nhan-ban.py <camp_khuôn> --creative <id> --content <id> --ten "<tên>" [--that …]   → camp MỚI cho creative khác trên khuôn camp đó
     (creative phải qua trước kiem-studio.sh + kiem-thoai-creative.sh; khuôn phải cùng ngôn ngữ với phim)
   python3 nhan-ban.py <camp_gốc> --thang <$> --that …   → THANG NHÂN BẢN bộ 2 (anh 25/10/2026): bản mới ở bậc ngân sách cao hơn camp gốc
     (GIỮ creative camp gốc như mọi clone — đoạn đủ trần tran_trung mới sang creative khác cùng phim; tên "(thang $X cua <gốc>)"); không đòi gốc chạm trần — camp gốc giữ nguyên ngân sách
-  python3 nhan-ban.py <camp_gốc> --bo <bộ> --ep --that [--lich today]   → CLONE SANG BỘ KHÁC theo lệnh đích danh của anh (anh 27/10/2026: "clone 1 camp tốt
+  python3 nhan-ban.py <camp_gốc> --bo <bộ> --ep --that   → CLONE SANG BỘ KHÁC theo lệnh đích danh của anh (anh 27/10/2026: "clone 1 camp tốt
     nhất sang bộ tk 03"): giữ NGUYÊN creative camp gốc (bản CTA sửa nếu có), bỏ qua 4 cổng chỉ dành cho nhân camp trong cùng bộ — mỗi phim một bộ, chạm trần $30,
     bão hoà phim, buộc đổi creative khác (và trần 30 camp/phim); vẫn qua cổng chấm sạch + rào chắn etp. --ep chỉ dùng khi anh ra lệnh trong lượt đó.
   python3 nhan-ban.py <camp_gốc> --roas <1.0–1.4> [--ns 20] [--tam-dung] [--nhan "chay ngay"] [--mien-cham] --that …   → CAMP ROAS (tài liệu Support 26/10/2026, anh duyệt 26/10/2026):
     nhân bản camp gốc (chi all time > $100, ROI > 50%) với bid ROAS goal (LOWEST_COST_WITH_MIN_ROAS + roas_average_floor ở Ad Set),
-    ad = BÀI ĐĂNG CŨ của camp gốc (use existing post — giữ tương tác), ngân sách $15–20, lịch tomorrow, tên "… roas X duplicate by <gốc>".
+    ad = BÀI ĐĂNG CŨ của camp gốc (use existing post — giữ tương tác), ngân sách $15–20, lịch do lich_len quyết, tên "… roas X duplicate by <gốc>".
     Camp ROAS là loại riêng: KHÔNG qua luật clone-khác-creative / cổng chấm / chạm trần / bão hoà (dùng lại đúng bài cũ); vẫn qua cổng etp; miễn trần 30 camp/phim và không chiếm chỗ camp thường (anh 26/10/2026).
     Tạo xong đọc lại: mức ROAS sai → tạm dừng camp ngay + báo lỗi (Support: "nhập sai là lỗi camp"). --tam-dung = để PAUSED chờ anh review.
   ETP_SUA_NGUOI=<nguoi_id> python3 nhan-ban.py <camp_gốc> [--roas …] --that …   → CAMP CỦA NGƯỜI TRONG TEAM (Luật tự động, anh 31/10/2026: "giống hệt nhà nhưng chỉ
@@ -46,13 +46,12 @@ def api(duong, body=None):
 api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung apps/etp/ethopex_api.py: danh sách đủ mọi trang + chỉ camp tài khoản nhà, lệnh ghi vào camp ngoài bị chặn (anh 28/10/2026)
 js = lambda v: json.loads(v) if isinstance(v, str) and v.strip().startswith("{") else (v or {})
 BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))   # sổ luật chung: khung giờ lên camp (khung_doi.len)
-def lich_len(yeu_cau=None, luc=None):
+def lich_len(_bo_qua=None, luc=None):
     """GIỜ LÊN CAMP — MỘT CHỖ cho mọi đường lên (dòng phim · worker phim mới / KT · nhân bản · ROAS · anh bấm tay). Anh 05/11/2026 chốt theo số toàn đội
     (apps/etp/phan-tich-gio.py mục D): đồng chi đầu rơi 08–12h VN lãi 72h +$2,85/camp, chiều +$1,25, tối +$0,13, đêm +$0,32 — Meta dồn 53–62% chi 24h đầu
     vào 6 giờ đầu nên giờ lên quyết định camp học ở khung tốt hay xấu. Tạo trong khung `len` của sổ luật (07–12h VN) → chạy ngay (today); ngoài khung →
     hẹn 07:00 hôm sau (tomorrow), KỂ CẢ nhân bản ("nhân bản cũng hẹn sáng hôm sau nếu không đúng khung giờ"). --lich today|tomorrow của nơi gọi chỉ là
-    gợi ý cũ, máy tự quyết; chỉ --lich ngay mới ép chạy ngay (lệnh đích danh của anh)."""
-    if yeu_cau == "ngay": return "today"
+    gợi ý cũ bị bỏ qua — KHÔNG đường nào ép chạy ngay (anh 05/11/2026 "không cho lên ngay mà phải 100% tuân thủ")."""
     a, b = BANG_LUAT["khung_doi"]["len"]; h = ((luc or dt.datetime.now(dt.timezone.utc)).hour + 7) % 24
     return "today" if (a <= h < b if a <= b else (h >= a or h < b)) else "tomorrow"
 NGOAI = EA.SUA or EA.XEM   # camp của người trong team (xem docstring) — 0 = nhà; ETP_XEM_NGUOI = chạy khô trên camp thật của người đó (cổng chặn mọi lệnh ghi)
@@ -373,7 +372,7 @@ def main(a):
     goc = int(a[0]); that = "--that" in a
     tay = "--tay" in a   # camp anh yêu cầu bằng tay (dòng phim etp.on.tc) → miễn luật không trùng phim với đội (cong.kiem tay=True), 04/11/2026
     lay = lambda k, md=None: next((a[i + 1] for i, x in enumerate(a[:-1]) if x == k), md)
-    lich, luat, ai = lich_len(lay("--lich")), lay("--luat"), lay("--ai")   # giờ chạy do lich_len quyết (anh 05/11/2026)
+    lich, luat, ai = lich_len(), lay("--luat"), lay("--ai")   # giờ chạy do lich_len quyết, --lich của nơi gọi không còn nghĩa (anh 05/11/2026)
     moi = {"creative": int(lay("--creative")), "content": int(lay("--content")), "ten": lay("--ten")} if lay("--creative") else None
     ep = "--ep" in a and bool(lay("--bo")); mien_cham = "--mien-cham" in a   # clone sang bộ khác theo lệnh anh — xem docstring
     bo = lay("--bo"); thang = float(lay("--thang")) if lay("--thang") else None

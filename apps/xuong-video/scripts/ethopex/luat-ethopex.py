@@ -541,10 +541,14 @@ T1_24_ROI, T1_24_PHAN, T1_24_TUOI = -50, 0.5, 25
 _t24 = {}
 try:
     _t1_co = {int(x[0]) for x in tat1} | {int(x[0]) for x in tat2}
-    for _l in q("""with d as (select camp_id, min(ngay::timestamp + (gio || ' hours')::interval) t0 from etp.so_gio_camp where chi > 0 group by 1)
+    def _q_ktra(cau):   # q() nuốt lỗi SQL (stdout rỗng, không ném) → 05/11/2026 join using (camp_id) sai mà T1 24h im lặng ra 0; khối này đòi psql thoát 0
+        r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", "-v", "ON_ERROR_STOP=1", cau], capture_output=True, text=True)
+        if r.returncode != 0: raise RuntimeError(r.stderr.strip()[:160])
+        return r.stdout.strip()
+    for _l in _q_ktra("""with d as (select camp_id, min(ngay::timestamp + (gio || ' hours')::interval) t0 from etp.so_gio_camp where chi > 0 group by 1)
         select s.camp_id, extract(epoch from (now() at time zone 'utc' - d.t0)) / 3600, sum(s.chi), sum(s.thu), coalesce(c.ngan_sach, 0), coalesce(c.ten, '')
         from d join etp.so_gio_camp s on s.camp_id = d.camp_id and (s.ngay::timestamp + (s.gio || ' hours')::interval) < d.t0 + interval '24 hours'
-        join etp.camp c using (camp_id) where d.t0 >= now() - interval '4 days' group by 1, 2, 5, 6""").splitlines():
+        join etp.camp c on c.camp_id = s.camp_id where d.t0 >= now() - interval '4 days' group by 1, 2, 5, 6""").splitlines():
         _p = _l.split("|", 5)
         if len(_p) < 6: continue
         _c, _tuoi, _ch, _th, _ns, _ten = int(_p[0]), float(_p[1]), float(_p[2]), float(_p[3]), float(_p[4]), _p[5]
@@ -842,6 +846,14 @@ try:
         h2.append((cid, f"#{((thang.get(cid) or {}).get('ten') or '')[:70]} · tăng bậc ngày {_tang[c_]:%d/%m}, 2 ngày đã khép sau đó lỗ: chi ${cs_:.2f} · lãi ${ts_ - cs_:+.2f} · ROI {(ts_ - cs_) / cs_ * 100:+.0f}% · ${ns:g} → ${H2_DICH} (luật H2)"))
 except Exception as e:
     loi_may.append((0, f"luật H2 lỗi: {str(e)[:80]}"))
+# KHÔNG GIẢM CAMP ĐANG LÃI — MỘT CỔNG Ở NGUỒN (anh 05/11/2026 duyệt; số toàn đội phan-tich-gio.py mục C: giảm khi ROI 24h trước ≥ 0 → lãi 24h sau −$1,59/camp,
+# đối chứng +$0,04; giảm khi đang lỗ +$1,47 ≈ đối chứng): mọi lệnh giảm (GB `ha` · ROI tụt `giam` · G10 hạ `g10` · H2 `h2`) phải có lãi hôm qua + hôm nay < 0.
+# Worker / Telegram / thẻ etp đọc cùng danh sách; máy đề xuất đội (de-xuat-ngoai.py) chạy cùng mã nên cùng cổng.
+def _lai_gan(c):
+    y = hqua.get(c) or hqua.get(str(c)) or {}; h_ = hom.get(c) or hom.get(str(c)) or {}
+    return float(y.get("thu") or 0) + float(h_.get("thu") or 0) - float(y.get("chi") or 0) - float(h_.get("chi") or 0)
+_giu_lai = lambda ds: [x for x in ds if _lai_gan(int(x[0] or 0)) < 0]
+ha, giam, g10, h2 = map(_giu_lai, (ha, giam, g10, h2))
 # camp đã hạ, đang trong 2 ngày theo dõi — có danh sách riêng để trang etp / bộ lọc thấy (anh 01/11/2026 "Thiếu luật G10 vừa áp dụng?": trước đó camp đang theo dõi rơi khỏi mọi danh sách)
 g10_theo = [(cid, f"#{(thang.get(cid) or {}).get('ten', '')[:70]} · đã hạ về ${G10_DICH} ngày {ngay:%d/%m} — theo dõi {G10_THEO} ngày đã khép, ROI vẫn < {G10_ROI}% thì tắt; đang khoá tăng") for cid, ngay in sorted(_g10_theo.items())]
 dat, dau_phien, tang30, thang_nb, nb, moc30 = ([x for x in v if int(x[0] or 0) not in _g10_cam] for v in (dat, dau_phien, tang30, thang_nb, nb, moc30))
@@ -850,14 +862,6 @@ dat, dau_phien, tang30, thang_nb, nb, moc30 = ([x for x in v if int(x[0] or 0) n
 # kết: 'dat' (đủ mọi điều kiện) · 'gan' (thiếu đúng một) · 'xa'; 'vao' = máy có xếp camp vào danh sách làm ở nhịp này không (khác 'dat' thì do cổng phụ:
 # nhịp tăng 3 giờ, đổi < 6 giờ, khung giờ, bộ…). Ghi etp.xet_luat (migration 0350) ở lượt --json; trang etp hiện khi rê vào camp.
 def _xet_luat():
-    # KHÔNG GIẢM CAMP ĐANG LÃI — MỘT CỔNG Ở NGUỒN (anh 05/11/2026 duyệt; số toàn đội phan-tich-gio.py mục C: giảm khi ROI 24h trước ≥ 0 → lãi 24h sau −$1,59/camp,
-    # đối chứng +$0,04; giảm khi đang lỗ +$1,47 ≈ đối chứng): mọi lệnh giảm (GB `ha` · ROI tụt `giam` · G10 hạ `g10` · H2 `h2`) phải có lãi hôm qua + hôm nay < 0.
-    # Worker / Telegram / thẻ etp đọc cùng danh sách; máy đề xuất đội (de-xuat-ngoai.py) chạy cùng mã nên cùng cổng.
-    def _lai_gan(c):
-        y = hqua.get(c) or hqua.get(str(c)) or {}; h_ = hom.get(c) or hom.get(str(c)) or {}
-        return float(y.get("thu") or 0) + float(h_.get("thu") or 0) - float(y.get("chi") or 0) - float(h_.get("chi") or 0)
-    _giu_lai = lambda ds: [x for x in ds if _lai_gan(int(x[0] or 0)) < 0]
-    ha, giam, g10, h2 = map(_giu_lai, (ha, giam, g10, h2))
     vao = {k: {int(x[0] or 0) for x in v} for k, v in (("tat_l3", tat_l3), ("tat_l4", tat_l4), ("tat_pl", tat_pl), ("tat_d24", tat_d24), ("tat2", tat2), ("tat1", tat1), ("tat", tat_l), ("tang", dat), ("dau_phien", dau_phien), ("ha", ha), ("giam", giam), ("nb", nb),
            ("thang_nb", thang_nb), ("thang_tat", thang_tat), ("tang30", tang30), ("dung_dem", dung_dem), ("tat_roas", tat_roas), ("tat_r0", tat_r0), ("g10", g10), ("tat_g10", tat_g10), ("hoi_g10", hoi_g10))}
     giam_tu = q("select gia_tri::text from etp.cau_hinh where khoa = 'giam_tu_dong'") != "false"

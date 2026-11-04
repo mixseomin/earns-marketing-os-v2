@@ -7,7 +7,7 @@ Mỗi mục (creative cũ → camp gốc), cùng một đường cho mọi phim:
   3. dò đúng đoạn đó trên tập sạch (khop-nguon) → khớp: dựng lại đúng đoạn với CTA mới (lam-lai-cta)
      không khớp (spy dựng từ tập trả phí) → creative CTA đạt sẵn có của cùng phim; chưa có thì cắt góc mới từ tập sạch (cat-cuoi-lo)
   4. len-creative.py (đẩy + cổng studio + cổng chữ + đánh dấu CTA đạt + ghi bản sửa ethopex_cta_thay, gỡ khỏi hàng)
-  5. nhân bản ngay camp gốc (nhan-ban.py --lich today) — lần sau máy tự nhân bản cũng dùng bản sửa
+  5. nhân bản camp gốc (nhan-ban.py — giờ chạy do lich_len quyết) — lần sau máy tự nhân bản cũng dùng bản sửa
 CHUẨN BỊ TRƯỚC (anh 23/10/2026: "camp mới chuẩn bị lên thì phải chủ động mà sửa CTA lỗi. Camp đang lãi cấm sửa gì"): ngoài hàng bị chặn, mọi camp ĐANG CHẠY
 có lãi (ROI tháng ≥ 50%, chi ≥ $3) mang creative CTA cũ chưa có bản sửa cũng được dựng sẵn bản sửa → tới lượt nhân bản là có ngay. Chỉ dựng creative mới
 + tạo camp nhân bản; KHÔNG sửa / tắt / đổi creative của camp đang chạy. Mục chuẩn bị trước không nhân bản ở đây (để luật NB quyết như thường).
@@ -123,7 +123,7 @@ def goc_moi(ma, bao, nb):
             bao.append(f"góc mới phim {cid}: góc cho camp thay #{m.get('goc')} — thay-the.py lên ở nhịp ethopex kế"); continue
         if nb and m.get("goc") and cid not in day: bao.append(f"góc mới phim {cid}: góc chờ soát đoạn — soat_doan.py len sẽ nhân bản #{m['goc']} sau khi soát"); continue
         if nb and m.get("goc"):
-            r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(m["goc"])} --that --lich today --luat "nhân bản camp thắng bằng GÓC MỚI (đoạn cũ đủ 3 camp)" --ai "máy (anh duyệt 23/10/2026: một đoạn tối đa 3 camp, nhân bản bằng góc mới)"'""", timeout=600)
+            r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(m["goc"])} --that --luat "nhân bản camp thắng bằng GÓC MỚI (đoạn cũ đủ 3 camp)" --ai "máy (anh duyệt 23/10/2026: một đoạn tối đa 3 camp, nhân bản bằng góc mới)"'""", timeout=600)
             bao.append(f"góc mới phim {cid} → nhân bản #{m['goc']}: {(r.stdout.strip().splitlines() or [r.stderr.strip()[-150:]])[-1][:200]}")
     xong = [c for c in hang if not hang[c].get("giu")]
     if xong: sql("update xv_khoa_ngoai set gia_tri = gia_tri - array[" + ",".join(f"'{c}'" for c in xong) + "] where ten='ethopex_can_goc_moi'")
@@ -212,7 +212,7 @@ def main():
             bao.append(f"{old} (Meta từ chối) → thay trong camp #{v['goc']}: {(r.stdout.strip().splitlines() or [r.stderr.strip()[-150:]])[-1][:200]}"); continue
         if v["truoc"]: bao.append(f"{old} → #{thay[old]} · chuẩn bị sẵn cho camp #{v['goc']} (luật NB tự nhân bản khi tới lượt)"); continue
         if nb and v["goc"]:
-            r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(v["goc"])} --that --lich today --luat "nhân bản camp thắng · bản sửa CTA #{thay[old]} thay creative #{old}" --ai "máy (anh 23/10/2026: phải luôn sửa lại CTA)"'""", timeout=600)
+            r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(v["goc"])} --that --luat "nhân bản camp thắng · bản sửa CTA #{thay[old]} thay creative #{old}" --ai "máy (anh 23/10/2026: phải luôn sửa lại CTA)"'""", timeout=600)
             bao.append(f"{old} → #{thay[old]} · nhân bản #{v['goc']}: {(r.stdout.strip().splitlines() or [r.stderr.strip()[-150:]])[-1][:200]}")
     print("\n".join(bao)); XG.bao("nghi", ma, "xong sửa CTA", ep=True)
 

@@ -538,7 +538,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       if (!x.khuon) r = { ok: false, loi: 'người nhận chưa có camp nào cùng tiếng để làm khuôn (Ad Set / pixel / Page) — lên tay camp đầu tiên' };
       else try {
         r = JSON.parse((await new Promise((ok, hong) => execFile('python3', [NB, String(x.khuon), '--creative', String(x.creative_id), '--content', String(x.content_id),
-          '--ten', `NHAN ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ke chuyen`, '--that', '--lich', 'today',
+          '--ten', `NHAN ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ke chuyen`, '--that',
           '--luat', 'nhận phim tự động — KT chấm sạch → lên camp ở tài khoản người nhận', '--ai', 'anh (chat 02/11/2026: nhận phim Tự động thì tự lên camp) — máy chạy'],
           { timeout: 600_000, maxBuffer: 8 << 20, env: { ...process.env, ETP_SUA_NGUOI: String(x.nguoi_id) } }, (e, out, err) => (e && !String(out).trim() ? hong(new Error((err || e.message).slice(-300))) : ok(out))))).trim().split('\n').pop());
       } catch (e) { r = { ok: false, loi: e.message }; }
@@ -552,12 +552,12 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const daNb = [];
   for (const m of kq.nb || []) {
     if (seTat.has(m.id)) continue;   // không nhân bản camp đang trong danh sách tắt
-    const lich = 'today';   // anh 22/10/2026: "camp dạng này đang lãi to thì hãy ưu tiên bật sớm" — bản nhân bản camp thắng chạy luôn, không để sang ngày mai
-    let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--lich', lich, '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', 'máy tự nhân bản (anh cho phép 22/10/2026)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
-    daNb.push({ m, r, lich });
+    // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026 "nhân bản cũng hẹn sáng hôm sau nếu không đúng khung giờ" — thay luật 22/10 "chạy luôn"); kết quả trả kq.chay
+    let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', 'máy tự nhân bản (anh cho phép 22/10/2026)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+    daNb.push({ m, r });
   }
   if (daNb.length) {
-    const dong = bangViec(daNb.map(({ m, r }) => ({ m, doi: `→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng') + `\n<i>bản mới $1 · lịch ${daNb[0].lich === 'today' ? 'hôm nay' : 'ngày mai'}</i>`;
+    const dong = bangViec(daNb.map(({ m, r }) => ({ m, doi: `→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng') + `\n<i>bản mới $1 · chạy ${daNb.every(({ r }) => r.chay === 'today') ? 'ngay (tạo trong khung 07–12h VN)' : 'từ 07:00 VN hôm sau'}</i>`;
     await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI 30 ngày ≥ 100%, tiêu ≥ $10, ROI 3 ngày ≥ 50%; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     gui++;
   }
@@ -618,7 +618,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const daThang = [];
   for (const m of kq.thang_nb || []) {
     const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id)) continue; lamRoi.add(m.id);
-    let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--lich', 'today', '--thang', String(d), '--luat', `thang nhân bản bộ 2 · ${m.chu}`.slice(0, 400), '--ai', 'máy tự mở bản thang (anh duyệt chiến lược bộ 2 ngày 25/10/2026)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+    let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--thang', String(d), '--luat', `thang nhân bản bộ 2 · ${m.chu}`.slice(0, 400), '--ai', 'máy tự mở bản thang (anh duyệt chiến lược bộ 2 ngày 25/10/2026)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
     daThang.push({ m, d, r });
   }
   if (daThang.length) {
@@ -673,7 +673,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     const goc = (kq.moc30 || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id) && !giu[m.id]);
     const viec = goc.flatMap((m) => ROAS_MUC.map((muc) => ({ m, muc })));
     for (let i = 0; i < viec.length; i += 4) await Promise.all(viec.slice(i, i + 4).map(async (v) => {
-      try { v.r = JSON.parse((await chay(NB, [String(v.m.id), '--roas', String(v.muc), '--ns', '20', '--lich', 'today', '--that', '--luat', `lên ROAS · ${v.m.chu}`.slice(0, 400), '--ai', 'máy tự lên ROAS (anh chat 29/10/2026: các camp đủ điều kiện lên roas thì lên luôn — lãi ≥ $75)'], 1500)).trim().split('\n').pop()); }
+      try { v.r = JSON.parse((await chay(NB, [String(v.m.id), '--roas', String(v.muc), '--ns', '20', '--that', '--luat', `lên ROAS · ${v.m.chu}`.slice(0, 400), '--ai', 'máy tự lên ROAS (anh chat 29/10/2026: các camp đủ điều kiện lên roas thì lên luôn — lãi ≥ $75)'], 1500)).trim().split('\n').pop()); }
       catch (e) { v.r = { ok: false, loi: e.message, may: true }; }
     }));
     for (const m of goc) { const ds = viec.filter((v) => v.m === m); if (!ds.some((v) => v.r.ok) && ds.every((v) => !v.r.may && v.r.loi)) giu[m.id] = String(ds[0].r.loi).slice(0, 120); }

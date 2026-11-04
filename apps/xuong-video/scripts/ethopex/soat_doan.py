@@ -13,7 +13,7 @@ khóc sau cảnh giằng co), bạo lực máu me, vũ khí chĩa người, tự
   python3 soat_doan.py ok|cam <khoá> … [--ghi "…"]  → ghi kết quả (cam: đoạn này không bao giờ được cắt lại — goc_moi / sua-cta tránh)
   python3 soat_doan.py lo <thư mục lô>             → soát cả lô bằng máy (Claude, chuỗi rẻ): in đoạn cấm / cần người xem kèm tờ 30 khung
   python3 soat_doan.py quet                        → rà soát mọi creative đang chạy chưa soát đoạn (video thành phẩm) → ghi sổ; cấm → thay creative ở camp mới
-  python3 soat_doan.py len                         → đẩy các đoạn đã ok (len-creative) + nhân bản camp góc mới đang chờ (nhan-ban --lich today)
+  python3 soat_doan.py len                         → đẩy các đoạn đã ok (len-creative) + nhân bản camp góc mới đang chờ (nhan-ban, giờ chạy do lich_len quyết)
 Chạy trên iMac."""
 import datetime as dt, json, os, re, subprocess, sys, time
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
@@ -253,7 +253,7 @@ def main(a):
             json.dump([v["x"] for v in ds], open(lf, "w"), ensure_ascii=False, indent=1)
             r = subprocess.run(["python3", f"{D}/len-creative.py", lf, ma, dang], capture_output=True, text=True, timeout=6 * 3600); print(r.stdout[-1200:], r.stderr[-300:])
             for goc in sorted({v["x"].get("goc") for v in ds if v["x"].get("goc")}):
-                r = subprocess.run(["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(goc)} --that --lich today --luat 'nhân bản camp thắng bằng GÓC MỚI (đã soát đoạn)' --ai 'máy (anh duyệt 23/10/2026: một đoạn tối đa 3 camp)'"], capture_output=True, text=True, timeout=600)
+                r = subprocess.run(["ssh", B, f"{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {int(goc)} --that --luat 'nhân bản camp thắng bằng GÓC MỚI (đã soát đoạn)' --ai 'máy (anh duyệt 23/10/2026: một đoạn tối đa 3 camp)'"], capture_output=True, text=True, timeout=600)
                 print(f"nhân bản #{goc}:", (r.stdout.strip().splitlines() or [r.stderr.strip()[-150:]])[-1][:200])
         bo("ethopex_cho_soat", list(san)); print(f"đã đẩy {len(san)} đoạn đã soát")
         # camp đang bị Meta từ chối chờ góc mới (sua-cta xếp ethopex_cho_dung_lai tu_choi=true) → thay creative + bật lại ngay (anh 24/10/2026:

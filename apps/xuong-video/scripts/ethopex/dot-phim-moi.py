@@ -4,7 +4,7 @@ Danh sách = studio xv_khoa_ngoai['ethopex_200_phim'] (chon-phim-moi.py), theo h
   dot-phim-moi.py cat <từ hạng> <tới hạng> [song_song=2]   → tải tập miễn phí (tai-tap.py) → cắt 2 góc/phim (cat-cuoi-lo.py so_ban=2)
                                                               → tờ soát 18+ mỗi phim: ~/.cache/ethopex/ra/moi-<a>-<b>/soat-<id>.jpg (poster + 8 khung mỗi đoạn)
   (Claude xem tờ soát trong phiên → kiem-phim-18.py --soat <id> ok|cam trên box3)
-  dot-phim-moi.py len <từ hạng> <tới hạng> [lich=today]   → len-creative.py (chỉ phim đã soát ok) → nhan-ban.py --bo 2 --creative … (khuôn EN/ES)"""
+  dot-phim-moi.py len <từ hạng> <tới hạng>   → len-creative.py (chỉ phim đã soát ok) → nhan-ban.py --bo 2 --creative … (khuôn EN/ES)"""
 import json, os, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import xuong as XG   # nhịp xưởng cho city.on.tc
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; N = os.path.expanduser("~/.cache/ethopex/nguon")
@@ -110,10 +110,10 @@ def don_box(lo):
                      [f"rm -f '{f}' '{f[:-4]}-soat.jpg'" for f in cat_])
     sh(f'ssh {B} "{lenh}"'); print("dọn box3:", len(ids), "phim ·", sh(f"ssh {B} 'df -h / | tail -1'").stdout.split()[3:4], "trống", flush=True)
 
-def len_(a, b, lich="today"):
-    return len_ds(f"moi-{a}-{b}", f"moi{a}", lich, f"200 phim mới hạng {a}–{b}")
+def len_(a, b):
+    return len_ds(f"moi-{a}-{b}", f"moi{a}", f"200 phim mới hạng {a}–{b}")
 
-def len_ds(ten, ma, lich="today", nhan="phim mới"):
+def len_ds(ten, ma, nhan="phim mới"):
     """lên mọi đoạn đã cắt (ra/<ten>/lo.json) của phim soát 18+ ok → len-creative (mã lô <ma>) → nhan-ban bộ 2.
     → {"soat_ok": {id…}, "kq": [{content_id, ok, moi, loi}]} để phim-moi.py ghi trạng thái"""
     ra = os.path.expanduser(f"~/.cache/ethopex/ra/{ten}"); lo = json.load(open(os.path.join(ra, "lo.json")))
@@ -129,7 +129,7 @@ def len_ds(ten, ma, lich="today", nhan="phim mới"):
     for x in json.load(open(os.path.expanduser(f"~/.cache/ethopex/ra/{ma}/len.json"))):
         if not x.get("ok"): print("✗", x["content_id"], (x.get("loi") or "")[:100]); kq.append({"content_id": x["content_id"], "ok": False, "loi": "cổng: " + str(x.get("loi"))[:150]}); continue
         t = x["ten"].replace("'", "").replace('"', ""); XG.bao("len", ma, t[:60], len(kq), len(di))
-        r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON[x["lang"]]} --bo 2 --creative {x["creative_id"]} --content {x["content_id"]} --ten "{t}" --that --lich {lich} --luat "đợt phim mới bộ 2 (ETP_441 + Argo Love Tyrell) — {nhan}" --ai "anh (chat 23/10/2026: bộ tk 2 cứ lên camp và bật luôn; chuẩn hoá quy trình phim mới)"'""", timeout=600)
+        r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON[x["lang"]]} --bo 2 --creative {x["creative_id"]} --content {x["content_id"]} --ten "{t}" --that --luat "đợt phim mới bộ 2 (ETP_441 + Argo Love Tyrell) — {nhan}" --ai "anh (chat 23/10/2026: bộ tk 2 cứ lên camp và bật luôn; chuẩn hoá quy trình phim mới)"'""", timeout=600)
         dong = (r.stdout.strip().splitlines() or ["{}"])[-1]; print(x["content_id"], dong[:200], flush=True)
         try: j = json.loads(dong)
         except Exception: j = {"ok": False, "loi": dong[:150]}
@@ -137,7 +137,7 @@ def len_ds(ten, ma, lich="today", nhan="phim mới"):
     don_box(lo); XG.bao("nghi", ma, None, sum(1 for y in kq if y["ok"]), len(kq), ep=True)
     return {"soat_ok": ok, "kq": kq}
 
-def len_tu_tep(lf, ma, a=1, b=30, lich="today"):
+def len_tu_tep(lf, ma, a=1, b=30):
     """lên thẳng từ một tệp lô đã lọc (đoạn đã soát 18+ ok) — dùng khi không chờ cả đợt cắt xong (anh 23/10/2026 "sao không thấy phim nào bộ 2")"""
     lj = os.path.expanduser(f"~/.cache/ethopex/ra/{ma}/len.json")
     if not os.path.exists(lj):   # đã có len.json (lô lên creative xong, gãy ở bước camp) → không đẩy lại creative
@@ -146,7 +146,7 @@ def len_tu_tep(lf, ma, a=1, b=30, lich="today"):
     for x in json.load(open(lj)):
         if not x.get("ok"): print("✗", x["content_id"], (x.get("loi") or "")[:100]); continue
         ten = x["ten"].replace("'", "").replace('"', "")
-        r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON[x["lang"]]} --bo 2 --creative {x["creative_id"]} --content {x["content_id"]} --ten "{ten}" --that --lich {lich} --luat "đợt phim mới bộ 2 (ETP_441 + Argo Love Tyrell) — 200 phim mới hạng {a}–{b}" --ai "anh (chat 23/10/2026: bộ tk 2 cứ lên camp và bật luôn)"'""", timeout=600)
+        r = sh(f"""ssh {B} '{ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON[x["lang"]]} --bo 2 --creative {x["creative_id"]} --content {x["content_id"]} --ten "{ten}" --that --luat "đợt phim mới bộ 2 (ETP_441 + Argo Love Tyrell) — 200 phim mới hạng {a}–{b}" --ai "anh (chat 23/10/2026: bộ tk 2 cứ lên camp và bật luôn)"'""", timeout=600)
         print(x["content_id"], (r.stdout.strip().splitlines() or ["?"])[-1][:200], flush=True)
 
 def sua_cta():

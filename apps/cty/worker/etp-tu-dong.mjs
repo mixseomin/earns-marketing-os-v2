@@ -84,13 +84,13 @@ export async function nhipTuDong(tg, { giay = 1500 } = {}) {
     // nhân bản + lên ROAS bằng phiên của người đó (nhan-ban.py chế độ ETP_SUA_NGUOI: cổng chung chỉ cho tạo vào tài khoản của họ, đủ luật nhà — xem docstring nhan-ban)
     const nbEnv = { ETP_SUA_NGUOI: String(ng) }, ai = 'Luật tự động tài khoản team (anh 31/10/2026)';
     for (const m of k.nb) {
-      let r; try { r = dongCuoi(await py(NB, [String(m.id), '--that', '--lich', 'today', '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', ai], nbEnv, 300)); } catch (e) { r = { ok: false, loi: e.message }; }
+      let r; try { r = dongCuoi(await py(NB, [String(m.id), '--that', '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', ai], nbEnv, 300)); } catch (e) { r = { ok: false, loi: e.message }; }
       if (r.chan) giu[`nb:${m.id}`] = String(r.loi || '').slice(0, 120); else if (!r.ok) nbLoi[m.id] = Date.now();
       lam.push({ v: { viec: 'nb', id: m.id }, r });
     }
     for (const m of k.roas) {
       const ds = await Promise.all(ROAS_MUC.map(async (muc) => {
-        let r; try { r = dongCuoi(await py(NB, [String(m.id), '--roas', String(muc), '--ns', '20', '--lich', 'today', '--that', '--luat', `lên ROAS · ${m.chu}`.slice(0, 400), '--ai', ai], nbEnv, 1500)); } catch (e) { r = { ok: false, loi: e.message, may: true }; }
+        let r; try { r = dongCuoi(await py(NB, [String(m.id), '--roas', String(muc), '--ns', '20', '--that', '--luat', `lên ROAS · ${m.chu}`.slice(0, 400), '--ai', ai], nbEnv, 1500)); } catch (e) { r = { ok: false, loi: e.message, may: true }; }
         return { v: { viec: 'roas', id: m.id, muc }, r };
       }));
       // cùng cách Nhà: không mức nào lên được mà mọi mức đều bị từ chối có lý do (không phải hết giờ / mạng) → nghỉ gốc này tới hết ngày; mức đã lên thì nhan-ban chặn trùng tên

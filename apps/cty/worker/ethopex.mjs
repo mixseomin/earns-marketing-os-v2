@@ -60,6 +60,10 @@ const NHOM = [
 
 const TEN = Object.fromEntries(NHOM.map(([k, t]) => [k, (t.match(/<b>(.*?)<\/b>/) || [, k])[1].toLowerCase()]));
 /** [[nhóm, nutCho, mục mới]] → Map nhóm → mục; camp lặp ở nhóm sau gộp vào mục đầu: cung[] = {k, dich}, nut = nút mọi nhóm, trùng callback_data giữ một. */
+// KHUNG ĐỔI CAMP theo giờ VN (sổ luật chung khung_doi) — hàm thuần, bộ kiểm chéo apps/web/src/lib/etp-khung.test.mts so với khungLuc của trang cho đủ 24 giờ
+export const khungCua = (gio, KD = BANG_LUAT.khung_doi) => { const t = ([a, b]) => gio >= a && gio < b; return t(KD.doi) ? 'doi' : t(KD.nap) ? 'nap' : KD.sang && t(KD.sang) ? 'sang' : 'bang'; };
+/** ngưỡng ROI hôm nay để được tự tăng trong khung chỉ-nạp ('nap' 21–23h · 'sang' 07–15h); null = khung không có nạp */
+export const roiNap = (khung, KD = BANG_LUAT.khung_doi) => (khung === 'nap' ? Number(KD.nap_roi) : khung === 'sang' ? Number(KD.sang_roi) : null);
 export function gopCamp(ds) {
   const ra = new Map(), cua = new Map();
   for (const [k, nutCho, moi] of ds) for (const m of moi) {
@@ -363,14 +367,14 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   const gioVn = new Date(Date.now() + 7 * 3600_000).getUTCHours(), yen = gioVn >= 3 && gioVn < 9;
   // KHUNG ĐỔI CAMP (anh 04/11/2026, cả 3 bộ): số cả team 14 ngày — 00–12h VN ROI +21…+39% (giờ vàng), 15–21h +2% / −10% (kém nhất); đổi giờ vàng thì Meta học lại
   // đúng lúc lãi nhất. 15–21h: mọi luật máy tự tăng / giảm / tắt · 21–23h: CHỈ tự tăng camp đã tiêu ≥ 95% ngân sách hôm nay + ROI hôm nay ≥ 30% (nạp tiền cho đêm —
-  // 00–07h VN là cuối ngày ngân sách UTC) · 23–15h: đóng băng. Ngoài khung luật vẫn chấm + báo, nút Telegram anh bấm vẫn chạy; dừng đêm (anh 25/10) giữ nguyên làm đường khẩn.
-  const KD = BANG_LUAT.khung_doi, trongKD = ([a, b]) => gioVn >= a && gioVn < b;   // khung ở sổ luật chung — trang etp (tab Camp) đọc cùng chỗ
-  const khungDoi = trongKD(KD.doi) ? 'doi' : trongKD(KD.nap) ? 'nap' : 'bang';
+  // 00–07h VN là cuối ngày ngân sách UTC) · 07–15h: CHỈ tự tăng camp đã tiêu hết + ROI hôm nay ≥ sang_roi% (nạp sáng, anh 05/11/2026) · 23–07h: đóng băng. Ngoài khung luật vẫn chấm + báo, nút Telegram anh bấm vẫn chạy; dừng đêm (anh 25/10) giữ nguyên làm đường khẩn.
+  const KD = BANG_LUAT.khung_doi, khungDoi = khungCua(gioVn, KD), roiN = roiNap(khungDoi, KD);   // khung ở sổ luật chung — trang etp (tab Camp) đọc cùng chỗ · 07–15h 'sang' = nạp sáng (anh 05/11/2026)
   // SỔ HOÃN (audit 05/11/2026: tab Camp tự đoán "chờ 15h" theo hướng luật → báo ↓26 cho 26 camp G10 chỉ đang theo dõi, và báo cả giảm khi công tắc tự giảm đang tắt):
   // chính máy làm việc ghi việc nó đã đủ luật + đủ công tắc nhưng hoãn vì khung giờ → etp.cau_hinh 'khung_hoan', trang etp chỉ đọc sổ này
   const HOAN = { tang: new Set(), giam: new Set(), tat: new Set() };
   const hoan = (k, m) => { HOAN[k].add(Number(m.id)); return true; };   // máy ĐỦ luật nhưng khung giờ chặn → ghi sổ hoãn (trang etp đọc), không làm
-  const napDem = khungDoi !== 'nap' ? new Set() : new Set(String(await chayPsql(`select camp_id from etp.so_ngay where ngay = (now() at time zone 'utc')::date and ngan_sach > 0 and chi >= ${Number(KD.nap_chi)} * ngan_sach and thu >= ${1 + Number(KD.nap_roi) / 100} * chi`).catch((e) => { console.error('nạp đêm (khung_doi):', e.message); return ''; })).split(/\s+/).filter(Boolean));
+  // camp được NẠP trong khung chỉ-nạp: hôm nay đã tiêu ≥ nap_chi × ngân sách + ROI hôm nay ≥ ngưỡng của khung (21–23h nap_roi · 07–15h sang_roi)
+  const napDuoc = roiN == null ? new Set() : new Set(String(await chayPsql(`select camp_id from etp.so_ngay where ngay = (now() at time zone 'utc')::date and ngan_sach > 0 and chi >= ${Number(KD.nap_chi)} * ngan_sach and thu >= ${1 + roiN / 100} * chi`).catch((e) => { console.error('nạp (khung_doi):', e.message); return ''; })).split(/\s+/).filter(Boolean));
   const tt = docJ(path.join(DATA(), 'ethopex-tu-tang.json'), null);
   const tuTang = tt && Date.now() < Date.parse(tt.den) ? Number(tt.tran) || 0 : 0;
   const daTu = []; const lamRoi = new Set();
@@ -437,7 +441,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // luật T30 (5 ngày đã khép ROI ≥ 50%, chi TB ≥ $12) — gộp quyền, không nới ngưỡng
   if (tuTang) {
     for (const k of ['hoi_g10', 'dau_phien', 'tang', 'tang30']) for (const m of kq[k] || []) {   // G10 hồi trước (anh 04/11/2026)
-      const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id) || seTat.has(m.id) || ((khungDoi === 'bang' || (khungDoi === 'nap' && !napDem.has(String(m.id)))) && hoan('tang', m))) continue;
+      const d = Number(dichCua(m)); if (!d || d > tuTang || lamRoi.has(m.id) || seTat.has(m.id) || ((khungDoi === 'bang' || (roiN != null && !napDuoc.has(String(m.id)))) && hoan('tang', m))) continue;
       lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), ...(k === 'hoi_g10' ? ['--ep'] : []), '--luat', `${k === 'hoi_g10' ? 'G10 hồi' : TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', k === 'tang30' ? `máy tự tăng T30 (anh cho phép tự tăng, trần $${tuTang} — gộp 29/10/2026)` : `máy tự tăng (anh cho phép ${Date.parse(tt?.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daTu.push({ k, m, d, r });

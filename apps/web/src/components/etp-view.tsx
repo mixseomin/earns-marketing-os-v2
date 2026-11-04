@@ -454,7 +454,8 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
 }
 // KHUNG ĐỔI CAMP — BẢN LỚN (anh 05/11/2026 "show trực quan hơn"): một hàng trọn chiều ngang trên tab Camp — trạng thái chữ to + đếm ngược,
 // thanh 24 giờ ghi chữ từng khung + kim giờ hiện tại, số camp đã đạt luật đang chờ khung (theo hướng, từ etp.bao — cùng nguồn chip ⏳)
-const CHU_KHUNG: Record<string, string> = { doi: 'máy đang tự tăng · giảm · tắt camp theo luật', nap: 'máy chỉ nạp thêm cho camp đã tiêu hết + ROI hôm nay ≥ 30%', bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung đổi' };
+const CHU_KHUNG: Record<string, string> = { doi: 'máy đang tự tăng · giảm · tắt camp theo luật', nap: `máy chỉ nạp thêm cho camp đã tiêu hết + ROI hôm nay ≥ ${KD.nap_roi}%`,
+  sang: `máy chỉ nạp thêm cho camp lãi lớn đã tiêu hết (ROI hôm nay ≥ ${KD.sang_roi}%), một bậc, cách lần tăng trước ≥ 3 giờ — không giảm, không tắt`, bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung đổi' };   // số lấy từ sổ luật chung khung_doi
 function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   const noi = useNoi<{ id: 0 }>();   // gọi trước mọi lệnh return sớm (luật hook)
   const [h, setH] = useState<number | null>(null);
@@ -469,7 +470,7 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   const gioChu = `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
   const soO = (n: number, nhan: string, m: string) => <span style={{ color: n ? m : 'var(--fg-3, #777)', fontWeight: 600 }}>{nhan}{n}</span>;
   const o: React.CSSProperties = { padding: '3px 6px', borderTop: '1px solid var(--line)', verticalAlign: 'top' };   // khung nổi chuẩn của trang (như chip luật / BangXet)
-  const dong = ([['doi', KD.doi], ['nap', KD.nap], ['bang', [KD.nap[1], KD.doi[0]]]] as const).map(([kg, [tu, den]]) => ({ kg, gio: `${String(tu).padStart(2, '0')}:00–${String(den).padStart(2, '0')}:00` }));
+  const dong = ([['sang', KD.sang], ['doi', KD.doi], ['nap', KD.nap], ['bang', [KD.nap[1], KD.sang[0]]]] as const).map(([kg, [tu, den]]) => ({ kg, gio: `${String(tu).padStart(2, '0')}:00–${String(den).padStart(2, '0')}:00` }));
   return (
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'help', whiteSpace: 'nowrap' }}>
       <b style={{ color: mau }}>{bt}{gon ? '' : ` ${ten}`}</b><span style={{ color: 'var(--fg-3, #777)' }}>{k === 'doi' ? 'hết' : 'mở'} {String(het).padStart(2, '0')}:00</span>

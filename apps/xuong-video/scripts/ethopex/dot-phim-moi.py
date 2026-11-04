@@ -162,4 +162,4 @@ if __name__ == "__main__":
     elif v[0] == "to-soat": to_soat(v[1])
     elif v[0] == "cat-lai": cat_box_ds([dict(zip(("id", "locale", "nguon", "ten", "url"), l.rstrip("\n").split("\t"))) for l in open(v[1]) if l.strip()], v[2])
     elif v[0] == "tep": len_tu_tep(v[1], v[2]); sua_cta()
-    else: len_(int(v[1]), int(v[2]), v[3] if len(v) > 3 else "today"); sua_cta()
+    else: len_(int(v[1]), int(v[2])); sua_cta()

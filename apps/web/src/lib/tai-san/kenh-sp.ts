@@ -4,7 +4,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { changVideo, lichKenhHs, yTuongTuSinh, soTheoPlaylist, tinhSoKenh, type DangLam, type HoSoKenhLich, type KenhSp, type SoKenh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
+import { changVideo, lichKenhHs, yTuongTuSinh, soTheoPlaylist, tinhSoKenh, type DangLam, type HoSoKenhLich, type KenhSp, type NguoiLaSo, type SoKenh, type SoNgayKenh, type TapCho } from './kenh-sp-tinh';
 
 /** Đọc một tệp JSON của máy làm tập (apps/xuong-video/scripts/lich-su/<tệp>) — cwd của web có thể là gốc repo hoặc apps/web. */
 function docTepLichSu<T>(tep: string): T | null {
@@ -62,7 +62,7 @@ export async function docKenhSp(hom: string): Promise<KenhSp[]> {
       playlist: v.playlist ?? (hs[m.ma]?.playlist?.length === 1 ? hs[m.ma]!.playlist![0]!.ma : null) }));
     return { ma: m.ma, ten: m.ten.split('·').pop()!.trim(), chay: m.chay, kenhUrl: handle ? `https://www.youtube.com/${handle}` : null,
       tap: m.tap, choDang: m.cho_dang, daDang: m.da_dang, dangCuoi: m.dang_cuoi, ...tinhSoKenh(ds, hom),
-      phimId: phim.find((p) => p.may === m.ma)?.id ?? null, so: lt[m.ma] ?? null, yTuongTuSinh: lt[m.ma] ? yTuongTuSinh(lt[m.ma]!, nguonY, hom) : [], anh: anh.find((a) => a.san_pham === `may:${m.ma}`)?.anh ?? null,
+      phimId: phim.find((p) => p.may === m.ma)?.id ?? null, so: lt[m.ma] ?? null, nguoi: (() => { const t = lt[m.ma]?.nguoi_tep; const x = t ? docTepLichSu<{ nguoi: NguoiLaSo[]; rodden_dung_nha?: string[] }>(t) : null; return x ? { ds: x.nguoi, dungNha: x.rodden_dung_nha ?? ['AA'] } : null; })(), yTuongTuSinh: lt[m.ma] ? yTuongTuSinh(lt[m.ma]!, nguonY, hom) : [], anh: anh.find((a) => a.san_pham === `may:${m.ma}`)?.anh ?? null,
       playlist: soTheoPlaylist(hs[m.ma]?.playlist ?? [], l.theo, videos),
       ke: (() => {
         return { lichTap: l.chu, tapKe: l.ke, dangLam: m.dang_lam ?? null, tapCho: m.tap_cho ?? [], gioDang: (m.dang ?? []).find((x) => x.nen === 'youtube')?.gio_tu ?? null,

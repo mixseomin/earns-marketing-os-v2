@@ -103,3 +103,10 @@ import { yTuongTuSinh } from './kenh-sp-tinh';
   const h = cayHangCho(so, [], y); assert.ok(h[0]!.phu!.includes('(1 tự sinh)')); const b = h.find((x) => x.id === 'hc/tw-b')!;
   assert.ok(b.phu!.includes('22:50 13/11/2026 giờ VN'), b.phu); assert.ok(b.phu!.includes('tự sinh · lịch trời')); }
 console.log('kenh-sp-tinh: ý tưởng tự sinh đạt');
+// 👤 SỔ NGƯỜI: AA dùng đủ lên trước; DD ghi "không dùng cung Mọc / nhà"; bị đánh dấu → đỏ + lý do
+import { cayNguoi } from './kenh-sp-tinh';
+{ const s = { ngay: 4, thang: 8, nam: 1961, gio: 19, phut: 24, noi: 'Honolulu' };
+  const r = cayNguoi([{ slug: 't', ten: 'Taylor', sinh: s, rodden: 'DD' }, { slug: 'e', ten: 'Einstein', sinh: s, rodden: 'AA', khong_dung: 'múi giờ 1879' }, { slug: 'o', ten: 'Obama', sinh: s, rodden: 'AA', nguon: 'https://x' }], ['AA']);
+  assert.deepStrictEqual(r.map((x) => x.chu), ['👤 Lá số người nổi tiếng (3)', '✅ AA · Obama', '⚠ DD · Taylor', '✗ AA · Einstein']);
+  assert.ok(r[1]!.phu!.startsWith('04/08/1961 19:24 · Honolulu · dùng đủ')); assert.strictEqual(r[1]!.urlChu, 'nguồn'); assert.ok(r[2]!.phu!.includes('không dùng cung Mọc / nhà')); assert.ok(r[3]!.phu!.includes('múi giờ 1879')); }
+console.log('kenh-sp-tinh: sổ người đạt');

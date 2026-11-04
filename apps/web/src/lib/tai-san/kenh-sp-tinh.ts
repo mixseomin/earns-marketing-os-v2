@@ -26,6 +26,8 @@ export type KenhSp = {
   so?: SoKenh | null;
   /** ý tưởng tự sinh 60 ngày tới từ nguồn của sổ (so.nguon_y_tuong — vd lịch trời) — hiện trong 💡 Hàng chờ */
   yTuongTuSinh?: YTuong[];
+  /** sổ người nổi tiếng của kênh (so.nguoi_tep) — khối 👤 */
+  nguoi?: { ds: NguoiLaSo[]; dungNha: string[] } | null;
   /** social trỏ về kênh (bài short dẫn link kênh) — tab Tài sản gắn theo khung ?ky= */
   social?: import('./social-tro-ve-tinh').TroVe | null;
 };
@@ -120,7 +122,9 @@ export type TrangThaiY = 'chua' | 'san_sang' | 'demo' | 'da_lam' | 'da_dang';
 export type YTuong = { ma: string; mau: string; chu_de: string; ngay?: string; trang_thai: TrangThaiY; /** ý tưởng máy tự sinh (so-kenh.json › nguon_y_tuong) — giờ UTC của sự kiện */ tu_sinh?: string; utc?: string };
 export type SoKenh = { ten?: string; plan?: string; muc_tieu?: string; cap_nhat?: string; playlist?: PlaylistKh[]; giai_doan: GiaiDoan[];
   dinh_vi?: { cho_ai?: string; dich?: string; cau_ket?: string; ngon_ngu?: string }; luat?: string[]; mau?: MauKenh[]; hang_cho?: YTuong[]; mo_dau?: string;
-  nguon_y_tuong?: { mau: string; tep: string; ngay_toi?: number; ghi?: string }[] };
+  nguon_y_tuong?: { mau: string; tep: string; ngay_toi?: number; ghi?: string }[]; /** sổ người nổi tiếng (giờ sinh + hạng Rodden), đường dưới lich-su/ */ nguoi_tep?: string };
+/** NGƯỜI NỔI TIẾNG trong sổ người (la-so/nguoi.json): giờ sinh + hạng Rodden; cung Mọc / nhà chỉ cho hạng trong rodden_dung_nha. */
+export type NguoiLaSo = { slug: string; ten: string; sinh: { ngay: number; thang: number; nam: number; gio: number; phut: number; noi: string }; rodden: string; nguon?: string; ghi?: string; khong_dung?: string };
 const GD: Record<TrangThaiGd, { ic: string; chu: string; mau: string }> = {
   xong: { ic: '✅', chu: 'xong', mau: 'var(--ok)' }, dang: { ic: '▶', chu: 'đang làm', mau: 'var(--warn)' },
   cho_anh: { ic: '⏸', chu: 'chờ anh', mau: 'var(--accent)' }, chua: { ic: '○', chu: 'chưa tới', mau: 'var(--fg-4)' },
@@ -189,6 +193,16 @@ export function yTuongTuSinh(so: SoKenh, nguon: Record<string, { ma: string; chu
   return ra;
 }
 const gioVnUtc = (iso: string) => { const d = new Date(Date.parse(iso) + 7 * 3600e3); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()} giờ VN`; };
+/** Khối 👤 LÁ SỐ NGƯỜI NỔI TIẾNG: AA dùng đủ (cung Mọc, nhà, Profection) lên trước; A / B / DD ghi rõ không dùng nhà; bị đánh dấu thì đỏ + lý do. Thuần. */
+export function cayNguoi(ds: NguoiLaSo[], dungNha: string[]): DongKe[] {
+  if (!ds.length) return [];
+  const hang = (n: NguoiLaSo) => (n.khong_dung ? 2 : dungNha.includes(n.rodden) ? 0 : 1), xep = [...ds].sort((a, b) => hang(a) - hang(b) || a.ten.localeCompare(b.ten));
+  const dung = ds.filter((n) => hang(n) === 0).length, p2 = (x: number) => String(x).padStart(2, '0');
+  return [{ id: 'ng', nhom: true, chu: `👤 Lá số người nổi tiếng (${ds.length})`, phu: `${dung} dùng được cung Mọc / nhà (hạng ${dungNha.join('/')}) · giờ sinh đọc trên Astrotheme (bản Astro-Databank) · không dùng giờ của trang /c/` },
+    ...xep.map((n): DongKe => { const h = hang(n), s = n.sinh;
+      return { id: `ng/${n.slug}`, chu: `${['✅', '⚠', '✗'][h]} ${n.rodden} · ${n.ten}`, mau: ['var(--ok)', 'var(--warn)', 'var(--bad)'][h], url: n.nguon, urlChu: n.nguon ? 'nguồn' : undefined,
+        phu: [`${p2(s.ngay)}/${p2(s.thang)}/${s.nam} ${p2(s.gio)}:${p2(s.phut)} · ${s.noi}`, h === 2 ? `không dùng: ${n.khong_dung}` : h === 1 ? 'không dùng cung Mọc / nhà' : 'dùng đủ', n.ghi].filter(Boolean).join(' · ') }; })];
+}
 /** Khối 💡 HÀNG CHỜ Ý TƯỞNG: sẵn sàng → chưa làm (theo ngày) → đã có demo → đã làm → đã đăng. Thuần. */
 export function cayHangCho(so: SoKenh, videos: Pick<VideoKenh, 'slug' | 'trangThai'>[], tuSinh: YTuong[] = []): DongKe[] {
   const ds = [...(so.hang_cho ?? []), ...tuSinh].map((y) => ({ y, t: trangThaiY(y, videos) })); if (!ds.length) return [];

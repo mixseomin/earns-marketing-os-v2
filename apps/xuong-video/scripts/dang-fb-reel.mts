@@ -8,6 +8,7 @@
 //   BÀI LINK (nền fb_link, 21/10/2026): đi đúng đường bài ảnh với 1 ảnh riêng của bài, link UTM nằm trong chữ.
 //   ... --kiem <page_id>     chỉ kiểm danh tính token ↔ Page (không đăng)
 import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 
 const V = 'v21.0', G = `https://graph.facebook.com/${V}`;
 const SO = process.env.FB_PAGES_FILE || '/root/.secrets/fb-pages.json';
@@ -51,6 +52,24 @@ async function dangReel(pageId: string, token: string, videoUrl: string, moTa: s
     if (p?.publishing_phase?.status === 'complete' && st.permalink_url) return { url: `https://www.facebook.com${String(st.permalink_url).replace(/^https?:\/\/[^/]+/, '')}`, video_id: vid };
   }
   throw new Error(`Reel ${vid} chưa xuất bản sau 10 phút`);
+}
+
+// VIDEO DÀI HƠN 90 GIÂY (04/11/2026, kênh Yesterday's News Tonight ~176–179 s): Reels API chỉ nhận 3–90 s (Meta Reels Publishing) → đăng video thường của Page
+// (/{page}/videos, file_url R2, Facebook kéo về); video dọc lên Facebook vẫn hiện dạng Reels. Hẹn giờ: published=false + scheduled_publish_time.
+export const REEL_TOI_DA_GIAY = 90;
+const doDai = (u: string): number | null => { try { return Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', u], { encoding: 'utf8', timeout: 60_000 }).trim()) || null; } catch { return null; } };
+async function dangVideoDai(pageId: string, token: string, videoUrl: string, moTa: string, hen?: number): Promise<{ url: string; video_id: string }> {
+  const v = await goi(`${G}/${pageId}/videos`, { method: 'POST', body: new URLSearchParams({ file_url: videoUrl, description: moTa, access_token: token, ...(hen ? { published: 'false', scheduled_publish_time: String(hen) } : {}) }) });
+  const vid = String(v.id);
+  if (hen) return { url: `fb-hen-api:${vid}:${new Date(hen * 1000).toISOString()}`, video_id: vid };
+  for (let i = 0; i < 40; i++) {   // ≤ 10 phút
+    await sleep(15);
+    const st = await goi(`${G}/${vid}?${qs({ fields: 'status,permalink_url', access_token: token })}`);
+    const p = (st.status as { video_status?: string } | undefined);
+    if (p?.video_status === 'error') throw new Error(`Facebook xử lý video lỗi: ${JSON.stringify(st.status).slice(0, 200)}`);
+    if (p?.video_status === 'ready' && st.permalink_url) return { url: `https://www.facebook.com${String(st.permalink_url).replace(/^https?:\/\/[^/]+/, '')}`, video_id: vid };
+  }
+  throw new Error(`video ${vid} chưa xử lý xong sau 10 phút`);
 }
 
 /** Bài ảnh: mỗi ảnh lên /photos (published=false, Facebook tự kéo từ URL) → một bài /feed gắn đủ ảnh; trả permalink bài. */
@@ -109,7 +128,7 @@ const x = JSON.parse(raw) as { page_id: string; ten: string; video_url?: string;
 const t = await kiemTrang(x.page_id, x.ten);
 if (x.anh) { process.stdout.write(JSON.stringify({ ...(await dangAnh(x.page_id, t.token, x.anh, x.mo_ta)), binh_luan: false })); process.exit(0); }
 if (!x.video_url) { console.error('thiếu video_url (hoặc anh cho bài ảnh)'); process.exit(1); }
-const r = await dangReel(x.page_id, t.token, x.video_url, x.mo_ta, x.hen);
+const dai = doDai(x.video_url), r = dai != null && dai > REEL_TOI_DA_GIAY ? await dangVideoDai(x.page_id, t.token, x.video_url, x.mo_ta, x.hen) : await dangReel(x.page_id, t.token, x.video_url, x.mo_ta, x.hen);
 if (x.hen) { process.stdout.write(JSON.stringify({ url: r.url, post_id: r.video_id, binh_luan: false })); process.exit(0); }
 let binh = false;
 if (x.binh_luan) {

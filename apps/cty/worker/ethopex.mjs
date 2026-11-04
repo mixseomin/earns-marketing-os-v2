@@ -364,8 +364,9 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // KHUNG ĐỔI CAMP (anh 04/11/2026, cả 3 bộ): số cả team 14 ngày — 00–12h VN ROI +21…+39% (giờ vàng), 15–21h +2% / −10% (kém nhất); đổi giờ vàng thì Meta học lại
   // đúng lúc lãi nhất. 15–21h: mọi luật máy tự tăng / giảm / tắt · 21–23h: CHỈ tự tăng camp đã tiêu ≥ 95% ngân sách hôm nay + ROI hôm nay ≥ 30% (nạp tiền cho đêm —
   // 00–07h VN là cuối ngày ngân sách UTC) · 23–15h: đóng băng. Ngoài khung luật vẫn chấm + báo, nút Telegram anh bấm vẫn chạy; dừng đêm (anh 25/10) giữ nguyên làm đường khẩn.
-  const khungDoi = gioVn >= 15 && gioVn < 21 ? 'doi' : gioVn >= 21 && gioVn < 23 ? 'nap' : 'bang';
-  const napDem = khungDoi !== 'nap' ? new Set() : new Set(String(await chayPsql("select camp_id from etp.so_ngay where ngay = (now() at time zone 'utc')::date and ngan_sach > 0 and chi >= 0.95 * ngan_sach and thu >= 1.3 * chi").catch(() => '')).split(/\s+/).filter(Boolean));
+  const KD = BANG_LUAT.khung_doi, trongKD = ([a, b]) => gioVn >= a && gioVn < b;   // khung ở sổ luật chung — trang etp (tab Camp) đọc cùng chỗ
+  const khungDoi = trongKD(KD.doi) ? 'doi' : trongKD(KD.nap) ? 'nap' : 'bang';
+  const napDem = khungDoi !== 'nap' ? new Set() : new Set(String(await chayPsql(`select camp_id from etp.so_ngay where ngay = (now() at time zone 'utc')::date and ngan_sach > 0 and chi >= ${Number(KD.nap_chi)} * ngan_sach and thu >= ${1 + Number(KD.nap_roi) / 100} * chi`).catch(() => '')).split(/\s+/).filter(Boolean));
   const tt = docJ(path.join(DATA(), 'ethopex-tu-tang.json'), null);
   const tuTang = tt && Date.now() < Date.parse(tt.den) ? Number(tt.tran) || 0 : 0;
   const daTu = []; const lamRoi = new Set();

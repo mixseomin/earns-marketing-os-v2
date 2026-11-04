@@ -36,6 +36,7 @@ import type { CampEtpKho, ChamCr, CreativeEtpKho, DuLieuEtp, MoRong, PhanNang, P
 import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
+import { KD, KHUNG_TEN, choKhung, datNap, gioVnNay, hetKhung, khungLuc, type HuongLuat } from '@/lib/etp-khung';
 
 type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -374,12 +375,16 @@ function tinhLuat({ c, ba, bao, boThang, thangMuc, xet }: VaoLuat) {
   const xDat = (xet ?? []).find((x) => x.ket === 'dat' && x.ma !== 'roas'), xGan = (xet ?? []).find((x) => x.ket === 'gan');
   const chinh2 = daXep[0] ? chinh : xDat ? { chip: XET_CHIP[xDat.ma]?.[0] ?? xDat.ten, mau: XET_CHIP[xDat.ma]?.[1] ?? '#94a3b8', dac: true }
     : ganBao[0] ? chinh : xGan ? { chip: XET_CHIP[xGan.ma]?.[0] ?? xGan.ten, mau: XET_CHIP[xGan.ma]?.[1] ?? '#94a3b8', dac: false } : xet ? null : chinh;
-  return { chinh: chinh2, daXep, ganBao, hien: [...du, ...gan.filter((l) => !du.includes(l))], xet };
+  // hướng của chip ĐẠT (tăng / giảm / tắt) — để chip ghi ⏳ giờ máy sẽ làm khi khung đổi camp đang chặn (anh 04/11/2026)
+  const huong: HuongLuat | undefined = !chinh2?.dac ? undefined : daXep[0] ? BAO_HUONG[daXep[0].nhom] : xDat ? HUONG_MA[xDat.ma] : du[0] ? HUONG_K[du[0].k] : undefined;
+  return { chinh: chinh2, daXep, ganBao, hien: [...du, ...gan.filter((l) => !du.includes(l))], xet, huong };
 }
 const ChipO = ({ chinh }: { chinh: { chip: string; mau: string; dac: boolean } }) => <span style={{ display: 'inline-block', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
   fontSize: 11, padding: '0 6px', borderRadius: 9, color: chinh.mau, border: `1px ${chinh.dac ? 'solid' : 'dashed'} ${chinh.mau}${chinh.dac ? '' : '99'}`, background: chinh.dac ? `${chinh.mau}22` : 'transparent' }}>{chinh.chip}</span>;
 // nhãn chip theo mã luật máy xét (luat-ethopex.py _xet_luat)
 const XET_CHIP: Record<string, [string, string]> = Object.fromEntries(Object.entries(BANG_LUAT.the).map(([k, v]) => [k, [v[0] as string, v[1] as string]]));   // mã thẻ xét luật → [chữ, màu] — từ sổ luật chung
+const HUONG_MA: Record<string, HuongLuat> = Object.fromEntries(Object.values(BANG_LUAT.khoa).flatMap((v) => ('ma' in v && v.ma && 'huong' in v && v.huong ? [[v.ma as string, v.huong as HuongLuat]] : [])));   // mã thẻ xét → hướng, từ sổ luật
+const HUONG_K: Record<string, HuongLuat> = { '✕': 'tat', '↓': 'giam', '↑': 'tang' };   // ký hiệu luật tính tại trang (dieuKienLuat) → hướng
 const KET_XET: Record<XetLuat['ket'], [string, string]> = { dat: ['Đạt', '#4ade80'], gan: ['Gần', '#facc15'], xa: ['Xa', 'var(--fg-3, #777)'], khong_ap: ['Không áp', 'var(--fg-3, #777)'] };
 // BẢNG XÉT LUẬT (anh 28/10/2026: "Cần xem mức độ liên quan của từng camp với các luật khi hover vào" · "show dạng table là dễ hiểu nhất"): mỗi luật một nhóm dòng —
 // Luật (kết đạt / gần / xa, máy có xếp) · Điều kiện · Giá trị thật · Ngưỡng · ✓/✗; số từ CHÍNH máy luật (etp.xet_luat), rê tên luật xem luật đó làm gì
@@ -450,6 +455,19 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
     {!t.chinh ? <div style={{ color: 'var(--fg-3, #777)' }}>Không chạm / sắp chạm luật nào.</div> : null}
   </>;
 }
+// DẢI KHUNG ĐỔI CAMP (anh 04/11/2026 "làm sao thấy được những khoảng đó trong tab camp"): 24 ô giờ VN tô theo khung (sổ luật chung khung_doi), viền = giờ hiện tại
+function DaiKhung({ gon }: { gon?: boolean }) {
+  const [h, setH] = useState<number | null>(null);
+  useEffect(() => { const f = () => setH(gioVnNay()); f(); const t = setInterval(f, 60_000); return () => clearInterval(t); }, []);
+  if (h == null) return null;
+  const k = khungLuc(h), [bt, ten, mau] = KHUNG_TEN[k];
+  const title = `Khung máy tự đổi camp (giờ VN, cả 3 bộ):\n${KD.doi[0]}–${KD.doi[1]}h  ${KHUNG_TEN.doi[0]} mọi luật tự tăng / giảm / tắt\n${KD.nap[0]}–${KD.nap[1]}h  ${KHUNG_TEN.nap[0]} chỉ tự tăng camp đã tiêu ≥ ${KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ ${KD.nap_roi}%\ncòn lại  ${KHUNG_TEN.bang[0]} đóng băng — luật vẫn chấm, chip camp ghi ⏳ giờ máy sẽ làm`;
+  return <span title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'help', whiteSpace: 'nowrap' }}>
+    <span style={{ display: 'inline-flex', gap: 1 }}>{Array.from({ length: 24 }, (_, g) => { const kg = khungLuc(g);
+      return <span key={g} style={{ width: gon ? 3 : 4, height: 12, borderRadius: 1, background: KHUNG_TEN[kg][2], opacity: kg === 'bang' ? 0.45 : 1, outline: g === Math.floor(h) ? '1.5px solid var(--fg-1)' : 'none' }} />; })}</span>
+    <b style={{ color: mau }}>{bt}{gon ? '' : ` ${ten}`}</b><span style={{ color: 'var(--fg-3, #777)' }}>tới {String(hetKhung(h)).padStart(2, '0')}:00</span>
+  </span>;
+}
 function ChipLuat(p: VaoLuat) {
   const noi = useNoi<{ id: 0 }>(); const t = tinhLuat(p);
   // CAMP ĐÃ TẮT THEO LUẬT → luật hiện ở CỘT LUẬT (anh 03/11/2026 "nếu tắt theo Luật thì show bên cột Luật"): chip ✕ <mã> đã tắt, hover = lý do có cấu trúc (kieuDung)
@@ -458,13 +476,17 @@ function ChipLuat(p: VaoLuat) {
   if (!t.chinh && !t.xet) return <span style={{ color: 'var(--fg-3, #777)' }}>·</span>;
   // camp không chạm luật nào vẫn rê được: ô hiện "…" (anh 28/10/2026 "hiển thị (...) là được")
   const R = t.xet ? 760 : 340;
+  // KHUNG ĐỔI CAMP (anh 04/11/2026): luật đã đạt mà khung giờ đang chặn → ⏳ giờ máy sẽ làm (camp người khác: chỉ đề xuất, không ghi)
+  const cho = t.huong && !p.deXuat ? choKhung(t.huong, gioVnNay(), datNap(p.c.nay, p.c.ngan_sach)) : null;
   return (
-    <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', maxWidth: '100%' }}>
+    <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
       {t.chinh ? <ChipO chinh={t.chinh} /> : <span style={{ color: 'var(--fg-3, #777)', padding: '0 6px' }}>…</span>}
+      {cho ? <span style={{ fontSize: 10.5, color: KHUNG_TEN.bang[2], whiteSpace: 'nowrap' }}>⏳{cho}</span> : null}
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ ...(t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R } : { width: R }), maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
           <span title={p.c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.ten ?? p.c.phim} · ${p.c.ngan_sach}</span></div>
+        {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>. Khung: {KD.doi[0]}–{KD.doi[1]}h mọi luật · {KD.nap[0]}–{KD.nap[1]}h chỉ nạp camp đã tiêu ≥ {KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ {KD.nap_roi}% · còn lại đóng băng.</div> : null}
         <ThanLuat t={t} deXuat={p.deXuat} /></div></KhungNoi> : null}
     </span>
   );
@@ -2673,6 +2695,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
             <button key={nhan} onClick={() => doiXemCamp(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
               background: xemCamp === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCamp === v ? 600 : 400 }}>{gon ? nhan.split(' ')[0] : nhan}</button>))}
         </span>) : null}
+      {tab === 'camp' && !laNguoi && !du.nguoi.ngoai && !du.nguoi.doi ? <DaiKhung gon={gon} /> : null}
       {gon && tab === 'camp' && xemCamp !== 'lich' && xemCamp !== 'bac' ? (() => { const coLoc = (loc !== 'chay' && loc !== 'all') || !!luatLoc || !!dangLoc || !!boHieu || !!laiLoc || !!tuoiChon || !!roLoc;
         return <button onClick={() => setMoLoc((v) => !v)} title={coLoc ? 'đang có lọc' : 'mở bộ lọc'} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', color: coLoc ? '#60a5fa' : 'inherit',
           border: `1px solid ${coLoc ? '#60a5fa' : 'var(--line)'}`, background: moLoc || coLoc ? 'var(--accent-soft, rgba(59,130,246,.18))' : 'transparent', fontWeight: coLoc ? 600 : 400 }}>{moLoc ? '▴' : '▾'} Lọc{coLoc ? ' •' : ''}</button>; })() : null}

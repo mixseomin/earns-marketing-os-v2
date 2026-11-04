@@ -60,17 +60,20 @@ def main():
     # 4. việc cắt lô dòng phim kẹt
     r = q("update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | Mạnh: kẹt quá 75 phút, xếp lại' where lo like 'dp%' and trang_thai = 'dang' and bat_dau < now() - interval '75 minutes' returning id") if not THU else ""
     if r: lam.append(f"xếp lại việc cắt kẹt: {r.replace(chr(10), ' ')}")
-    # 5. TỰ MỞ LẠI DÒNG DỪNG OAN (anh 04/11/2026 "Sao con đĩ mày làm chắp vá thế" — sửa luật nhóm gốc xong chỉ FIX tay #48, sót #47 cùng lý do):
-    #    dòng dừng vì một luật mà ĐIỀU KIỆN ĐÓ NAY ĐÃ HẾT → FIX đúng bước đó. Mỗi lý do một câu kiểm, đọc thẳng kho (không đọc chữ lý do để đoán).
-    mo = [("nhan", "nhóm gốc nay Âu-Mỹ", "d.ly_do like 'nhan: nhóm gốc%' and exists (select 1 from etp.phim f where f.content_id = d.content_id and f.nhom_goc = 'au_my')"),
-          ("poster", "đã gỡ khỏi sổ cấm 18+", "d.ly_do like 'poster:%' and not exists (select 1 from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam' and k.gia_tri ? d.content_id::text)"),
-          # cùng sổ cấm, chặn sớm ở bước Nhận (04/11/2026 dòng #47 Big Mistake: gỡ cấm xong vẫn đứng "0" vì chỉ có luật 'poster:')
-          ("nhan", "đã gỡ khỏi sổ cấm 18+", "d.ly_do like 'nhan: phim nằm trong sổ cấm%' and not exists (select 1 from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam' and k.gia_tri ? d.content_id::text)"),
-          ("camp", "đã có creative đạt CTA mới", "d.ly_do like '%chưa đạt luật CTA mới%' and exists (select 1 from etp.creative r join etp.cham_cong g using (creative_id) where r.content_id = d.content_id and r.cta_dat and g.duoc_len and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id))")]
-    for buoc, ly, dk in mo:
-        r = q(f"""update etp.dong_buoc b set fix = true from etp.dong_phim d where d.id = b.dong_id and d.trang_thai in ('dung', 'loi') and b.buoc = '{buoc}' and not b.fix
-                  and d.tao_luc > now() - interval '3 days' and {dk} returning b.dong_id""") if not THU else q(f"select d.id from etp.dong_phim d where d.trang_thai in ('dung', 'loi') and {dk}")
-        if r: lam.append(f"mở lại ({ly}): dòng {r.replace(chr(10), ' ')}")
+    # 5. TỰ MỞ LẠI DÒNG DỪNG KHI CỔNG CỦA PHIM ĐỔI (anh 04/11/2026 "tại sao cứ phải địt cụ mày mới fix? ko làm tự động hết đc à"):
+    #    trước đây đọc CHỮ lý do, mỗi kiểu lý do một luật → kiểu chưa có luật thì sót (dòng #47 đứng "0"). Nay: lúc dòng dừng chụp DẤU cổng
+    #    (sổ cấm 18+ · nhóm gốc · số creative đạt CTA chưa camp); dấu đổi → chạy lại đúng bước dừng, mọi lý do, không cần luật riêng.
+    dau = """concat_ws('|', (select (k.gia_tri ? d.content_id::text)::text from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam'),
+             (select f.nhom_goc from etp.phim f where f.content_id = d.content_id),
+             (select count(*) from etp.creative r join etp.cham_cong g using (creative_id) where r.content_id = d.content_id and r.cta_dat and g.duoc_len
+                and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)))"""
+    if THU: r = q(f"select d.id, d.dau_dung, {dau} from etp.dong_phim d where d.trang_thai = 'dung' and d.tao_luc > now() - interval '3 days'")
+    else:
+        q(f"update etp.dong_phim d set dau_dung = {dau} where d.trang_thai = 'dung' and d.dau_dung is null")
+        r = q(f"""with mo as (update etp.dong_phim d set dau_dung = null where d.trang_thai = 'dung' and d.tao_luc > now() - interval '3 days'
+                     and d.dau_dung is distinct from {dau} returning d.id)
+                  update etp.dong_buoc b set fix = true from mo where b.dong_id = mo.id and b.trang_thai in ('dung', 'loi') and not b.fix returning b.dong_id, b.buoc""")
+    if r: lam.append(f"mở lại (cổng phim đã đổi): {r.replace(chr(10), ' · ').replace(chr(9), ' ')}")
     print("Mạnh:", " · ".join(lam) if lam else "không có gì kẹt")
 
 if __name__ == "__main__": main()

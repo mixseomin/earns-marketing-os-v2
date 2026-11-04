@@ -36,10 +36,10 @@ export function DongHoSx({ buoc, so, title, href, ket }: { buoc: { buoc: string;
   const R = 10, C = 13, goc0 = 150, quet = 240, n = NUT_SX.length;   // cung 240° mở phía dưới như công-tơ-mét
   const xy = (g: number) => [C + R * Math.cos((g * Math.PI) / 180), C + R * Math.sin((g * Math.PI) / 180)];
   const tt = (b: string) => buoc.find((x) => x.buoc === b)?.trang_thai ?? 'cho';
-  return <a href={href} onClick={(e) => e.stopPropagation()} title={title} style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', textDecoration: 'none' }}>
+  return <a href={href} onClick={(e) => e.stopPropagation()} title={title || undefined} style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', textDecoration: 'none' }}>
     <svg width={26} height={26} viewBox="0 0 26 26">
       {NUT_SX.map(([k, , b], i) => { const [x, y] = xy(goc0 + (quet * i) / (n - 1)); const t = tt(b); const m = (MAU[t] ?? MAU.cho!)[0];
-        return <circle key={k} cx={x} cy={y} r={t === 'dang' ? 2.4 : 1.9} fill={m} style={t === 'dang' ? { animation: 'etpDen 1.6s ease-in-out infinite' } : undefined}><title>{`${NUT_SX[i]![1]}: ${MAU[t]?.[1] ?? t}`}</title></circle>; })}
+        return <circle key={k} cx={x} cy={y} r={t === 'dang' ? 2.4 : 1.9} fill={m} style={t === 'dang' ? { animation: 'etpDen 1.6s ease-in-out infinite' } : undefined} />; })}   {/* không <title> SVG — chi tiết ở thẻ nổi chung (anh 04/11/2026 "tất cả hover đều phải dùng loại này") */}
       <text x={C} y={C + 3.5} textAnchor="middle" fontSize={10} fontWeight={700} fill={ket === 'xong' ? '#22c55e' : ket === 'dung' ? '#f59e0b' : ket === 'loi' ? '#ef4444' : '#fff'}>{so}</text>
     </svg></a>;
 }

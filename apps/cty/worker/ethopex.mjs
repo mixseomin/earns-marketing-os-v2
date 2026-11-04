@@ -370,7 +370,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // chính máy làm việc ghi việc nó đã đủ luật + đủ công tắc nhưng hoãn vì khung giờ → etp.cau_hinh 'khung_hoan', trang etp chỉ đọc sổ này
   const HOAN = { tang: new Set(), giam: new Set(), tat: new Set() };
   const hoan = (k, m) => { HOAN[k].add(Number(m.id)); return true; };   // máy ĐỦ luật nhưng khung giờ chặn → ghi sổ hoãn (trang etp đọc), không làm
-  const napDem = khungDoi !== 'nap' ? new Set() : new Set(String(await chayPsql(`select camp_id from etp.so_ngay where ngay = (now() at time zone 'utc')::date and ngan_sach > 0 and chi >= ${Number(KD.nap_chi)} * ngan_sach and thu >= ${1 + Number(KD.nap_roi) / 100} * chi`).catch(() => '')).split(/\s+/).filter(Boolean));
+  const napDem = khungDoi !== 'nap' ? new Set() : new Set(String(await chayPsql(`select camp_id from etp.so_ngay where ngay = (now() at time zone 'utc')::date and ngan_sach > 0 and chi >= ${Number(KD.nap_chi)} * ngan_sach and thu >= ${1 + Number(KD.nap_roi) / 100} * chi`).catch((e) => { console.error('nạp đêm (khung_doi):', e.message); return ''; })).split(/\s+/).filter(Boolean));
   const tt = docJ(path.join(DATA(), 'ethopex-tu-tang.json'), null);
   const tuTang = tt && Date.now() < Date.parse(tt.den) ? Number(tt.tran) || 0 : 0;
   const daTu = []; const lamRoi = new Set();

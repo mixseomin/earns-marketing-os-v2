@@ -168,7 +168,7 @@
       {
         "ma": "G4",
         "ten": "Dữ liệu thật",
-        "viec": "đã có: la-so/lay.mjs (lá số + dữ liệu từ site), cong-cu/chup.mjs (trang công cụ thật), bau-troi-tinh.js khớp Swiss Ephemeris của site ≤ 0,06° (la-so/doi-chieu.mjs). Còn: danh sách người nổi tiếng có giờ sinh tin được (site mới 6 trang /c/), lịch sự kiện trời chính xác theo phút cho This Week / Sky Calendar, su-that/astrolas.md cho máy viết",
+        "viec": "đã có: lá số theo giờ sinh hạng AA (la-so/nguoi.json, lay.mjs --nguoi; 7 người dùng được), bộ tính khớp Swiss Ephemeris ≤ 0,06° + kiểm múi giờ site (doi-chieu.mjs), lịch sự kiện trời tới phút → ý tưởng tự sinh (lich-troi.mjs), tệp sự thật + nghĩa 12 nhà nguyên văn của site. Còn: mốc Zodiacal Releasing từ công cụ site",
         "anh": "không",
         "trang_thai": "dang"
       },

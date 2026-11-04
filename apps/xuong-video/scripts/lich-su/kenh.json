@@ -156,6 +156,7 @@
     "noi_dung": "chuyện lịch sử lớn có bản đồ (đất đổi chủ, mua bán, chia ranh giới, chiến tranh, di cư) — loạt gốc của kênh, đề theo góc spy",
     "mau": [
      "full-story",
+     "full-story-2",
      "short-60"
     ]
    },
@@ -167,6 +168,7 @@
     "noi_dung": "mua bán / nhượng / đổi đất và tài sản mà một bên thiệt nặng (Alaska 1867, đảo Manhattan 1626, Louisiana 1803, Run đổi Manhattan 1667, Florida trao Anh 1763)",
     "mau": [
      "full-story",
+     "full-story-2",
      "short-60"
     ]
    },
@@ -178,6 +180,7 @@
     "noi_dung": "hôn nhân, thừa kế, tranh ngôi của hoàng gia làm bản đồ đổi chủ (cưới Habsburg, Henry VIII, Chiến tranh Kế vị Tây Ban Nha, Eleanor xứ Aquitaine)",
     "mau": [
      "full-story",
+     "full-story-2",
      "short-60"
     ]
    },
@@ -189,6 +192,7 @@
     "noi_dung": "chuyến thám hiểm lạc đường, sai bản đồ, tới nhầm nơi (Columbus tưởng Ấn Độ, Magellan, Burke và Wills, Vinland, Ponce de León)",
     "mau": [
      "full-story",
+     "full-story-2",
      "short-60"
     ]
    },
@@ -200,6 +204,7 @@
     "noi_dung": "chiến tranh ngắn / vô lý / vì chuyện vặt (Anh–Zanzibar 1896 38 phút, Pig War 1859, Emu War 1932, War of the Bucket 1325)",
     "mau": [
      "full-story",
+     "full-story-2",
      "short-60"
     ]
    },
@@ -211,6 +216,7 @@
     "noi_dung": "đường biên giới kỳ quặc có thật và vì sao nó thành ra thế (Baarle-Nassau, Llívia, Point Roberts, Northwest Angle, đường Tordesillas)",
     "mau": [
      "full-story",
+     "full-story-2",
      "short-60"
     ]
    },
@@ -222,6 +228,7 @@
     "noi_dung": "thời tiết / thiên tai đổi kết cục lịch sử (bão Kamikaze 1281, Hạm đội Tây Ban Nha 1588, mùa đông Nga 1812, Tambora 1815 → năm không có mùa hè)",
     "mau": [
      "full-story",
+     "full-story-2",
      "short-60"
     ]
    }
@@ -265,6 +272,10 @@
      "Thân 2 HỒI, mỗi hồi 3–4 câu, mỗi hồi mở bằng một năm (ô năm đổi), có ít nhất một chuyển động bản đồ và một nhân vật.",
      "Mỗi 2 câu một câu ĐÙA ngắn (mỉa tỉnh bơ, so sánh hiện đại). Cú lật đóng con dấu ở chữ ngoặt. Câu cuối = câu chốt gọn, cảnh cuối ket \"{ket}\"."
     ]
+   },
+   "full-story-2": {
+    "_ghi": "Full Story 2.0 (05/11/2026): khuôn Full Story + SỐ THÀNH HÌNH — thẻ số đếm chạy + hình theo loại (người / tiền / thời gian / % / khoảng cách) + cột so sánh, lấy từ su_that của câu (so-hinh.mjs)",
+    "hinh_so": true
    }
   },
   "_ghi_mau_playlist": "anh 05/11/2026: MẪU = khuôn video (mau_khuon: full-story ~3 phút, short-60 ≤ 60 s); PLAYLIST = series nội dung (noi_dung, tien_to, lịch) dùng nhiều mẫu (playlist[].mau). Hồ sơ tập = playlist.mjs › hoSoTap."

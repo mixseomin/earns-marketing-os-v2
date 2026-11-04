@@ -5,7 +5,7 @@
 // Hai playlist KHÔNG được trùng ngày: mỗi tập một dấu nguon.dang_lam_ds[<tập>] nhưng khoá chống chồng của chay-kenh vẫn một lượt / kênh + kênh mới trần 1 bài/ngày.
 
 /** khoá playlist được đè lên hồ sơ kênh (khuôn kịch bản, giọng, theme… theo loạt) */
-export const DE = ['theme', 'khuon', 'giong_van', 'giong', 'nhac', 'sfx', 'ket', 'cau_cuoi', 'do_dai', 'cau', 'cau_noi', 'tu', 'tu_noi', 'chu_de_truoc', 'toi_da_giay', 'luat_hai', 'hinh_ca_tap'];
+export const DE = ['theme', 'khuon', 'giong_van', 'giong', 'nhac', 'sfx', 'ket', 'cau_cuoi', 'do_dai', 'cau', 'cau_noi', 'tu', 'tu_noi', 'chu_de_truoc', 'toi_da_giay', 'luat_hai', 'hinh_ca_tap', 'hinh_so'];
 
 export const dsPlaylist = (K) => (Array.isArray(K?.playlist) ? K.playlist : []);
 

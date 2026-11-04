@@ -12,6 +12,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { BOX, box, len } from './box3.mjs';
 import { geo, tamVung, chuan, TP_NHAC, dichCua, diem, isoVung, datThaiBinh, kinh, vong, khungDoi } from './dia-ly.mjs';
 import { hoSoTap, playlistCuaTap } from './playlist.mjs';
+import { soHinhCau } from './so-hinh.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const DIR = dirname(fileURLToPath(import.meta.url)), KHO = `${process.env.HOME}/.cache/lich-su`;
@@ -47,7 +48,8 @@ const tu = []; let cur = null;
 for (const k of kt) { if (/\s/.test(k.ch)) { if (cur) tu.push(cur); cur = null; continue; } cur ? (cur.chu += k.ch, cur.b = k.b) : (cur = { chu: k.ch, a: k.a, b: k.b }); }
 if (cur) tu.push(cur);
 // gán chữ vào câu theo số chữ của từng câu trong tệp tập
-let i = 0; const canh = tap.cau.map((c, k) => { const n = c.chu.trim().split(/\s+/).length; const ds = tu.slice(i, i + n); ds.forEach((w) => (w.cau = k)); i += n; return { bd: k ? ds[0]?.a ?? 0 : 0, c: Object.assign(c.canh, { _dua: !(c.su_that || []).length }) }; });
+// SỐ THÀNH HÌNH (Full Story 2.0): hồ sơ tập bật hinh_so → mỗi cảnh mang _so = số của chính câu + mốc giây giọng đọc tới số (so-hinh.mjs, chỉ từ su_that)
+let i = 0; const canh = tap.cau.map((c, k) => { const n = c.chu.trim().split(/\s+/).length; const ds = tu.slice(i, i + n); ds.forEach((w) => (w.cau = k)); i += n; return { bd: k ? ds[0]?.a ?? 0 : 0, c: Object.assign(c.canh, { _dua: !(c.su_that || []).length, _so: KENH.hinh_so ? soHinhCau(c, ds) : [] }) }; });
 if (i !== tu.length) console.warn(`⚠ số chữ giọng (${tu.length}) lệch số chữ kịch bản (${i}) — phụ đề có thể lệch câu`);
 const giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', GIONG], { encoding: 'utf8' }));
 // VIDEO KHÔNG BAO GIỜ VƯỢT TRẦN KÊNH (03/11/2026: giọng 204 s, tăng tốc chỉ tới 1,15× → video 181 s > 180 s Shorts): thiếu chỗ thì rút đuôi kết (≥ 1,2 s);
@@ -175,7 +177,7 @@ canh.forEach((s, k) => { for (const n of s.c.nguoi || []) if (n.tre == null && A
   if (lech.length) { console.error(`✗ đạo cụ lệch thời:\n  ${[...new Set(lech)].join('\n  ')}`); process.exit(3); } }
 const cauTep = join(RA, 'cau.json');
 let huong = {};
-const cauObj = { DAI, theme: KENH.theme, ket_mau: KENH.ket, tcn: (tap.ngon_ngu || 'en') === 'es' ? 'a. C.' : 'BC', vi_tuyen: VT, nen: pathToFileURL(join(KHO, tap.nen.anh)).href, geo: G, tu, canh,
+const cauObj = { DAI, theme: KENH.theme, hinh_so: !!KENH.hinh_so, ket_mau: KENH.ket, tcn: (tap.ngon_ngu || 'en') === 'es' ? 'a. C.' : 'BC', vi_tuyen: VT, nen: pathToFileURL(join(KHO, tap.nen.anh)).href, geo: G, tu, canh,
   dia_hinh: tap.dia_hinh ? { ...tap.dia_hinh, anh: pathToFileURL(join(KHO, tap.dia_hinh.anh)).href } : null,
   nv: await (async () => { const nv = {}; for (const s of canh) for (const m of [...(s.c.nguoi || []), ...(s.c.xe || []), ...(s.c.co || [])]) {
     const ds = ['goc', ...(Array.isArray(m.dang) ? m.dang.map((x) => x[1]) : [])]; for (const d of ds) nv[`${m.anh}:${d}`] ??= pathToFileURL(await tepDang(m.anh, d)).href; }

@@ -91,6 +91,53 @@ function muiTen(a, b, k, mau) {   // mũi tên quân vẽ dần
 
 // khung xuất thẳng từ canvas cho shot-code/dung.mjs (nhanh hơn chụp màn hình; mọi thứ hiện trên màn đều vẽ trong canvas #c)
 window.__khung = () => c.toDataURL('image/jpeg', 0.92).split(',')[1];
+// ---------- SỐ THÀNH HÌNH (Full Story 2.0) ----------
+const SO_GIU = 2.6;   // giây thẻ số đứng (đọc kịp số + đơn vị)
+function theSo(chu, nhan, cx, cy, q) {   // thẻ vàng nghiêng, bóng đen, số Anton to; q = 0..1 vào nảy
+  x.save(); x.translate(cx, cy); x.rotate(-0.04); const k = nay_(kep(q)); x.scale(k, k);
+  x.font = '400 150px Anton, Impact, sans-serif'; const tw = Math.max(380, x.measureText(chu).width + 90);
+  x.fillStyle = '#111'; x.fillRect(-tw / 2 + 14, -96 + 16, tw, 192); x.fillStyle = '#ffe14d'; x.fillRect(-tw / 2, -96, tw, 192);
+  x.fillStyle = '#111'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(chu, 0, 8);
+  if (nhan) { x.font = '400 46px Anton, Impact, sans-serif'; const nw = x.measureText(nhan.toUpperCase()).width + 44; x.fillStyle = '#111'; x.fillRect(-nw / 2 + 8, 100 + 8, nw, 66); x.fillStyle = '#e8352b'; x.fillRect(-nw / 2, 100, nw, 66); x.fillStyle = '#fff'; x.fillText(nhan.toUpperCase(), 0, 136); }
+  x.restore(); }
+const demChay = (so, q) => { const v = so.gia_tri * out(kep(q)); return so.chu.replace(/[\d.,]+/, (m) => (/[MB]$/.test(so.chu.replace(/\s.*$/, '')) ? (+(v / (so.chu.includes('B') ? 1e9 : 1e6)).toFixed(1)).toString() : Math.round(v).toLocaleString('en-US'))); };
+function hinhSo(so, cx, cy, q) {   // hình theo loại, dưới thẻ
+  const a = kep(q); if (!a) return; x.save();
+  // NỀN GIẤY sau hình (thử 05/11/2026: hàng người đè cờ + nhãn + nhân vật trên bản đồ → khó đọc): tấm giấy kem viền đen, bóng cứng, kích thước theo loại
+  const nNg = so.loai === 'nguoi' ? (() => { let dv = 10 ** Math.max(0, Math.floor(Math.log10(so.gia_tri)) - 1); while (so.gia_tri / dv > 40) dv *= 2; return Math.max(1, Math.round(so.gia_tri / dv)); })() : 0;
+  const hop = { nguoi: [620, Math.ceil(nNg / 10) * 74 + 110, -40], tien: [380, 340, -60], thoi_gian: [280, 280, -30], phan_tram: [740, 150, 0], khoang_cach: [740, 150, 0] }[so.loai];
+  if (hop) { const [bw, bh, dy] = hop; x.globalAlpha = Math.min(1, a * 3); x.save(); x.translate(cx, cy + dy + bh / 2); x.rotate(0.012); x.fillStyle = '#111'; x.fillRect(-bw / 2 + 12, -bh / 2 + 12, bw, bh); x.fillStyle = '#f6efdc'; x.fillRect(-bw / 2, -bh / 2, bw, bh); x.strokeStyle = '#111'; x.lineWidth = 6; x.strokeRect(-bw / 2, -bh / 2, bw, bh); x.restore(); x.globalAlpha = 1; }
+  if (so.loai === 'nguoi') {   // hàng người: 1 hình = đơn vị tròn, tối đa 40 hình
+    let dv = 10 ** Math.max(0, Math.floor(Math.log10(so.gia_tri)) - 1); while (so.gia_tri / dv > 40) dv *= 2; const n = Math.max(1, Math.round(so.gia_tri / dv)), hien = Math.ceil(n * a);
+    for (let i = 0; i < hien; i++) { const px = cx + ((i % 10) - 4.5) * 54, py = cy + Math.floor(i / 10) * 74; x.fillStyle = '#111'; x.beginPath(); x.arc(px, py, 13, 0, 7); x.fill(); x.fillRect(px - 15, py + 15, 30, 38); x.fillStyle = '#e8352b'; x.fillRect(px - 11, py + 19, 22, 30); }
+    x.font = '400 40px Anton, Impact, sans-serif'; x.textAlign = 'center'; x.fillStyle = '#111'; x.strokeStyle = '#fff'; x.lineWidth = 8; const cap = `1 = ${dv.toLocaleString('en-US')}`, cy2 = cy + Math.ceil(n / 10) * 74 + 30; x.strokeText(cap, cx, cy2); x.fillText(cap, cx, cy2); }
+  else if (so.loai === 'tien') {   // chồng tiền: số tờ theo bậc độ lớn, rơi từng tờ
+    const n = Math.max(3, Math.min(14, Math.round(Math.log10(Math.max(10, so.gia_tri)) * 2))), hien = Math.ceil(n * a);
+    for (let i = 0; i < hien; i++) { const py = cy + 140 - i * 16; x.save(); x.translate(cx + (i % 2 ? 6 : -6), py); x.rotate((i % 3 - 1) * 0.04); x.fillStyle = '#111'; x.fillRect(-150 + 5, -22 + 5, 300, 44); x.fillStyle = '#3f9a4a'; x.fillRect(-150, -22, 300, 44); x.strokeStyle = '#d9f0c8'; x.lineWidth = 4; x.strokeRect(-140, -15, 280, 30); x.fillStyle = '#d9f0c8'; x.beginPath(); x.arc(0, 0, 11, 0, 7); x.fill(); x.restore(); } }
+  else if (so.loai === 'thoi_gian') {   // đồng hồ: kim quay một vòng
+    const r = 95, cy2 = cy + 110; x.fillStyle = '#111'; x.beginPath(); x.arc(cx + 8, cy2 + 8, r, 0, 7); x.fill(); x.fillStyle = '#fff'; x.beginPath(); x.arc(cx, cy2, r, 0, 7); x.fill(); x.strokeStyle = '#111'; x.lineWidth = 10; x.stroke();
+    for (let i = 0; i < 12; i++) { const g = (i / 12) * Math.PI * 2; x.lineWidth = 6; x.beginPath(); x.moveTo(cx + Math.sin(g) * r * 0.78, cy2 - Math.cos(g) * r * 0.78); x.lineTo(cx + Math.sin(g) * r * 0.9, cy2 - Math.cos(g) * r * 0.9); x.stroke(); }
+    const g = out(a) * Math.PI * 2; x.strokeStyle = '#e8352b'; x.lineWidth = 12; x.lineCap = 'round'; x.beginPath(); x.moveTo(cx, cy2); x.lineTo(cx + Math.sin(g) * r * 0.72, cy2 - Math.cos(g) * r * 0.72); x.stroke(); }
+  else if (so.loai === 'phan_tram') {   // thanh phần trăm
+    const w = 640, h = 64, x0 = cx - w / 2, y0 = cy + 40; x.fillStyle = '#111'; x.fillRect(x0 + 8, y0 + 8, w, h); x.fillStyle = '#fff'; x.fillRect(x0, y0, w, h); x.fillStyle = '#e8352b'; x.fillRect(x0, y0, w * Math.min(1, so.gia_tri / 100) * out(a), h); x.strokeStyle = '#111'; x.lineWidth = 8; x.strokeRect(x0, y0, w, h); }
+  else if (so.loai === 'khoang_cach') {   // đường kẻ đo kéo dài
+    const w = 640 * out(a), y0 = cy + 70; x.strokeStyle = '#111'; x.lineWidth = 10; x.setLineDash([28, 18]); x.beginPath(); x.moveTo(cx - 320, y0); x.lineTo(cx - 320 + w, y0); x.stroke(); x.setLineDash([]);
+    x.fillStyle = '#e8352b'; for (const px of [cx - 320, cx - 320 + w]) { x.beginPath(); x.arc(px, y0, 16, 0, 7); x.fill(); } }
+  x.restore(); }
+function cotSoSanh(a, b, cx, cy, q) {   // hai số cùng loại người trong một câu → hai cột mọc lên
+  const lon = Math.max(a.gia_tri, b.gia_tri), hMax = 380, rong = 170;
+  { const bw = 660, bh = hMax + 210, by = cy - 70; x.globalAlpha = Math.min(1, kep(q) * 3); x.fillStyle = '#111'; x.fillRect(cx - bw / 2 + 12, by + 12, bw, bh); x.fillStyle = '#f6efdc'; x.fillRect(cx - bw / 2, by, bw, bh); x.strokeStyle = '#111'; x.lineWidth = 6; x.strokeRect(cx - bw / 2, by, bw, bh); x.globalAlpha = 1; }   // nền giấy như hình số
+  [[a, cx - 160, '#2f5fb3'], [b, cx + 160, '#e8352b']].forEach(([so, px, mau], i) => { const qq = out(kep(q - i * 0.15)), h = Math.max(30, hMax * (so.gia_tri / lon)) * qq, day = cy + hMax;
+    x.fillStyle = '#111'; x.fillRect(px - rong / 2 + 10, day - h + 10, rong, h); x.fillStyle = mau; x.fillRect(px - rong / 2, day - h, rong, h); x.strokeStyle = '#111'; x.lineWidth = 8; x.strokeRect(px - rong / 2, day - h, rong, h);
+    x.font = '400 72px Anton, Impact, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.lineWidth = 12; x.strokeStyle = '#fff'; x.fillStyle = '#111'; const s_ = demChay(so, qq); x.strokeText(s_, px, day - h - 18); x.fillText(s_, px, day - h - 18);
+    if (so.nhan) { x.font = '400 40px Anton, Impact, sans-serif'; const nh = so.nhan.toUpperCase().slice(0, 18); x.strokeText(nh, px, day + 56); x.fillText(nh, px, day + 56); } }); }
+function veSo(s, t) {
+  const ds = (s.c._so || []).filter((so) => t >= so.t - 0.05); if (!ds.length) return;
+  const cuoi = ds.at(-1), q = (t - cuoi.t) / 0.7; if (t > cuoi.t + SO_GIU) return;   // số mới nhất đã đọc đứng SO_GIU giây rồi tắt
+  const truoc = ds.length > 1 ? ds.at(-2) : null, cy = H * 0.25;
+  if (truoc && truoc.loai === cuoi.loai && cuoi.loai === 'nguoi' && cuoi.t - truoc.t < 5) { cotSoSanh(truoc, cuoi, W / 2, cy - 20, (t - truoc.t) / 0.8); return; }
+  theSo(demChay(cuoi, q), cuoi.loai === 'nguoi' || cuoi.loai === 'so' ? cuoi.nhan : '', W / 2, cy, q * 2.2); hinhSo(cuoi, W / 2, cy + 250, (t - cuoi.t - 0.3) / 0.9); }
+
 window.__seek = (t) => {
   const ds = C.canh; let k = ds.findIndex((s) => t < s.kt); if (k < 0) k = ds.length - 1;
   const s = ds[k], tr = ds[k - 1], u = t - s.bd;
@@ -238,6 +285,9 @@ window.__seek = (t) => {
       x.font = `400 ${sz}px Anton, Impact, sans-serif`; const tw = x.measureText(d).width + 60; x.fillStyle = '#111'; x.fillRect(-tw / 2 + 10, -sz * 0.62 + 12, tw, sz * 1.24); x.fillStyle = i % 2 ? '#ffe14d' : '#e8352b'; x.fillRect(-tw / 2, -sz * 0.62, tw, sz * 1.24);
       x.fillStyle = i % 2 ? '#111' : '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(d, 0, 4); x.restore(); });
     else dong.forEach((d, i) => chuVien(d, W / 2, y0 + i * (sz * 1.15) + (1 - out(kep(u / 0.35))) * -40, sz, '#9e2b25', 'rgba(248,240,222,.97)', 'center', 900)); x.globalAlpha = 1; } }
+  // SỐ THÀNH HÌNH (mẫu Full Story 2.0, 05/11/2026 — so-hinh.mjs dựng s.c._so từ su_that của câu): đúng lúc giọng đọc tới số → thẻ số đếm chạy + hình theo loại.
+  // Tắt ở câu 1 (tít hook đang chiếm), lúc tranh polaroid đang hiện, và khi hồ sơ tập không bật hinh_so.
+  if (C.hinh_so && k > 0 && !(tr_ && u > tr_.tu - 0.1 && u < tr_.den + 0.3)) veSo(s, t);
   // phụ đề: các chữ của câu đang đọc, chữ đang nói sáng màu
   // VÒNG KHÉP KẾT TẬP bắt đầu (0,2 giây sau chữ cuối) → phụ đề câu chốt tắt, không để viền tròn cắt ngang chữ (03/11/2026: Ngọc chặn khung "…istory didn't forget he…")
   const tHetLoi = C.tu.at(-1)?.b ?? Infinity, tatPhuDe = !!(s.c.ket && LC && t > tHetLoi + 0.2);

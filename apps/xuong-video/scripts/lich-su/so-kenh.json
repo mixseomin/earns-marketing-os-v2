@@ -845,6 +845,7 @@
         "tien_to": "",
         "mau": [
           "full-story",
+          "full-story-2",
           "short-60"
         ],
         "mo_ta": "Bản tin lá cải 3 phút kể TRỌN một chuyện lịch sử có thật trên bản đồ động: hook sốc ở câu 1 → 4–5 hồi, mỗi hồi một năm mới (ô năm đổi), màu chủ quyền đổi, mũi tên quân, nhân vật bước vào → khúc ngoặt đóng dấu → hậu quả hôm nay → THE END. Giọng phát thanh viên tỉnh bơ mỉa quyết định của người có quyền. Ví dụ đã đăng: Nga bán Alaska 7,2 triệu đô (1867).",
@@ -890,6 +891,7 @@
         "tien_to": "Worst Deals",
         "mau": [
           "full-story",
+          "full-story-2",
           "short-60"
         ],
         "mo_ta": "Bản tin 'bất động sản lá cải' về MỘT vụ mua bán / nhượng / đổi đất có thật mà một bên thiệt nặng: giá chốt, người ký, vì sao bán, bản đồ đổi màu khi đất sang tay, con dấu SOLD, cuối tập 'mảnh đất đó hôm nay đáng bao nhiêu'. Ví dụ: Hà Lan đổi Manhattan lấy đảo nhục đậu khấu Run (1667), Napoleon bán Louisiana (1803).",
@@ -926,6 +928,7 @@
         "tien_to": "Royal Gossip",
         "mau": [
           "full-story",
+          "full-story-2",
           "short-60"
         ],
         "mo_ta": "Mục tin đồn hoàng gia: MỘT vụ cưới / thừa kế / tranh ngôi có thật làm bản đồ châu Âu đổi chủ — ai cưới ai, của hồi môn là cả một vùng đất, ai nổi giận rồi gây chiến. Bản đồ đổi màu theo từng cuộc hôn nhân, chân dung nhân vật đứng cạnh vùng đất của họ. Ví dụ: Bombay là của hồi môn của Catherine xứ Braganza (1661), Habsburg 'cưới khắp châu Âu'.",
@@ -956,6 +959,7 @@
         "tien_to": "Explorers Gone Wrong",
         "mau": [
           "full-story",
+          "full-story-2",
           "short-60"
         ],
         "mo_ta": "Bản tin giao thông lá cải về MỘT chuyến thám hiểm có thật đi lạc / tưởng nhầm nơi: đường đi trên bản đồ là xương sống (mũi tên + tàu / ngựa từng chặng), mỗi chặng một năm, 'GPS hỏng', tới nơi thì không phải nơi định tới. Ví dụ: Columbus khăng khăng Caribe là châu Á (1492), La Salle tìm cửa sông Mississippi mà cập bến Texas (1684).",
@@ -992,6 +996,7 @@
         "tien_to": "Tiny Wars",
         "mau": [
           "full-story",
+          "full-story-2",
           "short-60"
         ],
         "mo_ta": "Short 45–60 giây về MỘT cuộc chiến có thật ngắn / vô lý / nổ ra vì chuyện vặt (con lợn, cái xô, chim emu, tiệm bánh): lý do gây chiến → mũi tên quân trên bản đồ → kết cục buồn cười (38 phút, 0 thương vong, emu thắng). Đùa về lý do và người ra lệnh, không đùa về người chết. Ví dụ: chiến tranh Anh–Zanzibar 1896 kéo dài 38 phút.",
@@ -1028,6 +1033,7 @@
         "tien_to": "Borders Gone Wrong",
         "mau": [
           "full-story",
+          "full-story-2",
           "short-60"
         ],
         "mo_ta": "Short 45–60 giây về MỘT đường biên / vùng đất kỳ quặc có thật (vùng lọt thỏm, mũi đất cụt, đường kẻ vội trên bản đồ) và quyết định lịch sử đã tạo ra nó — đường kẻ biên được vẽ dần trên bản đồ, nhãn hai nước, cú lật 'hôm nay ở đó trông thế nào'. Ví dụ: Baarle — biên giới Bỉ–Hà Lan chạy xuyên phòng khách; Point Roberts — thị trấn Mỹ chỉ đi được qua Canada.",
@@ -1064,6 +1070,7 @@
         "tien_to": "Weather Desk",
         "mau": [
           "full-story",
+          "full-story-2",
           "short-60"
         ],
         "mo_ta": "Short 45–60 giây kiểu bản tin thời tiết lá cải: MỘT lần bão / sương mù / mùa đông / núi lửa có thật làm đổi kết cục lịch sử — 'dự báo hôm nay: trời đẹp cho xâm lược', hạm đội trên bản đồ, bão quét qua, kết cục. Ví dụ: bão Kamikaze đánh chìm hạm đội Mông Cổ ngoài khơi Nhật (1281), sương mù giúp Washington rút khỏi Brooklyn (1776).",
@@ -1136,6 +1143,18 @@
         "demo": "https://img.on.tc/xuong-video/lich-su/tap/alaska-parody.mp4",
         "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$",
         "mo_ta": "KHUÔN VIDEO dài ~3 phút, dọc 9:16: hook sốc ở câu 1 (chữ to + vòng đỏ) → 4–5 hồi, mỗi hồi mở bằng một năm mới, màu chủ quyền đổi, mũi tên quân, nhân vật bước vào, 2–3 tranh thật → khúc ngoặt đóng dấu → hậu quả hôm nay → THE END. Giọng phát thanh viên lá cải tỉnh bơ. Dùng được cho MỌI playlist."
+      },
+      {
+        "ma": "full-story-2",
+        "ten": "Full Story 2.0 (số thành hình)",
+        "loai": "dai",
+        "khung": "9:16",
+        "nhip": "theo lịch từng playlist",
+        "kho": "vô hạn — đề theo series + góc spy",
+        "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
+        "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau full-story-2  (demo: demo-mau.sh)",
+        "mo_ta": "Khuôn Full Story (~3 phút) + SỐ THÀNH HÌNH: đúng lúc giọng đọc tới một con số có nguồn, số hiện to giữa màn đếm chạy lên, kèm hình theo loại — hàng người (1 hình = N người), chồng tiền, đồng hồ quay, thanh phần trăm, đường đo; hai số quân trong một câu thành hai cột so sánh. Số chỉ lấy từ trích dẫn nguồn của câu, không có số bịa; không cần viết lại kịch bản.",
+        "cho_duyet": true
       },
       {
         "ma": "short-60",

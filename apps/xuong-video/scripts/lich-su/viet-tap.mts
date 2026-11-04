@@ -206,12 +206,18 @@ const Ra = z.object({
     commons: z.string().nullable().describe('co: tên tệp Wikimedia Commons CÓ THẬT, vd "File:Flag of Bolivia.svg"') })).describe('món chưa có trong KHO mà cảnh dùng'),
 });
 
+// GIỚI HẠN TỪ cứng (05/11/2026: tập Agincourt máy viết trả 695 từ / khuôn 330–405 → rút gọn + viết lại 4 lượt không khép nổi khoảng cách 72%; máy chỉ cắt được chút,
+// không cắt được 40% nên phải ÉP ngân sách từ ngay bản đầu). Số lấy từ hồ sơ kênh: trần = tu[1], trung bình = giữa khuôn, trần một câu = tu[1] / số câu ít nhất.
+const budg = (K.tu?.[nn] ?? K.tu?.en) as [number, number] | undefined;
+const tbCau = budg ? Math.round((budg[0] + budg[1]) / 2 / (((K.cau?.[0] ?? 20) + (K.cau?.[1] ?? 36)) / 2)) : null;
+const capCau = budg ? Math.round(budg[1] / (K.cau?.[0] ?? 20)) : null;
 const khoChu = Object.entries(kho.tai_san).map(([k, v]) => `- ${k} · ${v.loai} · ${v.ten} · ${v.tu}–${v.den}`).join('\n');
 const ngonNgu = nn === 'es' ? 'tiếng Tây Ban Nha (giọng trung tính Mỹ Latin, người bản ngữ viết)' : 'tiếng Anh (Mỹ, người bản ngữ viết)';
 const system = `Bạn viết kịch bản ${K.do_dai} cho một kênh YouTube lịch sử dựng bằng bản đồ động + nhân vật phẳng (kiểu History Matters / quảng cáo Saga).
 NGÔN NGỮ LỜI ĐỌC VÀ MỌI CHỮ TRÊN HÌNH: ${ngonNgu}. Chỉ trường "ten" của tai_san_moi viết tiếng Việt.
 KHUÔN KÊNH "${K.ten}" (bắt buộc):
 - ${K.cau_noi} câu, tổng ${K.tu_noi[nn] ?? K.tu_noi.en} từ. Mỗi câu = một cảnh.
+${budg ? `- GIỚI HẠN TỪ LÀ TUYỆT ĐỐI, KHÔNG phải gợi ý: cả kịch bản PHẢI ≤ ${budg[1]} từ. Trung bình mỗi câu ~${tbCau} từ, KHÔNG câu nào quá ${capCau} từ. Viết câu NGẮN, một ý một câu; cắt mệnh đề phụ, tính từ thừa, lời dẫn giải trước khi nộp. Thà ít chữ mà đắt — giữ đủ sự thật, nhịp hài và cú lật. ĐỪNG viết dài rồi trông máy cắt hộ: máy chỉ cắt được vài chục từ, viết quá khuôn là hỏng cả lượt (phải viết lại từ đầu, tốn tiền).` : ''}
 ${K.khuon.map((d: string) => `- ${d.replace('{cau_cuoi}', cuoiNN ?? '').replace('{ket}', ketNN)}`).join('\n')}
 - Năm và số đọc thành CHỮ như người dẫn nói (${nn === 'es' ? '"en mil ochocientos sesenta y siete", "siete millones"' : '"in eighteen sixty-seven", "seven point two million dollars"'}) — máy đọc theo chữ, phụ đề hiện đúng chữ đó.
 - ${K.giong_van}${K.luat_hai ? `\nLUẬT VIẾT HÀI (bắt buộc cho mọi câu đùa):\n${K.luat_hai.map((l: string) => `  · ${l}`).join('\n')}\n-` : ''} CẤM: dấu gạch dài (— –), "→", "…", ngoặc kép kiểu AI, "Imagine", "Let's dive", "fascinating", "In conclusion", câu hỏi tu từ liên tiếp.

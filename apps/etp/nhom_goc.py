@@ -7,6 +7,9 @@ phim làm bằng AI mà nhìn như người thật xếp theo ngoại hình. Kh�
 import json, os, re, subprocess, sys, urllib.request
 NHOM = ["au_my", "trung", "an", "latin", "dong_a", "da_mau", "hoat_hinh"]
 LUAT = """Classify this short-drama poster by the LOOK of the cast. Answer with the tool.
+You may get the poster PLUS several frames from the episodes: judge the MAJORITY of the cast across ALL images, never one face (anh 04/11/2026: "Big Mistake:
+Torturing The Hidden Billionaire" — mostly white cast + one tanned grey-haired lead — was wrongly "an"). Tanned / olive / weathered skin on Western features is au_my,
+NOT an; "an" only when most of the cast clearly looks South Asian. An American-style production (English title, Western setting) with a mostly white cast is au_my.
 Judge the MAJORITY of the cast, never one face (anh 04/11/2026: "Big Mistake: Torturing The Hidden Billionaire" — 3 white actors + a tanned grey-haired lead — was wrongly "an").
 Tanned, olive or weathered skin on Western features is au_my, NOT an. "an" only when most of the cast clearly looks South Asian (Indian / Pakistani / Bangladeshi).
 An American-style production (English title, Western setting / clothing) whose cast is mostly white is au_my.
@@ -23,12 +26,17 @@ def _tuyen():
     try: j = json.load(open("/var/lib/spy/ckey-tuyen.json"))["dong"]; return [m.replace("ckey:", "") for m in (j.get("haiku") or []) + (j.get("sonnet") or [])]
     except Exception: return ["nghiaphan0633/claude-haiku-5.5"]
 
-def cham(content_id, ghi=True):
-    """→ (nhom | None, chi_vnd, ly_do)"""
+def cham(content_id, ghi=True, them=None):
+    """→ (nhom | None, chi_vnd, ly_do) · them = ảnh cảnh trong phim (URL hoặc data URI) — POSTER + CẢNH chấm cùng lúc (anh 04/11/2026 "quét poster + vài cảnh trong phim")"""
     db = os.environ["DATABASE_URL"]; spy_db, khoa = _spy()
     ten = _q(f"select coalesce(ten, '') from etp.phim where content_id = {int(content_id)}", db) or _q(f"select coalesce(ten, '') from ethopex_content where id = {int(content_id)}", spy_db)
     anh = _q(f"select coalesce(anh, '') from ethopex_content where id = {int(content_id)}", spy_db)
-    if anh: anh_ds, nguon = [anh if anh.startswith("http") else f"https://acdn.dofez.com/{anh}"], "poster"
+    khung = _q(f"""select u from (select distinct on (c.creative_id) c.creative_id, c.lop->'anh'->'khung_url' k from etp.cham c join etp.creative r using (creative_id)
+                    where r.content_id = {int(content_id)} and jsonb_array_length(coalesce(c.lop->'anh'->'khung_url', '[]')) >= 8 order by c.creative_id) x,
+                    jsonb_array_elements_text(x.k) with ordinality e(u, n) where n in (3, 11) limit 2""", db).split()
+    them = list(them or []) + khung
+    if anh: anh_ds, nguon = [anh if anh.startswith("http") else f"https://acdn.dofez.com/{anh}"] + them[:6], ("poster + " + str(len(them[:6])) + " cảnh" if them else "poster")
+    elif them: anh_ds, nguon = them[:6], f"{len(them[:6])} cảnh trong phim"
     else:   # THIẾU POSTER (anh 31/10/2026 "dùng video thumb nào đó đc ko?"): phim chỉ team chạy, spy chưa có → khung giữa video creative của phim đã chấm (Worker etp-cham)
         anh_ds, nguon = _q(f"""select u from (select distinct on (c.creative_id) c.creative_id, c.lop->'anh'->'khung_url' k from etp.cham c join etp.creative r using (creative_id)
                                where r.content_id = {int(content_id)} and jsonb_array_length(coalesce(c.lop->'anh'->'khung_url', '[]')) >= 8 order by c.creative_id) x,
@@ -37,7 +45,7 @@ def cham(content_id, ghi=True):
     chi, loi = 0.0, ""
     for model in _tuyen()[:3]:
         try:
-            body = {"model": model, "max_tokens": 200, "messages": [{"role": "user", "content": [*({"type": "image_url", "image_url": {"url": u}} for u in anh_ds), {"type": "text", "text": (LUAT if nguon == "poster" else LUAT.replace("this short-drama poster", "these frames from the short drama's ad video")) + ten}]}],
+            body = {"model": model, "max_tokens": 200, "messages": [{"role": "user", "content": [*({"type": "image_url", "image_url": {"url": u}} for u in anh_ds), {"type": "text", "text": (LUAT if nguon.startswith("poster") else LUAT.replace("this short-drama poster", "these frames from the short drama's ad video")) + ten}]}],
                     "tools": [{"type": "function", "function": {"name": "ghi_nhom", "parameters": {"type": "object", "required": ["kieu_anh", "nhom", "ly_do"], "properties": {"kieu_anh": {"type": "string", "enum": ["anh_chup", "tranh_ve"]}, "nhom": {"type": "string", "enum": NHOM}, "ly_do": {"type": "string"}}}}}],
                     "tool_choice": {"type": "function", "function": {"name": "ghi_nhom"}}}
             r = json.load(urllib.request.urlopen(urllib.request.Request("https://api.xah.io/v1/chat/completions", data=json.dumps(body).encode(), headers={"Authorization": f"Bearer {khoa}", "content-type": "application/json"}), timeout=120))
@@ -53,6 +61,7 @@ def cham(content_id, ghi=True):
 
 if __name__ == "__main__":
     ids = [int(x) for x in sys.argv[1:] if x.isdigit()]; tong = 0
+    them = json.loads(sys.stdin.read() or "[]") if "--khung-stdin" in sys.argv else []   # ảnh cảnh (data URI) máy chạy dòng (iMac) gửi qua stdin
     for i in ids:
-        n, c, ly = cham(i, ghi="--ghi" in sys.argv); tong += c; print(f"{i}: {n} · {c}₫ · {ly}")
+        n, c, ly = cham(i, ghi="--ghi" in sys.argv, them=them); tong += c; print(f"{i}: {n} · {c}₫ · {ly}")
     print(f"tổng {tong}₫")

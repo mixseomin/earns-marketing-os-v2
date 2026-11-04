@@ -110,7 +110,10 @@ def b_nhan(d):
         rc, out = box(f"python3 apps/etp/nhom_goc.py {cid} --ghi", 300)
         goc = sql(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {cid}")
         if not goc: return "loi", f"chưa chấm được nhóm gốc trên poster: {out[-200:]}", None
-    if goc != "au_my": return "dung", f"nhóm gốc phim là '{goc or 'chưa rõ'}' — chỉ chạy phim Âu-Mỹ (luật anh 02/11/2026)", None
+    if goc != "au_my":   # POSTER CHƯA RA ÂU-MỸ → xem thêm CẢNH TRONG PHIM rồi mới kết luận (anh 04/11/2026 "quét poster + vài cảnh trong phim")
+        goc2, ghi_ = cham_bang_canh(cid)
+        if goc2: goc = goc2
+        if goc != "au_my": return "dung", f"nhóm gốc phim là '{goc or 'chưa rõ'}' (poster + cảnh: {ghi_[:160]}) — chỉ chạy phim Âu-Mỹ (luật anh 02/11/2026)", None
     if str(cid) in khoa_studio("ethopex_phim_cam"): return "dung", "phim nằm trong sổ cấm 18+ (ethopex_phim_cam)", None
     nhan_bb = nhan_bat_buoc()
     doi = "" if not nhan_bb else sql(f"select coalesce(max(nguoi), '') from etp.phim_nhan_v where content_id = {cid} and trang_thai in ('giu', 'da_len') and nguoi_id not in (select nguoi_id from etp.tai_khoan where nha)")
@@ -119,6 +122,26 @@ def b_nhan(d):
     if co: return "dung", f"phim đã có camp đang chạy: #{co} — mỗi lần chỉ lên một camp cho một phim (luật anh 03/11/2026)", None
     nhan_lai(cid)
     return "xong", ("Nhà nhận phim (giữ 24 giờ), " if nhan_bb else "") + "nhóm gốc Âu-Mỹ, không trong sổ cấm", None
+
+def cham_bang_canh(cid):
+    """tải 2 tập đầu (cùng thư mục bước Cắt dùng lại) → 4 khung giữa các tập → nhom_goc.py --khung-stdin --ghi trên box3 (poster + cảnh, ~36₫) → (nhóm, ghi)"""
+    import base64, glob
+    r = sql(f"select ten, url from ethopex_content where id = {int(cid)}", spy=True).split("\t")
+    tm = os.path.join(C, "nguon", str(cid)); os.makedirs(tm, exist_ok=True)
+    if not glob.glob(os.path.join(tm, "tap*.mp4")) and len(r) > 1 and r[1]:
+        subprocess.run(["python3", os.path.join(E, "tai-tap.py"), r[1], tm, "2"], capture_output=True, text=True, timeout=600)
+    taps = sorted(glob.glob(os.path.join(tm, "tap*.mp4")))[:2]
+    if not taps: return None, "không tải được tập để xem cảnh"
+    khung = []
+    for t in taps:
+        d = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", t], capture_output=True, text=True).stdout.strip() or 0)
+        for f in (0.3, 0.7):
+            b = subprocess.run(["ffmpeg", "-v", "error", "-ss", str(d * f), "-i", t, "-frames:v", "1", "-vf", "scale=480:-2", "-q:v", "5", "-f", "mjpeg", "pipe:1"], capture_output=True, timeout=60).stdout
+            if b: khung.append("data:image/jpeg;base64," + base64.b64encode(b).decode())
+    if not khung: return None, "không cắt được khung cảnh"
+    p = subprocess.run([*SSH, B, f"{ENV}; python3 apps/etp/nhom_goc.py {int(cid)} --ghi --khung-stdin"], input=json.dumps(khung), capture_output=True, text=True, timeout=300)
+    goc = sql(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {int(cid)}")
+    return goc or None, (p.stdout.strip().splitlines() or [p.stderr.strip()[-200:]])[0]
 
 def nhan_lai(cid):
     """Nhà giữ phim nếu chưa ai giữ — dùng ở bước Nhận và SAU KHI POSTER QUA (03/11/2026: poster cấm → kiem-phim-18 nha_phim_cam trả phim; anh bỏ chặn + FIX

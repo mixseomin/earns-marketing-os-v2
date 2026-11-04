@@ -19,7 +19,7 @@ const ytId = (u: string | null) => u?.match(/(?:youtu\.be\/|v=|shorts\/)([\w-]{1
 /** mở ngăn — dùng ở bảng kênh: const n = useNganKenh(); n.mo('mau', k.ma, m.ma) */
 export function useNganKenh() {
   const m = useModalParam('kn'), v = useModalParam('knv');
-  return { m, v, mo: (loai: 'mau' | 'mo_dau' | 'nguoi' | 'kenh', kenh: string, ma = '') => m.open(loai, `${kenh}~${ma}`), moVideo: (kenh: string, slug: string) => v.open('video', `${kenh}~${slug}`) };
+  return { m, v, mo: (loai: 'mau' | 'mo_dau' | 'nguoi' | 'kenh' | 'playlist', kenh: string, ma = '') => m.open(loai, `${kenh}~${ma}`), moVideo: (kenh: string, slug: string) => v.open('video', `${kenh}~${slug}`) };
 }
 
 const O = ({ k, children }: { k: string; children: React.ReactNode }) => (
@@ -35,11 +35,12 @@ export function KenhNgan({ kenh }: { kenh: KenhSp[] }) {
   const [maK, ma] = (m.id ?? '').split('~'), k = kenh.find((x) => x.ma === maK);
   const [maKv, slug] = (v.id ?? '').split('~'), kv = kenh.find((x) => x.ma === maKv), vid = kv?.videos.find((x) => x.slug === slug);
   return <>
-    {m.value && k && <Drawer onClose={m.close} width={m.value === 'mau' ? 1360 : 820}>
+    {m.value && k && <Drawer onClose={m.close} width={m.value === 'mau' ? 1360 : m.value === 'playlist' ? 1100 : 820}>
       {m.value === 'mau' && <NganMau k={k} ma={ma ?? ''} onClose={m.close} moVideo={(s) => moVideo(k.ma, s)} />}
       {m.value === 'mo_dau' && <NganMoDau k={k} onClose={m.close} />}
       {m.value === 'nguoi' && <NganNguoi k={k} slug={ma ?? ''} onClose={m.close} />}
       {m.value === 'kenh' && <NganKenh k={k} onClose={m.close} />}
+      {m.value === 'playlist' && <NganPlaylist k={k} ma={ma ?? ''} onClose={m.close} />}
     </Drawer>}
     {v.value === 'video' && kv && vid && <Drawer onClose={v.close} width={820}><NganVideo k={kv} v={vid} onClose={v.close} /></Drawer>}
   </>;
@@ -159,6 +160,30 @@ function NganKenh({ k, onClose }: { k: KenhSp; onClose: () => void }) {
           {k.kenhUrl && <NutNgoai href={k.kenhUrl}>Mở kênh YouTube</NutNgoai>}
           {k.phimId && <NutNgoai href={`${STUDIO}/?m=phim&mId=${k.phimId}`}>Phim Studio của kênh</NutNgoai>}
         </div>
+      </div>
+    </div>
+  </>;
+}
+
+/** PLAYLIST = SERIES (anh 05/11/2026: "playlist là series chứa nhiều mẫu, theo góc spy"): nội dung loạt + góc spy phục vụ + mẫu dùng + video ví dụ theo từng mẫu */
+function NganPlaylist({ k, ma, onClose }: { k: KenhSp; ma: string; onClose: () => void }) {
+  const p = k.so?.playlist?.find((x) => x.ma === ma), mauDs = new Map((k.so?.mau ?? []).map((m) => [m.ma, m]));
+  if (!p) return <ModalHeader kind="kenh" action="view" title={ma} subtitle={`${k.ten} · playlist không có trong sổ`} onClose={onClose} />;
+  return <>
+    <ModalHeader kind="kenh" action="view" title={`📂 ${p.ten}`} subtitle={`${k.ten} · ${p.trang_thai === 'de_xuat' ? '⏳ series đề xuất, chờ anh duyệt' : 'series đã chốt'}`} onClose={onClose} />
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) auto', gap: 20, margin: '14px 0 18px', alignItems: 'start' }}>
+      <Luoi>
+        {p.noi_dung && <O k="Nội dung loạt">{p.noi_dung}</O>}
+        {p.mo_ta && <O k="Là gì">{p.mo_ta}</O>}
+        {!!p.goc_spy?.length && <O k="Góc spy phục vụ">{p.goc_spy.map((g) => `#${g.id} ${g.ten}`).join(' · ')}</O>}
+        {!!p.mau?.length && <O k="Mẫu dùng">{p.mau.map((x) => mauDs.get(x)?.ten ?? x).join(' + ')}</O>}
+        {p.tien_to && <O k="Tiêu đề">{`"${p.tien_to}: …"`}</O>}
+        {p.ngay && <O k="Lịch">{p.ngay}</O>}
+      </Luoi>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        {(p.vi_du ?? []).map((v) => { const m = mauDs.get(v.mau); return <div key={v.url} style={{ display: 'grid', gap: 6, justifyItems: 'start' }}>
+          <Video src={v.url} doc={m ? khungMau(m) === '9:16' : true} /><span style={{ fontSize: 12, color: 'var(--fg-3)' }}>ví dụ · {m?.ten ?? v.mau}</span></div>; })}
+        {!(p.vi_du ?? []).length && <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>chưa có video ví dụ</div>}
       </div>
     </div>
   </>;

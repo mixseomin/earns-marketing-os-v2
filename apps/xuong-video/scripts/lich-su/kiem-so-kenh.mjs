@@ -3,8 +3,8 @@
 //   node kiem-so-kenh.mjs                       → tự kiểm sổ mọi kênh (mẫu trỏ playlist có thật, ý tưởng thuộc mẫu có thật, mã không trùng, demo có link)
 //   node kiem-so-kenh.mjs --tap <tập.json> [--kenh astrolas]  → gác một tập: khai mau + playlist + y_tuong có trong sổ, playlist đúng của mẫu,
 //                                                  câu kết trỏ đích của sổ (dinh_vi.cau_ket), ý tưởng chưa đăng. Sai → mã 1, in từng lỗi.
-// Máy sinh tập (lich-su/dai/sinh-*.mjs) gọi kiemTap() ngay sau khi ghi tập; máy làm tập theo lịch (G8) gọi trước khi dựng.
-import { readFileSync } from 'node:fs';
+// Máy sinh tập (lich-su/dai/sinh-*.mjs) gọi kiemTap() ngay sau khi ghi tập; máy làm tập theo lịch (G8) gọi trước khi dựng; deploy.sh chạy tự kiểm sổ trước build.
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -58,6 +58,9 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     console.log(loi.length ? `✗ ${arg('tap')}\n${loi.map((l) => `   · ${l}`).join('\n')}` : `✓ ${arg('tap')} đúng sổ ${ma}`); process.exit(loi.length ? 1 : 0);
   }
   let tong = 0;
+  // MỘT NGUỒN: sổ kênh chỉ ở so-kenh.json. lo-trinh.json (tên cũ, đổi 04/11/2026) quay lại = hai bản song song, người sửa nhầm bản không ai đọc
+  // (04/11/2026 một phiên khôi phục nó từ git sau khi commit khác gom nhầm phần đổi tên) → chặn, deploy.sh chạy máy gác này trước khi build
+  for (const cu of ['lo-trinh.json']) if (existsSync(join(DIR, cu))) { console.log(`✗ ${cu} xuất hiện lại cạnh so-kenh.json — sổ kênh chỉ có MỘT tệp: so-kenh.json (xoá ${cu}, gộp nội dung vào so-kenh.json nếu có gì mới)`); tong++; }
   for (const [ma, k] of Object.entries(so)) { if (ma.startsWith('_') || typeof k !== 'object') continue; const loi = kiemSo(k, ma); tong += loi.length;
     console.log(loi.length ? `✗ ${ma}\n${loi.map((l) => `   · ${l}`).join('\n')}` : `✓ ${ma}: ${(k.mau ?? []).length} mẫu · ${(k.hang_cho ?? []).length} ý tưởng · ${(k.playlist ?? []).length} playlist`); }
   // phá thử: tập sai phải bị chặn (máy gác không được im)

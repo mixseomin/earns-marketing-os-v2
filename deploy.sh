@@ -123,6 +123,7 @@ else
     node scripts/check-tab-trang.mjs || { echo "✗ Tab-trang guard failed — abort deploy"; exit 1; }
     # Guard: file 'use client' không được kéo DB/fs (next build gãy) — dính 01/10/2026 ở màn hồ sơ /shop.
     node scripts/check-client-db.mjs || { echo "✗ Client-DB guard failed — abort deploy"; exit 1; }
+    node apps/xuong-video/scripts/lich-su/kiem-so-kenh.mjs || { echo "✗ sổ kênh (apps/xuong-video/scripts/lich-su/so-kenh.json) hỏng hoặc có bản song song — abort deploy"; exit 1; }
     # heap-cap: box 4GB swap-tight → next build worker bị OS OOM-kill (SIGKILL). Cap để node GC sớm +
     # fail gracefully thay vì SIGKILL. ~3GB đủ (đã verify build lọt). Bỏ khi nâng RAM (CX33 8GB).
     # dựng vào .next.new (next.config distDir đọc NEXT_DIST_DIR) — dựng thẳng vào .next làm server đang chạy trả 500 suốt lúc dựng

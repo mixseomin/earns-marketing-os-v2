@@ -470,7 +470,7 @@ const LUAT = [
   { card: 'mr-0411', tep: 'apps/etp/dong_phim.py', co: 'def b_camp_mr(d, truoc):', vi: 'tab Sản xuất lên đủ số camp anh chọn' },
   { card: 'mr-0411', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: "and not _mr and (cm := camp_moi_hom_nay(cid)):", vi: 'mở rộng anh bấm miễn luật một camp mỗi lần' },
   { card: 'mr-0411', tep: 'apps/web/src/components/etp-dong.tsx', co: "window.dispatchEvent(new CustomEvent('etp-dong-moi'", cam: 'router.refresh()', vi: 'gửi form ở yên trang, link sang tab Sản xuất lọc đúng phim (anh 04/11/2026 cấm di chuyển)' },
-  { card: 'mr-0411', tep: 'apps/web/src/components/etp-view.tsx', co: '<BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /></span><NutMoRong cid={k} />', vi: 'dòng phim hiện badge nhấp nháy số camp đang sản xuất, bấm sang tab Sản xuất lọc đúng phim (anh 04/11/2026)' },
+  { card: 'mr-0411', tep: 'apps/web/src/components/etp-view.tsx', co: '<NutMoRong cid={k} /><BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} />', vi: 'dòng phim hiện badge nhấp nháy số camp đang sản xuất, bấm sang tab Sản xuất lọc đúng phim (anh 04/11/2026)' },
   { card: 'mr-0411', tep: 'apps/web/src/components/etp-dong.tsx', co: 'export const NUT_SX: [string, string, string][] = [...COT_PHIM.map(', vi: 'đồng hồ tiến độ: 9 nút = đúng 9 cột tab Sản xuất, màu MAU (anh 04/11/2026)' },
   { card: 'mr-0411', tep: 'apps/web/src/components/etp-view.tsx', co: '<DongHoSx buoc={', vi: 'badge sản xuất ở dòng phim là đồng hồ tiến độ' },
   { card: 'dau-0411', tep: 'apps/etp/dong_phim.py', co: 'if d.get("so_camp") and san_cua(d["content_id"]) >= int(d["so_camp"]): bq |= {"cat", "soat", "creative"}', vi: 'mở rộng dùng lại creative sạch có sẵn, đủ thì không cắt (anh 04/11/2026)' },

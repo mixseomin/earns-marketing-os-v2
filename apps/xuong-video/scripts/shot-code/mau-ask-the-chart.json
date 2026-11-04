@@ -24,11 +24,12 @@
    "the": {
     "lon": "?",
     "dong": [
-     "“What will this year",
-     "bring me?”"
+     "What will this year",
+     "bring me?"
     ],
     "vi": "giua"
-   }
+   },
+   "khung": true
   },
   {
    "tu": 3.2,
@@ -55,7 +56,7 @@
     "man": "../lich-su/cong-cu/ap-1985.png",
     "khung": "banh"
    },
-   "chu": "Each year lights up one house.<br>At 30, it's the 7th."
+   "chu": "“Each year of your life activates<br>one house of your chart.”"
   },
   {
    "tu": 12.8,
@@ -64,7 +65,7 @@
     "man": "../lich-su/cong-cu/ap-1985.png",
     "khung": "nha7"
    },
-   "chu": "The 7th house: partners<br>and business relations."
+   "chu": "The 7th house:<br>“Marriage, spouse, business partners, external relations, and going abroad.”"
   },
   {
    "tu": 16.2,
@@ -73,7 +74,7 @@
     "man": "../lich-su/cong-cu/ap-1985.png",
     "khung": "chu-nam"
    },
-   "chu": "The year's ruler: Jupiter,<br>in his 11th house."
+   "chu": "Lord of the year: Jupiter,<br>in his 11th house."
   },
   {
    "tu": 19.8,
@@ -82,7 +83,7 @@
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
     "kieu": "trai"
    },
-   "chu": "That year, he lost Apple.",
+   "chu": "1985: Apple's board strips him<br>of his role.",
    "nhan": "1985 · Cupertino"
   },
   {
@@ -91,7 +92,20 @@
    "nhin": {
     "troi": 1
    },
-   "chu": "Ask your own question<br>free at astrolas.com."
+   "chu": "Ask your own question<br>free at astrolas.com.",
+   "khung": true
   }
- ]
+ ],
+ "nguon_moc": [
+  "dai/moc-steve-jobs.json"
+ ],
+ "dang": {
+  "cong_cu": "annual-profections",
+  "ai": "steve-jobs",
+  "tham": {
+   "year_target": 1985
+  },
+  "link": "https://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15&year_target=1985",
+  "mo_ta": "Steve Jobs, 1985: what Annual Profections shows for age 30.\n\nAnnual Profections: This year's ruling house & lord.\nhttps://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15&year_target=1985"
+ }
 }

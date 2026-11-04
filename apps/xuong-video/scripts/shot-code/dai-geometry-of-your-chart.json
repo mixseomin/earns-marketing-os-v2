@@ -38,7 +38,7 @@
      "nhin": "xien"
     }
    },
-   "chu": "The sky turns around you once a day. The gold circle is the zodiac: the Sun's path.",
+   "chu": "“The Earth turns once in 24 hours, so all 12 signs pass over the eastern horizon in a day.” The gold circle is the zodiac.",
    "nhan": "The ecliptic"
   },
   {
@@ -51,7 +51,7 @@
      "nhin": "dong"
     }
    },
-   "chu": "Look east. The zodiac point rising over the horizon right now is your Ascendant.",
+   "chu": "Look east. “At the moment you were born, one of the 12 zodiac signs was coming up over the eastern horizon.” That point is your Ascendant.",
    "nhan": "Rising sign"
   },
   {
@@ -64,7 +64,7 @@
      "nhin": "dong"
     }
    },
-   "chu": "Every two hours or so, a new sign rises. That's why birth time matters.",
+   "chu": "“That works out to roughly two hours per sign.” “If your birth time is off by an hour, there's a fair chance your rising sign is wrong.”",
    "nhan": "≈ 2 hours per sign"
   },
   {
@@ -73,7 +73,7 @@
    "canh": {
     "banh": 1
    },
-   "chu": "Flatten the sky, and that rising point becomes the left edge of your chart.",
+   "chu": "“The Ascendant is marked on the left side of the wheel”",
    "nhan": "Steve Jobs · Virgo rising"
   },
   {
@@ -85,5 +85,13 @@
    "chu": "See your own Ascendant free at astrolas.com.",
    "nhan": "astrolas.com · Birth Chart"
   }
- ]
+ ],
+ "nguon_bai": [
+  "rising-sign-explained"
+ ],
+ "dang": {
+  "cong_cu": "birth",
+  "link": "https://astrolas.com/birth",
+  "mo_ta": "Why your Ascendant depends on your birth time. Read the full guide: https://astrolas.com/en/blog/rising-sign-explained\n\nBirth chart: A full picture of who you are.\nhttps://astrolas.com/birth"
+ }
 }

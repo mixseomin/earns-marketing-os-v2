@@ -1,11 +1,20 @@
 {
- "_ghi": "Chart Chapters dài · Steve Jobs — sinh bởi lich-su/dai/sinh-chuong.mjs từ lich-su/dai/moc-steve-jobs.json",
+ "_ghi": "Chart Chapters dài · Steve Jobs — sinh bởi lich-su/dai/sinh-chuong.mjs từ moc-steve-jobs.json",
  "kenh": "astrolas",
  "mau": "chart-chapters-dai",
  "playlist_ma": "career",
  "y_tuong": "ccd-steve-jobs",
  "khung": "ngang",
  "DAI": 54.4,
+ "nguon_moc": [
+  "dai/moc-steve-jobs.json"
+ ],
+ "dang": {
+  "cong_cu": "annual-profections",
+  "ai": "steve-jobs",
+  "link": "https://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15",
+  "mo_ta": "Steve Jobs's life, year by year, in Annual Profections.\n\nAnnual Profections: This year's ruling house & lord.\nhttps://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15"
+ },
  "la_so": "../lich-su/la-so/steve-jobs.svg",
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
@@ -51,7 +60,7 @@
      ]
     }
    },
-   "chu": "Astrologers kept an old clock for a life. Each birthday, the year moves one sign around the chart.",
+   "chu": "“Each year of your life activates one house of your chart, and the planet ruling that house becomes the lord of the year.”",
    "nhan": "Annual Profections"
   },
   {

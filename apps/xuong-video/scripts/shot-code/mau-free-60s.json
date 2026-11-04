@@ -87,5 +87,10 @@
    },
    "chu": "Try it free<br>at astrolas.com."
   }
- ]
+ ],
+ "dang": {
+  "cong_cu": "birth",
+  "link": "https://astrolas.com/birth",
+  "mo_ta": "Your full birth chart in 60 seconds, free.\n\nBirth chart: A full picture of who you are.\nhttps://astrolas.com/birth"
+ }
 }

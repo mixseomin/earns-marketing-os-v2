@@ -22,7 +22,7 @@
      "nhin": "tren"
     }
    },
-   "chu": "Three times a year, Mercury seems to stop and walk backwards across the sky.",
+   "chu": "“Three times a year, for about three weeks each, Mercury appears to move backwards”",
    "nhan": "Mercury retrograde"
   },
   {
@@ -34,7 +34,7 @@
      "nhin": "xien"
     }
    },
-   "chu": "Mercury circles the Sun every 88 days. Earth takes 365.",
+   "chu": "“It isn't moving backwards; the view from Earth makes it look that way”",
    "nhan": "Real orbital periods"
   },
   {
@@ -47,7 +47,7 @@
      "vet": true
     }
    },
-   "chu": "From Earth, we see Mercury against the zodiac. Watch the yellow line.",
+   "chu": "Watch the yellow line: Mercury against the zodiac.",
    "nhan": "Line of sight"
   },
   {
@@ -60,7 +60,7 @@
      "vet": true
     }
    },
-   "chu": "As Mercury overtakes us on the inside lane, it appears to move backwards. The red stretch.",
+   "chu": "“During the overtake it appears to reverse direction against the background stars for roughly three weeks.” The red part.",
    "nhan": "Retrograde: a matter of perspective"
   },
   {
@@ -73,8 +73,16 @@
      "vet": true
     }
    },
-   "chu": "Nothing actually reverses. Next one: see the dates free at astrolas.com.",
+   "chu": "See the next retrograde dates free at astrolas.com.",
    "nhan": "astrolas.com · Transit"
   }
- ]
+ ],
+ "nguon_bai": [
+  "mercury-retrograde-what-actually-happens"
+ ],
+ "dang": {
+  "cong_cu": "today",
+  "link": "https://astrolas.com/today",
+  "mo_ta": "What Mercury retrograde actually is. Read the full guide: https://astrolas.com/en/blog/mercury-retrograde-what-actually-happens\n\nToday's sky: Where the planets are right now.\nhttps://astrolas.com/today"
+ }
 }

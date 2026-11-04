@@ -21,7 +21,7 @@
     "tranh": "../lich-su/brand/astrolas/tranh/my-chiron-day.jpg",
     "kieu": "day"
    },
-   "chu": "Chiron was the wisest centaur.<br>He taught heroes like Achilles.",
+   "chu": "Chiron: “Named after the centaur in Greek myth<br>who was a teacher of heroes and a healer”",
    "nhan": "Greek myth · Mount Pelion"
   },
   {
@@ -31,7 +31,7 @@
     "tranh": "../lich-su/brand/astrolas/tranh/my-chiron-ten.jpg",
     "kieu": "trai"
    },
-   "chu": "A stray arrow from Heracles<br>wounded him. It never healed.",
+   "chu": "“wounded by a poisoned arrow<br>he couldn't cure in himself.”",
    "nhan": "The wounded healer"
   },
   {
@@ -41,7 +41,7 @@
     "tranh": "../lich-su/brand/astrolas/tranh/my-chiron-sao.jpg",
     "kieu": "len"
    },
-   "chu": "He gave up his immortality.<br>Zeus set him among the stars."
+   "chu": "Astrologers call it<br>“the wounded healer.”"
   },
   {
    "tu": 10.8,
@@ -49,12 +49,12 @@
    "nhin": {
     "troi": 1
    },
-   "chu": "In 1977 a new body was found<br>between Saturn and Uranus.",
+   "chu": "“Discovered in 1977.” “The small body<br>between Saturn and Uranus.”",
    "the": {
     "lon": "⚷",
     "duoi": "Chiron · 1977",
     "dong": [
-     "Found by Charles Kowal"
+     "“Discovered in 1977.”"
     ],
     "vi": "giua"
    }
@@ -73,7 +73,17 @@
    "nhin": {
     "toan": 1
    },
-   "chu": "What's your Chiron sign?<br>Find it free at astrolas.com."
+   "chu": "What's your Chiron sign?<br>Find it free at astrolas.com.",
+   "khung": true
   }
- ]
+ ],
+ "nguon_bai": [
+  "chiron-in-the-birth-chart"
+ ],
+ "dang": {
+  "cong_cu": "birth",
+  "ai": "steve-jobs",
+  "link": "https://astrolas.com/birth?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15",
+  "mo_ta": "Chiron in Steve Jobs's birth chart. Read the full guide: https://astrolas.com/en/blog/chiron-in-the-birth-chart\n\nBirth chart: A full picture of who you are.\nhttps://astrolas.com/birth?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15"
+ }
 }

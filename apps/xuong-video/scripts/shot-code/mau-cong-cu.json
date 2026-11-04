@@ -21,7 +21,7 @@
     "tranh": "../lich-su/brand/astrolas/tranh/pf-valens.jpg",
     "kieu": "day"
    },
-   "chu": "Ancient astrologers used<br>a simple clock for each year.",
+   "chu": "“Each year of your life activates<br>one house of your chart.”",
    "nhan": "2nd century · Alexandria"
   },
   {
@@ -39,7 +39,7 @@
    "nhin": {
     "cung": "Virgo"
    },
-   "chu": "Each birthday, your year moves<br>one sign around your chart.",
+   "chu": "“Your first year of life (birth to<br>first birthday) belongs to the 1st house.”",
    "the": {
     "lon": "0",
     "duoi": "age",
@@ -56,7 +56,7 @@
    "nhin": {
     "cung": "Libra"
    },
-   "chu": "Each birthday, your year moves<br>one sign around your chart.",
+   "chu": "Age 1: the 2nd house.",
    "the": {
     "lon": "1",
     "duoi": "age",
@@ -73,7 +73,7 @@
    "nhin": {
     "cung": "Scorpio"
    },
-   "chu": "Each birthday, your year moves<br>one sign around your chart.",
+   "chu": "Age 2: the 3rd house.",
    "the": {
     "lon": "2",
     "duoi": "age",
@@ -90,7 +90,7 @@
    "nhin": {
     "cung": "Sagittarius"
    },
-   "chu": "Each birthday, your year moves<br>one sign around your chart.",
+   "chu": "Age 3: the 4th house.",
    "the": {
     "lon": "3",
     "duoi": "age",
@@ -106,7 +106,7 @@
    "nhin": {
     "cung": "Pisces"
    },
-   "chu": "At 30, his year landed on Pisces.<br>Year lord: Jupiter.",
+   "chu": "Age 30: Pisces, the 7th house.<br>Lord of the year: Jupiter.",
    "the": {
     "lon": "30",
     "duoi": "1985",
@@ -123,7 +123,7 @@
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
     "kieu": "trai"
    },
-   "chu": "The year he lost Apple.",
+   "chu": "1985: Apple's board strips him<br>of his role.",
    "nhan": "1985 · Cupertino"
   },
   {
@@ -132,7 +132,7 @@
    "nhin": {
     "cung": "Pisces"
    },
-   "chu": "Twelve years later, at 42,<br>Pisces came back.",
+   "chu": "Age 42: Pisces again.<br>Jupiter again.",
    "the": {
     "lon": "42",
     "duoi": "1997",
@@ -149,7 +149,7 @@
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1997-stage.jpg",
     "kieu": "lui"
    },
-   "chu": "The year he returned.",
+   "chu": "1997: He comes back to Apple.",
    "nhan": "1997 · Macworld, Boston"
   },
   {
@@ -158,7 +158,7 @@
    "nhin": {
     "sao": "Jupiter"
    },
-   "chu": "His Jupiter sits in the 10th house,<br>career and public life."
+   "chu": "“The lord of the year is the planet<br>to watch for those 12 months.”"
   },
   {
    "tu": 26.8,
@@ -166,7 +166,16 @@
    "nhin": {
     "toan": 1
    },
-   "chu": "Find your year lord<br>free at astrolas.com."
+   "chu": "Find your lord of the year<br>free at astrolas.com."
   }
- ]
+ ],
+ "nguon_moc": [
+  "dai/moc-steve-jobs.json"
+ ],
+ "dang": {
+  "cong_cu": "annual-profections",
+  "ai": "steve-jobs",
+  "link": "https://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15",
+  "mo_ta": "How Annual Profections reads a life: Steve Jobs at 30 and 42.\n\nAnnual Profections: This year's ruling house & lord.\nhttps://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15"
+ }
 }

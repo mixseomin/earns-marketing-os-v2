@@ -61,7 +61,7 @@
      ]
     }
    },
-   "chu": "Astrologers kept an old clock for a life. Each birthday, the year moves one sign around the chart.",
+   "chu": "“Each year of your life activates one house of your chart, and the planet ruling that house becomes the lord of the year.”",
    "nhan": "Annual Profections"
   },
   {
@@ -92,7 +92,7 @@
      ]
     }
    },
-   "chu": "1976, age 21: a Gemini year. Counted from his Virgo rising, that's the 10th house: career."
+   "chu": "1976, age 21: a Gemini year. Counted from his Virgo rising, that's the 10th house: “Career, action (praxis), reputation, social status, advancement, and public achievements.”"
   },
   {
    "tu": 21.0,
@@ -130,7 +130,7 @@
      ]
     }
    },
-   "chu": "1985, age 30: Pisces, the 7th house. Marriage, business partners, external relations."
+   "chu": "1985, age 30: Pisces, the 7th house: “Marriage, spouse, business partners, external relations, and going abroad.”"
   },
   {
    "tu": 30.8,
@@ -170,7 +170,7 @@
      ]
     }
    },
-   "chu": "1997, age 42: Pisces again. Twelve years, one full circle."
+   "chu": "1997, age 42: Pisces again, the 7th house."
   },
   {
    "tu": 40.4,
@@ -179,7 +179,7 @@
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1997-stage.jpg",
     "kieu": "lui"
    },
-   "chu": "And he comes back.",
+   "chu": "He comes back to Apple.",
    "nhan": "1997 · Macworld, Boston"
   },
   {
@@ -189,7 +189,7 @@
     "man": "../lich-su/cong-cu/ap-1985.png",
     "khung": "banh"
    },
-   "chu": "The free Annual Profections tool draws this wheel for any year of your life.",
+   "chu": "Annual Profections: “This year's ruling house & lord”.",
    "nhan": "astrolas.com · Annual Profections"
   },
   {
@@ -200,5 +200,14 @@
    },
    "chu": "Find your own chapters free at astrolas.com."
   }
- ]
+ ],
+ "nguon_moc": [
+  "dai/moc-steve-jobs.json"
+ ],
+ "dang": {
+  "cong_cu": "annual-profections",
+  "ai": "steve-jobs",
+  "link": "https://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15",
+  "mo_ta": "Steve Jobs's life, year by year, in Annual Profections.\n\nAnnual Profections: This year's ruling house & lord.\nhttps://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15"
+ }
 }

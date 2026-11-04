@@ -55,14 +55,15 @@
    "nhin": {
     "troi": 1
    },
-   "chu": "Leo rising? Scorpio is your 4th house:<br>home and family.",
+   "chu": "Leo rising? Scorpio is your 4th house:<br>“Parents (especially the father), family, home, real estate, private matters, and the ending of things.”",
    "the": {
     "lon": "4th",
     "duoi": "house · Leo rising",
     "dong": [
-     "Slow down on home decisions"
+     "“re-viewing, re-visiting,",
+     "re-considering, re-pairing”"
     ],
-    "vi": "giua"
+    "vi": "tren"
    }
   },
   {
@@ -92,5 +93,10 @@
    },
    "chu": "See where it lands in your chart<br>free at astrolas.com."
   }
- ]
+ ],
+ "dang": {
+  "cong_cu": "transit",
+  "link": "https://astrolas.com/transit",
+  "mo_ta": "Mercury retrograde in Scorpio: find it in your own chart with Transit.\n\nTransit: What is being activated now.\nhttps://astrolas.com/transit"
+ }
 }

@@ -8,7 +8,7 @@
 //   Lá số: lich-su/la-so/<slug>.svg + .json (la-so/lay.mjs lấy từ astrolas.com/c/<slug>; chưa có thì chạy lệnh đó trước).
 //   Quay:  node shot-code/dung.mjs --trang shot-code/la-so.html --cau <tap.json> --ra <ra.mp4> --rong 1920 --cao 1080
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../../shot-code'), LA_SO = join(DIR, '../la-so');
@@ -41,7 +41,8 @@ const ra = arg('ra', join(SHOT, `dai-chuong-${slug}.json`)), tg = (p) => relativ
 const cau = [];
 const them = (dai, nhin, chu, nhan) => { const tu = cau.length ? cau.at(-1).den : 0; cau.push({ tu: +tu.toFixed(2), den: +(tu + dai).toFixed(2), nhin, chu, ...(nhan ? { nhan } : {}) }); };
 them(5.0, { dung: 1 }, `This is the sky at the moment ${M.ten} was born: ${M.sinh}.`);
-them(5.4, doi(namSinh), 'Astrologers kept an old clock for a life. Each birthday, the year moves one sign around the chart.', 'Annual Profections');
+// cơ chế Profection: câu NGUYÊN VĂN bài annual-profections-explained của site (luật nguồn 05/11/2026 — trước đây câu tự viết "an old clock for a life")
+them(5.4, doi(namSinh), '“Each year of your life activates one house of your chart, and the planet ruling that house becomes the lord of the year.”', 'Annual Profections');
 let truocCung = null;
 for (const m of M.moc) {
   const tuoi = tuoiTai(m), c = (moc + tuoi) % 12, nha = (tuoi % 12) + 1, lap = truocCung === c;
@@ -51,9 +52,13 @@ for (const m of M.moc) {
   truocCung = c;
 }
 them(4.4, { toan: 1 }, 'Find your own chapters free at astrolas.com.', 'astrolas.com · Annual Profections');
-const CAU = { _ghi: `Chart Chapters dài · ${M.ten} — sinh bởi lich-su/dai/sinh-chuong.mjs từ ${tepMoc}`, kenh: 'astrolas', mau: 'chart-chapters-dai', playlist_ma: 'chart-chapters', y_tuong: `ccd-${slug}`, khung: 'ngang', DAI: cau.at(-1).den,
+const { dangCongCu } = await import(join(DIR, '../nguon-site.mjs'));
+const CAU = { _ghi: `Chart Chapters dài · ${M.ten} — sinh bởi lich-su/dai/sinh-chuong.mjs từ ${tepMoc}`, kenh: 'astrolas', mau: 'chart-chapters-dai', playlist_ma: 'career', y_tuong: `ccd-${slug}`, khung: 'ngang', DAI: cau.at(-1).den,
+  nguon_moc: [relative(join(DIR, '..'), resolve(tepMoc))],   // đường tính từ lich-su/ (nguon-site.mjs đọc theo gốc đó)
+  // bài đăng: mô tả công cụ Annual Profections của site + link mở thẳng lá số người này
+  dang: dangCongCu('annual-profections', slug, {}, `${M.ten}'s life, year by year, in Annual Profections.`),
   la_so: tg(join(LA_SO, `${slug}.svg`)), nen: tg(join(DIR, '../brand/astrolas/anh/troi.jpg')), logo: tg(join(DIR, '../brand/astrolas/logo/wordmark.png')),
-  playlist: { ten: 'Chart Chapters', mau: '#E6B800', ic: '☉' }, cau };
+  playlist: { ten: 'Career & Big Decisions', mau: '#E6B800', ic: '♄' }, cau };
 // máy gác sổ kênh (lich-su/so-kenh.json): sai mẫu / playlist / ý tưởng / câu kết thì không ghi
 const { docSo, kiemTap } = await import(join(DIR, '../kiem-so-kenh.mjs')), loiSo = kiemTap(CAU, docSo().astrolas, 'astrolas');
 if (loiSo.length) { console.error(`✗ tập trái sổ kênh:\n${loiSo.map((l) => `   · ${l}`).join('\n')}`); process.exit(3); }

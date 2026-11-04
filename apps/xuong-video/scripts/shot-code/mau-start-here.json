@@ -20,7 +20,8 @@
    "nhin": {
     "dung": 1
    },
-   "chu": "Every life has chapters."
+   "chu": "Every life has chapters.",
+   "khung": true
   },
   {
    "tu": 3.0,
@@ -30,7 +31,8 @@
     "kieu": "trai"
    },
    "chu": "Real people.<br>Real turning points.",
-   "nhan": "Chart Chapters"
+   "nhan": "Chart Chapters",
+   "khung": true
   },
   {
    "tu": 6.0,
@@ -40,7 +42,8 @@
     "kieu": "len"
    },
    "chu": "Skies that changed history.",
-   "nhan": "Sky Calendar"
+   "nhan": "Sky Calendar",
+   "khung": true
   },
   {
    "tu": 9.0,
@@ -50,7 +53,8 @@
     "kieu": "day"
    },
    "chu": "And the myths<br>written in the stars.",
-   "nhan": "The Myth Behind"
+   "nhan": "The Myth Behind",
+   "khung": true
   },
   {
    "tu": 12.0,
@@ -58,7 +62,8 @@
    "nhin": {
     "nha": 10
    },
-   "chu": "All read from real charts."
+   "chu": "All read from real charts.",
+   "khung": true
   },
   {
    "tu": 15.2,
@@ -74,7 +79,8 @@
      "Sky Calendar"
     ],
     "vi": "giua"
-   }
+   },
+   "khung": true
   },
   {
    "tu": 18.6,
@@ -82,7 +88,13 @@
    "nhin": {
     "toan": 1
    },
-   "chu": "See your own chart<br>free at astrolas.com."
+   "chu": "See your own chart<br>free at astrolas.com.",
+   "khung": true
   }
- ]
+ ],
+ "dang": {
+  "cong_cu": "birth",
+  "link": "https://astrolas.com/birth",
+  "mo_ta": "Astrolas: real charts, real turning points, read from real data.\n\nBirth chart: A full picture of who you are.\nhttps://astrolas.com/birth"
+ }
 }

@@ -31,6 +31,12 @@ export function linkCongCu(ma, ai, them = {}) {
   const q = new URLSearchParams({ ...p, ...them }).toString(); return q ? `${c.url}?${q}` : c.url;
 }
 
+/** phần BÀI ĐĂNG của một tập: mô tả = tên + câu mô tả NGUYÊN VĂN của công cụ trên site + link mở thẳng kết quả (+ dòng dẫn tự viết). Máy sinh nào cũng gọi hàm này. */
+export function dangCongCu(ma, ai, tham = {}, dan = '') {
+  const c = SO_CONG_CU().find((x) => x.ma === ma); if (!c?.mo_ta) throw new Error(`công cụ ${ma}: site chưa có mô tả riêng — chưa đăng bài về công cụ này`);
+  const link = linkCongCu(ma, ai, tham);
+  return { cong_cu: ma, ...(ai ? { ai } : {}), ...(Object.keys(tham).length ? { tham } : {}), link, mo_ta: `${dan ? `${dan}\n\n` : ''}${c.ten}: ${c.mo_ta}.\n${link}` };
+}
 const sach = (s) => String(s ?? '').replace(/<br\s*\/?>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/[“”"]/g, ' ').replace(/[’‘]/g, "'").replace(/\s+/g, ' ').trim();
 const tu = (s) => sach(s).toLowerCase().match(/[a-z0-9°'$.,%-]+/g)?.map((w) => w.replace(/^[.,]+|[.,:;!?]+$/g, '').replace(/'s$/, '')).filter(Boolean) ?? [];
 
@@ -65,7 +71,7 @@ const DU_LIEU = new Set(('a an the his her their its your my our this that these
   + 'astrolas.com astrolas compare yours own new next last today tonight tomorrow week weekly month months annual daily natal return solar lunar progressed '
   + 'monday tuesday wednesday thursday friday saturday sunday january february march april may june july august september october november december jan feb mar apr jun jul aug sep sept oct nov dec '
   // nguyên tố / tính chất / hướng / ký hiệu trên hình — dữ liệu lá số
-  + 'ac dc angle angles fire earth air water cardinal fixed mutable element elements modality north south east west left right up down gold yellow red blue line circle ring dot glyph symbol number numbers rx '
+  + 'dates against across here part shown ac dc angle angles fire earth air water cardinal fixed mutable element elements modality north south east west left right up down gold yellow red blue line circle ring dot glyph symbol number numbers rx '
   + 'ari tau gem can vir lib sco sag cap aqu pis').split(/\s+/));
 // TỪ NGHĨA: lời diễn giải chiêm tinh hay gặp — câu KHUNG (mở đầu / kết / dẫn chuyện, khai khung: true) được tự viết nhưng không được mang từ nào ở đây
 const NGHIA = /\b(career|reputation|public|status|home|family|parents?|father|mother|children|creativity|joy|love|romance|romantic|marriage|spouse|partners?|partnership|relations?|relationships?|money|wealth|income|values?|health|illness|work|service|duty|communication|siblings|travel|education|religion|faith|beliefs?|friends?|hopes?|wishes|enemies|secrets?|hidden|calamit\w*|imprisonment|death|sex\w*|intimacy|debts?|transformation|power|control|identity|ego|self|emotions?|feelings?|moods?|instincts?|intuition|dreams?|spirit\w*|luck\w*|lucky|fortune|growth|expansion|restriction|discipline|lessons?|karma\w*|destiny|fate|wound\w*|healing|teacher|rebellion|freedom|change|chaos|harmony|conflict|tension|challenges?|chemistry|compatib\w*|attraction|passion|energy|desire|beauty|pleasure|wisdom|mind|thinking|stress|slow|decisions?|good|bad|easy|hard|trouble|best|worst|ideal|perfect)\b/i;
@@ -102,7 +108,8 @@ export function kiemNguon(tap) {
   for (const [i, q] of (tap.cau ?? []).entries()) {
     const dong = [q.doc ?? q.chu, ...(q.the ? [q.the.lon, q.the.duoi, ...(q.the.dong ?? [])] : [])].map((x) => String(x ?? '')).join(' ');
     let conLai = dong;   // trích “…” khớp nguyên văn thì trừ ra, phần còn lại mới kiểm
-    for (const m of dong.matchAll(/“([^”]+)”/g)) { if (!khoTu.some((k) => k.includes(` ${tu(m[1]).join(' ')} `))) loi.push(`câu ${i + 1}: trích “${m[1]}” không khớp nguyên văn chữ site của tập`); else conLai = conLai.replace(m[0], ' '); }
+    const khoCau = [...khoTu, ...nghiaNha(dong).map((n) => ` ${tu(n).join(' ')} `)];   // nghĩa nhà của site chỉ hợp lệ với đúng nhà câu này nhắc
+    for (const m of dong.matchAll(/“([^”]+)”/g)) { if (!khoCau.some((k) => k.includes(` ${tu(m[1]).join(' ')} `))) loi.push(`câu ${i + 1}: trích “${m[1]}” không khớp nguyên văn chữ site của tập`); else conLai = conLai.replace(m[0], ' '); }
     const bia = phanBia(conLai, kho, rieng);
     if (q.khung) { const n = bia.filter((x) => NGHIA.test(x)); if (n.length) loi.push(`câu ${i + 1} (khung): tự viết nhưng mang nghĩa chiêm tinh (${n.join(' ')}) — nghĩa phải là chữ nguyên văn site`); }
     else if (CHIEM.test(sach(dong)) && bia.length) loi.push(`câu ${i + 1}: lời chiêm tinh không phải chữ của site (${bia.slice(0, 6).join(' ')}) — lấy nguyên văn site, chỉ nêu dữ liệu lá số, hoặc khai khung: true nếu là câu dẫn không mang nghĩa`);

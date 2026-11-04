@@ -29,7 +29,7 @@
     "man": "../lich-su/cong-cu/sj-natal.png",
     "khung": "asc"
    },
-   "chu": "AC is the Ascendant:<br>the sign rising at your birth.",
+   "chu": "AC is the Ascendant. “At the moment you were born, one of the 12 zodiac signs<br>was coming up over the eastern horizon.”",
    "nhan": "Steve Jobs · Ascendant"
   },
   {
@@ -54,7 +54,7 @@
    "nhin": {
     "troi": 1
    },
-   "chu": "Every sign is 30 degrees wide.<br>Each degree has 60 minutes.",
+   "chu": "30 degrees per sign.<br>60 minutes per degree.",
    "the": {
     "lon": "30°",
     "duoi": "per sign",
@@ -91,5 +91,11 @@
    },
    "chu": "Read your own chart<br>free at astrolas.com."
   }
- ]
+ ],
+ "dang": {
+  "cong_cu": "birth",
+  "ai": "steve-jobs",
+  "link": "https://astrolas.com/birth?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15",
+  "mo_ta": "How to read the numbers in a birth chart, with Steve Jobs's chart.\n\nBirth chart: A full picture of who you are.\nhttps://astrolas.com/birth?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15"
+ }
 }

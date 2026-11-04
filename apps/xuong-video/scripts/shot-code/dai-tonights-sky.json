@@ -41,5 +41,10 @@
    "chu": "See your own sky free at astrolas.com",
    "nhan": "astrolas.com · Today's sky"
   }
- ]
+ ],
+ "dang": {
+  "cong_cu": "today",
+  "link": "https://astrolas.com/today",
+  "mo_ta": "Tonight's sky over London, as it really looks.\n\nToday's sky: Where the planets are right now.\nhttps://astrolas.com/today"
+ }
 }

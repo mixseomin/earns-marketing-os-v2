@@ -20,7 +20,7 @@
     "tranh": "../lich-su/brand/astrolas/tranh/sc-1503-tau.jpg",
     "kieu": "trai"
    },
-   "chu": "1503. Columbus and his crew<br>are stranded on Jamaica.",
+   "chu": "1503. Columbus and 230 of his men<br>are stranded on Jamaica.",
    "nhan": "1503 · St. Ann's Bay, Jamaica"
   },
   {
@@ -30,7 +30,7 @@
     "tranh": "../lich-su/brand/astrolas/tranh/sc-1504-almanac.jpg",
     "kieu": "day"
    },
-   "chu": "His almanac of star tables<br>predicts a lunar eclipse.",
+   "chu": "Predicting a lunar eclipse for 29 February 1504,<br>using Abraham Zacuto's astronomical charts.",
    "nhan": "Regiomontanus's Ephemerides"
   },
   {
@@ -39,13 +39,12 @@
    "nhin": {
     "troi": 1
    },
-   "chu": "He tells the islanders:<br>tonight, the Moon will bleed.",
+   "chu": "29 February 1504.",
    "the": {
     "lon": "Feb 29",
     "duoi": "1504",
     "dong": [
-     "Total lunar eclipse",
-     "visible from Jamaica"
+     "Lunar eclipse"
     ],
     "vi": "giua"
    }
@@ -57,7 +56,7 @@
     "tranh": "../lich-su/brand/astrolas/tranh/sc-1504-trang-do.jpg",
     "kieu": "len"
    },
-   "chu": "That night, it turns red.",
+   "chu": "Columbus won their favor.",
    "nhan": "February 29, 1504"
   },
   {
@@ -69,7 +68,7 @@
      "so": 7
     }
    },
-   "chu": "Your Moon this week:<br>a New Moon on Monday."
+   "chu": "This week:<br>a New Moon on Monday."
   },
   {
    "tu": 18.2,
@@ -77,7 +76,15 @@
    "nhin": {
     "troi": 1
    },
-   "chu": "See tonight's sky<br>free at astrolas.com."
+   "chu": "See this week's Moon Phase<br>free at astrolas.com."
   }
- ]
+ ],
+ "nguon_moc": [
+  "dai/moc-columbus-1504.json"
+ ],
+ "dang": {
+  "cong_cu": "moon-phase",
+  "link": "https://astrolas.com/moon-phase",
+  "mo_ta": "1504: Columbus, Jamaica and a lunar eclipse. This week's Moon phases on Astrolas.\n\nMoon Phase: Today's and upcoming Moon phases.\nhttps://astrolas.com/moon-phase"
+ }
 }

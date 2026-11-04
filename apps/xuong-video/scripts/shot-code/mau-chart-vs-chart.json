@@ -21,7 +21,7 @@
    "nhin": {
     "troi": 1
    },
-   "chu": "Rivals for 30 years.<br>Their charts score teamwork:",
+   "chu": "1994: a court rules against Apple.<br>Their charts score teamwork:",
    "the": {
     "lon": "100",
     "duoi": "/100 · Teamwork & shared goals",
@@ -94,5 +94,17 @@
    },
    "chu": "Compare any two charts<br>free at astrolas.com."
   }
- ]
+ ],
+ "dang": {
+  "cong_cu": "synastry-chart",
+  "ai": [
+   "steve-jobs",
+   "bill-gates"
+  ],
+  "tham": {
+   "rel_type": "partner"
+  },
+  "link": "https://astrolas.com/synastry-chart?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15&name2=Bill+Gates&day2=28&month2=10&year2=1955&location2=Seattle%2C+Washington%2C+USA&lat2=47.6062&lng2=-122.3321&hour2=22&minute2=0&rel_type=partner",
+  "mo_ta": "Steve Jobs and Bill Gates: both birth charts compared with the Synastry tool.\n\nSynastry - Compare 2 Charts: Compare two charts for chemistry.\nhttps://astrolas.com/synastry-chart?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15&name2=Bill+Gates&day2=28&month2=10&year2=1955&location2=Seattle%2C+Washington%2C+USA&lat2=47.6062&lng2=-122.3321&hour2=22&minute2=0&rel_type=partner"
+ }
 }

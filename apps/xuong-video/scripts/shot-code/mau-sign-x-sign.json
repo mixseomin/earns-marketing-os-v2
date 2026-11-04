@@ -23,7 +23,7 @@
      "Sagittarius"
     ]
    },
-   "chu": "Leo and Sagittarius.<br>Easy match, or trouble?",
+   "chu": "“Is Leo and Sagittarius a good match?”",
    "the": {
     "lon": "♌︎ × ♐︎",
     "duoi": "Leo × Sagittarius",
@@ -63,7 +63,7 @@
    "chu": "Where it clicks:<br>“Humor is a real glue here.”",
    "the": {
     "lon": "✓",
-    "duoi": "Where it clicks",
+    "duoi": "“Where it clicks”",
     "dong": [
      "“You both forgive quickly.”"
     ],
@@ -79,10 +79,10 @@
      "Sagittarius"
     ]
    },
-   "chu": "Where it clashes: Fixed Leo wants devotion,<br>mutable Sagittarius wants space.",
+   "chu": "“Where it clashes”: “Fixed Leo wants consistency and devotion,<br>mutable Sagittarius wants variety and space.”",
    "the": {
     "lon": "Fixed × Mutable",
-    "duoi": "Where it clashes",
+    "duoi": "“Where it clashes”",
     "dong": [
      "“Sagittarius’s candor can",
      "bruise Leo’s pride.”"
@@ -116,9 +116,14 @@
    "nhin": {
     "troi": 1
    },
-   "chu": "Sun signs are only the start.<br>Compare your charts free at astrolas.com."
+   "chu": "“Beyond Sun signs”:<br>compare your charts free at astrolas.com."
   }
  ],
  "la_so": "../lich-su/la-so/steve-jobs.svg",
- "chi_vong": true
+ "chi_vong": true,
+ "dang": {
+  "cong_cu": "compatibility",
+  "link": "https://astrolas.com/compatibility",
+  "mo_ta": "Leo and Sagittarius compatibility. Read the full guide: https://astrolas.com/en/blog/leo-and-sagittarius-compatibility\n\nCompatibility checker: A quick read on how two people fit.\nhttps://astrolas.com/compatibility"
+ }
 }

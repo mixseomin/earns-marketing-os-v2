@@ -545,18 +545,18 @@ try:
         r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-v", "ON_ERROR_STOP=1", "-tAc", cau], capture_output=True, text=True)   # -v trước -c: "-tAc" lấy đối số kế làm lệnh
         if r.returncode != 0: raise RuntimeError(r.stderr.strip()[:160])
         return r.stdout.strip()
-    for _l in _q_ktra("""with d as (select camp_id, min(ngay::timestamp + (gio || ' hours')::interval) t0 from etp.so_gio_camp where chi > 0 group by 1)
+    for _l24 in _q_ktra("""with d as (select camp_id, min(ngay::timestamp + (gio || ' hours')::interval) t0 from etp.so_gio_camp where chi > 0 group by 1)
         select s.camp_id, extract(epoch from (now() at time zone 'utc' - d.t0)) / 3600, sum(s.chi), sum(s.thu), coalesce(c.ngan_sach, 0), coalesce(c.ten, '')
         from d join etp.so_gio_camp s on s.camp_id = d.camp_id and (s.ngay::timestamp + (s.gio || ' hours')::interval) < d.t0 + interval '24 hours'
         join etp.camp c on c.camp_id = s.camp_id where d.t0 >= now() - interval '4 days' group by 1, 2, 5, 6""").splitlines():
-        _p = _l.split("|", 5)
-        if len(_p) < 6: continue
-        _c, _tuoi, _ch, _th, _ns, _ten = int(_p[0]), float(_p[1]), float(_p[2]), float(_p[3]), float(_p[4]), _p[5]
-        _t24[_c] = (_tuoi, _ch, _th, _ns)
-        if _tuoi < T1_24_TUOI or _c not in _dc or _c in _t1_co or _ch < max(0.3, T1_24_PHAN * _ns): continue
-        _r = (_th - _ch) / _ch * 100
-        if _r < T1_24_ROI:
-            tat1.append((_c, f"#{_ten[:70]} · 24 giờ chạy đầu: chi ${_ch:.2f} · lãi ${_th - _ch:+.2f} · ROI {_r:+.0f}% → TẮT (luật T1: 24 giờ chạy đầu ROI < {T1_24_ROI}%, chi ≥ {T1_24_PHAN:.0%} ngân sách)"))
+        _p24 = _l24.split("|", 5)
+        if len(_p24) < 6: continue
+        _c24, _tuoi24, _ch24, _th24, _ns24, _ten24 = int(_p24[0]), float(_p24[1]), float(_p24[2]), float(_p24[3]), float(_p24[4]), _p24[5]
+        _t24[_c24] = (_tuoi24, _ch24, _th24, _ns24)
+        if _tuoi24 < T1_24_TUOI or _c24 not in _dc or _c24 in _t1_co or _ch24 < max(0.3, T1_24_PHAN * _ns24): continue
+        _r24 = (_th24 - _ch24) / _ch24 * 100
+        if _r24 < T1_24_ROI:
+            tat1.append((_c24, f"#{_ten24[:70]} · 24 giờ chạy đầu: chi ${_ch24:.2f} · lãi ${_th24 - _ch24:+.2f} · ROI {_r24:+.0f}% → TẮT (luật T1: 24 giờ chạy đầu ROI < {T1_24_ROI}%, chi ≥ {T1_24_PHAN:.0%} ngân sách)"))
 except Exception as e:
     loi_may.append((0, f"luật T1 (24 giờ chạy) lỗi: {str(e)[:80]}"))
 def _t24_dong(cid):

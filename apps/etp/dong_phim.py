@@ -284,6 +284,9 @@ def b_camp_lt(d, truoc):
     if not lo_trinh(d["content_id"]).get("bat_dau"):
         return "cho", f"sẵn {len(sach)} creative sạch → {len(sach)} camp × $1 ≈ ${len(sach)}/ngày (bộ 2, T2 cắt lỗ) — CHỜ ANH BẮT ĐẦU", None
     xong, loi, gan = [], [], []   # gan: creative → camp (tab Dòng phim vẽ mỗi video một ô)
+    co = set(sql(f"select creative_id from etp.camp where creative_id in ({','.join(str(int(x['creative_id'])) for x in sach)})").split())
+    sach = [x for x in sach if str(int(x["creative_id"])) not in co]   # creative anh đã lên camp riêng (#1520) thì bỏ qua — không đi vào luật "một creative một camp" thành lỗi
+    if not sach: return "xong", "mọi creative sạch đã có camp", None
     for i_, x in enumerate(sach):
         sql(f"update etp.dong_buoc set ghi = {s(f'anh đã duyệt — đang lên camp {i_ + 1}/{len(sach)} (creative #{x["creative_id"]})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")   # trang Sản xuất thấy tiến độ ngay sau khi anh bấm
         lang = x.get("lang") or "en"; ten = re.sub(r"['\"$`\\]", "", x.get("ten") or f"dp{d['id']} phim {d['content_id']}")

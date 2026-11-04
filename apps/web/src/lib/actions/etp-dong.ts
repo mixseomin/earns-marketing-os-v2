@@ -2,17 +2,22 @@
 // DÒNG PHIM TỰ ĐỘNG (anh 03/11/2026): chọn phim → form hỏi loại nội dung QC (KT / CC / CT…, có mô tả + ví dụ) + thể loại → máy chạy dòng (apps/etp/dong_phim.py, iMac)
 // làm hết 8 bước tới khi camp chạy; dính policy thì dòng tự dừng; nút FIX từng bước; thằng Mạnh (apps/etp/manh.py, box3) canh bước kẹt. Kho: etp.dong_phim / etp.dong_buoc (0413).
 // Chỉ chủ / admin (tài khoản Nhà) — đội chưa có đường tự động (luật "ko làm gì tự động ngoài tk Nhà", 02/11/2026).
+import { spawn } from 'node:child_process';
+import { openSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
+import type { TieuChi } from '@/lib/etp-chan';
 
 export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string; cach: string; gia: string; thoi_gian: string; chay: boolean; khoa?: string;
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
 export type BuocDong = { buoc: string; thu_tu: number; trang_thai: string; bat_dau: string | null; ket_thuc: string | null; han_giay: number; lan: number; ghi: string | null; nhip: string | null; fix: boolean; ket_qua: { ds?: { creative_id: number; tu?: number; den?: number }[]; sach?: { creative_id: number }[]; doan?: { tu: number; den: number }[] } | null };
+/** creative của dòng: ảnh / video xem trước · dang = loại creative (etp.creative.dang, #1518) · chan = lý do cổng chấm chặn (etp.cham_cong.chan_boi, #1519) · cho = 5 điểm chờ người duyệt */
+export type CrDong = { anh: string | null; video: string | null; dang: string | null; chan: string | null; cho: string | null };
 export type CampDong = { id: number; tt: string | null; db: string | null; cr: number | null; ns: number | null; chi: number; thu: number };
 export type DongPhim = { id: number; content_id: number; ten: string | null; the_loai: string | null; loai: string; so_camp: number | null; ai: string | null; trang_thai: string; ly_do: string | null;
-  camp_id: number | null; creative_id: number | null; anh: string | null; duyet: boolean | null; so: { camp: number; chay: number; chi: number; thu: number } | null; tao_luc: string; xong_luc: string | null; buoc: BuocDong[] };
+  camp_id: number | null; creative_id: number | null; anh: string | null; duyet: boolean | null; /** creative anh bấm lên camp từng cái (#1520) */ duyet_cr: number[] | null; so: { camp: number; chay: number; chi: number; thu: number } | null; tao_luc: string; xong_luc: string | null; buoc: BuocDong[] };
 
 // MỘT SỔ LOẠI NỘI DUNG — dạng = nhãn etp.creative.dang (cùng sổ MAU_DANG của etp-view / DANG_CHUAN của diem_cham.py); chay = máy dòng phim làm được
 const LOAI: Omit<LoaiNoiDung, 'vi_du'>[] = [
@@ -97,7 +102,8 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0): P
   const loctim = tim.trim() ? sql`and (p.ten ilike ${t} or p.content_id::text = ${tim.trim()} or p.id::text = ${tim.trim()})` : sql``;
   const dong = await run<DongPhim>(sql`select p.id, p.content_id, coalesce(p.ten, (select v.ten from etp.thu_vien_phim v where v.content_id = p.content_id limit 1)) ten, p.the_loai, p.loai, p.so_camp, p.ai, p.trang_thai, p.ly_do, p.camp_id, p.creative_id, p.tao_luc::text tao_luc, p.xong_luc::text xong_luc,
       (select case when a like 'http%' then a else '/api/ethopex/anh?p=' || ltrim(a, '/') end from (select coalesce((select t.anh from etp.trang_phim t where t.content_id = p.content_id and t.anh is not null order by t.cap_nhat desc limit 1), (select v.anh from etp.thu_vien_phim v where v.content_id = p.content_id and v.anh is not null limit 1)) a) x) anh,   -- ảnh tương đối → qua cùng miền /api/ethopex/anh
-      ((select gia_tri->p.content_id::text from etp.cau_hinh where khoa = 'lo_trinh')->>'bat_dau')::boolean duyet,   -- anh đã bấm Duyệt lên camp
+      ((select gia_tri->p.content_id::text from etp.cau_hinh where khoa = 'lo_trinh')->>'bat_dau')::boolean duyet,
+      (select array_agg(e::int) from jsonb_array_elements_text((select gia_tri->p.content_id::text->'cr' from etp.cau_hinh where khoa = 'lo_trinh')) e) duyet_cr,   -- anh đã bấm Duyệt lên camp
       (select json_build_object('camp', count(*), 'chay', count(*) filter (where c.trang_thai = 'ACTIVE'), 'chi', coalesce(sum(s.chi), 0), 'thu', coalesce(sum(s.thu), 0))
         from etp.camp c left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id) where c.content_id = p.content_id and c.tao >= p.tao_luc
           and (c.camp_id = p.camp_id or c.creative_id in (select (e->>'creative_id')::int from etp.dong_buoc b, jsonb_array_elements(case when jsonb_typeof(b.ket_qua->'ds') = 'array' then b.ket_qua->'ds' else jsonb_build_array(b.ket_qua) end) e
@@ -113,15 +119,16 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0): P
 }
 
 /** chi tiết thư mục phim: camp của dòng (creative → camp, chi / thu) + ảnh / video creative */
-export async function docChiTiet(dongId: number): Promise<{ camps: CampDong[]; crs: Record<string, { anh: string | null; video: string | null }> } | { loi: string }> {
+export async function docChiTiet(dongId: number): Promise<{ camps: CampDong[]; crs: Record<string, CrDong>; tc: TieuChi[] } | { loi: string }> {
   if (!(await quyen())) return { loi: 'không có quyền' };
   const id = Math.trunc(Number(dongId));
   const camps = await run<CampDong>(sql`select c.camp_id::int id, c.trang_thai tt, c.dong_bo db, c.creative_id::int cr, c.ngan_sach::float ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu
       from etp.dong_phim p join etp.camp c on c.content_id = p.content_id and c.tao >= p.tao_luc left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s on s.camp_id = c.camp_id
       where p.id = ${id} order by c.camp_id`);
-  const [r] = await run<{ crs: Record<string, { anh: string | null; video: string | null }> }>(sql`select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video)), '{}'::json) crs
-      from etp.dong_phim p join etp.creative r on r.content_id = p.content_id where p.id = ${id} and (r.anh is not null or r.video is not null)`);
-  return { camps, crs: r?.crs ?? {} };
+  const [r] = await run<{ crs: Record<string, CrDong> }>(sql`select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video, 'dang', r.dang, 'chan', g.chan_boi, 'cho', g.cho_duyet)), '{}'::json) crs
+      from etp.dong_phim p join etp.creative r on r.content_id = p.content_id left join etp.cham_cong g on g.creative_id = r.creative_id where p.id = ${id}`);
+  const tc = await run<TieuChi>(sql`select nhom, ma, ten, mo_ta from etp.tieu_chi`);
+  return { camps, crs: r?.crs ?? {}, tc };
 }
 
 /** ANH DUYỆT LÊN CAMP ngay trên ô "chờ anh" (anh 03/11/2026 "nút chờ anh phải cho tao bấm duyệt luôn trên đó"): đặt etp.cau_hinh lo_trinh[phim].bat_dau →
@@ -133,6 +140,32 @@ export async function batDauCamp(dongId: number): Promise<{ ok: true } | { loi: 
   await db().execute(sql`insert into etp.cau_hinh (khoa, gia_tri) values ('lo_trinh', jsonb_build_object(${String(d.content_id)}::text, jsonb_build_object('bat_dau', true, 'ai', ${me.displayName ?? me.email ?? 'admin'}::text, 'luc', now()::text)))
     on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{}'::jsonb) || jsonb_build_object(${String(d.content_id)}::text,
       coalesce(etp.cau_hinh.gia_tri->${String(d.content_id)}, '{}'::jsonb) || jsonb_build_object('bat_dau', true, 'ai', ${me.displayName ?? me.email ?? 'admin'}::text, 'luc', now()::text))`);
+  return { ok: true };
+}
+
+/** LÊN CAMP TỪNG CREATIVE (góp ý #1520, anh 03/11/2026 "cho phép bật từng creative nếu muốn"): anh bấm ở ô Lên camp của MỘT creative → ghi creative vào
+ *  etp.cau_hinh lo_trinh[phim].cr (nhan-ban miễn luật một camp / ngày cho đúng creative này) rồi chạy nhan-ban.py một camp $1 — mọi cổng luật khác vẫn chặn.
+ *  Chỉ creative cổng chấm đang cho lên (cham_cong.duoc_len), chưa có camp. Nhật ký: /tmp/etp-len-cr-<creative>.log trên box3. Chỉ admin. */
+const KHUON: Record<string, number> = { en: 65110, es: 65734 };   // camp mẫu cùng tiếng — cùng sổ apps/etp/dong_phim.py KHUON
+export async function lenCampCr(dongId: number, creativeId: number): Promise<{ ok: true } | { loi: string }> {
+  const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được lên camp' };
+  const id = Math.trunc(Number(dongId)), cr = Math.trunc(Number(creativeId));
+  const [x] = await run<{ content_id: number; ten: string | null; lang: string | null; duoc: boolean | null; co_camp: boolean; bo: string | null }>(sql`select p.content_id, p.ten, r.lang, g.duoc_len duoc,
+      exists (select 1 from etp.camp c where c.creative_id = r.creative_id) co_camp, (select gia_tri->>p.content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_tk') bo
+    from etp.dong_phim p join etp.creative r on r.content_id = p.content_id and r.creative_id = ${cr} left join etp.cham_cong g on g.creative_id = r.creative_id
+    where p.id = ${id} and p.trang_thai in ('chay', 'dung', 'loi')`);
+  if (!x) return { loi: 'creative không thuộc dòng đang chạy' };
+  if (!x.duoc) return { loi: 'cổng chấm đang chặn creative này' };
+  if (x.co_camp) return { loi: 'creative đã có camp' };
+  await db().execute(sql`insert into etp.cau_hinh (khoa, gia_tri) values ('lo_trinh', jsonb_build_object(${String(x.content_id)}::text, jsonb_build_object('cr', jsonb_build_array(${cr}))))
+    on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{}'::jsonb) || jsonb_build_object(${String(x.content_id)}::text,
+      coalesce(etp.cau_hinh.gia_tri->${String(x.content_id)}, '{}'::jsonb) || jsonb_build_object('cr', coalesce(etp.cau_hinh.gia_tri->${String(x.content_id)}->'cr', '[]'::jsonb) || jsonb_build_array(${cr})))`);
+  const lang = x.lang === 'es' ? 'es' : 'en';
+  const ten = `dp${id} ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - creative #${cr}`;   // spawn không qua shell — chỉ giữ chữ ASCII cho tên camp
+  const dir = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
+  const log = openSync(`/tmp/etp-len-cr-${cr}.log`, 'a');
+  spawn('python3', ['nhan-ban.py', String(KHUON[lang]), '--tay', '--bo', x.bo ?? '2', '--creative', String(cr), '--content', String(x.content_id), '--ten', ten, '--that', '--lich', 'today',
+    '--luat', `anh bấm lên camp creative #${cr} (etp.on.tc › Sản xuất)`, '--ai', `anh (etp.on.tc ${me.email})`], { cwd: dir, detached: true, stdio: ['ignore', log, log], env: process.env }).unref();
   return { ok: true };
 }
 

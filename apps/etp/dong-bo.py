@@ -198,13 +198,19 @@ def main():
     except Exception as e: loi.append(f"camp_nuoc: {e}")
     # ── số theo giờ (phim × giờ) hôm qua + hôm nay
     try:
-        for d in ([(nay - dt.timedelta(days=i)).isoformat() for i in range((nay - dt.date(2026, 10, 20)).days, -1, -1)] if day_du else [(nay - dt.timedelta(days=1)).isoformat(), nay.isoformat()]):
+        du_gio = day_du or q("select count(*) from etp.so_gio_camp") == "0"   # bảng camp × giờ mới / trống → nạp lại từ 20/10 một lần
+        for d in ([(nay - dt.timedelta(days=i)).isoformat() for i in range((nay - dt.date(2026, 10, 20)).days, -1, -1)] if du_gio else [(nay - dt.timedelta(days=1)).isoformat(), nay.isoformat()]):
             # tách nhà / ngoài theo tài khoản: report phim × giờ không mang tài khoản → nhóm thêm theo camp (dòng có external_account_id) rồi cộng lại theo phim × giờ
-            gg = {True: {}, False: {}}
+            gg = {True: {}, False: {}}; gc = {}
             for x in bc(["content_name", "hour", "campaign_name", "cost", "revenue"], ["content_name", "hour", "campaign_name"], d, d):
+                if x.get("campaign_id"):   # camp × giờ (biểu đồ diễn biến trong ngày trên ô ngày của Cây camp)
+                    e = gc.setdefault((int(x["campaign_id"]), int(x["hour"])), [0.0, 0.0]); e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
                 if x.get("content_group_id") is None: continue
                 e = gg[str(x.get("external_account_id") or "") in EA.EXT].setdefault((x["content_group_id"], int(x["hour"])), [0.0, 0.0]); e[0] += float(x.get("cost") or 0); e[1] += float(x.get("revenue") or 0)
             q(f"update etp.so_gio set chi = 0, thu = 0, cap_nhat = now() where ngay = '{d}'")   # số cũ của ngày này có thể lẫn tài khoản ngoài → tính lại từ đầu
+            q(f"update etp.so_gio_camp set chi = 0, thu = 0, cap_nhat = now() where ngay = '{d}'")
+            ghi("so_gio_camp", [{"camp_id": c, "ngay": d, "gio": h, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, h), v in gc.items() if v[0] or v[1]],
+                ["camp_id", "ngay", "gio"], {"camp_id": "bigint", "ngay": "date", "gio": "smallint", "chi": "numeric", "thu": "numeric"})
             for nha, bang in ((True, "so_gio"), (False, "so_gio_ngoai")):
                 ghi(bang, [{"content_id": c, "ngay": d, "gio": h, "chi": round(v[0], 4), "thu": round(v[1], 4)} for (c, h), v in gg[nha].items()],
                     ["content_id", "ngay", "gio"], {"content_id": "int", "ngay": "date", "gio": "smallint", "chi": "numeric", "thu": "numeric"})

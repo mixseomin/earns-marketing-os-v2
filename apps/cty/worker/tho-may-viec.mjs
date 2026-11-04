@@ -32,7 +32,8 @@ export function layViec(st, luc = Date.now()) {
   const ngay = { ...(st.ngay || {}) }, hom = ngayVN(luc);
   if (hang.some((v) => v.tt === 'dang')) return { st: { ...st, hang }, viec: null, ly_do: 'đang có việc' };
   if ((ngay[hom] || 0) >= TRAN_NGAY) return { st: { ...st, hang, ngay }, viec: null, ly_do: `đủ ${TRAN_NGAY} lượt hôm nay` };
-  const i = hang.findIndex((v) => v.tt === 'cho'); if (i < 0) return { st: { ...st, hang }, viec: null, ly_do: 'không có việc' };
+  // việc KÊNH (kenh:…) nhận TRƯỚC (04/11/2026: tập kênh hỏng 10:38 đứng chờ sau việc cào / đăng tới hết 6 lượt — tập tự động mà thợ máy không tới thì phải chờ người); trần ngày giữ nguyên
+  const ik = hang.findIndex((v) => v.tt === 'cho' && /^kenh:/.test(v.khoa)), i = ik >= 0 ? ik : hang.findIndex((v) => v.tt === 'cho'); if (i < 0) return { st: { ...st, hang }, viec: null, ly_do: 'không có việc' };
   hang[i] = { ...hang[i], tt: 'dang', bat_dau: new Date(luc).toISOString() }; ngay[hom] = (ngay[hom] || 0) + 1;
   return { st: { ...st, hang, ngay }, viec: hang[i], ly_do: '' };
 }
@@ -65,6 +66,7 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     st = { hang: Array.from({ length: 8 }, (_, i) => ({ id: i + 1, khoa: `lan:x${i}`, tt: 'cho' })), ngay: {} };
     for (let i = 0; i < TRAN_NGAY; i++) { const k = layViec(st, t0 + i * 6e4); st = { ...k.st, hang: k.st.hang.map((v) => (v.tt === 'dang' ? { ...v, tt: 'xong' } : v)) }; }
     assert.ok(/đủ 6/.test(layViec(st, t0 + 3600e3).ly_do), 'trần 6 lượt / ngày VN');
+    { const s2 = { hang: [{ id: 1, khoa: 'lan:a', tt: 'cho' }, { id: 2, khoa: 'kenh:parody|x', tt: 'cho' }], ngay: {} }; assert.equal(layViec(s2, t0).viec.id, 2, 'việc kênh nhận trước'); }
     assert.ok(layViec(st, t0 + 20 * 36e5).viec, 'sang ngày mới (giờ VN) lấy tiếp');
     assert.strictEqual(themViec({ hang: [{ id: 1, khoa: 'lan:a', tt: 'xong' }] }, [{ khoa: 'lan:a', chu: 'tái phát' }]).them, 1, 'đã xong rồi tái phát: nhận lại');
     console.log('tho-may-viec tu-kiem ok');

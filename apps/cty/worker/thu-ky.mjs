@@ -2,14 +2,17 @@
 // Nhận mọi thứ anh trả lời / nhắn mà KHÔNG có máy riêng của phòng xử (tg-phong.mjs gom: nút [✅ Đồng ý] [✖ Không] gắn tự động cho câu hỏi thiếu nút → hq:,
 // tin chữ ở phòng chưa có máy đọc → bản sao). Mỗi tin: thả 👀 ngay (đã nhận) → trưởng phòng gốc (mô hình trong hồ sơ, phòng không có mô hình thì
 // mô hình mặc định qua proxy công ty, ghi tiền) đọc câu hỏi gốc + câu anh, trả lời DƯỚI tin anh bằng tên mình → quyết định ghi <DATA>/quyet-dinh.jsonl →
-// việc phải làm theo ý anh vào hàng việc phòng (<DATA>/phong-thu/<phòng>/, cùng hàng với thư Kiên chuyển; phòng có máy chạy Claude Code tự lấy).
-// Không hứa việc máy chưa làm: câu trả lời nói rõ việc đã GHI vào hàng, ai làm. Việc tốn tiền chỉ ghi, không tự chạy. Gọi từ tg-nghe.mjs ngay sau gom tin.
+// việc phải làm theo ý anh giao thợ máy (xem dưới).
+// LỆNH PHẢI TỚI NGƯỜI CÓ TAY (anh 05/11/2026 "sao nó trả lời mõm… tao đã đồng ý, nó đã hiểu mà rồi lại hỏi lại"): hàng phong-thu của phòng không có máy nào lấy (Ngọc, Nguyên không có tay)
+// → việc giờ vào hàng THỢ MÁY (anh:, may/tho-may.mjs — Claude Code iMac, nhận trước mọi việc, ≤ 5 phút), kết quả báo ngay dưới tin anh. Trả lời dưới tin của chính thợ máy = lệnh cho đúng việc đó, không qua mô hình.
+// Không hứa việc máy chưa làm. Mua / gia hạn thợ máy không làm, báo lại giá + chỗ bấm. Gọi từ tg-nghe.mjs ngay sau gom tin.
 //   node worker/thu-ky.mjs --tu-kiem
 import fs from 'node:fs';
 import path from 'node:path';
 import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 import { moHop, docNut, daTraLoi, phongCuaTopic } from './tg-phong.mjs';
+import { giaoAnh, viecCuaTin } from './tho-may-viec.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const MAC_DINH = 'fal:google/gemini-3.8-flash';
@@ -29,16 +32,16 @@ export function truongPhong(phong) {
 /** Một mục trong hộp thư ký → ngữ cảnh: { phong, mid (tin để trả lời dưới), topic, cau_hoi, anh, from }. null = bỏ (đã có phòng trả lời). */
 export function nguCanh(x) {
   const c = x.callback_query, m = x.message;
-  if (c) { const q = c.message ?? {}, so = docNut(q.message_id); return { phong: phongCuaTopic(q.message_thread_id ?? so?.topic) ?? x.phong_goc ?? null, mid: q.message_id, topic: q.message_thread_id ?? so?.topic, cau_hoi: so?.chu ?? q.text ?? '', anh: c.data === 'hq:co' ? 'Đồng ý' : c.data === 'hq:khong' ? 'Không' : c.data, from: c.from }; }
+  if (c) { const q = c.message ?? {}, so = docNut(q.message_id); return { phong: phongCuaTopic(q.message_thread_id ?? so?.topic) ?? x.phong_goc ?? null, mid: q.message_id, topic: q.message_thread_id ?? so?.topic, hoi_mid: q.message_id, cau_hoi: so?.chu ?? q.text ?? '', anh: c.data === 'hq:co' ? 'Đồng ý' : c.data === 'hq:khong' ? 'Không' : c.data, from: c.from }; }
   if (!m || daTraLoi(m.message_id)) return null;
   const goc = m.reply_to_message, so = goc && docNut(goc.message_id);
-  return { phong: x.phong_goc && x.phong_goc !== '_khac' ? x.phong_goc : phongCuaTopic(m.message_thread_id), mid: m.message_id, topic: m.message_thread_id, cau_hoi: goc?.from?.is_bot ? (so?.chu ?? goc.text ?? '') : '', anh: String(m.text ?? m.caption ?? ''), from: m.from };
+  return { phong: x.phong_goc && x.phong_goc !== '_khac' ? x.phong_goc : phongCuaTopic(m.message_thread_id), mid: m.message_id, topic: m.message_thread_id, hoi_mid: goc?.from?.is_bot ? goc.message_id : null, cau_hoi: goc?.from?.is_bot ? (so?.chu ?? goc.text ?? '') : '', anh: String(m.text ?? m.caption ?? ''), from: m.from };
 }
 
 async function hoiMoHinh(t, nc, goi = fetch) {
   const system = `Bạn là ${t.ten}, ${t.chuc} của ${t.phongTen} trong công ty AI của anh (Giám đốc). Anh vừa ${nc.cau_hoi ? 'trả lời câu hỏi của phòng bạn' : 'nhắn vào chủ đề phòng bạn'} trên Telegram.
 Việc của bạn: hiểu anh muốn gì, trả lời anh NGẮN (1–3 câu, tiếng Việt, xưng "em", gọi "anh"), và nêu VIỆC phòng phải làm theo ý anh (nếu có).
-Trung thực: bạn không có tay — việc chỉ được GHI vào hàng việc phòng, đừng nói "đã làm" / "đã gia hạn". Việc tốn tiền: ghi rõ là anh đã duyệt khoản đó.
+Trung thực: bạn không có tay — việc anh giao sẽ chuyển thợ máy Mạnh làm ngay, đừng nói "đã làm", đừng hứa "phòng em sẽ làm". Mô tả VIỆC đủ rõ để Mạnh làm không cần hỏi lại (giữ nguyên ý anh). Câu anh chỉ là đồng ý suông không kèm việc gì phải làm thì viec = null.
 Không hỏi lại trừ khi thật sự không hiểu; hỏi lại thì đặt câu hỏi có/không.
 VỀ PHÒNG:\n${t.boi}
 Trả DUY NHẤT JSON: {"tra_loi":"…","quyet":"co|khong|khac","viec":"… hoặc null"}`;
@@ -56,15 +59,24 @@ export async function xuThuKy(tg, { hoi = hoiMoHinh } = {}) {
   for (const x of moHop('thu-ky')) {
     const nc = nguCanh(x); x.xong(); if (!nc) continue;
     try { await tg('setMessageReaction', { message_id: nc.from && x.message ? nc.mid : (x.callback_query?.message?.message_id ?? nc.mid), reaction: [{ type: 'emoji', emoji: '👀' }] }); } catch { /* cảm xúc hỏng không chặn */ }
+    const tra0 = (text) => tg('sendMessage', { message_thread_id: nc.topic ?? undefined, parse_mode: 'HTML', text, reply_parameters: { message_id: nc.mid, allow_sending_without_reply: true } });
+    // trả lời dưới tin của THỢ MÁY → lệnh cho đúng việc đó, về đúng người đang cầm (không qua trưởng phòng, không tốn lượt mô hình)
+    const vt = viecCuaTin(nc.hoi_mid);
+    if (vt) {
+      const bo = /^(không|ko|k|no|thôi|bỏ qua|đừng)[\s.!]*$/i.test(nc.anh.trim());
+      fs.appendFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), `${JSON.stringify({ luc: new Date().toISOString(), phong: nc.phong, ai: 'manh', goc: vt.khoa, cau_hoi: String(vt.ket_qua ?? vt.chu).slice(0, 500), anh: nc.anh, quyet: bo ? 'khong' : 'co' })}\n`);
+      if (bo) { await tra0(`🔧 <b>Mạnh</b>: đã ghi anh không làm việc này (${esc(vt.khoa)}).`); n++; continue; }
+      const moi = giaoAnh({ chu: `Anh trả lời về ${vt.khoa}: ${nc.anh}`, cau_hoi: String(vt.ket_qua ?? vt.chu), anh: nc.anh, goc: vt.goc ?? vt.khoa, phong: nc.phong, tg: { topic: nc.topic ?? null, msg: nc.mid } });
+      await tra0(`🔧 <b>Mạnh</b> nhận lệnh anh: <i>${esc(nc.anh.slice(0, 200))}</i> — việc #${moi.id}, bắt đầu trong ≤ 5 phút, xong báo ngay dưới tin này.`); n++; continue;
+    }
     const t = nc.phong && truongPhong(nc.phong);
     const tra = (text) => tg('sendMessage', { message_thread_id: nc.topic ?? undefined, parse_mode: 'HTML', text, reply_parameters: { message_id: nc.mid, allow_sending_without_reply: true } });
     if (!t) { await tra(`📥 Đã nhận: <i>${esc(nc.anh.slice(0, 200))}</i>\nChủ đề này chưa thuộc phòng nào nên chưa có người xử — anh nhắn trong chủ đề của phòng, hoặc bảo con gắn chủ đề này cho một phòng.`); n++; continue; }
     let kq; try { kq = await hoi(t, nc); } catch (e) { await tra(`📥 <b>${esc(t.ten)} [${esc(t.phongTen.replace(/^Phòng /, ''))}]</b> đã nhận: <i>${esc(nc.anh.slice(0, 200))}</i> — nhưng chưa đọc được (${esc(e.message.slice(0, 120))}). Đã ghi vào hàng việc phòng.`); kq = { tra_loi: '', quyet: 'khac', viec: `Đọc và xử câu anh: ${nc.anh}` }; }
-    const id = `tk-${x.update_id}`, luc = new Date().toISOString();
+    const luc = new Date().toISOString();
     fs.appendFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), `${JSON.stringify({ luc, phong: nc.phong, ai: t.id, cau_hoi: nc.cau_hoi.slice(0, 500), anh: nc.anh, ...kq })}\n`);
-    if (kq.viec) { const d = path.join(DATA(), 'phong-thu', nc.phong); fs.mkdirSync(d, { recursive: true });
-      fs.writeFileSync(path.join(d, `${id}.json`), JSON.stringify({ id, phong: nc.phong, ai: t.id, loai: 'viec-anh', tieuDe: kq.viec.slice(0, 120), chu: nc.cau_hoi.replace(/<[^>]+>/g, '').slice(0, 1500), viec: kq.viec, loi_anh: nc.anh, tu: nc.from?.first_name || 'Anh', luc }, null, 1)); }
-    if (kq.tra_loi) await tra(`<b>${esc(t.ten)} [${esc(t.phongTen.replace(/^Phòng /, ''))}]</b>: ${esc(kq.tra_loi)}${kq.viec ? `\n📋 Đã ghi việc vào hàng phòng: ${esc(kq.viec)}` : ''}`);
+    const giao = kq.viec ? giaoAnh({ chu: kq.viec, cau_hoi: nc.cau_hoi.replace(/<[^>]+>/g, '').slice(0, 1500), anh: nc.anh, phong: nc.phong, tg: { topic: nc.topic ?? null, msg: nc.mid } }) : null;
+    if (kq.tra_loi || giao) await tra(`<b>${esc(t.ten)} [${esc(t.phongTen.replace(/^Phòng /, ''))}]</b>: ${esc(kq.tra_loi)}${giao ? `\n🔧 Đã giao <b>Mạnh</b> (việc #${giao.id}, bắt đầu trong ≤ 5 phút, xong báo ngay dưới tin này): ${esc(kq.viec)}` : ''}`);
     n++;
   }
   return n;
@@ -84,8 +96,15 @@ if (process.argv[1]?.endsWith('thu-ky.mjs') && process.argv.includes('--tu-kiem'
   t.equal(await xuThuKy(tg, { hoi }), 3);
   t.equal(hoiDs[0].cau_hoi.slice(0, 4), 'Khoá', 'thư ký đọc được câu hỏi gốc'); t.equal(hoiDs[0].phong, 'tai-nguyen');
   const tin = gui.filter(([m]) => m === 'sendMessage').map(([, b]) => b);
-  t.ok(tin[0].text.startsWith('<b>Nguyên [Tài nguyên]</b>: Em ghi') && tin[0].text.includes('📋 Đã ghi việc') && tin[0].reply_parameters.message_id === 700, 'trả lời dưới câu hỏi, ghi việc');
-  t.ok(fs.existsSync(path.join(DATA(), 'phong-thu', 'tai-nguyen', 'tk-1.json')), 'việc vào hàng phòng'); t.equal(fs.readFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), 'utf8').trim().split('\n').length, 3 - 1, 'sổ quyết định (2 mục có phòng)');
+  t.ok(tin[0].text.startsWith('<b>Nguyên [Tài nguyên]</b>: Em ghi') && tin[0].text.includes('Đã giao <b>Mạnh</b>') && tin[0].reply_parameters.message_id === 700, 'trả lời dưới câu hỏi, giao thợ máy');
+  const hang0 = JSON.parse(fs.readFileSync(path.join(DATA(), 'tho-may.json'), 'utf8')).hang; t.ok(hang0.some((v) => /^anh:/.test(v.khoa) && v.tt === 'cho' && v.anh === 'Đồng ý'), 'việc vào hàng thợ máy'); t.equal(fs.readFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), 'utf8').trim().split('\n').length, 3 - 1, 'sổ quyết định (2 mục có phòng)');
   t.ok(tin[2].text.includes('chưa thuộc phòng nào'), 'chủ đề không phòng: vẫn trả lời, nói rõ'); t.ok(gui.some(([m]) => m === 'setMessageReaction'), 'thả 👀 khi nhận');
+  { // trả lời dưới báo cáo của thợ máy → lệnh cho đúng việc, không hỏi mô hình; việc cùng máy đang chờ gộp lại
+    const f = path.join(DATA(), 'tho-may.json'), s0 = JSON.parse(fs.readFileSync(f, 'utf8')); s0.hang.push({ id: 50, khoa: 'dang:lo|mil|facebook', tt: 'ket', chu: 'lỡ', ket_qua: 'Hết video, cần anh quyết', tin_bao: 777, luc: '2026-11-04T17:00:00Z', tg: {} }, { id: 51, khoa: 'dang:lo|mil|fb_anh', tt: 'cho', chu: 'lỡ', luc: '2026-11-04T17:00:00Z', tg: {} }, { id: 52, khoa: 'dang:lo|mil|x', tt: 'ket', chu: 'lỡ', ket_qua: 'x', tin_bao: 778, luc: '2026-11-04T17:00:00Z', tg: {} }); fs.writeFileSync(f, JSON.stringify(s0));
+    fs.writeFileSync(path.join(hop, '10.json'), JSON.stringify({ update_id: 10, phong_goc: 'noi-dung', message: { message_id: 90, message_thread_id: 2307, text: 'Sx thêm video cho', from: { first_name: 'D' }, reply_to_message: { message_id: 777, from: { is_bot: true }, text: '🔧 Máy đăng tự sửa' } } }));
+    fs.writeFileSync(path.join(hop, '11.json'), JSON.stringify({ update_id: 11, phong_goc: 'noi-dung', message: { message_id: 91, message_thread_id: 2307, text: 'ko', from: { first_name: 'D' }, reply_to_message: { message_id: 778, from: { is_bot: true }, text: '🔧' } } }));
+    const dem = hoiDs.length; gui.length = 0; t.equal(await xuThuKy(tg, { hoi }), 2); t.equal(hoiDs.length, dem, 'không qua mô hình');
+    const s1 = JSON.parse(fs.readFileSync(f, 'utf8')).hang, le = s1.filter((v) => v.goc === 'dang:lo|mil|facebook'); t.equal(le.length, 1); t.equal(le[0].anh, 'Sx thêm video cho'); t.equal(le[0].tg.msg, 90, 'kết quả báo dưới tin anh'); t.equal(s1.find((v) => v.id === 51).tt, 'gop', 'việc cùng máy không chạy để hỏi lại');
+    const m0 = gui.filter(([m]) => m === 'sendMessage').map(([, b]) => b.text); t.ok(m0[0].includes('Mạnh</b> nhận lệnh') && m0[1].includes('không làm')); }
   console.log('thu-ky: tự kiểm đạt'); process.exit(0);
 }

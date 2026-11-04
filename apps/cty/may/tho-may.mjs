@@ -36,9 +36,9 @@ if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log('Mạnh đang 
 const model = (soul.match(/claude-code:([\w.-]+)/) || [])[1] || 'sonnet', effort = (soul.match(/effort:(low|medium|high|max)\b/) || [])[1] || null;   // effort: anh 03/11/2026 (Opus 4.8 medium)
 const r0 = JSON.parse(thu ? box(`cd ${APP} && CTY_DATA_DIR=${DATA} node -e "const s=require('fs').existsSync('${DATA}/tho-may.json')?JSON.parse(require('fs').readFileSync('${DATA}/tho-may.json','utf8')):{hang:[]};const v=(s.hang||[]).find(x=>x.tt==='cho');console.log(JSON.stringify(v?{viec:v}:{ly_do:'không có việc'}))"`) : viec('--lay'));
 if (!r0.viec) { log(`không nhận việc: ${r0.ly_do}`); process.exit(0); }
-const v = r0.viec, chu = v.chu.replace(/<[^>]+>/g, ''), laDang = v.khoa.startsWith('dang:'), laKenh = v.khoa.startsWith('kenh:');
-const [kenhMa = '', tapMa = ''] = laKenh ? v.khoa.slice(5).split('|') : [];
-const [, mayMa = '', nenMa = ''] = laDang ? v.khoa.slice(5).split('|') : [];
+const v = r0.viec, chu = v.chu.replace(/<[^>]+>/g, ''), laAnh = v.khoa.startsWith('anh:'), goc = laAnh ? String(v.goc ?? '') : v.khoa, laDang = goc.startsWith('dang:') || (laAnh && !goc), laKenh = goc.startsWith('kenh:');   // lệnh anh chạy đúng repo + quyền của việc gốc; không có việc gốc → puzzle-books + ssh box3
+const [kenhMa = '', tapMa = ''] = laKenh ? goc.slice(5).split('|') : [];
+const [, mayMa = '', nenMa = ''] = laDang && goc ? goc.slice(5).split('|') : [];
 const git = (...a) => execFileSync('git', ['-C', laDang ? DANG : laKenh ? MOS2 : REPO, ...a], { encoding: 'utf8' }).trim();   // máy đăng: repo git puzzle-books trên iMac (25/10/2026)
 
 const giao = `Bạn là Mạnh, thợ máy của Phòng Tài nguyên (công ty AI của anh Tuấn). Máy cào spy.on.tc vừa báo lỗi, bạn phải tìm GỐC, sửa, kiểm, rồi báo lại — anh không ngồi máy.
@@ -61,7 +61,7 @@ CÁCH LÀM:
 CẤM: xoá dữ liệu (DB, tệp dữ liệu, nhật ký) · mua / gia hạn / nạp tiền bất cứ thứ gì (kể cả 2proxy) · in khoá, mật khẩu, proxy · cài trình duyệt ngoài VPS máy cào ·
 git revert / reset / checkout tệp · sửa tệp ngoài repo spy-on-tc · đề xuất nâng cấp máy khi chưa đo CPU rỗi + RAM. Việc cần tiền hoặc cần anh quyết → dừng, ghi CAN_ANH.
 
-KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó 3–6 dòng tiếng Việt cho anh đọc trên Telegram:
+KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó một dòng "BÁO ANH:" rồi 3–6 dòng tiếng Việt cho anh đọc trên điện thoại, lời thường, không bảng, không dán lệnh dài, mỗi ý một dòng mở bằng nhãn ngắn và dấu hai chấm:
 lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit) · đã kiểm thế nào (số đo). Viết gọn, xưng "con", gọi "anh".`;
 
 const QUYEN_DANG = ['Read', 'Glob', 'Grep', `Edit(/${DANG}/**)`, `Write(/${DANG}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add:*)', 'Bash(git commit:*)',
@@ -96,7 +96,7 @@ CẤM: dùng --slug hay mọi cách lách nhịp an toàn, sửa trần / khoả
 gõ mật khẩu, bấm xác minh, gỡ khoá xác minh (br xac-minh-xong) — gặp là CAN_ANH · lập tài khoản · mua / nạp / bật quảng cáo · xoá dữ liệu · git revert / reset / checkout ·
 sửa tệp ngoài ${DANG} · in khoá / mật khẩu / token.
 
-KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó 3–6 dòng tiếng Việt cho anh đọc trên Telegram:
+KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó một dòng "BÁO ANH:" rồi 3–6 dòng tiếng Việt cho anh đọc trên điện thoại, lời thường, không bảng, không dán lệnh dài, mỗi ý một dòng mở bằng nhãn ngắn và dấu hai chấm:
 lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit) · đã đăng bù chưa (link bài) / vì sao không. Viết gọn, xưng "con", gọi "anh".`;
 const XV = `${MOS2}/apps/xuong-video`;
 const QUYEN_KENH = ['Read', 'Glob', 'Grep', `Edit(/${XV}/**)`, `Write(/${XV}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`,
@@ -125,9 +125,25 @@ CÁCH LÀM:
 CẤM: nới luật Phòng Nội dung (apps/cty — không được sửa) hay luật kiểm của lam-tap để "cho qua" · lách luật hook / góc spy · đổi lich_tap, trần đăng, giờ đăng · xoá dữ liệu, git revert / reset / checkout ·
 sửa tệp ngoài apps/xuong-video · in khoá / token · mua / nạp tiền · đăng bài bằng tay.
 
-KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó 3–6 dòng tiếng Việt cho anh đọc trên Telegram:
+KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó một dòng "BÁO ANH:" rồi 3–6 dòng tiếng Việt cho anh đọc trên điện thoại, lời thường, không bảng, không dán lệnh dài, mỗi ý một dòng mở bằng nhãn ngắn và dấu hai chấm:
 lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit) · chạy lại ra sao (tập đã nạp máy đăng chưa). Viết gọn, xưng "con", gọi "anh".`;
-const loiGiao = laDang ? giaoDang : laKenh ? giaoKenh : giao, quyen = laDang ? QUYEN_DANG : laKenh ? QUYEN_KENH : QUYEN, noiChay = laDang ? DANG : laKenh ? MOS2 : REPO;
+// LỆNH ANH (anh: — thu-ky.mjs xếp, anh 05/11/2026): anh đã trả lời, đây là việc phải LÀM, không phải câu hỏi mới.
+const giaoLenh = `Bạn là Mạnh, thợ máy của công ty AI của anh Tuấn. Anh vừa trả lời trên Telegram: đây là LỆNH, làm ngay, làm tới có kết quả — anh không ngồi máy và đã bực vì bị hỏi lại điều vừa trả lời.
+
+${v.cau_hoi ? `CÂU HỎI / BÁO CÁO ANH ĐANG TRẢ LỜI:\n${String(v.cau_hoi).slice(0, 3000)}\n\n` : ''}ANH TRẢ LỜI: ${v.anh ?? chu}
+VIỆC: ${chu}${mayMa ? `\nmáy (xv_may.ma) = ${mayMa} · nền = ${nenMa}` : ''}${v.phong ? `\nphòng: ${v.phong}` : ''}
+
+HẠ TẦNG: sổ studio ở box3: ssh ${BOX} 'cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -c "…"'.
+Máy dựng video + đề: ssh ${BOX} 'cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/may-dung.mts --may <mã máy> <lệnh>' — đọc phần đầu tệp scripts/may-dung.mts trên box3 trước (--sinh-kho, --sinh-de, --anh, --xuat…). Anh bảo sản xuất nghĩa là đã duyệt lệnh --sinh-de / --sinh-kho của máy đó (vài chục đồng / đề).
+Phòng Nội dung tự chấm bài mới; không tự duyệt thay phòng.
+
+CÁCH LÀM: đo hiện trạng → làm đúng điều anh bảo → đọc lại kết quả trên sổ / trang thật. Giới hạn đã nêu trong báo cáo cũ được mở ĐÚNG phần anh vừa trả lời, không rộng hơn.
+CẤM: hỏi lại điều anh vừa trả lời · sinh video AI trả tiền theo clip · mua / nạp / gia hạn / nhập thanh toán (gặp thì KET: CAN_ANH, ghi giá + chỗ bấm, là cách duy nhất vì máy không cầm tiền) · sửa trần / luật trong nhip-an-toan.mjs · đụng đăng nhập, mật khẩu, xác minh · xoá dữ liệu, git revert / reset / checkout · in khoá / token.
+Chỉ ghi CAN_ANH khi gặp một quyết định MỚI, khác điều anh vừa trả lời; nói rõ đã làm tới đâu.
+
+KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" (đã làm xong) | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó một dòng "BÁO ANH:" rồi 3–6 dòng tiếng Việt cho anh đọc trên điện thoại, lời thường, không bảng, không dán lệnh dài, mỗi ý một dòng mở bằng nhãn ngắn và dấu hai chấm: đã làm gì, số liệu đọc lại (bao nhiêu bài, slug, link), còn gì. Viết gọn, xưng "con", gọi "anh".`;
+const daChot = (v.quyet_gan ?? []).length ? `\n\nANH ĐÃ CHỐT CHO MÁY NÀY TRONG 7 NGÀY (KHÔNG hỏi lại; vấn đề đúng là việc này thì ghi KHONG_SUA "đang làm theo lệnh anh"):\n${v.quyet_gan.join('\n')}` : '';
+const loiGiao = `${laAnh ? giaoLenh : laDang ? giaoDang : laKenh ? giaoKenh : giao}${daChot}`, quyen = laDang ? QUYEN_DANG : laKenh ? QUYEN_KENH : QUYEN, noiChay = laDang ? DANG : laKenh ? MOS2 : REPO;
 if (thu) { console.log(loiGiao); process.exit(0); }
 try { viec(`--nhan ${v.id}`); } catch (e) { log(`báo nhận lỗi: ${e.message.split('\n')[0]}`); }
 log(`nhận việc #${v.id} ${v.khoa} · model ${model}${effort ? ` · effort ${effort}` : ''}`);
@@ -138,7 +154,9 @@ let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng
 const ra = String(kq.result || '').trim(), ketDong = (ra.match(/^\s*\**KET:\**\s*(DA_SUA|KHONG_SUA|CAN_ANH)\b.*$/gim) || []).pop();
 const ket = ketDong ? ketDong.match(/DA_SUA|KHONG_SUA|CAN_ANH/i)[0].toLowerCase() : (r.signal || r.error ? 'treo' : 'khong_sua');
 const sau = git('rev-parse', 'HEAD'), commit = sau === truoc ? '' : git('log', '--format=%h %s', `${truoc}..${sau}`).split('\n').slice(0, 5).join('\n');
-const than = (ra.replace(/^\s*\**KET:.*$/gim, '').trim().split('\n').slice(-8).join('\n') || `Claude thoát ${r.status ?? r.signal} không kèm báo cáo (${String(r.stderr || r.error?.message || '').slice(0, 200)})`)
-  + (commit ? `\n\nCommit:\n${commit}` : '') + `\n(${kq.num_turns ?? '?'} lượt · ${Math.round((kq.duration_ms || 0) / 6e4)} phút · ${model}${effort ? ` ${effort}` : ''})`;
+// lấy trọn phần sau "BÁO ANH:" (trước đây 8 dòng cuối: báo cáo bị cắt mất đầu, tin mở giữa câu); không có dấu đó mới lấy 8 dòng cuối
+const boKet = ra.replace(/^\s*\**KET:.*$/gim, '').trim(), sauBao = boKet.split(/^\s*[*#\s]*BÁO ANH:?\**\s*$/im);
+const than = ((sauBao.length > 1 ? sauBao.pop().trim() : boKet.split('\n').slice(-8).join('\n')) || `Claude thoát ${r.status ?? r.signal} không kèm báo cáo (${String(r.stderr || r.error?.message || '').slice(0, 200)})`)
+  + (commit ? `\n\nCommit:\n${commit}` : '') + `\n(${Math.round((kq.duration_ms || 0) / 6e4)} phút)`;
 log(`xong #${v.id}: ${ket} · commit ${commit ? sau.slice(0, 8) : 'không'} · ${kq.num_turns ?? '?'} lượt`);
 viec(`--bao ${v.id} ${ket === 'treo' ? 'treo' : ket}`, than);

@@ -96,12 +96,25 @@ async function daNhanNut(tg, c, bang = new Map()) {
 // 👍❤️👌🔥 / 👎 thành đúng lần bấm nút ĐỒNG Ý / TỪ CHỐI của tin đó — rồi xử như anh bấm (hiện ⏳, vào hộp phòng sở hữu nút). Câu khác (vd "Thật", "Giả",
 // câu dặn dài) giữ nguyên là tin chữ để phòng tự đọc. Tin có NHIỀU nút đồng ý (vd lên $2 / lên $3) thì không đoán — bot hỏi lại.
 const TEP_NUT = () => path.join(GOC_HOP(), 'nut.json'), GIU_NUT = 1500;
+// ĐỊNH DẠNG MỘT CHỖ CHO MỌI TIN (anh 05/11/2026: "sửa lại format toàn bộ các tin tele nhìn tởm quá"): Telegram không hiểu Markdown nên ** ` ## | hiện nguyên chữ (mô hình + thợ máy viết Markdown).
+// Đổi sang thẻ Telegram ở bộ gửi chung, không vá từng phòng: **x** → đậm · `x` → mã · ## tiêu đề → đậm · - x → • x · bảng → • ô · ô · bỏ dòng kẻ · nhãn đầu dòng ("Gốc: …") đậm · gộp dòng trống. Khối <pre> giữ nguyên.
+export function dinhDang(text, html = true) {
+  const dong = (d) => { const c = d.trim(); if (/^(-{3,}|\*{3,}|_{3,})$/.test(c) || /^\|?[\s:|-]+\|[\s:|-]*$/.test(c)) return null;
+    if (/^\|.*\|$/.test(c)) return `• ${c.slice(1, -1).split('|').map((x) => x.trim()).join(' · ')}`;
+    return d.replace(/^\s*#{1,6}\s+(.+?)\s*#*\s*$/, '**$1**').replace(/^(\s*)[-*]\s+/, '$1• ').replace(/^(\s*(?:• )?)([\p{L}][\p{L} ]{1,18}):(\s)/u, (m, a, n, k) => (/^(https?|http)$/i.test(n) ? m : `${a}**${n}:**${k}`)); };
+  const nen = (phan) => (html ? phan : phan.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')).split('\n').map(dong).filter((d) => d !== null).join('\n')
+    .replace(/\*\*(?:<b>)?([^*\n]+?)(?:<\/b>)?\*\*/g, (m, x) => (x.includes('<b>') ? x : `<b>${x}</b>`)).replace(/(^|[^`])`([^`\n]+)`/g, '$1<code>$2</code>').replace(/\n{3,}/g, '\n\n');
+  return String(text).split(/(<pre>[\s\S]*?<\/pre>)/).map((p, i) => (i % 2 ? p : nen(p))).join('').trim();
+}
 export function ghiNut(tg) {
   return async (m, b) => {
     // MỌI CÂU HỎI PHẢI CÓ LỰA CHỌN (anh 31/10/2026: "mọi câu hỏi trong tele thì phải có option để tao trả lời"): tin hỏi anh mà người gửi quên gắn nút →
     // gắn [✅ Đồng ý] [✖ Không] (hq: → thư ký, worker/thu-ky.mjs nhận + xử + trả lời dưới tin). Một chỗ cho mọi bộ gửi của cty.
     if (m === 'sendMessage' && !b?.reply_markup && laCauHoi(b?.text)) b = { ...b, reply_markup: NUT_HOI };
-    const j = await tg(m, b);
+    if ((m === 'sendMessage' || m === 'editMessageText') && typeof b?.text === 'string') { const html = /^html$/i.test(b.parse_mode ?? ''); if (html || !b.parse_mode) b = { ...b, text: dinhDang(b.text, html).slice(0, 4096), parse_mode: 'HTML' }; }
+    let j = await tg(m, b);
+    // thẻ hỏng → gửi lại chữ trơn: định dạng không bao giờ được làm mất tin
+    if (j && j.ok === false && /parse entities/i.test(j.description ?? '') && b?.parse_mode) { console.error(`✗ telegram ${m}: ${j.description} — gửi lại chữ trơn`); const { parse_mode: _b, ...tron } = b; j = await tg(m, { ...tron, text: String(b.text).replace(/<[^>]+>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&') }); }
     try { const tl = b?.reply_parameters?.message_id; if (m === 'sendMessage' && tl && j?.ok) danhDauTraLoi(tl); } catch { /* sổ trả lời hỏng không chặn việc gửi */ }
     try { const mid = m === 'sendMessage' ? j?.result?.message_id : b?.message_id; const kb = b?.reply_markup?.inline_keyboard;
       if (mid && kb && ['sendMessage', 'editMessageReplyMarkup', 'editMessageText'].includes(m)) { fs.mkdirSync(GOC_HOP(), { recursive: true }); let so = {}; try { so = JSON.parse(fs.readFileSync(TEP_NUT(), 'utf8')); } catch { /* lần đầu */ }
@@ -300,5 +313,11 @@ if (process.argv[1]?.endsWith('tg-phong.mjs') && process.argv.includes('--tu-kie
     t.ok(fs.readdirSync(HOP('_nhom_khac')).includes('80.json') && !moHop('thu-ky').some((x) => x.message?.text === 'nhóm ASFY nhắn'), 'nhóm khác có bot → _nhom_khac, không tới thư ký');
     t.ok(tk2.some((x) => x.message?.text === 'gia hạn nhé anh'), 'tin trong nhóm anh vẫn tới thư ký');
     if (nhom === undefined) delete process.env.TG_CHAT; else process.env.TG_CHAT = nhom; }
+  { // MỌI bộ gửi tin của cty phải bọc ghiNut (05/11/2026: tho-may-viec gửi riêng nên "Cần anh quyết" không có nút)
+    const d = new URL('.', import.meta.url).pathname; for (const f of fs.readdirSync(d).filter((x) => x.endsWith('.mjs'))) for (const l of fs.readFileSync(path.join(d, f), 'utf8').split('\n')) if (/fetch\(`https:\/\/api\.telegram\.org\/bot/.test(l)) t.ok(l.includes('ghiNut'), `${f}: gửi Telegram không qua ghiNut`); }
+  { t.equal(dinhDang('**Gốc** ở `a.mjs`', true), '<b>Gốc</b> ở <code>a.mjs</code>'); t.equal(dinhDang('## Kết quả\n- một\n---\n\n\n\nhai', true), '<b>Kết quả</b>\n• một\n\nhai');
+    t.equal(dinhDang('| A | B |\n|---|---|\n| 1 | 2 |', true), '• A · B\n• 1 · 2'); t.equal(dinhDang('Gốc: Page hết bài', true), '<b>Gốc:</b> Page hết bài'); t.equal(dinhDang('a < b & c', false), 'a &lt; b &amp; c', 'tin chữ trơn được thoát');
+    t.equal(dinhDang('<pre>A: **x** | y</pre>', true), '<pre>A: **x** | y</pre>', 'bảng số giữ nguyên'); t.equal(dinhDang('<b>Tiêu đề</b> · <a href="https://x.y/a">↗ cty</a>', true), '<b>Tiêu đề</b> · <a href="https://x.y/a">↗ cty</a>', 'thẻ sẵn có giữ nguyên'); t.equal(dinhDang('https: //x', true), 'https: //x'); }
+  { const lan = []; const g2 = ghiNut(async (m, b) => { lan.push(b); return lan.length === 1 ? { ok: false, description: "Bad Request: can't parse entities" } : { ok: true, result: { message_id: 1 } }; }); const r = await g2('sendMessage', { text: '<b>x', parse_mode: 'HTML' }); t.ok(r.ok && lan.length === 2 && !lan[1].parse_mode && lan[1].text === 'x', 'thẻ hỏng: gửi lại chữ trơn'); }
   console.log('tg-phong: tự kiểm đạt');
 }

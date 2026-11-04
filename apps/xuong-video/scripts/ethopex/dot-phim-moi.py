@@ -34,7 +34,7 @@ def cat_ds(phim, ten, n=2):
     def tai(p):   # tải 4 phim cùng lúc (mạng, không tốn CPU) — từng phim một thì 30 phim mất hàng giờ
         tm = os.path.join(N, str(p["id"]))
         if not (os.path.isdir(tm) and any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm))):
-            os.makedirs(tm, exist_ok=True); r = sh(f"python3 {D}/tai-tap.py '{p['url']}' {tm} 8", timeout=900)
+            os.makedirs(tm, exist_ok=True); r = sh(f"python3 {D}/tai-tap.py '{p['url']}' {tm} 20", timeout=1500)   # hết tập miễn phí (tai-tap dừng ở tập khoá) — trần 8 cũ bỏ sót tập free cuối (04/11/2026)
             print("tải", p["id"], p["ten"][:40], (r.stdout.strip().splitlines() or [r.stderr.strip()[-120:]])[-1][:120], flush=True)
         dem[0] += 1; XG.bao("tai", ten, p["ten"], dem[0], len(phim))
     XG.bao("tai", ten, None, 0, len(phim), ep=True)

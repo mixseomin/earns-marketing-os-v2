@@ -13,7 +13,7 @@ def mot(dong, so_ban):
     cid, _, _, ten, url = (dong.rstrip("\n").split("\t") + [""] * 5)[:5]; tm = os.path.join(N, cid)
     try:
         if not (os.path.isdir(tm) and any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm))):
-            os.makedirs(tm, exist_ok=True); subprocess.run(["python3", os.path.join(D, "tai-tap.py"), url, tm, "8"], capture_output=True, text=True, timeout=1800)
+            os.makedirs(tm, exist_ok=True); subprocess.run(["python3", os.path.join(D, "tai-tap.py"), url, tm, "20"], capture_output=True, text=True, timeout=1800)   # hết tập miễn phí (04/11/2026)
         if not any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm)): return {"id": int(cid), "ten": ten, "loi": "không tải được tập miễn phí"}
         src, moc = CCL.ghep_mo(tm); tu0 = max(0.0, moc[-1] - CCL.QUET * so_ban)
         kd = os.path.join(K, cid); shutil.rmtree(kd, ignore_errors=True); os.makedirs(kd)

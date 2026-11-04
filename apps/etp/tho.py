@@ -13,6 +13,10 @@ B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.
 C = os.path.expanduser("~/.cache/ethopex"); N = os.path.join(C, "nguon")
 MAY = socket.gethostname().split(".")[0]; TRUNG_TAM = "Tuans-iMac"; IMAC = "htuan@100.98.66.49"
 
+# TẢI HẾT TẬP MIỄN PHÍ (anh 04/11/2026 "mỗi film có 10 tập free đã dùng chưa"): trần cũ 8 tập bỏ sót tập free cuối — #80386 El gran y poderoso genio mở 9 tập,
+# máy chỉ tải 8 rồi báo "hết khung mới". tai-tap.py tự dừng ở tập khoá / tập trả phí đầu tiên, nên trần này chỉ là chặn trên cho phim mở bất thường nhiều tập.
+TAP_TOI_DA = 20
+
 def sql(cau):
     r = subprocess.run(["ssh", "-o", "ConnectTimeout=15", B, f'{ENV}; psql "$DATABASE_URL" -qtA -v ON_ERROR_STOP=1 -f -'], input=cau, capture_output=True, text=True, timeout=120)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-300:])
@@ -40,7 +44,7 @@ def cat(v):
     d, cid, lo = v["du_lieu"], str(v["content_id"]), v["lo"]
     tm = os.path.join(N, cid); ra = os.path.join(C, "ra", lo, f"p-{cid}"); os.makedirs(ra, exist_ok=True)
     if not (os.path.isdir(tm) and any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm))):
-        os.makedirs(tm, exist_ok=True); subprocess.run(["python3", os.path.join(E, "tai-tap.py"), d.get("url", ""), tm, "8"], capture_output=True, text=True, timeout=900)   # tải 8 tập ≤ 15 phút (02/11/2026: trần cũ 30 phút)
+        os.makedirs(tm, exist_ok=True); subprocess.run(["python3", os.path.join(E, "tai-tap.py"), d.get("url", ""), tm, str(TAP_TOI_DA)], capture_output=True, text=True, timeout=1500)   # tải HẾT tập miễn phí (tai-tap dừng ở tập khoá đầu tiên)
     if not any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm)): return [], "không tải được tập miễn phí"
     tsv = os.path.join(ra, "lo.tsv"); open(tsv, "w").write(f"{cid}\t{d.get('locale', 'en')}\t{d.get('nguon', '')}\t{d.get('ten', '')}\t{d.get('url', '')}\n")
     h = time.localtime().tm_hour   # đêm 22h–8h: nice (đủ lõi); ngày: chế độ nền (máy người dùng không giật) — cùng luật dot-phim-moi.uu_tien

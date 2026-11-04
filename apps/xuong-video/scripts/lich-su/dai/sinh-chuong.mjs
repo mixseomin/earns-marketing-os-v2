@@ -52,6 +52,7 @@ for (const m of M.moc) {
   truocCung = c;
 }
 them(4.4, { toan: 1 }, 'Find your own chapters free at astrolas.com.', 'astrolas.com · Annual Profections');
+cau.at(-1).khung = true;   // câu kết tự viết (không mang nghĩa chiêm tinh) — máy gác kiểm luật khung
 const { dangCongCu } = await import(join(DIR, '../nguon-site.mjs'));
 const CAU = { _ghi: `Chart Chapters dài · ${M.ten} — sinh bởi lich-su/dai/sinh-chuong.mjs từ ${tepMoc}`, kenh: 'astrolas', mau: 'chart-chapters-dai', playlist_ma: 'career', y_tuong: `ccd-${slug}`, khung: 'ngang', DAI: cau.at(-1).den,
   nguon_moc: [relative(join(DIR, '..'), resolve(tepMoc))],   // đường tính từ lich-su/ (nguon-site.mjs đọc theo gốc đó)

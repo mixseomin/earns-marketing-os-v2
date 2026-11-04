@@ -35,6 +35,7 @@ html, body { background: #0B1A2E; overflow: hidden; }
   <img id="banh" class="abs">
   <div id="goc" class="abs"></div><div id="nhan" class="abs"></div><div id="cau" class="abs"></div>
 </div>
+<script src="vua-khung.js"></script>
 <script src="nen-troi.js"></script>
 <script>
 const W = 1920, H = 1080, CX = 570, CY = 540, R = Math.PI / 180, TAU = 2 * Math.PI;
@@ -151,6 +152,6 @@ window.__seek = (t) => {
   const bo = (x) => (x?.canh?.banh ? 1 : 0); document.getElementById('banh').style.opacity = bo(q) * k + bo(p) * (1 - k);
   const hien = Math.min(ease((t - q.tu) / 0.35), ease((q.den - t) / 0.3));
   const nh = document.getElementById('nhan'), cc = document.getElementById('cau');
-  nh.textContent = q.nhan || ''; nh.style.opacity = q.nhan ? ease((t - q.tu - 0.4) / 0.4) * hien : 0; cc.innerHTML = q.chu; cc.style.opacity = hien;
+  nh.textContent = q.nhan || ''; nh.style.opacity = q.nhan ? ease((t - q.tu - 0.4) / 0.4) * hien : 0; cc.innerHTML = q.chu; vuaKhung(cc, (W > H || document.body.classList.contains('ngang') ? 1080 : 1920) - 40); cc.style.opacity = hien;
 };
 </script></body></html>

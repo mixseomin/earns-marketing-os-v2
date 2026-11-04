@@ -104,6 +104,7 @@ body.ngang #cau { left: 1150px; right: 80px; top: 640px; text-align: left; font-
 </div>
 <script src="nen-troi.js"></script>
 <script src="bau-troi-tinh.js"></script>
+<script src="vua-khung.js"></script>
 <script>
 const ease = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -354,6 +355,6 @@ window.__seek = (t) => {
   const hien = hienCau(t, q);
   const nh = document.getElementById('nhan'), cc = document.getElementById('cau');
   nh.textContent = moi.nhan; nh.style.opacity = moi.nhan ? ease((t - q.tu - 0.4) / 0.4) * hien : 0;
-  cc.innerHTML = q.chu; cc.style.opacity = hien;
+  cc.innerHTML = q.chu; vuaKhung(cc, (W > H || document.body.classList.contains('ngang') ? 1080 : 1920) - 40); cc.style.opacity = hien;
 };
 </script></body></html>

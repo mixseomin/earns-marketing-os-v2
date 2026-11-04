@@ -38,8 +38,8 @@
      "nhin": "xien"
     }
    },
-   "chu": "“The Earth turns once in 24 hours, so all 12 signs pass over the eastern horizon in a day.” The gold circle is the zodiac.",
-   "nhan": "The ecliptic"
+   "chu": "“The Earth turns once in 24 hours, so all 12 signs pass over the eastern horizon in a day.”",
+   "nhan": "The zodiac"
   },
   {
    "tu": 13.0,
@@ -51,7 +51,7 @@
      "nhin": "dong"
     }
    },
-   "chu": "Look east. “At the moment you were born, one of the 12 zodiac signs was coming up over the eastern horizon.” That point is your Ascendant.",
+   "chu": "Look east. The sign “coming up over the eastern horizon” is your Ascendant.",
    "nhan": "Rising sign"
   },
   {
@@ -64,7 +64,7 @@
      "nhin": "dong"
     }
    },
-   "chu": "“That works out to roughly two hours per sign.” “If your birth time is off by an hour, there's a fair chance your rising sign is wrong.”",
+   "chu": "“If your birth time is off by an hour, there's a fair chance your rising sign is wrong.”",
    "nhan": "≈ 2 hours per sign"
   },
   {

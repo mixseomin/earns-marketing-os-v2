@@ -368,6 +368,7 @@ const LUAT = [
   { card: 'bo-cr-0311', tep: 'apps/etp/dong_phim.py', co: 'bộ creative đủ loại — chưa lên camp, CHỜ ANH BẮT ĐẦU', vi: 'phim làm bộ creative đủ loại thì mọi dòng dừng trước bước lên camp (anh 03/11/2026)' },
   { card: 'ly-do-poster-0411', tep: 'apps/etp/dong_phim.py', co: 'if l.startswith(f"{cid}: ")', vi: 'bước Ảnh bìa ghi đúng dòng phán của AI, không phải dòng "tổng N₫" (dòng #48 04/11/2026)' },
   { card: 'mau-poster-0411', tep: 'apps/etp/soat_18_ai.py', co: 'Fail blood only for GRAPHIC gore', vi: 'vết máu / bầm trên mặt poster không phải lỗi, chỉ chặn máu me ghê (Big Mistake 171236, anh 04/11/2026)' },
+  { card: 'manh-cam-nhan-0411', tep: 'apps/etp/manh.py', co: "d.ly_do like 'nhan: phim nằm trong sổ cấm%'", vi: 'Mạnh mở lại dòng bị sổ cấm chặn ở bước Nhận khi phim đã gỡ cấm (dòng #47)' },
   { card: 'bo-cr-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: 'function NhomPhim(', vi: 'một phim một thư mục, mỗi loại nội dung một thư mục con (anh 03/11/2026)' },
   { card: 'bo-cr-0311', tep: 'packages/db/migrations/0415_etp_dong_phim_moi_loai.sql', co: 'on etp.dong_phim (content_id, loai)', vi: 'một phim nhiều loại cùng chạy' },
   { card: 'duyet-camp-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: '▶ Duyệt lên camp', vi: 'ô chờ anh có nút duyệt lên camp ngay tại chỗ (anh 03/11/2026)' },

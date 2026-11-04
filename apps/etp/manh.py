@@ -64,6 +64,8 @@ def main():
     #    dòng dừng vì một luật mà ĐIỀU KIỆN ĐÓ NAY ĐÃ HẾT → FIX đúng bước đó. Mỗi lý do một câu kiểm, đọc thẳng kho (không đọc chữ lý do để đoán).
     mo = [("nhan", "nhóm gốc nay Âu-Mỹ", "d.ly_do like 'nhan: nhóm gốc%' and exists (select 1 from etp.phim f where f.content_id = d.content_id and f.nhom_goc = 'au_my')"),
           ("poster", "đã gỡ khỏi sổ cấm 18+", "d.ly_do like 'poster:%' and not exists (select 1 from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam' and k.gia_tri ? d.content_id::text)"),
+          # cùng sổ cấm, chặn sớm ở bước Nhận (04/11/2026 dòng #47 Big Mistake: gỡ cấm xong vẫn đứng "0" vì chỉ có luật 'poster:')
+          ("nhan", "đã gỡ khỏi sổ cấm 18+", "d.ly_do like 'nhan: phim nằm trong sổ cấm%' and not exists (select 1 from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam' and k.gia_tri ? d.content_id::text)"),
           ("camp", "đã có creative đạt CTA mới", "d.ly_do like '%chưa đạt luật CTA mới%' and exists (select 1 from etp.creative r join etp.cham_cong g using (creative_id) where r.content_id = d.content_id and r.cta_dat and g.duoc_len and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id))")]
     for buoc, ly, dk in mo:
         r = q(f"""update etp.dong_buoc b set fix = true from etp.dong_phim d where d.id = b.dong_id and d.trang_thai in ('dung', 'loi') and b.buoc = '{buoc}' and not b.fix

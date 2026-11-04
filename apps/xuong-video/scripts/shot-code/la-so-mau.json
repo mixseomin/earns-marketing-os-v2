@@ -2,14 +2,14 @@
  "_ghi": "Tập thử Chart Chapters có cảnh minh hoạ (anh 03/11/2026: thiếu người, đồ vật, nơi chốn). Cảnh: lich-su/tranh-sinh.mts --phong nét khắc đồng (~110₫/cảnh). Chữ lá số chỉ nêu điều có trong la-so/steve-jobs.json.",
  "kenh": "astrolas",
  "mau": "chart-chapters",
- "playlist_ma": "chart-chapters",
+ "playlist_ma": "know-yourself",
  "y_tuong": "cc-steve-jobs",
  "la_so": "../lich-su/la-so/steve-jobs.svg",
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "playlist": {
-  "ten": "Chart Chapters",
-  "mau": "#E6B800",
+  "ten": "Know Yourself",
+  "mau": "#8EC5FF",
   "ic": "☉"
  },
  "DAI": 23.6,

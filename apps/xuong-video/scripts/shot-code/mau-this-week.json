@@ -2,15 +2,15 @@
  "_ghi": "Demo This Week in Your Chart: Sao Thuỷ nghịch hành ở Bọ Cạp (~24/10 → ~14/11/2026, tính bằng bau-troi-tinh.js, sai số ±1 ngày) + nhà theo cung Mọc (cung trọn). Ảnh trang thật /transit (transit-now).",
  "kenh": "astrolas",
  "mau": "this-week",
- "playlist_ma": "this-week",
+ "playlist_ma": "timing",
  "y_tuong": "tw-mercury-rx-scorpio-2026",
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "la_so": "../lich-su/la-so/steve-jobs.svg",
  "playlist": {
-  "ten": "This Week in Your Chart",
-  "mau": "#FF8FA3",
-  "ic": "☿"
+  "ten": "Timing: What's Coming",
+  "mau": "#7FD18B",
+  "ic": "☽"
  },
  "DAI": 19.8,
  "cau": [

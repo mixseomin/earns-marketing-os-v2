@@ -7,155 +7,220 @@
     "cap_nhat": "2026-11-04",
     "playlist": [
       {
-        "ma": "chart-chapters",
-        "ten": "Chart Chapters",
-        "tien_to": "Chart Chapters: …",
-        "noi_dung": "đời người nổi tiếng theo chương lá số (vd Steve Jobs bị đuổi 1985, quay lại 1997 rơi vào chương ZR nào)",
-        "ho_hinh": "engraving (kể chuyện)",
-        "ngay": "Thứ 2 + Thứ 6",
-        "trang_dich": "Zodiacal Releasing, Annual Profections, /c/<người>",
-        "mo_dau": true,
-        "trang_thai": "chot"
-      },
-      {
-        "ma": "sky-calendar",
-        "ten": "Sky Calendar",
-        "tien_to": "Sky Calendar: …",
-        "noi_dung": "trăng trong tuần + nhật/nguyệt thực đổi lịch sử (Columbus 1504, Thales 585 TCN), đăng sát ngày có thực",
-        "ho_hinh": "paper-lantern",
-        "ngay": "Thứ 4",
-        "trang_dich": "Moon Phase, Lunation Analyzer, Today's sky",
-        "mo_dau": true,
+        "ma": "love-compatibility",
+        "ten": "Love & Compatibility",
         "trang_thai": "chot",
-        "ghi": "tên EN tạm đặt 03/11 (anh chưa chọn) — đổi được tới G7"
-      },
-      {
-        "ma": "chart-vs-chart",
-        "ten": "Chart vs Chart",
-        "tien_to": "Chart vs Chart: …",
-        "noi_dung": "synastry hai người: cặp đôi nổi tiếng, đối thủ, bạn diễn — góc chiếu chéo khít nhất + điểm từng trục của site + mốc quen / cưới / chia tay",
-        "ho_hinh": "bánh xe đôi Nebula + ảnh minh hoạ",
+        "mo_dau": true,
         "ngay": "Thứ 3 + Thứ 7",
-        "trang_dich": "Synastry (/synastry-chart), Compatibility (/compatibility)",
-        "mo_dau": true,
-        "trang_thai": "chot"
+        "tien_to": "",
+        "mo_ta": "Hai lá số đặt cạnh nhau: cặp đôi, đối thủ, bạn diễn nổi tiếng và từng cặp cung — điểm và lời giải của công cụ Synastry trên site",
+        "goc_spy": [
+          {
+            "id": 4314,
+            "loai": "muon",
+            "ten": "Tình yêu, hợp đôi (synastry)"
+          },
+          {
+            "id": 41245,
+            "loai": "ai_chan_dung",
+            "ten": "Cặp đôi bị gia đình phản đối tình cảm"
+          },
+          {
+            "id": 41297,
+            "loai": "ai_chan_dung",
+            "ten": "Người độc thân mong tìm bạn đời"
+          },
+          {
+            "id": 41274,
+            "loai": "ai_tinh_huong",
+            "ten": "Yêu xa và trục trặc tình cảm"
+          }
+        ],
+        "mau": [
+          "chart-vs-chart",
+          "love-story-charts",
+          "sign-x-sign",
+          "ask-the-chart"
+        ],
+        "trang_dich": "Synastry (/synastry-chart), Compatibility (/compatibility), bài ghép cung"
       },
       {
-        "ma": "sign-x-sign",
-        "ten": "Sign × Sign",
-        "tien_to": "Aries × Leo: …",
-        "noi_dung": "78 cặp cung Mặt Trời (12 × 13 / 2), mỗi tập trỏ đúng bài ghép cung của site /en/blog/<a>-and-<b>-compatibility",
-        "ho_hinh": "hai ký hiệu cung + vòng hoàng đạo",
-        "ngay": "Thứ 5",
-        "trang_dich": "/en/blog/<a>-and-<b>-compatibility, /synastry-chart",
+        "ma": "know-yourself",
+        "ten": "Know Yourself",
+        "trang_thai": "chot",
         "mo_dau": true,
-        "trang_thai": "chot"
+        "ngay": "Thứ 2",
+        "tien_to": "",
+        "mo_ta": "Đọc một lá số để hiểu một con người: vị trí sao, nhà, thần thoại đứng sau — chữ lấy từ bài lá số và bài giải thích của site",
+        "goc_spy": [
+          {
+            "id": 4313,
+            "loai": "muon",
+            "ten": "Hiểu bản thân, tính cách"
+          },
+          {
+            "id": 41242,
+            "loai": "ai_mong_muon",
+            "ten": "Thấu hiểu bản thân và tâm lý qua lá số"
+          },
+          {
+            "id": 41356,
+            "loai": "ai_chan_dung",
+            "ten": "Người muốn giải mã tổng quan cuộc đời"
+          }
+        ],
+        "mau": [
+          "read-your-chart",
+          "myth-behind",
+          "free-60s",
+          "chart-chapters"
+        ],
+        "trang_dich": "Birth chart (/birth), /c/<người>, bài <người>-birth-chart"
+      },
+      {
+        "ma": "career",
+        "ten": "Career & Big Decisions",
+        "trang_thai": "chot",
+        "mo_dau": true,
+        "ngay": "Thứ 6",
+        "tien_to": "",
+        "mo_ta": "Bước ngoặt sự nghiệp của người nổi tiếng theo chương lá số (Profection, Zodiacal Releasing) — kỳ và nghĩa nhà lấy từ công cụ site",
+        "goc_spy": [
+          {
+            "id": 4315,
+            "loai": "muon",
+            "ten": "Sự nghiệp, quyết định lớn"
+          },
+          {
+            "id": 41248,
+            "loai": "ai_noi_dau",
+            "ten": "Lo lắng về công việc và sự nghiệp"
+          }
+        ],
+        "mau": [
+          "chart-chapters",
+          "chart-chapters-dai",
+          "chart-tools",
+          "ask-the-chart"
+        ],
+        "trang_dich": "Annual Profections, Zodiacal Releasing"
+      },
+      {
+        "ma": "timing",
+        "ten": "Timing: What's Coming",
+        "trang_thai": "chot",
+        "mo_dau": true,
+        "ngay": "Thứ 4 (+ sát ngày sự kiện trời)",
+        "tien_to": "",
+        "mo_ta": "Sự kiện trời sắp tới (trăng mới / tròn, sao đổi cung, nghịch hành) và nó chạm nhà nào theo cung Mọc — lịch trời tính tới phút",
+        "goc_spy": [
+          {
+            "id": 4316,
+            "loai": "tinh_huong",
+            "ten": "Thời điểm: transit, Saturn return"
+          },
+          {
+            "id": 41439,
+            "loai": "ai_cu_hich",
+            "ten": "Người theo dõi giai đoạn Sao Kim và Sao Thủy nghịch hành cùng lúc"
+          },
+          {
+            "id": 41438,
+            "loai": "ai_cu_hich",
+            "ten": "Người quan tâm hiện tượng Sao Thủy nghịch hành"
+          }
+        ],
+        "mau": [
+          "this-week",
+          "sky-calendar",
+          "tonights-sky"
+        ],
+        "trang_dich": "Today's sky, Transit, Moon Phase, Lunation Analyzer"
       },
       {
         "ma": "start-here",
-        "ten": "Start here",
+        "ten": "Start Here",
+        "trang_thai": "chot",
+        "mo_dau": true,
+        "ngay": "ghim đầu kênh, thêm tập khi có mẫu mới",
         "tien_to": "",
-        "noi_dung": "video giới thiệu kênh, đầu trang chủ kênh",
-        "ho_hinh": "khung thương hiệu",
-        "ngay": "—",
-        "trang_dich": "astrolas.com",
-        "mo_dau": false,
-        "trang_thai": "sau",
-        "khi": "G7"
+        "mo_ta": "Cho người mới: lá số là gì, đọc từ đâu, không biết giờ sinh thì sao, tự xem miễn phí bằng công cụ nào",
+        "goc_spy": [
+          {
+            "id": 41233,
+            "loai": "ai_cach_giai",
+            "ten": "Tự xem lá số miễn phí bằng công cụ"
+          },
+          {
+            "id": 41236,
+            "loai": "ai_chan_dung",
+            "ten": "Người mới bắt đầu tự học chiêm tinh"
+          },
+          {
+            "id": 41288,
+            "loai": "ai_cu_hich",
+            "ten": "Người mới nhập môn chiêm tinh, chưa biết bắt đầu từ đâu"
+          },
+          {
+            "id": 4321,
+            "loai": "dau",
+            "ten": "Không biết giờ sinh"
+          }
+        ],
+        "mau": [
+          "start-here",
+          "read-your-chart",
+          "geometry",
+          "how-the-sky-works",
+          "free-60s"
+        ],
+        "trang_dich": "Birth chart (/birth), bài what-is-a-birth-chart, how-to-read-your-birth-chart-in-10-steps"
       },
       {
-        "ma": "myth-behind",
-        "ten": "The Myth Behind",
-        "tien_to": "The Myth Behind: …",
-        "noi_dung": "thần thoại sau mỗi vị trí: Chiron, Lilith, Psyche và Eros…; kết \"What's your Chiron sign?\"",
-        "ho_hinh": "engraving (kể chuyện)",
+        "ma": "accurate",
+        "ten": "Is Astrology Accurate?",
+        "trang_thai": "chot",
+        "mo_dau": true,
         "ngay": "chưa xếp",
-        "trang_dich": "42 trang *-sign + /sign/*",
-        "mo_dau": false,
-        "trang_thai": "sau",
-        "khi": "khi 2 playlist đầu giữ người xem tốt"
-      },
-      {
-        "ma": "cong-cu",
-        "ten": "Công cụ / số liệu",
-        "tien_to": "(chờ chốt)",
-        "noi_dung": "Profections, ZR, mẹo dùng từng công cụ",
-        "ho_hinh": "hologram-hud",
-        "ngay": "chưa xếp",
-        "trang_dich": "từng công cụ astrolas.com",
-        "mo_dau": false,
-        "trang_thai": "sau",
-        "khi": "G10"
-      },
-      {
-        "ma": "read-your-chart",
-        "ten": "Read Your Chart",
-        "tien_to": "Read Your Chart: …",
-        "noi_dung": "giải nghĩa một con số / ký hiệu trên lá số",
-        "trang_dich": "astrolas.com",
-        "mo_dau": false,
-        "trang_thai": "sau",
-        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
-      },
-      {
-        "ma": "ask-the-chart",
-        "ten": "Ask the Chart",
-        "tien_to": "Ask the Chart: …",
-        "noi_dung": "câu hỏi người dùng → công cụ → đọc kết quả",
-        "trang_dich": "astrolas.com",
-        "mo_dau": false,
-        "trang_thai": "sau",
-        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
-      },
-      {
-        "ma": "free-60s",
-        "ten": "Free in 60 Seconds",
-        "tien_to": "Free in 60 Seconds: …",
-        "noi_dung": "một công cụ miễn phí từ form tới kết quả",
-        "trang_dich": "astrolas.com",
-        "mo_dau": false,
-        "trang_thai": "sau",
-        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
-      },
-      {
-        "ma": "this-week",
-        "ten": "This Week in Your Chart",
-        "tien_to": "This Week: …",
-        "noi_dung": "sự kiện trời tuần này × 12 cung Mọc",
-        "trang_dich": "astrolas.com",
-        "mo_dau": false,
-        "trang_thai": "sau",
-        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
-      },
-      {
-        "ma": "tonights-sky",
-        "ten": "Tonight's Sky",
-        "tien_to": "Tonight's Sky: …",
-        "noi_dung": "bầu trời đêm thật theo thành phố, 1–3 giờ",
-        "trang_dich": "astrolas.com",
-        "mo_dau": false,
-        "trang_thai": "sau",
-        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
-      },
-      {
-        "ma": "how-the-sky-works",
-        "ten": "How the Sky Works",
-        "tien_to": "How the Sky Works: …",
-        "noi_dung": "giảng 3D cơ chế bầu trời",
-        "trang_dich": "astrolas.com",
-        "mo_dau": false,
-        "trang_thai": "sau",
-        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
-      },
-      {
-        "ma": "geometry",
-        "ten": "The Geometry of Your Chart",
-        "tien_to": "Geometry: …",
-        "noi_dung": "hình học của lá số",
-        "trang_dich": "astrolas.com",
-        "mo_dau": false,
-        "trang_thai": "sau",
-        "khi": "mẫu đã duyệt G3 · mở sau 2 playlist đầu"
+        "tien_to": "",
+        "mo_ta": "Góc ngại: lá số có chính xác không — hạng giờ sinh Rodden, Swiss Ephemeris của site, vì sao lời giải chung chung không dùng được; chỉ nói điều site có",
+        "goc_spy": [
+          {
+            "id": 4312,
+            "loai": "ngai",
+            "ten": "Có đúng không, độ chính xác"
+          },
+          {
+            "id": 41263,
+            "loai": "ai_tieu_chi",
+            "ten": "Dự đoán chính xác, có kiểm chứng"
+          },
+          {
+            "id": 41249,
+            "loai": "ai_noi_dau",
+            "ten": "Thất vọng vì luận giải chung chung, đại trà"
+          },
+          {
+            "id": 41251,
+            "loai": "ai_chan_dung",
+            "ten": "Người thất vọng với lá số AI tự động"
+          },
+          {
+            "id": 4319,
+            "loai": "so_sanh",
+            "ten": "AI hay người thật luận giải"
+          },
+          {
+            "id": 41270,
+            "loai": "ai_tieu_chi",
+            "ten": "Đòi giờ sinh chính xác và gửi dữ liệu kín đáo"
+          }
+        ],
+        "mau": [
+          "chart-tools",
+          "read-your-chart"
+        ],
+        "trang_dich": "Birth chart (/birth), công cụ có số liệu"
       }
     ],
     "giai_doan": [
@@ -262,7 +327,6 @@
         "ma": "chart-chapters",
         "ten": "Chart Chapters",
         "loai": "short",
-        "playlist": "chart-chapters",
         "nhip": "Thứ 2 + Thứ 6",
         "kho": "vô hạn · 1–3 tập / người nổi tiếng",
         "trang": "shot-code/la-so.html",
@@ -273,7 +337,6 @@
         "ma": "sky-calendar",
         "ten": "Sky Calendar",
         "loai": "short",
-        "playlist": "sky-calendar",
         "nhip": "Thứ 4",
         "kho": "52 tập trăng / năm + nhật nguyệt thực + chuyện lịch sử",
         "trang": "shot-code/la-so.html",
@@ -284,7 +347,6 @@
         "ma": "myth-behind",
         "ten": "The Myth Behind",
         "loai": "short",
-        "playlist": "myth-behind",
         "nhip": "sau 2 playlist đầu",
         "kho": "≈ 50+ tập",
         "trang": "shot-code/la-so.html",
@@ -295,7 +357,6 @@
         "ma": "chart-tools",
         "ten": "Chart Tools",
         "loai": "short",
-        "playlist": "cong-cu",
         "nhip": "sau",
         "kho": "≈ 30 tập",
         "trang": "shot-code/la-so.html",
@@ -306,7 +367,6 @@
         "ma": "start-here",
         "ten": "Start here",
         "loai": "short",
-        "playlist": "start-here",
         "nhip": "1 lần (G7)",
         "kho": "1–2 tập",
         "trang": "shot-code/la-so.html",
@@ -317,7 +377,6 @@
         "ma": "read-your-chart",
         "ten": "Read Your Chart",
         "loai": "short",
-        "playlist": "read-your-chart",
         "nhip": "sau",
         "kho": "≈ 600+ Short",
         "trang": "shot-code/la-so.html",
@@ -328,7 +387,6 @@
         "ma": "ask-the-chart",
         "ten": "Ask the Chart",
         "loai": "short",
-        "playlist": "ask-the-chart",
         "nhip": "sau",
         "kho": "≈ 13.900 câu hỏi thật (spy nhóm #9)",
         "trang": "shot-code/la-so.html",
@@ -339,7 +397,6 @@
         "ma": "free-60s",
         "ten": "Free in 60 Seconds",
         "loai": "short",
-        "playlist": "free-60s",
         "nhip": "sau",
         "kho": "16 tập (một công cụ một tập)",
         "trang": "shot-code/la-so.html",
@@ -350,7 +407,6 @@
         "ma": "this-week",
         "ten": "This Week in Your Chart",
         "loai": "short",
-        "playlist": "this-week",
         "nhip": "theo sự kiện trời",
         "kho": "≈ 1.000 Short / năm (88 sự kiện × 12 cung Mọc)",
         "trang": "shot-code/la-so.html",
@@ -362,7 +418,6 @@
         "ma": "chart-chapters-dai",
         "ten": "Chart Chapters (long)",
         "loai": "dai",
-        "playlist": "chart-chapters",
         "nhip": "1 tập / tuần",
         "kho": "vô hạn theo người",
         "trang": "shot-code/la-so.html (khung ngang)",
@@ -374,7 +429,6 @@
         "ma": "chart-vs-chart",
         "ten": "Chart vs Chart",
         "loai": "short",
-        "playlist": "chart-vs-chart",
         "nhip": "Thứ 3 + Thứ 7",
         "kho": "vô hạn · mỗi cặp 1–3 tập (góc khít nhất / điểm / mốc chia tay)",
         "trang": "shot-code/la-so.html (cheo + diem)",
@@ -385,7 +439,6 @@
         "ma": "love-story-charts",
         "ten": "Love Story in Two Charts (long)",
         "loai": "dai",
-        "playlist": "chart-vs-chart",
         "nhip": "2 tập / tháng",
         "kho": "theo sổ cặp la-so/cap.json",
         "trang": "shot-code/la-so.html (khung ngang)",
@@ -396,7 +449,6 @@
         "ma": "sign-x-sign",
         "ten": "Sign × Sign",
         "loai": "short",
-        "playlist": "sign-x-sign",
         "nhip": "Thứ 5",
         "kho": "78 cặp cung (đủ một vòng 78 tuần)",
         "trang": "shot-code/la-so.html",
@@ -408,7 +460,6 @@
         "ma": "how-the-sky-works",
         "ten": "How the Sky Works",
         "loai": "dai",
-        "playlist": "how-the-sky-works",
         "nhip": "2 tập / tháng",
         "kho": "≈ 20 bài",
         "trang": "shot-code/giang-troi.html",
@@ -419,7 +470,6 @@
         "ma": "geometry",
         "ten": "The Geometry of Your Chart",
         "loai": "dai",
-        "playlist": "geometry",
         "nhip": "2 tập / tháng",
         "kho": "≈ 15–20 bài",
         "trang": "shot-code/giang-troi.html",
@@ -430,7 +480,6 @@
         "ma": "tonights-sky",
         "ten": "Tonight's Sky",
         "loai": "dai",
-        "playlist": "tonights-sky",
         "nhip": "mỗi tuần × mỗi thành phố",
         "kho": "vô hạn",
         "trang": "shot-code/bau-troi-dem.html",

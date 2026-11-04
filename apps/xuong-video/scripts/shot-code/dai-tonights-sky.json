@@ -2,7 +2,7 @@
  "_ghi": "Tonight's Sky London 2026-11-20 — sinh bởi lich-su/dai/sinh-dem.mjs",
  "kenh": "astrolas",
  "mau": "tonights-sky",
- "playlist_ma": "tonights-sky",
+ "playlist_ma": "timing",
  "y_tuong": "ts-london-2026-11-20",
  "DAI": 90,
  "toc": 280,
@@ -18,9 +18,9 @@
  "nen_nui": "../lich-su/brand/astrolas/anh/nui.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "playlist": {
-  "ten": "Tonight's Sky",
-  "mau": "#9FB8FF",
-  "ic": "✦"
+  "ten": "Timing: What's Coming",
+  "mau": "#7FD18B",
+  "ic": "☽"
  },
  "cau": [
   {

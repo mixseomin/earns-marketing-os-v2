@@ -165,11 +165,14 @@ const PL: Record<TrangThaiPl, { ic: string; chu: string; mau: string }> = {
 export function cayPlaylist(lt: SoKenh): DongKe[] {
   const ds = [...(lt.playlist ?? [])].sort((a, b) => Number(!!b.mo_dau) - Number(!!a.mo_dau));
   if (!ds.length) return [];
+  const tenMau = new Map((lt.mau ?? []).map((m) => [m.ma, m.ten]));
   const mo = ds.filter((p) => p.trang_thai === 'mo').length, dau = ds.filter((p) => p.mo_dau).length;
   return [{ id: 'pl', nhom: true, chu: `📂 Playlist (${ds.length})`, phu: `${mo} đang mở · ${dau} mở đầu${ds.some((p) => p.trang_thai === 'de_xuat') ? ' · đề xuất chờ G0 chốt' : ds.some((p) => p.trang_thai === 'chot') ? ' · đã chốt, mở trên YouTube ở G7' : ''}` },
     ...ds.map((p): DongKe => { const s = PL[p.trang_thai] ?? PL.sau;
       return { id: `pl/${p.ma}`, chu: `${s.ic} ${p.ten} · ${s.chu}${p.mo_dau ? ' · mở đầu' : p.khi ? ` · ${p.khi}` : ''}`, mau: s.mau,
-        phu: [p.noi_dung, p.ho_hinh && `hình ${p.ho_hinh}`, p.ngay && p.ngay !== '—' && `ngày ${p.ngay}`, p.trang_dich && `→ ${p.trang_dich}`, p.tien_to && `tiêu đề "${p.tien_to}"`].filter(Boolean).join(' · ') }; })];
+        // playlist = SERIES theo góc truyền thông (spy) dùng nhiều mẫu — ghi mẫu + góc ngay trên dòng
+        phu: [p.mo_ta ?? p.noi_dung, p.mau?.length && `mẫu: ${p.mau.map((x) => tenMau.get(x) ?? x).join(' + ')}`, p.goc_spy?.length && `góc spy: ${p.goc_spy.map((g) => g.ten).join(' · ')}`,
+          p.ho_hinh && `hình ${p.ho_hinh}`, p.ngay && p.ngay !== '—' && `ngày ${p.ngay}`, p.trang_dich && `→ ${p.trang_dich}`, p.tien_to && `tiêu đề "${p.tien_to}"`].filter(Boolean).join(' · ') }; })];
 }
 /** Khối 📘 SỔ KÊNH: cho ai · đích · câu kết · từng luật. Thuần. */
 export function caySoKenh(so: SoKenh): DongKe[] {

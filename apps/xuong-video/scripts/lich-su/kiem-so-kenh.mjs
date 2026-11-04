@@ -26,6 +26,8 @@ export function kiemSo(k, ma) {
   }
   // PLAYLIST = SERIES dùng nhiều mẫu: playlist.mau[] phải là mẫu có trong sổ
   for (const p of k.playlist ?? []) for (const x of p.mau ?? []) if (!mau.has(x)) loi.push(`${ma}: playlist ${p.ma} dùng mẫu ${x} không có trong sổ`);
+  // kênh đã chia series (playlist khai mau[]): mẫu nào cũng phải phục vụ ít nhất một series, không thì máy không biết tập của mẫu đó lên playlist nào
+  if ((k.playlist ?? []).some((p) => p.mau?.length)) for (const m of k.mau ?? []) if (!m.playlist && !(k.playlist ?? []).some((p) => p.mau?.includes(m.ma))) loi.push(`${ma}: mẫu ${m.ma} chưa thuộc playlist nào`);
   const y = new Set();
   for (const h of k.hang_cho ?? []) {
     if (y.has(h.ma)) loi.push(`${ma}: ý tưởng trùng mã ${h.ma}`); y.add(h.ma);
@@ -53,7 +55,7 @@ export function kiemTap(tap, k, ma) {
   if (!tap.playlist?.ma && !tap.playlist_ma) loi.push('tập không khai playlist');
   const plMa = tap.playlist_ma ?? tap.playlist?.ma;
   if (m && plMa && m.playlist && m.playlist !== plMa) loi.push(`mẫu ${m.ma} thuộc playlist ${m.playlist}, tập lại khai ${plMa}`);
-  const plSo = (k.playlist ?? []).find((p) => p.ma === plMa); if (m && plSo?.mau?.length && !plSo.mau.includes(m.ma)) loi.push(`playlist ${plMa} không dùng mẫu ${m.ma} (dùng: ${plSo.mau.join(', ')})`);
+  const plSo = (k.playlist ?? []).find((p) => p.ma === plMa); if (plMa && !plSo) loi.push(`playlist ${plMa} không có trong sổ ${ma}`); if (m && plSo?.mau?.length && !plSo.mau.includes(m.ma)) loi.push(`playlist ${plMa} không dùng mẫu ${m.ma} (dùng: ${plSo.mau.join(', ')})`);
   // ý tưởng: có trong hàng chờ, HOẶC đúng khuôn mã tự sinh của mẫu (mẫu vô hạn: Tonight's Sky ts-<thành phố>-<ngày>, Chart Chapters dài ccd-<người>)
   const h = (k.hang_cho ?? []).find((x) => x.ma === tap.y_tuong), tuSinh = m?.tu_sinh && tap.y_tuong && new RegExp(m.tu_sinh).test(tap.y_tuong);
   if (!tap.y_tuong) loi.push('tập không khai y_tuong (ý tưởng nào trong hàng chờ?)'); else if (!h && !tuSinh) loi.push(`ý tưởng ${tap.y_tuong} không có trong hàng chờ, cũng không đúng khuôn tự sinh của mẫu`);
@@ -96,12 +98,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   // phá thử: tập sai phải bị chặn (máy gác không được im)
   const k = so.astrolas, cc = (await import('./nguon-site.mjs')).SO_CONG_CU().find((x) => x.ma === 'today'), DANG_THU = { cong_cu: 'today', link: cc.url, mo_ta: `${cc.mo_ta}: ${cc.url}` };
   // luật nguồn phải chặn: câu tự đặt nghĩa nhà + bài đăng thiếu link
-  if (k?.luat_nguon) { const bia = kiemTap({ mau: 'this-week', playlist_ma: 'this-week', y_tuong: 'tw-di-thuan-mercury-scorpio-2026-11-13', cau: [{ chu: 'Your 4th house: money and fame.' }, { chu: 'See it free at astrolas.com' }] }, k, 'astrolas');
+  if (k?.luat_nguon) { const bia = kiemTap({ mau: 'this-week', playlist_ma: 'timing', y_tuong: 'tw-di-thuan-mercury-scorpio-2026-11-13', cau: [{ chu: 'Your 4th house: money and fame.' }, { chu: 'See it free at astrolas.com' }] }, k, 'astrolas');
     if (!bia.some((l) => l.includes('không phải chữ của site')) || !bia.some((l) => l.includes('dang.link'))) { console.log(`✗ luật nguồn không chặn câu bịa / bài thiếu link: ${bia.join('; ')}`); tong++; } else console.log('✓ phá thử luật nguồn: câu tự đặt nghĩa nhà + bài thiếu link bị chặn'); }
-  if (k?.mau?.length) { const sai = kiemTap({ mau: 'khong-co', cau: [{ chu: 'bye' }] }, k, 'astrolas'), dung = kiemTap({ mau: 'this-week', playlist_ma: 'this-week', y_tuong: 'tw-di-thuan-mercury-scorpio-2026-11-13', cau: [{ chu: 'See it free at astrolas.com' }], dang: DANG_THU }, k, 'astrolas');
-    const tuSinh = kiemTap({ mau: 'tonights-sky', playlist_ma: 'tonights-sky', y_tuong: 'ts-paris-2027-01-05', cau: [{ chu: 'See your own sky free at astrolas.com' }], dang: DANG_THU }, k, 'astrolas');
+  if (k?.mau?.length) { const sai = kiemTap({ mau: 'khong-co', cau: [{ chu: 'bye' }] }, k, 'astrolas'), dung = kiemTap({ mau: 'this-week', playlist_ma: 'timing', y_tuong: 'tw-di-thuan-mercury-scorpio-2026-11-13', cau: [{ chu: 'See it free at astrolas.com' }], dang: DANG_THU }, k, 'astrolas');
+    const tuSinh = kiemTap({ mau: 'tonights-sky', playlist_ma: 'timing', y_tuong: 'ts-paris-2027-01-05', cau: [{ chu: 'See your own sky free at astrolas.com' }], dang: DANG_THU }, k, 'astrolas');
     const choDuyet = (k.mau.find((x) => x.cho_duyet) && kiemTap({ mau: k.mau.find((x) => x.cho_duyet).ma, playlist_ma: k.mau.find((x) => x.cho_duyet).playlist, y_tuong: 'x', cau: [{ chu: 'astrolas.com' }] }, k, 'astrolas').some((l) => l.includes('chờ anh duyệt'))) ?? true;
-    const saiKhuon = kiemTap({ mau: 'tonights-sky', playlist_ma: 'tonights-sky', y_tuong: 'paris', cau: [{ chu: 'astrolas.com' }] }, k, 'astrolas');
+    const saiKhuon = kiemTap({ mau: 'tonights-sky', playlist_ma: 'timing', y_tuong: 'paris', cau: [{ chu: 'astrolas.com' }] }, k, 'astrolas');
     if (sai.length < 3 || dung.length || tuSinh.length || !saiKhuon.length || !choDuyet) { console.log(`✗ tự kiểm máy gác hỏng: sai→${sai.length} · đúng→${dung.join('; ')} · tự sinh→${tuSinh.join('; ')} · sai khuôn→${saiKhuon.length} · mẫu chờ duyệt→${choDuyet ? 'chặn' : 'LỌT'}`); tong++; }
     else console.log('✓ phá thử: tập sai bị chặn · tập đúng qua · mã tự sinh đúng khuôn qua · sai khuôn bị chặn · mẫu chờ duyệt bị chặn'); }
   process.exit(tong ? 1 : 0);

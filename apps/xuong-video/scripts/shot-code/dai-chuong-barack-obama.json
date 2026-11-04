@@ -2,7 +2,7 @@
  "_ghi": "Chart Chapters dài · Barack Obama — sinh bởi lich-su/dai/sinh-chuong.mjs từ dai/moc-barack-obama.json",
  "kenh": "astrolas",
  "mau": "chart-chapters-dai",
- "playlist_ma": "chart-chapters",
+ "playlist_ma": "career",
  "y_tuong": "ccd-barack-obama",
  "khung": "ngang",
  "DAI": 53.2,
@@ -10,9 +10,9 @@
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "playlist": {
-  "ten": "Chart Chapters",
+  "ten": "Career & Big Decisions",
   "mau": "#E6B800",
-  "ic": "☉"
+  "ic": "♄"
  },
  "cau": [
   {

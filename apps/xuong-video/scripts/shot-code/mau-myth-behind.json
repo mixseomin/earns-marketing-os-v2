@@ -2,14 +2,14 @@
  "_ghi": "Demo The Myth Behind (nét khắc đồng): Chiron. Lá số Steve Jobs: Chiron Aquarius nhà 5 (la-so/steve-jobs.json).",
  "kenh": "astrolas",
  "mau": "myth-behind",
- "playlist_ma": "myth-behind",
+ "playlist_ma": "know-yourself",
  "y_tuong": "my-chiron",
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "playlist": {
-  "ten": "The Myth Behind",
-  "mau": "#C9A7FF",
-  "ic": "✦"
+  "ten": "Know Yourself",
+  "mau": "#8EC5FF",
+  "ic": "☉"
  },
  "la_so": "../lich-su/la-so/steve-jobs.svg",
  "DAI": 20.6,

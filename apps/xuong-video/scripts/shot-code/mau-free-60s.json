@@ -2,15 +2,15 @@
  "_ghi": "Demo Free in 60 Seconds: lá số miễn phí từ form tới kết quả. Ảnh trang thật astrolas.com/birth (birth-form) + /c/steve-jobs (sj-natal).",
  "kenh": "astrolas",
  "mau": "free-60s",
- "playlist_ma": "free-60s",
+ "playlist_ma": "start-here",
  "y_tuong": "f60-birth-chart",
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "la_so": "../lich-su/la-so/steve-jobs.svg",
  "playlist": {
-  "ten": "Free in 60 Seconds",
-  "mau": "#B4E35D",
-  "ic": "⏱"
+  "ten": "Start Here",
+  "mau": "#F4D971",
+  "ic": "★"
  },
  "DAI": 21.8,
  "cau": [

@@ -2,16 +2,16 @@
  "_ghi": "Mẫu dài 16:9 Chart Chapters (đoạn trích). Dòng đời: cung Profection tính từ cung Mọc trong la-so/steve-jobs.json; mốc đời là sự thật công khai.",
  "kenh": "astrolas",
  "mau": "chart-chapters-dai",
- "playlist_ma": "chart-chapters",
+ "playlist_ma": "career",
  "y_tuong": "ccd-steve-jobs",
  "khung": "ngang",
  "la_so": "../lich-su/la-so/steve-jobs.svg",
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "playlist": {
-  "ten": "Chart Chapters",
+  "ten": "Career & Big Decisions",
   "mau": "#E6B800",
-  "ic": "☉"
+  "ic": "♄"
  },
  "DAI": 54.4,
  "cau": [

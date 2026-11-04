@@ -3,14 +3,14 @@
  "demo": true,
  "kenh": "astrolas",
  "mau": "sign-x-sign",
- "playlist_ma": "sign-x-sign",
+ "playlist_ma": "love-compatibility",
  "y_tuong": "sx-leo-sagittarius",
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "playlist": {
-  "ten": "Sign × Sign",
-  "mau": "#FFB86B",
-  "ic": "×"
+  "ten": "Love & Compatibility",
+  "mau": "#FF8FB1",
+  "ic": "♡"
  },
  "DAI": 25.4,
  "cau": [

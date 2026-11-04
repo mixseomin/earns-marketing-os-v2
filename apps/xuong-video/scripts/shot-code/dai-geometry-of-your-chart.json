@@ -2,15 +2,15 @@
  "_ghi": "Mẫu dài 16:9 The Geometry of Your Chart (đoạn trích): cung Mọc là gì. Vĩ độ San Francisco 37,8°; cung Mọc tính từ giao điểm hoàng đạo với chân trời đông.",
  "kenh": "astrolas",
  "mau": "geometry",
- "playlist_ma": "geometry",
+ "playlist_ma": "start-here",
  "y_tuong": "geo-ascendant",
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "la_so": "../lich-su/la-so/steve-jobs.svg",
  "playlist": {
-  "ten": "Geometry of Your Chart",
-  "mau": "#C9A7FF",
-  "ic": "△"
+  "ten": "Start Here",
+  "mau": "#F4D971",
+  "ic": "★"
  },
  "DAI": 38.4,
  "cau": [

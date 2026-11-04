@@ -2,13 +2,13 @@
  "_ghi": "Demo Sky Calendar (paper-lantern): nguyệt thực 29/02/1504 của Columbus + dải pha trăng tuần 03–09/11/2026 tính thật (bau-troi-tinh.js).",
  "kenh": "astrolas",
  "mau": "sky-calendar",
- "playlist_ma": "sky-calendar",
+ "playlist_ma": "timing",
  "y_tuong": "sc-columbus-1504",
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "playlist": {
-  "ten": "Sky Calendar",
-  "mau": "#8EC5FF",
+  "ten": "Timing: What's Coming",
+  "mau": "#7FD18B",
   "ic": "☽"
  },
  "DAI": 21.0,

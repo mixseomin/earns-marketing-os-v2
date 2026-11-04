@@ -2,7 +2,7 @@
  "_ghi": "Chart Chapters dài · Steve Jobs — sinh bởi lich-su/dai/sinh-chuong.mjs từ lich-su/dai/moc-steve-jobs.json",
  "kenh": "astrolas",
  "mau": "chart-chapters-dai",
- "playlist_ma": "chart-chapters",
+ "playlist_ma": "career",
  "y_tuong": "ccd-steve-jobs",
  "khung": "ngang",
  "DAI": 54.4,
@@ -10,9 +10,9 @@
  "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
  "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
  "playlist": {
-  "ten": "Chart Chapters",
+  "ten": "Career & Big Decisions",
   "mau": "#E6B800",
-  "ic": "☉"
+  "ic": "♄"
  },
  "cau": [
   {

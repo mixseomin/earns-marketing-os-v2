@@ -48,7 +48,7 @@ export function KenhNgan({ kenh }: { kenh: KenhSp[] }) {
 function NganMau({ k, ma, onClose, moVideo }: { k: KenhSp; ma: string; onClose: () => void; moVideo: (slug: string) => void }) {
   const mau = k.so?.mau?.find((x) => x.ma === ma);
   if (!k.so || !mau) return <><ModalHeader kind="kenh" action="view" title="Mẫu không còn trong sổ kênh" onClose={onClose} /></>;
-  const s = thongKeMau(k.so, k.videos, k.yTuongTuSinh ?? []).get(ma)!, rows = dongMau(s), pl = k.so.playlist?.find((p) => p.ma === mau.playlist);
+  const s = thongKeMau(k.so, k.videos, k.yTuongTuSinh ?? []).get(ma)!, rows = dongMau(s), pl = (k.so.playlist ?? []).filter((p) => p.ma === mau.playlist || p.mau?.includes(mau.ma));   // series dùng mẫu này
   const cot: DataColumn<DongMau>[] = [
     { key: 'ngay', header: 'Ngày', width: 100, sortValue: (r) => r.ngay, cellTitle: (r) => (r.loai === 'video' ? (r.v.ngayDang ? 'ngày đăng' : 'ngày làm xong') : r.y.utc ? 'giờ sự kiện (UTC)' : 'ngày dự kiến'), cell: (r) => ngayVn(r.ngay) },
     { key: 'ten', header: 'Bài / video', align: 'left', sortValue: (r) => (r.loai === 'video' ? r.v.ten : r.y.chu_de),
@@ -66,7 +66,7 @@ function NganMau({ k, ma, onClose, moVideo }: { k: KenhSp; ma: string; onClose: 
         {mau.mo_ta && <O k="Là gì">{mau.mo_ta}</O>}
         {!!mau.goc_spy?.length && <O k="Góc spy phục vụ">{mau.goc_spy.map((g) => `#${g.id} ${g.ten}`).join(' · ')}</O>}
         <O k="Khổ">{`${mau.loai === 'dai' ? 'dài' : 'Short'} ${khungMau(mau)}`}</O>
-        {pl && <O k="Playlist">{pl.ten}</O>}
+        {pl.length > 0 && <O k="Playlist">{pl.map((p) => p.ten).join(' · ')}</O>}
         {mau.nhip && <O k="Nhịp">{mau.nhip}</O>}
         {mau.kho && <O k="Kho ý tưởng">{mau.kho}</O>}
         {mau.trang && <O k="Trang dựng">{mau.trang}</O>}

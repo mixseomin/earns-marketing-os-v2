@@ -8,7 +8,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { z } from 'zod/v4';
 import { sinhJson } from '../../src/lib/xuong-video/claude';
 import { bangChungHook, loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { apPlaylist } from './playlist.mjs';
+import { hoSoTap } from './playlist.mjs';
 
 const arg = (k: string) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : undefined; };
 const ra = process.argv[2], nn = arg('nn') ?? 'en', id = arg('id');
@@ -29,7 +29,8 @@ if (!K0) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); pr
 // PLAYLIST (playlist.mjs): khuôn / giọng văn / mốc chủ đề của loạt đè hồ sơ kênh; tập ghi tap.playlist
 const plMa = arg('playlist') ?? null;
 let K: typeof K0;
-try { K = apPlaylist(K0, plMa); } catch (e) { console.error(`✗ ${(e as Error).message}`); process.exit(2); }
+const mauMa = arg('mau') ?? null;   // MẪU = khuôn video (kenh.json › mau_khuon), đè sau playlist (series)
+try { K = hoSoTap(K0, { playlist: plMa, mau: mauMa }); } catch (e) { console.error(`✗ ${(e as Error).message}`); process.exit(2); }
 const ketNN = K.ket[nn] ?? K.ket.en, cuoiNN = K.cau_cuoi ? (K.cau_cuoi[nn] ?? K.cau_cuoi.en) : null;
 const kho = JSON.parse(readFileSync(arg('kho') ?? new URL('./kho.json', import.meta.url), 'utf8')) as { tai_san: Record<string, { loai: string; ten: string; tu: number; den: number; dang?: Record<string, string> }>; dang_chuan: string[] };
 
@@ -318,7 +319,7 @@ if ((d.cau?.length ?? 0) < toiThieuCau) { console.error(`✗ máy viết trả b
 // về khuôn dung-tap.mjs: bỏ trường rỗng / null để máy dựng tự điền
 const gon = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v != null && v !== false && !(Array.isArray(v) && !v.length)));
 // chủ đề tập = câu máy viết tóm đúng chuyện nó đã viết (03/11/2026: đề chọn 'mất thành phố lớn nhất' mà kịch bản kể cả đế chế → thumbnail + Ngọc chấm lệch)
-const tap = { id, kenh: kenhId, ...(plMa ? { playlist: plMa } : {}), tieu_de: tieuDeChon ?? d.tieu_de, ngon_ngu: nn, chu_de: d.chu_de_that?.trim() || chuDe, chu_de_chon: chuDe, mo_ta_dang: d.mo_ta_dang,
+const tap = { id, kenh: kenhId, ...(plMa ? { playlist: plMa } : {}), ...(mauMa ? { mau: mauMa } : {}), tieu_de: tieuDeChon ?? d.tieu_de, ngon_ngu: nn, chu_de: d.chu_de_that?.trim() || chuDe, chu_de_chon: chuDe, mo_ta_dang: d.mo_ta_dang,
   ...(hookChon ? { hook: hookChon } : {}), ...(gh ? { goc: gh.goc } : cuTap?.goc ? { goc: cuTap.goc } : {}), giong: { voice: K.giong },
   nguon: nguon.map((n) => n.url), may_viet: { model: r.model, luc: new Date().toISOString(), tokens: r.tokens },
   cau: d.cau.map((c) => ({ chu: c.chu, su_that: c.su_that, canh: gon({ ...c.canh, to: c.canh.to.map((t) => gon(t)), tranh: c.canh.tranh ? { ...c.canh.tranh, anh: null } : null }) })),

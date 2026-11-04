@@ -40,3 +40,13 @@ assert.strictEqual(playlistCuaTap(K, null), null);                              
 assert.strictEqual(playlistCuaTap(K, 'sky-calendar'), 'sky-calendar');
 assert.strictEqual(playlistCuaTap({}, null), null);
 console.log('playlist: ok (tập cũ)');
+
+// MẪU ≠ PLAYLIST: hồ sơ tập = kênh → playlist (series) → mẫu (khuôn video thắng) + dòng loạt nối vào khuôn
+{ const { hoSoTap } = await import('./playlist.mjs');
+  const K = { khuon: ['k'], toi_da_giay: 179, tu: { en: [330, 405] }, mau_khuon: { 'full-story': {}, 'short-60': { toi_da_giay: 60, tu: { en: [95, 125] }, khuon: ['s'] } },
+    playlist: [{ ma: 'tiny-wars', ten: 'Tiny Wars', noi_dung: 'chiến tranh vô lý', mau: ['full-story', 'short-60'], lich_tap: [] }, { ma: 'only-long', ten: 'L', mau: ['full-story'], lich_tap: [] }] };
+  const s = hoSoTap(K, { playlist: 'tiny-wars', mau: 'short-60' }); assert.strictEqual(s.toi_da_giay, 60); assert.deepStrictEqual(s.khuon, ['s', 'Loạt (playlist) "Tiny Wars": chiến tranh vô lý']);
+  const d = hoSoTap(K, { playlist: 'tiny-wars', mau: 'full-story' }); assert.strictEqual(d.toi_da_giay, 179); assert.deepStrictEqual(d.khuon, ['k', 'Loạt (playlist) "Tiny Wars": chiến tranh vô lý']);
+  assert.throws(() => hoSoTap(K, { playlist: 'only-long', mau: 'short-60' }), /không dùng mẫu/); assert.throws(() => hoSoTap(K, { mau: 'x' }), /không có mẫu/);
+  assert.strictEqual(hoSoTap({ khuon: ['k'] }, {}).khuon[0], 'k');   // kênh chưa khai mẫu: như cũ
+  console.log('playlist: mẫu ≠ playlist đạt'); }

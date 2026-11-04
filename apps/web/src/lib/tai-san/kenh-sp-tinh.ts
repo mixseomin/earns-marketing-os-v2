@@ -124,7 +124,8 @@ export type TrangThaiGd = 'cho_anh' | 'dang' | 'chua' | 'xong';
 export type GiaiDoan = { ma: string; ten: string; viec: string; anh: string; trang_thai: TrangThaiGd };
 /** PLAYLIST theo kế hoạch (so-kenh.json › playlist; G1 chuyển sang kenh.json khi máy làm tập theo playlist). */
 export type TrangThaiPl = 'de_xuat' | 'chot' | 'mo' | 'sau' | 'tam_dung';
-export type PlaylistKh = { ma: string; ten: string; tien_to?: string; noi_dung?: string; ho_hinh?: string; ngay?: string; trang_dich?: string; mo_dau?: boolean; trang_thai: TrangThaiPl; khi?: string };
+export type PlaylistKh = { ma: string; ten: string; tien_to?: string; noi_dung?: string; ho_hinh?: string; ngay?: string; trang_dich?: string; mo_dau?: boolean; trang_thai: TrangThaiPl; khi?: string;
+  /** PLAYLIST = SERIES dùng nhiều MẪU (khuôn video) — anh 05/11/2026 */ mau?: string[]; goc_spy?: { id: number; loai: string; ten: string }[]; mo_ta?: string; vi_du?: string };
 /** MẪU đã duyệt (so-kenh.json › mau): mỗi tập kênh phải thuộc một mẫu (máy gác lich-su/kiem-so-kenh.mjs). */
 export type MauKenh = { ma: string; ten: string; loai: 'short' | 'dai'; /** MẪU LÀ GÌ — cấu trúc + ví dụ cụ thể (anh 05/11/2026) */ mo_ta?: string; /** góc nhu cầu spy mẫu này phục vụ (goc.id của nhóm spy của máy) */ goc_spy?: { id: number; loai: string; ten: string }[]; /** khổ video — thiếu thì Short 9:16, dài 16:9 (kênh YNT dài cũng dọc 9:16) */ khung?: '9:16' | '16:9'; playlist?: string; nhip?: string; kho?: string; trang?: string; sinh?: string; demo?: string; tu_sinh?: string; /** mẫu mới chưa duyệt: chỉ làm demo, máy gác chặn tập thật */ cho_duyet?: boolean };
 /** KHỔ VIDEO của mẫu — MỘT nơi tính (nhãn dòng mẫu, nhãn ngăn mẫu, khung phát demo cùng đọc): mau.khung, thiếu thì Short 9:16 / dài 16:9 (YNT dài vẫn dọc 9:16 — 05/11/2026 khung phát vẽ ngang theo loai) */
@@ -212,7 +213,7 @@ export function cayMau(so: SoKenh, tk: Map<string, SoMau> = new Map()): DongKe[]
       ngan: so.mo_dau ? { loai: 'mo_dau', id: '' } : undefined, nganChu: so.mo_dau ? '▶ đoạn mở đầu' : undefined, o: tong, oTieuDe: COT_MAU },
     ...[...ds].sort((a, b) => Number(!!a.cho_duyet) - Number(!!b.cho_duyet)).map((m): DongKe => ({ id: `mau/${m.ma}`, chu: `${m.loai === 'dai' ? '🎞' : '📱'} ${m.ten}${m.cho_duyet ? (m.demo ? ' · ⏳ chờ anh duyệt' : ' · 🛠 máy đang làm demo') : ''}`,
       mau: m.cho_duyet ? (m.demo ? 'var(--warn)' : 'var(--fg-3)') : undefined, ngan: { loai: 'mau', id: m.ma }, nganChu: m.demo ? '▶ xem' : 'mở', o: oMau(tk.get(m.ma)),
-      phu: [m.goc_spy?.length && `góc spy: ${m.goc_spy.map((g) => g.ten).join(' · ')}`, `${m.loai === 'dai' ? 'dài' : 'Short'} ${khungMau(m)}`, m.playlist && `playlist ${pl.get(m.playlist) ?? m.playlist}`, m.nhip, m.kho && `kho ${m.kho}`, m.tu_sinh && 'máy tự sinh ý tưởng'].filter(Boolean).join(' · ') }))];
+      phu: [m.goc_spy?.length && `góc spy: ${m.goc_spy.map((g) => g.ten).join(' · ')}`, `${m.loai === 'dai' ? 'dài' : 'Short'} ${khungMau(m)}`, m.playlist ? `playlist ${pl.get(m.playlist) ?? m.playlist}` : (() => { const d = (so.playlist ?? []).filter((p) => p.mau?.includes(m.ma)); return d.length ? `dùng trong ${d.length} playlist: ${d.map((p) => p.ten).join(' · ')}` : null; })(), m.nhip, m.kho && `kho ${m.kho}`, m.tu_sinh && 'máy tự sinh ý tưởng'].filter(Boolean).join(' · ') }))];
 }
 export const YT: Record<TrangThaiY, { ic: string; chu: string; mau: string; thu: number }> = {
   san_sang: { ic: '⏳', chu: 'sẵn sàng', mau: 'var(--warn)', thu: 0 }, chua: { ic: '○', chu: 'chưa làm', mau: 'var(--fg-2)', thu: 1 }, demo: { ic: '🎬', chu: 'đã có demo', mau: 'var(--accent)', thu: 2 },
@@ -283,11 +284,14 @@ export function soTheoPlaylist(pls: PlaylistHs[], theo: Record<string, string | 
     ...(le.length ? [{ ma: '', ten: 'chưa gắn playlist', tienTo: null, lich: null, trangDich: null, coYt: false, ...dem(le) }] : [])];
 }
 /** Khối 📂 Playlist từ playlist THẬT (kenh.json). Thuần. */
-export function cayPlaylistThat(ds: PlaylistKenh[]): DongKe[] {
+/** so = sổ kênh: playlist là SERIES (so.playlist[].mau / goc_spy / mo_ta) — dòng series ghi mẫu nó dùng + góc spy nó phục vụ */
+export function cayPlaylistThat(ds: PlaylistKenh[], so?: SoKenh | null): DongKe[] {
   if (!ds.length) return [];
-  const so = (n: number | null) => (n == null ? '–' : n.toLocaleString('vi-VN'));
+  const tenMau = new Map((so?.mau ?? []).map((m) => [m.ma, m.ten])), kh = new Map((so?.playlist ?? []).map((p) => [p.ma, p]));
+  const soDem = (n: number | null) => (n == null ? '–' : n.toLocaleString('vi-VN'));
   return [{ id: 'pl', nhom: true, chu: `📂 Playlist (${ds.filter((p) => p.ma).length})`, phu: 'lịch làm tập theo playlist · trần đăng 1 bài/ngày tính chung cả kênh' },
     ...ds.map((p): DongKe => ({ id: `pl/${p.ma || '_'}`, chu: p.ma ? `▶ ${p.ten}` : `· ${p.ten}`, mau: p.ma ? undefined : 'var(--fg-3)',
-      phu: [p.lich && `làm tập ${p.lich}`, `${p.tap} tập · ${p.daDang} đã đăng · ${so(p.xem)} xem`, p.tienTo && `tiêu đề "${p.tienTo}: …"`, p.trangDich && `→ ${p.trangDich}`,
+      phu: [kh.get(p.ma)?.trang_thai === 'de_xuat' && 'đề xuất · chờ anh duyệt', kh.get(p.ma)?.mau?.length && `mẫu: ${kh.get(p.ma)!.mau!.map((x) => tenMau.get(x) ?? x).join(' + ')}`, kh.get(p.ma)?.goc_spy?.length && `góc spy: ${kh.get(p.ma)!.goc_spy!.map((g) => g.ten).join(' · ')}`,
+        p.lich && `làm tập ${p.lich}`, `${p.tap} tập · ${p.daDang} đã đăng · ${soDem(p.xem)} xem`, p.tienTo && `tiêu đề "${p.tienTo}: …"`, p.trangDich && `→ ${p.trangDich}`,
         p.ma && (p.coYt ? 'có playlist YouTube' : 'chưa có playlist YouTube (G7)')].filter(Boolean).join(' · ') }))];
 }

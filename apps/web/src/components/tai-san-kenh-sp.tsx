@@ -34,7 +34,7 @@ const O_RONG = 74, O_CHU = 760;
  *  Lịch tháng vẫn ở LỊCH NHỎ trong menu ⋯. */
 function cayKenh(k: KenhSp): Dong[] {
   // 📂 Playlist: playlist THẬT (kenh.json, máy đang chạy theo) nếu kênh đã chia; chưa thì playlist theo kế hoạch (so-kenh.json)
-  const pl = k.playlist?.length ? cayPlaylistThat(k.playlist) : k.so ? cayPlaylist(k.so) : [];
+  const pl = k.playlist?.length ? cayPlaylistThat(k.playlist, k.so) : k.so ? cayPlaylist(k.so) : [];
   return [...[...(k.so ? [...caySoKenh(k.so), ...cayMau(k.so, thongKeMau(k.so, k.videos, k.yTuongTuSinh ?? [])), ...cayHangCho(k.so, k.videos, k.yTuongTuSinh ?? []), ...(k.nguoi ? cayNguoi(k.nguoi.ds, k.nguoi.dungNha) : []), ...cayLoTrinh(k.so)] : []), ...pl].map((x) => ({ loai: 'ke' as const, k, ...x })), ...cayKeHoach(k).map((x) => ({ loai: 'ke' as const, k, ...x })), { loai: 'ke', k, id: 'lam', nhom: true, chu: `🎬 Đã làm (${k.videos.length})`, phu: k.videos.length ? 'chặng: chưa xuất → chờ chấm → DUYỆT / SỬA LẠI → đã đăng' : 'chưa có tập nào trong máy' },
     ...k.videos.map((v) => ({ loai: 'video' as const, k, v }))];
 }

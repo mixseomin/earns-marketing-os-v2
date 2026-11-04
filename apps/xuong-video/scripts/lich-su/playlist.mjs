@@ -53,6 +53,18 @@ export function apPlaylist(K, ma) {
   return { ...K, ...Object.fromEntries(DE.filter((k) => p[k] !== undefined).map((k) => [k, p[k]])) };
 }
 
+// MẪU ≠ PLAYLIST (anh 05/11/2026: "mẫu là dạng video với nội dung cùng kiểu format; playlist là dạng series có thể chứa nhiều kiểu mẫu để hỗ trợ quá trình truyền
+// thông tin — theo góc spy"): kenh.json › mau_khuon[<mẫu>] = KHUÔN VIDEO (độ dài, số câu / từ, trần giây, khuôn kể); playlist = SERIES (nội dung loạt, tiền tố, lịch,
+// mẫu được dùng). Hồ sơ một tập = kênh → đè playlist → đè mẫu (khuôn thắng) + dòng "Loạt …" của series nối vào khuôn kể. Mọi máy (viết, dựng, thumbnail, lam-tap) gọi hàm này.
+export function hoSoTap(K, { playlist = null, mau = null } = {}) {
+  const k1 = apPlaylist(K, playlist), dsMau = K?.mau_khuon ?? null;
+  if (mau && dsMau && !dsMau[mau]) throw new Error(`kênh không có mẫu "${mau}" (có: ${Object.keys(dsMau).join(', ')})`);
+  const m = mau && dsMau ? dsMau[mau] : null, p = timPlaylist(K, playlist);
+  if (p?.mau?.length && mau && !p.mau.includes(mau)) throw new Error(`playlist "${p.ma}" không dùng mẫu "${mau}" (dùng: ${p.mau.join(', ')})`);
+  const r = m ? { ...k1, ...Object.fromEntries(DE.filter((k) => m[k] !== undefined).map((k) => [k, m[k]])) } : k1;
+  return p?.noi_dung && Array.isArray(r.khuon) && !r.khuon.some((x) => x.startsWith('Loạt ')) ? { ...r, khuon: [...r.khuon, `Loạt (playlist) "${p.ten}": ${p.noi_dung}`] } : r;
+}
+
 /** Tiêu đề đăng = tiền tố playlist + tiêu đề tập ("Chart Chapters: Steve Jobs…"); đã có tiền tố thì giữ nguyên. Tiền tố viết "Chart Chapters: …" hoặc "Chart Chapters". */
 export function tieuDeDang(tieuDe, p) {
   const tt = String(p?.tien_to ?? '').replace(/[:\s]*…\s*$/, '').replace(/[:\s]+$/, '').trim();

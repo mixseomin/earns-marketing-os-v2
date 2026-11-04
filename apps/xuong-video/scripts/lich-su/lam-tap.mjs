@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
 import { BOX, box, len, ve, q, sqlBox, boxA, chay, lenA, veA, sshA, sshS, songSong, dauDangLam } from './box3.mjs';
-import { apPlaylist, playlistCuaTap, timPlaylist, tieuDeDang } from './playlist.mjs';
+import { hoSoTap, playlistCuaTap, timPlaylist, tieuDeDang } from './playlist.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const co = (k) => process.argv.includes(`--${k}`);
@@ -38,12 +38,16 @@ const KENH0 = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId];
 if (!KENH0) { console.error(`✗ không có kênh "${kenhId}" trong kenh.json`); process.exit(2); }
 // PLAYLIST (G1 tầng playlist chung, playlist.mjs): --playlist khi viết mới; tập đã có thì theo tap.playlist. Hồ sơ kênh đè khoá của playlist (theme, khuôn…);
 // tiêu đề đăng gắn tiền tố playlist lúc nạp máy đăng (tiêu đề trong tệp tập giữ nguyên để luật hook kiểm đúng chữ).
-// MỌI TẬP THUỘC MỘT MẪU (anh 05/11/2026: "các phim đã / chờ đăng đều phải thuộc 1 mẫu đúng không?"): không khai --playlist và tệp tập chưa có playlist →
-// lấy playlist của mẫu ĐÃ DUYỆT đầu tiên trong sổ kênh (YNT: Full Stories) — kênh có nhiều playlist thì playlistCuaTap trả null, tập sẽ rơi khỏi mọi mẫu
+// MỌI TẬP = MỘT PLAYLIST (series) × MỘT MẪU (khuôn video) — anh 05/11/2026: "các phim đã / chờ đăng đều phải thuộc 1 mẫu", rồi "mẫu là format, playlist là series
+// chứa nhiều mẫu". Playlist: --playlist › tệp tập › playlist có lịch đầu tiên (loạt gốc). Mẫu: --mau › tệp tập › mẫu ĐÃ DUYỆT đầu tiên mà playlist dùng.
 const SO_KENH = (() => { try { return JSON.parse(readFileSync(join(DIR, 'so-kenh.json'), 'utf8'))[KENH0.may ?? ''] ?? null; } catch { return null; } })();
-const plMa = playlistCuaTap(KENH0, arg('playlist') ?? (existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')).playlist : null) ?? SO_KENH?.mau?.find((m) => !m.cho_duyet && m.playlist)?.playlist ?? null);
+const tapCu = existsSync(tepTap) ? JSON.parse(readFileSync(tepTap, 'utf8')) : null;
+const plMa = playlistCuaTap(KENH0, arg('playlist') ?? tapCu?.playlist ?? (KENH0.playlist ?? []).find((p) => (p.lich_tap ?? []).length)?.ma ?? null);
+const mauMa = arg('mau') ?? tapCu?.mau ?? (() => { const dung = (KENH0.playlist ?? []).find((p) => p.ma === plMa)?.mau;
+  return (SO_KENH?.mau ?? []).find((m) => !m.cho_duyet && (!dung || dung.includes(m.ma)))?.ma ?? null; })();
 let PL, KENH;
-try { PL = timPlaylist(KENH0, plMa); KENH = apPlaylist(KENH0, plMa); } catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
+try { PL = timPlaylist(KENH0, plMa); KENH = hoSoTap(KENH0, { playlist: plMa, mau: mauMa }); } catch (e) { console.error(`✗ ${e.message}`); process.exit(2); }
+const mauArg = mauMa ? ` --mau ${q(mauMa)}` : '';
 mkdirSync(RA, { recursive: true });
 const docKho = () => JSON.parse(readFileSync(tepKho, 'utf8'));
 
@@ -207,7 +211,7 @@ if (co('gan-hook') && KENH.may && existsSync(tepTap)) {
   if (t0.hook?.goc && !hongCu) console.log(`tập đã có hook "${t0.hook.goc}" — bỏ qua gắn hook`);
   else { const tmp = `/tmp/gan-hook-${id}`; sshS([`mkdir -p ${tmp}`]);
     const f = join(RA, 'goc-hook.json'); writeFileSync(f, box(`scripts/may-dung.mts --may ${KENH.may} --goc-hook`).split('\n').pop()); len(f, `${tmp}/goc-hook.json`); len(tepTap, `${tmp}/tap.json`);
-    console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/gan.json --id ${id} --nn ${nn} --kenh ${kenhId} --chi-hook --goc-hook ${tmp}/goc-hook.json --cu ${tmp}/tap.json`).split('\n').pop());
+    console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/gan.json --id ${id} --nn ${nn} --kenh ${kenhId}${mauArg} --chi-hook --goc-hook ${tmp}/goc-hook.json --cu ${tmp}/tap.json`).split('\n').pop());
     ve(`${tmp}/gan.json`, join(RA, 'gan-hook.json')); sshS([`rm -rf ${tmp}`]);
     Object.assign(t0, JSON.parse(readFileSync(join(RA, 'gan-hook.json'), 'utf8'))); writeFileSync(tepTap, JSON.stringify(t0, null, 1) + '\n'); }
 }
@@ -245,7 +249,7 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     // DÀI QUÁ KHUÔN → rút gọn riêng các câu dài (viet-tap --chi-rut), không bắt máy viết chép lại cả bản (nó trả y nguyên); rồi kiểm lại, còn lỗi khác mới viết lại
     if (loi.some((x) => /PHẢI BỎ ÍT NHẤT/.test(x))) {
       const dich = (KENH.tu[nn] ?? KENH.tu.en)[1] - 10; len(tepTap, `${tmp}/tap.json`);
-      try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/rut.json --id ${id} --nn ${nn} --kenh ${kenhId} --cu ${tmp}/tap.json --chi-rut ${dich}`)); ve(`${tmp}/rut.json`, tepTap); }
+      try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/rut.json --id ${id} --nn ${nn} --kenh ${kenhId}${mauArg} --cu ${tmp}/tap.json --chi-rut ${dich}`)); ve(`${tmp}/rut.json`, tepTap); }
       catch (e) { console.log(`⚠ rút gọn chưa đạt đích: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}`);
         // viet-tap.mts ghi rut.json (bản đã rút một phần, luôn NGẮN HƠN bản cũ) rồi mới thoát mã 1 — giữ bản ngắn hơn đó làm nền cho lượt viết lại, đừng vứt về bản 695 từ
         try { ve(`${tmp}/rut.json`, tepTap); console.log('  → giữ bản đã rút một phần để lượt viết lại cắt tiếp từ nền ngắn hơn'); } catch { /* chưa kịp ghi bản rút — giữ bản cũ */ } }
@@ -258,7 +262,7 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     // CHỈ VÁ CÂU LỖI: mọi lỗi còn lại đều cục bộ → máy viết chỉ nhận các câu đó (viet-tap --chi-sua); vá hỏng thì rơi xuống viết lại cả bản
     if (loi.length && loi.every(cucBo)) {
       let vaXong = false;
-      try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/sua.json --id ${id} --nn ${nn} --kenh ${kenhId}${plMa ? ` --playlist ${q(plMa)}` : ''} --kho ${tmp}/kho.json --cu ${tmp}/tap.json --chi-sua ${tmp}/loi.txt`)); ve(`${tmp}/sua.json`, tepTap); vaXong = true; }
+      try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/sua.json --id ${id} --nn ${nn} --kenh ${kenhId}${mauArg}${plMa ? ` --playlist ${q(plMa)}` : ''} --kho ${tmp}/kho.json --cu ${tmp}/tap.json --chi-sua ${tmp}/loi.txt`)); ve(`${tmp}/sua.json`, tepTap); vaXong = true; }
       catch (e) { console.log(`✗ lượt ${lan} vá câu lỗi hỏng — ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ').slice(0, 300)} → viết lại cả bản`); }
       if (vaXong) { loi = await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8'));
         console.log(loi.length ? `✗ lượt ${lan} (vá câu): còn ${loi.length} lỗi\n  ${loi.join('\n  ')}` : `✓ lượt ${lan} (vá câu): kiểm sạch`);
@@ -266,7 +270,7 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
         if (!loi.length) break; continue; }
     }
     if (++vietCa > 4) { console.log('✗ đã viết lại cả bản 4 lần — dừng'); break; }
-    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe && !boDeCu ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${plMa ? ` --playlist ${q(plMa)}` : ''}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTuaF() ? ` --nguon ${q(nguonTuaF())}` : ''}${them}`)); }
+    try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/tap.json${chuDe && !boDeCu ? ` --chu-de ${q(chuDe)}` : ''}${ghArg} --nn ${nn} --id ${id} --kenh ${kenhId}${mauArg}${plMa ? ` --playlist ${q(plMa)}` : ''}${suaCanh ? ' --chi-canh' : ''} --kho ${tmp}/kho.json${nguonTuaF() ? ` --nguon ${q(nguonTuaF())}` : ''}${them}`)); }
     catch (e) { console.log(`✗ lượt viết ${lan}: máy viết hỏng — ${String(e.stderr || e.message).trim().split('\n').slice(-3).join(' · ').slice(0, 400)}`); if (!existsSync(tepTap)) continue; loi = loi.length ? loi : ['(lượt trước hỏng, viết lại)']; continue; }
     const truoc = suaCanh ? readFileSync(tepTap, 'utf8') : null;
     ve(`${tmp}/tap.json`, tepTap); ve(`${tmp}/tap.json.nguon.txt`, join(RA, 'nguon.txt'));
@@ -287,10 +291,10 @@ if (co('chi-viet')) process.exit(0);
 buoc('kho + ảnh thật');
 const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
 if (plMa) tap.playlist = plMa;   // ghi lại cùng tệp tập ở cuối bước 3
-// MẪU của tập theo SỔ KÊNH (so-kenh.json khoá = mã máy): mẫu trỏ đúng playlist này → tap.mau; --demo = tập làm DEMO cho anh duyệt mẫu (không lên máy đăng)
-// ý tưởng: mẫu vô hạn (tu_sinh — Full Stories: đề máy chọn theo góc spy) thì mã ý tưởng = mã tập; mẫu có hàng chờ thì khớp chủ đề trong hàng chờ
-{ const so = SO_KENH, m = so?.mau?.find((x) => x.playlist === (plMa ?? null)); if (m && !tap.mau) tap.mau = m.ma; if (co('demo')) tap.demo = true;
-  if (m && !tap.y_tuong) { const h = (so.hang_cho ?? []).find((x) => x.mau === m.ma && x.chu_de && tap.chu_de && x.chu_de.toLowerCase() === tap.chu_de.toLowerCase());
+// MẪU + Ý TƯỞNG của tập theo SỔ KÊNH (so-kenh.json khoá = mã máy); --demo = tập làm DEMO cho anh duyệt (không lên máy đăng)
+// ý tưởng: khớp chủ đề trong hàng chờ của playlist; không có thì mẫu vô hạn (tu_sinh — đề máy chọn theo góc spy) lấy mã ý tưởng = mã tập
+{ const so = SO_KENH, m = (so?.mau ?? []).find((x) => x.ma === mauMa); if (mauMa && !tap.mau) tap.mau = mauMa; if (co('demo')) tap.demo = true;
+  if (m && !tap.y_tuong) { const h = (so.hang_cho ?? []).find((x) => (x.playlist ?? x.mau) === plMa && x.chu_de && tap.chu_de && x.chu_de.toLowerCase() === tap.chu_de.toLowerCase());
     tap.y_tuong = h?.ma ?? (m.tu_sinh && new RegExp(m.tu_sinh).test(id) ? id : null); } }
 let tien = 0;
 const dungToi = new Set(tap.cau.flatMap((c) => [...(c.canh.nguoi || []), ...(c.canh.xe || []), ...(c.canh.co || [])].map((m) => m.anh).concat(c.canh.tranh?.ref || [])));

@@ -12,13 +12,13 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { KHO } from './dia-ly.mjs';
 import { BOX, box, len, ve, q } from './box3.mjs';
-import { apPlaylist, playlistCuaTap } from './playlist.mjs';
+import { hoSoTap, playlistCuaTap } from './playlist.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 const arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : null; }, co = (k) => process.argv.includes(`--${k}`);
 const id = arg('id'); if (!id) { console.error('node thumb.mjs --id <tập> [--viet-lai]'); process.exit(2); }
 const tepTap = join(DIR, 'tap', `${id}.json`), tap = JSON.parse(readFileSync(tepTap, 'utf8'));
-const kenhId = tap.kenh ?? 'saga', K = apPlaylist(JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId], playlistCuaTap(JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId], tap.playlist ?? null)), nn = tap.ngon_ngu ?? 'en';
+const kenhId = tap.kenh ?? 'saga', K = (() => { const K0 = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'))[kenhId]; return hoSoTap(K0, { playlist: playlistCuaTap(K0, tap.playlist ?? null), mau: tap.mau ?? null }); })(), nn = tap.ngon_ngu ?? 'en';
 const RA = join(KHO, id); mkdirSync(RA, { recursive: true });
 // --rieng (lam-tap chạy thumbnail SONG SONG với dựng, 03/11/2026): không ghi tệp tập (dung-tap có thể đang ghi cùng tệp) — kết quả ra <RA>/thumb-kq.json, lam-tap gộp sau
 const ghiTap = () => co('rieng') ? writeFileSync(join(RA, 'thumb-kq.json'), JSON.stringify({ thumb: tap.thumb })) : writeFileSync(tepTap, JSON.stringify(tap, null, 1) + '\n');

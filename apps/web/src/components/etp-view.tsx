@@ -23,6 +23,11 @@ import { Tong2 } from '@/components/etp-tong2';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 // CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
+// MÁY CHỦ SẴN SÀNG? (anh 04/11/2026 "Ai cho mày cập nhật thì chặn hết màn hình"): lúc deploy khởi động lại, nginx trả trang "đang cập nhật" (503) — làm mới /
+// tải lại đúng lúc đó là đá cả màn sang trang 503. Mọi nhịp tự làm mới + tự tải lại hỏi /etp/ban trước: chỉ khi 200 + đúng dạng mã bản dựng mới làm.
+const MA_BAN = /^[A-Za-z0-9_-]{8,64}$/;
+async function maBan(): Promise<string | null> { try { const r = await fetch('/etp/ban', { cache: 'no-store' }); if (!r.ok) return null; const m = (await r.text()).trim(); return MA_BAN.test(m) ? m : null; } catch { return null; } }
+async function lamMoiAnToan(router: { refresh: () => void }) { if (await maBan()) router.refresh(); }
 const ChiXem = createContext(false);
 /** người xem sửa được camp trong danh sách đang xem (admin etp xem chính tài khoản của mình — anh 31/10/2026 Sơn "được edit camp của Sơn") */
 const SuaCampCtx = createContext<{ het: string | null } | null>(null);   // null = không có quyền sửa · het = phiên Ethopex riêng còn hạn tới (null = chưa kết nối)
@@ -1333,7 +1338,7 @@ function TabDiemCham({ du, ngayKh, khNhan }: { du: DuLieuEtp; ngayKh: (d: string
 }
 function TabDangSx({ du }: { du: DuLieuEtp }) {
   const router = useRouter();
-  useEffect(() => { const t = setInterval(() => router.refresh(), 15_000); return () => clearInterval(t); }, [router]);   // việc máy đang chạy — làm mới 15 giây
+  useEffect(() => { const t = setInterval(() => void lamMoiAnToan(router), 15_000); return () => clearInterval(t); }, [router]);   // việc máy đang chạy — làm mới 15 giây
   const dem = useMemo(() => { const m = new Map<string, number>(); for (const x of du.dangSx) m.set(x.buoc, (m.get(x.buoc) ?? 0) + 1); return [...m.entries()]; }, [du.dangSx]);
   const tuLuc = (s: string | null) => { if (!s) return '—'; const t = Date.parse(s); if (Number.isNaN(t)) return s.slice(0, 11); const p = Math.max(0, Math.round((Date.now() - t) / 60000)); return p < 60 ? `${p} phút` : p < 1440 ? `${Math.floor(p / 60)}g${p % 60 ? String(p % 60).padStart(2, '0') : ''}` : `${Math.floor(p / 1440)} ngày`; };
   return (
@@ -1416,7 +1421,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
   const choCham = Object.values(du.chamHang ?? {}).filter((h) => h.trang_thai === 'cho' || h.trang_thai === 'dang').length;
   const [bam, setBam] = useState<Set<number>>(new Set());   // vừa bấm, chờ trang làm mới thấy trong hàng
   const chamNgay = async (id: number) => { setBam((b) => new Set(b).add(id)); const r = await xepHangCham([id]); if ('loi' in r) alert(r.loi); router.refresh(); };
-  useEffect(() => { if (!quet.length && !choCham && !bam.size) return; const t = setInterval(() => router.refresh(), 5_000); return () => clearInterval(t); }, [quet.length, choCham, bam.size, router]);
+  useEffect(() => { if (!quet.length && !choCham && !bam.size) return; const t = setInterval(() => void lamMoiAnToan(router), 5_000); return () => clearInterval(t); }, [quet.length, choCham, bam.size, router]);
   useEffect(() => { setBam((b) => (b.size ? new Set([...b].filter((id) => !du.chamHang?.[id] && !du.cham[id])) : b)); }, [du.chamHang, du.cham]);
   const photCr = useMemo(() => new Map(du.phot.filter((p) => p.creative_id).map((p) => [p.creative_id!, p.ly_do ?? ''])), [du.phot]);
   const ds = useMemo(() => du.creatives.filter((r) => r.chay > 0 || r.giao.includes('DISAPPROVED') || r.giao.includes('IN_PROCESS') || photCr.has(r.creative_id) || du.cham[r.creative_id])
@@ -1436,7 +1441,7 @@ function TabSoat({ du, anh }: { du: DuLieuEtp; anh: (cr: number | null) => React
   const [dangDuyet, setDangDuyet] = useState<Record<number, boolean>>({});
   const [dangTb, setDangTb] = useState<Record<number, boolean>>({});   // vừa bấm Tắt (false) / Bật (true), chờ kho thấy trạng thái mới
   useEffect(() => { setDangTb((d) => { const x = { ...d }; for (const k of Object.keys(x)) { const r = du.creatives.find((c) => c.creative_id === Number(k)); if (r && (r.chay > 0) === x[Number(k)]) delete x[Number(k)]; } return x; }); }, [du.creatives]);
-  useEffect(() => { if (!Object.keys(dangTb).length) return; const t = setInterval(() => router.refresh(), 10_000); return () => clearInterval(t); }, [dangTb, router]);
+  useEffect(() => { if (!Object.keys(dangTb).length) return; const t = setInterval(() => void lamMoiAnToan(router), 10_000); return () => clearInterval(t); }, [dangTb, router]);
   const tat = async (id: number, so: number) => { if (!confirm(`Tắt ${so} camp của creative #${id}?`)) return;
     const r = await tatCreative(id); if ('loi' in r) return alert(r.loi); setDangTb((d) => ({ ...d, [id]: false })); };
   const duyet = async (id: number, ok: boolean) => { setDangDuyet((d) => ({ ...d, [id]: ok })); const r = await duyetCham(id, ok); if ('loi' in r) { alert(r.loi); setDangDuyet((d) => { const x = { ...d }; delete x[id]; return x; }); } router.refresh(); };
@@ -2323,7 +2328,7 @@ function NutLamMoi({ dongBo, gon }: { dongBo: DuLieuEtp['dongBo']; gon: boolean 
   const [cho, setCho] = useState<{ lan: number; tu: number } | null>(null);
   const lanNay = dongBo?.lan ?? 0;
   useEffect(() => { if (!cho) return; if (lanNay > cho.lan || Date.now() - cho.tu > 600_000) { setCho(null); return; }
-    const t = setInterval(() => router.refresh(), 8_000); return () => clearInterval(t); }, [cho, lanNay, router]);
+    const t = setInterval(() => void lamMoiAnToan(router), 8_000); return () => clearInterval(t); }, [cho, lanNay, router]);
   const [bao, setBao] = useState<string | null>(null);   // câu ngắn sau khi bấm (kho đã mới / máy đang chạy phần sau) — tự tắt sau 6 giây
   useEffect(() => { if (!bao) return; const t = setTimeout(() => setBao(null), 6_000); return () => clearTimeout(t); }, [bao]);
   const bam = async () => { const r = await lamMoiEtp(); if ('loi' in r) { alert(r.loi); return; } if (r.chay) setCho({ lan: r.lan ?? 0, tu: Date.now() });
@@ -2337,8 +2342,8 @@ const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
 export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLieuEtp; chiXem?: boolean; quyen?: QuyenXem; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string; ro?: string } }) {
   // TỰ TẢI LẠI KHI CÓ BẢN MỚI (anh 04/11/2026 "nút này đâu ở tab phim" — tab mở từ trước deploy chạy giao diện cũ): hỏi /etp/ban mỗi phút, mã bản dựng khác lúc nạp → tải lại
   // ngay khi không có form / ngăn đang mở (không làm mất chữ đang gõ)
-  useEffect(() => { let dau = ''; const hoi = async () => { try { const m = (await (await fetch('/etp/ban', { cache: 'no-store' })).text()).trim(); if (!m) return;
-      if (!dau) { dau = m; return; } if (m !== dau && !document.querySelector('[role="dialog"]')) location.reload(); } catch { /* mạng chập chờn: lượt sau */ } };
+  useEffect(() => { let dau = ''; const hoi = async () => { const m = await maBan(); if (!m) return;   // 503 / lỗi mạng → bỏ lượt, KHÔNG tải lại
+      if (!dau) { dau = m; return; } if (m !== dau && !document.querySelector('[role="dialog"]')) location.reload(); };
     void hoi(); const t = setInterval(() => void hoi(), 60_000); return () => clearInterval(t); }, []);
   const router = useRouter();
   // TẢI THEO TAB (anh 30/10/2026 "làm tối ưu triệt để đi"): máy chủ gửi bản nhẹ; Creative › Quét / Điểm chạm và Thư viện cần phần nặng → tải bù rồi ghép
@@ -2384,7 +2389,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     taiNangEtp(duGoc.nguoi.ngoai && duGoc.nguoi.dang != null ? String(duGoc.nguoi.dang) : undefined).then((r) => { if (!huy && !('loi' in r)) setNang(r); }).catch(() => {});
     return () => { huy = true; }; }, [duGoc, canNang]);
   const choNang = canNang && duGoc.nhe && !nang;
-  useEffect(() => { const t = setInterval(() => router.refresh(), 60_000); return () => clearInterval(t); }, [router]);
+  useEffect(() => { const t = setInterval(() => void lamMoiAnToan(router), 60_000); return () => clearInterval(t); }, [router]);
   // URL không ghi kiểu xem cây/bảng → dùng lựa chọn đã nhớ (localStorage). Cờ daDoc: lượt ghi URL / nhớ chỉ chạy SAU khi đã đọc xong — không đè bằng giá trị mặc định
   const [daDoc, setDaDoc] = useState(false);
   useEffect(() => { if (!laXemCamp(dauVao?.v)) { try { const v = localStorage.getItem('etp-camp-xem'); if (laXemCamp(v)) setXemCamp(v); } catch { /* trình duyệt chặn */ } } setDaDoc(true); }, []);   // eslint-disable-line react-hooks/exhaustive-deps

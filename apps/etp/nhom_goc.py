@@ -7,6 +7,9 @@ phim làm bằng AI mà nhìn như người thật xếp theo ngoại hình. Kh�
 import json, os, re, subprocess, sys, urllib.request
 NHOM = ["au_my", "trung", "an", "latin", "dong_a", "da_mau", "hoat_hinh"]
 LUAT = """Classify this short-drama poster by the LOOK of the cast. Answer with the tool.
+Judge the MAJORITY of the cast, never one face (anh 04/11/2026: "Big Mistake: Torturing The Hidden Billionaire" — 3 white actors + a tanned grey-haired lead — was wrongly "an").
+Tanned, olive or weathered skin on Western features is au_my, NOT an. "an" only when most of the cast clearly looks South Asian (Indian / Pakistani / Bangladeshi).
+An American-style production (English title, Western setting / clothing) whose cast is mostly white is au_my.
 nhom: au_my = white / Western-looking cast (US, Europe, also AI-generated but photorealistic Western faces) · trung = Chinese / East-Asian Chinese production look · an = Indian / South Asian cast ·
 latin = Latino / Hispanic-looking cast · dong_a = Korean / Japanese / Southeast Asian · da_mau = Black cast · hoat_hinh = ONLY if the poster is clearly a drawing / painting / 2D anime / 3D cartoon,
 NOT a photo. A poster made with AI that looks like real photographed people is NOT hoat_hinh — classify it by the faces. Spanish or other-language titles do not decide the group: look at the faces.

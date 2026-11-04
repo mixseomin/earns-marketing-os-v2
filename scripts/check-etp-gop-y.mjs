@@ -503,6 +503,7 @@ const LUAT = [
   { card: 'g10hoi-0411', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if cs >= ns and (ts - cs) / cs * 100 >= G10_HOI:', vi: 'G10 hồi: 2 ngày đã khép sau hạ ROI ≥ 30% → về ngân sách trước lúc hạ, cả ★ ROAS (anh 04/11/2026)' },
   { card: 'g10hoi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "for (const k of ['hoi_g10', 'dau_phien', 'tang', 'tang30'])", vi: 'worker tự nâng G10 hồi, gỡ khỏi sổ G10' },
   { card: 'g10hoi-0411', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"hoi_g10":', vi: 'G10 hồi có trong sổ luật chung' },
+  { card: 'goc-0411', tep: 'apps/etp/nhom_goc.py', co: 'Judge the MAJORITY of the cast, never one face', vi: 'nhóm gốc theo số đông dàn diễn viên; da rám nắng nét phương Tây = au_my (anh 04/11/2026)' },
   { card: 'san-0411', tep: 'apps/etp/dong_phim.py', co: 'def san_dung_lai(cid):', vi: 'creative dùng lại = đúng cổng nhan-ban (CTA mới, không trùng đoạn) — anh 04/11/2026 phim 167292' },
   { card: 'san-0411', tep: 'apps/etp/mo_rong.py', co: 'where g.duoc_len and r.cta_dat and r.tu_choi is null', vi: 'plan đếm creative sẵn cùng cổng CTA' },
   { card: 'mr-0411', tep: 'apps/etp/mo_rong.py', co: 'def k_cua(n): return 0 if n >= DICH else max(1, math.ceil(DAU * (1 - n / DICH)))', vi: 'plan mở rộng có cường độ: 6 → 1 camp khi gần 30 (anh 04/11/2026)' },

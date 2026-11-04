@@ -193,7 +193,7 @@ def b_cat(d):
     if d.get("so_camp"):   # MỞ RỘNG: bỏ khung chồng lên đoạn đã có creative của phim (04/11/2026 dòng #35 cắt lại đúng đoạn #64977 → cổng trùng đoạn chặn hết)
         da = [tuple(map(float, l.split("\t"))) for l in sql(f"select tu, den from etp.creative where content_id = {cid} and tu is not null and den is not null").splitlines() if l.count("\t") == 1]
         bo = [x for x in ok if any(float(x["tu"]) < b and float(x["den"]) > a for a, b in da)]; ok = [x for x in ok if x not in bo]
-        if not ok: return "dung", f"mọi khung cuối tập cắt được đều trùng đoạn đã có creative ({len(bo)} khung) — phim hết khung mới", None
+        if not ok and bo: return "dung", f"mọi khung cuối tập cắt được đều trùng đoạn đã có creative ({len(bo)} khung) — phim hết khung mới", None   # không cắt ra khung nào ≠ hết khung mới (05/11/2026 #51 báo "0 khung" khi thật ra cắt quá giờ) → rơi xuống nhánh lỗi
     if ok: return "xong", f"cắt {len(ok)} đoạn: " + ", ".join(f"{x['tu']:.0f}–{x['den']:.0f}s" for x in ok), {"doan": ok, "lo": lo}
     g = loi or " ".join(str(x.get("loi")) for x in kq) or out[-200:]
     return ("loi" if rc == -9 or LK.ky_thuat(g) is not False else "dung"), f"không ra đoạn nào: {g[:300]}", None

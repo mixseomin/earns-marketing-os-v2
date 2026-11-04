@@ -48,7 +48,7 @@ def nguon_spy(qc):
 def nguon_sach(cid, url):
     tm = os.path.join(N, str(cid))
     co = os.path.isdir(tm) and any((x.startswith("tap") and x.endswith(".mp4")) or x == "ghep-cuoi.mp4" or x == f"{cid}.mp4" for x in os.listdir(tm))
-    if not co and url:
+    if (not co or not os.path.exists(os.path.join(tm, "tap-het"))) and url:   # chưa dò hết tập miễn phí → tai-tap tải tập thiếu (dùng lại tập có sẵn)
         os.makedirs(tm, exist_ok=True); sh(f"python3 {D}/tai-tap.py '{url}' {tm} 20", timeout=1800)   # hết tập miễn phí — trần 8 cũ bỏ sót tập free cuối (04/11/2026)
     return tm if os.path.isdir(tm) and any(x.endswith(".mp4") for x in os.listdir(tm)) else None
 

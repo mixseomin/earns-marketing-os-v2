@@ -43,7 +43,7 @@ def xong(v, ket_qua, loi=None):
 def cat(v):
     d, cid, lo = v["du_lieu"], str(v["content_id"]), v["lo"]
     tm = os.path.join(N, cid); ra = os.path.join(C, "ra", lo, f"p-{cid}"); os.makedirs(ra, exist_ok=True)
-    if not (os.path.isdir(tm) and any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm))):
+    if not os.path.exists(os.path.join(tm, "tap-het")):   # chưa dò hết tập miễn phí (tai-tap dùng lại tập có sẵn, chỉ tải tập thiếu)
         os.makedirs(tm, exist_ok=True); subprocess.run(["python3", os.path.join(E, "tai-tap.py"), d.get("url", ""), tm, str(TAP_TOI_DA)], capture_output=True, text=True, timeout=1500)   # tải HẾT tập miễn phí (tai-tap dừng ở tập khoá đầu tiên)
     if not any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm)): return [], "không tải được tập miễn phí"
     tsv = os.path.join(ra, "lo.tsv"); open(tsv, "w").write(f"{cid}\t{d.get('locale', 'en')}\t{d.get('nguon', '')}\t{d.get('ten', '')}\t{d.get('url', '')}\n")
@@ -56,9 +56,13 @@ def cat(v):
     except subprocess.TimeoutExpired:
         try: os.killpg(pr.pid, 9)
         except Exception: pass
-        pr.wait(); raise
+        pr.wait(); qua_gio = True
+    else: qua_gio = False
     lo_json = os.path.join(ra, "lo.json")
     kq = json.load(open(lo_json)) if os.path.exists(lo_json) else []
+    if qua_gio:   # QUÁ GIỜ VẪN GIỮ ĐOẠN ĐÃ CẮT XONG (05/11/2026 dòng #51: 5/8 đoạn xong mà bỏ hết, báo 0 khung)
+        kq = [x for x in kq if x.get("file") and os.path.exists(x["file"]) and os.path.getsize(x["file"]) > 50_000]
+        if not kq: raise subprocess.TimeoutExpired(pr.args, 0)
     for x in kq: x.pop("moc_tap", None)
     if MAY != TRUNG_TAM:   # gửi đoạn cắt về máy trung tâm, đường tệp đổi sang đường trên iMac
         dich = f"/Users/htuan/.cache/ethopex/ra/{lo}/p-{cid}/"

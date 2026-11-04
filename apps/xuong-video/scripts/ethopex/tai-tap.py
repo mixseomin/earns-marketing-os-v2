@@ -56,17 +56,22 @@ def main(goc, ra, so=3):
             if len(b) < 2000 or b[:1] in (b"<", b"{"): raise ValueError("poster không phải ảnh")
             open(os.path.join(ra, "poster.jpg"), "wb").write(b)
         except Exception as e: print("poster loi:", e, file=sys.stderr)
+    het = False   # True = gặp tập khoá / hết tập trước trần → đã dò HẾT tập miễn phí (ghi dấu tap-het)
     for n in range(1, so + 1):
         u = tap_url(goc, html1, n)
-        if not u: break
+        if not u: het = True; break
+        ra_tap = os.path.join(ra, f"tap{n:02d}.mp4")
+        if os.path.exists(ra_tap) and os.path.getsize(ra_tap) > 100_000:   # DÙNG LẠI tập đã tải, chỉ tải tập còn thiếu (05/11/2026 #80386: có sẵn 8 tập → nơi gọi không tải nữa, sót tập 9)
+            giay = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", ra_tap]).strip() or 0)
+            kq.append({"tap": n, "giay": round(giay, 1), "url": u}); continue
         html = html1 if n == 1 else lay(u).decode("utf-8", "ignore")
         v = video_trong(html)
-        if not v: print(f"tap {n}: khong co video (khoa / het tap mien phi)", file=sys.stderr); break
-        ra_tap = os.path.join(ra, f"tap{n:02d}.mp4")
+        if not v: print(f"tap {n}: khong co video (khoa / het tap mien phi)", file=sys.stderr); het = True; break
         subprocess.run(["ffmpeg", "-v", "error", "-y", "-headers", f"User-Agent: {UA}\r\nReferer: {goc}\r\n", "-i", v, "-c", "copy", ra_tap], check=True, timeout=900)
         giay = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", ra_tap]).strip() or 0)
         kq.append({"tap": n, "giay": round(giay, 1), "url": u})
     json.dump(kq, open(os.path.join(ra, "tap.json"), "w"), ensure_ascii=False)
+    if het and kq: open(os.path.join(ra, "tap-het"), "w").write(str(len(kq)))   # nơi gọi chỉ bỏ qua tải khi có dấu này (da_het)
     print(json.dumps({"phim": goc, "tap": [(x["tap"], x["giay"]) for x in kq], "poster": os.path.exists(os.path.join(ra, "poster.jpg")) and os.path.getsize(os.path.join(ra, "poster.jpg")) > 2000}, ensure_ascii=False))
 
 if __name__ == "__main__":

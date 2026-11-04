@@ -262,7 +262,7 @@
       {
         "ma": "G5",
         "ten": "Khuôn kịch bản",
-        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4",
+        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp",
         "anh": "duyệt kịch bản mẫu",
         "trang_thai": "chua"
       },

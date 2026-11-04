@@ -1756,35 +1756,39 @@ function BadgeSx({ cid, ds, kt }: { cid: number; ds: DuLieuEtp['dongChay']; /** 
 }
 /** ĐỒNG HỒ HẤP THỤ (anh 04/11/2026 "show thêm 1 đồng hồ nữa về các chỉ số này cho từng phim"): kim = ROI biên 14 ngày đã khép của phim (mỗi $1 chi thêm đem về bao nhiêu),
  *  dải −50…+50%; vùng đỏ < 0 quá bão hoà · vàng 0–15% gần đỉnh · xanh ≥ 15% còn hút. Số: apps/etp/mo_rong.py (etp.mo_rong.roi_bien / r2 / pha). */
-const PHA_HT: Record<string, [string, string, string]> = { hut: ['còn hút', '#22c55e', 'tăng mạnh — cho nhân bản giữ nguyên creative + nâng ngân sách'], dinh: ['gần đỉnh', '#facc15', 'chỉ tăng bằng creative MỚI (đoạn / góc khác), không nhân bản trùng'],
-  bao_hoa: ['quá bão hoà', '#ef4444', 'ngừng thêm camp; hạ / tắt camp lỗ nhất tới khi ROI biên ≥ 0; dồn tiền sang phim còn hút'], it_so: ['chưa đủ số', '#6b7280', 'cần ≥ 6 ngày chi ≥ $5 và tổng ≥ $150 trong 14 ngày'] };
+const PHA_HT: Record<string, [string, string, string]> = { hut: ['còn dư địa', '#22c55e', 'đang chi ≤ 50% mức tối ưu → tăng mạnh: nâng ngân sách / nhân bản / thêm camp'],
+  dinh: ['quanh mức tối ưu', '#facc15', 'đang chi 50–150% mức tối ưu → giữ; muốn thêm thì bằng creative MỚI (đoạn / góc khác), không nhân bản trùng'],
+  bao_hoa: ['vượt sức chứa', '#ef4444', 'đang chi ≥ 150% mức tối ưu → hạ / tắt camp lỗ nhất cho tới khi về quanh mức tối ưu; dồn tiền sang phim còn dư địa'], it_so: ['chưa đủ số', '#6b7280', 'cần ≥ 3 ngày đã khép có chi ≥ $5 (cả team) và tổng ≥ $100 trong 14 ngày'] };
 /** KHUÔN HOVER CHUẨN của độ hấp thụ — mọi chỗ (Cây camp, tab Phim) dùng chung (anh 04/11/2026 "có format chuẩn khi hover cho mọi người") */
 const theHapThu = (m: MoRong, ten?: string | null): TheNoi => { const [pha, mau, cach] = PHA_HT[m.pha ?? 'it_so'] ?? PHA_HT.it_so!; const v = m.roi_bien ?? 0;
   const sb = (m.so_ngay ?? 0) < 6;   // sơ bộ: 3–5 ngày đã khép
-  return { ma: `#${m.content_id}`, ten, tieu: `Thị trường · ${pha} · ROI biên ${v > 0 ? '+' : ''}${v}%${sb ? ` · SƠ BỘ (${m.so_ngay} ngày)` : ''}`, mau, moc: [
+  const ti = m.muc_hut ? (m.chi_gan ?? 0) / m.muc_hut : null;
+  return { ma: `#${m.content_id}`, ten, tieu: `Thị trường · ${pha}${ti != null ? ` · đang chi ${Math.round(ti * 100)}% mức tối ưu` : ''}${sb ? ` · SƠ BỘ (${m.so_ngay} ngày)` : ''}`, mau, moc: [
     ...(sb ? [{ ten: 'Sơ bộ', mau: '#f59e0b', chu: `mới ${m.so_ngay} ngày đã khép có chi ≥ $5 — đủ 6 ngày + $150 mới là số chắc; một ngày lệch có thể đổi pha` }] : []),
     { ten: 'ROI biên 14 ngày', mau, so: `${v > 0 ? '+' : ''}${v}%`, chu: `mỗi $1 chi thêm trong ngày đem về $${(1 + v / 100).toFixed(2)}` },
-    ...(m.muc_hut ? [{ ten: 'Mức chi hấp thụ', mau: '#22c55e', so: `~$${m.muc_hut}/ngày`, chu: `ngày chi cao nhất mà vẫn lãi (cả team, 14 ngày) · đang chi $${m.chi_gan ?? '—'}/ngày${m.chi_gan && m.chi_gan > 0 ? ` → còn ×${(m.muc_hut / m.chi_gan).toFixed(1)}` : ''}` }] : []),
+    ...(m.muc_hut ? [{ ten: 'Mức chi tối ưu', mau: '#22c55e', so: `~$${m.muc_hut}/ngày`, chu: `chi trung bình 2 ngày LÃI (đồng) cao nhất, cả team 14 ngày · đang chi $${m.chi_gan ?? '—'}/ngày (ngày đã khép gần nhất)${m.chi_gan && m.chi_gan > 0 && m.chi_gan < m.muc_hut ? ` → còn tăng được ×${(m.muc_hut / m.chi_gan).toFixed(1)}` : ''}` }] : []),
     { ten: 'Đề xuất', mau: '#60a5fa', chu: cach },
     { ten: 'Độ tin (R²)', mau: (m.r2 ?? 0) >= 0.6 ? '#4ade80' : '#f59e0b', so: String(m.r2 ?? '—'), chu: (m.r2 ?? 0) < 0.6 ? 'thấp — các ngày dao động mạnh, đọc thận trọng' : null },
     { ten: 'Chi trung bình cả team', mau: '#94a3b8', so: `$${m.chi_tb ?? '—'}/ngày`, chu: `Nhà + đội · ${m.n} camp Nhà đang chạy` },
-    { ten: 'Cách tính', mau: '#64748b', chu: 'hồi quy thu ngày theo chi ngày của cả phim — CẢ TEAM (Nhà + đội), 14 ngày Ethopex đã khép (ngày chi ≥ $5) · xanh ≥ +15% còn hút · vàng 0…+15% gần đỉnh · đỏ < 0 bão hoà' }] }; };
+    { ten: 'Cách tính', mau: '#64748b', chu: 'cả team (Nhà + đội), 14 ngày Ethopex đã khép · mức tối ưu = chi TB 2 ngày lãi (đồng) cao nhất · kim = chi ngày gần nhất ÷ mức tối ưu (cung 0 → 2×): xanh ≤ 50% · vàng 50–150% · đỏ ≥ 150% · ROI biên = hồi quy thu theo chi (thông tin phụ)' }] }; };
 function DongHoHapThu({ m, ten }: { m?: MoRong; ten?: string | null }) {
   // LUÔN HIỆN (anh 04/11/2026 "vẫn phải hiện cái đồng hồ thị trường nhưng mờ hơn"): đủ 6 ngày đậm · 3–5 ngày mờ (sơ bộ) · chưa đủ số rất mờ, không kim
   const co = !!m && m.roi_bien != null && (m.pha ?? 'it_so') !== 'it_so';
-  const pha = co ? m!.pha! : 'it_so', [, mau] = PHA_HT[pha] ?? PHA_HT.it_so!, v = co ? m!.roi_bien : null;
-  const C = 13, R = 10, goc = (x: number) => 180 + (Math.max(-50, Math.min(50, x)) + 50) / 100 * 180;   // −50 → trái · +50 → phải (nửa vòng trên)
+  const pha = co ? m!.pha! : 'it_so', [, mau] = PHA_HT[pha] ?? PHA_HT.it_so!;
+  // KIM = CHI HIỆN TẠI / MỨC CHI TỐI ƯU (anh 04/11/2026 "đồng hồ có cần thiết kế lại để phản ánh đúng thực tế"): cung 0 → 2× tối ưu · xanh ≤ 50% còn dư địa · vàng 50–150% quanh tối ưu · đỏ ≥ 150% vượt sức chứa
+  const ti = co && m!.muc_hut && m!.muc_hut > 0 ? (m!.chi_gan ?? 0) / m!.muc_hut : null;   // 1 = đúng mức tối ưu
+  const C = 13, R = 10, goc = (x: number) => 180 + Math.max(0, Math.min(2, x)) / 2 * 180;
   const xy = (g: number, r = R) => [C + r * Math.cos((g * Math.PI) / 180), C + 2 + r * Math.sin((g * Math.PI) / 180)];
   const cung = (a: number, b: number, c: string) => { const [x1, y1] = xy(goc(a)), [x2, y2] = xy(goc(b)); return <path d={`M ${x1} ${y1} A ${R} ${R} 0 0 1 ${x2} ${y2}`} stroke={c} strokeWidth={2.6} fill="none" opacity={0.85} />; };
-  const [kx, ky] = xy(goc(v ?? 0), R - 2);
-  const the = (): TheNoi => co ? theHapThu(m!, ten) : { ma: m ? `#${m.content_id}` : undefined, ten, tieu: 'Thị trường · chưa đủ số', mau: '#6b7280',
+  const [kx, ky] = xy(goc(ti ?? 0), R - 2);
+  const theThat = (): TheNoi => co ? theHapThu(m!, ten) : { ma: m ? `#${m.content_id}` : undefined, ten, tieu: 'Thị trường · chưa đủ số', mau: '#6b7280',
     moc: [{ ten: 'Cần', mau: '#6b7280', chu: `≥ 3 ngày Ethopex đã khép có chi ≥ $5 (cả team) và tổng chi ≥ $100 trong 14 ngày${m?.so_ngay ? ` — mới ${m.so_ngay} ngày` : ''}` }] };
-  return <ReThe the={the}><span style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', cursor: 'help', opacity: !co ? 0.22 : (m!.so_ngay ?? 0) < 6 ? 0.5 : 1 }}>
+  return <ReThe the={theThat}><span style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', cursor: 'help', opacity: !co ? 0.22 : (m!.so_ngay ?? 0) < 6 ? 0.5 : 1 }}>
     <svg width={26} height={26} viewBox="0 0 26 26">
-      {cung(-50, 0, '#ef4444')}{cung(0, 15, '#facc15')}{cung(15, 50, '#22c55e')}
-      {v != null ? <line x1={C} y1={C + 2} x2={kx} y2={ky} stroke="#fff" strokeWidth={1.6} strokeLinecap="round" /> : null}
+      {cung(0, 0.5, '#22c55e')}{cung(0.5, 1.5, '#facc15')}{cung(1.5, 2, '#ef4444')}
+      {ti != null ? <line x1={C} y1={C + 2} x2={kx} y2={ky} stroke="#fff" strokeWidth={1.6} strokeLinecap="round" /> : null}
       <circle cx={C} cy={C + 2} r={1.6} fill="#fff" />
-      <text x={C} y={24.5} textAnchor="middle" fontSize={6.5} fontWeight={700} fill={mau}>{v == null ? '—' : `${v > 0 ? '+' : ''}${v}`}</text>
+      <text x={C} y={24.5} textAnchor="middle" fontSize={6.5} fontWeight={700} fill={mau}>{ti == null ? '—' : `${Math.round(ti * 100)}%`}</text>
     </svg></span></ReThe>;
 }
 /** NÚT ＋ Ở DÒNG PHIM (anh 04/11/2026 "thêm 1 nút ở dòng film … mở ra form để chọn: số camp mới, thể loại film → submit là xong. Còn lại cho tab SX xử lý") */

@@ -11,17 +11,38 @@ DICH, DAU, HOA, LAI, TUT = 30, 6, 0, 20, 10
 # ĐỘ HẤP THỤ (anh 04/11/2026): ROI biên 14 ngày đã khép = (hệ số hồi quy thu ~ chi theo ngày − 1) × 100; cần ≥ 6 ngày chi ≥ $5 và tổng ≥ $150
 HUT, BIEN_NGAY, BIEN_CHI = 15, 6, 150
 SB_NGAY, SB_CHI = 3, 100
-DU_DIA = 1.5   # chi gần đây còn ≤ mức hấp thụ / 1.5 → còn dư địa, chấm 'hut' dù độ dốc 14 ngày âm (anh 04/11/2026: Frozen Outcast)   # SƠ BỘ (anh 04/11/2026): ≥ 3 ngày đã khép + $100 thì đã hiện (mờ); đủ BIEN_NGAY + BIEN_CHI mới là số chắc
+DU_DIA = 2   # chi gần đây còn ≤ mức hấp thụ / 1.5 → còn dư địa, chấm 'hut' dù độ dốc 14 ngày âm (anh 04/11/2026: Frozen Outcast)   # SƠ BỘ (anh 04/11/2026): ≥ 3 ngày đã khép + $100 thì đã hiện (mờ); đủ BIEN_NGAY + BIEN_CHI mới là số chắc
+def muc_toi_uu(cid):
+    """MỨC CHI TỐI ƯU của phim (cả team, 14 ngày đã khép): trung bình chi 2 ngày có LÃI (đồng) cao nhất; chi hiện tại = ngày đã khép gần nhất (kể cả ngày chi nhỏ)
+    (anh 04/11/2026: Frozen Outcast lãi ở ~$25–38/ngày, lỗ khi đẩy $137 — đang chi $3 thì còn dư địa, không phải bão hoà)"""
+    return _NGAY.get(int(cid))
 def pha_theo_muc(r):
-    """pha theo mức chi HIỆN TẠI: chi 3 ngày gần còn ≤ mức hấp thụ / DU_DIA → 'hut' (còn dư địa); không thì theo độ dốc ROI biên"""
+    """pha theo vị trí chi hiện tại so với mức tối ưu: ≤ ½ → hut (còn dư địa) · ≥ 1.5× → bao_hoa · giữa → dinh; chưa đủ số → it_so"""
+    if r.get("roi_bien") is None: return "it_so"
     mh, cg = r.get("muc_hut"), r.get("chi_gan")
-    if r.get("roi_bien") is not None and mh and float(mh) > 0 and (cg is None or float(cg) * DU_DIA <= float(mh)): return "hut"
-    return pha_cua(r.get("roi_bien"))
+    if not mh or float(mh) <= 0: return pha_cua(r.get("roi_bien"))
+    ti = float(cg or 0) / float(mh)
+    return "hut" if ti <= 0.5 else "bao_hoa" if ti >= 1.5 else "dinh"
 def pha_cua(rb): return "it_so" if rb is None else "hut" if rb >= HUT else "dinh" if rb >= 0 else "bao_hoa"
 
 def k_cua(n): return 0 if n >= DICH else max(1, math.ceil(DAU * (1 - n / DICH)))
 
+_NGAY = {}
+def _nap_ngay(q):
+    """số ngày (Nhà + đội) 14 ngày đã khép, KHÔNG lọc ngày chi nhỏ → {phim: (mức chi tối ưu, chi ngày gần nhất)}"""
+    _NGAY.clear(); ds = {}
+    for l in q("""select content_id, ngay, sum(chi), sum(thu) from (
+                    select c.content_id, n.ngay, n.chi, n.thu from etp.so_ngay n join etp.camp c using (camp_id) where n.ngay between current_date - 14 and current_date - 1 and c.content_id > 0
+                    union all select c.content_id, n.ngay, n.chi, n.thu from etp.so_ngay_ngoai n join etp.camp_ngoai c using (camp_id) where n.ngay between current_date - 14 and current_date - 1 and c.content_id > 0) u
+                  group by 1, 2 order by 1, 2""").splitlines():
+        x = l.split("|")
+        if len(x) == 4: ds.setdefault(int(x[0]), []).append((x[1], float(x[2] or 0), float(x[3] or 0)))
+    for cid, ngay in ds.items():
+        lai = sorted((t - c, c) for _, c, t in ngay if c >= 1)[-2:]
+        if lai and lai[-1][0] > 0: _NGAY[cid] = (round(sum(c for _, c in lai) / len(lai), 1), round(ngay[-1][1], 1))
+
 def chay(q):
+    _nap_ngay(q)
     rows = json.loads(q("""select coalesce(json_agg(x), '[]') from (
       with a as (select content_id, count(*) n, min(tao) dau, max(tao) moi from etp.camp where trang_thai = 'ACTIVE' and not la_roas and content_id > 0 group by 1),
       s as (select c.content_id, sum(n.chi) filter (where n.ngay between current_date - 3 and current_date - 1) chi3,
@@ -29,8 +50,7 @@ def chay(q):
                    sum(n.chi) filter (where n.ngay between current_date - 6 and current_date - 4) chi_t,
                    sum(n.thu) filter (where n.ngay between current_date - 6 and current_date - 4) thu_t
             from etp.so_ngay n join etp.camp c using (camp_id) where n.ngay >= current_date - 6 group by 1),
-      b as (select content_id, round(((regr_slope(thu, chi) - 1) * 100)::numeric)::int roi_bien, round(regr_r2(thu, chi)::numeric, 2) r2, round(avg(chi)::numeric, 1) chi_tb, count(*)::int so_ngay,
-                   round(max(chi) filter (where thu >= chi)::numeric, 1) muc_hut, round((avg(chi) filter (where ngay >= current_date - 3))::numeric, 1) chi_gan
+      b as (select content_id, round(((regr_slope(thu, chi) - 1) * 100)::numeric)::int roi_bien, round(regr_r2(thu, chi)::numeric, 2) r2, round(avg(chi)::numeric, 1) chi_tb, count(*)::int so_ngay
             from (select content_id, ngay, sum(chi) chi, sum(thu) thu from (   -- CẢ TEAM: camp Nhà + camp đội (anh 04/11/2026 "phải đo toàn bộ team chứ ko phải chỉ mỗi tk của tao")
                     select c.content_id, n.ngay, n.chi, n.thu from etp.so_ngay n join etp.camp c using (camp_id) where n.ngay between current_date - 14 and current_date - 1 and c.content_id > 0
                     union all select c.content_id, n.ngay, n.chi, n.thu from etp.so_ngay_ngoai n join etp.camp_ngoai c using (camp_id) where n.ngay between current_date - 14 and current_date - 1 and c.content_id > 0) u
@@ -39,10 +59,10 @@ def chay(q):
       san as (select r.content_id, count(*) k from etp.creative r join etp.cham_cong g using (creative_id)
               where g.duoc_len and r.tu_choi is null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id) group by 1)
       select a.content_id, a.n, extract(epoch from now() - a.dau) / 86400 tuoi, (a.moi at time zone 'UTC')::date >= current_date - 1 moi_chua_khep,
-             coalesce(s.chi3, 0) chi3, coalesce(s.thu3, 0) thu3, s.chi_t, s.thu_t, coalesce(san.k, 0) san, b.roi_bien, b.r2, b.chi_tb, b.so_ngay, b.muc_hut, b.chi_gan
+             coalesce(s.chi3, 0) chi3, coalesce(s.thu3, 0) thu3, s.chi_t, s.thu_t, coalesce(san.k, 0) san, b.roi_bien, b.r2, b.chi_tb, b.so_ngay
       from a left join s using (content_id) left join san using (content_id) left join b using (content_id)
       union all   -- phim chỉ team chạy (Nhà chưa camp nào đang bật): chỉ đồng hồ thị trường, không plan
-      select b.content_id, 0, 99, false, 0, 0, null, null, 0, b.roi_bien, b.r2, b.chi_tb, b.so_ngay, b.muc_hut, b.chi_gan from b where b.content_id not in (select content_id from a)) x""" % (SB_NGAY, SB_CHI)) or "[]")
+      select b.content_id, 0, 99, false, 0, 0, null, null, 0, b.roi_bien, b.r2, b.chi_tb, b.so_ngay from b where b.content_id not in (select content_id from a)) x""" % (SB_NGAY, SB_CHI)) or "[]")
     ghi = []
     for r in rows:
         n, chi, thu, san = int(r["n"]), float(r["chi3"]), float(r["thu3"]), int(r["san"])
@@ -58,7 +78,8 @@ def chay(q):
         elif tt == "them" and roi_t is not None and roi < roi_t - TUT: tt, ly = "giu", ly + f" · ROI tụt {roi_t}% → {roi}% sau lượt trước — giữ"
         ghi.append({"content_id": int(r["content_id"]), "n": n, "chi3": round(chi, 2), "lai3": round(thu - chi, 2), "roi3": roi, "roi_truoc": roi_t, "k": k,
                     "san": san, "can_sx": max(0, k - san) if tt == "them" else 0, "trang_thai": tt, "ly": ly,
-                    "roi_bien": r.get("roi_bien"), "r2": r.get("r2"), "pha": pha_theo_muc(r), "chi_tb": r.get("chi_tb"), "so_ngay": r.get("so_ngay"), "muc_hut": r.get("muc_hut"), "chi_gan": r.get("chi_gan")})
+                    "roi_bien": r.get("roi_bien"), "r2": r.get("r2"), "chi_tb": r.get("chi_tb"), "so_ngay": r.get("so_ngay"), **(lambda t: {"muc_hut": t[0], "chi_gan": t[1]} if t else {"muc_hut": None, "chi_gan": None})(muc_toi_uu(r["content_id"]))})
+        ghi[-1]["pha"] = pha_theo_muc(ghi[-1])
     j = json.dumps(ghi, ensure_ascii=False).replace("$J$", "")
     q(f"""delete from etp.mo_rong where content_id not in (select (x->>'content_id')::int from jsonb_array_elements($J${j}$J$::jsonb) x);
           insert into etp.mo_rong (content_id, n, chi3, lai3, roi3, roi_truoc, k, san, can_sx, trang_thai, ly, roi_bien, r2, pha, chi_tb, so_ngay, muc_hut, chi_gan, luc)

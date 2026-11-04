@@ -215,26 +215,27 @@
     ],
     "do_dai": "Shorts 45–60 giây (một chuyện ngắn, trọn vẹn)",
     "cau": [
-     9,
-     13
+     8,
+     11
     ],
-    "cau_noi": "10–12",
+    "cau_noi": "9–10",
     "tu": {
      "en": [
-      110,
-      165
+      95,
+      125
      ],
      "es": [
-      120,
-      180
+      100,
+      135
      ]
     },
     "tu_noi": {
-     "en": "125–155",
-     "es": "135–170"
+     "en": "105–120",
+     "es": "110–130"
     },
     "toi_da_giay": 60,
-    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn."
+    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn.",
+    "_ghi_do_dai": "Short ≤ 60 s: giọng Daniel ~2,1 từ/giây (đo tập Agincourt 394 từ / 188 s) → 120 từ ≈ 57 s; demo Weather Desk 05/11/2026 viết 160 từ ra 70 s, quá trần"
    },
    {
     "ma": "tiny-wars",
@@ -251,26 +252,27 @@
     ],
     "do_dai": "Shorts 45–60 giây (một chuyện ngắn, trọn vẹn)",
     "cau": [
-     9,
-     13
+     8,
+     11
     ],
-    "cau_noi": "10–12",
+    "cau_noi": "9–10",
     "tu": {
      "en": [
-      110,
-      165
+      95,
+      125
      ],
      "es": [
-      120,
-      180
+      100,
+      135
      ]
     },
     "tu_noi": {
-     "en": "125–155",
-     "es": "135–170"
+     "en": "105–120",
+     "es": "110–130"
     },
     "toi_da_giay": 60,
-    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn."
+    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn.",
+    "_ghi_do_dai": "Short ≤ 60 s: giọng Daniel ~2,1 từ/giây (đo tập Agincourt 394 từ / 188 s) → 120 từ ≈ 57 s; demo Weather Desk 05/11/2026 viết 160 từ ra 70 s, quá trần"
    },
    {
     "ma": "borders-gone-wrong",
@@ -287,26 +289,27 @@
     ],
     "do_dai": "Shorts 45–60 giây (một chuyện ngắn, trọn vẹn)",
     "cau": [
-     9,
-     13
+     8,
+     11
     ],
-    "cau_noi": "10–12",
+    "cau_noi": "9–10",
     "tu": {
      "en": [
-      110,
-      165
+      95,
+      125
      ],
      "es": [
-      120,
-      180
+      100,
+      135
      ]
     },
     "tu_noi": {
-     "en": "125–155",
-     "es": "135–170"
+     "en": "105–120",
+     "es": "110–130"
     },
     "toi_da_giay": 60,
-    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn."
+    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn.",
+    "_ghi_do_dai": "Short ≤ 60 s: giọng Daniel ~2,1 từ/giây (đo tập Agincourt 394 từ / 188 s) → 120 từ ≈ 57 s; demo Weather Desk 05/11/2026 viết 160 từ ra 70 s, quá trần"
    },
    {
     "ma": "weather-desk",
@@ -323,30 +326,33 @@
     ],
     "do_dai": "Shorts 45–60 giây (một chuyện ngắn, trọn vẹn)",
     "cau": [
-     9,
-     13
+     8,
+     11
     ],
-    "cau_noi": "10–12",
+    "cau_noi": "9–10",
     "tu": {
      "en": [
-      110,
-      165
+      95,
+      125
      ],
      "es": [
-      120,
-      180
+      100,
+      135
      ]
     },
     "tu_noi": {
-     "en": "125–155",
-     "es": "135–170"
+     "en": "105–120",
+     "es": "110–130"
     },
     "toi_da_giay": 60,
-    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn."
+    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn.",
+    "_ghi_do_dai": "Short ≤ 60 s: giọng Daniel ~2,1 từ/giây (đo tập Agincourt 394 từ / 188 s) → 120 từ ≈ 57 s; demo Weather Desk 05/11/2026 viết 160 từ ra 70 s, quá trần"
    }
   ],
   "ten_kenh": "Yesterday's News Tonight",
   "gio_tap": "09:30",
-  "chu_de_truoc": 1950
+  "chu_de_truoc": 1950,
+  "truoc_ke_hoach": 3,
+  "_ghi_truoc_ke_hoach": "anh 05/11/2026: \"chỉ sx trước kế hoạch 3 bài\" — chay-kenh không làm tập mới (kể cả --ep) khi đã có ≥ 3 tập làm xong chưa đăng; demo mẫu không tính"
  }
 }

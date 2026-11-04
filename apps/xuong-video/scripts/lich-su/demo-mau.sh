@@ -11,7 +11,10 @@ DIR="$(cd "$(dirname "$0")" && pwd)"
 SONG="${SONG:-3}"
 lam() { PL="$1"; ID="yesterdays-news-tonight-demo-$PL"
   echo "$(date '+%H:%M %d/%m') ▶ demo $PL ($ID)" >> "$LOG"
-  DUYET_SINH_1_LAN=1 /opt/homebrew/bin/node "$DIR/lam-tap.mjs" --id "$ID" --nn en --kenh "$KENH" --playlist "$PL" --demo > "$HOME/.cache/lich-su-demo-$PL.log" 2>&1; MA=$?
+  # hỏng thì TỰ LÀM LẠI tới 3 lần (lam-tap chạy lại cùng mã tập: dùng lại kịch bản / giọng / kho đã có, chỉ làm tiếp bước hỏng) — anh 05/11/2026 "hỏng vẫn tự fix chứ?"
+  for LAN in 1 2 3; do
+    DUYET_SINH_1_LAN=1 /opt/homebrew/bin/node "$DIR/lam-tap.mjs" --id "$ID" --nn en --kenh "$KENH" --playlist "$PL" --demo >> "$HOME/.cache/lich-su-demo-$PL.log" 2>&1; MA=$?
+    [ "$MA" = 0 ] && break; echo "$(date '+%H:%M %d/%m') ↻ demo $PL hỏng mã=$MA (lần $LAN/3) — tự làm lại" >> "$LOG"; done
   URL=$(node -e 'try{console.log(JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).demo_url||"")}catch{console.log("")}' "$DIR/tap/$ID.json")
   TIEN=$(grep -ao '~[0-9]*₫' "$HOME/.cache/lich-su-demo-$PL.log" | tr -d '~₫' | awk '{s+=$1} END {print s+0}')
   echo "$(date '+%H:%M %d/%m') DEMO $PL ${URL:-HỎNG} mã=$MA ~${TIEN}₫ · nhật ký $HOME/.cache/lich-su-demo-$PL.log" >> "$LOG"; }

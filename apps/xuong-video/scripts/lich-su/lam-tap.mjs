@@ -16,7 +16,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { BOX, box, len, ve, q, sqlBox, boxA, chay, lenA, veA, sshA, songSong, dauDangLam } from './box3.mjs';
+import { BOX, box, len, ve, q, sqlBox, boxA, chay, lenA, veA, sshA, sshS, songSong, dauDangLam } from './box3.mjs';
 import { apPlaylist, playlistCuaTap, timPlaylist, tieuDeDang } from './playlist.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
@@ -202,10 +202,10 @@ if (co('gan-hook') && KENH.may && existsSync(tepTap)) {
   const hongCu = tuMayTrong(chuCu).length || (t0.ngon_ngu ?? 'en') !== 'vi' && /[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chuCu)
     || (t0.hook?.goc && loiHook([t0.tieu_de ?? ''], t0.hook.goc).length);   // tiêu đề sửa quá xa hook gốc (cùng luật phòng chấm)
   if (t0.hook?.goc && !hongCu) console.log(`tập đã có hook "${t0.hook.goc}" — bỏ qua gắn hook`);
-  else { const tmp = `/tmp/gan-hook-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${tmp}`]);
+  else { const tmp = `/tmp/gan-hook-${id}`; sshS([`mkdir -p ${tmp}`]);
     const f = join(RA, 'goc-hook.json'); writeFileSync(f, box(`scripts/may-dung.mts --may ${KENH.may} --goc-hook`).split('\n').pop()); len(f, `${tmp}/goc-hook.json`); len(tepTap, `${tmp}/tap.json`);
     console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/gan.json --id ${id} --nn ${nn} --kenh ${kenhId} --chi-hook --goc-hook ${tmp}/goc-hook.json --cu ${tmp}/tap.json`).split('\n').pop());
-    ve(`${tmp}/gan.json`, join(RA, 'gan-hook.json')); execFileSync('ssh', [BOX, `rm -rf ${tmp}`]);
+    ve(`${tmp}/gan.json`, join(RA, 'gan-hook.json')); sshS([`rm -rf ${tmp}`]);
     Object.assign(t0, JSON.parse(readFileSync(join(RA, 'gan-hook.json'), 'utf8'))); writeFileSync(tepTap, JSON.stringify(t0, null, 1) + '\n'); }
 }
 
@@ -218,7 +218,7 @@ const khoaLoi = () => { if (!loiCu) return; const t = JSON.parse(readFileSync(te
 const sua = (co('sua') || suaCanh) && existsSync(tepTap) && existsSync(join(RA, 'nguon.txt'));   // --sua: không viết lại từ đầu, đưa lỗi của bản đang có cho máy viết sửa
 if (!existsSync(tepTap) || co('viet-lai') || sua) {
   buoc('viết kịch bản');
-  const tmp = `/tmp/lich-su-${id}`; execFileSync('ssh', [BOX, `mkdir -p ${tmp}`]); len(tepKho, `${tmp}/kho.json`);
+  const tmp = `/tmp/lich-su-${id}`; sshS([`mkdir -p ${tmp}`]); len(tepKho, `${tmp}/kho.json`);
   // GÓC + HOOK SPY: kênh có máy Studio (kenh.json may) mà chưa có chủ đề → lấy góc dùng ít nhất + hook QC của máy, máy viết tự chọn chuyện hợp góc
   let ghArg = '';
   // kênh có máy đăng mà tập chưa có hook spy (bản rỗng / hỏng giữa chừng) → chọn LẠI đề + góc + hook theo góc, không giữ chủ đề cũ
@@ -273,7 +273,7 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     chiTiet(loi.length ? `lượt viết ${lan}/${TONG_LUOT} · ${loi.length} lỗi kiểm sự thật — ${loi.every(cucBo) ? 'vá câu lỗi' : 'viết lại'}` : `lượt viết ${lan}/${TONG_LUOT} · kiểm sạch`);
     if (!loi.length) break;
   }
-  execFileSync('ssh', [BOX, `rm -rf ${tmp}`]);
+  sshS([`rm -rf ${tmp}`]);
   if (loi.length) { console.error(`✗ máy viết ${TONG_LUOT} lượt vẫn lỗi — dừng, không tốn tiền giọng / ảnh`); process.exit(4); }
 } else { const loi = existsSync(join(RA, 'nguon.txt')) ? await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8')) : [];
   // --chi-day chỉ đẩy lại bản đã dựng lên Studio (không viết, không tốn tiền) → lỗi kiểm chỉ cảnh báo; máy đăng vẫn do Phòng Nội dung chặn
@@ -445,7 +445,7 @@ if (!co('chi-day') && !arg('khung') && !co('bo-soat-truoc')) {
   const dir = join(RA, 'soat-truoc'); rmSync(dir, { recursive: true, force: true });
   const r = spawnSync(process.execPath, [join(DIR, 'dung-tap.mjs'), tepTap, '--soat', dir], { stdio: 'inherit', timeout: 10 * 60_000 }); if (r.status) process.exit(r.status);
   const ds = readdirSync(dir).filter((f) => /^k-\d+\.jpg$/.test(f)).sort((a, b) => parseInt(a.slice(2)) - parseInt(b.slice(2)));
-  const den = `/var/tmp/xet-truoc-${id}`; execFileSync('ssh', [BOX, `rm -rf ${den} && mkdir -p ${den}`]); for (const f of ds) len(join(dir, f), `${den}/${f}`);
+  const den = `/var/tmp/xet-truoc-${id}`; sshS([`rm -rf ${den} && mkdir -p ${den}`]); for (const f of ds) len(join(dir, f), `${den}/${f}`);
   soi = { dir, so: ds.length, p: boxA(`scripts/lich-su/xet-truoc.mts ${q(id)} ${q(tap.tieu_de)} ${ds.map((f) => `${den}/${f}`).join(' ')}`) };
 }
 // --chi-day: video đã dựng, chỉ đẩy lại Studio (không quay lại 5.900 khung)
@@ -471,7 +471,7 @@ buoc('đẩy Studio');
 // bản gốc máy quay ~350 MB/3 phút) qua /var/tmp (đĩa; /tmp box3 là ổ RAM 512 MB) — hỏng ở bất kỳ khâu nào chỉ báo, không làm mất video đã dựng
 { const ban = join(RA, `${id}-ban.mp4`), bt = `/var/tmp/tap-day-${id}`; let kq = null, giay = 0;
   try { execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-c:v', 'libx264', '-crf', '23', '-maxrate', '6M', '-bufsize', '12M', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'copy', '-movflags', '+faststart', ban]);
-    execFileSync('ssh', [BOX, `mkdir -p ${bt}`]); len(tepTap, `${bt}/tap.json`); len(ban, `${bt}/tap.mp4`);
+    sshS([`mkdir -p ${bt}`]); len(tepTap, `${bt}/tap.json`); len(ban, `${bt}/tap.mp4`);
     // 3 khung (12 % · 50 % · 85 %) cho Studio + Phòng Nội dung chấm hình
     giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp4], { encoding: 'utf8' }));
     const khung = [0.12, 0.5, 0.85].map((x, i) => { const f = join(RA, `khung-${i}.jpg`); execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(giay * x), '-i', mp4, '-frames:v', '1', '-vf', 'scale=540:-2', '-q:v', '4', f]); len(f, `${bt}/khung-${i}.jpg`); return `${bt}/khung-${i}.jpg`; });
@@ -487,7 +487,7 @@ buoc('đẩy Studio');
   // thumbnail đã chạy nền từ trước bước dựng — đợi nó xong, gộp kết quả vào tệp tập (đọc lại tệp: dung-tap có thể đã tự sửa tệp trong lúc dựng)
   if (nenThumb) { const ma = await nenThumb.xong, tk = join(RA, 'thumb-kq.json'); if (existsSync(tk)) { const th = JSON.parse(readFileSync(tk, 'utf8')).thumb, t1 = JSON.parse(readFileSync(tepTap, 'utf8'));
       t1.thumb = th; writeFileSync(tepTap, JSON.stringify(t1, null, 1) + '\n'); tap.thumb = th; }
-    if (ma) process.exit(ma); }
+    if (ma && !(tap.demo || co('demo'))) process.exit(ma); if (ma) console.log(`⚠ thumbnail hỏng (mã ${ma}) — demo vẫn đi tiếp, thumbnail làm khi mẫu được duyệt`); }
   buoc('nạp máy đăng');
   // DEMO MẪU (--demo): video đã lên Studio / R2 là link demo cho sổ kênh (so-kenh.json › mau[].demo) — KHÔNG nạp máy đăng, mẫu chưa duyệt không được lên kênh
   if (tap.demo || co('demo')) { console.log(`✓ DEMO mẫu ${tap.mau ?? '?'} · ${kq?.url ?? '(chưa có link — đẩy Studio hỏng)'} · không nạp máy đăng`); if (kq?.url) { const t1 = JSON.parse(readFileSync(tepTap, 'utf8')); t1.demo_url = kq.url; writeFileSync(tepTap, JSON.stringify(t1, null, 1) + '\n'); } process.exit(kq?.url ? 0 : 1); }
@@ -504,4 +504,4 @@ buoc('đẩy Studio');
     console.log(box(`scripts/may-dung.mts --may ${KENH.may} --nap < ${bt}/nap.json`)); console.log(box(`scripts/may-dung.mts --may ${KENH.may} --xuat ${id}`).split('\n').slice(-2).join(' · '));
     console.log(`✓ nạp máy ${KENH.may} · https://studio.on.tc (Máy › ${KENH.may}) · Phòng Nội dung chấm ở lượt kế`);
   } catch (e) { console.log(`⚠ nạp máy đăng hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ')}`); }
-  try { execFileSync('ssh', [BOX, `rm -rf ${bt}`]); } catch {} }
+  try { sshS([`rm -rf ${bt}`]); } catch {} }

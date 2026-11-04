@@ -14,7 +14,7 @@ export const BANG_LUAT = JSON.parse(fs.readFileSync(new URL('../../web/src/lib/e
 /** mọi luật tắt: { khoa, tep, ten: 'LUẬT X', mo_ta, cot, luat, ai, ngay?, rieng?, nha? } */
 export const LUAT_TAT_SO = Object.entries(BANG_LUAT.khoa).filter(([, v]) => v.tat).map(([khoa, v]) => ({ khoa, ...v.tat, ten: `LUẬT ${v.tat.ten}`, ngan: v.tat.ten }));
 /** mọi luật máy tự đổi ngân sách không cần công tắc (G10…): { khoa, ten } */
-export const LUAT_HA_SO = Object.entries(BANG_LUAT.khoa).filter(([, v]) => v.ha?.tu_dong).map(([khoa, v]) => ({ khoa, ten: v.ha.ten }));
+export const LUAT_HA_SO = Object.entries(BANG_LUAT.khoa).filter(([, v]) => v.ha?.tu_dong).map(([khoa, v]) => ({ khoa, ten: v.ha.ten, tieu_de: v.ha.tieu_de ?? `MÁY HẠ — LUẬT ${v.ha.ten}`, mo_ta: v.ha.mo_ta ?? '', ai: v.ha.ai ?? `máy tự hạ ${v.ha.ten}` }));
 const LUAT = path.join(REPO, 'apps/xuong-video/scripts/ethopex/luat-ethopex.py');
 const LAM = path.join(REPO, 'apps/xuong-video/scripts/ethopex/lam-ethopex.py');
 const NB = path.join(REPO, 'apps/xuong-video/scripts/ethopex/nhan-ban.py');
@@ -407,17 +407,17 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // mà rois vẫn kém, mình off đi"; anh lệnh làm, áp cả ★ ROAS): camp chạm G10 → lam-ethopex giam về $10 (cùng chặn của lam: đổi < 6 giờ, camp phải bật);
   // hạ xong ghi etp.cau_hinh 'g10' {camp: ngày hạ UTC} — máy luật đếm ngày đã khép SAU ngày đó, kém tiếp thì tat_g10 (LUAT_TAT, báo trước một nhịp rồi tắt).
   // Không theo công tắc giam_tu_dong (công tắc đó dừng bộ giảm bậc cũ, G10 là luật riêng anh lệnh).
-  for (const LH of LUAT_HA_SO) {   // mọi luật hạ tự động trong sổ luật chung (nay: G10)
+  for (const LH of LUAT_HA_SO) {   // mọi luật hạ tự động trong sổ luật chung (G10, H2 — chữ tin + ai lấy từ sổ luật, không ghi cứng)
     const daG10 = [];
     for (const m of kq[LH.khoa] || []) {
       const d = Number(dichCua(m)); if (!d || lamRoi.has(m.id) || seTat.has(m.id)) continue; lamRoi.add(m.id);
-      let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `${LH.ten} · ${m.chu}`.slice(0, 400), '--ai', 'máy tự hạ G10 (anh lệnh 31/10/2026 theo hướng dẫn team, áp cả ★ ROAS)'], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+      let r; try { r = JSON.parse((await chay(LAM, ['giam', String(m.id), String(d), '--luat', `${LH.ten} · ${m.chu}`.slice(0, 400), '--ai', LH.ai], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daG10.push({ m, d, r });
     }
     if (LH.khoa === 'g10') await ghiG10(daG10.filter((x) => daGuiG10(x.r)).map((x) => Number(x.m.id)));
     if (daG10.length) {
       const dong = bangViec(daG10.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng');
-      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>MÁY HẠ VỀ $10 — LUẬT G10</b> (hướng dẫn team, anh lệnh 31/10) — ngân sách &gt; $15, 3 ngày đã khép ROI &lt; 15%, kể cả ★ ROAS; theo dõi 2 ngày đã khép, vẫn &lt; 15% thì máy tắt; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
+      await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🤖 <b>${LH.tieu_de}</b> ${LH.mo_ta}; đã đọc lại\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>` });
       gui++;
     }
   }

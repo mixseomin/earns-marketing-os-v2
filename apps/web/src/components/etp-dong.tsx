@@ -2,7 +2,7 @@
 // DÒNG PHIM TỰ ĐỘNG (anh 03/11/2026, etp.on.tc): FormChayDong = form hỏi loại nội dung QC (KT / CC / CT…, mô tả + cách làm + giá + ví dụ thật) + thể loại;
 // TabDong = mỗi phim một dòng, 8 bước có giờ bắt đầu / kết thúc, nút FIX từng bước, Dừng dòng. Máy: apps/etp/dong_phim.py (iMac) · canh: apps/etp/manh.py (box3).
 import React, { useCallback, useEffect, useState } from 'react';
-import { EmptyState, FormModal, FormModalFooter, FormModalSection, SearchInput, SelectField } from '@/components/ui';
+import { DongHo, EmptyState, FormModal, FormModalFooter, FormModalSection, SearchInput, SelectField } from '@/components/ui';
 import { BadgeDangNgan, KeToan, mauLai } from '@/components/etp-so';
 import { chuChan, type TieuChi } from '@/lib/etp-chan';
 import { duyetCham } from '@/lib/actions/etp-cham';
@@ -41,15 +41,9 @@ const COT_CR: [string, string, string][] = [['cat', 'Cắt / sinh', 'cat'], ['so
  *  vòng cung 9 nút = đúng 9 cột tab Sản xuất (COT_PHIM + COT_CR), màu = MAU của tab; giữa là số camp đang sản xuất. Cây camp (etp-view BadgeSx) dùng. */
 export const NUT_SX: [string, string, string][] = [...COT_PHIM.map(([k, t]): [string, string, string] => [k, t, k]), ...COT_CR];
 export function DongHoSx({ buoc, so, title, href, ket, bam }: { buoc: { buoc: string; trang_thai: string }[]; so: number; title: string; href: string; /** bấm thường (không Ctrl/⌘/Shift) — mở ngăn thay vì sang trang (#1528) */ bam?: () => void; /** dòng đã kết thúc: xong / dung / loi → số giữa đổi màu (giữ 24 giờ) */ ket?: string }) {
-  const R = 10, C = 13, goc0 = 150, quet = 240, n = NUT_SX.length;   // cung 240° mở phía dưới như công-tơ-mét
-  const xy = (g: number) => [C + R * Math.cos((g * Math.PI) / 180), C + R * Math.sin((g * Math.PI) / 180)];
-  const tt = (b: string) => buoc.find((x) => x.buoc === b)?.trang_thai ?? 'cho';
+  const tt = (b: string) => buoc.find((x) => x.buoc === b)?.trang_thai ?? 'cho';   // vòng cung = 9 cột tab Sản xuất, màu MAU của tab — vẽ bằng ui/DongHo (Kênh nội dung dùng chung)
   return <a href={href} onClick={(e) => { e.stopPropagation(); if (bam && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) { e.preventDefault(); bam(); } }} title={title || undefined} style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', textDecoration: 'none' }}>
-    <svg width={26} height={26} viewBox="0 0 26 26">
-      {NUT_SX.map(([k, , b], i) => { const [x, y] = xy(goc0 + (quet * i) / (n - 1)); const t = tt(b); const m = (MAU[t] ?? MAU.cho!)[0];
-        return <circle key={k} cx={x} cy={y} r={t === 'dang' ? 2.4 : 1.9} fill={m} style={t === 'dang' ? { animation: 'etpDen 1.6s ease-in-out infinite' } : undefined} />; })}   {/* không <title> SVG — chi tiết ở thẻ nổi chung (anh 04/11/2026 "tất cả hover đều phải dùng loại này") */}
-      <text x={C} y={C + 3.5} textAnchor="middle" fontSize={10} fontWeight={700} fill={ket === 'xong' ? '#22c55e' : ket === 'dung' ? '#f59e0b' : ket === 'loi' ? '#ef4444' : '#fff'}>{so}</text>
-    </svg></a>;
+    <DongHo nut={NUT_SX.map(([k, , b]) => ({ ma: k, tt: tt(b) }))} so={so} ket={ket} mau={(t) => (MAU[t] ?? MAU.cho!)[0]} /></a>;
 }
 const LOAI_DE: Record<string, string> = { CC: 'Cảnh cuối', KT: 'Kể chuyện', LT: 'Test rộng' };
 const NEN: Record<string, string> = { xong: '#14532d', dang: '#1e3a8a', chay: '#1e3a8a', dung: '#78350f', loi: '#7f1d1d', cho: 'transparent', bo_qua: 'transparent' };

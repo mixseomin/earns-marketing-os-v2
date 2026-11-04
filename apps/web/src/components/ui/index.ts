@@ -4,6 +4,7 @@ export { EmptyState } from './empty-state';
 // StickyBar = dải tiêu đề nhóm dính dưới thanh công cụ khi cuộn (feed ngày, view Tiến độ). Truyền top = barH.
 export { StickyBar } from './sticky-bar';
 export { Spinner, type SpinnerSize } from './spinner';
+export { DongHo, MAU_NUT, nutTuanTu, type TrangThaiNut } from './dong-ho';
 export { LinkChip, type ChipTone, type ChipSize } from './link-chip';
 export { Segmented, type SegmentedOption } from './segmented';
 export { Tabs, type TabItem } from './tabs';

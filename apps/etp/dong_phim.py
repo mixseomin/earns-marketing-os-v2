@@ -171,7 +171,9 @@ def b_ws(d):
 def b_poster(d):
     cid = d["content_id"]
     rc, out = box(f"python3 apps/etp/soat_18_ai.py {cid} --ghi", 600)
-    if str(cid) in khoa_studio("ethopex_phim_cam"): return "dung", f"AI soát poster cấm 18+: {(out.splitlines() or [''])[-1][:200]}", None
+    # dòng PHÁN "<cid>: False · 12₫ · AI soát poster …" — không lấy dòng cuối: đó là "tổng N₫" (04/11/2026 dòng #48 hiện lý do "tổng 36₫")
+    phan = next((l.split(" · ", 2)[-1] for l in out.splitlines() if l.startswith(f"{cid}: ")), "")
+    if str(cid) in khoa_studio("ethopex_phim_cam"): return "dung", f"AI soát poster cấm 18+: {(phan or (khoa_studio('ethopex_soat_18').get(str(cid)) or {}).get('ghi', 'cấm'))[:300]}", None
     v = khoa_studio("ethopex_soat_18").get(str(cid)) or {}
     if v.get("ok") is False: return "dung", f"soát 18+: {v.get('ghi', 'cấm')}", None
     if rc: return "loi", f"soát poster lỗi (mã {rc}): {out[-200:]}", None

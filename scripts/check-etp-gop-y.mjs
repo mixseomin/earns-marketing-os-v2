@@ -366,6 +366,7 @@ const LUAT = [
   { card: 'dong-thu-muc-0311', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: 'limit ${TRANG} offset', vi: 'tab Dòng phim lọc + phân trang ở máy chủ, chi tiết tải khi mở (chịu 100.000 creative)' },
   { card: 'dong-thu-muc-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: "[['cat', 'Cắt / sinh', 'cat'],", cam: "['poster', 'Ảnh bìa'], ['cat', 'Cắt']]", vi: 'cắt / sinh video là cấp creative, không cấp phim (anh 03/11/2026)' },
   { card: 'bo-cr-0311', tep: 'apps/etp/dong_phim.py', co: 'bộ creative đủ loại — chưa lên camp, CHỜ ANH BẮT ĐẦU', vi: 'phim làm bộ creative đủ loại thì mọi dòng dừng trước bước lên camp (anh 03/11/2026)' },
+  { card: 'ly-do-poster-0411', tep: 'apps/etp/dong_phim.py', co: 'if l.startswith(f"{cid}: ")', vi: 'bước Ảnh bìa ghi đúng dòng phán của AI, không phải dòng "tổng N₫" (dòng #48 04/11/2026)' },
   { card: 'bo-cr-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: 'function NhomPhim(', vi: 'một phim một thư mục, mỗi loại nội dung một thư mục con (anh 03/11/2026)' },
   { card: 'bo-cr-0311', tep: 'packages/db/migrations/0415_etp_dong_phim_moi_loai.sql', co: 'on etp.dong_phim (content_id, loai)', vi: 'một phim nhiều loại cùng chạy' },
   { card: 'duyet-camp-0311', tep: 'apps/web/src/components/etp-dong.tsx', co: '▶ Duyệt lên camp', vi: 'ô chờ anh có nút duyệt lên camp ngay tại chỗ (anh 03/11/2026)' },

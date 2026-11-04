@@ -173,7 +173,7 @@ async function kiem(tap, nguonChu) {
 }
 
 // TIẾN ĐỘ TRỰC TIẾP (anh 02/11/2026: "nhìn được realtime quá trình sx ở Tài sản"): mỗi bước ghi dấu của tập vào xv_may.nguon.dang_lam_ds[<tập>] (box3.mjs › dauDangLam)
-// → mos2 › Tài sản › Kênh nội dung hiện "▶ Đang sản xuất" (tự làm mới 15 giây). Xong thì gỡ; hỏng thì giữ lại kèm loi để bảng hiện đỏ (chay-kenh gỡ ở lượt sau).
+// → mos2 › tab Kênh nội dung hiện "▶ Đang sản xuất" (tự làm mới 15 giây). Xong thì gỡ; hỏng thì giữ lại kèm loi để bảng hiện đỏ (chay-kenh gỡ ở lượt sau).
 const BUOC = ['gắn hook', 'viết kịch bản', 'kho + ảnh thật', 'Ngọc soi hình', 'dựng (giọng + hình)', 'đẩy Studio', 'thumbnail', 'nạp máy đăng'];
 let buocNay = null;
 const sqlQ = (x) => `'${String(x).replace(/'/g, "''")}'`;
@@ -227,7 +227,9 @@ if (!existsSync(tepTap) || co('viet-lai') || sua) {
     if (loi.some((x) => /PHẢI BỎ ÍT NHẤT/.test(x))) {
       const dich = (KENH.tu[nn] ?? KENH.tu.en)[1] - 10; len(tepTap, `${tmp}/tap.json`);
       try { console.log(box(`scripts/lich-su/viet-tap.mts ${tmp}/rut.json --id ${id} --nn ${nn} --kenh ${kenhId} --cu ${tmp}/tap.json --chi-rut ${dich}`)); ve(`${tmp}/rut.json`, tepTap); }
-      catch (e) { console.log(`⚠ rút gọn hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}`); }
+      catch (e) { console.log(`⚠ rút gọn chưa đạt đích: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ').slice(0, 300)}`);
+        // viet-tap.mts ghi rut.json (bản đã rút một phần, luôn NGẮN HƠN bản cũ) rồi mới thoát mã 1 — giữ bản ngắn hơn đó làm nền cho lượt viết lại, đừng vứt về bản 695 từ
+        try { ve(`${tmp}/rut.json`, tepTap); console.log('  → giữ bản đã rút một phần để lượt viết lại cắt tiếp từ nền ngắn hơn'); } catch { /* chưa kịp ghi bản rút — giữ bản cũ */ } }
       loi = await kiem(await tuSua(JSON.parse(readFileSync(tepTap, 'utf8'))), readFileSync(join(RA, 'nguon.txt'), 'utf8'));
       console.log(loi.length ? `✗ sau rút gọn: ${loi.length} lỗi\n  ${loi.join('\n  ')}` : '✓ sau rút gọn: kiểm sạch');
       if (!loi.length) break;

@@ -263,7 +263,7 @@ if (a.includes('--nap')) {
     .map((x) => ({ chu_de: x.chu_de, tieu_de: x.tieu_de, xem: Number(x.xem), moi_ngay: Math.round(Number(x.xem) / x.tuoi), tuoi: x.tuoi })).sort((a1, b1) => b1.moi_ngay - a1.moi_ngay);
   console.log(JSON.stringify({ goc: { sp: g.sp, id: g.id, loai: g.loai, ten: g.ten }, hooks, da_lam: daCo.map((x) => x.chu_de).filter(Boolean), ket_qua: ketQua }));
 } else if (a.includes('--so-kenh')) {
-  // SỐ KÊNH SẢN PHẨM (02/11/2026 — mos2 › Tài sản › Kênh sản phẩm): máy la_san_pham → đọc lại lượt xem từng video đã đăng + người đăng ký kênh YouTube
+  // SỐ KÊNH SẢN PHẨM (02/11/2026 — mos2 › tab Kênh nội dung): máy la_san_pham → đọc lại lượt xem từng video đã đăng + người đăng ký kênh YouTube
   // → kenh_so_ngay (kenh youtube, san_pham 'may:<mã>', hien = tổng lượt xem cộng dồn, so_muc = số video đã đăng, chi_tiet = { videos, nguoi_dk, kenh_url, ten }).
   // mos2 tính 7 ngày từ các bản ghi ngày (như video short). Không đọc được → để trống, không ghi 0 giả. 0₫.
   const { docLaiLuotXem } = await import('../src/lib/xuong-video/luot-xem-db'), { trangKenhYoutube } = await import('../src/lib/xuong-video/luot-xem');

@@ -19,6 +19,7 @@ import { LuatView } from '@/components/luat-view';
 import { phuDo } from '@/lib/phu-shared';
 import { TaiSanTab } from '@/components/tai-san-tab';
 import { SeoTab } from '@/components/seo-tab';
+import { KenhNoiDungTab } from '@/components/kenh-noi-dung-tab';
 import { AffiliateOffersPanel } from '@/components/affiliate-offers-panel';
 import { DeliverabilityCard } from '@/components/deliverability-card';
 import { MailwizzListsPanel } from '@/components/mailwizz-lists-panel';
@@ -107,6 +108,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </>}
 
           {tab === 'taisan' && <Suspense fallback={cho}><TaiSanTab ky={sp.ky} /></Suspense>}
+          {tab === 'kenh' && <Suspense fallback={cho}><KenhNoiDungTab ky={sp.ky} /></Suspense>}
           {tab === 'seo' && <Suspense fallback={cho}><SeoTab /></Suspense>}
 
           {tab === 'email' && <>

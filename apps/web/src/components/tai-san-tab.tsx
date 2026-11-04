@@ -1,5 +1,5 @@
 // Tab TÀI SẢN của trang chủ (anh chốt 05/10/2026): mọi thứ sinh tiền hoặc sắp sinh tiền, một màn —
-// website (bảng SEO cũ), kênh nội dung (02/11/2026), shop → sản phẩm (cây; có cả hàng đang làm: sách KDP, Etsy…).
+// website (bảng SEO cũ), shop → sản phẩm (cây; có cả hàng đang làm: sách KDP, Etsy…).
 // Thuần SEO (chi tiết một site, keyword research, SteamSolo) đã sang tab SEO (seo-tab.tsx).
 import { StatsStrip, type StatCard } from '@/components/ui';
 import { SeoSitesPanel, docSeoSites } from './seo-sites-panel';
@@ -10,8 +10,6 @@ import { tinhPin, tinhVideo } from '@/lib/tai-san/video-tinh';
 import { TaiSanVideo } from './tai-san-video';
 import { apDung, ganLuot, ganSo } from '@/lib/tai-san/ap-dung';
 import { TaiSanKenh } from './tai-san-kenh';
-import { TaiSanKenhSp } from './tai-san-kenh-sp';
-import { docKenhSp } from '@/lib/tai-san/kenh-sp';
 import { docSocialTroVe } from '@/lib/tai-san/social-tro-ve';
 import { KY_SOCIAL } from '@/lib/tai-san/social-tro-ve-tinh';
 import { ChonKySocial } from './tai-san-social';
@@ -25,8 +23,7 @@ export async function TaiSanTab({ ky: kyThu }: { ky?: string } = {}) {
   const homNay = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
   const tro = await docSocialTroVe(ky, homNay).catch((e: Error) => { ban.loi.push(`social trỏ về: ${e.message}`); return null; });
   if (tro) { if (sites.ok) for (const r of sites.rows) { r.social = tro.site(r.domain); r.lichSocial = tro.lich(r.domain); } for (const sh of ban.shops) for (const x of sh.sp) x.social = tro.duong(x.url); }
-  const kenhSp0 = await docKenhSp(new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' })).catch((e: Error) => { ban.loi.push(`kênh sản phẩm (xv_may.la_san_pham): ${e.message}`); return []; });
-  const kenhSp = kenhSp0.map((k) => ({ ...k, social: tro ? tro.duong(k.kenhUrl) : null }));
+  // Kênh nội dung (kênh video là sản phẩm) sang tab riêng ?tab=kenh (anh 05/11/2026) — kenh-noi-dung-tab.tsx
   const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' }), vid = tinhVideo(vso instanceof Error ? [] : vso.dongs, hom);
   if (kenhDoc instanceof Error) ban.loi.push(`kênh kéo khách (kenh_sp): ${kenhDoc.message}`);
   if (libDoc instanceof Error) ban.loi.push(`thư viện phương pháp (phuong_phap): ${libDoc.message}`);
@@ -54,7 +51,6 @@ export async function TaiSanTab({ ky: kyThu }: { ky?: string } = {}) {
       <ChonKySocial ky={ky} />
       <SeoSitesPanel d={sites} kySocial={ky} />
       <TaiSanView ban={ban} kySocial={ky} />
-      <TaiSanKenhSp kenh={kenhSp} kySocial={ky} />
       <TaiSanVideo nen={vid.nen} video={vid.video} tenSp={vso instanceof Error ? {} : vso.tenSp} pin={tinhPin(so)} hom={hom} />
       <TaiSanKenh ap={ap} lib={lib} shops={ban.shops.map((x) => ({ khoa: x.khoa, ten: x.ten }))} />
     </div>

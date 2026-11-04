@@ -3,7 +3,7 @@
 // Việc nền iMac:com.earns.lich-su-lam-tap (apps/cty/cong-ty/viec-nen.json) gọi MỖI GIỜ (đo số kênh mỗi lượt; làm tập theo lịch). Với mỗi kênh trong kenh.json có `may` (máy Studio) + lịch (`lich_tap` của kênh, hoặc của từng playlist):
 //   1. hôm nay là ngày làm tập (lich_tap: thứ trong tuần, 1 = Thứ Hai … 7 = Chủ nhật, giờ VN) và chưa có tập hôm nay → lam-tap.mjs --kenh <k> --id <mã máy>-<ngày>
 //      (chủ đề + hook theo góc spy của máy, viết → kiểm → dựng → đẩy Studio → nạp máy đăng; Phòng Nội dung chấm, máy đăng tự đăng theo nhịp an toàn)
-//   2. mọi ngày: may-dung.mts --so-kenh (lượt xem + người đăng ký → mos2 › Tài sản › Kênh sản phẩm)
+//   2. mọi ngày: may-dung.mts --so-kenh (lượt xem + người đăng ký → mos2 › tab Kênh nội dung)
 //   3. báo Telegram (kênh cty): tập mới + tiền thật của lượt, hoặc lỗi nguyên văn.
 //   node scripts/lich-su/chay-kenh.mjs [--kenh parody] [--ep [--playlist <mã>]]   (--ep: làm tập kể cả không phải ngày lịch)
 // PLAYLIST (G1, 02/11/2026): kênh có kenh.json › playlist thì lịch làm tập là lịch của từng playlist (playlist.mjs › lichHomNay) và lam-tap nhận --playlist;
@@ -93,7 +93,7 @@ for (const [k, K] of Object.entries(KENH)) {
     if (existsSync(join(DIR, 'tap', `${id}.json`)) && !process.argv.includes('--ep')) bao.push(`tập ${id} đã có — bỏ qua`);
     else {
       // lam-tap tự dừng trước khi tốn tiền giọng / ảnh nếu máy viết 4 lượt vẫn lỗi; DUYET_SINH_1_LAN cho lượt có lịch anh đã duyệt (02/11/2026: 3 tập/tuần)
-      // ĐANG SẢN XUẤT: dấu của tập trên máy studio (xv_may.nguon.dang_lam_ds[<tập>], box3.mjs › dauDangLam) — mos2 › Tài sản › Kênh nội dung hiện tập đang làm; xong (đạt hay hỏng) thì gỡ
+      // ĐANG SẢN XUẤT: dấu của tập trên máy studio (xv_may.nguon.dang_lam_ds[<tập>], box3.mjs › dauDangLam) — mos2 › tab Kênh nội dung hiện tập đang làm; xong (đạt hay hỏng) thì gỡ
       danhDau(K.may, id, { id, luc: new Date().toISOString() });
       const r = chayLamTap(id, ['--id', id, '--nn', 'en', '--kenh', k, ...(pl ? ['--playlist', pl] : [])], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
       let ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra);   // let: phía dưới nối thêm dòng quá giờ / đã giao thợ máy (const → TypeError, 03/11/2026)

@@ -1,7 +1,7 @@
 'use client';
 // LỊCH NHỎ DÙNG CHUNG (anh 02/11/2026: "component lịch đó để dùng cho nhiều nơi") — lịch tháng mini có SỐ ở góc ô + rê chuột ra chi tiết từng loại.
 // Đưa vào danh sách ô { ngay, loai, so, chiTiet } + bảng loại { [loai]: { ten, mau, ic? } } → tự gộp theo ngày, tự lật tháng, chú thích dưới lịch.
-// Dùng ở: Tài sản › Kênh nội dung (menu ⋯ — lịch làm tập / làm xong / hẹn đăng / đã đăng). Nền: ui/month-calendar MiniMonth (soTrenO).
+// Dùng ở: tab Kênh nội dung (menu ⋯ — lịch làm tập / làm xong / hẹn đăng / đã đăng). Nền: ui/month-calendar MiniMonth (soTrenO).
 import { useState } from 'react';
 import { MiniMonth, type CalItem } from './month-calendar';
 import { extLinkProps } from '@/lib/external-url';

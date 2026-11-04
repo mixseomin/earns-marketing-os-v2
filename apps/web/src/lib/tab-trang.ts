@@ -20,6 +20,7 @@ export const TAB_TRANG = {
     { key: 'lenh', label: 'Lệnh MT5', title: 'Live Orders — forward-test mọi strategy (strategy-lab)' },
     { key: 'doanhthu', label: 'Doanh thu', title: 'Lịch tiền mọi nguồn · affiliate · Awin' },
     { key: 'taisan', label: 'Tài sản', title: 'Mọi thứ sinh tiền hoặc sắp sinh tiền: website · site Shopdy · shop → sản phẩm (đang làm → chờ duyệt → đang bán)' },
+    { key: 'kenh', label: 'Kênh nội dung', title: 'Kênh video trọn chuyện (YouTube…): sổ kênh · mẫu · hàng chờ · lộ trình · playlist · đang sản xuất (đồng hồ từng tập) · lịch · số' },
     { key: 'seo', label: 'SEO', title: 'Chỉ số nội bộ một site: GSC/Bing 30 ngày · truy vấn · Keyword Research · SteamSolo' },
     { key: 'email', label: 'Email', title: 'MailWizz · deliverability' },
     { key: 'duan', label: 'Dự án' },

@@ -21,7 +21,7 @@ export const songSong = async (ds, n, f) => { const kq = new Array(ds.length); l
 /** chạy SQL (stdin) trên mos2_prod của box3 */
 export const sqlBox = (cau) => execFileSync('ssh', [BOX, 'cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -qtA'], { input: cau, encoding: 'utf8' }).trim();
 /** DẤU ĐANG SẢN XUẤT (anh 05/11/2026: "đồng hồ nằm ở dòng của video đang sx … nếu làm 10 video cùng lúc thì sao"): xv_may.nguon.dang_lam_ds = { <mã tập>: { id, luc, ten,
- *  buoc, so, tong, buoc_luc, loi, chi_tiet } } — mỗi tập một dấu, nhiều tập chạy song song không giẫm nhau; mos2 › Tài sản › Kênh nội dung vẽ một đồng hồ / tập.
+ *  buoc, so, tong, buoc_luc, loi, chi_tiet } } — mỗi tập một dấu, nhiều tập chạy song song không giẫm nhau; mos2 › tab Kênh nội dung vẽ một đồng hồ / tập.
  *  patch = object gộp vào dấu của tập (chưa có thì tạo kèm luc = bây giờ) · null = gỡ dấu tập đó · { chiKhiCo: true } = chỉ ghi khi tập còn dấu (ghi lỗi sau khi chết) */
 export const dauDangLam = (may, id, patch, o) => sqlBox(sqlDauDangLam(may, id, patch, o));
 export const sqlDauDangLam = (may, id, patch, { chiKhiCo = false } = {}) => {

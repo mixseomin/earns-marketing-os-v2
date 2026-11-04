@@ -15,7 +15,7 @@ import { Dem } from '@/components/etp-so';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { nhanPhimEtp, traPhimEtp } from '@/lib/actions/etp-phim';
-import { DongHoSx, FormChayDong, TabDong } from '@/components/etp-dong';
+import { DongHoSx, FormChayDong, MAU as MAU_DONG, NUT_SX, TabDong } from '@/components/etp-dong';
 import { TRE_MO } from '@/lib/etp-tre';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
@@ -1719,10 +1719,6 @@ function oThay(key: string, t: ThayThe): React.ReactNode {
 // camp_id giả = −(1e6 + phim) để không đụng dòng thay (−id thay_the)
 const MR_TT: Record<string, [string, string, number]> = { them: ['nên thêm ngay', '#4ade80', 0.85], cho_do: ['chờ đo lượt trước', '#facc15', 0.55], giu: ['giữ — ROI tụt', '#f59e0b', 0.45] };
 const MR_ID = (cid: number) => -(1_000_000 + cid);
-const tieuMoRong = (m: MoRong) => [`Mở rộng: +${m.k} camp · ${MR_TT[m.trang_thai]?.[0] ?? m.trang_thai}`, m.ly ? `Cách tính: ${m.ly}` : null,
-  `3 ngày đã khép: chi $${m.chi3.toFixed(2)} · lãi $${m.lai3.toFixed(2)} · ROI ${m.roi3 ?? '—'}%${m.roi_truoc != null ? ` (3 ngày trước đó ${m.roi_truoc}%)` : ''}`,
-  `Đang chạy ${m.n} camp · creative sạch chưa có camp: ${m.san} · cần sản xuất: ${m.can_sx}`,
-  'Công thức (apps/etp/mo_rong.py): đích 30 camp/phim · lãi ≥ 20% → ⌈6×(1−n/30)⌉ · hoà 0–20% → 1 · lỗ → camp thay thế · mỗi lượt đo lại tổng thể phim', `tính lúc ${vn(m.luc)}`].filter(Boolean).join('\n');
 function oMoRong(key: string, m: MoRong): React.ReactNode {
   const [chu, mau] = MR_TT[m.trang_thai] ?? [m.trang_thai, 'var(--fg-2)'];
   if (key === 'camp') return <ReThe the={() => ({ ma: `#${m.content_id}`, tieu: `Mở rộng +${m.k} camp · ${MR_TT[m.trang_thai]?.[0] ?? m.trang_thai}`, mau, moc: [
@@ -1750,12 +1746,11 @@ function BadgeSx({ cid, ds, kt }: { cid: number; ds: DuLieuEtp['dongChay']; /** 
   const xep = [...d].sort((a, b) => ((a.trang_thai ?? 'chay') === 'chay' ? 0 : 1) - ((b.trang_thai ?? 'chay') === 'chay' ? 0 : 1) || b.id - a.id);
   return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>{xep.map((x, i) => { const tt = x.trang_thai ?? 'chay';
     const t = `${x.id ? `đợt sản xuất #${x.id}` : 'máy sinh kể chuyện (thư viện)'} · ${x.loai}${x.so_camp ? ` · +${x.so_camp} camp` : ''} · ${TT_DONG[tt] ?? tt}${tt !== 'chay' ? (x.camp_id ? ` · camp #${x.camp_id}` : '') + (x.ly_do ? `\n${x.ly_do.slice(0, 240)}` : '') : ` · bước ${x.buoc ?? '—'}`}\nbấm: sang ${x.id ? 'tab Sản xuất' : 'Thư viện'} (Ctrl/⌘: tab mới)`;
-    const TEN9: Record<string, string> = { nhan: 'Nhận', ws: 'Trang', poster: 'Ảnh bìa', cat: 'Cắt / sinh', soat: 'Xem lại', creative: 'Đưa lên + chấm', camp: 'Lên camp', chay: 'Chạy' };
-    const MAU9: Record<string, string> = { cho: '#6b7280', dang: '#60a5fa', xong: '#22c55e', dung: '#f59e0b', loi: '#ef4444', bo_qua: '#374151' };
+    const TEN9 = Object.fromEntries(NUT_SX.map(([, t, b]) => [b, t]));   // tên bước = đúng cột tab Sản xuất (etp-dong NUT_SX)
     const the = (): TheNoi => ({ ma: x.id ? `đợt #${x.id}` : 'máy sinh KT', ten: `${x.loai}${x.so_camp ? ` · +${x.so_camp} camp` : ''}`, mau: tt === 'chay' ? '#60a5fa' : tt === 'xong' ? '#22c55e' : tt === 'dung' ? '#f59e0b' : '#ef4444',
       tieu: `${TT_DONG[tt] ?? tt}${tt === 'chay' ? ` · bước ${x.buoc ?? '—'}` : x.camp_id ? ` · camp #${x.camp_id}` : ''}`,
       moc: [...(x.ly_do && tt !== 'chay' ? [{ ten: 'Lý do', mau: '#f59e0b', chu: x.ly_do.slice(0, 300) }] : []),
-        ...(x.cac_buoc ?? []).filter((b) => b.trang_thai !== 'bo_qua').map((b) => ({ ten: TEN9[b.buoc] ?? b.buoc, mau: MAU9[b.trang_thai] ?? '#6b7280', chu: ({ cho: 'chờ', dang: 'đang chạy', xong: 'xong', dung: 'dừng', loi: 'lỗi' } as Record<string, string>)[b.trang_thai] ?? b.trang_thai })),
+        ...(x.cac_buoc ?? []).filter((b) => b.trang_thai !== 'bo_qua').map((b) => ({ ten: String(TEN9[b.buoc] ?? b.buoc), mau: (MAU_DONG[b.trang_thai] ?? MAU_DONG.cho!)[0], chu: MAU_DONG[b.trang_thai]?.[1] ?? b.trang_thai })),
         { ten: 'Bấm', mau: '#64748b', chu: `sang ${x.id ? 'tab Sản xuất' : 'Thư viện'} lọc đúng phim · Ctrl/⌘: tab mới` }] });
     return <span key={`${x.id}-${i}`} style={{ opacity: tt === 'chay' ? 1 : 0.6 }}><ReThe the={the}><DongHoSx buoc={x.cac_buoc ?? []} so={tt === 'chay' ? (x.so_camp ?? 1) : (x.so_len ?? 0)} title="" href={x.id ? `?t=dong&sxq=${cid}` : `?t=tv&tvq=${cid}`} ket={tt === 'chay' ? undefined : tt} /></ReThe></span>; })}</span>;
 }
@@ -1773,21 +1768,17 @@ const theHapThu = (m: MoRong, ten?: string | null): TheNoi => { const [pha, mau,
     { ten: 'Độ tin (R²)', mau: (m.r2 ?? 0) >= 0.6 ? '#4ade80' : '#f59e0b', so: String(m.r2 ?? '—'), chu: (m.r2 ?? 0) < 0.6 ? 'thấp — các ngày dao động mạnh, đọc thận trọng' : null },
     { ten: 'Chi trung bình cả team', mau: '#94a3b8', so: `$${m.chi_tb ?? '—'}/ngày`, chu: `Nhà + đội · ${m.n} camp Nhà đang chạy` },
     { ten: 'Cách tính', mau: '#64748b', chu: 'hồi quy thu ngày theo chi ngày của cả phim — CẢ TEAM (Nhà + đội), 14 ngày Ethopex đã khép (ngày chi ≥ $5) · xanh ≥ +15% còn hút · vàng 0…+15% gần đỉnh · đỏ < 0 bão hoà' }] }; };
-export const tieuHapThu = (m: MoRong) => { const [ten, , cach] = PHA_HT[m.pha ?? 'it_so'] ?? PHA_HT.it_so!; const v = m.roi_bien ?? 0;
-  return [`THỊ TRƯỜNG PHIM — ${ten.toUpperCase()}`,
-    `• ROI biên 14 ngày: ${v > 0 ? '+' : ''}${v}% — mỗi $1 chi thêm trong ngày đem về $${(1 + v / 100).toFixed(2)}`,
-    `• Độ tin (R²): ${m.r2 ?? '—'}${(m.r2 ?? 0) < 0.6 ? ' (thấp — số ngày dao động mạnh, đọc thận trọng)' : ''}`,
-    `• Chi trung bình: $${m.chi_tb ?? '—'}/ngày · ${m.n} camp Nhà đang chạy`,
-    `• Đề xuất: ${cach}`,
-    '— Cách tính: hồi quy thu ngày theo chi ngày của cả phim (Nhà + đội), 14 ngày Ethopex đã khép (ngày có chi ≥ $5). Xanh ≥ +15% · vàng 0…+15% · đỏ < 0'].join('\n'); };
 function DongHoHapThu({ m, ten }: { m?: MoRong; ten?: string | null }) {
-  if (!m || m.roi_bien == null || (m.pha ?? 'it_so') === 'it_so') return null;   // chưa đủ số thì không hiện gì (anh 04/11/2026)
-  const pha = m.pha!, [, mau] = PHA_HT[pha] ?? PHA_HT.it_so!, v = m.roi_bien;
+  // LUÔN HIỆN (anh 04/11/2026 "vẫn phải hiện cái đồng hồ thị trường nhưng mờ hơn"): đủ 6 ngày đậm · 3–5 ngày mờ (sơ bộ) · chưa đủ số rất mờ, không kim
+  const co = !!m && m.roi_bien != null && (m.pha ?? 'it_so') !== 'it_so';
+  const pha = co ? m!.pha! : 'it_so', [, mau] = PHA_HT[pha] ?? PHA_HT.it_so!, v = co ? m!.roi_bien : null;
   const C = 13, R = 10, goc = (x: number) => 180 + (Math.max(-50, Math.min(50, x)) + 50) / 100 * 180;   // −50 → trái · +50 → phải (nửa vòng trên)
   const xy = (g: number, r = R) => [C + r * Math.cos((g * Math.PI) / 180), C + 2 + r * Math.sin((g * Math.PI) / 180)];
   const cung = (a: number, b: number, c: string) => { const [x1, y1] = xy(goc(a)), [x2, y2] = xy(goc(b)); return <path d={`M ${x1} ${y1} A ${R} ${R} 0 0 1 ${x2} ${y2}`} stroke={c} strokeWidth={2.6} fill="none" opacity={0.85} />; };
   const [kx, ky] = xy(goc(v ?? 0), R - 2);
-  return <ReThe the={() => theHapThu(m, ten)}><span style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', cursor: 'help', opacity: (m.so_ngay ?? 0) < 6 ? 0.45 : 1 }}>
+  const the = (): TheNoi => co ? theHapThu(m!, ten) : { ma: m ? `#${m.content_id}` : undefined, ten, tieu: 'Thị trường · chưa đủ số', mau: '#6b7280',
+    moc: [{ ten: 'Cần', mau: '#6b7280', chu: `≥ 3 ngày Ethopex đã khép có chi ≥ $5 (cả team) và tổng chi ≥ $100 trong 14 ngày${m?.so_ngay ? ` — mới ${m.so_ngay} ngày` : ''}` }] };
+  return <ReThe the={the}><span style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', cursor: 'help', opacity: !co ? 0.22 : (m!.so_ngay ?? 0) < 6 ? 0.5 : 1 }}>
     <svg width={26} height={26} viewBox="0 0 26 26">
       {cung(-50, 0, '#ef4444')}{cung(0, 15, '#facc15')}{cung(15, 50, '#22c55e')}
       {v != null ? <line x1={C} y1={C + 2} x2={kx} y2={ky} stroke="#fff" strokeWidth={1.6} strokeLinecap="round" /> : null}

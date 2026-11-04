@@ -99,6 +99,10 @@ def chay_tien_trinh(dong, buoc, lenh, han, env=None):
     return pr.returncode, open(log).read()[-3000:]
 
 # ---------------- các bước: (dòng dict) → (kết, ghi, kết quả) ----------------
+def nhan_bat_buoc():
+    """công tắc etp.cau_hinh.nhan_bat_buoc (0418) — false = tạm bỏ cơ chế nhận phim (anh 04/11/2026); MỘT chỗ đọc cho bước Nhận + nhan_lai"""
+    return sql("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'nhan_bat_buoc'), 'true')") != "false"
+
 def b_nhan(d):
     cid = d["content_id"]
     goc = sql(f"select coalesce(nhom_goc, '') from etp.phim where content_id = {cid}")
@@ -108,7 +112,7 @@ def b_nhan(d):
         if not goc: return "loi", f"chưa chấm được nhóm gốc trên poster: {out[-200:]}", None
     if goc != "au_my": return "dung", f"nhóm gốc phim là '{goc or 'chưa rõ'}' — chỉ chạy phim Âu-Mỹ (luật anh 02/11/2026)", None
     if str(cid) in khoa_studio("ethopex_phim_cam"): return "dung", "phim nằm trong sổ cấm 18+ (ethopex_phim_cam)", None
-    nhan_bb = sql("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'nhan_bat_buoc'), 'true')") != "false"   # tạm bỏ nhận (anh 04/11/2026)
+    nhan_bb = nhan_bat_buoc()
     doi = "" if not nhan_bb else sql(f"select coalesce(max(nguoi), '') from etp.phim_nhan_v where content_id = {cid} and trang_thai in ('giu', 'da_len') and nguoi_id not in (select nguoi_id from etp.tai_khoan where nha)")
     if doi: return "dung", f"{doi} (đội) đang giữ phim này", None
     co = sql(f"select string_agg(camp_id::text, ' ') from etp.camp where content_id = {cid} and (trang_thai = 'ACTIVE' or coalesce(dong_bo, '') not in ('done', 'synced', 'error'))")
@@ -119,7 +123,7 @@ def b_nhan(d):
 def nhan_lai(cid):
     """Nhà giữ phim nếu chưa ai giữ — dùng ở bước Nhận và SAU KHI POSTER QUA (03/11/2026: poster cấm → kiem-phim-18 nha_phim_cam trả phim; anh bỏ chặn + FIX
     poster thì dòng chạy tiếp nhưng phim đã 'tra' → nhan-ban chặn 'phim mới chưa nhận', 2 phim kẹt ở bước camp)"""
-    if sql("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'nhan_bat_buoc'), 'true')") == "false": return   # tạm bỏ nhận (anh 04/11/2026, 0418)
+    if not nhan_bat_buoc(): return   # tạm bỏ nhận (anh 04/11/2026, 0418)
     sql(f"""insert into etp.phim_nhan (content_id, nguoi_id, nguoi, het_luc)
             select {int(cid)}, g.nguoi_id, 'Nhà', now() + interval '24 hours' from (select nguoi_id from etp.tai_khoan where nha order by nguoi_id limit 1) g
             where not exists (select 1 from etp.phim_nhan_v n where n.content_id = {int(cid)} and n.trang_thai in ('giu', 'da_len'))""")
@@ -335,7 +339,7 @@ FONTS = os.path.join(R, "..", "xuong-video", "public", "fonts")
 def dung_imac():
     try: j = sql(f"""update xv_dung_imac set trang_thai = 'dang', may = '{MAY}', bat_dau = now() where id = (select id from xv_dung_imac where trang_thai = 'cho'
                and tao > now() - interval '25 minutes' order by id for update skip locked limit 1) returning json_build_object('id', id, 'thu_muc', thu_muc, 'args', args, 'ra', ra)""")
-    except Exception as e: return print(f"hàng dựng dự phòng chưa đọc được: {str(e)[:120]}", flush=True) if "does not exist" not in str(e) else None
+    except Exception as e: return print(f"hàng dựng dự phòng chưa đọc được: {str(e)[:120]}", flush=True)
     if not j: return
     v = json.loads(j); t0 = time.time(); tm = os.path.join(C, "dung-imac", str(v["id"])); os.makedirs(tm, exist_ok=True)
     try:

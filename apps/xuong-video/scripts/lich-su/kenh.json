@@ -152,7 +152,197 @@
      3,
      5
     ],
-    "_ghi": "G1 chạy thử tầng playlist (02/11/2026): một playlist, cùng lịch Thứ 2/4/6 như trước, không tiền tố → tiêu đề và nhịp làm tập không đổi. Chưa có playlist trên YouTube (yt) — máy đăng gắn playlist ở G7."
+    "_ghi": "G1 chạy thử tầng playlist (02/11/2026): một playlist, cùng lịch Thứ 2/4/6 như trước, không tiền tố → tiêu đề và nhịp làm tập không đổi. Chưa có playlist trên YouTube (yt) — máy đăng gắn playlist ở G7.",
+    "noi_dung": "trọn một chuyện lịch sử có bản đồ (đất đổi chủ, mua bán, chia ranh giới, chiến tranh, di cư) — loạt gốc của kênh"
+   },
+   {
+    "ma": "worst-deals",
+    "ten": "Worst Deals in History",
+    "tien_to": "Worst Deals",
+    "lich_tap": [],
+    "noi_dung": "mua bán / nhượng / đổi đất và tài sản mà một bên thiệt nặng (Alaska 1867, đảo Manhattan 1626, Louisiana 1803, Run đổi Manhattan 1667, Florida trao Anh 1763)",
+    "khuon": [
+     "TRỌN MỘT CHUYỆN từ đầu tới cuối — có mở, leo thang, khúc ngoặt, hậu quả, kết. KHÔNG móc sang phần 2.",
+     "Câu 1 = HOOK: sự thật sốc nhất kể bằng giọng tỉnh bơ, ≤ 14 từ. Cảnh 1: mo=true, chu_to (tít báo lá cải), vong quanh chỗ lạ. Câu 2–3 = vì sao đáng xem tiếp (một câu đùa + một lời hứa).",
+     "Loạt này: MỘT VỤ MUA BÁN / NHƯỢNG / ĐỔI ĐẤT có thật mà một bên thiệt nặng — giá, người ký, vì sao bán, hậu quả hôm nay. Kể như bản tin bất động sản lá cải.",
+     "Thân chuyện chia 4–5 HỒI, mỗi hồi 5–7 câu, mỗi hồi mở bằng một năm mới (ô năm đổi). Mỗi hồi có ít nhất một chuyển động bản đồ (đổi màu chủ quyền, mũi tên, phương tiện, cờ cắm) và một nhân vật bước vào.",
+     "Mỗi 2–3 câu một câu ĐÙA ngắn (mỉa tỉnh bơ, so sánh hiện đại, nói giảm nói tránh kiểu phát thanh viên). Có 1–2 câu đùa chạy suốt tập (running gag) quay lại ở cuối.",
+     "Khúc ngoặt lớn nhất đóng con dấu ở chữ ngoặt. 3–4 câu cuối = hậu quả hôm nay + câu đùa chốt gọi lại running gag; câu cuối là câu chốt gọn, cảnh cuối ket \"{ket}\"."
+    ]
+   },
+   {
+    "ma": "royal-gossip",
+    "ten": "Royal Gossip Desk",
+    "tien_to": "Royal Gossip",
+    "lich_tap": [],
+    "noi_dung": "hôn nhân, thừa kế, tranh ngôi của hoàng gia làm bản đồ đổi chủ (cưới Habsburg, Henry VIII, Chiến tranh Kế vị Tây Ban Nha, Eleanor xứ Aquitaine)",
+    "khuon": [
+     "TRỌN MỘT CHUYỆN từ đầu tới cuối — có mở, leo thang, khúc ngoặt, hậu quả, kết. KHÔNG móc sang phần 2.",
+     "Câu 1 = HOOK: sự thật sốc nhất kể bằng giọng tỉnh bơ, ≤ 14 từ. Cảnh 1: mo=true, chu_to (tít báo lá cải), vong quanh chỗ lạ. Câu 2–3 = vì sao đáng xem tiếp (một câu đùa + một lời hứa).",
+     "Loạt này: MỘT VỤ HÔN NHÂN / THỪA KẾ / TRANH NGÔI hoàng gia có thật làm bản đồ đổi chủ — ai cưới ai, ai được đất, ai nổi giận. Kể như mục tin đồn hoàng gia của báo lá cải; đùa về quyết định của vua chúa, không đùa về người bị hại.",
+     "Thân chuyện chia 4–5 HỒI, mỗi hồi 5–7 câu, mỗi hồi mở bằng một năm mới (ô năm đổi). Mỗi hồi có ít nhất một chuyển động bản đồ (đổi màu chủ quyền, mũi tên, phương tiện, cờ cắm) và một nhân vật bước vào.",
+     "Mỗi 2–3 câu một câu ĐÙA ngắn (mỉa tỉnh bơ, so sánh hiện đại, nói giảm nói tránh kiểu phát thanh viên). Có 1–2 câu đùa chạy suốt tập (running gag) quay lại ở cuối.",
+     "Khúc ngoặt lớn nhất đóng con dấu ở chữ ngoặt. 3–4 câu cuối = hậu quả hôm nay + câu đùa chốt gọi lại running gag; câu cuối là câu chốt gọn, cảnh cuối ket \"{ket}\"."
+    ]
+   },
+   {
+    "ma": "explorers-gone-wrong",
+    "ten": "Explorers Gone Wrong",
+    "tien_to": "Explorers Gone Wrong",
+    "lich_tap": [],
+    "noi_dung": "chuyến thám hiểm lạc đường, sai bản đồ, tới nhầm nơi (Columbus tưởng Ấn Độ, Magellan, Burke và Wills, Vinland, Ponce de León)",
+    "khuon": [
+     "TRỌN MỘT CHUYỆN từ đầu tới cuối — có mở, leo thang, khúc ngoặt, hậu quả, kết. KHÔNG móc sang phần 2.",
+     "Câu 1 = HOOK: sự thật sốc nhất kể bằng giọng tỉnh bơ, ≤ 14 từ. Cảnh 1: mo=true, chu_to (tít báo lá cải), vong quanh chỗ lạ. Câu 2–3 = vì sao đáng xem tiếp (một câu đùa + một lời hứa).",
+     "Loạt này: MỘT CHUYẾN THÁM HIỂM có thật đi sai / lạc / tưởng nhầm nơi — đường đi trên bản đồ là xương sống (mũi tên + phương tiện từng chặng), kể như bản tin giao thông lá cải. Không đùa về người chết hay người bản địa.",
+     "Thân chuyện chia 4–5 HỒI, mỗi hồi 5–7 câu, mỗi hồi mở bằng một năm mới (ô năm đổi). Mỗi hồi có ít nhất một chuyển động bản đồ (đổi màu chủ quyền, mũi tên, phương tiện, cờ cắm) và một nhân vật bước vào.",
+     "Mỗi 2–3 câu một câu ĐÙA ngắn (mỉa tỉnh bơ, so sánh hiện đại, nói giảm nói tránh kiểu phát thanh viên). Có 1–2 câu đùa chạy suốt tập (running gag) quay lại ở cuối.",
+     "Khúc ngoặt lớn nhất đóng con dấu ở chữ ngoặt. 3–4 câu cuối = hậu quả hôm nay + câu đùa chốt gọi lại running gag; câu cuối là câu chốt gọn, cảnh cuối ket \"{ket}\"."
+    ]
+   },
+   {
+    "ma": "breaking-60",
+    "ten": "Breaking in 60",
+    "tien_to": "",
+    "lich_tap": [],
+    "noi_dung": "một chuyện lịch sử có bản đồ kể gọn trong 60 giây, cú lật ở cuối (Short mồi cho kênh)",
+    "khuon": [
+     "TRỌN MỘT CHUYỆN NGẮN 45–60 giây: hook → 2 nhịp leo thang → cú lật → kết. KHÔNG móc sang phần 2.",
+     "Câu 1 = HOOK: sự thật sốc nhất kể bằng giọng tỉnh bơ, ≤ 14 từ. Cảnh 1: mo=true, chu_to (tít báo lá cải), vong quanh chỗ lạ. Câu 2 = một câu đùa + lời hứa vì sao đáng xem.",
+     "Loạt này: MỘT chuyện lịch sử có thật có bản đồ, chọn chỗ NGHỊCH LÝ nhất làm hook, kể gọn.",
+     "Thân 2 HỒI, mỗi hồi 3–4 câu, mỗi hồi mở bằng một năm (ô năm đổi), có ít nhất một chuyển động bản đồ và một nhân vật.",
+     "Mỗi 2 câu một câu ĐÙA ngắn (mỉa tỉnh bơ, so sánh hiện đại). Cú lật đóng con dấu ở chữ ngoặt. Câu cuối = câu chốt gọn, cảnh cuối ket \"{ket}\"."
+    ],
+    "do_dai": "Shorts 45–60 giây (một chuyện ngắn, trọn vẹn)",
+    "cau": [
+     9,
+     13
+    ],
+    "cau_noi": "10–12",
+    "tu": {
+     "en": [
+      110,
+      165
+     ],
+     "es": [
+      120,
+      180
+     ]
+    },
+    "tu_noi": {
+     "en": "125–155",
+     "es": "135–170"
+    },
+    "toi_da_giay": 60,
+    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn."
+   },
+   {
+    "ma": "tiny-wars",
+    "ten": "Wars That Should Not Have Happened",
+    "tien_to": "Tiny Wars",
+    "lich_tap": [],
+    "noi_dung": "chiến tranh ngắn / vô lý / vì chuyện vặt (Anh–Zanzibar 1896 38 phút, Pig War 1859, Emu War 1932, War of the Bucket 1325)",
+    "khuon": [
+     "TRỌN MỘT CHUYỆN NGẮN 45–60 giây: hook → 2 nhịp leo thang → cú lật → kết. KHÔNG móc sang phần 2.",
+     "Câu 1 = HOOK: sự thật sốc nhất kể bằng giọng tỉnh bơ, ≤ 14 từ. Cảnh 1: mo=true, chu_to (tít báo lá cải), vong quanh chỗ lạ. Câu 2 = một câu đùa + lời hứa vì sao đáng xem.",
+     "Loạt này: MỘT cuộc chiến có thật ngắn / vô lý / nổ ra vì chuyện vặt (con lợn, cái xô, chim emu). Đùa về lý do và người ra lệnh, không đùa về người chết.",
+     "Thân 2 HỒI, mỗi hồi 3–4 câu, mỗi hồi mở bằng một năm (ô năm đổi), có ít nhất một chuyển động bản đồ và một nhân vật.",
+     "Mỗi 2 câu một câu ĐÙA ngắn (mỉa tỉnh bơ, so sánh hiện đại). Cú lật đóng con dấu ở chữ ngoặt. Câu cuối = câu chốt gọn, cảnh cuối ket \"{ket}\"."
+    ],
+    "do_dai": "Shorts 45–60 giây (một chuyện ngắn, trọn vẹn)",
+    "cau": [
+     9,
+     13
+    ],
+    "cau_noi": "10–12",
+    "tu": {
+     "en": [
+      110,
+      165
+     ],
+     "es": [
+      120,
+      180
+     ]
+    },
+    "tu_noi": {
+     "en": "125–155",
+     "es": "135–170"
+    },
+    "toi_da_giay": 60,
+    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn."
+   },
+   {
+    "ma": "borders-gone-wrong",
+    "ten": "Borders Gone Wrong",
+    "tien_to": "Borders Gone Wrong",
+    "lich_tap": [],
+    "noi_dung": "đường biên giới kỳ quặc có thật và vì sao nó thành ra thế (Baarle-Nassau, Llívia, Point Roberts, Northwest Angle, đường Tordesillas)",
+    "khuon": [
+     "TRỌN MỘT CHUYỆN NGẮN 45–60 giây: hook → 2 nhịp leo thang → cú lật → kết. KHÔNG móc sang phần 2.",
+     "Câu 1 = HOOK: sự thật sốc nhất kể bằng giọng tỉnh bơ, ≤ 14 từ. Cảnh 1: mo=true, chu_to (tít báo lá cải), vong quanh chỗ lạ. Câu 2 = một câu đùa + lời hứa vì sao đáng xem.",
+     "Loạt này: MỘT đường biên / vùng đất kỳ quặc có thật (vùng lọt thỏm, mũi đất cụt, đường kẻ vội) và quyết định lịch sử tạo ra nó — PHẢI có đường kẻ (ke) trên bản đồ.",
+     "Thân 2 HỒI, mỗi hồi 3–4 câu, mỗi hồi mở bằng một năm (ô năm đổi), có ít nhất một chuyển động bản đồ và một nhân vật.",
+     "Mỗi 2 câu một câu ĐÙA ngắn (mỉa tỉnh bơ, so sánh hiện đại). Cú lật đóng con dấu ở chữ ngoặt. Câu cuối = câu chốt gọn, cảnh cuối ket \"{ket}\"."
+    ],
+    "do_dai": "Shorts 45–60 giây (một chuyện ngắn, trọn vẹn)",
+    "cau": [
+     9,
+     13
+    ],
+    "cau_noi": "10–12",
+    "tu": {
+     "en": [
+      110,
+      165
+     ],
+     "es": [
+      120,
+      180
+     ]
+    },
+    "tu_noi": {
+     "en": "125–155",
+     "es": "135–170"
+    },
+    "toi_da_giay": 60,
+    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn."
+   },
+   {
+    "ma": "weather-desk",
+    "ten": "History Weather Desk",
+    "tien_to": "Weather Desk",
+    "lich_tap": [],
+    "noi_dung": "thời tiết / thiên tai đổi kết cục lịch sử (bão Kamikaze 1281, Hạm đội Tây Ban Nha 1588, mùa đông Nga 1812, Tambora 1815 → năm không có mùa hè)",
+    "khuon": [
+     "TRỌN MỘT CHUYỆN NGẮN 45–60 giây: hook → 2 nhịp leo thang → cú lật → kết. KHÔNG móc sang phần 2.",
+     "Câu 1 = HOOK: sự thật sốc nhất kể bằng giọng tỉnh bơ, ≤ 14 từ. Cảnh 1: mo=true, chu_to (tít báo lá cải), vong quanh chỗ lạ. Câu 2 = một câu đùa + lời hứa vì sao đáng xem.",
+     "Loạt này: MỘT lần thời tiết / thiên tai có thật làm đổi kết cục lịch sử, kể như bản tin thời tiết lá cải (dự báo, cảnh báo, \"trời đẹp cho xâm lược\").",
+     "Thân 2 HỒI, mỗi hồi 3–4 câu, mỗi hồi mở bằng một năm (ô năm đổi), có ít nhất một chuyển động bản đồ và một nhân vật.",
+     "Mỗi 2 câu một câu ĐÙA ngắn (mỉa tỉnh bơ, so sánh hiện đại). Cú lật đóng con dấu ở chữ ngoặt. Câu cuối = câu chốt gọn, cảnh cuối ket \"{ket}\"."
+    ],
+    "do_dai": "Shorts 45–60 giây (một chuyện ngắn, trọn vẹn)",
+    "cau": [
+     9,
+     13
+    ],
+    "cau_noi": "10–12",
+    "tu": {
+     "en": [
+      110,
+      165
+     ],
+     "es": [
+      120,
+      180
+     ]
+    },
+    "tu_noi": {
+     "en": "125–155",
+     "es": "135–170"
+    },
+    "toi_da_giay": 60,
+    "hinh_ca_tap": "Cả tập: ≥ 2 nhân vật khác nhau (KHO trước), ≥ 1 mũi tên hoặc phương tiện, 1 tranh, 1–2 con dấu kiểu tít lá cải. Mọi câu đều có thứ chuyển động ngoài camera; không có câu bản đồ trơn."
    }
   ],
   "ten_kenh": "Yesterday's News Tonight",

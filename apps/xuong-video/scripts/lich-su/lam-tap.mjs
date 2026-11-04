@@ -284,6 +284,9 @@ if (co('chi-viet')) process.exit(0);
 buoc('kho + ảnh thật');
 const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
 if (plMa) tap.playlist = plMa;   // ghi lại cùng tệp tập ở cuối bước 3
+// MẪU của tập theo SỔ KÊNH (so-kenh.json khoá = mã máy): mẫu trỏ đúng playlist này → tap.mau; --demo = tập làm DEMO cho anh duyệt mẫu (không lên máy đăng)
+{ let so = null; try { so = JSON.parse(readFileSync(join(DIR, 'so-kenh.json'), 'utf8'))[KENH.may ?? '']; } catch { /* kênh chưa có sổ */ }
+  const m = so?.mau?.find((x) => x.playlist === (plMa ?? null)); if (m && !tap.mau) tap.mau = m.ma; if (co('demo')) tap.demo = true; }
 let tien = 0;
 const dungToi = new Set(tap.cau.flatMap((c) => [...(c.canh.nguoi || []), ...(c.canh.xe || []), ...(c.canh.co || [])].map((m) => m.anh).concat(c.canh.tranh?.ref || [])));
 // SONG SONG (03/11/2026, anh: "chạy song song"): mỗi món kho độc lập (vẽ ckey → tách nền → đẩy Studio) — 3 món cùng lúc; ghi kho.json đọc-sửa-ghi liền một nhịp (không await giữa) nên không giẫm nhau
@@ -486,6 +489,8 @@ buoc('đẩy Studio');
       t1.thumb = th; writeFileSync(tepTap, JSON.stringify(t1, null, 1) + '\n'); tap.thumb = th; }
     if (ma) process.exit(ma); }
   buoc('nạp máy đăng');
+  // DEMO MẪU (--demo): video đã lên Studio / R2 là link demo cho sổ kênh (so-kenh.json › mau[].demo) — KHÔNG nạp máy đăng, mẫu chưa duyệt không được lên kênh
+  if (tap.demo || co('demo')) { console.log(`✓ DEMO mẫu ${tap.mau ?? '?'} · ${kq?.url ?? '(chưa có link — đẩy Studio hỏng)'} · không nạp máy đăng`); if (kq?.url) { const t1 = JSON.parse(readFileSync(tepTap, 'utf8')); t1.demo_url = kq.url; writeFileSync(tepTap, JSON.stringify(t1, null, 1) + '\n'); } process.exit(kq?.url ? 0 : 1); }
   // 6. MÁY ĐĂNG: kênh có máy Studio → tập thành một video của máy (mẫu video-ngoai: URL R2 + 3 khung), Phòng Nội dung chấm rồi máy đăng chung tự đăng theo nhịp
   if (KENH.may && kq) try {
     const anhThat = [...tap.cau.map((c) => c.canh.tranh?.commons_url), tap.anh_bia?.commons_url].filter(Boolean);

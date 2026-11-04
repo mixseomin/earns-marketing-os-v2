@@ -42,7 +42,7 @@ for (const [k, K] of Object.entries(KENH)) {
   const dangLamTiep = (() => { try { process.kill(Number(readFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), 'utf8')), 0); return true; } catch { return false; } })();
   if (!dangLamTiep) for (const f of readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json'))) {
     const tep = join(DIR, 'tap', f); if (Date.now() - statSync(tep).mtimeMs > 10 * 86_400_000) continue;
-    const t = JSON.parse(readFileSync(tep, 'utf8')); if ((t.kenh ?? 'saga') !== k || t.id === undefined) continue;
+    const t = JSON.parse(readFileSync(tep, 'utf8')); if ((t.kenh ?? 'saga') !== k || t.id === undefined || t.demo) continue;   // tập DEMO mẫu không lên kênh, không tự làm lại
     const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
     const r0 = sqlBox(`SELECT coalesce(json_build_object('xuat', v.xuat_luc IS NOT NULL, 'ket', v.cham->>'ket', 'chan', v.cham->'chan_cung', 'dang', v.da_dang->'youtube'->>'url')::text, '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)} AND v.slug = ${q1(t.id)};`);
     const st = r0 ? JSON.parse(r0) : null;
@@ -77,7 +77,7 @@ for (const [k, K] of Object.entries(KENH)) {
   // mỗi lượt ghi xv_may.nguon.tap_cho = tập của kênh trong 10 ngày chưa nạp (id · chủ đề · số lần tự làm lại · lỗi gần nhất · đã giao thợ máy chưa)
   { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`, daNap = new Set(sqlBox(`SELECT coalesce(string_agg(v.slug, ','), '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)};`).split(',').filter(Boolean));
     const cho = readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json')).map((f) => join(DIR, 'tap', f)).filter((f) => Date.now() - statSync(f).mtimeMs < 10 * 86_400_000)
-      .map((f) => JSON.parse(readFileSync(f, 'utf8'))).filter((t) => (t.kenh ?? 'saga') === k && t.id && !daNap.has(t.id))
+      .map((f) => JSON.parse(readFileSync(f, 'utf8'))).filter((t) => (t.kenh ?? 'saga') === k && t.id && !t.demo && !daNap.has(t.id))
       .map((t) => ({ id: t.id, chu_de: t.chu_de ?? null, cau: t.cau?.length ?? 0, lan: t.tu_dong?.lan ?? 0, loi: t.tu_dong?.loi ?? null, tho: t.tu_dong?.tho ?? null, bo: !!t.tu_dong?.bo }));
     try { sqlBox(`UPDATE xv_may SET nguon = jsonb_set(coalesce(nguon, '{}'::jsonb), '{tap_cho}', ${q1(JSON.stringify(cho))}::jsonb) WHERE ma = ${q1(K.may)};`); } catch { /* phụ */ } }
   // việc nền chạy MỖI GIỜ (02/11/2026 anh: đo kênh tần suất cao hơn) → làm tập chỉ từ gio_tap trở đi của ngày lịch; khoá ~/.cache/lich-su-<k>.khoa (pid) chống lượt chồng

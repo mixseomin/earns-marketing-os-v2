@@ -94,10 +94,10 @@ function O({ tt, chu, t, fix, bam, menu, xem, so, cap = 3 }: { tt: string; chu?:
     ? { height: 22, borderRadius: 11, fontSize: 11, fontWeight: 600, background: trong ? 'transparent' : NEN[tt], color: CHU[tt] ?? 'var(--fg-3)', border: `1px ${trong ? 'dashed' : 'solid'} ${VIEN[tt] ?? 'var(--line)'}` }
     : { height: 18, borderRadius: 3, fontSize: 10.5, fontWeight: 500, background: 'transparent', color: trong ? 'var(--fg-3)' : VIEN[tt], border: 'none', opacity: trong ? 0.5 : 1 };
   return <td title={xem ? undefined : t} onClick={menu ?? bam} onMouseEnter={xem ? (e) => datXem({ ...xem, x: e.clientX, y: e.clientY }) : undefined} onMouseLeave={xem ? () => datXem(null) : undefined}
-    style={{ padding: cap === 3 ? '1px 2px' : 2, cursor: bam || menu ? 'pointer' : xem ? 'zoom-in' : undefined }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, whiteSpace: 'nowrap',
+    style={{ padding: cap === 3 ? '1px 2px' : 2, cursor: bam || menu ? 'pointer' : xem ? 'zoom-in' : undefined }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', padding: so != null ? '0 6px' : undefined,
     ...kieu, animation: tt === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>
     <span>{KY[tt] ?? ''}</span>{chu ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: so != null ? 40 : 74 }}>{chu}</span> : null}
-    {so != null ? <span style={{ flex: 1, minWidth: 0, maxWidth: 62 }}><KeToan v={so} mau={cap === 1 ? undefined : mauLai(so)} /></span> : null}
+    {so != null ? <span style={{ flex: 1, minWidth: 0, maxWidth: 72 }}><KeToan v={so} mau={cap === 1 ? undefined : mauLai(so)} /></span> : null}
     {fix ? <button className="btn" onClick={fix} style={{ padding: '0 4px', fontSize: 10, lineHeight: '14px', color: '#fca5a5', borderColor: '#7f1d1d' }}>FIX</button> : null}</div></td>;
 }
 
@@ -282,8 +282,8 @@ export function TabDong({ moCamp }: { moCamp?: (id: number) => void } = {}) {
       <span style={{ marginLeft: 'auto' }} title="apps/etp/dong_phim.py trên iMac — báo sống mỗi 10 giây">máy chạy: {may ? <><b style={{ color: im! < 60 ? '#4ade80' : '#f87171' }}>{may.may}</b> {im! < 60 ? 'đang sống' : `im ${Math.round(im! / 60)} phút`}</> : <b style={{ color: '#f87171' }}>chưa bật</b>}</span>
     </div>
     {!du.dong.length ? <EmptyState icon="🎬" title={tim ? 'Không có phim khớp' : 'Không có phim nào trong mục này'} /> : <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 250px)' }}>   {/* tiêu đề DÍNH: bảng cuộn trong khung của nó (overflowX trơn làm sticky mất tác dụng — anh 03/11/2026) */}
-      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', minWidth: 1180 }}>
-        <colgroup><col style={{ width: 290 }} />{COT_PHIM.map(([k]) => <col key={k} style={{ width: 70 }} />)}{COT_CR.map(([k]) => <col key={k} style={{ width: 90 }} />)}<col /><col style={{ width: 60 }} /></colgroup>
+      <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', minWidth: 1214 }}>
+        <colgroup><col style={{ width: 290 }} />{COT_PHIM.map(([k]) => <col key={k} style={{ width: 70 }} />)}{COT_CR.map(([k]) => <col key={k} style={{ width: k === 'chay' ? 124 : 90 }} />)}<col /><col style={{ width: 60 }} /></colgroup>
         <thead style={{ position: 'sticky', top: 0, background: 'var(--bg-0, #0b0b0f)', zIndex: 3, boxShadow: '0 1px 0 var(--line)' }}>
           <tr style={{ fontSize: 10, color: 'var(--fg-3)', textAlign: 'center' }}><th /><th colSpan={COT_PHIM.length} style={{ fontWeight: 500, borderBottom: '1px solid var(--line)' }}>CẤP PHIM (1 lần)</th>
             <th colSpan={COT_CR.length} style={{ fontWeight: 500, borderBottom: '1px solid var(--line)' }}>CẤP CREATIVE (dòng phim = tổng · dòng con = từng creative)</th><th /><th /></tr>

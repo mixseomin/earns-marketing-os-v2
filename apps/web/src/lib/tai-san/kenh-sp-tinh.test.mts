@@ -46,6 +46,10 @@ import { cayKeHoach } from './kenh-sp-tinh';
 // một bước đứng quá 30 phút → đỏ, ghi "đứng"
 { const ke = { lichTap: null, gioDang: null, tapKe: [], lichDang: [], dangLam: [{ id: 't', luc: '2026-11-02T15:00:00Z', buoc: 'viết kịch bản', so: 2, tong: 8, buoc_luc: '2026-11-02T15:00:00Z' }] };
   const r = cayKeHoach({ videos: [], ke }, Date.parse('2026-11-02T15:45:00Z'))[1]!; assert.strictEqual(r.phu, 'bước 2/8 · viết kịch bản · ⚠ đứng 45 phút · t'); assert.strictEqual(r.mau, 'var(--bad)'); assert.strictEqual(r.dongHo!.loi, true); }
+// mẫu chờ duyệt mà CHƯA có demo → "máy đang làm demo" (không đòi anh duyệt thứ chưa xem được); có demo → "chờ anh duyệt"
+{ const so = { mau: [{ ma: 'a', ten: 'A', loai: 'short' as const, cho_duyet: true }, { ma: 'b', ten: 'B', loai: 'dai' as const, cho_duyet: true, demo: 'https://x/b.mp4' }, { ma: 'c', ten: 'C', loai: 'short' as const }] } as never;
+  const r = cayMau(so, new Map()); assert.ok(/1 đã duyệt · 1 chờ duyệt · 1 đang làm demo/.test(r[0]!.chu), r[0]!.chu);
+  assert.ok(r.some((x) => /A · 🛠 máy đang làm demo/.test(x.chu))); assert.ok(r.some((x) => /B · ⏳ chờ anh duyệt/.test(x.chu))); }
 import { tomLoTrinh, cayLoTrinh } from './kenh-sp-tinh';
 { const lt = { cap_nhat: '2026-11-02', giai_doan: [
     { ma: 'G0', ten: 'Chốt', viec: 'chốt mảng', anh: 'chốt', trang_thai: 'xong' as const },
@@ -94,7 +98,7 @@ import { caySoKenh, cayMau, cayHangCho, trangThaiY } from './kenh-sp-tinh';
   const s = caySoKenh(so); assert.strictEqual(s[0]!.chu, '📘 Sổ kênh'); assert.strictEqual(s.length, 1 + 3 + 2); assert.ok(s[3]!.chu.includes('astrolas.com'));
   const m = cayMau(so); assert.strictEqual(m[0]!.chu, '🧩 Mẫu (2 đã duyệt)');
   // mẫu chờ duyệt: đếm riêng ở dòng nhóm, xếp CUỐI, ghi rõ ⏳ chờ anh duyệt (không lẫn với mẫu đã duyệt)
-  { const m2 = cayMau({ ...so, mau: [{ ma: 'x', ten: 'Chart vs Chart', loai: 'short' as const, cho_duyet: true }, ...so.mau] });
+  { const m2 = cayMau({ ...so, mau: [{ ma: 'x', ten: 'Chart vs Chart', loai: 'short' as const, cho_duyet: true, demo: 'https://img.on.tc/x.mp4' }, ...so.mau] });
     assert.strictEqual(m2[0]!.chu, '🧩 Mẫu (2 đã duyệt · 1 chờ duyệt)'); assert.ok(m2[3]!.chu.endsWith('⏳ chờ anh duyệt')); assert.strictEqual(m2[3]!.mau, 'var(--warn)'); } assert.deepStrictEqual(m[1]!.ngan, { loai: 'mau', id: 'cc' }); assert.strictEqual(m[1]!.nganChu, '▶ xem');
   assert.ok(m[1]!.phu!.includes('playlist Chart Chapters')); assert.strictEqual(m[2]!.nganChu, 'mở'); assert.ok(m[2]!.phu!.includes('máy tự sinh'));
   // tập thật có slug = mã ý tưởng → đè trạng thái sổ; đã đăng thắng đã làm

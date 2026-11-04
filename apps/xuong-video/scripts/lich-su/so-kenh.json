@@ -895,7 +895,30 @@
         "kho": "vô hạn (Wikipedia, đề theo góc spy)",
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist full-stories  (demo: lam-tap.mjs --kenh parody --playlist full-stories --demo)",
-        "demo": "https://img.on.tc/xuong-video/lich-su/tap/alaska-parody.mp4"
+        "demo": "https://img.on.tc/xuong-video/lich-su/tap/alaska-parody.mp4",
+        "mo_ta": "Bản tin lá cải 3 phút kể TRỌN một chuyện lịch sử có thật trên bản đồ động: hook sốc ở câu 1 → 4–5 hồi, mỗi hồi một năm mới (ô năm đổi), màu chủ quyền đổi, mũi tên quân, nhân vật bước vào → khúc ngoặt đóng dấu → hậu quả hôm nay → THE END. Giọng phát thanh viên tỉnh bơ mỉa quyết định của người có quyền. Ví dụ đã đăng: Nga bán Alaska 7,2 triệu đô (1867).",
+        "goc_spy": [
+          {
+            "id": 66916,
+            "loai": "ai_chan_dung",
+            "ten": "Người mê lịch sử muốn xem video theo bản đồ"
+          },
+          {
+            "id": 66963,
+            "loai": "ai_phan_doi",
+            "ten": "Người chán bài lịch sử 5 phút nông cạn"
+          },
+          {
+            "id": 66938,
+            "loai": "ai_chan_dung",
+            "ten": "Người quan tâm lịch sử thế giới và Mỹ"
+          },
+          {
+            "id": 66925,
+            "loai": "ai_tinh_huong",
+            "ten": "Người đi bộ vô định nghe podcast tội phạm và lịch sử"
+          }
+        ]
       },
       {
         "ma": "worst-deals",
@@ -907,7 +930,25 @@
         "kho": "~40 vụ mua bán / nhượng đất có tư liệu",
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist worst-deals  (demo: lam-tap.mjs --kenh parody --playlist worst-deals --demo)",
-        "cho_duyet": true
+        "cho_duyet": true,
+        "mo_ta": "Bản tin 'bất động sản lá cải' về MỘT vụ mua bán / nhượng / đổi đất có thật mà một bên thiệt nặng: giá chốt, người ký, vì sao bán, bản đồ đổi màu khi đất sang tay, con dấu SOLD, cuối tập 'mảnh đất đó hôm nay đáng bao nhiêu'. Ví dụ: Hà Lan đổi Manhattan lấy đảo nhục đậu khấu Run (1667), Napoleon bán Louisiana (1803).",
+        "goc_spy": [
+          {
+            "id": 66938,
+            "loai": "ai_chan_dung",
+            "ten": "Người quan tâm lịch sử thế giới và Mỹ"
+          },
+          {
+            "id": 66916,
+            "loai": "ai_chan_dung",
+            "ten": "Người mê lịch sử muốn xem video theo bản đồ"
+          },
+          {
+            "id": 66966,
+            "loai": "ai_tinh_huong",
+            "ten": "Người đọc lịch sử vào cuối tuần"
+          }
+        ]
       },
       {
         "ma": "royal-gossip",
@@ -919,7 +960,25 @@
         "kho": "~50 vụ cưới / thừa kế / tranh ngôi",
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist royal-gossip  (demo: lam-tap.mjs --kenh parody --playlist royal-gossip --demo)",
-        "cho_duyet": true
+        "cho_duyet": true,
+        "mo_ta": "Mục tin đồn hoàng gia: MỘT vụ cưới / thừa kế / tranh ngôi có thật làm bản đồ châu Âu đổi chủ — ai cưới ai, của hồi môn là cả một vùng đất, ai nổi giận rồi gây chiến. Bản đồ đổi màu theo từng cuộc hôn nhân, chân dung nhân vật đứng cạnh vùng đất của họ. Ví dụ: Bombay là của hồi môn của Catherine xứ Braganza (1661), Habsburg 'cưới khắp châu Âu'.",
+        "goc_spy": [
+          {
+            "id": 66964,
+            "loai": "ai_phan_doi",
+            "ten": "Người học kém lịch sử trung đại và cổ đại"
+          },
+          {
+            "id": 66966,
+            "loai": "ai_tinh_huong",
+            "ten": "Người đọc lịch sử vào cuối tuần"
+          },
+          {
+            "id": 66962,
+            "loai": "ai_phan_doi",
+            "ten": "Người yêu lịch sử bị người thân không hiểu"
+          }
+        ]
       },
       {
         "ma": "explorers-gone-wrong",
@@ -931,7 +990,25 @@
         "kho": "~40 chuyến thám hiểm lạc / nhầm",
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist explorers-gone-wrong  (demo: lam-tap.mjs --kenh parody --playlist explorers-gone-wrong --demo)",
-        "cho_duyet": true
+        "cho_duyet": true,
+        "mo_ta": "Bản tin giao thông lá cải về MỘT chuyến thám hiểm có thật đi lạc / tưởng nhầm nơi: đường đi trên bản đồ là xương sống (mũi tên + tàu / ngựa từng chặng), mỗi chặng một năm, 'GPS hỏng', tới nơi thì không phải nơi định tới. Ví dụ: Columbus khăng khăng Caribe là châu Á (1492), La Salle tìm cửa sông Mississippi mà cập bến Texas (1684).",
+        "goc_spy": [
+          {
+            "id": 66907,
+            "loai": "ai_chan_dung",
+            "ten": "Người ở nhà thích du lịch"
+          },
+          {
+            "id": 66926,
+            "loai": "ai_chan_dung",
+            "ten": "Người đi phượt đường dài"
+          },
+          {
+            "id": 66916,
+            "loai": "ai_chan_dung",
+            "ten": "Người mê lịch sử muốn xem video theo bản đồ"
+          }
+        ]
       },
       {
         "ma": "breaking-60",
@@ -942,7 +1019,30 @@
         "kho": "vô hạn (mồi kéo về bản dài)",
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist breaking-60  (demo: lam-tap.mjs --kenh parody --playlist breaking-60 --demo)",
-        "cho_duyet": true
+        "cho_duyet": true,
+        "mo_ta": "Short 45–60 giây, MỘT chuyện nghịch lý có thật kể gọn: hook chữ to 0–2 giây → 2 nhịp leo thang → cú lật cuối đóng dấu. Xem xong nhớ được một sự thật để kể lại; làm mồi kéo người xem sang bản dài cùng kênh. Ví dụ: Liechtenstein gửi 80 lính đi đánh trận (1866), 81 người về nhà.",
+        "goc_spy": [
+          {
+            "id": 66914,
+            "loai": "ai_noi_dau",
+            "ten": "Người xem video lịch sử nhưng hay quên nội dung vừa nghe"
+          },
+          {
+            "id": 66947,
+            "loai": "ai_tinh_huong",
+            "ten": "Bệnh nhân chờ khám bác sĩ"
+          },
+          {
+            "id": 66922,
+            "loai": "ai_cach_giai",
+            "ten": "Người chơi đố vui lịch sử trên điện thoại"
+          },
+          {
+            "id": 66949,
+            "loai": "ai_cach_giai",
+            "ten": "Dùng thử miễn phí qua tập YouTube"
+          }
+        ]
       },
       {
         "ma": "tiny-wars",
@@ -953,7 +1053,25 @@
         "kho": "~30 cuộc chiến ngắn / vô lý",
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist tiny-wars  (demo: lam-tap.mjs --kenh parody --playlist tiny-wars --demo)",
-        "cho_duyet": true
+        "cho_duyet": true,
+        "mo_ta": "Short 45–60 giây về MỘT cuộc chiến có thật ngắn / vô lý / nổ ra vì chuyện vặt (con lợn, cái xô, chim emu, tiệm bánh): lý do gây chiến → mũi tên quân trên bản đồ → kết cục buồn cười (38 phút, 0 thương vong, emu thắng). Đùa về lý do và người ra lệnh, không đùa về người chết. Ví dụ: chiến tranh Anh–Zanzibar 1896 kéo dài 38 phút.",
+        "goc_spy": [
+          {
+            "id": 66922,
+            "loai": "ai_cach_giai",
+            "ten": "Người chơi đố vui lịch sử trên điện thoại"
+          },
+          {
+            "id": 66962,
+            "loai": "ai_phan_doi",
+            "ten": "Người yêu lịch sử bị người thân không hiểu"
+          },
+          {
+            "id": 66947,
+            "loai": "ai_tinh_huong",
+            "ten": "Bệnh nhân chờ khám bác sĩ"
+          }
+        ]
       },
       {
         "ma": "borders-gone-wrong",
@@ -964,7 +1082,25 @@
         "kho": "~40 biên giới kỳ quặc",
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist borders-gone-wrong  (demo: lam-tap.mjs --kenh parody --playlist borders-gone-wrong --demo)",
-        "cho_duyet": true
+        "cho_duyet": true,
+        "mo_ta": "Short 45–60 giây về MỘT đường biên / vùng đất kỳ quặc có thật (vùng lọt thỏm, mũi đất cụt, đường kẻ vội trên bản đồ) và quyết định lịch sử đã tạo ra nó — đường kẻ biên được vẽ dần trên bản đồ, nhãn hai nước, cú lật 'hôm nay ở đó trông thế nào'. Ví dụ: Baarle — biên giới Bỉ–Hà Lan chạy xuyên phòng khách; Point Roberts — thị trấn Mỹ chỉ đi được qua Canada.",
+        "goc_spy": [
+          {
+            "id": 66913,
+            "loai": "ai_tinh_huong",
+            "ten": "Khách du lịch châu Âu và Sofia"
+          },
+          {
+            "id": 66927,
+            "loai": "ai_chan_dung",
+            "ten": "Người đi tour tự túc đi bộ"
+          },
+          {
+            "id": 66954,
+            "loai": "ai_cu_hich",
+            "ten": "Khách bộ hành tò mò trước di tích phố"
+          }
+        ]
       },
       {
         "ma": "weather-desk",
@@ -975,7 +1111,25 @@
         "kho": "~30 lần thời tiết đổi lịch sử",
         "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
         "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist weather-desk  (demo: lam-tap.mjs --kenh parody --playlist weather-desk --demo)",
-        "cho_duyet": true
+        "cho_duyet": true,
+        "mo_ta": "Short 45–60 giây kiểu bản tin thời tiết lá cải: MỘT lần bão / sương mù / mùa đông / núi lửa có thật làm đổi kết cục lịch sử — 'dự báo hôm nay: trời đẹp cho xâm lược', hạm đội trên bản đồ, bão quét qua, kết cục. Ví dụ: bão Kamikaze đánh chìm hạm đội Mông Cổ ngoài khơi Nhật (1281), sương mù giúp Washington rút khỏi Brooklyn (1776).",
+        "goc_spy": [
+          {
+            "id": 66968,
+            "loai": "ai_tinh_huong",
+            "ten": "Học sinh ôn lịch sử, công dân, địa lý, kinh tế"
+          },
+          {
+            "id": 66914,
+            "loai": "ai_noi_dau",
+            "ten": "Người xem video lịch sử nhưng hay quên nội dung vừa nghe"
+          },
+          {
+            "id": 66922,
+            "loai": "ai_cach_giai",
+            "ten": "Người chơi đố vui lịch sử trên điện thoại"
+          }
+        ]
       }
     ],
     "hang_cho": [
@@ -1195,6 +1349,11 @@
         "chu_de": "A fog lets Washington’s army escape Brooklyn in 1776",
         "trang_thai": "chua"
       }
-    ]
+    ],
+    "nhom_spy": {
+      "id": 2680,
+      "ten": "History explained (map history videos & apps)",
+      "so_goc": 66
+    }
   }
 }

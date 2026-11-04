@@ -59,11 +59,13 @@ function NganMau({ k, ma, onClose, moVideo }: { k: KenhSp; ma: string; onClose: 
     { key: 'xem', header: 'Lượt xem', width: 90, sortValue: (r) => (r.loai === 'video' ? r.v.xem : null), cell: (r) => (r.loai === 'video' ? so(r.v.xem) : <span style={{ color: 'var(--fg-4)' }}>–</span>) },
   ];
   return <>
-    <ModalHeader kind="kenh" action="view" title={`${mau.loai === 'dai' ? '🎞' : '📱'} ${mau.ten}`} subtitle={`${k.ten} · ${mau.cho_duyet ? "⏳ mẫu mới, chờ anh duyệt demo" : "mẫu đã duyệt"}`} onClose={onClose} />
+    <ModalHeader kind="kenh" action="view" title={`${mau.loai === 'dai' ? '🎞' : '📱'} ${mau.ten}`} subtitle={`${k.ten} · ${mau.cho_duyet ? (mau.demo ? '⏳ mẫu mới, chờ anh duyệt demo' : '🛠 mẫu mới, máy đang làm demo') : 'mẫu đã duyệt'}`} onClose={onClose} />
     <div style={{ display: 'grid', gridTemplateColumns: `${mau.loai === 'dai' ? 480 : 260}px minmax(280px, 1fr) minmax(300px, 1fr)`, gap: 20, margin: '14px 0 18px', alignItems: 'start' }}>
       {mau.demo ? <Video src={mau.demo} doc={mau.loai !== 'dai'} /> : <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>chưa có video demo</div>}
       <Luoi>
-        <O k="Khổ">{mau.loai === 'dai' ? 'dài 16:9' : 'Short 9:16'}</O>
+        {mau.mo_ta && <O k="Là gì">{mau.mo_ta}</O>}
+        {!!mau.goc_spy?.length && <O k="Góc spy phục vụ">{mau.goc_spy.map((g) => `#${g.id} ${g.ten}`).join(' · ')}</O>}
+        <O k="Khổ">{`${mau.loai === 'dai' ? 'dài' : 'Short'} ${mau.khung ?? (mau.loai === 'dai' ? '16:9' : '9:16')}`}</O>
         {pl && <O k="Playlist">{pl.ten}</O>}
         {mau.nhip && <O k="Nhịp">{mau.nhip}</O>}
         {mau.kho && <O k="Kho ý tưởng">{mau.kho}</O>}

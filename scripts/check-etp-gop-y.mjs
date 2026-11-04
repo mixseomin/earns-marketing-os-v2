@@ -388,7 +388,7 @@ const LUAT = [
   { card: 'khung-doi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "const khungDoi = trongKD(KD.doi) ? 'doi' : trongKD(KD.nap) ? 'nap' : 'bang';", vi: 'máy chỉ tự đổi camp 15–21h VN, 21–23h chỉ nạp camp tiêu hết + ROI ≥ 30%, còn lại đóng băng (anh 04/11/2026)' },
   { card: 'khung-doi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: 'const KD = BANG_LUAT.khung_doi', vi: 'worker đọc khung từ sổ luật chung, không ghi cứng giờ' },
   { card: 'khung-doi-0411', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"khung_doi": {', vi: 'khung đổi camp nằm ở sổ luật chung (một nguồn cho worker + trang)' },
-  { card: 'khung-doi-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "{tab === 'camp' && !laNguoi && !du.nguoi.ngoai && !du.nguoi.doi ? <DaiKhung gon={gon} /> : null}", vi: 'tab Camp hiện dải 24 giờ khung đổi camp (anh 04/11/2026)' },
+  { card: 'khung-doi-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "{tab === 'camp' && xemCamp !== 'lich' && !laNguoi && !du.nguoi.ngoai && !du.nguoi.doi ? <KhungPanel du={du} gon={gon} /> : null}", vi: 'tab Camp hiện khung đổi camp bản lớn: trạng thái + đếm ngược + thanh 24 giờ ghi chữ + số camp chờ (anh 04–05/11/2026)' },
   { card: 'khung-doi-0411', tep: 'apps/web/src/components/etp-view.tsx', co: 'const cho = t.huong && !p.deXuat ? choKhung(', vi: 'chip luật ghi ⏳ giờ máy sẽ làm khi khung đang chặn' },
   { card: 'khung-doi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "if (duyet.gb_tu_giam && giamTu && khungDoi === 'doi') {", vi: 'tự giảm GB chỉ trong 15–21h' },
   { card: 'khung-doi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "if (giamTu && khungDoi === 'doi') {", vi: 'tự giảm ROI tụt chỉ trong 15–21h' },

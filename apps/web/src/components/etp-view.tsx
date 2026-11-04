@@ -455,18 +455,55 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
     {!t.chinh ? <div style={{ color: 'var(--fg-3, #777)' }}>Không chạm / sắp chạm luật nào.</div> : null}
   </>;
 }
-// DẢI KHUNG ĐỔI CAMP (anh 04/11/2026 "làm sao thấy được những khoảng đó trong tab camp"): 24 ô giờ VN tô theo khung (sổ luật chung khung_doi), viền = giờ hiện tại
-function DaiKhung({ gon }: { gon?: boolean }) {
+// KHUNG ĐỔI CAMP — BẢN LỚN (anh 05/11/2026 "show trực quan hơn"): một hàng trọn chiều ngang trên tab Camp — trạng thái chữ to + đếm ngược,
+// thanh 24 giờ ghi chữ từng khung + kim giờ hiện tại, số camp đã đạt luật đang chờ khung (theo hướng, từ etp.bao — cùng nguồn chip ⏳)
+const CHU_KHUNG: Record<string, string> = { doi: 'máy đang tự tăng · giảm · tắt camp theo luật', nap: 'máy chỉ nạp thêm cho camp đã tiêu hết + ROI hôm nay ≥ 30%', bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung đổi' };
+function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   const [h, setH] = useState<number | null>(null);
-  useEffect(() => { const f = () => setH(gioVnNay()); f(); const t = setInterval(f, 60_000); return () => clearInterval(t); }, []);
-  if (h == null) return null;
-  const k = khungLuc(h), [bt, ten, mau] = KHUNG_TEN[k];
-  const title = `Khung máy tự đổi camp (giờ VN, cả 3 bộ):\n${KD.doi[0]}–${KD.doi[1]}h  ${KHUNG_TEN.doi[0]} mọi luật tự tăng / giảm / tắt\n${KD.nap[0]}–${KD.nap[1]}h  ${KHUNG_TEN.nap[0]} chỉ tự tăng camp đã tiêu ≥ ${KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ ${KD.nap_roi}%\ncòn lại  ${KHUNG_TEN.bang[0]} đóng băng — luật vẫn chấm, chip camp ghi ⏳ giờ máy sẽ làm`;
-  return <span title={title} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, cursor: 'help', whiteSpace: 'nowrap' }}>
-    <span style={{ display: 'inline-flex', gap: 1 }}>{Array.from({ length: 24 }, (_, g) => { const kg = khungLuc(g);
-      return <span key={g} style={{ width: gon ? 3 : 4, height: 12, borderRadius: 1, background: KHUNG_TEN[kg][2], opacity: kg === 'bang' ? 0.45 : 1, outline: g === Math.floor(h) ? '1.5px solid var(--fg-1)' : 'none' }} />; })}</span>
-    <b style={{ color: mau }}>{bt}{gon ? '' : ` ${ten}`}</b><span style={{ color: 'var(--fg-3, #777)' }}>tới {String(hetKhung(h)).padStart(2, '0')}:00</span>
-  </span>;
+  useEffect(() => { const f = () => setH(gioVnNay()); f(); const t = setInterval(f, 30_000); return () => clearInterval(t); }, []);
+  const cho = useMemo(() => {
+    if (h == null) return null;
+    const cs = new Map(du.camps.map((c) => [c.camp_id, c])), ds: Record<HuongLuat, Set<number>> = { tang: new Set(), giam: new Set(), tat: new Set() };
+    for (const b of du.bao) { const hg = BAO_HUONG[b.nhom], c = cs.get(b.camp_id); if (!hg || LUAT_NHAN[b.nhom]?.[3] !== 'dang' || !c || c.trang_thai !== 'ACTIVE') continue;
+      if (choKhung(hg, h, datNap(c.nay, c.ngan_sach))) ds[hg].add(b.camp_id); }
+    for (const id of ds.tat) { ds.tang.delete(id); ds.giam.delete(id); }   // một camp một việc: luật tắt thắng
+    return ds;
+  }, [du.bao, du.camps, h]);
+  if (h == null || !cho) return null;
+  const k = khungLuc(h), [bt, ten, mau] = KHUNG_TEN[k], het = hetKhung(h);
+  const conPhut = Math.round((((het - h) % 24) + 24) % 24 * 60), con = `${Math.floor(conPhut / 60)} giờ ${String(conPhut % 60).padStart(2, '0')} phút`;
+  const doan: { k: ReturnType<typeof khungLuc>; tu: number; den: number }[] = [];
+  for (let g = 0; g < 24; g++) { const kg = khungLuc(g); if (doan.at(-1)?.k === kg) doan.at(-1)!.den = g + 1; else doan.push({ k: kg, tu: g, den: g + 1 }); }
+  const nen = (kg: string, sang: boolean) => kg === 'bang' ? `repeating-linear-gradient(135deg, #47556966 0 6px, #33415566 6px 12px)` : `${KHUNG_TEN[kg as 'doi'][2]}${sang ? 'cc' : '55'}`;
+  const gioChu = `${String(Math.floor(h)).padStart(2, '0')}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+  const so = (n: number, nhan: string, m: string) => <span style={{ color: n ? m : 'var(--fg-3, #777)', fontWeight: 600 }}>{nhan} {n}</span>;
+  return (
+    <div style={{ flexBasis: '100%', border: `1px solid ${mau}66`, borderRadius: 10, padding: gon ? '8px 10px' : '10px 14px', background: `${mau}12`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '4px 16px' }}>
+        <b style={{ fontSize: gon ? 15 : 18, color: mau, letterSpacing: 0.3 }}>{bt} {ten.toUpperCase()}</b>
+        <span style={{ color: 'var(--fg-2)', fontSize: 13 }}>{CHU_KHUNG[k]}</span>
+        <span style={{ marginLeft: 'auto', fontSize: 13 }}>{k === 'doi' ? 'hết khung đổi' : 'mở khung kế'} <b>{String(het).padStart(2, '0')}:00</b> · còn <b style={{ color: mau }}>{con}</b></span>
+      </div>
+      <div style={{ position: 'relative', paddingTop: 14 }}>
+        <div style={{ position: 'absolute', top: 0, left: `${(h / 24) * 100}%`, transform: 'translateX(-50%)', fontSize: 10.5, fontWeight: 700, color: 'var(--fg-1)', whiteSpace: 'nowrap' }}>▼ {gioChu}</div>
+        <div style={{ display: 'flex', height: gon ? 24 : 30, borderRadius: 6, overflow: 'hidden', border: '1px solid var(--line)' }}>
+          {doan.map((d, i) => { const dang = h >= d.tu && h < d.den, [b2, t2, m2] = KHUNG_TEN[d.k];
+            return <div key={i} title={`${String(d.tu).padStart(2, '0')}:00–${String(d.den).padStart(2, '0')}:00 · ${t2}: ${CHU_KHUNG[d.k]}`} style={{ flex: d.den - d.tu, background: nen(d.k, dang), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: gon ? 10.5 : 12, fontWeight: dang ? 700 : 500,
+              color: d.k === 'bang' ? 'var(--fg-2)' : dang ? '#111' : m2, borderRight: i < doan.length - 1 ? '1px solid var(--line)' : 'none', boxShadow: dang ? `inset 0 0 0 2px ${m2}` : 'none', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+              {d.den - d.tu >= 2 ? `${b2} ${gon ? '' : `${t2} `}${d.tu}–${d.den}h` : b2}</div>; })}
+        </div>
+        <div style={{ position: 'absolute', top: 12, bottom: 0, left: `${(h / 24) * 100}%`, width: 2, background: 'var(--fg-1)', pointerEvents: 'none' }} />
+        <div style={{ position: 'relative', height: 14, fontSize: 10, color: 'var(--fg-3, #777)' }}>
+          {[0, 3, 6, 9, 12, 15, 18, 21, 24].map((g) => <span key={g} style={{ position: 'absolute', left: `${(g / 24) * 100}%`, transform: g === 0 ? 'none' : g === 24 ? 'translateX(-100%)' : 'translateX(-50%)' }}>{g}h</span>)}
+        </div>
+      </div>
+      {k !== 'doi' ? <div style={{ fontSize: 13, display: 'flex', flexWrap: 'wrap', gap: '2px 14px', alignItems: 'baseline' }}>
+        <span style={{ color: 'var(--fg-2)' }}>⏳ Camp đã đạt luật, chờ tới {KD.doi[0]}:00:</span>
+        {so(cho.tang.size, '↑ tăng', '#4ade80')}{so(cho.giam.size, '↓ giảm', '#fb923c')}{so(cho.tat.size, '✕ tắt', '#f87171')}
+        <span style={{ color: 'var(--fg-3, #777)' }}>· chip ⏳ ở cột Luật</span>
+      </div> : null}
+    </div>
+  );
 }
 function ChipLuat(p: VaoLuat) {
   const noi = useNoi<{ id: 0 }>(); const t = tinhLuat(p);
@@ -2695,7 +2732,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
             <button key={nhan} onClick={() => doiXemCamp(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
               background: xemCamp === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCamp === v ? 600 : 400 }}>{gon ? nhan.split(' ')[0] : nhan}</button>))}
         </span>) : null}
-      {tab === 'camp' && !laNguoi && !du.nguoi.ngoai && !du.nguoi.doi ? <DaiKhung gon={gon} /> : null}
+      {tab === 'camp' && xemCamp !== 'lich' && !laNguoi && !du.nguoi.ngoai && !du.nguoi.doi ? <KhungPanel du={du} gon={gon} /> : null}
       {gon && tab === 'camp' && xemCamp !== 'lich' && xemCamp !== 'bac' ? (() => { const coLoc = (loc !== 'chay' && loc !== 'all') || !!luatLoc || !!dangLoc || !!boHieu || !!laiLoc || !!tuoiChon || !!roLoc;
         return <button onClick={() => setMoLoc((v) => !v)} title={coLoc ? 'đang có lọc' : 'mở bộ lọc'} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', color: coLoc ? '#60a5fa' : 'inherit',
           border: `1px solid ${coLoc ? '#60a5fa' : 'var(--line)'}`, background: moLoc || coLoc ? 'var(--accent-soft, rgba(59,130,246,.18))' : 'transparent', fontWeight: coLoc ? 600 : 400 }}>{moLoc ? '▴' : '▾'} Lọc{coLoc ? ' •' : ''}</button>; })() : null}

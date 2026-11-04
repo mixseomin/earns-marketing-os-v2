@@ -1,0 +1,99 @@
+<!doctype html>
+<!-- TONIGHT'S SKY — mẫu dài 16:9 (1–3 giờ) kênh YouTube Astrolas: bầu trời đêm THẬT của một thành phố, quay theo giờ (anh 04/11/2026: template để chạy hàng loạt
+     định kỳ). Sao + chòm sao: du-lieu-sao/sao.json (d3-celestial, BSD-3). Mặt Trời / Trăng / hành tinh: bau-troi-tinh.js (Schlyter, tự kiểm). Hình là hàm thuần
+     của t → shot-code/dung.mjs quay; nhịp chạy hàng loạt: lich-su/dai/sinh-dem.mjs sinh CAU từ thành phố + ngày.
+     CAU = { DAI, nen_nui: ảnh tiền cảnh bóng núi thật, logo, playlist, sao: 'du-lieu-sao/sao.json',
+       noi: { ten, vi, kinh, lech_gio }  (lech_gio = giờ địa phương − UTC trong đêm đó), bat_dau_utc: ISO, toc: giây trời / giây phim,
+       huong: phương vị giữa khung (180 = nhìn hướng nam), cau: [{ tu, den, chu, nhan? }] — chú thích theo sự kiện (máy sinh: sao mọc, trăng mọc…) }
+     Chiếu: phương vị huong ± 90° trải ngang 1920 px, độ cao 0–75° từ đường chân trời (y 820) lên đỉnh khung. Độ vĩ hoàng đạo của Trăng / hành tinh lấy 0°
+     (sai tối đa ~5° với Trăng, ~3° với hành tinh trong của chính chúng): đủ cho cảnh nhìn, không thay bảng thiên văn. -->
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: PF; src: url(../lich-su/brand/astrolas/fonts/PlayfairDisplay.ttf); font-weight: 400 900; }
+@font-face { font-family: IN; src: url(../lich-su/brand/astrolas/fonts/Inter.ttf); font-weight: 100 900; }
+@font-face { font-family: CG; src: url(../lich-su/brand/astrolas/fonts/CormorantGaramond-Italic.ttf); font-style: italic; font-weight: 300 700; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #050b16; overflow: hidden; }
+#k { position: relative; width: 1920px; height: 1080px; overflow: hidden; color: #fff; font-family: IN, sans-serif; }
+.abs { position: absolute; }
+#troi { inset: 0; }
+#nui { left: 0; top: -200px; width: 1920px; height: 1280px; object-fit: cover; -webkit-mask-image: linear-gradient(to bottom, transparent 0%, transparent 60%, #000 73%); }
+.chip { display: inline-flex; align-items: center; gap: .45em; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #0B1A2E; padding: .42em .8em .38em; border-radius: .3em; }
+#goc { left: 60px; top: 50px; display: flex; flex-direction: column; gap: 16px; align-items: flex-start; opacity: .9; }
+#gio { left: 60px; bottom: 50px; font: 600 30px IN; color: #cfd8e6; text-shadow: 0 2px 10px #000; } #gio b { font: 900 64px PF, serif; color: #fff; display: block; line-height: 1; margin-bottom: 8px; }
+#thay { right: 60px; bottom: 50px; text-align: right; font: 600 26px/1.5 IN; color: #cfd8e6; text-shadow: 0 2px 10px #000; } #thay i { font: 600 30px CG, serif; color: #F4D971; display: block; }
+#cau { left: 0; right: 0; top: 80px; text-align: center; font: 800 46px/1.2 IN; text-shadow: 0 3px 14px rgba(0,0,0,.8); opacity: 0; }
+#nhan { left: 0; right: 0; top: 30px; text-align: center; font: 600 32px CG, serif; font-style: italic; color: #F4D971; opacity: 0; }
+</style></head>
+<body><div id="k">
+  <canvas id="troi" class="abs" width="1920" height="1080"></canvas>
+  <img id="nui" class="abs">
+  <div id="goc" class="abs"></div><div id="nhan" class="abs"></div><div id="cau" class="abs"></div>
+  <div id="gio" class="abs"></div><div id="thay" class="abs"></div>
+</div>
+<script src="bau-troi-tinh.js"></script>
+<script>
+const W = 1920, H = 1080, Y0 = 820, R = Math.PI / 180, TAU = 2 * Math.PI;
+const ease = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u));
+const g = document.getElementById('troi').getContext('2d');
+const HT = { Mercury: ['☿', '#FFB86B'], Venus: ['♀', '#FFF3C4'], Mars: ['♂', '#FF7B5C'], Jupiter: ['♃', '#FFE2B0'], Saturn: ['♄', '#E9D79A'] };
+let C, D, t0, BAC = [];
+const doc = (url) => new Promise((ok, loi) => { const x = new XMLHttpRequest(); x.open('GET', url); x.onload = () => (x.responseText ? ok(x.responseText) : loi(new Error('không đọc được ' + url))); x.onerror = () => loi(new Error('không đọc được ' + url)); x.send(); });
+const tai = (u) => new Promise((ok, loi) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => loi(new Error('không tải được ' + u)); i.src = u; });
+
+// đổi toạ độ: bau-troi-tinh.js (dùng chung với máy sinh tập lich-su/dai/sinh-dem.mjs)
+const lst = BauTroi.lstRad, chanTroi = BauTroi.chanTroi, hoangSangXich = BauTroi.hoangSangXich;
+function xy(alt, az) {   // phương vị huong ± 90° → ngang 1920; độ cao 0–75° → y 820 … 0
+  let d = ((az / R - C.huong + 540) % 360) - 180; if (Math.abs(d) > 100) return null;
+  return [W / 2 + (d / 90) * (W / 2), Y0 - (alt / R) * (Y0 / 75)];
+}
+const mauSao = (bv) => { bv = Number(bv) || 0; return bv < 0 ? '#cfe0ff' : bv < 0.6 ? '#ffffff' : bv < 1.2 ? '#fff1d6' : '#ffd2a8'; };
+function veTrang(x, y, r, e) {   // pha trăng (cùng luật la-so.html › veTrang)
+  const cs = Math.cos(e), dang = e < Math.PI, khuyet = cs > 0;
+  const gr = g.createRadialGradient(x, y, r, x, y, r * 5); gr.addColorStop(0, 'rgba(245,240,225,.28)'); gr.addColorStop(1, 'rgba(245,240,225,0)'); g.fillStyle = gr; g.beginPath(); g.arc(x, y, r * 5, 0, TAU); g.fill();
+  g.fillStyle = '#26354f'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+  g.fillStyle = '#F5F0E1'; g.beginPath(); g.arc(x, y, r, -Math.PI / 2, Math.PI / 2, !dang); g.ellipse(x, y, Math.abs(cs) * r, r, 0, Math.PI / 2, -Math.PI / 2, dang ? khuyet : !khuyet); g.fill();
+}
+
+window.__dung = async () => {
+  C = window.CAU; D = JSON.parse(await doc(C.sao));
+  const [nui] = await Promise.all([tai(C.nen_nui), tai(C.logo)]); document.getElementById('nui').src = nui.src;
+  const pl = C.playlist; document.getElementById('goc').innerHTML = `<img src="${C.logo}" style="height:52px;display:block"><span class="chip" style="font-size:24px;background:${pl.mau}">${pl.ic} ${pl.ten}</span>`;
+  t0 = Date.parse(C.bat_dau_utc); BAC = D.sao.map((s) => [s[0] * R, s[1] * R, s[2], mauSao(s[3]), (s[0] * 7.13 + s[1] * 3.7) % TAU]);
+  await document.fonts.ready;
+};
+window.__seek = (t) => {
+  const ms = t0 + t * C.toc * 1000, phi = C.noi.vi * R, L = lst(ms, C.noi.kinh), k = BauTroi.kinhDo(ms);
+  // nền trời theo độ cao Mặt Trời: đêm hẳn < −18°, hoàng hôn ấm phía Mặt Trời
+  const s = hoangSangXich(k.Sun * R), [sa, sz] = chanTroi(s.ra, s.dec, L, phi), sang = Math.max(0, Math.min(1, (sa / R + 18) / 18));
+  const nen = g.createLinearGradient(0, 0, 0, Y0); nen.addColorStop(0, `rgb(${5 + 20 * sang},${11 + 45 * sang},${24 + 80 * sang})`); nen.addColorStop(1, `rgb(${14 + 90 * sang},${28 + 70 * sang},${52 + 70 * sang})`);
+  g.fillStyle = nen; g.fillRect(0, 0, W, H);
+  const ps = xy(Math.max(sa, -0.3), sz); if (ps && sang > 0) { const gr = g.createRadialGradient(ps[0], Y0, 0, ps[0], Y0, 900); gr.addColorStop(0, `rgba(255,150,80,${0.55 * sang})`); gr.addColorStop(1, 'rgba(255,150,80,0)'); g.fillStyle = gr; g.fillRect(0, 0, W, H); }
+  const toi = 1 - sang;   // sao mờ theo ánh chạng vạng
+  // đường chòm sao + tên
+  g.lineWidth = 1.4; g.strokeStyle = `rgba(142,197,255,${0.22 * toi})`;
+  for (const ch of D.duong) for (const seg of ch) { g.beginPath(); let mo = false;
+    for (const [ra, dec] of seg) { const [a, z] = chanTroi(ra * R, dec * R, L, phi), p = a > -0.05 ? xy(a, z) : null; if (p) { mo ? g.lineTo(...p) : g.moveTo(...p); mo = true; } else mo = false; } g.stroke(); }
+  g.font = '600 20px IN'; g.textAlign = 'center'; g.fillStyle = `rgba(207,216,230,${0.45 * toi})`;
+  for (const [ten, ra, dec, hang] of D.ten) { if (Number(hang) > 2) continue; const [a, z] = chanTroi(ra * R, dec * R, L, phi); if (a < 8 * R) continue; const p = xy(a, z); if (p) g.fillText(ten.toUpperCase(), p[0], p[1]); }
+  // sao: cỡ + độ sáng theo cấp, lấp lánh, mờ gần chân trời
+  for (const [ra, dec, mag, mau, pha] of BAC) { const [a, z] = chanTroi(ra, dec, L, phi); if (a < 0) continue; const p = xy(a, z); if (!p) continue;
+    const r = Math.max(0.6, 3.4 - mag * 0.55), m = Math.min(1, (6 - mag) / 4) * toi * Math.min(1, a / (8 * R)) * (0.75 + 0.25 * Math.sin(t * 2.3 + pha));
+    g.globalAlpha = m; g.fillStyle = mau; g.beginPath(); g.arc(p[0], p[1], r, 0, TAU); g.fill(); }
+  g.globalAlpha = 1;
+  // hành tinh + Trăng (vĩ hoàng đạo 0)
+  const thay = [];
+  for (const [ten, [ky, mau]] of Object.entries(HT)) { const e = hoangSangXich(k[ten] * R), [a, z] = chanTroi(e.ra, e.dec, L, phi); if (a < 0) continue; const p = xy(a, z); thay.push(ten); if (!p) continue;
+    const gr = g.createRadialGradient(p[0], p[1], 0, p[0], p[1], 26); gr.addColorStop(0, mau); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.globalAlpha = toi; g.fillStyle = gr; g.beginPath(); g.arc(p[0], p[1], 26, 0, TAU); g.fill();
+    g.fillStyle = mau; g.beginPath(); g.arc(p[0], p[1], 6, 0, TAU); g.fill(); g.font = '700 26px IN'; g.textAlign = 'left'; g.fillText(`${ten}`, p[0] + 16, p[1] - 12); g.globalAlpha = 1; }
+  const mt = hoangSangXich(k.Moon * R), [ma, mz] = chanTroi(mt.ra, mt.dec, L, phi), el = BauTroi.chuan(k.Moon - k.Sun) * R, phan = Math.round(((1 - Math.cos(el)) / 2) * 100);
+  if (ma > 0) { thay.unshift(`Moon ${phan}%`); const p = xy(ma, mz); if (p) veTrang(p[0], p[1], 30, el); }
+  // giờ địa phương + đang thấy
+  const dt = new Date(ms + C.noi.lech_gio * 3600e3), hh = String(dt.getUTCHours()).padStart(2, '0'), mm = String(dt.getUTCMinutes()).padStart(2, '0'), M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  document.getElementById('gio').innerHTML = `<b>${hh}:${mm}</b>${C.noi.ten} · ${dt.getUTCDate()} ${M[dt.getUTCMonth()]} ${dt.getUTCFullYear()} · looking ${['north', 'east', 'south', 'west'][Math.round(C.huong / 90) % 4]}`;
+  document.getElementById('thay').innerHTML = `<i>Visible now</i>${thay.length ? thay.join(' · ') : 'stars only'}`;
+  // chú thích theo sự kiện
+  const q = (C.cau || []).find((x) => t >= x.tu && t < x.den), hien = q ? Math.min(ease((t - q.tu) / 0.6), ease((q.den - t) / 0.6)) : 0;
+  const cc = document.getElementById('cau'), nh = document.getElementById('nhan'); cc.innerHTML = q?.chu || ''; cc.style.opacity = hien; nh.textContent = q?.nhan || ''; nh.style.opacity = q?.nhan ? hien : 0;
+};
+</script></body></html>

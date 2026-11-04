@@ -43,7 +43,8 @@ const tr = await chromium.launch();
 
 // ẢNH NỀN THẬT (luật nền lớn = ảnh thật, skill design/stock-photo-apis) → anh/<tên>.jpg + anh/nguon.json (link trang nguồn). Pexels, free thương mại.
 const ANH = join(DIR, 'anh'); mkdirSync(ANH, { recursive: true });
-const PEXELS = { 'troi': { id: 7925847, trang: 'https://www.pexels.com/photo/starry-sky-during-night-time-7925847/', ghi: 'Dải Ngân Hà — nền mọi khung' } };
+const PEXELS = { 'troi': { id: 7925847, trang: 'https://www.pexels.com/photo/starry-sky-during-night-time-7925847/', ghi: 'Dải Ngân Hà — nền mọi khung' },
+  'nui': { id: 31001498, trang: 'https://www.pexels.com/photo/starry-night-sky-with-mountain-silhouette-31001498/', ghi: "bóng núi tiền cảnh Tonight's Sky (shot-code/bau-troi-dem.html)" } };   // mọi ảnh Pexels của kênh khai ở đây (nguon.json sinh từ bảng này)
 const UA = { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 Chrome/130 Safari/537.36' };   // Pexels WAF chặn UA mặc định
 for (const [ten, a] of Object.entries(PEXELS)) { const f = join(ANH, `${ten}.jpg`); if (existsSync(f)) continue;
   const r = await fetch(`https://images.pexels.com/photos/${a.id}/pexels-photo-${a.id}.jpeg?auto=compress&w=2560`, { headers: UA }).catch(() => null);

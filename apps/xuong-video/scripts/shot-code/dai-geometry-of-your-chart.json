@@ -1,0 +1,76 @@
+{
+ "_ghi": "Mẫu dài 16:9 The Geometry of Your Chart (đoạn trích): cung Mọc là gì. Vĩ độ San Francisco 37,8°; cung Mọc tính từ giao điểm hoàng đạo với chân trời đông.",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "la_so": "../lich-su/la-so/steve-jobs.svg",
+ "playlist": {
+  "ten": "Geometry of Your Chart",
+  "mau": "#C9A7FF",
+  "ic": "△"
+ },
+ "DAI": 34.0,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 6.0,
+   "canh": {
+    "thien_cau": {
+     "vi_do": 37.8,
+     "gio_moi_giay": 0.6,
+     "nhin": "xien",
+     "lst0": 40
+    }
+   },
+   "chu": "Stand anywhere on Earth. The flat disc is your horizon.",
+   "nhan": "San Francisco · 37.8° N"
+  },
+  {
+   "tu": 6.0,
+   "den": 13.0,
+   "canh": {
+    "thien_cau": {
+     "vi_do": 37.8,
+     "gio_moi_giay": 0.9,
+     "nhin": "xien"
+    }
+   },
+   "chu": "The sky turns around you once a day. The gold circle is the zodiac: the Sun's path.",
+   "nhan": "The ecliptic"
+  },
+  {
+   "tu": 13.0,
+   "den": 21.0,
+   "canh": {
+    "thien_cau": {
+     "vi_do": 37.8,
+     "gio_moi_giay": 0.8,
+     "nhin": "dong"
+    }
+   },
+   "chu": "Look east. The zodiac point rising over the horizon right now is your Ascendant.",
+   "nhan": "Rising sign"
+  },
+  {
+   "tu": 21.0,
+   "den": 28.0,
+   "canh": {
+    "thien_cau": {
+     "vi_do": 37.8,
+     "gio_moi_giay": 2.0,
+     "nhin": "dong"
+    }
+   },
+   "chu": "Every two hours or so, a new sign rises. That's why birth time matters.",
+   "nhan": "≈ 2 hours per sign"
+  },
+  {
+   "tu": 28.0,
+   "den": 34.0,
+   "canh": {
+    "banh": 1
+   },
+   "chu": "Flatten the sky, and that rising point becomes the left edge of your chart.",
+   "nhan": "Steve Jobs · Virgo rising"
+  }
+ ]
+}

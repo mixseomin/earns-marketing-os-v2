@@ -64,7 +64,13 @@
   }
   const CUNG = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
   const cungCua = (lon) => CUNG[Math.floor(chuan(lon) / 30)];
-  const api = { kinhDo, cungMoc, cungCua, CUNG, chuan };
+  // ĐỔI TOẠ ĐỘ dùng chung (bau-troi-dem.html + lich-su/dai/sinh-dem.mjs): giờ sao địa phương (rad), hoàng đạo → xích đạo (vĩ hoàng đạo 0), xích đạo → chân trời
+  const lstRad = (ms, kinh) => { const jd = ms / 86400000 + 2440587.5, T = (jd - 2451545) / 36525; return chuan(280.46061837 + 360.98564736629 * (jd - 2451545) + 0.000387933 * T * T + kinh) * R; };
+  const hoangSangXich = (lamRad) => { const e = 23.4393 * R; return { ra: Math.atan2(Math.sin(lamRad) * Math.cos(e), Math.cos(lamRad)), dec: Math.asin(Math.sin(e) * Math.sin(lamRad)) }; };
+  const chanTroi = (ra, dec, L, phi) => { const h = L - ra, sd = Math.sin(dec), cd = Math.cos(dec), sp = Math.sin(phi), cp = Math.cos(phi);
+    const alt = Math.asin(sp * sd + cp * cd * Math.cos(h)), az = Math.atan2(-cd * Math.sin(h), sd * cp - cd * Math.cos(h) * sp); return [alt, (az + 2 * Math.PI) % (2 * Math.PI)]; };   // [độ cao, phương vị từ bắc qua đông] (rad)
+  const doCao = (ms, ten, vi, kinh) => { const k = kinhDo(ms), e = hoangSangXich(k[ten] * R); return chanTroi(e.ra, e.dec, lstRad(ms, kinh), vi * R); };
+  const api = { kinhDo, cungMoc, cungCua, CUNG, chuan, lstRad, hoangSangXich, chanTroi, doCao };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else g.BauTroi = api;
 
   if (typeof process !== 'undefined' && process.argv?.[1]?.endsWith('bau-troi-tinh.js') && process.argv.includes('--tu-kiem')) {

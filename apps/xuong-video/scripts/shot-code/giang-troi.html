@@ -1,0 +1,156 @@
+<!doctype html>
+<!-- GIẢNG BẦU TRỜI 3D — mẫu dài 16:9 "How the Sky Works" + "The Geometry of Your Chart" kênh YouTube Astrolas (anh 04/11/2026: "làm mẫu… làm template để sau
+     này triển khai tự động hàng loạt định kỳ"). Canvas tự chiếu phối cảnh (không thư viện), hình là hàm thuần của t (window.__seek) → shot-code/dung.mjs quay.
+     Khung thương hiệu như la-so.html khổ ngang: hình bên trái 1080 px, logo + nhãn playlist + ô nhãn + câu kể ở cột phải, nền trời thật chuyển động (nen-troi.js).
+     CAU = { DAI, nen, logo, playlist: { ten, mau, ic }, la_so?: SVG lá số (cảnh banh),
+       cau: [{ tu, den, chu, nhan?, chuyen?, canh }] — canh:
+         { quy_dao: { ngay_moi_giay, nhin: 'tren'|'xien', vet?: true } } — Mặt Trời + quỹ đạo Sao Thuỷ / Trái Đất (chu kỳ thật 87,97 / 365,26 ngày), đường nhìn
+           Trái Đất → Sao Thuỷ chiếu lên vòng hoàng đạo; vet = vệt vị trí biểu kiến (xanh: đi thuận, đỏ: đi lùi) + đồ thị kinh độ theo ngày
+         { thien_cau: { vi_do, gio_moi_giay, nhin: 'xien'|'dong' } } — người quan sát giữa đĩa chân trời, thiên cầu quay theo giờ sao, hoàng đạo nghiêng 23,44°;
+           điểm hoàng đạo đang mọc ở chân trời đông = CUNG MỌC (tính, không vẽ tay)
+         { banh: 1 } — bánh xe lá số thật (la_so) hiện ra, cung Mọc ở mép trái }
+     Ngày bắt đầu cảnh quy_dao chọn sao cho Sao Thuỷ giao hội dưới với Trái Đất ở giữa cảnh: chu kỳ và hình học là thật, ngày lịch không gắn. -->
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: PF; src: url(../lich-su/brand/astrolas/fonts/PlayfairDisplay.ttf); font-weight: 400 900; }
+@font-face { font-family: IN; src: url(../lich-su/brand/astrolas/fonts/Inter.ttf); font-weight: 100 900; }
+@font-face { font-family: CG; src: url(../lich-su/brand/astrolas/fonts/CormorantGaramond-Italic.ttf); font-style: italic; font-weight: 300 700; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #0B1A2E; overflow: hidden; }
+#k { position: relative; width: 1920px; height: 1080px; overflow: hidden; color: #fff; font-family: IN, sans-serif; }
+.abs { position: absolute; }
+#nen-anh { inset: 0; width: 1920px; height: 1080px; object-fit: cover; }
+#phu { inset: 0; background: radial-gradient(ellipse at 30% 50%, rgba(15,34,64,.55) 0%, rgba(11,26,46,.8) 60%, rgba(8,19,34,.92) 100%); }
+#sao, #ve { inset: 0; }
+#banh { left: 90px; top: 60px; width: 960px; height: 960px; opacity: 0; }
+.chip { display: inline-flex; align-items: center; gap: .45em; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: #0B1A2E; padding: .42em .8em .38em; border-radius: .3em; }
+#goc { left: 1150px; top: 90px; display: flex; flex-direction: column; gap: 20px; align-items: flex-start; opacity: .92; }
+#nhan { left: 1150px; right: 80px; top: 600px; font: 600 40px CG, serif; font-style: italic; color: #F4D971; }
+#cau { left: 1150px; right: 80px; top: 660px; font: 800 58px/1.18 IN; text-shadow: 0 3px 0 #0B1A2E, 0 0 18px rgba(0,0,0,.6); }
+</style></head>
+<body><div id="k">
+  <img id="nen-anh" class="abs"><div id="phu" class="abs"></div>
+  <canvas id="sao" class="abs" width="1920" height="1080"></canvas>
+  <canvas id="ve" class="abs" width="1920" height="1080"></canvas>
+  <img id="banh" class="abs">
+  <div id="goc" class="abs"></div><div id="nhan" class="abs"></div><div id="cau" class="abs"></div>
+</div>
+<script src="nen-troi.js"></script>
+<script>
+const W = 1920, H = 1080, CX = 570, CY = 540, R = Math.PI / 180, TAU = 2 * Math.PI;
+const ease = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u)), lerp = (a, b, k) => a + (b - a) * k;
+const KY12 = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'].map((x) => x + '︎');
+const CUNG12 = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+const FONT_KY = '"Apple Symbols","Noto Sans Symbols",serif', CHUYEN = 0.9;
+const cv = document.getElementById('ve'), g = cv.getContext('2d');
+let C, SAO = [];
+
+// ---------- chiếu phối cảnh: điểm 3D (x phải, y lên, z vào màn) quay quanh trục ngang (nghieng) + trục đứng (xoay) ----------
+let CAM = { nghieng: 60, xoay: 0, f: 2600, ty: 300 };
+function chieu([x, y, z]) {
+  const cx = Math.cos(CAM.xoay * R), sx = Math.sin(CAM.xoay * R), x1 = x * cx + z * sx, z1 = -x * sx + z * cx;
+  const cn = Math.cos(CAM.nghieng * R), sn = Math.sin(CAM.nghieng * R), y2 = y * cn - z1 * sn, z2 = y * sn + z1 * cn;
+  const k = CAM.f / (CAM.f + z2); return [CX + x1 * k, CY - y2 * k, z2, k];
+}
+const duong = (pts, mau, rong = 2, mo = 1) => { g.globalAlpha = mo; g.strokeStyle = mau; g.lineWidth = rong; g.beginPath(); pts.forEach((p, i) => { const [a, b] = chieu(p); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.stroke(); g.globalAlpha = 1; };
+const cham = (p, r, mau, mo = 1, sang = 0) => { const [a, b, , k] = chieu(p); g.globalAlpha = mo; if (sang) { const gr = g.createRadialGradient(a, b, 0, a, b, r * k * sang); gr.addColorStop(0, mau); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.beginPath(); g.arc(a, b, r * k * sang, 0, TAU); g.fill(); }
+  g.fillStyle = mau; g.beginPath(); g.arc(a, b, r * k, 0, TAU); g.fill(); g.globalAlpha = 1; return [a, b]; };
+const chu = (p, s, co, mau, mo = 1, font = 'IN') => { const [a, b, , k] = chieu(p); g.globalAlpha = mo; g.fillStyle = mau; g.font = `700 ${co * Math.min(1.2, k)}px ${font}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(s, a, b); g.globalAlpha = 1; };
+const vong = (r, y = 0, n = 180) => Array.from({ length: n + 1 }, (_, i) => [r * Math.cos((i / n) * TAU), y, r * Math.sin((i / n) * TAU)]);
+
+// ---------- cảnh QUỸ ĐẠO: chu kỳ thật, giao hội dưới ở giữa cảnh ----------
+const PM = 87.969, PE = 365.256, AM = 0.387, SC = 230;   // AU → px (vòng hoàng đạo 1,62 AU ≈ 372 px: gọn trong vùng hình 1080)
+function viTri(ngay, d0) {   // góc hoàng kinh nhật tâm: giao hội dưới (cùng góc) tại ngày d0, Trái Đất ở 0° lúc đó
+  const e = (TAU * (ngay - d0)) / PE, m = (TAU * (ngay - d0)) / PM;
+  return { E: [SC * Math.cos(e), 0, SC * Math.sin(e)], M: [SC * AM * Math.cos(m), 0, SC * AM * Math.sin(m)] };
+}
+const kinhDoBK = (ngay, d0) => { const { E, M } = viTri(ngay, d0); return Math.atan2(M[2] - E[2], M[0] - E[0]); };   // kinh độ biểu kiến nhìn từ Trái Đất
+function veQuyDao(o, tCanh, mo) {
+  const d0 = o._d0, ngay = d0 + (tCanh - o._giua) * o.ngay_moi_giay, RV = SC * 1.62;
+  CAM = { ...CAM, nghieng: o.nhin === 'tren' ? 88 : 62, xoay: 0 }; const CY0 = CY;
+  duong(vong(RV), 'rgba(233,223,196,.35)', 2, mo); duong(vong(RV * 1.09), 'rgba(233,223,196,.18)', 1.5, mo);
+  for (let i = 0; i < 12; i++) { const a = (i * 30 + 15) * R; chu([RV * 1.045 * Math.cos(a), 0, RV * 1.045 * Math.sin(a)], KY12[i], 34, '#E9DFC4', mo * 0.85, FONT_KY); }
+  duong(vong(SC), 'rgba(142,197,255,.45)', 2, mo); duong(vong(SC * AM), 'rgba(255,184,107,.5)', 2, mo);
+  cham([0, 0, 0], 26, '#FFD86B', mo, 3.2);
+  const { E, M } = viTri(ngay, d0);
+  // vệt vị trí biểu kiến trên vòng hoàng đạo: xanh đi thuận, đỏ đi lùi
+  if (o.vet) { for (let s = 120; s >= 0; s--) { const n1 = ngay - s * 0.5, l1 = kinhDoBK(n1, d0), l0 = kinhDoBK(n1 - 0.5, d0), lui = Math.sin(l1 - l0) < 0;
+      cham([RV * Math.cos(l1), 0, RV * Math.sin(l1)], 5, lui ? '#FF6B6B' : '#7FE0B0', mo * (1 - s / 130)); } }
+  const l = kinhDoBK(ngay, d0), P = [RV * Math.cos(l), 0, RV * Math.sin(l)];
+  duong([E, P], 'rgba(244,217,113,.75)', 3, mo);
+  cham(E, 13, '#8EC5FF', mo, 2.2); chu([E[0], 34, E[2]], 'Earth', 26, '#cfe3ff', mo);
+  cham(M, 9, '#FFB86B', mo, 2.4); chu([M[0], 30, M[2]], 'Mercury', 24, '#ffd9ae', mo);
+  cham(P, 12, '#F4D971', mo, 2.5);
+  const lui = Math.sin(kinhDoBK(ngay + 0.5, d0) - kinhDoBK(ngay - 0.5, d0)) < 0;
+  // đồ thị kinh độ biểu kiến theo ngày (góc dưới vùng hình)
+  if (o.vet) {   // đồ thị kinh độ biểu kiến ±80 ngày quanh hôm nay: góc cộng dồn (không nhảy 360°), xanh đi thuận, đỏ đi lùi
+    const x0 = 140, y0 = 960, w = 860, h = 120, ds = []; let truoc = null, tong = 0;
+    for (let s = 0; s <= 160; s++) { const v = kinhDoBK(ngay - 80 + s, d0); if (truoc !== null) tong += Math.atan2(Math.sin(v - truoc), Math.cos(v - truoc)); truoc = v; ds.push(tong); }
+    const lo = Math.min(...ds), hi = Math.max(...ds), Y = (v) => y0 - ((v - lo) / (hi - lo || 1)) * h;
+    g.globalAlpha = mo; g.fillStyle = 'rgba(9,22,42,.72)'; g.fillRect(x0 - 24, y0 - h - 52, w + 48, h + 76);
+    g.font = '700 20px IN'; g.fillStyle = '#9fb0c8'; g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillText('POSITION SEEN FROM EARTH · 160 DAYS', x0, y0 - h - 22);
+    g.lineWidth = 4; for (let s = 1; s <= 160; s++) { g.strokeStyle = ds[s] < ds[s - 1] ? '#FF6B6B' : '#7FE0B0'; g.beginPath(); g.moveTo(x0 + ((s - 1) / 160) * w, Y(ds[s - 1])); g.lineTo(x0 + (s / 160) * w, Y(ds[s])); g.stroke(); }
+    g.fillStyle = '#F4D971'; g.beginPath(); g.arc(x0 + w / 2, Y(ds[80]), 8, 0, TAU); g.fill(); g.globalAlpha = 1; }
+  return { lui, cung: CUNG12[Math.floor((((l / R) % 360) + 360) % 360 / 30)] };
+}
+
+// ---------- cảnh THIÊN CẦU: khung chân trời (x đông, y thiên đỉnh, z bắc), thiên cầu quay theo giờ sao ----------
+const EPS = 23.44 * R;
+function xichSangChanTroi(ra, dec, lst, phi) {   // xích đạo (độ cầu) → vector chân trời [đông, thiên đỉnh, bắc]
+  const h = lst - ra, cd = Math.cos(dec), sd = Math.sin(dec), ch = Math.cos(h), sh = Math.sin(h), sp = Math.sin(phi), cp = Math.cos(phi);
+  const alt = Math.asin(sp * sd + cp * cd * ch), az = Math.atan2(-cd * sh, sd * cp - cd * ch * sp);   // az từ bắc qua đông
+  return [Math.cos(alt) * Math.sin(az), Math.sin(alt), Math.cos(alt) * Math.cos(az)];
+}
+const hoangSangXich = (lam) => ({ ra: Math.atan2(Math.sin(lam) * Math.cos(EPS), Math.cos(lam)), dec: Math.asin(Math.sin(EPS) * Math.sin(lam)) });
+function veThienCau(o, tCanh, mo) {
+  const RS = 380, phi = o.vi_do * R, lst = ((o._lst0 + tCanh * o.gio_moi_giay * 15.041) % 360) * R;
+  CAM = { ...CAM, nghieng: o.nhin === 'dong' ? 12 : 24, xoay: o.nhin === 'dong' ? -70 : -35 };
+  const P = (v) => [v[0] * RS, v[1] * RS, v[2] * RS];
+  // đĩa chân trời
+  const dia = vong(RS); g.globalAlpha = mo * 0.55; g.fillStyle = '#132B4D'; g.beginPath(); dia.forEach((p, i) => { const [a, b] = chieu(p); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.fill(); g.globalAlpha = 1;
+  duong(dia, 'rgba(142,197,255,.6)', 2.5, mo);
+  [['N', [0, 0, 1]], ['E', [1, 0, 0]], ['S', [0, 0, -1]], ['W', [-1, 0, 0]]].forEach(([s, v]) => chu(P(v.map((x) => x * 1.1)), s, 30, s === 'E' ? '#F4D971' : '#9fb0c8', mo));
+  // kinh tuyến thiên cầu (mờ) + xích đạo trời
+  for (let ra = 0; ra < 360; ra += 30) duong(Array.from({ length: 61 }, (_, i) => P(xichSangChanTroi(ra * R, (-90 + i * 3) * R, lst, phi))), 'rgba(233,223,196,.12)', 1.2, mo);
+  duong(Array.from({ length: 121 }, (_, i) => P(xichSangChanTroi(i * 3 * R, 0, lst, phi))), 'rgba(233,223,196,.35)', 1.8, mo);
+  // hoàng đạo + ký hiệu cung
+  const hd = Array.from({ length: 181 }, (_, i) => { const { ra, dec } = hoangSangXich(i * 2 * R); return xichSangChanTroi(ra, dec, lst, phi); });
+  duong(hd.map(P), '#E6B800', 4, mo);
+  for (let i = 0; i < 12; i++) { const { ra, dec } = hoangSangXich((i * 30 + 15) * R), v = xichSangChanTroi(ra, dec, lst, phi); chu(P(v.map((x) => x * 1.08)), KY12[i], 34, v[1] > 0 ? '#FFF3B8' : 'rgba(233,223,196,.4)', mo, FONT_KY); }
+  // CUNG MỌC: điểm hoàng đạo trên chân trời phía đông (tìm điểm đổi dấu độ cao có thành phần đông > 0)
+  let moc = null;
+  for (let i = 0; i < 720; i++) { const l0 = (i / 2) * R, l1 = ((i + 1) / 2) * R, a = hoangSangXich(l0), b = hoangSangXich(l1), va = xichSangChanTroi(a.ra, a.dec, lst, phi), vb = xichSangChanTroi(b.ra, b.dec, lst, phi);
+    // CUNG MỌC: đi theo chiều kinh độ tăng, tại điểm Mọc độ cao đổi từ DƯƠNG sang ÂM (các cung sau nó còn dưới chân trời), ở nửa trời phía đông
+    if (va[1] > 0 && vb[1] <= 0 && va[0] > 0) { moc = { lam: l0 + ((l1 - l0) * va[1]) / (va[1] - vb[1]), v: [(va[0] + vb[0]) / 2, 0, (va[2] + vb[2]) / 2] }; break; } }
+  cham([0, 0, 0], 12, '#fff', mo, 2); chu([0, -40, 0], 'you', 22, '#cfd8e6', mo);
+  if (moc) { const p = P(moc.v), d = ((moc.lam / R) % 360 + 360) % 360; cham(p, 16, '#F4D971', mo, 3); chu([p[0] * 1.18, p[1] + 50, p[2] * 1.18], `Ascendant · ${CUNG12[Math.floor(d / 30)]} ${Math.floor(d % 30)}°`, 30, '#F4D971', mo); }
+  return { moc };
+}
+
+// ---------- vòng đời ----------
+window.__dung = async () => {
+  C = window.CAU;
+  const tai = (u) => new Promise((ok, loi) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => loi(new Error('không tải được ' + u)); i.src = u; });
+  const [nen] = await Promise.all([tai(C.nen), tai(C.logo), C.la_so ? tai(C.la_so).then((i) => { document.getElementById('banh').src = i.src; }) : null]);
+  document.getElementById('nen-anh').src = nen.src;
+  const pl = C.playlist; document.getElementById('goc').innerHTML = `<img src="${C.logo}" style="height:61px;display:block"><span class="chip" style="font-size:30px;background:${pl.mau}">${pl.ic} ${pl.ten}</span>`;
+  // quỹ đạo: giao hội dưới ở giữa cảnh · thiên cầu: giờ sao đầu cảnh nối tiếp cảnh trước cùng kiểu
+  let lst = null;
+  for (const q of C.cau) { const o = q.canh?.quy_dao; if (o) { o._giua = (q.den - q.tu) / 2; o._d0 = 0; }
+    const t = q.canh?.thien_cau; if (t) { t._lst0 = lst ?? (t.lst0 ?? 60); lst = t._lst0 + (q.den - q.tu) * t.gio_moi_giay * 15.041; } }
+  SAO = NenTroi.tao({ w: W, h: H, n: 170 }); await document.fonts.ready;
+};
+window.__seek = (t) => {
+  NenTroi.ve(t, { anh: document.getElementById('nen-anh'), cv: document.getElementById('sao'), sao: SAO, w: W, h: H });
+  g.clearRect(0, 0, W, H);
+  let i = C.cau.findIndex((q) => t < q.den); if (i < 0) i = C.cau.length - 1;
+  const q = C.cau[i], p = C.cau[i - 1], k = ease((t - q.tu) / (q.chuyen ?? CHUYEN));
+  const ve1 = (cau, mo) => { if (!cau || mo <= 0.001) return; const c = cau.canh || {}, tc = t - cau.tu;
+    if (c.quy_dao) veQuyDao(c.quy_dao, tc, mo); if (c.thien_cau) veThienCau(c.thien_cau, tc, mo); };
+  ve1(p, 1 - k); ve1(q, k);
+  const bo = (x) => (x?.canh?.banh ? 1 : 0); document.getElementById('banh').style.opacity = bo(q) * k + bo(p) * (1 - k);
+  const hien = Math.min(ease((t - q.tu) / 0.35), ease((q.den - t) / 0.3));
+  const nh = document.getElementById('nhan'), cc = document.getElementById('cau');
+  nh.textContent = q.nhan || ''; nh.style.opacity = q.nhan ? ease((t - q.tu - 0.4) / 0.4) * hien : 0; cc.innerHTML = q.chu; cc.style.opacity = hien;
+};
+</script></body></html>

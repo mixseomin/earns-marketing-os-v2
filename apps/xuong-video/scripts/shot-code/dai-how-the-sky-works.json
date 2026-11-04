@@ -1,0 +1,76 @@
+{
+ "_ghi": "Mẫu dài 16:9 How the Sky Works (đoạn trích): vì sao Sao Thuỷ đi lùi. Chu kỳ thật 87,97 / 365,26 ngày; giao hội dưới ở giữa cảnh vệt.",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "How the Sky Works",
+  "mau": "#8EC5FF",
+  "ic": "☿"
+ },
+ "DAI": 35.0,
+ "cau": [
+  {
+   "tu": 0,
+   "den": 6.0,
+   "canh": {
+    "quy_dao": {
+     "ngay_moi_giay": 14,
+     "nhin": "tren"
+    }
+   },
+   "chu": "Three times a year, Mercury seems to stop and walk backwards across the sky.",
+   "nhan": "Mercury retrograde"
+  },
+  {
+   "tu": 6.0,
+   "den": 12.0,
+   "canh": {
+    "quy_dao": {
+     "ngay_moi_giay": 14,
+     "nhin": "xien"
+    }
+   },
+   "chu": "Mercury circles the Sun every 88 days. Earth takes 365.",
+   "nhan": "Real orbital periods"
+  },
+  {
+   "tu": 12.0,
+   "den": 20.0,
+   "canh": {
+    "quy_dao": {
+     "ngay_moi_giay": 10,
+     "nhin": "xien",
+     "vet": true
+    }
+   },
+   "chu": "From Earth, we see Mercury against the zodiac. Watch the yellow line.",
+   "nhan": "Line of sight"
+  },
+  {
+   "tu": 20.0,
+   "den": 29.0,
+   "canh": {
+    "quy_dao": {
+     "ngay_moi_giay": 6,
+     "nhin": "xien",
+     "vet": true
+    }
+   },
+   "chu": "As Mercury overtakes us on the inside lane, it appears to move backwards. The red stretch.",
+   "nhan": "Retrograde: a matter of perspective"
+  },
+  {
+   "tu": 29.0,
+   "den": 35.0,
+   "canh": {
+    "quy_dao": {
+     "ngay_moi_giay": 10,
+     "nhin": "tren",
+     "vet": true
+    }
+   },
+   "chu": "Nothing actually reverses. Next one: see the dates free at astrolas.com.",
+   "nhan": "astrolas.com · Transit"
+  }
+ ]
+}

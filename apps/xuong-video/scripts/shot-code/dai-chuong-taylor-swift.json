@@ -1,0 +1,307 @@
+{
+ "_ghi": "Chart Chapters dài · Taylor Swift — sinh bởi lich-su/dai/sinh-chuong.mjs từ moc-taylor-swift.json",
+ "khung": "ngang",
+ "DAI": 53.2,
+ "la_so": "../lich-su/la-so/taylor-swift.svg",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "Chart Chapters",
+  "mau": "#E6B800",
+  "ic": "☉"
+ },
+ "cau": [
+  {
+   "tu": 0,
+   "den": 5,
+   "nhin": {
+    "dung": 1
+   },
+   "chu": "This is the sky at the moment Taylor Swift was born: December 13, 1989, Reading, Pennsylvania."
+  },
+  {
+   "tu": 5,
+   "den": 10.4,
+   "nhin": {
+    "doi": {
+     "tu": 1989,
+     "den": 2026,
+     "dang": 1989,
+     "moc": [
+      {
+       "nam": 2006,
+       "chu": "debut album"
+      },
+      {
+       "nam": 2014,
+       "chu": "1989"
+      },
+      {
+       "nam": 2019,
+       "chu": "masters sold"
+      },
+      {
+       "nam": 2023,
+       "chu": "Eras Tour"
+      }
+     ]
+    }
+   },
+   "chu": "Astrologers kept an old clock for a life. Each birthday, the year moves one sign around the chart.",
+   "nhan": "Annual Profections"
+  },
+  {
+   "tu": 10.4,
+   "den": 15.6,
+   "nhin": {
+    "doi": {
+     "tu": 1989,
+     "den": 2026,
+     "dang": 2006,
+     "moc": [
+      {
+       "nam": 2006,
+       "chu": "debut album"
+      },
+      {
+       "nam": 2014,
+       "chu": "1989"
+      },
+      {
+       "nam": 2019,
+       "chu": "masters sold"
+      },
+      {
+       "nam": 2023,
+       "chu": "Eras Tour"
+      }
+     ]
+    }
+   },
+   "chu": "2006, age 16: a Scorpio year. Counted from Cancer rising, that's the 5th house: children and creativity."
+  },
+  {
+   "tu": 15.6,
+   "den": 20,
+   "nhin": {
+    "doi": {
+     "tu": 1989,
+     "den": 2026,
+     "dang": 2006,
+     "moc": [
+      {
+       "nam": 2006,
+       "chu": "debut album"
+      },
+      {
+       "nam": 2014,
+       "chu": "1989"
+      },
+      {
+       "nam": 2019,
+       "chu": "masters sold"
+      },
+      {
+       "nam": 2023,
+       "chu": "Eras Tour"
+      }
+     ]
+    }
+   },
+   "chu": "Her first album, Taylor Swift, comes out.",
+   "nhan": "debut album"
+  },
+  {
+   "tu": 20,
+   "den": 25.2,
+   "nhin": {
+    "doi": {
+     "tu": 1989,
+     "den": 2026,
+     "dang": 2014,
+     "moc": [
+      {
+       "nam": 2006,
+       "chu": "debut album"
+      },
+      {
+       "nam": 2014,
+       "chu": "1989"
+      },
+      {
+       "nam": 2019,
+       "chu": "masters sold"
+      },
+      {
+       "nam": 2023,
+       "chu": "Eras Tour"
+      }
+     ]
+    }
+   },
+   "chu": "2014, age 24: a Cancer year. Counted from Cancer rising, that's the 1st house: self and body."
+  },
+  {
+   "tu": 25.2,
+   "den": 29.6,
+   "nhin": {
+    "doi": {
+     "tu": 1989,
+     "den": 2026,
+     "dang": 2014,
+     "moc": [
+      {
+       "nam": 2006,
+       "chu": "debut album"
+      },
+      {
+       "nam": 2014,
+       "chu": "1989"
+      },
+      {
+       "nam": 2019,
+       "chu": "masters sold"
+      },
+      {
+       "nam": 2023,
+       "chu": "Eras Tour"
+      }
+     ]
+    }
+   },
+   "chu": "She releases 1989 and moves fully to pop.",
+   "nhan": "1989"
+  },
+  {
+   "tu": 29.6,
+   "den": 34.8,
+   "nhin": {
+    "doi": {
+     "tu": 1989,
+     "den": 2026,
+     "dang": 2019,
+     "moc": [
+      {
+       "nam": 2006,
+       "chu": "debut album"
+      },
+      {
+       "nam": 2014,
+       "chu": "1989"
+      },
+      {
+       "nam": 2019,
+       "chu": "masters sold"
+      },
+      {
+       "nam": 2023,
+       "chu": "Eras Tour"
+      }
+     ]
+    }
+   },
+   "chu": "2019, age 29: a Sagittarius year. Counted from Cancer rising, that's the 6th house: work and health."
+  },
+  {
+   "tu": 34.8,
+   "den": 39.2,
+   "nhin": {
+    "doi": {
+     "tu": 1989,
+     "den": 2026,
+     "dang": 2019,
+     "moc": [
+      {
+       "nam": 2006,
+       "chu": "debut album"
+      },
+      {
+       "nam": 2014,
+       "chu": "1989"
+      },
+      {
+       "nam": 2019,
+       "chu": "masters sold"
+      },
+      {
+       "nam": 2023,
+       "chu": "Eras Tour"
+      }
+     ]
+    }
+   },
+   "chu": "Her first six albums' masters are sold without her.",
+   "nhan": "masters sold"
+  },
+  {
+   "tu": 39.2,
+   "den": 44.4,
+   "nhin": {
+    "doi": {
+     "tu": 1989,
+     "den": 2026,
+     "dang": 2023,
+     "moc": [
+      {
+       "nam": 2006,
+       "chu": "debut album"
+      },
+      {
+       "nam": 2014,
+       "chu": "1989"
+      },
+      {
+       "nam": 2019,
+       "chu": "masters sold"
+      },
+      {
+       "nam": 2023,
+       "chu": "Eras Tour"
+      }
+     ]
+    }
+   },
+   "chu": "2023, age 33: an Aries year. Counted from Cancer rising, that's the 10th house: career and reputation."
+  },
+  {
+   "tu": 44.4,
+   "den": 48.8,
+   "nhin": {
+    "doi": {
+     "tu": 1989,
+     "den": 2026,
+     "dang": 2023,
+     "moc": [
+      {
+       "nam": 2006,
+       "chu": "debut album"
+      },
+      {
+       "nam": 2014,
+       "chu": "1989"
+      },
+      {
+       "nam": 2019,
+       "chu": "masters sold"
+      },
+      {
+       "nam": 2023,
+       "chu": "Eras Tour"
+      }
+     ]
+    }
+   },
+   "chu": "The Eras Tour begins.",
+   "nhan": "Eras Tour"
+  },
+  {
+   "tu": 48.8,
+   "den": 53.2,
+   "nhin": {
+    "toan": 1
+   },
+   "chu": "Find your own chapters free at astrolas.com.",
+   "nhan": "astrolas.com · Annual Profections"
+  }
+ ]
+}

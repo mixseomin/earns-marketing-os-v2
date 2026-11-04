@@ -1,0 +1,6 @@
+{ "ten": "Steve Jobs", "sinh": "February 24, 1955, 7:15 PM, San Francisco", "den": 2011,
+  "moc": [
+    { "nam": 1976, "ngay": "1976-04-01", "nhan": "Apple", "chu": "In a garage in Los Altos, he and Steve Wozniak start Apple.", "tranh": "../brand/astrolas/tranh/sj-1976-garage.jpg", "noi": "Los Altos, California" },
+    { "nam": 1985, "ngay": "1985-09-17", "nhan": "leaves", "chu": "Apple's board strips him of his role. He leaves.", "tranh": "../brand/astrolas/tranh/sj-1985-board.jpg", "noi": "Cupertino" },
+    { "nam": 1997, "ngay": "1997-08-06", "nhan": "returns", "chu": "He comes back to Apple.", "tranh": "../brand/astrolas/tranh/sj-1997-stage.jpg", "noi": "Macworld, Boston" },
+    { "nam": 2007, "ngay": "2007-01-09", "nhan": "iPhone", "chu": "He unveils the iPhone." } ] }

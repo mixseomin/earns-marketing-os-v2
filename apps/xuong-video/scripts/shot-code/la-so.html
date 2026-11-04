@@ -12,6 +12,9 @@
            của astrolas.com trong khung điện thoại: camera trượt + phóng tới khung, khoanh viền vàng; bam = vệt chạm vào giữa khung (bấm nút)
          | { troi: 1 } — chỉ nền trời (đi với thẻ the)  | { trang_tuan: { tu: 'YYYY-MM-DD', so: 7 } } — dải pha trăng TÍNH THẬT từng ngày (bau-troi-tinh.js)
        câu nào cũng có thể kèm the: { lon, duoi?, dong: [], vi?: 'tren'|'giua' } — thẻ số liệu kiểu hologram (số to + dòng giải thích), chuyen: giây chuyển cảnh (mặc định 0,9)
+       | { doi: { tu: năm, den: năm, dang: năm, moc: [{ nam, chu }] } } — DÒNG ĐỜI theo năm tuổi: mỗi tuổi một ô màu theo cung Profection (tính từ cung Mọc của
+           lá số), mốc đời ghim dưới, con trỏ trượt tới năm dang (câu kế cùng doi thì con trỏ chạy tiếp) — cho Chart Chapters bản dài
+       khung: 'ngang' = 1920×1080 cho video dài (hình bên trái 1080 px, cột chữ bên phải); bỏ trống = Short dọc 1080×1920.
        la_so bỏ trống được (loạt không cần lá số như Sky Calendar). Một trang cho mọi loại nội dung kênh: Chart Chapters, Sky Calendar, The Myth Behind, công cụ, Start here.
      } -->
 <html><head><meta charset="utf-8">
@@ -52,6 +55,23 @@ html, body { background: #0B1A2E; overflow: hidden; }
 #the::before { left: -8px; top: -8px; border-right: 0; border-bottom: 0; } #the::after { right: -8px; bottom: -8px; border-left: 0; border-top: 0; }
 #the .lon { font: 900 120px/1 PF, serif; color: #fff; text-shadow: 0 0 24px rgba(95,207,232,.5); } #the .duoi { font: 700 28px IN; letter-spacing: .18em; text-transform: uppercase; color: #5FCFE8; margin-top: 10px; }
 #the .dong { font: 600 36px/1.35 IN; color: #E9F2FA; margin-top: 18px; }
+/* DÒNG ĐỜI */
+#doi { left: 60px; top: 520px; width: 960px; height: 520px; opacity: 0; }
+#doi .tro { position: absolute; top: 80px; width: 4px; height: 240px; margin-left: -2px; background: #F4D971; box-shadow: 0 0 18px rgba(244,217,113,.8); }
+#doi .tro b { position: absolute; top: -132px; left: 0; white-space: nowrap; font: 900 40px PF, serif; color: #fff; text-shadow: 0 2px 12px rgba(0,0,0,.6); }
+/* KHỔ NGANG 1920×1080: vùng hình bên trái (0–1080), cột chữ bên phải (1150–1840) */
+body.ngang #k { width: 1920px; height: 1080px; } body.ngang #nen-anh { width: 1920px; height: 1080px; }
+body.ngang #toi-tren, body.ngang #toi-day { display: none; }
+body.ngang #tranh { left: 0; top: 0; width: 1080px; height: 1080px; right: auto; bottom: auto; }
+body.ngang #tranh img { width: 608px; height: 1080px; left: 236px; } body.ngang #tranh img.mo { width: 1080px; left: 0; filter: blur(38px) brightness(.45); }
+body.ngang #o { left: 90px; top: 60px; width: 960px; height: 960px; } body.ngang #o svg { width: 960px; height: 960px; }
+body.ngang #man { left: 90px; top: 60px; width: 960px; height: 960px; }
+body.ngang #bang .tuan { left: 70px; right: 910px; top: 400px; }
+body.ngang #doi { left: 60px; top: 330px; }
+body.ngang #goc { left: 1150px !important; top: 90px !important; }
+body.ngang #the { left: 1150px; right: 80px; top: 250px; }
+body.ngang #nhan { left: 1150px; right: 80px; top: 600px; text-align: left; font-size: 40px; }
+body.ngang #cau { left: 1150px; right: 80px; top: 660px; text-align: left; font-size: 58px; line-height: 1.18; }
 #nhan { left: 0; right: 0; top: 1300px; text-align: center; font: 600 38px CG, serif; font-style: italic; color: #F4D971; }
 #cau { left: 70px; right: 70px; top: 1370px; text-align: center; font: 800 52px/1.2 IN; text-shadow: 0 3px 0 #0B1A2E, 0 0 18px rgba(0,0,0,.6); }
 </style></head>
@@ -66,6 +86,7 @@ html, body { background: #0B1A2E; overflow: hidden; }
   <div id="o" class="abs"></div>
   <div id="man" class="abs"><div class="vien"></div><div class="cham"></div></div>
   <div id="bang" class="abs"></div>
+  <div id="doi" class="abs"><svg width="960" height="520"></svg><div class="tro"><b></b></div></div>
   <div id="the" class="abs"></div>
   <div id="nhan" class="abs"></div>
   <div id="cau" class="abs"></div>
@@ -80,7 +101,8 @@ const THU = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 
 const CHUYEN = 0.9;   // giây trượt camera đầu mỗi câu
 // nền trời chuyển động: shot-code/nen-troi.js (dùng chung với đoạn mở đầu kênh)
 let SAO = [];
-const veNen = (t) => NenTroi.ve(t, { anh: document.getElementById('nen-anh'), cv: document.getElementById('sao'), sao: SAO, w: 1080, h: 1920 });
+let W = 1080, H = 1920, CO = 1020;   // khổ khung + cỡ cửa sổ lá số; khổ ngang đổi ở __dung
+const veNen = (t) => NenTroi.ve(t, { anh: document.getElementById('nen-anh'), cv: document.getElementById('sao'), sao: SAO, w: W, h: H });
 let C, svg, VB0, nhom, canh = [];
 
 // tệp cục bộ: fetch() không đọc file:// trong Chromium → XHR (dung.mjs mở trình duyệt với --allow-file-access-from-files)
@@ -131,8 +153,11 @@ function camMan(meta, b) {
 }
 function dich(q) {
   const n = q.nhin || { toan: 1 }, D = C.du_lieu;
-  if (n.tranh) { const im = document.createElement('img'); im.src = n.tranh; document.getElementById('tranh').appendChild(im);
-    return { tranh: im, kieu: n.kieu || 'day', vb: null, sang: null, nhan: q.nhan || '' }; }
+  if (n.tranh) { const hop = document.getElementById('tranh'), mo = W > H ? Object.assign(document.createElement('img'), { src: n.tranh, className: 'mo' }) : null;
+    if (mo) hop.appendChild(mo);   // khổ ngang: tranh dọc 9:16 đứng giữa vùng hình, bản phóng mờ phủ hai bên
+    const im = document.createElement('img'); im.src = n.tranh; hop.appendChild(im);
+    return { tranh: im, mo, kieu: n.kieu || 'day', vb: null, sang: null, nhan: q.nhan || '' }; }
+  if (n.doi) return { doi: n.doi, bang: true, vb: null, sang: null, nhan: q.nhan || '' };
   if (n.troi) return { bang: true, vb: null, sang: null, nhan: q.nhan || '' };
   if (n.man) { const M = MAN[n.man], b = n.khung ? M.meta.khung[n.khung] : null; if (n.khung && !b) throw new Error(`không có khung ${n.khung} trong ${n.man}`);
     return { man: M, hop: b, cam: camMan(M.meta, b), bam: !!n.bam, bang: true, vb: null, sang: null, nhan: q.nhan || '' }; }
@@ -160,11 +185,12 @@ function dich(q) {
 
 window.__dung = async () => {
   C = window.CAU;
+  if (C.khung === 'ngang') { W = 1920; H = 1080; CO = 960; document.body.classList.add('ngang'); const cv = document.getElementById('sao'); cv.width = W; cv.height = H; }
   if (C.la_so && !C.du_lieu) C.du_lieu = JSON.parse(await doc(C.la_so.replace(/\.svg$/, '.json')));
   const [, , txt] = await Promise.all([tai(C.nen).then((i) => { document.getElementById('nen-anh').src = i.src; }), tai(C.logo),
     C.la_so ? doc(C.la_so) : null]);
   if (txt) { document.getElementById('o').innerHTML = txt;
-    svg = document.querySelector('#o svg'); svg.setAttribute('width', 1020); svg.setAttribute('height', 1020); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg = document.querySelector('#o svg'); svg.setAttribute('width', CO); svg.setAttribute('height', CO); svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     const [cx, cy] = C.du_lieu.tam, r = C.du_lieu.ban_kinh[0]; VB0 = [cx - r * 1.08, cy - r * 1.08, r * 2.16, r * 2.16]; }
   else { svg = null; VB0 = [0, 0, 1, 1]; }
   const pl = C.playlist || { ten: 'Chart Chapters', mau: '#E6B800', ic: '☉' };
@@ -180,10 +206,37 @@ window.__dung = async () => {
   if (svg) svg.setAttribute('viewBox', '0 0 ' + svg.viewBox.baseVal.width + ' ' + svg.viewBox.baseVal.height); canh = C.cau.map(dich);   // đo khung khi viewBox còn gốc
   canh.forEach((st, j) => { st.q = C.cau[j]; if (!st.nhan && C.cau[j].nhan) st.nhan = C.cau[j].nhan; if (!st.nhan && st.tuan) st.nhan = st.tuan.dataset.nhan; });
   await Promise.all(canh.filter((st) => st.tranh).map((st) => st.tranh.decode().catch(() => { throw new Error('không tải được tranh ' + st.tranh.getAttribute('src')); })));
-  SAO = NenTroi.tao({ w: 1080, h: 1920, n: 170 });
+  SAO = NenTroi.tao({ w: W, h: H, n: 170 });
   await document.fonts.ready;
 };
 
+// DÒNG ĐỜI: ô màu mỗi tuổi theo cung Profection = cung Mọc + tuổi (cung trọn), nguyên tố → màu; mốc đời ghim dưới
+const CUNG12 = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+const KY12 = ['♈', '♉', '♊', '♋', '♌', '♍', '♎', '♏', '♐', '♑', '♒', '♓'].map((x) => x + '\uFE0E'), MAU4 = ['#FF8A5C', '#7FD18B', '#8EC5FF', '#6E8BFF'];   // lửa · đất · khí · nước
+let doiVe = null;
+function veDoi(d) {   // vẽ một lần mỗi dải năm; ô tuổi mờ theo nguyên tố, chỉ mốc đời + đầu mỗi vòng 12 năm mới ghi ký hiệu cung
+  const key = `${d.tu}-${d.den}`; if (doiVe === key) return; doiVe = key;
+  const sv = document.querySelector('#doi svg'), n = d.den - d.tu + 1, w = 960 / n, moc = cungMocDoi();
+  const ghi = new Set((d.moc || []).map((m) => m.nam - d.tu)); for (let a = 0; a < n; a += 12) ghi.add(a);
+  let h = '';
+  for (let i = 0; i < n; i++) { const c = (moc + i) % 12, x = i * w;
+    h += `<rect data-tuoi="${i}" x="${x + 1}" y="80" width="${w - 2}" height="230" rx="3" fill="${MAU4[c % 4]}" opacity=".2"/>`;
+    if (ghi.has(i)) h += `<text x="${x + w / 2}" y="346" fill="#E9F2FA" font-family="Apple Symbols, Noto Sans Symbols" font-size="30" text-anchor="middle">${KY12[c]}</text>`;
+    if (i % 10 === 0) h += `<text x="${x + w / 2}" y="66" fill="#9fb0c8" font-family="IN" font-weight="700" font-size="24" text-anchor="middle">${i}</text>`; }
+  (d.moc || []).forEach((m, j) => { const x = (m.nam - d.tu + 0.5) * w, y = 400 + (j % 2) * 64;
+    h += `<line x1="${x}" y1="312" x2="${x}" y2="${y - 30}" stroke="#F4D971" stroke-width="2"/><circle cx="${x}" cy="312" r="7" fill="#F4D971"/>
+      <text x="${x}" y="${y}" fill="#fff" font-family="IN" font-weight="800" font-size="30" text-anchor="middle">${m.nam}</text><text x="${x}" y="${y + 28}" fill="#cfd8e6" font-family="IN" font-size="24" text-anchor="middle">${m.chu}</text>`; });
+  h += `<text x="0" y="512" fill="#9fb0c8" font-family="IN" font-weight="700" font-size="20" letter-spacing="3">AGE · PROFECTION SIGN FROM ${CUNG12[moc].toUpperCase()} RISING</text>`;
+  sv.innerHTML = h;
+}
+const cungMocDoi = () => Math.floor((C.du_lieu.nha.find((x) => x.so === 1)?.dinh ?? 0) / 30);
+function troDoi(d, nam) {   // con trỏ tại năm (số thực): ô tuổi đó sáng, nhãn năm · tuổi · cung (không tràn mép)
+  const n = d.den - d.tu + 1, w = 960 / n, moc = cungMocDoi(), tuoi = Math.max(0, Math.min(n - 1, Math.round(nam - d.tu))), x = (nam - d.tu + 0.5) * w;
+  document.querySelectorAll('#doi rect[data-tuoi]').forEach((r) => r.setAttribute('opacity', Number(r.dataset.tuoi) === tuoi ? '1' : '.2'));
+  const tro = document.getElementById('doi').querySelector('.tro'), b = tro.querySelector('b'); tro.style.left = `${x}px`;
+  b.textContent = `${d.tu + tuoi} · age ${tuoi} · ${CUNG12[(moc + tuoi) % 12]}`;
+  const bw = b.offsetWidth || 360; b.style.left = `${Math.max(-x + bw / 2, Math.min(960 - x - bw / 2, 0)) + 0}px`; b.style.transform = 'translateX(-50%)';
+}
 const hienCau = (t, q) => Math.min(ease((t - q.tu) / 0.35), ease((q.den - t) / 0.3));
 function trangThai(i) { return canh[Math.max(0, Math.min(canh.length - 1, i))]; }
 window.__seek = (t) => {
@@ -227,7 +280,7 @@ window.__seek = (t) => {
     } else { v.style.opacity = 0; ch.style.opacity = 0; }
   }
   for (const st of canh) { if (!st.tranh) continue;
-    const o = st === moi ? k : st === cu ? 1 - k : 0; st.tranh.style.opacity = o; if (!o) continue;
+    const o = st === moi ? k : st === cu ? 1 - k : 0; st.tranh.style.opacity = o; if (st.mo) st.mo.style.opacity = o; if (!o) continue;
     const u = Math.max(0, Math.min(1.2, (t - st.q.tu) / Math.max(0.5, st.q.den - st.q.tu))), e = ease(Math.min(1, u)) + Math.max(0, u - 1) * 0.5;
     const KB = { day: [1.04, 1.16, 0, 0], lui: [1.16, 1.04, 0, 0], trai: [1.14, 1.14, 40, -40], phai: [1.14, 1.14, -40, 40], len: [1.12, 1.16, 0, 0] }[st.kieu] || [1.04, 1.16, 0, 0];
     const sc = lerp(KB[0], KB[1], e), tx = lerp(KB[2], KB[3], e), ty = st.kieu === 'len' ? lerp(50, -50, e) : 0;
@@ -236,6 +289,10 @@ window.__seek = (t) => {
   for (const st of canh) { if (st.to) { st.to.setAttribute('fill', st === moi || st === cu ? '#E6B800' : 'gray'); st.to.setAttribute('fill-opacity', (0.06 + 0.12 * (st === moi ? k : st === cu ? 1 - k : 0)).toFixed(3)); }
     if (st.day) st.day.querySelectorAll('line, path').forEach((l) => { if (!l.dataset.w0) l.dataset.w0 = l.getAttribute('stroke-width') || '1'; l.setAttribute('stroke-width', st === moi ? Number(l.dataset.w0) * (1 + 2.5 * k) : l.dataset.w0); }); }
   // dựng từng lớp theo thứ tự site (data-step-index)
+  // dòng đời: hiện / mờ như bảng; cùng một dải năm thì con trỏ chạy tiếp từ năm câu trước
+  const doiEl = document.getElementById('doi'); doiEl.style.opacity = (moi.doi ? 1 : 0) * k + (cu.doi ? 1 : 0) * (1 - k);
+  if (moi.doi) { veDoi(moi.doi); const tu = cu.doi && cu.doi.tu === moi.doi.tu ? cu.doi.dang : moi.doi.dang; troDoi(moi.doi, lerp(tu, moi.doi.dang, ease((t - q.tu) / Math.max(0.9, (q.chuyen ?? CHUYEN) + 0.8)))); }
+  else if (cu.doi) troDoi(cu.doi, cu.doi.dang);
   // thẻ số liệu của câu đang kể
   const th = document.getElementById('the');
   if (q.the) { const dai = String(q.the.lon ?? '').length;   // số to: chuỗi dài (vd "Mon · Wed · Fri") thu nhỏ cho vừa một dòng

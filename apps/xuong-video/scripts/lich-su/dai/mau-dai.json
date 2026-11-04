@@ -1,0 +1,23 @@
+{
+ "_ghi": "SỔ MẪU VIDEO DÀI 16:9 kênh YouTube Astrolas (04/11/2026, anh: 'làm template để sau này triển khai tự động hàng loạt định kỳ'). Một mẫu = trang dựng (shot-code) + máy sinh tập (dữ liệu → CAU) + lệnh quay. Máy làm tập theo lịch (G8 chay-kenh) đọc sổ này; đổi mẫu = sửa ở đây. Quay: node shot-code/dung.mjs --trang <trang> --cau <tap.json> --ra <ra.mp4> --rong 1920 --cao 1080. Giọng đọc chưa gắn: tập dài thật cần giọng (lich-su/giong.mts, ElevenLabs v3 qua fal ~$0,10/1.000 ký tự) — xin duyệt tiền trước tập đầu.",
+ "mau": [
+  { "ma": "chart-chapters-dai", "ten": "Chart Chapters (long)", "trang": "shot-code/la-so.html", "khung": "ngang",
+    "sinh": "node lich-su/dai/sinh-chuong.mjs --slug <người> --moc <moc.json>",
+    "vao": "lá số site (lich-su/la-so/lay.mjs <slug>) + tệp mốc đời có NGÀY (tuổi tính theo ngày sinh); tranh minh hoạ tuỳ chọn",
+    "tu_dong": "tuổi, cung Profection, nhà kích hoạt, câu kể số liệu", "nguoi": "chọn người + mốc đời có thật (có nguồn)",
+    "chi_phi": "0đ; tranh ~110₫/cảnh nếu có", "nhip": "1 tập / tuần", "kho": "vô hạn theo người có giờ sinh tin được",
+    "mau_tap": ["lich-su/dai/moc-steve-jobs.json", "lich-su/dai/moc-taylor-swift.json"] },
+  { "ma": "how-the-sky-works", "ten": "How the Sky Works", "trang": "shot-code/giang-troi.html", "khung": "ngang",
+    "sinh": "bài giảng soạn sẵn (shot-code/dai-how-the-sky-works.json là bài 1); cảnh quy_dao / thien_cau / banh, thông số là dữ liệu",
+    "vao": "kịch bản bài giảng (chữ + cảnh + thông số)", "tu_dong": "quỹ đạo theo chu kỳ thật, vệt đi lùi, đồ thị kinh độ",
+    "nguoi": "duyệt kịch bản từng bài", "chi_phi": "0đ", "nhip": "2 tập / tháng", "kho": "≈ 20 bài (lùi của từng hành tinh, nhật / nguyệt thực, mùa, tiến động…)" },
+  { "ma": "geometry-of-your-chart", "ten": "The Geometry of Your Chart", "trang": "shot-code/giang-troi.html", "khung": "ngang",
+    "sinh": "bài giảng soạn sẵn (shot-code/dai-geometry-of-your-chart.json là bài 1)", "vao": "kịch bản bài giảng + vĩ độ",
+    "tu_dong": "thiên cầu quay theo giờ sao, cung Mọc tính từ giao điểm hoàng đạo – chân trời", "nguoi": "duyệt kịch bản",
+    "chi_phi": "0đ", "nhip": "2 tập / tháng", "kho": "≈ 15–20 bài (nhà, MC, góc chiếu, hệ nhà Placidus / cung trọn…)" },
+  { "ma": "tonights-sky", "ten": "Tonight's Sky", "trang": "shot-code/bau-troi-dem.html", "khung": "ngang",
+    "sinh": "node lich-su/dai/sinh-dem.mjs --noi <thành phố> --ngay <YYYY-MM-DD> --tu 18 --den 30 --dai <giây>",
+    "vao": "thành phố (bảng NOI trong máy sinh) + ngày", "tu_dong": "toàn bộ: trời, sao, chòm, Trăng đúng pha, hành tinh, chú thích mọc / lặn / trời tối",
+    "nguoi": "không (chỉ chọn nhạc nền có giấy phép — chưa có nguồn)", "chi_phi": "0đ", "nhip": "mỗi tuần × mỗi thành phố", "kho": "vô hạn" }
+ ]
+}

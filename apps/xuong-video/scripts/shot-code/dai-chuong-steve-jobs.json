@@ -1,0 +1,244 @@
+{
+ "_ghi": "Chart Chapters dài · Steve Jobs — sinh bởi lich-su/dai/sinh-chuong.mjs từ moc-steve-jobs.json",
+ "khung": "ngang",
+ "DAI": 54.4,
+ "la_so": "../lich-su/la-so/steve-jobs.svg",
+ "nen": "../lich-su/brand/astrolas/anh/troi.jpg",
+ "logo": "../lich-su/brand/astrolas/logo/wordmark.png",
+ "playlist": {
+  "ten": "Chart Chapters",
+  "mau": "#E6B800",
+  "ic": "☉"
+ },
+ "cau": [
+  {
+   "tu": 0,
+   "den": 5,
+   "nhin": {
+    "dung": 1
+   },
+   "chu": "This is the sky at the moment Steve Jobs was born: February 24, 1955, 7:15 PM, San Francisco."
+  },
+  {
+   "tu": 5,
+   "den": 10.4,
+   "nhin": {
+    "doi": {
+     "tu": 1955,
+     "den": 2011,
+     "dang": 1955,
+     "moc": [
+      {
+       "nam": 1976,
+       "chu": "Apple"
+      },
+      {
+       "nam": 1985,
+       "chu": "leaves"
+      },
+      {
+       "nam": 1997,
+       "chu": "returns"
+      },
+      {
+       "nam": 2007,
+       "chu": "iPhone"
+      }
+     ]
+    }
+   },
+   "chu": "Astrologers kept an old clock for a life. Each birthday, the year moves one sign around the chart.",
+   "nhan": "Annual Profections"
+  },
+  {
+   "tu": 10.4,
+   "den": 15.2,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sj-1976-garage.jpg",
+    "kieu": "lui"
+   },
+   "chu": "1976. In a garage in Los Altos, he and Steve Wozniak start Apple.",
+   "nhan": "1976 · Los Altos, California"
+  },
+  {
+   "tu": 15.2,
+   "den": 20.4,
+   "nhin": {
+    "doi": {
+     "tu": 1955,
+     "den": 2011,
+     "dang": 1976,
+     "moc": [
+      {
+       "nam": 1976,
+       "chu": "Apple"
+      },
+      {
+       "nam": 1985,
+       "chu": "leaves"
+      },
+      {
+       "nam": 1997,
+       "chu": "returns"
+      },
+      {
+       "nam": 2007,
+       "chu": "iPhone"
+      }
+     ]
+    }
+   },
+   "chu": "1976, age 21: a Gemini year. Counted from Virgo rising, that's the 10th house: career and reputation."
+  },
+  {
+   "tu": 20.4,
+   "den": 25.2,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
+    "kieu": "day"
+   },
+   "chu": "1985. Apple's board strips him of his role. He leaves.",
+   "nhan": "1985 · Cupertino"
+  },
+  {
+   "tu": 25.2,
+   "den": 30.4,
+   "nhin": {
+    "doi": {
+     "tu": 1955,
+     "den": 2011,
+     "dang": 1985,
+     "moc": [
+      {
+       "nam": 1976,
+       "chu": "Apple"
+      },
+      {
+       "nam": 1985,
+       "chu": "leaves"
+      },
+      {
+       "nam": 1997,
+       "chu": "returns"
+      },
+      {
+       "nam": 2007,
+       "chu": "iPhone"
+      }
+     ]
+    }
+   },
+   "chu": "1985, age 30: a Pisces year. Counted from Virgo rising, that's the 7th house: partners and open rivals."
+  },
+  {
+   "tu": 30.4,
+   "den": 35.2,
+   "nhin": {
+    "tranh": "../lich-su/brand/astrolas/tranh/sj-1997-stage.jpg",
+    "kieu": "lui"
+   },
+   "chu": "1997. He comes back to Apple.",
+   "nhan": "1997 · Macworld, Boston"
+  },
+  {
+   "tu": 35.2,
+   "den": 40.4,
+   "nhin": {
+    "doi": {
+     "tu": 1955,
+     "den": 2011,
+     "dang": 1997,
+     "moc": [
+      {
+       "nam": 1976,
+       "chu": "Apple"
+      },
+      {
+       "nam": 1985,
+       "chu": "leaves"
+      },
+      {
+       "nam": 1997,
+       "chu": "returns"
+      },
+      {
+       "nam": 2007,
+       "chu": "iPhone"
+      }
+     ]
+    }
+   },
+   "chu": "1997, age 42: Pisces again. Counted from Virgo rising, that's the 7th house: partners and open rivals."
+  },
+  {
+   "tu": 40.4,
+   "den": 45.6,
+   "nhin": {
+    "doi": {
+     "tu": 1955,
+     "den": 2011,
+     "dang": 2007,
+     "moc": [
+      {
+       "nam": 1976,
+       "chu": "Apple"
+      },
+      {
+       "nam": 1985,
+       "chu": "leaves"
+      },
+      {
+       "nam": 1997,
+       "chu": "returns"
+      },
+      {
+       "nam": 2007,
+       "chu": "iPhone"
+      }
+     ]
+    }
+   },
+   "chu": "2007, age 51: a Sagittarius year. Counted from Virgo rising, that's the 4th house: home and family."
+  },
+  {
+   "tu": 45.6,
+   "den": 50,
+   "nhin": {
+    "doi": {
+     "tu": 1955,
+     "den": 2011,
+     "dang": 2007,
+     "moc": [
+      {
+       "nam": 1976,
+       "chu": "Apple"
+      },
+      {
+       "nam": 1985,
+       "chu": "leaves"
+      },
+      {
+       "nam": 1997,
+       "chu": "returns"
+      },
+      {
+       "nam": 2007,
+       "chu": "iPhone"
+      }
+     ]
+    }
+   },
+   "chu": "He unveils the iPhone.",
+   "nhan": "iPhone"
+  },
+  {
+   "tu": 50,
+   "den": 54.4,
+   "nhin": {
+    "toan": 1
+   },
+   "chu": "Find your own chapters free at astrolas.com.",
+   "nhan": "astrolas.com · Annual Profections"
+  }
+ ]
+}

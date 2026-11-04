@@ -480,6 +480,7 @@ const LUAT = [
   { card: 'ht-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'ht', header: 'Thị trường', align: 'center', width: 40,", vi: 'tab Camp: cột Hấp thụ riêng' },
   { card: 'ht-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'ht_ph', header: 'Thị trường',", vi: 'tab Phim: cột Hấp thụ cho team' },
   { card: 'ht-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "if (!m || m.roi_bien == null || (m.pha ?? 'it_so') === 'it_so') return null;", vi: 'chưa đủ số thì không hiện' },
+  { card: 'sx-ph-0411', tep: 'apps/etp/dong_phim.py', co: 'bq = BO_QUA.get(d.get("loai") or "CC", set()) | ({"nhan", "ws", "poster"} if live else set())', vi: 'mở rộng chỉ bỏ cổng nhận / trang / poster khi phim đang có camp Nhà chạy' },
   { card: 'sx-ph-0411', tep: 'apps/web/src/components/etp-view.tsx', co: "...(!laNguoi && !du.nguoi.ngoai && !du.nguoi.doi ? [{ key: 'sx_ph', header: 'Sản xuất'", vi: 'tab Phim có cột Sản xuất (đồng hồ + ＋) chỉ ở tk Nhà (anh 04/11/2026)' },
   { card: 'doi-0411', tep: 'apps/web/src/lib/etp-doc.ts', co: 'if (!ngoai) for (const r of await run<{ c: number; ten: string | null }>(sql`select content_id c, max(phim_ten) ten from etp.camp_ngoai', vi: 'tab Phim Nhà hiện cả phim chỉ team chạy (anh 04/11/2026)' },
   { card: 'cat-0411', tep: 'apps/etp/cat_phim.py', co: 'if not team_lai and so_thu >= N and thieu:', vi: 'cất phim chỉ khi đã thử đủ CC / CT / KT mỗi dạng ≥ 2 camp (anh 04/11/2026)' },

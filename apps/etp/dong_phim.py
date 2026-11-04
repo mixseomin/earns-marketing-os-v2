@@ -383,7 +383,8 @@ def vong():
     for d in doc_dong():
         bs = d.get("buoc") or {}
         if not bs:   # dòng mới (web vừa tạo): dựng 8 bước — hạn từng bước khai MỘT chỗ ở đây
-            bq = BO_QUA.get(d.get("loai") or "CC", set()) | ({"nhan", "ws", "poster"} if d.get("so_camp") else set())   # mở rộng: phim đã live, bỏ nhận / trang / poster
+            live = d.get("so_camp") and sql(f"select count(*) from etp.camp where content_id = {d['content_id']} and trang_thai = 'ACTIVE' and not la_roas") not in ("", "0")
+            bq = BO_QUA.get(d.get("loai") or "CC", set()) | ({"nhan", "ws", "poster"} if live else set())   # mở rộng phim ĐANG có camp Nhà chạy mới bỏ nhận / trang / poster; phim chưa có camp Nhà (vd phim chỉ team chạy, bấm ＋ ở tab Phim) vẫn qua đủ cổng
             if d.get("so_camp") and san_cua(d["content_id"]) >= int(d["so_camp"]): bq |= {"cat", "soat", "creative"}   # DÙNG LẠI creative sạch có sẵn đủ số → không cắt (anh 04/11/2026)
             sql("insert into etp.dong_buoc (dong_id, buoc, thu_tu, han_giay, trang_thai) values " + ", ".join(
                 f"({d['id']}, '{b}', {i}, {HAN_RIENG.get((d.get('loai'), b), h)}, '{'bo_qua' if b in bq else 'cho'}')" for i, (b, h) in enumerate(BUOC, 1)) + " on conflict do nothing")

@@ -4,7 +4,7 @@
     "ten": "Astrolas · YouTube @astrolasapp",
     "plan": "apps/xuong-video/docs/astrolas-youtube.md",
     "muc_tieu": "kênh tự vận hành: máy tự chọn chủ đề → viết → kiểm → dựng → Phòng Nội dung chấm → đăng đúng playlist → đo → chỉnh suất playlist; Claude chỉ vào khi Telegram báo kẹt",
-    "cap_nhat": "2026-11-03",
+    "cap_nhat": "2026-11-04",
     "playlist": [
       {
         "ma": "chart-chapters",
@@ -84,23 +84,23 @@
       {
         "ma": "G2",
         "ten": "Bộ nhận diện",
-        "viec": "brand/astrolas/: logo + chuông, màu/font astrolas.com, góc logo, màn cuối, khuôn ảnh bìa nhãn playlist · 03/11 anh BÁC tờ đầu (logo gõ chữ thay logo thật) → máy vẽ chỉ dùng wordmark + icon thật của astrolas.com, thiếu thì dừng; anh yêu cầu hình chart dùng theme NEBULA của site. 03/11 vẽ lại trên iMac: wordmark + icon-512 thật tải từ astrolas.com (logo/), lá số Steve Jobs theme Nebula = SVG vector nhúng font Hamburg (lich-su/la-so/, lay.mjs), nền ảnh thật Pexels Dải Ngân Hà (anh/). 3 tờ duyệt ra/to-duyet-*.png — chờ anh duyệt",
+        "viec": "DUYỆT 04/11/2026: logo + icon thật astrolas.com, lá số Nebula SVG nhúng font Hamburg, nền ảnh thật Pexels chuyển động (shot-code/nen-troi.js), mở đầu có chuông, màn cuối, ảnh bìa theo playlist, ảnh đại diện + banner (lich-su/brand/astrolas/ve-brand.mjs)",
         "anh": "duyệt ảnh",
-        "trang_thai": "cho_anh"
+        "trang_thai": "xong"
       },
       {
         "ma": "G3",
         "ten": "Theme hình",
-        "viec": "Chart Chapters = CAMERA ĐI TRONG LÁ SỐ THẬT (anh 03/11/2026 'làm cả đi', thay engraving Opus): la-so/lay.mjs lấy SVG Nebula + dữ liệu nhà / sao / góc chiếu từ astrolas.com/c/<slug>; shot-code/la-so.html mỗi câu kể nhìn vào { dung | sao | nha | goc | cung | toan } — camera trượt + phóng, phần đó sáng, còn lại tối, nhãn ô thông tin lấy từ dữ liệu; 0đ, 16,5 s quay 12 s trên iMac. Tập thử ra/la-so-mau.mp4 chờ anh duyệt. Còn: paper-lantern cho Sky Calendar",
+        "viec": "DUYỆT 04/11/2026: 9 mẫu Short (Chart Chapters, Sky Calendar, The Myth Behind, Chart Tools, Start here, Read Your Chart, Ask the Chart, Free in 60 Seconds, This Week in Your Chart — shot-code/la-so.html: lá số camera, tranh, trang công cụ thật, thẻ số, dải trăng) + 4 mẫu dài 16:9 (Chart Chapters dài, How the Sky Works, Geometry of Your Chart, Tonight's Sky — lich-su/dai/mau-dai.json). Trang duyệt: claude.ai/artifact/7qQKTdrE8R7UtNHcxR96t5",
         "anh": "duyệt tờ khung + tiền Opus",
-        "trang_thai": "cho_anh"
+        "trang_thai": "xong"
       },
       {
         "ma": "G4",
         "ten": "Dữ liệu thật",
-        "viec": "script lấy mốc ZR / Profection / bầu trời từ astrolas.com; danh sách người nổi tiếng có giờ sinh tin được; su-that/astrolas.md; lịch thực / trăng từ ephemeris",
+        "viec": "đã có: la-so/lay.mjs (lá số + dữ liệu từ site), cong-cu/chup.mjs (trang công cụ thật), bau-troi-tinh.js khớp Swiss Ephemeris của site ≤ 0,06° (la-so/doi-chieu.mjs). Còn: danh sách người nổi tiếng có giờ sinh tin được (site mới 6 trang /c/), lịch sự kiện trời chính xác theo phút cho This Week / Sky Calendar, su-that/astrolas.md cho máy viết",
         "anh": "không",
-        "trang_thai": "chua"
+        "trang_thai": "dang"
       },
       {
         "ma": "G5",

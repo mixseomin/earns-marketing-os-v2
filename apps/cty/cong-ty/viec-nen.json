@@ -843,6 +843,23 @@
     "moi_giay": 3600
    },
    "ghi_chu": "Anh duyệt 02/11/2026: 3 tập/tuần (Thứ Hai · Tư · Sáu — kenh.json lich_tap) cho kênh Yesterday's News Tonight (máy studio yesterdays-news-tonight); ngày nào cũng đo số kênh → mos2 › Tài sản › Kênh sản phẩm. Mỗi tập ~7.000–10.000₫, báo Telegram tiền thật. Đăng do máy đăng chung (com.earns.may-dang-lien-tuc) lo theo nhịp an toàn. · 02/11/2026 anh: đo nhóm tài sản kênh nội dung tần suất cao hơn → chạy MỖI GIỜ: lượt nào cũng đo số kênh (--so-kenh); làm tập chỉ ngày lich_tap, từ gio_tap trở đi, mỗi ngày một tập (chay-kenh.mjs tự chốt + khoá chống chồng)."
+  },
+  {
+   "nhan": "iMac:com.earns.lich-su-kiem",
+   "ten": "Kênh lịch sử - kiểm tập + đăng, báo Telegram",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video/scripts/lich-su/kiem-kenh.mjs"
+   ],
+   "thu_muc": "/Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/lich-su-kiem.log",
+   "hen": {
+    "luc": ["10:45", "12:30", "21:20"]
+   },
+   "ghi_chu": "Anh duyệt 04/11/2026 (\"dựng ngay\", sau \"sao tao cứ hỏi mới thấy làm\"): sau giờ làm tập (ngày có lịch) báo tập đã nạp / đang làm / hỏng + Mạnh đã nhận chưa; 21:20 báo đã đăng video nào hoặc hàng chờ kẹt ở đâu. Không gọi AI, 0đ."
   }
  ]
 }

@@ -949,6 +949,320 @@
     "goc": "https://img.on.tc/xuong-video/lich-su/kho/egyptian_ship/goc.png"
    },
    "tap_dau": "yesterdays-news-tonight-20261102"
+  },
+  "ottoman_soldier": {
+   "loai": "nhan_vat",
+   "ten": "Binh lính Ottoman",
+   "tu": 1299,
+   "den": 1700,
+   "ghi": "Ottoman soldier of the 1300s to 1600s, stocky man with a thick black mustache, white turban wrapped around a rounded red felt cap, long red quilted coat with a wide sash, round metal shield on one arm, curved sabre at the belt",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 3/11/2026",
+   "studio_thanh_phan": 991,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_soldier/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_soldier/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_soldier/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_soldier/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_soldier/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_soldier/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_soldier/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_soldier/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_soldier/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_soldier/suy_nghi.png"
+   },
+   "que": "TUR",
+   "tap_dau": "yesterdays-news-tonight-20261103",
+   "huong": {
+    "goc": "thang",
+    "chi_tay": "phai",
+    "cuoi": "phai",
+    "nam_dam": "phai",
+    "suy_nghi": "phai",
+    "buon": "phai"
+   }
+  },
+  "mehmed_ii": {
+   "loai": "nhan_vat",
+   "ten": "Sultan Mehmed II (Mehmed Kẻ Chinh Phục)",
+   "tu": 1444,
+   "den": 1481,
+   "ghi": "Ottoman sultan Mehmed II, a man in his twenties to forties, long hooked nose, thin dark mustache, large rounded white turban, red silk caftan with gold embroidery and a fur-trimmed collar",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 3/11/2026",
+   "studio_thanh_phan": 992,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/mehmed_ii/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/mehmed_ii/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/mehmed_ii/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/mehmed_ii/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/mehmed_ii/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/mehmed_ii/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/mehmed_ii/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/mehmed_ii/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/mehmed_ii/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/mehmed_ii/suy_nghi.png"
+   },
+   "que": "TUR",
+   "tap_dau": "yesterdays-news-tonight-20261103",
+   "huong": {
+    "goc": "trai",
+    "nam_dam": "trai",
+    "cuoi": "trai",
+    "chi_tay": "phai",
+    "khoanh_tay": "trai",
+    "ngac_nhien": "trai",
+    "buon": "trai"
+   }
+  },
+  "suleiman_i": {
+   "loai": "nhan_vat",
+   "ten": "Sultan Suleiman Đại Đế",
+   "tu": 1520,
+   "den": 1566,
+   "ghi": "Ottoman sultan Suleiman the Magnificent, a man in his thirties to sixties, long narrow face, thin mustache and short pointed beard, very tall white turban with a jewel at the front, dark fur-trimmed kaftan with wide sleeves and gold trim",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 3/11/2026",
+   "studio_thanh_phan": 993,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/suleiman_i/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/suleiman_i/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/suleiman_i/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/suleiman_i/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/suleiman_i/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/suleiman_i/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/suleiman_i/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/suleiman_i/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/suleiman_i/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/suleiman_i/suy_nghi.png"
+   },
+   "que": "TUR",
+   "tap_dau": "yesterdays-news-tonight-20261103",
+   "huong": {
+    "goc": "trai",
+    "chi_tay": "trai",
+    "khoanh_tay": "trai",
+    "buon": "thang",
+    "ngac_nhien": "trai"
+   }
+  },
+  "ottoman_galley": {
+   "loai": "phuong_tien",
+   "ten": "Thuyền galley Ottoman",
+   "tu": 1450,
+   "den": 1600,
+   "ghi": "Ottoman war galley, long low wooden hull with rows of oars, a single triangular lateen sail, red pennants at the mast",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 3/11/2026",
+   "studio_thanh_phan": 994,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_galley/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-20261103"
+  },
+  "ottoman_cannon": {
+   "loai": "phuong_tien",
+   "ten": "Đại bác công thành Ottoman",
+   "tu": 1450,
+   "den": 1700,
+   "ghi": "Large bronze Ottoman siege cannon on a heavy wooden carriage with spoked wheels, hauled by oxen",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 3/11/2026",
+   "studio_thanh_phan": 995,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/ottoman_cannon/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-20261103"
+  },
+  "co_ottoman_early": {
+   "loai": "co",
+   "ten": "Cờ Ottoman thời đầu",
+   "tu": 1299,
+   "den": 1844,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_Ottoman_Empire_(1844%E2%80%931922).svg",
+   "studio_thanh_phan": 996,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_ottoman_early/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-20261103"
+  },
+  "lady_trieu": {
+   "loai": "nhan_vat",
+   "ten": "Bà Triệu",
+   "tu": 240,
+   "den": 248,
+   "ghi": "Young woman warrior in her twenties, strong build, determined face, long black hair tied back, golden-yellow tunic over a short light armored vest, bare forearms, long spear in hand, third-century Vietnamese warrior dress.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 3/11/2026",
+   "studio_thanh_phan": 1016,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/lady_trieu/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/lady_trieu/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/lady_trieu/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/lady_trieu/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/lady_trieu/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/lady_trieu/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/lady_trieu/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/lady_trieu/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/lady_trieu/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/lady_trieu/suy_nghi.png"
+   },
+   "que": "VNM@104.8,19.2,106.2,20.6",
+   "tap_dau": "yesterdays-news-tonight-20261103-2",
+   "huong": {
+    "goc": "trai",
+    "cuoi": "trai",
+    "chi_tay": "trai",
+    "noi_mo": "trai",
+    "khoanh_tay": "trai",
+    "buon": "trai"
+   }
+  },
+  "lu_yin": {
+   "loai": "nhan_vat",
+   "ten": "Lục Dận",
+   "tu": 240,
+   "den": 250,
+   "ghi": "Middle-aged Chinese official-general, stern face, thin mustache and small goatee, black hair in a topknot under a black gauze cap, dark blue silk robe with wide sleeves over lamellar armor, jade belt, Three Kingdoms era.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 3/11/2026",
+   "studio_thanh_phan": 1017,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/lu_yin/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/lu_yin/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/lu_yin/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/lu_yin/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/lu_yin/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/lu_yin/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/lu_yin/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/lu_yin/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/lu_yin/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/lu_yin/suy_nghi.png"
+   },
+   "que": "CHN@113,28,122,33",
+   "tap_dau": "yesterdays-news-tonight-20261103-2",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai",
+    "khoanh_tay": "phai"
+   }
+  },
+  "sun_quan": {
+   "loai": "nhan_vat",
+   "ten": "Tôn Quyền",
+   "tu": 222,
+   "den": 252,
+   "ghi": "Middle-aged ruler of Wu, broad face, thick mustache and short reddish beard, tall black ceremonial crown with hanging bead strings, dark red silk robe embroidered with gold, jade belt, Three Kingdoms era.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 3/11/2026",
+   "studio_thanh_phan": 1018,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/sun_quan/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/sun_quan/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/sun_quan/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/sun_quan/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/sun_quan/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/sun_quan/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/sun_quan/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/sun_quan/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/sun_quan/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/sun_quan/suy_nghi.png"
+   },
+   "que": "CHN@113,28,122,33",
+   "tap_dau": "yesterdays-news-tonight-20261103-2",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai",
+    "suy_nghi": "phai"
+   }
+  },
+  "war_elephant": {
+   "loai": "phuong_tien",
+   "ten": "Voi chiến",
+   "tu": 100,
+   "den": 600,
+   "ghi": "Large Asian war elephant with long tusks, painted forehead, red and gold saddle blanket, ancient Southeast Asian style, no modern gear.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 3/11/2026",
+   "studio_thanh_phan": 1019,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/war_elephant/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-20261103-2"
+  },
+  "horse_envoy": {
+   "loai": "phuong_tien",
+   "ten": "Ngựa sứ giả",
+   "tu": 200,
+   "den": 600,
+   "ghi": "Brown horse with a simple leather saddle and red cloth bridle, ancient Chinese courier style.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 3/11/2026",
+   "studio_thanh_phan": 1020,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/horse_envoy/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-20261103-2"
+  },
+  "heinrich_kramer": {
+   "loai": "nhan_vat",
+   "ten": "Heinrich Kramer",
+   "tu": 1430,
+   "den": 1505,
+   "ghi": "German Catholic clergyman in his late 50s, thin face, sharp nose, dark heavy Dominican robes with a white collar, holding a thick book, stern expression, 15th-century habit.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 4/11/2026",
+   "studio_thanh_phan": 1138,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/heinrich_kramer/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/heinrich_kramer/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/heinrich_kramer/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/heinrich_kramer/goc.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/heinrich_kramer/nam_dam.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/heinrich_kramer/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/heinrich_kramer/noi_mo.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/heinrich_kramer/khoanh_tay.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/heinrich_kramer/ngac_nhien.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/heinrich_kramer/suy_nghi.png"
+   },
+   "que": "DEU",
+   "tap_dau": "yesterdays-news-tonight-20261104"
+  },
+  "james_vi": {
+   "loai": "nhan_vat",
+   "ten": "King James VI of Scotland",
+   "tu": 1567,
+   "den": 1625,
+   "ghi": "Scottish king in his 20s, slender, long face, thin moustache and beard, dark doublet with white collar, feathered hat, 16th-century Scottish royal attire.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 4/11/2026",
+   "studio_thanh_phan": 1139,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/james_vi/buon.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/james_vi/goc.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/james_vi/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/james_vi/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/james_vi/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/james_vi/noi_mo.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/james_vi/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/james_vi/cuoi.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/james_vi/khoanh_tay.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/james_vi/suy_nghi.png"
+   },
+   "que": "GBR",
+   "tap_dau": "yesterdays-news-tonight-20261104"
+  },
+  "philipp_adolf_von_ehrenberg": {
+   "loai": "nhan_vat",
+   "ten": "Prince-Bishop Philipp Adolf von Ehrenberg",
+   "tu": 1620,
+   "den": 1631,
+   "ghi": "German prince-bishop in his 50s, ornate ecclesiastical robes with a mitre, holding a crosier, plump face, stern authoritative expression, 17th-century German Catholic bishop attire.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 4/11/2026",
+   "studio_thanh_phan": 1140,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/philipp_adolf_von_ehrenberg/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/philipp_adolf_von_ehrenberg/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/philipp_adolf_von_ehrenberg/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/philipp_adolf_von_ehrenberg/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/philipp_adolf_von_ehrenberg/khoanh_tay.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/philipp_adolf_von_ehrenberg/ngac_nhien.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/philipp_adolf_von_ehrenberg/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/philipp_adolf_von_ehrenberg/suy_nghi.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/philipp_adolf_von_ehrenberg/nam_dam.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/philipp_adolf_von_ehrenberg/noi_dong.png"
+   },
+   "que": "DEU",
+   "tap_dau": "yesterdays-news-tonight-20261104"
   }
  }
 }

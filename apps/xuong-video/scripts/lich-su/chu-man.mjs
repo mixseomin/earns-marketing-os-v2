@@ -47,7 +47,7 @@ export function tachCanh(tap) {
   if (!tap.cau?.length) return tap;
   const toiDa = tap.khung === 'ngang' ? TRAN.ngang : TRAN.doc; let t = 0;
   const cau = tap.cau.map((q) => {
-    const dongThe = (q.the?.dong ?? []).join(' '), dai = dongThe.length > TRAN.the;
+    const dongThe = (q.the?.dong ?? []).join(' '), dai = (q.the?.dong ?? []).some((d) => bo(d).length > TRAN.the);   // đo TỪNG dòng thẻ: thẻ nhiều dòng ngắn (bảng 12 cung Mọc) giữ trên thẻ
     const chu = dai ? `${bo(q.chu)} ${dongThe}`.trim() : bo(q.chu), manh = chiaCau(chu, toiDa);
     const o = { ...q, chu, ...(q.the ? { the: { ...q.the, dong: dai ? [] : q.the.dong } } : {}) };
     if (manh.length > 1) o.manh = manh; else delete o.manh;

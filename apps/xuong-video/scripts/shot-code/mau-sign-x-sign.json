@@ -12,7 +12,7 @@
   "mau": "#FF8FB1",
   "ic": "♡"
  },
- "DAI": 46.7,
+ "DAI": 33.4,
  "cau": [
   {
    "tu": 0,
@@ -33,28 +33,27 @@
   },
   {
    "tu": 3.7,
-   "den": 13.5,
+   "den": 8.9,
    "nhin": {
     "cap_cung": [
      "Leo",
      "Sagittarius"
     ]
    },
-   "chu": "Sagittarius is four signs from Leo: a trine. Both are Fire. “You get each other’s energy without translation.”",
+   "chu": "Sagittarius is four signs from Leo: a trine. Both are Fire.",
    "the": {
     "lon": "Trine",
     "duoi": "Fire · Fire",
-    "dong": [],
+    "dong": [
+     "“You get each other’s energy",
+     "without translation.”"
+    ],
     "vi": "giua"
-   },
-   "manh": [
-    "Sagittarius is four signs from Leo: a trine. Both are Fire.",
-    "“You get each other’s energy without translation.”"
-   ]
+   }
   },
   {
-   "tu": 13.5,
-   "den": 18.1,
+   "tu": 8.9,
+   "den": 13.5,
    "nhin": {
     "cap_cung": [
      "Leo",
@@ -72,51 +71,52 @@
    }
   },
   {
-   "tu": 18.1,
-   "den": 32.3,
+   "tu": 13.5,
+   "den": 23.4,
    "nhin": {
     "cap_cung": [
      "Leo",
      "Sagittarius"
     ]
    },
-   "chu": "“Where it clashes”: “Fixed Leo wants consistency and devotion, mutable Sagittarius wants variety and space.” “Sagittarius’s candor can bruise Leo’s pride.”",
+   "chu": "“Where it clashes”: “Fixed Leo wants consistency and devotion, mutable Sagittarius wants variety and space.”",
    "the": {
     "lon": "Fixed × Mutable",
     "duoi": "“Where it clashes”",
-    "dong": [],
+    "dong": [
+     "“Sagittarius’s candor can",
+     "bruise Leo’s pride.”"
+    ],
     "vi": "giua"
    },
    "manh": [
     "“Where it clashes”: “Fixed Leo wants consistency and devotion,”",
-    "…“mutable Sagittarius wants variety and space.”",
-    "“Sagittarius’s candor can bruise Leo’s pride.”"
+    "…“mutable Sagittarius wants variety and space.”"
    ]
   },
   {
-   "tu": 32.3,
-   "den": 41.3,
+   "tu": 23.4,
+   "den": 28,
    "nhin": {
     "cap_cung": [
      "Leo",
      "Sagittarius"
     ]
    },
-   "chu": "Sagittarius: “soften the delivery, not the truth.” “Plan adventures together, not only separately.”",
+   "chu": "Sagittarius: “soften the delivery, not the truth.”",
    "the": {
     "lon": "How to make it work",
     "duoi": "",
-    "dong": [],
+    "dong": [
+     "“Plan adventures together,",
+     "not only separately.”"
+    ],
     "vi": "giua"
-   },
-   "manh": [
-    "Sagittarius: “soften the delivery, not the truth.”",
-    "“Plan adventures together, not only separately.”"
-   ]
+   }
   },
   {
-   "tu": 41.3,
-   "den": 46.7,
+   "tu": 28,
+   "den": 33.4,
    "nhin": {
     "troi": 1
    },

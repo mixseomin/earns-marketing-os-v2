@@ -12,15 +12,15 @@
   "mau": "#F4D971",
   "ic": "★"
  },
- "DAI": 23.8,
+ "DAI": 21.8,
  "cau": [
   {
    "tu": 0,
-   "den": 4,
+   "den": 3.2,
    "nhin": {
     "troi": 1
    },
-   "chu": "Your full birth chart in 60 seconds. Free.",
+   "chu": "Your full birth chart<br>in 60 seconds. Free.",
    "the": {
     "lon": "60s",
     "dong": [
@@ -30,18 +30,18 @@
    }
   },
   {
-   "tu": 4,
-   "den": 8,
+   "tu": 3.2,
+   "den": 6.6,
    "nhin": {
     "man": "../lich-su/cong-cu/birth-form.png",
     "khung": "form"
    },
-   "chu": "Step 1: your date, time and city of birth.",
+   "chu": "Step 1: your date, time<br>and city of birth.",
    "nhan": "0:10"
   },
   {
-   "tu": 8,
-   "den": 10.8,
+   "tu": 6.6,
+   "den": 9.4,
    "nhin": {
     "man": "../lich-su/cong-cu/birth-form.png",
     "khung": "btn",
@@ -51,8 +51,8 @@
    "nhan": "0:20"
   },
   {
-   "tu": 10.8,
-   "den": 14,
+   "tu": 9.4,
+   "den": 12.6,
    "nhin": {
     "dung": 1
    },
@@ -60,32 +60,32 @@
    "nhan": "0:25"
   },
   {
-   "tu": 14,
-   "den": 17.6,
+   "tu": 12.6,
+   "den": 15.8,
    "nhin": {
     "man": "../lich-su/cong-cu/sj-natal.png",
     "khung": "angles"
    },
-   "chu": "Your Rising sign and the four angles.",
+   "chu": "Your Rising sign<br>and the four angles.",
    "nhan": "0:40"
   },
   {
-   "tu": 17.6,
-   "den": 20.8,
+   "tu": 15.8,
+   "den": 19,
    "nhin": {
     "man": "../lich-su/cong-cu/sj-natal.png",
     "khung": "planets"
    },
-   "chu": "Every planet, sign and house.",
+   "chu": "Every planet, sign<br>and house.",
    "nhan": "0:55"
   },
   {
-   "tu": 20.8,
-   "den": 23.8,
+   "tu": 19,
+   "den": 21.8,
    "nhin": {
     "troi": 1
    },
-   "chu": "Try it free at astrolas.com."
+   "chu": "Try it free<br>at astrolas.com."
   }
  ],
  "dang": {

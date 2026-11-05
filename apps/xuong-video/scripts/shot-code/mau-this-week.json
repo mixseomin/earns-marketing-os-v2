@@ -12,7 +12,7 @@
   "mau": "#7FD18B",
   "ic": "☽"
  },
- "DAI": 51.3,
+ "DAI": 33,
  "cau": [
   {
    "tu": 0,
@@ -51,48 +51,48 @@
   },
   {
    "tu": 11.3,
-   "den": 29.3,
+   "den": 24.5,
    "nhin": {
     "troi": 1
    },
-   "chu": "Leo rising? Scorpio is your 4th house: “Parents (especially the father), family, home, real estate, private matters, and the ending of things.” “re-viewing, re-visiting, re-considering, re-pairing”",
+   "chu": "Leo rising? Scorpio is your 4th house: “Parents (especially the father), family, home, real estate, private matters, and the ending of things.”",
    "the": {
     "lon": "4th",
     "duoi": "house · Leo rising",
-    "dong": [],
+    "dong": [
+     "“re-viewing, re-visiting,",
+     "re-considering, re-pairing”"
+    ],
     "vi": "tren"
    },
    "manh": [
     "Leo rising? Scorpio is your 4th house:",
     "“Parents (especially the father), family, home,”",
-    "…“real estate, private matters, and the ending of things.”",
-    "“re-viewing, re-visiting, re-considering, re-pairing”"
+    "…“real estate, private matters, and the ending of things.”"
    ]
   },
   {
-   "tu": 29.3,
-   "den": 46.4,
+   "tu": 24.5,
+   "den": 28.1,
    "nhin": {
     "troi": 1
    },
-   "chu": "One short for every Rising sign. Aries 8th · Taurus 7th · Gemini 6th Cancer 5th · Leo 4th · Virgo 3rd Libra 2nd · Scorpio 1st · Sag 12th Cap 11th · Aquarius 10th · Pisces 9th",
+   "chu": "One short for every Rising sign.",
    "the": {
     "lon": "12",
     "duoi": "rising signs",
-    "dong": [],
+    "dong": [
+     "Aries 8th · Taurus 7th · Gemini 6th",
+     "Cancer 5th · Leo 4th · Virgo 3rd",
+     "Libra 2nd · Scorpio 1st · Sag 12th",
+     "Cap 11th · Aquarius 10th · Pisces 9th"
+    ],
     "vi": "tren"
-   },
-   "manh": [
-    "One short for every Rising sign.",
-    "Aries 8th · Taurus 7th · Gemini 6th",
-    "Cancer 5th · Leo 4th · Virgo 3rd",
-    "Libra 2nd · Scorpio 1st · Sag 12th",
-    "Cap 11th · Aquarius 10th · Pisces 9th"
-   ]
+   }
   },
   {
-   "tu": 46.4,
-   "den": 51.3,
+   "tu": 28.1,
+   "den": 33,
    "nhin": {
     "troi": 1
    },

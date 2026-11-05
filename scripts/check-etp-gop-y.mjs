@@ -520,6 +520,7 @@ const LUAT = [
   { card: 't1-24h-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'join etp.camp c on c.camp_id = s.camp_id', cam: 'join etp.camp c using (camp_id)', vi: 'T1 24h: join rõ cột (using (camp_id) lỗi, q() nuốt → ra 0 im lặng 03:37 05/11)' },
   { card: 't1-24h-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'def _q_ktra(cau):', vi: 'khối T1 24h đòi psql thoát 0, lỗi SQL vào loi_may' },
   { card: 'khong-giam-lai-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: '    ha, giam, g10, h2 = map(_giu_lai', vi: 'cổng giảm ở mức module (trong hàm xét luật làm ha thành biến cục bộ → UnboundLocalError)' },
+  { card: 'doc-lai-0511', tep: 'apps/xuong-video/scripts/ethopex/lam-ethopex.py', co: 'for _ in range(24):   # Ethopex ghi rồi mới đồng bộ Facebook — đọc lại tới ~120s', vi: 'đọc lại sau lệnh tới 120 giây — Ethopex có lúc mất ~80 giây, 60 giây ghi nhầm không thành (#73684 05/11/2026)' },
   { card: 'mux-0411', tep: 'apps/etp/dong_phim.py', co: 'THU_MANG.get(k_mang, 0) < 3', cam: '.get("lan") or 1) < 3:', vi: 'trần thử lại vì mạng đếm riêng, không đọc `lan` (lan đếm cả FIX tay)' },
   { card: 'tap-thieu-0511', tep: 'apps/xuong-video/scripts/ethopex/tai-tap.py', co: 'def da_het(ra):', vi: 'luật đã dò hết tập nằm một chỗ ở tai-tap' },
   { card: 'mux-0411', tep: 'apps/etp/dong_phim.py', co: 'mux_client|Session open refused', vi: 'lỗi kênh ssh dùng chung (mux) tới box3 là lỗi mạng → tự thử lại, không chết dòng (22:08 04/11/2026 #15 #21 #51)' },

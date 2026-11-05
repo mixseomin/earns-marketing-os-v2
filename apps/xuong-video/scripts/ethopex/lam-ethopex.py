@@ -214,7 +214,7 @@ def main(a):
             ok = lambda s: s["tt"] == "ACTIVE"
         else:
             raise ValueError("việc không hợp lệ (tang / giam / tat / bat)")
-        for _ in range(12):   # Ethopex ghi rồi mới đồng bộ Facebook — đọc lại tới ~60s (21/10/2026: 7/15 camp sau 18s chưa thấy, 20s sau mới đổi)
+        for _ in range(24):   # Ethopex ghi rồi mới đồng bộ Facebook — đọc lại tới ~120s (21/10/2026: 7/15 camp sau 18s chưa thấy; 05/11/2026 #73684 tắt mất ~80s → 60s ghi nhầm "không thành")
             time.sleep(5); sau = doc(cid)
             if ok(sau): break
         kq.update(sau=sau, ok=ok(sau)); kq["loi"] = None if kq["ok"] else "đã gửi nhưng đọc lại chưa thấy đổi — kiểm tab Ethopex"

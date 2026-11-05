@@ -91,6 +91,8 @@ export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt —
   nhatKy: { luc: string; viec: string; camp_id: number | null; truoc: string | null; sau: string | null; ok: boolean | null; loi: string | null; luat: string | null; ai: string | null }[];
   canhBao: { luc: string; muc: string; noi_dung: string; da_gui: string | null }[]; dongBo: { lan: number; bat_dau: string; xong: string | null; so_camp: number | null; loi: string | null } | null;
   theLoai: Record<string, string>;
+  /** SỔ A/B (etp.ab, migration 0426): mọi lần A/B đang chạy — ô lọc A/B hiện theo sổ, kể cả khi chưa camp nào mang mã; chỉ Nhà */
+  abSo?: { ma: string; ten: string; batDau: string; giaThuyet: string | null; thu: string; doi: string }[];
   /** số camp × ngày (lọc khoảng thời gian ở client) · đếm theo ngày: camp mới lên, creative mới, camp tắt · thông tin bộ tài khoản (khối lục giác) */
   soNgay: { c: number; d: string; chi: number; thu: number }[]; demNgay: Record<string, { camp_moi: number; cr_moi: number; tat: number }>;
   boTk: Record<string, { ten: string; tk: string; page: string; tk_id: number; page_id: number; chi_phim_moi?: boolean; mui_gio?: string }>;
@@ -473,6 +475,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) ?? null, anh: (i.anh as string) ?? null, camp: 0, chay: 0, cung_doan: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 },
       ngay_dau: null, s18: null, sd: null, sd_cho: false, giao: [] });
   }
+  const abSo = ngoai ? [] : await run<{ ma: string; ten: string; batDau: string; giaThuyet: string | null; thu: string; doi: string }>(sql`select ma, ten, bat_dau::text "batDau", gia_thuyet "giaThuyet", nhanh->'thu'->>'ten' thu, nhanh->'doi'->>'ten' doi from etp.ab where trang_thai = 'dang' order by ma desc`).catch(() => []);
   // lý do dừng gắn vào camp (một nguồn cho ô trạng thái ở cây / bảng / ngăn): "… · dừng lúc HH:MM DD/MM · lý do: … · tháng này …"
   const dongCua = new Map(bao.filter((b) => b.nhom === 'dong').map((b) => { const m = /dừng lúc ([^·]+?) · lý do: (.+?)(?: · tháng này.*)?$/.exec(b.chu); return [b.camp_id, m ? { luc: m[1]!.trim(), ly_do: m[2]!.trim() } : null] as const; }));
   const tatCua = new Map(daLam.filter((x) => x.viec === 'tat').map((x) => [x.camp_id, x.maSo]));
@@ -483,7 +486,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     moRong: mrR.map((r) => ({ ...r, content_id: n(r.content_id), n: n(r.n), k: n(r.k), san: n(r.san), can_sx: n(r.can_sx) })),
     thayThe: ttR.map((r) => ({ ...r, id: n(r.id), content_id: n(r.content_id), camp_cu: n(r.camp_cu), creative_id: r.creative_id == null ? null : n(r.creative_id), camp_moi: r.camp_moi == null ? null : n(r.camp_moi) })),
     pheu: pheuR.map((r) => ({ c: n(r.c), d: r.d, h: n(r.h), n: n(r.n), v: n(r.v), sh: n(r.sh), sn: n(r.sn), sv: n(r.sv), sg: n(r.sg) })), diemCham: Object.fromEntries(dcR.map((r) => [n(r.creative_id), r.cham])), soLuat: slR.map((r) => ({ ma: r.ma, luc: r.luc, ...r.so })),
-    cauHinh, nhatKy, xetLuat: Object.fromEntries(xetR.map((r) => [Number(r.camp_id), r.xet])), xetLuc: xetR.reduce<string | null>((m, r) => (!m || r.luc > m ? r.luc : m), null), lsBac: lsBacR.reduce<DuLieuEtp['lsBac']>((m, r) => { (m[r.camp_id] ??= []).push({ luc: r.luc, viec: r.viec, truoc: r.truoc, sau: r.sau, luat: r.luat, ai: r.ai }); return m; }, {}), canhBao, dongBo: dongBo[0] ?? null, theLoai: tl[0]?.gia_tri?.the_loai ?? {}, soNgay: soNgay.map((r) => ({ c: n(r.c), d: r.d, chi: n(r.chi), thu: n(r.thu) })), demNgay, boTk,
+    cauHinh, nhatKy, xetLuat: Object.fromEntries(xetR.map((r) => [Number(r.camp_id), r.xet])), xetLuc: xetR.reduce<string | null>((m, r) => (!m || r.luc > m ? r.luc : m), null), lsBac: lsBacR.reduce<DuLieuEtp['lsBac']>((m, r) => { (m[r.camp_id] ??= []).push({ luc: r.luc, viec: r.viec, truoc: r.truoc, sau: r.sau, luat: r.luat, ai: r.ai }); return m; }, {}), canhBao, dongBo: dongBo[0] ?? null, theLoai: tl[0]?.gia_tri?.the_loai ?? {}, abSo, soNgay: soNgay.map((r) => ({ c: n(r.c), d: r.d, chi: n(r.chi), thu: n(r.thu) })), demNgay, boTk,
     taiNguyen, mayTho: mayTho.map((r) => ({ may: String(r.may), xong: n(r.xong), loi: n(r.loi), dang: n(r.dang), cuoi: (r.cuoi as string) ?? null, giay_tb: r.giay_tb == null ? null : n(r.giay_tb) })),
     hangDoi: { cho: n(hd[0]?.cho), dang: n(hd[0]?.dang), xong: n(hd[0]?.xong), loi: n(hd[0]?.loi) },
     quet: (sKhoa.find((r) => r.ten === 'ethopex_quet')?.gia_tri ?? {}) as unknown as DuLieuEtp['quet'],

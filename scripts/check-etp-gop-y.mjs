@@ -414,6 +414,7 @@ const LUAT = [
   { card: 'ab-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'insert into etp.camp_ab (camp_id, ab, nhanh, thu)', vi: 'camp A/B được đánh dấu mã + nhánh' },
   { card: 'ab-0511', tep: 'apps/web/src/components/etp-view.tsx', co: "['ab', (c) => !abLoc ||", vi: 'ô lọc A/B nằm trong bộ lọc chung (đếm chặn, viền đỏ)' },
   { card: 'ab-0511', tep: 'apps/web/src/components/etp-view.tsx', co: '<CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} />', vi: 'nhãn mã A/B + nhánh trên ô camp Cây' },
+  { card: 'ab-0511', tep: 'apps/web/src/components/etp-view.tsx', co: 'const so = new Map((du.abSo ?? []).map((a) => [a.ma, a]));', vi: 'ô lọc A/B đọc sổ etp.ab — hiện cả khi lần A/B chưa có camp' },
   { card: 'nap-sang-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if TS_GIO[0] <= vn.hour < TS_GIO[1] and not _nap_sang(cid):', vi: 'TS chặn tăng 07–15h trừ camp nạp sáng — không thì $3 → $5 buổi sáng không bao giờ chạy' },
   { card: 'nap-sang-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'TS_GIO, TS_HQ = tuple(KD.get("sang") or (7, 15)), 50', vi: 'giờ TS đọc sổ luật chung' },
   { card: 'nap-sang-0511', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"sang": [7, 15], "sang_roi": 100', vi: 'nạp sáng 07–15h: camp tiêu hết + ROI hôm nay ≥ 100% (anh 05/11/2026)' },

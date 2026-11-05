@@ -2781,12 +2781,14 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   // ROAS (anh 02/11/2026 #1506 "thêm bộ lọc camp ROAS"): camp thầu ROAS (★, nhận theo chiến lược thầu thật — laRoas) / camp thường
   const roSel = () => <Chon2 chan={chanLoc.ro} value={roLoc} onChange={(v) => doi({ ro: v }, () => setRoLoc(v))} nhan="ROAS" title="lọc camp thầu ROAS (★) / camp thường"
     options={[{ value: 'co', label: '★ Camp ROAS', ngan: '★ ROAS', dem: du.camps.filter((c) => laRoas(c)).length }, { value: 'khong', label: 'Camp thường (không ROAS)', ngan: 'Không ROAS', dem: du.camps.filter((c) => !laRoas(c)).length }]} />;
-  // LẦN A/B: mỗi mã một nhóm (cả hai nhánh + nhánh thử + đối chứng), số = camp đang có trong kho; chưa có lần A/B nào thì ẩn ô
-  const abSel = () => { const ma = [...new Map(du.camps.flatMap((c) => (c.ab ? [[c.ab.ma, c.ab] as const] : []))).values()].sort((a, b) => b.ma.localeCompare(a.ma)); if (!ma.length) return null;
+  // LẦN A/B: đọc SỔ etp.ab (du.abSo — lần đang chạy) + mã còn trên camp (lần đã xong); mỗi mã một nhóm (cả hai nhánh + Thử + Đối chứng), số = camp đang có trong kho
+  const abSel = () => { const so = new Map((du.abSo ?? []).map((a) => [a.ma, a]));
+    for (const c of du.camps) if (c.ab && !so.has(c.ab.ma)) so.set(c.ab.ma, { ma: c.ab.ma, ten: c.ab.ten, batDau: c.ab.batDau, giaThuyet: c.ab.giaThuyet, thu: c.ab.nhanh === 'thu' ? c.ab.nhanhTen : 'thu', doi: c.ab.nhanh === 'doi' ? c.ab.nhanhTen : 'doi' });
+    const ma = [...so.values()].sort((a, b) => b.ma.localeCompare(a.ma)); if (!ma.length) return null;
     return <Chon2 chan={chanLoc.ab} value={abLoc} onChange={(v) => doi({ ab: v }, () => setAbLoc(v))} nhan="A/B" title="lọc camp theo lần A/B (sổ etp.ab): cả hai nhánh, hoặc riêng nhánh thử / đối chứng — chọn một nhánh thì dòng tổng ra số riêng nhánh"
-      options={ma.flatMap((a) => { const cs = du.camps.filter((c) => c.ab?.ma === a.ma), nhom = `${a.ma} · ${a.ten} · từ ${ngayVn(a.batDau)}`, ten = (n: 'thu' | 'doi') => cs.find((c) => c.ab!.nhanh === n)?.ab!.nhanhTen ?? n;
+      options={ma.flatMap((a) => { const cs = du.camps.filter((c) => c.ab?.ma === a.ma), nhom = `${a.ma} · ${a.ten} · từ ${ngayVn(a.batDau)}`;
         return [{ value: a.ma, label: `${a.ma} · cả hai nhánh`, ngan: `${a.ma} · ${a.ten}`, nhom, dem: cs.length, title: a.giaThuyet ?? undefined },
-          ...(['thu', 'doi'] as const).map((n) => ({ value: `${a.ma}|${n}`, label: `${n === 'thu' ? 'Thử' : 'Đối chứng'} · ${ten(n)}`, ngan: `${a.ma} · ${ten(n)}`, nhom, dem: cs.filter((c) => c.ab!.nhanh === n).length }))]; })} />; };
+          ...(['thu', 'doi'] as const).map((n) => ({ value: `${a.ma}|${n}`, label: `${n === 'thu' ? 'Thử' : 'Đối chứng'} · ${a[n]}`, ngan: `${a.ma} · ${a[n]}`, nhom, dem: cs.filter((c) => c.ab!.nhanh === n).length }))]; })} />; };
   const laiSel = () => <Chon2 chan={chanLoc.lai} value={laiLoc} onChange={(v) => doi({ ll: v }, () => setLaiLoc(v))} nhan="Lãi/lỗ" title="lọc camp lãi / lỗ — theo kỳ đang chọn, hoặc lỗ N ngày đã khép gần nhất"
     options={[{ value: 'lai', label: 'Lãi trong kỳ', nhom: `Kỳ đang chọn (${khNhan})` }, { value: 'lo', label: 'Lỗ trong kỳ', nhom: `Kỳ đang chọn (${khNhan})` },
       ...[3, 5, 7, 10, 14].map((n) => ({ value: `c${n}`, label: `Lỗ cộng dồn ${n} ngày`, nhom: 'Lỗ N ngày đã khép gần nhất', title: `tổng lãi ${n} ngày trọn gần nhất (không tính hôm nay) < 0`, tim: `lo ${n} ngay cong don` })),

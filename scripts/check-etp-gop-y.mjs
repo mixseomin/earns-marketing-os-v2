@@ -765,6 +765,8 @@ const LUAT = [
   { card: 'sx-moi-loai-0511', tep: 'apps/web/src/components/etp-dong.tsx', co: "const moMenu = (x?: BuocDong) => x && !d.ngoai", vi: 'dòng ngoài chỉ đọc — không FIX / Dừng nhầm vào máy dòng phim' },
   { card: 'sx-tl-0511', tep: 'apps/web/src/components/etp-dong.tsx', co: '<Chon2 nhan="Thể loại" value={tl}', vi: 'tab Sản xuất có lọc thể loại (anh 05/11/2026)' },
   { card: 'sx-lo-0511', tep: 'apps/web/src/components/etp-dong.tsx', co: '<Chon2 nhan="Loại" value={lo}', vi: 'tab Sản xuất có lọc loại nội dung CC / KT / AT… (anh 05/11/2026)' },
+  { card: 'cho-tao-0511', tep: 'apps/web/src/components/etp-view.tsx', co: "const choGio = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'dong_bo'>) => !!c.lich && Date.parse(c.lich) > Date.now() && (c.trang_thai === 'ACTIVE' || dangTao(c));", vi: 'camp Ethopex đang tạo / kiểm ad có giờ chạy tương lai = chờ giờ chạy (anh 05/11/2026 "sao chỉ có 1 ảnh tĩnh")' },
+  { card: 'cho-tao-0511', tep: 'apps/web/src/components/etp-view.tsx', co: "k === 'tat' ? daTat(c)", cam: "k === 'tat' ? c.trang_thai !== 'ACTIVE'", vi: 'Đã tắt không gồm camp đang tạo / chờ giờ' },
   { card: 'sx-lo-0511', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: "const hopLo = (d: DongPhim) => !lo || d.loai === lo;", vi: 'lọc loại áp cho cả dòng phim lẫn dòng ngoài' },
   { card: 'sx-tl-0511', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: "const hopTl = (d: DongPhim) => !tl || (tl === '_' ? !d.the_loai : d.the_loai === tl);", vi: 'lọc thể loại áp cho cả dòng phim lẫn dòng ngoài' },
   { card: 'loc-sx-0511', tep: 'apps/web/src/components/etp-view.tsx', co: "m('sx', '⚙ Phim đang sản xuất', 'Sản xuất',", vi: 'ô Lọc Cây camp có mục phim đang sản xuất creative (anh 05/11/2026)' },

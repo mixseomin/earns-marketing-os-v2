@@ -97,7 +97,7 @@ export function phanBia(cau, kho, them = new Set()) {
 /** từ riêng của tập được dùng lẻ: tên người trong sổ, tên công cụ, chữ trong mốc đời (chuyện đời có nguồn — không phải lời chiêm tinh) */
 function tuRieng(tap) {
   const ls = tap.la_so?.split('/').pop()?.replace(/\.svg$/, ''), o = new Set();
-  for (const n of NGUOI()) for (const w of tu(n.ten)) o.add(w);
+  for (const n of NGUOI()) for (const w of tu(`${n.ten} ${n.ten_ngan ?? ""}`)) o.add(w);   // tên + tên gọi ngắn (JFK, Jackie…)
   for (const c of SO_CONG_CU()) for (const w of tu(c.ten)) o.add(w);
   const moc = [...(ls && existsSync(join(DIR, 'la-so/hop', `${ls}.json`)) ? doc(`la-so/hop/${ls}.json`).moc ?? [] : []), ...(tap.nguon_moc ?? []).flatMap((f) => (existsSync(join(DIR, f)) ? doc(f).moc ?? [] : []))];
   for (const m of moc) for (const w of tu(m.chu)) if (!NGHIA.test(w)) o.add(w);

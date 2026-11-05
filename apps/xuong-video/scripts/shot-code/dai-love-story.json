@@ -14,15 +14,15 @@
   "mau": "#FF8FB1",
   "ic": "♡"
  },
- "DAI": 44.2,
+ "DAI": 51.4,
  "cau": [
   {
    "tu": 0,
-   "den": 5.0,
+   "den": 5,
    "nhin": {
     "troi": 1
    },
-   "chu": "Engaged in 2012. Married in 2014.<br>Divorce filed in 2016.",
+   "chu": "Engaged in 2012. Married in 2014. Divorce filed in 2016.",
    "the": {
     "lon": "2016",
     "duoi": "September 19",
@@ -33,51 +33,51 @@
    }
   },
   {
-   "tu": 5.0,
+   "tu": 5,
    "den": 9.6,
    "nhin": {
     "toan": 1
    },
-   "chu": "Here are both birth charts,<br>in one wheel.",
+   "chu": "Here are both birth charts, in one wheel.",
    "nhan": "Brad Pitt · Angelina Jolie"
   },
   {
    "tu": 9.6,
-   "den": 15.6,
+   "den": 16.8,
    "nhin": {
     "cheo": [
      "person-a:Mars",
      "person-b:Mars"
     ]
    },
-   "chu": "His Mars squares her Mars.<br>The site calls it “fierce competition<br>and head-on conflict.”"
+   "chu": "His Mars squares her Mars. The site calls it “fierce competition and head-on conflict.”"
   },
   {
-   "tu": 15.6,
-   "den": 21.6,
+   "tu": 16.8,
+   "den": 23.3,
    "nhin": {
     "cheo": [
      "person-a:Jupiter",
      "person-b:Mars"
     ]
    },
-   "chu": "His Jupiter sits on her Mars:<br>“an amplification of shared energy<br>and fervor.”"
+   "chu": "His Jupiter sits on her Mars: “an amplification of shared energy and fervor.”"
   },
   {
-   "tu": 21.6,
-   "den": 27.6,
+   "tu": 23.3,
+   "den": 29.3,
    "nhin": {
     "diem": 1
    },
-   "chu": "The site scores the pair.<br>Challenges 77. Sexual conflict 70."
+   "chu": "The site scores the pair. Challenges 77. Sexual conflict 70."
   },
   {
-   "tu": 27.6,
-   "den": 33.6,
+   "tu": 29.3,
+   "den": 35.3,
    "nhin": {
     "troi": 1
    },
-   "chu": "At the wedding, her Lot of Fortune<br>was in a peak period.",
+   "chu": "At the wedding, her Lot of Fortune was in a peak period.",
    "the": {
     "lon": "Aquarius ★",
     "duoi": "Zodiacal Releasing · August 2014",
@@ -88,29 +88,30 @@
    }
   },
   {
-   "tu": 33.6,
-   "den": 39.6,
+   "tu": 35.3,
+   "den": 46.8,
    "nhin": {
     "troi": 1
    },
-   "chu": "When she files for divorce,<br>her Lot of Spirit was at a peak too.",
+   "chu": "When she files for divorce, her Lot of Spirit was at a peak too. Lot of Spirit, level 2: a peak period inside a level 1 peak: Scorpio",
    "the": {
     "lon": "Leo ★",
     "duoi": "Zodiacal Releasing · September 2016",
-    "dong": [
-     "Lot of Spirit, level 2: a peak period",
-     "inside a level 1 peak: Scorpio"
-    ],
+    "dong": [],
     "vi": "giua"
-   }
+   },
+   "manh": [
+    "When she files for divorce, her Lot of Spirit was at a peak too.",
+    "Lot of Spirit, level 2: a peak period inside a level 1 peak: Scorpio"
+   ]
   },
   {
-   "tu": 39.6,
-   "den": 44.2,
+   "tu": 46.8,
+   "den": 51.4,
    "nhin": {
     "troi": 1
    },
-   "chu": "Compare any two charts<br>free at astrolas.com."
+   "chu": "Compare any two charts free at astrolas.com."
   }
  ],
  "dang": {

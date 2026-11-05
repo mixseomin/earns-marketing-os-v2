@@ -12,47 +12,56 @@
   "mau": "#8EC5FF",
   "ic": "☉"
  },
- "DAI": 23.6,
+ "DAI": 41.1,
  "cau": [
   {
    "tu": 0,
-   "den": 3.4,
+   "den": 6.6,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1976-garage.jpg",
     "kieu": "day"
    },
-   "chu": "1976. In a garage in Los Altos,<br>he and Steve Wozniak start Apple.",
-   "nhan": "1976 · Los Altos, California"
-  },
-  {
-   "tu": 3.4,
-   "den": 6.6,
-   "nhin": {
-    "dung": 1
-   },
-   "chu": "One of them was Steve Jobs,<br>born February 24, 1955."
+   "chu": "1976. In a garage in Los Altos, he and Steve Wozniak start Apple.",
+   "nhan": "1976 · Los Altos, California",
+   "manh": [
+    "1976. In a garage in Los Altos,",
+    "he and Steve Wozniak start Apple."
+   ]
   },
   {
    "tu": 6.6,
-   "den": 10.2,
+   "den": 11.2,
+   "nhin": {
+    "dung": 1
+   },
+   "chu": "One of them was Steve Jobs, born February 24, 1955."
+  },
+  {
+   "tu": 11.2,
+   "den": 16.1,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
     "kieu": "trai"
    },
-   "chu": "1985. Apple's board strips him<br>of his role. He leaves.",
+   "chu": "1985. Apple's board strips him of his role. He leaves.",
    "nhan": "1985 · Cupertino"
   },
   {
-   "tu": 10.2,
-   "den": 13.8,
+   "tu": 16.1,
+   "den": 28.7,
    "nhin": {
     "nha": 10
    },
-   "chu": "His 10th house holds Jupiter and Uranus.<br>“Career, action (praxis), reputation, social status, advancement, and public achievements.”"
+   "chu": "His 10th house holds Jupiter and Uranus. “Career, action (praxis), reputation, social status, advancement, and public achievements.”",
+   "manh": [
+    "His 10th house holds Jupiter and Uranus.",
+    "“Career, action (praxis), reputation, social status,”",
+    "…“advancement, and public achievements.”"
+   ]
   },
   {
-   "tu": 13.8,
-   "den": 17.2,
+   "tu": 28.7,
+   "den": 32.1,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1997-stage.jpg",
     "kieu": "lui"
@@ -61,23 +70,23 @@
    "nhan": "1997 · Macworld, Boston"
   },
   {
-   "tu": 17.2,
-   "den": 20.8,
+   "tu": 32.1,
+   "den": 35.7,
    "nhin": {
     "goc": [
      "Venus",
      "Jupiter"
     ]
    },
-   "chu": "Venus opposes Jupiter,<br>almost exact."
+   "chu": "Venus opposes Jupiter, almost exact."
   },
   {
-   "tu": 20.8,
-   "den": 23.6,
+   "tu": 35.7,
+   "den": 41.1,
    "nhin": {
     "toan": 1
    },
-   "chu": "Every life moves in chapters.<br>Find yours free at astrolas.com.",
+   "chu": "Every life moves in chapters. Find yours free at astrolas.com.",
    "khung": true
   }
  ],

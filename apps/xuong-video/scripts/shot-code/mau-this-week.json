@@ -12,15 +12,15 @@
   "mau": "#7FD18B",
   "ic": "☽"
  },
- "DAI": 19.8,
+ "DAI": 51.3,
  "cau": [
   {
    "tu": 0,
-   "den": 3.4,
+   "den": 4.1,
    "nhin": {
     "troi": 1
    },
-   "chu": "Mercury is retrograde<br>in Scorpio this week.",
+   "chu": "Mercury is retrograde in Scorpio this week.",
    "the": {
     "lon": "☿ Rx",
     "duoi": "Mercury retrograde",
@@ -31,67 +31,72 @@
    }
   },
   {
-   "tu": 3.4,
-   "den": 6.6,
+   "tu": 4.1,
+   "den": 8.1,
    "nhin": {
     "man": "../lich-su/cong-cu/transit-now.png",
     "khung": "dat"
    },
-   "chu": "Open Transit.<br>Today's date is already set.",
+   "chu": "Open Transit. Today's date is already set.",
    "nhan": "astrolas.com · Transit"
   },
   {
-   "tu": 6.6,
-   "den": 9.8,
+   "tu": 8.1,
+   "den": 11.3,
    "nhin": {
     "man": "../lich-su/cong-cu/transit-now.png",
     "khung": "thuy"
    },
-   "chu": "Find Mercury<br>in the list."
+   "chu": "Find Mercury in the list."
   },
   {
-   "tu": 9.8,
-   "den": 13.4,
+   "tu": 11.3,
+   "den": 29.3,
    "nhin": {
     "troi": 1
    },
-   "chu": "Leo rising? Scorpio is your 4th house:<br>“Parents (especially the father), family, home, real estate, private matters, and the ending of things.”",
+   "chu": "Leo rising? Scorpio is your 4th house: “Parents (especially the father), family, home, real estate, private matters, and the ending of things.” “re-viewing, re-visiting, re-considering, re-pairing”",
    "the": {
     "lon": "4th",
     "duoi": "house · Leo rising",
-    "dong": [
-     "“re-viewing, re-visiting,",
-     "re-considering, re-pairing”"
-    ],
+    "dong": [],
     "vi": "tren"
-   }
+   },
+   "manh": [
+    "Leo rising? Scorpio is your 4th house:",
+    "“Parents (especially the father), family, home,”",
+    "…“real estate, private matters, and the ending of things.”",
+    "“re-viewing, re-visiting, re-considering, re-pairing”"
+   ]
   },
   {
-   "tu": 13.4,
-   "den": 17.0,
+   "tu": 29.3,
+   "den": 46.4,
    "nhin": {
     "troi": 1
    },
-   "chu": "One short for every Rising sign.",
+   "chu": "One short for every Rising sign. Aries 8th · Taurus 7th · Gemini 6th Cancer 5th · Leo 4th · Virgo 3rd Libra 2nd · Scorpio 1st · Sag 12th Cap 11th · Aquarius 10th · Pisces 9th",
    "the": {
     "lon": "12",
     "duoi": "rising signs",
-    "dong": [
-     "Aries 8th · Taurus 7th · Gemini 6th",
-     "Cancer 5th · Leo 4th · Virgo 3rd",
-     "Libra 2nd · Scorpio 1st · Sag 12th",
-     "Cap 11th · Aquarius 10th · Pisces 9th"
-    ],
+    "dong": [],
     "vi": "tren"
-   }
+   },
+   "manh": [
+    "One short for every Rising sign.",
+    "Aries 8th · Taurus 7th · Gemini 6th",
+    "Cancer 5th · Leo 4th · Virgo 3rd",
+    "Libra 2nd · Scorpio 1st · Sag 12th",
+    "Cap 11th · Aquarius 10th · Pisces 9th"
+   ]
   },
   {
-   "tu": 17.0,
-   "den": 19.8,
+   "tu": 46.4,
+   "den": 51.3,
    "nhin": {
     "troi": 1
    },
-   "chu": "See where it lands in your chart<br>free at astrolas.com."
+   "chu": "See where it lands in your chart free at astrolas.com."
   }
  ],
  "dang": {

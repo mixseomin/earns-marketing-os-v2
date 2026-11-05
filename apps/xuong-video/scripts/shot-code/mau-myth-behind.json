@@ -12,44 +12,48 @@
   "ic": "☉"
  },
  "la_so": "../lich-su/la-so/steve-jobs.svg",
- "DAI": 20.6,
+ "DAI": 35.6,
  "cau": [
   {
    "tu": 0,
-   "den": 3.6,
+   "den": 8.5,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/my-chiron-day.jpg",
     "kieu": "day"
    },
-   "chu": "Chiron: “Named after the centaur in Greek myth<br>who was a teacher of heroes and a healer”",
-   "nhan": "The centaur in Greek myth"
+   "chu": "Chiron: “Named after the centaur in Greek myth who was a teacher of heroes and a healer”",
+   "nhan": "The centaur in Greek myth",
+   "manh": [
+    "Chiron: “Named after the centaur in Greek myth”",
+    "…“who was a teacher of heroes and a healer”"
+   ]
   },
   {
-   "tu": 3.6,
-   "den": 7.2,
+   "tu": 8.5,
+   "den": 13.6,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/my-chiron-ten.jpg",
     "kieu": "trai"
    },
-   "chu": "“wounded by a poisoned arrow<br>he couldn't cure in himself.”",
+   "chu": "“wounded by a poisoned arrow he couldn't cure in himself.”",
    "nhan": "The wounded healer"
   },
   {
-   "tu": 7.2,
-   "den": 10.8,
+   "tu": 13.6,
+   "den": 17.5,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/my-chiron-sao.jpg",
     "kieu": "len"
    },
-   "chu": "Astrologers call it<br>“the wounded healer.”"
+   "chu": "Astrologers call it “the wounded healer.”"
   },
   {
-   "tu": 10.8,
-   "den": 14.2,
+   "tu": 17.5,
+   "den": 24.1,
    "nhin": {
     "troi": 1
    },
-   "chu": "“Discovered in 1977.” “The small body<br>between Saturn and Uranus.”",
+   "chu": "“Discovered in 1977.” “The small body between Saturn and Uranus.”",
    "the": {
     "lon": "⚷",
     "duoi": "Chiron · 1977",
@@ -57,23 +61,31 @@
      "“Discovered in 1977.”"
     ],
     "vi": "giua"
-   }
+   },
+   "manh": [
+    "“Discovered in 1977.”",
+    "“The small body between Saturn and Uranus.”"
+   ]
   },
   {
-   "tu": 14.2,
-   "den": 17.8,
+   "tu": 24.1,
+   "den": 30.7,
    "nhin": {
     "sao": "Chiron"
    },
-   "chu": "In Steve Jobs's chart, Chiron sits<br>in Aquarius, in the 5th house."
+   "chu": "In Steve Jobs's chart, Chiron sits in Aquarius, in the 5th house.",
+   "manh": [
+    "In Steve Jobs's chart,",
+    "Chiron sits in Aquarius, in the 5th house."
+   ]
   },
   {
-   "tu": 17.8,
-   "den": 20.6,
+   "tu": 30.7,
+   "den": 35.6,
    "nhin": {
     "toan": 1
    },
-   "chu": "What's your Chiron sign?<br>Find it free at astrolas.com.",
+   "chu": "What's your Chiron sign? Find it free at astrolas.com.",
    "khung": true
   }
  ],

@@ -12,7 +12,7 @@
   "mau": "#E6B800",
   "ic": "♄"
  },
- "DAI": 25.6,
+ "DAI": 36.6,
  "cau": [
   {
    "tu": 0,
@@ -20,7 +20,7 @@
    "nhin": {
     "troi": 1
    },
-   "chu": "One question.<br>One free tool.",
+   "chu": "One question. One free tool.",
    "the": {
     "lon": "?",
     "dong": [
@@ -33,66 +33,70 @@
   },
   {
    "tu": 3.2,
-   "den": 6.4,
+   "den": 7.3,
    "nhin": {
     "man": "../lich-su/cong-cu/ap-1985.png"
    },
-   "chu": "Open Annual Profections.<br>Enter a birth date.",
+   "chu": "Open Annual Profections. Enter a birth date.",
    "nhan": "astrolas.com · Annual Profections"
   },
   {
-   "tu": 6.4,
-   "den": 9.4,
+   "tu": 7.3,
+   "den": 10.3,
    "nhin": {
     "man": "../lich-su/cong-cu/ap-1985.png",
     "khung": "tuoi"
    },
-   "chu": "Steve Jobs, 1985:<br>age 30."
+   "chu": "Steve Jobs, 1985: age 30."
   },
   {
-   "tu": 9.4,
-   "den": 12.8,
+   "tu": 10.3,
+   "den": 15.5,
    "nhin": {
     "man": "../lich-su/cong-cu/ap-1985.png",
     "khung": "banh"
    },
-   "chu": "“Each year of your life activates<br>one house of your chart.”"
+   "chu": "“Each year of your life activates one house of your chart.”"
   },
   {
-   "tu": 12.8,
-   "den": 16.2,
+   "tu": 15.5,
+   "den": 24.2,
    "nhin": {
     "man": "../lich-su/cong-cu/ap-1985.png",
     "khung": "nha7"
    },
-   "chu": "The 7th house:<br>“Marriage, spouse, business partners, external relations, and going abroad.”"
+   "chu": "The 7th house: “Marriage, spouse, business partners, external relations, and going abroad.”",
+   "manh": [
+    "The 7th house: “Marriage, spouse, business partners,”",
+    "…“external relations, and going abroad.”"
+   ]
   },
   {
-   "tu": 16.2,
-   "den": 19.8,
+   "tu": 24.2,
+   "den": 28.4,
    "nhin": {
     "man": "../lich-su/cong-cu/ap-1985.png",
     "khung": "chu-nam"
    },
-   "chu": "Lord of the year: Jupiter,<br>in his 11th house."
+   "chu": "Lord of the year: Jupiter, in his 11th house."
   },
   {
-   "tu": 19.8,
-   "den": 22.8,
+   "tu": 28.4,
+   "den": 32.5,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
     "kieu": "trai"
    },
-   "chu": "1985: Apple's board strips him<br>of his role.",
+   "chu": "1985: Apple's board strips him of his role.",
    "nhan": "1985 · Cupertino"
   },
   {
-   "tu": 22.8,
-   "den": 25.6,
+   "tu": 32.5,
+   "den": 36.6,
    "nhin": {
     "troi": 1
    },
-   "chu": "Ask your own question<br>free at astrolas.com.",
+   "chu": "Ask your own question free at astrolas.com.",
    "khung": true
   }
  ],

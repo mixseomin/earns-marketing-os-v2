@@ -12,11 +12,11 @@
   "mau": "#F4D971",
   "ic": "★"
  },
- "DAI": 38.4,
+ "DAI": 41.4,
  "cau": [
   {
    "tu": 0,
-   "den": 6.0,
+   "den": 6,
    "canh": {
     "thien_cau": {
      "vi_do": 37.8,
@@ -29,8 +29,8 @@
    "nhan": "San Francisco · 37.8° N"
   },
   {
-   "tu": 6.0,
-   "den": 13.0,
+   "tu": 6,
+   "den": 14.6,
    "canh": {
     "thien_cau": {
      "vi_do": 37.8,
@@ -39,11 +39,15 @@
     }
    },
    "chu": "“The Earth turns once in 24 hours, so all 12 signs pass over the eastern horizon in a day.”",
-   "nhan": "The zodiac"
+   "nhan": "The zodiac",
+   "manh": [
+    "“The Earth turns once in 24 hours,”",
+    "…“so all 12 signs pass over the eastern horizon in a day.”"
+   ]
   },
   {
-   "tu": 13.0,
-   "den": 21.0,
+   "tu": 14.6,
+   "den": 22.6,
    "canh": {
     "thien_cau": {
      "vi_do": 37.8,
@@ -52,24 +56,32 @@
     }
    },
    "chu": "Look east. The sign “coming up over the eastern horizon” is your Ascendant.",
-   "nhan": "Rising sign"
+   "nhan": "Rising sign",
+   "manh": [
+    "Look east. The sign “coming up over the eastern horizon”",
+    "is your Ascendant."
+   ]
   },
   {
-   "tu": 21.0,
-   "den": 28.0,
+   "tu": 22.6,
+   "den": 31,
    "canh": {
     "thien_cau": {
      "vi_do": 37.8,
-     "gio_moi_giay": 2.0,
+     "gio_moi_giay": 2,
      "nhin": "dong"
     }
    },
    "chu": "“If your birth time is off by an hour, there's a fair chance your rising sign is wrong.”",
-   "nhan": "≈ 2 hours per sign"
+   "nhan": "≈ 2 hours per sign",
+   "manh": [
+    "“If your birth time is off by an hour,”",
+    "…“there's a fair chance your rising sign is wrong.”"
+   ]
   },
   {
-   "tu": 28.0,
-   "den": 34.0,
+   "tu": 31,
+   "den": 37,
    "canh": {
     "banh": 1
    },
@@ -77,8 +89,8 @@
    "nhan": "Steve Jobs · Virgo rising"
   },
   {
-   "tu": 34.0,
-   "den": 38.4,
+   "tu": 37,
+   "den": 41.4,
    "canh": {
     "banh": 1
    },

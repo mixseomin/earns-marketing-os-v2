@@ -12,33 +12,38 @@
   "mau": "#F4D971",
   "ic": "★"
  },
- "DAI": 22.4,
+ "DAI": 36.1,
  "cau": [
   {
    "tu": 0,
-   "den": 3.0,
+   "den": 4.4,
    "nhin": {
     "dung": 1
    },
-   "chu": "See the number next to AC?<br>Here's what it means."
+   "chu": "See the number next to AC? Here's what it means."
   },
   {
-   "tu": 3.0,
-   "den": 6.6,
+   "tu": 4.4,
+   "den": 16.1,
    "nhin": {
     "man": "../lich-su/cong-cu/sj-natal.png",
     "khung": "asc"
    },
-   "chu": "AC is the Ascendant. “At the moment you were born, one of the 12 zodiac signs<br>was coming up over the eastern horizon.”",
-   "nhan": "Steve Jobs · Ascendant"
+   "chu": "AC is the Ascendant. “At the moment you were born, one of the 12 zodiac signs was coming up over the eastern horizon.”",
+   "nhan": "Steve Jobs · Ascendant",
+   "manh": [
+    "AC is the Ascendant. “At the moment you were born,”",
+    "…“one of the 12 zodiac signs was”",
+    "…“coming up over the eastern horizon.”"
+   ]
   },
   {
-   "tu": 6.6,
-   "den": 10.0,
+   "tu": 16.1,
+   "den": 20.7,
    "nhin": {
     "troi": 1
    },
-   "chu": "22°17' means 22 degrees<br>and 17 minutes into Virgo.",
+   "chu": "22°17' means 22 degrees and 17 minutes into Virgo.",
    "the": {
     "lon": "22°17'",
     "duoi": "Virgo",
@@ -49,12 +54,12 @@
    }
   },
   {
-   "tu": 10.0,
-   "den": 13.2,
+   "tu": 20.7,
+   "den": 24.8,
    "nhin": {
     "troi": 1
    },
-   "chu": "30 degrees per sign.<br>60 minutes per degree.",
+   "chu": "30 degrees per sign. 60 minutes per degree.",
    "the": {
     "lon": "30°",
     "duoi": "per sign",
@@ -65,31 +70,31 @@
    }
   },
   {
-   "tu": 13.2,
-   "den": 16.6,
+   "tu": 24.8,
+   "den": 29.2,
    "nhin": {
     "man": "../lich-su/cong-cu/sj-natal.png",
     "khung": "sun"
    },
-   "chu": "Same for planets: his Sun<br>is 5°45' into Pisces.",
+   "chu": "Same for planets: his Sun is 5°45' into Pisces.",
    "nhan": "Planets"
   },
   {
-   "tu": 16.6,
-   "den": 19.6,
+   "tu": 29.2,
+   "den": 32.2,
    "nhin": {
     "man": "../lich-su/cong-cu/sj-natal.png",
     "khung": "planets"
    },
-   "chu": "Now you can read<br>every row."
+   "chu": "Now you can read every row."
   },
   {
-   "tu": 19.6,
-   "den": 22.4,
+   "tu": 32.2,
+   "den": 36.1,
    "nhin": {
     "troi": 1
    },
-   "chu": "Read your own chart<br>free at astrolas.com."
+   "chu": "Read your own chart free at astrolas.com."
   }
  ],
  "dang": {

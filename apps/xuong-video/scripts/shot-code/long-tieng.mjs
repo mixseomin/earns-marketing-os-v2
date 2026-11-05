@@ -20,7 +20,9 @@ const tepCau = arg('cau'), ra = arg('ra'); if (!tepCau || !ra) { console.error('
 const C = JSON.parse(readFileSync(resolve(tepCau), 'utf8')), SO = JSON.parse(readFileSync(join(DIR, '../lich-su/so-kenh.json'), 'utf8'));
 const AM = { giong: 'Charlotte', nhac: 'troi', ...(SO[C.kenh]?.am_thanh ?? {}) };
 const sach = (s) => s.replace(/<br\s*\/?>/g, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
-const loi = C.cau.map((q) => sach(q.doc ?? q.chu));
+// NHÓM ĐỌC: các khung tách từ cùng một câu (chu-man.mjs › tachCanh đánh dấu tiep) đọc CHUNG một lượt — giọng liền câu, một lượt ckey, rồi chia khung theo chữ
+const nhom = []; C.cau.forEach((q, i) => { if (q.tiep && nhom.length) nhom.at(-1).push(i); else nhom.push([i]); });
+const loi = nhom.map((ds) => sach(ds.map((i) => C.cau[i].doc ?? C.cau[i].chu).join(' ').replace(/…/g, '')));
 const CACHE = join(process.env.HOME, '.cache/shot-code-giong', basename(tepCau, '.json')); mkdirSync(CACHE, { recursive: true });
 
 // ---------- 1. giọng từng câu (box3 qua ckey, chỉ câu chưa có) ----------
@@ -43,15 +45,19 @@ const cat = khoa.map((k) => { const f = join(KHO, `${k}.cat.wav`);
   return { f, d: giay(f) }; });
 
 // ---------- 2. mốc cảnh theo tiếng ----------
-const VAO = 0.3, NGHI = 0.45, TOI_THIEU = 2.6; let t = 0;
-const cau = C.cau.map((q, i) => { const dai = Math.max(TOI_THIEU, VAO + cat[i].d + NGHI) + (i === C.cau.length - 1 ? 1.2 : 0), o = { ...q, tu: Math.round(t * 100) / 100, den: Math.round((t + dai) * 100) / 100 }; t += dai; return o; });
+const VAO = 0.3, NGHI = 0.45, TOI_THIEU = 2.6, KHUNG_TOI_THIEU = 1.8, tron = (x) => Math.round(x * 100) / 100; let t = 0;
+const cau = [], batDau = [];
+nhom.forEach((ds, g) => { const cuoi = g === nhom.length - 1, dai = Math.max(TOI_THIEU, VAO + cat[g].d + NGHI) + (cuoi ? 1.2 : 0);
+  const chu = ds.map((i) => sach(C.cau[i].chu).length), tong = chu.reduce((a, b) => a + b, 0); batDau.push(t);
+  let u = t; ds.forEach((i, k) => { const d = k === ds.length - 1 ? t + dai - u : Math.max(KHUNG_TOI_THIEU, (dai * chu[k]) / tong); cau.push({ ...C.cau[i], tu: tron(u), den: tron(u + d) }); u += d; });
+  t = tron(t + dai); });
 const DAI = cau.at(-1).den;
 const C2 = { ...C, DAI, cau }, tepC2 = join(dirname(resolve(tepCau)), `.${basename(tepCau, '.json')}.tieng.json`);
 writeFileSync(tepC2, JSON.stringify(C2));   // cùng thư mục CAU gốc: đường ảnh / lá số tương đối vẫn đúng
 // dải giọng: từng câu đặt đúng giây vào của cảnh
 const tepGiong = join(CACHE, 'giong.wav');
 execFileSync('ffmpeg', ['-v', 'error', '-y', ...cat.flatMap((c) => ['-i', c.f]), '-filter_complex',
-  cat.map((_, i) => `[${i}:a]adelay=${Math.round((cau[i].tu + VAO) * 1000)}:all=1[c${i}]`).join(';') + ';' + cat.map((_, i) => `[c${i}]`).join('') + `amix=inputs=${cat.length}:normalize=0,apad,atrim=0:${DAI}[a]`, '-map', '[a]', tepGiong]);
+  cat.map((_, i) => `[${i}:a]adelay=${Math.round((batDau[i] + VAO) * 1000)}:all=1[c${i}]`).join(';') + ';' + cat.map((_, i) => `[c${i}]`).join('') + `amix=inputs=${cat.length}:normalize=0,apad,atrim=0:${DAI}[a]`, '-map', '[a]', tepGiong]);
 const moi = thieu.length;
 
 // ---------- 3. hình + trộn tiếng ----------
@@ -73,4 +79,4 @@ const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, '-i', tepGiong, 
   '-filter_complex', `[1:a]aresample=${SR},volume=1.0,asplit=2[g][gk];[2:a]volume=0.55,afade=t=in:d=1.2,afade=t=out:st=${DAI - 1.6}:d=1.6[n0];[n0][gk]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[n];[3:a]volume=0.6[s];[g][n][s]amix=inputs=3:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5[a]`,
   '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-t', String(DAI), '-movflags', '+faststart', resolve(ra)], { stdio: 'inherit' });
 if (r.status) process.exit(r.status);
-console.log(`✓ ${ra} · ${DAI}s · ${cau.length} câu · giọng ${AM.giong} (ckey) · tiền giọng lượt này ${moi * 156}₫${moi < cau.length ? ` (${cau.length - moi} câu dùng lại)` : ''}`);
+console.log(`✓ ${ra} · ${DAI}s · ${cau.length} khung / ${nhom.length} lượt đọc · giọng ${AM.giong} (ckey) · tiền giọng lượt này ${moi * 156}₫${moi < nhom.length ? ` (${nhom.length - moi} lượt dùng lại)` : ''}`);

@@ -61,6 +61,7 @@ const CAU = { _ghi: `Chart Chapters dài · ${M.ten} — sinh bởi lich-su/dai/
   la_so: tg(join(LA_SO, `${slug}.svg`)), nen: tg(join(DIR, '../brand/astrolas/anh/troi.jpg')), logo: tg(join(DIR, '../brand/astrolas/logo/wordmark.png')),
   playlist: { ten: 'Career & Big Decisions', mau: '#E6B800', ic: '♄' }, cau };
 // máy gác sổ kênh (lich-su/so-kenh.json): sai mẫu / playlist / ý tưởng / câu kết thì không ghi
+const { tachCanh } = await import(join(DIR, '../chu-man.mjs')); Object.assign(CAU, tachCanh(CAU));   // mỗi khung một ý ngắn (anh 05/11/2026)
 const { docSo, kiemTap } = await import(join(DIR, '../kiem-so-kenh.mjs')), loiSo = kiemTap(CAU, docSo().astrolas, 'astrolas');
 if (loiSo.length) { console.error(`✗ tập trái sổ kênh:\n${loiSo.map((l) => `   · ${l}`).join('\n')}`); process.exit(3); }
 writeFileSync(ra, JSON.stringify(CAU, null, 1) + '\n');

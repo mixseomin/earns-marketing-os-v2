@@ -11,31 +11,35 @@
   "mau": "#7FD18B",
   "ic": "☽"
  },
- "DAI": 21.0,
+ "DAI": 29.2,
  "cau": [
   {
    "tu": 0,
-   "den": 3.6,
+   "den": 5.1,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sc-1503-tau.jpg",
     "kieu": "trai"
    },
-   "chu": "1503. Columbus and 230 of his men<br>are stranded on Jamaica.",
+   "chu": "1503. Columbus and 230 of his men are stranded on Jamaica.",
    "nhan": "1503 · St. Ann's Bay, Jamaica"
   },
   {
-   "tu": 3.6,
-   "den": 7.0,
+   "tu": 5.1,
+   "den": 13.6,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sc-1504-almanac.jpg",
     "kieu": "day"
    },
-   "chu": "Predicting a lunar eclipse for 29 February 1504,<br>using Abraham Zacuto's astronomical charts.",
-   "nhan": "Abraham Zacuto's astronomical charts"
+   "chu": "Predicting a lunar eclipse for 29 February 1504, using Abraham Zacuto's astronomical charts.",
+   "nhan": "Abraham Zacuto's astronomical charts",
+   "manh": [
+    "Predicting a lunar eclipse for 29 February 1504,",
+    "using Abraham Zacuto's astronomical charts."
+   ]
   },
   {
-   "tu": 7.0,
-   "den": 10.2,
+   "tu": 13.6,
+   "den": 16.8,
    "nhin": {
     "troi": 1
    },
@@ -50,8 +54,8 @@
    }
   },
   {
-   "tu": 10.2,
-   "den": 13.8,
+   "tu": 16.8,
+   "den": 20.4,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sc-1504-trang-do.jpg",
     "kieu": "len"
@@ -60,23 +64,23 @@
    "nhan": "February 29, 1504"
   },
   {
-   "tu": 13.8,
-   "den": 18.2,
+   "tu": 20.4,
+   "den": 24.8,
    "nhin": {
     "trang_tuan": {
      "tu": "2026-11-03",
      "so": 7
     }
    },
-   "chu": "This week:<br>a New Moon on Monday."
+   "chu": "This week: a New Moon on Monday."
   },
   {
-   "tu": 18.2,
-   "den": 21.0,
+   "tu": 24.8,
+   "den": 29.2,
    "nhin": {
     "troi": 1
    },
-   "chu": "See this week's Moon Phase<br>free at astrolas.com."
+   "chu": "See this week's Moon Phase free at astrolas.com."
   }
  ],
  "nguon_moc": [

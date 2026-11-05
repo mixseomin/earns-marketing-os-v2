@@ -56,7 +56,8 @@
    "utc": "1926-06-01T17:30Z",
    "rodden": "AA",
    "nguon": "https://www.astrotheme.com/astrology/Marilyn_Monroe",
-   "ghi": "giấy khai sinh · Bob Garner"
+   "ghi": "giấy khai sinh · Bob Garner",
+   "ten_ngan": "Marilyn"
   },
   {
    "slug": "elvis-presley",
@@ -110,7 +111,8 @@
    "utc": "1985-02-05T05:25Z",
    "rodden": "AA",
    "nguon": "https://www.astrotheme.com/astrology/Cristiano_Ronaldo",
-   "ghi": "giấy khai sinh"
+   "ghi": "giấy khai sinh",
+   "ten_ngan": "Ronaldo"
   },
   {
    "slug": "albert-einstein",
@@ -219,7 +221,8 @@
    "utc": "1929-01-15T18:00Z",
    "rodden": "A",
    "nguon": "https://www.astrotheme.com/astrology/Martin_Luther_King",
-   "ghi": "theo trí nhớ / tự truyện · Lois Rodden"
+   "ghi": "theo trí nhớ / tự truyện · Lois Rodden",
+   "ten_ngan": "MLK"
   },
   {
    "slug": "john-f-kennedy",
@@ -237,7 +240,8 @@
    "utc": "1917-05-29T19:00Z",
    "rodden": "A",
    "nguon": "https://www.astrotheme.com/astrology/John_Fitzgerald_Kennedy",
-   "ghi": "theo trí nhớ / tự truyện · Lois Rodden"
+   "ghi": "theo trí nhớ / tự truyện · Lois Rodden",
+   "ten_ngan": "JFK"
   },
   {
    "slug": "oprah-winfrey",
@@ -273,7 +277,8 @@
    "utc": "1958-08-30T01:33Z",
    "rodden": "A",
    "nguon": "https://www.astrotheme.com/astrology/Michael_Jackson",
-   "ghi": "theo trí nhớ / tự truyện · Lois Rodden"
+   "ghi": "theo trí nhớ / tự truyện · Lois Rodden",
+   "ten_ngan": "Michael Jackson"
   },
   {
    "slug": "brad-pitt",
@@ -507,7 +512,8 @@
    "utc": "1980-10-21T17:46Z",
    "rodden": "AA",
    "nguon": "https://www.astrotheme.com/astrology/Kim_Kardashian",
-   "ghi": "birth certificate or birth record · múi giờ: PDT UTC-7 (DST 1980 hết 26/10)"
+   "ghi": "birth certificate or birth record · múi giờ: PDT UTC-7 (DST 1980 hết 26/10)",
+   "ten_ngan": "Kim"
   },
   {
    "slug": "kanye-west",
@@ -579,7 +585,8 @@
    "utc": null,
    "rodden": "A",
    "nguon": "https://www.astrotheme.com/astrology/Jacqueline_Kennedy_Onassis",
-   "ghi": "From memory or autobiography · múi giờ: Có lẽ EDT UTC-4 (giờ mùa hè địa phương NY 1929, chưa kiểm được cho Southampton)"
+   "ghi": "From memory or autobiography · múi giờ: Có lẽ EDT UTC-4 (giờ mùa hè địa phương NY 1929, chưa kiểm được cho Southampton)",
+   "ten_ngan": "Jackie"
   },
   {
    "slug": "joe-dimaggio",
@@ -633,7 +640,8 @@
    "utc": "1945-05-25T02:40Z",
    "rodden": "B",
    "nguon": "https://www.astrotheme.com/astrology/Priscilla_Presley",
-   "ghi": "Biography · Lois Rodden · múi giờ: EWT UTC-4 (giờ chiến tranh)"
+   "ghi": "Biography · Lois Rodden · múi giờ: EWT UTC-4 (giờ chiến tranh)",
+   "ten_ngan": "Priscilla"
   },
   {
    "slug": "jay-z",

@@ -12,8 +12,10 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BOX, GOC_BOX } from './box3.mjs';
 import { dangCongCu } from './nguon-site.mjs';
+import { tachCanh } from './chu-man.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook, sachHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { hookGon, hookNgan } from './chu-man.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
@@ -41,11 +43,11 @@ export function chonGoc(h) {
 
 function vietMot(c, ghTheo, ra) {
   const h = doc(`la-so/hop/${c.ma}.json`), so = docSo().astrolas, plMa = c.rel === 'partner' ? 'career' : 'love-compatibility', pl = so.playlist.find((p) => p.ma === plMa);
-  const gh = ghTheo(pl.goc_spy?.[0]?.id ?? 4314), gocs = chonGoc(h).slice(0, 2), A = tenNgan(h.a.ten), B = tenNgan(h.b.ten);
+  const gh = ghTheo(pl.goc_spy?.[0]?.id ?? 4314), gocs = chonGoc(h).slice(0, 2), NG = doc('la-so/nguoi.json').nguoi, ngan = (x) => NG.find((n) => n.slug === x.slug)?.ten_ngan ?? tenNgan(x.ten), A = ngan(h.a), B = ngan(h.b);   // sổ người › ten_ngan (JFK, Jackie…) thắng
   if (gocs.length < 2) { console.error(`✗ ${c.ma}: chưa đủ 2 góc chiếu dùng được (${gocs.length})`); return false; }
   const moc = [...(c.moc ?? [])].sort((x, y) => x.ngay.localeCompare(y.ngay)), dau = moc[0], cuoi = moc.at(-1);
-  const hs = gh.hooks.filter((x) => !/\d/.test(x.chu) && !/retrograde/i.test(x.chu)), hook = hs[[...c.ma].reduce((s, ch) => s + ch.charCodeAt(0), 0) % hs.length] ?? gh.hooks[0];
-  const chuHook = sachHook(hook.chu).replace(/\s*[\u{1F300}-\u{1FAFF}☀-➿]+\s*$/u, '');
+  const hs = hookGon(gh.hooks.filter((x) => !/\d/.test(x.chu) && !/retrograde/i.test(x.chu))), hook = hs[[...c.ma].reduce((s, ch) => s + ch.charCodeAt(0), 0) % hs.length] ?? gh.hooks[0];
+  const chuHook = hookNgan(hook.chu);
   const goc = (g) => ({ nhin: { cheo: [`person-a:${g.a}`, `person-b:${g.b}`] }, nhan: `${KYS[g.a] ?? ''} ${A}'s ${g.a} · ${g.goc.toLowerCase()} · ${KYS[g.b] ?? ''} ${B}'s ${g.b} · ${g.lech}`,
     chu: `${A}'s ${g.a}, ${g.goc.toLowerCase()}, ${B}'s ${g.b}:<br>“${g.tieu_de.replace(/[.]$/, '')}.”` });
   const cau = [
@@ -58,11 +60,12 @@ function vietMot(c, ghTheo, ra) {
     { nhin: { troi: 1 }, khung: true, chu: 'Compare any two charts<br>free at astrolas.com.' },
   ].map((x, i) => ({ ...x, tu: +(i * 4.4).toFixed(2), den: +((i + 1) * 4.4).toFixed(2) }));
   const tieuDe = `${chuHook} ${A} and ${B}: their charts compared`, tg = (p) => relative(SHOT, p);
-  const tap = { _ghi: `Chart vs Chart · ${A} × ${B} — sinh bởi lich-su/viet-cap.mjs (synastry site ${h.nguon.slice(0, 60)}…, mốc la-so/cap.json, hook QC spy #${hook.id})`,
+  const tap = tachCanh({   // mỗi khung một ý ngắn (chu-man.mjs)
+    _ghi: `Chart vs Chart · ${A} × ${B} — sinh bởi lich-su/viet-cap.mjs (synastry site ${h.nguon.slice(0, 60)}…, mốc la-so/cap.json, hook QC spy #${hook.id})`,
     kenh: 'astrolas', mau: 'chart-vs-chart', playlist_ma: plMa, y_tuong: `cvc-${c.ma}`, tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
     dang: dangCongCu('synastry-chart', [c.a, c.b], { rel_type: c.rel }, `${h.a.ten} and ${h.b.ten}: both birth charts compared with the Synastry tool.`),
     la_so: tg(join(DIR, `la-so/hop/${c.ma}.svg`)), nen: tg(join(DIR, 'brand/astrolas/anh/troi.jpg')), logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
-    playlist: { ten: pl.ten, mau: plMa === 'career' ? '#E6B800' : '#FF8FB1', ic: plMa === 'career' ? '♄' : '♡' }, DAI: cau.at(-1).den, cau };
+    playlist: { ten: pl.ten, mau: plMa === 'career' ? '#E6B800' : '#FF8FB1', ic: plMa === 'career' ? '♄' : '♡' }, DAI: cau.at(-1).den, cau });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${c.ma}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }
   mkdirSync(dirname(ra), { recursive: true }); writeFileSync(ra, JSON.stringify(tap, null, 1) + '\n');

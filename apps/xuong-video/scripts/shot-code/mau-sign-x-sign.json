@@ -12,11 +12,11 @@
   "mau": "#FF8FB1",
   "ic": "♡"
  },
- "DAI": 25.4,
+ "DAI": 46.7,
  "cau": [
   {
    "tu": 0,
-   "den": 3.4,
+   "den": 3.7,
    "nhin": {
     "cap_cung": [
      "Leo",
@@ -32,35 +32,36 @@
    }
   },
   {
-   "tu": 3.4,
-   "den": 8.0,
+   "tu": 3.7,
+   "den": 13.5,
    "nhin": {
     "cap_cung": [
      "Leo",
      "Sagittarius"
     ]
    },
-   "chu": "Sagittarius is four signs from Leo:<br>a trine. Both are Fire.",
+   "chu": "Sagittarius is four signs from Leo: a trine. Both are Fire. “You get each other’s energy without translation.”",
    "the": {
     "lon": "Trine",
     "duoi": "Fire · Fire",
-    "dong": [
-     "“You get each other’s energy",
-     "without translation.”"
-    ],
+    "dong": [],
     "vi": "giua"
-   }
+   },
+   "manh": [
+    "Sagittarius is four signs from Leo: a trine. Both are Fire.",
+    "“You get each other’s energy without translation.”"
+   ]
   },
   {
-   "tu": 8.0,
-   "den": 12.6,
+   "tu": 13.5,
+   "den": 18.1,
    "nhin": {
     "cap_cung": [
      "Leo",
      "Sagittarius"
     ]
    },
-   "chu": "Where it clicks:<br>“Humor is a real glue here.”",
+   "chu": "Where it clicks: “Humor is a real glue here.”",
    "the": {
     "lon": "✓",
     "duoi": "“Where it clicks”",
@@ -71,52 +72,55 @@
    }
   },
   {
-   "tu": 12.6,
-   "den": 17.4,
+   "tu": 18.1,
+   "den": 32.3,
    "nhin": {
     "cap_cung": [
      "Leo",
      "Sagittarius"
     ]
    },
-   "chu": "“Where it clashes”: “Fixed Leo wants consistency and devotion,<br>mutable Sagittarius wants variety and space.”",
+   "chu": "“Where it clashes”: “Fixed Leo wants consistency and devotion, mutable Sagittarius wants variety and space.” “Sagittarius’s candor can bruise Leo’s pride.”",
    "the": {
     "lon": "Fixed × Mutable",
     "duoi": "“Where it clashes”",
-    "dong": [
-     "“Sagittarius’s candor can",
-     "bruise Leo’s pride.”"
-    ],
+    "dong": [],
     "vi": "giua"
-   }
+   },
+   "manh": [
+    "“Where it clashes”: “Fixed Leo wants consistency and devotion,”",
+    "…“mutable Sagittarius wants variety and space.”",
+    "“Sagittarius’s candor can bruise Leo’s pride.”"
+   ]
   },
   {
-   "tu": 17.4,
-   "den": 21.8,
+   "tu": 32.3,
+   "den": 41.3,
    "nhin": {
     "cap_cung": [
      "Leo",
      "Sagittarius"
     ]
    },
-   "chu": "Sagittarius: “soften the delivery,<br>not the truth.”",
+   "chu": "Sagittarius: “soften the delivery, not the truth.” “Plan adventures together, not only separately.”",
    "the": {
     "lon": "How to make it work",
     "duoi": "",
-    "dong": [
-     "“Plan adventures together,",
-     "not only separately.”"
-    ],
+    "dong": [],
     "vi": "giua"
-   }
+   },
+   "manh": [
+    "Sagittarius: “soften the delivery, not the truth.”",
+    "“Plan adventures together, not only separately.”"
+   ]
   },
   {
-   "tu": 21.8,
-   "den": 25.4,
+   "tu": 41.3,
+   "den": 46.7,
    "nhin": {
     "troi": 1
    },
-   "chu": "“Beyond Sun signs”:<br>compare your charts free at astrolas.com."
+   "chu": "“Beyond Sun signs”: compare your charts free at astrolas.com."
   }
  ],
  "la_so": "../lich-su/la-so/steve-jobs.svg",

@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { kiemNguon, linkCongCu } from './nguon-site.mjs';
+import { kiemChuMan } from './chu-man.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 export const docSo = () => JSON.parse(readFileSync(join(DIR, 'so-kenh.json'), 'utf8'));
@@ -80,6 +81,8 @@ export function kiemTap(tap, k, ma) {
   if (mien && !cuoi.includes(mien)) loi.push(`câu cuối phải trỏ về ${mien} (dinh_vi.cau_ket "${k.dinh_vi.cau_ket}")`);
   // LUẬT NGUỒN (anh 05/11/2026): diễn giải = chữ nguyên văn site; bài đăng kèm mô tả công cụ của site + link mở đúng trang / đúng người (lich-su/nguon-site.mjs)
   if (k.luat_nguon) loi.push(...kiemNguon(tap));
+  // MỖI KHUNG MỘT Ý NGẮN (anh 05/11/2026): chữ trên một khung không quá trần — tách cảnh bằng chu-man.mjs › tachCanh
+  if (k.luat_nguon) loi.push(...kiemChuMan(tap));
   return loi;
 }
 

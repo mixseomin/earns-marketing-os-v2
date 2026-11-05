@@ -12,11 +12,11 @@
   "ic": "★"
  },
  "la_so": "../lich-su/la-so/steve-jobs.svg",
- "DAI": 21.4,
+ "DAI": 23.4,
  "cau": [
   {
    "tu": 0,
-   "den": 3.0,
+   "den": 3,
    "nhin": {
     "dung": 1
    },
@@ -24,19 +24,19 @@
    "khung": true
   },
   {
-   "tu": 3.0,
-   "den": 6.0,
+   "tu": 3,
+   "den": 6.4,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
     "kieu": "trai"
    },
-   "chu": "Real people.<br>Real turning points.",
+   "chu": "Real people. Real turning points.",
    "nhan": "Chart Chapters",
    "khung": true
   },
   {
-   "tu": 6.0,
-   "den": 9.0,
+   "tu": 6.4,
+   "den": 9.4,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sc-1504-trang-do.jpg",
     "kieu": "len"
@@ -46,19 +46,19 @@
    "khung": true
   },
   {
-   "tu": 9.0,
-   "den": 12.0,
+   "tu": 9.4,
+   "den": 12.9,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/my-chiron-day.jpg",
     "kieu": "day"
    },
-   "chu": "And the myths<br>written in the stars.",
+   "chu": "And the myths written in the stars.",
    "nhan": "The Myth Behind",
    "khung": true
   },
   {
-   "tu": 12.0,
-   "den": 15.2,
+   "tu": 12.9,
+   "den": 16.1,
    "nhin": {
     "nha": 10
    },
@@ -66,8 +66,8 @@
    "khung": true
   },
   {
-   "tu": 15.2,
-   "den": 18.6,
+   "tu": 16.1,
+   "den": 19.5,
    "nhin": {
     "troi": 1
    },
@@ -83,12 +83,12 @@
    "khung": true
   },
   {
-   "tu": 18.6,
-   "den": 21.4,
+   "tu": 19.5,
+   "den": 23.4,
    "nhin": {
     "toan": 1
    },
-   "chu": "See your own chart<br>free at astrolas.com.",
+   "chu": "See your own chart free at astrolas.com.",
    "khung": true
   }
  ],

@@ -14,8 +14,10 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BOX, GOC_BOX } from './box3.mjs';
 import { dangCongCu } from './nguon-site.mjs';
+import { tachCanh } from './chu-man.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook, sachHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { hookGon, hookNgan } from './chu-man.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
@@ -65,9 +67,9 @@ function layHook(goc) {
 function vietMot(su, moc, gh, ra) {
   const iR = CUNG.indexOf(moc), iS = CUNG.indexOf(su.cung), nha = ((iS - iR + 12) % 12) + 1, c = chuSuKien(su, nha);
   const d = new Date(su.utc), ngay = `${THANG[d.getUTCMonth()]} ${d.getUTCDate()}`, gio = su.utc.slice(11, 16);
-  const nghich = /retrograde/i.test(su.chu), hs = gh.hooks.filter((h) => !/\d/.test(h.chu));
-  const xoay = hs.filter((h) => !/retrograde/i.test(h.chu)), hook = (nghich && hs.find((h) => /retrograde/i.test(h.chu))) || xoay[(iR + iS) % xoay.length] || hs[0] || gh.hooks[0];   // hook nói về nghịch hành chỉ cho sự kiện nghịch hành
-  const chuHook = sachHook(hook.chu).replace(/\s*[\u{1F300}-\u{1FAFF}☀-➿]+\s*$/u, '');
+  const nghich = /retrograde/i.test(su.chu), hs = gh.hooks.filter((h) => !/\d/.test(h.chu));   // (xoay bên dưới dùng hookGon: ưu tiên hook gọn một khung)
+  const xoay = hookGon(hs.filter((h) => !/retrograde/i.test(h.chu))), hook = (nghich && hs.find((h) => /retrograde/i.test(h.chu))) || xoay[(iR + iS) % xoay.length] || hs[0] || gh.hooks[0];   // hook nói về nghịch hành chỉ cho sự kiện nghịch hành
+  const chuHook = hookNgan(hook.chu);
   const so = docSo(), so_ = so.astrolas, pl = so_.playlist.find((p) => p.ma === 'timing');
   const tg = (p) => relative(SHOT, p),   // đường tính từ thư mục trang dựng (dung.mjs mở shot-code/la-so.html), không từ chỗ đặt tệp tập
     dung = (cung) => (cung === moc ? { toan: 1 } : { cap_cung: [moc, cung] });
@@ -80,14 +82,15 @@ function vietMot(su, moc, gh, ra) {
     { nhin: { troi: 1 }, khung: true, chu: 'See where it lands in your chart<br>free at astrolas.com.' },
   ].map((q, i, a) => ({ ...q, tu: i * 4.2, den: (i + 1) * 4.2 }));
   const tieuDe = `${chuHook} ${moc} rising: ${su.chu}`;
-  const tap = {
+  const tap = tachCanh({   // mỗi khung một ý ngắn (chu-man.mjs)
+   
     _ghi: `This Week · ${su.chu} × ${moc} rising — sinh bởi lich-su/viet-this-week.mjs (chữ site nguyên văn, hook QC spy #${hook.id})`,
     kenh: 'astrolas', mau: 'this-week', playlist_ma: 'timing', y_tuong: su.ma, tieu_de: tieuDe,
     goc: gh.goc, hook: { qc: hook.id, goc: hook.chu }, nguon_bai: c.bai,
     dang: dangCongCu(c.cong_cu, null, {}, `${su.chu} (${ngay}, ${gio} UTC): what it means for ${moc} rising.${c.bai.length ? ` Read more: ${c.bai.map((b) => `https://astrolas.com/en/blog/${b}`).join(' ')}` : ''}`),
     la_so: tg(join(DIR, 'la-so/steve-jobs.svg')), chi_vong: true,
     nen: tg(join(DIR, 'brand/astrolas/anh/troi.jpg')), logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
-    playlist: { ten: pl.ten, mau: '#7FD18B', ic: '☽' }, DAI: cau.at(-1).den, cau };
+    playlist: { ten: pl.ten, mau: '#7FD18B', ic: '☽' }, DAI: cau.at(-1).den, cau });
   const loi = [...kiemTap(tap, so_, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${su.ma} × ${moc}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }
   mkdirSync(dirname(ra), { recursive: true }); writeFileSync(ra, JSON.stringify(tap, null, 1) + '\n');

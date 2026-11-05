@@ -12,34 +12,34 @@
   "ic": "♄"
  },
  "la_so": "../lich-su/la-so/steve-jobs.svg",
- "DAI": 29.6,
+ "DAI": 52.7,
  "cau": [
   {
    "tu": 0,
-   "den": 3.4,
+   "den": 5.2,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/pf-valens.jpg",
     "kieu": "day"
    },
-   "chu": "“Each year of your life activates<br>one house of your chart.”",
+   "chu": "“Each year of your life activates one house of your chart.”",
    "nhan": "Annual Profections"
   },
   {
-   "tu": 3.4,
-   "den": 6.2,
+   "tu": 5.2,
+   "den": 10.4,
    "nhin": {
     "dung": 1
    },
-   "chu": "It's called Annual Profections.<br>Here is Steve Jobs's chart."
+   "chu": "It's called Annual Profections. Here is Steve Jobs's chart."
   },
   {
-   "tu": 6.2,
-   "den": 7.2,
+   "tu": 10.4,
+   "den": 18,
    "chuyen": 0.45,
    "nhin": {
     "cung": "Virgo"
    },
-   "chu": "“Your first year of life (birth to<br>first birthday) belongs to the 1st house.”",
+   "chu": "“Your first year of life (birth to first birthday) belongs to the 1st house.”",
    "the": {
     "lon": "0",
     "duoi": "age",
@@ -47,11 +47,15 @@
      "Virgo"
     ],
     "vi": "tren"
-   }
+   },
+   "manh": [
+    "“Your first year of life (birth to first”",
+    "…“birthday) belongs to the 1st house.”"
+   ]
   },
   {
-   "tu": 7.2,
-   "den": 8.2,
+   "tu": 18,
+   "den": 20.5,
    "chuyen": 0.45,
    "nhin": {
     "cung": "Libra"
@@ -67,8 +71,8 @@
    }
   },
   {
-   "tu": 8.2,
-   "den": 9.2,
+   "tu": 20.5,
+   "den": 23,
    "chuyen": 0.45,
    "nhin": {
     "cung": "Scorpio"
@@ -84,8 +88,8 @@
    }
   },
   {
-   "tu": 9.2,
-   "den": 10.2,
+   "tu": 23,
+   "den": 25.5,
    "chuyen": 0.45,
    "nhin": {
     "cung": "Sagittarius"
@@ -101,12 +105,12 @@
    }
   },
   {
-   "tu": 10.2,
-   "den": 13.8,
+   "tu": 25.5,
+   "den": 30.6,
    "nhin": {
     "cung": "Pisces"
    },
-   "chu": "Age 30: Pisces, the 7th house.<br>Lord of the year: Jupiter.",
+   "chu": "Age 30: Pisces, the 7th house. Lord of the year: Jupiter.",
    "the": {
     "lon": "30",
     "duoi": "1985",
@@ -117,22 +121,22 @@
    }
   },
   {
-   "tu": 13.8,
-   "den": 16.8,
+   "tu": 30.6,
+   "den": 34.7,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
     "kieu": "trai"
    },
-   "chu": "1985: Apple's board strips him<br>of his role.",
+   "chu": "1985: Apple's board strips him of his role.",
    "nhan": "1985 · Cupertino"
   },
   {
-   "tu": 16.8,
-   "den": 20.4,
+   "tu": 34.7,
+   "den": 38.3,
    "nhin": {
     "cung": "Pisces"
    },
-   "chu": "Age 42: Pisces again.<br>Jupiter again.",
+   "chu": "Age 42: Pisces again. Jupiter again.",
    "the": {
     "lon": "42",
     "duoi": "1997",
@@ -143,8 +147,8 @@
    }
   },
   {
-   "tu": 20.4,
-   "den": 23.4,
+   "tu": 38.3,
+   "den": 41.4,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1997-stage.jpg",
     "kieu": "lui"
@@ -153,20 +157,24 @@
    "nhan": "1997 · Macworld, Boston"
   },
   {
-   "tu": 23.4,
-   "den": 26.8,
+   "tu": 41.4,
+   "den": 48.3,
    "nhin": {
     "sao": "Jupiter"
    },
-   "chu": "“The lord of the year is the planet<br>to watch for those 12 months.”"
+   "chu": "“The lord of the year is the planet to watch for those 12 months.”",
+   "manh": [
+    "“The lord of the year is the planet”",
+    "…“to watch for those 12 months.”"
+   ]
   },
   {
-   "tu": 26.8,
-   "den": 29.6,
+   "tu": 48.3,
+   "den": 52.7,
    "nhin": {
     "toan": 1
    },
-   "chu": "Find your lord of the year<br>free at astrolas.com."
+   "chu": "Find your lord of the year free at astrolas.com."
   }
  ],
  "nguon_moc": [

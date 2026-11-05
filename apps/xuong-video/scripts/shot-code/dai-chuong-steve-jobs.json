@@ -5,7 +5,7 @@
  "playlist_ma": "career",
  "y_tuong": "ccd-steve-jobs",
  "khung": "ngang",
- "DAI": 54.4,
+ "DAI": 84.9,
  "nguon_moc": [
   "dai/moc-steve-jobs.json"
  ],
@@ -26,15 +26,19 @@
  "cau": [
   {
    "tu": 0,
-   "den": 5,
+   "den": 8.6,
    "nhin": {
     "dung": 1
    },
-   "chu": "This is the sky at the moment Steve Jobs was born: February 24, 1955, 7:15 PM, San Francisco."
+   "chu": "This is the sky at the moment Steve Jobs was born: February 24, 1955, 7:15 PM, San Francisco.",
+   "manh": [
+    "This is the sky at the moment Steve Jobs was born:",
+    "February 24, 1955, 7:15 PM, San Francisco."
+   ]
   },
   {
-   "tu": 5,
-   "den": 10.4,
+   "tu": 8.6,
+   "den": 19.4,
    "nhin": {
     "doi": {
      "tu": 1955,
@@ -61,11 +65,15 @@
     }
    },
    "chu": "“Each year of your life activates one house of your chart, and the planet ruling that house becomes the lord of the year.”",
-   "nhan": "Annual Profections"
+   "nhan": "Annual Profections",
+   "manh": [
+    "“Each year of your life activates one house of your chart,”",
+    "…“and the planet ruling that house becomes the lord of the year.”"
+   ]
   },
   {
-   "tu": 10.4,
-   "den": 15.2,
+   "tu": 19.4,
+   "den": 25,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1976-garage.jpg",
     "kieu": "lui"
@@ -74,8 +82,8 @@
    "nhan": "1976 · Los Altos, California"
   },
   {
-   "tu": 15.2,
-   "den": 20.4,
+   "tu": 25,
+   "den": 35.1,
    "nhin": {
     "doi": {
      "tu": 1955,
@@ -101,11 +109,15 @@
      ]
     }
    },
-   "chu": "1976, age 21: a Gemini year. Counted from Virgo rising, that's the 10th house: career, action (praxis), reputation."
+   "chu": "1976, age 21: a Gemini year. Counted from Virgo rising, that's the 10th house: career, action (praxis), reputation.",
+   "manh": [
+    "1976, age 21: a Gemini year.",
+    "Counted from Virgo rising, that's the 10th house: career, action (praxis), reputation."
+   ]
   },
   {
-   "tu": 20.4,
-   "den": 25.2,
+   "tu": 35.1,
+   "den": 40,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1985-board.jpg",
     "kieu": "day"
@@ -114,8 +126,8 @@
    "nhan": "1985 · Cupertino"
   },
   {
-   "tu": 25.2,
-   "den": 30.4,
+   "tu": 40,
+   "den": 50.1,
    "nhin": {
     "doi": {
      "tu": 1955,
@@ -141,11 +153,15 @@
      ]
     }
    },
-   "chu": "1985, age 30: a Pisces year. Counted from Virgo rising, that's the 7th house: marriage, spouse, business partners."
+   "chu": "1985, age 30: a Pisces year. Counted from Virgo rising, that's the 7th house: marriage, spouse, business partners.",
+   "manh": [
+    "1985, age 30: a Pisces year.",
+    "Counted from Virgo rising, that's the 7th house: marriage, spouse, business partners."
+   ]
   },
   {
-   "tu": 30.4,
-   "den": 35.2,
+   "tu": 50.1,
+   "den": 54.9,
    "nhin": {
     "tranh": "../lich-su/brand/astrolas/tranh/sj-1997-stage.jpg",
     "kieu": "lui"
@@ -154,8 +170,8 @@
    "nhan": "1997 · Macworld, Boston"
   },
   {
-   "tu": 35.2,
-   "den": 40.4,
+   "tu": 54.9,
+   "den": 64.9,
    "nhin": {
     "doi": {
      "tu": 1955,
@@ -181,11 +197,15 @@
      ]
     }
    },
-   "chu": "1997, age 42: Pisces again. Counted from Virgo rising, that's the 7th house: marriage, spouse, business partners."
+   "chu": "1997, age 42: Pisces again. Counted from Virgo rising, that's the 7th house: marriage, spouse, business partners.",
+   "manh": [
+    "1997, age 42: Pisces again.",
+    "Counted from Virgo rising, that's the 7th house: marriage, spouse, business partners."
+   ]
   },
   {
-   "tu": 40.4,
-   "den": 45.6,
+   "tu": 64.9,
+   "den": 76.1,
    "nhin": {
     "doi": {
      "tu": 1955,
@@ -211,11 +231,15 @@
      ]
     }
    },
-   "chu": "2007, age 51: a Sagittarius year. Counted from Virgo rising, that's the 4th house: parents (especially the father), family, home."
+   "chu": "2007, age 51: a Sagittarius year. Counted from Virgo rising, that's the 4th house: parents (especially the father), family, home.",
+   "manh": [
+    "2007, age 51: a Sagittarius year. Counted from Virgo rising, that's the 4th house:",
+    "parents (especially the father), family, home."
+   ]
   },
   {
-   "tu": 45.6,
-   "den": 50,
+   "tu": 76.1,
+   "den": 80.5,
    "nhin": {
     "doi": {
      "tu": 1955,
@@ -245,8 +269,8 @@
    "nhan": "iPhone"
   },
   {
-   "tu": 50,
-   "den": 54.4,
+   "tu": 80.5,
+   "den": 84.9,
    "nhin": {
     "toan": 1
    },

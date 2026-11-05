@@ -11,11 +11,11 @@
   "mau": "#F4D971",
   "ic": "★"
  },
- "DAI": 35.0,
+ "DAI": 41.5,
  "cau": [
   {
    "tu": 0,
-   "den": 6.0,
+   "den": 8.1,
    "canh": {
     "quy_dao": {
      "ngay_moi_giay": 14,
@@ -23,11 +23,15 @@
     }
    },
    "chu": "“Three times a year, for about three weeks each, Mercury appears to move backwards”",
-   "nhan": "Mercury retrograde"
+   "nhan": "Mercury retrograde",
+   "manh": [
+    "“Three times a year, for about three weeks each,”",
+    "…“Mercury appears to move backwards”"
+   ]
   },
   {
-   "tu": 6.0,
-   "den": 12.0,
+   "tu": 8.1,
+   "den": 15.3,
    "canh": {
     "quy_dao": {
      "ngay_moi_giay": 14,
@@ -35,11 +39,15 @@
     }
    },
    "chu": "“It isn't moving backwards; the view from Earth makes it look that way”",
-   "nhan": "Mercury"
+   "nhan": "Mercury",
+   "manh": [
+    "“It isn't moving backwards;”",
+    "…“the view from Earth makes it look that way”"
+   ]
   },
   {
-   "tu": 12.0,
-   "den": 20.0,
+   "tu": 15.3,
+   "den": 23.3,
    "canh": {
     "quy_dao": {
      "ngay_moi_giay": 10,
@@ -51,8 +59,8 @@
    "nhan": "Mercury against the zodiac"
   },
   {
-   "tu": 20.0,
-   "den": 29.0,
+   "tu": 23.3,
+   "den": 35.5,
    "canh": {
     "quy_dao": {
      "ngay_moi_giay": 6,
@@ -61,11 +69,16 @@
     }
    },
    "chu": "“During the overtake it appears to reverse direction against the background stars for roughly three weeks.” The red part.",
-   "nhan": "Mercury retrograde"
+   "nhan": "Mercury retrograde",
+   "manh": [
+    "“During the overtake it appears to reverse direction”",
+    "…“against the background stars for roughly three weeks.”",
+    "The red part."
+   ]
   },
   {
-   "tu": 29.0,
-   "den": 35.0,
+   "tu": 35.5,
+   "den": 41.5,
    "canh": {
     "quy_dao": {
      "ngay_moi_giay": 10,

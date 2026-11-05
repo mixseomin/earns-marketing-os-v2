@@ -781,6 +781,8 @@ const LUAT = [
   { card: 'cho-tao-0511', tep: 'apps/web/src/components/etp-view.tsx', co: "k === 'tat' ? daTat(c)", cam: "k === 'tat' ? c.trang_thai !== 'ACTIVE'", vi: 'Đã tắt không gồm camp đang tạo / chờ giờ' },
   { card: 'sx-lo-0511', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: "const hopLo = (d: DongPhim) => !lo || d.loai === lo;", vi: 'lọc loại áp cho cả dòng phim lẫn dòng ngoài' },
   { card: 'sx-tl-0511', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: "const hopTl = (d: DongPhim) => !tl || (tl === '_' ? !d.the_loai : d.the_loai === tl);", vi: 'lọc thể loại áp cho cả dòng phim lẫn dòng ngoài' },
+  { card: 'loc-tran-0611', tep: 'apps/web/src/components/etp-view.tsx', co: "const kichTran = (c: Pick<CampEtpKho, 'ngan_sach' | 'nay'>) => c.ngan_sach > 0 && c.nay.chi >= KD.nap_chi * c.ngan_sach;", vi: 'lọc camp tiêu kịch trần ngân sách ngày, cùng ngưỡng nap_chi (anh 06/11/2026)' },
+  { card: 'loc-tran-0611', tep: 'apps/web/src/components/etp-view.tsx', co: ": k === 'tran' ? kichTran(c)", vi: 'mục Lọc tiêu kịch trần áp vào cây / bảng' },
   { card: 'loc-sx-0511', tep: 'apps/web/src/components/etp-view.tsx', co: "m('sx', '⚙ Phim đang sản xuất', 'Sản xuất',", vi: 'ô Lọc Cây camp có mục phim đang sản xuất creative (anh 05/11/2026)' },
   { card: 'loc-sx-0511', tep: 'apps/web/src/components/etp-view.tsx', co: "k === 'sx' ? phimSx.has(c.content_id ?? -1)", vi: 'lọc camp theo phim đang sản xuất' },
   { card: 'loc-sx-0511', tep: 'apps/web/src/components/etp-view.tsx', co: "return phimSx.has(p.content_id) ? 'Đang sản xuất'", vi: 'cột Sản xuất tab Phim và ô Lọc Cây dùng chung một định nghĩa' },

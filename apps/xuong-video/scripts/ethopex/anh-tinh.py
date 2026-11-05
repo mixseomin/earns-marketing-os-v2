@@ -21,6 +21,7 @@ ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 XV = f"{ENV}; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx"
 DANG, NGUON, NGAY_MOI, GIAY_MIN, W, H = "ảnh tĩnh", "anh_tinh", 14, 9.0, 1080, 1920
 GIONG = {"en": ("George", "Watch {t} for Free Now. Watch More Now!"), "es": ("Aria", "¡Mira {t} gratis ahora! ¡Mira más ahora!")}
+LOC = "fps=2/3"   # khung ứng viên: mỗi 1,5 giây (từ giây 3) — một chuỗi lọc cho cả khung nhỏ lẫn khung gốc
 FONT = "/System/Library/Fonts/Supplemental/Georgia Bold Italic.ttf"
 MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "3M", "-maxrate", "4500k", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100"]   # như cat-canh.MA_HOA (Mac)
 
@@ -79,11 +80,19 @@ def dau_tinh(kd, tap):
     for i, f in enumerate(fs):
         im = Image.open(os.path.join(kd, f)).convert("L"); tb = im if tb is None else Image.blend(tb, im, 1 / (i + 1))
     if tb is None: return []
-    e = tb.filter(ImageFilter.FIND_EDGES).point(lambda v: 255 if v > 40 else 0).filter(ImageFilter.MaxFilter(9)); X, Y = e.size; ra = []
-    for x0, y0, x1, y1 in ((0, 0, .3, .2), (.7, 0, 1, .2), (0, .8, .3, 1), (.7, .8, 1, 1)):
-        b = e.crop((int(x0 * X), int(y0 * Y), int(x1 * X), int(y1 * Y))).getbbox()
-        if b and 6 < b[2] - b[0] < 0.16 * X and 6 < b[3] - b[1] < 0.09 * Y: ra.append(   # logo nhỏ gọn; vùng lớn hơn = cảnh đứng yên (tóc, tường), không phải logo — 172316 lấp nhầm hai góc tóc 05/11/2026
-            [x0 + b[0] / X, y0 + b[1] / Y, (b[2] - b[0]) / X, (b[3] - b[1]) / Y])
+    e = tb.filter(ImageFilter.FIND_EDGES).point(lambda v: 255 if v > 40 else 0).filter(ImageFilter.MaxFilter(9)).resize((tb.width // 4, tb.height // 4))
+    X, Y = e.size; px = e.load(); thay = set(); ra = []
+    for sx in range(X):
+        for sy in range(Y):
+            if px[sx, sy] < 128 or (sx, sy) in thay: continue
+            hang, cum = [(sx, sy)], []; thay.add((sx, sy))
+            while hang:   # mảng liền (4 hướng)
+                a, b = hang.pop(); cum.append((a, b))
+                for c, d in ((a + 1, b), (a - 1, b), (a, b + 1), (a, b - 1)):
+                    if 0 <= c < X and 0 <= d < Y and (c, d) not in thay and px[c, d] >= 128: thay.add((c, d)); hang.append((c, d))
+            x0, x1, y0, y1 = min(a for a, _ in cum) / X, (max(a for a, _ in cum) + 1) / X, min(b for _, b in cum) / Y, (max(b for _, b in cum) + 1) / Y
+            goc = (x1 < 0.3 or x0 > 0.7) and (y1 < 0.2 or y0 > 0.8)   # nằm trọn trong một góc
+            if goc and 0.04 < x1 - x0 < 0.16 and 0.02 < y1 - y0 < 0.09: ra.append([x0, y0, x1 - x0, y1 - y0])   # cỡ logo; lớn hơn = cảnh đứng yên
     return ra
 
 def xoa(im, hop):
@@ -110,21 +119,25 @@ def khung(cid, url, tm):
     kd = os.path.join(tm, "khung"); os.makedirs(kd, exist_ok=True)
     for f in os.listdir(kd): os.remove(os.path.join(kd, f))
     for t in taps:   # bỏ 3 giây đầu (logo app / tóm tắt tập trước)
-        sh("ffmpeg", "-v", "error", "-ss", "3", "-i", os.path.join(tm, t), "-vf", "fps=2/3,scale=540:-2", "-q:v", "3", os.path.join(kd, f"{t[:-4]}_%04d.jpg"))
+        sh("ffmpeg", "-v", "error", "-ss", "3", "-i", os.path.join(tm, t), "-vf", f"{LOC},scale=540:-2", "-q:v", "3", os.path.join(kd, f"{t[:-4]}_%04d.jpg"))
     fs = sorted(os.path.join(kd, f) for f in os.listdir(kd) if f.endswith(".jpg"))
     ra = []
     for i in range(0, len(fs), 200):
         for l in subprocess.run([may_doc(), "--mat", *fs[i:i + 200]], capture_output=True, text=True, timeout=900).stdout.splitlines():
             j = json.loads(l); d, m, ch = diem(j["anh"], j.get("mat"), j.get("khung") or [])
-            if d: tap, so = re.match(r".*/(tap\d+)_(\d+)\.jpg", j["anh"]).groups(); ra.append((d, tap, 3 + (int(so) - 1) * 1.5, m, j["anh"], ch))
+            if d: tap, so = re.match(r".*/(tap\d+)_(\d+)\.jpg", j["anh"]).groups(); ra.append((d, tap, int(so), m, j["anh"], ch))
     if not ra: raise RuntimeError(f"không khung nào đạt (mặt to nét, chữ không đè mặt) trong {len(fs)} khung")
     d, tap, g, m, nho, ch = max(ra, key=lambda r: r[0])
-    return {"tap": tap, "giay": g, "mat": m, "diem": round(d, 3), "nho": nho, "so_khung": len(fs), "dat": len(ra), "xoa": ch + dau_tinh(kd, tap)}
+    return {"tap": tap, "so": g, "mat": m, "diem": round(d, 3), "nho": nho, "so_khung": len(fs), "dat": len(ra), "xoa": ch + dau_tinh(kd, tap)}
 
 def anh(cid, ten, k, tm):
     """khung gốc → nền 1080x1920 (nền.png, sẽ phóng chậm) + lớp tên phim (chu.png, đứng yên) đặt dưới mặt"""
     goc = os.path.join(tm, "goc.png")
-    sh("ffmpeg", "-v", "error", "-y", "-ss", str(k["giay"]), "-i", os.path.join(tm, k["tap"] + ".mp4"), "-frames:v", "1", goc)
+    # khung gốc lấy bằng ĐÚNG chuỗi lọc đã trích khung nhỏ + số thứ tự khung (05/11/2026: tính giây tay lệch sang cảnh khác — chấm mặt cận, dựng ra cảnh đám đông)
+    sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k["tap"] + ".mp4"), "-vf", f"{LOC},select=eq(n\\,{k['so'] - 1})", "-frames:v", "1", goc)
+    if not os.path.exists(goc): raise RuntimeError(f"không lấy được khung gốc {k['tap']} #{k['so']}")
+    j = json.loads(subprocess.run([may_doc(), goc], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")   # đọc chữ lại trên khung gốc: chữ nhỏ ("R") ảnh 540px bỏ sót
+    k["xoa"] += [[x - w / 2, y - h / 2, w * 2, h * 2] if goc_nho([t, x, y, w, h]) else [x, y, w, h] for t, x, y, w, h in j.get("khung") or []]
     im = xoa(Image.open(goc).convert("RGB"), k["xoa"]); s = max(W / im.width, H / im.height)
     im = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
     x0 = min(max(0, round((k["mat"][0] + k["mat"][2] / 2) * im.width - W / 2)), im.width - W); y0 = (im.height - H) // 2
@@ -184,10 +197,10 @@ def mot(p, xem):
         out = os.path.join(tm, f"anh-tinh-{cid}.mp4"); giay = dung(nen, chu, mp3, out)
         r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay))   # cổng chữ trên video (tên phim) — cùng cổng mọi creative
         if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
-        kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "giay": giay, "vnd": vnd, **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "giay_khung": k["giay"]}
+        kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "giay": giay, "vnd": vnd, **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
         if xem: return kq
         xa = f"/var/tmp/anh-tinh/{cid}"; sh("ssh", B, f"mkdir -p {xa}"); sh("rsync", "-a", out, f"{B}:{xa}/", han=900)
-        ghi = f"ảnh tĩnh: {k['tap']} giây {k['giay']:.1f} · điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt)"
+        ghi = f"ảnh tĩnh: {k['tap']} khung #{k['so']} (mỗi 1,5 giây từ giây 3) · điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt)"
         r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={vnd} --ghi='{ghi}'", han=600)
         if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
         kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)

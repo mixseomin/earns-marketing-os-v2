@@ -426,6 +426,7 @@ const LUAT = [
   { card: 'ab-dang-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'nh = "thu" if t < m and t <= d else "doi" if d < m else None', vi: 'A/B hạn mức mỗi định dạng: 1 thử + 1 đối chứng (anh 05/11/2026)' },
   { card: 'ab-dang-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if not nh: AP[ab["kieu"]](pl, ab["nhanh"]["doi"]); return None', vi: 'ngoài hạn mức: nước mặc định, không vào A/B — clone camp thử không giữ 4 nước' },
   { card: 'ab-dang-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'hn = dt.datetime.now(dt.timezone.utc).date(); chay = (hn if lich == "today"', vi: 'ngày chạy A/B theo ngày Ethopex (UTC), không theo ngày VN' },
+  { card: 'giong-do-0511', tep: 'apps/web/src/components/etp-view.tsx', co: "{ k: 'voice.giong', ten: 'Kiểu giọng đọc (ảnh tĩnh)', nhom: 'Voice' },", vi: 'bảng điểm chạm so ROI theo kiểu giọng ảnh tĩnh (anh 05/11/2026)' },
   { card: 'ab-dang-0511', tep: 'packages/db/migrations/0432_etp_ab_moi_dang.sql', co: "update etp.ab set moi_dang = 1", vi: 'AB01 = 1 cặp mỗi định dạng' },
   { card: 'nap-sang-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if TS_GIO[0] <= vn.hour < TS_GIO[1] and not _nap_sang(cid):', vi: 'TS chặn tăng 07–15h trừ camp nạp sáng — không thì $3 → $5 buổi sáng không bao giờ chạy' },
   { card: 'nap-sang-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'TS_GIO, TS_HQ = tuple(KD.get("sang") or (7, 15)), 50', vi: 'giờ TS đọc sổ luật chung' },

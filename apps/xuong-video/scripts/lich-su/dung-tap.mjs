@@ -34,19 +34,33 @@ if (!existsSync(join(RA, 'moc-tho.json')) || process.argv.includes('--giong-lai'
 // mốc ký tự → chữ {chu, a, b}
 writeFileSync(tepLoi, loiDoc);
 const tho = JSON.parse(readFileSync(join(RA, 'moc-tho.json'), 'utf8'));
-// TRẦN THỜI LƯỢNG của kênh (kenh.json toi_da_giay — YouTube Shorts ≤ 180 s): giọng dài hơn trần thì TĂNG TỐC giọng (atempo, ≤ 1,15×, giữ cao độ) và co mốc
-// từng chữ theo cùng hệ số — không đọc lại, 0đ. Quá 1,15× vẫn không vừa thì báo, không ép giọng nhanh tới mức nghe lạ.
+// MỐC TỪNG CHỮ của giọng gốc
 let GIONG = join(RA, 'giong.mp3');
-{ const goc = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', GIONG], { encoding: 'utf8' })), tran = KENH.toi_da_giay;
-  if (tran && goc + (KENH.duoi ?? 1.2) > tran) { const f = Math.round(((goc + (KENH.duoi ?? 1.2)) / tran) * 1000) / 1000;
-    if (f > 1.18) console.warn(`⚠ giọng ${goc.toFixed(1)}s quá trần ${tran}s cần ${f}× — chỉ tăng 1,18×, phần dư rút ở đuôi kết`);
-    const he = Math.min(1.18, f), ra = join(RA, 'giong-phat.mp3'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', GIONG, '-filter:a', `atempo=${he}`, '-b:a', '192k', ra]); GIONG = ra;
-    for (const o of tho) { o.character_start_times_seconds = o.character_start_times_seconds.map((v) => v / he); o.character_end_times_seconds = o.character_end_times_seconds.map((v) => v / he); }
-    console.log(`giọng ${goc.toFixed(1)}s → ${(goc / he).toFixed(1)}s (×${he}, trần kênh ${tran}s)`); } }
 const kt = tho.flatMap((o) => o.characters.map((ch, i) => ({ ch, a: o.character_start_times_seconds[i], b: o.character_end_times_seconds[i] })));
 const tu = []; let cur = null;
 for (const k of kt) { if (/\s/.test(k.ch)) { if (cur) tu.push(cur); cur = null; continue; } cur ? (cur.chu += k.ch, cur.b = k.b) : (cur = { chu: k.ch, a: k.a, b: k.b }); }
 if (cur) tu.push(cur);
+// NGHỈ SAU CÂU NẶNG (anh 05/11/2026: "các đoạn có số, chữ… thông tin quan trọng thì chậm lại 1 chút cho người xem còn ngấm thông tin"): câu có số / chữ to /
+// con dấu / năm mới → chèn lặng KENH.nghi_nang giây (mặc định 0,7) vào giọng ngay sau câu; mốc chữ phía sau dời theo → cảnh của câu đó đứng lâu hơn.
+// TRẦN THỜI LƯỢNG (kenh.json toi_da_giay — Shorts ≤ 180 s): giọng + nghỉ dài hơn trần thì TĂNG TỐC cả hai (atempo ≤ 1,18×, giữ cao độ), co mốc chữ cùng hệ số —
+// không đọc lại, 0đ. Nghỉ ưu tiên hơn tốc độ đọc thường; cần quá 1,18× thì bớt nghỉ từ câu cuối lên, hết nghỉ mà vẫn quá thì báo (đuôi kết rút sau).
+{ const goc = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', GIONG], { encoding: 'utf8' })), tran = KENH.toi_da_giay, duoi = KENH.duoi ?? 1.2;
+  const P = KENH.nghi_nang ?? 0.7, SO_CHU = /\d|\b(hundred|thousand|million|billion|percent|half|twice|dozen|minutes?|hours?|days?|years?)\b/i;
+  let cat = [], j = 0, namTruoc = null;
+  tap.cau.forEach((c, k) => { const n = c.chu.trim().split(/\s+/).length, cuoi = tu[j + n - 1], sau = tu[j + n]; j += n;
+    const nam = c.canh?.nam ?? null, nang = SO_CHU.test(c.chu) || !!c.canh?.chu_to || !!(c.canh?.dau || []).length || (nam != null && nam !== namTruoc); namTruoc = nam ?? namTruoc;
+    if (nang && cuoi && sau && k < tap.cau.length - 1) cat.push((cuoi.b + sau.a) / 2); });
+  const can = (m) => (tran ? (goc + m * P + duoi) / tran : 0);
+  while (cat.length && can(cat.length) > 1.18) cat.pop();
+  if (cat.length) { const moc = [0, ...cat], loc = moc.map((t0, i) => `[0:a]atrim=${t0}${i < cat.length ? `:${cat[i]}` : ''},asetpts=PTS-STARTPTS${i < cat.length ? `,apad=pad_dur=${P}` : ''}[g${i}]`).join(';');
+    const ra = join(RA, 'giong-nghi.mp3'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', GIONG, '-filter_complex', `${loc};${moc.map((_, i) => `[g${i}]`).join('')}concat=n=${moc.length}:v=0:a=1[ra]`, '-map', '[ra]', '-b:a', '192k', ra]); GIONG = ra;
+    for (const w of tu) { const d = cat.filter((t) => t <= w.a).length * P; w.a += d; w.b += d; }
+    console.log(`nghỉ ${P}s sau ${cat.length} câu nặng (số / chữ to / dấu / năm mới) → +${(cat.length * P).toFixed(1)}s`); }
+  const f = can(cat.length);
+  if (f > 1) { if (f > 1.18) console.warn(`⚠ giọng ${goc.toFixed(1)}s quá trần ${tran}s cần ${f.toFixed(3)}× — chỉ tăng 1,18×, phần dư rút ở đuôi kết`);
+    const he = Math.round(Math.min(1.18, f) * 1000) / 1000, ra = join(RA, 'giong-phat.mp3'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', GIONG, '-filter:a', `atempo=${he}`, '-b:a', '192k', ra]); GIONG = ra;
+    for (const w of tu) { w.a /= he; w.b /= he; }
+    console.log(`giọng ${(goc + cat.length * P).toFixed(1)}s → ${((goc + cat.length * P) / he).toFixed(1)}s (×${he}, trần kênh ${tran}s)`); } }
 // gán chữ vào câu theo số chữ của từng câu trong tệp tập
 // SỐ THÀNH HÌNH (Full Story 2.0): hồ sơ tập bật hinh_so → mỗi cảnh mang _so = số của chính câu + mốc giây giọng đọc tới số (so-hinh.mjs, chỉ từ su_that)
 let i = 0; const canh = tap.cau.map((c, k) => { const n = c.chu.trim().split(/\s+/).length; const ds = tu.slice(i, i + n); ds.forEach((w) => (w.cau = k)); i += n; return { bd: k ? ds[0]?.a ?? 0 : 0, c: Object.assign(c.canh, { _dua: !(c.su_that || []).length, _so: KENH.hinh_so ? soHinhCau(c, ds) : [] }) }; });

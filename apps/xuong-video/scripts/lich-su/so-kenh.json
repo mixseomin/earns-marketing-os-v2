@@ -911,7 +911,12 @@
       "nhac": "troi",
       "ghi": "giọng ElevenLabs qua ckey (Speakvela, 156₫ / câu) đọc chữ trên màn; nhạc nền + tiếng động tự sinh 0đ — shot-code/long-tieng.mjs"
     },
-    "luat_nguon": true
+    "luat_nguon": true,
+    "outro": {
+      "doc": "brand/astrolas/ra/outro-doc.mp4",
+      "ngang": "brand/astrolas/ra/outro-ngang.mp4",
+      "_ghi": "outro logo nối cuối mọi tập (shot-code/long-tieng.mjs): Short 1 s, video dài 3 s — dựng bằng brand/astrolas/outro.mjs (0đ, logo thật, không AI)"
+    }
   },
   "yesterdays-news-tonight": {
     "ten": "Yesterday's News Tonight · YouTube @yesterdaysnewstonight",

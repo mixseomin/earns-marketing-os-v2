@@ -1,0 +1,75 @@
+<!doctype html>
+<!-- OUTRO LOGO ASTROLAS (anh 05/11/2026: "cuối video làm một outro ngắn, logo Astrolas ở chính giữa nổi, ấn tượng"): dựng bằng mã, không AI — logo là tệp THẬT
+     logo/wordmark.png (AI video làm méo nét chữ A). MỘT logo duy nhất ở giữa (anh 05/11/2026: "ko hiện 2 cái 1 lúc" — chữ ký đã có chữ A trong vòng, thêm biểu tượng tròn là hai logo). Thuần theo t: window.__ve(t) vẽ đúng khung giây t (outro.mjs chụp từng khung).
+     ?khung=doc|ngang  &dai=1|3 (giây). Nhịp (bản 1 s; bản 3 s kéo giãn phần vào ×1,6 rồi thêm khẩu hiệu + astrolas.com (chữ thường, không phải logo)):
+       hạt vàng từ rìa hút vào tâm → chữ ký bật lên (phóng 0,6 → 1,08 → 1) + loé sáng + vòng sóng vàng lan ra → vệt sáng quét qua chữ ký → quầng thở nhẹ. -->
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: CG; src: url(fonts/CormorantGaramond-Italic.ttf); font-style: italic; font-weight: 300 700; }
+@font-face { font-family: IN; src: url(fonts/Inter.ttf); font-weight: 100 900; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #050b16; overflow: hidden; }
+#k { position: relative; overflow: hidden; background: #050b16; }
+.abs { position: absolute; }
+#bieu { will-change: transform, opacity; }
+#bieu img { display: block; width: 100%; height: 100%; }
+#quet { -webkit-mask: url(logo/wordmark.png) center / 100% 100% no-repeat; mask: url(logo/wordmark.png) center / 100% 100% no-repeat; mix-blend-mode: screen; }
+</style></head>
+<body><div id="k">
+  <img id="anh" class="abs" src="anh/troi.jpg" style="inset:0;width:100%;height:100%;object-fit:cover">
+  <div id="phu" class="abs"></div>
+  <canvas id="troi" class="abs"></canvas>
+  <canvas id="hat" class="abs"></canvas>
+  <svg id="song" class="abs"></svg>
+  <div id="quang" class="abs"></div>
+  <div id="bieu" class="abs"><img src="logo/wordmark.png"><div id="quet" class="abs" style="inset:0"></div></div>
+  <div id="kh" class="abs" style="font:500 italic 1px CG;color:#F4D971;text-align:center;left:0;right:0"></div>
+  <div id="web" class="abs" style="font:700 1px IN;letter-spacing:.22em;color:#cfd8e6;text-align:center;left:0;right:0"></div>
+  <div id="den" class="abs" style="inset:0;background:#050b16"></div>
+</div>
+<script src="../../../shot-code/nen-troi.js"></script>
+<script>
+const P = new URLSearchParams(location.search), NGANG = P.get('khung') === 'ngang', DAI = Number(P.get('dai') || (NGANG ? 3 : 1));
+const W = NGANG ? 1920 : 1080, H = NGANG ? 1080 : 1920, $ = (id) => document.getElementById(id), k = $('k');
+k.style.width = W + 'px'; k.style.height = H + 'px';
+for (const id of ['troi', 'hat']) { $(id).width = W; $(id).height = H; }
+$('song').setAttribute('width', W); $('song').setAttribute('height', H); $('phu').style.cssText += `;inset:0;background:radial-gradient(ellipse at 50% 46%, rgba(15,34,64,.35) 0%, rgba(8,17,32,.82) 60%, rgba(4,9,18,.96) 100%)`;
+const kep = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x)), ra = (x) => 1 - Math.pow(1 - kep(x), 3), bat = (x) => { x = kep(x); const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+// bố cục: biểu tượng giữa (Short hơi cao hơn tâm để chừa chữ ký); bản 1 s chỉ biểu tượng + chữ ký nhỏ, bản dài thêm khẩu hiệu
+const LW = NGANG ? 900 : 860, LH = LW * 0.35, R = LW * 0.42, CX = W / 2, CY = NGANG ? (DAI > 1.5 ? H * 0.42 : H / 2) : H * 0.46;   // logo rộng LW, cao LH (wordmark 800×280)
+const S = DAI > 1.5 ? 1.6 : 1;   // bản dài: phần vào chậm hơn cho có hơi thở
+const sao = NenTroi.tao({ w: W, h: H, hat: 23 });
+// 70 hạt vàng: xuất phát trên vòng rộng quanh tâm, hút vào mép biểu tượng theo đường xoắn nhẹ
+let s = 7; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+const HAT = Array.from({ length: 70 }, () => ({ g: rnd() * 6.283, r0: Math.max(W, H) * (0.45 + rnd() * 0.35), tre: rnd() * 0.12, co: 1.5 + rnd() * 3.2, xoan: (rnd() - 0.5) * 1.4 }));
+window.__ve = (t) => {
+  const u = t / S;   // giây theo nhịp bản 1 s
+  NenTroi.ve(t, { anh: $('anh'), cv: $('troi'), sao, w: W, h: H, day: 0.06 });
+  $('den').style.opacity = String(1 - ra(t / 0.12) + (DAI > 1.5 ? ra((t - (DAI - 0.35)) / 0.35) : 0));   // mở từ tối; bản dài khép tối ở 0,35 s cuối
+  // hạt hút vào (0 → 0,32)
+  const g = $('hat').getContext('2d'); g.clearRect(0, 0, W, H);
+  for (const h of HAT) { const p = ra((u - h.tre) / 0.3); if (p <= 0 || p >= 1) continue;
+    const a = h.g + h.xoan * (1 - p), x = CX + Math.cos(a) * (LW * 0.46 + (h.r0 - LW * 0.46) * (1 - p)), y = CY + Math.sin(a) * (LH * 0.5 + (h.r0 - LH * 0.5) * (1 - p));
+    g.globalAlpha = Math.sin(p * Math.PI) * 0.95; g.fillStyle = '#F4D971'; g.shadowColor = '#E6B800'; g.shadowBlur = 14;
+    g.beginPath(); g.arc(x, y, h.co * (0.6 + p), 0, 6.283); g.fill(); }
+  // biểu tượng bật lên (0,2 → 0,48) + quầng thở
+  const b = kep((u - 0.2) / 0.28), sc = 0.6 + 0.4 * bat(b), mo = ra(b * 1.6), tho = 1 + 0.015 * Math.sin(Math.max(0, t - 0.5) * 2.2);
+  Object.assign($('bieu').style, { left: `${CX - LW / 2}px`, top: `${CY - LH / 2}px`, width: `${LW}px`, height: `${LH}px`, opacity: mo, transform: `scale(${sc * tho})`,
+    filter: `drop-shadow(0 0 ${18 + 40 * Math.exp(-6 * Math.max(0, u - 0.3))}px rgba(244,217,113,.75)) drop-shadow(0 18px 30px rgba(0,0,0,.6))` });
+  const loe = Math.exp(-((u - 0.32) ** 2) / 0.004);   // loé sáng đúng lúc bật
+  Object.assign($('quang').style, { left: `${CX - R * 2.4}px`, top: `${CY - R * 2.4}px`, width: `${R * 4.8}px`, height: `${R * 4.8}px`,
+    background: `radial-gradient(circle, rgba(255,236,170,${0.55 * loe + 0.16 * mo}) 0%, rgba(230,184,0,${0.18 * loe + 0.06 * mo}) 32%, rgba(230,184,0,0) 62%)` });
+  // vòng sóng vàng lan ra từ mép biểu tượng (0,3 → 0,75), hai vòng lệch nhau
+  $('song').innerHTML = [0.3, 0.4].map((t0, i) => { const p = ra((u - t0) / 0.45); if (p <= 0 || p >= 1) return '';
+    return `<circle cx="${CX}" cy="${CY}" r="${R * (1 + 0.7 * p)}" fill="none" stroke="#E6B800" stroke-width="${(i ? 2 : 5) * (1 - p) + 0.5}" opacity="${(1 - p) * (i ? 0.5 : 0.9)}"/>`; }).join('');
+  // vệt sáng quét chéo qua mặt biểu tượng (0,45 → 0,85)
+  const q = kep((u - 0.45) / 0.4); $('quet').style.background = q > 0 && q < 1 ? `linear-gradient(115deg, rgba(255,255,255,0) ${q * 160 - 40}%, rgba(255,248,220,.85) ${q * 160 - 25}%, rgba(255,255,255,0) ${q * 160 - 10}%)` : 'none';
+  // bản dài: khẩu hiệu + astrolas.com (chữ thường) dưới logo
+  const kh = ra((t - 1.1) / 0.5), wb = ra((t - 1.5) / 0.5), y0 = CY + LH / 2;
+  Object.assign($('kh').style, { display: DAI > 1.5 ? 'block' : 'none', top: `${y0 + (NGANG ? 40 : 56)}px`, fontSize: `${NGANG ? 50 : 62}px`, opacity: kh, transform: `translateY(${(1 - kh) * 18}px)` });
+  $('kh').textContent = 'Know yourself, read the sky';
+  Object.assign($('web').style, { display: DAI > 1.5 ? 'block' : 'none', top: `${y0 + (NGANG ? 120 : 150)}px`, fontSize: `${NGANG ? 28 : 34}px`, opacity: wb });
+  $('web').textContent = 'ASTROLAS.COM';
+};
+Promise.all([document.fonts.ready, ...[...document.images].map((im) => im.decode())]).then(() => { window.__ve(0); window.__xong = true; }, (e) => { window.__loi = String(e?.message || e); });
+</script></body></html>

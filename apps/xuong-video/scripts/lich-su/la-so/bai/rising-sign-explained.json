@@ -1,6 +1,6 @@
 {
  "url": "https://astrolas.com/en/blog/rising-sign-explained",
- "lay_luc": "2026-11-04",
+ "lay_luc": "2026-11-05",
  "tieu_de": "Rising sign explained: why it changes how people see you",
  "mo": [
   "What the rising sign actually is",
@@ -71,12 +71,10 @@
    "doan": [
     "This is where the rising sign stops being a personality label and becomes a map.",
     "Find your rising sign, then find its ruling planet:",
-    "Taurus, Libra: R Venus",
-    "Gemini, Virgo: E Mercury",
-    "Scorpio: Mars (traditional) or P Pluto (modern)",
-    "Sagittarius: Y Jupiter",
-    "Aquarius: Saturn (traditional) or I Uranus (modern)",
-    "Pisces: Jupiter (traditional) or O Neptune (modern)",
+    "Gemini, Virgo: Mercury",
+    "Scorpio: Mars (traditional) or Pluto (modern)",
+    "Aquarius: Saturn (traditional) or Uranus (modern)",
+    "Pisces: Jupiter (traditional) or Neptune (modern)",
     "Now look at where that planet sits in your chart. Its house tells you where your life keeps pulling you. Its sign tells you how you go about it. Its aspects tell you what helps and what gets in the way.",
     "Example: Virgo rising, so Mercury rules the chart. Mercury is in the 10th house in Leo. This person comes across as precise and observant (Virgo front door), but their life energy goes into visible work, being known for what they think and say (Mercury in the 10th), and they do it with more flair than the Virgo surface suggests (Leo).",
     "Same Virgo rising, but Mercury in the 4th house in Cancer: same careful front door, but the energy goes home. Family, roots, a private life that matters more than the public one.",
@@ -95,7 +93,7 @@
   {
    "ten": "Find your rising sign",
    "doan": [
-    "Open the birth chart tool → , enter date, exact time, and city. The Ascendant is marked on the left side of the wheel, and the chart ruler is listed with its house and sign so you can follow the steps above.",
+    "Open the birth chart tool →, enter date, exact time, and city. The Ascendant is marked on the left side of the wheel, and the chart ruler is listed with its house and sign so you can follow the steps above.",
     "If you don't know your birth time, the tool has a \"time unknown\" option. It hides the Ascendant and houses so you don't read something that isn't reliable, and leaves everything that doesn't depend on the hour: signs, aspects, and the Sun-Moon relationship.",
     "One more habit worth building: whenever you look at a new chart, look at the Ascendant and its ruler before anything else. It takes ten seconds and it tells you which parts of the rest of the chart are going to matter most."
    ]

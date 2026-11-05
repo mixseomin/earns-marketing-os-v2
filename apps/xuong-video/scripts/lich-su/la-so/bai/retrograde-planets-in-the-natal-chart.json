@@ -1,6 +1,6 @@
 {
  "url": "https://astrolas.com/en/blog/retrograde-planets-in-the-natal-chart",
- "lay_luc": "2026-11-04",
+ "lay_luc": "2026-11-05",
  "tieu_de": "Retrograde planets in the natal chart: what \"Rx\" next to a planet means",
  "mo": [
   "What retrograde motion is",
@@ -46,28 +46,28 @@
    ]
   },
   {
-   "ten": "E Mercury retrograde in the natal chart",
+   "ten": "Mercury retrograde in the natal chart",
    "doan": [
     "Thinking and communication run inward first. This person often knows what they think long before they can say it, may have been a late talker or a quiet child, and tends to write better than they speak. Rereads, reconsiders, revisits. Frequently very good at editing, research, and any work that rewards a second look.",
     "Not: bad at communication. Often the best writer in the room. Just not the fastest talker."
    ]
   },
   {
-   "ten": "R Venus retrograde in the natal chart",
+   "ten": "Venus retrograde in the natal chart",
    "doan": [
     "The rarest of the personal-planet retrogrades. Love and value are processed privately, and the person's taste, in partners and in things, often runs against what their culture rewards. Slow to open up, deeply loyal once open, and sometimes carries a relationship pattern from the past that needs to be consciously reworked. Money can be handled unconventionally too: unusual spending, or strong values about what money is for.",
     "Not: unlovable or unlucky in love. Usually the opposite once they stop trying to want what they're supposed to want."
    ]
   },
   {
-   "ten": "T Mars retrograde in the natal chart",
+   "ten": "Mars retrograde in the natal chart",
    "doan": [
     "Drive and anger turn inward. This person may not show anger when it happens; it surfaces later, or as tension, or as intense focus on a private goal. Competitive, but with themselves more than with others. Often has to learn to act directly, and once they do, they're relentless because the energy has been banking.",
     "Not: passive. Slow-burn."
    ]
   },
   {
-   "ten": "Y Jupiter and U Saturn retrograde",
+   "ten": "Jupiter and Saturn retrograde",
    "doan": [
     "These are common enough that the interpretation is lighter.",
     "Jupiter Rx: faith and meaning are personal rather than inherited. The person questions the religion, philosophy, or optimism they were raised with and builds their own. Often less lucky in the conventional sense and more interested in what luck means.",
@@ -77,7 +77,7 @@
   {
    "ten": "The outer planets retrograde",
    "doan": [
-    "I Uranus , O Neptune , and P Pluto are retrograde about 40 percent of the year each, so their retrograde status is shared by large groups and carries little individual meaning. Read it only if the planet is also angular or tightly aspecting a personal planet, in which case it adds the \"inward first\" tone to whatever that planet already does."
+    "Uranus, Neptune, and Pluto are retrograde about 40 percent of the year each, so their retrograde status is shared by large groups and carries little individual meaning. Read it only if the planet is also angular or tightly aspecting a personal planet, in which case it adds the \"inward first\" tone to whatever that planet already does."
    ]
   },
   {
@@ -89,13 +89,13 @@
   {
    "ten": "The one thing to check",
    "doan": [
-    "Before you read a retrograde, check whether the planet is also stationary : moving very slowly because it's about to turn. A planet at station is far stronger in the chart than a plain retrograde one, and the \"inward first\" quality becomes the central theme rather than a footnote. A planet is at station if it turned direction within a day or two of the birth; an ephemeris for the birth month shows this at a glance."
+    "Before you read a retrograde, check whether the planet is also stationary: moving very slowly because it's about to turn. A planet at station is far stronger in the chart than a plain retrograde one, and the \"inward first\" quality becomes the central theme rather than a footnote. A planet is at station if it turned direction within a day or two of the birth; an ephemeris for the birth month shows this at a glance."
    ]
   },
   {
    "ten": "Check your chart",
    "doan": [
-    "Open the birth chart tool → . Retrograde planets are marked R in the planet table.",
+    "Open the birth chart tool →. Retrograde planets are marked R in the planet table.",
     "If you have one, read the planet's sign and house as usual, then add the inward-first layer: later, more private, less by the book. If it's a personal planet, that layer is often the most accurate single sentence the chart offers about how you differ from people with the same Sun sign."
    ]
   }

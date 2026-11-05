@@ -15,9 +15,10 @@ const chu = (h) => giaiMa(h.replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim(
 /** một bài → { tieu_de, mo, muc: [{ ten, doan: [] }] } — đoạn mở đầu trước h2 đầu tiên, rồi từng h2 với các <p> / <li> của nó. Thuần. */
 export function tachBai(h) {
   const a = /<article[\s\S]*?<\/article>/.exec(h)?.[0]; if (!a) return null;
-  const sach = a.replace(/<(script|style|figure|nav)[\s\S]*?<\/\1>/g, '');
+  // ký hiệu sao / cung là <span class="astro-font">U</span> (phông ký hiệu) — đọc thành chữ thì ra "U Saturn", "in f Cancer ," (06/11/2026: 177 chỗ trong 104 bài)
+  const sach = a.replace(/<(script|style|figure|nav)[\s\S]*?<\/\1>/g, '').replace(/<span[^>]*class="[^"]*astro-font[^"]*"[^>]*>[^<]*<\/span>/g, '');
   const tieu_de = chu(/<h1[^>]*>([\s\S]*?)<\/h1>/.exec(h)?.[1] ?? '');
-  const khoi = sach.split(/<h2[^>]*>/), doan = (x) => [...x.matchAll(/<(p|li)[^>]*>([\s\S]*?)<\/\1>/g)].map((m) => chu(m[2])).filter((t) => t.length > 20 && !/^A live chart drawn by Astrolas/.test(t));
+  const khoi = sach.split(/<h2[^>]*>/), doan = (x) => [...x.matchAll(/<(p|li)[^>]*>([\s\S]*?)<\/\1>/g)].map((m) => chu(m[2]).replace(/\s+([,.;:!?])/g, '$1')).filter((t) => t.length > 20 && !/^A live chart drawn by Astrolas/.test(t));
   return { tieu_de, mo: doan(khoi[0]), muc: khoi.slice(1).map((k) => { const [ten, ...con] = k.split(/<\/h2>/); return { ten: chu(ten), doan: doan(con.join('')) }; }).filter((m) => m.doan.length) };
 }
 

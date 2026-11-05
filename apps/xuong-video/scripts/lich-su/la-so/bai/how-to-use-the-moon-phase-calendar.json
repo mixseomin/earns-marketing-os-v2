@@ -15,22 +15,22 @@
    "ten": "What the tool does",
    "doan": [
     "The page describes itself plainly: it analyzes the closest Moon phase (New, First Quarter, Full, Last Quarter and the phases in between) to your natal chart. When you submit your birth data, it looks at the eight phases around today and picks the one nearest in time. That can be a New Moon, a Waxing Crescent, a First Quarter, a Waxing Gibbous, a Full Moon, a Waning Gibbous, a Last Quarter or a Waning Crescent.",
-    "There is no date picker on this page. It always opens on the phase nearest today. If you want to study a specific New Moon, Full Moon or eclipse later in the year, use the Lunation Analyzer , which lists every one for the year you choose.",
+    "There is no date picker on this page. It always opens on the phase nearest today. If you want to study a specific New Moon, Full Moon or eclipse later in the year, use the Lunation Analyzer, which lists every one for the year you choose.",
     "Planet Moon Rules Cancer Emotions, intuition, nurturing"
    ]
   },
   {
    "ten": "What you need",
    "doan": [
-    "Your birth time, because the phase's natal house and the rulers the page checks both come from your house cusps. See why birth time matters ."
+    "Your birth time, because the phase's natal house and the rulers the page checks both come from your house cusps. See why birth time matters."
    ]
   },
   {
    "ten": "Step by step",
    "doan": [
-    "Open the Moon Phase page .",
+    "Open the Moon Phase page.",
     "Fill in the Birth Data form: Name, Day, Month, Year, Hour / Minute and City / Location. The AI Quick Input box above can fill the form from a typed sentence if you prefer, using its Parse button.",
-    "Press View Moon Phase .",
+    "Press View Moon Phase.",
     "The page reloads with your result. The page works for guests; you do not need an account."
    ]
   },
@@ -39,9 +39,9 @@
    "doan": [
     "The top line gives the phase name, its date and time, the Moon's sign and degree, and the natal house it falls in. Below that is a chart wheel with your natal chart and the transiting planets at the moment of the phase. It has the usual toolbar: Display options, Share cards, Export (copy the chart, download a PNG, print or save as PDF), wheel sizes and body toggles.",
     "The side column has three panels:",
-    "Transit at Event , a table of where every transiting planet sits at that moment, with a CSV button.",
-    "Ruler Info , naming the ruler of the house the Moon falls in and the ruler of its sign.",
-    "Table of Contents , with links to each section and quick links back to your natal chart and Solar Return."
+    "Transit at Event, a table of where every transiting planet sits at that moment, with a CSV button.",
+    "Ruler Info, naming the ruler of the house the Moon falls in and the ruler of its sign.",
+    "Table of Contents, with links to each section and quick links back to your natal chart and Solar Return."
    ]
   },
   {
@@ -74,7 +74,7 @@
     "Come back every few days. The page moves to whichever phase is nearest today, so you can follow a whole lunar month one phase at a time.",
     "Keep a note of the house the New Moon falls in, and check the following Full Moon against it.",
     "Use the Table of Contents to jump straight to section 3 or 4 once you know the house.",
-    "If the Moon is void of course around the phase, timing can be looser. See the void of course Moon ."
+    "If the Moon is void of course around the phase, timing can be looser. See the void of course Moon."
    ]
   },
   {
@@ -88,7 +88,7 @@
   {
    "ten": "Try it",
    "doan": [
-    "Open /moon-phase , note the house the current phase falls in, and follow it through the next few phases.",
+    "Open /moon-phase, note the house the current phase falls in, and follow it through the next few phases.",
     "Check your transits for this week →"
    ]
   }

@@ -1,6 +1,6 @@
 {
  "url": "https://astrolas.com/en/blog/how-to-use-the-zodiacal-releasing-tool",
- "lay_luc": "2026-11-04",
+ "lay_luc": "2026-11-05",
  "tieu_de": "How to use the Astrolas Zodiacal Releasing tool: find the chapters of your life on one table",
  "mo": [
   "What you need before you start",
@@ -24,13 +24,13 @@
   {
    "ten": "What you need before you start",
    "doan": [
-    "Your birth time. This matters more here than in most tools. The Lots are calculated from the Ascendant and depend on whether you were born by day or by night, so a wrong time can move the starting sign and shift every date on the table. See why birth time matters ."
+    "Your birth time. This matters more here than in most tools. The Lots are calculated from the Ascendant and depend on whether you were born by day or by night, so a wrong time can move the starting sign and shift every date on the table. See why birth time matters."
    ]
   },
   {
    "ten": "Step by step",
    "doan": [
-    "Open the Zodiacal Releasing tool . The Birth Data panel asks for Name, Day, Month, Year, Hour / Minute and City / Location. The hour list includes an Unknown Time option, but for this technique it is better to use your best known time than to leave it blank.",
+    "Open the Zodiacal Releasing tool. The Birth Data panel asks for Name, Day, Month, Year, Hour / Minute and City / Location. The hour list includes an Unknown Time option, but for this technique it is better to use your best known time than to leave it blank.",
     "If you are signed in with saved charts, Switch Profile lets you pick one instead of retyping.",
     "Pick a Lot in the Releasing from menu. The choices are Lot of Spirit, Lot of Fortune, Lot of Eros and Lot of Necessity. Spirit is the default.",
     "Press Update. The table appears with your L1 and L2 periods."
@@ -70,7 +70,7 @@
     "Start with L1. Note which sign you are in now and which house it occupies. That house describes the broad arena of the current chapter. Then read the ruler and the house it sits in, because the ruler shows how the chapter tends to play out.",
     "Next, turn on the Peak Period filter. Peaks are the periods where the chapter's themes come to the front. With Spirit, astrologers read them as times of higher visibility in work and reputation. With Fortune, they relate more to body, circumstances and material life. The Part of Fortune and the Lots post explains the difference.",
     "Then look for the lightning bolt. The Loosing of the Bond is where the L2 sequence, having gone all the way round the zodiac, jumps to the sign opposite instead of carrying on in order. Many people experience it as a turn in direction. It only shows up in long L1 chapters, about seventeen and a half years in.",
-    "Finally, compare with Annual Profections and transits . When all three point to the same house, the date deserves attention."
+    "Finally, compare with Annual Profections and transits. When all three point to the same house, the date deserves attention."
    ]
   },
   {
@@ -93,7 +93,7 @@
   {
    "ten": "Try it",
    "doan": [
-    "Enter your data at /tools/zodiacal-releasing , note your current L1 sign, and check it against the houses in your birth chart.",
+    "Enter your data at /tools/zodiacal-releasing, note your current L1 sign, and check it against the houses in your birth chart.",
     "Open your birth chart first →"
    ]
   }

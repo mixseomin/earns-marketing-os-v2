@@ -1,6 +1,6 @@
 {
  "url": "https://astrolas.com/en/blog/how-to-use-the-synastry-chart",
- "lay_luc": "2026-11-04",
+ "lay_luc": "2026-11-05",
  "tieu_de": "How to use the Astrolas Synastry Chart: compare two birth charts step by step",
  "mo": [
   "What you need before you start",
@@ -26,7 +26,7 @@
   {
    "ten": "What you need before you start",
    "doan": [
-    "Both birth times, as exact as you can find them. Without times the Ascendant, the Moon's degree and every house overlay become guesses. See why birth time matters .",
+    "Both birth times, as exact as you can find them. Without times the Ascendant, the Moon's degree and every house overlay become guesses. See why birth time matters.",
     "Permission, ideally. It is someone else's data.",
     "If you only have birth dates, the compatibility checker is a lighter option."
    ]
@@ -34,23 +34,23 @@
   {
    "ten": "Step by step: filling in the form",
    "doan": [
-    "Open the Synastry Chart . The page says \"Enter both birth details (or pick saved profiles) to see the synastry reading.\" Saved profiles appear when you are logged in; as a guest you type the data in.",
+    "Open the Synastry Chart. The page says \"Enter both birth details (or pick saved profiles) to see the synastry reading.\" Saved profiles appear when you are logged in; as a guest you type the data in.",
     "For Person A and Person B (partner) the fields are the same:",
-    "Hour / Minute , or Unknown Time",
-    "City / Location , picked from the suggestions",
-    "Then choose a Relationship type :",
+    "Hour / Minute, or Unknown Time",
+    "City / Location, picked from the suggestions",
+    "Then choose a Relationship type:",
     "Romantic for couples and dates;",
     "Cooperative (siblings, friends, partners) for family, friendship or work.",
-    "The type decides which relationship rating you get, so pick the one that fits. Press View synastry ."
+    "The type decides which relationship rating you get, so pick the one that fits. Press View synastry."
    ]
   },
   {
    "ten": "The result screen",
    "doan": [
-    "The heading reads \"Synastry Analysis\". Each person gets a summary card with birth date, time and place, plus a Quick chart view menu that opens that person's own Birth chart, Solar Return, Progression, Transit, Transit + PR, Moon Phase or Zodiacal Releasing page. Below the cards you can switch Relationship type , set a Date and Current location , and press Update .",
-    "The bi-wheel comes next, labelled Person A and Person B . Display changes the theme and size, Share makes a share card, and Export copies the chart, downloads a PNG or prints a PDF.",
-    "Aspect comparison between the two natal charts. A grid with one person's planets down the side and the other's across the top, filtered by Major or Minor aspects and an Orb setting. The total count of aspects sits next to Copy .",
-    "Relationship rating. For a romantic pair you get four bars scored out of 100: Romance , Harmony & attraction , Challenges and Sexual conflict . Each bar has a label such as Moderate or Very high and lists the aspects that feed it, with orbs. The note under the bars explains the method: each cross aspect is weighted by the planet pair, the aspect type and how tight the orb is.",
+    "The heading reads \"Synastry Analysis\". Each person gets a summary card with birth date, time and place, plus a Quick chart view menu that opens that person's own Birth chart, Solar Return, Progression, Transit, Transit + PR, Moon Phase or Zodiacal Releasing page. Below the cards you can switch Relationship type, set a Date and Current location, and press Update.",
+    "The bi-wheel comes next, labelled Person A and Person B. Display changes the theme and size, Share makes a share card, and Export copies the chart, downloads a PNG or prints a PDF.",
+    "Aspect comparison between the two natal charts. A grid with one person's planets down the side and the other's across the top, filtered by Major or Minor aspects and an Orb setting. The total count of aspects sits next to Copy.",
+    "Relationship rating. For a romantic pair you get four bars scored out of 100: Romance, Harmony & attraction, Challenges and Sexual conflict. Each bar has a label such as Moderate or Very high and lists the aspects that feed it, with orbs. The note under the bars explains the method: each cross aspect is weighted by the planet pair, the aspect type and how tight the orb is.",
     "Aspect Interpretations. Every cross aspect with its orb, sorted tightest first, split into Harmonious and Tense counts. Contacts with a written reading get a headline and a paragraph on how the pair tends to play out. Hide secondary aspects is ticked by default and hides contacts that have no reading yet; untick it to see every aspect.",
     "Planet tables for each person, with sign and house."
    ]
@@ -67,7 +67,7 @@
     "Start with the tightest contacts. The top of Aspect Interpretations is sorted by orb. Anything under two degrees between personal planets (Sun, Moon, Mercury, Venus, Mars) or angles is the core of the connection.",
     "Look at the lights. Sun and Moon contacts in either direction speak to basic comfort. The Sun and Moon compatibility cheat sheet is a quick guide.",
     "Then Venus and Mars. These describe affection, desire and how each of you acts on it. Venus sign and Mars sign gives the background.",
-    "Check the angles. Planets on the other person's Ascendant or Descendant are felt at once. See the rising sign explained .",
+    "Check the angles. Planets on the other person's Ascendant or Descendant are felt at once. See the rising sign explained.",
     "Read the bars last. The ratings summarise the list you have just read. A high Challenges score next to a high Harmony score is common in lasting relationships; tension is not the same as incompatibility.",
     "Aspect names on their own mean little until you know the families, so keep aspects explained close. For the relationship as its own entity, the composite chart explained is the next step."
    ]
@@ -92,7 +92,7 @@
   {
    "ten": "Compare two charts now",
    "doan": [
-    "Enter both sets of birth data, choose the relationship type and begin with the tightest aspects at the top of the list. You can open the tool directly at /synastry-chart ."
+    "Enter both sets of birth data, choose the relationship type and begin with the tightest aspects at the top of the list. You can open the tool directly at /synastry-chart."
    ]
   }
  ]

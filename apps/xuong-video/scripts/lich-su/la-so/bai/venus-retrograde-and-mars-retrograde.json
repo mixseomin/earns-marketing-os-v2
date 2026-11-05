@@ -20,7 +20,7 @@
     "The cause differs for the two planets.",
     "Mars is outside Earth's orbit. Earth moves faster, so roughly every two years we catch up with Mars and overtake it on the inside track. While we pass, Mars appears to slide backward, the way a slower car on the highway seems to drift back as you overtake it. Mid-retrograde, Earth sits between the Sun and Mars: Mars is opposite the Sun, closest to us, and at its brightest.",
     "Venus is inside Earth's orbit and moves faster than we do. Its retrograde happens when Venus swings around its orbit and passes between Earth and the Sun. Mid-retrograde, Venus is conjunct the Sun (the inferior conjunction), and it switches from being an evening star, visible after sunset, to a morning star, visible before dawn.",
-    "The points where the motion appears to stop are called stations : the station retrograde and the station direct. A planet at a station is moving so slowly that it sits on nearly the same degree for days, which is why stations are the most intense moments of the whole cycle.",
+    "The points where the motion appears to stop are called stations: the station retrograde and the station direct. A planet at a station is moving so slowly that it sits on nearly the same degree for days, which is why stations are the most intense moments of the whole cycle.",
     "Planet Venus Rules Taurus, Libra Love, beauty, values",
     "Planet Mars Rules Aries Action, energy, desire"
    ]
@@ -28,18 +28,18 @@
   {
    "ten": "The Venus retrograde cycle",
    "doan": [
-    "R Venus spends less of its time retrograde than any other planet. The rhythm is driven by the Venus synodic cycle, the time from one Sun-Venus conjunction of the same kind to the next, which is about 584 days, or roughly 19 months.",
+    "Venus spends less of its time retrograde than any other planet. The rhythm is driven by the Venus synodic cycle, the time from one Sun-Venus conjunction of the same kind to the next, which is about 584 days, or roughly 19 months.",
     "Frequency: about once every year and a half.",
     "Duration: roughly 40 to 43 days of actual backward motion.",
     "Share of time: about 7 percent. Around 1 in 14 people is born with Venus retrograde.",
     "Effect on the calendar: in a normal year Venus moves through a sign in about a month. In a retrograde year it can stay in the same sign for around four months.",
-    "The most elegant feature is the eight-year pattern . Five Venus synodic cycles add up to almost exactly eight Earth years, only a couple of days short. So the retrogrades repeat in nearly the same part of the zodiac every eight years, a little earlier each time. If you plot the five inferior conjunctions around the zodiac, they trace a five-pointed star, the famous Venus pentagram. Practically, that means a Venus retrograde this year tends to echo the themes of the one eight years ago. If you want to know what a coming Venus retrograde will stir up, look at what was happening in your relationships or finances eight years earlier."
+    "The most elegant feature is the eight-year pattern. Five Venus synodic cycles add up to almost exactly eight Earth years, only a couple of days short. So the retrogrades repeat in nearly the same part of the zodiac every eight years, a little earlier each time. If you plot the five inferior conjunctions around the zodiac, they trace a five-pointed star, the famous Venus pentagram. Practically, that means a Venus retrograde this year tends to echo the themes of the one eight years ago. If you want to know what a coming Venus retrograde will stir up, look at what was happening in your relationships or finances eight years earlier."
    ]
   },
   {
    "ten": "The Mars retrograde cycle",
    "doan": [
-    "T Mars has a longer cycle: its synodic period is about 780 days, a little over two years and one month.",
+    "Mars has a longer cycle: its synodic period is about 780 days, a little over two years and one month.",
     "Frequency: about every 26 months.",
     "Duration: usually somewhere around two to two and a half months, though individual retrogrades can run a bit shorter or longer.",
     "Share of time: roughly 9 to 10 percent, so about 1 in 10 people has Mars retrograde natally.",
@@ -51,7 +51,7 @@
   {
    "ten": "How to read a retrograde transit",
    "doan": [
-    "A retrograde is a transit like any other; the difference is duration. The whole method is in transits explained , but here's how to handle Venus and Mars specifically.",
+    "A retrograde is a transit like any other; the difference is duration. The whole method is in transits explained, but here's how to handle Venus and Mars specifically.",
     "Find the retrograde zone. Note the degree where the planet stations retrograde and the degree where it stations direct. The span between them is the zone the planet crosses three times: forward, backward, then forward again.",
     "Find the shadow. The degrees that Venus or Mars will cover before the station retrograde (the pre-shadow) and after the station direct until it leaves the zone (the post-shadow). The whole shadow period for Mars can stretch to half a year or more.",
     "Locate the house. Which of your houses does the zone fall in? That's the life area under review. Venus retrograde through your 7th house puts partnerships on the table. Mars retrograde through your 10th makes career effort feel stop-start.",
@@ -73,10 +73,10 @@
   {
    "ten": "Born with Venus or Mars retrograde",
    "doan": [
-    "A natal retrograde doesn't make the planet weaker in any simple sense. It tends to make that planet's function more internal, more considered, or slower to show itself. The general approach is in retrograde planets in the natal chart .",
+    "A natal retrograde doesn't make the planet weaker in any simple sense. It tends to make that planet's function more internal, more considered, or slower to show itself. The general approach is in retrograde planets in the natal chart.",
     "Natal Venus retrograde often describes someone whose values and tastes don't match the mainstream, who takes a long time to trust affection, or who revisits old relationships more than most. Many people with this placement say they understood what they actually wanted in love only after a few rounds of getting it wrong.",
     "Natal Mars retrograde often shows as drive that runs inward. Anger may be held or processed slowly rather than expressed on the spot, and effort comes in bursts after long preparation. These people frequently do their best work when they revise something rather than start it fresh.",
-    "Look at secondary progressions too. Because progressed planets move one day per year of life, a natal retrograde Venus or Mars may station direct by progression at some point, and that year often marks a turn in how the person uses the planet. The method is in secondary progressions and the progressed Moon ."
+    "Look at secondary progressions too. Because progressed planets move one day per year of life, a natal retrograde Venus or Mars may station direct by progression at some point, and that year often marks a turn in how the person uses the planet. The method is in secondary progressions and the progressed Moon."
    ]
   },
   {
@@ -93,7 +93,7 @@
    "ten": "Check the transits against your chart",
    "doan": [
     "Open the transit tool →",
-    "Put in your birth data, move the date to the next Venus or Mars station, and check which of your houses and natal planets sit between the station degrees. If you also want the background on how these two planets work in your natal chart, start with Venus sign and Mars sign . The contact to your own chart, not the retrograde itself, is what decides how much you'll feel it."
+    "Put in your birth data, move the date to the next Venus or Mars station, and check which of your houses and natal planets sit between the station degrees. If you also want the background on how these two planets work in your natal chart, start with Venus sign and Mars sign. The contact to your own chart, not the retrograde itself, is what decides how much you'll feel it."
    ]
   }
  ]

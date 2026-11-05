@@ -515,7 +515,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
           or (r.dang in ('kể chuyện', 'ảnh tĩnh') and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')
               and not exists (select 1 from etp.camp c join etp.creative k on k.creative_id = c.creative_id where c.content_id = r.content_id and k.dang = r.dang)))
       -- phim đang được NHẬN đứng đầu hàng (02/11/2026: phim nhận 172341 chấm sạch phải đợi sau 213 creative cũ) — nhận Tự động là lên camp ngay nhịp kế
-      order by nhan desc, h.luc limit 4) x`)).trim() || '[]');
+      -- ảnh tĩnh / kể chuyện làm theo lệnh cho phim đang chạy đứng sau phim nhận, trước hàng tồn (05/11/2026: 5 creative ảnh tĩnh xếp sau hàng trăm creative 'team' cũ, mỗi nhịp lấy 4)
+      order by nhan desc, (r.dang in ('kể chuyện', 'ảnh tĩnh')) desc, h.luc limit 4) x`)).trim() || '[]');
     const da = [];
     for (const x of ds) {
       const a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();

@@ -752,6 +752,7 @@ const LUAT = [
   { card: 'anh-tinh-0511', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay))', vi: 'video ảnh tĩnh qua cổng chữ như mọi creative' },
   { card: 'anh-tinh-0511', tep: 'apps/cty/worker/ethopex.mjs', co: "'ảnh tĩnh': ['AT (ảnh tĩnh + giọng) chấm sạch → lên camp cho phim mới bắt đầu lãi'", vi: 'ảnh tĩnh chấm sạch của phim đang chạy → nhịp tự lên camp (một camp mỗi dạng mỗi phim)' },
   { card: 'anh-tinh-0511', tep: 'apps/cty/worker/ethopex.mjs', co: "and k.dang = r.dang)))", vi: 'mỗi dạng một camp mỗi phim, không lên trùng' },
+  { card: 'anh-tinh-0511', tep: 'apps/cty/worker/ethopex.mjs', co: "order by nhan desc, (r.dang in ('kể chuyện', 'ảnh tĩnh')) desc, h.luc limit 4", vi: 'creative làm theo lệnh cho phim đang chạy không xếp sau hàng tồn' },
   { card: 'anh-tinh-0511', tep: 'apps/web/src/components/etp-so.tsx', co: "'ảnh tĩnh': 'AT' };", vi: 'badge AT cho loại ảnh tĩnh' },
   { card: 'sx-moi-loai-0511', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: 'const ngoai = (await docNgoai()).map(', vi: 'tab Sản xuất gộp mọi đường sản xuất ngoài máy dòng phim (anh 05/11/2026)' },
   { card: 'sx-moi-loai-0511', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: "from etp.thu_vien v left join etp.phim f using (content_id)", vi: 'thư viện: ảnh tĩnh · kể chuyện máy sinh · kiểu mới' },

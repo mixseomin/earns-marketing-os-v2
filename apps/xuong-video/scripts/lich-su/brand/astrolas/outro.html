@@ -17,6 +17,8 @@ html, body { background: #071426; overflow: hidden; }
 #quet { -webkit-mask: url(logo/wordmark.png) center / 100% 100% no-repeat; mask: url(logo/wordmark.png) center / 100% 100% no-repeat; mix-blend-mode: screen; }
 </style></head>
 <body><div id="k">
+  <img id="anh" class="abs" style="inset:0;width:100%;height:100%;object-fit:cover;display:none">
+  <div id="man" class="abs" style="inset:0;display:none"></div>
   <canvas id="troi" class="abs"></canvas>
   <img id="banh" class="abs" src="anh/site/home-hero.webp">
   <div id="phu" class="abs"></div>
@@ -31,6 +33,10 @@ html, body { background: #071426; overflow: hidden; }
 <script src="../../../shot-code/nen-troi.js"></script>
 <script>
 const P = new URLSearchParams(location.search), NGANG = P.get('khung') === 'ngang', DAI = Number(P.get('dai') || (NGANG ? 3 : 1));
+// ?nen=<ảnh nền playlist, đường từ brand/astrolas> (anh 06/11/2026 "nền outro cũng đổi được mà?"): outro mỗi playlist nối liền màu với thân video; không có = nền navy của site
+const NEN = P.get('nen');
+if (NEN) { const a = document.getElementById('anh'); a.src = NEN; a.style.display = 'block'; const m = document.getElementById('man'); m.style.display = 'block';
+  m.style.background = 'radial-gradient(ellipse at 50% 46%, rgba(7,20,38,.30) 0%, rgba(7,20,38,.55) 60%, rgba(7,20,38,.78) 100%)'; }   // màn navy của site trên ảnh: bánh xe + logo vẫn nổi
 const W = NGANG ? 1920 : 1080, H = NGANG ? 1080 : 1920, $ = (id) => document.getElementById(id), k = $('k');
 k.style.width = W + 'px'; k.style.height = H + 'px';
 for (const id of ['troi', 'hat']) { $(id).width = W; $(id).height = H; }
@@ -45,7 +51,7 @@ let s = 7; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
 const HAT = Array.from({ length: 70 }, () => ({ g: rnd() * 6.283, r0: Math.max(W, H) * (0.45 + rnd() * 0.35), tre: rnd() * 0.12, co: 1.5 + rnd() * 3.2, xoan: (rnd() - 0.5) * 1.4 }));
 window.__ve = (t) => {
   const u = t / S;   // giây theo nhịp bản 1 s
-  NenTroi.ve(t, { cv: $('troi'), sao, w: W, h: H, day: 0.02 });
+  NenTroi.ve(t, { anh: NEN ? $('anh') : null, cv: $('troi'), sao, w: W, h: H, day: 0.04 });
   // bánh xe 12 cung của site (ảnh 1536×1024: tâm bánh xe ~ (905, 470), bán kính ~318): tâm đặt trùng tâm logo, xoay chậm, mép mờ dần vào navy
   const RB = NGANG ? 400 : 470, kb = RB / 318, xb = 905 * kb, yb = 470 * kb, hb = ra(t / (0.3 * S)), lui = 1 - 0.38 * ra((u - 0.3) / 0.3);
   Object.assign($('banh').style, { width: `${1536 * kb}px`, left: `${CX - xb}px`, top: `${CY - yb}px`, transformOrigin: `${xb}px ${yb}px`,
@@ -80,5 +86,5 @@ window.__ve = (t) => {
   Object.assign($('web').style, { display: DAI > 1.5 ? 'block' : 'none', top: `${y0 + (NGANG ? 120 : 150)}px`, fontSize: `${NGANG ? 28 : 34}px`, opacity: wb });
   $('web').textContent = 'ASTROLAS.COM';
 };
-Promise.all([document.fonts.ready, ...[...document.images].map((im) => im.decode())]).then(() => { window.__ve(0); window.__xong = true; }, (e) => { window.__loi = String(e?.message || e); });
+Promise.all([document.fonts.ready, ...[...document.images].filter((im) => im.getAttribute('src')).map((im) => im.decode())]).then(() => { window.__ve(0); window.__xong = true; }, (e) => { window.__loi = String(e?.message || e); });
 </script></body></html>

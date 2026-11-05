@@ -101,7 +101,8 @@
           "chart-chapters",
           "chart-chapters-dai",
           "chart-tools",
-          "ask-the-chart"
+          "ask-the-chart",
+          "chart-vs-chart"
         ],
         "trang_dich": "Annual Profections, Zodiacal Releasing"
       },
@@ -262,7 +263,7 @@
       {
         "ma": "G5",
         "ten": "Khuôn kịch bản",
-        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp",
+        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp · ĐÃ CÓ MÁY: This Week (viet-this-week.mjs, 102 sự kiện × 12 cung Mọc) · Sign × Sign (viet-sign.mjs, 78 cặp) · Chart vs Chart (viet-cap.mjs, 18 cặp) · Chart Chapters dài (dai/sinh-chuong.mjs); còn: Love Story dài, Ask the Chart, Myth Behind, Sky Calendar",
         "anh": "duyệt kịch bản mẫu",
         "trang_thai": "dang"
       },
@@ -432,7 +433,7 @@
         "nhip": "Thứ 3 + Thứ 7",
         "kho": "vô hạn · mỗi cặp 1–3 tập (góc khít nhất / điểm / mốc chia tay)",
         "trang": "shot-code/la-so.html (cheo + diem)",
-        "sinh": "la-so/hop.mjs <a> <b> → kịch bản tay (G5 tự viết)",
+        "sinh": "lich-su/viet-cap.mjs --cap <a--b | all> — 0đ, không AI: 2 góc chiếu chéo khít nhất dùng được (tiêu đề lời giải nguyên văn Synastry của site), điểm từng trục, mốc đầu / cuối sổ cặp, hook QC spy; romantic → Love & Compatibility, partner → Career; 18/18 cặp qua máy gác",
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/chart-vs-chart.mp4?v=3"
       },
       {

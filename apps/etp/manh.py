@@ -6,6 +6,8 @@ Mỗi lượt:
   2. máy chạy dòng im > 3 phút mà còn dòng chạy → báo Telegram (30 phút một lần), bước của nó coi như chết (mục 1 lo)
   3. dòng vừa kết thúc (xong / dừng vì policy / lỗi) → báo Telegram một lần
   4. việc cắt lô dòng phim (etp.viec lô dp*) 'dang' quá 75 phút → xếp lại hàng chờ (tho.py chỉ tự quét việc của chính máy nó)
+  5–6. mở lại dòng dừng khi cổng đổi · thử lại dòng lỗi kỹ thuật
+  7. lỗi MÃ ở máy luật / lên camp (etp.nhat_ky) → báo Telegram ngay, mỗi kiểu một lần / 6 giờ
 Dùng: manh.py [--thu] (--thu: chỉ in, không ghi / không báo)"""
 import hashlib, importlib.util, json, os, subprocess, sys
 THU = "--thu" in sys.argv
@@ -115,10 +117,25 @@ def main():
                            else b.lan < 6 and b.ket_thuc < now() - interval '2 hours' end
                   returning b.dong_id, b.buoc, b.lan""") if not THU else ""
         if r: lam.append(f"thử lại lỗi (hạ tầng 10 phút · khác 2 giờ): {r.replace(chr(10), ' · ').replace(chr(9), ' ')}")
+    def muc7():
+        # 7. LỖI MÃ Ở MÁY LUẬT / LÊN CAMP (05/11/2026: 3 lượt nhân bản ROAS chết NameError 00:09, chỉ hiện "⚠ lỗi" trong bảng Telegram, 9 giờ không ai sửa —
+        #    Mạnh chỉ canh dòng phim). etp.nhat_ky ok = false mà lỗi là lỗi MÃ (nhan-ban.loi_may ghi "LỖI MÃ …", hoặc chữ lỗi Python quen) → báo ngay,
+        #    mỗi kiểu lỗi một lần / 6 giờ. Máy gọi (worker) tự thử lại mỗi nhịp (r.may), bản sửa lên là tự chạy lại.
+        MA = r"LỖI MÃ|is not defined|has no attribute|unexpected keyword argument|positional argument|not subscriptable|unsupported operand|referenced before assignment|Traceback"
+        for l in hang(f"""select viec, regexp_replace(left(loi, 160), '[0-9]{{3,}}', '#', 'g'), count(*), string_agg(distinct camp_id::text, ' · '),
+                              to_char(min(luc) at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM'), max(left(loi, 240))
+                       from etp.nhat_ky where ok is false and luc > now() - interval '1 day' and coalesce(loi, '') ~ '{MA}' group by 1, 2"""):
+            viec, kieu, n, camps, tu, loi = l
+            dau = f"/tmp/manh-ma-{hashlib.md5((viec + kieu).encode()).hexdigest()[:10]}"
+            if os.path.exists(dau) and os.path.getmtime(dau) > __import__("time").time() - 6 * 3600: continue
+            if not THU: open(dau, "w").write(kieu)
+            lam.append(f"lỗi mã {viec} ×{n}")
+            bao(f"🐞 <b>Mạnh</b> · LỖI MÃ ở máy <b>{viec}</b> — {n} lượt từ {tu} (camp {camps[:120]})\n<code>{loi[:240]}</code>\n"
+                "→ máy gọi tự thử lại mỗi nhịp; cần sửa mã (lỗi không tự hết)")
     # MỖI MỤC CHẠY RIÊNG (05/11/2026: một hàng lạ ở mục 3 làm Mạnh chết cả lượt suốt 24 giờ — mục 1/4/5/6 không chạy, không ai biết):
     # mục hỏng → ghi lại, báo Telegram (một lần mỗi giờ mỗi mục), các mục khác vẫn chạy; cuối lượt trả mã lỗi để systemd vẫn thấy
     hong = []
-    for ten, f in (("mục 1", muc1), ("mục 2", muc2), ("mục 3", muc3), ("mục 4", muc4), ("mục 5", muc5), ("mục 6", muc6)):
+    for ten, f in (("mục 1", muc1), ("mục 2", muc2), ("mục 3", muc3), ("mục 4", muc4), ("mục 5", muc5), ("mục 6", muc6), ("mục 7", muc7)):
         try: f()
         except Exception as e:
             import traceback; traceback.print_exc(); hong.append(ten)

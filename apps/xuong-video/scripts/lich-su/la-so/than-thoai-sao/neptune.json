@@ -1,0 +1,79 @@
+{
+  "ma": "neptune",
+  "sao": "Neptune",
+  "ten": "Poseidon / Neptune",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Neptune",
+    "https://en.wikipedia.org/wiki/Poseidon"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "It is named after the Roman god of the sea and has the astronomical symbol , representing Neptune's trident.",
+    "nguon": "https://en.wikipedia.org/wiki/Neptune",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "Athena became the patron goddess of the city of Athens after a competition with Poseidon.",
+      "nguon": "https://en.wikipedia.org/wiki/Poseidon#Foundation_of_Athens",
+      "nhan_vat": [
+        "Athena",
+        "Poseidon"
+      ]
+    },
+    {
+      "chu": "They agreed that each would give the Athenians one gift and the Athenians would choose whichever gift they preferred.",
+      "nguon": "https://en.wikipedia.org/wiki/Poseidon#Foundation_of_Athens",
+      "nhan_vat": [
+        "Athena",
+        "Poseidon"
+      ]
+    },
+    {
+      "chu": "Poseidon struck the ground with his trident and a spring sprang up; the water was salty and not very useful, but represented his true gift - the access to trade.",
+      "nguon": "https://en.wikipedia.org/wiki/Poseidon#Foundation_of_Athens",
+      "nhan_vat": [
+        "Poseidon"
+      ]
+    },
+    {
+      "chu": "For her part, Athena offered an olive tree.",
+      "nguon": "https://en.wikipedia.org/wiki/Poseidon#Foundation_of_Athens",
+      "nhan_vat": [
+        "Athena"
+      ]
+    },
+    {
+      "chu": "The Athenians or their king, Cecrops, accepted the olive tree and along with it Athena as their patron, for the olive tree brought wood, oil and food.",
+      "nguon": "https://en.wikipedia.org/wiki/Poseidon#Foundation_of_Athens",
+      "nhan_vat": [
+        "Cecrops",
+        "Athena"
+      ]
+    },
+    {
+      "chu": "After the dispute, infuriated at his loss, Poseidon sent a monstrous flood to the Attic Plain, to punish the Athenians for not choosing him.",
+      "nguon": "https://en.wikipedia.org/wiki/Poseidon#Foundation_of_Athens",
+      "nhan_vat": [
+        "Poseidon"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Poseidon",
+      "mo_ta": "He rides a chariot that is pulled by a hippocampus or by horses that could ride on the sea",
+      "nguon": "https://en.wikipedia.org/wiki/Poseidon#In_literature_and_art"
+    },
+    {
+      "ten": "Athena",
+      "mo_ta": "depicted wearing a helmet and holding a spear",
+      "nguon": "https://en.wikipedia.org/wiki/Athena"
+    },
+    {
+      "ten": "Cecrops",
+      "mo_ta": "his top half shaped like a man and the bottom half in serpent or fish-tail form",
+      "nguon": "https://en.wikipedia.org/wiki/Cecrops_I#Etymology_and_form"
+    }
+  ]
+}

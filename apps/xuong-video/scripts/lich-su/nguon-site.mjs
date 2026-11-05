@@ -54,7 +54,7 @@ export function khoChuSite(tap) {
   for (const c of SO_CONG_CU()) kho.push(`${c.ten} ${c.mo_ta}`);
   // mốc đời / mốc cặp đôi có nguồn (Wikipedia…) — chuyện đời người, không phải lời chiêm tinh, nhưng cũng chỉ được kể theo sổ
   if (ls && existsSync(join(DIR, 'la-so/hop', `${ls}.json`))) for (const m of doc(`la-so/hop/${ls}.json`).moc ?? []) kho.push(m.chu);
-  for (const f of tap.nguon_moc ?? []) if (existsSync(join(DIR, f))) for (const m of doc(f).moc ?? []) kho.push(m.chu);
+  for (const f of tap.nguon_moc ?? []) if (existsSync(join(DIR, f))) { const d = doc(f); for (const m of d.moc ?? []) kho.push(m.chu); if (d.ten_goi?.chu) kho.push(d.ten_goi.chu); }   // ten_goi: câu đặt tên thiên thể (la-so/than-thoai-sao)
   // chữ đọc thẳng từ trang công cụ cho đúng người / năm của tập (cong-cu/doc-ap.mjs › cong-cu/ap/<người>-<năm>.json › chu): nghĩa nhà của năm, Theme của chủ năm…
   for (const f of tap.nguon_cong_cu ?? []) if (existsSync(join(DIR, f))) kho.push(...(doc(f).chu ?? []));
   return kho.filter(Boolean);
@@ -101,7 +101,7 @@ function tuRieng(tap) {
   const ls = tap.la_so?.split('/').pop()?.replace(/\.svg$/, ''), o = new Set();
   for (const n of NGUOI()) for (const w of tu(`${n.ten} ${n.ten_ngan ?? ""}`)) o.add(w);   // tên + tên gọi ngắn (JFK, Jackie…)
   for (const c of SO_CONG_CU()) for (const w of tu(c.ten)) o.add(w);
-  const moc = [...(ls && existsSync(join(DIR, 'la-so/hop', `${ls}.json`)) ? doc(`la-so/hop/${ls}.json`).moc ?? [] : []), ...(tap.nguon_moc ?? []).flatMap((f) => (existsSync(join(DIR, f)) ? doc(f).moc ?? [] : []))];
+  const moc = [...(ls && existsSync(join(DIR, 'la-so/hop', `${ls}.json`)) ? doc(`la-so/hop/${ls}.json`).moc ?? [] : []), ...(tap.nguon_moc ?? []).flatMap((f) => (existsSync(join(DIR, f)) ? [...(doc(f).moc ?? []), ...(doc(f).ten_goi ? [doc(f).ten_goi] : [])] : []))];
   for (const m of moc) for (const w of tu(m.chu)) if (!NGHIA.test(w)) o.add(w);
   // tên trục điểm của công cụ Synastry cho đúng cặp này (Romance, Harmony & attraction…) — nhãn của site, dùng lẻ được
   if (ls && existsSync(join(DIR, 'la-so/hop', `${ls}.json`))) for (const d of doc(`la-so/hop/${ls}.json`).diem ?? []) for (const w of tu(d.ten)) o.add(w);

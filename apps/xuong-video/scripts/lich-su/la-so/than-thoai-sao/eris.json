@@ -1,0 +1,98 @@
+{
+  "ma": "eris",
+  "sao": "Eris",
+  "ten": "Eris",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Eris_(dwarf_planet)",
+    "https://en.wikipedia.org/wiki/Eris_(mythology)",
+    "https://en.wikipedia.org/wiki/Judgement_of_Paris"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "Eris is named after the Greek goddess Eris (Greek Ἔρις), a personification of strife and discord.",
+    "nguon": "https://en.wikipedia.org/wiki/Eris_(dwarf_planet)#Name",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "As the story came to be told, all the gods were invited to the wedding of Peleus and Thetis except Eris.",
+      "nguon": "https://en.wikipedia.org/wiki/Eris_(mythology)#Judgement_of_Paris",
+      "nhan_vat": [
+        "Eris"
+      ]
+    },
+    {
+      "chu": "She came anyway, but was refused admission.",
+      "nguon": "https://en.wikipedia.org/wiki/Eris_(mythology)#Judgement_of_Paris",
+      "nhan_vat": [
+        "Eris"
+      ]
+    },
+    {
+      "chu": "In anger, she threw a golden apple among the wedding guests inscribed with \"For the fairest\", which the three goddesses each claimed.",
+      "nguon": "https://en.wikipedia.org/wiki/Eris_(mythology)#Judgement_of_Paris",
+      "nhan_vat": [
+        "Eris",
+        "Aphrodite",
+        "Hera"
+      ]
+    },
+    {
+      "chu": "To settle the dispute, Zeus orders the three goddesses to go to Mount Ida to be judged by Paris.",
+      "nguon": "https://en.wikipedia.org/wiki/Eris_(mythology)#Judgement_of_Paris",
+      "nhan_vat": [
+        "Zeus",
+        "Paris"
+      ]
+    },
+    {
+      "chu": "Paris, having been offered Helen by Aphrodite in return for Paris choosing her, does so.",
+      "nguon": "https://en.wikipedia.org/wiki/Eris_(mythology)#Judgement_of_Paris",
+      "nhan_vat": [
+        "Paris",
+        "Aphrodite",
+        "Helen"
+      ]
+    },
+    {
+      "chu": "Consequently, Paris carried Helen off to Troy, and the Greeks invaded Troy for Helen's return.",
+      "nguon": "https://en.wikipedia.org/wiki/Judgement_of_Paris",
+      "nhan_vat": [
+        "Paris",
+        "Helen"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Eris",
+      "mo_ta": "a normal woman in appearance apart from having wings and winged-sandals",
+      "nguon": "https://en.wikipedia.org/wiki/Eris_(mythology)#Iconography"
+    },
+    {
+      "ten": "Aphrodite",
+      "mo_ta": "Aphrodite's most prominent avian symbol was the dove",
+      "nguon": "https://en.wikipedia.org/wiki/Aphrodite#Symbolism"
+    },
+    {
+      "ten": "Hera",
+      "mo_ta": "crowned with a polos or diadem, sometimes veiled as a married woman",
+      "nguon": "https://en.wikipedia.org/wiki/Hera"
+    },
+    {
+      "ten": "Zeus",
+      "mo_ta": "a sky and thunder god in ancient Greek religion and mythology, who rules as king of the gods on Mount Olympus",
+      "nguon": "https://en.wikipedia.org/wiki/Zeus"
+    },
+    {
+      "ten": "Paris",
+      "mo_ta": "\"godlike\" (θεοειδής in Ancient Greek) in outward cosmetic beauty",
+      "nguon": "https://en.wikipedia.org/wiki/Paris_(mythology)#Description"
+    },
+    {
+      "ten": "Helen",
+      "mo_ta": "the most beautiful woman in the world",
+      "nguon": "https://en.wikipedia.org/wiki/Helen_of_Troy"
+    }
+  ]
+}

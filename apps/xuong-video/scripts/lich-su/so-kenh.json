@@ -356,10 +356,11 @@
         "ten": "The Myth Behind",
         "loai": "short",
         "nhip": "sau 2 playlist đầu",
-        "kho": "≈ 50+ tập",
-        "trang": "shot-code/la-so.html",
-        "sinh": "kịch bản tay (G5)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-myth-behind.mp4?v=5"
+        "kho": "14 thiên thể (10 hành tinh + Chiron, Lilith, Eris, Ceres) · thêm chòm / tiểu hành tinh khi có chuyện nguyên văn",
+        "trang": "shot-code/la-so.html (vai nhân vật)",
+        "sinh": "lich-su/viet-myth-behind.mjs --sao <thiên thể | all> — 0đ khi đã có nhân vật: câu đặt tên + chuyện nguyên văn Wikipedia (la-so/than-thoai-sao/, 14 thiên thể), nhân vật hoạt hình tự dàn cảnh (khuôn Myths of the Zodiac), câu site bài the-10-planets-in-astrology, vị trí trong lá số site người hạng AA",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-myth-behind.mp4?v=5",
+        "tu_sinh": "^my-[a-z]+$"
       },
       {
         "ma": "chart-tools",

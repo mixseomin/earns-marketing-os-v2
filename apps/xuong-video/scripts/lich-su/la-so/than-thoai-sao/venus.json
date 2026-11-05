@@ -1,0 +1,90 @@
+{
+  "ma": "venus",
+  "sao": "Venus",
+  "ten": "Aphrodite / Venus",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Venus",
+    "https://en.wikipedia.org/wiki/Aphrodite"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "Romans named Venus after their goddess of love, who in turn was based on the ancient Greek love goddess Aphrodite, who was herself based on the similar Sumerian religion goddess Inanna (which is Ishtar in Akkadian religion), all of whom were associated with the planet.",
+    "nguon": "https://en.wikipedia.org/wiki/Venus#In_culture",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "Aphrodite found the baby and took him to the underworld to be fostered by Persephone.",
+      "nguon": "https://en.wikipedia.org/wiki/Aphrodite#Adonis",
+      "nhan_vat": [
+        "Aphrodite",
+        "Adonis",
+        "Persephone"
+      ]
+    },
+    {
+      "chu": "She returned for him once he was grown and discovered him to be strikingly handsome.",
+      "nguon": "https://en.wikipedia.org/wiki/Aphrodite#Adonis",
+      "nhan_vat": [
+        "Aphrodite",
+        "Adonis"
+      ]
+    },
+    {
+      "chu": "Persephone wanted to keep Adonis, resulting in a custody battle between the two goddesses over whom should rightly possess Adonis.",
+      "nguon": "https://en.wikipedia.org/wiki/Aphrodite#Adonis",
+      "nhan_vat": [
+        "Persephone",
+        "Aphrodite",
+        "Adonis"
+      ]
+    },
+    {
+      "chu": "Zeus settled the dispute by decreeing that Adonis would spend one third of the year with Aphrodite, one third with Persephone, and one third with whomever he chose.",
+      "nguon": "https://en.wikipedia.org/wiki/Aphrodite#Adonis",
+      "nhan_vat": [
+        "Zeus",
+        "Aphrodite",
+        "Persephone"
+      ]
+    },
+    {
+      "chu": "Then, one day, while Adonis was hunting, he was wounded by a wild boar and bled to death in Aphrodite's arms.",
+      "nguon": "https://en.wikipedia.org/wiki/Aphrodite#Adonis",
+      "nhan_vat": [
+        "Adonis",
+        "Aphrodite"
+      ]
+    },
+    {
+      "chu": "Reportedly, as she mourned Adonis's death, she caused anemones to grow wherever his blood fell and declared a festival on the anniversary of his death.",
+      "nguon": "https://en.wikipedia.org/wiki/Aphrodite#Adonis",
+      "nhan_vat": [
+        "Aphrodite",
+        "Adonis"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Aphrodite",
+      "mo_ta": "Aphrodite's most prominent avian symbol was the dove",
+      "nguon": "https://en.wikipedia.org/wiki/Aphrodite#Symbolism"
+    },
+    {
+      "ten": "Adonis",
+      "mo_ta": "handsome youths, of whom he is considered the archetype",
+      "nguon": "https://en.wikipedia.org/wiki/Adonis"
+    },
+    {
+      "ten": "Persephone",
+      "mo_ta": "a mystical divinity with a sceptre and a little box",
+      "nguon": "https://en.wikipedia.org/wiki/Persephone"
+    },
+    {
+      "ten": "Zeus",
+      "mo_ta": "a sky and thunder god in ancient Greek religion and mythology, who rules as king of the gods on Mount Olympus",
+      "nguon": "https://en.wikipedia.org/wiki/Zeus"
+    }
+  ]
+}

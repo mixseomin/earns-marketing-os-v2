@@ -1,0 +1,103 @@
+{
+  "_ghi": "Thần thoại đằng sau tên các thiên thể — câu nguyên văn Wikipedia (The Myth Behind)",
+  "sao": [
+    {
+      "ma": "sun",
+      "sao": "Sun",
+      "ten": "Helios",
+      "tep": "sun.json",
+      "so_cau": 5
+    },
+    {
+      "ma": "moon",
+      "sao": "Moon",
+      "ten": "Selene",
+      "tep": "moon.json",
+      "so_cau": 6
+    },
+    {
+      "ma": "mercury",
+      "sao": "Mercury",
+      "ten": "Hermes / Mercury",
+      "tep": "mercury.json",
+      "so_cau": 5
+    },
+    {
+      "ma": "venus",
+      "sao": "Venus",
+      "ten": "Aphrodite / Venus",
+      "tep": "venus.json",
+      "so_cau": 6
+    },
+    {
+      "ma": "mars",
+      "sao": "Mars",
+      "ten": "Ares / Mars",
+      "tep": "mars.json",
+      "so_cau": 6
+    },
+    {
+      "ma": "jupiter",
+      "sao": "Jupiter",
+      "ten": "Zeus / Jupiter",
+      "tep": "jupiter.json",
+      "so_cau": 6
+    },
+    {
+      "ma": "saturn",
+      "sao": "Saturn",
+      "ten": "Cronus / Saturn",
+      "tep": "saturn.json",
+      "so_cau": 6
+    },
+    {
+      "ma": "uranus",
+      "sao": "Uranus",
+      "ten": "Uranus",
+      "tep": "uranus.json",
+      "so_cau": 6
+    },
+    {
+      "ma": "neptune",
+      "sao": "Neptune",
+      "ten": "Poseidon / Neptune",
+      "tep": "neptune.json",
+      "so_cau": 6
+    },
+    {
+      "ma": "pluto",
+      "sao": "Pluto",
+      "ten": "Hades / Pluto",
+      "tep": "pluto.json",
+      "so_cau": 6
+    },
+    {
+      "ma": "chiron",
+      "sao": "Chiron",
+      "ten": "Chiron",
+      "tep": "chiron.json",
+      "so_cau": 6
+    },
+    {
+      "ma": "lilith",
+      "sao": "Lilith",
+      "ten": "Lilith",
+      "tep": "lilith.json",
+      "so_cau": 6
+    },
+    {
+      "ma": "eris",
+      "sao": "Eris",
+      "ten": "Eris",
+      "tep": "eris.json",
+      "so_cau": 6
+    },
+    {
+      "ma": "ceres",
+      "sao": "Ceres",
+      "ten": "Ceres",
+      "tep": "ceres.json",
+      "so_cau": 5
+    }
+  ]
+}

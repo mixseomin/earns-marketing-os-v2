@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// VẼ NHÂN VẬT HÀNG LOẠT cho mẫu Myths of the Zodiac (05/11/2026): đọc mục "ve" của mọi sổ chuyện la-so/than-thoai/*.json → nhân vật / dáng nào chưa có PNG ở
+// VẼ NHÂN VẬT HÀNG LOẠT cho mẫu Myths of the Zodiac + The Myth Behind (05/11/2026): đọc mục "ve" của mọi sổ chuyện la-so/than-thoai/*.json + la-so/than-thoai-sao/_ve.json → nhân vật / dáng nào chưa có PNG ở
 // brand/astrolas/nhan-vat/<id>/<dáng>.png thì vẽ: box3 lich-su/kho-sinh.mts (ckey Nano Banana 2 ~110₫ / ảnh, phong cách brand/astrolas/nhan-vat/kho.json qua KHO_TEP)
 // → kéo về iMac → shot-code/tach-lop.swift tách nền (Vision, 0đ) → PNG nền trong → pngquant nén (~60% nhẹ hơn). 4 nhân vật song song. In tiền thật.
 //   node ve-nhan-vat.mjs [--xem]   (--xem: chỉ liệt kê việc + ước tiền, không vẽ)
@@ -14,6 +14,12 @@ const viec = new Map();
 for (const f of readdirSync(TT).filter((x) => x.endsWith('.json'))) for (const [id, v] of Object.entries(JSON.parse(readFileSync(join(TT, f), 'utf8')).ve ?? {})) {
   const thieu = [...new Set(['goc', ...v.dang])].filter((d) => !existsSync(join(NV, id, `${d}.png`)));
   if (thieu.length) viec.set(id, { ...v, thieu: [...new Set([...(viec.get(id)?.thieu ?? []), ...thieu])] });
+}
+// The Myth Behind: sổ nhân vật la-so/than-thoai-sao/_ve.json (tên → id; id đã có trong kho thì không có mo_ta)
+const VE_SAO = join(DIR, 'la-so/than-thoai-sao/_ve.json');
+if (existsSync(VE_SAO)) for (const v of Object.values(JSON.parse(readFileSync(VE_SAO, 'utf8')).ten)) if (v.mo_ta && !v.ve_sau) {
+  const thieu = [...new Set(['goc', ...(v.dang ?? [])])].filter((d) => !existsSync(join(NV, v.id, `${d}.png`)));
+  if (thieu.length && !viec.has(v.id)) viec.set(v.id, { loai: v.loai, mo_ta: v.mo_ta, dang: v.dang ?? [], thieu });
 }
 const soAnh = [...viec.values()].reduce((s, v) => s + v.thieu.length, 0);
 console.log(`${viec.size} nhân vật · ${soAnh} ảnh · ước ~${soAnh * 111}₫`); for (const [id, v] of viec) console.log(`  ${id}: ${v.thieu.join(', ')}`);

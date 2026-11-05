@@ -1,0 +1,79 @@
+{
+  "ma": "lilith",
+  "sao": "Lilith",
+  "ten": "Lilith",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Planetary_objects_proposed_in_religion,_astrology,_ufology_and_pseudoscience",
+    "https://en.wikipedia.org/wiki/Lilith"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "Sepharial applied the name Lilith from medieval Jewish legend, where she is described as the first wife of Adam.",
+    "nguon": "https://en.wikipedia.org/wiki/Planetary_objects_proposed_in_religion,_astrology,_ufology_and_pseudoscience#Lilith",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "Based on medieval Jewish folklore, Lilith is said to have fled from the Garden of Eden because she did not want to submit to Adam.",
+      "nguon": "https://en.wikipedia.org/wiki/Lilith",
+      "nhan_vat": [
+        "Lilith",
+        "Adam"
+      ]
+    },
+    {
+      "chu": "He then created a woman for Adam, from the earth, as He had created Adam himself, and called her Lilith.",
+      "nguon": "https://en.wikipedia.org/wiki/Lilith#Alphabet_of_Ben_Sira",
+      "nhan_vat": [
+        "Lilith",
+        "Adam"
+      ]
+    },
+    {
+      "chu": "Lilith responded, \"We are equal to each other inasmuch as we were both created from the earth.\"",
+      "nguon": "https://en.wikipedia.org/wiki/Lilith#Alphabet_of_Ben_Sira",
+      "nhan_vat": [
+        "Lilith"
+      ]
+    },
+    {
+      "chu": "When Lilith saw this, she pronounced the Ineffable Name and flew away into the air.",
+      "nguon": "https://en.wikipedia.org/wiki/Lilith#Alphabet_of_Ben_Sira",
+      "nhan_vat": [
+        "Lilith"
+      ]
+    },
+    {
+      "chu": "At once, the Holy One, blessed be He, sent these three angels Senoy, Sansenoy, and Semangelof, to bring her back.",
+      "nguon": "https://en.wikipedia.org/wiki/Lilith#Alphabet_of_Ben_Sira",
+      "nhan_vat": [
+        "Three angels"
+      ]
+    },
+    {
+      "chu": "They told her God's word, but she did not wish to return.",
+      "nguon": "https://en.wikipedia.org/wiki/Lilith#Alphabet_of_Ben_Sira",
+      "nhan_vat": [
+        "Three angels",
+        "Lilith"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Lilith",
+      "mo_ta": "a dangerous demon of the night",
+      "nguon": "https://en.wikipedia.org/wiki/Lilith#History"
+    },
+    {
+      "ten": "Adam",
+      "mo_ta": "the first human",
+      "nguon": "https://en.wikipedia.org/wiki/Adam"
+    },
+    {
+      "ten": "Three angels",
+      "mo_ta": "the names of three angels (Senoy, Sansenoy, and Semangelof)",
+      "nguon": "https://en.wikipedia.org/wiki/Lilith#Alphabet_of_Ben_Sira"
+    }
+  ]
+}

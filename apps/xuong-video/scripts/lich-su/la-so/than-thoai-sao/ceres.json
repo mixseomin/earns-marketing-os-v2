@@ -1,0 +1,71 @@
+{
+  "ma": "ceres",
+  "sao": "Ceres",
+  "ten": "Ceres",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Ceres_(dwarf_planet)",
+    "https://en.wikipedia.org/wiki/Ceres_(mythology)"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "Piazzi's proposed name for his discovery was Ceres Ferdinandea: Ceres after the Roman goddess of agriculture, whose earthly home, and oldest temple, lay in Sicily; and Ferdinandea in honour of Piazzi's monarch and patron, King Ferdinand III of Sicily.",
+    "nguon": "https://en.wikipedia.org/wiki/Ceres_(dwarf_planet)#Name_and_symbol",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "Enna, in Sicily, had strong mythological connections with Ceres and Proserpina, and was the site of the goddess' most ancient sanctuary.",
+      "nguon": "https://en.wikipedia.org/wiki/Ceres_(mythology)#Myths_and_theology",
+      "nhan_vat": [
+        "Ceres",
+        "Proserpina"
+      ]
+    },
+    {
+      "chu": "Flowers were said to bloom throughout the year on its \"miraculous plain\".",
+      "nguon": "https://en.wikipedia.org/wiki/Ceres_(mythology)#Myths_and_theology",
+      "nhan_vat": []
+    },
+    {
+      "chu": "Their joint cult recalls Demeter's search for Persephone, after the latter's abduction into the underworld by Hades.",
+      "nguon": "https://en.wikipedia.org/wiki/Ceres_(mythology)#Ceres_and_Proserpina",
+      "nhan_vat": [
+        "Ceres",
+        "Proserpina",
+        "Hades"
+      ]
+    },
+    {
+      "chu": "Some late Republican images recall Ceres's search for Proserpina.",
+      "nguon": "https://en.wikipedia.org/wiki/Ceres_(mythology)#Images_of_Ceres",
+      "nhan_vat": [
+        "Ceres",
+        "Proserpina"
+      ]
+    },
+    {
+      "chu": "Ceres bears a torch, sometimes two, and rides in a chariot drawn by snakes; or she sits on the sacred kiste (chest) that conceals the objects of her mystery rites.",
+      "nguon": "https://en.wikipedia.org/wiki/Ceres_(mythology)#Images_of_Ceres",
+      "nhan_vat": [
+        "Ceres"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Ceres",
+      "mo_ta": "usually depicted as a mature woman",
+      "nguon": "https://en.wikipedia.org/wiki/Ceres_(mythology)"
+    },
+    {
+      "ten": "Proserpina",
+      "mo_ta": "the daughter of Ceres",
+      "nguon": "https://en.wikipedia.org/wiki/Proserpina#Proserpina"
+    },
+    {
+      "ten": "Hades",
+      "mo_ta": "the god of the dead and riches and the King of the underworld",
+      "nguon": "https://en.wikipedia.org/wiki/Hades"
+    }
+  ]
+}

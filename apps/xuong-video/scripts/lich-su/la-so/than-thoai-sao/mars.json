@@ -1,0 +1,87 @@
+{
+  "ma": "mars",
+  "sao": "Mars",
+  "ten": "Ares / Mars",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Mars",
+    "https://en.wikipedia.org/wiki/Ares"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "Mars is named after the Roman god of war (Greek Ares), but was also associated with the demi-god Heracles (Roman Hercules) by ancient Greek astronomers, as detailed by Aristotle.",
+    "nguon": "https://en.wikipedia.org/wiki/Mars#In_culture",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "In Homer's Iliad, Ares has no fixed allegiance.",
+      "nguon": "https://en.wikipedia.org/wiki/Ares#Iliad",
+      "nhan_vat": [
+        "Ares"
+      ]
+    },
+    {
+      "chu": "He promises Athena and Hera that he will fight for the Achaeans but Aphrodite persuades him to side with the Trojans.",
+      "nguon": "https://en.wikipedia.org/wiki/Ares#Iliad",
+      "nhan_vat": [
+        "Ares",
+        "Athena",
+        "Aphrodite"
+      ]
+    },
+    {
+      "chu": "During the war, Diomedes fights Hector and sees Ares fighting on the Trojans' side.",
+      "nguon": "https://en.wikipedia.org/wiki/Ares#Iliad",
+      "nhan_vat": [
+        "Diomedes",
+        "Ares"
+      ]
+    },
+    {
+      "chu": "Encouraged by Hera and Athena, Diomedes thrusts with his spear at Ares.",
+      "nguon": "https://en.wikipedia.org/wiki/Ares#Iliad",
+      "nhan_vat": [
+        "Diomedes",
+        "Athena",
+        "Ares"
+      ]
+    },
+    {
+      "chu": "Athena drives the spear home, and all sides tremble at Ares's cries.",
+      "nguon": "https://en.wikipedia.org/wiki/Ares#Iliad",
+      "nhan_vat": [
+        "Athena",
+        "Ares"
+      ]
+    },
+    {
+      "chu": "Ares flees to Mount Olympus, forcing the Trojans to fall back.",
+      "nguon": "https://en.wikipedia.org/wiki/Ares#Iliad",
+      "nhan_vat": [
+        "Ares"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Ares",
+      "mo_ta": "Ares's attributes are instruments of war: a helmet, shield, and sword or spear",
+      "nguon": "https://en.wikipedia.org/wiki/Ares#Cult"
+    },
+    {
+      "ten": "Athena",
+      "mo_ta": "depicted wearing a helmet and holding a spear",
+      "nguon": "https://en.wikipedia.org/wiki/Athena"
+    },
+    {
+      "ten": "Aphrodite",
+      "mo_ta": "Aphrodite's most prominent avian symbol was the dove",
+      "nguon": "https://en.wikipedia.org/wiki/Aphrodite#Symbolism"
+    },
+    {
+      "ten": "Diomedes",
+      "mo_ta": "the most valiant soldier of the war",
+      "nguon": "https://en.wikipedia.org/wiki/Diomedes#In_the_Iliad"
+    }
+  ]
+}

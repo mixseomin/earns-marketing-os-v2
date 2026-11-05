@@ -1,0 +1,88 @@
+{
+  "ma": "jupiter",
+  "sao": "Jupiter",
+  "ten": "Zeus / Jupiter",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Jupiter",
+    "https://en.wikipedia.org/wiki/Typhon"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "It was named after Jupiter, the chief deity of ancient Roman religion.",
+    "nguon": "https://en.wikipedia.org/wiki/Jupiter",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "Typhon attempted to overthrow Zeus for the supremacy of the cosmos.",
+      "nguon": "https://en.wikipedia.org/wiki/Typhon",
+      "nhan_vat": [
+        "Typhon",
+        "Zeus"
+      ]
+    },
+    {
+      "chu": "However \"Zeus pelted Typhon at a distance with thunderbolts, and at close quarters struck him down with an adamantine sickle\".",
+      "nguon": "https://en.wikipedia.org/wiki/Typhon#Battle_with_Zeus",
+      "nhan_vat": [
+        "Zeus",
+        "Typhon"
+      ]
+    },
+    {
+      "chu": "Wounded, Typhon fled to the Syrian Mount Kasios, where Zeus \"grappled\" with him.",
+      "nguon": "https://en.wikipedia.org/wiki/Typhon#Battle_with_Zeus",
+      "nhan_vat": [
+        "Typhon",
+        "Zeus"
+      ]
+    },
+    {
+      "chu": "But Typhon, twining his snaky coils around Zeus, was able to wrest away the sickle and cut the sinews from Zeus's hands and feet.",
+      "nguon": "https://en.wikipedia.org/wiki/Typhon#Battle_with_Zeus",
+      "nhan_vat": [
+        "Typhon",
+        "Zeus"
+      ]
+    },
+    {
+      "chu": "But Hermes and Aegipan (possibly another name for Pan) stole the sinews and gave them back to Zeus.",
+      "nguon": "https://en.wikipedia.org/wiki/Typhon#Battle_with_Zeus",
+      "nhan_vat": [
+        "Hermes",
+        "Aegipan",
+        "Zeus"
+      ]
+    },
+    {
+      "chu": "Typhon then fled to Sicily, where Zeus threw Mount Etna on top of Typhon burying him, and so finally defeated him.",
+      "nguon": "https://en.wikipedia.org/wiki/Typhon#Battle_with_Zeus",
+      "nhan_vat": [
+        "Typhon",
+        "Zeus"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Zeus",
+      "mo_ta": "a sky and thunder god in ancient Greek religion and mythology, who rules as king of the gods on Mount Olympus",
+      "nguon": "https://en.wikipedia.org/wiki/Zeus"
+    },
+    {
+      "ten": "Typhon",
+      "mo_ta": "with many heads, hands, and wings, and with huge snake coils coming from his thighs",
+      "nguon": "https://en.wikipedia.org/wiki/Typhon#Descriptions"
+    },
+    {
+      "ten": "Hermes",
+      "mo_ta": "a young, athletic man lacking a beard",
+      "nguon": "https://en.wikipedia.org/wiki/Hermes#Iconography"
+    },
+    {
+      "ten": "Aegipan",
+      "mo_ta": "represented as half goat and half fish",
+      "nguon": "https://en.wikipedia.org/wiki/Aegipan#Mythology"
+    }
+  ]
+}

@@ -87,7 +87,8 @@ export async function xetHookAi(ds) {
     if (!x.qc) { ra.push(null); continue; }
     const k = khoa(x);
     if (!(k in daXet)) { const kq = await hoi(x); if (kq === undefined) { ra.push(null); continue; } daXet[k] = kq; moi++; }
-    ra.push(daXet[k]);
+    // kết luận cũ theo CÂU (khoá k) có trước khi QC gốc bị xếp khác ngách → vẫn chặn, kẻo lọc kho đọc sổ cũ rồi đưa lại đúng QC vừa bị chặn (Agincourt 05/11/2026)
+    ra.push(daXet[`${x.ma}|qc:${x.qc}`] === false && !/khác ngách/.test(daXet[k] ?? '') ? `hook mượn từ QC khác ngách (đã kết luận theo QC gốc)${daXet[k] ? ` + ${daXet[k]}` : ''}` : daXet[k]);
   }
   if (moi) { try { fs.mkdirSync(path.dirname(tepXet), { recursive: true }); fs.writeFileSync(tepXet, JSON.stringify(daXet)); } catch (e) { console.error('xet-hook: không ghi được sổ', e.message); } }
   return ra;

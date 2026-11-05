@@ -269,7 +269,9 @@ export function TabDong({ moCamp, phim }: { moCamp?: (id: number) => void; /** k
   // THỂ LOẠI (anh 05/11/2026 "cần thêm bộ lọc về thể loại ở đây") — ?sxtl= trên URL
   const [tl, setTl] = useState(() => phim || typeof location === 'undefined' ? '' : new URLSearchParams(location.search).get('sxtl') ?? '');
   useEffect(() => { if (phim) return; const u = new URL(location.href); if (tl) u.searchParams.set('sxtl', tl); else u.searchParams.delete('sxtl'); if (u.href !== location.href) history.replaceState(null, '', u); }, [tl, phim]);
-  const tai = useCallback(async () => setDu(await docDong(loc, tim, trang, tl)), [loc, tim, trang, tl]);
+  const [lo, setLo] = useState(() => phim || typeof location === 'undefined' ? '' : new URLSearchParams(location.search).get('sxlo') ?? '');   // loại nội dung CC / KT / AT… — ?sxlo=
+  useEffect(() => { if (phim) return; const u = new URL(location.href); if (lo) u.searchParams.set('sxlo', lo); else u.searchParams.delete('sxlo'); if (u.href !== location.href) history.replaceState(null, '', u); }, [lo, phim]);
+  const tai = useCallback(async () => setDu(await docDong(loc, tim, trang, tl, lo)), [loc, tim, trang, tl, lo]);
   useEffect(() => { if (phim) return; const u = new URL(location.href); if (tim) u.searchParams.set('sxq', tim); else u.searchParams.delete('sxq'); if (u.href !== location.href) history.replaceState(null, '', u); }, [tim, phim]);
   useEffect(() => { void tai(); const t = setInterval(() => void tai(), 10_000); return () => clearInterval(t); }, [tai]);
   if (!du) return <div style={{ padding: 16, color: 'var(--fg-2)' }}>Đang tải…</div>;
@@ -283,6 +285,8 @@ export function TabDong({ moCamp, phim }: { moCamp?: (id: number) => void; /** k
       <span style={{ display: 'inline-flex', gap: 4 }}>{LOC.map(([k, t]) => <button key={k} className="btn" onClick={() => { setLoc(k); setTrang(0); }}
         style={{ fontSize: 11, padding: '1px 8px', background: loc === k ? 'var(--accent-bg, #1e3a8a)' : undefined, color: loc === k ? '#fff' : undefined }} title={`${du.dem[k]} phim`}>{t}</button>)}</span>
       <SearchInput value={tim} onChange={(v) => { setTim(v); setTrang(0); }} placeholder="Tìm phim / mã…" width={200} />
+      <Chon2 nhan="Loại" value={lo} onChange={(v) => { setLo(v); setTrang(0); }} title="lọc theo loại nội dung QC: CC cảnh cuối · KT kể chuyện · LT test rộng · AT ảnh tĩnh · KM kiểu mới · TT camp test thay thế"
+        options={Object.entries(du.loai).sort((a, b) => b[1] - a[1]).map(([k, so]) => ({ value: k, label: `${k} · ${LOAI_DE[k] ?? k}`, dem: so }))} />
       {phim ? null : <Chon2 nhan="Thể loại" value={tl} onChange={(v) => { setTl(v); setTrang(0); }} title="lọc theo thể loại phim (sổ thể loại chung)"
         options={Object.entries(du.theLoai).sort((a, b) => b[1][1] - a[1][1]).map(([k, [ten, so]]) => ({ value: k, label: ten, dem: so }))} />}   {/* ô tìm chung @/components/ui (#1521) */}
       <span style={{ color: 'var(--fg-3)' }}>{du.tong} phim</span>

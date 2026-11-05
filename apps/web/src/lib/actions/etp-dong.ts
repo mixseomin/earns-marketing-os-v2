@@ -149,7 +149,7 @@ async function docNgoai(): Promise<DongPhim[]> {
 const dangNgoai = (d: DongPhim) => d.buoc.some((b) => b.trang_thai === 'dang');
 /** trạng thái một dòng để lọc / xếp: đang làm · lỗi / dừng · xong 24 giờ — dòng thật đọc cờ SQL, dòng ngoài tính từ bước */
 type CoDong = { la_dang: boolean; la_loi: boolean; moi_xong: boolean; hang: number };
-export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0, tl = ''): Promise<{ dong: DongPhim[]; tong: number; dem: Record<LocDong, number>; theLoai: Record<string, [string, number]>; may: { may: string; nhip: string }[]; luc: string } | { loi: string }> {
+export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0, tl = '', lo = ''): Promise<{ dong: DongPhim[]; tong: number; dem: Record<LocDong, number>; theLoai: Record<string, [string, number]>; loai: Record<string, number>; may: { may: string; nhip: string }[]; luc: string } | { loi: string }> {
   if (!(await quyen())) return { loi: 'không có quyền' };
   const xongLuc = sql`coalesce(p.xong_luc, case when not exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.trang_thai not in ('xong', 'bo_qua')) then (select max(b.ket_thuc) from etp.dong_buoc b where b.dong_id = p.id) end)`;
   const coLoi = sql`(p.trang_thai in ('dung', 'loi') or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.trang_thai in ('loi', 'dung')))`;
@@ -161,7 +161,7 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0, tl
     when ${coLoi} then 2 else 3 end`;
   // HAI LƯỢT (phân trang ở máy chủ, chịu kho lớn — #dong-thu-muc-0311): lượt NHẸ đọc cột lọc / xếp của mọi dòng; lượt NẶNG (bước, số camp) chỉ cho dòng của trang
   const that = await run<DongPhim & CoDong>(sql`select p.id, p.content_id, coalesce(p.ten, (select v.ten from etp.thu_vien_phim v where v.content_id = p.content_id limit 1)) ten,
-      coalesce(p.the_loai, (select f.the_loai from etp.phim f where f.content_id = p.content_id)) the_loai, p.tao_luc::text tao_luc,
+      coalesce(p.the_loai, (select f.the_loai from etp.phim f where f.content_id = p.content_id)) the_loai, p.loai, p.tao_luc::text tao_luc,
       ${dangL} la_dang, ${coLoi} la_loi, coalesce(${xongLuc} > now() - interval '1 day', false) moi_xong, (${hang})::int hang
     from etp.dong_phim p`);
   const ngoai = (await docNgoai()).map((d): DongPhim & CoDong => { const xongMoi = !!d.xong_luc && Date.now() - Date.parse(d.xong_luc) < 86_400_000;
@@ -172,12 +172,16 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0, tl
     : d.la_dang || d.moi_xong || (d.la_loi && (d.id > 0 || d.moi_xong));
   const t = tim.trim().toLowerCase();
   const khop = (d: DongPhim) => !t || (d.ten ?? '').toLowerCase().includes(t) || String(d.content_id) === t || String(d.id) === t || String(d.creative_id ?? '') === t;
-  const ca = [...that, ...ngoai].filter((d) => khop(d) && (!tl || (tl === '_' ? !d.the_loai : d.the_loai === tl)));
+  // LOẠI NỘI DUNG (anh 05/11/2026 "cần bộ lọc về thể loại ad như CC, KT, AT"): mã loại của dòng (CC / KT / LT) và dòng ngoài (AT / KT / KM / TT)
+  const hopTl = (d: DongPhim) => !tl || (tl === '_' ? !d.the_loai : d.the_loai === tl); const hopLo = (d: DongPhim) => !lo || d.loai === lo;
+  const ca = [...that, ...ngoai].filter((d) => khop(d) && hopTl(d) && hopLo(d));
   const ds = ca.filter((d) => hop(d, loc)).sort((a, b) => a.hang - b.hang || Date.parse(b.tao_luc) - Date.parse(a.tao_luc));
   // THỂ LOẠI (anh 05/11/2026 "cần thêm bộ lọc về thể loại ở đây"): tên theo sổ thể loại chung (xv_khoa_ngoai ethopex_the_loai_thu), đếm trên mục lọc đang chọn
   const [tlR] = await run<{ gia_tri: { the_loai?: Record<string, string> } | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_the_loai_thu'`);
   const tenTl = tlR?.gia_tri?.the_loai ?? {}; const theLoai: Record<string, [string, number]> = {};
-  for (const d of [...that, ...ngoai].filter((d) => khop(d) && hop(d, loc))) { const k = d.the_loai || '_'; theLoai[k] = [k !== '_' ? tenTl[k] ?? k : 'Chưa gắn thể loại', (theLoai[k]?.[1] ?? 0) + 1]; }
+  const loai: Record<string, number> = {};
+  for (const d of [...that, ...ngoai].filter((d) => khop(d) && hop(d, loc) && hopTl(d))) loai[d.loai] = (loai[d.loai] ?? 0) + 1;
+  for (const d of [...that, ...ngoai].filter((d) => khop(d) && hop(d, loc) && hopLo(d))) { const k = d.the_loai || '_'; theLoai[k] = [k !== '_' ? tenTl[k] ?? k : 'Chưa gắn thể loại', (theLoai[k]?.[1] ?? 0) + 1]; }
   const may = await run<{ may: string; nhip: string }>(sql`select may, nhip::text nhip from etp.dong_may`);
   const dem = Object.fromEntries((['mac_dinh', 'dang', 'loi', 'tat_ca'] as LocDong[]).map((l) => [l, ca.filter((d) => hop(d, l)).length])) as Record<LocDong, number>;
   const tg = Math.max(0, Math.trunc(trang)) * TRANG;
@@ -194,7 +198,7 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0, tl
         'lan', b.lan, 'ghi', b.ghi, 'nhip', b.nhip, 'fix', b.fix, 'ket_qua', b.ket_qua) order by b.thu_tu) from etp.dong_buoc b where b.dong_id = p.id), '[]'::json) buoc
     from etp.dong_phim p where p.id in (${sql.join(idThat.map((x) => sql`${x}`), sql`, `)})`) : []).map((d) => [d.id, d]));
   return { dong: trangDs.map(({ la_dang: _a, la_loi: _b, moi_xong: _c, hang: _h, ...d }) => (d.id > 0 ? { ...d, ...nang.get(d.id)!, ten: d.ten, the_loai: d.the_loai } : d)),
-    tong: ds.length, dem, theLoai, may, luc: new Date().toISOString() };
+    tong: ds.length, dem, theLoai, loai, may, luc: new Date().toISOString() };
 }
 
 /** chi tiết thư mục phim: camp của dòng (creative → camp, chi / thu) + ảnh / video creative */

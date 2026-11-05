@@ -76,7 +76,8 @@ export async function xetHookAi(ds) {
       // CÙNG NGÁCH là tính chất của QC GỐC, không đổi theo câu chữ bài dùng → một (máy, QC) chỉ một kết luận (05/11/2026, Agincourt: lọc kho cho qua hook "Rextus",
       // lúc chấm bài — tiêu đề đã sửa nhẹ nên khoá câu khác — Ngọc lại chặn "khác ngách" → bài dựng xong bị SỬA LẠI). Kết luận đầu tiên giữ cho mọi lần sau.
       const kQc = `${x.ma}|qc:${x.qc}`;
-      if (typeof daXet[kQc] === 'boolean') o.cung_ngach = daXet[kQc]; else if (typeof o.cung_ngach === 'boolean') { daXet[kQc] = o.cung_ngach; moi++; }
+      // "khác ngách" đã kết luận một lần thì GIỮ (lọc kho không đưa lại QC đó); "cùng ngách" mà lần sau Ngọc chặn thì hạ xuống khác ngách — lệch thì nghiêng về chặt
+      if (daXet[kQc] === false) o.cung_ngach = false; else if (typeof o.cung_ngach === 'boolean' && daXet[kQc] !== o.cung_ngach) { daXet[kQc] = o.cung_ngach; moi++; }
       const loi = [o.cung_ngach === false && 'hook mượn từ QC khác ngách', o.hua_sai === true && 'hook hứa điều thương hiệu không có', o.nhat === true && 'hook nhạt (nhãn sản phẩm / câu cụt / không gây tò mò)'].filter(Boolean);
       return loi.length ? `${loi.join(' + ')} (Ngọc: ${String(o.ly_do || '').slice(0, 140)})` : null;
     }

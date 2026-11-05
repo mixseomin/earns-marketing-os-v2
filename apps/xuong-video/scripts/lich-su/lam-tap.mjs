@@ -510,10 +510,12 @@ buoc('đẩy Studio');
   // 6. MÁY ĐĂNG: kênh có máy Studio → tập thành một video của máy (mẫu video-ngoai: URL R2 + 3 khung), Phòng Nội dung chấm rồi máy đăng chung tự đăng theo nhịp
   if (KENH.may && kq) try {
     const anhThat = [...tap.cau.map((c) => c.canh.tranh?.commons_url), tap.anh_bia?.commons_url].filter(Boolean);
-    const moTa = `${tap.mo_ta_dang}${anhThat.length ? '\n\nImages: Wikimedia Commons (public domain). Maps: Natural Earth.' : ''}`;
+    // chữ đăng không mang gạch ngang dài (luật human-voice; Phòng Nội dung chặn "N gạch ngang dài" — 05/11/2026 Agincourt): máy thay bằng "-" lúc nạp, không bắt viết lại
+    const boGach = (x) => String(x ?? '').replace(/\s*[—–]\s*/g, ' - ');
+    const moTa = boGach(`${tap.mo_ta_dang}${anhThat.length ? '\n\nImages: Wikimedia Commons (public domain). Maps: Natural Earth.' : ''}`);
     const nap = [{ slug: id, chu_de: tap.chu_de, mau: 'video-ngoai', nen_url: anhThat[0] ?? null,
       de: { loai: 'video-ngoai', video_url: kq.url, giay: Math.round(giay * 100) / 100, khung: kq.khung ?? [], soat: kq.soat ?? [], tom_tat: tap.chu_de, thumb: tap.thumb?.url ? { url: tap.thumb.url, chu: tap.thumb.chu, nguon: tap.thumb.commons ?? null } : null },
-      dang: { title: tieuDeDang(tap.tieu_de, PL), description: moTa, link: null, loai: 'thuong', goc: tap.goc, hook: tap.hook, playlist: tap.playlist ?? null,
+      dang: { title: boGach(tieuDeDang(tap.tieu_de, PL)), description: moTa, link: null, loai: 'thuong', goc: tap.goc, hook: tap.hook, playlist: tap.playlist ?? null,
         // mẫu + ý tưởng trong sổ kênh (so-kenh.json) — mos2 Kênh nội dung đếm số tập theo mẫu, đổi trạng thái ý tưởng (kênh chưa có sổ: null)
         mau: tap.mau ?? null, y_tuong: tap.y_tuong ?? null } }];
     writeFileSync(join(RA, 'nap.json'), JSON.stringify(nap)); len(join(RA, 'nap.json'), `${bt}/nap.json`);

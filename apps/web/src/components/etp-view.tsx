@@ -78,7 +78,7 @@ const MAU_DEN = { chay: '#22c55e', cho: '#f59e0b', loi: '#ef4444', tat: '#6b7280
 // camp ACTIVE mà lịch bắt đầu còn ở tương lai = CHỜ GIỜ, chưa chạy (anh 26/10/2026: lọc "Đang chạy" lẫn camp chấm cam) — một định nghĩa cho chấm, bộ lọc, ô số
 // dangTao / choGio / dangChay: lib/etp-chay.ts (một định nghĩa cho mọi màn etp) — camp Ethopex còn đang tạo / kiểm ad (dong_bo ≠ done · synced · error): PAUSED tới khi kiểm xong, không phải đã tắt (05/11/2026: 4 camp ảnh tĩnh checking_ads lọt khỏi 'Chờ giờ chạy', bị đếm vào 'Đã tắt')
 /** ĐÃ TẮT = không chạy và không chờ giờ chạy — một định nghĩa cho ô Lọc, bảng, ô Camp chạy */
-const daTat = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'dong_bo'>) => c.trang_thai !== 'ACTIVE' && !choGio(c);
+const daTat = (c: Parameters<typeof choGio>[0]) => c.trang_thai !== 'ACTIVE' && !choGio(c);
 // CHỮ TRẠNG THÁI MỘT CHỖ (anh 29/10/2026: camp hẹn lịch hiện 'chạy' — phải là "chờ 2h nữa"): chấm TT + cột Trạng thái cùng đọc hàm này
 const conLai = (iso: string) => { const p = Math.max(0, Math.round((Date.parse(iso) - Date.now()) / 60000)); return p >= 60 ? `${Math.floor(p / 60)}h${p % 60 >= 10 ? `${p % 60}p` : ''}` : `${p}p`; };
 // LÝ DO DỪNG cho hover ô trạng thái (anh 02/11/2026 "hover vào status dừng thì show lý do dừng, ai dừng") — c.dong do etp-doc gắn từ ghi chép máy luật

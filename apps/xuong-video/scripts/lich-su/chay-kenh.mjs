@@ -53,7 +53,7 @@ for (const [k, K] of Object.entries(KENH)) {
     const tep = join(DIR, 'tap', f); if (Date.now() - statSync(tep).mtimeMs > 10 * 86_400_000) continue;
     const t = JSON.parse(readFileSync(tep, 'utf8')); if ((t.kenh ?? 'saga') !== k || t.id === undefined || laDemo(t)) continue;   // tập DEMO mẫu không lên kênh, không tự làm lại
     const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
-    const r0 = sqlBox(`SELECT coalesce(json_build_object('xuat', v.xuat_luc IS NOT NULL, 'ket', v.cham->>'ket', 'chan', v.cham->'chan_cung', 'dang', v.da_dang->'youtube'->>'url')::text, '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)} AND v.slug = ${q1(t.id)};`);
+    const r0 = sqlBox(`SELECT coalesce(json_build_object('xuat', v.xuat_luc IS NOT NULL, 'ket', v.cham->>'ket', 'chan', v.cham->'chan_cung', 'dang', v.da_dang->'youtube'->>'url', 'hook', v.dang->'hook'->>'qc')::text, '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)} AND v.slug = ${q1(t.id)};`);
     const st = r0 ? JSON.parse(r0) : null;
     if (st?.dang) continue;                                         // đã đăng
     if (st?.xuat && (!st.ket || st.ket === 'DUYET')) continue;      // chờ Phòng Nội dung / chờ máy đăng
@@ -63,7 +63,8 @@ for (const [k, K] of Object.entries(KENH)) {
     const chiHook = st?.xuat && st.ket === 'SUA_LAI' && (st.chan ?? []).length > 0 && st.chan.every((x) => /hook/i.test(String(x)));
     if (chiHook && (td.doi_hook ?? 0) < 3) {
       writeFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), String(process.pid));
-      const r = chayLamTap(t.id, ['--id', t.id, '--gan-hook', '--doi-hook'], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
+      // hook bị chặn là hook ĐANG nằm ở bản đã nạp; tệp tập đã mang hook khác (lần đổi trước hỏng ở bước sau) → chỉ làm tiếp, không bốc thêm hook
+      const r = chayLamTap(t.id, ['--id', t.id, '--gan-hook', ...(String(t.hook?.qc ?? '') === String(st.hook ?? '') ? ['--doi-hook'] : [])], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
       const ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra);
       try { unlinkSync(join(homedir(), '.cache', `lich-su-${k}.khoa`)); } catch { /* đã gỡ */ }
       const t2 = JSON.parse(readFileSync(tep, 'utf8')), n = (td.doi_hook ?? 0) + 1;

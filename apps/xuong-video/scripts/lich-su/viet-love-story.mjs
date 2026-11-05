@@ -62,7 +62,7 @@ function vietMot(c, gh, ra) {
   const tap = tachCanh({ _ghi: `Love Story in Two Charts · ${A} & ${B} — sinh bởi lich-su/viet-love-story.mjs (mốc la-so/cap.json, synastry + ZR của site, hook QC spy #${hook.id})`,
     kenh: 'astrolas', mau: 'love-story-charts', playlist_ma: 'love-compatibility', y_tuong: `ls-${c.ma}`, khung: 'ngang', tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
     dang: dangCongCu('synastry-chart', [c.a, c.b], { rel_type: 'romantic' }, `${h.a.ten} and ${h.b.ten}: the relationship, year by year, with both birth charts. Zodiacal Releasing: https://astrolas.com/tools/zodiacal-releasing`),
-    la_so: tg(`la-so/hop/${c.ma}.svg`), nen: tg(pl.nen ?? 'brand/astrolas/anh/troi.jpg'), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#FF8FB1', ic: '♡' },
+    la_so: tg(`la-so/hop/${c.ma}.svg`), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#FF8FB1', ic: '♡' },
     cau: cau.map((q) => ({ ...q, tu: 0, den: 0 })), DAI: 0 });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${c.ma}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }

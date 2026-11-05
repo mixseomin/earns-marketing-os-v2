@@ -89,7 +89,7 @@ function vietMot(su, moc, gh, ra) {
     goc: gh.goc, hook: { qc: hook.id, goc: hook.chu }, nguon_bai: c.bai,
     dang: dangCongCu(c.cong_cu, null, {}, `${su.chu} (${ngay}, ${gio} UTC): what it means for ${moc} rising.${c.bai.length ? ` Read more: ${c.bai.map((b) => `https://astrolas.com/en/blog/${b}`).join(' ')}` : ''}`),
     la_so: tg(join(DIR, 'la-so/steve-jobs.svg')), chi_vong: true,
-    nen: tg(join(DIR, pl.nen ?? 'brand/astrolas/anh/troi.jpg'))   /* nền theo playlist (so-kenh › playlist.nen) */, logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
+    nen: tg(join(DIR, pl.nen))   /* nền theo playlist (so-kenh › playlist.nen) */, logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
     playlist: { ten: pl.ten, mau: '#7FD18B', ic: '☽' }, DAI: cau.at(-1).den, cau });
   const loi = [...kiemTap(tap, so_, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${su.ma} × ${moc}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }

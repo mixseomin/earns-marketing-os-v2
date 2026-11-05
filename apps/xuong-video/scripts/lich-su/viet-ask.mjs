@@ -72,7 +72,7 @@ function vietMot(n, ms, ghTheo) {
     kenh: 'astrolas', mau: 'ask-the-chart', playlist_ma: m.playlist, y_tuong: ma, tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
     nguon_moc: [...new Set(ms.map((x) => x.nguon_moc))], nguon_cong_cu: [relative(DIR, tepAp(n.slug, m.nam))],
     dang: dangCongCu('annual-profections', n.slug, { year_target: m.nam }, `${n.ten}, ${m.nam}: what Annual Profections shows for age ${ap.tuoi}.`),
-    la_so: tg(`la-so/${n.slug}.svg`), nen: tg(pl.nen ?? 'brand/astrolas/anh/troi.jpg'), logo: tg('brand/astrolas/logo/wordmark.png'),
+    la_so: tg(`la-so/${n.slug}.svg`), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'),
     playlist: { ten: pl.ten, mau: m.playlist === 'career' ? '#E6B800' : '#FF8FB1', ic: m.playlist === 'career' ? '♄' : '♡' }, cau: cau.map((q) => ({ ...q, tu: 0, den: 0 })), DAI: 0 });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${ma}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }

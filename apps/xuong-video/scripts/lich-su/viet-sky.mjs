@@ -81,7 +81,7 @@ function vietMot(c, gh, LT) {
     kenh: 'astrolas', mau: 'sky-calendar', playlist_ma: 'timing', y_tuong: c.ma, tuan: c.tuan, tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
     nguon_moc: [c.tep],
     dang: dangCongCu('moon-phase', null, {}, `${ngayChu(c.su_kien_ngay)}: ${c.ten}. This week's Moon phases on Astrolas. Story: ${nguon.join(' · ')}${ghiAnh.length ? `\nImages: ${ghiAnh.join('; ')}` : ''}`),
-    nen: tg(pl.nen ?? 'brand/astrolas/anh/troi.jpg'), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#7FD18B', ic: '☽' }, cau, DAI: 0 });
+    nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#7FD18B', ic: '☽' }, cau, DAI: 0 });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${c.ma}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }
   const ra = join(SHOT, 'tap-astrolas', `${c.ma}.json`); mkdirSync(dirname(ra), { recursive: true }); writeFileSync(ra, JSON.stringify(tap, null, 1) + '\n');

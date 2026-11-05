@@ -82,7 +82,7 @@ function vietMot(tep, gh, nguoi) {
     kenh: 'astrolas', mau: 'myth-behind', playlist_ma: 'know-yourself', y_tuong: `my-${T.ma}`, tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
     nguon_moc: [tep], nguon_bai: site ? [site.bai] : [],
     dang: dangCongCu('birth', n?.slug ?? null, {}, `The myth behind ${sao}: ${T.ten}. Story: ${T.nguon.join(' · ')}${site ? ` · https://astrolas.com/en/blog/${site.bai}` : ''}`),
-    nv, ...(n ? { la_so: tg(`la-so/${n.slug}.svg`) } : {}), nen: tg(pl.nen ?? 'brand/astrolas/anh/troi.jpg'), logo: tg('brand/astrolas/logo/wordmark.png'),
+    nv, ...(n ? { la_so: tg(`la-so/${n.slug}.svg`) } : {}), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'),
     playlist: { ten: pl.ten, mau: '#8EC5FF', ic: '☉' }, cau, DAI: 0 });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   const thieuHinh = Object.keys(nv).filter((id) => !existsSync(join(DIR, `brand/astrolas/nhan-vat/${id}/goc.png`)));

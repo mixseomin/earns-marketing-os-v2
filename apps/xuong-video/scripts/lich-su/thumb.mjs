@@ -55,7 +55,7 @@ for (const [i, [commons, anh]] of ungVien.entries()) { for (const gon of [false,
   const p = await b.newPage({ viewport: { width: 1080, height: 1920 } });
   await p.goto(pathToFileURL(join(DIR, 'thumb.html')).href);
   const do_ = await p.evaluate(async (t) => { window.THUMB = t; return window.__dung(); },
-    { chu: tap.thumb.chu, phu: tap.thumb.phu, anh: pathToFileURL(join(KHO, anh)).href, kenh: K.ten_kenh ?? K.ten, bao: K.thumb_bao ?? null, gon });
+    { chu: tap.thumb.chu, phu: tap.thumb.phu, anh: pathToFileURL(join(KHO, anh)).href, kenh: K.ten_kenh ?? K.ten, bao: K.nhan_dien?.tem ? `${K.nhan_dien.bieu_tuong ? K.nhan_dien.bieu_tuong + ' ' : ''}${K.nhan_dien.tem.toUpperCase()}` : K.thumb_bao ?? null, mau: K.nhan_dien?.mau ?? null, gon });
   for (const ql of [90, 82, 74]) { writeFileSync(ra, await p.screenshot({ type: 'jpeg', quality: ql })); if (statSync(ra).size < 1.9e6) break; }
   await b.close();
   console.log(`✓ ${ra} · ảnh ${i + 1}/${ungVien.length} ${commons}${gon ? ' · bản gọn' : ''} · chữ ${do_.co}px ${do_.dong} dòng · ${(statSync(ra).size / 1e6).toFixed(2)} MB`);

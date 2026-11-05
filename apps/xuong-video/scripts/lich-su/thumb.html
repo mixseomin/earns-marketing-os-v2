@@ -25,7 +25,7 @@ html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; backgro
 #chu div { font: 400 200px/0.98 Anton, Impact, sans-serif; color: var(--vang); -webkit-text-stroke: 16px var(--den); paint-order: stroke fill;
   text-shadow: 12px 12px 0 var(--den); text-transform: uppercase; }
 #kenh { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%); background: var(--den); color: #fff; padding: 12px 26px;
-  font: 400 40px/1 Anton, Impact, sans-serif; letter-spacing: 3px; border: 4px solid var(--vang); white-space: nowrap; }
+  font: 400 40px/1 Anton, Impact, sans-serif; letter-spacing: 3px; border: 4px solid var(--do); white-space: nowrap; }
 </style></head><body>
 <div id="khung"><div id="cham"></div>
   <div id="bao"><span id="bao-chu"></span></div>
@@ -37,6 +37,7 @@ html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; backgro
 <script>
 window.__dung = async () => {
   const T = window.THUMB;
+  if (T.mau) document.documentElement.style.setProperty('--do', T.mau);   // màu nhấn series (kenh.json › playlist[].nhan_dien.mau)
   document.getElementById('bao-chu').textContent = T.bao || 'BREAKING HISTORY';
   document.getElementById('phu').textContent = T.phu;
   // BẢN GỌN (05/11/2026, Ngọc chặn Agincourt "nhiều nhãn chữ gây rối mắt"): T.gon → chỉ chữ to + tên kênh, ẩn dòng phụ + nhãn góc

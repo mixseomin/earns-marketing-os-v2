@@ -125,7 +125,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   const tatXong = d.buoc.length > 0 && d.buoc.every((x) => x.trang_thai === 'xong' || x.trang_thai === 'bo_qua');
   const ghi = d.ngoai && (d.trang_thai === 'dung' || d.trang_thai === 'loi') ? `${d.ly_do ?? ''} · máy: ${d.ngoai}`
     : d.trang_thai === 'dung' || d.trang_thai === 'loi' ? `${d.ly_do ?? hien?.ghi ?? ''}\n→ xử lý: ${xuLy(d.trang_thai)}` : hien?.ghi ?? (tatXong ? `xong sau ${phut(d.tao_luc, d.xong_luc ?? d.buoc[d.buoc.length - 1]?.ket_thuc ?? null)}` : null);
-  const tB = (x?: BuocDong) => x ? `${TEN_BUOC[x.buoc]?.[0] ?? x.buoc} · ${MAU[x.trang_thai]?.[1] ?? x.trang_thai}\nbắt đầu ${ngayGio(x.bat_dau)} · xong ${ngayGio(x.ket_thuc)}${x.ghi ? `\n\n${x.ghi}` : ''}\n\nbấm để chạy lại / dừng` : '';
+  const tB = (x?: BuocDong) => x ? `${TEN_BUOC[x.buoc]?.[0] ?? x.buoc} · ${MAU[x.trang_thai]?.[1] ?? x.trang_thai}\nbắt đầu ${ngayGio(x.bat_dau)} · xong ${ngayGio(x.ket_thuc)}${x.ghi ? `\n\n${x.ghi}` : ''}${!d.ngoai && d.trang_thai !== 'huy' && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? '\n\nbấm để chạy lại / dừng' : ''}` : '';   // cùng điều kiện moMenu: dòng ngoài không có menu thì không mời bấm
   const moMenu = (x?: BuocDong) => x && !d.ngoai && d.trang_thai !== 'huy' && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? (e: React.MouseEvent) => setMenu({ b: x, x: e.clientX, y: e.clientY }) : undefined;
   const oBuoc = (x: BuocDong | undefined, chu?: string, xem?: Omit<Xem, 'x' | 'y'>) => { const doiMay = !!x && cho[x.buoc] !== undefined && (x.bat_dau ?? '') === cho[x.buoc];
     const lau = !!x && x.trang_thai === 'dang' && Date.now() - Date.parse(x.bat_dau ?? '') > x.han_giay * 500;

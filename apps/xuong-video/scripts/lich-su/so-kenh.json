@@ -452,7 +452,7 @@
         "nhip": "Thứ 5",
         "kho": "78 cặp cung (đủ một vòng 78 tuần)",
         "trang": "shot-code/la-so.html",
-        "sinh": "la-so/cung-cap.mjs → la-so/cung-cap.json (78 bài ghép cung của site, nguyên văn) — kịch bản chỉ lấy câu trong đây",
+        "sinh": "lich-su/viet-sign.mjs --cap <sx-a-b | all> — 0đ, không AI: câu nguyên văn bài ghép cung của site theo mục (câu hỏi · quan hệ hai cung · hợp · vướng · cách làm · câu trả lời), hook QC spy góc Tình yêu; 78/78 cặp qua máy gác",
         "tu_sinh": "^sx-[a-z]+-[a-z]+$",
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/sign-x-sign.mp4?v=3"
       },

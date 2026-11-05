@@ -79,7 +79,7 @@ def ab_ap(pl, lich, goc, moi, roas=False, cr=None):
             # đủ cặp → camp KHÔNG vào A/B và mang tham số mặc định (= nhánh đối chứng) — clone của camp nhánh thử không giữ 4 nước
             dem = dict(l.split("|") for l in q(f"""select a.nhanh, count(*) from etp.camp_ab a left join etp.camp c using (camp_id)
                 where a.ab = '{ab['ma']}' and coalesce(a.dang, '') = '{dang.replace("'", "''")}' and (c.camp_id is null or c.camp_id in (select camp_id from etp.camp_dang_chay)
-                  or coalesce(c.dong_bo, '') not in ('done', 'synced', 'error') or c.lich > now()) group by 1""").splitlines() if "|" in l)
+                  or coalesce(c.dong_bo, '') not in ('done', 'synced', 'error') or (c.lich > now() and c.trang_thai = 'ACTIVE')) group by 1""").splitlines() if "|" in l)   # chờ giờ = ACTIVE + hẹn tương lai (camp đã tắt còn giờ hẹn không tính) — cùng định nghĩa lib/etp-chay.choGio
             t, d, m = int(dem.get("thu", 0)), int(dem.get("doi", 0)), int(ab["moi_dang"])
             nh = "thu" if t < m and t <= d else "doi" if d < m else None
             if not nh: AP[ab["kieu"]](pl, ab["nhanh"]["doi"]); return None

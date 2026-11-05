@@ -1,0 +1,38 @@
+{
+  "ma": "sc-galileo-1610",
+  "ten": "Galileo Finds Jupiter's Moons",
+  "loai": "hanh_tinh",
+  "su_kien_ngay": "1610-01-07",
+  "nguon": "https://en.wikipedia.org/wiki/Galilean_moons (mục Discovery, Names, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1610,
+      "ngay": "1610-01-07",
+      "nhan": "first letter",
+      "chu": "On 7 January 1610, Galileo wrote a letter containing the first mention of Jupiter's moons.",
+      "nguon": "https://en.wikipedia.org/wiki/Galilean_moons#Discovery"
+    },
+    {
+      "nam": 1610,
+      "ngay": "1610-01-13",
+      "nhan": "all four",
+      "chu": "On January 13, he saw all four at once for the first time, but had seen each of the moons before this date at least once.",
+      "nguon": "https://en.wikipedia.org/wiki/Galilean_moons#Discovery"
+    },
+    {
+      "nam": 1610,
+      "ngay": "1610-01-15",
+      "nhan": "orbiting Jupiter",
+      "chu": "By January 15, Galileo concluded that the stars were actually bodies orbiting Jupiter.",
+      "nguon": "https://en.wikipedia.org/wiki/Galilean_moons#Discovery"
+    },
+    {
+      "nam": 1610,
+      "ngay": "1610-03",
+      "nhan": "Starry Messenger",
+      "chu": "The discovery was announced in the Sidereus Nuncius (\"Starry Messenger\"), published in Venice in March 1610",
+      "noi": "Venice",
+      "nguon": "https://en.wikipedia.org/wiki/Galilean_moons#Names"
+    }
+  ]
+}

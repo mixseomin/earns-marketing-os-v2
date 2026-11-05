@@ -1,0 +1,45 @@
+{
+  "ma": "sc-sl9-1994",
+  "ten": "Comet Shoemaker–Levy 9 Hits Jupiter",
+  "loai": "sao_choi",
+  "su_kien_ngay": "1994-07-16",
+  "nguon": "https://en.wikipedia.org/wiki/Comet_Shoemaker%E2%80%93Levy_9 (mục Impacts, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1993,
+      "ngay": "1993-03-24",
+      "nhan": "discovery",
+      "chu": "It was located on the night of March 24 in two photographs taken with the 46 cm (18 in) Schmidt telescope at the Palomar Observatory in California.",
+      "noi": "Palomar Observatory",
+      "nguon": "https://en.wikipedia.org/wiki/Comet_Shoemaker%E2%80%93Levy_9"
+    },
+    {
+      "nam": 1993,
+      "ngay": "1993",
+      "nhan": "torn apart",
+      "chu": "Calculations showed that its unusual fragmented form was due to a previous closer approach to Jupiter in July 1992.",
+      "nguon": "https://en.wikipedia.org/wiki/Comet_Shoemaker%E2%80%93Levy_9"
+    },
+    {
+      "nam": 1994,
+      "ngay": "1994-07-16",
+      "nhan": "first impact",
+      "chu": "The first impact occurred at 20:13 UTC on July 16, 1994",
+      "nguon": "https://en.wikipedia.org/wiki/Comet_Shoemaker%E2%80%93Levy_9#Impacts"
+    },
+    {
+      "nam": 1994,
+      "ngay": "1994-07-18",
+      "nhan": "fragment G",
+      "chu": "Over the next six days, 21 distinct impacts were observed, with the largest coming on July 18 at 07:33 UTC when fragment G struck Jupiter.",
+      "nguon": "https://en.wikipedia.org/wiki/Comet_Shoemaker%E2%80%93Levy_9#Impacts"
+    },
+    {
+      "nam": 1994,
+      "ngay": "1994",
+      "nhan": "scars",
+      "chu": "The prominent scars from the impacts were more visible than the Great Red Spot and persisted for many months.",
+      "nguon": "https://en.wikipedia.org/wiki/Comet_Shoemaker%E2%80%93Levy_9"
+    }
+  ]
+}

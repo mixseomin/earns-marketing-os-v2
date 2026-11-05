@@ -1,0 +1,44 @@
+{
+  "ma": "sc-carrington-1859",
+  "ten": "The Carrington Event",
+  "loai": "khac",
+  "su_kien_ngay": "1859-09-01",
+  "nguon": "https://en.wikipedia.org/wiki/Carrington_Event (mục Auroras, Telegraphs, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1859,
+      "ngay": "1859-09-01",
+      "nhan": "solar flare",
+      "chu": "The geomagnetic storm was associated with a very bright solar flare on 1 September 1859.",
+      "nguon": "https://en.wikipedia.org/wiki/Carrington_Event"
+    },
+    {
+      "nam": 1859,
+      "ngay": "1859-09-01",
+      "nhan": "first record",
+      "chu": "It was observed and recorded independently by British astronomers Richard Carrington and Richard Hodgson—the first records of a solar flare.",
+      "nguon": "https://en.wikipedia.org/wiki/Carrington_Event"
+    },
+    {
+      "nam": 1859,
+      "ngay": "1859-09-02",
+      "nhan": "auroras",
+      "chu": "Auroras were seen around the world in the northern and southern hemispheres.",
+      "nguon": "https://en.wikipedia.org/wiki/Carrington_Event#Auroras"
+    },
+    {
+      "nam": 1859,
+      "ngay": "1859-09-02",
+      "nhan": "read by aurora",
+      "chu": "It was also reported that people in the north-eastern United States could read a newspaper by the aurora's light.",
+      "nguon": "https://en.wikipedia.org/wiki/Carrington_Event#Auroras"
+    },
+    {
+      "nam": 1859,
+      "ngay": "1859-09-02",
+      "nhan": "sparks",
+      "chu": "Telegraph pylons threw sparks.",
+      "nguon": "https://en.wikipedia.org/wiki/Carrington_Event#Telegraphs"
+    }
+  ]
+}

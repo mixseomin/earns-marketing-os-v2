@@ -1,0 +1,48 @@
+{
+  "ma": "sc-apollo11-1969",
+  "ten": "Apollo 11 Lands on the Moon",
+  "loai": "trang",
+  "su_kien_ngay": "1969-07-20",
+  "nguon": "https://en.wikipedia.org/wiki/Apollo_11 (mục Launch and flight to lunar orbit, Landing, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1969,
+      "ngay": "1969-07-16",
+      "nhan": "launch",
+      "chu": "Saturn V AS-506 launched Apollo 11 on July 16, 1969, at 13:32:00 UTC (9:32:00 EDT).",
+      "noi": "Kennedy Space Center",
+      "nguon": "https://en.wikipedia.org/wiki/Apollo_11#Launch_and_flight_to_lunar_orbit"
+    },
+    {
+      "nam": 1969,
+      "ngay": "1969-07-20",
+      "nhan": "Eagle lands",
+      "chu": "Eagle landed at 20:17:40 UTC on Sunday July 20 with 216 pounds (98 kg) of usable fuel remaining.",
+      "noi": "Sea of Tranquility",
+      "nguon": "https://en.wikipedia.org/wiki/Apollo_11#Landing"
+    },
+    {
+      "nam": 1969,
+      "ngay": "1969-07-21",
+      "nhan": "first step",
+      "chu": "Armstrong became the first human to walk on the Moon approximately six hours after landing, followed by Aldrin nineteen minutes later.",
+      "noi": "Sea of Tranquility",
+      "nguon": "https://en.wikipedia.org/wiki/Apollo_11"
+    },
+    {
+      "nam": 1969,
+      "ngay": "1969-07-21",
+      "nhan": "live on TV",
+      "chu": "Armstrong's moonwalk was broadcast live to an estimated 600 million viewers, roughly one-fifth of the world's population",
+      "nguon": "https://en.wikipedia.org/wiki/Apollo_11"
+    },
+    {
+      "nam": 1969,
+      "ngay": "1969-07-24",
+      "nhan": "splashdown",
+      "chu": "After more than 21 hours on the surface, they rejoined Collins in lunar orbit, and the crew returned safely to Earth on July 24",
+      "noi": "Pacific Ocean",
+      "nguon": "https://en.wikipedia.org/wiki/Apollo_11"
+    }
+  ]
+}

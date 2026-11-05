@@ -1,0 +1,45 @@
+{
+  "ma": "sc-hale-bopp-1997",
+  "ten": "The Great Comet of 1997",
+  "loai": "sao_choi",
+  "su_kien_ngay": "1997-04-01",
+  "nguon": "https://en.wikipedia.org/wiki/Comet_Hale%E2%80%93Bopp (mục Perihelion, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1995,
+      "ngay": "1995-07-23",
+      "nhan": "discovery",
+      "chu": "Alan Hale and Thomas Bopp discovered Comet Hale–Bopp separately on July 23, 1995, before it became visible to the naked eye.",
+      "noi": "United States",
+      "nguon": "https://en.wikipedia.org/wiki/Comet_Hale%E2%80%93Bopp"
+    },
+    {
+      "nam": 1997,
+      "ngay": "1997-03-22",
+      "nhan": "closest",
+      "chu": "Hale–Bopp had its closest approach to Earth on March 22, 1997, at a distance of 1.315 AU (196.72 million km; 122.24 million mi).",
+      "nguon": "https://en.wikipedia.org/wiki/Comet_Hale%E2%80%93Bopp#Perihelion"
+    },
+    {
+      "nam": 1997,
+      "ngay": "1997-04-01",
+      "nhan": "perihelion",
+      "chu": "As it passed perihelion on April 1, 1997, the comet developed into a spectacular sight.",
+      "nguon": "https://en.wikipedia.org/wiki/Comet_Hale%E2%80%93Bopp#Perihelion"
+    },
+    {
+      "nam": 1997,
+      "ngay": "1997",
+      "nhan": "18 months",
+      "chu": "Its massive nucleus size made it visible to the naked eye for a record 18 months.",
+      "nguon": "https://en.wikipedia.org/wiki/Comet_Hale%E2%80%93Bopp"
+    },
+    {
+      "nam": 1997,
+      "ngay": "1997",
+      "nhan": "Great Comet",
+      "chu": "Accordingly, Hale–Bopp was dubbed the Great Comet of 1997.",
+      "nguon": "https://en.wikipedia.org/wiki/Comet_Hale%E2%80%93Bopp"
+    }
+  ]
+}

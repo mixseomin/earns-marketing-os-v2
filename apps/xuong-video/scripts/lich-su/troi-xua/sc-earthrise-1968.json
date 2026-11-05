@@ -1,0 +1,47 @@
+{
+  "ma": "sc-earthrise-1968",
+  "ten": "Apollo 8 and Earthrise",
+  "loai": "trang",
+  "su_kien_ngay": "1968-12-24",
+  "nguon": "https://en.wikipedia.org/wiki/Apollo_8 (mục Launch and trans-lunar injection, Earthrise and Genesis broadcast, đọc 05/11/2026); https://en.wikipedia.org/wiki/Earthrise (đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1968,
+      "ngay": "1968-12-21",
+      "nhan": "launch",
+      "chu": "Apollo 8 was launched at 12:51:00 UTC (7:51 am EST) on December 21, 1968, using the Saturn V's three stages to achieve Earth orbit.",
+      "noi": "Kennedy Space Center",
+      "nguon": "https://en.wikipedia.org/wiki/Apollo_8#Launch_and_trans-lunar_injection"
+    },
+    {
+      "nam": 1968,
+      "ngay": "1968-12-24",
+      "nhan": "Earthrise",
+      "chu": "Anders saw the Earth emerging from behind the lunar horizon and called in excitement to the others, taking a black-and-white photograph as he did so.",
+      "noi": "Lunar orbit",
+      "nguon": "https://en.wikipedia.org/wiki/Apollo_8#Earthrise_and_Genesis_broadcast"
+    },
+    {
+      "nam": 1968,
+      "ngay": "1968-12-24",
+      "nhan": "color film",
+      "chu": "Anders (laughing): You got a color film, Jim?",
+      "noi": "Lunar orbit",
+      "nguon": "https://en.wikipedia.org/wiki/Earthrise#Details"
+    },
+    {
+      "nam": 1968,
+      "ngay": "1968-12-25",
+      "nhan": "heading home",
+      "chu": "The spacecraft began its journey back to Earth on December 25, Christmas Day.",
+      "nguon": "https://en.wikipedia.org/wiki/Apollo_8#Earthrise_and_Genesis_broadcast"
+    },
+    {
+      "nam": 2018,
+      "ngay": "2018-12-24",
+      "nhan": "50 years on",
+      "chu": "Fifty years to the day after taking the photo, William Anders observed, \"We set out to explore the moon and instead discovered the Earth.\"",
+      "nguon": "https://en.wikipedia.org/wiki/Earthrise#Legacy"
+    }
+  ]
+}

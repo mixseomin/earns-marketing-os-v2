@@ -1,0 +1,48 @@
+{
+  "ma": "sc-chelyabinsk-2013",
+  "ten": "The Chelyabinsk Meteor",
+  "loai": "sao_bang",
+  "su_kien_ngay": "2013-02-15",
+  "nguon": "https://en.wikipedia.org/wiki/Chelyabinsk_meteor (mục Meteorites, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 2013,
+      "ngay": "2013-02-15",
+      "nhan": "undetected",
+      "chu": "The object approached Earth undetected before its atmospheric entry, in part because its radiant (source direction) was close to the Sun.",
+      "nguon": "https://en.wikipedia.org/wiki/Chelyabinsk_meteor"
+    },
+    {
+      "nam": 2013,
+      "ngay": "2013-02-15",
+      "nhan": "brighter than Sun",
+      "chu": "The light from the meteor was briefly brighter than the Sun (which is about −26.7 magnitude), visible as far as 100 kilometers (62 miles) away.",
+      "noi": "Chelyabinsk",
+      "nguon": "https://en.wikipedia.org/wiki/Chelyabinsk_meteor"
+    },
+    {
+      "nam": 2013,
+      "ngay": "2013-02-15",
+      "nhan": "injuries",
+      "chu": "1,491 people were injured seriously enough to seek medical treatment.",
+      "noi": "Chelyabinsk",
+      "nguon": "https://en.wikipedia.org/wiki/Chelyabinsk_meteor"
+    },
+    {
+      "nam": 2013,
+      "ngay": "2013-02-15",
+      "nhan": "hole in ice",
+      "chu": "In the hours after the visual meteor sighting, a 6-meter (20-foot) wide hole was discovered on Lake Chebarkul's frozen surface.",
+      "noi": "Lake Chebarkul",
+      "nguon": "https://en.wikipedia.org/wiki/Chelyabinsk_meteor#Meteorites"
+    },
+    {
+      "nam": 2013,
+      "ngay": "2013-10-16",
+      "nhan": "raised",
+      "chu": "After an operation lasting a number of weeks, it was raised from the bottom of the Chebarkul lake on 16 October 2013.",
+      "noi": "Lake Chebarkul",
+      "nguon": "https://en.wikipedia.org/wiki/Chelyabinsk_meteor#Meteorites"
+    }
+  ]
+}

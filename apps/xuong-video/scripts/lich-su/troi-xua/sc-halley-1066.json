@@ -1,0 +1,47 @@
+{
+  "ma": "sc-halley-1066",
+  "ten": "Halley's Comet and 1066",
+  "loai": "sao_choi",
+  "su_kien_ngay": "1066",
+  "nguon": "https://en.wikipedia.org/wiki/Halley's_Comet (mục 1066, đọc 05/11/2026); https://en.wikipedia.org/wiki/Bayeux_Tapestry (đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1066,
+      "ngay": "1066",
+      "nhan": "no heir",
+      "chu": "King Edward the Confessor, king of England and about sixty years old at the time the tapestry starts its narration, had no children or any clear successor.",
+      "noi": "England",
+      "nguon": "https://en.wikipedia.org/wiki/Bayeux_Tapestry#Background_of_the_events_depicted"
+    },
+    {
+      "nam": 1066,
+      "ngay": "1066",
+      "nhan": "omen",
+      "chu": "In 1066, the comet was seen in England and thought to be an omen",
+      "noi": "England",
+      "nguon": "https://en.wikipedia.org/wiki/Halley's_Comet#1066"
+    },
+    {
+      "nam": 1066,
+      "ngay": "1066",
+      "nhan": "brightness",
+      "chu": "Surviving accounts from the period describe it as appearing to be four times the size of Venus",
+      "nguon": "https://en.wikipedia.org/wiki/Halley's_Comet#1066"
+    },
+    {
+      "nam": 1066,
+      "ngay": "1066",
+      "nhan": "on the tapestry",
+      "chu": "A star with a streaming tail, now known to be Halley's Comet, then appears.",
+      "nguon": "https://en.wikipedia.org/wiki/Bayeux_Tapestry#Events_depicted"
+    },
+    {
+      "nam": 1066,
+      "ngay": "1066-10-14",
+      "nhan": "Hastings",
+      "chu": "King Harold is killed.",
+      "noi": "Hastings",
+      "nguon": "https://en.wikipedia.org/wiki/Bayeux_Tapestry#Events_depicted"
+    }
+  ]
+}

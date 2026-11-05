@@ -346,10 +346,11 @@
         "ten": "Sky Calendar",
         "loai": "short",
         "nhip": "Thứ 4",
-        "kho": "52 tập trăng / năm + nhật nguyệt thực + chuyện lịch sử",
+        "kho": "21 chuyện trời xưa (nhật / nguyệt thực, sao chổi, mưa sao băng, khám phá hành tinh) · 52 tuần trăng / năm",
         "trang": "shot-code/la-so.html",
-        "sinh": "kịch bản tay (G5)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-sky-calendar.mp4?v=5"
+        "sinh": "lich-su/viet-sky.mjs [--tu <thứ Hai>] — 0đ, không AI: 21 chuyện trời xưa nguyên văn Wikipedia (lich-su/troi-xua/, kiểm _may/verify.py), xếp mỗi chuyện một tuần ưu tiên tuần kỷ niệm; dải pha trăng tính thật + trăng mới / tròn của tuần (lich-troi.json); tranh tuỳ chọn brand/astrolas/tranh/<ma>-<i>.jpg",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-sky-calendar.mp4?v=5",
+        "tu_sinh": "^sc-[a-z0-9-]+$"
       },
       {
         "ma": "myth-behind",

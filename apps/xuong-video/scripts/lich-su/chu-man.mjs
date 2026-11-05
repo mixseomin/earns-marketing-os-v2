@@ -37,7 +37,9 @@ export function chiaCau(chu, toiDa) {
   for (let i = 1; i < khuc.length; i++) { const k = khuc[i], p = khuc[i - 1]; const m = !k.trich && p.trich && /^[:;,.!?]+/.exec(k.s); if (m) { p.duoi = m[0]; k.s = k.s.slice(m[0].length).trim(); } }
   const manh = khuc.filter((k) => k.s).flatMap((k) => chiaTran(k.s, toiDa - (k.trich ? 3 : 0)).map((s, i, a) => (k.trich ? `${i ? '…' : ''}“${s}”${i === a.length - 1 ? k.duoi : ''}` : s)));
   const ra = []; let cur = '';   // gộp lại các mảnh ngắn liền nhau cho khỏi vụn
-  for (const m of manh) { if (cur && (cur + ' ' + m).length > toiDa) { ra.push(cur); cur = m; } else cur = cur ? `${cur} ${m}` : m; }
+  // hai mảnh trích liền nhau của CÙNG một câu trích gộp vào một ngoặc ("…“and agriculture,” …“who was…”" → "…“and agriculture, who was…”")
+  const noi = (a, b) => (/”[,.;:!?]?$/.test(a) && /^…“/.test(b) ? `${a.replace(/”([,.;:!?]?)$/, '$1')} ${b.slice(2)}` : `${a} ${b}`);
+  for (const m of manh) { if (cur && noi(cur, m).length > toiDa) { ra.push(cur); cur = m; } else cur = cur ? noi(cur, m) : m; }
   return cur ? [...ra, cur] : ra;
 }
 

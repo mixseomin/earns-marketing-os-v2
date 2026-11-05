@@ -1,0 +1,37 @@
+{
+  "ma": "sc-uranus-1781",
+  "ten": "Herschel Finds Uranus",
+  "loai": "hanh_tinh",
+  "su_kien_ngay": "1781-03-13",
+  "nguon": "https://en.wikipedia.org/wiki/William_Herschel (mục Uranus, đọc 05/11/2026); https://en.wikipedia.org/wiki/Uranus (đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1781,
+      "ngay": "1781-03-13",
+      "nhan": "new object",
+      "chu": "On 13 March 1781 while making observations he made note of a new object in the constellation of Gemini.",
+      "nguon": "https://en.wikipedia.org/wiki/William_Herschel"
+    },
+    {
+      "nam": 1781,
+      "ngay": "1781-03",
+      "nhan": "comet?",
+      "chu": "Herschel originally thought it was a comet or a stellar disc, which he believed he might actually resolve.",
+      "nguon": "https://en.wikipedia.org/wiki/William_Herschel#Uranus"
+    },
+    {
+      "nam": 1781,
+      "ngay": "1781",
+      "nhan": "a planet",
+      "chu": "Its nearly circular orbit suggested that it was a planet rather than a comet.",
+      "nguon": "https://en.wikipedia.org/wiki/Uranus#Discovery"
+    },
+    {
+      "nam": 1782,
+      "ngay": "1782-03",
+      "nhan": "named Uranus",
+      "chu": "In a March 1782 treatise, Johann Elert Bode proposed Uranus, the Latinised version of the Greek god of the sky, Ouranos.",
+      "nguon": "https://en.wikipedia.org/wiki/Uranus#Name"
+    }
+  ]
+}

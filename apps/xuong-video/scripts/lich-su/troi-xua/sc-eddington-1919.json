@@ -1,0 +1,48 @@
+{
+  "ma": "sc-eddington-1919",
+  "ten": "Eddington Tests Einstein",
+  "loai": "nhat_thuc",
+  "su_kien_ngay": "1919-05-29",
+  "nguon": "https://en.wikipedia.org/wiki/Eddington_experiment (mục Príncipe, Sobral, Results and publication, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1919,
+      "ngay": "1919",
+      "nhan": "the aim",
+      "chu": "The aim of the expeditions was to measure the gravitational deflection of starlight passing near the Sun.",
+      "nguon": "https://en.wikipedia.org/wiki/Eddington_experiment"
+    },
+    {
+      "nam": 1919,
+      "ngay": "1919-03",
+      "nhan": "sets sail",
+      "chu": "Eddington sailed from England in March 1919.",
+      "noi": "England",
+      "nguon": "https://en.wikipedia.org/wiki/Eddington_experiment#Príncipe"
+    },
+    {
+      "nam": 1919,
+      "ngay": "1919-04-30",
+      "nhan": "Sobral",
+      "chu": "On April 30 the team arrived at Sobral.",
+      "noi": "Sobral, Brazil",
+      "nguon": "https://en.wikipedia.org/wiki/Eddington_experiment#Sobral"
+    },
+    {
+      "nam": 1919,
+      "ngay": "1919-05-29",
+      "nhan": "eclipse day",
+      "chu": "The eclipse was due to take place in the early afternoon of 29 May, at 2 pm, but that morning there was a storm with heavy rain.",
+      "noi": "Príncipe",
+      "nguon": "https://en.wikipedia.org/wiki/Eddington_experiment#Príncipe"
+    },
+    {
+      "nam": 1919,
+      "ngay": "1919-11-06",
+      "nhan": "results",
+      "chu": "The results were announced at a joint meeting of the Royal Society and Royal Astronomical Society in November 1919",
+      "noi": "London",
+      "nguon": "https://en.wikipedia.org/wiki/Eddington_experiment#Results_and_publication"
+    }
+  ]
+}

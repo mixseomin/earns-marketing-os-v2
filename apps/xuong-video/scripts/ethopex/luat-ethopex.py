@@ -870,7 +870,7 @@ dat, dau_phien = ([x for x in ds if _du_tang(int(x[0] or 0))] for ds in (dat, da
 # camp đã hạ, đang trong 2 ngày theo dõi — có danh sách riêng để trang etp / bộ lọc thấy (anh 01/11/2026 "Thiếu luật G10 vừa áp dụng?": trước đó camp đang theo dõi rơi khỏi mọi danh sách)
 g10_theo = [(cid, f"#{(thang.get(cid) or {}).get('ten', '')[:70]} · đã hạ về ${G10_DICH} ngày {ngay:%d/%m} — theo dõi {G10_THEO} ngày đã khép, ROI vẫn < {G10_ROI}% thì tắt; đang khoá tăng") for cid, ngay in sorted(_g10_theo.items())]
 dat, dau_phien, tang30, thang_nb, nb, moc30 = ([x for x in v if int(x[0] or 0) not in _g10_cam] for v in (dat, dau_phien, tang30, thang_nb, nb, moc30))
-# GIỮ CAMP CUỐI CỦA PHIM (anh 05/11/2026: "nếu phim ko có camp thay thế thì sẽ bị mất dấu vết. Ít nhất vẫn phải có 1 camp lãi duy trì, trừ trường hợp bị bão hoà
+# GIỮ CAMP CUỐI CỦA PHIM — CHỈ CAMP LÃI (anh 05/11/2026 sau đó: "cam lỗ vẫn phải cắt nhưng thay bằng = camp test duy nhất !!! Thử các hướng creative khác nhau") (anh 05/11/2026: "nếu phim ko có camp thay thế thì sẽ bị mất dấu vết. Ít nhất vẫn phải có 1 camp lãi duy trì, trừ trường hợp bị bão hoà
 # + lỗ quá theo luật"): mọi camp đang bật của phim đều nằm trong danh sách tắt mà phim chưa có camp nối (camp đã tạo, hẹn lịch chưa tới giờ chạy) → gỡ camp tốt nhất
 # (ROI cả đời cao nhất) khỏi mọi danh sách tắt, vào danh sách giu_cuoi. Ngoại lệ = luật cất phim đã có: phim đã cất (thu_vong 'cat' — cat_phim) hoặc bão hoà
 # (etp.phim_bao_hoa.bao_hoa) mà ROI phim cả hệ ngày đã khép gần nhất < 0. Có camp nối thì máy tắt như thường; thay-the.py vẫn thấy camp sắp tắt và tiếp tục lên camp thay.
@@ -893,6 +893,7 @@ try:
         for _ph, _cs in _pc.items():
             if _ph in _noi or _ph in _bo_giu or not all(c in _chet for c in _cs): continue
             _g = max(_cs, key=lambda c: (_roi_doi.get(c, -100.0), c))
+            if _roi_doi.get(_g, -100.0) < 0: continue   # anh 05/11/2026 "cam lỗ vẫn phải cắt nhưng thay bằng 1 camp test duy nhất": chỉ giữ camp LÃI; lỗ thì tắt, thay-the.py lên camp test
             _luat = [v[[int(x[0] or 0) for x in v].index(_g)][1].split("→")[-1].strip()[:60] for v in _DS_TAT if any(int(x[0] or 0) == _g for x in v)]
             for v in _DS_TAT: v[:] = [x for x in v if int(x[0] or 0) != _g]
             giu_cuoi.append((_g, f"#{(thang.get(_g) or thang.get(str(_g)) or {}).get('ten', '')[:70]} · camp cuối của phim {_ph} (ROI cả đời {_roi_doi.get(_g, -100):+.0f}%) · chạm {' | '.join(_luat)} → GIỮ, chưa có camp thay; tắt khi phim có camp nối hoặc phim bị cất (bão hoà + lỗ / cat_phim)"))

@@ -60,7 +60,7 @@ def _ap_nuoc(pl, nh):   # A/B kieu 'nuoc': danh sách nước của nhánh vào 
     sp = pl["campaign"]["ad_groups"][0]["source_payload"]; tg = dict(sp.get("targeting") or {})
     tg["geo_locations"] = {**(tg.get("geo_locations") or {}), "countries": list(nh["nuoc"])}; sp["targeting"] = tg
 AP = {"nuoc": _ap_nuoc}   # mỗi KIỂU A/B một hàm đặt tham số nhánh vào payload — thêm kiểu mới = thêm một dòng ở đây + một dòng etp.ab
-def ab_ap(pl, lich, goc, moi, roas=False):
+def ab_ap(pl, lich, goc, moi, roas=False, cr=None):
     """SỔ A/B etp.ab (migration 0426 — anh 05/11/2026 "nhiều kiểu thử khác nhau … đặt tên lần thử này để dễ nắm bắt"): mã AB01, AB02… · kieu = biến thử · nhánh thu / doi.
     Camp nhà (không ROAS) có ngày chạy đầu trong [bat_dau, ket_thuc] của một lần A/B đang chạy → chia nhánh theo tên camp (crc32 chẵn = thu, lẻ = doi), đặt tham số nhánh vào payload.
     Ngoài khung ngày: clone / thang của camp nhánh thu giữ tham số (payload chép Ad Set gốc) + mang cùng mã; camp MỚI dựng trên khuôn nhánh thu trả về tham số nhánh doi.
@@ -71,20 +71,34 @@ def ab_ap(pl, lich, goc, moi, roas=False):
     ab = None if roas else json.loads(q(f"select row_to_json(a)::text from etp.ab a where trang_thai = 'dang' and kieu in ({','.join(repr(k) for k in AP)}) and '{chay}'::date between bat_dau and coalesce(ket_thuc, bat_dau) order by ma limit 1") or "null")
     if ab:
         import zlib
-        nh = "thu" if zlib.crc32(pl["name"].encode()) % 2 == 0 else "doi"; AP[ab["kieu"]](pl, ab["nhanh"][nh]); return ab["ma"], nh
+        dang = (q(f"select coalesce(dang, '') from etp.creative where creative_id = {int(cr)}") or "") if cr else ""
+        if ab.get("moi_dang"):
+            # HẠN MỨC MỖI ĐỊNH DẠNG (anh 05/11/2026 "AB01 chỉ áp dụng hạn chế ở mỗi định dạng đến khi chứng minh được hiệu quả. Còn mặc định vẫn là các nước như hiện tại"):
+            # đếm camp đang chạy / chờ chạy / vừa tạo của từng nhánh cùng định dạng; nhánh thử còn chỗ (và không nhiều hơn đối chứng) → thử, đối chứng còn chỗ → đối chứng,
+            # đủ cặp → camp KHÔNG vào A/B và mang tham số mặc định (= nhánh đối chứng) — clone của camp nhánh thử không giữ 4 nước
+            dem = dict(l.split("|") for l in q(f"""select a.nhanh, count(*) from etp.camp_ab a left join etp.camp c using (camp_id)
+                where a.ab = '{ab['ma']}' and coalesce(a.dang, '') = '{dang.replace("'", "''")}' and (c.camp_id is null or c.camp_id in (select camp_id from etp.camp_dang_chay)
+                  or coalesce(c.dong_bo, '') not in ('done', 'synced', 'error') or c.lich > now()) group by 1""").splitlines() if "|" in l)
+            t, d, m = int(dem.get("thu", 0)), int(dem.get("doi", 0)), int(ab["moi_dang"])
+            nh = "thu" if t < m and t <= d else "doi" if d < m else None
+            if not nh: AP[ab["kieu"]](pl, ab["nhanh"]["doi"]); return None
+        else: nh = "thu" if zlib.crc32(pl["name"].encode()) % 2 == 0 else "doi"
+        AP[ab["kieu"]](pl, ab["nhanh"][nh]); return ab["ma"], nh, dang
     g = q(f"select a.ma || '|' || a.kieu || '|' || (a.nhanh->'doi')::text from etp.camp_ab c join etp.ab a on a.ma = c.ab where c.camp_id = {int(goc)} and c.nhanh = 'thu'") if goc else ""
     if not g: return None
     ma, kieu, doi = g.split("|", 2)
     if moi:
         if kieu in AP: AP[kieu](pl, json.loads(doi))
         return None
-    return ma, "thu"
-def ab_lay(kq, pl, lich, goc, moi, roas=False):   # một chỗ gọi ab_ap cho mọi đường tạo camp: lỗi sổ A/B không chặn tạo camp nhưng LỘ ra kq (nhật ký / tin)
-    try: tn = ab_ap(pl, lich, goc, moi, roas)
+    return ma, "thu", None
+def ab_lay(kq, pl, lich, goc, moi, roas=False, cr=None):   # một chỗ gọi ab_ap cho mọi đường tạo camp: lỗi sổ A/B không chặn tạo camp nhưng LỘ ra kq (nhật ký / tin)
+    try: tn = ab_ap(pl, lich, goc, moi, roas, cr)
     except Exception as e: kq["ab_loi"] = f"{type(e).__name__}: {str(e)[:120]}"; return None
     if tn: kq["ab"] = {"ma": tn[0], "nhanh": tn[1]}
     return tn
-def ab_ghi(moi, tn): q(f"insert into etp.camp_ab (camp_id, ab, nhanh) values ({int(moi)}, '{tn[0]}', '{tn[1]}') on conflict (camp_id) do nothing")
+def ab_ghi(moi, tn):   # dang: định dạng lúc chia (hạn mức mỗi định dạng đếm cả camp chưa đồng bộ); None = clone ngoài khung ngày → định dạng của camp gốc lúc đồng bộ
+    dg = f"'{tn[2].replace(chr(39), chr(39) * 2)}'" if len(tn) > 2 and tn[2] is not None else "null"
+    q(f"insert into etp.camp_ab (camp_id, ab, nhanh, dang) values ({int(moi)}, '{tn[0]}', '{tn[1]}', {dg}) on conflict (camp_id) do nothing")
 
 DEM_CR = {}
 def dem_dang_chay(content_id):
@@ -489,7 +503,7 @@ def main(a):
         kq["phim_dang_chay"] = n
         ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay)
         if ly: raise ChanLuat(ly)
-        tn = ab_lay(kq, pl, lich, goc, moi)   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026)
+        tn = ab_lay(kq, pl, lich, goc, moi, cr=ad0["creative_id"])   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026)
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
         r = api("/api/v1/campaigns/facebook", pl)

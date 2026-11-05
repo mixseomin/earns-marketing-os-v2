@@ -53,7 +53,7 @@ if (cur) tu.push(cur);
   const can = (m) => (tran ? (goc + m * P + duoi) / tran : 0);
   while (cat.length && can(cat.length) > 1.18) cat.pop();
   if (cat.length) { const moc = [0, ...cat], loc = moc.map((t0, i) => `[0:a]atrim=${t0}${i < cat.length ? `:${cat[i]}` : ''},asetpts=PTS-STARTPTS${i < cat.length ? `,apad=pad_dur=${P}` : ''}[g${i}]`).join(';');
-    const ra = join(RA, 'giong-nghi.mp3'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', GIONG, '-filter_complex', `${loc};${moc.map((_, i) => `[g${i}]`).join('')}concat=n=${moc.length}:v=0:a=1[ra]`, '-map', '[ra]', '-b:a', '192k', ra]); GIONG = ra;
+    const ra = join(RA, 'giong-nghi.wav'); execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', GIONG, '-filter_complex', `${loc};${moc.map((_, i) => `[g${i}]`).join('')}concat=n=${moc.length}:v=0:a=1[ra]`, '-map', '[ra]', '-c:a', 'pcm_s16le', ra]); GIONG = ra;   // WAV: libmp3lame sau concat + apad lỗi "inadequate AVFrame plane padding" (05/11/2026, 3/7 tập)
     for (const w of tu) { const d = cat.filter((t) => t <= w.a).length * P; w.a += d; w.b += d; }
     console.log(`nghỉ ${P}s sau ${cat.length} câu nặng (số / chữ to / dấu / năm mới) → +${(cat.length * P).toFixed(1)}s`); }
   const f = can(cat.length);

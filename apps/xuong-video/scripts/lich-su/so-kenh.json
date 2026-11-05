@@ -270,7 +270,7 @@
       {
         "ma": "G5",
         "ten": "Khuôn kịch bản",
-        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp · ĐÃ CÓ MÁY: This Week (viet-this-week.mjs, 102 sự kiện × 12 cung Mọc) · Sign × Sign (viet-sign.mjs, 78 cặp) · Chart vs Chart (viet-cap.mjs, 18 cặp) · Chart Chapters dài (dai/sinh-chuong.mjs); còn: Love Story dài, Ask the Chart, Myth Behind, Sky Calendar",
+        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp · ĐÃ CÓ MÁY: This Week (viet-this-week.mjs, 102 sự kiện × 12 cung Mọc) · Sign × Sign (viet-sign.mjs, 78 cặp) · Chart vs Chart (viet-cap.mjs, 18 cặp) · Chart Chapters dài (dai/sinh-chuong.mjs) · Love Story dài (viet-love-story.mjs, 15 cặp) · Myths of the Zodiac (viet-than-thoai.mjs, 12 cung) · Ask the Chart (viet-ask.mjs, 46 tập: ảnh + chữ trang Annual Profections thật qua cong-cu/doc-ap.mjs); còn: Myth Behind, Sky Calendar",
         "anh": "duyệt kịch bản mẫu",
         "trang_thai": "dang"
       },
@@ -396,10 +396,11 @@
         "ten": "Ask the Chart",
         "loai": "short",
         "nhip": "sau",
-        "kho": "≈ 13.900 câu hỏi thật (spy nhóm #9)",
+        "kho": "46 tập người × năm Profection (54 mốc, 14 người hạng AA) · ≈ 13.900 câu hỏi thật (spy nhóm #9)",
         "trang": "shot-code/la-so.html",
-        "sinh": "kịch bản tay (G5)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-ask-the-chart.mp4?v=5"
+        "sinh": "lich-su/viet-ask.mjs --ai <người | all> — 0đ, không AI: người hạng AA × mốc đời có nguồn (dai/moc-*, la-so/cap.json) → ảnh + chữ TRANG THẬT Annual Profections năm đó (cong-cu/doc-ap.mjs: tuổi, nhà của năm, nghĩa nhà, chủ năm, Theme); hook QC spy theo playlist",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-ask-the-chart.mp4?v=5",
+        "tu_sinh": "^ask-[a-z0-9-]+$"
       },
       {
         "ma": "free-60s",

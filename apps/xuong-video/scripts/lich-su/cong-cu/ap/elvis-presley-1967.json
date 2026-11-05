@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Elvis+Presley&day=8&month=1&year=1935&location=Tupelo%2C+Mississippi%2C+USA&lat=34.2576&lng=-88.7034&hour=4&minute=35&year_target=1967",
+ "doc_luc": "2026-11-05T13:48:55.127Z",
+ "nam": 1967,
+ "tuoi": 32,
+ "nha": 9,
+ "cung": "Leo",
+ "nghia_nha": "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+ "chu_nam": "Sun",
+ "vi_tri": "Capricorn 17°14'",
+ "nha_chu": 2,
+ "chu_de": "Related to career, social standing, the father, superiors, or matters of public authority.",
+ "nha_chu_nghia": "Personal resources (material - mental - intellectual), assets, livelihood, security",
+ "chu": [
+  "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+  "Theme: Related to career, social standing, the father, superiors, or matters of public authority.",
+  "Personal resources (material - mental - intellectual), assets, livelihood, security"
+ ],
+ "rong": 1080,
+ "cao": 6824,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   110
+  ]
+ }
+}

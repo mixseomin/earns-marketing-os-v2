@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Kim+Kardashian&day=21&month=10&year=1980&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=10&minute=46&year_target=2020",
+ "doc_luc": "2026-11-05T13:51:19.770Z",
+ "nam": 2020,
+ "tuoi": 40,
+ "nha": 5,
+ "cung": "Aries",
+ "nghia_nha": "Children, creativity, joy, enjoyment, and acts of charity.",
+ "chu_nam": "Mars",
+ "vi_tri": "Sagittarius 6°48'",
+ "nha_chu": 1,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "The self, the physical body, appearance, vitality, independent action",
+ "chu": [
+  "Children, creativity, joy, enjoyment, and acts of charity.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "The self, the physical body, appearance, vitality, independent action"
+ ],
+ "rong": 1080,
+ "cao": 6526,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2846,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   2986,
+   1008,
+   110
+  ]
+ }
+}

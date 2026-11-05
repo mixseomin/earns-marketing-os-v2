@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Barack+Obama&day=4&month=8&year=1961&location=Honolulu%2C+Hawaii%2C+USA&lat=21.3069&lng=-157.8583&hour=19&minute=24&year_target=1989",
+ "doc_luc": "2026-11-05T13:46:46.122Z",
+ "nam": 1989,
+ "tuoi": 28,
+ "nha": 5,
+ "cung": "Gemini",
+ "nghia_nha": "Children, creativity, joy, enjoyment, and acts of charity.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Leo 2°20'",
+ "nha_chu": 7,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Personal relationships, spouse, partners, litigation, public matters",
+ "chu": [
+  "Children, creativity, joy, enjoyment, and acts of charity.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Personal relationships, spouse, partners, litigation, public matters"
+ ],
+ "rong": 1080,
+ "cao": 6650,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2894,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3034,
+   1008,
+   150
+  ]
+ }
+}

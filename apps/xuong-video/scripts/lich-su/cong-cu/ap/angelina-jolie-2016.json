@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Angelina+Jolie&day=4&month=6&year=1975&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=9&minute=9&year_target=2016",
+ "doc_luc": "2026-11-05T13:46:17.647Z",
+ "nam": 2016,
+ "tuoi": 41,
+ "nha": 6,
+ "cung": "Sagittarius",
+ "nghia_nha": "Illness, injuries, hardship, subordinates, servants (or pets), and physical challenges.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Aries 17°25'",
+ "nha_chu": 10,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Social status, career, action, reputation, public achievement",
+ "chu": [
+  "Illness, injuries, hardship, subordinates, servants (or pets), and physical challenges.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Social status, career, action, reputation, public achievement"
+ ],
+ "rong": 1080,
+ "cao": 6620,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2980,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3120,
+   1008,
+   110
+  ]
+ }
+}

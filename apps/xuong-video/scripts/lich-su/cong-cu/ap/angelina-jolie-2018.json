@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Angelina+Jolie&day=4&month=6&year=1975&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=9&minute=9&year_target=2018",
+ "doc_luc": "2026-11-05T13:46:30.291Z",
+ "nam": 2018,
+ "tuoi": 43,
+ "nha": 8,
+ "cung": "Aquarius",
+ "nghia_nha": "Death, inheritance, benefits from the death of others, stagnation, or punishments.",
+ "chu_nam": "Saturn",
+ "vi_tri": "Cancer 17°23'",
+ "nha_chu": 1,
+ "chu_de": "Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+ "nha_chu_nghia": "The self, the physical body, appearance, vitality, independent action",
+ "chu": [
+  "Death, inheritance, benefits from the death of others, stagnation, or punishments.",
+  "Theme: Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+  "The self, the physical body, appearance, vitality, independent action"
+ ],
+ "rong": 1080,
+ "cao": 6816,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2886,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3026,
+   1008,
+   110
+  ]
+ }
+}

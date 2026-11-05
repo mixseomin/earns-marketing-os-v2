@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Elvis+Presley&day=8&month=1&year=1935&location=Tupelo%2C+Mississippi%2C+USA&lat=34.2576&lng=-88.7034&hour=4&minute=35&year_target=1968",
+ "doc_luc": "2026-11-05T13:49:10.421Z",
+ "nam": 1968,
+ "tuoi": 33,
+ "nha": 10,
+ "cung": "Virgo",
+ "nghia_nha": "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Capricorn 22°18'",
+ "nha_chu": 2,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Personal resources (material - mental - intellectual), assets, livelihood, security",
+ "chu": [
+  "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Personal resources (material - mental - intellectual), assets, livelihood, security"
+ ],
+ "rong": 1080,
+ "cao": 6690,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   150
+  ]
+ }
+}

@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Marilyn+Monroe&day=1&month=6&year=1926&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=9&minute=30&year_target=1954",
+ "doc_luc": "2026-11-05T13:52:00.824Z",
+ "nam": 1954,
+ "tuoi": 28,
+ "nha": 5,
+ "cung": "Sagittarius",
+ "nghia_nha": "Children, creativity, joy, enjoyment, and acts of charity.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Aquarius 26°50'",
+ "nha_chu": 7,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Personal relationships, spouse, partners, litigation, public matters",
+ "chu": [
+  "Children, creativity, joy, enjoyment, and acts of charity.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Personal relationships, spouse, partners, litigation, public matters"
+ ],
+ "rong": 1080,
+ "cao": 6526,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2846,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   2986,
+   1008,
+   110
+  ]
+ }
+}

@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Beyonc%C3%A9&day=4&month=9&year=1981&location=Houston%2C+Texas%2C+USA&lat=29.7604&lng=-95.3698&hour=21&minute=47&year_target=2011",
+ "doc_luc": "2026-11-05T13:48:13.262Z",
+ "nam": 2011,
+ "tuoi": 30,
+ "nha": 7,
+ "cung": "Libra",
+ "nghia_nha": "Marriage, spouse, business partners, external relations, and going abroad.",
+ "chu_nam": "Venus",
+ "vi_tri": "Libra 20°48'",
+ "nha_chu": 7,
+ "chu_de": "Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+ "nha_chu_nghia": "Personal relationships, spouse, partners, litigation, public matters",
+ "chu": [
+  "Marriage, spouse, business partners, external relations, and going abroad.",
+  "Theme: Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+  "Personal relationships, spouse, partners, litigation, public matters"
+ ],
+ "rong": 1080,
+ "cao": 6846,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   3128,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3268,
+   1008,
+   110
+  ]
+ }
+}

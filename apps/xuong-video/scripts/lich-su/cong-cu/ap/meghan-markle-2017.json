@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Meghan%2C+Duchess+of+Sussex+%28Meghan+Markle%29&day=4&month=8&year=1981&location=Canoga+Park%2C+Los+Angeles%2C+California%2C+USA&lat=34.2011&lng=-118.5981&hour=4&minute=46&year_target=2017",
+ "doc_luc": "2026-11-05T13:53:32.148Z",
+ "nam": 2017,
+ "tuoi": 36,
+ "nha": 1,
+ "cung": "Cancer",
+ "nghia_nha": "The body, physical health, spirit, new beginnings, and core personal matters.",
+ "chu_nam": "Moon",
+ "vi_tri": "Libra 4°54'",
+ "nha_chu": 4,
+ "chu_de": "Matters of physical health, the mother, residence, conception, and fluctuations in assets.",
+ "nha_chu_nghia": "Home, family, roots, foundation, land, the conclusion of a matter",
+ "chu": [
+  "The body, physical health, spirit, new beginnings, and core personal matters.",
+  "Theme: Matters of physical health, the mother, residence, conception, and fluctuations in assets.",
+  "Home, family, roots, foundation, land, the conclusion of a matter"
+ ],
+ "rong": 1080,
+ "cao": 6612,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2894,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3034,
+   1008,
+   110
+  ]
+ }
+}

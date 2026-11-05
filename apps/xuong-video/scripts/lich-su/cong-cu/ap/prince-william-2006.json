@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=William%2C+Prince+of+Wales&day=21&month=6&year=1982&location=Paddington%2C+London%2C+UK&lat=51.5154&lng=-0.1755&hour=21&minute=3&year_target=2006",
+ "doc_luc": "2026-11-05T13:54:06.618Z",
+ "nam": 2006,
+ "tuoi": 24,
+ "nha": 1,
+ "cung": "Sagittarius",
+ "nghia_nha": "The body, physical health, spirit, new beginnings, and core personal matters.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Scorpio 0°29'",
+ "nha_chu": 12,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality",
+ "chu": [
+  "The body, physical health, spirit, new beginnings, and core personal matters.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6658,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2940,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3080,
+   1008,
+   110
+  ]
+ }
+}

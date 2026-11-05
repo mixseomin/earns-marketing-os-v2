@@ -55,6 +55,8 @@ export function khoChuSite(tap) {
   // mốc đời / mốc cặp đôi có nguồn (Wikipedia…) — chuyện đời người, không phải lời chiêm tinh, nhưng cũng chỉ được kể theo sổ
   if (ls && existsSync(join(DIR, 'la-so/hop', `${ls}.json`))) for (const m of doc(`la-so/hop/${ls}.json`).moc ?? []) kho.push(m.chu);
   for (const f of tap.nguon_moc ?? []) if (existsSync(join(DIR, f))) for (const m of doc(f).moc ?? []) kho.push(m.chu);
+  // chữ đọc thẳng từ trang công cụ cho đúng người / năm của tập (cong-cu/doc-ap.mjs › cong-cu/ap/<người>-<năm>.json › chu): nghĩa nhà của năm, Theme của chủ năm…
+  for (const f of tap.nguon_cong_cu ?? []) if (existsSync(join(DIR, f))) kho.push(...(doc(f).chu ?? []));
   return kho.filter(Boolean);
 }
 

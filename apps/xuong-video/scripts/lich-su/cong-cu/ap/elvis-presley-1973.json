@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Elvis+Presley&day=8&month=1&year=1935&location=Tupelo%2C+Mississippi%2C+USA&lat=34.2576&lng=-88.7034&hour=4&minute=35&year_target=1973",
+ "doc_luc": "2026-11-05T13:49:39.049Z",
+ "nam": 1973,
+ "tuoi": 38,
+ "nha": 3,
+ "cung": "Aquarius",
+ "nghia_nha": "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+ "chu_nam": "Saturn",
+ "vi_tri": "Aquarius 25°45'",
+ "nha_chu": 3,
+ "chu_de": "Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+ "nha_chu_nghia": "Information within familiar surroundings, siblings, communication, paperwork, spirituality",
+ "chu": [
+  "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+  "Theme: Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+  "Information within familiar surroundings, siblings, communication, paperwork, spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6612,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2894,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3034,
+   1008,
+   110
+  ]
+ }
+}

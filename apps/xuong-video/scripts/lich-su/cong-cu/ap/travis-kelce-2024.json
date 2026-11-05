@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Travis+Kelce&day=5&month=10&year=1989&location=Westlake%2C+Ohio%2C+USA&lat=41.4553&lng=-81.9179&hour=5&minute=49&year_target=2024",
+ "doc_luc": "2026-11-05T13:56:14.586Z",
+ "nam": 2024,
+ "tuoi": 35,
+ "nha": 12,
+ "cung": "Leo",
+ "nghia_nha": "Hidden enemies, calamities, imprisonment, injuries, suffering, and matters relating to foreign lands (of a negative nature).",
+ "chu_nam": "Sun",
+ "vi_tri": "Libra 12°08'",
+ "nha_chu": 2,
+ "chu_de": "Related to career, social standing, the father, superiors, or matters of public authority.",
+ "nha_chu_nghia": "Personal resources (material - mental - intellectual), assets, livelihood, security",
+ "chu": [
+  "Hidden enemies, calamities, imprisonment, injuries, suffering, and matters relating to foreign lands (of a negative nature).",
+  "Theme: Related to career, social standing, the father, superiors, or matters of public authority.",
+  "Personal resources (material - mental - intellectual), assets, livelihood, security"
+ ],
+ "rong": 1080,
+ "cao": 6548,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2886,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3026,
+   1008,
+   110
+  ]
+ }
+}

@@ -456,7 +456,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), ...(k === 'hoi_g10' ? ['--ep'] : []), '--luat', `${k === 'hoi_g10' ? 'G10 hồi' : TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', k === 'tang30' ? `máy tự tăng T30 (anh cho phép tự tăng, trần $${tuTang} — gộp 29/10/2026)` : `máy tự tăng (anh cho phép ${Date.parse(tt?.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daTu.push({ k, m, d, r });
-      if (k === 'hoi_g10' && r?.ok) await chayPsql(`update etp.cau_hinh set gia_tri = gia_tri - '${Number(m.id)}' where khoa = 'g10'`).catch((e) => console.error('gỡ g10:', e.message));   // hồi xong → hết theo dõi G10 (--ep: luật hồi LÀ quy trình tăng lại sau giảm)
+      if (k === 'hoi_g10' && r?.ok) await chayPsql(`update etp.cau_hinh set gia_tri = gia_tri - '${Number(m.id)}' where khoa = 'g10'`).catch((e) => console.error('gỡ g10:', e.message));
+      if (k === 'hoi_g10' && r?.ok && Array.isArray(m.ab) && /^AB\d+$/.test(m.ab[0]) && ['thu', 'doi'].includes(m.ab[1])) await chayPsql(`insert into etp.camp_ab (camp_id, ab, nhanh) values (${Number(m.id)}, '${m.ab[0]}', '${m.ab[1]}') on conflict (camp_id) do nothing`).catch((e) => console.error('ghi A/B G10 hồi:', e.message));   // AB02: ghi nhánh SAU khi nâng thành công (anh 05/11/2026)   // hồi xong → hết theo dõi G10 (--ep: luật hồi LÀ quy trình tăng lại sau giảm)
     }
     if (daTu.length) {
       const dong = bangViec(daTu.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), 'Kỳ');
@@ -493,6 +494,9 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // (sổ ethopex_phim_tk; phim mới → bộ 2), lịch today, $1. Tối đa 4 creative / nhịp (mỗi lần tạo chờ Ethopex đồng bộ ~1 phút). Cổng thật vẫn ở nhan-ban (chấm, rào chắn, 18+, CTA).
   try {
     const KHUON = { en: 65110, es: 65734 };
+    // dạng lên cho PHIM ĐANG CHẠY (một camp mỗi dạng mỗi phim) → [luật, người duyệt] ghi vào nhật ký camp
+    const LEN_DANG = { 'kể chuyện': ['KT (kể chuyện VideoExpress) chấm sạch → lên camp cho phim đang chạy', 'anh (chat 29/10/2026: sx KT cho phim đang chạy chưa có — làm đi) — máy chạy'],
+      'ảnh tĩnh': ['AT (ảnh tĩnh + giọng) chấm sạch → lên camp cho phim mới bắt đầu lãi', 'anh (chat 05/11/2026: thêm loại creative ảnh tĩnh và lên camp mới, phim mới bắt đầu lãi trước) — máy chạy'] };
     // creative bị cổng nhan-ban chặn (18+, CTA cũ, chấm…) → bỏ qua 24 giờ, không lượt nào cũng lấy lại đúng mấy creative đó mà kẹt (28/10/2026)
     const TEP_BQ = path.join(DATA(), 'ethopex-phim-moi-bo-qua.json'), bq = docJ(TEP_BQ, {});
     for (const k of Object.keys(bq)) if (Date.now() - Date.parse(bq[k].luc) > 86_400_000) delete bq[k];
@@ -503,12 +507,13 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       from etp.creative r join etp.cham_cong g using (creative_id) left join etp.phim p using (content_id) left join etp.cham h using (creative_id)
       where g.duoc_len and r.tu_choi is null and r.content_id is not null and h.luc > now() - interval '3 days' and r.creative_id not in (${boQua})
         and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
-        and not exists (select 1 from etp.dong_phim d where d.content_id = r.content_id and d.trang_thai <> 'huy')   -- phim có DÒNG PHIM tự động: dòng tự lên camp (anh 03/11/2026, một camp mỗi lần)
+        and (r.dang = 'ảnh tĩnh' or not exists (select 1 from etp.dong_phim d where d.content_id = r.content_id and d.trang_thai <> 'huy'))   -- phim có DÒNG PHIM tự động: dòng tự lên camp (anh 03/11/2026, một camp mỗi lần); ảnh tĩnh không do dòng làm ra → không lên trùng (05/11/2026)
         and not exists (select 1 from etp.phim_nhan_v n where n.content_id = r.content_id and n.trang_thai = 'giu' and n.nguoi_id not in (select nguoi_id from etp.tai_khoan where nha))   -- người nhà = có tài khoản nhà (cùng định nghĩa view phim_nhan_td; Tuấn David có cả tk không phải nhà) · phim người trong đội đang nhận → khối NHẬN PHIM dưới lên ở tài khoản họ
         and (not exists (select 1 from etp.camp c where c.content_id = r.content_id)   -- phim CHƯA TỪNG có camp (phim có camp đã bị luật tắt vì lỗ thì không tự lên lại)
           -- hoặc KT cho phim ĐANG CHẠY chưa có camp kể chuyện (anh 29/10/2026 "sx loại video KT cho các phim chưa có nhưng đang lên camp live triệt để … làm đi")
-          or (r.dang = 'kể chuyện' and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')
-              and not exists (select 1 from etp.camp c join etp.creative k on k.creative_id = c.creative_id where c.content_id = r.content_id and k.dang = 'kể chuyện')))
+          -- + ẢNH TĨNH cho phim đang chạy chưa có camp ảnh tĩnh (anh 05/11/2026 "thêm 1 loại creative kiểu này và lên camp mới … phim mới bắt đầu lãi trước" — anh-tinh.py chọn phim)
+          or (r.dang in ('kể chuyện', 'ảnh tĩnh') and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')
+              and not exists (select 1 from etp.camp c join etp.creative k on k.creative_id = c.creative_id where c.content_id = r.content_id and k.dang = r.dang)))
       -- phim đang được NHẬN đứng đầu hàng (02/11/2026: phim nhận 172341 chấm sạch phải đợi sau 213 creative cũ) — nhận Tự động là lên camp ngay nhịp kế
       order by nhan desc, h.luc limit 4) x`)).trim() || '[]');
     const da = [];
@@ -517,8 +522,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       const ten = `${x.lo} ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ${a_(x.dang).toLowerCase()} ${Math.round(x.tu)}-${Math.round(x.den)}s`.trim();
       let r; try { r = JSON.parse((await chay(NB, [String(KHUON[x.lang] ?? KHUON.en), '--bo', String(x.bo), '--creative', String(x.creative_id), '--content', String(x.content_id), '--ten', ten,
         // CAMP MỚI CHẠY THEO LỊCH (anh 04/11/2026 "áp dụng thêm việc lên camp mới theo lịch" — như Kiên): bắt đầu 00:00 UTC hôm sau (07:00 VN, đầu ngày Ethopex) → ngày đầu là ngày trọn
-        '--that', '--luat', x.dang === 'kể chuyện' ? 'KT (kể chuyện VideoExpress) chấm sạch → lên camp cho phim đang chạy' : 'phim mới chấm sạch → lên camp',   // giờ chạy do nhan-ban.lich_len quyết (tạo 07–12h VN chạy ngay, ngoài khung hẹn 07:00 hôm sau — anh 05/11/2026)
-        '--ai', x.dang === 'kể chuyện' ? 'anh (chat 29/10/2026: sx KT cho phim đang chạy chưa có — làm đi) — máy chạy' : 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy'], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+        '--that', '--luat', LEN_DANG[x.dang]?.[0] ?? 'phim mới chấm sạch → lên camp',   // giờ chạy do nhan-ban.lich_len quyết (tạo 07–12h VN chạy ngay, ngoài khung hẹn 07:00 hôm sau — anh 05/11/2026)
+        '--ai', LEN_DANG[x.dang]?.[1] ?? 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy'], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       da.push({ x, r });
     }
     const ok = da.filter((d) => d.r.ok);

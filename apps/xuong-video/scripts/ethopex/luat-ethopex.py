@@ -793,6 +793,16 @@ G10_NS, G10_DICH, G10_ROI, G10_THEO = 15, 10, 0, 2   # G10_ROI 15 → 0 (anh 05/
 # (_bo_roas gạt ROAS khỏi mọi luật tăng). Tụt lại thì G10 hạ như cũ. Ngưỡng 30% (cao hơn ngưỡng tắt 15%) để không giật lên xuống.
 G10_HOI = 30
 g10, tat_g10, _g10_theo, hoi_g10 = [], [], {}, []
+# A/B G10 hồi (AB02, migration 0429): lần A/B kieu g10_hoi đang chạy hôm nay → (mã, nhánh, tên nhánh) của camp; camp đã mang mã A/B khác (etp.camp_ab một camp một mã) → None = theo thang
+_ab_g10_so = json.loads(q(f"select row_to_json(a)::text from etp.ab a where trang_thai = 'dang' and kieu = 'g10_hoi' and '{(dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).date()}'::date between bat_dau and coalesce(ket_thuc, bat_dau) order by ma limit 1") or "null")
+_ab_g10_co = {int(x.split("|")[0]): x.split("|", 1)[1] for x in q("select camp_id || '|' || ab || '|' || nhanh from etp.camp_ab").splitlines() if x} if _ab_g10_so else {}
+def _ab_g10(cid):
+    if not _ab_g10_so: return None
+    co = _ab_g10_co.get(cid)
+    if co and not co.startswith(_ab_g10_so["ma"] + "|"): return None
+    import zlib
+    nh = co.split("|")[1] if co else ("thu" if zlib.crc32(str(cid).encode()) % 2 == 0 else "doi")
+    return _ab_g10_so["ma"], nh, _ab_g10_so["nhanh"][nh]["ten"]
 _d3s = {dt.date.fromisoformat(d(i)) for i in (1, 2, 3)}
 _d4s = {dt.date.fromisoformat(d(i)) for i in (4, 5, 6, 7)}
 try:
@@ -811,9 +821,13 @@ try:
                 # ngân sách TRƯỚC lúc hạ = ngân sách thật cao nhất 7 ngày trước ngày hạ (etp.so_ngay.ngan_sach) — không đọc nhật ký lệnh (04/11/2026: #66666 lệnh G10 ghi thất bại mà ngân sách vẫn về $10)
                 truoc_ = q(f"select max(ngan_sach) from etp.so_ngay where camp_id = {int(cid)} and ngay between '{ngay_ha - dt.timedelta(days=7)}' and '{ngay_ha}'")
                 cu_ = float(truoc_) if truoc_ and truoc_.replace('.', '', 1).isdigit() else 0
-                # hồi theo THANG (anh 05/11/2026 mọi bước ≤ ×1,5): bậc cao nhất ≤ min(ngân sách cũ, ns × 1,5) — trước về thẳng $10 → $30 (×3), lại là mức ngoài thang
-                ve = max((b for b in BAC if ns < b <= min(cu_, ns * 1.5)), default=None)
-                if ve: hoi_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% ≥ {G10_HOI}% · trước lúc hạ ${cu_:.0f} · ${ns:.0f} → ${ve} (luật G10 hồi: lên lại theo thang, mỗi bước ≤ ×1,5)")); continue
+                # A/B AB02 (sổ etp.ab kieu g10_hoi): nhánh thu = theo THANG (anh 05/11/2026 mọi bước ≤ ×1,5: bậc cao nhất ≤ min(ngân sách cũ, ns × 1,5), $10 → $13)
+                # · nhánh doi = về ngân sách cũ (luật 04/11/2026), làm tròn xuống bậc thang gần nhất (MUC của lam-ethopex chỉ nhận mức trên thang). Không có lần A/B đang chạy = theo thang.
+                nh_ = _ab_g10(int(cid))
+                tran_ = cu_ if nh_ and nh_[1] == "doi" else min(cu_, ns * 1.5)
+                ve = max((b for b in BAC + [30] if ns < b <= tran_), default=None)
+                if ve: hoi_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% ≥ {G10_HOI}% · trước lúc hạ ${cu_:.0f}"
+                                      f"{f' · {nh_[0]} {nh_[2]}' if nh_ else ''} · ${ns:.0f} → ${ve} (luật G10 hồi{': về ngân sách cũ' if nh_ and nh_[1] == 'doi' else ': lên lại theo thang, mỗi bước ≤ ×1,5'})", {"ab": nh_[:2]} if nh_ else {})); continue
             if cs > 0 and (ts - cs) / cs * 100 < G10_ROI and duoi(int(cid), ns, G10_ROI, ten_, "G10"):
                 tat_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% → TẮT (luật G10: vẫn < {G10_ROI}%)"))
                 continue
@@ -1064,7 +1078,7 @@ def _xet_luat():
         ra[int(cid)] = ls
     return ra
 if JSON:
-    m = lambda ds: [{"id": i, "chu": s, **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s in ds]
+    m = lambda ds: [{"id": i, "chu": s, **(x[0] if x else {}), **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s, *x in ds]   # phần tử thứ ba (tuỳ chọn) = trường thêm, vd G10 hồi {"ab": [mã, nhánh]}
     try:   # XÉT LUẬT TỪNG CAMP → etp.xet_luat (đi qua stdin psql: chuỗi lớn vượt giới hạn một tham số dòng lệnh)
         _x = _xet_luat()
         _sql = "begin; create temp table _x (j jsonb); insert into _x values ('" + json.dumps([{"c": k, "x": v} for k, v in _x.items()], ensure_ascii=False).replace("'", "''") + "'::jsonb);" + \

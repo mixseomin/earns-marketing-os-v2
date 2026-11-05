@@ -1,5 +1,5 @@
 #!/bin/bash
-# DEMO MẪU KÊNH (05/11/2026, anh duyệt 7 demo YNT ~75.000₫): làm lần lượt một video demo cho mỗi playlist đưa vào, KHÔNG lên kênh (lam-tap --demo).
+# DEMO MẪU KÊNH (05/11/2026, anh duyệt 7 demo YNT ~75.000₫): làm một video demo cho mỗi playlist đưa vào (lam-tap --demo) — demo là TẬP THẬT, nạp máy đăng (anh 05/11/2026).
 #   bash scripts/lich-su/demo-mau.sh <kênh> <playlist> [<playlist>…]      (chạy từ apps/xuong-video, iMac)
 # Kết quả: dòng "DEMO <playlist> <link R2>" trong nhật ký /Users/htuan/.cache/lich-su-demo-<kênh>.log — link gắn vào so-kenh.json › mau[].demo.
 set -u

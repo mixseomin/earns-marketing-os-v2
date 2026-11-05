@@ -31,14 +31,13 @@ const giaoTho = (k, tap, ra) => { try { return execFileSync('ssh', [BOX, `cd /op
 // /Users/htuan/.cache/lich-su/<tập>/lam-tap.log (tail -f được), đọc lại vào `stdout` khi xong — bên gọi giữ nguyên cách dùng { status, signal, stdout, stderr }
 const chayLamTap = (id, args, opt) => { const dir = join(homedir(), '.cache', 'lich-su', id); mkdirSync(dir, { recursive: true }); const f = join(dir, 'lam-tap.log'), fd = openSync(f, 'w');
   try { const r = spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), ...args], { ...opt, stdio: ['ignore', fd, fd] }); return { ...r, stdout: readFileSync(f, 'utf8'), stderr: '' }; } finally { closeSync(fd); } };
-// TẬP DEMO MẪU (demo-mau.sh → lam-tap --demo): cờ tap.demo chỉ ghi ở bước 3 — lúc đang viết tệp tập chưa có cờ, nên nhận cả theo mã (<máy>-demo-<playlist>)
-const laDemo = (t) => !!t?.demo || /-demo-/.test(String(t?.id ?? ''));
-// số tập "làm trước kế hoạch": đã nạp máy đăng mà chưa đăng YouTube (không lưu trữ) + tệp tập của kênh chưa nạp trong 10 ngày (không demo, không đã bỏ)
+// TẬP DEMO = TẬP THẬT (anh 05/11/2026: "demo thực ra là video thực luôn để đăng lên luôn"): demo-mau.sh / lam-tap --demo nạp máy đăng như mọi tập → đếm, tự làm lại như tập thường
+// số tập "làm trước kế hoạch": đã nạp máy đăng mà chưa đăng YouTube (không lưu trữ) + tệp tập của kênh chưa nạp trong 10 ngày (không đã bỏ)
 const soTruocKeHoach = (K, k) => { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
   const nap = sqlBox(`SELECT coalesce(string_agg(v.slug, ','), '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)} AND NOT coalesce(v.luu_tru, false) AND NOT (coalesce(v.da_dang, '{}'::jsonb) ? 'youtube');`).split(',').filter(Boolean);
   const daNap = new Set(sqlBox(`SELECT coalesce(string_agg(v.slug, ','), '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)};`).split(',').filter(Boolean));
   const doDang = readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json')).map((f) => join(DIR, 'tap', f)).filter((f) => Date.now() - statSync(f).mtimeMs < 10 * 86_400_000)
-    .map((f) => { try { return JSON.parse(readFileSync(f, 'utf8')); } catch { return null; } }).filter((t) => t && (t.kenh ?? 'saga') === k && t.id && !laDemo(t) && !t.tu_dong?.bo && !daNap.has(t.id)).length;
+    .map((f) => { try { return JSON.parse(readFileSync(f, 'utf8')); } catch { return null; } }).filter((t) => t && (t.kenh ?? 'saga') === k && t.id && !t.tu_dong?.bo && !daNap.has(t.id)).length;
   return nap.length + doDang; };
 const danhDau = (ma, id, dl) => { try { dauDangLam(ma, id, dl); } catch (e) { console.log(`⚠ dấu đang làm: ${e.message}`); } };
 
@@ -51,7 +50,7 @@ for (const [k, K] of Object.entries(KENH)) {
   const dangLamTiep = (() => { try { process.kill(Number(readFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), 'utf8')), 0); return true; } catch { return false; } })();
   if (!dangLamTiep) for (const f of readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json'))) {
     const tep = join(DIR, 'tap', f); if (Date.now() - statSync(tep).mtimeMs > 10 * 86_400_000) continue;
-    const t = JSON.parse(readFileSync(tep, 'utf8')); if ((t.kenh ?? 'saga') !== k || t.id === undefined || laDemo(t)) continue;   // tập DEMO mẫu không lên kênh, không tự làm lại
+    const t = JSON.parse(readFileSync(tep, 'utf8')); if ((t.kenh ?? 'saga') !== k || t.id === undefined) continue;
     const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
     const r0 = sqlBox(`SELECT coalesce(json_build_object('xuat', v.xuat_luc IS NOT NULL, 'ket', v.cham->>'ket', 'chan', v.cham->'chan_cung', 'dang', v.da_dang->'youtube'->>'url', 'hook', v.dang->'hook'->>'qc')::text, '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)} AND v.slug = ${q1(t.id)};`);
     const st = r0 ? JSON.parse(r0) : null;
@@ -102,7 +101,7 @@ for (const [k, K] of Object.entries(KENH)) {
   // mỗi lượt ghi xv_may.nguon.tap_cho = tập của kênh trong 10 ngày chưa nạp (id · chủ đề · số lần tự làm lại · lỗi gần nhất · đã giao thợ máy chưa)
   { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`, daNap = new Set(sqlBox(`SELECT coalesce(string_agg(v.slug, ','), '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)};`).split(',').filter(Boolean));
     const cho = readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json')).map((f) => join(DIR, 'tap', f)).filter((f) => Date.now() - statSync(f).mtimeMs < 10 * 86_400_000)
-      .map((f) => JSON.parse(readFileSync(f, 'utf8'))).filter((t) => (t.kenh ?? 'saga') === k && t.id && !laDemo(t) && !daNap.has(t.id))
+      .map((f) => JSON.parse(readFileSync(f, 'utf8'))).filter((t) => (t.kenh ?? 'saga') === k && t.id && !daNap.has(t.id))
       .map((t) => ({ id: t.id, chu_de: t.chu_de ?? null, cau: t.cau?.length ?? 0, lan: t.tu_dong?.lan ?? 0, loi: t.tu_dong?.loi ?? null, tho: t.tu_dong?.tho ?? null, bo: !!t.tu_dong?.bo }));
     try { sqlBox(`UPDATE xv_may SET nguon = jsonb_set(coalesce(nguon, '{}'::jsonb), '{tap_cho}', ${q1(JSON.stringify(cho))}::jsonb) WHERE ma = ${q1(K.may)};`); } catch { /* phụ */ } }
   // việc nền chạy MỖI GIỜ (02/11/2026 anh: đo kênh tần suất cao hơn) → làm tập chỉ từ gio_tap trở đi của ngày lịch; khoá ~/.cache/lich-su-<k>.khoa (pid) chống lượt chồng

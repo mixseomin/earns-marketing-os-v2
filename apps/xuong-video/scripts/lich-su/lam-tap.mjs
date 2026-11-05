@@ -298,7 +298,8 @@ const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
 if (plMa) tap.playlist = plMa;   // ghi lại cùng tệp tập ở cuối bước 3
 // MẪU + Ý TƯỞNG của tập theo SỔ KÊNH (so-kenh.json khoá = mã máy); --demo = tập làm DEMO cho anh duyệt (không lên máy đăng)
 // ý tưởng: khớp chủ đề trong hàng chờ của playlist; không có thì mẫu vô hạn (tu_sinh — đề máy chọn theo góc spy) lấy mã ý tưởng = mã tập
-{ const so = SO_KENH, m = (so?.mau ?? []).find((x) => x.ma === mauMa); if (mauMa && (arg('mau') || !tap.mau)) tap.mau = mauMa;   // --mau đổi mẫu tập đã có (vd áp Full Story 2.0 cho tập chờ đăng) if (co('demo')) tap.demo = true;
+{ const so = SO_KENH, m = (so?.mau ?? []).find((x) => x.ma === mauMa); if (mauMa && (arg('mau') || !tap.mau)) tap.mau = mauMa;   // --mau đổi mẫu tập đã có (vd áp Full Story 2.0 cho tập chờ đăng)
+  if (co('demo')) tap.demo = true;
   if (m && !tap.y_tuong) { const h = (so.hang_cho ?? []).find((x) => (x.playlist ?? x.mau) === plMa && x.chu_de && tap.chu_de && x.chu_de.toLowerCase() === tap.chu_de.toLowerCase());
     tap.y_tuong = h?.ma ?? (m.tu_sinh && new RegExp(m.tu_sinh).test(id) ? id : null); } }
 let tien = 0;
@@ -501,10 +502,10 @@ buoc('đẩy Studio');
   // thumbnail đã chạy nền từ trước bước dựng — đợi nó xong, gộp kết quả vào tệp tập (đọc lại tệp: dung-tap có thể đã tự sửa tệp trong lúc dựng)
   if (nenThumb) { const ma = await nenThumb.xong, tk = join(RA, 'thumb-kq.json'); if (existsSync(tk)) { const th = JSON.parse(readFileSync(tk, 'utf8')).thumb, t1 = JSON.parse(readFileSync(tepTap, 'utf8'));
       t1.thumb = th; writeFileSync(tepTap, JSON.stringify(t1, null, 1) + '\n'); tap.thumb = th; }
-    if (ma && !(tap.demo || co('demo'))) process.exit(ma); if (ma) console.log(`⚠ thumbnail hỏng (mã ${ma}) — demo vẫn đi tiếp, thumbnail làm khi mẫu được duyệt`); }
+    if (ma) process.exit(ma); }
   buoc('nạp máy đăng');
-  // DEMO MẪU (--demo): video đã lên Studio / R2 là link demo cho sổ kênh (so-kenh.json › mau[].demo) — KHÔNG nạp máy đăng, mẫu chưa duyệt không được lên kênh
-  if (tap.demo || co('demo')) { console.log(`✓ DEMO mẫu ${tap.mau ?? '?'} · ${kq?.url ?? '(chưa có link — đẩy Studio hỏng)'} · không nạp máy đăng`); if (kq?.url) { const t1 = JSON.parse(readFileSync(tepTap, 'utf8')); t1.demo_url = kq.url; writeFileSync(tepTap, JSON.stringify(t1, null, 1) + '\n'); } process.exit(kq?.url ? 0 : 1); }
+  // DEMO (--demo): link R2 ghi demo_url cho sổ kênh (so-kenh.json › playlist[].vi_du) rồi NẠP MÁY ĐĂNG như tập thật (anh 05/11/2026: "demo thực ra là video thực luôn để đăng lên luôn")
+  if ((tap.demo || co('demo')) && kq?.url) { const t1 = JSON.parse(readFileSync(tepTap, 'utf8')); t1.demo_url = kq.url; writeFileSync(tepTap, JSON.stringify(t1, null, 1) + '\n'); console.log(`✓ DEMO ${tap.playlist ?? ''} · ${kq.url} · nạp máy đăng`); }
   if (SO_KENH) { const { kiemTap } = await import('./kiem-so-kenh.mjs'), t2 = JSON.parse(readFileSync(tepTap, 'utf8')), loiSo = kiemTap({ ...t2, ...tap, playlist_ma: plMa }, SO_KENH, KENH.may);
     if (loiSo.length) { console.error(`✗ tập sai sổ kênh — không nạp máy đăng:\n  ${loiSo.join('\n  ')}`); process.exit(6); } }
   // 6. MÁY ĐĂNG: kênh có máy Studio → tập thành một video của máy (mẫu video-ngoai: URL R2 + 3 khung), Phòng Nội dung chấm rồi máy đăng chung tự đăng theo nhịp

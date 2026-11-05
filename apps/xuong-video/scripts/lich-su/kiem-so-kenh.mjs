@@ -59,7 +59,8 @@ export function kiemTap(tap, k, ma) {
   const plSo = (k.playlist ?? []).find((p) => p.ma === plMa); if (plMa && !plSo) loi.push(`playlist ${plMa} không có trong sổ ${ma}`); if (m && plSo?.mau?.length && !plSo.mau.includes(m.ma)) loi.push(`playlist ${plMa} không dùng mẫu ${m.ma} (dùng: ${plSo.mau.join(', ')})`);
   // ý tưởng: có trong hàng chờ, HOẶC đúng khuôn mã tự sinh của mẫu (mẫu vô hạn: Tonight's Sky ts-<thành phố>-<ngày>, Chart Chapters dài ccd-<người>)
   const h = (k.hang_cho ?? []).find((x) => x.ma === tap.y_tuong), tuSinh = m?.tu_sinh && tap.y_tuong && new RegExp(m.tu_sinh).test(tap.y_tuong);
-  if (!tap.y_tuong) loi.push('tập không khai y_tuong (ý tưởng nào trong hàng chờ?)'); else if (!h && !tuSinh) loi.push(`ý tưởng ${tap.y_tuong} không có trong hàng chờ, cũng không đúng khuôn tự sinh của mẫu`);
+  if (!tap.y_tuong) { if (!tap.demo) loi.push('tập không khai y_tuong (ý tưởng nào trong hàng chờ?)'); }   // demo: đề theo mô tả series, không từ hàng chờ
+  else if (!h && !tuSinh) loi.push(`ý tưởng ${tap.y_tuong} không có trong hàng chờ, cũng không đúng khuôn tự sinh của mẫu`);
   else if (h?.trang_thai === 'da_dang') loi.push(`ý tưởng ${tap.y_tuong} đã đăng — không làm lại`);
   else if (h && m && h.mau && h.mau !== m.ma) loi.push(`ý tưởng ${tap.y_tuong} thuộc mẫu ${h.mau}, không phải ${m.ma}`);
   else if (h && plMa && h.playlist && h.playlist !== plMa) loi.push(`ý tưởng ${tap.y_tuong} thuộc playlist ${h.playlist}, không phải ${plMa}`);

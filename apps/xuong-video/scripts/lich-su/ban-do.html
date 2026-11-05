@@ -60,7 +60,15 @@ const nhanSau = [];   // nhãn tên nơi chờ vẽ cuối khung (trên xe + ng�
 // MỘT NƠI MỘT NHÃN (05/11/2026, Ngọc chặn demo Weather Desk: "GENKO BORUI" (nhãn máy viết khai) đè "Genko Borui" (nhãn nhắc tên) cùng một chỗ): nhãn trùng chữ
 // (không phân biệt hoa thường / dấu câu) trong bán kính 220×120 px của nhãn đã xếp trong khung này thì bỏ — giữ nhãn xếp trước
 const nhanDa = [], khoaNhan = (t) => String(t).toLowerCase().replace(/[^a-z0-9à-ỹ]+/g, '');
-const xepNhan = (chu, px, py, ve) => { const k = khoaNhan(chu); if (nhanDa.some((n) => n.k === k && Math.abs(n.x - px) < 220 && Math.abs(n.y - py) < 120)) return; nhanDa.push({ k, x: px, y: py }); nhanSau.push(ve); };
+// NHÃN KHÔNG ĐÈ GÌ (05/11/2026, Ngọc chặn 3 tập: "Bouvines" đè "FRANCE", "Guam" đè hình minh hoạ, "Genko Borui" đè chữ sau): mọi thứ chiếm chỗ trong khung
+// (tên nước bật, nhãn đường kẻ, nhân vật, xe, ô năm, tem series) ghi vào oChiem; nhãn tên nơi xếp LÚC VẼ (sau khi mọi thứ đã ghi), thử dời lên / xuống
+// tới 2 nấc; không còn chỗ thì bỏ nhãn — thà thiếu nhãn còn hơn chữ đè.
+const oChiem = [], chiem = (x0, y0, x1, y1) => oChiem.push([x0, y0, x1, y1]), chong = (a) => oChiem.some((b) => a[0] < b[2] && a[2] > b[0] && a[1] < b[3] && a[3] > b[1]);
+const xepNhan = (chu, px, py, ve, co_ = 46) => { const k = khoaNhan(chu); if (nhanDa.some((n) => n.k === k && Math.abs(n.x - px) < 220 && Math.abs(n.y - py) < 120)) return; nhanDa.push({ k, x: px, y: py }); nhanSau.push({ chu, px, py, ve, co_ }); };
+function veNhanSau() { if (LC) chiem(40, 100, 420, 330); if (C.nhan_dien?.tem) chiem(W - 520, 50, W, 190);   // ô năm (vẽ sau) + tem series
+  for (const n of nhanSau) { x.font = `400 ${n.co_ * 1.05}px Anton, Impact, sans-serif`; const w = x.measureText(n.chu).width + n.co_ * 0.5, h = n.co_ * 1.3;
+  for (const dy of [0, -(h + 10), h + 10, -2 * (h + 10), 2 * (h + 10)]) { const o = [n.px - w / 2, n.py + dy - h, n.px + w / 2, n.py + dy + 10];
+    if (o[0] < 10 || o[2] > W - 10 || o[1] < 10 || chong(o)) continue; oChiem.push(o); n.ve(dy); break; } } nhanSau.length = 0; nhanDa.length = 0; oChiem.length = 0; }
 // NHÃN TRÁNH DẢI PHỤ ĐỀ (05/11/2026, Ngọc chặn Agincourt khung 1: nhãn "Azincourt" nằm ngay dưới dòng phụ đề H·0,835): nhãn rơi vào dải phụ đề → đẩy lên sát mép trên dải
 const Y_PD = [H * 0.78, H * 0.89], neTranhPhuDe = (y) => (y > Y_PD[0] && y < Y_PD[1] ? Y_PD[0] - 8 : y);
 function chuVien(t, px, py, size, mau = '#2b2116', vien = 'rgba(248,240,222,.95)', can = 'center', dam = 700, font = FONT_TEN()) {
@@ -199,17 +207,18 @@ window.__seek = (t) => { nvTren = 1e9;
   for (const g of s.c.goi || []) { const q = u - g.t; if (q < 0 || q > 3.2) continue; const loe = Math.exp(-q * 2.2), al = (0.2 + 0.55 * loe) * kep((3.2 - q) / 0.8);
     for (const iso of g.iso) for (const p of phan(iso)) { x.save(); vePoly(p.ring); x.globalAlpha = al; x.fillStyle = LC ? '#ffe14d' : '#e6b23a'; if (!LC) { x.shadowColor = '#ffd36a'; x.shadowBlur = 50 * loe + 8; } x.fill(); x.restore();
       vePoly(p.ring); x.strokeStyle = LC ? `rgba(17,17,17,${kep((3.2 - q) / 0.8)})` : `rgba(255,214,90,${(0.5 + 0.5 * loe) * kep((3.2 - q) / 0.8)})`; x.lineWidth = LC ? 7 : 3 + 5 * loe; x.stroke(); }
-    if (g.o && q < 2.4) { const [px, py] = chieu(...g.o), pop = q < 0.25 ? 0.6 + 0.55 * out(q / 0.25) : 1 + 0.15 * Math.max(0, 1 - (q - 0.25) / 0.2); x.save(); x.globalAlpha = kep((2.4 - q) / 0.4); x.translate(px, py); x.scale(pop, pop); if (LC) { x.rotate(-0.05); chuDam(g.ten.toUpperCase(), 0, 0, 70, '#ffe14d'); } else chuVien(g.ten.toUpperCase(), 0, 0, 52, '#5a2a08', 'rgba(255,240,200,.97)'); x.restore(); } }
+    // tên nước bật: xếp TRƯỚC mọi nhãn khác (cùng hàng veNhanSau → né xe / người / cờ vẽ sau nó)
+    if (g.o && q < 2.4) { const [px, py] = chieu(...g.o), pop = q < 0.25 ? 0.6 + 0.55 * out(q / 0.25) : 1 + 0.15 * Math.max(0, 1 - (q - 0.25) / 0.2); xepNhan(g.ten.toUpperCase(), px, py + (LC ? 35 : 26), (dy) => { x.save(); x.globalAlpha = kep((2.4 - q) / 0.4); x.translate(px, py + dy); x.scale(pop, pop); if (LC) { x.rotate(-0.05); chuDam(g.ten.toUpperCase(), 0, 0, 70, '#ffe14d'); } else chuVien(g.ten.toUpperCase(), 0, 0, 52, '#5a2a08', 'rgba(255,240,200,.97)'); x.restore(); }, LC ? 74 : 54); } }
   for (const c of s.c.tp || []) { const q = u - c.t; if (q < 0) continue; const [px, py] = chieu(...c.o);
     for (let i = 0; i < 2; i++) { const r = ((q * 0.8 + i * 0.5) % 1); x.strokeStyle = `rgba(43,29,16,${(1 - r) * 0.8})`; x.lineWidth = 4; x.beginPath(); x.arc(px, py, 10 + r * 60, 0, 7); x.stroke(); }
     x.fillStyle = '#2b1d10'; x.beginPath(); x.arc(px, py, 11, 0, 7); x.fill(); x.fillStyle = '#f0dcae'; x.beginPath(); x.arc(px, py, 5, 0, 7); x.fill();
-    { const al_ = kep(q / 0.3); xepNhan(c.ten, px, py, () => { x.globalAlpha = al_; chuVien(c.ten, px, neTranhPhuDe(py - 44), 42, '#2b1d10'); x.globalAlpha = 1; }); } }
+    { const al_ = kep(q / 0.3); xepNhan(c.ten, px, py - 44, (dy) => { x.globalAlpha = al_; chuVien(c.ten, px, neTranhPhuDe(py - 44 + dy), 42, '#2b1d10'); x.globalAlpha = 1; }, 42); } }
   // mũi tên quân
   for (const m of s.c.ten || []) muiTen(m.tu, m.den, out(kep((u - 0.4) / 1.4)), m.mau);
   // phương tiện chạy theo đường cong (ảnh minh hoạ nhìn ngang; đi sang trái thì lật)
   for (const v of s.c.xe || []) { const img = NV[`${v.anh}:goc`]; if (!img) continue; const k2 = io(kep((u - (v.tre ?? 0.5)) / (v.giay ?? 2.5))); if (u < (v.tre ?? 0.5)) continue;
     const P = duong(v.tu, v.den), [px, py] = P(k2), [qx] = P(Math.min(1, k2 + 0.01)), trai = (v.den[0] < v.tu[0]), h = v.cao ?? 150, w = (img.width / img.height) * h;
-    x.save(); x.translate(px, py + Math.sin(u * 18) * 1.5); x.scale(trai ? -1 : 1, 1); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 16; x.shadowOffsetY = 8; x.drawImage(img, -w / 2, -h * 0.85, w, h); x.restore(); }
+    x.save(); x.translate(px, py + Math.sin(u * 18) * 1.5); x.scale(trai ? -1 : 1, 1); x.shadowColor = 'rgba(0,0,0,.5)'; x.shadowBlur = 16; x.shadowOffsetY = 8; x.drawImage(img, -w / 2, -h * 0.85, w, h); x.restore(); chiem(px - w / 2, py - h * 0.85, px + w / 2, py + h * 0.15); }
   // vòng tròn đỏ vẽ tay khoanh điểm lạ (hook)
   for (const p of s.c.vong || []) { const k3 = out(kep((u - (s.c.mo ? 1.2 : 0.4)) / 0.6)); if (!k3) continue; const [px, py] = chieu(...p);
     x.save(); x.strokeStyle = '#c0281f'; x.lineWidth = 12; x.lineCap = 'round'; x.shadowColor = 'rgba(0,0,0,.35)'; x.shadowBlur = 8; x.beginPath();
@@ -221,18 +230,18 @@ window.__seek = (t) => { nvTren = 1e9;
     x.save(); x.shadowColor = 'rgba(0,0,0,.4)'; x.shadowBlur = 10; x.strokeStyle = '#3b2a18'; x.lineWidth = 7; x.lineCap = 'round'; x.beginPath(); x.moveTo(px, py); x.lineTo(px, top); x.stroke(); x.restore();
     if (k4 > 0.5) { const n = 30; for (let i = 0; i < n; i++) { const sx = (i / n) * img.width, dx = (i / n) * fw, song = Math.sin(u * 5 - i * 0.35) * 7 * (i / n), sang = 0.85 + 0.15 * Math.cos(u * 5 - i * 0.35);
       x.globalAlpha = kep((k4 - 0.5) * 2); x.filter = `brightness(${sang})`; x.drawImage(img, sx, 0, img.width / n + 1, img.height, px + dx, top + song, fw / n + 1, fh); }
-      x.filter = 'none'; x.globalAlpha = 1; } }
+      x.filter = 'none'; x.globalAlpha = 1; } chiem(px - 6, top - 10, px + fw + 6, py); }
   // điểm nháy
   // ĐƯỜNG KẺ (ranh giới hiệp ước, kinh tuyến chia đất, biên giới mới): nét đứt đỏ sẫm kéo dần từ tu tới den trong 1,4 s, nhãn giữa đường
   for (const [i, k] of (s.c.ke || []).entries()) { const q = kep((u - 0.5 - i * 0.6) / 1.4); if (!q) continue; const [x0, y0] = chieu(...k.tu), [x1, y1] = chieu(...k.den), e = io(q);
     x.save(); x.strokeStyle = 'rgba(110,20,16,.92)'; x.lineWidth = 8; x.setLineDash([26, 16]); x.lineCap = 'round'; x.shadowColor = 'rgba(255,240,200,.8)'; x.shadowBlur = 8;
     x.beginPath(); x.moveTo(x0, y0); x.lineTo(x0 + (x1 - x0) * e, y0 + (y1 - y0) * e); x.stroke(); x.restore();
-    if (k.nhan && q > 0.6) { x.globalAlpha = kep((q - 0.6) / 0.3); chuVien(k.nhan.toUpperCase(), (x0 + x1) / 2 + 20, (y0 + y1) / 2, 40, '#6e1410', 'rgba(255,240,200,.95)'); x.globalAlpha = 1; } }
+    if (k.nhan && q > 0.6) { { const mx = (x0 + x1) / 2 + 20, my = (y0 + y1) / 2, w_ = k.nhan.length * 26 + 30; chiem(mx - w_ / 2, my - 30, mx + w_ / 2, my + 30); nhanDa.push({ k: khoaNhan(k.nhan), x: mx, y: my }); } x.globalAlpha = kep((q - 0.6) / 0.3); chuVien(k.nhan.toUpperCase(), (x0 + x1) / 2 + 20, (y0 + y1) / 2, 40, '#6e1410', 'rgba(255,240,200,.95)'); x.globalAlpha = 1; } }
   for (const p of s.c.nhay || []) { const [px, py] = chieu(...p); for (let i = 0; i < 2; i++) { const q = ((u * 0.9 + i * 0.5) % 1); x.strokeStyle = `rgba(158,43,37,${1 - q})`; x.lineWidth = 6; x.beginPath(); x.arc(px, py, 14 + q * 70, 0, 7); x.stroke(); } x.fillStyle = '#9e2b25'; x.beginPath(); x.arc(px, py, 12, 0, 7); x.fill(); }
   // nhãn + ghim
   (s.c.nhan || []).forEach((n, i) => { const al = kep((u - 0.5 - i * 0.25) / 0.4); if (!al) return; const [px, py] = chieu(...n.o); x.globalAlpha = al;
     if (n.ghim) { x.fillStyle = '#2b2116'; x.beginPath(); x.arc(px, py, 10, 0, 7); x.fill(); x.fillStyle = '#e8d9b8'; x.beginPath(); x.arc(px, py, 4, 0, 7); x.fill(); }
-    x.globalAlpha = 1; xepNhan(n.chu, px, py, () => { x.globalAlpha = al; chuVien(n.chu, px, neTranhPhuDe(py - (n.ghim ? 52 : 0)), n.chu === n.chu.toUpperCase() ? 50 : 46, '#2b2116'); x.globalAlpha = 1; }); });
+    x.globalAlpha = 1; xepNhan(n.chu, px, py - (n.ghim ? 52 : 0), (dy) => { x.globalAlpha = al; chuVien(n.chu, px, neTranhPhuDe(py - (n.ghim ? 52 : 0) + dy), n.chu === n.chu.toUpperCase() ? 50 : 46, '#2b2116'); x.globalAlpha = 1; }, n.chu === n.chu.toUpperCase() ? 50 : 46); });
   // người phẳng bước vào
   const dsNv = s.c.nguoi || [];
   dsNv.forEach((n, i) => { const al = out(kep((u - (n.tre ?? 0.5 + i * 0.35)) / 0.55)); if (!al) return;
@@ -248,16 +257,16 @@ window.__seek = (t) => { nvTren = 1e9;
     if (img && LC) { const raw = kep((u - (n.tre ?? 0.5 + i * 0.35)) / 0.45), sc = nay_(raw), buoc = Math.floor(u * 8), lac = Math.sin(buoc * 1.7 + i * 2) * 0.035;
       const dan = hinhDan(img, `${n.anh}:${dg ? dg[1] : 'goc'}`, 640), nhun = dg ? 1 + 0.14 * Math.max(0, 1 - (u - dg[0]) / 0.22) : 1, nhay = Math.abs(Math.sin(buoc * 0.9 + i)) * 6;
       x.save(); x.translate(cx, H * 0.735 - nhay); x.rotate(lac + (1 - raw) * (i % 2 ? 0.6 : -0.6)); x.scale((lat ? -1 : 1) * sc * nhun, sc * nhun);
-      x.shadowColor = 'rgba(0,0,0,.4)'; x.shadowOffsetX = 12; x.shadowOffsetY = 14; x.drawImage(dan, -dan.width / 2, -dan.height + 18); x.restore(); nvTren = Math.min(nvTren, H * 0.735 - nhay - (dan.height - 18) * sc * nhun);
+      x.shadowColor = 'rgba(0,0,0,.4)'; x.shadowOffsetX = 12; x.shadowOffsetY = 14; x.drawImage(dan, -dan.width / 2, -dan.height + 18); x.restore(); nvTren = Math.min(nvTren, H * 0.735 - nhay - (dan.height - 18) * sc * nhun); chiem(cx - dan.width * sc * nhun / 2, H * 0.735 - nhay - (dan.height - 18) * sc * nhun, cx + dan.width * sc * nhun / 2, H * 0.735 + 75);
       if (raw > 0.5) { x.save(); x.translate(cx, H * 0.735 + 40); x.rotate(i % 2 ? 0.04 : -0.04); x.font = '400 40px Anton, Impact, sans-serif'; const tw = x.measureText(n.ten.toUpperCase()).width + 36;
         x.fillStyle = '#111'; x.fillRect(-tw / 2 + 6, -28 + 7, tw, 56); x.fillStyle = '#ffe14d'; x.fillRect(-tw / 2, -28, tw, 56); x.fillStyle = '#111'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(n.ten.toUpperCase(), 0, 2); x.restore(); } }
     else if (img) { const h = 640, w = (img.width / img.height) * h, tho = 1 + 0.008 * Math.sin(u * 2.4 + i);
       x.save(); x.globalAlpha = al; x.translate(cx, H * 0.735 + (1 - al) * 120); x.scale((lat ? -1 : 1) * nay, tho * nay);
-      x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 30; x.shadowOffsetY = 12; x.drawImage(img, -w / 2, -h, w, h); x.restore(); nvTren = Math.min(nvTren, H * 0.735 - h * tho * nay);
+      x.shadowColor = 'rgba(0,0,0,.45)'; x.shadowBlur = 30; x.shadowOffsetY = 12; x.drawImage(img, -w / 2, -h, w, h); x.restore(); nvTren = Math.min(nvTren, H * 0.735 - h * tho * nay); chiem(cx - w / 2, H * 0.735 - h * tho * nay, cx + w / 2, H * 0.735 + 60);
       x.globalAlpha = al; chuVien(n.ten, cx, H * 0.735 + 34 + (1 - al) * 120, 36, '#2b1d10'); x.globalAlpha = 1; }
     else { const [px, py] = chieu(...n.o); x.globalAlpha = al; nguoi(px, py + (1 - al) * 60, n.mu, n.mau, n.ten, u); x.globalAlpha = 1; } });
   // NHÃN TÊN NƠI vẽ SAU xe + người (02/11/2026, Ngọc chặn Alaska: thợ mỏ đi tới Skagway đứng đè chữ Skagway) — mọi nhãn điểm / nhãn vùng nằm trên lớp hình
-  nhanSau.forEach((f) => f()); nhanSau.length = 0; nhanDa.length = 0;
+  veNhanSau();
   // TRANH CẢNH đầy khung chen giữa bản đồ (tranh.tu → tranh.den, giây trong cảnh): máy đẩy chậm, lớp nhân vật trước trôi lệch nền (chiều sâu),
   // bụi bay trong nắng, chuyển mềm 0,35 s — bản đồ kể "ở đâu", tranh kể "chuyện gì"
   const tr_ = s.c.tranh;

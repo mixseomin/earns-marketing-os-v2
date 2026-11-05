@@ -5,5 +5,5 @@ assert.strictEqual(choGio({ trang_thai: 'ACTIVE', lich, dong_bo: 'done' }, now),
 assert.strictEqual(dangChay({ trang_thai: 'ACTIVE', lich, dong_bo: 'done' }, now), false, 'ACTIVE hẹn giờ chưa tới = chưa chạy');
 assert.strictEqual(dangChay({ trang_thai: 'ACTIVE', lich, dong_bo: 'done' }, Date.UTC(2026, 10, 6, 1)), true);
 assert.strictEqual(dangChay({ trang_thai: 'ACTIVE', lich: null, dong_bo: 'done' }, now), true);
-assert.strictEqual(chuHen(lich), 'hẹn 07:00 06/11');
+assert.strictEqual(chuHen(lich, now), 'hẹn 07:00'); assert.strictEqual(chuHen(lich, now - 2 * 86_400_000), 'hẹn 07:00 06/11');
 console.log('etp-chay: đạt');

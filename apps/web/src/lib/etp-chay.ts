@@ -7,6 +7,6 @@ export const dangTao = (c: Pick<CampTt, 'dong_bo'>) => !!c.dong_bo && !['done', 
 export const choGio = (c: CampTt, now = Date.now()) => !!c.lich && Date.parse(c.lich) > now && (c.trang_thai === 'ACTIVE' || dangTao(c));
 /** đang chạy thật = ACTIVE và đã tới giờ chạy */
 export const dangChay = (c: CampTt, now = Date.now()) => c.trang_thai === 'ACTIVE' && !choGio(c, now);
-/** "hẹn 07:00 06/11" cho camp chờ giờ */
-export const chuHen = (lich: string) => { const d = new Date(Date.parse(lich) + 7 * 3600_000); const p = (n: number) => String(n).padStart(2, '0');
-  return `hẹn ${p(d.getUTCHours())}:${p(d.getUTCMinutes())} ${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}`; };
+/** "hẹn 07:00" (trong 24 giờ tới) / "hẹn 07:00 08/11" cho camp chờ giờ */
+export const chuHen = (lich: string, now = Date.now()) => { const t = Date.parse(lich), d = new Date(t + 7 * 3600_000); const p = (n: number) => String(n).padStart(2, '0');
+  return `hẹn ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}${t - now < 86_400_000 ? '' : ` ${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}`}`; };   // trong 24 giờ tới chỉ ghi giờ (ô hẹp)

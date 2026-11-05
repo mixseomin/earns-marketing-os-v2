@@ -78,12 +78,15 @@ def _lan(api, cid, chieu):
 def lan_tang(api, cid): return _lan(api, cid, +1)
 def lan_giam(api, cid): return _lan(api, cid, -1)
 
-def chan_tang(api, cid, bay_gio=None, du=None):
-    """→ câu lý do nếu CHƯA được tăng (vừa tăng / đủ lần trong ngày), None nếu được. du = camp đạt cổng tăng dồn (None → tự đọc API khi cần)"""
+def cho_tang(api, cid, bay_gio=None, du=None):
+    """→ (câu lý do, mốc UTC được tăng) nếu CHƯA được tăng (vừa tăng / vừa giảm / đủ lần trong ngày), (None, None) nếu được.
+    MỘT luật cho lệnh tăng (chan_tang) và thẻ xét luật (luat-ethopex: dòng "Nhịp tăng" + cho_toi — trang etp ghi còn bao lâu máy tăng, anh 06/11/2026).
+    du = camp đạt cổng tăng dồn (None → tự đọc API khi cần)"""
     now = bay_gio or dt.datetime.now(dt.timezone.utc); vn = lambda x: x + dt.timedelta(hours=7)
     g = lan_giam(api, cid)
     if g and (now - g[0]).total_seconds() < KHOA_SAU_GIAM_GIO * 3600:   # CHỐNG TĂNG–GIẢM QUA LẠI: vừa giảm thì khoá tăng KHOA_SAU_GIAM_GIO giờ
-        return f"vừa giảm lúc {vn(g[0]):%H:%M %d/%m} — khoá tăng tới {vn(g[0] + dt.timedelta(hours=KHOA_SAU_GIAM_GIO)):%H:%M %d/%m}"
+        mo = g[0] + dt.timedelta(hours=KHOA_SAU_GIAM_GIO)
+        return f"vừa giảm lúc {vn(g[0]):%H:%M %d/%m} — khoá tăng tới {vn(mo):%H:%M %d/%m}", mo
     ls = lan_tang(api, cid)
     if ls and (now - ls[0]).total_seconds() < NGHI_GIO * 3600:
         gap = (now - ls[0]).total_seconds() / 3600
@@ -91,11 +94,17 @@ def chan_tang(api, cid, bay_gio=None, du=None):
             try: du = du_don(api, cid, now)
             except Exception: du = False
         if gap < NGHI_DON_GIO or not du:
-            return (f"vừa tăng lúc {vn(ls[0]):%H:%M} — chờ tới {vn(ls[0] + dt.timedelta(hours=NGHI_GIO)):%H:%M} (cách nhau ≥ {NGHI_GIO} giờ; "
-                    f"đã tiêu ≥ {float(KD['nap_chi']):.0%} ngân sách mới + ROI hôm nay ≥ {KD['sang_roi']}% thì được từ {vn(ls[0] + dt.timedelta(hours=NGHI_DON_GIO)):%H:%M})")
+            return ((f"vừa tăng lúc {vn(ls[0]):%H:%M} — chờ tới {vn(ls[0] + dt.timedelta(hours=NGHI_GIO)):%H:%M} (cách nhau ≥ {NGHI_GIO} giờ; "
+                     f"đã tiêu ≥ {float(KD['nap_chi']):.0%} ngân sách mới + ROI hôm nay ≥ {KD['sang_roi']}% thì được từ {vn(ls[0] + dt.timedelta(hours=NGHI_DON_GIO)):%H:%M})"),
+                    ls[0] + dt.timedelta(hours=NGHI_DON_GIO if gap < NGHI_DON_GIO and du else NGHI_GIO))
     hom = [x for x in ls if vn(x).date() == vn(now).date()]
-    if TOI_DA_NGAY and len(hom) >= TOI_DA_NGAY: return f"đã tăng {len(hom)} lần hôm nay (tối đa {TOI_DA_NGAY}/ngày) — để sang mốc 8h mai"
-    return None
+    if TOI_DA_NGAY and len(hom) >= TOI_DA_NGAY:
+        return f"đã tăng {len(hom)} lần hôm nay (tối đa {TOI_DA_NGAY}/ngày) — để sang mốc 8h mai", None
+    return None, None
+
+def chan_tang(api, cid, bay_gio=None, du=None):
+    """→ câu lý do nếu CHƯA được tăng, None nếu được (cho_tang là luật)"""
+    return cho_tang(api, cid, bay_gio, du)[0]
 
 if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     u = lambda s: dt.datetime.fromisoformat(s + "+00:00")

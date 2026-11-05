@@ -26,20 +26,10 @@ export function docHoan(cauHinh: { khoa: string; gia_tri: unknown }[], now = Dat
   if (!cu) for (const h of ['tang', 'giam', 'tat'] as const) for (const id of g?.[h] ?? []) ds.set(Number(id), h);   // tắt ghi sau cùng = tắt thắng
   return { luc, cu, ds };
 }
-// KHI NÀO MÁY THỰC SỰ TĂNG luật tăng đã đạt (anh 06/11/2026 "camp có thể tăng bậc thì ghi thêm bao lâu nữa sẽ thực sự tăng"): somTang (cổng nhịp tăng) + lucTang (khung + nhịp máy)
+// KHI NÀO MÁY THỰC SỰ TĂNG luật tăng đã đạt (anh 06/11/2026 "camp có thể tăng bậc thì ghi thêm bao lâu nữa sẽ thực sự tăng"): cổng nhịp tăng do máy luật tính (thẻ Tăng bậc · cho_toi) + lucTang (khung + nhịp máy)
 /** máy luật chạy NHIP_PHUT phút / lần (apps/cty/worker/nhip.mjs kiem-ethopex) */
 export const NHIP_PHUT = 30;
-/** CỔNG NHỊP TĂNG (đúng nhip_tang.chan_tang): vừa GIẢM → khoá tăng khoa_sau_giam_gio giờ; vừa TĂNG → cách nghi_gio giờ, hoặc nghi_don_gio giờ khi tiêu dồn
- *  (đã tiêu ≥ nap_chi × ngân sách + ROI hôm nay ≥ sang_roi). bac = lịch sử bậc của camp (cũ → mới). → { som: mốc sớm nhất (ms), ly: vì sao chờ | null } */
-export function somTang(bac: { luc: string; truoc: string | null; sau: string | null }[], don: boolean): { som: number; ly: string | null } {
-  const doi = bac.filter((x) => x.truoc != null && x.sau != null && Number(x.sau) !== Number(x.truoc));
-  const tang = doi.filter((x) => Number(x.sau) > Number(x.truoc)).at(-1), giam = doi.filter((x) => Number(x.sau) < Number(x.truoc)).at(-1);
-  const g = giam ? Date.parse(giam.luc) + KD.khoa_sau_giam_gio * 3_600_000 : 0, t = tang ? Date.parse(tang.luc) + (don ? KD.nghi_don_gio : KD.nghi_gio) * 3_600_000 : 0;
-  const vn = (ms: number) => new Date(ms + 7 * 3_600_000).toISOString().slice(11, 16);
-  return { som: Math.max(g, t), ly: t >= g && tang ? `vừa tăng lúc ${vn(Date.parse(tang.luc))} — cách ≥ ${don ? `${KD.nghi_don_gio} giờ (đang tiêu dồn)` : `${KD.nghi_gio} giờ (tiêu ≥ ${Math.round(KD.nap_chi * 100)}% NS + ROI hôm nay ≥ ${KD.sang_roi}% thì ${KD.nghi_don_gio} giờ)`}`
-    : giam ? `vừa giảm lúc ${vn(Date.parse(giam.luc))} — khoá tăng ${KD.khoa_sau_giam_gio} giờ` : null };
-}
-/** mốc máy thực sự tăng: nhịp máy luật (NHIP_PHUT phút, lần gần nhất = sổ hoãn `luc`) đầu tiên ≥ `som` (cổng nhịp tăng) rơi vào khung tăng — hoặc khung sáng khi tiêu dồn (nạp sáng).
+/** mốc máy thực sự tăng: nhịp máy luật (NHIP_PHUT phút, lần gần nhất = sổ hoãn `luc`) đầu tiên ≥ `som` (cổng nhịp tăng — cho_toi của thẻ máy) rơi vào khung tăng — hoặc khung sáng khi tiêu dồn (nạp sáng).
  *  null khi sổ cũ (máy không chạy) */
 export function lucTang(luc: string | null, cu: boolean, now = Date.now(), som = 0, don = false): number | null {
   if (!luc || cu) return null;

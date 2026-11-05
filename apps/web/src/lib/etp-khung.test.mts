@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import { khungLuc, hetKhung, gioVnNay, docHoan, chuLich, lucTang, somTang } from './etp-khung';
+import { khungLuc, hetKhung, gioVnNay, docHoan, chuLich, lucTang } from './etp-khung';
 import { khungCua, roiNap } from '../../../cty/worker/ethopex.mjs';   // kiểm chéo: worker đọc cùng sổ luật khung_doi
 
 assert.deepStrictEqual([0, 6.9, 7, 14.9, 15, 20.9, 21, 22.5, 23, 23.9].map(khungLuc), ['tang', 'tang', 'sang', 'sang', 'giam', 'giam', 'tang', 'tang', 'tang', 'tang']);   // 05/11/2026 đảo khung: tăng 21–07 (qua nửa đêm) · giảm/tắt 15–21 · nạp sáng 07–15
@@ -20,10 +20,9 @@ assert.strictEqual(chuLich(Date.UTC(2026, 10, 5, 1, 0)), 'chạy ngay'); assert.
   assert.strictEqual(lucTang(luc, false, Date.UTC(2026, 10, 5, 18, 10)), Date.UTC(2026, 10, 5, 18, 30), '01:10 VN trong khung tăng → nhịp 01:30');
   assert.strictEqual(lucTang(luc, false, Date.UTC(2026, 10, 6, 9, 5)), Date.UTC(2026, 10, 6, 14, 0), '16:05 VN ngoài khung → nhịp đầu từ 21:00');
   assert.strictEqual(lucTang(luc, true, Date.UTC(2026, 10, 5, 18, 10)), null, 'sổ cũ → không hứa'); }
-// somTang (cổng nhịp tăng, đúng nhip_tang.chan_tang): vừa tăng 14:44 VN 05/11 → không dồn: chờ tới 14:44 06/11 rồi khung tăng 21:00 · dồn: 17:44 → khung tăng 21:00; vừa giảm → khoá 6 giờ
-{ const bac = [{ luc: '2026-11-05T07:44:00Z', truoc: '1', sau: '2' }], luc = '2026-11-05T18:00:00Z', bay = Date.UTC(2026, 10, 5, 18, 10);
-  const k = somTang(bac, false); assert.strictEqual(k.som, Date.UTC(2026, 10, 6, 7, 44)); assert.ok(k.ly?.startsWith('vừa tăng lúc 14:44'));
-  assert.strictEqual(lucTang(luc, false, bay, k.som, false), Date.UTC(2026, 10, 6, 14, 0), 'vừa tăng chưa đủ 24 giờ → nhịp đầu từ 21:00 06/11');
-  assert.strictEqual(lucTang(luc, false, bay, somTang(bac, true).som, true), Date.UTC(2026, 10, 5, 18, 30), 'tiêu dồn: đã quá 3 giờ → nhịp kế 01:30');
-  assert.strictEqual(somTang([{ luc: '2026-11-05T17:00:00Z', truoc: '3', sau: '2' }], true).som, Date.UTC(2026, 10, 5, 23, 0), 'vừa giảm → khoá 6 giờ'); }
+// lucTang + mốc cổng nhịp (cho_toi của thẻ máy): chưa tới cổng → nhịp đầu trong khung tăng sau cổng; tiêu dồn → khung sáng cũng được
+{ const luc = '2026-11-05T18:00:00Z', bay = Date.UTC(2026, 10, 5, 18, 10), cong = Date.UTC(2026, 10, 6, 14, 27);   // cổng 21:27 VN 06/11
+  assert.strictEqual(lucTang(luc, false, bay, cong, false), Date.UTC(2026, 10, 6, 14, 30), 'cổng 21:27 → nhịp 21:30 VN');
+  assert.strictEqual(lucTang(luc, false, bay, Date.UTC(2026, 10, 6, 1, 0), true), Date.UTC(2026, 10, 6, 1, 0), 'tiêu dồn, cổng 08:00 VN → nạp khung sáng 08:00');
+  assert.strictEqual(lucTang(luc, false, bay, Date.UTC(2026, 10, 6, 1, 0), false), Date.UTC(2026, 10, 6, 14, 0), 'không dồn, cổng 08:00 VN → đợi khung tăng 21:00'); }
 console.log('etp-khung: đạt');

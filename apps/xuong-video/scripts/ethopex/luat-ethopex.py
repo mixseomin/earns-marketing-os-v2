@@ -1054,9 +1054,18 @@ def _xet_luat():
         _ts = _ts_ly(cid); dk_ts = [f"Siết tăng TS (02/11): sau {TS_GIO[1]}:00 (nạp sáng: tiêu hết + ROI hôm nay ≥ {KD['sang_roi']}% thì được) · hôm qua không lãi 0–50%", _ts or "qua", "không chặn", _ts is None]
         dk_tang = dk_tang + [dk_ts] + ([] if b2 else [_don_dk(cid, ns)])
         _don_ghi = None if b2 or _don_dk(cid, ns)[3] else f"tiêu dồn (≥ {NT.DON_13H:.0%} ngân sách tới {7 + NT.DON_GIO}h) — hoãn tăng tối nay, hôm sau tiêu đều thì tăng như thường"
+        # NHỊP TĂNG (anh 06/11/2026 "camp có thể tăng bậc thì ghi thêm bao lâu nữa sẽ thực sự tăng"): đúng cổng lệnh tăng dùng (nhip_tang.cho_tang — lịch sử ngân sách
+        # Ethopex, gồm cả lần đổi ngoài máy luật). Chỉ gọi khi mọi điều kiện khác đã đạt (một lượt đọc lịch sử / camp). cho_toi → trang etp tính mốc máy thực sự tăng
+        _cho_toi = None
+        if not b2 and all(x[3] for x in dk_tang):
+            try: _ly_n, _mo_n = NT.cho_tang(api, int(cid), du=NT.du_so(h.get("chi"), h.get("thu"), a.get("budget") or h.get("budget")))   # cùng cờ tiêu dồn với _loc (bộ lọc ứng viên tăng)
+            except Exception as e: _ly_n, _mo_n = f"không đọc được lịch sử ngân sách: {str(e)[:60]}", None
+            dk_tang = dk_tang + [[f"Nhịp tăng (cách lần tăng trước ≥ {NT.NGHI_GIO} giờ · tiêu dồn {NT.NGHI_DON_GIO} giờ · sau giảm {NT.KHOA_SAU_GIAM_GIO} giờ)", _ly_n or "qua", "không chặn", _ly_n is None]]
+            _cho_toi = _mo_n.isoformat() if _mo_n else None
         ls.append(L("thang_nb" if b2 else "tang", "Thang nhân bản (bộ 2)" if b2 else "Tăng bậc",
             ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại." + (f" Bộ 2: camp gốc tiêu TB ≥ ${THANG_CHI_GOC:g}/ngày 3 ngày đã khép mới mở bản thang (29/10)." if b2 else ""),
             dk_tang, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None), ghi=_don_ghi))
+        if _cho_toi: ls[-1]["cho_toi"] = _cho_toi
         # bộ 2 KHÔNG tăng ngân sách — đủ luật thì mở bản thang, nên cổng mở bản thang mới nằm trong bảng (anh 28/10/2026 #1464 "tăng trong ngày sao lại liên quan đến mở bản thang?": tên luật không nói điều đó)
         ls.append(L("tang_ngay", "Tăng trong ngày → mở bản thang (bộ 2)" if b2 else "Tăng trong ngày", ("Bộ 2 không tăng ngân sách: đủ luật này thì máy MỞ BẢN MỚI ở bậc kế (creative khác cùng phim), nên phải qua cổng mở bản thang. " if b2 else "") + "ROI hôm nay (chỉ cộng các giờ tới đợt chi gần nhất) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không âm (hôm qua âm mà chi hôm qua < max($2, 50% ngân sách) thì bỏ qua — luật B1), ROI khung dài ≥ 0% (29/10). ROI chỉ tính khi chi ≥ $0.3.",
             [["ROI hôm nay", f(rh, "%"), "≥ 50%", rh is not None and rh >= 50], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 30%", bool(ns and h.get("chi", 0) >= 0.3 * ns)],

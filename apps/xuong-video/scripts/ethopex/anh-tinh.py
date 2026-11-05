@@ -20,7 +20,19 @@ D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = o
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 XV = f"{ENV}; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx"
 DANG, NGUON, NGAY_MOI, GIAY_MIN, W, H = "ảnh tĩnh", "anh_tinh", 14, 9.0, 1080, 1920
-GIONG = {"en": ("George", "Watch {t} for Free Now. Watch More Now!"), "es": ("Aria", "¡Mira {t} gratis ahora! ¡Mira más ahora!")}
+CAU = {"en": ("Watch {t}", "for Free Now.", "Watch More Now!"), "es": ("¡Mira {t}", "gratis ahora!", "¡Mira más ahora!")}   # form giọng anh chốt (05/11/2026)
+# GIỌNG THEO PHIM (anh 05/11/2026: "giọng kỳ dị, gào thét, ấn tượng … tuỳ theo film"): kiểu đọc chọn theo thể loại phim (etp.phim.the_loai);
+# chữ giữ nguyên form, chỉ chèn thẻ cách đọc ElevenLabs v3 ([shouting]…) — thẻ không thành tiếng. Thể loại chưa có → giọng thường.
+KIEU_GIONG = {
+    "ky_di":    ("Brian",   "[whispers] {a}... [sinister laugh] {b} [shouting] {c}"),
+    "gao":      ("Callum",  "[shouting] {a} {b} [screaming] {c}"),
+    "cam_xuc":  ("Jessica", "[crying] {a} {b} [shouting] {c}"),
+    "hao_hung": ("Laura",   "[excited] {a} {b} [screams] {c}"),
+    "thuong":   ("George",  "{a} {b} {c}"),
+}
+THE_LOAI_GIONG = {"fantasy": "ky_di", "soi": "ky_di", "vien_tuong": "ky_di", "he_thong": "ky_di",
+                  "vo_danh": "gao", "ty_phu": "gao", "mafia": "gao", "doi_thuong": "gao",
+                  "hoi_han": "cam_xuc", "me_con": "cam_xuc", "tinh_cam": "hao_hung", "hoc_duong": "hao_hung", "co_trang": "hao_hung"}
 LOC = "fps=2/3"   # khung ứng viên: mỗi 1,5 giây (từ giây 3) — một chuỗi lọc cho cả khung nhỏ lẫn khung gốc
 FONT = "/System/Library/Fonts/Supplemental/Georgia Bold Italic.ttf"
 MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "3M", "-maxrate", "4500k", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100"]   # như cat-canh.MA_HOA (Mac)
@@ -36,7 +48,7 @@ def chon(so):
                                      capture_output=True, text=True, check=True).stdout.strip() or "{}")
     ds = json.loads(sql(f"""with p as (select c.content_id, min(c.tao) dau, sum(n.chi) filter (where n.ngay >= current_date - 3) chi3, sum(n.thu) filter (where n.ngay >= current_date - 3) thu3
         from etp.camp c join etp.so_ngay n using (camp_id) where c.content_id is not null group by 1)
-      select coalesce(json_agg(x order by x.dau desc), '[]') from (select p.content_id, f.ten, coalesce(f.locale, 'en') locale, f.url, p.dau, round(p.thu3 - p.chi3, 2) lai3 from p join etp.phim f using (content_id)
+      select coalesce(json_agg(x order by x.dau desc), '[]') from (select p.content_id, f.ten, coalesce(f.locale, 'en') locale, f.url, f.the_loai, p.dau, round(p.thu3 - p.chi3, 2) lai3 from p join etp.phim f using (content_id)
         where p.dau > now() - interval '{NGAY_MOI} days' and p.chi3 >= 3 and p.thu3 > p.chi3 and f.url is not null
           and exists (select 1 from etp.camp k where k.content_id = p.content_id and k.trang_thai = 'ACTIVE')
           and not exists (select 1 from etp.thu_vien v where v.content_id = p.content_id and v.dang = '{DANG}')) x""") or "[]")
@@ -45,7 +57,7 @@ def chon(so):
     return [x for x in ds if str(x["content_id"]) not in chan][:so]
 
 def phim(ids):
-    return json.loads(sql(f"select coalesce(json_agg(x), '[]') from (select content_id, ten, coalesce(locale, 'en') locale, url from etp.phim where content_id in ({','.join(map(str, ids))})) x") or "[]")
+    return json.loads(sql(f"select coalesce(json_agg(x), '[]') from (select content_id, ten, coalesce(locale, 'en') locale, url, the_loai from etp.phim where content_id in ({','.join(map(str, ids))})) x") or "[]")
 
 def may_doc():
     import importlib.util
@@ -168,17 +180,18 @@ def anh(cid, ten, k, tm):
     Image.alpha_composite(bong.filter(ImageFilter.GaussianBlur(8)), lop).save(os.path.join(tm, "chu.png"))
     return os.path.join(tm, "nen.png"), os.path.join(tm, "chu.png")
 
-def giong(cid, lang, ten, tm):
+def giong(cid, lang, ten, the_loai, tm):
     """giọng đọc (box3 — khoá FAL chỉ ở đó) → (giong.mp3, ₫ đã chi); cùng câu thì dùng lại, không đọc lần hai"""
-    v, mau = GIONG[lang]; cau = mau.format(t=ten); h = hashlib.sha1(f"{v}|{cau}".encode()).hexdigest()[:10]; f = os.path.join(tm, f"giong-{h}.mp3")
-    if os.path.exists(f): return f, 0
+    kieu = THE_LOAI_GIONG.get(the_loai or "", "thuong"); v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang]
+    cau = mau.format(a=a_.format(t=ten), b=b_, c=c_); h = hashlib.sha1(f"{v}|{cau}".encode()).hexdigest()[:10]; f = os.path.join(tm, f"giong-{h}.mp3")
+    if os.path.exists(f): return f, 0, kieu
     xa = f"/var/tmp/anh-tinh/{cid}"; job = os.path.join(tm, "giong.json")
     json.dump({"ngon_ngu": lang, "giong": {"voice": v}, "cau": [{"chu": cau}]}, open(job, "w"), ensure_ascii=False)
     sh("ssh", B, f"mkdir -p {xa}"); sh("scp", "-q", job, f"{B}:{xa}/giong.json")
     r = sh("ssh", B, f"{XV} scripts/lich-su/giong.mts {xa}/giong.json {xa}", han=600)
     if r.returncode != 0: raise RuntimeError(f"giọng: {(r.stderr or r.stdout)[-200:]}")
     sh("scp", "-q", f"{B}:{xa}/giong.mp3", f)
-    return f, round(len(cau) / 1000 * 0.10 * 26000)
+    return f, round(len(cau) / 1000 * 0.10 * 26000), kieu
 
 def dung(nen, chu, mp3, ra):
     L = max(GIAY_MIN, float(sh("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp3).stdout) + 1.4); n = int(L * 30)
@@ -193,14 +206,14 @@ def mot(p, xem):
     cid, lang = int(p["content_id"]), "es" if str(p.get("locale")).startswith("es") else "en"; ten = ten_sach(p["ten"])
     tm = os.path.join(C, str(cid)); os.makedirs(tm, exist_ok=True)
     try:
-        k = khung(cid, p["url"], tm); nen, chu = anh(cid, ten, k, tm); mp3, vnd = giong(cid, lang, ten, tm)
+        k = khung(cid, p["url"], tm); nen, chu = anh(cid, ten, k, tm); mp3, vnd, kieu = giong(cid, lang, ten, p.get("the_loai"), tm)
         out = os.path.join(tm, f"anh-tinh-{cid}.mp4"); giay = dung(nen, chu, mp3, out)
         r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay))   # cổng chữ trên video (tên phim) — cùng cổng mọi creative
         if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
-        kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "giay": giay, "vnd": vnd, **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
+        kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "giay": giay, "vnd": vnd, "giong": kieu, **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
         if xem: return kq
         xa = f"/var/tmp/anh-tinh/{cid}"; sh("ssh", B, f"mkdir -p {xa}"); sh("rsync", "-a", out, f"{B}:{xa}/", han=900)
-        ghi = f"ảnh tĩnh: {k['tap']} khung #{k['so']} (mỗi 1,5 giây từ giây 3) · điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt)"
+        ghi = f"ảnh tĩnh · giọng {kieu} ({p.get('the_loai') or '?'}): {k['tap']} khung #{k['so']} (mỗi 1,5 giây từ giây 3) · điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt)"
         r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={vnd} --ghi='{ghi}'", han=600)
         if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
         kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)

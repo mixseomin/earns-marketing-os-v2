@@ -9,7 +9,8 @@ MỘT lệnh lo trọn, mỗi phim:
   3. giọng ElevenLabs v3 trên box3 (scripts/lich-su/giong.mts, khoá FAL ở box3; ~60 ký tự ≈ $0,006 ≈ 160₫/phim, dùng lại khi cùng câu)
   4. cổng chữ trên video (kiem-thoai.py) → thư viện etp (thu-vien-them.mts, dạng "ảnh tĩnh", nguồn anh_tinh) → creative (thu-vien-len.py)
 Từ đó nhịp ethopex (apps/cty/worker/ethopex.mjs) thấy creative ảnh tĩnh chấm Sạch của phim đang chạy → lên camp $1, giờ chạy theo lịch chung (nhan-ban.lich_len).
-Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--xem]
+Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--xem] [--giong ky_di|gao|cam_xuc|hao_hung|thuong|theo-phim]
+  giọng mặc định XOAY giữa 5 kiểu (kể cả "thuong" = như bản gốc), dấu kiểu ghi vào etp.diem_cham.cham.voice.giong để đo
   không id = tự chọn N phim (mặc định 10) · --xem = chỉ dựng + tờ khung (~/.cache/ethopex/anh-tinh/to-<giờ>.jpg), không nạp thư viện / tạo creative"""
 import hashlib, json, os, re, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
@@ -180,9 +181,32 @@ def anh(cid, ten, k, tm):
     Image.alpha_composite(bong.filter(ImageFilter.GaussianBlur(8)), lop).save(os.path.join(tm, "chu.png"))
     return os.path.join(tm, "nen.png"), os.path.join(tm, "chu.png")
 
-def giong(cid, lang, ten, the_loai, tm):
+def xoay_giong(ds, yeu_cau):
+    """kiểu giọng cho từng phim → {content_id: kiểu}. Anh 05/11/2026: "khi ren nếu ko yêu cầu thì xoay giữa các giọng. Kể cả giọng như bản gốc là 1 loại".
+    Mặc định XOAY: kiểu ít creative ảnh tĩnh nhất (đếm trong sổ điểm chạm) lên trước, không lặp kiểu phim đó đã có. --giong <kiểu> ép một kiểu,
+    --giong theo-phim chọn theo thể loại (THE_LOAI_GIONG)."""
+    if yeu_cau == "theo-phim": return {int(p["content_id"]): THE_LOAI_GIONG.get(p.get("the_loai") or "", "thuong") for p in ds}
+    if yeu_cau: return {int(p["content_id"]): yeu_cau for p in ds}
+    # đếm trong CHÍNH sổ điểm chạm (hook.dang + noi_dung.content_id do len-creative ghi) — etp.creative chỉ có creative mới sau lượt đồng bộ 10 phút
+    da = json.loads(sql(f"select coalesce(json_agg(x), '[]') from (select (cham->'noi_dung'->>'content_id')::int content_id, cham->'voice'->>'giong' giong from etp.diem_cham "
+                        f"where cham->'hook'->>'dang' = '{DANG}' and cham->'voice'->>'giong' is not null) x") or "[]")
+    dem = {k: sum(1 for x in da if x["giong"] == k) for k in KIEU_GIONG}; ra = {}
+    for p in ds:
+        cid = int(p["content_id"]); co = {x["giong"] for x in da if x["content_id"] == cid}
+        k = min(KIEU_GIONG, key=lambda k: (k in co, dem[k], list(KIEU_GIONG).index(k))); ra[cid] = k; dem[k] += 1
+    return ra
+
+def danh_dau(tv, kieu, lang, ten):
+    """DẤU KIỂU GIỌNG vào sổ điểm chạm của creative (etp.diem_cham.cham) để đo kiểu nào tốt / xấu — anh 05/11/2026. len-creative ghi khuôn
+    cảnh cắt (thoại gốc, nút CTA mẫu Kiên); ảnh tĩnh không có những thứ đó → ghi đúng cái creative này có."""
+    v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang]
+    j = json.dumps({"voice": {"thoai": "khong", "giong": kieu, "nguoi_doc": v, "cau": mau.format(a=a_.format(t=ten), b=b_, c=c_)},
+                    "chu_video": {"bo_cuc": "anh_tinh_ten_phim", "phu_de": "xoa"}, "cta": {"mau": "khong_nut"}}, ensure_ascii=False).replace("$J$", "")
+    return sql(f"update etp.diem_cham d set cham = d.cham || $J${j}$J$::jsonb, luc = now() from etp.thu_vien v where v.id = {int(tv)} and d.creative_id = v.creative_id returning d.creative_id")
+
+def giong(cid, lang, ten, kieu, tm):
     """giọng đọc (box3 — khoá FAL chỉ ở đó) → (giong.mp3, ₫ đã chi); cùng câu thì dùng lại, không đọc lần hai"""
-    kieu = THE_LOAI_GIONG.get(the_loai or "", "thuong"); v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang]
+    v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang]
     cau = mau.format(a=a_.format(t=ten), b=b_, c=c_); h = hashlib.sha1(f"{v}|{cau}".encode()).hexdigest()[:10]; f = os.path.join(tm, f"giong-{h}.mp3")
     if os.path.exists(f): return f, 0, kieu
     xa = f"/var/tmp/anh-tinh/{cid}"; job = os.path.join(tm, "giong.json")
@@ -202,11 +226,11 @@ def dung(nen, chu, mp3, ra):
     if r.returncode != 0: raise RuntimeError(f"ffmpeg: {r.stderr[-300:]}")
     return round(L, 1)
 
-def mot(p, xem):
+def mot(p, xem, kieu):
     cid, lang = int(p["content_id"]), "es" if str(p.get("locale")).startswith("es") else "en"; ten = ten_sach(p["ten"])
     tm = os.path.join(C, str(cid)); os.makedirs(tm, exist_ok=True)
     try:
-        k = khung(cid, p["url"], tm); nen, chu = anh(cid, ten, k, tm); mp3, vnd, kieu = giong(cid, lang, ten, p.get("the_loai"), tm)
+        k = khung(cid, p["url"], tm); nen, chu = anh(cid, ten, k, tm); mp3, vnd, kieu = giong(cid, lang, ten, kieu, tm)
         out = os.path.join(tm, f"anh-tinh-{cid}.mp4"); giay = dung(nen, chu, mp3, out)
         r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay))   # cổng chữ trên video (tên phim) — cùng cổng mọi creative
         if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
@@ -234,13 +258,18 @@ def to_khung(kq, ra):
 if __name__ == "__main__":
     a = sys.argv[1:]; xem = "--xem" in a
     so = int(a[a.index("--so") + 1]) if "--so" in a else 10
+    yc = a[a.index("--giong") + 1] if "--giong" in a else None
+    if yc and yc != "theo-phim" and yc not in KIEU_GIONG: sys.exit(f"--giong phải là một trong: {', '.join(KIEU_GIONG)} · theo-phim")
     ids = [int(x) for x in a if x.isdigit() and (a.index(x) == 0 or a[a.index(x) - 1] != "--so")]
     ds = phim(ids) if ids else chon(so)
     if not ds: sys.exit("không có phim nào hợp (mới bắt đầu lãi, chưa có ảnh tĩnh)")
     print(f"{len(ds)} phim: " + " · ".join(f"{x['content_id']} {ten_sach(x['ten'])[:30]}" for x in ds), flush=True)
-    with ThreadPoolExecutor(3) as ex: kq = list(ex.map(lambda p: mot(p, xem), ds))
+    gk = xoay_giong(ds, yc); print("giọng: " + " · ".join(f"{c} {k}" for c, k in gk.items()), flush=True)
+    with ThreadPoolExecutor(3) as ex: kq = list(ex.map(lambda p: mot(p, xem, gk[int(p["content_id"])]), ds))
     for x in kq: print(json.dumps(x, ensure_ascii=False), flush=True)
     print("tờ khung:", to_khung(kq, os.path.join(C, f"to-{time.strftime('%d%m%H%M')}.jpg")))
     print(f"giọng: {sum(x.get('vnd', 0) for x in kq)}₫")
     tv = [str(x["tv"]) for x in kq if x.get("tv")]
     if tv: subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), *tv])   # thư viện → creative; chấm Sạch thì nhịp ethopex lên camp theo lịch chung
+    for x in kq:
+        if x.get("tv"): print(f"dấu giọng tv{x['tv']} {x['giong']} → creative", danh_dau(x["tv"], x["giong"], x["lang"], x["ten"]) or "(chưa thành creative)")

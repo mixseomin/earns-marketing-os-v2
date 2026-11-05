@@ -450,8 +450,9 @@
         "nhip": "2 tập / tháng",
         "kho": "theo sổ cặp la-so/cap.json",
         "trang": "shot-code/la-so.html (khung ngang)",
-        "sinh": "hop.mjs + zr.mjs (kỳ ZR của CẢ HAI người ở mỗi mốc quen / cưới / chia tay)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-love-story.mp4?v=5"
+        "sinh": "lich-su/viet-love-story.mjs --cap <a--b | all> — 0đ, không AI: mốc đời sổ cặp + bánh xe đôi + 2 góc chiếu chéo + điểm của site + thẻ kỳ ZR (Peak Period / Loosing of the Bond) của người hạng AA ở từng mốc; hook QC spy góc Tình yêu",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-love-story.mp4?v=5",
+        "tu_sinh": "^ls-[a-z0-9-]+$"
       },
       {
         "ma": "sign-x-sign",

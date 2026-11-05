@@ -54,11 +54,12 @@ for (const m of M.moc) {
 them(4.4, { toan: 1 }, 'Find your own chapters free at astrolas.com.', 'astrolas.com · Annual Profections');
 cau.at(-1).khung = true;   // câu kết tự viết (không mang nghĩa chiêm tinh) — máy gác kiểm luật khung
 const { dangCongCu } = await import(join(DIR, '../nguon-site.mjs'));
+const docSoNen = (pl) => JSON.parse(readFileSync(join(DIR, '../so-kenh.json'), 'utf8')).astrolas.playlist.find((p) => p.ma === pl)?.nen ?? 'brand/astrolas/anh/troi.jpg';   // nền theo playlist
 const CAU = { _ghi: `Chart Chapters dài · ${M.ten} — sinh bởi lich-su/dai/sinh-chuong.mjs từ ${tepMoc}`, kenh: 'astrolas', mau: 'chart-chapters-dai', playlist_ma: 'career', y_tuong: `ccd-${slug}`, khung: 'ngang', DAI: cau.at(-1).den,
   nguon_moc: [relative(join(DIR, '..'), resolve(tepMoc))],   // đường tính từ lich-su/ (nguon-site.mjs đọc theo gốc đó)
   // bài đăng: mô tả công cụ Annual Profections của site + link mở thẳng lá số người này
   dang: dangCongCu('annual-profections', slug, {}, `${M.ten}'s life, year by year, in Annual Profections.`),
-  la_so: tg(join(LA_SO, `${slug}.svg`)), nen: tg(join(DIR, '../brand/astrolas/anh/troi.jpg')), logo: tg(join(DIR, '../brand/astrolas/logo/wordmark.png')),
+  la_so: tg(join(LA_SO, `${slug}.svg`)), nen: tg(join(DIR, '..', docSoNen('career'))), logo: tg(join(DIR, '../brand/astrolas/logo/wordmark.png')),
   playlist: { ten: 'Career & Big Decisions', mau: '#E6B800', ic: '♄' }, cau };
 // máy gác sổ kênh (lich-su/so-kenh.json): sai mẫu / playlist / ý tưởng / câu kết thì không ghi
 const { tachCanh } = await import(join(DIR, '../chu-man.mjs')); Object.assign(CAU, tachCanh(CAU));   // mỗi khung một ý ngắn (anh 05/11/2026)

@@ -61,7 +61,7 @@ function vietMot(b, gh, ra) {
     _ghi: `Sign × Sign · ${A} × ${B} — sinh bởi lich-su/viet-sign.mjs (chữ nguyên văn ${b.url}, hook QC spy #${hook.id})`,
     kenh: 'astrolas', mau: 'sign-x-sign', playlist_ma: 'love-compatibility', y_tuong: b.ma, tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
     dang: dangCongCu('compatibility', null, {}, `${A} and ${B} compatibility. Read the full guide: ${b.url}`),
-    la_so: tg(join(DIR, 'la-so/steve-jobs.svg')), chi_vong: true, nen: tg(join(DIR, 'brand/astrolas/anh/troi.jpg')), logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
+    la_so: tg(join(DIR, 'la-so/steve-jobs.svg')), chi_vong: true, nen: tg(join(DIR, pl.nen ?? 'brand/astrolas/anh/troi.jpg'))   /* nền theo playlist (so-kenh › playlist.nen) */, logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
     playlist: { ten: pl.ten, mau: '#FF8FB1', ic: '♡' }, DAI: cau.at(-1).den, cau });
   const loiTap = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loiTap.length) { console.error(`✗ ${b.ma}:\n${loiTap.map((l) => `   · ${l}`).join('\n')}`); return false; }

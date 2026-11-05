@@ -42,7 +42,8 @@
           "sign-x-sign",
           "ask-the-chart"
         ],
-        "trang_dich": "Synastry (/synastry-chart), Compatibility (/compatibility), bài ghép cung"
+        "trang_dich": "Synastry (/synastry-chart), Compatibility (/compatibility), bài ghép cung",
+        "nen": "brand/astrolas/anh/nen/love-compatibility.jpg"
       },
       {
         "ma": "know-yourself",
@@ -75,7 +76,8 @@
           "free-60s",
           "chart-chapters"
         ],
-        "trang_dich": "Birth chart (/birth), /c/<người>, bài <người>-birth-chart"
+        "trang_dich": "Birth chart (/birth), /c/<người>, bài <người>-birth-chart",
+        "nen": "brand/astrolas/anh/nen/know-yourself.jpg"
       },
       {
         "ma": "career",
@@ -104,7 +106,8 @@
           "ask-the-chart",
           "chart-vs-chart"
         ],
-        "trang_dich": "Annual Profections, Zodiacal Releasing"
+        "trang_dich": "Annual Profections, Zodiacal Releasing",
+        "nen": "brand/astrolas/anh/nen/career.jpg"
       },
       {
         "ma": "timing",
@@ -136,7 +139,8 @@
           "sky-calendar",
           "tonights-sky"
         ],
-        "trang_dich": "Today's sky, Transit, Moon Phase, Lunation Analyzer"
+        "trang_dich": "Today's sky, Transit, Moon Phase, Lunation Analyzer",
+        "nen": "brand/astrolas/anh/nen/timing.jpg"
       },
       {
         "ma": "start-here",
@@ -175,7 +179,8 @@
           "how-the-sky-works",
           "free-60s"
         ],
-        "trang_dich": "Birth chart (/birth), bài what-is-a-birth-chart, how-to-read-your-birth-chart-in-10-steps"
+        "trang_dich": "Birth chart (/birth), bài what-is-a-birth-chart, how-to-read-your-birth-chart-in-10-steps",
+        "nen": "brand/astrolas/anh/nen/start-here.jpg"
       },
       {
         "ma": "accurate",
@@ -221,7 +226,8 @@
           "chart-tools",
           "read-your-chart"
         ],
-        "trang_dich": "Birth chart (/birth), công cụ có số liệu"
+        "trang_dich": "Birth chart (/birth), công cụ có số liệu",
+        "nen": "brand/astrolas/anh/nen/accurate.jpg"
       }
     ],
     "giai_doan": [

@@ -33,7 +33,9 @@ html, body { background: #0B1A2E; overflow: hidden; }
 .abs { position: absolute; }
 #nen-anh { inset: 0; width: 1080px; height: 1920px; object-fit: cover; }
 #sao { inset: 0; }
-#phu { inset: 0; background: radial-gradient(ellipse at 50% 38%, rgba(15,34,64,.5) 0%, rgba(11,26,46,.76) 55%, rgba(8,19,34,.9) 100%); }
+/* lớp phủ NHẸ (anh 05/11/2026: nền Ngân Hà phủ tối 76–90% "nhìn hơi ghê") — giữa màn để ảnh nền playlist hiện rõ, chỉ đậm ở vùng chữ cho đọc được */
+#phu { inset: 0; background: linear-gradient(to bottom, rgba(8,19,34,0) 58%, rgba(8,19,34,.55) 74%, rgba(8,19,34,.72) 100%), radial-gradient(ellipse at 50% 38%, rgba(15,34,64,.12) 0%, rgba(11,26,46,.3) 60%, rgba(8,19,34,.5) 100%); }
+body.ngang #phu { background: linear-gradient(to right, rgba(8,19,34,.15) 0%, rgba(8,19,34,.22) 40%, rgba(8,19,34,.68) 70%, rgba(8,19,34,.78) 100%); }
 /* ô lá số: cửa sổ tròn mép mềm — phóng vào thì như nhìn qua thấu kính, không lộ cạnh vuông */
 #tranh { inset: 0; overflow: hidden; }
 #tranh img { position: absolute; inset: 0; width: 1080px; height: 1920px; object-fit: cover; opacity: 0; will-change: transform, opacity; }

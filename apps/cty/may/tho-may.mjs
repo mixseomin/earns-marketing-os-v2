@@ -41,8 +41,8 @@ if (!r0.viec) { log(`không nhận việc: ${r0.ly_do}`); process.exit(0); }
 const v = r0.viec, chu = v.chu.replace(/<[^>]+>/g, ''), laAnh = v.khoa.startsWith('anh:'), goc = laAnh ? String(v.goc ?? '') : v.khoa, laDang = goc.startsWith('dang:') || (laAnh && !goc), laKenh = goc.startsWith('kenh:');   // lệnh anh chạy đúng repo + quyền của việc gốc; không có việc gốc → puzzle-books + ssh box3
 const [kenhMa = '', tapMa = ''] = laKenh ? goc.slice(5).split('|') : [];
 const [, mayMa = '', nenMa = ''] = laDang && goc ? goc.slice(5).split('|') : [];
-// bậc rẻ cho việc máy móc chưa nâng (v.nang = Sonnet đã thử không sửa được); việc kênh + lệnh anh luôn bậc chính
-const laRe = !!RE.model && !laAnh && !laKenh && !v.nang, { model, effort } = laRe ? RE : { model: CHINH.model || 'sonnet', effort: CHINH.effort };
+// model chọn MỘT LẦN theo loại việc (tho-may-viec.mjs › bacViec, gắn vào việc lúc --lay); không có model_re thì mọi việc bậc chính
+const { model, effort } = v.bac === 're' && RE.model ? RE : { model: CHINH.model || 'sonnet', effort: CHINH.effort };
 const git = (...a) => execFileSync('git', ['-C', laDang ? DANG : laKenh ? MOS2 : REPO, ...a], { encoding: 'utf8' }).trim();   // máy đăng: repo git puzzle-books trên iMac (25/10/2026)
 
 const giao = `Bạn là Mạnh, thợ máy của Phòng Tài nguyên (công ty AI của anh Tuấn). Máy cào spy.on.tc vừa báo lỗi, bạn phải tìm GỐC, sửa, kiểm, rồi báo lại — anh không ngồi máy.
@@ -163,4 +163,4 @@ const boKet = ra.replace(/^\s*\**KET:.*$/gim, '').trim(), sauBao = boKet.split(/
 const than = ((sauBao.length > 1 ? sauBao.pop().trim() : boKet.split('\n').slice(-8).join('\n')) || `Claude thoát ${r.status ?? r.signal} không kèm báo cáo (${String(r.stderr || r.error?.message || '').slice(0, 200)})`)
   + (commit ? `\n\nCommit:\n${commit}` : '') + `\n(${Math.round((kq.duration_ms || 0) / 6e4)} phút)`;
 log(`xong #${v.id}: ${ket} · commit ${commit ? sau.slice(0, 8) : 'không'} · ${kq.num_turns ?? '?'} lượt`);
-viec(`--bao ${v.id} ${ket === 'treo' ? 'treo' : ket}${laRe ? ' --re' : ''}`, than);   // --re: bậc rẻ không sửa được → hàng tự xếp lại với bậc chính
+viec(`--bao ${v.id} ${ket === 'treo' ? 'treo' : ket}`, than);

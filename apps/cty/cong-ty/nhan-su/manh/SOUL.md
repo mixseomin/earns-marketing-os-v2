@@ -7,7 +7,7 @@ phong: tai-nguyen
 bao_cao_cho: nguyen
 kind: ai
 model: claude-code:claude-opus-4-8 effort:medium   # Claude Code KHÔNG GIAO DIỆN trên iMac (gói thuê bao — luật anh 23/10/2026: chỉ iMac); anh 03/11/2026: Opus 4.8 mức medium (sonnet trả 'cần anh' / 'không sửa' 5/5 việc gần nhất); đổi model / effort ở đây là lượt sau chạy theo
-model_re: claude-code:sonnet effort:medium   # BẬC RẺ (anh 05/11/2026 "dùng model rẻ hơn theo từng việc cho tiết kiệm token"): việc máy móc (dang:lo| lan: vps: box3:) chạy model này trước; trả KHONG_SUA / hết giờ thì việc tự xếp lại một lần với model ở dòng trên. Việc kênh (kenh:) + lệnh anh (anh:) luôn dùng dòng trên
+model_re: claude-code:sonnet effort:medium   # MODEL THEO VIỆC, gọi MỘT lần (anh 05/11/2026): lỗi máy móc lần đầu có dòng lỗi rõ chạy model này; lệnh anh / tập kênh / lỗi lặp trong 7 ngày / lỡ lượt không rõ lý do chạy dòng trên — luật ở worker/tho-may-viec.mjs › bacViec
 room: dung-san-pham
 muc_quyet: 2
 approval: SMART

@@ -27,13 +27,14 @@ export function themViec(st, ds, { luc = Date.now(), topic = null, msg = null } 
   }
   return { st: { ...st, hang: hang.slice(-200) }, them };
 }
-/** Thuần — BẬC RẺ KHÔNG SỬA ĐƯỢC (anh 05/11/2026, model theo việc): việc vừa chạy model rẻ mà KHONG_SUA / treo → xếp lại MỘT lần cùng khoá, đánh dấu nang
- *  (thợ máy chạy bậc chính, Opus). CAN_ANH / DA_SUA không nâng; việc đã nâng không nâng nữa. Trả { st, nang: việc mới | null } */
-export function nangBac(st, id, ket, luc = Date.now()) {
-  const hang = st.hang || [], v = hang.find((x) => x.id === id);
-  if (!v || v.nang || !['khong_sua', 'treo'].includes(ket)) return { st, nang: null };
-  const moi = { id: hang.reduce((a, x) => Math.max(a, x.id), 0) + 1, khoa: v.khoa, chu: v.chu, luc: new Date(luc).toISOString(), tg: v.tg, tt: 'cho', nang: true, ...(v.goc ? { goc: v.goc } : {}) };
-  return { st: { ...st, hang: [...hang, moi].slice(-200) }, nang: moi };
+/** Thuần — CHỌN MODEL MỘT LẦN theo loại việc (anh 05/11/2026 "dùng thuê bao … chọn theo loại công việc. Nhưng làm sao chỉ gọi 1 lần"): 'chinh' (SOUL `model:`, Opus)
+ *  cho lệnh anh · tập kênh hỏng · việc cùng khoá đã có trong 7 ngày (lỗi quay lại = lần trước chưa tới gốc) · lỡ lượt đăng không kèm dòng "Lỗi:" (không rõ vì sao);
+ *  còn lại — lỗi máy móc lần đầu, có dòng lỗi rõ — 're' (SOUL `model_re:`, Sonnet). Không có bước thử rẻ rồi nâng: mỗi việc đúng một lượt gọi. */
+export function bacViec(st, v, luc = Date.now()) {
+  if (/^(anh|kenh):/.test(v.khoa)) return 'chinh';
+  if ((st.hang || []).some((x) => x.id !== v.id && x.khoa === v.khoa && luc - Date.parse(x.luc) < 7 * 864e5)) return 'chinh';
+  if (/^dang:/.test(v.khoa) && !/^Lỗi:/m.test(String(v.chu ?? ''))) return 'chinh';
+  return 're';
 }
 /** Thuần — nhận việc cũ nhất đang chờ (trong trần ngày); việc đang làm quá TREO_PHUT → treo. Trả { st, viec | null, ly_do } */
 export function layViec(st, luc = Date.now()) {
@@ -104,21 +105,22 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
       const l = layViec(a0.st, t0); assert.equal(l.viec.khoa, 'anh:4', 'lệnh anh nhận trước dù đủ trần ngày'); assert.equal(l.st.ngay[ngayVN(t0)], TRAN_NGAY, 'lệnh anh không tính trần');
       assert.deepEqual(quyetGan(l.st, { id: 9, khoa: 'dang:lo|m1|fb_link' }, t0).length, 1, 'việc sau cùng máy đọc được điều anh đã chốt'); assert.equal(quyetGan(l.st, { id: 9, khoa: 'dang:lo|m2|x' }, t0).length, 0);
       assert.equal(mayCua('kenh:parody|t1'), 'parody'); assert.equal(mayCua('lan:a'), null); }
-    { const s0 = { hang: [{ id: 1, khoa: 'dang:lo|m|youtube', chu: 'lỡ', tt: 'ket', tg: {} }] };
-      const n1 = nangBac(s0, 1, 'khong_sua'); assert.equal(n1.nang?.nang, true, 'rẻ không sửa → xếp lại bậc chính'); assert.equal(n1.nang.khoa, 'dang:lo|m|youtube');
-      assert.equal(nangBac(s0, 1, 'can_anh').nang, null, 'cần anh không nâng'); assert.equal(nangBac(s0, 1, 'da_sua').nang, null, 'đã sửa không nâng');
-      assert.equal(nangBac(n1.st, 2, 'treo').nang, null, 'đã nâng thì không nâng nữa'); }
+    { const t0 = Date.parse('2026-11-05T12:00:00Z'), v = (khoa, chu = '', id = 9) => ({ id, khoa, chu, luc: new Date(t0).toISOString() });
+      assert.equal(bacViec({}, v('dang:lo|m|youtube', 'Máy đăng hỏng\nLỗi: Studio đang ở kênh khác'), t0), 're', 'lỗi rõ lần đầu → rẻ');
+      assert.equal(bacViec({}, v('dang:lo|m|youtube', 'M · youtube: lỡ lượt — bài cuối 2026-11-01'), t0), 'chinh', 'lỡ lượt không rõ vì sao → chính');
+      assert.equal(bacViec({}, v('kenh:parody|t1'), t0), 'chinh'); assert.equal(bacViec({}, v('anh:3'), t0), 'chinh'); assert.equal(bacViec({}, v('box3:ram', 'RAM 95%'), t0), 're');
+      assert.equal(bacViec({ hang: [v('box3:ram', 'x', 1)] }, v('box3:ram', 'RAM 95%'), t0), 'chinh', 'cùng khoá trong 7 ngày → chính');
+      assert.equal(bacViec({ hang: [{ ...v('box3:ram', 'x', 1), luc: '2026-10-20T00:00:00Z' }] }, v('box3:ram', 'RAM 95%'), t0), 're', 'quá 7 ngày không tính'); }
     console.log('tho-may-viec tu-kiem ok');
   } else if (a[0] === '--lay') {
-    const r = layViec(doc()); ghi(r.st); console.log(JSON.stringify(r.viec ? { viec: { ...r.viec, quyet_gan: quyetGan(r.st, r.viec) } } : { ly_do: r.ly_do }));
+    const r = layViec(doc()); ghi(r.st); console.log(JSON.stringify(r.viec ? { viec: { ...r.viec, quyet_gan: quyetGan(r.st, r.viec), bac: bacViec(r.st, r.viec) } } : { ly_do: r.ly_do }));
   } else if (a[0] === '--nhan') {
     const st = doc(), v = st.hang.find((x) => x.id === id); if (!v) throw new Error('không có việc ' + id);
     const j = await traLoi(v, `<b>🔧 ${tenViec(v)}</b> đã nhận: ${esc(v.chu.replace(/<[^>]+>/g, '').slice(0, 200))} — ${/^anh:/.test(v.khoa) ? 'đang làm' : 'đang tìm gốc'} (tối đa 30 phút).`); v.tin_nhan = j?.result?.message_id ?? null; ghi(doc2(st, v)); console.log('ok');
   } else if (a[0] === '--bao') {
     const ket = KET[a[2]] ? a[2] : 'khong_sua', chu = fs.readFileSync(0, 'utf8').trim(), st = doc(), v = st.hang.find((x) => x.id === id); if (!v) throw new Error('không có việc ' + id);
     v.tt = ket === 'da_sua' ? 'xong' : 'ket'; v.ket = ket; v.xong = new Date().toISOString(); v.ket_qua = chu.slice(0, 2000);
-    const nb = a.includes('--re') ? nangBac(st, id, ket) : { st, nang: null }; ghi(nb.st);
-    if (nb.nang) { console.log(`nâng bậc → việc #${nb.nang.id}`); process.exit(0); }   // bậc rẻ không sửa được: im lặng, bậc chính làm lại rồi mới báo (anh không cần đọc lượt thử)
+    ghi(st);
     // "Cần anh quyết" LUÔN có nút (05/11/2026: tin này gửi riêng, không qua ghiNut nên không có nút); trả lời dưới tin = lệnh cho đúng việc này (thu-ky.mjs › viecCuaTin)
     const j = await traLoi(v, `<b>🔧 ${tenViec(v)} · ${KET[ket]}</b>\n${esc(chu)}`, ket === 'can_anh' ? { reply_markup: NUT_HOI } : {}); const st2 = doc(), v2 = st2.hang.find((x) => x.id === id); if (v2 && j?.result?.message_id) { v2.tin_bao = j.result.message_id; ghi(st2); } console.log(j.ok ? 'ok' : JSON.stringify(j).slice(0, 200));
   } else if (a[0] === '--them') {   // xếp một việc từ ngoài (chay-kenh.mjs): --them <khoá> , chữ cảnh báo ở stdin. In số việc đã thêm (0 = khoá đang chờ / không thuộc thợ máy)

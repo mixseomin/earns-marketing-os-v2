@@ -5,6 +5,7 @@
 
 export type SoNgayKenh = { ngay: string; xem: number; daDang: number; nguoiDk: number | null };
 export type VideoKenh = { slug: string; ten: string; /** ngày làm xong (bản xuất, không có thì ngày nạp) */ ngayLam: string | null; trangThai: 'chua_xuat' | 'cho_cham' | 'duyet' | 'sua_lai' | 'da_dang'; ngayDang: string | null; url: string | null; xem: number | null; giay: number | null;
+  /** BẢN XUẤT trên R2 (xv_may_video.video_url) — ngăn video phát thẳng tệp này khi tập chưa lên YouTube (DUYỆT chờ đăng vẫn xem được) */ tep?: string | null;
   /** mã playlist của tập (xv_may_video.dang.playlist — lam-tap ghi lúc nạp; G1) — null = tập cũ chưa chia playlist */ playlist?: string | null;
   /** mẫu + ý tưởng trong sổ kênh (xv_may_video.dang.mau / y_tuong — lam-tap ghi lúc nạp) — null = kênh chưa có sổ / tập cũ */ mau?: string | null; yTuong?: string | null };
 export type KenhSp = {

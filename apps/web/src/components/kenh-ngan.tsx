@@ -88,13 +88,14 @@ function NganMau({ k, ma, onClose, moVideo }: { k: KenhSp; ma: string; onClose: 
 }
 
 function NganVideo({ k, v, onClose }: { k: KenhSp; v: VideoKenh; onClose: () => void }) {
-  const id = ytId(v.url), c = CHANG_VIDEO[v.trangThai], mau: MauKenh | undefined = k.so?.mau?.find((m) => m.ma === v.mau);
+  const id = ytId(v.url), c = CHANG_VIDEO[v.trangThai], mau: MauKenh | undefined = k.so?.mau?.find((m) => m.ma === v.mau), doc = mau ? khungMau(mau) === '9:16' : true;
   return <>
     <ModalHeader kind="kenh" action="view" title={v.ten} subtitle={k.ten} onClose={onClose} />
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 20, marginTop: 14, alignItems: 'start' }}>
       {id ? <iframe src={`https://www.youtube-nocookie.com/embed/${id}`} title={v.ten} allow="encrypted-media; picture-in-picture" allowFullScreen
-          style={{ width: '100%', aspectRatio: mau?.loai === 'short' ? '9 / 16' : '16 / 9', maxHeight: '70vh', border: 0, borderRadius: 8, background: '#000' }} />
-        : <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Video chưa lên YouTube — chưa có bản để xem ở đây.</div>}
+          style={{ width: doc ? 300 : '100%', aspectRatio: doc ? '9 / 16' : '16 / 9', maxHeight: '70vh', border: 0, borderRadius: 8, background: '#000' }} />
+        : v.tep ? <Video src={v.tep} doc={doc} />   // chưa lên YouTube (DUYỆT chờ đăng / SỬA LẠI / chờ chấm) → phát bản xuất R2
+        : <div style={{ color: 'var(--fg-3)', fontSize: 13 }}>Tập chưa xuất — chưa có bản để xem.</div>}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <Luoi>
           <O k="Chặng"><span style={{ color: c.mau }}>{c.chu}</span></O>
@@ -107,6 +108,7 @@ function NganVideo({ k, v, onClose }: { k: KenhSp; v: VideoKenh; onClose: () => 
         </Luoi>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {v.url && <NutNgoai href={v.url}>Mở trên YouTube</NutNgoai>}
+          {!v.url && v.tep && <NutNgoai href={v.tep}>Tải bản xuất</NutNgoai>}
           {k.phimId && <NutNgoai href={`${STUDIO}/?m=phim&mId=${k.phimId}`}>Phim Studio của kênh</NutNgoai>}
         </div>
       </div>

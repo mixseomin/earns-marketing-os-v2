@@ -1821,7 +1821,7 @@ function BieuNgay({ ngay, sd, nay, n }: { ngay: string[]; sd: (SoTien | undefine
 const LUOI_CAMP_HEP = '10px minmax(0,1fr) 30px 36px';
 // laiKy / tenKy: lãi theo CHU KỲ đang chọn (7 · 14 · 30 ngày · tháng · tất cả — anh 27/10/2026 "phải tuân thủ cả time chu kỳ"); 6 ô ngày vẫn là 6 ngày trọn gần nhất
 // CAMP THAY THẾ — bước → [chữ, độ đậm dòng] (anh 29/10/2026: "dạng mờ do chưa thực sự làm gì … đậm dần khi có thêm các bước")
-const THAY_BUOC: Record<string, [string, number]> = { chuan_bi: ['chuẩn bị · chọn creative', 0.3], cat_goc: ['chờ cắt góc mới', 0.4], cho_cham: ['video xong · chờ chấm', 0.6], len_lich: ['đã lên · chờ chạy', 0.85] };
+const THAY_BUOC: Record<string, [string, number]> = { chuan_bi: ['chuẩn bị · chọn creative', 0.3], cat_goc: ['chờ cắt góc mới', 0.4], cho_cham: ['video xong · chờ chấm', 0.6], len_lich: ['đã lên · chờ chạy', 0.85], chan: ['không thay được', 0.6] };   // chan = cổng chặn lên camp phim này (máy ghi lý do ở ghi — anh 05/11/2026 'show ra để biết')
 const HUONG_THAY: Record<string, string> = { hook: 'đổi cảnh mở', giu: 'đoạn sâu hơn', khac: 'đoạn khác' };
 const tieuThay = (t: ThayThe) => [`Camp thay cho #${t.camp_cu} — ${THAY_BUOC[t.buoc]?.[0] ?? t.buoc}`, t.bai_hoc?.ly_do ? `Vì sao camp cũ lỗ: ${t.bai_hoc.ly_do}` : null,
   t.bai_hoc?.huong ? `Camp mới rút kinh nghiệm: ${HUONG_THAY[t.bai_hoc.huong] ?? t.bai_hoc.huong}` : null,
@@ -1829,7 +1829,8 @@ const tieuThay = (t: ThayThe) => [`Camp thay cho #${t.camp_cu} — ${THAY_BUOC[t
 function oThay(key: string, t: ThayThe): React.ReactNode {
   if (key === 'camp') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}><span style={{ color: '#a78bfa' }}>◌</span><b>thay #{t.camp_cu}</b>
     {(t.bo_camp ?? []).filter((b) => b.camp).map((b) => <span key={b.camp} style={{ fontSize: 10, color: 'var(--fg-2)' }}>{MA_DANG[b.dang] ?? b.dang} #{b.camp}</span>)}</span>;
-  if (key === 'tt') return <span style={{ fontSize: 11, color: '#a78bfa' }}>{THAY_BUOC[t.buoc]?.[0] ?? t.buoc}</span>;
+  if (key === 'tt') return <span style={{ fontSize: 11, color: t.buoc === 'chan' ? '#f59e0b' : '#a78bfa' }}>{THAY_BUOC[t.buoc]?.[0] ?? t.buoc}</span>;
+  if (key === 'luat' && t.buoc === 'chan') return <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{(t.ghi ?? '').replace(/^phim #\d+ /, '').split(' (')[0]}</span>;
   if (key === 'luat') return t.bai_hoc?.huong ? <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>↻ {HUONG_THAY[t.bai_hoc.huong] ?? t.bai_hoc.huong}</span> : null;
   if (key === 'cr') return t.creative_id ? <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>cr #{t.creative_id}</span> : null;
   return null;

@@ -16,6 +16,7 @@ Mỗi nhịp ethopex (cty worker, SAU khi luat-ethopex.py --json đã ghi etp.xe
   0. THANG CHUYỂN HƯỚNG (anh 31/10/2026, apps/etp/cat_phim.py): phim chưa camp nào lãi, chi ≥ mức thử mà ROI dưới ngưỡng → đổi sang bộ chưa thử (camp thay lên
      bộ đó), team lãi thì báo nạp creative team, hết đường thì CẤT (thôi mở dòng thay; cong.kiem chặn tạo camp phim đó). Mức ở etp.cau_hinh.cat_phim.
   4. Camp thay đã chạy (có chi) → dòng 'chay' (trang etp thôi vẽ dòng mờ).
+  Phim cần thay mà cổng chặn (trùng phim người trong đội · ngoài Âu-Mỹ · đã cất) → dòng 'chan' ghi lý do để tab Camp hiện (anh 05/11/2026); cổng mở thì huỷ, mở dòng thay thường.
 Chạy (box3, đã nạp .env.production):  python3 thay-the.py [--that] [--toi-da 15]     (không --that = chạy khô, chỉ in sẽ làm gì; --toi-da = trần camp mới mỗi lượt)"""
 import datetime as dt, importlib.util, json, os, subprocess, sys
 
@@ -171,7 +172,11 @@ def main():
     # 4. camp thay đã chạy → xong; phim đã có camp khác chạy (ngoài camp cũ) → huỷ
     for r in qj("select id, content_id, camp_cu, buoc, camp_moi, ghi from etp.thay_the where buoc not in ('chay', 'huy')"):
         # xong khi camp thay đầu tiên đã có chi VÀ không còn dạng nào đang chờ chấm (ghi rỗng) — còn chờ thì nhịp sau vẫn thử lên nốt dạng đó
-        if int(r["content_id"]) in CHAN and r["buoc"] != "len_lich":
+        # dòng 'chan' = phim cần thay mà cổng chặn (giữ để tab Camp hiện lý do); cổng mở → huỷ, bước 1 cùng nhịp mở dòng thay thường
+        if r["buoc"] == "chan":
+            if int(r["content_id"]) not in CHAN: ghi(r["id"], buoc="huy", ghi="cổng đã mở — mở dòng thay mới"); continue
+            if CHAN[int(r["content_id"])][:300] != (r.get("ghi") or ""): ghi(r["id"], ghi=CHAN[int(r["content_id"])][:300])
+        elif int(r["content_id"]) in CHAN and r["buoc"] != "len_lich":
             ghi(r["id"], buoc="huy", ghi=CHAN[int(r["content_id"])][:300]); bo_hang_cat(r["content_id"]); continue
         if r.get("camp_moi") and not (r.get("ghi") or "").strip() and q(f"select 1 from etp.camp c join etp.so_ngay n using (camp_id) where c.camp_id = {int(r['camp_moi'])} and n.chi > 0 limit 1"):
             ghi(r["id"], buoc="chay"); continue
@@ -182,8 +187,11 @@ def main():
             ghi(r["id"], buoc="huy", ghi="camp cũ không còn sắp tắt"); bo_hang_cat(r["content_id"])
     # 1. phim mới cần thay
     for x in CAN:
-        if int(x["content_id"]) in CHAN: continue
         if q(f"select 1 from etp.thay_the where content_id = {int(x['content_id'])} and buoc not in ('chay', 'huy')"): continue
+        if int(x["content_id"]) in CHAN:   # anh 05/11/2026 "show ra ở tab camp để còn biết … chưa có cái nào thay thế": cổng chặn thì ghi dòng 'chan' kèm lý do, không bỏ qua im lặng
+            if THAT: q(f"insert into etp.thay_the (content_id, camp_cu, buoc, ghi) values ({int(x['content_id'])}, {int(x['camp_id'])}, 'chan', '{s_(CHAN[int(x['content_id'])][:300])}') on conflict do nothing")
+            else: bao.append(f"[khô] phim {x['content_id']} cần thay nhưng cổng chặn: {CHAN[int(x['content_id'])][:160]}")
+            continue
         moi += 1
         if THAT: q(f"insert into etp.thay_the (content_id, camp_cu, ghi) values ({int(x['content_id'])}, {int(x['camp_id'])}, '{s_(x['ly'])}') on conflict do nothing")
         else: bao.append(f"[khô] mở dòng thay phim {x['content_id']} (#{x['camp_id']}: {x['ly']})")

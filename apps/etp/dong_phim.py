@@ -30,6 +30,12 @@ HAN_RIENG = {("KT", "creative"): 4 * 3600, ("LT", "cat"): 2 * 3600, ("LT", "camp
 # LT — LỘ TRÌNH TEST RỘNG (anh 03/11/2026 "Lên $8-10/phim + T2 thì sẽ cắt sớm đc lỗ và tìm nhanh đc camp lãi" · chọn A: miễn luật một camp ngày test rộng):
 # cắt MỖI TẬP một creative (kiểu Kiên, tập trọn ETP_KIEU=tap, tới 10 đoạn) → soát → tải + chấm TẤT CẢ đoạn sạch → DỪNG chờ anh bắt đầu
 # (etp.cau_hinh 'lo_trinh' {content_id: {bat_dau: true}}) → lên mỗi creative một camp $1 (nhan-ban miễn luật một camp khi phim ở lo_trinh) → T2 cắt lỗ.
+def tu_bat_dau(cid, ly):
+    """MÁY TỰ BẮT ĐẦU LÊN CAMP (anh 05/11/2026: "Ko cần tao vào bấm duyệt nữa. Các camp ở tab sx") — ghi lo_trinh[phim].bat_dau như nút anh từng bấm
+    (batDauCamp, etp-dong.ts) để nhan-ban miễn luật một camp / phim / ngày cho lộ trình test rộng; giờ chạy vẫn do nhan-ban.lich_len, mọi cổng luật khác giữ nguyên"""
+    sql(f"""insert into etp.cau_hinh (khoa, gia_tri) values ('lo_trinh', jsonb_build_object('{int(cid)}', jsonb_build_object('bat_dau', true, 'ai', {s(ly)}, 'luc', now()::text)))
+            on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{{}}'::jsonb) || jsonb_build_object('{int(cid)}',
+              coalesce(etp.cau_hinh.gia_tri->'{int(cid)}', '{{}}'::jsonb) || jsonb_build_object('bat_dau', true, 'ai', {s(ly)}, 'luc', now()::text))""")
 def lo_trinh(cid): return json.loads(sql(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'lo_trinh'), '{{}}'::jsonb)::text") or "{}")       # máy sinh KT làm tuần tự ~40–70 phút/phim, có hàng đợi
 BUOC = [("nhan", 300), ("ws", 3600), ("poster", 900), ("cat", 4200), ("soat", 1800), ("creative", 3600), ("camp", 1200), ("chay", 7200)]   # (bước, hạn giây) — Mạnh huỷ khi quá
 THU_MANG = {}         # (dòng, bước, lan) → số lượt đã tự thử lại vì lỗi mạng
@@ -304,8 +310,7 @@ def ket_camp(d, xong, loi, cu, gan=None):
 def b_camp_lt(d, truoc):
     sach = (truoc.get("creative") or {}).get("sach") or []
     if not sach: return "loi", "chưa có creative sạch", None
-    if not lo_trinh(d["content_id"]).get("bat_dau"):
-        return "cho", f"sẵn {len(sach)} creative sạch → {len(sach)} camp × $1 ≈ ${len(sach)}/ngày (bộ 2, T2 cắt lỗ) — CHỜ ANH BẮT ĐẦU", None
+    if not lo_trinh(d["content_id"]).get("bat_dau"): tu_bat_dau(d["content_id"], f"máy tự bắt đầu — dòng #{d['id']} sẵn {len(sach)} creative sạch (anh 05/11/2026 bỏ bước duyệt)")
     xong, loi, gan = [], [], []   # gan: creative → camp (tab Dòng phim vẽ mỗi video một ô)
     cu = camp_co_san(x["creative_id"] for x in sach)
     sach = [x for x in sach if int(x["creative_id"]) not in cu]   # creative đã có camp (anh lên riêng #1520 / lượt trước của chính dòng) = đã lên — không đi vào luật "một creative một camp" thành lỗi
@@ -357,7 +362,7 @@ def b_camp(d, truoc):
     # BỘ CREATIVE ĐỦ LOẠI TRƯỚC, CHƯA LÊN CAMP (anh 03/11/2026 "phải làm đủ 1 bộ creative cho mọi loại nội dung trước. Chưa lên camp"):
     # phim có etp.cau_hinh lo_trinh[cid].bo mà anh chưa bắt đầu → mọi loại (CC / KT …) dừng ở đây, giữ creative đã chấm
     lt = lo_trinh(d["content_id"])
-    if lt.get("bo") and not lt.get("bat_dau"): return "cho", "bộ creative đủ loại — chưa lên camp, CHỜ ANH BẮT ĐẦU", None
+    if lt.get("bo") and not lt.get("bat_dau"): tu_bat_dau(d["content_id"], f"máy tự bắt đầu — dòng #{d['id']} bộ creative đủ loại (anh 05/11/2026 bỏ bước duyệt)")
     x = truoc.get("creative") or {}
     if not x.get("creative_id"): return "loi", "chưa có creative", None
     if (cu := camp_co_san([x["creative_id"]])): return ket_camp(d, [], [], cu)

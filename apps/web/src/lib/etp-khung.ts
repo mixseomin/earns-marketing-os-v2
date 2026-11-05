@@ -26,3 +26,9 @@ export function docHoan(cauHinh: { khoa: string; gia_tri: unknown }[], now = Dat
   if (!cu) for (const h of ['tang', 'giam', 'tat'] as const) for (const id of g?.[h] ?? []) ds.set(Number(id), h);   // tắt ghi sau cùng = tắt thắng
   return { luc, cu, ds };
 }
+/** GIỜ CHẠY của camp TẠO lúc `now` — cùng luật nhan-ban.lich_len (khung_doi.len, 07–12h VN): trong khung chạy ngay, ngoài khung hẹn 07:00 hôm sau / sáng nay.
+ *  Chữ cho nút / ô "bấm rồi ra sao" (anh 05/11/2026: "Nếu bấm có lên ngay hay vẫn theo lịch?") */
+export function chuLich(now = Date.now()): string {
+  const [a, b] = KD.len, h = gioVnNay(now), g = `${String(a).padStart(2, '0')}:00`;
+  return h >= a && h < b ? 'chạy ngay' : h < a ? `chạy ${g} sáng nay` : `chạy ${g} sáng mai`;
+}

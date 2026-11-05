@@ -497,26 +497,18 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     // dạng lên cho PHIM ĐANG CHẠY (một camp mỗi dạng mỗi phim) → [luật, người duyệt] ghi vào nhật ký camp
     const LEN_DANG = { 'kể chuyện': ['KT (kể chuyện VideoExpress) chấm sạch → lên camp cho phim đang chạy', 'anh (chat 29/10/2026: sx KT cho phim đang chạy chưa có — làm đi) — máy chạy'],
       'ảnh tĩnh': ['AT (ảnh tĩnh + giọng) chấm sạch → lên camp cho phim mới bắt đầu lãi', 'anh (chat 05/11/2026: thêm loại creative ảnh tĩnh và lên camp mới, phim mới bắt đầu lãi trước) — máy chạy'] };
-    // creative bị cổng nhan-ban chặn (18+, CTA cũ, chấm…) → bỏ qua 24 giờ, không lượt nào cũng lấy lại đúng mấy creative đó mà kẹt (28/10/2026)
-    const TEP_BQ = path.join(DATA(), 'ethopex-phim-moi-bo-qua.json'), bq = docJ(TEP_BQ, {});
+    // HÀNG CHỜ = view etp.cho_len_v (migration 0431) — MỘT nguồn cho máy lên camp này và trang etp (ô "tự lên · thứ N" / "không tự lên: lý do"), anh 05/11/2026.
+    // Điều kiện (chấm sạch < 3 ngày, phim chưa từng có camp hoặc KT / ảnh tĩnh cho phim đang chạy, không có dòng phim, không do đội nhận, không trong sổ bỏ qua 24 giờ) nằm ở view.
+    // creative bị cổng nhan-ban chặn (18+, CTA cũ, chấm…) → sổ bỏ qua 24 giờ etp.cau_hinh 'phim_moi_bo_qua' (trước ở tệp DATA — trang không đọc được)
+    const TEP_BQ = path.join(DATA(), 'ethopex-phim-moi-bo-qua.json');
+    const bqDb = (await chayPsql(`select gia_tri::text from etp.cau_hinh where khoa = 'phim_moi_bo_qua'`)).trim();
+    const bq = bqDb && bqDb !== '{}' ? JSON.parse(bqDb) : docJ(TEP_BQ, {});   // lần đầu sau migration: chép sổ cũ từ tệp
     for (const k of Object.keys(bq)) if (Date.now() - Date.parse(bq[k].luc) > 86_400_000) delete bq[k];
-    const boQua = Object.keys(bq).map(Number).filter(Boolean).join(',') || '0';
-    const ds = JSON.parse((await chayPsql(`select coalesce(json_agg(x), '[]') from (select r.creative_id, r.content_id, coalesce(r.lang, 'en') lang, coalesce(r.lo, '') lo, coalesce(p.ten, '') ten,
-        coalesce(r.dang, '') dang, coalesce(r.tu, 0) tu, coalesce(r.den, 0) den, coalesce((select gia_tri->>(r.content_id::text) from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2') bo,
-        exists (select 1 from etp.phim_nhan_v n where n.content_id = r.content_id and n.trang_thai = 'giu') nhan
-      from etp.creative r join etp.cham_cong g using (creative_id) left join etp.phim p using (content_id) left join etp.cham h using (creative_id)
-      where g.duoc_len and r.tu_choi is null and r.content_id is not null and h.luc > now() - interval '3 days' and r.creative_id not in (${boQua})
-        and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
-        and (r.dang = 'ảnh tĩnh' or not exists (select 1 from etp.dong_phim d where d.content_id = r.content_id and d.trang_thai <> 'huy'))   -- phim có DÒNG PHIM tự động: dòng tự lên camp (anh 03/11/2026, một camp mỗi lần); ảnh tĩnh không do dòng làm ra → không lên trùng (05/11/2026)
-        and not exists (select 1 from etp.phim_nhan_v n where n.content_id = r.content_id and n.trang_thai = 'giu' and n.nguoi_id not in (select nguoi_id from etp.tai_khoan where nha))   -- người nhà = có tài khoản nhà (cùng định nghĩa view phim_nhan_td; Tuấn David có cả tk không phải nhà) · phim người trong đội đang nhận → khối NHẬN PHIM dưới lên ở tài khoản họ
-        and (not exists (select 1 from etp.camp c where c.content_id = r.content_id)   -- phim CHƯA TỪNG có camp (phim có camp đã bị luật tắt vì lỗ thì không tự lên lại)
-          -- hoặc KT cho phim ĐANG CHẠY chưa có camp kể chuyện (anh 29/10/2026 "sx loại video KT cho các phim chưa có nhưng đang lên camp live triệt để … làm đi")
-          -- + ẢNH TĨNH cho phim đang chạy chưa có camp ảnh tĩnh (anh 05/11/2026 "thêm 1 loại creative kiểu này và lên camp mới … phim mới bắt đầu lãi trước" — anh-tinh.py chọn phim)
-          or (r.dang in ('kể chuyện', 'ảnh tĩnh') and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')
-              and not exists (select 1 from etp.camp c join etp.creative k on k.creative_id = c.creative_id where c.content_id = r.content_id and k.dang = r.dang)))
-      -- phim đang được NHẬN đứng đầu hàng (02/11/2026: phim nhận 172341 chấm sạch phải đợi sau 213 creative cũ) — nhận Tự động là lên camp ngay nhịp kế
-      -- ảnh tĩnh / kể chuyện làm theo lệnh cho phim đang chạy đứng sau phim nhận, trước hàng tồn (05/11/2026: 5 creative ảnh tĩnh xếp sau hàng trăm creative 'team' cũ, mỗi nhịp lấy 4)
-      order by nhan desc, (r.dang in ('kể chuyện', 'ảnh tĩnh')) desc, h.luc limit 4) x`)).trim() || '[]');
+    const ghiBq = () => chayPsql(`update etp.cau_hinh set gia_tri = $J$${JSON.stringify(bq).replace(/\$J\$/g, '')}$J$::jsonb, luc = now() where khoa = 'phim_moi_bo_qua'`);
+    await ghiBq();   // bỏ mục quá 24 giờ trước khi đọc view
+    const ds = JSON.parse((await chayPsql(`select coalesce(json_agg(x), '[]') from (select v.creative_id, v.content_id, v.lang, v.lo, coalesce(p.ten, '') ten, v.dang, v.tu, v.den,
+        coalesce((select gia_tri->>(v.content_id::text) from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2') bo, v.nhan
+      from etp.cho_len_v v left join etp.phim p using (content_id) where v.ly_do is null order by v.hang limit 4) x`)).trim() || '[]');
     const da = [];
     for (const x of ds) {
       const a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();
@@ -535,7 +527,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       // phim đang được NHẬN (anh 02/11/2026 "có lỗi thì phải báo lại ở danh sách phim Nhận") → ghi lỗi vào sổ nhận, tab Phim / ngăn phim hiện ngay
       await chayPsql(`update etp.phim_nhan set loi = $L$lên camp lỗi: ${String(d.r.loi || 'không rõ').slice(0, 220).replace(/\$L\$/g, '')}$L$, loi_luc = now() where content_id = ${Number(d.x.content_id)} and tra_luc is null and het_luc > now()`).catch(() => {});
     }
-    fs.writeFileSync(TEP_BQ, JSON.stringify(bq));
+    await ghiBq();
   } catch (e) { console.error('phim mới lên camp:', e.message); }
   // NHẬN PHIM TỰ ĐỘNG — ĐỘI (anh 02/11/2026: "Khi nhận phim thì nếu là Tự động thì hệ thống sẽ phải tự lên camp luôn"): phim người trong đội ở chế độ Tự động đang giữ, creative
   // kể chuyện tạo sau lúc nhận đã chấm Sạch (view etp.phim_nhan_td buoc cho_len) → nhan-ban.py --creative ở TÀI KHOẢN NGƯỜI NHẬN, bằng phiên Ethopex của họ (ETP_SUA_NGUOI),

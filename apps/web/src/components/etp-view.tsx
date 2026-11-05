@@ -2788,7 +2788,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const abSel = () => { const so = new Map((du.abSo ?? []).map((a) => [a.ma, a]));
     for (const c of du.camps) if (c.ab && !so.has(c.ab.ma)) so.set(c.ab.ma, { ma: c.ab.ma, ten: c.ab.ten, batDau: c.ab.batDau, giaThuyet: c.ab.giaThuyet, thu: c.ab.nhanh === 'thu' ? c.ab.nhanhTen : 'thu', doi: c.ab.nhanh === 'doi' ? c.ab.nhanhTen : 'doi' });
     const ma = [...so.values()].sort((a, b) => b.ma.localeCompare(a.ma)); if (!ma.length) return null;
-    return <Chon2 chan={chanLoc.ab} value={abLoc} onChange={(v) => doi({ ab: v }, () => setAbLoc(v))} nhan="A/B" title="lọc camp theo lần A/B (sổ etp.ab): cả hai nhánh, hoặc riêng nhánh thử / đối chứng — chọn một nhánh thì dòng tổng ra số riêng nhánh"
+    return <Chon2 chan={chanLoc.ab} value={abLoc} onChange={(v) => doi({ ab: v }, () => setAbLoc(v))} nhan="A/B" title="lọc camp theo lần A/B: cả hai nhánh, hoặc riêng nhánh thử / đối chứng — chọn một nhánh thì dòng tổng ra số riêng nhánh"
       options={ma.flatMap((a) => { const cs = du.camps.filter((c) => c.ab?.ma === a.ma), nhom = `${a.ma} · ${a.ten} · từ ${ngayVn(a.batDau)}`;
         return [{ value: a.ma, label: `${a.ma} · cả hai nhánh`, ngan: `${a.ma} · ${a.ten}`, nhom, dem: cs.length, title: a.giaThuyet ?? undefined },
           ...(['thu', 'doi'] as const).map((n) => ({ value: `${a.ma}|${n}`, label: `${n === 'thu' ? 'Thử' : 'Đối chứng'} · ${a[n]}`, ngan: `${a.ma} · ${a[n]}`, nhom, dem: cs.filter((c) => c.ab!.nhanh === n).length }))]; })} />; };

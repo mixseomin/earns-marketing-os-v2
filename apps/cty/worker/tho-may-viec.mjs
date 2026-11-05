@@ -37,7 +37,8 @@ export function layViec(st, luc = Date.now()) {
   if (iAnh >= 0) { hang[iAnh] = { ...hang[iAnh], tt: 'dang', bat_dau: new Date(luc).toISOString() }; return { st: { ...st, hang, ngay }, viec: hang[iAnh], ly_do: '' }; }
   if ((ngay[hom] || 0) >= TRAN_NGAY) return { st: { ...st, hang, ngay }, viec: null, ly_do: `đủ ${TRAN_NGAY} lượt hôm nay` };
   // việc KÊNH (kenh:…) nhận TRƯỚC (04/11/2026: tập kênh hỏng 10:38 đứng chờ sau việc cào / đăng tới hết 6 lượt — tập tự động mà thợ máy không tới thì phải chờ người); trần ngày giữ nguyên
-  const ik = hang.findIndex((v) => v.tt === 'cho' && /^kenh:/.test(v.khoa)), i = ik >= 0 ? ik : hang.findIndex((v) => v.tt === 'cho'); if (i < 0) return { st: { ...st, hang }, viec: null, ly_do: 'không có việc' };
+  // + LỠ LƯỢT ĐĂNG (dang:lo|, anh 05/11/2026 "Đăng tự động mà … cũng gọi tao" — dang-may xếp ngay lần hỏng đầu; chờ sau việc cào là mất lượt trong ngày)
+  const ik = hang.findIndex((v) => v.tt === 'cho' && /^(kenh:|dang:lo\|)/.test(v.khoa)), i = ik >= 0 ? ik : hang.findIndex((v) => v.tt === 'cho'); if (i < 0) return { st: { ...st, hang }, viec: null, ly_do: 'không có việc' };
   hang[i] = { ...hang[i], tt: 'dang', bat_dau: new Date(luc).toISOString() }; ngay[hom] = (ngay[hom] || 0) + 1;
   return { st: { ...st, hang, ngay }, viec: hang[i], ly_do: '' };
 }
@@ -77,6 +78,7 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     let { st, them } = themViec({}, [{ khoa: 'lan:doi_thu', chu: 'đứng' }, { khoa: 'het:08wY', chu: 'khoá hết hạn' }, { khoa: 'taisan:17', chu: 'VPS' }, { khoa: 'vps:may-cao-vn:tai', chu: 'tải' }, { khoa: 'canh|r|dailymotion', chu: 'bị chặn' }], { luc: t0, msg: 9 });
     assert.strictEqual(them, 2, 'chỉ nhận việc máy móc (lan / vps), bỏ khoá 2proxy + tài sản + cảnh báo tài khoản');
     assert.strictEqual(themViec({}, [{ khoa: 'dang:lo|m|instagram', chu: 'lỡ' }]).them, 1, 'nhận lỡ lượt máy đăng');
+    assert.strictEqual(layViec({ hang: [{ id: 1, khoa: 'lan:x', tt: 'cho' }, { id: 2, khoa: 'dang:lo|m|youtube', tt: 'cho' }] }).viec.id, 2, 'lỡ lượt đăng nhận trước việc cào');
     assert.strictEqual(themViec({}, [{ khoa: 'kenh:parody|tap-1', chu: 'hỏng ở bước viết' }]).them, 1, 'nhận lượt hỏng của kênh nội dung');
     assert.strictEqual(themViec(st, [{ khoa: 'lan:doi_thu', chu: 'lại' }], { luc: t0 }).them, 0, 'khoá đang chờ: không xếp đôi');
     let r = layViec(st, t0); assert.strictEqual(r.viec.khoa, 'lan:doi_thu', 'lấy việc cũ nhất'); st = r.st;

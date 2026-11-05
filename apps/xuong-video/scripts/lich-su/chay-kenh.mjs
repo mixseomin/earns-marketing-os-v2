@@ -60,7 +60,7 @@ for (const [k, K] of Object.entries(KENH)) {
     const td = t.tu_dong ?? { lan: 0 };
     // SỬA LẠI CHỈ VÌ HOOK (05/11/2026, Agincourt: video dựng xong, Phòng Nội dung chặn hook mượn QC khác ngách → 6 lượt làm lại giữ nguyên hook rồi BỎ cả tập):
     // đổi hook + tiêu đề (lam-tap --gan-hook --doi-hook, gần 0đ: giọng / kho / khung dùng lại), KHÔNG tính vào trần bỏ tập, kể cả tập đã bỏ; tối đa 5 lần đổi hook (mỗi lần ~13₫)
-    const chiHook = st?.xuat && st.ket === 'SUA_LAI' && (st.chan ?? []).length > 0 && st.chan.every((x) => /hook|gạch ngang dài/i.test(String(x)));   // gạch ngang dài: lam-tap tự thay lúc nạp
+    const chiHook = st?.xuat && st.ket === 'SUA_LAI' && (st.chan ?? []).length > 0 && st.chan.every((x) => /hook|gạch ngang dài/i.test(String(x)));   // gạch ngang dài: cổng nạp may.ts › napVideo tự thay
     if (chiHook && (td.doi_hook ?? 0) < 5) {
       writeFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), String(process.pid));
       // hook bị chặn là hook ĐANG nằm ở bản đã nạp; tệp tập đã mang hook khác (lần đổi trước hỏng ở bước sau) → chỉ làm tiếp, không bốc thêm hook

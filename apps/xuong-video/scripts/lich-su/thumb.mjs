@@ -12,6 +12,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { KHO } from './dia-ly.mjs';
 import { BOX, box, len, ve, q } from './box3.mjs';
+import { loaiChanThumb } from './thumb-loi.mjs';
 import { hoSoTap, playlistCuaTap } from './playlist.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url));
@@ -63,10 +64,7 @@ for (const [i, [commons, anh]] of ungVien.entries()) { for (const gon of [false,
   tap.thumb = { ...tap.thumb, anh, commons, gon, url: kq.url, xet: { chan: kq.chan, canh: kq.canh, luc: new Date().toISOString() } }; ghiTap();
   for (const c of kq.canh) console.log(`⚠ Ngọc (thumbnail): ${c}`);
   if (!kq.chan.length) break;
-  // "rối" ở BẢN GỌN (chỉ còn chữ to + tên kênh) = ẢNH rối, không phải chữ (05/11/2026, Agincourt: "rối, không có điểm nhìn — tranh trận chiến nhiều chi tiết"
-  // bị xếp là lỗi chữ → dừng luôn, không thử ảnh 3) → bản gọn mà còn rối thì đổi ảnh
-  const veChu = kq.chan.some((c) => /chữ khó đọc|quá 5 từ|tràn|lặp nguyên tiêu đề/.test(c) || (!gon && /rối/.test(c))),
-    veAnh = kq.chan.some((c) => /chủ thể|điểm nhìn|lệch|AI|logo|nhạy cảm/.test(c) || (gon && /rối/.test(c)));
+  const { veChu, veAnh } = loaiChanThumb(kq.chan, gon);
   if (!gon && veChu) { console.log(`· Ngọc chặn ảnh ${i + 1} (bản đủ): ${kq.chan.join(' · ')} — thử bản gọn cùng ảnh`); continue; }
   console.log(`· Ngọc chặn ảnh ${i + 1}${gon ? ' (bản gọn)' : ''}: ${kq.chan.join(' · ')}${veChu && !veAnh ? ' — lỗi CHỮ cả hai bản, đổi ảnh không giúp' : i + 1 < ungVien.length ? ' — thử ảnh kế' : ''}`);
   if (veChu && !veAnh) hetViChu = true; break;

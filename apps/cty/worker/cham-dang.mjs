@@ -55,6 +55,15 @@ async function hoiNgoc({ luot, system, content, max_tokens = 200, cho = 60000 })
     return JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
   } catch (e) { console.error(`hỏi Ngọc (${luot}): ${String(e.message).slice(0, 160)}`); return undefined; }
 }
+/** Khoá sổ xet-hook.json cho kết luận CÙNG NGÁCH theo QC gốc (một máy, một QC). */
+export const khoaQc = (x) => `${x.ma}|qc:${x.qc}`;
+/** "khác ngách" đã kết luận một lần thì GIỮ (lọc kho không đưa lại QC đó); "cùng ngách" mà lần sau Ngọc chặn thì hạ xuống khác ngách — lệch thì nghiêng về chặt.
+ *  Sửa o.cung_ngach theo sổ; trả true khi sổ đổi (cần ghi lại). */
+export function chotCungNgach(so, k, o) {
+  if (so[k] === false) { o.cung_ngach = false; return false; }
+  if (typeof o.cung_ngach === 'boolean' && so[k] !== o.cung_ngach) { so[k] = o.cung_ngach; return true; }
+  return false;
+}
 export async function xetHookAi(ds) {
   // hook từ VIDEO THẮNG của chính kênh (qc 'kenh:<id>', anh duyệt 31/10/2026) không nằm trong kho spy — Ngọc được nói rõ nguồn + lượt xem
   const ngoaiSpy = (q) => /^(kenh|yt):/.test(String(q));   // video thắng của kênh · video YouTube nhiều lượt xem (nguồn thứ hai 02/11/2026) — không nằm trong qc_meta
@@ -74,10 +83,8 @@ export async function xetHookAi(ds) {
     {
       const o = await hoiNgoc({ luot: 'xet-hook', system, content: user }); if (o === undefined) return undefined;   // hỏng = không chặn, không ghi sổ (lượt sau xét lại)
       // CÙNG NGÁCH là tính chất của QC GỐC, không đổi theo câu chữ bài dùng → một (máy, QC) chỉ một kết luận (05/11/2026, Agincourt: lọc kho cho qua hook "Rextus",
-      // lúc chấm bài — tiêu đề đã sửa nhẹ nên khoá câu khác — Ngọc lại chặn "khác ngách" → bài dựng xong bị SỬA LẠI). Kết luận đầu tiên giữ cho mọi lần sau.
-      const kQc = `${x.ma}|qc:${x.qc}`;
-      // "khác ngách" đã kết luận một lần thì GIỮ (lọc kho không đưa lại QC đó); "cùng ngách" mà lần sau Ngọc chặn thì hạ xuống khác ngách — lệch thì nghiêng về chặt
-      if (daXet[kQc] === false) o.cung_ngach = false; else if (typeof o.cung_ngach === 'boolean' && daXet[kQc] !== o.cung_ngach) { daXet[kQc] = o.cung_ngach; moi++; }
+      // lúc chấm bài — tiêu đề đã sửa nhẹ nên khoá câu khác — Ngọc lại chặn "khác ngách" → bài dựng xong bị SỬA LẠI). Sổ theo QC: khoá `<máy>|qc:<id>`.
+      if (chotCungNgach(daXet, khoaQc(x), o)) moi++;
       const loi = [o.cung_ngach === false && 'hook mượn từ QC khác ngách', o.hua_sai === true && 'hook hứa điều thương hiệu không có', o.nhat === true && 'hook nhạt (nhãn sản phẩm / câu cụt / không gây tò mò)'].filter(Boolean);
       return loi.length ? `${loi.join(' + ')} (Ngọc: ${String(o.ly_do || '').slice(0, 140)})` : null;
     }
@@ -88,7 +95,7 @@ export async function xetHookAi(ds) {
     const k = khoa(x);
     if (!(k in daXet)) { const kq = await hoi(x); if (kq === undefined) { ra.push(null); continue; } daXet[k] = kq; moi++; }
     // kết luận cũ theo CÂU (khoá k) có trước khi QC gốc bị xếp khác ngách → vẫn chặn, kẻo lọc kho đọc sổ cũ rồi đưa lại đúng QC vừa bị chặn (Agincourt 05/11/2026)
-    ra.push(daXet[`${x.ma}|qc:${x.qc}`] === false && !/khác ngách/.test(daXet[k] ?? '') ? `hook mượn từ QC khác ngách (đã kết luận theo QC gốc)${daXet[k] ? ` + ${daXet[k]}` : ''}` : daXet[k]);
+    ra.push(daXet[khoaQc(x)] === false && !/khác ngách/.test(daXet[k] ?? '') ? `hook mượn từ QC khác ngách (đã kết luận theo QC gốc)${daXet[k] ? ` + ${daXet[k]}` : ''}` : daXet[k]);
   }
   if (moi) { try { fs.mkdirSync(path.dirname(tepXet), { recursive: true }); fs.writeFileSync(tepXet, JSON.stringify(daXet)); } catch (e) { console.error('xet-hook: không ghi được sổ', e.message); } }
   return ra;

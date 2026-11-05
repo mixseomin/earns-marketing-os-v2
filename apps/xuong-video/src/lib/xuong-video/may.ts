@@ -80,11 +80,20 @@ export async function ghiNhatKy(db: Db, ma: string, x: { buoc: string; ok?: bool
 /** JSON không phụ thuộc thứ tự khoá — jsonb của Postgres tự xếp lại khoá, so JSON.stringify thô thì mọi lần nạp đều thành "đề đổi" và xoá bản xuất
  *  (đo 18/10/2026: chỉ đổi tiêu đề mà 30 video Hotel mất bản xuất). */
 export const jsonChuan = (x: unknown): string => JSON.stringify(x, (_k, v) => (v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, (v as Record<string, unknown>)[k]])) : v));
+/** Chữ đăng (title / description) không mang gạch ngang dài — Phòng Nội dung chặn "N gạch ngang dài" (cham-dang); thay bằng "-" ở cổng nạp chung của MỌI máy
+ *  thay vì bắt từng máy viết lại (05/11/2026, YNT Agincourt bị SỬA LẠI chỉ vì một dấu "—" trong mô tả). */
+export const boGachDai = <T,>(dang: T): T => {
+  if (!dang || typeof dang !== 'object') return dang;
+  const o = { ...(dang as Record<string, unknown>) };
+  for (const k of ['title', 'description']) if (typeof o[k] === 'string') o[k] = (o[k] as string).replace(/[ \t]*[—–][ \t]*/g, ' - ');
+  return o as T;
+};
 /** Nạp đề (khoá = slug trong máy): chưa có → thêm; đề đổi → ghi đề mới, bỏ video cũ (xuất lại); chỉ chữ đăng đổi → cập nhật chữ. */
 export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ moi: number; doi: number; giu: number }> {
   const m = await mayTheoMa(db, ma); if (!m) throw new Error(`không có máy "${ma}"`);
   let moi = 0, doi = 0, giu = 0;
   for (const x of ds) {
+    x.dang = boGachDai(x.dang);
     const cu = ((await db.execute(sql`SELECT id, de, dang, chu_de, nen_url, mau FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${x.slug}`)) as unknown as Row[])[0];
     const coNen = x.nen_url !== undefined, nen = coNen ? x.nen_url ?? null : ((cu?.nen_url as string | null | undefined) ?? null);
     if (x.mau && !MAU_MAY_DUNG[x.mau]) throw new Error(`${x.slug}: mẫu lạ ${x.mau}`);

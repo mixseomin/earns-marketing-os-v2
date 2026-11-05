@@ -270,7 +270,7 @@
       {
         "ma": "G5",
         "ten": "Khuôn kịch bản",
-        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp · ĐÃ CÓ MÁY: This Week (viet-this-week.mjs, 102 sự kiện × 12 cung Mọc) · Sign × Sign (viet-sign.mjs, 78 cặp) · Chart vs Chart (viet-cap.mjs, 18 cặp) · Chart Chapters dài (dai/sinh-chuong.mjs) · Love Story dài (viet-love-story.mjs, 15 cặp) · Myths of the Zodiac (viet-than-thoai.mjs, 12 cung) · Ask the Chart (viet-ask.mjs, 46 tập: ảnh + chữ trang Annual Profections thật qua cong-cu/doc-ap.mjs); còn: Myth Behind, Sky Calendar",
+        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp · ĐÃ CÓ MÁY (05/11): This Week (viet-this-week.mjs, 102 sự kiện × 12 cung Mọc) · Sign × Sign (viet-sign.mjs, 78) · Chart vs Chart (viet-cap.mjs, 18) · Love Story dài (viet-love-story.mjs, 15) · Ask the Chart (viet-ask.mjs, 46: trang Annual Profections thật) · Myths of the Zodiac (viet-than-thoai.mjs, 12) · The Myth Behind (viet-myth-behind.mjs, 14 thiên thể) · Sky Calendar (viet-sky.mjs, 21 chuyện + ảnh thật) · Chart Chapters dài (dai/sinh-chuong.mjs) · Tonight's Sky (dai/sinh-dem.mjs); còn kịch bản tay: Chart Chapters Short, Read Your Chart, Chart Tools, Free in 60 Seconds (nên có máy) · Start Here, How the Sky Works, Geometry (tập một lần, giữ bản tay)",
         "anh": "duyệt kịch bản mẫu",
         "trang_thai": "dang"
       },
@@ -444,7 +444,8 @@
         "kho": "vô hạn · mỗi cặp 1–3 tập (góc khít nhất / điểm / mốc chia tay)",
         "trang": "shot-code/la-so.html (cheo + diem)",
         "sinh": "lich-su/viet-cap.mjs --cap <a--b | all> — 0đ, không AI: 2 góc chiếu chéo khít nhất dùng được (tiêu đề lời giải nguyên văn Synastry của site), điểm từng trục, mốc đầu / cuối sổ cặp, hook QC spy; romantic → Love & Compatibility, partner → Career; 18/18 cặp qua máy gác",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/chart-vs-chart.mp4?v=5"
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/chart-vs-chart.mp4?v=5",
+        "tu_sinh": "^cvc-[a-z0-9-]+$"
       },
       {
         "ma": "love-story-charts",

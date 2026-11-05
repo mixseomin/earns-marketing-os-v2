@@ -26,6 +26,16 @@ export function docHoan(cauHinh: { khoa: string; gia_tri: unknown }[], now = Dat
   if (!cu) for (const h of ['tang', 'giam', 'tat'] as const) for (const id of g?.[h] ?? []) ds.set(Number(id), h);   // tắt ghi sau cùng = tắt thắng
   return { luc, cu, ds };
 }
+/** KHI NÀO MÁY THỰC SỰ LÀM luật tăng đã đạt (anh 06/11/2026 "camp có thể tăng bậc thì ghi thêm bao lâu nữa sẽ thực sự tăng"): máy luật chạy NHIP_PHUT phút / lần
+ *  (apps/cty/worker/nhip.mjs kiem-ethopex), lần gần nhất = sổ hoãn `luc`. Trong khung tăng → nhịp kế; ngoài khung → nhịp đầu tiên sau giờ mở khung tăng. → mốc ms, null khi sổ cũ (máy không chạy) */
+export const NHIP_PHUT = 30;
+export function lucTang(luc: string | null, cu: boolean, now = Date.now()): number | null {
+  if (!luc || cu) return null;
+  const buoc = NHIP_PHUT * 60_000; let t = Date.parse(luc) + buoc; while (t < now) t += buoc;
+  if (khungLuc(gioVnNay(now)) === 'tang') return t;
+  const vn = new Date(now + 7 * 3600_000); let mo = Date.UTC(vn.getUTCFullYear(), vn.getUTCMonth(), vn.getUTCDate(), KD.tang[0]) - 7 * 3600_000; if (mo <= now) mo += 86_400_000;
+  while (t < mo) t += buoc; return t;
+}
 /** GIỜ CHẠY của camp TẠO lúc `now` — cùng luật nhan-ban.lich_len (khung_doi.len, 07–12h VN): trong khung chạy ngay, ngoài khung hẹn 07:00 hôm sau / sáng nay.
  *  Chữ cho nút / ô "bấm rồi ra sao" (anh 05/11/2026: "Nếu bấm có lên ngay hay vẫn theo lịch?") */
 export function chuLich(now = Date.now()): string {

@@ -870,6 +870,34 @@ dat, dau_phien = ([x for x in ds if _du_tang(int(x[0] or 0))] for ds in (dat, da
 # camp đã hạ, đang trong 2 ngày theo dõi — có danh sách riêng để trang etp / bộ lọc thấy (anh 01/11/2026 "Thiếu luật G10 vừa áp dụng?": trước đó camp đang theo dõi rơi khỏi mọi danh sách)
 g10_theo = [(cid, f"#{(thang.get(cid) or {}).get('ten', '')[:70]} · đã hạ về ${G10_DICH} ngày {ngay:%d/%m} — theo dõi {G10_THEO} ngày đã khép, ROI vẫn < {G10_ROI}% thì tắt; đang khoá tăng") for cid, ngay in sorted(_g10_theo.items())]
 dat, dau_phien, tang30, thang_nb, nb, moc30 = ([x for x in v if int(x[0] or 0) not in _g10_cam] for v in (dat, dau_phien, tang30, thang_nb, nb, moc30))
+# GIỮ CAMP CUỐI CỦA PHIM (anh 05/11/2026: "nếu phim ko có camp thay thế thì sẽ bị mất dấu vết. Ít nhất vẫn phải có 1 camp lãi duy trì, trừ trường hợp bị bão hoà
+# + lỗ quá theo luật"): mọi camp đang bật của phim đều nằm trong danh sách tắt mà phim chưa có camp nối (camp đã tạo, hẹn lịch chưa tới giờ chạy) → gỡ camp tốt nhất
+# (ROI cả đời cao nhất) khỏi mọi danh sách tắt, vào danh sách giu_cuoi. Ngoại lệ = luật cất phim đã có: phim đã cất (thu_vong 'cat' — cat_phim) hoặc bão hoà
+# (etp.phim_bao_hoa.bao_hoa) mà ROI phim cả hệ ngày đã khép gần nhất < 0. Có camp nối thì máy tắt như thường; thay-the.py vẫn thấy camp sắp tắt và tiếp tục lên camp thay.
+giu_cuoi = []
+try:
+    _DS_TAT = (tat2, tat1, t1_cho, tat_d24, tat_l3, tat_l4, tat_pl, tat_l, thang_tat, tat_roas, tat_r0, tat_g10)   # dừng đêm không tính (tạm dừng, bật lại theo lịch) · t1_cho: sáng đã biết camp nào được giữ
+    _chet = {int(x[0] or 0) for v in _DS_TAT for x in v}
+    if _chet and _bat:
+        _pc = {}
+        for _l in q(f"select camp_id, content_id from etp.camp where camp_id in ({','.join(str(int(c)) for c in _bat)}) and content_id > 0").splitlines():
+            _a, _b = _l.split("|"); _pc.setdefault(int(_b), []).append(int(_a))
+        _noi = {int(x) for x in q("select distinct content_id from etp.camp where trang_thai <> 'ACTIVE' and lich > now() and tao > now() - interval '3 days' and content_id > 0").split()}
+        _bo_giu = {int(x) for x in q("select content_id from etp.phim where thu_vong = 'cat'").split()}
+        for _l in q("select content_id, roi->-1->>'roi' from etp.phim_bao_hoa where bao_hoa is not null").splitlines():
+            _a, _b = _l.split("|")
+            if _b and float(_b) < 0: _bo_giu.add(int(_a))
+        _roi_doi = {}
+        for _l in q(f"select camp_id, sum(chi), sum(thu) from {K_SO} where camp_id in ({','.join(str(c) for c in _chet)}) group by 1").splitlines():
+            _a, _c, _t = _l.split("|"); _roi_doi[int(_a)] = (float(_t) - float(_c)) / float(_c) * 100 if float(_c) > 0 else -100.0
+        for _ph, _cs in _pc.items():
+            if _ph in _noi or _ph in _bo_giu or not all(c in _chet for c in _cs): continue
+            _g = max(_cs, key=lambda c: (_roi_doi.get(c, -100.0), c))
+            _luat = [v[[int(x[0] or 0) for x in v].index(_g)][1].split("→")[-1].strip()[:60] for v in _DS_TAT if any(int(x[0] or 0) == _g for x in v)]
+            for v in _DS_TAT: v[:] = [x for x in v if int(x[0] or 0) != _g]
+            giu_cuoi.append((_g, f"#{(thang.get(_g) or thang.get(str(_g)) or {}).get('ten', '')[:70]} · camp cuối của phim {_ph} (ROI cả đời {_roi_doi.get(_g, -100):+.0f}%) · chạm {' | '.join(_luat)} → GIỮ, chưa có camp thay; tắt khi phim có camp nối hoặc phim bị cất (bão hoà + lỗ / cat_phim)"))
+except Exception as e:
+    loi_may.append((0, f"giữ camp cuối lỗi: {str(e)[:80]}"))
 # XÉT LUẬT TỪNG CAMP (anh 28/10/2026: "Cần xem mức độ liên quan của từng camp với các luật khi hover vào … để biết tính có đúng không + hiểu rõ hơn
 # về từng luật"): với mỗi camp đang chạy, từng luật → điều kiện [tên, giá trị thật, ngưỡng, đạt?] trên CHÍNH các bảng số + ngưỡng máy vừa dùng ở trên;
 # kết: 'dat' (đủ mọi điều kiện) · 'gan' (thiếu đúng một) · 'xa'; 'vao' = máy có xếp camp vào danh sách làm ở nhịp này không (khác 'dat' thì do cổng phụ:
@@ -894,7 +922,7 @@ def _xet_luat():
             "g10" if int(cid) in vao["g10"] else "tat_g10" if int(cid) in vao["tat_g10"] else None,
             f"đã hạ về ${G10_DICH} ngày {theo_:%d/%m} — đang theo dõi {G10_THEO} ngày đã khép, khoá tăng" if theo_ else None, tien=2, lo=None if r3 is None else r3 < G10_ROI)
     # thẻ "G10 kém đi" (g10k) đã gỡ 05/11/2026 cùng nhánh kém đi — không giảm camp đang lãi
-    ra = {}
+    ra = {}; _giu = {int(x[0] or 0) for x in giu_cuoi}
     for cid in sorted(_dc):
         a = thang.get(cid) or thang.get(str(cid)) or {"chi": 0.0, "thu": 0.0, "budget": 0.0}
         ns = float(a.get("budget") or 0); r = roi(a) if a.get("chi") else None
@@ -1014,7 +1042,11 @@ def _xet_luat():
             ls.append(L("t30", "T30 · $20 → $30", ("Đang tạm dừng (02/11/2026: so với camp $20 cùng ngày không tăng, mỗi lần lên $30 mất $8.99/ngày) — máy không tăng. " if T30_THUONG_DUNG else "") + f"Camp đang $20, {T30N_NGAY} ngày đã khép: chi TB ≥ {T30N_SP}% ngân sách (${T30N_SP / 100 * 20:g}/ngày), ROI ≥ {T30N_ROI}% → máy tự lên $30.",
                 [["Ngân sách", f"${ns:g}", "= $20", round(ns) == 20], [f"Chi TB {T30N_NGAY} ngày", f((g5["chi"] / T30N_NGAY) if g5 else None, "$"), f"≥ ${T30N_SP / 100 * 20:g}", bool(g5 and g5["chi"] >= T30N_SP / 100 * 20 * T30N_NGAY)], [f"ROI {T30N_NGAY} ngày", f(r5, "%"), f"≥ {T30N_ROI}%", r5 is not None and r5 >= T30N_ROI]],
                 "tang30" if int(cid) in vao["tang30"] else None, tien=1))
-        ls.append(L_g10(cid, ns)); ra[int(cid)] = ls
+        ls.append(L_g10(cid, ns))
+        if int(cid) in _giu:   # camp cuối của phim: luật tắt đạt nhưng máy giữ (giu_cuoi) — thẻ nói thẳng, không hứa "máy tắt"
+            for l_ in ls:
+                if l_["ket"] == "dat" and l_["ma"] in ("t1", "t2", "l3", "l4", "off", "d24", "g10"): l_["ghi"] = "GIỮ — camp cuối của phim, chưa có camp thay (tắt khi phim có camp nối hoặc phim bị cất)"
+        ra[int(cid)] = ls
     return ra
 if JSON:
     m = lambda ds: [{"id": i, "chu": s, **({"bo": _bo_c[int(i)]} if _bo_c.get(int(i or 0)) else {})} for i, s in ds]
@@ -1029,7 +1061,7 @@ if JSON:
         if _p.returncode: loi_may.append((0, f"ghi xét luật lỗi: {_p.stderr.strip()[:80]}"))
     except Exception as e:
         loi_may.append((0, f"xét luật lỗi: {str(e)[:80]}"))
-    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat1": m(tat1), "t1_cho": m(t1_cho), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7), "hoi_g10": m(hoi_g10)}
+    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat1": m(tat1), "t1_cho": m(t1_cho), "giu_cuoi": m(giu_cuoi), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7), "hoi_g10": m(hoi_g10)}
     # SỔ LUẬT CHUNG (apps/web/src/lib/etp-bang-luat.json): mọi danh sách máy luật xuất ra phải có mục ở sổ — thiếu là trang etp / bộ lọc / worker không biết luật đó (gốc vụ G10 01/11/2026)
     _thieu = sorted(k for k in ra_ if k != "luc" and k not in BANG_LUAT["khoa"])
     if _thieu: ra_["loi_may"] = ra_.get("loi_may", []) + [{"id": 0, "chu": f"luật chưa có trong sổ luật chung etp-bang-luat.json: {', '.join(_thieu)}"}]

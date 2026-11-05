@@ -504,7 +504,8 @@
         "trang": "shot-code/la-so.html (vai nhân vật + chom chòm sao)",
         "sinh": "lich-su/viet-than-thoai.mjs --cung <cung> — chuyện Wikipedia nguyên văn (la-so/than-thoai/<cung>.json), nhân vật vẽ một lần (kho-sinh.mts), câu cung của site",
         "tu_sinh": "^tt-[a-z]+$",
-        "cho_duyet": true
+        "cho_duyet": true,
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/zodiac-myths-leo.mp4?v=1"
       }
     ],
     "mo_dau": "https://img.on.tc/xuong-video/demo/astrolas/mo-dau-doc.mp4",
@@ -817,6 +818,12 @@
         "ma": "sx-leo-sagittarius",
         "mau": "sign-x-sign",
         "chu_de": "Leo × Sagittarius",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-leo",
+        "mau": "zodiac-myths",
+        "chu_de": "Leo: the Nemean lion and Heracles",
         "trang_thai": "demo"
       }
     ],

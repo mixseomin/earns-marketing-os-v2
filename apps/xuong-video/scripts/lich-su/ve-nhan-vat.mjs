@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // VẼ NHÂN VẬT HÀNG LOẠT cho mẫu Myths of the Zodiac (05/11/2026): đọc mục "ve" của mọi sổ chuyện la-so/than-thoai/*.json → nhân vật / dáng nào chưa có PNG ở
 // brand/astrolas/nhan-vat/<id>/<dáng>.png thì vẽ: box3 lich-su/kho-sinh.mts (ckey Nano Banana 2 ~110₫ / ảnh, phong cách brand/astrolas/nhan-vat/kho.json qua KHO_TEP)
-// → kéo về iMac → shot-code/tach-lop.swift tách nền (Vision, 0đ) → PNG nền trong. 4 nhân vật song song. In tiền thật.
+// → kéo về iMac → shot-code/tach-lop.swift tách nền (Vision, 0đ) → PNG nền trong → pngquant nén (~60% nhẹ hơn). 4 nhân vật song song. In tiền thật.
 //   node ve-nhan-vat.mjs [--xem]   (--xem: chỉ liệt kê việc + ước tiền, không vẽ)
 import { execFileSync, spawn } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs';
@@ -35,7 +35,10 @@ for (const [id] of ds) {
   for (const f of readdirSync(join(NV, id)).filter((x) => x.endsWith('.jpg'))) {
     const d = f.replace(/\.jpg$/, ''), tam = join('/tmp', `tach-${id}-${d}`);
     if (existsSync(join(NV, id, `${d}.png`))) continue;
-    try { execFileSync('swift', [join(DIR, '../shot-code/tach-lop.swift'), join(NV, id, f), tam], { stdio: 'ignore' }); const l = readdirSync(tam).find((x) => /^lop-.*\.png$/.test(x)); if (l) copyFileSync(join(tam, l), join(NV, id, `${d}.png`)); else console.log(`✗ ${id}/${d}: tách nền không ra chủ thể`); }
+    try { execFileSync('swift', [join(DIR, '../shot-code/tach-lop.swift'), join(NV, id, f), tam], { stdio: 'ignore' }); const l = readdirSync(tam).find((x) => /^lop-.*\.png$/.test(x)); if (l) { copyFileSync(join(tam, l), join(NV, id, `${d}.png`));
+      // nén PNG (pngquant, giữ nền trong) — 54 MB → 23 MB với bộ đầu; thiếu pngquant thì giữ bản gốc, báo một dòng
+      try { execFileSync('pngquant', ['--quality=70-92', '--speed', '1', '--force', '--skip-if-larger', '--ext', '.png', join(NV, id, `${d}.png`)]); } catch (e) { if (e.code === 'ENOENT') console.log('⚠ chưa có pngquant (brew install pngquant) — PNG chưa nén'); } }
+    else console.log(`✗ ${id}/${d}: tách nền không ra chủ thể`); }
     catch { console.log(`✗ ${id}/${d}: tách nền hỏng`); }
   }
 }

@@ -1,0 +1,173 @@
+{
+ "ten": "Pan the sea-goat (Capricorn)",
+ "cung": "Capricorn",
+ "nguon": "https://en.wikipedia.org/wiki/Pan_(god) (đọc 05/11/2026, câu nguyên văn)",
+ "nguon_khac": [
+  "https://en.wikipedia.org/wiki/Typhon",
+  "https://en.wikipedia.org/wiki/Capricornus"
+ ],
+ "_ghi_nguon": "Bản Pan / Aegipan chạy trốn Typhon (Hyginus, trang Pan (god) + Capricornus + Typhon): Pan nhảy xuống sông thành dê có đuôi cá, giúp lấy lại gân cho Zeus, Zeus thắng Typhon và đặt hình Pan lên trời. Bỏ bản dê Amalthea. Typhon + Pan định nghĩa ở đây, Pisces dùng lại.",
+ "moc": [
+  {
+   "chu": "The goat-god Aegipan was nurtured by Amalthea with the infant Zeus in Crete.",
+   "nguon": "https://en.wikipedia.org/wiki/Pan_(god)",
+   "vai": [
+    {
+     "ai": "pan",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 680
+    }
+   ]
+  },
+  {
+   "chu": "Typhon attempted to overthrow Zeus for the supremacy of the cosmos.",
+   "nguon": "https://en.wikipedia.org/wiki/Typhon",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "goc",
+     "x": 0.24,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "typhon",
+     "dang": "gam",
+     "x": 0.68,
+     "y": 0.66,
+     "cao": 600,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Capricornus is also sometimes identified as Pan, the god with a goat's horns and legs, who saved himself from the monster Typhon by giving himself a fish's tail and diving into a river.",
+   "nguon": "https://en.wikipedia.org/wiki/Capricornus",
+   "vai": [
+    {
+     "ai": "pan",
+     "dang": "ngac_nhien",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 680
+    },
+    {
+     "ai": "typhon",
+     "dang": "gam",
+     "x": 0.74,
+     "y": 0.64,
+     "cao": 580,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "In Zeus's battle with Typhon, Aegipan and Hermes stole back Zeus's \"sinews\" that Typhon had hidden away in the Corycian Cave.",
+   "nguon": "https://en.wikipedia.org/wiki/Pan_(god)",
+   "vai": [
+    {
+     "ai": "pan",
+     "dang": "goc",
+     "x": 0.34,
+     "y": 0.66,
+     "cao": 680
+    },
+    {
+     "ai": "zeus",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 740,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Typhon then fled to Sicily, where Zeus threw Mount Etna on top of Typhon burying him, and so finally defeated him.",
+   "nguon": "https://en.wikipedia.org/wiki/Typhon",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "chi_len",
+     "x": 0.26,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "typhon",
+     "dang": "nam_guc",
+     "x": 0.7,
+     "y": 0.66,
+     "cao": 340
+    }
+   ]
+  },
+  {
+   "chu": "The constellation Capricornus is traditionally depicted as a sea-goat, a goat with a fish's tail.",
+   "nguon": "https://en.wikipedia.org/wiki/Pan_(god)",
+   "vai": [
+    {
+     "ai": "pan",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 680
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "Admiring Pan's ruse, Zeus placed his image amongst the stars.",
+   "nguon": "https://en.wikipedia.org/wiki/Pan_(god)",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "chi_len",
+     "x": 0.24,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "pan",
+     "dang": "goc",
+     "x": 0.62,
+     "y": 0.47,
+     "cao": 360,
+     "mo": 0.35
+    }
+   ],
+   "nhin": {
+    "chom": "Capricorn"
+   }
+  }
+ ],
+ "site": [
+  "Capricorn wants to build something that lasts and be respected for it."
+ ],
+ "nhan_vat": {
+  "pan": "brand/astrolas/nhan-vat/pan",
+  "typhon": "brand/astrolas/nhan-vat/typhon",
+  "zeus": "brand/astrolas/nhan-vat/zeus"
+ },
+ "ve": {
+  "pan": {
+   "loai": "nhan_vat",
+   "mo_ta": "Pan (Aegipan), the Greek goat-god: cheerful young face with a curly brown beard, two curved goat horns, furry brown goat legs with hooves, bare chest with a green leaf sash, holding reed panpipes",
+   "dang": [
+    "goc",
+    "ngac_nhien"
+   ]
+  },
+  "typhon": {
+   "loai": "sinh_vat",
+   "mo_ta": "Typhon, a monstrous storm giant: huge dark-grey body, many snake heads for hair, coiling serpent tails instead of legs, glowing orange eyes, fire and smoke from his mouth",
+   "dang": [
+    "goc",
+    "gam",
+    "nam_guc"
+   ]
+  }
+ }
+}

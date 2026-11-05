@@ -1,0 +1,205 @@
+{
+ "ten": "Castor and Pollux (Gemini)",
+ "cung": "Gemini",
+ "nguon": "https://en.wikipedia.org/wiki/Castor_and_Pollux (đọc 05/11/2026, câu nguyên văn)",
+ "nguon_khac": [
+  "https://en.wikipedia.org/wiki/Gemini_(constellation)"
+ ],
+ "_ghi_nguon": "Bản quy ước (Pindar): Pollux con Zeus bất tử, Castor con Tyndareus phải chết; Idas đâm Castor, Zeus giáng sét cứu Pollux, Pollux chia sự bất tử để hai anh em thành chòm Gemini. Bỏ bản Babylon (Great Twins) và đoạn cướp con gái Leucippus.",
+ "moc": [
+  {
+   "chu": "Pollux was the son of Zeus, who seduced Leda, while Castor was the son of Tyndareus, king of Sparta and Leda's husband.",
+   "nguon": "https://en.wikipedia.org/wiki/Gemini_(constellation)",
+   "vai": [
+    {
+     "ai": "castor",
+     "dang": "goc",
+     "x": 0.34,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "pollux",
+     "dang": "goc",
+     "x": 0.66,
+     "y": 0.66,
+     "cao": 720,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Both Dioscuri were excellent horsemen and hunters who participated in the hunting of the Calydonian Boar and later joined the crew of Jason's ship, the Argo.",
+   "nguon": "https://en.wikipedia.org/wiki/Castor_and_Pollux",
+   "vai": [
+    {
+     "ai": "castor",
+     "dang": "goc",
+     "x": 0.34,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "pollux",
+     "dang": "goc",
+     "x": 0.66,
+     "y": 0.66,
+     "cao": 720,
+     "lat": true
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "One consistent point is that if only one of them is immortal, it is Pollux.",
+   "nguon": "https://en.wikipedia.org/wiki/Castor_and_Pollux",
+   "vai": [
+    {
+     "ai": "pollux",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 720
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "Castor climbed a tree to keep a watch as Pollux began to free the cattle.",
+   "nguon": "https://en.wikipedia.org/wiki/Castor_and_Pollux",
+   "vai": [
+    {
+     "ai": "castor",
+     "dang": "goc",
+     "x": 0.34,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "pollux",
+     "dang": "goc",
+     "x": 0.66,
+     "y": 0.66,
+     "cao": 720,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Idas, furious, ambushed Castor, fatally wounding him with a blow from his spear – but not before Castor called out to warn Pollux.",
+   "nguon": "https://en.wikipedia.org/wiki/Castor_and_Pollux",
+   "vai": [
+    {
+     "ai": "idas",
+     "dang": "vung_chuy",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "castor",
+     "dang": "ngac_nhien",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 720,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "As Idas was about to kill Pollux, Zeus, who had been watching from Mount Olympus, hurled a thunderbolt, killing Idas and saving his son.",
+   "nguon": "https://en.wikipedia.org/wiki/Castor_and_Pollux",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "chi_len",
+     "x": 0.18,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "pollux",
+     "dang": "goc",
+     "x": 0.48,
+     "y": 0.66,
+     "cao": 700
+    },
+    {
+     "ai": "idas",
+     "dang": "vung_chuy",
+     "x": 0.8,
+     "y": 0.66,
+     "cao": 720,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Pollux asked Zeus to let him share his own immortality with his twin to keep them together, and they were transformed into the constellation Gemini.",
+   "nguon": "https://en.wikipedia.org/wiki/Castor_and_Pollux",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "chi_len",
+     "x": 0.2,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "castor",
+     "dang": "goc",
+     "x": 0.52,
+     "y": 0.47,
+     "cao": 340,
+     "mo": 0.35
+    },
+    {
+     "ai": "pollux",
+     "dang": "goc",
+     "x": 0.78,
+     "y": 0.47,
+     "cao": 340,
+     "mo": 0.35,
+     "lat": true
+    }
+   ],
+   "nhin": {
+    "chom": "Gemini"
+   }
+  }
+ ],
+ "site": [
+  "Gemini wants to know, and then wants to tell someone."
+ ],
+ "nhan_vat": {
+  "castor": "brand/astrolas/nhan-vat/castor",
+  "pollux": "brand/astrolas/nhan-vat/pollux",
+  "idas": "brand/astrolas/nhan-vat/idas",
+  "zeus": "brand/astrolas/nhan-vat/zeus"
+ },
+ "ve": {
+  "castor": {
+   "loai": "nhan_vat",
+   "mo_ta": "Castor, a young Spartan horseman, blond hair, short red tunic with a bronze breastplate, white egg-shaped felt cap (pilos) with a small star above it, holding a spear",
+   "dang": [
+    "goc",
+    "ngac_nhien"
+   ]
+  },
+  "pollux": {
+   "loai": "nhan_vat",
+   "mo_ta": "Pollux, Castor's twin, same blond hair and white egg-shaped felt cap (pilos) with a small star, but a short blue tunic and leather boxing hand-wraps, sturdy boxer build",
+   "dang": [
+    "goc"
+   ]
+  },
+  "idas": {
+   "loai": "nhan_vat",
+   "mo_ta": "Idas, a gigantic fierce Messenian warrior, black beard, dark brown tunic, bronze helmet, holding a long spear",
+   "dang": [
+    "goc",
+    "vung_chuy"
+   ]
+  }
+ }
+}

@@ -1,0 +1,171 @@
+{
+ "ten": "Zeus the white bull and Europa (Taurus)",
+ "cung": "Taurus",
+ "nguon": "https://en.wikipedia.org/wiki/Europa_(consort_of_Zeus) (đọc 05/11/2026, câu nguyên văn)",
+ "nguon_khac": [
+  "https://en.wikipedia.org/wiki/Taurus_(constellation)"
+ ],
+ "_ghi_nguon": "Bản Hy Lạp: Zeus hoá bò trắng mang công chúa Europa qua biển tới Crete (trang Europa, mục Mythology); bỏ bản Io hoá bò cái và bản Bò thần Gilgamesh của Babylon.",
+ "moc": [
+  {
+   "chu": "In Greek mythology, Taurus was identified with Zeus, who assumed the form of a magnificent white bull to abduct Europa, a legendary Phoenician princess.",
+   "nguon": "https://en.wikipedia.org/wiki/Taurus_(constellation)",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "goc",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "europa",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 700,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "She is generally said to be the daughter of Agenor, the Phoenician King of Tyre.",
+   "nguon": "https://en.wikipedia.org/wiki/Europa_(consort_of_Zeus)",
+   "vai": [
+    {
+     "ai": "europa",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 700
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "He transformed himself into a tame white bull and mixed in with her father's herds.",
+   "nguon": "https://en.wikipedia.org/wiki/Europa_(consort_of_Zeus)",
+   "vai": [
+    {
+     "ai": "bo-trang",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.64,
+     "cao": 540
+    }
+   ]
+  },
+  {
+   "chu": "While Europa and her helpers were gathering flowers, she saw the bull, caressed his flanks, and eventually got onto his back.",
+   "nguon": "https://en.wikipedia.org/wiki/Europa_(consort_of_Zeus)",
+   "vai": [
+    {
+     "ai": "europa",
+     "dang": "goc",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 700
+    },
+    {
+     "ai": "bo-trang",
+     "dang": "goc",
+     "x": 0.7,
+     "y": 0.64,
+     "cao": 500,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Zeus took that opportunity and ran to the sea and swam, with her on his back, to the island of Crete.",
+   "nguon": "https://en.wikipedia.org/wiki/Europa_(consort_of_Zeus)",
+   "vai": [
+    {
+     "ai": "europa",
+     "dang": "ngac_nhien",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 700
+    },
+    {
+     "ai": "bo-trang",
+     "dang": "goc",
+     "x": 0.7,
+     "y": 0.64,
+     "cao": 500,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Zeus then revealed his true identity, and Europa became the first queen of Crete.",
+   "nguon": "https://en.wikipedia.org/wiki/Europa_(consort_of_Zeus)",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "goc",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "europa",
+     "dang": "ngac_nhien",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 700,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Zeus later re-created the shape of the white bull in the stars, which is now known as the constellation Taurus.",
+   "nguon": "https://en.wikipedia.org/wiki/Europa_(consort_of_Zeus)",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "chi_len",
+     "x": 0.24,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "bo-trang",
+     "dang": "goc",
+     "x": 0.62,
+     "y": 0.47,
+     "cao": 360,
+     "mo": 0.35
+    }
+   ],
+   "nhin": {
+    "chom": "Taurus"
+   }
+  }
+ ],
+ "site": [
+  "Taurus wants things to be solid: money, home, the same restaurant every Friday."
+ ],
+ "nhan_vat": {
+  "zeus": "brand/astrolas/nhan-vat/zeus",
+  "europa": "brand/astrolas/nhan-vat/europa",
+  "bo-trang": "brand/astrolas/nhan-vat/bo-trang"
+ },
+ "ve": {
+  "europa": {
+   "loai": "nhan_vat",
+   "mo_ta": "Europa, a young Phoenician princess, long black braided hair with a gold headband, flowing crimson and gold dress, a small basket of spring flowers on her arm",
+   "dang": [
+    "goc",
+    "ngac_nhien"
+   ]
+  },
+  "bo-trang": {
+   "loai": "sinh_vat",
+   "mo_ta": "Zeus disguised as a magnificent tame snow-white bull, gentle face, small golden horns, a garland of flowers around its neck",
+   "dang": [
+    "goc"
+   ]
+  }
+ }
+}

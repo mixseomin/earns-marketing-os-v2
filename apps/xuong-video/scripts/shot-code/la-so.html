@@ -178,7 +178,7 @@ function veDiem(ds) {
 }
 // CHÒM SAO: nét thật (d3-celestial, toạ độ RA / Dec độ) chiếu phẳng vào giữa khung — RA tăng sang TRÁI (như nhìn trời), nét vẽ dần, sao sáng nhấp nháy
 function veChom(ten) {
-  const sd = C._sao, i = sd.ten.findIndex((x) => x[0] === ten); if (i < 0) throw new Error('không có chòm ' + ten);
+  const sd = C._sao, TEN_CHOM = { Scorpio: 'Scorpius', Capricorn: 'Capricornus' }, i = sd.ten.findIndex((x) => x[0] === (TEN_CHOM[ten] ?? ten)); if (i < 0) throw new Error('không có chòm ' + ten);   // tên cung → tên chòm IAU
   const ds = sd.duong[i], pts = ds.flat(), ra0 = pts.reduce((a, p) => a + p[0], 0) / pts.length, de0 = pts.reduce((a, p) => a + p[1], 0) / pts.length;
   const xy = (p) => [-(p[0] - ra0) * Math.cos((de0 * Math.PI) / 180), p[1] - de0], q = pts.map(xy);
   const rx = Math.max(...q.map((p) => Math.abs(p[0]))), ry = Math.max(...q.map((p) => Math.abs(p[1]))), k = Math.min((W * 0.36) / rx, (H * 0.2) / ry);

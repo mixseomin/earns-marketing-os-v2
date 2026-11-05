@@ -1,0 +1,154 @@
+{
+ "ten": "Astraea leaves the earth (Virgo)",
+ "cung": "Virgo",
+ "nguon": "https://en.wikipedia.org/wiki/Astraea (đọc 05/11/2026, câu nguyên văn)",
+ "nguon_khac": [],
+ "_ghi_nguon": "Bản Hy Lạp (Aratus, Ovid): nữ thần công lý Astraea sống cùng loài người thời Hoàng kim, rời đi khi con người sa đoạ và thành chòm Virgo. Bỏ các bản Demeter / Persephone, Erigone, Parthenos.",
+ "moc": [
+  {
+   "chu": "Astraea is a goddess who personifies justice.",
+   "nguon": "https://en.wikipedia.org/wiki/Astraea",
+   "vai": [
+    {
+     "ai": "astraea",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 720
+    }
+   ]
+  },
+  {
+   "chu": "In Greek myth, Astraea lived together with humans on earth during the idealistic Golden Age, when people were virtuous and no evil existed in the world.",
+   "nguon": "https://en.wikipedia.org/wiki/Astraea",
+   "vai": [
+    {
+     "ai": "astraea",
+     "dang": "goc",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "nguoi-pham",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 700,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "In this pre-seafaring era, humans only ploughed their rich fields while Justice supplied them with all they could ever want or need.",
+   "nguon": "https://en.wikipedia.org/wiki/Astraea",
+   "vai": [
+    {
+     "ai": "nguoi-pham",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 700
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "She no longer spoke with gentle words to them and took to the hills and then the mountains.",
+   "nguon": "https://en.wikipedia.org/wiki/Astraea",
+   "vai": [
+    {
+     "ai": "astraea",
+     "dang": "buon",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 720
+    }
+   ]
+  },
+  {
+   "chu": "She used threats and shame on them, but failed to motivate them to become better people.",
+   "nguon": "https://en.wikipedia.org/wiki/Astraea",
+   "vai": [
+    {
+     "ai": "astraea",
+     "dang": "nam_dam",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "nguoi-pham",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 700,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "To a lesser extent, Astraea was also envisioned as the goddess who watched over mortals and then reported their wrongdoings back to Zeus.",
+   "nguon": "https://en.wikipedia.org/wiki/Astraea",
+   "vai": [
+    {
+     "ai": "astraea",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 720
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "But as the human race became progressively crueler and more corrupt, Astraea decided to abandon humanity forever and live among the stars as the constellation Virgo.",
+   "nguon": "https://en.wikipedia.org/wiki/Astraea",
+   "vai": [
+    {
+     "ai": "nguoi-pham",
+     "dang": "goc",
+     "x": 0.28,
+     "y": 0.66,
+     "cao": 700
+    },
+    {
+     "ai": "astraea",
+     "dang": "goc",
+     "x": 0.64,
+     "y": 0.47,
+     "cao": 360,
+     "mo": 0.35
+    }
+   ],
+   "nhin": {
+    "chom": "Virgo"
+   }
+  }
+ ],
+ "site": [
+  "Virgo wants things to work properly and will quietly fix them until they do."
+ ],
+ "nhan_vat": {
+  "astraea": "brand/astrolas/nhan-vat/astraea",
+  "nguoi-pham": "brand/astrolas/nhan-vat/nguoi-pham"
+ },
+ "ve": {
+  "astraea": {
+   "loai": "nhan_vat",
+   "mo_ta": "Astraea (also called Dike), Greek goddess of justice, young slender woman, long silver-blonde hair with a laurel wreath, flowing white robe with a starry gold sash, soft glow, holding a small golden balance scale in one hand",
+   "dang": [
+    "goc",
+    "buon",
+    "nam_dam"
+   ]
+  },
+  "nguoi-pham": {
+   "loai": "nhan_vat",
+   "mo_ta": "An ordinary ancient Greek farmer, middle-aged man, short brown beard, plain beige tunic with rope belt, sandals",
+   "dang": [
+    "goc"
+   ]
+  }
+ }
+}

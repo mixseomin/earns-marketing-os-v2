@@ -504,7 +504,6 @@
         "trang": "shot-code/la-so.html (vai nhân vật + chom chòm sao)",
         "sinh": "lich-su/viet-than-thoai.mjs --cung <cung> — chuyện Wikipedia nguyên văn (la-so/than-thoai/<cung>.json), nhân vật vẽ một lần (kho-sinh.mts), câu cung của site",
         "tu_sinh": "^tt-[a-z]+$",
-        "cho_duyet": true,
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/zodiac-myths-leo.mp4?v=1"
       }
     ],
@@ -825,6 +824,72 @@
         "mau": "zodiac-myths",
         "chu_de": "Leo: the Nemean lion and Heracles",
         "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-aries",
+        "mau": "zodiac-myths",
+        "chu_de": "Aries: the golden ram",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "tt-taurus",
+        "mau": "zodiac-myths",
+        "chu_de": "Taurus: Zeus as the white bull",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "tt-gemini",
+        "mau": "zodiac-myths",
+        "chu_de": "Gemini: Castor and Pollux",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "tt-cancer",
+        "mau": "zodiac-myths",
+        "chu_de": "Cancer: the crab Hera sent",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "tt-virgo",
+        "mau": "zodiac-myths",
+        "chu_de": "Virgo: Astraea leaves the Earth",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "tt-libra",
+        "mau": "zodiac-myths",
+        "chu_de": "Libra: the scales of Dike",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "tt-scorpio",
+        "mau": "zodiac-myths",
+        "chu_de": "Scorpio: the scorpion and Orion",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "tt-sagittarius",
+        "mau": "zodiac-myths",
+        "chu_de": "Sagittarius: Chiron the centaur",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "tt-capricorn",
+        "mau": "zodiac-myths",
+        "chu_de": "Capricorn: Pan the sea-goat",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "tt-aquarius",
+        "mau": "zodiac-myths",
+        "chu_de": "Aquarius: Ganymede and the eagle",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "tt-pisces",
+        "mau": "zodiac-myths",
+        "chu_de": "Pisces: Aphrodite and Eros",
+        "trang_thai": "san_sang"
       }
     ],
     "nguon_y_tuong": [

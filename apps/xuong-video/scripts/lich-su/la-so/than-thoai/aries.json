@@ -1,0 +1,226 @@
+{
+ "ten": "The golden ram (Aries)",
+ "cung": "Aries",
+ "nguon": "https://en.wikipedia.org/wiki/Aries_(constellation) (đọc 05/11/2026, câu nguyên văn)",
+ "nguon_khac": [
+  "https://en.wikipedia.org/wiki/Phrixus",
+  "https://en.wikipedia.org/wiki/Golden_Fleece"
+ ],
+ "_ghi_nguon": "Bản Hy Lạp: cừu vàng Nephele gửi tới cứu Phrixus và Helle khỏi mưu của mẹ kế Ino, Helle rơi xuống Hellespont, Phrixus tới Colchis, cừu bị hiến tế rồi thành chòm Aries (Golden Fleece). Câu \"Phrixus survived…\" là đoạn liền sau dấu chấm phẩy của một câu dài trên trang Phrixus, kết bằng dấu chấm của câu đó.",
+ "moc": [
+  {
+   "chu": "Phrixus and Helle were the son and daughter of King Athamas and his first wife Nephele.",
+   "nguon": "https://en.wikipedia.org/wiki/Aries_(constellation)",
+   "vai": [
+    {
+     "ai": "phrixus",
+     "dang": "goc",
+     "x": 0.34,
+     "y": 0.66,
+     "cao": 680
+    },
+    {
+     "ai": "helle",
+     "dang": "goc",
+     "x": 0.66,
+     "y": 0.66,
+     "cao": 660,
+     "lat": true
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "Phrixus and Helle were hated by their stepmother, Ino.",
+   "nguon": "https://en.wikipedia.org/wiki/Phrixus",
+   "vai": [
+    {
+     "ai": "phrixus",
+     "dang": "goc",
+     "x": 0.2,
+     "y": 0.66,
+     "cao": 660
+    },
+    {
+     "ai": "helle",
+     "dang": "goc",
+     "x": 0.42,
+     "y": 0.66,
+     "cao": 640
+    },
+    {
+     "ai": "ino",
+     "dang": "nam_dam",
+     "x": 0.76,
+     "y": 0.66,
+     "cao": 720,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Ino bribed the men sent to the oracle to lie and tell the others that the oracle required the sacrifice of Phrixus and Helle.",
+   "nguon": "https://en.wikipedia.org/wiki/Phrixus",
+   "vai": [
+    {
+     "ai": "ino",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 720
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "Athamas was about to sacrifice his son atop Mount Laphystium when Aries, sent by Nephele, arrived.",
+   "nguon": "https://en.wikipedia.org/wiki/Aries_(constellation)",
+   "vai": [
+    {
+     "ai": "phrixus",
+     "dang": "ngac_nhien",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 680
+    },
+    {
+     "ai": "cuu-vang",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.64,
+     "cao": 480,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Helle fell off of Aries's back in flight and drowned in the Dardanelles, also called the Hellespont in her honour.",
+   "nguon": "https://en.wikipedia.org/wiki/Aries_(constellation)",
+   "vai": [
+    {
+     "ai": "cuu-vang",
+     "dang": "goc",
+     "x": 0.36,
+     "y": 0.64,
+     "cao": 500
+    },
+    {
+     "ai": "helle",
+     "dang": "ngac_nhien",
+     "x": 0.74,
+     "y": 0.66,
+     "cao": 640,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Phrixus survived all the way to Colchis, where King Aeëtes, the son of the sun god Helios, took him in and treated him kindly, giving Phrixus his daughter, Chalciope, in marriage.",
+   "nguon": "https://en.wikipedia.org/wiki/Phrixus",
+   "vai": [
+    {
+     "ai": "phrixus",
+     "dang": "goc",
+     "x": 0.32,
+     "y": 0.66,
+     "cao": 680
+    },
+    {
+     "ai": "cuu-vang",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.64,
+     "cao": 480,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "There the ram was sacrificed to gods.",
+   "nguon": "https://en.wikipedia.org/wiki/Golden_Fleece",
+   "vai": [
+    {
+     "ai": "phrixus",
+     "dang": "goc",
+     "x": 0.34,
+     "y": 0.66,
+     "cao": 680
+    },
+    {
+     "ai": "cuu-vang",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.64,
+     "cao": 460,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "In essence this act returned the ram to the god Poseidon, and the ram became the constellation Aries.",
+   "nguon": "https://en.wikipedia.org/wiki/Golden_Fleece",
+   "vai": [
+    {
+     "ai": "phrixus",
+     "dang": "goc",
+     "x": 0.26,
+     "y": 0.66,
+     "cao": 680
+    },
+    {
+     "ai": "cuu-vang",
+     "dang": "goc",
+     "x": 0.62,
+     "y": 0.47,
+     "cao": 360,
+     "mo": 0.35
+    }
+   ],
+   "nhin": {
+    "chom": "Aries"
+   }
+  }
+ ],
+ "site": [
+  "Aries wants to be first, and it wants the fight to be fair."
+ ],
+ "nhan_vat": {
+  "phrixus": "brand/astrolas/nhan-vat/phrixus",
+  "helle": "brand/astrolas/nhan-vat/helle",
+  "ino": "brand/astrolas/nhan-vat/ino",
+  "cuu-vang": "brand/astrolas/nhan-vat/cuu-vang"
+ },
+ "ve": {
+  "phrixus": {
+   "loai": "nhan_vat",
+   "mo_ta": "Phrixus, a Greek boy prince of about 12, curly dark hair, short sky-blue chiton with a gold belt, bare feet with sandals",
+   "dang": [
+    "goc",
+    "ngac_nhien"
+   ]
+  },
+  "helle": {
+   "loai": "nhan_vat",
+   "mo_ta": "Helle, a Greek girl princess of about 10, long wavy auburn hair with a small flower crown, pale pink chiton dress, sandals",
+   "dang": [
+    "goc",
+    "ngac_nhien"
+   ]
+  },
+  "ino": {
+   "loai": "nhan_vat",
+   "mo_ta": "Ino, a jealous Greek queen stepmother, tall, black hair in a high bun with a gold diadem, deep purple robe with a dark green cloak, narrow scheming eyes",
+   "dang": [
+    "goc",
+    "nam_dam"
+   ]
+  },
+  "cuu-vang": {
+   "loai": "sinh_vat",
+   "mo_ta": "Chrysomallos, a magical flying ram with shining golden wool, curled golden horns and white feathered wings, kind eyes",
+   "dang": [
+    "goc"
+   ]
+  }
+ }
+}

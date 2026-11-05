@@ -691,6 +691,7 @@ const LUAT = [
   { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'kq.update(loi=(f"LỖI MÃ {type(e).__name__}: " if ma else "") + str(e)[:220], may=ma or isinstance(e, OSError))', vi: 'lỗi mã / mạng đánh dấu may → worker thử lại, không giữ gốc cả ngày như luật từ chối' },
   { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: '    except Exception as e:\n        kq["loi"] = str(e)[:240]', vi: 'không quay lại nuốt lỗi mã thành lỗi thường' },
   { card: 'roas-0511', tep: 'apps/etp/manh.py', co: '("mục 6", muc6), ("mục 7", muc7)):', vi: 'Mạnh mục 7 báo lỗi mã ở máy luật / lên camp' },
+  { card: 'audit-0511', tep: 'apps/etp/dong-bo.py', co: 'c["id"] in cho or str(c.get("updated_at")', vi: 'cột giao: camp mới ACTIVE còn ghi giao khác ACTIVE thì đọc lại chi tiết (Ethopex không đổi updated_at)' },
   { card: 'audit-0511', tep: 'apps/etp/dong_phim.py', co: 'if may: return "loi", "lỗi máy khi lên camp (Mạnh tự thử lại): "', vi: 'dòng phim: lên camp hỏng vì máy / mã là lỗi (Mạnh thử lại), không phải dừng vì luật' },
   { card: 'audit-0511', tep: 'apps/etp/dong_phim.py', cam: '($1, bộ 2, chạy từ 07:00 VN hôm sau)", {', vi: 'giờ chạy đọc kq.chay, không hứa cứng hôm sau' },
   { card: 'audit-0511', tep: 'apps/cty/worker/ethopex.mjs', co: 'export const chuChay = (ds,', vi: 'tin Telegram giờ chạy camp đọc kq.chay (một hàm)' },

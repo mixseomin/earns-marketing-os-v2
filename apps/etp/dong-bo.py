@@ -106,7 +106,10 @@ def main():
         q(f"""update etp.camp c set goc = x.g from jsonb_to_recordset($J${_goc}$J$::jsonb) as x(id int, g int) where c.camp_id = x.id and c.goc is distinct from x.g""")
         bo_tk = {int(v["tk"]): k for k, v in khoa("ethopex_bo_tk").items()}
         cu = {} if day_du else {int(l.split("|")[0]): l.split("|", 1)[1] for l in q("select camp_id || '|' || coalesce(cap_nhat_etp::text, '') from etp.camp").splitlines() if l}
-        doi = [c for c in ds if day_du or c["id"] not in cu or str(c.get("updated_at") or "")[:19] != (cu.get(c["id"]) or "")[:19].replace(" ", "T")]
+        # + camp ACTIVE ≤ 3 ngày mà kho còn ghi giao ≠ ACTIVE: Ethopex KHÔNG đổi updated_at của camp khi nhóm QC được duyệt / tới giờ chạy (05/11/2026: 60 camp
+        #   ACTIVE từ 08:29 mà kho đứng ADSET_PAUSED) → đọc lại chi tiết tới khi giao khớp thật
+        cho = set() if day_du else {int(x) for x in q("select camp_id from etp.camp where trang_thai = 'ACTIVE' and giao is distinct from 'ACTIVE' and tao > now() - interval '3 days'").split()}
+        doi = [c for c in ds if day_du or c["id"] not in cu or c["id"] in cho or str(c.get("updated_at") or "")[:19] != (cu.get(c["id"]) or "")[:19].replace(" ", "T")]
         def ct(c):
             try: d = api(f"/api/v1/campaigns/{c['id']}")
             except Exception as e: return c, None

@@ -17,7 +17,7 @@ for l in q("select (kinh_thanh->'ethopex'->>'creative_id'), kinh_thanh->'ethopex
     cr, ct, nn, pid = l.split("|"); studio[int(cr)] = (int(ct) if ct else None, nn, int(pid))
 # Mức ngân sách hợp lệ = thang bậc ở sổ luật chung (anh 05/11/2026); trần $20/camp, $30 chỉ qua T30.
 MUC_HOP_LE = {x for x in json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))["thang"] if x <= 20}
-THU = {int(x.split("|")[0]): int(x.split("|")[1] or 0) for x in q("select camp_id, coalesce(cardinality(nuoc), 0) from etp.camp_thu").splitlines() if x}   # camp đợt thử nước (etp.camp_thu, anh 05/11/2026): đúng số nước của nhánh
+THU = {int(x.split("|")[0]): int(x.split("|")[1] or 0) for x in q("select c.camp_id, jsonb_array_length(a.nhanh->c.nhanh->'nuoc') from etp.camp_ab c join etp.ab a on a.ma = c.ab where a.kieu = 'nuoc'").splitlines() if x}   # camp A/B nhắm nước (sổ etp.ab, anh 05/11/2026): đúng số nước của nhánh
 ds = api("/api/v1/campaigns?page_size=500")["data"]
 loi_tong = 0; content_lp = {}; duyet = {}; bi_tu_choi = []   # content → creative đã được Meta duyệt (để gợi ý thay ad bị từ chối)
 for c in sorted(ds, key=lambda x: x["id"]):

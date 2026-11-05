@@ -27,6 +27,14 @@ export function themViec(st, ds, { luc = Date.now(), topic = null, msg = null } 
   }
   return { st: { ...st, hang: hang.slice(-200) }, them };
 }
+/** Thuần — BẬC RẺ KHÔNG SỬA ĐƯỢC (anh 05/11/2026, model theo việc): việc vừa chạy model rẻ mà KHONG_SUA / treo → xếp lại MỘT lần cùng khoá, đánh dấu nang
+ *  (thợ máy chạy bậc chính, Opus). CAN_ANH / DA_SUA không nâng; việc đã nâng không nâng nữa. Trả { st, nang: việc mới | null } */
+export function nangBac(st, id, ket, luc = Date.now()) {
+  const hang = st.hang || [], v = hang.find((x) => x.id === id);
+  if (!v || v.nang || !['khong_sua', 'treo'].includes(ket)) return { st, nang: null };
+  const moi = { id: hang.reduce((a, x) => Math.max(a, x.id), 0) + 1, khoa: v.khoa, chu: v.chu, luc: new Date(luc).toISOString(), tg: v.tg, tt: 'cho', nang: true, ...(v.goc ? { goc: v.goc } : {}) };
+  return { st: { ...st, hang: [...hang, moi].slice(-200) }, nang: moi };
+}
 /** Thuần — nhận việc cũ nhất đang chờ (trong trần ngày); việc đang làm quá TREO_PHUT → treo. Trả { st, viec | null, ly_do } */
 export function layViec(st, luc = Date.now()) {
   const hang = (st.hang || []).map((v) => (v.tt === 'dang' && luc - Date.parse(v.bat_dau) > TREO_PHUT * 6e4 ? { ...v, tt: 'treo', xong: new Date(luc).toISOString() } : v));
@@ -96,6 +104,10 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
       const l = layViec(a0.st, t0); assert.equal(l.viec.khoa, 'anh:4', 'lệnh anh nhận trước dù đủ trần ngày'); assert.equal(l.st.ngay[ngayVN(t0)], TRAN_NGAY, 'lệnh anh không tính trần');
       assert.deepEqual(quyetGan(l.st, { id: 9, khoa: 'dang:lo|m1|fb_link' }, t0).length, 1, 'việc sau cùng máy đọc được điều anh đã chốt'); assert.equal(quyetGan(l.st, { id: 9, khoa: 'dang:lo|m2|x' }, t0).length, 0);
       assert.equal(mayCua('kenh:parody|t1'), 'parody'); assert.equal(mayCua('lan:a'), null); }
+    { const s0 = { hang: [{ id: 1, khoa: 'dang:lo|m|youtube', chu: 'lỡ', tt: 'ket', tg: {} }] };
+      const n1 = nangBac(s0, 1, 'khong_sua'); assert.equal(n1.nang?.nang, true, 'rẻ không sửa → xếp lại bậc chính'); assert.equal(n1.nang.khoa, 'dang:lo|m|youtube');
+      assert.equal(nangBac(s0, 1, 'can_anh').nang, null, 'cần anh không nâng'); assert.equal(nangBac(s0, 1, 'da_sua').nang, null, 'đã sửa không nâng');
+      assert.equal(nangBac(n1.st, 2, 'treo').nang, null, 'đã nâng thì không nâng nữa'); }
     console.log('tho-may-viec tu-kiem ok');
   } else if (a[0] === '--lay') {
     const r = layViec(doc()); ghi(r.st); console.log(JSON.stringify(r.viec ? { viec: { ...r.viec, quyet_gan: quyetGan(r.st, r.viec) } } : { ly_do: r.ly_do }));
@@ -104,7 +116,9 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     const j = await traLoi(v, `<b>🔧 ${tenViec(v)}</b> đã nhận: ${esc(v.chu.replace(/<[^>]+>/g, '').slice(0, 200))} — ${/^anh:/.test(v.khoa) ? 'đang làm' : 'đang tìm gốc'} (tối đa 30 phút).`); v.tin_nhan = j?.result?.message_id ?? null; ghi(doc2(st, v)); console.log('ok');
   } else if (a[0] === '--bao') {
     const ket = KET[a[2]] ? a[2] : 'khong_sua', chu = fs.readFileSync(0, 'utf8').trim(), st = doc(), v = st.hang.find((x) => x.id === id); if (!v) throw new Error('không có việc ' + id);
-    v.tt = ket === 'da_sua' ? 'xong' : 'ket'; v.ket = ket; v.xong = new Date().toISOString(); v.ket_qua = chu.slice(0, 2000); ghi(st);
+    v.tt = ket === 'da_sua' ? 'xong' : 'ket'; v.ket = ket; v.xong = new Date().toISOString(); v.ket_qua = chu.slice(0, 2000);
+    const nb = a.includes('--re') ? nangBac(st, id, ket) : { st, nang: null }; ghi(nb.st);
+    if (nb.nang) { console.log(`nâng bậc → việc #${nb.nang.id}`); process.exit(0); }   // bậc rẻ không sửa được: im lặng, bậc chính làm lại rồi mới báo (anh không cần đọc lượt thử)
     // "Cần anh quyết" LUÔN có nút (05/11/2026: tin này gửi riêng, không qua ghiNut nên không có nút); trả lời dưới tin = lệnh cho đúng việc này (thu-ky.mjs › viecCuaTin)
     const j = await traLoi(v, `<b>🔧 ${tenViec(v)} · ${KET[ket]}</b>\n${esc(chu)}`, ket === 'can_anh' ? { reply_markup: NUT_HOI } : {}); const st2 = doc(), v2 = st2.hang.find((x) => x.id === id); if (v2 && j?.result?.message_id) { v2.tin_bao = j.result.message_id; ghi(st2); } console.log(j.ok ? 'ok' : JSON.stringify(j).slice(0, 200));
   } else if (a[0] === '--them') {   // xếp một việc từ ngoài (chay-kenh.mjs): --them <khoá> , chữ cảnh báo ở stdin. In số việc đã thêm (0 = khoá đang chờ / không thuộc thợ máy)

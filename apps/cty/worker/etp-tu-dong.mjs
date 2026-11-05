@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO } from './ethopex.mjs';
+import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO, giuGocRoas } from './ethopex.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
@@ -94,7 +94,7 @@ export async function nhipTuDong(tg, { giay = 1500 } = {}) {
         return { v: { viec: 'roas', id: m.id, muc }, r };
       }));
       // cùng cách Nhà: không mức nào lên được mà mọi mức đều bị từ chối có lý do (không phải hết giờ / mạng) → nghỉ gốc này tới hết ngày; mức đã lên thì nhan-ban chặn trùng tên
-      if (!ds.some((x) => x.r.ok) && ds.every((x) => !x.r.may && x.r.loi)) giu[`roas:${m.id}`] = String(ds[0].r.loi).slice(0, 120);
+      const ly = giuGocRoas(ds.map((x) => x.r)); if (ly) giu[`roas:${m.id}`] = ly;
       lam.push(...ds);
     }
     for (const [id, t] of Object.entries(nbLoi)) if (Date.now() - t > 6 * 3600_000) delete nbLoi[id];

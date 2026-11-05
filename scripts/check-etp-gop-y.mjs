@@ -215,7 +215,7 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'content_id=cid, ngoai=bool(NGOAI)', vi: 'camp team bỏ trần ngày / bộ của nhà, vẫn dừng khẩn / Âu-Mỹ' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "const nbEnv = { ETP_SUA_NGUOI: String(ng) }", vi: 'nhân bản / ROAS team đi phiên Ethopex của chính người đó' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "m.id > 0 && !seTat.has(m.id) && !giu[`nb:${m.id}`]", vi: 'không nhân bản camp đang chờ tắt' },
-  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO } from './ethopex.mjs';", vi: 'một danh sách mức ROAS + một chỗ ghi ngày G10 + sổ luật chung cho nhà và team' },
+  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO, giuGocRoas } from './ethopex.mjs';", vi: 'một danh sách mức ROAS + một chỗ ghi ngày G10 + sổ luật chung cho nhà và team' },
   { card: 0, tep: 'apps/etp/cong.py', co: 'return " duplicate by " in ten or ten.lstrip().startswith("★") or bool(_ROAS_TEAM.search(ten))', vi: 'nhận camp ROAS team đặt tên kiểu _ROAS1 / (ROAS) / Dup by' },
   // hàng góp ý 31/10/2026
   { card: 1492, tep: 'apps/etp/dong-bo.py', co: "g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d)", vi: 'bản nhân bản của team thừa hưởng phim + creative từ camp gốc ghi trong tên' },
@@ -691,6 +691,8 @@ const LUAT = [
   { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'kq.update(loi=(f"LỖI MÃ {type(e).__name__}: " if ma else "") + str(e)[:220], may=ma or isinstance(e, OSError))', vi: 'lỗi mã / mạng đánh dấu may → worker thử lại, không giữ gốc cả ngày như luật từ chối' },
   { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', cam: '    except Exception as e:\n        kq["loi"] = str(e)[:240]', vi: 'không quay lại nuốt lỗi mã thành lỗi thường' },
   { card: 'roas-0511', tep: 'apps/etp/manh.py', co: '("mục 6", muc6), ("mục 7", muc7)):', vi: 'Mạnh mục 7 báo lỗi mã ở máy luật / lên camp' },
+  { card: 'audit-0511', tep: 'apps/cty/worker/etp-tu-dong.mjs', co: 'giuGocRoas(ds.map((x) => x.r))', vi: 'giữ gốc ROAS team dùng hàm chung (lỗi máy / mã thử lại)' },
+  { card: 'audit-0511', tep: 'apps/cty/worker/ethopex.mjs', co: 'giuGocRoas(viec.filter((v) => v.m === m).map((v) => v.r))', vi: 'giữ gốc ROAS Nhà dùng hàm chung' },
   { card: 'audit-0511', tep: 'apps/etp/dong-bo.py', co: 'c["id"] in cho or str(c.get("updated_at")', vi: 'cột giao: camp mới ACTIVE còn ghi giao khác ACTIVE thì đọc lại chi tiết (Ethopex không đổi updated_at)' },
   { card: 'audit-0511', tep: 'apps/etp/dong_phim.py', co: 'if may: return "loi", "lỗi máy khi lên camp (Mạnh tự thử lại): "', vi: 'dòng phim: lên camp hỏng vì máy / mã là lỗi (Mạnh thử lại), không phải dừng vì luật' },
   { card: 'audit-0511', tep: 'apps/etp/dong_phim.py', cam: '($1, bộ 2, chạy từ 07:00 VN hôm sau)", {', vi: 'giờ chạy đọc kq.chay, không hứa cứng hôm sau' },

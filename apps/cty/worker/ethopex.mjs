@@ -63,6 +63,8 @@ const TEN = Object.fromEntries(NHOM.map(([k, t]) => [k, (t.match(/<b>(.*?)<\/b>/
 // KHUNG ĐỔI CAMP theo giờ VN (sổ luật chung khung_doi) — hàm thuần, bộ kiểm chéo apps/web/src/lib/etp-khung.test.mts so với khungLuc của trang cho đủ 24 giờ
 export const khungCua = (gio, KD = BANG_LUAT.khung_doi) => { const t = ([a, b]) => (a <= b ? gio >= a && gio < b : gio >= a || gio < b); return t(KD.giam) ? 'giam' : t(KD.tang) ? 'tang' : KD.sang && t(KD.sang) ? 'sang' : 'bang'; };   // tang 21–07 qua nửa đêm (anh 05/11/2026)
 // GIỜ CHẠY camp vừa tạo — đọc kq.chay của nhan-ban.lich_len (một chỗ quyết, anh 05/11/2026), không tự ghi "hôm nay" / "hôm sau" (audit 05/11: 3 tin hứa sai)
+// GIỮ GỐC ROAS TỚI HẾT NGÀY — một luật cho Nhà + tài khoản team: không mức nào lên được VÀ mọi mức bị từ chối có lý do (luật); hỏng vì máy / mã (r.may) thì nhịp sau thử lại
+export const giuGocRoas = (ds) => (!ds.some((r) => r.ok) && ds.every((r) => !r.may && r.loi) ? String(ds[0].loi).slice(0, 120) : null);
 export const chuChay = (ds, [a, b] = BANG_LUAT.khung_doi.len.map((x) => String(x).padStart(2, '0'))) => (ds.length && ds.every((r) => r?.chay === 'today') ? `chạy ngay (tạo trong khung ${a}–${b}h VN)`
   : ds.length && ds.every((r) => r?.chay === 'tomorrow') ? 'chạy từ 07:00 VN hôm sau' : `chạy theo khung lên ${a}–${b}h VN`);
 /** ngưỡng ROI hôm nay để được nạp trong khung chỉ-nạp ('sang' 07–15h); null = khung không nạp (tang: tăng đủ luật · giam / bang: không tăng) */
@@ -679,7 +681,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       try { v.r = JSON.parse((await chay(NB, [String(v.m.id), '--roas', String(v.muc), '--ns', '20', '--that', '--luat', `lên ROAS · ${v.m.chu}`.slice(0, 400), '--ai', 'máy tự lên ROAS (anh chat 29/10/2026: các camp đủ điều kiện lên roas thì lên luôn — lãi ≥ $75)'], 1500)).trim().split('\n').pop()); }
       catch (e) { v.r = { ok: false, loi: e.message, may: true }; }
     }));
-    for (const m of goc) { const ds = viec.filter((v) => v.m === m); if (!ds.some((v) => v.r.ok) && ds.every((v) => !v.r.may && v.r.loi)) giu[m.id] = String(ds[0].r.loi).slice(0, 120); }
+    for (const m of goc) { const ly = giuGocRoas(viec.filter((v) => v.m === m).map((v) => v.r)); if (ly) giu[m.id] = ly; }
     fs.writeFileSync(TEP_R, JSON.stringify({ ngay: homNay, giu }));
     if (viec.length) {
       const ok = viec.filter((v) => v.r.ok).length;

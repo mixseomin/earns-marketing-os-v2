@@ -332,7 +332,7 @@
         "kho": "vô hạn · 1–3 tập / người nổi tiếng",
         "trang": "shot-code/la-so.html",
         "sinh": "kịch bản tay (G5 tự viết)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/la-so-mau.mp4?v=3"
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/la-so-mau.mp4?v=4"
       },
       {
         "ma": "sky-calendar",
@@ -342,7 +342,7 @@
         "kho": "52 tập trăng / năm + nhật nguyệt thực + chuyện lịch sử",
         "trang": "shot-code/la-so.html",
         "sinh": "kịch bản tay (G5)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-sky-calendar.mp4?v=3"
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-sky-calendar.mp4?v=4"
       },
       {
         "ma": "myth-behind",
@@ -352,7 +352,7 @@
         "kho": "≈ 50+ tập",
         "trang": "shot-code/la-so.html",
         "sinh": "kịch bản tay (G5)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-myth-behind.mp4?v=3"
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-myth-behind.mp4?v=4"
       },
       {
         "ma": "chart-tools",
@@ -362,7 +362,7 @@
         "kho": "≈ 30 tập",
         "trang": "shot-code/la-so.html",
         "sinh": "kịch bản tay (G5)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-cong-cu.mp4?v=3"
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-cong-cu.mp4?v=4"
       },
       {
         "ma": "start-here",
@@ -382,7 +382,7 @@
         "kho": "≈ 600+ Short",
         "trang": "shot-code/la-so.html",
         "sinh": "kịch bản tay (G5)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-read-your-chart.mp4?v=3"
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-read-your-chart.mp4?v=4"
       },
       {
         "ma": "ask-the-chart",
@@ -392,7 +392,7 @@
         "kho": "≈ 13.900 câu hỏi thật (spy nhóm #9)",
         "trang": "shot-code/la-so.html",
         "sinh": "kịch bản tay (G5)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-ask-the-chart.mp4?v=3"
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-ask-the-chart.mp4?v=4"
       },
       {
         "ma": "free-60s",
@@ -412,7 +412,7 @@
         "kho": "≈ 1.000 Short / năm (88 sự kiện × 12 cung Mọc)",
         "trang": "shot-code/la-so.html",
         "sinh": "lich-su/viet-this-week.mjs --su <tw-… trong lich-troi.json> --moc <Cung | all> — 0đ, không AI: chữ site nguyên văn (bài New/Full Moon theo nhà, <sao>-transit-<nhà>, Mercury / Venus–Mars retrograde, transits-explained, nghĩa nhà), hook QC spy góc Thời điểm, bài đăng dangCongCu; máy gác chặn trước khi ghi",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-this-week.mp4?v=3",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-this-week.mp4?v=4",
         "tu_sinh": "^tw-[a-z0-9-]+$"
       },
       {
@@ -423,7 +423,7 @@
         "kho": "vô hạn theo người",
         "trang": "shot-code/la-so.html (khung ngang)",
         "sinh": "lich-su/dai/sinh-chuong.mjs --slug <người> --moc <moc.json>",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-chart-chapters.mp4?v=3",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-chart-chapters.mp4?v=4",
         "tu_sinh": "^ccd-[a-z0-9-]+$"
       },
       {
@@ -455,7 +455,7 @@
         "trang": "shot-code/la-so.html",
         "sinh": "lich-su/viet-sign.mjs --cap <sx-a-b | all> — 0đ, không AI: câu nguyên văn bài ghép cung của site theo mục (câu hỏi · quan hệ hai cung · hợp · vướng · cách làm · câu trả lời), hook QC spy góc Tình yêu; 78/78 cặp qua máy gác",
         "tu_sinh": "^sx-[a-z]+-[a-z]+$",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/sign-x-sign.mp4?v=3"
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/sign-x-sign.mp4?v=4"
       },
       {
         "ma": "how-the-sky-works",
@@ -465,7 +465,7 @@
         "kho": "≈ 20 bài",
         "trang": "shot-code/giang-troi.html",
         "sinh": "bài giảng soạn sẵn (JSON)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-how-the-sky-works.mp4?v=3"
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-how-the-sky-works.mp4?v=4"
       },
       {
         "ma": "geometry",
@@ -475,7 +475,7 @@
         "kho": "≈ 15–20 bài",
         "trang": "shot-code/giang-troi.html",
         "sinh": "bài giảng soạn sẵn (JSON)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-geometry-of-your-chart.mp4?v=3"
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-geometry-of-your-chart.mp4?v=4"
       },
       {
         "ma": "tonights-sky",

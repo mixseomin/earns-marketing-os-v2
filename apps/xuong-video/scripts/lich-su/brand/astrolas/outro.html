@@ -1,5 +1,6 @@
 <!doctype html>
-<!-- OUTRO LOGO ASTROLAS NỀN: ảnh trời rạng đông sáng anh/nen/love-compatibility.jpg (anh 06/11/2026 "sao cứ dùng cái nền ghê" — cấm ảnh Ngân Hà tối anh/troi.jpg). (anh 05/11/2026: "cuối video làm một outro ngắn, logo Astrolas ở chính giữa nổi, ấn tượng"): dựng bằng mã, không AI — logo là tệp THẬT
+<!-- OUTRO LOGO ASTROLAS NỀN = ĐÚNG NỀN astrolas.com (anh 06/11/2026: "vào site của tao xem nền là gì"): navy #071426 → #0A182B + sao li ti, và hình đầu trang chủ của site
+     anh/site/home-hero.webp (bánh xe 12 cung vàng, lõi mặt trời — tải từ astrolas.com/images/brand-v2/) đặt bánh xe đúng giữa, xoay chậm, mép mờ vào nền. Cấm ảnh trời ngoài. (anh 05/11/2026: "cuối video làm một outro ngắn, logo Astrolas ở chính giữa nổi, ấn tượng"): dựng bằng mã, không AI — logo là tệp THẬT
      logo/wordmark.png (AI video làm méo nét chữ A). MỘT logo duy nhất ở giữa (anh 05/11/2026: "ko hiện 2 cái 1 lúc" — chữ ký đã có chữ A trong vòng, thêm biểu tượng tròn là hai logo). Thuần theo t: window.__ve(t) vẽ đúng khung giây t (outro.mjs chụp từng khung).
      ?khung=doc|ngang  &dai=1|3 (giây). Nhịp (bản 1 s; bản 3 s kéo giãn phần vào ×1,6 rồi thêm khẩu hiệu + astrolas.com (chữ thường, không phải logo)):
        hạt vàng từ rìa hút vào tâm → chữ ký bật lên (phóng 0,6 → 1,08 → 1) + loé sáng + vòng sóng vàng lan ra → vệt sáng quét qua chữ ký → quầng thở nhẹ. -->
@@ -8,24 +9,24 @@
 @font-face { font-family: CG; src: url(fonts/CormorantGaramond-Italic.ttf); font-style: italic; font-weight: 300 700; }
 @font-face { font-family: IN; src: url(fonts/Inter.ttf); font-weight: 100 900; }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { background: #2a2350; overflow: hidden; }
-#k { position: relative; overflow: hidden; background: #2a2350; }
+html, body { background: #071426; overflow: hidden; }
+#k { position: relative; overflow: hidden; background: linear-gradient(135deg, #071426 0%, #071426 50%, #0A182B 100%); }   /* đúng nền body của astrolas.com */
 .abs { position: absolute; }
 #bieu { will-change: transform, opacity; }
 #bieu img { display: block; width: 100%; height: 100%; }
 #quet { -webkit-mask: url(logo/wordmark.png) center / 100% 100% no-repeat; mask: url(logo/wordmark.png) center / 100% 100% no-repeat; mix-blend-mode: screen; }
 </style></head>
 <body><div id="k">
-  <img id="anh" class="abs" src="anh/nen/love-compatibility.jpg" style="inset:0;width:100%;height:100%;object-fit:cover">
-  <div id="phu" class="abs"></div>
   <canvas id="troi" class="abs"></canvas>
+  <img id="banh" class="abs" src="anh/site/home-hero.webp">
+  <div id="phu" class="abs"></div>
   <canvas id="hat" class="abs"></canvas>
   <svg id="song" class="abs"></svg>
   <div id="quang" class="abs"></div>
   <div id="bieu" class="abs"><img src="logo/wordmark.png"><div id="quet" class="abs" style="inset:0"></div></div>
   <div id="kh" class="abs" style="font:600 italic 1px CG;color:#FFF3C4;text-align:center;left:0;right:0;text-shadow:0 2px 8px rgba(40,18,60,.8)"></div>
   <div id="web" class="abs" style="font:700 1px IN;letter-spacing:.22em;color:#fff;text-align:center;left:0;right:0;text-shadow:0 2px 8px rgba(40,18,60,.8)"></div>
-  <div id="den" class="abs" style="inset:0;background:#2a2350"></div>
+  <div id="den" class="abs" style="inset:0;background:#071426"></div>
 </div>
 <script src="../../../shot-code/nen-troi.js"></script>
 <script>
@@ -33,7 +34,7 @@ const P = new URLSearchParams(location.search), NGANG = P.get('khung') === 'ngan
 const W = NGANG ? 1920 : 1080, H = NGANG ? 1080 : 1920, $ = (id) => document.getElementById(id), k = $('k');
 k.style.width = W + 'px'; k.style.height = H + 'px';
 for (const id of ['troi', 'hat']) { $(id).width = W; $(id).height = H; }
-$('song').setAttribute('width', W); $('song').setAttribute('height', H); $('phu').style.cssText += `;inset:0;background:radial-gradient(ellipse at 50% 46%, rgba(40,20,70,.10) 0%, rgba(30,20,60,.18) 55%, rgba(20,14,44,.34) 100%)`;
+$('song').setAttribute('width', W); $('song').setAttribute('height', H);
 const kep = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x)), ra = (x) => 1 - Math.pow(1 - kep(x), 3), bat = (x) => { x = kep(x); const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
 // bố cục: biểu tượng giữa (Short hơi cao hơn tâm để chừa chữ ký); bản 1 s chỉ biểu tượng + chữ ký nhỏ, bản dài thêm khẩu hiệu
 const LW = NGANG ? 900 : 860, LH = LW * 0.35, R = LW * 0.42, CX = W / 2, CY = NGANG ? (DAI > 1.5 ? H * 0.42 : H / 2) : H * 0.46;   // logo rộng LW, cao LH (wordmark 800×280)
@@ -44,7 +45,15 @@ let s = 7; const rnd = () => ((s = (s * 16807) % 2147483647) / 2147483647);
 const HAT = Array.from({ length: 70 }, () => ({ g: rnd() * 6.283, r0: Math.max(W, H) * (0.45 + rnd() * 0.35), tre: rnd() * 0.12, co: 1.5 + rnd() * 3.2, xoan: (rnd() - 0.5) * 1.4 }));
 window.__ve = (t) => {
   const u = t / S;   // giây theo nhịp bản 1 s
-  NenTroi.ve(t, { anh: $('anh'), cv: $('troi'), sao, w: W, h: H, day: 0.06 });
+  NenTroi.ve(t, { cv: $('troi'), sao, w: W, h: H, day: 0.02 });
+  // bánh xe 12 cung của site (ảnh 1536×1024: tâm bánh xe ~ (905, 470), bán kính ~318): tâm đặt trùng tâm logo, xoay chậm, mép mờ dần vào navy
+  const RB = NGANG ? 400 : 470, kb = RB / 318, xb = 905 * kb, yb = 470 * kb, hb = ra(t / (0.3 * S)), lui = 1 - 0.38 * ra((u - 0.3) / 0.3);
+  Object.assign($('banh').style, { width: `${1536 * kb}px`, left: `${CX - xb}px`, top: `${CY - yb}px`, transformOrigin: `${xb}px ${yb}px`,
+    transform: `rotate(${(t * 7).toFixed(3)}deg) scale(${(0.92 + 0.08 * hb + 0.015 * t).toFixed(4)})`, opacity: (hb * lui).toFixed(3),
+    webkitMaskImage: `radial-gradient(circle at ${xb}px ${yb}px, #000 ${RB * 1.02}px, transparent ${RB * 1.42}px)`, maskImage: `radial-gradient(circle at ${xb}px ${yb}px, #000 ${RB * 1.02}px, transparent ${RB * 1.42}px)` });
+  // quầng tối mềm ngay sau logo cho chữ ký nổi trên nét vàng của bánh xe
+  Object.assign($('phu').style, { left: `${CX - LW * 0.7}px`, top: `${CY - LH * 1.1}px`, width: `${LW * 1.4}px`, height: `${LH * 2.2}px`,
+    background: `radial-gradient(ellipse, rgba(7,20,38,${(0.78 * ra((u - 0.22) / 0.3)).toFixed(3)}) 0%, rgba(7,20,38,0) 70%)` });
   $('den').style.opacity = String(1 - ra(t / 0.12) + (DAI > 1.5 ? ra((t - (DAI - 0.35)) / 0.35) : 0));   // mở từ tối; bản dài khép tối ở 0,35 s cuối
   // hạt hút vào (0 → 0,32)
   const g = $('hat').getContext('2d'); g.clearRect(0, 0, W, H);

@@ -672,6 +672,8 @@ const LUAT = [
   { card: 'g10hoi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "for (const k of ['hoi_g10', 'dau_phien', 'tang', 'tang30'])", vi: 'worker tự nâng G10 hồi, gỡ khỏi sổ G10' },
   { card: 'g10hoi-0411', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"hoi_g10":', vi: 'G10 hồi có trong sổ luật chung' },
   { card: 'g10hoi-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'tran_ = cu_ if nh_ and nh_[1] == "doi" else min(cu_, ns * 1.5)', vi: 'G10 hồi: nhánh thu / không A/B lên theo thang ≤ ×1,5; chỉ nhánh doi AB02 về ngân sách cũ' },
+  { card: 'at-cta-0611', tep: 'packages/db/migrations/0432_etp_tieu_chi_mien_at.sql', co: "VALUES ('ảnh tĩnh', 'afs.cta',", vi: 'ảnh tĩnh miễn tiêu chí afs.cta (CTA theo khuôn team, anh 06/11/2026)' },
+  { card: 'at-cta-0611', tep: 'packages/db/migrations/0432_etp_tieu_chi_mien_at.sql', co: 'AND NOT EXISTS (SELECT 1 FROM etp.tieu_chi_mien m WHERE m.dang = r.dang AND m.k = e.k)) AS le4', vi: 'cổng chấm đọc bảng miễn tiêu chí theo dạng' },
   { card: 'cho-len-0511', tep: 'apps/cty/worker/ethopex.mjs', co: 'from etp.cho_len_v v left join etp.phim p using (content_id) where v.ly_do is null order by v.hang limit 4', vi: 'máy lên camp phim mới đọc hàng chờ từ view chung etp.cho_len_v' },
   { card: 'cho-len-0511', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: 'left join etp.cho_len_v cl on cl.creative_id = v.creative_id', vi: 'trang dòng phim đọc cùng view hàng chờ lên camp' },
   { card: 'cho-len-0511', tep: 'apps/web/src/lib/actions/etp-dong.ts', cam: "camp: coCamp ? 'xong' : x.creative_id && x.duoc_len ? 'dang' : 'cho'", vi: 'không coi chấm sạch chưa camp là đang lên (nhấp nháy dối)' },

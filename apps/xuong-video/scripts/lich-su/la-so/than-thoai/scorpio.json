@@ -55,7 +55,7 @@
    "vai": [
     {
      "ai": "orion",
-     "dang": "vung_chuy",
+     "dang": "chi_tay",
      "x": 0.34,
      "y": 0.66,
      "cao": 740
@@ -151,11 +151,11 @@
  "ve": {
   "orion": {
    "loai": "nhan_vat",
-   "mo_ta": "Orion, a giant Greek huntsman, very tall and muscular, short black beard, lion-skin cloak over a brown hunting tunic, bronze belt with three studs, carrying a big bronze club",
+   "mo_ta": "Orion, the giant hunter of Greek myth: tall bearded man in a rough brown animal-hide tunic (no lion skin, no lion head), leather belt with a bronze hunting knife, holding a long hunting bow, quiver of arrows on the back",
    "dang": [
     "goc",
     "noi_mo",
-    "vung_chuy"
+    "chi_tay"
    ]
   },
   "artemis": {

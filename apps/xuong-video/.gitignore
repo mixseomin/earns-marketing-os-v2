@@ -7,3 +7,5 @@ scripts/shot-code/tap-astrolas/
 scripts/lich-su/cong-cu/ap/*.png
 vu-tru/teardown/teardown-out/
 scripts/lich-su/brand/astrolas/tranh/sc-*-[0-9].jpg
+__pycache__/
+vu-tru/teardown/mau/

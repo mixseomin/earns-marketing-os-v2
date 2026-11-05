@@ -206,7 +206,9 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     : ngoai ? sql`(select x.* from etp.so_ngay_ngoai x join etp.camp_ngoai k using (camp_id) join etp.tai_khoan t on t.ad_account_id = k.ad_account_id where t.nguoi_id = ${dangId}) so_ngay` : sql`etp.so_ngay`;
   // bảng camp người đang xem — Team = camp nhà (etp.camp) + camp mọi người (camp_ngoai), cùng khuôn cột camp_ngoai; nhà giữ bộ tài khoản
   const CN = doi ? sql`(select camp_id, ten, bo, ad_account_id, trang_thai, ngan_sach, etp.creative_cua(creative_id, ten) creative_id, content_id, tao, null::text phim_ten, chien_luoc from etp.camp
-      union all select camp_id, ten, null, ad_account_id, trang_thai, ngan_sach, creative_id, content_id, tao, phim_ten, chien_luoc from etp.camp_ngoai)` : sql`(select *, null::text bo from etp.camp_ngoai)`;
+      union all select camp_id, ten, null, ad_account_id, trang_thai, ngan_sach, creative_id, content_id, tao, phim_ten, chien_luoc from etp.camp_ngoai)` : sql`(select k.*, b.r::text bo from etp.camp_ngoai k left join (select ad_account_id, rank() over (partition by nguoi_id order by ad_account_id) r from etp.tai_khoan where not nha) b using (ad_account_id))`;
+  // ↑ BỘ TK CỦA NGƯỜI TRONG ĐỘI (anh 05/11/2026 "mọi người trong đội dùng bộ tk riêng rồi… giống tk nhà"): mỗi tài khoản QC của người đó = một bộ, đánh số 1, 2… theo mã tài khoản —
+  //   cùng thứ hạng với sổ boTk bên dưới (đọc etp.tai_khoan). Team gộp vẫn để trống: số bộ của nhà và của từng người trùng nhau.
   // số mỗi camp: tháng / hôm qua / hôm nay
   const soCamp = sql`select camp_id,
       sum(chi) filter (where ngay >= ${dauThang}::date) tc, sum(thu) filter (where ngay >= ${dauThang}::date) tt,
@@ -348,7 +350,9 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const [soNgay, tatNgay, boRow] = await Promise.all([
     run<{ c: number; d: string; chi: string; thu: string }>(sql`select camp_id c, ngay::text d, chi, thu from ${SN} where chi > 0 or thu > 0`),
     runNha<{ d: string; n: string }>(sql`select (luc at time zone 'UTC')::date::text d, count(distinct camp_id) n from etp.nhat_ky where viec = 'tat' and ok group by 1`),   // nhật ký máy nhà — xem người khác thì không có
-    run<{ gia_tri: Record<string, { ten: string; tk: number; ext: string; page: number; chi_phim_moi?: boolean; mui_gio?: string }> | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_bo_tk'`),
+    ngoai && !doi ? run<{ gia_tri: Record<string, { ten: string; tk: number; ext: string; page: number | null; chi_phim_moi?: boolean; mui_gio?: string }> | null }>(sql`select jsonb_object_agg(r::text, jsonb_build_object('ten', coalesce(ten, 'TK ' || ad_account_id), 'tk', ad_account_id, 'ext', coalesce(ext, ad_account_id::text), 'page', null)) gia_tri
+      from (select *, rank() over (order by ad_account_id) r from etp.tai_khoan where nguoi_id = ${dangId} and not nha) t`)   // người trong đội: bộ = tài khoản QC (không có Page / múi giờ — Ethopex không trả)
+      : run<{ gia_tri: Record<string, { ten: string; tk: number; ext: string; page: number | null; chi_phim_moi?: boolean; mui_gio?: string }> | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_bo_tk'`),
   ]);
   const [pheuR, dcR, slR, tvR, tvCr, ttR, mrR, dcyR] = await Promise.all([
     runNha<{ c: number; d: string; h: number; n: number; v: number; sh: number; sn: number; sv: number; sg: string }>(sql`select camp_id c, ngay::text d, hien h, nhap n, chuyen v, s_hien sh, s_nhap sn, s_chuyen sv, s_gt sg from etp.so_pheu where hien > 0 or s_hien > 0 or nhap > 0`).catch(() => []),
@@ -386,7 +390,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   for (const c of cs) if (c.tao) dn(c.tao.slice(0, 10)).camp_moi++;   // tao là timestamptz UTC → ngày Ethopex
   for (const x of crMap.values()) if (x.ngay_dau) dn(x.ngay_dau.slice(0, 10)).cr_moi++;
   for (const r of tatNgay) dn(r.d).tat = n(r.n);
-  const boTk = Object.fromEntries(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [k, { ten: b.ten, tk: b.ext, page: String(b.page), tk_id: Number(b.tk), page_id: Number(b.page), chi_phim_moi: b.chi_phim_moi, mui_gio: b.mui_gio }]));   // mui_gio: múi giờ tài khoản FB Ads — Ethopex API không trả, ghi tay trong sổ ethopex_bo_tk
+  const boTk = Object.fromEntries(Object.entries(boRow[0]?.gia_tri ?? {}).map(([k, b]) => [k, { ten: b.ten, tk: b.ext, page: b.page ? String(b.page) : '', tk_id: Number(b.tk), page_id: Number(b.page ?? 0), chi_phim_moi: b.chi_phim_moi, mui_gio: b.mui_gio }]));   // mui_gio: múi giờ tài khoản FB Ads — Ethopex API không trả, ghi tay trong sổ ethopex_bo_tk
   // LỊCH GIỜ — không .catch: đọc lỗi mà trả rỗng thì bảng hiện toàn BẬT trong khi máy đang tạm dừng camp (audit 25/10/2026)
   const [lichGio, khungSo, lichTat, khungGio, khungNay] = await Promise.all([
     run<DuLieuEtp['lichGio'][number]>(sql`select the_loai, khung, bat, ai, luc::text luc from etp.lich_gio order by the_loai, khung`),

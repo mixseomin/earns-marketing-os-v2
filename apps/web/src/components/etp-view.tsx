@@ -702,7 +702,7 @@ const khNhanCua = (kh: Kh) => (kh === 'tat_ca' ? 'All time' : kh.includes('~') ?
 const MAU_BO: Record<string, string> = { '1': '#3b82f6', '2': '#a855f7', '3': '#f59e0b', '4': '#10b981', '5': '#ef4444' };
 function Hex({ bo, info, co = 14 }: { bo: string | null; info?: { ten: string; tk: string; page: string; chi_phim_moi?: boolean }; co?: number }) {   // co = rộng px (anh 28/10/2026 "icon nhỏ hơn": 18 → 14, dòng camp 12)
   if (!bo) return null;
-  return <svg width={co} height={(co * 20) / 18} viewBox="0 0 18 20" style={{ verticalAlign: 'middle', flex: 'none' }}><title>{`Bộ ${bo}${info ? ` · ${info.ten} · tài khoản QC ${info.tk} · Page #${info.page}${info.chi_phim_moi ? ' · chỉ phim mới' : ''}` : ''}`}</title>
+  return <svg width={co} height={(co * 20) / 18} viewBox="0 0 18 20" style={{ verticalAlign: 'middle', flex: 'none' }}><title>{`Bộ ${bo}${info ? ` · ${info.ten} · tài khoản QC ${info.tk}${info.page ? ` · Page #${info.page}` : ''}${info.chi_phim_moi ? ' · chỉ phim mới' : ''}` : ''}`}</title>
     <polygon points="9,1 17,5.5 17,14.5 9,19 1,14.5 1,5.5" fill={MAU_BO[bo] ?? '#64748b'} /><text x="9" y="13.5" textAnchor="middle" fontSize="10" fontWeight="700" fill="#fff">{bo}</text></svg>;
 }
 
@@ -2779,7 +2779,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     return <span>Không có trong phần <b>{tenNguoi}</b>, nhưng có ở: {ds.map((x, i) => <Fragment key={x.nguoi_id}>{i ? ' · ' : ''}<a href={urlNguoi(x.nha ? '' : String(x.nguoi_id)).href} style={{ color: '#60a5fa' }}>{x.nguoi}{x.nha ? ' (nhà)' : ''}</a> {x.so} camp{x.chay ? `, ${x.chay} đang chạy` : ''}{x.so === 1 ? ` (#${x.vi_du})` : ''}</Fragment>)}{du.nguoi.ds.length > 1 && !du.nguoi.doi ? <> · <a href={urlNguoi('team').href} style={{ color: '#60a5fa' }}>xem Team</a></> : null}</span>;
   };
   const boSel = () => (!boCo.length ? null : <Chon2 chan={chanLoc.bo} value={boHieu} onChange={(v) => doi({ bo: v }, () => setBoLoc(v))} nhan="TK" align="left" title="lọc camp theo bộ tài khoản QC (tài khoản + Page)"
-    options={boCo.map((b) => ({ value: b, label: `Bộ ${b}${gon ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''} · ${du.boTk[b]?.mui_gio ?? 'múi giờ ?'}`, ngan: `Bộ ${b}`, tim: `bộ ${b} ${du.boTk[b]?.ten ?? ''}`, dem: du.camps.filter((c) => c.bo === b && c.trang_thai === 'ACTIVE').length }))} />);
+    options={boCo.map((b) => ({ value: b, label: `Bộ ${b}${gon ? '' : du.boTk[b] ? ` · ${du.boTk[b]!.ten}` : ''}${du.boTk[b]?.mui_gio ? ` · ${du.boTk[b]!.mui_gio}` : du.nguoi.ngoai ? '' : ' · múi giờ ?'}`, ngan: `Bộ ${b}`, tim: `bộ ${b} ${du.boTk[b]?.ten ?? ''}`, dem: du.camps.filter((c) => c.bo === b && c.trang_thai === 'ACTIVE').length }))} />);
   // LÊN DÒNG DÍNH (anh 01/11/2026 #1499 "chuyển chọn ngày lên trên + sticky (vẫn cho chọn)", #1500 "chuyển cả bộ TK vào sau chỗ chọn người + sticky; phần chọn Người cũng cho đổi ở sticky"):
   // máy tính: Người · TK · kỳ đứng LIỀN một cụm (anh 01/11/2026 "chọn kỳ cũng cho lên cùng dòng với Người, TK") — ở dòng tiêu đề khi chưa cuộn, ở dòng số gọn dính khi đã cuộn; hàng tab / hàng lọc không còn hai ô này.
   // Điện thoại giữ như cũ (dòng gọn cuộn ngang, ô TK trong bảng Lọc)

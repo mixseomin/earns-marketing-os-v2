@@ -91,9 +91,10 @@ def main():
                  and g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d)\\s*(\\d{5,})')::int""")
         # tài khoản → người dùng (report theo người trên etp.on.tc, anh 28/10/2026)
         try:
-            ghi("tai_khoan", [{"ad_account_id": int(x["id"]), "nguoi_id": x.get("used_by_user_id"), "nguoi": x.get("used_by_user_name") or x.get("user_name") or None, "nha": int(x["id"]) in EA.TK}
+            ghi("tai_khoan", [{"ad_account_id": int(x["id"]), "nguoi_id": x.get("used_by_user_id"), "nguoi": x.get("used_by_user_name") or x.get("user_name") or None, "nha": int(x["id"]) in EA.TK,
+                               "ten": x.get("display_name") or None, "ext": x.get("external_id") or None}   # ten / ext: ô TK của người trong đội (0424)
                               for x in (EA.doc_het("/api/v1/ad-accounts?page_size=500").get("data") or [])], ["ad_account_id"],
-                {"ad_account_id": "bigint", "nguoi_id": "int", "nguoi": "text", "nha": "boolean"})
+                {"ad_account_id": "bigint", "nguoi_id": "int", "nguoi": "text", "nha": "boolean", "ten": "text", "ext": "text"})
         except Exception as e: loi.append(f"tai_khoan: {e}")
         # TRẠNG THÁI + NGÂN SÁCH của MỌI camp từ danh sách mỗi lượt (26/10/2026: lệnh bật / tắt / đổi ngân sách qua API control KHÔNG đổi updated_at → camp không
         # vào nhánh "đổi" bên dưới, kho giữ ACTIVE cũ cho camp đã tắt; lượt lịch giờ 12h sẽ ghi camp vừa tắt theo T7 vào sổ lịch rồi 20h bật lại)

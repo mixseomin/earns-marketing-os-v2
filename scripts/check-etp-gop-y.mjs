@@ -682,6 +682,8 @@ const LUAT = [
   { card: 'hen-chay-0611', tep: 'apps/web/src/lib/actions/etp-dong.ts', co: "'chay', count(*) filter (where c.trang_thai = 'ACTIVE' and (c.lich is null or c.lich <= now()))", vi: 'đếm camp chạy bỏ camp hẹn giờ' },
   { card: 'hen-chay-0611', tep: 'apps/etp/dong_phim.py', co: 'return "xong", f"camp #{camp} đã tạo, hẹn chạy', vi: 'bước Chạy ghi giờ hẹn khi camp chưa tới giờ' },
   { card: 'hen-chay-0611', tep: 'apps/web/src/components/etp-view.tsx', co: "import { dangTao, choGio, dangChay } from '@/lib/etp-chay';", vi: 'trang Camp dùng cùng định nghĩa chạy / chờ giờ' },
+  { card: 'ab03-0611', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 're.sub(r"\\s+roas [\\d.]+ duplicate by \\d+$", "", re.sub(r"^★ ROAS [\\d.]+ · ", "",', vi: 'nhân bản từ camp ★ ROAS không lặp đầu / đuôi tên ROAS' },
+  { card: 'ab03-0611', tep: 'packages/db/migrations/0433_etp_ab03_roas_nhan_doi.sql', co: "values ('AB03', 'roas_nhan_doi',", vi: 'sổ A/B AB03 nhân đôi ROAS chạm trần — ô lọc A/B hiện theo sổ' },
   { card: 'at-cta-0611', tep: 'packages/db/migrations/0432_etp_tieu_chi_mien_at.sql', co: "VALUES ('ảnh tĩnh', 'afs.cta',", vi: 'ảnh tĩnh miễn tiêu chí afs.cta (CTA theo khuôn team, anh 06/11/2026)' },
   { card: 'at-cta-0611', tep: 'packages/db/migrations/0432_etp_tieu_chi_mien_at.sql', co: 'AND NOT EXISTS (SELECT 1 FROM etp.tieu_chi_mien m WHERE m.dang = r.dang AND m.k = e.k)) AS le4', vi: 'cổng chấm đọc bảng miễn tiêu chí theo dạng' },
   { card: 'cho-len-0511', tep: 'apps/cty/worker/ethopex.mjs', co: 'from etp.cho_len_v v left join etp.phim p using (content_id) where v.ly_do is null order by v.hang limit 4', vi: 'máy lên camp phim mới đọc hàng chờ từ view chung etp.cho_len_v' },

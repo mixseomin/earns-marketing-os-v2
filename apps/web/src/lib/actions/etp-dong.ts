@@ -10,14 +10,15 @@ import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 import type { TieuChi } from '@/lib/etp-chan';
 import { chuLich } from '@/lib/etp-khung';
+import { dangChay } from '@/lib/etp-chay';
 
 export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string; cach: string; gia: string; thoi_gian: string; chay: boolean; khoa?: string;
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
-export type BuocDong = { buoc: string; thu_tu: number; trang_thai: string; bat_dau: string | null; ket_thuc: string | null; han_giay: number; lan: number; ghi: string | null; nhip: string | null; fix: boolean; ket_qua: { ds?: { creative_id: number; tu?: number; den?: number }[]; sach?: { creative_id: number }[]; doan?: { tu: number; den: number }[] } | null };
+export type BuocDong = { buoc: string; thu_tu: number; trang_thai: string; bat_dau: string | null; ket_thuc: string | null; han_giay: number; lan: number; ghi: string | null; nhip: string | null; fix: boolean; ket_qua: { ds?: { creative_id: number; tu?: number; den?: number }[]; sach?: { creative_id: number }[]; doan?: { tu: number; den: number }[]; /** bước Chạy: camp hẹn giờ (ISO) — dong_phim.b_chay */ hen?: string } | null };
 /** creative của dòng: ảnh / video xem trước · dang = loại creative (etp.creative.dang, #1518) · chan = lý do cổng chấm chặn (etp.cham_cong.chan_boi, #1519) · cho = 5 điểm chờ người duyệt */
 export type CrDong = { anh: string | null; video: string | null; dang: string | null; chan: string | null; cho: string | null;
   /** hàng chờ lên camp (view etp.cho_len_v — cùng nguồn máy lên camp): hang = thứ tự máy sẽ tự lên · ly_do = vì sao máy KHÔNG tự lên; null = không trong hàng (đã có camp / chưa sạch) */ len: { hang: number | null; ly_do: string | null } | null };
-export type CampDong = { id: number; tt: string | null; db: string | null; cr: number | null; ns: number | null; chi: number; thu: number };
+export type CampDong = { id: number; tt: string | null; db: string | null; cr: number | null; ns: number | null; chi: number; thu: number; /** giờ hẹn chạy (lib/etp-chay) */ lich: string | null };
 export type DongPhim = { id: number; content_id: number; ten: string | null; the_loai: string | null; loai: string; so_camp: number | null; ai: string | null; trang_thai: string; ly_do: string | null;
   camp_id: number | null; creative_id: number | null; anh: string | null; duyet: boolean | null; /** creative anh bấm lên camp từng cái (#1520) */ duyet_cr: number[] | null; so: { camp: number; chay: number; chi: number; thu: number } | null; tao_luc: string; xong_luc: string | null; buoc: BuocDong[];
   /** ĐƯỜNG NGOÀI máy dòng phim (anh-tinh.py · máy sinh kể chuyện · kieu-moi · thay-the.py): tên máy làm — chỉ đọc, không FIX / Dừng */ ngoai?: string | null;
@@ -95,13 +96,13 @@ export type LocDong = 'mac_dinh' | 'dang' | 'loi' | 'tat_ca';
 // kể chuyện máy sinh · kiểu mới kieu-moi.py) không thuộc dòng nào + camp test thay thế (thay-the.py) → vẽ thành DÒNG cùng cột bước (id âm), chỉ đọc.
 const TT0 = 500_000_000;   // id âm: -thu_vien.id · -(TT0 + thay_the.id)
 const NGUON_NGOAI: Record<string, [string, string]> = { anh_tinh: ['AT', 'anh-tinh.py (ảnh tĩnh)'], videoexpress: ['KT', 'máy sinh kể chuyện'], kieu_moi: ['KM', 'kieu-moi.py (kiểu mới)'] };
-type CampTho = { id: number; tt: string | null; tao: string; chi: number; thu: number };
+type CampTho = { id: number; tt: string | null; tao: string; chi: number; thu: number; lich: string | null; db: string | null };
 type NgoaiTho = { id: number; content_id: number; ten: string | null; the_loai: string | null; anh: string | null; nguon: string; tt: string; creative_id: number | null; ghi: string | null;
   tao: string; cap_nhat: string; duoc_len: boolean | null; chan_boi: string | null; cham_luc: string | null; camps: CampTho[] | null; len_hang?: number | null; len_ly_do?: string | null };
 const buocNgoai = (buoc: string, thu_tu: number, trang_thai: string, bat_dau: string | null, ket_thuc: string | null, ghi: string | null = null, ket_qua: BuocDong['ket_qua'] = null): BuocDong =>
   ({ buoc, thu_tu, trang_thai, bat_dau, ket_thuc, han_giay: 30 * 86400, lan: 1, ghi, nhip: new Date().toISOString(), fix: false, ket_qua });   // nhịp = bây giờ: không tính kẹt kiểu máy dòng phim
 function dongNgoai(x: NgoaiTho, loai: string, ngoai: string, id: number, b: { cat: string; soat: string; cr: string; camp: string; ghi_cat?: string | null; ghi_camp?: string | null; dung?: string | null; huy?: boolean; len?: CrDong['len'] }): DongPhim {
-  const cs = x.camps ?? []; const chay = cs.filter((c) => c.tt === 'ACTIVE').length;
+  const cs = x.camps ?? []; const chay = cs.filter((c) => dangChay({ trang_thai: c.tt, lich: c.lich, dong_bo: c.db })).length;   // ACTIVE mà chưa tới giờ hẹn = chưa chạy (anh 06/11/2026)
   const kq = x.creative_id ? { ds: [{ creative_id: x.creative_id }], sach: x.duoc_len ? [{ creative_id: x.creative_id }] : [] } : null;
   const cap = buocNgoai('nhan', 1, 'bo_qua', null, null, 'đường này làm creative cho phim đã có — không qua bước cấp phim');
   return { id, content_id: x.content_id, ten: x.ten, the_loai: x.the_loai, loai, so_camp: null, ai: ngoai, ngoai, len: b.len ?? null, anh: x.anh, duyet: null, duyet_cr: null, camp_id: null, creative_id: x.creative_id,
@@ -115,7 +116,7 @@ function dongNgoai(x: NgoaiTho, loai: string, ngoai: string, id: number, b: { ca
       buocNgoai('chay', 8, chay ? 'xong' : 'cho', cs[0]?.tao ?? null, null, cs.length && !chay ? 'camp đã tạo, chưa chạy (Meta đang duyệt hoặc đã tắt)' : null)] };
 }
 async function docNgoai(): Promise<DongPhim[]> {
-  const so = sql`(select coalesce(json_agg(json_build_object('id', c.camp_id, 'tt', c.trang_thai, 'tao', c.tao, 'chi', coalesce(s.chi, 0), 'thu', coalesce(s.thu, 0)) order by c.tao), '[]'::json)
+  const so = sql`(select coalesce(json_agg(json_build_object('id', c.camp_id, 'tt', c.trang_thai, 'tao', c.tao, 'chi', coalesce(s.chi, 0), 'thu', coalesce(s.thu, 0), 'lich', c.lich, 'db', c.dong_bo) order by c.tao), '[]'::json)
     from etp.camp c left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id) where`;
   const tv = await run<NgoaiTho>(sql`select v.id::int, v.content_id, coalesce(f.ten, v.ten) ten, f.the_loai, v.anh, v.nguon, v.trang_thai tt, v.creative_id, v.ghi, v.tao::text, v.cap_nhat::text,
       g.duoc_len, g.chan_boi, (select max(h.luc) from etp.cham h where h.creative_id = v.creative_id)::text cham_luc, ${so} c.creative_id = v.creative_id) camps, cl.hang len_hang, cl.ly_do len_ly_do
@@ -157,7 +158,7 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0, tl
   // THỨ TỰ (anh 03/11/2026 "cái đang sx lên đầu, rồi đến nhóm đang chạy. Cái nào chưa đến lượt chờ thì ở dưới"):
   // 0 đang sản xuất (có bước đang chạy) · 1 camp đang chạy · 2 lỗi / dừng · 3 chờ tới lượt
   const hang = sql`case when exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.trang_thai = 'dang') then 0
-    when exists (select 1 from etp.camp c where c.content_id = p.content_id and c.tao >= p.tao_luc and c.trang_thai = 'ACTIVE') then 1
+    when exists (select 1 from etp.camp c where c.content_id = p.content_id and c.tao >= p.tao_luc and c.trang_thai = 'ACTIVE' and (c.lich is null or c.lich <= now())) then 1
     when ${coLoi} then 2 else 3 end`;
   // HAI LƯỢT (phân trang ở máy chủ, chịu kho lớn — #dong-thu-muc-0311): lượt NHẸ đọc cột lọc / xếp của mọi dòng; lượt NẶNG (bước, số camp) chỉ cho dòng của trang
   const that = await run<DongPhim & CoDong>(sql`select p.id, p.content_id, coalesce(p.ten, (select v.ten from etp.thu_vien_phim v where v.content_id = p.content_id limit 1)) ten,
@@ -190,7 +191,7 @@ export async function docDong(loc: LocDong = 'mac_dinh', tim = '', trang = 0, tl
       (select case when a like 'http%' then a else '/api/ethopex/anh?p=' || ltrim(a, '/') end from (select coalesce((select t.anh from etp.trang_phim t where t.content_id = p.content_id and t.anh is not null order by t.cap_nhat desc limit 1), (select v.anh from etp.thu_vien_phim v where v.content_id = p.content_id and v.anh is not null limit 1)) a) z where a is not null) anh,
       ((select gia_tri->p.content_id::text from etp.cau_hinh where khoa = 'lo_trinh')->>'bat_dau')::boolean duyet,
       (select array_agg(e::int) from jsonb_array_elements_text((select gia_tri->p.content_id::text->'cr' from etp.cau_hinh where khoa = 'lo_trinh')) e) duyet_cr,   -- anh đã bấm Duyệt lên camp
-      (select json_build_object('camp', count(*), 'chay', count(*) filter (where c.trang_thai = 'ACTIVE'), 'chi', coalesce(sum(s.chi), 0), 'thu', coalesce(sum(s.thu), 0))
+      (select json_build_object('camp', count(*), 'chay', count(*) filter (where c.trang_thai = 'ACTIVE' and (c.lich is null or c.lich <= now())), 'chi', coalesce(sum(s.chi), 0), 'thu', coalesce(sum(s.thu), 0))
         from etp.camp c left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id) where c.content_id = p.content_id and c.tao >= p.tao_luc
           and (c.camp_id = p.camp_id or c.creative_id in (select (e->>'creative_id')::int from etp.dong_buoc b, jsonb_array_elements(case when jsonb_typeof(b.ket_qua->'ds') = 'array' then b.ket_qua->'ds' else jsonb_build_array(b.ket_qua) end) e
             where b.dong_id = p.id and b.buoc = 'creative' and e ? 'creative_id'))) so,   -- CHỈ camp của creative thuộc dòng này (03/11/2026: 3 loại cùng phim đếm chung 5 camp thành 15)
@@ -207,13 +208,13 @@ export async function docChiTiet(dongId: number): Promise<{ camps: CampDong[]; c
   const id = Math.trunc(Number(dongId));
   if (id < 0) {   // dòng ngoài máy dòng phim: -thu_vien.id · -(TT0 + thay_the.id)
     const [g] = await run<{ cr: number | null; camp: number | null }>(-id >= TT0 ? sql`select creative_id cr, camp_moi camp from etp.thay_the where id = ${-id - TT0}` : sql`select creative_id cr, null::int camp from etp.thu_vien where id = ${-id}`);
-    const camps = await run<CampDong>(sql`select c.camp_id::int id, c.trang_thai tt, c.dong_bo db, c.creative_id::int cr, c.ngan_sach::float ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu
+    const camps = await run<CampDong>(sql`select c.camp_id::int id, c.trang_thai tt, c.dong_bo db, c.creative_id::int cr, c.ngan_sach::float ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu, c.lich::text lich
         from etp.camp c left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id) where c.creative_id = ${g?.cr ?? -1} or c.camp_id = ${g?.camp ?? -1} order by c.camp_id`);
     const [r] = await run<{ crs: Record<string, CrDong> }>(sql`select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video, 'dang', r.dang, 'chan', g.chan_boi, 'cho', g.cho_duyet, 'len', case when v.creative_id is not null then json_build_object('hang', v.hang, 'ly_do', v.ly_do) end)), '{}'::json) crs
         from etp.creative r left join etp.cham_cong g on g.creative_id = r.creative_id left join etp.cho_len_v v on v.creative_id = r.creative_id where r.creative_id = ${g?.cr ?? -1}`);
     return { camps, crs: r?.crs ?? {}, tc: await run<TieuChi>(sql`select nhom, ma, ten, mo_ta from etp.tieu_chi`) };
   }
-  const camps = await run<CampDong>(sql`select c.camp_id::int id, c.trang_thai tt, c.dong_bo db, c.creative_id::int cr, c.ngan_sach::float ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu
+  const camps = await run<CampDong>(sql`select c.camp_id::int id, c.trang_thai tt, c.dong_bo db, c.creative_id::int cr, c.ngan_sach::float ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu, c.lich::text lich
       from etp.dong_phim p join etp.camp c on c.content_id = p.content_id and c.tao >= p.tao_luc left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s on s.camp_id = c.camp_id
       where p.id = ${id} order by c.camp_id`);
   const [r] = await run<{ crs: Record<string, CrDong> }>(sql`select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video, 'dang', r.dang, 'chan', g.chan_boi, 'cho', g.cho_duyet, 'len', case when v.creative_id is not null then json_build_object('hang', v.hang, 'ly_do', v.ly_do) end)), '{}'::json) crs

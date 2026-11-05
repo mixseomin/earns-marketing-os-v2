@@ -393,7 +393,12 @@ def b_chay(d, truoc):
     j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{")), None)
     if not j: return "cho", f"chưa đọc được trạng thái camp #{camp}: {out[-150:]}", None
     if j.get("error"): return "loi", f"camp #{camp} lỗi đồng bộ: {j['error']}", None
-    if j.get("sync_status") == "done" and j.get("state") == "ACTIVE": return "xong", f"camp #{camp} đang chạy (ACTIVE)", {"camp_id": camp}
+    if j.get("sync_status") == "done" and j.get("state") == "ACTIVE":
+        # Ethopex để camp HẸN GIỜ ở ACTIVE ngay lúc tạo (lịch lên camp nhan-ban.lich_len): bước vẫn xong (chờ 8 giờ thì quá hạn bước, Mạnh huỷ) nhưng ghi giờ hẹn
+        # vào ket_qua.hen — trang hiện "hẹn 07:00 06/11" tới giờ đó, không hiện "chạy" (anh 06/11/2026 "Phải lên theo lịch chứ?"); cùng định nghĩa lib/etp-chay.ts
+        hen = sql(f"select to_char(lich at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') || '|' || to_char(lich at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') from etp.camp where camp_id = {int(camp)} and lich > now()")
+        if hen: return "xong", f"camp #{camp} đã tạo, hẹn chạy {hen.split('|')[1]} theo lịch lên camp", {"camp_id": camp, "hen": hen.split("|")[0]}
+        return "xong", f"camp #{camp} đang chạy (ACTIVE)", {"camp_id": camp}
     if j.get("sync_status") == "done" and j.get("state") == "PAUSED": return "dung", f"camp #{camp} đồng bộ xong nhưng PAUSED (có người / máy luật tắt)", None
     return "cho", f"camp #{camp} {j.get('state')} · {j.get('sync_status')} — chờ Ethopex kiểm ad", None
 

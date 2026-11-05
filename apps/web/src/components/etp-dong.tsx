@@ -10,6 +10,7 @@ import { duyetCham } from '@/lib/actions/etp-cham';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { TRE_MO } from '@/lib/etp-tre';
 import { chuLich } from '@/lib/etp-khung';
+import { choGio, chuHen, dangChay, dangTao } from '@/lib/etp-chay';
 import { batDauCamp, chayDong, docChiTiet, docDong, dungDong, fixBuoc, formDong, lenCampCr, type CampDong, type CrDong, type DongPhim, type BuocDong, type LoaiNoiDung, type LocDong } from '@/lib/actions/etp-dong';
 
 const TEN_BUOC: Record<string, [string, string]> = {
@@ -98,6 +99,10 @@ function O({ tt, chu, t, fix, bam, menu, xem, so, cap = 3 }: { tt: string; chu?:
 }
 
 // KHUNG MENU XỬ LÝ TAY tại ô (menu bước + menu từng creative #1520) — một khung, bấm ra ngoài là đóng
+/** ô Chạy của một camp: hẹn giờ (ACTIVE mà chưa tới giờ lịch) · chạy · Meta đang duyệt ad · lỗi đồng bộ · tắt — định nghĩa chung lib/etp-chay (anh 06/11/2026) */
+function oCamp(c: CampDong): { tt: string; chu: string } { const x = { trang_thai: c.tt, lich: c.lich, dong_bo: c.db };
+  return choGio(x) ? { tt: 'cho', chu: chuHen(c.lich!) } : dangChay(x) ? { tt: 'xong', chu: 'chạy' } : dangTao(x) ? { tt: 'dang', chu: '⏳ Meta duyệt ad' } : { tt: 'cho', chu: c.db === 'error' ? 'lỗi đồng bộ' : 'tắt' }; }
+
 function MenuNoi({ x, y, dong, children }: { x: number; y: number; dong: () => void; children: React.ReactNode }) {
   return <tr><td colSpan={12} style={{ padding: 0, border: 0 }}><div onClick={dong} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
     <div style={{ position: 'fixed', left: Math.min(x, window.innerWidth - 300), top: Math.min(y + 8, window.innerHeight - 240), zIndex: 61, width: 290, padding: 10, borderRadius: 8,
@@ -135,6 +140,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   // Ô LÊN CAMP của một creative chấm sạch (anh 05/11/2026 "bấm mới lên hay tự lên? tự lên thì bao lâu? nhấp nháy làm gì?"): chỉ nhấp nháy khi máy ĐANG lên thật
   // (bước camp của dòng phim đang chạy); dòng phim thật → dòng tự lên khi tới bước Lên camp; dòng ngoài → hàng chờ view etp.cho_len_v (cùng nguồn máy lên camp)
   const mayLen = !d.ngoai && b('camp')?.trang_thai === 'dang';
+  const henChay = (() => { const h = b('chay')?.ket_qua?.hen; return h && Date.parse(h) > Date.now() ? h : null; })();   // camp đã tạo, hẹn chạy theo lịch — chưa phải chạy (anh 06/11/2026)
   const chuLen = (cx: CrDong | null) => (!d.ngoai ? 'dòng tự lên' : cx?.len?.hang ? `tự lên · thứ ${cx.len.hang}` : cx?.len?.ly_do ? 'không tự lên' : '');
   const tLen = (cx: CrDong | null) => (!d.ngoai ? 'dòng phim tự lên camp creative này khi tới bước Lên camp'
     : cx?.len?.hang ? `máy tự lên ở nhịp kế — thứ ${cx.len.hang} trong hàng (4 camp mỗi nhịp), ${chuLich()}` : cx?.len?.ly_do ? `máy không tự lên: ${cx.len.ly_do}` : 'chưa vào hàng lên camp');
@@ -159,7 +165,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
           <span style={{ fontSize: 10, color: 'var(--fg-3)' }} title={d.ngoai ? `làm bởi ${d.ngoai} — không qua máy dòng phim (chỉ xem, không FIX / Dừng)` : undefined}>{LOAI_DE[d.loai] ?? d.loai}{d.ngoai ? ' · ngoài dòng' : ''} · {ngayGio(d.tao_luc)}</span></div></div></td>}
       {con ? <td colSpan={COT_PHIM.length} /> : COT_PHIM.map(([k]) => <React.Fragment key={k}>{oBuoc(b(k), undefined, k === 'poster' && d.anh ? { anh: d.anh, chu: tB(b(k)) } : undefined)}</React.Fragment>)}
       {COT_CR.map(([k, , bk]) => <React.Fragment key={k}>{kt && k === 'cat' ? oBuoc(b('creative'), cr.length ? `${cr.length} đã sinh` : b('creative')?.trang_thai === 'dang' ? 'đang sinh' : undefined)
-        : kt && k === 'soat' ? <O tt="bo_qua" t="KT không cắt phim nên không có bước xem lại đoạn" /> : k === 'chay' ? <O cap={con ? 2 : 1} tt={ttB(b('chay'))} chu={tong.chay || undefined} so={so.chi > 0 ? lai : undefined} t={`${tB(b('chay'))}${so.chi > 0 ? `\n\nchi $${so.chi.toFixed(2)} · thu $${so.thu.toFixed(2)}` : ''}`} menu={moMenu(b('chay'))} /> : oBuoc(b(bk), tong[k] || undefined)}</React.Fragment>)}
+        : kt && k === 'soat' ? <O tt="bo_qua" t="KT không cắt phim nên không có bước xem lại đoạn" /> : k === 'chay' ? <O cap={con ? 2 : 1} tt={henChay ? 'cho' : ttB(b('chay'))} chu={henChay ? chuHen(henChay) : tong.chay || undefined} so={so.chi > 0 ? lai : undefined} t={`${tB(b('chay'))}${so.chi > 0 ? `\n\nchi $${so.chi.toFixed(2)} · thu $${so.thu.toFixed(2)}` : ''}`} menu={moMenu(b('chay'))} /> : oBuoc(b(bk), tong[k] || undefined)}</React.Fragment>)}
       <td style={{ padding: '2px 6px', fontSize: 11, color: d.trang_thai === 'dung' ? '#fbbf24' : d.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)' }}>
         <div title={ghi ?? ''} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ghi ?? ''}</div></td>
       <td style={{ padding: 2 }}>{!d.ngoai && (d.trang_thai === 'chay' || d.trang_thai === 'dung' || d.trang_thai === 'loi')
@@ -210,7 +216,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
           xem={xemCr ? { ...xemCr, chu: `creative #${id} · ${tCham === 'xong' ? 'chấm sạch' : tCham === 'dung' ? lyDo || 'bị cổng chấm chặn' : 'đang chấm'}` } : undefined} />
         <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} menu={!camp && id && (ok || cx?.cho) ? (e) => setMenuCr({ id, x: e.clientX, y: e.clientY }) : undefined} tt={camp ? 'xong' : daBam || (ok && mayLen) ? 'dang' : ok && d.ngoai && cx?.len?.ly_do ? 'dung' : 'cho'}
           chu={camp ? `#${camp.id}` : daBam ? '⏳ anh đã bấm' : ok && mayLen ? '⏳ đang lên' : ok ? chuLen(cx) : ''} t={!camp && ok ? `${tLen(cx)}\n\nbấm: lên camp riêng creative này ngay — ${chuLich()} (cổng luật vẫn xét)` : undefined} />
-        <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} so={camp && camp.chi > 0 ? lai_ : undefined} tt={camp ? (camp.tt === 'ACTIVE' ? 'xong' : camp.db && !['done', 'synced', 'error'].includes(camp.db) ? 'dang' : 'cho') : 'cho'} chu={camp ? (camp.chi > 0 ? '' : camp.tt === 'ACTIVE' ? 'chạy' : camp.db && !['done', 'synced', 'error'].includes(camp.db) ? '⏳ Meta duyệt ad' : camp.db === 'error' ? 'lỗi đồng bộ' : 'tắt') : ''}
+        <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} so={camp && camp.chi > 0 ? lai_ : undefined} tt={camp ? oCamp(camp).tt : 'cho'} chu={camp ? (camp.chi > 0 ? '' : oCamp(camp).chu) : ''}
           t={camp ? `camp #${camp.id} · $${camp.ns ?? '?'}/ngày · chi $${camp.chi.toFixed(2)} · thu $${camp.thu.toFixed(2)} — bấm xem chi tiết` : undefined} />
         <td onMouseEnter={lyDo || daBam ? (e) => datXem({ chu: lyDo ? `${lyDo}\n\nbấm ô Chấm: ${cx?.cho ? 'Đạt để cho lên camp' : 'xem lý do'}` : 'anh đã bấm lên camp creative này — máy đang chạy nhan-ban (cổng luật vẫn xét)', x: e.clientX, y: e.clientY }) : undefined} onMouseLeave={lyDo || daBam ? () => datXem(null) : undefined}
           style={{ padding: '2px 6px', fontSize: 11, color: lyDo ? '#fbbf24' : 'var(--fg-2)' }}><div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lyDo || (daBam ? '⏳ anh đã bấm lên camp' : '')}</div></td><td />
@@ -219,7 +225,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
     {mo ? le.map((c) => { const l = c.thu - c.chi; return <tr key={`c${c.id}`}>
       <td style={{ padding: '2px 6px 2px 34px', fontSize: 11, color: 'var(--fg-2)' }}>└ camp #{c.id} <span style={{ color: 'var(--fg-3)' }}>creative #{c.cr}</span></td>
       <td colSpan={COT_PHIM.length + 4} /><O bam={moCamp ? () => moCamp(c.id) : undefined} tt="xong" chu={`#${c.id}`} />
-      <O bam={moCamp ? () => moCamp(c.id) : undefined} tt={c.tt === 'ACTIVE' ? 'xong' : 'cho'} so={c.chi > 0 ? l : undefined} chu={c.chi > 0 ? '' : c.tt === 'ACTIVE' ? 'chạy' : 'tắt'} /><td /><td /></tr>; }) : null}
+      <O bam={moCamp ? () => moCamp(c.id) : undefined} tt={oCamp(c).tt} so={c.chi > 0 ? l : undefined} chu={c.chi > 0 ? '' : oCamp(c).chu} /><td /><td /></tr>; }) : null}
   </>;
 }
 
@@ -253,7 +259,7 @@ function NhomPhim({ ds, xong, moCamp }: { ds: DongPhim[]; xong: () => void; moCa
           <O cap={1} tt={tt('creative')} chu={nCr ? `${nCr} creative` : ''} />
           <O cap={1} tt={tt('creative')} chu={nCr ? `${nSach} sạch` : ''} />
           <O cap={1} tt={so.camp ? 'xong' : tt('camp')} chu={so.camp ? `${so.camp} camp` : 'chưa lên'} />
-          <O cap={1} tt={so.chay ? 'xong' : so.camp ? 'dang' : 'cho'} chu={so.camp ? `${so.chay}/${so.camp}` : ''} so={so.chi > 0 ? lai : undefined} t={so.chi > 0 ? `chi $${so.chi.toFixed(2)} · thu $${so.thu.toFixed(2)}` : undefined} />
+          <O cap={1} tt={so.chay ? 'xong' : 'cho'} chu={so.camp ? `${so.chay}/${so.camp}` : ''} so={so.chi > 0 ? lai : undefined} t={so.chi > 0 ? `chi $${so.chi.toFixed(2)} · thu $${so.thu.toFixed(2)}` : undefined} />
         </>; })()}
       <td style={{ padding: '2px 6px', fontSize: 11, color: loi ? '#f87171' : 'var(--fg-2)' }}>{dangLam ? `${dangLam} loại đang làm` : ''}{loi ? `${dangLam ? ' · ' : ''}${loi} loại lỗi / dừng` : ''}</td><td />
 

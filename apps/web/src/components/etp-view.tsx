@@ -1,5 +1,6 @@
 'use client';
 // etp.on.tc — QUẢN LÝ CAMP / CREATIVE / ROI TẬP TRUNG (anh 24/10/2026). Đọc kho `etp` (lib/etp-doc), làm mới mỗi phút; ngày = ngày Ethopex (07:00–07:00 VN).
+import { dangTao, choGio, dangChay } from '@/lib/etp-chay';
 import { createContext, Fragment, startTransition, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createPortal } from 'react-dom';
@@ -75,9 +76,7 @@ const Den = ({ mau, t, song, rong }: { mau: string; t: string; song?: boolean; r
 );
 const MAU_DEN = { chay: '#22c55e', cho: '#f59e0b', loi: '#ef4444', tat: '#6b7280', phong: '#9ecbff' };
 // camp ACTIVE mà lịch bắt đầu còn ở tương lai = CHỜ GIỜ, chưa chạy (anh 26/10/2026: lọc "Đang chạy" lẫn camp chấm cam) — một định nghĩa cho chấm, bộ lọc, ô số
-// camp Ethopex còn đang tạo / kiểm ad (dong_bo ≠ done · synced · error): PAUSED tới khi kiểm xong, không phải đã tắt (05/11/2026: 4 camp ảnh tĩnh checking_ads lọt khỏi 'Chờ giờ chạy', bị đếm vào 'Đã tắt')
-const dangTao = (c: Pick<CampEtpKho, 'dong_bo'>) => !!c.dong_bo && !['done', 'synced', 'error'].includes(c.dong_bo);
-const choGio = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'dong_bo'>) => !!c.lich && Date.parse(c.lich) > Date.now() && (c.trang_thai === 'ACTIVE' || dangTao(c));
+// dangTao / choGio / dangChay: lib/etp-chay.ts (một định nghĩa cho mọi màn etp) — camp Ethopex còn đang tạo / kiểm ad (dong_bo ≠ done · synced · error): PAUSED tới khi kiểm xong, không phải đã tắt (05/11/2026: 4 camp ảnh tĩnh checking_ads lọt khỏi 'Chờ giờ chạy', bị đếm vào 'Đã tắt')
 /** ĐÃ TẮT = không chạy và không chờ giờ chạy — một định nghĩa cho ô Lọc, bảng, ô Camp chạy */
 const daTat = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'dong_bo'>) => c.trang_thai !== 'ACTIVE' && !choGio(c);
 // CHỮ TRẠNG THÁI MỘT CHỖ (anh 29/10/2026: camp hẹn lịch hiện 'chạy' — phải là "chờ 2h nữa"): chấm TT + cột Trạng thái cùng đọc hàm này
@@ -106,7 +105,6 @@ const ttCamp = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'giao'> & { lich_tat
 // PHẠM VI LƯU THEO NGƯỜI ĐANG XEM (anh 02/11/2026 "layout, filter, search… thì ko được thông nhau"): bảng (cột / sắp xếp / lọc cột / ô tìm / độ rộng) và cây mở-gập
 // lưu riêng cho Nhà · từng người · Team. Nhà để phạm vi rỗng = giữ nguyên bộ đã lưu từ trước
 const phamViNg = (du: DuLieuEtp) => (du.nguoi.doi ? 'team' : du.nguoi.ngoai && du.nguoi.dang != null ? `ng${du.nguoi.dang}` : '');
-const dangChay = (c: Pick<CampEtpKho, 'trang_thai' | 'lich' | 'dong_bo'>) => c.trang_thai === 'ACTIVE' && !choGio(c);
 // CAMP ROAS (nhà ★ … duplicate by · team "Dup by <gốc> ROAS 1.1" / "_ROAS1" / "(ROAS)") — luật nhận ở lib/etp-roas.ts, cùng apps/etp/cong.py la_roas
 const MAU_ROAS = '#facc15';   // camp ROAS tô vàng ở cây / bảng camp (anh 27/10/2026)
 // đã tiêu ≥ ngân sách ngày → Meta gần như ngừng phân phối tới lúc ngân sách nạp lại 07:00 VN (anh 26/10/2026: dòng đó để mờ hơn)

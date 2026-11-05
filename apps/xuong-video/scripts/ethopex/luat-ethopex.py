@@ -810,8 +810,10 @@ try:
             if cs >= ns and (ts - cs) / cs * 100 >= G10_HOI:
                 # ngân sách TRƯỚC lúc hạ = ngân sách thật cao nhất 7 ngày trước ngày hạ (etp.so_ngay.ngan_sach) — không đọc nhật ký lệnh (04/11/2026: #66666 lệnh G10 ghi thất bại mà ngân sách vẫn về $10)
                 truoc_ = q(f"select max(ngan_sach) from etp.so_ngay where camp_id = {int(cid)} and ngay between '{ngay_ha - dt.timedelta(days=7)}' and '{ngay_ha}'")
-                ve = int(float(truoc_)) if truoc_ and truoc_.replace('.', '', 1).isdigit() and float(truoc_) > ns else None
-                if ve: hoi_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% ≥ {G10_HOI}% → ${G10_DICH} → ${ve} (luật G10 hồi: về ngân sách trước lúc hạ)")); continue
+                cu_ = float(truoc_) if truoc_ and truoc_.replace('.', '', 1).isdigit() else 0
+                # hồi theo THANG (anh 05/11/2026 mọi bước ≤ ×1,5): bậc cao nhất ≤ min(ngân sách cũ, ns × 1,5) — trước về thẳng $10 → $30 (×3), lại là mức ngoài thang
+                ve = max((b for b in BAC if ns < b <= min(cu_, ns * 1.5)), default=None)
+                if ve: hoi_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% ≥ {G10_HOI}% · trước lúc hạ ${cu_:.0f} · ${ns:.0f} → ${ve} (luật G10 hồi: lên lại theo thang, mỗi bước ≤ ×1,5)")); continue
             if cs > 0 and (ts - cs) / cs * 100 < G10_ROI and duoi(int(cid), ns, G10_ROI, ten_, "G10"):
                 tat_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% → TẮT (luật G10: vẫn < {G10_ROI}%)"))
                 continue

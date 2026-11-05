@@ -45,7 +45,7 @@ export async function ghiG10(ids) {
 
 /** Nhóm báo: tiêu đề · nút cho mỗi mục (null = chỉ báo). dich = ngân sách đích lấy từ chữ "→ $X". */
 const NHOM = [
-  ['hoi_g10', '↑ <b>G10 HỒI</b> — camp đã hạ về $10, 2 ngày đã khép sau đó ROI ≥ 30% → máy nâng về ngân sách trước lúc hạ (anh 04/11/2026, cả ★ ROAS)', null],
+  ['hoi_g10', '↑ <b>G10 HỒI</b> — camp đã hạ về $10, 2 ngày đã khép sau đó ROI ≥ 30% → máy nâng lại theo thang (mỗi bước ≤ ×1,5, không quá ngân sách trước lúc hạ) (anh 04/11/2026, cả ★ ROAS)', null],
   ['thang_nb', '🪜 <b>THANG NHÂN BẢN</b> — bộ 2: camp chạm luật tăng (như bộ 1) → thay vì tăng ngân sách, máy mở bản mới ở bậc kế, creative khác cùng phim; camp gốc giữ ngân sách', null],
   ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — máy KHÔNG tự thay creative (anh 03/11/2026), anh quyết', null],
   ['dau_phien', '⇑ <b>LÃI ĐẦU PHIÊN</b> — ROI hôm nay > 50%, tăng luôn $2/$3', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
@@ -69,6 +69,8 @@ export const khungCua = (gio, KD = BANG_LUAT.khung_doi) => { const t = ([a, b]) 
 export const banLuat = () => [NB, path.join(REPO, 'apps/etp/cong.py')].map((f) => { try { return Math.round(fs.statSync(f).mtimeMs); } catch { return 0; } }).join('-');
 /** sổ hoãn còn dùng được: cùng ngày VN + cùng bản luật */
 export const hoanHopLe = (so, homNay) => !!so && so.ngay === homNay && so.ban === banLuat();
+/** mức đích của một dòng luật = dấu '→ $N' CUỐI câu (G10 hồi viết '→ $10 → $30': lấy dấu đầu thì máy gửi $10 — 21:22 05/11/2026 #65722 #73284 bị lam-ethopex từ chối) */
+export const dichCua = (m) => [...String(m.chu).matchAll(/→ \$(\d+)/g)].pop()?.[1];
 export const giuGocRoas = (ds) => (!ds.some((r) => r.ok) && ds.every((r) => !r.may && r.loi) ? String(ds[0].loi).slice(0, 120) : null);
 export const chuChay = (ds, [a, b] = BANG_LUAT.khung_doi.len.map((x) => String(x).padStart(2, '0'))) => (ds.length && ds.every((r) => r?.chay === 'today') ? `chạy ngay (tạo trong khung ${a}–${b}h VN)`
   : ds.length && ds.every((r) => r?.chay === 'tomorrow') ? 'chạy từ 07:00 VN hôm sau' : `chạy theo khung lên ${a}–${b}h VN`);
@@ -369,7 +371,6 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // kèm dòng "cũng: <luật khác>" và gộp nút của mọi luật (trùng nút thì giữ một) — vd lãi đầu phiên $2 + đủ bậc $3 thành một mục, hai nút lên $2 / $3.
   // KHOÁ CHỐNG BÁO TRÙNG theo MỨC ĐÍCH (22/10/2026: khoá cũ `luật:camp` trong ngày → camp đã tăng một lần thì cả ngày không được đề xuất bậc kế,
   // anh hỏi "nhiều camp dương mà ko thấy đề xuất tăng tiếp"): cùng camp lên mức MỚI là mục mới.
-  const dichCua = (m) => (String(m.chu).match(/→ \$(\d+)/) || [])[1];
   const khoa = (k, m) => `${k}:${m.id}${dichCua(m) ? `:${dichCua(m)}` : ''}`;
   // TỰ TĂNG (anh 22/10/2026: "bật cơ chế tự tăng ngân sách lên tối đa $5 mà ko cần xin phép hôm nay để xem hoạt động thế nào"): cấu hình
   // DATA/ethopex-tu-tang.json {den: ISO hết hạn, tran: $} — trong hạn thì camp chạm luật tăng (đầu phiên / tăng bậc) có mức đích ≤ trần được máy

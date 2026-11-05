@@ -215,7 +215,7 @@ const LUAT = [
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'content_id=cid, ngoai=bool(NGOAI)', vi: 'camp team bỏ trần ngày / bộ của nhà, vẫn dừng khẩn / Âu-Mỹ' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "const nbEnv = { ETP_SUA_NGUOI: String(ng) }", vi: 'nhân bản / ROAS team đi phiên Ethopex của chính người đó' },
   { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "m.id > 0 && !seTat.has(m.id) && !giu[`nb:${m.id}`]", vi: 'không nhân bản camp đang chờ tắt' },
-  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO, giuGocRoas, hoanHopLe, banLuat } from './ethopex.mjs';", vi: 'một danh sách mức ROAS + một chỗ ghi ngày G10 + sổ luật chung cho nhà và team' },
+  { card: 0, tep: 'apps/cty/worker/etp-tu-dong.mjs', co: "import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO, giuGocRoas, hoanHopLe, banLuat, dichCua } from './ethopex.mjs';", vi: 'một danh sách mức ROAS + một chỗ ghi ngày G10 + sổ luật chung cho nhà và team' },
   { card: 0, tep: 'apps/etp/cong.py', co: 'return " duplicate by " in ten or ten.lstrip().startswith("★") or bool(_ROAS_TEAM.search(ten))', vi: 'nhận camp ROAS team đặt tên kiểu _ROAS1 / (ROAS) / Dup by' },
   // hàng góp ý 31/10/2026
   { card: 1492, tep: 'apps/etp/dong-bo.py', co: "g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d)", vi: 'bản nhân bản của team thừa hưởng phim + creative từ camp gốc ghi trong tên' },
@@ -670,6 +670,9 @@ const LUAT = [
   { card: 'g10hoi-0411', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if cs >= ns and (ts - cs) / cs * 100 >= G10_HOI:', vi: 'G10 hồi: 2 ngày đã khép sau hạ ROI ≥ 30% → về ngân sách trước lúc hạ, cả ★ ROAS (anh 04/11/2026)' },
   { card: 'g10hoi-0411', tep: 'apps/cty/worker/ethopex.mjs', co: "for (const k of ['hoi_g10', 'dau_phien', 'tang', 'tang30'])", vi: 'worker tự nâng G10 hồi, gỡ khỏi sổ G10' },
   { card: 'g10hoi-0411', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"hoi_g10":', vi: 'G10 hồi có trong sổ luật chung' },
+  { card: 'g10hoi-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 've = max((b for b in BAC if ns < b <= min(cu_, ns * 1.5)), default=None)', vi: 'G10 hồi lên theo thang, mỗi bước ≤ ×1,5 (không về thẳng $10 → $30)' },
+  { card: 'g10hoi-0511', tep: 'apps/cty/worker/ethopex.mjs', co: "export const dichCua = (m) => [...String(m.chu).matchAll(/→ \\$(\\d+)/g)].pop()?.[1];", vi: 'mức đích = dấu → $N cuối câu, một hàm cho nhà + đội' },
+  { card: 'g10hoi-0511', tep: 'apps/cty/worker/etp-tu-dong.mjs', cam: "match(/→ \\$(\\d+)/)", vi: 'đội không chép lại bộ đọc mức đích' },
   { card: 'mo-lai-0411', tep: 'apps/etp/manh.py', co: 'capture_output=True, text=True).stdout.rstrip("\\n")', vi: 'Mạnh không cắt tab cuối (cột rỗng) — trước chết ValueError mỗi lượt' },
   { card: 'mo-lai-0411', tep: 'apps/etp/manh.py', co: '# 5. TỰ MỞ LẠI DÒNG DỪNG KHI CỔNG CỦA PHIM ĐỔI', vi: 'Mạnh tự mở lại dòng dừng vì luật mà điều kiện nay đã hết (anh 04/11/2026)' },
   { card: 'goc-0411', tep: 'apps/etp/nhom_goc.py', co: 'Judge the MAJORITY of the cast, never one face', vi: 'nhóm gốc theo số đông dàn diễn viên; da rám nắng nét phương Tây = au_my (anh 04/11/2026)' },

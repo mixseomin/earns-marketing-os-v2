@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO, giuGocRoas, hoanHopLe, banLuat } from './ethopex.mjs';
+import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO, giuGocRoas, hoanHopLe, banLuat, dichCua } from './ethopex.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
@@ -29,7 +29,7 @@ const dongCuoi = (s) => JSON.parse(String(s).trim().split('\n').filter((l) => l.
 // luật tắt — cùng khoá + cách tắt với LUAT_TAT của Nhà (ethopex.mjs); ngay = tắt luôn nhịp này, còn lại báo trước một nhịp (≥ 25 phút)
 // từ SỔ LUẬT CHUNG (anh 01/11/2026): mọi luật tắt trừ luật chỉ của Nhà (nha: bản thang bộ 2)
 export const TAT = LUAT_TAT_SO.filter((x) => !x.nha).map((x) => ({ khoa: x.khoa, ten: x.ngan, ...(x.ngay ? { ngay: true } : {}) }));
-const dich = (m) => Number((String(m.chu).match(/→ \$(\d+)/) || [])[1]) || 0;
+const dich = (m) => Number(dichCua(m)) || 0;
 
 /** KẾ HOẠCH một nhịp (thuần, tự kiểm): kq = JSON máy luật · cfg {giamTu, gbDuyet, tran, giu?, nbLoi?} · cho = {camp: lúc thấy lần đầu} sổ chờ tắt · now
  *  → { viec: [{viec:'tat'|'ns', id, d?, luat}], baoTruoc: [{id, luat, chu}], cho, nb: [{id, chu}], roas: [{id, chu}] } — một camp một việc ngân sách, tắt đi trước

@@ -1,6 +1,6 @@
 // CAMP CHẠY / CHỜ GIỜ / ĐANG TẠO — MỘT định nghĩa cho mọi màn etp (Camp, Sản xuất / dòng phim), anh 06/11/2026 "Sao camp AT lại chạy luôn? Phải lên theo lịch chứ?":
 // Ethopex để camp hẹn giờ ở ACTIVE ngay từ lúc tạo — trang lấy ACTIVE là "chạy" thì camp hẹn 07:00 hiện như đang chạy từ 23:00 tối trước.
-type CampTt = { trang_thai: string | null; lich: string | null; dong_bo: string | null };
+type CampTt = { trang_thai: string | null; lich: string | null; dong_bo?: string | null };   // dong_bo có thể thiếu (CampEtpKho để optional) — dangTao coi thiếu = đã xong
 /** camp Ethopex còn đang tạo / kiểm ad (dong_bo ≠ done · synced · error): PAUSED tới khi kiểm xong, không phải đã tắt */
 export const dangTao = (c: Pick<CampTt, 'dong_bo'>) => !!c.dong_bo && !['done', 'synced', 'error'].includes(c.dong_bo);
 /** đã tạo, hẹn chạy lúc c.lich (lịch lên camp nhan-ban.lich_len) */

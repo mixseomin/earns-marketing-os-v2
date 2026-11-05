@@ -1,10 +1,156 @@
-{ "ten": "The Nemean lion (Leo)", "nguon": "https://en.wikipedia.org/wiki/Nemean_lion (đọc 05/11/2026, câu nguyên văn)",
-  "moc": [
-    { "chu": "According to Hesiod, the lion was raised by Hera and sent to terrorize the hills of Nemea." },
-    { "chu": "Because its golden fur was impervious to attack, it could not be killed with mortal weapons." },
-    { "chu": "The first of Heracles' twelve labours, set by King Eurystheus (his cousin), was to slay the Nemean lion." },
-    { "chu": "He discovered the fur's protective property after the arrow bounced harmlessly off the creature's thigh." },
-    { "chu": "In the dark and close quarters, Heracles stunned the beast with his club." },
-    { "chu": "He eventually killed it by strangling it with his bare hands." },
-    { "chu": "Heracles wore the Nemean lion's coat after killing it." },
-    { "chu": "To celebrate the heroic accomplishment of Heracles' labour, Zeus used the Nemean lion to create the constellation Leo." } ] }
+{
+ "ten": "The Nemean lion (Leo)",
+ "nguon": "https://en.wikipedia.org/wiki/Nemean_lion (đọc 05/11/2026, câu nguyên văn)",
+ "moc": [
+  {
+   "chu": "According to Hesiod, the lion was raised by Hera and sent to terrorize the hills of Nemea.",
+   "vai": [
+    {
+     "ai": "su-tu-nemea",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.64,
+     "cao": 560
+    }
+   ]
+  },
+  {
+   "chu": "Because its golden fur was impervious to attack, it could not be killed with mortal weapons.",
+   "vai": [
+    {
+     "ai": "su-tu-nemea",
+     "dang": "gam",
+     "x": 0.5,
+     "y": 0.64,
+     "cao": 600
+    }
+   ]
+  },
+  {
+   "chu": "The first of Heracles' twelve labours, set by King Eurystheus (his cousin), was to slay the Nemean lion.",
+   "vai": [
+    {
+     "ai": "heracles",
+     "dang": "chi_tay",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "su-tu-nemea",
+     "dang": "goc",
+     "x": 0.74,
+     "y": 0.64,
+     "cao": 460,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "He discovered the fur's protective property after the arrow bounced harmlessly off the creature's thigh.",
+   "vai": [
+    {
+     "ai": "heracles",
+     "dang": "ngac_nhien",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "su-tu-nemea",
+     "dang": "gam",
+     "x": 0.74,
+     "y": 0.64,
+     "cao": 460,
+     "lat": true
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "In the dark and close quarters, Heracles stunned the beast with his club.",
+   "vai": [
+    {
+     "ai": "heracles",
+     "dang": "vung_chuy",
+     "x": 0.42,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "su-tu-nemea",
+     "dang": "gam",
+     "x": 0.76,
+     "y": 0.64,
+     "cao": 460,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "He eventually killed it by strangling it with his bare hands.",
+   "vai": [
+    {
+     "ai": "heracles",
+     "dang": "goc",
+     "x": 0.34,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "su-tu-nemea",
+     "dang": "nam_guc",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 300
+    }
+   ]
+  },
+  {
+   "chu": "Heracles wore the Nemean lion's coat after killing it.",
+   "vai": [
+    {
+     "ai": "heracles",
+     "dang": "khoanh_tay",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 720
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "To celebrate the heroic accomplishment of Heracles' labour, Zeus used the Nemean lion to create the constellation Leo.",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "chi_len",
+     "x": 0.24,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "su-tu-nemea",
+     "dang": "goc",
+     "x": 0.62,
+     "y": 0.47,
+     "cao": 360,
+     "mo": 0.35
+    }
+   ],
+   "nhin": {
+    "chom": "Leo"
+   }
+  }
+ ],
+ "cung": "Leo",
+ "nhan_vat": {
+  "heracles": "brand/astrolas/nhan-vat/heracles",
+  "su-tu-nemea": "brand/astrolas/nhan-vat/su-tu-nemea",
+  "zeus": "brand/astrolas/nhan-vat/zeus"
+ },
+ "site": [
+  "Leo wants to be seen and to make the people around it feel seen too."
+ ],
+ "_ghi": "Sổ chuyện thần thoại một cung: moc[] = câu NGUYÊN VĂN Wikipedia (nguồn ở trên) + vai (nhân vật / dáng / chỗ đứng trên khung dọc) + nhin; site[] = câu nguyên văn site về cung (bài the-12-zodiac-signs-explained); nhan_vat = thư mục dáng (kho-sinh.mts). Máy viết: lich-su/viet-than-thoai.mjs --cung Leo"
+}

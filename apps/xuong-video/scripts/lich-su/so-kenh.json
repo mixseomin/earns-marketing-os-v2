@@ -74,7 +74,8 @@
           "read-your-chart",
           "myth-behind",
           "free-60s",
-          "chart-chapters"
+          "chart-chapters",
+          "zodiac-myths"
         ],
         "trang_dich": "Birth chart (/birth), /c/<người>, bài <người>-birth-chart",
         "nen": "brand/astrolas/anh/nen/know-yourself.jpg"
@@ -493,6 +494,17 @@
         "sinh": "lich-su/dai/sinh-dem.mjs --noi <thành phố> --ngay <ngày>",
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-tonights-sky.mp4",
         "tu_sinh": "^ts-[a-z-]+-\\d{4}-\\d{2}-\\d{2}$"
+      },
+      {
+        "ma": "zodiac-myths",
+        "ten": "Myths of the Zodiac",
+        "loai": "short",
+        "nhip": "2 tập / tuần (12 cung, rồi các chòm khác)",
+        "kho": "12 cung + 76 chòm sao khác có thần thoại",
+        "trang": "shot-code/la-so.html (vai nhân vật + chom chòm sao)",
+        "sinh": "lich-su/viet-than-thoai.mjs --cung <cung> — chuyện Wikipedia nguyên văn (la-so/than-thoai/<cung>.json), nhân vật vẽ một lần (kho-sinh.mts), câu cung của site",
+        "tu_sinh": "^tt-[a-z]+$",
+        "cho_duyet": true
       }
     ],
     "mo_dau": "https://img.on.tc/xuong-video/demo/astrolas/mo-dau-doc.mp4",

@@ -15,7 +15,11 @@
          | { cap_cung: ['Leo', 'Sagittarius'] } — hai cung sáng trên vòng hoàng đạo + vệt nối (Sign × Sign); đi với CAU.chi_vong: true = ẩn mọi lớp riêng của người
            (sao, nhà, góc, góc chiếu, thông tin sinh), chỉ còn vòng hoàng đạo — lá số nền chỉ để mượn vòng, không lộ của ai
          | { diem: 1 } — thanh điểm từng trục của site (du_lieu.diem: Romance / Attraction / Challenges… hoặc Empathy / Harmony / Teamwork), chạy dần tới số thật
-         | { troi: 1 } — chỉ nền trời (đi với thẻ the)  | { trang_tuan: { tu: 'YYYY-MM-DD', so: 7 } } — dải pha trăng TÍNH THẬT từng ngày (bau-troi-tinh.js)
+         | { chom: 'Leo' } — CHÒM SAO thật (du-lieu-sao/sao.json, d3-celestial): sao + nét nối vẽ dần, sao lấp lánh (thần thoại 12 cung)
+         | { troi: 1 } — chỉ nền trời (đi với thẻ the)
+       câu nào cũng có thể kèm vai: [{ ai, dang, x, y, cao, lat?, mo? }] — NHÂN VẬT hình dán (CAU.nv = { ai: 'thư mục <dáng>.png' }, vẽ bằng lich-su/kho-sinh.mts):
+           x = tâm ngang (0–1 bề rộng), y = chân (0–1 bề cao), cao = px; câu trước không có ai đó → trượt vào có nảy; có → đi tới chỗ mới; câu sau không có → trượt ra;
+           đổi dáng theo câu, lắc nhẹ kiểu stop-motion; lat = quay mặt sang trái; mo = độ mờ (vd hoá vào chòm sao)  | { trang_tuan: { tu: 'YYYY-MM-DD', so: 7 } } — dải pha trăng TÍNH THẬT từng ngày (bau-troi-tinh.js)
        câu nào cũng có thể kèm the: { lon, duoi?, dong: [], vi?: 'tren'|'giua' } — thẻ số liệu kiểu hologram (số to + dòng giải thích), chuyen: giây chuyển cảnh (mặc định 0,9)
        | { doi: { tu: năm, den: năm, dang: năm, moc: [{ nam, chu }] } } — DÒNG ĐỜI theo năm tuổi: mỗi tuổi một ô màu theo cung Profection (tính từ cung Mọc của
            lá số), mốc đời ghim dưới, con trỏ trượt tới năm dang (câu kế cùng doi thì con trỏ chạy tiếp) — cho Chart Chapters bản dài
@@ -51,6 +55,10 @@ body.ngang #phu { background: linear-gradient(to right, rgba(8,19,34,.15) 0%, rg
 #man .vien { position: absolute; border: 6px solid #F4D971; border-radius: 16px; box-shadow: 0 0 26px rgba(244,217,113,.65), inset 0 0 18px rgba(244,217,113,.25); opacity: 0; }
 #man .cham { position: absolute; width: 90px; height: 90px; margin: -45px 0 0 -45px; border-radius: 50%; border: 5px solid #fff; background: rgba(255,255,255,.25); opacity: 0; }
 #bang { inset: 0; }
+#vai { inset: 0; pointer-events: none; }
+#vai img { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; opacity: 0; will-change: transform, opacity;
+  filter: drop-shadow(5px 0 0 #fff) drop-shadow(-5px 0 0 #fff) drop-shadow(0 5px 0 #fff) drop-shadow(0 -5px 0 #fff) drop-shadow(0 16px 24px rgba(0,0,0,.45)); }   /* hình dán viền trắng như kho YNT */
+#chom { inset: 0; opacity: 0; }
 #bang .tuan { position: absolute; left: 40px; right: 40px; top: 560px; display: flex; justify-content: space-between; opacity: 0; }
 #bang .ngay { width: 132px; display: flex; flex-direction: column; align-items: center; gap: 14px; font: 700 26px IN; color: #cfd8e6; }
 #bang .ngay b { font: 800 30px IN; color: #fff; } #bang .ngay i { font: 500 22px IN; font-style: normal; color: #9fb0c8; text-align: center; line-height: 1.15; min-height: 52px; }
@@ -98,6 +106,8 @@ body.ngang #cau { left: 1150px; right: 80px; top: 640px; text-align: left; font-
   <div id="goc" class="abs" style="left:64px;top:150px;display:flex;flex-direction:column;gap:20px;align-items:flex-start;opacity:.92"></div>
   <div id="o" class="abs"></div>
   <div id="man" class="abs"><div class="vien"></div><div class="cham"></div></div>
+  <svg id="chom" class="abs" width="1080" height="1920"></svg>
+  <div id="vai" class="abs"></div>
   <div id="bang" class="abs"></div>
   <div id="doi" class="abs"><svg width="960" height="520"></svg><div class="tro"><b></b></div></div>
   <div id="the" class="abs"></div>
@@ -117,7 +127,7 @@ const CHUYEN = 0.9;   // giây trượt camera đầu mỗi câu
 let SAO = [];
 let W = 1080, H = 1920, CO = 1020;   // khổ khung + cỡ cửa sổ lá số; khổ ngang đổi ở __dung
 const veNen = (t) => NenTroi.ve(t, { anh: document.getElementById('nen-anh'), cv: document.getElementById('sao'), sao: SAO, w: W, h: H });
-let C, svg, VB0, nhom, canh = [];
+let C, svg, VB0, nhom, canh = [], VAI = {};
 
 // tệp cục bộ: fetch() không đọc file:// trong Chromium → XHR (dung.mjs mở trình duyệt với --allow-file-access-from-files)
 const doc = (url) => new Promise((ok, loi) => { const x = new XMLHttpRequest(); x.open('GET', url); x.onload = () => (x.status === 0 || x.status === 200) && x.responseText ? ok(x.responseText) : loi(new Error('không đọc được ' + url)); x.onerror = () => loi(new Error('không đọc được ' + url)); x.send(); });
@@ -166,6 +176,21 @@ function veDiem(ds) {
   hop2.innerHTML = ds.map((x) => `<div><div class="t"><span>${x.ten}<i>${x.mo_ta}</i></span><b data-so="${x.diem}">0</b></div><div class="v"><span data-so="${x.diem}" style="background:${MAU_TRUC[x.truc] || '#F4D971'}"></span></div></div>`).join('');
   return hop2;
 }
+// CHÒM SAO: nét thật (d3-celestial, toạ độ RA / Dec độ) chiếu phẳng vào giữa khung — RA tăng sang TRÁI (như nhìn trời), nét vẽ dần, sao sáng nhấp nháy
+function veChom(ten) {
+  const sd = C._sao, i = sd.ten.findIndex((x) => x[0] === ten); if (i < 0) throw new Error('không có chòm ' + ten);
+  const ds = sd.duong[i], pts = ds.flat(), ra0 = pts.reduce((a, p) => a + p[0], 0) / pts.length, de0 = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+  const xy = (p) => [-(p[0] - ra0) * Math.cos((de0 * Math.PI) / 180), p[1] - de0], q = pts.map(xy);
+  const rx = Math.max(...q.map((p) => Math.abs(p[0]))), ry = Math.max(...q.map((p) => Math.abs(p[1]))), k = Math.min((W * 0.36) / rx, (H * 0.2) / ry);
+  const cx = W > H ? 540 : W / 2, cy = W > H ? H / 2 : H * 0.36, P = (p) => { const [a, b] = xy(p); return [cx + a * k, cy - b * k]; };
+  const sv = document.getElementById('chom'), g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.style.opacity = 0; sv.appendChild(g);
+  const net = ds.map((l) => { const d = l.map((p, j) => `${j ? 'L' : 'M'}${P(p).map((v) => v.toFixed(1)).join(' ')}`).join(' '), e = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    Object.entries({ d, fill: 'none', stroke: '#F4D971', 'stroke-width': 4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }).forEach(([a, v]) => e.setAttribute(a, v));
+    e.style.filter = 'drop-shadow(0 0 8px rgba(244,217,113,.85))'; g.appendChild(e); const L = e.getTotalLength(); e.setAttribute('stroke-dasharray', L); e.setAttribute('stroke-dashoffset', L); return { e, L }; });
+  const thay = new Set(), sao = []; for (const p of pts) { const k2 = p.join(); if (thay.has(k2)) continue; thay.add(k2); const [x0, y0] = P(p), c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    Object.entries({ cx: x0, cy: y0, r: 11, fill: '#fff' }).forEach(([a, v]) => c.setAttribute(a, v)); c.style.filter = 'drop-shadow(0 0 12px #fff)'; g.appendChild(c); sao.push(c); }
+  return { g, net, sao };
+}
 // CẢNH TRANG CÔNG CỤ: ảnh chụp rộng 1080 px trong khung 960×1060 → camera { z, tx, ty } đặt khung giữa màn, chiếm ~88% bề ngang, không lộ mép ảnh
 const MAN = {}, KW = 960, KH = 960;
 function camMan(meta, b) {
@@ -184,6 +209,7 @@ function dich(q) {
   if (n.troi) return { bang: true, vb: null, sang: null, nhan: q.nhan || '' };
   if (n.man) { const M = MAN[n.man], b = n.khung ? M.meta.khung[n.khung] : null; if (n.khung && !b) throw new Error(`không có khung ${n.khung} trong ${n.man}`);
     return { man: M, hop: b, cam: camMan(M.meta, b), bam: !!n.bam, bang: true, vb: null, sang: null, nhan: q.nhan || '' }; }
+  if (n.chom) return { bang: true, chom: veChom(n.chom), vb: null, sang: null, nhan: q.nhan || '' };
   if (n.diem) return { bang: true, diem: veDiem(D.diem || []), vb: null, sang: null, nhan: q.nhan || '' };
   if (n.trang_tuan) return { bang: true, tuan: tuanTrang(n.trang_tuan), vb: null, sang: null, nhan: q.nhan || '' };
   if (!svg) throw new Error('câu cần lá số nhưng CAU không có la_so: ' + JSON.stringify(n));
@@ -250,6 +276,13 @@ window.__dung = async () => {
     const meta = JSON.parse(await doc(u.replace(/\.png$/, '.json'))), img = document.createElement('img'); img.src = u;
     document.getElementById('man').prepend(img); await img.decode().catch(() => { throw new Error('không tải được ' + u); }); MAN[u] = { img, meta };
   }
+  // NHÂN VẬT: một <img> mỗi nhân vật, đổi src theo dáng của câu; nạp trước mọi dáng dùng trong tập
+  VAI = {}; const dangDung = new Set(C.cau.flatMap((q) => (q.vai || []).map((v) => `${v.ai}/${v.dang}`)));
+  for (const k of dangDung) { const [ai, dg] = k.split('/'); if (!C.nv?.[ai]) throw new Error('CAU.nv thiếu nhân vật ' + ai);
+    if (!VAI[ai]) { const el = document.createElement('img'); document.getElementById('vai').appendChild(el); VAI[ai] = { el, anh: {} }; }
+    const im = await tai(`${C.nv[ai]}/${dg}.png`); VAI[ai].anh[dg] = im; }
+  if (C.cau.some((q) => q.nhin?.chom)) { const sd = JSON.parse(await doc('du-lieu-sao/sao.json')); C._sao = sd; }
+  document.getElementById('chom').setAttribute('width', W); document.getElementById('chom').setAttribute('height', H);
   if (svg) svg.setAttribute('viewBox', '0 0 ' + svg.viewBox.baseVal.width + ' ' + svg.viewBox.baseVal.height); canh = C.cau.map(dich);   // đo khung khi viewBox còn gốc
   canh.forEach((st, j) => { st.q = C.cau[j]; if (!st.nhan && C.cau[j].nhan) st.nhan = C.cau[j].nhan; if (!st.nhan && st.tuan) st.nhan = st.tuan.dataset.nhan; });
   await Promise.all(canh.filter((st) => st.tranh).map((st) => st.tranh.decode().catch(() => { throw new Error('không tải được tranh ' + st.tranh.getAttribute('src')); })));
@@ -312,6 +345,25 @@ window.__seek = (t) => {
   for (const st of canh) if (st.tuan) st.tuan.style.opacity = st === moi ? k : st === cu ? 1 - k : 0;
   for (const st of canh) { if (!st.diem) continue; st.diem.style.opacity = st === moi ? k : st === cu ? 1 - k : 0;
     if (st === moi) { const u = ease((t - q.tu - 0.5) / 1.6); st.diem.querySelectorAll('[data-so]').forEach((e) => { const v = Number(e.dataset.so) * u; if (e.tagName === 'B') e.textContent = Math.round(v); else e.style.width = `${v}%`; }); } }
+  for (const st of canh) { if (!st.chom) continue; const o = st === moi ? k : st === cu ? 1 - k : 0; st.chom.g.style.opacity = o; if (!o) continue;
+    const u = Math.max(0, Math.min(1, (t - st.q.tu - 0.3) / Math.max(1, (st.q.den - st.q.tu) * 0.6)));
+    st.chom.net.forEach((n, j, a) => { const v = Math.max(0, Math.min(1, u * a.length - j)); n.e.setAttribute('stroke-dashoffset', n.L * (1 - v)); });
+    st.chom.sao.forEach((c, j) => c.setAttribute('r', (8 + 3 * Math.sin(t * 3 + j * 1.7)).toFixed(2))); }
+  document.getElementById('chom').style.opacity = canh.some((st) => st.chom && (st === moi || st === cu)) ? 1 : 0;
+  // NHÂN VẬT: vị trí / dáng theo câu đang kể, vào – đi – ra theo câu trước / sau; lắc stop-motion 6 nhịp mỗi giây
+  for (const [ai, V] of Object.entries(VAI)) {
+    const vNay = (q.vai || []).find((v) => v.ai === ai), vTruoc = (C.cau[i - 1]?.vai || []).find((v) => v.ai === ai), kv = ease((t - q.tu) / 0.7);
+    if (!vNay && !vTruoc) { V.el.style.opacity = 0; continue; }
+    const dich2 = vNay || vTruoc, im = V.anh[dich2.dang]; if (V.el.src !== im.src) V.el.src = im.src;
+    const cao = dich2.cao ?? 700, rong = (cao * im.naturalWidth) / im.naturalHeight; V.el.style.height = `${cao}px`;
+    let x0 = dich2.x * W, y0 = dich2.y * H, mo = dich2.mo ?? 1;
+    if (vNay && vTruoc) { x0 = lerp(vTruoc.x * W, vNay.x * W, kv); y0 = lerp(vTruoc.y * H, vNay.y * H, kv); mo = lerp(vTruoc.mo ?? 1, vNay.mo ?? 1, kv); }
+    else if (vNay) { const tu = vNay.x < 0.5 ? -rong : W + rong, nay = 1 + 2.70158 * (kv - 1) ** 3 + 1.70158 * (kv - 1) ** 2; x0 = lerp(tu, vNay.x * W, nay); }
+    else { const den = vTruoc.x < 0.5 ? -rong : W + rong; x0 = lerp(vTruoc.x * W, den, kv); }
+    const buoc = Math.floor(t * 6), lac = (buoc % 2 ? 1.2 : -1.2) * (vNay && vTruoc && kv < 1 ? 2 : 1), nhun = Math.abs(Math.sin(t * 6)) * (vNay && vTruoc && kv < 1 ? 14 : 3);
+    V.el.style.opacity = mo * (vNay ? 1 : 1 - kv) * hienCau(t, { tu: q.tu - 1, den: (vNay ? q.den + 1 : q.den) });
+    V.el.style.transform = `translate(${(x0 - rong / 2).toFixed(1)}px, ${(y0 - cao - nhun).toFixed(1)}px) rotate(${lac}deg) scaleX(${dich2.lat ? -1 : 1})`;
+  }
   for (const st of canh) { if (!st.vach) continue; const u = st === moi ? ease((t - q.tu - (q.chuyen ?? CHUYEN)) / 0.9) : 0;
     st.vach.setAttribute('opacity', st === moi ? Math.min(1, u * 3) * hienCau(t, q) : 0); st.vach.setAttribute('stroke-dashoffset', st.dai * (1 - u));
     (st.to2 || []).forEach((e) => e.setAttribute('opacity', st === moi ? k : st === cu ? 1 - k : 0)); }

@@ -64,6 +64,11 @@ const TEN = Object.fromEntries(NHOM.map(([k, t]) => [k, (t.match(/<b>(.*?)<\/b>/
 export const khungCua = (gio, KD = BANG_LUAT.khung_doi) => { const t = ([a, b]) => (a <= b ? gio >= a && gio < b : gio >= a || gio < b); return t(KD.giam) ? 'giam' : t(KD.tang) ? 'tang' : KD.sang && t(KD.sang) ? 'sang' : 'bang'; };   // tang 21–07 qua nửa đêm (anh 05/11/2026)
 // GIỜ CHẠY camp vừa tạo — đọc kq.chay của nhan-ban.lich_len (một chỗ quyết, anh 05/11/2026), không tự ghi "hôm nay" / "hôm sau" (audit 05/11: 3 tin hứa sai)
 // GIỮ GỐC ROAS TỚI HẾT NGÀY — một luật cho Nhà + tài khoản team: không mức nào lên được VÀ mọi mức bị từ chối có lý do (luật); hỏng vì máy / mã (r.may) thì nhịp sau thử lại
+/** BẢN LUẬT lúc ghi sổ hoãn trong ngày (05/11/2026: bỏ luật trùng phim cho ROAS mà máy vẫn giữ 3 gốc tới hết ngày, phải sửa tay tệp hoãn trên box3):
+ *  mtime của nhan-ban.py + cong.py — deploy đổi một trong hai (git reset chỉ ghi lại tệp đổi) thì mọi gốc đang hoãn được xét lại ngay nhịp sau */
+export const banLuat = () => [NB, path.join(REPO, 'apps/etp/cong.py')].map((f) => { try { return Math.round(fs.statSync(f).mtimeMs); } catch { return 0; } }).join('-');
+/** sổ hoãn còn dùng được: cùng ngày VN + cùng bản luật */
+export const hoanHopLe = (so, homNay) => !!so && so.ngay === homNay && so.ban === banLuat();
 export const giuGocRoas = (ds) => (!ds.some((r) => r.ok) && ds.every((r) => !r.may && r.loi) ? String(ds[0].loi).slice(0, 120) : null);
 export const chuChay = (ds, [a, b] = BANG_LUAT.khung_doi.len.map((x) => String(x).padStart(2, '0'))) => (ds.length && ds.every((r) => r?.chay === 'today') ? `chạy ngay (tạo trong khung ${a}–${b}h VN)`
   : ds.length && ds.every((r) => r?.chay === 'tomorrow') ? 'chạy từ 07:00 VN hôm sau' : `chạy theo khung lên ${a}–${b}h VN`);
@@ -674,7 +679,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // trong ngày; hỏng vì lỗi máy (hết giờ, mạng) → nhịp sau thử lại (mức đã tạo được thì nhan-ban chặn trùng tên).
   {
     const TEP_R = path.join(DATA(), 'ethopex-roas-len.json');
-    const so = docJ(TEP_R, {}); const giu = so.ngay === homNay ? so.giu || {} : {};
+    const so = docJ(TEP_R, {}); const giu = hoanHopLe(so, homNay) ? so.giu || {} : {};
     const goc = (kq.moc30 || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id) && !giu[m.id]);
     const viec = goc.flatMap((m) => ROAS_MUC.map((muc) => ({ m, muc })));
     for (let i = 0; i < viec.length; i += 4) await Promise.all(viec.slice(i, i + 4).map(async (v) => {
@@ -682,7 +687,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       catch (e) { v.r = { ok: false, loi: e.message, may: true }; }
     }));
     for (const m of goc) { const ly = giuGocRoas(viec.filter((v) => v.m === m).map((v) => v.r)); if (ly) giu[m.id] = ly; }
-    fs.writeFileSync(TEP_R, JSON.stringify({ ngay: homNay, giu }));
+    fs.writeFileSync(TEP_R, JSON.stringify({ ngay: homNay, ban: banLuat(), giu }));
     if (viec.length) {
       const ok = viec.filter((v) => v.r.ok).length;
       const dong = bangViec(viec.map(({ m, muc, r }) => ({ m, doi: `${muc}→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '30 ng');

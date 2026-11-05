@@ -38,7 +38,7 @@ if (gocArg.startsWith('mota:')) {
     : loai === 'phuong_tien'
     ? `${pc.replace(/character/i, 'object').replace(/full body, /, '')}. Object: ${moTa}. Clean side view facing RIGHT, whole object visible, centered, plain pure white background, no people, no ground shadow, no text, letters or logos.`
     : `${pc}. Character: ${moTa}. Standing in a neutral relaxed pose, body turned slightly toward the right side of the picture, centered, no text, letters or logos.`;
-  const r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [], tiLe: loai === 'phuong_tien' ? '3:2' : '2:3' });
+  const r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [], tiLe: loai === 'phuong_tien' || loai === 'sinh_vat' ? '3:2' : '2:3' });   // thú đứng nghiêng: khung ngang
   if (!r.anh) { console.error(`✗ goc: ${r.loi}`); process.exit(1); }
   writeFileSync(join(ra, 'goc.jpg'), r.anh.data); tong += r.nguon.vnd || 0; console.log('✓ goc');
   goc = (await uploadToR2(`xuong-video/lich-su/tam/${Date.now()}-goc.jpg`, r.anh.data, 'image/jpeg'))!;

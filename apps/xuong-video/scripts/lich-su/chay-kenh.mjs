@@ -58,6 +58,21 @@ for (const [k, K] of Object.entries(KENH)) {
     if (st?.dang) continue;                                         // đã đăng
     if (st?.xuat && (!st.ket || st.ket === 'DUYET')) continue;      // chờ Phòng Nội dung / chờ máy đăng
     const td = t.tu_dong ?? { lan: 0 };
+    // SỬA LẠI CHỈ VÌ HOOK (05/11/2026, Agincourt: video dựng xong, Phòng Nội dung chặn hook mượn QC khác ngách → 6 lượt làm lại giữ nguyên hook rồi BỎ cả tập):
+    // đổi hook + tiêu đề (lam-tap --gan-hook --doi-hook, gần 0đ: giọng / kho / khung dùng lại), KHÔNG tính vào trần bỏ tập, kể cả tập đã bỏ; tối đa 3 lần đổi hook
+    const chiHook = st?.xuat && st.ket === 'SUA_LAI' && (st.chan ?? []).length > 0 && st.chan.every((x) => /hook/i.test(String(x)));
+    if (chiHook && (td.doi_hook ?? 0) < 3) {
+      writeFileSync(join(homedir(), '.cache', `lich-su-${k}.khoa`), String(process.pid));
+      const r = chayLamTap(t.id, ['--id', t.id, '--gan-hook', '--doi-hook'], { encoding: 'utf8', env: { ...process.env, DUYET_SINH_1_LAN: '1' }, maxBuffer: 64 << 20, timeout: 100 * 60_000, killSignal: 'SIGKILL' });
+      const ra = `${r.stdout ?? ''}\n${r.stderr ?? ''}`; process.stdout.write(ra);
+      try { unlinkSync(join(homedir(), '.cache', `lich-su-${k}.khoa`)); } catch { /* đã gỡ */ }
+      const t2 = JSON.parse(readFileSync(tep, 'utf8')), n = (td.doi_hook ?? 0) + 1;
+      t2.tu_dong = { ...td, doi_hook: n, luc: new Date().toISOString(), loi: r.status ? ra.trim().split('\n').slice(-3).join(' · ').slice(0, 400) : null };
+      if (!r.status) { delete t2.tu_dong.bo; delete t2.tu_dong.bo_luc; danhDau(K.may, t.id, null); }
+      writeFileSync(tep, JSON.stringify(t2, null, 1) + '\n');
+      bao.push(r.status ? `⚠ đổi hook tập ${t.id} (lần ${n}/3) hỏng: ${t2.tu_dong.loi}` : `✓ tập ${t.id}: Phòng Nội dung chặn hook → đã đổi hook (lần ${n}/3), nạp lại chờ chấm`);
+      break;
+    }
     // 3 lần vẫn kẹt → BỎ tập này (tu_dong.bo), lượt lịch kế làm tập MỚI với đề khác (anh 05/11/2026: "sửa triệt để ở quy trình cho tự động hoàn toàn" — không dừng chờ người)
     // trần: kẹt ở BƯỚC VIẾT (nội dung không khép) = 3 lần; kẹt ở bước sau (Ngọc chặn hình / thumbnail / dựng — lỗi máy, làm lại gần như 0đ vì giọng + kho đã có) = 6 lần
     const tran = /máy viết .*lượt vẫn lỗi|tập có lỗi/.test(td.loi ?? '') ? 3 : 6;

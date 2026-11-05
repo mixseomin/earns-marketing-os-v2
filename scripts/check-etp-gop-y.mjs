@@ -408,6 +408,7 @@ const LUAT = [
   { card: 'tk-doi-0511', tep: 'apps/etp/dong-bo.py', co: '"ten": x.get("display_name") or None, "ext": x.get("external_id") or None}', vi: 'lưu tên tài khoản đội (ETP_435…) cho nhãn ô TK' },
   { card: 1537, tep: 'apps/web/src/components/etp-view.tsx', co: 'const k = khungLuc(gioVnNay(t)), [ic, ten] = KHUNG_TEN[k]', vi: 'hover Tuổi nói lúc lên camp rơi vào khung giờ nào (tăng / giảm·tắt / nạp sáng)' },
   { card: 1537, tep: 'apps/web/src/components/etp-view.tsx', cam: 'lên ngày ${c.tao.slice(8, 10)}', vi: 'mọi cột Tuổi dùng chung tuoiTitle, không chữ "lên ngày dd/mm" chép tay' },
+  { card: 1538, tep: 'apps/web/src/components/etp-view.tsx', cam: "{ key: 'loai', header: 'Loại', align: 'left', width: 52", vi: 'Cây không quay lại cột Loại riêng — badge loại ở ô camp' },
   { card: 'nap-sang-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if TS_GIO[0] <= vn.hour < TS_GIO[1] and not _nap_sang(cid):', vi: 'TS chặn tăng 07–15h trừ camp nạp sáng — không thì $3 → $5 buổi sáng không bao giờ chạy' },
   { card: 'nap-sang-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'TS_GIO, TS_HQ = tuple(KD.get("sang") or (7, 15)), 50', vi: 'giờ TS đọc sổ luật chung' },
   { card: 'nap-sang-0511', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"sang": [7, 15], "sang_roi": 100', vi: 'nạp sáng 07–15h: camp tiêu hết + ROI hôm nay ≥ 100% (anh 05/11/2026)' },

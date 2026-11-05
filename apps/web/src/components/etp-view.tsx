@@ -58,6 +58,13 @@ const Tien = ({ v }: { v: number }) => <KeToan v={v} />;
 const LaiCot = ({ s }: { s: SoTien }) => <KeToan v={s.thu - s.chi} mau={mauLai(s.thu - s.chi)} />;   // trong CỘT bảng / lưới
 const Lai = ({ s }: { s: SoTien }) => { const v = s.thu - s.chi; return <span style={{ color: Math.abs(v) < 0.005 ? MO : mauLai(v), fontVariantNumeric: 'tabular-nums' }}>{usd(v)}</span>; };   // trong câu / thẻ số
 const vn = (iso: string | null) => (iso ? new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }) : '—');
+/** hover cột Tuổi (#1537): lúc camp LÊN (giờ hẹn chạy `lich` nếu có, không thì lúc tạo) rơi vào khung máy đổi camp nào + đã chạy bao lâu — một hàm cho mọi cột Tuổi */
+const tuoiTitle = (c: Pick<CampEtpKho, 'tao' | 'lich'>) => {
+  const moc = c.lich ?? c.tao, t = moc ? Date.parse(moc.replace(' ', 'T').replace(/([+-]\d\d)$/, '$1:00')) : NaN;
+  if (Number.isNaN(t)) return undefined;
+  const k = khungLuc(gioVnNay(t)), [ic, ten] = KHUNG_TEN[k], r = (KD as unknown as Record<string, [number, number] | undefined>)[k], gio = Math.floor((Date.now() - t) / 3_600_000);
+  return `${gio < 0 ? 'hẹn lên' : 'lên'} ${vn(new Date(t).toISOString())} · ${ic} ${ten}${r ? ` (${String(r[0]).padStart(2, '0')}–${String(r[1]).padStart(2, '0')}h)` : ''}${gio < 0 ? '' : ` · đã chạy ${gio < 48 ? `${gio} giờ` : `${Math.floor(gio / 24)} ngày`}`}`;
+};
 const cong = (xs: SoTien[]) => xs.reduce((a, x) => ({ chi: a.chi + x.chi, thu: a.thu + x.thu }), { chi: 0, thu: 0 });
 // ĐÈN TRẠNG THÁI (anh 24/10/2026 "bỏ chữ này đi, dùng cái đèn xanh là hiểu"): trạng thái = chấm màu, chữ chỉ ở hover.
 // song = đang diễn ra (nhấp nháy); rong = vốn dự phòng (vòng rỗng). Bảng màu: xanh chạy · cam lịch/chờ · đỏ lỗi · xám tắt.
@@ -1674,10 +1681,10 @@ function ONgay({ bac, tieu, gio, children }: { bac?: DuLieuEtp['lsBac'][number];
 // DIỄN BIẾN TRONG NGÀY (anh 05/11/2026 "hover vào 1 ngày thấy diễn biến tăng giảm trong ngày" — "1 cái chart"): cột = chi từng giờ, đường = lãi CỘNG DỒN
 // từ 07:00 VN (đầu ngày Ethopex). Số từ etp.so_gio_camp (đồng bộ 3 phút/lần); một lần đọc mỗi (nhóm camp, ngày), nhớ trong trang
 type GioO = { camps: number[]; ngay: string };
-const NHO_GIO = new Map<string, Promise<{ ds: SoGio[]; luc: string | null } | { loi: string }>>();
+const NHO_GIO = new Map<string, Promise<{ ds: SoGio[]; luc: string | null; hoc: number[]; so: number } | { loi: string }>>();
 function BieuDoGio({ gio }: { gio: GioO }) {
   const k = `${gio.ngay}|${gio.camps.join(',')}`;
-  const [kq, setKq] = useState<{ ds: SoGio[]; luc: string | null } | { loi: string } | null>(null);
+  const [kq, setKq] = useState<{ ds: SoGio[]; luc: string | null; hoc: number[]; so: number } | { loi: string } | null>(null);
   const [chon, setChon] = useState<number | null>(null);   // giờ đang rê trên biểu đồ → dòng số cụ thể (anh 05/11/2026 "hover vào thì show số cụ thể")
   useEffect(() => { let song = true; if (!NHO_GIO.has(k)) NHO_GIO.set(k, docGioNgay(gio.camps, gio.ngay)); NHO_GIO.get(k)!.then((x) => song && setKq(x)).catch((e) => song && setKq({ loi: String(e) })); return () => { song = false; }; }, [k]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (!kq) return <div style={{ height: 150, display: 'grid', placeItems: 'center', color: 'var(--fg-3)', fontSize: 11 }}>đang tải số theo giờ…</div>;
@@ -1693,16 +1700,21 @@ function BieuDoGio({ gio }: { gio: GioO }) {
   const vn = (g: number) => `${String((g + 7) % 24).padStart(2, '0')}h`;
   const x0 = 26, cw2 = (W - x0) / 24, cx = (g: number) => x0 + (g + 0.5) * cw2;   // chừa lề trái cho nhãn $0
   const pts2 = cot.filter((c) => c.don != null).map((c) => `${cx(c.g)},${y(c.don!)}`).join(' ');
-  const g0 = chon ?? het, c0 = cot[g0]!, x = theo.get(g0);
+  const g0 = chon ?? het, c0 = cot[g0]!, x = theo.get(g0), hocTu = kq.hoc.findIndex((n) => n > 0), hocN = kq.hoc[g0] ?? 0;
   return <div onMouseLeave={() => setChon(null)}>
     <div style={{ display: 'flex', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden', fontSize: 11, marginBottom: 4, fontVariantNumeric: 'tabular-nums', height: 16 }}>   {/* một dòng cố định — dòng số xuống hàng làm biểu đồ nhảy */}
       <b>{vn(g0)}–{vn(g0 + 1)}</b>
       <span style={{ color: 'var(--fg-2)' }}>chi <b style={{ color: 'var(--fg-1)' }}>{usd(x?.chi ?? 0)}</b></span>
       <span style={{ color: 'var(--fg-2)' }}>thu <b style={{ color: 'var(--fg-1)' }}>{usd(x?.thu ?? 0)}</b></span>
       <span style={{ color: 'var(--fg-2)' }}>lãi giờ <b style={{ color: c0.lai >= 0 ? '#4ade80' : '#f87171' }}>{usd(c0.lai)}</b></span>
+      {hocN ? <span style={{ color: '#f59e0b' }}>{kq.so > 1 ? `${hocN}/${kq.so} camp đang học` : 'đang học'}</span> : null}
       {c0.don != null ? <span style={{ color: 'var(--fg-2)' }}>cộng dồn <b style={{ color: c0.don >= 0 ? '#4ade80' : '#f87171' }}>{usd(c0.don)}</b></span> : <span style={{ color: 'var(--fg-3)' }}>chưa tới giờ này</span>}
     </div>
     <svg width={W} height={H} style={{ display: 'block' }}>
+      {/* GIAI ĐOẠN HỌC (anh 05/11/2026 "highlight khoảng thời gian FB dành cho việc học với camp mới"): KD.hoc_gio giờ chạy đầu từ giờ đầu tiên có chi —
+          nhóm nhiều camp thì đậm theo tỉ lệ camp đang học giờ đó */}
+      {kq.hoc.map((n, g) => (n ? <rect key={`h${g}`} x={x0 + g * cw2} width={cw2} y={T - 8} height={B - T + 8} fill="#f59e0b" opacity={0.08 + 0.17 * (n / Math.max(1, kq.so))} /> : null))}
+      {hocTu >= 0 ? <text x={x0 + hocTu * cw2 + 2} y={T - 1} fontSize={9.5} fontWeight={600} fill="#f59e0b">FB học</text> : null}
       {cot.map((c) => <rect key={c.g} x={x0 + c.g * cw2 + 2} width={cw2 - 4} y={B - (c.chi / mxChi) * 34} height={(c.chi / mxChi) * 34} fill="var(--fg-3, #666)" opacity={c.g === g0 ? 0.7 : 0.35} />)}
       {/* ĐƯỜNG $0 nổi rõ (anh 05/11/2026 "Highlight dòng $0") — trên đường = đang lãi, dưới = đang lỗ */}
       <line x1={x0} x2={W} y1={y(0)} y2={y(0)} stroke="var(--fg-2, #aaa)" strokeWidth={1.2} opacity={0.8} />
@@ -1718,7 +1730,7 @@ function BieuDoGio({ gio }: { gio: GioO }) {
       <span>cuối <b style={{ color: mau }}>{usd(cuoi)}</b> lúc {vn(het + 1)}</span>
       {dinh ? <span>đỉnh <b style={{ color: dinh.don! >= 0 ? '#4ade80' : '#f87171' }}>{usd(dinh.don!)}</b> {vn(dinh.g + 1)}</span> : null}
       {day ? <span>đáy <b style={{ color: day.don! >= 0 ? '#4ade80' : '#f87171' }}>{usd(day.don!)}</b> {vn(day.g + 1)}</span> : null}
-      <span style={{ color: 'var(--fg-3)' }}>cột xám = chi mỗi giờ</span>
+      <span style={{ color: 'var(--fg-3)' }}>cột xám = chi mỗi giờ{hocTu >= 0 ? <> · <span style={{ color: '#f59e0b' }}>vùng cam = FB học ({KD.hoc_gio} giờ chạy đầu)</span></> : null}</span>
     </div>
   </div>;
 }
@@ -1992,7 +2004,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined, position: 'relative' }}>{vach}
         <span style={{ display: 'grid', gridTemplateColumns: LT, columnGap: 8, alignItems: 'center', minWidth: 0 }}>
           <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">{ds.length ? '▸' : ''}</span> <Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} /></span>
-          <span data-cot="tuoi" data-cot-can="phai" title={c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : ''} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tuoi(c) == null ? '' : <>{tuoiChu(tuoi(c))} <span style={{ fontSize: 10 }}>ngày</span></>}</span>
+          <span data-cot="tuoi" data-cot-can="phai" title={tuoiTitle(c)} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tuoi(c) == null ? '' : <>{tuoiChu(tuoi(c))} <span style={{ fontSize: 10 }}>ngày</span></>}</span>
           <span data-cot="ngan-sach"><BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} /></span>
           <span data-cot="luat" style={{ minWidth: 0 }}><ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} /></span>
           {oCr(c)}
@@ -2031,7 +2043,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       cell: () => null, total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <DongHoHapThu m={du.moRong?.find((x) => x.content_id === k)} ten={rs.find((x) => x.camp_id > 0)?.phim} /> : null; } },   // cột riêng (anh 04/11/2026)
     { key: 'tt', header: 'TT', align: 'left', width: 74, title: 'trạng thái camp trên Ethopex', total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k)   // ĐỒNG HỒ CÁC ĐỢT SẢN XUẤT ở dòng phim, sát mép phải → ngay cạnh ＋ (cột Tuổi) (anh 04/11/2026)
       ? <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}><BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /></span> : null; }, cell: (c) => { const x = ttCamp(c); const o = <span title={c.trang_thai === 'ACTIVE' ? x.t : undefined} style={{ display: 'block', fontSize: 11, color: x.mau, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.chu}</span>; return c.trang_thai === 'ACTIVE' || c.giao === 'DISAPPROVED' ? o : <ReDung c={c}>{o}</ReDung>; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
-    { key: 'tuoi', header: 'Tuổi', width: 52, title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: (c) => (c.tao ? `lên ngày ${c.tao.slice(8, 10)}/${c.tao.slice(5, 7)}` : undefined), cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)),
+    { key: 'tuoi', header: 'Tuổi', width: 52, title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)),
       // NÚT ＋ MỞ RỘNG ở dòng PHIM, thẳng một cột (anh 04/11/2026 "phải thẳng cột") — dòng tổng bảng (nhiều phim) không có
       total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <NutMoRong cid={k} /> : null; } },   // ＋ thẳng cột trong cột Tuổi (hẹp 52); đồng hồ các đợt ở ô TT ngay bên trái
     { key: 'ns', header: 'Ngân sách', align: 'left', width: 86, loc: 'so', title: 'ngân sách $/ngày — rê xem lịch sử bậc', cell: (c) => <BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach,
@@ -2630,7 +2642,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     { key: 'ns', header: 'Bậc ngân sách', align: 'left', loc: 'so', title: 'ngân sách $/ngày của camp · thước ROI hôm nay (đỏ giảm, xám giữ, xanh tăng) · dấu máy luật', cell: (c) => <BacCamp c={c} bao={baoCampBang.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach, total: (rs) => `$${rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0)}` },
     { key: 'luat', header: 'Luật', align: 'left', width: 84, title: 'luật máy đang xếp làm ở nhịp này (thẻ đậm: chưa chạy / chờ anh duyệt / báo trước) và luật sắp chạm (thẻ viền nét đứt) — rê vào thẻ xem số', cell: (c) => <ChipLuat c={c} bao={baoCampBang.get(c.camp_id)} {...soThang(du)} ba={ba3(du, c)} xet={du.xetLuat?.[c.camp_id]} deXuat={du.nguoi.ngoai} />, sortValue: (c) => (baoCampBang.get(c.camp_id) ?? []).reduce((a, b) => a + (LUAT_NHAN[b.nhom]?.[3] === 'dang' ? 10 : LUAT_NHAN[b.nhom] ? 1 : 0), 0) },
     ...soCot<CampEtpKho>('nay', (c) => c.nay), ...soCot<CampEtpKho>('qua', (c) => c.qua), ...(khNay ? [] : soCot<CampEtpKho>('kh', (c) => ckh(c.camp_id))),
-    { key: 'tuoi', header: 'Tuổi (ngày)', title: 'tuổi camp tính bằng NGÀY từ lúc tạo (0.3 ≈ 7 giờ) — lọc 🔍 theo ngày: > 2 = camp hơn 2 ngày', cellTitle: (c) => (c.tao ? `${Math.floor((tuoiNgay(c.tao) ?? 0) * 24)} giờ` : undefined), cell: (c) => tuoiChu(tuoiNgay(c.tao)), sortValue: (c) => tuoiLoc(tuoiNgay(c.tao)) },
+    { key: 'tuoi', header: 'Tuổi (ngày)', title: 'tuổi camp tính bằng NGÀY từ lúc tạo (0.3 ≈ 7 giờ) — lọc 🔍 theo ngày: > 2 = camp hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoiNgay(c.tao)), sortValue: (c) => tuoiLoc(tuoiNgay(c.tao)) },
     { key: 'tao', header: 'Tạo', cell: (c) => <span style={{ fontSize: 11 }}>{vn(c.tao)}</span>, sortValue: (c) => c.tao ?? '' },
   ];
   const cotCr: DataColumn<CreativeEtpKho>[] = [

@@ -538,7 +538,7 @@ except Exception as e:
 # → 92% lỗ triền miên, 1% hồi về ROI ≥ 30%, lãi 96h −$1,57/camp): đo trên 24 GIỜ kể từ giờ có chi đầu (etp.so_gio_camp), KHÔNG theo ngày lịch — 68% camp
 # lên sau 13h nên "ngày đầu" theo lịch chỉ còn ~8 giờ và camp phải chờ 2–4 ngày mới bị xử. Camp đủ T1_24_TUOI giờ tuổi (số 24 giờ đầu đã đồng bộ trọn),
 # chi 24h đầu ≥ T1_24_PHAN × ngân sách, ROI < T1_24_ROI% → tắt hẳn, cùng đường T1 (báo trước một nhịp, chỉ trong khung giảm/tắt). Không tha theo hôm nay.
-T1_24_ROI, T1_24_PHAN, T1_24_TUOI = -50, 0.5, 25
+T1_24_ROI, T1_24_PHAN, T1_24_TUOI = -50, 0.5, BANG_LUAT["khung_doi"]["hoc_gio"] + 1   # đủ hết giai đoạn học (sổ luật hoc_gio) + 1 giờ khép
 _t24 = {}
 try:
     _t1_co = {int(x[0]) for x in tat1} | {int(x[0]) for x in tat2}

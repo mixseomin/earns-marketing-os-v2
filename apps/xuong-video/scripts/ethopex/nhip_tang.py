@@ -47,7 +47,7 @@ def du_don(api, cid, bay_gio=None):
 # KHOÁ SAU GIẢM 24 → 6 giờ (anh 24/10/2026: "về $15 mà tăng lại thì không bị mất nhịp"): giảm từng bậc $20 → $15, hồi lại (ROI từ ngày giảm ≥ 50%) thì lên lại sau 6 giờ
 # GIẢM GIỐNG TĂNG (anh 25/10/2026: "sao phải đợi đến mai"): giảm tiếp sau một lần GIẢM cách ≥ 3 giờ (bằng nhịp tăng); camp vừa TĂNG mà âm thì giảm NGAY
 # (không chờ) — chỉ khoá TĂNG sau giảm 6 giờ để không vòng tăng–giảm.
-NGHI_GIAM_GIO, KHOA_SAU_GIAM_GIO = 3, 6
+NGHI_GIAM_GIO, KHOA_SAU_GIAM_GIO = 3, int(BANG_LUAT["khung_doi"]["khoa_sau_giam_gio"])   # khoá tăng sau giảm: sổ luật chung (trang etp tính mốc tăng cùng số)
 BAC = list(BANG_LUAT["thang"])   # thang bậc = sổ luật chung (gồm $30 — đích T30)
 def xuong(ns, buoc=1):
     """mức thấp hơn ns `buoc` bậc trên thang (tối thiểu $1)"""

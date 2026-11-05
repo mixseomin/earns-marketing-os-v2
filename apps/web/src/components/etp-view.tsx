@@ -40,7 +40,7 @@ import { taiNangEtp } from '@/lib/actions/etp-nang';
 import { lamMoiEtp } from '@/lib/actions/etp-lam-moi';
 import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
-import { KD, KHUNG_TEN, NHIP_PHUT, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucTang, type HuongLuat } from '@/lib/etp-khung';
+import { KD, KHUNG_TEN, NHIP_PHUT, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucTang, somTang, type HuongLuat } from '@/lib/etp-khung';
 
 type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
@@ -365,7 +365,7 @@ function dieuKienLuat(c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' 
     { ten: `tuổi ${tuoi.toFixed(1)} ≥ 7 ngày`, dat: tuoi >= 7 }] });
   return ra;
 }
-type VaoLuat = { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao' | 'ten' | 'bo' | 'camp_id' | 'phim'> & { trang_thai?: string; dong?: CampEtpKho['dong'] }; ba: SoTien; bao?: { nhom: string; chu: string }[]; boThang: string[]; thangMuc: number[]; xet?: XetLuat[];
+type VaoLuat = { c: Pick<CampEtpKho, 'ngan_sach' | 'nay' | 'qua' | 'thang' | 'tao' | 'ten' | 'bo' | 'camp_id' | 'phim'> & { trang_thai?: string; dong?: CampEtpKho['dong'] }; ba: SoTien; bao?: { nhom: string; chu: string }[]; boThang: string[]; thangMuc: number[]; /** lịch sử bậc của camp (cổng nhịp tăng — mốc máy thực sự tăng) */ bac?: DuLieuEtp['lsBac'][number]; xet?: XetLuat[];
   /** camp người khác (?ng=): bảng xét là ĐỀ XUẤT của máy luật nhà, không ai làm (anh 30/10/2026 "chỉ đề xuất, ko tự ý update") */
   deXuat?: boolean };
 // MỘT chỗ tính luật cho chip (Cây) và ngăn camp (điện thoại) — THỨ TỰ NGUỒN: máy luật đã xếp (etp.bao 'dang', chip đặc) → luật đủ điều kiện theo số trang →
@@ -523,7 +523,10 @@ function ChipLuat(p: VaoLuat) {
   // KHUNG ĐỔI CAMP (anh 04/11/2026): luật đã đạt mà khung giờ đang chặn → ⏳ giờ máy sẽ làm (camp người khác: chỉ đề xuất, không ghi)
   const cho = !p.deXuat && hoanDs.has(p.c.camp_id) ? `${gioLam(hoanDs.get(p.c.camp_id)!)}h` : null;
   // TĂNG ĐÃ ĐẠT → còn bao lâu máy thực sự tăng (khung tăng + nhịp máy luật 30 phút) — camp người khác chỉ đề xuất, không có mốc
-  const lucT = !p.deXuat && t.chinh?.dac && t.chinh.chip.startsWith('↑') ? lucTang(hoan.luc, hoan.cu) : null;
+  const laTang = !p.deXuat && !!t.chinh?.dac && t.chinh.chip.startsWith('↑');
+  const don = p.c.ngan_sach > 0 && p.c.nay.chi >= KD.nap_chi * p.c.ngan_sach && p.c.nay.chi > 0 && (p.c.nay.thu - p.c.nay.chi) / p.c.nay.chi * 100 >= KD.sang_roi;   // tiêu dồn (cổng 3 giờ + nạp sáng)
+  const cong = laTang ? somTang(p.bac ?? [], don) : null;   // cổng nhịp tăng — đúng nhip_tang.chan_tang
+  const lucT = laTang ? lucTang(hoan.luc, hoan.cu, Date.now(), cong!.som, don) : null;
   const chuT = lucT ? `${conLai(new Date(lucT).toISOString())} nữa · ~${new Date(lucT + 7 * 3600_000).toISOString().slice(11, 16)} VN` : null;   // máy đã đủ luật, hoãn vì khung giờ (sổ hoãn) — giờ theo hướng: tăng 21h · giảm/tắt 15h
   return (
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
@@ -533,7 +536,7 @@ function ChipLuat(p: VaoLuat) {
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
           <span title={p.c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.ten ?? p.c.phim} · ${p.c.ngan_sach}</span></div>
-        {lucT ? <div style={{ marginBottom: 6, color: '#4ade80' }}>⏳ Máy thực sự tăng sau <b>{chuT}</b> — {khungLuc(gioVnNay()) === 'tang' ? 'nhịp máy luật kế' : `nhịp đầu sau khi khung tăng mở ${KD.tang[0]}:00`} (máy luật chạy {NHIP_PHUT} phút / lần, lần gần nhất {hoan.luc ? new Date(Date.parse(hoan.luc) + 7 * 3600_000).toISOString().slice(11, 16) : '—'} VN); điều kiện còn đạt lúc đó thì tăng</div> : null}
+        {lucT ? <div style={{ marginBottom: 6, color: '#4ade80' }}>⏳ Máy thực sự tăng sau <b>{chuT}</b> — {cong && cong.som > Date.now() && cong.ly ? `chờ cổng nhịp tăng: ${cong.ly}, rồi nhịp máy luật đầu tiên trong khung tăng` : khungLuc(gioVnNay()) === 'tang' ? 'nhịp máy luật kế' : `nhịp đầu sau khi khung tăng mở ${KD.tang[0]}:00`} (máy luật chạy {NHIP_PHUT} phút / lần, lần gần nhất {hoan.luc ? new Date(Date.parse(hoan.luc) + 7 * 3600_000).toISOString().slice(11, 16) : '—'} VN); điều kiện còn đạt lúc đó thì tăng</div> : null}
         {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>. Khung: {KD.tang[0]}–{KD.tang[1]}h tăng · {KD.giam[0]}–{KD.giam[1]}h giảm / tắt · {KD.sang[0]}–{KD.sang[1]}h chỉ nạp camp đã tiêu ≥ {KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ {KD.sang_roi}%.</div> : null}
         <ThanLuat t={t} deXuat={p.deXuat} /></div></KhungNoi> : null}
     </span>
@@ -2049,7 +2052,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
           <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">{ds.length ? '▸' : ''}</span> <Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} /></span>
           <span data-cot="tuoi" data-cot-can="phai" title={tuoiTitle(c)} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tuoi(c) == null ? '' : <>{tuoiChu(tuoi(c))} <span style={{ fontSize: 10 }}>ngày</span></>}</span>
           <span data-cot="ngan-sach"><BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} /></span>
-          <span data-cot="luat" style={{ minWidth: 0 }}><ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} /></span>
+          <span data-cot="luat" style={{ minWidth: 0 }}><ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} bac={du.lsBac?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} /></span>
           {oCr(c)}
           <span data-cot="loai-cr"><BadgeDang d={c.dang} ngan /></span>
           {coLich ? <span data-cot="lich" style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}><LichCamp c={c} du={du} tl={tlC} gon /></span> : null}
@@ -2093,7 +2096,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       total: (rs) => { const t = rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0);   // $0 mờ · ≥ $20 đậm sáng (anh 28/10/2026)
         return <span title="tổng ngân sách/ngày camp đang bật" style={{ display: 'inline-block', width: 30, textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: t >= 20 ? 'var(--fg)' : 'var(--fg-2)', fontWeight: t >= 20 ? 700 : 400, opacity: t ? 1 : 0.45 }}>${t}</span>; } },   // cùng ô 30px canh phải với $ của camp (anh 29/10/2026 #1476 "thò thụt")
     { key: 'luat', header: 'Luật', align: 'left', width: 130, title: 'thẻ luật đang hiện — lọc chọn nhiều theo đúng chữ trên thẻ', sortValue: (c) => chipCamp(du, c, baoCamp.get(c.camp_id))?.chip ?? '',
-      cell: (c) => <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} />,
+      cell: (c) => <ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} bac={du.lsBac?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} />,
       // dòng PHIM (mọi camp cùng một phim) = thẻ vòng thử phim + bão hoà; dòng tổng bảng (nhiều phim) để trống
       total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k != null && rs.every((x) => x.content_id === k) ? <ChipPhim ph={phCua.get(k)} bh={bhCua.get(k)} /> : null; } },
     // MỌI CỘT CÓ BỀ RỘNG CỐ ĐỊNH, khoảng thừa vào cột đệm cuối bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang" — trước TT rồi Tuổi lần lượt ăn khoảng trống)
@@ -2698,7 +2701,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
     { key: 'tl', header: 'Thể loại', align: 'left', cell: (c) => <span style={{ fontSize: 12 }}>{tl(c.the_loai)}</span>, sortValue: (c) => c.the_loai ?? '' },
     ...(du.cauHinh.find((k) => k.khoa === 'lich_gio')?.gia_tri === true ? [{key: 'lich', header: 'Lịch giờ', align: 'left', title: 'lịch bật / tắt theo thể loại: 07h · 08h–12h · 13h–19h · 20h–06h (xanh BẬT, xám TẮT, viền = khung đang chạy) — sửa ở Camp › Lịch giờ', cell: (c) => <LichCamp c={c} du={du} tl={tl} />, sortValue: (c) => (c.lich_tat ? 1 : 0) }] as DataColumn<CampEtpKho>[] : []),
     { key: 'ns', header: 'Bậc ngân sách', align: 'left', loc: 'so', title: 'ngân sách $/ngày của camp · thước ROI hôm nay (đỏ giảm, xám giữ, xanh tăng) · dấu máy luật', cell: (c) => <BacCamp c={c} bao={baoCampBang.get(c.camp_id)} ls={du.lsBac[c.camp_id]} />, sortValue: (c) => c.ngan_sach, total: (rs) => `$${rs.filter((r) => r.trang_thai === 'ACTIVE').reduce((a, r) => a + r.ngan_sach, 0)}` },
-    { key: 'luat', header: 'Luật', align: 'left', width: 84, title: 'luật máy đang xếp làm ở nhịp này (thẻ đậm: chưa chạy / chờ anh duyệt / báo trước) và luật sắp chạm (thẻ viền nét đứt) — rê vào thẻ xem số', cell: (c) => <ChipLuat c={c} bao={baoCampBang.get(c.camp_id)} {...soThang(du)} ba={ba3(du, c)} xet={du.xetLuat?.[c.camp_id]} deXuat={du.nguoi.ngoai} />, sortValue: (c) => (baoCampBang.get(c.camp_id) ?? []).reduce((a, b) => a + (LUAT_NHAN[b.nhom]?.[3] === 'dang' ? 10 : LUAT_NHAN[b.nhom] ? 1 : 0), 0) },
+    { key: 'luat', header: 'Luật', align: 'left', width: 84, title: 'luật máy đang xếp làm ở nhịp này (thẻ đậm: chưa chạy / chờ anh duyệt / báo trước) và luật sắp chạm (thẻ viền nét đứt) — rê vào thẻ xem số', cell: (c) => <ChipLuat c={c} bao={baoCampBang.get(c.camp_id)} {...soThang(du)} ba={ba3(du, c)} xet={du.xetLuat?.[c.camp_id]} bac={du.lsBac?.[c.camp_id]} deXuat={du.nguoi.ngoai} />, sortValue: (c) => (baoCampBang.get(c.camp_id) ?? []).reduce((a, b) => a + (LUAT_NHAN[b.nhom]?.[3] === 'dang' ? 10 : LUAT_NHAN[b.nhom] ? 1 : 0), 0) },
     ...soCot<CampEtpKho>('nay', (c) => c.nay), ...soCot<CampEtpKho>('qua', (c) => c.qua), ...(khNay ? [] : soCot<CampEtpKho>('kh', (c) => ckh(c.camp_id))),
     { key: 'tuoi', header: 'Tuổi (ngày)', title: 'tuổi camp tính bằng NGÀY từ lúc tạo (0.3 ≈ 7 giờ) — lọc 🔍 theo ngày: > 2 = camp hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoiNgay(c.tao)), sortValue: (c) => tuoiLoc(tuoiNgay(c.tao)) },
     { key: 'tao', header: 'Tạo', cell: (c) => <span style={{ fontSize: 11 }}>{vn(c.tao)}</span>, sortValue: (c) => c.tao ?? '' },

@@ -19,6 +19,11 @@ export const DANG: Record<string, string> = {
   noi_mo: 'talking to the viewer with an open-palm explaining gesture of the right hand, mouth OPEN mid-word',
   noi_dong: 'talking to the viewer with an open-palm explaining gesture of the right hand, mouth CLOSED between words (exactly the same pose as an open-mouth talking frame)',
   buon: 'sad and defeated: shoulders slumped, head down, eyes looking at the ground',
+  // kênh Astrolas — thần thoại 12 cung (05/11/2026): dáng cho thú / sinh vật thần thoại + chỉ lên trời
+  gam: 'the creature roaring fiercely toward the right side of the picture, mouth wide open, front paws planted',
+  nam_guc: 'the creature lying defeated on the ground, eyes closed, body stretched out sideways',
+  chi_len: 'pointing up to the sky with the right arm raised high, looking upward with awe',
+  vung_chuy: 'swinging a heavy wooden club over the head with both hands, fierce determined face',
 };
 const [ra, gocArg, ds] = process.argv.slice(2);
 if (!ra || !gocArg || !ds) { console.error('tsx kho-sinh.mts <ra> <url-gốc|mota:loai:mô tả> <dáng,…>'); process.exit(2); }
@@ -26,8 +31,11 @@ mkdirSync(ra, { recursive: true });
 const c = chuoiAnh('nano-banana-2')[0]!; let tong = 0; let goc = gocArg;
 if (gocArg.startsWith('mota:')) {
   const [, loai, ...m] = gocArg.split(':'); const moTa = m.join(':');
-  const pc = (JSON.parse(readFileSync(new URL('./kho.json', import.meta.url), 'utf8')) as { phong_cach: string }).phong_cach;
-  const prompt = loai === 'phuong_tien'
+  // KHO_TEP: kho của kênh khác (vd Astrolas brand/astrolas/nhan-vat/kho.json) — mỗi kênh một phong cách vẽ; mặc định kho kênh lịch sử
+  const pc = (JSON.parse(readFileSync(process.env.KHO_TEP ? process.env.KHO_TEP : new URL('./kho.json', import.meta.url), 'utf8')) as { phong_cach: string }).phong_cach;
+  const prompt = loai === 'sinh_vat'
+    ? `${pc.replace(/character/i, 'creature')}. Creature: ${moTa}. Standing side view facing RIGHT, whole body visible, centered, no people, no text, letters or logos.`
+    : loai === 'phuong_tien'
     ? `${pc.replace(/character/i, 'object').replace(/full body, /, '')}. Object: ${moTa}. Clean side view facing RIGHT, whole object visible, centered, plain pure white background, no people, no ground shadow, no text, letters or logos.`
     : `${pc}. Character: ${moTa}. Standing in a neutral relaxed pose, body turned slightly toward the right side of the picture, centered, no text, letters or logos.`;
   const r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [], tiLe: loai === 'phuong_tien' ? '3:2' : '2:3' });

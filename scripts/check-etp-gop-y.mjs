@@ -672,6 +672,8 @@ const LUAT = [
   { card: 'g10hoi-0411', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"hoi_g10":', vi: 'G10 hồi có trong sổ luật chung' },
   { card: 'g10hoi-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'tran_ = cu_ if nh_ and nh_[1] == "doi" else min(cu_, ns * 1.5)', vi: 'G10 hồi: nhánh thu / không A/B lên theo thang ≤ ×1,5; chỉ nhánh doi AB02 về ngân sách cũ' },
   { card: 'ab-loc-0511', tep: 'apps/web/src/components/etp-view.tsx', co: '[kh, khCamp, ngayKh, hopLoc, hopLuat, phimLoc, xemCamp, dangLoc, boHieu, locLai, locTuoi, roLoc, abLoc]);', vi: 'ô lọc A/B nằm trong phụ thuộc của BO_LOC (thiếu thì chọn A/B không lọc)' },
+  { card: 'ab02-cap-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'nh = "thu" if _ab_g10_dem["thu"] <= _ab_g10_dem["doi"] else "doi"', vi: 'AB02 chia theo cặp (nhánh ít camp hơn), không crc32 chẵn/lẻ' },
+  { card: 'ab02-cap-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', cam: 'zlib.crc32(str(cid)', vi: 'không chia AB02 theo chẵn/lẻ mã camp' },
   { card: 'ab02-0511', tep: 'packages/db/migrations/0429_etp_ab02_g10_hoi.sql', co: "('AB02', 'g10_hoi', 'G10 hồi',", vi: 'AB02 G10 hồi trong sổ A/B chung etp.ab' },
   { card: 'ab02-0511', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: "kieu = 'g10_hoi'", vi: 'máy luật đọc AB02 từ sổ etp.ab, không cứng mã' },
   { card: 'ab02-0511', tep: 'apps/cty/worker/ethopex.mjs', co: "if (k === 'hoi_g10' && r?.ok && Array.isArray(m.ab)", vi: 'ghi nhánh AB02 vào etp.camp_ab SAU khi nâng thành công' },

@@ -796,12 +796,14 @@ g10, tat_g10, _g10_theo, hoi_g10 = [], [], {}, []
 # A/B G10 hồi (AB02, migration 0429): lần A/B kieu g10_hoi đang chạy hôm nay → (mã, nhánh, tên nhánh) của camp; camp đã mang mã A/B khác (etp.camp_ab một camp một mã) → None = theo thang
 _ab_g10_so = json.loads(q(f"select row_to_json(a)::text from etp.ab a where trang_thai = 'dang' and kieu = 'g10_hoi' and '{(dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).date()}'::date between bat_dau and coalesce(ket_thuc, bat_dau) order by ma limit 1") or "null")
 _ab_g10_co = {int(x.split("|")[0]): x.split("|", 1)[1] for x in q("select camp_id || '|' || ab || '|' || nhanh from etp.camp_ab").splitlines() if x} if _ab_g10_so else {}
+_ab_g10_dem = {n: sum(1 for v in _ab_g10_co.values() if v == f"{_ab_g10_so['ma']}|{n}") for n in ("thu", "doi")} if _ab_g10_so else {}
 def _ab_g10(cid):
     if not _ab_g10_so: return None
     co = _ab_g10_co.get(cid)
     if co and not co.startswith(_ab_g10_so["ma"] + "|"): return None
-    import zlib
-    nh = co.split("|")[1] if co else ("thu" if zlib.crc32(str(cid).encode()) % 2 == 0 else "doi")
+    if co: nh = co.split("|")[1]
+    else:   # camp mới vào → nhánh đang ÍT camp hơn (anh 05/11/2026 "AB phải cùng điểm xuất phát"): hai nhánh vào thành cặp, không để đối chứng chờ may rủi chẵn/lẻ
+        nh = "thu" if _ab_g10_dem["thu"] <= _ab_g10_dem["doi"] else "doi"; _ab_g10_dem[nh] += 1
     return _ab_g10_so["ma"], nh, _ab_g10_so["nhanh"][nh]["ten"]
 _d3s = {dt.date.fromisoformat(d(i)) for i in (1, 2, 3)}
 _d4s = {dt.date.fromisoformat(d(i)) for i in (4, 5, 6, 7)}

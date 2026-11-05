@@ -331,5 +331,5 @@ export function createConsole(app) {
     ring.style.top = `${cu.ringY}px`;
     ring.style.transform = `scale(${1.6 - cu.ring * 0.6})`;
   }
-  return {update, spots, setMarkers, covered};
+  return {update, spots, setMarkers, covered, btn};
 }

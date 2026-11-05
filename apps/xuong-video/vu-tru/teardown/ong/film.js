@@ -203,13 +203,52 @@ export function makeFilm() {
     const cursorAt = makeCursor(ui.spots);
     const frame = makeFrame(ui, st);
     window.HB7 = st;
+    // trang tự lái (không phải lúc quay): kéo xoay, lăn phóng, nút trên bảng nhảy tới đúng cảnh; để yên 25 s thì con trỏ tour quay lại
+    const live = {off: 0, az: 0, el: 0, zoom: 1, last: -1e9, now: 0};
+    if (!capture) {
+      const touch = () => (live.last = performance.now());
+      let drag = null;
+      canvas.addEventListener('pointerdown', (e) => {
+        drag = [e.clientX, e.clientY, live.az, live.el];
+        canvas.setPointerCapture(e.pointerId);
+        touch();
+      });
+      canvas.addEventListener('pointermove', (e) => {
+        if (!drag) return;
+        live.az = drag[2] - (e.clientX - drag[0]) * 0.3;
+        live.el = Math.max(-8, Math.min(60, drag[3] + (e.clientY - drag[1]) * 0.2));
+        touch();
+      });
+      canvas.addEventListener('pointerup', () => (drag = null));
+      canvas.addEventListener('dblclick', () => Object.assign(live, {az: 0, el: 0, zoom: 1}));
+      canvas.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        live.zoom = Math.max(0.45, Math.min(1.8, live.zoom * Math.exp(e.deltaY * 0.0012)));
+        touch();
+      }, {passive: false});
+      canvas.style.cursor = 'grab';
+      const JUMP = {hero: () => E.release, optics: () => E.head, abdomen: () => E.abdomen, thorax: () => E.explode, turntable: () => E.explode, wing: () => E.hover, exploded: (tt) => (tt >= E.explode && tt < E.reassemble ? E.reassemble : E.explode)};
+      for (const [k, go] of Object.entries(JUMP)) {
+        const b = ui.btn[k];
+        b.style.pointerEvents = 'auto';
+        b.style.cursor = 'pointer';
+        b.addEventListener('click', () => {
+          const tt = (((live.now + live.off) % DURATION) + DURATION) % DURATION;
+          live.off = go(tt) - 0.25 - live.now;
+          touch();
+        });
+      }
+    }
     return {
       resize,
-      render(t) {
+      render(t0) {
+        live.now = t0;
+        const t = capture ? t0 : (((t0 + live.off) % DURATION) + DURATION) % DURATION;
         const s = stateAt(t);
         const cam = viewAt(t, s.bodyY);
-        st.frame(s, {...cam, sy: 30});
-        frame(t, s, cursorAt(t));
+        st.frame(s, {...cam, az: cam.az + live.az, el: cam.el + live.el, d: cam.d * live.zoom, sy: 30});
+        const idle = capture || performance.now() - live.last > 25000;
+        frame(t, s, idle ? cursorAt(t) : {x: -60, y: -60, press: false, ring: 0, ringX: 0, ringY: 0});
         return {};
       },
     };

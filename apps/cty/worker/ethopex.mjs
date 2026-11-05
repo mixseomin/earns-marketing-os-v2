@@ -62,6 +62,9 @@ const TEN = Object.fromEntries(NHOM.map(([k, t]) => [k, (t.match(/<b>(.*?)<\/b>/
 /** [[nhóm, nutCho, mục mới]] → Map nhóm → mục; camp lặp ở nhóm sau gộp vào mục đầu: cung[] = {k, dich}, nut = nút mọi nhóm, trùng callback_data giữ một. */
 // KHUNG ĐỔI CAMP theo giờ VN (sổ luật chung khung_doi) — hàm thuần, bộ kiểm chéo apps/web/src/lib/etp-khung.test.mts so với khungLuc của trang cho đủ 24 giờ
 export const khungCua = (gio, KD = BANG_LUAT.khung_doi) => { const t = ([a, b]) => (a <= b ? gio >= a && gio < b : gio >= a || gio < b); return t(KD.giam) ? 'giam' : t(KD.tang) ? 'tang' : KD.sang && t(KD.sang) ? 'sang' : 'bang'; };   // tang 21–07 qua nửa đêm (anh 05/11/2026)
+// GIỜ CHẠY camp vừa tạo — đọc kq.chay của nhan-ban.lich_len (một chỗ quyết, anh 05/11/2026), không tự ghi "hôm nay" / "hôm sau" (audit 05/11: 3 tin hứa sai)
+export const chuChay = (ds, [a, b] = BANG_LUAT.khung_doi.len.map((x) => String(x).padStart(2, '0'))) => (ds.length && ds.every((r) => r?.chay === 'today') ? `chạy ngay (tạo trong khung ${a}–${b}h VN)`
+  : ds.length && ds.every((r) => r?.chay === 'tomorrow') ? 'chạy từ 07:00 VN hôm sau' : `chạy theo khung lên ${a}–${b}h VN`);
 /** ngưỡng ROI hôm nay để được nạp trong khung chỉ-nạp ('sang' 07–15h); null = khung không nạp (tang: tăng đủ luật · giam / bang: không tăng) */
 export const roiNap = (khung, KD = BANG_LUAT.khung_doi) => (khung === 'sang' ? Number(KD.sang_roi) : null);
 export function gopCamp(ds) {
@@ -511,7 +514,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       da.push({ x, r });
     }
     const ok = da.filter((d) => d.r.ok);
-    if (ok.length) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🎬 <b>PHIM MỚI LÊN CAMP</b> — chấm Sạch xong lên luôn ($1, lịch hôm nay)\n` + ok.map((d) => `#${d.r.moi} · bộ ${esc(d.x.bo)} · ${esc(d.x.ten || 'phim ' + d.x.content_id)} (cr #${d.x.creative_id})`).join('\n') }); gui++; }
+    if (ok.length) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🎬 <b>PHIM MỚI LÊN CAMP</b> — chấm Sạch xong lên luôn ($1, ${chuChay(ok.map((d) => d.r))})\n` + ok.map((d) => `#${d.r.moi} · bộ ${esc(d.x.bo)} · ${esc(d.x.ten || 'phim ' + d.x.content_id)} (cr #${d.x.creative_id})`).join('\n') }); gui++; }
     for (const d of da.filter((d) => !d.r.ok)) {
       // phim đang NHẬN không vào bỏ qua 24 giờ (lượt nhận chỉ 24 giờ: anh sửa xong — vd thêm phim vào workspace — thì nhịp sau thử lại ngay, lỗi hiện ở sổ nhận)
       if (!d.x.nhan) bq[d.x.creative_id] = { luc: new Date().toISOString(), loi: String(d.r.loi || '').slice(0, 200) }; console.error(`lên camp phim mới #${d.x.creative_id}: ${String(d.r.loi).slice(0, 160)}`);
@@ -548,7 +551,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     }
   } catch (e) { console.error('nhận phim lên camp:', e.message); }
   // NHÂN BẢN CAMP THẮNG (luật NB, anh 22/10/2026: tự động + "nhân bản thì cũng báo lên tele"): máy tạo bản $1 qua nhan-ban.py (khuôn của camp gốc,
-  // chặn 30 camp đang chạy / phim), giờ yên thì báo im lặng; bản lịch Today trong khung 21h–5h (giờ Mỹ đang mua), ngoài khung để Tomorrow.
+  // chặn 30 camp đang chạy / phim), giờ yên thì báo im lặng; giờ chạy do nhan-ban.lich_len (khung lên 07–12h VN, ngoài khung hẹn 07:00 hôm sau — anh 05/11/2026).
   const daNb = [];
   for (const m of kq.nb || []) {
     if (seTat.has(m.id)) continue;   // không nhân bản camp đang trong danh sách tắt
@@ -557,7 +560,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     daNb.push({ m, r });
   }
   if (daNb.length) {
-    const dong = bangViec(daNb.map(({ m, r }) => ({ m, doi: `→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng') + `\n<i>bản mới $1 · chạy ${daNb.every(({ r }) => r.chay === 'today') ? 'ngay (tạo trong khung 07–12h VN)' : 'từ 07:00 VN hôm sau'}</i>`;
+    const dong = bangViec(daNb.map(({ m, r }) => ({ m, doi: `→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng') + `\n<i>bản mới $1 · ${chuChay(daNb.map(({ r }) => r))}</i>`;
     await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI 30 ngày ≥ 100%, tiêu ≥ $10, ROI 3 ngày ≥ 50%; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     gui++;
   }
@@ -663,7 +666,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   }
   fs.writeFileSync(TEP(), JSON.stringify({ ngay: homNay, da: [...da], dong: [...dongNay] }));
   // ★ LÊN ROAS TỰ ĐỘNG (anh 29/10/2026: "Các camp đủ điều kiện lên roas thì lên luôn. Nới điều kiện lên roas là ROI >= 75$"): camp gốc trong moc30
-  // (máy luật: lãi 30 ngày ≥ $75, đang bật, chưa có camp ★, không trong danh sách tắt) → nhan-ban.py --roas, rải ROAS_MUC · $20 · lịch hôm nay (khuôn anh duyệt
+  // (máy luật: lãi 30 ngày ≥ $75, đang bật, chưa có camp ★, không trong danh sách tắt) → nhan-ban.py --roas, rải ROAS_MUC · $20 · giờ chạy do lich_len (khuôn anh duyệt
   // 28/10/2026). Cổng chấm + rào chắn etp vẫn ở nhan-ban (không --mien-cham — mở cổng chấm chỉ khi anh lệnh đích danh). Mỗi lần tạo chờ Ethopex đồng bộ
   // 2–4 phút → chạy song song 4 tiến trình, đặt CUỐI nhịp để tắt / tăng / giảm không phải chờ. Gốc bị nhan-ban TỪ CHỐI có lý do (chặn chấm…) → không thử lại
   // trong ngày; hỏng vì lỗi máy (hết giờ, mạng) → nhịp sau thử lại (mức đã tạo được thì nhan-ban chặn trùng tên).
@@ -681,7 +684,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     if (viec.length) {
       const ok = viec.filter((v) => v.r.ok).length;
       const dong = bangViec(viec.map(({ m, muc, r }) => ({ m, doi: `${muc}→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '30 ng');
-      await guiNhanh({ message_thread_id: topic, text: `★ <b>MÁY TỰ LÊN ROAS</b> — ${goc.length} camp gốc lãi 30 ngày ≥ $75 (anh 29/10/2026); mỗi gốc ${ROAS_MUC.length} mức ${ROAS_MUC.join(' · ')}, $20/ngày, chạy hôm nay — tạo được ${ok}/${viec.length}\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
+      await guiNhanh({ message_thread_id: topic, text: `★ <b>MÁY TỰ LÊN ROAS</b> — ${goc.length} camp gốc lãi 30 ngày ≥ $75 (anh 29/10/2026); mỗi gốc ${ROAS_MUC.length} mức ${ROAS_MUC.join(' · ')}, $20/ngày, ${chuChay(viec.filter((v) => v.r.ok).map((v) => v.r))} — tạo được ${ok}/${viec.length}\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
       gui++;
     }
   }

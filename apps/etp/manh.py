@@ -120,7 +120,7 @@ def main():
     def muc7():
         # 7. LỖI MÃ Ở MÁY LUẬT / LÊN CAMP (05/11/2026: 3 lượt nhân bản ROAS chết NameError 00:09, chỉ hiện "⚠ lỗi" trong bảng Telegram, 9 giờ không ai sửa —
         #    Mạnh chỉ canh dòng phim). etp.nhat_ky ok = false mà lỗi là lỗi MÃ (nhan-ban.loi_may ghi "LỖI MÃ …", hoặc chữ lỗi Python quen) → báo ngay,
-        #    mỗi kiểu lỗi một lần / 6 giờ. Máy gọi (worker) tự thử lại mỗi nhịp (r.may), bản sửa lên là tự chạy lại.
+        #    mỗi kiểu lỗi một lần / 6 giờ. Máy gọi (worker) tự thử lại ở nhịp sau (r.may; nhân bản team nbLoi 6 giờ), bản sửa lên là tự chạy lại.
         MA = r"LỖI MÃ|is not defined|has no attribute|unexpected keyword argument|positional argument|not subscriptable|unsupported operand|referenced before assignment|Traceback"
         for l in hang(f"""select viec, regexp_replace(left(loi, 160), '[0-9]{{3,}}', '#', 'g'), count(*), string_agg(distinct camp_id::text, ' · '),
                               to_char(min(luc) at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM'), max(left(loi, 240))
@@ -131,7 +131,7 @@ def main():
             if not THU: open(dau, "w").write(kieu)
             lam.append(f"lỗi mã {viec} ×{n}")
             bao(f"🐞 <b>Mạnh</b> · LỖI MÃ ở máy <b>{viec}</b> — {n} lượt từ {tu} (camp {camps[:120]})\n<code>{loi[:240]}</code>\n"
-                "→ máy gọi tự thử lại mỗi nhịp; cần sửa mã (lỗi không tự hết)")
+                "→ máy gọi tự thử lại ở nhịp sau (nhân bản tài khoản team: sau 6 giờ); cần sửa mã (lỗi không tự hết)")
     # MỖI MỤC CHẠY RIÊNG (05/11/2026: một hàng lạ ở mục 3 làm Mạnh chết cả lượt suốt 24 giờ — mục 1/4/5/6 không chạy, không ai biết):
     # mục hỏng → ghi lại, báo Telegram (một lần mỗi giờ mỗi mục), các mục khác vẫn chạy; cuối lượt trả mã lỗi để systemd vẫn thấy
     hong = []

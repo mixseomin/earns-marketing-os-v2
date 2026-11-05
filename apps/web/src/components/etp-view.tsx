@@ -982,7 +982,7 @@ function TabRoas({ camps, tong, ungVien, cot, nhom, du, anh }: { camps: CampEtpK
           <div style={{ width: 1, background: 'var(--line)' }} />
           <CotCampNoi c={theoId.get(gocId)} nhan={`Camp gốc #${gocId}`} du={du} anh={anh} />
         </KhungNoi>) : null}
-      <h3 style={{ fontSize: 14, margin: '20px 0 8px' }} title="anh 29/10/2026: lãi 30 ngày ≥ $75 → máy tự lên ROAS (4 mức 1.0–1.3, $20, chạy hôm nay)">Ứng viên lên ROAS</h3>
+      <h3 style={{ fontSize: 14, margin: '20px 0 8px' }} title="anh 29/10/2026: lãi 30 ngày ≥ $75 → máy tự lên ROAS (4 mức 1.0–1.3, $20; giờ chạy theo khung lên camp 07–12h VN)">Ứng viên lên ROAS</h3>
       <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '-4px 0 8px' }}>Camp thường đang bật, lãi 30 ngày ≥ $50. ★ = lãi ≥ $75: máy tự lên ROAS ở nhịp kế (4 mức 1.0–1.3, $20). Camp ROAS dùng lại bài đăng của camp gốc nên không qua cổng chấm.</div>
       <DataTable rows={ungVien} getRowKey={(r) => String(r.camp_id)} persistKey="etp-roas-uv" minWidth={700} defaultSort={[{ key: 'lai', dir: 'desc' }]} columns={[
         { key: 'id', header: 'Camp', align: 'left', cell: (r) => <span>{r.du ? '★ ' : ''}#{r.camp_id} {(r.ten ?? '').replace(/^\d{4}\w* /, '').slice(0, 60)}</span>, sortValue: (r) => r.camp_id },

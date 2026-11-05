@@ -9,11 +9,11 @@ import datetime as dt, json, os
 BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))   # sổ luật chung: thang bậc
 
 # NGHI_GIO 3 → 24 (anh 05/11/2026 duyệt: ROI sau tăng tụt ngay và không hồi suốt 48 giờ — một bậc mỗi 24 giờ)
-NGHI_GIO, TOI_DA_NGAY = 24, None
+NGHI_GIO, TOI_DA_NGAY = int(BANG_LUAT["khung_doi"]["nghi_gio"]), None   # sổ luật chung (trang đọc cùng số)
 # NGOẠI LỆ TĂNG DỒN (anh 05/11/2026 "sửa đi"; số toàn đội 20/10–05/11: tăng lần nữa < 24h khi camp đã tiêu ≥ 90% ngân sách MỚI + ROI hôm nay ≥ 100%,
 # bước ≤ ×1,5 → lãi 24h hơn để nguyên $12,77/camp, 0% âm, n=9; mọi tăng dồn < 6h +$6,58): đạt cổng thì được tăng tiếp sau NGHI_DON_GIO giờ.
 # Cổng = khung_doi.nap_chi / sang_roi của sổ luật chung (cùng cổng tăng trong ngày của máy luật — du_so là MỘT công thức cho cả hai).
-NGHI_DON_GIO = 3
+NGHI_DON_GIO = int(BANG_LUAT["khung_doi"]["nghi_don_gio"])
 KD = BANG_LUAT["khung_doi"]
 def du_so(chi, thu, ns):
     """đạt cổng tăng: hôm nay đã tiêu ≥ nap_chi × ngân sách đang chạy và ROI hôm nay ≥ sang_roi%"""

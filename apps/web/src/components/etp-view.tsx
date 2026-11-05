@@ -455,8 +455,10 @@ function ThanLuat({ t, gon, deXuat }: { t: ReturnType<typeof tinhLuat>; gon?: bo
 }
 // KHUNG ĐỔI CAMP — BẢN LỚN (anh 05/11/2026 "show trực quan hơn"): một hàng trọn chiều ngang trên tab Camp — trạng thái chữ to + đếm ngược,
 // thanh 24 giờ ghi chữ từng khung + kim giờ hiện tại, số camp đã đạt luật đang chờ khung (theo hướng, từ etp.bao — cùng nguồn chip ⏳)
-const CHU_KHUNG: Record<string, string> = { tang: 'máy tự TĂNG camp theo luật (đầu phiên · tăng bậc · T30), một bậc ≤ ×1,5, cách lần tăng trước ≥ 24 giờ — không giảm, không tắt', giam: 'máy tự GIẢM · TẮT camp theo luật — không tăng',
-  sang: `máy chỉ nạp thêm cho camp lãi lớn đã tiêu hết (ROI hôm nay ≥ ${KD.sang_roi}%), một bậc — không giảm, không tắt`, bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung' };   // số lấy từ sổ luật chung khung_doi
+// nhịp tăng đọc sổ luật (khung_doi.nghi_gio / nghi_don_gio) — chữ không ghi cứng số (anh 05/11/2026: thẻ còn ghi "một bậc" sau khi đã cho tăng dồn)
+const NHIP_TANG = `mỗi lần lên bậc kế (≤ ×1,5); tăng tiếp sau ≥ ${KD.nghi_don_gio} giờ nếu vẫn tiêu ≥ ${KD.nap_chi * 100}% ngân sách mới + ROI hôm nay ≥ ${KD.sang_roi}%, không thì cách ≥ ${KD.nghi_gio} giờ`;
+const CHU_KHUNG: Record<string, string> = { tang: `máy tự TĂNG camp đã tiêu ≥ ${KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ ${KD.sang_roi}% (đầu phiên · tăng bậc · T30): ${NHIP_TANG} — không giảm, không tắt`, giam: 'máy tự GIẢM · TẮT camp theo luật — không tăng',
+  sang: `máy NẠP camp lãi lớn đã tiêu ≥ ${KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ ${KD.sang_roi}%: ${NHIP_TANG} — không giảm, không tắt`, bang: 'máy KHÔNG tự tăng · giảm · tắt camp — luật vẫn chấm, đợi khung' };   // số lấy từ sổ luật chung khung_doi
 function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
   const noi = useNoi<{ id: 0 }>();   // gọi trước mọi lệnh return sớm (luật hook)
   const [h, setH] = useState<number | null>(null);

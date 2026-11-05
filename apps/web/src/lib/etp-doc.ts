@@ -3,6 +3,7 @@
 import 'server-only';
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
+import { tvSx } from '@/lib/etp-sx';
 import BANG_LUAT from './etp-bang-luat.json';
 
 // chữ --luat trong nhật ký máy → tên luật theo SỔ LUẬT CHUNG (regex nhat_ky của từng khoá); không khớp luật nào thì lấy tên lý do trước ' (' / ' —' / ' ·'
@@ -180,7 +181,7 @@ export function phimTuTenCamp(ten: string): string | null {
 // → cắt khỏi bản nhẹ, etp-view gọi taiNangEtp khi mở đúng tab rồi ghép lại (ghepNang ở etp-view) — component đọc du.* như cũ.
 export type PhanNang = { chamCt: Record<number, Pick<ChamCr, 'lop' | 'diem' | 'ly_do' | 'khung'>>; pheu: DuLieuEtp['pheu']; diemCham: DuLieuEtp['diemCham']; thuVien: ThuVienMuc[] };
 // Cây chỉ cần bản thư viện CHƯA lên đang sinh / sẵn sàng (dòng mờ dưới phim) — giữ đúng lọc với CayCamp
-const tvCay = (v: ThuVienMuc) => !v.creative_id && (v.tv === 'dang_sinh' || v.tv === 'san_sang');
+const tvCay = (v: ThuVienMuc) => tvSx(v);   // bản nhẹ giữ đủ thư viện cho badge sản xuất + ô Lọc 'phim đang sản xuất' (lib/etp-sx)
 export const phanNang = (d: DuLieuEtp): PhanNang => ({ chamCt: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { lop: c.lop, diem: c.diem, ly_do: c.ly_do, khung: c.khung }])),
   pheu: d.pheu, diemCham: d.diemCham, thuVien: d.thuVien });
 export async function docEtp(ng?: string, nhe = false): Promise<DuLieuEtp> {

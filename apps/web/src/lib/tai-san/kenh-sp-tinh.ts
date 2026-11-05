@@ -81,7 +81,7 @@ export function lichKenh(k: Pick<KenhSp, 'videos' | 'ke'>): OLich[] {
 }
 
 /** CÂY KẾ HOẠCH của kênh (anh 02/11/2026: "nhìn được realtime quá trình sx, lên lịch ở đây"): khối ▶ Đang sản xuất (tập trong lò, bước k/n, từ giờ nào)
- *  + khối 🗓 Lịch (bài chờ đăng lúc nào, bài chờ chấm / sửa lại, lượt làm tập kế). Thuần — component chỉ vẽ. Giờ hiện theo giờ VN. */
+ *  + khối 🗓 Lịch (lượt làm tập kế). Thuần — component chỉ vẽ. Giờ hiện theo giờ VN. */
 export type DongKe = { id: string; nhom?: boolean; chu: string; phu?: string; mau?: string;
   /** MỌI LINK RA NGĂN (anh 04/11/2026 "mọi link đều phải ra drawer"): nút trên dòng mở ngăn loại / mã — không có url mở tab ngoài */ ngan?: { loai: 'mau' | 'mo_dau' | 'nguoi' | 'playlist'; id: string }; nganChu?: string;
   /** ĐỒNG HỒ của tập đang sản xuất (anh 05/11/2026: "đồng hồ nằm ở dòng của video đang sx"): bước so / tong, hỏng thì đỏ */ dongHo?: { so: number; tong: number; loi: boolean };
@@ -108,12 +108,7 @@ export function cayKeHoach(k: Pick<KenhSp, 'videos' | 'ke'>, bayGio = Date.now()
       phu: [t.lan ? `đã tự làm lại ${t.lan}/3` : 'chờ lượt giờ sau', t.tho ? '🔧 đã giao Mạnh sửa' : null, t.loi ? `lỗi: ${t.loi}` : null, t.id].filter(Boolean).join(' · ') }); }
   if (demo.length) ra.push({ id: 'demo', nhom: true, chu: `🧪 Demo mẫu đang làm (${demo.length})`, phu: 'video demo cho anh duyệt mẫu mới — không lên kênh, không tính vào lịch' }, ...demo.map((d) => ({ ...dong(d), id: `demo/${d.id}` })));
   const lich: DongKe[] = [];
-  for (const v of k.videos) {
-    if (v.trangThai === 'duyet') { const h = k.ke.lichDang.find((l) => l.tieuDe && v.ten.startsWith(l.tieuDe.replace(/\s*#shorts\s*/i, '').slice(0, 30)));
-      lich.push({ id: `l/${v.slug}`, chu: `📤 ${v.ten}`, mau: 'var(--accent)', phu: h ? `đăng ${thuNgay(h.ngay)} ${h.gio ?? ''}`.trim() : `DUYỆT · máy đăng lấy ở khung từ ${k.ke.gioDang ?? '19:00'} giờ VN (trần 1 bài/ngày)` }); }
-    else if (v.trangThai === 'cho_cham') lich.push({ id: `l/${v.slug}`, chu: `⏳ ${v.ten}`, phu: 'chờ Phòng Nội dung chấm' });
-    else if (v.trangThai === 'sua_lai') lich.push({ id: `l/${v.slug}`, chu: `🔧 ${v.ten}`, mau: 'var(--bad)', phu: 'SỬA LẠI · việc nền tự làm lại mỗi giờ (tối đa 3 lần)' });
-  }
+  // video đã làm (chờ chấm / DUYỆT / sửa lại) chỉ hiện ở khối 🎬 Đã làm, không lặp ở đây (card #1536); ngày hẹn đăng xem ở lịch nhỏ
   for (const t of k.ke.tapKe) lich.push({ id: `l/sx/${t}`, chu: '🛠 làm tập mới', phu: `${thuNgay(t.slice(0, 10))} ${t.slice(11)}`.trim() });
   if (lich.length) ra.push({ id: 'lich', nhom: true, chu: '🗓 Lịch', phu: k.ke.lichTap ? `làm tập ${k.ke.lichTap} · đăng từ ${k.ke.gioDang ?? '19:00'} giờ VN` : undefined }, ...lich);
   return ra;

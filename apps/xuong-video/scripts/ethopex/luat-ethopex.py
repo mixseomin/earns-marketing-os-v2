@@ -854,6 +854,14 @@ def _lai_gan(c):
     return float(y.get("thu") or 0) + float(h_.get("thu") or 0) - float(y.get("chi") or 0) - float(h_.get("chi") or 0)
 _giu_lai = lambda ds: [x for x in ds if _lai_gan(int(x[0] or 0)) < 0]
 ha, giam, g10, h2 = map(_giu_lai, (ha, giam, g10, h2))
+# TĂNG TRONG NGÀY CHỈ KHI ĐÃ CHI ĐỦ + ROI HÔM NAY ≥ 100% — MỘT CỔNG cho mọi luật tăng (tăng bậc · tăng trong ngày · lãi đầu phiên), mọi khung
+# (anh 05/11/2026 "sửa đi"; số toàn đội 20/10–05/11, tang-trong-ngay: tăng khi ROI hôm nay 50–100% kém để nguyên $1,83/camp; ROI ≥ 100% + bước ≤ ×1,5
+# hơn để nguyên $14,77/camp). Ngưỡng = khung_doi.nap_chi / sang_roi của sổ luật chung — cùng ngưỡng nạp sáng, một nguồn.
+def _du_tang(c):
+    h_ = hom.get(c) or hom.get(str(c)) or {}; a_ = thang.get(c) or thang.get(str(c)) or {}
+    ns_, ch_, th_ = float(a_.get("budget") or h_.get("budget") or 0), float(h_.get("chi") or 0), float(h_.get("thu") or 0)
+    return ns_ > 0 and ch_ >= float(KD["nap_chi"]) * ns_ and th_ >= (1 + float(KD["sang_roi"]) / 100) * ch_
+dat, dau_phien = ([x for x in ds if _du_tang(int(x[0] or 0))] for ds in (dat, dau_phien))
 # camp đã hạ, đang trong 2 ngày theo dõi — có danh sách riêng để trang etp / bộ lọc thấy (anh 01/11/2026 "Thiếu luật G10 vừa áp dụng?": trước đó camp đang theo dõi rơi khỏi mọi danh sách)
 g10_theo = [(cid, f"#{(thang.get(cid) or {}).get('ten', '')[:70]} · đã hạ về ${G10_DICH} ngày {ngay:%d/%m} — theo dõi {G10_THEO} ngày đã khép, ROI vẫn < {G10_ROI}% thì tắt; đang khoá tăng") for cid, ngay in sorted(_g10_theo.items())]
 dat, dau_phien, tang30, thang_nb, nb, moc30 = ([x for x in v if int(x[0] or 0) not in _g10_cam] for v in (dat, dau_phien, tang30, thang_nb, nb, moc30))

@@ -56,6 +56,26 @@ def lich_len(_bo_qua=None, luc=None):
     return "today" if (a <= h < b if a <= b else (h >= a or h < b)) else "tomorrow"
 NGOAI = EA.SUA or EA.XEM   # camp của người trong team (xem docstring) — 0 = nhà; ETP_XEM_NGUOI = chạy khô trên camp thật của người đó (cổng chặn mọi lệnh ghi)
 _TK_SQL = ",".join(str(int(x)) for x in sorted(EA.TK)) or "0"
+def thu_nuoc(pl, lich, goc, moi):
+    """ĐỢT THỬ NƯỚC (anh 05/11/2026 "thử riêng vào đợt lên camp ngày mai … đánh dấu trên hệ thống và có bộ lọc"): sổ etp.cau_hinh 'thu_nuoc'.
+    Camp nhà (không ROAS) có ngày chạy đầu = ngay của sổ → chia đôi theo tên camp (crc32 chẵn = nhánh thử nhắm `nuoc`, lẻ = đối chứng giữ `chuan`).
+    Ngoài ngày thử: clone / thang của camp nhánh thử giữ 4 nước (payload chép Ad Set gốc) và mang cùng nhãn; camp MỚI dựng trên khuôn nhánh thử trả về `chuan`.
+    Sửa Ad Set trong pl tại chỗ; trả (dot, nhom, nuoc, thu) để ghi etp.camp_thu sau khi tạo, hoặc None."""
+    if NGOAI: return None
+    try: k = json.loads(q("select gia_tri::text from etp.cau_hinh where khoa = 'thu_nuoc'") or "null")
+    except Exception: k = None
+    if not k or not k.get("nuoc") or not k.get("chuan"): return None
+    sp = pl["campaign"]["ad_groups"][0]["source_payload"]; tg = dict(sp.get("targeting") or {})
+    def dat(ds): tg["geo_locations"] = {**(tg.get("geo_locations") or {}), "countries": list(ds)}; sp["targeting"] = tg
+    hn = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).date(); chay = hn if lich == "today" else hn + dt.timedelta(days=1)
+    if chay.isoformat() == k.get("ngay"):
+        import zlib
+        thu = zlib.crc32(pl["name"].encode()) % 2 == 0; ds = k["nuoc"] if thu else k["chuan"]; dat(ds)
+        return k["dot"], k["thu"] if thu else k["doi"], ds, thu
+    g = q(f"select dot || '|' || nhom || '|' || array_to_string(nuoc, ',') from etp.camp_thu where camp_id = {int(goc)} and thu") if goc else ""
+    if not g: return None
+    if moi: dat(k["chuan"]); return None
+    dot, nhom, ds = g.split("|"); return dot, nhom, ds.split(","), True
 
 DEM_CR = {}
 def dem_dang_chay(content_id):
@@ -460,6 +480,8 @@ def main(a):
         kq["phim_dang_chay"] = n
         ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay)
         if ly: raise ChanLuat(ly)
+        tn = thu_nuoc(pl, lich, goc, moi)   # đợt thử nước — sửa Ad Set trước khi tạo (anh 05/11/2026)
+        if tn: kq["thu"] = {"dot": tn[0], "nhom": tn[1], "nuoc": len(tn[2])}
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
         r = api("/api/v1/campaigns/facebook", pl)
@@ -475,6 +497,9 @@ def main(a):
         if thang and kq["ok"] and float(c.get("budget_daily") or 0) != thang:   # Ethopex không nhận ngân sách lúc tạo → đặt lại ngay (camp mới chưa học gì)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(thang)}}}); time.sleep(8)
             kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")
+        if kq["ok"] and tn:
+            nv = "{" + ",".join(tn[2]) + "}"
+            q(f"insert into etp.camp_thu (camp_id, dot, nhom, nuoc, thu) values ({int(moi)}, '{tn[0]}', '{tn[1]}', '{nv}', {'true' if tn[3] else 'false'}) on conflict (camp_id) do nothing")
         if kq["ok"] and not NGOAI:
             ghi_bo(cid, bo)
             try: kq["lich"] = lich_ap(moi, cid)

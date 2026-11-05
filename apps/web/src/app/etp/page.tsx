@@ -24,5 +24,5 @@ export default async function EtpPage({ searchParams }: { searchParams: Promise<
   const [du, het] = await Promise.all([docEtp(ngCua(quyen, mot('ng')), true), hetPhienEthopex(suaNguoi(quyen))]);
   const cheDo = du.nguoi.ngoai ? await docCheDo(quyen, du.nguoi.dang) : null;   // chế độ luật máy của người đang xem (etp.che_do_luat)
   // key theo người đang xem: đổi người = dựng lại trang (bộ lọc, ô tìm, bảng nạp bộ đã lưu của người đó — anh 02/11/2026 "layout, filter, search… thì ko được thông nhau")
-  return <EtpView key={du.nguoi.doi ? 'team' : `ng${du.nguoi.dang ?? 'nha'}`} chiXem={quyen.vai !== 'chu'} quyen={{ vai: quyen.vai, sua: suaNguoi(quyen), het, cheDo }} du={quyen.vai === 'nguoi' ? catChoNguoi(du, quyen.nguoiId!) : du} dauVao={{ t: mot('t'), v: mot('v'), l: mot('l'), p: mot('p'), lu: mot('lu'), d: mot('d'), b: mot('b'), ll: mot('ll'), tu: mot('tu'), ngan: mot('ngan'), ro: mot('ro') }} />;
+  return <EtpView key={du.nguoi.doi ? 'team' : `ng${du.nguoi.dang ?? 'nha'}`} chiXem={quyen.vai !== 'chu'} quyen={{ vai: quyen.vai, sua: suaNguoi(quyen), het, cheDo }} du={quyen.vai === 'nguoi' ? catChoNguoi(du, quyen.nguoiId!) : du} dauVao={{ t: mot('t'), v: mot('v'), l: mot('l'), p: mot('p'), lu: mot('lu'), d: mot('d'), b: mot('b'), ll: mot('ll'), tu: mot('tu'), ngan: mot('ngan'), ro: mot('ro'), th: mot('th') }} />;
 }

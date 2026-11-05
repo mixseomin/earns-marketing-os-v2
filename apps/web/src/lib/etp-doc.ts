@@ -29,6 +29,8 @@ export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; tran
   lich_tat: boolean;
   /** nước GIAO thật 7 ngày (etp.camp_nuoc, migration 0368) — g mã nước, c chi, t thu; nhiều chi nhất trước */
   nuoc: { g: string; c: number; t: number }[];
+  /** ĐỢT THỬ (etp.camp_thu, migration 0425 — anh 05/11/2026 "đánh dấu trên hệ thống và có bộ lọc"): đợt · nhóm · nhánh thử (true) / đối chứng (false); chỉ Nhà */
+  thu?: { dot: string; nhom: string; la: boolean } | null;
   /** LÝ DO DỪNG (anh 02/11/2026 "hover vào status dừng thì show lý do dừng, ai dừng"): từ lịch sử camp Ethopex + nhật ký luật (máy luật ghi mỗi nhịp, etp.bao nhóm 'dong') — chỉ Nhà */
   /** lý do dừng có CẤU TRÚC (03/11/2026 anh 'trình bày cho chuẩn'): ma = mã luật theo sổ luật chung (luatDaLam), dieu = điều kiện luật, duyet = ai duyệt luật */
   dong?: { luc: string; ly_do: string; ma?: string | null; dieu?: string | null; duyet?: string | null } | null;
@@ -219,14 +221,15 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     run<{ ngay: string; chi: string; thu: string; camp: string; ns: string | null }>(sql`select ngay::text ngay, sum(chi) chi, sum(thu) thu, count(*) filter (where chi > 0) camp, ${ngoai ? sql`null::numeric` : sql`sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0)`} ns from ${SN} group by ngay having sum(chi) > 0 or sum(thu) > 0 order by ngay`),
     ngoai ? run<Record<string, unknown>>(sql`with s as (${soCamp})
       select c.camp_id, c.ten, c.bo, c.trang_thai, null giao, c.ngan_sach, c.creative_id, c.content_id, null goc, null lich, c.tao::text tao, null loi, null roas, c.chien_luoc,
-        coalesce(p.ten, c.phim_ten) phim, p.the_loai, null dang, null doan, 0 cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, false lich_tat, null nuoc
+        coalesce(p.ten, c.phim_ten) phim, p.the_loai, null dang, null doan, 0 cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, false lich_tat, null nuoc, null thu_dot, null thu_nhom, null thu_la
       from ${CN} c ${doi ? sql`left` : sql``} join etp.tai_khoan t on t.ad_account_id = c.ad_account_id left join etp.phim p on p.content_id = c.content_id left join s on s.camp_id = c.camp_id
       where ${cuaNg(sql`t.nguoi_id`)} and c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`) : run<Record<string, unknown>>(sql`with s as (${soCamp}),
         cd as (select cr.doan, count(*) filter (where c.trang_thai = 'ACTIVE') chay from etp.camp c join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) where cr.doan is not null group by cr.doan)
       select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.dong_bo, c.ngan_sach, etp.creative_cua(c.creative_id, c.ten) creative_id, c.content_id, c.goc, to_json(c.lich) #>> '{}' lich, c.tao::text tao, c.loi, c.roas, c.chien_luoc,
         p.ten phim, p.the_loai, cr.dang, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat,
-        (select json_agg(json_build_object('g', cn.geo, 'c', round(cn.chi, 2), 't', round(cn.thu, 2)) order by cn.chi desc) from etp.camp_nuoc cn where cn.camp_id = c.camp_id) nuoc
-      from etp.camp c left join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) left join etp.phim p on p.content_id = c.content_id left join etp.lich_tat lt on lt.camp_id = c.camp_id
+        (select json_agg(json_build_object('g', cn.geo, 'c', round(cn.chi, 2), 't', round(cn.thu, 2)) order by cn.chi desc) from etp.camp_nuoc cn where cn.camp_id = c.camp_id) nuoc,
+        ct.dot thu_dot, ct.nhom thu_nhom, ct.thu thu_la
+      from etp.camp c left join etp.camp_thu ct on ct.camp_id = c.camp_id left join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) left join etp.phim p on p.content_id = c.content_id left join etp.lich_tat lt on lt.camp_id = c.camp_id
         left join cd on cd.doan = cr.doan left join s on s.camp_id = c.camp_id
       where c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`),
     run<{ khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }>(sql`select khoa, gia_tri, ghi, ai, luc::text luc from etp.cau_hinh order by khoa`),
@@ -262,7 +265,8 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id), goc: r.goc == null ? null : n(r.goc), lich: (r.lich as string) ?? null, tao: (r.tao as string) ?? null,
     loi: (r.loi as string) ?? null, dong_bo: (r.dong_bo as string) ?? null, phim: (r.phim as string) ?? (ngoai ? phimTuTenCamp(String(r.ten ?? '')) : null), the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, doan: (r.doan as string) ?? null, cung_doan: n(r.cung_doan),
     thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), lich_tat: !!r.lich_tat, roas: r.roas == null ? null : n(r.roas), chien_luoc: (r.chien_luoc as string) ?? null,
-    nuoc: ((r.nuoc as { g: string; c: unknown; t: unknown }[] | null) ?? []).map((x) => ({ g: x.g, c: n(x.c), t: n(x.t) })) }));
+    nuoc: ((r.nuoc as { g: string; c: unknown; t: unknown }[] | null) ?? []).map((x) => ({ g: x.g, c: n(x.c), t: n(x.t) })),
+    thu: r.thu_dot ? { dot: String(r.thu_dot), nhom: String(r.thu_nhom), la: !!r.thu_la } : null }));
   // gộp creative / phim từ camp (cùng nguồn số)
   const cong = (a: SoTien, b: SoTien) => ({ chi: a.chi + b.chi, thu: a.thu + b.thu });
   const crMap = new Map<number, CreativeEtpKho>();

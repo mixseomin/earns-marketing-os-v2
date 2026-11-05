@@ -10,6 +10,21 @@ BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__
 
 # NGHI_GIO 3 → 24 (anh 05/11/2026 duyệt: ROI sau tăng tụt ngay và không hồi suốt 48 giờ — một bậc mỗi 24 giờ)
 NGHI_GIO, TOI_DA_NGAY = 24, None
+# NGOẠI LỆ TĂNG DỒN (anh 05/11/2026 "sửa đi"; số toàn đội 20/10–05/11: tăng lần nữa < 24h khi camp đã tiêu ≥ 90% ngân sách MỚI + ROI hôm nay ≥ 100%,
+# bước ≤ ×1,5 → lãi 24h hơn để nguyên $12,77/camp, 0% âm, n=9; mọi tăng dồn < 6h +$6,58): đạt cổng thì được tăng tiếp sau NGHI_DON_GIO giờ.
+# Cổng = khung_doi.nap_chi / sang_roi của sổ luật chung (cùng cổng tăng trong ngày của máy luật — du_so là MỘT công thức cho cả hai).
+NGHI_DON_GIO = 3
+KD = BANG_LUAT["khung_doi"]
+def du_so(chi, thu, ns):
+    """đạt cổng tăng: hôm nay đã tiêu ≥ nap_chi × ngân sách đang chạy và ROI hôm nay ≥ sang_roi%"""
+    chi, thu, ns = float(chi or 0), float(thu or 0), float(ns or 0)
+    return ns > 0 and chi >= float(KD["nap_chi"]) * ns and thu >= (1 + float(KD["sang_roi"]) / 100) * chi
+def du_don(api, cid, bay_gio=None):
+    """đọc số HÔM NAY (ngày Ethopex = ngày UTC) + ngân sách đang chạy của camp từ API rồi chấm du_so — cho máy làm (lam-ethopex) khi không có sẵn số"""
+    now = bay_gio or dt.datetime.now(dt.timezone.utc); d = now.date().isoformat()
+    rows = (api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue"], "filters": {"campaign_id": [int(cid)]}, "metric_conditions": [], "limit": 100, "page": 1, "page_size": 100, "date_from": d, "date_to": d}) or {}).get("rows") or []
+    c = (api(f"/api/v1/campaigns/{cid}") or {}).get("campaign") or {}
+    return du_so(sum(float(x.get("cost") or 0) for x in rows), sum(float(x.get("revenue") or 0) for x in rows), c.get("budget_daily"))
 # GIẢM BẬC (anh 21/10/2026: "camp âm mà budget cao do set vội… giảm dần theo bậc… tránh giảm xong lại bị tăng đệ quy"):
 #   giảm chỉ chấm trên số TRỌN ngày hôm qua (doanh thu về trễ), cách lần đổi ngân sách trước ≥ NGHI_GIAM_GIO; sau khi giảm khoá tăng KHOA_SAU_GIAM_GIO
 #   và muốn tăng lại phải đạt ROI ≥ 50% trên số SAU lần giảm (luat-ethopex.py) — không dùng ROI tháng cũ → hết vòng tăng–giảm.
@@ -47,15 +62,21 @@ def _lan(api, cid, chieu):
 def lan_tang(api, cid): return _lan(api, cid, +1)
 def lan_giam(api, cid): return _lan(api, cid, -1)
 
-def chan_tang(api, cid, bay_gio=None):
-    """→ câu lý do nếu CHƯA được tăng (vừa tăng / đủ lần trong ngày), None nếu được"""
+def chan_tang(api, cid, bay_gio=None, du=None):
+    """→ câu lý do nếu CHƯA được tăng (vừa tăng / đủ lần trong ngày), None nếu được. du = camp đạt cổng tăng dồn (None → tự đọc API khi cần)"""
     now = bay_gio or dt.datetime.now(dt.timezone.utc); vn = lambda x: x + dt.timedelta(hours=7)
     g = lan_giam(api, cid)
     if g and (now - g[0]).total_seconds() < KHOA_SAU_GIAM_GIO * 3600:   # CHỐNG TĂNG–GIẢM QUA LẠI: vừa giảm thì khoá tăng KHOA_SAU_GIAM_GIO giờ
         return f"vừa giảm lúc {vn(g[0]):%H:%M %d/%m} — khoá tăng tới {vn(g[0] + dt.timedelta(hours=KHOA_SAU_GIAM_GIO)):%H:%M %d/%m}"
     ls = lan_tang(api, cid)
     if ls and (now - ls[0]).total_seconds() < NGHI_GIO * 3600:
-        return f"vừa tăng lúc {vn(ls[0]):%H:%M} — chờ tới {vn(ls[0] + dt.timedelta(hours=NGHI_GIO)):%H:%M} (cách nhau ≥ {NGHI_GIO} giờ)"
+        gap = (now - ls[0]).total_seconds() / 3600
+        if gap >= NGHI_DON_GIO and du is None:
+            try: du = du_don(api, cid, now)
+            except Exception: du = False
+        if gap < NGHI_DON_GIO or not du:
+            return (f"vừa tăng lúc {vn(ls[0]):%H:%M} — chờ tới {vn(ls[0] + dt.timedelta(hours=NGHI_GIO)):%H:%M} (cách nhau ≥ {NGHI_GIO} giờ; "
+                    f"đã tiêu ≥ {float(KD['nap_chi']):.0%} ngân sách mới + ROI hôm nay ≥ {KD['sang_roi']}% thì được từ {vn(ls[0] + dt.timedelta(hours=NGHI_DON_GIO)):%H:%M})")
     hom = [x for x in ls if vn(x).date() == vn(now).date()]
     if TOI_DA_NGAY and len(hom) >= TOI_DA_NGAY: return f"đã tăng {len(hom)} lần hôm nay (tối đa {TOI_DA_NGAY}/ngày) — để sang mốc 8h mai"
     return None
@@ -67,8 +88,13 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     api = lambda p: gia
     assert len(lan_tang(api, 1)) == 2, "2 dòng cách 20 giây là MỘT lần tăng"
     assert chan_tang(api, 1, u("2026-10-21T08:00:00")).startswith("vừa tăng"), "23 phút sau lần tăng phải chặn"
-    assert chan_tang(api, 1, u("2026-10-21T11:00:00")) is None, "đủ 3 giờ thì tăng tiếp — không giới hạn số lần/ngày"
-    assert chan_tang(api, 1, u("2026-10-22T01:30:00")) is None, "sang ngày mới (8h30 VN) được tăng"
+    assert chan_tang(api, 1, u("2026-10-21T08:00:00"), du=True).startswith("vừa tăng"), "đạt cổng nhưng chưa đủ 3 giờ vẫn chặn"
+    assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=False).startswith("vừa tăng"), "3–24 giờ mà KHÔNG đạt cổng thì chặn (nhịp 24 giờ)"
+    assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=True) is None, "3 giờ + đạt cổng (tiêu ≥ 90% NS mới, ROI ≥ 100%) → tăng dồn được"
+    assert chan_tang(api, 1, u("2026-10-22T08:00:00"), du=False) is None, "đủ 24 giờ thì tăng, không cần cổng dồn"
+    assert du_so(0.95, 1.9, 1) and not du_so(0.85, 2, 1) and not du_so(1, 1.9, 1) and not du_so(1, 2, 0), "cổng: chi ≥ 90% NS + thu ≥ 2 × chi"
+    assert chan_tang(api, 1, u("2026-10-22T01:30:00"), du=False).startswith("vừa tăng"), "18 giờ sau (8h30 VN hôm sau), không đạt cổng → còn chặn (nhịp 24 giờ, 05/11/2026)"
+    assert chan_tang(api, 1, u("2026-10-22T01:30:00"), du=True) is None, "18 giờ sau + đạt cổng → được"
     _CACHE.clear()
     gia2 = {"data": [{"created_at": "2026-10-22T01:00:00Z", "changes": [{"field": "budget_daily", "old": 5, "new": 3}]}]}
     api2 = lambda p: gia2
@@ -77,7 +103,7 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     assert chan_giam(api2, 2, u("2026-10-22T03:00:00")) is not None and chan_giam(api2, 2, u("2026-10-22T04:30:00")) is None, "giảm tiếp cách lần GIẢM trước ≥ 3 giờ"
     _CACHE.clear()
     assert chan_giam(api, 1, u("2026-10-21T08:00:00")) is None, "vừa TĂNG 23 phút trước mà âm → được giảm ngay (không chờ)"
-    assert xuong(5) == 3 and xuong(7, 2) == 3 and xuong(2) == 1 and xuong(1) is None and xuong(30) == 20
+    assert xuong(5) == 4 and xuong(7, 2) == 4 and xuong(2) == 1 and xuong(1) is None and xuong(30) == 20, "thang sổ luật [1,2,3,4,6,9,13,20,30]"
     api0 = lambda p: {"data": []}
     assert chan_tang(api0, 1) is None
-    print("tự kiểm: 10/10 đạt")
+    print("nhip_tang tự kiểm: đạt")

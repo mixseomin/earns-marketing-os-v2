@@ -194,7 +194,8 @@ _s = _iu.spec_from_file_location("nhip_tang", os.path.join(os.path.dirname(os.pa
 def _loc(ds):
     ra = []
     for cid, chu in ds:
-        try: ly = NT.chan_tang(api, cid)
+        h_ = hom.get(cid) or hom.get(str(cid)) or {}; a_ = thang.get(cid) or thang.get(str(cid)) or {}
+        try: ly = NT.chan_tang(api, cid, du=NT.du_so(h_.get("chi"), h_.get("thu"), a_.get("budget") or h_.get("budget")))   # tăng dồn < 24h khi đạt cổng (anh 05/11/2026)
         except Exception: ly = None
         if not ly: ra.append((cid, chu))
     return ra
@@ -859,8 +860,7 @@ ha, giam, g10, h2 = map(_giu_lai, (ha, giam, g10, h2))
 # hơn để nguyên $14,77/camp). Ngưỡng = khung_doi.nap_chi / sang_roi của sổ luật chung — cùng ngưỡng nạp sáng, một nguồn.
 def _du_tang(c):
     h_ = hom.get(c) or hom.get(str(c)) or {}; a_ = thang.get(c) or thang.get(str(c)) or {}
-    ns_, ch_, th_ = float(a_.get("budget") or h_.get("budget") or 0), float(h_.get("chi") or 0), float(h_.get("thu") or 0)
-    return ns_ > 0 and ch_ >= float(KD["nap_chi"]) * ns_ and th_ >= (1 + float(KD["sang_roi"]) / 100) * ch_
+    return NT.du_so(h_.get("chi"), h_.get("thu"), a_.get("budget") or h_.get("budget"))   # MỘT công thức cổng tăng (nhip_tang.du_so) cho máy luật + nhịp tăng + máy làm
 dat, dau_phien = ([x for x in ds if _du_tang(int(x[0] or 0))] for ds in (dat, dau_phien))
 # camp đã hạ, đang trong 2 ngày theo dõi — có danh sách riêng để trang etp / bộ lọc thấy (anh 01/11/2026 "Thiếu luật G10 vừa áp dụng?": trước đó camp đang theo dõi rơi khỏi mọi danh sách)
 g10_theo = [(cid, f"#{(thang.get(cid) or {}).get('ten', '')[:70]} · đã hạ về ${G10_DICH} ngày {ngay:%d/%m} — theo dõi {G10_THEO} ngày đã khép, ROI vẫn < {G10_ROI}% thì tắt; đang khoá tăng") for cid, ngay in sorted(_g10_theo.items())]

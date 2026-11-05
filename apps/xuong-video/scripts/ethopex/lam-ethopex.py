@@ -163,7 +163,7 @@ def main(a):
             if ns not in MUC: raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC)}")
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đang {truoc['tt']}, không tăng")
             if ns <= float(truoc["ns"] or 0): raise ValueError(f"camp đã ${truoc['ns']} ≥ ${ns}")
-            ly = NT.chan_tang(lambda p: api(p), cid)   # nhịp tăng: ≥ 3 giờ giữa hai lần (nút cũ bấm muộn cũng bị chặn)
+            ly = NT.chan_tang(api, cid)   # nhịp tăng: ≥ 24 giờ, hoặc ≥ 3 giờ khi đã tiêu ≥ 90% NS mới + ROI hôm nay ≥ 100% (nút cũ bấm muộn cũng bị chặn)
             if ly: raise ValueError(ly)
             ly = None if ep else chan_sau_giam(cid)   # đã giảm → tăng lại phải đủ quy trình, mọi đường tăng chung một cổng
             if ly: raise ValueError(ly)

@@ -535,7 +535,7 @@ def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cha
         if ly: kq["mien_cham"] = ly
         # camp ROAS là dạng riêng, miễn mọi luật (anh 26/10/2026) — kể cả trần 30 camp/phim: không bị chặn, cũng không chiếm chỗ camp thường (dem_dang_chay bỏ ★)
         if any(x.get("name") == ten for x in api("/api/v1/campaigns?page_size=500")["data"]): raise ValueError(f"đã có camp '{ten}' — không tạo trùng")
-        ly = CONG.kiem("nhan_ban", None, ns, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay)
+        ly = CONG.kiem("nhan_ban", None, ns, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, roas=True)   # ROAS miễn luật trùng phim với đội (anh 05/11/2026)
         if ly: raise ValueError(ly)
         kq["content"] = cid
         if not that:

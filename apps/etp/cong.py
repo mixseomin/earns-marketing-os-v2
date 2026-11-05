@@ -1,10 +1,11 @@
 """CỔNG RÀO CHẮN etp (anh 24/10/2026 — bước 3 etp.on.tc): MỌI lệnh tự động gọi kiem() trước khi gửi lên Ethopex.
-kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False) → None (cho qua) | câu lý do chặn.
+kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False) → None (cho qua) | câu lý do chặn.
   ngoai=True: camp trong tài khoản QC của người trong team (Luật tự động, apps/cty/worker/etp-tu-dong.mjs) — vẫn qua dừng khẩn / Âu-Mỹ / phim cất / trần camp,
   bỏ trần NGÀY + trần BỘ (hai trần đó cộng ngân sách camp NHÀ trong etp.camp — tiền của người đó không tính vào, cũng không bị trần nhà chặn).
   CHỈ PHIM ÂU-MỸ (anh 29/10/2026 "dừng các phim ngoài âu mỹ … chặn thể loại này khi lên camp target US"): phim có etp.phim.nhom_goc khác au_my
   (trung / an / latin / hoat_hinh / dong_a / da_mau) → chặn mọi việc tăng chi (tạo camp, nhân bản kể cả ROAS, bật lại, tăng). Phim chưa chấm nhóm → chấm poster ngay, thiếu poster thì 4 khung video creative đã chấm (apps/etp/nhom_goc.py, ckey ~13–36₫), không chấm được → chặn (anh 29/10/2026 "làm cho kín").
-  KHÔNG TRÙNG PHIM VỚI ĐỘI (anh 02/11/2026): tạo camp / nhân bản (kể cả ROAS) phim mà người khác trong đội đang có camp chạy → chặn, hai chiều (Nhà ↔ team).
+  KHÔNG TRÙNG PHIM VỚI ĐỘI (anh 02/11/2026): tạo camp / nhân bản phim mà người khác trong đội đang có camp chạy → chặn, hai chiều (Nhà ↔ team).
+  Camp ★ ROAS MIỄN (anh 05/11/2026: "ROAS là dựa trên bài viết được viral sẵn nên ko thể coi việc trùng phim như vậy được !! Bỏ luật đó đi !!") — kiem(..., roas=True).
   PHIM ĐÃ CẤT (anh 31/10/2026): etp.phim.thu_vong = 'cat' (apps/etp/cat_phim.py) → chặn tạo camp / nhân bản phim đó; camp đang chạy vẫn để luật tắt xử.
   viec: tang | bat | nhan_ban | tao_camp (làm tăng chi) · giam | tat (luôn cho qua — dừng khẩn vẫn phải hạ được chi)
 Đọc etp.cau_hinh (dung_khan · tran_ngay · tran_camp · tran_bo) + etp.camp (tổng ngân sách camp đang bật). Lỗi đọc kho → CHẶN (an toàn trước, không đoán).
@@ -43,7 +44,7 @@ def trung_doi(nguoi_id=None):
         cid, n, ai = l.split("|", 2); ra[int(cid)] = (int(n), ai)
     return ra
 
-def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False):
+def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngoai=False, tay=False, roas=False):
     if viec not in TANG: return None
     try:
         ct = content_id if content_id is not None else (_q(f"select content_id from etp.camp where camp_id = {int(camp_id)}") or None) if camp_id else None
@@ -57,10 +58,11 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         if ct and viec in ("nhan_ban", "tao_camp"):   # PHIM ĐÃ CẤT (anh 31/10/2026): thử đủ creative + đủ bộ, team không lãi → thôi lên camp mới (apps/etp/cat_phim.py)
             cl = _q(f"select coalesce(thu_ly, '') from etp.phim where content_id = {int(ct)} and thu_vong = 'cat'")
             if cl: return LY_CAT.format(ct, cl)
-            # KHÔNG TRÙNG PHIM VỚI ĐỘI (anh 02/11/2026): mọi camp mới (phim mới, nhân bản, kể cả ROAS) — camp đang chạy giữ nguyên, luật tắt xử như cũ
+            # KHÔNG TRÙNG PHIM VỚI ĐỘI (anh 02/11/2026): mọi camp mới (phim mới, nhân bản) — camp đang chạy giữ nguyên, luật tắt xử như cũ
+            # roas=True: camp ★ ROAS dùng lại BÀI ĐĂNG ĐÃ VIRAL của camp gốc → miễn (anh 05/11/2026 "Bỏ luật đó đi !!")
             ng_id = _q(f"select t.nguoi_id from etp.camp_ngoai k join etp.tai_khoan t using (ad_account_id) where k.camp_id = {int(camp_id)}") if ngoai and camp_id else None
             # tay=True: camp anh YÊU CẦU BẰNG TAY (dòng phim anh bấm chạy, nhan-ban --tay) → miễn luật này; chỉ cấm khi máy tự lên (anh 04/11/2026 Dragon's Silly Captive)
-            tr = trung_doi(int(ng_id) if ng_id else None).get(int(ct)) if (not ngoai or ng_id) and not tay else None
+            tr = trung_doi(int(ng_id) if ng_id else None).get(int(ct)) if (not ngoai or ng_id) and not tay and not roas else None
             if tr: return LY_TRUNG.format(ct, tr[0], tr[1])
         ch = {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
         if ch.get("dung_khan"): return "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"

@@ -264,7 +264,7 @@
         "ten": "Khuôn kịch bản",
         "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp",
         "anh": "duyệt kịch bản mẫu",
-        "trang_thai": "chua"
+        "trang_thai": "dang"
       },
       {
         "ma": "G6",
@@ -410,7 +410,7 @@
         "nhip": "theo sự kiện trời",
         "kho": "≈ 1.000 Short / năm (88 sự kiện × 12 cung Mọc)",
         "trang": "shot-code/la-so.html",
-        "sinh": "lich-su/lich-troi.mjs → lich-troi.json (sự kiện trời tới phút) → ý tưởng tự sinh tw-…",
+        "sinh": "lich-su/viet-this-week.mjs --su <tw-… trong lich-troi.json> --moc <Cung | all> — 0đ, không AI: chữ site nguyên văn (bài New/Full Moon theo nhà, <sao>-transit-<nhà>, Mercury / Venus–Mars retrograde, transits-explained, nghĩa nhà), hook QC spy góc Thời điểm, bài đăng dangCongCu; máy gác chặn trước khi ghi",
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-this-week.mp4?v=3",
         "tu_sinh": "^tw-[a-z0-9-]+$"
       },

@@ -1,0 +1,96 @@
+{
+ "url": "https://astrolas.com/en/blog/how-to-use-the-moon-phase-calendar",
+ "lay_luc": "2026-11-05",
+ "tieu_de": "How to use the Astrolas Moon Phase tool: read the current Moon phase against your own chart",
+ "mo": [
+  "How to read the result",
+  "Why is the page showing a Waning Gibbous instead of the Full Moon?",
+  "Can I pick a date in the past?",
+  "What is the difference between this and my birth Moon phase?",
+  "A Moon phase calendar tells you when the Moon is new, full or quartered. It cannot tell you what that phase means for you, because the same Full Moon lands in a different house for every chart. The Astrolas Moon Phase page does the second job. It takes the Moon phase closest to today, places it in your birth chart, and lists everything that phase touches: natal planets, progressions, solar arcs, outer transits and the planets that rule the house and sign it falls in.",
+  "This guide covers what the page shows, how to fill it in, and the order in which to read its eight sections. If you want the background first, New Moon and Full Moon in your houses covers the house meanings, and birth Moon phase explained covers the phase you were born under."
+ ],
+ "muc": [
+  {
+   "ten": "What the tool does",
+   "doan": [
+    "The page describes itself plainly: it analyzes the closest Moon phase (New, First Quarter, Full, Last Quarter and the phases in between) to your natal chart. When you submit your birth data, it looks at the eight phases around today and picks the one nearest in time. That can be a New Moon, a Waxing Crescent, a First Quarter, a Waxing Gibbous, a Full Moon, a Waning Gibbous, a Last Quarter or a Waning Crescent.",
+    "There is no date picker on this page. It always opens on the phase nearest today. If you want to study a specific New Moon, Full Moon or eclipse later in the year, use the Lunation Analyzer , which lists every one for the year you choose.",
+    "Planet Moon Rules Cancer Emotions, intuition, nurturing"
+   ]
+  },
+  {
+   "ten": "What you need",
+   "doan": [
+    "Your birth time, because the phase's natal house and the rulers the page checks both come from your house cusps. See why birth time matters ."
+   ]
+  },
+  {
+   "ten": "Step by step",
+   "doan": [
+    "Open the Moon Phase page .",
+    "Fill in the Birth Data form: Name, Day, Month, Year, Hour / Minute and City / Location. The AI Quick Input box above can fill the form from a typed sentence if you prefer, using its Parse button.",
+    "Press View Moon Phase .",
+    "The page reloads with your result. The page works for guests; you do not need an account."
+   ]
+  },
+  {
+   "ten": "The result page",
+   "doan": [
+    "The top line gives the phase name, its date and time, the Moon's sign and degree, and the natal house it falls in. Below that is a chart wheel with your natal chart and the transiting planets at the moment of the phase. It has the usual toolbar: Display options, Share cards, Export (copy the chart, download a PNG, print or save as PDF), wheel sizes and body toggles.",
+    "The side column has three panels:",
+    "Transit at Event , a table of where every transiting planet sits at that moment, with a CSV button.",
+    "Ruler Info , naming the ruler of the house the Moon falls in and the ruler of its sign.",
+    "Table of Contents , with links to each section and quick links back to your natal chart and Solar Return."
+   ]
+  },
+  {
+   "ten": "The eight sections",
+   "doan": [
+    "Event Moon Position. Date, time, sign, degree and natal house, plus the two related rulers and the houses they occupy.",
+    "Multi-layer Aspects at Event Moon. Aspects between transit, natal, progressed and solar arc planets at the moment of the phase. This is where the page shows what is already active for you in the background.",
+    "Ruler of Event Moon House. Aspects to the planet that rules the house the Moon lands in, grouped as transit, progressed and solar arc contacts.",
+    "Ruler of Event Moon Sign. The same check for the planet that rules the Moon's sign.",
+    "Event Moon and All Planets. The phase Moon's aspects to your natal, progressed and solar arc planets.",
+    "Outer Planet Transits. Jupiter, Saturn, Uranus, Neptune and Pluto aspecting the phase Moon, and their contacts to your natal, progressed and solar arc points.",
+    "T-Square with Event Moon. Any T-square the phase Moon forms with your chart. The page's own note is that a T-square here points to changes of plan.",
+    "Inner Planet Retrograde. Whether a retrograde Mercury, Venus or Mars aspects the phase Moon, which the page reads as a sign that the matter could drag on.",
+    "Each row gives the orb, a house marker showing where the planet sits, and a crown marker showing which houses it rules. Those two markers let you see which parts of your life the contact connects."
+   ]
+  },
+  {
+   "ten": "How to read the result",
+   "doan": [
+    "Start with the house in section 1. That house is the area of life the phase lights up. A New Moon there suggests starting something, a Full Moon suggests results or a peak of feeling, and the quarter phases suggest a decision or an adjustment on the way.",
+    "Then look at the rulers in sections 3 and 4. A phase whose house ruler is also under a tight transit or solar arc carries more weight than one whose rulers are quiet. Tight orbs, under one degree, matter most.",
+    "Next, check section 6. A slow outer planet on the phase Moon, or on a point the phase Moon touches, usually means the theme belongs to something longer than one month.",
+    "Finally, read sections 7 and 8 as modifiers. A T-square adds pressure, and a retrograde inner planet adds delay.",
+    "If a term is unfamiliar, aspects explained and transits explained cover the basics."
+   ]
+  },
+  {
+   "ten": "Tips",
+   "doan": [
+    "Come back every few days. The page moves to whichever phase is nearest today, so you can follow a whole lunar month one phase at a time.",
+    "Keep a note of the house the New Moon falls in, and check the following Full Moon against it.",
+    "Use the Table of Contents to jump straight to section 3 or 4 once you know the house.",
+    "If the Moon is void of course around the phase, timing can be looser. See the void of course Moon ."
+   ]
+  },
+  {
+   "ten": "Questions people ask",
+   "doan": [
+    "It shows the phase nearest to today among all eight, not only New and Full Moons. For a list of New Moons, Full Moons and eclipses, use the Lunation Analyzer.",
+    "Not from this page. It is built around the current phase.",
+    "Your birth phase is fixed for life and describes temperament. This page looks at the phase happening now and how it lands in your chart."
+   ]
+  },
+  {
+   "ten": "Try it",
+   "doan": [
+    "Open /moon-phase , note the house the current phase falls in, and follow it through the next few phases.",
+    "Check your transits for this week →"
+   ]
+  }
+ ]
+}

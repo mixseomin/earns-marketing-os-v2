@@ -1706,7 +1706,7 @@ function BieuDoGio({ gio }: { gio: GioO }) {
   const yc = (v: number) => B - (v / mxC) * (B - T), ptsChi = cot.filter((c) => c.donChi != null).map((c) => `${cx(c.g)},${yc(c.donChi!)}`).join(' ');
   const g0 = chon ?? het, c0 = cot[g0]!, x = theo.get(g0), hocTu = kq.hoc.findIndex((n) => n > 0), hocN = kq.hoc[g0] ?? 0;
   return <div onMouseLeave={() => setChon(null)}>
-    <div style={{ display: 'flex', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden', fontSize: 11, marginBottom: 4, fontVariantNumeric: 'tabular-nums', height: 16 }}>   {/* một dòng cố định — dòng số xuống hàng làm biểu đồ nhảy */}
+    <div style={{ display: 'flex', gap: '0 7px', flexWrap: 'wrap', alignContent: 'flex-start', whiteSpace: 'nowrap', overflow: 'hidden', fontSize: 11, lineHeight: '16px', marginBottom: 4, fontVariantNumeric: 'tabular-nums', height: 32 }}>   {/* HAI dòng cố định (05/11/2026 thêm chi dồn thì một dòng bị cắt) — cao khoá để biểu đồ không nhảy */}
       <b>{vn(g0)}–{vn(g0 + 1)}</b>
       <span style={{ color: 'var(--fg-2)' }}>chi <b style={{ color: 'var(--fg-1)' }}>{usd(x?.chi ?? 0)}</b></span>
       <span style={{ color: 'var(--fg-2)' }}>thu <b style={{ color: 'var(--fg-1)' }}>{usd(x?.thu ?? 0)}</b></span>

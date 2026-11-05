@@ -524,8 +524,11 @@ function ChipLuat(p: VaoLuat) {
   const cho = !p.deXuat && hoanDs.has(p.c.camp_id) ? `${gioLam(hoanDs.get(p.c.camp_id)!)}h` : null;
   // TĂNG ĐÃ ĐẠT → còn bao lâu máy thực sự tăng (khung tăng + nhịp máy luật 30 phút) — camp người khác chỉ đề xuất, không có mốc
   // mốc tăng đọc THẺ MÁY LUẬT (etp.xet_luat): thẻ Tăng bậc đạt → nhịp máy kế trong khung; chỉ còn dòng "Nhịp tăng" chặn → mốc cho_toi của máy (đúng cổng lệnh tăng, gồm cả lần đổi ngoài máy)
-  const xT = p.deXuat ? undefined : p.xet?.find((x) => x.ma === 'tang'), nhipT = xT?.dk.find((d) => d[0].startsWith('Nhịp tăng'));
-  const chiCong = !!xT && xT.ket !== 'dat' && !!xT.cho_toi && !!nhipT && !nhipT[3] && xT.dk.every((d) => d[3] || d === nhipT);
+  // hai thẻ cùng một lệnh tăng (Tăng bậc · Tăng trong ngày): lấy thẻ đạt, không thì thẻ chỉ còn dòng Nhịp tăng chặn
+  const gan1 = (x: XetLuat) => { const n = x.dk.find((d) => d[0].startsWith('Nhịp tăng')); return x.ket !== 'dat' && !!x.cho_toi && !!n && !n[3] && x.dk.every((d) => d[3] || d === n); };
+  const theT = p.deXuat ? [] : (p.xet ?? []).filter((x) => x.ma === 'tang' || x.ma === 'tang_ngay');
+  const xT = theT.find((x) => x.ket === 'dat') ?? theT.find(gan1), nhipT = xT?.dk.find((d) => d[0].startsWith('Nhịp tăng'));
+  const chiCong = !!xT && gan1(xT);
   const don = p.c.ngan_sach > 0 && p.c.nay.chi >= KD.nap_chi * p.c.ngan_sach && p.c.nay.chi > 0 && (p.c.nay.thu - p.c.nay.chi) / p.c.nay.chi * 100 >= KD.sang_roi;   // tiêu dồn → được nạp ở khung sáng
   const lucT = xT?.ket === 'dat' || chiCong ? lucTang(hoan.luc, hoan.cu, Date.now(), chiCong ? Date.parse(xT!.cho_toi!) : 0, don) : null;
   const chuT = lucT ? `${conLai(new Date(lucT).toISOString())} nữa · ~${new Date(lucT + 7 * 3600_000).toISOString().slice(11, 16)} VN` : null;   // máy đã đủ luật, hoãn vì khung giờ (sổ hoãn) — giờ theo hướng: tăng 21h · giảm/tắt 15h

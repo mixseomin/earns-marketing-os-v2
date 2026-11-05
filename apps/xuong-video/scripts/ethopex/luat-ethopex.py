@@ -1055,24 +1055,32 @@ def _xet_luat():
         dk_tang = dk_tang + [dk_ts] + ([] if b2 else [_don_dk(cid, ns)])
         _don_ghi = None if b2 or _don_dk(cid, ns)[3] else f"tiêu dồn (≥ {NT.DON_13H:.0%} ngân sách tới {7 + NT.DON_GIO}h) — hoãn tăng tối nay, hôm sau tiêu đều thì tăng như thường"
         # NHỊP TĂNG (anh 06/11/2026 "camp có thể tăng bậc thì ghi thêm bao lâu nữa sẽ thực sự tăng"): đúng cổng lệnh tăng dùng (nhip_tang.cho_tang — lịch sử ngân sách
-        # Ethopex, gồm cả lần đổi ngoài máy luật). Chỉ gọi khi mọi điều kiện khác đã đạt (một lượt đọc lịch sử / camp). cho_toi → trang etp tính mốc máy thực sự tăng
+        # Ethopex, gồm cả lần đổi ngoài máy luật). Thẻ Tăng bậc + Tăng trong ngày cùng một dòng (cùng lệnh tăng); chỉ đọc khi mọi điều kiện khác của thẻ đã đạt.
+        # cho_toi → trang etp tính mốc máy thực sự tăng
+        _nhip_o = {}
+        def _nhip():
+            if "d" not in _nhip_o:
+                try: _ly_n, _mo_n = NT.cho_tang(api, int(cid), du=NT.du_so(h.get("chi"), h.get("thu"), a.get("budget") or h.get("budget")))   # cùng cờ tiêu dồn với _loc (bộ lọc ứng viên tăng)
+                except Exception as e: _ly_n, _mo_n = f"không đọc được lịch sử ngân sách: {str(e)[:60]}", None
+                # giá trị NGẮN (ô bảng hẹp — lý do dài làm thẻ tràn ngang, mất cột Giá trị / Ngưỡng 06/11/2026): luật đã ở tên dòng
+                _gt_n = "qua" if _ly_n is None else f"được từ {_mo_n + dt.timedelta(hours=7):%H:%M %d/%m}" if _mo_n else _ly_n[:40]
+                _nhip_o["d"] = ([f"Nhịp tăng (cách lần tăng trước ≥ {NT.NGHI_GIO} giờ · tiêu dồn {NT.NGHI_DON_GIO} giờ · sau giảm {NT.KHOA_SAU_GIAM_GIO} giờ)", _gt_n, "không chặn", _ly_n is None],
+                                _mo_n.isoformat() if _mo_n else None)
+            return _nhip_o["d"]
         _cho_toi = None
-        if not b2 and all(x[3] for x in dk_tang):
-            try: _ly_n, _mo_n = NT.cho_tang(api, int(cid), du=NT.du_so(h.get("chi"), h.get("thu"), a.get("budget") or h.get("budget")))   # cùng cờ tiêu dồn với _loc (bộ lọc ứng viên tăng)
-            except Exception as e: _ly_n, _mo_n = f"không đọc được lịch sử ngân sách: {str(e)[:60]}", None
-            # giá trị NGẮN (ô bảng hẹp — lý do dài làm thẻ tràn ngang, mất cột Giá trị / Ngưỡng 06/11/2026): luật đã ở tên dòng
-            _gt_n = "qua" if _ly_n is None else f"được từ {_mo_n + dt.timedelta(hours=7):%H:%M %d/%m}" if _mo_n else _ly_n[:40]
-            dk_tang = dk_tang + [[f"Nhịp tăng (cách lần tăng trước ≥ {NT.NGHI_GIO} giờ · tiêu dồn {NT.NGHI_DON_GIO} giờ · sau giảm {NT.KHOA_SAU_GIAM_GIO} giờ)", _gt_n, "không chặn", _ly_n is None]]
-            _cho_toi = _mo_n.isoformat() if _mo_n else None
+        if not b2 and all(x[3] for x in dk_tang): dk_tang = dk_tang + [_nhip()[0]]; _cho_toi = _nhip()[1]
         ls.append(L("thang_nb" if b2 else "tang", "Thang nhân bản (bộ 2)" if b2 else "Tăng bậc",
             ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại." + (f" Bộ 2: camp gốc tiêu TB ≥ ${THANG_CHI_GOC:g}/ngày 3 ngày đã khép mới mở bản thang (29/10)." if b2 else ""),
             dk_tang, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None), ghi=_don_ghi))
         if _cho_toi: ls[-1]["cho_toi"] = _cho_toi
         # bộ 2 KHÔNG tăng ngân sách — đủ luật thì mở bản thang, nên cổng mở bản thang mới nằm trong bảng (anh 28/10/2026 #1464 "tăng trong ngày sao lại liên quan đến mở bản thang?": tên luật không nói điều đó)
-        ls.append(L("tang_ngay", "Tăng trong ngày → mở bản thang (bộ 2)" if b2 else "Tăng trong ngày", ("Bộ 2 không tăng ngân sách: đủ luật này thì máy MỞ BẢN MỚI ở bậc kế (creative khác cùng phim), nên phải qua cổng mở bản thang. " if b2 else "") + "ROI hôm nay (chỉ cộng các giờ tới đợt chi gần nhất) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không âm (hôm qua âm mà chi hôm qua < max($2, 50% ngân sách) thì bỏ qua — luật B1), ROI khung dài ≥ 0% (29/10). ROI chỉ tính khi chi ≥ $0.3.",
-            [["ROI hôm nay", f(rh, "%"), "≥ 50%", rh is not None and rh >= 50], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 30%", bool(ns and h.get("chi", 0) >= 0.3 * ns)],
+        dk_ngay = [["ROI hôm nay", f(rh, "%"), "≥ 50%", rh is not None and rh >= 50], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 30%", bool(ns and h.get("chi", 0) >= 0.3 * ns)],
              ["ROI hôm qua", f(ry, "%") + (f" · chi ${y['chi']:.2f}" if y else ""), f"≥ 0% · bỏ qua khi chi < ${max(HQ_NHO_MIN, HQ_NHO * ns):g}", bool(ry is None or ry >= 0 or (y and y["chi"] < max(HQ_NHO_MIN, HQ_NHO * ns)))],
-             ["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), "≥ 0%", r is not None and r >= 0], dk_ts] + ([cong_b2] if b2 else []), ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None)))
+             ["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), "≥ 0%", r is not None and r >= 0], dk_ts] + ([cong_b2] if b2 else [])
+        if not b2 and all(x[3] for x in dk_ngay): dk_ngay = dk_ngay + [_nhip()[0]]   # cùng cổng nhịp với Tăng bậc (cùng lệnh tăng)
+        ls.append(L("tang_ngay", "Tăng trong ngày → mở bản thang (bộ 2)" if b2 else "Tăng trong ngày", ("Bộ 2 không tăng ngân sách: đủ luật này thì máy MỞ BẢN MỚI ở bậc kế (creative khác cùng phim), nên phải qua cổng mở bản thang. " if b2 else "") + "ROI hôm nay (chỉ cộng các giờ tới đợt chi gần nhất) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không âm (hôm qua âm mà chi hôm qua < max($2, 50% ngân sách) thì bỏ qua — luật B1), ROI khung dài ≥ 0% (29/10). ROI chỉ tính khi chi ≥ $0.3.",
+            dk_ngay, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None)))
+        if "d" in _nhip_o and _nhip_o["d"][1] and _nhip_o["d"][0] in dk_ngay: ls[-1]["cho_toi"] = _nhip_o["d"][1]
         # GIẢM BẬC — đã bỏ (anh 29/10/2026 "làm 1+2"): không còn trong bản xét; camp lỗ liền xem luật L3
         if not b2:
             ls.append(L("nb", "Nhân bản camp thắng (NB)", f"ROI khung dài ≥ {NB_ROI}%, tiêu ≥ ${NB_CHI}, ROI 3 ngày gần ≥ {NB_ROI3}%, camp gốc đã chạm trần ${TRAN_NB:g} → nhân một bản $1 GIỮ NGUYÊN creative (từ 28/10; đoạn đã đủ {TRAN_DOAN_} camp chạy mới đổi creative khác cùng phim).",

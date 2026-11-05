@@ -789,6 +789,7 @@ const LUAT = [
   { card: 'tang-luc-0611', tep: 'apps/web/src/components/etp-view.tsx', co: "⏳ Máy thực sự tăng sau <b>{chuT}</b>", vi: 'thẻ xét luật tăng đã đạt ghi còn bao lâu máy tăng' },
   { card: 'tang-luc-0611', tep: 'apps/xuong-video/scripts/ethopex/nhip_tang.py', co: 'def cho_tang(api, cid, bay_gio=None, du=None):', vi: 'cổng nhịp tăng trả cả mốc được tăng — một luật cho lệnh tăng và thẻ xét (anh 06/11/2026)' },
   { card: 'tang-luc-0611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if _cho_toi: ls[-1]["cho_toi"] = _cho_toi', vi: 'thẻ Tăng bậc có dòng Nhịp tăng + mốc cho_toi từ lịch sử ngân sách Ethopex' },
+  { card: 'tang-luc-0611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if not b2 and all(x[3] for x in dk_ngay): dk_ngay = dk_ngay + [_nhip()[0]]', vi: 'thẻ Tăng trong ngày cùng dòng Nhịp tăng (cùng lệnh tăng) — không còn Đạt khi cổng chặn' },
   { card: 'tang-luc-0611', tep: 'apps/web/src/components/etp-view.tsx', co: "nhipT = xT?.dk.find((d) => d[0].startsWith('Nhịp tăng'));", vi: 'trang đọc mốc tăng từ thẻ máy, không tự đoán từ lịch sử bậc' },
   { card: 'tang-luc-0611', tep: 'apps/xuong-video/scripts/ethopex/nhip_tang.py', co: 'KHOA_SAU_GIAM_GIO = 3, int(BANG_LUAT["khung_doi"]["khoa_sau_giam_gio"])', vi: 'khoá tăng sau giảm đọc sổ luật chung — máy và trang cùng số' },
   { card: 'tang-luc-0611', tep: 'apps/web/src/lib/etp-khung.test.mts', co: "'16:05 VN ngoài khung → nhịp đầu từ 21:00'", vi: 'tự kiểm mốc tăng ngoài khung' },

@@ -5,7 +5,7 @@ mà không có khoảng nghỉ → cùng một camp hiện nút đầu phiên $2
   - KHÔNG giới hạn số lần tăng/ngày (anh 21/10/2026: "ko nhất thiết phải giới hạn ngày tăng max 2 lần") — TOI_DA_NGAY = None; đặt số thì bật lại
 Đọc lịch sử camp Ethopex (/campaigns/<id>/history — mỗi lần đổi có 2 dòng requested + status_changed → gộp các dòng cách nhau < 10 phút).
 Dùng chung: luat-ethopex.py (không hiện nút) + lam-ethopex.py (nút cũ bấm muộn vẫn bị chặn)."""
-import datetime as dt, json, os
+import datetime as dt, json, os, subprocess
 BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))   # sổ luật chung: thang bậc
 
 # NGHI_GIO 3 → 24 (anh 05/11/2026 duyệt: ROI sau tăng tụt ngay và không hồi suốt 48 giờ — một bậc mỗi 24 giờ)
@@ -15,8 +15,23 @@ NGHI_GIO, TOI_DA_NGAY = int(BANG_LUAT["khung_doi"]["nghi_gio"]), None   # sổ l
 # Cổng = khung_doi.nap_chi / sang_roi của sổ luật chung (cùng cổng tăng trong ngày của máy luật — du_so là MỘT công thức cho cả hai).
 NGHI_DON_GIO = int(BANG_LUAT["khung_doi"]["nghi_don_gio"])
 KD = BANG_LUAT["khung_doi"]
-def du_so(chi, thu, ns):
-    """đạt cổng tăng: hôm nay đã tiêu ≥ nap_chi × ngân sách đang chạy và ROI hôm nay ≥ sang_roi%"""
+# TIÊU DỒN (anh 05/11/2026 "Ok. Làm đi"): tới 13:00 VN (DON_GIO giờ đầu ngày Ethopex) camp đã tiêu ≥ DON_13H × ngân sách lúc đó → HOÃN tăng tối nay,
+# giữ nguyên ngân sách; hôm sau tiêu đều thì tăng như thường. Số nhà 20/10–04/11, 466 lần máy tăng: ≥ 75% NS tới 13h → hôm sau +17% (39% lãi),
+# < 75% → +30…+39% (54–67% lãi). Một chỗ cho máy luật (_du_tang), máy làm (du_don), trang (thẻ xét luật + biểu đồ giờ). Không áp ★ ROAS, không chạm giảm/tắt.
+DON_13H, DON_GIO = float(KD["don_13h"]), int(KD["don_gio"])
+def tieu_don(chi_13h, ns_13h):
+    """chi tới 13h VN ≥ DON_13H × ngân sách lúc 13h → True (hoãn tăng); thiếu số (None) → False, không chặn oan"""
+    return chi_13h is not None and bool(ns_13h) and float(chi_13h) >= DON_13H * float(ns_13h)
+def so_13h(cid, ngay_utc):
+    """(chi tới 13h hôm nay, ngân sách lúc 13h) của camp từ kho — ngân sách lúc 13h = ngân sách TRƯỚC lần máy tăng đầu tiên trong ngày (nhật ký tang), None nếu không tăng"""
+    if not os.environ.get("DATABASE_URL"): return None, None
+    r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", f"""select coalesce((select sum(chi) from etp.so_gio_camp where camp_id = {int(cid)} and ngay = '{ngay_utc}' and gio < {DON_GIO}), 0),
+        (select min(nullif(regexp_replace(truoc, '[^0-9.]', '', 'g'), '')::numeric) from etp.nhat_ky where ok and viec = 'tang' and camp_id = {int(cid)} and (luc at time zone 'utc')::date = '{ngay_utc}')"""], capture_output=True, text=True)
+    p = (r.stdout.strip().split("|") + [""])[:2]
+    return (float(p[0]) if p[0] else None), (float(p[1]) if p[1] else None)
+def du_so(chi, thu, ns, chi_13h=None, ns_13h=None):
+    """đạt cổng tăng: hôm nay đã tiêu ≥ nap_chi × ngân sách đang chạy và ROI hôm nay ≥ sang_roi%; KHÔNG tiêu dồn (chi_13h / ns_13h — None = không xét)"""
+    if tieu_don(chi_13h, ns_13h or ns): return False
     chi, thu, ns = float(chi or 0), float(thu or 0), float(ns or 0)
     return ns > 0 and chi >= float(KD["nap_chi"]) * ns and thu >= (1 + float(KD["sang_roi"]) / 100) * chi
 def du_don(api, cid, bay_gio=None):
@@ -24,7 +39,8 @@ def du_don(api, cid, bay_gio=None):
     now = bay_gio or dt.datetime.now(dt.timezone.utc); d = now.date().isoformat()
     rows = (api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue"], "filters": {"campaign_id": [int(cid)]}, "metric_conditions": [], "limit": 100, "page": 1, "page_size": 100, "date_from": d, "date_to": d}) or {}).get("rows") or []
     c = (api(f"/api/v1/campaigns/{cid}") or {}).get("campaign") or {}
-    return du_so(sum(float(x.get("cost") or 0) for x in rows), sum(float(x.get("revenue") or 0) for x in rows), c.get("budget_daily"))
+    c13, n13 = so_13h(cid, d)
+    return du_so(sum(float(x.get("cost") or 0) for x in rows), sum(float(x.get("revenue") or 0) for x in rows), c.get("budget_daily"), chi_13h=c13, ns_13h=n13 or c.get("budget_daily"))
 # GIẢM BẬC (anh 21/10/2026: "camp âm mà budget cao do set vội… giảm dần theo bậc… tránh giảm xong lại bị tăng đệ quy"):
 #   giảm chỉ chấm trên số TRỌN ngày hôm qua (doanh thu về trễ), cách lần đổi ngân sách trước ≥ NGHI_GIAM_GIO; sau khi giảm khoá tăng KHOA_SAU_GIAM_GIO
 #   và muốn tăng lại phải đạt ROI ≥ 50% trên số SAU lần giảm (luat-ethopex.py) — không dùng ROI tháng cũ → hết vòng tăng–giảm.

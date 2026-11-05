@@ -1681,17 +1681,20 @@ function ONgay({ bac, tieu, gio, children }: { bac?: DuLieuEtp['lsBac'][number];
 // DIỄN BIẾN TRONG NGÀY (anh 05/11/2026 "hover vào 1 ngày thấy diễn biến tăng giảm trong ngày" — "1 cái chart"): cột = chi từng giờ, đường = lãi CỘNG DỒN
 // từ 07:00 VN (đầu ngày Ethopex). Số từ etp.so_gio_camp (đồng bộ 3 phút/lần); một lần đọc mỗi (nhóm camp, ngày), nhớ trong trang
 type GioO = { camps: number[]; ngay: string };
-const NHO_GIO = new Map<string, Promise<{ ds: SoGio[]; luc: string | null; hoc: number[]; so: number } | { loi: string }>>();
+const NHO_GIO = new Map<string, Promise<{ ds: SoGio[]; luc: string | null; hoc: number[]; so: number; ns: number } | { loi: string }>>();
 function BieuDoGio({ gio }: { gio: GioO }) {
   const k = `${gio.ngay}|${gio.camps.join(',')}`;
-  const [kq, setKq] = useState<{ ds: SoGio[]; luc: string | null; hoc: number[]; so: number } | { loi: string } | null>(null);
+  const [kq, setKq] = useState<{ ds: SoGio[]; luc: string | null; hoc: number[]; so: number; ns: number } | { loi: string } | null>(null);
   const [chon, setChon] = useState<number | null>(null);   // giờ đang rê trên biểu đồ → dòng số cụ thể (anh 05/11/2026 "hover vào thì show số cụ thể")
   useEffect(() => { let song = true; if (!NHO_GIO.has(k)) NHO_GIO.set(k, docGioNgay(gio.camps, gio.ngay)); NHO_GIO.get(k)!.then((x) => song && setKq(x)).catch((e) => song && setKq({ loi: String(e) })); return () => { song = false; }; }, [k]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (!kq) return <div style={{ height: 150, display: 'grid', placeItems: 'center', color: 'var(--fg-3)', fontSize: 11 }}>đang tải số theo giờ…</div>;
   if ('loi' in kq) return <div style={{ color: '#f87171', fontSize: 11 }}>{kq.loi}</div>;
   if (!kq.ds.length) return <div style={{ color: 'var(--fg-3)', fontSize: 11, margin: '4px 0' }}>chưa có số theo giờ cho ngày này (kho giờ từng camp bắt đầu 20/10)</div>;
   const theo = new Map(kq.ds.map((x) => [x.gio, x])), het = Math.max(...kq.ds.map((x) => x.gio));
-  let don = 0; const cot = Array.from({ length: 24 }, (_, g) => { const x = theo.get(g); const lai = x ? x.thu - x.chi : 0; if (g <= het) don += lai; return { g, chi: x?.chi ?? 0, lai, don: g <= het ? don : null }; });
+  let don = 0, donChi = 0; const cot = Array.from({ length: 24 }, (_, g) => { const x = theo.get(g); const lai = x ? x.thu - x.chi : 0; if (g <= het) { don += lai; donChi += x?.chi ?? 0; } return { g, chi: x?.chi ?? 0, lai, don: g <= het ? don : null, donChi: g <= het ? donChi : null }; });
+  // MỨC CHI CỦA FB (anh 05/11/2026 "show thêm mức chi của fb vào chart theo giờ"): đường đứt = chi CỘNG DỒN so với ngân sách ngày (vạch NS), % NS tới 13h = tín hiệu
+  // tiêu dồn của luật tăng bậc (KD.don_13h) — cùng số máy luật đọc (nhip_tang.tieu_don)
+  const chiHet = donChi, mxC = Math.max(0.01, kq.ns, chiHet), chi13 = cot.slice(0, KD.don_gio).reduce((a, c) => a + c.chi, 0), pct13 = kq.ns > 0 && het >= KD.don_gio - 1 ? (chi13 / kq.ns) * 100 : null, donRoi = pct13 != null && pct13 >= KD.don_13h * 100;
   const W = 368, H = 150, T = 14, B = 128, mxChi = Math.max(0.01, ...cot.map((c) => c.chi));
   const dons = cot.flatMap((c) => (c.don == null ? [] : [c.don])), lo = Math.min(0, ...dons), hi = Math.max(0, ...dons), y = (v: number) => T + ((hi - v) / (hi - lo || 1)) * (B - T);
   const cuoi = dons[dons.length - 1] ?? 0, mau = cuoi >= 0 ? '#4ade80' : '#f87171';
@@ -1700,6 +1703,7 @@ function BieuDoGio({ gio }: { gio: GioO }) {
   const vn = (g: number) => `${String((g + 7) % 24).padStart(2, '0')}h`;
   const x0 = 26, cw2 = (W - x0) / 24, cx = (g: number) => x0 + (g + 0.5) * cw2;   // chừa lề trái cho nhãn $0
   const pts2 = cot.filter((c) => c.don != null).map((c) => `${cx(c.g)},${y(c.don!)}`).join(' ');
+  const yc = (v: number) => B - (v / mxC) * (B - T), ptsChi = cot.filter((c) => c.donChi != null).map((c) => `${cx(c.g)},${yc(c.donChi!)}`).join(' ');
   const g0 = chon ?? het, c0 = cot[g0]!, x = theo.get(g0), hocTu = kq.hoc.findIndex((n) => n > 0), hocN = kq.hoc[g0] ?? 0;
   return <div onMouseLeave={() => setChon(null)}>
     <div style={{ display: 'flex', gap: 7, whiteSpace: 'nowrap', overflow: 'hidden', fontSize: 11, marginBottom: 4, fontVariantNumeric: 'tabular-nums', height: 16 }}>   {/* một dòng cố định — dòng số xuống hàng làm biểu đồ nhảy */}
@@ -1708,7 +1712,8 @@ function BieuDoGio({ gio }: { gio: GioO }) {
       <span style={{ color: 'var(--fg-2)' }}>thu <b style={{ color: 'var(--fg-1)' }}>{usd(x?.thu ?? 0)}</b></span>
       <span style={{ color: 'var(--fg-2)' }}>lãi giờ <b style={{ color: c0.lai >= 0 ? '#4ade80' : '#f87171' }}>{usd(c0.lai)}</b></span>
       {hocN ? <span style={{ color: '#f59e0b' }}>{kq.so > 1 ? `${hocN}/${kq.so} camp đang học` : 'đang học'}</span> : null}
-      {c0.don != null ? <span style={{ color: 'var(--fg-2)' }}>cộng dồn <b style={{ color: c0.don >= 0 ? '#4ade80' : '#f87171' }}>{usd(c0.don)}</b></span> : <span style={{ color: 'var(--fg-3)' }}>chưa tới giờ này</span>}
+      {c0.don != null ? <span style={{ color: 'var(--fg-2)' }}>lãi dồn <b style={{ color: c0.don >= 0 ? '#4ade80' : '#f87171' }}>{usd(c0.don)}</b></span> : <span style={{ color: 'var(--fg-3)' }}>chưa tới giờ này</span>}
+      {c0.donChi != null ? <span style={{ color: 'var(--fg-2)' }}>chi dồn <b style={{ color: 'var(--fg-1)' }}>{usd(c0.donChi)}</b>{kq.ns > 0 ? ` (${Math.round((c0.donChi / kq.ns) * 100)}% NS)` : ''}</span> : null}
     </div>
     <svg width={W} height={H} style={{ display: 'block' }}>
       {/* GIAI ĐOẠN HỌC (anh 05/11/2026 "highlight khoảng thời gian FB dành cho việc học với camp mới"): KD.hoc_gio giờ chạy đầu từ giờ đầu tiên có chi —
@@ -1720,6 +1725,10 @@ function BieuDoGio({ gio }: { gio: GioO }) {
       <line x1={x0} x2={W} y1={y(0)} y2={y(0)} stroke="var(--fg-2, #aaa)" strokeWidth={1.2} opacity={0.8} />
       <text x={0} y={y(0) + 3.5} fontSize={10} fontWeight={700} fill="var(--fg-1, #ddd)">$0</text>
       {chon != null ? <line x1={cx(chon)} x2={cx(chon)} y1={T - 6} y2={B} stroke="var(--fg-2, #aaa)" strokeDasharray="2 3" /> : null}
+      {/* MỨC CHI: vạch ngân sách ngày + đường đứt chi cộng dồn (thang riêng 0 → max(NS, chi)); mốc 13h = giờ máy luật đọc tiêu dồn */}
+      {kq.ns > 0 ? <><line x1={x0} x2={W} y1={yc(kq.ns)} y2={yc(kq.ns)} stroke="#60a5fa" strokeWidth={1} strokeDasharray="4 3" opacity={0.7} /><text x={W - 2} y={yc(kq.ns) - 2} textAnchor="end" fontSize={9.5} fill="#60a5fa">NS {usd(kq.ns)}</text></> : null}
+      <polyline points={ptsChi} fill="none" stroke="#60a5fa" strokeWidth={1.5} strokeDasharray="3 2" strokeLinejoin="round" opacity={0.9} />
+      {pct13 != null ? <><line x1={x0 + KD.don_gio * cw2} x2={x0 + KD.don_gio * cw2} y1={T - 6} y2={B} stroke={donRoi ? '#f87171' : '#60a5fa'} strokeWidth={1} opacity={0.6} /><text x={x0 + KD.don_gio * cw2 + 2} y={B - 2} fontSize={9.5} fontWeight={600} fill={donRoi ? '#f87171' : '#60a5fa'}>{vn(KD.don_gio)} {Math.round(pct13)}% NS</text></> : null}
       <polyline points={pts2} fill="none" stroke={mau} strokeWidth={2} strokeLinejoin="round" />
       {cot.filter((c) => c.don != null).map((c) => <circle key={c.g} cx={cx(c.g)} cy={y(c.don!)} r={c.g === g0 ? 4 : 2.2} fill={c.don! >= 0 ? '#4ade80' : '#f87171'} />)}
       {[0, 4, 8, 12, 16, 20].map((g) => <text key={g} x={x0 + g * cw2 + 1} y={H - 4} fontSize={9.5} fill="var(--fg-3, #777)">{vn(g)}</text>)}
@@ -1730,7 +1739,8 @@ function BieuDoGio({ gio }: { gio: GioO }) {
       <span>cuối <b style={{ color: mau }}>{usd(cuoi)}</b> lúc {vn(het + 1)}</span>
       {dinh ? <span>đỉnh <b style={{ color: dinh.don! >= 0 ? '#4ade80' : '#f87171' }}>{usd(dinh.don!)}</b> {vn(dinh.g + 1)}</span> : null}
       {day ? <span>đáy <b style={{ color: day.don! >= 0 ? '#4ade80' : '#f87171' }}>{usd(day.don!)}</b> {vn(day.g + 1)}</span> : null}
-      <span style={{ color: 'var(--fg-3)' }}>cột xám = chi mỗi giờ{hocTu >= 0 ? <> · <span style={{ color: '#f59e0b' }}>vùng cam = FB học ({KD.hoc_gio} giờ chạy đầu)</span></> : null}</span>
+      <span style={{ color: 'var(--fg-3)' }}>cột xám = chi mỗi giờ · <span style={{ color: '#60a5fa' }}>đứt xanh = chi cộng dồn / vạch NS</span>{hocTu >= 0 ? <> · <span style={{ color: '#f59e0b' }}>vùng cam = FB học ({KD.hoc_gio} giờ chạy đầu)</span></> : null}</span>
+      {pct13 != null ? <span style={{ color: donRoi ? '#f87171' : 'var(--fg-2)' }} title={`luật tăng bậc: tới ${vn(KD.don_gio)} đã tiêu ≥ ${Math.round(KD.don_13h * 100)}% ngân sách = tiêu dồn → hoãn tăng tối nay`}>tới {vn(KD.don_gio)}: <b>{Math.round(pct13)}% NS</b>{donRoi ? ' — tiêu dồn, hoãn tăng' : ''}</span> : null}
     </div>
   </div>;
 }

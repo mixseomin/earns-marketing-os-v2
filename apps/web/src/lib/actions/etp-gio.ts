@@ -10,16 +10,18 @@ import { KD } from '@/lib/etp-khung';
 export type SoGio = { gio: number; chi: number; thu: number };
 
 // hoc[g] = số camp trong nhóm đang ở GIAI ĐOẠN HỌC lúc giờ g (KD.hoc_gio giờ chạy đầu, tính từ giờ đầu tiên có chi — anh 05/11/2026 "highlight khoảng thời gian FB dành cho việc học")
-export async function docGioNgay(camps: number[], ngay: string): Promise<{ ds: SoGio[]; luc: string | null; hoc: number[]; so: number } | { loi: string }> {
+export async function docGioNgay(camps: number[], ngay: string): Promise<{ ds: SoGio[]; luc: string | null; hoc: number[]; so: number; ns: number } | { loi: string }> {
   const q = await quyenEtp(await getCurrentUser());
   if (!q || !xemNha(q)) return { loi: 'không có quyền xem số theo giờ' };
   const ids = [...new Set(camps.filter((x) => Number.isInteger(x) && x > 0))].slice(0, 2000);
-  if (!ids.length || !/^\d{4}-\d{2}-\d{2}$/.test(ngay)) return { ds: [], luc: null, hoc: [], so: 0 };
+  if (!ids.length || !/^\d{4}-\d{2}-\d{2}$/.test(ngay)) return { ds: [], luc: null, hoc: [], so: 0, ns: 0 };
   const r = (await getDb()!.execute(sql`select gio, sum(chi)::float chi, sum(thu)::float thu, max(cap_nhat)::text luc from etp.so_gio_camp
     where ngay = ${ngay}::date and camp_id = any(${`{${ids.join(',')}}`}::bigint[]) group by gio order by gio`)) as unknown as { gio: number; chi: number; thu: number; luc: string }[];
   const mang = `{${ids.join(',')}}`;
   const h = (await getDb()!.execute(sql`with t0 as (select camp_id, min(ngay + gio * interval '1 hour') t from etp.so_gio_camp where camp_id = any(${mang}::bigint[]) and chi > 0 group by 1)
     select g, count(t0.camp_id) filter (where ${ngay}::date + g * interval '1 hour' >= t0.t and ${ngay}::date + g * interval '1 hour' < t0.t + ${KD.hoc_gio} * interval '1 hour')::int n
     from generate_series(0, 23) g left join t0 on true group by g order by g`)) as unknown as { g: number; n: number }[];
-  return { hoc: h.map((x) => Number(x.n)), so: ids.length, ds: r.map((x) => ({ gio: Number(x.gio), chi: Number(x.chi), thu: Number(x.thu) })), luc: r.reduce<string | null>((a, x) => (!a || x.luc > a ? x.luc : a), null) };
+  // ngân sách ngày của nhóm (etp.so_ngay hôm đó; chưa có dòng → ngân sách hiện tại) — biểu đồ vẽ mức NS + % NS tới 13h (anh 05/11/2026 "show thêm mức chi của fb vào chart theo giờ")
+  const nsR = (await getDb()!.execute(sql`select coalesce((select sum(ngan_sach)::float from etp.so_ngay where ngay = ${ngay}::date and camp_id = any(${mang}::bigint[])), (select sum(ngan_sach)::float from etp.camp where camp_id = any(${mang}::bigint[])), 0) ns`)) as unknown as { ns: number }[];
+  return { ns: Number(nsR[0]?.ns ?? 0), hoc: h.map((x) => Number(x.n)), so: ids.length, ds: r.map((x) => ({ gio: Number(x.gio), chi: Number(x.chi), thu: Number(x.thu) })), luc: r.reduce<string | null>((a, x) => (!a || x.luc > a ? x.luc : a), null) };
 }

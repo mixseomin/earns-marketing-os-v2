@@ -67,7 +67,8 @@ def ab_ap(pl, lich, goc, moi, roas=False, cr=None):
     roas=True (camp ★ ROAS): không chia nhánh, chỉ NỐI mã của camp gốc nhánh thu — payload ROAS chép nguyên Ad Set gốc nên đã mang tham số nhánh.
     Trả (ma, nhanh) để ghi etp.camp_ab sau khi tạo, hoặc None. Lỗi đọc sổ KHÔNG nuốt ở đây — nơi gọi ghi kq["ab_loi"]."""
     if NGOAI: return None
-    hn = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).date(); chay = (hn if lich == "today" else hn + dt.timedelta(days=1)).isoformat()
+    # ngày chạy đầu = NGÀY ETHOPEX (UTC): "tomorrow" = 00:00 UTC kế tiếp. Bản cũ lấy ngày VN → camp tạo 00:00–07:00 VN (hẹn 07:00 cùng ngày VN) bị tính sang hôm sau, lọt khung A/B (06/11/2026)
+    hn = dt.datetime.now(dt.timezone.utc).date(); chay = (hn if lich == "today" else hn + dt.timedelta(days=1)).isoformat()
     ab = None if roas else json.loads(q(f"select row_to_json(a)::text from etp.ab a where trang_thai = 'dang' and kieu in ({','.join(repr(k) for k in AP)}) and '{chay}'::date between bat_dau and coalesce(ket_thuc, bat_dau) order by ma limit 1") or "null")
     if ab:
         import zlib

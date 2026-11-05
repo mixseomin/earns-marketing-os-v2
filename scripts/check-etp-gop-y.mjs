@@ -686,6 +686,8 @@ const LUAT = [
   { card: 'trang-0311', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'if not con: return None', vi: 'điền mô tả / cốt truyện xong mà không thiếu gì khác thì lên camp luôn, không chờ đồng bộ (03/11/2026)' },
   { card: 'nha-0311', tep: 'apps/xuong-video/scripts/ethopex/phim-moi.py', co: 'python3 apps/etp/soat_18_ai.py {', vi: 'lô cắt phim mới soát poster 18+ trước khi cắt, phim cấm thay bằng phim kế' },
   { card: 'nha-0311', tep: 'apps/xuong-video/scripts/ethopex/kiem-phim-18.py', co: 'def nha_phim_cam(cid):', vi: 'phim bị cấm 18+ tự nhả nhận (anh 03/11/2026)' },
+  { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'luat, ai, lay("--nhan"), "--mien-cham" in a, tay)', vi: 'nhánh ROAS nhận tay từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)' },
+  { card: 'roas-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'nhan=None, mien_cham=False, tay=False):', vi: 'roas_main khai tham số tay' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: "bat_dau < now() - interval '1 hour'", vi: 'thợ chết: việc dang quá 1 giờ thì xếp lại' },
   { card: 'cat-0211', tep: 'apps/etp/tho.py', co: 'try: pr.wait(timeout=(100 if d.get("kieu") == "tap" else 45) * 60)', vi: 'thợ cắt: trần 45 phút / phim (cũ 3 giờ); kiểu tập trọn (LT) 100 phút' },
   { card: 'cat-0211', tep: 'apps/xuong-video/scripts/ethopex/cat_drive.py', co: '"--max-duration", tran, "--cutoff-mode", "hard"]', vi: 'dọn Drive có trần thời gian (mặc định 5 phút), không chặn lô cắt' },

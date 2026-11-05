@@ -14,6 +14,7 @@ import { dangCongCu } from './nguon-site.mjs';
 import { tachCanh, hookGon, hookNgan } from './chu-man.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { ghiTacGia } from './anh-wiki.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
@@ -61,7 +62,7 @@ function vietMot(c, gh, LT) {
   const cauTrang = trang.length ? `This week: ${trang.map((e) => `a ${e.loai === 'trang_moi' ? 'New' : 'Full'} Moon on ${THU[new Date(e.utc).getUTCDay()]}`).join(', ')}.` : "This week's Moon, day by day.";
   // ảnh THẬT của chuyện (troi-xua/_anh.json — troi-xua/_may/lay-anh.mjs: ảnh Wikipedia công cộng / CC) xoay vòng theo mốc; CC BY phải ghi tác giả trong bài đăng
   const anh = (existsSync(join(DIR, 'troi-xua/_anh.json')) ? doc('troi-xua/_anh.json')[c.ma] ?? [] : []).filter((a) => existsSync(join(DIR, a.tep)));
-  const ghiAnh = anh.filter((a) => /cc by/i.test(a.giay_phep)).map((a) => `${a.file.replace(/^File:/, '')} by ${a.tac_gia || 'unknown'} (${a.giay_phep}) ${a.nguon}`);
+  const ghiAnh = ghiTacGia(anh);
   const chinh = T.moc.findIndex((m) => m.ngay === c.su_kien_ngay), iChinh = chinh >= 0 ? chinh : Math.min(1, T.moc.length - 1);
   const cau = [
     { nhin: { troi: 1 }, khung: true, chu: chuHook, the: { lon: namChu(n.y), duoi: c.ten, dong: [], vi: 'giua' } },

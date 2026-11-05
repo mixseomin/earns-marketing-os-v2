@@ -277,9 +277,9 @@
       {
         "ma": "G6",
         "ten": "Tập mẫu",
-        "viec": "1 tập Steve Jobs dựng trọn → anh duyệt; rồi 3 tập dự trữ · 05/11: tập mẫu Ask the Chart · Steve Jobs 1985 có giọng Charlotte (ckey 1.404₫) + nhạc + −14 LUFS, bản phát hành crf 23 (11,8 MB): https://img.on.tc/xuong-video/demo/astrolas/ask-steve-jobs-1985.mp4",
+        "viec": "1 tập Steve Jobs dựng trọn → anh duyệt; rồi 3 tập dự trữ · 06/11 ANH DUYỆT tập mẫu Ask the Chart · Steve Jobs 1985 (giọng Charlotte ckey + nhạc + outro logo theo playlist): https://img.on.tc/xuong-video/demo/astrolas/ask-steve-jobs-1985.mp4 · đang dựng 3 tập dự trữ: Sky Calendar Leonids 1833 · Myth Behind Saturn · Chart vs Chart Pitt × Jolie",
         "anh": "duyệt video",
-        "trang_thai": "cho_anh"
+        "trang_thai": "dang"
       },
       {
         "ma": "G7",
@@ -338,8 +338,9 @@
         "nhip": "Thứ 2 + Thứ 6",
         "kho": "vô hạn · 1–3 tập / người nổi tiếng",
         "trang": "shot-code/la-so.html",
-        "sinh": "kịch bản tay (G5 tự viết)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/la-so-mau.mp4?v=5"
+        "sinh": "lich-su/viet-chuong.mjs --ai <người | all> — 0đ, không AI: mốc đời có nguồn + ảnh thật Wikipedia của trang nguồn (anh-wiki.mjs) + câu diễn giải nguyên văn bài <người>-birth-chart của blog site, camera vào đúng sao; người hạng AA có bài lá số trên site",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/la-so-mau.mp4?v=5",
+        "tu_sinh": "^cc-[a-z0-9-]+$"
       },
       {
         "ma": "sky-calendar",

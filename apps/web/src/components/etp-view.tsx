@@ -485,7 +485,7 @@ function KhungPanel({ du, gon }: { du: DuLieuEtp; gon?: boolean }) {
         <div style={{ position: 'absolute', top: -2, bottom: -2, left: `${(h / 24) * 100}%`, width: 2, borderRadius: 1, background: 'var(--fg-1)', pointerEvents: 'none' }} />
       </div>
       {cho.tang + cho.giam + cho.tat ? <span style={{ display: 'inline-flex', gap: 5 }}><span style={{ color: 'var(--fg-3, #777)' }}>⏳</span>{soO(cho.tang, '↑', '#4ade80')}{soO(cho.giam, '↓', '#fb923c')}{soO(cho.tat, '✕', '#f87171')}</span> : null}
-      {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={300} noi={noi}><div style={{ width: 460, padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
+      {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={300} noi={noi}><div style={{ width: 460, maxWidth: '100%', boxSizing: 'border-box', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6 }}><b style={{ fontSize: 13 }}>Khung máy tự đổi camp</b><span style={{ color: 'var(--fg-2)' }}>giờ VN · cả 3 bộ</span></div>
         <div style={{ marginBottom: 8 }}>Bây giờ <b>{gioChu}</b> · <b style={{ color: mau }}>{bt} {ten}</b> · {k === 'bang' ? 'mở khung kế' : 'hết khung'} <b>{String(het).padStart(2, '0')}:00</b> (còn {con})</div>
         <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 11.5, fontVariantNumeric: 'tabular-nums' }}>
@@ -1095,13 +1095,15 @@ function KhungNoi({ x, y, rong, cao, noi, children, style }: { x: number; y: num
   // xuống (#1483) → che mọi dòng phía dưới. Nay mép trái thẻ cách con trỏ CHONG px về bên PHẢI, đầu thẻ ngang dòng đang rê — kéo chuột sang thẻ chỉ đi ngang trong
   // cùng dòng, không băng qua dòng khác (giữ ý #1483); cột dưới con trỏ để trống bấm được. Không đủ chỗ bên phải thì lật sang trái con trỏ.
   const CHONG = 4;
-  const left = x + CHONG + rong <= W - 8 ? x + CHONG : Math.max(8, x - CHONG - rong);
+  // MÀN HẸP (anh 05/11/2026 "pop khung thời gian trên mobile bị tràn"): bề rộng thẻ kẹp theo màn (W − 16) — mọi thẻ nổi, không vá từng thẻ
+  const r = Math.min(rong, W - 16);
+  const left = x + CHONG + r <= W - 8 ? x + CHONG : Math.max(8, Math.min(x - CHONG - r, W - 8 - r));
   const top = Math.max(8, Math.min(y - 24, H - h - 8));
   if (typeof document === 'undefined') return null;
   return createPortal((<>
     {/* lớp tô dòng đang mở thẻ (useNoi) — đặt cùng thẻ nên có ở mọi màn (Cây, Bảng, ROAS) */}
     <style>{'.dang-noi,.dang-noi>td{background:var(--hover,rgba(255,255,255,.09))!important}.dang-noi:not(tr),.dang-noi>td:first-child{box-shadow:inset 2px 0 0 #60a5fa}'}</style>
-    <div ref={ref} onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left, top,
+    <div ref={ref} onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left, top, maxWidth: W - 16, maxHeight: H - 16, overflow: 'auto',
       background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', ...style }}>
       <button type="button" onClick={noi.dong} aria-label="Đóng" title="Đóng (Esc)" style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: 12, border: '1px solid var(--line)',
         background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: '20px' }}>✕</button>

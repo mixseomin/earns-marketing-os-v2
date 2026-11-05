@@ -18,7 +18,7 @@
 //   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }] } → trạng thái máy đăng thời gian thực (mos2 Lịch đăng › ⚡ Máy đăng)
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
-//   --goc-hook --may <mã>          in JSON { goc, hooks[], da_lam[] } cho tập kế của máy video ngoài (kênh lịch sử lam-tap.mjs) — cùng kho góc + hook với --sinh-kho
+//   --goc-hook --may <mã> [--goc <id>]  in JSON { goc, hooks[], da_lam[] } cho tập kế của máy video ngoài (kênh lịch sử lam-tap.mjs) — cùng kho góc + hook với --sinh-kho
 //   --so-kenh [--may <mã>]          SỐ KÊNH SẢN PHẨM (xv_may.la_san_pham): lượt xem từng video + người đăng ký YouTube → kenh_so_ngay 'may:<mã>' (mos2 › Tài sản), 0₫
 //   --luot-xem                     ĐO THEO DẠNG: đọc lại lượt xem YouTube + Facebook mọi video đã đăng (cũ hơn 12 giờ) → bảng trung bình máy × dạng, 0₫
 //   --sinh-game <N>                dạng game Only ONE: tiêu đề theo KHUNG video thắng của kênh (≥ 500 lượt sau 7 ngày, đọc lại lượt xem YouTube trước) + góc spy dùng ít nhất → nạp + dựng, 0₫
@@ -252,7 +252,9 @@ if (a.includes('--nap')) {
   const sp = await spCua(ma), { gocs, hooksCho } = await khoGocHook(ma, Number(m.id), sp);
   const daCo = (await db.execute(sql`SELECT v.dang->'goc'->>'id' AS goc, v.chu_de FROM xv_may_video v WHERE v.may_id = ${m.id} AND NOT coalesce(v.luu_tru, false)`)) as unknown as { goc: string | null; chu_de: string | null }[];
   const dem = new Map<number, number>(); for (const x of daCo) if (x.goc) dem.set(Number(x.goc), (dem.get(Number(x.goc)) ?? 0) + 1);
-  const g = [...gocs].sort((g1, g2) => (dem.get(g1.id) ?? 0) - (dem.get(g2.id) ?? 0))[0];
+  // --goc <id>: tập thuộc playlist đã gắn góc (sổ kênh › playlist.goc_spy — Astrolas This Week = góc Thời điểm) → lấy đúng góc đó; không thì góc dùng ít nhất
+  const gocChi = a.includes('--goc') ? Number(a[a.indexOf('--goc') + 1]) : null;
+  const g = gocChi ? gocs.find((x) => x.id === gocChi) : [...gocs].sort((g1, g2) => (dem.get(g1.id) ?? 0) - (dem.get(g2.id) ?? 0))[0];
   if (!g) { console.error(`✗ máy ${ma}: nhóm spy chưa có góc nào`); process.exit(1); }
   const hooks = hooksCho(g, daCo.length); if (!hooks.length) { console.error(`✗ máy ${ma}: hết hook QC chưa dùng`); process.exit(1); }
   // KẾT QUẢ CÁC TẬP ĐÃ ĐĂNG (kênh tự động bước 5, 02/11/2026): lượt xem / ngày từ lúc đăng — máy viết chọn chuyện cùng kiểu tập thắng, tránh kiểu tập thua

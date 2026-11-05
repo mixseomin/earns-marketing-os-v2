@@ -187,18 +187,6 @@
    }
   },
   {
-   "nhan": "iMac:com.earns.mt5hb",
-   "ten": "MT5 - báo còn sống",
-   "chay": [
-    "/bin/bash",
-    "-c",
-    "pgrep -f terminal64.exe >/dev/null 2>&1 && /usr/bin/curl -s \"https://fxnewsapi.on.tc/hb?h=imac\" >/dev/null 2>&1"
-   ],
-   "hen": {
-    "moi_giay": 300
-   }
-  },
-  {
    "nhan": "iMac:com.earns.puzzle-dang",
    "ten": "Puzzle - bật bán Etsy",
    "chay": [
@@ -324,42 +312,6 @@
     "luc": [
      "02:00"
     ]
-   }
-  },
-  {
-   "nhan": "iMac:com.htuan.mt5proxyipsync",
-   "ten": "MT5 - sửa IP proxy",
-   "chay": [
-    "/bin/bash",
-    "/Users/htuan/bin/mt5-proxy-ipsync.sh"
-   ],
-   "nhat_ky_loi": "/Users/htuan/bin/mt5-proxy-ipsync.err",
-   "hen": {
-    "moi_giay": 120
-   }
-  },
-  {
-   "nhan": "iMac:com.htuan.mt5socks",
-   "ten": "MT5 - đường hầm proxy",
-   "chay": [
-    "/bin/bash",
-    "/Users/htuan/bin/mt5-socks-tunnel.sh"
-   ],
-   "nhat_ky": "/Users/htuan/bin/mt5-socks.log",
-   "hen": {
-    "luon": true
-   }
-  },
-  {
-   "nhan": "iMac:com.htuan.mt5watchdog",
-   "ten": "MT5 - canh treo và mở lại",
-   "chay": [
-    "/bin/bash",
-    "/Users/htuan/bin/mt5-watchdog.sh"
-   ],
-   "nhat_ky_loi": "/Users/htuan/bin/mt5-watchdog.err",
-   "hen": {
-    "moi_giay": 60
    }
   },
   {

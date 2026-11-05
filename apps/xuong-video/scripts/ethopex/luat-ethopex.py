@@ -1060,7 +1060,9 @@ def _xet_luat():
         if not b2 and all(x[3] for x in dk_tang):
             try: _ly_n, _mo_n = NT.cho_tang(api, int(cid), du=NT.du_so(h.get("chi"), h.get("thu"), a.get("budget") or h.get("budget")))   # cùng cờ tiêu dồn với _loc (bộ lọc ứng viên tăng)
             except Exception as e: _ly_n, _mo_n = f"không đọc được lịch sử ngân sách: {str(e)[:60]}", None
-            dk_tang = dk_tang + [[f"Nhịp tăng (cách lần tăng trước ≥ {NT.NGHI_GIO} giờ · tiêu dồn {NT.NGHI_DON_GIO} giờ · sau giảm {NT.KHOA_SAU_GIAM_GIO} giờ)", _ly_n or "qua", "không chặn", _ly_n is None]]
+            # giá trị NGẮN (ô bảng hẹp — lý do dài làm thẻ tràn ngang, mất cột Giá trị / Ngưỡng 06/11/2026): luật đã ở tên dòng
+            _gt_n = "qua" if _ly_n is None else f"được từ {_mo_n + dt.timedelta(hours=7):%H:%M %d/%m}" if _mo_n else _ly_n[:40]
+            dk_tang = dk_tang + [[f"Nhịp tăng (cách lần tăng trước ≥ {NT.NGHI_GIO} giờ · tiêu dồn {NT.NGHI_DON_GIO} giờ · sau giảm {NT.KHOA_SAU_GIAM_GIO} giờ)", _gt_n, "không chặn", _ly_n is None]]
             _cho_toi = _mo_n.isoformat() if _mo_n else None
         ls.append(L("thang_nb" if b2 else "tang", "Thang nhân bản (bộ 2)" if b2 else "Tăng bậc",
             ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại." + (f" Bộ 2: camp gốc tiêu TB ≥ ${THANG_CHI_GOC:g}/ngày 3 ngày đã khép mới mở bản thang (29/10)." if b2 else ""),

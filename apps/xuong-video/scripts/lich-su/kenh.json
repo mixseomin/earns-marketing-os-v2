@@ -248,7 +248,8 @@
      "mau": "#2563c9",
      "tem": "Borders",
      "bieu_tuong": "✂️"
-    }
+    },
+    "anh_hien_dai": true
    },
    {
     "ma": "weather-desk",

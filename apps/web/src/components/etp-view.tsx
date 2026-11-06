@@ -1,9 +1,8 @@
 'use client';
 // etp.on.tc — QUẢN LÝ CAMP / CREATIVE / ROI TẬP TRUNG (anh 24/10/2026). Đọc kho `etp` (lib/etp-doc), làm mới mỗi phút; ngày = ngày Ethopex (07:00–07:00 VN).
 import { dangTao, choGio, dangChay } from '@/lib/etp-chay';
-import { createContext, Fragment, startTransition, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { createContext, Fragment, startTransition, useCallback, useContext, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { createPortal } from 'react-dom';
 import { ChonKhoang, khoangCuaMoc, nhanCuaMoc } from '@/components/ui/chon-khoang';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';   // SỔ LUẬT CHUNG — mọi thẻ / nhóm / hướng / bộ lọc luật đọc từ đây (anh 01/11/2026 "tìm nguyên nhân gốc")
 import { Chon2, type Chon2Muc } from '@/components/ui/chon2';
@@ -20,7 +19,7 @@ import { quetPhimEtp } from '@/lib/actions/etp-phim';
 import { docGioNgay, type SoGio } from '@/lib/actions/etp-gio';
 import { NutLichPhim } from '@/components/etp-lich-phim';
 import { DongHoSx, FormChayDong, MAU as MAU_DONG, NUT_SX, TabDong, xuLy } from '@/components/etp-dong';
-import { TRE_MO } from '@/lib/etp-tre';
+import { DongMoc, KhungNoi, ReThe, useNoi, type Moc, type Noi, type TheNoi } from '@/components/etp-noi';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
@@ -263,19 +262,6 @@ function DauCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ten'> }) {
     <b style={{ fontSize: 13, color: laRoas(c) ? MAU_ROAS : undefined, userSelect: 'all', flex: 'none' }}>#{c.camp_id}</b>
     <span title={c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', userSelect: 'all' }}>{c.ten ?? '—'}</span></div>;
 }
-// DÒNG THỜI GIAN MỐC — MỘT KHUÔN cho mọi thẻ nổi của camp (anh 03/11/2026 "format kiểu này… component để dùng cho nhiều nơi"): chấm màu + tên đậm + số + giờ, dòng chữ dưới.
-// Dùng ở: lịch sử bậc (DongBac), lý do dừng (TheDung). Mốc mới nhất trên.
-type Moc = { ten: string; mau: string; so?: string; luc?: string; chu?: string | null; t?: string | null };
-function DongMoc({ ds, rong = 'Chưa có mốc nào.' }: { ds: Moc[]; rong?: string }) {
-  return ds.length ? <div style={{ position: 'relative', paddingLeft: 16 }}>
-    <span style={{ position: 'absolute', left: 4, top: 4, bottom: 4, width: 2, background: 'var(--line)' }} />
-    {ds.map((x, i) => <div key={i} title={x.t ?? undefined} style={{ position: 'relative', paddingBottom: 8, cursor: x.t ? 'help' : undefined }}>
-      <span style={{ position: 'absolute', left: -16, top: 3, width: 10, height: 10, borderRadius: 5, background: x.mau, boxShadow: '0 0 0 2px var(--bg-1, #111)' }} />
-      <div><b style={{ color: x.mau }}>{x.ten}</b>{x.so ? <> <b style={{ fontVariantNumeric: 'tabular-nums' }}>{x.so}</b></> : null}{x.luc ? <span style={{ color: 'var(--fg-3, #777)', marginLeft: 6 }}>{x.luc}</span> : null}</div>
-      {x.chu ? <div style={{ color: 'var(--fg-2)', lineHeight: 1.35, marginTop: 1 }}>{x.chu}</div> : null}
-    </div>)}
-  </div> : <div style={{ color: 'var(--fg-2)' }}>{rong}</div>;
-}
 // DÒNG THỜI GIAN ĐỔI BẬC (mới nhất trên) — thẻ Lịch sử bậc 30 ngày (ô ngân sách / ngăn camp) và thẻ đổi bậc trong một ngày (ô ngày của camp, #1507)
 function DongBac({ ls }: { ls: DuLieuEtp['lsBac'][number] }) {
   return <DongMoc rong="Chưa đổi bậc lần nào trong 30 ngày." ds={[...ls].reverse().map((x) => { const [ten, mau] = VIEC_BAC[x.viec] ?? [x.viec, '#94a3b8'];
@@ -288,20 +274,6 @@ function TheDung({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ten'> & Parameters<ty
     <DauCamp c={c} />
     <div style={{ marginBottom: 8 }}><b style={{ fontSize: 13, color: k.mau }}>{k.ky} {k.ten}</b></div>
     <DongMoc ds={k.moc} /></div>;
-}
-// THẺ NỔI CHUNG CHO MỌI HOVER MỚI (anh 04/11/2026 "tất cả hover đều phải dùng loại này"): cùng khung thẻ bậc — đầu thẻ (mã · tên), dòng lớn có màu, các mốc DongMoc
-type TheNoi = { ma?: string; ten?: string | null; tieu: string; mau: string; moc: Moc[] };
-function TheChung({ t }: { t: TheNoi }) {
-  return <div style={{ width: 380, maxWidth: '92vw', maxHeight: 440, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
-    {t.ma || t.ten ? <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0, marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
-      {t.ma ? <b style={{ fontSize: 13, flex: 'none' }}>{t.ma}</b> : null}<span style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.ten ?? ''}</span></div> : null}
-    <div style={{ marginBottom: 8 }}><b style={{ fontSize: 13, color: t.mau }}>{t.tieu}</b></div>
-    <DongMoc ds={t.moc} /></div>;
-}
-function ReThe({ the, children, rong = 380, cao = 320 }: { the: () => TheNoi; children: React.ReactNode; rong?: number; cao?: number }) {
-  const noi = useNoi<{ id: 0 }>();
-  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', alignItems: 'center' }}>
-    {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={rong} cao={cao} noi={noi}><TheChung t={the()} /></KhungNoi> : null}{children}</span>;
 }
 // Ô RÊ RA THẺ LÝ DO DỪNG (ô TT, chip ✕ luật ở cột Luật) — thẻ nổi chung (useNoi + KhungNoi: trễ mở, ✕ + Esc)
 function ReDung({ c, children }: { c: Parameters<typeof TheDung>[0]['c']; children: React.ReactNode }) {
@@ -1082,62 +1054,6 @@ const DAU_MAU = { ok: 'var(--neon-lime, #4ade80)', loi: '#f87171', vua: '#f59e0b
 const mauDiem = (d: number | null | undefined) => (d == null ? DAU_MAU.chua : d >= 8 ? DAU_MAU.ok : d >= 5 ? DAU_MAU.vua : DAU_MAU.loi);
 const META_VI: [RegExp, string][] = [[/Adult Sexual Exploitation/i, 'cưỡng ép / bạo lực tình dục'], [/Adult Nudity|Sexual Activity/i, 'khoả thân / gợi dục'], [/Violent|Graphic/i, 'bạo lực / máu'], [/Dangerous|Weapon/i, 'vũ khí / nguy hiểm']];
 const loiMeta = (g: string) => `Meta từ chối: ${META_VI.find(([re]) => re.test(g))?.[1] ?? 'vi phạm tiêu chuẩn quảng cáo'}`;
-// THẺ NỔI DÙNG CHUNG (anh 25/10/2026: "preview hiện xong đéo có nút tắt"): mọi thẻ xem trên trang — nút ✕, Esc tắt, rê chuột vào thẻ thì giữ
-// (xem video, đọc lý do), rời cả ô lẫn thẻ 0,3 giây thì tắt. Ô mở thẻ là HÀM dựng, không phải component khai bên trong component cha:
-// trang tự làm mới 5–60 giây, component khai bên trong bị dựng lại mỗi lần → mất sự kiện rời chuột → thẻ treo không tắt được.
-// TRỄ MỞ (anh 25/10/2026: "không cho hiện ngay, phải để một lúc mới hiện tránh hover nhầm"): dừng chuột TRE_MO ms mới mở; lướt qua thì không mở;
-// đang có thẻ mở mà rê sang ô khác thì đổi ngay. Luật chung: ~/.claude/skills/design/ydni/SKILL.md (THẺ NỔI KHI RÊ CHUỘT).
-// TRE_MO: lib/etp-tre.ts (dùng chung với khung xem trước tab Sản xuất)
-// VỊ TRÍ CHUỘT MỚI NHẤT (góp ý #1483 anh 29/10/2026 "Hover ở đâu thì bản phải ở đó để còn kéo chuột sang"): thẻ mở sau TRE_MO ms → đặt theo chỗ con trỏ LÚC MỞ,
-// không phải lúc vừa rê vào ô (chuột đã đi tiếp trong ô). Một bộ nghe cho cả trang, không gắn theo từng ô.
-const CHUOT = { x: 0, y: 0 };
-if (typeof window !== 'undefined') window.addEventListener('mousemove', (e) => { CHUOT.x = e.clientX; CHUOT.y = e.clientY; }, { passive: true });
-function useNoi<T>() {
-  const [v, setV] = useState<(T & { x: number; y: number }) | null>(null);
-  const hen = useRef<number | undefined>(undefined);
-  const dangMo = useRef(false); dangMo.current = !!v;
-  // TÔ DÒNG ĐANG MỞ THẺ (anh 28/10/2026 "highlight dòng khi đang hover của nó"): rời chuột sang thẻ nổi thì :hover của dòng mất — giữ lớp .dang-noi trên dòng chứa ô đã rê
-  // (dòng Cây .dong / dòng phim summary / dòng Bảng tr) suốt lúc thẻ mở; một chỗ cho mọi thẻ nổi dùng useNoi
-  const hang = useRef<Element | null>(null);
-  useEffect(() => { const el = hang.current; if (!v || !el) return; el.classList.add('dang-noi'); return () => el.classList.remove('dang-noi'); }, [v]);
-  const giu = useCallback(() => { if (hen.current) window.clearTimeout(hen.current); }, []);
-  const dongTre = useCallback(() => { giu(); hen.current = window.setTimeout(() => setV(null), 300); }, [giu]);
-  const dong = useCallback(() => { giu(); setV(null); }, [giu]);
-  const mo = useCallback((x: T, e: React.MouseEvent) => {
-    giu(); const toaDo = { x: e.clientX, y: e.clientY }; hang.current = (e.currentTarget as Element | null)?.closest?.('.dong, summary, tr') ?? null;
-    hen.current = window.setTimeout(() => setV({ ...x, ...(CHUOT.x || CHUOT.y ? { x: CHUOT.x, y: CHUOT.y } : toaDo) }), TRE_MO);   // #1514: đang mở thẻ khác cũng chờ đủ trễ (trước đổi ngay)
-  }, [giu]);
-  useEffect(() => { if (!v) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') dong(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [v, dong]);
-  return { v, mo, giu, dongTre, dong };
-}
-type Noi = { giu: () => void; dongTre: () => void; dong: () => void };
-function KhungNoi({ x, y, rong, cao, noi, children, style }: { x: number; y: number; rong: number; cao: number; noi: Noi; children: React.ReactNode; style?: React.CSSProperties }) {
-  const W = typeof window !== 'undefined' ? window.innerWidth : 1400, H = typeof window !== 'undefined' ? window.innerHeight : 900;
-  // PORTAL ra <body> (anh 28/10/2026: thẻ xét luật trong Bảng không hiện): position:fixed nằm trong khung cuộn / có transform của DataTable bị neo + cắt theo khung đó
-  // ĐẶT SÁT CON TRỎ (góp ý #1460 anh 28/10/2026 "hover vào đâu thì phải để ở gần đó"): đo chiều cao THẬT của thẻ (trước dùng `cao` ước 520px → thẻ ngắn
-  // ở nửa dưới màn bị đẩy lên xa) — đủ chỗ thì nằm ngay dưới con trỏ, không đủ thì lật lên trên con trỏ, chỉ kẹp mép khi cao hơn cả hai phía
-  const ref = useRef<HTMLDivElement>(null); const [h, setH] = useState(cao);
-  useLayoutEffect(() => { const el = ref.current; if (!el) return; const f = () => setH(el.offsetHeight); f(); const ro = new ResizeObserver(f); ro.observe(el); return () => ro.disconnect(); }, []);
-  // ĐẶT BÊN CẠNH CON TRỎ (góp ý #1531 anh 04/11/2026 "hover box phải nằm ngoài vị trí con chuột … đéo ai bấm bên dưới được"): trước thẻ đè lên con trỏ rồi tràn
-  // xuống (#1483) → che mọi dòng phía dưới. Nay mép trái thẻ cách con trỏ CHONG px về bên PHẢI, đầu thẻ ngang dòng đang rê — kéo chuột sang thẻ chỉ đi ngang trong
-  // cùng dòng, không băng qua dòng khác (giữ ý #1483); cột dưới con trỏ để trống bấm được. Không đủ chỗ bên phải thì lật sang trái con trỏ.
-  const CHONG = 4;
-  // MÀN HẸP (anh 05/11/2026 "pop khung thời gian trên mobile bị tràn"): bề rộng thẻ kẹp theo màn (W − 16) — mọi thẻ nổi, không vá từng thẻ
-  const r = Math.min(rong, W - 16);
-  const left = x + CHONG + r <= W - 8 ? x + CHONG : Math.max(8, Math.min(x - CHONG - r, W - 8 - r));
-  const top = Math.max(8, Math.min(y - 24, H - h - 8));
-  if (typeof document === 'undefined') return null;
-  return createPortal((<>
-    {/* lớp tô dòng đang mở thẻ (useNoi) — đặt cùng thẻ nên có ở mọi màn (Cây, Bảng, ROAS) */}
-    <style>{'.dang-noi,.dang-noi>td{background:var(--hover,rgba(255,255,255,.09))!important}.dang-noi:not(tr),.dang-noi>td:first-child{box-shadow:inset 2px 0 0 #60a5fa}'}</style>
-    <div ref={ref} onMouseEnter={noi.giu} onMouseLeave={noi.dongTre} style={{ position: 'fixed', zIndex: 60, left, top, maxWidth: W - 16, maxHeight: H - 16, overflow: 'auto',
-      background: 'var(--bg-1, #111)', border: '1px solid var(--line)', borderRadius: 10, boxShadow: '0 10px 30px rgba(0,0,0,.55)', ...style }}>
-      <button type="button" onClick={noi.dong} aria-label="Đóng" title="Đóng (Esc)" style={{ position: 'absolute', top: 4, right: 4, zIndex: 2, width: 24, height: 24, borderRadius: 12, border: '1px solid var(--line)',
-        background: 'rgba(0,0,0,.6)', color: '#fff', cursor: 'pointer', fontSize: 13, lineHeight: '20px' }}>✕</button>
-      {children}
-    </div>
-  </>), document.body);
-}
 /** danh sách URL khung của lớp ảnh — máy chủ gửi gọn mẫu '{n}' + số khung (etp-doc gonLop), bản cũ gửi thẳng danh sách */
 const khungUrl = (a?: ChamCr['lop']['anh']) => (a?.khung_mau && a.so_khung ? Array.from({ length: a.so_khung }, (_, i) => a.khung_mau!.replace('{n}', String(i + 1))) : a?.khung_url);
 type The = { tieu: string; diem?: number | null; ly: string; khung?: number[]; anh?: string; anhKhung?: string[]; video?: string | null; dai?: number; chu?: string; cr?: number; x: number; y: number };   // cr: creative của dòng đang mở thẻ → tô dòng (anh 26/10/2026)
@@ -1946,10 +1862,11 @@ const theHapThu = (m: MoRong, ten?: string | null): TheNoi => { const [pha, mau,
     { ten: 'Cách tính', mau: '#64748b', chu: 'cả team (Nhà + đội), 14 ngày Ethopex đã khép · mức tối ưu = chi TB 2 ngày lãi (đồng) cao nhất · kim = chi ngày gần nhất ÷ mức tối ưu (cung 0 → 2×): xanh ≤ 50% · vàng 50–150% · đỏ ≥ 150% · ROI biên = hồi quy thu theo chi (thông tin phụ)' }] }; };
 /** đồng hồ thị trường trên dòng phim — tài khoản chủ bấm vào mở bảng lịch triển khai + điều khiển phim (anh 06/11/2026 "chỉ show ở tk của David") */
 function DongHoPhim({ cid, m, ten }: { cid: number; m?: MoRong; ten?: string | null }) {
-  const g = <DongHoHapThu m={m} ten={ten} />;
-  return useContext(ChiXem) ? g : <NutLichPhim cid={cid}>{g}</NutLichPhim>;
+  // chủ: một thẻ nổi duy nhất (tab Lịch + tab Thị trường) — trước bọc hai thẻ hover chồng nhau, thẻ này mở thì thẻ kia đóng (anh 06/11/2026 "hiện lên xong lại tắt luôn")
+  if (useContext(ChiXem)) return <DongHoHapThu m={m} ten={ten} />;
+  return <DongHoHapThu m={m} ten={ten} boc={(the, g) => <NutLichPhim cid={cid} thiTruong={the}>{g}</NutLichPhim>} />;
 }
-function DongHoHapThu({ m, ten }: { m?: MoRong; ten?: string | null }) {
+function DongHoHapThu({ m, ten, boc }: { m?: MoRong; ten?: string | null; boc?: (the: () => TheNoi, g: React.ReactElement) => React.ReactNode }) {
   // LUÔN HIỆN (anh 04/11/2026 "vẫn phải hiện cái đồng hồ thị trường nhưng mờ hơn"): đủ 6 ngày đậm · 3–5 ngày mờ (sơ bộ) · chưa đủ số rất mờ, không kim
   const co = !!m && m.roi_bien != null && (m.pha ?? 'it_so') !== 'it_so';
   const pha = co ? m!.pha! : 'it_so', [, mau] = PHA_HT[pha] ?? PHA_HT.it_so!;
@@ -1961,13 +1878,14 @@ function DongHoHapThu({ m, ten }: { m?: MoRong; ten?: string | null }) {
   const [kx, ky] = xy(goc(ti ?? 0), R - 2);
   const theThat = (): TheNoi => co ? theHapThu(m!, ten) : { ma: m ? `#${m.content_id}` : undefined, ten, tieu: 'Thị trường · chưa đủ số', mau: '#6b7280',
     moc: [{ ten: 'Cần', mau: '#6b7280', chu: `≥ 3 ngày Ethopex đã khép có chi ≥ $5 (cả team) và tổng chi ≥ $100 trong 14 ngày${m?.so_ngay ? ` — mới ${m.so_ngay} ngày` : ''}` }] };
-  return <ReThe the={theThat}><span style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', cursor: 'help', opacity: !co ? 0.22 : (m!.so_ngay ?? 0) < 6 ? 0.5 : 1 }}>
+  const g = <span style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', cursor: 'help', opacity: !co ? 0.22 : (m!.so_ngay ?? 0) < 6 ? 0.5 : 1 }}>
     <svg width={26} height={26} viewBox="0 0 26 26">
       {cung(0, 0.5, '#22c55e')}{cung(0.5, 1.5, '#facc15')}{cung(1.5, 2, '#ef4444')}
       {ti != null ? <line x1={C} y1={C + 2} x2={kx} y2={ky} stroke="#fff" strokeWidth={1.6} strokeLinecap="round" /> : null}
       <circle cx={C} cy={C + 2} r={1.6} fill="#fff" />
       <text x={C} y={24.5} textAnchor="middle" fontSize={6.5} fontWeight={700} fill={mau}>{ti == null ? '—' : `${Math.round(ti * 100)}%`}</text>
-    </svg></span></ReThe>;
+    </svg></span>;
+  return boc ? boc(theThat, g) : <ReThe the={theThat}>{g}</ReThe>;
 }
 /** NÚT ＋ Ở DÒNG PHIM (anh 04/11/2026 "thêm 1 nút ở dòng film … mở ra form để chọn: số camp mới, thể loại film → submit là xong. Còn lại cho tab SX xử lý") */
 function NutMoRong({ cid, k }: { cid: number; k?: number }) {

@@ -18,6 +18,7 @@ import { openEntityDrawer } from '@/lib/entity-drawer';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
 import { quetPhimEtp } from '@/lib/actions/etp-phim';
 import { docGioNgay, type SoGio } from '@/lib/actions/etp-gio';
+import { NutLichPhim } from '@/components/etp-lich-phim';
 import { DongHoSx, FormChayDong, MAU as MAU_DONG, NUT_SX, TabDong, xuLy } from '@/components/etp-dong';
 import { TRE_MO } from '@/lib/etp-tre';
 import type { CheDoLuat } from '@/lib/etp-quyen';
@@ -1943,6 +1944,11 @@ const theHapThu = (m: MoRong, ten?: string | null): TheNoi => { const [pha, mau,
     { ten: 'Độ tin (R²)', mau: (m.r2 ?? 0) >= 0.6 ? '#4ade80' : '#f59e0b', so: String(m.r2 ?? '—'), chu: (m.r2 ?? 0) < 0.6 ? 'thấp — các ngày dao động mạnh, đọc thận trọng' : null },
     { ten: 'Chi trung bình cả team', mau: '#94a3b8', so: `$${m.chi_tb ?? '—'}/ngày`, chu: `Nhà + đội · ${m.n} camp Nhà đang chạy` },
     { ten: 'Cách tính', mau: '#64748b', chu: 'cả team (Nhà + đội), 14 ngày Ethopex đã khép · mức tối ưu = chi TB 2 ngày lãi (đồng) cao nhất · kim = chi ngày gần nhất ÷ mức tối ưu (cung 0 → 2×): xanh ≤ 50% · vàng 50–150% · đỏ ≥ 150% · ROI biên = hồi quy thu theo chi (thông tin phụ)' }] }; };
+/** đồng hồ thị trường trên dòng phim — tài khoản chủ bấm vào mở bảng lịch triển khai + điều khiển phim (anh 06/11/2026 "chỉ show ở tk của David") */
+function DongHoPhim({ cid, m, ten }: { cid: number; m?: MoRong; ten?: string | null }) {
+  const g = <DongHoHapThu m={m} ten={ten} />;
+  return useContext(ChiXem) ? g : <NutLichPhim cid={cid}>{g}</NutLichPhim>;
+}
 function DongHoHapThu({ m, ten }: { m?: MoRong; ten?: string | null }) {
   // LUÔN HIỆN (anh 04/11/2026 "vẫn phải hiện cái đồng hồ thị trường nhưng mờ hơn"): đủ 6 ngày đậm · 3–5 ngày mờ (sơ bộ) · chưa đủ số rất mờ, không kim
   const co = !!m && m.roi_bien != null && (m.pha ?? 'it_so') !== 'it_so';
@@ -2093,7 +2099,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         {/* bỏ dấu ⚠ nhân bản lỗi (#1524 anh 04/11/2026 "bỏ các thông báo lỗi này · chỉnh thể loại thẳng cột"): ô số bản nhân luôn rộng 22px → badge loại thẳng một cột */}
         <span style={{ color: 'var(--fg-2)', fontSize: 11, minWidth: 22, textAlign: 'right' }} title={n ? `${n} bản nhân` : undefined}>{n ? `x${n}` : ''}</span></span></span>; } },
     { key: 'ht', header: 'Thị trường', align: 'center', width: 40, title: 'thị trường của phim (độ hấp thụ): ROI biên 14 ngày (mỗi $1 chi thêm đem về bao nhiêu) — xanh còn hút · vàng gần đỉnh · đỏ bão hoà; chưa đủ số thì trống',
-      cell: () => null, total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <DongHoHapThu m={du.moRong?.find((x) => x.content_id === k)} ten={rs.find((x) => x.camp_id > 0)?.phim} /> : null; } },   // cột riêng (anh 04/11/2026)
+      cell: () => null, total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <DongHoPhim cid={k} m={du.moRong?.find((x) => x.content_id === k)} ten={rs.find((x) => x.camp_id > 0)?.phim} /> : null; } },   // cột riêng (anh 04/11/2026)
     { key: 'tt', header: 'TT', align: 'left', width: 74, title: 'trạng thái camp trên Ethopex', total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k)   // ĐỒNG HỒ CÁC ĐỢT SẢN XUẤT ở dòng phim, sát mép phải → ngay cạnh ＋ (cột Tuổi) (anh 04/11/2026)
       ? <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}><BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /></span> : null; }, cell: (c) => { const x = ttCamp(c); const o = <span title={c.trang_thai === 'ACTIVE' ? x.t : undefined} style={{ display: 'block', fontSize: 11, color: x.mau, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.chu}</span>; return c.trang_thai === 'ACTIVE' || c.giao === 'DISAPPROVED' ? o : <ReDung c={c}>{o}</ReDung>; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
     { key: 'tuoi', header: 'Tuổi', width: 52, title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)),

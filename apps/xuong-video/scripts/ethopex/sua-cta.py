@@ -145,9 +145,10 @@ def main():
     # KHOÁ GIỮA CÁC MÁY (06/11/2026: máy HP nhà chạy cùng iMac, hai bên đọc chung hàng trên box3 → cắt trùng phim, lượt xong trước gỡ luôn phim máy kia đang cắt).
     # flock chỉ chặn trong một máy; khoá này ở box3 (xv_khoa_ngoai 'ethopex_sua_dang', hạn 6h = TimeoutStartSec) — máy nào rảnh nhận cả lượt, máy kia thoát
     may = os.uname().nodename
-    if sql(f"""insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_sua_dang', jsonb_build_object('may', '{may}', 'het', extract(epoch from now())::bigint + 21600))
+    # bọc trong CTE + select: psql -tA vẫn in thẻ "INSERT 0 1" sau dòng RETURNING → so "1" luôn trượt, máy giữ khoá rồi tự thoát (06/11/2026)
+    if sql(f"""with x as (insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_sua_dang', jsonb_build_object('may', '{may}', 'het', extract(epoch from now())::bigint + 21600))
                on conflict (ten) do update set gia_tri = excluded.gia_tri, cap_nhat = now()
-               where (xv_khoa_ngoai.gia_tri->>'het')::bigint < extract(epoch from now()) or xv_khoa_ngoai.gia_tri->>'may' = '{may}' returning 1""") != "1":
+               where (xv_khoa_ngoai.gia_tri->>'het')::bigint < extract(epoch from now()) or xv_khoa_ngoai.gia_tri->>'may' = '{may}' returning 1) select count(*) from x""") != "1":
         return print(f"sua-cta đang chạy ở máy khác ({khoa('ethopex_sua_dang').get('may')}) — thoát")
     import atexit, signal
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))   # systemctl stop / launchd dừng → vẫn trả khoá

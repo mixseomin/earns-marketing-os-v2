@@ -1,0 +1,12 @@
+<!doctype html>
+<!-- THUMBNAIL 16:9 mẫu dài ghép giấy (06/11/2026): nền của tập + nhân vật chính dán viền giấy bên trái + tên to, mốc năm bên phải. dung.mjs chụp 1 khung. -->
+<html><head><meta charset="utf-8"><link href="https://fonts.googleapis.com/css2?family=Abril+Fatface&family=Anton&display=swap" rel="stylesheet"><style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head><body><canvas id="c" width="1280" height="720"></canvas>
+<script>
+const c = document.getElementById('c'), x = c.getContext('2d'); let N, V, C;
+window.__dung = async () => { C = window.CAU; N = new Image(); N.src = C.nen; await N.decode(); V = new Image(); V.src = C.nv; await V.decode(); await document.fonts.load('400 120px "Abril Fatface"'); await document.fonts.ready; };
+window.__khung = () => c.toDataURL('image/jpeg', 0.93).split(',')[1];
+window.__seek = () => { x.drawImage(N, 0, 0, 1280, 720); const h = 690, w = V.width * h / V.height, px = 10, py = 40;
+  for (let a = 0; a < 24; a++) { x.save(); x.shadowColor = '#fbf6ea'; x.shadowBlur = 0; x.shadowOffsetX = Math.cos(a / 24 * 6.283) * 9; x.shadowOffsetY = Math.sin(a / 24 * 6.283) * 9; x.drawImage(V, px, py, w, h); x.restore(); } x.drawImage(V, px, py, w, h);
+  const cx = 860, chu = (t, y, co, f) => { x.font = `400 ${co}px ${f}`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineJoin = 'round'; x.lineWidth = co * 0.24; x.strokeStyle = '#fff'; x.strokeText(t, cx, y); x.fillStyle = '#111'; x.fillText(t, cx, y); };
+  let co = 150; x.font = `400 ${co}px "Abril Fatface"`; while (x.measureText(C.chu).width > 780) { co -= 4; x.font = `400 ${co}px "Abril Fatface"`; } chu(C.chu, 150, co, '"Abril Fatface"'); if (C.nam) chu(C.nam, 275, 52, 'Anton'); };
+</script></body></html>

@@ -19,6 +19,7 @@
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
 //   --goc-hook --may <mã> [--goc <id>]  in JSON { goc, hooks[], da_lam[] } cho tập kế của máy video ngoài (kênh lịch sử lam-tap.mjs) — cùng kho góc + hook với --sinh-kho
+//   --kho-hook --may <mã>              in JSON cả kho hook { gocs, nhom, qc_goc, da_dung } — máy viết tự chia hook cho từng tập (lich-su/hook-kenh.mjs)
 //   --so-kenh [--may <mã>]          SỐ KÊNH SẢN PHẨM (xv_may.la_san_pham): lượt xem từng video + người đăng ký YouTube → kenh_so_ngay 'may:<mã>' (mos2 › Tài sản), 0₫
 //   --luot-xem                     ĐO THEO DẠNG: đọc lại lượt xem YouTube + Facebook mọi video đã đăng (cũ hơn 12 giờ) → bảng trung bình máy × dạng, 0₫
 //   --sinh-game <N>                dạng game Only ONE: tiêu đề theo KHUNG video thắng của kênh (≥ 500 lượt sau 7 ngày, đọc lại lượt xem YouTube trước) + góc spy dùng ít nhất → nạp + dựng, 0₫
@@ -245,6 +246,13 @@ if (a.includes('--nap')) {
     ra.push(`${x.ok ? '✓' : '⚠'} #${g.id} ${d} → ${kq.de.slug} (${Math.round(kq.vnd)}₫)${x.ok ? '' : ` · dựng ✗ ${x.loi}`}`); n++;
   }
   console.log(ra.join('\n')); console.log(`sinh kho ${ma}: ${n}/${N} đề, ${Math.round(vnd)}₫`);
+} else if (a.includes('--kho-hook')) {
+  // CẢ KHO HOOK của máy (06/11/2026, kênh Astrolas: máy viết gọi --goc-hook một lần rồi dùng lại 6 câu cho mọi tập → 3/4 tập mở bằng cùng một câu):
+  // in JSON { gocs[{ id, ten, qc_ids }], nhom[] (QC chạy lâu nhất, đã qua Ngọc lọc), qc_goc[] (QC gắn góc), da_dung[] (hook đã nằm trong bài đang chờ) } —
+  // bộ chọn hook ở máy viết (lich-su/hook-kenh.mjs) chia hook cho từng tập, mỗi câu một tập. 0₫ (Ngọc lọc dùng sổ xét sẵn, câu mới vài đồng).
+  const m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
+  const sp = await spCua(ma), { gocs, hookNhom, hookCuaQc, hookDaDung } = await khoGocHook(ma, Number(m.id), sp);
+  console.log(JSON.stringify({ gocs: gocs.map((g) => ({ id: g.id, ten: g.ten, loai: g.loai, qc_ids: (g.qc_ids ?? []).map(String) })), nhom: hookNhom, qc_goc: [...hookCuaQc.values()], da_dung: [...hookDaDung] }));
 } else if (a.includes('--goc-hook')) {
   // GÓC + HOOK CHO MỘT TẬP của máy làm video ngoài (kênh lịch sử — lam-tap.mjs gọi, 02/11/2026): góc dùng ít nhất của nhóm spy máy + tối đa 6 hook QC chưa dùng
   // + chủ đề các tập đã làm (máy viết tránh lặp). In JSON; không có góc / hook → mã 1 (cùng luật --sinh-kho). 0₫ (Ngọc lọc dùng sổ xét sẵn, câu mới vài đồng).

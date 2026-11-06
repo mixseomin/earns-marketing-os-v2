@@ -421,6 +421,7 @@ const LUAT = [
   { card: 1546, tep: 'apps/web/src/components/etp-view.tsx', cam: '>{ab.ma} · {ab.nhanhTen}</span>', vi: 'nhãn A/B chỉ ghi mã, chi tiết vào thẻ nổi' },
   { card: 1546, tep: 'apps/web/src/components/etp-view.tsx', cam: "<span title={t} style={{ fontSize: 12, cursor: 'help', opacity: pt(top)", vi: 'cờ nước hover = thẻ nổi chung' },
   { card: 1546, tep: 'apps/web/src/components/etp-view.tsx', cam: 'return t ? tieuThay(t) : undefined; }', vi: 'dòng camp thay không dùng rowTitle chữ thô' },
+  { card: 'roi-chot-0611', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'dk_ngay = [[NHAN_HN, f(rh, "%"), "≥ 50%"', cam: 'dk_ngay = [["ROI hôm nay", f(rh, "%")', vi: 'thẻ luật tăng trong ngày ghi rõ ROI hôm nay ĐÃ CHỐT CHI tới mấy giờ — khác ô nay cộng cả ngày (anh 06/11/2026)' },
   { card: 'audit-0511', tep: 'apps/cty/worker/ethopex.mjs', co: 'const giu = hoanHopLe(so, homNay) ? so.giu || {} : {};', vi: 'sổ hoãn ROAS hết hạn khi bản luật đổi — không sửa tay tệp hoãn trên box3' },
   { card: 'audit-0511', tep: 'apps/cty/worker/etp-tu-dong.mjs', co: 'giu = hoanHopLe(st.giu, homNay) ? st.giu.ds : {},', vi: 'sổ hoãn máy đội dùng chung hoanHopLe' },
   { card: 'audit-0511', tep: 'apps/xuong-video/scripts/ethopex/nhan-ban.py', co: 'tn = ab_lay(kq, pl, lich, goc, None, roas=True)', vi: 'camp ★ ROAS từ gốc nhánh thử A/B mang cùng mã' },

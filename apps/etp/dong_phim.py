@@ -329,13 +329,14 @@ def b_camp_lt(d, truoc):
 def san_dung_lai(cid):
     """creative DÙNG LẠI ĐƯỢC của phim — ĐÚNG các cổng nhan-ban.py sẽ chặn (04/11/2026: dòng #49/#50 phim 167292 đếm creative CTA cũ là 'có sẵn', bỏ cắt,
     tới bước Lên camp cả 6 bị chặn 'chưa đạt luật CTA mới'): chấm đạt · ĐẠT CTA mới (etp.creative.cta_dat) · chưa bị Meta từ chối · chưa có camp ·
-    không cùng đoạn với camp đang chạy / đang đồng bộ của phim. MỘT chỗ — bước dựng dòng và bước Lên camp cùng gọi."""
-    return [int(x) for x in sql(f"""select r.creative_id from etp.creative r join etp.cham_cong g using (creative_id)
+    không cùng đoạn với camp đang chạy / đang đồng bộ của phim. MỘT chỗ — bước dựng dòng và bước Lên camp cùng gọi.
+    MỖI ĐOẠN MỘT creative (06/11/2026: dòng #68 phim 167292 đếm 8 creative 'có sẵn' cùng đoạn 857–936 → bỏ cắt, lên camp 1 rồi 7 cái kia thành trùng đoạn → 1/5 camp)"""
+    return [int(x) for x in sql(f"""select distinct on (coalesce(r.doan, r.creative_id::text)) r.creative_id from etp.creative r join etp.cham_cong g using (creative_id)
         where r.content_id = {int(cid)} and g.duoc_len and r.cta_dat and r.tu_choi is null
           and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
           and (r.doan is null or r.doan not in (select k.doan from etp.camp c join etp.creative k using (creative_id) where c.content_id = {int(cid)} and k.doan is not null
                                                 and (c.trang_thai = 'ACTIVE' or coalesce(c.dong_bo, '') not in ('done', 'synced', 'error'))))
-        order by r.creative_id desc""").split() if x.isdigit()]
+        order by coalesce(r.doan, r.creative_id::text), r.creative_id desc""").split() if x.isdigit()]
 def san_cua(cid): return len(san_dung_lai(cid))
 
 def b_camp_mr(d, truoc):

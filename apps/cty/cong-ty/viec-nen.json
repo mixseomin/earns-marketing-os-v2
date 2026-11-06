@@ -769,7 +769,8 @@
     "/opt/homebrew/bin/node",
     "--input-type=module",
     "-e",
-    "const{execFileSync:x}=await import('node:child_process');const s=x('ssh',['-o','BatchMode=yes','-o','ConnectTimeout=15','root@167.233.241.16','cat /opt/earns-marketing-os-v2/apps/cty/may/astrolas-tasks.mjs'],{encoding:'utf8',maxBuffer:1<<24});await import('data:text/javascript;base64,'+Buffer.from(s).toString('base64'));"
+    "const{execFileSync:x}=await import('node:child_process');const s=x('ssh',['-o','BatchMode=yes','-o','ConnectTimeout=15','root@167.233.241.16','cat /opt/earns-marketing-os-v2/apps/cty/may/astrolas-tasks.mjs'],{encoding:'utf8',maxBuffer:1<<24});await import('data:text/javascript;base64,'+Buffer.from(s).toString('base64'));",
+    "--"
    ],
    "thu_muc": "/Users/htuan/Me/GitHub/Astrolas.com",
    "moi_truong": {

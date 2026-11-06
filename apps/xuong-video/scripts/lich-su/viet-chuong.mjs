@@ -3,12 +3,10 @@
 // 0đ, không AI. Mốc đời = sổ mốc có nguồn (dai/moc-<người>.json · la-so/cap.json, Wikipedia — chung viet-ask.mjs › mocCua), ảnh mốc = ảnh thật Wikipedia của trang
 // của chính người đó (anh-wiki.mjs, công cộng / CC, CC BY ghi tác giả trong bài đăng; mốc có tranh vẽ sẵn thì dùng tranh) · lời lá số = câu diễn giải NGUYÊN VĂN trong bài
 // "<người>-birth-chart" của blog site (la-so/bai/), camera vào đúng sao mục đó nói, tên mục của site làm nhãn · hook = dòng đầu QC spy góc Hiểu bản thân.
-//   node viet-chuong.mjs --ai angelina-jolie | all  [--goc-hook gh.json] [--xem]
-import { spawnSync } from 'node:child_process';
+//   node viet-chuong.mjs --ai angelina-jolie | all  [--kho-hook kho.json] [--hook-moi] [--xem]
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BOX, GOC_BOX } from './box3.mjs';
 import { dangCongCu } from './nguon-site.mjs';
 import { tachCanh, hookGon, hookNgan } from './chu-man.mjs';
 import { tenNgan } from './viet-cap.mjs';
@@ -16,6 +14,7 @@ import { mocCua } from './viet-ask.mjs';
 import { layAnhWiki, ghiTacGia } from './anh-wiki.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { chonHook, baoHook } from './hook-kenh.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
@@ -23,14 +22,6 @@ const THANG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', '
 const ngayChu = (d) => { const [y, m, n] = d.split('-').map(Number); return n ? `${THANG[m - 1]} ${n}, ${y}` : `${THANG[m - 1]} ${y}`; };
 const SAO = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Chiron'], tg = (p) => relative(SHOT, join(DIR, p));
 const ANH = join(DIR, 'la-so/anh-nguoi.json');
-
-function layHook(goc) {
-  const f = arg('goc-hook'); if (f) return JSON.parse(readFileSync(f, 'utf8'));
-  const r = spawnSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server timeout 240s ../../node_modules/.bin/tsx scripts/may-dung.mts --may astrolas --goc-hook --goc ${goc}`], { encoding: 'utf8', maxBuffer: 16 << 20 });
-  const dong = (r.stdout ?? '').trim().split('\n').reverse().find((l) => l.startsWith('{"goc"'));
-  if (!dong) { console.error(`✗ không lấy được hook spy góc ${goc}`); process.exit(3); }
-  return JSON.parse(dong);
-}
 
 /** mục lá số của bài site: tên mục (dữ liệu) + câu DIỄN GIẢI đầu tiên ("The library reads…") + sao đầu tiên tên mục nhắc. Bỏ mục tổng kết / hỏi đáp. Thuần. */
 export function mucLaSo(bai) {
@@ -40,12 +31,12 @@ export function mucLaSo(bai) {
   }).filter((m) => m.giai);
 }
 
-function vietMot(n, gh, anhKho) {
+function vietMot(n, anhKho) {
   const bai = doc(`la-so/bai/${n.slug}-birth-chart.json`), so = docSo().astrolas, pl = so.playlist.find((p) => p.ma === 'know-yourself'), D = doc(`la-so/${n.slug}.json`);
   const A = n.ten_ngan ?? tenNgan(n.ten), muc = mucLaSo(bai).filter((m) => !m.sao || D.sao.some((s) => s.ten === m.sao)).slice(0, 2), moc = mocCua(n);
   if (muc.length < 2 || moc.length < 2) { console.error(`✗ cc-${n.slug}: cần 2 mục lá số có câu diễn giải + 2 mốc (có ${muc.length} / ${moc.length})`); return false; }
   const ds = moc.length > 2 ? [moc[0], moc[Math.floor(moc.length / 2)], moc.at(-1)] : moc, anh = anhKho[`cc-${n.slug}`] ?? [];
-  const hs = hookGon(gh.hooks.filter((h) => !/\d/.test(h.chu) && !/retrograde/i.test(h.chu))), hook = hs[[...n.slug].reduce((s, c) => s + c.charCodeAt(0), 0) % hs.length] ?? gh.hooks[0], chuHook = hookNgan(hook.chu);
+  const { hook, chuHook, goc: gocHook } = chonHook('astrolas', 'know-yourself', `cc-${n.slug}`);
   const canhMoc = (m, i) => { const t = m.tranh ? join('dai', m.tranh) : anh[i % Math.max(1, anh.length)]?.tep, nhan = `${m.ngay.slice(0, 4)}${m.noi ? ` · ${m.noi}` : ''}`;
     return t && existsSync(join(DIR, t)) ? { nhin: { tranh: tg(t), kieu: ['day', 'trai', 'lui'][i % 3] }, chu: `${m.ngay.slice(0, 4)}. ${m.chu}`, nhan } : { nhin: { troi: 1 }, chu: m.chu, the: { lon: m.ngay.slice(0, 4), duoi: ngayChu(m.ngay), dong: [], vi: 'giua' } }; };
   const canhLaSo = (x) => ({ nhin: x.sao ? { sao: x.sao } : { toan: 1 }, chu: `“${x.giai.replace(/[.]$/, '')}.”`, nhan: x.ten });
@@ -57,7 +48,7 @@ function vietMot(n, gh, anhKho) {
   ].map((q) => ({ ...q, tu: 0, den: 0 }));
   const tieuDe = `${chuHook} ${A}: a life in chapters`, tac = ghiTacGia(anh);
   const tap = tachCanh({ _ghi: `Chart Chapters · ${A} — sinh bởi lich-su/viet-chuong.mjs (bài site ${bai.url}, mốc ${[...new Set(ds.map((m) => m.nguon_moc))].join(' + ')}, hook QC spy #${hook.id})`,
-    kenh: 'astrolas', mau: 'chart-chapters', playlist_ma: 'know-yourself', y_tuong: `cc-${n.slug}`, tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
+    kenh: 'astrolas', mau: 'chart-chapters', playlist_ma: 'know-yourself', y_tuong: `cc-${n.slug}`, tieu_de: tieuDe, goc: gocHook, hook: { qc: hook.id, goc: hook.chu },
     nguon_moc: [...new Set(ds.map((m) => m.nguon_moc))], nguon_bai: [`${n.slug}-birth-chart`],
     dang: dangCongCu('birth', n.slug, {}, `${n.ten}'s life in chapters, with the birth chart. Full reading: ${bai.url}${tac.length ? `\nImages: ${tac.join('; ')}` : ''}`),
     la_so: tg(`la-so/${n.slug}.svg`), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#8EC5FF', ic: '☉' }, cau, DAI: 0 });
@@ -77,7 +68,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const kho = existsSync(ANH) ? JSON.parse(readFileSync(ANH, 'utf8')) : {};
   // ảnh CHÍNH NGƯỜI ĐÓ: trang Wikipedia của người (tên sổ người, theo chuyển hướng) — trang nguồn mốc đôi là trang người kia (tập Jolie ra ảnh Brad Pitt, 06/11/2026)
   for (const n of ng) if (!kho[`cc-${n.slug}`]) { kho[`cc-${n.slug}`] = await layAnhWiki([n.wiki ?? n.ten], { ma: `cc-${n.slug}`, toiDa: 3 }); writeFileSync(ANH, JSON.stringify(kho, null, 1) + '\n'); }
-  const gh = layHook(docSo().astrolas.playlist.find((p) => p.ma === 'know-yourself')?.goc_spy?.[0]?.id ?? 4313);
-  let hong = 0; for (const n of ng) if (!vietMot(n, gh, kho)) hong++;
+  let hong = 0; for (const n of ng) if (!vietMot(n, kho)) hong++;
   console.log(`${ng.length - hong}/${ng.length} người đạt`); process.exit(hong ? 1 : 0);
 }

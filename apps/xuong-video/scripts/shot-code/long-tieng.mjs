@@ -87,4 +87,6 @@ const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, '-i', tepGiong, 
   // hình nén lại thành BẢN PHÁT HÀNH (crf 23, như máy làm tập): bản trung gian của dung.mjs là 16 Mbit/s — chép thẳng ra 92 MB cho 46 giây (05/11/2026)
   '-map', coOutro ? '[v]' : '0:v', '-map', '[a]', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23', '-preset', 'medium', '-c:a', 'aac', '-b:a', '160k', ...(coOutro ? [] : ['-t', String(DAI)]), '-movflags', '+faststart', resolve(ra)], { stdio: 'inherit' });
 if (r.status) process.exit(r.status);
+// sổ hook video đã dựng (lich-su/hook-kenh.mjs): tập khác của kênh không mở bằng cùng câu hook
+if (C.hook?.goc) (await import('../lich-su/hook-kenh.mjs')).ghiHookVideo(C, resolve(ra));
 console.log(`✓ ${ra} · ${DAI}s${coOutro ? ` + outro ${C.khung === 'ngang' ? 3 : 1}s` : ''} · ${cau.length} khung / ${nhom.length} lượt đọc · giọng ${AM.giong} (ckey) · tiền giọng lượt này ${moi * 156}₫${moi < nhom.length ? ` (${nhom.length - moi} lượt dùng lại)` : ''}`);

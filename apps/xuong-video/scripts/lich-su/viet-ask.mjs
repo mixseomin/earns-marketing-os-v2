@@ -5,18 +5,17 @@
 // năm đó; câu cơ chế là câu nguyên văn bài annual-profections-explained; mốc đời từ sổ mốc (dai/moc-<người>.json · la-so/cap.json, Wikipedia).
 // Mốc của sổ cặp → playlist Love & Compatibility (hook QC spy góc Tình yêu), mốc đời riêng → Career & Big Decisions (hook góc Sự nghiệp).
 // Tuổi trang báo phải bằng tuổi tính từ ngày sinh sổ người, không thì bỏ mốc. Mốc chỉ có năm (không tháng) bỏ: không biết rơi vào năm Profection nào.
-//   node viet-ask.mjs --ai steve-jobs | all   [--goc-hook gh.json] [--xem]   · --xem = chỉ liệt kê mốc dùng được
-import { spawnSync } from 'node:child_process';
+//   node viet-ask.mjs --ai steve-jobs | all   [--kho-hook kho.json] [--hook-moi] [--xem]   · --xem = chỉ liệt kê mốc dùng được
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BOX, GOC_BOX } from './box3.mjs';
 import { dangCongCu } from './nguon-site.mjs';
 import { tachCanh, hookGon, hookNgan } from './chu-man.mjs';
 import { tenNgan } from './viet-cap.mjs';
 import { docAp, tepAp } from './cong-cu/doc-ap.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { chonHook, baoHook } from './hook-kenh.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
@@ -24,14 +23,6 @@ const THANG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', '
 const ngayChu = (d) => { const [y, m, n] = d.split('-').map(Number); return n ? `${THANG[m - 1]} ${n}, ${y}` : `${THANG[m - 1]} ${y}`; };
 const THU = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 const tg = (p) => relative(SHOT, join(DIR, p));
-
-function layHook(goc) {
-  const f = arg('goc-hook'); if (f) return JSON.parse(readFileSync(f, 'utf8'));
-  const r = spawnSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server timeout 240s ../../node_modules/.bin/tsx scripts/may-dung.mts --may astrolas --goc-hook --goc ${goc}`], { encoding: 'utf8', maxBuffer: 16 << 20 });
-  const dong = (r.stdout ?? '').trim().split('\n').reverse().find((l) => l.startsWith('{"goc"'));
-  if (!dong) { console.error(`✗ không lấy được hook spy góc ${goc}`); process.exit(3); }
-  return JSON.parse(dong);
-}
 
 /** mốc dùng được của một người: sổ mốc đời riêng (dai/moc-<slug>.json) + mốc các cặp có người đó (la-so/cap.json), bỏ trùng chữ, cần có tháng.
  *  Mỗi mốc → năm Profection chứa nó (năm của sinh nhật gần nhất trước mốc) + tuổi tính từ ngày sinh sổ người. Thuần. */
@@ -49,11 +40,11 @@ export function mocCua(n) {
 }
 
 /** một tập = một người × một NĂM Profection; các mốc cùng năm (William 2010: cầu hôn · đính hôn · cưới) kể nối nhau trong cùng tập, không đẻ 3 tập gần y nhau */
-function vietMot(n, ms, ghTheo) {
+function vietMot(n, ms) {
   const m = ms[0], ap = JSON.parse(readFileSync(tepAp(n.slug, m.nam), 'utf8')), so = docSo().astrolas, pl = so.playlist.find((p) => p.ma === m.playlist);
   if (ap.tuoi !== m.tuoi) { console.error(`✗ ${n.slug} ${m.nam}: trang báo tuổi ${ap.tuoi}, sổ người tính ${m.tuoi} — bỏ năm`); return false; }
-  const gh = ghTheo(pl.goc_spy[0].id), A = n.ten_ngan ?? tenNgan(n.ten), ma = `ask-${n.slug}-${m.nam}`;
-  const hs = hookGon(gh.hooks.filter((x) => !/\d/.test(x.chu) && !/retrograde/i.test(x.chu))), hook = hs[[...ma].reduce((s, ch) => s + ch.charCodeAt(0), 0) % hs.length] ?? gh.hooks[0], chuHook = hookNgan(hook.chu);
+  const A = n.ten_ngan ?? tenNgan(n.ten), ma = `ask-${n.slug}-${m.nam}`;
+  const { hook, chuHook, goc: gocHook } = chonHook('astrolas', m.playlist, ma);
   const man = tg(relative(DIR, tepAp(n.slug, m.nam)).replace(/\.json$/, '.png')), o = (khung) => ({ man, ...(khung ? { khung } : {}) });
   const cau = [
     { nhin: { troi: 1 }, khung: true, chu: chuHook, the: { lon: '?', duoi: `${A} · ${m.nam}`, dong: [], vi: 'giua' } },
@@ -69,7 +60,7 @@ function vietMot(n, ms, ghTheo) {
   ];
   const tieuDe = `${chuHook} ${A}'s year in Annual Profections`;   // không số trong tiêu đề: luật hook cấm thêm con số không có trong QC gốc
   const tap = tachCanh({ _ghi: `Ask the Chart · ${A} ${m.nam} — sinh bởi lich-su/viet-ask.mjs (trang ${ap.nguon.slice(0, 50)}…, ${ms.length} mốc ${[...new Set(ms.map((x) => x.nguon_moc))].join(' + ')}, hook QC spy #${hook.id})`,
-    kenh: 'astrolas', mau: 'ask-the-chart', playlist_ma: m.playlist, y_tuong: ma, tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
+    kenh: 'astrolas', mau: 'ask-the-chart', playlist_ma: m.playlist, y_tuong: ma, tieu_de: tieuDe, goc: gocHook, hook: { qc: hook.id, goc: hook.chu },
     nguon_moc: [...new Set(ms.map((x) => x.nguon_moc))], nguon_cong_cu: [relative(DIR, tepAp(n.slug, m.nam))],
     dang: dangCongCu('annual-profections', n.slug, { year_target: m.nam }, `${n.ten}, ${m.nam}: what Annual Profections shows for age ${ap.tuoi}.`),
     la_so: tg(`la-so/${n.slug}.svg`), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'),
@@ -89,8 +80,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (process.argv.includes('--xem')) { for (const { n, m } of viec) console.log(`${n.slug.padEnd(18)} ${m.ngay.padEnd(10)} năm ${m.nam} tuổi ${String(m.tuoi).padStart(2)} · ${m.playlist.padEnd(18)} ${m.chu.slice(0, 60)}`); console.log(`${viec.length} mốc`); process.exit(0); }
   const loiDoc = await docAp([...new Map(viec.map(({ n, m }) => [`${n.slug}-${m.nam}`, { slug: n.slug, nam: m.nam }])).values()]);
   for (const l of loiDoc) console.error(`✗ ${l}`);
-  const nho = new Map(), ghTheo = (g) => { if (!nho.has(g)) nho.set(g, layHook(g)); return nho.get(g); };
   const nam = [...Map.groupBy(viec, ({ n, m }) => `${n.slug}-${m.nam}`).values()].map((g) => ({ n: g[0].n, ms: g.map((x) => x.m) }));
-  let hong = 0; for (const { n, ms } of nam) if (!existsSync(tepAp(n.slug, ms[0].nam)) || !vietMot(n, ms, ghTheo)) hong++;
+  let hong = 0; for (const { n, ms } of nam) if (!existsSync(tepAp(n.slug, ms[0].nam)) || !vietMot(n, ms)) hong++;
   console.log(`${nam.length - hong}/${nam.length} tập (người × năm) đạt · ${viec.length} mốc`); process.exit(hong ? 1 : 0);
 }

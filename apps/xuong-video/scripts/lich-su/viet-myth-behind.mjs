@@ -4,31 +4,22 @@
 //   câu đặt tên + chuyện = câu NGUYÊN VĂN Wikipedia (la-so/than-thoai-sao/<sao>.json, nguon_moc) · câu về hành tinh = câu nguyên văn site (bài the-10-planets-in-astrology /
 //   chiron-in-the-birth-chart) · vị trí trong lá số site của một người hạng AA (la-so/<người>.json) · hook = dòng đầu QC spy góc Hiểu bản thân (playlist know-yourself)
 //   Dàn cảnh TỰ ĐỘNG từ moc[].nhan_vat: 1 người giữa · 2 người hai bên · 3 người ba chỗ; ai đã đứng thì giữ phía cũ; người bên phải quay mặt vào (lat).
-//   node viet-myth-behind.mjs --sao saturn | all  [--goc-hook gh.json]
-import { spawnSync } from 'node:child_process';
+//   node viet-myth-behind.mjs --sao saturn | all  [--kho-hook kho.json] [--hook-moi]
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BOX, GOC_BOX } from './box3.mjs';
 import { dangCongCu } from './nguon-site.mjs';
 import { tachCanh, hookGon, hookNgan } from './chu-man.mjs';
 import { tenNgan } from './viet-cap.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { chonHook, baoHook } from './hook-kenh.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const KY = { Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇', Chiron: '⚷', Lilith: '⚸', Ceres: '⚳', Eris: '⯰' };
 const THU = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 const tg = (p) => relative(SHOT, join(DIR, p)), bam = (s) => [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
-
-function layHook(goc) {
-  const f = arg('goc-hook'); if (f) return JSON.parse(readFileSync(f, 'utf8'));
-  const r = spawnSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server timeout 240s ../../node_modules/.bin/tsx scripts/may-dung.mts --may astrolas --goc-hook --goc ${goc}`], { encoding: 'utf8', maxBuffer: 16 << 20 });
-  const dong = (r.stdout ?? '').trim().split('\n').reverse().find((l) => l.startsWith('{"goc"'));
-  if (!dong) { console.error(`✗ không lấy được hook spy góc ${goc}`); process.exit(3); }
-  return JSON.parse(dong);
-}
 
 /** câu đặt tên trên màn: câu dài / có chỗ ảnh biểu tượng bị rỗng (" , ") → cắt ở ranh giới mệnh đề đầu tiên sau 30 ký tự — vẫn là khúc NGUYÊN VĂN liền mạch */
 export function catTen(chu) {
@@ -62,9 +53,9 @@ export function gonChuyen(moc) {
   return giu.map((x) => x.m);
 }
 
-function vietMot(tep, gh, nguoi) {
+function vietMot(tep, nguoi) {
   const T0 = doc(tep), T = { ...T0, moc: gonChuyen(T0.moc) }, VE = doc('la-so/than-thoai-sao/_ve.json').ten, so = docSo().astrolas, pl = so.playlist.find((p) => p.ma === 'know-yourself'), sao = T.sao;
-  const hs = hookGon(gh.hooks.filter((h) => !/\d/.test(h.chu) && !/retrograde/i.test(h.chu))), hook = hs[bam(sao) % hs.length] ?? gh.hooks[0], chuHook = hookNgan(hook.chu);
+  const { hook, chuHook, goc: gocHook } = chonHook('astrolas', 'know-yourself', `my-${T.ma}`);
   // người hạng AA có thiên thể này trong lá số site, xoay theo tên thiên thể
   const co = nguoi.filter((n) => doc(`la-so/${n.slug}.json`).sao.some((s) => s.ten === sao)), n = co.length ? co[bam(sao) % co.length] : null;
   const vi = n && doc(`la-so/${n.slug}.json`).sao.find((s) => s.ten === sao), A = n && (n.ten_ngan ?? tenNgan(n.ten)), site = cauSite(sao);
@@ -79,7 +70,7 @@ function vietMot(tep, gh, nguoi) {
   ].map((q) => ({ ...q, tu: 0, den: 0 }));
   const tieuDe = `${chuHook} The myth behind ${sao}`;
   const tap = tachCanh({ _ghi: `The Myth Behind · ${sao} — sinh bởi lich-su/viet-myth-behind.mjs (chuyện ${T.nguon[0]}, câu site ${site?.bai ?? '—'}, lá số ${n?.slug ?? '—'}, hook QC spy #${hook.id})`,
-    kenh: 'astrolas', mau: 'myth-behind', playlist_ma: 'know-yourself', y_tuong: `my-${T.ma}`, tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
+    kenh: 'astrolas', mau: 'myth-behind', playlist_ma: 'know-yourself', y_tuong: `my-${T.ma}`, tieu_de: tieuDe, goc: gocHook, hook: { qc: hook.id, goc: hook.chu },
     nguon_moc: [tep], nguon_bai: site ? [site.bai] : [],
     dang: dangCongCu('birth', n?.slug ?? null, {}, `The myth behind ${sao}: ${T.ten}. Story: ${T.nguon.join(' · ')}${site ? ` · https://astrolas.com/en/blog/${site.bai}` : ''}`),
     nv, ...(n ? { la_so: tg(`la-so/${n.slug}.svg`) } : {}), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'),
@@ -97,7 +88,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const ds = readdirSync(join(DIR, 'la-so/than-thoai-sao')).filter((f) => /^[a-z]+\.json$/.test(f) && (ma === 'all' || f === `${ma}.json`)).map((f) => `la-so/than-thoai-sao/${f}`);
   if (!ds.length) { console.error(`không có sổ chuyện ${ma}`); process.exit(2); }
   const S = doc('la-so/nguoi.json'), nguoi = S.nguoi.filter((x) => !x.khong_dung && S.rodden_dung_nha.includes(x.rodden) && existsSync(join(DIR, `la-so/${x.slug}.json`)));
-  const gh = layHook(docSo().astrolas.playlist.find((p) => p.ma === 'know-yourself')?.goc_spy?.[0]?.id ?? 4313);
-  let hong = 0; for (const t of ds) if (!vietMot(t, gh, nguoi)) hong++;
+  let hong = 0; for (const t of ds) if (!vietMot(t, nguoi)) hong++;
   console.log(`${ds.length - hong}/${ds.length} thiên thể đạt`); process.exit(hong ? 1 : 0);
 }

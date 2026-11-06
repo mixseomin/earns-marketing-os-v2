@@ -5,8 +5,8 @@
 Checklist mỗi vòng (không có việc → NO_REPLY):
 
 - Anh có trả lời dưới tin báo không? Có → task đó thành Rework, làm trước
-- `php artisan ai-tasks list` có Rework / Not started không? không → NO_REPLY
+- `php artisan ai-tasks list` có In progress bị gián đoạn, Rework hoặc Not started không? không → NO_REPLY
 - Có task chưa báo → một tin số lượng vào chủ đề Astrolas
-- Nhận cả lô (tối đa 5 task, In progress), mỗi task một phiên: làm đúng luật `/tasks`, đẩy lên nhánh `ai`, Need Reviews hoặc Blocked
+- Mở một phiên chạy nguyên `/tasks`; sau mỗi task qua cổng máy rồi đẩy lên nhánh `ai`
 - Báo ngay từng task vào chủ đề Astrolas, kèm số hôm nay đã xong + hàng chờ còn lại
 - Đủ khoảng 15 task có commit và hết lô → chạy lệnh audit trên đúng các commit đó, báo đầu và cuối vào chủ đề Astrolas

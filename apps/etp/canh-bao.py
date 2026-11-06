@@ -9,7 +9,7 @@ Ngày = ngày Ethopex (UTC). Các dò (ngưỡng ở đầu tệp):
   dong_bo_tre  lượt đồng bộ gần nhất lỗi
   phim_bao_hoa  > 10 camp và ROI phim giảm 2 ngày liền (bảng etp.phim_bao_hoa: chan_nb cho luật NB, bao_hoa cho Telegram / etp / extension)
   roas_gan / roas_dat  camp ROI ≥ 50% ổn định 2–3 ngày: chi ≥ $70 sắp đủ, ≥ $100 đủ tiêu chí bid ROAS (một lần mỗi camp mỗi mức)
-  phim_bao_hoa thêm luật "lên thêm camp mà ROI phim cả hệ giảm" (02/11/2026) — mọi số phim tính trên nhà + team
+  phim_bao_hoa thêm luật "lên thêm camp mà ROI phim cả hệ giảm" (02/11/2026) — mọi số phim tính trên nhà + team; lãi $ vẫn tăng thì không tính bão hoà (06/11/2026)
   bao_hoa_team   tài khoản team lên camp mới cho phim đang bão hoà — chỉ báo, không chặn (anh 02/11/2026)
   tran_phim_vuot  một phim có > etp.cau_hinh.tran_phim camp đang chạy trong MỘT tài khoản (nhà: máy đã chặn mở thêm; team: chỉ báo) — mỗi ngày một lần
   tran_phim_mo    phim đủ trần ở một tài khoản nhà và MỌI camp đang chạy lãi đều (3 ngày đã khép, ≥ 2 ngày có chi ≥ $1, ngày nào cũng thu > chi)
@@ -67,10 +67,13 @@ def bao_hoa_phim(nay):
         # và không lên camp mới"): phim có camp mới lên trong 2 ngày đã khép, ROI cả hệ hôm qua thấp hơn ngày TRƯỚC đợt lên → chặn mở camp mới (trừ ROAS).
         # Hết đợt lên mới (2 ngày không thêm camp) thì luật này tự nhả; các luật trên vẫn giữ nếu ROI còn thấp.
         lm = len_moi.get(int(cid), {}); goc = (x3, r3, d[2]) if lm.get(d[1]) else (x2, r2, d[1])
-        if lm and x1 and x1["chi"] >= 10 and r1 is not None and goc[0] and goc[0]["chi"] >= 5 and goc[1] is not None and r1 < goc[1]:
-            chan = f"bão hoà theo dõi: lên thêm {sum(lm.values())} camp mà ROI phim cả hệ {goc[1]:+.0f}% ({goc[2][8:]}/{goc[2][5:7]}) → {r1:+.0f}% hôm qua"
+        # LÃI VẪN TĂNG THÌ KHÔNG BÃO HOÀ (anh 06/11/2026 sau tin #169100 "lên thêm 44 camp mà ROI +43% → +25%": "Phim mà lên camp vẫn tăng roi thì ko đc coi là bão hoà nữa"
+        # — lãi phim $17 → $87 → $93/ngày): ROI % giảm vì chi to hơn mà lãi $ hôm qua vẫn ≥ lãi ngày gốc = phim còn hấp thụ, không gắn bão hoà
+        lai = lambda x: x["thu"] - x["chi"]
+        if lm and x1 and x1["chi"] >= 10 and r1 is not None and goc[0] and goc[0]["chi"] >= 5 and goc[1] is not None and r1 < goc[1] and lai(x1) < lai(goc[0]):
+            chan = f"bão hoà theo dõi: lên thêm {sum(lm.values())} camp mà ROI phim cả hệ {goc[1]:+.0f}% ({goc[2][8:]}/{goc[2][5:7]}) → {r1:+.0f}% hôm qua, lãi ${lai(goc[0]):.0f} → ${lai(x1):.0f}"
         bh = None
-        if so > BH_CAMP and None not in (r1, r2, r3) and all(x and x["chi"] >= 5 for x in (x1, x2, x3)) and r3 > r2 > r1:
+        if so > BH_CAMP and None not in (r1, r2, r3) and all(x and x["chi"] >= 5 for x in (x1, x2, x3)) and r3 > r2 > r1 and lai(x1) < lai(x3):
             bh = f"{so} camp đang chạy · ROI phim {r3:+.0f}% → {r2:+.0f}% → {r1:+.0f}% (3 ngày) — camp tự giành cùng tệp người xem"
             bao("phim_bao_hoa", "vang", f"phim_bao_hoa:{cid}:{nay}", f"⚠ PHIM BÃO HOÀ: {ten[:50]} (#{cid}) — {bh}. Chỉ cảnh báo — máy vẫn lên camp / nhân bản phim này (anh 06/11/2026)."); n += 1
             chan = chan if chan and chan.startswith("bão hoà") else f"bão hoà: ROI phim giảm 2 ngày liền ({r3:+.0f}% → {r2:+.0f}% → {r1:+.0f}%)"
@@ -142,7 +145,7 @@ def main():
                    join etp.tai_khoan t using (ad_account_id) join etp.phim_bao_hoa b using (content_id)
                    where not t.nha and b.chan_nb like 'bão hoà%' and c.tao > now() - interval '24 hours' and not c.la_roas group by 1, 2""").splitlines():
         tk, cid, so, nguoi, ten, ly = l.split("|", 5)
-        bao("bao_hoa_team", "vang", f"bao_hoa_team:{tk}:{cid}:{nay}", f"Tài khoản {tk} · {nguoi} vừa lên {so} camp cho phim đang bão hoà {ten[:50]} (#{cid}) — {ly}. Nhà đã ngừng mở camp phim này; team chỉ báo, không chặn"); n += 1
+        bao("bao_hoa_team", "vang", f"bao_hoa_team:{tk}:{cid}:{nay}", f"Tài khoản {tk} · {nguoi} vừa lên {so} camp cho phim đang bão hoà {ten[:50]} (#{cid}) — {ly}. chỉ cảnh báo, không chặn (nhà lẫn team)"); n += 1
     # TRANG PHIM THIẾU (anh 02/11/2026, tab Phim): phim thêm vào workspace Ethopex > 30 phút mà Ethopex chưa sinh đủ mô tả / cốt truyện, thiếu ảnh / link tập 1,
     # hoặc link tập 1 trả 404 — nhan-ban.py đã chặn lên camp phim đó; báo mỗi bản × kiểu thiếu một lần (sửa xong rồi thiếu kiểu khác thì báo lại)
     try:

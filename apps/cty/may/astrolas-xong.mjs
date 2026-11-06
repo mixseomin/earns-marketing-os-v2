@@ -26,7 +26,7 @@ export const soAnh = (show) => (show.split(/^images:\s*$/m)[1]?.split(/^\S/m)[0]
 export const anhDaDoc = (nhatKy, id) => new Set(nhatKy.match(new RegExp(`"file_path":"/tmp/task-images/t${id}(?:_\\d+)?\\.[a-z]+"`, 'g')) ?? []).size;
 /** Tài liệu BẮT BUỘC đọc (anh 06/11/2026: "phải đọc đủ cả context"), đọc từ chính bảng Auto-load trong CLAUDE.md của repo theo tệp đã sửa, cộng `contexts` của task và skill chung. Bảng đổi thì cổng đổi theo, không chép tay ở đây. */
 export function canDoc(claudeMd, doi, show = '') {
-  const can = new Set(['.claude/skills/astrolas-patterns.md']), bang = claudeMd.split(/^## Auto-load Module Context/m)[1]?.split(/^## /m)[0] ?? '';
+  const can = new Set(['.claude/skills/astrolas-patterns.md', '.agents/rules.md']), bang = claudeMd.split(/^## Auto-load Module Context/m)[1]?.split(/^## /m)[0] ?? '';
   const taiLieu = (ve) => { for (const m of ve.matchAll(/`((?:context_[\w.-]+\.md)|(?:skills\/[\w./-]+\.md))`/g)) can.add(m[1].startsWith('skills/') ? `.claude/${m[1]}` : `.agents/contexts/${m[1]}`); };
   for (const dong of bang.split('\n')) {
     const i = dong.indexOf('→'); if (i < 0) continue;
@@ -37,7 +37,7 @@ export function canDoc(claudeMd, doi, show = '') {
   return [...can];
 }
 /** Tài liệu bắt buộc chưa được Read thật trong nhật ký phiên. */
-export const chuaDoc = (nhatKy, can) => can.filter((f) => !nhatKy.includes(`/${f}"`));
+export const chuaDoc = (nhatKy, can) => can.filter((f) => { if (nhatKy.includes(`/${f}"`)) return false; const k = f.match(/^\.claude\/skills\/([\w-]+)/)?.[1]; return !(k && new RegExp(`"skill":"(?:[\\w-]+[:/])?${k}"`).test(nhatKy)); });
 /** Biên dịch từng Blade đã sửa rồi php -l: lớp lỗi "Could not load this tab" (@endif@if dính nhau làm vỡ cả tab, lint và /up đều xanh, trang chính vẫn 200 vì tab tải riêng). Trả các dòng lỗi. */
 export function loiBlade(cwd, tep, env = process.env) {
   const BIEN = 'require "vendor/autoload.php"; $a=require "bootstrap/app.php"; $a->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); echo app("blade.compiler")->compileString(file_get_contents($argv[1]));';
@@ -76,9 +76,10 @@ if (process.argv.includes('--tu-kiem')) {
   t.match(cong({ ...c0, nhatKy: '"file_path":"/tmp/task-images/t9_1.jpg" "file_path":"/tmp/task-images/t9_2.jpg"' })[0], /chưa đọc nguyên văn/, 'không show: chặn');
   t.deepEqual(cong({ ...c0, nhatKy: 'ai-tasks show --id=5-12 --pull-images "file_path":"/tmp/task-images/t9_1.jpg" "file_path":"/tmp/task-images/t9_2.jpg"' }), [], 'show theo khoảng: tính'); t.match(cong({ ...c0, id: 99, show: 'status: x\nresult: V.\n↳ entity: —\nissue_url: y\n', nhatKy: 'ai-tasks show --id=9 ' })[0], /chưa đọc nguyên văn/, 'id khác: chặn');
   const bang = '## Auto-load Module Context\nGhi chú → không có mẫu\n- `*/birth-chart/*`, `BirthChart2Controller*`, Intent: "`*/solar*`" → `context_birth2.md` + **`skills/birth-chart/SKILL.md`** (x)\n- `*SeedLocale*` → `context_localization.md`\n## Khác\n- `*/birth-chart/*` → `context_khac.md`\n';
-  t.deepEqual(canDoc(bang, ['resources/views/v2/domains/birth-chart/_tab.blade.php']), ['.claude/skills/astrolas-patterns.md', '.agents/contexts/context_birth2.md', '.claude/skills/birth-chart/SKILL.md'], 'đúng dòng, không lấy mục ngoài bảng');
-  t.deepEqual(canDoc(bang, ['app/x.php']), ['.claude/skills/astrolas-patterns.md'], 'tệp không khớp: chỉ skill chung'); t.deepEqual(canDoc(bang, ['a/solar/x.php']), ['.claude/skills/astrolas-patterns.md'], 'mẫu sau chữ Intent không tính'); t.ok(canDoc(bang, [], 'contexts: context_studio_v2.md\n').includes('.agents/contexts/context_studio_v2.md'), 'contexts của task');
+  t.deepEqual(canDoc(bang, ['resources/views/v2/domains/birth-chart/_tab.blade.php']), ['.claude/skills/astrolas-patterns.md', '.agents/rules.md', '.agents/contexts/context_birth2.md', '.claude/skills/birth-chart/SKILL.md'], 'đúng dòng, không lấy mục ngoài bảng');
+  t.deepEqual(canDoc(bang, ['app/x.php']), ['.claude/skills/astrolas-patterns.md', '.agents/rules.md'], 'tệp không khớp: chỉ skill chung'); t.deepEqual(canDoc(bang, ['a/solar/x.php']), ['.claude/skills/astrolas-patterns.md', '.agents/rules.md'], 'mẫu sau chữ Intent không tính'); t.ok(canDoc(bang, [], 'contexts: context_studio_v2.md\n').includes('.agents/contexts/context_studio_v2.md'), 'contexts của task');
   t.deepEqual(chuaDoc('"file_path":"/r/.agents/contexts/context_birth2.md"', ['.agents/contexts/context_birth2.md', '.claude/skills/x.md']), ['.claude/skills/x.md']);
+  t.deepEqual(chuaDoc('"skill":"birth-chart"', ['.claude/skills/birth-chart/SKILL.md']), [], 'nạp bằng công cụ Skill: tính'); t.deepEqual(chuaDoc('"skill":"x:birth-chart"', ['.claude/skills/birth-chart/SKILL.md']), [], 'có tiền tố'); t.equal(chuaDoc('"skill":"khac"', ['.claude/skills/birth-chart/SKILL.md']).length, 1);
   t.match(cong({ ...c0, nhatKy: nk2, thieuTaiLieu: ['.claude/skills/x.md'] })[0], /chưa đọc đủ tài liệu/);
   console.log('astrolas-xong: tự kiểm đạt'); process.exit(0);
 }

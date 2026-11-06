@@ -821,7 +821,7 @@
   {
    "id": "napoleon",
    "ten": "Napoleon Bonaparte",
-   "mo_ta_en": "Short stocky man in early 40s, iconic bicorne hat worn sideways, gray greatcoat over white breeches, dark boots, stern intense expression, hand often tucked in coat, recognizable profile",
+   "mo_ta_en": "Napoleon Bonaparte aged 42: short stocky build, pale full round face, strong straight nose, stern grey eyes, short dark hair with a fringe combed forward, black bicorne hat worn sideways with a small tricolour cockade, long grey campaign greatcoat open over a green Chasseur uniform coat with red collar, white waistcoat and breeches, tall black boots, right hand tucked into his waistcoat",
    "tu": 1812,
    "den": 1812,
    "dang": [
@@ -829,7 +829,8 @@
     "khoanh_tay",
     "suy_nghi",
     "buon"
-   ]
+   ],
+   "chan_dung": "Napoleon"
   },
   {
    "id": "kutuzov",
@@ -841,7 +842,8 @@
     "suy_nghi",
     "chi_tay",
     "buon"
-   ]
+   ],
+   "chan_dung": "Mikhail Kutuzov"
   },
   {
    "id": "barclay",
@@ -852,7 +854,8 @@
    "dang": [
     "chi_tay",
     "suy_nghi"
-   ]
+   ],
+   "chan_dung": "Michael Andreas Barclay de Tolly"
   },
   {
    "id": "ney",
@@ -864,7 +867,8 @@
     "chi_tay",
     "ngac_nhien",
     "suy_nghi"
-   ]
+   ],
+   "chan_dung": "Michel Ney"
   },
   {
    "id": "murat",
@@ -877,7 +881,8 @@
     "khoanh_tay",
     "ngac_nhien",
     "buon"
-   ]
+   ],
+   "chan_dung": "Joachim Murat"
   },
   {
    "id": "davout",
@@ -889,7 +894,8 @@
     "khoanh_tay",
     "suy_nghi",
     "chi_tay"
-   ]
+   ],
+   "chan_dung": "Louis-Nicolas Davout"
   },
   {
    "id": "bagration",
@@ -901,7 +907,8 @@
     "chi_tay",
     "nam_dam",
     "suy_nghi"
-   ]
+   ],
+   "chan_dung": "Pyotr Bagration"
   },
   {
    "id": "caulaincourt",
@@ -913,7 +920,8 @@
     "suy_nghi",
     "buon",
     "chi_tay"
-   ]
+   ],
+   "chan_dung": "Armand-Augustin-Louis de Caulaincourt"
   },
   {
    "id": "french_soldier",
@@ -927,7 +935,8 @@
     "ngac_nhien",
     "chi_tay",
     "suy_nghi"
-   ]
+   ],
+   "chan_dung": null
   },
   {
    "id": "russian_soldier",
@@ -939,7 +948,8 @@
     "chi_tay",
     "nam_dam",
     "suy_nghi"
-   ]
+   ],
+   "chan_dung": null
   }
  ],
  "anh": {

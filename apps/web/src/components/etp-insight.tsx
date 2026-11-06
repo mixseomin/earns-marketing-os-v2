@@ -52,7 +52,7 @@ function BangMoc({ ids, tu, den, nhan }: { ids: number[]; tu: string; den: strin
   const dong = useMemo(() => (ms ? dongBang(ms) : []), [ms]);
   return (
     <section style={the}>
-      <h3 style={{ fontSize: 14, margin: '0 0 4px' }}>Mốc × ROI sau mốc <span style={{ color: 'var(--fg-3)', fontWeight: 400, fontSize: 12 }}>· {nhan} · mốc = giờ VN lên camp (giờ có chi đầu) / lên bậc / giảm bậc (tính từ giờ kế sau lúc đổi) · số theo giờ etp.so_gio_camp</span></h3>
+      <h3 style={{ fontSize: 14, margin: '0 0 4px' }} title={'mốc = giờ VN lên camp (giờ có chi đầu tiên) / lên bậc / giảm bậc (tính từ giờ kế sau lúc đổi) · số theo giờ etp.so_gio_camp\nkhông áp Lọc trạng thái / Lãi-lỗ / Tuổi / Luật: các ô đó chỉ giữ camp còn sống hoặc đang lãi, số sau mốc sẽ lệch về lãi'}>Mốc × ROI sau mốc <span style={{ color: 'var(--fg-3)', fontWeight: 400, fontSize: 12 }}>· {nhan} · rê vào tiêu đề xem cách tính</span></h3>
       {loi ? <div style={{ color: '#f87171', fontSize: 12 }}>{loi}</div> : !ms ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>đang tính…</div> : !dong.length ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>không có mốc nào trong kỳ với bộ lọc này</div>
         : <DataTable rows={dong} columns={COT_MOC} getRowKey={(d) => d.k} rowStyle={(d) => (d.k.endsWith('-all') ? { fontWeight: 700 } : undefined)} persistKey="etp-insight-moc" minWidth={1300} fixedLayout
             groups={[{ key: 'moc', label: 'Số mốc', color: '#64748b' }, { key: 'roi', label: 'ROI theo khối 24 giờ', color: '#3b82f6' }, { key: 'kq', label: 'Kết quả', color: '#f59e0b' }]} groupHeader

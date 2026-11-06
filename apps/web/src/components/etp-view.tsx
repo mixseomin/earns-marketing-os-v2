@@ -3021,7 +3021,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       ) : tab === 'tv' ? (
         <TabThuVien du={du} tl={tl} />
       ) : tab === 'insight' ? (
-        <TabInsight ids={campsSoKy.map((c) => c.camp_id)} tu={khK.tu} den={khK.den} nhan={`kỳ ${khNhan} · ${campsSoKy.length}/${du.camps.length} camp theo Loại · ROAS · A/B · TK (không áp Lọc trạng thái / Lãi-lỗ / Tuổi / Luật — các ô đó chỉ giữ camp còn sống, số sau mốc sẽ toàn xanh)`} />
+        <TabInsight ids={campsSoKy.map((c) => c.camp_id)} tu={khK.tu} den={khK.den} nhan={`kỳ ${khNhan} · ${campsSoKy.length}/${du.camps.length} camp · lọc theo Loại · ROAS · A/B · TK`} />
       ) : tab === 'tn' ? (
         <TabTaiNguyen du={du} kh={kh} khCamp={khCamp} />
       ) : tab === 'phim' ? (

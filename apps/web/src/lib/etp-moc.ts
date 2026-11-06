@@ -6,16 +6,16 @@ import BANG_LUAT from './etp-bang-luat.json';
 
 export type LoaiMoc = 'len' | 'tang' | 'giam';
 /** một mốc: h = giờ VN · ty = ngân sách sau / trước (tăng / giảm) · du = số khối 24 giờ sau mốc đã có đủ số (0–3, ≥ 3 = đủ cả 72 giờ) · c/t = chi / thu: 0 = 24 giờ trước, 1–3 = khối 24 giờ sau */
-export type MocSo = { loai: LoaiMoc; camp: number; h: number; ty: number | null; du: number; c0: number; t0: number; c1: number; t1: number; c2: number; t2: number; c3: number; t3: number };
-/** hàng máy chủ gửi (docMoc): [loai, camp, h, ty, du, c0, t0, c1, t1, c2, t2, c3, t3] — số Postgres numeric có thể về dạng chuỗi, moTuHang ép lại */
+export type MocSo = { loai: LoaiMoc; camp: number; ai: string; h: number; ty: number | null; du: number; c0: number; t0: number; c1: number; t1: number; c2: number; t2: number; c3: number; t3: number };
+/** hàng máy chủ gửi (docMoc): [loai, camp, h, ty, du, c0, t0, c1, t1, c2, t2, c3, t3, người] — số Postgres numeric có thể về dạng chuỗi, moTuHang ép lại */
 export type MocHang = [LoaiMoc, number, number, number | string | null, number, ...(number | string)[]];
 export const moTuHang = (r: MocHang): MocSo => { const n = (i: number) => Number(r[i] ?? 0);
-  return { loai: r[0], camp: n(1), h: n(2), ty: r[3] == null ? null : Number(r[3]), du: n(4), c0: n(5), t0: n(6), c1: n(7), t1: n(8), c2: n(9), t2: n(10), c3: n(11), t3: n(12) }; };
+  return { loai: r[0], camp: n(1), ai: String(r[13] ?? '?'), h: n(2), ty: r[3] == null ? null : Number(r[3]), du: n(4), c0: n(5), t0: n(6), c1: n(7), t1: n(8), c2: n(9), t2: n(10), c3: n(11), t3: n(12) }; };
 export type Khoi = { n: number; chi: number; thu: number };
 /** ĐỘ TIN của một dòng (anh 06/11/2026 sau dòng "Lên camp lúc 08h" +61% mà 6 camp chiếm 59% lãi, 62% camp vẫn âm): ROI cộng dồn bị vài mốc thắng lớn kéo —
  *  pLai = tỷ lệ mốc lãi sau 72h (mốc chi ≥ $0,3) · boTop = khối 72h đã bỏ TOP_DON mốc lãi nhất · top = phần lãi (dương) của TOP_DON mốc đó · don = dòng không đáng tin: lãi dồn ≥ DON_PHAN hoặc < MAU_IT mốc đủ 72h */
 export type DoTin = { pLai: number | null; boTop: Khoi; top: number | null; don: string | null };
-export type DongMoc = { k: string; nhom: string; ten: string; title?: string; n: number; truoc: Khoi; k1: Khoi; k2: Khoi; k3: Khoi; k72: Khoi; am1: number | null; toc: number | null; lai72: number | null; tin: DoTin };
+export type DongMoc = { k: string; nhom: string; ten: string; title?: string; n: number; truoc: Khoi; k1: Khoi; k2: Khoi; k3: Khoi; k72: Khoi; am1: number | null; toc: number | null; lai72: number | null; tin: DoTin; ms: MocSo[] };
 export const TOP_DON = 3, DON_PHAN = 0.5, MAU_IT = 20;
 
 export const roiKhoi = (x: Khoi) => (x.chi >= 0.3 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null);
@@ -30,7 +30,7 @@ export function gom(k: string, nhom: string, ten: string, ds: MocSo[], title?: s
   return { k, nhom, ten, title, n: ds.length, truoc: cong(coTruoc, (m) => m.c0, (m) => m.t0), k1, k2: cong(d2, (m) => m.c2, (m) => m.t2), k3: cong(d3, (m) => m.c3, (m) => m.t3), k72,
     am1: coChi1.length ? coChi1.filter((m) => m.t1 < m.c1).length / coChi1.length : null,
     toc: coCa.length ? coCa.reduce((a, m) => a + m.c1, 0) / coCa.reduce((a, m) => a + m.c0, 0) : null,
-    lai72: d3.length ? (k72.thu - k72.chi) / d3.length : null, tin: doTin(d3) };
+    lai72: d3.length ? (k72.thu - k72.chi) / d3.length : null, tin: doTin(d3), ms: ds };
 }
 const lai3 = (m: MocSo) => m.t1 + m.t2 + m.t3 - m.c1 - m.c2 - m.c3;
 function doTin(d3: MocSo[]): DoTin {
@@ -74,3 +74,63 @@ export function dongBang(ms: MocSo[]): DongMoc[] {
     if (x.length) ra.push(gom(`rg-${kh.join('-')}-${k}`, NG, `${ten.split(' ')[0]} · ${t2}`, x)); }
   return ra;
 }
+
+// ── NHẬN ĐỊNH TỰ ĐỘNG (anh 06/11/2026 "Làm sao show được kiểu insight thế này"): máy tự viết lời giải từ số mốc — không gọi AI, cùng ngưỡng độ tin ở trên.
+// kieu: 'tot' = tốt thật (bỏ 3 mốc đầu vẫn lãi) · 'nho' = cao nhờ vài camp (ROI cộng dồn dương mà bỏ 3 đầu âm / dồn ≥ DON_PHAN) · 'xau' = xấu đáng tin (đủ mẫu, cộng dồn
+// và bỏ 3 đầu đều âm, ≥ 2 / 3 khối 24 giờ âm) · 'hoa' = quanh hoà vốn · 'it' = chưa đủ mẫu
+export type KieuDong = 'tot' | 'nho' | 'xau' | 'hoa' | 'it';
+export const NHAN_KIEU: Record<KieuDong, [string, string]> = { tot: ['Tốt thật', '#4ade80'], nho: ['Cao nhờ vài camp', '#f59e0b'], xau: ['Xấu, đáng tin', '#f87171'], hoa: ['Quanh hoà vốn', 'var(--fg-2)'], it: ['Chưa đủ mẫu', 'var(--fg-3)'] };
+export function kieuDong(d: DongMoc): KieuDong {
+  const r = roiKhoi(d.k72), rb = roiKhoi(d.tin.boTop);
+  if (d.k3.n < MAU_IT || r == null) return 'it';
+  if (r > 0 && (rb == null || rb <= 0 || (d.tin.top ?? 0) >= DON_PHAN)) return 'nho';
+  if (r > 0 && rb != null && rb > 0) return 'tot';
+  const am = [d.k1, d.k2, d.k3].filter((k) => (roiKhoi(k) ?? 0) < 0).length;
+  if (r < 0 && (rb ?? 0) < 0 && am >= 2) return 'xau';
+  return 'hoa';
+}
+const pct = (v: number | null) => (v == null ? '—' : `${v > 0 ? '+' : ''}${v}%`);
+const pt = (v: number | null) => (v == null ? '—' : `${Math.round(v * 100)}%`);
+const lai3m = (m: MocSo) => m.t1 + m.t2 + m.t3 - m.c1 - m.c2 - m.c3;
+export type GiaiDong = { kieu: KieuDong; cau: string; top: { camp: number; ai: string; chi: number; lai: number; phan: number }[]; nguoi: { ai: string; n: number; lai: number; roi: number | null }[] };
+/** lời giải một dòng: vì sao số như vậy — camp mang lãi, chia theo người, kết luận */
+export function giaiDong(d: DongMoc): GiaiDong {
+  const d3 = d.ms.filter((m) => m.du >= 3), duong = d3.reduce((a, m) => a + Math.max(0, lai3m(m)), 0), kieu = kieuDong(d);
+  const top = [...d3].sort((a, b) => lai3m(b) - lai3m(a)).slice(0, 6).filter((m) => lai3m(m) > 0)
+    .map((m) => ({ camp: m.camp, ai: m.ai, chi: m.c1 + m.c2 + m.c3, lai: lai3m(m), phan: duong > 0 ? lai3m(m) / duong : 0 }));
+  const g = new Map<string, MocSo[]>(); for (const m of d3) g.set(m.ai, [...(g.get(m.ai) ?? []), m]);
+  const nguoi = [...g].map(([ai, xs]) => { const c = xs.reduce((a, m) => a + m.c1 + m.c2 + m.c3, 0); return { ai, n: xs.length, lai: xs.reduce((a, m) => a + lai3m(m), 0), roi: roiKhoi({ n: xs.length, chi: c, thu: c + xs.reduce((a, m) => a + lai3m(m), 0) }) }; })
+    .sort((a, b) => b.n - a.n);
+  const r = roiKhoi(d.k72), rb = roiKhoi(d.tin.boTop), lon = nguoi[0], phanLon = lon && d3.length ? lon.n / d3.length : 0;
+  const motNguoi = lon && phanLon >= 0.5 ? ` Hơn nửa mẫu là của ${lon.ai} (${lon.n}/${d3.length} mốc), nên có thể là cách chạy / phim của người đó chứ chưa chắc do giờ.` : '';
+  const cau = kieu === 'it' ? `Mới ${d.k3.n} mốc đủ 72 giờ (cần ≥ ${MAU_IT}) — chưa kết luận được.`
+    : kieu === 'tot' ? `Tốt thật: ROI cộng 72h ${pct(r)}, bỏ ${TOP_DON} camp lãi nhất vẫn ${pct(rb)}; ${pt(d.tin.pLai)} camp có lãi sau 72 giờ, ${TOP_DON} camp đầu chỉ chiếm ${pt(d.tin.top)} phần lãi.${motNguoi}`
+    : kieu === 'nho' ? `Cao nhờ vài camp: ROI cộng 72h ${pct(r)} nhưng ${TOP_DON} camp đầu chiếm ${pt(d.tin.top)} phần lãi, bỏ đi còn ${pct(rb)}; chỉ ${pt(d.tin.pLai)} camp có lãi, ${pt(d.am1)} camp âm 24 giờ sau.${motNguoi}`
+    : kieu === 'xau' ? `Xấu, đáng tin: ${d.k3.n} mốc đủ 72 giờ, ROI cộng 72h ${pct(r)}, bỏ ${TOP_DON} camp đầu ${pct(rb)}, ${pt(d.am1)} camp âm 24 giờ sau, ROI âm ở ${[d.k1, d.k2, d.k3].filter((k) => (roiKhoi(k) ?? 0) < 0).length}/3 khối 24 giờ.`
+    : `Quanh hoà vốn: ROI cộng 72h ${pct(r)}, bỏ ${TOP_DON} camp đầu ${pct(rb)}, ${pt(d.tin.pLai)} camp có lãi.`;
+  return { kieu, cau, top, nguoi };
+}
+/** gộp giờ liền nhau (theo thứ tự ngày Ethopex từ 07h) thành khoảng: [7,8,9,15] → '07h–09h, 15h' */
+export function khoangGio(hs: number[]): string {
+  const vt = hs.map((h) => GIO_VN.indexOf(h)).sort((a, b) => a - b), ra: string[] = [];
+  for (let i = 0; i < vt.length; ) { let j = i; while (j + 1 < vt.length && vt[j + 1] === vt[j]! + 1) j++; const a = hh(GIO_VN[vt[i]!]!), b = hh(GIO_VN[vt[j]!]!); ra.push(i === j ? a : `${a}–${b}`); i = j + 1; }
+  return ra.join(', ');
+}
+export type NhanDinh = { loai: LoaiMoc; kieu: KieuDong; gio: string; chu: string };
+/** khung nhận định trên bảng: mỗi loại mốc × mỗi kiểu một câu, liệt kê giờ (gộp khoảng) + dải số */
+export function nhanDinh(ds: DongMoc[]): NhanDinh[] {
+  const ra: NhanDinh[] = [];
+  for (const l of ['len', 'tang', 'giam'] as const) {
+    const gio = ds.filter((d) => new RegExp(`^${l}-\\d+$`).test(d.k)).map((d) => ({ d, h: Number(d.k.split('-')[1]), kieu: kieuDong(d) }));
+    for (const kieu of ['tot', 'nho', 'xau'] as const) {
+      const x = gio.filter((g) => g.kieu === kieu); if (!x.length) continue;
+      const day = (f: (d: DongMoc) => number | null, p = pct) => { const v = x.map((g) => f(g.d)).filter((y): y is number => y != null); return v.length ? (Math.min(...v) === Math.max(...v) ? p(v[0]!) : `${p(Math.min(...v))} … ${p(Math.max(...v))}`) : '—'; };
+      const chu = kieu === 'tot' ? `bỏ ${TOP_DON} camp lãi nhất vẫn ${day((d) => roiKhoi(d.tin.boTop))}, ${day((d) => d.tin.pLai == null ? null : Math.round(d.tin.pLai * 100), (v) => `${v}%`)} camp có lãi sau 72 giờ`
+        : kieu === 'nho' ? `ROI cộng 72h ${day((d) => roiKhoi(d.k72))} nhưng ${TOP_DON} camp đầu chiếm ${day((d) => d.tin.top == null ? null : Math.round(d.tin.top * 100), (v) => `${v}%`)} phần lãi — bỏ đi còn ${day((d) => roiKhoi(d.tin.boTop))}`
+        : `ROI cộng 72h ${day((d) => roiKhoi(d.k72))}, ${day((d) => d.am1 == null ? null : Math.round(d.am1 * 100), (v) => `${v}%`)} camp âm 24 giờ sau, mẫu ${x.reduce((a, g) => a + g.d.k3.n, 0)} mốc đủ 72 giờ`;
+      ra.push({ loai: l, kieu, gio: khoangGio(x.map((g) => g.h)), chu });
+    }
+  }
+  return ra;
+}
+export const TEN_LOAI = TEN;

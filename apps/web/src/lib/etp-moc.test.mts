@@ -1,8 +1,8 @@
 // tự kiểm gom mốc (etp-moc.ts): node_modules/.bin/tsx apps/web/src/lib/etp-moc.test.mts
 import assert from 'node:assert';
-import { gom, dongBang, moTuHang, roiKhoi, type MocSo } from './etp-moc';
+import { gom, dongBang, moTuHang, roiKhoi, kieuDong, giaiDong, khoangGio, nhanDinh, type MocSo } from './etp-moc';
 
-const m = (x: Partial<MocSo>): MocSo => ({ loai: 'tang', camp: 1, h: 22, ty: 1.5, du: 3, c0: 1, t0: 2, c1: 2, t1: 3, c2: 2, t2: 2, c3: 2, t3: 1, ...x });
+const m = (x: Partial<MocSo>): MocSo => ({ loai: 'tang', camp: 1, ai: 'Nhà', h: 22, ty: 1.5, du: 3, c0: 1, t0: 2, c1: 2, t1: 3, c2: 2, t2: 2, c3: 2, t3: 1, ...x });
 
 // khối chỉ cộng mốc đã đủ số khối đó: mốc mới (du 1) không kéo khối 48–72 giờ về 0
 const d = gom('x', 'n', 't', [m({}), m({ camp: 2, du: 1, c2: 0, t2: 0, c3: 0, t3: 0 })]);
@@ -36,3 +36,18 @@ assert.ok(roiKhoi(gom('d', 'n', 't', [lon, ...nho]).k72)! > 0); assert.equal(roi
 assert.equal(Math.round(tin.pLai! * 100), 4, '1 / 23 mốc lãi');
 assert.ok(gom('d', 'n', 't', nho.slice(0, 5)).tin.don?.startsWith('ít mẫu'), '< 20 mốc đủ 72h = ít mẫu');
 console.log('etp-moc độ tin: ok');
+// nhận định tự động
+assert.equal(khoangGio([7, 8, 9, 15, 6, 5]), '07h–09h, 15h, 05h–06h', 'gộp khoảng theo thứ tự ngày Ethopex');
+const dLon = gom('len-8', 'n', 't', [lon, ...nho]);
+assert.equal(kieuDong(dLon), 'nho', '1 camp thắng lớn kéo cả dòng = cao nhờ vài camp');
+const deu = Array.from({ length: 22 }, (_, i) => m({ camp: i + 1, ai: i < 15 ? 'Sơn' : 'Nhà', c1: 1, t1: 1.5, c2: 1, t2: 1.5, c3: 1, t3: 1.5 }));
+const dDeu = gom('len-9', 'n', 't', deu);
+assert.equal(kieuDong(dDeu), 'tot'); const gd = giaiDong(dDeu);
+assert.ok(gd.cau.startsWith('Tốt thật') && gd.cau.includes('Sơn (15/22'), 'nêu người chiếm hơn nửa mẫu');
+assert.equal(gd.nguoi[0]!.ai, 'Sơn'); assert.equal(gd.top.length, 6);
+const lo = Array.from({ length: 22 }, (_, i) => m({ camp: i + 1, c1: 1, t1: 0.5, c2: 1, t2: 0.6, c3: 1, t3: 0.7 }));
+assert.equal(kieuDong(gom('len-18', 'n', 't', lo)), 'xau');
+assert.equal(kieuDong(gom('len-3', 'n', 't', lo.slice(0, 5))), 'it');
+const nd = nhanDinh([dLon, dDeu, gom('len-18', 'n', 't', lo), gom('len-19', 'n', 't', lo)]);
+assert.deepEqual(nd.map((x) => `${x.kieu}:${x.gio}`), ['tot:09h', 'nho:08h', 'xau:18h–19h']);
+console.log('etp-moc nhận định: ok');

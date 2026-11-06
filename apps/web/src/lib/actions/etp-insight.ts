@@ -63,7 +63,8 @@ async function docMocTho(ids: number[], tu: string, den: string): Promise<MocHan
       round(coalesce(sum(g.chi) filter (where g.t < e.t), 0)::numeric, 2), round(coalesce(sum(g.thu) filter (where g.t < e.t), 0)::numeric, 2),
       round(coalesce(sum(g.chi) filter (where g.t >= e.t and g.t < e.t + interval '24 hour'), 0)::numeric, 2), round(coalesce(sum(g.thu) filter (where g.t >= e.t and g.t < e.t + interval '24 hour'), 0)::numeric, 2),
       round(coalesce(sum(g.chi) filter (where g.t >= e.t + interval '24 hour' and g.t < e.t + interval '48 hour'), 0)::numeric, 2), round(coalesce(sum(g.thu) filter (where g.t >= e.t + interval '24 hour' and g.t < e.t + interval '48 hour'), 0)::numeric, 2),
-      round(coalesce(sum(g.chi) filter (where g.t >= e.t + interval '48 hour'), 0)::numeric, 2), round(coalesce(sum(g.thu) filter (where g.t >= e.t + interval '48 hour'), 0)::numeric, 2)) r
+      round(coalesce(sum(g.chi) filter (where g.t >= e.t + interval '48 hour'), 0)::numeric, 2), round(coalesce(sum(g.thu) filter (where g.t >= e.t + interval '48 hour'), 0)::numeric, 2),
+      (select case when exists (select 1 from etp.camp c where c.camp_id = e.camp_id) then 'Nhà' else coalesce((select t.nguoi from etp.camp_ngoai n join etp.tai_khoan t using (ad_account_id) where n.camp_id = e.camp_id), '?') end)) r
     from e cross join mx left join g on g.camp_id = e.camp_id and g.t >= e.t - interval '24 hour' and g.t < e.t + interval '72 hour'
     group by e.loai, e.camp_id, e.t, e.ty, mx.m`)) as unknown as { r: MocHang }[]).map((x) => x.r);
 }

@@ -1031,6 +1031,8 @@ const LUAT = [
   { card: 'insight-moc-0611', tep: 'apps/web/src/components/etp-insight.tsx', co: "<KeToan v={d.lai72} mau={mauLai(d.lai72)} />", vi: 'tiền trong bảng mốc in kiểu kế toán dùng chung (etp-so KeToan)' },
   { card: 'insight-moc-0611', tep: 'apps/web/src/lib/etp-moc.ts', co: 'export const TOP_DON = 3, DON_PHAN = 0.5, MAU_IT = 20;', vi: 'độ tin dòng mốc: % mốc lãi, ROI bỏ 3 mốc đầu, 3 mốc đầu chiếm % lãi (anh 06/11/2026 "bảng đó phải chỉnh để nhìn được cái mày vừa gom lại có giá trị")' },
   { card: 'insight-moc-0611', tep: 'apps/web/src/components/etp-insight.tsx', co: "{ key: 'tin', label: 'Độ tin'", vi: 'bảng mốc có nhóm cột Độ tin + dấu ⚠ dòng dồn lãi / ít mẫu' },
+  { card: 'insight-moc-0611', tep: 'apps/web/src/lib/etp-moc.ts', co: 'export function nhanDinh(ds: DongMoc[]): NhanDinh[]', vi: 'nhận định tự động trên bảng mốc: giờ tốt thật / cao nhờ vài camp / xấu đáng tin (anh 06/11/2026 "làm sao show được kiểu insight thế này")' },
+  { card: 'insight-moc-0611', tep: 'apps/web/src/components/etp-insight.tsx', co: 'renderExpanded={(d) => (mo.has(d.k) ? <GiaiDongO d={d} /> : null)}', vi: 'bấm dòng mốc mở lời giải: camp mang lãi, chia theo người, kết luận' },
   { card: 'chat', tep: V, co: '? <ChipPhim ph={phCua.get(k)} bh={bhCua.get(k)} /> : null; } },', vi: 'cột Luật dòng phim: thẻ vòng thử (đã cất / sắp cất / đổi bộ) + bão hoà' },
   { card: 1509, tep: V, co: "header: <NgayNhan d={d} />, align: 'center',", vi: 'cột ngày Chủ nhật đánh dấu khác (tô cam, gạch chân)' },
   { card: 1509, tep: V, co: "const laCN = (d: string) => new Date(`${d}T00:00:00Z`).getUTCDay() === 0;", vi: 'nhận Chủ nhật theo ngày Ethopex' },

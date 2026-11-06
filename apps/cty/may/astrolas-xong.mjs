@@ -38,6 +38,16 @@ export function canDoc(claudeMd, doi, show = '') {
 }
 /** Tài liệu bắt buộc chưa được Read thật trong nhật ký phiên. */
 export const chuaDoc = (nhatKy, can) => can.filter((f) => !nhatKy.includes(`/${f}"`));
+/** Biên dịch từng Blade đã sửa rồi php -l: lớp lỗi "Could not load this tab" (@endif@if dính nhau làm vỡ cả tab, lint và /up đều xanh, trang chính vẫn 200 vì tab tải riêng). Trả các dòng lỗi. */
+export function loiBlade(cwd, tep, env = process.env) {
+  const BIEN = 'require "vendor/autoload.php"; $a=require "bootstrap/app.php"; $a->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); echo app("blade.compiler")->compileString(file_get_contents($argv[1]));';
+  return tep.filter((f) => f.endsWith('.blade.php') && fs.existsSync(path.join(cwd, f))).flatMap((f) => {
+    const tam = path.join(os.tmpdir(), `blade-${process.pid}.php`);
+    try { fs.writeFileSync(tam, execFileSync('php', ['-r', BIEN, f], { cwd, encoding: 'utf8', env, maxBuffer: 1 << 26, stdio: ['ignore', 'pipe', 'ignore'] })); execFileSync('php', ['-l', tam], { encoding: 'utf8', env, stdio: ['ignore', 'pipe', 'pipe'] }); return []; }
+    catch (e) { return [`${f} biên dịch ra PHP lỗi, tab sẽ không tải được: ${String(e.stdout || e.stderr || e.message).split('\n').find((d) => /error/i.test(d))?.replace(tam, 'tệp biên dịch').slice(0, 200) ?? 'không rõ'}`]; }
+    finally { fs.rmSync(tam, { force: true }); }
+  });
+}
 /** Lý do chưa được báo xong, [] = qua cổng. Đã đọc nguyên văn task (show) + đủ ảnh + đủ tài liệu + Result đúng luật + nhìn trang nếu đụng giao diện. */
 export const cong = ({ id, show, nhatKy, doiGiaoDien, chupMoi, khongChup, thieuTaiLieu = [] }) => [
   ...(thieuTaiLieu.length ? [`chưa đọc đủ tài liệu dự án cho phần đã sửa, Read TỪNG tệp rồi đối chiếu lại bản sửa: ${thieuTaiLieu.join(', ')}`] : []),
@@ -95,6 +105,7 @@ if (process.argv[1]?.endsWith('astrolas-xong.mjs')) {
   git('fetch', '-q', 'origin', NHANH);
   const doi = git('diff', '--name-only', `origin/${NHANH}...HEAD`), soChup = (nhatKy.match(/"command":"br look/g) ?? []).length, chupTruoc = st.chup?.ss === ss ? st.chup.n : 0;
   const thieuTaiLieu = chuaDoc(nhatKy, canDoc(fs.readFileSync(path.join(REPO, 'CLAUDE.md'), 'utf8'), doi.split('\n').filter(Boolean), show).filter((f) => fs.existsSync(path.join(REPO, f))));
+  const hongBlade = loiBlade(REPO, doi.split('\n').filter(Boolean), ENV); if (hongBlade.length) die(hongBlade);
   const loi = cong({ id, show, nhatKy, doiGiaoDien: /resources\/views|public\/(css|js)\//.test(doi), chupMoi: soChup > chupTruoc, khongChup, thieuTaiLieu }); if (loi.length) die(loi);
   st.chup = { ss, n: soChup };
   let than = chu;

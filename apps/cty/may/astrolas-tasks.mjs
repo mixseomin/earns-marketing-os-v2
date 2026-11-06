@@ -6,6 +6,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 /** Task có bản thiết kế (anh 06/11/2026: "với task có thiết kế thì cho nâng lên medium"): đọc đúng lời người báo, không đọc result cũ hay đường dẫn trang. */
 export const coThietKe = (show) => /thiết\s*kế|bản\s*mẫu|mockup|\bdesign\b/i.test((show.match(/^human_query:([\s\S]*?)(?:^result:|^images:|^issue_url:)/m) || [])[1] ?? '');
@@ -41,7 +42,7 @@ const docSt = () => { try { return JSON.parse(fs.readFileSync(TEP, 'utf8')); } c
 let st = docSt(); const luu = () => fs.writeFileSync(TEP, JSON.stringify(st));
 
 fs.writeFileSync(CONG, box(`cat ${APP}/may/astrolas-xong.mjs`));   // Claude gọi cổng này; cũng lấy hàm đếm hàng từ đây vì tệp chính đến qua import dữ liệu
-const { hangTask, demHang, tinMoi } = await import(`${CONG}?v=${Date.now()}`);
+const { hangTask, demHang, tinMoi } = await import(`${pathToFileURL(CONG).href}?v=${Date.now()}`);   // tệp này chạy từ URL data: nên đường dẫn trần là "Invalid URL"
 
 const [chinh, soul] = box(`cat ${DATA}/nhip-chinh.json 2>/dev/null || echo {}; echo '@@'; grep -m1 '^model:' ${APP}/cong-ty/nhan-su/${NGUOI}/SOUL.md`).split('@@');
 if (JSON.parse(chinh.trim() || '{}')[NGUOI]?.bat === false) { log('Thành đang tắt'); process.exit(0); }

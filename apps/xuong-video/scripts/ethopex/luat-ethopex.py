@@ -368,9 +368,7 @@ try:
         m = re.search(r"\(nhan ban \d+ cua (\d+)\)$", c.get("name", ""))
         if m and tao(c) > gio24 and phim_cua.get(int(m.group(1))): ban_phim[phim_cua[int(m.group(1))]] = ban_phim.get(phim_cua[int(m.group(1))], 0) + 1
     bat = {c["id"] for c in ds_camp if c.get("state") == "ACTIVE"}
-    # CỔNG BÃO HOÀ PHIM (B, anh 25/10/2026 "rule hoá"): phim ROI hôm qua < 50% hoặc tụt dưới 70% hôm kia → không nhân thêm (etp.phim_bao_hoa, canh-bao.py tính)
-    try: chan_phim = {} if EA.XEM else {int(l.split("|")[0]): l.split("|", 1)[1] for l in q("select content_id, chan_nb from etp.phim_bao_hoa where chan_nb is not null").splitlines() if "|" in l}   # team chỉ cảnh báo (anh 02/11/2026)
-    except Exception: chan_phim = {}
+    # CỔNG BÃO HOÀ PHIM: BỎ (anh 06/11/2026 "bỏ tiêu chí ko lên camp phim bão hoà. Phim bão hoà chỉ cảnh báo") — etp.phim_bao_hoa chỉ để cảnh báo (canh-bao.py), không chặn nhân bản / thang
     # NGHỈ SAU LỖI (25/10/2026: 16.751 lần nhân bản thất bại trong nhật ký — luật đề xuất lại cùng camp bị chặn ở MỖI nhịp, #67663 3 lần / phút):
     # camp gốc nhân bản lỗi trong 6 giờ qua thì bỏ qua lượt này
     try: loi6 = {int(x) for x in q("select distinct camp_id from etp.nhat_ky where viec = 'nhan_ban' and ok is not true and luc > now() - interval '6 hours' and camp_id is not null").split()}
@@ -378,7 +376,7 @@ try:
     for cid, a in sorted(thang.items(), key=lambda z: -(roi(z[1]) or 0)):
         r, g3, p = roi(a), roi(gan.get(cid) or {"chi": 0, "thu": 0}), phim_cua.get(cid)
         if cid not in bat or not p or r is None or r < NB_ROI or a["chi"] < NB_CHI or g3 is None or g3 < NB_ROI3 or cid in goc_moi: continue
-        if dang_chay.get((p, tk_cua.get(cid)), 0) >= TRAN_PHIM_CHAY or ban_phim.get(p, 0) >= NB_PHIM_NGAY or int(p) in chan_phim or cid in loi6: continue
+        if dang_chay.get((p, tk_cua.get(cid)), 0) >= TRAN_PHIM_CHAY or ban_phim.get(p, 0) >= NB_PHIM_NGAY or cid in loi6: continue
         if a["budget"] < TRAN_NB: continue   # nhan-ban.py chỉ clone camp đã chạm trần (anh 25/10/2026) — không đề xuất camp chưa tới, tránh hàng trăm lượt bị chặn
         dang_chay[(p, tk_cua.get(cid))] = dang_chay.get((p, tk_cua.get(cid)), 0) + 1; ban_phim[p] = ban_phim.get(p, 0) + 1
         nb.append((cid, f"#{a['ten'][:70]} · {rd(cid)} {r:+.0f}% · tiêu ${a['chi']:.2f} · ROI 3 ngày {g3:+.0f}% → nhân bản 1 camp $1 (phim {p}: {dang_chay[(p, tk_cua.get(cid))]}/{TRAN_PHIM_CHAY} camp chạy ở tài khoản này)"))
@@ -419,7 +417,7 @@ try:
     for c in ds_camp:
         mt = la_thang(c)
         if mt: _con.setdefault(int(mt.group(1)), []).append(c)
-    _chan_phim, _loi6 = locals().get("chan_phim") or {}, locals().get("loi6") or set()
+    _loi6 = locals().get("loi6") or set()
     for cid, a in thang.items():
         if int(cid) not in _tang_bo2 or cid not in _bat: continue
         _bc = q(f"select etp.bo_chan_mo_camp('{_bo_c.get(int(cid)) or '2'}', {int(cid)})") if _bo_chan.get(str(_bo_c.get(int(cid)) or "2")) else ""   # bộ lỗ 3 ngày khép → không mở bản thang (0339); camp tự thắng 3 ngày khép ROI ≥ 30% thì miễn (0372, anh 30/10/2026)
@@ -435,7 +433,6 @@ try:
         _dang = [x for x in con if x.get("state") == "ACTIVE" or (x.get("sync_status") or "done") not in ("done", "synced", "error")]
         if _dang: _thang_ly[int(cid)] = "bản thang #" + ", #".join(str(x.get("id")) for x in _dang) + " đang chạy / đang dựng — chờ nó xong"; continue
         h = hom.get(cid, {"chi": 0.0, "thu": 0.0}); y = hqua.get(cid) or {"chi": 0.0, "thu": 0.0}
-        if int(phim_cua.get(cid) or 0) in _chan_phim: _thang_ly[int(cid)] = f"phim đang bị chặn nhân bản: {str(_chan_phim.get(int(phim_cua.get(cid) or 0)))[:60]}"; continue
         if cid in _loi6: _thang_ly[int(cid)] = "nhân bản camp này lỗi gần đây"; continue
         if _chi3.get(int(cid), 0.0) < THANG_CHI_GOC: _thang_ly[int(cid)] = f"camp gốc tiêu TB ${_chi3.get(int(cid), 0.0):.2f}/ngày 3 ngày đã khép (< ${THANG_CHI_GOC:g})"; continue
         thang_nb.append((cid, f"#{a['ten'][:70]} · ${ns:g} đủ luật tăng · ROI hôm nay {(roi(h) if h.get('chi', 0) >= 0.3 else 0):+.0f}% (chi ${h.get('chi', 0):.2f})" + (f" · hôm qua {roi(y):+.0f}%" if y["chi"] >= 0.3 else "") + f" · {rd(cid)} {roi(a):+.0f}% → ${dich:g} bản mới (cùng creative gốc, đoạn đủ trần mới đổi; camp này giữ nguyên ngân sách)" + (f" · bản con thứ {len(con) + 1}" if con else "")))

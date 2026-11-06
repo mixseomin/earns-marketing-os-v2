@@ -72,7 +72,7 @@ def bao_hoa_phim(nay):
         bh = None
         if so > BH_CAMP and None not in (r1, r2, r3) and all(x and x["chi"] >= 5 for x in (x1, x2, x3)) and r3 > r2 > r1:
             bh = f"{so} camp đang chạy · ROI phim {r3:+.0f}% → {r2:+.0f}% → {r1:+.0f}% (3 ngày) — camp tự giành cùng tệp người xem"
-            bao("phim_bao_hoa", "vang", f"phim_bao_hoa:{cid}:{nay}", f"⚠ PHIM BÃO HOÀ: {ten[:50]} (#{cid}) — {bh}. Máy đã dừng nhân bản phim này; đoạn quá tải đang được dọn sang góc mới."); n += 1
+            bao("phim_bao_hoa", "vang", f"phim_bao_hoa:{cid}:{nay}", f"⚠ PHIM BÃO HOÀ: {ten[:50]} (#{cid}) — {bh}. Chỉ cảnh báo — máy vẫn lên camp / nhân bản phim này (anh 06/11/2026)."); n += 1
             chan = chan if chan and chan.startswith("bão hoà") else f"bão hoà: ROI phim giảm 2 ngày liền ({r3:+.0f}% → {r2:+.0f}% → {r1:+.0f}%)"
         roi = [{"d": k, "chi": v["chi"], "thu": v["thu"], "roi": None if r(v) is None else round(r(v))} for k, v in sorted(ng.items())]
         out.append({"content_id": int(cid), "ten": ten, "so_camp": so, "roi": roi, "chan_nb": chan, "bao_hoa": bh})

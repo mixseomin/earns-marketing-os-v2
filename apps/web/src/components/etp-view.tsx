@@ -23,6 +23,7 @@ import { TRE_MO } from '@/lib/etp-tre';
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
+import { TabInsight } from '@/components/etp-insight';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 // CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
@@ -42,7 +43,7 @@ import { timCampNoiKhac, type CampNoiKhac } from '@/lib/actions/etp-tim';
 import { phimDangSx, tvChuaCr } from '@/lib/etp-sx';
 import { KD, KHUNG_TEN, NHIP_PHUT, docHoan, gioLam, gioVnNay, hetKhung, khungLuc, lucTang, type HuongLuat } from '@/lib/etp-khung';
 
-type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat';
+type Tab = 'tong' | 'tong2' | 'camp' | 'roas' | 'creative' | 'phim' | 'dong' | 'tv' | 'tn' | 'luat' | 'insight';
 // TUỔI = số NGÀY (thập phân) từ một mốc tới giờ — một hàm cho bảng Camp, bảng Creative, Cây; lọc 🔍 "> 2" = hơn 2 ngày (anh 26/10/2026)
 const tuoiNgay = (iso: string | null | undefined) => (iso ? Math.max(0, (Date.now() - Date.parse(iso)) / 86_400_000) : null);
 const tuoiChu = (d: number | null) => (d == null ? '—' : d < 10 ? d.toFixed(1) : String(Math.floor(d)));
@@ -903,9 +904,9 @@ function BaoLuat({ du }: { du: DuLieuEtp }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12, marginBottom: 16 }}>
       <div style={the}>
-        <h3 style={{ fontSize: 14, margin: '0 0 8px' }} title="Nhiều camp cùng phim giành cùng tệp người xem → ROI cả phim tụt. ⚠ = > 10 camp, ROI giảm 2 ngày liền · ⏸ = máy dừng nhân bản (ROI phim hôm qua < 50%, hoặc tụt > 20% so với hôm kia dù vẫn > 100%, hoặc đang bão hoà); đoạn > 3 camp được dọn sang góc mới 3 giờ/lần">Phim bão hoà</h3>
+        <h3 style={{ fontSize: 14, margin: '0 0 8px' }} title="Nhiều camp cùng phim giành cùng tệp người xem → ROI cả phim tụt. ⚠ = > 10 camp, ROI giảm 2 ngày liền · ⏸ = ROI phim tụt (hôm qua < 50%, hoặc tụt > 20% so với hôm kia dù vẫn > 100%) — từ 06/11/2026 chỉ cảnh báo, máy vẫn lên camp / nhân bản; đoạn > 3 camp được dọn sang góc mới 3 giờ/lần">Phim bão hoà</h3>
         {du.baoHoa.map((p) => (
-          <div key={p.content_id} title={[p.bao_hoa, p.chan_nb ? `dừng nhân bản: ${p.chan_nb}` : ''].filter(Boolean).join(' · ')} style={{ display: 'grid', gridTemplateColumns: '18px 1fr auto auto', gap: 8, alignItems: 'center', padding: '5px 0', borderTop: '1px solid var(--line)', fontSize: 12 }}>
+          <div key={p.content_id} title={[p.bao_hoa, p.chan_nb ? `cảnh báo (không chặn): ${p.chan_nb}` : ''].filter(Boolean).join(' · ')} style={{ display: 'grid', gridTemplateColumns: '18px 1fr auto auto', gap: 8, alignItems: 'center', padding: '5px 0', borderTop: '1px solid var(--line)', fontSize: 12 }}>
             <span style={{ color: '#f59e0b' }}>{p.bao_hoa ? '⚠' : '⏸'}</span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.ten || `#${p.content_id}`}</span>
             <span style={{ color: 'var(--fg-2)' }} title="camp đang chạy">{p.so_camp}</span>
@@ -1810,7 +1811,7 @@ function MocPhim({ ph, chay }: { ph: PhimEtpKho | undefined; chay: number }) {
   return <span title={t} style={{ color: con ? '#f87171' : 'var(--fg-3)', border: `1px solid ${con ? '#f8717166' : 'var(--line)'}`, borderRadius: 4, padding: '0 4px', fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'help' }}>⛔ chạm mốc{ph.doi_chay ? ` · đội ${ph.doi_chay}` : ''}</span>;
 }
 // THẺ LUẬT CỦA DÒNG PHIM (anh 02/11/2026 "Phải show pending, chạm vào cột Luật của dòng Phim"): vòng thử phim (apps/etp/cat_phim.py — đã cất · sắp cất · đổi bộ ·
-// team lãi) + cổng bão hoà (etp.phim_bao_hoa — bão hoà đang theo dõi · dừng nhân bản). Thẻ đặc = máy đã làm, viền nét đứt = đang chờ; rê vào xem lý do
+// team lãi) + cảnh báo bão hoà (etp.phim_bao_hoa — bão hoà · ROI tụt; từ 06/11/2026 chỉ cảnh báo, không chặn). Thẻ đặc = máy đã làm, viền nét đứt = đang chờ; rê vào xem lý do
 const VONG_PHIM: Record<string, [string, string, boolean]> = { cat: ['⛔ Đã cất', '#f87171', false], sap_cat: ['◌ Sắp cất', '#f59e0b', true], doi_bo: ['↪ Đổi bộ', '#60a5fa', true], team: ['👥 Đội lãi', '#a78bfa', true] };
 function ChipPhim({ ph, bh }: { ph: PhimEtpKho | undefined; bh?: DuLieuEtp['baoHoa'][number] }) {
   // #1510 (anh 02/11/2026 "Hover format lại!! Bố cục lại cả chỗ này"): ô chỉ MỘT thẻ — trạng thái nặng nhất + "+N" khi còn thẻ khác (trước 2 thẻ bị cắt chữ);
@@ -1820,8 +1821,8 @@ function ChipPhim({ ph, bh }: { ph: PhimEtpKho | undefined; bh?: DuLieuEtp['baoH
   const v = ph?.thu ? VONG_PHIM[ph.thu.vong] : undefined;
   if (v && ph?.thu) { const so = /đã thử (\d+\/\d+)/.exec(ph.thu.ly ?? '')?.[1];
     the.push({ chu: `${v[0]}${so ? ` ${so}` : ''}`, mau: v[1], cho: v[2], ten: `Vòng thử phim — ${v[0].replace(/^\S+\s/, '')}`, ly: (ph.thu.ly ?? ph.thu.vong).split(' · ') }); }
-  if (bh?.bao_hoa && ph?.thu?.vong !== 'cat') the.push({ chu: '⚠ Bão hoà', mau: '#f59e0b', cho: true, ten: 'Bão hoà — đang theo dõi', ly: [...bh.bao_hoa.split(' · '), 'ROI phim cả hệ hôm qua còn ≥ 0% — âm thì máy cất phim'] });
-  if (bh?.chan_nb && ph?.thu?.vong !== 'cat') the.push({ chu: '⏸ Dừng nhân bản', mau: 'var(--fg-2)', cho: true, ten: 'Cổng bão hoà chặn nhân bản', ly: bh.chan_nb.split(' · ') });
+  if (bh?.bao_hoa && ph?.thu?.vong !== 'cat') the.push({ chu: '⚠ Bão hoà', mau: '#f59e0b', cho: true, ten: 'Bão hoà — chỉ cảnh báo', ly: [...bh.bao_hoa.split(' · '), 'chỉ cảnh báo — máy vẫn lên camp / nhân bản, không cất phim vì bão hoà (anh 06/11/2026)'] });
+  if (bh?.chan_nb && ph?.thu?.vong !== 'cat') the.push({ chu: '⏸ ROI tụt', mau: 'var(--fg-2)', cho: true, ten: 'ROI phim tụt — chỉ cảnh báo, không chặn nhân bản', ly: bh.chan_nb.split(' · ') });
   if (!the.length) return null;
   const a = the[0]!;
   return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, maxWidth: '100%', cursor: 'help' }}>
@@ -2410,7 +2411,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
     </div>
   );
 }
-const TABS: Tab[] = ['tong', 'tong2', 'camp', 'roas', 'creative', 'phim', 'dong', 'tv', 'tn', 'luat'];
+const TABS: Tab[] = ['tong', 'tong2', 'camp', 'roas', 'creative', 'phim', 'dong', 'tv', 'tn', 'luat', 'insight'];
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'mlai', 'mlo', 'chua_tieu', 'tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran', 'sx', 'cung', 'roas'] as const;
 // MỨC TIÊU HÔM NAY (anh 06/11/2026 "bộ lọc về các camp đã tiêu kịch trần ngân sách ngày" + "camp chưa tiêu đồng nào... các level"): camp ĐANG CHẠY chia theo
 // chi hôm nay (ngày Ethopex từ 07:00 VN) / ngân sách ngày; kịch trần = ≥ nap_chi × ngân sách — cùng ngưỡng máy xét tăng / nạp
@@ -2532,7 +2533,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const [nganPhim, setNganPhim] = useState<string | null>(/^phim:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1] ?? null);   // ngăn biểu đồ cả phim (điện thoại)
   // Sản xuất (dòng phim nhà) chỉ hiện khi đang xem tài khoản Tuấn David (nhà) — không ở người khác / Team (anh 03/11/2026)
   const hoanSo = useMemo(() => docHoan(duGoc.cauHinh), [duGoc.cauHinh]);   // sổ hoãn khung đổi camp (máy ghi mỗi nhịp)
-  const laNguoi = quyen?.vai === 'nguoi', tabsHien = (laNguoi ? TAB_NGUOI : chiXem ? TABS.filter((t) => t !== 'tong2') : TABS).filter((t) => t !== 'dong' || (!duGoc.nguoi.ngoai && !duGoc.nguoi.doi));   // Tổng quan 2 (widget) chỉ chủ thấy tới khi hoàn thiện (anh 01/11/2026)
+  const laNguoi = quyen?.vai === 'nguoi', tabsHien = (laNguoi ? TAB_NGUOI : chiXem ? TABS.filter((t) => t !== 'tong2').filter((t) => t !== 'insight') : TABS).filter((t) => t !== 'dong' || (!duGoc.nguoi.ngoai && !duGoc.nguoi.doi));   // Tổng quan 2 (widget) chỉ chủ thấy tới khi hoàn thiện (anh 01/11/2026)
   const [tab, setTab] = useState<Tab>(tabsHien.includes(dauVao?.t as Tab) ? (dauVao!.t as Tab) : 'tong');
   useEffect(() => { if (!tabsHien.includes(tab)) setTab('tong'); }, [tabsHien, tab]);   // đổi người khi đang ở tab chỉ-nhà (Sản xuất) → về Tổng quan
   // ?lu= luật · ?d= loại creative — bộ lọc giữ qua F5 (anh 27/10/2026 "bộ lọc cũng phải lưu theo F5")
@@ -2866,7 +2867,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       {!gon ? <style>{'.etp-thanh [data-comp="ui.Segmented"] button,.etp-thanh [data-comp="ui.Segmented"] a{white-space:nowrap}.etp-thanh>*{flex-shrink:0}'}</style> : null}
       <Segmented<Tab> value={tab} onChange={doiTab} hrefFor={(t) => urlCua({ ...hienTai, tab: t, xemCamp: 'cay', xemCr: 'hq' }).href} options={([
         { value: 'tong', label: 'Tổng quan' }, { value: 'tong2', label: 'Tổng quan 2', title: 'bản thử dạng widget kéo thả + template — chỉ chủ thấy tới khi hoàn thiện' }, { value: 'camp', label: 'Camp', title: `${du.camps.length} camp`, menu: gon ? undefined : menuCamp }, { value: 'roas', label: '★ ROAS', title: `${campRoas.length} camp bid ROAS` }, { value: 'creative', label: 'Creative', title: `${du.creatives.length} creative`, menu: gon ? undefined : menuCr },
-        { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'dong', label: 'Sản xuất', title: 'sản xuất creative theo phim: phim → loại nội dung → creative → camp, từng bước, xử lý tay tại ô (anh 03/11/2026)' }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }] satisfies SegmentedOption<Tab>[]).filter((o) => tabsHien.includes(o.value))} />
+        { value: 'phim', label: 'Phim', title: `${du.phims.length} phim` }, { value: 'dong', label: 'Sản xuất', title: 'sản xuất creative theo phim: phim → loại nội dung → creative → camp, từng bước, xử lý tay tại ô (anh 03/11/2026)' }, { value: 'tv', label: 'Thư viện', title: 'thư viện creative theo phim — xem, tải, chép chữ QC (mọi người dùng chung)' }, { value: 'tn', label: 'Tài nguyên', title: 'Bộ tài khoản · tài khoản QC · Page · pixel · máy thợ' }, { value: 'luat', label: 'Luật & cảnh báo' }, { value: 'insight', label: 'Insight', title: 'nhận định từ số theo ngày / theo giờ của nhà và đội — chỉ chủ thấy (anh 06/11/2026)' }] satisfies SegmentedOption<Tab>[]).filter((o) => tabsHien.includes(o.value))} />
       {/* ĐIỆN THOẠI: hàng 1 = tab (cuộn ngang) · hàng 2 = kiểu xem (biểu tượng) + kỳ (ô chọn) + nút Lọc; bảng lọc chỉ mở khi bấm Lọc */}
       {gon && coKy ? kySel() : null}
       {!gon && (tab === 'camp' || tab === 'creative') ? <span className="etp-xuong" style={{ flexBasis: '100%', height: 0 }} /> : null}
@@ -3004,6 +3005,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         <TabDong moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} />
       ) : tab === 'tv' ? (
         <TabThuVien du={du} tl={tl} />
+      ) : tab === 'insight' ? (
+        <TabInsight />
       ) : tab === 'tn' ? (
         <TabTaiNguyen du={du} kh={kh} khCamp={khCamp} />
       ) : tab === 'phim' ? (

@@ -51,25 +51,15 @@ def dat(content, vong, ly, that, bo=None):
     v = lambda x: "null" if x is None else f"'{s_(x)}'"
     if that: _q(f"update etp.phim set thu_vong = {v(vong)}, thu_ly = {v(ly)}, thu_bo = {v(bo)}, thu_luc = now() where content_id = {int(content)}")
 
-def bao_hoa_lo():
-    """{content_id: lý do} — phim đang bão hoà (etp.phim_bao_hoa.bao_hoa) mà ROI phim cả hệ ngày đã khép gần nhất < 0"""
-    ra = {}
-    for r in _qj("select content_id, bao_hoa, roi from etp.phim_bao_hoa where bao_hoa is not null"):
-        ds = [x for x in (r.get("roi") or []) if x.get("roi") is not None]
-        if ds and float(ds[-1]["roi"]) < 0: ra[int(r["content_id"])] = f"bão hoà: {r['bao_hoa']}"[:300]
-    return ra
-
 def xet(that=False):
-    ch = cau_hinh(); bao, doi_bo = [], {}; N = int(ch["so_thu"]); bh = bao_hoa_lo()
+    ch = cau_hinh(); bao, doi_bo = [], {}; N = int(ch["so_thu"])
     for p in so_phim():
         ct, chi, thu, vong = int(p["content_id"]), float(p["chi"] or 0), float(p["thu"] or 0), p.get("thu_vong")
         ten = p.get("ten") or f"phim {ct}"; so_thu = int(p.get("so_thu") or 0)
         team_lai = float(p["team_chi"] or 0) >= 10 and float(p["team_thu"] or 0) > float(p["team_chi"] or 0)
-        if ct in bh:   # bão hoà mà lỗ: cất kể cả phim từng có camp lãi
-            if vong != "cat" or not str(p.get("thu_ly") or "").startswith("bão hoà"): dat(ct, "cat", bh[ct], that); bao.append(f"cất phim {ct} {ten}: {bh[ct]}")
-            continue
+        # BÃO HOÀ KHÔNG CÒN LÀ LÝ DO CẤT (anh 06/11/2026 "Phim bão hoà chỉ cảnh báo"): phim đã cất vì bão hoà → mở lại; phim bão hoà chỉ hiện cảnh báo (etp.phim_bao_hoa)
         if vong == "cat" and str(p.get("thu_ly") or "").startswith("bão hoà"):
-            dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: hết bão hoà lỗ"); continue
+            dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: bão hoà chỉ cảnh báo, không cất (anh 06/11/2026)"); continue
         if p.get("lai") or (vong == "cat" and team_lai):
             if vong: dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: {'camp nhà lãi' if p.get('lai') else 'team lãi 14 ngày'}")
             continue

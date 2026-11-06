@@ -98,7 +98,7 @@ const TT0 = 500_000_000;   // id âm: -thu_vien.id · -(TT0 + thay_the.id)
 const NGUON_NGOAI: Record<string, [string, string]> = { anh_tinh: ['AT', 'anh-tinh.py (ảnh tĩnh)'], videoexpress: ['KT', 'máy sinh kể chuyện'], kieu_moi: ['KM', 'kieu-moi.py (kiểu mới)'] };
 type CampTho = { id: number; tt: string | null; tao: string; chi: number; thu: number; lich: string | null; db: string | null };
 type NgoaiTho = { id: number; content_id: number; ten: string | null; the_loai: string | null; anh: string | null; nguon: string; tt: string; creative_id: number | null; ghi: string | null;
-  tao: string; cap_nhat: string; duoc_len: boolean | null; chan_boi: string | null; cham_luc: string | null; camps: CampTho[] | null; len_hang?: number | null; len_ly_do?: string | null };
+  tao: string; cap_nhat: string; duoc_len: boolean | null; chan_boi: string | null; cham_luc: string | null; camps: CampTho[] | null; len_hang?: number | null; len_ly_do?: string | null; len_so?: number | null };
 const buocNgoai = (buoc: string, thu_tu: number, trang_thai: string, bat_dau: string | null, ket_thuc: string | null, ghi: string | null = null, ket_qua: BuocDong['ket_qua'] = null): BuocDong =>
   ({ buoc, thu_tu, trang_thai, bat_dau, ket_thuc, han_giay: 30 * 86400, lan: 1, ghi, nhip: new Date().toISOString(), fix: false, ket_qua });   // nhịp = bây giờ: không tính kẹt kiểu máy dòng phim
 function dongNgoai(x: NgoaiTho, loai: string, ngoai: string, id: number, b: { cat: string; soat: string; cr: string; camp: string; ghi_cat?: string | null; ghi_camp?: string | null; dung?: string | null; huy?: boolean; len?: CrDong['len'] }): DongPhim {
@@ -119,7 +119,7 @@ async function docNgoai(): Promise<DongPhim[]> {
   const so = sql`(select coalesce(json_agg(json_build_object('id', c.camp_id, 'tt', c.trang_thai, 'tao', c.tao, 'chi', coalesce(s.chi, 0), 'thu', coalesce(s.thu, 0), 'lich', c.lich, 'db', c.dong_bo) order by c.tao), '[]'::json)
     from etp.camp c left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id) where`;
   const tv = await run<NgoaiTho>(sql`select v.id::int, v.content_id, coalesce(f.ten, v.ten) ten, f.the_loai, v.anh, v.nguon, v.trang_thai tt, v.creative_id, v.ghi, v.tao::text, v.cap_nhat::text,
-      g.duoc_len, g.chan_boi, (select max(h.luc) from etp.cham h where h.creative_id = v.creative_id)::text cham_luc, ${so} c.creative_id = v.creative_id) camps, cl.hang len_hang, cl.ly_do len_ly_do
+      g.duoc_len, g.chan_boi, (select max(h.luc) from etp.cham h where h.creative_id = v.creative_id)::text cham_luc, ${so} c.creative_id = v.creative_id) camps, cl.hang len_hang, cl.ly_do len_ly_do, cl.so_len len_so
     from etp.thu_vien v left join etp.phim f using (content_id) left join etp.cham_cong g on g.creative_id = v.creative_id left join etp.cho_len_v cl on cl.creative_id = v.creative_id
     where v.tao > now() - interval '14 days'
       and not exists (select 1 from etp.dong_buoc b where b.buoc = 'creative' and v.creative_id is not null and (b.ket_qua @> jsonb_build_object('creative_id', v.creative_id)
@@ -137,7 +137,7 @@ async function docNgoai(): Promise<DongPhim[]> {
       // HÀNG CHỜ LÊN CAMP đọc view etp.cho_len_v — cùng nguồn máy lên camp (ethopex.mjs): tự lên thì nói thứ mấy + giờ chạy, không tự lên thì nói vì sao (anh 05/11/2026)
       camp: coCamp ? 'xong' : x.creative_id && x.duoc_len ? (x.len_ly_do ? 'dung' : 'cho') : 'cho', ghi_cat: hong || x.tt === 'dang_sinh' ? x.ghi : null,
       len: !coCamp && x.creative_id && x.duoc_len && (x.len_hang != null || x.len_ly_do) ? { hang: x.len_hang ?? null, ly_do: x.len_ly_do ?? null } : null,
-      ghi_camp: coCamp || !x.creative_id || !x.duoc_len ? null : x.len_ly_do ? `không tự lên: ${x.len_ly_do}` : `tự lên ở nhịp máy kế — thứ ${x.len_hang ?? '?'} trong hàng (4 camp mỗi nhịp), ${chuLich()}`,
+      ghi_camp: coCamp || !x.creative_id || !x.duoc_len ? null : x.len_ly_do ? `không tự lên: ${x.len_ly_do}` : `tự lên ở nhịp máy kế — thứ ${x.len_hang ?? '?'} trong hàng (4 creative mỗi nhịp)${(x.len_so ?? 1) > 1 ? ` · phim ROI cao cả đội → ${x.len_so} camp một lần` : ''}, ${chuLich()}`,
       dung: hong ? `bản bị loại: ${x.ghi ?? x.tt}` : chan ? `cổng chấm chặn: ${x.chan_boi}` : null }));
   }
   for (const x of tt) {   // thay-the.py: chuan_bi → cat_goc → cho_cham → len_lich → chay (chan = cổng chặn, huy = bỏ)

@@ -507,21 +507,23 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     const ghiBq = () => chayPsql(`update etp.cau_hinh set gia_tri = $J$${JSON.stringify(bq).replace(/\$J\$/g, '')}$J$::jsonb, luc = now() where khoa = 'phim_moi_bo_qua'`);
     await ghiBq();   // bỏ mục quá 24 giờ trước khi đọc view
     const ds = JSON.parse((await chayPsql(`select coalesce(json_agg(x), '[]') from (select v.creative_id, v.content_id, v.lang, v.lo, coalesce(p.ten, '') ten, v.dang, v.tu, v.den,
-        coalesce((select gia_tri->>(v.content_id::text) from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2') bo, v.nhan
+        coalesce((select gia_tri->>(v.content_id::text) from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2') bo, v.nhan, v.so_len
       from etp.cho_len_v v left join etp.phim p using (content_id) where v.ly_do is null order by v.hang limit 4) x`)).trim() || '[]');
     const da = [];
-    for (const x of ds) {
-      const a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();
-      const ten = `${x.lo} ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ${a_(x.dang).toLowerCase()} ${Math.round(x.tu)}-${Math.round(x.den)}s`.trim();
+    // PHIM ROI CAO CẢ ĐỘI → so_len camp MỘT LẦN (anh 06/11/2026 "Phim có roi cao của cả đội thì có thể lên cùng 5 camp mới mỗi lần"): view etp.phim_doi_lai, mức ở etp.cau_hinh 'len_doi_lai'
+    for (const x0 of ds.flatMap((x) => Array.from({ length: Math.max(1, Number(x.so_len) || 1) }, (_, i) => ({ ...x, lan: i + 1 })))) {
+      const x = x0, a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();
+      const ten = `${x.lo} ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ${a_(x.dang).toLowerCase()} ${Math.round(x.tu)}-${Math.round(x.den)}s${x.so_len > 1 ? ` doi lai ${x.lan}/${x.so_len}` : ''}`.trim();
+      if (x.lan > 1 && !da.some((d) => d.x.creative_id === x.creative_id && d.r.ok)) continue;   // camp đầu của creative lỗi → không thử 4 camp còn lại (cùng lỗi)
       let r; try { r = JSON.parse((await chay(NB, [String(KHUON[x.lang] ?? KHUON.en), '--bo', String(x.bo), '--creative', String(x.creative_id), '--content', String(x.content_id), '--ten', ten,
         // CAMP MỚI CHẠY THEO LỊCH (anh 04/11/2026 "áp dụng thêm việc lên camp mới theo lịch" — như Kiên): bắt đầu 00:00 UTC hôm sau (07:00 VN, đầu ngày Ethopex) → ngày đầu là ngày trọn
         '--that', '--luat', LEN_DANG[x.dang]?.[0] ?? 'phim mới chấm sạch → lên camp',   // giờ chạy do nhan-ban.lich_len quyết (tạo 07–12h VN chạy ngay, ngoài khung hẹn 07:00 hôm sau — anh 05/11/2026)
-        '--ai', LEN_DANG[x.dang]?.[1] ?? 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy'], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+        '--ai', (x.so_len > 1 ? `anh (chat 06/11/2026: phim ROI cao cả đội lên ${x.so_len} camp mỗi lần) · ` : '') + (LEN_DANG[x.dang]?.[1] ?? 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy')], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       da.push({ x, r });
     }
     const ok = da.filter((d) => d.r.ok);
     if (ok.length) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🎬 <b>PHIM MỚI LÊN CAMP</b> — chấm Sạch xong lên luôn ($1, ${chuChay(ok.map((d) => d.r))})\n` + ok.map((d) => `#${d.r.moi} · bộ ${esc(d.x.bo)} · ${esc(d.x.ten || 'phim ' + d.x.content_id)} (cr #${d.x.creative_id})`).join('\n') }); gui++; }
-    for (const d of da.filter((d) => !d.r.ok)) {
+    for (const d of da.filter((d) => !d.r.ok && !da.some((e) => e.x.creative_id === d.x.creative_id && e.r.ok))) {   // creative đã lên được ít nhất 1 camp (phim đội lãi) thì không vào sổ bỏ qua
       // phim đang NHẬN không vào bỏ qua 24 giờ (lượt nhận chỉ 24 giờ: anh sửa xong — vd thêm phim vào workspace — thì nhịp sau thử lại ngay, lỗi hiện ở sổ nhận)
       if (!d.x.nhan) bq[d.x.creative_id] = { luc: new Date().toISOString(), loi: String(d.r.loi || '').slice(0, 200) }; console.error(`lên camp phim mới #${d.x.creative_id}: ${String(d.r.loi).slice(0, 160)}`);
       // phim đang được NHẬN (anh 02/11/2026 "có lỗi thì phải báo lại ở danh sách phim Nhận") → ghi lỗi vào sổ nhận, tab Phim / ngăn phim hiện ngay

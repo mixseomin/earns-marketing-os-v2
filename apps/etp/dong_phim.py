@@ -517,9 +517,10 @@ def mo_doi_lai():
     for l in sql("""begin; select pg_advisory_xact_lock(4390);
         insert into etp.dong_phim (content_id, ten, loai, ai, so_camp)
         select d.content_id, p.ten, 'CC', 'máy: phim đội lãi ROI ' || d.roi || '% trên $' || round(d.chi) || ' (' || coalesce((g.gia_tri->>'ngay'), '3') || ' ngày đã khép, nhà + đội)',
-          coalesce((g.gia_tri->>'so_camp')::int, 5)
-        from etp.phim_doi_lai d left join etp.phim p using (content_id), (select (select gia_tri from etp.cau_hinh where khoa = 'len_doi_lai') gia_tri) g
-        where coalesce(p.nhom_goc, 'au_my') = 'au_my'
+          case when m.pha = 'dinh' then least(2, coalesce((g.gia_tri->>'so_camp')::int, 5)) else coalesce((g.gia_tri->>'so_camp')::int, 5) end
+        from etp.phim_doi_lai d left join etp.phim p using (content_id) left join etp.mo_rong m using (content_id), (select (select gia_tri from etp.cau_hinh where khoa = 'len_doi_lai') gia_tri) g
+        -- ĐỒNG HỒ THỊ TRƯỜNG (etp.mo_rong.pha, anh 06/11/2026 "các đồng hồ đang có chưa dùng đến à"): vượt sức chứa → không mở · quanh tối ưu → 2 camp · còn dư địa / chưa đủ số → so_camp
+        where coalesce(p.nhom_goc, 'au_my') = 'au_my' and m.pha is distinct from 'bao_hoa'
           and not exists (select 1 from etp.dong_phim x where x.content_id = d.content_id and x.trang_thai = 'chay')
           and not exists (select 1 from etp.dong_phim x where x.content_id = d.content_id and x.ai like 'máy: phim đội lãi%' and x.tao_luc > now() - interval '24 hours')
         returning id, content_id; commit;""").splitlines():

@@ -695,6 +695,8 @@ const LUAT = [
   { card: 'camp-cho-0611', tep: 'apps/web/src/components/etp-view.tsx', co: "const p = c.camp_id < 0 ? campCuaPhim.get(c.content_id) : c;", vi: 'tìm tên phim vẫn thấy dòng camp chờ / thay / mở rộng của phim đó' },
   { card: 'at-voice-0611', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: '("Watch the series {t}", "for free now.", "“See more” to continue watching!")]', vi: 'ảnh tĩnh có 4 mẫu câu giọng EN anh đưa (06/11/2026)' },
   { card: 'at-voice-0611', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'so_mau = random.randrange(len(CAU[lang]))', vi: 'mỗi creative ảnh tĩnh bốc ngẫu nhiên một mẫu, ghi voice.mau để đo' },
+  { card: 'dong-ho-luat-0611', tep: 'apps/etp/dong_phim.py', co: "where coalesce(p.nhom_goc, 'au_my') = 'au_my' and m.pha is distinct from 'bao_hoa'", vi: 'đồng hồ thị trường vượt sức chứa → không mở đợt phim đội lãi; quanh tối ưu → 2 camp (anh 06/11/2026)' },
+  { card: 'dong-ho-luat-0611', tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'and cid not in VUOT:', vi: 'không lên camp chờ cho phim vượt sức chứa' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', co: 'r1 < goc[1] and lai(x1) < lai(goc[0]):', vi: 'lên thêm camp mà lãi $ vẫn tăng thì không tính bão hoà (anh 06/11/2026 #169100 lãi $17 → $93)' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', co: 'r3 > r2 > r1 and lai(x1) < lai(x3):', vi: 'ROI giảm 2 ngày mà lãi $ tăng thì không gắn bão hoà' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', cam: 'Nhà đã ngừng mở camp phim này', vi: 'tin team không còn nói Nhà ngừng mở camp (bão hoà chỉ cảnh báo)' },

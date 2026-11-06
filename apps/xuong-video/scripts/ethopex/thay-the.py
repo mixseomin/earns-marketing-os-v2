@@ -45,7 +45,7 @@ def can_thay():
     Trước 04/11/2026 chỉ xét phim còn ĐÚNG MỘT camp: phim 2 camp cùng sắp tắt (Freezing Point #76613 + #76614 ✕ T1) không bao giờ có camp thay."""
     ds = qj("""select c.content_id, c.camp_id, c.tao < now() - interval '24 hours' gia from etp.camp c where c.trang_thai = 'ACTIVE' and coalesce(c.content_id, 0) > 0 and not c.la_roas order by c.content_id, c.camp_id""")
     xet = {int(r["camp_id"]): r["xet"] for r in qj(f"select camp_id, xet from etp.xet_luat where camp_id in ({','.join(str(int(x['camp_id'])) for x in ds) or 0})")}
-    theo = {}
+    theo = {}; VUOT = set(int(x) for x in q("select content_id from etp.mo_rong where pha = 'bao_hoa'").split())
     for x in ds:
         dinh = [e for e in xet.get(int(x["camp_id"]), []) if e.get("ma") in TAT_MA and (e.get("vao") or e.get("ket") in ("dat", "gan"))]
         theo.setdefault(int(x["content_id"]), []).append((x, " · ".join(f"{e['ten'].split(' · ')[0]} {'sắp tắt' if e.get('vao') or e.get('ket') == 'dat' else 'gần chạm'}" for e in dinh)))
@@ -55,7 +55,7 @@ def can_thay():
             ra.append({**cs[0][0], "ly": " | ".join(f"#{x['camp_id']} {ly}" for x, ly in cs)})
         # CAMP CHỜ (anh 06/11/2026 "Các phim kiểu này chỉ có 1 camp đang chạy. Hãy lên sẵn camp chờ"): phim chỉ MỘT camp đang chạy (không ★ ROAS), camp đó đã chạy ≥ 24 giờ
         # → lên sẵn một camp thay dù camp cũ còn khoẻ — cùng đường camp thay (chọn creative rút kinh nghiệm, cắt nếu thiếu, dòng mờ trên tab Camp từ lúc chuẩn bị)
-        elif len(cs) == 1 and cs[0][0].get("gia"):
+        elif len(cs) == 1 and cs[0][0].get("gia") and cid not in VUOT:   # đồng hồ thị trường vượt sức chứa → không lên camp chờ
             ra.append({**cs[0][0], "ly": f"#{cs[0][0]['camp_id']} {CHO}"})
     return ra
 

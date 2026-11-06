@@ -73,6 +73,8 @@ const cauTep = join(RA, 'cau.json'), cauObj = { DAI, anh, giay: url(join(KHO, 'g
 const TRANG = join(DIR, 'giay-lop.html'), dung = (them) => { const r = spawnSync(process.execPath, [join(LS, '../shot-code/dung.mjs'), '--trang', TRANG, '--cau', cauTep, '--rong', '1920', '--cao', '1080', '--fps', '30', ...them], { stdio: 'inherit' }); if (r.status) process.exit(r.status); };
 console.log(`${cauDs.length} câu · ${DAI.toFixed(0)} s · ${Object.keys(anh).length} ảnh`);
 if (arg('khung')) { dung(['--ra', '/dev/null', '--khung', arg('khung'), '--khung-ra', arg('khung-ra')]); process.exit(0); }
+// CỔNG: quét vài mốc mỗi câu, còn chữ đè mặt thì không dựng (anh 07/11/2026)
+{ const k = spawnSync(process.execPath, [join(DIR, 'kiem-mat.mjs'), TRANG, cauTep], { stdio: 'inherit' }); if (k.status) { console.error('✗ còn chữ đè mặt — không dựng'); process.exit(7); } }
 // ---------- 5. hình, tiếng ----------
 const h = (o) => createHash('sha1').update(typeof o === 'string' ? o : JSON.stringify(o)).digest('hex').slice(0, 16), goc = h([readFileSync(TRANG, 'utf8'), Object.keys(anh).length]);
 const doanTep = join(RA, 'doan.json'); writeFileSync(doanTep, JSON.stringify(canh.map((s, k) => ({ bd: s.bd, khoa: h([goc, canh[k - 1]?.c ?? null, s, phu.filter((p) => p.b > s.bd && p.a < s.kt)]) }))));

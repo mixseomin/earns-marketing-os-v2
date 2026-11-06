@@ -58,7 +58,7 @@ const coCamp = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT cont
 const chan18 = (id: number) => cam18[id] ? `cấm 18+ (${cam18[id].ly_do ?? '?'})` : soat18[id] && !soat18[id].ok ? `soát hình 18+ không đạt (${soat18[id].ghi ?? '?'})` : !soat18[id] && !coCamp.has(id) ? 'chưa soát hình 18+' : null;
 const live = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.camp WHERE trang_thai = 'ACTIVE' AND content_id IS NOT NULL`)).map((r) => Number(r.content_id)));
 const coKt = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.creative WHERE dang = 'kể chuyện' AND tu_choi IS NULL AND content_id IS NOT NULL`)).map((r) => Number(r.content_id)));
-const thay = new Set((await q<{ content_id: number }>(sql`SELECT content_id FROM etp.thay_the WHERE buoc NOT IN ('chay', 'huy')`).catch(() => [])).map((r) => Number(r.content_id)));
+const thay = new Set((await q<{ content_id: number }>(sql`SELECT content_id FROM etp.thay_the WHERE buoc NOT IN ('chay', 'huy', 'chan')`).catch(() => [])).map((r) => Number(r.content_id)));
 const hang = ds.map((p, i) => {
   const id = Number(p.id), s = so14.get(id), k = kc.get(id), lai = s ? s.thu - s.chi : 0;
   const bo = chan18(id) ?? ((dong.has(p.id) ? choDong.has(id) : cho.has(id)) ? 'đã có bản chờ chạy / vừa sinh' : tt[p.id]?.tt === 'poster_loai' ? 'poster bị loại (soát phim mới)' : k && k.thua >= 2 && !k.thang ? `kể chuyện đã thua ${k.thua} lần, chưa thắng` : !p.url ? 'thiếu link trang phim' : null);

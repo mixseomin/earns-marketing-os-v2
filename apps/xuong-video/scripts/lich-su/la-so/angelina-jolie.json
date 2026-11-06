@@ -1,0 +1,370 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Angelina+Jolie&day=4&month=6&year=1975&hour=9&minute=9&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437",
+ "theme": "nebula",
+ "lay_luc": "2026-11-05T13:23:24.109Z",
+ "rodden": "AA",
+ "nguon_gio": "https://www.astrotheme.com/astrology/Angelina_Jolie",
+ "utc_sinh": "1975-06-04T16:09Z",
+ "nguoi": {
+  "name": "Angelina Jolie",
+  "day": "4",
+  "month": "6",
+  "year": "1975",
+  "hour": "9",
+  "minute": "9",
+  "location": "Los Angeles, California, USA",
+  "lat": "34.0522",
+  "lng": "-118.2437"
+ },
+ "viewBox": "0 0 670 670",
+ "tam": [
+  335,
+  335
+ ],
+ "ban_kinh": [
+  320,
+  268,
+  247,
+  152,
+  127,
+  58
+ ],
+ "lop": [
+  {
+   "ma": "spark",
+   "ten": "Spark",
+   "thu_tu": null
+  },
+  {
+   "ma": "branding",
+   "ten": "Center Info",
+   "thu_tu": 7
+  },
+  {
+   "ma": "birth-info",
+   "thu_tu": null
+  },
+  {
+   "ma": "houses",
+   "ten": "Houses",
+   "thu_tu": 6
+  },
+  {
+   "ma": "aspects",
+   "ten": "Aspects",
+   "thu_tu": 5
+  },
+  {
+   "ma": "planets",
+   "ten": "Natal Planets",
+   "thu_tu": 4
+  },
+  {
+   "ma": "zodiac",
+   "ten": "Zodiac Ring",
+   "thu_tu": 2
+  },
+  {
+   "ma": "degrees",
+   "ten": "Degree Ticks",
+   "thu_tu": null
+  },
+  {
+   "ma": "angles",
+   "ten": "Angular Angles",
+   "thu_tu": 0
+  }
+ ],
+ "nha": [
+  {
+   "so": 1,
+   "dinh": 118.9
+  },
+  {
+   "so": 2,
+   "dinh": 140.8
+  },
+  {
+   "so": 3,
+   "dinh": 166.6
+  },
+  {
+   "so": 4,
+   "dinh": 197.9
+  },
+  {
+   "so": 5,
+   "dinh": 233.3
+  },
+  {
+   "so": 6,
+   "dinh": 268
+  },
+  {
+   "so": 7,
+   "dinh": 298.9
+  },
+  {
+   "so": 8,
+   "dinh": 320.8
+  },
+  {
+   "so": 9,
+   "dinh": 346.6
+  },
+  {
+   "so": 10,
+   "dinh": 17.9
+  },
+  {
+   "so": 11,
+   "dinh": 53.3
+  },
+  {
+   "so": 12,
+   "dinh": 88
+  }
+ ],
+ "sao": [
+  {
+   "ten": "Sun",
+   "kinh_do": 73.422089271744,
+   "cung": "Gemini",
+   "nha": 11,
+   "nghich": false
+  },
+  {
+   "ten": "Moon",
+   "kinh_do": 13.084305371898,
+   "cung": "Aries",
+   "nha": 9,
+   "nghich": false
+  },
+  {
+   "ten": "Mercury",
+   "kinh_do": 82.32769450183,
+   "cung": "Gemini",
+   "nha": 11,
+   "nghich": true
+  },
+  {
+   "ten": "Venus",
+   "kinh_do": 118.15546637701,
+   "cung": "Cancer",
+   "nha": 12,
+   "nghich": false
+  },
+  {
+   "ten": "Mars",
+   "kinh_do": 10.707147986382,
+   "cung": "Aries",
+   "nha": 9,
+   "nghich": false
+  },
+  {
+   "ten": "Jupiter",
+   "kinh_do": 17.424449455095,
+   "cung": "Aries",
+   "nha": 9,
+   "nghich": false
+  },
+  {
+   "ten": "Saturn",
+   "kinh_do": 107.38695242767,
+   "cung": "Cancer",
+   "nha": 12,
+   "nghich": false
+  },
+  {
+   "ten": "Uranus",
+   "kinh_do": 208.79970854275,
+   "cung": "Libra",
+   "nha": 4,
+   "nghich": true
+  },
+  {
+   "ten": "Neptune",
+   "kinh_do": 250.33991720276,
+   "cung": "Sagittarius",
+   "nha": 5,
+   "nghich": true
+  },
+  {
+   "ten": "Pluto",
+   "kinh_do": 186.52342123233,
+   "cung": "Libra",
+   "nha": 3,
+   "nghich": true
+  },
+  {
+   "ten": "Chiron",
+   "kinh_do": 26.76909170188,
+   "cung": "Aries",
+   "nha": 10,
+   "nghich": false
+  },
+  {
+   "ten": "Lilith",
+   "kinh_do": 343.3569629003,
+   "cung": "Pisces",
+   "nha": 8,
+   "nghich": false
+  },
+  {
+   "ten": "Mean Node",
+   "kinh_do": 240.40543679311,
+   "cung": "Sagittarius",
+   "nha": 5,
+   "nghich": true
+  },
+  {
+   "ten": "South Node",
+   "kinh_do": 60.405436793106,
+   "cung": "Gemini",
+   "nha": 11,
+   "nghich": true
+  },
+  {
+   "ten": "Fortune",
+   "kinh_do": 58.555442089641,
+   "cung": "Taurus",
+   "nha": 11,
+   "nghich": false
+  },
+  {
+   "ten": "Vertex",
+   "kinh_do": 251.10151551413,
+   "cung": "Sagittarius",
+   "nha": 5,
+   "nghich": false
+  }
+ ],
+ "goc": [
+  {
+   "loai": "Sextile",
+   "a": "Sun",
+   "b": "Moon",
+   "lech": 0.3
+  },
+  {
+   "loai": "Conjunction",
+   "a": "Sun",
+   "b": "Mercury",
+   "lech": 8.9
+  },
+  {
+   "loai": "Sextile",
+   "a": "Sun",
+   "b": "Mars",
+   "lech": 2.7
+  },
+  {
+   "loai": "Sextile",
+   "a": "Sun",
+   "b": "Jupiter",
+   "lech": 4
+  },
+  {
+   "loai": "Opposition",
+   "a": "Sun",
+   "b": "Neptune",
+   "lech": 3.1
+  },
+  {
+   "loai": "Trine",
+   "a": "Sun",
+   "b": "Pluto",
+   "lech": 6.9
+  },
+  {
+   "loai": "Conjunction",
+   "a": "Moon",
+   "b": "Mars",
+   "lech": 2.4
+  },
+  {
+   "loai": "Conjunction",
+   "a": "Moon",
+   "b": "Jupiter",
+   "lech": 4.3
+  },
+  {
+   "loai": "Square",
+   "a": "Moon",
+   "b": "Saturn",
+   "lech": 4.3
+  },
+  {
+   "loai": "Trine",
+   "a": "Moon",
+   "b": "Neptune",
+   "lech": 2.7
+  },
+  {
+   "loai": "Opposition",
+   "a": "Moon",
+   "b": "Pluto",
+   "lech": 6.6
+  },
+  {
+   "loai": "Sextile",
+   "a": "Mercury",
+   "b": "Jupiter",
+   "lech": 4.9
+  },
+  {
+   "loai": "Trine",
+   "a": "Mercury",
+   "b": "Uranus",
+   "lech": 6.5
+  },
+  {
+   "loai": "Square",
+   "a": "Venus",
+   "b": "Uranus",
+   "lech": 0.6
+  },
+  {
+   "loai": "Conjunction",
+   "a": "Mars",
+   "b": "Jupiter",
+   "lech": 6.7
+  },
+  {
+   "loai": "Square",
+   "a": "Mars",
+   "b": "Saturn",
+   "lech": 6.7
+  },
+  {
+   "loai": "Trine",
+   "a": "Mars",
+   "b": "Neptune",
+   "lech": 0.4
+  },
+  {
+   "loai": "Opposition",
+   "a": "Mars",
+   "b": "Pluto",
+   "lech": 4.2
+  },
+  {
+   "loai": "Square",
+   "a": "Jupiter",
+   "b": "Saturn",
+   "lech": 0
+  },
+  {
+   "loai": "Trine",
+   "a": "Jupiter",
+   "b": "Neptune",
+   "lech": 7.1
+  },
+  {
+   "loai": "Sextile",
+   "a": "Neptune",
+   "b": "Pluto",
+   "lech": 3.8
+  }
+ ]
+}

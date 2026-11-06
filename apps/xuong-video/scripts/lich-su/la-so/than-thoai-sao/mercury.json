@@ -1,0 +1,79 @@
+{
+  "ma": "mercury",
+  "sao": "Mercury",
+  "ten": "Hermes / Mercury",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Mercury_(planet)",
+    "https://en.wikipedia.org/wiki/Hermes"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "In English, it is named after the ancient Roman god Mercurius (Mercury), god of commerce and communication, and the messenger of the gods.",
+    "nguon": "https://en.wikipedia.org/wiki/Mercury_(planet)",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "After giving birth to the baby, Maia wrapped him in blankets and went to sleep.",
+      "nguon": "https://en.wikipedia.org/wiki/Hermes#Homer_and_Hesiod",
+      "nhan_vat": [
+        "Maia",
+        "Hermes"
+      ]
+    },
+    {
+      "chu": "In Homeric Hymn 4 to Hermes describes the god's birth and his theft of Apollo's sacred cattle.",
+      "nguon": "https://en.wikipedia.org/wiki/Hermes#In_the_Archaic_period",
+      "nhan_vat": [
+        "Hermes",
+        "Apollo"
+      ]
+    },
+    {
+      "chu": "He is said to have invented the chelys lyre, as well as racing and the sport of wrestling.",
+      "nguon": "https://en.wikipedia.org/wiki/Hermes#In_the_Archaic_period",
+      "nhan_vat": [
+        "Hermes"
+      ]
+    },
+    {
+      "chu": "Maia refused to believe Apollo when he claimed that Hermes was the thief, and Zeus then sided with Apollo.",
+      "nguon": "https://en.wikipedia.org/wiki/Hermes#Homer_and_Hesiod",
+      "nhan_vat": [
+        "Maia",
+        "Apollo",
+        "Zeus"
+      ]
+    },
+    {
+      "chu": "Finally, Apollo exchanged the cattle for the lyre, which became one of his identifying attributes.",
+      "nguon": "https://en.wikipedia.org/wiki/Hermes#Homer_and_Hesiod",
+      "nhan_vat": [
+        "Apollo",
+        "Hermes"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Hermes",
+      "mo_ta": "a young, athletic man lacking a beard",
+      "nguon": "https://en.wikipedia.org/wiki/Hermes#Iconography"
+    },
+    {
+      "ten": "Maia",
+      "mo_ta": "one of the Pleiades and the mother of the messenger god Hermes by Zeus",
+      "nguon": "https://en.wikipedia.org/wiki/Maia"
+    },
+    {
+      "ten": "Apollo",
+      "mo_ta": "a beardless, athletic youth",
+      "nguon": "https://en.wikipedia.org/wiki/Apollo"
+    },
+    {
+      "ten": "Zeus",
+      "mo_ta": "a sky and thunder god in ancient Greek religion and mythology, who rules as king of the gods on Mount Olympus",
+      "nguon": "https://en.wikipedia.org/wiki/Zeus"
+    }
+  ]
+}

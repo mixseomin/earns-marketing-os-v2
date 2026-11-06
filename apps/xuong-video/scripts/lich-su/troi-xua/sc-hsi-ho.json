@@ -1,0 +1,38 @@
+{
+  "ma": "sc-hsi-ho",
+  "ten": "Hsi and Ho, the Drunk Astronomers",
+  "loai": "nhat_thuc",
+  "su_kien_ngay": "-2136-10-22",
+  "nguon": "https://en.wikipedia.org/wiki/Solar_eclipse_of_October_22,_2137_BC (mục Observations, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": -2136,
+      "ngay": "-2136-10-22",
+      "nhan": "the legend",
+      "chu": "A widely reported anecdote about this eclipse, one of the earliest recorded in history, found in the Book of Documents",
+      "nguon": "https://en.wikipedia.org/wiki/Solar_eclipse_of_October_22,_2137_BC#Observations"
+    },
+    {
+      "nam": -2136,
+      "ngay": "-2136-10-22",
+      "nhan": "ring of fire",
+      "chu": "The annular eclipse was visible in modern-day Kyrgyzstan, Tajikistan, China, and Taiwan.",
+      "noi": "China",
+      "nguon": "https://en.wikipedia.org/wiki/Solar_eclipse_of_October_22,_2137_BC"
+    },
+    {
+      "nam": -2136,
+      "ngay": "-2136-10-22",
+      "nhan": "no warning",
+      "chu": "They are supposed to have failed to predict the eclipse and warn the emperor, who was Zhong Kang at the time",
+      "nguon": "https://en.wikipedia.org/wiki/Solar_eclipse_of_October_22,_2137_BC#Observations"
+    },
+    {
+      "nam": -2136,
+      "ngay": "-2136-10-22",
+      "nhan": "disputed fate",
+      "chu": "However, other sources dispute their execution, reporting that they had taken part in a rebellion many years after the eclipse.",
+      "nguon": "https://en.wikipedia.org/wiki/Solar_eclipse_of_October_22,_2137_BC#Observations"
+    }
+  ]
+}

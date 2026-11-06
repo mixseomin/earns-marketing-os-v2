@@ -342,8 +342,12 @@ export function vanDeMay(ds, homQua) {
     // chỉ khi thật sự lỡ (cả họ hôm qua không có bài) mới xét lý do: có cảnh báo tài khoản → dừng đúng luật; vẫn đăng đều thì cảnh báo cũ không phải chuyện của máy đăng
     if (cuoi && cuoi >= homQua) { /* có bài hôm qua: không lỡ */ }
     else if (x.toi === 0 && x.som) { /* còn bài nhưng CHƯA TỚI HẠN ĐĂNG (bài theo ngày, sớm nhất x.som): máy đứng đúng lịch, không phải lỡ — Giỗ Chạp 24/10 */ }
+    // KHÔNG PHẢI LỖI MÁY (anh 05/11/2026 "làm thế" — lọc hàng Mạnh: #12 #13 #30 #34 #38 #40 #49 #50 đều kết "không có lỗi code"):
+    // hết bài DUYỆT (kho| bên dưới lo việc làm bài) · máy dừng đúng luật (dang-may ghi 'nghi': hẹn giờ, nghỉ, trần, cách giờ, kênh chết)
+    else if (x.con === 0 || (x.ly_buoc === 'dang' && /^Hết video/.test(x.ly_chu ?? ''))) { /* hết bài */ }
+    else if (x.ly_buoc === 'nghi') { /* dừng đúng luật: ${x.ly_chu} */ }
     else if (x.canh) ra.push({ khoa: `canh|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: máy DỪNG đăng vì tài khoản có cảnh báo chưa xử — ${x.canh}` });
-    else ra.push({ khoa: `lo|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: lỡ lượt — bài cuối ${x.cuoi ?? 'chưa có bài nào'}${cuoi && cuoi !== x.cuoi ? ` (cả họ nền: ${cuoi})` : ''}` });
+    else ra.push({ khoa: `lo|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: lỡ lượt — bài cuối ${x.cuoi ?? 'chưa có bài nào'}${cuoi && cuoi !== x.cuoi ? ` (cả họ nền: ${cuoi})` : ''}${x.ly_buoc === 'dang' && x.ly_ok === false && x.ly_chu ? `\nLỗi: ${x.ly_chu}` : ''}` });
     const ngay = Math.floor(x.con / Math.max(1, x.tran));
     if (ngay < KHO_TOI_THIEU) ra.push({ khoa: `kho|${x.ma}|${x.nen}`, chu: `${x.ten} · ${x.nen}: kho còn ${x.con} bài DUYỆT chưa đăng (~${ngay} ngày, ngưỡng ${KHO_TOI_THIEU})` });
   }
@@ -354,7 +358,7 @@ export async function docMayDang(sql) {
   return sql`select m.ma, m.ten, n->>'nen' as nen, nullif(n->'br'->>'acct', '') as acct, coalesce((n->>'tran')::int, 1) as tran,
       (select left(a.noi_dung, 160) from platform_alerts a where a.account_id = nullif(n->'br'->>'acct', '')::int and a.xong_luc is null
          and a.luc > now() - interval '7 days' order by a.luc desc limit 1) as canh,
-      (select max(v.da_dang->(n->>'nen')->>'ngay') from xv_may_video v where v.may_id = m.id) as cuoi, k.con, k.toi, k.som
+      (select max(v.da_dang->(n->>'nen')->>'ngay') from xv_may_video v where v.may_id = m.id) as cuoi, k.con, k.toi, k.som, ly.buoc as ly_buoc, ly.ok as ly_ok, ly.noi_dung as ly_chu
     from xv_may m cross join lateral jsonb_array_elements(m.dang) n
     -- kho của nền: bài DUYỆT đúng bản xuất, chưa đăng lên nền này · toi = trong HẠN ĐĂNG hôm nay (dang.dang_tu / dang_den — bài khấn theo ngày âm
     -- chỉ đăng quanh ngày đó, nhip-an-toan.mjs › trongHan) · som = ngày sớm nhất một bài chưa tới hạn được đăng
@@ -367,6 +371,9 @@ export async function docMayDang(sql) {
          and (v.video_url is not null or (n->>'nen') = any(${[...NEN_LINK, ...NEN_POLL]}))
          and v.cham->>'ket' = 'DUYET' and v.cham->>'xuat' = v.xuat_luc::text and not v.da_dang ? (n->>'nen')
          and (not (n->>'nen' = any(${[...NEN_ANH]})) or jsonb_array_length(coalesce(v.anh, '[]'::jsonb)) > 0)) k
+    -- LÝ DO CUỐI của nền trong 30 giờ (dang-may ghi: 'nghi' = dừng đúng luật, 'dang' = kết quả lượt / hết bài / hỏng) — vanDeMay lọc việc không phải lỗi máy
+    left join lateral (select l.buoc, l.ok, l.noi_dung from xv_may_nhat_ky l where l.may_id = m.id and l.nen = n->>'nen' and l.buoc in ('dang', 'nghi')
+         and l.luc > now() - interval '30 hours' order by l.luc desc limit 1) ly on true
     where m.chay`;
 }
 /** Soi máy đăng, trả các vấn đề MỚI (chưa báo) và ghi sổ trạng thái <DATA>/may-dang-van-de.json. */
@@ -454,6 +461,11 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   const h = vanDeMay([{ ma: 'r', ten: 'R', nen: 'fb_anh', tran: 1, cuoi: '2026-10-17', con: 9 }, { ma: 'r', ten: 'R', nen: 'fb_link', tran: 1, cuoi: '2026-10-15', con: 9 }, { ma: 'r', ten: 'R', nen: 'x_link', tran: 1, cuoi: '2026-10-15', con: 9 }, { ma: 'r', ten: 'R', nen: 'x', tran: 1, cuoi: '2026-10-15', con: 9 }], '2026-10-17');
   t.deepEqual(h.map((x) => x.khoa), ['lo|r|x_link', 'lo|r|x'], 'fb_link đứng chờ lượt xoay (họ fb có bài hôm qua) không báo; họ x cả họ im mới báo lỡ');
   // cảnh báo tài khoản chưa xử: máy dừng đúng luật → báo lý do dừng, không báo lỡ lượt (dailymotion hotelscamalerts 403 từ 18/10)
+  { // lọc việc không phải lỗi máy (05/11/2026): hết bài / dừng đúng luật không thành lỡ lượt; lỗi thật mang dòng Lỗi:
+    const f = (o) => vanDeMay([{ ma: 'q', ten: 'Q', nen: 'quora', tran: 1, cuoi: '2026-10-10', con: 5, ...o }], '2026-10-17').filter((x) => x.khoa.startsWith('lo|'));
+    t.equal(f({ con: 0 }).length, 0, 'hết bài không phải lỡ lượt'); t.equal(f({ ly_buoc: 'dang', ly_ok: false, ly_chu: 'Hết video đã dựng chưa đăng lên Q' }).length, 0, 'hết video không phải lỡ lượt');
+    t.equal(f({ ly_buoc: 'nghi', ly_ok: true, ly_chu: 'kênh chết' }).length, 0, 'dừng đúng luật không phải lỡ lượt');
+    t.match(f({ ly_buoc: 'dang', ly_ok: false, ly_chu: 'Đăng hỏng: Studio đang ở kênh khác' })[0].chu, /Lỗi: Đăng hỏng/, 'lỗi thật mang dòng Lỗi'); t.equal(f({}).length, 1, 'không rõ lý do vẫn là lỡ lượt'); }
   const c = vanDeMay([{ ma: 'r', ten: 'R', nen: 'dailymotion', tran: 1, cuoi: null, con: 9, canh: 'API trả 403' }], '2026-10-17');
   t.deepEqual(c.map((x) => x.khoa), ['canh|r|dailymotion'], 'có cảnh báo = báo dừng, không báo lỡ'); t.ok(c[0].chu.includes('403'));
   t.deepEqual(vanDeMay([{ ma: 'r', ten: 'R', nen: 'youtube', tran: 1, cuoi: '2026-10-17', con: 9, canh: 'cảnh báo cũ' }], '2026-10-17'), [], 'có cảnh báo nhưng vẫn đăng đều = im (youtube ratesbyroom 24/10)');

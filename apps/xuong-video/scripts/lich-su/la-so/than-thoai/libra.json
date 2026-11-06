@@ -1,0 +1,147 @@
+{
+ "ten": "Dike and her scales (Libra)",
+ "cung": "Libra",
+ "nguon": "https://en.wikipedia.org/wiki/Dike_(mythology) (đọc 05/11/2026, câu nguyên văn)",
+ "nguon_khac": [
+  "https://en.wikipedia.org/wiki/Astraea"
+ ],
+ "_ghi_nguon": "Bản Hy Lạp: Dike (cũng gọi Astraea) cầm cân công lý, sống trên Trái Đất thời Hoàng kim và Bạc, ghê tởm khi loài người tham lam; chòm Libra (cái Cân) là biểu tượng của nàng. Dùng lại nhân vật astraea + nguoi-pham của Virgo (Wikipedia: hai tên cùng một nữ thần), không vẽ mới. Câu \"Dike lived upon Earth…\" là phần cuối liền của một câu dài trên trang Dike, kết bằng dấu chấm của câu đó. Bỏ bản Babylon (Shamash) và bản \"càng Bọ Cạp\".",
+ "moc": [
+  {
+   "chu": "Astraea was represented holding a pair of scales, symbol of justice and impartiality.",
+   "nguon": "https://en.wikipedia.org/wiki/Astraea",
+   "vai": [
+    {
+     "ai": "astraea",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 720
+    }
+   ]
+  },
+  {
+   "chu": "When relating this tale, ancient authors tend to alternate between referring to her as Dike or as Astraea.",
+   "nguon": "https://en.wikipedia.org/wiki/Astraea",
+   "vai": [
+    {
+     "ai": "astraea",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 720
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "She ruled over human justice, while her mother Themis ruled over divine justice.",
+   "nguon": "https://en.wikipedia.org/wiki/Dike_(mythology)",
+   "vai": [
+    {
+     "ai": "astraea",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 720
+    }
+   ]
+  },
+  {
+   "chu": "Dike lived upon Earth during the Golden and Silver ages, when there were no wars or diseases, men raised fine crops and did not yet know how to sail.",
+   "nguon": "https://en.wikipedia.org/wiki/Dike_(mythology)",
+   "vai": [
+    {
+     "ai": "astraea",
+     "dang": "goc",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "nguoi-pham",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 700,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "They grew greedy, however, and Dike was sickened.",
+   "nguon": "https://en.wikipedia.org/wiki/Dike_(mythology)",
+   "vai": [
+    {
+     "ai": "astraea",
+     "dang": "nam_dam",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "nguoi-pham",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 700,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Dike left Earth for the sky, from which, as the constellation, she watched the despicable human race.",
+   "nguon": "https://en.wikipedia.org/wiki/Dike_(mythology)",
+   "vai": [
+    {
+     "ai": "nguoi-pham",
+     "dang": "goc",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 700
+    },
+    {
+     "ai": "astraea",
+     "dang": "goc",
+     "x": 0.66,
+     "y": 0.47,
+     "cao": 360,
+     "mo": 0.35
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "The constellation Libra (the Scales) was anciently thought to represent her distinctive symbol.",
+   "nguon": "https://en.wikipedia.org/wiki/Dike_(mythology)",
+   "vai": [
+    {
+     "ai": "nguoi-pham",
+     "dang": "goc",
+     "x": 0.28,
+     "y": 0.66,
+     "cao": 700
+    },
+    {
+     "ai": "astraea",
+     "dang": "goc",
+     "x": 0.64,
+     "y": 0.47,
+     "cao": 360,
+     "mo": 0.35
+    }
+   ],
+   "nhin": {
+    "chom": "Libra"
+   }
+  }
+ ],
+ "site": [
+  "Libra wants harmony and a good pair to work with."
+ ],
+ "nhan_vat": {
+  "astraea": "brand/astrolas/nhan-vat/astraea",
+  "nguoi-pham": "brand/astrolas/nhan-vat/nguoi-pham"
+ },
+ "ve": {}
+}

@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Marilyn+Monroe&day=1&month=6&year=1926&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=9&minute=30&year_target=1960",
+ "doc_luc": "2026-11-05T13:52:44.930Z",
+ "nam": 1960,
+ "tuoi": 34,
+ "nha": 11,
+ "cung": "Gemini",
+ "nghia_nha": "Friends, hopes, dreams, gifts, and patronage from those in power.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Gemini 6°47'",
+ "nha_chu": 11,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Groups, friends, allies, hopes, social network",
+ "chu": [
+  "Friends, hopes, dreams, gifts, and patronage from those in power.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Groups, friends, allies, hopes, social network"
+ ],
+ "rong": 1080,
+ "cao": 6462,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2894,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3034,
+   1008,
+   150
+  ]
+ }
+}

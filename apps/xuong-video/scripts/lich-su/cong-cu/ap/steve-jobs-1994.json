@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15&year_target=1994",
+ "doc_luc": "2026-11-05T13:55:17.558Z",
+ "nam": 1994,
+ "tuoi": 39,
+ "nha": 4,
+ "cung": "Sagittarius",
+ "nghia_nha": "Parents (especially the father), family, home, real estate, private matters, and the ending of things.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Cancer 20°30'",
+ "nha_chu": 11,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Groups, friends, allies, hopes, social network",
+ "chu": [
+  "Parents (especially the father), family, home, real estate, private matters, and the ending of things.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Groups, friends, allies, hopes, social network"
+ ],
+ "rong": 1080,
+ "cao": 6564,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2886,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3026,
+   1008,
+   110
+  ]
+ }
+}

@@ -42,7 +42,7 @@ const tap = tachCanh({ _ghi: `Myths of the Zodiac · ${T.cung} — sinh bởi li
   nguon_moc: [tep], nguon_bai: ['the-12-zodiac-signs-explained'],
   dang: dangCongCu('birth', null, {}, `The myth behind ${T.cung}: ${T.ten}. Story: ${T.nguon.split(' ')[0]} · the 12 signs explained: https://astrolas.com/en/blog/the-12-zodiac-signs-explained`),
   nv: Object.fromEntries(Object.entries(T.nhan_vat).map(([k, v]) => [k, tg(v)])), demo: arg('demo') ? true : undefined,
-  nen: tg(pl.nen ?? 'brand/astrolas/anh/troi.jpg'), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#8EC5FF', ic: '☉' }, DAI: cau.at(-1).den, cau });
+  nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#8EC5FF', ic: '☉' }, DAI: cau.at(-1).den, cau });
 const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
 if (loi.length) { console.error(`✗ ${T.cung}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); process.exit(1); }
 const ra = arg('ra', join(SHOT, 'tap-astrolas', `tt-${T.cung.toLowerCase()}.json`)); mkdirSync(dirname(ra), { recursive: true });

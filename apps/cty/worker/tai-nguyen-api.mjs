@@ -88,7 +88,7 @@ export function dongR2(r, don) {
 }
 
 /** Thuần: tin báo cáo ngày (HTML Telegram). tieu = { provider: cents hôm qua } từ sổ job. */
-export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc, spy = null, r2 = undefined, don = null, ke = undefined }) {
+export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc, spy = null, r2 = undefined, don = null, ke = undefined, mayNha = undefined }) {
   const dong = [];
   for (const k of Object.keys(SAN)) {
     const v = du[k]; const t = tieuNgay(lichSu, k);
@@ -97,7 +97,17 @@ export function baoCaoNgay({ ten, ngay, du, lichSu, tieu, loiDoc, spy = null, r2
   }
   const tong = Object.values(tieu).reduce((a, x) => a + x, 0);
   const tieuDong = Object.entries(tieu).sort((a, b) => b[1] - a[1]).map(([p, c]) => `${TEN[p] ?? p} ${so(c / 100 * 26000, 0)}₫`).join(' · ');
-  return `<b>${ten} · Phòng Tài nguyên — báo cáo API ${ngay.split('-').reverse().slice(0, 2).join('/')}</b>\n<b>Số dư</b>\n${dong.join('\n')}\n<b>Studio tiêu hôm qua</b> (sổ job, 26.000₫ ≈ $1): ${tong ? `${so(tong / 100 * 26000, 0)}₫ — ${tieuDong}` : 'không có lượt tốn tiền'}${spy ? `\n${dongSpy(spy)}` : ''}${ke !== undefined ? `\n${dongKe(ke)}` : ''}${r2 !== undefined ? `\n${dongR2(r2, don)}` : ''}`;
+  return `<b>${ten} · Phòng Tài nguyên — báo cáo API ${ngay.split('-').reverse().slice(0, 2).join('/')}</b>\n<b>Số dư</b>\n${dong.join('\n')}\n<b>Studio tiêu hôm qua</b> (sổ job, 26.000₫ ≈ $1): ${tong ? `${so(tong / 100 * 26000, 0)}₫ — ${tieuDong}` : 'không có lượt tốn tiền'}${spy ? `\n${dongSpy(spy)}` : ''}${ke !== undefined ? `\n${dongKe(ke)}` : ''}${r2 !== undefined ? `\n${dongR2(r2, don)}` : ''}${mayNha !== undefined ? `\n${dongMayNha(mayNha)}` : ''}`;
+}
+/** Thuần: dòng "Máy cào nhà (HP)" của báo cáo sáng (anh 06/11/2026) — ảnh chụp máy tự đẩy (spy-on-tc scripts/bao-may-nha.py → /var/lib/spy/may-nha.json).
+ *  null = chưa từng gửi; cũ > 15 phút = mất liên lạc (in đậm); còn lại: RAM, ổ C:, CPU, giờ chạy liền, dịch vụ hỏng. */
+export function dongMayNha(j, bay = Date.now()) {
+  if (!j?.luc) return '<b>Máy cào nhà (HP)</b>: <b>⚠ chưa nhận được tình trạng nào</b>';
+  const cu = Math.round((bay - Date.parse(j.luc)) / 6e4);
+  if (cu > 15) return `<b>Máy cào nhà (HP)</b>: <b>⚠ mất liên lạc ${cu} phút</b> (ngủ / mất mạng / mất điện?)`;
+  const chet = Object.entries(j.dv ?? {}).filter(([, t]) => t !== 'active').map(([u]) => u);
+  return `<b>Máy cào nhà (HP)</b>: RAM trống ${so((j.ramMB ?? 0) / 1024, 1)}/${so((j.ramTongMB ?? 0) / 1024, 1)} GB · ổ C: ${j.diaC ?? '?'}% (còn ${j.diaCConGB ?? '?'} GB) · CPU ${j.ban ?? '?'}% · chạy liền ${so(j.chayGio ?? 0, 1)} giờ · `
+    + (chet.length ? `<b>⚠ dịch vụ hỏng: ${chet.join(', ')}</b>` : `${Object.keys(j.dv ?? {}).length} dịch vụ chạy đủ`);
 }
 /** Thuần: dòng "Spy AI hôm qua" theo tuyến — chính hãng phải gần 0 (anh 26/10/2026: ckey trước, chính hãng luôn cuối); chính hãng > 10% tổng = in đậm cảnh báo. */
 export function dongSpy(spy) {
@@ -239,7 +249,8 @@ export async function nhipApi({ ten, tep, bay = Date.now() }) {
   if (st.baoNgay !== ngay && gioVN(bay) >= GIO_BAO) {
     let tieu = {}; try { tieu = tieuTheoCong(ngayVN(bay - 864e5)); } catch { /* sổ job không đọc được: báo số dư vẫn gửi */ }
     let spy = null; try { spy = tieuSpy(ngayVN(bay - 864e5)); } catch { /* sổ spy không đọc được: phần còn lại vẫn gửi */ }
-    bao = baoCaoNgay({ ten, ngay, du, lichSu: st.lich, tieu, loiDoc: loi, spy, r2, don: st.don?.ngay === ngay ? st.don : null, ke });
+    let mayNha = null; try { mayNha = JSON.parse(fs.readFileSync('/var/lib/spy/may-nha.json', 'utf8')); } catch { /* chưa gửi: dòng ghi "chưa nhận được" */ }
+    bao = baoCaoNgay({ ten, ngay, du, lichSu: st.lich, tieu, loiDoc: loi, spy, r2, don: st.don?.ngay === ngay ? st.don : null, ke, mayNha });
   }
   return { st, du, loi, canhBao, bao, ghiBao: () => { st.baoNgay = ngay; } };
 }
@@ -274,6 +285,12 @@ if (process.argv[1]?.endsWith('tai-nguyen-api.mjs')) {
     assert.ok(dr.includes('61,4 GB') && dr.includes('61.718 tệp') && dr.includes('dời 1.200 tệp (3,4 GB)') && dr.includes('~20.051₫ ($0,77)'), dr);
     assert.ok(dongR2(null, { dung: 'nghi quét sót' }).includes('phanh kéo') && dongR2(r, { loi: 'tsx hỏng' }).includes('hỏng — tsx hỏng'));
     assert.ok(baoCaoNgay({ ten: 'Nguyên', ngay: '2026-10-31', du: {}, lichSu: [], tieu: {}, r2: r }).includes('Kho tệp R2'), 'báo cáo có dòng R2');
+    const B6 = Date.parse('2026-11-06T01:00:00Z'), mn = (phut, x = {}) => ({ luc: new Date(B6 - phut * 6e4).toISOString(), ramMB: 8089, ramTongMB: 11963, diaC: 35, diaCConGB: 163, ban: 40, chayGio: 2.9, dv: { a: 'active', b: 'active' }, ...x });
+    assert.ok(dongMayNha(mn(3), B6).includes('2 dịch vụ chạy đủ') && dongMayNha(mn(3), B6).includes('ổ C: 35%'), 'máy nhà bình thường: RAM / ổ / dịch vụ');
+    assert.ok(dongMayNha(mn(40), B6).includes('mất liên lạc 40 phút'), 'máy nhà im 40 phút: in đậm mất liên lạc');
+    assert.ok(dongMayNha(mn(3, { dv: { a: 'active', b: 'failed' } }), B6).includes('dịch vụ hỏng: b'), 'dịch vụ hỏng: nêu tên');
+    assert.ok(dongMayNha(null).includes('chưa nhận được'), 'chưa từng gửi');
+    assert.ok(baoCaoNgay({ ten: 'Nguyên', ngay: '2026-11-06', du: {}, lichSu: [], tieu: {}, mayNha: mn(3) }).includes('Máy cào nhà (HP)'), 'báo cáo sáng có dòng máy nhà');
     assert.ok(!baoCaoNgay({ ten: 'Nguyên', ngay: '2026-10-31', du: {}, lichSu: [], tieu: {} }).includes('Kho tệp R2'), 'gọi cũ không truyền r2: không thêm dòng');
     // Keywords Everywhere
     const kk = (hd) => xetKe(hd).map((c) => c.khoa);

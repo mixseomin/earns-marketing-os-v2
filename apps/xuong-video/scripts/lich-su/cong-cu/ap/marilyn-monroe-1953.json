@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Marilyn+Monroe&day=1&month=6&year=1926&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=9&minute=30&year_target=1953",
+ "doc_luc": "2026-11-05T13:51:45.405Z",
+ "nam": 1953,
+ "tuoi": 27,
+ "nha": 4,
+ "cung": "Scorpio",
+ "nghia_nha": "Parents (especially the father), family, home, real estate, private matters, and the ending of things.",
+ "chu_nam": "Mars",
+ "vi_tri": "Pisces 20°44'",
+ "nha_chu": 8,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "Transformation, crisis, loss, life and death; shared finances, debt, taxes, insurance, inheritance, and the resources of others",
+ "chu": [
+  "Parents (especially the father), family, home, real estate, private matters, and the ending of things.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "Transformation, crisis, loss, life and death; shared finances, debt, taxes, insurance, inheritance, and the resources of others"
+ ],
+ "rong": 1080,
+ "cao": 6690,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   110
+  ]
+ }
+}

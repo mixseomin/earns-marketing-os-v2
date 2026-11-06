@@ -1,0 +1,145 @@
+{
+  "_ghi": "Thư viện chuyện trời xưa cho Sky Calendar — mỗi câu nguyên văn Wikipedia",
+  "chuyen": [
+    {
+      "ma": "sc-thales-585",
+      "ten": "The Eclipse of Thales",
+      "loai": "nhat_thuc",
+      "su_kien_ngay": "-0584-05-28",
+      "tep": "sc-thales-585.json"
+    },
+    {
+      "ma": "sc-hsi-ho",
+      "ten": "Hsi and Ho, the Drunk Astronomers",
+      "loai": "nhat_thuc",
+      "su_kien_ngay": "-2136-10-22",
+      "tep": "sc-hsi-ho.json"
+    },
+    {
+      "ma": "sc-halley-1066",
+      "ten": "Halley's Comet and 1066",
+      "loai": "sao_choi",
+      "su_kien_ngay": "1066",
+      "tep": "sc-halley-1066.json"
+    },
+    {
+      "ma": "sc-sn1054",
+      "ten": "The Guest Star of 1054",
+      "loai": "sieu_tan_tinh",
+      "su_kien_ngay": "1054-07",
+      "tep": "sc-sn1054.json"
+    },
+    {
+      "ma": "sc-tycho-1572",
+      "ten": "Tycho's New Star",
+      "loai": "sieu_tan_tinh",
+      "su_kien_ngay": "1572-11",
+      "tep": "sc-tycho-1572.json"
+    },
+    {
+      "ma": "sc-galileo-1610",
+      "ten": "Galileo Finds Jupiter's Moons",
+      "loai": "hanh_tinh",
+      "su_kien_ngay": "1610-01-07",
+      "tep": "sc-galileo-1610.json"
+    },
+    {
+      "ma": "sc-uranus-1781",
+      "ten": "Herschel Finds Uranus",
+      "loai": "hanh_tinh",
+      "su_kien_ngay": "1781-03-13",
+      "tep": "sc-uranus-1781.json"
+    },
+    {
+      "ma": "sc-neptune-1846",
+      "ten": "Neptune Found by Pen",
+      "loai": "hanh_tinh",
+      "su_kien_ngay": "1846-09-24",
+      "tep": "sc-neptune-1846.json"
+    },
+    {
+      "ma": "sc-leonids-1833",
+      "ten": "The Night the Stars Fell",
+      "loai": "sao_bang",
+      "su_kien_ngay": "1833-11-13",
+      "tep": "sc-leonids-1833.json"
+    },
+    {
+      "ma": "sc-carrington-1859",
+      "ten": "The Carrington Event",
+      "loai": "khac",
+      "su_kien_ngay": "1859-09-01",
+      "tep": "sc-carrington-1859.json"
+    },
+    {
+      "ma": "sc-tunguska-1908",
+      "ten": "The Tunguska Blast",
+      "loai": "sao_bang",
+      "su_kien_ngay": "1908-06-30",
+      "tep": "sc-tunguska-1908.json"
+    },
+    {
+      "ma": "sc-eddington-1919",
+      "ten": "Eddington Tests Einstein",
+      "loai": "nhat_thuc",
+      "su_kien_ngay": "1919-05-29",
+      "tep": "sc-eddington-1919.json"
+    },
+    {
+      "ma": "sc-pluto-1930",
+      "ten": "Tombaugh Finds Pluto",
+      "loai": "hanh_tinh",
+      "su_kien_ngay": "1930-02-18",
+      "tep": "sc-pluto-1930.json"
+    },
+    {
+      "ma": "sc-earthrise-1968",
+      "ten": "Apollo 8 and Earthrise",
+      "loai": "trang",
+      "su_kien_ngay": "1968-12-24",
+      "tep": "sc-earthrise-1968.json"
+    },
+    {
+      "ma": "sc-apollo11-1969",
+      "ten": "Apollo 11 Lands on the Moon",
+      "loai": "trang",
+      "su_kien_ngay": "1969-07-20",
+      "tep": "sc-apollo11-1969.json"
+    },
+    {
+      "ma": "sc-sl9-1994",
+      "ten": "Comet Shoemaker–Levy 9 Hits Jupiter",
+      "loai": "sao_choi",
+      "su_kien_ngay": "1994-07-16",
+      "tep": "sc-sl9-1994.json"
+    },
+    {
+      "ma": "sc-hale-bopp-1997",
+      "ten": "The Great Comet of 1997",
+      "loai": "sao_choi",
+      "su_kien_ngay": "1997-04-01",
+      "tep": "sc-hale-bopp-1997.json"
+    },
+    {
+      "ma": "sc-chelyabinsk-2013",
+      "ten": "The Chelyabinsk Meteor",
+      "loai": "sao_bang",
+      "su_kien_ngay": "2013-02-15",
+      "tep": "sc-chelyabinsk-2013.json"
+    },
+    {
+      "ma": "sc-eclipse-2017",
+      "ten": "The Great American Eclipse",
+      "loai": "nhat_thuc",
+      "su_kien_ngay": "2017-08-21",
+      "tep": "sc-eclipse-2017.json"
+    },
+    {
+      "ma": "sc-neowise-2020",
+      "ten": "Comet NEOWISE",
+      "loai": "sao_choi",
+      "su_kien_ngay": "2020-07-03",
+      "tep": "sc-neowise-2020.json"
+    }
+  ]
+}

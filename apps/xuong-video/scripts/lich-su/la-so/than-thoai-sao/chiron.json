@@ -1,0 +1,83 @@
+{
+  "ma": "chiron",
+  "sao": "Chiron",
+  "ten": "Chiron",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/2060_Chiron",
+    "https://en.wikipedia.org/wiki/Chiron"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "Chiron is named after the centaur Chiron in Greek mythology.",
+    "nguon": "https://en.wikipedia.org/wiki/2060_Chiron",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "Thereupon the vapors of the sacred wine wafted out of the cave and intoxicated the wild centaurs led by Nessus who had gathered outside.",
+      "nguon": "https://en.wikipedia.org/wiki/Chiron#Death",
+      "nhan_vat": [
+        "Centaurs"
+      ]
+    },
+    {
+      "chu": "Heracles was forced to shoot many arrows (poisoned with the blood of the Hydra) to drive them back.",
+      "nguon": "https://en.wikipedia.org/wiki/Chiron#Death",
+      "nhan_vat": [
+        "Heracles",
+        "Centaurs"
+      ]
+    },
+    {
+      "chu": "During the assault, Chiron was hit in the thigh by one of the poisoned arrows.",
+      "nguon": "https://en.wikipedia.org/wiki/Chiron#Death",
+      "nhan_vat": [
+        "Chiron"
+      ]
+    },
+    {
+      "chu": "Ironically, Chiron, the master of the healing arts, could not heal himself and willingly gave up his immortality.",
+      "nguon": "https://en.wikipedia.org/wiki/Chiron#Death",
+      "nhan_vat": [
+        "Chiron"
+      ]
+    },
+    {
+      "chu": "For this reason, his half-brother Zeus took pity on him and thus placed him among the stars in the sky to be honored.",
+      "nguon": "https://en.wikipedia.org/wiki/Chiron#Death",
+      "nhan_vat": [
+        "Zeus",
+        "Chiron"
+      ]
+    },
+    {
+      "chu": "The Greeks identified him as the constellation Centaurus.",
+      "nguon": "https://en.wikipedia.org/wiki/Chiron#Death",
+      "nhan_vat": [
+        "Chiron"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Chiron",
+      "mo_ta": "his front legs are human, rather than equine",
+      "nguon": "https://en.wikipedia.org/wiki/Chiron#Physical_appearance"
+    },
+    {
+      "ten": "Heracles",
+      "mo_ta": "His iconographic attributes are the lion skin and the club",
+      "nguon": "https://en.wikipedia.org/wiki/Heracles#Character"
+    },
+    {
+      "ten": "Centaurs",
+      "mo_ta": "the upper body of a human and the lower body and legs of a horse",
+      "nguon": "https://en.wikipedia.org/wiki/Centaur"
+    },
+    {
+      "ten": "Zeus",
+      "mo_ta": "a sky and thunder god in ancient Greek religion and mythology, who rules as king of the gods on Mount Olympus",
+      "nguon": "https://en.wikipedia.org/wiki/Zeus"
+    }
+  ]
+}

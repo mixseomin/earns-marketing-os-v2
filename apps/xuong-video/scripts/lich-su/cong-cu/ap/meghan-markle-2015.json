@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Meghan%2C+Duchess+of+Sussex+%28Meghan+Markle%29&day=4&month=8&year=1981&location=Canoga+Park%2C+Los+Angeles%2C+California%2C+USA&lat=34.2011&lng=-118.5981&hour=4&minute=46&year_target=2015",
+ "doc_luc": "2026-11-05T13:53:00.628Z",
+ "nam": 2015,
+ "tuoi": 34,
+ "nha": 11,
+ "cung": "Taurus",
+ "nghia_nha": "Friends, hopes, dreams, gifts, and patronage from those in power.",
+ "chu_nam": "Venus",
+ "vi_tri": "Virgo 13°08'",
+ "nha_chu": 3,
+ "chu_de": "Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+ "nha_chu_nghia": "Information within familiar surroundings, siblings, communication, paperwork, spirituality",
+ "chu": [
+  "Friends, hopes, dreams, gifts, and patronage from those in power.",
+  "Theme: Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+  "Information within familiar surroundings, siblings, communication, paperwork, spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6352,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2894,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3034,
+   1008,
+   110
+  ]
+ }
+}

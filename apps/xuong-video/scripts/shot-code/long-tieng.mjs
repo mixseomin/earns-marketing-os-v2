@@ -75,8 +75,16 @@ const ghiWav = (f, mau) => { let dinh = 0; for (const v of mau) dinh = Math.max(
 const tepSfx = join(CACHE, 'sfx.wav'); ghiWav(tepSfx, sfx);
 // nhạc nền 0đ: troi = hợp âm Dmaj9 mở (D–A–E–F#) thở chậm + lấp lánh cao rất nhỏ — không bản quyền, đổi theo am_thanh.nhac của kênh
 const NHAC = { troi: '0.05*sin(2*PI*73.4*t)*(0.7+0.3*sin(2*PI*0.07*t))+0.04*sin(2*PI*110*t)*(0.6+0.4*sin(2*PI*0.05*t+1))+0.03*sin(2*PI*164.8*t)*(0.6+0.4*sin(2*PI*0.09*t+2))+0.025*sin(2*PI*185*t)*(0.5+0.5*sin(2*PI*0.04*t+3))+0.006*sin(2*PI*1480*t)*(0.5+0.5*sin(2*PI*0.3*t))' };
-const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, '-i', tepGiong, '-f', 'lavfi', '-t', String(DAI), '-i', `aevalsrc='${NHAC[AM.nhac] ?? NHAC.troi}':s=${SR}`, '-i', tepSfx,
-  '-filter_complex', `[1:a]aresample=${SR},volume=1.0,asplit=2[g][gk];[2:a]volume=0.55,afade=t=in:d=1.2,afade=t=out:st=${DAI - 1.6}:d=1.6[n0];[n0][gk]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[n];[3:a]volume=0.6[s];[g][n][s]amix=inputs=3:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5[a]`,
-  '-map', '0:v', '-map', '[a]', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-t', String(DAI), '-movflags', '+faststart', resolve(ra)], { stdio: 'inherit' });
+// OUTRO LOGO (anh 05/11/2026): sổ kênh › <kênh>.outro { doc, ngang } → nối vào cuối tập (Short 1 s, video dài 3 s); thiếu tệp thì dựng bằng outro.mjs của kênh (0đ)
+// outro theo PLAYLIST của tập (ra/outro-<khung>-<playlist>.mp4, nền = nền playlist) — chưa có thì dựng; playlist không có nền → bộ chung (nền navy của site)
+const OUT = SO[C.kenh]?.outro, plTap = C.playlist_ma ?? C.playlist?.ma, coNenPl = (SO[C.kenh]?.playlist ?? []).some((p) => p.ma === plTap && p.nen);
+const tepOutro = OUT && join(DIR, '../lich-su', OUT[C.khung === 'ngang' ? 'ngang' : 'doc'].replace(/\.mp4$/, coNenPl ? `-${plTap}.mp4` : '.mp4'));
+if (tepOutro && !existsSync(tepOutro)) execFileSync(process.execPath, [join(dirname(tepOutro), '../outro.mjs'), ...(coNenPl ? ['--pl', plTap] : [])], { stdio: 'inherit' });
+const coOutro = tepOutro && existsSync(tepOutro), [RW, RH] = C.khung === 'ngang' ? [1920, 1080] : [1080, 1920];
+const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, '-i', tepGiong, '-f', 'lavfi', '-t', String(DAI), '-i', `aevalsrc='${NHAC[AM.nhac] ?? NHAC.troi}':s=${SR}`, '-i', tepSfx, ...(coOutro ? ['-i', tepOutro] : []),
+  '-filter_complex', `[1:a]aresample=${SR},volume=1.0,asplit=2[g][gk];[2:a]volume=0.55,afade=t=in:d=1.2,afade=t=out:st=${DAI - 1.6}:d=1.6[n0];[n0][gk]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[n];[3:a]volume=0.6[s];[g][n][s]amix=inputs=3:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5` +
+    (coOutro ? `,atrim=0:${DAI},aresample=48000[a0];[0:v]trim=0:${DAI},setpts=PTS-STARTPTS,fps=30,scale=${RW}:${RH},setsar=1[v0];[4:v]fps=30,scale=${RW}:${RH},setsar=1[v1];[4:a]aresample=48000[a1];[v0][a0][v1][a1]concat=n=2:v=1:a=1[v][a]` : '[a]'),
+  // hình nén lại thành BẢN PHÁT HÀNH (crf 23, như máy làm tập): bản trung gian của dung.mjs là 16 Mbit/s — chép thẳng ra 92 MB cho 46 giây (05/11/2026)
+  '-map', coOutro ? '[v]' : '0:v', '-map', '[a]', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23', '-preset', 'medium', '-c:a', 'aac', '-b:a', '160k', ...(coOutro ? [] : ['-t', String(DAI)]), '-movflags', '+faststart', resolve(ra)], { stdio: 'inherit' });
 if (r.status) process.exit(r.status);
-console.log(`✓ ${ra} · ${DAI}s · ${cau.length} khung / ${nhom.length} lượt đọc · giọng ${AM.giong} (ckey) · tiền giọng lượt này ${moi * 156}₫${moi < nhom.length ? ` (${nhom.length - moi} lượt dùng lại)` : ''}`);
+console.log(`✓ ${ra} · ${DAI}s${coOutro ? ` + outro ${C.khung === 'ngang' ? 3 : 1}s` : ''} · ${cau.length} khung / ${nhom.length} lượt đọc · giọng ${AM.giong} (ckey) · tiền giọng lượt này ${moi * 156}₫${moi < nhom.length ? ` (${nhom.length - moi} lượt dùng lại)` : ''}`);

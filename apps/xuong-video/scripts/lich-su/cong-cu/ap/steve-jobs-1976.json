@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15&year_target=1976",
+ "doc_luc": "2026-11-05T13:54:44.304Z",
+ "nam": 1976,
+ "tuoi": 21,
+ "nha": 10,
+ "cung": "Gemini",
+ "nghia_nha": "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Aquarius 14°22'",
+ "nha_chu": 6,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Daily rhythm of life, health, duties, service, illness",
+ "chu": [
+  "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Daily rhythm of life, health, duties, service, illness"
+ ],
+ "rong": 1080,
+ "cao": 6768,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   3026,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3166,
+   1008,
+   150
+  ]
+ }
+}

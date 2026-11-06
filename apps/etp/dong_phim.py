@@ -329,13 +329,14 @@ def b_camp_lt(d, truoc):
 def san_dung_lai(cid):
     """creative DÙNG LẠI ĐƯỢC của phim — ĐÚNG các cổng nhan-ban.py sẽ chặn (04/11/2026: dòng #49/#50 phim 167292 đếm creative CTA cũ là 'có sẵn', bỏ cắt,
     tới bước Lên camp cả 6 bị chặn 'chưa đạt luật CTA mới'): chấm đạt · ĐẠT CTA mới (etp.creative.cta_dat) · chưa bị Meta từ chối · chưa có camp ·
-    không cùng đoạn với camp đang chạy / đang đồng bộ của phim. MỘT chỗ — bước dựng dòng và bước Lên camp cùng gọi."""
-    return [int(x) for x in sql(f"""select r.creative_id from etp.creative r join etp.cham_cong g using (creative_id)
+    không cùng đoạn với camp đang chạy / đang đồng bộ của phim. MỘT chỗ — bước dựng dòng và bước Lên camp cùng gọi.
+    MỖI ĐOẠN MỘT creative (06/11/2026: dòng #68 phim 167292 đếm 8 creative 'có sẵn' cùng đoạn 857–936 → bỏ cắt, lên camp 1 rồi 7 cái kia thành trùng đoạn → 1/5 camp)"""
+    return [int(x) for x in sql(f"""select distinct on (coalesce(r.doan, r.creative_id::text)) r.creative_id from etp.creative r join etp.cham_cong g using (creative_id)
         where r.content_id = {int(cid)} and g.duoc_len and r.cta_dat and r.tu_choi is null
           and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
           and (r.doan is null or r.doan not in (select k.doan from etp.camp c join etp.creative k using (creative_id) where c.content_id = {int(cid)} and k.doan is not null
                                                 and (c.trang_thai = 'ACTIVE' or coalesce(c.dong_bo, '') not in ('done', 'synced', 'error'))))
-        order by r.creative_id desc""").split() if x.isdigit()]
+        order by coalesce(r.doan, r.creative_id::text), r.creative_id desc""").split() if x.isdigit()]
 def san_cua(cid): return len(san_dung_lai(cid))
 
 def b_camp_mr(d, truoc):
@@ -393,7 +394,12 @@ def b_chay(d, truoc):
     j = next((json.loads(l) for l in reversed(out.splitlines()) if l.startswith("{")), None)
     if not j: return "cho", f"chưa đọc được trạng thái camp #{camp}: {out[-150:]}", None
     if j.get("error"): return "loi", f"camp #{camp} lỗi đồng bộ: {j['error']}", None
-    if j.get("sync_status") == "done" and j.get("state") == "ACTIVE": return "xong", f"camp #{camp} đang chạy (ACTIVE)", {"camp_id": camp}
+    if j.get("sync_status") == "done" and j.get("state") == "ACTIVE":
+        # Ethopex để camp HẸN GIỜ ở ACTIVE ngay lúc tạo (lịch lên camp nhan-ban.lich_len): bước vẫn xong (chờ 8 giờ thì quá hạn bước, Mạnh huỷ) nhưng ghi giờ hẹn
+        # vào ket_qua.hen — trang hiện "hẹn 07:00 06/11" tới giờ đó, không hiện "chạy" (anh 06/11/2026 "Phải lên theo lịch chứ?"); cùng định nghĩa lib/etp-chay.ts
+        hen = sql(f"select to_char(lich at time zone 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"') || '|' || to_char(lich at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM') from etp.camp where camp_id = {int(camp)} and lich > now()")
+        if hen: return "xong", f"camp #{camp} đã tạo, hẹn chạy {hen.split('|')[1]} theo lịch lên camp", {"camp_id": camp, "hen": hen.split("|")[0]}
+        return "xong", f"camp #{camp} đang chạy (ACTIVE)", {"camp_id": camp}
     if j.get("sync_status") == "done" and j.get("state") == "PAUSED": return "dung", f"camp #{camp} đồng bộ xong nhưng PAUSED (có người / máy luật tắt)", None
     return "cho", f"camp #{camp} {j.get('state')} · {j.get('sync_status')} — chờ Ethopex kiểm ad", None
 
@@ -501,6 +507,24 @@ def lam_buoc(d, buoc):
         DON[0] = 0   # phim xong → vòng sau dọn ngay
     print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} · {buoc} → {ket} · {ghi[:160]}", flush=True)
 
+# NHÀ MỞ RỘNG PHIM ĐỘI LÃI (anh 06/11/2026 "phải mở thêm ở Nhà các camp kiểu này"): phim trong etp.phim_doi_lai (nhà + đội ROI cao, ngày đã khép) → máy tự xếp
+# dòng mở rộng CC với so_camp = len_doi_lai.so_camp — đường dòng lo cả creative đúng CTA mới (dùng lại creative sạch có sẵn, thiếu thì cắt), soát, chấm, lên camp $1.
+# Đợt đầu 06/11 qua hàng chờ cho_len_v lên 0 camp: creative có sẵn của 169100 / 172519 / 153695 đều CTA cũ. Mỗi phim một đợt / 24 giờ, không xếp khi phim đang có dòng chạy.
+DOI_LAI = [0.0]
+def mo_doi_lai():
+    if time.time() - DOI_LAI[0] < 600: return
+    DOI_LAI[0] = time.time()
+    for l in sql("""begin; select pg_advisory_xact_lock(4390);
+        insert into etp.dong_phim (content_id, ten, loai, ai, so_camp)
+        select d.content_id, p.ten, 'CC', 'máy: phim đội lãi ROI ' || d.roi || '% trên $' || round(d.chi) || ' (' || coalesce((g.gia_tri->>'ngay'), '3') || ' ngày đã khép, nhà + đội)',
+          coalesce((g.gia_tri->>'so_camp')::int, 5)
+        from etp.phim_doi_lai d left join etp.phim p using (content_id), (select (select gia_tri from etp.cau_hinh where khoa = 'len_doi_lai') gia_tri) g
+        where coalesce(p.nhom_goc, 'au_my') = 'au_my'
+          and not exists (select 1 from etp.dong_phim x where x.content_id = d.content_id and x.trang_thai = 'chay')
+          and not exists (select 1 from etp.dong_phim x where x.content_id = d.content_id and x.ai like 'máy: phim đội lãi%' and x.tao_luc > now() - interval '24 hours')
+        returning id, content_id; commit;""").splitlines():
+        if "\t" in l: print(f"[{time.strftime('%H:%M:%S')}] phim đội lãi → xếp dòng mở rộng #{l.split(chr(9))[0]} phim {l.split(chr(9))[1]}", flush=True)
+
 CHAY = {}   # (dòng, bước) → (thread, lần chạy cuối)
 DUNG = [None]
 def vong():
@@ -511,6 +535,8 @@ def vong():
         DON[0] = time.time()
         try: don_dep()
         except Exception as e: print(f"dọn lỗi: {e}", flush=True)
+    try: mo_doi_lai()
+    except Exception as e: print(f"mở rộng phim đội lãi lỗi: {str(e)[:200]}", flush=True)
     for d in doc_dong():
         bs = d.get("buoc") or {}
         if not bs:   # dòng mới (web vừa tạo): dựng 8 bước — hạn từng bước khai MỘT chỗ ở đây

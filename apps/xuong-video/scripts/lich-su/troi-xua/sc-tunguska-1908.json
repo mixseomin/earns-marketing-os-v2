@@ -1,0 +1,46 @@
+{
+  "ma": "sc-tunguska-1908",
+  "ten": "The Tunguska Blast",
+  "loai": "sao_bang",
+  "su_kien_ngay": "1908-06-30",
+  "nguon": "https://en.wikipedia.org/wiki/Tunguska_event (mục Disaster, Scientific investigation, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1908,
+      "ngay": "1908-06-30",
+      "nhan": "explosion",
+      "chu": "At around 7:14 KRAT (0:14 UT), a powerful and deafening explosion was heard over the taiga in the Podkamennaya Tunguska basin.",
+      "noi": "Siberia",
+      "nguon": "https://en.wikipedia.org/wiki/Tunguska_event#Disaster"
+    },
+    {
+      "nam": 1908,
+      "ngay": "1908-06-30",
+      "nhan": "bright nights",
+      "chu": "In the days following the explosion, western Eurasia experienced unusual atmospheric phenomena.",
+      "nguon": "https://en.wikipedia.org/wiki/Tunguska_event#Disaster"
+    },
+    {
+      "nam": 1908,
+      "ngay": "1908-07-02",
+      "nhan": "in the papers",
+      "chu": "Most of these observations were reported in various newspapers, such as the British daily The Times, from 2 to 4 July 1908.",
+      "nguon": "https://en.wikipedia.org/wiki/Tunguska_event#Disaster"
+    },
+    {
+      "nam": 1927,
+      "ngay": "1927",
+      "nhan": "expedition",
+      "chu": "Kulik led a scientific expedition to the Tunguska blast site in 1927.",
+      "noi": "Siberia",
+      "nguon": "https://en.wikipedia.org/wiki/Tunguska_event#Scientific_investigation"
+    },
+    {
+      "nam": 1927,
+      "ngay": "1927",
+      "nhan": "standing trees",
+      "chu": "Instead, they found a zone, roughly 8 km (5.0 mi) across, where the trees were scorched and devoid of branches, but still standing upright.",
+      "nguon": "https://en.wikipedia.org/wiki/Tunguska_event#Scientific_investigation"
+    }
+  ]
+}

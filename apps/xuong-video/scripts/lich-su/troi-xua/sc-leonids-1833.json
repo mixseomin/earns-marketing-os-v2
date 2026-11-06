@@ -1,0 +1,45 @@
+{
+  "ma": "sc-leonids-1833",
+  "ten": "The Night the Stars Fell",
+  "loai": "sao_bang",
+  "su_kien_ngay": "1833-11-13",
+  "nguon": "https://en.wikipedia.org/wiki/Leonids (mục 1800s, 1900s, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1833,
+      "ngay": "1833-11-13",
+      "nhan": "meteor storm",
+      "chu": "One estimate of the peak rate is over one hundred thousand meteors an hour",
+      "noi": "North America",
+      "nguon": "https://en.wikipedia.org/wiki/Leonids#1800s"
+    },
+    {
+      "nam": 1833,
+      "ngay": "1833-11",
+      "nhan": "calendars",
+      "chu": "The event was marked by several nations of Native Americans: the Cheyenne established a peace treaty and the Lakota calendar was reset.",
+      "nguon": "https://en.wikipedia.org/wiki/Leonids#1800s"
+    },
+    {
+      "nam": 1834,
+      "ngay": "1834-01",
+      "nhan": "explained",
+      "chu": "Denison Olmsted explained the event most accurately.",
+      "nguon": "https://en.wikipedia.org/wiki/Leonids#1800s"
+    },
+    {
+      "nam": 1866,
+      "ngay": "1866",
+      "nhan": "parent comet",
+      "chu": "It was in 1866–67 that information on Comet Tempel-Tuttle was gathered, pointing it out as the source of the meteor shower and meteor storms.",
+      "nguon": "https://en.wikipedia.org/wiki/Leonids#1800s"
+    },
+    {
+      "nam": 1966,
+      "ngay": "1966",
+      "nhan": "1966 storm",
+      "chu": "In 1966, a spectacular meteor storm was seen over the Americas.",
+      "nguon": "https://en.wikipedia.org/wiki/Leonids#1900s"
+    }
+  ]
+}

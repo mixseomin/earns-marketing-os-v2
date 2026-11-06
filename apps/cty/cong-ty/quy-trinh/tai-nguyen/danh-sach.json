@@ -65,6 +65,21 @@
    "khi": "mỗi 30 phút",
    "lich": [],
    "chi_phi": "0 (đọc số dư + sổ; credit chỉ tiêu khi người dùng bấm Tra trên spy)"
+  },
+  {
+   "id": "canh-may-nha",
+   "ten": "Canh máy cào nhà (HP EliteDesk, Ubuntu WSL2)",
+   "so_hoa": "co-dinh",
+   "kich_hoat": "máy HP tự gửi tình trạng 5 phút / lần (spy-on-tc scripts/bao-may-nha.py, timer spy-bao-may-nha) → box3 /var/lib/spy/may-nha.json; Nguyên xét trong nhịp kiem-tai-nguyen 30 phút",
+   "mo_ta": "Máy HP nằm sau Deco, box3 không ssh vào được nên máy tự đẩy ảnh chụp: RAM, swap, ổ Ubuntu + ổ C: Windows, CPU bận trung bình 5 phút, giờ chạy liền, 8 dịch vụ (trình duyệt máy cào, làn nền, canh tab, hẹn giờ cào, đường hầm DB nạp tại chỗ, thợ cắt phim Ethopex, sửa CTA / góc mới). Báo 🧰 Tài nguyên: ảnh chụp cũ > 15 phút (máy ngủ / mất mạng / mất điện) khi có làn giao cho máy, dịch vụ nào không chạy, thiếu RAM, ổ đầy, CPU quá tải. Báo cáo sáng có dòng Máy cào nhà (HP).",
+   "ma": "apps/cty/worker/tai-nguyen.mjs (VPS['may-cao-nha'], docMayDay) · tai-nguyen-api.mjs (dongMayNha) · gửi: spy-on-tc scripts/bao-may-nha.py",
+   "chu_tri": "nguyen",
+   "lam": [
+    "may"
+   ],
+   "khi": "mỗi 30 phút + báo cáo sáng",
+   "lich": [],
+   "chi_phi": "0"
   }
  ]
 }

@@ -9,6 +9,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { kiemNguon, linkCongCu } from './nguon-site.mjs';
 import { kiemChuMan } from './chu-man.mjs';
+// nền BỊ CẤM: ảnh Ngân Hà tối brand/astrolas/anh/troi.jpg — anh chê "nhìn hơi ghê" (05/11/2026) rồi "sao cứ dùng cái nền ghê" (06/11/2026, outro)
+const NEN_CAM = /brand\/astrolas\/anh\/troi\.jpg$/;
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 export const docSo = () => JSON.parse(readFileSync(join(DIR, 'so-kenh.json'), 'utf8'));
@@ -27,6 +29,8 @@ export function kiemSo(k, ma) {
   }
   // PLAYLIST = SERIES dùng nhiều mẫu: playlist.mau[] phải là mẫu có trong sổ
   for (const p of k.playlist ?? []) for (const x of p.mau ?? []) if (!mau.has(x)) loi.push(`${ma}: playlist ${p.ma} dùng mẫu ${x} không có trong sổ`);
+  // NỀN: playlist nào cũng khai nền ảnh thật sáng (máy viết không còn nền dự phòng) — anh chê nền Ngân Hà tối 05/11 + 06/11/2026
+  if ((k.playlist ?? []).some((p) => p.nen)) for (const p of k.playlist) if (!p.nen) loi.push(`${ma}: playlist ${p.ma} chưa khai nen (ảnh thật sáng, brand/<kênh>/anh/nen/)`); else if (NEN_CAM.test(p.nen)) loi.push(`${ma}: playlist ${p.ma} dùng nền bị cấm ${p.nen}`);
   // kênh đã chia series (playlist khai mau[]): mẫu nào cũng phải phục vụ ít nhất một series, không thì máy không biết tập của mẫu đó lên playlist nào
   if ((k.playlist ?? []).some((p) => p.mau?.length)) for (const m of k.mau ?? []) if (!m.playlist && !(k.playlist ?? []).some((p) => p.mau?.includes(m.ma))) loi.push(`${ma}: mẫu ${m.ma} chưa thuộc playlist nào`);
   const y = new Set();
@@ -53,6 +57,7 @@ export function kiemTap(tap, k, ma) {
   if (!tap.mau) loi.push('tập không khai mau (mẫu đã duyệt nào?)'); else if (!m) loi.push(`mẫu ${tap.mau} không có trong sổ ${ma}`);
   // mẫu mới (cho_duyet) chỉ làm DEMO cho anh duyệt; tập thật theo mẫu đó chưa được lên kênh (demo khai demo: true)
   else if (m.cho_duyet && !tap.demo) loi.push(`mẫu ${m.ma} đang chờ anh duyệt demo — chưa làm tập thật`);
+  if (tap.nen && NEN_CAM.test(tap.nen)) loi.push(`nền ${tap.nen} bị cấm (Ngân Hà tối, anh chê "nhìn ghê" 05/11 + 06/11/2026) — dùng nền playlist (so-kenh › playlist.nen)`);
   if (!tap.playlist?.ma && !tap.playlist_ma) loi.push('tập không khai playlist');
   const plMa = tap.playlist_ma ?? tap.playlist?.ma;
   if (m && plMa && m.playlist && m.playlist !== plMa) loi.push(`mẫu ${m.ma} thuộc playlist ${m.playlist}, tập lại khai ${plMa}`);

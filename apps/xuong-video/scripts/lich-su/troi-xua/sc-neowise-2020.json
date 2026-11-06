@@ -1,0 +1,44 @@
+{
+  "ma": "sc-neowise-2020",
+  "ten": "Comet NEOWISE",
+  "loai": "sao_choi",
+  "su_kien_ngay": "2020-07-03",
+  "nguon": "https://en.wikipedia.org/wiki/C%2F2020_F3_(NEOWISE) (mục History and observations, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 2020,
+      "ngay": "2020-03-27",
+      "nhan": "discovery",
+      "chu": "The object was discovered by a team using the WISE space telescope under the NEOWISE program on March 27, 2020.",
+      "nguon": "https://en.wikipedia.org/wiki/C%2F2020_F3_(NEOWISE)#History_and_observations"
+    },
+    {
+      "nam": 2020,
+      "ngay": "2020-07-03",
+      "nhan": "perihelion",
+      "chu": "Comet NEOWISE made its closest approach to the Sun (perihelion) on July 3, 2020, at a distance of 0.29 AU (43 million km; 27 million mi).",
+      "nguon": "https://en.wikipedia.org/wiki/C%2F2020_F3_(NEOWISE)#History_and_observations"
+    },
+    {
+      "nam": 2020,
+      "ngay": "2020-07",
+      "nhan": "naked eye",
+      "chu": "Under dark skies, it could be seen with the naked eye and remained visible to the naked eye throughout July 2020.",
+      "nguon": "https://en.wikipedia.org/wiki/C%2F2020_F3_(NEOWISE)"
+    },
+    {
+      "nam": 2020,
+      "ngay": "2020-07",
+      "nhan": "brightest",
+      "chu": "NEOWISE is known for being the brightest comet in the northern hemisphere since Comet Hale–Bopp in 1997.",
+      "nguon": "https://en.wikipedia.org/wiki/C%2F2020_F3_(NEOWISE)"
+    },
+    {
+      "nam": 2020,
+      "ngay": "2020",
+      "nhan": "6800 years",
+      "chu": "This passage through the planetary region increases the comet's orbital period from about 4500 years to about 6800 years.",
+      "nguon": "https://en.wikipedia.org/wiki/C%2F2020_F3_(NEOWISE)#History_and_observations"
+    }
+  ]
+}

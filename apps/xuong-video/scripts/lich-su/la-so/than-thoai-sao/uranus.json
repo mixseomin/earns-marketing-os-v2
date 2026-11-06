@@ -1,0 +1,80 @@
+{
+  "ma": "uranus",
+  "sao": "Uranus",
+  "ten": "Uranus",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Uranus",
+    "https://en.wikipedia.org/wiki/Uranus_(mythology)",
+    "https://en.wikipedia.org/wiki/Cronus"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "About seven decades after its discovery, consensus was reached that the planet be named after the Greek god Uranus (Ouranos), one of the Greek primordial deities.",
+    "nguon": "https://en.wikipedia.org/wiki/Uranus",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "According to Hesiod, Uranus was the son and husband of Gaia (Earth), with whom he fathered the first generation of Titans.",
+      "nguon": "https://en.wikipedia.org/wiki/Uranus_(mythology)",
+      "nhan_vat": [
+        "Uranus",
+        "Gaia"
+      ]
+    },
+    {
+      "chu": "In an ancient myth recorded by Hesiod's Theogony, Cronus envied the power of his father, Uranus, the ruler of the universe.",
+      "nguon": "https://en.wikipedia.org/wiki/Cronus#Rise_to_power",
+      "nhan_vat": [
+        "Cronus",
+        "Uranus"
+      ]
+    },
+    {
+      "chu": "Angry and in distress, Gaia fashioned a sickle made of adamant and urged her children to punish their father.",
+      "nguon": "https://en.wikipedia.org/wiki/Uranus_(mythology)#Castration_and_overthrow",
+      "nhan_vat": [
+        "Gaia"
+      ]
+    },
+    {
+      "chu": "Only her son Cronus, the youngest Titan, was willing to do so.",
+      "nguon": "https://en.wikipedia.org/wiki/Uranus_(mythology)#Castration_and_overthrow",
+      "nhan_vat": [
+        "Cronus"
+      ]
+    },
+    {
+      "chu": "Uranus's castration allowed the Titans to rule and Cronus to assume supreme command of the cosmos.",
+      "nguon": "https://en.wikipedia.org/wiki/Uranus_(mythology)#Castration_and_overthrow",
+      "nhan_vat": [
+        "Uranus",
+        "Cronus"
+      ]
+    },
+    {
+      "chu": "For this \"fearful deed\", Uranus called his sons \"Titans (Strainers) in reproach\" and said that \"vengeance for it would come afterwards.\"",
+      "nguon": "https://en.wikipedia.org/wiki/Uranus_(mythology)#Castration_and_overthrow",
+      "nhan_vat": [
+        "Uranus"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Uranus",
+      "mo_ta": "bearded and winged, fighting against the Giants with a sword",
+      "nguon": "https://en.wikipedia.org/wiki/Uranus_(mythology)#Castration_and_overthrow"
+    },
+    {
+      "ten": "Gaia",
+      "mo_ta": "the personification of Earth",
+      "nguon": "https://en.wikipedia.org/wiki/Gaia"
+    },
+    {
+      "ten": "Cronus",
+      "mo_ta": "depicted with a harpe, scythe, or sickle",
+      "nguon": "https://en.wikipedia.org/wiki/Cronus"
+    }
+  ]
+}

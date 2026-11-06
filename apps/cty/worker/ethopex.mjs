@@ -45,7 +45,7 @@ export async function ghiG10(ids) {
 
 /** Nhóm báo: tiêu đề · nút cho mỗi mục (null = chỉ báo). dich = ngân sách đích lấy từ chữ "→ $X". */
 const NHOM = [
-  ['hoi_g10', '↑ <b>G10 HỒI</b> — camp đã hạ về $10, 2 ngày đã khép sau đó ROI ≥ 30% → máy nâng về ngân sách trước lúc hạ (anh 04/11/2026, cả ★ ROAS)', null],
+  ['hoi_g10', '↑ <b>G10 HỒI</b> — camp đã hạ về $10, 2 ngày đã khép sau đó ROI ≥ 30% → máy nâng lại theo thang (mỗi bước ≤ ×1,5, không quá ngân sách trước lúc hạ) (anh 04/11/2026, cả ★ ROAS)', null],
   ['thang_nb', '🪜 <b>THANG NHÂN BẢN</b> — bộ 2: camp chạm luật tăng (như bộ 1) → thay vì tăng ngân sách, máy mở bản mới ở bậc kế, creative khác cùng phim; camp gốc giữ ngân sách', null],
   ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — máy KHÔNG tự thay creative (anh 03/11/2026), anh quyết', null],
   ['dau_phien', '⇑ <b>LÃI ĐẦU PHIÊN</b> — ROI hôm nay > 50%, tăng luôn $2/$3', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
@@ -64,6 +64,13 @@ const TEN = Object.fromEntries(NHOM.map(([k, t]) => [k, (t.match(/<b>(.*?)<\/b>/
 export const khungCua = (gio, KD = BANG_LUAT.khung_doi) => { const t = ([a, b]) => (a <= b ? gio >= a && gio < b : gio >= a || gio < b); return t(KD.giam) ? 'giam' : t(KD.tang) ? 'tang' : KD.sang && t(KD.sang) ? 'sang' : 'bang'; };   // tang 21–07 qua nửa đêm (anh 05/11/2026)
 // GIỜ CHẠY camp vừa tạo — đọc kq.chay của nhan-ban.lich_len (một chỗ quyết, anh 05/11/2026), không tự ghi "hôm nay" / "hôm sau" (audit 05/11: 3 tin hứa sai)
 // GIỮ GỐC ROAS TỚI HẾT NGÀY — một luật cho Nhà + tài khoản team: không mức nào lên được VÀ mọi mức bị từ chối có lý do (luật); hỏng vì máy / mã (r.may) thì nhịp sau thử lại
+/** BẢN LUẬT lúc ghi sổ hoãn trong ngày (05/11/2026: bỏ luật trùng phim cho ROAS mà máy vẫn giữ 3 gốc tới hết ngày, phải sửa tay tệp hoãn trên box3):
+ *  mtime của nhan-ban.py + cong.py — deploy đổi một trong hai (git reset chỉ ghi lại tệp đổi) thì mọi gốc đang hoãn được xét lại ngay nhịp sau */
+export const banLuat = () => [NB, path.join(REPO, 'apps/etp/cong.py')].map((f) => { try { return Math.round(fs.statSync(f).mtimeMs); } catch { return 0; } }).join('-');
+/** sổ hoãn còn dùng được: cùng ngày VN + cùng bản luật */
+export const hoanHopLe = (so, homNay) => !!so && so.ngay === homNay && so.ban === banLuat();
+/** mức đích của một dòng luật = dấu '→ $N' CUỐI câu (G10 hồi viết '→ $10 → $30': lấy dấu đầu thì máy gửi $10 — 21:22 05/11/2026 #65722 #73284 bị lam-ethopex từ chối) */
+export const dichCua = (m) => [...String(m.chu).matchAll(/→ \$(\d+)/g)].pop()?.[1];
 export const giuGocRoas = (ds) => (!ds.some((r) => r.ok) && ds.every((r) => !r.may && r.loi) ? String(ds[0].loi).slice(0, 120) : null);
 export const chuChay = (ds, [a, b] = BANG_LUAT.khung_doi.len.map((x) => String(x).padStart(2, '0'))) => (ds.length && ds.every((r) => r?.chay === 'today') ? `chạy ngay (tạo trong khung ${a}–${b}h VN)`
   : ds.length && ds.every((r) => r?.chay === 'tomorrow') ? 'chạy từ 07:00 VN hôm sau' : `chạy theo khung lên ${a}–${b}h VN`);
@@ -364,7 +371,6 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // kèm dòng "cũng: <luật khác>" và gộp nút của mọi luật (trùng nút thì giữ một) — vd lãi đầu phiên $2 + đủ bậc $3 thành một mục, hai nút lên $2 / $3.
   // KHOÁ CHỐNG BÁO TRÙNG theo MỨC ĐÍCH (22/10/2026: khoá cũ `luật:camp` trong ngày → camp đã tăng một lần thì cả ngày không được đề xuất bậc kế,
   // anh hỏi "nhiều camp dương mà ko thấy đề xuất tăng tiếp"): cùng camp lên mức MỚI là mục mới.
-  const dichCua = (m) => (String(m.chu).match(/→ \$(\d+)/) || [])[1];
   const khoa = (k, m) => `${k}:${m.id}${dichCua(m) ? `:${dichCua(m)}` : ''}`;
   // TỰ TĂNG (anh 22/10/2026: "bật cơ chế tự tăng ngân sách lên tối đa $5 mà ko cần xin phép hôm nay để xem hoạt động thế nào"): cấu hình
   // DATA/ethopex-tu-tang.json {den: ISO hết hạn, tran: $} — trong hạn thì camp chạm luật tăng (đầu phiên / tăng bậc) có mức đích ≤ trần được máy
@@ -450,7 +456,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       lamRoi.add(m.id);
       let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), ...(k === 'hoi_g10' ? ['--ep'] : []), '--luat', `${k === 'hoi_g10' ? 'G10 hồi' : TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', k === 'tang30' ? `máy tự tăng T30 (anh cho phép tự tăng, trần $${tuTang} — gộp 29/10/2026)` : `máy tự tăng (anh cho phép ${Date.parse(tt?.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daTu.push({ k, m, d, r });
-      if (k === 'hoi_g10' && r?.ok) await chayPsql(`update etp.cau_hinh set gia_tri = gia_tri - '${Number(m.id)}' where khoa = 'g10'`).catch((e) => console.error('gỡ g10:', e.message));   // hồi xong → hết theo dõi G10 (--ep: luật hồi LÀ quy trình tăng lại sau giảm)
+      if (k === 'hoi_g10' && r?.ok) await chayPsql(`update etp.cau_hinh set gia_tri = gia_tri - '${Number(m.id)}' where khoa = 'g10'`).catch((e) => console.error('gỡ g10:', e.message));
+      if (k === 'hoi_g10' && r?.ok && Array.isArray(m.ab) && /^AB\d+$/.test(m.ab[0]) && ['thu', 'doi'].includes(m.ab[1])) await chayPsql(`insert into etp.camp_ab (camp_id, ab, nhanh) values (${Number(m.id)}, '${m.ab[0]}', '${m.ab[1]}') on conflict (camp_id) do nothing`).catch((e) => console.error('ghi A/B G10 hồi:', e.message));   // AB02: ghi nhánh SAU khi nâng thành công (anh 05/11/2026)   // hồi xong → hết theo dõi G10 (--ep: luật hồi LÀ quy trình tăng lại sau giảm)
     }
     if (daTu.length) {
       const dong = bangViec(daTu.map(({ m, d, r }) => ({ m, doi: `$${r.truoc?.ns ?? '?'}→$${r.sau?.ns ?? d}`, loi: r.ok ? null : r.loi || 'không rõ' })), 'Kỳ');
@@ -487,43 +494,42 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // (sổ ethopex_phim_tk; phim mới → bộ 2), lịch today, $1. Tối đa 4 creative / nhịp (mỗi lần tạo chờ Ethopex đồng bộ ~1 phút). Cổng thật vẫn ở nhan-ban (chấm, rào chắn, 18+, CTA).
   try {
     const KHUON = { en: 65110, es: 65734 };
-    // creative bị cổng nhan-ban chặn (18+, CTA cũ, chấm…) → bỏ qua 24 giờ, không lượt nào cũng lấy lại đúng mấy creative đó mà kẹt (28/10/2026)
-    const TEP_BQ = path.join(DATA(), 'ethopex-phim-moi-bo-qua.json'), bq = docJ(TEP_BQ, {});
+    // dạng lên cho PHIM ĐANG CHẠY (một camp mỗi dạng mỗi phim) → [luật, người duyệt] ghi vào nhật ký camp
+    const LEN_DANG = { 'kể chuyện': ['KT (kể chuyện VideoExpress) chấm sạch → lên camp cho phim đang chạy', 'anh (chat 29/10/2026: sx KT cho phim đang chạy chưa có — làm đi) — máy chạy'],
+      'ảnh tĩnh': ['AT (ảnh tĩnh + giọng) chấm sạch → lên camp cho phim mới bắt đầu lãi', 'anh (chat 05/11/2026: thêm loại creative ảnh tĩnh và lên camp mới, phim mới bắt đầu lãi trước) — máy chạy'] };
+    // HÀNG CHỜ = view etp.cho_len_v (migration 0431) — MỘT nguồn cho máy lên camp này và trang etp (ô "tự lên · thứ N" / "không tự lên: lý do"), anh 05/11/2026.
+    // Điều kiện (chấm sạch < 3 ngày, phim chưa từng có camp hoặc KT / ảnh tĩnh cho phim đang chạy, không có dòng phim, không do đội nhận, không trong sổ bỏ qua 24 giờ) nằm ở view.
+    // creative bị cổng nhan-ban chặn (18+, CTA cũ, chấm…) → sổ bỏ qua 24 giờ etp.cau_hinh 'phim_moi_bo_qua' (trước ở tệp DATA — trang không đọc được)
+    const TEP_BQ = path.join(DATA(), 'ethopex-phim-moi-bo-qua.json');
+    const bqDb = (await chayPsql(`select gia_tri::text from etp.cau_hinh where khoa = 'phim_moi_bo_qua'`)).trim();
+    const bq = bqDb && bqDb !== '{}' ? JSON.parse(bqDb) : docJ(TEP_BQ, {});   // lần đầu sau migration: chép sổ cũ từ tệp
     for (const k of Object.keys(bq)) if (Date.now() - Date.parse(bq[k].luc) > 86_400_000) delete bq[k];
-    const boQua = Object.keys(bq).map(Number).filter(Boolean).join(',') || '0';
-    const ds = JSON.parse((await chayPsql(`select coalesce(json_agg(x), '[]') from (select r.creative_id, r.content_id, coalesce(r.lang, 'en') lang, coalesce(r.lo, '') lo, coalesce(p.ten, '') ten,
-        coalesce(r.dang, '') dang, coalesce(r.tu, 0) tu, coalesce(r.den, 0) den, coalesce((select gia_tri->>(r.content_id::text) from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2') bo,
-        exists (select 1 from etp.phim_nhan_v n where n.content_id = r.content_id and n.trang_thai = 'giu') nhan
-      from etp.creative r join etp.cham_cong g using (creative_id) left join etp.phim p using (content_id) left join etp.cham h using (creative_id)
-      where g.duoc_len and r.tu_choi is null and r.content_id is not null and h.luc > now() - interval '3 days' and r.creative_id not in (${boQua})
-        and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
-        and not exists (select 1 from etp.dong_phim d where d.content_id = r.content_id and d.trang_thai <> 'huy')   -- phim có DÒNG PHIM tự động: dòng tự lên camp (anh 03/11/2026, một camp mỗi lần)
-        and not exists (select 1 from etp.phim_nhan_v n where n.content_id = r.content_id and n.trang_thai = 'giu' and n.nguoi_id not in (select nguoi_id from etp.tai_khoan where nha))   -- người nhà = có tài khoản nhà (cùng định nghĩa view phim_nhan_td; Tuấn David có cả tk không phải nhà) · phim người trong đội đang nhận → khối NHẬN PHIM dưới lên ở tài khoản họ
-        and (not exists (select 1 from etp.camp c where c.content_id = r.content_id)   -- phim CHƯA TỪNG có camp (phim có camp đã bị luật tắt vì lỗ thì không tự lên lại)
-          -- hoặc KT cho phim ĐANG CHẠY chưa có camp kể chuyện (anh 29/10/2026 "sx loại video KT cho các phim chưa có nhưng đang lên camp live triệt để … làm đi")
-          or (r.dang = 'kể chuyện' and exists (select 1 from etp.camp c where c.content_id = r.content_id and c.trang_thai = 'ACTIVE')
-              and not exists (select 1 from etp.camp c join etp.creative k on k.creative_id = c.creative_id where c.content_id = r.content_id and k.dang = 'kể chuyện')))
-      -- phim đang được NHẬN đứng đầu hàng (02/11/2026: phim nhận 172341 chấm sạch phải đợi sau 213 creative cũ) — nhận Tự động là lên camp ngay nhịp kế
-      order by nhan desc, h.luc limit 4) x`)).trim() || '[]');
+    const ghiBq = () => chayPsql(`update etp.cau_hinh set gia_tri = $J$${JSON.stringify(bq).replace(/\$J\$/g, '')}$J$::jsonb, luc = now() where khoa = 'phim_moi_bo_qua'`);
+    await ghiBq();   // bỏ mục quá 24 giờ trước khi đọc view
+    const ds = JSON.parse((await chayPsql(`select coalesce(json_agg(x), '[]') from (select v.creative_id, v.content_id, v.lang, v.lo, coalesce(p.ten, '') ten, v.dang, v.tu, v.den,
+        coalesce((select gia_tri->>(v.content_id::text) from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2') bo, v.nhan, v.so_len
+      from etp.cho_len_v v left join etp.phim p using (content_id) where v.ly_do is null order by v.hang limit 4) x`)).trim() || '[]');
     const da = [];
-    for (const x of ds) {
-      const a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();
-      const ten = `${x.lo} ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ${a_(x.dang).toLowerCase()} ${Math.round(x.tu)}-${Math.round(x.den)}s`.trim();
+    // PHIM ROI CAO CẢ ĐỘI → so_len camp MỘT LẦN (anh 06/11/2026 "Phim có roi cao của cả đội thì có thể lên cùng 5 camp mới mỗi lần"): view etp.phim_doi_lai, mức ở etp.cau_hinh 'len_doi_lai'
+    for (const x0 of ds.flatMap((x) => Array.from({ length: Math.max(1, Number(x.so_len) || 1) }, (_, i) => ({ ...x, lan: i + 1 })))) {
+      const x = x0, a_ = (t) => String(t || '').normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/['"]/g, '').trim();
+      const ten = `${x.lo} ${a_(x.ten) || 'phim ' + x.content_id} ${String(x.lang).toUpperCase()} - ${a_(x.dang).toLowerCase()} ${Math.round(x.tu)}-${Math.round(x.den)}s${x.so_len > 1 ? ` doi lai ${x.lan}/${x.so_len}` : ''}`.trim();
+      if (x.lan > 1 && !da.some((d) => d.x.creative_id === x.creative_id && d.r.ok)) continue;   // camp đầu của creative lỗi → không thử 4 camp còn lại (cùng lỗi)
       let r; try { r = JSON.parse((await chay(NB, [String(KHUON[x.lang] ?? KHUON.en), '--bo', String(x.bo), '--creative', String(x.creative_id), '--content', String(x.content_id), '--ten', ten,
         // CAMP MỚI CHẠY THEO LỊCH (anh 04/11/2026 "áp dụng thêm việc lên camp mới theo lịch" — như Kiên): bắt đầu 00:00 UTC hôm sau (07:00 VN, đầu ngày Ethopex) → ngày đầu là ngày trọn
-        '--that', '--luat', x.dang === 'kể chuyện' ? 'KT (kể chuyện VideoExpress) chấm sạch → lên camp cho phim đang chạy' : 'phim mới chấm sạch → lên camp',   // giờ chạy do nhan-ban.lich_len quyết (tạo 07–12h VN chạy ngay, ngoài khung hẹn 07:00 hôm sau — anh 05/11/2026)
-        '--ai', x.dang === 'kể chuyện' ? 'anh (chat 29/10/2026: sx KT cho phim đang chạy chưa có — làm đi) — máy chạy' : 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy'], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+        '--that', '--luat', LEN_DANG[x.dang]?.[0] ?? 'phim mới chấm sạch → lên camp',   // giờ chạy do nhan-ban.lich_len quyết (tạo 07–12h VN chạy ngay, ngoài khung hẹn 07:00 hôm sau — anh 05/11/2026)
+        '--ai', (x.so_len > 1 ? `anh (chat 06/11/2026: phim ROI cao cả đội lên ${x.so_len} camp mỗi lần) · ` : '') + (LEN_DANG[x.dang]?.[1] ?? 'anh (chat 28/10/2026: Xong phim nào thì lên camp luôn phim đó) — máy chạy')], 600)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       da.push({ x, r });
     }
     const ok = da.filter((d) => d.r.ok);
     if (ok.length) { await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🎬 <b>PHIM MỚI LÊN CAMP</b> — chấm Sạch xong lên luôn ($1, ${chuChay(ok.map((d) => d.r))})\n` + ok.map((d) => `#${d.r.moi} · bộ ${esc(d.x.bo)} · ${esc(d.x.ten || 'phim ' + d.x.content_id)} (cr #${d.x.creative_id})`).join('\n') }); gui++; }
-    for (const d of da.filter((d) => !d.r.ok)) {
+    for (const d of da.filter((d) => !d.r.ok && !da.some((e) => e.x.creative_id === d.x.creative_id && e.r.ok))) {   // creative đã lên được ít nhất 1 camp (phim đội lãi) thì không vào sổ bỏ qua
       // phim đang NHẬN không vào bỏ qua 24 giờ (lượt nhận chỉ 24 giờ: anh sửa xong — vd thêm phim vào workspace — thì nhịp sau thử lại ngay, lỗi hiện ở sổ nhận)
       if (!d.x.nhan) bq[d.x.creative_id] = { luc: new Date().toISOString(), loi: String(d.r.loi || '').slice(0, 200) }; console.error(`lên camp phim mới #${d.x.creative_id}: ${String(d.r.loi).slice(0, 160)}`);
       // phim đang được NHẬN (anh 02/11/2026 "có lỗi thì phải báo lại ở danh sách phim Nhận") → ghi lỗi vào sổ nhận, tab Phim / ngăn phim hiện ngay
       await chayPsql(`update etp.phim_nhan set loi = $L$lên camp lỗi: ${String(d.r.loi || 'không rõ').slice(0, 220).replace(/\$L\$/g, '')}$L$, loi_luc = now() where content_id = ${Number(d.x.content_id)} and tra_luc is null and het_luc > now()`).catch(() => {});
     }
-    fs.writeFileSync(TEP_BQ, JSON.stringify(bq));
+    await ghiBq();
   } catch (e) { console.error('phim mới lên camp:', e.message); }
   // NHẬN PHIM TỰ ĐỘNG — ĐỘI (anh 02/11/2026: "Khi nhận phim thì nếu là Tự động thì hệ thống sẽ phải tự lên camp luôn"): phim người trong đội ở chế độ Tự động đang giữ, creative
   // kể chuyện tạo sau lúc nhận đã chấm Sạch (view etp.phim_nhan_td buoc cho_len) → nhan-ban.py --creative ở TÀI KHOẢN NGƯỜI NHẬN, bằng phiên Ethopex của họ (ETP_SUA_NGUOI),
@@ -563,7 +569,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   }
   if (daNb.length) {
     const dong = bangViec(daNb.map(({ m, r }) => ({ m, doi: `→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng') + `\n<i>bản mới $1 · ${chuChay(daNb.map(({ r }) => r))}</i>`;
-    await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI 30 ngày ≥ 100%, tiêu ≥ $10, ROI 3 ngày ≥ 50%; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+    await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI ≥ 50%, tiêu ≥ $3, ROI 3 ngày ≥ 20%, camp gốc ≥ $9/ngày; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     gui++;
   }
   // T7 — TẮT THEO LUẬT SUPPORT (Dol 26/10/2026: 7 ngày lãi < 0, > 3 ngày có chi, chi > $5; anh: "thêm và áp dụng rule này"): BÁO TRƯỚC một nhịp
@@ -576,7 +582,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   for (const LT of LUAT_TAT) {
     const TEP = path.join(DATA(), LT.tep), cho = docJ(TEP, {}), bayGio = Date.now(), moi = [], tat = [], homNay = new Date().toISOString().slice(0, 10);
     const giu = cho._giu?.ngay === homNay ? cho._giu : { ngay: homNay, ds: {} }; delete cho._giu;   // camp lam-ethopex từ chối tắt (đang lãi) — không báo / thử lại trong ngày
-    const ds = (kq[LT.khoa] || []).filter((m) => !lamRoi.has(m.id) && !giu.ds[m.id] && (khungDoi === 'giam' || !hoan('tat', m)));   // ngoài 15–21h: vào sổ hoãn, sổ chờ tự rỗng → 15h báo trước một nhịp lại rồi mới tắt
+    const ds = (kq[LT.khoa] || []).filter((m) => !lamRoi.has(m.id) && !giu.ds[m.id] && (khungDoi === 'giam' || LT.moi_khung || !hoan('tat', m)));   // ngoài 15–21h: vào sổ hoãn, sổ chờ tự rỗng → 15h báo trước một nhịp lại rồi mới tắt · moi_khung (T8): tắt mọi khung giờ
     for (const k of Object.keys(cho)) if (!ds.some((m) => String(m.id) === k)) delete cho[k];   // hết chạm luật → bỏ khỏi sổ chờ
     for (const m of ds) { if (LT.ngay) { tat.push(m); continue; } if (!cho[m.id]) { cho[m.id] = bayGio; moi.push(m); } else if (bayGio - cho[m.id] >= 25 * 60_000) tat.push(m); }   // ngay: tắt luôn nhịp này, không chờ (D24 — anh "dừng ngay lập tức")
     if (moi.length) {
@@ -674,7 +680,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // trong ngày; hỏng vì lỗi máy (hết giờ, mạng) → nhịp sau thử lại (mức đã tạo được thì nhan-ban chặn trùng tên).
   {
     const TEP_R = path.join(DATA(), 'ethopex-roas-len.json');
-    const so = docJ(TEP_R, {}); const giu = so.ngay === homNay ? so.giu || {} : {};
+    const so = docJ(TEP_R, {}); const giu = hoanHopLe(so, homNay) ? so.giu || {} : {};
     const goc = (kq.moc30 || []).filter((m) => Number(m.id) > 0 && !lamRoi.has(m.id) && !seTat.has(m.id) && !giu[m.id]);
     const viec = goc.flatMap((m) => ROAS_MUC.map((muc) => ({ m, muc })));
     for (let i = 0; i < viec.length; i += 4) await Promise.all(viec.slice(i, i + 4).map(async (v) => {
@@ -682,7 +688,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       catch (e) { v.r = { ok: false, loi: e.message, may: true }; }
     }));
     for (const m of goc) { const ly = giuGocRoas(viec.filter((v) => v.m === m).map((v) => v.r)); if (ly) giu[m.id] = ly; }
-    fs.writeFileSync(TEP_R, JSON.stringify({ ngay: homNay, giu }));
+    fs.writeFileSync(TEP_R, JSON.stringify({ ngay: homNay, ban: banLuat(), giu }));
     if (viec.length) {
       const ok = viec.filter((v) => v.r.ok).length;
       const dong = bangViec(viec.map(({ m, muc, r }) => ({ m, doi: `${muc}→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '30 ng');

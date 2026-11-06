@@ -5,7 +5,7 @@ import BANG_LUAT from './etp-bang-luat.json';
 
 export type KhungDoi = 'tang' | 'giam' | 'sang' | 'bang';
 export type HuongLuat = 'tang' | 'giam' | 'tat';
-export const KD = BANG_LUAT.khung_doi as unknown as { tang: [number, number]; giam: [number, number]; sang: [number, number]; sang_roi: number; nap_chi: number; len: [number, number]; nghi_gio: number; nghi_don_gio: number; hoc_gio: number };
+export const KD = BANG_LUAT.khung_doi as unknown as { tang: [number, number]; giam: [number, number]; sang: [number, number]; sang_roi: number; nap_chi: number; len: [number, number]; nghi_gio: number; nghi_don_gio: number; khoa_sau_giam_gio: number; hoc_gio: number; don_13h: number; don_gio: number };
 export const KHUNG_TEN: Record<KhungDoi, [string, string, string]> = {   // [biểu tượng, tên, màu]
   tang: ['⬆', 'Khung tăng', '#4ade80'], giam: ['🔧', 'Khung giảm · tắt', '#fb923c'], sang: ['☀', 'Nạp sáng', '#22c55e'], bang: ['🔒', 'Đóng băng', '#64748b'] };
 /** giờ VN máy sẽ làm việc đang hoãn theo hướng luật */
@@ -25,4 +25,21 @@ export function docHoan(cauHinh: { khoa: string; gia_tri: unknown }[], now = Dat
   const luc = g?.luc ?? null, cu = !luc || now - Date.parse(luc) > HAN_PHUT * 60_000, ds = new Map<number, HuongLuat>();
   if (!cu) for (const h of ['tang', 'giam', 'tat'] as const) for (const id of g?.[h] ?? []) ds.set(Number(id), h);   // tắt ghi sau cùng = tắt thắng
   return { luc, cu, ds };
+}
+// KHI NÀO MÁY THỰC SỰ TĂNG luật tăng đã đạt (anh 06/11/2026 "camp có thể tăng bậc thì ghi thêm bao lâu nữa sẽ thực sự tăng"): cổng nhịp tăng do máy luật tính (thẻ Tăng bậc · cho_toi) + lucTang (khung + nhịp máy)
+/** máy luật chạy NHIP_PHUT phút / lần (apps/cty/worker/nhip.mjs kiem-ethopex) */
+export const NHIP_PHUT = 30;
+/** mốc máy thực sự tăng: nhịp máy luật (NHIP_PHUT phút, lần gần nhất = sổ hoãn `luc`) đầu tiên ≥ `som` (cổng nhịp tăng — cho_toi của thẻ máy) rơi vào khung tăng — hoặc khung sáng khi tiêu dồn (nạp sáng).
+ *  null khi sổ cũ (máy không chạy) */
+export function lucTang(luc: string | null, cu: boolean, now = Date.now(), som = 0, don = false): number | null {
+  if (!luc || cu) return null;
+  const buoc = NHIP_PHUT * 60_000; let t = Date.parse(luc) + buoc; while (t < now) t += buoc;
+  for (let i = 0; i < 4 * 48; i++, t += buoc) { const k = khungLuc(gioVnNay(t)); if (t >= som && (k === 'tang' || (k === 'sang' && don))) return t; }
+  return null;
+}
+/** GIỜ CHẠY của camp TẠO lúc `now` — cùng luật nhan-ban.lich_len (khung_doi.len, 07–12h VN): trong khung chạy ngay, ngoài khung hẹn 07:00 hôm sau / sáng nay.
+ *  Chữ cho nút / ô "bấm rồi ra sao" (anh 05/11/2026: "Nếu bấm có lên ngay hay vẫn theo lịch?") */
+export function chuLich(now = Date.now()): string {
+  const [a, b] = KD.len, h = gioVnNay(now), g = `${String(a).padStart(2, '0')}:00`;
+  return h >= a && h < b ? 'chạy ngay' : h < a ? `chạy ${g} sáng nay` : `chạy ${g} sáng mai`;
 }

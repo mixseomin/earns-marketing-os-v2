@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Jennifer+Aniston&day=11&month=2&year=1969&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=22&minute=22&year_target=2005",
+ "doc_luc": "2026-11-05T13:50:26.553Z",
+ "nam": 2005,
+ "tuoi": 36,
+ "nha": 1,
+ "cung": "Libra",
+ "nghia_nha": "The body, physical health, spirit, new beginnings, and core personal matters.",
+ "chu_nam": "Venus",
+ "vi_tri": "Aries 9°13'",
+ "nha_chu": 7,
+ "chu_de": "Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+ "nha_chu_nghia": "Personal relationships, spouse, partners, litigation, public matters",
+ "chu": [
+  "The body, physical health, spirit, new beginnings, and core personal matters.",
+  "Theme: Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+  "Personal relationships, spouse, partners, litigation, public matters"
+ ],
+ "rong": 1080,
+ "cao": 6878,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2988,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3128,
+   1008,
+   110
+  ]
+ }
+}

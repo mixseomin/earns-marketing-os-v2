@@ -152,7 +152,9 @@ def main(a):
     # --luat "<mã luật · số liệu>" (BẮT BUỘC ghi khi tăng — anh 21/10/2026) · --ai "<ai duyệt: anh (chat) / anh (nút Telegram)>"
     luat = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--luat"), None); ai = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--ai"), None)
     ep = "--ep" in a   # anh lệnh đích danh (vd phim 18+) — bỏ qua chặn camp lãi
-    a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
+    # --bo-nhip: anh lệnh đích danh trong chat tăng lại một camp vừa tăng (05/11/2026 AB02: chuyển #73284 sang đối chứng $13 → $20) — chỉ khi --ai "anh (chat)", máy tự tăng không dùng
+    bo_nhip = "--bo-nhip" in a and ai == "anh (chat)"
+    a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep", "--bo-nhip") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
     if a[0] == "tat-loat":   # tat-loat <id,id,…> --luat … --ai … [--t7]
         print(json.dumps(tat_loat([int(x) for x in a[1].split(",") if x.strip().isdigit()], luat, ai, t7="--t7" in sys.argv, ep=ep), ensure_ascii=False)); return
     viec, cid = a[0], int(a[1]); kq = {"ok": False, "viec": viec, "id": cid}
@@ -163,7 +165,7 @@ def main(a):
             if ns not in MUC: raise ValueError(f"${ns} không phải mức hợp lệ {sorted(MUC)}")
             if truoc["tt"] != "ACTIVE": raise ValueError(f"camp đang {truoc['tt']}, không tăng")
             if ns <= float(truoc["ns"] or 0): raise ValueError(f"camp đã ${truoc['ns']} ≥ ${ns}")
-            ly = NT.chan_tang(api, cid)   # nhịp tăng: ≥ 24 giờ, hoặc ≥ 3 giờ khi đã tiêu ≥ 90% NS mới + ROI hôm nay ≥ 100% (nút cũ bấm muộn cũng bị chặn)
+            ly = None if bo_nhip else NT.chan_tang(api, cid)   # nhịp tăng: ≥ 24 giờ, hoặc ≥ 3 giờ khi đã tiêu ≥ 90% NS mới + ROI hôm nay ≥ 100% (nút cũ bấm muộn cũng bị chặn)
             if ly: raise ValueError(ly)
             ly = None if ep else chan_sau_giam(cid)   # đã giảm → tăng lại phải đủ quy trình, mọi đường tăng chung một cổng
             if ly: raise ValueError(ly)

@@ -64,7 +64,7 @@ function vietMot(c, ghTheo, ra) {
     _ghi: `Chart vs Chart · ${A} × ${B} — sinh bởi lich-su/viet-cap.mjs (synastry site ${h.nguon.slice(0, 60)}…, mốc la-so/cap.json, hook QC spy #${hook.id})`,
     kenh: 'astrolas', mau: 'chart-vs-chart', playlist_ma: plMa, y_tuong: `cvc-${c.ma}`, tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
     dang: dangCongCu('synastry-chart', [c.a, c.b], { rel_type: c.rel }, `${h.a.ten} and ${h.b.ten}: both birth charts compared with the Synastry tool.`),
-    la_so: tg(join(DIR, `la-so/hop/${c.ma}.svg`)), nen: tg(join(DIR, pl.nen ?? 'brand/astrolas/anh/troi.jpg'))   /* nền theo playlist (so-kenh › playlist.nen) */, logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
+    la_so: tg(join(DIR, `la-so/hop/${c.ma}.svg`)), nen: tg(join(DIR, pl.nen))   /* nền theo playlist (so-kenh › playlist.nen) */, logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
     playlist: { ten: pl.ten, mau: plMa === 'career' ? '#E6B800' : '#FF8FB1', ic: plMa === 'career' ? '♄' : '♡' }, DAI: cau.at(-1).den, cau });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${c.ma}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }

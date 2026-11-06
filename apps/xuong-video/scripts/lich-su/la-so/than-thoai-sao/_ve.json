@@ -1,0 +1,170 @@
+{
+ "_ghi": "Nhân vật minh hoạ cho The Myth Behind (viet-myth-behind.mjs): tên trong sổ chuyện (moc[].nhan_vat) → mã thư mục brand/astrolas/nhan-vat/<id>. Mô tả hình là lời vẽ (sáng tạo, không phải lời kể — lời kể vẫn là câu nguyên văn Wikipedia trong từng tệp sao). Nhân vật đã có trong kho (Myths of the Zodiac) chỉ ghi id. ve-nhan-vat.mjs vẽ id nào chưa có PNG (~111₫ / dáng). ve_sau: true = chưa có trong tập Short nào (câu bị gonChuyen cắt) → chưa vẽ.",
+ "ten": {
+  "Zeus": {
+   "id": "zeus"
+  },
+  "Hera": {
+   "id": "hera"
+  },
+  "Heracles": {
+   "id": "heracles"
+  },
+  "Chiron": {
+   "id": "chiron"
+  },
+  "Aphrodite": {
+   "id": "aphrodite"
+  },
+  "Typhon": {
+   "id": "typhon"
+  },
+  "Cronus": {
+   "id": "cronus",
+   "loai": "nhan_vat",
+   "mo_ta": "Cronus, the Titan king, a towering stern old man with a long grey beard, dark bronze crown, heavy grey-and-ochre robes, holding a curved golden sickle"
+  },
+  "Rhea": {
+   "id": "rhea",
+   "loai": "nhan_vat",
+   "mo_ta": "Rhea, mother of the gods, a gentle noble woman with long dark braided hair, a tower-shaped crown, earthy green and terracotta robes"
+  },
+  "Gaia": {
+   "id": "gaia",
+   "loai": "nhan_vat",
+   "mo_ta": "Gaia, the Earth goddess, a calm motherly woman whose long hair is woven with leaves, flowers and vines, a moss-green flowing dress"
+  },
+  "Uranus": {
+   "id": "uranus",
+   "loai": "nhan_vat",
+   "mo_ta": "Uranus, the primordial sky god, a tall bearded man in a deep night-blue robe sprinkled with tiny stars, a pale silver halo"
+  },
+  "Helios": {
+   "id": "helios",
+   "loai": "nhan_vat",
+   "mo_ta": "Helios, the sun god, a strong young man with a radiant golden crown of sun rays, golden hair, white tunic with a gold cloak"
+  },
+  "Phaethon": {
+   "id": "phaethon",
+   "loai": "nhan_vat",
+   "mo_ta": "Phaethon, a bold teenage boy with messy golden hair, a short orange tunic, bright eager eyes, holding chariot reins"
+  },
+  "Selene": {
+   "id": "selene",
+   "loai": "nhan_vat",
+   "mo_ta": "Selene, the moon goddess, a serene young woman with long silver-white hair, a silver crescent moon crown, pale lavender flowing dress"
+  },
+  "Endymion": {
+   "id": "endymion",
+   "loai": "nhan_vat",
+   "mo_ta": "Endymion, a handsome young shepherd with dark curly hair, a simple cream tunic and a brown cloak, a wooden shepherd's crook"
+  },
+  "Hermes": {
+   "id": "hermes",
+   "loai": "nhan_vat",
+   "mo_ta": "Hermes as a cheeky little boy god, curly brown hair, a small winged cap, tiny winged sandals, a short sky-blue tunic, mischievous grin"
+  },
+  "Maia": {
+   "id": "maia",
+   "loai": "nhan_vat",
+   "mo_ta": "Maia, a kind young mountain nymph mother, long dark hair with small white flowers, a soft pale-blue dress"
+  },
+  "Apollo": {
+   "id": "apollo",
+   "loai": "nhan_vat",
+   "mo_ta": "Apollo, a handsome young god with golden curls and a laurel wreath, white chiton with a gold border, holding a golden lyre"
+  },
+  "Adonis": {
+   "id": "adonis",
+   "loai": "nhan_vat",
+   "mo_ta": "Adonis, a beautiful young hunter with soft dark curls, a short green tunic, a hunting spear, gentle face"
+  },
+  "Persephone": {
+   "id": "persephone",
+   "loai": "nhan_vat",
+   "mo_ta": "Persephone, a young goddess maiden with long chestnut hair crowned with spring flowers, a pale pink and white dress, holding a pomegranate"
+  },
+  "Proserpina": {
+   "id": "persephone"
+  },
+  "Demeter": {
+   "id": "demeter",
+   "loai": "nhan_vat",
+   "mo_ta": "Demeter, goddess of the harvest, a warm motherly woman with golden-wheat hair, a crown of wheat ears, a golden-yellow robe, holding a torch"
+  },
+  "Ceres": {
+   "id": "demeter"
+  },
+  "Hades": {
+   "id": "hades",
+   "loai": "nhan_vat",
+   "mo_ta": "Hades, king of the underworld, a tall pale serious man with a short black beard, a dark iron crown, black and deep purple robes, holding a two-pronged staff"
+  },
+  "Ares": {
+   "id": "ares",
+   "loai": "nhan_vat",
+   "mo_ta": "Ares, god of war, a fierce muscular man in a bronze crested helmet and bronze armor, a red cloak, a spear and round shield"
+  },
+  "Athena": {
+   "id": "athena",
+   "loai": "nhan_vat",
+   "mo_ta": "Athena, goddess of wisdom, a calm tall woman in a golden crested helmet, white robe with a bronze breastplate, a spear and a round shield with an owl"
+  },
+  "Diomedes": {
+   "id": "diomedes",
+   "loai": "nhan_vat",
+   "mo_ta": "Diomedes, a young Greek warrior hero with a short brown beard, bronze helmet with a blue crest, bronze armor, holding a long spear"
+  },
+  "Poseidon": {
+   "id": "poseidon",
+   "loai": "nhan_vat",
+   "mo_ta": "Poseidon, god of the sea, a powerful bearded man with wild sea-green hair, a coral crown, sea-blue robe, holding a golden trident"
+  },
+  "Cecrops": {
+   "id": "cecrops",
+   "loai": "nhan_vat",
+   "mo_ta": "Cecrops, the first king of Athens, a wise old king with a white beard and a simple gold crown, a royal blue robe, holding a scepter",
+   "ve_sau": true
+  },
+  "Eris": {
+   "id": "eris",
+   "loai": "nhan_vat",
+   "mo_ta": "Eris, goddess of strife, a sly woman with wild dark-red hair, a dark crimson dress, a sharp smile, holding a shining golden apple"
+  },
+  "Paris": {
+   "id": "paris",
+   "loai": "nhan_vat",
+   "mo_ta": "Paris, a handsome young Trojan prince shepherd, dark wavy hair, a Phrygian cap, a short orange tunic, holding a golden apple"
+  },
+  "Helen": {
+   "id": "helen",
+   "loai": "nhan_vat",
+   "mo_ta": "Helen, a very beautiful young queen with long golden hair in a delicate veil, a white and pale-gold gown, a small gold diadem"
+  },
+  "Aegipan": {
+   "id": "aegipan",
+   "loai": "nhan_vat",
+   "mo_ta": "Aegipan, a friendly goat-legged woodland spirit with small curved horns, shaggy brown fur on the legs, a cheerful face, holding a reed pipe"
+  },
+  "Lilith": {
+   "id": "lilith",
+   "loai": "nhan_vat",
+   "mo_ta": "Lilith, a proud independent woman with long black flowing hair, a dark midnight-blue robe fully covering her, calm determined eyes"
+  },
+  "Adam": {
+   "id": "adam",
+   "loai": "nhan_vat",
+   "mo_ta": "Adam, the first man, a simple young man with brown hair and a short beard, a plain wrapped tunic of leaves and cloth"
+  },
+  "Three angels": {
+   "id": "ba-thien-than",
+   "loai": "sinh_vat",
+   "mo_ta": "three angels flying side by side, white robes, large white feathered wings, soft golden halos, gentle serious faces"
+  },
+  "Centaurs": {
+   "id": "nhan-ma-dan",
+   "loai": "sinh_vat",
+   "mo_ta": "a small band of three wild centaurs, men from the waist up with shaggy hair and beards, horse bodies below, galloping, holding clubs"
+  }
+ }
+}

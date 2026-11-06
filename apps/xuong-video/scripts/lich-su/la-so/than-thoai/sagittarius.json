@@ -1,0 +1,142 @@
+{
+ "ten": "Chiron the wise centaur (Sagittarius)",
+ "cung": "Sagittarius",
+ "nguon": "https://en.wikipedia.org/wiki/Chiron (đọc 05/11/2026, câu nguyên văn)",
+ "nguon_khac": [
+  "https://en.wikipedia.org/wiki/Sagittarius_(constellation)"
+ ],
+ "_ghi_nguon": "Bản nhân mã Chiron (trang Sagittarius ghi một số người coi Sagittarius là Chiron): Chiron trúng mũi tên tẩm máu Hydra của Heracles, không tự chữa được, Zeus đặt lên trời. Lưu ý: trang Chiron cũng ghi người Hy Lạp gắn ông với chòm Centaurus — câu kết dùng câu \"placed him among the stars\" của trang Chiron, chom vẫn là Sagittarius theo trang Sagittarius. Bỏ bản satyr Crotus (Eratosthenes).",
+ "moc": [
+  {
+   "chu": "In Greek mythology, Sagittarius is usually identified as a centaur: half human, half horse.",
+   "nguon": "https://en.wikipedia.org/wiki/Sagittarius_(constellation)",
+   "vai": [
+    {
+     "ai": "chiron",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 640
+    }
+   ]
+  },
+  {
+   "chu": "Some identify Sagittarius as the centaur Chiron, the son of Philyra and Cronus, who was said to have changed himself into a horse to escape his jealous wife, Rhea, and tutor to Jason.",
+   "nguon": "https://en.wikipedia.org/wiki/Sagittarius_(constellation)",
+   "vai": [
+    {
+     "ai": "chiron",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 640
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "Chiron was known for his knowledge and skill with medicine, and thus was credited with the discovery of botany and pharmacy, the science of herbs and medicine.",
+   "nguon": "https://en.wikipedia.org/wiki/Chiron",
+   "vai": [
+    {
+     "ai": "chiron",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 640
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "Heracles was forced to shoot many arrows (poisoned with the blood of the Hydra) to drive them back.",
+   "nguon": "https://en.wikipedia.org/wiki/Chiron",
+   "vai": [
+    {
+     "ai": "heracles",
+     "dang": "chi_tay",
+     "x": 0.4,
+     "y": 0.66,
+     "cao": 720
+    }
+   ]
+  },
+  {
+   "chu": "During the assault, Chiron was hit in the thigh by one of the poisoned arrows.",
+   "nguon": "https://en.wikipedia.org/wiki/Chiron",
+   "vai": [
+    {
+     "ai": "heracles",
+     "dang": "ngac_nhien",
+     "x": 0.28,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "chiron",
+     "dang": "ngac_nhien",
+     "x": 0.7,
+     "y": 0.66,
+     "cao": 600,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Ironically, Chiron, the master of the healing arts, could not heal himself and willingly gave up his immortality.",
+   "nguon": "https://en.wikipedia.org/wiki/Chiron",
+   "vai": [
+    {
+     "ai": "chiron",
+     "dang": "buon",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 640
+    }
+   ]
+  },
+  {
+   "chu": "For this reason, his half-brother Zeus took pity on him and thus placed him among the stars in the sky to be honored.",
+   "nguon": "https://en.wikipedia.org/wiki/Chiron",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "chi_len",
+     "x": 0.24,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "chiron",
+     "dang": "goc",
+     "x": 0.62,
+     "y": 0.47,
+     "cao": 380,
+     "mo": 0.35
+    }
+   ],
+   "nhin": {
+    "chom": "Sagittarius"
+   }
+  }
+ ],
+ "site": [
+  "Sagittarius wants meaning and room."
+ ],
+ "nhan_vat": {
+  "chiron": "brand/astrolas/nhan-vat/chiron",
+  "heracles": "brand/astrolas/nhan-vat/heracles",
+  "zeus": "brand/astrolas/nhan-vat/zeus"
+ },
+ "ve": {
+  "chiron": {
+   "loai": "nhan_vat",
+   "mo_ta": "Chiron, the wise old centaur: upper body of a kind elderly man with a long grey beard and a green cloak over one shoulder, lower body of a chestnut-brown horse, a wooden bow and a pouch of healing herbs",
+   "dang": [
+    "goc",
+    "ngac_nhien",
+    "buon"
+   ]
+  }
+ }
+}

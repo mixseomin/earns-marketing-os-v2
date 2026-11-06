@@ -1,0 +1,73 @@
+{
+  "ma": "sun",
+  "sao": "Sun",
+  "ten": "Helios",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Sun",
+    "https://en.wikipedia.org/wiki/Helios"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "In ancient Greek religion, the sun deity was the male god Helios, who was later syncretised with Apollo.",
+    "nguon": "https://en.wikipedia.org/wiki/Sun#Religious_aspects",
+    "loai": "than_tuong_ung"
+  },
+  "moc": [
+    {
+      "chu": "The most well known story about Helios is the one involving his son Phaethon, who asked him to drive his chariot for a single day.",
+      "nguon": "https://en.wikipedia.org/wiki/Helios#Phaethon",
+      "nhan_vat": [
+        "Helios",
+        "Phaethon"
+      ]
+    },
+    {
+      "chu": "Helios promises him on the river Styx any gift that he might ask as a proof of paternity; Phaethon asks for the privilege to drive Helios's chariot for a single day.",
+      "nguon": "https://en.wikipedia.org/wiki/Helios#Phaethon",
+      "nhan_vat": [
+        "Helios",
+        "Phaethon"
+      ]
+    },
+    {
+      "chu": "Although Helios warns his son of how dangerous and disastrous this would be, he is nevertheless unable to change Phaethon's mind or revoke his promise.",
+      "nguon": "https://en.wikipedia.org/wiki/Helios#Phaethon",
+      "nhan_vat": [
+        "Helios",
+        "Phaethon"
+      ]
+    },
+    {
+      "chu": "Phaethon takes the reins, and the earth burns when he travels too low, and freezes when he takes the chariot too high.",
+      "nguon": "https://en.wikipedia.org/wiki/Helios#Phaethon",
+      "nhan_vat": [
+        "Phaethon"
+      ]
+    },
+    {
+      "chu": "Zeus strikes Phaethon with lightning, killing him.",
+      "nguon": "https://en.wikipedia.org/wiki/Helios#Phaethon",
+      "nhan_vat": [
+        "Zeus",
+        "Phaethon"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Helios",
+      "mo_ta": "a handsome young man crowned with the shining aureole of the Sun",
+      "nguon": "https://en.wikipedia.org/wiki/Helios#Description"
+    },
+    {
+      "ten": "Phaethon",
+      "mo_ta": "He then dresses Phaethon up in his own robes, helmet and solar crown",
+      "nguon": "https://en.wikipedia.org/wiki/Phaethon#Phaethon_as_a_legitimate_offspring"
+    },
+    {
+      "ten": "Zeus",
+      "mo_ta": "a sky and thunder god in ancient Greek religion and mythology, who rules as king of the gods on Mount Olympus",
+      "nguon": "https://en.wikipedia.org/wiki/Zeus"
+    }
+  ]
+}

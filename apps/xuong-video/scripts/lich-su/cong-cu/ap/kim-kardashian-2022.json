@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Kim+Kardashian&day=21&month=10&year=1980&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=10&minute=46&year_target=2022",
+ "doc_luc": "2026-11-05T13:51:29.007Z",
+ "nam": 2022,
+ "tuoi": 42,
+ "nha": 7,
+ "cung": "Gemini",
+ "nghia_nha": "Marriage, spouse, business partners, external relations, and going abroad.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Scorpio 19°48'",
+ "nha_chu": 12,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality",
+ "chu": [
+  "Marriage, spouse, business partners, external relations, and going abroad.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6642,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2846,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   2986,
+   1008,
+   150
+  ]
+ }
+}

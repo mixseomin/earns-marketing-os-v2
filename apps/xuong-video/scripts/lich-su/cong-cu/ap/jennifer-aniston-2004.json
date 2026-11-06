@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Jennifer+Aniston&day=11&month=2&year=1969&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=22&minute=22&year_target=2004",
+ "doc_luc": "2026-11-05T13:50:11.202Z",
+ "nam": 2004,
+ "tuoi": 35,
+ "nha": 12,
+ "cung": "Virgo",
+ "nghia_nha": "Hidden enemies, calamities, imprisonment, injuries, suffering, and matters relating to foreign lands (of a negative nature).",
+ "chu_nam": "Mercury",
+ "vi_tri": "Aquarius 0°27'",
+ "nha_chu": 5,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Creativity, entertainment, children, love, art, joy",
+ "chu": [
+  "Hidden enemies, calamities, imprisonment, injuries, suffering, and matters relating to foreign lands (of a negative nature).",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Creativity, entertainment, children, love, art, joy"
+ ],
+ "rong": 1080,
+ "cao": 6816,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2886,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3026,
+   1008,
+   150
+  ]
+ }
+}

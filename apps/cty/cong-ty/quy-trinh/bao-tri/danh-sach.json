@@ -108,22 +108,17 @@
   },
   {
    "id": "may-mt5",
-   "ten": "Máy MT5 (iMac)",
+   "ten": "Máy MT5 (HP)",
    "so_hoa": "co-dinh",
-   "kich_hoat": "iMac: đường hầm proxy thường trực · canh treo mỗi phút · sửa IP proxy mỗi 2 phút · báo còn sống mỗi 5 phút — bộ điều phối việc nền (cong-ty/viec-nen.json)",
-   "mo_ta": "Giữ MT5 chạy: đường hầm SOCKS, mở lại khi treo, cập nhật IP proxy, nhịp báo còn sống.",
-   "ma": "~/bin/mt5-*.sh",
+   "kich_hoat": "Máy HP may-hp-win: tác vụ Windows MT5-Keep lúc đăng nhập, kiểm mỗi phút · box1: cron hb_alert.sh mỗi 5 phút",
+   "mo_ta": "Giữ MT5 chạy trên máy HP: mở lại khi chết hoặc treo; box1 báo ntfy khi EA mất heartbeat.",
+   "ma": "HP C:\\MT5\\keep.ps1 · box1 /opt/forward/hb_alert.sh",
    "chu_tri": "bao",
    "lam": [
     "may"
    ],
    "khi": "thường trực + mỗi 1–5 phút",
-   "lich": [
-    "iMac:com.htuan.mt5socks",
-    "iMac:com.htuan.mt5watchdog",
-    "iMac:com.htuan.mt5proxyipsync",
-    "iMac:com.earns.mt5hb"
-   ],
+   "lich": [],
    "chi_phi": "0"
   },
   {

@@ -1,0 +1,188 @@
+{
+ "ten": "Aphrodite and the two fish (Pisces)",
+ "cung": "Pisces",
+ "nguon": "https://en.wikipedia.org/wiki/Pisces_(astrology) (đọc 05/11/2026, câu nguyên văn)",
+ "nguon_khac": [
+  "https://en.wikipedia.org/wiki/Pisces_(constellation)"
+ ],
+ "_ghi_nguon": "Hai bản trên trang Pisces (astrology) + Pisces (constellation): mở bằng bản Aphrodite và Eros hoá cá trốn Typhon (không có câu đặt lên trời ngắn gọn), rồi chuyển sang bản quả trứng trên sông Euphrates — cá đẩy trứng vào bờ, Aphrodite nở ra và đặt hai con cá lên trời (câu kết rõ nhất). Câu Wikipedia tự nói \"Another myth…\" nên chuyển bản không gượng. Typhon + Pan dùng lại từ Capricorn. Bỏ câu Hyginus về Euphrates trên trang constellation vì kèm ngoặc trích nguồn (Poeticon astronomicon 2.30…).",
+ "moc": [
+  {
+   "chu": "Typhon, the \"father of all monsters\", had been sent by Gaia to attack the gods, which led Pan to warn the others before himself changing into a goat-fish and jumping into the Euphrates.",
+   "nguon": "https://en.wikipedia.org/wiki/Pisces_(astrology)",
+   "vai": [
+    {
+     "ai": "pan",
+     "dang": "ngac_nhien",
+     "x": 0.28,
+     "y": 0.66,
+     "cao": 680
+    },
+    {
+     "ai": "typhon",
+     "dang": "gam",
+     "x": 0.7,
+     "y": 0.66,
+     "cao": 600,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Pisces is associated with the Greek legend that Aphrodite and her son Eros either shape-shifted into forms of fishes to escape, or were rescued by two fishes.",
+   "nguon": "https://en.wikipedia.org/wiki/Pisces_(constellation)",
+   "vai": [
+    {
+     "ai": "aphrodite",
+     "dang": "ngac_nhien",
+     "x": 0.26,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "eros",
+     "dang": "goc",
+     "x": 0.48,
+     "y": 0.64,
+     "cao": 420
+    },
+    {
+     "ai": "typhon",
+     "dang": "gam",
+     "x": 0.8,
+     "y": 0.64,
+     "cao": 520,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "A similar myth, one in which the fish \"Pisces\" carries Aphrodite and her son out of danger, is resounded in Manilius' five-volume poetic work Astronomica: \"Venus ow'd her safety to their Shape.\"",
+   "nguon": "https://en.wikipedia.org/wiki/Pisces_(astrology)",
+   "vai": [
+    {
+     "ai": "aphrodite",
+     "dang": "goc",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "ca",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.64,
+     "cao": 360,
+     "lat": true
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "Another myth is that an egg fell into the Euphrates River.",
+   "nguon": "https://en.wikipedia.org/wiki/Pisces_(astrology)",
+   "vai": [
+    {
+     "ai": "ca",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.64,
+     "cao": 380
+    }
+   ]
+  },
+  {
+   "chu": "It was then rolled to the shore by fish.",
+   "nguon": "https://en.wikipedia.org/wiki/Pisces_(astrology)",
+   "vai": [
+    {
+     "ai": "ca",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.64,
+     "cao": 380
+    }
+   ]
+  },
+  {
+   "chu": "Doves sat on the egg until it hatched, out from which came Aphrodite.",
+   "nguon": "https://en.wikipedia.org/wiki/Pisces_(astrology)",
+   "vai": [
+    {
+     "ai": "aphrodite",
+     "dang": "goc",
+     "x": 0.4,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "ca",
+     "dang": "goc",
+     "x": 0.78,
+     "y": 0.64,
+     "cao": 320,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "As a sign of gratitude towards the fish, Aphrodite put the fish into the night sky.",
+   "nguon": "https://en.wikipedia.org/wiki/Pisces_(astrology)",
+   "vai": [
+    {
+     "ai": "aphrodite",
+     "dang": "chi_len",
+     "x": 0.26,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "ca",
+     "dang": "goc",
+     "x": 0.64,
+     "y": 0.47,
+     "cao": 340,
+     "mo": 0.35
+    }
+   ],
+   "nhin": {
+    "chom": "Pisces"
+   }
+  }
+ ],
+ "site": [
+  "Pisces wants to feel connected to something larger."
+ ],
+ "nhan_vat": {
+  "typhon": "brand/astrolas/nhan-vat/typhon",
+  "pan": "brand/astrolas/nhan-vat/pan",
+  "aphrodite": "brand/astrolas/nhan-vat/aphrodite",
+  "eros": "brand/astrolas/nhan-vat/eros",
+  "ca": "brand/astrolas/nhan-vat/ca"
+ },
+ "ve": {
+  "aphrodite": {
+   "loai": "nhan_vat",
+   "mo_ta": "Aphrodite, Greek goddess of love, radiant young woman, long golden wavy hair with pearls, sea-foam white and soft pink flowing dress, a scallop-shell hair clip",
+   "dang": [
+    "goc",
+    "ngac_nhien",
+    "chi_len"
+   ]
+  },
+  "eros": {
+   "loai": "nhan_vat",
+   "mo_ta": "Eros, a small winged boy of about 7, golden curls, small white feathered wings, short white wrap, tiny golden bow",
+   "dang": [
+    "goc"
+   ]
+  },
+  "ca": {
+   "loai": "sinh_vat",
+   "mo_ta": "Two silver-blue fish swimming side by side, tails tied together by a thin golden ribbon, shimmering scales, friendly eyes",
+   "dang": [
+    "goc"
+   ]
+  }
+ }
+}

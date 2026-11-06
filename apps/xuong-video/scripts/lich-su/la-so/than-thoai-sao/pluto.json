@@ -1,0 +1,87 @@
+{
+  "ma": "pluto",
+  "sao": "Pluto",
+  "ten": "Hades / Pluto",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Pluto",
+    "https://en.wikipedia.org/wiki/Hades",
+    "https://en.wikipedia.org/wiki/Persephone"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "The name Pluto came from the Roman god of the underworld; and it is also an epithet for Hades (the Greek equivalent of Pluto).",
+    "nguon": "https://en.wikipedia.org/wiki/Pluto#Name",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "The consort of Hades was Persephone, daughter of Zeus and Demeter.",
+      "nguon": "https://en.wikipedia.org/wiki/Hades#Abduction_of_Persephone",
+      "nhan_vat": [
+        "Hades",
+        "Persephone"
+      ]
+    },
+    {
+      "chu": "She became the queen of the underworld after her abduction by her uncle Hades, the king of the underworld, who later took her into marriage.",
+      "nguon": "https://en.wikipedia.org/wiki/Persephone",
+      "nhan_vat": [
+        "Persephone",
+        "Hades"
+      ]
+    },
+    {
+      "chu": "After Persephone had disappeared, Demeter searched for her all over the earth with Hecate's torches.",
+      "nguon": "https://en.wikipedia.org/wiki/Persephone#Abduction_myth",
+      "nhan_vat": [
+        "Demeter"
+      ]
+    },
+    {
+      "chu": "In most versions, she forbids the earth to produce, or she neglects the earth and, in the depth of her despair, she causes nothing to grow.",
+      "nguon": "https://en.wikipedia.org/wiki/Persephone#Abduction_myth",
+      "nhan_vat": [
+        "Demeter"
+      ]
+    },
+    {
+      "chu": "Zeus, pressed by the cries of the hungry people and by the other deities who also heard their anguish, forced Hades to return Persephone.",
+      "nguon": "https://en.wikipedia.org/wiki/Persephone#Abduction_myth",
+      "nhan_vat": [
+        "Zeus",
+        "Hades",
+        "Persephone"
+      ]
+    },
+    {
+      "chu": "When Hades was informed of Zeus' command to return Persephone, he complied with the request, but he first tricked her into eating pomegranate seeds.",
+      "nguon": "https://en.wikipedia.org/wiki/Persephone#Abduction_myth",
+      "nhan_vat": [
+        "Hades",
+        "Persephone"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Hades",
+      "mo_ta": "the god of the dead and riches and the King of the underworld",
+      "nguon": "https://en.wikipedia.org/wiki/Hades"
+    },
+    {
+      "ten": "Persephone",
+      "mo_ta": "a mystical divinity with a sceptre and a little box",
+      "nguon": "https://en.wikipedia.org/wiki/Persephone"
+    },
+    {
+      "ten": "Demeter",
+      "mo_ta": "the light-haired Demeter",
+      "nguon": "https://en.wikipedia.org/wiki/Demeter#As_an_agricultural_goddess"
+    },
+    {
+      "ten": "Zeus",
+      "mo_ta": "a sky and thunder god in ancient Greek religion and mythology, who rules as king of the gods on Mount Olympus",
+      "nguon": "https://en.wikipedia.org/wiki/Zeus"
+    }
+  ]
+}

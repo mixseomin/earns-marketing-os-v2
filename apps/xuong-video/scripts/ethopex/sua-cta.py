@@ -142,7 +142,17 @@ def main():
     lk = open(os.path.join(C, "sua-cta.lock"), "w")
     try: fcntl.flock(lk, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except OSError: return print("sua-cta đang chạy ở lượt khác — thoát")
-    ma = time.strftime("sua%d%m%H%M"); os.makedirs(os.path.join(C, "ra", ma), exist_ok=True); bao0 = []
+    # KHOÁ GIỮA CÁC MÁY (06/11/2026: máy HP nhà chạy cùng iMac, hai bên đọc chung hàng trên box3 → cắt trùng phim, lượt xong trước gỡ luôn phim máy kia đang cắt).
+    # flock chỉ chặn trong một máy; khoá này ở box3 (xv_khoa_ngoai 'ethopex_sua_dang', hạn 6h = TimeoutStartSec) — máy nào rảnh nhận cả lượt, máy kia thoát
+    may = os.uname().nodename
+    if sql(f"""insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_sua_dang', jsonb_build_object('may', '{may}', 'het', extract(epoch from now())::bigint + 21600))
+               on conflict (ten) do update set gia_tri = excluded.gia_tri, cap_nhat = now()
+               where (xv_khoa_ngoai.gia_tri->>'het')::bigint < extract(epoch from now()) or xv_khoa_ngoai.gia_tri->>'may' = '{may}' returning 1""") != "1":
+        return print(f"sua-cta đang chạy ở máy khác ({khoa('ethopex_sua_dang').get('may')}) — thoát")
+    import atexit, signal
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))   # systemctl stop / launchd dừng → vẫn trả khoá
+    atexit.register(lambda: sql(f"update xv_khoa_ngoai set gia_tri = gia_tri || '{{\"het\": 0}}', cap_nhat = now() where ten = 'ethopex_sua_dang' and gia_tri->>'may' = '{may}'"))
+    ma =time.strftime("sua%d%m%H%M"); os.makedirs(os.path.join(C, "ra", ma), exist_ok=True); bao0 = []
     import xuong as XG; XG.bao("sua", ma, "sửa CTA / góc mới cho camp thắng", ep=True)
     if not chi or goc_lan_nay: goc_moi(ma, bao0, nb)
     if bao0: print("\n".join(bao0), flush=True)

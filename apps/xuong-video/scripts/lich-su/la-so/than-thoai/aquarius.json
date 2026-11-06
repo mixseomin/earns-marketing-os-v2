@@ -1,0 +1,170 @@
+{
+ "ten": "Ganymede the cup-bearer (Aquarius)",
+ "cung": "Aquarius",
+ "nguon": "https://en.wikipedia.org/wiki/Ganymede_(mythology) (đọc 05/11/2026, câu nguyên văn)",
+ "nguon_khac": [],
+ "_ghi_nguon": "Bản Ganymede (trang Ganymede (mythology)): chàng chăn cừu thành Troy được đại bàng (sai bởi Zeus hoặc chính Zeus) mang lên Olympus làm người rót rượu cho thần, sau thành chòm Aquarius cạnh chòm Đại bàng. Bỏ bản Deucalion và Cecrops; tránh các đoạn về ý nghĩa tình dục.",
+ "moc": [
+  {
+   "chu": "Homer describes Ganymede as the most handsome of mortals and tells the story of how he was abducted by the gods to serve as Zeus's cup-bearer in Olympus.",
+   "nguon": "https://en.wikipedia.org/wiki/Ganymede_(mythology)",
+   "vai": [
+    {
+     "ai": "ganymede",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 700
+    }
+   ]
+  },
+  {
+   "chu": "Ganymede had been tending sheep, a rustic or humble pursuit characteristic of a hero's boyhood before his privileged status is revealed, when an eagle transported the youth to Mount Olympus.",
+   "nguon": "https://en.wikipedia.org/wiki/Ganymede_(mythology)",
+   "vai": [
+    {
+     "ai": "ganymede",
+     "dang": "goc",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 700
+    },
+    {
+     "ai": "dai-bang",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.64,
+     "cao": 440,
+     "lat": true
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "In some later sources, Ganymede was abducted by Zeus from Mount Ida near Troy in Phrygia.",
+   "nguon": "https://en.wikipedia.org/wiki/Ganymede_(mythology)",
+   "vai": [
+    {
+     "ai": "ganymede",
+     "dang": "ngac_nhien",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 700
+    },
+    {
+     "ai": "dai-bang",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.64,
+     "cao": 460,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "The bird is sometimes described as being under the command of Zeus and sometimes as being Zeus himself.",
+   "nguon": "https://en.wikipedia.org/wiki/Ganymede_(mythology)",
+   "vai": [
+    {
+     "ai": "dai-bang",
+     "dang": "goc",
+     "x": 0.32,
+     "y": 0.64,
+     "cao": 460
+    },
+    {
+     "ai": "zeus",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 740,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "On Olympus, Zeus granted Ganymede eternal youth and immortality as the official cup bearer to the gods, in place of Hebe, who was relieved of cup-bearing duties upon her marriage to Herakles.",
+   "nguon": "https://en.wikipedia.org/wiki/Ganymede_(mythology)",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "goc",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "ganymede",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 700,
+     "lat": true
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "Tros was consoled that his son was now immortal and would be the cupbearer for the gods, a position of much distinction.",
+   "nguon": "https://en.wikipedia.org/wiki/Ganymede_(mythology)",
+   "vai": [
+    {
+     "ai": "ganymede",
+     "dang": "goc",
+     "x": 0.5,
+     "y": 0.66,
+     "cao": 700
+    }
+   ]
+  },
+  {
+   "chu": "In various stories, Zeus later put Ganymede in the sky as the constellation Aquarius (the \"water-carrier\" or \"cup-carrier\"), which is adjacent to Aquila (the Eagle).",
+   "nguon": "https://en.wikipedia.org/wiki/Ganymede_(mythology)",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "chi_len",
+     "x": 0.24,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "ganymede",
+     "dang": "goc",
+     "x": 0.62,
+     "y": 0.47,
+     "cao": 360,
+     "mo": 0.35
+    }
+   ],
+   "nhin": {
+    "chom": "Aquarius"
+   }
+  }
+ ],
+ "site": [
+  "Aquarius wants a better system and the freedom to be strange."
+ ],
+ "nhan_vat": {
+  "ganymede": "brand/astrolas/nhan-vat/ganymede",
+  "dai-bang": "brand/astrolas/nhan-vat/dai-bang",
+  "zeus": "brand/astrolas/nhan-vat/zeus"
+ },
+ "ve": {
+  "ganymede": {
+   "loai": "nhan_vat",
+   "mo_ta": "Ganymede, a handsome Trojan shepherd youth of about 16, curly black hair, short white tunic with a blue border, red Phrygian cap, holding a golden water jar / cup",
+   "dang": [
+    "goc",
+    "ngac_nhien"
+   ]
+  },
+  "dai-bang": {
+   "loai": "sinh_vat",
+   "mo_ta": "A huge majestic golden eagle with wide outstretched wings, sharp talons, fierce golden eyes",
+   "dang": [
+    "goc"
+   ]
+  }
+ }
+}

@@ -9,13 +9,15 @@ Mỗi nhịp ethopex (cty worker, SAU khi luat-ethopex.py --json đã ghi etp.xe
        chi / lượt hiện cao  → 'hook': QC đắt, cảnh mở / ảnh bìa không hút → creative mới KHÁC DẠNG, đoạn xa đoạn cũ;
        thu / lượt hiện thấp → 'giu' : người xem vào nhưng không ở lại → creative mới là đoạn SÂU HƠN (gần cao trào / cuối tập);
        cùng sổ bài học (bai-hoc.py) + creative đã lỗ ở phim này thì không dùng lại.
-  3. LÊN THEO BỘ (anh 29/10/2026 "các định dạng kiểu CC, CT,... đều $0 thì sao ko lên theo bộ đi"): mỗi DẠNG creative (CC · CT · KT · PD · LM · TN)
+  3. MỘT CAMP TEST (anh 05/11/2026 "cam lỗ vẫn phải cắt nhưng thay bằng = camp test duy nhất !!! Thử các hướng creative khác nhau"): dòng đã có camp test thì chờ,
+     chưa có thì lên đúng một camp ở dạng phim ít thử nhất; camp test lỗ bị tắt → dòng mới thử dạng kế. Bản cũ: LÊN THEO BỘ (anh 29/10/2026 "các định dạng kiểu CC, CT,... đều $0 thì sao ko lên theo bộ đi"): mỗi DẠNG creative (CC · CT · KT · PD · LM · TN)
      một camp $1 — creative khác cùng phim, chọn theo hướng rút kinh nghiệm (CTA đạt, chưa bị Meta từ chối, chưa có camp chạy, không trùng ≥ 50%
      đoạn cũ / đoạn đã lỗ) → chấm sạch thì lên trên khuôn camp cũ (nhan-ban.py --creative, cùng bộ); chưa chấm → xếp chấm, nhịp sau thử lại;
      phim chưa có CC sạch → xếp hàng cắt góc mới (ethopex_can_goc_moi, cờ thay — sua-cta.py iMac cắt cảnh cuối, nhịp sau máy này lên).
   0. THANG CHUYỂN HƯỚNG (anh 31/10/2026, apps/etp/cat_phim.py): phim chưa camp nào lãi, chi ≥ mức thử mà ROI dưới ngưỡng → đổi sang bộ chưa thử (camp thay lên
      bộ đó), team lãi thì báo nạp creative team, hết đường thì CẤT (thôi mở dòng thay; cong.kiem chặn tạo camp phim đó). Mức ở etp.cau_hinh.cat_phim.
   4. Camp thay đã chạy (có chi) → dòng 'chay' (trang etp thôi vẽ dòng mờ).
+  Phim cần thay mà cổng chặn (trùng phim người trong đội · ngoài Âu-Mỹ · đã cất) → dòng 'chan' ghi lý do để tab Camp hiện (anh 05/11/2026); cổng mở thì huỷ, mở dòng thay thường.
 Chạy (box3, đã nạp .env.production):  python3 thay-the.py [--that] [--toi-da 15]     (không --that = chạy khô, chỉ in sẽ làm gì; --toi-da = trần camp mới mỗi lượt)"""
 import datetime as dt, importlib.util, json, os, subprocess, sys
 
@@ -117,18 +119,26 @@ def ten_camp(x, content, camp_cu):
     return f"{x.get('lo') or 'thay'} {a(p.get('ten')) or 'phim ' + str(content)} {lang} - {a(x.get('dang')).lower()} {round(float(x.get('tu') or 0))}-{round(float(x.get('den') or 0))}s (thay {camp_cu})"
 
 def lam(r, NB):
-    """một dòng thay → lên mỗi dạng còn thiếu một camp (theo bộ); trả câu báo"""
+    """một dòng thay → MỘT camp test (anh 05/11/2026 "thay bằng = camp test duy nhất !!! Thử các hướng creative khác nhau"): đã có camp test của dòng thì chờ nó
+    (đang hẹn lịch / đang chạy), không lên thêm; chưa có thì lên đúng một camp ở dạng creative phim ít thử nhất (khác hướng camp cũ). Camp test lỗ bị tắt →
+    phim lại cần thay → dòng mới, chẩn đoán từ chính camp test đó, thử dạng kế. Trước 05/11 lên mỗi dạng một camp (theo bộ, anh 29/10/2026); trả câu báo"""
     content, cu = int(r["content_id"]), int(r["camp_cu"])
     bh = r.get("bai_hoc") or {}
     if not bh.get("huong"): bh = chan_doan(cu, content); ghi(r["id"], bai_hoc=bh)
     bo = list(r.get("bo_camp") or []); co_dang = {b["dang"] for b in bo}
+    dang_test = [int(b["camp"]) for b in bo if b.get("camp")]
+    if dang_test:
+        return f"phim {content} (thay #{cu}): đang test #{dang_test[0]} — một camp test một lúc, chờ kết quả · {bh['ly_do']}"
     c0 = (qj(f"select creative_id, bo, ten from etp.camp where camp_id = {cu}") or [{}])[0]
     bo_len = DOI_BO.get(content) or str(c0.get("bo") or "2")
     ds = [x for x in ung_vien(content, c0.get("creative_id"), bh["huong"]) if (x.get("dang") or "?") not in co_dang]
+    da_thu = {(x.get("dang") or "?"): int(x.get("n") or 0) for x in qj(f"select r.dang, count(*) n from etp.camp c join etp.creative r using (creative_id) where c.content_id = {content} group by 1")}
     nhom = {}
     for x in ds: nhom.setdefault(x.get("dang") or "?", []).append(x)   # giữ thứ tự xếp theo hướng trong từng dạng
+    nhom = dict(sorted(nhom.items(), key=lambda kv: da_thu.get(kv[0], 0)))   # hướng creative phim ít thử nhất đi trước (sort ổn định: cùng số giữ thứ tự hướng)
     len_, cho, bao = [], [], []
     for dang, xs in nhom.items():
+        if len_: break   # đúng MỘT camp test
         for x in xs:
             if DA_LEN[0] >= TOI_DA: break
             cr = int(x["creative_id"])
@@ -137,8 +147,8 @@ def lam(r, NB):
             ten = ten_camp(x, content, cu)
             if not THAT: len_.append({"dang": dang, "creative": cr, "camp": None}); bao.append(f"{dang} #{cr} {round(float(x.get('tu') or 0))}–{round(float(x.get('den') or 0))}s"); break
             p = subprocess.run(["python3", os.path.join(D, "nhan-ban.py"), str(cu), "--bo", bo_len, "--creative", str(cr), "--content", str(content), "--ten", ten,
-                                "--that", "--lich", "today", "--luat", f"camp thay thế ({dang}){f' · đổi sang bộ {bo_len}' if content in DOI_BO else ''} · phim chỉ còn #{cu} sắp tắt · {bh['ly_do']}"[:400],
-                                "--ai", "máy thay camp (anh chat 29/10/2026: phim còn 1 camp sắp đóng thì lên camp mới thay luôn, rút kinh nghiệm, lên theo bộ định dạng)"],
+                                "--that", "--lich", "today", "--luat", f"camp test thay thế ({dang}){f' · đổi sang bộ {bo_len}' if content in DOI_BO else ''} · phim chỉ còn #{cu} sắp tắt · {bh['ly_do']}"[:400],
+                                "--ai", "máy thay camp (anh 05/11/2026: camp lỗ cắt, thay bằng MỘT camp test, mỗi lượt một hướng creative khác — trước: 29/10/2026 theo bộ định dạng)"],
                                capture_output=True, text=True, timeout=600)
             try: kq = json.loads((p.stdout.strip().splitlines() or ["{}"])[-1])
             except Exception: kq = {"ok": False, "loi": (p.stderr or p.stdout).strip()[-200:]}
@@ -170,10 +180,14 @@ def main():
     SAP_PHIM = {int(x["content_id"]): {int(c[1:].split(" ")[0]) for c in x["ly"].split(" | ")} for x in CAN}   # phim → mọi camp sắp tắt của phim
     # 4. camp thay đã chạy → xong; phim đã có camp khác chạy (ngoài camp cũ) → huỷ
     for r in qj("select id, content_id, camp_cu, buoc, camp_moi, ghi from etp.thay_the where buoc not in ('chay', 'huy')"):
-        # xong khi camp thay đầu tiên đã có chi VÀ không còn dạng nào đang chờ chấm (ghi rỗng) — còn chờ thì nhịp sau vẫn thử lên nốt dạng đó
-        if int(r["content_id"]) in CHAN and r["buoc"] != "len_lich":
+        # dòng 'chan' = phim cần thay mà cổng chặn (giữ để tab Camp hiện lý do); cổng mở → huỷ, bước 1 cùng nhịp mở dòng thay thường
+        if r["buoc"] == "chan":
+            if int(r["content_id"]) not in CHAN: ghi(r["id"], buoc="huy", ghi="cổng đã mở — mở dòng thay mới"); continue
+            if CHAN[int(r["content_id"])][:300] != (r.get("ghi") or ""): ghi(r["id"], ghi=CHAN[int(r["content_id"])][:300])
+        elif int(r["content_id"]) in CHAN and r["buoc"] != "len_lich":
             ghi(r["id"], buoc="huy", ghi=CHAN[int(r["content_id"])][:300]); bo_hang_cat(r["content_id"]); continue
-        if r.get("camp_moi") and not (r.get("ghi") or "").strip() and q(f"select 1 from etp.camp c join etp.so_ngay n using (camp_id) where c.camp_id = {int(r['camp_moi'])} and n.chi > 0 limit 1"):
+        # xong khi camp test đã có chi (anh 05/11/2026 một camp test một lúc — trước: còn dạng chờ chấm thì giữ dòng mở để lên nốt); camp test lỗ bị tắt → dòng mới thử hướng kế
+        if r.get("camp_moi") and q(f"select 1 from etp.camp c join etp.so_ngay n using (camp_id) where c.camp_id = {int(r['camp_moi'])} and n.chi > 0 limit 1"):
             ghi(r["id"], buoc="chay"); continue
         if r["buoc"] != "len_lich" and any(int(c) not in SAP_PHIM.get(int(r["content_id"]), set()) for c in q(f"select camp_id from etp.camp where trang_thai = 'ACTIVE' and not la_roas and content_id = {int(r['content_id'])} and camp_id <> {int(r['camp_cu'])} and camp_id <> coalesce({int(r.get('camp_moi') or 0)}, 0)").split()):   # còn camp KHOẺ khác (không sắp tắt, không phải camp thay)
             ghi(r["id"], buoc="huy", ghi="phim đã có camp khác đang chạy"); bo_hang_cat(r["content_id"]); continue
@@ -182,8 +196,11 @@ def main():
             ghi(r["id"], buoc="huy", ghi="camp cũ không còn sắp tắt"); bo_hang_cat(r["content_id"])
     # 1. phim mới cần thay
     for x in CAN:
-        if int(x["content_id"]) in CHAN: continue
         if q(f"select 1 from etp.thay_the where content_id = {int(x['content_id'])} and buoc not in ('chay', 'huy')"): continue
+        if int(x["content_id"]) in CHAN:   # anh 05/11/2026 "show ra ở tab camp để còn biết … chưa có cái nào thay thế": cổng chặn thì ghi dòng 'chan' kèm lý do, không bỏ qua im lặng
+            if THAT: q(f"insert into etp.thay_the (content_id, camp_cu, buoc, ghi) values ({int(x['content_id'])}, {int(x['camp_id'])}, 'chan', '{s_(CHAN[int(x['content_id'])][:300])}') on conflict do nothing")
+            else: bao.append(f"[khô] phim {x['content_id']} cần thay nhưng cổng chặn: {CHAN[int(x['content_id'])][:160]}")
+            continue
         moi += 1
         if THAT: q(f"insert into etp.thay_the (content_id, camp_cu, ghi) values ({int(x['content_id'])}, {int(x['camp_id'])}, '{s_(x['ly'])}') on conflict do nothing")
         else: bao.append(f"[khô] mở dòng thay phim {x['content_id']} (#{x['camp_id']}: {x['ly']})")

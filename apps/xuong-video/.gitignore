@@ -4,3 +4,10 @@ vu-tru/ra/
 scripts/shot-code/.*.tieng.json
 # tập Astrolas máy viết sinh ra (lich-su/viet-this-week.mjs …) — sinh lại được, không commit
 scripts/shot-code/tap-astrolas/
+scripts/lich-su/cong-cu/ap/*.png
+vu-tru/teardown/teardown-out/
+scripts/lich-su/brand/astrolas/tranh/sc-*-[0-9].jpg
+__pycache__/
+vu-tru/teardown/mau/
+vu-tru/teardown/artifact/
+scripts/lich-su/brand/astrolas/tranh/cc-*-[0-9].jpg

@@ -1,0 +1,37 @@
+{
+  "ma": "sc-tycho-1572",
+  "ten": "Tycho's New Star",
+  "loai": "sieu_tan_tinh",
+  "su_kien_ngay": "1572-11",
+  "nguon": "https://en.wikipedia.org/wiki/SN_1572 (mục Historic description, Companion star, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1572,
+      "ngay": "1572-11",
+      "nhan": "new star",
+      "chu": "It appeared in early November 1572 and was independently discovered by many individuals.",
+      "nguon": "https://en.wikipedia.org/wiki/SN_1572"
+    },
+    {
+      "nam": 1572,
+      "ngay": "1572-11-16",
+      "nhan": "peak",
+      "chu": "Contrarily, Brahe described the supernova as \"brighter than Venus\".",
+      "nguon": "https://en.wikipedia.org/wiki/SN_1572#Historic_description"
+    },
+    {
+      "nam": 1574,
+      "ngay": "1574",
+      "nhan": "fading",
+      "chu": "The supernova remained visible to the naked eye into early 1574, gradually fading until it disappeared from view.",
+      "nguon": "https://en.wikipedia.org/wiki/SN_1572#Historic_description"
+    },
+    {
+      "nam": 2004,
+      "ngay": "2004-10",
+      "nhan": "Tycho G",
+      "chu": "In October 2004, a letter in Nature reported the discovery of a G2 star, similar in type to our own Sun and named Tycho G.",
+      "nguon": "https://en.wikipedia.org/wiki/SN_1572#Companion_star"
+    }
+  ]
+}

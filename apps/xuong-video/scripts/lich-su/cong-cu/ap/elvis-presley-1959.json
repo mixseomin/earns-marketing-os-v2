@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Elvis+Presley&day=8&month=1&year=1935&location=Tupelo%2C+Mississippi%2C+USA&lat=34.2576&lng=-88.7034&hour=4&minute=35&year_target=1959",
+ "doc_luc": "2026-11-05T13:48:39.161Z",
+ "nam": 1959,
+ "tuoi": 24,
+ "nha": 1,
+ "cung": "Sagittarius",
+ "nghia_nha": "The body, physical health, spirit, new beginnings, and core personal matters.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Scorpio 18°04'",
+ "nha_chu": 12,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality",
+ "chu": [
+  "The body, physical health, spirit, new beginnings, and core personal matters.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6612,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2894,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3034,
+   1008,
+   110
+  ]
+ }
+}

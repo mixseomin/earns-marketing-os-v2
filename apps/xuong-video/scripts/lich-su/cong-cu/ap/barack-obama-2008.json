@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Barack+Obama&day=4&month=8&year=1961&location=Honolulu%2C+Hawaii%2C+USA&lat=21.3069&lng=-157.8583&hour=19&minute=24&year_target=2008",
+ "doc_luc": "2026-11-05T13:47:41.946Z",
+ "nam": 2008,
+ "tuoi": 47,
+ "nha": 12,
+ "cung": "Capricorn",
+ "nghia_nha": "Hidden enemies, calamities, imprisonment, injuries, suffering, and matters relating to foreign lands (of a negative nature).",
+ "chu_nam": "Saturn",
+ "vi_tri": "Capricorn 25°20'",
+ "nha_chu": 12,
+ "chu_de": "Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+ "nha_chu_nghia": "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality",
+ "chu": [
+  "Hidden enemies, calamities, imprisonment, injuries, suffering, and matters relating to foreign lands (of a negative nature).",
+  "Theme: Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+  "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6776,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2886,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3026,
+   1008,
+   110
+  ]
+ }
+}

@@ -1,0 +1,87 @@
+{
+  "ma": "saturn",
+  "sao": "Saturn",
+  "ten": "Cronus / Saturn",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Saturn",
+    "https://en.wikipedia.org/wiki/Saturn_(mythology)",
+    "https://en.wikipedia.org/wiki/Cronus"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "Saturn is named after the Roman god of wealth and agriculture, who was the father of the god Jupiter.",
+    "nguon": "https://en.wikipedia.org/wiki/Saturn#Name_and_symbol",
+    "loai": "dat_ten"
+  },
+  "moc": [
+    {
+      "chu": "Saturn's mythological reign was depicted as a Golden Age of abundance and peace.",
+      "nguon": "https://en.wikipedia.org/wiki/Saturn_(mythology)",
+      "nhan_vat": [
+        "Cronus"
+      ]
+    },
+    {
+      "chu": "The potential cruelty of Saturn was enhanced by his identification with Cronus, known for devouring his own children.",
+      "nguon": "https://en.wikipedia.org/wiki/Saturn_(mythology)#Cult_outside_Rome",
+      "nhan_vat": [
+        "Cronus"
+      ]
+    },
+    {
+      "chu": "As a result, although he sired the gods Demeter, Hestia, Hera, Hades, and Poseidon by Rhea, he devoured them all as soon as they were born to prevent the prophecy.",
+      "nguon": "https://en.wikipedia.org/wiki/Cronus#King_of_the_gods",
+      "nhan_vat": [
+        "Cronus",
+        "Rhea"
+      ]
+    },
+    {
+      "chu": "Rhea kept Zeus hidden in a cave on Mount Ida, Crete.",
+      "nguon": "https://en.wikipedia.org/wiki/Cronus#King_of_the_gods",
+      "nhan_vat": [
+        "Rhea",
+        "Zeus"
+      ]
+    },
+    {
+      "chu": "According to Hesiod, once Zeus had grown up, Cronus was forced to regurgitate his children through Gaia's cunning and Zeus's might.",
+      "nguon": "https://en.wikipedia.org/wiki/Cronus#Overthrown",
+      "nhan_vat": [
+        "Zeus",
+        "Cronus",
+        "Gaia"
+      ]
+    },
+    {
+      "chu": "In a vast war called the Titanomachy, Zeus and his older brothers and sisters, with the help of the Hecatoncheires and Cyclopes, overthrew Cronus and the other Titans.",
+      "nguon": "https://en.wikipedia.org/wiki/Cronus#Overthrown",
+      "nhan_vat": [
+        "Zeus",
+        "Cronus"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Cronus",
+      "mo_ta": "depicted with a harpe, scythe, or sickle",
+      "nguon": "https://en.wikipedia.org/wiki/Cronus"
+    },
+    {
+      "ten": "Rhea",
+      "mo_ta": "Rhea was often referred to as Meter Theon (\"Mother of the Gods\")",
+      "nguon": "https://en.wikipedia.org/wiki/Rhea_(mythology)#Cult"
+    },
+    {
+      "ten": "Zeus",
+      "mo_ta": "a sky and thunder god in ancient Greek religion and mythology, who rules as king of the gods on Mount Olympus",
+      "nguon": "https://en.wikipedia.org/wiki/Zeus"
+    },
+    {
+      "ten": "Gaia",
+      "mo_ta": "the personification of Earth",
+      "nguon": "https://en.wikipedia.org/wiki/Gaia"
+    }
+  ]
+}

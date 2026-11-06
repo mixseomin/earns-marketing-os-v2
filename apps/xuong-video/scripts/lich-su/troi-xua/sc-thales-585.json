@@ -1,0 +1,38 @@
+{
+  "ma": "sc-thales-585",
+  "ten": "The Eclipse of Thales",
+  "loai": "nhat_thuc",
+  "su_kien_ngay": "-0584-05-28",
+  "nguon": "https://en.wikipedia.org/wiki/Eclipse_of_Thales (mục Ancient accounts, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": -584,
+      "ngay": "-0584",
+      "nhan": "prediction",
+      "chu": "Herodotus also mentions that the loss of daylight had been predicted by Thales of Miletus.",
+      "nguon": "https://en.wikipedia.org/wiki/Eclipse_of_Thales#Ancient_accounts"
+    },
+    {
+      "nam": -584,
+      "ngay": "-0584-05-28",
+      "nhan": "battle stops",
+      "chu": "The Medes and Lydians, when they observed the change, ceased fighting, and were alike anxious to have terms of peace agreed on.",
+      "noi": "Anatolia",
+      "nguon": "https://en.wikipedia.org/wiki/Eclipse_of_Thales#Ancient_accounts"
+    },
+    {
+      "nam": -584,
+      "ngay": "-0584-05-28",
+      "nhan": "peace",
+      "chu": "As part of the terms of the peace agreement, Alyattes's daughter Aryenis was married to Cyaxares's son Astyages",
+      "nguon": "https://en.wikipedia.org/wiki/Eclipse_of_Thales#Ancient_accounts"
+    },
+    {
+      "nam": -584,
+      "ngay": "-0584-05-28",
+      "nhan": "first forecast",
+      "chu": "If Herodotus's account is accurate, this eclipse is the earliest recorded as being known in advance of its occurrence.",
+      "nguon": "https://en.wikipedia.org/wiki/Eclipse_of_Thales"
+    }
+  ]
+}

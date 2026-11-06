@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Kim+Kardashian&day=21&month=10&year=1980&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=10&minute=46&year_target=2013",
+ "doc_luc": "2026-11-05T13:51:11.593Z",
+ "nam": 2013,
+ "tuoi": 33,
+ "nha": 10,
+ "cung": "Virgo",
+ "nghia_nha": "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Scorpio 19°48'",
+ "nha_chu": 12,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality",
+ "chu": [
+  "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6736,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2980,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3120,
+   1008,
+   150
+  ]
+ }
+}

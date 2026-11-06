@@ -12,7 +12,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
-import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO, giuGocRoas } from './ethopex.mjs';
+import { ROAS_MUC, ghiG10, daGuiG10, LUAT_TAT_SO, LUAT_HA_SO, giuGocRoas, hoanHopLe, banLuat, dichCua } from './ethopex.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
@@ -29,7 +29,7 @@ const dongCuoi = (s) => JSON.parse(String(s).trim().split('\n').filter((l) => l.
 // luật tắt — cùng khoá + cách tắt với LUAT_TAT của Nhà (ethopex.mjs); ngay = tắt luôn nhịp này, còn lại báo trước một nhịp (≥ 25 phút)
 // từ SỔ LUẬT CHUNG (anh 01/11/2026): mọi luật tắt trừ luật chỉ của Nhà (nha: bản thang bộ 2)
 export const TAT = LUAT_TAT_SO.filter((x) => !x.nha).map((x) => ({ khoa: x.khoa, ten: x.ngan, ...(x.ngay ? { ngay: true } : {}) }));
-const dich = (m) => Number((String(m.chu).match(/→ \$(\d+)/) || [])[1]) || 0;
+const dich = (m) => Number(dichCua(m)) || 0;
 
 /** KẾ HOẠCH một nhịp (thuần, tự kiểm): kq = JSON máy luật · cfg {giamTu, gbDuyet, tran, giu?, nbLoi?} · cho = {camp: lúc thấy lần đầu} sổ chờ tắt · now
  *  → { viec: [{viec:'tat'|'ns', id, d?, luat}], baoTruoc: [{id, luat, chu}], cho, nb: [{id, chu}], roas: [{id, chu}] } — một camp một việc ngân sách, tắt đi trước
@@ -72,7 +72,7 @@ export async function nhipTuDong(tg, { giay = 1500 } = {}) {
   for (const { nguoi_id: ng, tg_chat: chat } of ds) {
     const tepMoc = path.join(DATA(), `etp-tu-dong-${ng}.json`), st = docJ(tepMoc, {});
     if (st.luc && Date.now() - st.luc < giay * 1000) continue;   // cùng nhịp Nhà (~30 phút)
-    const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10), giu = st.giu?.ngay === homNay ? st.giu.ds : {}, nbLoi = st.nbLoi || {};
+    const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10), giu = hoanHopLe(st.giu, homNay) ? st.giu.ds : {}, nbLoi = st.nbLoi || {};
     const kq = dongCuoi(await py(LUAT, ['--json'], { ETP_XEM_NGUOI: String(ng) }, 900));
     const k = keHoach(kq, { ...cfg, giu, nbLoi }, st.cho || {});
     const lam = [];
@@ -98,7 +98,7 @@ export async function nhipTuDong(tg, { giay = 1500 } = {}) {
       lam.push(...ds);
     }
     for (const [id, t] of Object.entries(nbLoi)) if (Date.now() - t > 6 * 3600_000) delete nbLoi[id];
-    fs.writeFileSync(tepMoc, JSON.stringify({ luc: Date.now(), cho: k.cho, giu: { ngay: homNay, ds: giu }, nbLoi }));
+    fs.writeFileSync(tepMoc, JSON.stringify({ luc: Date.now(), cho: k.cho, giu: { ngay: homNay, ban: banLuat(), ds: giu }, nbLoi }));
     if (chat && (lam.length || k.baoTruoc.length)) {
       const phan = [];
       if (lam.length) phan.push(`🤖 <b>Máy tự làm ${lam.filter((x) => x.r.ok).length}/${lam.length} việc trên camp của bạn</b> (Luật tự động, đã đọc lại)\n${bang(lam)}`);

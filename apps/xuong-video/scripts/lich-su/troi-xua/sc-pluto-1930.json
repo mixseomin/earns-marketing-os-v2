@@ -1,0 +1,47 @@
+{
+  "ma": "sc-pluto-1930",
+  "ten": "Tombaugh Finds Pluto",
+  "loai": "hanh_tinh",
+  "su_kien_ngay": "1930-02-18",
+  "nguon": "https://en.wikipedia.org/wiki/Clyde_Tombaugh (mục Pluto, đọc 05/11/2026); https://en.wikipedia.org/wiki/Pluto (đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1929,
+      "ngay": "1929-04-06",
+      "nhan": "the search",
+      "chu": "Starting April 6, 1929, Tombaugh used the observatory's 13-inch (330 mm) astrograph to take photographs of the same section of sky several nights apart.",
+      "noi": "Lowell Observatory",
+      "nguon": "https://en.wikipedia.org/wiki/Clyde_Tombaugh#Pluto"
+    },
+    {
+      "nam": 1930,
+      "ngay": "1930-02-18",
+      "nhan": "discovery",
+      "chu": "The discovery was made on Tuesday, February 18, 1930, using images taken the previous month.",
+      "noi": "Lowell Observatory",
+      "nguon": "https://en.wikipedia.org/wiki/Clyde_Tombaugh#Pluto"
+    },
+    {
+      "nam": 1930,
+      "ngay": "1930-03",
+      "nhan": "the name",
+      "chu": "The first had been from Venetia Burney (1918–2009), an eleven-year-old schoolgirl in Oxford, England, who was interested in classical mythology.",
+      "noi": "Oxford",
+      "nguon": "https://en.wikipedia.org/wiki/Pluto#Name"
+    },
+    {
+      "nam": 1930,
+      "ngay": "1930-05-01",
+      "nhan": "adopted",
+      "chu": "The name was officially adopted on May 1, 1930.",
+      "nguon": "https://en.wikipedia.org/wiki/Clyde_Tombaugh#Pluto"
+    },
+    {
+      "nam": 2006,
+      "ngay": "2006",
+      "nhan": "dwarf planet",
+      "chu": "In 2006, the International Astronomical Union (IAU) formally redefined the term planet to exclude dwarf planets such as Pluto.",
+      "nguon": "https://en.wikipedia.org/wiki/Pluto"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "ma": "sc-sn1054",
+  "ten": "The Guest Star of 1054",
+  "loai": "sieu_tan_tinh",
+  "su_kien_ngay": "1054-07",
+  "nguon": "https://en.wikipedia.org/wiki/SN_1054 (mục Chinese astronomy, Identification of the supernova, đọc 05/11/2026)",
+  "moc": [
+    {
+      "nam": 1054,
+      "ngay": "1054-07",
+      "nhan": "Song China",
+      "chu": "The guest star of 1054 occurred during the reign of the Emperor Renzong of the Song dynasty (960–1279).",
+      "noi": "China",
+      "nguon": "https://en.wikipedia.org/wiki/SN_1054#Chinese_astronomy"
+    },
+    {
+      "nam": 1054,
+      "ngay": "1054-07",
+      "nhan": "seen by day",
+      "chu": "The Song Huiyao by contrast mentions a visibility of the guest star of only 23 days, but this is after mentioning visibility during daylight.",
+      "nguon": "https://en.wikipedia.org/wiki/SN_1054#Chinese_astronomy"
+    },
+    {
+      "nam": 1758,
+      "ngay": "1758",
+      "nhan": "Messier",
+      "chu": "When the French astronomer Charles Messier watched for the return of Halley's Comet in 1758, he confused the nebula for the comet",
+      "nguon": "https://en.wikipedia.org/wiki/SN_1054"
+    },
+    {
+      "nam": 1942,
+      "ngay": "1942",
+      "nhan": "identified",
+      "chu": "The Crab Nebula was identified as the supernova remnant of SN 1054 between 1921 and 1942",
+      "nguon": "https://en.wikipedia.org/wiki/SN_1054#Identification_of_the_supernova"
+    }
+  ]
+}

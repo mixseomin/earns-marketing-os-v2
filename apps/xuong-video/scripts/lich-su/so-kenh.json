@@ -270,16 +270,16 @@
       {
         "ma": "G5",
         "ten": "Khuôn kịch bản",
-        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp · ĐÃ CÓ MÁY: This Week (viet-this-week.mjs, 102 sự kiện × 12 cung Mọc) · Sign × Sign (viet-sign.mjs, 78 cặp) · Chart vs Chart (viet-cap.mjs, 18 cặp) · Chart Chapters dài (dai/sinh-chuong.mjs); còn: Love Story dài, Ask the Chart, Myth Behind, Sky Calendar",
+        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp · ĐÃ CÓ MÁY (05/11): This Week (viet-this-week.mjs, 102 sự kiện × 12 cung Mọc) · Sign × Sign (viet-sign.mjs, 78) · Chart vs Chart (viet-cap.mjs, 18) · Love Story dài (viet-love-story.mjs, 15) · Ask the Chart (viet-ask.mjs, 46: trang Annual Profections thật) · Myths of the Zodiac (viet-than-thoai.mjs, 12) · The Myth Behind (viet-myth-behind.mjs, 14 thiên thể) · Sky Calendar (viet-sky.mjs, 21 chuyện + ảnh thật) · Chart Chapters dài (dai/sinh-chuong.mjs) · Tonight's Sky (dai/sinh-dem.mjs); còn kịch bản tay: Chart Chapters Short, Read Your Chart, Chart Tools, Free in 60 Seconds (nên có máy) · Start Here, How the Sky Works, Geometry (tập một lần, giữ bản tay)",
         "anh": "duyệt kịch bản mẫu",
         "trang_thai": "dang"
       },
       {
         "ma": "G6",
         "ten": "Tập mẫu",
-        "viec": "1 tập Steve Jobs dựng trọn → anh duyệt; rồi 3 tập dự trữ",
+        "viec": "06/11 ANH DUYỆT tập mẫu Ask the Chart · Steve Jobs 1985 (giọng Charlotte ckey + nhạc + outro logo theo playlist): https://img.on.tc/xuong-video/demo/astrolas/ask-steve-jobs-1985.mp4 · 3 tập dự trữ có giọng (3.276₫): https://img.on.tc/xuong-video/demo/astrolas/g6-sc-leonids-1833.mp4 · https://img.on.tc/xuong-video/demo/astrolas/g6-my-saturn.mp4 · https://img.on.tc/xuong-video/demo/astrolas/g6-cvc-brad-pitt--angelina-jolie.mp4",
         "anh": "duyệt video",
-        "trang_thai": "chua"
+        "trang_thai": "xong"
       },
       {
         "ma": "G7",
@@ -338,28 +338,31 @@
         "nhip": "Thứ 2 + Thứ 6",
         "kho": "vô hạn · 1–3 tập / người nổi tiếng",
         "trang": "shot-code/la-so.html",
-        "sinh": "kịch bản tay (G5 tự viết)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/la-so-mau.mp4?v=5"
+        "sinh": "lich-su/viet-chuong.mjs --ai <người | all> — 0đ, không AI: mốc đời có nguồn + ảnh thật Wikipedia của trang nguồn (anh-wiki.mjs) + câu diễn giải nguyên văn bài <người>-birth-chart của blog site, camera vào đúng sao; người hạng AA có bài lá số trên site",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/la-so-mau.mp4?v=5",
+        "tu_sinh": "^cc-[a-z0-9-]+$"
       },
       {
         "ma": "sky-calendar",
         "ten": "Sky Calendar",
         "loai": "short",
         "nhip": "Thứ 4",
-        "kho": "52 tập trăng / năm + nhật nguyệt thực + chuyện lịch sử",
+        "kho": "21 chuyện trời xưa (nhật / nguyệt thực, sao chổi, mưa sao băng, khám phá hành tinh) · 52 tuần trăng / năm",
         "trang": "shot-code/la-so.html",
-        "sinh": "kịch bản tay (G5)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-sky-calendar.mp4?v=5"
+        "sinh": "lich-su/viet-sky.mjs [--tu <thứ Hai>] — 0đ, không AI: 21 chuyện trời xưa nguyên văn Wikipedia (lich-su/troi-xua/, kiểm _may/verify.py), xếp mỗi chuyện một tuần ưu tiên tuần kỷ niệm; dải pha trăng tính thật + trăng mới / tròn của tuần (lich-troi.json); tranh tuỳ chọn brand/astrolas/tranh/<ma>-<i>.jpg",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-sky-calendar.mp4?v=5",
+        "tu_sinh": "^sc-[a-z0-9-]+$"
       },
       {
         "ma": "myth-behind",
         "ten": "The Myth Behind",
         "loai": "short",
         "nhip": "sau 2 playlist đầu",
-        "kho": "≈ 50+ tập",
-        "trang": "shot-code/la-so.html",
-        "sinh": "kịch bản tay (G5)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-myth-behind.mp4?v=5"
+        "kho": "14 thiên thể (10 hành tinh + Chiron, Lilith, Eris, Ceres) · thêm chòm / tiểu hành tinh khi có chuyện nguyên văn",
+        "trang": "shot-code/la-so.html (vai nhân vật)",
+        "sinh": "lich-su/viet-myth-behind.mjs --sao <thiên thể | all> — 0đ khi đã có nhân vật: câu đặt tên + chuyện nguyên văn Wikipedia (la-so/than-thoai-sao/, 14 thiên thể), nhân vật hoạt hình tự dàn cảnh (khuôn Myths of the Zodiac), câu site bài the-10-planets-in-astrology, vị trí trong lá số site người hạng AA",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-myth-behind.mp4?v=5",
+        "tu_sinh": "^my-[a-z]+$"
       },
       {
         "ma": "chart-tools",
@@ -396,10 +399,11 @@
         "ten": "Ask the Chart",
         "loai": "short",
         "nhip": "sau",
-        "kho": "≈ 13.900 câu hỏi thật (spy nhóm #9)",
+        "kho": "46 tập người × năm Profection (54 mốc, 14 người hạng AA) · ≈ 13.900 câu hỏi thật (spy nhóm #9)",
         "trang": "shot-code/la-so.html",
-        "sinh": "kịch bản tay (G5)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-ask-the-chart.mp4?v=5"
+        "sinh": "lich-su/viet-ask.mjs --ai <người | all> — 0đ, không AI: người hạng AA × mốc đời có nguồn (dai/moc-*, la-so/cap.json) → ảnh + chữ TRANG THẬT Annual Profections năm đó (cong-cu/doc-ap.mjs: tuổi, nhà của năm, nghĩa nhà, chủ năm, Theme); hook QC spy theo playlist",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-ask-the-chart.mp4?v=5",
+        "tu_sinh": "^ask-[a-z0-9-]+$"
       },
       {
         "ma": "free-60s",
@@ -441,7 +445,8 @@
         "kho": "vô hạn · mỗi cặp 1–3 tập (góc khít nhất / điểm / mốc chia tay)",
         "trang": "shot-code/la-so.html (cheo + diem)",
         "sinh": "lich-su/viet-cap.mjs --cap <a--b | all> — 0đ, không AI: 2 góc chiếu chéo khít nhất dùng được (tiêu đề lời giải nguyên văn Synastry của site), điểm từng trục, mốc đầu / cuối sổ cặp, hook QC spy; romantic → Love & Compatibility, partner → Career; 18/18 cặp qua máy gác",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/chart-vs-chart.mp4?v=5"
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/chart-vs-chart.mp4?v=5",
+        "tu_sinh": "^cvc-[a-z0-9-]+$"
       },
       {
         "ma": "love-story-charts",
@@ -450,8 +455,9 @@
         "nhip": "2 tập / tháng",
         "kho": "theo sổ cặp la-so/cap.json",
         "trang": "shot-code/la-so.html (khung ngang)",
-        "sinh": "hop.mjs + zr.mjs (kỳ ZR của CẢ HAI người ở mỗi mốc quen / cưới / chia tay)",
-        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-love-story.mp4?v=5"
+        "sinh": "lich-su/viet-love-story.mjs --cap <a--b | all> — 0đ, không AI: mốc đời sổ cặp + bánh xe đôi + 2 góc chiếu chéo + điểm của site + thẻ kỳ ZR (Peak Period / Loosing of the Bond) của người hạng AA ở từng mốc; hook QC spy góc Tình yêu",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-love-story.mp4?v=5",
+        "tu_sinh": "^ls-[a-z0-9-]+$"
       },
       {
         "ma": "sign-x-sign",
@@ -504,7 +510,6 @@
         "trang": "shot-code/la-so.html (vai nhân vật + chom chòm sao)",
         "sinh": "lich-su/viet-than-thoai.mjs --cung <cung> — chuyện Wikipedia nguyên văn (la-so/than-thoai/<cung>.json), nhân vật vẽ một lần (kho-sinh.mts), câu cung của site",
         "tu_sinh": "^tt-[a-z]+$",
-        "cho_duyet": true,
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/zodiac-myths-leo.mp4?v=1"
       }
     ],
@@ -825,6 +830,72 @@
         "mau": "zodiac-myths",
         "chu_de": "Leo: the Nemean lion and Heracles",
         "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-aries",
+        "mau": "zodiac-myths",
+        "chu_de": "Aries: the golden ram",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-taurus",
+        "mau": "zodiac-myths",
+        "chu_de": "Taurus: Zeus as the white bull",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-gemini",
+        "mau": "zodiac-myths",
+        "chu_de": "Gemini: Castor and Pollux",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-cancer",
+        "mau": "zodiac-myths",
+        "chu_de": "Cancer: the crab Hera sent",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-virgo",
+        "mau": "zodiac-myths",
+        "chu_de": "Virgo: Astraea leaves the Earth",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-libra",
+        "mau": "zodiac-myths",
+        "chu_de": "Libra: the scales of Dike",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-scorpio",
+        "mau": "zodiac-myths",
+        "chu_de": "Scorpio: the scorpion and Orion",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-sagittarius",
+        "mau": "zodiac-myths",
+        "chu_de": "Sagittarius: Chiron the centaur",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-capricorn",
+        "mau": "zodiac-myths",
+        "chu_de": "Capricorn: Pan the sea-goat",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-aquarius",
+        "mau": "zodiac-myths",
+        "chu_de": "Aquarius: Ganymede and the eagle",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-pisces",
+        "mau": "zodiac-myths",
+        "chu_de": "Pisces: Aphrodite and Eros",
+        "trang_thai": "demo"
       }
     ],
     "nguon_y_tuong": [
@@ -841,7 +912,12 @@
       "nhac": "troi",
       "ghi": "giọng ElevenLabs qua ckey (Speakvela, 156₫ / câu) đọc chữ trên màn; nhạc nền + tiếng động tự sinh 0đ — shot-code/long-tieng.mjs"
     },
-    "luat_nguon": true
+    "luat_nguon": true,
+    "outro": {
+      "doc": "brand/astrolas/ra/outro-doc.mp4",
+      "ngang": "brand/astrolas/ra/outro-ngang.mp4",
+      "_ghi": "outro logo nối cuối mọi tập (shot-code/long-tieng.mjs): Short 1 s, video dài 3 s — dựng bằng brand/astrolas/outro.mjs (0đ, logo thật, không AI)"
+    }
   },
   "yesterdays-news-tonight": {
     "ten": "Yesterday's News Tonight · YouTube @yesterdaysnewstonight",

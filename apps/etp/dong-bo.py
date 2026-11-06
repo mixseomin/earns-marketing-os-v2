@@ -51,7 +51,8 @@ def ghi(bang, rows, khoa_, cot):
 DANG = [("tap nguyen", "tập nguyên"), ("ke chuyen", "kể chuyện"), ("canh that", "cảnh thật"), ("canh cuoi", "cảnh cuối"), ("phim dai", "phim dài"), ("lam moi", "làm mới"),
         # năm kiểu dựng 0đ (kieu-moi.py, 29/10/2026) — tên camp mang nhãn có dấu (len-creative) hoặc không dấu (len-sau-cham cho)
         ("chọn phe", "chọn phe"), ("chon phe", "chọn phe"), ("bình luận", "bình luận"), ("binh luan", "bình luận"), ("ba khoảnh khắc", "ba khoảnh khắc"), ("ba khoanh khac", "ba khoảnh khắc"),
-        ("trước sau", "trước sau"), ("truoc sau", "trước sau"), ("tin nhắn", "tin nhắn"), ("tin nhan", "tin nhắn")]
+        ("trước sau", "trước sau"), ("truoc sau", "trước sau"), ("tin nhắn", "tin nhắn"), ("tin nhan", "tin nhắn"),
+        ("ảnh tĩnh", "ảnh tĩnh"), ("anh tinh", "ảnh tĩnh")]   # khung tĩnh + tên phim + giọng (anh-tinh.py, 05/11/2026)
 def main():
     day_du = "--day-du" in sys.argv
     lan = q("insert into etp.dong_bo default values returning lan"); loi = []; kq = {"so_camp": 0, "so_chi_tiet": 0, "so_dong_ngay": 0}

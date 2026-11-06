@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Kim+Kardashian&day=21&month=10&year=1980&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=10&minute=46&year_target=2011",
+ "doc_luc": "2026-11-05T13:51:03.302Z",
+ "nam": 2011,
+ "tuoi": 31,
+ "nha": 8,
+ "cung": "Cancer",
+ "nghia_nha": "Death, inheritance, benefits from the death of others, stagnation, or punishments.",
+ "chu_nam": "Moon",
+ "vi_tri": "Pisces 28°09'",
+ "nha_chu": 4,
+ "chu_de": "Matters of physical health, the mother, residence, conception, and fluctuations in assets.",
+ "nha_chu_nghia": "Home, family, roots, foundation, land, the conclusion of a matter",
+ "chu": [
+  "Death, inheritance, benefits from the death of others, stagnation, or punishments.",
+  "Theme: Matters of physical health, the mother, residence, conception, and fluctuations in assets.",
+  "Home, family, roots, foundation, land, the conclusion of a matter"
+ ],
+ "rong": 1080,
+ "cao": 6690,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   110
+  ]
+ }
+}

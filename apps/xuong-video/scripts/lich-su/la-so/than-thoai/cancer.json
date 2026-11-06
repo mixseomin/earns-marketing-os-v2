@@ -1,0 +1,174 @@
+{
+ "ten": "The crab who fought Heracles (Cancer)",
+ "cung": "Cancer",
+ "nguon": "https://en.wikipedia.org/wiki/Cancer_(mythology) (đọc 05/11/2026, câu nguyên văn)",
+ "nguon_khac": [
+  "https://en.wikipedia.org/wiki/Lernaean_Hydra"
+ ],
+ "_ghi_nguon": "Bản Hy Lạp: trong trận Heracles đánh Hydra (kỳ công thứ hai), Hera sai con cua khổng lồ Karkinos tới, Heracles giẫm nát nó, Hera đặt nó lên trời (trang Cancer (mythology) — Wikipedia chuyển từ Karkinos — và Lernaean Hydra).",
+ "moc": [
+  {
+   "chu": "Once he reached the swamp, Heracles confronted the Hydra.",
+   "nguon": "https://en.wikipedia.org/wiki/Cancer_(mythology)",
+   "vai": [
+    {
+     "ai": "heracles",
+     "dang": "chi_tay",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "hydra",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.64,
+     "cao": 580,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "He tried to cut off the heads of the beast but for every one he cut off, two more grew.",
+   "nguon": "https://en.wikipedia.org/wiki/Cancer_(mythology)",
+   "vai": [
+    {
+     "ai": "heracles",
+     "dang": "vung_chuy",
+     "x": 0.38,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "hydra",
+     "dang": "goc",
+     "x": 0.76,
+     "y": 0.64,
+     "cao": 580,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Seeing that Heracles was winning the struggle, Hera sent a giant crab to distract him.",
+   "nguon": "https://en.wikipedia.org/wiki/Lernaean_Hydra",
+   "vai": [
+    {
+     "ai": "hera",
+     "dang": "goc",
+     "x": 0.24,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "cua",
+     "dang": "goc",
+     "x": 0.7,
+     "y": 0.64,
+     "cao": 380,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "He crushed it under his mighty foot.",
+   "nguon": "https://en.wikipedia.org/wiki/Lernaean_Hydra",
+   "vai": [
+    {
+     "ai": "heracles",
+     "dang": "goc",
+     "x": 0.36,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "cua",
+     "dang": "nam_guc",
+     "x": 0.7,
+     "y": 0.66,
+     "cao": 280
+    }
+   ]
+  },
+  {
+   "chu": "The Hydra's one immortal head was cut off with a golden sword given to Heracles by Athena.",
+   "nguon": "https://en.wikipedia.org/wiki/Lernaean_Hydra",
+   "vai": [
+    {
+     "ai": "heracles",
+     "dang": "vung_chuy",
+     "x": 0.38,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "hydra",
+     "dang": "goc",
+     "x": 0.76,
+     "y": 0.64,
+     "cao": 560,
+     "lat": true
+    }
+   ],
+   "chi_ban_dai": true
+  },
+  {
+   "chu": "Heracles kills the Crab, who is rewarded for his efforts by Hera turning him into the constellation of Cancer.",
+   "nguon": "https://en.wikipedia.org/wiki/Cancer_(mythology)",
+   "vai": [
+    {
+     "ai": "hera",
+     "dang": "chi_len",
+     "x": 0.24,
+     "y": 0.66,
+     "cao": 720
+    },
+    {
+     "ai": "cua",
+     "dang": "goc",
+     "x": 0.62,
+     "y": 0.47,
+     "cao": 300,
+     "mo": 0.35
+    }
+   ],
+   "nhin": {
+    "chom": "Cancer"
+   }
+  }
+ ],
+ "site": [
+  "Cancer wants safety, for itself and for whoever it has claimed."
+ ],
+ "nhan_vat": {
+  "heracles": "brand/astrolas/nhan-vat/heracles",
+  "hydra": "brand/astrolas/nhan-vat/hydra",
+  "cua": "brand/astrolas/nhan-vat/cua",
+  "hera": "brand/astrolas/nhan-vat/hera"
+ },
+ "ve": {
+  "hydra": {
+   "loai": "sinh_vat",
+   "mo_ta": "The Lernaean Hydra, a huge swamp serpent monster with many (seven) snake heads on long necks, dark green scales, yellow eyes, dripping venom",
+   "dang": [
+    "goc"
+   ]
+  },
+  "cua": {
+   "loai": "sinh_vat",
+   "mo_ta": "Karkinos, a giant red-orange crab with big raised claws and stalk eyes, wet shiny shell",
+   "dang": [
+    "goc",
+    "nam_guc"
+   ]
+  },
+  "hera": {
+   "loai": "nhan_vat",
+   "mo_ta": "Hera, queen of the Greek gods, regal and stern, tall golden crown, white and royal-blue robes, a peacock-feather fan",
+   "dang": [
+    "goc",
+    "chi_len"
+   ]
+  }
+ }
+}

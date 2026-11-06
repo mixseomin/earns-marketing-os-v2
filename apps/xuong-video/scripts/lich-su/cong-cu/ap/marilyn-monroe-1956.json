@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Marilyn+Monroe&day=1&month=6&year=1926&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=9&minute=30&year_target=1956",
+ "doc_luc": "2026-11-05T13:52:29.611Z",
+ "nam": 1956,
+ "tuoi": 30,
+ "nha": 7,
+ "cung": "Aquarius",
+ "nghia_nha": "Marriage, spouse, business partners, external relations, and going abroad.",
+ "chu_nam": "Saturn",
+ "vi_tri": "Scorpio 21°26'",
+ "nha_chu": 4,
+ "chu_de": "Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+ "nha_chu_nghia": "Home, family, roots, foundation, land, the conclusion of a matter",
+ "chu": [
+  "Marriage, spouse, business partners, external relations, and going abroad.",
+  "Theme: Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+  "Home, family, roots, foundation, land, the conclusion of a matter"
+ ],
+ "rong": 1080,
+ "cao": 6832,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2940,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3080,
+   1008,
+   110
+  ]
+ }
+}

@@ -1,0 +1,177 @@
+{
+ "ten": "The scorpion and Orion (Scorpio)",
+ "cung": "Scorpio",
+ "nguon": "https://en.wikipedia.org/wiki/Scorpius (đọc 05/11/2026, câu nguyên văn)",
+ "nguon_khac": [
+  "https://en.wikipedia.org/wiki/Orion_(mythology)"
+ ],
+ "_ghi_nguon": "Bản Artemis và Leto sai bọ cạp (trang Scorpius + bản Hyginus trên trang Orion (mythology)): Orion khoe sẽ giết mọi con thú, bọ cạp được sai tới, Zeus đặt cả hai lên trời — Orion săn mùa đông, trốn mùa hè khi bọ cạp mọc. Bỏ bản Apollo sai bọ cạp và bản Gaia.",
+ "moc": [
+  {
+   "chu": "According to one version, Orion boasted to the goddess Artemis and her mother, Leto, that he would kill every animal on Earth.",
+   "nguon": "https://en.wikipedia.org/wiki/Scorpius",
+   "vai": [
+    {
+     "ai": "orion",
+     "dang": "noi_mo",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "artemis",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 700,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Artemis and Leto sent a giant scorpion to kill Orion.",
+   "nguon": "https://en.wikipedia.org/wiki/Scorpius",
+   "vai": [
+    {
+     "ai": "artemis",
+     "dang": "goc",
+     "x": 0.26,
+     "y": 0.66,
+     "cao": 700
+    },
+    {
+     "ai": "bo-cap",
+     "dang": "gam",
+     "x": 0.7,
+     "y": 0.64,
+     "cao": 400,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Although Orion does not defeat the scorpion in any version, several variants have it die from its wounds.",
+   "nguon": "https://en.wikipedia.org/wiki/Orion_(mythology)",
+   "vai": [
+    {
+     "ai": "orion",
+     "dang": "chi_tay",
+     "x": 0.34,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "bo-cap",
+     "dang": "gam",
+     "x": 0.74,
+     "y": 0.64,
+     "cao": 400,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "In the version where Orion is killed by a scorpion, Artemis and Leto asked Zeus to place him in the sky as a constellation.",
+   "nguon": "https://en.wikipedia.org/wiki/Orion_(mythology)",
+   "vai": [
+    {
+     "ai": "artemis",
+     "dang": "goc",
+     "x": 0.3,
+     "y": 0.66,
+     "cao": 700
+    },
+    {
+     "ai": "zeus",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.66,
+     "cao": 740,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "Zeus consented and, as a memorial to Orion's death, added the scorpion to the heavens as well.",
+   "nguon": "https://en.wikipedia.org/wiki/Orion_(mythology)",
+   "vai": [
+    {
+     "ai": "zeus",
+     "dang": "chi_len",
+     "x": 0.24,
+     "y": 0.66,
+     "cao": 740
+    },
+    {
+     "ai": "bo-cap",
+     "dang": "goc",
+     "x": 0.7,
+     "y": 0.64,
+     "cao": 380,
+     "lat": true
+    }
+   ]
+  },
+  {
+   "chu": "After Zeus raised Orion and the scorpion to the sky, the former hunts every winter but flees every summer when the scorpion comes.",
+   "nguon": "https://en.wikipedia.org/wiki/Scorpius",
+   "vai": [
+    {
+     "ai": "orion",
+     "dang": "goc",
+     "x": 0.3,
+     "y": 0.47,
+     "cao": 380,
+     "mo": 0.35
+    },
+    {
+     "ai": "bo-cap",
+     "dang": "goc",
+     "x": 0.72,
+     "y": 0.47,
+     "cao": 300,
+     "mo": 0.35,
+     "lat": true
+    }
+   ],
+   "nhin": {
+    "chom": "Scorpio"
+   }
+  }
+ ],
+ "site": [
+  "Scorpio wants truth, especially the kind people hide."
+ ],
+ "nhan_vat": {
+  "orion": "brand/astrolas/nhan-vat/orion",
+  "artemis": "brand/astrolas/nhan-vat/artemis",
+  "bo-cap": "brand/astrolas/nhan-vat/bo-cap",
+  "zeus": "brand/astrolas/nhan-vat/zeus"
+ },
+ "ve": {
+  "orion": {
+   "loai": "nhan_vat",
+   "mo_ta": "Orion, the giant hunter of Greek myth: tall bearded man in a rough brown animal-hide tunic (no lion skin, no lion head), leather belt with a bronze hunting knife, holding a long hunting bow, quiver of arrows on the back",
+   "dang": [
+    "goc",
+    "noi_mo",
+    "chi_tay"
+   ]
+  },
+  "artemis": {
+   "loai": "nhan_vat",
+   "mo_ta": "Artemis, Greek goddess of the hunt, young woman, auburn hair tied up with a silver crescent-moon diadem, short knee-length silver-green tunic, silver bow and a quiver of arrows on her back",
+   "dang": [
+    "goc"
+   ]
+  },
+  "bo-cap": {
+   "loai": "sinh_vat",
+   "mo_ta": "A giant black-and-crimson scorpion with large pincers and a curled glowing red stinger tail",
+   "dang": [
+    "goc",
+    "gam"
+   ]
+  }
+ }
+}

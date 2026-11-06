@@ -59,7 +59,8 @@ body.ngang #phu { background: linear-gradient(to right, rgba(8,19,34,.15) 0%, rg
 #vai img { position: absolute; left: 0; top: 0; transform-origin: 50% 100%; opacity: 0; will-change: transform, opacity;
   filter: drop-shadow(5px 0 0 #fff) drop-shadow(-5px 0 0 #fff) drop-shadow(0 5px 0 #fff) drop-shadow(0 -5px 0 #fff) drop-shadow(0 16px 24px rgba(0,0,0,.45)); }   /* hình dán viền trắng như kho YNT */
 #chom { inset: 0; opacity: 0; }
-#bang .tuan { position: absolute; left: 40px; right: 40px; top: 560px; display: flex; justify-content: space-between; opacity: 0; }
+#bang .tuan { position: absolute; left: 24px; right: 24px; top: 540px; padding: 22px 16px; display: flex; justify-content: space-between; opacity: 0;
+  background: rgba(8, 16, 32, .62); border-radius: 26px; backdrop-filter: blur(6px); }   /* nền tối mờ: trăng / sao trong ảnh nền playlist không đè lên chữ thứ (05/11/2026) */
 #bang .ngay { width: 132px; display: flex; flex-direction: column; align-items: center; gap: 14px; font: 700 26px IN; color: #cfd8e6; }
 #bang .ngay b { font: 800 30px IN; color: #fff; } #bang .ngay i { font: 500 22px IN; font-style: normal; color: #9fb0c8; text-align: center; line-height: 1.15; min-height: 52px; }
 #bang .ngay.dac b, #bang .ngay.dac i { color: #F4D971; }
@@ -86,7 +87,7 @@ body.ngang #tranh { left: 0; top: 0; width: 1080px; height: 1080px; right: auto;
 body.ngang #tranh img { width: 608px; height: 1080px; left: 236px; } body.ngang #tranh img.mo { width: 1080px; left: 0; filter: blur(38px) brightness(.45); }
 body.ngang #o { left: 90px; top: 60px; width: 960px; height: 960px; } body.ngang #o svg { width: 960px; height: 960px; }
 body.ngang #man { left: 90px; top: 60px; width: 960px; height: 960px; }
-body.ngang #bang .tuan { left: 70px; right: 910px; top: 400px; }
+body.ngang #bang .tuan { left: 56px; right: 896px; top: 380px; }
 body.ngang #doi { left: 60px; top: 330px; }
 body.ngang #goc { left: 1150px !important; top: 90px !important; }
 body.ngang #the { left: 1150px; right: 80px; top: 200px; }
@@ -178,8 +179,9 @@ function veDiem(ds) {
 }
 // CHÒM SAO: nét thật (d3-celestial, toạ độ RA / Dec độ) chiếu phẳng vào giữa khung — RA tăng sang TRÁI (như nhìn trời), nét vẽ dần, sao sáng nhấp nháy
 function veChom(ten) {
-  const sd = C._sao, i = sd.ten.findIndex((x) => x[0] === ten); if (i < 0) throw new Error('không có chòm ' + ten);
-  const ds = sd.duong[i], pts = ds.flat(), ra0 = pts.reduce((a, p) => a + p[0], 0) / pts.length, de0 = pts.reduce((a, p) => a + p[1], 0) / pts.length;
+  const sd = C._sao, TEN_CHOM = { Scorpio: 'Scorpius', Capricorn: 'Capricornus' }, i = sd.ten.findIndex((x) => x[0] === (TEN_CHOM[ten] ?? ten)); if (i < 0) throw new Error('không có chòm ' + ten);   // tên cung → tên chòm IAU
+  // chòm vắt qua RA 0° / 360° (Song Ngư): nối vòng toạ độ quanh sao đầu, không thì nét kéo ngang cả bầu trời
+  const ref = sd.duong[i][0][0][0], ds = sd.duong[i].map((l) => l.map((p) => [ref + ((p[0] - ref + 540) % 360) - 180, p[1]])), pts = ds.flat(), ra0 = pts.reduce((a, p) => a + p[0], 0) / pts.length, de0 = pts.reduce((a, p) => a + p[1], 0) / pts.length;
   const xy = (p) => [-(p[0] - ra0) * Math.cos((de0 * Math.PI) / 180), p[1] - de0], q = pts.map(xy);
   const rx = Math.max(...q.map((p) => Math.abs(p[0]))), ry = Math.max(...q.map((p) => Math.abs(p[1]))), k = Math.min((W * 0.36) / rx, (H * 0.2) / ry);
   const cx = W > H ? 540 : W / 2, cy = W > H ? H / 2 : H * 0.36, P = (p) => { const [a, b] = xy(p); return [cx + a * k, cy - b * k]; };

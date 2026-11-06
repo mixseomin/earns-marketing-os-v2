@@ -1,0 +1,90 @@
+{
+  "ma": "moon",
+  "sao": "Moon",
+  "ten": "Selene",
+  "nguon": [
+    "https://en.wikipedia.org/wiki/Moon",
+    "https://en.wikipedia.org/wiki/Selene",
+    "https://en.wikipedia.org/wiki/Endymion_(mythology)"
+  ],
+  "doc_luc": "2026-11-05",
+  "ten_goi": {
+    "chu": "Still, many well-known mythologies feature moon goddesses, including the Greek goddess Selene, the Roman goddess Luna, the Chinese goddess Chang'e, and the Aztec goddess Coyolxāuhqui, whose decapitation may represent a lunar eclipse.",
+    "nguon": "https://en.wikipedia.org/wiki/Moon#Mythology",
+    "loai": "than_tuong_ung"
+  },
+  "moc": [
+    {
+      "chu": "She drives her moon chariot across the heavens.",
+      "nguon": "https://en.wikipedia.org/wiki/Selene",
+      "nhan_vat": [
+        "Selene"
+      ]
+    },
+    {
+      "chu": "Selene is best known for her affair with the beautiful mortal Endymion.",
+      "nguon": "https://en.wikipedia.org/wiki/Selene#Endymion",
+      "nhan_vat": [
+        "Selene",
+        "Endymion"
+      ]
+    },
+    {
+      "chu": "She found Endymion so beautiful that she asked her cousin, Zeus, to grant him eternal youth so that he would never leave her.",
+      "nguon": "https://en.wikipedia.org/wiki/Endymion_(mythology)#Mythology",
+      "nhan_vat": [
+        "Selene",
+        "Endymion",
+        "Zeus"
+      ]
+    },
+    {
+      "chu": "Whatever the case, Zeus granted Selene's wish and put Endymion into an eternal sleep.",
+      "nguon": "https://en.wikipedia.org/wiki/Endymion_(mythology)#Mythology",
+      "nhan_vat": [
+        "Zeus",
+        "Selene",
+        "Endymion"
+      ]
+    },
+    {
+      "chu": "Theocritus portrays Endymion's sleep as enviable because (presumably) of Selene's love for him.",
+      "nguon": "https://en.wikipedia.org/wiki/Selene#Endymion",
+      "nhan_vat": [
+        "Endymion",
+        "Selene"
+      ]
+    },
+    {
+      "chu": "The Roman playwright Seneca, has Selene abandoned the night sky for Endymion's sake having entrusted her \"shining\" moon chariot to her brother Helios to drive.",
+      "nguon": "https://en.wikipedia.org/wiki/Selene#Endymion",
+      "nhan_vat": [
+        "Selene",
+        "Endymion",
+        "Helios"
+      ]
+    }
+  ],
+  "nhan_vat": [
+    {
+      "ten": "Selene",
+      "mo_ta": "with a crescent and veil over her head",
+      "nguon": "https://en.wikipedia.org/wiki/Selene#Gigantomachy"
+    },
+    {
+      "ten": "Endymion",
+      "mo_ta": "the beautiful mortal Endymion",
+      "nguon": "https://en.wikipedia.org/wiki/Selene#Endymion"
+    },
+    {
+      "ten": "Zeus",
+      "mo_ta": "a sky and thunder god in ancient Greek religion and mythology, who rules as king of the gods on Mount Olympus",
+      "nguon": "https://en.wikipedia.org/wiki/Zeus"
+    },
+    {
+      "ten": "Helios",
+      "mo_ta": "a handsome young man crowned with the shining aureole of the Sun",
+      "nguon": "https://en.wikipedia.org/wiki/Helios#Description"
+    }
+  ]
+}

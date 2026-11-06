@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Travis+Kelce&day=5&month=10&year=1989&location=Westlake%2C+Ohio%2C+USA&lat=41.4553&lng=-81.9179&hour=5&minute=49&year_target=2022",
+ "doc_luc": "2026-11-05T13:56:01.916Z",
+ "nam": 2022,
+ "tuoi": 33,
+ "nha": 10,
+ "cung": "Gemini",
+ "nghia_nha": "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Virgo 25°55'",
+ "nha_chu": 1,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "The self, the physical body, appearance, vitality, independent action",
+ "chu": [
+  "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "The self, the physical body, appearance, vitality, independent action"
+ ],
+ "rong": 1080,
+ "cao": 6690,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   150
+  ]
+ }
+}

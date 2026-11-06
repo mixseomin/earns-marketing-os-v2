@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Steve+Jobs&day=24&month=2&year=1955&location=San+Francisco%2C+California%2C+USA&lat=37.7749&lng=-122.4194&hour=19&minute=15&year_target=1997",
+ "doc_luc": "2026-11-05T13:55:33.643Z",
+ "nam": 1997,
+ "tuoi": 42,
+ "nha": 7,
+ "cung": "Pisces",
+ "nghia_nha": "Marriage, spouse, business partners, external relations, and going abroad.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Cancer 20°30'",
+ "nha_chu": 11,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Groups, friends, allies, hopes, social network",
+ "chu": [
+  "Marriage, spouse, business partners, external relations, and going abroad.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Groups, friends, allies, hopes, social network"
+ ],
+ "rong": 1080,
+ "cao": 6620,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2940,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3080,
+   1008,
+   110
+  ]
+ }
+}

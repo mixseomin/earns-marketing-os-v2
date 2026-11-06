@@ -16,7 +16,7 @@ BO_CUC = "giu_bo_cuc_app_goc"                                                # t
 
 
 DANG_CHUAN = {"ke chuyen": "kể chuyện", "canh that": "cảnh thật", "canh cuoi": "cảnh cuối", "phim dai": "phim dài", "lam moi": "làm mới", "tap nguyen": "tập nguyên",
-              "chon phe": "chọn phe", "binh luan": "bình luận", "ba khoanh khac": "ba khoảnh khắc", "truoc sau": "trước sau", "tin nhan": "tin nhắn"}   # len-creative nhận mã không dấu; kho etp.creative lưu có dấu — sổ phải cùng một nhãn, không thì một loại tách hai nhóm (29/10/2026)
+              "chon phe": "chọn phe", "binh luan": "bình luận", "ba khoanh khac": "ba khoảnh khắc", "truoc sau": "trước sau", "tin nhan": "tin nhắn", "anh tinh": "ảnh tĩnh"}   # len-creative nhận mã không dấu; kho etp.creative lưu có dấu — sổ phải cùng một nhãn, không thì một loại tách hai nhóm (29/10/2026)
 
 
 def ban(x, dang, chu_qc, CQ):

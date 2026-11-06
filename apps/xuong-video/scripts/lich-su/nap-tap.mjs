@@ -13,15 +13,17 @@ import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : null; };
 const TRAN_TIEU_DE = 100;   // YouTube cắt ở 100 ký tự
-/** tiêu đề ≤ 100 ký tự: giữ NGUYÊN câu hook (luật hook), rút phần đuôi về tên người ("Steve Jobs's year in…" → "Steve Jobs", "Jolie: a life…" → "Jolie"), còn dài thì chỉ hook. Thuần. */
-export function gonTieuDe(tieuDe, hook) {
-  if (tieuDe.length <= TRAN_TIEU_DE) return tieuDe;
-  const duoi = tieuDe.startsWith(hook) ? tieuDe.slice(hook.length).trim() : '', ngan = duoi.split(/'s\b|:|,/)[0].trim(), thu = `${hook} ${ngan}`;
-  return ngan && thu.length <= TRAN_TIEU_DE ? thu : hook;
+/** tiêu đề ≤ 100 ký tự: dài quá thì chỉ giữ câu hook (Ngọc chê đuôi cụt "…relate to money? Steve Jobs", 07/11/2026). Thuần. */
+export const gonTieuDe = (tieuDe, hook) => (tieuDe.length <= TRAN_TIEU_DE ? tieuDe : hook);
+/** giây cắt khung chấm: giữa MẢNH ĐẦU của từng cảnh theo mốc giờ thật sau lồng tiếng — chia đều thì trúng lúc chữ đang mờ chuyển cảnh, Ngọc chê "chữ chìm" oan (Leonids 07/11/2026). Thuần. */
+export function giayCanh(cau, soKhung) {
+  const g = cau.map((q) => { const d = q.den - q.tu, m = (q.manh ?? [q.chu]).map((x) => String(x).length), tong = m.reduce((a, b) => a + b, 0) || 1; return q.tu + (d * m[0]) / tong / 2; });
+  return Array.from({ length: Math.min(soKhung, g.length) }, (_, i) => g[Math.round((i * (g.length - 1)) / Math.max(1, Math.min(soKhung, g.length) - 1))]);
 }
 if (process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert'), h = 'What if your birth chart could show you how you naturally relate to money?';
-  t.equal(gonTieuDe(`${h} Steve Jobs's year in Annual Profections`, h), `${h} Steve Jobs`); t.equal(gonTieuDe('ngắn', 'ngắn'), 'ngắn'); t.equal(gonTieuDe(`${'x'.repeat(99)} đuôi dài`, 'x'.repeat(99)), 'x'.repeat(99));
+  t.equal(gonTieuDe(`${h} Steve Jobs's year in Annual Profections`, h), h); t.equal(gonTieuDe('ngắn', 'x'), 'ngắn');
+  t.deepEqual(giayCanh([{ tu: 0, den: 4, chu: 'a' }, { tu: 4, den: 8, chu: 'ab', manh: ['a', 'b'] }], 8), [2, 5]);
   console.log('nap-tap: tự kiểm đạt'); process.exit(0);
 }
 const tepTap = arg('tap'), video = arg('video'); if (!tepTap || !video) { console.error('dùng: --tap <tập.json> --video <bản dựng.mp4>'); process.exit(2); }
@@ -33,8 +35,9 @@ const pl = so.playlist.find((p) => p.ma === tap.playlist_ma), nguon = JSON.parse
 const dau = (b) => createHash('md5').update(b).digest('hex').slice(0, 10), bMp4 = readFileSync(resolve(video)), TAM = mkdtempSync(join(tmpdir(), 'nap-tap-')), ten = `${id}-${dau(bMp4)}`;
 copyFileSync(resolve(video), join(TAM, `${ten}.mp4`));
 const giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', resolve(video)], { encoding: 'utf8' }));
-const cat = (tl, tenAnh) => execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(giay * tl), '-i', resolve(video), '-frames:v', '1', '-vf', 'scale=540:-2', '-q:v', '4', join(TAM, `${tenAnh}.jpg`)]);
-const K = [0.12, 0.5, 0.85], S = Array.from({ length: 8 }, (_, i) => 0.05 + (i * 0.9) / 7);   // 3 khung + 8 keyframe rải đều cho Phòng Nội dung xem hình
+const cat = (g, tenAnh) => execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(g), '-i', resolve(video), '-frames:v', '1', '-vf', 'scale=540:-2', '-q:v', '4', join(TAM, `${tenAnh}.jpg`)]);
+// mốc giờ THẬT sau lồng tiếng: long-tieng.mjs ghi .<tập>.tieng.json cạnh tệp tập
+const C2 = JSON.parse(readFileSync(join(dirname(resolve(tepTap)), `.${basename(tepTap, '.json')}.tieng.json`), 'utf8')), K = giayCanh(C2.cau, 3), S = giayCanh(C2.cau, 8);   // 3 khung + 8 keyframe cho Phòng Nội dung xem hình
 K.forEach((x, i) => cat(x, `${ten}-k${i}`)); S.forEach((x, i) => cat(x, `${ten}-s${i}`));
 const bt = `/var/tmp/nap-tap-${id}`, tsx = (lenh) => execFileSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server timeout 300s ../../node_modules/.bin/tsx ${lenh}`], { encoding: 'utf8', maxBuffer: 16 << 20 });
 try {

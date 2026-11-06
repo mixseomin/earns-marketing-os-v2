@@ -43,7 +43,7 @@ function bo(kenh) {
   const theoId = new Map([...K.qc_goc, ...K.nhom].map((h) => [String(h.id), khoa(h.chu)]));
   for (const q of K.da_dung ?? []) if (theoId.has(String(q))) them(theoId.get(String(q)), '(box)');
   const tapDir = join(SHOT, `tap-${kenh}`), cu = new Map();
-  if (existsSync(tapDir)) for (const f of readdirSync(tapDir).filter((x) => x.endsWith('.json'))) {
+  if (existsSync(tapDir)) for (const f of readdirSync(tapDir).filter((x) => x.endsWith('.json') && !x.startsWith('.'))) {
     try { const t = JSON.parse(readFileSync(join(tapDir, f), 'utf8')); if (t.hook?.goc && t.y_tuong) { them(khoa(t.hook.goc), t.y_tuong); cu.set(t.y_tuong, khoa(t.hook.goc)); } } catch { /* tệp hỏng: bỏ */ }
   }
   // sổ video đã dựng (long-tieng.mjs › ghiHookVideo): { <mã tập>: { khoa, chu, video, luc } }

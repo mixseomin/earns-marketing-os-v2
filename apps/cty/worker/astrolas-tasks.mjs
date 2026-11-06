@@ -1,6 +1,7 @@
 // TIN BÁO CỦA THÀNH — kỹ sư task Astrolas (anh 06/11/2026: "tạo 1 con CLI cho phòng Astrolas để chuyên nhận và xử lý các tasks"). Máy iMac (may/astrolas-tasks.mjs)
 // gọi tệp này qua ssh để báo kết quả vào chủ đề Astrolas; thu-ky.mjs nhận câu anh trả lời dưới tin báo → hàng phan_hoi → lượt iMac kế tiếp làm lại đúng task đó. Sổ <DATA>/astrolas-tasks.json.
 //   node worker/astrolas-tasks.mjs --bao <task> <ket> [--tin <mid>]   chữ báo qua stdin
+//   node worker/astrolas-tasks.mjs --hang                             tin hiện trạng số lượng task, chữ qua stdin
 //   node worker/astrolas-tasks.mjs --phan-hoi                         lấy (và xoá khỏi hàng) một câu anh trả lời, {} khi không có
 import fs from 'node:fs';
 import path from 'node:path';
@@ -38,10 +39,11 @@ if (a[1]?.endsWith('astrolas-tasks.mjs') && a.includes('--tu-kiem')) {
   console.log('astrolas-tasks: tự kiểm đạt');
 } else if (a[1]?.endsWith('astrolas-tasks.mjs') && a.includes('--phan-hoi')) {
   console.log(JSON.stringify(layPhanHoi()));
-} else if (a[1]?.endsWith('astrolas-tasks.mjs') && a.includes('--bao')) {
+} else if (a[1]?.endsWith('astrolas-tasks.mjs') && (a.includes('--bao') || a.includes('--hang'))) {
   const i = a.indexOf('--bao'), j = a.indexOf('--tin');
   const { tgNoiDung } = await import('./kiem-bai.mjs'), { topicPhong } = await import('./tg-phong.mjs');
   const { tg } = await tgNoiDung(), topic = await topicPhong('astrolas', 'Astrolas', tg);
   if (!topic) throw new Error('phòng Astrolas chưa có chủ đề Telegram');
-  await baoTask(tg, topic, a[i + 1], a[i + 2], fs.readFileSync(0, 'utf8').trim().slice(0, 3500), j > 0 ? a[j + 1] : null);
+  if (i < 0) await tg('sendMessage', { message_thread_id: topic, parse_mode: 'HTML', text: `🛠 <b>Thành</b>\n${esc(fs.readFileSync(0, 'utf8').trim().slice(0, 3500))}` });
+  else await baoTask(tg, topic, a[i + 1], a[i + 2], fs.readFileSync(0, 'utf8').trim().slice(0, 3500), j > 0 ? a[j + 1] : null);
 }

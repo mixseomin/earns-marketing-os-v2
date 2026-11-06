@@ -6,5 +6,6 @@ Checklist mỗi vòng (không có việc → NO_REPLY):
 
 - Anh có trả lời dưới tin báo không? Có → task đó thành Rework, làm trước
 - `php artisan ai-tasks list` có Rework / Not started không? không → NO_REPLY
+- Có task chưa báo → một tin số lượng vào chủ đề Astrolas
 - Nhận task (In progress), làm đúng luật `/tasks`, Need Reviews hoặc Blocked
-- Báo vào chủ đề Astrolas
+- Báo vào chủ đề Astrolas, kèm số hôm nay đã xong + hàng chờ còn lại

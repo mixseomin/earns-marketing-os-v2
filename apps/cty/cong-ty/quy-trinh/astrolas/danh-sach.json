@@ -14,7 +14,7 @@
     "may",
     "hoe"
    ],
-   "khi": "liên tục"
+   "khi": "liên tục", "lich": []
   },
   {
    "id": "thu-northwest",
@@ -134,6 +134,7 @@
    ],
    "khi": "theo phát sinh",
    "the_loc": "Operating Agreement|ký lại|chữ ký"
-  }
- ]
+  },
+  {"id": "xu-task", "ten": "Xử task astrolas.com (Claude Code trên iMac)", "so_hoa": "co-dinh", "kich_hoat": "iMac mỗi 2 phút, nghỉ 23:00–07:00 giờ VN — bộ điều phối việc nền; chỉ gọi Claude khi có task", "mo_ta": "Lấy Rework rồi Not started từ php artisan ai-tasks, làm đúng một task theo luật lệnh /tasks của repo, đưa sang Need Reviews hoặc Blocked, báo vào chủ đề Astrolas; anh trả lời dưới tin báo thì làm lại task đó. Trần 15 lượt / ngày, 30 phút / lượt.", "ma": "apps/cty/may/astrolas-tasks.mjs · tin báo: apps/cty/worker/astrolas-tasks.mjs", "chu_tri": "thanh", "lam": ["may"], "khi": "khi có task", "lich": ["iMac:tc.on.cty.astrolas-tasks"], "chi_phi": "gói Claude thuê bao (không tính theo lượt); trần 15 lượt / ngày"}
+  ]
 }

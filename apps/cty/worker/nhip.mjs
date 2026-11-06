@@ -78,6 +78,10 @@ export const VIEC_NHIP = {
     { ma: 'sua-may', ten: 'Spy - tự sửa máy cào (Claude trên iMac)', lich: () => 'mỗi 5 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/tho-may.mjs mỗi 5 phút: hàng worker/tho-may-viec.mjs (Phòng Tài nguyên xếp cảnh báo máy móc: làn đứng, box3 / VPS quá tải, thiếu RAM, daemon tắt; Phòng Nội dung xếp kênh máy đăng lỡ lượt thật — từ 25/10/2026) có việc → báo nhận dưới tin cảnh báo, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) quyền hẹp trong repo spy-on-tc + ssh box3 / VPS máy cào: đo, tìm gốc, sửa, kiểm, commit, deploy — tối đa 30 phút, rồi trả lời dưới tin cảnh báo (đã sửa / không sửa được / cần anh). Trần 6 lượt / ngày giờ VN. Không nhận khoá 2proxy / tài sản (chuyện tiền).' },
   ],
+  'xu-task-astrolas': [
+    { ma: 'xu-task-astrolas', ten: 'Astrolas - xử task (Claude trên iMac)', lich: () => 'mỗi 2 phút, nghỉ 23:00–07:00 · iMac', khop: null,
+      mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/astrolas-tasks.mjs mỗi 2 phút, nghỉ từ 23:00 đến 07:00 giờ VN: anh trả lời dưới tin báo → làm lại đúng task đó; không thì lấy Rework rồi Not started trong php artisan ai-tasks, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) làm đúng một task theo luật lệnh /tasks của repo, tối đa 30 phút, đưa sang Need Reviews hoặc Blocked rồi báo vào chủ đề Astrolas. Trần 15 lượt / ngày giờ VN. Không có task thì không gọi mô hình.' },
+  ],
   'sua-bai': [
     { ma: 'sua-bai', ten: 'Sửa bài Phòng Nội dung trả về', lich: () => 'mỗi 5 phút · iMac', khop: null,
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/long-sua-bai.mjs mỗi 5 phút: (A) bài Ngọc đã DUYỆT → script cố định (không mô hình) dựng đúng commit đã duyệt, deploy ratesbyroom, push về origin, báo dưới tên Ngọc; (B) bài bị trả về và cây hotel-arb không có thay đổi dở của phiên khác → báo nhận lên Telegram, gọi Claude Code không giao diện (model trong SOUL: claude-code:<model>) quyền hẹp — chỉ sửa tệp, dựng, git commit nội bộ, KHÔNG deploy / push — tối đa 30 phút, rồi nộp bản nháp + mã commit cho Ngọc chấm. Không xong thì báo DỪNG, máy không thử lại bài đó; trần 3 lượt chấm. Token mỗi lượt ghi vào nhật ký.' },

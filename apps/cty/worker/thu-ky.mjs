@@ -13,6 +13,7 @@ import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 import { moHop, docNut, daTraLoi, phongCuaTopic } from './tg-phong.mjs';
 import { giaoAnh, viecCuaTin } from './tho-may-viec.mjs';
+import { taskCuaTin, ghiPhanHoi, henBatDau } from './astrolas-tasks.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const MAC_DINH = 'fal:google/gemini-3.8-flash';
@@ -61,6 +62,12 @@ export async function xuThuKy(tg, { hoi = hoiMoHinh } = {}) {
     try { await tg('setMessageReaction', { message_id: nc.from && x.message ? nc.mid : (x.callback_query?.message?.message_id ?? nc.mid), reaction: [{ type: 'emoji', emoji: '👀' }] }); } catch { /* cảm xúc hỏng không chặn */ }
     const tra0 = (text) => tg('sendMessage', { message_thread_id: nc.topic ?? undefined, parse_mode: 'HTML', text, reply_parameters: { message_id: nc.mid, allow_sending_without_reply: true } });
     // trả lời dưới tin của THỢ MÁY → lệnh cho đúng việc đó, về đúng người đang cầm (không qua trưởng phòng, không tốn lượt mô hình)
+    // trả lời dưới tin báo của THÀNH (kỹ sư Astrolas) → làm lại đúng task đó ở lượt iMac kế tiếp
+    const tk = taskCuaTin(nc.hoi_mid);
+    if (tk) {
+      if (/^(không|ko|k|no|thôi|bỏ qua|đừng)[\s.!]*$/i.test(nc.anh.trim())) { await tra0(`🛠 <b>Thành</b>: đã ghi anh không làm tiếp task #${tk}.`); n++; continue; }
+      ghiPhanHoi(tk, nc.anh, nc.mid); await tra0(`🛠 <b>Thành</b> nhận: <i>${esc(nc.anh.slice(0, 200))}</i> — làm lại task #${tk}, ${henBatDau()}, xong báo ngay dưới tin này.`); n++; continue;
+    }
     const vt = viecCuaTin(nc.hoi_mid);
     if (vt) {
       const bo = /^(không|ko|k|no|thôi|bỏ qua|đừng)[\s.!]*$/i.test(nc.anh.trim());

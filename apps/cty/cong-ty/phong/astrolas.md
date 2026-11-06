@@ -27,6 +27,6 @@ Lịch hạn nằm ở tab **Lịch** (card followup thật: thêm/dời/đóng 
 
 Không phải nộp: BOI FinCEN (công ty lập tại Mỹ được miễn từ 03/2025), thuế thu nhập bang (Wyoming không có).
 
-**Người**: Hoè trưởng phòng · Đang hồ sơ pháp lý (Northwest, báo cáo năm, EIN, giấy tờ) · Hằng thuế và sổ sách (5472, 1040 Abroad).
+**Người**: Hoè trưởng phòng · Đang hồ sơ pháp lý (Northwest, báo cáo năm, EIN, giấy tờ) · Hằng thuế và sổ sách (5472, 1040 Abroad) · Thành xử task astrolas.com (`php artisan ai-tasks`, Claude Code trên iMac, báo vào chủ đề phòng).
 
 **Cấm**: tự nộp tờ khai, tự trả phí, nhập thông tin thanh toán, ký thay Giám đốc, đổi pháp nhân tài khoản Stripe cá nhân sang LLC.

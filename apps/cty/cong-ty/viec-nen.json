@@ -811,6 +811,25 @@
    "uu_tien_thap": true
   },
   {
+   "nhan": "iMac:tc.on.cty.astrolas-tasks",
+   "ten": "Astrolas - xử task (Claude)",
+   "chay": [
+    "/opt/homebrew/bin/node",
+    "--input-type=module",
+    "-e",
+    "const{execFileSync:x}=await import('node:child_process');const s=x('ssh',['-o','BatchMode=yes','-o','ConnectTimeout=15','root@167.233.241.16','cat /opt/earns-marketing-os-v2/apps/cty/may/astrolas-tasks.mjs'],{encoding:'utf8',maxBuffer:1<<24});await import('data:text/javascript;base64,'+Buffer.from(s).toString('base64'));"
+   ],
+   "thu_muc": "/Users/htuan/Me/GitHub/Astrolas.com",
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/astrolas-tasks.log",
+   "hen": {
+    "moi_giay": 120
+   },
+   "uu_tien_thap": true
+  },
+  {
    "nhan": "iMac:tc.on.spy.ckey-gia",
    "ten": "Spy - tự chấp nhận giá mới người bán ckey",
    "chay": [

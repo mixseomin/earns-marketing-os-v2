@@ -9,3 +9,4 @@ Checklist mỗi vòng (không có việc → NO_REPLY):
 - Có task chưa báo → một tin số lượng vào chủ đề Astrolas
 - Nhận cả lô (tối đa 5 task, In progress), mỗi task một phiên: làm đúng luật `/tasks`, đẩy lên nhánh `ai`, Need Reviews hoặc Blocked
 - Báo ngay từng task vào chủ đề Astrolas, kèm số hôm nay đã xong + hàng chờ còn lại
+- Đủ khoảng 15 task có commit và hết lô → chạy lệnh audit trên đúng các commit đó, báo đầu và cuối vào chủ đề Astrolas

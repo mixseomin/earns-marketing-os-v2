@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """KIỂU CREATIVE "ẢNH TĨNH" (anh 05/11/2026, mẫu video của đội: một khung đẹp nét trong phim + tên phim + giọng ~9s).
 Giọng đúng form anh chốt: "Watch {title} for Free Now. Watch More Now!" (ES: "¡Mira {title} gratis ahora! ¡Mira más ahora!").
-Áp trước cho PHIM MỚI BẮT ĐẦU LÃI của nhà: camp đầu ≤ NGAY_MOI ngày, 3 ngày gần nhất thu > chi (chi ≥ $3), còn camp ACTIVE, chưa có bản ảnh tĩnh,
+Áp trước cho PHIM MỚI BẮT ĐẦU LÃI của nhà: camp đầu ≤ NGAY_MOI ngày, 3 ngày gần nhất thu > chi (chi ≥ $3) HOẶC có camp cơ hội (etp.camp_co_hoi — anh 06/11/2026
+"thấy camp cơ hội thì tập trung scale từ nó": một camp ROI ≥ 50% giữa các camp thử lỗ vẫn là phim cần creative), còn camp ACTIVE, chưa có bản ảnh tĩnh,
 cổng không chặn (apps/etp/cong.phim_chan_len). Mới nhất lên trước.
 MỘT lệnh lo trọn, mỗi phim:
   1. tải 3 tập miễn phí (tai-tap.py) → khung mỗi 1,5 giây → doc-chu --mat (Vision: điểm mặt Apple + chữ) → chọn khung mặt to, nét, không chữ in cứng
@@ -50,7 +51,7 @@ def chon(so):
     ds = json.loads(sql(f"""with p as (select c.content_id, min(c.tao) dau, sum(n.chi) filter (where n.ngay >= current_date - 3) chi3, sum(n.thu) filter (where n.ngay >= current_date - 3) thu3
         from etp.camp c join etp.so_ngay n using (camp_id) where c.content_id is not null group by 1)
       select coalesce(json_agg(x order by x.dau desc), '[]') from (select p.content_id, f.ten, coalesce(f.locale, 'en') locale, f.url, f.the_loai, p.dau, round(p.thu3 - p.chi3, 2) lai3 from p join etp.phim f using (content_id)
-        where p.dau > now() - interval '{NGAY_MOI} days' and p.chi3 >= 3 and p.thu3 > p.chi3 and f.url is not null
+        where p.dau > now() - interval '{NGAY_MOI} days' and ((p.chi3 >= 3 and p.thu3 > p.chi3) or exists (select 1 from etp.camp_co_hoi h where h.content_id = p.content_id)) and f.url is not null
           and exists (select 1 from etp.camp k where k.content_id = p.content_id and k.trang_thai = 'ACTIVE')
           and not exists (select 1 from etp.thu_vien v where v.content_id = p.content_id and v.dang = '{DANG}')) x""") or "[]")
     for x in ds:

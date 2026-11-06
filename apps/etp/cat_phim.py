@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """THANG CHUYỂN HƯỚNG / CẤT PHIM (anh 31/10/2026: "Phần sinh camp thay thế đã tự động nhg nếu sau nhiều lần thử mà ko có camp lãi, film lởm,... thị trường,...
-thì làm thế nào" → "Đc làm đi"). Chỉ xét phim CHƯA có camp nhà nào lãi — phim đã có camp lãi vẫn nhân bản / thang như cũ.
+thì làm thế nào" → "Đc làm đi"). Chỉ xét phim CHƯA có camp cơ hội (etp.camp_co_hoi: chi ≥ $1 ROI ≥ 50%, hoặc chi ≥ $3 lãi) — phim có thì scale, không cất (anh 06/11/2026).
   vòng 1  đổi creative theo dạng (thay-the.py, như trước)
   vòng 2  chi thử ≥ cau_hinh.cat_phim.chi mà ROI < .roi, mới thử < .so_bo bộ → thu_vong 'doi_bo': camp thay kế tiếp lên bộ chưa thử (bo_moi)
   vòng 3  team (camp ngoài) lãi phim đó 14 ngày → KHÔNG cất, báo nạp creative team (nap-creative-ngoai.py — chấm là lượt AI, chờ lệnh)
   vòng 4  hết đường (đủ bộ hoặc chi ≥ .chi_doi_bo) → thu_vong 'cat': cong.kiem chặn tạo / nhân bản / bật camp phim này; camp còn chạy để luật tắt xử
-  mở lại  camp nhà lãi, hoặc team lãi 14 ngày → thu_vong về null (tự động)
+  mở lại  có camp cơ hội, hoặc team lãi 14 ngày → thu_vong về null (tự động)
 Dùng: python3 cat_phim.py [--that]   (không --that = chạy khô, in sẽ làm gì) · python3 cat_phim.py --mo <content_id>  (anh mở tay một phim)
 Trong script khác: import cat_phim; bao, doi_bo = cat_phim.xet(that=True)   → doi_bo = {content_id: bộ nên lên}"""
 import json, os, subprocess, sys
@@ -37,14 +37,15 @@ def so_phim():
     return _qj("""with c as (select c.content_id, c.camp_id, coalesce(c.bo, '') bo, coalesce((select r.dang from etp.creative r where r.creative_id = c.creative_id), '') dang, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu
                              from etp.camp c left join etp.so_ngay n on n.camp_id = c.camp_id and n.ngay < (now() at time zone 'utc')::date   -- CHỈ NGÀY ĐÃ KHÉP (03/11/2026: phim test rộng 169553 lên 5 camp 16:12, vài giờ sau đã 'sắp cất 3/4 camp chưa lãi' vì đếm ngày đang chạy — chưa qua khung 0h–7h)
                              where coalesce(c.content_id, 0) > 0 group by 1, 2, 3, 4),
-                       p as (select content_id, round(sum(chi), 2) chi, round(sum(thu), 2) thu, count(*) so_camp, count(*) filter (where chi >= 1) so_thu, bool_or(chi >= 3 and thu > chi) lai,
+                       p as (select content_id, round(sum(chi), 2) chi, round(sum(thu), 2) thu, count(*) so_camp, count(*) filter (where chi >= 1) so_thu,
                                     array_agg(distinct bo) filter (where bo <> '') bo,
                                     coalesce(jsonb_object_agg(dang, so) filter (where dang <> ''), '{}'::jsonb) dang_thu from (select content_id, dang, count(*) filter (where chi >= 1) so from c group by 1, 2) d0
                                     right join c using (content_id, dang) group by 1),
                        t as (select cn.content_id, sum(n.chi) chi, sum(n.thu) thu from etp.camp_ngoai cn join etp.so_ngay_ngoai n using (camp_id)
                              where n.ngay >= current_date - 14 and coalesce(cn.content_id, 0) > 0 group by 1)
                   select p.*, f.thu_vong, f.thu_bo, f.thu_ly, f.ten, extract(epoch from now() - f.thu_luc) / 86400 cho_ngay, round(coalesce(t.chi, 0), 2) team_chi, round(coalesce(t.thu, 0), 2) team_thu,
-                         (select count(*) from etp.camp_ngoai cn where cn.content_id = p.content_id and cn.trang_thai = 'ACTIVE') doi_chay
+                         (select count(*) from etp.camp_ngoai cn where cn.content_id = p.content_id and cn.trang_thai = 'ACTIVE') doi_chay,
+                         (select string_agg('#' || h.camp_id || ' ROI ' || h.roi || '%', ', ' order by h.roi desc) from etp.camp_co_hoi h where h.content_id = p.content_id) lai   -- CAMP CƠ HỘI (migration 0437, anh 06/11/2026)
                   from p left join etp.phim f using (content_id) left join t using (content_id)""")
 
 def dat(content, vong, ly, that, bo=None):
@@ -60,8 +61,10 @@ def xet(that=False):
         # BÃO HOÀ KHÔNG CÒN LÀ LÝ DO CẤT (anh 06/11/2026 "Phim bão hoà chỉ cảnh báo"): phim đã cất vì bão hoà → mở lại; phim bão hoà chỉ hiện cảnh báo (etp.phim_bao_hoa)
         if vong == "cat" and str(p.get("thu_ly") or "").startswith("bão hoà"):
             dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: bão hoà chỉ cảnh báo, không cất (anh 06/11/2026)"); continue
+        # PHIM CÓ CAMP CƠ HỘI KHÔNG BAO GIỜ CẤT / SẮP CẤT (anh 06/11/2026: "Mục tiêu khi rải camp để test là để tìm cái này. Khi thấy thì phải tập trung scale từ nó chứ ko cất"):
+        # một camp chi ≥ $1 ROI ≥ 50% (etp.camp_co_hoi) là đủ, dù ROI cả phim âm vì các camp thử khác — camp thua để T1 / T2 / PL tắt, camp cơ hội để luật tăng / nhân bản scale
         if p.get("lai") or (vong == "cat" and team_lai):
-            if vong: dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: {'camp nhà lãi' if p.get('lai') else 'team lãi 14 ngày'}")
+            if vong: dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: {'có camp cơ hội ' + p['lai'] if p.get('lai') else 'team lãi 14 ngày'}")
             continue
         roi = (thu - chi) / chi * 100 if chi else 0
         lo = chi >= float(ch["chi"]) and roi < float(ch["roi"])

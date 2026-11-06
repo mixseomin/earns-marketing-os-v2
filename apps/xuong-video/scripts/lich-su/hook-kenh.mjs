@@ -4,6 +4,8 @@
 //   · ưu tiên QC gắn đúng các góc spy của playlist (so-kenh › playlist.goc_spy), rồi kho chung của nhóm (chạy lâu trước)
 //   · MỖI CÂU MỘT TẬP: đếm hook đã dùng ở mọi tập đã viết (shot-code/tap-<kênh>/*.json › hook.qc) + bài đang chờ trên box → chọn câu ít dùng nhất
 //   · tập viết lại giữ hook cũ của nó (chạy lại máy không xáo hook) · hook có số / nói nghịch hành chỉ cho đúng chỗ (retro: true) · ưu tiên bản ngắn gọn một khung (hookGon)
+//   · VIDEO ĐÃ DỰNG không trùng hook với nhau: sổ hook-kho/<kênh>-video.json (long-tieng.mjs ghi mỗi lần dựng xong) — câu đã nằm trong video nặng ×100,
+//     tập đã có video giữ đúng hook của video đó (chữ tập khớp tiếng đã đọc)
 //   chonHook(kenh, playlist, maTap, { retro }) → { hook: { id, chu }, chuHook, goc: { id, ten, loai } }
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
@@ -44,12 +46,14 @@ function bo(kenh) {
   if (existsSync(tapDir)) for (const f of readdirSync(tapDir).filter((x) => x.endsWith('.json'))) {
     try { const t = JSON.parse(readFileSync(join(tapDir, f), 'utf8')); if (t.hook?.goc && t.y_tuong) { them(khoa(t.hook.goc), t.y_tuong); cu.set(t.y_tuong, khoa(t.hook.goc)); } } catch { /* tệp hỏng: bỏ */ }
   }
-  BO = { kenh, K, dung, cu, them };
+  // sổ video đã dựng (long-tieng.mjs › ghiHookVideo): { <mã tập>: { khoa, chu, video, luc } }
+  const fv = join(KHO, `${kenh}-video.json`), video = existsSync(fv) ? JSON.parse(readFileSync(fv, 'utf8')) : {};
+  BO = { kenh, K, dung, cu, them, video };
   return BO;
 }
 
 export function chonHook(kenh, plMa, maTap, { retro = false } = {}) {
-  const { K, dung, cu, them } = bo(kenh), pl = docSo()[kenh].playlist.find((p) => p.ma === plMa);
+  const { K, dung, cu, them, video } = bo(kenh), pl = docSo()[kenh].playlist.find((p) => p.ma === plMa);
   const idGoc = new Set((pl?.goc_spy ?? []).map((g) => g.id)), gocPl = K.gocs.filter((g) => idGoc.has(g.id));
   const cuaGoc = new Map(); for (const g of gocPl) for (const q of g.qc_ids) cuaGoc.set(String(q), g);
   // CHỦ ĐỀ của câu khớp playlist: câu tình yêu chỉ cho Love & Compatibility, câu tiền / việc chỉ cho Career (06/11/2026: câu "relate to money" lọt vào Timing)
@@ -60,9 +64,10 @@ export function chonHook(kenh, plMa, maTap, { retro = false } = {}) {
   const tang = [...K.qc_goc.filter((h) => cuaGoc.has(String(h.id))), ...K.nhom.filter((h) => !cuaGoc.has(String(h.id)))].filter(hop);
   const ds = [...tang.filter((h) => hookNgan(h.chu).length <= 60), ...tang.filter((h) => hookNgan(h.chu).length > 60)];
   if (!ds.length) { console.error(`✗ kho hook ${kenh} không còn câu hợp cho playlist ${plMa}`); process.exit(3); }
-  const daDung = (h) => [...(dung.get(khoa(h.chu)) ?? [])].filter((m) => m !== maTap).length;
+  const daDung = (h) => [...(dung.get(khoa(h.chu)) ?? [])].filter((m) => m !== maTap).reduce((n, m) => n + (video[m] || m === '(box)' ? 100 : 1), 0);   // câu đã vào video / bài chờ đăng: gần như cấm
   // tập viết lại: giữ hook cũ nếu câu đó vẫn trong kho và chưa tập nào khác giành
-  const giu = cu.get(maTap) && ds.find((h) => khoa(h.chu) === cu.get(maTap) && !daDung(h));
+  // tập đã có video: giữ đúng hook đã đọc trong video · tập viết lại: giữ hook cũ nếu chưa tập nào khác giành
+  const giu = (video[maTap] && ds.find((h) => khoa(h.chu) === video[maTap].khoa)) || (cu.get(maTap) && ds.find((h) => khoa(h.chu) === cu.get(maTap) && !daDung(h)));
   const hook = giu || ds.reduce((tot, h) => (daDung(h) < daDung(tot) ? h : tot), ds[0]);
   them(khoa(hook.chu), maTap);
   const g = cuaGoc.get(String(hook.id)) ?? gocPl[0] ?? K.gocs[0];
@@ -70,3 +75,10 @@ export function chonHook(kenh, plMa, maTap, { retro = false } = {}) {
 }
 /** báo cáo cuối lượt: bao nhiêu câu hook khác nhau / bao nhiêu tập, câu nào phải dùng lại */
 export function baoHook() { if (!BO) return ''; const lap = [...BO.dung.values()].filter((s) => s.size > 1).length; return `hook: ${BO.dung.size} câu cho ${new Set([...BO.dung.values()].flatMap((s) => [...s])).size} tập · ${lap} câu dùng > 1 tập`; }
+/** long-tieng.mjs gọi sau khi dựng xong một tập: ghi hook của video vào sổ — các tập khác tránh câu này */
+export function ghiHookVideo(tap, video) {
+  if (!tap?.kenh || !tap.y_tuong || !tap.hook?.goc) return;
+  const fv = join(KHO, `${tap.kenh}-video.json`), so = existsSync(fv) ? JSON.parse(readFileSync(fv, 'utf8')) : {};
+  so[tap.y_tuong] = { khoa: khoa(tap.hook.goc), chu: tap.hook.goc, video, luc: new Date().toISOString() };
+  mkdirSync(KHO, { recursive: true }); writeFileSync(fv, JSON.stringify(so, null, 1) + '\n');
+}

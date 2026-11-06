@@ -7,6 +7,10 @@ import BANG_LUAT from './etp-bang-luat.json';
 export type LoaiMoc = 'len' | 'tang' | 'giam';
 /** một mốc: h = giờ VN · ty = ngân sách sau / trước (tăng / giảm) · du = số khối 24 giờ sau mốc đã có đủ số (0–3, ≥ 3 = đủ cả 72 giờ) · c/t = chi / thu: 0 = 24 giờ trước, 1–3 = khối 24 giờ sau */
 export type MocSo = { loai: LoaiMoc; camp: number; h: number; ty: number | null; du: number; c0: number; t0: number; c1: number; t1: number; c2: number; t2: number; c3: number; t3: number };
+/** hàng máy chủ gửi (docMoc): [loai, camp, h, ty, du, c0, t0, c1, t1, c2, t2, c3, t3] — số Postgres numeric có thể về dạng chuỗi, moTuHang ép lại */
+export type MocHang = [LoaiMoc, number, number, number | string | null, number, ...(number | string)[]];
+export const moTuHang = (r: MocHang): MocSo => { const n = (i: number) => Number(r[i] ?? 0);
+  return { loai: r[0], camp: n(1), h: n(2), ty: r[3] == null ? null : Number(r[3]), du: n(4), c0: n(5), t0: n(6), c1: n(7), t1: n(8), c2: n(9), t2: n(10), c3: n(11), t3: n(12) }; };
 export type Khoi = { n: number; chi: number; thu: number };
 export type DongMoc = { k: string; nhom: string; ten: string; title?: string; n: number; truoc: Khoi; k1: Khoi; k2: Khoi; k3: Khoi; k72: Khoi; am1: number | null; toc: number | null; lai72: number | null };
 

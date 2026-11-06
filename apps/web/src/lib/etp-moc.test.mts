@@ -1,6 +1,6 @@
 // tự kiểm gom mốc (etp-moc.ts): node_modules/.bin/tsx apps/web/src/lib/etp-moc.test.mts
 import assert from 'node:assert';
-import { gom, dongBang, roiKhoi, type MocSo } from './etp-moc';
+import { gom, dongBang, moTuHang, roiKhoi, type MocSo } from './etp-moc';
 
 const m = (x: Partial<MocSo>): MocSo => ({ loai: 'tang', camp: 1, h: 22, ty: 1.5, du: 3, c0: 1, t0: 2, c1: 2, t1: 3, c2: 2, t2: 2, c3: 2, t3: 1, ...x });
 
@@ -24,3 +24,7 @@ assert.ok(k.includes('rt-r3'), 'ROI trước 100% → nhóm ≥ 100%');
 assert.equal(ds.find((x) => x.k === 'len-all')!.truoc.n, 0, 'lên camp không có số trước mốc');
 assert.ok(ds.every((x) => /^\d\|/.test(x.nhom)), 'nhóm có tiền tố thứ tự');
 console.log('etp-moc: ok');
+// hàng máy chủ → mốc: numeric về dạng chuỗi vẫn ra số, ty null giữ null
+const h = moTuHang(['tang', 5, 22, '1.5', 3, '1.00', '2.00', '2', '3', '2', '2', '2', '1']);
+assert.equal(h.ty, 1.5); assert.equal(h.c0 + h.t3, 2); assert.equal(moTuHang(['len', 5, 9, null, 1, 0, 0, 1, 1, 0, 0, 0, 0]).ty, null);
+console.log('etp-moc hàng: ok');

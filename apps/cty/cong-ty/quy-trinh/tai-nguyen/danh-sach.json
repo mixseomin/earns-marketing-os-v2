@@ -22,7 +22,7 @@
    "ten": "Spy - tự sửa máy cào (Claude Code trên iMac)",
    "so_hoa": "co-dinh",
    "kich_hoat": "iMac mỗi 5 phút — bộ điều phối việc nền; chỉ chạy khi hàng có việc",
-   "mo_ta": "Nhận cảnh báo máy móc từ hàng worker/tho-may-viec.mjs, tìm gốc + sửa + kiểm trong repo spy-on-tc, trả lời dưới tin cảnh báo trên Telegram. Trần 6 lượt / ngày, 30 phút / lượt.",
+   "mo_ta": "Nhận cảnh báo máy móc từ hàng worker/tho-may-viec.mjs, tìm gốc + sửa + kiểm trong repo spy-on-tc, trả lời dưới tin cảnh báo trên Telegram. Không giới hạn số lượt, mỗi lần một việc, 30 phút / lượt.",
    "ma": "apps/cty/may/tho-may.mjs · hàng: apps/cty/worker/tho-may-viec.mjs",
    "chu_tri": "manh",
    "lam": [
@@ -32,7 +32,7 @@
    "lich": [
     "iMac:tc.on.spy.tu-sua-may-cao"
    ],
-   "chi_phi": "gói Claude thuê bao (không tính theo lượt); trần 6 lượt / ngày"
+   "chi_phi": "gói Claude thuê bao (không tính theo lượt); không giới hạn số lượt"
   },
   {
    "id": "bao-tri-ckey",

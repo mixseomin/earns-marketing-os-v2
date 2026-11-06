@@ -29,7 +29,7 @@ dưới khoá `dang:lo|<máy>|<nền>`. Tôi đọc nhật ký đăng, tìm gố
 ## Giới hạn (anh duyệt 24/10/2026)
 
 - Chỉ chạy trên iMac (Claude gói thuê bao không giao diện — luật anh 23/10/2026; script tự chặn máy khác).
-- Tối đa 6 lượt / ngày (giờ VN), 30 phút / lượt; quá 45 phút coi là treo.
+- Không giới hạn số lượt (anh 07/11/2026), mỗi lần một việc, 30 phút / lượt; quá 45 phút coi là treo.
 - Không nhận việc tiền: khoá 2proxy, tài sản hết hạn — anh quyết.
 - Cấm xoá dữ liệu, mua / gia hạn, in khoá, revert git, sửa ngoài repo spy-on-tc.
 

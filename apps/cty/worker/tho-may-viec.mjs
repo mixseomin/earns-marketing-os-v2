@@ -1,7 +1,7 @@
-// HÀNG VIỆC THỢ MÁY (anh 23–24/10/2026: "làm sao để mày biết mà fix rồi mày báo cho tao" → "có, dựng thợ máy tự sửa ở iMac", duyệt trần 6 lượt/ngày).
+// HÀNG VIỆC THỢ MÁY (anh 23–24/10/2026: "làm sao để mày biết mà fix rồi mày báo cho tao" → "có, dựng thợ máy tự sửa ở iMac", trần lượt/ngày anh bỏ 07/11/2026: "phải mở ko giới hạn số lần chạy").
 // Phòng Tài nguyên (tai-nguyen.mjs) phát cảnh báo máy cào mới → `them` một việc kèm mã tin Telegram. Thợ máy (apps/cty/may/tho-may.mjs, Claude Code không
 // giao diện, CHỈ chạy trên iMac — luật anh 23/10/2026, gói thuê bao không qua API) mỗi 5 phút `--lay` một việc, `--nhan` báo đã nhận, sửa, `--bao` trả
-// lời NGAY DƯỚI tin cảnh báo. Trần: TRAN_NGAY lượt / ngày giờ VN (dùng bình thường của một cá nhân — luật Anthropic, đã đọc 23/10/2026), việc đang làm
+// lời NGAY DƯỚI tin cảnh báo. Mỗi lần một việc, `ngay` chỉ để đếm; việc đang làm
 // quá TREO_PHUT coi như treo. Chỉ việc máy móc (làn đứng, box3 / VPS quá tải, thiếu RAM, daemon tắt) — khoá 2proxy / tài sản hết hạn là chuyện tiền, anh quyết.
 // MÁY ĐĂNG (anh 25/10/2026 "cho Mạnh quản lý luôn"): Phòng Nội dung (cham-dang.mjs › soiMayDang) xếp kênh LỠ LƯỢT THẬT thành việc `dang:lo|<máy>|<nền>`;
 // tài khoản bị nền tảng chặn (canh|) và kho cạn (kho| — phải làm bài, có thể tốn tiền) vẫn để anh quyết, không vào hàng.
@@ -11,7 +11,7 @@ import { ghiNut, NUT_HOI } from './tg-phong.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const TEP = () => `${DATA()}/tho-may.json`;
-export const TRAN_NGAY = 6, TREO_PHUT = 45;
+export const TREO_PHUT = 45;
 // kenh: = dây chuyền KÊNH NỘI DUNG (kênh lịch sử, apps/xuong-video/scripts/lich-su — anh 03/11/2026: "thế này mà cho tự chạy … không có ai sửa à?"):
 // chay-kenh.mjs xếp `kenh:<kênh>|<tập>` khi một lượt làm tập hỏng
 export const LOAI_SUA = /^(lan|box3|vps|dang|kenh|anh):/;   // khoá cảnh báo thợ máy được nhận (xetCanhBao trong tai-nguyen.mjs · soiMayDang trong cham-dang.mjs · chay-kenh.mjs)
@@ -36,16 +36,15 @@ export function bacViec(st, v, luc = Date.now()) {
   if (/^dang:/.test(v.khoa) && !/^Lỗi:/m.test(String(v.chu ?? ''))) return 'chinh';
   return 're';
 }
-/** Thuần — nhận việc cũ nhất đang chờ (trong trần ngày); việc đang làm quá TREO_PHUT → treo. Trả { st, viec | null, ly_do } */
+/** Thuần — nhận việc cũ nhất đang chờ; việc đang làm quá TREO_PHUT → treo. Trả { st, viec | null, ly_do } */
 export function layViec(st, luc = Date.now()) {
   const hang = (st.hang || []).map((v) => (v.tt === 'dang' && luc - Date.parse(v.bat_dau) > TREO_PHUT * 6e4 ? { ...v, tt: 'treo', xong: new Date(luc).toISOString() } : v));
   const ngay = { ...(st.ngay || {}) }, hom = ngayVN(luc);
   if (hang.some((v) => v.tt === 'dang')) return { st: { ...st, hang }, viec: null, ly_do: 'đang có việc' };
-  // LỆNH ANH (anh: — anh 05/11/2026 "tao đã đồng ý, nó đã hiểu mà rồi lại hỏi lại"): nhận TRƯỚC mọi việc và KHÔNG tính trần ngày (trần dành cho việc máy tự xếp).
+  // LỆNH ANH (anh: — anh 05/11/2026 "tao đã đồng ý, nó đã hiểu mà rồi lại hỏi lại"): nhận TRƯỚC mọi việc, không tính vào bộ đếm ngày.
   const iAnh = hang.findIndex((v) => v.tt === 'cho' && /^anh:/.test(v.khoa));
   if (iAnh >= 0) { hang[iAnh] = { ...hang[iAnh], tt: 'dang', bat_dau: new Date(luc).toISOString() }; return { st: { ...st, hang, ngay }, viec: hang[iAnh], ly_do: '' }; }
-  if ((ngay[hom] || 0) >= TRAN_NGAY) return { st: { ...st, hang, ngay }, viec: null, ly_do: `đủ ${TRAN_NGAY} lượt hôm nay` };
-  // việc KÊNH (kenh:…) nhận TRƯỚC (04/11/2026: tập kênh hỏng 10:38 đứng chờ sau việc cào / đăng tới hết 6 lượt — tập tự động mà thợ máy không tới thì phải chờ người); trần ngày giữ nguyên
+  // việc KÊNH (kenh:…) nhận TRƯỚC (04/11/2026: tập kênh hỏng 10:38 đứng chờ sau việc cào / đăng — tập tự động mà thợ máy không tới thì phải chờ người)
   // + LỠ LƯỢT ĐĂNG (dang:lo|, anh 05/11/2026 "Đăng tự động mà … cũng gọi tao" — dang-may xếp ngay lần hỏng đầu; chờ sau việc cào là mất lượt trong ngày)
   const ik = hang.findIndex((v) => v.tt === 'cho' && /^(kenh:|dang:lo\|)/.test(v.khoa)), i = ik >= 0 ? ik : hang.findIndex((v) => v.tt === 'cho'); if (i < 0) return { st: { ...st, hang }, viec: null, ly_do: 'không có việc' };
   hang[i] = { ...hang[i], tt: 'dang', bat_dau: new Date(luc).toISOString() }; ngay[hom] = (ngay[hom] || 0) + 1;
@@ -94,15 +93,14 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     assert.strictEqual(layViec(st, t0 + 6e4).viec, null, 'đang có việc: không lấy thêm');
     r = layViec(st, t0 + 46 * 6e4); assert.strictEqual(r.st.hang[0].tt, 'treo', 'quá 45 phút = treo'); assert.strictEqual(r.viec.khoa, 'vps:may-cao-vn:tai', 'treo xong lấy việc kế');
     st = { hang: Array.from({ length: 8 }, (_, i) => ({ id: i + 1, khoa: `lan:x${i}`, tt: 'cho' })), ngay: {} };
-    for (let i = 0; i < TRAN_NGAY; i++) { const k = layViec(st, t0 + i * 6e4); st = { ...k.st, hang: k.st.hang.map((v) => (v.tt === 'dang' ? { ...v, tt: 'xong' } : v)) }; }
-    assert.ok(/đủ 6/.test(layViec(st, t0 + 3600e3).ly_do), 'trần 6 lượt / ngày VN');
+    for (let i = 0; i < 8; i++) { const k = layViec(st, t0 + i * 6e4); assert.ok(k.viec, `không còn trần ngày: việc thứ ${i + 1} vẫn nhận`); st = { ...k.st, hang: k.st.hang.map((v) => (v.tt === 'dang' ? { ...v, tt: 'xong' } : v)) }; }
+    assert.equal(st.ngay[ngayVN(t0)], 8, 'bộ đếm ngày vẫn đếm'); assert.equal(layViec(st, t0).ly_do, 'không có việc', 'hết việc thì nghỉ');
     { const s2 = { hang: [{ id: 1, khoa: 'lan:a', tt: 'cho' }, { id: 2, khoa: 'kenh:parody|x', tt: 'cho' }], ngay: {} }; assert.equal(layViec(s2, t0).viec.id, 2, 'việc kênh nhận trước'); }
-    assert.ok(layViec(st, t0 + 20 * 36e5).viec, 'sang ngày mới (giờ VN) lấy tiếp');
     assert.strictEqual(themViec({ hang: [{ id: 1, khoa: 'lan:a', tt: 'xong' }] }, [{ khoa: 'lan:a', chu: 'tái phát' }]).them, 1, 'đã xong rồi tái phát: nhận lại');
-    { const s = { hang: [{ id: 1, khoa: 'dang:lo|m1|facebook', tt: 'ket', tin_bao: 50 }, { id: 2, khoa: 'dang:lo|m1|fb_anh', tt: 'cho' }, { id: 3, khoa: 'dang:lo|m2|x', tt: 'cho' }], ngay: { [ngayVN(t0)]: TRAN_NGAY } };
+    { const s = { hang: [{ id: 1, khoa: 'dang:lo|m1|facebook', tt: 'ket', tin_bao: 50 }, { id: 2, khoa: 'dang:lo|m1|fb_anh', tt: 'cho' }, { id: 3, khoa: 'dang:lo|m2|x', tt: 'cho' }], ngay: { [ngayVN(t0)]: 6 } };
       const a0 = themAnh(s, { chu: 'Sx thêm video cho', anh: 'Sx thêm video cho', goc: 'dang:lo|m1|facebook', tg: { topic: 2307, msg: 99 } }, t0);
       assert.equal(a0.st.hang[1].tt, 'gop', 'việc chờ cùng máy gộp vào lệnh anh (không hỏi lại)'); assert.equal(a0.st.hang[2].tt, 'cho', 'máy khác giữ nguyên');
-      const l = layViec(a0.st, t0); assert.equal(l.viec.khoa, 'anh:4', 'lệnh anh nhận trước dù đủ trần ngày'); assert.equal(l.st.ngay[ngayVN(t0)], TRAN_NGAY, 'lệnh anh không tính trần');
+      const l = layViec(a0.st, t0); assert.equal(l.viec.khoa, 'anh:4', 'lệnh anh nhận trước'); assert.equal(l.st.ngay[ngayVN(t0)], 6, 'lệnh anh không tính vào bộ đếm');
       assert.deepEqual(quyetGan(l.st, { id: 9, khoa: 'dang:lo|m1|fb_link' }, t0).length, 1, 'việc sau cùng máy đọc được điều anh đã chốt'); assert.equal(quyetGan(l.st, { id: 9, khoa: 'dang:lo|m2|x' }, t0).length, 0);
       assert.equal(mayCua('kenh:parody|t1'), 'parody'); assert.equal(mayCua('lan:a'), null); }
     { const t0 = Date.parse('2026-11-05T12:00:00Z'), v = (khoa, chu = '', id = 9) => ({ id, khoa, chu, luc: new Date(t0).toISOString() });

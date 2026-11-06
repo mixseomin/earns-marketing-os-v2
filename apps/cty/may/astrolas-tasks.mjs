@@ -64,7 +64,8 @@ if (!thu) { const tin = tinMoi(hang, st.da_bao ?? []); if (tin) baoHang(tin); st
 const ph = thu ? {} : JSON.parse(box(`cd ${APP} && CTY_DATA_DIR=${DATA} node worker/astrolas-tasks.mjs --phan-hoi`));
 if (ph.task) { art('update', `--id=${ph.task}`, '--status=Rework', `--conversation-id=${MA}`); (st.tin ??= {})[ph.task] = ph.tin; }
 const coViec = ph.task || hang.some((t) => t.status !== 'In progress' || gianDoan(art('show', `--id=${t.id}`)));
-if (!coViec) { log('hết task'); luu(); process.exit(0); }
+const REVIEW = path.join(os.homedir(), '.cache/astrolas-review-cho'), dsReview = !thu && !coViec && fs.existsSync(REVIEW) ? fs.readFileSync(REVIEW, 'utf8').trim() : '';   // anh 06/11/2026: "xong thì bảo nó review lại các việc đã làm gần đây": tệp chứa danh sách id, hết hàng chờ thì chạy một lần
+if (!coViec && !dsReview) { log('hết task'); luu(); process.exit(0); }
 
 // bám origin/ai để không làm trên mã cũ; xung đột thì dừng, không tự gỡ
 try {
@@ -90,6 +91,8 @@ PHẦN RIÊNG VÌ BẠN CHẠY KHÔNG GIAO DIỆN (bổ sung, không thay thế 
 - Mỗi lệnh một dòng phẳng: không cd, không &&, không ;, không vòng lặp (lớp quyền chặn).
 - CẤM (gặp là Blocked): tinker · migration xoá hoặc đổi dữ liệu có sẵn · đẩy dữ liệu lên máy chủ (interp2 push, db-sync) · gọi mô hình AI tốn tiền · đổi giá, gói, thanh toán · xoá dữ liệu · git revert / reset / checkout / stash · đặt Done · in khoá, mật khẩu. Seed chỉ đụng dữ liệu cục bộ, chạy được để nhìn thử; seeder mới vẫn phải thêm vào deploy như CLAUDE.md.
 Kết thúc bằng báo cáo Bước 9 của tasks.md, gồm dòng **Hàng chờ:**.`;
+const giaoReview = `Bạn là Thành, kỹ sư của Phòng Astrolas, chạy không giao diện. Đọc TOÀN BỘ .claude/commands/tasks.md rồi thực hiện Hành động D (re-review) ĐÚNG VÀ ĐỦ cho đúng các task: ${dsReview}. Không lược bỏ gì, TUYỆT ĐỐI không đặt Done. Đọc nguyên văn từng task bằng php artisan ai-tasks show --id=<id> --pull-images (toàn bộ luồng, mọi comment), Read trực tiếp TỪNG ảnh, đọc đủ tệp .agents/contexts/ và .claude/skills/ theo bảng Auto-load trong CLAUDE.md, đối chiếu từng mệnh đề của yêu cầu với mã thật, không tin result cũ. Task giao diện thì nhìn trang cục bộ: br goto "http://127.0.0.1:8000/dev-login/1?to=<đường dẫn đã mã hoá>", br look rồi Read ảnh, so với ảnh của task. Không sửa mã trong lượt này. Chắc chắn lệch yêu cầu thì đặt Rework, --result nêu rõ thiếu gì như tasks.md cho phép. Mỗi lệnh một dòng phẳng.
+KẾT THÚC bằng dòng "BÁO ANH:" rồi tiếng Việt lời thường cho anh đọc trên điện thoại, không tên tệp, nhóm theo 3 nhãn của Hành động D: ✅ khớp · ⚠ lệch (đã đặt Rework, thiếu gì) · ⏸ cần anh xem. Mỗi task một dòng. Xưng "con", gọi "anh".`;
 if (thu) { console.log(giao); process.exit(0); }
 
 try { execFileSync('rsync', ['-a', '--delete', '-e', 'ssh -o BatchMode=yes -o ConnectTimeout=5', NHO_NGUON, `${NHO}/`], { env: ENV, timeout: 120000 }); } catch (e) { log(`chưa chép được ghi nhớ từ MacBook, dùng bản lần trước: ${e.message.split('\n')[0]}`); }
@@ -102,6 +105,14 @@ const CAM = ['AskUserQuestion', 'Skill', 'RemoteTrigger', 'WebFetch', 'WebSearch
 const GAC = `f=$(jq -r .transcript_path); grep -q '"file_path":"[^"]*/\\.agents/contexts/' "$f" || { echo 'CHƯA ĐỌC TÀI LIỆU PHẦN ĐANG SỬA: Read đúng tệp .agents/contexts/ theo bảng Auto-load trong CLAUDE.md rồi mới được sửa.' >&2; exit 2; }`;
 const claude = (ef, loi) => { const r = spawnSync(CLAUDE, ['-p', loi, '--model', model, '--effort', ef, '--output-format', 'json', '--setting-sources', 'project,local', '--settings', JSON.stringify({ hooks: { PreToolUse: [{ matcher: 'Edit|Write', hooks: [{ type: 'command', command: GAC }] }] } }), '--allowedTools', ...QUYEN, '--disallowedTools', ...CAM], { cwd: REPO, encoding: 'utf8', timeout: TRAN_PHUT * 60000, maxBuffer: 64 << 20, env: ENV, stdio: ['ignore', 'pipe', 'pipe'] }); let kq = {}; try { kq = JSON.parse(r.stdout); } catch { /* chết giữa chừng / hết giờ */ } return { r, kq }; };
 
+if (dsReview) {
+  baoHang(`🔍 Hết hàng chờ, con review lại các task: ${dsReview}.`); log(`mở phiên re-review: ${dsReview}`);
+  const { r: rr, kq: kr } = claude(EFFORT_THIET_KE, giaoReview);
+  fs.rmSync(REVIEW, { force: true });
+  log(`re-review xong · ${kr.num_turns ?? '?'} lượt · ${Math.round((kr.duration_ms || 0) / 6e4)} phút`);
+  baoHang(`🔍 Review lại: ${dsReview}\n${String(kr.result || '').replace(/^\s*\**Việc chính:.*$/gim, '').trim().split(/^\s*[*#\s]*BÁO ANH:?\**[ \t]*/im).pop().trim() || `Dừng giữa chừng: Claude thoát ${rr.status ?? rr.signal} (${String(rr.stderr || rr.error?.message || '').slice(0, 200)})`}`);
+  luu(); process.exit(0);
+}
 // một lô có task thiết kế thì cả phiên lên medium: effort đặt theo phiên, /tasks làm cả lô trong một phiên
 const nhom = [...(ph.task ? [{ id: ph.task }] : []), ...hang].slice(0, 5), ef = nhom.some((t) => coThietKe(art('show', `--id=${t.id}`))) ? EFFORT_THIET_KE : effort;
 log(`mở phiên /tasks · hàng ${demHang(hang)} · model ${model} · effort ${ef}`);

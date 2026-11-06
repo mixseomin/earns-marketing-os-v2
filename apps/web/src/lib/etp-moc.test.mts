@@ -50,4 +50,6 @@ assert.equal(kieuDong(gom('len-18', 'n', 't', lo)), 'xau');
 assert.equal(kieuDong(gom('len-3', 'n', 't', lo.slice(0, 5))), 'it');
 const nd = nhanDinh([dLon, dDeu, gom('len-18', 'n', 't', lo), gom('len-19', 'n', 't', lo)]);
 assert.deepEqual(nd.map((x) => `${x.kieu}:${x.gio}`), ['tot:09h', 'nho:08h', 'xau:18h–19h']);
+const mong = Array.from({ length: 22 }, (_, i) => m({ camp: i + 1, c1: 1, t1: 1.05, c2: 1, t2: 1.05, c3: 1, t3: 1.05 }));
+assert.equal(kieuDong(gom('len-10', 'n', 't', mong)), 'hoa', 'bỏ 3 đầu chỉ +5% = quanh hoà vốn, không phải Tốt thật');
 console.log('etp-moc nhận định: ok');

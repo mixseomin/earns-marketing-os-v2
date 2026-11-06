@@ -16,7 +16,7 @@ export type Khoi = { n: number; chi: number; thu: number };
  *  pLai = tỷ lệ mốc lãi sau 72h (mốc chi ≥ $0,3) · boTop = khối 72h đã bỏ TOP_DON mốc lãi nhất · top = phần lãi (dương) của TOP_DON mốc đó · don = dòng không đáng tin: lãi dồn ≥ DON_PHAN hoặc < MAU_IT mốc đủ 72h */
 export type DoTin = { pLai: number | null; boTop: Khoi; top: number | null; don: string | null };
 export type DongMoc = { k: string; nhom: string; ten: string; title?: string; n: number; truoc: Khoi; k1: Khoi; k2: Khoi; k3: Khoi; k72: Khoi; am1: number | null; toc: number | null; lai72: number | null; tin: DoTin; ms: MocSo[] };
-export const TOP_DON = 3, DON_PHAN = 0.5, MAU_IT = 20;
+export const TOP_DON = 3, DON_PHAN = 0.5, MAU_IT = 20, TOT_BO = 10;   // TOT_BO: bỏ 3 mốc đầu phải còn ROI ≥ 10% mới gọi Tốt thật (06/11/2026: 10h còn +3% mà ghi Tốt thật)
 
 export const roiKhoi = (x: Khoi) => (x.chi >= 0.3 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null);
 const cong = (ds: MocSo[], c: (m: MocSo) => number, t: (m: MocSo) => number): Khoi => ({ n: ds.length, chi: ds.reduce((a, m) => a + c(m), 0), thu: ds.reduce((a, m) => a + t(m), 0) });
@@ -76,7 +76,7 @@ export function dongBang(ms: MocSo[]): DongMoc[] {
 }
 
 // ── NHẬN ĐỊNH TỰ ĐỘNG (anh 06/11/2026 "Làm sao show được kiểu insight thế này"): máy tự viết lời giải từ số mốc — không gọi AI, cùng ngưỡng độ tin ở trên.
-// kieu: 'tot' = tốt thật (bỏ 3 mốc đầu vẫn lãi) · 'nho' = cao nhờ vài camp (ROI cộng dồn dương mà bỏ 3 đầu âm / dồn ≥ DON_PHAN) · 'xau' = xấu đáng tin (đủ mẫu, cộng dồn
+// kieu: 'tot' = tốt thật (bỏ 3 mốc đầu vẫn lãi ≥ TOT_BO%) · 'nho' = cao nhờ vài camp (ROI cộng dồn dương mà bỏ 3 đầu âm / dồn ≥ DON_PHAN) · 'xau' = xấu đáng tin (đủ mẫu, cộng dồn
 // và bỏ 3 đầu đều âm, ≥ 2 / 3 khối 24 giờ âm) · 'hoa' = quanh hoà vốn · 'it' = chưa đủ mẫu
 export type KieuDong = 'tot' | 'nho' | 'xau' | 'hoa' | 'it';
 export const NHAN_KIEU: Record<KieuDong, [string, string]> = { tot: ['Tốt thật', '#4ade80'], nho: ['Cao nhờ vài camp', '#f59e0b'], xau: ['Xấu, đáng tin', '#f87171'], hoa: ['Quanh hoà vốn', 'var(--fg-2)'], it: ['Chưa đủ mẫu', 'var(--fg-3)'] };
@@ -84,7 +84,7 @@ export function kieuDong(d: DongMoc): KieuDong {
   const r = roiKhoi(d.k72), rb = roiKhoi(d.tin.boTop);
   if (d.k3.n < MAU_IT || r == null) return 'it';
   if (r > 0 && (rb == null || rb <= 0 || (d.tin.top ?? 0) >= DON_PHAN)) return 'nho';
-  if (r > 0 && rb != null && rb > 0) return 'tot';
+  if (r > 0 && rb != null && rb >= TOT_BO) return 'tot';
   const am = [d.k1, d.k2, d.k3].filter((k) => (roiKhoi(k) ?? 0) < 0).length;
   if (r < 0 && (rb ?? 0) < 0 && am >= 2) return 'xau';
   return 'hoa';

@@ -710,7 +710,9 @@ const soCot = <T,>(key: string, f: (r: T) => SoTien): DataColumn<T>[] => [
 type Kh = string;
 // KỲ SỐ LIỆU = ô chọn khoảng ngày chuẩn be.adfond.com (anh 27/10/2026): mã mốc ('1' hôm nay, '7', '30q', 'tuan_truoc'…), 'tat_ca', hoặc khoảng cứng 'YYYY-MM-DD~YYYY-MM-DD'
 const KH_CU: Record<string, string> = { nay: '1', thang: 'thang_nay', all: 'tat_ca' };   // mã cũ còn trong localStorage
-const khKhoang = (kh: Kh, homNay: string) => { if (kh === 'tat_ca') return { tu: '0000-01-01', den: homNay }; const m = /^(\d{4}-\d{2}-\d{2})~(\d{4}-\d{2}-\d{2})$/.exec(kh);
+// All time = từ KY_DAU: một ngày Postgres hiểu được (trước đây '0000-01-01' — năm 0 không có, Team + All time ở Insight lỗi máy chủ 06/11/2026), trước mọi số Ethopex
+const KY_DAU = '2026-01-01';
+const khKhoang = (kh: Kh, homNay: string) => { if (kh === 'tat_ca') return { tu: KY_DAU, den: homNay }; const m = /^(\d{4}-\d{2}-\d{2})~(\d{4}-\d{2}-\d{2})$/.exec(kh);
   return m ? { tu: m[1]!, den: m[2]! } : khoangCuaMoc(kh, homNay) ?? khoangCuaMoc('7', homNay)!; };
 const khNhanCua = (kh: Kh) => (kh === 'tat_ca' ? 'All time' : kh.includes('~') ? kh.split('~').map((d) => `${d.slice(8, 10)}/${d.slice(5, 7)}`).join(' – ') : nhanCuaMoc(kh));
 // KHỐI LỤC GIÁC BỘ TÀI KHOẢN (giống extension): số bộ trong khối, rê vào ra tài khoản QC + Page

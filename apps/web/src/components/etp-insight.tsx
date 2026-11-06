@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { mauLai } from '@/components/etp-so';
 import { docInsight, docMoc, type DuInsight } from '@/lib/actions/etp-insight';
 import { DataTable, type DataColumn } from '@/components/ui/data-table';
-import { dongBang, roiKhoi, type DongMoc, type Khoi, type MocSo } from '@/lib/etp-moc';
+import { dongBang, moTuHang, roiKhoi, type DongMoc, type Khoi, type MocSo } from '@/lib/etp-moc';
 
 const NHOM: Record<string, [string, string]> = { gio: ['🕒 Giờ', '#60a5fa'], ngay: ['📅 Ngày', '#a78bfa'], camp: ['🎯 Camp', '#f59e0b'], doi: ['👥 Đội', '#4ade80'] };
 const roi = (chi: number, thu: number) => (chi >= 1 ? Math.round(((thu - chi) / chi) * 100) : null);
@@ -43,7 +43,7 @@ function BangMoc({ ids, tu, den, nhan }: { ids: number[]; tu: string; den: strin
   const khoa = useMemo(() => [...ids].sort((a, b) => a - b).join(','), [ids]);
   const [ms, setMs] = useState<MocSo[] | null>(null), [loi, setLoi] = useState<string | null>(null);
   useEffect(() => { let huy = false; setMs(null); setLoi(null);
-    const t = setTimeout(() => { docMoc(khoa ? khoa.split(',').map(Number) : [], tu, den).then((r) => { if (!huy) { if ('loi' in r) setLoi(r.loi); else setMs(r); } }).catch((e) => !huy && setLoi(String(e?.message ?? e))); }, 300);
+    const t = setTimeout(() => { docMoc(khoa ? khoa.split(',').map(Number) : [], tu, den).then((r) => { if (!huy) { if ('loi' in r) setLoi(r.loi); else setMs(r.map(moTuHang)); } }).catch((e) => !huy && setLoi(String(e?.message ?? e))); }, 300);
     return () => { huy = true; clearTimeout(t); }; }, [khoa, tu, den]);
   const dong = useMemo(() => (ms ? dongBang(ms) : []), [ms]);
   return (

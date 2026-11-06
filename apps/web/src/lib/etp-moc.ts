@@ -12,7 +12,11 @@ export type MocHang = [LoaiMoc, number, number, number | string | null, number, 
 export const moTuHang = (r: MocHang): MocSo => { const n = (i: number) => Number(r[i] ?? 0);
   return { loai: r[0], camp: n(1), h: n(2), ty: r[3] == null ? null : Number(r[3]), du: n(4), c0: n(5), t0: n(6), c1: n(7), t1: n(8), c2: n(9), t2: n(10), c3: n(11), t3: n(12) }; };
 export type Khoi = { n: number; chi: number; thu: number };
-export type DongMoc = { k: string; nhom: string; ten: string; title?: string; n: number; truoc: Khoi; k1: Khoi; k2: Khoi; k3: Khoi; k72: Khoi; am1: number | null; toc: number | null; lai72: number | null };
+/** ĐỘ TIN của một dòng (anh 06/11/2026 sau dòng "Lên camp lúc 08h" +61% mà 6 camp chiếm 59% lãi, 62% camp vẫn âm): ROI cộng dồn bị vài mốc thắng lớn kéo —
+ *  pLai = tỷ lệ mốc lãi sau 72h (mốc chi ≥ $0,3) · boTop = khối 72h đã bỏ TOP_DON mốc lãi nhất · top = phần lãi (dương) của TOP_DON mốc đó · don = dòng không đáng tin: lãi dồn ≥ DON_PHAN hoặc < MAU_IT mốc đủ 72h */
+export type DoTin = { pLai: number | null; boTop: Khoi; top: number | null; don: string | null };
+export type DongMoc = { k: string; nhom: string; ten: string; title?: string; n: number; truoc: Khoi; k1: Khoi; k2: Khoi; k3: Khoi; k72: Khoi; am1: number | null; toc: number | null; lai72: number | null; tin: DoTin };
+export const TOP_DON = 3, DON_PHAN = 0.5, MAU_IT = 20;
 
 export const roiKhoi = (x: Khoi) => (x.chi >= 0.3 ? Math.round(((x.thu - x.chi) / x.chi) * 100) : null);
 const cong = (ds: MocSo[], c: (m: MocSo) => number, t: (m: MocSo) => number): Khoi => ({ n: ds.length, chi: ds.reduce((a, m) => a + c(m), 0), thu: ds.reduce((a, m) => a + t(m), 0) });
@@ -26,7 +30,16 @@ export function gom(k: string, nhom: string, ten: string, ds: MocSo[], title?: s
   return { k, nhom, ten, title, n: ds.length, truoc: cong(coTruoc, (m) => m.c0, (m) => m.t0), k1, k2: cong(d2, (m) => m.c2, (m) => m.t2), k3: cong(d3, (m) => m.c3, (m) => m.t3), k72,
     am1: coChi1.length ? coChi1.filter((m) => m.t1 < m.c1).length / coChi1.length : null,
     toc: coCa.length ? coCa.reduce((a, m) => a + m.c1, 0) / coCa.reduce((a, m) => a + m.c0, 0) : null,
-    lai72: d3.length ? (k72.thu - k72.chi) / d3.length : null };
+    lai72: d3.length ? (k72.thu - k72.chi) / d3.length : null, tin: doTin(d3) };
+}
+const lai3 = (m: MocSo) => m.t1 + m.t2 + m.t3 - m.c1 - m.c2 - m.c3;
+function doTin(d3: MocSo[]): DoTin {
+  const co = d3.filter((m) => m.c1 + m.c2 + m.c3 >= 0.3), xep = [...d3].sort((a, b) => lai3(b) - lai3(a));
+  const dau = xep.slice(0, TOP_DON).filter((m) => lai3(m) > 0), con = xep.slice(dau.length), duong = d3.reduce((a, m) => a + Math.max(0, lai3(m)), 0);
+  const top = duong > 0 && d3.length > TOP_DON ? dau.reduce((a, m) => a + lai3(m), 0) / duong : null;
+  return { pLai: co.length ? co.filter((m) => lai3(m) > 0).length / co.length : null, top,
+    boTop: cong(con, (m) => m.c1 + m.c2 + m.c3, (m) => m.t1 + m.t2 + m.t3),
+    don: d3.length < MAU_IT ? `ít mẫu: ${d3.length} mốc đủ 72h (< ${MAU_IT})` : top != null && top >= DON_PHAN ? `${TOP_DON} mốc lãi nhất chiếm ${Math.round(top * 100)}% phần lãi` : null };
 }
 
 export const GIO_VN = Array.from({ length: 24 }, (_, i) => (i + 7) % 24);   // ngày Ethopex bắt đầu 07:00 VN

@@ -47,7 +47,7 @@ function veSan(c, k, t) { const s = DS[k], bc = s.c.bc, g = DS[s.nhom], tg = t -
   // camera: đẩy nhẹ + lia về người vừa vào (nội suy giữa hai câu)
   const dich = (q) => { const n = q?.c.nguoi?.at(-1); return n ? n.x - 0.5 : 0; }, ca = DS[k - 1]?.nhom === s.nhom ? dich(DS[k - 1]) : dich(s), cam = ca + (dich(s) - ca) * io(kep(u / 1.4)), z = 1.04 + 0.014 * Math.min(tg, 12);
   const lop = (sau, ve) => { c.save(); c.translate(W / 2, H / 2); const zz = 1 + (z - 1) * (0.5 + sau), dx = -cam * 150 * sau; c.scale(zz, zz); c.translate(-W / 2 + dx, -H / 2); ve(); c.restore(); };
-  lop(0.1, () => { const n = A[bc.nen]; if (n) c.drawImage(n, -70, -40, W + 140, H + 80); else { c.fillStyle = '#c9b48b'; c.fillRect(-70, -40, W + 140, H + 80); } });
+  lop(0.1, () => { const n = A[bc.nen]; if (n) { c.filter = 'blur(1.4px) brightness(.9) saturate(.88)'; c.drawImage(n, -70, -40, W + 140, H + 80); c.filter = 'none'; }   // nền lùi sâu một chút để người + vật nổi lên else { c.fillStyle = '#c9b48b'; c.fillRect(-70, -40, W + 140, H + 80); } });
   lop(0.2, () => { for (const h of bc.hieu_ung || []) if (h === 'may' || h === 'khoi') HU[h](c, t, true); });
   // vật: xa → gần, trượt từ cánh gần nhất vào khung chính lúc mở cảnh
   [...(bc.vat || [])].sort((a, b) => a.sau - b.sau).forEach((v, i) => { const d = dan(v.anh, H * v.cao); if (!d) return; const q = tuoi(v, tg, 0.2 + i * 0.16, 0.85), ve = v.x < 0.5 ? -1 : 1, lx = (1 - nay(q)) * ve * 1100;

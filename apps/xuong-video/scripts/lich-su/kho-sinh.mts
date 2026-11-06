@@ -39,7 +39,9 @@ if (gocArg.startsWith('mota:')) {
     : loai === 'phuong_tien'
     ? `${pc.replace(/character/i, 'object').replace(/full body, /, '')}. Object: ${moTa}. Clean side view facing RIGHT, whole object visible, centered, plain pure white background, no people, no ground shadow, no text, letters or logos.`
     : `${pc}. Character: ${moTa}.${chanDung ? ' Image 1 is a real historical portrait of this exact person: match his real face closely (face shape, nose, brow, hairline, hair, expression) so viewers recognise him instantly, but redraw him entirely in the art style above, full body in period clothes.' : ''} Standing in a neutral relaxed pose, body turned slightly toward the right side of the picture, centered, no text, letters or logos.`;
-  const r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: chanDung ? [chanDung] : [], tiLe: loai === 'phuong_tien' || loai === 'sinh_vat' ? '3:2' : '2:3' });   // thú đứng nghiêng: khung ngang
+  let r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: chanDung ? [chanDung] : [], tiLe: loai === 'phuong_tien' || loai === 'sinh_vat' ? '3:2' : '2:3' });   // thú đứng nghiêng: khung ngang
+  // THỬ LẠI ảnh gốc (07/11/2026: cổng trả 500 một lượt → cả vai hỏng, các dáng thì đã có thử lại)
+  for (let lan = 2; !r.anh && lan <= 4; lan++) { console.log(`· goc: ${r.loi} — thử lại lần ${lan}`); await new Promise((o) => setTimeout(o, 6000 * lan)); r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: chanDung ? [chanDung] : [], tiLe: loai === 'phuong_tien' || loai === 'sinh_vat' ? '3:2' : '2:3' }); }
   if (!r.anh) { console.error(`✗ goc: ${r.loi}`); process.exit(1); }
   writeFileSync(join(ra, 'goc.jpg'), r.anh.data); tong += r.nguon.vnd || 0; console.log('✓ goc');
   goc = (await uploadToR2(`xuong-video/lich-su/tam/${Date.now()}-goc.jpg`, r.anh.data, 'image/jpeg'))!;

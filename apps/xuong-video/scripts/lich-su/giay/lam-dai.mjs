@@ -19,7 +19,7 @@ const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
 if (co('chi-viet')) process.exit(0);
 const cauDs = arg('mau') ? tap.cau.slice(0, Number(arg('mau'))) : tap.cau;
 // ---------- 2. tài sản ----------
-const NET = 'Handmade layered cut-paper collage, visible paper grain, flat coloured paper shapes with crisp hand-cut edges, muted earthy palette (ochre, slate blue, brick red, cream), storybook documentary';
+const NET = 'Handmade layered cut-paper collage, visible paper grain, flat coloured paper shapes with crisp hand-cut edges, muted earthy palette (ochre, slate blue, brick red, cream), storybook documentary, strictly pre-industrial period setting: dirt tracks only, no asphalt, no road markings, nothing modern';
 const bcDung = new Set(cauDs.map((c) => c.boi_canh).filter(Boolean)), BC = tap.boi_canh.filter((b) => bcDung.has(b.id));
 const ve1 = async (ds, thu) => { const thieu = ds.filter((d) => !existsSync(join(TAI, `${d.ten}.jpg`))); if (!thieu.length) return; const f = join(RA, `ve-${thu ? 'vat' : 'nen'}.json`), bt = `/tmp/ve-${id}-${thu ? 'v' : 'n'}`; writeFileSync(f, JSON.stringify(thieu)); await lenA(f, `${bt}.json`);
   try { cong((await boxA(`scripts/lich-su/giay/ve-giay.mts ${bt}.json ${bt}`, 20 * 60_000)).split('\n').pop()); } catch (e) { console.log(`⚠ ${String(e.stdout ?? e.message).split('\n').slice(-3).join(' ')}`); } await veA(`${bt}/.`, TAI); await sshA(`rm -rf ${bt} ${bt}.json`); };
@@ -32,14 +32,17 @@ const tepKho = join(LS, 'kho.json'), docKho = () => JSON.parse(readFileSync(tepK
 // CHÂN DUNG THẬT (07/11/2026, anh: "Napoleon nhìn không giống"): vai có tên thật khai chan_dung = tựa Wikipedia → ảnh đầu bài làm tham chiếu mặt
 const chanDung = async (tua) => { if (!tua) return null; try { const r = await (await fetch(`https://en.wikipedia.org/w/api.php?format=json&formatversion=2&action=query&redirects=1&prop=pageimages&piprop=thumbnail&pithumbsize=900&titles=${encodeURIComponent(tua)}`, { headers: { 'User-Agent': 'studio-lich-su/1.0 (studio.on.tc; admin@mixseo.net)' } })).json(); return r.query.pages[0]?.thumbnail?.source ?? null; } catch { return null; } };
 const canDang = new Map(); for (const c of cauDs) for (const n of c.nguoi ?? []) { if (!canDang.has(n.id)) canDang.set(n.id, new Set(['goc'])); canDang.get(n.id).add(n.dang); }
-await songSong([...canDang], 3, async ([nv, ds]) => { const v = tap.nhan_vat.find((x) => x.id === nv), d = join(TAI, 'nv', nv); mkdirSync(d, { recursive: true }); const k = docKho().tai_san[nv];
+const veVai = async ([nv, ds]) => { const v = tap.nhan_vat.find((x) => x.id === nv), d = join(TAI, 'nv', nv); mkdirSync(d, { recursive: true }); const k = docKho().tai_san[nv];
   if (k?.dang) { for (const g of ds) { const u = k.dang[g] ?? k.dang.goc, f = join(d, `${g}.png`); if (!existsSync(f)) writeFileSync(f, Buffer.from(await (await fetch(u)).arrayBuffer())); } return; }
   const thieu = [...ds].filter((g) => !existsSync(join(d, `${g}.png`))); if (thieu.length) { const bt = `/tmp/kho-${id}-${nv}`, cd = await chanDung(v.chan_dung), out = await boxA(`scripts/lich-su/kho-sinh.mts ${bt} ${q(`mota:nhan_vat:${v.mo_ta_en}`)} ${thieu.join(',')}${cd ? ` ${q(cd)}` : ''}`); console.log(`vai ${nv}: ${cd ? `theo chân dung ${cd}` : 'không có chân dung, vẽ theo mô tả'}`); cong(out.split('\n').pop()); await veA(`${bt}/.`, d); await sshA(`rm -rf ${bt}`);
     await Promise.all(readdirSync(d).filter((f) => f.endsWith('.jpg')).map((f) => chay('swift', [join(LS, 'nen-trong.swift'), join(d, f), join(d, f.replace('.jpg', '.png'))]))); }
   if (arg('mau')) return;   // bản mẫu chưa đẩy vai vào kho chung — chỉ tập trọn vẹn mới đẩy, kẻo thiếu dáng vĩnh viễn trong kho
   const png = readdirSync(d).filter((f) => f.endsWith('.png')).map((f) => join(d, f)), bt = `/tmp/kho-day-${id}-${nv}`; await sshA(`rm -rf ${bt} && mkdir -p ${bt}`); await lenA(png, `${bt}/`);
   const kq = JSON.parse((await boxA(`scripts/lich-su/kho-day.mts ${bt} ${nv} nhan_vat ${q(v.ten)} ${q(v.mo_ta_en)} ${v.tu} ${v.den}`)).split('\n').pop()); await sshA(`rm -rf ${bt}`);
-  const K = docKho(); K.tai_san[nv] = { loai: 'nhan_vat', ten: v.ten, tu: v.tu, den: v.den, ghi: v.mo_ta_en, nguon: 'AI vẽ (ckey Nano Banana 2) + tách nền Vision', studio_thanh_phan: kq.thanh_phan, dang: kq.dang, tap_dau: id }; writeFileSync(tepKho, JSON.stringify(K, null, 1) + '\n'); });
+  const K = docKho(); K.tai_san[nv] = { loai: 'nhan_vat', ten: v.ten, tu: v.tu, den: v.den, ghi: v.mo_ta_en, nguon: 'AI vẽ (ckey Nano Banana 2) + tách nền Vision', studio_thanh_phan: kq.thanh_phan, dang: kq.dang, tap_dau: id }; writeFileSync(tepKho, JSON.stringify(K, null, 1) + '\n'); };
+// một vai hỏng không kéo sập cả dàn: thử lại riêng vai đó, vẫn thiếu thì dừng trước khi tốn tiền giọng
+const vaiHong = []; await songSong([...canDang], 3, async (v) => { for (let lan = 1; lan <= 3; lan++) { try { return await veVai(v); } catch (e) { console.log(`⚠ vai ${v[0]} lượt ${lan}: ${String(e.stderr ?? e.message).trim().split('\n').pop().slice(0, 160)}`); } } vaiHong.push(v[0]); });
+if (vaiHong.length) { console.error(`✗ thiếu vai: ${vaiHong.join(', ')}`); process.exit(6); }
 // ảnh thật
 const UA = { 'User-Agent': 'studio-lich-su/1.0 (studio.on.tc; admin@mixseo.net)' };
 for (const k of new Set(cauDs.map((c) => c.anh).filter(Boolean))) { const f = join(TAI, `${k}.jpg`); if (existsSync(f)) continue; const a = tap.anh[k]; const r = await fetch(a.thumb, { headers: UA }); if (!r.ok) { console.log(`⚠ ảnh ${k} ${r.status}`); continue; } writeFileSync(`${f}.tam`, Buffer.from(await r.arrayBuffer())); execFileSync('sips', ['-s', 'format', 'jpeg', '--resampleWidth', '1500', `${f}.tam`, '--out', f], { stdio: 'ignore' }); execFileSync('rm', [`${f}.tam`]); await new Promise((o) => setTimeout(o, 800)); }

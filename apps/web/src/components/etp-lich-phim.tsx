@@ -11,9 +11,13 @@ import { botCampPhim, docLichPhim, themCampPhim, type LichPhim } from '@/lib/act
 
 const GD = ['Thử dạng', 'Camp lãi', 'Scale', 'ROAS'];
 const PHA: Record<string, [string, string]> = { hut: ['còn dư địa', '#22c55e'], dinh: ['quanh tối ưu', '#facc15'], bao_hoa: ['vượt sức chứa', '#ef4444'], it_so: ['chưa đủ số', '#6b7280'] };
-const BUOC_SX: Record<string, string> = { dang: '●', xong: '✓', bo_qua: '·', loi: '✕', cho: '○', dung: '✕' };
-const giaiDoan = (l: LichPhim) => (l.roas > 0 ? 3 : l.camp_lai >= 2 ? 2 : l.camp_lai >= 1 ? 1 : 0);
-const gio = (s: string) => { const d = new Date(Date.parse(s) + 7 * 3600_000); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
+// giai đoạn theo camp ĐANG CHẠY, không theo lịch sử (anh 07/11/2026)
+const giaiDoan = (l: LichPhim) => { const lai = l.dang.reduce((a, d) => a + d.lai, 0); return l.roas > 0 ? 3 : lai >= 2 ? 2 : lai >= 1 ? 1 : 0; };
+const TEN_BUOC: Record<string, string> = { nhan: 'nhận phim', ws: 'vào workspace', poster: 'poster', cat: 'cắt', soat: 'soát', creative: 'làm creative', camp: 'lên camp', chay: 'chờ chạy' };
+// dòng còn phải tạo camp: bước camp chưa xong; đã lên camp thì camp đó đã đếm ở phần đang chạy
+const conSx = (d: LichPhim['sx'][number]) => d.trang_thai !== 'dung' && !d.buoc.some((b) => b.buoc === 'camp' && b.trang_thai === 'xong');
+const buocHien = (d: LichPhim['sx'][number]) => d.buoc.find((b) => b.trang_thai === 'loi' || b.trang_thai === 'dung') ?? d.buoc.find((b) => b.trang_thai === 'dang') ?? d.buoc.find((b) => b.trang_thai === 'cho');
+const O = ({ mau, net }: { mau: string; net?: boolean }) => <span style={{ flex: '1 1 0', maxWidth: 22, minWidth: 3, height: 12, borderRadius: 2, background: net ? 'transparent' : mau, border: net ? `1px dashed ${mau}` : undefined }} />;
 
 export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruong: () => TheNoi; children: React.ReactNode }) {
   const router = useRouter(), noi = useNoi<{ id: 0 }>();
@@ -55,33 +59,39 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
               <span style={{ fontSize: 10.5, color: i === gd ? 'var(--fg)' : 'var(--fg-3)', fontWeight: i === gd ? 600 : 400 }}>{g}</span>
             </div>)}
           </div>
-          {/* dạng đã thử — MỘT THANH mỗi dạng (anh 06/11/2026 "khó hiểu", hàng chấm 41 camp tràn khung): xanh = phần camp lãi · chữ = lãi / đã thử · đang chạy */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '5px 8px', alignItems: 'center' }}>
-            {l.dang.map((d) => [
-              <span key={d.dang + 'a'} style={{ color: 'var(--fg-2)' }}>{MA_DANG[d.dang] ?? d.dang}</span>,
-              <div key={d.dang + 'b'} style={{ height: 6, borderRadius: 3, background: 'var(--line)', overflow: 'hidden' }}>
-                <div style={{ width: `${d.thu ? (d.lai / d.thu) * 100 : 0}%`, height: '100%', background: '#4ade80' }} /></div>,
-              <span key={d.dang + 'c'} style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
-                {d.thu ? <><b style={{ color: d.lai ? '#4ade80' : 'var(--fg-2)' }}>{d.lai}</b> lãi / {d.thu} camp</> : <span style={{ color: 'var(--fg-3)' }}>chưa thử</span>}
-                {d.chay ? <span style={{ color: 'var(--fg-3)' }}> · {d.chay} chạy</span> : null}</span>,
-            ])}
-          </div>
-          {/* mốc cất / lãi */}
-          {gd === 0 ? <div title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--fg-2)', fontSize: 11 }}><span>mốc cất</span><span>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp · ROI {l.chi >= 1 ? Math.round((l.thu - l.chi) / l.chi * 100) : 0}%</span></div>
-            <div style={{ height: 5, borderRadius: 3, background: 'var(--line)', marginTop: 3 }}><div style={{ height: 5, borderRadius: 3, width: `${Math.min(100, l.chi / l.moc_chi * 100)}%`, background: l.vong === 'sap_cat' ? '#f59e0b' : '#a78bfa' }} /></div>
-          </div> : <div style={{ color: 'var(--fg-2)', fontSize: 11 }}>{l.camp_lai} camp thường lãi{l.roas ? ` · ${l.roas} ROAS chạy` : ''} · chi cả phim ${Math.round(l.chi)} · ROI {l.chi >= 1 ? Math.round((l.thu - l.chi) / l.chi * 100) : 0}%{l.muc_hut ? ` · chi gần nhất $${Math.round(l.chi_gan ?? 0)} / tối ưu $${Math.round(l.muc_hut)}` : ''}</div>}
-          {/* sản xuất + lỗi */}
-          {l.sx.length || l.chan.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {l.sx.map((d) => { const loiB = d.buoc.find((b) => b.trang_thai === 'loi' || b.trang_thai === 'dung');
-              return <div key={d.id} title={d.buoc.map((b) => `${b.buoc}: ${b.trang_thai}${b.ghi ? ` — ${b.ghi}` : ''}`).join('\n')}>
-                <span style={{ color: 'var(--fg-2)' }}>{d.loai}{d.so_camp ? `×${d.so_camp}` : ''}</span>{' '}
-                <span style={{ letterSpacing: 2 }}>{d.buoc.filter((b) => b.trang_thai !== 'bo_qua').map((b, i) => <span key={i} style={{ color: b.trang_thai === 'loi' || b.trang_thai === 'dung' ? '#f87171' : b.trang_thai === 'xong' ? '#4ade80' : b.trang_thai === 'dang' ? '#facc15' : 'var(--fg-3)' }}>{BUOC_SX[b.trang_thai] ?? '○'}</span>)}</span>
-                {loiB ? <div style={{ color: '#f87171', fontSize: 11 }}>✕ {loiB.buoc}: {loiB.ghi ?? 'lỗi'}</div> : null}</div>; })}
-            {l.chan.map((c, i) => <div key={i} style={{ color: '#f59e0b', fontSize: 11 }} title={c.loi}>⛔ {gio(c.luc)} lên camp: {c.loi.replace(/^phim \d+ /, '').slice(0, 90)}</div>)}
-          </div> : null}
-          {/* sắp tới */}
-          {sapToi.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 2, color: 'var(--fg-2)' }}>{sapToi.map((s, i) => <div key={i}>{s}</div>)}</div> : null}
+          {/* TỔNG THỂ: camp đang chạy + đang sản xuất (anh 07/11/2026 "cái đang sx và active là quan trọng nhất") — camp đã tắt không vào đây */}
+          {(() => {
+            const chay = l.dang.reduce((a, d) => a + d.chay, 0), lai = l.dang.reduce((a, d) => a + d.lai, 0), lo = l.dang.reduce((a, d) => a + d.lo, 0);
+            const chi7 = l.dang.reduce((a, d) => a + d.chi7, 0), thu7 = l.dang.reduce((a, d) => a + d.thu7, 0);
+            const sx = l.sx.filter(conSx), soSx = (k: string) => sx.filter((d) => d.loai === k).reduce((a, d) => a + (d.so_camp ?? 1), 0), tongSx = sx.reduce((a, d) => a + (d.so_camp ?? 1), 0);
+            const ma = [...new Set([...l.dang.map((d) => MA_DANG[d.dang] ?? d.dang), ...sx.map((d) => d.loai)])];
+            const so = (n: number, chu: string, mau: string) => <span><b style={{ fontSize: 18, color: n ? mau : 'var(--fg-3)' }}>{n}</b> <span style={{ color: 'var(--fg-2)' }}>{chu}</span></span>;
+            const tenChan = [...new Set(l.chan.map((c) => c.loi.replace(/creative #\d+ cùng/, 'creative cùng').replace(/^phim \d+ /, '')))];
+            return <>
+              <div style={{ display: 'flex', gap: 14, alignItems: 'baseline', flexWrap: 'wrap' }} title="lãi / lỗ của camp đang chạy tính 7 ngày gần đây, chưa tiêu tới $1 thì chưa xếp">
+                {so(chay, 'chạy', 'var(--fg)')}{so(lai, 'lãi', '#4ade80')}{so(lo, 'lỗ', '#f87171')}{so(tongSx, 'đang SX', '#facc15')}{l.roas ? so(l.roas, 'ROAS', '#a78bfa') : null}
+                {chi7 >= 1 ? <span style={{ marginLeft: 'auto', color: thu7 > chi7 ? '#4ade80' : '#f87171' }}>ROI 7 ngày {Math.round((thu7 - chi7) / chi7 * 100)}%</span> : null}
+              </div>
+              {ma.length ? <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px', alignItems: 'center' }}>
+                {ma.map((k) => { const ds = l.dang.filter((d) => (MA_DANG[d.dang] ?? d.dang) === k), L = ds.reduce((a, d) => a + d.lai, 0), X = ds.reduce((a, d) => a + d.lo, 0), C = ds.reduce((a, d) => a + d.chay, 0) - L - X, S = soSx(k);
+                  return [<span key={k} style={{ color: 'var(--fg-2)', fontSize: 11 }}>{k}</span>,
+                    <div key={k + 'o'} style={{ display: 'flex', gap: 2 }} title={`${L} lãi · ${X} lỗ · ${C} chưa đủ số · ${S} đang sản xuất`}>
+                      {Array.from({ length: L }, (_, i) => <O key={'l' + i} mau="#4ade80" />)}{Array.from({ length: X }, (_, i) => <O key={'x' + i} mau="#f87171" />)}
+                      {Array.from({ length: C }, (_, i) => <O key={'c' + i} mau="#6b7280" />)}{Array.from({ length: S }, (_, i) => <O key={'s' + i} mau="#facc15" net />)}</div>]; })}
+              </div> : <div style={{ color: 'var(--fg-3)' }}>Chưa có camp chạy, chưa có gì đang sản xuất.</div>}
+              {l.muc_hut ? <div title="chi ngày gần nhất của cả phim so với mức chi tối ưu của đồng hồ thị trường"><div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--fg-2)', fontSize: 11 }}><span>chi/ngày</span><span>${Math.round(l.chi_gan ?? 0)} / tối ưu ${Math.round(l.muc_hut)}</span></div>
+                <div style={{ height: 4, borderRadius: 2, background: 'var(--line)', marginTop: 2 }}><div style={{ height: 4, borderRadius: 2, width: `${Math.min(100, (l.chi_gan ?? 0) / l.muc_hut * 100)}%`, background: pha[1] }} /></div></div> : null}
+              {gd === 0 ? <div title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--fg-2)', fontSize: 11 }}><span>mốc cất</span><span>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp</span></div>
+                <div style={{ height: 4, borderRadius: 2, background: 'var(--line)', marginTop: 2 }}><div style={{ height: 4, borderRadius: 2, width: `${Math.min(100, l.chi / l.moc_chi * 100)}%`, background: l.vong === 'sap_cat' ? '#f59e0b' : '#a78bfa' }} /></div></div> : null}
+              {/* lộ trình: việc sắp diễn ra, mỗi dòng một việc */}
+              {sx.length || sapToi.length || tenChan.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11.5, color: 'var(--fg-2)' }}>
+                {sx.map((d) => { const b = buocHien(d), hong = b?.trang_thai === 'loi' || b?.trang_thai === 'dung';
+                  return <div key={d.id} title={b?.ghi ?? undefined} style={{ color: hong ? '#f87171' : undefined }}>{hong ? '✕' : '◌'} {d.loai}×{d.so_camp ?? 1}: {hong ? `lỗi ở ${TEN_BUOC[b!.buoc] ?? b!.buoc}` : `${TEN_BUOC[b?.buoc ?? ''] ?? b?.buoc ?? 'chờ'}`}{b?.ghi && (hong || b.buoc === 'cat') ? ` — ${b.ghi.slice(0, 60)}` : ''}</div>; })}
+                {sapToi.map((t, i) => <div key={i}>{t}</div>)}
+                {tenChan.slice(0, 2).map((t, i) => <div key={i} style={{ color: '#f59e0b' }} title={t}>⛔ {l.chan.filter((c) => c.loi.replace(/creative #\d+ cùng/, 'creative cùng').replace(/^phim \d+ /, '') === t).length} lần: {t.slice(0, 70)}</div>)}
+              </div> : null}
+            </>; })()}
           {/* điều khiển */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderTop: '1px solid var(--line)', paddingTop: 8 }}>
             {(['CC', 'KT'] as const).map((k) => <button key={k} disabled={dang} style={nut} title={`dòng phim ${k} lên 1 camp $1 — ${chuLich()}${vuot ? ' · đồng hồ báo vượt sức chứa' : ''}`}

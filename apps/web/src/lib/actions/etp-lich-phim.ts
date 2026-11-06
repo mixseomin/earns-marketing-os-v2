@@ -11,8 +11,8 @@ import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 import { chayDong } from '@/lib/actions/etp-dong';
 
-export type LichDang = { dang: string; thu: number; chay: number; lai: number };
-export type LichSx = { id: number; loai: string; so_camp: number | null; buoc: { buoc: string; trang_thai: string; ghi: string | null }[]; tao: string };
+export type LichDang = { dang: string; chay: number; lai: number; lo: number; chi7: number; thu7: number };   // CHỈ camp đang chạy, lãi / lỗ theo 7 ngày (anh 07/11/2026 "mục tiêu là camp active")
+export type LichSx = { id: number; trang_thai: string; loai: string; so_camp: number | null; buoc: { buoc: string; trang_thai: string; ghi: string | null }[]; tao: string };
 export type LichPhim = {
   content_id: number; ten: string | null; vong: string | null; ly: string | null; pha: string | null; muc_hut: number | null; chi_gan: number | null;
   chi: number; thu: number; moc_chi: number; so_thu: number; moc_thu: number; camp_lai: number; roas: number; dang: LichDang[];
@@ -33,12 +33,13 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
         (select count(*) from s where chi >= 1)::int so_thu, (select count(*) from s where chi >= 1 and thu > chi and not la_roas)::int camp_lai,   -- cùng cách đếm với thanh từng dạng (không tính ROAS — ROAS đếm riêng)
         (select count(*) from etp.camp where content_id = ${id} and la_roas and trang_thai = 'ACTIVE')::int roas
       from (select 1) o left join etp.phim p on p.content_id = ${id} left join etp.mo_rong m on m.content_id = ${id}`),
-    run<LichDang>(sql`with s as (select c.camp_id, coalesce(r.dang, '?') dang, c.trang_thai, sum(n.chi) chi, sum(n.thu) thu from etp.camp c
-        left join etp.creative r using (creative_id) left join etp.so_ngay n using (camp_id) where c.content_id = ${id} and not c.la_roas group by 1, 2, 3)
-      select dang, count(*) filter (where chi >= 1)::int thu, count(*) filter (where trang_thai = 'ACTIVE')::int chay, count(*) filter (where chi >= 1 and thu > chi)::int lai
-      from s group by 1 order by 1`),
+    run<LichDang>(sql`with s as (select c.camp_id, coalesce(r.dang, '?') dang, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu from etp.camp c
+        left join etp.creative r using (creative_id) left join etp.so_ngay n on n.camp_id = c.camp_id and n.ngay >= current_date - 6
+        where c.content_id = ${id} and not c.la_roas and c.trang_thai = 'ACTIVE' group by 1, 2)
+      select dang, count(*)::int chay, count(*) filter (where chi >= 1 and thu > chi)::int lai, count(*) filter (where chi >= 1 and thu <= chi)::int lo, sum(chi)::float chi7, sum(thu)::float thu7
+      from s group by 1 order by 2 desc`),
     run<LichPhim['thay']>(sql`select kieu, buoc, ghi from etp.thay_the where content_id = ${id} and buoc not in ('chay', 'huy') order by id desc limit 1`),
-    run<LichSx>(sql`select d.id, d.loai, d.so_camp, d.tao_luc::text tao, coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai, 'ghi', left(b.ghi, 160)) order by b.thu_tu)
+    run<LichSx>(sql`select d.id, d.trang_thai, d.loai, d.so_camp, d.tao_luc::text tao, coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai, 'ghi', left(b.ghi, 160)) order by b.thu_tu)
         from etp.dong_buoc b where b.dong_id = d.id), '[]') buoc from etp.dong_phim d where d.content_id = ${id} and d.trang_thai in ('chay', 'loi', 'dung') order by d.id desc limit 3`),
     run<{ luc: string; loi: string }>(sql`select distinct on (left(loi, 60)) luc::text, left(loi, 180) loi from etp.nhat_ky
       where viec = 'tao_camp' and ok is null and luc > now() - interval '24 hours' and (loi like ${`%phim ${id} %`} or loi like ${`%phim #${id} %`} or loi like ${`%phim ${id}'%`}

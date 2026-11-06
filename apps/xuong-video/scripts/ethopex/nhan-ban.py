@@ -8,7 +8,7 @@ Chạy trên box3 (khoá ở studio):
   python3 nhan-ban.py <camp_gốc>            → in payload (chạy khô, không tạo gì)
   python3 nhan-ban.py <camp_gốc> --that [--luat "…"] [--ai "…"]   → tạo, đọc lại, ghi nhật ký (ethopex_nhat_ky)
     Clone GIỮ NGUYÊN creative gốc tới trần tran_trung camp chạy / đoạn (28/10/2026), đủ trần mới đổi creative khác cùng phim; mọi camp mới / clone chỉ dùng creative máy chấm SẠCH; chỉ clone camp gốc
-    đã chạm trần ngân sách (etp.cau_hinh.tran_camp, $30) (anh 25/10/2026).
+    có ngân sách ≥ etp.cau_hinh.nb_ns_goc ($9, anh 06/11/2026; 25/10–06/11 = chạm trần tran_camp).
   python3 nhan-ban.py <camp_khuôn> --creative <id> --content <id> --ten "<tên>" [--that …]   → camp MỚI cho creative khác trên khuôn camp đó
     (creative phải qua trước kiem-studio.sh + kiem-thoai-creative.sh; khuôn phải cùng ngôn ngữ với phim)
   python3 nhan-ban.py <camp_gốc> --thang <$> --that …   → THANG NHÂN BẢN bộ 2 (anh 25/10/2026): bản mới ở bậc ngân sách cao hơn camp gốc
@@ -467,10 +467,11 @@ def main(a):
             tran_dau = sorted(THANG_MUC | {1.0})[1] if len(THANG_MUC) else 3
             if la_ban_thang and thang <= ns: raise ValueError(f"bậc ${thang:g} không cao hơn bản thang gốc ${ns:g}")
             if not la_ban_thang and thang > tran_dau: raise ChanLuat(f"bản thang đầu của camp gốc thường tối đa ${tran_dau:g} (đi từ đáy $1–$3), không mở thẳng ${thang:g}")
-        elif not moi and not ep:   # CHỈ CLONE CAMP ĐÃ CHẠM TRẦN NGÂN SÁCH (anh 25/10/2026: "không tạo trùng nếu camp hiện tại chưa đạt $30 budget tối đa") — trần = etp.cau_hinh.tran_camp
-            tran = float(q("select coalesce((select gia_tri::text::numeric from etp.cau_hinh where khoa = 'tran_camp'), 30)") or 30)
+        elif not moi and not ep:   # CHỈ CLONE CAMP GỐC ĐỦ NGÂN SÁCH — mốc etp.cau_hinh.nb_ns_goc ($9, anh 06/11/2026 "Áp thêm 2 luật mới luôn": gốc $9–19 nhân ra ROI +16%, gốc không sụt);
+            # 25/10–06/11 mốc = chạm trần tran_camp (anh 25/10/2026 "không tạo trùng nếu camp hiện tại chưa đạt budget tối đa"). Thiếu khoá thì về trần như cũ
+            tran = float(q("select coalesce((select gia_tri::text::numeric from etp.cau_hinh where khoa = 'nb_ns_goc'), (select gia_tri::text::numeric from etp.cau_hinh where khoa = 'tran_camp'), 20)") or 20)
             ns = float((d.get("campaign") or {}).get("budget_daily") or 0)
-            if ns < tran: raise ChanLuat(f"camp gốc #{goc} mới ${ns:g}/ngày, chưa chạm trần ${tran:g} — chưa clone (tăng ngân sách camp gốc trước)")
+            if ns < tran: raise ChanLuat(f"camp gốc #{goc} mới ${ns:g}/ngày, chưa tới ${tran:g} (etp.cau_hinh.nb_ns_goc) — chưa clone (tăng ngân sách camp gốc trước)")
         if not NGOAI:   # PHIM BÃO HOÀ CHỈ CẢNH BÁO (anh 06/11/2026 "bỏ tiêu chí ko lên camp phim bão hoà") — cổng chặn 25/10–06/11 bỏ; câu bão hoà ghi vào kết quả cho tin / nhật ký
             try: bh = q(f"select chan_nb from etp.phim_bao_hoa where content_id = {int(cid)} and chan_nb is not null")
             except Exception: bh = ""

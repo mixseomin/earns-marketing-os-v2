@@ -55,11 +55,16 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
               <span style={{ fontSize: 10.5, color: i === gd ? 'var(--fg)' : 'var(--fg-3)', fontWeight: i === gd ? 600 : 400 }}>{g}</span>
             </div>)}
           </div>
-          {/* dạng đã thử: ● camp có chi · xanh = có camp lãi */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }} title="mỗi chấm = một camp đã có chi · xanh = camp lãi · số nhỏ = đang chạy">
-            {l.dang.map((d) => <span key={d.dang} style={{ whiteSpace: 'nowrap' }}><span style={{ color: 'var(--fg-2)' }}>{MA_DANG[d.dang] ?? d.dang}</span>{' '}
-              {Array.from({ length: Math.max(d.thu, 1) }, (_, i) => <span key={i} style={{ color: d.thu === 0 ? 'var(--fg-3)' : i < d.lai ? '#4ade80' : 'var(--fg-2)' }}>{d.thu === 0 ? '○' : '●'}</span>)}
-              {d.chay ? <sub style={{ color: 'var(--fg-3)', marginLeft: 2 }}>{d.chay}</sub> : null}</span>)}
+          {/* dạng đã thử — MỘT THANH mỗi dạng (anh 06/11/2026 "khó hiểu", hàng chấm 41 camp tràn khung): xanh = phần camp lãi · chữ = lãi / đã thử · đang chạy */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '5px 8px', alignItems: 'center' }}>
+            {l.dang.map((d) => [
+              <span key={d.dang + 'a'} style={{ color: 'var(--fg-2)' }}>{MA_DANG[d.dang] ?? d.dang}</span>,
+              <div key={d.dang + 'b'} style={{ height: 6, borderRadius: 3, background: 'var(--line)', overflow: 'hidden' }}>
+                <div style={{ width: `${d.thu ? (d.lai / d.thu) * 100 : 0}%`, height: '100%', background: '#4ade80' }} /></div>,
+              <span key={d.dang + 'c'} style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                {d.thu ? <><b style={{ color: d.lai ? '#4ade80' : 'var(--fg-2)' }}>{d.lai}</b> lãi / {d.thu} camp</> : <span style={{ color: 'var(--fg-3)' }}>chưa thử</span>}
+                {d.chay ? <span style={{ color: 'var(--fg-3)' }}> · {d.chay} chạy</span> : null}</span>,
+            ])}
           </div>
           {/* mốc cất / lãi */}
           {gd === 0 ? <div title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>

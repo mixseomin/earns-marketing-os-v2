@@ -13,8 +13,6 @@ const doc = () => { try { return JSON.parse(fs.readFileSync(tep(), 'utf8')); } c
 const ghi = (s) => fs.writeFileSync(tep(), JSON.stringify(s));
 const NHAN = { da_sua: '✅ Xong, chờ duyệt', can_anh: '⚠️ Cần anh quyết', treo: '⏹ Dừng giữa chừng' };
 
-/** Câu hẹn trong lời nhận: Thành nghỉ 23:00 → 07:00 giờ VN (may/astrolas-tasks.mjs). */
-export const henBatDau = (ms = Date.now()) => { const h = new Date(ms + 7 * 36e5).getUTCHours(); return h >= 23 || h < 7 ? 'bắt đầu lúc 7:00 sáng' : 'bắt đầu trong ≤ 2 phút'; };
 export const taskCuaTin = (mid) => (mid ? doc().tin[mid] ?? null : null);
 export const ghiPhanHoi = (task, anh, tin) => { const s = doc(); s.phan_hoi.push({ task, anh, tin }); ghi(s); };
 export const layPhanHoi = () => { const s = doc(), x = s.phan_hoi.shift(); if (x) ghi(s); return x ?? {}; };
@@ -35,7 +33,6 @@ if (a[1]?.endsWith('astrolas-tasks.mjs') && a.includes('--tu-kiem')) {
   await baoTask(tg, 4241, 4467, 'can_anh', 'x', 55); t.equal(gui[1].reply_parameters.message_id, 55, 'trả lời dưới tin anh');
   t.equal(taskCuaTin(900), 4467); t.equal(taskCuaTin(901), null); t.equal(taskCuaTin(null), null);
   t.deepEqual(layPhanHoi(), {}); ghiPhanHoi(4467, 'sửa lại', 77); t.deepEqual(layPhanHoi(), { task: 4467, anh: 'sửa lại', tin: 77 }); t.deepEqual(layPhanHoi(), {}, 'lấy một lần');
-  t.match(henBatDau(Date.UTC(2026, 10, 6, 3)), /≤ 2 phút/); t.match(henBatDau(Date.UTC(2026, 10, 6, 16)), /7:00/, '23:00 VN');
   console.log('astrolas-tasks: tự kiểm đạt');
 } else if (a[1]?.endsWith('astrolas-tasks.mjs') && a.includes('--phan-hoi')) {
   console.log(JSON.stringify(layPhanHoi()));

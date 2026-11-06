@@ -1,6 +1,6 @@
 # HEARTBEAT — Thành
 
-> Trạng thái: **bật** từ 06/11/2026 — `xu-task-astrolas` mỗi 2 phút trên iMac, nghỉ 23:00–07:00 giờ VN (bộ điều phối → ~/bin/thanh/chay.mjs trên iMac, mỗi phiên là Claude Code thật trong tmux "thanh"), chỉ gọi Claude khi có task; trần 30 task / ngày.
+> Trạng thái: **bật** từ 06/11/2026 — `xu-task-astrolas` mỗi 2 phút trên iMac, chạy liên tục, không nghỉ đêm (bộ điều phối → ~/bin/thanh/chay.mjs trên iMac, mỗi phiên là Claude Code thật trong tmux "thanh"), chỉ gọi Claude khi có task; trần 30 task / ngày.
 
 Checklist mỗi vòng (không có việc → NO_REPLY):
 

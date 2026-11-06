@@ -10,8 +10,8 @@ model: claude-code:opus effort:low   # anh 06/11/2026: "Dùng opus low", task c�
 room: dung-san-pham
 muc_quyet: 2
 approval: SMART
-heartbeat: xu-task-astrolas   # việc trên MÁY MAC: bộ điều phối iMac gọi ~/bin/thanh/chay.mjs mỗi 2 phút, nghỉ 23:00–07:00 giờ VN; bật/tắt ở chấm xanh cột Tự làm
-lich: mỗi 2 phút, nghỉ 23:00–07:00 · iMac
+heartbeat: xu-task-astrolas   # việc trên MÁY MAC: bộ điều phối iMac gọi ~/bin/thanh/chay.mjs mỗi 2 phút, chạy liên tục (anh 07/11/2026); bật/tắt ở chấm xanh cột Tự làm
+lich: mỗi 2 phút · iMac
 skills: []
 data: [repo:Astrolas.com, ai_tasks, site-cuc-bo:iMac]
 pay:

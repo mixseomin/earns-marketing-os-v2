@@ -13,7 +13,7 @@ import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 import { moHop, docNut, daTraLoi, phongCuaTopic } from './tg-phong.mjs';
 import { giaoAnh, viecCuaTin } from './tho-may-viec.mjs';
-import { taskCuaTin, ghiPhanHoi, henBatDau } from './astrolas-tasks.mjs';
+import { taskCuaTin, ghiPhanHoi } from './astrolas-tasks.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const MAC_DINH = 'fal:google/gemini-3.8-flash';
@@ -66,7 +66,7 @@ export async function xuThuKy(tg, { hoi = hoiMoHinh } = {}) {
     const tk = taskCuaTin(nc.hoi_mid);
     if (tk) {
       if (/^(không|ko|k|no|thôi|bỏ qua|đừng)[\s.!]*$/i.test(nc.anh.trim())) { await tra0(`🛠 <b>Thành</b>: đã ghi anh không làm tiếp task #${tk}.`); n++; continue; }
-      ghiPhanHoi(tk, nc.anh, nc.mid); await tra0(`🛠 <b>Thành</b> nhận: <i>${esc(nc.anh.slice(0, 200))}</i> — làm lại task #${tk}, ${henBatDau()}, xong báo ngay dưới tin này.`); n++; continue;
+      ghiPhanHoi(tk, nc.anh, nc.mid); await tra0(`🛠 <b>Thành</b> nhận: <i>${esc(nc.anh.slice(0, 200))}</i> — làm lại task #${tk}, bắt đầu trong ≤ 2 phút, xong báo ngay dưới tin này.`); n++; continue;
     }
     const vt = viecCuaTin(nc.hoi_mid);
     if (vt) {

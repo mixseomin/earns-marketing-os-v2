@@ -79,8 +79,8 @@ export const VIEC_NHIP = {
       mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/tho-may.mjs mỗi 5 phút: hàng worker/tho-may-viec.mjs (Phòng Tài nguyên xếp cảnh báo máy móc: làn đứng, box3 / VPS quá tải, thiếu RAM, daemon tắt; Phòng Nội dung xếp kênh máy đăng lỡ lượt thật — từ 25/10/2026) có việc → báo nhận dưới tin cảnh báo, gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) quyền hẹp trong repo spy-on-tc + ssh box3 / VPS máy cào: đo, tìm gốc, sửa, kiểm, commit, deploy — tối đa 30 phút, rồi trả lời dưới tin cảnh báo (đã sửa / không sửa được / cần anh). Không giới hạn số lượt, mỗi lần một việc. Không nhận khoá 2proxy / tài sản (chuyện tiền).' },
   ],
   'xu-task-astrolas': [
-    { ma: 'xu-task-astrolas', ten: 'Astrolas - xử task (Claude trên iMac)', lich: () => 'mỗi 2 phút, nghỉ 23:00–07:00 · iMac', khop: null,
-      mo_ta: 'Bộ điều phối iMac gọi ~/bin/thanh/chay.mjs mỗi 2 phút, nghỉ từ 23:00 đến 07:00 giờ VN: có task trong php artisan ai-tasks hoặc anh trả lời dưới tin báo → gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) chạy nguyên lệnh /tasks của repo (thứ tự nhận, 5 suất, claim, multi-agent), sau mỗi task qua cổng máy (đủ ảnh, chụp màn, Result đúng luật) rồi đẩy lên nhánh ai (deploy thật) và rồi báo vào chủ đề Astrolas ngay từng task. Trần 30 task / ngày giờ VN. Không có task thì không gọi mô hình.' },
+    { ma: 'xu-task-astrolas', ten: 'Astrolas - xử task (Claude trên iMac)', lich: () => 'mỗi 2 phút · iMac', khop: null,
+      mo_ta: 'Bộ điều phối iMac gọi ~/bin/thanh/chay.mjs mỗi 2 phút, cả ngày lẫn đêm: có task trong php artisan ai-tasks hoặc anh trả lời dưới tin báo → gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) chạy nguyên lệnh /tasks của repo (thứ tự nhận, 5 suất, claim, multi-agent), sau mỗi task qua cổng máy (đủ ảnh, chụp màn, Result đúng luật) rồi đẩy lên nhánh ai (deploy thật) và rồi báo vào chủ đề Astrolas ngay từng task. Trần 30 task / ngày giờ VN. Không có task thì không gọi mô hình.' },
   ],
   'sua-bai': [
     { ma: 'sua-bai', ten: 'Sửa bài Phòng Nội dung trả về', lich: () => 'mỗi 5 phút · iMac', khop: null,

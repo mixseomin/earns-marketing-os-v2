@@ -1022,7 +1022,7 @@ const LUAT = [
   { card: 'insight-moc-0611', tep: 'apps/web/src/components/etp-insight.tsx', co: '<BangMoc ids={ids} tu={tu} den={den} nhan={nhan} />', vi: 'bảng mốc (lên camp / lên bậc / giảm bậc lúc Hh) × ROI 24h trước · 0–24 · 24–48 · 48–72 · cộng 72h' },
   { card: 'insight-moc-0611', tep: 'apps/web/src/lib/etp-moc.ts', co: 'export function dongBang(ms: MocSo[]): DongMoc[]', vi: 'gom dòng bảng mốc một chỗ (có tự kiểm etp-moc.test.mts)' },
   { card: 'insight-moc-0611', tep: 'apps/web/src/components/etp-view.tsx', cam: "tu: '0000-01-01'", vi: 'All time không dùng năm 0 (Postgres báo lỗi — Team + All time ở Insight sập 06/11/2026)' },
-  { card: 'insight-moc-0611', tep: 'apps/web/src/lib/actions/etp-insight.ts', co: 'try { return await docMocTho(ids, tu, den); } catch (e)', vi: 'lỗi truy vấn mốc trả { loi } cho bảng, không ném lên trang' }
+  { card: 'insight-moc-0611', tep: 'apps/web/src/lib/actions/etp-insight.ts', co: 'try { return await docMocTho(ids, tu, den); } catch (e)', vi: 'lỗi truy vấn mốc trả { loi } cho bảng, không ném lên trang' },
   { card: 'chat', tep: V, co: '? <ChipPhim ph={phCua.get(k)} bh={bhCua.get(k)} /> : null; } },', vi: 'cột Luật dòng phim: thẻ vòng thử (đã cất / sắp cất / đổi bộ) + bão hoà' },
   { card: 1509, tep: V, co: "header: <NgayNhan d={d} />, align: 'center',", vi: 'cột ngày Chủ nhật đánh dấu khác (tô cam, gạch chân)' },
   { card: 1509, tep: V, co: "const laCN = (d: string) => new Date(`${d}T00:00:00Z`).getUTCDay() === 0;", vi: 'nhận Chủ nhật theo ngày Ethopex' },

@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Johnny+Depp&day=9&month=6&year=1963&location=Owensboro%2C+Kentucky%2C+USA&lat=37.7719&lng=-87.1112&hour=8&minute=44",
+ "doc_luc": "2026-11-06T17:36:23.782Z",
+ "goc": {
+  "Ascendant": {
+   "do": "0°21'"
+  },
+  "MC": {
+   "do": "17°28'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "18°00'",
+   "nha": 11,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "13°18'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "25°15'",
+   "nha": 11,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "26°03'",
+   "nha": 11,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "3°12'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "13°58'",
+   "nha": 9,
+   "nghich": false
+  },
+  "Saturn": {
+   "do": "23°05'",
+   "nha": 8,
+   "nghich": true
+  },
+  "Uranus": {
+   "do": "1°35'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "13°25'",
+   "nha": 4,
+   "nghich": true
+  },
+  "Pluto": {
+   "do": "9°38'",
+   "nha": 2,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 4916,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Barack+Obama&day=4&month=8&year=1961&location=Honolulu%2C+Hawaii%2C+USA&lat=21.3069&lng=-157.8583&hour=19&minute=24",
+ "doc_luc": "2026-11-06T17:35:19.669Z",
+ "goc": {
+  "Ascendant": {
+   "do": "18°03'"
+  },
+  "MC": {
+   "do": "28°54'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "12°33'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "3°21'",
+   "nha": 4,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "2°20'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "1°47'",
+   "nha": 5,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "22°35'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "0°52'",
+   "nha": 12,
+   "nghich": true
+  },
+  "Saturn": {
+   "do": "25°20'",
+   "nha": 12,
+   "nghich": true
+  },
+  "Uranus": {
+   "do": "25°16'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "8°36'",
+   "nha": 9,
+   "nghich": false
+  },
+  "Pluto": {
+   "do": "6°59'",
+   "nha": 7,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 5040,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

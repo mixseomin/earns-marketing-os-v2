@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Beyonc%C3%A9&day=4&month=9&year=1981&location=Houston%2C+Texas%2C+USA&lat=29.7604&lng=-95.3698&hour=21&minute=47",
+ "doc_luc": "2026-11-06T17:35:41.281Z",
+ "goc": {
+  "Ascendant": {
+   "do": "29°00'"
+  },
+  "MC": {
+   "do": "18°56'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "12°27'",
+   "nha": 5,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "26°44'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "3°17'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "20°48'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "1°56'",
+   "nha": 4,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "12°29'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Saturn": {
+   "do": "9°06'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Uranus": {
+   "do": "26°29'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "22°05'",
+   "nha": 8,
+   "nghich": false
+  },
+  "Pluto": {
+   "do": "22°40'",
+   "nha": 6,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 4908,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

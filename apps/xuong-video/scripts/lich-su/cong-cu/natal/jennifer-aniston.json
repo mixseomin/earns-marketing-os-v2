@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Jennifer+Aniston&day=11&month=2&year=1969&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=22&minute=22",
+ "doc_luc": "2026-11-06T17:36:01.306Z",
+ "goc": {
+  "Ascendant": {
+   "do": "24°40'"
+  },
+  "MC": {
+   "do": "27°19'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "23°22'",
+   "nha": 4,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "23°16'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "0°27'",
+   "nha": 4,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "9°13'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "23°50'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "5°15'",
+   "nha": 12,
+   "nghich": true
+  },
+  "Saturn": {
+   "do": "21°08'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Uranus": {
+   "do": "3°28'",
+   "nha": 12,
+   "nghich": true
+  },
+  "Neptune": {
+   "do": "28°38'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Pluto": {
+   "do": "24°33'",
+   "nha": 11,
+   "nghich": true
+  }
+ },
+ "rong": 1080,
+ "cao": 4908,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

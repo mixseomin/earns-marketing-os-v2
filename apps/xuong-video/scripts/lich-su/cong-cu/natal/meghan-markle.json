@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Meghan%2C+Duchess+of+Sussex+%28Meghan+Markle%29&day=4&month=8&year=1981&location=Canoga+Park%2C+Los+Angeles%2C+California%2C+USA&lat=34.2011&lng=-118.5981&hour=4&minute=46",
+ "doc_luc": "2026-11-06T17:36:08.402Z",
+ "goc": {
+  "Ascendant": {
+   "do": "24°17'"
+  },
+  "MC": {
+   "do": "11°48'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "12°00'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "4°54'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "5°36'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "13°08'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "11°27'",
+   "nha": 12,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "6°41'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Saturn": {
+   "do": "5°52'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Uranus": {
+   "do": "26°03'",
+   "nha": 5,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "22°19'",
+   "nha": 5,
+   "nghich": true
+  },
+  "Pluto": {
+   "do": "21°51'",
+   "nha": 4,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 4916,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

@@ -58,7 +58,8 @@ export function tachCanh(tap) {
     const d = Math.max(q.den - q.tu || 0, manh.reduce((s, m) => s + giay(m), 0)); o.tu = tron(t); o.den = tron(t + d); t = tron(t + d); return o;
   });
   // không câu nào phải đổi → giữ nguyên mốc gốc (trang có đoạn chỉ có hình, không chữ — Tonight's Sky 90 s chỉ 3 câu)
-  if (cau.every((o, i) => !o.manh && JSON.stringify(o.the) === JSON.stringify(tap.cau[i].the) && o.nhan === tap.cau[i].nhan)) return tap;
+  // (chỉ khi tập có mốc giờ sẵn: máy viết để tu/den 0 cho hàm này tính — trả nguyên thì ra tập 0 giây, 06/11/2026 tập MC của Read Your Chart)
+  if (tap.DAI > 0 && cau.every((o, i) => !o.manh && JSON.stringify(o.the) === JSON.stringify(tap.cau[i].the) && o.nhan === tap.cau[i].nhan)) return tap;
   return { ...tap, cau, DAI: Math.max(tap.DAI ?? 0, cau.at(-1).den) };
 }
 /** mảnh đang hiện ở giây t của một câu (chia theo lượng chữ) — trang dựng gọi bản sao của hàm này */

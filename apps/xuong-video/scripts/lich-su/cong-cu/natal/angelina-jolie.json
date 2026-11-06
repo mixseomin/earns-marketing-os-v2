@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Angelina+Jolie&day=4&month=6&year=1975&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=9&minute=9",
+ "doc_luc": "2026-11-06T17:31:59.954Z",
+ "goc": {
+  "Ascendant": {
+   "do": "28°54'"
+  },
+  "MC": {
+   "do": "17°53'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "13°25'",
+   "nha": 11,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "13°05'",
+   "nha": 9,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "22°20'",
+   "nha": 11,
+   "nghich": true
+  },
+  "Venus": {
+   "do": "28°09'",
+   "nha": 12,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "10°42'",
+   "nha": 9,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "17°25'",
+   "nha": 9,
+   "nghich": false
+  },
+  "Saturn": {
+   "do": "17°23'",
+   "nha": 12,
+   "nghich": false
+  },
+  "Uranus": {
+   "do": "28°48'",
+   "nha": 4,
+   "nghich": true
+  },
+  "Neptune": {
+   "do": "10°20'",
+   "nha": 5,
+   "nghich": true
+  },
+  "Pluto": {
+   "do": "6°31'",
+   "nha": 3,
+   "nghich": true
+  }
+ },
+ "rong": 1080,
+ "cao": 4916,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

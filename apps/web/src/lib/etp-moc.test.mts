@@ -28,3 +28,11 @@ console.log('etp-moc: ok');
 const h = moTuHang(['tang', 5, 22, '1.5', 3, '1.00', '2.00', '2', '3', '2', '2', '2', '1']);
 assert.equal(h.ty, 1.5); assert.equal(h.c0 + h.t3, 2); assert.equal(moTuHang(['len', 5, 9, null, 1, 0, 0, 1, 1, 0, 0, 0, 0]).ty, null);
 console.log('etp-moc hàng: ok');
+// độ tin: 1 mốc thắng lớn + 22 mốc lỗ nhỏ → ROI cộng dồn dương nhưng bỏ top thì âm, top chiếm 100% phần lãi, đánh dấu dồn
+const lon = m({ camp: 99, c1: 10, t1: 40, c2: 10, t2: 40, c3: 10, t3: 40 });
+const nho = Array.from({ length: 22 }, (_, i) => m({ camp: i + 1, c1: 1, t1: 0.5, c2: 1, t2: 0.5, c3: 1, t3: 0.5 }));
+const tin = gom('d', 'n', 't', [lon, ...nho]).tin;
+assert.ok(roiKhoi(gom('d', 'n', 't', [lon, ...nho]).k72)! > 0); assert.equal(roiKhoi(tin.boTop), -50); assert.equal(tin.top, 1); assert.ok(tin.don?.includes('chiếm 100%'));
+assert.equal(Math.round(tin.pLai! * 100), 4, '1 / 23 mốc lãi');
+assert.ok(gom('d', 'n', 't', nho.slice(0, 5)).tin.don?.startsWith('ít mẫu'), '< 20 mốc đủ 72h = ít mẫu');
+console.log('etp-moc độ tin: ok');

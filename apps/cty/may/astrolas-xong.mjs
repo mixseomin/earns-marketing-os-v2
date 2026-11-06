@@ -24,8 +24,23 @@ export const loiKetQua = (kq) => { const than = kq.replace(/↳[^\n]*/g, '').rep
 export const soAnh = (show) => (show.split(/^images:\s*$/m)[1]?.split(/^\S/m)[0].match(/^\s+\[\d+\]/gm) ?? []).length;
 /** Số ảnh khác nhau của task đã được Read thật trong nhật ký phiên. */
 export const anhDaDoc = (nhatKy, id) => new Set(nhatKy.match(new RegExp(`"file_path":"/tmp/task-images/t${id}(?:_\\d+)?\\.[a-z]+"`, 'g')) ?? []).size;
-/** Lý do chưa được báo xong, [] = qua cổng. Đã đọc nguyên văn task (show) + đủ ảnh + Result đúng luật + nhìn trang nếu đụng giao diện. */
-export const cong = ({ id, show, nhatKy, doiGiaoDien, chupMoi, khongChup }) => [
+/** Tài liệu BẮT BUỘC đọc (anh 06/11/2026: "phải đọc đủ cả context"), đọc từ chính bảng Auto-load trong CLAUDE.md của repo theo tệp đã sửa, cộng `contexts` của task và skill chung. Bảng đổi thì cổng đổi theo, không chép tay ở đây. */
+export function canDoc(claudeMd, doi, show = '') {
+  const can = new Set(['.claude/skills/astrolas-patterns.md']), bang = claudeMd.split(/^## Auto-load Module Context/m)[1]?.split(/^## /m)[0] ?? '';
+  const taiLieu = (ve) => { for (const m of ve.matchAll(/`((?:context_[\w.-]+\.md)|(?:skills\/[\w./-]+\.md))`/g)) can.add(m[1].startsWith('skills/') ? `.claude/${m[1]}` : `.agents/contexts/${m[1]}`); };
+  for (const dong of bang.split('\n')) {
+    const i = dong.indexOf('→'); if (i < 0) continue;
+    const trai = dong.slice(0, i).split(/Intent:/)[0], mau = [...trai.matchAll(/`([^`]+)`/g)].map((m) => m[1]); if (!mau.length) continue;
+    if (doi.some((f) => mau.some((g) => new RegExp(g.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')).test(f)))) taiLieu(dong.slice(i));
+  }
+  taiLieu((show.match(/^contexts:(.*)$/m) || [])[1]?.replace(/([\w.-]+\.md)/g, '`$1`') ?? '');
+  return [...can];
+}
+/** Tài liệu bắt buộc chưa được Read thật trong nhật ký phiên. */
+export const chuaDoc = (nhatKy, can) => can.filter((f) => !nhatKy.includes(`/${f}"`));
+/** Lý do chưa được báo xong, [] = qua cổng. Đã đọc nguyên văn task (show) + đủ ảnh + đủ tài liệu + Result đúng luật + nhìn trang nếu đụng giao diện. */
+export const cong = ({ id, show, nhatKy, doiGiaoDien, chupMoi, khongChup, thieuTaiLieu = [] }) => [
+  ...(thieuTaiLieu.length ? [`chưa đọc đủ tài liệu dự án cho phần đã sửa, Read TỪNG tệp rồi đối chiếu lại bản sửa: ${thieuTaiLieu.join(', ')}`] : []),
   ...(new RegExp(`ai-tasks show --id=[\\d,-]*\\b${id}\\b`).test(nhatKy) || khoangCoId(nhatKy, id) ? [] : [`chưa đọc nguyên văn task: php artisan ai-tasks show --id=${id} --pull-images`]),
   ...(anhDaDoc(nhatKy, id) < soAnh(show) ? [`task có ${soAnh(show)} ảnh mà phiên mới Read ${anhDaDoc(nhatKy, id)}: chạy show --pull-images rồi Read TỪNG ảnh trực tiếp; tải không được thì đặt Blocked, không được làm khi chưa thấy ảnh`] : []),
   ...loiKetQua(docKetQua(show)).map((x) => `Result: ${x}; viết lại bằng ai-tasks update rồi gọi lại`),
@@ -50,6 +65,11 @@ if (process.argv.includes('--tu-kiem')) {
   t.match(cong({ ...c0, nhatKy: nk2, doiGiaoDien: true })[0], /chưa chụp màn/); t.deepEqual(cong({ ...c0, nhatKy: nk2, doiGiaoDien: true, chupMoi: true }), []); t.deepEqual(cong({ ...c0, nhatKy: nk2, doiGiaoDien: true, khongChup: 'x' }), []);
   t.match(cong({ ...c0, nhatKy: '"file_path":"/tmp/task-images/t9_1.jpg" "file_path":"/tmp/task-images/t9_2.jpg"' })[0], /chưa đọc nguyên văn/, 'không show: chặn');
   t.deepEqual(cong({ ...c0, nhatKy: 'ai-tasks show --id=5-12 --pull-images "file_path":"/tmp/task-images/t9_1.jpg" "file_path":"/tmp/task-images/t9_2.jpg"' }), [], 'show theo khoảng: tính'); t.match(cong({ ...c0, id: 99, show: 'status: x\nresult: V.\n↳ entity: —\nissue_url: y\n', nhatKy: 'ai-tasks show --id=9 ' })[0], /chưa đọc nguyên văn/, 'id khác: chặn');
+  const bang = '## Auto-load Module Context\nGhi chú → không có mẫu\n- `*/birth-chart/*`, `BirthChart2Controller*`, Intent: "`*/solar*`" → `context_birth2.md` + **`skills/birth-chart/SKILL.md`** (x)\n- `*SeedLocale*` → `context_localization.md`\n## Khác\n- `*/birth-chart/*` → `context_khac.md`\n';
+  t.deepEqual(canDoc(bang, ['resources/views/v2/domains/birth-chart/_tab.blade.php']), ['.claude/skills/astrolas-patterns.md', '.agents/contexts/context_birth2.md', '.claude/skills/birth-chart/SKILL.md'], 'đúng dòng, không lấy mục ngoài bảng');
+  t.deepEqual(canDoc(bang, ['app/x.php']), ['.claude/skills/astrolas-patterns.md'], 'tệp không khớp: chỉ skill chung'); t.deepEqual(canDoc(bang, ['a/solar/x.php']), ['.claude/skills/astrolas-patterns.md'], 'mẫu sau chữ Intent không tính'); t.ok(canDoc(bang, [], 'contexts: context_studio_v2.md\n').includes('.agents/contexts/context_studio_v2.md'), 'contexts của task');
+  t.deepEqual(chuaDoc('"file_path":"/r/.agents/contexts/context_birth2.md"', ['.agents/contexts/context_birth2.md', '.claude/skills/x.md']), ['.claude/skills/x.md']);
+  t.match(cong({ ...c0, nhatKy: nk2, thieuTaiLieu: ['.claude/skills/x.md'] })[0], /chưa đọc đủ tài liệu/);
   console.log('astrolas-xong: tự kiểm đạt'); process.exit(0);
 }
 if (process.argv[1]?.endsWith('astrolas-xong.mjs')) {
@@ -74,7 +94,8 @@ if (process.argv[1]?.endsWith('astrolas-xong.mjs')) {
   try { for (const f of fs.readdirSync(con, { recursive: true })) if (String(f).endsWith('.jsonl')) nhatKy += fs.readFileSync(path.join(con, f), 'utf8'); } catch { /* phiên không có tác tử phụ */ }
   git('fetch', '-q', 'origin', NHANH);
   const doi = git('diff', '--name-only', `origin/${NHANH}...HEAD`), soChup = (nhatKy.match(/"command":"br look/g) ?? []).length, chupTruoc = st.chup?.ss === ss ? st.chup.n : 0;
-  const loi = cong({ id, show, nhatKy, doiGiaoDien: /resources\/views|public\/(css|js)\//.test(doi), chupMoi: soChup > chupTruoc, khongChup }); if (loi.length) die(loi);
+  const thieuTaiLieu = chuaDoc(nhatKy, canDoc(fs.readFileSync(path.join(REPO, 'CLAUDE.md'), 'utf8'), doi.split('\n').filter(Boolean), show).filter((f) => fs.existsSync(path.join(REPO, f))));
+  const loi = cong({ id, show, nhatKy, doiGiaoDien: /resources\/views|public\/(css|js)\//.test(doi), chupMoi: soChup > chupTruoc, khongChup, thieuTaiLieu }); if (loi.length) die(loi);
   st.chup = { ss, n: soChup };
   let than = chu;
   if (doi) {

@@ -27,6 +27,8 @@ export const tachBao = (ra) => ra.replace(/^\s*\**(KET:|Việc chính:).*$/gim, 
 export const docKetQua = (show) => (show.match(/^result: ([\s\S]*?)\n(?:images:|issue_url:|conversation_id:)/m) || [])[1]?.trim() ?? '';
 /** Dòng bản do máy ghi, không để mô hình đoán: nó ghi trước khi đẩy nên từng ra "chưa lên máy chủ" trên bản đã lên (#4469). Đặt ngay trước dòng entity. */
 export const ghiBan = (kq, sha) => { const r = kq.replace(/\s*↳ bản:[^\n]*/g, '').trim(), ban = `↳ bản: đã lên máy chủ ${sha}`, i = r.indexOf('↳ entity:'); return i < 0 ? `${r}\n${ban}` : `${r.slice(0, i).trimEnd()}\n${ban}\n${r.slice(i)}`; };
+/** Lỗi đo được của Result theo luật tasks.md: thiếu dòng entity, phần mô tả lộ tên kỹ thuật (tên tệp, seeder, khoá icon / locale, biến CSS). Lời văn thì không đo được, phần đó vẫn do mô hình. */
+export const loiKetQua = (kq) => { const than = kq.replace(/↳[^\n]*/g, '').replace(/\S*astrolas\.com\S*/g, ''), ky = than.match(/[\w/-]+\.(?:blade|php|css|js|json)\b|\bSeed[A-Z]\w*|\b[a-z]+\.[a-z][a-z_-]*\b|\b[a-z]+_[a-z_]+\b|--[a-z][\w-]+|\bfs-[a-z]+\b/g) ?? []; return [...(kq.includes('↳ entity:') ? [] : ['thiếu dòng cuối ↳ entity:']), ...(ky.length ? [`phần mô tả có tên kỹ thuật: ${[...new Set(ky)].join(', ')}`] : [])]; };
 /** Giờ nghỉ: 23:00 → 07:00 giờ VN, không phụ thuộc múi giờ máy. */
 export const nghiDem = (ms = Date.now()) => { const h = new Date(ms + 7 * 36e5).getUTCHours(); return h >= 23 || h < 7; };
 if (process.argv.includes('--tu-kiem')) {
@@ -41,6 +43,8 @@ if (process.argv.includes('--tu-kiem')) {
   const h2 = [{ id: 1, status: 'Rework' }, { id: 2, status: 'Not started' }];
   t.match(tinMoi(h2, []), /2 task mới: #1, #2\nHàng chờ: 1 làm lại · 1 mới/); t.equal(tinMoi(h2, [1, 2]), null, 'đã báo: im'); t.match(tinMoi(h2, [1]), /1 task mới: #2/); t.equal(tinMoi([], []), null);
   t.equal(tachBao('dài dòng\nBÁO ANH: Sửa xong.\nKET: DA_SUA\n\n**Việc chính:** x'), 'Sửa xong.', 'cùng dòng'); t.equal(tachBao('a\n**BÁO ANH:**\nb\nc\nKET: CAN_ANH'), 'b\nc'); t.equal(tachBao('không có dấu'), 'không có dấu');
+  t.deepEqual(loiKetQua('Đã sửa, xem https://astrolas.com/birth?a_b=1.\n↳ bản: x\n↳ entity: x-entity.a_b (reuse)'), [], 'dòng ↳ và link không tính');
+  t.match(loiKetQua('Thêm planet.sect_balance vào SeedUiIcons, cỡ fs-xl.\n↳ entity: —')[0], /planet\.sect_balance, SeedUiIcons, fs-xl/); t.match(loiKetQua('Việc.')[0], /thiếu dòng/); t.equal(loiKetQua('Dùng --space-1.\n↳ entity: —').length, 1); t.equal(loiKetQua('Sửa file a.blade.php.\n↳ entity: —').length, 1);
   t.equal(docKetQua('status: x\nresult: dòng 1\n↳ entity: —\nimages:\n  [1] a'), 'dòng 1\n↳ entity: —'); t.equal(docKetQua('status: x\nissue_url: y'), '');
   t.equal(ghiBan('Việc.\n↳ bản: chưa lên máy chủ\n↳ entity: a (reuse)', 'abc'), 'Việc.\n↳ bản: đã lên máy chủ abc\n↳ entity: a (reuse)', 'thay dòng sai'); t.equal(ghiBan('Việc. ↳ bản: đã lên máy chủ x.', 'abc'), 'Việc.\n↳ bản: đã lên máy chủ abc', 'dòng dính cuối câu');
   const gio = (h, p = 0) => Date.UTC(2026, 10, 6, h - 7, p);
@@ -106,14 +110,16 @@ NẠP ĐỦ THÔNG TIN DỰ ÁN TRƯỚC KHI SỬA:
 
 CÁCH LÀM:
 1. php artisan ai-tasks show --id=${id} --pull-images rồi Read trực tiếp mọi ảnh.
-2. Có ảnh bản thiết kế hoặc ảnh khoanh vùng: TRƯỚC khi sửa, liệt kê TỪNG khác biệt nhìn thấy giữa ảnh và hiện trạng (icon từng dòng và tiêu đề, viền, nền, kẻ dòng, căn lề, cỡ chữ, dạng pill, thứ tự, chữ thừa), rồi sửa đủ hết; không làm một phần rồi dừng. Icon chọn đúng hình trong ảnh.
+2. Có ảnh bản thiết kế hoặc ảnh khoanh vùng: TRƯỚC khi sửa, liệt kê TỪNG khác biệt nhìn thấy giữa ảnh và hiện trạng (icon từng dòng và tiêu đề, viền, nền, kẻ dòng, căn lề, cỡ chữ, dạng pill, thứ tự, chữ thừa), rồi sửa đủ hết; không làm một phần rồi dừng. Icon chọn đúng hình trong ảnh. Task Rework mà result cũ có danh sách mục: danh sách đó chính là đề bài. Trước khi báo, đi lại TỪNG mục (grep trong mã đã sửa); mục chưa làm phải ghi rõ "Chưa làm: …" trong result và BÁO ANH, không gộp mục mới cho đủ số.
 3. Sửa tận gốc, dùng lại component có sẵn. Bản đang chạy ở máy này là nhánh ai; mã bạn commit sẽ LÊN TRANG THẬT ngay, nên kiểm kỹ. Máy này không mở được trang chạy thật, nên CẤM viết "khớp bản thiết kế" hay "đúng thiết kế": ghi rõ đã sửa những khác biệt nào, còn gì chưa làm, và "chưa nhìn trên trang thật". cache:clear báo lỗi Redis ở máy này là bình thường, deploy tự xoá cache.
 4. Read .claude/skills/ship-check/SKILL.md, chạy php artisan ship:check, sửa hết ⚠ và chạy các lệnh 🔧 đúng điều kiện. Đối chiếu lại từng mệnh đề của yêu cầu.
 5. git add đúng các tệp đã sửa rồi git commit -m "fix: #${id} <mô tả tiếng Việt>". Không được để sót thay đổi chưa commit. Không git push: script tự đẩy ngay sau lượt của bạn.
 6. php artisan ai-tasks update --id=${id} --status="Need Reviews" --result="..." đúng giọng văn tasks.md, dòng cuối riêng bắt buộc: ↳ entity: <tên>(reuse|new|extend) hoặc ↳ entity: —. Không ghi dòng ↳ bản: máy tự ghi sau khi đẩy.
 Mỗi lệnh một dòng phẳng: không cd, không &&, không ;, không vòng lặp (lớp quyền chặn).
 
-CẤM (gặp là dừng, đặt Blocked, --result ghi rõ cần anh quyết gì): tinker · migration xoá hoặc đổi dữ liệu có sẵn · seed ngoài SeedLocale_* · đẩy dữ liệu lên máy chủ (interp2 push, db-sync) · gọi mô hình AI tốn tiền · đổi giá, gói, thanh toán · xoá dữ liệu · git revert / reset / checkout / stash · đặt Done · in khoá, mật khẩu.
+Không chạy seed: máy này không có dữ liệu cục bộ, seeder mới thì thêm vào deploy như CLAUDE.md, deploy tự chạy.
+
+CẤM (gặp là dừng, đặt Blocked, --result ghi rõ cần anh quyết gì): tinker · migration xoá hoặc đổi dữ liệu có sẵn · đẩy dữ liệu lên máy chủ (interp2 push, db-sync) · gọi mô hình AI tốn tiền · đổi giá, gói, thanh toán · xoá dữ liệu · git revert / reset / checkout / stash · đặt Done · in khoá, mật khẩu.
 Thiếu thông tin không đoán được, hoặc task quá lớn cho 30 phút → php artisan ai-tasks update --id=${id} --status="Blocked" --result="<lý do + cần gì>", không commit dở.
 
 KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: CAN_ANH", ngay trên nó một dòng "BÁO ANH:" rồi 2–4 dòng tiếng Việt lời thường cho anh đọc trên điện thoại, không tên tệp, không lệnh: yêu cầu gì · vì sao bị · đã sửa thế nào (hoặc câu hỏi cần anh trả lời). Xưng "con", gọi "anh".`;
@@ -128,9 +134,9 @@ luu();
 if (!st.lo.length && !ph.task) { log('hết task'); process.exit(0); }
 try { execFileSync('rsync', ['-a', '--delete', '-e', 'ssh -o BatchMode=yes -o ConnectTimeout=5', NHO_NGUON, `${NHO}/`], { env: ENV, timeout: 120000 }); } catch (e) { log(`chưa chép được ghi nhớ từ MacBook, dùng bản lần trước: ${e.message.split('\n')[0]}`); }
 
-const QUYEN = ['Read', 'Glob', 'Grep', `Edit(/${REPO}/**)`, `Write(/${REPO}/**)`, 'Bash(php artisan ai-tasks:*)', 'Bash(php artisan ship:check:*)', 'Bash(php artisan lint:*)', 'Bash(php artisan view:clear)', 'Bash(php artisan cache:clear)', 'Bash(php artisan optimize:clear)', 'Bash(php artisan lang:sync:*)', 'Bash(php artisan db:seed --class=SeedLocale_:*)', 'Bash(php artisan migrate)', 'Bash(php artisan deps:export:*)', 'Bash(php artisan design:export:*)', 'Bash(php artisan chart-config:export:*)', 'Bash(php artisan chat-eval:export:*)', 'Bash(php artisan route:list:*)', 'Bash(php -l:*)', 'Bash(node --check:*)',
+const QUYEN = ['Read', 'Glob', 'Grep', `Edit(/${REPO}/**)`, `Write(/${REPO}/**)`, 'Bash(php artisan ai-tasks:*)', 'Bash(php artisan ship:check:*)', 'Bash(php artisan lint:*)', 'Bash(php artisan view:clear)', 'Bash(php artisan cache:clear)', 'Bash(php artisan optimize:clear)', 'Bash(php artisan lang:sync:*)', 'Bash(php artisan migrate)', 'Bash(php artisan deps:export:*)', 'Bash(php artisan design:export:*)', 'Bash(php artisan chart-config:export:*)', 'Bash(php artisan chat-eval:export:*)', 'Bash(php artisan route:list:*)', 'Bash(php -l:*)', 'Bash(node --check:*)',
   'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git add:*)', 'Bash(git commit:*)', 'Bash(grep:*)', 'Bash(ls:*)', 'Bash(shell-smells:*)'];
-const CAM = ['AskUserQuestion', 'Skill', 'RemoteTrigger', 'Agent', 'Task', 'Workflow', 'WebFetch', 'WebSearch', 'CronCreate', 'Bash(git push:*)', 'Bash(git reset:*)', 'Bash(git revert:*)', 'Bash(git checkout:*)', 'Bash(git stash:*)', 'Bash(git clean:*)', 'Bash(php artisan tinker:*)', 'Bash(composer:*)', 'Bash(npm:*)'];
+const CAM = ['AskUserQuestion', 'Skill', 'RemoteTrigger', 'Agent', 'Task', 'Workflow', 'WebFetch', 'WebSearch', 'CronCreate', 'Bash(git push:*)', 'Bash(git reset:*)', 'Bash(git revert:*)', 'Bash(git checkout:*)', 'Bash(git stash:*)', 'Bash(git clean:*)', 'Bash(php artisan tinker:*)', 'Bash(php artisan db:*)', 'Bash(composer:*)', 'Bash(npm:*)'];
 
 // phiên trước chỉ đọc MEMORY và tasks.md rồi sửa, lời dặn không đủ (3/3 phiên 06/11/2026): chặn ở máy, đọc nhật ký phiên chứ không tin lời báo
 const GAC = `f=$(jq -r .transcript_path); grep -q '"file_path":"[^"]*/\\.agents/contexts/' "$f" || { echo 'CHƯA ĐỌC TÀI LIỆU PHẦN ĐANG SỬA: Read đúng tệp .agents/contexts/ theo bảng Auto-load trong CLAUDE.md rồi mới được sửa.' >&2; exit 2; }`;
@@ -144,8 +150,8 @@ function lamTask(v, anh, tin, nhan) {
   const truoc = git('rev-parse', 'HEAD');
   const { r, kq } = claude('-p', giaoCho(v, anh));
   const ra = String(kq.result || '').trim();
-  // result thiếu dòng entity (luật tasks.md, #4471): cho chính phiên đó bổ sung một lần
-  if (trangThai(id) === 'Need Reviews' && kq.session_id && !docKetQua(art('show', `--id=${id}`)).includes('↳ entity:')) claude('-p', `Result của task #${id} thiếu dòng cuối ↳ entity:. Chạy lại php artisan ai-tasks update --id=${id} --status="Need Reviews" --result="<nguyên văn result cũ>\n↳ entity: <tên>(reuse|new|extend) hoặc —". Không sửa gì khác.`, '--resume', kq.session_id);
+  // Result sai luật đo được (#4470, #4471): cho chính phiên đó viết lại một lần
+  if (trangThai(id) === 'Need Reviews' && kq.session_id) { const loi = loiKetQua(docKetQua(art('show', `--id=${id}`))); if (loi.length) { log(`#${id} result sai luật: ${loi.join(' · ')}`); claude('-p', `Result của task #${id} sai luật: ${loi.join('; ')}. Viết lại bằng php artisan ai-tasks update --id=${id} --status="Need Reviews" --result="...": lời thường cho người không phải dev (vì sao bị · đã sửa thế nào · giờ thấy gì), giữ đủ các mục "Chưa làm", dòng cuối ↳ entity: <tên>(reuse|new|extend) hoặc ↳ entity: —. Tên kỹ thuật chỉ được ở dòng entity. Không sửa mã.`, '--resume', kq.session_id); } }
   const sau = git('rev-parse', 'HEAD'), than0 = tachBao(ra);
   let ket = /KET:\**\s*DA_SUA/i.test(ra) ? 'da_sua' : /KET:\**\s*CAN_ANH/i.test(ra) ? 'can_anh' : 'treo', than = than0 || `Claude thoát ${r.status ?? r.signal} không kèm báo cáo (${String(r.stderr || r.error?.message || '').slice(0, 200)})`, tiep = true;
   // đọc lại trên bảng, không tin lời báo: còn In progress = task kẹt lại, chat khác sẽ tưởng đang có người làm
@@ -177,7 +183,7 @@ if (!st.lo.length && !nghiDem() && (st.audit ?? []).length >= AUDIT_SAU) {
   const { r, kq } = claude('-p', `Bạn là Thành, kỹ sư của Phòng Astrolas, chạy không giao diện. Anh đã ra lệnh chạy /audit sau mỗi khoảng ${AUDIT_SAU} task.
 Read ${os.homedir()}/.claude/commands/audit.md và làm đúng lệnh đó. Phạm vi CHỈ các commit sau của bạn (git show <mã>), không lấy cây làm việc, không lan sang mã khác:
 ${ds.map((x) => `#${x.id}: ${x.sha}`).join('\n')}
-Không mở được trang chạy thật ở máy này: mục cần đo màn ghi "chưa đo" rồi rà bằng mã. Trước khi sửa phải Read tệp .agents/contexts/ của phần đó. Sửa thì chạy php artisan ship:check, git add đúng tệp, git commit -m "refactor: audit <các #task>"; không git push, script tự đẩy. Đổi bố cục, đổi đặc tả, hay việc trong danh sách CẤM (tinker, seed ngoài locale, đẩy dữ liệu, gọi AI tốn tiền, giá, xoá dữ liệu, hoàn tác git) thì KHÔNG làm, ghi thành mục cần anh quyết.
+Không mở được trang chạy thật ở máy này: mục cần đo màn ghi "chưa đo" rồi rà bằng mã. Trước khi sửa phải Read tệp .agents/contexts/ của phần đó. Sửa thì chạy php artisan ship:check, git add đúng tệp, git commit -m "refactor: audit <các #task>"; không git push, script tự đẩy. Đổi bố cục, đổi đặc tả, hay việc trong danh sách CẤM (tinker, seed, đẩy dữ liệu, gọi AI tốn tiền, giá, xoá dữ liệu, hoàn tác git) thì KHÔNG làm, ghi thành mục cần anh quyết.
 KẾT THÚC bằng một dòng "BÁO ANH:" rồi 3–6 dòng tiếng Việt lời thường cho anh đọc trên điện thoại, không tên tệp: tìm thấy gì · đã sửa gì · mục nào bỏ qua hoặc chưa đo · gì cần anh quyết. Xưng "con", gọi "anh". Dòng cuối "KET: DA_SUA" hoặc "KET: CAN_ANH".`);
   const sau = git('rev-parse', 'HEAD'); let than = tachBao(String(kq.result || '').trim()) || `Audit dừng giữa chừng: Claude thoát ${r.status ?? r.signal} (${String(r.stderr || r.error?.message || '').slice(0, 200)})`;
   if (sau !== truoc) { try { day(); st.deploy_cho = git('rev-parse', 'HEAD'); than += `\nĐã đẩy lên máy chủ (${sau.slice(0, 8)}).`; } catch (e) { try { git('merge', '--abort'); } catch { /* không có merge dở */ } than += `\nChưa đẩy được lên máy chủ: ${e.message.split('\n')[0].slice(0, 200)}`; } }

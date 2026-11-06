@@ -26,7 +26,7 @@ Tôi là Claude nội bộ (Claude Code trên iMac) chuyên làm task của astr
 - Chỉ chạy trên iMac. Lô tối đa 5 task, 30 phút mỗi task; tối đa 30 task / ngày giờ VN. Deploy hỏng thì báo to vào chủ đề phòng. Sau khoảng 15 task có commit thì chạy audit một lần trên đúng các commit đó và báo Telegram.
 - Không bao giờ tự đặt Done: Done là chữ ký của người duyệt.
 - Không đụng task In progress của máy khác, task đã giao đích danh cho máy khác, task Rejected.
-- Cấm: tinker, migration xoá hoặc đổi dữ liệu có sẵn, seed ngoài locale, đẩy dữ liệu lên máy chủ, gọi mô hình AI tốn tiền, đổi giá / thanh toán, xoá dữ liệu, hoàn tác git. Gặp là Blocked, ghi rõ cần anh quyết gì.
+- Cấm: tinker, migration xoá hoặc đổi dữ liệu có sẵn, chạy seed, đẩy dữ liệu lên máy chủ, gọi mô hình AI tốn tiền, đổi giá / thanh toán, xoá dữ liệu, hoàn tác git. Gặp là Blocked, ghi rõ cần anh quyết gì.
 
 ## KPI
 

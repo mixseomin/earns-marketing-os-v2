@@ -506,6 +506,24 @@ def lam_buoc(d, buoc):
         DON[0] = 0   # phim xong → vòng sau dọn ngay
     print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} · {buoc} → {ket} · {ghi[:160]}", flush=True)
 
+# NHÀ MỞ RỘNG PHIM ĐỘI LÃI (anh 06/11/2026 "phải mở thêm ở Nhà các camp kiểu này"): phim trong etp.phim_doi_lai (nhà + đội ROI cao, ngày đã khép) → máy tự xếp
+# dòng mở rộng CC với so_camp = len_doi_lai.so_camp — đường dòng lo cả creative đúng CTA mới (dùng lại creative sạch có sẵn, thiếu thì cắt), soát, chấm, lên camp $1.
+# Đợt đầu 06/11 qua hàng chờ cho_len_v lên 0 camp: creative có sẵn của 169100 / 172519 / 153695 đều CTA cũ. Mỗi phim một đợt / 24 giờ, không xếp khi phim đang có dòng chạy.
+DOI_LAI = [0.0]
+def mo_doi_lai():
+    if time.time() - DOI_LAI[0] < 600: return
+    DOI_LAI[0] = time.time()
+    for l in sql("""begin; select pg_advisory_xact_lock(4390);
+        insert into etp.dong_phim (content_id, ten, loai, ai, so_camp)
+        select d.content_id, p.ten, 'CC', 'máy: phim đội lãi ROI ' || d.roi || '% trên $' || round(d.chi) || ' (' || coalesce((g.gia_tri->>'ngay'), '3') || ' ngày đã khép, nhà + đội)',
+          coalesce((g.gia_tri->>'so_camp')::int, 5)
+        from etp.phim_doi_lai d left join etp.phim p using (content_id), (select (select gia_tri from etp.cau_hinh where khoa = 'len_doi_lai') gia_tri) g
+        where coalesce(p.nhom_goc, 'au_my') = 'au_my'
+          and not exists (select 1 from etp.dong_phim x where x.content_id = d.content_id and x.trang_thai = 'chay')
+          and not exists (select 1 from etp.dong_phim x where x.content_id = d.content_id and x.ai like 'máy: phim đội lãi%' and x.tao_luc > now() - interval '24 hours')
+        returning id, content_id; commit;""").splitlines():
+        if "\t" in l: print(f"[{time.strftime('%H:%M:%S')}] phim đội lãi → xếp dòng mở rộng #{l.split(chr(9))[0]} phim {l.split(chr(9))[1]}", flush=True)
+
 CHAY = {}   # (dòng, bước) → (thread, lần chạy cuối)
 DUNG = [None]
 def vong():
@@ -516,6 +534,8 @@ def vong():
         DON[0] = time.time()
         try: don_dep()
         except Exception as e: print(f"dọn lỗi: {e}", flush=True)
+    try: mo_doi_lai()
+    except Exception as e: print(f"mở rộng phim đội lãi lỗi: {str(e)[:200]}", flush=True)
     for d in doc_dong():
         bs = d.get("buoc") or {}
         if not bs:   # dòng mới (web vừa tạo): dựng 8 bước — hạn từng bước khai MỘT chỗ ở đây

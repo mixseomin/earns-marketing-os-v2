@@ -686,6 +686,8 @@ const LUAT = [
   { card: 'mo-doi-lai-0611', tep: 'packages/db/migrations/0439_etp_nha_mo_doi_lai.sql', co: "when dl then null", vi: 'phim đội lãi bỏ qua chấm quá 3 ngày / dòng phim / đã từng có camp / đội nhận — Nhà mở thêm camp (anh 06/11/2026 \"phải mở thêm ở Nhà các camp kiểu này\")' },
   { card: 'mo-doi-lai-0611', tep: 'packages/db/migrations/0439_etp_nha_mo_doi_lai.sql', co: "when dl and dl_luc > now() - interval '24 hours' then 'phim đội lãi — Nhà đã mở đợt lúc '", vi: 'phim đội lãi mỗi 24 giờ một đợt' },
   { card: 'mo-doi-lai-0611', tep: 'packages/db/migrations/0439_etp_nha_mo_doi_lai.sql', co: "then 'phim đội lãi — mỗi đợt một creative, creative này chờ đợt sau'", vi: 'mỗi đợt một creative (so_camp camp)' },
+  { card: 'mo-doi-lai-0611', tep: 'apps/etp/dong_phim.py', co: "and x.ai like 'máy: phim đội lãi%' and x.tao_luc > now() - interval '24 hours')", vi: 'phim đội lãi → máy tự xếp dòng mở rộng mỗi 24 giờ (creative đúng CTA mới, thiếu thì cắt)' },
+  { card: 'mo-doi-lai-0611', tep: 'packages/db/migrations/0440_etp_doi_lai_qua_dong.sql', co: "when dl then 'phim đội lãi — Nhà mở qua dòng phim mở rộng", vi: 'hàng chờ không lên đôi creative phim đội lãi' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', co: 'r1 < goc[1] and lai(x1) < lai(goc[0]):', vi: 'lên thêm camp mà lãi $ vẫn tăng thì không tính bão hoà (anh 06/11/2026 #169100 lãi $17 → $93)' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', co: 'r3 > r2 > r1 and lai(x1) < lai(x3):', vi: 'ROI giảm 2 ngày mà lãi $ tăng thì không gắn bão hoà' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', cam: 'Nhà đã ngừng mở camp phim này', vi: 'tin team không còn nói Nhà ngừng mở camp (bão hoà chỉ cảnh báo)' },

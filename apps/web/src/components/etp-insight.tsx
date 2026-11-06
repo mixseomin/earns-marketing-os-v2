@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Dem, KeToan, mauLai } from '@/components/etp-so';
 import { docInsight, docMoc, type DuInsight } from '@/lib/actions/etp-insight';
 import { DataTable, type DataColumn } from '@/components/ui/data-table';
-import { dongBang, moTuHang, roiKhoi, TOP_DON, DON_PHAN, MAU_IT, type DongMoc, type Khoi, type MocSo } from '@/lib/etp-moc';
+import { dongBang, giaiDong, kieuDong, moTuHang, nhanDinh, roiKhoi, NHAN_KIEU, TEN_LOAI, TOP_DON, DON_PHAN, MAU_IT, type DongMoc, type Khoi, type MocSo } from '@/lib/etp-moc';
 
 const NHOM: Record<string, [string, string]> = { gio: ['🕒 Giờ', '#60a5fa'], ngay: ['📅 Ngày', '#a78bfa'], camp: ['🎯 Camp', '#f59e0b'], doi: ['👥 Đội', '#4ade80'] };
 const roi = (chi: number, thu: number) => (chi >= 1 ? Math.round(((thu - chi) / chi) * 100) : null);
@@ -38,6 +38,7 @@ const COT_MOC: DataColumn<DongMoc>[] = [
   { key: 'du72', header: 'Đủ 72h', group: 'moc', width: 62, title: 'số mốc đã có đủ 72 giờ số — chỉ những mốc này vào ô ROI 48–72h, ROI cộng 72h, Lãi 72h', cell: (d) => <Dem v={d.k3.n} />, sortValue: (d) => d.k3.n },
   ...KHOI.map(([k, h, t]): DataColumn<DongMoc> => ({ key: k, header: h, title: t, group: 'roi', width: 84, cell: (d) => <ORoi x={d[k] as Khoi} mo={k === 'k72' ? d.tin.don : null} />, sortValue: (d) => roiKhoi(d[k] as Khoi) })),
   // ĐỘ TIN (anh 06/11/2026 "bảng đó phải chỉnh để nhìn được cái mày vừa gom lại có giá trị"): ROI cộng dồn bị vài camp thắng lớn kéo — ba cột này cho thấy dòng đều thật hay nhờ vài mốc
+  { key: 'kieu', header: 'Đánh giá', group: 'tin', width: 118, title: 'máy tự đánh giá dòng theo độ tin — bấm dòng xem vì sao', cell: (d) => { const [t, mau] = NHAN_KIEU[kieuDong(d)]; return <span style={{ color: mau, fontWeight: 600, whiteSpace: 'nowrap' }}>{t}</span>; }, sortValue: (d) => kieuDong(d) },
   { key: 'plai', header: '% mốc lãi', group: 'tin', width: 80, title: 'tỷ lệ mốc có lãi sau 72 giờ (mốc chi ≥ $0,3) — số đếm từng camp, không bị camp lớn kéo', cell: (d) => <So v={d.tin.pLai == null ? null : `${Math.round(d.tin.pLai * 100)}%`} />, sortValue: (d) => d.tin.pLai },
   { key: 'botop', header: `Bỏ ${TOP_DON} đầu`, group: 'tin', width: 80, title: `ROI cộng 72 giờ khi bỏ ${TOP_DON} mốc lãi nhất — còn dương thì cả nhóm tốt thật, chuyển âm thì ROI cộng dồn là nhờ vài camp`, cell: (d) => <ORoi x={d.tin.boTop} />, sortValue: (d) => roiKhoi(d.tin.boTop) },
   { key: 'top', header: `${TOP_DON} đầu chiếm`, group: 'tin', width: 86, title: `phần lãi (các mốc lãi cộng lại) do ${TOP_DON} mốc lãi nhất mang về — ≥ ${Math.round(DON_PHAN * 100)}% là dồn, dòng đánh ⚠ · dưới ${MAU_IT} mốc đủ 72h cũng ⚠ (ít mẫu)`,
@@ -47,6 +48,41 @@ const COT_MOC: DataColumn<DongMoc>[] = [
   { key: 'toc', header: 'Chi ×', group: 'kq', width: 64, title: 'chi 24 giờ sau ÷ chi 24 giờ trước (mốc có chi cả hai phía) — tăng bậc có ăn thêm tiền thật không', cell: (d) => <So v={d.toc == null ? null : `×${d.toc.toFixed(2)}`} />, sortValue: (d) => d.toc },
   { key: 'chi1', header: 'Chi 24h', group: 'kq', width: 100, cell: (d) => (d.k1.n ? <KeToan v={d.k1.chi} /> : <span style={{ color: 'var(--fg-3)' }}>—</span>), sortValue: (d) => d.k1.chi }];
 
+// mở camp ở tab Camp (ngăn camp), giữ người / kỳ đang xem
+const linkCamp = (id: number) => { if (typeof location === 'undefined') return '#'; const u = new URL(location.href); u.searchParams.set('t', 'camp'); u.searchParams.set('ngan', `camp:${id}`); return `${u.pathname}${u.search}`; };
+const o2: React.CSSProperties = { padding: '3px 8px', textAlign: 'right', whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums', borderTop: '1px solid var(--line)' };
+/** BẤM MỘT DÒNG → vì sao dòng đó như vậy: kết luận + camp mang lãi + chia theo người (lib/etp-moc giaiDong) */
+function GiaiDongO({ d }: { d: DongMoc }) {
+  const g = giaiDong(d), [t, mau] = NHAN_KIEU[g.kieu];
+  return (
+    <div style={{ padding: '8px 4px 10px', display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5 }}>
+      <div><b style={{ color: mau }}>{t}.</b> {g.cau.replace(/^[^:]+: /, '')}</div>
+      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        {g.top.length ? <table style={{ borderCollapse: 'collapse' }}><thead><tr>{['Camp lãi nhất (72h)', 'Người', 'Chi', 'Lãi', 'Phần lãi'].map((h, i) => <th key={h} style={{ ...o2, borderTop: 'none', color: 'var(--fg-2)', fontWeight: 600, fontSize: 11, textAlign: i < 2 ? 'left' : 'right' }}>{h}</th>)}</tr></thead>
+          <tbody>{g.top.map((x) => <tr key={x.camp}><td style={{ ...o2, textAlign: 'left' }}><a href={linkCamp(x.camp)} style={{ color: '#60a5fa' }}>#{x.camp}</a></td><td style={{ ...o2, textAlign: 'left' }}>{x.ai}</td>
+            <td style={{ ...o2, width: 90 }}><KeToan v={x.chi} /></td><td style={{ ...o2, width: 90 }}><KeToan v={x.lai} mau={mauLai(x.lai)} /></td><td style={o2}>{Math.round(x.phan * 100)}%</td></tr>)}</tbody></table> : null}
+        {g.nguoi.length ? <table style={{ borderCollapse: 'collapse' }}><thead><tr>{['Người', 'Mốc đủ 72h', 'Lãi 72h', 'ROI 72h'].map((h, i) => <th key={h} style={{ ...o2, borderTop: 'none', color: 'var(--fg-2)', fontWeight: 600, fontSize: 11, textAlign: i < 1 ? 'left' : 'right' }}>{h}</th>)}</tr></thead>
+          <tbody>{g.nguoi.map((x) => <tr key={x.ai}><td style={{ ...o2, textAlign: 'left' }}>{x.ai}</td><td style={o2}><Dem v={x.n} /></td><td style={{ ...o2, width: 90 }}><KeToan v={x.lai} mau={mauLai(x.lai)} /></td>
+            <td style={o2}>{x.roi == null ? '—' : <b style={{ color: mauLai(x.roi) }}>{x.roi < 0 ? `(${-x.roi}%)` : `${x.roi}%`}</b>}</td></tr>)}</tbody></table> : null}
+      </div>
+    </div>
+  );
+}
+/** KHUNG NHẬN ĐỊNH trên bảng: máy tự viết từ số (lib/etp-moc nhanDinh) — giờ tốt thật · cao nhờ vài camp · xấu đáng tin, mỗi loại mốc */
+function NhanDinhO({ dong }: { dong: DongMoc[] }) {
+  const nd = nhanDinh(dong);
+  if (!nd.length) return null;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: 10, margin: '6px 0 10px' }}>
+      {(['len', 'tang', 'giam'] as const).filter((l) => nd.some((x) => x.loai === l)).map((l) => (
+        <div key={l} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px' }}>
+          <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 4 }}>{TEN_LOAI[l]} theo giờ VN</div>
+          {nd.filter((x) => x.loai === l).map((x) => { const [t, mau] = NHAN_KIEU[x.kieu];
+            return <div key={x.kieu} style={{ fontSize: 12.5, lineHeight: 1.5 }}><b style={{ color: mau }}>{t}</b> · <b>{x.gio}</b>: {x.chu}.</div>; })}
+        </div>))}
+    </div>
+  );
+}
 /** BẢNG MỐC × ROI SAU MỐC — tập camp + kỳ do trang truyền (cùng bộ lọc tab Camp, cùng kỳ chung) */
 function BangMoc({ ids, tu, den, nhan }: { ids: number[]; tu: string; den: string; nhan: string }) {
   const khoa = useMemo(() => [...ids].sort((a, b) => a - b).join(','), [ids]);
@@ -55,13 +91,15 @@ function BangMoc({ ids, tu, den, nhan }: { ids: number[]; tu: string; den: strin
     const t = setTimeout(() => { docMoc(khoa ? khoa.split(',').map(Number) : [], tu, den).then((r) => { if (!huy) { if ('loi' in r) setLoi(r.loi); else setMs(r.map(moTuHang)); } }).catch((e) => !huy && setLoi(String(e?.message ?? e))); }, 300);
     return () => { huy = true; clearTimeout(t); }; }, [khoa, tu, den]);
   const dong = useMemo(() => (ms ? dongBang(ms) : []), [ms]);
+  const [mo, setMo] = useState<Set<string>>(new Set());
   return (
     <section style={the}>
       <h3 style={{ fontSize: 14, margin: '0 0 4px' }} title={'mốc = giờ VN lên camp (giờ có chi đầu tiên) / lên bậc / giảm bậc (tính từ giờ kế sau lúc đổi) · số theo giờ etp.so_gio_camp\nkhông áp Lọc trạng thái / Lãi-lỗ / Tuổi / Luật: các ô đó chỉ giữ camp còn sống hoặc đang lãi, số sau mốc sẽ lệch về lãi'}>Mốc × ROI sau mốc <span style={{ color: 'var(--fg-3)', fontWeight: 400, fontSize: 12 }}>· {nhan} · rê vào tiêu đề xem cách tính</span></h3>
       {loi ? <div style={{ color: '#f87171', fontSize: 12 }}>{loi}</div> : !ms ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>đang tính…</div> : !dong.length ? <div style={{ color: 'var(--fg-3)', fontSize: 12 }}>không có mốc nào trong kỳ với bộ lọc này</div>
-        : <DataTable rows={dong} columns={COT_MOC} getRowKey={(d) => d.k} rowStyle={(d) => (d.k.endsWith('-all') ? { fontWeight: 700 } : undefined)} persistKey="etp-insight-moc" minWidth={1500} fixedLayout
+        : <><NhanDinhO dong={dong} /><DataTable rows={dong} onRowClick={(d) => setMo((s) => { const n = new Set(s); if (n.has(d.k)) n.delete(d.k); else n.add(d.k); return n; })}
+            renderExpanded={(d) => (mo.has(d.k) ? <GiaiDongO d={d} /> : null)} rowTitle={() => 'bấm để xem vì sao dòng này như vậy'} columns={COT_MOC} getRowKey={(d) => d.k} rowStyle={(d) => (d.k.endsWith('-all') ? { fontWeight: 700 } : undefined)} persistKey="etp-insight-moc" minWidth={1620} fixedLayout
             groups={[{ key: 'moc', label: 'Số mốc', color: '#64748b' }, { key: 'roi', label: 'ROI sau mốc (khối 24 giờ)', color: '#3b82f6' }, { key: 'tin', label: 'Độ tin', color: '#10b981', title: 'dòng đều thật hay nhờ vài camp thắng lớn — ⚠ ở cột Mốc = không đáng tin' }, { key: 'kq', label: 'Kết quả', color: '#f59e0b' }]} groupHeader
-            groupBy={{ value: (d) => d.nhom, label: (v, rs) => <b>{v.split('|')[1]} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {rs.find((r) => r.k.endsWith('-all'))?.n ?? rs.reduce((a, r) => a + r.n, 0)} mốc</span></b> }} />}
+            groupBy={{ value: (d) => d.nhom, label: (v, rs) => <b>{v.split('|')[1]} <span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>· {rs.find((r) => r.k.endsWith('-all'))?.n ?? rs.reduce((a, r) => a + r.n, 0)} mốc</span></b> }} /></>}
     </section>
   );
 }

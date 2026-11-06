@@ -45,7 +45,7 @@ const DanY = z.object({
 });
 const dsMuc = MUC.map((m) => `- ${m.ten} (${m.chu.length} ký tự)`).join('\n'), dsAnh = Object.entries(ANH).map(([k, a]) => `${k}: ${a.file.replace(/^File:/, '')} — ${a.cap}`).join('\n');
 const LOI = 'Giọng: người kể chuyện tài liệu dí dỏm tỉnh bơ, nói thẳng, câu ngắn. Đùa về QUYẾT ĐỊNH của kẻ có quyền, KHÔNG đùa về người chết / nạn nhân. Tiếng Anh tự nhiên, không sáo AI, không gạch dài.';
-const dy = await sinhJson({ schema: DanY, model: 'claude-sonnet-5-5', max_tokens: 9000, ten: 'dàn ý tập dài ghép giấy',
+const dy = await sinhJson({ schema: DanY, model: 'claude-sonnet-5-5', max_tokens: 24000, ten: 'dàn ý tập dài ghép giấy',
   system: `Bạn dựng dàn ý video YouTube tài liệu ~${Math.round(tuDich / 140)} phút, tổng ${tuDich} từ, hình ghép giấy nhiều lớp. Chương có căng thẳng tăng dần, mỗi chương kết bằng câu móc sang chương sau. ${LOI}`,
   user: `SỰ KIỆN: ${chuDe}\nMỤC NGUỒN:\n${dsMuc}\nTÓM TẮT:\n${MUC.slice(0, 2).map((m) => m.chu.slice(0, 5000)).join('\n')}` });
 if (!dy.ok) { console.error(`✗ dàn ý: ${dy.loi}`); process.exit(1); }
@@ -77,7 +77,7 @@ const tongTu = D.chuong.reduce((s, c) => s + c.tu, 0);
 const vietChuong = async (ch: typeof D.chuong[number], i: number) => { const nguon = MUC.filter((m) => ch.muc.some((x) => m.ten === x || m.ten.endsWith(x))); const dung = (nguon.length ? nguon : MUC.slice(0, 3)).map((m) => m.chu).join('\n\n').slice(0, 26000), tuCan = Math.round(ch.tu * tuDich / tongTu);
   let loi: string[] = [], cu: unknown = null;
   for (let lan = 1; lan <= 3; lan++) {
-    const r = await sinhJson({ schema: Chuong, model: 'claude-sonnet-5-5', max_tokens: 9000, ten: `chương ${i + 1} tập dài ghép giấy`,
+    const r = await sinhJson({ schema: Chuong, model: 'claude-sonnet-5-5', max_tokens: 20000, ten: `chương ${i + 1} tập dài ghép giấy`,
       system: `Viết MỘT chương video tài liệu, mỗi phần tử = một câu đọc kèm hình. ${LOI}\nNhịp hình: ~55% san_khau (người diễn trong bối cảnh, đổi dáng theo chữ), ~20% ban_do, ~20% ho_so (tranh / ảnh thật), đan xen, không quá 3 câu bản đồ liền. Khi kể tới người có tên phải có người đó trên sân khấu. Đổi bối cảnh sau 3–6 câu. Dùng nhiều bối cảnh khác nhau trong chương.${i === 0 ? ' Câu 1 là HOOK sốc: con số hoặc nghịch lý lớn nhất của cả chuyện, rồi mới lùi về đầu.' : ''} Tập ${D.nam_dau}–${D.nam_cuoi}.`,
       user: `CHƯƠNG ${i + 1}/${D.chuong.length}: ${ch.ten}\nÝ: ${ch.y}\nĐỘ DÀI: ~${tuCan} từ\nCHƯƠNG KHÁC: ${D.chuong.map((c) => c.ten).join(' · ')}\nBỐI CẢNH: ${D.boi_canh.map((b) => `${b.id} (${b.mo_ta_en.slice(0, 70)})`).join('; ')}\nVAI: ${D.nhan_vat.map((n) => `${n.id}=${n.ten} [goc,${n.dang.join(',')}] ${n.tu}-${n.den}`).join('; ')}\nẢNH THẬT:\n${dsAnh}\n${loi.length ? `\nBẢN TRƯỚC SAI, SỬA:\n${loi.join('\n')}\nBản trước: ${JSON.stringify(cu).slice(0, 12000)}\n` : ''}\nNGUỒN:\n${dung}` });
     if (!r.ok) { loi = [r.loi]; continue; } tien += r.tokens?.vnd ?? 0; cu = r.data.cau; loi = kiemChuong(r.data.cau, MUC.map((m) => m.chu).join('\n'), tuCan);

@@ -17,6 +17,11 @@ const gio = (s: string) => { const d = new Date(Date.parse(s) + 7 * 3600_000); r
 export function NutLichPhim({ cid, children }: { cid: number; children: React.ReactNode }) {
   const neo = useRef<HTMLSpanElement | null>(null), router = useRouter();
   const [mo, setMo] = useState(false), [l, setL] = useState<LichPhim | null>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [kq, setKq] = useState<string | null>(null);
+  // rê chuột vào đồng hồ là mở (anh 06/11/2026: "hover vào ko thấy"); dời ra cả đồng hồ lẫn bảng ~0,3s thì đóng
+  const hen = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const moRa = () => { setMo(true); setKq(null); tai(); };
+  const vao = () => { if (hen.current) clearTimeout(hen.current); hen.current = setTimeout(() => { if (!mo) moRa(); }, mo ? 0 : 250); };
+  const ra = () => { if (hen.current) clearTimeout(hen.current); hen.current = setTimeout(() => setMo(false), 300); };
   const tai = () => docLichPhim(cid).then((r) => ('loi' in r ? setLoi(r.loi) : setL(r))).catch((e) => setLoi(String(e?.message ?? e)));
   const lam = async (f: () => Promise<{ loi: string } | { ok: true }>, chu: string) => {
     setDang(true); setKq(null); const r = await f(); setDang(false);
@@ -30,9 +35,9 @@ export function NutLichPhim({ cid, children }: { cid: number; children: React.Re
     gd === 0 && l.vong !== 'cat' ? `✕ cất phim nếu chi tới $${l.moc_chi} / ${l.moc_thu} camp thử mà chưa lãi` : null,
   ].filter(Boolean).slice(0, 4) as string[] : [];
   return <>
-    <span ref={neo} onClick={(e) => { e.stopPropagation(); setMo((v) => !v); if (!mo) { setKq(null); tai(); } }} style={{ cursor: 'pointer', display: 'inline-flex' }} title="lịch triển khai + điều khiển phim (bấm)">{children}</span>
+    <span ref={neo} onMouseEnter={vao} onMouseLeave={ra} onClick={(e) => { e.stopPropagation(); if (!mo) moRa(); }} style={{ cursor: 'pointer', display: 'inline-flex' }} title={mo ? undefined : 'lịch triển khai + điều khiển phim'}>{children}</span>
     <AnchoredPopover anchorRef={neo} open={mo} onClose={() => setMo(false)}>
-      <div onClick={(e) => e.stopPropagation()} style={{ padding: 12, width: 380, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10,
+      <div onClick={(e) => e.stopPropagation()} onMouseEnter={vao} onMouseLeave={ra} style={{ padding: 12, width: 380, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10,
         background: 'var(--bg-1)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
         {loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>

@@ -135,7 +135,8 @@ def lam(r, NB):
     if dang_test:
         return f"phim {content} (thay #{cu}): đang test #{dang_test[0]} — một camp test một lúc, chờ kết quả · {bh['ly_do']}"
     c0 = (qj(f"select creative_id, bo, ten from etp.camp where camp_id = {cu}") or [{}])[0]
-    bo_len = DOI_BO.get(content) or str(c0.get("bo") or "2")
+    # bộ của PHIM (sổ ethopex_phim_tk — cổng nhan-ban.chan_bo đọc cùng sổ) trước bộ của camp cũ: 06/11/2026 camp chờ phim 156354 lấy bộ 3 của camp #73232 → chặn "phim thuộc bộ 1"
+    bo_len = DOI_BO.get(content) or q(f"select gia_tri->>'{content}' from xv_khoa_ngoai where ten='ethopex_phim_tk'") or str(c0.get("bo") or "2")
     ds = [x for x in ung_vien(content, c0.get("creative_id"), bh["huong"]) if (x.get("dang") or "?") not in co_dang]
     da_thu = {(x.get("dang") or "?"): int(x.get("n") or 0) for x in qj(f"select r.dang, count(*) n from etp.camp c join etp.creative r using (creative_id) where c.content_id = {content} group by 1")}
     nhom = {}

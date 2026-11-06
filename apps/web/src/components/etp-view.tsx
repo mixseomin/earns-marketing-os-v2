@@ -2182,7 +2182,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
             {hep ? null : <><span className="mui">▸</span>{[...new Set(p.all.map((c) => c.bo).filter(Boolean))].map((b) => <Hex key={b} bo={b} info={du.boTk[b!]} />)}<b style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{p.all[0]?.phim ?? `#${p.k}`}</b></>}
             <span title="camp" style={{ color: 'var(--fg-2)' }}>{p.all.filter((c) => c.trang_thai === 'ACTIVE').length}/{p.all.length}</span>
             <MocPhim ph={du.phims.find((x) => x.content_id === Number(p.k))} chay={p.all.filter((c) => c.trang_thai === 'ACTIVE').length} />
-            {hep ? <ChipPhim ph={phCua.get(Number(p.k))} bh={bhCua.get(Number(p.k))} /> : null}
+            {hep ? <DongHoPhim cid={Number(p.k)} m={du.moRong?.find((x) => x.content_id === Number(p.k))} ten={p.all[0]?.phim} /> : null}{hep ? <ChipPhim ph={phCua.get(Number(p.k))} bh={bhCua.get(Number(p.k))} /> : null}
             {p.b?.bao_hoa ? <span title={p.b.bao_hoa} style={{ color: '#f59e0b' }}>{hep ? '⚠' : '⚠ bão hoà'}</span> : null}
             </span>
             {/* tổng ngân sách/ngày camp đang bật — mép phải trùng mép phải $ của camp (điện thoại: ô 30px canh phải; máy tính: ô $ 26px đầu BacCamp) */}

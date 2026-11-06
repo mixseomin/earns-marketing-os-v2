@@ -4,7 +4,7 @@
 //   node nap-tap.mjs --tap ../shot-code/tap-astrolas/my-saturn.json --video brand/astrolas/ra/g6-my-saturn.mp4
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, copyFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,13 +38,15 @@ const giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'fo
 const cat = (g, tenAnh) => execFileSync('ffmpeg', ['-v', 'error', '-y', '-ss', String(g), '-i', resolve(video), '-frames:v', '1', '-vf', 'scale=540:-2', '-q:v', '4', join(TAM, `${tenAnh}.jpg`)]);
 // mốc giờ THẬT sau lồng tiếng: long-tieng.mjs ghi .<tập>.tieng.json cạnh tệp tập
 const C2 = JSON.parse(readFileSync(join(dirname(resolve(tepTap)), `.${basename(tepTap, '.json')}.tieng.json`), 'utf8')), K = giayCanh(C2.cau, 3), S = giayCanh(C2.cau, 8);   // 3 khung + 8 keyframe cho Phòng Nội dung xem hình
-K.forEach((x, i) => cat(x, `${ten}-k${i}`)); S.forEach((x, i) => cat(x, `${ten}-s${i}`));
+// tên ảnh mang dấu của CHÍNH ẢNH: cùng video mà cắt lại khung thì tên trùng → CDN trả ảnh cũ (Ngọc chấm lại ảnh mờ cũ của Leonids, 07/11/2026)
+const anhCat = (g, dat) => { const tam = `${ten}-${dat}`; cat(g, tam); const b = readFileSync(join(TAM, `${tam}.jpg`)), moi = `${id}-${dat}-${dau(b)}`; renameSync(join(TAM, `${tam}.jpg`), join(TAM, `${moi}.jpg`)); return moi; };
+const tenK = K.map((x, i) => anhCat(x, `k${i}`)), tenS = S.map((x, i) => anhCat(x, `s${i}`));
 const bt = `/var/tmp/nap-tap-${id}`, tsx = (lenh) => execFileSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server timeout 300s ../../node_modules/.bin/tsx ${lenh}`], { encoding: 'utf8', maxBuffer: 16 << 20 });
 try {
   execFileSync('ssh', [BOX, `rm -rf ${bt} && mkdir -p ${bt}/f`]); execFileSync('sh', ['-c', `scp -q ${TAM}/* ${BOX}:${bt}/f/`]);
   const u = JSON.parse(tsx(`scripts/lich-su/day-demo.mts ${tap.kenh} ${bt}/f tap`).trim().split('\n').pop());
   const nap = [{ slug: id, chu_de: tap.tieu_de.replace(tap.hook.goc, '').trim() || tap.tieu_de, mau: 'video-ngoai', nen_url: `https://images.pexels.com/photos/${nguon.pexels_id}/pexels-photo-${nguon.pexels_id}.jpeg`,
-    de: { loai: 'video-ngoai', video_url: u[ten], giay: Math.round(giay * 100) / 100, khung: K.map((_, i) => u[`${ten}-k${i}`]), soat: S.map((_, i) => u[`${ten}-s${i}`]), tom_tat: tap.tieu_de, thumb: null },
+    de: { loai: 'video-ngoai', video_url: u[ten], giay: Math.round(giay * 100) / 100, khung: tenK.map((x) => u[x]), soat: tenS.map((x) => u[x]), tom_tat: tap.tieu_de, thumb: null },
     dang: { title: gonTieuDe(tap.tieu_de, tap.cau[0].chu), description: `${tap.dang.mo_ta}\n\nMade by the Astrolas team.`, link: tap.dang.link, goc: tap.goc, hook: tap.hook, playlist: tap.playlist_ma, mau: tap.mau, y_tuong: id } }];
   writeFileSync(join(TAM, 'nap.json'), JSON.stringify(nap)); execFileSync('scp', ['-q', join(TAM, 'nap.json'), `${BOX}:${bt}/nap.json`]);
   console.log(tsx(`scripts/may-dung.mts --may ${tap.kenh} --nap < ${bt}/nap.json`).trim().split('\n').pop()); console.log(tsx(`scripts/may-dung.mts --may ${tap.kenh} --xuat ${id}`).trim().split('\n').pop());

@@ -25,7 +25,8 @@ export const DANG: Record<string, string> = {
   chi_len: 'pointing up to the sky with the right arm raised high, looking upward with awe',
   vung_chuy: 'swinging a heavy wooden club over the head with both hands, fierce determined face',
 };
-const [ra, gocArg, ds] = process.argv.slice(2);
+// tham số 4 (tuỳ chọn, 07/11/2026 anh: "Napoleon nhìn không giống"): URL chân dung lịch sử thật của nhân vật — ảnh gốc vẽ bám mặt người thật
+const [ra, gocArg, ds, chanDung] = process.argv.slice(2);
 if (!ra || !gocArg || !ds) { console.error('tsx kho-sinh.mts <ra> <url-gốc|mota:loai:mô tả> <dáng,…>'); process.exit(2); }
 mkdirSync(ra, { recursive: true });
 const c = chuoiAnh('nano-banana-2')[0]!; let tong = 0; let goc = gocArg;
@@ -37,8 +38,8 @@ if (gocArg.startsWith('mota:')) {
     ? `${pc.replace(/character/i, 'creature')}. Creature: ${moTa}. Standing side view facing RIGHT, whole body visible, centered, no people, no text, letters or logos.`
     : loai === 'phuong_tien'
     ? `${pc.replace(/character/i, 'object').replace(/full body, /, '')}. Object: ${moTa}. Clean side view facing RIGHT, whole object visible, centered, plain pure white background, no people, no ground shadow, no text, letters or logos.`
-    : `${pc}. Character: ${moTa}. Standing in a neutral relaxed pose, body turned slightly toward the right side of the picture, centered, no text, letters or logos.`;
-  const r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [], tiLe: loai === 'phuong_tien' || loai === 'sinh_vat' ? '3:2' : '2:3' });   // thú đứng nghiêng: khung ngang
+    : `${pc}. Character: ${moTa}.${chanDung ? ' Image 1 is a real historical portrait of this exact person: match his real face closely (face shape, nose, brow, hairline, hair, expression) so viewers recognise him instantly, but redraw him entirely in the art style above, full body in period clothes.' : ''} Standing in a neutral relaxed pose, body turned slightly toward the right side of the picture, centered, no text, letters or logos.`;
+  const r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: chanDung ? [chanDung] : [], tiLe: loai === 'phuong_tien' || loai === 'sinh_vat' ? '3:2' : '2:3' });   // thú đứng nghiêng: khung ngang
   if (!r.anh) { console.error(`✗ goc: ${r.loi}`); process.exit(1); }
   writeFileSync(join(ra, 'goc.jpg'), r.anh.data); tong += r.nguon.vnd || 0; console.log('✓ goc');
   goc = (await uploadToR2(`xuong-video/lich-su/tam/${Date.now()}-goc.jpg`, r.anh.data, 'image/jpeg'))!;

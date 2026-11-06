@@ -1,0 +1,4243 @@
+{
+ "id": "ynt-dai-nga-1812",
+ "kenh": "parody",
+ "mau": "entire-story",
+ "ngon_ngu": "en",
+ "giong": {
+  "voice": "Daniel"
+ },
+ "chu_de": "Napoleon's invasion of Russia in 1812: how the largest army Europe had seen marched to Moscow and almost none came back",
+ "tieu_de": "The ENTIRE Story of Napoleon's 1812 Russia Disaster in 12 Minutes",
+ "thumb": {
+  "chu": "MOSCOW 1812",
+  "nam": "JUNE – DECEMBER 1812",
+  "nhan_vat": "Napoleon in iconic bicorne hat and greatcoat, staring grimly at burning city in distance",
+  "boi_canh": "Frozen wasteland littered with abandoned cannons and supply wagons, snow falling, distant fires on horizon"
+ },
+ "nam_dau": 1812,
+ "nam_cuoi": 1812,
+ "nguon": [
+  "https://en.wikipedia.org/wiki/French_invasion_of_Russia",
+  "https://en.wikipedia.org/wiki/Battle_of_Borodino",
+  "https://en.wikipedia.org/wiki/Fire_of_Moscow_(1812)",
+  "https://en.wikipedia.org/wiki/Battle_of_Berezina"
+ ],
+ "boi_canh": [
+  {
+   "id": "neman_crossing",
+   "mo_ta_en": "Wide Neman River at dawn in June, pontoon bridges stretching across calm water, mist rising, pale orange sky, green Lithuanian forests on far bank",
+   "mau_dat": "#6b8e4e",
+   "tien_canh": "la",
+   "hieu_ung": [
+    "may"
+   ],
+   "vat": [
+    {
+     "id": "pontoon_bridge",
+     "mo_ta_en": "Wooden pontoon bridge across river, narrow and long, empty",
+     "x": 0.3,
+     "cao": 0.2,
+     "sau": 0.1
+    },
+    {
+     "id": "supply_wagons_far",
+     "mo_ta_en": "Line of covered supply wagons and horses on far riverbank, small silhouettes",
+     "x": 0.7,
+     "cao": 0.25,
+     "sau": 0.2
+    },
+    {
+     "id": "forest_edge",
+     "mo_ta_en": "Dark green tree line along horizon, dense and tall",
+     "x": 0.5,
+     "cao": 0.35,
+     "sau": 0.05
+    }
+   ]
+  },
+  {
+   "id": "russian_plains",
+   "mo_ta_en": "Endless flat grassland under harsh midday sun in July, dry yellow-green fields stretching to horizon, cloudless pale blue sky, heat shimmer visible",
+   "mau_dat": "#a89968",
+   "tien_canh": "la",
+   "hieu_ung": [
+    "bui"
+   ],
+   "vat": [
+    {
+     "id": "dirt_road",
+     "mo_ta_en": "Wide rutted dirt road cutting through plain, dusty and worn",
+     "x": 0.4,
+     "cao": 0.2,
+     "sau": 0.15
+    },
+    {
+     "id": "abandoned_cart",
+     "mo_ta_en": "Single broken wagon tilted in field, wheel missing",
+     "x": 0.65,
+     "cao": 0.18,
+     "sau": 0.3
+    }
+   ]
+  },
+  {
+   "id": "vilnius_outskirts",
+   "mo_ta_en": "Edge of Vilnius at dusk in late June, wooden houses and church spires silhouetted against purple-orange sky, muddy road in foreground",
+   "mau_dat": "#5a4a3a",
+   "tien_canh": "khong",
+   "hieu_ung": [
+    "may"
+   ],
+   "vat": [
+    {
+     "id": "church_spire",
+     "mo_ta_en": "Tall Orthodox church with onion dome, dark silhouette",
+     "x": 0.3,
+     "cao": 0.5,
+     "sau": 0.1
+    },
+    {
+     "id": "wooden_houses",
+     "mo_ta_en": "Cluster of small wooden houses with peaked roofs, dark shapes",
+     "x": 0.6,
+     "cao": 0.3,
+     "sau": 0.2
+    },
+    {
+     "id": "fence_line",
+     "mo_ta_en": "Wooden fence posts along road, leaning and weathered",
+     "x": 0.8,
+     "cao": 0.25,
+     "sau": 0.4
+    }
+   ]
+  },
+  {
+   "id": "smolensk_burning",
+   "mo_ta_en": "Smolensk fortifications at night in August, stone walls and towers silhouetted against orange glow of massive fires, thick black smoke rising into dark sky",
+   "mau_dat": "#3a3a3a",
+   "tien_canh": "da",
+   "hieu_ung": [
+    "lua",
+    "khoi"
+   ],
+   "vat": [
+    {
+     "id": "fortress_wall",
+     "mo_ta_en": "Medieval stone wall with crenellations, partially collapsed, lit by firelight",
+     "x": 0.4,
+     "cao": 0.4,
+     "sau": 0.1
+    },
+    {
+     "id": "burning_buildings",
+     "mo_ta_en": "Row of wooden buildings engulfed in flames behind wall",
+     "x": 0.6,
+     "cao": 0.35,
+     "sau": 0.15
+    },
+    {
+     "id": "cannon_battery",
+     "mo_ta_en": "Three field cannons on wooden carriages in foreground, abandoned",
+     "x": 0.2,
+     "cao": 0.2,
+     "sau": 0.5
+    }
+   ]
+  },
+  {
+   "id": "borodino_field",
+   "mo_ta_en": "Open battlefield at Borodino at midday in September, rolling fields, gray smoke drifting low across ground, overcast sky, distant tree lines",
+   "mau_dat": "#7a6a4a",
+   "tien_canh": "la",
+   "hieu_ung": [
+    "khoi"
+   ],
+   "vat": [
+    {
+     "id": "earthwork_redoubt",
+     "mo_ta_en": "Large V-shaped earthwork fortification with wooden stakes, empty",
+     "x": 0.35,
+     "cao": 0.3,
+     "sau": 0.2
+    },
+    {
+     "id": "artillery_position",
+     "mo_ta_en": "Battery of six cannons arranged in line, pointed toward viewer",
+     "x": 0.6,
+     "cao": 0.25,
+     "sau": 0.3
+    },
+    {
+     "id": "fleche_remnants",
+     "mo_ta_en": "Damaged arrow-shaped field fortification, earth torn up",
+     "x": 0.75,
+     "cao": 0.2,
+     "sau": 0.4
+    }
+   ]
+  },
+  {
+   "id": "moscow_approach",
+   "mo_ta_en": "Road approaching Moscow in mid-September, golden autumn trees lining road, view of distant city spires and golden domes under clear blue sky, afternoon light",
+   "mau_dat": "#8a7a5a",
+   "tien_canh": "la",
+   "hieu_ung": [],
+   "vat": [
+    {
+     "id": "kremlin_distant",
+     "mo_ta_en": "Moscow Kremlin walls and golden cathedral domes on horizon, small but recognizable",
+     "x": 0.5,
+     "cao": 0.25,
+     "sau": 0.05
+    },
+    {
+     "id": "autumn_trees",
+     "mo_ta_en": "Birch and oak trees with yellow and orange leaves, lining road",
+     "x": 0.3,
+     "cao": 0.4,
+     "sau": 0.25
+    },
+    {
+     "id": "milestone_marker",
+     "mo_ta_en": "Tall wooden distance marker post beside road",
+     "x": 0.7,
+     "cao": 0.3,
+     "sau": 0.4
+    }
+   ]
+  },
+  {
+   "id": "moscow_inferno",
+   "mo_ta_en": "Moscow at night in mid-September, entire city ablaze, massive flames lighting up night sky, red and orange glow, ash and embers floating in air",
+   "mau_dat": "#2a2a2a",
+   "tien_canh": "khong",
+   "hieu_ung": [
+    "lua",
+    "khoi"
+   ],
+   "vat": [
+    {
+     "id": "burning_districts",
+     "mo_ta_en": "Multiple city blocks engulfed in towering flames, wooden buildings collapsing",
+     "x": 0.5,
+     "cao": 0.55,
+     "sau": 0.1
+    },
+    {
+     "id": "church_on_fire",
+     "mo_ta_en": "Orthodox church with dome consumed by fire, cross silhouetted",
+     "x": 0.25,
+     "cao": 0.45,
+     "sau": 0.15
+    },
+    {
+     "id": "kremlin_wall_lit",
+     "mo_ta_en": "Kremlin wall illuminated by surrounding fires, stone towers standing",
+     "x": 0.7,
+     "cao": 0.4,
+     "sau": 0.2
+    }
+   ]
+  },
+  {
+   "id": "kremlin_interior",
+   "mo_ta_en": "Kremlin courtyard at dawn in October, stone palace buildings with arched windows, cobblestone square, cold gray morning light, frost on stones",
+   "mau_dat": "#6a6a6a",
+   "tien_canh": "da",
+   "hieu_ung": [],
+   "vat": [
+    {
+     "id": "palace_building",
+     "mo_ta_en": "Grand palace facade with arched windows and pillars, Renaissance style",
+     "x": 0.4,
+     "cao": 0.5,
+     "sau": 0.1
+    },
+    {
+     "id": "cathedral_domes",
+     "mo_ta_en": "Golden onion domes of cathedral visible above roofline",
+     "x": 0.65,
+     "cao": 0.35,
+     "sau": 0.15
+    },
+    {
+     "id": "cannon_in_yard",
+     "mo_ta_en": "Massive Tsar Cannon on ornate carriage, decorative",
+     "x": 0.2,
+     "cao": 0.25,
+     "sau": 0.4
+    }
+   ]
+  },
+  {
+   "id": "retreat_road",
+   "mo_ta_en": "Smolensk road in late October, barren trees, gray overcast sky, mud and ruts, scattered debris and broken equipment along roadside, desolate",
+   "mau_dat": "#5a5a5a",
+   "tien_canh": "khong",
+   "hieu_ung": [
+    "may"
+   ],
+   "vat": [
+    {
+     "id": "dead_horse",
+     "mo_ta_en": "Horse carcass lying beside road, partially covered in mud",
+     "x": 0.3,
+     "cao": 0.2,
+     "sau": 0.35
+    },
+    {
+     "id": "abandoned_caisson",
+     "mo_ta_en": "Overturned ammunition wagon with broken wheels",
+     "x": 0.6,
+     "cao": 0.25,
+     "sau": 0.25
+    },
+    {
+     "id": "bare_trees",
+     "mo_ta_en": "Skeletal black trees without leaves against gray sky",
+     "x": 0.5,
+     "cao": 0.4,
+     "sau": 0.1
+    }
+   ]
+  },
+  {
+   "id": "first_snow",
+   "mo_ta_en": "Open field in early November, light snow falling, thin white covering on ground, leafless trees, dark gray sky, bitter cold atmosphere",
+   "mau_dat": "#d0d0d0",
+   "tien_canh": "tuyet",
+   "hieu_ung": [
+    "tuyet"
+   ],
+   "vat": [
+    {
+     "id": "discarded_muskets",
+     "mo_ta_en": "Pile of muskets and equipment half-buried in snow",
+     "x": 0.4,
+     "cao": 0.18,
+     "sau": 0.3
+    },
+    {
+     "id": "frozen_stream",
+     "mo_ta_en": "Small stream with ice forming along edges, dark water visible",
+     "x": 0.6,
+     "cao": 0.15,
+     "sau": 0.2
+    }
+   ]
+  },
+  {
+   "id": "blizzard_march",
+   "mo_ta_en": "Whiteout blizzard in mid-November, heavy snow falling horizontally, near-zero visibility, dark gray-white sky, wind-whipped snowdrifts",
+   "mau_dat": "#e8e8e8",
+   "tien_canh": "tuyet",
+   "hieu_ung": [
+    "tuyet"
+   ],
+   "vat": [
+    {
+     "id": "snow_covered_wagon",
+     "mo_ta_en": "Supply wagon completely covered in snow, only outline visible",
+     "x": 0.5,
+     "cao": 0.25,
+     "sau": 0.2
+    },
+    {
+     "id": "frozen_corpses",
+     "mo_ta_en": "Dark shapes of fallen soldiers partially buried in snowdrift",
+     "x": 0.3,
+     "cao": 0.2,
+     "sau": 0.35
+    }
+   ]
+  },
+  {
+   "id": "krasnoi_battlefield",
+   "mo_ta_en": "Snowy battlefield near Krasnoi in mid-November, snow-covered field with artillery pieces, low gray clouds, afternoon dim light, fresh snowfall",
+   "mau_dat": "#d8d8d8",
+   "tien_canh": "tuyet",
+   "hieu_ung": [
+    "tuyet",
+    "khoi"
+   ],
+   "vat": [
+    {
+     "id": "russian_guns",
+     "mo_ta_en": "Line of Russian artillery pieces in snow, dark metal barrels",
+     "x": 0.4,
+     "cao": 0.25,
+     "sau": 0.2
+    },
+    {
+     "id": "smoke_from_firing",
+     "mo_ta_en": "Gray gunpowder smoke drifting across snowy field",
+     "x": 0.6,
+     "cao": 0.3,
+     "sau": 0.15
+    },
+    {
+     "id": "destroyed_caissons",
+     "mo_ta_en": "Wrecked French ammunition wagons, wood splintered, wheels broken",
+     "x": 0.25,
+     "cao": 0.2,
+     "sau": 0.4
+    }
+   ]
+  },
+  {
+   "id": "berezina_approach",
+   "mo_ta_en": "Berezina River in late November, wide icy river with chunks of ice floating, snow on both banks, bare winter forest, gray overcast sky, freezing fog rising from water",
+   "mau_dat": "#c0c0c0",
+   "tien_canh": "tuyet",
+   "hieu_ung": [
+    "may"
+   ],
+   "vat": [
+    {
+     "id": "ice_chunks",
+     "mo_ta_en": "Large pieces of river ice floating in dark water",
+     "x": 0.5,
+     "cao": 0.2,
+     "sau": 0.25
+    },
+    {
+     "id": "far_bank_forest",
+     "mo_ta_en": "Dense line of bare winter trees on far riverbank, black against gray sky",
+     "x": 0.6,
+     "cao": 0.35,
+     "sau": 0.1
+    },
+    {
+     "id": "broken_bridge_pier",
+     "mo_ta_en": "Remnants of destroyed bridge, wooden posts sticking out of icy water",
+     "x": 0.35,
+     "cao": 0.25,
+     "sau": 0.3
+    }
+   ]
+  },
+  {
+   "id": "berezina_crossing",
+   "mo_ta_en": "Berezina River crossing at dawn in late November, two pontoon bridges over icy water, smoke from distant fighting, pale winter sunrise, desperate atmosphere",
+   "mau_dat": "#b8b8b8",
+   "tien_canh": "tuyet",
+   "hieu_ung": [
+    "khoi",
+    "may"
+   ],
+   "vat": [
+    {
+     "id": "pontoon_bridge_one",
+     "mo_ta_en": "Narrow pontoon bridge made of lashed-together boats and planks, fragile-looking",
+     "x": 0.35,
+     "cao": 0.2,
+     "sau": 0.2
+    },
+    {
+     "id": "pontoon_bridge_two",
+     "mo_ta_en": "Second pontoon bridge parallel to first, partially damaged",
+     "x": 0.55,
+     "cao": 0.18,
+     "sau": 0.25
+    },
+    {
+     "id": "battle_smoke",
+     "mo_ta_en": "Dark smoke rising from tree line on far bank, musket fire",
+     "x": 0.7,
+     "cao": 0.35,
+     "sau": 0.15
+    }
+   ]
+  },
+  {
+   "id": "vilnius_hospital",
+   "mo_ta_en": "Interior courtyard of Vilnius hospital in December, stone building with arched doorways, snow piled in corners, gray daylight, grim and cold",
+   "mau_dat": "#8a8a8a",
+   "tien_canh": "tuyet",
+   "hieu_ung": [],
+   "vat": [
+    {
+     "id": "hospital_building",
+     "mo_ta_en": "Three-story stone building with many small windows, monastery-style",
+     "x": 0.45,
+     "cao": 0.5,
+     "sau": 0.1
+    },
+    {
+     "id": "courtyard_well",
+     "mo_ta_en": "Stone well in center of courtyard, frozen bucket hanging",
+     "x": 0.3,
+     "cao": 0.25,
+     "sau": 0.3
+    },
+    {
+     "id": "piled_stretchers",
+     "mo_ta_en": "Stack of empty wooden stretchers leaning against wall",
+     "x": 0.7,
+     "cao": 0.2,
+     "sau": 0.4
+    }
+   ]
+  },
+  {
+   "id": "final_neman",
+   "mo_ta_en": "Neman River in mid-December, frozen solid with thick ice, snow-covered banks, bitter cold clear sky, same crossing point as June but transformed into winter wasteland",
+   "mau_dat": "#dadada",
+   "tien_canh": "tuyet",
+   "hieu_ung": [],
+   "vat": [
+    {
+     "id": "frozen_river_surface",
+     "mo_ta_en": "Solid sheet of white ice covering entire river, cracked in places",
+     "x": 0.5,
+     "cao": 0.2,
+     "sau": 0.2
+    },
+    {
+     "id": "abandoned_cannon_ice",
+     "mo_ta_en": "Field cannon frozen into ice, half-submerged and abandoned",
+     "x": 0.35,
+     "cao": 0.2,
+     "sau": 0.35
+    },
+    {
+     "id": "winter_forest_far",
+     "mo_ta_en": "Snow-covered pine forest on distant bank, white and dark green",
+     "x": 0.7,
+     "cao": 0.3,
+     "sau": 0.1
+    }
+   ]
+  },
+  {
+   "id": "paris_tuileries",
+   "mo_ta_en": "Exterior of Tuileries Palace in Paris in December, grand neoclassical facade, gray winter day, bare trees in foreground, formal gardens visible",
+   "mau_dat": "#7a7a7a",
+   "tien_canh": "khong",
+   "hieu_ung": [
+    "may"
+   ],
+   "vat": [
+    {
+     "id": "palace_facade",
+     "mo_ta_en": "Massive palace building with columns and ornate windows, French imperial style",
+     "x": 0.5,
+     "cao": 0.45,
+     "sau": 0.1
+    },
+    {
+     "id": "bare_garden_trees",
+     "mo_ta_en": "Formal row of leafless trees in geometric arrangement",
+     "x": 0.3,
+     "cao": 0.35,
+     "sau": 0.25
+    },
+    {
+     "id": "palace_gates",
+     "mo_ta_en": "Ornate iron gates with imperial eagles, closed",
+     "x": 0.7,
+     "cao": 0.3,
+     "sau": 0.4
+    }
+   ]
+  },
+  {
+   "id": "russian_winter_village",
+   "mo_ta_en": "Small Russian village in December, wooden izbas with snow on roofs, smoke from chimneys, frozen dirt road, deep snowdrifts, harsh winter scene",
+   "mau_dat": "#c8c8c8",
+   "tien_canh": "tuyet",
+   "hieu_ung": [
+    "khoi",
+    "tuyet"
+   ],
+   "vat": [
+    {
+     "id": "log_houses",
+     "mo_ta_en": "Traditional Russian log houses with small windows, snow-covered roofs",
+     "x": 0.4,
+     "cao": 0.3,
+     "sau": 0.2
+    },
+    {
+     "id": "church_village",
+     "mo_ta_en": "Small wooden Orthodox church with single onion dome, painted blue and white",
+     "x": 0.6,
+     "cao": 0.35,
+     "sau": 0.15
+    },
+    {
+     "id": "woodpile_snow",
+     "mo_ta_en": "Stack of firewood covered in snow beside house",
+     "x": 0.25,
+     "cao": 0.2,
+     "sau": 0.35
+    }
+   ]
+  },
+  {
+   "id": "night_camp_ruins",
+   "mo_ta_en": "Abandoned French camp at night in November, dying campfires, scattered equipment in snow, dark sky with few stars, freezing and desolate",
+   "mau_dat": "#3a3a3a",
+   "tien_canh": "tuyet",
+   "hieu_ung": [
+    "lua"
+   ],
+   "vat": [
+    {
+     "id": "dying_campfire",
+     "mo_ta_en": "Small campfire with glowing embers, barely burning",
+     "x": 0.4,
+     "cao": 0.2,
+     "sau": 0.4
+    },
+    {
+     "id": "tent_collapsed",
+     "mo_ta_en": "Collapsed military tent half-buried in snow, canvas torn",
+     "x": 0.6,
+     "cao": 0.25,
+     "sau": 0.3
+    },
+    {
+     "id": "supply_crates",
+     "mo_ta_en": "Broken wooden supply crates scattered around, contents gone",
+     "x": 0.3,
+     "cao": 0.18,
+     "sau": 0.5
+    }
+   ]
+  },
+  {
+   "id": "cossack_steppe",
+   "mo_ta_en": "Open steppe in November, light snow cover, distant horizon, cold wind visible in bent grass, gray-blue sky, sense of being watched",
+   "mau_dat": "#b0b0b0",
+   "tien_canh": "tuyet",
+   "hieu_ung": [
+    "tuyet"
+   ],
+   "vat": [
+    {
+     "id": "distant_riders",
+     "mo_ta_en": "Tiny silhouettes of mounted Cossacks on horizon, watching",
+     "x": 0.6,
+     "cao": 0.15,
+     "sau": 0.05
+    },
+    {
+     "id": "windswept_grass",
+     "mo_ta_en": "Patches of yellow steppe grass poking through snow, bent by wind",
+     "x": 0.4,
+     "cao": 0.2,
+     "sau": 0.3
+    }
+   ]
+  },
+  {
+   "id": "maloyaroslavets",
+   "mo_ta_en": "Town of Maloyaroslavets in late October, wooden buildings damaged from fighting, smoke rising, autumn trees still visible, overcast sky",
+   "mau_dat": "#6a5a4a",
+   "tien_canh": "la",
+   "hieu_ung": [
+    "khoi"
+   ],
+   "vat": [
+    {
+     "id": "damaged_houses",
+     "mo_ta_en": "Row of wooden houses with walls broken and roofs caved in",
+     "x": 0.45,
+     "cao": 0.35,
+     "sau": 0.2
+    },
+    {
+     "id": "burned_church",
+     "mo_ta_en": "Church with blackened walls and partially collapsed bell tower",
+     "x": 0.65,
+     "cao": 0.4,
+     "sau": 0.15
+    },
+    {
+     "id": "barricade_remains",
+     "mo_ta_en": "Makeshift barricade of overturned carts and furniture across street",
+     "x": 0.3,
+     "cao": 0.25,
+     "sau": 0.35
+    }
+   ]
+  },
+  {
+   "id": "imperial_guard_camp",
+   "mo_ta_en": "French Imperial Guard encampment in September, orderly rows of white tents, colorful regimental flags, clear day, well-maintained and disciplined appearance",
+   "mau_dat": "#7a8a6a",
+   "tien_canh": "la",
+   "hieu_ung": [],
+   "vat": [
+    {
+     "id": "guard_tents",
+     "mo_ta_en": "Neat rows of white canvas tents with peaked roofs",
+     "x": 0.5,
+     "cao": 0.25,
+     "sau": 0.2
+    },
+    {
+     "id": "regimental_colors",
+     "mo_ta_en": "Tall flagpoles with French tricolor and imperial eagle standards",
+     "x": 0.35,
+     "cao": 0.35,
+     "sau": 0.3
+    },
+    {
+     "id": "parked_caissons",
+     "mo_ta_en": "Artillery caissons and limbers parked in organized lines",
+     "x": 0.7,
+     "cao": 0.2,
+     "sau": 0.35
+    }
+   ]
+  },
+  {
+   "id": "staff_headquarters",
+   "mo_ta_en": "Napoleon's field headquarters tent interior at night, campaign desk with maps and candles, shadows on canvas walls, September, strategic atmosphere",
+   "mau_dat": "#5a4a3a",
+   "tien_canh": "rem",
+   "hieu_ung": [],
+   "vat": [
+    {
+     "id": "campaign_desk",
+     "mo_ta_en": "Folding wooden desk covered with maps and documents, quill pens",
+     "x": 0.4,
+     "cao": 0.3,
+     "sau": 0.4
+    },
+    {
+     "id": "candelabra",
+     "mo_ta_en": "Tall brass candelabra with multiple lit candles",
+     "x": 0.6,
+     "cao": 0.35,
+     "sau": 0.35
+    },
+    {
+     "id": "camp_chair",
+     "mo_ta_en": "Folding campaign chair with leather seat, empty",
+     "x": 0.3,
+     "cao": 0.25,
+     "sau": 0.5
+    }
+   ]
+  },
+  {
+   "id": "supply_depot",
+   "mo_ta_en": "Ruined supply depot in October, burned warehouse buildings, scattered barrels and crates, evidence of looting, gray smoky atmosphere",
+   "mau_dat": "#5a5a5a",
+   "tien_canh": "khong",
+   "hieu_ung": [
+    "khoi"
+   ],
+   "vat": [
+    {
+     "id": "burned_warehouse",
+     "mo_ta_en": "Large wooden warehouse with collapsed roof, charred timbers exposed",
+     "x": 0.5,
+     "cao": 0.4,
+     "sau": 0.1
+    },
+    {
+     "id": "broken_barrels",
+     "mo_ta_en": "Wine and supply barrels smashed open, contents spilled",
+     "x": 0.35,
+     "cao": 0.2,
+     "sau": 0.35
+    },
+    {
+     "id": "overturned_wagon",
+     "mo_ta_en": "Supply wagon tipped on side, wheels removed",
+     "x": 0.7,
+     "cao": 0.25,
+     "sau": 0.3
+    }
+   ]
+  },
+  {
+   "id": "russian_command_tent",
+   "mo_ta_en": "Russian military command area in September, large tent with imperial double-headed eagle flag, Orthodox field chapel nearby, orderly camp",
+   "mau_dat": "#6a7a5a",
+   "tien_canh": "la",
+   "hieu_ung": [],
+   "vat": [
+    {
+     "id": "command_tent",
+     "mo_ta_en": "Large peaked tent with Russian imperial colors and decorations",
+     "x": 0.4,
+     "cao": 0.35,
+     "sau": 0.25
+    },
+    {
+     "id": "field_chapel",
+     "mo_ta_en": "Small portable Orthodox chapel tent with cross on top, gold-painted",
+     "x": 0.65,
+     "cao": 0.3,
+     "sau": 0.3
+    },
+    {
+     "id": "guard_post",
+     "mo_ta_en": "Wooden guard post with Russian imperial flag flying",
+     "x": 0.25,
+     "cao": 0.25,
+     "sau": 0.4
+    }
+   ]
+  },
+  {
+   "id": "artillery_park",
+   "mo_ta_en": "French artillery park in August, rows of bronze cannons and howitzers, ammunition caissons, powder wagons, clear summer day, organized military precision",
+   "mau_dat": "#7a6a5a",
+   "tien_canh": "khong",
+   "hieu_ung": [],
+   "vat": [
+    {
+     "id": "cannon_rows",
+     "mo_ta_en": "Line of twelve-pounder field guns on wooden carriages, wheels chocked",
+     "x": 0.45,
+     "cao": 0.25,
+     "sau": 0.25
+    },
+    {
+     "id": "howitzer_battery",
+     "mo_ta_en": "Group of short-barreled howitzers with elevated barrels",
+     "x": 0.65,
+     "cao": 0.3,
+     "sau": 0.3
+    },
+    {
+     "id": "ammunition_stack",
+     "mo_ta_en": "Pyramid stack of cannonballs beside gun position",
+     "x": 0.3,
+     "cao": 0.2,
+     "sau": 0.4
+    }
+   ]
+  }
+ ],
+ "nhan_vat": [
+  {
+   "id": "napoleon",
+   "ten": "Napoleon Bonaparte",
+   "mo_ta_en": "Napoleon Bonaparte aged 42: short stocky build, pale full round face, strong straight nose, stern grey eyes, short dark hair with a fringe combed forward, black bicorne hat worn sideways with a small tricolour cockade, long grey campaign greatcoat open over a green Chasseur uniform coat with red collar, white waistcoat and breeches, tall black boots, right hand tucked into his waistcoat",
+   "tu": 1812,
+   "den": 1812,
+   "dang": [
+    "chi_tay",
+    "khoanh_tay",
+    "suy_nghi",
+    "buon"
+   ],
+   "chan_dung": "Napoleon"
+  },
+  {
+   "id": "kutuzov",
+   "ten": "Mikhail Kutuzov",
+   "mo_ta_en": "Elderly heavy-set man in 60s, one blind milky eye from old wound, Russian general's dark green uniform with gold epaulettes and medals, fur-trimmed winter coat, weathered face, wise expression",
+   "tu": 1812,
+   "den": 1812,
+   "dang": [
+    "suy_nghi",
+    "chi_tay",
+    "buon"
+   ],
+   "chan_dung": "Mikhail Kutuzov"
+  },
+  {
+   "id": "barclay",
+   "ten": "Barclay de Tolly",
+   "mo_ta_en": "Tall dignified man in 50s, Russian general's uniform with high collar, stern Baltic features, dark coat with gold trim, military bearing, cautious expression",
+   "tu": 1812,
+   "den": 1812,
+   "dang": [
+    "chi_tay",
+    "suy_nghi"
+   ],
+   "chan_dung": "Michael Andreas Barclay de Tolly"
+  },
+  {
+   "id": "ney",
+   "ten": "Marshal Ney",
+   "mo_ta_en": "Rugged red-haired man in 40s, French marshal's blue uniform with gold braid, bicorne hat, scarred face, fierce determined expression, muddy boots and worn coat by winter",
+   "tu": 1812,
+   "den": 1812,
+   "dang": [
+    "chi_tay",
+    "ngac_nhien",
+    "suy_nghi"
+   ],
+   "chan_dung": "Michel Ney"
+  },
+  {
+   "id": "murat",
+   "ten": "Joachim Murat",
+   "mo_ta_en": "Flamboyant handsome man in late 30s, extravagant cavalry uniform with fur and feathers, tall plumed hat, decorative saber, theatrical poses, vain expression becoming haggard by December",
+   "tu": 1812,
+   "den": 1812,
+   "dang": [
+    "chi_tay",
+    "khoanh_tay",
+    "ngac_nhien",
+    "buon"
+   ],
+   "chan_dung": "Joachim Murat"
+  },
+  {
+   "id": "davout",
+   "ten": "Marshal Davout",
+   "mo_ta_en": "Stern bald man in 40s with spectacles, French marshal's dark blue uniform, meticulous appearance, serious disciplined expression, no-nonsense bearing",
+   "tu": 1812,
+   "den": 1812,
+   "dang": [
+    "khoanh_tay",
+    "suy_nghi",
+    "chi_tay"
+   ],
+   "chan_dung": "Louis-Nicolas Davout"
+  },
+  {
+   "id": "bagration",
+   "ten": "Pyotr Bagration",
+   "mo_ta_en": "Georgian prince in 40s, Russian general's uniform, dark mustache, proud aristocratic features, white uniform tunic with medals, brave expression, wounded leg at Borodino",
+   "tu": 1812,
+   "den": 1812,
+   "dang": [
+    "chi_tay",
+    "nam_dam",
+    "suy_nghi"
+   ],
+   "chan_dung": "Pyotr Bagration"
+  },
+  {
+   "id": "caulaincourt",
+   "ten": "Armand de Caulaincourt",
+   "mo_ta_en": "Elegant aristocratic man in 30s, French diplomatic uniform or traveling coat, refined features, worried expression, Napoleon's aide and confidant",
+   "tu": 1812,
+   "den": 1812,
+   "dang": [
+    "suy_nghi",
+    "buon",
+    "chi_tay"
+   ],
+   "chan_dung": "Armand-Augustin-Louis de Caulaincourt"
+  },
+  {
+   "id": "french_soldier",
+   "ten": "French Infantryman",
+   "mo_ta_en": "Young man in 20s, blue coat with white cross-belts, tall shako hat, musket and bayonet, exhausted face, coat becoming tattered and frost-covered by November",
+   "tu": 1812,
+   "den": 1812,
+   "dang": [
+    "nam_dam",
+    "buon",
+    "ngac_nhien",
+    "chi_tay",
+    "suy_nghi"
+   ],
+   "chan_dung": null
+  },
+  {
+   "id": "russian_soldier",
+   "ten": "Russian Infantryman",
+   "mo_ta_en": "Bearded peasant man in 20s-30s, dark green Russian uniform coat, tall cylindrical shako, determined weathered face, hardy build, accustomed to cold",
+   "tu": 1812,
+   "den": 1812,
+   "dang": [
+    "chi_tay",
+    "nam_dam",
+    "suy_nghi"
+   ],
+   "chan_dung": null
+  }
+ ],
+ "anh": {
+  "A3": {
+   "file": "File:1812 June 27. Mykoliškiai. Quartier Général.jpg",
+   "cap": "27 June 1812. Quartier Général at Mykoliškiai",
+   "thumb": "https://upload.wikimedia.org/wikipedia/commons/d/d0/1812_June_27._Mykoli%C5%A1kiai._Quartier_G%C3%A9n%C3%A9ral.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "giay_phep": "CC BY-SA 4.0",
+   "tac_gia": "Albrecht Adam",
+   "nguon": "https://commons.wikimedia.org/wiki/File:1812_June_27._Mykoli%C5%A1kiai._Quartier_G%C3%A9n%C3%A9ral.jpg",
+   "rong": 1600,
+   "cao": 1202
+  },
+  "A4": {
+   "file": "File:Eugene Beauharnais Crossing Niemen 1812.jpg",
+   "cap": "Italian corps of Eugène de Beauharnais crossing the Neman on 30 June 1812",
+   "thumb": "https://upload.wikimedia.org/wikipedia/commons/2/2f/Eugene_Beauharnais_Crossing_Niemen_1812.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "giay_phep": "Public domain",
+   "tac_gia": "Albrecht Adam",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Eugene_Beauharnais_Crossing_Niemen_1812.jpg",
+   "rong": 1600,
+   "cao": 1103
+  },
+  "A5": {
+   "file": "File:Platov3.jpg",
+   "cap": "Cossacks feigning retreat against Polish uhlans at the Battle of Mir",
+   "thumb": "https://upload.wikimedia.org/wikipedia/commons/a/ac/Platov3.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "giay_phep": "Public domain",
+   "tac_gia": "Wiktor Mazurowski",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Platov3.jpg",
+   "rong": 1600,
+   "cao": 831
+  },
+  "A8": {
+   "file": "File:Bataille-de-smolensk.jpg",
+   "cap": "The Battle of Smolensk by Jean-Charles Langlois. Napoleon and Poniatowski with the burning city of Smolensk",
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d0/Bataille-de-smolensk.jpg/1920px-Bataille-de-smolensk.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "giay_phep": "Public domain",
+   "tac_gia": "Jean-Charles Langlois",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Bataille-de-smolensk.jpg",
+   "rong": 1600,
+   "cao": 1147
+  },
+  "A9": {
+   "file": "File:Смоленск. Крепостная стена 1596-1602г.г..jpg",
+   "cap": "The total length of the city wall around the Smolensk Kremlin was 6.5 kilometres, with a height of up to 19 metres and a width of up to 5.2 metres, and a total ",
+   "thumb": "https://upload.wikimedia.org/wikipedia/commons/6/68/%D0%A1%D0%BC%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA._%D0%9A%D1%80%D0%B5%D0%BF%D0%BE%D1%81%D1%82%D0%BD%D0%B0%D1%8F_%D1%81%D1%82%D0%B5%D0%BD%D0%B0_1596-1602%D0%B3.%D0%B3..jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "giay_phep": "CC BY-SA 3.0",
+   "tac_gia": "TatianaNP",
+   "nguon": "https://commons.wikimedia.org/wiki/File:%D0%A1%D0%BC%D0%BE%D0%BB%D0%B5%D0%BD%D1%81%D0%BA._%D0%9A%D1%80%D0%B5%D0%BF%D0%BE%D1%81%D1%82%D0%BD%D0%B0%D1%8F_%D1%81%D1%82%D0%B5%D0%BD%D0%B0_1596-1602%D0%B3.%D0%B3..jpg",
+   "rong": 1600,
+   "cao": 1200
+  },
+  "A13": {
+   "file": "File:Napoleon in burning Moscow - Adam Albrecht (1841).jpg",
+   "cap": "Napoleon watching the fire of Moscow in September 1812",
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/53/Napoleon_in_burning_Moscow_-_Adam_Albrecht_%281841%29.jpg/1920px-Napoleon_in_burning_Moscow_-_Adam_Albrecht_%281841%29.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "giay_phep": "Public domain",
+   "tac_gia": "Albrecht Adam",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Napoleon_in_burning_Moscow_-_Adam_Albrecht_(1841).jpg",
+   "rong": 1600,
+   "cao": 1206
+  },
+  "A15": {
+   "file": "File:Crossing the Berezina River, by Peter von Hess.jpg",
+   "cap": "Crossing the Berezina River by Peter von Hess, 1844. Kalmyks and Bashkirs attacking French troops at the Berezina",
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/d/db/Crossing_the_Berezina_River%2C_by_Peter_von_Hess.jpg/1920px-Crossing_the_Berezina_River%2C_by_Peter_von_Hess.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "giay_phep": "Public domain",
+   "tac_gia": "Peter von Hess",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Crossing_the_Berezina_River,_by_Peter_von_Hess.jpg",
+   "rong": 1600,
+   "cao": 1060
+  },
+  "A16": {
+   "file": "File:De overtocht over de Berezina.jpg",
+   "cap": "Dutch and French soldiers crossing the Berezina, by Jan Hoynck van Papendrecht.",
+   "thumb": "https://upload.wikimedia.org/wikipedia/commons/0/0a/De_overtocht_over_de_Berezina.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "giay_phep": "Public domain",
+   "tac_gia": "Jan Hoynck van Papendrecht",
+   "nguon": "https://commons.wikimedia.org/wiki/File:De_overtocht_over_de_Berezina.jpg",
+   "rong": 1600,
+   "cao": 1358
+  },
+  "A17": {
+   "file": "File:Napoleons retreat from Moscow by Adolph Northen.jpg",
+   "cap": "Napoleon's withdrawal from Russia, painting by Adolph Northen",
+   "thumb": "https://upload.wikimedia.org/wikipedia/commons/b/b8/Napoleons_retreat_from_Moscow_by_Adolph_Northen.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "giay_phep": "Public domain",
+   "tac_gia": "Adolph Northen",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Napoleons_retreat_from_Moscow_by_Adolph_Northen.jpg",
+   "rong": 1600,
+   "cao": 1219
+  },
+  "A18": {
+   "file": "File:Россия. Переправа наполеоновских войск через Березину карт.1830 АдамА ГИ e1W.jpg",
+   "cap": "Napoleon among his retreating troops at the Berezina, painting by Albrecht Adam",
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/fb/%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D1%8F._%D0%9F%D0%B5%D1%80%D0%B5%D0%BF%D1%80%D0%B0%D0%B2%D0%B0_%D0%BD%D0%B0%D0%BF%D0%BE%D0%BB%D0%B5%D0%BE%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D1%85_%D0%B2%D0%BE%D0%B9%D1%81%D0%BA_%D1%87%D0%B5%D1%80%D0%B5%D0%B7_%D0%91%D0%B5%D1%80%D0%B5%D0%B7%D0%B8%D0%BD%D1%83_%D0%BA%D0%B0%D1%80%D1%82.1830_%D0%90%D0%B4%D0%B0%D0%BC%D0%90_%D0%93%D0%98_e1W.jpg/1920px-%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D1%8F._%D0%9F%D0%B5%D1%80%D0%B5%D0%BF%D1%80%D0%B0%D0%B2%D0%B0_%D0%BD%D0%B0%D0%BF%D0%BE%D0%BB%D0%B5%D0%BE%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D1%85_%D0%B2%D0%BE%D0%B9%D1%81%D0%BA_%D1%87%D0%B5%D1%80%D0%B5%D0%B7_%D0%91%D0%B5%D1%80%D0%B5%D0%B7%D0%B8%D0%BD%D1%83_%D0%BA%D0%B0%D1%80%D1%82.1830_%D0%90%D0%B4%D0%B0%D0%BC%D0%90_%D0%93%D0%98_e1W.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "giay_phep": "Public domain",
+   "tac_gia": "Albrecht Adam",
+   "nguon": "https://commons.wikimedia.org/wiki/File:%D0%A0%D0%BE%D1%81%D1%81%D0%B8%D1%8F._%D0%9F%D0%B5%D1%80%D0%B5%D0%BF%D1%80%D0%B0%D0%B2%D0%B0_%D0%BD%D0%B0%D0%BF%D0%BE%D0%BB%D0%B5%D0%BE%D0%BD%D0%BE%D0%B2%D1%81%D0%BA%D0%B8%D1%85_%D0%B2%D0%BE%D0%B9%D1%81%D0%BA_%D1%87%D0%B5%D1%80%D0%B5%D0%B7_%D0%91%D0%B5%D1%80%D0%B5%D0%B7%D0%B8%D0%BD%D1%83_%D0%BA%D0%B0%D1%80%D1%82.1830_%D0%90%D0%B4%D0%B0%D0%BC%D0%90_%D0%93%D0%98_e1W.jpg",
+   "rong": 1600,
+   "cao": 1132
+  },
+  "A19": {
+   "file": "File:Dniapro. Дняпро (C. Faber du Faur, 14.08.1812).jpg",
+   "cap": "The Grande Armée crossing the Dnieper on 14 August 1812",
+   "thumb": "https://upload.wikimedia.org/wikipedia/commons/d/dc/Dniapro._%D0%94%D0%BD%D1%8F%D0%BF%D1%80%D0%BE_%28C._Faber_du_Faur%2C_14.08.1812%29.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "giay_phep": "Public domain",
+   "tac_gia": "Christian Wilhelm von Faber du Faur",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Dniapro._%D0%94%D0%BD%D1%8F%D0%BF%D1%80%D0%BE_(C._Faber_du_Faur,_14.08.1812).jpg",
+   "rong": 1600,
+   "cao": 851
+  },
+  "A21": {
+   "file": "File:Myrbach-Cossacks.jpg",
+   "cap": "As irregular cavalry, the Cossack horsemen of the Russian steppes were best suited to reconnaissance, scouting, and harassing the enemy's flanks and supply line",
+   "thumb": "https://upload.wikimedia.org/wikipedia/commons/3/37/Myrbach-Cossacks.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "giay_phep": "Public domain",
+   "tac_gia": "Felician Myrbach",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Myrbach-Cossacks.jpg",
+   "rong": 1600,
+   "cao": 985
+  },
+  "A23": {
+   "file": "File:Napoleon w smorgoniach.jpg",
+   "cap": "Painting Napoleon in Smorgon by Zygmunt Rozwadowski",
+   "thumb": "https://upload.wikimedia.org/wikipedia/commons/7/77/Napoleon_w_smorgoniach.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "giay_phep": "Public domain",
+   "tac_gia": "Zygmunt Rozwadowski",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Napoleon_w_smorgoniach.jpg",
+   "rong": 1600,
+   "cao": 758
+  },
+  "A24": {
+   "file": "File:Moscova détail droite 06272.JPG",
+   "cap": "Casualties in the Battle of Borodino",
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6a/Moscova_d%C3%A9tail_droite_06272.JPG/1920px-Moscova_d%C3%A9tail_droite_06272.JPG?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "giay_phep": "CC BY-SA 3.0",
+   "tac_gia": "G.Garitan",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Moscova_d%C3%A9tail_droite_06272.JPG",
+   "rong": 1600,
+   "cao": 1063
+  },
+  "A25": {
+   "file": "File:Smarhoń. Смаргонь (C. Faber du Faur, 3.12.1812).jpg",
+   "cap": "The remnants of the Grande Armée during the retreat",
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/68/Smarho%C5%84._%D0%A1%D0%BC%D0%B0%D1%80%D0%B3%D0%BE%D0%BD%D1%8C_%28C._Faber_du_Faur%2C_3.12.1812%29.jpg/1920px-Smarho%C5%84._%D0%A1%D0%BC%D0%B0%D1%80%D0%B3%D0%BE%D0%BD%D1%8C_%28C._Faber_du_Faur%2C_3.12.1812%29.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "giay_phep": "Public domain",
+   "tac_gia": "Christian Wilhelm von Faber du Faur",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Smarho%C5%84._%D0%A1%D0%BC%D0%B0%D1%80%D0%B3%D0%BE%D0%BD%D1%8C_(C._Faber_du_Faur,_3.12.1812).jpg",
+   "rong": 1600,
+   "cao": 1111
+  },
+  "A30": {
+   "file": "File:Battle of Borodino panorama - detail 05.jpg",
+   "cap": "Nansouty's heavy cavalry attacks squares of Russian guards to the left of Semyanovskaya (background) to support Ney's attack. Detail from the Borodino Panorama ",
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/90/Battle_of_Borodino_panorama_-_detail_05.jpg/1920px-Battle_of_Borodino_panorama_-_detail_05.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "giay_phep": "Public domain",
+   "tac_gia": "user:shakko",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Battle_of_Borodino_panorama_-_detail_05.jpg",
+   "rong": 1600,
+   "cao": 1200
+  },
+  "A35": {
+   "file": "File:Adam-Borodino French cuirassiers.jpg",
+   "cap": "French cuirassiers charge into the Raevsky redoubt",
+   "thumb": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Adam-Borodino_French_cuirassiers.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "giay_phep": "Public domain",
+   "tac_gia": "Albrecht Adam",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Adam-Borodino_French_cuirassiers.jpg",
+   "rong": 1600,
+   "cao": 1067
+  },
+  "A37": {
+   "file": "File:Christian Wilhelm von Faber du Faur - Dead soldiers of the Grand Armée (color).jpg",
+   "cap": "Dead soldiers of the Grande Armée on the Kolocha river bridge, by Christian Wilhelm von Faber du Faur",
+   "thumb": "https://upload.wikimedia.org/wikipedia/commons/3/32/Christian_Wilhelm_von_Faber_du_Faur_-_Dead_soldiers_of_the_Grand_Arm%C3%A9e_%28color%29.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+   "giay_phep": "Public domain",
+   "tac_gia": "Christian Wilhelm von Faber du Faur",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Christian_Wilhelm_von_Faber_du_Faur_-_Dead_soldiers_of_the_Grand_Arm%C3%A9e_(color).jpg",
+   "rong": 1600,
+   "cao": 1168
+  },
+  "A43": {
+   "file": "File:Burning of Moscow 1812 - Bandana 01.jpg",
+   "cap": "Commemorative Bandanna: Burning of Moscow (1812) Printed in England – \"Conflagration of Moscow Seen from the Kremlin, on the entrance of the French Army, the 14",
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/02/Burning_of_Moscow_1812_-_Bandana_01.jpg/1920px-Burning_of_Moscow_1812_-_Bandana_01.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "giay_phep": "Public domain",
+   "tac_gia": "Unknown authorUnknown author",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Burning_of_Moscow_1812_-_Bandana_01.jpg",
+   "rong": 1600,
+   "cao": 1458
+  },
+  "A44": {
+   "file": "File:Moscou 1812.jpg",
+   "cap": "Liturgy in the Saint Euplo church of Moscow in presence of French soldiers, 27 September 1812.",
+   "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/92/Moscou_1812.jpg/1920px-Moscou_1812.jpg?utm_source=en.wikipedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+   "giay_phep": "Public domain",
+   "tac_gia": "Wilhelm Karl Ulrich",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Moscou_1812.jpg",
+   "rong": 1600,
+   "cao": 1244
+  }
+ },
+ "chuong": [
+  {
+   "ten": "The Largest Mistake",
+   "cau": 14
+  },
+  {
+   "ten": "The Vanishing Enemy",
+   "cau": 14
+  },
+  {
+   "ten": "Smolensk Burns",
+   "cau": 14
+  },
+  {
+   "ten": "The Bloodiest Day",
+   "cau": 14
+  },
+  {
+   "ten": "The Empty Prize",
+   "cau": 14
+  },
+  {
+   "ten": "The Long Walk Back",
+   "cau": 15
+  },
+  {
+   "ten": "Berezina",
+   "cau": 14
+  },
+  {
+   "ten": "The Numbers",
+   "cau": 14
+  }
+ ],
+ "cau": [
+  {
+   "chu": "Napoleon marched into Russia with over 600,000 men, and six months later fewer than 10,000 could still fight.",
+   "su_that": [
+    "Napoleon's initial force upon entering Russia exceeded 450,000 men"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "staff_headquarters",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "goc",
+     "x": 0.5
+    }
+   ],
+   "so": {
+    "chu": "600,000",
+    "nhan": "men marched in"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 0
+  },
+  {
+   "chu": "By 1812 Napoleon owned most of Europe, and Russia was the holdout.",
+   "su_that": [
+    "orchestrated numerous military campaigns that led to the establishment of the First French Empire"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     20,
+     50
+    ],
+    "zoom": 3,
+    "to": [
+     "RUS"
+    ],
+    "ten": [],
+    "ghim": [
+     {
+      "o": [
+       2.35,
+       48.85
+      ],
+      "chu": "Paris"
+     },
+     {
+      "o": [
+       37.6,
+       55.75
+      ],
+      "chu": "Moscow"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 0
+  },
+  {
+   "chu": "Russia had quit his blockade of Britain, which Napoleon took personally.",
+   "su_that": [
+    "Tsar Alexander to break away from the Continental blockade on 31 December 1810"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "staff_headquarters",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "khoanh_tay",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 0
+  },
+  {
+   "chu": "So he gathered the largest army the continent had ever seen, from a dozen nations.",
+   "su_that": [
+    "over 150,000 horses, approximately 25,000 wagons, and nearly 1,400 artillery pieces"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A4",
+   "chuong": 0
+  },
+  {
+   "chu": "The plan was simple: crush the Russians in one battle, dictate terms, and go home.",
+   "su_that": [
+    "to defeat the Imperial Russian Army and compel Tsar Alexander I to rejoin to the Continental System"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "staff_headquarters",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "chi_tay",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": "SIMPLE",
+   "ban_do": null,
+   "anh": null,
+   "chuong": 0
+  },
+  {
+   "chu": "On 24 June 1812, the first columns crossed the Neman, and the bad idea began.",
+   "su_that": [
+    "Beginning on 24 June 1812, the initial wave of the multinational Grande Armée crossed the Neman River"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     28,
+     54.5
+    ],
+    "zoom": 5,
+    "to": [
+     "LTU",
+     "BLR"
+    ],
+    "ten": [
+     {
+      "tu": [
+       21,
+       52.2
+      ],
+      "den": [
+       23.9,
+       54.9
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       23.9,
+       54.9
+      ],
+      "chu": "Neman"
+     },
+     {
+      "o": [
+       37.6,
+       55.75
+      ],
+      "chu": "Moscow"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 0
+  },
+  {
+   "chu": "Facing him were two Russian armies that had no intention of fighting on his schedule.",
+   "su_that": [
+    "Barclay de Tolly and Pyotr Bagration totaling approximately 180,000–220,000 soldiers"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "russian_plains",
+   "nguoi": [
+    {
+     "id": "barclay",
+     "dang": "chi_tay",
+     "x": 0.35
+    },
+    {
+     "id": "bagration",
+     "dang": "nam_dam",
+     "x": 0.65
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 0
+  },
+  {
+   "chu": "Instead he got a burning Moscow and a peace offer that never came.",
+   "su_that": [
+    "Remaining in Moscow for five weeks, Napoleon awaited a peace proposal that never materialized"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A13",
+   "chuong": 0
+  },
+  {
+   "chu": "Then came the snow, the hunger, and the Cossacks, none of which appeared in the plan.",
+   "su_that": [
+    "combined with guerilla warfare from Russian peasants and Cossacks, resulted in significant losses"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "first_snow",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "buon",
+     "x": 0.35
+    },
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.65
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 0
+  },
+  {
+   "chu": "More than half of the soldiers perished from starvation, exhaustion, typhus and the climate.",
+   "su_that": [
+    "More than half of the soldiers perished from starvation, exhaustion, typhus, and the unforgiving continental climate"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A17",
+   "chuong": 0
+  },
+  {
+   "chu": "On 5 December, Napoleon left his army at Smorgonie in a sled, bound for Paris.",
+   "su_that": [
+    "On 5 December, Napoleon departed from the army at Smorgonie in a sled and returned to Paris"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "russian_winter_village",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "suy_nghi",
+     "x": 0.4
+    },
+    {
+     "id": "caulaincourt",
+     "dang": "suy_nghi",
+     "x": 0.65
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 0
+  },
+  {
+   "chu": "By December the survivors staggered back across the frozen Neman, and the army was gone.",
+   "su_that": [
+    "The remnants of the principal armies, disheartened, crossed the frozen Neman and the Bug"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     31,
+     55
+    ],
+    "zoom": 4.5,
+    "to": [
+     "RUS",
+     "BLR",
+     "LTU"
+    ],
+    "ten": [
+     {
+      "tu": [
+       37.6,
+       55.75
+      ],
+      "den": [
+       23.9,
+       54.9
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       37.6,
+       55.75
+      ],
+      "chu": "Moscow"
+     },
+     {
+      "o": [
+       23.9,
+       54.9
+      ],
+      "chu": "Neman"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 0
+  },
+  {
+   "chu": "He wanted one decisive battle, but the decisive thing turned out to be winter.",
+   "su_that": [],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "final_neman",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": "WINTER",
+   "ban_do": null,
+   "anh": null,
+   "chuong": 0
+  },
+  {
+   "chu": "This is how the greatest military mind of his generation walked into the greatest catastrophe of his career.",
+   "su_that": [
+    "This catastrophic outcome shattered Napoleon's once-untarnished reputation of invincibility"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "paris_tuileries",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "suy_nghi",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 0
+  },
+  {
+   "chu": "On June 24th, 1812, Napoleon crossed the Neman River with the largest army Europe had ever seen.",
+   "su_that": [
+    "On Wednesday, 24 June [O.S. 12 June] 1812 with Napoleon's army crossing the border"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "neman_crossing",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "chi_tay",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 1
+  },
+  {
+   "chu": "Half a million men, 150,000 horses, 25,000 wagons, all flooding into Russia at once.",
+   "su_that": [
+    "Napoleon reached Vilnius on 28 June with only light skirmishing but leaving more than 5,000 dead horses in his wake",
+    "The lack of horses to transport food supplies meant that he was forced to abandon up to 100 guns and up to 500 artillery wagons"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": {
+    "chu": "500,000",
+    "nhan": "men"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": "A4",
+   "chuong": 1
+  },
+  {
+   "chu": "Napoleon expected a fight at the border, a glorious clash to end the war in weeks.",
+   "su_that": [
+    "Napoleon expected that Balashov would sue for peace at this point, but was to be disappointed"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "neman_crossing",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "suy_nghi",
+     "x": 0.6
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 1
+  },
+  {
+   "chu": "Instead, the Russians turned around and ran.",
+   "su_that": [
+    "Barclay continued his retreat and, with the exception of the occasional rearguard clash, remained unhindered in his movements ever further east"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "russian_plains",
+   "nguoi": [
+    {
+     "id": "barclay",
+     "dang": "chi_tay",
+     "x": 0.35
+    },
+    {
+     "id": "bagration",
+     "dang": "chi_tay",
+     "x": 0.65
+    }
+   ],
+   "so": null,
+   "dau": "RUN",
+   "ban_do": null,
+   "anh": null,
+   "chuong": 1
+  },
+  {
+   "chu": "Barclay de Tolly abandoned Vilnius without a real battle, burning the supply magazines and dismantling the bridge.",
+   "su_that": [
+    "Although Barclay wanted to give battle, he assessed it as a hopeless situation, and ordered Vilnius' magazines burned and its bridge dismantled"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     25.28,
+     54.68
+    ],
+    "zoom": 5,
+    "to": [
+     "LTU",
+     "BLR"
+    ],
+    "ten": [
+     {
+      "tu": [
+       25.9,
+       54.68
+      ],
+      "den": [
+       25.9,
+       55
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       25.28,
+       54.68
+      ],
+      "chu": "Vilnius"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 1
+  },
+  {
+   "chu": "Bagration retreated south, refusing every chance to engage despite orders to attack.",
+   "su_that": [
+    "Bagration ordered Platov and Dokhturov to distract the enemy",
+    "This stream of confused orders to Bagration had him upset with Barclay"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "russian_plains",
+   "nguoi": [
+    {
+     "id": "bagration",
+     "dang": "chi_tay",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 1
+  },
+  {
+   "chu": "The French kept marching deeper into Russia, chasing an enemy that would not stop running.",
+   "su_that": [
+    "Barclay continued his retreat and, with the exception of the occasional rearguard clash, remained unhindered in his movements ever further east"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A5",
+   "chuong": 1
+  },
+  {
+   "chu": "The roads turned into mud tracks and marshes, breaking wagons and killing horses by the thousands.",
+   "su_that": [
+    "the roads in this area of Lithuania proved to be little more than small dirt tracks and footpaths through areas of birched woodland and marshes",
+    "Napoleon reached Vilnius on 28 June with only light skirmishing but leaving more than 5,000 dead horses in his wake"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "russian_plains",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.3
+    },
+    {
+     "id": "ney",
+     "dang": "ngac_nhien",
+     "x": 0.7
+    }
+   ],
+   "so": {
+    "chu": "5,000",
+    "nhan": "dead horses"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 1
+  },
+  {
+   "chu": "Heat, then thunderstorms, then typhus spreading through the ranks like wildfire.",
+   "su_that": [
+    "Several days after crossing the Neman, a number of French soldiers began to develop high fevers and a red rash on their bodies, indicative of typhus",
+    "On 29/30 June, a violent thunderstorm struck Lithuania during the night and continued for several hours or a day"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "vilnius_outskirts",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "nam_dam",
+     "x": 0.4
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 1
+  },
+  {
+   "chu": "Soldiers developed high fevers and red rashes, field hospitals overflowed, and hundreds died from disease and sunstroke.",
+   "su_that": [
+    "a number of French soldiers began to develop high fevers and a red rash on their bodies, indicative of typhus",
+    "a field hospital that had to be set up",
+    "reporting new thunderstorms on 6 July and men dying of sunstroke a few days later"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A3",
+   "chuong": 1
+  },
+  {
+   "chu": "Men deserted in droves, turning into lawless mobs that preyed on Lithuanian peasants in all-out guerrilla war.",
+   "su_that": [
+    "Some 50,000 stragglers and deserters became a lawless mob warring with the local peasantry in all-out guerrilla war"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "vilnius_outskirts",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.25
+    },
+    {
+     "id": "french_soldier",
+     "dang": "nam_dam",
+     "x": 0.65
+    }
+   ],
+   "so": {
+    "chu": "50,000",
+    "nhan": "deserters"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 1
+  },
+  {
+   "chu": "By the time the Grande Armée limped into Vitebsk in late July, it had lost 100,000 men to sickness and desertion.",
+   "su_that": [
+    "In the first two weeks of July, the Grande Armée lost 100,000 men due to sickness and desertion"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": {
+    "chu": "100,000",
+    "nhan": "lost"
+   },
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     30.2,
+     55.2
+    ],
+    "zoom": 5,
+    "to": [
+     "BLR"
+    ],
+    "ten": [],
+    "ghim": [
+     {
+      "o": [
+       30.2,
+       55.2
+      ],
+      "chu": "Vitebsk"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 1
+  },
+  {
+   "chu": "Not a single major battle had been fought.",
+   "su_that": [
+    "with the exception of the occasional rearguard clash"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "staff_headquarters",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "buon",
+     "x": 0.5
+    },
+    {
+     "id": "davout",
+     "dang": "suy_nghi",
+     "x": 0.75
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 1
+  },
+  {
+   "chu": "And the Russians were still running.",
+   "su_that": [
+    "Barclay continued his retreat and, with the exception of the occasional rearguard clash, remained unhindered in his movements ever further east"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "russian_plains",
+   "nguoi": [
+    {
+     "id": "barclay",
+     "dang": "chi_tay",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 1
+  },
+  {
+   "chu": "By early August, Napoleon had already marched 400 miles into Russia without a decisive battle.",
+   "su_that": [
+    "After five or six days",
+    "Napoleon pressed his army on after the Russians"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "russian_plains",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "suy_nghi",
+     "x": 0.5
+    }
+   ],
+   "so": {
+    "chu": "400",
+    "nhan": "miles marched"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "The Russian armies under Barclay and Bagration had finally joined up at Smolensk, a fortified city on the Dnieper.",
+   "su_that": [
+    "The corps of Barclay and Bagration finally succeeded in uniting in Smolensk"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     32.05,
+     54.78
+    ],
+    "zoom": 4.5,
+    "to": [
+     "RUS",
+     "BLR"
+    ],
+    "ten": [
+     {
+      "tu": [
+       30.5,
+       55.75
+      ],
+      "den": [
+       30.8,
+       55.9
+      ]
+     },
+     {
+      "tu": [
+       32,
+       54.75
+      ],
+      "den": [
+       32.3,
+       54.85
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       30.3,
+       55.75
+      ],
+      "chu": "Vilnius"
+     },
+     {
+      "o": [
+       32.05,
+       54.78
+      ],
+      "chu": "Smolensk"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "Napoleon finally had them cornered.",
+   "su_that": [],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "russian_plains",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "chi_tay",
+     "x": 0.55
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "On August 16, Murat's cavalry and Ney's infantry closed up to the western side of Smolensk.",
+   "su_that": [
+    "In the morning of the 16th, Murat's cavalry and Ney's infantry closed up to the western side of Smolensk"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "smolensk_burning",
+   "nguoi": [
+    {
+     "id": "murat",
+     "dang": "chi_tay",
+     "x": 0.35
+    },
+    {
+     "id": "ney",
+     "dang": "chi_tay",
+     "x": 0.65
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "The main army arrived late in the afternoon, and the Battle of Smolensk began.",
+   "su_that": [
+    "The main body of the army did not come up until late in the afternoon",
+    "The Battle of Smolensk (1812) on August 16–18 became the first real confrontation of significant forces"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A8",
+   "chuong": 2
+  },
+  {
+   "chu": "Napoleon began the attack on the Smolensk Kremlin, and two days of brutal fighting followed.",
+   "su_that": [
+    "Napoleon began the attack on the Smolensk Kremlin"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "smolensk_burning",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "chi_tay",
+     "x": 0.5
+    },
+    {
+     "id": "french_soldier",
+     "dang": "nam_dam",
+     "x": 0.25
+    },
+    {
+     "id": "russian_soldier",
+     "dang": "chi_tay",
+     "x": 0.75
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "In the middle of the night, Barclay withdrew his troops from the burning city to avoid encirclement.",
+   "su_that": [
+    "In the middle of the night, Barclay de Tolly withdrew his troops from the burning city to avoid a large confrontation with no chance of victory"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "smolensk_burning",
+   "nguoi": [
+    {
+     "id": "barclay",
+     "dang": "chi_tay",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "The Russians slipped away again.",
+   "su_that": [
+    "When the French army moved in, the Russians left to the east"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "retreat_road",
+   "nguoi": [
+    {
+     "id": "russian_soldier",
+     "dang": "goc",
+     "x": 0.6
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "Smolensk was supposed to be the supply hub that would save the campaign and serve as winter quarters.",
+   "su_that": [
+    "According to Antoine-Henri Jomini, Napoleon planned not to go further than Smolensk and make Vilnius his headquarters for the winter"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A9",
+   "chuong": 2
+  },
+  {
+   "chu": "Instead, it was burning rubble.",
+   "su_that": [],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "smolensk_burning",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.4
+    }
+   ],
+   "so": null,
+   "dau": "💀",
+   "ban_do": null,
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "Napoleon stood at a crossroads: stop here and dig in for winter, or keep chasing the Russians toward Moscow.",
+   "su_that": [],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "staff_headquarters",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "suy_nghi",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "Murat implored him to stop, but Napoleon was intent on reaching Moscow.",
+   "su_that": [
+    "Murat implored him to stop, but Napoleon was intent on reaching Moscow"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "staff_headquarters",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "khoanh_tay",
+     "x": 0.6
+    },
+    {
+     "id": "murat",
+     "dang": "chi_tay",
+     "x": 0.3
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "Moscow was only 250 miles away.",
+   "su_that": [],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": {
+    "chu": "250",
+    "nhan": "miles to Moscow"
+   },
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     35.5,
+     55
+    ],
+    "zoom": 4.2,
+    "to": [
+     "RUS"
+    ],
+    "ten": [
+     {
+      "tu": [
+       37.4,
+       55.7
+      ],
+      "den": [
+       37.8,
+       55.8
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       32.05,
+       54.78
+      ],
+      "chu": "Smolensk"
+     },
+     {
+      "o": [
+       37.62,
+       55.75
+      ],
+      "chu": "Moscow"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "On August 24, the Grande Armée marched out on the Old Smolensk Road, heading east toward the capital.",
+   "su_that": [
+    "On 24 August, the Grande Armée marched out on the Old Smolensk Road"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "moscow_approach",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "goc",
+     "x": 0.5
+    },
+    {
+     "id": "french_soldier",
+     "dang": "goc",
+     "x": 0.25
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 2
+  },
+  {
+   "chu": "On September 7, seventy miles west of Moscow, the Russians finally stopped running.",
+   "su_that": [
+    "Borodino represented the last Russian effort at stopping the French advance on Moscow"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     34.5,
+     55.2
+    ],
+    "zoom": 5,
+    "to": [
+     "RUS"
+    ],
+    "ten": [
+     {
+      "tu": [
+       32.05,
+       54.78
+      ],
+      "den": [
+       35.82,
+       55.52
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       32.05,
+       54.78
+      ],
+      "chu": "Smolensk"
+     },
+     {
+      "o": [
+       35.82,
+       55.52
+      ],
+      "chu": "Borodino"
+     },
+     {
+      "o": [
+       37.62,
+       55.75
+      ],
+      "chu": "Moscow"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 3
+  },
+  {
+   "chu": "Kutuzov, the new commander, spent days piling up earthworks, since the Tsar would not accept another retreat.",
+   "su_that": [
+    "Starting on 3 September, Kutuzov strengthened the line with earthworks"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "borodino_field",
+   "nguoi": [
+    {
+     "id": "kutuzov",
+     "dang": "chi_tay",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 3
+  },
+  {
+   "chu": "Some 120,000 Russians stood against 130,000 French, and neither side had come to discuss terms.",
+   "su_that": [
+    "by which time the ratio of French to Russian forces had shrunk from 3:1 to 5:4"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "borodino_field",
+   "nguoi": [
+    {
+     "id": "russian_soldier",
+     "dang": "nam_dam",
+     "x": 0.3
+    },
+    {
+     "id": "french_soldier",
+     "dang": "goc",
+     "x": 0.7
+    }
+   ],
+   "so": {
+    "chu": "120,000 vs 130,000",
+    "nhan": "Russians against French"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 3
+  },
+  {
+   "chu": "Fourteen hours of slaughter followed.",
+   "su_that": [
+    "The battle began at 06:00 with the opening of the 102-gun French grand battery"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "borodino_field",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.35
+    },
+    {
+     "id": "russian_soldier",
+     "dang": "suy_nghi",
+     "x": 0.65
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 3
+  },
+  {
+   "chu": "Artillery tore apart infantry in the open, and the field offered very little else to stand behind.",
+   "su_that": [
+    "the Borodino field was too open and had too few natural obstacles"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A30",
+   "chuong": 3
+  },
+  {
+   "chu": "Cavalry charged into walls of musket fire, and the heaps of bodies made every next charge harder.",
+   "su_that": [
+    "Infantry and cavalry had difficulty maneuvering over the heaps of corpses and masses of wounded"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A35",
+   "chuong": 3
+  },
+  {
+   "chu": "The flèches changed hands again and again, with Bagration counterattacking and Ney taking them right back.",
+   "su_that": [
+    "Prince Bagration quickly led a counterattack that threw the French out of the positions"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "borodino_field",
+   "nguoi": [
+    {
+     "id": "bagration",
+     "dang": "nam_dam",
+     "x": 0.3
+    },
+    {
+     "id": "ney",
+     "dang": "chi_tay",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 3
+  },
+  {
+   "chu": "The fight rolled from the flèches on the left to the Raevsky redoubt in the center.",
+   "su_that": [
+    "The Russian center was defended by the Raevsky Redoubt, a massive open-backed earthwork"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     35.82,
+     55.52
+    ],
+    "zoom": 6,
+    "to": [
+     "RUS"
+    ],
+    "ten": [
+     {
+      "tu": [
+       35.62,
+       55.5
+      ],
+      "den": [
+       35.8,
+       55.495
+      ]
+     },
+     {
+      "tu": [
+       35.65,
+       55.52
+      ],
+      "den": [
+       35.835,
+       55.515
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       35.805,
+       55.495
+      ],
+      "chu": "Flèches"
+     },
+     {
+      "o": [
+       35.835,
+       55.515
+      ],
+      "chu": "Raevsky redoubt"
+     },
+     {
+      "o": [
+       35.82,
+       55.53
+      ],
+      "chu": "Borodino"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 3
+  },
+  {
+   "chu": "By dusk, more than 70,000 men lay dead or wounded, and dozens of them were generals.",
+   "su_that": [
+    "this was the bloodiest battle of this series of conflicts with combined casualties between 72,000 and 73,000"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": {
+    "chu": "70,000+",
+    "nhan": "dead or wounded in one day"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": "A24",
+   "chuong": 3
+  },
+  {
+   "chu": "Napoleon won the field, but when Ney begged him to send in the Imperial Guard, he said no.",
+   "su_that": [
+    "Napoleon rejected another such request, this time from Marshal Ney."
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "imperial_guard_camp",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "khoanh_tay",
+     "x": 0.7
+    },
+    {
+     "id": "ney",
+     "dang": "chi_tay",
+     "x": 0.3
+    }
+   ],
+   "so": null,
+   "dau": "NO",
+   "ban_do": null,
+   "anh": null,
+   "chuong": 3
+  },
+  {
+   "chu": "His excuse was that he did not want the Guard blown up, so far from France.",
+   "su_that": [
+    "I will most definitely not; I do not want to have it blown up."
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "imperial_guard_camp",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "suy_nghi",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 3
+  },
+  {
+   "chu": "The Russian army limped away the next day, battered but alive, and took the road east toward Moscow.",
+   "su_that": [
+    "On September 8, the Russian army moved away from the battlefield in twin columns"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     36.7,
+     55.6
+    ],
+    "zoom": 6,
+    "to": [
+     "RUS"
+    ],
+    "ten": [
+     {
+      "tu": [
+       35.82,
+       55.52
+      ],
+      "den": [
+       36.03,
+       55.51
+      ]
+     },
+     {
+      "tu": [
+       36.03,
+       55.51
+      ],
+      "den": [
+       37.62,
+       55.75
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       35.82,
+       55.52
+      ],
+      "chu": "Borodino"
+     },
+     {
+      "o": [
+       37.62,
+       55.75
+      ],
+      "chu": "Moscow"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 3
+  },
+  {
+   "chu": "Kutuzov knew exactly what he was doing: fight once, retreat with the army intact, and let Napoleon stretch his supply lines.",
+   "su_that": [
+    "by fighting the pitched battle, he could now retreat with the Russian army still intact"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "russian_command_tent",
+   "nguoi": [
+    {
+     "id": "kutuzov",
+     "dang": "suy_nghi",
+     "x": 0.35
+    },
+    {
+     "id": "napoleon",
+     "dang": "goc",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 3
+  },
+  {
+   "chu": "That decision would haunt him.",
+   "su_that": [
+    "widely criticized by historians as a large blunder"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "moscow_approach",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "buon",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": "HAUNTED",
+   "ban_do": null,
+   "anh": null,
+   "chuong": 3
+  },
+  {
+   "chu": "On September 14, Napoleon rode into Moscow expecting a delegation, or at least some applause.",
+   "su_that": [
+    "he was surprised to have received no delegation from the city"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "moscow_approach",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "chi_tay",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 4
+  },
+  {
+   "chu": "Moscow had held roughly 270,000 people, and nearly every one of them was gone.",
+   "su_that": [
+    "the city had a population of approximately 270,000 people"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": {
+    "chu": "270,000",
+    "nhan": "people lived in Moscow"
+   },
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     37.6,
+     55.7
+    ],
+    "zoom": 5,
+    "to": [
+     "RUS"
+    ],
+    "ten": [
+     {
+      "tu": [
+       32.05,
+       54.78
+      ],
+      "den": [
+       37.62,
+       55.75
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       37.62,
+       55.75
+      ],
+      "chu": "Moscow"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 4
+  },
+  {
+   "chu": "That night, fires started, and by morning Moscow was an inferno with a helpful wind.",
+   "su_that": [
+    "More wind and massive fires."
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "moscow_inferno",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "ngac_nhien",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 4
+  },
+  {
+   "chu": "Rostopchin, the governor, had ordered it, which is one way to say goodbye to home.",
+   "su_that": [
+    "orders had been given by the Governor of the city and the police that the whole city should be burnt"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": "ARSON",
+   "ban_do": null,
+   "anh": "A43",
+   "chuong": 4
+  },
+  {
+   "chu": "Warehouses, homes, even the fire pumps were wrecked or torched, just to be thorough.",
+   "su_that": [
+    "their equipment had previously either been removed or destroyed on Rostopchin's orders"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "moscow_inferno",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 4
+  },
+  {
+   "chu": "Napoleon watched from the Kremlin, horrified that anyone would burn their own city and palaces.",
+   "su_that": [
+    "And they did this themselves! So many palaces!"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "moscow_inferno",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "buon",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 4
+  },
+  {
+   "chu": "When the fires died, three-quarters of Moscow was ash, and the victory parade was cancelled.",
+   "su_that": [
+    "three quarters of Moscow was reduced to ashes by arson"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": {
+    "chu": "3/4",
+    "nhan": "of Moscow burned"
+   },
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     37.6,
+     55.75
+    ],
+    "zoom": 6,
+    "to": [
+     "RUS"
+    ],
+    "ten": [],
+    "ghim": [
+     {
+      "o": [
+       37.62,
+       55.75
+      ],
+      "chu": "Moscow"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 4
+  },
+  {
+   "chu": "Napoleon settled into the Kremlin for five weeks and waited for the Tsar to negotiate.",
+   "su_that": [
+    "Napoleon sends a message to propose peace to the Tsar"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "kremlin_interior",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "khoanh_tay",
+     "x": 0.5
+    }
+   ],
+   "so": {
+    "chu": "36",
+    "nhan": "days in Moscow"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 4
+  },
+  {
+   "chu": "Not one message came from the Tsar, not even a rude one.",
+   "su_that": [
+    "The occupation led Alexander I to decide there was no way for France and Russia to peacefully coexist."
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": "NO REPLY",
+   "ban_do": null,
+   "anh": "A44",
+   "chuong": 4
+  },
+  {
+   "chu": "Murat complained that food and fodder had run out, and Cossacks were bagging 200 men daily.",
+   "su_that": [
+    "each day he lost 200 men captured by Russians"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "kremlin_interior",
+   "nguoi": [
+    {
+     "id": "murat",
+     "dang": "chi_tay",
+     "x": 0.35
+    },
+    {
+     "id": "napoleon",
+     "dang": "suy_nghi",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 4
+  },
+  {
+   "chu": "Winter was approaching, and the maps on Napoleon's desk had stopped being helpful.",
+   "su_that": [
+    "First snowfall of the season; the French army is suffering from famine and the cold."
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "staff_headquarters",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "suy_nghi",
+     "x": 0.35
+    },
+    {
+     "id": "caulaincourt",
+     "dang": "buon",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 4
+  },
+  {
+   "chu": "Kutuzov, meanwhile, camped at Tarutino, fed his men, and politely declined to attack.",
+   "su_that": [
+    "He refused to attack; he was happy for Napoleon to stay in Moscow for as long as possible"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "russian_command_tent",
+   "nguoi": [
+    {
+     "id": "kutuzov",
+     "dang": "suy_nghi",
+     "x": 0.4
+    },
+    {
+     "id": "russian_soldier",
+     "dang": "goc",
+     "x": 0.72
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 4
+  },
+  {
+   "chu": "The Russians held the southern roads, so the only exit led back along the road already eaten bare.",
+   "su_that": [
+    "so that Napoleon could not turn south or southwest"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     35,
+     55
+    ],
+    "zoom": 5,
+    "to": [
+     "RUS"
+    ],
+    "ten": [
+     {
+      "tu": [
+       37.62,
+       55.75
+      ],
+      "den": [
+       32.05,
+       54.78
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       37.62,
+       55.75
+      ],
+      "chu": "Moscow"
+     },
+     {
+      "o": [
+       37.17,
+       55
+      ],
+      "chu": "Tarutino"
+     },
+     {
+      "o": [
+       32.05,
+       54.78
+      ],
+      "chu": "Smolensk"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 4
+  },
+  {
+   "chu": "So the army sat in a gutted city with no food, no peace, and no plan.",
+   "su_that": [
+    "everything was uninhabited and uninhabitable"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": "EMPTY",
+   "ban_do": null,
+   "anh": "A13",
+   "chuong": 4
+  },
+  {
+   "chu": "On October 19, Napoleon finally gave the order to retreat from Moscow.",
+   "su_that": [
+    "On 19 October",
+    "the French Army left Moscow"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "kremlin_interior",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "chi_tay",
+     "x": 0.5
+    },
+    {
+     "id": "caulaincourt",
+     "dang": "suy_nghi",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 5
+  },
+  {
+   "chu": "Five weeks of waiting, and the Tsar never replied.",
+   "su_that": [
+    "after five weeks of occupation"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "kremlin_interior",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "buon",
+     "x": 0.45
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 5
+  },
+  {
+   "chu": "He tried heading south on the Old Kaluga road, hoping to find regions untouched by war and full of supplies.",
+   "su_that": [
+    "Napoleon journeyed along the Old Kaluga road",
+    "venturing southward in pursuit of untouched, prosperous regions"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     36.5,
+     54.5
+    ],
+    "zoom": 4,
+    "to": [
+     "RUS"
+    ],
+    "ten": [
+     {
+      "tu": [
+       37.6,
+       55.75
+      ],
+      "den": [
+       36.3,
+       54.4
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       37.6,
+       55.75
+      ],
+      "chu": "Moscow"
+     },
+     {
+      "o": [
+       36.3,
+       54.4
+      ],
+      "chu": "Kaluga"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 5
+  },
+  {
+   "chu": "The idea was simple: avoid the scorched wasteland his own army had created on the way in.",
+   "su_that": [
+    "His aim was to steer clear of the devastated path created by his army's eastward march"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A17",
+   "chuong": 5
+  },
+  {
+   "chu": "At Maloyaroslavets, Kutuzov blocked him and forced the Grande Armée back onto the same ruined Smolensk road.",
+   "su_that": [
+    "The Battle of Maloyaroslavets",
+    "compelled the French Army to return to the same Smolensk road they had previously traveled eastward"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "maloyaroslavets",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "buon",
+     "x": 0.3
+    },
+    {
+     "id": "murat",
+     "dang": "ngac_nhien",
+     "x": 0.5
+    },
+    {
+     "id": "ney",
+     "dang": "suy_nghi",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": "✗",
+   "ban_do": null,
+   "anh": null,
+   "chuong": 5
+  },
+  {
+   "chu": "The army that left Moscow still had one hundred and eight thousand men, but barely any cavalry left.",
+   "su_that": [
+    "Napoleon's forces still numbered 108,000 men",
+    "but his cavalry had been nearly destroyed"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "retreat_road",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.3
+    },
+    {
+     "id": "french_soldier",
+     "dang": "nam_dam",
+     "x": 0.6
+    }
+   ],
+   "so": {
+    "chu": "108,000",
+    "nhan": "men leaving Moscow"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 5
+  },
+  {
+   "chu": "Horses were exhausted or dead, so cavalrymen were reassigned to march on foot with the infantry.",
+   "su_that": [
+    "With horses exhausted or dead",
+    "commanders redirected cavalrymen into infantry units"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "retreat_road",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 5
+  },
+  {
+   "chu": "That left them helpless against Cossack raiders who intensified their guerrilla attacks on the column.",
+   "su_that": [
+    "leaving French forces helpless against Cossack fighters intensifying the guerilla warfare"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A21",
+   "chuong": 5
+  },
+  {
+   "chu": "Kutuzov sent partisan bands under Platov, Orlov-Denisov, and Davydov to hit the French supply lines over and over.",
+   "su_that": [
+    "Kutuzov implemented partisan strategies repeatedly striking at vulnerable points in their supply lines",
+    "bands of Cossacks (under Matvei Platov, Vasily Orlov-Denisov and Denis Davydov)"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "cossack_steppe",
+   "nguoi": [
+    {
+     "id": "kutuzov",
+     "dang": "chi_tay",
+     "x": 0.45
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 5
+  },
+  {
+   "chu": "In early November, snow began to fall.",
+   "su_that": [
+    "When winter arrived on 6 November with a blizzard"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "first_snow",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "ngac_nhien",
+     "x": 0.4
+    },
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.65
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 5
+  },
+  {
+   "chu": "The army was still wearing summer uniforms and had no way to protect themselves from the cold.",
+   "su_that": [
+    "the army was still equipped with summer clothing and did not have the means to protect themselves from the cold or snow"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A25",
+   "chuong": 5
+  },
+  {
+   "chu": "Then the temperature dropped hard.",
+   "su_that": [
+    "After a few days of thaw, the temperature dropped again on 23 November"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "blizzard_march",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "nam_dam",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 5
+  },
+  {
+   "chu": "Caulaincourt wrote that men who fell asleep by a campfire never woke up.",
+   "su_that": [
+    "Bad luck to those who fell asleep by a campfire",
+    "Once these poor wretches fell asleep they were dead"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "night_camp_ruins",
+   "nguoi": [
+    {
+     "id": "caulaincourt",
+     "dang": "buon",
+     "x": 0.35
+    },
+    {
+     "id": "french_soldier",
+     "dang": "nam_dam",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 5
+  },
+  {
+   "chu": "On November 23, the temperature hit minus thirty-five degrees Celsius and Loison's division simply collapsed.",
+   "su_that": [
+    "the temperature dropped again on 23 November",
+    "When the night-time temperature dropped to minus 35 degrees Celsius",
+    "it proved catastrophic for Loison's untried soldiers"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "blizzard_march",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "nam_dam",
+     "x": 0.25
+    },
+    {
+     "id": "french_soldier",
+     "dang": "nam_dam",
+     "x": 0.55
+    },
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.8
+    }
+   ],
+   "so": {
+    "chu": "−35°C",
+    "nhan": "temperature"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 5
+  },
+  {
+   "chu": "Fifteen thousand men. Twelve thousand dead in three days. No battle.",
+   "su_that": [
+    "his division of 15,000 soldiers lost 12,000 men without a battle",
+    "Within three days"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": {
+    "chu": "12,000",
+    "nhan": "lost in 3 days"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": "A37",
+   "chuong": 5
+  },
+  {
+   "chu": "By late November, the Grande Armée reached the Berezina with maybe 49,000 men able to fight.",
+   "su_that": [
+    "reduced to 49,000 men under arms and 40,000 stragglers"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "berezina_approach",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "suy_nghi",
+     "x": 0.4
+    },
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.7
+    }
+   ],
+   "so": {
+    "chu": "49,000",
+    "nhan": "fighters left"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 6
+  },
+  {
+   "chu": "Russian armies closed in from three sides: Wittgenstein north, Chichagov west, Miloradovich behind.",
+   "su_that": [
+    "Russian Field Marshal Wittgenstein and an army of 30,000"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     28,
+     54.6
+    ],
+    "zoom": 5,
+    "to": [
+     "BLR"
+    ],
+    "ten": [
+     {
+      "tu": [
+       28.8,
+       55.5
+      ],
+      "den": [
+       28.5,
+       54.3
+      ]
+     },
+     {
+      "tu": [
+       26.3,
+       54.1
+      ],
+      "den": [
+       28.4,
+       54.2
+      ]
+     },
+     {
+      "tu": [
+       31,
+       54.4
+      ],
+      "den": [
+       28.6,
+       54.25
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       28.5,
+       54.23
+      ],
+      "chu": "Borisov"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 6
+  },
+  {
+   "chu": "Kutuzov, with 39,000 more men, stayed sixty kilometers east. Watching counted as strategy.",
+   "su_that": [
+    "Russian Field Marshal Kutuzov with another 39,000 men was in the vicinity, 64 kilometres to the east"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "cossack_steppe",
+   "nguoi": [
+    {
+     "id": "kutuzov",
+     "dang": "suy_nghi",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 6
+  },
+  {
+   "chu": "The Borisov bridge was gone, so the French picked a muddy hamlet, Studienka.",
+   "su_that": [
+    "the Russians destroyed the bridge and remained in control of the west bank"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     28.45,
+     54.3
+    ],
+    "zoom": 6,
+    "to": [
+     "BLR"
+    ],
+    "ten": [],
+    "ghim": [
+     {
+      "o": [
+       28.5,
+       54.23
+      ],
+      "chu": "Borisov"
+     },
+     {
+      "o": [
+       28.35,
+       54.33
+      ],
+      "chu": "Studienka"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 6
+  },
+  {
+   "chu": "The pontoon commander had ignored Napoleon's order to destroy his bridging gear. Disobedience rarely paid better.",
+   "su_that": [
+    "had disobeyed Napoleon's previous orders given during the withdrawal to destroy the equipment"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "staff_headquarters",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "khoanh_tay",
+     "x": 0.35
+    },
+    {
+     "id": "french_soldier",
+     "dang": "chi_tay",
+     "x": 0.65
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 6
+  },
+  {
+   "chu": "On November 25th, engineers waded into freezing water and began building two bridges beside Russian campfires.",
+   "su_that": [
+    "On 25 November, bridge construction started in Studienka"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A16",
+   "chuong": 6
+  },
+  {
+   "chu": "The Russians fell for French diversions and marched south. Napoleon could hardly have asked for more.",
+   "su_that": [
+    "the Russians to believe that Napoleon would either attack at Borisov and attempt to repair the bridge"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "staff_headquarters",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "chi_tay",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 6
+  },
+  {
+   "chu": "Forty cavalrymen crossed first, then 7,000 infantry. The artillery bridge collapsed twice, testing everyone's patience.",
+   "su_that": [
+    "the larger of the two bridges (for the artillery) was completed, but collapsed twice"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "berezina_crossing",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "chi_tay",
+     "x": 0.3
+    },
+    {
+     "id": "french_soldier",
+     "dang": "ngac_nhien",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 6
+  },
+  {
+   "chu": "Marshal Ney took over the west bank fight after the commander fell wounded, and the Russians stalled.",
+   "su_that": [
+    "French Marshal Ney took command when Oudinot was wounded and the Russian advance was stopped"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "berezina_crossing",
+   "nguoi": [
+    {
+     "id": "ney",
+     "dang": "chi_tay",
+     "x": 0.45
+    },
+    {
+     "id": "french_soldier",
+     "dang": "goc",
+     "x": 0.75
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 6
+  },
+  {
+   "chu": "On the 28th, the Russians finally coordinated, hitting both banks at once and shelling the bridges.",
+   "su_that": [
+    "the Russians coordinated their efforts and attacked Napoleon's Grande Armée on both sides of the river"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A15",
+   "chuong": 6
+  },
+  {
+   "chu": "The last armed troops crossed by night. Most stragglers, offered empty bridges, chose campfires and sleep.",
+   "su_that": [
+    "most of those who had fought so hard to get across the river during the bombardment chose to light their campfires"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "night_camp_ruins",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "nam_dam",
+     "x": 0.35
+    },
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.65
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 6
+  },
+  {
+   "chu": "Napoleon ordered the bridges burned at seven. The engineers waited until 8:30, then lit them.",
+   "su_that": [
+    "Eblé delayed the execution of that order until 8:30 a.m."
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "berezina_crossing",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "chi_tay",
+     "x": 0.35
+    },
+    {
+     "id": "french_soldier",
+     "dang": "suy_nghi",
+     "x": 0.65
+    }
+   ],
+   "so": null,
+   "dau": "7:00",
+   "ban_do": null,
+   "anh": null,
+   "chuong": 6
+  },
+  {
+   "chu": "Tens of thousands of stragglers and civilians were left behind on the east bank.",
+   "su_that": [
+    "tens of thousands of stragglers and their civilian companions were left behind"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": {
+    "chu": "tens of thousands",
+    "nhan": "left behind"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": "A18",
+   "chuong": 6
+  },
+  {
+   "chu": "About 40,000 survivors escaped toward Vilna. The crossing saved part of the army and broke its soul.",
+   "su_that": [
+    "approximately 40,000 members of Napoleon's army were saved"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": {
+    "chu": "40,000",
+    "nhan": "survivors"
+   },
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     27,
+     54.5
+    ],
+    "zoom": 4.8,
+    "to": [
+     "BLR",
+     "LTU"
+    ],
+    "ten": [
+     {
+      "tu": [
+       28.35,
+       54.33
+      ],
+      "den": [
+       25.28,
+       54.69
+      ]
+     }
+    ],
+    "ghim": [
+     {
+      "o": [
+       28.35,
+       54.33
+      ],
+      "chu": "Studienka"
+     },
+     {
+      "o": [
+       25.28,
+       54.69
+      ],
+      "chu": "Vilna"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 6
+  },
+  {
+   "chu": "On December 5, Napoleon left the army and raced back to Paris in a sleigh.",
+   "su_that": [],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "russian_winter_village",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "khoanh_tay",
+     "x": 0.4
+    },
+    {
+     "id": "caulaincourt",
+     "dang": "buon",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": "BỎ RƠI",
+   "ban_do": null,
+   "anh": null,
+   "chuong": 7
+  },
+  {
+   "chu": "He called it a change of command.",
+   "su_that": [],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A23",
+   "chuong": 7
+  },
+  {
+   "chu": "Napoleon alone was able to maintain any semblance of order.",
+   "su_that": [
+    "Napoleon alone was able to maintain any semblance of order"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "blizzard_march",
+   "nguoi": [
+    {
+     "id": "murat",
+     "dang": "ngac_nhien",
+     "x": 0.3
+    },
+    {
+     "id": "ney",
+     "dang": "suy_nghi",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 7
+  },
+  {
+   "chu": "With his absence, Murat and the other officers lost all authority.",
+   "su_that": [
+    "with his absence, Murat and the other officers lost all authority"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "night_camp_ruins",
+   "nguoi": [
+    {
+     "id": "murat",
+     "dang": "buon",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 7
+  },
+  {
+   "chu": "Out of an original force of 615,000, only 110,000 frostbitten and half-starved survivors stumbled back.",
+   "su_that": [
+    "Out of an original force of 615,000, only 110,000 frostbitten and half-starved survivors stumbled back"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": {
+    "chu": "110,000",
+    "nhan": "sống sót trở về"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": "A25",
+   "chuong": 7
+  },
+  {
+   "chu": "By mid-December fewer than 10,000 could still fight when they recrossed the Neman.",
+   "su_that": [],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "final_neman",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.5
+    }
+   ],
+   "so": {
+    "chu": "10,000",
+    "nhan": "còn đủ sức chiến đấu"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 7
+  },
+  {
+   "chu": "Military losses amounted to 300,000 French, about 72,000 Poles, 50,000 Italians, 80,000 Germans, and 61,000 from 16 other nations.",
+   "su_that": [
+    "Military losses amounted to 300,000 French, about 72,000 Poles, 50,000 Italians, 80,000 Germans, and 61,000 from 16 other nations"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "vilnius_hospital",
+   "nguoi": [
+    {
+     "id": "french_soldier",
+     "dang": "nam_dam",
+     "x": 0.3
+    },
+    {
+     "id": "caulaincourt",
+     "dang": "buon",
+     "x": 0.7
+    }
+   ],
+   "so": {
+    "chu": "300,000",
+    "nhan": "người Pháp thiệt mạng"
+   },
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 7
+  },
+  {
+   "chu": "Russian casualties have been estimated at 200,000 killed, 50,000 dispersed or deserting, and 150,000 wounded.",
+   "su_that": [
+    "Russian casualties have been estimated at 200,000 killed",
+    "50,000 dispersed or deserting",
+    "150,000 wounded"
+   ],
+   "loai": "ban_do",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": {
+    "chu": "200,000",
+    "nhan": "người Nga chết"
+   },
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     37.6,
+     55.75
+    ],
+    "zoom": 4,
+    "to": [
+     "RUS"
+    ],
+    "ten": [],
+    "ghim": [
+     {
+      "o": [
+       37.6,
+       55.75
+      ],
+      "chu": "Moscow"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 7
+  },
+  {
+   "chu": "But they were still in Russia.",
+   "su_that": [],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "cossack_steppe",
+   "nguoi": [
+    {
+     "id": "kutuzov",
+     "dang": "goc",
+     "x": 0.4
+    },
+    {
+     "id": "russian_soldier",
+     "dang": "chi_tay",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 7
+  },
+  {
+   "chu": "The Russian victory over the French Army in 1812 was a significant blow to Napoleon's ambitions of European dominance.",
+   "su_that": [
+    "The Russian victory over the French Army in 1812 was a significant blow to Napoleon's ambitions of European dominance"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "paris_tuileries",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "buon",
+     "x": 0.5
+    }
+   ],
+   "so": null,
+   "dau": "VỠ",
+   "ban_do": null,
+   "anh": null,
+   "chuong": 7
+  },
+  {
+   "chu": "The War of the Sixth Coalition started in 1813, and his empire began to collapse.",
+   "su_that": [
+    "The War of the Sixth Coalition started in 1813"
+   ],
+   "loai": "ban_do",
+   "nam": 1813,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": {
+    "tam": [
+     10,
+     50
+    ],
+    "zoom": 3,
+    "to": [
+     "FRA",
+     "DEU",
+     "POL",
+     "RUS",
+     "AUT"
+    ],
+    "ten": [],
+    "ghim": [
+     {
+      "o": [
+       2.35,
+       48.85
+      ],
+      "chu": "Paris"
+     }
+    ]
+   },
+   "anh": null,
+   "chuong": 7
+  },
+  {
+   "chu": "The Grande Armée incurred the majority of its losses during the march to Moscow during the summer and autumn.",
+   "su_that": [
+    "the Grande Armée incurred the majority of its losses during the march to Moscow during the summer and autumn"
+   ],
+   "loai": "ho_so",
+   "nam": 1812,
+   "boi_canh": null,
+   "nguoi": [],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": "A19",
+   "chuong": 7
+  },
+  {
+   "chu": "The limitations of horse-drawn transport and the road networks to support it were simply not up to the task.",
+   "su_that": [
+    "The limitations of horse-drawn transport and the road networks to support it were simply not up to the task"
+   ],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "retreat_road",
+   "nguoi": [
+    {
+     "id": "davout",
+     "dang": "suy_nghi",
+     "x": 0.3
+    },
+    {
+     "id": "french_soldier",
+     "dang": "buon",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 7
+  },
+  {
+   "chu": "And it all started with one march to Moscow.",
+   "su_that": [],
+   "loai": "san_khau",
+   "nam": 1812,
+   "boi_canh": "neman_crossing",
+   "nguoi": [
+    {
+     "id": "napoleon",
+     "dang": "chi_tay",
+     "x": 0.4
+    },
+    {
+     "id": "murat",
+     "dang": "goc",
+     "x": 0.7
+    }
+   ],
+   "so": null,
+   "dau": null,
+   "ban_do": null,
+   "anh": null,
+   "chuong": 7
+  }
+ ]
+}

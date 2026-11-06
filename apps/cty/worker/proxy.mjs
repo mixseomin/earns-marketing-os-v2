@@ -34,7 +34,28 @@ export const NHA = {
   // fal = OpenRouter qua tài khoản fal (một khoá, 200+ mô hình): tên mô hình theo OpenRouter (fal:google/gemini-3.8-flash),
   // xác thực "Key", trả usage.cost (USD) — kiểm 11/10/2026: cost khớp đúng giá OpenRouter.
   fal: { dang: 'openai', url: 'https://fal.run/openrouter/router/openai/v1/chat/completions', key: 'FAL_KEY', auth: 'Key', suyLuan: true },
+  ckey: { dang: 'openai', url: 'https://api.xah.io/v1/chat/completions', key: 'CKEY_API_KEY', suyLuan: true },
 };
+
+// Người bán ckey cho một model: danh sách đã kiểm của Phòng Tài nguyên (/var/lib/spy/ckey-tuyen.json) trước, rồi danh mục sống theo giá ra rẻ trước
+// (bảng trống cả dòng khi lần bảo trì gặp lúc lỗi, đo 07/11/2026, nên danh mục là lưới). Người hỏng nghỉ 20 phút; mỗi lượt thử tối đa 3 người trong 45 giây rồi về nhà gốc.
+const CKEY_TRAN_MS = 45_000, CKEY_NGHI_MS = 20 * 60_000;
+const hongLuc = new Map(); let khoCkey = null;
+const hongCkey = (id, loi) => { hongLuc.set(id, Date.now()); console.error(`ckey ${id}: ${String(loi).slice(0, 160)}`); };
+const duoiTen = (id) => id.split('/').pop().toLowerCase().replace(/\./g, '-');
+async function nguoiBanCkey(ten, fetchFn) {
+  if (!khoCkey || Date.now() - khoCkey.luc > 600_000) {
+    let tuyen = [], danhMuc = [];
+    try { tuyen = Object.values(JSON.parse(fs.readFileSync(process.env.CKEY_TUYEN || '/var/lib/spy/ckey-tuyen.json', 'utf8')).dong ?? {}).flat().map((x) => x.replace(/^ckey:/, '')); } catch { /* tệp thiếu: dùng danh mục */ }
+    try {
+      const goc = new URL(process.env.CTY_UPSTREAM_CKEY || NHA.ckey.url).origin, r = await fetchFn(`${goc}/v1/models`, { headers: { authorization: `Bearer ${process.env.CKEY_API_KEY}` }, signal: AbortSignal.timeout(15_000) });
+      danhMuc = ((await r.json()).data ?? []).filter((m) => m.id.includes('/')).sort((a, b) => (a.pricing?.completion ?? 1e9) - (b.pricing?.completion ?? 1e9)).map((m) => m.id);
+    } catch (e) { console.error(`ckey: không đọc được danh mục: ${e.message}`); }
+    khoCkey = { luc: Date.now(), ds: [...new Set([...tuyen, ...danhMuc])] };
+  }
+  const can = duoiTen(ten);
+  return khoCkey.ds.filter((id) => duoiTen(id) === can && Date.now() - (hongLuc.get(id) ?? 0) > CKEY_NGHI_MS).slice(0, 3);
+}
 // Model qua fal (OpenRouter) mặc định SUY LUẬN NGẦM và tính phần đó vào max_tokens → lượt thật (500 token) trả RỖNG (đo 11/10/2026: 9/11 model).
 // Gọi đúng cấu hình đã dùng khi dò model (worker/do-model.mjs) để điểm đo áp được vào việc thật: tắt suy luận + trần ≥ 1000 token; model không
 // cho tắt (400 "Reasoning is mandatory": gemini-3.8-flash, glm-5.3-flash…) → mức thấp nhất + trần ≥ 2000 (suy luận tính chung vào trần).
@@ -140,29 +161,53 @@ export async function xuLy(body, staff, so, fetchFn = fetch, phong = null) {
   if (tran.nguoi > 0 && chiNguoi >= tran.nguoi) return [429, { error: `${staff} đã chi $${chiNguoi.toFixed(2)} / trần $${tran.nguoi} tháng này — báo An` }];
   const tong = tranTong(); if (tong > 0 && chiTong >= tong) return [429, { error: `cả công ty đã chi $${chiTong.toFixed(2)} / trần tổng $${tong} — báo Giám đốc` }];
 
-  const clean = { ...body, stream: false };
+  const { thang, ...goc } = body;   // thang: true = đi đúng nhà trong tên model, không qua ckey (bộ đo model: worker/do-model.mjs)
+  const clean = { ...goc, stream: false };
   const hash = crypto.createHash('sha256').update(JSON.stringify(clean)).digest('hex');
   const cacheF = path.join(CACHE_DIR, `${hash}.json`);
   if (process.env.CTY_CACHE === '1' && fs.existsSync(cacheF)) return [200, { ...JSON.parse(fs.readFileSync(cacheF, 'utf8')), _cache: true }];
 
-  const key = process.env[cfg.key]; if (!key) return [500, { error: `thiếu ${cfg.key} trong env của proxy` }];
-  const url = process.env[`CTY_UPSTREAM_${nha.toUpperCase()}`] || cfg.url;   // tự kiểm trỏ upstream giả
+  const luu = (d) => { if (process.env.CTY_CACHE === '1') { fs.mkdirSync(CACHE_DIR, { recursive: true }); fs.writeFileSync(cacheF, JSON.stringify(d)); } return [200, d]; };
   const ten = model.split(':').pop();
-  let res, data;
+
+  // CKEY TRƯỚC (anh 07/11/2026): người bán rẻ nhất trước, lỗi / treo / trả rỗng thì sang người kế, hết lượt thì về đúng nhà trong tên model.
+  // Sổ ghi 'ckey:<tên>': trần chi đếm theo giá bảng (cao hơn tiền thật, an toàn); tiền thật ₫ nằm ở usage.vnd trong nhật ký lượt.
+  if (process.env.CKEY_API_KEY && nha !== 'ckey' && !thang) {
+    const het = Date.now() + CKEY_TRAN_MS;
+    for (const id of await nguoiBanCkey(ten, fetchFn)) {
+      const con = het - Date.now(); if (con <= 0) break;
+      try {
+        const [st, d] = await goiNha('ckey', clean, `ckey:${ten}`, id, (u, o) => fetchFn(u, { ...o, signal: AbortSignal.timeout(con) }));
+        if (st === 200 && d.content?.length) { d.model = model; d.tuyen = `ckey:${id}`; await so.ghi(staff, `ckey:${ten}`, d.usage || {}, phong); return luu(d); }
+        hongCkey(id, st === 200 ? 'trả rỗng' : `http ${st}`);
+      } catch (e) { hongCkey(id, String(e.message || e)); }
+    }
+  }
+
+  if (!process.env[cfg.key]) return [500, { error: `thiếu ${cfg.key} trong env của proxy` }];
+  const [st, data] = await goiNha(nha, clean, model, ten, fetchFn);
+  if (st !== 200) return [st, data];
+  await so.ghi(staff, model, data.usage || {}, phong);
+  return luu(data);
+}
+
+// một lượt tới một nhà, trả [http, dữ liệu dạng Anthropic]
+async function goiNha(nha, clean, model, ten, fetchFn) {
+  const cfg = NHA[nha], key = process.env[cfg.key];
+  const url = process.env[`CTY_UPSTREAM_${nha.toUpperCase()}`] || cfg.url;   // tự kiểm trỏ upstream giả
   if (cfg.dang === 'openai') {
     let gui1 = clean;
     const gui = () => { gui1 = cfg.suyLuan ? cauHinhSuyLuan(clean, ten) : clean; return fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `${cfg.auth ?? 'Bearer'} ${key}` }, body: JSON.stringify(toOpenAI(gui1, ten)) }); };
-    res = await gui(); let o = await res.json();
+    let res = await gui(), o = await res.json();
     if (!res.ok && cfg.suyLuan && !clean.reasoning && !BAT_BUOC_SUY_LUAN.has(ten) && /reasoning is mandatory/i.test(JSON.stringify(o))) { BAT_BUOC_SUY_LUAN.add(ten); res = await gui(); o = await res.json(); }   // 400 không tính tiền
     if (!res.ok) return [res.status, o];
-    data = toAnthropic(o, model); if (gui1.reasoning) data.suy_luan = gui1.reasoning.effort;
-  } else {
-    res = await fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ ...clean, model: ten }) });
-    data = await res.json(); if (!res.ok) return [res.status, data];
-    data.model = model;
+    const data = toAnthropic(o, model); if (gui1.reasoning) data.suy_luan = gui1.reasoning.effort;
+    if (o.usage?.x_ckey?.cost != null) data.usage.vnd = Number(o.usage.x_ckey.cost);
+    return [200, data];
   }
-  await so.ghi(staff, model, data.usage || {}, phong);
-  if (process.env.CTY_CACHE === '1') { fs.mkdirSync(CACHE_DIR, { recursive: true }); fs.writeFileSync(cacheF, JSON.stringify(data)); }
+  const res = await fetchFn(url, { method: 'POST', headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' }, body: JSON.stringify({ ...clean, model: ten }) });
+  const data = await res.json(); if (!res.ok) return [res.status, data];
+  data.model = model;
   return [200, data];
 }
 
@@ -206,7 +251,24 @@ if (process.argv.includes('--tu-kiem')) {
   const truoc = nhan.length; [c, d] = await xuLy({ ...req, model: 'fal:z-ai/glm-5.3-flash', max_tokens: 500 }, 'ha', so); cuoi = nhan.at(-1);
   assert(c === 200 && nhan.length - truoc === 2 && cuoi.reasoning?.effort === 'minimal' && cuoi.max_tokens === 2000, `ca 8 bắt buộc suy luận → gọi lại mức thấp nhất, trần 2000 (${c} ${nhan.length - truoc} ${JSON.stringify(cuoi.reasoning)})`);
   [c, d] = await xuLy({ ...req, model: 'fal:z-ai/glm-5.3-flash', max_tokens: 500 }, 'ha', so); assert(c === 200 && nhan.at(-1).reasoning?.effort === 'minimal' && d.suy_luan === 'minimal', 'ca 9 lần sau nhớ, không gọi hỏng nữa; trả lại mức suy luận đã dùng');
-  fake.close(); console.log('✓ proxy: 9 ca đạt (dịch 2 chiều · giá fail-closed · hồ sơ · trần người · fal "Key" · giữ tiền nhà báo · suy luận như lúc đo)'); process.exit(0);
+  // ckey trước: rẻ nhất trả rỗng → người kế → lần sau bỏ qua người hỏng → hết người thì về fal; thang thì không qua ckey
+  let ckeyHong = false; const goiCkey = [];
+  const fakeC = http.createServer(async (rq, rs) => {
+    if (rq.method === 'GET') return rs.end(JSON.stringify({ data: [{ id: 'a/gemini-3.8-flash', pricing: { completion: 5 } }, { id: 'b/gemini-3-8-flash', pricing: { completion: 1 } }, { id: 'c/gemini-3.8-flash-high', pricing: { completion: 0 } }, { id: 'gemini-3.8-flash', pricing: { completion: 0 } }] }));
+    let raw = ''; for await (const x of rq) raw += x; const b = JSON.parse(raw); goiCkey.push(b.model);
+    if (ckeyHong) { rs.writeHead(530); return rs.end('{"error":"sập"}'); }
+    rs.end(JSON.stringify({ choices: [{ message: { content: b.model.startsWith('b/') ? '' : 'qua ckey' }, finish_reason: 'stop' }], usage: { prompt_tokens: 5, completion_tokens: 2, x_ckey: { cost: 7 } } }));
+  }).listen(0, '127.0.0.1');
+  await new Promise((r) => fakeC.once('listening', r));
+  process.env.CKEY_API_KEY = 'ck'; process.env.CKEY_TUYEN = '/khong/co'; process.env.CTY_UPSTREAM_CKEY = `http://127.0.0.1:${fakeC.address().port}`;
+  const loiCu = console.error; console.error = () => {};
+  const g = { ...req, model: 'fal:google/gemini-3.8-flash' };
+  [c, d] = await xuLy(g, 'ha', so); assert(c === 200 && d.content[0].text === 'qua ckey' && d.tuyen === 'ckey:a/gemini-3.8-flash' && d.usage.vnd === 7 && d.model === g.model && goiCkey.join() === 'b/gemini-3-8-flash,a/gemini-3.8-flash', `ca 10 rẻ trước, rỗng thì sang người kế, đúng tên đuôi (${goiCkey})`);
+  goiCkey.length = 0; [c, d] = await xuLy(g, 'ha', so); assert(c === 200 && goiCkey.join() === 'a/gemini-3.8-flash', `ca 11 người hỏng nghỉ (${goiCkey})`);
+  ckeyHong = true; [c, d] = await xuLy(g, 'ha', so); assert(c === 200 && d.content[0].text === 'chào Lan' && !d.tuyen, 'ca 12 ckey sập hết thì về fal');
+  ckeyHong = false; hongLuc.clear(); goiCkey.length = 0; const n0 = nhan.length; [c, d] = await xuLy({ ...g, thang: true }, 'ha', so); assert(c === 200 && !goiCkey.length && nhan.length === n0 + 1 && !('thang' in nhan.at(-1)), 'ca 13 thang: đi đúng nhà, không gửi cờ ra ngoài');
+  console.error = loiCu; fakeC.close();
+  fake.close(); console.log('✓ proxy: 13 ca đạt (dịch 2 chiều · giá fail-closed · hồ sơ · trần người · fal "Key" · giữ tiền nhà báo · suy luận như lúc đo · ckey trước, đổi người, về nhà gốc)'); process.exit(0);
 }
 
 if (process.argv[1] && import.meta.url.endsWith(path.basename(process.argv[1])) && !process.argv.includes('--tu-kiem')) {

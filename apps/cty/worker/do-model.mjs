@@ -114,7 +114,7 @@ export async function goi(model, vai, user, nk, luot, tc = [], heThongRieng = nu
   for (let thu = 0; ; thu++) {
     const body = { model, max_tokens: TRAN_TOKEN, temperature: 0.3, system: heThongRieng ?? heThong(ns, nk), messages: [{ role: 'user', content: user }] };   // như goi() của lượt thật, trừ trần token
     const t0 = Date.now(); let st = 0, d = {};
-    try { const r = await fetch(`${PROXY()}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ha', 'x-cty-luot': luot }, body: JSON.stringify(body) }); st = r.status; d = await r.json().catch(() => ({})); } catch (e) { d = { error: String(e.message || e) }; }
+    try { const r = await fetch(`${PROXY()}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ha', 'x-cty-luot': luot }, body: JSON.stringify({ ...body, thang: true }) }); st = r.status; d = await r.json().catch(() => ({})); } catch (e) { d = { error: String(e.message || e) }; }
     const loi = st === 200 ? null : typeof d.error === 'string' ? d.error : d.error?.message ?? JSON.stringify(d).slice(0, 300);
     const tranChan = st === 429 && /trần/.test(loi ?? '');
     if (!tranChan && (st === 0 || st === 429 || st >= 500) && thu < 3) { await new Promise((ok) => setTimeout(ok, 2000 * 2 ** thu)); continue; }   // mạng / nhà quá tải: thử lại

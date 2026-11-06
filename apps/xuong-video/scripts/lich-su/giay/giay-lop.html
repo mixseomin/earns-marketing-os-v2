@@ -1,0 +1,103 @@
+<!doctype html>
+<!-- MẪU VIDEO DÀI GHÉP GIẤY 16:9 (06/11/2026, anh: "tranh ghép giấy theo lớp rồi mở trái, phải vào khung chính… không đơn thuần là bản đồ"). Hình là hàm thuần của t → shot-code/dung.mjs.
+     CAU do lam-dai.mjs dựng: {DAI, anh:{khoá:url}, giay, geo:{iso:[vòng]}, phu:[{a,b,chu}], canh:[{bd,kt,c}]}. c.loai: san_khau (lớp nền + vật + người) · ban_do (bản đồ giấy) · ho_so (ảnh thật dán). -->
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Anton&family=Abril+Fatface&display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#000;overflow:hidden}canvas{display:block}</style></head><body><canvas id="c" width="1920" height="1080"></canvas>
+<script>
+const W = 1920, H = 1080, man = document.getElementById('c'), X = man.getContext('2d');
+const kep = (v) => Math.max(0, Math.min(1, v)), out = (k) => 1 - (1 - k) ** 3, io = (k) => (k < 0.5 ? 4 * k ** 3 : 1 - (-2 * k + 2) ** 3 / 2), nay = (k) => 1 + 2.7 * (k - 1) ** 3 + 1.7 * (k - 1) ** 2;
+const ngau = (i) => { const v = Math.sin(i * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
+let C, A = {}, giay, DS = [], PATH = {};
+window.__dung = async () => { C = window.CAU;
+  await Promise.all(Object.entries(C.anh).map(async ([k, u]) => { const i = new Image(); i.src = u; await i.decode(); A[k] = i; }));
+  giay = new Image(); giay.src = C.giay; await giay.decode();
+  for (const [iso, vs] of Object.entries(C.geo || {})) { const p = new Path2D(); for (const v of vs) { v.forEach(([a, b], i) => (i ? p.lineTo(a, -b) : p.moveTo(a, -b))); p.closePath(); } PATH[iso] = p; }
+  DS = C.canh; DS.forEach((s, k) => { const t = DS[k - 1]; s.nhom = t && t.c.loai === 'san_khau' && s.c.loai === 'san_khau' && t.c.boi_canh === s.c.boi_canh ? t.nhom : k; });
+  await document.fonts.ready; };
+window.__khung = () => man.toDataURL('image/jpeg', 0.9).split(',')[1];
+// ---------- hình dán: viền giấy trắng + bóng đổ mềm, dựng một lần mỗi cỡ ----------
+const DAN = new Map();
+function dan(k, h, vien = 7) { const key = `${k}|${Math.round(h)}`; if (DAN.has(key)) return DAN.get(key); const img = A[k]; if (!img) return null;
+  const hh = Math.round(h), w = Math.round(img.width * hh / img.height), p = 44, cv = document.createElement('canvas'); cv.width = w + p * 2; cv.height = hh + p * 2; const g = cv.getContext('2d');
+  const bong = (mau) => { const b = document.createElement('canvas'); b.width = cv.width; b.height = cv.height; const q = b.getContext('2d'); q.drawImage(img, p, p, w, hh); q.globalCompositeOperation = 'source-in'; q.fillStyle = mau; q.fillRect(0, 0, b.width, b.height); return b; };
+  const tr = bong('#fbf6ea'); g.save(); g.filter = 'blur(10px)'; g.globalAlpha = 0.5; g.drawImage(bong('#1a120a'), 12, 16); g.restore();
+  for (let a = 0; a < 20; a++) { const q = a / 20 * 2 * Math.PI; g.drawImage(tr, Math.cos(q) * vien, Math.sin(q) * vien); } g.drawImage(img, p, p, w, hh);
+  const o = { cv, w, h: hh, p }; DAN.set(key, o); return o; }
+// mép giấy xé: đường răng cưa xác định theo hạt
+function meXe(c, x0, y0, x1, y1, hat, bien = 12) { const n = Math.max(6, Math.round(Math.hypot(x1 - x0, y1 - y0) / 26)); for (let i = 0; i <= n; i++) { const k = i / n, d = (ngau(hat + i) - 0.5) * bien; c.lineTo(x0 + (x1 - x0) * k + d * (y1 !== y0 ? 1 : 0), y0 + (y1 - y0) * k + d * (x1 !== x0 ? 1 : 0)); } }
+function chu(c, t, x, y, co, mau = '#fff', vien = '#17110b', font = 'Anton', can = 'center') { c.font = `${font === 'Montserrat' ? 800 : 400} ${co}px ${font}, Impact, sans-serif`; c.textAlign = can; c.textBaseline = 'middle'; c.lineJoin = 'round'; if (vien) { c.lineWidth = co * 0.16; c.strokeStyle = vien; c.strokeText(t, x, y); } c.fillStyle = mau; c.fillText(t, x, y); }
+function dai(c, t, x, y, co, nen = '#f4ead2', mau = '#1d150c', xoay = -0.012) { c.save(); c.font = `400 ${co}px Anton, Impact, sans-serif`; const w = c.measureText(t).width + co * 1.1, h = co * 1.5; c.translate(x, y); c.rotate(xoay); c.fillStyle = 'rgba(20,12,5,.45)'; c.fillRect(-w / 2 + 7, -h / 2 + 9, w, h); c.fillStyle = nen; c.beginPath(); c.moveTo(-w / 2, -h / 2); meXe(c, -w / 2, -h / 2, w / 2, -h / 2, t.length, 5); meXe(c, w / 2, -h / 2, w / 2, h / 2, t.length + 40, 7); meXe(c, w / 2, h / 2, -w / 2, h / 2, t.length + 70, 5); meXe(c, -w / 2, h / 2, -w / 2, -h / 2, t.length + 90, 7); c.fill(); c.fillStyle = mau; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(t, 0, co * 0.05); c.restore(); }
+// ---------- hiệu ứng giấy (xác định theo t) ----------
+const HU = {
+  may(c, t, tr) { for (let i = 0; i < 5; i++) { const x = ((ngau(i) * 2400 + t * (10 + i * 5)) % 2500) - 300, y = 60 + ngau(i + 7) * 220, s = 0.7 + ngau(i + 3) * 0.8; c.save(); c.translate(x, y); c.scale(s, s); c.fillStyle = 'rgba(30,20,10,.18)'; for (const [a, b, r] of [[0, 8, 60], [70, 18, 48], [-70, 20, 44]]) { c.beginPath(); c.arc(a + 6, b + 8, r, 0, 7); c.fill(); } c.fillStyle = '#f7f1e2'; for (const [a, b, r] of [[0, 8, 60], [70, 18, 48], [-70, 20, 44]]) { c.beginPath(); c.arc(a, b, r, 0, 7); c.fill(); } c.restore(); } },
+  tuyet(c, t, tr) { const n = tr ? 70 : 90; for (let i = 0; i < n; i++) { const v = 90 + ngau(i) * 130, y = (ngau(i + 2) * 1200 + t * v) % 1200 - 60, x = (ngau(i + 5) * W + Math.sin(t * 1.3 + i) * 34 + t * 26) % W, r = (tr ? 3 : 5) + ngau(i + 9) * (tr ? 5 : 8); c.fillStyle = '#fff'; c.save(); c.translate(x, y); c.rotate(t + i); c.fillRect(-r, -r, r * 2, r * 2); c.restore(); } },
+  lua(c, t) { for (let i = 0; i < 16; i++) { const x = i * 130 + ngau(i) * 60 - 20, b = Math.floor(t * 8 + i), h = 150 + ngau(b) * 170; for (const [k, m] of [[1, '#c8321c'], [0.68, '#ef7d1f'], [0.36, '#ffd24a']]) { c.fillStyle = m; c.beginPath(); c.moveTo(x - 70 * k, 1010); c.quadraticCurveTo(x - 58 * k + ngau(b + 3) * 22, 1010 - h * k * 0.55, x + (ngau(b + 5) - 0.5) * 34, 1010 - h * k); c.quadraticCurveTo(x + 58 * k, 1010 - h * k * 0.5, x + 70 * k, 1010); c.fill(); } } },
+  khoi(c, t) { for (let i = 0; i < 16; i++) { const q = ((t * 0.09 + ngau(i)) % 1), x = ngau(i + 4) * W + q * 130, y = 860 - q * 800, r = 34 + q * 130; c.fillStyle = `rgba(50,44,40,${0.48 * (1 - q)})`; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); } },
+  song(c, t) { [['#5d93a4', 880, 22, 0], ['#477c91', 930, 26, 1.7], ['#2f6278', 985, 30, 3.1]].forEach(([m, y, a, p], j) => { c.fillStyle = 'rgba(0,0,0,.25)'; const ve = (dy) => { c.beginPath(); c.moveTo(-10, H); for (let x = -10; x <= W + 20; x += 40) c.lineTo(x, y + dy + Math.sin(x * 0.012 + t * (1 + j * 0.3) + p) * a); c.lineTo(W + 20, H); c.fill(); }; ve(-7); c.fillStyle = m; ve(0); }); },
+  bui(c, t) { for (let i = 0; i < 40; i++) { const x = (ngau(i) * W + t * (12 + ngau(i + 9) * 20)) % W, y = ngau(i + 3) * H + Math.sin(t + i) * 14; c.fillStyle = `rgba(255,240,205,${0.2 + 0.3 * Math.abs(Math.sin(t * 1.5 + i))})`; c.beginPath(); c.arc(x, y, 2 + ngau(i + 5) * 3, 0, 7); c.fill(); } },
+};
+const TC = { rem(c) { for (const b of [-1, 1]) { c.fillStyle = '#7c1f1b'; c.beginPath(); const x0 = b < 0 ? 0 : W; c.moveTo(x0, 0); for (let y = 0; y <= H; y += 90) c.lineTo(x0 - b * (150 + Math.sin(y * 0.02) * 26 - y * 0.05), y); c.lineTo(x0, H); c.fill(); } },
+  la(c) { c.fillStyle = '#23402a'; for (let i = 0; i < 26; i++) { const b = i % 2 ? 0 : W, y = ngau(i) * H; c.beginPath(); c.ellipse(b, y, 90 + ngau(i + 3) * 80, 44, ngau(i + 2) * 3, 0, 7); c.fill(); } },
+  da(c) { c.fillStyle = '#3a3531'; c.beginPath(); c.moveTo(0, H); for (let x = 0; x <= W; x += 80) c.lineTo(x, H - 40 - ngau(x) * 60 - Math.abs(x - W / 2) * 0.09); c.lineTo(W, H); c.fill(); },
+  tuyet(c) { c.fillStyle = '#f4f7fa'; c.beginPath(); c.moveTo(0, H); for (let x = 0; x <= W; x += 70) c.lineTo(x, H - 42 - ngau(x + 8) * 42); c.lineTo(W, H); c.fill(); } };
+// ---------- sân khấu ----------
+const tuoi = (l, u, tre, d = 0.8) => kep((u - tre) / d);
+function veSan(c, k, t) { const s = DS[k], bc = s.c.bc, g = DS[s.nhom], tg = t - g.bd, u = t - s.bd;
+  // camera: đẩy nhẹ + lia về người vừa vào (nội suy giữa hai câu)
+  const dich = (q) => { const n = q?.c.nguoi?.at(-1); return n ? n.x - 0.5 : 0; }, ca = DS[k - 1]?.nhom === s.nhom ? dich(DS[k - 1]) : dich(s), cam = ca + (dich(s) - ca) * io(kep(u / 1.4)), z = 1.04 + 0.014 * Math.min(tg, 12);
+  const lop = (sau, ve) => { c.save(); c.translate(W / 2, H / 2); const zz = 1 + (z - 1) * (0.5 + sau), dx = -cam * 150 * sau; c.scale(zz, zz); c.translate(-W / 2 + dx, -H / 2); ve(); c.restore(); };
+  lop(0.1, () => { const n = A[bc.nen]; if (n) c.drawImage(n, -70, -40, W + 140, H + 80); else { c.fillStyle = '#c9b48b'; c.fillRect(-70, -40, W + 140, H + 80); } });
+  lop(0.2, () => { for (const h of bc.hieu_ung || []) if (h === 'may' || h === 'khoi') HU[h](c, t, true); });
+  // vật: xa → gần, trượt từ cánh gần nhất vào khung chính lúc mở cảnh
+  [...(bc.vat || [])].sort((a, b) => a.sau - b.sau).forEach((v, i) => { const d = dan(v.anh, H * v.cao); if (!d) return; const q = tuoi(v, tg, 0.2 + i * 0.16, 0.85), ve = v.x < 0.5 ? -1 : 1, lx = (1 - nay(q)) * ve * 1100;
+    lop(0.3 + v.sau * 0.6, () => { const sway = v.sau > 0.3 ? Math.sin(t * 0.8 + i) * 0.004 : 0; c.save(); c.translate(W * v.x + lx, H * 0.935); c.rotate(sway); c.drawImage(d.cv, -d.cv.width / 2, -d.h - d.p); c.restore(); }); });
+  lop(0.75, () => { c.fillStyle = 'rgba(20,12,5,.35)'; c.beginPath(); c.moveTo(-100, H + 60); meXe(c, -100, H - 62, W + 100, H - 62, 11, 22); c.lineTo(W + 100, H + 60); c.fill(); c.fillStyle = bc.mau_dat || '#6d5a3c'; c.beginPath(); c.moveTo(-100, H + 60); meXe(c, -100, H - 52, W + 100, H - 52, 11, 22); c.lineTo(W + 100, H + 60); c.fill(); });
+  lop(0.8, () => { for (const h of bc.hieu_ung || []) if (h === 'lua' || h === 'song') HU[h](c, t); });
+  // người: vào từ cánh, đổi chỗ trượt, câu sau không còn thì lui ra; lắc kiểu stop-motion 8 hình/giây
+  const tr = DS[k - 1]?.nhom === s.nhom ? DS[k - 1] : null, cu = tr?.c.nguoi || [], nay_ = s.c.nguoi || [], ca2 = H * 0.68;
+  const veNg = (n, cx, al, doi, i) => { const key = `${n.anh}:${n.dang}`, d = dan(A[key] ? key : `${n.anh}:goc`, ca2); if (!d) return; const b = Math.floor(t * 8), lac = Math.sin(b * 1.7 + i * 2) * 0.012, nhun = Math.abs(Math.sin(b * 0.9 + i)) * 5, pop = 1 + 0.07 * Math.max(0, 1 - doi / 0.2), lat = cx > W / 2;
+    lop(0.85, () => { c.save(); c.globalAlpha = al; c.translate(cx, H * 0.985 - nhun); c.rotate(lac); c.scale(lat ? -pop : pop, pop); c.drawImage(d.cv, -d.cv.width / 2, -d.h - d.p); c.restore(); }); };
+  for (const [i, n] of cu.entries()) if (!nay_.some((m) => m.anh === n.anh)) { const q = kep(u / 0.45); if (q < 1) veNg(n, W * n.x + (n.x < 0.5 ? -1 : 1) * 900 * q ** 2, 1, 9, i); }
+  nay_.forEach((n, i) => { const o = cu.find((m) => m.anh === n.anh), q = o ? 1 : nay(kep((u - (k === s.nhom ? 0.55 : 0.1) - i * 0.15) / 0.5)), xs = o ? o.x + (n.x - o.x) * io(kep(u / 0.6)) : n.x, cx = W * xs + (1 - q) * (n.x < 0.5 ? -1 : 1) * 900, doi = o && o.dang !== n.dang ? u : 9; if (q <= 0 && !o) return; veNg(n, cx, 1, doi, i);
+    const lanDau = !o; if (lanDau && n.ten) { const al = kep((u - 0.6) / 0.25) * kep((3.4 - u) / 0.3); if (al > 0) { c.save(); c.globalAlpha = al; dai(c, n.ten.toUpperCase(), Math.max(240, Math.min(W - 240, W * n.x)), H - 300, 44, '#f6d44d'); c.restore(); } } });
+  lop(0.95, () => { for (const h of bc.hieu_ung || []) if (h === 'tuyet' || h === 'bui') HU[h](c, t); });
+  lop(1.25, () => { TC[bc.tien_canh]?.(c); }); }
+// ---------- bản đồ giấy ----------
+function veDo(c, k, t) { const s = DS[k], m = s.c.ban_do, u = t - s.bd, tr = DS[k - 1]?.c.ban_do || m, e = io(kep(u / 1.2)), z = Math.exp(Math.log(tr.zoom) + (Math.log(m.zoom) - Math.log(tr.zoom)) * e) * (1 + 0.008 * u) * 34, lo = tr.tam[0] + (m.tam[0] - tr.tam[0]) * e, la = tr.tam[1] + (m.tam[1] - tr.tam[1]) * e, cs = Math.cos(la * Math.PI / 180);
+  const P = ([a, b]) => [W / 2 + (a - lo) * z * cs, H / 2 - (b - la) * z];
+  c.fillStyle = '#8fb7bd'; c.fillRect(0, 0, W, H);
+  const the = (dx, dy) => { c.setTransform(z * cs, 0, 0, z, W / 2 - lo * z * cs + dx, H / 2 + la * z + dy); };
+  the(7, 10); c.fillStyle = 'rgba(25,40,45,.4)'; for (const p of Object.values(PATH)) c.fill(p);
+  the(0, 0); c.fillStyle = '#eadfc2'; for (const p of Object.values(PATH)) c.fill(p); c.lineWidth = 1.6 / z; c.strokeStyle = 'rgba(70,50,30,.5)'; for (const p of Object.values(PATH)) c.stroke(p);
+  const mau = ['#c8452f', '#3b6ea5', '#d99a2b', '#5c8a4f', '#7a4f8c']; (m.to || []).forEach((iso, i) => { const p = PATH[iso]; if (!p) return; const q = out(kep((u - 0.2) / 0.5)), n = 14 * q; c.setTransform(z * cs, 0, 0, z, W / 2 - lo * z * cs + n * 0.6, H / 2 + la * z + n); c.fillStyle = 'rgba(20,12,5,.45)'; c.fill(p); c.setTransform(z * cs, 0, 0, z, W / 2 - lo * z * cs, H / 2 + la * z); c.globalAlpha = q; c.fillStyle = mau[i % 5]; c.fill(p); c.globalAlpha = 1; c.lineWidth = 3 / z; c.strokeStyle = '#fff6df'; c.stroke(p); });
+  c.setTransform(1, 0, 0, 1, 0, 0);
+  for (const [i, a] of (m.ten || []).entries()) { const q = io(kep((u - 0.5 - i * 0.3) / 1.6)); if (!q) continue; const [x0, y0] = P(a.tu), [x1, y1] = P(a.den), mx = (x0 + x1) / 2 - (y1 - y0) * 0.2, my = (y0 + y1) / 2 + (x1 - x0) * 0.2, B = (v) => [(1 - v) ** 2 * x0 + 2 * (1 - v) * v * mx + v * v * x1, (1 - v) ** 2 * y0 + 2 * (1 - v) * v * my + v * v * y1], ve = (dx, dy, mauV, w) => { c.save(); c.translate(dx, dy); c.strokeStyle = mauV; c.lineWidth = w; c.lineCap = 'round'; c.beginPath(); for (let j = 0; j <= 40; j++) { const [px, py] = B(j / 40 * q * 0.96); j ? c.lineTo(px, py) : c.moveTo(px, py); } c.stroke(); const [ex, ey] = B(q), [fx, fy] = B(q * 0.94), g = Math.atan2(ey - fy, ex - fx); c.translate(ex, ey); c.rotate(g); c.fillStyle = mauV; c.beginPath(); c.moveTo(16, 0); c.lineTo(-38, -w * 1.5); c.lineTo(-38, w * 1.5); c.fill(); c.restore(); }; ve(6, 8, 'rgba(20,12,5,.45)', 18); ve(0, 0, '#f8efdb', 24); ve(0, 0, '#b3261e', 15); }
+  (m.ghim || []).forEach((g, i) => { const q = kep((u - 0.5 - i * 0.2) / 0.4); if (!q) return; const [px, py] = P(g.o); c.fillStyle = '#b3261e'; c.strokeStyle = '#fff'; c.lineWidth = 4; c.beginPath(); c.arc(px, py, 11 * nay(q), 0, 7); c.fill(); c.stroke(); c.globalAlpha = q; dai(c, g.chu.toUpperCase(), Math.max(160, Math.min(W - 160, px)), Math.max(70, py - 54), 36); c.globalAlpha = 1; }); }
+// ---------- hồ sơ: ảnh thật dán lên mặt giấy ----------
+function veHo(c, k, t) { const s = DS[k], u = t - s.bd, img = A[s.c.anh]; c.fillStyle = '#d9c8a4'; c.fillRect(0, 0, W, H); c.save(); c.globalCompositeOperation = 'multiply'; c.drawImage(giay, 0, 0, W, H); c.restore(); if (!img) return;
+  const q = nay(kep(u / 0.6)), sc = Math.min(1500 / img.width, 830 / img.height), w = img.width * sc, h = img.height * sc, r = (k % 2 ? 1 : -1) * 0.018, zo = 1 + 0.012 * u; c.save(); c.translate(W / 2, H / 2 - 20 - (1 - q) * 1000); c.rotate(r * (2 - q)); c.scale(zo, zo);
+  c.fillStyle = 'rgba(20,12,5,.45)'; c.fillRect(-w / 2 - 6, -h / 2 - 6, w + 40, h + 44); c.fillStyle = '#fbf6ea'; c.fillRect(-w / 2 - 20, -h / 2 - 20, w + 40, h + 40); c.drawImage(img, -w / 2, -h / 2, w, h);
+  c.fillStyle = 'rgba(240,222,160,.72)'; for (const b of [-1, 1]) { c.save(); c.translate(b * w * 0.34, -h / 2 - 18); c.rotate(b * 0.1); c.fillRect(-85, -22, 170, 44); c.restore(); } c.restore(); }
+// ---------- chuyển cảnh: mảng cũ mở sang hai cánh / trượt / sập cửa / xé chéo ----------
+const SNAP = document.createElement('canvas'); SNAP.width = W; SNAP.height = H; const SX = SNAP.getContext('2d'); let snapK = -1;
+const veMot = (c, k, t) => { const l = DS[k].c.loai; if (l === 'ban_do') veDo(c, k, t); else if (l === 'ho_so') veHo(c, k, t); else veSan(c, k, t); c.setTransform(1, 0, 0, 1, 0, 0); };
+function canh2(c, x, y, w, h, ve) { c.save(); c.beginPath(); ve(); c.closePath(); c.clip(); c.drawImage(SNAP, 0, 0); c.restore(); }
+function chuyen(c, hat, q) { const e = io(q), kieu = hat % 4; c.save(); c.shadowColor = 'rgba(0,0,0,.55)'; c.shadowBlur = 26;
+  if (kieu === 0) { const d = e * (W / 2 + 80); c.save(); c.translate(-d, 0); c.beginPath(); c.moveTo(0, 0); c.lineTo(W / 2, 0); meXe(c, W / 2, 0, W / 2, H, hat, 26); c.lineTo(0, H); c.closePath(); c.fillStyle = '#fbf6ea'; c.fill(); c.clip(); c.shadowBlur = 0; c.drawImage(SNAP, 0, 0); c.restore(); c.save(); c.translate(d, 0); c.beginPath(); c.moveTo(W, 0); c.lineTo(W / 2, 0); meXe(c, W / 2, 0, W / 2, H, hat, 26); c.lineTo(W, H); c.closePath(); c.fillStyle = '#fbf6ea'; c.fill(); c.clip(); c.shadowBlur = 0; c.drawImage(SNAP, 0, 0); c.restore(); }
+  else if (kieu === 1) { c.fillStyle = '#fbf6ea'; c.fillRect(-e * W - 10, 0, W + 10, H); c.shadowBlur = 0; c.drawImage(SNAP, -e * W - 10, 0); }
+  else if (kieu === 2) { const d = e * (H / 2 + 70); c.save(); c.translate(0, -d); c.beginPath(); c.moveTo(0, 0); c.lineTo(W, 0); c.lineTo(W, H / 2); meXe(c, W, H / 2, 0, H / 2, hat, 24); c.closePath(); c.fillStyle = '#fbf6ea'; c.fill(); c.clip(); c.shadowBlur = 0; c.drawImage(SNAP, 0, 0); c.restore(); c.save(); c.translate(0, d); c.beginPath(); c.moveTo(0, H); c.lineTo(W, H); c.lineTo(W, H / 2); meXe(c, W, H / 2, 0, H / 2, hat, 24); c.closePath(); c.fillStyle = '#fbf6ea'; c.fill(); c.clip(); c.shadowBlur = 0; c.drawImage(SNAP, 0, 0); c.restore(); }
+  else { c.translate(W / 2, H / 2); c.rotate(-0.18 * e); c.scale(1 - 0.45 * e, 1 - 0.45 * e); c.translate(e * 1500, -e * 900); c.fillStyle = '#fbf6ea'; c.fillRect(-W / 2 - 14, -H / 2 - 14, W + 28, H + 28); c.shadowBlur = 0; c.drawImage(SNAP, -W / 2, -H / 2); }
+  c.restore(); }
+window.__seek = (t) => { let k = DS.findIndex((s) => t < s.kt); if (k < 0) k = DS.length - 1; const s = DS[k], c = X; veMot(c, k, t);
+  // chuyển khi đổi nhóm cảnh (bối cảnh / loại); hai bản đồ liền nhau thì camera bay, không cắt
+  const g = s.nhom, q = (t - DS[g].bd) / 0.85, tr = DS[g - 1]; if (g > 0 && q < 1 && !(tr.c.loai === 'ban_do' && s.c.loai === 'ban_do')) { if (snapK !== g) { SX.setTransform(1, 0, 0, 1, 0, 0); veMot(SX, g - 1, DS[g].bd - 0.01); snapK = g; } chuyen(c, g, kep(q)); }
+  // nhãn: năm, số, dấu, tên chương, phụ đề, hạt giấy + viền hộp
+  const nm = s.c.nam; if (nm != null) dai(c, String(nm), 150, 78, 56, '#1d150c', '#f6d44d', -0.03);
+  if (s.c.so) { const q2 = kep((t - s.bd - 0.25) / 0.35), k2 = nay(q2); if (q2 && t < s.bd + 4) { c.save(); c.translate(W - 390, 250); c.rotate(0.03); c.scale(k2, k2); dai(c, s.c.so.chu, 0, 0, 104, '#f6d44d'); dai(c, s.c.so.nhan.toUpperCase(), 0, 118, 40, '#b3261e', '#fff'); c.restore(); } }
+  if (s.c.dau) { const q3 = kep((t - s.bd - 0.5) / 0.22); if (q3) { const k3 = 2.1 - 1.1 * out(q3); c.save(); c.translate(W - 370, 590); c.rotate(-0.16); c.scale(k3, k3); c.globalAlpha = q3 * 0.92; c.font = '400 92px Anton'; const w = c.measureText(s.c.dau.toUpperCase()).width + 56; c.strokeStyle = '#b3261e'; c.lineWidth = 10; c.strokeRect(-w / 2, -66, w, 132); chu(c, s.c.dau.toUpperCase(), 0, 4, 92, '#b3261e', null); c.restore(); } }
+  if (s.chuong_moi) { const v = t - s.bd, al = kep((v - 0.5) / 0.3) * kep((4.4 - v) / 0.4); if (al > 0) { c.save(); c.globalAlpha = al; const x = W / 2 + (1 - out(kep((v - 0.5) / 0.4))) * -500; dai(c, `CHAPTER ${s.chuong_moi.so}`, x, 300, 42, '#b3261e', '#fff'); dai(c, s.chuong_moi.ten.toUpperCase(), x, 392, 84, '#f4ead2'); c.restore(); } }
+  c.save(); c.globalCompositeOperation = 'multiply'; c.globalAlpha = 0.2; c.drawImage(giay, 0, 0, W, H); c.restore();
+  const v = c.createRadialGradient(W / 2, H / 2, 560, W / 2, H / 2, 1200); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(15,8,2,.5)'); c.fillStyle = v; c.fillRect(0, 0, W, H);
+  const p = C.phu.find((w) => t >= w.a && t < w.b); if (p) chu(c, p.chu, W / 2, H - 62, 44, '#fff', '#120c06', 'Montserrat'); };
+</script></body></html>

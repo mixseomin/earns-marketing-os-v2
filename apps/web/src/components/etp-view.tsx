@@ -1873,11 +1873,11 @@ const LUOI_CAMP_HEP = '10px minmax(0,1fr) 30px 36px';
 // CAMP THAY THẾ — bước → [chữ, độ đậm dòng] (anh 29/10/2026: "dạng mờ do chưa thực sự làm gì … đậm dần khi có thêm các bước")
 const THAY_BUOC: Record<string, [string, number]> = { chuan_bi: ['chuẩn bị · chọn creative', 0.3], cat_goc: ['chờ cắt góc mới', 0.4], cho_cham: ['video xong · chờ chấm', 0.6], len_lich: ['đã lên · chờ chạy', 0.85], chan: ['không thay được', 0.6] };   // chan = cổng chặn lên camp phim này (máy ghi lý do ở ghi — anh 05/11/2026 'show ra để biết')
 const HUONG_THAY: Record<string, string> = { hook: 'đổi cảnh mở', giu: 'đoạn sâu hơn', khac: 'đoạn khác' };
-const tieuThay = (t: ThayThe) => [`Camp thay cho #${t.camp_cu} — ${THAY_BUOC[t.buoc]?.[0] ?? t.buoc}`, t.bai_hoc?.ly_do ? `Vì sao camp cũ lỗ: ${t.bai_hoc.ly_do}` : null,
+const tieuThay = (t: ThayThe) => [t.kieu === 'cho' ? `Camp chờ — phim chỉ 1 camp đang chạy (#${t.camp_cu}), lên sẵn camp thứ hai — ${THAY_BUOC[t.buoc]?.[0] ?? t.buoc}` : `Camp thay cho #${t.camp_cu} — ${THAY_BUOC[t.buoc]?.[0] ?? t.buoc}`, t.bai_hoc?.ly_do ? `Vì sao camp cũ lỗ: ${t.bai_hoc.ly_do}` : null,
   t.bai_hoc?.huong ? `Camp mới rút kinh nghiệm: ${HUONG_THAY[t.bai_hoc.huong] ?? t.bai_hoc.huong}` : null,
   t.bo_camp?.length ? `Đã lên theo bộ: ${t.bo_camp.map((b) => `${MA_DANG[b.dang] ?? b.dang} #${b.camp ?? '?'}`).join(' · ')}` : null, t.ghi ? `Ghi: ${t.ghi}` : null].filter(Boolean).join('\n');
 function oThay(key: string, t: ThayThe): React.ReactNode {
-  if (key === 'camp') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}><span style={{ color: '#a78bfa' }}>◌</span><b>thay #{t.camp_cu}</b>
+  if (key === 'camp') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}><span style={{ color: '#a78bfa' }}>◌</span><b>{t.kieu === 'cho' ? 'camp chờ' : `thay #${t.camp_cu}`}</b>
     {(t.bo_camp ?? []).filter((b) => b.camp).map((b) => <span key={b.camp} style={{ fontSize: 10, color: 'var(--fg-2)' }}>{MA_DANG[b.dang] ?? b.dang} #{b.camp}</span>)}</span>;
   if (key === 'tt') return <span style={{ fontSize: 11, color: t.buoc === 'chan' ? '#f59e0b' : '#a78bfa' }}>{THAY_BUOC[t.buoc]?.[0] ?? t.buoc}</span>;
   if (key === 'luat' && t.buoc === 'chan') return <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{(t.ghi ?? '').replace(/^phim #\d+ /, '').split(' (')[0]}</span>;
@@ -2140,7 +2140,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   // CAMP THAY THẾ (anh 29/10/2026): phim chỉ còn 1 camp sắp tắt → dòng MỜ cùng nhóm phim, đậm dần theo bước (etp.thay_the, máy thay-the.py). Dòng giả mang camp_id âm,
   // mọi cột khác để trống, không vào tổng phim / tổng bảng
   const thayRows = useMemo(() => { const coPhim = new Set(camps.map((c) => c.content_id));
-    return (du.thayThe ?? []).filter((t) => coPhim.has(t.content_id)).map((t): CampEtpKho => ({ camp_id: -t.id, ten: `camp thay #${t.camp_cu}`, bo: null, trang_thai: 'THAY', giao: null, ngan_sach: 0,
+    return (du.thayThe ?? []).filter((t) => coPhim.has(t.content_id)).map((t): CampEtpKho => ({ camp_id: -t.id, ten: t.kieu === 'cho' ? 'camp chờ' : `camp thay #${t.camp_cu}`, bo: null, trang_thai: 'THAY', giao: null, ngan_sach: 0,
       creative_id: t.creative_id, content_id: t.content_id, goc: null, lich: null, tao: t.tao, loi: null, phim: null, the_loai: null, dang: null, doan: null, cung_doan: 0,
       thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, lich_tat: false, roas: null, chien_luoc: null, nuoc: [] })); }, [camps, du.thayThe]);
   const thayCua = useMemo(() => new Map((du.thayThe ?? []).map((t) => [-t.id, t])), [du.thayThe]);
@@ -2163,6 +2163,9 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
           return <button onClick={() => doiMo(tatCa, !moHet)} title={moHet ? 'gập mọi phim' : 'mở mọi phim + bản nhân bản'} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: 'inherit', cursor: 'pointer' }}>{moHet ? '⊟ Gập hết' : '⊞ Mở hết'}</button>; })()}
     {<button onClick={() => setGiai((v) => !v)} style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: 'inherit', cursor: 'pointer' }}>{giai ? 'Ẩn chú giải' : 'Chú giải'}</button>}
   </>;
+  // Ô TÌM: dòng giả (camp thay / camp chờ / plan mở rộng) không có tên phim (phim: null) → gõ tên phim là dòng giả biến mất (06/11/2026: tìm "Dragonborn"
+  // không thấy dòng camp chờ) — dòng giả mượn tên phim / thể loại của một camp thật cùng phim
+  const campCuaPhim = new Map(camps.map((c) => [c.content_id, c]));
   const bangCay = hep ? null : <DataTable rows={thayRows.length || moRongRows.length ? [...camps, ...thayRows, ...moRongRows] : camps} columns={cotCayThay} getRowKey={(c) => String(c.camp_id)} persistKey="etp-cay" minWidth={1100} fixedLayout defaultSort={[{ key: 'lai', dir: 'desc' }]}
     tree={{ parent: (c) => (c.goc ? String(c.goc) : null), open: moBang, onOpen: doiMoBang }} groupBy={{ value: (c) => String(c.content_id ?? 0), label: nhanPhim }}
     rowData={(c) => ({ 'camp-dong': c.camp_id })}
@@ -2173,7 +2176,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       if (c.camp_id < 0) { const t = thayCua.get(c.camp_id); return t ? tieuThay(t) : undefined; }
       const l = loiNb.get(c.camp_id); if (l) return `Vạch ĐỎ — máy không nhân bản được camp này (${l.lan} lần thử trong 24 giờ): ${loiThuong(l.loi)}`;
       if (!giam(c)) return undefined; const r3 = ngay.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d))); return `Vạch CAM — ROI giảm 2 ngày liền: ${ngay.slice(-3).map((d, i) => `${d.slice(8, 10)}/${d.slice(5, 7)} ${r3[i]}%`).join(' → ')}`; }}
-    searchText={(c) => `${c.camp_id} ${c.ten ?? ''} ${c.phim ?? ''} ${c.creative_id ?? ''} ${tlC(c.the_loai)}`} searchPlaceholder="Tìm camp, phim, creative, thể loại…"
+    searchText={(c) => { const p = c.camp_id < 0 ? campCuaPhim.get(c.content_id) : c; return `${c.camp_id} ${c.ten ?? ''} ${p?.phim ?? ''} ${c.creative_id ?? ''} ${tlC(p?.the_loai ?? null)}`; }} searchPlaceholder="Tìm camp, phim, creative, thể loại…"
     dauThanh={nutCay} thanhDinh="var(--etp-dinh, 0px)" locTuDong={false} onTimDoi={onTimDoi} khiTimTrong={khiTimTrong} />;   // TT / Luật / Loại tự sinh trùng nghĩa ô Lọc · Luật · Loại trên thanh tab
   return (
     <div ref={gocCay} className="etp-cay" style={{ padding: '0 4px' }}>

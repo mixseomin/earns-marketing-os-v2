@@ -3,16 +3,15 @@
 // 0đ, không AI: chữ là câu NGUYÊN VĂN bài ghép cung của site (la-so/cung-cap.json, 78 bài /en/blog/<a>-and-<b>-compatibility) theo mục —
 // câu hỏi "Is … a good match?" · The core dynamic · Where it clicks · Where it clashes · How to make it work · câu trả lời đầu của Questions people ask.
 // Hook = dòng đầu QC spy góc Tình yêu (playlist love-compatibility › goc_spy). Bài đăng = mô tả công cụ Compatibility của site + link + link bài.
-//   node viet-sign.mjs --cap sx-leo-sagittarius [--goc-hook gh.json] [--ra <tệp>]   · --cap all = đủ 78 cặp
-import { spawnSync } from 'node:child_process';
+//   node viet-sign.mjs --cap sx-leo-sagittarius [--kho-hook kho.json] [--hook-moi] [--ra <tệp>]   · --cap all = đủ 78 cặp
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BOX, GOC_BOX } from './box3.mjs';
 import { dangCongCu } from './nguon-site.mjs';
 import { tachCanh } from './chu-man.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook, sachHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { chonHook, baoHook } from './hook-kenh.mjs';
 import { hookGon, hookNgan } from './chu-man.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
@@ -28,22 +27,13 @@ const VAI = { loi: [/core dynamic|between you|how these two signs relate/i], hop
 const VI_TRI = { loi: 0, hop: 5, vuong: 6, lam: 7 };
 const lay = (b, vai) => b.muc.find((m) => VAI[vai].some((re) => re.test(m.ten))) ?? (b.muc.length === 11 && /beyond sun signs/i.test(b.muc[8].ten) ? b.muc[VI_TRI[vai]] : undefined);
 
-function layHook(goc) {
-  if (arg('goc-hook')) return JSON.parse(readFileSync(arg('goc-hook'), 'utf8'));
-  const r = spawnSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server timeout 240s ../../node_modules/.bin/tsx scripts/may-dung.mts --may astrolas --goc-hook --goc ${goc}`], { encoding: 'utf8', maxBuffer: 16 << 20 });
-  const dong = (r.stdout ?? '').trim().split('\n').reverse().find((l) => l.startsWith('{"goc"'));
-  if (!dong) { console.error(`✗ không lấy được hook spy góc ${goc}`); process.exit(3); }
-  return JSON.parse(dong);
-}
-
-function vietMot(b, gh, ra) {
+function vietMot(b, ra) {
   const A = hoa(b.a), B = hoa(b.b), so = docSo().astrolas, pl = so.playlist.find((p) => p.ma === 'love-compatibility');
   const hoi = [...b.mo, ...b.muc.map((m) => m.ten)].flatMap((x) => x.split(/(?<=\?)\s+/)).find((x) => /^Is .+ (a )?good match\?$/i.test(x.trim()))?.trim();
   const tra = b.muc.find((m) => /questions people ask/i.test(m.ten))?.doan[0];
   const [loi, hop, vuong, lam] = ['loi', 'hop', 'vuong', 'lam'].map((v) => lay(b, v));
   if (!loi || !hop || !vuong) { console.error(`✗ ${b.ma}: bài thiếu mục cốt lõi / hợp / vướng (${b.muc.map((m) => m.ten).join(' | ')})`); return false; }
-  const hs = hookGon(gh.hooks.filter((h) => !/\d/.test(h.chu) && !/retrograde/i.test(h.chu))), iA = CUNG.indexOf(A), iB = CUNG.indexOf(B);
-  const hook = hs[(iA * 12 + iB) % hs.length] ?? gh.hooks[0], chuHook = hookNgan(hook.chu);
+  const { hook, chuHook, goc: gocHook } = chonHook('astrolas', 'love-compatibility', b.ma);
   const vong = A === B ? { toan: 1 } : { cap_cung: [A, B] }, q = (s) => `“${s.replace(/[.]$/, '')}.”`;
   const cau = [
     { nhin: { troi: 1 }, khung: true, chu: chuHook, the: { lon: `${KYC[A]} × ${KYC[B]}`, duoi: `${A} × ${B}`, dong: [], vi: 'giua' } },
@@ -59,7 +49,7 @@ function vietMot(b, gh, ra) {
   const tg = (p) => relative(SHOT, p);
   const tap = tachCanh({   // mỗi khung một ý ngắn (chu-man.mjs)
     _ghi: `Sign × Sign · ${A} × ${B} — sinh bởi lich-su/viet-sign.mjs (chữ nguyên văn ${b.url}, hook QC spy #${hook.id})`,
-    kenh: 'astrolas', mau: 'sign-x-sign', playlist_ma: 'love-compatibility', y_tuong: b.ma, tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
+    kenh: 'astrolas', mau: 'sign-x-sign', playlist_ma: 'love-compatibility', y_tuong: b.ma, tieu_de: tieuDe, goc: gocHook, hook: { qc: hook.id, goc: hook.chu },
     dang: dangCongCu('compatibility', null, {}, `${A} and ${B} compatibility. Read the full guide: ${b.url}`),
     la_so: tg(join(DIR, 'la-so/steve-jobs.svg')), chi_vong: true, nen: tg(join(DIR, pl.nen))   /* nền theo playlist (so-kenh › playlist.nen) */, logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
     playlist: { ten: pl.ten, mau: '#FF8FB1', ic: '♡' }, DAI: cau.at(-1).den, cau });
@@ -73,7 +63,6 @@ function vietMot(b, gh, ra) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const ma = arg('cap'); if (!ma) { console.error('dùng: --cap <sx-a-b | all>'); process.exit(2); }
   const ds = doc('la-so/cung-cap.json').cap.filter((x) => ma === 'all' || x.ma === ma); if (!ds.length) { console.error(`không có cặp ${ma}`); process.exit(2); }
-  const so = docSo().astrolas, goc = so.playlist.find((p) => p.ma === 'love-compatibility')?.goc_spy?.[0]?.id ?? 4314, gh = layHook(goc);
-  let hong = 0; for (const b of ds) if (!vietMot(b, gh, arg('ra', join(SHOT, 'tap-astrolas', `${b.ma}.json`)))) hong++;
+  let hong = 0; for (const b of ds) if (!vietMot(b, arg('ra', join(SHOT, 'tap-astrolas', `${b.ma}.json`)))) hong++;
   console.log(`${ds.length - hong}/${ds.length} cặp đạt`); process.exit(hong ? 1 : 0);
 }

@@ -4,16 +4,15 @@
 // + trăng mới / tròn trong tuần từ lịch trời (lich-troi.json) · hook = dòng đầu QC spy góc Thời điểm (playlist timing) · bài đăng = mô tả Moon Phase của site + link + nguồn chuyện.
 // XẾP LỊCH: mỗi chuyện một tuần (thứ Hai đầu tuần), ưu tiên tuần chứa NGÀY KỶ NIỆM của chuyện; chuyện chỉ có năm lấp tuần trống sớm nhất.
 // Tranh minh hoạ tuỳ chọn: brand/astrolas/tranh/<ma>-<i>.jpg có thì dùng (tranh-sinh.mts ~110₫ / cảnh), không thì bầu trời + thẻ ngày.
-//   node viet-sky.mjs [--tu 2026-11-09] [--chuyen sc-halley-1066] [--goc-hook gh.json] [--xem]
-import { spawnSync } from 'node:child_process';
+//   node viet-sky.mjs [--tu 2026-11-09] [--chuyen sc-halley-1066] [--kho-hook kho.json] [--hook-moi] [--xem]
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BOX, GOC_BOX } from './box3.mjs';
 import { dangCongCu } from './nguon-site.mjs';
 import { tachCanh, hookGon, hookNgan } from './chu-man.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { chonHook, baoHook } from './hook-kenh.mjs';
 import { ghiTacGia } from './anh-wiki.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
@@ -27,14 +26,6 @@ const tachNgay = (d) => { const m = /^(-?\d{1,4})(?:-(\d{2}))?(?:-(\d{2}))?$/.ex
 export const ngayChu = (s) => { const n = tachNgay(s); return n.d ? `${THANG[n.m - 1]} ${n.d}, ${namChu(n.y)}` : n.m ? `${THANG[n.m - 1]} ${namChu(n.y)}` : namChu(n.y); };
 const NHAN_LOAI = { nguyet_thuc: 'Lunar eclipse', nhat_thuc: 'Solar eclipse', sao_choi: 'Comet', sao_bang: 'Meteor', sieu_tan_tinh: 'New star', hanh_tinh: 'Planet', trang: 'The Moon', khac: 'Sky event' };
 const iso = (t) => t.toISOString().slice(0, 10), cong = (s, n) => iso(new Date(Date.parse(`${s}T00:00Z`) + n * 864e5));
-
-function layHook(goc) {
-  const f = arg('goc-hook'); if (f) return JSON.parse(readFileSync(f, 'utf8'));
-  const r = spawnSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server timeout 240s ../../node_modules/.bin/tsx scripts/may-dung.mts --may astrolas --goc-hook --goc ${goc}`], { encoding: 'utf8', maxBuffer: 16 << 20 });
-  const dong = (r.stdout ?? '').trim().split('\n').reverse().find((l) => l.startsWith('{"goc"'));
-  if (!dong) { console.error(`✗ không lấy được hook spy góc ${goc}`); process.exit(3); }
-  return JSON.parse(dong);
-}
 
 /** sổ chuyện: troi-xua/_so.json + chuyện Columbus 1504 của demo (dai/moc-columbus-1504.json) */
 function soChuyen() {
@@ -54,9 +45,9 @@ export function xepLich(ds, tu, soTuan) {
   return [...xep.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([t, c]) => ({ tuan: t, ...c }));
 }
 
-function vietMot(c, gh, LT) {
+function vietMot(c, LT) {
   const T = doc(c.tep), so = docSo().astrolas, pl = so.playlist.find((p) => p.ma === 'timing'), n = tachNgay(c.su_kien_ngay);
-  const hs = hookGon(gh.hooks.filter((h) => !/\d/.test(h.chu) && !/retrograde/i.test(h.chu))), hook = hs[[...c.ma].reduce((s, x) => s + x.charCodeAt(0), 0) % hs.length] ?? gh.hooks[0], chuHook = hookNgan(hook.chu);
+  const { hook, chuHook, goc: gocHook } = chonHook('astrolas', 'timing', c.ma);
   // trăng mới / trăng tròn trong tuần (giờ UTC của lịch trời)
   const trang = LT.su_kien.filter((e) => /^trang_/.test(e.loai) && e.utc.slice(0, 10) >= c.tuan && e.utc.slice(0, 10) < cong(c.tuan, 7));
   const cauTrang = trang.length ? `This week: ${trang.map((e) => `a ${e.loai === 'trang_moi' ? 'New' : 'Full'} Moon on ${THU[new Date(e.utc).getUTCDay()]}`).join(', ')}.` : "This week's Moon, day by day.";
@@ -79,7 +70,7 @@ function vietMot(c, gh, LT) {
   // tiêu đề không mang số (luật hook: không thêm con số không có trong QC gốc) — "Halley's Comet and 1066" → "Halley's Comet"
   const tieuDe = `${chuHook} ${c.ten.replace(/\s+(?:of|and|in)\s+\d+\b/g, '').replace(/\s*\b\d+\b/g, '').replace(/\s+/g, ' ').trim()}`, nguon = T.nguon.split(/;\s*/).map((s) => s.split(' ')[0]);
   const tap = tachCanh({ _ghi: `Sky Calendar · ${c.ten} · tuần ${c.tuan}${c.ky_niem ? ' (tuần kỷ niệm)' : ''} — sinh bởi lich-su/viet-sky.mjs (chuyện ${c.tep}, lịch trời lich-troi.json, hook QC spy #${hook.id})`,
-    kenh: 'astrolas', mau: 'sky-calendar', playlist_ma: 'timing', y_tuong: c.ma, tuan: c.tuan, tieu_de: tieuDe, goc: gh.goc, hook: { qc: hook.id, goc: hook.chu },
+    kenh: 'astrolas', mau: 'sky-calendar', playlist_ma: 'timing', y_tuong: c.ma, tuan: c.tuan, tieu_de: tieuDe, goc: gocHook, hook: { qc: hook.id, goc: hook.chu },
     nguon_moc: [c.tep],
     dang: dangCongCu('moon-phase', null, {}, `${ngayChu(c.su_kien_ngay)}: ${c.ten}. This week's Moon phases on Astrolas. Story: ${nguon.join(' · ')}${ghiAnh.length ? `\nImages: ${ghiAnh.join('; ')}` : ''}`),
     nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#7FD18B', ic: '☽' }, cau, DAI: 0 });
@@ -95,7 +86,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const tu = arg('tu', thu2(homNay)), soTuan = Math.floor((Date.parse(`${LT.den}T00:00Z`) - Date.parse(`${tu}T00:00Z`)) / (7 * 864e5));
   const lich = xepLich(soChuyen(), tu, soTuan).filter((c) => !arg('chuyen') || c.ma === arg('chuyen'));
   if (process.argv.includes('--xem')) { for (const c of lich) console.log(`${c.tuan}  ${c.ky_niem ? '★' : ' '} ${c.ma.padEnd(22)} ${c.su_kien_ngay.padEnd(11)} ${c.ten}`); process.exit(0); }
-  const gh = layHook(docSo().astrolas.playlist.find((p) => p.ma === 'timing')?.goc_spy?.[0]?.id ?? 4316);
-  let hong = 0; for (const c of lich) if (!vietMot(c, gh, LT)) hong++;
+  let hong = 0; for (const c of lich) if (!vietMot(c, LT)) hong++;
   console.log(`${lich.length - hong}/${lich.length} chuyện đạt`); process.exit(hong ? 1 : 0);
 }

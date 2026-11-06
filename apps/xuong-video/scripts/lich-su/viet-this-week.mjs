@@ -2,21 +2,20 @@
 // MÁY VIẾT "THIS WEEK IN YOUR CHART" (G5 kênh Astrolas, 05/11/2026): một sự kiện trời (lich-troi.json) × một cung Mọc → một Short 9:16 cho shot-code/la-so.html.
 // 0đ, KHÔNG gọi AI: mọi chữ chiêm tinh là câu NGUYÊN VĂN site lấy từ kho (luật nguồn — nguon-site.mjs), dữ liệu sự kiện từ lịch trời tính tới phút,
 // câu hook = dòng đầu QC spy chạy lâu của góc Thời điểm (playlist timing › goc_spy, may-dung --goc-hook --goc), bài đăng = dangCongCu. Máy gác kiemTap chặn trước khi ghi.
-//   node viet-this-week.mjs --su tw-nghich-hanh-mercury-scorpio-2026-10-24 --moc Leo [--goc-hook gh.json] [--ra <tệp>]   · --moc all = đủ 12 cung Mọc
+//   node viet-this-week.mjs --su tw-nghich-hanh-mercury-scorpio-2026-10-24 --moc Leo [--kho-hook kho.json] [--hook-moi] [--ra <tệp>]   · --moc all = đủ 12 cung Mọc
 // Chọn câu theo loại sự kiện:
 //   trăng mới / tròn → new-moon-and-full-moon-in-your-houses (câu mở + dòng theo nhà)        sao chậm vào cung → <sao>-transit-<n>th-house (tựa + câu đầu)
 //   Mercury nghịch / thuận → mercury-retrograde-what-actually-happens                         Venus / Mars → venus-retrograde-and-mars-retrograde
 //   Mộc / Thổ nghịch / thuận → transits-explained › The three passes                          Mặt Trời / sao nhanh đổi cung → transits-explained › Fast…
 //   nghĩa nhà khi bài không có dòng riêng → la-so/y-nghia-nha.json (đúng nhà)
-import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BOX, GOC_BOX } from './box3.mjs';
 import { dangCongCu } from './nguon-site.mjs';
 import { tachCanh } from './chu-man.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook, sachHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { chonHook, baoHook } from './hook-kenh.mjs';
 import { hookGon, hookNgan } from './chu-man.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
@@ -55,21 +54,11 @@ export function chuSuKien(su, nha) {
   return o;
 }
 
-/** hook QC spy của góc Thời điểm (box3, 0đ) — sự kiện nghịch hành ưu tiên hook nói về retrograde, còn lại xoay vòng theo cung Mọc */
-function layHook(goc) {
-  if (arg('goc-hook')) return JSON.parse(readFileSync(arg('goc-hook'), 'utf8'));
-  const r = spawnSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server timeout 240s ../../node_modules/.bin/tsx scripts/may-dung.mts --may astrolas --goc-hook --goc ${goc}`], { encoding: 'utf8', maxBuffer: 16 << 20 });
-  const dong = (r.stdout ?? '').trim().split('\n').reverse().find((l) => l.startsWith('{"goc"'));   // lệnh in JSON rồi giữ kết nối DB tới hết trần — lấy dòng JSON, không chờ mã thoát
-  if (!dong) { console.error(`✗ không lấy được hook spy góc ${goc}:\n${(r.stderr ?? '').slice(-400)}`); process.exit(3); }
-  return JSON.parse(dong);
-}
-
-function vietMot(su, moc, gh, ra) {
+function vietMot(su, moc, ra) {
   const iR = CUNG.indexOf(moc), iS = CUNG.indexOf(su.cung), nha = ((iS - iR + 12) % 12) + 1, c = chuSuKien(su, nha);
   const d = new Date(su.utc), ngay = `${THANG[d.getUTCMonth()]} ${d.getUTCDate()}`, gio = su.utc.slice(11, 16);
-  const nghich = /retrograde/i.test(su.chu), hs = gh.hooks.filter((h) => !/\d/.test(h.chu));   // (xoay bên dưới dùng hookGon: ưu tiên hook gọn một khung)
-  const xoay = hookGon(hs.filter((h) => !/retrograde/i.test(h.chu))), hook = (nghich && hs.find((h) => /retrograde/i.test(h.chu))) || xoay[(iR + iS) % xoay.length] || hs[0] || gh.hooks[0];   // hook nói về nghịch hành chỉ cho sự kiện nghịch hành
-  const chuHook = hookNgan(hook.chu);
+  // hook: bộ chọn chung (hook-kenh.mjs) — mỗi câu một tập; hook nói về nghịch hành chỉ cho sự kiện nghịch hành
+  const { hook, chuHook, goc: gocHook } = chonHook('astrolas', 'timing', `${su.ma}-${moc.toLowerCase()}`, { retro: /retrograde/i.test(su.chu) });
   const so = docSo(), so_ = so.astrolas, pl = so_.playlist.find((p) => p.ma === 'timing');
   const tg = (p) => relative(SHOT, p),   // đường tính từ thư mục trang dựng (dung.mjs mở shot-code/la-so.html), không từ chỗ đặt tệp tập
     dung = (cung) => (cung === moc ? { toan: 1 } : { cap_cung: [moc, cung] });
@@ -86,7 +75,7 @@ function vietMot(su, moc, gh, ra) {
    
     _ghi: `This Week · ${su.chu} × ${moc} rising — sinh bởi lich-su/viet-this-week.mjs (chữ site nguyên văn, hook QC spy #${hook.id})`,
     kenh: 'astrolas', mau: 'this-week', playlist_ma: 'timing', y_tuong: su.ma, tieu_de: tieuDe,
-    goc: gh.goc, hook: { qc: hook.id, goc: hook.chu }, nguon_bai: c.bai,
+    goc: gocHook, hook: { qc: hook.id, goc: hook.chu }, nguon_bai: c.bai,
     dang: dangCongCu(c.cong_cu, null, {}, `${su.chu} (${ngay}, ${gio} UTC): what it means for ${moc} rising.${c.bai.length ? ` Read more: ${c.bai.map((b) => `https://astrolas.com/en/blog/${b}`).join(' ')}` : ''}`),
     la_so: tg(join(DIR, 'la-so/steve-jobs.svg')), chi_vong: true,
     nen: tg(join(DIR, pl.nen))   /* nền theo playlist (so-kenh › playlist.nen) */, logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
@@ -101,8 +90,8 @@ function vietMot(su, moc, gh, ra) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const ma = arg('su'), moc = arg('moc'); if (!ma || !moc) { console.error('dùng: --su <mã sự kiện lich-troi> --moc <Cung | all>'); process.exit(2); }
   const su = doc('lich-troi.json').su_kien.find((x) => x.ma === ma); if (!su) { console.error(`không có sự kiện ${ma} trong lich-troi.json`); process.exit(2); }
-  const so = docSo().astrolas, goc = so.playlist.find((p) => p.ma === 'timing')?.goc_spy?.[0]?.id ?? 4316, gh = layHook(goc);
+  const so = docSo().astrolas;
   const ds = moc === 'all' ? CUNG : [moc]; let hong = 0;
-  for (const m of ds) if (!vietMot(su, m, gh, arg('ra', join(SHOT, 'tap-astrolas', `${su.ma}-${m.toLowerCase()}.json`)))) hong++;
+  for (const m of ds) if (!vietMot(su, m, arg('ra', join(SHOT, 'tap-astrolas', `${su.ma}-${m.toLowerCase()}.json`)))) hong++;
   process.exit(hong ? 1 : 0);
 }

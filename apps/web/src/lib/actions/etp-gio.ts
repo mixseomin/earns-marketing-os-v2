@@ -21,7 +21,14 @@ export async function docGioNgay(camps: number[], ngay: string): Promise<{ ds: S
   const h = (await getDb()!.execute(sql`with t0 as (select camp_id, min(ngay + gio * interval '1 hour') t from etp.so_gio_camp where camp_id = any(${mang}::bigint[]) and chi > 0 group by 1)
     select g, count(t0.camp_id) filter (where ${ngay}::date + g * interval '1 hour' >= t0.t and ${ngay}::date + g * interval '1 hour' < t0.t + ${KD.hoc_gio} * interval '1 hour')::int n
     from generate_series(0, 23) g left join t0 on true group by g order by g`)) as unknown as { g: number; n: number }[];
-  // ngân sách ngày của nhóm (etp.so_ngay hôm đó; chưa có dòng → ngân sách hiện tại) — biểu đồ vẽ mức NS + % NS tới 13h (anh 05/11/2026 "show thêm mức chi của fb vào chart theo giờ")
-  const nsR = (await getDb()!.execute(sql`select coalesce((select sum(ngan_sach)::float from etp.so_ngay where ngay = ${ngay}::date and camp_id = any(${mang}::bigint[])), (select sum(ngan_sach)::float from etp.camp where camp_id = any(${mang}::bigint[])), 0) ns`)) as unknown as { ns: number }[];
+  // ngân sách ngày của nhóm — biểu đồ vẽ mức NS (trần) + % NS tới 13h (anh 05/11/2026 "show thêm mức chi của fb vào chart theo giờ")
+  // camp Nhà: etp.so_ngay hôm đó (chưa có dòng → ngân sách hiện tại etp.camp). CAMP ĐỘI không có trong so_ngay lẫn etp.camp → trước ra 0, biểu đồ mất vạch trần
+  // (anh 06/11/2026 #1543 "Fix thiếu Trần", trang ng=116): lấy bậc cuối của sổ etp.bac_ngoai tính tới hết ngày đó (không có → ngân sách hiện tại camp_ngoai), chỉ camp có chi ngày đó
+  const nsR = (await getDb()!.execute(sql`with x as (select unnest(${mang}::bigint[])::int id),
+    nha as (select coalesce((select sum(ngan_sach)::float from etp.so_ngay where ngay = ${ngay}::date and camp_id in (select id from x)), (select sum(ngan_sach)::float from etp.camp where camp_id in (select id from x)), 0) v),
+    doi as (select coalesce(sum(coalesce((select b.moi from etp.bac_ngoai b where b.camp_id = n.camp_id and b.moi is not null and b.luc < ${ngay}::date + 1 order by b.luc desc limit 1), n.ngan_sach))::float, 0) v
+      from etp.camp_ngoai n where n.camp_id in (select id from x) and not exists (select 1 from etp.camp c where c.camp_id = n.camp_id)
+        and exists (select 1 from etp.so_gio_camp g where g.camp_id = n.camp_id and g.ngay = ${ngay}::date and g.chi > 0))
+    select (select v from nha) + (select v from doi) ns`)) as unknown as { ns: number }[];
   return { ns: Number(nsR[0]?.ns ?? 0), hoc: h.map((x) => Number(x.n)), so: ids.length, ds: r.map((x) => ({ gio: Number(x.gio), chi: Number(x.chi), thu: Number(x.thu) })), luc: r.reduce<string | null>((a, x) => (!a || x.luc > a ? x.luc : a), null) };
 }

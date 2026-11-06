@@ -1699,18 +1699,24 @@ function BieuDoGio({ gio, bac }: { gio: GioO; bac?: DuLieuEtp['lsBac'][number] }
 // CỜ NƯỚC GIAO + NHÓM GỐC PHIM (anh 29/10/2026 "các camp hãy thêm icon quốc gia target … phim Ấn, Tàu, Âu… phải tách"): camp đều nhắm cùng 39 nước,
 // cờ = nước nhận nhiều chi nhất 7 ngày (etp.camp_nuoc); nhóm gốc chấm trên poster (etp.phim.nhom_goc — hoạt hình chỉ khi nhìn ra tranh vẽ, AI nhìn thật xếp theo ngoại hình)
 const coNuoc = (g: string) => String.fromCodePoint(...[...g.toUpperCase()].map((x) => 127397 + x.charCodeAt(0)));
-/** nhãn LẦN A/B trên ô camp (sổ etp.ab): "AB01 · 4 nước" — viền tím = nhánh thử · viền xám = đối chứng; rê xem biến thử + giả thuyết */
+/** nhãn LẦN A/B trên ô camp (sổ etp.ab): chỉ mã "AB01" — viền tím = nhánh thử · viền xám = đối chứng; nhánh, biến thử, giả thuyết ở thẻ nổi chung
+ *  (anh 06/11/2026 #1546 "Cho gọn lại. Thông tin chi tiết vào hover" — trước "AB01 · 39 nước" chiếm nửa ô) */
 const ngayVn = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
 function NhanAb({ ab }: { ab?: CampEtpKho['ab'] }) {
-  if (!ab) return null; const thu = ab.nhanh === 'thu';
-  return <span title={`${ab.ma} · ${ab.ten} — ${thu ? 'nhánh THỬ' : 'nhánh ĐỐI CHỨNG'}: ${ab.nhanhTen} · từ ${ngayVn(ab.batDau)}${ab.giaThuyet ? `\n${ab.giaThuyet}` : ''}`}
-    style={{ fontSize: 10, padding: '0 4px', borderRadius: 4, cursor: 'help', whiteSpace: 'nowrap', color: thu ? '#c4b5fd' : 'var(--fg-2)', border: `1px solid ${thu ? '#8b5cf6' : 'var(--line)'}` }}>{ab.ma} · {ab.nhanhTen}</span>;
+  if (!ab) return null; const thu = ab.nhanh === 'thu', mau = thu ? '#a78bfa' : '#94a3b8';
+  return <ReThe the={() => ({ ma: ab.ma, ten: ab.ten, tieu: thu ? 'Nhánh THỬ' : 'Nhánh ĐỐI CHỨNG', mau, moc: [
+      { ten: 'Nhánh', mau, so: ab.nhanhTen, luc: `từ ${ngayVn(ab.batDau)}` },
+      ...(ab.giaThuyet ? [{ ten: 'Giả thuyết', mau: '#94a3b8', chu: ab.giaThuyet }] : [])] })}>
+    <span style={{ fontSize: 10, padding: '0 4px', borderRadius: 4, cursor: 'help', whiteSpace: 'nowrap', color: thu ? '#c4b5fd' : 'var(--fg-2)', border: `1px solid ${thu ? '#8b5cf6' : 'var(--line)'}` }}>{ab.ma}</span></ReThe>;
 }
 function CoNuoc({ nuoc }: { nuoc: { g: string; c: number; t: number }[] }) {
   const tc = nuoc.reduce((a, x) => a + x.c, 0); if (!tc) return null;
   const pt = (x: { c: number }) => Math.round((x.c / tc) * 100), top = nuoc[0]!;
-  const t = `Nước giao 7 ngày (camp nhắm 39 nước):\n${nuoc.slice(0, 6).map((x) => `${coNuoc(x.g)} ${x.g} ${pt(x)}% chi · ROI ${x.c ? Math.round((x.t / x.c - 1) * 100) : 0}%`).join('\n')}${nuoc.length > 6 ? `\n… +${nuoc.length - 6} nước` : ''}`;
-  return <span title={t} style={{ fontSize: 12, cursor: 'help', opacity: pt(top) >= 80 ? 1 : 0.75 }}>{coNuoc(top.g)}{pt(top) < 80 ? <span style={{ fontSize: 10, color: 'var(--fg-2)', marginLeft: 2 }}>{pt(top)}%</span> : null}</span>;
+  // thẻ nổi chung (#1546): mỗi nước một mốc — % chi + ROI tô màu; trước là tooltip chữ thô của trình duyệt
+  const the = (): TheNoi => ({ tieu: `Nước giao 7 ngày · ${coNuoc(top.g)} ${top.g} ${pt(top)}% chi`, mau: '#60a5fa', moc: [
+    ...nuoc.slice(0, 6).map((x) => { const r = x.c ? Math.round((x.t / x.c - 1) * 100) : 0; return { ten: `${coNuoc(x.g)} ${x.g}`, mau: r >= 0 ? '#4ade80' : '#f87171', so: `${pt(x)}% chi`, chu: `ROI ${r > 0 ? '+' : ''}${r}% · chi $${x.c.toFixed(2)}` }; }),
+    ...(nuoc.length > 6 ? [{ ten: `+${nuoc.length - 6} nước khác`, mau: '#94a3b8' }] : []), { ten: 'Nhắm', mau: '#94a3b8', chu: 'camp nhắm cùng 39 nước — cờ = nước nhận nhiều chi nhất' }] });
+  return <ReThe the={the}><span style={{ fontSize: 12, cursor: 'help', opacity: pt(top) >= 80 ? 1 : 0.75 }}>{coNuoc(top.g)}{pt(top) < 80 ? <span style={{ fontSize: 10, color: 'var(--fg-2)', marginLeft: 2 }}>{pt(top)}%</span> : null}</span></ReThe>;
 }
 const NHOM_GOC: Record<string, [string, string, string]> = {   // [chữ, màu, giải thích]
   au_my: ['Âu-Mỹ', 'var(--fg-3)', 'diễn viên Âu-Mỹ'], trung: ['🇨🇳 Trung', '#f87171', 'diễn viên Trung Quốc'], an: ['🇮🇳 Ấn', '#fb923c', 'diễn viên Ấn Độ'],
@@ -1795,9 +1801,23 @@ const HUONG_THAY: Record<string, string> = { hook: 'đổi cảnh mở', giu: '�
 const tieuThay = (t: ThayThe) => [t.kieu === 'cho' ? `Camp chờ — phim chỉ 1 camp đang chạy (#${t.camp_cu}), lên sẵn camp thứ hai — ${THAY_BUOC[t.buoc]?.[0] ?? t.buoc}` : `Camp thay cho #${t.camp_cu} — ${THAY_BUOC[t.buoc]?.[0] ?? t.buoc}`, t.bai_hoc?.ly_do ? `Vì sao camp cũ lỗ: ${t.bai_hoc.ly_do}` : null,
   t.bai_hoc?.huong ? `Camp mới rút kinh nghiệm: ${HUONG_THAY[t.bai_hoc.huong] ?? t.bai_hoc.huong}` : null,
   t.bo_camp?.length ? `Đã lên theo bộ: ${t.bo_camp.map((b) => `${MA_DANG[b.dang] ?? b.dang} #${b.camp ?? '?'}`).join(' · ')}` : null, t.ghi ? `Ghi: ${t.ghi}` : null].filter(Boolean).join('\n');
+// thẻ nổi khuôn chung của dòng camp thay / chờ (trước: rowTitle chữ thô trình duyệt — anh 06/11/2026 #1546 "Format hover theo chuẩn đẹp đang có !! Tất cả hover")
+const theThay = (t: ThayThe): TheNoi => { const [dong, ...con] = tieuThay(t).split('\n');
+  return { ma: t.kieu === 'cho' ? 'camp chờ' : `thay #${t.camp_cu}`, tieu: THAY_BUOC[t.buoc]?.[0] ?? t.buoc, mau: t.buoc === 'chan' ? '#f59e0b' : '#a78bfa',
+    moc: [{ ten: t.kieu === 'cho' ? 'Camp chờ' : 'Camp thay', mau: '#a78bfa', chu: dong!.replace(/ — [^—]*$/, '') }, ...con.map((x) => { const i = x.indexOf(': '); return { ten: i > 0 ? x.slice(0, i) : 'Ghi', mau: '#94a3b8', chu: i > 0 ? x.slice(i + 2) : x }; })] }; };
+// ĐỒNG HỒ SẢN XUẤT CỦA DÒNG KẾ HOẠCH (anh 06/11/2026 #1545 "Thêm cái đồng hồ sx vào đây"): dòng camp thay / chờ và dòng mở rộng có đồng hồ 9 nút như dòng phim —
+// bước của dòng quy về đúng cột tab Sản xuất (NUT_SX), số giữa = số camp sẽ lên; bấm mở ngăn Sản xuất của phim (Ctrl/⌘: tab Sản xuất)
+const THAY_NUT: Record<string, [string, string]> = { chuan_bi: ['cat', 'dang'], cat_goc: ['cat', 'dang'], cho_cham: ['creative', 'dang'], len_lich: ['chay', 'dang'], chan: ['camp', 'dung'] };
+function DongHoKeHoach({ cid, toi, tt, so, the, ket }: { cid: number; /** bước đang ở (bước dòng phim) — trước nó xong, sau nó chờ; null = chưa bắt đầu */ toi: string | null; tt: string; so: number; the: () => TheNoi; ket?: string }) {
+  const thu = NUT_SX.map(([, , b]) => b), i = toi ? thu.indexOf(toi) : -1;
+  const buoc = [...new Set(thu)].map((b) => ({ buoc: b, trang_thai: i < 0 ? (['nhan', 'ws', 'poster'].includes(b) ? 'xong' : 'cho') : thu.indexOf(b) < i ? 'xong' : b === toi ? tt : 'cho' }));
+  return <ReThe the={the}><DongHoSx buoc={buoc} so={so} title="" href={`?t=dong&sxq=${cid}`} ket={ket} bam={() => openEntityDrawer('etp-sx', cid)} /></ReThe>;
+}
 function oThay(key: string, t: ThayThe): React.ReactNode {
-  if (key === 'camp') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}><span style={{ color: '#a78bfa' }}>◌</span><b>{t.kieu === 'cho' ? 'camp chờ' : `thay #${t.camp_cu}`}</b>
-    {(t.bo_camp ?? []).filter((b) => b.camp).map((b) => <span key={b.camp} style={{ fontSize: 10, color: 'var(--fg-2)' }}>{MA_DANG[b.dang] ?? b.dang} #{b.camp}</span>)}</span>;
+  if (key === 'camp') return <ReThe the={() => theThay(t)}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', cursor: 'help' }}><span style={{ color: '#a78bfa' }}>◌</span><b>{t.kieu === 'cho' ? 'camp chờ' : `thay #${t.camp_cu}`}</b>
+    {(t.bo_camp ?? []).filter((b) => b.camp).map((b) => <span key={b.camp} style={{ fontSize: 10, color: 'var(--fg-2)' }}>{MA_DANG[b.dang] ?? b.dang} #{b.camp}</span>)}</span></ReThe>;
+  if (key === 'ht') { const [toi, tt] = THAY_NUT[t.buoc] ?? [null, 'cho'];
+    return <DongHoKeHoach cid={t.content_id} toi={toi} tt={tt} so={Math.max(1, t.bo_camp?.length ?? 0)} the={() => theThay(t)} ket={t.buoc === 'chan' ? 'dung' : undefined} />; }
   if (key === 'tt') return <span style={{ fontSize: 11, color: t.buoc === 'chan' ? '#f59e0b' : '#a78bfa' }}>{THAY_BUOC[t.buoc]?.[0] ?? t.buoc}</span>;
   if (key === 'luat' && t.buoc === 'chan') return <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{(t.ghi ?? '').replace(/^phim #\d+ /, '').split(' (')[0]}</span>;
   if (key === 'luat') return t.bai_hoc?.huong ? <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>↻ {HUONG_THAY[t.bai_hoc.huong] ?? t.bai_hoc.huong}</span> : null;
@@ -1808,13 +1828,17 @@ function oThay(key: string, t: ThayThe): React.ReactNode {
 // camp_id giả = −(1e6 + phim) để không đụng dòng thay (−id thay_the)
 const MR_TT: Record<string, [string, string, number]> = { them: ['nên thêm ngay', '#4ade80', 0.85], cho_do: ['chờ đo lượt trước', '#facc15', 0.55], giu: ['giữ — ROI tụt', '#f59e0b', 0.45] };
 const MR_ID = (cid: number) => -(1_000_000 + cid);
-function oMoRong(key: string, m: MoRong): React.ReactNode {
-  const [chu, mau] = MR_TT[m.trang_thai] ?? [m.trang_thai, 'var(--fg-2)'];
-  if (key === 'camp') return <ReThe the={() => ({ ma: `#${m.content_id}`, tieu: `Mở rộng +${m.k} camp · ${MR_TT[m.trang_thai]?.[0] ?? m.trang_thai}`, mau, moc: [
+const theMoRong = (m: MoRong): TheNoi => { const mau = MR_TT[m.trang_thai]?.[1] ?? 'var(--fg-2)';
+  return { ma: `#${m.content_id}`, tieu: `Mở rộng +${m.k} camp · ${MR_TT[m.trang_thai]?.[0] ?? m.trang_thai}`, mau, moc: [
       { ten: 'Cách tính', mau, chu: m.ly ?? '—' },
       { ten: '3 ngày đã khép', mau: '#94a3b8', so: `ROI ${m.roi3 ?? '—'}%`, chu: `chi $${m.chi3.toFixed(2)} · lãi $${m.lai3.toFixed(2)}${m.roi_truoc != null ? ` · 3 ngày trước đó ${m.roi_truoc}%` : ''}` },
       { ten: 'Creative', mau: '#60a5fa', chu: `đang chạy ${m.n} camp · sạch chưa có camp ${m.san} · cần sản xuất ${m.can_sx}` },
-      { ten: 'Công thức', mau: '#64748b', chu: 'đích 30 camp/phim · lãi ≥ 20% → ⌈6×(1−n/30)⌉ · hoà 0–20% → 1 · lỗ → camp thay thế · mỗi lượt đo lại tổng thể phim' }] })}>
+      { ten: 'Công thức', mau: '#64748b', chu: 'đích 30 camp/phim · lãi ≥ 20% → ⌈6×(1−n/30)⌉ · hoà 0–20% → 1 · lỗ → camp thay thế · mỗi lượt đo lại tổng thể phim' }] }; };
+function oMoRong(key: string, m: MoRong): React.ReactNode {
+  const [chu, mau] = MR_TT[m.trang_thai] ?? [m.trang_thai, 'var(--fg-2)'];
+  // đồng hồ: creative sẵn đủ (cần sx 0) → tới bước Lên camp; còn phải sản xuất → tới bước Cắt; dòng "giữ" = dừng (#1545)
+  if (key === 'ht') return <DongHoKeHoach cid={m.content_id} toi={m.can_sx > 0 ? 'cat' : 'camp'} tt={m.trang_thai === 'giu' ? 'dung' : 'cho'} so={m.k} the={() => theMoRong(m)} ket={m.trang_thai === 'giu' ? 'dung' : undefined} />;
+  if (key === 'camp') return <ReThe the={() => theMoRong(m)}>
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', cursor: 'help' }}><span style={{ color: mau }}>＋</span><b>mở rộng +{m.k} camp</b></span></ReThe>;
   if (key === 'tt') return <span style={{ fontSize: 11, color: mau }}>{chu}</span>;
   if (key === 'luat') return <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>sẵn {m.san} · cần sx {m.can_sx}</span>;
@@ -2015,11 +2039,13 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
         <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} />
         <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} />
         {/* bỏ dấu ⚠ nhân bản lỗi (#1524 anh 04/11/2026 "bỏ các thông báo lỗi này · chỉnh thể loại thẳng cột"): ô số bản nhân luôn rộng 22px → badge loại thẳng một cột */}
-        <span style={{ color: 'var(--fg-2)', fontSize: 11, minWidth: 22, textAlign: 'right' }} title={n ? `${n} bản nhân` : undefined}>{n ? `x${n}` : ''}</span></span></span>; } },
+        {n ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: `${n} bản nhân`, mau: '#94a3b8', moc: [{ ten: 'Nhân bản', mau: '#94a3b8', so: `x${n}`, chu: 'camp nhân y nguyên từ camp này (cùng creative) — mở ▶ xem từng bản' }] })}><span style={{ color: 'var(--fg-2)', fontSize: 11, minWidth: 22, textAlign: 'right', cursor: 'help' }}>x{n}</span></ReThe>
+          : <span style={{ minWidth: 22 }} />}</span></span>; } },
     { key: 'ht', header: 'Thị trường', align: 'center', width: 40, title: 'thị trường của phim (độ hấp thụ): ROI biên 14 ngày (mỗi $1 chi thêm đem về bao nhiêu) — xanh còn hút · vàng gần đỉnh · đỏ bão hoà; chưa đủ số thì trống',
       cell: () => null, total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <DongHoPhim cid={k} m={du.moRong?.find((x) => x.content_id === k)} ten={rs.find((x) => x.camp_id > 0)?.phim} /> : null; } },   // cột riêng (anh 04/11/2026)
     { key: 'tt', header: 'TT', align: 'left', width: 74, title: 'trạng thái camp trên Ethopex', total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k)   // ĐỒNG HỒ CÁC ĐỢT SẢN XUẤT ở dòng phim, sát mép phải → ngay cạnh ＋ (cột Tuổi) (anh 04/11/2026)
-      ? <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}><BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /></span> : null; }, cell: (c) => { const x = ttCamp(c); const o = <span title={c.trang_thai === 'ACTIVE' ? x.t : undefined} style={{ display: 'block', fontSize: 11, color: x.mau, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.chu}</span>; return c.trang_thai === 'ACTIVE' || c.giao === 'DISAPPROVED' ? o : <ReDung c={c}>{o}</ReDung>; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
+      ? <span style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2, whiteSpace: 'nowrap' }}><BadgeSx cid={k} ds={du.dongChay ?? []} kt={ktCua.get(k)} /></span> : null; }, cell: (c) => { const x = ttCamp(c); const o = <span style={{ display: 'block', fontSize: 11, color: x.mau, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', cursor: 'help' }}>{x.chu}</span>;
+        return c.trang_thai === 'ACTIVE' || c.giao === 'DISAPPROVED' ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: x.chu, mau: x.mau, moc: [{ ten: 'Trạng thái', mau: x.mau, chu: x.t }] })}>{o}</ReThe> : <ReDung c={c}>{o}</ReDung>; }, sortValue: (c) => ttCamp(c).chu },   // cột hẹp cố định — không ăn khoảng thừa của bảng (anh 29/10/2026 "cột trạng thái cho gọn lại… hạn chế phải scroll ngang")
     { key: 'tuoi', header: 'Tuổi', width: 52, title: 'tuổi camp tính bằng ngày từ lúc tạo — lọc 🔍 theo ngày: > 2 = hơn 2 ngày', cellTitle: tuoiTitle, cell: (c) => tuoiChu(tuoi(c)), sortValue: (c) => tuoiLoc(tuoi(c)),
       // NÚT ＋ MỞ RỘNG ở dòng PHIM, thẳng một cột (anh 04/11/2026 "phải thẳng cột") — dòng tổng bảng (nhiều phim) không có
       total: (rs) => { const k = rs.find((x) => x.camp_id > 0)?.content_id; return k && rs.every((x) => x.content_id === k) ? <NutMoRong cid={k} /> : null; } },   // ＋ thẳng cột trong cột Tuổi (hẹp 52); đồng hồ các đợt ở ô TT ngay bên trái
@@ -2098,8 +2124,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
     rowStyle={(c) => { if (c.camp_id < 0 && moRongCua.has(c.camp_id)) return { opacity: MR_TT[moRongCua.get(c.camp_id)!.trang_thai]?.[2] ?? 0.4, fontStyle: 'italic' };
       if (c.camp_id < 0) { const t = thayCua.get(c.camp_id); return { opacity: THAY_BUOC[t?.buoc ?? '']?.[1] ?? 0.3, fontStyle: 'italic' }; }
       const mau = loiNb.get(c.camp_id) ? '#ef4444' : giam(c) ? '#f59e0b' : null; return mau ? { boxShadow: `inset 3px 0 ${mau}`, background: `${mau}14` } : undefined; }}
-    rowTitle={(c) => { if (c.camp_id < 0 && moRongCua.has(c.camp_id)) return undefined;   // thẻ nổi chung ở ô (ReThe)
-      if (c.camp_id < 0) { const t = thayCua.get(c.camp_id); return t ? tieuThay(t) : undefined; }
+    rowTitle={(c) => { if (c.camp_id < 0) return undefined;   // dòng mở rộng / thay / chờ: thẻ nổi chung ở ô camp + đồng hồ sản xuất (ReThe, #1545 #1546)
       const l = loiNb.get(c.camp_id); if (l) return `Vạch ĐỎ — máy không nhân bản được camp này (${l.lan} lần thử trong 24 giờ): ${loiThuong(l.loi)}`;
       if (!giam(c)) return undefined; const r3 = ngay.slice(-3).map((d) => roi(so.get(c.camp_id)?.get(d))); return `Vạch CAM — ROI giảm 2 ngày liền: ${ngay.slice(-3).map((d, i) => `${d.slice(8, 10)}/${d.slice(5, 7)} ${r3[i]}%`).join(' → ')}`; }}
     searchText={(c) => { const p = c.camp_id < 0 ? campCuaPhim.get(c.content_id) : c; return `${c.camp_id} ${c.ten ?? ''} ${p?.phim ?? ''} ${c.creative_id ?? ''} ${tlC(p?.the_loai ?? null)}`; }} searchPlaceholder="Tìm camp, phim, creative, thể loại…"

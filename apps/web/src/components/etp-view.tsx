@@ -2418,7 +2418,11 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
 }
 // TRANG DÙNG CHUNG BỘ LỌC CAMP (anh 06/11/2026 "Chuẩn hoá bộ filter của camp-cay để dùng cho nhiều page"): một danh sách — hàng lọc (Lọc · Lãi/lỗ · Tuổi · Luật · Loại ·
 // ROAS · A/B · TK), tham số URL giữ qua F5, dải số đầu trang theo phần đã lọc, tập camp truyền xuống trang con (Insight) đều đọc từ đây. Thêm trang = thêm một mục.
-const TAB_LOC_CAMP: Tab[] = ['camp', 'insight'];
+// Mỗi trang khai Ô LỌC NÀO áp: Insight đo kết quả SAU MỐC → chỉ ô mô tả camp (loại creative, ROAS, A/B, bộ TK). Ô theo trạng thái / kết quả HIỆN TẠI
+// (Lọc trạng thái, Lãi/lỗ, Tuổi, Luật) chỉ giữ camp còn sống / đang lãi → bảng mốc toàn xanh (anh 06/11/2026 "sao cái nào cũng xanh hết") — không áp, không hiện.
+const LOC_TAB: Partial<Record<Tab, 'all' | readonly string[]>> = { camp: 'all', insight: ['dang', 'bo', 'ro', 'ab'] };
+const TAB_LOC_CAMP = Object.keys(LOC_TAB) as Tab[];
+const locCoTab = (t: Tab, k: string) => { const d = LOC_TAB[t]; return d === 'all' || !!d?.includes(k); };
 const TABS: Tab[] = ['tong', 'tong2', 'camp', 'roas', 'creative', 'phim', 'dong', 'tv', 'tn', 'luat', 'insight'];
 const LOC_CAMP = ['all', 'chay', 'cho', 'tat', 'luat', 'ganluat', 'gtang', 'ggiam', 'gtat', 'mlai', 'mlo', 'chua_tieu', 'tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran', 'sx', 'cung', 'roas'] as const;
 // MỨC TIÊU HÔM NAY (anh 06/11/2026 "bộ lọc về các camp đã tiêu kịch trần ngân sách ngày" + "camp chưa tiêu đồng nào... các level"): camp ĐANG CHẠY chia theo
@@ -2701,8 +2705,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   // BỘ LỌC THEO KỲ = mọi bộ lọc mà tập camp đổi khi đổi kỳ: 'ky' + Lãi/Lỗ "trong kỳ" (anh 05/11/2026 "?ll=lo hero lại hôm nay nhảy lung tung khi đổi Kỳ").
   // Ô CỐ ĐỊNH (hôm nay / hôm qua / camp chạy) bỏ qua chúng; ô KỲ (khTong) theo đủ bộ lọc trừ 'ky' (kỳ đã cắt số qua ckh)
   const theoKy = (k: string) => k === 'ky' || (k === 'lai' && (laiLoc === 'lai' || laiLoc === 'lo'));
-  const campsSo = useMemo(() => du.camps.filter((c) => BO_LOC.every(([k, f]) => theoKy(k) || f(c))), [du.camps, BO_LOC, laiLoc]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const campsSoKy = useMemo(() => du.camps.filter((c) => BO_LOC.every(([k, f]) => k === 'ky' || f(c))), [du.camps, BO_LOC]);
+  const campsSo = useMemo(() => du.camps.filter((c) => BO_LOC.every(([k, f]) => !locCoTab(tab, k) || theoKy(k) || f(c))), [du.camps, BO_LOC, laiLoc, tab]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const campsSoKy = useMemo(() => du.camps.filter((c) => BO_LOC.every(([k, f]) => !locCoTab(tab, k) || k === 'ky' || f(c))), [du.camps, BO_LOC, tab]);   // ô lọc trang này không áp (LOC_TAB) thì bỏ qua
   const soLoc = TAB_LOC_CAMP.includes(tab) && campsSo.length !== du.camps.length ? campsSo : tab === 'roas' ? campRoas : null;   // null = không lọc → dải số tính cả kho
   const soLocKy = TAB_LOC_CAMP.includes(tab) && campsSoKy.length !== du.camps.length ? campsSoKy : tab === 'roas' ? campRoas : null;
   const nguon = soLoc ?? du.camps;
@@ -2867,7 +2871,9 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   // Điện thoại giữ như cũ (dòng gọn cuộn ngang, ô TK trong bảng Lọc)
   const coKy = tab !== 'luat' && tab !== 'tn', lenDinh = gonHero && !gon;
   // hàng lọc camp hiện ở mọi trang TAB_LOC_CAMP (Camp: trừ Lịch giờ / Lên bậc — hai kiểu xem đó không theo tập camp) · ô TK là một ô của hàng lọc (urlCua bỏ ?b= ngoài các trang này)
-  const hienLoc = TAB_LOC_CAMP.includes(tab) && !(tab === 'camp' && (xemCamp === 'lich' || xemCamp === 'bac')), coBo = hienLoc;
+  const hienLoc = TAB_LOC_CAMP.includes(tab) && !(tab === 'camp' && (xemCamp === 'lich' || xemCamp === 'bac')), coBo = hienLoc && locCoTab(tab, 'bo');
+  // các ô lọc phụ theo thứ tự cố định, chỉ ô trang này áp (LOC_TAB)
+  const oLoc = () => <>{([['lai', laiSel], ['tuoi', tuoiSel], ['luat', luatSel], ['dang', dangSel], ['ro', roSel], ['ab', abSel]] as const).map(([k, f]) => (locCoTab(tab, k) ? <Fragment key={k}>{f()}</Fragment> : null))}</>;
   const kySel = () => <ChonKhoang tu={khK.tu} den={khK.den} ma={kh.includes('~') ? null : kh} homNay={du.nay} mocThem={[{ ma: 'tat_ca', nhan: 'All time' }]} title="kỳ số liệu (ngày Ethopex 07:00–07:00 VN)" onDoi={(v) => setKh('ma' in v ? v.ma : `${v.tu}~${v.den}`)} />;
   // ĐIỆN THOẠI CHỈ 1–2 DÒNG DÍNH (anh 01/11/2026 "trên mobile chỉ 1-2 dòng sticky trên top thôi" — đo: 5 hàng dính, 168px / 844): hàng tab · kỳ · kiểu xem · Lọc
   // nằm NGOÀI khung dính trên điện thoại (trôi theo trang); khung dính chỉ còn dòng số gọn khi đã cuộn, cộng tiêu đề cây có số tổng (#1498) dính ngay dưới. Máy tính giữ hàng tab dính
@@ -2897,7 +2903,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
               background: xemCr === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCr === v ? 600 : 400 }}>{nhan}</button>))}
         </span>) : null}
       {hienLoc && (!gon || moLoc) ? <div style={gon ? { display: 'flex', flexDirection: 'column', gap: 6, width: '100%' } : { display: 'contents' }}>
-      {(() => { const dem: Record<string, number> = { all: du.camps.length, chay: du.camps.filter(dangChay).length, cho: du.camps.filter(choGio).length,   /* trạng thái đếm trên CẢ kho như 'tat' — đếm trên tập đã lọc thì 'Chờ giờ chạy' luôn 0 khi đang lọc Đang chạy (anh 05/11/2026) */ tat: du.camps.filter(daTat).length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), mlai: [...moiMap.values()].filter((v) => v === 'mlai').length, mlo: [...moiMap.values()].filter((v) => v === 'mlo').length, sx: du.camps.filter((c) => phimSx.has(c.content_id ?? -1)).length, ...Object.fromEntries((['tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran'] as const).map((k) => [k, du.camps.filter((c) => mucTieu(c) === k).length])), chua_tieu: du.camps.filter(chuaTieu).length, cung: du.camps.filter((c) => c.cung_doan > tranT).length, roas: roasDat.size, luat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
+      {locCoTab(tab, 'loc') ? (() => { const dem: Record<string, number> = { all: du.camps.length, chay: du.camps.filter(dangChay).length, cho: du.camps.filter(choGio).length,   /* trạng thái đếm trên CẢ kho như 'tat' — đếm trên tập đã lọc thì 'Chờ giờ chạy' luôn 0 khi đang lọc Đang chạy (anh 05/11/2026) */ tat: du.camps.filter(daTat).length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), mlai: [...moiMap.values()].filter((v) => v === 'mlai').length, mlo: [...moiMap.values()].filter((v) => v === 'mlo').length, sx: du.camps.filter((c) => phimSx.has(c.content_id ?? -1)).length, ...Object.fromEntries((['tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran'] as const).map((k) => [k, du.camps.filter((c) => mucTieu(c) === k).length])), chua_tieu: du.camps.filter(chuaTieu).length, cung: du.camps.filter((c) => c.cung_doan > tranT).length, roas: roasDat.size, luat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
         const m = (value: keyof typeof LOC_NHOM, label: string, title?: string): Chon2Muc => ({ value, label, nhom: LOC_NHOM[value], dem: dem[value], title });
         return <Chon2 chan={chanLoc.loc} value={loc} onChange={doiLoc} nhieu tatCa="all" nhan="Lọc" anRong title="lọc camp theo trạng thái / luật / ngưỡng — chọn được nhiều mục: cùng nhóm = khớp một trong các mục, khác nhóm = phải thoả mọi nhóm" options={[
           { value: 'all', label: 'Tất cả', dem: dem.all },   // "Tất cả" luôn đứng ĐẦU, cùng chữ với mọi ô lọc (anh 27/10/2026)
@@ -2912,11 +2918,11 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
           m('tieu90', `◕ Tiêu 50–${Math.round(KD.nap_chi * 100)}% NS`, `chi hôm nay 50–${Math.round(KD.nap_chi * 100)}% ngân sách ngày`),
           m('tran', `● Tiêu kịch trần (≥ ${Math.round(KD.nap_chi * 100)}% NS)`, `camp đang chạy đã tiêu ≥ ${Math.round(KD.nap_chi * 100)}% ngân sách ngày hôm nay — cùng ngưỡng nap_chi máy xét tăng / nạp`),
           m('sx', '⚙ Phim đang sản xuất', 'mọi camp (mọi trạng thái) của phim đang sản xuất creative: dòng phim đang chạy · máy sinh đang làm / sẵn sàng · creative tạo ≤ 3 ngày chưa lên camp (chờ chấm, chờ nhịp lên) — cùng định nghĩa cột Sản xuất tab Phim'),
-          m('cung', `Đoạn > ${tranT} camp`), m('roas', '★ Đủ bid ROAS')]} />; })()}
+          m('cung', `Đoạn > ${tranT} camp`), m('roas', '★ Đủ bid ROAS')]} />; })() : null}
       {gon ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }} className="etp-loc3">
         <style>{'.etp-loc3 select{width:100%;min-width:0}'}</style>
-        {laiSel()}{tuoiSel()}{luatSel()}{dangSel()}{roSel()}{abSel()}{boSel()}</div> : null}
-      {!gon ? <>{laiSel()}{tuoiSel()}{luatSel()}{dangSel()}{roSel()}{abSel()}</> : null}{/* ô TK máy tính đứng sau ô Người (#1500) */}
+        {oLoc()}{boSel()}</div> : null}
+      {!gon ? oLoc() : null}{/* ô TK máy tính đứng sau ô Người (#1500) */}
       </div> : null}
     </div>
   );
@@ -3015,7 +3021,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       ) : tab === 'tv' ? (
         <TabThuVien du={du} tl={tl} />
       ) : tab === 'insight' ? (
-        <TabInsight ids={campsSoKy.map((c) => c.camp_id)} tu={khK.tu} den={khK.den} nhan={`kỳ ${khNhan} · ${campsSoKy.length}/${du.camps.length} camp theo bộ lọc phía trên (cùng bộ lọc tab Camp)`} />
+        <TabInsight ids={campsSoKy.map((c) => c.camp_id)} tu={khK.tu} den={khK.den} nhan={`kỳ ${khNhan} · ${campsSoKy.length}/${du.camps.length} camp theo Loại · ROAS · A/B · TK (không áp Lọc trạng thái / Lãi-lỗ / Tuổi / Luật — các ô đó chỉ giữ camp còn sống, số sau mốc sẽ toàn xanh)`} />
       ) : tab === 'tn' ? (
         <TabTaiNguyen du={du} kh={kh} khCamp={khCamp} />
       ) : tab === 'phim' ? (

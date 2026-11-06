@@ -33,7 +33,7 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
         (select count(*) from s where chi >= 1)::int so_thu, (select count(*) from s where chi >= 1 and thu > chi and not la_roas)::int camp_lai,   -- cùng cách đếm với thanh từng dạng (không tính ROAS — ROAS đếm riêng)
         (select count(*) from etp.camp where content_id = ${id} and la_roas and trang_thai = 'ACTIVE')::int roas
       from (select 1) o left join etp.phim p on p.content_id = ${id} left join etp.mo_rong m on m.content_id = ${id}`),
-    run<LichDang>(sql`with s as (select c.camp_id, coalesce(r.dang, '?') dang, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu from etp.camp c
+    run<LichDang>(sql`with s as (select c.camp_id, case when c.la_roas then 'ROAS' else coalesce(r.dang, '?') end dang, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu from etp.camp c
         left join etp.creative r using (creative_id) left join etp.so_ngay n on n.camp_id = c.camp_id and n.ngay >= current_date - 6
         where c.content_id = ${id} and c.trang_thai = 'ACTIVE' group by 1, 2)   -- gồm cả camp ROAS: phải khớp số camp ở dòng phim (anh 07/11/2026)
       select dang, count(*)::int chay, count(*) filter (where chi >= 1 and thu > chi)::int lai, count(*) filter (where chi >= 1 and thu <= chi)::int lo, sum(chi)::float chi7, sum(thu)::float thu7

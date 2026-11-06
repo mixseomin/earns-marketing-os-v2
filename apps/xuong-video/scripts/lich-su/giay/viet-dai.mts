@@ -2,7 +2,8 @@
 //   NODE_OPTIONS=--conditions=react-server tsx scripts/lich-su/giay/viet-dai.mts <ra.json> --chu-de "<sự kiện>" --nguon "Tựa wiki|Tựa wiki" --id <id> [--tu 1650]
 // Nguồn: Wikipedia (đủ các mục) + ảnh thật trong bài (giấy phép công cộng / CC). Một lượt dàn ý (chương, bối cảnh, vai) → mỗi chương một lượt (song song).
 // Mọi su_that phải NGUYÊN VĂN trong nguồn, mọi mã cảnh phải có trong dàn ý: máy kiểm, sai thì trả lỗi cho chương đó viết lại (tối đa 3 lượt).
-import { writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { z } from 'zod/v4';
 import { sinhJson } from '../../../src/lib/xuong-video/claude';
 
@@ -45,11 +46,13 @@ const DanY = z.object({
 });
 const dsMuc = MUC.map((m) => `- ${m.ten} (${m.chu.length} ký tự)`).join('\n'), dsAnh = Object.entries(ANH).map(([k, a]) => `${k}: ${a.file.replace(/^File:/, '')} — ${a.cap}`).join('\n');
 const LOI = 'Giọng: người kể chuyện tài liệu dí dỏm tỉnh bơ, nói thẳng, câu ngắn. Đùa về QUYẾT ĐỊNH của kẻ có quyền, KHÔNG đùa về người chết / nạn nhân. Tiếng Anh tự nhiên, không sáo AI, không gạch dài.';
-const dy = await sinhJson({ schema: DanY, model: 'claude-sonnet-5-5', max_tokens: 24000, ten: 'dàn ý tập dài ghép giấy',
+// LƯU TẠM (06/11/2026: một trích dẫn sai ở chương 2 làm sập cả lượt, mất tiền các chương đã viết): dàn ý + từng chương ghi cạnh tệp ra, chạy lại không viết lại phần đã đạt
+const tepDy = `${ra}.dan-y.json`, tepCh = (i: number) => `${ra}.chuong-${i}.json`;
+const dy: any = existsSync(tepDy) ? { ok: true, data: JSON.parse(readFileSync(tepDy, 'utf8')) } : await sinhJson({ schema: DanY, model: 'claude-sonnet-5-5', max_tokens: 24000, ten: 'dàn ý tập dài ghép giấy',
   system: `Bạn dựng dàn ý video YouTube tài liệu ~${Math.round(tuDich / 140)} phút, tổng ${tuDich} từ, hình ghép giấy nhiều lớp. Chương có căng thẳng tăng dần, mỗi chương kết bằng câu móc sang chương sau. ${LOI}`,
   user: `SỰ KIỆN: ${chuDe}\nMỤC NGUỒN:\n${dsMuc}\nTÓM TẮT:\n${MUC.slice(0, 2).map((m) => m.chu.slice(0, 5000)).join('\n')}` });
 if (!dy.ok) { console.error(`✗ dàn ý: ${dy.loi}`); process.exit(1); }
-const D = dy.data; tien += dy.tokens?.vnd ?? 0; console.log(`dàn ý: ${D.chuong.length} chương · ${D.boi_canh.length} bối cảnh · ${D.nhan_vat.length} vai`);
+const D: z.infer<typeof DanY> = dy.data; writeFileSync(tepDy, JSON.stringify(D)); tien += dy.tokens?.vnd ?? 0; console.log(`dàn ý: ${D.chuong.length} chương · ${D.boi_canh.length} bối cảnh · ${D.nhan_vat.length} vai`);
 const idBc = new Set(D.boi_canh.map((b) => b.id)), idNv = new Map(D.nhan_vat.map((n) => [n.id, n]));
 
 // ---------- từng chương ----------
@@ -75,19 +78,25 @@ const kiemChuong = (cs: z.infer<typeof Cau>[], nguon: string, tuCan: number) => 
   return loi; };
 const tongTu = D.chuong.reduce((s, c) => s + c.tu, 0);
 const vietChuong = async (ch: typeof D.chuong[number], i: number) => { const nguon = MUC.filter((m) => ch.muc.some((x) => m.ten === x || m.ten.endsWith(x))); const dung = (nguon.length ? nguon : MUC.slice(0, 3)).map((m) => m.chu).join('\n\n').slice(0, 26000), tuCan = Math.round(ch.tu * tuDich / tongTu);
-  let loi: string[] = [], cu: unknown = null;
+  if (existsSync(tepCh(i))) return JSON.parse(readFileSync(tepCh(i), 'utf8')) as z.infer<typeof Cau>[];
+  let loi: string[] = [], cu: z.infer<typeof Cau>[] | null = null;
   for (let lan = 1; lan <= 3; lan++) {
     const r = await sinhJson({ schema: Chuong, model: 'claude-sonnet-5-5', max_tokens: 20000, ten: `chương ${i + 1} tập dài ghép giấy`,
       system: `Viết MỘT chương video tài liệu, mỗi phần tử = một câu đọc kèm hình. ${LOI}\nNhịp hình: ~55% san_khau (người diễn trong bối cảnh, đổi dáng theo chữ), ~20% ban_do, ~20% ho_so (tranh / ảnh thật), đan xen, không quá 3 câu bản đồ liền. Khi kể tới người có tên phải có người đó trên sân khấu. Đổi bối cảnh sau 3–6 câu. Dùng nhiều bối cảnh khác nhau trong chương.${i === 0 ? ' Câu 1 là HOOK sốc: con số hoặc nghịch lý lớn nhất của cả chuyện, rồi mới lùi về đầu.' : ''} Tập ${D.nam_dau}–${D.nam_cuoi}.`,
       user: `CHƯƠNG ${i + 1}/${D.chuong.length}: ${ch.ten}\nÝ: ${ch.y}\nĐỘ DÀI: ~${tuCan} từ\nCHƯƠNG KHÁC: ${D.chuong.map((c) => c.ten).join(' · ')}\nBỐI CẢNH: ${D.boi_canh.map((b) => `${b.id} (${b.mo_ta_en.slice(0, 70)})`).join('; ')}\nVAI: ${D.nhan_vat.map((n) => `${n.id}=${n.ten} [goc,${n.dang.join(',')}] ${n.tu}-${n.den}`).join('; ')}\nẢNH THẬT:\n${dsAnh}\n${loi.length ? `\nBẢN TRƯỚC SAI, SỬA:\n${loi.join('\n')}\nBản trước: ${JSON.stringify(cu).slice(0, 12000)}\n` : ''}\nNGUỒN:\n${dung}` });
     if (!r.ok) { loi = [r.loi]; continue; } tien += r.tokens?.vnd ?? 0; cu = r.data.cau; loi = kiemChuong(r.data.cau, MUC.map((m) => m.chu).join('\n'), tuCan);
-    console.log(`chương ${i + 1} lượt ${lan}: ${r.data.cau.length} câu · ${loi.length} lỗi`); if (!loi.length) return r.data.cau; }
+    console.log(`chương ${i + 1} lượt ${lan}: ${r.data.cau.length} câu · ${loi.length} lỗi`); if (!loi.length) { writeFileSync(tepCh(i), JSON.stringify(r.data.cau)); return r.data.cau; } }
   // còn lỗi nhỏ sau 3 lượt: chỉ giữ tập nếu toàn lỗi độ dài; lỗi sự thật thì dừng
-  if (cu && loi.every((l) => /từ, cần/.test(l))) return cu as z.infer<typeof Cau>[];
+  // CÂU KHÔNG CÓ NGUỒN NGUYÊN VĂN sau 3 lượt: bỏ đúng câu đó (không giữ câu chưa kiểm được, không sập cả tập); lỗi còn lại vẫn dừng
+  if (cu) { const p = phang(MUC.map((m) => m.chu).join('\n')), sach = cu.filter((c) => c.su_that.every((x) => p.includes(phang(x)))); if (sach.length < cu.length) console.log(`chương ${i + 1}: bỏ ${cu.length - sach.length} câu không có nguồn nguyên văn`);
+    const con = kiemChuong(sach, MUC.map((m) => m.chu).join('\n'), tuCan); if (sach.length >= cu.length - 3 && con.every((l) => /từ, cần|quá nhiều câu không su_that/.test(l))) { writeFileSync(tepCh(i), JSON.stringify(sach)); return sach; } loi = con; }
   throw new Error(`chương ${i + 1} còn lỗi: ${loi.slice(0, 8).join(' | ')}`); };
-const cac = await Promise.all(D.chuong.map(vietChuong));
+const kqCh = await Promise.allSettled(D.chuong.map(vietChuong)), hongCh = kqCh.flatMap((x) => (x.status === 'rejected' ? [String(x.reason?.message ?? x.reason)] : []));
+if (hongCh.length) { console.error(`✗ ${hongCh.join('\n✗ ')}`); process.exit(1); }
+const cac = kqCh.map((x) => (x as PromiseFulfilledResult<z.infer<typeof Cau>[]>).value);
 const dung = new Set(cac.flat().map((c) => c.anh).filter(Boolean));
 const tap = { id, kenh: 'parody', mau: 'entire-story', ngon_ngu: 'en', giong: { voice: 'Daniel' }, chu_de: chuDe, tieu_de: D.tieu_de, thumb: D.thumb, nam_dau: D.nam_dau, nam_cuoi: D.nam_cuoi, nguon: URL_NGUON, boi_canh: D.boi_canh, nhan_vat: D.nhan_vat,
   anh: Object.fromEntries(Object.entries(ANH).filter(([k]) => dung.has(k))), chuong: D.chuong.map((c, i) => ({ ten: c.ten, cau: cac[i]!.length })), cau: cac.flatMap((cs, i) => cs.map((c) => ({ ...c, chuong: i }))) };
 writeFileSync(ra, JSON.stringify(tap, null, 1) + '\n');
+try { execFileSync('rm', ['-f', tepDy, ...D.chuong.map((_, i) => tepCh(i))]); } catch { /* tệp tạm */ }
 console.log(`✓ ${ra} · ${tap.cau.length} câu · ${tap.cau.map((c) => c.chu).join(' ').split(/\s+/).length} từ ~${Math.round(tien)}₫`);

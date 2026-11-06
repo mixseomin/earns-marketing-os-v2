@@ -70,7 +70,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
           {gd === 0 ? <div title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--fg-2)', fontSize: 11 }}><span>mốc cất</span><span>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp · ROI {l.chi >= 1 ? Math.round((l.thu - l.chi) / l.chi * 100) : 0}%</span></div>
             <div style={{ height: 5, borderRadius: 3, background: 'var(--line)', marginTop: 3 }}><div style={{ height: 5, borderRadius: 3, width: `${Math.min(100, l.chi / l.moc_chi * 100)}%`, background: l.vong === 'sap_cat' ? '#f59e0b' : '#a78bfa' }} /></div>
-          </div> : <div style={{ color: 'var(--fg-2)', fontSize: 11 }}>{l.camp_lai} camp lãi · chi ${Math.round(l.chi)} · ROI {l.chi >= 1 ? Math.round((l.thu - l.chi) / l.chi * 100) : 0}%{l.muc_hut ? ` · chi gần nhất $${Math.round(l.chi_gan ?? 0)} / tối ưu $${Math.round(l.muc_hut)}` : ''}</div>}
+          </div> : <div style={{ color: 'var(--fg-2)', fontSize: 11 }}>{l.camp_lai} camp thường lãi{l.roas ? ` · ${l.roas} ROAS chạy` : ''} · chi cả phim ${Math.round(l.chi)} · ROI {l.chi >= 1 ? Math.round((l.thu - l.chi) / l.chi * 100) : 0}%{l.muc_hut ? ` · chi gần nhất $${Math.round(l.chi_gan ?? 0)} / tối ưu $${Math.round(l.muc_hut)}` : ''}</div>}
           {/* sản xuất + lỗi */}
           {l.sx.length || l.chan.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {l.sx.map((d) => { const loiB = d.buoc.find((b) => b.trang_thai === 'loi' || b.trang_thai === 'dung');

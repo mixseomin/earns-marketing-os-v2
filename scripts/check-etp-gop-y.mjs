@@ -693,6 +693,8 @@ const LUAT = [
   { card: 'camp-cho-0611', tep: 'apps/web/src/components/etp-view.tsx', co: "{t.kieu === 'cho' ? 'camp chờ' : `thay #${t.camp_cu}`}", vi: 'dòng mờ camp chờ hiện từ lúc chuẩn bị, chưa có ID' },
   { card: 'camp-cho-0611', tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: "bo_len = DOI_BO.get(content) or q(f\"select gia_tri->>'{content}' from xv_khoa_ngoai where ten='ethopex_phim_tk'\") or str(c0.get(\"bo\") or \"2\")", vi: 'camp thay / chờ lên bộ của phim, không lấy bộ camp cũ (156354 bị chặn bộ 1 ≠ bộ 3)' },
   { card: 'camp-cho-0611', tep: 'apps/web/src/components/etp-view.tsx', co: "const p = c.camp_id < 0 ? campCuaPhim.get(c.content_id) : c;", vi: 'tìm tên phim vẫn thấy dòng camp chờ / thay / mở rộng của phim đó' },
+  { card: 'at-voice-0611', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: '("Watch the series {t}", "for free now.", "“See more” to continue watching!")]', vi: 'ảnh tĩnh có 4 mẫu câu giọng EN anh đưa (06/11/2026)' },
+  { card: 'at-voice-0611', tep: 'apps/xuong-video/scripts/ethopex/anh-tinh.py', co: 'so_mau = random.randrange(len(CAU[lang]))', vi: 'mỗi creative ảnh tĩnh bốc ngẫu nhiên một mẫu, ghi voice.mau để đo' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', co: 'r1 < goc[1] and lai(x1) < lai(goc[0]):', vi: 'lên thêm camp mà lãi $ vẫn tăng thì không tính bão hoà (anh 06/11/2026 #169100 lãi $17 → $93)' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', co: 'r3 > r2 > r1 and lai(x1) < lai(x3):', vi: 'ROI giảm 2 ngày mà lãi $ tăng thì không gắn bão hoà' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', cam: 'Nhà đã ngừng mở camp phim này', vi: 'tin team không còn nói Nhà ngừng mở camp (bão hoà chỉ cảnh báo)' },

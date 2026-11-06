@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """KIỂU CREATIVE "ẢNH TĨNH" (anh 05/11/2026, mẫu video của đội: một khung đẹp nét trong phim + tên phim + giọng ~9s).
-Giọng đúng form anh chốt: "Watch {title} for Free Now. Watch More Now!" (ES: "¡Mira {title} gratis ahora! ¡Mira más ahora!").
+Giọng: bốc ngẫu nhiên một trong các mẫu CAU (EN 4 mẫu anh đưa 05–06/11/2026, ES 1 mẫu "¡Mira {title} gratis ahora! ¡Mira más ahora!").
 Áp trước cho PHIM MỚI BẮT ĐẦU LÃI của nhà: camp đầu ≤ NGAY_MOI ngày, 3 ngày gần nhất thu > chi (chi ≥ $3) HOẶC có camp cơ hội (etp.camp_co_hoi — anh 06/11/2026
 "thấy camp cơ hội thì tập trung scale từ nó": một camp ROI ≥ 50% giữa các camp thử lỗ vẫn là phim cần creative), còn camp ACTIVE, chưa có bản ảnh tĩnh,
 cổng không chặn (apps/etp/cong.phim_chan_len). Mới nhất lên trước.
@@ -13,7 +13,7 @@ Từ đó nhịp ethopex (apps/cty/worker/ethopex.mjs) thấy creative ảnh tĩ
 Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--xem] [--giong ky_di|gao|cam_xuc|hao_hung|thuong|theo-phim]
   giọng mặc định XOAY giữa 5 kiểu (kể cả "thuong" = như bản gốc), dấu kiểu ghi vào etp.diem_cham.cham.voice.giong để đo
   không id = tự chọn N phim (mặc định 10) · --xem = chỉ dựng + tờ khung (~/.cache/ethopex/anh-tinh/to-<giờ>.jpg), không nạp thư viện / tạo creative"""
-import hashlib, json, os, re, subprocess, sys, time
+import hashlib, json, os, random, re, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageStat
@@ -22,7 +22,13 @@ D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = o
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 XV = f"{ENV}; cd apps/xuong-video && NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx"
 DANG, NGUON, NGAY_MOI, GIAY_MIN, W, H = "ảnh tĩnh", "anh_tinh", 14, 9.0, 1080, 1920
-CAU = {"en": ("Watch {t}", "for Free Now.", "Watch More Now!"), "es": ("¡Mira {t}", "gratis ahora!", "¡Mira más ahora!")}   # form giọng anh chốt (05/11/2026)
+# MẪU CÂU GIỌNG — mỗi mẫu 3 vế (vế nào cũng được chứa {t} = tên phim · c = câu chốt, thẻ hét đặt trước nó) để KIEU_GIONG chèn thẻ cách đọc. Mỗi creative BỐC NGẪU NHIÊN một mẫu của ngôn ngữ
+# (anh 06/11/2026 "Thêm các mẫu voice này vào AT !!! Khi lên camp dạng AT, switch random giữa chúng"), số mẫu ghi vào etp.diem_cham.cham.voice.mau để đo. Chữ giữ nguyên văn anh đưa.
+CAU = {"en": [("Watch {t}", "for Free Now.", "Watch More Now!"),   # form anh chốt 05/11/2026
+              ("For Free.", "Watch the entire series: {t}.", "“Watch More” to continue the story!"),
+              ("Watch the {t}", "for free.", "“Learn More” to enjoy the series!"),
+              ("Watch the series {t}", "for free now.", "“See more” to continue watching!")],
+       "es": [("¡Mira {t}", "gratis ahora!", "¡Mira más ahora!")]}
 # GIỌNG THEO PHIM (anh 05/11/2026: "giọng kỳ dị, gào thét, ấn tượng … tuỳ theo film"): kiểu đọc chọn theo thể loại phim (etp.phim.the_loai);
 # chữ giữ nguyên form, chỉ chèn thẻ cách đọc ElevenLabs v3 ([shouting]…) — thẻ không thành tiếng. Thể loại chưa có → giọng thường.
 KIEU_GIONG = {
@@ -197,18 +203,18 @@ def xoay_giong(ds, yeu_cau):
         k = min(KIEU_GIONG, key=lambda k: (k in co, dem[k], list(KIEU_GIONG).index(k))); ra[cid] = k; dem[k] += 1
     return ra
 
-def danh_dau(tv, kieu, lang, ten):
+def danh_dau(tv, kieu, lang, ten, so_mau=0):
     """DẤU KIỂU GIỌNG vào sổ điểm chạm của creative (etp.diem_cham.cham) để đo kiểu nào tốt / xấu — anh 05/11/2026. len-creative ghi khuôn
     cảnh cắt (thoại gốc, nút CTA mẫu Kiên); ảnh tĩnh không có những thứ đó → ghi đúng cái creative này có."""
-    v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang]
-    j = json.dumps({"voice": {"thoai": "khong", "giong": kieu, "nguoi_doc": v, "cau": mau.format(a=a_.format(t=ten), b=b_, c=c_)},
+    v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang][so_mau]
+    j = json.dumps({"voice": {"thoai": "khong", "giong": kieu, "nguoi_doc": v, "mau": so_mau, "cau": mau.format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten))},
                     "chu_video": {"bo_cuc": "anh_tinh_ten_phim", "phu_de": "xoa"}, "cta": {"mau": "khong_nut"}}, ensure_ascii=False).replace("$J$", "")
     return sql(f"update etp.diem_cham d set cham = d.cham || $J${j}$J$::jsonb, luc = now() from etp.thu_vien v where v.id = {int(tv)} and d.creative_id = v.creative_id returning d.creative_id")
 
-def giong(cid, lang, ten, kieu, tm):
+def giong(cid, lang, ten, kieu, tm, so_mau=0):
     """giọng đọc (box3 — khoá FAL chỉ ở đó) → (giong.mp3, ₫ đã chi); cùng câu thì dùng lại, không đọc lần hai"""
-    v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang]
-    cau = mau.format(a=a_.format(t=ten), b=b_, c=c_); h = hashlib.sha1(f"{v}|{cau}".encode()).hexdigest()[:10]; f = os.path.join(tm, f"giong-{h}.mp3")
+    v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang][so_mau]
+    cau = mau.format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten)); h = hashlib.sha1(f"{v}|{cau}".encode()).hexdigest()[:10]; f = os.path.join(tm, f"giong-{h}.mp3")
     if os.path.exists(f): return f, 0, kieu
     xa = f"/var/tmp/anh-tinh/{cid}"; job = os.path.join(tm, "giong.json")
     json.dump({"ngon_ngu": lang, "giong": {"voice": v}, "cau": [{"chu": cau}]}, open(job, "w"), ensure_ascii=False)
@@ -231,14 +237,15 @@ def mot(p, xem, kieu):
     cid, lang = int(p["content_id"]), "es" if str(p.get("locale")).startswith("es") else "en"; ten = ten_sach(p["ten"])
     tm = os.path.join(C, str(cid)); os.makedirs(tm, exist_ok=True)
     try:
-        k = khung(cid, p["url"], tm); nen, chu = anh(cid, ten, k, tm); mp3, vnd, kieu = giong(cid, lang, ten, kieu, tm)
+        so_mau = random.randrange(len(CAU[lang]))   # bốc ngẫu nhiên mẫu câu giọng (anh 06/11/2026)
+        k = khung(cid, p["url"], tm); nen, chu = anh(cid, ten, k, tm); mp3, vnd, kieu = giong(cid, lang, ten, kieu, tm, so_mau)
         out = os.path.join(tm, f"anh-tinh-{cid}.mp4"); giay = dung(nen, chu, mp3, out)
         r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay))   # cổng chữ trên video (tên phim) — cùng cổng mọi creative
         if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
-        kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "giay": giay, "vnd": vnd, "giong": kieu, **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
+        kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "giay": giay, "vnd": vnd, "giong": kieu, "mau": so_mau, **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
         if xem: return kq
         xa = f"/var/tmp/anh-tinh/{cid}"; sh("ssh", B, f"mkdir -p {xa}"); sh("rsync", "-a", out, f"{B}:{xa}/", han=900)
-        ghi = f"ảnh tĩnh · giọng {kieu} ({p.get('the_loai') or '?'}): {k['tap']} khung #{k['so']} (mỗi 1,5 giây từ giây 3) · điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt)"
+        ghi = f"ảnh tĩnh · giọng {kieu} · mẫu câu {so_mau + 1} ({p.get('the_loai') or '?'}): {k['tap']} khung #{k['so']} (mỗi 1,5 giây từ giây 3) · điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt)"
         r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={vnd} --ghi='{ghi}'", han=600)
         if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
         kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)
@@ -273,4 +280,4 @@ if __name__ == "__main__":
     tv = [str(x["tv"]) for x in kq if x.get("tv")]
     if tv: subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), *tv])   # thư viện → creative; chấm Sạch thì nhịp ethopex lên camp theo lịch chung
     for x in kq:
-        if x.get("tv"): print(f"dấu giọng tv{x['tv']} {x['giong']} → creative", danh_dau(x["tv"], x["giong"], x["lang"], x["ten"]) or "(chưa thành creative)")
+        if x.get("tv"): print(f"dấu giọng tv{x['tv']} {x['giong']} → creative", danh_dau(x["tv"], x["giong"], x["lang"], x["ten"], x.get("mau", 0)) or "(chưa thành creative)")

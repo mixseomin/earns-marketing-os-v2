@@ -6,11 +6,11 @@ chuc_danh: Kỹ sư Astrolas — nhận và xử lý task của astrolas.com
 phong: astrolas
 bao_cao_cho: hoe
 kind: ai
-model: claude-code:opus effort:low   # anh 06/11/2026: "Dùng opus low", task có bản thiết kế tự lên medium (EFFORT_THIET_KE trong may/astrolas-tasks.mjs); đổi model / effort ở đây là lượt sau chạy theo
+model: claude-code:opus effort:low   # anh 06/11/2026: "Dùng opus low", task có bản thiết kế tự lên medium (EFFORT_THIET_KE trong ~/bin/thanh/chay.mjs); đổi model / effort ở đây là lượt sau chạy theo
 room: dung-san-pham
 muc_quyet: 2
 approval: SMART
-heartbeat: xu-task-astrolas   # việc trên MÁY MAC: bộ điều phối iMac gọi apps/cty/may/astrolas-tasks.mjs mỗi 2 phút, nghỉ 23:00–07:00 giờ VN; bật/tắt ở chấm xanh cột Tự làm
+heartbeat: xu-task-astrolas   # việc trên MÁY MAC: bộ điều phối iMac gọi ~/bin/thanh/chay.mjs mỗi 2 phút, nghỉ 23:00–07:00 giờ VN; bật/tắt ở chấm xanh cột Tự làm
 lich: mỗi 2 phút, nghỉ 23:00–07:00 · iMac
 skills: []
 data: [repo:Astrolas.com, ai_tasks, site-cuc-bo:iMac]

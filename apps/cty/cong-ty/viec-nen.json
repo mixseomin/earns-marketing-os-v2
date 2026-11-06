@@ -767,10 +767,7 @@
    "ten": "Astrolas - xử task (Claude)",
    "chay": [
     "/opt/homebrew/bin/node",
-    "--input-type=module",
-    "-e",
-    "const{execFileSync:x}=await import('node:child_process');const s=x('ssh',['-o','BatchMode=yes','-o','ConnectTimeout=15','root@167.233.241.16','cat /opt/earns-marketing-os-v2/apps/cty/may/astrolas-tasks.mjs'],{encoding:'utf8',maxBuffer:1<<24});await import('data:text/javascript;base64,'+Buffer.from(s).toString('base64'));",
-    "--"
+    "/Users/htuan/bin/thanh/chay.mjs"
    ],
    "thu_muc": "/Users/htuan/Me/GitHub/Astrolas.com",
    "moi_truong": {
@@ -799,6 +796,22 @@
    "nhat_ky": "/Users/htuan/.cache/astrolas-site.log",
    "hen": {
     "luon": true
+   },
+   "uu_tien_thap": true
+  },
+  {
+   "nhan": "iMac:tc.on.cty.astrolas-dong-bo",
+   "ten": "Astrolas - đồng bộ hai chiều với MacBook (storage, ghi nhớ, mã)",
+   "chay": [
+    "/bin/bash",
+    "/Users/htuan/bin/astrolas-dong-bo"
+   ],
+   "moi_truong": {
+    "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+   },
+   "nhat_ky": "/Users/htuan/.cache/astrolas-dong-bo.log",
+   "hen": {
+    "moi_giay": 1800
    },
    "uu_tien_thap": true
   },
@@ -849,7 +862,11 @@
    },
    "nhat_ky": "/Users/htuan/.cache/lich-su-kiem.log",
    "hen": {
-    "luc": ["10:45", "12:30", "21:20"]
+    "luc": [
+     "10:45",
+     "12:30",
+     "21:20"
+    ]
    },
    "ghi_chu": "Anh duyệt 04/11/2026 (\"dựng ngay\", sau \"sao tao cứ hỏi mới thấy làm\"): sau giờ làm tập (ngày có lịch) báo tập đã nạp / đang làm / hỏng + Mạnh đã nhận chưa; 21:20 báo đã đăng video nào hoặc hàng chờ kẹt ở đâu. Không gọi AI, 0đ."
   }

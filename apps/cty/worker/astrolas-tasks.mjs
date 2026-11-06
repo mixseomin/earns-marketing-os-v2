@@ -1,4 +1,4 @@
-// TIN BÁO CỦA THÀNH — kỹ sư task Astrolas (anh 06/11/2026: "tạo 1 con CLI cho phòng Astrolas để chuyên nhận và xử lý các tasks"). Máy iMac (may/astrolas-tasks.mjs)
+// TIN BÁO CỦA THÀNH — kỹ sư task Astrolas (anh 06/11/2026: "tạo 1 con CLI cho phòng Astrolas để chuyên nhận và xử lý các tasks"). Máy iMac (~/bin/thanh/chay.mjs)
 // gọi tệp này qua ssh để báo kết quả vào chủ đề Astrolas; thu-ky.mjs nhận câu anh trả lời dưới tin báo → hàng phan_hoi → lượt iMac kế tiếp làm lại đúng task đó. Sổ <DATA>/astrolas-tasks.json.
 //   node worker/astrolas-tasks.mjs --bao <task> <ket> [--tin <mid>]   chữ báo qua stdin
 //   node worker/astrolas-tasks.mjs --hang                             tin hiện trạng số lượng task, chữ qua stdin

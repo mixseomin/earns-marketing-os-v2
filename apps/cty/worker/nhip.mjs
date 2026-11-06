@@ -80,7 +80,7 @@ export const VIEC_NHIP = {
   ],
   'xu-task-astrolas': [
     { ma: 'xu-task-astrolas', ten: 'Astrolas - xử task (Claude trên iMac)', lich: () => 'mỗi 2 phút, nghỉ 23:00–07:00 · iMac', khop: null,
-      mo_ta: 'Bộ điều phối iMac gọi apps/cty/may/astrolas-tasks.mjs mỗi 2 phút, nghỉ từ 23:00 đến 07:00 giờ VN: có task trong php artisan ai-tasks hoặc anh trả lời dưới tin báo → gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) chạy nguyên lệnh /tasks của repo (thứ tự nhận, 5 suất, claim, multi-agent), sau mỗi task qua cổng máy (đủ ảnh, chụp màn, Result đúng luật) rồi đẩy lên nhánh ai (deploy thật) và rồi báo vào chủ đề Astrolas ngay từng task. Trần 30 task / ngày giờ VN. Không có task thì không gọi mô hình.' },
+      mo_ta: 'Bộ điều phối iMac gọi ~/bin/thanh/chay.mjs mỗi 2 phút, nghỉ từ 23:00 đến 07:00 giờ VN: có task trong php artisan ai-tasks hoặc anh trả lời dưới tin báo → gọi Claude Code không giao diện (CHỈ iMac, model trong SOUL) chạy nguyên lệnh /tasks của repo (thứ tự nhận, 5 suất, claim, multi-agent), sau mỗi task qua cổng máy (đủ ảnh, chụp màn, Result đúng luật) rồi đẩy lên nhánh ai (deploy thật) và rồi báo vào chủ đề Astrolas ngay từng task. Trần 30 task / ngày giờ VN. Không có task thì không gọi mô hình.' },
   ],
   'sua-bai': [
     { ma: 'sua-bai', ten: 'Sửa bài Phòng Nội dung trả về', lich: () => 'mỗi 5 phút · iMac', khop: null,

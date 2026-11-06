@@ -1,9 +1,10 @@
 'use client';
 // BẢNG LỊCH + ĐIỀU KHIỂN PHIM (anh 06/11/2026, chỉ tài khoản chủ): bấm đồng hồ thị trường trên dòng phim → bảng nổi
+// (rê chuột vào là mở, thẻ nổi chung useNoi/KhungNoi; tab Thị trường giữ thẻ đồng hồ cũ)
 // giai đoạn · dạng đã thử · mốc cất · sản xuất + lỗi · sắp tới · nút ＋ CC / ＋ KT / − bớt camp lỗ nhất. Số: lib/actions/etp-lich-phim.ts (kiểm vai chủ trên máy chủ).
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AnchoredPopover } from '@/components/ui';
+import { KhungNoi, TheChung, useNoi, type TheNoi } from '@/components/etp-noi';
 import { MA_DANG } from '@/components/etp-so';
 import { chuLich } from '@/lib/etp-khung';
 import { botCampPhim, docLichPhim, themCampPhim, type LichPhim } from '@/lib/actions/etp-lich-phim';
@@ -14,14 +15,12 @@ const BUOC_SX: Record<string, string> = { dang: '●', xong: '✓', bo_qua: '·'
 const giaiDoan = (l: LichPhim) => (l.roas > 0 ? 3 : l.camp_lai >= 2 ? 2 : l.camp_lai >= 1 ? 1 : 0);
 const gio = (s: string) => { const d = new Date(Date.parse(s) + 7 * 3600_000); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
 
-export function NutLichPhim({ cid, children }: { cid: number; children: React.ReactNode }) {
-  const neo = useRef<HTMLSpanElement | null>(null), router = useRouter();
-  const [mo, setMo] = useState(false), [l, setL] = useState<LichPhim | null>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [kq, setKq] = useState<string | null>(null);
-  // rê chuột vào đồng hồ là mở (anh 06/11/2026: "hover vào ko thấy"); dời ra cả đồng hồ lẫn bảng ~0,3s thì đóng
-  const hen = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const moRa = () => { setMo(true); setKq(null); tai(); };
-  const vao = () => { if (hen.current) clearTimeout(hen.current); hen.current = setTimeout(() => { if (!mo) moRa(); }, mo ? 0 : 250); };
-  const ra = () => { if (hen.current) clearTimeout(hen.current); hen.current = setTimeout(() => setMo(false), 300); };
+export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruong: () => TheNoi; children: React.ReactNode }) {
+  const router = useRouter(), noi = useNoi<{ id: 0 }>();
+  const [l, setL] = useState<LichPhim | null>(null), [loi, setLoi] = useState<string | null>(null), [dang, setDang] = useState(false), [kq, setKq] = useState<string | null>(null);
+  const [tab, setTab] = useState<'lich' | 'tt'>('lich');
+  const daTai = useRef(false);
+  useEffect(() => { if (noi.v && !daTai.current) { daTai.current = true; setKq(null); tai(); } if (!noi.v) daTai.current = false; }, [noi.v]);
   const tai = () => docLichPhim(cid).then((r) => ('loi' in r ? setLoi(r.loi) : setL(r))).catch((e) => setLoi(String(e?.message ?? e)));
   const lam = async (f: () => Promise<{ loi: string } | { ok: true }>, chu: string) => {
     setDang(true); setKq(null); const r = await f(); setDang(false);
@@ -34,11 +33,12 @@ export function NutLichPhim({ cid, children }: { cid: number; children: React.Re
     ...l.hoan.slice(0, 2).map((h) => `${h.huong === 'tang' ? '⬆' : h.huong === 'giam' ? '⬇' : '✕'} #${h.camp_id} ${h.huong === 'tang' ? 'tăng bậc lúc 21:00' : h.huong === 'giam' ? 'giảm bậc lúc 15:00' : 'tắt lúc 15:00'}`),
     gd === 0 && l.vong !== 'cat' ? `✕ cất phim nếu chi tới $${l.moc_chi} / ${l.moc_thu} camp thử mà chưa lãi` : null,
   ].filter(Boolean).slice(0, 4) as string[] : [];
-  return <>
-    <span ref={neo} onMouseEnter={vao} onMouseLeave={ra} onClick={(e) => { e.stopPropagation(); if (!mo) moRa(); }} style={{ cursor: 'pointer', display: 'inline-flex' }} title={mo ? undefined : 'lịch triển khai + điều khiển phim'}>{children}</span>
-    <AnchoredPopover anchorRef={neo} open={mo} onClose={() => setMo(false)}>
-      <div onClick={(e) => e.stopPropagation()} onMouseEnter={vao} onMouseLeave={ra} style={{ padding: 12, width: 380, fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10,
-        background: 'var(--bg-1)', border: '1px solid var(--accent-line, var(--line))', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
+  const oTab = (k: 'lich' | 'tt', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
+  return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ display: 'inline-flex', cursor: 'pointer' }}>
+    {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={404} cao={360} noi={noi}>
+      <div onClick={(e) => e.stopPropagation()} style={{ padding: '10px 30px 10px 12px', width: 404, maxWidth: '92vw', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 4 }}>{oTab('lich', 'Lịch + điều khiển')}{oTab('tt', 'Thị trường')}</div>
+        {tab === 'tt' ? <div style={{ margin: '-10px -30px -10px -12px' }}><TheChung t={thiTruong()} /></div> : <>
         {loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
             <b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.ten ?? `#${l.content_id}`}</b>
@@ -55,17 +55,22 @@ export function NutLichPhim({ cid, children }: { cid: number; children: React.Re
               <span style={{ fontSize: 10.5, color: i === gd ? 'var(--fg)' : 'var(--fg-3)', fontWeight: i === gd ? 600 : 400 }}>{g}</span>
             </div>)}
           </div>
-          {/* dạng đã thử: ● camp có chi · xanh = có camp lãi */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }} title="mỗi chấm = một camp đã có chi · xanh = camp lãi · số nhỏ = đang chạy">
-            {l.dang.map((d) => <span key={d.dang} style={{ whiteSpace: 'nowrap' }}><span style={{ color: 'var(--fg-2)' }}>{MA_DANG[d.dang] ?? d.dang}</span>{' '}
-              {Array.from({ length: Math.max(d.thu, 1) }, (_, i) => <span key={i} style={{ color: d.thu === 0 ? 'var(--fg-3)' : i < d.lai ? '#4ade80' : 'var(--fg-2)' }}>{d.thu === 0 ? '○' : '●'}</span>)}
-              {d.chay ? <sub style={{ color: 'var(--fg-3)', marginLeft: 2 }}>{d.chay}</sub> : null}</span>)}
+          {/* dạng đã thử — MỘT THANH mỗi dạng (anh 06/11/2026 "khó hiểu", hàng chấm 41 camp tràn khung): xanh = phần camp lãi · chữ = lãi / đã thử · đang chạy */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: '5px 8px', alignItems: 'center' }}>
+            {l.dang.map((d) => [
+              <span key={d.dang + 'a'} style={{ color: 'var(--fg-2)' }}>{MA_DANG[d.dang] ?? d.dang}</span>,
+              <div key={d.dang + 'b'} style={{ height: 6, borderRadius: 3, background: 'var(--line)', overflow: 'hidden' }}>
+                <div style={{ width: `${d.thu ? (d.lai / d.thu) * 100 : 0}%`, height: '100%', background: '#4ade80' }} /></div>,
+              <span key={d.dang + 'c'} style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                {d.thu ? <><b style={{ color: d.lai ? '#4ade80' : 'var(--fg-2)' }}>{d.lai}</b> lãi / {d.thu} camp</> : <span style={{ color: 'var(--fg-3)' }}>chưa thử</span>}
+                {d.chay ? <span style={{ color: 'var(--fg-3)' }}> · {d.chay} chạy</span> : null}</span>,
+            ])}
           </div>
           {/* mốc cất / lãi */}
           {gd === 0 ? <div title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--fg-2)', fontSize: 11 }}><span>mốc cất</span><span>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp · ROI {l.chi >= 1 ? Math.round((l.thu - l.chi) / l.chi * 100) : 0}%</span></div>
             <div style={{ height: 5, borderRadius: 3, background: 'var(--line)', marginTop: 3 }}><div style={{ height: 5, borderRadius: 3, width: `${Math.min(100, l.chi / l.moc_chi * 100)}%`, background: l.vong === 'sap_cat' ? '#f59e0b' : '#a78bfa' }} /></div>
-          </div> : <div style={{ color: 'var(--fg-2)', fontSize: 11 }}>{l.camp_lai} camp lãi · chi ${Math.round(l.chi)} · ROI {l.chi >= 1 ? Math.round((l.thu - l.chi) / l.chi * 100) : 0}%{l.muc_hut ? ` · chi gần nhất $${Math.round(l.chi_gan ?? 0)} / tối ưu $${Math.round(l.muc_hut)}` : ''}</div>}
+          </div> : <div style={{ color: 'var(--fg-2)', fontSize: 11 }}>{l.camp_lai} camp thường lãi{l.roas ? ` · ${l.roas} ROAS chạy` : ''} · chi cả phim ${Math.round(l.chi)} · ROI {l.chi >= 1 ? Math.round((l.thu - l.chi) / l.chi * 100) : 0}%{l.muc_hut ? ` · chi gần nhất $${Math.round(l.chi_gan ?? 0)} / tối ưu $${Math.round(l.muc_hut)}` : ''}</div>}
           {/* sản xuất + lỗi */}
           {l.sx.length || l.chan.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {l.sx.map((d) => { const loiB = d.buoc.find((b) => b.trang_thai === 'loi' || b.trang_thai === 'dung');
@@ -86,8 +91,7 @@ export function NutLichPhim({ cid, children }: { cid: number; children: React.Re
               onClick={() => lam(async () => { const r = await botCampPhim(cid); return 'loi' in r ? r : { ok: true as const }; }, 'đã tắt camp lỗ nhất')}>− bớt camp lỗ</button>
           </div>
           {kq ? <div style={{ fontSize: 11, color: kq.startsWith('✓') ? '#4ade80' : '#f87171' }}>{kq}</div> : null}
-        </>}
+        </>}</>}
       </div>
-    </AnchoredPopover>
-  </>;
+    </KhungNoi> : null}{children}</span>;
 }

@@ -30,7 +30,7 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
       with s as (select c.camp_id, c.la_roas, sum(n.chi) chi, sum(n.thu) thu from etp.camp c join etp.so_ngay n using (camp_id) where c.content_id = ${id} group by 1, 2)
       select ${id}::int content_id, p.ten, p.thu_vong vong, p.thu_ly ly, m.pha, m.muc_hut::float, m.chi_gan::float,
         coalesce((select sum(chi) from s), 0)::float chi, coalesce((select sum(thu) from s), 0)::float thu,
-        (select count(*) from s where chi >= 1)::int so_thu, (select count(*) from s where chi >= 1 and thu > chi)::int camp_lai,
+        (select count(*) from s where chi >= 1)::int so_thu, (select count(*) from s where chi >= 1 and thu > chi and not la_roas)::int camp_lai,   -- cùng cách đếm với thanh từng dạng (không tính ROAS — ROAS đếm riêng)
         (select count(*) from etp.camp where content_id = ${id} and la_roas and trang_thai = 'ACTIVE')::int roas
       from (select 1) o left join etp.phim p on p.content_id = ${id} left join etp.mo_rong m on m.content_id = ${id}`),
     run<LichDang>(sql`with s as (select c.camp_id, coalesce(r.dang, '?') dang, c.trang_thai, sum(n.chi) chi, sum(n.thu) thu from etp.camp c

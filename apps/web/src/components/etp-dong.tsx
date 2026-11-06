@@ -9,6 +9,7 @@ import { chuChan, type TieuChi } from '@/lib/etp-chan';
 import { duyetCham } from '@/lib/actions/etp-cham';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { TRE_MO } from '@/lib/etp-tre';
+import { KhungNoi, ReThe, TheChung, useNoi, type Moc, type TheNoi } from '@/components/etp-noi';
 import { chuLich } from '@/lib/etp-khung';
 import { choGio, chuHen, dangChay, dangTao } from '@/lib/etp-chay';
 import { batDauCamp, chayDong, docChiTiet, docDong, dungDong, fixBuoc, formDong, lenCampCr, type CampDong, type CrDong, type DongPhim, type BuocDong, type LoaiNoiDung, type LocDong } from '@/lib/actions/etp-dong';
@@ -33,6 +34,26 @@ export const MAU: Record<string, [string, string]> = { cho: ['#6b7280', 'chờ']
 const gio = (iso: string | null) => { if (!iso) return '—'; const d = new Date(Date.parse(iso) + 7 * 3600_000); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`; };
 const ngayGio = (iso: string | null) => { if (!iso) return '—'; const d = new Date(Date.parse(iso) + 7 * 3600_000); return `${gio(iso)} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
 const phut = (a: string | null, b: string | null) => { if (!a) return null; const s = ((b ? Date.parse(b) : Date.now()) - Date.parse(a)) / 1000; return s < 60 ? `${Math.round(s)}s` : s < 3600 ? `${Math.round(s / 60)}p` : `${Math.floor(s / 3600)}h${String(Math.round((s % 3600) / 60)).padStart(2, '0')}`; };
+const XAM = '#94a3b8';
+/** THẺ NỔI CỦA MỘT BƯỚC (anh 05/11/2026 #1541 "Format ngay. Đọc đéo hiểu gì. Mọi hover"): khuôn thẻ chung etp — đầu = phim, dòng lớn = bước · trạng thái (màu MAU),
+ *  mốc = bắt đầu / xong (hoặc đã chạy · hạn) / ghi chú máy / cách xử lý / bấm được gì. Trước: chuỗi "bắt đầu — · xong —" trong title trình duyệt. */
+function theBuoc(x: BuocDong | undefined, ten: string | null, them: Moc[] = [], bam = false): TheNoi {
+  if (!x) return { ten, tieu: 'Chưa tới bước này', mau: MAU.cho![0], moc: them };
+  const [mau, tt] = MAU[x.trang_thai] ?? MAU.cho!; const xl = xuLy(x.trang_thai);
+  return { ten, tieu: `${TEN_BUOC[x.buoc]?.[0] ?? x.buoc} · ${tt}`, mau, moc: [
+    { ten: 'Bước này', mau: XAM, chu: TEN_BUOC[x.buoc]?.[1] ?? null },
+    ...(x.bat_dau ? [{ ten: 'Bắt đầu', mau: '#60a5fa', luc: ngayGio(x.bat_dau), chu: x.lan > 1 ? `lần chạy thứ ${x.lan}` : null }] : []),
+    ...(x.ket_thuc ? [{ ten: 'Xong', mau: '#22c55e', so: phut(x.bat_dau, x.ket_thuc) ?? '', luc: ngayGio(x.ket_thuc) }]
+      : x.trang_thai === 'dang' && x.bat_dau ? [{ ten: 'Đã chạy', mau: '#60a5fa', so: phut(x.bat_dau, null) ?? '', chu: `hạn ${Math.round(x.han_giay / 60)} phút` }] : []),
+    ...(x.ghi ? [{ ten: 'Máy ghi', mau: XAM, chu: x.ghi }] : []),
+    ...them,
+    ...(xl ? [{ ten: 'Xử lý', mau: '#60a5fa', chu: xl }] : []),
+    ...(bam ? [{ ten: 'Bấm ô', mau: '#4ade80', chu: 'chạy lại / dừng bước này' }] : []),
+  ] };
+}
+/** thẻ một ý (ô không gắn bước): dòng lớn + các mốc chữ */
+const theY = (tieu: string, mau: string, moc: [string, string | null | undefined][], ten?: string | null): TheNoi => ({ ten, tieu, mau, moc: moc.filter(([, c]) => c).map(([t, c]) => ({ ten: t, mau, chu: c! })) });
+const tienMoc = (chi: number, thu: number): Moc => ({ ten: 'Tiền', mau: thu - chi >= 0 ? '#4ade80' : '#f87171', so: `${thu - chi >= 0 ? '+' : '−'}$${Math.abs(thu - chi).toFixed(2)}`, chu: `chi $${chi.toFixed(2)} · thu $${thu.toFixed(2)}` });
 const ket = (b: BuocDong) => b.trang_thai === 'dang' && (Date.now() - Date.parse(b.bat_dau ?? '') > b.han_giay * 1000 || Date.now() - Date.parse(b.nhip ?? b.bat_dau ?? '') > 600_000);
 
 // CÂY PHIM → CREATIVE → CAMP, ĐÚNG CẤP (anh 03/11/2026 "sao lại có Chuẩn bị phim rồi lại cắt?"): bước CẤP PHIM (1 lần / phim) và bước CẤP CREATIVE (mỗi creative 1 lần)
@@ -51,6 +72,8 @@ export function DongHoSx({ buoc, so, title, href, ket, bam }: { buoc: { buoc: st
 const LOAI_DE: Record<string, string> = { CC: 'Cảnh cuối', KT: 'Kể chuyện', LT: 'Test rộng', AT: 'Ảnh tĩnh', KM: 'Kiểu mới', TT: 'Camp test thay thế' };   // AT / KM / TT: đường ngoài máy dòng phim (docNgoai)
 const NEN: Record<string, string> = { xong: '#14532d', dang: '#1e3a8a', chay: '#1e3a8a', dung: '#78350f', loi: '#7f1d1d', cho: 'transparent', bo_qua: 'transparent' };
 const CHU: Record<string, string> = { xong: '#86efac', dang: '#bfdbfe', chay: '#bfdbfe', dung: '#fcd34d', loi: '#fca5a5', cho: 'var(--fg-3)', bo_qua: 'var(--fg-3)' };
+// chữ trên khối ĐẶC cấp phim: nền cam (dừng) chữ trắng không đọc nổi (anh 05/11/2026 #1542) → chữ tối; nền xanh / đỏ / lục giữ chữ trắng
+const CHU_DAC: Record<string, string> = { dung: '#1c1917' };
 const KY: Record<string, string> = { xong: '✓', dang: '▶', chay: '▶', dung: '⏸', loi: '!', cho: '·', bo_qua: '–' };
 
 // NÚT CÓ DẤU HIỆU ĐÃ NHẬN (YDNI 03/11/2026: "bấm vào bất kỳ cái nào cũng phải có 1 dấu hiệu để biết đã nhận, rồi mới xử lý thực sự"): bấm → ⏳ + khoá ngay,
@@ -83,15 +106,16 @@ function KhungXem() {
 // 1 = PHIM: khối đặc, chữ đậm, cao 26 · 2 = LOẠI NỘI DUNG: chỉ viền màu + nền nhạt, cao 22 · 3 = CREATIVE: dấu + chữ màu, không nền, cao 18
 const VIEN: Record<string, string> = { xong: '#22c55e', dang: '#3b82f6', chay: '#3b82f6', dung: '#f59e0b', loi: '#ef4444', cho: 'var(--line)', bo_qua: 'var(--line)' };
 // so = tiền lãi của ô (cột Chạy) → in KIỂU KẾ TOÁN dùng chung etp-so (#1517 anh 04/11/2026 "format theo chuẩn kế toán + màu sắc"), không in "$-0.25" trần
-function O({ tt, chu, t, fix, bam, menu, xem, so, cap = 3 }: { tt: string; chu?: string; t?: string; so?: number; fix?: () => void; bam?: () => void; menu?: (e: React.MouseEvent) => void; xem?: Omit<Xem, 'x' | 'y'>; cap?: 1 | 2 | 3 }) {
+function O({ tt, chu, the, fix, bam, menu, xem, so, cap = 3 }: { tt: string; chu?: string; /** thẻ nổi khuôn chung (#1541) — không dùng title trình duyệt */ the?: () => TheNoi; so?: number; fix?: () => void; bam?: () => void; menu?: (e: React.MouseEvent) => void; xem?: Omit<Xem, 'x' | 'y'>; cap?: 1 | 2 | 3 }) {
   const trong = tt === 'cho' || tt === 'bo_qua';
   const kieu: React.CSSProperties = cap === 1
-    ? { height: 26, borderRadius: 6, fontSize: 12, fontWeight: 700, background: trong ? 'transparent' : VIEN[tt], color: trong ? 'var(--fg-3)' : '#fff', border: trong ? '1px dashed var(--line)' : 'none' }
+    ? { height: 26, borderRadius: 6, fontSize: 12, fontWeight: 700, background: trong ? 'transparent' : VIEN[tt], color: trong ? 'var(--fg-3)' : CHU_DAC[tt] ?? '#fff', border: trong ? '1px dashed var(--line)' : 'none' }
     : cap === 2
     ? { height: 22, borderRadius: 11, fontSize: 11, fontWeight: 600, background: trong ? 'transparent' : NEN[tt], color: CHU[tt] ?? 'var(--fg-3)', border: `1px ${trong ? 'dashed' : 'solid'} ${VIEN[tt] ?? 'var(--line)'}` }
     : { height: 18, borderRadius: 3, fontSize: 10.5, fontWeight: 500, background: 'transparent', color: trong ? 'var(--fg-3)' : VIEN[tt], border: 'none', opacity: trong ? 0.5 : 1 };
-  return <td title={xem ? undefined : t} onClick={menu ?? bam} onMouseEnter={xem ? (e) => datXem({ ...xem, x: e.clientX, y: e.clientY }) : undefined} onMouseLeave={xem ? () => datXem(null) : undefined}
-    style={{ padding: cap === 3 ? '1px 2px' : 2, cursor: bam || menu ? 'pointer' : xem ? 'zoom-in' : undefined }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', padding: so != null ? '0 6px' : undefined,
+  const noi = useNoi<{ id: 0 }>(); const coThe = !xem && !!the;
+  return <td onClick={menu ?? bam} onMouseEnter={xem ? (e) => datXem({ ...xem, x: e.clientX, y: e.clientY }) : coThe ? (e) => noi.mo({ id: 0 }, e) : undefined} onMouseLeave={xem ? () => datXem(null) : coThe ? noi.dongTre : undefined}
+    style={{ padding: cap === 3 ? '1px 2px' : 2, cursor: bam || menu ? 'pointer' : xem ? 'zoom-in' : coThe ? 'help' : undefined }}>{noi.v && the ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={380} cao={320} noi={noi}><TheChung t={the()} /></KhungNoi> : null}<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, whiteSpace: 'nowrap', overflow: 'hidden', padding: so != null ? '0 6px' : undefined,
     ...kieu, animation: tt === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>
     <span>{KY[tt] ?? ''}</span>{chu ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: so != null ? 40 : 74 }}>{chu}</span> : null}
     {so != null ? <span style={{ flex: 1, minWidth: 0, maxWidth: 72 }}><KeToan v={so} mau={cap === 1 ? undefined : mauLai(so)} /></span> : null}
@@ -130,11 +154,12 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   const tatXong = d.buoc.length > 0 && d.buoc.every((x) => x.trang_thai === 'xong' || x.trang_thai === 'bo_qua');
   const ghi = d.ngoai && (d.trang_thai === 'dung' || d.trang_thai === 'loi') ? `${d.ly_do ?? ''} · máy: ${d.ngoai}`
     : d.trang_thai === 'dung' || d.trang_thai === 'loi' ? `${d.ly_do ?? hien?.ghi ?? ''}\n→ xử lý: ${xuLy(d.trang_thai)}` : hien?.ghi ?? (tatXong ? `xong sau ${phut(d.tao_luc, d.xong_luc ?? d.buoc[d.buoc.length - 1]?.ket_thuc ?? null)}` : null);
-  const tB = (x?: BuocDong) => x ? `${TEN_BUOC[x.buoc]?.[0] ?? x.buoc} · ${MAU[x.trang_thai]?.[1] ?? x.trang_thai}\nbắt đầu ${ngayGio(x.bat_dau)} · xong ${ngayGio(x.ket_thuc)}${x.ghi ? `\n\n${x.ghi}` : ''}${!d.ngoai && d.trang_thai !== 'huy' && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? '\n\nbấm để chạy lại / dừng' : ''}` : '';   // cùng điều kiện moMenu: dòng ngoài không có menu thì không mời bấm
-  const moMenu = (x?: BuocDong) => x && !d.ngoai && d.trang_thai !== 'huy' && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua' ? (e: React.MouseEvent) => setMenu({ b: x, x: e.clientX, y: e.clientY }) : undefined;
+  const coMenu = (x?: BuocDong) => !!x && !d.ngoai && d.trang_thai !== 'huy' && x.trang_thai !== 'cho' && x.trang_thai !== 'bo_qua';   // cùng điều kiện moMenu: dòng ngoài không có menu thì không mời bấm
+  const tB = (x?: BuocDong, them: Moc[] = []) => () => theBuoc(x, d.ten, them, coMenu(x));
+  const moMenu = (x?: BuocDong) => x && coMenu(x) ? (e: React.MouseEvent) => setMenu({ b: x, x: e.clientX, y: e.clientY }) : undefined;
   const oBuoc = (x: BuocDong | undefined, chu?: string, xem?: Omit<Xem, 'x' | 'y'>) => { const doiMay = !!x && cho[x.buoc] !== undefined && (x.bat_dau ?? '') === cho[x.buoc];
     const lau = !!x && x.trang_thai === 'dang' && Date.now() - Date.parse(x.bat_dau ?? '') > x.han_giay * 500;
-    return <O cap={con ? 2 : 1} tt={doiMay ? 'dang' : ttB(x)} chu={doiMay ? '⏳ chờ máy' : chu ?? (x?.bat_dau ? (x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : `${phut(x.bat_dau, null)}${lau ? ' ⚠' : ''}`) : '')} t={tB(x)} menu={moMenu(x)} xem={xem} />; };
+    return <O cap={con ? 2 : 1} tt={doiMay ? 'dang' : ttB(x)} chu={doiMay ? '⏳ chờ máy' : chu ?? (x?.bat_dau ? (x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : `${phut(x.bat_dau, null)}${lau ? ' ⚠' : ''}`) : '')} the={tB(x)} menu={moMenu(x)} xem={xem} />; };
   // KT (kể chuyện): mỗi creative là một video MÁY SINH (VideoExpress) từ tóm tắt phim, không cắt → cột Cắt / sinh đọc bước sinh (creative), Xem lại bỏ qua
   const kt = d.loai === 'KT';
   // Ô LÊN CAMP của một creative chấm sạch (anh 05/11/2026 "bấm mới lên hay tự lên? tự lên thì bao lâu? nhấp nháy làm gì?"): chỉ nhấp nháy khi máy ĐANG lên thật
@@ -162,12 +187,16 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
         <span onClick={() => setMo(!mo)} style={{ cursor: 'pointer', width: 12, flex: 'none', textAlign: 'center', color: 'var(--fg-3)', fontSize: 10 }}>{mo ? '▼' : '▶'}</span>
         {d.anh ? <img src={d.anh} alt="" onMouseEnter={(e) => datXem({ anh: d.anh, chu: d.ten ?? '', x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ cursor: 'zoom-in', width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
         <div style={{ minWidth: 0 }}><a onClick={() => openEntityDrawer('etp-phim', d.content_id)} title={d.ten ?? ''} style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.ten ?? `phim #${d.content_id}`}</a>
-          <span style={{ fontSize: 10, color: 'var(--fg-3)' }} title={d.ngoai ? `làm bởi ${d.ngoai} — không qua máy dòng phim (chỉ xem, không FIX / Dừng)` : undefined}>{LOAI_DE[d.loai] ?? d.loai}{d.ngoai ? ' · ngoài dòng' : ''} · {ngayGio(d.tao_luc)}</span></div></div></td>}
-      {con ? <td colSpan={COT_PHIM.length} /> : COT_PHIM.map(([k]) => <React.Fragment key={k}>{oBuoc(b(k), undefined, k === 'poster' && d.anh ? { anh: d.anh, chu: tB(b(k)) } : undefined)}</React.Fragment>)}
+          <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{d.ngoai ? <ReThe the={() => theY('Ngoài dòng phim', XAM, [['Làm bởi', d.ngoai], ['Chỉ xem', 'không qua máy dòng phim — không FIX / Dừng']], d.ten)}><span style={{ cursor: 'help' }}>{LOAI_DE[d.loai] ?? d.loai} · ngoài dòng</span></ReThe> : LOAI_DE[d.loai] ?? d.loai} · {ngayGio(d.tao_luc)}</span></div></div></td>}
+      {con ? <td colSpan={COT_PHIM.length} /> : COT_PHIM.map(([k]) => <React.Fragment key={k}>{oBuoc(b(k), undefined, k === 'poster' && d.anh ? { anh: d.anh, chu: `${TEN_BUOC.poster![0]} · ${MAU[b(k)?.trang_thai ?? 'cho']?.[1] ?? ''}` } : undefined)}</React.Fragment>)}
       {COT_CR.map(([k, , bk]) => <React.Fragment key={k}>{kt && k === 'cat' ? oBuoc(b('creative'), cr.length ? `${cr.length} đã sinh` : b('creative')?.trang_thai === 'dang' ? 'đang sinh' : undefined)
-        : kt && k === 'soat' ? <O tt="bo_qua" t="KT không cắt phim nên không có bước xem lại đoạn" /> : k === 'chay' ? <O cap={con ? 2 : 1} tt={henChay ? 'cho' : ttB(b('chay'))} chu={henChay ? chuHen(henChay) : tong.chay || undefined} so={so.chi > 0 ? lai : undefined} t={`${tB(b('chay'))}${so.chi > 0 ? `\n\nchi $${so.chi.toFixed(2)} · thu $${so.thu.toFixed(2)}` : ''}`} menu={moMenu(b('chay'))} /> : oBuoc(b(bk), tong[k] || undefined)}</React.Fragment>)}
+        : kt && k === 'soat' ? <O tt="bo_qua" the={() => theY('Xem lại · không áp dụng', XAM, [['Vì sao', 'KT (kể chuyện) không cắt phim nên không có bước xem lại đoạn']], d.ten)} /> : k === 'chay' ? <O cap={con ? 2 : 1} tt={henChay ? 'cho' : ttB(b('chay'))} chu={henChay ? chuHen(henChay) : tong.chay || undefined} so={so.chi > 0 ? lai : undefined} the={tB(b('chay'), [...(henChay ? [{ ten: 'Hẹn chạy', mau: '#facc15', chu: chuHen(henChay) }] : []), ...(so.chi > 0 ? [tienMoc(so.chi, so.thu)] : [])])} menu={moMenu(b('chay'))} /> : oBuoc(b(bk), tong[k] || undefined)}</React.Fragment>)}
       <td style={{ padding: '2px 6px', fontSize: 11, color: d.trang_thai === 'dung' ? '#fbbf24' : d.trang_thai === 'loi' ? '#f87171' : 'var(--fg-2)' }}>
-        <div title={ghi ?? ''} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ghi ?? ''}</div></td>
+        {ghi ? <ReThe the={() => ({ ten: d.ten, tieu: d.trang_thai === 'dung' ? 'Dừng' : d.trang_thai === 'loi' ? 'Lỗi' : hien ? `${TEN_BUOC[hien.buoc]?.[0] ?? hien.buoc} · ${MAU[hien.trang_thai]?.[1] ?? ''}` : 'Xong',
+          mau: d.trang_thai === 'dung' ? '#f59e0b' : d.trang_thai === 'loi' ? '#ef4444' : hien ? '#60a5fa' : '#22c55e',
+          moc: [{ ten: d.trang_thai === 'dung' || d.trang_thai === 'loi' ? 'Lý do' : 'Đang làm', mau: XAM, chu: (d.trang_thai === 'dung' || d.trang_thai === 'loi' ? d.ly_do ?? hien?.ghi : ghi) ?? '' },
+            ...(d.ngoai ? [{ ten: 'Máy', mau: XAM, chu: d.ngoai }] : (d.trang_thai === 'dung' || d.trang_thai === 'loi') && xuLy(d.trang_thai) ? [{ ten: 'Xử lý', mau: '#60a5fa', chu: xuLy(d.trang_thai) }] : [])] })}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'help' }}>{ghi.split('\n')[0]}</span></ReThe> : null}</td>
       <td style={{ padding: 2 }}>{!d.ngoai && (d.trang_thai === 'chay' || d.trang_thai === 'dung' || d.trang_thai === 'loi')
         ? <NutGui nho chu="Dừng" dang="đang dừng…" xong="✓ đã dừng" hoi={`Dừng hẳn dòng ${d.ten ?? d.content_id}?`} lam={async () => { const r = await dungDong(d.id); xong(); return r; }} /> : null}</td>
     </tr>
@@ -209,17 +238,18 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
           {xemCr?.anh ? <img src={xemCr.anh} alt="" onMouseEnter={(e) => datXem({ ...xemCr, chu: `creative #${id} · đoạn ${g}`, x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ width: 16, height: 28, objectFit: 'cover', borderRadius: 2, verticalAlign: 'middle', marginRight: 6, cursor: 'zoom-in' }} /> : <span style={{ marginRight: 6 }}>└</span>}
           {id ? `Creative #${id}` : kt ? 'Video kể chuyện' : `Đoạn ${i + 1}`}<BadgeDangNgan d={cx?.dang ?? null} /> <span style={{ color: 'var(--fg-3)' }}>{kt ? 'máy sinh' : g}</span></td>
         <td colSpan={COT_PHIM.length} />
-        {kt ? <O tt={id ? 'xong' : 'dang'} chu={id ? 'đã sinh' : 'đang sinh'} t="video kể chuyện máy sinh từ tóm tắt phim" /> : <O tt="xong" chu={g} t={`đoạn cắt ${g}`} />}
+        {kt ? <O tt={id ? 'xong' : 'dang'} chu={id ? 'đã sinh' : 'đang sinh'} the={() => theY(`Video kể chuyện · ${id ? 'đã sinh' : 'đang sinh'}`, id ? '#22c55e' : '#60a5fa', [['Nguồn', 'máy sinh từ tóm tắt phim (VideoExpress)'], ['Creative', id ? `#${id}` : null]], d.ten)} />
+          : <O tt="xong" chu={g} the={() => theY(`Đoạn cắt ${g}`, '#22c55e', [['Đoạn', `giây ${g} của tập phim gốc`], ['Creative', id ? `#${id}` : 'chưa đưa lên']], d.ten)} />}
         {kt ? <O tt="bo_qua" /> : <O tt={id || doanSach.some((y) => y.tu === x.tu) ? 'xong' : ttB(b('soat'))} />}
         <O tt={id ? 'xong' : b('creative')?.trang_thai === 'dang' ? 'dang' : 'cho'} chu={id ? `#${id}` : ''} xem={xemCr ? { ...xemCr, chu: `creative #${id} · đoạn ${g}` } : undefined} />
         <O tt={tCham} chu={tCham === 'dung' ? (cx?.cho ? 'chờ duyệt' : 'bị chặn') : tCham === 'dang' ? 'đang chấm' : ''} menu={tCham === 'dung' && id ? (e) => setMenuCr({ id, x: e.clientX, y: e.clientY }) : undefined}
           xem={xemCr ? { ...xemCr, chu: `creative #${id} · ${tCham === 'xong' ? 'chấm sạch' : tCham === 'dung' ? lyDo || 'bị cổng chấm chặn' : 'đang chấm'}` } : undefined} />
         <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} menu={!camp && id && (ok || cx?.cho) ? (e) => setMenuCr({ id, x: e.clientX, y: e.clientY }) : undefined} tt={camp ? 'xong' : daBam || (ok && mayLen) ? 'dang' : ok && d.ngoai && cx?.len?.ly_do ? 'dung' : 'cho'}
-          chu={camp ? `#${camp.id}` : daBam ? '⏳ anh đã bấm' : ok && mayLen ? '⏳ đang lên' : ok ? chuLen(cx) : ''} t={!camp && ok ? `${tLen(cx)}\n\nbấm: lên camp riêng creative này ngay — ${chuLich()} (cổng luật vẫn xét)` : undefined} />
+          chu={camp ? `#${camp.id}` : daBam ? '⏳ anh đã bấm' : ok && mayLen ? '⏳ đang lên' : ok ? chuLen(cx) : ''} the={!camp && ok ? () => theY(`Lên camp · ${chuLen(cx) || 'chờ'}`, '#4ade80', [['Máy', tLen(cx)], ['Bấm ô', `bấm: lên camp riêng creative này ngay — ${chuLich()} (cổng luật vẫn xét)`]], `creative #${id}`) : undefined} />
         <O bam={camp && moCamp ? () => moCamp(camp.id) : undefined} so={camp && camp.chi > 0 ? lai_ : undefined} tt={camp ? oCamp(camp).tt : 'cho'} chu={camp ? (camp.chi > 0 ? '' : oCamp(camp).chu) : ''}
-          t={camp ? `camp #${camp.id} · $${camp.ns ?? '?'}/ngày · chi $${camp.chi.toFixed(2)} · thu $${camp.thu.toFixed(2)} — bấm xem chi tiết` : undefined} />
-        <td onMouseEnter={lyDo || daBam ? (e) => datXem({ chu: lyDo ? `${lyDo}\n\nbấm ô Chấm: ${cx?.cho ? 'Đạt để cho lên camp' : 'xem lý do'}` : 'anh đã bấm lên camp creative này — máy đang chạy nhan-ban (cổng luật vẫn xét)', x: e.clientX, y: e.clientY }) : undefined} onMouseLeave={lyDo || daBam ? () => datXem(null) : undefined}
-          style={{ padding: '2px 6px', fontSize: 11, color: lyDo ? '#fbbf24' : 'var(--fg-2)' }}><div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lyDo || (daBam ? '⏳ anh đã bấm lên camp' : '')}</div></td><td />
+          the={camp ? () => ({ ma: `#${camp.id}`, ten: d.ten, tieu: `Camp · ${oCamp(camp).chu} · $${camp.ns ?? '?'}/ngày`, mau: '#22c55e', moc: [...(camp.chi > 0 ? [tienMoc(camp.chi, camp.thu)] : []), { ten: 'Bấm ô', mau: '#4ade80', chu: 'mở ngăn chi tiết camp' }] }) : undefined} />
+        <td style={{ padding: '2px 6px', fontSize: 11, color: lyDo ? '#fbbf24' : 'var(--fg-2)', maxWidth: 0 }}>{lyDo || daBam ? <ReThe the={() => lyDo ? theY('Cổng chấm chặn', '#f59e0b', [['Lý do', lyDo], ['Bấm ô Chấm', cx?.cho ? 'Đạt để cho lên camp' : 'xem lý do']], `creative #${id}`)
+            : theY('Anh đã bấm lên camp', '#60a5fa', [['Máy', 'đang chạy nhan-ban (cổng luật vẫn xét)']], `creative #${id}`)}><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'help' }}>{lyDo || '⏳ anh đã bấm lên camp'}</span></ReThe> : null}</td><td />
       </tr>; }) : null}
     {mo && ds.length > 50 ? <tr><td colSpan={12} style={{ padding: '2px 34px', fontSize: 11, color: 'var(--fg-3)' }}>… còn {ds.length - 50} creative — mở ngăn phim để xem đủ</td></tr> : null}
     {mo ? le.map((c) => { const l = c.thu - c.chi; return <tr key={`c${c.id}`}>
@@ -247,19 +277,19 @@ function NhomPhim({ ds, xong, moCamp }: { ds: DongPhim[]; xong: () => void; moCa
         {d0.anh ? <img src={d0.anh} alt="" onMouseEnter={(e) => datXem({ anh: d0.anh, chu: d0.ten ?? '', x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ cursor: 'zoom-in', width: 22, height: 31, objectFit: 'cover', borderRadius: 3, flex: 'none' }} /> : <span style={{ width: 22, flex: 'none' }}>🎬</span>}
         <div style={{ minWidth: 0 }}><a onClick={() => openEntityDrawer('etp-phim', d0.content_id)} title={d0.ten ?? ''} style={{ cursor: 'pointer', fontWeight: 600, fontSize: 12, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d0.ten ?? `phim #${d0.content_id}`}</a>
           <span style={{ fontSize: 10, color: 'var(--fg-3)' }}>{ds.length} loại nội dung: {ds.map((d) => LOAI_DE[d.loai] ?? d.loai).join(' · ')}</span></div></div></td>
-      {COT_PHIM.map(([k]) => { const x = b(k); const tt = x ? (ket(x) ? 'loi' : x.trang_thai) : 'cho'; return <O cap={1} key={k} tt={tt} chu={x?.bat_dau && x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : ''} t={x?.ghi ?? undefined} xem={k === 'poster' && d0.anh ? { anh: d0.anh } : undefined} />; })}
+      {COT_PHIM.map(([k]) => { const x = b(k); const tt = x ? (ket(x) ? 'loi' : x.trang_thai) : 'cho'; return <O cap={1} key={k} tt={tt} chu={x?.bat_dau && x.ket_thuc ? phut(x.bat_dau, x.ket_thuc) ?? '' : ''} the={() => theBuoc(x, d0.ten)} xem={k === 'poster' && d0.anh ? { anh: d0.anh } : undefined} />; })}
       {/* dòng phim tổng hợp ĐÚNG CỘT (anh 03/11/2026 "có hàng có cột đàng hoàng thì dùng"): mỗi cột cấp creative = tổng của mọi loại */}
       {(() => { const tt = (k: string) => { const bs = ds.map((d) => d.buoc.find((x) => x.buoc === k)).filter((x): x is BuocDong => !!x);
           return bs.some((x) => x.trang_thai === 'dang') ? 'dang' : bs.some((x) => x.trang_thai === 'loi' || ket(x)) ? 'loi' : bs.some((x) => x.trang_thai === 'dung') ? 'dung' : bs.length && bs.every((x) => x.trang_thai === 'xong' || x.trang_thai === 'bo_qua') ? 'xong' : 'cho'; };
         const nSach = ds.reduce((a, d) => { const k = d.buoc.find((x) => x.buoc === 'creative')?.ket_qua as { sach?: unknown[]; creative_id?: number } | null | undefined; return a + (k?.sach?.length ?? (k?.creative_id && d.buoc.find((x) => x.buoc === 'creative')?.trang_thai === 'xong' ? 1 : 0)); }, 0);
         const nSoat = ds.reduce((a, d) => a + (d.buoc.find((x) => x.buoc === 'soat')?.ket_qua?.doan?.length ?? 0), 0);
         return <>
-          <O cap={1} tt={tt('cat')} chu={nDoan ? `${nDoan} đoạn` : ''} t="tổng đoạn cắt / video sinh của mọi loại" />
+          <O cap={1} tt={tt('cat')} chu={nDoan ? `${nDoan} đoạn` : ''} the={() => theY(`${nDoan} đoạn`, '#22c55e', [['Gồm', 'tổng đoạn cắt / video sinh của mọi loại nội dung'], ['Loại', ds.map((d) => LOAI_DE[d.loai] ?? d.loai).join(' · ')]], d0.ten)} />
           <O cap={1} tt={tt('soat')} chu={nDoan ? `${nSoat}/${nDoan} sạch` : ''} />
           <O cap={1} tt={tt('creative')} chu={nCr ? `${nCr} creative` : ''} />
           <O cap={1} tt={tt('creative')} chu={nCr ? `${nSach} sạch` : ''} />
           <O cap={1} tt={so.camp ? 'xong' : tt('camp')} chu={so.camp ? `${so.camp} camp` : 'chưa lên'} />
-          <O cap={1} tt={so.chay ? 'xong' : 'cho'} chu={so.camp ? `${so.chay}/${so.camp}` : ''} so={so.chi > 0 ? lai : undefined} t={so.chi > 0 ? `chi $${so.chi.toFixed(2)} · thu $${so.thu.toFixed(2)}` : undefined} />
+          <O cap={1} tt={so.chay ? 'xong' : 'cho'} chu={so.camp ? `${so.chay}/${so.camp}` : ''} so={so.chi > 0 ? lai : undefined} the={so.chi > 0 ? () => ({ ten: d0.ten, tieu: `Camp chạy ${so.chay}/${so.camp}`, mau: '#22c55e', moc: [tienMoc(so.chi, so.thu)] }) : undefined} />
         </>; })()}
       <td style={{ padding: '2px 6px', fontSize: 11, color: loi ? '#f87171' : 'var(--fg-2)' }}>{dangLam ? `${dangLam} loại đang làm` : ''}{loi ? `${dangLam ? ' · ' : ''}${loi} loại lỗi / dừng` : ''}</td><td />
 
@@ -298,7 +328,7 @@ export function TabDong({ moCamp, phim }: { moCamp?: (id: number) => void; /** k
       <span style={{ color: 'var(--fg-3)' }}>{du.tong} phim</span>
       {soTrang > 1 ? <span style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}><button className="btn" disabled={trang === 0} onClick={() => setTrang(trang - 1)} style={{ fontSize: 11, padding: '0 6px' }}>‹</button>
         {trang + 1}/{soTrang}<button className="btn" disabled={trang + 1 >= soTrang} onClick={() => setTrang(trang + 1)} style={{ fontSize: 11, padding: '0 6px' }}>›</button></span> : null}
-      <span style={{ marginLeft: 'auto' }} title="apps/etp/dong_phim.py trên iMac — báo sống mỗi 10 giây">máy chạy: {may ? <><b style={{ color: im! < 60 ? '#4ade80' : '#f87171' }}>{may.may}</b> {im! < 60 ? 'đang sống' : `im ${Math.round(im! / 60)} phút`}</> : <b style={{ color: '#f87171' }}>chưa bật</b>}</span>
+      <span style={{ marginLeft: 'auto' }}><ReThe the={() => theY(`Máy dòng phim · ${may ? (im! < 60 ? 'đang sống' : `im ${Math.round(im! / 60)} phút`) : 'chưa bật'}`, may && im! < 60 ? '#4ade80' : '#f87171', [['Máy', may?.may ?? 'chưa bật'], ['Chạy ở', 'apps/etp/dong_phim.py trên iMac — báo sống mỗi 10 giây']])}><span style={{ cursor: 'help' }}>máy chạy: {may ? <><b style={{ color: im! < 60 ? '#4ade80' : '#f87171' }}>{may.may}</b> {im! < 60 ? 'đang sống' : `im ${Math.round(im! / 60)} phút`}</> : <b style={{ color: '#f87171' }}>chưa bật</b>}</span></ReThe></span>
     </div>
     {!du.dong.length ? <EmptyState icon="🎬" title={tim ? 'Không có phim khớp' : 'Không có phim nào trong mục này'} /> : <div style={{ overflow: 'auto', maxHeight: 'calc(100vh - 250px)' }}>   {/* tiêu đề DÍNH: bảng cuộn trong khung của nó (overflowX trơn làm sticky mất tác dụng — anh 03/11/2026) */}
       <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', minWidth: 1214 }}>
@@ -307,20 +337,54 @@ export function TabDong({ moCamp, phim }: { moCamp?: (id: number) => void; /** k
           <tr style={{ fontSize: 10, color: 'var(--fg-3)', textAlign: 'center' }}><th /><th colSpan={COT_PHIM.length} style={{ fontWeight: 500, borderBottom: '1px solid var(--line)' }}>CẤP PHIM (1 lần)</th>
             <th colSpan={COT_CR.length} style={{ fontWeight: 500, borderBottom: '1px solid var(--line)' }}>CẤP CREATIVE (dòng phim = tổng · dòng con = từng creative)</th><th /><th /></tr>
           <tr style={{ fontSize: 11, color: 'var(--fg-3)', textAlign: 'center' }}><th style={{ textAlign: 'left', padding: '0 6px', fontWeight: 500 }}>Phim → creative → camp</th>
-            {COT_PHIM.map(([k, t]) => <th key={k} title={TEN_BUOC[k]?.[1]} style={{ fontWeight: 500 }}>{t}</th>)}
-            {COT_CR.map(([k, t, bk]) => <th key={k} title={TEN_BUOC[bk]?.[1]} style={{ fontWeight: 500 }}>{t}</th>)}<th style={{ textAlign: 'left', fontWeight: 500, padding: '0 6px' }}>Đang làm</th><th /></tr></thead>
+            {COT_PHIM.map(([k, t]) => <th key={k} style={{ fontWeight: 500 }}><ReThe the={() => theY(t, XAM, [['Bước', TEN_BUOC[k]?.[1]]])}><span style={{ cursor: 'help' }}>{t}</span></ReThe></th>)}
+            {COT_CR.map(([k, t, bk]) => <th key={k} style={{ fontWeight: 500 }}><ReThe the={() => theY(t, XAM, [['Bước', TEN_BUOC[bk]?.[1]]])}><span style={{ cursor: 'help' }}>{t}</span></ReThe></th>)}<th style={{ textAlign: 'left', fontWeight: 500, padding: '0 6px' }}>Đang làm</th><th /></tr></thead>
         <tbody>{[...du.dong.reduce((m, d) => m.set(d.content_id, [...(m.get(d.content_id) ?? []), d]), new Map<number, DongPhim[]>()).values()].map((g) => <NhomPhim key={g[0]!.content_id} ds={g} xong={() => void tai()} moCamp={moCamp} />)}</tbody>
       </table></div>}
   </div>;
 }
 
+// CHỌN SỐ CAMP (#1540 "ko dùng format số khó dùng"): nút chọn nhanh 1–10, −/+ cho số ngoài dải (tới 30); nút số máy đề xuất có dấu "máy"
+const SO_NHANH = [1, 2, 3, 4, 5, 6, 8, 10];
+function ChonSo({ v, dat, may }: { v: number; dat: (n: number) => void; may: number | null }) {
+  const nut = (n: number, chu: React.ReactNode, tat = false) => <button key={String(chu)} type="button" className="btn" disabled={tat} onClick={() => dat(n)}
+    style={{ minWidth: 30, height: 30, padding: '0 6px', fontSize: 13, fontWeight: v === n && typeof chu === 'number' ? 700 : 400, fontVariantNumeric: 'tabular-nums', position: 'relative',
+      background: v === n && typeof chu === 'number' ? 'var(--accent-bg, #1e3a8a)' : undefined, color: v === n && typeof chu === 'number' ? '#fff' : undefined }}>{chu}
+    {typeof chu === 'number' && n === may ? <span style={{ position: 'absolute', left: 0, right: 0, bottom: -13, fontSize: 9, color: '#4ade80', fontWeight: 600 }}>máy</span> : null}</button>;
+  return <div style={{ display: 'flex', alignItems: 'center', gap: 4, paddingBottom: 12 }}>
+    {nut(Math.max(1, v - 1), '−', v <= 1)}{SO_NHANH.map((n) => nut(n, n))}{nut(Math.min(30, v + 1), '+', v >= 30)}
+    {!SO_NHANH.includes(v) ? <b style={{ marginLeft: 6, fontSize: 14, fontVariantNumeric: 'tabular-nums' }}>{v}</b> : null}
+  </div>;
+}
+// THẺ MỘT LOẠI NỘI DUNG trong form (#1540): tên + giá · thời gian + mô tả 3 dòng + 2 video ví dụ thu nhỏ (rê chạy); Máy làm / khoá đầy đủ ở thẻ nổi ⓘ
+function TheLoai({ l, chon, dat }: { l: LoaiNoiDung; chon: boolean; dat: () => void }) {
+  return <label style={{ display: 'flex', flexDirection: 'column', gap: 4, border: `1px solid ${chon ? '#60a5fa' : 'var(--line)'}`, borderRadius: 8, padding: '8px 10px', minWidth: 0,
+    cursor: l.chay ? 'pointer' : 'not-allowed', opacity: l.chay ? 1 : 0.5, background: chon ? 'rgba(96,165,250,.08)' : undefined }}>
+    <div style={{ display: 'flex', gap: 6, alignItems: 'center', minWidth: 0 }}>
+      <input type="radio" name="loai" checked={chon} disabled={!l.chay} onChange={dat} style={{ flex: 'none' }} />
+      <b style={{ fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.ten.split(' — ')[0]} <span style={{ fontWeight: 500 }}>{l.ten.split(' — ')[1]?.split(' (')[0] ?? ''}</span></b>
+      <span style={{ marginLeft: 'auto', flex: 'none' }}><ReThe the={() => theY(l.ten, chon ? '#60a5fa' : XAM, [['Giá', l.gia], ['Thời gian', l.thoi_gian], ['Mô tả', l.mo_ta], ['Máy làm', l.cach], ['Chưa chạy được', l.khoa]])}>
+        <span style={{ color: 'var(--fg-3)', cursor: 'help', fontSize: 12 }}>ⓘ</span></ReThe></span>
+    </div>
+    <div style={{ fontSize: 10.5, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.gia.split(' (')[0]} · {l.thoi_gian.split(' (')[0]}</div>
+    <div style={{ fontSize: 11, color: 'var(--fg-2)', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{l.mo_ta}</div>
+    {l.khoa ? <div style={{ fontSize: 10.5, color: '#fbbf24', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Chưa chạy được: {l.khoa}</div> : null}
+    {l.vi_du.length ? <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
+      {l.vi_du.slice(0, 2).map((v) => <div key={v.creative_id} style={{ fontSize: 10, color: 'var(--fg-2)', width: 72, minWidth: 0 }}>
+        <video src={`${v.video}#t=3`} muted playsInline preload="metadata" onMouseEnter={(e) => void e.currentTarget.play().catch(() => {})} onMouseLeave={(e) => e.currentTarget.pause()}
+          style={{ width: 72, height: 128, objectFit: 'cover', background: '#000', borderRadius: 5, display: 'block' }} />
+        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>#{v.creative_id}</div>
+        <div style={{ fontVariantNumeric: 'tabular-nums' }}>lãi <b style={{ color: v.lai >= 0 ? '#4ade80' : '#f87171' }}>{v.lai >= 0 ? '+' : '−'}${Math.abs(v.lai)}</b></div></div>)}
+    </div> : <div style={{ fontSize: 10.5, color: 'var(--fg-3)' }}>Chưa có ví dụ chạy ≥ $5 trong 14 ngày.</div>}
+  </label>;
+}
 export function FormChayDong({ contentId, onClose, moRong }: { contentId: number; onClose: () => void; /** mở rộng phim đang chạy: hỏi thêm số camp mới (anh 04/11/2026) */ moRong?: boolean }) {
   const [f, setF] = useState<Awaited<ReturnType<typeof formDong>> | null>(null);
   const [loai, setLoai] = useState('CC'); const [tl, setTl] = useState(''); const [gui, setGui] = useState(false); const [loi, setLoi] = useState<string | null>(null);
   const [soCamp, setSoCamp] = useState(1); const [xong, setXong] = useState<number | null>(null);
   useEffect(() => { void formDong(contentId).then((r) => { setF(r); if (!('loi' in r)) { setTl(r.tlPhim ?? ''); if (r.kPlan) setSoCamp(r.kPlan); } }); }, [contentId]);
   const ok = f && !('loi' in f);
-  return <FormModal kind="generic" action="create" title={<>{moRong ? '＋ Mở rộng phim — thêm camp mới' : '▶ Chạy tự động tới khi lên camp'}</>} idText={`PHIM #${contentId}`} subtitle={ok ? f.ten ?? undefined : undefined} width="md" onClose={onClose}>
+  return <FormModal kind="generic" action="create" title={<>{moRong ? '＋ Mở rộng phim — thêm camp mới' : '▶ Chạy tự động tới khi lên camp'}</>} idText={`PHIM #${contentId}`} subtitle={ok ? f.ten ?? undefined : undefined} width="lg" onClose={onClose}>
     {xong ? <><FormModalSection>
         <div style={{ fontSize: 14, color: '#4ade80', fontWeight: 600 }}>✓ Đã xếp dòng #{xong}{moRong ? ` — lên ${soCamp} camp` : ''}</div>
         <div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 6 }}>Tab Sản xuất tự làm tiếp: cắt phần thiếu → soát + chấm → lên camp → chờ camp chạy. Bước kẹt thì thằng Mạnh huỷ + FIX và báo Telegram.</div>
@@ -328,41 +392,34 @@ export function FormChayDong({ contentId, onClose, moRong }: { contentId: number
       </FormModalSection><FormModalFooter><button className="btn primary" onClick={onClose}>Đóng</button></FormModalFooter></>
       : !f ? <FormModalSection><div style={{ color: 'var(--fg-2)' }}>Đang tải…</div></FormModalSection>
       : 'loi' in f ? <FormModalSection><div style={{ color: '#f87171' }}>{f.loi}</div></FormModalSection> : <>
+      {/* MỘT MÀN, KHÔNG CUỘN (anh 05/11/2026 #1540 "Bố cục lại theo YDNI để ko phải scroll. Phần chọn số cũng ko dùng format số khó dùng"):
+          hàng trên = số camp (nút chọn nhanh + −/+, đánh dấu số máy đề xuất) · thể loại · tóm tắt; dưới = lưới thẻ loại nội dung gọn, video ví dụ thu nhỏ (rê để chạy),
+          "Máy làm" vào thẻ nổi ⓘ — trước mỗi loại một khối cao ~300px xếp dọc, phải cuộn 2 màn */}
       <FormModalSection>
-        {!f.nhomGoc ? <div style={{ color: 'var(--fg-2)', marginBottom: 10 }}>Chưa có nhóm gốc — máy tự chấm poster ở bước Nhận (~36₫), không phải Âu-Mỹ thì dòng tự dừng.</div> : null}
-        {f.nhomGoc && f.nhomGoc !== 'au_my' ? <div style={{ color: '#f87171', marginBottom: 10 }}>Phim nhóm gốc '{f.nhomGoc}' — chỉ chạy phim Âu-Mỹ.</div> : null}
-        {moRong ? <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 13, fontWeight: 600 }}>Số camp mới <input type="number" min={1} max={30} value={soCamp} onChange={(e) => setSoCamp(Math.max(1, Math.min(30, Number(e.target.value) || 1)))}
-            style={{ width: 70, marginLeft: 8, padding: '3px 6px', background: 'var(--bg-2, #111)', color: 'inherit', border: '1px solid var(--line)', borderRadius: 6 }} /></label>
-          <div style={{ fontSize: 11, color: 'var(--fg-2)', marginTop: 4 }}>đang chạy {f.dangChay} camp · creative sạch sẵn {f.sanCr} → cần sản xuất ~{Math.max(0, soCamp - f.sanCr)} · máy đề xuất {f.kPlan ?? '—'}{f.lyPlan ? ` (${f.lyPlan})` : ''}</div>
-          <div style={{ fontSize: 11, color: 'var(--fg-3)', marginTop: 2 }}>Tab Sản xuất làm hết: cắt phần thiếu → soát + chấm → lên đủ {soCamp} camp $1 (bộ của phim) → chờ camp chạy.</div>
-        </div> : null}
-        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Loại nội dung QC</div>
-        <div style={{ display: 'grid', gap: 8 }}>
-          {f.loai.map((l: LoaiNoiDung) => <label key={l.ma} style={{ display: 'block', border: `1px solid ${loai === l.ma ? '#60a5fa' : 'var(--line)'}`, borderRadius: 8, padding: '10px 12px',
-            cursor: l.chay ? 'pointer' : 'not-allowed', opacity: l.chay ? 1 : 0.55, background: loai === l.ma ? 'rgba(96,165,250,.08)' : undefined }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input type="radio" name="loai" checked={loai === l.ma} disabled={!l.chay} onChange={() => setLoai(l.ma)} />
-              <b>{l.ten}</b><span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--fg-3)' }}>{l.gia} · {l.thoi_gian}</span>
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--fg-2)', margin: '6px 0 0 24px' }}>{l.mo_ta}</div>
-            <div style={{ fontSize: 11, color: 'var(--fg-3)', margin: '4px 0 0 24px' }}>Máy làm: {l.cach}</div>
-            {l.khoa ? <div style={{ fontSize: 11, color: '#fbbf24', margin: '4px 0 0 24px' }}>Chưa chạy được: {l.khoa}</div> : null}
-            {l.vi_du.length ? <div style={{ display: 'flex', gap: 10, margin: '8px 0 0 24px', flexWrap: 'wrap' }}>
-              {l.vi_du.map((v) => <div key={v.creative_id} style={{ fontSize: 11, color: 'var(--fg-2)' }}>
-                <video src={`${v.video}#t=3`} controls preload="metadata" style={{ width: 120, height: 213, background: '#000', borderRadius: 6, display: 'block' }} />
-                <div style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={`${v.phim ?? ''} · creative #${v.creative_id}`}>#{v.creative_id} {v.phim ?? ''}</div>
-                <div>14 ngày: chi ${v.chi} · lãi <b style={{ color: v.lai >= 0 ? '#4ade80' : '#f87171' }}>{v.lai >= 0 ? '+' : '−'}${Math.abs(v.lai)}</b></div></div>)}
-            </div> : <div style={{ fontSize: 11, color: 'var(--fg-3)', margin: '6px 0 0 24px' }}>Chưa có ví dụ chạy ≥ $5 trong 14 ngày.</div>}
-          </label>)}
+        {!f.nhomGoc ? <div style={{ color: 'var(--fg-2)', marginBottom: 8, fontSize: 12 }}>Chưa có nhóm gốc — máy tự chấm poster ở bước Nhận (~36₫), không phải Âu-Mỹ thì dòng tự dừng.</div> : null}
+        {f.nhomGoc && f.nhomGoc !== 'au_my' ? <div style={{ color: '#f87171', marginBottom: 8, fontSize: 12 }}>Phim nhóm gốc '{f.nhomGoc}' — chỉ chạy phim Âu-Mỹ.</div> : null}
+        <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          {moRong ? <div>
+            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Số camp mới</div>
+            <ChonSo v={soCamp} dat={setSoCamp} may={f.kPlan ?? null} />
+          </div> : null}
+          <div style={{ width: 240 }}>
+            <SelectField label="Thể loại phim" hint={f.tlPhim ? 'máy đã gắn sẵn — đổi nếu sai' : 'chưa gắn — chọn thể loại'} value={tl} onChange={(e) => setTl(e.target.value)}>
+              <option value="">— chưa chọn —</option>
+              {Object.entries(f.theLoai).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </SelectField>
+          </div>
+          {moRong ? <div style={{ flex: '1 1 220px', fontSize: 12, color: 'var(--fg-2)', lineHeight: 1.5, paddingTop: 20 }}>
+            <div>Đang chạy <b style={{ color: 'var(--fg-1)' }}>{f.dangChay}</b> camp · creative sạch sẵn <b style={{ color: 'var(--fg-1)' }}>{f.sanCr}</b> → cần sản xuất <b style={{ color: 'var(--fg-1)' }}>~{Math.max(0, soCamp - f.sanCr)}</b></div>
+            <div style={{ color: 'var(--fg-3)' }}>Máy đề xuất {f.kPlan ?? '—'}{f.lyPlan ? ` (${f.lyPlan})` : ''}</div>
+          </div> : null}
         </div>
       </FormModalSection>
       <FormModalSection>
-        <SelectField label="Thể loại phim" hint={f.tlPhim ? 'máy đã gắn sẵn — đổi nếu sai (ghi vào sổ thể loại, lịch giờ + báo cáo thể loại đọc cùng sổ)' : 'chưa gắn — chọn thể loại'}
-          value={tl} onChange={(e) => setTl(e.target.value)}>
-          <option value="">— chưa chọn —</option>
-          {Object.entries(f.theLoai).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </SelectField>
+        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Loại nội dung QC</div>
+        <div style={{ display: 'grid', gap: 8, gridTemplateColumns: 'repeat(auto-fill, minmax(196px, 1fr))' }}>
+          {f.loai.map((l: LoaiNoiDung) => <TheLoai key={l.ma} l={l} chon={loai === l.ma} dat={() => setLoai(l.ma)} />)}
+        </div>
         {loi ? <div style={{ color: '#f87171', marginTop: 8 }}>{loi}</div> : null}
       </FormModalSection>
       <FormModalFooter>

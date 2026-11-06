@@ -85,12 +85,16 @@ def rd(cid):
     return f"ROI {max(n, 1)} ngày"
 # chot_giam duyệt: luật giảm / tắt / so xu hướng chỉ dùng NGÀY ĐÃ KHÉP (bỏ hôm nay đang chạy, chi chưa ghi đủ): 3 ngày gần = D−3..D−1, 4 ngày trước = D−7..D−4, cộng dồn tới D−1
 gan, truoc, tron = (bc(d(3), d(1)), bc(d(7), d(4)), bc("2026-01-01", d(1))) if CHOT_GIAM else (bc(d(2), d(0)), bc(d(6), d(3)), bc("2026-01-01", d(0)))
+_H = None
 if TANG_CHOT:   # luật tăng đọc số hôm nay ĐÃ CHỐT CHI (giữ ngân sách từ Report ngày)
     try:
         _H, _ch = chot_chi()
         hom = {cid: {**a, "chi": _ch.get(cid, {}).get("chi", 0.0), "thu": _ch.get(cid, {}).get("thu", 0.0)} for cid, a in hom.items()}
     except Exception as e: print(f"chot_chi lỗi: {e}", file=sys.stderr)
 roi = lambda a: (a["thu"] - a["chi"]) / a["chi"] * 100 if a["chi"] else None
+# NHÃN SỐ HÔM NAY CỦA BẢNG XÉT (anh 06/11/2026 "sao lại biểu thị khác nhau?" — #83467 ô 'nay' +188% mà thẻ luật −88%): luật tăng đọc số ĐÃ CHỐT CHI (chỉ tới giờ cuối có
+# đợt chi; doanh thu giờ sau chưa có chi bị bỏ), ô 'nay' của bảng cộng cả ngày. Nhãn phải nói đó là số chốt tới mấy giờ VN, không gọi trơn "ROI hôm nay"
+NHAN_HN = f"ROI hôm nay đã chốt chi (tới {(_H + 8) % 24:02d}:00 VN)" if _H is not None else "ROI hôm nay"
 BAC = [x for x in BANG_LUAT["thang"] if x <= 20]   # THANG BẬC = sổ luật chung (anh 05/11/2026 duyệt: mọi bước ≤ ×1,5 — số toàn đội tăng ×>1,5 ROI +47% → −15%, 74% lần 24h sau âm; $1→$2 chấp nhận); $30 chỉ qua T30
 ke = lambda b: next((x for x in BAC if x > b + 1e-9), None)
 dat, theo, giam, dau_phien, moc30 = [], [], [], [], []
@@ -1081,7 +1085,7 @@ def _xet_luat():
         spv = (y["chi"] if (KHUNG_DEM and y) else h.get("chi", 0)) / ns * 100 if ns else 0
         dk_tang = [["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), f"≥ {ROI_TANG}%", r is not None and r >= ROI_TANG],
                    ["Spending " + ("hôm qua" if KHUNG_DEM else "hôm nay"), f"{spv:.0f}%", f"> {sp_min:g}%", spv > sp_min],
-                   ["ROI hôm nay (tới đợt chi gần nhất, chi ≥ $0.3)", f(rh, "%"), "≥ 0%", rh is None or rh >= 0], ["Còn bậc trên", f"${ns:g}", "< $20", bool(ke(ns))]]
+                   [f"{NHAN_HN} · chi ≥ $0.3", f(rh, "%"), "≥ 0%", rh is None or rh >= 0], ["Còn bậc trên", f"${ns:g}", "< $20", bool(ke(ns))]]
         cong_b2 = ["Cổng mở bản thang (bộ 2)", _thang_ly.get(int(cid), "mở được"), "mở được", int(cid) not in _thang_ly]
         if b2: dk_tang = dk_tang + [cong_b2]
         _ts = _ts_ly(cid); dk_ts = [f"Siết tăng TS (02/11): sau {TS_GIO[1]}:00 (nạp sáng: tiêu hết + ROI hôm nay ≥ {KD['sang_roi']}% thì được) · hôm qua không lãi 0–50%", _ts or "qua", "không chặn", _ts is None]
@@ -1107,7 +1111,7 @@ def _xet_luat():
             dk_tang, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None), ghi=_don_ghi))
         if _cho_toi: ls[-1]["cho_toi"] = _cho_toi
         # bộ 2 KHÔNG tăng ngân sách — đủ luật thì mở bản thang, nên cổng mở bản thang mới nằm trong bảng (anh 28/10/2026 #1464 "tăng trong ngày sao lại liên quan đến mở bản thang?": tên luật không nói điều đó)
-        dk_ngay = [["ROI hôm nay", f(rh, "%"), "≥ 50%", rh is not None and rh >= 50], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 30%", bool(ns and h.get("chi", 0) >= 0.3 * ns)],
+        dk_ngay = [[NHAN_HN, f(rh, "%"), "≥ 50%", rh is not None and rh >= 50], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 30%", bool(ns and h.get("chi", 0) >= 0.3 * ns)],
              ["ROI hôm qua", f(ry, "%") + (f" · chi ${y['chi']:.2f}" if y else ""), f"≥ 0% · bỏ qua khi chi < ${max(HQ_NHO_MIN, HQ_NHO * ns):g}", bool(ry is None or ry >= 0 or (y and y["chi"] < max(HQ_NHO_MIN, HQ_NHO * ns)))],
              ["ROI " + rd(cid).replace("ROI ", ""), f(r, "%"), "≥ 0%", r is not None and r >= 0], dk_ts] + ([cong_b2] if b2 else [])
         if not b2 and all(x[3] for x in dk_ngay): dk_ngay = dk_ngay + [_nhip()[0]]   # cùng cổng nhịp với Tăng bậc (cùng lệnh tăng)

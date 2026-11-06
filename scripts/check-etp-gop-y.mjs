@@ -689,6 +689,8 @@ const LUAT = [
   { card: 'mo-doi-lai-0611', tep: 'apps/etp/dong_phim.py', co: "and x.ai like 'máy: phim đội lãi%' and x.tao_luc > now() - interval '24 hours')", vi: 'phim đội lãi → máy tự xếp dòng mở rộng mỗi 24 giờ (creative đúng CTA mới, thiếu thì cắt)' },
   { card: 'mo-doi-lai-0611', tep: 'packages/db/migrations/0440_etp_doi_lai_qua_dong.sql', co: "when dl then 'phim đội lãi — Nhà mở qua dòng phim mở rộng", vi: 'hàng chờ không lên đôi creative phim đội lãi' },
   { card: 'mo-doi-lai-0611', tep: 'apps/etp/dong_phim.py', co: 'select distinct on (coalesce(r.doan, r.creative_id::text)) r.creative_id from etp.creative r join etp.cham_cong g using (creative_id)', vi: 'creative dùng lại mỗi đoạn một cái — không bỏ cắt vì đếm nhiều creative cùng đoạn (dòng #68 lên 1/5)' },
+  { card: 'camp-cho-0611', tep: 'apps/xuong-video/scripts/ethopex/thay-the.py', co: 'elif len(cs) == 1 and cs[0][0].get("gia"):', vi: 'phim chỉ 1 camp chạy ≥ 24 giờ → lên sẵn camp chờ (anh 06/11/2026)' },
+  { card: 'camp-cho-0611', tep: 'apps/web/src/components/etp-view.tsx', co: "{t.kieu === 'cho' ? 'camp chờ' : `thay #${t.camp_cu}`}", vi: 'dòng mờ camp chờ hiện từ lúc chuẩn bị, chưa có ID' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', co: 'r1 < goc[1] and lai(x1) < lai(goc[0]):', vi: 'lên thêm camp mà lãi $ vẫn tăng thì không tính bão hoà (anh 06/11/2026 #169100 lãi $17 → $93)' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', co: 'r3 > r2 > r1 and lai(x1) < lai(x3):', vi: 'ROI giảm 2 ngày mà lãi $ tăng thì không gắn bão hoà' },
   { card: 'bh-lai-0611', tep: 'apps/etp/canh-bao.py', cam: 'Nhà đã ngừng mở camp phim này', vi: 'tin team không còn nói Nhà ngừng mở camp (bão hoà chỉ cảnh báo)' },

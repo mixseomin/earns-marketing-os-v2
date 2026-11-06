@@ -27,6 +27,7 @@ def qj(s): return json.loads(q(f"select coalesce(json_agg(t), '[]') from ({s}) t
 THAT = "--that" in sys.argv
 # mỗi camp mới chờ Ethopex đồng bộ ~1 phút → trần mỗi nhịp để nhịp ethopex (32 phút) không bị giữ; phim còn thiếu lên ở nhịp sau
 TOI_DA = int(next((sys.argv[i + 1] for i, x in enumerate(sys.argv[:-1]) if x == "--toi-da"), 15)); DA_LEN = [0]
+CHO = "camp chờ — phim chỉ 1 camp đang chạy"   # chữ đầu ghi của dòng thay khi camp cũ còn khoẻ (trang etp hiện "camp chờ" thay vì "thay #")
 TAT_MA = ("t1", "l3", "l4", "t2", "off", "d24")   # luật tắt hẳn camp (cùng mã etp.xet_luat) — + T1 (anh 04/11/2026: Freezing Point 2 camp sắp ✕ T1 mà không có camp thay)
 HOOK_GAP, GIU_GAP = 1.25, 0.8               # chi/lượt hiện ≥ 1.25× camp lãi → hook yếu · thu/lượt hiện ≤ 0.8× → không giữ chân
 vn = lambda: (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).strftime("%H:%M %d/%m/%Y")
@@ -42,7 +43,7 @@ SAP = set(); SAP_PHIM = {}
 def can_thay():
     """MỌI camp đang chạy của phim (không tính ★ ROAS) đều sắp tắt → [{content_id, camp_id, ly}] — camp_id = camp sắp tắt đầu tiên của phim.
     Trước 04/11/2026 chỉ xét phim còn ĐÚNG MỘT camp: phim 2 camp cùng sắp tắt (Freezing Point #76613 + #76614 ✕ T1) không bao giờ có camp thay."""
-    ds = qj("""select c.content_id, c.camp_id from etp.camp c where c.trang_thai = 'ACTIVE' and coalesce(c.content_id, 0) > 0 and not c.la_roas order by c.content_id, c.camp_id""")
+    ds = qj("""select c.content_id, c.camp_id, c.tao < now() - interval '24 hours' gia from etp.camp c where c.trang_thai = 'ACTIVE' and coalesce(c.content_id, 0) > 0 and not c.la_roas order by c.content_id, c.camp_id""")
     xet = {int(r["camp_id"]): r["xet"] for r in qj(f"select camp_id, xet from etp.xet_luat where camp_id in ({','.join(str(int(x['camp_id'])) for x in ds) or 0})")}
     theo = {}
     for x in ds:
@@ -52,6 +53,10 @@ def can_thay():
     for cid, cs in theo.items():
         if all(ly for _, ly in cs):   # không còn camp nào khoẻ
             ra.append({**cs[0][0], "ly": " | ".join(f"#{x['camp_id']} {ly}" for x, ly in cs)})
+        # CAMP CHỜ (anh 06/11/2026 "Các phim kiểu này chỉ có 1 camp đang chạy. Hãy lên sẵn camp chờ"): phim chỉ MỘT camp đang chạy (không ★ ROAS), camp đó đã chạy ≥ 24 giờ
+        # → lên sẵn một camp thay dù camp cũ còn khoẻ — cùng đường camp thay (chọn creative rút kinh nghiệm, cắt nếu thiếu, dòng mờ trên tab Camp từ lúc chuẩn bị)
+        elif len(cs) == 1 and cs[0][0].get("gia"):
+            ra.append({**cs[0][0], "ly": f"#{cs[0][0]['camp_id']} {CHO}"})
     return ra
 
 def chan_doan(camp, content):
@@ -202,7 +207,7 @@ def main():
             else: bao.append(f"[khô] phim {x['content_id']} cần thay nhưng cổng chặn: {CHAN[int(x['content_id'])][:160]}")
             continue
         moi += 1
-        if THAT: q(f"insert into etp.thay_the (content_id, camp_cu, ghi) values ({int(x['content_id'])}, {int(x['camp_id'])}, '{s_(x['ly'])}') on conflict do nothing")
+        if THAT: q(f"insert into etp.thay_the (content_id, camp_cu, ghi, kieu) values ({int(x['content_id'])}, {int(x['camp_id'])}, '{s_(x['ly'])}', '{'cho' if CHO in x['ly'] else 'thay'}') on conflict do nothing")
         else: bao.append(f"[khô] mở dòng thay phim {x['content_id']} (#{x['camp_id']}: {x['ly']})")
     # 2–3. mọi dòng chưa xong: còn dạng chưa lên (theo bộ) / chờ chấm / chờ cắt
     ds = qj("select id, content_id, camp_cu, buoc, bai_hoc, bo_camp from etp.thay_the where buoc in ('chuan_bi', 'cat_goc', 'cho_cham', 'len_lich') order by id")

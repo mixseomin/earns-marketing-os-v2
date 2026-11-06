@@ -77,7 +77,8 @@ export type SoLuat = { ma: string; luc: string; ten: string; mo_ta: string | nul
     dc_n?: number; dc_chenh?: number; chenh_tang?: number; hieu_qua?: number;
     /** cùng số đo cho 7 ngày gần nhất */
     k7?: { lan?: number; do_duoc?: number; hieu_qua?: number; dc_n?: number; dang_lai?: number; roi_3_ngay_truoc?: number | null; tat_ca?: NhomClone } } };
-export type ThayThe = { id: number; content_id: number; camp_cu: number; buoc: string; creative_id: number | null; camp_moi: number | null; ghi: string | null; tao: string;
+export type ThayThe = { id: number; content_id: number; camp_cu: number; buoc: string; kieu?: 'thay' | 'cho';   // cho = camp chờ (phim chỉ 1 camp khoẻ, anh 06/11/2026)
+  creative_id: number | null; camp_moi: number | null; ghi: string | null; tao: string;
   bai_hoc: { ly_do?: string; huong?: string; so?: Record<string, number | null> }; bo_camp: { dang: string; creative: number; camp: number | null }[] };
 /** PLAN MỞ RỘNG CAMP (etp.mo_rong, apps/etp/mo_rong.py mỗi lượt đồng bộ — anh 04/11/2026): bao nhiêu camp mới nên lên cho phim, sẵn / cần sản xuất bao nhiêu creative */
 export type MoRong = { content_id: number; n: number; chi3: number; lai3: number; roi3: number | null; roi_truoc: number | null; k: number; san: number; can_sx: number; trang_thai: string; ly: string | null; luc: string; roi_bien: number | null; r2: number | null; pha: string | null; chi_tb: number | null; so_ngay: number | null; muc_hut: number | null; chi_gan: number | null };
@@ -374,7 +375,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       select cr.creative_id, cr.content_id, p.ten phim, p.the_loai, cr.dang, cr.lang, cr.video, coalesce(nullif(cr.anh, ''), (select a.anh from etp.anh_cr a where a.creative_id = cr.creative_id)) anh, cr.den - cr.tu giay, coalesce(s.camp, 0) camp, coalesce(s.chay, 0) chay, coalesce(s.chi, 0) chi, coalesce(s.thu, 0) thu,
         ch.meta, ch.afs, cr.cap_nhat::text tao
       from etp.creative cr left join etp.phim p using (content_id) left join s on s.cr = cr.creative_id left join etp.cham ch using (creative_id) where cr.video is not null and cr.content_id is not null`).catch(() => [] as Record<string, unknown>[]),
-    runNha<ThayThe>(sql`select id, content_id, camp_cu, buoc, creative_id, camp_moi, ghi, tao::text tao, bai_hoc, bo_camp from etp.thay_the where buoc not in ('chay', 'huy') order by id`).catch(() => [] as ThayThe[]),
+    runNha<ThayThe>(sql`select id, content_id, camp_cu, buoc, creative_id, camp_moi, ghi, tao::text tao, bai_hoc, bo_camp, kieu from etp.thay_the where buoc not in ('chay', 'huy') order by id`).catch(() => [] as ThayThe[]),
     run<MoRong>(sql`select content_id, n, chi3::float chi3, lai3::float lai3, roi3, roi_truoc, k, san, can_sx, trang_thai, ly, luc::text luc, roi_bien, r2::float r2, pha, chi_tb::float chi_tb, so_ngay, muc_hut::float muc_hut, chi_gan::float chi_gan from etp.mo_rong`).catch(() => [] as MoRong[]),   // mọi phim đang chạy: đồng hồ hấp thụ cần cả phim k = 0
     runNha<DuLieuEtp['dongChay'][number]>(sql`select d.content_id, d.id, d.loai, d.so_camp, (select b.buoc from etp.dong_buoc b where b.dong_id = d.id and b.trang_thai in ('dang', 'cho') order by b.thu_tu limit 1) buoc,
       coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai) order by b.thu_tu) from etp.dong_buoc b where b.dong_id = d.id), '[]'::json) cac_buoc

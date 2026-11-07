@@ -27,7 +27,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
   useEffect(() => { if (noi.v && !daTai.current) { daTai.current = true; setKq(null); tai(); } if (!noi.v) daTai.current = false; }, [noi.v]);
   const tai = () => docLichPhim(cid).then((r) => ('loi' in r ? setLoi(r.loi) : setL(r))).catch((e) => setLoi(String(e?.message ?? e)));
   const lam = async (f: () => Promise<{ loi: string } | { ok: true }>, chu: string) => {
-    setDang(true); setKq(null); const r = await f(); setDang(false);
+    setDang(true); setKq('… đang xử lý'); const r = await f(); setDang(false);
     setKq('loi' in r ? `✕ ${r.loi}` : `✓ ${chu}`); if (!('loi' in r)) { tai(); router.refresh(); }
   };
   const nut: React.CSSProperties = { fontSize: 11.5, padding: '2px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: dang ? 'wait' : 'pointer' };
@@ -46,7 +46,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
         {loi ? <div style={{ color: '#f87171' }}>{loi}</div> : !l ? <div style={{ color: 'var(--fg-3)' }}>đang đọc…</div> : <>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
             <b style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.ten ?? `#${l.content_id}`}</b>
-            <span style={{ color: pha[1], whiteSpace: 'nowrap' }} title="đồng hồ thị trường — máy dùng để quyết mở thêm camp">● {pha[0]}</span>
+            <span style={{ color: pha[1], whiteSpace: 'nowrap' }} title={`đồng hồ thị trường, máy dùng để quyết mở thêm camp${l.muc_hut ? ` · chi/ngày $${Math.round(l.chi_gan ?? 0)} / tối ưu $${Math.round(l.muc_hut)}` : ''}`}>● {pha[0]}</span>
           </div>
           {/* giai đoạn */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -79,24 +79,27 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
                       {Array.from({ length: L }, (_, i) => <O key={'l' + i} mau="#4ade80" />)}{Array.from({ length: X }, (_, i) => <O key={'x' + i} mau="#f87171" />)}
                       {Array.from({ length: C }, (_, i) => <O key={'c' + i} mau="#6b7280" />)}{Array.from({ length: S }, (_, i) => <O key={'s' + i} mau="#facc15" net />)}</div>]; })}
               </div> : <div style={{ color: 'var(--fg-3)' }}>Chưa có camp chạy, chưa có gì đang sản xuất.</div>}
-              {l.muc_hut ? <div title="chi ngày gần nhất của cả phim so với mức chi tối ưu của đồng hồ thị trường"><div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--fg-2)', fontSize: 11 }}><span>chi/ngày</span><span>${Math.round(l.chi_gan ?? 0)} / tối ưu ${Math.round(l.muc_hut)}</span></div>
-                <div style={{ height: 4, borderRadius: 2, background: 'var(--line)', marginTop: 2 }}><div style={{ height: 4, borderRadius: 2, width: `${Math.min(100, (l.chi_gan ?? 0) / l.muc_hut * 100)}%`, background: pha[1] }} /></div></div> : null}
               {gd === 0 ? <div title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--fg-2)', fontSize: 11 }}><span>mốc cất</span><span>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp</span></div>
                 <div style={{ height: 4, borderRadius: 2, background: 'var(--line)', marginTop: 2 }}><div style={{ height: 4, borderRadius: 2, width: `${Math.min(100, l.chi / l.moc_chi * 100)}%`, background: l.vong === 'sap_cat' ? '#f59e0b' : '#a78bfa' }} /></div></div> : null}
               {/* CAMP MỚI: kế hoạch → đang sản xuất → chờ lên. Kế hoạch etp.mo_rong chỉ là số đề xuất, chỉ phim_doi_lai máy mới tự xếp dòng — nói đúng ai làm bước kế */}
               {(() => {
-                const ke = l.ke, them = ke?.trang_thai === 'them' || ke?.trang_thai === 'cho_do', cho = l.hen.length + Math.max(ke?.san ?? 0, l.tu_len);
-                const o = (n: string | number, chu: string, mau: string) => <div style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)' }}><b style={{ fontSize: 15, color: n ? mau : 'var(--fg-3)' }}>{n}</b><div style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>{chu}</div></div>;
-                return <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', gap: 4 }}>{o(them && ke!.k ? `+${ke!.k}` : 0, 'kế hoạch', '#a78bfa')}{o(tongSx, 'đang SX', '#facc15')}{o(cho, 'chờ lên', '#60a5fa')}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--fg-2)', lineHeight: 1.4 }}>
-                    <div>{!ke ? 'Kế hoạch: chưa có, phim chưa có camp Nhà đang chạy' : ke.trang_thai === 'cho_do' ? `Kế hoạch: thêm ${ke.k} camp, đang chờ đo vì lượt trước chưa đủ 1 ngày khép` : ke.trang_thai === 'them' ? `Kế hoạch: thêm ${ke.k} camp · có sẵn ${ke.san} creative · cần làm thêm ${ke.can_sx}` : `Kế hoạch: chưa thêm · ${ke.ly}`}</div>
-                    {them ? <div>{l.may_mo ? 'Máy tự xếp dòng phim (phim đội lãi, tối đa 1 đợt / 24 giờ)' : 'Máy không tự lên theo kế hoạch này, cần bấm ＋ bên dưới'}</div> : null}
-                    {l.hen.map((h) => <div key={h.camp_id}>#{h.camp_id} đã tạo, hẹn chạy {h.luc}</div>)}
-                    {l.tu_len ? <div>{l.tu_len} creative trong hàng máy tự lên</div> : null}
-                    {l.thieu ? <div style={{ color: '#f59e0b' }} title={l.thieu}>Đợt gần nhất: {l.thieu.slice(0, 80)}</div> : null}
-                  </div></div>; })()}
+                const ke = l.ke, them = ke?.trang_thai === 'them' || ke?.trang_thai === 'cho_do', cho = l.hen.length + Math.max(ke?.san ?? 0, l.tu_len), k = them ? ke!.k : 0;
+                const o = (n: number, chu: string, chiTiet: string, dau = '') => <span title={chiTiet} style={{ flex: 1, textAlign: 'center', cursor: 'help' }}><b style={{ fontSize: 15, color: n ? 'var(--fg)' : 'var(--fg-3)' }}>{n ? dau + n : 0}</b> <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{chu}</span></span>;
+                const mui = <span style={{ color: 'var(--fg-3)' }}>→</span>;
+                const m = l.thieu?.match(/(\d+\/\d+) camp.*thiếu (\d+)/);
+                const buocKe = !ke ? 'Chưa có kế hoạch: phim chưa có camp Nhà đang chạy' : !them ? `Chưa thêm: ${ke.ly}`
+                  : `${ke.trang_thai === 'cho_do' ? '⏳ chờ đo đủ 1 ngày khép · ' : ''}${l.may_mo ? '🤖 máy tự xếp, tối đa 1 đợt / 24 giờ' : '✋ máy không tự lên, bấm ＋ bên dưới'}`;
+                return <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                    {o(k, 'kế hoạch', ke ? `${ke.ly}\nCó sẵn ${ke.san} creative · cần làm thêm ${ke.can_sx}` : 'Chưa có kế hoạch', '+')}{mui}
+                    {o(tongSx, 'đang SX', 'Số camp đang được sản xuất')}{mui}
+                    {o(cho, 'chờ lên', `${l.hen.length} camp đã tạo chờ giờ chạy · ${ke?.san ?? 0} creative sạch chưa có camp · ${l.tu_len} trong hàng máy tự lên`)}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{buocKe}</div>
+                  {l.hen.map((h) => <div key={h.camp_id} style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>⏰ #{h.camp_id} chạy lúc {h.luc}</div>)}
+                  {l.thieu ? <div style={{ fontSize: 11.5, color: '#f59e0b' }} title={l.thieu}>⚠ {m ? `Đợt trước lên ${m[1]}, thiếu ${m[2]} creative sạch` : l.thieu.slice(0, 70)}</div> : null}
+                </div>; })()}
               {/* lộ trình: việc sắp diễn ra, mỗi dòng một việc */}
               {sx.length || sapToi.length || tenChan.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11.5, color: 'var(--fg-2)' }}>
                 {sx.map((d) => { const b = buocHien(d), hong = b?.trang_thai === 'loi' || b?.trang_thai === 'dung';
@@ -109,11 +112,11 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderTop: '1px solid var(--line)', paddingTop: 8 }}>
             {(['CC', 'KT'] as const).map((k) => <button key={k} disabled={dang} style={nut} title={`dòng phim ${k} lên 1 camp $1 — ${chuLich()}${vuot ? ' · đồng hồ báo vượt sức chứa' : ''}`}
               onClick={() => lam(() => themCampPhim(cid, k, 1), `đã xếp dòng ${k} × 1 camp`)}>＋ {k}</button>)}
-            <button disabled={dang} style={nut} title={`dòng phim CC lên 3 camp $1 — ${chuLich()}`} onClick={() => lam(() => themCampPhim(cid, 'CC', 3), 'đã xếp dòng CC × 3 camp')}>＋ 3 camp</button>
+            <button disabled={dang} style={nut} title={`dòng phim CC lên 3 camp $1 — ${chuLich()}`} onClick={() => lam(() => themCampPhim(cid, 'CC', 3), 'đã xếp dòng CC × 3 camp')}>＋ 3 CC</button>
             <button disabled={dang} style={{ ...nut, color: '#f87171' }} title="tắt camp Nhà ROI thấp nhất của phim (giữ camp cuối nếu lãi)"
               onClick={() => lam(async () => { const r = await botCampPhim(cid); return 'loi' in r ? r : { ok: true as const }; }, 'đã tắt camp lỗ nhất')}>− bớt camp lỗ</button>
           </div>
-          {kq ? <div style={{ fontSize: 11, color: kq.startsWith('✓') ? '#4ade80' : '#f87171' }}>{kq}</div> : null}
+          {kq ? <div style={{ fontSize: 11, color: kq.startsWith('✓') ? '#4ade80' : kq.startsWith('…') ? 'var(--fg-2)' : '#f87171' }}>{kq}</div> : null}
         </>}</>}
       </div>
     </KhungNoi> : null}{children}</span>;

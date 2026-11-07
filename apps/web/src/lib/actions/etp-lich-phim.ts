@@ -12,7 +12,7 @@ import { quyenEtp } from '@/lib/etp-quyen';
 import { chayDong } from '@/lib/actions/etp-dong';
 
 export type LichDang = { dang: string; chay: number; lai: number; lo: number; chi7: number; thu7: number };   // CHỈ camp đang chạy, lãi / lỗ theo 7 ngày (anh 07/11/2026 "mục tiêu là camp active")
-export type LichSx = { id: number; trang_thai: string; loai: string; so_camp: number | null; buoc: { buoc: string; trang_thai: string; ghi: string | null; bat_dau: string | null }[]; tao: string };
+export type LichSx = { id: number; trang_thai: string; loai: string; so_camp: number | null; buoc: { buoc: string; trang_thai: string; ghi: string | null; bat_dau: string | null; ket_qua: unknown }[]; tao: string };
 export type LichPhim = {
   content_id: number; ten: string | null; vong: string | null; ly: string | null; pha: string | null; muc_hut: number | null; chi_gan: number | null;
   chi: number; thu: number; moc_chi: number; so_thu: number; moc_thu: number; camp_lai: number; roas: number; dang: LichDang[];
@@ -42,7 +42,7 @@ export async function docLichPhim(contentId: number): Promise<LichPhim | { loi: 
       select dang, count(*)::int chay, count(*) filter (where chi >= 1 and thu > chi)::int lai, count(*) filter (where chi >= 1 and thu <= chi)::int lo, sum(chi)::float chi7, sum(thu)::float thu7
       from s group by 1 order by 2 desc`),
     run<LichPhim['thay']>(sql`select kieu, buoc, ghi from etp.thay_the where content_id = ${id} and buoc not in ('chay', 'huy') order by id desc limit 1`),
-    run<LichSx>(sql`select d.id, d.trang_thai, d.loai, d.so_camp, d.tao_luc::text tao, coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai, 'ghi', left(b.ghi, 160), 'bat_dau', b.bat_dau) order by b.thu_tu)
+    run<LichSx>(sql`select d.id, d.trang_thai, d.loai, d.so_camp, d.tao_luc::text tao, coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai, 'ghi', left(b.ghi, 160), 'bat_dau', b.bat_dau, 'ket_qua', b.ket_qua) order by b.thu_tu)
         from etp.dong_buoc b where b.dong_id = d.id), '[]') buoc from etp.dong_phim d where d.content_id = ${id} and d.trang_thai in ('chay', 'loi', 'dung') order by d.id desc limit 3`),
     run<{ g: Record<string, unknown> | null }>(sql`select gia_tri g from etp.cau_hinh where khoa = 'khung_hoan'`),
     run<{ chi: number; so: number }>(sql`select coalesce((gia_tri->>'chi')::float, 25) chi, coalesce((gia_tri->>'so_thu')::int, 4) so from etp.cau_hinh where khoa = 'cat_phim'`),

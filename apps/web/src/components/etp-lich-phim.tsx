@@ -117,7 +117,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
                 {sx.map((d) => { const b = buocHien(d), hong = b?.trang_thai === 'loi' || b?.trang_thai === 'dung', phut = b?.bat_dau && b.trang_thai === 'dang' ? Math.round((Date.now() - Date.parse(b.bat_dau)) / 60000) : null;
                   return <div key={d.id} style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 4 }}>
                     <div style={{ color: hong ? '#f87171' : 'var(--fg-1)' }}><b>{d.loai} × {d.so_camp ?? 1}</b>{b ? ` · ${TEN_BUOC[b.buoc] ?? b.buoc}${hong ? ' lỗi' : ''}${phut != null ? ` · ${phut} phút` : ''}` : ''}</div>
-                    <ChuoiBuoc buoc={d.buoc} />
+                    <ChuoiBuoc buoc={d.buoc} loai={d.loai} />
                     {b?.ghi ? <div style={{ fontSize: 11, color: hong ? '#f87171' : 'var(--fg-2)' }}>{b.ghi.slice(0, 110)}</div> : null}</div>; })}
                 {sapToi.map((t, i) => <div key={i}>{t}</div>)}
               </div> : null}

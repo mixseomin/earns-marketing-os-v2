@@ -140,6 +140,18 @@ for (const [k, K] of Object.entries(KENH)) {
         : `✓ tập mới ${id}${pl ? ` [${pl}]` : ''}: ${tap?.tieu_de ?? '?'}\n  ${tap?.chu_de ?? ''}\n  ~${tien.toLocaleString('vi-VN')}₫ · Studio › Máy › ${K.may} · ${/✓ nạp máy/.test(ra) ? 'đã nạp máy đăng, chờ Phòng Nội dung chấm' : '⚠ chưa nạp máy đăng'}`);
     }
   }
+  // TẬP DÀI THEO LỊCH (08/11/2026, anh duyệt 15.000₫/tập, 1 tập/tuần): kenh.json › mau_dai.lich = { thu, gio, tran_vnd } — đúng thứ, từ giờ đó, tuần này chưa có
+  // tập dài nào (tap/<may tắt>-dai-*.json tạo trong 7 ngày) và không có lượt làm tập đang chạy → giay/lam-dai.mjs tự chọn đề, dựng, nạp máy đăng; trần chi truyền --tran
+  const LD = K.mau_dai?.lich;
+  if (LD && thu === LD.thu && gioNay >= (LD.gio ?? '00:00') && !dangChay && !process.argv.includes('--ep')) {
+    const tien_to = K.mau_dai.tien_to ?? 'ynt-dai-', moi = readdirSync(join(DIR, 'tap')).filter((f) => f.startsWith(tien_to) && Date.now() - statSync(join(DIR, 'tap', f)).birthtimeMs < 7 * 86_400_000);
+    if (moi.length) bao.push(`tập dài tuần này đã có (${moi.join(', ')}) — bỏ qua`);
+    else { const idD = `${tien_to}${hom.replace(/-/g, '')}`, logD = join(homedir(), '.cache', 'lich-su', `${idD}.log`); writeFileSync(khoa, String(process.pid)); danhDau(K.may, idD, { id: idD, luc: new Date().toISOString() });
+      const fd = openSync(logD, 'a'), rD = spawnSync(process.execPath, [join(DIR, 'giay', 'lam-dai.mjs'), '--id', idD, '--kenh', k, '--tran', String(LD.tran_vnd)], { cwd: join(DIR, 'giay'), stdio: ['ignore', fd, fd], env: { ...process.env, DUYET_SINH_1_LAN: '1' }, timeout: 5 * 3600_000, killSignal: 'SIGKILL' });
+      closeSync(fd); danhDau(K.may, idD, null); try { unlinkSync(khoa); } catch { /* đã gỡ */ }
+      const raD = readFileSync(logD, 'utf8'), tienD = [...raD.matchAll(/~(\d+)₫/g)].reduce((t, m) => t + Number(m[1]), 0);
+      bao.push(rD.status === 0 ? `✓ tập dài ${idD}: ~${tienD.toLocaleString('vi-VN')}₫ · ${/✓ nạp máy/.test(raD) ? 'đã nạp máy đăng' : '⚠ chưa nạp máy đăng'}` : `✗ tập dài ${idD} hỏng (mã ${rD.status ?? rD.signal}): ${raD.trim().split('\n').filter((x) => !/^khung /.test(x)).slice(-3).join(' · ').slice(0, 500)} · nhật ký ${logD}`); }
+  }
   try { bao.push(box(`scripts/may-dung.mts --may ${K.may} --so-kenh`).split('\n').pop()); } catch (e) { bao.push(`⚠ đo số kênh hỏng: ${String(e.stderr || e.message).trim().split('\n').pop()}`); }
   // BẢNG TUẦN (kênh tự động bước 5): Chủ nhật, lượt đầu từ gio_tap — lượt xem từng tập + đề xuất tăng nhịp khi ≥ 3 tập đã đăng ≥ 2 ngày và trung vị lượt xem/ngày ≥ 300
   // (chỉ ĐỀ XUẤT; đổi lich_tap là anh duyệt). Dấu ~/.cache/lich-su-<k>-tuan-<ngày> để mỗi Chủ nhật gửi một lần.

@@ -7,8 +7,9 @@ import { useRouter } from 'next/navigation';
 import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type TheNoi } from '@/components/etp-noi';
 import { ChuoiBuoc } from '@/components/etp-dong';
 import { MA_DANG } from '@/components/etp-so';
-import { chuLich } from '@/lib/etp-khung';
-import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
+import { chuLich, gioVnNay, KD, khungLuc } from '@/lib/etp-khung';
+import BANG_LUAT from '@/lib/etp-bang-luat.json';
+import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type CampThang, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
 
 const GD = ['Thử dạng', 'Camp lãi', 'Scale', 'ROAS'];
 const PHA: Record<string, [string, string]> = { hut: ['còn dư địa', '#22c55e'], dinh: ['quanh tối ưu', '#facc15'], bao_hoa: ['vượt sức chứa', '#ef4444'], it_so: ['chưa đủ số', '#6b7280'] };
@@ -27,6 +28,54 @@ const mocLog = (x: LogPhim): Moc => {
   const so = x.viec === 'dong' ? `${x.truoc} × ${x.sau ?? 1}` : [x.camp_id ? `#${x.camp_id}` : '', x.truoc && x.sau && x.truoc !== x.sau ? `$${x.truoc} → $${x.sau}` : ''].filter(Boolean).join(' ');
   return { ten: chan ? '⛔ Bị chặn' : hong ? `${ten} lỗi` : ten, mau: chan ? '#f59e0b' : hong ? '#f87171' : mau, so, luc: x.luc, chu: (x.chu ?? '').replace(/#\d+: [^·]*· ?/, '').slice(0, 170) || null, t: x.chu };
 };
+
+// LỘ TRÌNH SCALE CAMP THẮNG (anh 07/11/2026 duyệt mẫu): mỗi camp Nhà lãi 7 ngày một khối — lên bậc · nhân bản hai nấc · ★ ROAS, chấm đúng cổng máy luật
+// (luat-ethopex.py: nhip_tang.du_so, tiêu dồn, nghỉ giữa hai lần tăng, NB_NAC, ROAS_LAI) với ngưỡng đọc ở SỔ LUẬT CHUNG — trang không giữ số riêng
+const NB = { ...BANG_LUAT.nhan_ban, nac: BANG_LUAT.nhan_ban.nac as [number, number, number][] }, ROAS_LAI = BANG_LUAT.roas_lai, THANG_TU = BANG_LUAT.thang.filter((x) => x <= 20);   // camp thường tự tăng tới $20, $30 chỉ ★ ROAS
+const tien = (x: number) => `$${x.toFixed(2)}`, phan = (chi: number, thu: number) => (chi >= 0.3 ? Math.round((thu - chi) / chi * 100) : null);
+const pc = (r: number | null) => (r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`);
+const gioVn = (ms: number) => { const d = new Date(ms + 7 * 3600_000); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
+const Thanh = ({ v, mau }: { v: number; mau: string }) => <span style={{ display: 'inline-block', width: 56, height: 6, borderRadius: 3, background: 'var(--line)', verticalAlign: 'middle', marginRight: 6, overflow: 'hidden' }}>
+  <span style={{ display: 'block', width: `${Math.max(0, Math.min(1, v)) * 100}%`, height: '100%', background: mau }} /></span>;
+const Dat = ({ ok }: { ok: boolean }) => <span style={{ color: ok ? '#4ade80' : 'var(--fg-3)' }}>{ok ? '✓' : '○'}</span>;
+/** lên bậc: bậc kế + cổng hôm nay + những gì đang chặn (nghỉ sau lần tăng, tiêu dồn, khung giảm / tắt, sổ hoãn) — cùng thứ tự cổng máy luật */
+function lenBac(c: CampThang, hoan: boolean, now = Date.now()) {
+  const ke = THANG_TU.find((b) => b > c.ns + 1e-9), can = KD.nap_chi * c.ns, rNay = phan(c.chi_nay, c.thu_nay);
+  const dat = c.ns > 0 && c.chi_nay >= can && c.thu_nay >= (1 + KD.sang_roi / 100) * c.chi_nay;
+  const chan: string[] = [];
+  if (c.chi13 >= Number(BANG_LUAT.khung_doi.don_13h) * (c.ns13 ?? c.ns)) chan.push(`tiêu dồn: tới 13:00 đã chi ${tien(c.chi13)} → hoãn tăng tối nay`);
+  const t = c.tang_luc ? Date.parse(c.tang_luc) : null, mo = t ? t + (dat ? KD.nghi_don_gio : KD.nghi_gio) * 3600_000 : null;
+  if (t && mo! > now) chan.push(`đã tăng lúc ${gioVn(t)} → chờ tới ${gioVn(mo!)}${dat ? '' : ` (đạt cổng thì chỉ chờ ${KD.nghi_don_gio} giờ)`}`);
+  if (khungLuc(gioVnNay(now)) === 'giam') chan.push(`${KD.giam[0]}–${KD.giam[1]}h chỉ giảm / tắt → mở lại từ ${KD.giam[1]}:00`);
+  return { ke, can, rNay, dat, chan, hoan, lo: ke ? THANG_TU.filter((b) => b >= ke) : [] };
+}
+function KhoiThang({ c, hoan, H }: { c: CampThang; hoan: boolean; H: (n: React.ReactNode, con: React.ReactNode, tren?: boolean) => React.ReactNode }) {
+  const b = lenBac(c, hoan), r30 = phan(c.chi30, c.thu30), r3 = phan(c.chi3, c.thu3), lai30 = c.thu30 - c.chi30;
+  const nac = [...NB.nac].sort((x, y) => x[0] - y[0]), muc = Math.max(0, ...nac.filter(([ch, m]) => c.chi30 >= ch && r30 != null && r30 >= m).map(([, , n]) => n));
+  const r3Dat = r3 != null && r3 >= NB.roi3, roasTruoc = !c.co_roas && lai30 >= ROAS_LAI;
+  return <>
+    <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--line)', paddingTop: 7, fontSize: 11.5, color: 'var(--fg-2)' }}>
+      <b style={{ color: '#4ade80' }}>CAMP THẮNG #{c.camp_id}</b> · ${c.ns} · chi {tien(c.chi30)} · lãi {tien(lai30)} · <span style={{ color: '#4ade80' }}>{pc(r30)}</span>
+      {c.la_ban ? <span style={{ color: 'var(--fg-3)' }}> · bản nhân</span> : null}</div>
+    {H('Lên bậc', <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {b.ke ? <>
+        <div><b style={{ color: 'var(--fg-1)' }}>${c.ns} → ${b.ke}</b> · 🤖 máy tự{b.hoan ? <span style={{ color: '#4ade80' }}> · đã vào sổ, tăng lúc {KD.tang[0]}:00</span> : null}</div>
+        <div title={`cổng tăng (nhip_tang.du_so): hôm nay chi ≥ ${KD.nap_chi * 100}% ngân sách và ROI hôm nay ≥ ${KD.sang_roi}%`}><Thanh v={c.chi_nay / b.can} mau={b.dat ? '#4ade80' : '#facc15'} />hôm nay chi {tien(c.chi_nay)} / {tien(b.can)} · ROI {pc(b.rNay)} / ≥ {KD.sang_roi}% <Dat ok={b.dat} /></div>
+        {b.chan.map((x) => <div key={x} style={{ color: '#f59e0b' }}>⏳ {x}</div>)}
+        {!b.chan.length && b.dat && !b.hoan ? <div style={{ color: '#4ade80' }}>đạt cổng → máy tăng ở nhịp kế</div> : null}
+        <div style={{ color: 'var(--fg-3)' }}>Lộ trình: {b.lo.map((x) => `$${x}`).join(' → ')}{c.co_roas ? '' : ' · $30 chỉ cho ★ ROAS'}</div>
+      </> : <div>${c.ns} · đã tới trần máy tự tăng ${THANG_TU[THANG_TU.length - 1]}{c.co_roas ? '' : ' · lên tiếp bằng ★ ROAS'}</div>}</div>, true)}
+    {H('Nhân bản', c.la_ban ? <span style={{ color: 'var(--fg-3)' }}>bản nhân không làm gốc nhân tiếp (vẫn lên bậc như camp thường)</span> : <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {nac.map(([ch, m, n], i) => { const ok = c.chi30 >= ch && r30 != null && r30 >= m;
+        return <div key={n}><Thanh v={c.chi30 / ch} mau={ok ? '#4ade80' : '#facc15'} />nấc {i + 1}: <b style={{ color: 'var(--fg-1)' }}>{Math.min(c.ban, n)}/{n} bản</b> · chi {tien(c.chi30)} / ${ch} · ROI {pc(r30)} / +{m}% <Dat ok={ok} /></div>; })}
+      <div>ROI 3 ngày {pc(r3)} / ≥ {NB.roi3}% <Dat ok={r3Dat} /></div>
+      <div style={{ color: roasTruoc ? '#a78bfa' : muc > c.ban && r3Dat ? '#4ade80' : 'var(--fg-3)' }}>
+        {roasTruoc ? 'đủ lãi lên ★ ROAS → máy lên ROAS trước, nhân bản sau' : muc > c.ban ? (r3Dat ? `🤖 máy nhân thêm ${muc - c.ban} bản $1 ở nhịp kế (mỗi phim tối đa ${NB.phim_ngay} bản / 24 giờ)` : 'đủ nấc nhưng ROI 3 ngày chưa đạt → chưa nhân')
+          : muc ? `đã đủ ${c.ban} bản của nấc hiện tại` : `🤖 máy tự nhân khi chạm nấc 1`}</div></div>, true)}
+    {H('★ ROAS', c.co_roas ? <span style={{ color: '#a78bfa' }}>đã có camp ★ ROAS</span>
+      : <div><Thanh v={lai30 / ROAS_LAI} mau="#a78bfa" />lãi 30 ngày {tien(lai30)} / ${ROAS_LAI} · 🤖 máy tự lên khi đủ</div>)}
+  </>;
+}
 
 export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruong: () => TheNoi; children: React.ReactNode }) {
   const router = useRouter(), noi = useNoi<{ id: 0 }>();
@@ -51,7 +100,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
   ].filter(Boolean).slice(0, 4) as string[] : [];
   const oTab = (k: 'lich' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
   return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: 'inline-flex', cursor: 'pointer' }}>
-    {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={480} cao={360} noi={noi}>
+    {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={480} cao={l?.thang.length ? 620 : 360} noi={noi}>
       <div onClick={(e) => e.stopPropagation()} style={{ padding: '10px 30px 10px 12px', width: 480, maxWidth: '92vw', fontSize: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', gap: 4 }}>{oTab('lich', 'Lịch + điều khiển')}{oTab('tt', 'Thị trường')}{oTab('log', 'Log')}</div>
         {tab === 'tt' ? <div style={{ margin: '-10px -30px -10px -12px' }}><TheChung t={thiTruong()} /></div> : tab === 'log' ? <div style={{ maxHeight: 420, overflowY: 'auto' }}>
@@ -69,8 +118,12 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
             const ma = [...new Set([...l.dang.map((d) => MA_DANG[d.dang] ?? d.dang), ...sx.map((d) => d.loai)])];
             const ke = l.ke, them = ke?.trang_thai === 'them' || ke?.trang_thai === 'cho_do', cho = l.hen.length + Math.max(ke?.san ?? 0, l.tu_len), k = l.lt ? l.lt.ke : them ? ke!.k : 0;
             const m = l.thieu?.match(/(\d+\/\d+) camp.*thiếu (\d+)/);
+            // MỞ RỘNG: +k của etp.mo_rong chỉ là số tham khảo; máy chỉ tự xếp dòng cho phim cả đội lãi (etp.phim_doi_lai) — nói rõ ai làm + creative có đủ không (anh 07/11/2026)
             const buocKe = l.lt ? (l.lt.ma === 'sx' ? null : `🤖 ${l.lt.chu}`) : !ke ? 'Chưa có kế hoạch: phim chưa có camp Nhà đang chạy' : !them ? `Chưa thêm: ${ke.ly}`
-              : `${ke.trang_thai === 'cho_do' ? '⏳ chờ đo đủ 1 ngày khép · ' : ''}${l.may_mo ? '🤖 máy tự xếp, tối đa 1 đợt / 24 giờ' : '✋ máy không tự lên, bấm ＋ bên dưới'}`;
+              : <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div>{l.may_mo ? '🤖 máy tự xếp, tối đa 1 đợt / 24 giờ' : `✋ máy không tự làm — chỉ tự mở khi cả đội ${l.doi_lai.ngay} ngày chi ≥ $${l.doi_lai.chi} & ROI ≥ ${l.doi_lai.roi}%; thêm bằng nút ＋ bên dưới`}</div>
+                {ke.trang_thai === 'cho_do' ? <div style={{ color: '#f59e0b' }}>⏳ chờ đo đủ 1 ngày khép{l.do_toi ? ` — tới ${l.do_toi}` : ''}</div> : null}
+                <div style={{ color: k > l.cr.san ? '#f59e0b' : 'var(--fg-2)' }}>Creative: {l.cr.san} sẵn sàng · {l.cr.chan} bị cổng chấm chặn{k > l.cr.san ? ` → thiếu ${k - l.cr.san}, phải cắt mới` : ''}</div></div>;
             const so = (n: number | string, chu: string, mau: string, t?: string) => <span title={t} style={{ whiteSpace: 'nowrap' }}><b style={{ fontSize: 14, color: n ? mau : 'var(--fg-3)' }}>{n}</b> <span style={{ color: 'var(--fg-2)' }}>{chu}</span></span>;
             const H = (nhan: React.ReactNode, con: React.ReactNode, tren = false) => <><span style={{ fontSize: 11, color: 'var(--fg-3)', alignSelf: tren ? 'start' : 'center', whiteSpace: 'nowrap' }}>{nhan}</span><div style={{ minWidth: 0, fontSize: 11.5, color: 'var(--fg-2)' }}>{con}</div></>;
             const chuoi: React.CSSProperties = { display: 'flex', gap: 12, alignItems: 'baseline', flexWrap: 'wrap' };
@@ -86,7 +139,9 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
               {gd === 0 && !l.lt ? H('Mốc cất', <span title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp</span>) : null}
               {/* CAMP MỚI: kế hoạch → đang sản xuất → chờ lên. Kế hoạch etp.mo_rong chỉ là số đề xuất, chỉ phim_doi_lai máy mới tự xếp dòng — nói đúng ai làm bước kế */}
               {H('Camp mới', <div style={chuoi}>{so(k ? `+${k}` : 0, 'kế hoạch', 'var(--fg)', ke ? `${ke.ly}\nCó sẵn ${ke.san} creative · cần làm thêm ${ke.can_sx}` : 'Chưa có kế hoạch')}<span style={{ color: 'var(--fg-3)' }}>→</span>{so(tongSx, 'đang SX', 'var(--fg)')}<span style={{ color: 'var(--fg-3)' }}>→</span>{so(cho, 'chờ lên', 'var(--fg)', `${l.hen.length} camp đã tạo chờ giờ chạy · ${ke?.san ?? 0} creative sạch chưa có camp · ${l.tu_len} trong hàng máy tự lên`)}</div>)}
-              {buocKe ? H('Bước kế', buocKe, true) : null}
+              {buocKe ? H('Mở rộng', buocKe, true) : null}
+              {l.thang.slice(0, 3).map((c) => <KhoiThang key={c.camp_id} c={c} hoan={l.hoan.some((h) => h.camp_id === c.camp_id && h.huong === 'tang')} H={H} />)}
+              {l.thang.length > 3 ? <div style={{ gridColumn: '1 / -1', fontSize: 11, color: 'var(--fg-3)' }}>+{l.thang.length - 3} camp thắng khác — xem thẻ xét luật từng camp ở bảng Camp</div> : null}
               {sx.map((d) => { const b = buocHien(d), hong = b?.trang_thai === 'loi' || b?.trang_thai === 'dung', phut = b?.bat_dau && b.trang_thai === 'dang' ? Math.round((Date.now() - Date.parse(b.bat_dau)) / 60000) : null;
                 return <React.Fragment key={d.id}>{H(<>{d.loai} × {d.so_camp ?? 1}{phut != null ? <><br />{phut} phút</> : null}</>, <><ChuoiBuoc buoc={d.buoc} loai={d.loai} />{hong && b?.ghi ? <div style={{ fontSize: 11, color: '#f87171', marginTop: 3 }}>{TEN_BUOC[b.buoc] ?? b.buoc} lỗi: {b.ghi.slice(0, 110)}</div> : null}</>, true)}</React.Fragment>; })}
               {l.hen.length || sapToi.length || l.thieu ? H('Sắp tới', <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

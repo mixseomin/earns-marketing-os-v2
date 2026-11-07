@@ -153,8 +153,9 @@ export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt —
   chamTat: { bat: boolean; camp: number[]; mienLuc: string | null };
   phot: { id: number; luc: string; camp_id: number; creative_id: number | null; content_id: number | null; bo: string | null; ad_account_id: number | null; page_id: number | null; nhom: string; ly_do: string | null }[] };
 
-/** lãi 30 ngày tối thiểu để lên ROAS — CÙNG số với ROAS_LAI của máy luật apps/xuong-video/scripts/ethopex/luat-ethopex.py (anh 29/10/2026); đổi thì đổi cả hai */
+/** lãi 30 ngày tối thiểu để lên ROAS — CÙNG số với ROAS_LAI của máy luật + sổ luật chung roas_lai (anh 29/10/2026); máy luật assert khớp sổ */
 const ROAS_LAI = 75;
+if (ROAS_LAI !== BANG_LUAT.roas_lai) throw new Error('etp-doc ROAS_LAI lệch sổ luật chung roas_lai');
 const n = (v: unknown) => Number(v ?? 0) || 0;
 // GỌN lop (anh 27/10/2026 "load chậm quá": lop = 1,9 MB / 3 MB dữ liệu trang, mọi tab đều phải chở):
 //  - chữ trên hình / lời nói / tóm tắt chỉ hiện trong thẻ hover tab Quét nội dung → KHÔNG gửi kèm trang; tab đó tự tải ngầm (actions/etp-cham chuCham)

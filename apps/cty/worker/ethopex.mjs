@@ -45,7 +45,7 @@ export async function ghiG10(ids) {
 
 /** Nhóm báo: tiêu đề · nút cho mỗi mục (null = chỉ báo). dich = ngân sách đích lấy từ chữ "→ $X". */
 const NHOM = [
-  ['hoi_g10', '↑ <b>G10 HỒI</b> — camp đã hạ về $10, 2 ngày đã khép sau đó ROI ≥ 30% → máy nâng lại theo thang (mỗi bước ≤ ×1,5, không quá ngân sách trước lúc hạ) (anh 04/11/2026, cả ★ ROAS)', null],
+  ['hoi_g10', '↑ <b>G10 HỒI</b> — camp đã hạ về $10, 2 ngày đã khép sau đó ROI ≥ 30% → máy nâng lại theo thang từng bậc tới $20, không quá ngân sách trước lúc hạ (anh 04/11 + 07/11/2026, cả ★ ROAS)', null],
   ['thang_nb', '🪜 <b>THANG NHÂN BẢN</b> — bộ 2: camp chạm luật tăng (như bộ 1) → thay vì tăng ngân sách, máy mở bản mới ở bậc kế, creative khác cùng phim; camp gốc giữ ngân sách', null],
   ['tu_choi', '⛔ <b>AD BỊ META TỪ CHỐI</b> — máy KHÔNG tự thay creative (anh 03/11/2026), anh quyết', null],
   ['dau_phien', '⇑ <b>LÃI ĐẦU PHIÊN</b> — ROI hôm nay > 50%, tăng luôn $2/$3', (m) => (m.dich ? [{ text: `✅ #${m.id} lên $${m.dich}`, callback_data: `et:tang:${m.id}:${m.dich}` }, { text: 'Bỏ qua', callback_data: `et:bo:${m.id}` }] : null)],
@@ -457,6 +457,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
       let r; try { r = JSON.parse((await chay(LAM, ['tang', String(m.id), String(d), ...(k === 'hoi_g10' ? ['--ep'] : []), '--luat', `${k === 'hoi_g10' ? 'G10 hồi' : TEN[k]} · ${m.chu}`.slice(0, 400), '--ai', k === 'tang30' ? `máy tự tăng T30 (anh cho phép tự tăng, trần $${tuTang} — gộp 29/10/2026)` : `máy tự tăng (anh cho phép ${Date.parse(tt?.den) > Date.parse('2090-01-01') ? 'tới khi rút lại' : `tới ${tt.den.slice(0, 16)}`}, trần $${tuTang})`], 120)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
       daTu.push({ k, m, d, r });
       if (k === 'hoi_g10' && r?.ok) await chayPsql(`update etp.cau_hinh set gia_tri = gia_tri - '${Number(m.id)}' where khoa = 'g10'`).catch((e) => console.error('gỡ g10:', e.message));
+      // lộ trình G10 hồi (anh 07/11/2026): chưa tới đích thì ghi sổ để máy luật xét bậc kế; tới đích thì gỡ
+      if (k === 'hoi_g10' && r?.ok && m.dich) await chayPsql(d < m.dich ? `insert into etp.cau_hinh (khoa, gia_tri) values ('g10_lo_trinh', jsonb_build_object('${Number(m.id)}', jsonb_build_object('dich', ${Number(m.dich)}, 'luc', (now() at time zone 'UTC')::date))) on conflict (khoa) do update set gia_tri = etp.cau_hinh.gia_tri || excluded.gia_tri` : `update etp.cau_hinh set gia_tri = gia_tri - '${Number(m.id)}' where khoa = 'g10_lo_trinh'`).catch((e) => console.error('sổ lộ trình g10:', e.message));
       if (k === 'hoi_g10' && r?.ok && Array.isArray(m.ab) && /^AB\d+$/.test(m.ab[0]) && ['thu', 'doi'].includes(m.ab[1])) await chayPsql(`insert into etp.camp_ab (camp_id, ab, nhanh) values (${Number(m.id)}, '${m.ab[0]}', '${m.ab[1]}') on conflict (camp_id) do nothing`).catch((e) => console.error('ghi A/B G10 hồi:', e.message));   // AB02: ghi nhánh SAU khi nâng thành công (anh 05/11/2026)   // hồi xong → hết theo dõi G10 (--ep: luật hồi LÀ quy trình tăng lại sau giảm)
     }
     if (daTu.length) {

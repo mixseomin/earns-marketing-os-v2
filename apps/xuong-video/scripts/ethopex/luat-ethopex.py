@@ -844,10 +844,21 @@ _d4s = {dt.date.fromisoformat(d(i)) for i in (4, 5, 6, 7)}
 try:
     try: _g10 = {int(k): dt.date.fromisoformat(v) for k, v in json.loads(q("select gia_tri::text from etp.cau_hinh where khoa = 'g10'") or "{}").items()}
     except Exception: _g10 = {}
+    # LỘ TRÌNH G10 HỒI (anh 07/11/2026 "mới từ $10 -> $13, mục tiêu là $20 thì vẫn phải theo đúng lộ trình đó"): bước đầu gỡ camp khỏi sổ g10 nên camp ★ ROAS (không có luật tăng nào khác) kẹt mãi ở $13.
+    # Sổ etp.cau_hinh 'g10_lo_trinh' {camp: {dich, luc}}: mỗi bước sau cùng điều kiện bước đầu (đủ G10_THEO ngày đã khép sau bước trước, chi ≥ ngân sách, ROI ≥ G10_HOI) → bậc kế trên thang tới đích.
+    try: _g10_lt = json.loads(q("select gia_tri::text from etp.cau_hinh where khoa = 'g10_lo_trinh'") or "{}")
+    except Exception: _g10_lt = {}
     for cid in sorted(_bat):
         if int(cid) in _SE_TAT or int(cid) in _rl: continue
         _ds = (_ng.get(int(cid)) or [None, []])[1]; a = thang.get(cid) or {}; ten_ = (a.get("ten") or (_ng.get(int(cid)) or [""])[0] or "")[:70]
         ns = float(a.get("budget") or 0)
+        lt_ = _g10_lt.get(str(int(cid)))
+        if lt_ and G10_DICH < ns < float(lt_["dich"]) and int(cid) not in _g10:
+            sau = sorted(x for x in _ds if x[0] > dt.date.fromisoformat(lt_["luc"]))[:G10_THEO]
+            cs, ts = sum(x[1] for x in sau), sum(x[2] for x in sau)
+            ve = min((b for b in BAC if ns < b <= float(lt_["dich"])), default=None)
+            if ve and len(sau) >= G10_THEO and cs >= ns and (ts - cs) / cs * 100 >= G10_HOI:
+                hoi_g10.append((cid, f"#{ten_} · lộ trình G10 hồi tới ${lt_['dich']:g}, {G10_THEO} ngày đã khép sau bước trước: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% ≥ {G10_HOI}% · ${ns:.0f} → ${ve} (luật G10 hồi: bậc kế trên thang)", {"dich": lt_["dich"]})); continue
         ngay_ha = _g10.get(int(cid)) if ns <= G10_DICH else None   # sổ ghi theo lệnh đã gửi — ngân sách thật chưa về $10 thì coi như chưa hạ, xét hạ lại
         if ngay_ha:
             sau = sorted(x for x in _ds if x[0] > ngay_ha)[:G10_THEO]
@@ -863,7 +874,7 @@ try:
                 tran_ = cu_ if nh_ and nh_[1] == "doi" else min(cu_, ns * 1.5)
                 ve = max((b for b in BAC + [30] if ns < b <= tran_), default=None)
                 if ve: hoi_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% ≥ {G10_HOI}% · trước lúc hạ ${cu_:.0f}"
-                                      f"{f' · {nh_[0]} {nh_[2]}' if nh_ else ''} · ${ns:.0f} → ${ve} (luật G10 hồi{': về ngân sách cũ' if nh_ and nh_[1] == 'doi' else ': lên lại theo thang, mỗi bước ≤ ×1,5'})", {"ab": nh_[:2]} if nh_ else {})); continue
+                                      f"{f' · {nh_[0]} {nh_[2]}' if nh_ else ''} · ${ns:.0f} → ${ve} (luật G10 hồi{': về ngân sách cũ' if nh_ and nh_[1] == 'doi' else ': lên lại theo thang, mỗi bước ≤ ×1,5'})", {**({"ab": nh_[:2]} if nh_ else {}), **({} if nh_ and nh_[1] == "doi" else {"dich": min(cu_, 20)})})); continue
             if cs > 0 and (ts - cs) / cs * 100 < G10_ROI and duoi(int(cid), ns, G10_ROI, ten_, "G10"):
                 tat_g10.append((cid, f"#{ten_} · hạ về ${G10_DICH} ngày {ngay_ha:%d/%m}, {G10_THEO} ngày đã khép sau đó: chi ${cs:.2f} · lãi ${ts - cs:+.2f} · ROI {(ts - cs) / cs * 100:+.0f}% → TẮT (luật G10: vẫn < {G10_ROI}%)"))
                 continue

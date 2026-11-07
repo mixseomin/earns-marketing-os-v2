@@ -596,6 +596,20 @@ def mo_doi_lai():
         returning id, content_id; commit;""").splitlines():
         if "\t" in l: print(f"[{time.strftime('%H:%M:%S')}] phim đội lãi → xếp dòng mở rộng #{l.split(chr(9))[0]} phim {l.split(chr(9))[1]}", flush=True)
 
+def mo_tran_ngay():
+    """DÒNG DỪNG VÌ TRẦN CAMP MỚI / NGÀY TỰ LÊN LẠI SANG NGÀY MỚI (08/11/2026: đợt ATT/PD/CTS 9 phim — 6 dòng creative sạch dừng "chạm trần 100 camp
+    mới / ngày … mai lên tiếp" mà không máy nào làm câu "mai lên tiếp"): ngày VN mới + còn chỗ dưới trần → FIX bước camp của các dòng đó (dừng từ ngày
+    trước, trong 3 ngày), tối đa bằng số chỗ còn lại; dòng vẫn vấp trần thì dừng lại với ngày hôm nay và chờ hôm sau."""
+    for l in sql("""with con as (select (select gia_tri::text::int from etp.cau_hinh where khoa = 'tran_camp_moi_ngay')
+                       - (select count(*) from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date) n),
+        mo as (select b.dong_id from etp.dong_buoc b join etp.dong_phim d on d.id = b.dong_id, con
+               where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and b.ghi like '%chạm trần%camp mới / ngày%' and d.trang_thai = 'dung'
+                 and (b.ket_thuc at time zone 'Asia/Ho_Chi_Minh')::date < (now() at time zone 'Asia/Ho_Chi_Minh')::date and b.ket_thuc > now() - interval '3 days'
+                 and con.n > 0
+               order by d.so_camp desc, b.ket_thuc limit greatest((select n from con), 0))
+        update etp.dong_buoc b set fix = true from mo where b.dong_id = mo.dong_id and b.buoc = 'camp' returning b.dong_id""").splitlines():
+        if l.strip(): print(f"[{time.strftime('%H:%M:%S')}] dòng #{l.strip()} — ngày mới, còn chỗ dưới trần camp/ngày → FIX bước camp", flush=True)
+
 CHAY = {}   # (dòng, bước) → (thread, lần chạy cuối)
 DUNG = [None]
 def vong():
@@ -608,6 +622,8 @@ def vong():
         except Exception as e: print(f"dọn lỗi: {e}", flush=True)
     try: mo_doi_lai()
     except Exception as e: print(f"mở rộng phim đội lãi lỗi: {str(e)[:200]}", flush=True)
+    try: mo_tran_ngay()
+    except Exception as e: print(f"mở lại dòng chạm trần ngày lỗi: {str(e)[:200]}", flush=True)
     gac = gac_kt()
     for d in doc_dong():
         bs = d.get("buoc") or {}

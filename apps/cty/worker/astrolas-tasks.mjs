@@ -11,9 +11,7 @@ const tep = () => path.join(DATA(), 'astrolas-tasks.json');
 const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const doc = () => { try { return JSON.parse(fs.readFileSync(tep(), 'utf8')); } catch { return { tin: {}, phan_hoi: [] }; } };
 const ghi = (s) => fs.writeFileSync(tep(), JSON.stringify(s));
-const NHAN = { da_sua: '✅ Xong, chờ duyệt', can_anh: '⚠️ Cần anh quyết', treo: '⏹ Dừng giữa chừng', bo_qua: '⏭ Task khó, để lại cho anh' };
-// anh 07/11/2026: báo task khó phải có nút cho phép chạy luôn. hq:co → thu-ky.mjs → ghiPhanHoi → lượt iMac kế tiếp làm đúng task đó
-const NUT_BO_QUA = { inline_keyboard: [[{ text: '▶ Cho Thành làm', callback_data: 'hq:co' }, { text: '✖ Để anh xử', callback_data: 'hq:khong' }]] };
+const NHAN = { da_sua: '✅ Xong, chờ duyệt', can_anh: '⚠️ Cần anh quyết', treo: '⏹ Dừng giữa chừng' };
 
 export const taskCuaTin = (mid) => (mid ? doc().tin[mid] ?? null : null);
 export const ghiPhanHoi = (task, anh, tin) => { const s = doc(); s.phan_hoi.push({ task, anh, tin }); ghi(s); };
@@ -21,7 +19,7 @@ export const layPhanHoi = () => { const s = doc(), x = s.phan_hoi.shift(); if (x
 
 /** Gửi tin báo vào chủ đề; nhớ tin → task để câu trả lời dưới tin tìm được đúng task. */
 export async function baoTask(tg, topic, task, ket, than, tin) {
-  const j = await tg('sendMessage', { message_thread_id: topic, parse_mode: 'HTML', text: `🛠 <b>Thành</b> · #${esc(task)} · ${NHAN[ket] ?? esc(ket)}\n${esc(than)}`, ...(ket === 'bo_qua' ? { reply_markup: NUT_BO_QUA } : {}), ...(tin ? { reply_parameters: { message_id: Number(tin), allow_sending_without_reply: true } } : {}) });
+  const j = await tg('sendMessage', { message_thread_id: topic, parse_mode: 'HTML', text: `🛠 <b>Thành</b> · #${esc(task)} · ${NHAN[ket] ?? esc(ket)}\n${esc(than)}`, ...(tin ? { reply_parameters: { message_id: Number(tin), allow_sending_without_reply: true } } : {}) });
   if (j?.ok) { const s = doc(); s.tin[j.result.message_id] = Number(task); const k = Object.keys(s.tin); for (const m of k.slice(0, -300)) delete s.tin[m]; ghi(s); }
   return j;
 }
@@ -33,8 +31,6 @@ if (a[1]?.endsWith('astrolas-tasks.mjs') && a.includes('--tu-kiem')) {
   const gui = []; const tg = async (_m, b) => { gui.push(b); return { ok: true, result: { message_id: 900 } }; };
   await baoTask(tg, 4241, 4467, 'da_sua', 'a<b', null); t.equal(gui[0].message_thread_id, 4241); t.match(gui[0].text, /#4467 · ✅.*\na&lt;b/s); t.equal(gui[0].reply_parameters, undefined);
   await baoTask(tg, 4241, 4467, 'can_anh', 'x', 55); t.equal(gui[1].reply_parameters.message_id, 55, 'trả lời dưới tin anh');
-  await baoTask(tg, 4241, 4503, 'bo_qua', 'khó', null); t.equal(gui[2].reply_markup.inline_keyboard[0][0].callback_data, 'hq:co'); t.equal(gui[0].reply_markup, undefined); t.equal(taskCuaTin(900), 4503, 'bấm nút tìm được đúng task');
-  await baoTask(tg, 4241, 4467, 'da_sua', 'a', null);
   t.equal(taskCuaTin(900), 4467); t.equal(taskCuaTin(901), null); t.equal(taskCuaTin(null), null);
   t.deepEqual(layPhanHoi(), {}); ghiPhanHoi(4467, 'sửa lại', 77); t.deepEqual(layPhanHoi(), { task: 4467, anh: 'sửa lại', tin: 77 }); t.deepEqual(layPhanHoi(), {}, 'lấy một lần');
   console.log('astrolas-tasks: tự kiểm đạt');

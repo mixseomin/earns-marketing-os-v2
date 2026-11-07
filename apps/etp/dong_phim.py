@@ -26,9 +26,11 @@ SSH = ["ssh", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20", "-o", "
 B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 C = os.path.expanduser("~/.cache/ethopex"); MAY = socket.gethostname().split(".")[0]
 KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (dot-phim-moi.KHUON)
-LOAI = {"CC": "cảnh cuối", "KT": "kể chuyện", "LT": "tập nguyên", "AT": "ảnh tĩnh"}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
-BO_QUA = {"KT": {"cat", "soat"}, "AT": {"cat", "soat"}}   # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt · AT: anh-tinh.py tự tải tập + chọn khung — không qua bước cắt / soát đoạn
-HAN_RIENG = {("KT", "creative"): 4 * 3600, ("AT", "creative"): 60 * 60, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu · AT ~10 phút/phim
+LOAI = {"CC": "cảnh cuối", "KT": "kể chuyện", "LT": "tập nguyên", "AT": "ảnh tĩnh", "ATT": "ảnh tĩnh tóm tắt", "PD": "poster động", "CTS": "câu thoại sốc"}
+# KIỂU TĨNH (anh 08/11/2026 "chọn cả 3 để xem hiệu suất"): mỗi loại một kiểu của tinh-ba-kieu.py, cùng khuôn AT — tự tải tập, 3 bản, 3 camp $1
+TINH = {"AT": ("anh-tinh.py", []), "ATT": ("tinh-ba-kieu.py", ["--kieu", "tom_tat"]), "PD": ("tinh-ba-kieu.py", ["--kieu", "poster"]), "CTS": ("tinh-ba-kieu.py", ["--kieu", "cau_soc"])}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
+BO_QUA = {"KT": {"cat", "soat"}, **{k: {"cat", "soat"} for k in ("AT", "ATT", "PD", "CTS")}}   # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt · AT: anh-tinh.py tự tải tập + chọn khung — không qua bước cắt / soát đoạn
+HAN_RIENG = {("KT", "creative"): 4 * 3600, **{(k, "creative"): 60 * 60 for k in ("AT", "ATT", "PD", "CTS")}, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu · AT ~10 phút/phim
 # LT — LỘ TRÌNH TEST RỘNG (anh 03/11/2026 "Lên $8-10/phim + T2 thì sẽ cắt sớm đc lỗ và tìm nhanh đc camp lãi" · chọn A: miễn luật một camp ngày test rộng):
 # cắt MỖI TẬP một creative (kiểu Kiên, tập trọn ETP_KIEU=tap, tới 10 đoạn) → soát → tải + chấm TẤT CẢ đoạn sạch → DỪNG chờ anh bắt đầu
 # (etp.cau_hinh 'lo_trinh' {content_id: {bat_dau: true}}) → lên mỗi creative một camp $1 (nhan-ban miễn luật một camp khi phim ở lo_trinh) → T2 cắt lỗ.
@@ -241,7 +243,7 @@ def b_soat(d, truoc):
 
 def b_creative(d, truoc):
     if d.get("loai") == "KT": return b_creative_kt(d)
-    if d.get("loai") == "AT": return b_creative_at(d)
+    if d.get("loai") in TINH: return b_creative_at(d)
     if d.get("loai") == "LT" or (d.get("so_camp") and d.get("loai") != "KT"): return b_creative_lt(d, truoc)   # mở rộng: tải MỌI đoạn sạch
     tr = (d.get("buoc") or {}).get("creative") or {}
     cr = (tr.get("ket_qua") or {}).get("creative_id")
@@ -317,7 +319,7 @@ def b_creative_at(d):
     tr = (d.get("buoc") or {}).get("creative") or {}; kq0 = tr.get("ket_qua") or {}
     ids = [int(x["creative_id"]) for x in kq0.get("ds") or []] or ([int(kq0["creative_id"])] if kq0.get("creative_id") else [])
     if not ids:
-        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "anh-tinh.py"), str(d["content_id"]), "--ban", str(AT_BAN)], HAN_RIENG[("AT", "creative")] - 120)
+        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, TINH[d["loai"]][0]), str(d["content_id"]), *TINH[d["loai"]][1], "--ban", str(AT_BAN)], HAN_RIENG[(d["loai"], "creative")] - 120)
         ids = [int(x) for x in dict.fromkeys(re.findall(r"→ creative #(\d+)", out))]
         if not ids:
             j = next((json.loads(l) for l in out.splitlines() if l.startswith("{") and '"content_id"' in l), None) or {}
@@ -392,7 +394,7 @@ def b_camp_mr(d, truoc):
     """MỞ RỘNG (anh bấm ＋ ở dòng phim, chọn số camp): creative sạch vừa làm + creative sạch có sẵn chưa có camp của phim → lên đúng so_camp camp $1 (bộ của phim)"""
     cr = truoc.get("creative") or {}; moi = [int(x["creative_id"]) for x in (cr.get("sach") or ([cr] if cr.get("creative_id") else []))]
     san = san_dung_lai(d["content_id"])
-    if d.get("loai") == "AT": san = [c for c in san if sql(f"select dang from etp.creative where creative_id = {c}") == "ảnh tĩnh"]   # 3 camp ảnh tĩnh = chỉ creative ảnh tĩnh
+    if d.get("loai") in TINH: san = [c for c in san if sql(f"select dang from etp.creative where creative_id = {c}") == LOAI[d["loai"]]]   # 3 camp của kiểu = chỉ creative đúng dạng đó
     cu = camp_co_san(moi)   # creative của chính dòng đã có camp (lượt trước bị huỷ giữa chừng / máy luật lấy thay) = đã lên, tính vào số camp
     ds = [c for c in dict.fromkeys(moi + san) if c not in cu][:max(0, int(d["so_camp"]) - len(cu))]
     if not ds and not cu: return "dung", "không có creative sạch nào để lên camp", None
@@ -411,7 +413,7 @@ def b_camp_mr(d, truoc):
     return ket, (f"{len(xong) + len(cu)}/{d['so_camp']} camp · " + ghi + (f" · thiếu {thieu} (không đủ creative sạch)" if thieu > 0 and not loi else "")) if ket == "xong" else ghi, kq
 
 def b_camp(d, truoc):
-    if d.get("loai") == "AT": d = {**d, "so_camp": max(int(d.get("so_camp") or 0), AT_BAN)}   # 3 camp $1 / phim (anh 08/11/2026)
+    if d.get("loai") in TINH: d = {**d, "so_camp": max(int(d.get("so_camp") or 0), AT_BAN)}   # 3 camp $1 / phim (anh 08/11/2026)
     if d.get("so_camp"): return b_camp_mr(d, truoc)
     if d.get("loai") == "LT": return b_camp_lt(d, truoc)
     # BỘ CREATIVE ĐỦ LOẠI TRƯỚC, CHƯA LÊN CAMP (anh 03/11/2026 "phải làm đủ 1 bộ creative cho mọi loại nội dung trước. Chưa lên camp"):
@@ -527,7 +529,7 @@ def doc_dong():
                (select json_object_agg(b.buoc, json_build_object('trang_thai', b.trang_thai, 'ket_qua', b.ket_qua, 'lan', b.lan, 'fix', b.fix, 'huy', b.huy,
                        'tuoi', extract(epoch from now() - coalesce(b.nhip, b.bat_dau))::int)) from etp.dong_buoc b where b.dong_id = p.id) buoc
                from etp.dong_phim p where p.trang_thai = 'chay' or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.fix)
-               order by (p.loai = 'AT') desc, (select coalesce(sum(s.thu - s.chi), 0) from (select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay s join etp.camp k using (camp_id) union all select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay_ngoai s join etp.camp_ngoai k using (camp_id)) s where s.content_id = p.content_id and s.ngay >= current_date - 3) desc, (p.ai like 'máy: lộ trình tự động thí điểm%') desc, p.id) x""")   # ảnh tĩnh lấy lượt nặng trước (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh")   # phim thí điểm lấy lượt cắt trước (TRAN_CAT), đừng đứng sau cả hàng
+               order by (p.loai in ('AT', 'ATT', 'PD', 'CTS')) desc, (select coalesce(sum(s.thu - s.chi), 0) from (select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay s join etp.camp k using (camp_id) union all select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay_ngoai s join etp.camp_ngoai k using (camp_id)) s where s.content_id = p.content_id and s.ngay >= current_date - 3) desc, (p.ai like 'máy: lộ trình tự động thí điểm%') desc, p.id) x""")   # ảnh tĩnh lấy lượt nặng trước (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh")   # phim thí điểm lấy lượt cắt trước (TRAN_CAT), đừng đứng sau cả hàng
     return json.loads(j or "[]")
 
 # HẾT NGUYÊN LIỆU CẮT THÌ CHUYỂN KỂ CHUYỆN (anh 04/11/2026 "vì sao vẫn còn film ko thể sx và cách khắc phục triệt để"): cắt / soát / chấm hết đường
@@ -652,7 +654,7 @@ def vong():
         if t and t[0].is_alive(): continue
         if dang and t and time.time() - t[1] < CHO_LAI: continue   # bước đang "chờ": quay lại sau CHO_LAI giây
         # LƯỢT NẶNG trên iMac = bước cắt + bước creative AT (anh-tinh.py cũng tải tập + ffmpeg + Vision) → chung trần TRAN_CAT, kẻo 13 dòng AT xếp một lúc chạy đồng loạt
-        LOAI_DONG[d["id"]] = d.get("loai"); nang = lambda i, b: b == "cat" or (b == "creative" and LOAI_DONG.get(i) == "AT")
+        LOAI_DONG[d["id"]] = d.get("loai"); nang = lambda i, b: b == "cat" or (b == "creative" and LOAI_DONG.get(i) in TINH)
         if nang(d["id"], ke) and not dang and sum(1 for (i, b), (th, _) in CHAY.items() if nang(i, b) and th.is_alive()) >= TRAN_CAT: continue
         if not dang:
             sql(f"update etp.dong_buoc set trang_thai = 'dang', bat_dau = now(), nhip = now(), lan = lan + 1, may = '{MAY}' where dong_id = {d['id']} and buoc = '{ke}' and trang_thai = 'cho'")

@@ -4,7 +4,7 @@ Dùng lại máy ảnh tĩnh (anh-tinh.py: tải 3 tập, khung AI chọn, tên 
   tom_tat — video ảnh tĩnh như thường + CHỮ QC tóm tắt 3–4 câu kết bằng mốc xoay chuyển (kiểu Dramawave chạy 46 ngày trên spy)
   poster  — POSTER ĐỘNG: poster gốc của phim (đã vẽ để bán) phủ kín 9:16 (nền là chính poster làm mờ), phóng chậm + giọng
   cau_soc — CÂU THOẠI SỐC: khung cảm xúc mạnh nhất + một câu thoại nguyên văn gắt nhất (phụ đề đọc từ tập) in to + giọng đọc đúng câu đó rồi câu mời xem
-Chữ AI viết ở box3 (chu-qc-anh-tinh.py, ckey). Dùng (iMac): python3 tinh-ba-kieu.py <content_id> [--kieu tom_tat,poster,cau_soc]  → ~/.cache/ethopex/anh-tinh/<id>/tinh-tom-tat.mp4 · poster-dong.mp4 · cau-thoai-soc.mp4 (chỉ dựng, không nạp)"""
+Chữ AI viết ở box3 (chu-qc-anh-tinh.py, ckey). Dùng (iMac): python3 tinh-ba-kieu.py <content_id> [--kieu tom_tat,poster,cau_soc] [--ban N] [--xem = chỉ dựng, không nạp]  → ~/.cache/ethopex/anh-tinh/<id>/tinh-tom-tat.mp4 · poster-dong.mp4 · cau-thoai-soc.mp4 (chỉ dựng, không nạp)"""
 import importlib.util, json, os, re, subprocess, sys
 # TÊN CỐ ĐỊNH (anh 08/11/2026 "phải đặt tên cho rõ ràng phân biệt về sau") — dạng ghi vào etp.creative.dang + tên camp mang mã
 KIEU = {"tom_tat": ("ảnh tĩnh tóm tắt", "ATT"), "poster": ("poster động", "PD"), "cau_soc": ("câu thoại sốc", "CTS")}
@@ -67,32 +67,62 @@ def lop_cau(cau, tm, ra, mat_day):
         lop.paste(t_, ((W - t_.width) // 2, min(int(H * 0.80 - t_.height), y + cao + 40)), t_)
     lop.save(ra); return ra
 
-def main(cid, kieu):
+def nap(cid, lang, f, dang, ghi, vnd, chu_dau=None):
+    """một bản → thư viện etp (box3 thu-vien-them --them, mỗi bản một dòng) → id dòng thư viện"""
+    xa = f"/var/tmp/anh-tinh/{cid}"; AT.sh("ssh", AT.B, f"mkdir -p {xa}"); AT.sh("rsync", "-a", f, f"{AT.B}:{xa}/", han=900)
+    them = ""
+    if chu_dau:
+        t = f + ".chu.txt"; open(t, "w").write(chu_dau); AT.sh("scp", "-q", t, f"{AT.B}:{xa}/{os.path.basename(t)}"); them = f" --chu-dau-tep={xa}/{os.path.basename(t)}"
+    r = AT.sh("ssh", AT.B, f"{AT.XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(f)} --content={cid} --dang='{dang}' --nguon=tinh_ba_kieu --lang={lang} --chi-vnd={vnd} --ghi='{ghi}' --them{them}", han=600)
+    if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
+    return int(AT.sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{dang}' and nguon = 'tinh_ba_kieu' and creative_id is null order by id desc limit 1") or 0)
+
+def main(cid, kieu, ban=1, xem=False):
     p = AT.phim([cid])[0]; lang = "es" if str(p.get("locale")).startswith("es") else "en"; ten = AT.ten_sach(p["ten"])
-    tm = os.path.join(AT.C, str(cid)); os.makedirs(tm, exist_ok=True); vnd = 0; kq = {}
-    uv = AT.khung(cid, p["url"], tm); uv, ly_ai, v_ai = AT.xep_ai(ten, uv); vnd += v_ai; k = uv[0]
-    nen, chu = AT.anh(cid, ten, k, tm, 0); kg = AT.xoay_giong([p], None)[cid]
+    tm = os.path.join(AT.C, str(cid)); os.makedirs(tm, exist_ok=True); vnd = 0; kq = {"content_id": cid, "ban": []}
+    uv = AT.khung(cid, p["url"], tm); uv, ly_ai, v_ai = AT.xep_ai(ten, uv) if len(uv) > 1 else (uv, "", 0); vnd += v_ai
+    ks = list(AT.KIEU_GIONG); kg0 = AT.xoay_giong([p], None)[cid]
     if "tom_tat" in kieu or "cau_soc" in kieu:
         th = thoai(tm); md = mo_ta(p["url"])
         r = subprocess.run(["ssh", AT.B, f"{AT.ENV}; python3 apps/xuong-video/scripts/ethopex/chu-qc-anh-tinh.py"], input=json.dumps({"ten": ten, "lang": lang, "mo_ta": md, "thoai": th}),
                            capture_output=True, text=True, timeout=300)
         cq = json.loads(r.stdout.strip().splitlines()[-1]) if r.stdout.strip() else {"loi": r.stderr[-200:]}; vnd += int(cq.get("vnd") or 0)
-        kq["chu"] = {**cq, "so_thoai": len(th), "mo_ta": md[:200]}
-    if "tom_tat" in kieu:   # video ảnh tĩnh thường; cái mới nằm ở chữ QC
-        mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, 0); vnd += v
-        kq["tom_tat"] = {"file": AT.dung(nen, chu, mp3, os.path.join(tm, "tinh-tom-tat.mp4")) and os.path.join(tm, "tinh-tom-tat.mp4"), "chu_qc": kq["chu"].get("tom_tat")}
-    if "poster" in kieu and os.path.exists(os.path.join(tm, "poster.jpg")):
-        mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, 1); vnd += v
-        trong = os.path.join(tm, "trong.png"); Image.new("RGBA", (W, H)).save(trong)   # poster đã có tên phim — không chồng chữ
-        kq["poster"] = {"file": AT.dung(poster_dong(tm, os.path.join(tm, "nen-poster.png")), trong, mp3, os.path.join(tm, "poster-dong.mp4")) and os.path.join(tm, "poster-dong.mp4")}
-    if "cau_soc" in kieu and kq.get("chu", {}).get("cau_soc"):
-        c = kq["chu"]["cau_soc"]; moi = (f"¡Mira {ten} gratis ahora!" if lang == "es" else f"Watch {ten} for free now!")
-        mp3, v = giong_cau(cid, lang, f"{c} ... {moi}", kg, tm); vnd += v
-        mat_day = (k["mat"][1] + k["mat"][3]) * H
-        kq["cau_soc"] = {"file": AT.dung(nen, lop_cau(c, tm, os.path.join(tm, "chu-cau.png"), mat_day), mp3, os.path.join(tm, "cau-thoai-soc.mp4")) and os.path.join(tm, "cau-thoai-soc.mp4"), "cau": c}
-    kq["vnd"] = vnd; kq["giong"] = kg; kq["khung"] = f"{k['tap']}#{k['so']}"
-    print(json.dumps(kq, ensure_ascii=False, indent=1))
+        kq["chu"] = {**cq, "so_thoai": len(th)}
+    tv = []
+    for kk in kieu:
+        dang, ma = KIEU[kk]
+        for b in range(ban):
+            kg = ks[(ks.index(kg0) + b) % len(ks)]; k = uv[b % len(uv)]; chu_dau = None
+            try:
+                if kk == "tom_tat":
+                    ds = kq["chu"].get("tom_tat") or []
+                    if not ds: raise RuntimeError("AI không viết được tóm tắt")
+                    chu_dau = ds[b % len(ds)]
+                    nen, chu = AT.anh(cid, ten, k, tm, b); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, b % len(AT.CAU[lang]))
+                elif kk == "poster":
+                    if not os.path.exists(os.path.join(tm, "poster.jpg")): raise RuntimeError("không có poster")
+                    nen = poster_dong(tm, os.path.join(tm, "nen-poster.png")); chu = os.path.join(tm, "trong.png"); Image.new("RGBA", (W, H)).save(chu)   # poster đã có tên phim
+                    mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, b % len(AT.CAU[lang]))
+                else:
+                    ds = kq["chu"].get("cau_soc") or []
+                    if not ds: raise RuntimeError("AI không chọn được câu thoại sốc có trong phụ đề")
+                    c = ds[b % len(ds)]; moi = (f"¡Mira {ten} gratis ahora!" if lang == "es" else f"Watch {ten} for free now!")
+                    nen, _ = AT.anh(cid, ten, k, tm, b); mp3, v = giong_cau(cid, lang, f"{c} ... {moi}", kg, tm)
+                    chu = lop_cau(c, tm, os.path.join(tm, f"chu-cau-{b}.png"), (k["mat"][1] + k["mat"][3]) * H)
+                vnd += v; out = os.path.join(tm, f"{ma.lower()}-{cid}-{b + 1}.mp4"); giay = AT.dung(nen, chu, mp3, out)
+                x = {"kieu": ma, "dang": dang, "ban": b + 1, "file": out, "giay": giay, "giong": kg, "vnd": v, "tap": k["tap"], "khung_so": k["so"], "ten_poster": bool(k.get("ten_poster")),
+                     **({"chu_dau": chu_dau} if chu_dau else {}), **({"cau": c} if kk == "cau_soc" else {})}
+                if not xem:
+                    ghi = f"{dang} ({ma}) bản {b + 1}/{ban} · giọng {kg} · khung {k['tap']}#{k['so']} AI xếp hạng · tên {'từ poster' if k.get('ten_poster') or kk == 'poster' else 'chữ vàng'}"
+                    x["tv"] = nap(cid, lang, out, dang, ghi, v, chu_dau); tv.append(x)
+                kq["ban"].append(x)
+            except Exception as e: kq["ban"].append({"kieu": ma, "ban": b + 1, "loi": str(e)[-300:]})
+    kq["vnd"] = vnd; print(json.dumps(kq, ensure_ascii=False), flush=True)
+    if tv:   # thư viện → creative (đẩy kho + chữ QC + Ethopex bulk-jobs) — dòng "→ creative #N" để máy dòng phim nhận
+        subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), *[str(x["tv"]) for x in tv]])
+        for x in tv:   # dấu kiểu / giọng / câu vào sổ điểm chạm (đo hiệu suất từng kiểu về sau)
+            print(f"dấu {x['kieu']} tv{x['tv']} →", AT.danh_dau(x["tv"], x["giong"], lang, ten, 0, {**x, "ten_poster": x["ten_poster"]}) or "(chưa thành creative)")
 
 if __name__ == "__main__":
     a = sys.argv[1:]; ki = a[a.index("--kieu") + 1].split(",") if "--kieu" in a else ["tom_tat", "poster", "cau_soc"]
-    main(int(a[0]), ki)
+    main(int(a[0]), ki, int(a[a.index("--ban") + 1]) if "--ban" in a else 1, "--xem" in a)

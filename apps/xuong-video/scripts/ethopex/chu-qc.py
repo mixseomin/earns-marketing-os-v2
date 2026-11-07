@@ -47,6 +47,8 @@ def main(lo, tsv, ma_lo, goc_url, ra, ten_tsv=None, dang="phim dai"):
             for c in lam_sach(chu, ten):
                 if KT.soat(c): continue                                      # cổng thoại cho chữ QC
                 if c not in ds: ds.append(c)
+        # CHỮ ĐẦU riêng của creative (kiểu ATT — tóm tắt AI viết, thu_vien.chu_qc.chu_dau, 08/11/2026): lên ĐẦU primary text, vẫn qua cổng thoại
+        if x.get("chu_dau") and not KT.soat(x["chu_dau"]): ds.insert(0, x["chu_dau"])
         mo = f"{ten} — {'mira la historia completa gratis' if nn == 'es' else 'watch the full story free'}. {'Mira más' if nn == 'es' else 'Watch more'}"
         pt = (ds[:2] or [mo]) + CHUNG[nn]
         f = x.get("ten_tep") or os.path.basename(x["file"])   # tên tệp trên kho có thể khác tệp máy (kho phat <tep> … <ten>)

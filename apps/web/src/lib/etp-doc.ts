@@ -82,6 +82,7 @@ export type ThayThe = { id: number; content_id: number; camp_cu: number; buoc: s
   bai_hoc: { ly_do?: string; huong?: string; so?: Record<string, number | null> }; bo_camp: { dang: string; creative: number; camp: number | null }[] };
 /** PLAN MỞ RỘNG CAMP (etp.mo_rong, apps/etp/mo_rong.py mỗi lượt đồng bộ — anh 04/11/2026): bao nhiêu camp mới nên lên cho phim, sẵn / cần sản xuất bao nhiêu creative */
 export type MoRong = { content_id: number; n: number; chi3: number; lai3: number; roi3: number | null; roi_truoc: number | null; k: number; san: number; can_sx: number; trang_thai: string; ly: string | null; luc: string; roi_bien: number | null; r2: number | null; pha: string | null; chi_tb: number | null; so_ngay: number | null; muc_hut: number | null; chi_gan: number | null };
+export type Ket = { content_id: number; loai: 'creative' | 'camp'; id: number; chu: string; luc: string | null };
 export type NhomClone = { n: number; chi: number; lai: number; roi: number | null; lai_n: number };
 /** THƯ VIỆN CREATIVE (anh 29/10/2026 "xây dựng thư viện creative cho các film để sau này chia sẻ cho mọi người dùng"): mọi creative của KHO NHÀ theo phim — đã lên Ethopex
  *  (etp.creative, số chạy 14 ngày của camp nhà) + bản chưa lên trong etp.thu_vien (kể chuyện VideoExpress $0). Luôn đọc kho nhà, xem bằng tài khoản ai cũng thấy cùng thư viện. */
@@ -112,6 +113,9 @@ export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt —
   moRong: MoRong[];
   /** dòng sản xuất đang chạy theo phim (etp.dong_phim) — Cây camp hiện nhãn ◌ SX ở dòng phim (anh 04/11/2026 "giờ đéo biết vừa bấm tạo cho film nào") */
   dongChay: { content_id: number; id: number; loai: string; so_camp: number | null; buoc: string | null; cac_buoc?: { buoc: string; trang_thai: string }[]; trang_thai?: string; ly_do?: string | null; camp_id?: number | null; so_len?: number }[];
+  /** CREATIVE / CAMP BỊ KẸT theo phim (anh 07/11/2026 "Các creative, camp bị kẹt phải show lên tab camp cây để còn biết"): creative chờ chấm / chấm lỗi / cổng chấm chặn /
+   *  trong hàng chờ mà máy không tự lên (etp.cho_len_v.ly_do) · camp lỗi đồng bộ / Meta từ chối. Cây camp: một dòng mờ đỏ dưới phim, thẻ nổi liệt kê từng mục. Chỉ nhà. */
+  ket: Ket[];
   /** tab Tài nguyên: tài khoản QC · Page · pixel · tên miền (Ethopex) + máy thợ (hàng đợi etp.viec) */
   taiNguyen: { loai: string; id: number; external_id: string | null; ten: string | null; trang_thai: string | null; them: Record<string, unknown> }[];
   mayTho: { may: string; xong: number; loi: number; dang: number; cuoi: string | null; giay_tb: number | null }[];
@@ -363,7 +367,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       from (select *, rank() over (order by ad_account_id) r from etp.tai_khoan where nguoi_id = ${dangId} and not nha) t`)   // người trong đội: bộ = tài khoản QC (không có Page / múi giờ — Ethopex không trả)
       : run<{ gia_tri: Record<string, { ten: string; tk: number; ext: string; page: number | null; chi_phim_moi?: boolean; mui_gio?: string }> | null }>(sql`select gia_tri from xv_khoa_ngoai where ten = 'ethopex_bo_tk'`),
   ]);
-  const [pheuR, dcR, slR, tvR, tvCr, ttR, mrR, dcyR] = await Promise.all([
+  const [pheuR, dcR, slR, tvR, tvCr, ttR, mrR, dcyR, ketR] = await Promise.all([
     runNha<{ c: number; d: string; h: number; n: number; v: number; sh: number; sn: number; sv: number; sg: string }>(sql`select camp_id c, ngay::text d, hien h, nhap n, chuyen v, s_hien sh, s_nhap sn, s_chuyen sv, s_gt sg from etp.so_pheu where hien > 0 or s_hien > 0 or nhap > 0`).catch(() => []),
     runNha<{ creative_id: number; cham: DiemCham }>(sql`select creative_id, cham from etp.diem_cham`).catch(() => []),
     // bản luật dùng chung mọi tài khoản (máy luật chạy cùng luật, cùng ngưỡng cho team — de-xuat-ngoai.py); số kết quả là của máy nhà (anh 31/10/2026: tk Sơn không thấy Luật & cảnh báo)
@@ -381,7 +385,20 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       coalesce((select json_agg(json_build_object('buoc', b.buoc, 'trang_thai', b.trang_thai) order by b.thu_tu) from etp.dong_buoc b where b.dong_id = d.id), '[]'::json) cac_buoc
       , d.trang_thai, d.ly_do, d.camp_id, coalesce((select coalesce(jsonb_array_length(b.ket_qua->'camps'), case when b.ket_qua ? 'camp_id' then 1 end) from etp.dong_buoc b where b.dong_id = d.id and b.buoc = 'camp' and b.ket_qua is not null), 0)::int so_len from etp.dong_phim d where (d.trang_thai = 'chay' and not (exists (select 1 from etp.dong_buoc b where b.dong_id = d.id and b.trang_thai in ('dung', 'loi'))
           and (select max(greatest(b.nhip, b.ket_thuc, b.bat_dau)) from etp.dong_buoc b where b.dong_id = d.id) < now() - interval '24 hours'))
-        or (d.trang_thai in ('xong', 'dung', 'loi') and d.xong_luc > now() - interval '24 hours') order by d.id`).catch(() => [] as DuLieuEtp['dongChay']),   // dòng đã kết thúc giữ 24 giờ — không mất dấu (anh 04/11/2026) · #1528: đợt có bước dừng / lỗi mà 24 giờ không ai / máy nào đụng thì thôi treo đồng hồ ở dòng phim (tab Sản xuất vẫn giữ) · .catch trước đây bị chú thích nuốt
+        or (d.trang_thai in ('xong', 'dung', 'loi') and d.xong_luc > now() - interval '24 hours') order by d.id`).catch(() => [] as DuLieuEtp['dongChay']),
+    // KẸT (anh 07/11/2026): bốn nguồn một câu — creative chưa có camp mà (1) đang chờ chấm / chấm lỗi (etp.cham_hang) · (2) cổng chấm chặn (etp.cham_cong) · (3) máy không tự lên (etp.cho_len_v.ly_do);
+    // (4) camp lỗi đồng bộ / Meta từ chối (etp.camp.dong_bo = 'error' · giao = 'DISAPPROVED'). Chữ cắt 200 ký tự, thẻ nổi hiện đủ dòng.
+    runNha<Ket>(sql`select * from (
+        select r.content_id, 'creative' loai, r.creative_id id, left(case when h.trang_thai = 'loi' then 'chấm lỗi: ' || coalesce(h.loi, '?') else 'chờ chấm (' || coalesce(h.trang_thai, '') || ')' end, 200) chu, h.luc::text luc
+          from etp.cham_hang h join etp.creative r using (creative_id) where h.trang_thai in ('cho', 'dang', 'loi') and r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
+        union all
+        select r.content_id, 'creative', r.creative_id, left(case when g.cho_duyet then 'cổng chấm: chờ người duyệt — ' else 'cổng chấm chặn: ' end || coalesce(g.chan_boi, ''), 200), r.cap_nhat::text
+          from etp.cham_cong g join etp.creative r using (creative_id) where not g.duoc_len and r.tu_choi is null and r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
+        union all
+        select v.content_id, 'creative', v.creative_id, left('không tự lên: ' || v.ly_do, 200), v.cham_luc::text from etp.cho_len_v v where v.ly_do is not null
+        union all
+        select c.content_id, 'camp', c.camp_id, left(case when c.giao = 'DISAPPROVED' then 'Meta từ chối quảng cáo' else 'lỗi đồng bộ: ' || coalesce(c.loi, '?') end, 200), c.cap_nhat_etp::text
+          from etp.camp c where c.content_id > 0 and (c.dong_bo = 'error' or c.giao = 'DISAPPROVED') and coalesce(c.trang_thai, '') <> 'ARCHIVED') x order by content_id, loai, id`).catch(() => [] as Ket[]),   // dòng đã kết thúc giữ 24 giờ — không mất dấu (anh 04/11/2026) · #1528: đợt có bước dừng / lỗi mà 24 giờ không ai / máy nào đụng thì thôi treo đồng hồ ở dòng phim (tab Sản xuất vẫn giữ) · .catch trước đây bị chú thích nuốt
   ]);
   // gộp: bản thư viện đã lên Ethopex (creative_id) mang số chạy của creative đó; bản chưa lên đứng riêng
   const tvTheoCr = new Map(tvR.filter((v) => v.creative_id != null).map((v) => [n(v.creative_id), v]));
@@ -485,6 +502,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     dieu: /luật:\s*(.+?)(?: · duyệt:|$)/.exec(g.ly_do)?.[1]?.trim() ?? null, duyet: /duyệt:\s*(.+?)(?:\s+—\s*máy chạy)?$/.exec(g.ly_do)?.[1]?.trim() ?? null } : null; }
   return { nguoi: { ds: nguoiDs, dang: dangId, nha: nhaId, ngoai, doi }, luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, creatives: [...crMap.values()], phims, thuVien,
     dongChay: dcyR.map((r) => ({ ...r, content_id: n(r.content_id), id: n(r.id), so_camp: r.so_camp == null ? null : n(r.so_camp) })),
+    ket: ketR.map((r) => ({ ...r, content_id: n(r.content_id), id: n(r.id) })),
     moRong: mrR.map((r) => ({ ...r, content_id: n(r.content_id), n: n(r.n), k: n(r.k), san: n(r.san), can_sx: n(r.can_sx) })),
     thayThe: ttR.map((r) => ({ ...r, id: n(r.id), content_id: n(r.content_id), camp_cu: n(r.camp_cu), creative_id: r.creative_id == null ? null : n(r.creative_id), camp_moi: r.camp_moi == null ? null : n(r.camp_moi) })),
     pheu: pheuR.map((r) => ({ c: n(r.c), d: r.d, h: n(r.h), n: n(r.n), v: n(r.v), sh: n(r.sh), sn: n(r.sn), sv: n(r.sv), sg: n(r.sg) })), diemCham: Object.fromEntries(dcR.map((r) => [n(r.creative_id), r.cham])), soLuat: slR.map((r) => ({ ma: r.ma, luc: r.luc, ...r.so })),

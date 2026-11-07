@@ -107,6 +107,6 @@ const su = LT.su_kien.filter((e) => e.utc.slice(0, 10) > hom && e.utc.slice(0, 1
 const ungVien = [...dsTap().filter((t) => MAU_TU_CHAY.includes(t.mau) && !['sky-calendar', 'this-week'].includes(t.mau)).map((t) => ({ y: t.y_tuong, mau: t.mau, playlist: t.playlist_ma })),
   ...(sky ? [{ y: sky.ma, mau: 'sky-calendar', playlist: 'timing', han: { tu: thu2Toi, den: iso(Date.parse(`${thu2Toi}T00:00Z`) + 6 * 864e5), tuan: thu2Toi } }] : []), ...su];
 let chon = null; for (const pl of thuTuPlaylist(so.playlist, thu)) { chon = chonTap(pl, ungVien, daLam, bo, hom); if (chon) break; }
-if (xem) { console.log(`hôm nay ${hom} thứ ${thu} · chưa đăng ${conCho}/${tran} · ${ungVien.length} ứng viên · tập kế: ${chon?.y ?? '(hết)'} [${chon?.playlist ?? ''}] ${chon?.han ? JSON.stringify(chon.han) : ''}`); process.exit(0); }
+if (xem) { console.log(`hôm nay ${hom} (lịch ${thu}: 1 = Thứ Hai … 7 = Chủ nhật) · chưa đăng ${conCho}/${tran} · ${ungVien.length} ứng viên · tập kế: ${chon?.y ?? '(hết)'} [${chon?.playlist ?? ''}] ${chon?.han ? JSON.stringify(chon.han) : ''}`); process.exit(0); }
 if (!chon) { tele('⚠ Astrolas: hết tập trong kho máy viết — cần thêm người / mốc / chuyện'); process.exit(0); }
 giu(() => { dauDangLam(KENH, chon.y, { id: chon.y, luc: new Date().toISOString() }); ketThuc(chon.y, lam(chon.y, chon.han), `tập mới [${chon.playlist}]`); });

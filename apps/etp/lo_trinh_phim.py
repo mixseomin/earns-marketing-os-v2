@@ -87,14 +87,36 @@ def chon_phim_moi(q, ch, da):
     if moi: ch["phim"] = [int(x) for x in ch.get("phim") or []] + moi; ch["phim_them"] = them
     return moi
 
+# ẢNH TĨNH ƯU TIÊN (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh"): phim ĐANG có camp chạy mà chưa có creative ảnh tĩnh, chưa có dòng AT (2 ngày),
+# không trong sổ cấm 18+ → xếp dòng AT (máy dòng phim chạy anh-tinh.py, ~160–290₫ giọng / phim). Giữ tối đa AT_HANG dòng AT chưa xong để lượt sau
+# lấy phim mới nhất; phim nhiều camp đang chạy lên trước. Bật bằng etp.cau_hinh 'at_uu_tien' {"bat": true} — tắt thì không xếp gì (tiền giọng > 5.000₫/đợt cần anh bật).
+AT_HANG = 6
+def xep_at(q):
+    ch = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'at_uu_tien'), '{}')") or "{}")
+    if not ch.get("bat"): return 0
+    con = int(q("select count(*) from etp.dong_phim where loai = 'AT' and trang_thai = 'chay'") or 0)
+    if con >= AT_HANG: return 0
+    r = q(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp)
+        select c.content_id, max(f.ten), max(f.the_loai), 'AT', 'máy: ảnh tĩnh ưu tiên (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh") — phim đang chạy chưa có ảnh tĩnh', 1
+        from etp.camp_dang_chay c left join etp.phim f using (content_id)
+        where c.content_id is not null
+          and not exists (select 1 from etp.creative r where r.content_id = c.content_id and r.dang = 'ảnh tĩnh')
+          and not exists (select 1 from etp.dong_phim d where d.content_id = c.content_id and d.loai = 'AT' and (d.trang_thai = 'chay' or d.tao_luc > now() - interval '2 days'))
+          and not coalesce((select k.gia_tri ? c.content_id::text from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam'), false)
+        group by c.content_id order by count(*) desc limit {AT_HANG - con} on conflict do nothing returning id""")
+    return len([l for l in (r or "").splitlines() if l.strip()])
+
+AT_KQ = [0]
 def chay(q):
+    try: AT_KQ[0] = xep_at(q)   # đầu lượt: không phụ thuộc phim lộ trình
+    except Exception as e: AT_KQ[0] = f"lỗi: {e}"[:200]
     ch = cau_hinh(q); ds = [int(x) for x in ch.get("phim") or []]
     moi = chon_phim_moi(q, ch, ds)
     if moi:
         ds += moi
         q(f"""update etp.cau_hinh set gia_tri = $J${json.dumps(ch, ensure_ascii=False)}$J$::jsonb where khoa = 'lo_trinh_tu_dong'""")
         q(f"""insert into etp.nhat_ky (luc, viec, ok, luat, ai) values (now(), 'lo_trinh', true, 'thêm {len(moi)} phim mới vào lộ trình tự động: {" ".join(map(str, moi))}', 'máy lộ trình tự động (anh 07/11/2026: tập trung phim mới)')""")
-    if not ds: return {}
+    if not ds: return {"at_uu_tien": AT_KQ[0]}
     try: cu = json.loads(q("select gia_tri::text from etp.cau_hinh where khoa = 'lo_trinh_tt'") or "{}")
     except Exception: cu = {}
     xep = 0
@@ -115,7 +137,7 @@ def chay(q):
             q(f"""insert into etp.nhat_ky (luc, viec, ok, luat, ai) values (now(), 'lo_trinh', true, 'phim {cid} · {chu.replace("'", "''")}', 'máy lộ trình tự động')""")
         cu[str(cid)] = {"ma": ma, "chu": chu, "ke": ke, "dang": dang}
     q(f"""insert into etp.cau_hinh (khoa, gia_tri) values ('lo_trinh_tt', $J${json.dumps(cu, ensure_ascii=False)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri""")
-    return {"lo_trinh_phim": len(ds), "lo_trinh_xep": xep}
+    return {"lo_trinh_phim": len(ds), "lo_trinh_xep": xep, "at_uu_tien": AT_KQ[0]}
 
 if __name__ == "__main__":
     goc = {"phim": {}, "mo": {}, "dang": {}, "chay": None, "hong": {}, "dong_24h": [], "camp_24h": 0, "co_hoi": False}

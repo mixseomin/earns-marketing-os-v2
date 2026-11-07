@@ -530,7 +530,7 @@ def doc_dong():
                (select json_object_agg(b.buoc, json_build_object('trang_thai', b.trang_thai, 'ket_qua', b.ket_qua, 'lan', b.lan, 'fix', b.fix, 'huy', b.huy,
                        'tuoi', extract(epoch from now() - coalesce(b.nhip, b.bat_dau))::int)) from etp.dong_buoc b where b.dong_id = p.id) buoc
                from etp.dong_phim p where p.trang_thai = 'chay' or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.fix)
-               order by (p.ai like 'máy: lộ trình tự động thí điểm%') desc, p.id) x""")   # phim thí điểm lấy lượt cắt trước (TRAN_CAT), đừng đứng sau cả hàng
+               order by (p.loai = 'AT') desc, (p.ai like 'máy: lộ trình tự động thí điểm%') desc, p.id) x""")   # ảnh tĩnh lấy lượt nặng trước (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh")   # phim thí điểm lấy lượt cắt trước (TRAN_CAT), đừng đứng sau cả hàng
     return json.loads(j or "[]")
 
 # HẾT NGUYÊN LIỆU CẮT THÌ CHUYỂN KỂ CHUYỆN (anh 04/11/2026 "vì sao vẫn còn film ko thể sx và cách khắc phục triệt để"): cắt / soát / chấm hết đường

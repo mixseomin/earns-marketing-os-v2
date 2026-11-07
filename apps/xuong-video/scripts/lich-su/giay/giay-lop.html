@@ -117,6 +117,8 @@ function veMuc(c, t) { const ds = C.muc || [], n = ds.length; if (!n) return; co
 window.__seek = (t) => { MAT = []; let k = DS.findIndex((s) => t < s.kt); if (k < 0) k = DS.length - 1; const s = DS[k], c = X; veMot(c, k, t);
   // chuyển khi đổi nhóm cảnh (bối cảnh / loại); hai bản đồ liền nhau thì camera bay, không cắt
   const g = s.nhom, q = (t - DS[g].bd) / 0.85, tr = DS[g - 1]; if (g > 0 && q < 1 && !(tr.c.loai === 'ban_do' && s.c.loai === 'ban_do')) { if (snapK !== g) { SX.setTransform(1, 0, 0, 1, 0, 0); veMot(SX, g - 1, DS[g].bd - 0.01); snapK = g; } chuyen(c, g, kep(q)); }
+  // NHỊP (anh 07/11/2026: cao trào, nhấn nhá, khoảng lặng như film): câu đỉnh rung + phóng + chớp lúc giọng vào; câu lặng tối và nhạt dần; quãng nghỉ dài sập gần đen rồi mở lại
+  const dd = t - s.a; if (s.nhip === 'dinh' && dd >= 0 && dd < 0.9) { const k0 = 1 - dd / 0.9, am = 18 * k0 * k0, zp = 1 + 0.06 * k0; c.drawImage(man, W / 2 * (1 - zp) + Math.sin(dd * 61) * am, H / 2 * (1 - zp) + Math.cos(dd * 47) * am, W * zp, H * zp); }
   // nhãn: năm, số, dấu, tên chương, phụ đề, hạt giấy + viền hộp
   const nm = s.c.nam; if (nm != null) dai(c, String(nm), 150, 96, 56, '#1d150c', '#f6d44d', -0.03);
   if (s.c.so) { const q2 = kep((t - s.bd - 0.25) / 0.35), k2 = nay(q2); const oSo = q2 && t < s.bd + 4 ? choMat([[W - 330, 300], [330, 300], [W / 2, 300], [W - 330, 620], [330, 620]], 620, 290) : null; if (oSo) { ghiChu('số', t, oSo[0], oSo[1], 620, 290); c.save(); c.translate(oSo[0], oSo[1]); c.rotate(0.03); c.scale(k2, k2); dai(c, s.c.so.chu, 0, 0, 104, '#f6d44d'); dai(c, s.c.so.nhan.toUpperCase(), 0, 118, 40, '#b3261e', '#fff'); c.restore(); } }
@@ -124,6 +126,10 @@ window.__seek = (t) => { MAT = []; let k = DS.findIndex((s) => t < s.kt); if (k 
   if (s.chuong_moi) { const v = t - s.bd, al = kep((v - 0.5) / 0.3) * kep((4.4 - v) / 0.4); if (al > 0) { ghiChu('tên chương', t, W / 2, 128, 1100, 200); c.save(); c.globalAlpha = al; const x = W / 2 + (1 - out(kep((v - 0.5) / 0.4))) * -500; dai(c, `CHAPTER ${s.chuong_moi.so}`, x, 78, 36, '#b3261e', '#fff'); dai(c, s.chuong_moi.ten.toUpperCase(), x, 166, 76, '#f4ead2'); c.restore(); } }
   c.save(); c.globalCompositeOperation = 'multiply'; c.globalAlpha = 0.2; c.drawImage(giay, 0, 0, W, H); c.restore();
   const v = c.createRadialGradient(W / 2, H / 2, 560, W / 2, H / 2, 1200); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(15,8,2,.5)'); c.fillStyle = v; c.fillRect(0, 0, W, H);
+  if (s.cang >= 8) { const vd = c.createRadialGradient(W / 2, H / 2, 480, W / 2, H / 2, 1150); vd.addColorStop(0, 'rgba(120,10,0,0)'); vd.addColorStop(1, `rgba(120,10,0,${(s.cang - 7) * 0.13})`); c.fillStyle = vd; c.fillRect(0, 0, W, H); }
+  if (s.nhip === 'lang') { const al = kep((t - s.bd) / 0.9) * kep((s.kt - t) / 0.5); c.save(); c.globalCompositeOperation = 'saturation'; c.globalAlpha = al * 0.55; c.fillStyle = '#888'; c.fillRect(0, 0, W, H); c.restore(); c.fillStyle = `rgba(8,5,2,${al * 0.3})`; c.fillRect(0, 0, W, H); }
+  if (s.nhip === 'dinh' && dd >= 0 && dd < 0.2) { c.fillStyle = `rgba(255,246,225,${0.42 * (1 - dd / 0.2)})`; c.fillRect(0, 0, W, H); }
+  for (const q of [s, DS[k + 1]]) if (q?.nghi >= 1.5 && t >= q.a - q.nghi && t < q.a) { const pq = (t - (q.a - q.nghi)) / q.nghi; c.fillStyle = `rgba(4,2,1,${0.82 * Math.sin(Math.PI * pq) ** 0.6})`; c.fillRect(0, 0, W, H); }
   veMuc(c, t);
   const p = C.phu.find((w) => t >= w.a && t < w.b); if (p) chu(c, p.chu, W / 2, H - 62, 44, '#fff', '#120c06', 'Montserrat'); };
 </script></body></html>

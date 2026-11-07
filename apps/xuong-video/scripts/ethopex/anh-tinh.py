@@ -10,7 +10,7 @@ MỘT lệnh lo trọn, mỗi phim:
   3. giọng ElevenLabs v3 trên box3 (scripts/lich-su/giong.mts, khoá FAL ở box3; ~60 ký tự ≈ $0,006 ≈ 160₫/phim, dùng lại khi cùng câu)
   4. cổng chữ trên video (kiem-thoai.py) → thư viện etp (thu-vien-them.mts, dạng "ảnh tĩnh", nguồn anh_tinh) → creative (thu-vien-len.py)
 Từ đó nhịp ethopex (apps/cty/worker/ethopex.mjs) thấy creative ảnh tĩnh chấm Sạch của phim đang chạy → lên camp $1, giờ chạy theo lịch chung (nhan-ban.lich_len).
-Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--xem] [--giong ky_di|gao|cam_xuc|hao_hung|thuong|theo-phim]
+Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phim] [--xem] [--giong ky_di|gao|cam_xuc|hao_hung|thuong|theo-phim]
   giọng mặc định XOAY giữa 5 kiểu (kể cả "thuong" = như bản gốc), dấu kiểu ghi vào etp.diem_cham.cham.voice.giong để đo
   không id = tự chọn N phim (mặc định 10) · --xem = chỉ dựng + tờ khung (~/.cache/ethopex/anh-tinh/to-<giờ>.jpg), không nạp thư viện / tạo creative"""
 import hashlib, json, os, random, re, subprocess, sys, time
@@ -41,9 +41,13 @@ KIEU_GIONG = {
 THE_LOAI_GIONG = {"fantasy": "ky_di", "soi": "ky_di", "vien_tuong": "ky_di", "he_thong": "ky_di",
                   "vo_danh": "gao", "ty_phu": "gao", "mafia": "gao", "doi_thuong": "gao",
                   "hoi_han": "cam_xuc", "me_con": "cam_xuc", "tinh_cam": "hao_hung", "hoc_duong": "hao_hung", "co_trang": "hao_hung"}
+UNG_VIEN = 12   # số khung ứng viên gửi AI xếp hạng
+# BẢN MỚI (08/11/2026: AI chọn khung + tên từ poster + HD 8 Mb/s) chỉ chạy khi có --moi — anh "làm trước 1 cái để xem có ổn ko"; duyệt xong mới đổi mặc định
+MOI = "--moi" in sys.argv
 LOC = "fps=2/3"   # khung ứng viên: mỗi 1,5 giây (từ giây 3) — một chuỗi lọc cho cả khung nhỏ lẫn khung gốc
 FONT = "/System/Library/Fonts/Supplemental/Georgia Bold Italic.ttf"
-MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "3M", "-maxrate", "4500k", "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100"]   # như cat-canh.MA_HOA (Mac)
+MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "8M" if MOI else "3M", "-maxrate", "10M" if MOI else "4500k",   # HD (anh 08/11/2026 "nhớ là dạng HD"): 1080x1920, 8 Mb/s (trước 3M)
+           "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100"]   # như cat-canh.MA_HOA (Mac)
 
 def sql(q):
     return subprocess.run(["ssh", B, f"{ENV}; psql \"$DATABASE_URL\" -tAq"], input=q, capture_output=True, text=True, check=True).stdout.strip()
@@ -147,12 +151,69 @@ def khung(cid, url, tm):
             j = json.loads(l); d, m, ch = diem(j["anh"], j.get("mat"), j.get("khung") or [])
             if d: tap, so = re.match(r".*/(tap\d+)_(\d+)\.jpg", j["anh"]).groups(); ra.append((d, tap, int(so), m, j["anh"], ch))
     if not ra: raise RuntimeError(f"không khung nào đạt (mặt to nét, chữ không đè mặt) trong {len(fs)} khung")
-    d, tap, g, m, nho, ch = max(ra, key=lambda r: r[0])
-    return {"tap": tap, "so": g, "mat": m, "diem": round(d, 3), "nho": nho, "so_khung": len(fs), "dat": len(ra), "xoa": ch + dau_tinh(kd, tap)}
+    # ỨNG VIÊN ĐA DẠNG (anh 08/11/2026 "chọn các góc, khung hình ấn tượng nhất, đẹp nhất"): điểm máy cao → thấp, cách nhau ≥ 4 khung (6 giây) trong cùng tập,
+    # tối đa UNG_VIEN → AI xếp hạng (xep-khung.py, box3) → lấy N khung đầu cho N bản creative
+    uv = []
+    for d, tap, g, m, nho, ch in sorted(ra, key=lambda r: -r[0]):
+        if any(u["tap"] == tap and abs(u["so"] - g) < 4 for u in uv): continue
+        uv.append({"tap": tap, "so": g, "mat": m, "diem": round(d, 3), "nho": nho, "so_khung": len(fs), "dat": len(ra), "xoa": ch + dau_tinh(kd, tap)})
+        if len(uv) >= UNG_VIEN: break
+    return uv
 
-def anh(cid, ten, k, tm):
+def xep_ai(ten, uv):
+    """AI xếp hạng ứng viên theo độ ấn tượng / đẹp (box3 xep-khung.py, ckey) → (danh sách theo thứ tự, lý do, ₫). Lỗi → giữ thứ tự điểm máy."""
+    import base64, io
+    anh = []
+    for u in uv:
+        b = io.BytesIO(); Image.open(u["nho"]).convert("RGB").save(b, "JPEG", quality=80); anh.append("data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode())
+    r = subprocess.run(["ssh", B, f"{ENV}; python3 apps/xuong-video/scripts/ethopex/xep-khung.py"], input=json.dumps({"ten": ten, "anh": anh}), capture_output=True, text=True, timeout=300)
+    try: j = json.loads(r.stdout.strip().splitlines()[-1])
+    except Exception: j = {"thu_tu": [], "ly_do": (r.stderr or r.stdout)[-200:], "vnd": 0}
+    tt = j.get("thu_tu") or list(range(len(uv)))
+    return [uv[i] for i in tt], j.get("ly_do", ""), int(j.get("vnd") or 0)
+
+def ten_poster(ten, poster, ra):
+    """TÊN PHIM TÁCH TỪ POSTER (anh 08/11/2026 "tách phần tên phim từ poster ra và gắn lên creative"): Vision đọc chữ poster → các dòng chữ khớp từ
+    của tên phim → cắt vùng đó, chỉ giữ nét chữ (màu nhiều trong lõi dòng chữ, ít ở viền vùng cắt), thêm viền tối để đọc rõ trên mọi khung.
+    Không có poster / không dòng nào khớp ≥ 60% từ của tên → None (anh() quay về chữ vàng)."""
+    if not os.path.exists(poster): return None
+    from collections import Counter
+    j = json.loads(subprocess.run([may_doc(), poster], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
+    tu = lambda x: set(re.findall(r"[a-z0-9áéíóúñü]+", x.lower()))
+    can = tu(ten); hop = [k[1:] for k in j.get("khung") or [] if tu(k[0]) and len(tu(k[0]) & can) / len(tu(k[0])) >= 0.6]
+    if not hop or len(set().union(*[tu(k[0]) for k in j.get("khung") or [] if k[1:] in hop]) & can) < 0.6 * len(can): return None
+    im = Image.open(poster).convert("RGB"); X, Y = im.size
+    x0 = max(0, int(min(b[0] for b in hop) * X) - 12); y0 = max(0, int(min(b[1] for b in hop) * Y) - 12)
+    x1 = min(X, int(max(b[0] + b[2] for b in hop) * X) + 12); y1 = min(Y, int(max(b[1] + b[3] for b in hop) * Y) + 12)
+    c = im.crop((x0, y0, x1, y1)); w, h = c.size; px = list(c.getdata()); q = lambda p: (p[0] // 32, p[1] // 32, p[2] // 32)
+    loi, vien, trong = Counter(), Counter(), set()
+    for bx, by, bw, bh in hop:
+        for yy in range(int(by * Y) - y0 - 6, int((by + bh) * Y) - y0 + 6):
+            for xx in range(int(bx * X) - x0 - 6, int((bx + bw) * X) - x0 + 6): trong.add((xx, yy))
+        for yy in range(int(by * Y) - y0 + int(bh * Y * .3), int(by * Y) - y0 + int(bh * Y * .7)):
+            for xx in range(max(0, int(bx * X) - x0), min(w, int((bx + bw) * X) - x0), 2):
+                if 0 <= yy < h: loi[q(px[yy * w + xx])] += 1
+    for yy in range(h):
+        for xx in (range(w) if yy < 8 or yy >= h - 8 else (*range(8), *range(w - 8, w))): vien[q(px[yy * w + xx])] += 1
+    nl, nv = sum(loi.values()) or 1, sum(vien.values()) or 1
+    chon = [k for k, v in sorted(((k, loi[k] / nl - 2 * vien.get(k, 0) / nv) for k in loi), key=lambda x: -x[1])[:6] if v > 0.01]
+    if not chon: return None
+    tong = {k: [0, 0, 0, 0] for k in chon}
+    for p in px:
+        t = tong.get(q(p))
+        if t: t[0] += p[0]; t[1] += p[1]; t[2] += p[2]; t[3] += 1
+    mau = [(t[0] / t[3], t[1] / t[3], t[2] / t[3]) for t in tong.values() if t[3]]
+    a = [0 if (i % w, i // w) not in trong else max(0, min(255, int(255 * (1 - (min(((p[0]-m[0])**2+(p[1]-m[1])**2+(p[2]-m[2])**2) ** .5 for m in mau) - 40) / 40))))
+         for i, p in enumerate(px)]
+    m = Image.new("L", (w, h)); m.putdata(a); m = m.filter(ImageFilter.MedianFilter(3))
+    if sum(1 for v in m.getdata() if v > 128) < 0.05 * w * h: return None   # gần như không còn nét → tách hỏng
+    out = c.convert("RGBA"); out.putalpha(m)
+    nen = Image.new("RGBA", out.size, (0, 0, 0, 0)); nen.putalpha(m.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(230, int(v * 1.3))))
+    Image.alpha_composite(nen, out).save(ra); return ra
+
+def anh(cid, ten, k, tm, ban=0):
     """khung gốc → nền 1080x1920 (nền.png, sẽ phóng chậm) + lớp tên phim (chu.png, đứng yên) đặt dưới mặt"""
-    goc = os.path.join(tm, "goc.png")
+    goc = os.path.join(tm, f"goc-{ban}.png")
     # khung gốc lấy bằng ĐÚNG chuỗi lọc đã trích khung nhỏ + số thứ tự khung (05/11/2026: tính giây tay lệch sang cảnh khác — chấm mặt cận, dựng ra cảnh đám đông)
     sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", os.path.join(tm, k["tap"] + ".mp4"), "-vf", f"{LOC},select=eq(n\\,{k['so'] - 1})", "-frames:v", "1", goc)
     if not os.path.exists(goc): raise RuntimeError(f"không lấy được khung gốc {k['tap']} #{k['so']}")
@@ -164,7 +225,12 @@ def anh(cid, ten, k, tm):
     im = im.crop((x0, y0, x0 + W, y0 + H)).filter(ImageFilter.UnsharpMask(radius=2, percent=60, threshold=2))
     toi = Image.new("L", (1, 256)); toi.putdata([0 if i < 140 else min(190, (i - 140) * 2) for i in range(256)])   # dải tối nửa dưới cho chữ đọc rõ
     im = Image.composite(Image.new("RGB", (W, H)), im, toi.resize((W, H)))
-    im.save(os.path.join(tm, "nen.png"))
+    nen = os.path.join(tm, f"nen-{ban}.png"); im.save(nen); mat_day = (k["mat"][1] + k["mat"][3]) * H
+    tp = None if not MOI else ten_poster(ten, os.path.join(tm, "poster.jpg"), os.path.join(tm, "ten-poster.png")) if ban == 0 or not os.path.exists(os.path.join(tm, "ten-poster.png")) else os.path.join(tm, "ten-poster.png")
+    if tp:   # tên phim đúng kiểu chữ poster: rộng ≤ W − 120, cao ≤ 22% màn, đặt dưới mặt, chừa ~20% đáy
+        t_ = Image.open(tp); s_ = min((W - 120) / t_.width, H * 0.22 / t_.height); t_ = t_.resize((round(t_.width * s_), round(t_.height * s_)), Image.LANCZOS)
+        y = int(min(max(H * 0.66 - t_.height / 2, mat_day + 60), H * 0.80 - t_.height)); lop = Image.new("RGBA", (W, H)); lop.paste(t_, ((W - t_.width) // 2, y), t_)
+        k["ten_poster"] = True; lop.save(os.path.join(tm, f"chu-{ban}.png")); return nen, os.path.join(tm, f"chu-{ban}.png")
     t, c = ten.upper() if len(ten) <= 18 else ten, 120
     while True:
         f = ImageFont.truetype(FONT, c); dong, cur = [], ""
@@ -175,7 +241,7 @@ def anh(cid, ten, k, tm):
         dong.append(cur)
         if len(dong) <= 3 or c <= 64: break
         c -= 8
-    cao = int(c * 1.12) * len(dong); mat_day = (k["mat"][1] + k["mat"][3]) * H
+    cao = int(c * 1.12) * len(dong)
     y = int(min(max(H * 0.66 - cao / 2, mat_day + 60), H * 0.80 - cao))   # dưới mặt; chừa ~20% đáy cho khung ứng dụng (tên trang, nút)
     lop = Image.new("RGBA", (W, H)); bong = Image.new("RGBA", (W, H)); d, db = ImageDraw.Draw(lop), ImageDraw.Draw(bong)
     mask = Image.new("L", (W, H)); dm = ImageDraw.Draw(mask)
@@ -185,8 +251,8 @@ def anh(cid, ten, k, tm):
         d.text((xx, yy), x, font=f, fill=(0, 0, 0, 0), stroke_width=7, stroke_fill=(40, 20, 0, 255))
     vang = Image.new("RGBA", (1, H)); vang.putdata([(255, 236 - int(60 * max(0, min(1, (r - y) / max(1, cao)))), 150 - int(110 * max(0, min(1, (r - y) / max(1, cao)))), 255) for r in range(H)])
     lop.paste(vang.resize((W, H)), (0, 0), mask)
-    Image.alpha_composite(bong.filter(ImageFilter.GaussianBlur(8)), lop).save(os.path.join(tm, "chu.png"))
-    return os.path.join(tm, "nen.png"), os.path.join(tm, "chu.png")
+    Image.alpha_composite(bong.filter(ImageFilter.GaussianBlur(8)), lop).save(os.path.join(tm, f"chu-{ban}.png"))
+    return nen, os.path.join(tm, f"chu-{ban}.png")
 
 def xoay_giong(ds, yeu_cau):
     """kiểu giọng cho từng phim → {content_id: kiểu}. Anh 05/11/2026: "khi ren nếu ko yêu cầu thì xoay giữa các giọng. Kể cả giọng như bản gốc là 1 loại".
@@ -233,25 +299,35 @@ def dung(nen, chu, mp3, ra):
     if r.returncode != 0: raise RuntimeError(f"ffmpeg: {r.stderr[-300:]}")
     return round(L, 1)
 
-def mot(p, xem, kieu):
+def mot(p, xem, kieu, ban=1):
+    """một phim → `ban` creative (anh 08/11/2026 "3 camp mỗi loại"): mỗi bản một khung khác (AI xếp hạng), mẫu câu giọng xoay vòng → danh sách kq"""
     cid, lang = int(p["content_id"]), "es" if str(p.get("locale")).startswith("es") else "en"; ten = ten_sach(p["ten"])
     tm = os.path.join(C, str(cid)); os.makedirs(tm, exist_ok=True)
     try:
-        so_mau = random.randrange(len(CAU[lang]))   # bốc ngẫu nhiên mẫu câu giọng (anh 06/11/2026)
-        k = khung(cid, p["url"], tm); nen, chu = anh(cid, ten, k, tm); mp3, vnd, kieu = giong(cid, lang, ten, kieu, tm, so_mau)
-        out = os.path.join(tm, f"anh-tinh-{cid}.mp4"); giay = dung(nen, chu, mp3, out)
-        r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay))   # cổng chữ trên video (tên phim) — cùng cổng mọi creative
-        if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
-        kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "giay": giay, "vnd": vnd, "giong": kieu, "mau": so_mau, **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
-        if xem: return kq
-        xa = f"/var/tmp/anh-tinh/{cid}"; sh("ssh", B, f"mkdir -p {xa}"); sh("rsync", "-a", out, f"{B}:{xa}/", han=900)
-        ghi = f"ảnh tĩnh · giọng {kieu} · mẫu câu {so_mau + 1} ({p.get('the_loai') or '?'}): {k['tap']} khung #{k['so']} (mỗi 1,5 giây từ giây 3) · điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt)"
-        r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={vnd} --ghi='{ghi}'", han=600)
-        if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
-        kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)
-        return kq
+        uv = khung(cid, p["url"], tm); uv, ly_ai, vnd_ai = xep_ai(ten, uv) if MOI and len(uv) > 1 else (uv, "", 0)
     except Exception as e:
-        return {"content_id": cid, "ten": ten, "loi": str(e)[-300:]}
+        return [{"content_id": cid, "ten": ten, "loi": str(e)[-300:]}]
+    mau0 = random.randrange(len(CAU[lang])); ra = []
+    for b, k in enumerate(uv[:ban]):
+        try:
+            so_mau = (mau0 + b) % len(CAU[lang])   # bốc ngẫu nhiên mẫu đầu, các bản sau xoay vòng (anh 06/11/2026)
+            nen, chu = anh(cid, ten, k, tm, b); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu, tm, so_mau)
+            out = os.path.join(tm, f"anh-tinh-{cid}-{b + 1}.mp4"); giay = dung(nen, chu, mp3, out)
+            r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay))   # cổng chữ trên video (tên phim) — cùng cổng mọi creative
+            if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
+            kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "ban": b + 1, "giay": giay, "vnd": vnd + (vnd_ai if b == 0 else 0), "giong": kieu_, "mau": so_mau,
+                  "ten_poster": bool(k.get("ten_poster")), "ai": ly_ai[:200] if b == 0 else "", **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
+            if not xem:
+                xa = f"/var/tmp/anh-tinh/{cid}"; sh("ssh", B, f"mkdir -p {xa}"); sh("rsync", "-a", out, f"{B}:{xa}/", han=900)
+                ghi = (f"ảnh tĩnh bản {b + 1}/{ban} · giọng {kieu_} · mẫu câu {so_mau + 1} ({p.get('the_loai') or '?'}): {k['tap']} khung #{k['so']} (mỗi 1,5 giây từ giây 3) · "
+                       f"điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt) · AI xếp hạng {b + 1} · tên {'từ poster' if k.get('ten_poster') else 'chữ vàng'}")
+                r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={kq['vnd']} --ghi='{ghi}'", han=600)
+                if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
+                kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)
+            ra.append(kq)
+        except Exception as e:
+            ra.append({"content_id": cid, "ten": ten, "ban": b + 1, "loi": str(e)[-300:]})
+    return ra
 
 def to_khung(kq, ra):
     """tờ khung: mỗi phim một ô (khung đã chọn + tên) để người xem soát trước"""
@@ -259,7 +335,7 @@ def to_khung(kq, ra):
     if not ok: return None
     o = 270; to = Image.new("RGB", (o * min(5, len(ok)), int(o * 16 / 9) * ((len(ok) + 4) // 5)), "black")
     for i, x in enumerate(ok):
-        f = os.path.join(C, str(x["content_id"]), "xem.jpg"); sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", x["file"], "-frames:v", "1", "-vf", f"scale={o}:-2", f)
+        f = os.path.join(C, str(x["content_id"]), f"xem-{x.get('ban', 1)}.jpg"); sh("ffmpeg", "-v", "error", "-y", "-ss", "3", "-i", x["file"], "-frames:v", "1", "-vf", f"scale={o}:-2", f)
         to.paste(Image.open(f), ((i % 5) * o, (i // 5) * int(o * 16 / 9)))
     to.save(ra, quality=88); return ra
 
@@ -268,12 +344,13 @@ if __name__ == "__main__":
     so = int(a[a.index("--so") + 1]) if "--so" in a else 10
     yc = a[a.index("--giong") + 1] if "--giong" in a else None
     if yc and yc != "theo-phim" and yc not in KIEU_GIONG: sys.exit(f"--giong phải là một trong: {', '.join(KIEU_GIONG)} · theo-phim")
-    ids = [int(x) for x in a if x.isdigit() and (a.index(x) == 0 or a[a.index(x) - 1] != "--so")]
+    ids = [int(x) for i, x in enumerate(a) if x.isdigit() and (i == 0 or a[i - 1] not in ("--so", "--ban"))]
     ds = phim(ids) if ids else chon(so)
     if not ds: sys.exit("không có phim nào hợp (mới bắt đầu lãi, chưa có ảnh tĩnh)")
     print(f"{len(ds)} phim: " + " · ".join(f"{x['content_id']} {ten_sach(x['ten'])[:30]}" for x in ds), flush=True)
     gk = xoay_giong(ds, yc); print("giọng: " + " · ".join(f"{c} {k}" for c, k in gk.items()), flush=True)
-    with ThreadPoolExecutor(3) as ex: kq = list(ex.map(lambda p: mot(p, xem, gk[int(p["content_id"])]), ds))
+    ban = int(a[a.index("--ban") + 1]) if "--ban" in a else 1
+    with ThreadPoolExecutor(3) as ex: kq = [x for r in ex.map(lambda p: mot(p, xem, gk[int(p["content_id"])], ban), ds) for x in r]
     for x in kq: print(json.dumps(x, ensure_ascii=False), flush=True)
     print("tờ khung:", to_khung(kq, os.path.join(C, f"to-{time.strftime('%d%m%H%M')}.jpg")))
     print(f"giọng: {sum(x.get('vnd', 0) for x in kq)}₫")

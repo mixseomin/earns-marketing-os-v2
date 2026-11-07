@@ -1,5 +1,6 @@
 """LỘ TRÌNH TỰ ĐỘNG TỪNG PHIM — THÍ ĐIỂM (anh 07/11/2026 "làm đầy đủ với riêng phim này Dragonborn để follow và update đầy đủ trước khi chính thức chạy trên toàn hệ thống").
-dong-bo.py gọi chay(q) mỗi lượt (10 phút), CHỈ cho phim trong etp.cau_hinh 'lo_trinh_tu_dong' {"phim": [...], "tran_camp_ngay": 4, "bat_dau": "..."}.
+dong-bo.py gọi chay(q) mỗi lượt (10 phút) cho phim trong etp.cau_hinh 'lo_trinh_tu_dong' {"phim": [...], "tran_camp_ngay": 4, "bat_dau": "...", "phim_moi_ngay": 12, "phim_them": {cid: ngày}}
+— "phim_moi_ngay" > 0 thì mỗi ngày máy tự thêm bấy nhiêu phim chưa có camp nhà (chon_phim_moi) vào danh sách (anh 07/11/2026, roadmap E13 bước 3).
 Mỗi phim một BƯỚC KẾ, ghi etp.cau_hinh 'lo_trinh_tt' {phim: {ma, chu, ke, dang, luc}} cho thẻ phim; đổi bước thì ghi Log (etp.nhat_ky viec 'lo_trinh'), xếp dòng thì báo Telegram (etp.canh_bao).
 Không tự tạo camp: chỉ xếp dòng etp.dong_phim, máy dòng phim iMac làm tiếp qua đủ cổng (soát · chấm · cong.kiem · nhan-ban.lich_len). Tắt / tăng bậc / G10 vẫn do máy luật.
 Thứ tự: phim đã cất → dừng · vượt sức chứa → giữ · có camp cơ hội → mở rộng theo etp.mo_rong, ĐỒNG THỜI dạng còn thiếu → sản xuất song song · còn lại để cat_phim kết luận."""
@@ -55,8 +56,37 @@ def xet(s, tran):
     if int((dang.get(TEN_CT) or {}).get("chi") or 0) < SO_MOI_DANG: return "het_may", "Đã thử hết dạng máy làm được, CT chưa có máy tự sản xuất; luật cất sẽ kết luận", 0, []
     return "het_may", "Đã thử đủ dạng, luật cất sẽ kết luận", 0, []
 
+def chon_phim_moi(q, ch, da):
+    """MỞ CHO MỌI PHIM CHƯA CÓ CAMP NHÀ (anh 07/11/2026 "Tập trung các phim mới", roadmap E13 bước 3): mỗi ngày VN thêm tới cau_hinh.phim_moi_ngay phim vào lộ trình.
+    Thứ tự: đội đã chạy LÃI (tiêu ≥ $10, thu > chi) → chưa ai chạy → đội chạy chưa đủ số (< $10). Bỏ: đội lỗ ≥ $10, phim cất, ngoài Âu-Mỹ, phim cấm 18+,
+    phim đang có dòng / có dòng trong 3 ngày, phim đang có creative đội chờ lên (đợt 0 đi đường etp.cho_len_v, không sản xuất đôi). Trả danh sách content_id mới."""
+    tran = int(ch.get("phim_moi_ngay") or 0)
+    if not tran: return []
+    them = ch.get("phim_them") or {}; hom = q("select (now() at time zone 'Asia/Ho_Chi_Minh')::date::text")
+    con = tran - sum(1 for v in them.values() if v == hom)
+    if con <= 0: return []
+    loai = ",".join(str(int(x)) for x in da) or "0"
+    r = q(f"""with doi as (select k.content_id, sum(s.chi) chi, sum(s.thu) thu from etp.camp_ngoai k join etp.so_ngay_ngoai s using (camp_id) where s.ngay < current_date group by 1)
+        select string_agg(content_id::text, ',') from (select p.content_id from etp.phim p left join doi d using (content_id)
+        where not exists (select 1 from etp.camp c where c.content_id = p.content_id) and p.thu_vong is distinct from 'cat' and coalesce(p.nhom_goc, 'au_my') = 'au_my'
+          and not (d.chi >= 10 and d.thu <= d.chi)
+          and not exists (select 1 from etp.dong_phim x where x.content_id = p.content_id and (x.trang_thai = 'chay' or x.tao_luc > now() - interval '3 days'))
+          and not exists (select 1 from etp.cho_len_v v where v.content_id = p.content_id and v.team_lai and v.ly_do is null)
+          and not coalesce((select gia_tri ? p.content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_cam'), false)
+          and p.content_id not in ({loai})
+        order by case when d.chi >= 10 and d.thu > d.chi then 0 when d.content_id is null then 1 else 2 end, d.thu - d.chi desc nulls last, p.content_id desc limit {con}) x""")
+    moi = [int(x) for x in (r or "").split(",") if x.strip().isdigit()]
+    for c in moi: them[str(c)] = hom
+    if moi: ch["phim"] = [int(x) for x in ch.get("phim") or []] + moi; ch["phim_them"] = them
+    return moi
+
 def chay(q):
     ch = cau_hinh(q); ds = [int(x) for x in ch.get("phim") or []]
+    moi = chon_phim_moi(q, ch, ds)
+    if moi:
+        ds += moi
+        q(f"""update etp.cau_hinh set gia_tri = $J${json.dumps(ch, ensure_ascii=False)}$J$::jsonb where khoa = 'lo_trinh_tu_dong'""")
+        q(f"""insert into etp.nhat_ky (luc, viec, ok, luat, ai) values (now(), 'lo_trinh', true, 'thêm {len(moi)} phim mới vào lộ trình tự động: {" ".join(map(str, moi))}', 'máy lộ trình tự động (anh 07/11/2026: tập trung phim mới)')""")
     if not ds: return {}
     try: cu = json.loads(q("select gia_tri::text from etp.cau_hinh where khoa = 'lo_trinh_tt'") or "{}")
     except Exception: cu = {}

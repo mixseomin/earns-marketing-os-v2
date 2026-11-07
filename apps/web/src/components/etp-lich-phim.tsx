@@ -116,9 +116,9 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
               {sx.length || sapToi.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11.5, color: 'var(--fg-2)' }}>
                 {sx.map((d) => { const b = buocHien(d), hong = b?.trang_thai === 'loi' || b?.trang_thai === 'dung', phut = b?.bat_dau && b.trang_thai === 'dang' ? Math.round((Date.now() - Date.parse(b.bat_dau)) / 60000) : null;
                   return <div key={d.id} style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 4 }}>
-                    <div style={{ color: hong ? '#f87171' : 'var(--fg-1)' }}><b>{d.loai} × {d.so_camp ?? 1}</b>{b ? ` · ${TEN_BUOC[b.buoc] ?? b.buoc}${hong ? ' lỗi' : ''}${phut != null ? ` · ${phut} phút` : ''}` : ''}</div>
+                    <div style={{ color: hong ? '#f87171' : 'var(--fg-1)' }}><b>{d.loai} × {d.so_camp ?? 1}</b>{hong && b ? ` · ${TEN_BUOC[b.buoc] ?? b.buoc} lỗi` : phut != null ? ` · ${phut} phút` : ''}</div>
                     <ChuoiBuoc buoc={d.buoc} loai={d.loai} />
-                    {b?.ghi ? <div style={{ fontSize: 11, color: hong ? '#f87171' : 'var(--fg-2)' }}>{b.ghi.slice(0, 110)}</div> : null}</div>; })}
+                    {hong && b?.ghi ? <div style={{ fontSize: 11, color: '#f87171' }}>{b.ghi.slice(0, 110)}</div> : null}</div>; })}
                 {sapToi.map((t, i) => <div key={i}>{t}</div>)}
               </div> : null}
             </>; })()}

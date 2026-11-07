@@ -88,8 +88,8 @@ export function ChuoiBuoc({ buoc, loai }: { buoc: { buoc: string; trang_thai: st
   return <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COT_CR.length}, 1fr)`, gap: 2 }}>
     {COT_CR.map(([k, ten]) => <span key={k} style={{ textAlign: 'center', fontSize: 9.5, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden' }}>{ten}</span>)}
     {COT_CR.map(([k, , bk]) => { const b = loai === 'KT' && k === 'cat' ? 'creative' : bk, t = loai === 'KT' && k === 'soat' ? 'bo_qua' : tt(b), rong = t === 'cho' || t === 'bo_qua';
-      return <span key={k} style={{ minWidth: 0, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, borderRadius: 11, fontSize: 10.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', background: rong ? 'transparent' : NEN[t], color: CHU[t] ?? 'var(--fg-3)',
-        border: `1px ${rong ? 'dashed' : 'solid'} ${VIEN[t] ?? 'var(--line)'}`, animation: t === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>{KY[t] ?? ''}{tong[k] ? <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{tong[k]}</span> : null}</span>; })}
+      return <span key={k} style={{ minWidth: 0, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 6px', borderRadius: 11, fontSize: 9.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', background: rong ? 'transparent' : NEN[t], color: CHU[t] ?? 'var(--fg-3)',
+        border: `1px ${rong ? 'dashed' : 'solid'} ${VIEN[t] ?? 'var(--line)'}`, animation: t === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>{KY[t] ?? ''}{tong[k] ? <span>{tong[k].replace(/ (đoạn|sạch|đã lên|camp)$/, '')}</span> : null}</span>; })}
   </div>;
 }
 const LOAI_DE: Record<string, string> = { CC: 'Cảnh cuối', KT: 'Kể chuyện', LT: 'Test rộng', AT: 'Ảnh tĩnh', KM: 'Kiểu mới', TT: 'Camp test thay thế' };   // AT / KM / TT: đường ngoài máy dòng phim (docNgoai)

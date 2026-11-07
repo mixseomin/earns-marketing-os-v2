@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // LÀM MỘT TẬP DÀI GHÉP GIẤY từ một sự kiện (06/11/2026). Chạy trên iMac; viết + vẽ + giọng ở box3 (ckey), dựng khung trên iMac (shot-code/dung.mjs):
-//   node lam-dai.mjs --id <id> --chu-de "<sự kiện>" --nguon "Tựa wiki|Tựa wiki" [--tu 1650] [--mau <N câu đầu>] [--khung 1,8,20 --khung-ra to.jpg] [--chi-viet] [--chi-tai]
+//   node lam-dai.mjs --id <id> [--chu-de "<sự kiện>" --nguon "Tựa wiki|Tựa wiki" | --kenh parody (máy tự chọn đề theo góc spy)] [--tu 1650] [--mau <N câu đầu>] [--khung 1,8,20 --khung-ra to.jpg] [--chi-viet] [--chi-tai]
 // Ra: /Users/htuan/.cache/lich-su/<id>/<id>.mp4 + <id>-chuong.txt (mốc chương cho mô tả YouTube). Tài sản đã có thì dùng lại, in tiền thật từng khâu.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -16,7 +16,14 @@ const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 
 const DIR = dirname(fileURLToPath(import.meta.url)), LS = join(DIR, '..'), id = arg('id'), KHO = `${process.env.HOME}/.cache/lich-su`, RA = join(KHO, id), TAI = join(RA, 'tai'); mkdirSync(join(TAI, 'nv'), { recursive: true });
 const tepTap = join(LS, 'tap', `${id}.json`), url = (f) => pathToFileURL(f).href; let tien = 0; const cong = (s) => { console.log(s); tien += Number(String(s).match(/~?(\d+)₫/)?.[1] ?? 0); };
 // ---------- 1. viết ----------
-if (!existsSync(tepTap)) { const bt = `/tmp/dai-${id}.json`; cong(box(`scripts/lich-su/giay/viet-dai.mts ${bt} --chu-de ${q(arg('chu-de'))} --nguon ${q(arg('nguon'))} --id ${id} --tu ${arg('tu', 1650)}`)); ve(bt, tepTap); }
+// TỰ CHỌN ĐỀ (08/11/2026, tập dài vào sổ kênh): không giao --chu-de thì máy chọn chuyện theo góc spy của mẫu dài (kenh.json › <kênh>.mau_dai.goc_spy) bằng
+// đúng bộ chọn đề của tập ngắn (viet-tap.mts --chi-de: chuyện có thật trước mốc năm của kênh, bài Wikipedia có thật) — hook / tiêu đề gắn sau ở nap-dai.mjs
+let chuDeVao = arg('chu-de'), nguonVao = arg('nguon');
+if (!existsSync(tepTap) && !chuDeVao) { const kenhId = arg('kenh', 'parody'), K = JSON.parse(readFileSync(join(LS, 'kenh.json'), 'utf8'))[kenhId], bt = `/tmp/de-dai-${id}`; execFileSync('ssh', ['root@167.233.241.16', `mkdir -p ${bt}`]);
+  writeFileSync(join(RA, 'goc-hook.json'), box(`scripts/may-dung.mts --may ${K.may} --goc-hook${K.mau_dai?.goc_spy ? ` --goc ${K.mau_dai.goc_spy}` : ''}`).split('\n').pop()); len(join(RA, 'goc-hook.json'), `${bt}/goc-hook.json`);
+  cong(box(`scripts/lich-su/viet-tap.mts ${bt}/de.json --id ${id} --nn en --kenh ${kenhId} --chi-de --goc-hook ${bt}/goc-hook.json --do-dai ${q('phim tài liệu DÀI 12–15 phút kể TRỌN một sự kiện lớn (chiến dịch, đế chế, cuộc chinh phạt, thảm hoạ) có nhiều nhân vật thật nổi tiếng, nhiều hồi, tư liệu Wikipedia rất dày')}`).split('\n').pop());
+  ve(`${bt}/de.json`, join(RA, 'de.json')); execFileSync('ssh', ['root@167.233.241.16', `rm -rf ${bt}`]); const de = JSON.parse(readFileSync(join(RA, 'de.json'), 'utf8')); chuDeVao = de.chu_de; nguonVao = de.nguon.join('|'); }
+if (!existsSync(tepTap)) { const bt = `/tmp/dai-${id}.json`; cong(box(`scripts/lich-su/giay/viet-dai.mts ${bt} --chu-de ${q(chuDeVao)} --nguon ${q(nguonVao)} --id ${id} --tu ${arg('tu', 1650)}`)); ve(bt, tepTap); }
 const tap = JSON.parse(readFileSync(tepTap, 'utf8'));
 if (co('chi-viet')) process.exit(0);
 const cauDs = arg('mau') ? tap.cau.slice(0, Number(arg('mau'))) : tap.cau;

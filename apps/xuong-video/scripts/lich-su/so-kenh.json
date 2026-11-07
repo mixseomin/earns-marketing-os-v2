@@ -1348,6 +1348,20 @@
         "cho_duyet": true,
         "mo_ta": "KHUÔN VIDEO Short 45–60 giây, dọc 9:16: 9–10 câu, 105–120 từ — hook chữ to 0–2 giây → 2 nhịp leo thang (mỗi nhịp một năm + một chuyển động bản đồ + một nhân vật) → cú lật cuối đóng dấu → THE END. Xem xong nhớ được một sự thật để kể lại; mồi kéo người xem sang bản Full Story cùng playlist. Demo: Tiny Wars (chiến tranh Anh–Zanzibar 38 phút).",
         "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$"
+      },
+      {
+        "ma": "dai-ghep-giay",
+        "ten": "Tập dài ghép giấy (The ENTIRE Story, 12–15 phút)",
+        "loai": "dai",
+        "khung": "16:9",
+        "nhip": "đề xuất 1 tập / tuần — CHƯA chạy tự động: mỗi tập tốn ~15.000₫ (ảnh lớp ~10.500₫ + giọng ~1.900₫ + chữ), vượt ngưỡng tự chạy 5.000₫ → chờ anh duyệt chi cố định",
+        "kho": "vô hạn — đề theo góc spy #66963 (kenh.json › parody.mau_dai)",
+        "trang": "lich-su/giay/giay-lop.html (ghép giấy nhiều lớp, ngang 16:9)",
+        "sinh": "lich-su/giay/lam-dai.mjs --id <id> --kenh parody  (máy tự chọn đề + nguồn Wikipedia; dựng + nén phần cứng trên iMac; nap-dai.mjs gắn hook + nạp máy đăng; luu-kho.mjs dọn)",
+        "demo": "https://youtu.be/syVdnrP0KzA",
+        "cho_duyet": false,
+        "mo_ta": "KHUÔN VIDEO dài 12–15 phút, ngang 16:9, ghép giấy nhiều lớp: 8 chương có mục lục xuyên suốt, bản đồ biên giới đúng thời kỳ, cận mặt biểu cảm nhân vật ở khoảnh khắc căng, thẻ câu nói nguyên văn Wikiquote, nhịp phim theo hồi (cao trào, khoảng lặng), tiếng đạo cụ + nhạc theo hồi, logo A3. Demo: Napoleon ở Nga 1812.",
+        "tu_sinh": "^ynt-dai-"
       }
     ],
     "hang_cho": [

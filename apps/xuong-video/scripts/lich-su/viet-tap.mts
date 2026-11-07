@@ -54,7 +54,7 @@ if (!chuDe && gh) {
   const loatNay = plMa ? (K0.playlist ?? []).find((x: { ma: string }) => x.ma === plMa) as { ten: string; noi_dung?: string } | undefined : undefined;
   for (let lan = 1; lan <= 3 && !chuDe; lan++) {
     const c = await sinhJson({ schema: ChonDe, model: 'claude-sonnet-5-5', max_tokens: 2000, ten: 'chọn đề lịch sử theo góc',
-      system: `Bạn chọn đề cho kênh "${K.ten}" (${K.do_dai}).${loatNay ? ` Tập này thuộc LOẠT (playlist) "${loatNay.ten}": ${loatNay.noi_dung} — chuyện PHẢI đúng loạt này.` : ''} Chuyện phải CÓ THẬT, có tư liệu Wikipedia dày, có chuyển động trên bản đồ, hợp GÓC khán giả bên dưới, chưa làm. Tiêu đề lấy từ MỘT hook QC thật (chạy lâu = đã chứng minh giữ người xem), sửa nhẹ cho đúng chuyện — không viết hook mới.`,
+      system: `Bạn chọn đề cho kênh "${K.ten}" (${arg('do-dai') ?? K.do_dai}).${loatNay ? ` Tập này thuộc LOẠT (playlist) "${loatNay.ten}": ${loatNay.noi_dung} — chuyện PHẢI đúng loạt này.` : ''} Chuyện phải CÓ THẬT, có tư liệu Wikipedia dày, có chuyển động trên bản đồ, hợp GÓC khán giả bên dưới, chưa làm. Tiêu đề lấy từ MỘT hook QC thật (chạy lâu = đã chứng minh giữ người xem), sửa nhẹ cho đúng chuyện — không viết hook mới.`,
       user: `GÓC (spy #${gh.goc.id} · ${gh.goc.loai}): ${gh.goc.ten}\nHOOK CÓ BẰNG CHỨNG (id · bằng chứng · chữ):\n${gh.hooks.map((h) => `- ${h.id} · ${bangChungHook(h)} · ${h.chu}`).join('\n')}\nĐÃ LÀM (tránh):\n${gh.da_lam.map((x) => `- ${x}`).join('\n') || '(chưa có)'}${gh.ket_qua?.length ? `\nKẾT QUẢ CÁC TẬP ĐÃ ĐĂNG (lượt xem / ngày · tổng · chủ đề · tiêu đề) — chọn chuyện CÙNG KIỂU tập đứng đầu (loại nhân vật, thời kỳ, kiểu bí ẩn / nghịch lý), tránh kiểu tập đứng cuối:\n${gh.ket_qua.slice(0, 12).map((x) => `- ${x.moi_ngay}/ngày · ${x.xem} · ${x.chu_de} · ${x.tieu_de}`).join('\n')}` : ''}${loiChon ? `\nLẦN TRƯỚC SAI: ${loiChon}` : ''}` });
     if (!c.ok) { loiChon = c.loi; continue; }
     const h = gh.hooks.find((x) => x.id === c.data.hook_id); if (!h) { loiChon = `hook_id "${c.data.hook_id}" không có trong danh sách`; continue; }
@@ -69,6 +69,8 @@ if (!chuDe && gh) {
     console.log(`đề theo góc #${gh.goc.id}: ${chuDe} · nguồn ${tua.join(' | ')} · hook ${h.id} "${h.chu}" → "${tieuDeChon}" (${Math.round(c.tokens.vnd ?? 0)}₫)`);
   }
   if (!chuDe) { console.error(`✗ chọn đề theo góc hỏng 3 lần: ${loiChon}`); process.exit(1); }
+  // CHỈ CHỌN ĐỀ (08/11/2026, tập dài ghép giấy giay/lam-dai.mjs): cùng bộ chọn + cùng cổng (năm, Wikipedia có thật, hook) — in JSON rồi dừng, không viết tập
+  if (process.argv.includes('--chi-de')) { writeFileSync(ra, JSON.stringify({ chu_de: chuDe, nguon: tua, hook: hookChon, tieu_de: tieuDeChon, goc: gh.goc })); process.exit(0); }
 }
 // bản cũ (--cu) mang sẵn danh sách nguồn → dùng lại, không tìm lại bằng câu chủ đề (03/11/2026: chủ đề là câu tóm dài → tìm Wikipedia ra 0 → --chi-thumb chết "không có nguồn nào")
 const cheDoChi = process.argv.includes('--chi-thumb') || process.argv.includes('--chi-hook');

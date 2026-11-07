@@ -87,13 +87,25 @@ def chon(src, moc, so_ban=1):
             if s >= tu0 and (sach(s, e) or d == DAI_MIN): ra.append((s, e)); break   # không có khung sạch trọn → lấy khung ngắn nhất, cat-canh CẮT BỎ giây cấm (anh 03/11/2026 "ko cần liền mạch")
     return ra, cam
 
+import threading
+_LO, _KHOA_LO = {}, threading.Lock()
+def ghi_lo(ra_dir, ds):
+    """GHI lo.json SAU MỖI KHUNG (anh 07/11/2026 "lượt mới chưa": dòng #98 / #110 cắt xong 3 + 4 khung rồi bị tho.py chém quá hạn → lo.json chỉ ghi cuối lượt
+    nên mất trắng cả 7, báo "0 đoạn"). tho.py đọc lo.json khi quá giờ để giữ đoạn đã cắt — giờ luôn có bản mới nhất."""
+    with _KHOA_LO:
+        _LO[id(ds)] = ds; tat = [k for v in _LO.values() for k in v]
+        tam = os.path.join(ra_dir, "lo.json.tam"); json.dump(tat, open(tam, "w"), ensure_ascii=False, indent=1); os.replace(tam, os.path.join(ra_dir, "lo.json"))
+
 def lam(p, goc, ra_dir, so_ban=1):
     cid, loc, ten = p[0], p[1], p[3]; tm = os.path.join(goc, cid)
     try:
         pst = os.path.join(tm, "poster-1080.png"); DL.poster(os.path.join(tm, "poster.jpg"), pst)
         src, moc = ghep_mo(tm); khung, cam = chon(src, moc, so_ban); CAM_PHIM[cid] = cam
         if not khung: return [{"content_id": int(cid), "ten": ten, "loi": f"không có khung cuối sạch (giây cấm {cam[:12]})"}]
-        return [LK.thu(cat1, cid, loc, ten, src, moc, pst, tu, den, ra_dir) for tu, den in khung]   # lỗi kỹ thuật → cắt lại tại chỗ (loi_ky_thuat.py)
+        ra = []
+        for tu, den in khung:   # lỗi kỹ thuật → cắt lại tại chỗ (loi_ky_thuat.py)
+            ra.append(LK.thu(cat1, cid, loc, ten, src, moc, pst, tu, den, ra_dir)); ghi_lo(ra_dir, ra)
+        return ra
     except Exception as e:
         return [{"content_id": int(cid), "ten": ten, "loi": str(e)[-300:]}]
 

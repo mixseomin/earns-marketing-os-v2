@@ -325,7 +325,8 @@ def b_creative_at(d):
             return ("loi" if rc == -9 or not j or LK.ky_thuat(g) is not False else "dung"), f"anh-tinh không ra creative: {g[:300]}", None
         sql(f"update etp.dong_phim set creative_id = {ids[0]} where id = {d['id']}")
     kq = {"creative_id": ids[0], "ds": [{"creative_id": c} for c in ids]}
-    r = {int(l.split(chr(9))[0]): l.split(chr(9))[1:] for l in sql(f"""select r.creative_id, coalesce(r.lang, 'en'), coalesce(g.duoc_len::text, ''), coalesce(g.chan_boi, '')
+    # đệm đủ 3 cột: psql cắt tab cuối khi duoc_len / chan_boi rỗng (creative chưa chấm) → mảng ngắn, IndexError (08/11/2026 dòng #245 #200)
+    r = {int(l.split(chr(9))[0]): (l.split(chr(9))[1:] + ["", "", ""])[:3] for l in sql(f"""select r.creative_id, coalesce(r.lang, 'en'), coalesce(g.duoc_len::text, ''), coalesce(g.chan_boi, '')
             from etp.creative r left join etp.cham_cong g using (creative_id) where r.creative_id in ({','.join(map(str, ids))})""").splitlines() if chr(9) in l}
     if len(r) < len(ids): return "cho", f"{len(ids)} creative ảnh tĩnh đã tạo (#{', #'.join(map(str, ids))}) — chờ đồng bộ kho etp ({len(r)}/{len(ids)})", kq
     if any(v[1] == "" for v in r.values()): return "cho", f"{len(ids)} creative ảnh tĩnh — chờ máy chấm ({sum(1 for v in r.values() if v[1])}/{len(ids)})", kq

@@ -56,9 +56,16 @@ def ghep_mo(tm):
     return ra, moc
 
 def chon(src, moc, so_ban=1):
-    """tới so_ban khung, mỗi khung kết ở một chỗ hết tập KHÁC nhau (muộn nhất trước), không chồng lên nhau"""
+    """tới so_ban khung, mỗi khung kết ở một chỗ hết tập KHÁC nhau (muộn nhất trước), không chồng lên nhau.
+    ĐỌC CHỮ CHỈ TRÊN KHUNG ỨNG VIÊN (anh 07/11/2026 "làm ngay lập tức"): trước đọc trọn QUET × so_ban giây cuối (840 khung ≈ 15 phút / phim) rồi mới chọn;
+    nay mỗi khung ứng viên đọc đúng phần chưa đọc của nó (≈ 85 khung), sạch thì dừng — cat-canh còn đọc lại đoạn đã cắt nên cổng thoại không lỏng hơn."""
     tu0 = max(0.0, moc[-1] - QUET * so_ban)
-    cam = [g for g, c in DL.KT.doc(src, tu0, moc[-1]) if DL.KT.soat(c)]
+    da, cam = set(), []
+    def doc(a, b):
+        moi = [g for g in range(int(max(tu0, a)), int(-(-b // 1))) if g not in da]
+        if not moi: return
+        x, y = min(moi), max(moi) + 1
+        cam.extend(g for g, c in DL.KT.doc(src, x, y) if DL.KT.soat(c)); da.update(range(x, y))
     sach = lambda a, b: not any(a - 2 <= g <= b + 2 for g in cam)
     ra = []
     if KIEU == "tap":   # một tập trọn: (mốc trước, mốc này), muộn nhất trước, sạch thoại cấm
@@ -66,11 +73,12 @@ def chon(src, moc, so_ban=1):
         for i in range(len(moc) - 1, -1, -1):
             s, e = bd[i], moc[i]
             if len(ra) >= so_ban: break
-            if TAP_MIN <= e - s <= TAP_MAX and s >= tu0: ra.append((s, e))   # chỉ trong vùng đã đọc chữ (QUET giây cuối); giây cấm trong tập → cat-canh BỎ những giây đó (anh 28/10/2026)
-        return ra, cam   # lô kiểu tập nguyên không lùi về kiểu cũ — phim không có tập vừa độ dài thì báo không có khung
+            if TAP_MIN <= e - s <= TAP_MAX and s >= tu0: doc(s, e); ra.append((s, e))   # chỉ trong QUET giây cuối; giây cấm trong tập → cat-canh BỎ những giây đó (anh 28/10/2026)
+        return ra, sorted(cam)   # lô kiểu tập nguyên không lùi về kiểu cũ — phim không có tập vừa độ dài thì báo không có khung
     for e in reversed(moc):
         if e - DAI_MIN < tu0 or len(ra) >= so_ban: break
         if ra and e > ra[-1][0]: continue   # không chồng khung đã chọn
+        doc(e - DAI_MAX - 2, e + 2)   # ±2 giây của luật sạch
         for d in range(DAI_MAX, DAI_MIN - 1, -5):
             s = round(e - d, 1)
             if s >= tu0 and (sach(s, e) or d == DAI_MIN): ra.append((s, e)); break   # không có khung sạch trọn → lấy khung ngắn nhất, cat-canh CẮT BỎ giây cấm (anh 03/11/2026 "ko cần liền mạch")

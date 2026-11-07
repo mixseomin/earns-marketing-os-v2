@@ -314,6 +314,9 @@ def main():
     try:   # PLAN MỞ RỘNG CAMP THEO PHIM (anh 04/11/2026) — mo_rong.py ghi etp.mo_rong, Cây camp vẽ dòng mờ
         import mo_rong; kq.update(mo_rong.chay(q))
     except Exception as e: loi.append(f"mo_rong: {e}")
+    try:   # LỘ TRÌNH TỰ ĐỘNG THÍ ĐIỂM (anh 07/11/2026) — chỉ phim trong cau_hinh lo_trinh_tu_dong; đọc etp.mo_rong vừa ghi
+        import lo_trinh_phim; kq.update(lo_trinh_phim.chay(q))
+    except Exception as e: loi.append(f"lo_trinh_phim: {e}")
     # ── nhật ký luật
     try:
         nk = khoa("ethopex_nhat_ky", "[]"); rows = []

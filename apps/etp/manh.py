@@ -5,7 +5,7 @@ Mỗi lượt:
   1. bước 'dang' quá hạn (han_giay) hoặc im (nhip) quá 10 phút → đặt huy (máy chạy dòng giết tiến trình), ghi lỗi; lần đầu thì tự FIX (chạy lại bước) một lần
   2. máy chạy dòng im > 3 phút mà còn dòng chạy → báo Telegram (30 phút một lần), bước của nó coi như chết (mục 1 lo)
   3. dòng vừa kết thúc (xong / dừng vì policy / lỗi) → báo Telegram một lần
-  4. việc cắt lô dòng phim (etp.viec lô dp*) 'dang' quá trần cắt của việc + 60 phút (tho.TRAN_SQL) → xếp lại hàng chờ (tho.py chỉ tự quét việc của chính máy nó)
+  4. việc cắt lô dòng phim (etp.viec lô dp*) 'dang' mà thợ đã chết (tho.CHET_SQL: nhịp sống im 10 phút) → xếp lại hàng chờ (tho.py chỉ tự quét việc của chính máy nó)
   5–6. mở lại dòng dừng khi cổng đổi · thử lại dòng lỗi kỹ thuật
   7. lỗi MÃ ở máy luật / lên camp (etp.nhat_ky) → báo Telegram ngay, mỗi kiểu một lần / 6 giờ
 Dùng: manh.py [--thu] (--thu: chỉ in, không ghi / không báo)"""
@@ -89,8 +89,8 @@ def main():
         elif tin: bao(f"📋 <b>Mạnh</b> · {len(tin)} dòng phim vừa kết thúc (lỗi kỹ thuật Mạnh tự thử lại: hạ tầng 10 phút, khác 2 giờ)\n" + "\n".join(f"• {t} — {ly[:110]}" for t, ly in tin)[:3800])
     def muc4():
         # 4. việc cắt lô dòng phim kẹt
-        # trần chung với tho.py (07/11/2026): 75 phút cố định thấp hơn trần cắt 8 bản (79 phút) / LT (100 phút) → xếp lại cả việc đang cắt thật, hai máy cắt trùng
-        r = q(f"update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | Mạnh: kẹt quá trần cắt + 60 phút, xếp lại' where lo like 'dp%' and trang_thai = 'dang' and bat_dau < now() - interval '1 minute' * ({THO.TRAN_SQL} + 60) returning id") if not THU else ""
+        # điều kiện chung với tho.py (07/11/2026): nhịp sống im 10 phút = thợ chết. Trước: đoán theo đồng hồ (75 phút cố định → xếp lại cả việc đang cắt thật)
+        r = q(f"update etp.viec set trang_thai = 'cho', may = null, {THO.BO_NHIP}, loi = coalesce(loi, '') || ' | Mạnh: thợ chết (nhịp im), xếp lại' where lo like 'dp%' and trang_thai = 'dang' and {THO.CHET_SQL} returning id") if not THU else ""
         if r: lam.append(f"xếp lại việc cắt kẹt: {r.replace(chr(10), ' ')}")
     def muc5():
         # 5. TỰ MỞ LẠI DÒNG DỪNG KHI CỔNG CỦA PHIM ĐỔI (anh 04/11/2026 "tại sao cứ phải địt cụ mày mới fix? ko làm tự động hết đc à"):

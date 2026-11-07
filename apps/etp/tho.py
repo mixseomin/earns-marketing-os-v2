@@ -5,7 +5,7 @@ Nhận việc từ hàng đợi etp.viec trên box3 (for update skip locked → 
   loai = cat: tải tập (tai-tap.py) → cat-cuoi-lo.py một phim (so_ban góc, kèm tờ soát) → máy khác iMac thì rsync đoạn cắt + tờ soát về iMac ~/.cache/ethopex/ra/<lô>/
 Lỗi kỹ thuật (loi_ky_thuat.py) → trả việc về hàng chờ, tối đa 3 lần; lỗi nội dung → xong kèm lỗi.
 Dùng: tho.py [--so-tho 2] [--lo <mã lô>]"""
-import json, os, socket, subprocess, sys, time
+import json, os, socket, subprocess, sys, threading, time
 from concurrent.futures import ThreadPoolExecutor
 R = os.path.dirname(os.path.abspath(__file__)); E = os.path.join(R, "..", "xuong-video", "scripts", "ethopex")
 sys.path.insert(0, E); import loi_ky_thuat as LK
@@ -21,6 +21,11 @@ TAP_TOI_DA = 20
 # Mỗi bản ~8 phút (đo 07/11: iMac 40 phút / 5 bản, HP 42 phút / 5 bản). Dòng LT (kieu=tap) đọc chữ cả phim: giữ 100 phút. Một công thức cho cả lúc cắt lẫn quet_chet (bản SQL ngay dưới).
 def tran_phut(d): return 100 if d.get("kieu") == "tap" else 15 + 8 * int(d.get("so_ban") or 2)
 TRAN_SQL = "(case when du_lieu->>'kieu' = 'tap' then 100 else 15 + 8 * coalesce((du_lieu->>'so_ban')::int, 2) end)"
+# NHỊP SỐNG (07/11/2026): thợ đang làm ghi du_lieu.nhip = now() mỗi phút (giu_nhip). Việc 'dang' mà nhịp im quá 10 phút = thợ chết → xếp lại ngay,
+# không phải chờ trần giờ (115 phút). Việc chưa có nhịp (thợ chạy mã cũ) vẫn theo trần giờ. MỘT điều kiện cho quet_chet + Mạnh (manh.py mục 4).
+CHET_SQL = (f"(case when du_lieu->>'nhip' is null then bat_dau < now() - interval '1 minute' * ({TRAN_SQL} + 60)"
+            " else (du_lieu->>'nhip')::timestamptz < now() - interval '10 minutes' end)")
+BO_NHIP = "du_lieu = du_lieu - 'nhip'"   # mọi lần trả việc về hàng chờ xoá nhịp cũ, thợ nhận sau không bị coi là chết
 
 def sql(cau):
     r = subprocess.run(["ssh", "-o", "ConnectTimeout=15", B, f'{ENV}; psql "$DATABASE_URL" -qtA -v ON_ERROR_STOP=1 -f -'], input=cau, capture_output=True, text=True, timeout=120)
@@ -28,13 +33,12 @@ def sql(cau):
     return r.stdout.strip()
 
 def quet_chet():
-    """việc 'dang' của máy này quá trần cắt + 1 giờ (tải ≤ 25 phút, gửi về iMac ≤ 30 phút) = tiến trình đã chết → trả về hàng chờ, không nằm kẹt mãi.
-    Trần cũ 1 giờ cố định thấp hơn trần dòng LT (100 phút) → xếp lại cả việc đang chạy thật."""
-    r = sql(f"update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | thợ chết giữa chừng, xếp lại' where trang_thai = 'dang' and may = '{MAY}' and bat_dau < now() - interval '1 minute' * ({TRAN_SQL} + 60) returning id")
+    """việc 'dang' của máy này mà thợ đã chết (CHET_SQL: nhịp im 10 phút, hoặc chưa có nhịp thì quá trần cắt + 1 giờ) → trả về hàng chờ, không nằm kẹt mãi"""
+    r = sql(f"update etp.viec set trang_thai = 'cho', may = null, {BO_NHIP}, loi = coalesce(loi, '') || ' | thợ chết giữa chừng, xếp lại' where trang_thai = 'dang' and may = '{MAY}' and {CHET_SQL} returning id")
     if r: print(f"[{MAY}] xếp lại việc kẹt: {r.replace(chr(10), ' ')}", flush=True)
 def nhan(lo):
     dk = f"and lo = '{lo}'" if lo else ""
-    j = sql(f"""update etp.viec set trang_thai = 'dang', may = '{MAY}', bat_dau = now(), lan_thu = lan_thu + 1
+    j = sql(f"""update etp.viec set trang_thai = 'dang', may = '{MAY}', bat_dau = now(), lan_thu = lan_thu + 1, du_lieu = du_lieu || jsonb_build_object('nhip', now())
                where id = (select id from etp.viec where trang_thai = 'cho' {dk} and not coalesce(du_lieu->'may_hong', '[]'::jsonb) ? '{MAY}' order by id for update skip locked limit 1)
                returning json_build_object('id', id, 'loai', loai, 'lo', lo, 'content_id', content_id, 'du_lieu', du_lieu, 'lan_thu', lan_thu)""")
     return json.loads(j) if j else None
@@ -43,7 +47,7 @@ def xong(v, ket_qua, loi=None):
     kq = json.dumps(ket_qua, ensure_ascii=False).replace("$K$", "")
     if loi and LK.ky_thuat(loi) is True and v["lan_thu"] < 3:   # lỗi kỹ thuật → về hàng chờ cho MÁY KHÁC: máy này ghi vào may_hong, nhan() không đưa lại cho nó
         # (07/11/2026: phim 92980 quá giờ 3 lần liền cùng trên HP, 45 phút mất trắng mỗi lần). Tối đa 3 lần thử ≤ số máy thợ (iMac, HP, VPS) → luôn còn máy nhận.
-        sql(f"update etp.viec set trang_thai = 'cho', may = null, loi = $L${str(loi)[:300]}$L$, du_lieu = jsonb_set(coalesce(du_lieu, '{{}}'::jsonb), '{{may_hong}}', coalesce(du_lieu->'may_hong', '[]'::jsonb) || to_jsonb('{MAY}'::text)) where id = {v['id']}"); return "tra_lai"
+        sql(f"update etp.viec set trang_thai = 'cho', may = null, loi = $L${str(loi)[:300]}$L$, du_lieu = jsonb_set(coalesce(du_lieu, '{{}}'::jsonb) - 'nhip', '{{may_hong}}', coalesce(du_lieu->'may_hong', '[]'::jsonb) || to_jsonb('{MAY}'::text)) where id = {v['id']}"); return "tra_lai"
     # 'loi' khi KHÔNG có đoạn dùng được (07/11/2026: #270 #273 ra 0 đoạn, ket_qua chỉ chứa dòng lỗi mà vẫn ghi 'xong' → bảng máy thợ đếm như việc đạt)
     dat = any(x.get("file") and not x.get("loi") for x in ket_qua)
     sql(f"update etp.viec set trang_thai = '{'loi' if loi and not dat else 'xong'}', xong = now(), ket_qua = $K${kq}$K$::jsonb, loi = {('$L$' + str(loi)[:300] + '$L$') if loi else 'null'} where id = {v['id']}")
@@ -85,6 +89,12 @@ def cat(v):
     ok = [x for x in kq if x.get("file") and not x.get("loi")]
     return kq, (None if ok else (" ".join(str(x.get("loi")) for x in kq)[:300] or "không ra đoạn nào"))
 
+def giu_nhip(vid, dung):
+    """ghi nhịp sống mỗi phút tới khi việc xong (dung.set); mạng hỏng một nhịp thì bỏ qua — 10 nhịp liền mới bị coi là chết"""
+    while not dung.wait(60):
+        try: sql(f"update etp.viec set du_lieu = du_lieu || jsonb_build_object('nhip', now()) where id = {vid} and trang_thai = 'dang' and may = '{MAY}'")
+        except Exception: pass
+
 DANG = [0]   # số luồng trong tiến trình này đang làm việc
 def tho(lo):
     n = 0
@@ -97,9 +107,10 @@ def tho(lo):
             if DANG[0] > 0: time.sleep(30); continue
             return n
         DANG[0] += 1
-        t0 = time.time()
+        t0 = time.time(); dung = threading.Event(); threading.Thread(target=giu_nhip, args=(v["id"], dung), daemon=True).start()
         try: kq, loi = cat(v) if v["loai"] == "cat" else ([], f"loại việc lạ {v['loai']}")
         except Exception as e: kq, loi = [], f"{type(e).__name__}: {str(e)[:200]}"
+        finally: dung.set()
         r = xong(v, kq, loi); n += 1; DANG[0] -= 1
         print(f"[{MAY}] #{v['id']} {v['loai']} phim {v['content_id']}: {r} · {sum(1 for x in kq if x.get('file') and not x.get('loi'))} đoạn · {time.time() - t0:.0f}s{(' · ' + str(loi)[:100]) if loi else ''}", flush=True)
 

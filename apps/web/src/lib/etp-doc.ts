@@ -395,7 +395,8 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
         select r.content_id, 'creative', r.creative_id, left(case when g.cho_duyet then 'cổng chấm: chờ người duyệt — ' else 'cổng chấm chặn: ' end || coalesce(g.chan_boi, ''), 200), r.cap_nhat::text
           from etp.cham_cong g join etp.creative r using (creative_id) where not g.duoc_len and r.tu_choi is null and r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
         union all
-        select v.content_id, 'creative', v.creative_id, left('không tự lên: ' || v.ly_do, 200), v.cham_luc::text from etp.cho_len_v v where v.ly_do is not null
+        select v.content_id, 'creative', v.creative_id, left('không tự lên: ' || v.ly_do, 200), v.cham_luc::text from etp.cho_len_v v
+          where v.ly_do is not null and v.ly_do not like 'phim %' and v.ly_do not like 'creative đã bị từ chối%'   -- 'phim …' = điều hướng (đi dòng sản xuất / phim đã có camp / đội nhận), không phải kẹt; từ chối = đã kết
         union all
         select c.content_id, 'camp', c.camp_id, left(case when c.giao = 'DISAPPROVED' then 'Meta từ chối quảng cáo' else 'lỗi đồng bộ: ' || coalesce(c.loi, '?') end, 200), c.cap_nhat_etp::text
           from etp.camp c where c.content_id > 0 and (c.dong_bo = 'error' or c.giao = 'DISAPPROVED') and coalesce(c.trang_thai, '') <> 'ARCHIVED') x order by content_id, loai, id`).catch(() => [] as Ket[]),   // dòng đã kết thúc giữ 24 giờ — không mất dấu (anh 04/11/2026) · #1528: đợt có bước dừng / lỗi mà 24 giờ không ai / máy nào đụng thì thôi treo đồng hồ ở dòng phim (tab Sản xuất vẫn giữ) · .catch trước đây bị chú thích nuốt

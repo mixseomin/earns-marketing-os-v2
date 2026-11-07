@@ -1838,7 +1838,9 @@ const theMoRong = (m: MoRong): TheNoi => { const mau = MR_TT[m.trang_thai]?.[1] 
 // camp_id giả = −(2e6 + phim) — không đụng dòng thay (−id) và dòng mở rộng (−(1e6 + phim))
 const KET_ID = (cid: number) => -(2_000_000 + cid);
 const theKet = (cid: number, ds: Ket[]): TheNoi => ({ ma: `#${cid}`, tieu: `Kẹt ${ds.filter((x) => x.loai === 'creative').length} creative · ${ds.filter((x) => x.loai === 'camp').length} camp`, mau: '#ef4444',
-  moc: ds.map((x) => ({ ten: `${x.loai === 'camp' ? 'camp' : 'creative'} #${x.id}`, mau: x.loai === 'camp' ? '#f97316' : '#f59e0b', luc: x.luc ? x.luc.slice(5, 16).replace('T', ' ') : undefined, chu: x.chu })) });
+  // gom theo lý do (một phim có thể 40 creative cùng bị cổng chấm chặn): mỗi mốc = số lượng + lý do + tới 12 mã
+  moc: [...ds.reduce((m, x) => { const k = `${x.loai}|${x.chu.replace(/#\d+/g, '#…').slice(0, 90)}`; m.set(k, [...(m.get(k) ?? []), x]); return m; }, new Map<string, Ket[]>()).values()]
+    .sort((p, q) => q.length - p.length).map((g) => ({ ten: `${g.length} ${g[0]!.loai}`, mau: g[0]!.loai === 'camp' ? '#f97316' : '#f59e0b', chu: `${g[0]!.chu}\n${g.slice(0, 12).map((x) => `#${x.id}`).join(' ')}${g.length > 12 ? ` … +${g.length - 12}` : ''}` })) });
 function oKet(key: string, cid: number, ds: Ket[]): React.ReactNode {
   const cr = ds.filter((x) => x.loai === 'creative').length, cp = ds.length - cr;
   if (key === 'camp') return <ReThe the={() => theKet(cid, ds)}>

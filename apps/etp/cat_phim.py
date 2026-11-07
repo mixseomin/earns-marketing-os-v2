@@ -54,6 +54,12 @@ def dat(content, vong, ly, that, bo=None):
 
 def xet(that=False):
     ch = cau_hinh(); bao, doi_bo = [], {}; N = int(ch["so_thu"])
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # thay-the.py nạp tệp này theo đường dẫn, không nằm trong apps/etp
+        import lo_trinh_phim as LT
+        tt_ = json.loads(_q("select gia_tri::text from etp.cau_hinh where khoa = 'lo_trinh_tt'") or "{}")
+        ch["_thi_diem"] = {int(c): [m for m in LT.CAN if not (tt_.get(str(c), {}).get("dang", {}).get(m) or {}).get("bo")] for c in (LT.cau_hinh(lambda s: _q(s)).get("phim") or [])}
+    except Exception as e: print(f"đọc thí điểm lộ trình lỗi: {e}", file=sys.stderr); ch["_thi_diem"] = {}
     for p in so_phim():
         ct, chi, thu, vong = int(p["content_id"]), float(p["chi"] or 0), float(p["thu"] or 0), p.get("thu_vong")
         ten = p.get("ten") or f"phim {ct}"; so_thu = int(p.get("so_thu") or 0)
@@ -71,6 +77,8 @@ def xet(that=False):
         so = f"chi ${chi:.0f} · thu ${thu:.0f} · ROI {roi:.0f}% · {p['so_camp']} camp · bộ {','.join(sorted(p.get('bo') or [])) or '?'}"
         dt_ = p.get("dang_thu") or {}; thieu = [TEN_DANG.get(d, d) for d in ch.get("dang_can", []) if int(dt_.get(d) or 0) < int(ch.get("so_moi_dang", 1))]
         da_cho = vong == "sap_cat" and str(p.get("thu_ly") or "").startswith("chưa thử đủ dạng") and float(p.get("cho_ngay") or 0) >= float(ch.get("cho_dang_ngay", 3))
+        # THÍ ĐIỂM LỘ TRÌNH (anh 07/11/2026): máy đang tự sản xuất dạng thiếu → hạn chờ chỉ tính khi máy hết dạng làm được (CT chưa có máy; dạng hỏng 2 dòng đã bị bỏ)
+        if ct in ch.get("_thi_diem", {}) and any(t in ch["_thi_diem"][ct] for t in thieu): da_cho = False
         if not team_lai and so_thu >= N and thieu and da_cho:   # chờ dạng thiếu quá hạn mà không ai lên được → cất
             dat(ct, "cat", f"chờ {ch.get('cho_dang_ngay', 3)} ngày không lên được dạng {', '.join(thieu)} · {so}", that); bao.append(f"cất phim {ct} {ten}: chờ dạng {', '.join(thieu)} quá hạn ({so})"); continue
         if not team_lai and so_thu >= N and thieu:   # đủ số camp nhưng CHƯA thử đủ dạng → chưa cất, chờ thử dạng thiếu (mở lại phim lỡ cất theo luật cũ)

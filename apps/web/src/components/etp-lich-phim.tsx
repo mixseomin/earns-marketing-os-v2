@@ -20,7 +20,7 @@ const buocHien = (d: LichPhim['sx'][number]) => d.buoc.find((b) => b.trang_thai 
 const O = ({ mau, net }: { mau: string; net?: boolean }) => <span style={{ flex: '1 1 0', maxWidth: 22, minWidth: 3, height: 12, borderRadius: 2, background: net ? 'transparent' : mau, border: net ? `1px dashed ${mau}` : undefined }} />;
 
 // một dòng log thành một mốc: chữ thường, bỏ tên camp lặp trong câu luật
-const TEN_LOG: Record<string, [string, string]> = { tao_camp: ['＋ Tạo camp', '#60a5fa'], nhan_ban: ['⧉ Nhân bản', '#60a5fa'], roas: ['★ ROAS', '#a78bfa'], tang: ['↑ Tăng', '#4ade80'], giam: ['↓ Giảm', '#f59e0b'], tat: ['✕ Tắt', '#f87171'], bat: ['▶ Bật', '#4ade80'], thay_creative: ['⇄ Đổi creative', '#60a5fa'], dong: ['▤ Dòng phim', '#facc15'] };
+const TEN_LOG: Record<string, [string, string]> = { tao_camp: ['＋ Tạo camp', '#60a5fa'], nhan_ban: ['⧉ Nhân bản', '#60a5fa'], roas: ['★ ROAS', '#a78bfa'], tang: ['↑ Tăng', '#4ade80'], giam: ['↓ Giảm', '#f59e0b'], tat: ['✕ Tắt', '#f87171'], bat: ['▶ Bật', '#4ade80'], thay_creative: ['⇄ Đổi creative', '#60a5fa'], lo_trinh: ['🤖 Lộ trình', '#a78bfa'], dong: ['▤ Dòng phim', '#facc15'] };
 const mocLog = (x: LogPhim): Moc => {
   const [ten, mau] = TEN_LOG[x.viec] ?? [x.viec, 'var(--fg-2)'], chan = x.ok === null && x.viec === 'tao_camp', hong = x.ok === false;
   const so = x.viec === 'dong' ? `${x.truoc} × ${x.sau ?? 1}` : [x.camp_id ? `#${x.camp_id}` : '', x.truoc && x.sau && x.truoc !== x.sau ? `$${x.truoc} → $${x.sau}` : ''].filter(Boolean).join(' ');
@@ -44,7 +44,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
   const sapToi = l ? [
     l.thay ? `◌ ${l.thay.kieu === 'cho' ? 'camp chờ' : 'camp thay'} — ${({ chuan_bi: 'chọn creative', cat_goc: 'chờ cắt góc mới', cho_cham: 'chờ chấm', len_lich: 'đã lên, chờ chạy', chan: 'cổng chặn' } as Record<string, string>)[l.thay.buoc] ?? l.thay.buoc}` : null,
     ...l.hoan.slice(0, 2).map((h) => `${h.huong === 'tang' ? '⬆' : h.huong === 'giam' ? '⬇' : '✕'} #${h.camp_id} ${h.huong === 'tang' ? 'tăng bậc lúc 21:00' : h.huong === 'giam' ? 'giảm bậc lúc 15:00' : 'tắt lúc 15:00'}`),
-    gd === 0 && l.vong !== 'cat' ? `✕ cất phim nếu chi tới $${l.moc_chi} / ${l.moc_thu} camp thử mà chưa lãi` : null,
+    gd === 0 && l.vong !== 'cat' && !l.lt ? `✕ cất phim nếu chi tới $${l.moc_chi} / ${l.moc_thu} camp thử mà chưa lãi` : null,
   ].filter(Boolean).slice(0, 4) as string[] : [];
   const oTab = (k: 'lich' | 'tt' | 'log', chu: string) => <button onClick={() => setTab(k)} style={{ ...nut, padding: '1px 8px', fontSize: 11, borderColor: tab === k ? 'var(--accent, #60a5fa)' : 'var(--line)', color: tab === k ? 'var(--fg-1)' : 'var(--fg-3)' }}>{chu}</button>;
   return <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} style={{ display: 'inline-flex', cursor: 'pointer' }}>
@@ -88,16 +88,18 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
                       {Array.from({ length: L }, (_, i) => <O key={'l' + i} mau="#4ade80" />)}{Array.from({ length: X }, (_, i) => <O key={'x' + i} mau="#f87171" />)}
                       {Array.from({ length: C }, (_, i) => <O key={'c' + i} mau="#6b7280" />)}{Array.from({ length: S }, (_, i) => <O key={'s' + i} mau="#facc15" net />)}</div>]; })}
               </div> : <div style={{ color: 'var(--fg-3)' }}>Chưa có camp chạy, chưa có gì đang sản xuất.</div>}
-              {gd === 0 ? <div title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>
+              {l.lt ? <div style={{ display: 'flex', gap: 12, fontSize: 11, color: 'var(--fg-2)' }} title="số camp có chi trên mức cần để luật cất kết luận">
+                <span>Thử dạng:</span>{Object.entries(l.lt.dang).map(([m, x]) => <span key={m}>{m} <b style={{ color: x.chi >= 2 ? 'var(--fg)' : 'var(--fg-3)' }}>{x.chi}/2</b>{x.bo ? ' đã bỏ' : m === 'CT' ? ' chưa có máy' : ''}</span>)}</div> : null}
+              {gd === 0 && !l.lt ? <div title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--fg-2)', fontSize: 11 }}><span>mốc cất</span><span>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp</span></div>
                 <div style={{ height: 4, borderRadius: 2, background: 'var(--line)', marginTop: 2 }}><div style={{ height: 4, borderRadius: 2, width: `${Math.min(100, l.chi / l.moc_chi * 100)}%`, background: l.vong === 'sap_cat' ? '#f59e0b' : '#a78bfa' }} /></div></div> : null}
               {/* CAMP MỚI: kế hoạch → đang sản xuất → chờ lên. Kế hoạch etp.mo_rong chỉ là số đề xuất, chỉ phim_doi_lai máy mới tự xếp dòng — nói đúng ai làm bước kế */}
               {(() => {
-                const ke = l.ke, them = ke?.trang_thai === 'them' || ke?.trang_thai === 'cho_do', cho = l.hen.length + Math.max(ke?.san ?? 0, l.tu_len), k = them ? ke!.k : 0;
+                const ke = l.ke, them = ke?.trang_thai === 'them' || ke?.trang_thai === 'cho_do', cho = l.hen.length + Math.max(ke?.san ?? 0, l.tu_len), k = l.lt ? l.lt.ke : them ? ke!.k : 0;
                 const o = (n: number, chu: string, chiTiet: string, dau = '') => <span title={chiTiet} style={{ flex: 1, textAlign: 'center', cursor: 'help' }}><b style={{ fontSize: 15, color: n ? 'var(--fg)' : 'var(--fg-3)' }}>{n ? dau + n : 0}</b> <span style={{ fontSize: 11, color: 'var(--fg-2)' }}>{chu}</span></span>;
                 const mui = <span style={{ color: 'var(--fg-3)' }}>→</span>;
                 const m = l.thieu?.match(/(\d+\/\d+) camp.*thiếu (\d+)/);
-                const buocKe = !ke ? 'Chưa có kế hoạch: phim chưa có camp Nhà đang chạy' : !them ? `Chưa thêm: ${ke.ly}`
+                const buocKe = l.lt ? `🤖 ${l.lt.chu}` : !ke ? 'Chưa có kế hoạch: phim chưa có camp Nhà đang chạy' : !them ? `Chưa thêm: ${ke.ly}`
                   : `${ke.trang_thai === 'cho_do' ? '⏳ chờ đo đủ 1 ngày khép · ' : ''}${l.may_mo ? '🤖 máy tự xếp, tối đa 1 đợt / 24 giờ' : '✋ máy không tự lên, bấm ＋ bên dưới'}`;
                 return <div style={{ display: 'flex', flexDirection: 'column', gap: 4, paddingTop: 8, borderTop: '1px solid var(--line)' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline' }}>

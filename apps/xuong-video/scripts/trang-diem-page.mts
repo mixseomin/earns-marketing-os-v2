@@ -8,6 +8,7 @@
 //     --page 537626083113751 --anh 5149759 --bia 6519935 --chu "EMT Exam Prep" --phu "NREMT practice questions, explained" --mau B3261E \
 //     [--tam-anh 0.5,0.5] [--tam-bia 0.5,0.5] [--xem]      (--xem: chỉ dựng ảnh, không đặt lên Page)
 //   ... --kiem <page_id>    Page đã đủ ảnh đại diện + ảnh bìa chưa (thiếu → mã thoát 1)
+//   ... --page <id> --tep-anh <jpg> --tep-bia <jpg>    kênh có bộ nhận diện dựng sẵn (ảnh thật + logo, vd lich-su/brand/yesterdays-news-tonight): đặt thẳng, không dựng lại
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
@@ -71,15 +72,19 @@ if (a[0] === '--kiem') {
   process.exit(k.co_dai_dien && k.co_bia ? 0 : 1);
 }
 const page = lay('--page'), anh = lay('--anh'), bia = lay('--bia'), chu = lay('--chu'), phu = lay('--phu') ?? '', mau = (lay('--mau') ?? '').replace('#', '');
-if (!page || !anh || !bia || !chu || !/^[0-9a-fA-F]{6}$/.test(mau)) {
-  console.error('dùng: trang-diem-page.mts --page <id> --anh <pexels id> --bia <pexels id> --chu "<tên>" [--phu "<câu phụ>"] --mau <RRGGBB> [--tam-anh x,y] [--tam-bia x,y] [--xem] | --kiem <id> | --tu-kiem');
+const tepAnh = lay('--tep-anh'), tepBia = lay('--tep-bia'), san = !!(tepAnh && tepBia);
+if (!page || (!san && (!anh || !bia || !chu || !/^[0-9a-fA-F]{6}$/.test(mau)))) {
+  console.error('dùng: trang-diem-page.mts --page <id> --anh <pexels id> --bia <pexels id> --chu "<tên>" [--phu "<câu phụ>"] --mau <RRGGBB> [--tam-anh x,y] [--tam-bia x,y] [--xem] | --page <id> --tep-anh <jpg> --tep-bia <jpg> | --kiem <id> | --tu-kiem');
   process.exit(2);
 }
 const ra = lay('--ra') ?? `/root/trang-diem/${page}`; mkdirSync(ra, { recursive: true });
-const [ga, gb] = [await taiPexels(anh, ra), await taiPexels(bia, ra)];
-const tepA = dungDaiDien(ga.tep, ra, docTam(lay('--tam-anh'))), tepB = dungBia(gb.tep, ra, docTam(lay('--tam-bia')), chu, phu, mau);
-writeFileSync(path.join(ra, 'nguon.json'), JSON.stringify({ page, dai_dien: { pexels: anh, trang: ga.trang }, bia: { pexels: bia, trang: gb.trang }, chu, phu, mau, luc: new Date().toISOString() }, null, 1));
-console.log(`✓ dựng ${tepA} + ${tepB}`);
+let tepA = tepAnh!, tepB = tepBia!;
+if (!san) {
+  const [ga, gb] = [await taiPexels(anh!, ra), await taiPexels(bia!, ra)];
+  tepA = dungDaiDien(ga.tep, ra, docTam(lay('--tam-anh'))); tepB = dungBia(gb.tep, ra, docTam(lay('--tam-bia')), chu!, phu, mau);
+  writeFileSync(path.join(ra, 'nguon.json'), JSON.stringify({ page, dai_dien: { pexels: anh, trang: ga.trang }, bia: { pexels: bia, trang: gb.trang }, chu, phu, mau, luc: new Date().toISOString() }, null, 1));
+  console.log(`✓ dựng ${tepA} + ${tepB}`);
+}
 if (a.includes('--xem')) process.exit(0);
 // token thiếu pages_manage_metadata (#283 — app Kenh Social Poster thêm quyền này vào use case Pages 29/10/2026, token cấp lại cùng ngày): ảnh đã dựng xong ở `ra`,
 // đặt bằng phiên trình duyệt quản trị Page (Profile picture actions → Choose profile picture; Add cover photo → Upload photo), rồi chạy --kiem

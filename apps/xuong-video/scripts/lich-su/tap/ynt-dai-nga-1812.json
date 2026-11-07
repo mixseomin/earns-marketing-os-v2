@@ -53,7 +53,17 @@
      "cao": 0.35,
      "sau": 0.05
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Pale orange dawn sky",
+    "xa": "Continuous green Lithuanian forest along the far bank, flat bottom",
+    "khoi": "One broad low bank of mist rising above the river",
+    "giua": [
+     "A long wooden pontoon bridge crossing the calm river"
+    ],
+    "gan": "riverbank reeds, mud and smooth stones"
+   }
   },
   {
    "id": "russian_plains",
@@ -78,7 +88,15 @@
      "cao": 0.18,
      "sau": 0.3
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "pale blue summer sky with high thin clouds",
+    "xa": "Continuous flat yellow-green grassland horizon, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "Continuous dry yellow-green field across the foreground, flat bottom"
+   }
   },
   {
    "id": "vilnius_outskirts",
@@ -110,7 +128,15 @@
      "cao": 0.25,
      "sau": 0.4
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Purple-orange dusk sky",
+    "xa": "Continuous Vilnius outskirts with wooden houses and church spires, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "Continuous muddy rutted road across the foreground, flat bottom"
+   }
   },
   {
    "id": "smolensk_burning",
@@ -143,7 +169,15 @@
      "cao": 0.2,
      "sau": 0.5
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "dark night sky hazy with smoke, no stars, no moon",
+    "xa": "Continuous stone Smolensk fortification walls and towers, flat bottom",
+    "khoi": "thick column of black smoke",
+    "giua": [],
+    "gan": "Continuous dark ground and low rubble along the fortifications, flat bottom"
+   }
   },
   {
    "id": "borodino_field",
@@ -175,7 +209,15 @@
      "cao": 0.2,
      "sau": 0.4
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Overcast gray sky",
+    "xa": "Continuous distant tree lines across rolling Borodino fields, flat bottom",
+    "khoi": "One low gray smoke bank drifting across the battlefield",
+    "giua": [],
+    "gan": "Continuous rolling brown-green field across the foreground, flat bottom"
+   }
   },
   {
    "id": "moscow_approach",
@@ -205,7 +247,15 @@
      "cao": 0.3,
      "sau": 0.4
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Clear blue sky",
+    "xa": "Continuous distant Moscow skyline with church spires and golden domes, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "Continuous muddy rutted dirt road lined with golden autumn trees, flat bottom"
+   }
   },
   {
    "id": "moscow_inferno",
@@ -277,7 +327,15 @@
      "cao": 0.25,
      "sau": 0.4
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Cold gray dawn sky above the courtyard",
+    "xa": "Continuous stone palace buildings with arched windows along the far courtyard, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "Continuous frost-covered cobblestone square across the foreground, flat bottom"
+   }
   },
   {
    "id": "retreat_road",
@@ -310,7 +368,15 @@
      "sau": 0.1,
      "bo": true
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Gray overcast sky",
+    "xa": "Continuous barren woodland and distant road horizon, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "Continuous muddy deeply rutted road with scattered broken equipment and debris, flat bottom"
+   }
   },
   {
    "id": "first_snow",
@@ -335,7 +401,15 @@
      "cao": 0.15,
      "sau": 0.2
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "dark grey snow clouds",
+    "xa": "Continuous line of leafless trees across the distant field, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "Continuous open field with a thin white snow covering, flat bottom"
+   }
   },
   {
    "id": "blizzard_march",
@@ -361,7 +435,15 @@
      "sau": 0.35,
      "bo": true
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "dark grey-white snowstorm sky",
+    "xa": "Continuous indistinct snow horizon, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "Continuous wind-whipped snowdrifts across the foreground, flat bottom"
+   }
   },
   {
    "id": "krasnoi_battlefield",
@@ -426,7 +508,17 @@
      "cao": 0.25,
      "sau": 0.3
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Gray overcast sky",
+    "xa": "Continuous bare winter forest on the far snowy bank, flat bottom",
+    "khoi": "low bank of pale grey fog wisps",
+    "giua": [
+     "A cluster of floating ice chunks across the river"
+    ],
+    "gan": "Continuous snow-covered near bank and icy river edge, flat bottom"
+   }
   },
   {
    "id": "berezina_crossing",
@@ -459,7 +551,17 @@
      "cao": 0.35,
      "sau": 0.15
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Pale winter dawn sky",
+    "xa": "Continuous bare winter forest and snowy far bank, flat bottom",
+    "khoi": "One distant smoke plume from fighting",
+    "giua": [
+     "Two long wooden pontoon bridges crossing the icy river"
+    ],
+    "gan": "snow drifts, broken planks and ice chunks"
+   }
   },
   {
    "id": "vilnius_hospital",
@@ -490,7 +592,15 @@
      "sau": 0.4,
      "bo": true
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": true,
+    "troi": "Gray daylight on a plain rear courtyard wall",
+    "xa": "Continuous stone hospital wall with arched doorways, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "Continuous cold stone courtyard floor with snow piled in the corners, flat bottom"
+   }
   },
   {
    "id": "final_neman",
@@ -520,7 +630,15 @@
      "cao": 0.3,
      "sau": 0.1
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Bitterly clear winter sky",
+    "xa": "Continuous snow-covered Lithuanian forest on the far bank, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "snow drifts and cracked river ice with a broken musket"
+   }
   },
   {
    "id": "paris_tuileries",
@@ -552,7 +670,15 @@
      "cao": 0.3,
      "sau": 0.4
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Gray winter sky",
+    "xa": "Continuous grand neoclassical Tuileries Palace facade, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "Continuous formal garden beds and bare trees across the foreground, flat bottom"
+   }
   },
   {
    "id": "russian_winter_village",
@@ -585,7 +711,15 @@
      "cao": 0.2,
      "sau": 0.35
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Harsh gray winter sky",
+    "xa": "Continuous row of wooden izbas with snow-covered roofs, flat bottom",
+    "khoi": "thin pale grey wisp of smoke",
+    "giua": [],
+    "gan": "Continuous frozen dirt road bordered by deep snowdrifts, flat bottom"
+   }
   },
   {
    "id": "night_camp_ruins",
@@ -617,7 +751,15 @@
      "cao": 0.18,
      "sau": 0.5
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Dark star-dotted night sky",
+    "xa": "Continuous low snowy horizon beyond the abandoned camp, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "snow, charred logs and scattered kit"
+   }
   },
   {
    "id": "cossack_steppe",
@@ -642,7 +784,15 @@
      "cao": 0.2,
      "sau": 0.3
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Gray-blue November sky",
+    "xa": "Continuous distant flat steppe horizon, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "Continuous lightly snow-covered steppe with bent windblown grass, flat bottom"
+   }
   },
   {
    "id": "maloyaroslavets",
@@ -674,7 +824,15 @@
      "cao": 0.25,
      "sau": 0.35
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "overcast grey sky with smoke haze",
+    "xa": "Continuous autumn tree line behind damaged wooden town buildings, flat bottom",
+    "khoi": "rising plume of grey smoke",
+    "giua": [],
+    "gan": "broken bricks, burnt timbers and trampled mud"
+   }
   },
   {
    "id": "imperial_guard_camp",
@@ -704,7 +862,15 @@
      "cao": 0.2,
      "sau": 0.35
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Clear September sky",
+    "xa": "Continuous distant low meadow horizon, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "trampled grass, tent pegs and a coil of rope"
+   }
   },
   {
    "id": "staff_headquarters",
@@ -734,7 +900,15 @@
      "cao": 0.25,
      "sau": 0.5
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": true,
+    "troi": "Dark canvas rear wall of a field headquarters tent",
+    "xa": "Continuous campaign desk and map table against the rear tent wall, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "Continuous canvas-covered tent floor with low campaign chests, flat bottom"
+   }
   },
   {
    "id": "supply_depot",
@@ -796,7 +970,15 @@
      "cao": 0.25,
      "sau": 0.4
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "Clear September sky",
+    "xa": "Continuous distant orderly camp horizon, flat bottom",
+    "khoi": null,
+    "giua": [],
+    "gan": "trodden grass, wooden stakes and a coil of rope"
+   }
   },
   {
    "id": "artillery_park",

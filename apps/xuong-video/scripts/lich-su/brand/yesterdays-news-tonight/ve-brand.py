@@ -11,9 +11,9 @@ RA = GOC / 'ra'
 ANTON = str(GOC / 'fonts/Anton-Regular.ttf')
 DO, VANG, DEN, TRANG = (232, 53, 43), (255, 225, 77), (17, 17, 17), (255, 255, 255)
 NEN_BIA = GOC / 'anh-nen/pe-27794812.jpg'    # bó báo cũ, không người, không chữ đọc được
-NEN_AVT = GOC / 'anh-nen/pe-14759050.jpg'    # micro chrome cổ — "phát thanh viên"
-for f in (NEN_BIA, NEN_AVT):
-    if not f.exists(): sys.exit(f'thiếu ảnh thật {f} — luật nền ảnh thật, không vẽ nền trơn')
+LOGO = RA / 'logo/dau-vang-1024.png'         # trăng + kim quay lùi, dựng bằng ve-logo.py + ve-logo-png.mjs
+for f in (NEN_BIA, LOGO):
+    if not f.exists(): sys.exit(f'thiếu {f} — ảnh nền phải là ảnh thật; logo dựng bằng ve-logo.py trước')
 
 
 def phu(im, w, h, tam=(0.5, 0.5)):
@@ -38,8 +38,18 @@ def nhan(d, cx, cy, t, size, nen, mau, nghieng_px=0):
     d.text((cx, cy + nghieng_px / 2 + size * .04), t, font=f, fill=mau, anchor='mm')
 
 
+def dan_logo(im, cx, cy, s, lech):
+    """Dán logo vàng kèm bóng cứng đen lệch, cùng kiểu dải tít lá cải."""
+    logo = Image.open(LOGO).convert('RGBA').resize((s, s), Image.LANCZOS)
+    bong = Image.new('RGBA', logo.size, DEN + (255,))
+    bong.putalpha(logo.getchannel('A'))
+    x, y = int(cx - s / 2), int(cy - s / 2)
+    im.alpha_composite(bong, (x + lech, y + lech))
+    im.alpha_composite(logo, (x, y))
+
+
 def banner():
-    """YouTube 2560x1440 — vùng an toàn mọi thiết bị ở giữa 1546x423: tên kênh + dòng mô tả nằm gọn trong đó."""
+    """YouTube 2560x1440 — vùng an toàn mọi thiết bị ở giữa 1546x423: logo + tên kênh + dòng mô tả nằm gọn trong đó."""
     W, H = 2560, 1440
     im = phu(Image.open(NEN_BIA), W, H, (0.5, 0.45))
     im = ImageEnhance.Color(im).enhance(0.55)
@@ -50,23 +60,24 @@ def banner():
         k = 1 - min(1, abs(y - H / 2) / 420)
         dl.line([(0, y), (W, y)], fill=DO + (int(70 + 140 * k),))
     im = Image.alpha_composite(im.convert('RGBA'), lop)
+    dan_logo(im, W / 2 - 500, H / 2 + 5, 340, 12)
     d = ImageDraw.Draw(im)
-    # vùng an toàn mọi thiết bị: y 508–931 → cả cụm nằm trong 560–880
-    nhan(d, W / 2, H / 2 - 105, "YESTERDAY'S NEWS", 125, VANG, DEN, -16)
-    nhan(d, W / 2, H / 2 + 40, 'TONIGHT', 125, DEN, VANG, -8)
-    chu_dam(d, (W / 2, H / 2 + 150), 'HISTORY, REPORTED LIKE IT JUST HAPPENED', 40)
+    # vùng an toàn mọi thiết bị: y 508–931 → cả cụm nằm trong 560–880, x 507–2053
+    cx = W / 2 + 170
+    nhan(d, cx, H / 2 - 105, "YESTERDAY'S NEWS", 125, VANG, DEN, -16)
+    nhan(d, cx, H / 2 + 40, 'TONIGHT', 125, DEN, VANG, -8)
+    chu_dam(d, (cx, H / 2 + 150), 'HISTORY, REPORTED LIKE IT JUST HAPPENED', 40)
     return im.convert('RGB')
 
 
 def avatar():
-    """800x800, soát bản cắt tròn: micro nằm giữa vòng, viền vàng + dải chữ YNT dưới."""
+    """800x800, soát bản cắt tròn: bó báo thật dưới lớp đỏ, logo lớn giữa vòng (lệch trái nhẹ vì khối trăng nặng bên trái nằm đúng tâm khi cộng phần kim)."""
     S = 800
-    im = phu(Image.open(NEN_AVT), S, S, (0.5, 0.5))
-    im = ImageEnhance.Contrast(im).enhance(1.15)
-    lop = Image.new('RGBA', (S, S), DO + (55,))
+    im = phu(Image.open(NEN_BIA), S, S, (0.5, 0.45))
+    im = ImageEnhance.Contrast(ImageEnhance.Color(im).enhance(0.55)).enhance(1.1)
+    lop = Image.new('RGBA', (S, S), DO + (170,))
     im = Image.alpha_composite(im.convert('RGBA'), lop)
-    d = ImageDraw.Draw(im)
-    nhan(d, S / 2, S * 0.74, 'YNT', 120, VANG, DEN, -10)
+    dan_logo(im, S / 2 + 6, S / 2, 560, 12)
     return im.convert('RGB')
 
 

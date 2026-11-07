@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 import importlib.util
 D = os.path.dirname(os.path.abspath(__file__))
 import importlib.util as _iu2
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 _c2 = _iu2.spec_from_file_location("cta_qc", os.path.join(D, "cta_qc.py")); CQ = _iu2.module_from_spec(_c2); _c2.loader.exec_module(CQ); A = os.path.join(D, "..", "..", "assets", "ethopex")
 _s = importlib.util.spec_from_file_location("dl", os.path.join(D, "dung-lo-dai.py")); DL = importlib.util.module_from_spec(_s); _s.loader.exec_module(DL)
 DAI_MIN, DAI_MAX, QUET = 65, 85, 420
@@ -40,7 +41,7 @@ def ghep_mo(tm):
             o = f[:-4] + "-chuan.mp4"
             if not os.path.exists(o):
                 subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f, "-vf", "scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2,fps=30,setsar=1",
-                                *(["-c:v", "h264_videotoolbox", "-b:v", "8M"] if sys.platform == "darwin" else ["-c:v", "libx264", "-crf", "16", "-preset", "veryfast"]), "-c:a", "aac", "-ar", "44100", "-ac", "2", o], check=True, timeout=900)
+                                *NV.nen_h264(crf=16, preset="veryfast", bit="8M"), "-c:a", "aac", "-ar", "44100", "-ac", "2", o], check=True, timeout=900)
             return o
         vao = [chuan(f) for f in vao]
     # tệp ghép mới hơn mọi tập → dùng lại (box3 23/10/2026: chữ đã đọc sẵn <ghep-cuoi>.chu.json gắn với tệp này; ghép lại = đổi giờ tệp = bỏ bản đọc)

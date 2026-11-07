@@ -13,6 +13,7 @@ import { phongCachHinh } from './kieu';
 import { taoJob, xongJob, type Db, type boiCanhCanh } from './doc-db';
 import { boiCanhCua, cauDoMang, coGhep, khoaNen, locGhep, promptLopTrenNen, promptNen, soatChan, thanhPhanLop, PROMPT_TACH_LOP } from './dung-lop';
 import { dayViecAnh } from './hoan-tat';
+import { nenH264 } from './nen-video.mjs';
 
 const run = promisify(execFile);
 type Bc = NonNullable<Awaited<ReturnType<typeof boiCanhCanh>>>;
@@ -59,7 +60,7 @@ export async function ghepVideoLop(nenUrl: string, clip: Buffer, tiLe: string | 
   try {
     const [w, h] = coGhep(tiLe); const n = join(thu, 'nen'), l = join(thu, 'lop.mp4'), ra = join(thu, 'ra.mp4');
     await tai(nenUrl, n); await writeFile(l, clip);
-    await run('ffmpeg', ['-hide_banner', '-nostats', '-y', '-loop', '1', '-i', n, '-i', l, '-filter_complex', locGhep(w, h, true), '-map', '[v]', '-map', '1:a?', '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p', '-c:a', 'copy', '-shortest', ra], { timeout: 300_000 });
+    await run('ffmpeg', ['-hide_banner', '-nostats', '-y', '-loop', '1', '-i', n, '-i', l, '-filter_complex', locGhep(w, h, true), '-map', '[v]', '-map', '1:a?', ...nenH264({ crf: 18 }), '-c:a', 'copy', '-shortest', ra], { timeout: 300_000 });
     return await readFile(ra);
   } catch (e) { console.error('[ghép lớp video] hỏng', e); return null; }
   finally { await rm(thu, { recursive: true, force: true }).catch(() => {}); }

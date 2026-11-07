@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { nenH264 } from '../../../../src/lib/xuong-video/nen-video.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), RA = join(DIR, 'ra'), TAM = join(RA, '.outro');
 const chromium = layChromium(), chi = process.argv.includes('--chi') ? process.argv[process.argv.indexOf('--chi') + 1] : null;
@@ -27,7 +28,7 @@ for (const { pl, nen } of bo) for (const [khung, dai, w, h] of [['doc', 1, 1080,
     '-f', 'lavfi', '-t', String(dai), '-i', `anoisesrc=c=pink:a=0.5:d=${dai}`,
     '-filter_complex', `[2:a]highpass=f=900,lowpass=f=7000,volume=0.35,afade=t=in:d=${(bat * 0.9).toFixed(2)},afade=t=out:st=${(bat * 0.9).toFixed(2)}:d=0.12[vut];` +
       `[1:a]adelay=${Math.round((bat - 0.08) * 1000)}|${Math.round((bat - 0.08) * 1000)},volume=0.9[ch];[vut][ch]amix=inputs=2:duration=first:normalize=0,afade=t=out:st=${dai - 0.25}:d=0.25,loudnorm=I=-14:TP=-1.5,aresample=48000[a]`,
-    '-map', '0:v', '-map', '[a]', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-t', String(dai), join(RA, `${ten}.mp4`)]);
+    '-map', '0:v', '-map', '[a]', ...nenH264({ crf: 18 }), '-c:a', 'aac', '-b:a', '160k', '-ac', '2', '-t', String(dai), join(RA, `${ten}.mp4`)]);
   console.log(`✓ ra/${ten}.mp4 · ${dai}s`);
 }
 rmSync(TAM, { recursive: true, force: true }); await tr.close();

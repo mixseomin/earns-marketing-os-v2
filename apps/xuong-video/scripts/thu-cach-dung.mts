@@ -15,6 +15,7 @@ import { promptVideoCanh } from '../src/lib/xuong-video/sinh-video';
 import { guiPlenx, docPlenx } from '../src/lib/xuong-video/cong-plenxai';
 import { giayPhat } from '../src/lib/xuong-video/kieu';
 import { uploadToR2 } from '../src/lib/r2';
+import { nenH264 } from '../src/lib/xuong-video/nen-video.mjs';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const tap = Number(gia('tap')), tu = Number(gia('tu')), den = Number(gia('den')); const moHinh = gia('mo-hinh') || 'veo3-lite';
@@ -35,7 +36,7 @@ async function clip(nhan: string, prompt: string, anhDau: string, anhCuoi?: stri
   console.log(`  ${nhan}: bỏ sau 6 lần`); return null;
 }
 const ff = (args: string[]) => execFileSync('ffmpeg', ['-loglevel', 'error', '-y', ...args], { timeout: 300_000 });
-const doan = (vao: string, tuS: number, dai: number, ra: string) => ff(['-ss', String(tuS), '-i', vao, '-t', String(dai), '-vf', 'scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30,setsar=1', '-an', '-c:v', 'libx264', '-preset', 'veryfast', ra]);
+const doan = (vao: string, tuS: number, dai: number, ra: string) => ff(['-ss', String(tuS), '-i', vao, '-t', String(dai), '-vf', 'scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30,setsar=1', '-an', ...nenH264({ preset: 'veryfast' }), ra]);
 const noi = (tep: string[], ra: string) => { writeFileSync(`${thu}/ds.txt`, tep.map((t) => `file '${t}'`).join('\n')); ff(['-f', 'concat', '-safe', '0', '-i', `${thu}/ds.txt`, '-c', 'copy', ra]); };
 const tongGiay = ds.reduce((s, c) => s + giayPhat(c), 0);
 const bc = await Promise.all(ds.map((c) => boiCanhCanh(db, c.id)));
@@ -63,7 +64,7 @@ const fCC = await clip('C-nhieu-goc', pC, dau.keyframe_url!); if (fCC) doan(fCC,
 // ── ghép A | B | C cạnh nhau ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 const co = ['A', 'B', 'C'].map((x) => `${thu}/${x}.mp4`).filter((f) => { try { readFileSync(f); return true; } catch { return false; } });
 const ra = `${thu}/so-sanh.mp4`;
-if (co.length) { ff([...co.flatMap((f) => ['-i', f]), '-filter_complex', `${co.map((_, i) => `[${i}:v]scale=360:640,tpad=stop_mode=clone:stop_duration=8[v${i}]`).join(';')};${co.map((_, i) => `[v${i}]`).join('')}hstack=${co.length},trim=0:${Math.ceil(tongGiay + 1)}[o]`, '-map', '[o]', '-c:v', 'libx264', '-preset', 'veryfast', ra]);
+if (co.length) { ff([...co.flatMap((f) => ['-i', f]), '-filter_complex', `${co.map((_, i) => `[${i}:v]scale=360:640,tpad=stop_mode=clone:stop_duration=8[v${i}]`).join(';')};${co.map((_, i) => `[v${i}]`).join('')}hstack=${co.length},trim=0:${Math.ceil(tongGiay + 1)}[o]`, '-map', '[o]', ...nenH264({ preset: 'veryfast' }), ra]);
   const url = await uploadToR2(`xuong-video/thu/${tap}-${tu}-${den}-${randomUUID()}.mp4`, readFileSync(ra), 'video/mp4'); console.log(`\nSO SÁNH (${co.map((f) => f.split('/').pop()!.replace('.mp4', '')).join(' | ')}): ${url}`);
   for (const f of co) { const u = await uploadToR2(`xuong-video/thu/${tap}-${f.split('/').pop()!.replace('.mp4', '')}-${randomUUID()}.mp4`, readFileSync(f), 'video/mp4'); console.log(`  ${f.split('/').pop()}: ${u}`); } }
 process.exit(0);

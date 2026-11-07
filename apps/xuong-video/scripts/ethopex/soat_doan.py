@@ -16,6 +16,7 @@ khóc sau cảnh giằng co), bạo lực máu me, vũ khí chĩa người, tự
   python3 soat_doan.py len                         → đẩy các đoạn đã ok (len-creative) + nhân bản camp góc mới đang chờ (nhan-ban, giờ chạy do lich_len quyết)
 Chạy trên iMac."""
 import datetime as dt, json, os, re, subprocess, sys, time
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 D = os.path.dirname(os.path.abspath(__file__)); B = "root@167.233.241.16"; C = os.path.expanduser("~/.cache/ethopex")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 CHO = os.path.join(C, "cho-soat")
@@ -126,7 +127,7 @@ def cat_bo(f, khung):
     dk = "+".join(f"between(t,{a:.2f},{z:.2f})" for a, z in kh)
     goc = f[:-4] + ".goc.mp4"   # bản gốc giữ một lần; lượt cắt thứ hai cắt trên bản ĐÃ cắt (khung soát lại đánh số theo bản đó)
     nguon = goc if not os.path.exists(goc) else f[:-4] + ".truoc.mp4"; os.replace(f, nguon)
-    ma = ["-c:v", "h264_videotoolbox", "-b:v", "3M"] if sys.platform == "darwin" else ["-c:v", "libx264", "-crf", "23"]
+    ma = NV.nen_h264(crf=23, bit="3M")
     r = subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", nguon, "-vf", f"select='not({dk})',setpts=N/FRAME_RATE/TB", "-af", f"aselect='not({dk})',asetpts=N/SR/TB",
                         *ma, "-pix_fmt", "yuv420p", "-c:a", "aac", "-movflags", "+faststart", f], capture_output=True, text=True)
     if r.returncode or not os.path.exists(f): os.replace(nguon, f); return None

@@ -17,6 +17,7 @@ Kết quả bước: xong · dung (policy / luật — máy chủ động dừng
 Dùng: dong_phim.py (vòng chính) · dong_phim.py mot [giây] (một vòng, thử)"""
 import datetime as dt, json, os, re, signal, socket, subprocess, sys, threading, time
 R = os.path.dirname(os.path.abspath(__file__)); E = os.path.join(R, "..", "xuong-video", "scripts", "ethopex")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex")); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 sys.path.insert(0, E); import loi_ky_thuat as LK
 # MỘT kết nối ssh dùng chung (ControlMaster) cho mọi câu SQL / lệnh box3 — mỗi câu một ssh mới thì >10 dòng song song vượt MaxStartups của sshd box3,
 # box3 đóng kết nối ("Connection closed by … port 22", 04/11/2026)
@@ -470,7 +471,7 @@ def dung_imac():
     try:
         r = subprocess.run(["rsync", "-a", "--exclude", v["ra"], f"{B}:{v['thu_muc'].rstrip('/')}/", tm + "/"], capture_output=True, text=True, timeout=600)
         if r.returncode: raise RuntimeError(f"tải đầu vào: {r.stderr[-200:]}")
-        args = [a.replace("@DIR@", tm).replace("@FONTS@", os.path.abspath(FONTS)) for a in v["args"]]
+        args = NV.doi_nen([a.replace("@DIR@", tm).replace("@FONTS@", os.path.abspath(FONTS)) for a in v["args"]])   # box3 dựng lệnh libx264 → iMac nén bằng VideoToolbox
         r = subprocess.run(["ffmpeg", *args], capture_output=True, text=True, timeout=15 * 60)
         ra = os.path.join(tm, v["ra"])
         if r.returncode or not os.path.exists(ra): raise RuntimeError(f"ffmpeg: {r.stderr[-300:]}")

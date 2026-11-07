@@ -12,6 +12,7 @@ export const FPS = 30, T_DEM = 0.3, DEM = 7, T_LO = T_DEM + DEM, LO = 0.6, T_KET
 const W = 1080, H = 1920, DO = '#E5484D';
 /** Cỡ chữ ASS (\\fs) tính theo chiều cao dòng, cỡ CSS của bản cũ tính theo em → nhân hệ số này để chữ ra cùng cỡ (đo 16/10/2026 trên khung so). */
 import { alpha, bo, chu, mauAss, ms, nayVao, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { nenH264 } from './nen-video.mjs';
 export { mauAss };
 
 const EM = 1.25;
@@ -103,7 +104,7 @@ export function lenhMotDung(o: { de: DeMotDung; ass: string; nen: string | null;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${AM}':s=44100:d=${DAI}`,
     '-filter_complex', loc,
-    '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
+    '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), ...nenH264({ crf: 20, preset: 'medium' }), '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
 }
 
 /** PHIM của khuôn (thể loại 'may_dung' trong danh sách Phim, anh 16/10/2026: "nó luôn phải nằm trong danh sách Phim, chỉ là thể loại khác"):

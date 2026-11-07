@@ -4,6 +4,7 @@ Creative chấm lỗi vì VIDEO (> 100 MB vượt giới hạn Cloudflare, hoặ
 bằng ffmpeg trên box3, PUT lên Worker etp-cham (/nhe/<id>, R2 nhe/<id>.mp4 — Worker dùng bản này thay bản gốc), rồi xếp lại hàng chờ.
 dong-bo.py gọi mỗi lượt (10 phút), tối đa MOI_LUOT creative / lượt, mỗi creative tối đa 2 lần dựng. Dùng tay: cham-nhe.py [creative_id …]"""
 import json, os, subprocess, sys, tempfile, urllib.request
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../xuong-video/scripts/ethopex")); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 WORKER = "https://etp-cham.eimagini-info.workers.dev"
 MOI_LUOT = 1   # dong-bo.service có TimeoutStartSec=900 — một video / lượt
 LOI_VIDEO = "(loi like '%vượt giới hạn 100 MB%' or loi ~ 'cắt được [0-9]+/[0-9]+ khung')"
@@ -17,7 +18,7 @@ def mot(cr, video):
         goc, ra = os.path.join(d, "goc.mp4"), os.path.join(d, "nhe.mp4")
         urllib.request.urlretrieve(video, goc)
         for crf in (28, 32, 36):   # tới khi < 95 MB
-            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", goc, "-vf", "scale=-2:'min(720,ih)'", "-c:v", "libx264", "-preset", "veryfast", "-crf", str(crf),
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", goc, "-vf", "scale=-2:'min(720,ih)'", *NV.nen_h264(crf=crf, preset="veryfast"),
                             "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", ra], check=True, timeout=480)
             if os.path.getsize(ra) < 95 * 1048576: break
         dai = os.path.getsize(ra)

@@ -5,6 +5,7 @@
 // Phụ đề: mỗi câu lời dẫn hiện đúng quãng nó được đọc — chia thời lượng giọng theo số ký tự từng câu (giọng đọc đều, không cần dấu thời gian từng chữ).
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-giai-thich.test.mts
 import { alpha, bo, chu, giayDoc, mauAss, nayVao, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { nenH264 } from './nen-video.mjs';
 
 export interface DeGiaiThich {
   truy: string;            // từ khoá VIDEO nền Pexels (tiếng Anh, theo góc)
@@ -86,7 +87,7 @@ export function lenhGiaiThich(o: { de: DeGiaiThich; ass: string; nen?: string | 
   const iAm = clip ? clip.length : 1;
   const am = `[${iAm}:a]adelay=${Math.round(T_DAU * 1000)}|${Math.round(T_DAU * 1000)},apad,atrim=0:${dai},loudnorm=I=-16:TP=-1.5:LRA=11[a]`;
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-i', o.am,
-    '-filter_complex', `${loc};${am}`, '-map', '[v]', '-map', '[a]', '-r', String(FPS), '-t', String(dai), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
+    '-filter_complex', `${loc};${am}`, '-map', '[v]', '-map', '[a]', '-r', String(FPS), '-t', String(dai), ...nenH264({ crf: 21, preset: 'veryfast' }), '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
 }
 
 export function kichBanGiaiThich(de: DeGiaiThich) {

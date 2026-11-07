@@ -7,6 +7,7 @@
 import { alpha, bo, chu, giayDoc, mauAss, ngat, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
 import { chuoiAnh, locAmChuoi } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
+import { nenH264 } from './nen-video.mjs';
 
 export interface MauGia { gui: string; dong: { t: string; co?: number }[] }   // gui = đầu thẻ (người gửi / tên shop / tiêu đề); dong = các dòng, co = số dấu hiệu khoanh lúc lộ (chỉ ở thẻ giả)
 export interface DeGia {
@@ -89,7 +90,7 @@ export function lenhGia(o: { de: DeGia; ass: string; nen?: string | null; am?: s
   const c = chuoiAnh([{ anh: o.nen, tu: 0, den: dai }], { W, H, dai, fps: FPS }), f = [...c.loc, `[vx]gblur=sigma=6,ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`];
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...c.vao, '-filter_complex', f.join(';'), '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   const amVao = o.am ? ['-stream_loop', '-1', '-i', o.am] : ['-f', 'lavfi', '-i', `anullsrc=r=44100:cl=mono:d=${dai}`];
-  return ['-y', '-hide_banner', '-loglevel', 'error', ...c.vao, ...amVao, '-filter_complex', `${f.join(';')};${locAmChuoi(dai).replace('[A]', `[${c.soVao}:a]`)}`, '-map', '[v]', '-map', '[a]', '-r', String(FPS), '-t', String(dai), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', o.ra];
+  return ['-y', '-hide_banner', '-loglevel', 'error', ...c.vao, ...amVao, '-filter_complex', `${f.join(';')};${locAmChuoi(dai).replace('[A]', `[${c.soVao}:a]`)}`, '-map', '[v]', '-map', '[a]', '-r', String(FPS), '-t', String(dai), ...nenH264({ crf: 21, preset: 'veryfast' }), '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', o.ra];
 }
 export function kichBanGia(de: DeGia) {
   const N = nhipGia(de);

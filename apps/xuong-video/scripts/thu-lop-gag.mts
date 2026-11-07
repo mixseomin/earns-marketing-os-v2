@@ -17,6 +17,7 @@ import { sinhAnhQuaCong, guiVideoCong, docVideoCong } from '../src/lib/xuong-vid
 import '../src/lib/xuong-video/cong-plenxai';
 import { docKinhThanh, phongCachHinh, type KinhThanh } from '../src/lib/xuong-video/kieu';
 import { MAU_XANH_NEN } from '../src/lib/xuong-video/cat-nen';
+import { nenH264 } from '../src/lib/xuong-video/nen-video.mjs';
 
 const run = promisify(execFile);
 const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';
@@ -70,6 +71,6 @@ console.log('4. ghép (0đ)');
 const ra = join(thu, 'ghep.mp4');
 await run('ffmpeg', ['-y', '-loop', '1', '-i', join(thu, 'nen.img'), '-i', lopMp4, '-filter_complex',
   `[0:v]scale=1280:720,setsar=1[n];[1:v]scale=1280:720,chromakey=0x00FF00:0.16:0.08,despill=type=green[l];[n][l]overlay=0:0:shortest=1,format=yuv420p[v]`,
-  '-map', '[v]', '-c:v', 'libx264', '-crf', '18', '-t', String(giay), ra]);
+  '-map', '[v]', ...nenH264({ crf: 18 }), '-t', String(giay), ra]);
 console.log(`  ghép: ${await uploadToR2(`xuong-video/thu-lop/${ma}-ghep.mp4`, await readFile(ra), 'video/mp4')}`);
 process.exit(0);

@@ -13,6 +13,7 @@ Dùng: python3 cat-canh.py <nguon.mp4> <tu_giay> <den_giay> <poster.png> <font.j
 import json, os, re, sys, importlib.util
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 from PIL import Image, ImageDraw
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 
 D = os.path.dirname(os.path.abspath(__file__))
 def nap(ten, tep):
@@ -21,7 +22,7 @@ gb = nap("gb", "ghep-b.py"); gx = gb.gx; CQ = nap("cta_qc", "cta_qc.py")
 W, H = gx.W, gx.H
 # MÃ HOÁ (23/10/2026): Mac dùng bộ mã hoá phần cứng (đo 85s: libx264 23,4s → videotoolbox 11,4s, SSIM 0,9935); box3 không có → libx264 như cũ
 # 3 Mbps (26/10/2026): 6M ra ~66 MB/đoạn 85s, đường đẩy iMac → box3 chỉ ~1 Mbit/s → lô 70 đoạn mất >10 giờ (phim-moi len pm-26101408 gãy giữa chừng). FB tự nén lại, 3M 1080p đủ nét
-MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "3M", "-maxrate", "4500k"] if sys.platform == "darwin" else ["-c:v", "libx264", "-crf", "23"]
+MA_HOA = NV.nen_h264(crf=23, bit="3M", maxrate="4500k")
 TOC_GIONG, VAO_TRUOC, Y_NUT = 1.15, 1.0, 1600
 
 def the_cuoi_anh(poster, hoi, ra):

@@ -6,6 +6,7 @@
 //     --bang=scripts/so-do/thang-may-356.json --khung=/tmp/khung-356 --ra=/tmp/thang-may-356.mp4
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { nenH264 } from '../src/lib/xuong-video/nen-video.mjs';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const tepBang = gia('bang')!, thu = gia('khung')!, ra = gia('ra') ?? '/tmp/canh.mp4';
@@ -55,7 +56,7 @@ sh(['-f', 'concat', '-safe', '0', '-i', `${tam}/v.txt`, '-c', 'copy', `${tam}/hi
 sh(['-f', 'concat', '-safe', '0', '-i', `${tam}/a.txt`, '-c', 'copy', `${tam}/tieng.wav`]);
 const tieng = keTren.length ? `${tam}/tieng-ke.wav` : `${tam}/tieng.wav`;
 if (keTren.length) sh(['-i', `${tam}/tieng.wav`, ...keTren.flatMap((k) => ['-i', k.f]), '-filter_complex', `${keTren.map((k, j) => `[${j + 1}:a]aresample=48000,adelay=${Math.round(k.tu * 1000)}|${Math.round(k.tu * 1000)}[k${j}];`).join('')}[0:a]${keTren.map((_, j) => `[k${j}]`).join('')}amix=inputs=${keTren.length + 1}:duration=first:normalize=0[a]`, '-map', '[a]', tieng]);
-sh(['-i', `${tam}/hinh.mp4`, '-i', tieng, '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-crf', '19', '-c:a', 'aac', '-movflags', '+faststart', ra]);
+sh(['-i', `${tam}/hinh.mp4`, '-i', tieng, '-map', '0:v', '-map', '1:a', ...nenH264({ crf: 19 }), '-c:a', 'aac', '-movflags', '+faststart', ra]);
 // TỰ KIỂM: tiếng và hình phải dài bằng nhau (lệch > 1 khung = có đoạn trôi)
 const lech = Math.abs(dai(`${tam}/tieng.wav`) - dai(`${tam}/hinh.mp4`)); console.log(`lệch tiếng/hình: ${(lech * 1000).toFixed(0)} ms${lech > 1 / 24 ? ' ⚠ QUÁ 1 KHUNG' : ''} · tổng mốc ${moc.toFixed(2)}s`);
 console.log(ra, `${dai(ra).toFixed(1)}s`, `${doan.length} shot`);

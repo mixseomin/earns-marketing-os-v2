@@ -8,6 +8,7 @@ Từ một đoạn nguồn [tu, den]:
 Bản ra dài đúng (den - tu) giây, mốc 0 = tu → đưa vào cat-canh.py <ra> 0 <den-tu> … như nguồn thường.
 Dùng: che-thoai.py <nguồn.mp4> <tu> <den> <ra.mp4> [--che "a-b,c-d"]"""
 import importlib.util, json, os, subprocess, sys, tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 D = os.path.dirname(os.path.abspath(__file__))
 _s = importlib.util.spec_from_file_location("kt", os.path.join(D, "kiem-thoai.py")); KT = importlib.util.module_from_spec(_s); _s.loader.exec_module(KT)
@@ -45,7 +46,7 @@ def main(a):
     src, tu, den, out = a[0], float(a[1]), float(a[2]), a[3]; L = den - tu
     che = [tuple(map(float, x.split("-"))) for x in (a[a.index("--che") + 1].split(",") if "--che" in a else []) if x]
     tmp = out[:-4] + "-goc.mp4"
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(tu), "-t", str(L), "-i", src, "-c:v", "libx264", "-crf", "16", "-preset", "veryfast", "-c:a", "aac", "-ar", "44100", "-ac", "2", tmp], check=True)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(tu), "-t", str(L), "-i", src, *NV.nen_h264(crf=16, preset="veryfast"), "-c:a", "aac", "-ar", "44100", "-ac", "2", tmp], check=True)
     W, H = map(int, subprocess.check_output(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", tmp]).decode().strip().split(","))
     kc = khoang_cam(doc_khung(tmp, L))
     v, am, n = "[0:v]null[v0]", "[0:a]anull[a0]", 0
@@ -61,7 +62,7 @@ def main(a):
         am = (f"[0:a]volume=0:enable='{cond}'[a1];sine=frequency=1000:sample_rate=44100:duration={L},volume=0.35,"
               f"volume=0:enable='not({cond})',aformat=channel_layouts=stereo[bip];[a1][bip]amix=inputs=2:duration=first:normalize=0[a0]")
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", tmp, "-filter_complex", f"{v};{am}", "-map", f"[v{n}]", "-map", "[a0]",
-                    "-c:v", "libx264", "-crf", "16", "-preset", "veryfast", "-c:a", "aac", "-ar", "44100", out], check=True)
+                    *NV.nen_h264(crf=16, preset="veryfast"), "-c:a", "aac", "-ar", "44100", out], check=True)
     os.remove(tmp)
     con = [(g, d["chu"]) for g, d in doc_khung(out, L) if KT.soat(d["chu"])]
     print(json.dumps({"ra": out, "giay": L, "che_thoai": [[round(p, 2), round(q, 2)] for p, q, _ in kc], "mo_khung": che,

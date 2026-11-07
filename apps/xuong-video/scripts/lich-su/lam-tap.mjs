@@ -18,6 +18,7 @@ import { KHO, geo, TP, chuan, boDau, dichCua } from './dia-ly.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
 import { BOX, box, len, ve, q, sqlBox, boxA, chay, lenA, veA, sshA, sshS, songSong, dauDangLam } from './box3.mjs';
 import { hoSoTap, playlistCuaTap, timPlaylist, tieuDeDang } from './playlist.mjs';
+import { nenH264 } from '../../src/lib/xuong-video/nen-video.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const co = (k) => process.argv.includes(`--${k}`);
@@ -479,13 +480,13 @@ if (maDung) { nenThumb?.giet(); process.exit(maDung); }
 if (co('den-thumb')) { const ma = nenThumb ? await nenThumb.xong : 0; console.log(`✓ thử song song xong · thumbnail mã ${ma} · ${join(RA, 'thumb-kq.json')}`); process.exit(ma); }
 if (arg('khung')) process.exit(0);
 const mp4 = join(RA, `${id}.mp4`), xem = join(RA, `${id}-xem.mp4`);
-if (!co('chi-day')) execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-vf', 'scale=540:-2', '-c:v', 'libx264', '-crf', '30', '-preset', 'veryfast', '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', xem]);
+if (!co('chi-day')) execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-vf', 'scale=540:-2', ...nenH264({ crf: 30, preset: 'veryfast' }), '-c:a', 'aac', '-b:a', '96k', '-movflags', '+faststart', xem]);
 console.log(`✓ ${mp4}\n✓ ${xem}`);
 buoc('đẩy Studio');
 // 5. STUDIO: mỗi kênh một phim, tập này thành một tập trong phim đó — anh quản / duyệt trong studio.on.tc. Gửi BẢN PHÁT HÀNH nén (1080p H.264 crf 23 trần 6 Mbps — lớp chấm in lá cải khó nén,
 // bản gốc máy quay ~350 MB/3 phút) qua /var/tmp (đĩa; /tmp box3 là ổ RAM 512 MB) — hỏng ở bất kỳ khâu nào chỉ báo, không làm mất video đã dựng
 { const ban = join(RA, `${id}-ban.mp4`), bt = `/var/tmp/tap-day-${id}`; let kq = null, giay = 0;
-  try { execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, '-c:v', 'libx264', '-crf', '23', '-maxrate', '6M', '-bufsize', '12M', '-preset', 'medium', '-pix_fmt', 'yuv420p', '-c:a', 'copy', '-movflags', '+faststart', ban]);
+  try { execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', mp4, ...nenH264({ crf: 23, preset: 'medium', maxrate: '6M', bufsize: '12M' }), '-c:a', 'copy', '-movflags', '+faststart', ban]);
     sshS([`mkdir -p ${bt}`]); len(tepTap, `${bt}/tap.json`); len(ban, `${bt}/tap.mp4`);
     // 3 khung (12 % · 50 % · 85 %) cho Studio + Phòng Nội dung chấm hình
     giay = Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', mp4], { encoding: 'utf8' }));

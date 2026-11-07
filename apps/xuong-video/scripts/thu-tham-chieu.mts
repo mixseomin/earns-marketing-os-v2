@@ -17,6 +17,7 @@ import { guiFal, docFal } from '../src/lib/xuong-video/fal';
 import { promptCumMoi } from '../src/lib/xuong-video/cum-shot';
 import { giayPhat, type NhanVat, type Canh } from '../src/lib/xuong-video/kieu';
 import { uploadToR2 } from '../src/lib/r2';
+import { nenH264 } from '../src/lib/xuong-video/nen-video.mjs';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const tap = Number(gia('tap')), tu = Number(gia('tu')), den = Number(gia('den')); const chi = (gia('chi') || 'K,V,O').split(',');
@@ -78,6 +79,6 @@ const ff = (args: string[]) => execFileSync('ffmpeg', ['-loglevel', 'error', '-y
 for (const f of co) { const u = await uploadToR2(`xuong-video/thu/${tap}-thamchieu-${f.split('/').pop()!.replace('.mp4', '')}-${randomUUID()}.mp4`, readFileSync(f), 'video/mp4'); console.log(`  ${f.split('/').pop()}: ${u}`);
   ff(['-i', f, '-vf', 'fps=2,scale=160:-1,tile=8x2', '-frames:v', '1', f.replace('.mp4', '-to.jpg')]); }
 if (co.length > 1) { const ra = `${thu}/so-sanh.mp4`;
-  ff([...co.flatMap((f) => ['-i', f]), '-filter_complex', `${co.map((_, i) => `[${i}:v]scale=360:640,setsar=1,fps=30,tpad=stop_mode=clone:stop_duration=15[v${i}]`).join(';')};${co.map((_, i) => `[v${i}]`).join('')}hstack=${co.length},trim=0:15[o]`, '-map', '[o]', '-c:v', 'libx264', '-preset', 'veryfast', ra]);
+  ff([...co.flatMap((f) => ['-i', f]), '-filter_complex', `${co.map((_, i) => `[${i}:v]scale=360:640,setsar=1,fps=30,tpad=stop_mode=clone:stop_duration=15[v${i}]`).join(';')};${co.map((_, i) => `[v${i}]`).join('')}hstack=${co.length},trim=0:15[o]`, '-map', '[o]', ...nenH264({ preset: 'veryfast' }), ra]);
   console.log(`\nSO SÁNH (${co.map((f) => f.split('/').pop()!.replace('.mp4', '')).join(' | ')}): ${await uploadToR2(`xuong-video/thu/${tap}-thamchieu-${randomUUID()}.mp4`, readFileSync(ra), 'video/mp4')}`); }
 process.exit(0);

@@ -5,6 +5,7 @@
 vùng đó trong đúng quãng đó (boxblur), phần còn lại giữ nguyên. Không có chữ thì chép nguyên.
 Dùng: xoa-chu-clip.py <vào.mp4|url> <ra.mp4>   → in JSON {vung: [[tu, den, x, y, w, h], …]}"""
 import json, os, subprocess, sys, tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cam_box3; cam_box3.cam()   # CẤM dựng video trên box3 (anh 03/11/2026)
 D = os.path.dirname(os.path.abspath(__file__)); MAY = os.path.expanduser("~/.cache/ethopex/hop-chu"); FPS = 5; DEM = 0.04
 def may():
@@ -38,6 +39,6 @@ def main(vao, ra):
         a2, b2 = max(0, a - 1 / FPS), b + 1 / FPS
         loc.append(f"{nhan}split[g{i}][c{i}];[c{i}]crop={W}:{H}:{X}:{Y},boxblur=20:3[m{i}];[g{i}][m{i}]overlay={X}:{Y}:enable='between(t,{a2:.2f},{b2:.2f})'[v{i}]")
         nhan = f"[v{i}]"; out.append([round(a2, 2), round(b2, 2), X, Y, W, H])
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", vao, "-filter_complex", ";".join(loc), "-map", nhan, "-map", "0:a?", "-c:v", "libx264", "-crf", "17", "-preset", "medium", "-c:a", "copy", ra], check=True, timeout=900)
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", vao, "-filter_complex", ";".join(loc), "-map", nhan, "-map", "0:a?", *NV.nen_h264(crf=17, preset="medium"), "-c:a", "copy", ra], check=True, timeout=900)
     print(json.dumps({"vung": out, "chu": sorted(chu)}, ensure_ascii=False))
 if __name__ == "__main__": main(sys.argv[1], sys.argv[2])

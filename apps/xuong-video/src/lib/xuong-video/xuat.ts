@@ -20,6 +20,7 @@ import { lichSfx, LUFS_GIONG, LUFS_NHAC_DUOI_GIONG, LUFS_CLIP_DUOI_GIONG } from 
 export const DUOI_CLIP_BO = 0.45;
 export { doanChuMan, chuManHien } from './kieu';
 import { giayGiuKet, dongThoai, phatTiengClip, lichGiong } from './am-thanh';
+import { nenH264 } from './nen-video.mjs';
 
 /** Một tệp nguyên liệu đã tải về + đo: dai = giây (âm/video), coAm = clip có luồng tiếng, lufs = độ to tích hợp (tệp chỉ có tiếng). */
 export type NguyenLieu = { url: string; duong: string; dai: number | null; coAm: boolean; fps?: number | null; lufs?: number | null;
@@ -477,6 +478,6 @@ export function keHoachXuat(o: {
   else loc.push(`anullsrc=r=48000:cl=stereo,atrim=0:${so(giay)}[aout]`);
   const kichBan = tepChu('loc', loc.join(';\n'));
   const args = ['-y', '-hide_banner', '-loglevel', 'error', ...dauVao, '-/filter_complex', kichBan, '-map', '[vout]', '-map', '[aout]',
-    '-c:v', 'libx264', '-preset', 'medium', '-crf', '20', '-pix_fmt', 'yuv420p', '-r', so(fpsRa), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-t', so(giay), o.ra];
+    ...nenH264({ crf: 20, preset: 'medium' }), '-r', so(fpsRa), '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-t', so(giay), o.ra];
   return { args, tep, giay, canhThieu, canhBao, lich };
 }

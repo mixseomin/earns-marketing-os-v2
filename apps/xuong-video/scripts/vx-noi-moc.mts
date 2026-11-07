@@ -9,6 +9,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { catId, getMedia, guiShot, napKhung, ngu, trenApp, type VxItem } from './vx-br.mts';
 import { moPhien } from './videoexpress.mjs';
+import { nenH264 } from '../src/lib/xuong-video/nen-video.mjs';
 
 const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3) ?? '';
 const moc = arg('moc').split(',').filter(Boolean), giay = arg('giay').split(',').map(Number), nhip = arg('nhip').split('|').map((x) => x.trim()), ra = arg('ra');
@@ -57,5 +58,5 @@ if (tep.length < uuid.length) { console.error('quá 20 phút chưa xong — ch�
 const vao = uuid.map((_, i) => join(ra, `doan-${i + 1}.mp4`));
 const dai = vao.map((f) => Number(execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f], { encoding: 'utf8' }).trim()));
 const loc = vao.map((_, i) => `[${i}:v]setpts=${(giay[i]! / dai[i]!).toFixed(4)}*PTS,scale=1280:720,setsar=1,fps=24[v${i}]`).join(';') + ';' + vao.map((_, i) => `[v${i}]`).join('') + `concat=n=${vao.length}:v=1:a=0[v]`;
-execFileSync('ffmpeg', ['-v', 'error', '-y', ...vao.flatMap((f) => ['-i', f]), '-filter_complex', loc, '-map', '[v]', '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p', join(ra, 'ghep.mp4')]);
+execFileSync('ffmpeg', ['-v', 'error', '-y', ...vao.flatMap((f) => ['-i', f]), '-filter_complex', loc, '-map', '[v]', ...nenH264({ crf: 18 }), join(ra, 'ghep.mp4')]);
 console.log(`ghép: ${join(ra, 'ghep.mp4')} (đoạn gốc ${dai.map((d) => d.toFixed(1)).join(' + ')}s → ${giay.join(' + ')}s)`);

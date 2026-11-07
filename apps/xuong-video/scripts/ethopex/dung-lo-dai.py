@@ -28,12 +28,13 @@ def ghep(thu_muc, tu_tap=1):
     open(ds, "w").write("".join(f"file '{os.path.join(thu_muc, t)}'\n" for t in taps))
     # chuẩn hoá về cùng thông số rồi ghép (tập có thể khác bitrate / kích thước)
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", ds, "-vf", "scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2,fps=30",
-                    *(["-c:v", "h264_videotoolbox", "-b:v", "8M"] if sys.platform == "darwin" else ["-c:v", "libx264", "-crf", "18", "-preset", "veryfast"]), "-c:a", "aac", "-ar", "44100", ra], check=True)
+                    *NV.nen_h264(crf=18, preset="veryfast", bit="8M"), "-c:a", "aac", "-ar", "44100", ra], check=True)
     moc, t = [], 0.0
     for x in taps: t += giay(os.path.join(thu_muc, x)); moc.append(round(t, 1))
     return ra, moc
 
 import importlib.util
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 _s = importlib.util.spec_from_file_location("kt", os.path.join(D, "kiem-thoai.py")); KT = importlib.util.module_from_spec(_s); _s.loader.exec_module(KT)
 
 def chon_khung(src, moc):

@@ -24,6 +24,13 @@ export const DANG: Record<string, string> = {
   nam_guc: 'the creature lying defeated on the ground, eyes closed, body stretched out sideways',
   chi_len: 'pointing up to the sky with the right arm raised high, looking upward with awe',
   vung_chuy: 'swinging a heavy wooden club over the head with both hands, fierce determined face',
+  // CẬN MẶT BIỂU CẢM (07/11/2026, anh: "thêm các đoạn biểu cảm của nhân vật"): dáng mat_* = chỉ đầu + vai, mặt to, dùng cho cú cắt phản ứng + thẻ câu nói
+  mat_gian: 'furious: brows drawn hard together, eyes blazing, jaw clenched, teeth showing, veins on the temple',
+  mat_kinh: 'horrified shock: eyes very wide, eyebrows high, mouth hanging open, face pale',
+  mat_dau: 'grief and despair: eyes wet and glistening, inner brows raised, mouth trembling downward, tired face',
+  mat_dac: 'triumphant: proud confident grin, chin raised, eyes narrowed with satisfaction',
+  mat_lo: 'anxious dread: worried eyes glancing to the side, brows knitted upward, lips pressed tight, a bead of sweat on the brow',
+  mat_lanh: 'cold calm determination: steady unblinking stare straight ahead, slight frown, mouth a firm line',
 };
 // tham số 4 (tuỳ chọn, 07/11/2026 anh: "Napoleon nhìn không giống"): URL chân dung lịch sử thật của nhân vật — ảnh gốc vẽ bám mặt người thật
 const [ra, gocArg, ds, chanDung] = process.argv.slice(2);
@@ -48,10 +55,12 @@ if (gocArg.startsWith('mota:')) {
 }
 await Promise.all(ds.split(',').filter((d) => d !== 'goc').map(async (d) => {
   const mo = DANG[d]; if (!mo) { console.log(`✗ ${d}: không có trong danh mục dáng`); return; }
-  const prompt = `Edit Image 1: keep EXACTLY the same character — same face, hair, age, outfit, accessories, art style, line work, colours and proportions. Change only the pose and expression: ${mo}. Full body, centered, on a plain pure white background, no ground shadow, no text, letters or logos.`;
+  const can = d.startsWith('mat_'), prompt = can
+    ? `Edit Image 1: keep EXACTLY the same character — same face, hair, age, outfit, accessories, art style, line work and colours. Show him as a CLOSE-UP: head and shoulders only, the face large and filling the upper half of the picture, looking slightly toward the right side of the picture, shoulders cut off flat at the bottom edge. Expression: ${mo}. Plain pure white background, no shadow, no text, letters or logos.`
+    : `Edit Image 1: keep EXACTLY the same character — same face, hair, age, outfit, accessories, art style, line work, colours and proportions. Change only the pose and expression: ${mo}. Full body, centered, on a plain pure white background, no ground shadow, no text, letters or logos.`;
   // THỬ LẠI dáng hỏng (04/11/2026: lam-tap sinh 3 nhân vật song song = ~27 lượt cổng ảnh cùng lúc → vài dáng TimeoutError, nhân vật thiếu dáng vĩnh viễn trong kho)
-  let r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [goc], tiLe: '2:3' });
-  for (let lan = 2; !r.anh && lan <= 3; lan++) { console.log(`· ${d}: ${r.loi} — thử lại lần ${lan}`); await new Promise((o) => setTimeout(o, 5000 * lan)); r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [goc], tiLe: '2:3' }); }
+  let r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [goc], tiLe: can ? '4:5' : '2:3' });
+  for (let lan = 2; !r.anh && lan <= 3; lan++) { console.log(`· ${d}: ${r.loi} — thử lại lần ${lan}`); await new Promise((o) => setTimeout(o, 5000 * lan)); r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: [goc], tiLe: can ? '4:5' : '2:3' }); }
   if (!r.anh) { console.log(`✗ ${d}: ${r.loi}`); return; }
   writeFileSync(join(ra, `${d}.jpg`), r.anh.data); tong += r.nguon.vnd || 0; console.log(`✓ ${d}`);
 }));

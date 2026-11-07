@@ -84,10 +84,18 @@ def ab_ap(pl, lich, goc, moi, roas=False, cr=None):
             nh = "thu" if t < m and t <= d else "doi" if d < m else None
             if not nh: AP[ab["kieu"]](pl, ab["nhanh"]["doi"]); return None
         else: nh = "thu" if zlib.crc32(pl["name"].encode()) % 2 == 0 else "doi"
-        AP[ab["kieu"]](pl, ab["nhanh"][nh]); return ab["ma"], nh, dang
+        AP[ab["kieu"]](pl, ab["nhanh"][nh])
+        # NGÂN SÁCH RIÊNG CỦA CAMP A/B (anh 08/11/2026 AB01 "tăng ngân sách, tăng camp"): nhánh khai ns → camp vào nhánh lên với ngân sách đó (cả hai nhánh cùng mức)
+        ns = (ab["nhanh"][nh] or {}).get("ns")
+        if ns: pl["campaign"].setdefault("source_payload", {})["daily_budget"] = int(ns)
+        return ab["ma"], nh, dang, (int(ns) if ns else None)
     g = q(f"select a.ma || '|' || a.kieu || '|' || (a.nhanh->'doi')::text from etp.camp_ab c join etp.ab a on a.ma = c.ab where c.camp_id = {int(goc)} and c.nhanh = 'thu'") if goc else ""
     if not g: return None
     ma, kieu, doi = g.split("|", 2)
+    # CHỈ KIỂU MANG THAM SỐ TRONG PAYLOAD MỚI THỪA HƯỞNG (anh 08/11/2026 "sửa đi"): bản nhân của camp nhánh thu AB02 (G10 hồi) từng bị gán vào AB02 —
+    # #86256 #86824 là bản $1 của #65722, chưa từng qua G10 hồi, làm bẩn nhánh thử. Kiểu nước (AP) chép Ad Set nên bản nhân vẫn mang 4 nước → thừa hưởng đúng;
+    # kiểu khác (g10_hoi, roas_nhan_doi, roas_tang…) là CÁCH XỬ camp chứ không nằm trong payload → bản nhân không thuộc thử nghiệm.
+    if kieu not in AP: return None
     if moi:
         if kieu in AP: AP[kieu](pl, json.loads(doi))
         return None
@@ -540,6 +548,10 @@ def main(a):
         if mien_cham and ep: q(f"update etp.cau_hinh set gia_tri = gia_tri || to_jsonb({int(moi)}), luc = now() where khoa = 'cham_mien' and not gia_tri @> to_jsonb({int(moi)})")
         if thang and kq["ok"] and float(c.get("budget_daily") or 0) != thang:   # Ethopex không nhận ngân sách lúc tạo → đặt lại ngay (camp mới chưa học gì)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(thang)}}}); time.sleep(8)
+            kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")
+        ns_ab = tn[3] if tn and len(tn) > 3 else None
+        if ns_ab and kq["ok"] and float(c.get("budget_daily") or 0) != ns_ab:   # ngân sách nhánh A/B: Ethopex không nhận lúc tạo → đặt lại ngay
+            api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(ns_ab)}}}); time.sleep(8)
             kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")
         if kq["ok"] and tn: ab_ghi(moi, tn)
         if kq["ok"] and not NGOAI:

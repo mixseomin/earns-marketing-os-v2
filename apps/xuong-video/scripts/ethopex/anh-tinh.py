@@ -42,8 +42,8 @@ THE_LOAI_GIONG = {"fantasy": "ky_di", "soi": "ky_di", "vien_tuong": "ky_di", "he
                   "vo_danh": "gao", "ty_phu": "gao", "mafia": "gao", "doi_thuong": "gao",
                   "hoi_han": "cam_xuc", "me_con": "cam_xuc", "tinh_cam": "hao_hung", "hoc_duong": "hao_hung", "co_trang": "hao_hung"}
 UNG_VIEN = 20   # số khung ứng viên gửi AI xếp hạng
-# BẢN MỚI (08/11/2026: AI chọn khung + tên từ poster + HD 8 Mb/s) chỉ chạy khi có --moi — anh "làm trước 1 cái để xem có ổn ko"; duyệt xong mới đổi mặc định
-MOI = "--moi" in sys.argv
+# BẢN MỚI (08/11/2026: AI chọn khung + tên từ poster + HD 8 Mb/s)
+MOI = "--cu" not in sys.argv   # anh DUYỆT mẫu 08/11/2026 → bản mới là mặc định; --cu = cách cũ (khung điểm máy, chữ vàng, 3 Mb/s)
 LOC = "fps=2/3"   # khung ứng viên: mỗi 1,5 giây (từ giây 3) — một chuỗi lọc cho cả khung nhỏ lẫn khung gốc
 FONT = "/System/Library/Fonts/Supplemental/Georgia Bold Italic.ttf"
 MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "8M" if MOI else "3M", "-maxrate", "10M" if MOI else "4500k",   # HD (anh 08/11/2026 "nhớ là dạng HD"): 1080x1920, 8 Mb/s (trước 3M)

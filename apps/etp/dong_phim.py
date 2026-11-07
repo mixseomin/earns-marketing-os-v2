@@ -28,7 +28,7 @@ C = os.path.expanduser("~/.cache/ethopex"); MAY = socket.gethostname().split("."
 KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (dot-phim-moi.KHUON)
 LOAI = {"CC": "cảnh cuối", "KT": "kể chuyện", "LT": "tập nguyên", "AT": "ảnh tĩnh"}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
 BO_QUA = {"KT": {"cat", "soat"}, "AT": {"cat", "soat"}}   # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt · AT: anh-tinh.py tự tải tập + chọn khung — không qua bước cắt / soát đoạn
-HAN_RIENG = {("KT", "creative"): 4 * 3600, ("AT", "creative"): 40 * 60, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu · AT ~10 phút/phim
+HAN_RIENG = {("KT", "creative"): 4 * 3600, ("AT", "creative"): 60 * 60, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu · AT ~10 phút/phim
 # LT — LỘ TRÌNH TEST RỘNG (anh 03/11/2026 "Lên $8-10/phim + T2 thì sẽ cắt sớm đc lỗ và tìm nhanh đc camp lãi" · chọn A: miễn luật một camp ngày test rộng):
 # cắt MỖI TẬP một creative (kiểu Kiên, tập trọn ETP_KIEU=tap, tới 10 đoạn) → soát → tải + chấm TẤT CẢ đoạn sạch → DỪNG chờ anh bắt đầu
 # (etp.cau_hinh 'lo_trinh' {content_id: {bat_dau: true}}) → lên mỗi creative một camp $1 (nhan-ban miễn luật một camp khi phim ở lo_trinh) → T2 cắt lỗ.
@@ -309,35 +309,29 @@ def b_creative_kt(d):
     if v[1] == "true": return "xong", f"creative kể chuyện #{cr} chấm sạch", kq
     return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if v[3] else 'chặn'}: {v[2][:200]}", kq
 
+AT_BAN = 3   # anh 08/11/2026 "tăng thêm số camp mỗi phim lên thành 3 camp mỗi loại từ $1" — mỗi dòng AT làm 3 bản (3 khung AI chọn, 3 kiểu giọng) → 3 camp
 def b_creative_at(d):
-    """AT — ẢNH TĨNH (anh 07/11/2026 "sử dụng cả ảnh tĩnh để lên camp cho nhanh hơn"): chạy anh-tinh.py <phim> ngay trên iMac (tải 3 tập → khung mặt nét + tên phim + giọng ~9s,
-    ~160₫ giọng/phim) → thư viện → thu-vien-len → creative dạng 'ảnh tĩnh' → cổng chấm. Lượt sau tìm creative MỚI của phim (tạo sau lúc bước bắt đầu) thay vì chạy lại."""
-    bd = f"(select bat_dau from etp.dong_buoc where dong_id = {d['id']} and buoc = 'creative')"
-    def tim():
-        return sql(f"""select coalesce(r.creative_id::text, '') || chr(9) || coalesce(g.duoc_len::text, '') || chr(9) || coalesce(g.chan_boi, '') || chr(9) || coalesce(g.cho_duyet, '') || chr(9) || coalesce(r.lang, 'en')
-                from etp.creative r left join etp.cham_cong g using (creative_id)
-                where r.content_id = {d['content_id']} and r.dang = 'ảnh tĩnh' and r.tu_choi is null and (r.cap_nhat >= {bd} or r.creative_id = (select creative_id from etp.dong_phim where id = {d['id']})) order by r.creative_id desc limit 1""").split("\t")
-    v = tim()
-    # CHỜ ĐỒNG BỘ (07/11/2026, dòng #142 #136–#145): anh-tinh ĐÃ tạo creative (#83016 lúc 21:06) nhưng etp.creative chỉ có nó sau lượt dong-bo
-    # 10 phút (22:42) → tim() rỗng → báo "không ra creative" + Mạnh thử lại = sinh lại creative trùng. Nhớ mã creative vừa tạo trong dong_phim.creative_id.
-    da = sql(f"select coalesce(creative_id::text, '') from etp.dong_phim where id = {d['id']}")
-    if (not v or not v[0]) and da: return "cho", f"creative ảnh tĩnh #{da} đã tạo — chờ đồng bộ kho etp (10 phút)", {"creative_id": int(da)}
-    if not v or not v[0]:
-        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "anh-tinh.py"), str(d["content_id"]), "--so", "1"], HAN_RIENG[("AT", "creative")] - 120)
-        v = tim()
-        moi = re.findall(r"→ creative #(\d+)", out)
-        if (not v or not v[0]) and moi:
-            sql(f"update etp.dong_phim set creative_id = {int(moi[-1])} where id = {d['id']}")
-            return "cho", f"creative ảnh tĩnh #{moi[-1]} đã tạo — chờ đồng bộ kho etp (10 phút)", {"creative_id": int(moi[-1])}
-        if not v or not v[0]:
+    """AT — ẢNH TĨNH: anh-tinh.py <phim> --ban AT_BAN trên iMac (AI chọn khung, tên phim từ poster, HD, mỗi bản một giọng) → thư viện → creative 'ảnh tĩnh' → cổng chấm.
+    Mã creative vừa tạo ghi vào ket_qua.ds của bước (etp.creative chỉ có chúng sau lượt dong-bo 10 phút — 07/11/2026 dòng #142 tưởng không ra rồi sinh lại);
+    lượt sau chỉ chờ đồng bộ + chấm, không chạy lại. Xong khi mọi bản đã chấm và ≥ 1 bản sạch → bước camp lên mỗi bản sạch một camp (b_camp_mr, so_camp)."""
+    tr = (d.get("buoc") or {}).get("creative") or {}; kq0 = tr.get("ket_qua") or {}
+    ids = [int(x["creative_id"]) for x in kq0.get("ds") or []] or ([int(kq0["creative_id"])] if kq0.get("creative_id") else [])
+    if not ids:
+        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "anh-tinh.py"), str(d["content_id"]), "--ban", str(AT_BAN)], HAN_RIENG[("AT", "creative")] - 120)
+        ids = [int(x) for x in dict.fromkeys(re.findall(r"→ creative #(\d+)", out))]
+        if not ids:
             j = next((json.loads(l) for l in out.splitlines() if l.startswith("{") and '"content_id"' in l), None) or {}
             g = j.get("loi") or out[-300:]
             return ("loi" if rc == -9 or not j or LK.ky_thuat(g) is not False else "dung"), f"anh-tinh không ra creative: {g[:300]}", None
-    cr = int(v[0]); kq = {"creative_id": cr, "lang": v[4], "ten": f"dp{d['id']} {re.sub(r'[^ -~]', '', d.get('ten') or '')} {v[4].upper()} - anh tinh"}
-    sql(f"update etp.dong_phim set creative_id = {cr} where id = {d['id']}")
-    if v[1] == "": return "cho", f"creative ảnh tĩnh #{cr} đã lên — chờ máy chấm", kq
-    if v[1] == "true": return "xong", f"creative ảnh tĩnh #{cr} chấm sạch", kq
-    return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if v[3] else 'chặn'}: {v[2][:200]}", kq
+        sql(f"update etp.dong_phim set creative_id = {ids[0]} where id = {d['id']}")
+    kq = {"creative_id": ids[0], "ds": [{"creative_id": c} for c in ids]}
+    r = {int(l.split(chr(9))[0]): l.split(chr(9))[1:] for l in sql(f"""select r.creative_id, coalesce(r.lang, 'en'), coalesce(g.duoc_len::text, ''), coalesce(g.chan_boi, '')
+            from etp.creative r left join etp.cham_cong g using (creative_id) where r.creative_id in ({','.join(map(str, ids))})""").splitlines() if chr(9) in l}
+    if len(r) < len(ids): return "cho", f"{len(ids)} creative ảnh tĩnh đã tạo (#{', #'.join(map(str, ids))}) — chờ đồng bộ kho etp ({len(r)}/{len(ids)})", kq
+    if any(v[1] == "" for v in r.values()): return "cho", f"{len(ids)} creative ảnh tĩnh — chờ máy chấm ({sum(1 for v in r.values() if v[1])}/{len(ids)})", kq
+    kq["sach"] = [{"creative_id": c, "lang": r[c][0]} for c in ids if r[c][1] == "true"]
+    if not kq["sach"]: return "dung", f"cả {len(ids)} creative ảnh tĩnh bị cổng chấm chặn: " + " · ".join(f"#{c} {r[c][2][:60]}" for c in ids)[:300], kq
+    return "xong", f"{len(kq['sach'])}/{len(ids)} creative ảnh tĩnh chấm sạch: " + ", ".join(f"#{x['creative_id']}" for x in kq["sach"]), kq
 
 # LÊN CAMP PHẢI LÀM LẠI ĐƯỢC (04/11/2026: dòng #11 / #35 / #45 dừng "creative đã có camp đang chạy / vừa tạo" — lượt đầu đã tạo camp rồi bị Mạnh huỷ / FIX,
 # lượt sau thấy CHÍNH camp đó là trùng; #35 thì máy luật lấy creative của dòng thay vào camp cũ). Creative đã có camp = ĐÃ LÊN, gắn camp đó vào dòng;
@@ -397,6 +391,7 @@ def b_camp_mr(d, truoc):
     """MỞ RỘNG (anh bấm ＋ ở dòng phim, chọn số camp): creative sạch vừa làm + creative sạch có sẵn chưa có camp của phim → lên đúng so_camp camp $1 (bộ của phim)"""
     cr = truoc.get("creative") or {}; moi = [int(x["creative_id"]) for x in (cr.get("sach") or ([cr] if cr.get("creative_id") else []))]
     san = san_dung_lai(d["content_id"])
+    if d.get("loai") == "AT": san = [c for c in san if sql(f"select dang from etp.creative where creative_id = {c}") == "ảnh tĩnh"]   # 3 camp ảnh tĩnh = chỉ creative ảnh tĩnh
     cu = camp_co_san(moi)   # creative của chính dòng đã có camp (lượt trước bị huỷ giữa chừng / máy luật lấy thay) = đã lên, tính vào số camp
     ds = [c for c in dict.fromkeys(moi + san) if c not in cu][:max(0, int(d["so_camp"]) - len(cu))]
     if not ds and not cu: return "dung", "không có creative sạch nào để lên camp", None
@@ -415,6 +410,7 @@ def b_camp_mr(d, truoc):
     return ket, (f"{len(xong) + len(cu)}/{d['so_camp']} camp · " + ghi + (f" · thiếu {thieu} (không đủ creative sạch)" if thieu > 0 and not loi else "")) if ket == "xong" else ghi, kq
 
 def b_camp(d, truoc):
+    if d.get("loai") == "AT": d = {**d, "so_camp": max(int(d.get("so_camp") or 0), AT_BAN)}   # 3 camp $1 / phim (anh 08/11/2026)
     if d.get("so_camp"): return b_camp_mr(d, truoc)
     if d.get("loai") == "LT": return b_camp_lt(d, truoc)
     # BỘ CREATIVE ĐỦ LOẠI TRƯỚC, CHƯA LÊN CAMP (anh 03/11/2026 "phải làm đủ 1 bộ creative cho mọi loại nội dung trước. Chưa lên camp"):

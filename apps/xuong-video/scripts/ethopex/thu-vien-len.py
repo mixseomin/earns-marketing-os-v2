@@ -26,7 +26,8 @@ if not lo: sys.exit("không có bản nào để đưa lên")
 nhom = {}
 for x in lo: nhom.setdefault(x["dang"], []).append(x)
 for gi, (dang, lo) in enumerate(nhom.items()):
-    ma = "tv" + time.strftime("%d%m%H%M") + (f"-{gi}" if gi else "")
+    # + giây + mã tiến trình (08/11/2026: dòng ATT và PD gọi cùng phút → cùng mã tv08110220, tệp ghi studio của PD đè ATT → creative #83740 "CHƯA ghi vào studio")
+    ma = "tv" + time.strftime("%d%m%H%M%S") + f"p{os.getpid() % 1000}" + (f"-{gi}" if gi else "")
     lf = os.path.join(tm, f"lo-{ma}.json"); json.dump(lo, open(lf, "w"), ensure_ascii=False, indent=1)
     # --da-soat: người đã xem video ở tab Thư viện trước khi chọn đưa lên (đúng nghĩa cờ của len-creative — soát từng đoạn trước khi gọi)
     r_ = subprocess.run(["python3", os.path.join(D, "len-creative.py"), lf, ma, dang, "--da-soat"], env={**os.environ, "ETP_KHONG_CAT": "1"})

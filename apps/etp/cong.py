@@ -49,6 +49,10 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         if ch.get("dung_camp_moi") and viec in ("nhan_ban", "tao_camp"): return "ĐANG DỪNG LÊN CAMP MỚI (anh 25/10/2026: chờ rà soát hết creative + quy trình soát) — tăng / giảm / thay creative vẫn chạy"
         them = float(ns_moi or 1) - float(ns_cu or 0)   # camp mới / nhân bản = $1
         tc = ch.get("tran_camp")
+        # A/B ROAS TĂNG $30 (anh 08/11/2026 "Camp ROAS làm thêm thử nghiệm tăng bậc <=1.5 lần đến max $30 cho 1 vài camp"): camp nhánh THỬ của lần A/B
+        # kiểu roas_tang đang chạy (etp.ab + etp.camp_ab, apps/etp/ab_mau.py) được qua trần tới $30 — chỉ đúng camp đó, mọi camp khác giữ tran_camp
+        if tc is not None and ns_moi is not None and float(ns_moi) > float(tc) and camp_id and float(ns_moi) <= 30 and _q(f"""select 1 from etp.camp_ab a join etp.ab b on b.ma = a.ab
+                where a.camp_id = {int(camp_id)} and a.nhanh = 'thu' and a.loai_tru is null and b.kieu = 'roas_tang' and b.trang_thai = 'dang' limit 1"""): tc = 30
         if tc is not None and ns_moi is not None and float(ns_moi) > float(tc): return f"vượt trần ${tc}/camp (etp.cau_hinh.tran_camp)"
         if ngoai: return None
         tcm = ch.get("tran_camp_moi_ngay")   # TRẦN CAMP MỚI MỖI NGÀY (anh 07/11/2026 chốt 100 camp thử / ngày): đếm camp nhà tạo trong ngày VN, kể cả bản nhân

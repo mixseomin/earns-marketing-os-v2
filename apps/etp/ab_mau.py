@@ -66,7 +66,10 @@ def ab04(q):
     for cid in can:
         r = subprocess.run(["python3", LAM, "tang", str(cid), "30", "--luat", "AB04 nhánh thử: ★ ROAS chạm trần $20 → tăng ×1,5 lên $30",
                             "--ai", "máy A/B (anh chat 08/11/2026: thử nghiệm tăng bậc ≤ 1,5 lần đến max $30)"], capture_output=True, text=True, timeout=300)
-        (tang if r.returncode == 0 else chan).append(cid if r.returncode == 0 else f"#{cid}: {(r.stdout + r.stderr).strip()[-120:]}")
+        # lam-ethopex thoát mã 0 cả khi bị chặn → đọc "ok" của dòng JSON cuối (08/11/2026: báo "tăng $30" mà Ethopex vẫn $20 vì trần $20/camp)
+        try: kq = json.loads((r.stdout.strip().splitlines() or ["{}"])[-1])
+        except Exception: kq = {"ok": False, "loi": (r.stdout + r.stderr).strip()[-120:]}
+        (tang if kq.get("ok") else chan).append(cid if kq.get("ok") else f"#{cid}: {str(kq.get('loi'))[:120]}")
     return " · ".join(x for x in (f"vào {len(vao)}" if vao else "", f"tăng $30: {tang}" if tang else "", f"chưa tăng được {chan}" if chan else "") if x)
 
 def chay(q):

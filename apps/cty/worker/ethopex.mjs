@@ -565,7 +565,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     if (seTat.has(m.id)) continue;   // không nhân bản camp đang trong danh sách tắt
     // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026 "nhân bản cũng hẹn sáng hôm sau nếu không đúng khung giờ" — thay luật 22/10 "chạy luôn"); kết quả trả kq.chay
     let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', 'máy tự nhân bản (anh cho phép 22/10/2026)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
-    daNb.push({ m, r });
+    if (!r.bo_qua) daNb.push({ m, r });   // clone bị cổng chấm chặn, phim không có creative thay → bỏ, không báo lỗi (anh 07/11/2026)
   }
   if (daNb.length) {
     const dong = bangViec(daNb.map(({ m, r }) => ({ m, doi: `→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng') + `\n<i>bản mới $1 · ${chuChay(daNb.map(({ r }) => r))}</i>`;

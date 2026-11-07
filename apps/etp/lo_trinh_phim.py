@@ -15,7 +15,7 @@ def cau_hinh(q):
 
 def so(q, cid, bat_dau):
     return json.loads(q(f"""select row_to_json(x)::text from (select
-        (select row_to_json(p) from (select ten, the_loai, thu_vong, thu_ly from etp.phim where content_id = {cid}) p) phim,
+        (select row_to_json(p) from (select ten, the_loai, thu_vong, thu_ly, nhom_goc, coalesce((select gia_tri ? '{cid}' from xv_khoa_ngoai where ten = 'ethopex_phim_cam'), false) cam from etp.phim where content_id = {cid}) p) phim,
         (select row_to_json(m) from (select trang_thai, k, can_sx, pha, ly from etp.mo_rong where content_id = {cid}) m) mo,
         exists (select 1 from etp.camp_co_hoi where content_id = {cid}) co_hoi,
         (select coalesce(jsonb_object_agg(d, jsonb_build_object('tao', tao, 'chi', chi)), '{{}}') from (select r.dang d, count(*) tao, count(*) filter (where s.chi >= 1) chi from etp.camp c join etp.creative r using (creative_id)
@@ -31,6 +31,9 @@ def xet(s, tran):
     p, mo, dang = s.get("phim") or {}, s.get("mo") or {}, s.get("dang") or {}
     con = max(0, tran - int(s.get("camp_24h") or 0)); dang_sx = {d["loai"]: d.get("so") or 1 for d in s.get("chay") or []}; gan = s.get("dong_24h") or []
     if p.get("thu_vong") == "cat": return "cat", f"Đã cất phim: {p.get('thu_ly') or ''}"[:160], 0, []
+    # BƯỚC NHẬN CHẤM RA NGOÀI ÂU-MỸ / CẤM 18+ (15:25 07/11: 9 dòng dừng vì 'hoat_hinh' / sổ cấm) → dừng hẳn, không xếp lại tới 3 lần hỏng mỗi dạng
+    if p.get("cam"): return "cam", "Phim trong sổ cấm 18+ — không lên camp", 0, []
+    if p.get("nhom_goc") and p.get("nhom_goc") != "au_my": return "ngoai", f"Phim ngoài Âu-Mỹ (nhóm {p['nhom_goc']}) — không lên camp", 0, []
     if s.get("co_hoi") and mo.get("pha") == "bao_hoa": return "giu", "Có camp lãi nhưng vượt sức chứa, giữ nguyên, không mở thêm", 0, []
     xep, chu, ke = [], [], 0
     if s.get("co_hoi"):
@@ -114,6 +117,7 @@ if __name__ == "__main__":
     t = lambda **k: xet({**goc, **k}, 4)
     assert t()[0] == "thu_dang" and t()[3] == [("CC", 2), ("KT", 1)]   # song song
     assert t(phim={"thu_vong": "cat"})[0] == "cat"
+    assert t(phim={"cam": True})[0] == "cam" and t(phim={"nhom_goc": "hoat_hinh"})[0] == "ngoai" and t(phim={"nhom_goc": "au_my"})[0] == "thu_dang"
     r = t(chay=[{"loai": "CC", "so": 2}]); assert r[3] == [("KT", 1)]   # CC đang làm không chặn KT
     assert t(chay=[{"loai": "CC", "so": 2}, {"loai": "KT", "so": 1}])[:1] == ("sx",) and t(chay=[{"loai": "CC", "so": 2}, {"loai": "KT", "so": 1}])[3] == []
     assert t(dong_24h=["CC"])[3] == [("KT", 1)]

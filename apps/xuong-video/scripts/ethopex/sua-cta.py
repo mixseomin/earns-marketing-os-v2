@@ -21,7 +21,7 @@ N, Q = os.path.join(C, "nguon"), os.path.join(C, "nguon-qc")
 ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 sh = lambda c, **k: subprocess.run(c, shell=True, capture_output=True, text=True, **k)
 # ưu tiên nền: iMac taskpolicy -b · box3 (anh 31/10/2026 đưa dựng lên box3 — tiến trình etp-sua-tu-choi.timer) nice 15 để mos2 / etp.on.tc không chậm
-NEN = ["taskpolicy", "-b"] if sys.platform == "darwin" else ["nice", "-n", "15"]
+NEN = ["nice", "-n", "10"] if sys.platform == "darwin" else ["nice", "-n", "15"]   # Mac: nice, không taskpolicy -b (tầng nền dồn sang nhân E + bóp đĩa — 07/11/2026)
 def nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(D, tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 

@@ -621,6 +621,10 @@ def vong():
 
 def main(a):
     if a and a[0] == "mot": vong(); time.sleep(int(a[1]) if len(a) > 1 else 60); return   # một vòng rồi chờ các bước vừa bật (thử)
+    # BỎ TẦNG NỀN macOS (anh 07/11/2026 "vẫn chậm"): launcher cũ chạy `taskpolicy -b`, execv khi nạp mã giữ nguyên tầng nền → mọi thợ cắt / ffmpeg / Vision con
+    # bị dồn sang nhân E + bóp đĩa (ưu tiên 4; khung 65 s cắt 13 phút). setpriority(PRIO_DARWIN_PROCESS, 0, 0) tự gỡ, con sinh sau thừa hưởng (đo: 4 → 31)
+    if sys.platform == "darwin":
+        import ctypes; ctypes.CDLL(None).setpriority(4, 0, 0)
     print(f"[{MAY}] máy chạy dòng phim bắt đầu (pid {os.getpid()})", flush=True)
     # TỰ NẠP MÃ MỚI (04/11/2026: tiến trình chạy liền từ 13:49 giữ mã cũ trong bộ nhớ — --tay, lý do poster, chờ KT sửa xong đều chưa có hiệu lực,
     # dòng #49 vẫn bị chặn trùng đội sau deploy): tệp mã của máy đổi → thôi nhận bước mới, chờ các bước đang chạy xong rồi execv chính nó

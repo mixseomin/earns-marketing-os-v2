@@ -12,6 +12,8 @@ sys.path.insert(0, E); import loi_ky_thuat as LK
 B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 C = os.path.expanduser("~/.cache/ethopex"); N = os.path.join(C, "nguon")
 MAY = socket.gethostname().split(".")[0]; TRUNG_TAM = "Tuans-iMac"; IMAC = "htuan@100.98.66.49"
+if sys.platform == "darwin":   # gỡ tầng nền macOS nếu nơi gọi bật bằng taskpolicy -b (dồn sang nhân E + bóp đĩa — 07/11/2026), xem dong_phim.main
+    import ctypes; ctypes.CDLL(None).setpriority(4, 0, 0)
 
 # TẢI HẾT TẬP MIỄN PHÍ (anh 04/11/2026 "mỗi film có 10 tập free đã dùng chưa"): trần cũ 8 tập bỏ sót tập free cuối — #80386 El gran y poderoso genio mở 9 tập,
 # máy chỉ tải 8 rồi báo "hết khung mới". tai-tap.py tự dừng ở tập khoá / tập trả phí đầu tiên, nên trần này chỉ là chặn trên cho phim mở bất thường nhiều tập.

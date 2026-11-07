@@ -200,7 +200,7 @@ def len_(ten):
             s = khoa("ethopex_soat_18").get(i)
             if s is not None: cap[i] = ("soat_loai", s.get("ghi", "soát 18+"))
     ghi(cap); print("ghi trạng thái:", {k: v[0] for k, v in cap.items()})
-    subprocess.run(["taskpolicy", "-b", "python3", os.path.join(D, "sua-cta.py")])
+    subprocess.run(["nice", "-n", "10", "python3", os.path.join(D, "sua-cta.py")])
     don_mac(); tinh()
 
 if __name__ == "__main__":

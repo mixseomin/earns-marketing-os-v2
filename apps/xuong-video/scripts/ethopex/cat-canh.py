@@ -94,6 +94,10 @@ def the_ten(ten, nut, ra):
     d.rounded_rectangle([bx, y + 8, bx + bw, y + 84], 38, fill=(229, 57, 53, 255)); d.text((bx + bw / 2, y + 46), nut, font=fn, fill=(255, 255, 255), anchor="mm")
     im.save(ra)
 
+# TUA THẲNG TỚI ĐOẠN CẮT (anh 07/11/2026 "follow kỹ vào"): trước dùng -i nguồn + trim={tu}:{den} → ffmpeg GIẢI MÃ từ giây 0 tới tu (khung 540s = giải 9 phút phim
+# bỏ đi) mỗi khung; -ss trước -i tua theo khung khoá rồi giải chính xác từ đó, mốc thời gian đoạn bắt đầu từ 0 → trim / atrim dùng 0:{độ dài}
+def TUA(nguon, tu, den): return ["-ss", f"{tu}", "-t", f"{den - tu + 0.5}", "-i", nguon]
+
 def dung_tap(nguon, tu, den, ten, out, nut="WATCH NOW", cam=()):
     """cam = các giây (trên nguồn) dính thoại / khung cấm → bỏ cửa sổ ±1,5s quanh mỗi giây, phần còn lại nối liền (anh 28/10/2026: "đoạn nào vi phạm
     chủ động cắt bỏ luôn. Ko cần phải liền mạch") — không bỏ cả tập như trước"""
@@ -111,11 +115,11 @@ def dung_tap(nguon, tu, den, ten, out, nut="WATCH NOW", cam=()):
     SAN = 15 if os.environ.get("ETP_LOI_DAN") else 30
     if L < SAN: raise SystemExit(f"bỏ giây cấm xong còn {L:.0f}s — dưới sàn {SAN}s, bỏ tập")
     cv = f"select='not({bo})',setpts=N/FRAME_RATE/TB," if bo else ""; ca = f"aselect='not({bo})',asetpts=N/SR/TB," if bo else ""
-    loc = (f"[0:v]trim={tu}:{den},setpts=PTS-STARTPTS,fps=30,{cv}scale={W}:{H}:flags=lanczos:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[c];"
+    loc = (f"[0:v]trim=0:{den - tu},setpts=PTS-STARTPTS,fps=30,{cv}scale={W}:{H}:flags=lanczos:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1[c];"
            f"[1:v]format=rgba,fade=in:st={L - O_CUOI}:d=0.3:alpha=1[o];[c][o]overlay=0:0:enable='gte(t,{L - O_CUOI})'[v];"
-           f"[0:a]atrim={tu}:{den},asetpts=PTS-STARTPTS,{ca}afade=in:d=0.2,afade=out:st={L - 0.6}:d=0.6[a]")
+           f"[0:a]atrim=0:{den - tu},asetpts=PTS-STARTPTS,{ca}afade=in:d=0.2,afade=out:st={L - 0.6}:d=0.6[a]")
     if kh: print("bỏ giây cấm:", ", ".join(f"{a_:.1f}–{z_:.1f}s" for a_, z_ in kh), file=sys.stderr)
-    gx.sh("ffmpeg", "-v", "error", "-y", "-i", nguon, "-loop", "1", "-t", f"{L}", "-i", tmp + "-the-ten.png", "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{L}",
+    gx.sh("ffmpeg", "-v", "error", "-y", *TUA(nguon, tu, den), "-loop", "1", "-t", f"{L}", "-i", tmp + "-the-ten.png", "-filter_complex", loc, "-map", "[v]", "-map", "[a]", "-t", f"{L}",
           *MA_HOA, "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out, han=3600)
     dv, da = gx.dur_luong(out)
     if abs(dv - L) > 1.5 or abs(da - L) > 1.5: raise RuntimeError(f"đoạn ra hình {dv:.1f}s / tiếng {da:.1f}s khác độ dài tính {L:.1f}s — nguồn lỗi mối nối, bỏ đoạn")
@@ -134,13 +138,13 @@ def _dung1(nguon, tu, den, tmp, cta, out, giong):
     # mặc định "cuoi" = nút chỉ hiện ở THẺ CUỐI (từ cú cắt sang poster) cho MỌI kiểu (anh 02/11/2026 "Bỏ ngay nút đè giây 3 cho mọi kiểu": đo 25/10–02/11 cùng phim,
     # bản nút đè từ giây 3 −7% ROI vs bản CTA cũ +33%, thua 9/10 phim; Kiên không nút giữa video); số = giây cụ thể (chỉ khi anh bảo thử)
     _nt = os.environ.get("ETP_NUT_TU", "cuoi"); nut_tu = L if _nt == "cuoi" else float(_nt)
-    vao = ["-i", nguon, "-loop", "1", "-t", f"{T}", "-i", tmp + "-nut.png", "-loop", "1", "-t", f"{TC}", "-i", tmp + "-the-cuoi.png"]
-    am = f"[0:a]atrim={tu}:{den},asetpts=PTS-STARTPTS,afade=in:d=0.3,afade=out:st={L - VAO_TRUOC - 0.2 if giong else L - 0.3}:d={VAO_TRUOC + 0.2 if giong else 0.3},apad=pad_dur={TC}[nen]"
+    vao = [*TUA(nguon, tu, den), "-loop", "1", "-t", f"{T}", "-i", tmp + "-nut.png", "-loop", "1", "-t", f"{TC}", "-i", tmp + "-the-cuoi.png"]
+    am = f"[0:a]atrim=0:{L},asetpts=PTS-STARTPTS,afade=in:d=0.3,afade=out:st={L - VAO_TRUOC - 0.2 if giong else L - 0.3}:d={VAO_TRUOC + 0.2 if giong else 0.3},apad=pad_dur={TC}[nen]"
     if giong:
         vao += ["-i", giong]
         am += f";[3:a]atempo={TOC_GIONG},volume=1.8,adelay={int((L - VAO_TRUOC) * 1000)}|{int((L - VAO_TRUOC) * 1000)}[g];[nen][g]amix=inputs=2:duration=first:normalize=0[a]"
     else: am = am.replace("[nen]", "[a]")
-    loc = (f"[0:v]trim={tu}:{den},setpts=PTS-STARTPTS,scale={W}:{H}:flags=lanczos:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1[c];"
+    loc = (f"[0:v]trim=0:{L},setpts=PTS-STARTPTS,scale={W}:{H}:flags=lanczos:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1[c];"
            f"[2:v]scale={W}:{H},zoompan=z='1+0.03*on/{int(TC * 30)}':d=1:s={W}x{H}:fps=30,setsar=1,trim=0:{TC}[tc];"
            f"[c][tc]concat=n=2:v=1:a=0[cv];"
            f"[1:v]format=rgba,fade=in:st={nut_tu:.2f}:d=0.4:alpha=1[nut];[cv][nut]overlay=0:'{Y_NUT}+8*sin(2*PI*1.6*t)':enable='gte(t,{nut_tu:.2f})':shortest=1[v];" + am)

@@ -43,7 +43,7 @@ def ghep_mo(tm):
                 subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f, "-vf", "scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2,fps=30,setsar=1",
                                 *NV.nen_h264(crf=16, preset="veryfast", bit="8M"), "-c:a", "aac", "-ar", "44100", "-ac", "2", o], check=True, timeout=900)
             return o
-        vao = [chuan(f) for f in vao]
+        with ThreadPoolExecutor(4) as ex: vao = list(ex.map(chuan, vao))   # 4 tập cùng lúc (bộ nén phần cứng chạy nhiều phiên): #114 chuẩn hoá tuần tự 8 tập mất 11 phút (07/11/2026)
     # tệp ghép mới hơn mọi tập → dùng lại (box3 23/10/2026: chữ đã đọc sẵn <ghep-cuoi>.chu.json gắn với tệp này; ghép lại = đổi giờ tệp = bỏ bản đọc)
     moc, t = [], 0.0
     for x in taps: t += DL.giay(os.path.join(tm, x)); moc.append(round(t, 1))

@@ -392,7 +392,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
         select r.content_id, 'creative' loai, r.creative_id id, left(case when h.trang_thai = 'loi' then 'chấm lỗi: ' || coalesce(h.loi, '?') else 'chờ chấm (' || coalesce(h.trang_thai, '') || ')' end, 200) chu, h.luc::text luc
           from etp.cham_hang h join etp.creative r using (creative_id) where h.trang_thai in ('cho', 'dang', 'loi') and r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
         union all
-        select r.content_id, 'creative', r.creative_id, left(case when g.cho_duyet then 'cổng chấm: chờ người duyệt — ' else 'cổng chấm chặn: ' end || coalesce(g.chan_boi, ''), 200), r.cap_nhat::text
+        select r.content_id, 'creative', r.creative_id, left(case when coalesce(g.cho_duyet, '') <> '' then 'cổng chấm: chờ người duyệt (' || g.cho_duyet || ') — ' else 'cổng chấm chặn: ' end || coalesce(g.chan_boi, ''), 200), r.cap_nhat::text
           from etp.cham_cong g join etp.creative r using (creative_id) where not g.duoc_len and r.tu_choi is null and r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
         union all
         select v.content_id, 'creative', v.creative_id, left('không tự lên: ' || v.ly_do, 200), v.cham_luc::text from etp.cho_len_v v

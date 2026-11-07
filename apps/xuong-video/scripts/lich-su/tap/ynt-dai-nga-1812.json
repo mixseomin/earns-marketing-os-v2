@@ -5479,5 +5479,64 @@
   "an_ten": [
    "Prussia"
   ]
+ },
+ "diem_nhan": {
+  "bieu_cam": [
+   {
+    "i": 18,
+    "nv": "barclay",
+    "cam": "mat_lanh"
+   },
+   {
+    "i": 34,
+    "nv": "barclay",
+    "cam": "mat_dau"
+   },
+   {
+    "i": 51,
+    "nv": "ney",
+    "cam": "mat_lo"
+   },
+   {
+    "i": 61,
+    "nv": "napoleon",
+    "cam": "mat_kinh"
+   },
+   {
+    "i": 74,
+    "nv": "napoleon",
+    "cam": "mat_gian"
+   },
+   {
+    "i": 82,
+    "nv": "caulaincourt",
+    "cam": "mat_dau"
+   },
+   {
+    "i": 93,
+    "nv": "ney",
+    "cam": "mat_dac"
+   },
+   {
+    "i": 102,
+    "nv": "murat",
+    "cam": "mat_lo"
+   },
+   {
+    "i": 104,
+    "nv": "french_soldier",
+    "cam": "mat_dau"
+   }
+  ],
+  "cau_noi": [
+   {
+    "i": 99,
+    "nv": "napoleon",
+    "cau": "Ordinary men died, men of iron were taken prisoner: I only brought back with me men of bronze.",
+    "nam": 1812,
+    "cam": "mat_lanh",
+    "nguon": "Wikiquote › Quotes"
+   }
+  ]
  }
 }

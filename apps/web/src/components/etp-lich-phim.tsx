@@ -93,7 +93,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
                 {l.hen.map((h) => <div key={h.camp_id}>⏰ #{h.camp_id} chạy lúc {h.luc}</div>)}{sapToi.map((t, i) => <div key={i}>{t}</div>)}
                 {l.thieu ? <div style={{ color: '#f59e0b' }} title={l.thieu}>⚠ {m ? `Đợt trước lên ${m[1]}, thiếu ${m[2]} creative sạch` : l.thieu.slice(0, 70)}</div> : null}</div>, true) : null}
               {H('Thao tác', <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {(['CC', 'KT'] as const).map((x) => <button key={x} disabled={dang} style={nut} title={`dòng phim ${x} lên 1 camp $1 — ${chuLich()}${vuot ? ' · đồng hồ báo vượt sức chứa' : ''}`}
+                {(['CC', 'KT', 'AT'] as const).map((x) => <button key={x} disabled={dang} style={nut} title={`dòng phim ${x} lên 1 camp $1 — ${chuLich()}${vuot ? ' · đồng hồ báo vượt sức chứa' : ''}`}
                   onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 1 camp ${x}, ngân sách $1/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => themCampPhim(cid, x, 1), xong: `đã xếp dòng ${x} × 1 camp` }); }}>＋ {x}</button>)}
                 <button disabled={dang} style={nut} title={`dòng phim CC lên 3 camp $1 — ${chuLich()}`} onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 3 camp CC, mỗi camp $1/ngày, tổng $3/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => themCampPhim(cid, 'CC', 3), xong: 'đã xếp dòng CC × 3 camp' }); }}>＋ 3 CC</button>
                 <button disabled={dang} style={{ ...nut, color: '#f87171' }} title="tắt camp Nhà ROI thấp nhất của phim (giữ camp cuối nếu lãi)"

@@ -74,9 +74,9 @@ export async function docLogPhim(contentId: number): Promise<LogPhim[] | { loi: 
 }
 
 /** ＋ camp loại A / B: một dòng phim (CC cảnh cuối · KT kể chuyện) lên `so` camp — đường dòng phim (dùng lại creative sạch, thiếu thì cắt / sinh). Bấm = anh duyệt tiền camp $1 × so. */
-export async function themCampPhim(contentId: number, loai: 'CC' | 'KT', so: number): Promise<{ ok: true; id: number } | { loi: string }> {
+export async function themCampPhim(contentId: number, loai: 'CC' | 'KT' | 'AT', so: number): Promise<{ ok: true; id: number } | { loi: string }> {
   if (!(await laChu())) return { loi: 'chỉ chủ điều khiển phim' };
-  if (!['CC', 'KT'].includes(loai)) return { loi: 'loại lạ' };
+  if (!['CC', 'KT', 'AT'].includes(loai)) return { loi: 'loại lạ' };
   const n = Math.trunc(Number(so)); if (!(n >= 1 && n <= 10)) return { loi: 'số camp 1–10' };
   return chayDong(contentId, loai, '', n);
 }

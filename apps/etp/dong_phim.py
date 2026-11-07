@@ -24,9 +24,9 @@ SSH = ["ssh", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20", "-o", "
 B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 C = os.path.expanduser("~/.cache/ethopex"); MAY = socket.gethostname().split(".")[0]
 KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (dot-phim-moi.KHUON)
-LOAI = {"CC": "cảnh cuối", "KT": "kể chuyện", "LT": "tập nguyên"}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
-BO_QUA = {"KT": {"cat", "soat"}}                 # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt — không cắt phim
-HAN_RIENG = {("KT", "creative"): 4 * 3600, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu
+LOAI = {"CC": "cảnh cuối", "KT": "kể chuyện", "LT": "tập nguyên", "AT": "ảnh tĩnh"}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
+BO_QUA = {"KT": {"cat", "soat"}, "AT": {"cat", "soat"}}   # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt · AT: anh-tinh.py tự tải tập + chọn khung — không qua bước cắt / soát đoạn
+HAN_RIENG = {("KT", "creative"): 4 * 3600, ("AT", "creative"): 40 * 60, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu · AT ~10 phút/phim
 # LT — LỘ TRÌNH TEST RỘNG (anh 03/11/2026 "Lên $8-10/phim + T2 thì sẽ cắt sớm đc lỗ và tìm nhanh đc camp lãi" · chọn A: miễn luật một camp ngày test rộng):
 # cắt MỖI TẬP một creative (kiểu Kiên, tập trọn ETP_KIEU=tap, tới 10 đoạn) → soát → tải + chấm TẤT CẢ đoạn sạch → DỪNG chờ anh bắt đầu
 # (etp.cau_hinh 'lo_trinh' {content_id: {bat_dau: true}}) → lên mỗi creative một camp $1 (nhan-ban miễn luật một camp khi phim ở lo_trinh) → T2 cắt lỗ.
@@ -42,6 +42,7 @@ THU_MANG = {}         # (dòng, bước, lan) → số lượt đã tự thử l
 CHO_LAI = 60          # bước trả "cho" → quay lại sau ngần này giây
 TRAN_CAT = 2          # tối đa 2 dòng cắt cùng lúc (iMac)
 DANG = {}             # (dòng, bước) → Popen đang chạy — để Mạnh / nút Dừng giết được
+LOAI_DONG = {}        # dòng → loại (CC / KT / AT / LT) — để đếm lượt nặng đang chạy (TRAN_CAT)
 KHOA = threading.Lock()
 
 def sql(cau, spy=False):
@@ -220,6 +221,7 @@ def b_soat(d, truoc):
 
 def b_creative(d, truoc):
     if d.get("loai") == "KT": return b_creative_kt(d)
+    if d.get("loai") == "AT": return b_creative_at(d)
     if d.get("loai") == "LT" or (d.get("so_camp") and d.get("loai") != "KT"): return b_creative_lt(d, truoc)   # mở rộng: tải MỌI đoạn sạch
     tr = (d.get("buoc") or {}).get("creative") or {}
     cr = (tr.get("ket_qua") or {}).get("creative_id")
@@ -283,6 +285,28 @@ def b_creative_kt(d):
     sql(f"update etp.dong_phim set creative_id = {cr} where id = {d['id']}")
     if v[1] == "": return "cho", f"creative kể chuyện #{cr} đã lên — chờ máy chấm", kq
     if v[1] == "true": return "xong", f"creative kể chuyện #{cr} chấm sạch", kq
+    return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if v[3] else 'chặn'}: {v[2][:200]}", kq
+
+def b_creative_at(d):
+    """AT — ẢNH TĨNH (anh 07/11/2026 "sử dụng cả ảnh tĩnh để lên camp cho nhanh hơn"): chạy anh-tinh.py <phim> ngay trên iMac (tải 3 tập → khung mặt nét + tên phim + giọng ~9s,
+    ~160₫ giọng/phim) → thư viện → thu-vien-len → creative dạng 'ảnh tĩnh' → cổng chấm. Lượt sau tìm creative MỚI của phim (tạo sau lúc bước bắt đầu) thay vì chạy lại."""
+    bd = f"(select bat_dau from etp.dong_buoc where dong_id = {d['id']} and buoc = 'creative')"
+    def tim():
+        return sql(f"""select coalesce(r.creative_id::text, '') || chr(9) || coalesce(g.duoc_len::text, '') || chr(9) || coalesce(g.chan_boi, '') || chr(9) || coalesce(g.cho_duyet, '') || chr(9) || coalesce(r.lang, 'en')
+                from etp.creative r left join etp.cham_cong g using (creative_id)
+                where r.content_id = {d['content_id']} and r.dang = 'ảnh tĩnh' and r.tu_choi is null and r.cap_nhat >= {bd} order by r.creative_id desc limit 1""").split("\t")
+    v = tim()
+    if not v or not v[0]:
+        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "anh-tinh.py"), str(d["content_id"]), "--so", "1"], HAN_RIENG[("AT", "creative")] - 120)
+        v = tim()
+        if not v or not v[0]:
+            j = next((json.loads(l) for l in out.splitlines() if l.startswith("{") and '"content_id"' in l), None) or {}
+            g = j.get("loi") or out[-300:]
+            return ("loi" if rc == -9 or not j or LK.ky_thuat(g) is not False else "dung"), f"anh-tinh không ra creative: {g[:300]}", None
+    cr = int(v[0]); kq = {"creative_id": cr, "lang": v[4], "ten": f"dp{d['id']} {re.sub(r'[^ -~]', '', d.get('ten') or '')} {v[4].upper()} - anh tinh"}
+    sql(f"update etp.dong_phim set creative_id = {cr} where id = {d['id']}")
+    if v[1] == "": return "cho", f"creative ảnh tĩnh #{cr} đã lên — chờ máy chấm", kq
+    if v[1] == "true": return "xong", f"creative ảnh tĩnh #{cr} chấm sạch", kq
     return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if v[3] else 'chặn'}: {v[2][:200]}", kq
 
 # LÊN CAMP PHẢI LÀM LẠI ĐƯỢC (04/11/2026: dòng #11 / #35 / #45 dừng "creative đã có camp đang chạy / vừa tạo" — lượt đầu đã tạo camp rồi bị Mạnh huỷ / FIX,
@@ -572,7 +596,9 @@ def vong():
         t = CHAY.get((d["id"], ke))
         if t and t[0].is_alive(): continue
         if dang and t and time.time() - t[1] < CHO_LAI: continue   # bước đang "chờ": quay lại sau CHO_LAI giây
-        if ke == "cat" and not dang and sum(1 for (i, b), (th, _) in CHAY.items() if b == "cat" and th.is_alive()) >= TRAN_CAT: continue
+        # LƯỢT NẶNG trên iMac = bước cắt + bước creative AT (anh-tinh.py cũng tải tập + ffmpeg + Vision) → chung trần TRAN_CAT, kẻo 13 dòng AT xếp một lúc chạy đồng loạt
+        LOAI_DONG[d["id"]] = d.get("loai"); nang = lambda i, b: b == "cat" or (b == "creative" and LOAI_DONG.get(i) == "AT")
+        if nang(d["id"], ke) and not dang and sum(1 for (i, b), (th, _) in CHAY.items() if nang(i, b) and th.is_alive()) >= TRAN_CAT: continue
         if not dang:
             sql(f"update etp.dong_buoc set trang_thai = 'dang', bat_dau = now(), nhip = now(), lan = lan + 1, may = '{MAY}' where dong_id = {d['id']} and buoc = '{ke}' and trang_thai = 'cho'")
             bs.setdefault(ke, {})["lan"] = (bs.get(ke) or {}).get("lan", 0) + 1

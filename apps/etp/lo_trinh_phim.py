@@ -6,7 +6,10 @@ Không tự tạo camp: chỉ xếp dòng etp.dong_phim, máy dòng phim iMac l�
 Thứ tự: phim đã cất → dừng · vượt sức chứa → giữ · có camp cơ hội → mở rộng theo etp.mo_rong, ĐỒNG THỜI dạng còn thiếu → sản xuất song song · còn lại để cat_phim kết luận."""
 import json
 
-CAN = {"CC": "cảnh cuối", "KT": "kể chuyện"}   # dạng có máy tự sản xuất (dong_phim.LOAI); CT chưa có máy
+CAN = {"CC": "cảnh cuối", "AT": "ảnh tĩnh"}   # dạng lộ trình tự xếp (dong_phim.LOAI); CT chưa có máy. KT TẠM KHÔNG XẾP (anh 07/11/2026 "lượt này không sinh dòng phim KT cho nhanh" —
+# máy sinh VideoExpress 1–4 giờ + lỗi Meta 389), thay bằng AT (anh-tinh.py ~10 phút/phim, anh 07/11/2026 "sử dụng cả ảnh tĩnh để lên camp cho nhanh hơn"); dòng KT đang chạy giữ nguyên
+MOT_LUOT = {"KT", "AT"}   # máy làm mỗi lượt một video → mỗi dòng 1 camp
+HIEN = {**CAN, "KT": "kể chuyện"}   # dạng hiện trên thẻ phim (lo_trinh_tt.dang): cả KT để thấy số đã thử
 TEN_CT, SO_MOI_DANG, SO_LOI_BO = "cảnh thật", 2, 3   # mỗi dạng 2 camp có chi (cat_phim.so_moi_dang) · 3 dòng hỏng thì thôi dạng đó (hỏng thường do máy quá tải, 2 lần là bỏ oan cả dạng)
 
 def cau_hinh(q):
@@ -51,7 +54,7 @@ def xet(s, tran):
         elif ma in gan: chu.append(f"Đang thử {ma} {da}/{SO_MOI_DANG}, đợt sau tự xếp sau 24 giờ")
         elif not con: chu.append(f"Chạm trần {tran} camp mới / 24 giờ, đợt {ma} tự xếp sau")
         else:
-            n = 1 if ma == "KT" else min(thieu, con)   # máy sinh kể chuyện làm mỗi lượt một video
+            n = 1 if ma in MOT_LUOT else min(thieu, con)   # máy sinh kể chuyện / ảnh tĩnh làm mỗi lượt một video
             con -= n; xep.append((ma, n)); chu.append(f"Thử dạng {ma}: sản xuất {n} camp" + (f" (lần thử lại sau {loi} dòng hỏng)" if loi else ""))
     if chu: return ("mo_rong" if any("Mở rộng" in c for c in chu) else "thu_dang" if xep else "sx" if dang_sx else "cho_24h" if any("24 giờ" in c and "trần" not in c for c in chu) else "tran" if any("trần" in c for c in chu) else "giu"), " · ".join(chu), ke, xep
     cho = [m for m, t in CAN.items() if int((dang.get(t) or {}).get("tao") or 0) > int((dang.get(t) or {}).get("chi") or 0)]
@@ -98,7 +101,7 @@ def chay(q):
     for cid in ds:
         s = so(q, cid, ch.get("bat_dau") or "2026-11-07"); ma, chu, ke, cac_dong = xet(s, int(ch.get("tran_camp_ngay") or 4))
         ten = (s.get("phim") or {}).get("ten") or f"phim {cid}"; hong = s.get("hong") or {}
-        dang = {m: {"da": int((s["dang"].get(t) or {}).get("tao") or 0), "chi": int((s["dang"].get(t) or {}).get("chi") or 0), "bo": int(hong.get(m) or 0) >= SO_LOI_BO} for m, t in {**CAN, "CT": TEN_CT}.items()}
+        dang = {m: {"da": int((s["dang"].get(t) or {}).get("tao") or 0), "chi": int((s["dang"].get(t) or {}).get("chi") or 0), "bo": int(hong.get(m) or 0) >= SO_LOI_BO} for m, t in {**HIEN, "CT": TEN_CT}.items()}
         ten_sql = ten.replace("'", "''"); ai = f"máy: lộ trình tự động thí điểm (anh 07/11/2026) · {chu}".replace("'", "''")
         for loai, so_camp in cac_dong:
             # dong_phim_mot (mỗi phim một dòng chạy mỗi loại) chặn xếp đôi nếu hai lượt đồng bộ chồng nhau
@@ -115,23 +118,24 @@ def chay(q):
 if __name__ == "__main__":
     goc = {"phim": {}, "mo": {}, "dang": {}, "chay": None, "hong": {}, "dong_24h": [], "camp_24h": 0, "co_hoi": False}
     t = lambda **k: xet({**goc, **k}, 4)
-    assert t()[0] == "thu_dang" and t()[3] == [("CC", 2), ("KT", 1)]   # song song
+    assert t()[0] == "thu_dang" and t()[3] == [("CC", 2), ("AT", 1)]   # song song; KT không xếp (anh 07/11/2026)
     assert t(phim={"thu_vong": "cat"})[0] == "cat"
     assert t(phim={"cam": True})[0] == "cam" and t(phim={"nhom_goc": "hoat_hinh"})[0] == "ngoai" and t(phim={"nhom_goc": "au_my"})[0] == "thu_dang"
-    r = t(chay=[{"loai": "CC", "so": 2}]); assert r[3] == [("KT", 1)]   # CC đang làm không chặn KT
-    assert t(chay=[{"loai": "CC", "so": 2}, {"loai": "KT", "so": 1}])[:1] == ("sx",) and t(chay=[{"loai": "CC", "so": 2}, {"loai": "KT", "so": 1}])[3] == []
-    assert t(dong_24h=["CC"])[3] == [("KT", 1)]
-    assert t(dong_24h=["CC", "KT"])[0] == "cho_24h"
+    r = t(chay=[{"loai": "CC", "so": 2}]); assert r[3] == [("AT", 1)]   # CC đang làm không chặn AT
+    assert t(chay=[{"loai": "CC", "so": 2}, {"loai": "AT", "so": 1}])[:1] == ("sx",) and t(chay=[{"loai": "CC", "so": 2}, {"loai": "AT", "so": 1}])[3] == []
+    assert t(chay=[{"loai": "CC", "so": 2}, {"loai": "KT", "so": 1}])[3] == [("AT", 1)]   # dòng KT cũ đang chạy không thay được AT
+    assert t(dong_24h=["CC"])[3] == [("AT", 1)]
+    assert t(dong_24h=["CC", "AT"])[0] == "cho_24h"
     assert t(camp_24h=4)[0] == "tran" and t(camp_24h=3)[3] == [("CC", 1)]
-    assert t(hong={"CC": 2})[3] == [("CC", 2), ("KT", 1)]   # 2 dòng hỏng vẫn thử lại
-    assert t(hong={"CC": 3})[3] == [("KT", 1)]
+    assert t(hong={"CC": 2})[3] == [("CC", 2), ("AT", 1)]   # 2 dòng hỏng vẫn thử lại
+    assert t(hong={"CC": 3})[3] == [("AT", 1)]
     cc = {"cảnh cuối": {"tao": 2, "chi": 2}}
-    assert t(dang=cc)[3] == [("KT", 1)]
-    assert t(dang=cc, hong={"KT": 3})[0] == "het_may"
-    assert t(dang={"cảnh cuối": {"tao": 2, "chi": 0}, "kể chuyện": {"tao": 2, "chi": 2}})[0] == "cho_so"
-    du = {"cảnh cuối": {"tao": 2, "chi": 2}, "kể chuyện": {"tao": 2, "chi": 2}}
+    assert t(dang=cc)[3] == [("AT", 1)]
+    assert t(dang=cc, hong={"AT": 3})[0] == "het_may"
+    assert t(dang={"cảnh cuối": {"tao": 2, "chi": 0}, "ảnh tĩnh": {"tao": 2, "chi": 2}})[0] == "cho_so"
+    du = {"cảnh cuối": {"tao": 2, "chi": 2}, "ảnh tĩnh": {"tao": 2, "chi": 2}}
     assert t(co_hoi=True, dang=du, mo={"trang_thai": "them", "k": 6})[3] == [("CC", 4)]
-    assert t(co_hoi=True, dang=cc, mo={"trang_thai": "them", "k": 2})[3] == [("CC", 2), ("KT", 1)]   # có camp lãi vẫn thử dạng chưa thử
+    assert t(co_hoi=True, dang=cc, mo={"trang_thai": "them", "k": 2})[3] == [("CC", 2), ("AT", 1)]   # có camp lãi vẫn thử dạng chưa thử
     assert t(co_hoi=True, mo={"trang_thai": "them", "k": 6, "pha": "bao_hoa"})[3] == []
     assert t(co_hoi=True, dang=du, mo={"trang_thai": "cho_do", "k": 6})[0] == "giu"
     print("tự kiểm đạt")

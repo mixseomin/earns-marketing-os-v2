@@ -244,11 +244,15 @@ def dem_doan(cr):
     if _DOAN is None: _DOAN = doan_cua()
     d = _DOAN.get(cr)
     return sum(n for c, n in DEM_CR.items() if (_DOAN.get(c) == d if d else c == cr))
+DANG_TINH = ("ảnh tĩnh", "ảnh tĩnh tóm tắt", "poster động", "câu thoại sốc")
 def cung_doan_dang_chay(cr):
     """creative mới cr trùng ĐOẠN (cùng phim + cùng mốc giây) với camp đang chạy / vừa tạo dù creative mang mã khác → mã creative đó, không thì None.
     03/11/2026 lô pm-03110155: máy tự lên 8 camp lúc 03:12–03:51, Claude chạy tay `phim-moi.py len` lại → tải lại thành creative mới #64996–#65005, cổng
     'một creative một camp' chỉ so mã nên lên trùng 8 camp (Elf King 4 camp cho 2 đoạn), anh bắt tắt. Đoạn lấy từ etp.creative.doan, thiếu thì từ studio."""
     global _DOAN
+    # DẠNG TĨNH (08/11/2026 dòng #277 CTS: bản 2 bị chặn "cùng đoạn" với bản 1): mốc giây 0–9 của video ảnh / poster + giọng không phải đoạn phim —
+    # các bản khác khung / câu / giọng là creative khác nhau thật. Luật "một creative một camp" vẫn giữ.
+    if q(f"select dang from etp.creative where creative_id = {int(cr)}") in DANG_TINH: return None
     if _DOAN is None: _DOAN = doan_cua()
     ids = [c for c, n in DEM_CR.items() if n > 0 and c != cr] + [cr]
     db = dict(l.split("|", 1) for l in q(f"select creative_id || '|' || doan from etp.creative where doan is not null and creative_id in ({','.join(str(int(c)) for c in ids)})").splitlines() if "|" in l)

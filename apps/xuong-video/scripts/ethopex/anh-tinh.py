@@ -41,7 +41,7 @@ KIEU_GIONG = {
 THE_LOAI_GIONG = {"fantasy": "ky_di", "soi": "ky_di", "vien_tuong": "ky_di", "he_thong": "ky_di",
                   "vo_danh": "gao", "ty_phu": "gao", "mafia": "gao", "doi_thuong": "gao",
                   "hoi_han": "cam_xuc", "me_con": "cam_xuc", "tinh_cam": "hao_hung", "hoc_duong": "hao_hung", "co_trang": "hao_hung"}
-UNG_VIEN = 12   # số khung ứng viên gửi AI xếp hạng
+UNG_VIEN = 20   # số khung ứng viên gửi AI xếp hạng
 # BẢN MỚI (08/11/2026: AI chọn khung + tên từ poster + HD 8 Mb/s) chỉ chạy khi có --moi — anh "làm trước 1 cái để xem có ổn ko"; duyệt xong mới đổi mặc định
 MOI = "--moi" in sys.argv
 LOC = "fps=2/3"   # khung ứng viên: mỗi 1,5 giây (từ giây 3) — một chuỗi lọc cho cả khung nhỏ lẫn khung gốc
@@ -206,6 +206,21 @@ def ten_poster(ten, poster, ra):
     a = [0 if (i % w, i // w) not in trong else max(0, min(255, int(255 * (1 - (min(((p[0]-m[0])**2+(p[1]-m[1])**2+(p[2]-m[2])**2) ** .5 for m in mau) - 40) / 40))))
          for i, p in enumerate(px)]
     m = Image.new("L", (w, h)); m.putdata(a); m = m.filter(ImageFilter.MedianFilter(3))
+    # bỏ VỤN NỀN: mảng liền (trên ảnh thu 1/2) nhỏ hơn 0,4% vùng cắt, tâm NGOÀI hộp chữ OCR = đốm đèn / vạch nền trùng màu chữ, không phải nét chữ (mẫu 94344: vệt tím góc trên-phải)
+    nho = m.resize((w // 2, h // 2)); W2, H2 = nho.size; pp = nho.load(); thay = set(); bo = Image.new("L", (W2, H2), 0); pb = bo.load()
+    for sx in range(W2):
+        for sy in range(H2):
+            if pp[sx, sy] < 100 or (sx, sy) in thay: continue
+            hang, cum = [(sx, sy)], []; thay.add((sx, sy))
+            while hang:
+                x_, y_ = hang.pop(); cum.append((x_, y_))
+                for c_ in ((x_ + 1, y_), (x_ - 1, y_), (x_, y_ + 1), (x_, y_ - 1)):
+                    if 0 <= c_[0] < W2 and 0 <= c_[1] < H2 and c_ not in thay and pp[c_] >= 100: thay.add(c_); hang.append(c_)
+            tx, ty = 2 * sum(c_[0] for c_ in cum) / len(cum) + x0, 2 * sum(c_[1] for c_ in cum) / len(cum) + y0   # tâm mảng, toạ độ poster
+            ngoai = not any(bx * X <= tx <= (bx + bw) * X and by * Y <= ty <= (by + bh) * Y for bx, by, bw, bh in hop)
+            if (len(cum) < 0.004 * W2 * H2 and ngoai) or len(cum) < 0.0008 * W2 * H2:   # dấu câu (",") nằm TRONG hộp chữ, to hơn chấm li ti → giữ
+                for c_ in cum: pb[c_] = 255
+    m = Image.composite(Image.new("L", (w, h), 0), m, bo.resize((w, h)).filter(ImageFilter.MaxFilter(5)))
     if sum(1 for v in m.getdata() if v > 128) < 0.05 * w * h: return None   # gần như không còn nét → tách hỏng
     out = c.convert("RGBA"); out.putalpha(m)
     nen = Image.new("RGBA", out.size, (0, 0, 0, 0)); nen.putalpha(m.filter(ImageFilter.MaxFilter(9)).filter(ImageFilter.GaussianBlur(3)).point(lambda v: min(230, int(v * 1.3))))

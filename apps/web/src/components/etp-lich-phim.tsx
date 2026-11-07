@@ -69,7 +69,7 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
             const tenChan = [...new Set(l.chan.map((c) => c.loi.replace(/creative #\d+ cùng/, 'creative cùng').replace(/^phim \d+ /, '')))];
             return <>
               <div style={{ display: 'flex', gap: 14, alignItems: 'baseline', flexWrap: 'wrap' }} title="lãi / lỗ của camp đang chạy tính 7 ngày gần đây, chưa tiêu tới $1 thì chưa xếp">
-                {so(chay, 'chạy', 'var(--fg)')}{so(lai, 'lãi', '#4ade80')}{so(lo, 'lỗ', '#f87171')}{so(tongSx, 'đang SX', '#facc15')}{l.roas ? so(l.roas, 'ROAS', '#a78bfa') : null}
+                {so(chay, 'chạy', 'var(--fg)')}{so(lai, 'lãi', '#4ade80')}{so(lo, 'lỗ', '#f87171')}
                 {chi7 >= 1 ? <span style={{ marginLeft: 'auto', color: thu7 > chi7 ? '#4ade80' : '#f87171' }}>ROI 7 ngày {Math.round((thu7 - chi7) / chi7 * 100)}%</span> : null}
               </div>
               {ma.length ? <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '4px 8px', alignItems: 'center' }}>
@@ -84,6 +84,19 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
               {gd === 0 ? <div title={`máy cất phim khi chi thử ≥ $${l.moc_chi} hoặc đủ ${l.moc_thu} camp có chi mà chưa camp nào lãi`}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--fg-2)', fontSize: 11 }}><span>mốc cất</span><span>${Math.round(l.chi)} / ${l.moc_chi} · {l.so_thu}/{l.moc_thu} camp</span></div>
                 <div style={{ height: 4, borderRadius: 2, background: 'var(--line)', marginTop: 2 }}><div style={{ height: 4, borderRadius: 2, width: `${Math.min(100, l.chi / l.moc_chi * 100)}%`, background: l.vong === 'sap_cat' ? '#f59e0b' : '#a78bfa' }} /></div></div> : null}
+              {/* CAMP MỚI: kế hoạch → đang sản xuất → chờ lên. Kế hoạch etp.mo_rong chỉ là số đề xuất, chỉ phim_doi_lai máy mới tự xếp dòng — nói đúng ai làm bước kế */}
+              {(() => {
+                const ke = l.ke, them = ke?.trang_thai === 'them' || ke?.trang_thai === 'cho_do', cho = l.hen.length + Math.max(ke?.san ?? 0, l.tu_len);
+                const o = (n: string | number, chu: string, mau: string) => <div style={{ flex: 1, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)' }}><b style={{ fontSize: 15, color: n ? mau : 'var(--fg-3)' }}>{n}</b><div style={{ fontSize: 10.5, color: 'var(--fg-2)' }}>{chu}</div></div>;
+                return <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', gap: 4 }}>{o(them && ke!.k ? `+${ke!.k}` : 0, 'kế hoạch', '#a78bfa')}{o(tongSx, 'đang SX', '#facc15')}{o(cho, 'chờ lên', '#60a5fa')}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--fg-2)', lineHeight: 1.4 }}>
+                    <div>{!ke ? 'Kế hoạch: chưa có, phim chưa có camp Nhà đang chạy' : ke.trang_thai === 'cho_do' ? `Kế hoạch: thêm ${ke.k} camp, đang chờ đo vì lượt trước chưa đủ 1 ngày khép` : ke.trang_thai === 'them' ? `Kế hoạch: thêm ${ke.k} camp · có sẵn ${ke.san} creative · cần làm thêm ${ke.can_sx}` : `Kế hoạch: chưa thêm · ${ke.ly}`}</div>
+                    {them ? <div>{l.may_mo ? 'Máy tự xếp dòng phim (phim đội lãi, tối đa 1 đợt / 24 giờ)' : 'Máy không tự lên theo kế hoạch này, cần bấm ＋ bên dưới'}</div> : null}
+                    {l.hen.map((h) => <div key={h.camp_id}>#{h.camp_id} đã tạo, hẹn chạy {h.luc}</div>)}
+                    {l.tu_len ? <div>{l.tu_len} creative trong hàng máy tự lên</div> : null}
+                    {l.thieu ? <div style={{ color: '#f59e0b' }} title={l.thieu}>Đợt gần nhất: {l.thieu.slice(0, 80)}</div> : null}
+                  </div></div>; })()}
               {/* lộ trình: việc sắp diễn ra, mỗi dòng một việc */}
               {sx.length || sapToi.length || tenChan.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11.5, color: 'var(--fg-2)' }}>
                 {sx.map((d) => { const b = buocHien(d), hong = b?.trang_thai === 'loi' || b?.trang_thai === 'dung';

@@ -52,7 +52,9 @@ def da_het(ra):
     """Đã dò HẾT tập miễn phí và còn đủ tệp → không cần mạng. MỘT chỗ cho mọi nơi gọi (tho / dot-phim-moi / nguon-box / sua-cta cứ gọi tai-tap, không tự kiểm)."""
     try: k = int(open(os.path.join(ra, "tap-het")).read().strip())
     except (OSError, ValueError): return False
-    return k > 0 and all(os.path.exists(os.path.join(ra, f"tap{n:02d}.mp4")) for n in range(1, k + 1))
+    # cần cả poster: thư mục đủ tập mà thiếu poster (lần đầu tải poster hỏng / VPS 07/11/2026 #270 #273) trước đây trả ngay → poster không bao giờ được tải lại
+    po = os.path.join(ra, "poster.jpg")
+    return k > 0 and os.path.exists(po) and os.path.getsize(po) > 2000 and all(os.path.exists(os.path.join(ra, f"tap{n:02d}.mp4")) for n in range(1, k + 1))
 
 def main(goc, ra, so=3):
     os.makedirs(ra, exist_ok=True)

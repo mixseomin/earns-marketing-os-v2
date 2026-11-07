@@ -5,7 +5,7 @@ Mỗi lượt:
   1. bước 'dang' quá hạn (han_giay) hoặc im (nhip) quá 10 phút → đặt huy (máy chạy dòng giết tiến trình), ghi lỗi; lần đầu thì tự FIX (chạy lại bước) một lần
   2. máy chạy dòng im > 3 phút mà còn dòng chạy → báo Telegram (30 phút một lần), bước của nó coi như chết (mục 1 lo)
   3. dòng vừa kết thúc (xong / dừng vì policy / lỗi) → báo Telegram một lần
-  4. việc cắt lô dòng phim (etp.viec lô dp*) 'dang' quá 75 phút → xếp lại hàng chờ (tho.py chỉ tự quét việc của chính máy nó)
+  4. việc cắt lô dòng phim (etp.viec lô dp*) 'dang' quá trần cắt của việc + 60 phút (tho.TRAN_SQL) → xếp lại hàng chờ (tho.py chỉ tự quét việc của chính máy nó)
   5–6. mở lại dòng dừng khi cổng đổi · thử lại dòng lỗi kỹ thuật
   7. lỗi MÃ ở máy luật / lên camp (etp.nhat_ky) → báo Telegram ngay, mỗi kiểu một lần / 6 giờ
 Dùng: manh.py [--thu] (--thu: chỉ in, không ghi / không báo)"""
@@ -24,6 +24,7 @@ IM_BUOC, IM_MAY = 600, 180   # giây
 # bước dừng ở đâu thì băm tệp làm luật bước đó; sửa tệp → dấu đổi → dòng tự chạy lại bước dừng một lần. Bước Lên camp thêm NGÀY: cổng camp
 # (bão hoà, ngân sách, trùng đội) đổi theo số mỗi ngày → mỗi ngày thử lại một lần.
 G = os.path.dirname(os.path.abspath(__file__)); XE = os.path.join(G, "..", "xuong-video", "scripts", "ethopex")
+_s = importlib.util.spec_from_file_location("tho", os.path.join(G, "tho.py")); THO = importlib.util.module_from_spec(_s); _s.loader.exec_module(THO)   # TRAN_SQL: một trần cắt cho thợ + Mạnh
 MA_BUOC = {"poster": [f"{G}/soat_18_ai.py"], "soat": [f"{XE}/soat_doan.py"], "cat": [f"{G}/dong_phim.py", f"{G}/tho.py"],
            "creative": [f"{G}/dong_phim.py", f"{XE}/len-creative.py", f"{G}/cong.py"], "camp": [f"{G}/dong_phim.py", f"{G}/cong.py", f"{XE}/nhan-ban.py"]}
 def bam(tep):
@@ -88,7 +89,8 @@ def main():
         elif tin: bao(f"📋 <b>Mạnh</b> · {len(tin)} dòng phim vừa kết thúc (lỗi kỹ thuật Mạnh tự thử lại: hạ tầng 10 phút, khác 2 giờ)\n" + "\n".join(f"• {t} — {ly[:110]}" for t, ly in tin)[:3800])
     def muc4():
         # 4. việc cắt lô dòng phim kẹt
-        r = q("update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | Mạnh: kẹt quá 75 phút, xếp lại' where lo like 'dp%' and trang_thai = 'dang' and bat_dau < now() - interval '75 minutes' returning id") if not THU else ""
+        # trần chung với tho.py (07/11/2026): 75 phút cố định thấp hơn trần cắt 8 bản (79 phút) / LT (100 phút) → xếp lại cả việc đang cắt thật, hai máy cắt trùng
+        r = q(f"update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | Mạnh: kẹt quá trần cắt + 60 phút, xếp lại' where lo like 'dp%' and trang_thai = 'dang' and bat_dau < now() - interval '1 minute' * ({THO.TRAN_SQL} + 60) returning id") if not THU else ""
         if r: lam.append(f"xếp lại việc cắt kẹt: {r.replace(chr(10), ' ')}")
     def muc5():
         # 5. TỰ MỞ LẠI DÒNG DỪNG KHI CỔNG CỦA PHIM ĐỔI (anh 04/11/2026 "tại sao cứ phải địt cụ mày mới fix? ko làm tự động hết đc à"):

@@ -44,7 +44,9 @@ def xong(v, ket_qua, loi=None):
     if loi and LK.ky_thuat(loi) is True and v["lan_thu"] < 3:   # lỗi kỹ thuật → về hàng chờ cho MÁY KHÁC: máy này ghi vào may_hong, nhan() không đưa lại cho nó
         # (07/11/2026: phim 92980 quá giờ 3 lần liền cùng trên HP, 45 phút mất trắng mỗi lần). Tối đa 3 lần thử ≤ số máy thợ (iMac, HP, VPS) → luôn còn máy nhận.
         sql(f"update etp.viec set trang_thai = 'cho', may = null, loi = $L${str(loi)[:300]}$L$, du_lieu = jsonb_set(coalesce(du_lieu, '{{}}'::jsonb), '{{may_hong}}', coalesce(du_lieu->'may_hong', '[]'::jsonb) || to_jsonb('{MAY}'::text)) where id = {v['id']}"); return "tra_lai"
-    sql(f"update etp.viec set trang_thai = '{'loi' if loi and not ket_qua else 'xong'}', xong = now(), ket_qua = $K${kq}$K$::jsonb, loi = {('$L$' + str(loi)[:300] + '$L$') if loi else 'null'} where id = {v['id']}")
+    # 'loi' khi KHÔNG có đoạn dùng được (07/11/2026: #270 #273 ra 0 đoạn, ket_qua chỉ chứa dòng lỗi mà vẫn ghi 'xong' → bảng máy thợ đếm như việc đạt)
+    dat = any(x.get("file") and not x.get("loi") for x in ket_qua)
+    sql(f"update etp.viec set trang_thai = '{'loi' if loi and not dat else 'xong'}', xong = now(), ket_qua = $K${kq}$K$::jsonb, loi = {('$L$' + str(loi)[:300] + '$L$') if loi else 'null'} where id = {v['id']}")
     return "xong"
 
 def cat(v):
@@ -53,6 +55,8 @@ def cat(v):
     # luôn gọi tai-tap: tự dùng lại tập có sẵn, tải tập thiếu, đã dò hết (dấu tap-het) thì trả ngay — luật nằm MỘT chỗ ở tai-tap.da_het
     os.makedirs(tm, exist_ok=True); subprocess.run(["python3", os.path.join(E, "tai-tap.py"), d.get("url", ""), tm, str(TAP_TOI_DA)], capture_output=True, text=True, timeout=1500)   # tải HẾT tập miễn phí (tai-tap dừng ở tập khoá đầu tiên)
     if not any(f.startswith("tap") and f.endswith(".mp4") for f in os.listdir(tm)): return [], "không tải được tập miễn phí"
+    # thiếu poster thì cat-cuoi-lo đổ Errno 2 sau khi đã tốn công ghép phim (07/11/2026 VPS #270 #273) → dừng sớm, lỗi kỹ thuật → máy khác làm
+    if not (os.path.exists(os.path.join(tm, "poster.jpg")) and os.path.getsize(os.path.join(tm, "poster.jpg")) > 2000): return [], "không tải được poster"
     tsv = os.path.join(ra, "lo.tsv"); open(tsv, "w").write(f"{cid}\t{d.get('locale', 'en')}\t{d.get('nguon', '')}\t{d.get('ten', '')}\t{d.get('url', '')}\n")
     h = time.localtime().tm_hour   # đêm 22h–8h: nice (đủ lõi); ngày: chế độ nền (máy người dùng không giật) — cùng luật dot-phim-moi.uu_tien
     uu = ["nice", "-n", "10"] if (h >= 22 or h < 8) else (["taskpolicy", "-b"] if sys.platform == "darwin" else ["nice", "-n", "15"])

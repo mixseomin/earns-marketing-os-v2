@@ -54,7 +54,7 @@ function vietMot(n, ms) {
     { nhin: o('chu-de'), chu: `“${ap.chu_de.replace(/[.]$/, '')}.”` },
     ...ms.map((m) => (m.tranh ? { nhin: { tranh: tg(join('dai', m.tranh)), kieu: 'trai' }, chu: `${m.ngay.slice(0, 4)}: ${m.chu}`, nhan: `${m.ngay.slice(0, 4)}${m.noi ? ` · ${m.noi}` : ''}` }
       : { nhin: { troi: 1 }, chu: m.chu, the: { lon: m.ngay.slice(0, 4), duoi: ngayChu(m.ngay), dong: [], vi: 'giua' } })),
-    { nhin: { troi: 1 }, khung: true, chu: 'Ask your own question free at astrolas.com.' },
+    { nhin: { troi: 1 }, khung: true, chu: 'See your own year free at astrolas.com.' },
   ];
   const tieuDe = `${chuHook} ${A}'s year in Annual Profections`;   // không số trong tiêu đề: luật hook cấm thêm con số không có trong QC gốc
   const tap = tachCanh({ _ghi: `Ask the Chart · ${A} ${m.nam} — sinh bởi lich-su/viet-ask.mjs (trang ${ap.nguon.slice(0, 50)}…, ${ms.length} mốc ${[...new Set(ms.map((x) => x.nguon_moc))].join(' + ')}, hook QC spy #${hook.id})`,

@@ -313,7 +313,7 @@
       {
         "ma": "G7",
         "ten": "Đăng",
-        "viec": "mở khoá mục YouTube @astrolasapp; 2 playlist + Start here + bố cục trang kênh; máy đăng chọn playlist + tiền tố tiêu đề · 07/11: video đầu lên YouTube https://youtube.com/shorts/RMNI1c9ybGM; đăng từ iMac bằng phiên chép (scripts/chep-phien.mjs); chưa tạo 6 playlist; bình luận đầu hỏng",
+        "viec": "mở khoá mục YouTube @astrolasapp; 2 playlist + Start here + bố cục trang kênh; máy đăng chọn playlist + tiền tố tiêu đề · 07/11: video đầu https://youtube.com/shorts/RMNI1c9ybGM; đăng hẳn từ iMac (scripts/chep-phien.mjs); kênh đã xác minh số; bìa chuẩn thumb-kenh.mjs; 6 playlist đã tạo, máy đăng chọn playlist theo dang.playlist_ten",
         "anh": "không",
         "trang_thai": "dang"
       },

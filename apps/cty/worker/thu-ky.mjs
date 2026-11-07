@@ -36,7 +36,21 @@ export function nguCanh(x) {
   if (c) { const q = c.message ?? {}, so = docNut(q.message_id); return { phong: phongCuaTopic(q.message_thread_id ?? so?.topic) ?? x.phong_goc ?? null, mid: q.message_id, topic: q.message_thread_id ?? so?.topic, hoi_mid: q.message_id, cau_hoi: so?.chu ?? q.text ?? '', anh: c.data === 'hq:co' ? 'Đồng ý' : c.data === 'hq:khong' ? 'Không' : c.data, from: c.from }; }
   if (!m || daTraLoi(m.message_id)) return null;
   const goc = m.reply_to_message, so = goc && docNut(goc.message_id);
-  return { phong: x.phong_goc && x.phong_goc !== '_khac' ? x.phong_goc : phongCuaTopic(m.message_thread_id), mid: m.message_id, topic: m.message_thread_id, hoi_mid: goc?.from?.is_bot ? goc.message_id : null, cau_hoi: goc?.from?.is_bot ? (so?.chu ?? goc.text ?? '') : '', anh: String(m.text ?? m.caption ?? ''), from: m.from };
+  // tệp anh gửi kèm (PDF tài liệu, ảnh): giữ mã tệp để tải khi tin đó là lệnh cho Thành
+  const tep = m.document ? [{ id: m.document.file_id, ten: m.document.file_name || `tai-lieu-${m.message_id}` }] : m.photo?.length ? [{ id: m.photo.at(-1).file_id, ten: `anh-${m.message_id}.jpg` }] : [];
+  return { phong: x.phong_goc && x.phong_goc !== '_khac' ? x.phong_goc : phongCuaTopic(m.message_thread_id), mid: m.message_id, topic: m.message_thread_id, hoi_mid: goc?.from?.is_bot ? goc.message_id : null, cau_hoi: goc?.from?.is_bot ? (so?.chu ?? goc.text ?? '') : '', anh: String(m.text ?? m.caption ?? ''), from: m.from, tep };
+}
+
+/** Tải tệp Telegram về box3 (bot tải được tới 20 MB). lay = fetch, tự kiểm thay bằng bản giả. Trả các đường dẫn đã lưu. */
+export async function taiTep(tg, tep, dir, lay = fetch) {
+  fs.mkdirSync(dir, { recursive: true });
+  const ra = [];
+  for (const t of tep) {
+    const j = await tg('getFile', { file_id: t.id }); if (!j?.ok) throw new Error(`getFile ${t.ten}: ${j?.description ?? 'không rõ'}`);
+    const r = await lay(`https://api.telegram.org/file/bot${process.env.TG_BOT_TOKEN}/${j.result.file_path}`); if (!r.ok) throw new Error(`tải ${t.ten}: http ${r.status}`);
+    const f = path.join(dir, path.basename(t.ten).replace(/[^\p{L}\p{N}._ -]/gu, '_')); fs.writeFileSync(f, Buffer.from(await r.arrayBuffer())); ra.push(f);
+  }
+  return ra;
 }
 
 async function hoiMoHinh(t, nc, goi = fetch) {
@@ -55,7 +69,7 @@ Trả DUY NHẤT JSON: {"tra_loi":"…","quyet":"co|khong|khac","viec":"… ho�
 }
 
 /** Xử mọi mục trong hộp thư ký. tg = Bot API (đã bọc ghiNut). Trả số mục đã xử. */
-export async function xuThuKy(tg, { hoi = hoiMoHinh } = {}) {
+export async function xuThuKy(tg, { hoi = hoiMoHinh, lay = fetch } = {}) {
   let n = 0;
   for (const x of moHop('thu-ky')) {
     const nc = nguCanh(x); x.xong(); if (!nc) continue;
@@ -66,7 +80,10 @@ export async function xuThuKy(tg, { hoi = hoiMoHinh } = {}) {
     const tk = taskCuaTin(nc.hoi_mid);
     if (tk) {
       if (/^(không|ko|k|no|thôi|bỏ qua|đừng)[\s.!]*$/i.test(nc.anh.trim())) { await tra0(`🛠 <b>Thành</b>: đã ghi anh không làm tiếp task #${tk}.`); n++; continue; }
-      ghiPhanHoi(tk, nc.anh, nc.mid); await tra0(`🛠 <b>Thành</b> nhận: <i>${esc(nc.anh.slice(0, 200))}</i> — làm lại task #${tk}, bắt đầu trong ≤ 2 phút, xong báo ngay dưới tin này.`); n++; continue;
+      let tep = [];
+      if (nc.tep.length) { try { tep = await taiTep(tg, nc.tep, path.join(DATA(), 'tep-anh', String(tk)), lay); } catch (e) { await tra0(`⚠️ <b>Thành</b>: chưa tải được tệp anh gửi (${esc(e.message)}), con chưa nhận lệnh này.`); n++; continue; } }
+      const anh = nc.anh || (tep.length ? 'Anh gửi tài liệu kèm, đọc và làm tiếp.' : '');
+      ghiPhanHoi(tk, anh, nc.mid, tep); await tra0(`🛠 <b>Thành</b> nhận: <i>${esc(anh.slice(0, 200))}</i>${tep.length ? ` + ${tep.length} tệp (${esc(tep.map((f) => path.basename(f)).join(', '))})` : ''} — làm lại task #${tk}, bắt đầu trong ≤ 2 phút, xong báo ngay dưới tin này.`); n++; continue;
     }
     const vt = viecCuaTin(nc.hoi_mid);
     if (vt) {
@@ -113,5 +130,13 @@ if (process.argv[1]?.endsWith('thu-ky.mjs') && process.argv.includes('--tu-kiem'
     const dem = hoiDs.length; gui.length = 0; t.equal(await xuThuKy(tg, { hoi }), 2); t.equal(hoiDs.length, dem, 'không qua mô hình');
     const s1 = JSON.parse(fs.readFileSync(f, 'utf8')).hang, le = s1.filter((v) => v.goc === 'dang:lo|mil|facebook'); t.equal(le.length, 1); t.equal(le[0].anh, 'Sx thêm video cho'); t.equal(le[0].tg.msg, 90, 'kết quả báo dưới tin anh'); t.equal(s1.find((v) => v.id === 51).tt, 'gop', 'việc cùng máy không chạy để hỏi lại');
     const m0 = gui.filter(([m]) => m === 'sendMessage').map(([, b]) => b.text); t.ok(m0[0].includes('Mạnh</b> nhận lệnh') && m0[1].includes('không làm')); }
+  { // anh trả lời dưới tin của Thành bằng PDF không kèm chữ → tải về, lệnh làm lại có đường dẫn tệp
+    fs.writeFileSync(path.join(DATA(), 'astrolas-tasks.json'), JSON.stringify({ tin: { 555: 4517 }, phan_hoi: [] }));
+    fs.writeFileSync(path.join(hop, '12.json'), JSON.stringify({ update_id: 12, phong_goc: 'astrolas', message: { message_id: 95, message_thread_id: 4241, document: { file_id: 'F1', file_name: 'Brennan ch16.pdf' }, from: { first_name: 'D' }, reply_to_message: { message_id: 555, from: { is_bot: true } } } }));
+    const tg2 = async (m, b) => (m === 'getFile' ? { ok: true, result: { file_path: 'documents/f.pdf' } } : tg(m, b)), lay = async () => new Response('%PDF-1.4 thu');
+    gui.length = 0; t.equal(await xuThuKy(tg2, { hoi, lay }), 1);
+    const ph = JSON.parse(fs.readFileSync(path.join(DATA(), 'astrolas-tasks.json'), 'utf8')).phan_hoi[0];
+    t.equal(ph.task, 4517); t.equal(ph.tep.length, 1); t.equal(fs.readFileSync(ph.tep[0], 'utf8'), '%PDF-1.4 thu', 'PDF đã tải về'); t.ok(ph.anh.includes('tài liệu'), 'không có chữ vẫn thành lệnh');
+    t.ok(gui.some(([m, b]) => m === 'sendMessage' && b.text.includes('1 tệp (Brennan ch16.pdf)')), 'báo đã nhận tệp'); }
   console.log('thu-ky: tự kiểm đạt'); process.exit(0);
 }

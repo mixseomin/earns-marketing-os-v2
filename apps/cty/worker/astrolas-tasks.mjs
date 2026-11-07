@@ -14,7 +14,7 @@ const ghi = (s) => fs.writeFileSync(tep(), JSON.stringify(s));
 const NHAN = { da_sua: '✅ Xong, chờ duyệt', can_anh: '⚠️ Cần anh quyết', treo: '⏹ Dừng giữa chừng' };
 
 export const taskCuaTin = (mid) => (mid ? doc().tin[mid] ?? null : null);
-export const ghiPhanHoi = (task, anh, tin) => { const s = doc(); s.phan_hoi.push({ task, anh, tin }); ghi(s); };
+export const ghiPhanHoi = (task, anh, tin, tep = []) => { const s = doc(); s.phan_hoi.push({ task, anh, tin, ...(tep.length ? { tep } : {}) }); ghi(s); };   // tep: tệp anh gửi kèm, đã tải về box3
 export const layPhanHoi = () => { const s = doc(), x = s.phan_hoi.shift(); if (x) ghi(s); return x ?? {}; };
 
 /** Gửi tin báo vào chủ đề; nhớ tin → task để câu trả lời dưới tin tìm được đúng task. */

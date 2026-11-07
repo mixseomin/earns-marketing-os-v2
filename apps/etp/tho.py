@@ -38,10 +38,15 @@ def quet_chet():
     """việc 'dang' của máy này mà thợ đã chết (CHET_SQL: nhịp im 10 phút, hoặc chưa có nhịp thì quá trần cắt + 1 giờ) → trả về hàng chờ, không nằm kẹt mãi"""
     r = sql(f"update etp.viec set trang_thai = 'cho', may = null, {BO_NHIP}, loi = coalesce(loi, '') || ' | thợ chết giữa chừng, xếp lại' where trang_thai = 'dang' and may = '{MAY}' and {CHET_SQL} returning id")
     if r: print(f"[{MAY}] xếp lại việc kẹt: {r.replace(chr(10), ' ')}", flush=True)
+# MÁY CHẬM (07/11/2026 anh "sửa luôn thợ vps và hp máy"): Linux đọc chữ bằng tesseract ~0,8s/khung → một lô 26–53 phút, iMac (Vision) 1–2 phút.
+# Linux chỉ nhận khi hàng chờ ≥ HANG_LINUX (iMac chưa kịp tới) và lấy việc MỚI NHẤT (iMac giữ đầu hàng); trần giờ ×3 nhưng ≤ 65 phút (dòng phim chờ bước cắt 70 phút, dong_phim.BUOC) để không bỏ phí lô đang dở.
+CHAM = sys.platform != "darwin"; HANG_LINUX = 4
+def tran_giay(d): return min(tran_phut(d) * 3, 65) * 60 if CHAM else tran_phut(d) * 60
 def nhan(lo):
     dk = f"and lo = '{lo}'" if lo else ""
+    if CHAM and int(sql(f"select count(*) from etp.viec where trang_thai = 'cho' {dk}") or 0) < HANG_LINUX: return None
     j = sql(f"""update etp.viec set trang_thai = 'dang', may = '{MAY}', bat_dau = now(), lan_thu = lan_thu + 1, du_lieu = du_lieu || jsonb_build_object('nhip', now())
-               where id = (select id from etp.viec where trang_thai = 'cho' {dk} and not coalesce(du_lieu->'may_hong', '[]'::jsonb) ? '{MAY}' order by id for update skip locked limit 1)
+               where id = (select id from etp.viec where trang_thai = 'cho' {dk} and not coalesce(du_lieu->'may_hong', '[]'::jsonb) ? '{MAY}' order by id {'desc' if CHAM else ''} for update skip locked limit 1)
                returning json_build_object('id', id, 'loai', loai, 'lo', lo, 'content_id', content_id, 'du_lieu', du_lieu, 'lan_thu', lan_thu)""")
     return json.loads(j) if j else None
 
@@ -69,7 +74,7 @@ def cat(v):
     # cả nhóm tiến trình: quá giờ thì giết luôn cat-canh / ffmpeg con cháu (25/10/2026: 3 ffmpeg treo mồ côi 8 giờ sau khi thợ bỏ việc)
     pr = subprocess.Popen([*uu, "python3", os.path.join(E, "cat-cuoi-lo.py"), N, tsv, ra, "1", str(d.get("so_ban", 2))], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
                           env={**os.environ, **({"ETP_KIEU": d["kieu"]} if d.get("kieu") else {})})   # kieu=tap: mỗi tập một đoạn (dòng phim LT, anh 03/11/2026)
-    try: pr.wait(timeout=tran_phut(d) * 60)   # trần theo số bản (tran_phut); trần cũ 3 giờ làm lô kẹt cả buổi (02/11/2026)
+    try: pr.wait(timeout=tran_giay(d))   # trần theo số bản (tran_phut); trần cũ 3 giờ làm lô kẹt cả buổi (02/11/2026)
     except subprocess.TimeoutExpired:
         try: os.killpg(pr.pid, 9)
         except Exception: pass

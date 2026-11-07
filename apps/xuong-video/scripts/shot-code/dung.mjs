@@ -60,20 +60,25 @@ if (!nenVideo && !tieng) {
   const coKhung = await p.evaluate(() => typeof window.__khung === 'function');
   const chupO = async (q, t) => { if (coKhung) return Buffer.from(await q.evaluate((x) => { window.__seek(x); return window.__khung(); }, t), 'base64');
     await q.evaluate((x) => window.__seek(x), t); return q.screenshot({ timeout: 180_000, type: 'jpeg', quality: 92 }); };
+  // DẤU VÂN TAY có dung sai (08/11/2026: so mã băm từng byte thì chỉ dùng lại 40/113 đoạn — canvas vẽ bằng GPU lệch vài điểm ảnh mỗi lần vẽ): khung thu 64×36 xám,
+  // trùng khi sai lệch trung bình < 1,5 mức và không điểm nào lệch quá 48 (đủ bắt chữ / người / bố cục đổi, bỏ qua nhiễu GPU). Kho cũ chỉ có mã băm thì vẫn so mã băm.
+  const vanTay = (q, t) => q.evaluate((x) => { window.__seek(x); const s = document.querySelector('canvas'); if (!s) return null; const k = document.createElement('canvas'); k.width = 64; k.height = 36; const g = k.getContext('2d', { willReadFrequently: true }); g.drawImage(s, 0, 0, 64, 36); const d = g.getImageData(0, 0, 64, 36).data, a = []; for (let i = 0; i < d.length; i += 4) a.push((d[i] * 3 + d[i + 1] * 6 + d[i + 2]) / 10 | 0); return a; }, t);
+  const giong = (a, b_) => { if (!a || !b_ || a.length !== b_.length) return false; let tong = 0, max = 0; for (let i = 0; i < a.length; i++) { const l = Math.abs(a[i] - b_[i]); tong += l; if (l > max) max = l; } return tong / a.length < 1.5 && max <= 48; };
   let dungLai = 0, daDung = 0;
   const lam = async (q, d) => {
     // khoá kho có DẤU BỘ MÃ HOÁ (03/11/2026: đoạn libx264 của lượt cũ ghép chung đoạn VideoToolbox → luồng H.264 hỏng 'Invalid NAL unit size') — đổi bộ mã / tham số là đoạn cũ không bao giờ được dùng lại
     const tep = join(tam, `${String(d.i).padStart(4, '0')}.mp4`), kTep = kho && d.khoa ? join(kho, `${d.khoa}-${d.f1 - d.f0}-${DAU_MA}`) : null;
     if (kTep && fs.existsSync(`${kTep}.mp4`) && fs.existsSync(`${kTep}.json`)) {
-      const cu = JSON.parse(fs.readFileSync(`${kTep}.json`, 'utf8')), dau = sha(await chupO(q, d.f0 / fps)), cuoi = sha(await chupO(q, (d.f1 - 1) / fps));
-      if (cu.dau === dau && cu.cuoi === cuoi) { fs.copyFileSync(`${kTep}.mp4`, tep); dungLai++; return; }
+      const cu = JSON.parse(fs.readFileSync(`${kTep}.json`, 'utf8'));
+      const trung = cu.vtDau ? giong(cu.vtDau, await vanTay(q, d.f0 / fps)) && giong(cu.vtCuoi, await vanTay(q, (d.f1 - 1) / fps)) : cu.dau === sha(await chupO(q, d.f0 / fps)) && cu.cuoi === sha(await chupO(q, (d.f1 - 1) / fps));
+      if (trung) { fs.copyFileSync(`${kTep}.mp4`, tep); dungLai++; return; }
     }
     const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-', ...x264, tep], { stdio: ['pipe', 'inherit', 'inherit'] });
     let dau = null, cuoi = null;
     for (let f = d.f0; f < d.f1; f++) { const anh = await chupO(q, f / fps); if (f === d.f0) dau = sha(anh); if (f === d.f1 - 1) cuoi = sha(anh);
       if (!ff.stdin.write(anh)) await new Promise((r) => ff.stdin.once('drain', r)); daDung++; if (daDung % 300 === 0) console.log(`khung ${daDung} dựng mới · ${dungLai} đoạn dùng lại`); }
     ff.stdin.end(); const ma = await new Promise((r) => ff.on('close', r)); if (ma) throw new Error(`ffmpeg đoạn ${d.i} hỏng (${ma})`);
-    if (kTep) { fs.copyFileSync(tep, `${kTep}.mp4`); fs.writeFileSync(`${kTep}.json`, JSON.stringify({ dau, cuoi })); }
+    if (kTep) { fs.copyFileSync(tep, `${kTep}.mp4`); fs.writeFileSync(`${kTep}.json`, JSON.stringify({ dau, cuoi, vtDau: await vanTay(q, d.f0 / fps), vtCuoi: await vanTay(q, (d.f1 - 1) / fps) })); }
   };
   const hang = [...doan].sort((a, b_) => (b_.f1 - b_.f0) - (a.f1 - a.f0));   // đoạn dài trước → các trang xong gần cùng lúc
   await Promise.all(trang.map(async (q) => { for (let d; (d = hang.shift());) await lam(q, d); }));

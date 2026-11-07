@@ -18,7 +18,8 @@ window.__dung = async () => { C = window.CAU;
     g.globalCompositeOperation = 'source-atop'; const MAU_Q = { 'Russian Empire': '#b3402a', France: '#2f5f8f', Prussia: '#4a4a52', 'Austrian Empire': '#d9b02b', 'Ottoman Empire': '#4f7a4f', Sweden: '#7a4f8c', 'United Kingdom': '#a33b5d', Spain: '#c47a2c' }, DU = ['#8a5a3a', '#5c8a7a', '#94804a', '#6a6f9a']; QUOC = (C.quoc || []).map((q, i) => { const p = new Path2D(); for (const v of q.net) { v.forEach(([a, b], j) => (j ? p.lineTo(a, -b) : p.moveTo(a, -b))); p.closePath(); } return { ...q, p, mau: MAU_Q[q.ten] ?? DU[i % 4] }; }); g.setTransform(sx, 0, 0, sy, -a0 * sx, b1 * sy); for (const q of QUOC) { g.globalAlpha = 0.34; g.fillStyle = q.mau; g.fill(q.p); } g.globalAlpha = 1; for (const [mau, w] of [['#fbf3dd', 6.5], ['#2a1a10', 2.6]]) { g.strokeStyle = mau; g.lineWidth = w / sx; g.lineJoin = 'round'; for (const q of QUOC) g.stroke(q.p); } g.setTransform(1, 0, 0, 1, 0, 0); }
   SONG = (C.song || []).map((r) => { const p = new Path2D(); for (const v of r.net) v.forEach(([a, b], i) => (i ? p.lineTo(a, -b) : p.moveTo(a, -b))); return { p, rank: r.rank, ten: r.ten, o: r.o }; });
   DS = C.canh; DS.forEach((s, k) => { const t = DS[k - 1]; s.nhom = t && t.c.loai === 'san_khau' && s.c.loai === 'san_khau' && t.c.boi_canh === s.c.boi_canh ? t.nhom : k; });
-  await document.fonts.ready; };
+  /* nạp ĐỦ phông trước khi vẽ (08/11/2026): phông chỉ tải khi được dùng lần đầu → khung đầu tiên vẽ bằng phông dự phòng, khác các lần sau */
+  await Promise.all(['400 40px Anton', '800 44px Montserrat', '700 40px Montserrat', '400 40px "Abril Fatface"'].map((f) => document.fonts.load(f))); await document.fonts.ready; };
 window.__khung = () => man.toDataURL('image/jpeg', 0.9).split(',')[1];
 // ---------- hình dán: viền giấy trắng + bóng đổ mềm, dựng một lần mỗi cỡ ----------
 const DAN = new Map();
@@ -148,7 +149,7 @@ function veLogo(c, t) { if (t >= C.KET) { const e = t - C.KET, al = kep(e / 0.6)
   const im = A['logo:huy']; if (!im) return false; const o = choMat([[W - 66, 86], [W - 66, H - 150]], 86, 86); if (!o) return false; ghiChu('logo', t, o[0], o[1], 86, 86); c.save(); c.globalAlpha = 0.88; c.shadowColor = 'rgba(0,0,0,.45)'; c.shadowBlur = 10; c.drawImage(im, o[0] - 39, o[1] - 39, 78, 78); c.restore(); return false; }
 window.__seek = (t) => { T_NAY = t; GAC = false; MAT = []; let k = DS.findIndex((s) => t < s.kt); if (k < 0) k = DS.length - 1; const s = DS[k], c = X; veMot(c, k, t);
   // chuyển khi đổi nhóm cảnh (bối cảnh / loại); hai bản đồ liền nhau thì camera bay, không cắt
-  const g = s.nhom, q = (t - DS[g].bd) / 0.85, tr = DS[g - 1]; if (g > 0 && q < 1 && !(tr.c.loai === 'ban_do' && s.c.loai === 'ban_do')) { if (snapK !== g) { SX.setTransform(1, 0, 0, 1, 0, 0); veMot(SX, g - 1, DS[g].bd - 0.01); snapK = g; } chuyen(c, g, kep(q)); }
+  const g = s.nhom, q = (t - DS[g].bd) / 0.85, tr = DS[g - 1]; if (g > 0 && q < 1 && !(tr.c.loai === 'ban_do' && s.c.loai === 'ban_do')) { if (snapK !== g) { const giuMat = MAT; MAT = []; SX.setTransform(1, 0, 0, 1, 0, 0); veMot(SX, g - 1, DS[g].bd - 0.01); MAT = giuMat; snapK = g; } /* ảnh chụp cảnh trước không được ghi vùng mặt vào khung này — trước đây chữ né mặt của cảnh đã qua, và chỉ ở lần vẽ đầu (đổi theo thứ tự) */ chuyen(c, g, kep(q)); }
   GAC = q >= 1 || g === 0;
   veCanMat(c, k, t);
   // NHỊP (anh 07/11/2026: cao trào, nhấn nhá, khoảng lặng như film): câu đỉnh rung + phóng + chớp lúc giọng vào; câu lặng tối và nhạt dần; quãng nghỉ dài sập gần đen rồi mở lại

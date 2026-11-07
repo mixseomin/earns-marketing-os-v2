@@ -2335,7 +2335,7 @@
     }
    ],
    "so": null,
-   "dau": "💀",
+   "dau": "DEAD",
    "ban_do": null,
    "anh": null,
    "chuong": 2
@@ -3416,7 +3416,7 @@
     }
    ],
    "so": null,
-   "dau": "✗",
+   "dau": "CUT OFF",
    "ban_do": null,
    "anh": null,
    "chuong": 5
@@ -4084,7 +4084,7 @@
     }
    ],
    "so": null,
-   "dau": "BỎ RƠI",
+   "dau": "ABANDONED",
    "ban_do": null,
    "anh": null,
    "chuong": 7
@@ -4160,7 +4160,7 @@
    "nguoi": [],
    "so": {
     "chu": "110,000",
-    "nhan": "sống sót trở về"
+    "nhan": "returned alive"
    },
    "dau": null,
    "ban_do": null,
@@ -4182,7 +4182,7 @@
    ],
    "so": {
     "chu": "10,000",
-    "nhan": "còn đủ sức chiến đấu"
+    "nhan": "still able to fight"
    },
    "dau": null,
    "ban_do": null,
@@ -4211,7 +4211,7 @@
    ],
    "so": {
     "chu": "300,000",
-    "nhan": "người Pháp thiệt mạng"
+    "nhan": "French dead"
    },
    "dau": null,
    "ban_do": null,
@@ -4231,7 +4231,7 @@
    "nguoi": [],
    "so": {
     "chu": "200,000",
-    "nhan": "người Nga chết"
+    "nhan": "Russian dead"
    },
    "dau": null,
    "ban_do": {
@@ -4297,7 +4297,7 @@
     }
    ],
    "so": null,
-   "dau": "VỠ",
+   "dau": "BROKEN",
    "ban_do": null,
    "anh": null,
    "chuong": 7
@@ -4405,5 +4405,1079 @@
    "anh": null,
    "chuong": 7
   }
- ]
+ ],
+ "nhip": {
+  "hoi": [
+   {
+    "ten": "Đế chế bước vào vực",
+    "tu": 0,
+    "den": 13,
+    "vai": "mo_man",
+    "nhac": "cang_dan",
+    "y": "Người xem choáng trước quy mô mất mát và muốn biết sai lầm bắt đầu ở đâu."
+   },
+   {
+    "ten": "Kẻ thù không đứng lại",
+    "tu": 14,
+    "den": 27,
+    "vai": "dang_len",
+    "nhac": "hanh_quan",
+    "y": "Khí thế xuất quân chuyển thành bất an khi quân đội hao mòn trước cả trận đánh lớn."
+   },
+   {
+    "ten": "Chiến thắng thành tro",
+    "tu": 28,
+    "den": 41,
+    "vai": "dang_len",
+    "nhac": "cang_dan",
+    "y": "Người xem cảm thấy mỗi bước tiến đang khóa thêm một đường lui."
+   },
+   {
+    "ten": "Máu đổ không kết thúc",
+    "tu": 42,
+    "den": 55,
+    "vai": "cao_trao",
+    "nhac": "chien_tran",
+    "y": "Trận đánh được chờ đợi trở thành cỗ máy giết người mà không giải quyết được cuộc chiến."
+   },
+   {
+    "ten": "Thủ đô không người thắng",
+    "tu": 56,
+    "den": 64,
+    "vai": "dang_len",
+    "nhac": "tan_hoang",
+    "y": "Niềm kiêu hãnh chiếm được Moscow sụp xuống trước lửa cháy và sự im lặng."
+   },
+   {
+    "ten": "Năm tuần mắc kẹt",
+    "tu": 65,
+    "den": 71,
+    "vai": "dang_len",
+    "nhac": "cang_dan",
+    "y": "Người xem ngột ngạt vì thời gian đã trở thành một thứ vũ khí chống lại Napoleon."
+   },
+   {
+    "ten": "Con đường chết trắng",
+    "tu": 72,
+    "den": 84,
+    "vai": "cao_trao",
+    "nhac": "bao_tap",
+    "y": "Nỗi sợ đạt đỉnh khi đường lui bị khóa và cả đơn vị chết mà không cần giao chiến."
+   },
+   {
+    "ten": "Hai cây cầu cuối",
+    "tu": 85,
+    "den": 98,
+    "vai": "cao_trao",
+    "nhac": "bi_thuong",
+    "y": "Sau đỉnh thảm họa, hy vọng vượt sông lóe lên rồi co lại thành cái giá bỏ người ở phía sau."
+   },
+   {
+    "ten": "Hoàng đế rời đoàn quân",
+    "tu": 99,
+    "den": 107,
+    "vai": "lang",
+    "nhac": "bi_thuong",
+    "y": "Người xem cảm nhận sự tan rã bằng khoảng trống chỉ huy và những con số mất mát."
+   },
+   {
+    "ten": "Đế chế mất nền móng",
+    "tu": 108,
+    "den": 112,
+    "vai": "ket",
+    "nhac": "khong",
+    "y": "Dư âm cuối đặt sức nặng vào giới hạn hậu cần và cái giá của tham vọng."
+   }
+  ],
+  "cau": [
+   {
+    "i": 0,
+    "cang": 4,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 1,
+    "cang": 2,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 2,
+    "cang": 3,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 3,
+    "cang": 4,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 4,
+    "cang": 3,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 5,
+    "cang": 4,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "song_nuoc",
+    "vat": [
+     "chan_buoc"
+    ]
+   },
+   {
+    "i": 6,
+    "cang": 3,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 7,
+    "cang": 4,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "lua_chay",
+    "vat": []
+   },
+   {
+    "i": 8,
+    "cang": 5,
+    "nhip": "dinh",
+    "nghi_truoc": 0.6,
+    "nen": "gio_dong",
+    "vat": [
+     "ngua_chay"
+    ]
+   },
+   {
+    "i": 9,
+    "cang": 2,
+    "nhip": "lang",
+    "nghi_truoc": 1.5,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 10,
+    "cang": 4,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 11,
+    "cang": 5,
+    "nhip": "dinh",
+    "nghi_truoc": 0.6,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 12,
+    "cang": 2,
+    "nhip": "lang",
+    "nghi_truoc": 3,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 13,
+    "cang": 3,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 14,
+    "cang": 3,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "song_nuoc",
+    "vat": [
+     "chan_buoc"
+    ]
+   },
+   {
+    "i": 15,
+    "cang": 4,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "song_nuoc",
+    "vat": [
+     "xe_keo",
+     "ngua_chay"
+    ]
+   },
+   {
+    "i": 16,
+    "cang": 3,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "song_nuoc",
+    "vat": []
+   },
+   {
+    "i": 17,
+    "cang": 4,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 18,
+    "cang": 5,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "lua_chay",
+    "vat": [
+     "lua_bung"
+    ]
+   },
+   {
+    "i": 19,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 20,
+    "cang": 5,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": [
+     "chan_buoc"
+    ]
+   },
+   {
+    "i": 21,
+    "cang": 4,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": [
+     "xe_keo"
+    ]
+   },
+   {
+    "i": 22,
+    "cang": 5,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": [
+     "gio_giat"
+    ]
+   },
+   {
+    "i": 23,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 24,
+    "cang": 5,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 25,
+    "cang": 6,
+    "nhip": "dinh",
+    "nghi_truoc": 1.5,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 26,
+    "cang": 2,
+    "nhip": "lang",
+    "nghi_truoc": 1.5,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 27,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 28,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 29,
+    "cang": 5,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 30,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 31,
+    "cang": 5,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "tran_xa",
+    "vat": [
+     "ky_binh",
+     "chan_buoc"
+    ]
+   },
+   {
+    "i": 32,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "tran_xa",
+    "vat": [
+     "phao_mot"
+    ]
+   },
+   {
+    "i": 33,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "tran_xa",
+    "vat": [
+     "phao_loat",
+     "sung_loat"
+    ]
+   },
+   {
+    "i": 34,
+    "cang": 7,
+    "nhip": "dinh",
+    "nghi_truoc": 0.6,
+    "nen": "lua_chay",
+    "vat": [
+     "lua_bung",
+     "chan_buoc"
+    ]
+   },
+   {
+    "i": 35,
+    "cang": 2,
+    "nhip": "lang",
+    "nghi_truoc": 1.5,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 36,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 37,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "lua_chay",
+    "vat": []
+   },
+   {
+    "i": 38,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 39,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 40,
+    "cang": 5,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 41,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": [
+     "chan_buoc",
+     "xe_keo"
+    ]
+   },
+   {
+    "i": 42,
+    "cang": 5,
+    "nhip": "dang",
+    "nghi_truoc": 0.6,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 43,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 44,
+    "cang": 7,
+    "nhip": "dang",
+    "nghi_truoc": 0.6,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 45,
+    "cang": 7,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "tran_xa",
+    "vat": [
+     "phao_loat"
+    ]
+   },
+   {
+    "i": 46,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "tran_xa",
+    "vat": [
+     "phao_loat",
+     "no_lon"
+    ]
+   },
+   {
+    "i": 47,
+    "cang": 7,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "tran_xa",
+    "vat": [
+     "ky_binh",
+     "sung_loat"
+    ]
+   },
+   {
+    "i": 48,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "tran_xa",
+    "vat": [
+     "ho_xung_tran",
+     "sung_loat"
+    ]
+   },
+   {
+    "i": 49,
+    "cang": 7,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "tran_xa",
+    "vat": []
+   },
+   {
+    "i": 50,
+    "cang": 8,
+    "nhip": "dinh",
+    "nghi_truoc": 1.5,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 51,
+    "cang": 3,
+    "nhip": "lang",
+    "nghi_truoc": 3,
+    "nen": "trai_dem",
+    "vat": []
+   },
+   {
+    "i": 52,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "trai_dem",
+    "vat": []
+   },
+   {
+    "i": 53,
+    "cang": 5,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": [
+     "chan_buoc"
+    ]
+   },
+   {
+    "i": 54,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 55,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 56,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "gio_dong",
+    "vat": [
+     "ngua_chay"
+    ]
+   },
+   {
+    "i": 57,
+    "cang": 5,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 58,
+    "cang": 7,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "lua_chay",
+    "vat": [
+     "lua_bung",
+     "gio_giat"
+    ]
+   },
+   {
+    "i": 59,
+    "cang": 6,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "lua_chay",
+    "vat": []
+   },
+   {
+    "i": 60,
+    "cang": 8,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "lua_chay",
+    "vat": [
+     "nha_sap",
+     "lua_bung"
+    ]
+   },
+   {
+    "i": 61,
+    "cang": 7,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "lua_chay",
+    "vat": []
+   },
+   {
+    "i": 62,
+    "cang": 9,
+    "nhip": "dinh",
+    "nghi_truoc": 0.6,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 63,
+    "cang": 3,
+    "nhip": "lang",
+    "nghi_truoc": 1.5,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 64,
+    "cang": 5,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 65,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0.6,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 66,
+    "cang": 7,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 67,
+    "cang": 5,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 68,
+    "cang": 8,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 69,
+    "cang": 9,
+    "nhip": "dinh",
+    "nghi_truoc": 1.5,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 70,
+    "cang": 3,
+    "nhip": "lang",
+    "nghi_truoc": 1.5,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 71,
+    "cang": 5,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 72,
+    "cang": 5,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 73,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 74,
+    "cang": 8,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "tran_xa",
+    "vat": [
+     "phao_mot",
+     "sung_loat"
+    ]
+   },
+   {
+    "i": 75,
+    "cang": 6,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 76,
+    "cang": 7,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": [
+     "chan_buoc"
+    ]
+   },
+   {
+    "i": 77,
+    "cang": 9,
+    "nhip": "dinh",
+    "nghi_truoc": 0.6,
+    "nen": "tran_xa",
+    "vat": [
+     "ky_binh",
+     "sung_le"
+    ]
+   },
+   {
+    "i": 78,
+    "cang": 4,
+    "nhip": "lang",
+    "nghi_truoc": 1.5,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 79,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0.6,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 80,
+    "cang": 7,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 81,
+    "cang": 8,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "bao_tuyet",
+    "vat": [
+     "gio_giat"
+    ]
+   },
+   {
+    "i": 82,
+    "cang": 9,
+    "nhip": "dang",
+    "nghi_truoc": 0.6,
+    "nen": "trai_dem",
+    "vat": []
+   },
+   {
+    "i": 83,
+    "cang": 10,
+    "nhip": "dinh",
+    "nghi_truoc": 1.5,
+    "nen": "bao_tuyet",
+    "vat": [
+     "gio_giat"
+    ]
+   },
+   {
+    "i": 84,
+    "cang": 2,
+    "nhip": "lang",
+    "nghi_truoc": 3,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 85,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "song_nuoc",
+    "vat": []
+   },
+   {
+    "i": 86,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 87,
+    "cang": 5,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 88,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "song_nuoc",
+    "vat": []
+   },
+   {
+    "i": 89,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 90,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0.6,
+    "nen": "song_nuoc",
+    "vat": [
+     "nuoc_toe"
+    ]
+   },
+   {
+    "i": 91,
+    "cang": 5,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "trong_leu",
+    "vat": []
+   },
+   {
+    "i": 92,
+    "cang": 7,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "song_nuoc",
+    "vat": [
+     "cau_go",
+     "nuoc_toe"
+    ]
+   },
+   {
+    "i": 93,
+    "cang": 8,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "tran_xa",
+    "vat": [
+     "sung_loat"
+    ]
+   },
+   {
+    "i": 94,
+    "cang": 9,
+    "nhip": "dinh",
+    "nghi_truoc": 0.6,
+    "nen": "tran_xa",
+    "vat": [
+     "phao_loat",
+     "no_lon"
+    ]
+   },
+   {
+    "i": 95,
+    "cang": 3,
+    "nhip": "lang",
+    "nghi_truoc": 1.5,
+    "nen": "trai_dem",
+    "vat": []
+   },
+   {
+    "i": 96,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0.6,
+    "nen": "lua_chay",
+    "vat": [
+     "lua_bung"
+    ]
+   },
+   {
+    "i": 97,
+    "cang": 8,
+    "nhip": "dinh",
+    "nghi_truoc": 0.6,
+    "nen": "song_nuoc",
+    "vat": []
+   },
+   {
+    "i": 98,
+    "cang": 2,
+    "nhip": "lang",
+    "nghi_truoc": 3,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 99,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 100,
+    "cang": 3,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 101,
+    "cang": 4,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "bao_tuyet",
+    "vat": []
+   },
+   {
+    "i": 102,
+    "cang": 5,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "trai_dem",
+    "vat": []
+   },
+   {
+    "i": 103,
+    "cang": 6,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 104,
+    "cang": 7,
+    "nhip": "dinh",
+    "nghi_truoc": 1.5,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 105,
+    "cang": 2,
+    "nhip": "lang",
+    "nghi_truoc": 1.5,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 106,
+    "cang": 3,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 107,
+    "cang": 2,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 108,
+    "cang": 3,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 109,
+    "cang": 4,
+    "nhip": "dang",
+    "nghi_truoc": 0,
+    "nen": "yen",
+    "vat": []
+   },
+   {
+    "i": 110,
+    "cang": 3,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "gio_dong",
+    "vat": []
+   },
+   {
+    "i": 111,
+    "cang": 2,
+    "nhip": "binh",
+    "nghi_truoc": 0,
+    "nen": "gio_dong",
+    "vat": [
+     "xe_keo"
+    ]
+   },
+   {
+    "i": 112,
+    "cang": 1,
+    "nhip": "binh",
+    "nghi_truoc": 0.6,
+    "nen": "song_nuoc",
+    "vat": []
+   }
+  ]
+ },
+ "ban_do_su": {
+  "nam": 1812,
+  "an_ten": [
+   "Prussia"
+  ]
+ }
 }

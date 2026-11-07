@@ -594,6 +594,11 @@ def vong():
                 if pr: giet_cay(pr.pid)
                 t = CHAY.get((d["id"], b))
                 if t and t[0].is_alive(): bs = None; break   # luồng cũ chưa thoát hẳn (vừa giết) → FIX ở vòng sau, kẻo luồng cũ ghi đè lượt mới
+                # FIX mở lại dòng mà phim đã có dòng cùng loại đang chạy → vấp chỉ mục dong_phim_mot, lỗi ném ra hỏng CẢ VÒNG, mọi dòng xếp sau đứng
+                # (07/11/2026: 34 lần, phim 165009) → chỉ dòng trùng bị huỷ, các dòng khác chạy tiếp
+                if sql(f"select 1 from etp.dong_phim x where x.content_id = {d['content_id']} and x.loai = '{d.get('loai')}' and x.trang_thai = 'chay' and x.id <> {d['id']} limit 1"):
+                    sql(f"update etp.dong_buoc set fix = false where dong_id = {d['id']}; update etp.dong_phim set trang_thai = 'huy', ly_do = 'FIX bỏ qua: phim đã có dòng cùng loại đang chạy' where id = {d['id']}")
+                    print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} FIX bỏ qua — trùng dòng đang chạy", flush=True); bs = None; break
                 sql(f"""update etp.dong_buoc set trang_thai = 'cho', fix = false, huy = false, bat_dau = null, ket_thuc = null, pid = null, ghi = 'FIX — chạy lại', ket_qua = case when '{b}' = 'creative' then null else ket_qua end
                         where dong_id = {d['id']} and buoc = '{b}';
                         update etp.dong_buoc set trang_thai = 'cho', bat_dau = null, ket_thuc = null, ghi = null, ket_qua = null, lan = 0 where dong_id = {d['id']} and thu_tu > (select thu_tu from etp.dong_buoc where dong_id = {d['id']} and buoc = '{b}');

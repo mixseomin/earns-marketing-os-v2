@@ -3,7 +3,7 @@
 //   cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a; cd apps/xuong-video && \
 //     NODE_OPTIONS=--conditions=react-server ../../node_modules/.bin/tsx scripts/ethopex/thu-vien-them.mts <tap_id> <tệp.mp4> [--trang-thai=san_sang] [--chi-vnd=N] [--ghi="…"]
 // Bản KHÔNG từ tập VideoExpress (kiểu dựng 0đ kieu-moi.py — anh 29/10/2026 "đa dạng cách tạo nội dung"): thay <tap_id> bằng 0 + --content=<id phim> --dang="<nhãn>" [--nguon=kieu_moi]
-//   [--ten="…"] [--lang=en]; chạy lại cùng (phim, dạng, nguồn) = cập nhật dòng đó, không tạo trùng.
+//   [--ten="…"] [--lang=en] [--them]; chạy lại cùng (phim, dạng, nguồn) = cập nhật dòng đó, không tạo trùng — trừ khi --them (nhiều bản một lượt).
 import { randomUUID } from 'node:crypto';
 import { execSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -33,7 +33,8 @@ const ten = String(p.kinh_thanh.qc?.ten ?? '').split(' — ')[0]!.trim() || p.te
 const lang = p.kinh_thanh.ngon_ngu === 'es' ? 'es' : 'en';
 const chuQc = { headline: ten, mo_ta: lang === 'es' ? 'Episodios completos gratis' : 'Watch Full Episodes!', link: p.kinh_thanh.qc?.link ?? null };
 const tt = gia('trang-thai') ?? 'san_sang';
-const co = (await db.execute(tapId ? sql`SELECT id FROM etp.thu_vien WHERE tap_id = ${tapId} LIMIT 1`
+// --them: luôn dòng MỚI — một lượt dựng nhiều bản cùng (phim, dạng, nguồn) (ảnh tĩnh 3 bản, 08/11/2026: bản 2 đè bản 1, bản 3 đè bản 2 → dòng AT chỉ còn 1 creative)
+const co = process.argv.includes('--them') ? [] : (await db.execute(tapId ? sql`SELECT id FROM etp.thu_vien WHERE tap_id = ${tapId} LIMIT 1`
   // bản đã thành creative (creative_id) là một phiên bản cố định có điểm chấm riêng → dựng lại = dòng MỚI, không đè (29/10/2026: chọn phe #62099 chấm cấm, bản sửa phải lên creative mới)
   : sql`SELECT id FROM etp.thu_vien WHERE tap_id IS NULL AND content_id = ${content} AND dang = ${dang} AND nguon = ${nguon} AND creative_id IS NULL LIMIT 1`)) as unknown as { id: number }[];
 if (co.length) await db.execute(sql`UPDATE etp.thu_vien SET video = ${video}, anh = ${anh}, giay = ${giay}, ten = ${ten}, lang = ${lang}, chu_qc = ${JSON.stringify(chuQc)}::jsonb,

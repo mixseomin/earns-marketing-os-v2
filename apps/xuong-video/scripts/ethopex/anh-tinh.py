@@ -347,7 +347,7 @@ def mot(p, xem, kieu, ban=1):
                 xa = f"/var/tmp/anh-tinh/{cid}"; sh("ssh", B, f"mkdir -p {xa}"); sh("rsync", "-a", out, f"{B}:{xa}/", han=900)
                 ghi = (f"ảnh tĩnh bản {b + 1}/{ban} · giọng {kieu_} · mẫu câu {so_mau + 1} ({p.get('the_loai') or '?'}): {k['tap']} khung #{k['so']} (mỗi 1,5 giây từ giây 3) · "
                        f"điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt) · AI xếp hạng {b + 1} · tên {'từ poster' if k.get('ten_poster') else 'chữ vàng'}")
-                r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={kq['vnd']} --ghi='{ghi}'", han=600)
+                r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={kq['vnd']} --ghi='{ghi}' --them", han=600)   # --them: mỗi bản một dòng thư viện
                 if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
                 kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)
             ra.append(kq)

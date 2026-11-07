@@ -58,8 +58,8 @@ def cat(v):
     # thiếu poster thì cat-cuoi-lo đổ Errno 2 sau khi đã tốn công ghép phim (07/11/2026 VPS #270 #273) → dừng sớm, lỗi kỹ thuật → máy khác làm
     if not (os.path.exists(os.path.join(tm, "poster.jpg")) and os.path.getsize(os.path.join(tm, "poster.jpg")) > 2000): return [], "không tải được poster"
     tsv = os.path.join(ra, "lo.tsv"); open(tsv, "w").write(f"{cid}\t{d.get('locale', 'en')}\t{d.get('nguon', '')}\t{d.get('ten', '')}\t{d.get('url', '')}\n")
-    h = time.localtime().tm_hour   # đêm 22h–8h: nice (đủ lõi); ngày: chế độ nền (máy người dùng không giật) — cùng luật dot-phim-moi.uu_tien
-    uu = ["nice", "-n", "10"] if (h >= 22 or h < 8) else (["taskpolicy", "-b"] if sys.platform == "darwin" else ["nice", "-n", "15"])
+    # nice 10 cả ngày (anh 07/11/2026 "sửa đi"): trước ban ngày dùng taskpolicy -b → macOS dồn thợ cắt sang nhân tiết kiệm (nhân E) của chip M, một khung cắt 3–10 phút
+    uu = ["nice", "-n", "10"]
     # cả nhóm tiến trình: quá giờ thì giết luôn cat-canh / ffmpeg con cháu (25/10/2026: 3 ffmpeg treo mồ côi 8 giờ sau khi thợ bỏ việc)
     pr = subprocess.Popen([*uu, "python3", os.path.join(E, "cat-cuoi-lo.py"), N, tsv, ra, "1", str(d.get("so_ban", 2))], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
                           env={**os.environ, **({"ETP_KIEU": d["kieu"]} if d.get("kieu") else {})})   # kieu=tap: mỗi tập một đoạn (dòng phim LT, anh 03/11/2026)

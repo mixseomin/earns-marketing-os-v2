@@ -65,7 +65,10 @@ def chon(src, moc, so_ban=1):
         moi = [g for g in range(int(max(tu0, a)), int(-(-b // 1))) if g not in da]
         if not moi: return
         x, y = min(moi), max(moi) + 1
-        cam.extend(g for g, c in DL.KT.doc(src, x, y) if DL.KT.soat(c)); da.update(range(x, y))
+        doc_ = DL.KT.doc(src, x, y); cam.extend(g for g, c in doc_ if DL.KT.soat(c)); da.update(range(x, y))
+        # ghi chữ vừa đọc vào sổ đọc sẵn của nguồn (kiem-thoai.bo_doc_san) → cat-canh đọc lại đúng đoạn này lấy từ sổ, không chạy Vision lần hai (anh 07/11/2026 "sửa đi")
+        f = os.path.splitext(src)[0] + ".chu.json"; san = DL.KT.bo_doc_san(src) or {}
+        san.update({str(round(g)): c for g, c in doc_}); json.dump(san, open(f, "w"), ensure_ascii=False)
     sach = lambda a, b: not any(a - 2 <= g <= b + 2 for g in cam)
     ra = []
     if KIEU == "tap":   # một tập trọn: (mốc trước, mốc này), muộn nhất trước, sạch thoại cấm

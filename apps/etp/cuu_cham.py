@@ -69,7 +69,10 @@ def chay(kho=False, so=None, chi=None):
         for x, ly in bo: print("BỎ", x["creative_id"], x["dang"], ly[:120])
         for x in cat: print("CẮT", x["creative_id"], x["dang"], (x["chan_boi"] or "")[:80])
         return f"chạy khô: {len(bo)} kết · {len(cat)} cắt được"
-    for x, ly in bo: ghi(x["creative_id"], x["content_id"], "bo", ly)
+    for i in range(0, len(bo), 200):   # một câu SQL cho cả lô (mỗi câu một ssh: lượt đầu 477 bản mất ~10 phút, giữ chân máy dòng phim nạp mã)
+        sql("insert into etp.cuu_cham (creative_id, content_id, trang_thai, ly_do) values " + ", ".join(
+            f"({int(x['creative_id'])}, {int(x['content_id'])}, 'bo', {s(ly[:300])})" for x, ly in bo[i:i + 200])
+            + " on conflict (creative_id) do update set trang_thai = 'bo', ly_do = excluded.ly_do, luc = now()")
     n = int(so if so is not None else ch["moi_luot"]) if (ch.get("bat") or chi) else 0
     lam = cat[:n]
     if not lam: return f"{len(bo)} creative kết (không cứu được) · {len(cat)} cắt được chờ" + ("" if ch.get("bat") else " (cuu_cham.bat = false)")
@@ -113,7 +116,7 @@ def xet_truot(dong):
     for c in chan:
         for t in {p.strip().split(" ")[0] for p in c.split(",") if p.strip() and "." in p.strip().split(" ")[0]}: dem[t] = dem.get(t, 0) + 1
     if not dem: return None
-    t, k = max(dem.items(), key=lambda a: a[1])
+    t, k = min(dem.items(), key=lambda a: (-a[1], not a[0].startswith("meta."), a[0]))   # nhiều bản nhất; bằng nhau thì tiêu chí Meta trước, rồi theo chữ — kết quả cố định
     return (t, k, len(chan), n) if k >= TRUOT_TY * len(chan) else None
 
 def dang_truot(sql_, cid, loai):

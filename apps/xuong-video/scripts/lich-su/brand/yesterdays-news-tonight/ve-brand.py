@@ -3,6 +3,7 @@
 # LUẬT (anh 17/10 + 29/10/2026): ảnh bìa và ảnh đại diện là ẢNH THẬT free (Pexels) — thiếu ảnh thì dừng. Nguồn: anh-nen/nguon.txt.
 # Màu theo theme lá cải của kênh (ban-do.html LC): đỏ #e8352b · vàng #ffe14d · đen #111.
 import sys
+sys.exit('Bộ đỏ vàng này đã thay bằng logo A3 (07/11/2026). Dựng ảnh đại diện + ảnh bìa bằng ve-logo-a3.mjs; chạy tệp này sẽ đè mất bộ mới.')
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont, ImageOps, ImageEnhance
 

@@ -118,4 +118,33 @@ def bo(ma, duong):
 RA.mkdir(parents=True, exist_ok=True)
 for ma, d in (('a', mau_a()), ('b', mau_b()), ('c', mau_c())):
     bo(ma, d)
+
+# BỘ CUỐI: anh chọn A3 (07/11/2026) → ra/logo-a3/
+RA = GOC / 'ra/logo-a3'
+RA.mkdir(parents=True, exist_ok=True)
+DAY = mau_c()
+c = (164, 100)
+NHO = [khuyet((128, 128), 112, c, 76), thanh(*c, *huong(*c, -42, 38), 27), thanh(*c, *huong(*c, 42, 38), 27), thanh(*c, *huong(*c, 180, 46), 27)]   # cỡ ≤ 32 px: nét dày, khoảng hở rộng
+G = gia('g')
+luu('dau-chuyen-sac', 256, 256, dau(DAY, 'url(#g)'), G)
+luu('dau-do-cho-nen-sang', 256, 256, dau(DAY, 'url(#g)'), gia('g', 40, 236, 216, 20).replace(CUOI, '#ff8a1f'))
+for ten, to in (('dau-muc', MUC), ('dau-kem', KEM), ('dau-do', DAU)):
+    luu(ten, 256, 256, dau(DAY, to))
+    luu(f'{ten}-nho', 256, 256, dau(NHO, to))
+luu('dau-nho-chuyen-sac', 256, 256, dau(NHO, 'url(#g)'), G)
+the = lambda d: f'<rect width="256" height="256" rx="58" fill="{MUC}"/><g transform="translate(35 35) scale(.727)">{dau(d, "url(#g)")}</g>'
+tron = lambda d: f'<circle cx="128" cy="128" r="128" fill="{MUC}"/><g transform="translate(40 40) scale(.6875)">{dau(d, "url(#g)")}</g>'
+luu('the-vuong', 256, 256, the(DAY), G); luu('the-vuong-nho', 256, 256, the(NHO), G)
+luu('huy-hieu-tron', 256, 256, tron(DAY), G); luu('huy-hieu-tron-nho', 256, 256, tron(NHO), G)
+for ten, to in (('toi', KEM), ('sang', MUC)):
+    nhan = f'url(#t)' if ten == 'toi' else '#e8352b'
+    a, w1 = chu("YESTERDAY'S NEWS", 86, 288, 130, to, -0.012)
+    b, w2 = chu('TONIGHT', 44, 290, 198, nhan, 0.42)
+    luu(f'ngang-nen-{ten}', 288 + max(w1, w2) + 8, 256, dau(DAY, 'url(#g)') + a + b, G + gia('t', 288, 0, 288 + w2, 0))
+    _, w1 = chu("YESTERDAY'S NEWS", 86, 0, 0, to, -0.012)
+    _, w2 = chu('TONIGHT', 44, 0, 0, to, 0.42)
+    W = w1 + 16
+    a, _ = chu("YESTERDAY'S NEWS", 86, 8, 362, to, -0.012)
+    b, _ = chu('TONIGHT', 44, (W - w2) / 2, 430, nhan, 0.42)
+    luu(f'doc-nen-{ten}', W, 448, f'<g transform="translate({(W - 256) / 2:.1f} 0)">{dau(DAY, "url(#g)")}</g>' + a + b, G + gia('t', (W - w2) / 2, 0, (W + w2) / 2, 0))
 print(len(list(RA.glob('*.svg'))), 'svg')

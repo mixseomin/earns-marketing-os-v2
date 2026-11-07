@@ -4,7 +4,7 @@ Chạy trên box3 (etp-manh.timer, 2 phút/lần) — máy KHÁC với máy ch�
 Mỗi lượt:
   1. bước 'dang' quá hạn (han_giay) hoặc im (nhip) quá 10 phút → đặt huy (máy chạy dòng giết tiến trình), ghi lỗi; lần đầu thì tự FIX (chạy lại bước) một lần
   2. máy chạy dòng im > 3 phút mà còn dòng chạy → báo Telegram (30 phút một lần), bước của nó coi như chết (mục 1 lo)
-  3. dòng vừa kết thúc (xong / dừng vì policy / lỗi) → báo Telegram một lần
+  3. dòng vừa kết thúc: lỗi kỹ thuật báo ngay; xong + dừng đúng luật gom một tin (10 dòng / 60 phút)
   4. việc cắt lô dòng phim (etp.viec lô dp*) 'dang' mà thợ đã chết (tho.CHET_SQL: nhịp sống im 10 phút) → xếp lại hàng chờ (tho.py chỉ tự quét việc của chính máy nó)
   5–6. mở lại dòng dừng khi cổng đổi · thử lại dòng lỗi kỹ thuật
   7. lỗi MÃ ở máy luật / lên camp (etp.nhat_ky) → báo Telegram ngay, mỗi kiểu một lần / 6 giờ
@@ -75,18 +75,21 @@ def main():
             bao(f"🚨 <b>Mạnh</b> · máy chạy dòng phim <b>{may}</b> im {int(im) // 60} phút mà còn dòng đang chạy — máy tự bật lại; bước đang dở sẽ bị huỷ + FIX khi quá {IM_BUOC // 60} phút")
     def muc3():
         # 3. dòng vừa kết thúc
-        tin = []
-        for l in hang("""select id, content_id, coalesce(ten, ''), trang_thai, coalesce(ly_do, ''), coalesce(camp_id::text, '') from etp.dong_phim
-                      where trang_thai in ('xong', 'dung', 'loi') and bao_luc is null and xong_luc > now() - interval '1 day'"""):
-            dong, cid, ten, tt, ly, camp = l
-            ghi(f"update etp.dong_phim set bao_luc = now() where id = {dong}")
-            dau = {"xong": "✅ lên camp xong", "dung": "⛔ dừng (policy / luật)", "loi": "❌ lỗi kỹ thuật"}[tt]
-            lam.append(f"dòng #{dong} {tt}")
-            tin.append((f"{dau} · phim <b>{ten or cid}</b> (#{cid}){f' · camp #{camp}' if camp else ''}", ly))
-        # nhiều dòng một lượt (dồn sau khi Mạnh chết / một lần box3 ngắt) → MỘT tin, mỗi dòng một hàng; lỗi kỹ thuật ghi kèm "Mạnh tự thử lại"
-        if len(tin) <= 3:
-            for t, ly in tin: bao(f"{t}\n{ly[:600]}")
-        elif tin: bao(f"📋 <b>Mạnh</b> · {len(tin)} dòng phim vừa kết thúc (lỗi kỹ thuật Mạnh tự thử lại: hạ tầng 10 phút, khác 2 giờ)\n" + "\n".join(f"• {t} — {ly[:110]}" for t, ly in tin)[:3800])
+        # GOM (anh 07/11/2026 "Gom"): lỗi kỹ thuật báo ngay từng dòng; xong + dừng đúng luật (policy, cổng chấm, hết khung…) gom MỘT tin tóm tắt
+        # khi đủ GOM_SO dòng hoặc dòng cũ nhất chờ quá GOM_PHUT phút — Telegram không còn mỗi dòng một tin.
+        GOM_SO, GOM_PHUT = 10, 60
+        cho = hang("""select id, content_id, coalesce(ten, ''), trang_thai, coalesce(ly_do, ''), coalesce(camp_id::text, ''), extract(epoch from now() - xong_luc)::int from etp.dong_phim
+                      where trang_thai in ('xong', 'dung', 'loi') and bao_luc is null and xong_luc > now() - interval '1 day' order by xong_luc""")
+        dau = {"xong": "✅", "dung": "⛔", "loi": "❌ lỗi kỹ thuật"}
+        for dong, cid, ten, tt, ly, camp, _ in [l for l in cho if l[3] == "loi"]:
+            ghi(f"update etp.dong_phim set bao_luc = now() where id = {dong}"); lam.append(f"dòng #{dong} loi")
+            bao(f"{dau['loi']} · phim <b>{ten or cid}</b> (#{cid}) — Mạnh tự thử lại (hạ tầng 10 phút, khác 2 giờ)\n{ly[:600]}")
+        gom = [l for l in cho if l[3] != "loi"]
+        if gom and (len(gom) >= GOM_SO or max(int(l[6] or 0) for l in gom) >= GOM_PHUT * 60):
+            ghi(f"update etp.dong_phim set bao_luc = now() where id in ({','.join(l[0] for l in gom)})"); lam.append(f"gom {len(gom)} dòng")
+            x = sum(1 for l in gom if l[3] == "xong")
+            bao(f"📋 <b>Mạnh</b> · {len(gom)} dòng phim kết thúc: ✅ {x} lên camp · ⛔ {len(gom) - x} dừng đúng luật\n"
+                + "\n".join(f"{dau[tt]} {ten or cid}{f' · camp #{camp}' if camp else ''} — {ly[:90]}" for _, cid, ten, tt, ly, camp, _ in gom)[:3800])
     def muc4():
         # 4. việc cắt lô dòng phim kẹt
         # điều kiện chung với tho.py (07/11/2026): nhịp sống im 10 phút = thợ chết. Trước: đoán theo đồng hồ (75 phút cố định → xếp lại cả việc đang cắt thật)

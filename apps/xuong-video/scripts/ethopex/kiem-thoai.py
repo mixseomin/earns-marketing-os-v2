@@ -93,8 +93,9 @@ def doc(video, tu, den):
         anh = [f"{t}/{a}" for a in sorted(os.listdir(t))]
         if sys.platform != "darwin": return [(tu + i, c) for i, c in enumerate(doc_linux(anh))]   # box3: không có Vision → tesseract
         # hạn theo số khung (03/11/2026: lô kiểu tập đọc cả phim 169553 = 2242 khung, hạn cứng 600s cắt ngang → lô ra 0 đoạn); ~0,5s/khung, tối thiểu 600s
-        r = subprocess.run([may_doc()] + anh, capture_output=True, text=True, check=True, timeout=max(600, int(0.5 * len(anh))))
+        r = subprocess.run([may_doc()] + anh, capture_output=True, text=True, check=True, timeout=max(600, int(0.6 * len(anh)) + 300))   # +300 s: doc-chu đợi ANE ấm tới 3 phút
         return [(tu + i, json.loads(l)["chu"]) for i, l in enumerate(r.stdout.splitlines())]
+
 
 def tu_kiem():
     chan = ["Lord knows how many old grannies you banged out there.", "You really thought you could just run off and prostitute yourself,",

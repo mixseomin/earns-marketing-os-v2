@@ -8,6 +8,7 @@ import { execFileSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { nenH264 } from '../../../../src/lib/xuong-video/nen-video.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), RA = join(DIR, 'ra'), TAM = join(RA, '.khung');
 mkdirSync(RA, { recursive: true });
@@ -73,7 +74,7 @@ execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i',
 for (const [f, ten] of [['s-intro', 'mo-dau-doc'], ['n-intro', 'mo-dau-ngang']]) {
   rmSync(TAM, { recursive: true, force: true }); mkdirSync(TAM, { recursive: true });
   for (let i = 0; i < 48; i++) await chup(f, (i / 30).toFixed(4), join(TAM, `${String(i).padStart(3, '0')}.png`));
-  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '30', '-i', join(TAM, '%03d.png'), '-i', chuong, '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18',
+  execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-framerate', '30', '-i', join(TAM, '%03d.png'), '-i', chuong, ...nenH264({ crf: 18 }),
     '-c:a', 'aac', '-b:a', '160k', '-shortest', join(RA, `${ten}.mp4`)]);
   console.log(`✓ ${ten}.mp4`);
 }

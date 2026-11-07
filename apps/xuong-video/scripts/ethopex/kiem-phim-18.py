@@ -51,7 +51,9 @@ def chu_phim(cid):
     chu = list(dict.fromkeys(x.split("\t")[6] for x in r.splitlines() if len(x.split("\t")) > 6))
     return ten, [c for c in chu if not any(k in c.lower() for k in khac)]
 
-def kiem(cid):
+def kiem(cid, soat_hinh=True):
+    """soat_hinh=False: creative CLONE TỪ CAMP ĐỘI (etp.creative.dang='team') — camp đội đã chạy thật trên Meta, anh 07/11/2026 "camp của đội clone sang
+    thì không cần soát" → bỏ mục (3) soát hình, vẫn giữ danh sách cấm (1) và từ khoá 18+ (2)."""
     cid = str(int(cid))
     cam = doc("ethopex_phim_cam")
     if cid in cam: return f"phim {cid} trong danh sách cấm 18+ ({cam[cid].get('ly_do')}, {cam[cid].get('luc')})"
@@ -59,6 +61,7 @@ def kiem(cid):
     for t in [ten or ""] + chu:
         m = TU.search(t)
         if m: return f"phim {cid} '{ten}' dính từ khoá 18+ '{m.group(0)}' — «{t[max(0, m.start() - 60):m.end() + 60]}»"
+    if not soat_hinh: return None
     s = doc("ethopex_soat_18").get(cid)
     if not s: return f"phim {cid} '{ten}' CHƯA SOÁT HÌNH 18+ — xem poster + tờ khung đoạn cắt rồi ghi: kiem-phim-18.py --soat {cid} ok|cam \"…\""
     if not s.get("ok"): return f"phim {cid} soát hình KHÔNG ĐẠT ({s.get('ghi')}, {s.get('luc')})"

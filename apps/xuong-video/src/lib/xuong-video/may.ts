@@ -25,7 +25,7 @@ export type May = {
   so: { video: number; cho_dang: number; luu_tru: number };
 };
 export type VideoMay = {
-  id: number; slug: string; chu_de: string; de: DeMay; dang: { title?: string; description?: string; link?: string; book?: string; words?: string[]; /** mã dạng bài trong kho mos2 dang-bai.json (máy đăng khớp ô kế hoạch) */ dang_bai?: string; /** góc spy nguồn idea (luật 25/10/2026) */ goc?: { sp: number; id: number; loai: string; ten: string }; nhom?: string; loai?: string };
+  id: number; slug: string; chu_de: string; de: DeMay; dang: { title?: string; /** tên playlist trên kênh, máy đăng chọn lúc đăng YouTube */ playlist_ten?: string; description?: string; link?: string; book?: string; words?: string[]; /** mã dạng bài trong kho mos2 dang-bai.json (máy đăng khớp ô kế hoạch) */ dang_bai?: string; /** góc spy nguồn idea (luật 25/10/2026) */ goc?: { sp: number; id: number; loai: string; ten: string }; nhom?: string; loai?: string };
   /** mẫu dựng riêng (NULL = mẫu của máy) */ mau: MauMayDung | null; video_url: string | null; khung: string[]; /** ảnh tĩnh cho bài ảnh (nền x_anh) */ anh: string[]; giay: number | null; xuat_luc: string | null; da_dang: Record<string, DaDang>; luu_tru: boolean; created_at: string;
 };
 /** nen_url: ảnh nền của video (mẫu có nền ảnh thật — luật 'nền lớn = ảnh thật'); đổi ảnh = dựng lại như đổi đề.
@@ -250,7 +250,7 @@ export async function dsVideoDang(db: Db, ma: string, caLuuTru = false): Promise
   const m = await mayTheoMa(db, ma); if (!m) throw new Error(`không có máy "${ma}"`);
   // duyet: Phòng Nội dung đã DUYỆT đúng bản xuất + đúng chữ đăng này (cham.xuat = xuat_luc, cham.dang = md5(dang) — xuất lại / sửa chữ là phải chấm lại; apps/cty/worker/cham-dang.mjs). Máy đăng chỉ lấy video duyet.
   const rows = (await db.execute(sql`SELECT *, (cham->>'ket' = 'DUYET' AND cham->>'xuat' = xuat_luc::text AND cham->>'dang' = md5(dang::text)) AS duyet FROM xv_may_video WHERE may_id = ${m.id} AND (${caLuuTru} OR NOT luu_tru) ORDER BY id`)) as unknown as Row[];
-  return Object.fromEntries(rows.map((r) => { const v = mapVideo(r); return [v.slug, { id: v.id, dang_bai: v.dang.dang_bai ?? null, file_url: v.video_url, anh: v.anh, thumb: (r.de as { thumb?: { url?: string } } | null)?.thumb?.url ?? null, xuat_luc: v.xuat_luc, da_dang: v.da_dang, luu_tru: v.luu_tru, duyet: !!r.duyet, cham: r.cham ?? null, ...v.dang, kieu: 'an', mau: m.mau }]; }));
+  return Object.fromEntries(rows.map((r) => { const v = mapVideo(r); return [v.slug, { id: v.id, dang_bai: v.dang.dang_bai ?? null, file_url: v.video_url, giay: v.giay, anh: v.anh, playlist_ten: v.dang.playlist_ten ?? null, thumb: (r.de as { thumb?: { url?: string } } | null)?.thumb?.url ?? null, xuat_luc: v.xuat_luc, da_dang: v.da_dang, luu_tru: v.luu_tru, duyet: !!r.duyet, cham: r.cham ?? null, ...v.dang, kieu: 'an', mau: m.mau }]; }));
 }
 /** Sổ đăng: ghi (hoặc gộp thêm trường, vd binhLuan) lượt đăng của một video lên một nền. Slug lạ → false. */
 export async function ghiDang(db: Db, ma: string, slug: string, nen: string, x: Partial<DaDang>): Promise<boolean> {

@@ -109,16 +109,32 @@ export function r2KeyFromUrl(url: string): string | null {
 
 /** Đẩy một tệp lên R2 — THỬ LẠI 4 lần (1s / 3s / 9s): ảnh vừa trả tiền mà mạng chập một nhịp thì mất luôn (18/10/2026 #20: FLUX vẽ xong, box chập
  *  mạng, "không đẩy được ảnh bước 1 lên kho" — tiền mất, ảnh mất). Chữ ký tính lại mỗi lần (x-amz-date). */
+// body = { tep } cho tệp lớn (phim dài 1 GB, 07/11/2026): rclone tải nhiều phần (multipart) + tự kiểm kích thước/checksum, không giữ tệp trong RAM.
+// Hai cách cũ đều hỏng với 1,1 GB: Buffer + bản sao + băm cả tệp → OOM ~2,9 GB; PUT một phát đọc luồng → R2 nhận tiêu đề 1,1 GB nhưng chỉ giữ 282 MB.
 export async function uploadToR2(
-  key: string, body: Buffer, contentType: string,
+  key: string, body: Buffer | { tep: string }, contentType: string,
 ): Promise<string | null> {
   if (!r2Enabled()) return null;
+  if (!Buffer.isBuffer(body)) return uploadTepR2(key, body.tep, contentType);
   for (let lan = 0; lan < 4; lan++) {
     if (lan) await new Promise((o) => setTimeout(o, 1000 * 3 ** (lan - 1)));
     const url = await uploadToR2Mot(key, body, contentType);
     if (url) return url;
   }
   return null;
+}
+async function uploadTepR2(key: string, tep: string, contentType: string): Promise<string | null> {
+  const { execFile } = await import('node:child_process'), { statSync } = await import('node:fs');
+  // remote dựng bằng biến môi trường (RCLONE_CONFIG_R2X_*) — khoá không nằm trên dòng lệnh, không cần tệp cấu hình
+  const env = { ...process.env, RCLONE_CONFIG_R2X_TYPE: 's3', RCLONE_CONFIG_R2X_PROVIDER: 'Cloudflare', RCLONE_CONFIG_R2X_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID!,
+    RCLONE_CONFIG_R2X_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY!, RCLONE_CONFIG_R2X_ENDPOINT: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`, RCLONE_CONFIG_R2X_NO_CHECK_BUCKET: 'true' };
+  const dich = `r2x:${process.env.R2_BUCKET}/${key}`, chay = (a: string[]) => new Promise<string>((ok, hong) => execFile('rclone', a, { env, maxBuffer: 16 << 20, timeout: 3_600_000 }, (e, out, err) => (e ? hong(new Error(String(err || e.message).slice(-400))) : ok(out))));
+  try {
+    await chay(['copyto', tep, dich, '--s3-chunk-size', '64M', '--s3-upload-concurrency', '4', '--header-upload', `Content-Type: ${contentType}`, '--retries', '5']);
+    const co = JSON.parse(await chay(['lsjson', dich]))[0]?.Size;   // đọc lại kích thước thật trên R2
+    if (co !== statSync(tep).size) { console.error('[r2] tệp lớn lên R2 lệch kích thước', co, statSync(tep).size); return null; }
+    return `${process.env.R2_PUBLIC_BASE!.replace(/\/+$/, '')}/${key.split('/').map(encodeURIComponent).join('/')}`;
+  } catch (e) { console.error('[r2] rclone', (e as Error).message); return null; }
 }
 async function uploadToR2Mot(
   key: string, body: Buffer, contentType: string,
@@ -174,7 +190,7 @@ async function uploadToR2Mot(
         'x-amz-date': amzDate,
         Authorization: authorization,
       },
-      body: new Uint8Array(body),
+      body: new Uint8Array(body.buffer, body.byteOffset, body.length),
     });
     if (!res.ok) {
       console.error('[r2] upload failed', res.status, (await res.text()).slice(0, 300));

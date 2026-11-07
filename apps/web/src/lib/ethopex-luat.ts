@@ -56,8 +56,8 @@ export const LUAT: Luat[] = [
   { ma: 'DC', ten: 'Dạng creative theo phim (đề xuất)', icon: '◇', muc: 'bao', gac: 'nguoi', khi: 'Chấm theo PHIM (gộp mọi camp cùng content): phim thắng / đang test / phim dài lỗ',
     lam: 'Phim chưa thắng: test bằng cảnh thật cắt đoạn sâu (0đ), không làm kể chuyện · Phim thắng: thêm kể chuyện (dùng lại hình bản thắng, thay lời/giọng) · Phim dài 2–3\' lỗ: bỏ dạng này · Mọi dạng đều lỗ sâu: dừng làm creative mới',
     vi: 'Số 01–21/10: kể chuyện +198% trên Number One (cảnh thật +51%) nhưng bỏ Number One ra thì kể chuyện ≈ −46%, cảnh thật ≈ +10%; phim dài −29%. Kể chuyện là bộ khuếch đại phim mạnh, không phải công cụ tìm phim.', nguon: 'anh 22/10/2026' },
-  { ma: 'NB', ten: 'Nhân bản camp thắng (máy tự làm)', icon: '⧉', muc: 'len', gac: 'may', khi: 'Camp đang bật, ROI tháng ≥ 100%, đã tiêu ≥ $10, ROI 3 ngày ≥ 50%',
-    lam: 'Máy tự nhân bản 1 camp $1 (cùng khuôn camp gốc; Today trong khung 21h–5h, ngoài khung Tomorrow), báo 🧬 Telegram, ghi nhật ký — mỗi camp gốc 1 bản / 24 giờ, mỗi phim 3 bản / ngày, tối đa 30 camp đang chạy / phim',
+  { ma: 'NB', ten: 'Nhân bản camp thắng (máy tự làm)', icon: '⧉', muc: 'len', gac: 'may', khi: `Camp đang bật: ${[...BANG_LUAT.nhan_ban.nac].reverse().map(([c, m, n]) => `tiêu ≥ $${c} & ROI ≥ +${m}% → đủ ${n} bản`).join(' · ')}; ROI 3 ngày ≥ ${BANG_LUAT.nhan_ban.roi3}%`,
+    lam: `Máy tự nhân bản camp $1 (cùng creative camp gốc, giờ chạy theo khung lên camp), báo 🧬 Telegram, ghi nhật ký — mỗi phim tối đa ${BANG_LUAT.nhan_ban.phim_ngay} bản / 24 giờ, tối đa 30 camp đang chạy / phim; gốc đủ lên ★ ROAS thì lên ROAS trước`,
     vi: 'Nhân bản không bị giới hạn số camp mới trong ngày; camp thua tắt thì chỗ đó dành cho creative mới.', nguon: 'anh 22/10/2026' },
 ];
 export const LUAT_THEO_MA = Object.fromEntries(LUAT.map((l) => [l.ma, l])) as Record<string, Luat>;

@@ -9,6 +9,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import sharp from 'sharp';
 import { svgSoDoShot, type VeShot } from '../src/lib/xuong-video/so-do-shot';
+import { nenH264 } from '../src/lib/xuong-video/nen-video.mjs';
 
 const gia = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 const tepBang = gia('bang')!; const ra = gia('ra') ?? '/tmp/animatic.mp4'; const tap = Number(gia('tap') || 0);
@@ -96,6 +97,6 @@ for (const s of b.shot) {
   doan.push({ v, a, d }); console.log(`#${s.so} ${d.toFixed(2)}s${g ? ' · giọng' : ''}${sfx ? ' · tiếng động' : ''}${doi ? ' · đầu→cuối' : ''}`);
 }
 writeFileSync(`${thu}/v.txt`, doan.map((x) => `file '${x.v}'`).join('\n')); writeFileSync(`${thu}/a.txt`, doan.map((x) => `file '${x.a}'`).join('\n'));
-sh('ffmpeg', ['-loglevel', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', `${thu}/v.txt`, '-f', 'concat', '-safe', '0', '-i', `${thu}/a.txt`, '-c:v', 'libx264', '-crf', '20', '-c:a', 'aac', '-shortest', ra]);
+sh('ffmpeg', ['-loglevel', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', `${thu}/v.txt`, '-f', 'concat', '-safe', '0', '-i', `${thu}/a.txt`, ...nenH264({ crf: 20 }), '-c:a', 'aac', '-shortest', ra]);
 console.log(ra, `${doan.reduce((t, x) => t + x.d, 0).toFixed(1)}s`, `${doan.length} shot`);
 process.exit(0);

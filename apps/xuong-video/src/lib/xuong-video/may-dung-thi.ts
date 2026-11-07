@@ -15,6 +15,7 @@ export interface DeThi {
 }
 
 import { alpha, bo, chu, giayDoc, mauAss, ms, nayVao, ngat, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { nenH264 } from './nen-video.mjs';
 
 export const FPS = 30, T_DEM = 0.3, DEM = 10, T_LO = T_DEM + DEM;
 export const TEN_KY: Record<KyThi, string> = { PTCB: 'PTCB', NREMT: 'NREMT EMT', TEAS: 'ATI TEAS 7' };
@@ -115,7 +116,7 @@ export function lenhThi(o: { de: DeThi; ass: string; nen?: string | null; fontsD
   const loc = `${nen},ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${amThi()}':s=44100:d=${DAI}`,
-    '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
+    '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), ...nenH264({ crf: 21, preset: 'veryfast' }), '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
 }
 
 /** ẢNH TĨNH cho bài ảnh (x_anh / fb_anh): câu hỏi (chưa lộ, giữa lúc đếm) + đáp án (đã lộ, lời giải hiện đủ). Khung cắt 3:4. */

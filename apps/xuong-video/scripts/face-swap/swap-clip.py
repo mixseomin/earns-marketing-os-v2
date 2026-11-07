@@ -13,6 +13,7 @@
 # stdout JSON: {"src_ok": bool, "ket": [{"tgt","out","khung": N, "ghep": M, "loi"?}]}
 import sys, os, json, tempfile, subprocess, glob, urllib.request
 import numpy as np, cv2
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ethopex")); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 
 MODELS = os.environ.get('XV_FACE_SWAP_MODELS', '/opt/xv-face-swap/models')
 SWAP_ONNX = os.path.join(MODELS, 'inswapper_128.onnx')
@@ -105,7 +106,7 @@ def main():
             cmd = ['ffmpeg', '-v', 'error', '-y', '-framerate', str(fps), '-i', os.path.join(outd, 'f%05d.png')]
             if co_tieng:
                 cmd += ['-i', tg, '-map', '0:v:0', '-map', '1:a:0', '-c:a', 'aac', '-shortest']
-            cmd += ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '18', out]
+            cmd += [*NV.nen_h264(crf=18), out]
             subprocess.run(cmd, check=True)
             ket.append({'tgt': tg, 'out': out, 'khung': len(frames), 'ghep': ghep})
         except Exception as e:

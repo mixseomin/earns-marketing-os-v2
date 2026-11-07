@@ -295,8 +295,10 @@ def _nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(os.path.dirname(os.path.abspath(__file__)), tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 
 def cong(content_id, creative_id, ten=""):
-    """cổng phim 18+ (kiem-phim-18.py) + cổng CTA (kiem-cta.py) + sổ bài học (bai-hoc.py: không lên lại đúng đoạn/dạng đã lỗ) — anh 22/10/2026"""
-    chan = _nap("p18", "kiem-phim-18.py").kiem(content_id) or _nap("cta", "kiem-cta.py").kiem(creative_id, so=not NGOAI)
+    """cổng phim 18+ (kiem-phim-18.py) + cổng CTA (kiem-cta.py) + sổ bài học (bai-hoc.py: không lên lại đúng đoạn/dạng đã lỗ) — anh 22/10/2026.
+    Creative clone từ camp ĐỘI (etp.creative.dang='team') bỏ bước soát hình 18+ (anh 07/11/2026 "camp của đội clone sang thì không cần soát"): camp đội đã chạy thật trên Meta."""
+    doi = (q(f"select coalesce(dang, '') from etp.creative where creative_id = {int(creative_id)}") or "") == "team"
+    chan = _nap("p18", "kiem-phim-18.py").kiem(content_id, soat_hinh=not doi) or _nap("cta", "kiem-cta.py").kiem(creative_id, so=not NGOAI)
     if chan: return chan
     c, w = _nap("bh", "bai-hoc.py").da_lo(content_id, ten)
     if w: print(w, file=sys.stderr)
@@ -427,6 +429,7 @@ def main(a):
     lich, luat, ai = lich_len(), lay("--luat"), lay("--ai")   # giờ chạy do lich_len quyết, --lich của nơi gọi không còn nghĩa (anh 05/11/2026)
     moi = {"creative": int(lay("--creative")), "content": int(lay("--content")), "ten": lay("--ten")} if lay("--creative") else None
     ep = "--ep" in a and bool(lay("--bo")); mien_cham = "--mien-cham" in a   # clone sang bộ khác theo lệnh anh — xem docstring
+    nac = "--nac" in a   # NHÂN THEO NẤC (anh 07/11/2026, luật NB hai nấc trong luat-ethopex): gốc tiêu ≥ $10/+50% hay $45/+100% → không đòi ngân sách gốc ≥ nb_ns_goc
     bo = lay("--bo"); thang = float(lay("--thang")) if lay("--thang") else None
     if thang and (moi or thang not in THANG_MUC): raise SystemExit(f"--thang phải là một trong {sorted(THANG_MUC)} và không đi kèm --creative")
     if moi and not (moi["content"] and moi["ten"]): raise SystemExit("--creative cần kèm --content và --ten")
@@ -473,7 +476,7 @@ def main(a):
             tran_dau = sorted(THANG_MUC | {1.0})[1] if len(THANG_MUC) else 3
             if la_ban_thang and thang <= ns: raise ValueError(f"bậc ${thang:g} không cao hơn bản thang gốc ${ns:g}")
             if not la_ban_thang and thang > tran_dau: raise ChanLuat(f"bản thang đầu của camp gốc thường tối đa ${tran_dau:g} (đi từ đáy $1–$3), không mở thẳng ${thang:g}")
-        elif not moi and not ep:   # CHỈ CLONE CAMP GỐC ĐỦ NGÂN SÁCH — mốc etp.cau_hinh.nb_ns_goc ($9, anh 06/11/2026 "Áp thêm 2 luật mới luôn": gốc $9–19 nhân ra ROI +16%, gốc không sụt);
+        elif not moi and not ep and not nac:   # CHỈ CLONE CAMP GỐC ĐỦ NGÂN SÁCH (trừ --nac: nấc theo tiền đã tiêu, anh 07/11/2026) — mốc etp.cau_hinh.nb_ns_goc ($9, anh 06/11/2026 "Áp thêm 2 luật mới luôn": gốc $9–19 nhân ra ROI +16%, gốc không sụt);
             # 25/10–06/11 mốc = chạm trần tran_camp (anh 25/10/2026 "không tạo trùng nếu camp hiện tại chưa đạt budget tối đa"). Thiếu khoá thì về trần như cũ
             tran = float(q("select coalesce((select gia_tri::text::numeric from etp.cau_hinh where khoa = 'nb_ns_goc'), (select gia_tri::text::numeric from etp.cau_hinh where khoa = 'tran_camp'), 20)") or 20)
             ns = float((d.get("campaign") or {}).get("budget_daily") or 0)

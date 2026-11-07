@@ -8,6 +8,7 @@
 import { alpha, bo, chu, giayDoc, mauAss, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
 
 import { amTheoTruy, type LoaiAm } from './am-nen';
+import { nenH264 } from './nen-video.mjs';
 export { amTheoTruy };
 export type AmCanh = LoaiAm;
 export interface DeCanh {
@@ -65,7 +66,7 @@ export function lenhCanh(o: { de: DeCanh; ass: string; nen?: string | null; am?:
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', '-stream_loop', '-1', '-i', o.nen, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   const vaoAm = imLang ? ['-f', 'lavfi', '-i', `anullsrc=r=44100:cl=mono:d=${dai}`] : ['-stream_loop', '-1', '-i', o.am!];
   return ['-y', '-hide_banner', '-loglevel', 'error', '-stream_loop', '-1', '-i', o.nen, ...vaoAm,
-    '-filter_complex', `${loc};${locAm(dai)}`, '-map', '[v]', '-map', '[a]', '-r', String(FPS), '-t', String(dai), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', o.ra];
+    '-filter_complex', `${loc};${locAm(dai)}`, '-map', '[v]', '-map', '[a]', '-r', String(FPS), '-t', String(dai), ...nenH264({ crf: 21, preset: 'veryfast' }), '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', o.ra];
 }
 
 /** Kịch bản shot (tab Mẫu / ngăn video). */

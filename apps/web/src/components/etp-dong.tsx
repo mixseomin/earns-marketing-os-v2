@@ -69,6 +69,29 @@ export function DongHoSx({ buoc, so, title, href, ket, bam }: { buoc: { buoc: st
   return <a href={href} onClick={(e) => { e.stopPropagation(); if (bam && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) { e.preventDefault(); bam(); } }} title={title || undefined} style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', textDecoration: 'none' }}>
     <DongHo nut={NUT_SX.map(([k, , b]) => ({ ma: k, tt: tt(b) }))} so={so} ket={ket} mau={(t) => (MAU[t] ?? MAU.cho!)[0]} /></a>;
 }
+/** CHỮ TRONG NODE từng cột (1 đoạn · 1/1 sạch · 1 đã lên · 1 sạch · 1 camp · 1/1) — một chỗ cho hàng dòng phim tab Sản xuất và thẻ phim */
+function chuNode(buoc: BuocDong[], loai: string, so: { camp: number; chay: number }, duyet?: unknown): Record<string, string> {
+  const b = (k: string) => buoc.find((x) => x.buoc === k);
+  const k1 = b('creative')?.ket_qua as ({ creative_id?: number; tu?: number; den?: number } & NonNullable<BuocDong['ket_qua']>) | null | undefined;
+  const cr = k1?.ds ?? (k1?.creative_id ? [{ creative_id: k1.creative_id }] : []);
+  const sach = new Set((k1?.sach ?? (k1?.creative_id && b('creative')?.trang_thai === 'xong' ? [{ creative_id: k1.creative_id }] : [])).map((x) => x.creative_id));
+  const doanSach = b('soat')?.ket_qua?.doan ?? [], doanCat = b('cat')?.ket_qua?.doan ?? [];
+  const nDs = cr.length || (loai === 'KT' ? (b('creative')?.trang_thai === 'dang' ? 1 : 0) : (doanSach.length || doanCat.length));
+  const nCat = doanCat.length || (b('cat')?.trang_thai === 'xong' ? nDs : 0), tienCat = /(\d+\/\d+)/.exec(b('cat')?.ghi ?? '')?.[1], chamXong = b('creative')?.trang_thai === 'xong';
+  return { cat: b('cat')?.trang_thai === 'dang' ? (tienCat ? `${tienCat} đoạn` : '') : nCat ? `${nCat} đoạn` : '', soat: nDs ? `${cr.length || doanSach.length}/${doanCat.length || nDs} sạch` : '', len: cr.length ? `${cr.length} đã lên` : '',
+    cham: cr.length ? `${sach.size} sạch${chamXong && cr.length - sach.size ? ` · ${cr.length - sach.size} chặn` : ''}` : '', camp: so.camp && b('camp')?.trang_thai === 'xong' ? `${so.camp} camp` : /đang lên camp (\d+\/\d+)/.exec(b('camp')?.ghi ?? '') ? `⏳ đang lên ${/(\d+\/\d+)/.exec(b('camp')!.ghi!)![1]}` : duyet && /CHỜ ANH/.test(b('camp')?.ghi ?? '') ? '⏳ đã duyệt' : /CHỜ ANH BẮT ĐẦU/.test(b('camp')?.ghi ?? '') ? '👆 duyệt' : so.camp ? `${so.camp} camp` : '',
+    chay: so.camp ? `${so.chay}/${so.camp}` : '' };
+}
+/** HÀNG NODE của một dòng — đúng khuôn, đúng chữ hàng 📂 ở tab Sản xuất (anh 07/11/2026 "trình bày các node giống thế này"); thẻ phim (etp-lich-phim) dùng */
+export function ChuoiBuoc({ buoc, loai }: { buoc: { buoc: string; trang_thai: string; ghi?: string | null; ket_qua?: unknown }[]; loai: string }) {
+  const tt = (b: string) => buoc.find((x) => x.buoc === b)?.trang_thai ?? 'cho', tong = chuNode(buoc as BuocDong[], loai, { camp: 0, chay: 0 });
+  return <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COT_CR.length}, 1fr)`, gap: 2 }}>
+    {COT_CR.map(([k, ten]) => <span key={k} style={{ textAlign: 'center', fontSize: 9.5, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden' }}>{ten}</span>)}
+    {COT_CR.map(([k, , bk]) => { const b = loai === 'KT' && k === 'cat' ? 'creative' : bk, t = loai === 'KT' && k === 'soat' ? 'bo_qua' : tt(b), rong = t === 'cho' || t === 'bo_qua';
+      return <span key={k} style={{ minWidth: 0, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 6px', borderRadius: 11, fontSize: 9.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', background: rong ? 'transparent' : NEN[t], color: CHU[t] ?? 'var(--fg-3)',
+        border: `1px ${rong ? 'dashed' : 'solid'} ${VIEN[t] ?? 'var(--line)'}`, animation: t === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>{KY[t] ?? ''}{tong[k] ? <span>{tong[k].replace(/ (đoạn|sạch|đã lên|camp)$/, '')}</span> : null}</span>; })}
+  </div>;
+}
 const LOAI_DE: Record<string, string> = { CC: 'Cảnh cuối', KT: 'Kể chuyện', LT: 'Test rộng', AT: 'Ảnh tĩnh', KM: 'Kiểu mới', TT: 'Camp test thay thế' };   // AT / KM / TT: đường ngoài máy dòng phim (docNgoai)
 const NEN: Record<string, string> = { xong: '#14532d', dang: '#1e3a8a', chay: '#1e3a8a', dung: '#78350f', loi: '#7f1d1d', cho: 'transparent', bo_qua: 'transparent' };
 const CHU: Record<string, string> = { xong: '#86efac', dang: '#bfdbfe', chay: '#bfdbfe', dung: '#fcd34d', loi: '#fca5a5', cho: 'var(--fg-3)', bo_qua: 'var(--fg-3)' };
@@ -173,10 +196,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
   const camps = ct?.camps ?? []; const crs = ct?.crs ?? {};
   // camp lẻ = camp của dòng NÀY (dòng phim cũ chỉ ghi camp_id) mà chưa khớp creative — không lấy camp của loại khác cùng phim (03/11/2026: 5 camp Test rộng lạc vào thư mục Cảnh cuối)
   const le = camps.filter((c) => c.id === d.camp_id && !cr.some((x) => x.creative_id === c.cr));
-  const nCat = doanCat.length || (b('cat')?.trang_thai === 'xong' ? ds.length : 0); const tienCat = /(\d+\/\d+)/.exec(b('cat')?.ghi ?? '')?.[1];
-  const tong: Record<string, string> = { cat: b('cat')?.trang_thai === 'dang' ? (tienCat ? `${tienCat} đoạn` : '') : nCat ? `${nCat} đoạn` : '', soat: ds.length ? `${cr.length || doanSach.length}/${doanCat.length || ds.length} sạch` : '', len: cr.length ? `${cr.length} đã lên` : '',
-    cham: cr.length ? `${sach.size} sạch${chamXong && cr.length - sach.size ? ` · ${cr.length - sach.size} chặn` : ''}` : '', camp: so.camp && b('camp')?.trang_thai === 'xong' ? `${so.camp} camp` : /đang lên camp (\d+\/\d+)/.exec(b('camp')?.ghi ?? '') ? `⏳ đang lên ${/(\d+\/\d+)/.exec(b('camp')!.ghi!)![1]}` : d.duyet && /CHỜ ANH/.test(b('camp')?.ghi ?? '') ? '⏳ đã duyệt' : /CHỜ ANH BẮT ĐẦU/.test(b('camp')?.ghi ?? '') ? '👆 duyệt' : so.camp ? `${so.camp} camp` : '',
-    chay: so.camp ? `${so.chay}/${so.camp}` : '' };
+  const tong = chuNode(d.buoc as BuocDong[], d.loai, so, d.duyet);
   if (d.ngoai && !so.camp && d.len) tong.camp = d.len.ly_do ? 'không tự lên' : `tự lên · thứ ${d.len.hang}`;   // hàng chờ lên camp (view etp.cho_len_v, cùng nguồn máy) — ghi chi tiết ở hover
   return <>
     <tr style={con ? { background: 'rgba(96,165,250,.04)' } : { borderTop: '2px solid var(--line)', background: 'rgba(96,165,250,.10)' }}>   {/* dòng phim (thư mục) khác màu dòng creative (anh 03/11/2026) */}

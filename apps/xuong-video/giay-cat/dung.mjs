@@ -4,6 +4,7 @@
 // Xuất: vẽ từng khung bằng @napi-rs/canvas (không trình duyệt) → ffmpeg → MP4.
 import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { spawn } from 'node:child_process';
+import { nenH264 } from '../src/lib/xuong-video/nen-video.mjs';
 
 export const W = 1280, H = 720, FPS = 24;
 export const kep = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -65,7 +66,7 @@ export function veChan(ctx, hx, hy, ban, { mauQuan = '#1d1b1e', mauDep = '#7a523
 /** Xuất cảnh: ve(ctx, t) vẽ một khung tại giây t. → MP4 (H.264, 24 khung/giây). */
 export async function xuat(ve, giay, ra) {
   const c = createCanvas(W, H), ctx = c.getContext('2d');
-  const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', String(FPS), '-i', '-', '-c:v', 'libx264', '-crf', '18', '-pix_fmt', 'yuv420p', ra], { stdio: ['pipe', 'inherit', 'inherit'] });
+  const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', String(FPS), '-i', '-', ...nenH264({ crf: 18 }), ra], { stdio: ['pipe', 'inherit', 'inherit'] });
   const n = Math.round(giay * FPS);
   for (let i = 0; i < n; i++) {
     ctx.clearRect(0, 0, W, H); ve(ctx, i / FPS);

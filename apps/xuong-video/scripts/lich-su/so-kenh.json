@@ -47,7 +47,9 @@
         "lich_tap": [
           2,
           6
-        ]
+        ],
+        "mau_nhan": "#FF8FB1",
+        "ic": "♡"
       },
       {
         "ma": "know-yourself",
@@ -86,7 +88,9 @@
         "lich_tap": [
           1,
           7
-        ]
+        ],
+        "mau_nhan": "#8EC5FF",
+        "ic": "☉"
       },
       {
         "ma": "career",
@@ -119,7 +123,9 @@
         "nen": "brand/astrolas/anh/nen/career.jpg",
         "lich_tap": [
           5
-        ]
+        ],
+        "mau_nhan": "#E6B800",
+        "ic": "♄"
       },
       {
         "ma": "timing",
@@ -155,7 +161,9 @@
         "nen": "brand/astrolas/anh/nen/timing.jpg",
         "lich_tap": [
           3
-        ]
+        ],
+        "mau_nhan": "#7FD18B",
+        "ic": "☽"
       },
       {
         "ma": "start-here",
@@ -198,7 +206,9 @@
         "nen": "brand/astrolas/anh/nen/start-here.jpg",
         "lich_tap": [
           4
-        ]
+        ],
+        "mau_nhan": "#7FD18B",
+        "ic": "✦"
       },
       {
         "ma": "accurate",
@@ -245,7 +255,9 @@
           "read-your-chart"
         ],
         "trang_dich": "Birth chart (/birth), công cụ có số liệu",
-        "nen": "brand/astrolas/anh/nen/accurate.jpg"
+        "nen": "brand/astrolas/anh/nen/accurate.jpg",
+        "mau_nhan": "#F4D971",
+        "ic": "✦"
       }
     ],
     "giai_doan": [
@@ -301,7 +313,7 @@
       {
         "ma": "G7",
         "ten": "Đăng",
-        "viec": "mở khoá mục YouTube @astrolasapp; 2 playlist + Start here + bố cục trang kênh; máy đăng chọn playlist + tiền tố tiêu đề · 07/11: video đầu lên YouTube https://youtube.com/shorts/RMNI1c9ybGM; đăng từ iMac bằng phiên chép (scripts/chep-phien.mjs); chưa tạo 6 playlist; bình luận đầu hỏng",
+        "viec": "mở khoá mục YouTube @astrolasapp; 2 playlist + Start here + bố cục trang kênh; máy đăng chọn playlist + tiền tố tiêu đề · 07/11: video đầu https://youtube.com/shorts/RMNI1c9ybGM; đăng hẳn từ iMac (scripts/chep-phien.mjs); kênh đã xác minh số; bìa chuẩn thumb-kenh.mjs; 6 playlist đã tạo, máy đăng chọn playlist theo dang.playlist_ten",
         "anh": "không",
         "trang_thai": "dang"
       },
@@ -406,7 +418,7 @@
         "ten": "Read Your Chart",
         "loai": "short",
         "nhip": "sau",
-        "kho": "≈ 600+ Short",
+        "kho": "168 tập (14 người hạng AA × AC, MC, 10 hành tinh)",
         "trang": "shot-code/la-so.html",
         "sinh": "lich-su/viet-ryc.mjs --muc <asc|mc|sao|all> --ai <người|all> — 0đ, không AI: ảnh + số liệu trang lá số thật (cong-cu/doc-natal.mjs), câu giải nghĩa nguyên văn blog site, nghĩa nhà của site",
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-read-your-chart.mp4?v=5",

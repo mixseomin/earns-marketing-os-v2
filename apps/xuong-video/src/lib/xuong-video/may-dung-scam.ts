@@ -38,6 +38,7 @@ export function anhScam(de: DeScam): { t: number; cat: [number, number, number, 
 const W = 1080, H = 1920, DO = '#E5484D', XANH = '#2EBD85', NHAN = '#FCA311', SAU = '#14213D', TRANG = '#F4F6F8';
 const MAU_KENH: Record<KenhScam, string> = { WhatsApp: '#1FA855', Email: '#3B6FE0', SMS: '#5B6472' };
 import { alpha, bo, chu, giayDoc, mauAss, ms, nayVao, ngat, nhipDem, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { nenH264 } from './nen-video.mjs';
 export { mauAss, ngat };
 
 const EM = 1.25;
@@ -134,7 +135,7 @@ export function lenhScam(o: { de: DeScam; ass: string; nen?: string | null; font
   const loc = `${nen},ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${amScam(o.de.ket)}':s=44100:d=${DAI}`,
-    '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
+    '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), ...nenH264({ crf: 21, preset: 'veryfast' }), '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
 }
 
 /** SHOT CODE (anh 01/11/2026): lớp hình dựng trên iMac bằng scripts/shot-code/scam-or-real.html (cột hinh_code), box chỉ ghép tiếng amScam.

@@ -8,6 +8,7 @@ import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, dirname, basename } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { nenH264 } from '../src/lib/xuong-video/nen-video.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.DO_MAN_PW ?? `${process.env.HOME}/Me/Earns/courseforge-demo/node_modules/playwright`);
@@ -33,7 +34,7 @@ const khung = arg('khung');
 if (khung) {
   for (const t of khung.split(',').map(Number)) { const p = ra.replace(/\.mp4$/, `-${t}s.png`); writeFileSync(p, Buffer.from(await chup(t, 'image/png'), 'base64')); console.log(p); }
 } else {
-  const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-c:v', 'mjpeg', '-r', String(FPS), '-i', '-', '-c:v', 'libx264', '-crf', '17', '-preset', 'slow', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', ra], { stdio: ['pipe', 'inherit', 'inherit'] });
+  const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-c:v', 'mjpeg', '-r', String(FPS), '-i', '-', ...nenH264({ crf: 17, preset: 'slow' }), '-movflags', '+faststart', ra], { stdio: ['pipe', 'inherit', 'inherit'] });
   const n = Math.round(giay * FPS), t0 = Date.now();
   for (let i = 0; i < n; i++) {
     const buf = Buffer.from(await chup(i / FPS), 'base64');

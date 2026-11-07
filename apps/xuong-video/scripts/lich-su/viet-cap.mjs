@@ -12,19 +12,16 @@ import { fileURLToPath } from 'node:url';
 import { dangCongCu } from './nguon-site.mjs';
 import { tachCanh } from './chu-man.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
-import { loiHook, sachHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { chonHook, baoHook } from './hook-kenh.mjs';
-import { hookGon, hookNgan } from './chu-man.mjs';
+import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { chonHook } from './hook-kenh.mjs';
+import { KY as KYS, THANG, ngayChu, nhanPlaylist } from './viet-chung.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const CA_NHAN = new Set(['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Ascendant', 'MC']), CHINH = ['Conjunction', 'Opposition', 'Square', 'Trine', 'Sextile'];
 /** tên gọi ngắn trên màn: bỏ tước hiệu + phần sau dấu phẩy / ngoặc ("King Charles III" → "Charles", "Diana, Princess of Wales" → "Diana", "Kanye West (Ye)" → "Kanye West") */
 export const tenNgan = (t) => t.split(/[,(]/)[0].trim().replace(/^(King|Queen|Prince|Princess|Sir|Dame)\s+/i, '').replace(/\s+(I{1,3}|IV|V|VI{0,3})$/, '').trim();
-const KYS = { Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇', Ascendant: 'AC', MC: 'MC' };
 const phut = (l) => { const m = /(\d+)°\s*(\d+)?/.exec(l ?? ''); return m ? +m[1] * 60 + +(m[2] ?? 0) : 1e9; };
-const THANG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const ngayChu = (d) => { const [y, m, n] = d.split('-').map(Number); return n ? `${THANG[m - 1]} ${n}, ${y}` : m ? `${THANG[m - 1]} ${y}` : String(y); };
 
 /** góc chiếu đáng kể: dùng được, có sao cá nhân, không thế hệ, tiêu đề site sạch — góc chính trước, khít trước. Thuần. */
 export function chonGoc(h) {
@@ -55,7 +52,7 @@ function vietMot(c, ra) {
     kenh: 'astrolas', mau: 'chart-vs-chart', playlist_ma: plMa, y_tuong: `cvc-${c.ma}`, tieu_de: tieuDe, goc: gocHook, hook: { qc: hook.id, goc: hook.chu },
     dang: dangCongCu('synastry-chart', [c.a, c.b], { rel_type: c.rel }, `${h.a.ten} and ${h.b.ten}: both birth charts compared with the Synastry tool.`),
     la_so: tg(join(DIR, `la-so/hop/${c.ma}.svg`)), nen: tg(join(DIR, pl.nen))   /* nền theo playlist (so-kenh › playlist.nen) */, logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
-    playlist: { ten: pl.ten, mau: plMa === 'career' ? '#E6B800' : '#FF8FB1', ic: plMa === 'career' ? '♄' : '♡' }, DAI: cau.at(-1).den, cau });
+    playlist: nhanPlaylist(pl), DAI: cau.at(-1).den, cau });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${c.ma}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }
   mkdirSync(dirname(ra), { recursive: true }); writeFileSync(ra, JSON.stringify(tap, null, 1) + '\n');

@@ -5,6 +5,7 @@
 import { alpha, bo, chu, giayDoc, mauAss, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
 import { locAmChuoi } from './may-dung-chuoi';
 import type { LoaiAm } from './am-nen';
+import { nenH264 } from './nen-video.mjs';
 
 export interface BenSoSanh { ten: string; dong: string[]; truy: string }
 export interface DeSoSanh {
@@ -78,7 +79,7 @@ export function lenhSoSanh(o: { de: DeSoSanh; ass: string; nen?: string | null; 
   f.push(`[v0][v1]vstack=inputs=2,trim=0:${dai},setpts=PTS-STARTPTS,ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`);
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', f.join(';'), '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   const amVao = o.am ? ['-stream_loop', '-1', '-i', o.am] : ['-f', 'lavfi', '-i', `anullsrc=r=44100:cl=mono:d=${dai}`];
-  return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, ...amVao, '-filter_complex', `${f.join(';')};${locAmChuoi(dai).replace('[A]', '[2:a]')}`, '-map', '[v]', '-map', '[a]', '-r', String(FPS), '-t', String(dai), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', o.ra];
+  return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, ...amVao, '-filter_complex', `${f.join(';')};${locAmChuoi(dai).replace('[A]', '[2:a]')}`, '-map', '[v]', '-map', '[a]', '-r', String(FPS), '-t', String(dai), ...nenH264({ crf: 21, preset: 'veryfast' }), '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart', o.ra];
 }
 export function kichBanSoSanh(de: DeSoSanh) {
   const N = nhipSoSanh(de);

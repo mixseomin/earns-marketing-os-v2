@@ -11,6 +11,7 @@ Dùng: python3 ghep-b.py <job.json>  (job = {doan:[{file,giay,hook}], nhac, ten,
 import json, os, re, subprocess, sys, tempfile
 from PIL import Image, ImageDraw, ImageFilter
 import importlib.util
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 
 spec = importlib.util.spec_from_file_location("gx", os.path.join(os.path.dirname(os.path.abspath(__file__)), "ghep-xem.py"))
 gx = importlib.util.module_from_spec(spec); spec.loader.exec_module(gx)
@@ -103,7 +104,7 @@ def dung(doan, nhac, ten, cta, cfg, out):
     vao += ["-i", nhac] if nhac and nhac != "-" else ["-f", "lavfi", "-t", f"{T}", "-i", "anullsrc=r=44100:cl=stereo"]
     loc.append(f"[{ia}:a]aresample=44100,volume=0.9,afade=out:st={T - 0.8}:d=0.8[a]")
     gx.sh("ffmpeg", "-v", "error", "-y", *vao, "-filter_complex", ";".join(loc), "-map", f"[{cuoi}]", "-map", "[a]", "-t", f"{T}",
-          "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out)
+          *NV.nen_h264(crf=18), "-r", "30", "-c:a", "aac", "-ar", "44100", "-movflags", "+faststart", out)
     print(out, round(gx.dur(out), 1))
 
 if __name__ == "__main__":

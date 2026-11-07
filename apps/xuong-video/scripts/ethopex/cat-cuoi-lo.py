@@ -11,6 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 import importlib.util
 D = os.path.dirname(os.path.abspath(__file__))
 import importlib.util as _iu2
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 _c2 = _iu2.spec_from_file_location("cta_qc", os.path.join(D, "cta_qc.py")); CQ = _iu2.module_from_spec(_c2); _c2.loader.exec_module(CQ); A = os.path.join(D, "..", "..", "assets", "ethopex")
 _s = importlib.util.spec_from_file_location("dl", os.path.join(D, "dung-lo-dai.py")); DL = importlib.util.module_from_spec(_s); _s.loader.exec_module(DL)
 DAI_MIN, DAI_MAX, QUET = 65, 85, 420
@@ -35,14 +36,17 @@ def ghep_mo(tm):
                            "color_range,color_space,color_transfer,color_primaries,field_order,sample_rate,channels,channel_layout", "-of", "csv=p=0", os.path.join(tm, t)],
                           capture_output=True, text=True).stdout.strip() for t in taps}
     vao = [os.path.join(tm, t) for t in taps]
+    # tệp ghép còn mới hơn mọi TẬP GỐC và dài đúng tổng → dùng lại luôn, không chuẩn hoá lại (bản -chuan.mp4 bị dong_phim.don_dep bỏ sau khi ghép — 07/11/2026)
+    tong_ = sum(DL.giay(f) for f in vao)
+    if os.path.exists(ra) and os.path.getmtime(ra) >= max(os.path.getmtime(f) for f in vao) and abs(DL.giay(ra) - tong_) <= 3: tso = {"dung_lai"}
     if len(tso) > 1:
         def chuan(f):
             o = f[:-4] + "-chuan.mp4"
             if not os.path.exists(o):
                 subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f, "-vf", "scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2,fps=30,setsar=1",
-                                *(["-c:v", "h264_videotoolbox", "-b:v", "8M"] if sys.platform == "darwin" else ["-c:v", "libx264", "-crf", "16", "-preset", "veryfast"]), "-c:a", "aac", "-ar", "44100", "-ac", "2", o], check=True, timeout=900)
+                                *NV.nen_h264(crf=16, preset="veryfast", bit="8M"), "-c:a", "aac", "-ar", "44100", "-ac", "2", o], check=True, timeout=900)
             return o
-        vao = [chuan(f) for f in vao]
+        with ThreadPoolExecutor(4) as ex: vao = list(ex.map(chuan, vao))   # 4 tập cùng lúc (bộ nén phần cứng chạy nhiều phiên): #114 chuẩn hoá tuần tự 8 tập mất 11 phút (07/11/2026)
     # tệp ghép mới hơn mọi tập → dùng lại (box3 23/10/2026: chữ đã đọc sẵn <ghep-cuoi>.chu.json gắn với tệp này; ghép lại = đổi giờ tệp = bỏ bản đọc)
     moc, t = [], 0.0
     for x in taps: t += DL.giay(os.path.join(tm, x)); moc.append(round(t, 1))
@@ -55,9 +59,19 @@ def ghep_mo(tm):
     return ra, moc
 
 def chon(src, moc, so_ban=1):
-    """tới so_ban khung, mỗi khung kết ở một chỗ hết tập KHÁC nhau (muộn nhất trước), không chồng lên nhau"""
+    """tới so_ban khung, mỗi khung kết ở một chỗ hết tập KHÁC nhau (muộn nhất trước), không chồng lên nhau.
+    ĐỌC CHỮ CHỈ TRÊN KHUNG ỨNG VIÊN (anh 07/11/2026 "làm ngay lập tức"): trước đọc trọn QUET × so_ban giây cuối (840 khung ≈ 15 phút / phim) rồi mới chọn;
+    nay mỗi khung ứng viên đọc đúng phần chưa đọc của nó (≈ 85 khung), sạch thì dừng — cat-canh còn đọc lại đoạn đã cắt nên cổng thoại không lỏng hơn."""
     tu0 = max(0.0, moc[-1] - QUET * so_ban)
-    cam = [g for g, c in DL.KT.doc(src, tu0, moc[-1]) if DL.KT.soat(c)]
+    da, cam = set(), []
+    def doc(a, b):
+        moi = [g for g in range(int(max(tu0, a)), int(-(-b // 1))) if g not in da]
+        if not moi: return
+        x, y = min(moi), max(moi) + 1
+        doc_ = DL.KT.doc(src, x, y); cam.extend(g for g, c in doc_ if DL.KT.soat(c)); da.update(range(x, y))
+        # ghi chữ vừa đọc vào sổ đọc sẵn của nguồn (kiem-thoai.bo_doc_san) → cat-canh đọc lại đúng đoạn này lấy từ sổ, không chạy Vision lần hai (anh 07/11/2026 "sửa đi")
+        f = os.path.splitext(src)[0] + ".chu.json"; san = DL.KT.bo_doc_san(src) or {}
+        san.update({str(round(g)): c for g, c in doc_}); json.dump(san, open(f, "w"), ensure_ascii=False)
     sach = lambda a, b: not any(a - 2 <= g <= b + 2 for g in cam)
     ra = []
     if KIEU == "tap":   # một tập trọn: (mốc trước, mốc này), muộn nhất trước, sạch thoại cấm
@@ -65,15 +79,25 @@ def chon(src, moc, so_ban=1):
         for i in range(len(moc) - 1, -1, -1):
             s, e = bd[i], moc[i]
             if len(ra) >= so_ban: break
-            if TAP_MIN <= e - s <= TAP_MAX and s >= tu0: ra.append((s, e))   # chỉ trong vùng đã đọc chữ (QUET giây cuối); giây cấm trong tập → cat-canh BỎ những giây đó (anh 28/10/2026)
-        return ra, cam   # lô kiểu tập nguyên không lùi về kiểu cũ — phim không có tập vừa độ dài thì báo không có khung
+            if TAP_MIN <= e - s <= TAP_MAX and s >= tu0: doc(s, e); ra.append((s, e))   # chỉ trong QUET giây cuối; giây cấm trong tập → cat-canh BỎ những giây đó (anh 28/10/2026)
+        return ra, sorted(cam)   # lô kiểu tập nguyên không lùi về kiểu cũ — phim không có tập vừa độ dài thì báo không có khung
     for e in reversed(moc):
         if e - DAI_MIN < tu0 or len(ra) >= so_ban: break
         if ra and e > ra[-1][0]: continue   # không chồng khung đã chọn
+        doc(e - DAI_MAX - 2, e + 2)   # ±2 giây của luật sạch
         for d in range(DAI_MAX, DAI_MIN - 1, -5):
             s = round(e - d, 1)
             if s >= tu0 and (sach(s, e) or d == DAI_MIN): ra.append((s, e)); break   # không có khung sạch trọn → lấy khung ngắn nhất, cat-canh CẮT BỎ giây cấm (anh 03/11/2026 "ko cần liền mạch")
     return ra, cam
+
+import threading
+_LO, _KHOA_LO = {}, threading.Lock()
+def ghi_lo(ra_dir, ds):
+    """GHI lo.json SAU MỖI KHUNG (anh 07/11/2026 "lượt mới chưa": dòng #98 / #110 cắt xong 3 + 4 khung rồi bị tho.py chém quá hạn → lo.json chỉ ghi cuối lượt
+    nên mất trắng cả 7, báo "0 đoạn"). tho.py đọc lo.json khi quá giờ để giữ đoạn đã cắt — giờ luôn có bản mới nhất."""
+    with _KHOA_LO:
+        _LO[id(ds)] = ds; tat = [k for v in _LO.values() for k in v]
+        tam = os.path.join(ra_dir, "lo.json.tam"); json.dump(tat, open(tam, "w"), ensure_ascii=False, indent=1); os.replace(tam, os.path.join(ra_dir, "lo.json"))
 
 def lam(p, goc, ra_dir, so_ban=1):
     cid, loc, ten = p[0], p[1], p[3]; tm = os.path.join(goc, cid)
@@ -81,7 +105,10 @@ def lam(p, goc, ra_dir, so_ban=1):
         pst = os.path.join(tm, "poster-1080.png"); DL.poster(os.path.join(tm, "poster.jpg"), pst)
         src, moc = ghep_mo(tm); khung, cam = chon(src, moc, so_ban); CAM_PHIM[cid] = cam
         if not khung: return [{"content_id": int(cid), "ten": ten, "loi": f"không có khung cuối sạch (giây cấm {cam[:12]})"}]
-        return [LK.thu(cat1, cid, loc, ten, src, moc, pst, tu, den, ra_dir) for tu, den in khung]   # lỗi kỹ thuật → cắt lại tại chỗ (loi_ky_thuat.py)
+        ra = []
+        for tu, den in khung:   # lỗi kỹ thuật → cắt lại tại chỗ (loi_ky_thuat.py)
+            ra.append(LK.thu(cat1, cid, loc, ten, src, moc, pst, tu, den, ra_dir)); ghi_lo(ra_dir, ra)
+        return ra
     except Exception as e:
         return [{"content_id": int(cid), "ten": ten, "loi": str(e)[-300:]}]
 

@@ -14,6 +14,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BOX, box } from '../lich-su/box3.mjs';
+import { nenH264 } from '../../src/lib/xuong-video/nen-video.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const tepCau = arg('cau'), ra = arg('ra'); if (!tepCau || !ra) { console.error('dùng: --cau <CAU.json> --ra <ra.mp4>'); process.exit(2); }
@@ -85,7 +86,7 @@ const r = spawnSync('ffmpeg', ['-v', 'error', '-y', '-i', hinh, '-i', tepGiong, 
   '-filter_complex', `[1:a]aresample=${SR},volume=1.0,asplit=2[g][gk];[2:a]volume=0.55,afade=t=in:d=1.2,afade=t=out:st=${DAI - 1.6}:d=1.6[n0];[n0][gk]sidechaincompress=threshold=0.03:ratio=6:attack=20:release=400[n];[3:a]volume=0.6[s];[g][n][s]amix=inputs=3:duration=longest:normalize=0,loudnorm=I=-14:TP=-1.5` +
     (coOutro ? `,atrim=0:${DAI},aresample=48000[a0];[0:v]trim=0:${DAI},setpts=PTS-STARTPTS,fps=30,scale=${RW}:${RH},setsar=1[v0];[4:v]fps=30,scale=${RW}:${RH},setsar=1[v1];[4:a]aresample=48000[a1];[v0][a0][v1][a1]concat=n=2:v=1:a=1[v][a]` : '[a]'),
   // hình nén lại thành BẢN PHÁT HÀNH (crf 23, như máy làm tập): bản trung gian của dung.mjs là 16 Mbit/s — chép thẳng ra 92 MB cho 46 giây (05/11/2026)
-  '-map', coOutro ? '[v]' : '0:v', '-map', '[a]', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '23', '-preset', 'medium', '-c:a', 'aac', '-b:a', '160k', ...(coOutro ? [] : ['-t', String(DAI)]), '-movflags', '+faststart', resolve(ra)], { stdio: 'inherit' });
+  '-map', coOutro ? '[v]' : '0:v', '-map', '[a]', ...nenH264({ crf: 23, preset: 'medium' }), '-c:a', 'aac', '-b:a', '160k', ...(coOutro ? [] : ['-t', String(DAI)]), '-movflags', '+faststart', resolve(ra)], { stdio: 'inherit' });
 if (r.status) process.exit(r.status);
 // sổ hook video đã dựng (lich-su/hook-kenh.mjs): tập khác của kênh không mở bằng cùng câu hook
 if (C.hook?.goc) (await import('../lich-su/hook-kenh.mjs')).ghiHookVideo(C, resolve(ra));

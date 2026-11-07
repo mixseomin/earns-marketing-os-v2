@@ -17,7 +17,7 @@ def uu_tien():
     Đo 23/10/2026: chế độ nền 11 phút/phim, CPU ~1 lõi; chạy thường 1 đoạn 21 giây."""
     import datetime as dt
     h = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(hours=7)).hour
-    return ["nice", "-n", "10"] if (h >= 22 or h < 8) else ["taskpolicy", "-b"]
+    return ["nice", "-n", "10"]   # cả ngày (07/11/2026): taskpolicy -b dồn sang nhân E + bóp đĩa, một khung 65 s cắt 13 phút
 
 def ds(a, b):
     r = sh(f"""ssh {B} '{ENV}; psql "$DATABASE_URL" -tAc "select gia_tri::text from xv_khoa_ngoai where ten=\\$\\$ethopex_200_phim\\$\\$"'""")

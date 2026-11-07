@@ -978,7 +978,11 @@
     "cuoi": "phai",
     "nam_dam": "phai",
     "suy_nghi": "phai",
-    "buon": "phai"
+    "buon": "phai",
+    "khoanh_tay": "phai",
+    "noi_mo": "phai",
+    "ngac_nhien": "phai",
+    "noi_dong": "phai"
    }
   },
   "mehmed_ii": {
@@ -1216,7 +1220,15 @@
     "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/heinrich_kramer/suy_nghi.png"
    },
    "que": "DEU",
-   "tap_dau": "yesterdays-news-tonight-20261104"
+   "tap_dau": "yesterdays-news-tonight-20261104",
+   "huong": {
+    "goc": "phai",
+    "suy_nghi": "thang",
+    "noi_mo": "phai",
+    "buon": "thang",
+    "noi_dong": "phai",
+    "cuoi": "thang"
+   }
   },
   "james_vi": {
    "loai": "nhan_vat",
@@ -1239,7 +1251,12 @@
     "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/james_vi/suy_nghi.png"
    },
    "que": "GBR",
-   "tap_dau": "yesterdays-news-tonight-20261104"
+   "tap_dau": "yesterdays-news-tonight-20261104",
+   "huong": {
+    "goc": "trai",
+    "suy_nghi": "phai",
+    "ngac_nhien": "thang"
+   }
   },
   "philipp_adolf_von_ehrenberg": {
    "loai": "nhan_vat",
@@ -1262,7 +1279,1202 @@
     "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/philipp_adolf_von_ehrenberg/noi_dong.png"
    },
    "que": "DEU",
-   "tap_dau": "yesterdays-news-tonight-20261104"
+   "tap_dau": "yesterdays-news-tonight-20261104",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "thang"
+   }
+  },
+  "english_longbowman": {
+   "loai": "nhan_vat",
+   "ten": "Cung thủ Anh",
+   "tu": 1415,
+   "den": 1415,
+   "ghi": "Medieval English and Welsh longbowman in padded jacket and simple iron helmet, carrying a tall yew longbow and a quiver of arrows, muddy boots and a tired face.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1145,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/english_longbowman/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/english_longbowman/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/english_longbowman/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/english_longbowman/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/english_longbowman/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/english_longbowman/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/english_longbowman/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/english_longbowman/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/english_longbowman/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/english_longbowman/suy_nghi.png"
+   },
+   "que": "GBR",
+   "tap_dau": "yesterdays-news-tonight-20261105",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai",
+    "nam_dam": "phai",
+    "noi_dong": "phai"
+   }
+  },
+  "french_men_at_arms": {
+   "loai": "nhan_vat",
+   "ten": "Hiệp sĩ Pháp",
+   "tu": 1415,
+   "den": 1415,
+   "ghi": "Medieval French men at arms in full plate armour with mail, brightly painted shields and heraldic surcoats, some carrying lances and swords, standing in dense ranks.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1146,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/french_men_at_arms/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/french_men_at_arms/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/french_men_at_arms/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/french_men_at_arms/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/french_men_at_arms/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/french_men_at_arms/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/french_men_at_arms/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/french_men_at_arms/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/french_men_at_arms/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/french_men_at_arms/suy_nghi.png"
+   },
+   "que": "FRA",
+   "tap_dau": "yesterdays-news-tonight-20261105",
+   "huong": {
+    "goc": "thang",
+    "khoanh_tay": "phai",
+    "buon": "thang",
+    "nam_dam": "thang",
+    "ngac_nhien": "thang",
+    "noi_dong": "phai"
+   }
+  },
+  "henry_v": {
+   "loai": "nhan_vat",
+   "ten": "Vua Henry V của Anh",
+   "tu": 1413,
+   "den": 1422,
+   "ghi": "Young medieval king, age twenty-eight, lean athletic build, long lean face, straight brown hair in a bowl cut, clean-shaven, royal armour with a crown on his helmet and the royal arms of England on his surcoat.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1147,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/henry_v/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/henry_v/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/henry_v/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/henry_v/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/henry_v/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/henry_v/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/henry_v/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/henry_v/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/henry_v/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/henry_v/suy_nghi.png"
+   },
+   "que": "GBR",
+   "tap_dau": "yesterdays-news-tonight-20261105",
+   "huong": {
+    "goc": "thang",
+    "noi_dong": "phai",
+    "chi_tay": "phai",
+    "cuoi": "phai",
+    "buon": "thang"
+   }
+  },
+  "charles_vi": {
+   "loai": "nhan_vat",
+   "ten": "Vua Charles VI của Pháp",
+   "tu": 1380,
+   "den": 1422,
+   "ghi": "Middle-aged French king, age forty-six, pale hollow face, untrimmed grey-brown beard, ermine-trimmed blue robe with gold fleur-de-lis, small crown, vacant stare.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1148,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/charles_vi/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/charles_vi/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/charles_vi/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/charles_vi/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/charles_vi/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/charles_vi/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/charles_vi/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/charles_vi/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/charles_vi/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/charles_vi/suy_nghi.png"
+   },
+   "que": "FRA",
+   "tap_dau": "yesterdays-news-tonight-20261105",
+   "huong": {
+    "goc": "phai",
+    "ngac_nhien": "phai"
+   }
+  },
+  "english_men_at_arms": {
+   "loai": "nhan_vat",
+   "ten": "Bộ binh Anh",
+   "tu": 1415,
+   "den": 1415,
+   "ghi": "Medieval English men at arms in plate and mail armour, shoulder to shoulder, carrying swords, axes and battered shields, exhausted faces.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1149,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/english_men_at_arms/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/english_men_at_arms/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/english_men_at_arms/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/english_men_at_arms/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/english_men_at_arms/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/english_men_at_arms/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/english_men_at_arms/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/english_men_at_arms/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/english_men_at_arms/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/english_men_at_arms/suy_nghi.png"
+   },
+   "que": "GBR",
+   "tap_dau": "yesterdays-news-tonight-20261105",
+   "huong": {
+    "goc": "phai",
+    "buon": "trai"
+   }
+  },
+  "charles_dalbret": {
+   "loai": "nhan_vat",
+   "ten": "Charles I d'Albret",
+   "tu": 1402,
+   "den": 1415,
+   "ghi": "French constable in his forties, heavy build, short dark beard, polished plate armour with a heraldic surcoat, sword at his side, grim expression.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1150,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/charles_dalbret/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/charles_dalbret/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/charles_dalbret/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/charles_dalbret/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/charles_dalbret/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/charles_dalbret/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/charles_dalbret/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/charles_dalbret/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/charles_dalbret/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/charles_dalbret/suy_nghi.png"
+   },
+   "que": "FRA",
+   "tap_dau": "yesterdays-news-tonight-20261105",
+   "huong": {
+    "goc": "trai",
+    "chi_tay": "phai"
+   }
+  },
+  "english_cog": {
+   "loai": "phuong_tien",
+   "ten": "Thuyền buồm Anh thế kỷ mười lăm",
+   "tu": 1400,
+   "den": 1500,
+   "ghi": "Fifteenth-century English cog with a single square sail, clinker hull, wooden castle fore and aft, flying the royal arms of England.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1151,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/english_cog/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-20261105"
+  },
+  "co_anh_1415": {
+   "loai": "co",
+   "ten": "Cờ Anh thời Henry V",
+   "tu": 1400,
+   "den": 1500,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Royal_Arms_of_England_(1399-1603).svg",
+   "studio_thanh_phan": 1152,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_anh_1415/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-20261105"
+  },
+  "william_shakespeare": {
+   "loai": "nhan_vat",
+   "ten": "William Shakespeare",
+   "tu": 1590,
+   "den": 1616,
+   "ghi": "English playwright around age thirty-five, receding hairline, small pointed beard, white ruff collar, dark doublet, quill in hand.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1153,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/william_shakespeare/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/william_shakespeare/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/william_shakespeare/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/william_shakespeare/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/william_shakespeare/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/william_shakespeare/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/william_shakespeare/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/william_shakespeare/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/william_shakespeare/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/william_shakespeare/suy_nghi.png"
+   },
+   "que": "GBR",
+   "tap_dau": "yesterdays-news-tonight-20261105",
+   "huong": {
+    "goc": "phai",
+    "suy_nghi": "phai"
+   }
+  },
+  "visitor": {
+   "loai": "nhan_vat",
+   "ten": "Du khách tham quan",
+   "tu": 2000,
+   "den": 2100,
+   "ghi": "Modern tourist in a rain jacket and walking boots, phone in hand, standing in a muddy field under a grey sky.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1154,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/visitor/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/visitor/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/visitor/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/visitor/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/visitor/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/visitor/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/visitor/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/visitor/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/visitor/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/visitor/suy_nghi.png"
+   },
+   "que": "FRA",
+   "tap_dau": "yesterdays-news-tonight-20261105",
+   "huong": {
+    "goc": "thang",
+    "khoanh_tay": "phai",
+    "ngac_nhien": "thang",
+    "buon": "phai",
+    "suy_nghi": "phai",
+    "cuoi": "phai"
+   }
+  },
+  "murad_i": {
+   "loai": "nhan_vat",
+   "ten": "Sultan Murad I",
+   "tu": 1362,
+   "den": 1389,
+   "ghi": "Man in his forties, stern face with long dark beard, wearing a tall white turban with a red band, a heavy deep green brocade caftan with gold embroidery, a dagger at his sash, medieval Ottoman sultan of the 1360s",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1155,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/murad_i/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/murad_i/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/murad_i/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/murad_i/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/murad_i/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/murad_i/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/murad_i/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/murad_i/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/murad_i/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/murad_i/suy_nghi.png"
+   },
+   "que": "TUR",
+   "tap_dau": "yesterdays-news-tonight-20261105-2",
+   "huong": {
+    "goc": "phai",
+    "suy_nghi": "phai",
+    "chi_tay": "phai",
+    "khoanh_tay": "phai"
+   }
+  },
+  "mahmud_ii": {
+   "loai": "nhan_vat",
+   "ten": "Sultan Mahmud II",
+   "tu": 1808,
+   "den": 1839,
+   "ghi": "Man in his forties, stern face with trimmed dark beard, wearing a dark high-collared military coat with gold embroidery and epaulettes, crimson fez on his head, jeweled aigrette, Ottoman reform-era royal style of the 1820s",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1156,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/mahmud_ii/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/mahmud_ii/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/mahmud_ii/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/mahmud_ii/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/mahmud_ii/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/mahmud_ii/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/mahmud_ii/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/mahmud_ii/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/mahmud_ii/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/mahmud_ii/suy_nghi.png"
+   },
+   "que": "TUR",
+   "tap_dau": "yesterdays-news-tonight-20261105-2",
+   "huong": {
+    "goc": "phai",
+    "cuoi": "phai",
+    "buon": "phai",
+    "chi_tay": "phai",
+    "suy_nghi": "phai",
+    "ngac_nhien": "phai",
+    "khoanh_tay": "phai",
+    "noi_dong": "phai"
+   }
+  },
+  "janissary_late": {
+   "loai": "nhan_vat",
+   "ten": "Lính Janissary cuối thời",
+   "tu": 1650,
+   "den": 1826,
+   "ghi": "Ottoman Janissary infantryman of the 1700s to 1820s, mustached, wearing a tall white felt cap with a long cloth flap and a spoon at the front, baggy colorful trousers, a long blue coat tied with a sash, holding a flintlock musket and a curved sword",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1157,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/janissary_late/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/janissary_late/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/janissary_late/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/janissary_late/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/janissary_late/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/janissary_late/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/janissary_late/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/janissary_late/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/janissary_late/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/janissary_late/suy_nghi.png"
+   },
+   "que": "TUR",
+   "tap_dau": "yesterdays-news-tonight-20261105-2",
+   "huong": {
+    "goc": "phai",
+    "cuoi": "phai",
+    "khoanh_tay": "phai",
+    "nam_dam": "phai",
+    "noi_dong": "phai",
+    "ngac_nhien": "phai"
+   }
+  },
+  "mongol_ship": {
+   "loai": "phuong_tien",
+   "ten": "Thuyền chiến Mông Cổ 1274",
+   "tu": 1274,
+   "den": 1281,
+   "ghi": "Flat-bottomed wooden invasion junk with a single square sail and oars, crowded with armored soldiers, thirteenth century",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1161,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/mongol_ship/goc.png"
+   },
+   "que": "MNG",
+   "tap_dau": "yesterdays-news-tonight-demo-weather-desk"
+  },
+  "khalid_bin_barghash": {
+   "loai": "nhan_vat",
+   "ten": "Sultan Khalid bin Barghash",
+   "tu": 1896,
+   "den": 1927,
+   "ghi": "Young Arab sultan in his early twenties, 1896 Zanzibar, short dark beard, white turban, long embroidered robe, red sash, proud and tense expression",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1162,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/khalid_bin_barghash/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/khalid_bin_barghash/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/khalid_bin_barghash/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/khalid_bin_barghash/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/khalid_bin_barghash/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/khalid_bin_barghash/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/khalid_bin_barghash/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/khalid_bin_barghash/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/khalid_bin_barghash/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/khalid_bin_barghash/suy_nghi.png"
+   },
+   "que": "@Zanzibar",
+   "tap_dau": "yesterdays-news-tonight-demo-tiny-wars",
+   "huong": {
+    "goc": "phai",
+    "khoanh_tay": "phai",
+    "noi_dong": "phai",
+    "noi_mo": "phai",
+    "buon": "phai",
+    "ngac_nhien": "phai",
+    "cuoi": "phai",
+    "nam_dam": "phai"
+   }
+  },
+  "basil_cave": {
+   "loai": "nhan_vat",
+   "ten": "Consul Basil Cave",
+   "tu": 1890,
+   "den": 1900,
+   "ghi": "British consul in his forties, 1896, clean-shaven, dark formal frock coat, high collar, stern bureaucratic face",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1163,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/basil_cave/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/basil_cave/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/basil_cave/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/basil_cave/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/basil_cave/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/basil_cave/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/basil_cave/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/basil_cave/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/basil_cave/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/basil_cave/suy_nghi.png"
+   },
+   "que": "GBR",
+   "tap_dau": "yesterdays-news-tonight-demo-tiny-wars",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai"
+   }
+  },
+  "harry_rawson": {
+   "loai": "nhan_vat",
+   "ten": "Rear-Admiral Harry Rawson",
+   "tu": 1896,
+   "den": 1900,
+   "ghi": "British rear-admiral in his fifties, 1896, full grey beard, dark navy double-breasted uniform with gold braid and peaked cap",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1164,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/harry_rawson/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/harry_rawson/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/harry_rawson/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/harry_rawson/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/harry_rawson/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/harry_rawson/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/harry_rawson/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/harry_rawson/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/harry_rawson/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/harry_rawson/suy_nghi.png"
+   },
+   "que": "GBR",
+   "tap_dau": "yesterdays-news-tonight-demo-tiny-wars",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai",
+    "khoanh_tay": "phai"
+   }
+  },
+  "hms_thrush": {
+   "loai": "phuong_tien",
+   "ten": "Pháo hạm HMS Thrush",
+   "tu": 1896,
+   "den": 1896,
+   "ghi": "Small British Royal Navy gunboat of 1896, grey hull, single funnel, a heavy gun forward, steam and smoke",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1165,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/hms_thrush/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-demo-tiny-wars"
+  },
+  "hhs_glasgow": {
+   "loai": "phuong_tien",
+   "ten": "Du thuyền hoàng gia HHS Glasgow",
+   "tu": 1896,
+   "den": 1896,
+   "ghi": "Obsolete wooden royal yacht of 1878, white hull, three masts, small guns on deck, flying a red flag",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1166,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/hhs_glasgow/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-demo-tiny-wars"
+  },
+  "kublai_khan": {
+   "loai": "nhan_vat",
+   "ten": "Hốt Tất Liệt (Kublai Khan)",
+   "tu": 1260,
+   "den": 1294,
+   "ghi": "Elderly Mongol ruler, around sixty, round Asian face, short gray beard, wearing a heavy gold-trimmed robe and a pointed fur hat, sitting confidently",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1167,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/kublai_khan/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/kublai_khan/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/kublai_khan/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/kublai_khan/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/kublai_khan/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/kublai_khan/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/kublai_khan/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/kublai_khan/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/kublai_khan/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/kublai_khan/suy_nghi.png"
+   },
+   "que": "MNG",
+   "tap_dau": "yesterdays-news-tonight-demo-weather-desk",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai",
+    "khoanh_tay": "phai",
+    "buon": "thang"
+   }
+  },
+  "samurai": {
+   "loai": "nhan_vat",
+   "ten": "Võ sĩ samurai Nhật 1274",
+   "tu": 1274,
+   "den": 1281,
+   "ghi": "Japanese samurai in his twenties, round-top lacquered helmet with neck guard, lamellar armor in dark red lacing, bow in hand, standing watchful",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1168,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/samurai/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/samurai/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/samurai/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/samurai/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/samurai/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/samurai/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/samurai/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/samurai/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/samurai/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/samurai/suy_nghi.png"
+   },
+   "que": "JPN",
+   "tap_dau": "yesterdays-news-tonight-demo-weather-desk",
+   "huong": {
+    "goc": "thang",
+    "chi_tay": "thang",
+    "noi_mo": "thang"
+   }
+  },
+  "hamoud_bin_mohammed": {
+   "loai": "nhan_vat",
+   "ten": "Sultan Hamoud bin Mohammed",
+   "tu": 1896,
+   "den": 1902,
+   "ghi": "Arab sultan in his fifties, 1896 Zanzibar, grey-flecked beard, white turban, plain light robe, calm and cautious face",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1169,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/hamoud_bin_mohammed/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/hamoud_bin_mohammed/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/hamoud_bin_mohammed/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/hamoud_bin_mohammed/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/hamoud_bin_mohammed/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/hamoud_bin_mohammed/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/hamoud_bin_mohammed/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/hamoud_bin_mohammed/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/hamoud_bin_mohammed/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/hamoud_bin_mohammed/suy_nghi.png"
+   },
+   "que": "@Zanzibar",
+   "tap_dau": "yesterdays-news-tonight-demo-tiny-wars",
+   "huong": {
+    "goc": "phai",
+    "cuoi": "phai"
+   }
+  },
+  "diplomat_frock_coat": {
+   "loai": "nhan_vat",
+   "ten": "Nhà ngoại giao áo choàng thế kỷ mười chín",
+   "tu": 1830,
+   "den": 1870,
+   "ghi": "Middle-aged European diplomat of the 1840s, dark frock coat, white cravat, sideburns, tall black top hat held in one hand, rolled treaty scroll under the other arm, flat cartoon style",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1170,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/diplomat_frock_coat/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/diplomat_frock_coat/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/diplomat_frock_coat/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/diplomat_frock_coat/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/diplomat_frock_coat/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/diplomat_frock_coat/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/diplomat_frock_coat/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/diplomat_frock_coat/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/diplomat_frock_coat/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/diplomat_frock_coat/suy_nghi.png"
+   },
+   "que": "NLD@4.6,51.35,5.3,51.65",
+   "tap_dau": "yesterdays-news-tonight-demo-borders-gone-wrong",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai",
+    "noi_dong": "phai",
+    "suy_nghi": "thang",
+    "cuoi": "phai"
+   }
+  },
+  "medieval_lord": {
+   "loai": "nhan_vat",
+   "ten": "Lãnh chúa trung cổ châu Âu thế kỷ 14",
+   "tu": 1190,
+   "den": 1525,
+   "ghi": "Middle-aged European feudal lord of the 14th century, chainmail hauberk covered by a fur-trimmed velvet surcoat in deep crimson and gold, embroidered heraldic tabard, leather belt with ornate buckle, holding a rolled parchment deed, flat cartoon style",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1171,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/medieval_lord/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/medieval_lord/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/medieval_lord/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/medieval_lord/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/medieval_lord/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/medieval_lord/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/medieval_lord/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/medieval_lord/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/medieval_lord/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/medieval_lord/suy_nghi.png"
+   },
+   "que": "NLD@4.6,51.35,5.3,51.65",
+   "tap_dau": "yesterdays-news-tonight-demo-borders-gone-wrong",
+   "huong": {
+    "goc": "phai",
+    "khoanh_tay": "phai",
+    "cuoi": "phai"
+   }
+  },
+  "co_ha_lan_1626": {
+   "loai": "co",
+   "ten": "Cờ Hà Lan (Vương quốc Liên hiệp Hà Lan)",
+   "tu": 1588,
+   "den": 1664,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Prinsenvlag.svg",
+   "studio_thanh_phan": 1192,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_ha_lan_1626/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-demo-worst-deals"
+  },
+  "co_anh_1664": {
+   "loai": "co",
+   "ten": "Cờ Anh 1664",
+   "tu": 1606,
+   "den": 1801,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_Great_Britain_(1707%E2%80%931800).svg",
+   "studio_thanh_phan": 1193,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_anh_1664/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-demo-worst-deals"
+  },
+  "co_my_1789": {
+   "loai": "co",
+   "ten": "Cờ Hoa Kỳ mười ba sao",
+   "tu": 1777,
+   "den": 1795,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_the_United_States_(1777%E2%80%931795).svg",
+   "studio_thanh_phan": 1194,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_my_1789/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-demo-worst-deals"
+  },
+  "peter_minuit": {
+   "loai": "nhan_vat",
+   "ten": "Peter Minuit",
+   "tu": 1625,
+   "den": 1638,
+   "ghi": "Middle-aged European man around 1626, pale skin, shoulder-length brown hair, neat mustache and small beard, wearing a black Dutch merchant doublet with wide white ruff collar, black breeches and a black broad-brimmed hat",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1195,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/peter_minuit/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/peter_minuit/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/peter_minuit/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/peter_minuit/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/peter_minuit/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/peter_minuit/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/peter_minuit/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/peter_minuit/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/peter_minuit/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/peter_minuit/suy_nghi.png"
+   },
+   "que": "NLD",
+   "tap_dau": "yesterdays-news-tonight-demo-worst-deals",
+   "huong": {
+    "goc": "thang",
+    "chi_tay": "phai",
+    "noi_mo": "phai",
+    "cuoi": "phai",
+    "khoanh_tay": "phai",
+    "noi_dong": "phai",
+    "buon": "thang"
+   }
+  },
+  "lenape_man": {
+   "loai": "nhan_vat",
+   "ten": "Người Lenape thế kỷ 17",
+   "tu": 1600,
+   "den": 1670,
+   "ghi": "Lenape man of the early 1600s, tan skin, long black hair, roached at the sides, wearing a deerskin breechcloth and fringed deerskin leggings, shell bead wampum belt, no European clothing",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1196,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/lenape_man/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/lenape_man/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/lenape_man/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/lenape_man/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/lenape_man/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/lenape_man/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/lenape_man/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/lenape_man/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/lenape_man/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/lenape_man/suy_nghi.png"
+   },
+   "que": "USA@-74.0,40.75",
+   "tap_dau": "yesterdays-news-tonight-demo-worst-deals",
+   "huong": {
+    "goc": "phai",
+    "suy_nghi": "phai",
+    "chi_tay": "phai",
+    "khoanh_tay": "phai",
+    "ngac_nhien": "phai",
+    "buon": "phai",
+    "noi_mo": "phai"
+   }
+  },
+  "linh_anh": {
+   "loai": "nhan_vat",
+   "ten": "Lính Anh 1664",
+   "tu": 1640,
+   "den": 1700,
+   "ghi": "English soldier of the 1660s, fair skin, shoulder-length dark hair under a wide-brimmed felt hat, red wool coat with white cuffs and lining, buff leather baldric, brown breeches, musket on shoulder, plain leather shoes",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1197,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/linh_anh/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/linh_anh/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/linh_anh/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/linh_anh/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/linh_anh/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/linh_anh/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/linh_anh/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/linh_anh/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/linh_anh/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/linh_anh/suy_nghi.png"
+   },
+   "que": "GBR",
+   "tap_dau": "yesterdays-news-tonight-demo-worst-deals",
+   "huong": {
+    "goc": "phai",
+    "nam_dam": "phai"
+   }
+  },
+  "louis_vii": {
+   "loai": "nhan_vat",
+   "ten": "Vua Louis VII của Pháp",
+   "tu": 1137,
+   "den": 1180,
+   "ghi": "King Louis VII of France: a slim, pale medieval king in his thirties with a round face, short dark blond hair, clean-shaven, wearing a plain royal blue robe with small gold fleur-de-lis patterns, a simple gold crown, and a modest cross on a chain. Earnest, slightly anxious monkish expression.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1198,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/louis_vii/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/louis_vii/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/louis_vii/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/louis_vii/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/louis_vii/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/louis_vii/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/louis_vii/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/louis_vii/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/louis_vii/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/louis_vii/suy_nghi.png"
+   },
+   "que": "FRA@2.3,48.8,2.3,48.8",
+   "tap_dau": "yesterdays-news-tonight-demo-royal-gossip",
+   "huong": {
+    "goc": "thang",
+    "chi_tay": "thang",
+    "noi_mo": "thang",
+    "suy_nghi": "thang",
+    "noi_dong": "thang",
+    "buon": "thang"
+   }
+  },
+  "eleanor_of_aquitaine": {
+   "loai": "nhan_vat",
+   "ten": "Nữ hoàng Eleanor xứ Aquitaine",
+   "tu": 1137,
+   "den": 1204,
+   "ghi": "Eleanor of Aquitaine: a poised medieval noblewoman in her late twenties, oval face, dark brown hair in two long braids under a white wimple and a golden crown, wearing a fitted crimson silk gown with wide embroidered cuffs, a jeweled belt, and a blue cloak lined with ermine. Confident, amused expression.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1199,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/eleanor_of_aquitaine/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/eleanor_of_aquitaine/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/eleanor_of_aquitaine/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/eleanor_of_aquitaine/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/eleanor_of_aquitaine/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/eleanor_of_aquitaine/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/eleanor_of_aquitaine/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/eleanor_of_aquitaine/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/eleanor_of_aquitaine/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/eleanor_of_aquitaine/suy_nghi.png"
+   },
+   "que": "FRA@-0.6,44.8,-0.6,44.8",
+   "tap_dau": "yesterdays-news-tonight-demo-royal-gossip",
+   "huong": {
+    "goc": "phai",
+    "khoanh_tay": "phai",
+    "ngac_nhien": "thang",
+    "cuoi": "phai",
+    "buon": "phai",
+    "noi_dong": "phai"
+   }
+  },
+  "co_france_1137": {
+   "loai": "co",
+   "ten": "Cờ hoàng gia Pháp nhà Capet (nền xanh hoa lys vàng)",
+   "tu": 1100,
+   "den": 1350,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Flag_of_France_(XII-XIII).svg",
+   "studio_thanh_phan": 1200,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_france_1137/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-demo-royal-gossip"
+  },
+  "co_england_1154": {
+   "loai": "co",
+   "ten": "Cờ hoàng gia Anh (ba sư tử vàng)",
+   "tu": 1154,
+   "den": 1350,
+   "ghi": "",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Royal_arms_of_England.svg",
+   "studio_thanh_phan": 1201,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/co_england_1154/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-demo-royal-gossip"
+  },
+  "henry_ii": {
+   "loai": "nhan_vat",
+   "ten": "Vua Henry II của Anh",
+   "tu": 1152,
+   "den": 1189,
+   "ghi": "Henry II Plantagenet as a young duke: stocky, broad-shouldered man around twenty, square face with a strong jaw, reddish-brown hair cut short, grey eyes, freckled skin, wearing a red tunic with gold embroidery, a short riding cloak, and a gold circlet crown. Energetic, confident stance.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1202,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/henry_ii/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/henry_ii/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/henry_ii/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/henry_ii/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/henry_ii/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/henry_ii/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/henry_ii/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/henry_ii/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/henry_ii/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/henry_ii/suy_nghi.png"
+   },
+   "que": "FRA@-0.9,49.2,-0.9,49.2",
+   "tap_dau": "yesterdays-news-tonight-demo-royal-gossip",
+   "huong": {
+    "goc": "phai",
+    "cuoi": "phai",
+    "ngac_nhien": "thang",
+    "noi_mo": "phai"
+   }
+  },
+  "medieval_cog": {
+   "loai": "phuong_tien",
+   "ten": "Thuyền buồm trung cổ thế kỷ 12",
+   "tu": 1100,
+   "den": 1300,
+   "ghi": "A 12th-century medieval single-masted wooden cog ship with one large square sail of plain linen, high rounded bow and stern castles, clinker-built brown oak hull, no flags, seen from the side.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1203,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/medieval_cog/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-demo-royal-gossip"
+  },
+  "juan_sebastian_elcano": {
+   "loai": "nhan_vat",
+   "ten": "Juan Sebastián Elcano",
+   "tu": 1510,
+   "den": 1526,
+   "ghi": "Basque Spanish sea captain in his thirties, sturdy build, tanned face, short brown beard, plain wool sailor's cap. Wears a simple brown doublet and loose sailor's breeches of the early 1500s, coil of rope over one shoulder, no ornaments.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1210,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/juan_sebastian_elcano/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/juan_sebastian_elcano/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/juan_sebastian_elcano/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/juan_sebastian_elcano/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/juan_sebastian_elcano/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/juan_sebastian_elcano/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/juan_sebastian_elcano/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/juan_sebastian_elcano/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/juan_sebastian_elcano/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/juan_sebastian_elcano/suy_nghi.png"
+   },
+   "que": "ESP",
+   "tap_dau": "yesterdays-news-tonight-demo-explorers-gone-wrong",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai",
+    "buon": "phai"
+   }
+  },
+  "spanish_carrack": {
+   "loai": "phuong_tien",
+   "ten": "Tàu carrack Tây Ban Nha",
+   "tu": 1500,
+   "den": 1560,
+   "ghi": "Early 1500s Spanish carrack, a high-sided three-masted sailing ship with a rounded stern and bow, dark tarred wooden hull, square sails on fore and main masts and a lateen sail on the mizzen, wooden castle decks, flying no flags, weathered planks.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1211,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/spanish_carrack/goc.png"
+   },
+   "tap_dau": "yesterdays-news-tonight-demo-explorers-gone-wrong"
+  },
+  "ferdinand_magellan": {
+   "loai": "nhan_vat",
+   "ten": "Ferdinand Magellan",
+   "tu": 1505,
+   "den": 1521,
+   "ghi": "Portuguese explorer in his late thirties, lean weathered face, short dark beard, dark hair under a black velvet cap, walking with a slight limp. Wears a dark crimson commander's doublet and hose with a black cloak, gold chain of the Order of Santiago on his chest, sword at hip, early 1500s style.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1212,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/ferdinand_magellan/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/ferdinand_magellan/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/ferdinand_magellan/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/ferdinand_magellan/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/ferdinand_magellan/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/ferdinand_magellan/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/ferdinand_magellan/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/ferdinand_magellan/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/ferdinand_magellan/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/ferdinand_magellan/suy_nghi.png"
+   },
+   "que": "PRT",
+   "tap_dau": "yesterdays-news-tonight-demo-explorers-gone-wrong",
+   "huong": {
+    "goc": "phai",
+    "chi_tay": "phai",
+    "cuoi": "phai",
+    "buon": "phai",
+    "noi_mo": "phai",
+    "nam_dam": "phai",
+    "ngac_nhien": "phai"
+   }
+  },
+  "hidalgo": {
+   "loai": "nhan_vat",
+   "ten": "Miguel Hidalgo y Costilla",
+   "tu": 1810,
+   "den": 1830,
+   "ghi": "A 57-year-old Mexican creole priest in a plain black cassock, dark hair receding with grey at the temples, clean-shaven face, holding a small hand bell, standing before a stone parish church",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1188,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/hidalgo/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/hidalgo/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/hidalgo/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/hidalgo/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/hidalgo/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/hidalgo/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/hidalgo/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/hidalgo/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/hidalgo/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/hidalgo/suy_nghi.png"
+   },
+   "que": "MEX",
+   "tap_dau": "yesterdays-news-tonight-demo-breaking-60",
+   "huong": {
+    "goc": "phai",
+    "noi_dong": "phai",
+    "chi_tay": "phai",
+    "cuoi": "phai"
+   }
+  },
+  "sucre": {
+   "loai": "nhan_vat",
+   "ten": "Antonio José de Sucre",
+   "tu": 1824,
+   "den": 1830,
+   "ghi": "A young general about 29 years old with dark wavy hair and sideburns, wearing a dark blue Napoleonic-era military coat with gold epaulettes and high collar, white breeches, a bicorne hat in hand",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1189,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/sucre/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/sucre/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/sucre/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/sucre/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/sucre/khoanh_tay.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/sucre/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/sucre/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/sucre/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/sucre/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/sucre/suy_nghi.png"
+   },
+   "que": "PER",
+   "tap_dau": "yesterdays-news-tonight-demo-breaking-60",
+   "huong": {
+    "goc": "trai",
+    "noi_dong": "trai",
+    "khoanh_tay": "trai",
+    "chi_tay": "phai",
+    "cuoi": "trai"
+   }
+  },
+  "juan_de_cartagena": {
+   "loai": "nhan_vat",
+   "ten": "Juan de Cartagena",
+   "tu": 1510,
+   "den": 1521,
+   "ghi": "Haughty Castilian gentleman around thirty, clean shaven with a thin dark mustache, shoulder-length dark hair. Wears an expensive slashed blue-and-gold doublet, puffed sleeves, flat cap with a small feather, early 1500s Spanish court fashion, arms folded.",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision, 5/11/2026",
+   "studio_thanh_phan": 1213,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/juan_de_cartagena/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/juan_de_cartagena/chi_tay.png",
+    "cuoi": "https://img.on.tc/xuong-video/lich-su/kho/juan_de_cartagena/cuoi.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/juan_de_cartagena/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/juan_de_cartagena/khoanh_tay.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/juan_de_cartagena/ngac_nhien.png",
+    "noi_dong": "https://img.on.tc/xuong-video/lich-su/kho/juan_de_cartagena/noi_dong.png",
+    "noi_mo": "https://img.on.tc/xuong-video/lich-su/kho/juan_de_cartagena/noi_mo.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/juan_de_cartagena/suy_nghi.png"
+   },
+   "que": "ESP",
+   "tap_dau": "yesterdays-news-tonight-demo-explorers-gone-wrong",
+   "huong": {
+    "goc": "thang",
+    "noi_dong": "phai"
+   }
+  },
+  "napoleon": {
+   "loai": "nhan_vat",
+   "ten": "Napoleon Bonaparte",
+   "tu": 1812,
+   "den": 1812,
+   "ghi": "Napoleon Bonaparte aged 42: short stocky build, pale full round face, strong straight nose, stern grey eyes, short dark hair with a fringe combed forward, black bicorne hat worn sideways with a small tricolour cockade, long grey campaign greatcoat open over a green Chasseur uniform coat with red collar, white waistcoat and breeches, tall black boots, right hand tucked into his waistcoat",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision",
+   "studio_thanh_phan": 1232,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/napoleon/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/napoleon/chi_tay.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/napoleon/goc.png",
+    "khoanh_tay": "https://img.on.tc/xuong-video/lich-su/kho/napoleon/khoanh_tay.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/napoleon/suy_nghi.png",
+    "mat_kinh": "https://img.on.tc/xuong-video/lich-su/kho/napoleon/mat_kinh.png",
+    "mat_lanh": "https://img.on.tc/xuong-video/lich-su/kho/napoleon/mat_lanh.png",
+    "mat_dac": "https://img.on.tc/xuong-video/lich-su/kho/napoleon/mat_dac.png",
+    "mat_dau": "https://img.on.tc/xuong-video/lich-su/kho/napoleon/mat_dau.png",
+    "mat_gian": "https://img.on.tc/xuong-video/lich-su/kho/napoleon/mat_gian.png"
+   },
+   "tap_dau": "ynt-dai-nga-1812"
+  },
+  "barclay": {
+   "loai": "nhan_vat",
+   "ten": "Barclay de Tolly",
+   "tu": 1812,
+   "den": 1812,
+   "ghi": "Tall dignified man in 50s, Russian general's uniform with high collar, stern Baltic features, dark coat with gold trim, military bearing, cautious expression",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision",
+   "studio_thanh_phan": 1233,
+   "dang": {
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/barclay/chi_tay.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/barclay/goc.png",
+    "mat_dau": "https://img.on.tc/xuong-video/lich-su/kho/barclay/mat_dau.png",
+    "mat_lanh": "https://img.on.tc/xuong-video/lich-su/kho/barclay/mat_lanh.png"
+   },
+   "tap_dau": "ynt-dai-nga-1812"
+  },
+  "bagration": {
+   "loai": "nhan_vat",
+   "ten": "Pyotr Bagration",
+   "tu": 1812,
+   "den": 1812,
+   "ghi": "Georgian prince in 40s, Russian general's uniform, dark mustache, proud aristocratic features, white uniform tunic with medals, brave expression, wounded leg at Borodino",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision",
+   "studio_thanh_phan": 1234,
+   "dang": {
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/bagration/chi_tay.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/bagration/goc.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/bagration/nam_dam.png"
+   },
+   "tap_dau": "ynt-dai-nga-1812"
+  },
+  "french_soldier": {
+   "loai": "nhan_vat",
+   "ten": "French Infantryman",
+   "tu": 1812,
+   "den": 1812,
+   "ghi": "Young man in 20s, blue coat with white cross-belts, tall shako hat, musket and bayonet, exhausted face, coat becoming tattered and frost-covered by November",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision",
+   "studio_thanh_phan": 1235,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/french_soldier/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/french_soldier/chi_tay.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/french_soldier/goc.png",
+    "nam_dam": "https://img.on.tc/xuong-video/lich-su/kho/french_soldier/nam_dam.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/french_soldier/ngac_nhien.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/french_soldier/suy_nghi.png",
+    "mat_lo": "https://img.on.tc/xuong-video/lich-su/kho/french_soldier/mat_lo.png",
+    "mat_dau": "https://img.on.tc/xuong-video/lich-su/kho/french_soldier/mat_dau.png"
+   },
+   "tap_dau": "ynt-dai-nga-1812"
+  },
+  "caulaincourt": {
+   "loai": "nhan_vat",
+   "ten": "Armand de Caulaincourt",
+   "tu": 1812,
+   "den": 1812,
+   "ghi": "Elegant aristocratic man in 30s, French diplomatic uniform or traveling coat, refined features, worried expression, Napoleon's aide and confidant",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision",
+   "studio_thanh_phan": 1236,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/caulaincourt/buon.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/caulaincourt/goc.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/caulaincourt/suy_nghi.png",
+    "mat_dau": "https://img.on.tc/xuong-video/lich-su/kho/caulaincourt/mat_dau.png"
+   },
+   "tap_dau": "ynt-dai-nga-1812"
+  },
+  "ney": {
+   "loai": "nhan_vat",
+   "ten": "Marshal Ney",
+   "tu": 1812,
+   "den": 1812,
+   "ghi": "Rugged red-haired man in 40s, French marshal's blue uniform with gold braid, bicorne hat, scarred face, fierce determined expression, muddy boots and worn coat by winter",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision",
+   "studio_thanh_phan": 1237,
+   "dang": {
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/ney/chi_tay.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/ney/goc.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/ney/ngac_nhien.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/ney/suy_nghi.png",
+    "mat_gian": "https://img.on.tc/xuong-video/lich-su/kho/ney/mat_gian.png",
+    "mat_dac": "https://img.on.tc/xuong-video/lich-su/kho/ney/mat_dac.png",
+    "mat_lo": "https://img.on.tc/xuong-video/lich-su/kho/ney/mat_lo.png"
+   },
+   "tap_dau": "ynt-dai-nga-1812"
+  },
+  "davout": {
+   "loai": "nhan_vat",
+   "ten": "Marshal Davout",
+   "tu": 1812,
+   "den": 1812,
+   "ghi": "Stern bald man in 40s with spectacles, French marshal's dark blue uniform, meticulous appearance, serious disciplined expression, no-nonsense bearing",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision",
+   "studio_thanh_phan": 1238,
+   "dang": {
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/davout/goc.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/davout/suy_nghi.png"
+   },
+   "tap_dau": "ynt-dai-nga-1812"
+  },
+  "kutuzov": {
+   "loai": "nhan_vat",
+   "ten": "Mikhail Kutuzov",
+   "tu": 1812,
+   "den": 1812,
+   "ghi": "Elderly heavy-set man in 60s, one blind milky eye from old wound, Russian general's dark green uniform with gold epaulettes and medals, fur-trimmed winter coat, weathered face, wise expression",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision",
+   "studio_thanh_phan": 1239,
+   "dang": {
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/kutuzov/chi_tay.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/kutuzov/goc.png",
+    "suy_nghi": "https://img.on.tc/xuong-video/lich-su/kho/kutuzov/suy_nghi.png"
+   },
+   "tap_dau": "ynt-dai-nga-1812"
+  },
+  "murat": {
+   "loai": "nhan_vat",
+   "ten": "Joachim Murat",
+   "tu": 1812,
+   "den": 1812,
+   "ghi": "Flamboyant handsome man in late 30s, extravagant cavalry uniform with fur and feathers, tall plumed hat, decorative saber, theatrical poses, vain expression becoming haggard by December",
+   "nguon": "AI vẽ (ckey Nano Banana 2) + tách nền Vision",
+   "studio_thanh_phan": 1240,
+   "dang": {
+    "buon": "https://img.on.tc/xuong-video/lich-su/kho/murat/buon.png",
+    "chi_tay": "https://img.on.tc/xuong-video/lich-su/kho/murat/chi_tay.png",
+    "goc": "https://img.on.tc/xuong-video/lich-su/kho/murat/goc.png",
+    "ngac_nhien": "https://img.on.tc/xuong-video/lich-su/kho/murat/ngac_nhien.png",
+    "mat_lo": "https://img.on.tc/xuong-video/lich-su/kho/murat/mat_lo.png",
+    "mat_gian": "https://img.on.tc/xuong-video/lich-su/kho/murat/mat_gian.png"
+   },
+   "tap_dau": "ynt-dai-nga-1812"
   }
  }
 }

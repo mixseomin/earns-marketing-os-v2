@@ -6,6 +6,7 @@
 // Khối nào hiện xong cũng đứng đủ thời gian đọc + 1,5s đệm rồi khối kế mới vào.
 //   node_modules/.bin/tsx apps/xuong-video/src/lib/xuong-video/may-dung-land.test.mts
 import { alpha, bo, chu, giayDoc, giayLuot, mauAss, nayVao, ngat, rapAss, thoatLoc, type DongAss } from './may-dung-ass';
+import { nenH264 } from './nen-video.mjs';
 
 export interface DeLand {
   iso: string;                                        // mã nước 2 chữ thường (trang esimfares.com/<iso>/)
@@ -134,7 +135,7 @@ export function lenhLand(o: { de: DeLand; ass: string; nen?: string | null; font
   const loc = `${nen},ass='${thoatLoc(o.ass)}':fontsdir='${thoatLoc(o.fontsDir)}',format=yuv420p[v]`;
   if (o.khung != null) return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-filter_complex', loc, '-map', '[v]', '-ss', String(o.khung), '-frames:v', '1', '-q:v', '3', o.ra];
   return ['-y', '-hide_banner', '-loglevel', 'error', ...vao, '-f', 'lavfi', '-i', `aevalsrc='${amLand(o.de)}':s=44100:d=${DAI}`,
-    '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '21', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
+    '-filter_complex', loc, '-map', '[v]', '-map', '1:a', '-r', String(FPS), '-t', String(DAI), ...nenH264({ crf: 21, preset: 'veryfast' }), '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart', o.ra];
 }
 
 /** Kiểu nội dung của video Before You Land = vùng của nước (thống kê kho theo kiểu nội dung trên mos2 Social › Lịch đăng). */

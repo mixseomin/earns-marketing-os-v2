@@ -29,6 +29,8 @@ export function kiemSo(k, ma) {
   }
   // PLAYLIST = SERIES dùng nhiều mẫu: playlist.mau[] phải là mẫu có trong sổ
   for (const p of k.playlist ?? []) for (const x of p.mau ?? []) if (!mau.has(x)) loi.push(`${ma}: playlist ${p.ma} dùng mẫu ${x} không có trong sổ`);
+  // nhãn playlist trên trang dựng lấy từ sổ (viet-chung.mjs › nhanPlaylist): có khai thì đủ cả màu + ký hiệu, máy viết không còn gõ tay
+  if ((k.playlist ?? []).some((p) => p.mau_nhan || p.ic)) for (const p of k.playlist) if (!p.mau_nhan || !p.ic) loi.push(`${ma}: playlist ${p.ma} thiếu mau_nhan / ic`);
   // NỀN: playlist nào cũng khai nền ảnh thật sáng (máy viết không còn nền dự phòng) — anh chê nền Ngân Hà tối 05/11 + 06/11/2026
   if ((k.playlist ?? []).some((p) => p.nen)) for (const p of k.playlist) if (!p.nen) loi.push(`${ma}: playlist ${p.ma} chưa khai nen (ảnh thật sáng, brand/<kênh>/anh/nen/)`); else if (NEN_CAM.test(p.nen)) loi.push(`${ma}: playlist ${p.ma} dùng nền bị cấm ${p.nen}`);
   // kênh đã chia series (playlist khai mau[]): mẫu nào cũng phải phục vụ ít nhất một series, không thì máy không biết tập của mẫu đó lên playlist nào

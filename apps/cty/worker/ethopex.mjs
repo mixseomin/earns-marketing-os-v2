@@ -12,6 +12,8 @@ const REPO = process.env.MOS2_DIR || '/opt/earns-marketing-os-v2';
 // SỔ LUẬT CHUNG etp (apps/web/src/lib/etp-bang-luat.json, anh 01/11/2026 "tìm nguyên nhân gốc"): luật tắt / luật hạ của Nhà + tài khoản team đọc từ đây
 export const BANG_LUAT = JSON.parse(fs.readFileSync(new URL('../../web/src/lib/etp-bang-luat.json', import.meta.url), 'utf8'));
 /** mọi luật tắt: { khoa, tep, ten: 'LUẬT X', mo_ta, cot, luat, ai, ngay?, rieng?, nha? } */
+// nấc nhân bản + trần mỗi phim / 24 giờ — sổ luật chung nhan_ban (anh 07/11/2026), cùng số máy luật đọc
+const NB_SO = BANG_LUAT.nhan_ban, NB_LUAT_CHU = `${[...NB_SO.nac].reverse().map(([c, m, n], i) => `nấc ${i + 1}: tiêu ≥ $${c} & ROI ≥ +${m}% → đủ ${n} bản`).join(' · ')} (ROI 3 ngày ≥ ${NB_SO.roi3}%, mỗi phim tối đa ${NB_SO.phim_ngay} bản / 24 giờ)`;
 export const LUAT_TAT_SO = Object.entries(BANG_LUAT.khoa).filter(([, v]) => v.tat).map(([khoa, v]) => ({ khoa, ...v.tat, ten: `LUẬT ${v.tat.ten}`, ngan: v.tat.ten }));
 /** mọi luật máy tự đổi ngân sách không cần công tắc (G10…): { khoa, ten } */
 export const LUAT_HA_SO = Object.entries(BANG_LUAT.khoa).filter(([, v]) => v.ha?.tu_dong).map(([khoa, v]) => ({ khoa, ten: v.ha.ten, tieu_de: v.ha.tieu_de ?? `MÁY HẠ — LUẬT ${v.ha.ten}`, mo_ta: v.ha.mo_ta ?? '', ai: v.ha.ai ?? `máy tự hạ ${v.ha.ten}` }));
@@ -568,12 +570,12 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   for (const m of kq.nb || []) {
     if (seTat.has(m.id)) continue;   // không nhân bản camp đang trong danh sách tắt
     // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026 "nhân bản cũng hẹn sáng hôm sau nếu không đúng khung giờ" — thay luật 22/10 "chạy luôn"); kết quả trả kq.chay
-    let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', 'máy tự nhân bản (anh cho phép 22/10/2026)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
+    let r; try { r = JSON.parse((await chay(NB, [String(m.id), '--that', '--nac', '--luat', `nhân bản camp thắng · ${m.chu}`.slice(0, 400), '--ai', 'máy tự nhân bản hai nấc (anh 07/11/2026 áp cách Kiên)'], 240)).trim().split('\n').pop()); } catch (e) { r = { ok: false, loi: e.message }; }
     if (!r.bo_qua) daNb.push({ m, r });   // clone bị cổng chấm chặn, phim không có creative thay → bỏ, không báo lỗi (anh 07/11/2026)
   }
   if (daNb.length) {
     const dong = bangViec(daNb.map(({ m, r }) => ({ m, doi: `→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '3 ng') + `\n<i>bản mới $1 · ${chuChay(daNb.map(({ r }) => r))}</i>`;
-    await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ROI ≥ 50%, tiêu ≥ $3, ROI 3 ngày ≥ 20%, camp gốc ≥ $9/ngày; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
+    await guiNhanh({ message_thread_id: topic, disable_notification: yen, text: `🧬 <b>MÁY TỰ NHÂN BẢN CAMP THẮNG</b> — ${NB_LUAT_CHU}; mỗi phim tối đa 30 camp đang chạy\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`, parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
     gui++;
   }
   // T7 — TẮT THEO LUẬT SUPPORT (Dol 26/10/2026: 7 ngày lãi < 0, > 3 ngày có chi, chi > $5; anh: "thêm và áp dụng rule này"): BÁO TRƯỚC một nhịp

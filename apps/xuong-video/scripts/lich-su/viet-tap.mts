@@ -101,6 +101,11 @@ if (process.argv.includes('--chi-hook')) {
     const chuDang = `${c.data.tieu_de}\n${c.data.mo_ta_dang}`;
     if (/[ăâđêôơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i.test(chuDang)) { loi = 'tiêu đề / mô tả có tiếng Việt — phải viết bằng ngôn ngữ của tập'; continue; }
     const tm = tuMayTrong(chuDang); if (tm.length) { loi = `có cụm từ máy bị cấm: ${tm.join(', ')}`; continue; }
+    // TIÊU ĐỀ PHẢI NÓI ĐÚNG CHUYỆN NÀY (07/11/2026: tập Napoleon ở Nga ra "Famous Historical Events That Never Actually Happened" — giữ 100% chữ hook nên qua
+    // loiHook, nhưng sai nghĩa): phải có ít nhất một tên riêng của chuyện, và không được nói chuyện là bịa khi chuyện có thật
+    const ten = [...new Set(`${cu.chu_de} ${cu.tieu_de}`.match(/\b[A-Z][a-zà-ÿ]{3,}/g) ?? [])].filter((w) => !/^(The|Story|Entire|Minutes?|What|When|Why|How|This|That|From|With|Into|History|Historical|Famous|Events?|Never|Actually|Happened)$/.test(w));
+    if (ten.length && !ten.some((w) => new RegExp(`\\b${w}`, 'i').test(c.data.tieu_de))) { loi = `tiêu đề "${c.data.tieu_de}" không nhắc chuyện này (cần ít nhất một tên: ${ten.slice(0, 6).join(', ')})`; continue; }
+    if (/never (actually )?happened|didn.?t (actually )?happen|\bmyths?\b|\bfake\b|\bhoax\b/i.test(c.data.tieu_de) && !/myth|hoax|fake|never happened/i.test(cu.chu_de)) { loi = `tiêu đề "${c.data.tieu_de}" nói chuyện là bịa trong khi chuyện có thật — hook ${h.id} sai nghĩa, đã bỏ; chọn hook khác`; if (gh.hooks.length > 1) gh.hooks = gh.hooks.filter((x) => x.id !== h.id); continue; }
     const lh = loiHook([c.data.tieu_de], h.chu); if (lh.length) { loi = `tiêu đề: ${lh.join('; ')} — hook ${h.id} không ráp được với chuyện này, đã bỏ khỏi danh sách; chọn hook khác và giữ ≥ 35% chữ của nó`;
       if (gh.hooks.length > 1) gh.hooks = gh.hooks.filter((x) => x.id !== h.id); continue; }
     writeFileSync(ra, JSON.stringify({ hook: { qc: h.id, goc: h.chu }, goc: gh.goc, tieu_de: c.data.tieu_de, mo_ta_dang: c.data.mo_ta_dang }, null, 1));

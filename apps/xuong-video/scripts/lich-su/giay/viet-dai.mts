@@ -73,7 +73,7 @@ const kiemChuong = (cs: z.infer<typeof Cau>[], nguon: string, tuCan: number) => 
     if (c.loai === 'san_khau') { if (!c.boi_canh || !idBc.has(c.boi_canh)) loi.push(`${K}: boi_canh "${c.boi_canh}" không có`); for (const n of c.nguoi) { const v = idNv.get(n.id); if (!v) loi.push(`${K}: vai "${n.id}" không có`); }
       lien = c.boi_canh === bcTruoc ? lien + 1 : 1; bcTruoc = c.boi_canh; if (lien > 7) loi.push(`${K}: quá 7 câu liền một bối cảnh`); }
     else { bcTruoc = null; lien = 0; }
-    if (c.loai === 'ban_do' && (!c.ban_do || c.ban_do.tam.length !== 2)) loi.push(`${K}: thiếu ban_do`);
+    if (c.loai === 'ban_do' && (!c.ban_do || c.ban_do.tam.length !== 2)) loi.push(`${K}: thiếu ban_do`); for (const x of [c.so?.chu, c.so?.nhan, c.dau]) if (x && /[^\x20-\x7E°−–—’‘“”éèêëàâäîïôöùûüçÉÈ]/.test(x)) loi.push(`${K}: chữ trên hình phải tiếng Anh, không emoji: ${x}`);
     if (c.loai === 'ho_so' && (!c.anh || !ANH[c.anh])) loi.push(`${K}: ảnh "${c.anh}" không có`); });
   if (bang > cs.length * 0.3) loi.push(`quá nhiều câu không su_that (${bang}/${cs.length})`);
   return loi; };

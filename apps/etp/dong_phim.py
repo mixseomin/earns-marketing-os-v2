@@ -17,6 +17,7 @@ Kết quả bước: xong · dung (policy / luật — máy chủ động dừng
 Dùng: dong_phim.py (vòng chính) · dong_phim.py mot [giây] (một vòng, thử)"""
 import datetime as dt, json, os, re, signal, socket, subprocess, sys, threading, time
 R = os.path.dirname(os.path.abspath(__file__)); E = os.path.join(R, "..", "xuong-video", "scripts", "ethopex")
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex")); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 sys.path.insert(0, E); import loi_ky_thuat as LK
 # MỘT kết nối ssh dùng chung (ControlMaster) cho mọi câu SQL / lệnh box3 — mỗi câu một ssh mới thì >10 dòng song song vượt MaxStartups của sshd box3,
 # box3 đóng kết nối ("Connection closed by … port 22", 04/11/2026)
@@ -24,9 +25,9 @@ SSH = ["ssh", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20", "-o", "
 B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 C = os.path.expanduser("~/.cache/ethopex"); MAY = socket.gethostname().split(".")[0]
 KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (dot-phim-moi.KHUON)
-LOAI = {"CC": "cảnh cuối", "KT": "kể chuyện", "LT": "tập nguyên"}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
-BO_QUA = {"KT": {"cat", "soat"}}                 # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt — không cắt phim
-HAN_RIENG = {("KT", "creative"): 4 * 3600, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu
+LOAI = {"CC": "cảnh cuối", "KT": "kể chuyện", "LT": "tập nguyên", "AT": "ảnh tĩnh"}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
+BO_QUA = {"KT": {"cat", "soat"}, "AT": {"cat", "soat"}}   # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt · AT: anh-tinh.py tự tải tập + chọn khung — không qua bước cắt / soát đoạn
+HAN_RIENG = {("KT", "creative"): 4 * 3600, ("AT", "creative"): 40 * 60, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu · AT ~10 phút/phim
 # LT — LỘ TRÌNH TEST RỘNG (anh 03/11/2026 "Lên $8-10/phim + T2 thì sẽ cắt sớm đc lỗ và tìm nhanh đc camp lãi" · chọn A: miễn luật một camp ngày test rộng):
 # cắt MỖI TẬP một creative (kiểu Kiên, tập trọn ETP_KIEU=tap, tới 10 đoạn) → soát → tải + chấm TẤT CẢ đoạn sạch → DỪNG chờ anh bắt đầu
 # (etp.cau_hinh 'lo_trinh' {content_id: {bat_dau: true}}) → lên mỗi creative một camp $1 (nhan-ban miễn luật một camp khi phim ở lo_trinh) → T2 cắt lỗ.
@@ -42,6 +43,7 @@ THU_MANG = {}         # (dòng, bước, lan) → số lượt đã tự thử l
 CHO_LAI = 60          # bước trả "cho" → quay lại sau ngần này giây
 TRAN_CAT = 2          # tối đa 2 dòng cắt cùng lúc (iMac)
 DANG = {}             # (dòng, bước) → Popen đang chạy — để Mạnh / nút Dừng giết được
+LOAI_DONG = {}        # dòng → loại (CC / KT / AT / LT) — để đếm lượt nặng đang chạy (TRAN_CAT)
 KHOA = threading.Lock()
 
 def sql(cau, spy=False):
@@ -192,8 +194,12 @@ def b_cat(d):
     r = sql(f"select ten, url, locale, nguon from ethopex_content where id = {cid}", spy=True).split("\t")
     if len(r) < 2 or not r[1]: return "loi", "không tìm thấy link tập trong ethopex_content (spy)", None
     sql(f"""delete from etp.viec where lo = '{lo}';   -- lô riêng của dòng: chạy lại bước = xếp lại từ đầu
-            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) - san_cua(cid)) + 3 if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {})})}) on conflict do nothing""")
+            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) - san_cua(cid)) + 1 if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {})})}) on conflict do nothing""")
     rc, out = chay_tien_trinh(d["id"], "cat", ["python3", os.path.join(R, "tho.py"), "--lo", lo, "--so-tho", "1"], dict(BUOC)["cat"] - 60)
+    # THỢ MÁY KHÁC ĐÃ NHẬN LÔ (07/11/2026 dòng #112: VPS may-cao-vn nhận trước, thợ iMac "hết việc — đã làm 0 việc" → dòng ghi lỗi trong khi VPS đang cắt) → chờ máy đó xong
+    t0 = time.time()
+    while sql(f"select may from etp.viec where lo = '{lo}' and trang_thai = 'dang' and may is distinct from '{MAY}' limit 1") and time.time() - t0 < dict(BUOC)["cat"]:
+        sql(f"update etp.dong_buoc set nhip = now(), ghi = {s('máy khác đang cắt lô này — chờ kết quả')} where dong_id = {d['id']} and buoc = 'cat'"); time.sleep(30)
     kq = json.loads(sql(f"select coalesce(ket_qua, '[]'::jsonb)::text || chr(9) || coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1").split("\t")[0] or "[]")
     loi = sql(f"select coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1")
     ok = [x for x in kq if x.get("file") and not x.get("loi") and os.path.exists(x["file"])]
@@ -220,6 +226,7 @@ def b_soat(d, truoc):
 
 def b_creative(d, truoc):
     if d.get("loai") == "KT": return b_creative_kt(d)
+    if d.get("loai") == "AT": return b_creative_at(d)
     if d.get("loai") == "LT" or (d.get("so_camp") and d.get("loai") != "KT"): return b_creative_lt(d, truoc)   # mở rộng: tải MỌI đoạn sạch
     tr = (d.get("buoc") or {}).get("creative") or {}
     cr = (tr.get("ket_qua") or {}).get("creative_id")
@@ -283,6 +290,28 @@ def b_creative_kt(d):
     sql(f"update etp.dong_phim set creative_id = {cr} where id = {d['id']}")
     if v[1] == "": return "cho", f"creative kể chuyện #{cr} đã lên — chờ máy chấm", kq
     if v[1] == "true": return "xong", f"creative kể chuyện #{cr} chấm sạch", kq
+    return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if v[3] else 'chặn'}: {v[2][:200]}", kq
+
+def b_creative_at(d):
+    """AT — ẢNH TĨNH (anh 07/11/2026 "sử dụng cả ảnh tĩnh để lên camp cho nhanh hơn"): chạy anh-tinh.py <phim> ngay trên iMac (tải 3 tập → khung mặt nét + tên phim + giọng ~9s,
+    ~160₫ giọng/phim) → thư viện → thu-vien-len → creative dạng 'ảnh tĩnh' → cổng chấm. Lượt sau tìm creative MỚI của phim (tạo sau lúc bước bắt đầu) thay vì chạy lại."""
+    bd = f"(select bat_dau from etp.dong_buoc where dong_id = {d['id']} and buoc = 'creative')"
+    def tim():
+        return sql(f"""select coalesce(r.creative_id::text, '') || chr(9) || coalesce(g.duoc_len::text, '') || chr(9) || coalesce(g.chan_boi, '') || chr(9) || coalesce(g.cho_duyet, '') || chr(9) || coalesce(r.lang, 'en')
+                from etp.creative r left join etp.cham_cong g using (creative_id)
+                where r.content_id = {d['content_id']} and r.dang = 'ảnh tĩnh' and r.tu_choi is null and r.cap_nhat >= {bd} order by r.creative_id desc limit 1""").split("\t")
+    v = tim()
+    if not v or not v[0]:
+        rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "anh-tinh.py"), str(d["content_id"]), "--so", "1"], HAN_RIENG[("AT", "creative")] - 120)
+        v = tim()
+        if not v or not v[0]:
+            j = next((json.loads(l) for l in out.splitlines() if l.startswith("{") and '"content_id"' in l), None) or {}
+            g = j.get("loi") or out[-300:]
+            return ("loi" if rc == -9 or not j or LK.ky_thuat(g) is not False else "dung"), f"anh-tinh không ra creative: {g[:300]}", None
+    cr = int(v[0]); kq = {"creative_id": cr, "lang": v[4], "ten": f"dp{d['id']} {re.sub(r'[^ -~]', '', d.get('ten') or '')} {v[4].upper()} - anh tinh"}
+    sql(f"update etp.dong_phim set creative_id = {cr} where id = {d['id']}")
+    if v[1] == "": return "cho", f"creative ảnh tĩnh #{cr} đã lên — chờ máy chấm", kq
+    if v[1] == "true": return "xong", f"creative ảnh tĩnh #{cr} chấm sạch", kq
     return "dung", f"creative #{cr} bị cổng chấm {'giữ chờ người duyệt' if v[3] else 'chặn'}: {v[2][:200]}", kq
 
 # LÊN CAMP PHẢI LÀM LẠI ĐƯỢC (04/11/2026: dòng #11 / #35 / #45 dừng "creative đã có camp đang chạy / vừa tạo" — lượt đầu đã tạo camp rồi bị Mạnh huỷ / FIX,
@@ -420,12 +449,22 @@ def don_dep():
         nonlocal tong
         tong += sum(os.path.getsize(os.path.join(r, f)) for r, _, fs in os.walk(p) for f in fs if os.path.isfile(os.path.join(r, f)))
         shutil.rmtree(p, ignore_errors=True); bo.append(os.path.basename(p))
+    chay = {int(i) for i, tt, _, _ in ds if tt == "chay"}
+    moi_nhat = lambda p_: max([os.path.getmtime(p_)] + [os.path.getmtime(os.path.join(r, f)) for r, _, fs in os.walk(p_) for f in fs])
     for ten in os.listdir(os.path.join(C, "ra")):
-        m = re.fullmatch(r"dp(\d+)(l\w*)?", ten)
-        if m and int(m.group(1)) in xong: xoa(os.path.join(C, "ra", ten))
+        p_ = os.path.join(C, "ra", ten); m = re.fullmatch(r"dp(\d+)(l\w*)?", ten)
+        if not os.path.isdir(p_): continue
+        if m and int(m.group(1)) in xong: xoa(p_)
+        # MỌI LÔ KHÁC (sua-cta.py, thư viện tv…, pm…) 3 ngày không ai ghi → xoá (anh 07/11/2026 "dọn đi + sửa": 212 lô sửa CTA giữ 21 GB vì luật chỉ biết lô dp)
+        elif not (m and int(m.group(1)) in chay) and time.time() - moi_nhat(p_) > 3 * 86400: xoa(p_)
     for ten in os.listdir(os.path.join(C, "nguon")):
         p_ = os.path.join(C, "nguon", ten)
-        if ten.isdigit() and os.path.isdir(p_) and ten not in dung and time.time() - max([os.path.getmtime(p_)] + [os.path.getmtime(os.path.join(r, f)) for r, _, fs in os.walk(p_) for f in fs]) > 1800: xoa(p_)
+        if ten.isdigit() and os.path.isdir(p_) and ten not in dung and time.time() - moi_nhat(p_) > 1800: xoa(p_)
+        elif ten.isdigit() and os.path.isdir(p_):   # phim còn dùng: bản chuẩn hoá -chuan.mp4 đã nằm trong ghep-cuoi.mp4 → bỏ (cat-cuoi-lo dùng lại tệp ghép, không chuẩn hoá lại)
+            g = os.path.join(p_, "ghep-cuoi.mp4")
+            for f in os.listdir(p_):
+                if f.endswith("-chuan.mp4") and os.path.exists(g) and os.path.getmtime(g) >= os.path.getmtime(os.path.join(p_, f)) and time.time() - os.path.getmtime(g) > 600:
+                    tong += os.path.getsize(os.path.join(p_, f)); os.remove(os.path.join(p_, f)); bo.append(f"{ten}/{f}")
     for ten in os.listdir(os.path.join(C, "vx-kc")):
         p_ = os.path.join(C, "vx-kc", ten)
         if ten.isdigit() and os.path.isdir(p_) and ten in xa: xoa(p_)
@@ -446,7 +485,7 @@ def dung_imac():
     try:
         r = subprocess.run(["rsync", "-a", "--exclude", v["ra"], f"{B}:{v['thu_muc'].rstrip('/')}/", tm + "/"], capture_output=True, text=True, timeout=600)
         if r.returncode: raise RuntimeError(f"tải đầu vào: {r.stderr[-200:]}")
-        args = [a.replace("@DIR@", tm).replace("@FONTS@", os.path.abspath(FONTS)) for a in v["args"]]
+        args = NV.doi_nen([a.replace("@DIR@", tm).replace("@FONTS@", os.path.abspath(FONTS)) for a in v["args"]])   # box3 dựng lệnh libx264 → iMac nén bằng VideoToolbox
         r = subprocess.run(["ffmpeg", *args], capture_output=True, text=True, timeout=15 * 60)
         ra = os.path.join(tm, v["ra"])
         if r.returncode or not os.path.exists(ra): raise RuntimeError(f"ffmpeg: {r.stderr[-300:]}")
@@ -465,7 +504,8 @@ def doc_dong():
     j = sql("""select coalesce(json_agg(x), '[]') from (select p.id, p.content_id, p.ten, p.trang_thai, p.camp_id, p.loai, p.so_camp,
                (select json_object_agg(b.buoc, json_build_object('trang_thai', b.trang_thai, 'ket_qua', b.ket_qua, 'lan', b.lan, 'fix', b.fix, 'huy', b.huy,
                        'tuoi', extract(epoch from now() - coalesce(b.nhip, b.bat_dau))::int)) from etp.dong_buoc b where b.dong_id = p.id) buoc
-               from etp.dong_phim p where p.trang_thai = 'chay' or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.fix) order by p.id) x""")
+               from etp.dong_phim p where p.trang_thai = 'chay' or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.fix)
+               order by (p.ai like 'máy: lộ trình tự động thí điểm%') desc, p.id) x""")   # phim thí điểm lấy lượt cắt trước (TRAN_CAT), đừng đứng sau cả hàng
     return json.loads(j or "[]")
 
 # HẾT NGUYÊN LIỆU CẮT THÌ CHUYỂN KỂ CHUYỆN (anh 04/11/2026 "vì sao vẫn còn film ko thể sx và cách khắc phục triệt để"): cắt / soát / chấm hết đường
@@ -554,6 +594,11 @@ def vong():
                 if pr: giet_cay(pr.pid)
                 t = CHAY.get((d["id"], b))
                 if t and t[0].is_alive(): bs = None; break   # luồng cũ chưa thoát hẳn (vừa giết) → FIX ở vòng sau, kẻo luồng cũ ghi đè lượt mới
+                # FIX mở lại dòng mà phim đã có dòng cùng loại đang chạy → vấp chỉ mục dong_phim_mot, lỗi ném ra hỏng CẢ VÒNG, mọi dòng xếp sau đứng
+                # (07/11/2026: 34 lần, phim 165009) → chỉ dòng trùng bị huỷ, các dòng khác chạy tiếp
+                if sql(f"select 1 from etp.dong_phim x where x.content_id = {d['content_id']} and x.loai = '{d.get('loai')}' and x.trang_thai = 'chay' and x.id <> {d['id']} limit 1"):
+                    sql(f"update etp.dong_buoc set fix = false where dong_id = {d['id']}; update etp.dong_phim set trang_thai = 'huy', ly_do = 'FIX bỏ qua: phim đã có dòng cùng loại đang chạy' where id = {d['id']}")
+                    print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} FIX bỏ qua — trùng dòng đang chạy", flush=True); bs = None; break
                 sql(f"""update etp.dong_buoc set trang_thai = 'cho', fix = false, huy = false, bat_dau = null, ket_thuc = null, pid = null, ghi = 'FIX — chạy lại', ket_qua = case when '{b}' = 'creative' then null else ket_qua end
                         where dong_id = {d['id']} and buoc = '{b}';
                         update etp.dong_buoc set trang_thai = 'cho', bat_dau = null, ket_thuc = null, ghi = null, ket_qua = null, lan = 0 where dong_id = {d['id']} and thu_tu > (select thu_tu from etp.dong_buoc where dong_id = {d['id']} and buoc = '{b}');
@@ -571,7 +616,9 @@ def vong():
         t = CHAY.get((d["id"], ke))
         if t and t[0].is_alive(): continue
         if dang and t and time.time() - t[1] < CHO_LAI: continue   # bước đang "chờ": quay lại sau CHO_LAI giây
-        if ke == "cat" and not dang and sum(1 for (i, b), (th, _) in CHAY.items() if b == "cat" and th.is_alive()) >= TRAN_CAT: continue
+        # LƯỢT NẶNG trên iMac = bước cắt + bước creative AT (anh-tinh.py cũng tải tập + ffmpeg + Vision) → chung trần TRAN_CAT, kẻo 13 dòng AT xếp một lúc chạy đồng loạt
+        LOAI_DONG[d["id"]] = d.get("loai"); nang = lambda i, b: b == "cat" or (b == "creative" and LOAI_DONG.get(i) == "AT")
+        if nang(d["id"], ke) and not dang and sum(1 for (i, b), (th, _) in CHAY.items() if nang(i, b) and th.is_alive()) >= TRAN_CAT: continue
         if not dang:
             sql(f"update etp.dong_buoc set trang_thai = 'dang', bat_dau = now(), nhip = now(), lan = lan + 1, may = '{MAY}' where dong_id = {d['id']} and buoc = '{ke}' and trang_thai = 'cho'")
             bs.setdefault(ke, {})["lan"] = (bs.get(ke) or {}).get("lan", 0) + 1
@@ -579,6 +626,10 @@ def vong():
 
 def main(a):
     if a and a[0] == "mot": vong(); time.sleep(int(a[1]) if len(a) > 1 else 60); return   # một vòng rồi chờ các bước vừa bật (thử)
+    # BỎ TẦNG NỀN macOS (anh 07/11/2026 "vẫn chậm"): launcher cũ chạy `taskpolicy -b`, execv khi nạp mã giữ nguyên tầng nền → mọi thợ cắt / ffmpeg / Vision con
+    # bị dồn sang nhân E + bóp đĩa (ưu tiên 4; khung 65 s cắt 13 phút). setpriority(PRIO_DARWIN_PROCESS, 0, 0) tự gỡ, con sinh sau thừa hưởng (đo: 4 → 31)
+    if sys.platform == "darwin":
+        import ctypes; ctypes.CDLL(None).setpriority(4, 0, 0)
     print(f"[{MAY}] máy chạy dòng phim bắt đầu (pid {os.getpid()})", flush=True)
     # TỰ NẠP MÃ MỚI (04/11/2026: tiến trình chạy liền từ 13:49 giữ mã cũ trong bộ nhớ — --tay, lý do poster, chờ KT sửa xong đều chưa có hiệu lực,
     # dòng #49 vẫn bị chặn trùng đội sau deploy): tệp mã của máy đổi → thôi nhận bước mới, chờ các bước đang chạy xong rồi execv chính nó

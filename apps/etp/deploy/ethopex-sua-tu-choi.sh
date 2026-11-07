@@ -5,4 +5,4 @@
 # Có → sua-cta.py --tu-choi: cắt góc mới khác đoạn bị từ chối → máy soát đoạn (Claude, chuỗi rẻ) → lên creative → thay trong camp + bật lại.
 export PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
 cd /Users/htuan/Me/GitHub/earns-marketing-os-v2/apps/xuong-video/scripts/ethopex || exit 1
-exec -a ethopex-sua-tu-choi taskpolicy -b python3 sua-cta.py --tu-choi
+exec -a ethopex-sua-tu-choi nice -n 10 python3 sua-cta.py --tu-choi

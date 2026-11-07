@@ -10,6 +10,7 @@ import { randomUUID } from 'node:crypto';
 import { khungDoc } from './khung-doc';
 import { giayPhat, type Canh } from './kieu';
 import { uploadToR2 } from '../r2';
+import { nenH264 } from './nen-video.mjs';
 
 const ex = promisify(execFile);
 /** Tỉ lệ thời lượng từng khung theo số khung vẽ: đầu dài hơn giữa (người xem cần đọc khung mở), cuối giữ để thấy đuôi gieo cớ cắt. */
@@ -20,6 +21,6 @@ export async function clipAnimatic(c: Canh, thuMuc: string, w = 1080, h = 1920):
   const vao = ks.flatMap((k, i) => ['-loop', '1', '-t', (phat * ti[i]!).toFixed(3), '-i', k.url!]);
   const loc = `${ks.map((_, i) => `[${i}:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},setsar=1,fps=30,format=yuv420p[v${i}]`).join(';')};${ks.map((_, i) => `[v${i}]`).join('')}concat=n=${ks.length}:v=1:a=0[o]`;
   await mkdir(thuMuc, { recursive: true }); const ra = join(thuMuc, `anim-${c.id}.mp4`);
-  await ex('ffmpeg', ['-loglevel', 'error', '-y', ...vao, '-filter_complex', loc, '-map', '[o]', '-r', '30', '-c:v', 'libx264', '-preset', 'veryfast', ra], { timeout: 180_000 });
+  await ex('ffmpeg', ['-loglevel', 'error', '-y', ...vao, '-filter_complex', loc, '-map', '[o]', '-r', '30', ...nenH264({ preset: 'veryfast' }), ra], { timeout: 180_000 });
   return uploadToR2(`xuong-video/animatic/${c.id}-${randomUUID()}.mp4`, await readFile(ra), 'video/mp4');
 }

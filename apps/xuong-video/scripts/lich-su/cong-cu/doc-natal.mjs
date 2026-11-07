@@ -3,40 +3,31 @@
 // Mở link mở thẳng kết quả (nguon-site.mjs › linkCongCu 'birth') → đọc bảng góc + bảng sao → chụp cả trang khổ điện thoại (giống chup.mjs, doc-ap.mjs) + đo khung
 // → cong-cu/natal/<người>.json { nguon, goc: { Ascendant: { do }, MC: { do } }, sao: { Sun: { do, nha, nghich } … }, rong, cao, khung: { angles, planets, Ascendant, MC, Sun … } } (+ .png, dựng lại được nên không commit).
 //   node doc-natal.mjs <slug> [slug…] [--lai]   · 0đ, chạy iMac. Trang đổi khuôn, thiếu ô nào → báo lỗi, không đoán.
-import { createRequire } from 'node:module';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { linkCongCu } from '../nguon-site.mjs';
+import { layChromium, moTrangCongCu, TI_LE as TL } from './trinh-duyet.mjs';
 
-const DIR = dirname(fileURLToPath(import.meta.url)), NATAL = join(DIR, 'natal'), TL = 2;
+const DIR = dirname(fileURLToPath(import.meta.url)), NATAL = join(DIR, 'natal');
 export const tepNatal = (slug) => join(NATAL, `${slug}.json`);
 export const SAO = ['Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
 
 export async function docNatal(ds, { lai = false } = {}) {
   const can = ds.filter((s) => lai || !existsSync(tepNatal(s))); if (!can.length) return [];
-  const PW = process.env.DO_MAN_PW || `${process.env.HOME}/Me/Earns/courseforge-demo/node_modules/playwright`;
-  let chromium; try { ({ chromium } = createRequire(import.meta.url)(PW)); } catch { ({ chromium } = createRequire(import.meta.url)('playwright')); }
   mkdirSync(NATAL, { recursive: true });
-  const tr = await chromium.launch(), loi = [];
+  const tr = await layChromium().launch(), loi = [];
   try {
     for (const slug of can) {
-      const url = linkCongCu('birth', slug), p = await tr.newPage({ viewport: { width: 540, height: 1100 }, deviceScaleFactor: TL });
+      const url = linkCongCu('birth', slug), p = await moTrangCongCu(tr, url);
       try {
-        await p.goto(url, { waitUntil: 'networkidle', timeout: 90000 });
-        await p.evaluate(() => { [...document.querySelectorAll('button, a')].find((e) => /^got it!?$/i.test(e.textContent.trim()))?.click(); });
-        await p.waitForTimeout(2500);
-        await p.evaluate(() => { for (const e of document.querySelectorAll('body *')) { const v = getComputedStyle(e).position; if (v === 'fixed' || v === 'sticky') e.style.setProperty('display', 'none', 'important'); } });
-        await p.waitForTimeout(300);
         const r = await p.evaluate(({ SAO }) => {
           const t = document.body.innerText, dau = t.indexOf('Angle coordinates'), bang = t.indexOf('Planet positions'); if (dau < 0 || bang < 0) return { thieu: ['bảng góc / bảng sao'] };
           const goc = {}, sao = {}, thieu = [];
           for (const g of ['Ascendant', 'MC']) { const m = new RegExp(`${g}\\s+(\\d+°\\d+')`).exec(t.slice(dau)); if (m) goc[g] = { do: m[1] }; else thieu.push(g); }
           for (const s of SAO) { const m = new RegExp(`\\n${s}\\s+(R\\s+)?\\S+ (\\d+°\\d+')\\s+(\\d+)`).exec(t.slice(bang)); if (m) sao[s] = { do: m[2], nha: +m[3], nghich: !!m[1] }; else thieu.push(s); }
           if (thieu.length) return { thieu };
-          const tim = (re, cha = 0) => { let el = [...document.querySelectorAll('body *')].filter((e) => e.offsetParent !== null && re.test(e.innerText || '')).sort((a, b) => (a.innerText || '').length - (b.innerText || '').length)[0];
-            if (!el) return null; for (let i = 0; i < cha && el.parentElement; i++) el = el.parentElement; const b = el.getBoundingClientRect();
-            return [b.left - 8, b.top + window.scrollY - 8, b.width + 16, b.height + 16].map(Math.round); };
+          const tim = window.__tim;
           const khung = { angles: tim(/^\s*Angle coordinates/, 2), planets: tim(/^\s*Planet positions/, 2) };
           for (const [g, v] of Object.entries(goc)) khung[g] = tim(new RegExp(`${g}[\\s\\S]{0,30}${v.do}`));
           for (const [s, v] of Object.entries(sao)) khung[s] = tim(new RegExp(`^\\s*.?\\s*${s}[\\s\\S]{0,40}${v.do}`));

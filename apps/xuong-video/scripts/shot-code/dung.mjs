@@ -9,6 +9,7 @@ import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { nenH264 } from '../../src/lib/xuong-video/nen-video.mjs';
 
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const PW = process.env.DO_MAN_PW || `${process.env.HOME}/Me/Earns/courseforge-demo/node_modules/playwright`;
@@ -37,7 +38,7 @@ if (arg('khung')) {   // chỉ chụp vài khung để soát nhanh → ghép m�
 }
 const n = Math.round(cau.DAI * fps), bd = Date.now();
 // bản TRUNG GIAN (lam-tap nén lại bản phát hành crf 23): Mac mã hoá bằng phần cứng VideoToolbox, máy khác libx264 — libx264 medium là chỗ nghẽn khi khung đã nhanh
-const x264 = process.platform === 'darwin' ? ['-c:v', 'h264_videotoolbox', '-b:v', '16M', '-pix_fmt', 'yuv420p', '-allow_sw', '1'] : ['-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', '-preset', 'medium', '-threads', '2'];
+const x264 = nenH264({ crf: 20, bit: '16M', threads: 2 });   // mảng giữ y hệt bản cũ trên cả hai loại máy → DAU_MA không đổi, kho đoạn cũ vẫn dùng lại được
 const DAU_MA = (await import('node:crypto')).createHash('md5').update(`${x264.join(' ')}|${fps}|${arg('rong', 1080)}x${arg('cao', 1920)}`).digest('hex').slice(0, 6);
 // ---------- DỰNG SONG SONG + DÙNG LẠI ĐOẠN (02/11/2026, anh: "tăng tốc độ dựng"): trang là hàm thuần của t → chia khung thành ĐOẠN (cảnh, --doan), mỗi đoạn một
 // tệp mp4 riêng do N trang Chromium dựng cùng lúc (--song, mặc định 2: đo 02/11 trên iMac GPU — 2 trang 18 ms/khung, 4 trang 27 ms vì chung một GPU), rồi ghép không mã hoá lại. --kho <thư mục>: đoạn có khoá trùng lần trước thì
@@ -46,7 +47,7 @@ const DAU_MA = (await import('node:crypto')).createHash('md5').update(`${x264.jo
 if (!nenVideo && !tieng) {
   const { cpus } = await import('node:os'), { createHash } = await import('node:crypto'), fs = await import('node:fs'), { join } = await import('node:path');
   const song = Math.max(1, Number(arg('song', 2))), kho = arg('kho'), tam = `${ra}.doan`;
-  fs.rmSync(tam, { recursive: true, force: true }); fs.mkdirSync(tam, { recursive: true }); if (kho) fs.mkdirSync(kho, { recursive: true });
+  fs.rmSync(tam, { recursive: true, force: true }); fs.mkdirSync(tam, { recursive: true }); if (kho) { fs.mkdirSync(kho, { recursive: true }); /* TỰ DỌN KHO ĐOẠN (anh 07/11/2026: đĩa iMac đầy, kho đoạn 18 GB / tuần): đoạn quá 2 ngày gần như không còn được dùng lại → xoá */ const han = Date.now() - 2 * 86_400_000; for (const f of fs.readdirSync(kho)) { const p = join(kho, f); try { if (fs.statSync(p).mtimeMs < han) fs.rmSync(p, { force: true }); } catch { /* tệp vừa bị lượt khác xoá */ } } }
   // đoạn: theo --doan [{bd, kt, khoa}] (giây) — không có thì chia đều theo số trang
   const ds = arg('doan') ? JSON.parse(readFileSync(arg('doan'), 'utf8')).map((d) => ({ f0: Math.round(d.bd * fps), khoa: d.khoa }))
     : Array.from({ length: song }, (_, i) => ({ f0: Math.round((i * n) / song), khoa: null }));
@@ -88,7 +89,7 @@ if (!nenVideo && !tieng) {
 const ff = spawn('ffmpeg', ['-v', 'error', '-y', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', nenVideo ? 'png' : 'mjpeg', '-i', '-',
   ...(nenVideo ? ['-i', nenVideo, '-filter_complex', `[1:v]scale=${Number(arg('rong', 1080))}:${Number(arg('cao', 1920))}:force_original_aspect_ratio=increase,crop=${Number(arg('rong', 1080))}:${Number(arg('cao', 1920))},fps=${fps}[n];[n][0:v]overlay=0:0:shortest=1[v]`, '-map', '[v]', '-map', '1:a?', '-c:a', 'aac'] : []),
   ...(tieng ? ['-i', tieng, '-map', '0:v', '-map', '1:a?', '-c:a', 'copy', '-shortest'] : []),
-  '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-crf', '20', '-preset', 'medium', '-movflags', '+faststart', ra], { stdio: ['pipe', 'inherit', 'inherit'] });
+  ...nenH264({ crf: 20, preset: 'medium' }), '-movflags', '+faststart', ra], { stdio: ['pipe', 'inherit', 'inherit'] });
 for (let i = 0; i < n; i++) {
   if (!ff.stdin.write(await chup(i / fps))) await new Promise((r) => ff.stdin.once('drain', r));
   if (i % 150 === 0) console.log(`khung ${i}/${n}`);

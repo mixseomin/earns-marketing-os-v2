@@ -7,6 +7,7 @@ FONT POSTER (anh 19/10/2026): tên phim + chữ nút CTA dùng font & màu giố
 Dùng: python3 ghep-xem.py <ds.json> <thư mục ra>   (ds.json = mảng {tap, tt, phat, v, g, chu, nhac, font} — lấy từ xv_canh/xv_tap/xv_phim)"""
 import json, os, re, subprocess, sys, textwrap, time, urllib.request
 from PIL import Image, ImageDraw, ImageFont
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 
 W, H = 1080, 1920
 FA = next((f for f in ("/System/Library/Fonts/Supplemental/Arial Bold.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf") if os.path.exists(f)), "/System/Library/Fonts/Supplemental/Arial Bold.ttf")   # box3 (23/10/2026): Liberation Sans Bold cùng số đo chữ với Arial
@@ -149,15 +150,15 @@ def ghep(ds, ra_dir):
                 o = f"seg{tap}-{tt}.mp4"
                 sh("ffmpeg", "-v", "error", "-y", "-loop", "1", "-i", f"tc{tap}.png", *(["-i", g] if g else ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]),
                    "-filter_complex", "[0:v]scale=1080:1920,zoompan=z='1+0.03*on/90':d=1:s=1080x1920:fps=30,setsar=1[v];[1:a]apad,volume=1.6[g]",
-                   "-map", "[v]", "-map", "[g]", "-t", f"{L:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "19", "-c:a", "aac", "-ar", "44100", "-ac", "2", o)
+                   "-map", "[v]", "-map", "[g]", "-t", f"{L:.2f}", *NV.nen_h264(crf=19), "-c:a", "aac", "-ar", "44100", "-ac", "2", o)
             else:
                 phu_de(r["chu"], png, r.get("font")); o = f"seg{tap}-{tt}.mp4"
                 sh("ffmpeg", "-v", "error", "-y", "-stream_loop", "-1", "-i", v, "-i", png, *(["-i", g] if g else ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]),
                    "-filter_complex", f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},fps=30,setsar=1[a];[a][1:v]overlay[v];[2:a]apad,volume=1.6[g]",
-                   "-map", "[v]", "-map", "[g]", "-t", f"{L:.2f}", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "19", "-c:a", "aac", "-ar", "44100", "-ac", "2", o)
+                   "-map", "[v]", "-map", "[g]", "-t", f"{L:.2f}", *NV.nen_h264(crf=19), "-c:a", "aac", "-ar", "44100", "-ac", "2", o)
             segs.append(o)
         open(f"l{tap}.txt", "w").write("".join(f"file '{s}'\n" for s in segs))
-        sh("ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", f"l{tap}.txt", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "19", "-r", "30", "-c:a", "aac", "-ar", "44100", f"cat{tap}.mp4")
+        sh("ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", f"l{tap}.txt", *NV.nen_h264(crf=19), "-r", "30", "-c:a", "aac", "-ar", "44100", f"cat{tap}.mp4")
         m = tai(nh, f"nhac{tap}.mp3"); out = f"creative-{tap}.mp4"
         if m: sh("ffmpeg", "-v", "error", "-y", "-i", f"cat{tap}.mp4", "-i", m, "-filter_complex", "[1:a]volume=0.22[m];[0:a][m]amix=inputs=2:duration=first:normalize=0[a]", "-map", "0:v", "-map", "[a]", "-c:v", "copy", "-c:a", "aac", "-movflags", "+faststart", out)
         else: os.replace(f"cat{tap}.mp4", out)

@@ -57,6 +57,7 @@ export function kiemTap(tap, k, ma) {
   if (!tap.mau) loi.push('tập không khai mau (mẫu đã duyệt nào?)'); else if (!m) loi.push(`mẫu ${tap.mau} không có trong sổ ${ma}`);
   // mẫu mới (cho_duyet) chỉ làm DEMO cho anh duyệt; tập thật theo mẫu đó chưa được lên kênh (demo khai demo: true)
   else if (m.cho_duyet && !tap.demo) loi.push(`mẫu ${m.ma} đang chờ anh duyệt demo — chưa làm tập thật`);
+  if (tap.cau?.length && tap.DAI === 0) loi.push('tập 0 giây (DAI = 0) — thiếu mốc giờ');
   if (tap.nen && NEN_CAM.test(tap.nen)) loi.push(`nền ${tap.nen} bị cấm (Ngân Hà tối, anh chê "nhìn ghê" 05/11 + 06/11/2026) — dùng nền playlist (so-kenh › playlist.nen)`);
   if (!tap.playlist?.ma && !tap.playlist_ma) loi.push('tập không khai playlist');
   const plMa = tap.playlist_ma ?? tap.playlist?.ma;

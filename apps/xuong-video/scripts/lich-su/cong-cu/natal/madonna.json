@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Madonna&day=16&month=8&year=1958&location=Bay+City%2C+Michigan%2C+USA&lat=43.5945&lng=-83.8889&hour=7&minute=5",
+ "doc_luc": "2026-11-06T17:35:55.263Z",
+ "goc": {
+  "Ascendant": {
+   "do": "8°15'"
+  },
+  "MC": {
+   "do": "3°45'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "23°07'",
+   "nha": 12,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "11°33'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "5°39'",
+   "nha": 12,
+   "nghich": true
+  },
+  "Venus": {
+   "do": "0°32'",
+   "nha": 11,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "15°23'",
+   "nha": 9,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "26°24'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Saturn": {
+   "do": "19°09'",
+   "nha": 4,
+   "nghich": true
+  },
+  "Uranus": {
+   "do": "12°42'",
+   "nha": 12,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "2°18'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Pluto": {
+   "do": "1°43'",
+   "nha": 12,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 5040,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

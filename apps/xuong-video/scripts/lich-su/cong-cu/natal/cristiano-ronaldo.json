@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Cristiano+Ronaldo&day=5&month=2&year=1985&location=Funchal%2C+Madeira%2C+Portugal&lat=32.6669&lng=-16.9241&hour=5&minute=25",
+ "doc_luc": "2026-11-06T17:35:48.170Z",
+ "goc": {
+  "Ascendant": {
+   "do": "3°14'"
+  },
+  "MC": {
+   "do": "21°15'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "16°22'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "10°51'",
+   "nha": 8,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "6°16'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "2°36'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "1°53'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "29°40'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Saturn": {
+   "do": "27°21'",
+   "nha": 11,
+   "nghich": false
+  },
+  "Uranus": {
+   "do": "17°05'",
+   "nha": 12,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "2°42'",
+   "nha": 12,
+   "nghich": false
+  },
+  "Pluto": {
+   "do": "4°45'",
+   "nha": 10,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 4784,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

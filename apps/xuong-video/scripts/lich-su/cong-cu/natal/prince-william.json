@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=William%2C+Prince+of+Wales&day=21&month=6&year=1982&location=Paddington%2C+London%2C+UK&lat=51.5154&lng=-0.1755&hour=21&minute=3",
+ "doc_luc": "2026-11-06T17:36:16.556Z",
+ "goc": {
+  "Ascendant": {
+   "do": "27°29'"
+  },
+  "MC": {
+   "do": "2°27'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "0°06'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "4°58'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "8°58'",
+   "nha": 5,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "25°40'",
+   "nha": 5,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "9°12'",
+   "nha": 9,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "0°29'",
+   "nha": 9,
+   "nghich": true
+  },
+  "Saturn": {
+   "do": "15°30'",
+   "nha": 9,
+   "nghich": false
+  },
+  "Uranus": {
+   "do": "1°30'",
+   "nha": 11,
+   "nghich": true
+  },
+  "Neptune": {
+   "do": "25°33'",
+   "nha": 12,
+   "nghich": true
+  },
+  "Pluto": {
+   "do": "24°10'",
+   "nha": 9,
+   "nghich": true
+  }
+ },
+ "rong": 1080,
+ "cao": 4908,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

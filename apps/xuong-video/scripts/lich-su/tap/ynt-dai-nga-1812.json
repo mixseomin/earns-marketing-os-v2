@@ -9,8 +9,8 @@
  "chu_de": "Napoleon's invasion of Russia in 1812: how the largest army Europe had seen marched to Moscow and almost none came back",
  "tieu_de": "The ENTIRE Story of Napoleon's 1812 Russia Disaster in 12 Minutes",
  "thumb": {
-  "chu": "MOSCOW 1812",
-  "nam": "JUNE – DECEMBER 1812",
+  "chu": "NAPOLEON",
+  "nam": "RUSSIA 1812",
   "nhan_vat": "Napoleon in iconic bicorne hat and greatcoat, staring grimly at burning city in distance",
   "boi_canh": "Frozen wasteland littered with abandoned cannons and supply wagons, snow falling, distant fires on horizon"
  },
@@ -236,9 +236,18 @@
      "mo_ta_en": "Kremlin wall illuminated by surrounding fires, stone towers standing",
      "x": 0.7,
      "cao": 0.4,
-     "sau": 0.2
+     "sau": 0.2,
+     "bo": true
     }
-   ]
+   ],
+   "lop_ve": {
+    "trong_nha": false,
+    "troi": "night sky ablaze",
+    "xa": "distant skyline of Moscow in 1812",
+    "khoi": "huge billowing smoke cloud",
+    "giua": [],
+    "gan": "charred beams, burning rubble and paper flames"
+   }
   },
   {
    "id": "kremlin_interior",
@@ -298,7 +307,8 @@
      "mo_ta_en": "Skeletal black trees without leaves against gray sky",
      "x": 0.5,
      "cao": 0.4,
-     "sau": 0.1
+     "sau": 0.1,
+     "bo": true
     }
    ]
   },
@@ -348,7 +358,8 @@
      "mo_ta_en": "Dark shapes of fallen soldiers partially buried in snowdrift",
      "x": 0.3,
      "cao": 0.2,
-     "sau": 0.35
+     "sau": 0.35,
+     "bo": true
     }
    ]
   },
@@ -476,7 +487,8 @@
      "mo_ta_en": "Stack of empty wooden stretchers leaning against wall",
      "x": 0.7,
      "cao": 0.2,
-     "sau": 0.4
+     "sau": 0.4,
+     "bo": true
     }
    ]
   },
@@ -1964,36 +1976,8 @@
      "RUS",
      "BLR"
     ],
-    "ten": [
-     {
-      "tu": [
-       30.5,
-       55.75
-      ],
-      "den": [
-       30.8,
-       55.9
-      ]
-     },
-     {
-      "tu": [
-       32,
-       54.75
-      ],
-      "den": [
-       32.3,
-       54.85
-      ]
-     }
-    ],
+    "ten": [],
     "ghim": [
-     {
-      "o": [
-       30.3,
-       55.75
-      ],
-      "chu": "Vilnius"
-     },
      {
       "o": [
        32.05,

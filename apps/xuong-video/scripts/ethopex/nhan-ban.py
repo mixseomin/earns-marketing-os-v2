@@ -509,6 +509,15 @@ def main(a):
         kq["content"], kq["creative"] = cid, ad0["creative_id"]   # nhật ký mang phim + creative → dem_dang_chay đếm được camp vừa tạo chưa vào kho
         ly = cham_sach(ad0["creative_id"])   # cổng chấm: creative cuối cùng phải SẠCH
         if ly and ep and mien_cham: kq["mien_cham"] = ly; ly = None   # --mien-cham chỉ đi cùng --ep (lệnh đích danh của anh)
+        # CLONE BỊ CỔNG CHẤM CHẶN → THAY CREATIVE HOẶC BỎ (anh 07/11/2026 "bỏ hoặc thay creative luôn"): creative khác cùng phim chấm sạch, chưa có camp thì dùng
+        # (đè tạm dừng đổi creative tới CLONE_KHAC_CR_DEN — chỉ ca bị chấm chặn); không có thì bỏ qua lặng: nhật ký vẫn ghi, tin 🧬 không báo lỗi (kq.bo_qua)
+        if ly and not moi and not ep:
+            khac = creative_clone(cid, int(ad0["creative_id"]))
+            if khac and not cong(cid, khac, ten):
+                kq["doi_creative"] = {"tu": ad0["creative_id"], "sang": khac}; ad0["creative_id"] = khac; kq["creative"] = khac; ly = None
+                pl = json.loads(json.dumps(pl, ensure_ascii=False).replace(" cta-sua ", " doi-cr ")); ad0 = pl["campaign"]["ad_groups"][0]["ads"][0]
+                ten = ten.replace(" cta-sua ", " doi-cr "); kq["ten"] = ten
+            else: kq["bo_qua"] = True
         if ly: raise ChanLuat(ly)
         kq["phim_dang_chay"] = n
         ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay)

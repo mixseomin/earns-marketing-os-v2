@@ -55,6 +55,7 @@ def dat(content, vong, ly, that, bo=None):
 def xet(that=False):
     ch = cau_hinh(); bao, doi_bo = [], {}; N = int(ch["so_thu"])
     try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # thay-the.py nạp tệp này theo đường dẫn, không nằm trong apps/etp
         import lo_trinh_phim as LT
         tt_ = json.loads(_q("select gia_tri::text from etp.cau_hinh where khoa = 'lo_trinh_tt'") or "{}")
         ch["_thi_diem"] = {int(c): [m for m in LT.CAN if not (tt_.get(str(c), {}).get("dang", {}).get(m) or {}).get("bo")] for c in (LT.cau_hinh(lambda s: _q(s)).get("phim") or [])}

@@ -36,6 +36,9 @@ def ghep_mo(tm):
                            "color_range,color_space,color_transfer,color_primaries,field_order,sample_rate,channels,channel_layout", "-of", "csv=p=0", os.path.join(tm, t)],
                           capture_output=True, text=True).stdout.strip() for t in taps}
     vao = [os.path.join(tm, t) for t in taps]
+    # tệp ghép còn mới hơn mọi TẬP GỐC và dài đúng tổng → dùng lại luôn, không chuẩn hoá lại (bản -chuan.mp4 bị dong_phim.don_dep bỏ sau khi ghép — 07/11/2026)
+    tong_ = sum(DL.giay(f) for f in vao)
+    if os.path.exists(ra) and os.path.getmtime(ra) >= max(os.path.getmtime(f) for f in vao) and abs(DL.giay(ra) - tong_) <= 3: tso = {"dung_lai"}
     if len(tso) > 1:
         def chuan(f):
             o = f[:-4] + "-chuan.mp4"

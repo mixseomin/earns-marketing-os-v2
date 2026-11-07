@@ -449,12 +449,22 @@ def don_dep():
         nonlocal tong
         tong += sum(os.path.getsize(os.path.join(r, f)) for r, _, fs in os.walk(p) for f in fs if os.path.isfile(os.path.join(r, f)))
         shutil.rmtree(p, ignore_errors=True); bo.append(os.path.basename(p))
+    chay = {int(i) for i, tt, _, _ in ds if tt == "chay"}
+    moi_nhat = lambda p_: max([os.path.getmtime(p_)] + [os.path.getmtime(os.path.join(r, f)) for r, _, fs in os.walk(p_) for f in fs])
     for ten in os.listdir(os.path.join(C, "ra")):
-        m = re.fullmatch(r"dp(\d+)(l\w*)?", ten)
-        if m and int(m.group(1)) in xong: xoa(os.path.join(C, "ra", ten))
+        p_ = os.path.join(C, "ra", ten); m = re.fullmatch(r"dp(\d+)(l\w*)?", ten)
+        if not os.path.isdir(p_): continue
+        if m and int(m.group(1)) in xong: xoa(p_)
+        # MỌI LÔ KHÁC (sua-cta.py, thư viện tv…, pm…) 3 ngày không ai ghi → xoá (anh 07/11/2026 "dọn đi + sửa": 212 lô sửa CTA giữ 21 GB vì luật chỉ biết lô dp)
+        elif not (m and int(m.group(1)) in chay) and time.time() - moi_nhat(p_) > 3 * 86400: xoa(p_)
     for ten in os.listdir(os.path.join(C, "nguon")):
         p_ = os.path.join(C, "nguon", ten)
-        if ten.isdigit() and os.path.isdir(p_) and ten not in dung and time.time() - max([os.path.getmtime(p_)] + [os.path.getmtime(os.path.join(r, f)) for r, _, fs in os.walk(p_) for f in fs]) > 1800: xoa(p_)
+        if ten.isdigit() and os.path.isdir(p_) and ten not in dung and time.time() - moi_nhat(p_) > 1800: xoa(p_)
+        elif ten.isdigit() and os.path.isdir(p_):   # phim còn dùng: bản chuẩn hoá -chuan.mp4 đã nằm trong ghep-cuoi.mp4 → bỏ (cat-cuoi-lo dùng lại tệp ghép, không chuẩn hoá lại)
+            g = os.path.join(p_, "ghep-cuoi.mp4")
+            for f in os.listdir(p_):
+                if f.endswith("-chuan.mp4") and os.path.exists(g) and os.path.getmtime(g) >= os.path.getmtime(os.path.join(p_, f)) and time.time() - os.path.getmtime(g) > 600:
+                    tong += os.path.getsize(os.path.join(p_, f)); os.remove(os.path.join(p_, f)); bo.append(f"{ten}/{f}")
     for ten in os.listdir(os.path.join(C, "vx-kc")):
         p_ = os.path.join(C, "vx-kc", ten)
         if ten.isdigit() and os.path.isdir(p_) and ten in xa: xoa(p_)

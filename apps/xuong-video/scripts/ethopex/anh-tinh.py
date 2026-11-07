@@ -7,7 +7,7 @@ cổng không chặn (apps/etp/cong.phim_chan_len). Mới nhất lên trước.
 MỘT lệnh lo trọn, mỗi phim:
   1. tải 3 tập miễn phí (tai-tap.py) → khung mỗi 1,5 giây → doc-chu --mat (Vision: điểm mặt Apple + chữ) → chọn khung mặt to, nét, không chữ in cứng
   2. khung gốc độ phân giải đầy đủ → 1080x1920 + tên phim chữ vàng nửa dưới (không che mặt) + phóng chậm 5%
-  3. giọng ElevenLabs v3 trên box3 (scripts/lich-su/giong.mts, khoá FAL ở box3; ~60 ký tự ≈ $0,006 ≈ 160₫/phim, dùng lại khi cùng câu)
+  3. giọng ElevenLabs v3 qua ckey (speakvela/elevenlabs-tts, 156₫/lượt, mã giọng MA_GIONG); ckey hỏng thì FAL (scripts/lich-su/giong.mts) như cũ
   4. cổng chữ trên video (kiem-thoai.py) → thư viện etp (thu-vien-them.mts, dạng "ảnh tĩnh", nguồn anh_tinh) → creative (thu-vien-len.py)
 Từ đó nhịp ethopex (apps/cty/worker/ethopex.mjs) thấy creative ảnh tĩnh chấm Sạch của phim đang chạy → lên camp $1, giờ chạy theo lịch chung (nhan-ban.lich_len).
 Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phim] [--xem] [--giong ky_di|gao|cam_xuc|hao_hung|thuong|theo-phim]
@@ -293,18 +293,36 @@ def danh_dau(tv, kieu, lang, ten, so_mau=0, them=None):
                     "cta": {"mau": "khong_nut"}, **({"anh_tinh": {"ban": them.get("ban"), "khung": f"{them.get('tap')}#{them.get('khung_so')}", "chon": "ai" if MOI else "may", "hd": MOI}} if them else {})}, ensure_ascii=False).replace("$J$", "")
     return sql(f"update etp.diem_cham d set cham = d.cham || $J${j}$J$::jsonb, luc = now() from etp.thu_vien v where v.id = {int(tv)} and d.creative_id = v.creative_id returning d.creative_id")
 
-def giong(cid, lang, ten, kieu, tm, so_mau=0):
-    """giọng đọc (box3 — khoá FAL chỉ ở đó) → (giong.mp3, ₫ đã chi); cùng câu thì dùng lại, không đọc lần hai"""
-    v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang][so_mau]
-    cau = mau.format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten)); h = hashlib.sha1(f"{v}|{cau}".encode()).hexdigest()[:10]; f = os.path.join(tm, f"giong-{h}.mp3")
-    if os.path.exists(f): return f, 0, kieu
-    xa = f"/var/tmp/anh-tinh/{cid}"; job = os.path.join(tm, "giong.json")
+# GIỌNG QUA CKEY (anh 08/11/2026 "phải dùng cả giọng elevenlab qua ckey"): speakvela/elevenlabs-tts, 156₫ / lượt (≤ 1.000 ký tự), engine v3 (đọc thẻ [shouting]…).
+# Cổng NHẬN MÃ GIỌNG, LỜ TÊN: "Laura" / mã sai đều ra cùng một giọng mặc định (đo md5 08/11/2026) → luôn gửi mã. Cổng đệm theo (câu, giọng): cùng câu không tính lại.
+MA_GIONG = {"Laura": "FGY2WhTYpPnrIDTdsKH5", "Brian": "nPczCjzI2devNBz1zQrb", "Callum": "N2lVS1w4EtoT3dr4eOWO", "Jessica": "cgSgspJ2msm6clMCkdW9", "George": "JBFqnCBsd6RMkjVDRZzb"}
+GIA_CKEY = 156
+def doc_giong(cid, lang, v, cau, tm):
+    """một câu → mp3 trong tm (dùng lại khi cùng giọng + câu) → (tệp, ₫). ckey trước; ckey hỏng → FAL (giong.mts box3) như cũ, kêu ra stderr."""
+    h = hashlib.sha1(f"{v}|{cau}".encode()).hexdigest()[:10]; f = os.path.join(tm, f"giong-{h}.mp3")
+    if os.path.exists(f) and os.path.getsize(f) > 5000: return f, 0
+    xa = f"/var/tmp/anh-tinh/{cid}"; job = os.path.join(tm, "giong-ckey.json")
+    json.dump({"model": "speakvela/elevenlabs-tts", "input": cau, "voice": MA_GIONG.get(v, v), "engine": "v3", "language": lang}, open(job, "w"), ensure_ascii=False)
+    sh("ssh", B, f"mkdir -p {xa}"); sh("scp", "-q", job, f"{B}:{xa}/giong-ckey.json")
+    r = sh("ssh", B, f". /root/.secrets/spy.env; curl -s -m 120 -o {xa}/giong.mp3 -w '%{{http_code}} %{{content_type}} %{{size_download}}' https://api.xah.io/v1/audio/speech "
+                     f"-H \"Authorization: Bearer $CKEY_KEY\" -H 'content-type: application/json' --data @{xa}/giong-ckey.json", han=180)
+    ma = (r.stdout or "").split()
+    if r.returncode == 0 and len(ma) == 3 and ma[0] == "200" and "audio" in ma[1] and int(ma[2]) > 5000:
+        sh("scp", "-q", f"{B}:{xa}/giong.mp3", f); return f, GIA_CKEY
+    print(f"giọng ckey hỏng ({r.stdout.strip()[:120]} {r.stderr.strip()[-120:]}) → FAL", file=sys.stderr)
+    job = os.path.join(tm, "giong.json")
     json.dump({"ngon_ngu": lang, "giong": {"voice": v}, "cau": [{"chu": cau}]}, open(job, "w"), ensure_ascii=False)
-    sh("ssh", B, f"mkdir -p {xa}"); sh("scp", "-q", job, f"{B}:{xa}/giong.json")
+    sh("scp", "-q", job, f"{B}:{xa}/giong.json")
     r = sh("ssh", B, f"{XV} scripts/lich-su/giong.mts {xa}/giong.json {xa}", han=600)
     if r.returncode != 0: raise RuntimeError(f"giọng: {(r.stderr or r.stdout)[-200:]}")
     sh("scp", "-q", f"{B}:{xa}/giong.mp3", f)
-    return f, round(len(cau) / 1000 * 0.10 * 26000), kieu
+    return f, round(len(cau) / 1000 * 0.10 * 26000)
+
+def giong(cid, lang, ten, kieu, tm, so_mau=0):
+    """giọng đọc mẫu câu CAU theo kiểu → (giong.mp3, ₫ đã chi, kiểu)"""
+    v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang][so_mau]
+    f, vnd = doc_giong(cid, lang, v, mau.format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten)), tm)
+    return f, vnd, kieu
 
 def dung(nen, chu, mp3, ra):
     L = max(GIAY_MIN, float(sh("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", mp3).stdout) + 1.4); n = int(L * 30)

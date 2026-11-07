@@ -34,16 +34,8 @@ def mo_ta(url):
     except Exception: return ""
 
 def giong_cau(cid, lang, cau, kieu, tm):
-    """giọng đọc một câu tuỳ ý (anh-tinh.giong chỉ đọc mẫu CAU) — cùng đường box3 giong.mts"""
-    v, mau = AT.KIEU_GIONG[kieu]; nd = mau.split("{a}")[0] + cau   # giữ thẻ cách đọc đầu mẫu của kiểu
-    import hashlib; f = os.path.join(tm, f"giong-{hashlib.sha1(f'{v}|{nd}'.encode()).hexdigest()[:10]}.mp3")
-    if os.path.exists(f): return f, 0
-    xa = f"/var/tmp/anh-tinh/{cid}"; job = os.path.join(tm, "giong.json")
-    json.dump({"ngon_ngu": lang, "giong": {"voice": v}, "cau": [{"chu": nd}]}, open(job, "w"), ensure_ascii=False)
-    AT.sh("ssh", AT.B, f"mkdir -p {xa}"); AT.sh("scp", "-q", job, f"{AT.B}:{xa}/giong.json")
-    r = AT.sh("ssh", AT.B, f"{AT.XV} scripts/lich-su/giong.mts {xa}/giong.json {xa}", han=600)
-    if r.returncode != 0: raise RuntimeError(f"giọng: {(r.stderr or r.stdout)[-200:]}")
-    AT.sh("scp", "-q", f"{AT.B}:{xa}/giong.mp3", f); return f, round(len(nd) / 1000 * 0.10 * 26000)
+    """giọng đọc một câu tuỳ ý — cùng đường ckey của anh-tinh.doc_giong, giữ thẻ cách đọc đầu mẫu của kiểu"""
+    v, mau = AT.KIEU_GIONG[kieu]; return AT.doc_giong(cid, lang, v, mau.split("{a}")[0] + cau, tm)
 
 def poster_dong(tm, ra_nen):
     """poster 3:4 → 9:16: nền = poster phóng kín + mờ + tối nhẹ, poster rõ nét đặt giữa, rộng trọn khung"""

@@ -47,7 +47,7 @@ export function soanTin(x) {
 }
 
 const TRUY = `select coalesce(json_agg(x order by x.dong, x.creative_id), '[]') from (
-  select d.id dong, d.loai, d.content_id, d.ten, r.creative_id, r.dang, r.tu, r.den, r.video, r.anh, c.diem, c.ly_do, c.khung,
+  select d.id dong, d.loai, d.content_id, d.ten, r.creative_id, r.dang, r.tu, r.den, r.video, r.anh, c.diem, c.ly_do, c.khung, c.luc::text cham_luc,
          c.lop->'anh'->>'giay' giay, c.lop->'anh'->>'so_khung' so_khung, c.lop->'anh'->'khung_url' khung_url,
          (select coalesce(json_agg(m.k), '[]') from etp.tieu_chi_mien m where m.dang = r.dang) mien
   from etp.dong_phim d join etp.dong_buoc b on b.dong_id = d.id and b.buoc = 'creative'
@@ -67,9 +67,14 @@ export async function guiDuyet(tg, { ep = false } = {}) {
   let n = 0;
   for (const [cr, v] of Object.entries(st)) if (!cr.startsWith('_') && !con.has(cr)) { await tg('deleteMessage', { message_id: v.mid }); delete st[cr]; n++; }
   n += await donTinLac(tg, st, topic);
+  // CHẤM LẠI THÌ TIN CẬP NHẬT (anh 08/11/2026 "update luôn trên telegram phần review thủ công" — luật chấm đổi, creative chấm lại mà vẫn trượt thì tin cũ giữ điểm cũ):
+  // lần chấm (etp.cham.luc) khác lúc gửi → xoá tin cũ, gửi tin mới với điểm / lý do / khung mới. Tin gửi trước bản này không có luc → giữ, chỉ ghi luc.
+  for (const x of ds) { const v = st[x.creative_id]; if (!v) continue;
+    if (!v.luc) { v.luc = x.cham_luc; continue; }
+    if (v.luc !== x.cham_luc) { await tg('deleteMessage', { message_id: v.mid }); delete st[x.creative_id]; n++; } }
   for (const x of ds) { if (st[x.creative_id]) continue;
     const m = await tg('sendMessage', { message_thread_id: topic, parse_mode: 'HTML', ...soanTin(x) });
-    if (m.ok) { st[x.creative_id] = { mid: m.result.message_id, dong: x.dong }; n++; } else console.error(`✗ duyệt creative #${x.creative_id}: ${m.description}`); }
+    if (m.ok) { st[x.creative_id] = { mid: m.result.message_id, dong: x.dong, luc: x.cham_luc }; n++; } else console.error(`✗ duyệt creative #${x.creative_id}: ${m.description}`); }
   fs.writeFileSync(TEP(), JSON.stringify(st)); return n;
 }
 

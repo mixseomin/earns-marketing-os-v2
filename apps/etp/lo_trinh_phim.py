@@ -94,7 +94,8 @@ AT_HANG = 6
 def xep_at(q):
     ch = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'at_uu_tien'), '{}')") or "{}")
     if not ch.get("bat"): return 0
-    con = int(q("select count(*) from etp.dong_phim where loai = 'AT' and trang_thai = 'chay'") or 0)
+    # chỉ đếm dòng CỦA BƯỚC NÀY: 15 dòng AT phim mới (lộ trình, lãi 0) không được chặn phim lãi vào hàng (08/11/2026)
+    con = int(q("select count(*) from etp.dong_phim where loai = 'AT' and trang_thai = 'chay' and ai like 'máy: ảnh tĩnh ưu tiên%'") or 0)
     if con >= AT_HANG: return 0
     r = q(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp)
         select c.content_id, max(f.ten), max(f.the_loai), 'AT', 'máy: ảnh tĩnh ưu tiên (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh") — phim đang chạy chưa có ảnh tĩnh', 1

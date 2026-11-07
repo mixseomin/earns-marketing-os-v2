@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import nen_video
 _c2 = _iu2.spec_from_file_location("cta_qc", os.path.join(D, "cta_qc.py")); CQ = _iu2.module_from_spec(_c2); _c2.loader.exec_module(CQ); A = os.path.join(D, "..", "..", "assets", "ethopex")
 _s = importlib.util.spec_from_file_location("dl", os.path.join(D, "dung-lo-dai.py")); DL = importlib.util.module_from_spec(_s); _s.loader.exec_module(DL)
 DAI_MIN, DAI_MAX, QUET = 65, 85, 420
+DAI_SAN = 30   # đoạn ra (sau khi cắt bỏ giây cấm) ngắn nhất còn dùng — xem cat1
 # KIỂU "TẬP NGUYÊN" (anh 28/10/2026 "thử thêm cách của Kiên"): ETP_KIEU=tap → mỗi khung là MỘT TẬP TRỌN (đầu tập → hết tập, 45–160s), không nút CTA giữa
 # video, thẻ tên phim + WATCH NOW chỉ ở 3 giây cuối (cat-canh.py dung_tap). Mẫu đo từ creative thắng của Kim Kiên 22–27/10 (#54757, #53591, #54460: 53–150s)
 KIEU = os.environ.get("ETP_KIEU", "")
@@ -119,7 +120,9 @@ def cat1(cid, loc, ten, src, moc, pst, tu, den, ra_dir):
         r = subprocess.run(["python3", os.path.join(D, "cat-canh.py"), src, str(tu), str(den), pst, "-"] + args, capture_output=True, text=True, env={**os.environ, "ETP_TEN": ten, "ETP_CAM": ",".join(str(g) for g in CAM_PHIM.get(cid, []) if tu <= g <= den)})
         if r.returncode != 0: return {"content_id": int(cid), "ten": ten, "loi": (r.stdout + r.stderr)[-300:]}
         g = DL.giay(ra)
-        if g < (den - tu) * (0.5 if KIEU == "tap" else 1) - (1 if KIEU == "tap" else 0): return {"content_id": int(cid), "ten": ten, "loi": f"đoạn ra {g:.1f}s ngắn hơn khung {den - tu:.0f}s"}   # tập nguyên: không thẻ cuối + có thể đã bỏ giây cấm
+        # ĐOẠN NGẮN VẪN DÙNG (anh 07/11/2026 "thử khung ngắn 55… ảnh tĩnh 9s vẫn ok, cấm bỏ cuộc"): cắt bỏ giây cấm làm khung 65s còn 51–61s → trước bỏ cả phim.
+        # Giờ chỉ bỏ khi còn dưới DAI_SAN giây.
+        if g < ((den - tu) * 0.5 - 1 if KIEU == "tap" else DAI_SAN): return {"content_id": int(cid), "ten": ten, "loi": f"đoạn ra {g:.1f}s ngắn hơn khung {den - tu:.0f}s"}   # tập nguyên: không thẻ cuối + có thể đã bỏ giây cấm
         bien = {"nut_mau": os.environ.get("ETP_NUT_MAU", "do"), "the_cuoi": os.environ.get("ETP_THE_CUOI", "poster")}   # biến thể đo điểm chạm (cat-canh.py) → sổ diem_cham
         return {"content_id": int(cid), "lang": loc, "ten": ten, "tu": tu, "den": den, "het_tap": len(moc), "moc_tap": moc, "file": ra, "giay": round(DL.giay(ra), 1), "bien": bien}
     except Exception as e:

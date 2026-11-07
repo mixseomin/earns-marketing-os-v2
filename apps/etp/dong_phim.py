@@ -189,6 +189,14 @@ def b_poster(d):
     nhan_lai(cid)   # poster qua (kể cả sau khi bỏ chặn) → phim phải đang được Nhà giữ
     return "xong", (out.splitlines() or ["poster sạch"])[-1][:300], None
 
+def doi_at(d, ly):
+    """CẤM BỎ CUỘC (anh 07/11/2026 "thử đa dạng cấm bỏ cuộc"): dòng CC không ra đoạn / hết khung mới → xếp dòng AT (ảnh tĩnh) cho cùng phim, không xếp đôi (dong_phim_mot)."""
+    if d.get("loai") not in ("CC", None): return ""
+    r = sql(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp) select content_id, ten, the_loai, 'AT', {s('máy: CC không ra (' + ly[:80] + ') → thử ảnh tĩnh')}, 1
+               from etp.dong_phim where id = {d['id']} and not exists (select 1 from etp.dong_phim x where x.content_id = {d['content_id']} and x.loai = 'AT' and x.tao_luc > now() - interval '2 days')
+               on conflict do nothing returning id""")
+    return f" · đã xếp dòng ảnh tĩnh #{r}" if r else ""
+
 def b_cat(d):
     cid, lo = d["content_id"], f"dp{d['id']}"
     r = sql(f"select ten, url, locale, nguon from ethopex_content where id = {cid}", spy=True).split("\t")
@@ -206,10 +214,11 @@ def b_cat(d):
     if d.get("so_camp"):   # MỞ RỘNG: bỏ khung chồng lên đoạn đã có creative của phim (04/11/2026 dòng #35 cắt lại đúng đoạn #64977 → cổng trùng đoạn chặn hết)
         da = [tuple(map(float, l.split("\t"))) for l in sql(f"select tu, den from etp.creative where content_id = {cid} and tu is not null and den is not null").splitlines() if l.count("\t") == 1]
         bo = [x for x in ok if any(float(x["tu"]) < b and float(x["den"]) > a for a, b in da)]; ok = [x for x in ok if x not in bo]
-        if not ok and bo: return "dung", f"mọi khung cuối tập cắt được đều trùng đoạn đã có creative ({len(bo)} khung) — phim hết khung mới", None   # không cắt ra khung nào ≠ hết khung mới (05/11/2026 #51 báo "0 khung" khi thật ra cắt quá giờ) → rơi xuống nhánh lỗi
+        if not ok and bo: return "dung", f"mọi khung cuối tập cắt được đều trùng đoạn đã có creative ({len(bo)} khung) — phim hết khung mới" + doi_at(d, "hết khung mới"), None   # không cắt ra khung nào ≠ hết khung mới (05/11/2026 #51 báo "0 khung" khi thật ra cắt quá giờ) → rơi xuống nhánh lỗi
     if ok: return "xong", f"cắt {len(ok)} đoạn: " + ", ".join(f"{x['tu']:.0f}–{x['den']:.0f}s" for x in ok), {"doan": ok, "lo": lo}
     g = loi or " ".join(str(x.get("loi")) for x in kq) or out[-200:]
-    return ("loi" if rc == -9 or LK.ky_thuat(g) is not False else "dung"), f"không ra đoạn nào: {g[:300]}", None
+    kt = "loi" if rc == -9 or LK.ky_thuat(g) is not False else "dung"
+    return kt, f"không ra đoạn nào: {g[:300]}" + (doi_at(d, g) if kt == "dung" else ""), None
 
 def b_soat(d, truoc):
     doan = (truoc.get("cat") or {}).get("doan") or []

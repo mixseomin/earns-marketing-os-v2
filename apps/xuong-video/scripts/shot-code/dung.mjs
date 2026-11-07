@@ -47,7 +47,7 @@ const DAU_MA = (await import('node:crypto')).createHash('md5').update(`${x264.jo
 if (!nenVideo && !tieng) {
   const { cpus } = await import('node:os'), { createHash } = await import('node:crypto'), fs = await import('node:fs'), { join } = await import('node:path');
   const song = Math.max(1, Number(arg('song', 2))), kho = arg('kho'), tam = `${ra}.doan`;
-  fs.rmSync(tam, { recursive: true, force: true }); fs.mkdirSync(tam, { recursive: true }); if (kho) fs.mkdirSync(kho, { recursive: true });
+  fs.rmSync(tam, { recursive: true, force: true }); fs.mkdirSync(tam, { recursive: true }); if (kho) { fs.mkdirSync(kho, { recursive: true }); /* TỰ DỌN KHO ĐOẠN (anh 07/11/2026: đĩa iMac đầy, kho đoạn 18 GB / tuần): đoạn quá 2 ngày gần như không còn được dùng lại → xoá */ const han = Date.now() - 2 * 86_400_000; for (const f of fs.readdirSync(kho)) { const p = join(kho, f); try { if (fs.statSync(p).mtimeMs < han) fs.rmSync(p, { force: true }); } catch { /* tệp vừa bị lượt khác xoá */ } } }
   // đoạn: theo --doan [{bd, kt, khoa}] (giây) — không có thì chia đều theo số trang
   const ds = arg('doan') ? JSON.parse(readFileSync(arg('doan'), 'utf8')).map((d) => ({ f0: Math.round(d.bd * fps), khoa: d.khoa }))
     : Array.from({ length: song }, (_, i) => ({ f0: Math.round((i * n) / song), khoa: null }));

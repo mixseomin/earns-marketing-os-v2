@@ -393,8 +393,12 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
         select r.content_id, 'creative' loai, r.creative_id id, left(case when h.trang_thai = 'loi' then 'chấm lỗi: ' || coalesce(h.loi, '?') else 'chờ chấm (' || coalesce(h.trang_thai, '') || ')' end, 200) chu, h.luc::text luc
           from etp.cham_hang h join etp.creative r using (creative_id) where h.trang_thai in ('cho', 'dang', 'loi') and r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
         union all
-        select r.content_id, 'creative', r.creative_id, left(case when coalesce(g.cho_duyet, '') <> '' then 'cổng chấm: chờ người duyệt (' || g.cho_duyet || ') — ' else 'cổng chấm chặn: ' end || coalesce(g.chan_boi, ''), 200), r.cap_nhat::text
-          from etp.cham_cong g join etp.creative r using (creative_id) where not g.duoc_len and r.tu_choi is null and r.content_id is not null and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
+        select r.content_id, 'creative', r.creative_id, left(case when coalesce(g.cho_duyet, '') <> '' then 'cổng chấm: chờ người duyệt (' || g.cho_duyet || ') — '
+            when u.trang_thai = 'dang' then 'đang cắt bỏ khung vi phạm (máy cứu) — ' when u.trang_thai = 'loi' then 'máy cứu lỗi lần ' || u.lan || ': ' || coalesce(u.ly_do, '') || ' — '
+            else 'cổng chấm chặn: ' end || coalesce(g.chan_boi, ''), 200), r.cap_nhat::text
+          -- máy cứu (apps/etp/cuu_cham.py, anh 07/11/2026): đã có bản cắt bỏ khung ('xong' — bản mới tự vào hàng chấm) hoặc không cứu được ('bo') = đã kết, không còn kẹt
+          from etp.cham_cong g join etp.creative r using (creative_id) left join etp.cuu_cham u using (creative_id)
+          where not g.duoc_len and r.tu_choi is null and r.content_id is not null and coalesce(u.trang_thai, '') not in ('xong', 'bo') and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
         union all
         select v.content_id, 'creative', v.creative_id, left('không tự lên: ' || v.ly_do, 200), v.cham_luc::text from etp.cho_len_v v
           where v.ly_do is not null and v.ly_do not like 'phim %' and v.ly_do not like 'creative đã bị từ chối%'   -- 'phim …' = điều hướng (đi dòng sản xuất / phim đã có camp / đội nhận), không phải kẹt; từ chối = đã kết

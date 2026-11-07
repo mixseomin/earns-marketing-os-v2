@@ -28,19 +28,27 @@ def khoang(khung, n, giay):
         else: kh.append([a, z])
     return kh
 
+def xet(j):
+    """dữ liệu chấm một creative → (khoảng cần bỏ, None) nếu cắt bỏ được, hoặc (None, lý do không cứu được). Hàm thuần — máy cứu (apps/etp/cuu_cham.py) dùng để lọc trước khi tải video."""
+    n, giay = int((j.get("lop") or {}).get("so_khung") or 0), float((j.get("lop") or {}).get("giay") or 0)
+    dinh = sorted({int(k) for v in (j.get("khung") or {}).values() for k in v})
+    if n and giay and j.get("video") and not dinh: return None, "trượt vì tiêu chí không nằm ở khung nào (chất lượng / CTA / lời) — cắt bỏ khung không sửa được"
+    if not (n and giay and dinh and j.get("video")): return None, f"thiếu dữ liệu khung (n={n}, giây={giay:.0f}, khung dính={len(dinh)})"
+    if len(dinh) >= TRAN_KHUNG * n: return None, f"dính {len(dinh)}/{n} khung — lỗi nằm cả video (thoại), không cắt được"
+    kh = khoang(dinh, n, giay)
+    if any(z > giay - THE_CUOI for a, z in kh): return None, f"khung dính rơi vào thẻ cuối (khung {dinh}) — cắt là mất tên phim / nút"
+    con = giay - sum(z - a for a, z in kh)
+    if con < GIU * giay: return None, f"bỏ xong còn {con:.0f}/{giay:.0f}s (< {GIU:.0%})"
+    return kh, None
+
 def mot(cr, ra_dir):
     j = json.loads(sql(f"""select json_build_object('khung', h.khung, 'lop', h.lop->'anh', 'chan', g.chan_boi, 'video', r.video, 'content_id', r.content_id, 'lang', coalesce(r.lang, 'en'),
         'tu', r.tu, 'den', r.den, 'dang', r.dang, 'lo', r.lo, 'ten', coalesce(p.ten, '')) from etp.cham h join etp.cham_cong g using (creative_id) join etp.creative r using (creative_id)
         left join etp.phim p on p.content_id = r.content_id where h.creative_id = {int(cr)}""") or "null")
     if not j: return {"creative": cr, "loi": "chưa chấm / không có trong kho"}
-    n, giay = int((j.get("lop") or {}).get("so_khung") or 0), float((j.get("lop") or {}).get("giay") or 0)
-    dinh = sorted({int(k) for v in (j.get("khung") or {}).values() for k in v})
-    if not (n and giay and dinh and j.get("video")): return {"creative": cr, "loi": f"thiếu dữ liệu khung (n={n}, giây={giay:.0f}, khung dính={len(dinh)})"}
-    if len(dinh) >= TRAN_KHUNG * n: return {"creative": cr, "loi": f"dính {len(dinh)}/{n} khung — lỗi nằm cả video (thoại), không cắt được"}
-    kh = khoang(dinh, n, giay)
-    if any(z > giay - THE_CUOI for a, z in kh): return {"creative": cr, "loi": f"khung dính rơi vào thẻ cuối (khung {dinh}) — cắt là mất tên phim / nút"}
-    con = giay - sum(z - a for a, z in kh)
-    if con < GIU * giay: return {"creative": cr, "loi": f"bỏ xong còn {con:.0f}/{giay:.0f}s (< {GIU:.0%})"}
+    kh, loi = xet(j)
+    if loi: return {"creative": cr, "loi": loi}
+    giay = float(j["lop"]["giay"]); con = giay - sum(z - a for a, z in kh)
     goc = os.path.join(ra_dir, f"goc-{cr}.mp4"); out = os.path.join(ra_dir, f"b-{j['content_id']}-{int(float(j['tu'] or 0))}-{cr}.mp4")
     subprocess.run(["curl", "-s", "-A", "Mozilla/5.0", "-o", goc, j["video"]], check=True, timeout=600)
     dk = "+".join(f"between(t,{a:.2f},{z:.2f})" for a, z in kh)

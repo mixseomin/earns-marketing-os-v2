@@ -19,6 +19,7 @@ import datetime as dt, json, os, re, signal, socket, subprocess, sys, threading,
 R = os.path.dirname(os.path.abspath(__file__)); E = os.path.join(R, "..", "xuong-video", "scripts", "ethopex")
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex")); import nen_video as NV   # bộ nén theo máy (Mac = VideoToolbox)
 sys.path.insert(0, E); import loi_ky_thuat as LK
+sys.path.insert(0, R); import cuu_cham as CU   # cứu creative bị cổng chấm chặn + luật dạng trượt (anh 07/11/2026)
 # MỘT kết nối ssh dùng chung (ControlMaster) cho mọi câu SQL / lệnh box3 — mỗi câu một ssh mới thì >10 dòng song song vượt MaxStartups của sshd box3,
 # box3 đóng kết nối ("Connection closed by … port 22", 04/11/2026)
 SSH = ["ssh", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20", "-o", "ControlMaster=auto", "-o", f"ControlPath={os.path.expanduser('~/.ssh/cm-etp-dong-%r@%h')}", "-o", "ControlPersist=10m"]
@@ -189,9 +190,10 @@ def b_poster(d):
     nhan_lai(cid)   # poster qua (kể cả sau khi bỏ chặn) → phim phải đang được Nhà giữ
     return "xong", (out.splitlines() or ["poster sạch"])[-1][:300], None
 
-def doi_at(d, ly):
-    """CẤM BỎ CUỘC (anh 07/11/2026 "thử đa dạng cấm bỏ cuộc"): dòng CC không ra đoạn / hết khung mới → xếp dòng AT (ảnh tĩnh) cho cùng phim, không xếp đôi (dong_phim_mot)."""
-    if d.get("loai") not in ("CC", None): return ""
+def doi_at(d, ly, loai=("CC", None)):
+    """CẤM BỎ CUỘC (anh 07/11/2026 "thử đa dạng cấm bỏ cuộc"): dòng CC không ra đoạn / hết khung mới → xếp dòng AT (ảnh tĩnh) cho cùng phim, không xếp đôi (dong_phim_mot).
+    loai: các loại dòng được chuyển — dạng trượt cổng chấm (b_cat) chuyển cả LT."""
+    if d.get("loai") not in loai: return ""
     r = sql(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp) select content_id, ten, the_loai, 'AT', {s('máy: CC không ra (' + ly[:80] + ') → thử ảnh tĩnh')}, 1
                from etp.dong_phim where id = {d['id']} and not exists (select 1 from etp.dong_phim x where x.content_id = {d['content_id']} and x.loai = 'AT' and x.tao_luc > now() - interval '2 days')
                on conflict do nothing returning id""")
@@ -199,6 +201,10 @@ def doi_at(d, ly):
 
 def b_cat(d):
     cid, lo = d["content_id"], f"dp{d['id']}"
+    # DẠNG TRƯỢT CỔNG CHẤM (anh 07/11/2026, việc 3 — Vengeance of the Dragon Princess 25/29 cảnh thật trượt meta.bao_luc): phần lớn bản dạng này của phim trượt cùng
+    # một tiêu chí → không cắt thêm (chắc chắn trượt, tốn giờ máy + tiền chấm), dừng dòng và chuyển ảnh tĩnh. Luật một chỗ: apps/etp/cuu_cham.py dang_truot
+    tr = CU.dang_truot(sql, cid, d.get("loai"))
+    if tr: return "dung", tr + doi_at(d, "dạng trượt cổng chấm", ("CC", "LT", None)), None
     r = sql(f"select ten, url, locale, nguon from ethopex_content where id = {cid}", spy=True).split("\t")
     if len(r) < 2 or not r[1]: return "loi", "không tìm thấy link tập trong ethopex_content (spy)", None
     sql(f"""delete from etp.viec where lo = '{lo}';   -- lô riêng của dòng: chạy lại bước = xếp lại từ đầu
@@ -643,6 +649,17 @@ def vong():
             bs.setdefault(ke, {})["lan"] = (bs.get(ke) or {}).get("lan", 0) + 1
         th = threading.Thread(target=lam_buoc, args=(d, ke), daemon=True); th.start(); CHAY[(d["id"], ke)] = (th, time.time())
 
+# CỨU CREATIVE BỊ CỔNG CHẤM CHẶN (anh 07/11/2026 "làm cả 4"): mỗi 15 phút một lượt apps/etp/cuu_cham.py trong luồng riêng (cắt bỏ khung + lên creative chạy vài phút,
+# không giữ chân vòng dòng phim). Lượt đang chạy thì không bật lượt mới. Chỉ ở iMac (cắt video — cấm dựng video trên box3).
+CUU = {"luot": 0.0, "th": None}
+def cuu():
+    if time.time() - CUU["luot"] < 900 or (CUU["th"] and CUU["th"].is_alive()): return
+    CUU["luot"] = time.time()
+    def chay():
+        try: print(f"[{time.strftime('%H:%M:%S')}] cứu creative bị chặn: {CU.chay()}", flush=True)
+        except Exception as e: print(f"[{time.strftime('%H:%M:%S')}] cứu creative lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
+    CUU["th"] = threading.Thread(target=chay, daemon=True); CUU["th"].start()
+
 def main(a):
     if a and a[0] == "mot": vong(); time.sleep(int(a[1]) if len(a) > 1 else 60); return   # một vòng rồi chờ các bước vừa bật (thử)
     # BỎ TẦNG NỀN macOS (anh 07/11/2026 "vẫn chậm"): launcher cũ chạy `taskpolicy -b`, execv khi nạp mã giữ nguyên tầng nền → mọi thợ cắt / ffmpeg / Vision con
@@ -652,18 +669,19 @@ def main(a):
     print(f"[{MAY}] máy chạy dòng phim bắt đầu (pid {os.getpid()})", flush=True)
     # TỰ NẠP MÃ MỚI (04/11/2026: tiến trình chạy liền từ 13:49 giữ mã cũ trong bộ nhớ — --tay, lý do poster, chờ KT sửa xong đều chưa có hiệu lực,
     # dòng #49 vẫn bị chặn trùng đội sau deploy): tệp mã của máy đổi → thôi nhận bước mới, chờ các bước đang chạy xong rồi execv chính nó
-    ma = [os.path.abspath(__file__), os.path.join(E, "loi_ky_thuat.py")]
+    ma = [os.path.abspath(__file__), os.path.join(E, "loi_ky_thuat.py"), os.path.join(R, "cuu_cham.py"), os.path.join(E, "cat-bo-cham.py")]
     dau = lambda: [os.path.getmtime(f) for f in ma if os.path.exists(f)]
     goc = dau()
     while True:
         if dau() != goc:
-            if not any(th.is_alive() for th, _ in CHAY.values()):
+            if not any(th.is_alive() for th, _ in CHAY.values()) and not (CUU["th"] and CUU["th"].is_alive()):
                 print(f"[{MAY}] mã máy đổi — nạp lại", flush=True); os.execv(sys.executable, [sys.executable, "-u", os.path.abspath(__file__), *a])
             try: sql(f"update etp.dong_may set nhip = now() where may = '{MAY}'")   # còn sống trong lúc chờ — Mạnh không báo máy im
             except Exception: pass
             time.sleep(10); continue
         try: vong()
         except Exception as e: print(f"vòng lỗi: {type(e).__name__}: {str(e)[:300]}", flush=True)
+        cuu()
         time.sleep(10)
 
 if __name__ == "__main__": main(sys.argv[1:])

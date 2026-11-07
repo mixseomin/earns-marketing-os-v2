@@ -20,6 +20,7 @@ hang = lambda s: [r.split("\x1f") for r in subprocess.run(["psql", os.environ["D
                                                           capture_output=True, text=True).stdout.rstrip("\n").split("\x1e") if r.strip()]
 TEN = {"nhan": "Nhận phim", "ws": "Trang phim", "poster": "Soát poster", "cat": "Cắt đoạn", "soat": "Soát đoạn", "creative": "Tải + chấm", "camp": "Lên camp", "chay": "Camp chạy"}
 IM_BUOC, IM_MAY = 600, 180   # giây
+HAN_KT = 24 * 3600            # dòng KT chờ hàng máy sinh kể chuyện tối đa (xem mục 1)
 # MÃ LUẬT CỦA TỪNG BƯỚC (04/11/2026: nới luật máu poster + miễn trùng đội cho camp tay mà 11 + 2 dòng dừng cũ vẫn đứng — dấu cổng không thấy luật đổi):
 # bước dừng ở đâu thì băm tệp làm luật bước đó; sửa tệp → dấu đổi → dòng tự chạy lại bước dừng một lần. Bước Lên camp thêm NGÀY: cổng camp
 # (bão hoà, ngân sách, trùng đội) đổi theo số mỗi ngày → mỗi ngày thử lại một lần.
@@ -52,11 +53,16 @@ def main():
     def muc1():
         # 1. bước quá hạn / im
         for l in hang("""select b.dong_id, b.buoc, b.lan, extract(epoch from now() - b.bat_dau)::int, extract(epoch from now() - coalesce(b.nhip, b.bat_dau))::int, b.han_giay,
-                             p.content_id, coalesce(p.ten, ''), coalesce(b.ghi, '')
+                             p.content_id, coalesce(p.ten, ''), coalesce(b.ghi, ''), coalesce(p.loai, '')
                       from etp.dong_buoc b join etp.dong_phim p on p.id = b.dong_id where b.trang_thai = 'dang' and not b.huy and p.trang_thai = 'chay'"""):
-            dong, buoc, lan, tuoi, im, han, cid, ten, gc = l; tuoi, im, han, lan = int(tuoi), int(im), int(han), int(lan)
-            if tuoi <= han and im <= IM_BUOC: continue
-            ly = f"quá hạn {tuoi // 60} phút (hạn {han // 60})" if tuoi > han else f"im {im // 60} phút (máy chạy dòng không còn báo sống)"
+            dong, buoc, lan, tuoi, im, han, cid, ten, gc, loai = l; tuoi, im, han, lan = int(tuoi), int(im), int(han), int(lan)
+            # KT CHỜ HÀNG MÁY SINH KHÔNG PHẢI TREO (anh 07/11/2026, việc 4): bước Tải + chấm của dòng KT chỉ đứng đầu hàng máy sinh kể chuyện (bậc 5000, ~40–70 phút / phim,
+            # trần 24 phim / ngày) — máy dòng vẫn báo sống mỗi nhịp. Trước: hạn 4 giờ → Mạnh huỷ, FIX lại từ cuối hàng, 6 lần là chết hẳn (dòng #52 #54 #55 #60 #61 đứng
+            # 'lỗi' từ 04–05/11 trong khi máy sinh vẫn làm 18 phim / ngày). Nay chờ hàng được tới HAN_KT; quá thì lỗi kèm lý do thật "máy sinh không nhận phim".
+            cho_hang = loai == "KT" and buoc == "creative" and ("chờ máy nhận" in gc or gc.startswith("máy sinh kể chuyện:"))
+            if (tuoi <= (HAN_KT if cho_hang else han)) and im <= IM_BUOC: continue
+            ly = (f"máy sinh kể chuyện không nhận phim sau {tuoi // 3600} giờ chờ hàng" if cho_hang and im <= IM_BUOC
+                  else f"quá hạn {tuoi // 60} phút (hạn {han // 60})" if tuoi > han else f"im {im // 60} phút (máy chạy dòng không còn báo sống)")
             tu_fix = lan < 2
             ghi(f"""update etp.dong_buoc set huy = true, trang_thai = 'loi', ket_thuc = now(), ghi = $G$Mạnh: {ly} — {gc[:200].replace('$G$', '')}$G$, fix = {str(tu_fix).lower()}
                     where dong_id = {dong} and buoc = '{buoc}' and trang_thai = 'dang';

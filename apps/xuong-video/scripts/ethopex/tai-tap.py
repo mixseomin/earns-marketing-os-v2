@@ -42,6 +42,12 @@ def tap_url(goc, html, n):
     m = [sach(x) for x in re.findall(r'(?:https?://www\.dramabox\.com)?/video/\d{11}_[^"\s/]+/\d+_Episode-' + str(n) + r'\b', html)]
     return (m[0] if m[0].startswith("http") else "https://www.dramabox.com" + m[0]) if m else (goc if n == 1 else None)
 
+def giay_tap(p):
+    """độ dài tập (giây); tệp hỏng / tải dở (moov atom not found) → None"""
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", p], capture_output=True, text=True, timeout=120)
+    try: return float(r.stdout.strip()) if r.returncode == 0 and float(r.stdout.strip()) > 0 else None
+    except ValueError: return None
+
 def da_het(ra):
     """Đã dò HẾT tập miễn phí và còn đủ tệp → không cần mạng. MỘT chỗ cho mọi nơi gọi (tho / dot-phim-moi / nguon-box / sua-cta cứ gọi tai-tap, không tự kiểm)."""
     try: k = int(open(os.path.join(ra, "tap-het")).read().strip())
@@ -71,13 +77,19 @@ def main(goc, ra, so=3):
         if not u: het = True; break
         ra_tap = os.path.join(ra, f"tap{n:02d}.mp4")
         if os.path.exists(ra_tap) and os.path.getsize(ra_tap) > 100_000:   # DÙNG LẠI tập đã tải, chỉ tải tập còn thiếu (05/11/2026 #80386: có sẵn 8 tập → nơi gọi không tải nữa, sót tập 9)
-            giay = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", ra_tap]).strip() or 0)
-            kq.append({"tap": n, "giay": round(giay, 1), "url": u}); continue
+            giay = giay_tap(ra_tap)
+            if giay: kq.append({"tap": n, "giay": round(giay, 1), "url": u}); continue
+            # tập HỎNG (07/11/2026: HP tap01 80386 tải dở từ 06/11, moov atom not found → mọi lượt sau đổ ở ffprobe): cất sang .hong rồi tải lại
+            os.replace(ra_tap, ra_tap + ".hong"); print(f"tap {n}: tep cu hong — tai lai", file=sys.stderr)
         html = html1 if n == 1 else lay(u).decode("utf-8", "ignore")
         v = video_trong(html)
         if not v: print(f"tap {n}: khong co video (khoa / het tap mien phi)", file=sys.stderr); het = True; break
-        subprocess.run(["ffmpeg", "-v", "error", "-y", "-headers", f"User-Agent: {UA}\r\nReferer: {goc}\r\n", "-i", v, "-c", "copy", ra_tap], check=True, timeout=900)
-        giay = float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", ra_tap]).strip() or 0)
+        # tải vào .part, kiểm đọc được rồi mới đổi tên: tải bị giết giữa chừng không bao giờ để lại tapNN.mp4 dở cho lượt sau dùng lại
+        tam = ra_tap + ".part"
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-headers", f"User-Agent: {UA}\r\nReferer: {goc}\r\n", "-i", v, "-c", "copy", "-f", "mp4", tam], check=True, timeout=900)
+        giay = giay_tap(tam)
+        if not giay: raise RuntimeError(f"tap {n}: tai xong nhung tep khong doc duoc (Invalid data)")
+        os.replace(tam, ra_tap)
         kq.append({"tap": n, "giay": round(giay, 1), "url": u})
     json.dump(kq, open(os.path.join(ra, "tap.json"), "w"), ensure_ascii=False)
     if het and kq: open(os.path.join(ra, "tap-het"), "w").write(str(len(kq)))   # lần gọi sau thấy dấu này (da_het) thì trả ngay, không dò mạng

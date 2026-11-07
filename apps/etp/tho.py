@@ -17,26 +17,33 @@ MAY = socket.gethostname().split(".")[0]; TRUNG_TAM = "Tuans-iMac"; IMAC = "htua
 # máy chỉ tải 8 rồi báo "hết khung mới". tai-tap.py tự dừng ở tập khoá / tập trả phí đầu tiên, nên trần này chỉ là chặn trên cho phim mở bất thường nhiều tập.
 TAP_TOI_DA = 20
 
+# TRẦN GIỜ CẮT THEO KHỐI VIỆC (07/11/2026): trần cố định 45 phút đặt khi mỗi phim cắt 2 bản; nay 5–8 bản, iMac đo 8–44 phút / phim → HP quá giờ lặp lại.
+# Mỗi bản ~8 phút (đo 07/11: iMac 40 phút / 5 bản, HP 42 phút / 5 bản). Dòng LT (kieu=tap) đọc chữ cả phim: giữ 100 phút. Một công thức cho cả lúc cắt lẫn quet_chet (bản SQL ngay dưới).
+def tran_phut(d): return 100 if d.get("kieu") == "tap" else 15 + 8 * int(d.get("so_ban") or 2)
+TRAN_SQL = "(case when du_lieu->>'kieu' = 'tap' then 100 else 15 + 8 * coalesce((du_lieu->>'so_ban')::int, 2) end)"
+
 def sql(cau):
     r = subprocess.run(["ssh", "-o", "ConnectTimeout=15", B, f'{ENV}; psql "$DATABASE_URL" -qtA -v ON_ERROR_STOP=1 -f -'], input=cau, capture_output=True, text=True, timeout=120)
     if r.returncode: raise RuntimeError(r.stderr.strip()[-300:])
     return r.stdout.strip()
 
 def quet_chet():
-    """việc 'dang' của máy này quá 1 giờ (hơn trần 15 phút tải + 45 phút cắt) = tiến trình đã chết → trả về hàng chờ, không nằm kẹt mãi"""
-    r = sql(f"update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | thợ chết giữa chừng, xếp lại' where trang_thai = 'dang' and may = '{MAY}' and bat_dau < now() - interval '1 hour' returning id")
+    """việc 'dang' của máy này quá trần cắt + 1 giờ (tải ≤ 25 phút, gửi về iMac ≤ 30 phút) = tiến trình đã chết → trả về hàng chờ, không nằm kẹt mãi.
+    Trần cũ 1 giờ cố định thấp hơn trần dòng LT (100 phút) → xếp lại cả việc đang chạy thật."""
+    r = sql(f"update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | thợ chết giữa chừng, xếp lại' where trang_thai = 'dang' and may = '{MAY}' and bat_dau < now() - interval '1 minute' * ({TRAN_SQL} + 60) returning id")
     if r: print(f"[{MAY}] xếp lại việc kẹt: {r.replace(chr(10), ' ')}", flush=True)
 def nhan(lo):
     dk = f"and lo = '{lo}'" if lo else ""
     j = sql(f"""update etp.viec set trang_thai = 'dang', may = '{MAY}', bat_dau = now(), lan_thu = lan_thu + 1
-               where id = (select id from etp.viec where trang_thai = 'cho' {dk} order by id for update skip locked limit 1)
+               where id = (select id from etp.viec where trang_thai = 'cho' {dk} and not coalesce(du_lieu->'may_hong', '[]'::jsonb) ? '{MAY}' order by id for update skip locked limit 1)
                returning json_build_object('id', id, 'loai', loai, 'lo', lo, 'content_id', content_id, 'du_lieu', du_lieu, 'lan_thu', lan_thu)""")
     return json.loads(j) if j else None
 
 def xong(v, ket_qua, loi=None):
     kq = json.dumps(ket_qua, ensure_ascii=False).replace("$K$", "")
-    if loi and LK.ky_thuat(loi) is True and v["lan_thu"] < 3:   # lỗi kỹ thuật → về hàng chờ cho lượt / máy khác
-        sql(f"update etp.viec set trang_thai = 'cho', may = null, loi = $L${str(loi)[:300]}$L$ where id = {v['id']}"); return "tra_lai"
+    if loi and LK.ky_thuat(loi) is True and v["lan_thu"] < 3:   # lỗi kỹ thuật → về hàng chờ cho MÁY KHÁC: máy này ghi vào may_hong, nhan() không đưa lại cho nó
+        # (07/11/2026: phim 92980 quá giờ 3 lần liền cùng trên HP, 45 phút mất trắng mỗi lần). Tối đa 3 lần thử ≤ số máy thợ (iMac, HP, VPS) → luôn còn máy nhận.
+        sql(f"update etp.viec set trang_thai = 'cho', may = null, loi = $L${str(loi)[:300]}$L$, du_lieu = jsonb_set(coalesce(du_lieu, '{{}}'::jsonb), '{{may_hong}}', coalesce(du_lieu->'may_hong', '[]'::jsonb) || to_jsonb('{MAY}'::text)) where id = {v['id']}"); return "tra_lai"
     sql(f"update etp.viec set trang_thai = '{'loi' if loi and not ket_qua else 'xong'}', xong = now(), ket_qua = $K${kq}$K$::jsonb, loi = {('$L$' + str(loi)[:300] + '$L$') if loi else 'null'} where id = {v['id']}")
     return "xong"
 
@@ -52,7 +59,7 @@ def cat(v):
     # cả nhóm tiến trình: quá giờ thì giết luôn cat-canh / ffmpeg con cháu (25/10/2026: 3 ffmpeg treo mồ côi 8 giờ sau khi thợ bỏ việc)
     pr = subprocess.Popen([*uu, "python3", os.path.join(E, "cat-cuoi-lo.py"), N, tsv, ra, "1", str(d.get("so_ban", 2))], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
                           env={**os.environ, **({"ETP_KIEU": d["kieu"]} if d.get("kieu") else {})})   # kieu=tap: mỗi tập một đoạn (dòng phim LT, anh 03/11/2026)
-    try: pr.wait(timeout=(100 if d.get("kieu") == "tap" else 45) * 60)   # LT đọc chữ cả phim + dựng tới 10 đoạn   # một phim cắt 2 đoạn đo 5–11 phút → trần 45 phút (trần cũ 3 giờ làm lô kẹt cả buổi, 02/11/2026)
+    try: pr.wait(timeout=tran_phut(d) * 60)   # trần theo số bản (tran_phut); trần cũ 3 giờ làm lô kẹt cả buổi (02/11/2026)
     except subprocess.TimeoutExpired:
         try: os.killpg(pr.pid, 9)
         except Exception: pass

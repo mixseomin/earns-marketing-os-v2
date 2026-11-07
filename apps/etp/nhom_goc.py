@@ -41,7 +41,15 @@ def cham(content_id, ghi=True, them=None):
         anh_ds, nguon = _q(f"""select u from (select distinct on (c.creative_id) c.creative_id, c.lop->'anh'->'khung_url' k from etp.cham c join etp.creative r using (creative_id)
                                where r.content_id = {int(content_id)} and jsonb_array_length(coalesce(c.lop->'anh'->'khung_url', '[]')) >= 8 order by c.creative_id) x,
                                jsonb_array_elements_text(x.k) with ordinality e(u, n) where n in (3, 7, 11, 15) limit 4""", db).split(), "khung video QC"
-        if not anh_ds: return None, 0, "không có poster trong kho Ethopex, phim chưa có creative nào chấm xong để lấy khung"
+        if not anh_ds:   # còn thiếu → poster og:image trên chính trang phim (anh 07/11/2026 "phim ko có poster thì vào site của phim mà lấy")
+            try:
+                import importlib.util as _u
+                _s = _u.spec_from_file_location("tai_tap", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "tai-tap.py")); TT = _u.module_from_spec(_s); _s.loader.exec_module(TT)
+                url = _q(f"select coalesce(url, '') from ethopex_content where id = {int(content_id)}", spy_db)
+                og = TT.og_anh(url) if url else None
+                if og: anh_ds, nguon = [og], "poster trang phim"
+            except Exception as e: print("poster trang phim lỗi:", e, file=sys.stderr)
+        if not anh_ds: return None, 0, "không có poster trong kho Ethopex, trang phim không có ảnh og:image, chưa có creative nào chấm xong để lấy khung"
     chi, loi = 0.0, ""
     for model in _tuyen()[:3]:
         try:

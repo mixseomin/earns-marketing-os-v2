@@ -56,6 +56,15 @@ def da_het(ra):
     po = os.path.join(ra, "poster.jpg")
     return k > 0 and os.path.exists(po) and os.path.getsize(po) > 2000 and all(os.path.exists(os.path.join(ra, f"tap{n:02d}.mp4")) for n in range(1, k + 1))
 
+def og_anh(goc):
+    """link ảnh og:image (poster) trên trang phim công khai, không tải ảnh. Dùng chung: main() tải poster.jpg · nhom_goc.py khi Ethopex thiếu poster (anh 07/11/2026 "vào site của phim mà lấy")."""
+    html1 = lay(goc).decode("utf-8", "ignore")
+    if "reelshort.com" in goc and "/movie/" in goc:
+        m = re.search(r'href="(/(?:[a-z]{2}/)?episodes/episode-1-[^"]+)"', html1)
+        if m: goc = "https://www.reelshort.com" + H.unescape(m.group(1)); html1 = lay(goc).decode("utf-8", "ignore")
+    og = re.search(r'<meta[^>]+property="og:image"[^>]+content="([^"]+)"|<meta[^>]+content="([^"]+)"[^>]+property="og:image"', html1)
+    return H.unescape(og.group(1) or og.group(2)).split("@")[0] if og else None
+
 def main(goc, ra, so=3):
     os.makedirs(ra, exist_ok=True)
     if da_het(ra):

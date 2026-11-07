@@ -14,6 +14,13 @@ def ky_thuat(loi):
     if re.search(r"không tải được|không đọc được|Timeout|timed out|Traceback|Errno|Connection|ssh:|curl:|moov atom|Invalid data|No such file|Broken pipe|HTTP Error 5\d\d", s, re.I): return True
     return not NOI_DUNG.search(s)
 
+# TIN TELEGRAM KHÔNG LỘ ĐƯỜNG DẪN / MÃ NGUỒN (anh 07/11/2026): đuôi lỗi máy → câu dễ hiểu. Dừng ở "<" để không nuốt thẻ HTML đóng. Bản JS: deHieu ở apps/cty/worker/ethopex.mjs
+_DUOI_MAY = re.compile(r"(?:Traceback|subprocess\.|\w*TimeoutExpired|\b\w+(?:Error|Exception):|Command \[|\[?'?(?:/Users|/opt|/private|/root|/tmp)/)[^\n<]*")
+def de_hieu(chu):
+    """đổi đuôi lỗi máy trong chữ gửi người đọc thành câu thường; chữ không có đuôi máy giữ nguyên"""
+    s = _DUOI_MAY.sub(lambda m: "máy chạy quá giờ" if re.search("timeout|timed out", m.group(0), re.I) else "máy gặp sự cố kỹ thuật", str(chu or ""))
+    return re.sub(r"[\w./-]+\.(?:py|mjs)\b", "máy", s)
+
 def thu(f, *a, lan=THU_LAI, nghi=NGHI, loi_cua=lambda k: k.get("loi") if isinstance(k, dict) else None):
     """chạy f(*a); kết quả mang lỗi KỸ THUẬT thì chạy lại (tối đa `lan` lần nữa). Lỗi nội dung hoặc đạt → trả ngay."""
     k = f(*a)
@@ -32,4 +39,6 @@ if __name__ == "__main__":
     assert ky_thuat("PHIM18 CHAN: phim 78433 dính từ khoá 18+ 'steamy'") is False
     assert ky_thuat("lỗi lạ chưa gặp") is True and ky_thuat(None) is None
     n = [0]; assert thu(lambda: (n.__setitem__(0, n[0] + 1), {"loi": "Timeout"} if n[0] < 2 else {"ok": 1})[1], nghi=0) == {"ok": 1} and n[0] == 2
+    assert de_hieu("cat: không ra đoạn nào: TimeoutExpired: Command ['nice', '/Users/htuan/x/cat-cuoi-lo.py'") == "cat: không ra đoạn nào: máy chạy quá giờ"
+    assert de_hieu("<b>a</b> ValueError: x /opt/y</i>") == "<b>a</b> máy gặp sự cố kỹ thuật</i>" and de_hieu("thu $5 — bình thường") == "thu $5 — bình thường"
     print("loi_ky_thuat: tự kiểm đạt")

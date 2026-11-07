@@ -67,6 +67,8 @@ export const khungCua = (gio, KD = BANG_LUAT.khung_doi) => { const t = ([a, b]) 
 /** BẢN LUẬT lúc ghi sổ hoãn trong ngày (05/11/2026: bỏ luật trùng phim cho ROAS mà máy vẫn giữ 3 gốc tới hết ngày, phải sửa tay tệp hoãn trên box3):
  *  mtime của nhan-ban.py + cong.py — deploy đổi một trong hai (git reset chỉ ghi lại tệp đổi) thì mọi gốc đang hoãn được xét lại ngay nhịp sau */
 export const banLuat = () => [NB, path.join(REPO, 'apps/etp/cong.py')].map((f) => { try { return Math.round(fs.statSync(f).mtimeMs); } catch { return 0; } }).join('-');
+/** TIN KHÔNG LỘ ĐƯỜNG DẪN / MÃ NGUỒN (anh 07/11/2026) — bản JS của de_hieu (apps/xuong-video/scripts/ethopex/loi_ky_thuat.py); dừng ở "<" để không nuốt thẻ HTML đóng */
+export const deHieu = (s) => String(s).replace(/(?:Traceback|subprocess\.|\w*TimeoutExpired|\b\w+(?:Error|Exception):|Command \[|\[?'?(?:\/Users|\/opt|\/private|\/root|\/tmp)\/)[^\n<]*/g, (m) => (/timeout|timed out/i.test(m) ? 'máy chạy quá giờ' : 'máy gặp sự cố kỹ thuật')).replace(/[\w./-]+\.(?:py|mjs)\b/g, 'máy');
 /** sổ hoãn còn dùng được: cùng ngày VN + cùng bản luật */
 export const hoanHopLe = (so, homNay) => !!so && so.ngay === homNay && so.ban === banLuat();
 /** mức đích của một dòng luật = dấu '→ $N' CUỐI câu (G10 hồi viết '→ $10 → $30': lấy dấu đầu thì máy gửi $10 — 21:22 05/11/2026 #65722 #73284 bị lam-ethopex từ chối) */
@@ -393,7 +395,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // seTat ở đây chỉ là lưới đỡ khi máy luật bản cũ trả về (29/10/2026 #65656)
   const seTat = new Set(LUAT_TAT_SO.flatMap((x) => (kq[x.khoa] || []).map((m) => m.id)));   // mọi luật tắt trong sổ luật chung
   const { tinNhanh } = await import('./tg-phong.mjs');
-  const guiNhanh = async (b) => { const j = await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...b }); tinNhanh(j?.result?.message_id); return j; };
+  const guiNhanh = async (b) => { const j = await tg('sendMessage', { parse_mode: 'HTML', link_preview_options: { is_disabled: true }, ...b, ...(b.text ? { text: deHieu(b.text) } : {}) }); tinNhanh(j?.result?.message_id); return j; };
   // MÁY TỰ GIẢM BẬC (luật GB, chỉ khi anh đã duyệt "gb_tu_giam" trên Telegram): camp chạm GB → lam-ethopex giam (vẫn chặn đổi < 6 giờ, camp phải bật,
   // mức phải trên thang); không bao giờ tắt. Camp đã giảm không ra nút ↓ nữa.
   const duyet = docJ(TEP_DUYET(), {});
@@ -705,7 +707,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     let r; try { r = JSON.parse((await chay(path.join(REPO, 'apps/xuong-video/scripts/ethopex/thay-the.py'), ['--that', '--toi-da', '15'], 1500)).trim().split('\n').pop()); } catch (e) { r = { moi: 0, bao: [`lỗi máy thay camp: ${e.message}`] }; }
     const len = (r.bao || []).filter((x) => / lên /.test(x) || /^lỗi/.test(x) || /^(cất phim|mở lại phim|đổi bộ phim)/.test(x) || /team lãi/.test(x));   // thang chuyển hướng (cat_phim.py, 31/10/2026)
     if (r.moi || len.length) {
-      await guiNhanh({ message_thread_id: topic, disable_notification: true, text: `🔁 <b>CAMP THAY THẾ</b> — phim chỉ còn 1 camp sắp tắt: ${r.moi} phim mới vào hàng; lên theo bộ định dạng, rút kinh nghiệm camp cũ\n${(len.length ? len : r.bao || []).slice(0, 25).map((x) => '• ' + esc(x)).join('\n')}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
+      await guiNhanh({ message_thread_id: topic, disable_notification: true, text: `🔁 <b>CAMP THAY THẾ</b> — phim chỉ còn 1 camp sắp tắt: ${r.moi} phim mới vào hàng; lên theo bộ định dạng, rút kinh nghiệm camp cũ\n${(len.length ? len : r.bao || []).slice(0, 25).map((x) => '• ' + esc(x)).join('\n\n')}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
       gui++;
     }
   }

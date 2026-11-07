@@ -78,10 +78,10 @@ def chan_doan(camp, content):
     rc, rt = cph / (float(ref["chi"]) / float(ref["hien"])), tph / (float(ref["thu"]) / float(ref["hien"]))
     so.update(chi_1000_hien=round(cph * 1000, 2), thu_1000_hien=round(tph * 1000, 2), gap_chi=round(rc, 2), gap_thu=round(rt, 2))
     if rc >= HOOK_GAP and rc >= 1 / max(rt, 1e-9):
-        return {"ly_do": f"QC đắt: ${cph * 1000:.2f} / 1.000 lượt hiện, gấp {rc:.1f}× camp lãi — cảnh mở / ảnh bìa không hút", "huong": "hook", "so": so, "bai_hoc_phim": so_bh}
+        return {"ly_do": f"QC đắt: ${cph * 1000:.2f} cho 1.000 lượt hiện, gấp {rc:.1f} lần camp lãi — cảnh mở hoặc ảnh bìa không hút", "huong": "hook", "so": so, "bai_hoc_phim": so_bh}
     if rt <= GIU_GAP:
-        return {"ly_do": f"thu ${tph * 1000:.2f} / 1.000 lượt hiện, chỉ {rt:.0%} camp lãi — người xem vào nhưng không ở lại", "huong": "giu", "so": so, "bai_hoc_phim": so_bh}
-    return {"ly_do": f"chi / lượt hiện ({rc:.1f}×) và thu / lượt hiện ({rt:.0%}) đều sát camp lãi — lỗ do dao động, đổi đoạn khác", "huong": "khac", "so": so, "bai_hoc_phim": so_bh}
+        return {"ly_do": f"thu ${tph * 1000:.2f} trên 1.000 lượt hiện, chỉ bằng {rt:.0%} camp lãi — người xem vào nhưng không ở lại", "huong": "giu", "so": so, "bai_hoc_phim": so_bh}
+    return {"ly_do": f"chi và thu gần bằng camp lãi (chi gấp {rc:.1f} lần, thu bằng {rt:.0%}) — lỗ do dao động, đổi đoạn khác", "huong": "khac", "so": so, "bai_hoc_phim": so_bh}
 
 def ung_vien(content, cr_cu, huong):
     """creative khác cùng phim, xếp theo hướng rút kinh nghiệm; bỏ creative đang có camp chạy / đã lỗ / trùng ≥ 50% đoạn cũ"""
@@ -169,8 +169,12 @@ def lam(r, NB):
     dau = next((b for b in bo if b.get("camp")), None)
     ghi(r["id"], buoc=buoc, bo_camp=bo, creative_id=(dau or {}).get("creative") or (cho[0][1] if cho else None), camp_moi=(dau or {}).get("camp"),
         ghi=("; ".join(f"{d} #{c}: {str(l)[:80]}" for d, c, l in cho[:4]) or ("chờ cắt góc mới (iMac)" if can_cat else ""))[:300])
-    tom = (("lên " + ", ".join(bao)) if bao else "chưa lên dạng nào") + (f" · chờ {len(cho)} creative (chấm / chặn)" if cho else "") + (" · xếp cắt góc mới (CC)" if can_cat else "")
-    return f"phim {content} (thay #{cu}): {tom} · {bh['ly_do']}"
+    # mỗi ý một dòng (anh 07/11/2026 "format các danh sách dạng list") — worker lọc theo chữ " lên ", giữ nguyên hai cụm dưới
+    y = [("Đã lên camp: " + ", ".join(bao)) if bao else "Chưa lên camp nào"]
+    if cho: y.append(f"Đang chờ: {len(cho)} creative chưa qua chấm")
+    if can_cat: y.append("Đã xếp cắt thêm đoạn phim mới")
+    y.append(f"Lý do: {bh['ly_do']}")
+    return f"phim {c0.get('ten') or content} (thay camp #{cu})\n" + "\n".join("   - " + x for x in y)
 
 def main():
     NB = _nap("nb", "nhan-ban.py")

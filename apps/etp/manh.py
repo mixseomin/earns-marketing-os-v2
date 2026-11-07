@@ -35,6 +35,10 @@ def bam(tep):
 def bao(chu):
     if THU: return print("[TG]", chu)
     try:
+        s = importlib.util.spec_from_file_location("lk", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "loi_ky_thuat.py")); lk = importlib.util.module_from_spec(s); s.loader.exec_module(lk)
+        chu = lk.de_hieu(chu).replace("\ncat: ", "\nCắt phim: ")   # anh 07/11/2026: tin không lộ đường dẫn / mã nguồn
+    except Exception as e: print("lọc chữ tin lỗi:", e, file=sys.stderr)
+    try:
         s = importlib.util.spec_from_file_location("lg", os.path.join(os.path.dirname(os.path.abspath(__file__)), "lich-gio.py")); m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
         m.bao_tg(chu)
     except Exception as e: print("báo Telegram lỗi:", e, file=sys.stderr)
@@ -67,7 +71,7 @@ def main():
             if int(da) < 1800: continue
             ghi(f"update etp.dong_may set bao_luc = now() where may = '{may}'")
             lam.append(f"máy chạy dòng {may} im {int(im) // 60} phút")
-            bao(f"🚨 <b>Mạnh</b> · máy chạy dòng phim <b>{may}</b> im {int(im) // 60} phút mà còn dòng đang chạy — launchd com.htuan.etp-dong-phim (iMac) tự bật lại; bước đang dở sẽ bị huỷ + FIX khi quá {IM_BUOC // 60} phút")
+            bao(f"🚨 <b>Mạnh</b> · máy chạy dòng phim <b>{may}</b> im {int(im) // 60} phút mà còn dòng đang chạy — máy tự bật lại; bước đang dở sẽ bị huỷ + FIX khi quá {IM_BUOC // 60} phút")
     def muc3():
         # 3. dòng vừa kết thúc
         tin = []
@@ -81,7 +85,7 @@ def main():
         # nhiều dòng một lượt (dồn sau khi Mạnh chết / một lần box3 ngắt) → MỘT tin, mỗi dòng một hàng; lỗi kỹ thuật ghi kèm "Mạnh tự thử lại"
         if len(tin) <= 3:
             for t, ly in tin: bao(f"{t}\n{ly[:600]}")
-        elif tin: bao(f"📋 <b>Mạnh</b> · {len(tin)} dòng phim vừa kết thúc (lỗi kỹ thuật Mạnh tự thử lại: hạ tầng 10 phút, khác 2 giờ)\n" + "\n".join(f"{t} — {ly[:110]}" for t, ly in tin)[:3800])
+        elif tin: bao(f"📋 <b>Mạnh</b> · {len(tin)} dòng phim vừa kết thúc (lỗi kỹ thuật Mạnh tự thử lại: hạ tầng 10 phút, khác 2 giờ)\n" + "\n".join(f"• {t} — {ly[:110]}" for t, ly in tin)[:3800])
     def muc4():
         # 4. việc cắt lô dòng phim kẹt
         r = q("update etp.viec set trang_thai = 'cho', may = null, loi = coalesce(loi, '') || ' | Mạnh: kẹt quá 75 phút, xếp lại' where lo like 'dp%' and trang_thai = 'dang' and bat_dau < now() - interval '75 minutes' returning id") if not THU else ""

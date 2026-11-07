@@ -12,7 +12,7 @@ const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
 const SPY_ENV = '/root/.secrets/spy.env';
 /** Làn → khoá 2proxy dùng (tên biến trong spy.env). Một chỗ khai; làn mới thêm vào đây. */
 export const KHOA_LAN = { TWOPROXY_KEY_XOAY: 'cao_chinh', TWOPROXY_KEYS_SONG_SONG: 'cao_chinh', TWOPROXY_KEY_DT: 'doi_thu', TWOPROXY_KEY_UU: 'goc_uu' };
-export const NGUONG = { lanDungGio: 2, spyproDungGio: 3, khoaConNgay: 3, cpuBan: 85, ramMB: 1200, nhacLaiGio: 6, taiSanConNgay: 5, ckeyDungGio: 13, vpsRamMB: 400, diaPt: 85 };
+export const NGUONG = { lanDungGio: 2, spyproDungGio: 3, khoaConNgay: 3, cpuBan: 85, ramMB: 1200, nhacLaiGio: 6, taiSanConNgay: 5, ckeyDungGio: 13, vpsRamMB: 400, diaPt: 85, luotQuaGio: 16, napMatGio: 18, giaoDichGio: 5, matNhipPhut: 15, thoQuaGio: 8 };
 // QUÁ TẢI = % CPU BẬN THẬT trung bình giữa hai nhịp (~30 phút, /proc/stat; chờ đĩa/mạng tính là rỗi) — KHÔNG dùng load average 1 phút: nó đếm cả
 // tiến trình ngồi chờ mạng/đĩa và một phút nhói là kêu (22/10/2026: box3 "thỉnh thoảng quá tải" theo nhịp deploy spy; VPS CPU rỗi 97% mà tải 4).
 // Báo kèm 3 tiến trình nặng nhất lúc chụp → biết nghẽn ở đâu, không đoán.
@@ -43,9 +43,32 @@ export function docMayDay(ten, v, j, bayGio = Date.now()) {
     dia: Math.max(j.diaWsl ?? 0, j.diaC ?? 0), diaCConGB: j.diaCConGB, ban: j.ban ?? null, phut: j.phut ?? null, nang: j.nang ?? [], dv: j.dv ?? {}, chayGio: j.chayGio };
 }
 
+const gioVNChu = (t) => new Date(t).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+const thoatHtml = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+/** Thuần: GIÁM SÁT PHIÊN DÀI từ ngoài máy chạy (anh 07/11/2026: "phiên chạy quá lâu mà phát sinh lỗi là bị thiệt hại vì thời gian idle… giám sát độc lập bên ngoài").
+ *  Làn "đứng" chỉ đo NHỊP SỐNG, không đo KẾT QUẢ: 06/11/2026 ba lượt liền nạp hỏng (12:27, 17:02, 21:47) mà nhịp vẫn đều nên không tin nào. Đây đo thứ thật:
+ *  loi = lượt thoát lỗi gần nhất (scripts/cao.sh giữ riêng, lượt sau không ghi đè) · napCuoi = lượt nạp thành công cuối (luot_cao.xong) · giaoDichGio = giao dịch DB lâu nhất
+ *  · tt + song = lượt đang chạy + nhịp 30 giây · tho = dịch vụ thợ cắt HP. Khoá 'luot:' / 'tho:' không vào hàng thợ máy (LOAI_SUA): báo anh, không tự gọi Claude. */
+export function xetPhienLau(p, bayGio = Date.now()) {
+  const ra = [], gio = (t) => (bayGio - Date.parse(t)) / 36e5;
+  if (p.chinhBat !== false) {
+    if (p.loi?.ma && p.loi.xong && !(p.napCuoi && Date.parse(p.napCuoi) > Date.parse(p.loi.xong))) {
+      const dong = String(p.loi.nhat_ky ?? '').split('\n').filter((l) => /Error|FATAL|heap out of memory|surrogates/.test(l) && !/^\s*(at |raise )/.test(l)).pop();
+      ra.push({ khoa: `luot:loi:${p.loi.bat_dau}`, chu: `Lượt cào chính bắt đầu ${gioVNChu(p.loi.bat_dau)} <b>thoát lỗi</b> lúc ${gioVNChu(p.loi.xong)} (mã ${p.loi.ma}), chưa có lượt nạp nào thành công sau đó${dong ? `: ${thoatHtml(dong.trim().slice(0, 140))}` : ''}` });
+    }
+    if (p.napCuoi && gio(p.napCuoi) > NGUONG.napMatGio) ra.push({ khoa: 'luot:khong-nap', chu: `Spy <b>${gio(p.napCuoi).toFixed(0)} giờ chưa nạp được lượt nào</b> (lượt nạp xong cuối bắt đầu ${gioVNChu(p.napCuoi)})` });
+    if (p.tt?.dang_chay && p.tt.bat_dau && gio(p.tt.bat_dau) > NGUONG.luotQuaGio) ra.push({ khoa: 'luot:qua-gio', chu: `Lượt cào chính chạy <b>${gio(p.tt.bat_dau).toFixed(0)} giờ</b> chưa xong (bắt đầu ${gioVNChu(p.tt.bat_dau)}, bước: ${thoatHtml(p.song?.buoc || '?')})` });
+    if (p.tt?.dang_chay && p.song?.luc && (bayGio / 1000 - p.song.luc) / 60 > NGUONG.matNhipPhut) ra.push({ khoa: 'luot:mat-nhip', chu: `Lượt cào chính <b>mất nhịp ${Math.round((bayGio / 1000 - p.song.luc) / 60)} phút</b> (máy tắt / mất mạng / bị giết?) — bước cuối: ${thoatHtml(p.song.buoc || '?')}` });
+  }
+  if (p.giaoDichGio > NGUONG.giaoDichGio) ra.push({ khoa: 'luot:giao-dich', chu: `DB spy có <b>giao dịch mở ${p.giaoDichGio.toFixed(1)} giờ</b> — đứt mạng là mất trắng cả lượt nạp` });
+  if (p.tho?.trang === 'failed') ra.push({ khoa: 'tho:loi', chu: `Thợ cắt máy HP (${p.tho.ten}) <b>thoát lỗi</b>` });
+  else if (p.tho?.tu && gio(p.tho.tu) > NGUONG.thoQuaGio) ra.push({ khoa: 'tho:qua-gio', chu: `Thợ cắt máy HP (${p.tho.ten}) chạy <b>${gio(p.tho.tu).toFixed(0)} giờ</b> chưa xong (từ ${gioVNChu(p.tho.tu)})` });
+  return ra;
+}
+
 /** Thuần: ảnh chụp → cảnh báo [{khoa, chu}]. lan: [{lan, may, cuoi (ISO|null)}] · khoa: [{ma, lan, het (giây epoch)}] · may: {ban, phut, nang, ramMB, daemon} */
 export function xetCanhBao(s, bayGio = Date.now()) {
-  const ra = [];
+  const ra = s.phienLau ? xetPhienLau(s.phienLau, bayGio) : [];
   for (const l of s.lan) {
     if (l.may === 'tat') continue;
     const gio = l.cuoi ? (bayGio - Date.parse(l.cuoi)) / 36e5 : Infinity;
@@ -187,7 +210,14 @@ export async function chupTaiNguyen() {
   // người bán nào đổi giá (cần anh bấm chấp nhận trên ckey.vn), danh sách đổi so với nhịp trước
   const ck = docJson('/var/lib/spy/ckey-tuyen.json'), ckeyTruoc = docJson(`${DATA()}/tai-nguyen.json`)?.ckey ?? null;
   const ckey = ck ? { cap_nhat: ck.cap_nhat, dong: ck.dong, chi_tiet: ck.chi_tiet } : null, ckeyGia = docJson('/var/lib/spy/ckey-gia.json');
-  return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon, dia, diaConGB }, taiSan, vps, ckey, ckeyTruoc, ckeyGia };
+  // GIÁM SÁT PHIÊN DÀI (xetPhienLau) — đọc hỏng thì bỏ phần này, phần còn lại vẫn chạy
+  let phienLau = null;
+  try {
+    const [[napCuoi]] = psqlSpy(env, 'select max(xong) from luot_cao'), [[gd]] = psqlSpy(env, `select coalesce(extract(epoch from now() - min(xact_start)) / 3600, 0) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid()`);
+    const mayNha = docJson(VPS['may-cao-nha'].tep);
+    phienLau = { chinhBat: lan.find((l) => l.lan === 'cao_chinh')?.may !== 'tat', tt, song, loi: docJson('/opt/spy/tep/luot-loi-cuoi.json'), napCuoi: napCuoi ? new Date(napCuoi).toISOString() : null, giaoDichGio: Number(gd) || 0, tho: mayNha?.phien?.['etp-tho-nha'] ? { ten: 'etp-tho-nha', ...mayNha.phien['etp-tho-nha'] } : null };
+  } catch (e) { console.error('✗ giám sát phiên dài:', e.message.split('\n')[0]); }
+  return { luc: new Date().toISOString(), lan, khoa, may: { ...box3, ramMB, daemon, dia, diaConGB }, taiSan, vps, ckey, ckeyTruoc, ckeyGia, phienLau };
 }
 
 /** Thuần — tin Telegram: cảnh báo thường thành dòng •, mục ckey gom thành ba khối bảng <pre> (dòng ≤ 30 ký tự cho vừa màn điện thoại):
@@ -241,6 +271,22 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     const assert = (await import('node:assert')).default, bay = Date.parse('2026-10-19T00:00:00Z'), gio = (h) => new Date(bay - h * 36e5).toISOString();
     const may = { ban: 30, phut: 30, nang: [], ramMB: 4000, daemon: true };
     const k = (x) => xetCanhBao(x, bay).map((c) => c.khoa);
+    const pk = (p) => xetPhienLau(p, bay).map((c) => c.khoa);
+    assert.deepStrictEqual(pk({ napCuoi: gio(10), giaoDichGio: 3, tt: { dang_chay: true, bat_dau: gio(5) }, song: { luc: bay / 1000 - 60 } }), [], 'lượt đang chạy bình thường, nạp 3 giờ: im');
+    assert.deepStrictEqual(pk({ napCuoi: gio(26) }), ['luot:khong-nap'], '06–07/11/2026: 26 giờ không lượt nạp nào thành công — nhịp sống vẫn đều');
+    const loi = { ma: 1, bat_dau: gio(9), xong: gio(1), nhat_ky: 'Error: Connection terminated unexpectedly\n    at Connection.<anonymous> (a.js:1)\nxong' };
+    assert.deepStrictEqual(pk({ napCuoi: gio(10), loi }), [`luot:loi:${gio(9)}`], 'lượt thoát lỗi: báo');
+    assert.ok(xetPhienLau({ napCuoi: gio(10), loi }, bay)[0].chu.includes('Connection terminated') && !xetPhienLau({ napCuoi: gio(10), loi }, bay)[0].chu.includes(' at Connection'), 'tin nêu đúng dòng lỗi, bỏ dòng stack');
+    assert.deepStrictEqual(pk({ napCuoi: gio(0.5), loi }), [], 'đã có lượt nạp thành công sau lỗi: hết chuyện');
+    assert.deepStrictEqual(pk({ napCuoi: gio(26), loi, chinhBat: false }), [], 'làn tắt có chủ ý: im');
+    assert.deepStrictEqual(pk({ giaoDichGio: 5.5 }), ['luot:giao-dich'], 'giao dịch mở quá 5 giờ');
+    assert.deepStrictEqual(pk({ tt: { dang_chay: true, bat_dau: gio(17) } }), ['luot:qua-gio'], 'lượt quá 16 giờ');
+    assert.deepStrictEqual(pk({ tt: { dang_chay: true, bat_dau: gio(2) }, song: { luc: bay / 1000 - 1200 } }), ['luot:mat-nhip'], 'mất nhịp 20 phút: máy tắt / bị giết');
+    assert.deepStrictEqual(pk({ tt: { dang_chay: false, bat_dau: gio(20) }, song: { luc: bay / 1000 - 9999 } }), [], 'lượt đã xong: không tính giờ, không tính nhịp');
+    assert.deepStrictEqual(pk({ tho: { trang: 'failed' } }), ['tho:loi'], 'thợ cắt thoát lỗi');
+    assert.deepStrictEqual(pk({ tho: { trang: 'activating', tu: gio(9) } }), ['tho:qua-gio'], 'thợ cắt quá 8 giờ');
+    assert.deepStrictEqual(pk({ tho: { trang: 'activating', tu: gio(1) } }), [], 'thợ cắt 1 giờ: im');
+    assert.deepStrictEqual(k({ lan: [], khoa: [], may, phienLau: { napCuoi: gio(26) } }), ['luot:khong-nap'], 'xetCanhBao gọi phần phiên dài');
     assert.deepStrictEqual(k({ lan: [{ lan: 'goc_thuong', may: 'box3', cuoi: gio(0.5) }], khoa: [], may }), [], 'làn chạy 30 phút trước: im');
     assert.deepStrictEqual(k({ lan: [{ lan: 'cao_chinh', may: 'imac', cuoi: gio(32) }], khoa: [], may }), ['lan:cao_chinh'], 'máy cào chết 32 giờ (17–19/10)');
     assert.deepStrictEqual(k({ lan: [{ lan: 'cao_chinh', may: 'tat', cuoi: gio(32) }], khoa: [], may }), [], 'làn tắt: không báo đứng');

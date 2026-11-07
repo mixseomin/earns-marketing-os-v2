@@ -3,4 +3,4 @@ import { readFileSync } from 'node:fs';
 import { uploadToR2 } from '../../../src/lib/r2';
 const [mp4, thumb, id] = process.argv.slice(2);
 await uploadToR2(`xuong-video/lich-su/dai/${id}/${id}-thumb.jpg`, readFileSync(thumb), 'image/jpeg');
-console.log(await uploadToR2(`xuong-video/lich-su/dai/${id}/${id}.mp4`, readFileSync(mp4), 'video/mp4'));
+console.log(await uploadToR2(`xuong-video/lich-su/dai/${id}/${id}.mp4`, { tep: mp4 }, 'video/mp4'));

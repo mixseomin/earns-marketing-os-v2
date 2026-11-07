@@ -109,8 +109,10 @@ export function r2KeyFromUrl(url: string): string | null {
 
 /** Đẩy một tệp lên R2 — THỬ LẠI 4 lần (1s / 3s / 9s): ảnh vừa trả tiền mà mạng chập một nhịp thì mất luôn (18/10/2026 #20: FLUX vẽ xong, box chập
  *  mạng, "không đẩy được ảnh bước 1 lên kho" — tiền mất, ảnh mất). Chữ ký tính lại mỗi lần (x-amz-date). */
+// body = { tep } cho tệp lớn (phim dài 1 GB, 07/11/2026): đọc dần từ đĩa, ký UNSIGNED-PAYLOAD — không giữ cả tệp trong RAM
+// (bản Buffer cũ + bản sao Uint8Array + băm cả tệp ăn ~2,9 GB, phiên ssh trên box3 bị OOM giết).
 export async function uploadToR2(
-  key: string, body: Buffer, contentType: string,
+  key: string, body: Buffer | { tep: string }, contentType: string,
 ): Promise<string | null> {
   if (!r2Enabled()) return null;
   for (let lan = 0; lan < 4; lan++) {
@@ -121,7 +123,7 @@ export async function uploadToR2(
   return null;
 }
 async function uploadToR2Mot(
-  key: string, body: Buffer, contentType: string,
+  key: string, body: Buffer | { tep: string }, contentType: string,
 ): Promise<string | null> {
   if (!r2Enabled()) return null;
   const acct = process.env.R2_ACCOUNT_ID!;
@@ -140,7 +142,7 @@ async function uploadToR2Mot(
   const now = new Date();
   const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, ''); // YYYYMMDDTHHMMSSZ
   const dateStamp = amzDate.slice(0, 8);
-  const payloadHash = sha256hex(body);
+  const laTep = !Buffer.isBuffer(body), payloadHash = laTep ? 'UNSIGNED-PAYLOAD' : sha256hex(body);
 
   const canonicalHeaders =
     `content-type:${contentType}\n` +
@@ -173,9 +175,12 @@ async function uploadToR2Mot(
         'x-amz-content-sha256': payloadHash,
         'x-amz-date': amzDate,
         Authorization: authorization,
+        ...(laTep ? { 'Content-Length': String((await import('node:fs')).statSync(body.tep).size) } : {}),
       },
-      body: new Uint8Array(body),
-    });
+      ...(laTep
+        ? { body: (await import('node:stream')).Readable.toWeb((await import('node:fs')).createReadStream(body.tep)) as unknown as BodyInit, duplex: 'half' }
+        : { body: new Uint8Array(body.buffer, body.byteOffset, body.length) }),
+    } as RequestInit);
     if (!res.ok) {
       console.error('[r2] upload failed', res.status, (await res.text()).slice(0, 300));
       return null;

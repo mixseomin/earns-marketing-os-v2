@@ -39,6 +39,8 @@ const coBox = Number(String(await sshA(`stat -c %s ${bt}/${id}.mp4`)).trim()), c
 if (coBox !== coMay) { console.error(`✗ chép sang box3 chưa đủ: ${coBox}/${coMay} byte — không đẩy R2`); await sshA(`rm -rf ${bt}`); process.exit(5); }
 const r2 = JSON.parse((await boxA(`scripts/lich-su/giay/day-r2.mts ${bt}/${id}.mp4 ${bt}/${id}-thumb.jpg ${id} ${khung.map((f) => `${bt}/${f.split('/').pop()}`).join(' ')}`, 25 * 60_000)).split('\n').pop());
 if (!r2.url || !r2.thumb || r2.khung.some((u) => !u)) { console.error(`✗ đẩy R2 thiếu: ${JSON.stringify(r2)}`); process.exit(5); }
+// DẤU PHIÊN BẢN trên link video (07/11/2026): đẩy lại cùng tên tệp thì Cloudflare trước img.on.tc vẫn trả bản đệm cũ (bản cụt 282 MB) — link mới mỗi bản
+r2.url = `${r2.url}?v=${coMay}`;
 // đọc lại byte CUỐI của bản trên R2: phải trả 206 và tổng dung lượng đúng bằng tệp gốc (HEAD có lúc báo đủ trong khi dữ liệu thật thiếu)
 { const kt = execFileSync('curl', ['-s', '-r', `${coMay - 16}-${coMay - 1}`, '-o', '/dev/null', '-w', '%{http_code} %{size_download}', r2.url], { encoding: 'utf8' }).trim();
   if (kt !== '206 16') { console.error(`✗ bản trên R2 không đủ (đọc 16 byte cuối: ${kt}) — không nạp`); process.exit(5); } }

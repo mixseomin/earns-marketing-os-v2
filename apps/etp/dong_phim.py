@@ -202,7 +202,7 @@ def b_cat(d):
     r = sql(f"select ten, url, locale, nguon from ethopex_content where id = {cid}", spy=True).split("\t")
     if len(r) < 2 or not r[1]: return "loi", "không tìm thấy link tập trong ethopex_content (spy)", None
     sql(f"""delete from etp.viec where lo = '{lo}';   -- lô riêng của dòng: chạy lại bước = xếp lại từ đầu
-            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) - san_cua(cid)) + 1 if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {})})}) on conflict do nothing""")
+            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) - san_cua(cid)) + 1 if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {}), "cam_them": json.loads(sql(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'cam_them'), '[]'::jsonb)::text") or "[]")})}) on conflict do nothing""")
     rc, out = chay_tien_trinh(d["id"], "cat", ["python3", os.path.join(R, "tho.py"), "--lo", lo, "--so-tho", "1"], dict(BUOC)["cat"] - 60)
     # THỢ MÁY KHÁC ĐÃ NHẬN LÔ (07/11/2026 dòng #112: VPS may-cao-vn nhận trước, thợ iMac "hết việc — đã làm 0 việc" → dòng ghi lỗi trong khi VPS đang cắt) → chờ máy đó xong
     t0 = time.time()
@@ -212,7 +212,7 @@ def b_cat(d):
     loi = sql(f"select coalesce(loi, '') from etp.viec where lo = '{lo}' order by id desc limit 1")
     ok = [x for x in kq if x.get("file") and not x.get("loi") and os.path.exists(x["file"])]
     if d.get("so_camp"):   # MỞ RỘNG: bỏ khung chồng lên đoạn đã có creative của phim (04/11/2026 dòng #35 cắt lại đúng đoạn #64977 → cổng trùng đoạn chặn hết)
-        da = [tuple(map(float, l.split("\t"))) for l in sql(f"select tu, den from etp.creative where content_id = {cid} and tu is not null and den is not null").splitlines() if l.count("\t") == 1]
+        da = [tuple(map(float, l.split("\t"))) for l in sql(f"select tu, den from etp.creative where content_id = {cid} and tu is not null and den is not null and tu_choi is null and creative_id not in (select creative_id from etp.cham_duyet where not ok)").splitlines() if l.count("\t") == 1]
         bo = [x for x in ok if any(float(x["tu"]) < b and float(x["den"]) > a for a, b in da)]; ok = [x for x in ok if x not in bo]
         if not ok and bo: return "dung", f"mọi khung cuối tập cắt được đều trùng đoạn đã có creative ({len(bo)} khung) — phim hết khung mới" + doi_at(d, "hết khung mới"), None   # không cắt ra khung nào ≠ hết khung mới (05/11/2026 #51 báo "0 khung" khi thật ra cắt quá giờ) → rơi xuống nhánh lỗi
     if ok: return "xong", f"cắt {len(ok)} đoạn: " + ", ".join(f"{x['tu']:.0f}–{x['den']:.0f}s" for x in ok), {"doan": ok, "lo": lo}
@@ -287,7 +287,9 @@ def b_creative_kt(d):
                 || chr(9) || coalesce(r.lang, 'en') || chr(9) || coalesce(r.tu, 0) || chr(9) || coalesce(r.den, 0)
                 from etp.creative r left join etp.cham_cong g using (creative_id)
                 where r.content_id = {d['content_id']} and r.dang = 'kể chuyện' and r.tu_choi is null
-                  and r.cap_nhat >= (select bat_dau from etp.dong_buoc where dong_id = {d['id']} and buoc = 'creative') order by r.creative_id desc limit 1""").split("\t")
+                  and (r.cap_nhat >= (select bat_dau from etp.dong_buoc where dong_id = {d['id']} and buoc = 'creative')
+                       or r.creative_id = (select creative_id from etp.dong_phim where id = {d['id']}))   -- FIX sau ✅ duyệt tay: dùng lại creative của dòng, không sinh lại
+                  order by r.creative_id desc limit 1""").split("\t")
     if not v or not v[0]:
         tv = sql(f"select coalesce(trang_thai, '') || ' ' || coalesce(left(ghi, 160), '') from etp.thu_vien where content_id = {d['content_id']} and dang = 'kể chuyện' and tao >= (select bat_dau from etp.dong_buoc where dong_id = {d['id']} and buoc = 'creative') order by id desc limit 1")
         if tv.startswith("loai") or tv.startswith("loi_may"): return "loi", f"máy sinh kể chuyện hỏng: {tv[:300]}", None
@@ -308,7 +310,7 @@ def b_creative_at(d):
     def tim():
         return sql(f"""select coalesce(r.creative_id::text, '') || chr(9) || coalesce(g.duoc_len::text, '') || chr(9) || coalesce(g.chan_boi, '') || chr(9) || coalesce(g.cho_duyet, '') || chr(9) || coalesce(r.lang, 'en')
                 from etp.creative r left join etp.cham_cong g using (creative_id)
-                where r.content_id = {d['content_id']} and r.dang = 'ảnh tĩnh' and r.tu_choi is null and r.cap_nhat >= {bd} order by r.creative_id desc limit 1""").split("\t")
+                where r.content_id = {d['content_id']} and r.dang = 'ảnh tĩnh' and r.tu_choi is null and (r.cap_nhat >= {bd} or r.creative_id = (select creative_id from etp.dong_phim where id = {d['id']})) order by r.creative_id desc limit 1""").split("\t")
     v = tim()
     # CHỜ ĐỒNG BỘ (07/11/2026, dòng #142 #136–#145): anh-tinh ĐÃ tạo creative (#83016 lúc 21:06) nhưng etp.creative chỉ có nó sau lượt dong-bo
     # 10 phút (22:42) → tim() rỗng → báo "không ra creative" + Mạnh thử lại = sinh lại creative trùng. Nhớ mã creative vừa tạo trong dong_phim.creative_id.
@@ -616,7 +618,7 @@ def vong():
                 if sql(f"select 1 from etp.dong_phim x where x.content_id = {d['content_id']} and x.loai = '{d.get('loai')}' and x.trang_thai = 'chay' and x.id <> {d['id']} limit 1"):
                     sql(f"update etp.dong_buoc set fix = false where dong_id = {d['id']}; update etp.dong_phim set trang_thai = 'huy', ly_do = 'FIX bỏ qua: phim đã có dòng cùng loại đang chạy' where id = {d['id']}")
                     print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} FIX bỏ qua — trùng dòng đang chạy", flush=True); bs = None; break
-                sql(f"""update etp.dong_buoc set trang_thai = 'cho', fix = false, huy = false, bat_dau = null, ket_thuc = null, pid = null, ghi = 'FIX — chạy lại', ket_qua = case when '{b}' = 'creative' then null else ket_qua end
+                sql(f"""update etp.dong_buoc set trang_thai = 'cho', fix = false, huy = false, bat_dau = null, ket_thuc = null, pid = null, ghi = 'FIX — chạy lại', ket_qua = case when '{b}' = 'creative' and not exists (select 1 from etp.cham_cong g where g.duoc_len and g.creative_id in (select (ket_qua->>'creative_id')::int union select (e->>'creative_id')::int from jsonb_array_elements(coalesce(ket_qua->'ds', '[]'::jsonb)) e)) then null else ket_qua end
                         where dong_id = {d['id']} and buoc = '{b}';
                         update etp.dong_buoc set trang_thai = 'cho', bat_dau = null, ket_thuc = null, ghi = null, ket_qua = null, lan = 0 where dong_id = {d['id']} and thu_tu > (select thu_tu from etp.dong_buoc where dong_id = {d['id']} and buoc = '{b}');
                         update etp.dong_phim set trang_thai = 'chay', ly_do = null, xong_luc = null, bao_luc = null where id = {d['id']} and trang_thai <> 'huy'""")

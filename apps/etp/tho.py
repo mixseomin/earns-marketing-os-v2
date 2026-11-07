@@ -73,7 +73,7 @@ def cat(v):
     uu = ["nice", "-n", "10"]
     # cả nhóm tiến trình: quá giờ thì giết luôn cat-canh / ffmpeg con cháu (25/10/2026: 3 ffmpeg treo mồ côi 8 giờ sau khi thợ bỏ việc)
     pr = subprocess.Popen([*uu, "python3", os.path.join(E, "cat-cuoi-lo.py"), N, tsv, ra, "1", str(d.get("so_ban", 2))], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True,
-                          env={**os.environ, **({"ETP_KIEU": d["kieu"]} if d.get("kieu") else {})})   # kieu=tap: mỗi tập một đoạn (dòng phim LT, anh 03/11/2026)
+                          env={**os.environ, **({"ETP_KIEU": d["kieu"]} if d.get("kieu") else {}), **({"ETP_CAM_THEM": ",".join(str(g) for g in d["cam_them"])} if d.get("cam_them") else {})})   # giây người duyệt bảo cắt bỏ (topic 🔍 Duyệt creative)   # kieu=tap: mỗi tập một đoạn (dòng phim LT, anh 03/11/2026)
     try: pr.wait(timeout=tran_giay(d))   # trần theo số bản (tran_phut); trần cũ 3 giờ làm lô kẹt cả buổi (02/11/2026)
     except subprocess.TimeoutExpired:
         try: os.killpg(pr.pid, 9)

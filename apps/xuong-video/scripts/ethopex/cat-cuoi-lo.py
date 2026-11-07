@@ -104,7 +104,9 @@ def lam(p, goc, ra_dir, so_ban=1):
     cid, loc, ten = p[0], p[1], p[3]; tm = os.path.join(goc, cid)
     try:
         pst = os.path.join(tm, "poster-1080.png"); DL.poster(os.path.join(tm, "poster.jpg"), pst)
-        src, moc = ghep_mo(tm); khung, cam = chon(src, moc, so_ban); CAM_PHIM[cid] = cam
+        src, moc = ghep_mo(tm); khung, cam = chon(src, moc, so_ban)
+        # giây người duyệt bảo cắt bỏ (anh 07/11/2026 topic 🔍 Duyệt creative, nút ✂️) — cat-canh bỏ như giây cấm của cổng thoại
+        CAM_PHIM[cid] = sorted(set(cam) | {int(float(g)) for g in os.environ.get("ETP_CAM_THEM", "").split(",") if g.strip()})
         if not khung: return [{"content_id": int(cid), "ten": ten, "loi": f"không có khung cuối sạch (giây cấm {cam[:12]})"}]
         ra = []
         for tu, den in khung:   # lỗi kỹ thuật → cắt lại tại chỗ (loi_ky_thuat.py)

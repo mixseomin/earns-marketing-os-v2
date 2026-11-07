@@ -30,7 +30,7 @@ const dsNhan = await q<{ id: string; ten: string; url: string; nguon: string; lo
 const dsDong = await q<{ id: string; ten: string; url: string; nguon: string; locale: string }>(sql`SELECT d.content_id::text id, coalesce(v.ten, d.ten, '') ten, coalesce(v.url, '') url,
     split_part(split_part(coalesce(v.url, ''), '//', 2), '/', 1) nguon, coalesce(v.locale, 'en') locale
   FROM etp.dong_phim d JOIN etp.dong_buoc b ON b.dong_id = d.id AND b.buoc = 'creative' AND b.trang_thai = 'dang' LEFT JOIN etp.thu_vien_phim v USING (content_id)
-  WHERE d.trang_thai = 'chay' AND d.loai = 'KT'`).catch(() => []);
+  WHERE d.trang_thai = 'chay' AND d.loai = 'KT' AND d.creative_id IS NULL`)   // dòng đã có creative (✅ duyệt tay rồi FIX) → không sinh lại (07/11/2026).catch(() => []);
 const dong = new Set(dsDong.map((p) => p.id));
 dsNhan.unshift(...dsDong.filter((p) => !dsNhan.some((x) => x.id === p.id)));
 const nhan = new Set(dsNhan.map((p) => p.id));

@@ -43,7 +43,7 @@ export function docMayDay(ten, v, j, bayGio = Date.now()) {
     dia: Math.max(j.diaWsl ?? 0, j.diaC ?? 0), diaCConGB: j.diaCConGB, ban: j.ban ?? null, phut: j.phut ?? null, nang: j.nang ?? [], dv: j.dv ?? {}, chayGio: j.chayGio };
 }
 
-const gioVNChu = (t) => new Date(t).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+const gioVNChu = (t) => { const x = new Date(Date.parse(t) + 7 * 36e5).toISOString(); return `${x.slice(11, 16)} ${x.slice(8, 10)}/${x.slice(5, 7)}`; };   // 08:06 06/11
 const thoatHtml = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 /** Thuần: GIÁM SÁT PHIÊN DÀI từ ngoài máy chạy (anh 07/11/2026: "phiên chạy quá lâu mà phát sinh lỗi là bị thiệt hại vì thời gian idle… giám sát độc lập bên ngoài").
  *  Làn "đứng" chỉ đo NHỊP SỐNG, không đo KẾT QUẢ: 06/11/2026 ba lượt liền nạp hỏng (12:27, 17:02, 21:47) mà nhịp vẫn đều nên không tin nào. Đây đo thứ thật:
@@ -274,6 +274,7 @@ if (process.argv[1]?.endsWith('tai-nguyen.mjs')) {
     const pk = (p) => xetPhienLau(p, bay).map((c) => c.khoa);
     assert.deepStrictEqual(pk({ napCuoi: gio(10), giaoDichGio: 3, tt: { dang_chay: true, bat_dau: gio(5) }, song: { luc: bay / 1000 - 60 } }), [], 'lượt đang chạy bình thường, nạp 3 giờ: im');
     assert.deepStrictEqual(pk({ napCuoi: gio(26) }), ['luot:khong-nap'], '06–07/11/2026: 26 giờ không lượt nạp nào thành công — nhịp sống vẫn đều');
+    assert.ok(xetPhienLau({ napCuoi: '2026-10-18T01:06:00Z' }, Date.parse('2026-10-19T04:00:00Z'))[0].chu.includes('08:06 18/10'), 'giờ trong tin = GMT+7, dạng 08:06 18/10');
     const loi = { ma: 1, bat_dau: gio(9), xong: gio(1), nhat_ky: 'Error: Connection terminated unexpectedly\n    at Connection.<anonymous> (a.js:1)\nxong' };
     assert.deepStrictEqual(pk({ napCuoi: gio(10), loi }), [`luot:loi:${gio(9)}`], 'lượt thoát lỗi: báo');
     assert.ok(xetPhienLau({ napCuoi: gio(10), loi }, bay)[0].chu.includes('Connection terminated') && !xetPhienLau({ napCuoi: gio(10), loi }, bay)[0].chu.includes(' at Connection'), 'tin nêu đúng dòng lỗi, bỏ dòng stack');

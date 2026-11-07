@@ -103,12 +103,14 @@ def chay(q):
         ten = (s.get("phim") or {}).get("ten") or f"phim {cid}"; hong = s.get("hong") or {}
         dang = {m: {"da": int((s["dang"].get(t) or {}).get("tao") or 0), "chi": int((s["dang"].get(t) or {}).get("chi") or 0), "bo": int(hong.get(m) or 0) >= SO_LOI_BO} for m, t in {**HIEN, "CT": TEN_CT}.items()}
         ten_sql = ten.replace("'", "''"); ai = f"máy: lộ trình tự động thí điểm (anh 07/11/2026) · {chu}".replace("'", "''")
+        xep_phim = 0
         for loai, so_camp in cac_dong:
             # dong_phim_mot (mỗi phim một dòng chạy mỗi loại) chặn xếp đôi nếu hai lượt đồng bộ chồng nhau
             if q(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp) select {cid}, '{ten_sql}', (select the_loai from etp.phim where content_id = {cid}), '{loai}', '{ai}', {int(so_camp)}
-                     on conflict do nothing returning id"""): xep += 1
-        if cac_dong:
-            q(f"""insert into etp.canh_bao (loai, muc, khoa, noi_dung) values ('lo_trinh', 'info', 'lo_trinh:{cid}:' || extract(epoch from now())::bigint, '🤖 Thí điểm lộ trình · {ten_sql}: {chu.replace("'", "''")}') on conflict do nothing""")
+                     on conflict do nothing returning id"""): xep += 1; xep_phim += 1
+        if xep_phim:   # chỉ báo khi lượt này THẬT xếp dòng mới (trước: báo mỗi lượt kể cả khi on conflict không xếp gì)
+            # khoá = phim + nội dung (07/11/2026: khoá theo giây → mỗi lượt 10 phút gửi lại y hệt, 72 tin/ngày trên Telegram); đổi kế hoạch mới báo lại
+            q(f"""insert into etp.canh_bao (loai, muc, khoa, noi_dung) values ('lo_trinh', 'info', 'lo_trinh:{cid}:' || md5($C${chu}$C$), '🤖 Thí điểm lộ trình · {ten_sql}: {chu.replace("'", "''")}') on conflict do nothing""")
         if (cu.get(str(cid)) or {}).get("chu") != chu:
             q(f"""insert into etp.nhat_ky (luc, viec, ok, luat, ai) values (now(), 'lo_trinh', true, 'phim {cid} · {chu.replace("'", "''")}', 'máy lộ trình tự động')""")
         cu[str(cid)] = {"ma": ma, "chu": chu, "ke": ke, "dang": dang}

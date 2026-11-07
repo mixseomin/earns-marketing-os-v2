@@ -301,9 +301,17 @@ def b_creative_at(d):
                 from etp.creative r left join etp.cham_cong g using (creative_id)
                 where r.content_id = {d['content_id']} and r.dang = 'ảnh tĩnh' and r.tu_choi is null and r.cap_nhat >= {bd} order by r.creative_id desc limit 1""").split("\t")
     v = tim()
+    # CHỜ ĐỒNG BỘ (07/11/2026, dòng #142 #136–#145): anh-tinh ĐÃ tạo creative (#83016 lúc 21:06) nhưng etp.creative chỉ có nó sau lượt dong-bo
+    # 10 phút (22:42) → tim() rỗng → báo "không ra creative" + Mạnh thử lại = sinh lại creative trùng. Nhớ mã creative vừa tạo trong dong_phim.creative_id.
+    da = sql(f"select coalesce(creative_id::text, '') from etp.dong_phim where id = {d['id']}")
+    if (not v or not v[0]) and da: return "cho", f"creative ảnh tĩnh #{da} đã tạo — chờ đồng bộ kho etp (10 phút)", {"creative_id": int(da)}
     if not v or not v[0]:
         rc, out = chay_tien_trinh(d["id"], "creative", ["python3", os.path.join(E, "anh-tinh.py"), str(d["content_id"]), "--so", "1"], HAN_RIENG[("AT", "creative")] - 120)
         v = tim()
+        moi = re.findall(r"→ creative #(\d+)", out)
+        if (not v or not v[0]) and moi:
+            sql(f"update etp.dong_phim set creative_id = {int(moi[-1])} where id = {d['id']}")
+            return "cho", f"creative ảnh tĩnh #{moi[-1]} đã tạo — chờ đồng bộ kho etp (10 phút)", {"creative_id": int(moi[-1])}
         if not v or not v[0]:
             j = next((json.loads(l) for l in out.splitlines() if l.startswith("{") and '"content_id"' in l), None) or {}
             g = j.get("loi") or out[-300:]

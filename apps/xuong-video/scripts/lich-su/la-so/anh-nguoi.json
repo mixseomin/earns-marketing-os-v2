@@ -258,5 +258,31 @@
    "tac_gia": "Londisland - YouTube",
    "nguon": "https://commons.wikimedia.org/wiki/File:Prince_Harry_and_Meghan%E2%80%99s_carriage_procession_through_streets_of_Windsor_05.jpg"
   }
+ ],
+ "cc-steve-jobs": [
+  {
+   "tep": "brand/astrolas/tranh/cc-steve-jobs-1.jpg",
+   "trang": "Steve Jobs",
+   "file": "File:Steve Jobs Headshot 2010 (cropped 6).jpg",
+   "giay_phep": "CC BY-SA 3.0",
+   "tac_gia": "Matthew Yohe",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Steve_Jobs_Headshot_2010_(cropped_6).jpg"
+  },
+  {
+   "tep": "brand/astrolas/tranh/cc-steve-jobs-2.jpg",
+   "trang": "Steve Jobs",
+   "file": "File:Apple Garage.jpg",
+   "giay_phep": "CC BY-SA 2.0",
+   "tac_gia": "Mathieu Thouvenin",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Apple_Garage.jpg"
+  },
+  {
+   "tep": "brand/astrolas/tranh/cc-steve-jobs-3.jpg",
+   "trang": "Steve Jobs",
+   "file": "File:Steve Jobs in 1972 Pegasus (retouched).jpg",
+   "giay_phep": "Public domain",
+   "tac_gia": "Homestead High School",
+   "nguon": "https://commons.wikimedia.org/wiki/File:Steve_Jobs_in_1972_Pegasus_(retouched).jpg"
+  }
  ]
 }

@@ -3,7 +3,7 @@
 // Một lượt, tối đa MỘT tập: tập bị Phòng Nội dung trả về vì hook → đổi hook, dựng lại · còn dưới trần làm trước (so-kenh › tu_chay.truoc_ke_hoach, anh 05/11/2026 "chỉ sx trước kế hoạch 3 bài")
 // → chọn tập kế theo lịch playlist (playlist.lich_tap: 1 = Thứ Hai … 7 = Chủ nhật), mẫu ít tập nhất trong playlist, chưa từng nạp → máy viết → long-tieng.mjs → nap-tap.mjs.
 // Sau đó Phòng Nội dung chấm, máy đăng tự đăng theo nhịp an toàn. Báo Telegram tập mới + tiền thật; hỏng 3 lần thì bỏ tập đó, lượt kế làm tập khác. Video dài chưa tự làm (cần thumbnail thiết kế).
-//   node chay-so-kenh.mjs [--xem] [--tu-kiem]   · --y-tuong: ghi kho ý tưởng lich-su/y-tuong/<kênh>-<mẫu>.json cho mos2 › Hàng chờ
+//   node chay-so-kenh.mjs [--xem] [--tu-kiem] [--bo-tran: bỏ trần làm trước, chạy thử trọn chuỗi một tập]   · --y-tuong: ghi kho ý tưởng lich-su/y-tuong/<kênh>-<mẫu>.json cho mos2 › Hàng chờ
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, openSync, closeSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -99,7 +99,7 @@ for (const x of traVe) {
 // 2 · trần làm trước
 const conCho = Number(q(`SELECT count(*) FROM xv_may_video WHERE may_id = ${M} AND NOT coalesce(luu_tru, false) AND NOT (coalesce(da_dang, '{}'::jsonb) ? 'youtube') AND coalesce(cham->>'ket', '') <> 'SUA_LAI';`)), tran = TC.truoc_ke_hoach ?? 3;
 if (!xem) try { box(`scripts/may-dung.mts --may ${KENH} --so-kenh`); } catch (e) { console.log(`⚠ đo số kênh: ${String(e.message).split('\n')[0]}`); }
-if (conCho >= tran) { console.log(`⏸ ${KENH}: đã có ${conCho} tập chưa đăng YouTube (trần ${tran}) — không làm tập mới`); if (!xem) process.exit(0); }
+if (conCho >= tran && !process.argv.includes('--bo-tran')) { console.log(`⏸ ${KENH}: đã có ${conCho} tập chưa đăng YouTube (trần ${tran}) — không làm tập mới`); if (!xem) process.exit(0); }
 // 3 · chọn tập theo lịch: Sky Calendar / This Week có hạn đăng theo tuần / sự kiện, mẫu khác lấy trong kho tập đã viết
 const thu2Toi = iso(Date.parse(`${hom}T00:00Z`) + ((8 - new Date(`${hom}T00:00Z`).getUTCDay()) % 7 || 7) * 864e5), LT = JSON.parse(readFileSync(join(DIR, 'lich-troi.json'), 'utf8'));
 const sky = xepLich(soChuyen().filter((c) => !daLam.has(c.ma) && !bo.has(c.ma)), thu2Toi, 1)[0];

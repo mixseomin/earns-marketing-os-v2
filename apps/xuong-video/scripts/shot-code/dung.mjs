@@ -23,7 +23,7 @@ await p.goto(pathToFileURL(resolve(arg('trang'))).href);
 await p.evaluate(async (c) => { window.CAU = c; await window.__dung(); }, cau);
 await p.waitForFunction(() => { const e = document.getElementById('nen'); if (!e) return true; const u = getComputedStyle(e).backgroundImage.slice(5, -2); const i = new Image(); i.src = u; return i.complete; });   // trang không có #nen tự chờ ảnh trong __dung
 
-const chup = async (t) => { await p.evaluate((x) => window.__seek(x), t); return nenVideo ? p.screenshot({ type: 'png', omitBackground: true }) : p.screenshot({ type: 'jpeg', quality: 92 }); };
+const chup = async (t) => { await p.evaluate((x) => window.__seek(x), t); return nenVideo ? p.screenshot({ timeout: 180_000, type: 'png', omitBackground: true }) : p.screenshot({ timeout: 180_000, type: 'jpeg', quality: 92 }); };
 if (arg('khung')) {   // chỉ chụp vài khung để soát nhanh → ghép một tờ
   const ts = arg('khung').split(',').map(Number), out = arg('khung-ra');
   if (out.endsWith('/')) {   // --khung-ra thư-mục/ → mỗi khung một tệp k-<i>.jpg cỡ thật (Ngọc soi hình trước khi dựng cả tập — lich-su/xet-truoc.mts)
@@ -58,7 +58,7 @@ if (!nenVideo && !tieng) {
   // trang tự xuất khung từ canvas (window.__khung → JPEG base64) thì lấy thẳng, khỏi chụp màn hình qua bộ ghép lớp (nhanh hơn)
   const coKhung = await p.evaluate(() => typeof window.__khung === 'function');
   const chupO = async (q, t) => { if (coKhung) return Buffer.from(await q.evaluate((x) => { window.__seek(x); return window.__khung(); }, t), 'base64');
-    await q.evaluate((x) => window.__seek(x), t); return q.screenshot({ type: 'jpeg', quality: 92 }); };
+    await q.evaluate((x) => window.__seek(x), t); return q.screenshot({ timeout: 180_000, type: 'jpeg', quality: 92 }); };
   let dungLai = 0, daDung = 0;
   const lam = async (q, d) => {
     // khoá kho có DẤU BỘ MÃ HOÁ (03/11/2026: đoạn libx264 của lượt cũ ghép chung đoạn VideoToolbox → luồng H.264 hỏng 'Invalid NAL unit size') — đổi bộ mã / tham số là đoạn cũ không bao giờ được dùng lại

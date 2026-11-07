@@ -10,6 +10,8 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BOX, GOC_BOX } from './box3.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
+import { dungBia } from './thumb-kenh.mjs';
+import { ghiTacGia } from './anh-wiki.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : null; };
 const TRAN_TIEU_DE = 100;   // YouTube cắt ở 100 ký tự
@@ -41,13 +43,18 @@ const C2 = JSON.parse(readFileSync(join(dirname(resolve(tepTap)), `.${basename(t
 // tên ảnh mang dấu của CHÍNH ẢNH: cùng video mà cắt lại khung thì tên trùng → CDN trả ảnh cũ (Ngọc chấm lại ảnh mờ cũ của Leonids, 07/11/2026)
 const anhCat = (g, dat) => { const tam = `${ten}-${dat}`; cat(g, tam); const b = readFileSync(join(TAM, `${tam}.jpg`)), moi = `${id}-${dat}-${dau(b)}`; renameSync(join(TAM, `${tam}.jpg`), join(TAM, `${moi}.jpg`)); return moi; };
 const tenK = K.map((x, i) => anhCat(x, `k${i}`)), tenS = S.map((x, i) => anhCat(x, `s${i}`));
+// BÌA CHUẨN (anh 07/11/2026: "Thumb phải chuẩn hoá để dùng"): dựng theo khuôn, Ngọc chấm; chặn thì dừng nạp, không để YouTube tự lấy khung
+const tepBia = join(TAM, 'bia.jpeg'), bia = await dungBia(tap, tepBia);
 const bt = `/var/tmp/nap-tap-${id}`, tsx = (lenh) => execFileSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server timeout 300s ../../node_modules/.bin/tsx ${lenh}`], { encoding: 'utf8', maxBuffer: 16 << 20 });
 try {
   execFileSync('ssh', [BOX, `rm -rf ${bt} && mkdir -p ${bt}/f`]); execFileSync('sh', ['-c', `scp -q ${TAM}/* ${BOX}:${bt}/f/`]);
   const u = JSON.parse(tsx(`scripts/lich-su/day-demo.mts ${tap.kenh} ${bt}/f tap`).trim().split('\n').pop());
+  execFileSync('scp', ['-q', tepBia, `${BOX}:${bt}/bia.jpg`]);
+  const qs = (x) => `'${String(x).replace(/'/g, `'\\''`)}'`, xet = JSON.parse(tsx(`scripts/lich-su/xet-thumb.mts ${qs(id)} ${qs(tap.tieu_de)} ${bt}/bia.jpg ${qs(bia.chu)}`).trim().split('\n').pop());
+  if (xet.chan?.length) { console.error(`✗ ${id}: Ngọc chặn bìa: ${xet.chan.join(' · ')}`); process.exitCode = 4; throw new Error('bìa bị chặn'); }
   const nap = [{ slug: id, chu_de: tap.tieu_de.replace(tap.hook.goc, '').trim() || tap.tieu_de, mau: 'video-ngoai', nen_url: `https://images.pexels.com/photos/${nguon.pexels_id}/pexels-photo-${nguon.pexels_id}.jpeg`,
-    de: { loai: 'video-ngoai', video_url: u[ten], giay: Math.round(giay * 100) / 100, khung: tenK.map((x) => u[x]), soat: tenS.map((x) => u[x]), tom_tat: tap.tieu_de, thumb: null },
-    dang: { title: gonTieuDe(tap.tieu_de, tap.cau[0].chu), description: `${tap.dang.mo_ta}\n\nMade by the Astrolas team.`, link: tap.dang.link, goc: tap.goc, hook: tap.hook, playlist: tap.playlist_ma, mau: tap.mau, y_tuong: id, ...(arg('dang-tu') ? { dang_tu: arg('dang-tu') } : {}), ...(arg('dang-den') ? { dang_den: arg('dang-den') } : {}) } }];   // hạn đăng: Sky Calendar đúng tuần, This Week trước sự kiện (nhip-an-toan.mjs › trongHan)
+    de: { loai: 'video-ngoai', video_url: u[ten], giay: Math.round(giay * 100) / 100, khung: tenK.map((x) => u[x]), soat: tenS.map((x) => u[x]), tom_tat: tap.tieu_de, thumb: { url: xet.url, chu: bia.chu, nguon: bia.tac?.file ?? null } },
+    dang: { title: gonTieuDe(tap.tieu_de, tap.cau[0].chu), description: `${tap.dang.mo_ta}${bia.tac && ghiTacGia([bia.tac]).length && !tap.dang.mo_ta.includes(bia.tac.nguon) ? `\nCover image: ${ghiTacGia([bia.tac])[0]}` : ''}\n\nMade by the Astrolas team.`, link: tap.dang.link, goc: tap.goc, hook: tap.hook, playlist: tap.playlist_ma, mau: tap.mau, y_tuong: id, ...(arg('dang-tu') ? { dang_tu: arg('dang-tu') } : {}), ...(arg('dang-den') ? { dang_den: arg('dang-den') } : {}) } }];   // hạn đăng: Sky Calendar đúng tuần, This Week trước sự kiện (nhip-an-toan.mjs › trongHan)
   writeFileSync(join(TAM, 'nap.json'), JSON.stringify(nap)); execFileSync('scp', ['-q', join(TAM, 'nap.json'), `${BOX}:${bt}/nap.json`]);
   console.log(tsx(`scripts/may-dung.mts --may ${tap.kenh} --nap < ${bt}/nap.json`).trim().split('\n').pop()); console.log(tsx(`scripts/may-dung.mts --may ${tap.kenh} --xuat ${id}`).trim().split('\n').pop());
   console.log(`✓ nạp ${id} · "${nap[0].dang.title}" (${nap[0].dang.title.length} ký tự) · ${(bMp4.length / 1e6).toFixed(1)} MB · Phòng Nội dung chấm ở lượt kế`);

@@ -89,7 +89,7 @@ def chon_phim_moi(q, ch, da):
 
 # ẢNH TĨNH ƯU TIÊN (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh"): phim ĐANG có camp chạy mà chưa có creative ảnh tĩnh, chưa có dòng AT (2 ngày),
 # không trong sổ cấm 18+ → xếp dòng AT (máy dòng phim chạy anh-tinh.py, ~160–290₫ giọng / phim). Giữ tối đa AT_HANG dòng AT chưa xong để lượt sau
-# lấy phim mới nhất; phim nhiều camp đang chạy lên trước. Bật bằng etp.cau_hinh 'at_uu_tien' {"bat": true} — tắt thì không xếp gì (tiền giọng > 5.000₫/đợt cần anh bật).
+# lấy phim mới nhất; phim LÃI NHẤT 3 ngày (thu − chi, nhà + đội) lên trước (anh 08/11/2026 "ưu tiên các phim có camp lãi trước"), hoà thì phim nhiều camp. Bật bằng etp.cau_hinh 'at_uu_tien' {"bat": true} — tắt thì không xếp gì (tiền giọng > 5.000₫/đợt cần anh bật).
 AT_HANG = 6
 def xep_at(q):
     ch = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'at_uu_tien'), '{}')") or "{}")
@@ -103,7 +103,7 @@ def xep_at(q):
           and not exists (select 1 from etp.creative r where r.content_id = c.content_id and r.dang = 'ảnh tĩnh')
           and not exists (select 1 from etp.dong_phim d where d.content_id = c.content_id and d.loai = 'AT' and (d.trang_thai = 'chay' or d.tao_luc > now() - interval '2 days'))
           and not coalesce((select k.gia_tri ? c.content_id::text from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam'), false)
-        group by c.content_id order by count(*) desc limit {AT_HANG - con} on conflict do nothing returning id""")
+        group by c.content_id order by (select coalesce(sum(s.thu - s.chi), 0) from (select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay s join etp.camp k using (camp_id) union all select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay_ngoai s join etp.camp_ngoai k using (camp_id)) s where s.content_id = c.content_id and s.ngay >= current_date - 3) desc, count(*) desc limit {AT_HANG - con} on conflict do nothing returning id""")
     return len([l for l in (r or "").splitlines() if l.strip()])
 
 AT_KQ = [0]

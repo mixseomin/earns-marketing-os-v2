@@ -284,12 +284,13 @@ def xoay_giong(ds, yeu_cau):
         k = min(KIEU_GIONG, key=lambda k: (k in co, dem[k], list(KIEU_GIONG).index(k))); ra[cid] = k; dem[k] += 1
     return ra
 
-def danh_dau(tv, kieu, lang, ten, so_mau=0):
+def danh_dau(tv, kieu, lang, ten, so_mau=0, them=None):
     """DẤU KIỂU GIỌNG vào sổ điểm chạm của creative (etp.diem_cham.cham) để đo kiểu nào tốt / xấu — anh 05/11/2026. len-creative ghi khuôn
     cảnh cắt (thoại gốc, nút CTA mẫu Kiên); ảnh tĩnh không có những thứ đó → ghi đúng cái creative này có."""
     v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang][so_mau]
     j = json.dumps({"voice": {"thoai": "khong", "giong": kieu, "nguoi_doc": v, "mau": so_mau, "cau": mau.format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten))},
-                    "chu_video": {"bo_cuc": "anh_tinh_ten_phim", "phu_de": "xoa"}, "cta": {"mau": "khong_nut"}}, ensure_ascii=False).replace("$J$", "")
+                    "chu_video": {"bo_cuc": "anh_tinh_ten_phim", "phu_de": "xoa", **({"ten": "poster" if them.get("ten_poster") else "chu_vang"} if them else {})},
+                    "cta": {"mau": "khong_nut"}, **({"anh_tinh": {"ban": them.get("ban"), "khung": f"{them.get('tap')}#{them.get('khung_so')}", "chon": "ai" if MOI else "may", "hd": MOI}} if them else {})}, ensure_ascii=False).replace("$J$", "")
     return sql(f"update etp.diem_cham d set cham = d.cham || $J${j}$J$::jsonb, luc = now() from etp.thu_vien v where v.id = {int(tv)} and d.creative_id = v.creative_id returning d.creative_id")
 
 def giong(cid, lang, ten, kieu, tm, so_mau=0):
@@ -326,7 +327,9 @@ def mot(p, xem, kieu, ban=1):
     for b, k in enumerate(uv[:ban]):
         try:
             so_mau = (mau0 + b) % len(CAU[lang])   # bốc ngẫu nhiên mẫu đầu, các bản sau xoay vòng (anh 06/11/2026)
-            nen, chu = anh(cid, ten, k, tm, b); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu, tm, so_mau)
+            # MỖI BẢN MỘT KIỂU GIỌNG (anh 08/11/2026 "nhớ có nhiều kiểu voice … để còn tối ưu về sau"): bản 1 = kiểu xoay_giong chọn, bản sau lần lượt các kiểu kế
+            ks = list(KIEU_GIONG); kieu_b = ks[(ks.index(kieu) + b) % len(ks)]
+            nen, chu = anh(cid, ten, k, tm, b); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu_b, tm, so_mau)
             out = os.path.join(tm, f"anh-tinh-{cid}-{b + 1}.mp4"); giay = dung(nen, chu, mp3, out)
             r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay))   # cổng chữ trên video (tên phim) — cùng cổng mọi creative
             if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
@@ -372,4 +375,4 @@ if __name__ == "__main__":
     tv = [str(x["tv"]) for x in kq if x.get("tv")]
     if tv: subprocess.run(["python3", os.path.join(D, "thu-vien-len.py"), *tv])   # thư viện → creative; chấm Sạch thì nhịp ethopex lên camp theo lịch chung
     for x in kq:
-        if x.get("tv"): print(f"dấu giọng tv{x['tv']} {x['giong']} → creative", danh_dau(x["tv"], x["giong"], x["lang"], x["ten"], x.get("mau", 0)) or "(chưa thành creative)")
+        if x.get("tv"): print(f"dấu giọng tv{x['tv']} {x['giong']} → creative", danh_dau(x["tv"], x["giong"], x["lang"], x["ten"], x.get("mau", 0), x) or "(chưa thành creative)")

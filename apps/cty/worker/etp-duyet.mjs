@@ -65,11 +65,30 @@ export async function guiDuyet(tg, { ep = false } = {}) {
   const topic = await topicPhong(PHONG, TEN_TOPIC, tg, { duocTao: true }); if (!topic) return 0;   // anh cho tạo chủ đề này 07/11/2026
   const ds = JSON.parse((await psql(TRUY)) || '[]'); const con = new Set(ds.map((x) => String(x.creative_id)));
   let n = 0;
-  for (const [cr, v] of Object.entries(st)) if (cr !== '_luc' && !con.has(cr)) { await tg('deleteMessage', { message_id: v.mid }); delete st[cr]; n++; }
+  for (const [cr, v] of Object.entries(st)) if (!cr.startsWith('_') && !con.has(cr)) { await tg('deleteMessage', { message_id: v.mid }); delete st[cr]; n++; }
+  n += await donTinLac(tg, st, topic);
   for (const x of ds) { if (st[x.creative_id]) continue;
     const m = await tg('sendMessage', { message_thread_id: topic, parse_mode: 'HTML', ...soanTin(x) });
     if (m.ok) { st[x.creative_id] = { mid: m.result.message_id, dong: x.dong }; n++; } else console.error(`✗ duyệt creative #${x.creative_id}: ${m.description}`); }
   fs.writeFileSync(TEP(), JSON.stringify(st)); return n;
+}
+
+/** Thuần — tin duyệt LẠC (anh 08/11/2026: "đã duyệt hoặc bấm thì phải xoá đi cơ mà?" — tin #6496 creative 83230 bấm ✅ lúc 23:53 07/11 còn nằm với nút "⏳ đã nhận"
+ *  sau khi sổ đã bỏ creative đó). Sổ etp-duyet.json chỉ giữ MỘT mã tin / creative → mã nào lạc khỏi sổ (gửi trùng, ghi đè, bấm lúc cổng chưa cho người duyệt thắng)
+ *  là tin nằm mãi. Đối chiếu mọi tin có nút cv: trong chủ đề (sổ nút nut.json của ghiNut) với sổ: tin nào không phải tin đang giữ của một creative → xoá.
+ *  so = {mid: {kb, topic}} · st = sổ etp-duyet · da = mã đã xoá → [mid cần xoá]. */
+export function tinLac(so, st, topic, da = []) {
+  const giu = new Set(Object.entries(st).filter(([k]) => !k.startsWith('_')).map(([, v]) => String(v.mid))), xoa = new Set(da.map(String));
+  return Object.entries(so || {}).filter(([mid, v]) => String(v?.topic) === String(topic) && !giu.has(mid) && !xoa.has(mid)
+    && (v?.kb || []).flat().some((b) => /^cv:/.test(b?.callback_data || ''))).map(([mid]) => Number(mid));
+}
+async function donTinLac(tg, st, topic) {
+  let so = {}; try { so = JSON.parse(fs.readFileSync(path.join(DATA(), 'tg-hop', 'nut.json'), 'utf8')); } catch { return 0; }
+  const ds = tinLac(so, st, topic, st._da_xoa || []); let n = 0;
+  for (const mid of ds) { const r = await tg('deleteMessage', { message_id: mid });
+    // xoá được, hoặc tin đã mất từ trước (not found / can't be deleted vì quá 48 giờ) → ghi đã xoá, không thử lại mỗi lượt
+    if (r?.ok || /not found|can't be deleted/i.test(r?.description || '')) { st._da_xoa = [...(st._da_xoa || []), mid].slice(-2000); if (r?.ok) n++; } }
+  return n;
 }
 
 const DOI = { CC: 'AT', AT: 'CC' };
@@ -89,6 +108,7 @@ export function cauViec(viec, cr, dong, x = {}) {
   if (viec === 'bo') return duyet(false, 'bỏ') + (DOI[x.loai] ? xepDong(dong, DOI[x.loai], `anh (Telegram): bỏ creative #${cr} → thử ${DOI[x.loai]}`) : '') + log(`❌ bỏ${DOI[x.loai] ? `, thử dạng ${DOI[x.loai]}` : ''}`);
   return null;
 }
+const TEN_NUT = { ok: '✅ Duyệt', cat: '✂️ Cắt bỏ cảnh báo', at: '🖼 Đổi ảnh tĩnh', bo: '❌ Bỏ' };
 const TRA = { ok: '✅ Đã duyệt — dòng chạy tiếp lên camp', cat: '✂️ Đã ghi giây cảnh báo — dòng cắt lại', at: '🖼 Đã xếp dòng ảnh tĩnh', bo: '❌ Đã bỏ creative' };
 
 /** Nút cv: trong hộp etp-duyet (tg-nghe.mjs gọi mỗi vòng). */
@@ -107,7 +127,11 @@ export async function xuNutDuyetCr(tg) {
       await psql(cauViec(viec, Number(cr), Number(dong), x));
       // view etp.cham_cong chưa có "người duyệt thắng điểm" (migration 0443) → duyệt không mở được creative: KÊU TO, giữ tin, không coi là xong
       if (viec === 'ok' && (await psql(`select coalesce((select duoc_len::text from etp.cham_cong where creative_id = ${Number(cr)}), '')`)) !== 'true') {
-        await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã ghi duyệt nhưng cổng vẫn chặn: chờ migration 0443 (view etp.cham_cong) lên máy chủ — tin giữ lại, bấm lại sau', show_alert: true }); continue; }
+        await tg('answerCallbackQuery', { callback_query_id: c.id, text: 'Đã ghi duyệt nhưng cổng chấm vẫn chặn creative này — tin giữ lại, nút đã mở lại để bấm lại', show_alert: true });
+        // nút anh bấm đã thành "⏳ … đã nhận" (tg-phong.daNhanNut) → trả về nút gốc, kẻo tin nằm mãi mà không bấm lại được (anh 08/11/2026)
+        const kb = (c.message?.reply_markup?.inline_keyboard || []).map((h) => h.map((b) => (b.callback_data === 'x:cho' ? { text: TEN_NUT[viec], callback_data: c.data } : b)));
+        if (kb.length) await tg('editMessageReplyMarkup', { message_id: c.message?.message_id, reply_markup: { inline_keyboard: kb } });
+        continue; }
       await tg('answerCallbackQuery', { callback_query_id: c.id, text: TRA[viec] });
       await tg('deleteMessage', { message_id: c.message?.message_id });
       const st = docJ(TEP(), {}); delete st[cr]; fs.writeFileSync(TEP(), JSON.stringify(st)); n++;
@@ -130,5 +154,9 @@ if (process.argv[1]?.endsWith('etp-duyet.mjs') && process.argv.includes('--tu-ki
   t.match(cauViec('ok', 9, 3), /ok = excluded\.ok.*fix = true where dong_id = 3 and buoc = 'creative'/s);
   t.match(cauViec('cat', 9, 3, { content_id: 5, giay: [102, 103] }), /'cam_them'.*buoc = 'cat'/s);
   t.match(cauViec('bo', 9, 3, { loai: 'CC' }), /'AT'/); t.equal(cauViec('xoa', 9, 3), null);
+  { const kb = (cr) => [[{ text: 'x', callback_data: 'x:cho' }, { text: 'c', callback_data: `cv:cat:${cr}:75` }]];
+    const so = { 6496: { kb: kb(83230), topic: 6495 }, 6582: { kb: kb(83559), topic: 6495 }, 7000: { kb: [[{ text: 'a', callback_data: 'eb:report' }]], topic: 6495 }, 7001: { kb: kb(1), topic: 9 } };
+    t.deepEqual(tinLac(so, { 83559: { mid: 6582 }, _luc: 'x' }, 6495), [6496], 'tin cv: không còn trong sổ → xoá; tin đang giữ, tin nút khác, chủ đề khác → giữ');
+    t.deepEqual(tinLac(so, { 83559: { mid: 6582 } }, 6495, [6496]), [], 'đã xoá rồi thì không xoá lặp'); }
   console.log('tự kiểm đạt');
 }

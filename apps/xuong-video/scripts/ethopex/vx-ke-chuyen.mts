@@ -23,7 +23,7 @@ const SONG_SONG = 5;
 const KHONG_CHO = process.argv.includes('--khong-cho');
 const D = `${process.env.HOME}/.cache/ethopex/vx-kc/${tap}`; mkdirSync(D, { recursive: true });
 type Canh = { id: number; so: number; giay: number; loi: string; anh: string; dong: string; chu: string; pd: string };
-type Ghi = { tts?: string; am?: string; amGiay?: number; anhUuid?: string; anh?: string; vidUuid?: string; vid?: string; vidGiay?: number };
+type Ghi = { tts?: string; am?: string; amGiay?: number; anhUuid?: string; anh?: string; vidUuid?: string; vid?: string; vidGiay?: number; vidGui?: number; vidLai?: number };
 
 // ── kịch bản tập từ box3 (một lần, giữ ở tap.json) ──
 const tepTap = `${D}/tap.json`;
@@ -138,6 +138,7 @@ if (process.argv.includes('--chi-anh')) { console.log(`ảnh + giọng xong ở 
 
 // ── 3. CLIP từ ảnh: không tiếng (giọng kể lồng sau), dài = giọng + 0,8s, trong 4–8s; tối đa 5 render song song ──
 const VID = catId('my_ai_videos');
+const CLIP_HAN = 45 * 60e3, CLIP_LAI = 3;   // clip gửi quá 45 phút chưa về → gửi lại, tối đa 3 lần (07/11/2026)
 // clip dựng TRƯỚC khi có giọng (lỗi 29/10/2026) mà ngắn hơn giọng + 0,35s → bỏ clip đó, dựng lại theo độ dài giọng ($0)
 for (const c of canhSinh) if (g(c).vid && g(c).amGiay && g(c).vidGiay && Number(g(c).amGiay) + 0.35 > Number(g(c).vidGiay)) { console.log(`↺ clip #${c.so} ${Number(g(c).vidGiay).toFixed(1)}s ngắn hơn giọng ${Number(g(c).amGiay).toFixed(1)}s — dựng lại`); delete g(c).vid; delete g(c).vidUuid; delete g(c).vidGiay; }
 luu();
@@ -149,7 +150,16 @@ for (let nhip = 0; nhip < 40 && doiClip().length; nhip++) {
   try { ds = getMedia(VID, 60).results ?? []; } catch (e) { console.log(`  ! hỏi danh sách video hỏng (${String(e).slice(0, 80)}) — hỏi lại nhịp sau`); await ngu(30_000); continue; }
   for (const c of doiClip().filter((c) => g(c).vidUuid)) {
     const m = ds.find((x) => x.uuid === g(c).vidUuid);
-    if (m && !m.isPending && m.mediaPath) { const f = `${D}/vid-${c.so}.mp4`; tai(m.mediaPath, f); g(c).vid = f; g(c).vidGiay = giayTep(f); console.log(`✓ clip #${c.so} ${g(c).vidGiay!.toFixed(1)}s`); }
+    if (m && !m.isPending && m.mediaPath) { const f = `${D}/vid-${c.so}.mp4`; tai(m.mediaPath, f); g(c).vid = f; g(c).vidGiay = giayTep(f); console.log(`✓ clip #${c.so} ${g(c).vidGiay!.toFixed(1)}s`); continue; }
+    // CLIP KHÔNG VỀ THÌ GỬI LẠI (07/11/2026: phim 156883 clip #1 gửi 10:54 04/11 không bao giờ về — VideoExpress mất render; máy sinh chờ 3 ngày "chưa đủ clip",
+    // cả hàng KT đứng, dòng KT quá hạn 4 giờ). Render thật ~4 phút → quá CLIP_HAN mà còn pending / mất bản ghi / xong mà không có tệp → bỏ uuid cũ, gửi lại;
+    // gửi lại quá CLIP_LAI lần thì ném lỗi để máy sinh tính một lần hỏng (3 lần → loi_may, sang phim khác). Bản ghi cũ không có vidGui = coi như đã quá hạn.
+    const hong = m && !m.isPending && !m.mediaPath, qua = Date.now() - Number(g(c).vidGui ?? 0) > CLIP_HAN;
+    if (hong || qua) {
+      g(c).vidLai = Number(g(c).vidLai ?? 0) + 1;
+      if (g(c).vidLai > CLIP_LAI) throw new Error(`clip #${c.so} gửi lại ${CLIP_LAI} lần vẫn không về từ VideoExpress — bỏ lượt`);
+      console.log(`↺ clip #${c.so} ${hong ? 'render hỏng' : `quá ${Math.round(CLIP_HAN / 60e3)} phút chưa về`} — gửi lại (lần ${g(c).vidLai})`); delete g(c).vidUuid;
+    }
   }
   const dangChay = doiClip().filter((c) => g(c).vidUuid).length;
   for (const c of doiClip().filter((c) => !g(c).vidUuid).slice(0, Math.max(0, SONG_SONG - dangChay))) {
@@ -157,7 +167,7 @@ for (let nhip = 0; nhip < 40 && doiClip().length; nhip++) {
     const prompt = `Photorealistic live-action vertical short-drama clip; the first frame is exact — keep every face, hair, outfit and the set unchanged; everyone keeps exactly the same clothes for the whole clip. Action: ${c.dong} Only this action happens — no kissing, no hugging, no hands over faces, no gasping and no extra emotional reactions beyond it. Natural, restrained screen acting; background stays fixed. The narration is an off-screen voice-over: nobody in frame talks or moves their lips. No on-screen text.`;
     const r = brEval<{ success?: boolean; uuid?: string; msg?: string; message?: string }>(`fetch("/ai/api/image2video",{method:"POST",headers:${HDR},body:${JSON.stringify(new URLSearchParams({ type: 'photorealistic', imagePrompt: '', prompt, uuid: g(c).anhUuid!, imageUuid: g(c).anhUuid!, mediaId: '0', saveImage: '1', audioMediaId: '0', isShared: '0', aspect: '9:16', enhanceHumanFace: '0', improveHumanFace: '0', isTalkingVideoFromText: '0', isNarrationVideo: '0', enhanceVideoPrompt: '0', videoOnly: '1', videoLength: String(dai), mode: 'advanced', speed: '', generatorName: 'create_from_prompt', faceImageMediaId: '0', faceSwap: '0' }).toString())}}).then(r=>r.json()).catch(e=>({success:false,msg:String(e)}))`);
     if (!r.uuid) { console.log(`✗ clip #${c.so}: ${r.msg ?? r.message ?? JSON.stringify(r)}`); break; }
-    g(c).vidUuid = r.uuid; console.log(`→ gửi clip #${c.so} (${dai}s)`);
+    g(c).vidUuid = r.uuid; g(c).vidGui = Date.now(); console.log(`→ gửi clip #${c.so} (${dai}s)`);
   }
   luu();
   // --khong-cho (máy sinh, anh 29/10/2026 "khi đợi có thể đóng br lại cho nhẹ"): render chạy trên máy chủ VideoExpress — gửi / thu xong một lượt là THOÁT,

@@ -179,5 +179,6 @@ const tT = tap.thumb ?? {}, bcThumb = BC.find((b) => b.id === tT.boi_canh) ?? BC
 writeFileSync(thC, JSON.stringify({ DAI: 1, nen: url(join(TAI, `bc-${bcThumb.id}.jpg`)), nv: url(join(TAI, 'nv', nvThumb, existsSync(join(TAI, 'nv', nvThumb, 'chi_tay.png')) ? 'chi_tay.png' : 'goc.png')), chu: tT.chu ?? 'NAPOLEON', nam: tT.nam ?? '' }));
 spawnSync(process.execPath, [join(LS, '../shot-code/dung.mjs'), '--trang', join(DIR, 'giay-thumb.html'), '--cau', thC, '--rong', '1280', '--cao', '720', '--ra', '/dev/null', '--khung', '0', '--khung-ra', `${RA}/thumb/`], { stdio: 'inherit' }); execFileSync('cp', [join(RA, 'thumb', 'k-0.jpg'), thRa]);
 // R2 + nạp máy đăng: một đường chung với tập ngắn (nap-dai.mjs) — Phòng Nội dung chấm rồi máy đăng tự đăng
+spawnSync(process.execPath, [join(LS, 'luu-kho.mjs'), '--kenh', tap.kenh], { stdio: 'inherit' });   // lưu kho các tập cũ của kênh (kenh.json › luu_kho)
 { const r5 = spawnSync(process.execPath, [join(DIR, 'nap-dai.mjs'), '--id', id], { stdio: 'inherit' }); if (r5.status) console.log(`⚠ nạp máy đăng hỏng (mã ${r5.status}) — chạy lại: node nap-dai.mjs --id ${id}`); }
 console.log(`✓ ${ra} · ${DAI.toFixed(0)} s (~${phut} phút) · tiền lượt này ~${Math.round(tien)}₫ · tiêu đề: ${tap.tieu_de.replace(/\{N\}|\b\d+(?= Minutes?\b)/, String(phut))}`);

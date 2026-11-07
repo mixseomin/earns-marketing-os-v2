@@ -69,6 +69,15 @@ export function DongHoSx({ buoc, so, title, href, ket, bam }: { buoc: { buoc: st
   return <a href={href} onClick={(e) => { e.stopPropagation(); if (bam && !e.ctrlKey && !e.metaKey && !e.shiftKey && e.button === 0) { e.preventDefault(); bam(); } }} title={title || undefined} style={{ display: 'inline-block', width: 26, height: 26, flex: 'none', textDecoration: 'none' }}>
     <DongHo nut={NUT_SX.map(([k, , b]) => ({ ma: k, tt: tt(b) }))} so={so} ket={ket} mau={(t) => (MAU[t] ?? MAU.cho!)[0]} /></a>;
 }
+/** CHUỖI BƯỚC của một dòng — đúng cột, đúng ký hiệu + màu tab Sản xuất (anh 07/11/2026 "show các bước giống bên tab sx"); thẻ phim (etp-lich-phim) dùng chung */
+export function ChuoiBuoc({ buoc }: { buoc: { buoc: string; trang_thai: string }[] }) {
+  const tt = (b: string) => buoc.find((x) => x.buoc === b)?.trang_thai ?? 'cho';
+  const ds = NUT_SX.filter(([, , b]) => tt(b) !== 'bo_qua');
+  return <div style={{ display: 'grid', gridTemplateColumns: `repeat(${ds.length}, 1fr)`, gap: 2 }}>
+    {ds.map(([k, ten, b]) => { const t = tt(b), rong = t === 'cho'; return <span key={k} style={{ minWidth: 0, textAlign: 'center', padding: '3px 1px', borderRadius: 4, fontSize: 10, lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      background: rong ? 'transparent' : NEN[t], color: CHU[t] ?? 'var(--fg-3)', border: `1px ${rong ? 'dashed' : 'solid'} ${VIEN[t] ?? 'var(--line)'}`, animation: t === 'dang' ? 'etpNhip 1.4s ease-in-out infinite' : undefined }}>{KY[t] ?? ''} {ten}</span>; })}
+  </div>;
+}
 const LOAI_DE: Record<string, string> = { CC: 'Cảnh cuối', KT: 'Kể chuyện', LT: 'Test rộng', AT: 'Ảnh tĩnh', KM: 'Kiểu mới', TT: 'Camp test thay thế' };   // AT / KM / TT: đường ngoài máy dòng phim (docNgoai)
 const NEN: Record<string, string> = { xong: '#14532d', dang: '#1e3a8a', chay: '#1e3a8a', dung: '#78350f', loi: '#7f1d1d', cho: 'transparent', bo_qua: 'transparent' };
 const CHU: Record<string, string> = { xong: '#86efac', dang: '#bfdbfe', chay: '#bfdbfe', dung: '#fcd34d', loi: '#fca5a5', cho: 'var(--fg-3)', bo_qua: 'var(--fg-3)' };

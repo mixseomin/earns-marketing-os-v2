@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type TheNoi } from '@/components/etp-noi';
+import { ChuoiBuoc } from '@/components/etp-dong';
 import { MA_DANG } from '@/components/etp-so';
 import { chuLich } from '@/lib/etp-khung';
 import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
@@ -107,14 +108,17 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
                     {o(tongSx, 'đang SX', 'Số camp đang được sản xuất')}{mui}
                     {o(cho, 'chờ lên', `${l.hen.length} camp đã tạo chờ giờ chạy · ${ke?.san ?? 0} creative sạch chưa có camp · ${l.tu_len} trong hàng máy tự lên`)}
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{buocKe}</div>
+                  {l.lt?.ma === 'sx' ? null : <div style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>{buocKe}</div>}
                   {l.hen.map((h) => <div key={h.camp_id} style={{ fontSize: 11.5, color: 'var(--fg-2)' }}>⏰ #{h.camp_id} chạy lúc {h.luc}</div>)}
                   {l.thieu ? <div style={{ fontSize: 11.5, color: '#f59e0b' }} title={l.thieu}>⚠ {m ? `Đợt trước lên ${m[1]}, thiếu ${m[2]} creative sạch` : l.thieu.slice(0, 70)}</div> : null}
                 </div>; })()}
               {/* lộ trình: việc sắp diễn ra, mỗi dòng một việc */}
               {sx.length || sapToi.length ? <div style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11.5, color: 'var(--fg-2)' }}>
-                {sx.map((d) => { const b = buocHien(d), hong = b?.trang_thai === 'loi' || b?.trang_thai === 'dung';
-                  return <div key={d.id} title={b?.ghi ?? undefined} style={{ color: hong ? '#f87171' : undefined }}>{hong ? '✕' : '◌'} {d.loai}×{d.so_camp ?? 1}: {hong ? `lỗi ở ${TEN_BUOC[b!.buoc] ?? b!.buoc}` : `${TEN_BUOC[b?.buoc ?? ''] ?? b?.buoc ?? 'chờ'}`}{b?.ghi && (hong || b.buoc === 'cat') ? ` — ${b.ghi.slice(0, 60)}` : ''}</div>; })}
+                {sx.map((d) => { const b = buocHien(d), hong = b?.trang_thai === 'loi' || b?.trang_thai === 'dung', phut = b?.bat_dau && b.trang_thai === 'dang' ? Math.round((Date.now() - Date.parse(b.bat_dau)) / 60000) : null;
+                  return <div key={d.id} style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 4 }}>
+                    <div style={{ color: hong ? '#f87171' : 'var(--fg-1)' }}><b>{d.loai} × {d.so_camp ?? 1}</b>{b ? ` · ${TEN_BUOC[b.buoc] ?? b.buoc}${hong ? ' lỗi' : ''}${phut != null ? ` · ${phut} phút` : ''}` : ''}</div>
+                    <ChuoiBuoc buoc={d.buoc} />
+                    {b?.ghi ? <div style={{ fontSize: 11, color: hong ? '#f87171' : 'var(--fg-2)' }}>{b.ghi.slice(0, 110)}</div> : null}</div>; })}
                 {sapToi.map((t, i) => <div key={i}>{t}</div>)}
               </div> : null}
             </>; })()}

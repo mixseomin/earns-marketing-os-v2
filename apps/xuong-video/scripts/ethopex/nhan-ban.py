@@ -295,8 +295,10 @@ def _nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(os.path.dirname(os.path.abspath(__file__)), tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 
 def cong(content_id, creative_id, ten=""):
-    """cổng phim 18+ (kiem-phim-18.py) + cổng CTA (kiem-cta.py) + sổ bài học (bai-hoc.py: không lên lại đúng đoạn/dạng đã lỗ) — anh 22/10/2026"""
-    chan = _nap("p18", "kiem-phim-18.py").kiem(content_id) or _nap("cta", "kiem-cta.py").kiem(creative_id, so=not NGOAI)
+    """cổng phim 18+ (kiem-phim-18.py) + cổng CTA (kiem-cta.py) + sổ bài học (bai-hoc.py: không lên lại đúng đoạn/dạng đã lỗ) — anh 22/10/2026.
+    Creative clone từ camp ĐỘI (etp.creative.dang='team') bỏ bước soát hình 18+ (anh 07/11/2026 "camp của đội clone sang thì không cần soát"): camp đội đã chạy thật trên Meta."""
+    doi = (q(f"select coalesce(dang, '') from etp.creative where creative_id = {int(creative_id)}") or "") == "team"
+    chan = _nap("p18", "kiem-phim-18.py").kiem(content_id, soat_hinh=not doi) or _nap("cta", "kiem-cta.py").kiem(creative_id, so=not NGOAI)
     if chan: return chan
     c, w = _nap("bh", "bai-hoc.py").da_lo(content_id, ten)
     if w: print(w, file=sys.stderr)

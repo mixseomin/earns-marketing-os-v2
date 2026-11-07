@@ -58,7 +58,7 @@ def xet(s, tran):
 
 def chon_phim_moi(q, ch, da):
     """MỞ CHO MỌI PHIM CHƯA CÓ CAMP NHÀ (anh 07/11/2026 "Tập trung các phim mới", roadmap E13 bước 3): mỗi ngày VN thêm tới cau_hinh.phim_moi_ngay phim vào lộ trình.
-    Thứ tự: đội đã chạy LÃI (tiêu ≥ $10, thu > chi) → chưa ai chạy → đội chạy chưa đủ số (< $10). Bỏ: đội lỗ ≥ $10, phim cất, ngoài Âu-Mỹ, phim cấm 18+,
+    Thứ tự: đội đã chạy LÃI (tiêu ≥ $10, thu > chi) → chưa ai chạy → đội chạy chưa đủ số (< $10). Bỏ: đội lỗ ≥ $10, phim cất, ngoài Âu-Mỹ, phim cấm 18+, phim không có poster trong kho,
     phim đang có dòng / có dòng trong 3 ngày, phim đang có creative đội chờ lên (đợt 0 đi đường etp.cho_len_v, không sản xuất đôi). Trả danh sách content_id mới."""
     tran = int(ch.get("phim_moi_ngay") or 0)
     if not tran: return []
@@ -70,6 +70,7 @@ def chon_phim_moi(q, ch, da):
         select string_agg(content_id::text, ',') from (select p.content_id from etp.phim p left join doi d using (content_id)
         where not exists (select 1 from etp.camp c where c.content_id = p.content_id) and p.thu_vong is distinct from 'cat' and coalesce(p.nhom_goc, 'au_my') = 'au_my'
           and not coalesce(d.chi >= 10 and d.thu <= d.chi, false)   -- đội chưa chạy: d null → NOT NULL loại oan 246 phim (sửa 07/11)
+          and exists (select 1 from etp.thu_vien_phim t where t.content_id = p.content_id and t.anh is not null)   -- có poster trong kho: bước nhận chấm nhóm gốc trên poster, thiếu là dòng hỏng ngay (15:18 07/11: 3/12 phim đầu hỏng vì thế; 272 phim không poster)
           and not exists (select 1 from etp.dong_phim x where x.content_id = p.content_id and (x.trang_thai = 'chay' or x.tao_luc > now() - interval '3 days'))
           and not exists (select 1 from etp.cho_len_v v where v.content_id = p.content_id and v.team_lai and v.ly_do is null)
           and not coalesce((select gia_tri ? p.content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_cam'), false)

@@ -44,7 +44,7 @@ const C2 = JSON.parse(readFileSync(join(dirname(resolve(tepTap)), `.${basename(t
 const anhCat = (g, dat) => { const tam = `${ten}-${dat}`; cat(g, tam); const b = readFileSync(join(TAM, `${tam}.jpg`)), moi = `${id}-${dat}-${dau(b)}`; renameSync(join(TAM, `${tam}.jpg`), join(TAM, `${moi}.jpg`)); return moi; };
 const tenK = K.map((x, i) => anhCat(x, `k${i}`)), tenS = S.map((x, i) => anhCat(x, `s${i}`));
 // BÌA CHUẨN (anh 07/11/2026: "Thumb phải chuẩn hoá để dùng"): dựng theo khuôn, Ngọc chấm; chặn thì dừng nạp, không để YouTube tự lấy khung
-const tepBia = join(TAM, 'bia.jpeg'), bia = await dungBia(tap, tepBia);
+const tepBia = join(TAM, 'bia.jpeg'), bia = await dungBia(tap, tepBia).catch((e) => { rmSync(TAM, { recursive: true, force: true }); throw e; });
 const bt = `/var/tmp/nap-tap-${id}`, tsx = (lenh) => execFileSync('ssh', [BOX, `cd ${GOC_BOX} && set -a && . ../../.env.production && set +a && NODE_OPTIONS=--conditions=react-server timeout 300s ../../node_modules/.bin/tsx ${lenh}`], { encoding: 'utf8', maxBuffer: 16 << 20 });
 try {
   execFileSync('ssh', [BOX, `rm -rf ${bt} && mkdir -p ${bt}/f`]); execFileSync('sh', ['-c', `scp -q ${TAM}/* ${BOX}:${bt}/f/`]);

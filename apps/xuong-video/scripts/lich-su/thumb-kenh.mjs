@@ -2,11 +2,11 @@
 // BÌA CHUẨN KÊNH CÓ SỔ MÁY VIẾT (anh 07/11/2026: "Thumb phải chuẩn hoá để dùng"): tập → bìa 1080×1920 theo MỘT khuôn (brand/<kênh>/thumb.html), không dùng bìa YouTube tự sinh. 0đ, không AI, iMac.
 // Chữ lấy từ dữ liệu tập (thẻ mở đầu), chủ thể: tranh / ảnh người của tập → ảnh Wikipedia chính người đó (anh-wiki.mjs) → nhân vật → lá số. nap-tap.mjs gọi rồi đưa vào de.thumb; Ngọc chấm bìa (xet-thumb.mts).
 //   node thumb-kenh.mjs --tap <tập.json> --ra <bìa.jpg>
-import { createRequire } from 'node:module';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { layAnhWiki } from './anh-wiki.mjs';
+import { layChromium } from './cong-cu/trinh-duyet.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8')), arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : null; };
 const hoa = (s) => s[0].toUpperCase() + s.slice(1);
@@ -42,8 +42,7 @@ async function chuThe(tap) {
   return {};
 }
 export async function dungBia(tap, ra) {
-  const PW = process.env.DO_MAN_PW || `${process.env.HOME}/Me/Earns/courseforge-demo/node_modules/playwright`, { chromium } = createRequire(import.meta.url)(PW);
-  const c = chuBia(tap), t = await chuThe(tap), tr = await chromium.launch(), p = await tr.newPage({ viewport: { width: 1080, height: 1920 } });
+  const c = chuBia(tap), t = await chuThe(tap), tr = await layChromium().launch(), p = await tr.newPage({ viewport: { width: 1080, height: 1920 } });
   try {
     await p.goto(pathToFileURL(join(DIR, `brand/${tap.kenh}/thumb.html`)).href); await p.waitForFunction(() => window.__xong);
     const u = (x) => pathToFileURL(x).href;
@@ -53,6 +52,13 @@ export async function dungBia(tap, ra) {
   return { chu: `${c.lon}${c.nho ? ` · ${c.nho}` : ''}`, tac: t.tac ?? null };
 }
 const window_ve = (d) => window.__ve(d);
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1] && process.argv.includes('--tu-kiem')) {   // chỉ khi chạy chính tệp này: nap-tap.mjs import tệp này
+  const { strict: a } = await import('node:assert');
+  a.deepEqual(gonChu({ lon: 'A B', nho: 'c d e f' }), { lon: 'A B', nho: '' }, 'quá 5 từ bỏ chữ phụ'); a.deepEqual(gonChu({ lon: 'A B', nho: 'c d e' }), { lon: 'A B', nho: 'c d e' });
+  a.equal(gonChu({ lon: 'Hsi and Ho, the Drunk Astronomers', nho: '' }).lon, 'Hsi and Ho', 'tên dài cắt ở dấu phẩy'); a.equal(soTu('Brad × Angelina'), 2, 'dấu × không tính là từ');
+  a.equal(chuBia({ y_tuong: 'sc-x', tieu_de: 't', cau: [{ chu: 'h', the: { lon: '1833', duoi: 'Ten Chuyen' } }, { chu: 'd', the: { dong: ['Meteor'] } }] }).lon, '1833', 'Sky Calendar không lặp tên trong tiêu đề');
+  console.log('thumb-kenh: tự kiểm đạt'); process.exit(0);
+}
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const tep = arg('tap'), ra = arg('ra'); if (!tep || !ra) { console.error('dùng: --tap <tập.json> --ra <bìa.jpg>'); process.exit(2); }
   console.log(JSON.stringify(await dungBia(JSON.parse(readFileSync(resolve(tep), 'utf8')), resolve(ra))));

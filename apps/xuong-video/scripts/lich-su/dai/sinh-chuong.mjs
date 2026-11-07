@@ -10,6 +10,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { THU, nhanPlaylist } from '../viet-chung.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../../shot-code'), LA_SO = join(DIR, '../la-so');
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
@@ -28,7 +29,6 @@ const CUNG = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'S
 // "6th house: work and health" lệch site "Illness, injuries, hardship…")
 const NHA_SITE = JSON.parse(readFileSync(join(LA_SO, 'y-nghia-nha.json'), 'utf8')).nha;
 const NHA = Array.from({ length: 12 }, (_, i) => { const y = NHA_SITE[String(i + 1)].replace(/\.$/, '').split(/,\s*(?![^()]*\))/).slice(0, 3).join(', '); return y[0].toLowerCase() + y.slice(1); });
-const THU = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 const moc = Math.floor((D.nha.find((x) => x.so === 1)?.dinh ?? NaN) / 30); if (Number.isNaN(moc)) { console.error('✗ lá số thiếu đỉnh nhà 1'); process.exit(3); }
 const namSinh = Number(D.nguoi.year), den = Number(M.den ?? namSinh + 80);
 // TUỔI tại mốc tính theo ngày sinh trong lá số (day / month) và ngày của mốc — năm trừ năm sai một tuổi với người sinh cuối năm (Taylor Swift 13/12:
@@ -60,7 +60,7 @@ const CAU = { _ghi: `Chart Chapters dài · ${M.ten} — sinh bởi lich-su/dai/
   // bài đăng: mô tả công cụ Annual Profections của site + link mở thẳng lá số người này
   dang: dangCongCu('annual-profections', slug, {}, `${M.ten}'s life, year by year, in Annual Profections.`),
   la_so: tg(join(LA_SO, `${slug}.svg`)), nen: tg(join(DIR, '..', docSoNen('career'))), logo: tg(join(DIR, '../brand/astrolas/logo/wordmark.png')),
-  playlist: { ten: 'Career & Big Decisions', mau: '#E6B800', ic: '♄' }, cau };
+  playlist: nhanPlaylist(JSON.parse(readFileSync(join(DIR, '../so-kenh.json'), 'utf8')).astrolas.playlist.find((p) => p.ma === 'career')), cau };
 // máy gác sổ kênh (lich-su/so-kenh.json): sai mẫu / playlist / ý tưởng / câu kết thì không ghi
 const { tachCanh } = await import(join(DIR, '../chu-man.mjs')); Object.assign(CAU, tachCanh(CAU));   // mỗi khung một ý ngắn (anh 05/11/2026)
 const { docSo, kiemTap } = await import(join(DIR, '../kiem-so-kenh.mjs')), loiSo = kiemTap(CAU, docSo().astrolas, 'astrolas');

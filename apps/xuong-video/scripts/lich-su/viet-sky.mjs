@@ -9,21 +9,17 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dangCongCu } from './nguon-site.mjs';
-import { tachCanh, hookGon, hookNgan } from './chu-man.mjs';
+import { tachCanh } from './chu-man.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { chonHook, baoHook } from './hook-kenh.mjs';
+import { chonHook } from './hook-kenh.mjs';
+import { THANG, namChu, ngayChu, nhanPlaylist, tachNgay } from './viet-chung.mjs';
 import { ghiTacGia } from './anh-wiki.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
-const THANG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const THU = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const tg = (p) => relative(SHOT, join(DIR, p));
-/** năm thiên văn → chữ: -0584 → "585 BC", 1066 → "1066" */
-export const namChu = (y) => (y <= 0 ? `${1 - y} BC` : String(y));
-const tachNgay = (d) => { const m = /^(-?\d{1,4})(?:-(\d{2}))?(?:-(\d{2}))?$/.exec(d); return m ? { y: +m[1], m: m[2] ? +m[2] : null, d: m[3] ? +m[3] : null } : null; };
-export const ngayChu = (s) => { const n = tachNgay(s); return n.d ? `${THANG[n.m - 1]} ${n.d}, ${namChu(n.y)}` : n.m ? `${THANG[n.m - 1]} ${namChu(n.y)}` : namChu(n.y); };
 const NHAN_LOAI = { nguyet_thuc: 'Lunar eclipse', nhat_thuc: 'Solar eclipse', sao_choi: 'Comet', sao_bang: 'Meteor', sieu_tan_tinh: 'New star', hanh_tinh: 'Planet', trang: 'The Moon', khac: 'Sky event' };
 const iso = (t) => t.toISOString().slice(0, 10), cong = (s, n) => iso(new Date(Date.parse(`${s}T00:00Z`) + n * 864e5));
 
@@ -73,7 +69,7 @@ function vietMot(c, LT) {
     kenh: 'astrolas', mau: 'sky-calendar', playlist_ma: 'timing', y_tuong: c.ma, tuan: c.tuan, tieu_de: tieuDe, goc: gocHook, hook: { qc: hook.id, goc: hook.chu },
     nguon_moc: [c.tep],
     dang: dangCongCu('moon-phase', null, {}, `${ngayChu(c.su_kien_ngay)}: ${c.ten}. This week's Moon phases on Astrolas. Story: ${nguon.join(' · ')}${ghiAnh.length ? `\nImages: ${ghiAnh.join('; ')}` : ''}`),
-    nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#7FD18B', ic: '☽' }, cau, DAI: 0 });
+    nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: nhanPlaylist(pl), cau, DAI: 0 });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${c.ma}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }
   const ra = join(SHOT, 'tap-astrolas', `${c.ma}.json`); mkdirSync(dirname(ra), { recursive: true }); writeFileSync(ra, JSON.stringify(tap, null, 1) + '\n');

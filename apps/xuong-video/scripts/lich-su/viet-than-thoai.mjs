@@ -8,10 +8,11 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dangCongCu } from './nguon-site.mjs';
-import { tachCanh, hookGon, hookNgan } from './chu-man.mjs';
+import { tachCanh } from './chu-man.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { chonHook, baoHook } from './hook-kenh.mjs';
+import { chonHook } from './hook-kenh.mjs';
+import { nhanPlaylist } from './viet-chung.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
@@ -32,7 +33,7 @@ const tap = tachCanh({ _ghi: `Myths of the Zodiac · ${T.cung} — sinh bởi li
   nguon_moc: [tep], nguon_bai: ['the-12-zodiac-signs-explained'],
   dang: dangCongCu('birth', null, {}, `The myth behind ${T.cung}: ${T.ten}. Story: ${T.nguon.split(' ')[0]} · the 12 signs explained: https://astrolas.com/en/blog/the-12-zodiac-signs-explained`),
   nv: Object.fromEntries(Object.entries(T.nhan_vat).map(([k, v]) => [k, tg(v)])), demo: arg('demo') ? true : undefined,
-  nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#8EC5FF', ic: '☉' }, DAI: cau.at(-1).den, cau });
+  nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: nhanPlaylist(pl), DAI: cau.at(-1).den, cau });
 const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
 if (loi.length) { console.error(`✗ ${T.cung}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); process.exit(1); }
 const ra = arg('ra', join(SHOT, 'tap-astrolas', `tt-${T.cung.toLowerCase()}.json`)); mkdirSync(dirname(ra), { recursive: true });

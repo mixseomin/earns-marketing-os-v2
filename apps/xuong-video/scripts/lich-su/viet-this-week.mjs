@@ -14,17 +14,14 @@ import { fileURLToPath } from 'node:url';
 import { dangCongCu } from './nguon-site.mjs';
 import { tachCanh } from './chu-man.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
-import { loiHook, sachHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { chonHook, baoHook } from './hook-kenh.mjs';
-import { hookGon, hookNgan } from './chu-man.mjs';
+import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { chonHook } from './hook-kenh.mjs';
+import { KY as KYS, THANG, THU, nhanPlaylist } from './viet-chung.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const CUNG = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 const KYC = Object.fromEntries(CUNG.map((c, i) => [c, '♈♉♊♋♌♍♎♏♐♑♒♓'[i] + '︎']));
-const KYS = { Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇' };
-const THU = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
-const THANG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const bai = (s) => doc(`la-so/bai/${s}.json`), muc = (b, ten) => b.muc.find((m) => m.ten === ten)?.doan ?? [];
 const cauDau = (p) => (p ?? '').split(/(?<=[.!?])\s+/)[0];
 const CHAM = ['Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'];
@@ -79,7 +76,7 @@ function vietMot(su, moc, ra) {
     dang: dangCongCu(c.cong_cu, null, {}, `${su.chu} (${ngay}, ${gio} UTC): what it means for ${moc} rising.${c.bai.length ? ` Read more: ${c.bai.map((b) => `https://astrolas.com/en/blog/${b}`).join(' ')}` : ''}`),
     la_so: tg(join(DIR, 'la-so/steve-jobs.svg')), chi_vong: true,
     nen: tg(join(DIR, pl.nen))   /* nền theo playlist (so-kenh › playlist.nen) */, logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
-    playlist: { ten: pl.ten, mau: '#7FD18B', ic: '☽' }, DAI: cau.at(-1).den, cau });
+    playlist: nhanPlaylist(pl), DAI: cau.at(-1).den, cau });
   const loi = [...kiemTap(tap, so_, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${su.ma} × ${moc}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }
   mkdirSync(dirname(ra), { recursive: true }); writeFileSync(ra, JSON.stringify(tap, null, 1) + '\n');

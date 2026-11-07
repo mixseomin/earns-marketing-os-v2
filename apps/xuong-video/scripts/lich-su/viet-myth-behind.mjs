@@ -9,16 +9,15 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dangCongCu } from './nguon-site.mjs';
-import { tachCanh, hookGon, hookNgan } from './chu-man.mjs';
+import { tachCanh } from './chu-man.mjs';
 import { tenNgan } from './viet-cap.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { chonHook, baoHook } from './hook-kenh.mjs';
+import { chonHook } from './hook-kenh.mjs';
+import { KY, THU, nhanPlaylist } from './viet-chung.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
-const KY = { Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇', Chiron: '⚷', Lilith: '⚸', Ceres: '⚳', Eris: '⯰' };
-const THU = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 const tg = (p) => relative(SHOT, join(DIR, p)), bam = (s) => [...s].reduce((a, c) => a + c.charCodeAt(0), 0);
 
 /** câu đặt tên trên màn: câu dài / có chỗ ảnh biểu tượng bị rỗng (" , ") → cắt ở ranh giới mệnh đề đầu tiên sau 30 ký tự — vẫn là khúc NGUYÊN VĂN liền mạch */
@@ -74,7 +73,7 @@ function vietMot(tep, nguoi) {
     nguon_moc: [tep], nguon_bai: site ? [site.bai] : [],
     dang: dangCongCu('birth', n?.slug ?? null, {}, `The myth behind ${sao}: ${T.ten}. Story: ${T.nguon.join(' · ')}${site ? ` · https://astrolas.com/en/blog/${site.bai}` : ''}`),
     nv, ...(n ? { la_so: tg(`la-so/${n.slug}.svg`) } : {}), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'),
-    playlist: { ten: pl.ten, mau: '#8EC5FF', ic: '☉' }, cau, DAI: 0 });
+    playlist: nhanPlaylist(pl), cau, DAI: 0 });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   const thieuHinh = Object.keys(nv).filter((id) => !existsSync(join(DIR, `brand/astrolas/nhan-vat/${id}/goc.png`)));
   if (loi.length) { console.error(`✗ my-${T.ma}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }

@@ -17,7 +17,7 @@ const bam = (s) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7),
 /** lệnh máy viết của một mã tập. Thuần. */
 export function lenhViet(y, o = {}) {
   let m;
-  if ((m = /^ask-(.+)-(\d{4})$/.exec(y))) return ['viet-ask.mjs', '--ai', m[1]];
+  if ((m = /^ask-(.+)-(\d{4})$/.exec(y))) return ['viet-ask.mjs', '--ai', m[1], '--nam', m[2]];
   if ((m = /^cc-(.+)$/.exec(y))) return ['viet-chuong.mjs', '--ai', m[1]];
   if ((m = /^cvc-(.+)$/.exec(y))) return ['viet-cap.mjs', '--cap', m[1]];
   if ((m = /^my-(.+)$/.exec(y))) return ['viet-myth-behind.mjs', '--sao', m[1]];
@@ -42,7 +42,7 @@ export function chonTap(pl, ungVien, daLam, bo, hom) {
 }
 if (process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert');
-  t.deepEqual(lenhViet('ask-steve-jobs-1985'), ['viet-ask.mjs', '--ai', 'steve-jobs']); t.deepEqual(lenhViet('ryc-mc-angelina-jolie'), ['viet-ryc.mjs', '--muc', 'mc', '--ai', 'angelina-jolie']);
+  t.deepEqual(lenhViet('ask-steve-jobs-1985'), ['viet-ask.mjs', '--ai', 'steve-jobs', '--nam', '1985']); t.deepEqual(lenhViet('ryc-mc-angelina-jolie'), ['viet-ryc.mjs', '--muc', 'mc', '--ai', 'angelina-jolie']);
   t.deepEqual(lenhViet('tw-trang-moi-scorpio-2026-11-09-leo'), ['viet-this-week.mjs', '--su', 'tw-trang-moi-scorpio-2026-11-09', '--moc', 'Leo']); t.deepEqual(lenhViet('sc-a-1', { tuan: '2026-11-16' }), ['viet-sky.mjs', '--chuyen', 'sc-a-1', '--tuan', '2026-11-16']); t.throws(() => lenhViet('zz'));
   const P = [{ ma: 'a', lich_tap: [1] }, { ma: 'b', lich_tap: [2] }, { ma: 'c' }]; t.deepEqual(thuTuPlaylist(P, 2).map((p) => p.ma), ['b', 'a']);
   const U = [{ y: 'x1', mau: 'x', playlist: 'a' }, { y: 'x2', mau: 'x', playlist: 'a' }, { y: 'z1', mau: 'z', playlist: 'a' }], pl = { ma: 'a', mau: ['x', 'z'] };
@@ -52,7 +52,7 @@ if (process.argv.includes('--tu-kiem')) {
 const { BOX, box, sqlBox, dauDangLam } = await import('./box3.mjs'), { docSo } = await import('./kiem-so-kenh.mjs'), { camHook, boHookVideo } = await import('./hook-kenh.mjs');
 const { xepLich, soChuyen } = await import('./viet-sky.mjs');
 const so = docSo()[KENH], TC = so.tu_chay ?? {}, TAP = join(SHOT, `tap-${KENH}`), RA = join(DIR, `brand/${KENH}/ra`), NOW = Date.now(), hom = iso(NOW + 7 * 36e5), thu = ((d) => (d === 0 ? 7 : d))(new Date(`${hom}T12:00:00Z`).getUTCDay());
-const dsTap = () => readdirSync(TAP).filter((f) => f.endsWith('.json') && !f.startsWith('.')).map((f) => { try { return JSON.parse(readFileSync(join(TAP, f), 'utf8')); } catch { return null; } }).filter((t) => t?.y_tuong);
+const dsTap = () => readdirSync(TAP).filter((f) => f.endsWith('.json') && !f.startsWith('.')).map((f) => { try { return JSON.parse(readFileSync(join(TAP, f), 'utf8')); } catch (e) { console.error(`⚠ tập ${f} hỏng: ${e.message}`); return null; } }).filter((t) => t?.y_tuong);
 if (process.argv.includes('--y-tuong')) {   // kho ý tưởng cho mos2 › Hàng chờ: mỗi mẫu một tệp { su_kien: [{ ma, chu }] }
   mkdirSync(join(DIR, 'y-tuong'), { recursive: true }); const nhom = Map.groupBy(dsTap().filter((t) => MAU_TU_CHAY.includes(t.mau) && t.mau !== 'this-week'), (t) => t.mau);
   for (const [m, ds] of nhom) writeFileSync(join(DIR, `y-tuong/${KENH}-${m}.json`), JSON.stringify({ _ghi: `Kho ý tưởng mẫu ${m}: sinh bởi lich-su/chay-so-kenh.mjs --y-tuong từ các máy viết`, su_kien: ds.map((t) => ({ ma: t.y_tuong, chu: t.tieu_de.replace(t.cau[0].chu, '').trim() || t.tieu_de })).sort((a, b) => a.ma.localeCompare(b.ma)) }, null, 0) + '\n');
@@ -60,7 +60,7 @@ if (process.argv.includes('--y-tuong')) {   // kho ý tưởng cho mos2 › Hàn
 }
 const tele = (chu) => { try { execFileSync('ssh', [BOX, 'set -a; . /root/.secrets/mine-tg.env; set +a; curl -s -o /dev/null https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage --data-urlencode chat_id=$TG_CHAT --data-urlencode text@-'], { input: chu }); } catch (e) { console.log(`⚠ Telegram: ${e.message}`); } };
 const gio = new Date(NOW + 7 * 36e5).toISOString().slice(11, 16), xem = process.argv.includes('--xem'), TEP_SO = join(DIR, `hook-kho/${KENH}-tu-dong.json`), khoa = join(homedir(), '.cache', `lich-su-${KENH}.khoa`);
-const soTd = () => { try { return JSON.parse(readFileSync(TEP_SO, 'utf8')); } catch { return {}; } }, ghiTd = (s) => { mkdirSync(dirname(TEP_SO), { recursive: true }); writeFileSync(TEP_SO, JSON.stringify(s, null, 1) + '\n'); };
+const soTd = () => (existsSync(TEP_SO) ? JSON.parse(readFileSync(TEP_SO, 'utf8')) : {}), ghiTd = (s) => { mkdirSync(dirname(TEP_SO), { recursive: true }); writeFileSync(TEP_SO, JSON.stringify(s, null, 1) + '\n'); };
 const song = (f) => { try { process.kill(Number(readFileSync(f, 'utf8')), 0); return true; } catch { return false; } };
 // render một lúc một (luật anh 22/10/2026): lượt làm tập của kênh khác đang chạy thì chờ
 const CACHE = join(homedir(), '.cache'), banKhac = readdirSync(CACHE).some((f) => /^lich-su-.+\.khoa$/.test(f) && song(join(CACHE, f)));

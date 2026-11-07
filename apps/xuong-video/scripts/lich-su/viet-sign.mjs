@@ -10,9 +10,9 @@ import { fileURLToPath } from 'node:url';
 import { dangCongCu } from './nguon-site.mjs';
 import { tachCanh } from './chu-man.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
-import { loiHook, sachHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { chonHook, baoHook } from './hook-kenh.mjs';
-import { hookGon, hookNgan } from './chu-man.mjs';
+import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
+import { chonHook } from './hook-kenh.mjs';
+import { nhanPlaylist } from './viet-chung.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
@@ -52,7 +52,7 @@ function vietMot(b, ra) {
     kenh: 'astrolas', mau: 'sign-x-sign', playlist_ma: 'love-compatibility', y_tuong: b.ma, tieu_de: tieuDe, goc: gocHook, hook: { qc: hook.id, goc: hook.chu },
     dang: dangCongCu('compatibility', null, {}, `${A} and ${B} compatibility. Read the full guide: ${b.url}`),
     la_so: tg(join(DIR, 'la-so/steve-jobs.svg')), chi_vong: true, nen: tg(join(DIR, pl.nen))   /* nền theo playlist (so-kenh › playlist.nen) */, logo: tg(join(DIR, 'brand/astrolas/logo/wordmark.png')),
-    playlist: { ten: pl.ten, mau: '#FF8FB1', ic: '♡' }, DAI: cau.at(-1).den, cau });
+    playlist: nhanPlaylist(pl), DAI: cau.at(-1).den, cau });
   const loiTap = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loiTap.length) { console.error(`✗ ${b.ma}:\n${loiTap.map((l) => `   · ${l}`).join('\n')}`); return false; }
   mkdirSync(dirname(ra), { recursive: true }); writeFileSync(ra, JSON.stringify(tap, null, 1) + '\n');

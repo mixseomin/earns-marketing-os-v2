@@ -13,12 +13,11 @@ import { docNatal, tepNatal, SAO } from './cong-cu/doc-natal.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
 import { chonHook } from './hook-kenh.mjs';
+import { KY, THU, nhanPlaylist } from './viet-chung.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
 const CUNG = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-const KY = { Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇' };
-const THU = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 const tg = (p) => relative(SHOT, join(DIR, p)), cauDau = (s, n = 1) => s.split(/(?<=[.!?])\s+/).slice(0, n).join(' '), bo = (s) => s.replace(/[.]$/, '');
 const muc = (bai, re) => doc(`la-so/bai/${bai}.json`).muc.find((m) => re.test(m.ten));
 
@@ -35,8 +34,8 @@ function vietMot(n, ma, NGHIA) {
   const laGoc = !SAO.includes(d.ten), o = laGoc ? N.goc[d.ten] : N.sao[d.ten];
   // cung: từ lá số site (la-so/<người>.json) — trang vẽ ký hiệu bằng phông riêng nên không đọc được chữ cung; độ phút trang phải khớp lá số, lệch thì bỏ
   const kd = laGoc ? D.nha.find((x) => x.so === (d.ten === 'MC' ? 10 : 1)).dinh : D.sao.find((s) => s.ten === d.ten).kinh_do, cung = CUNG[Math.floor(kd / 30) % 12], [dd, pp] = o.do.match(/\d+/g).map(Number);
-  // lệch > 1 phút cung mới bỏ (trang làm tròn: 29°00' với lá số 28,99°)
-  if (Math.abs(dd * 60 + pp - (kd % 30) * 60) > 1) { console.error(`✗ ${y}: trang ${o.do}, lá số ${(kd % 30).toFixed(2)}° — lệch, bỏ tập`); return false; }
+  // ngưỡng theo độ chính xác của nguồn: sao có kinh độ đủ số lẻ → lệch > 1 phút cung là sai; đỉnh nhà trong la-so/<người>.json làm tròn 0,1° (6 phút) → lệch > 4 phút
+  if (Math.abs(dd * 60 + pp - (kd % 30) * 60) > (laGoc ? 4 : 1)) { console.error(`✗ ${y}: trang ${o.do}, lá số ${(kd % 30).toFixed(2)}° — lệch, bỏ tập`); return false; }
   const { hook, chuHook, goc: gocHook } = chonHook('astrolas', 'start-here', y), man = tg(relative(DIR, tepNatal(n.slug)).replace(/\.json$/, '.png')), o2 = (khung) => ({ man, khung });
   const cau = [
     { nhin: { troi: 1 }, khung: true, chu: chuHook, the: { lon: d.nhan, duoi: 'read your chart', dong: [], vi: 'giua' } },
@@ -52,7 +51,7 @@ function vietMot(n, ma, NGHIA) {
   const tap = tachCanh({ _ghi: `Read Your Chart · ${d.ten} · ${A} — sinh bởi lich-su/viet-ryc.mjs (trang ${N.nguon.slice(0, 50)}…, bài ${d.bai}, hook QC spy #${hook.id})`,
     kenh: 'astrolas', mau: 'read-your-chart', playlist_ma: 'start-here', y_tuong: y, tieu_de: tieuDe, goc: gocHook, hook: { qc: hook.id, goc: hook.chu }, nguon_bai: [d.bai],
     dang: dangCongCu('birth', n.slug, {}, `How to read the ${d.ten} in ${n.ten}'s birth chart. Guide: https://astrolas.com/en/blog/${d.bai}`),
-    la_so: tg(`la-so/${n.slug}.svg`), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#7FD18B', ic: '✦' }, cau, DAI: 0 });
+    la_so: tg(`la-so/${n.slug}.svg`), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: nhanPlaylist(pl), cau, DAI: 0 });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${y}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }
   const ra = join(SHOT, 'tap-astrolas', `${y}.json`); mkdirSync(dirname(ra), { recursive: true }); writeFileSync(ra, JSON.stringify(tap, null, 1) + '\n');

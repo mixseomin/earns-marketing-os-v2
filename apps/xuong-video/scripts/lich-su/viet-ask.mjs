@@ -5,23 +5,21 @@
 // năm đó; câu cơ chế là câu nguyên văn bài annual-profections-explained; mốc đời từ sổ mốc (dai/moc-<người>.json · la-so/cap.json, Wikipedia).
 // Mốc của sổ cặp → playlist Love & Compatibility (hook QC spy góc Tình yêu), mốc đời riêng → Career & Big Decisions (hook góc Sự nghiệp).
 // Tuổi trang báo phải bằng tuổi tính từ ngày sinh sổ người, không thì bỏ mốc. Mốc chỉ có năm (không tháng) bỏ: không biết rơi vào năm Profection nào.
-//   node viet-ask.mjs --ai steve-jobs | all   [--kho-hook kho.json] [--hook-moi] [--xem]   · --xem = chỉ liệt kê mốc dùng được
+//   node viet-ask.mjs --ai steve-jobs | all  [--nam 1985] [--kho-hook kho.json] [--hook-moi] [--xem]   · --xem = chỉ liệt kê mốc dùng được
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dangCongCu } from './nguon-site.mjs';
-import { tachCanh, hookGon, hookNgan } from './chu-man.mjs';
+import { tachCanh } from './chu-man.mjs';
 import { tenNgan } from './viet-cap.mjs';
 import { docAp, tepAp } from './cong-cu/doc-ap.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { chonHook, baoHook } from './hook-kenh.mjs';
+import { chonHook } from './hook-kenh.mjs';
+import { THANG, THU, ngayChu, nhanPlaylist } from './viet-chung.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
-const THANG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const ngayChu = (d) => { const [y, m, n] = d.split('-').map(Number); return n ? `${THANG[m - 1]} ${n}, ${y}` : `${THANG[m - 1]} ${y}`; };
-const THU = (n) => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
 const tg = (p) => relative(SHOT, join(DIR, p));
 
 /** mốc dùng được của một người: sổ mốc đời riêng (dai/moc-<slug>.json) + mốc các cặp có người đó (la-so/cap.json), bỏ trùng chữ, cần có tháng.
@@ -64,7 +62,7 @@ function vietMot(n, ms) {
     nguon_moc: [...new Set(ms.map((x) => x.nguon_moc))], nguon_cong_cu: [relative(DIR, tepAp(n.slug, m.nam))],
     dang: dangCongCu('annual-profections', n.slug, { year_target: m.nam }, `${n.ten}, ${m.nam}: what Annual Profections shows for age ${ap.tuoi}.`),
     la_so: tg(`la-so/${n.slug}.svg`), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'),
-    playlist: { ten: pl.ten, mau: m.playlist === 'career' ? '#E6B800' : '#FF8FB1', ic: m.playlist === 'career' ? '♄' : '♡' }, cau: cau.map((q) => ({ ...q, tu: 0, den: 0 })), DAI: 0 });
+    playlist: nhanPlaylist(pl), cau: cau.map((q) => ({ ...q, tu: 0, den: 0 })), DAI: 0 });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${ma}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }
   const ra = join(SHOT, 'tap-astrolas', `${ma}.json`); mkdirSync(dirname(ra), { recursive: true }); writeFileSync(ra, JSON.stringify(tap, null, 1) + '\n');
@@ -76,7 +74,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const ai = arg('ai'); if (!ai) { console.error('dùng: --ai <slug | all> [--xem]'); process.exit(2); }
   const S = doc('la-so/nguoi.json'), ng = S.nguoi.filter((x) => !x.khong_dung && S.rodden_dung_nha.includes(x.rodden) && (ai === 'all' || x.slug === ai) && existsSync(join(DIR, `la-so/${x.slug}.svg`)));
   if (!ng.length) { console.error(`không có người hạng ${S.rodden_dung_nha.join('/')} có lá số: ${ai}`); process.exit(2); }
-  const viec = ng.flatMap((n) => mocCua(n).map((m) => ({ n, m })));
+  const viec = ng.flatMap((n) => mocCua(n).filter((m) => !arg('nam') || m.nam === Number(arg('nam'))).map((m) => ({ n, m })));   // --nam: đúng một năm (chay-so-kenh.mjs) — tập năm khác của người đó hỏng không kéo tập này
   if (process.argv.includes('--xem')) { for (const { n, m } of viec) console.log(`${n.slug.padEnd(18)} ${m.ngay.padEnd(10)} năm ${m.nam} tuổi ${String(m.tuoi).padStart(2)} · ${m.playlist.padEnd(18)} ${m.chu.slice(0, 60)}`); console.log(`${viec.length} mốc`); process.exit(0); }
   const loiDoc = await docAp([...new Map(viec.map(({ n, m }) => [`${n.slug}-${m.nam}`, { slug: n.slug, nam: m.nam }])).values()]);
   for (const l of loiDoc) console.error(`✗ ${l}`);

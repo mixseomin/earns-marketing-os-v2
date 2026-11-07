@@ -3,15 +3,14 @@
 // + MỘT BỘ MỖI PLAYLIST ra/outro-<khung>-<playlist>.mp4, nền = ảnh nền playlist (so-kenh › playlist.nen) — anh 06/11/2026 "nền outro cũng đổi được mà?"
 // (vút nhẹ lúc hạt hút vào + chuông ra/chuong.wav đúng lúc logo bật). 0đ, iMac (box cấm trình duyệt). long-tieng.mjs nối vào cuối mọi tập (so-kenh › <kênh>.outro).
 //   node outro.mjs [--chi doc|ngang] [--pl <playlist> | --pl all]   (không --pl = bộ nền navy của site)
-import { createRequire } from 'node:module';
+import { layChromium } from '../../cong-cu/trinh-duyet.mjs';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), RA = join(DIR, 'ra'), TAM = join(RA, '.outro');
-const PW = process.env.DO_MAN_PW || `${process.env.HOME}/Me/Earns/courseforge-demo/node_modules/playwright`;
-const { chromium } = createRequire(import.meta.url)(PW), chi = process.argv.includes('--chi') ? process.argv[process.argv.indexOf('--chi') + 1] : null;
+const chromium = layChromium(), chi = process.argv.includes('--chi') ? process.argv[process.argv.indexOf('--chi') + 1] : null;
 if (!existsSync(join(RA, 'chuong.wav'))) { console.error('✗ thiếu ra/chuong.wav — chạy ve-brand.mjs trước'); process.exit(3); }
 const tr = await chromium.launch(), page = await tr.newPage(), PL = process.argv.includes('--pl') ? process.argv[process.argv.indexOf('--pl') + 1] : null;
 const SO = JSON.parse((await import('node:fs')).readFileSync(join(DIR, '../../so-kenh.json'), 'utf8')).astrolas.playlist;

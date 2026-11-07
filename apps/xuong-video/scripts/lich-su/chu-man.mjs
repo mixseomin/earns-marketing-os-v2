@@ -11,8 +11,6 @@ export function hookNgan(goc) {
   for (let n = 1; n <= cau.length; n++) { const t = cau.slice(0, n).join(' '); if (!loiHook([t], goc).length) return t; }
   return sach;
 }
-/** hook ưu tiên: bản ngắn (hookNgan) nằm gọn MỘT khung Short; không còn cái nào gọn thì giữ cả danh sách */
-export const hookGon = (ds) => { const g = ds.filter((h) => hookNgan(h.chu).length <= 60); return g.length ? g : ds; };
 export const TRAN = { doc: 64, ngang: 90, the: 44, nhan: 50, lon: 22 };
 const bo = (s) => String(s ?? '').replace(/<br\s*\/?>/g, ' ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 const giay = (s) => Math.max(2.4, Math.round((1.0 + bo(s).length / 14) * 10) / 10), tron = (x) => Math.round(x * 100) / 100;   // ~14 ký tự / giây + 1 giây nhìn hình

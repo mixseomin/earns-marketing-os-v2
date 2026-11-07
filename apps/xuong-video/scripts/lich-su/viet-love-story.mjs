@@ -8,18 +8,16 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dangCongCu } from './nguon-site.mjs';
-import { tachCanh, hookGon, hookNgan } from './chu-man.mjs';
+import { tachCanh } from './chu-man.mjs';
 import { chonGoc, tenNgan } from './viet-cap.mjs';
 import { kyTai } from './la-so/zr.mjs';
 import { docSo, kiemTap } from './kiem-so-kenh.mjs';
 import { loiHook } from '../../src/lib/xuong-video/hook-qc.mjs';
-import { chonHook, baoHook } from './hook-kenh.mjs';
+import { chonHook } from './hook-kenh.mjs';
+import { KY as KYS, THANG, ngayChu, nhanPlaylist } from './viet-chung.mjs';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), doc = (p) => JSON.parse(readFileSync(join(DIR, p), 'utf8'));
 const arg = (k, md) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : md; };
-const THANG = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const ngayChu = (d) => { const [y, m, n] = d.split('-').map(Number); return n ? `${THANG[m - 1]} ${n}, ${y}` : m ? `${THANG[m - 1]} ${y}` : String(y); };
-const KYS = { Sun: '☉', Moon: '☽', Mercury: '☿', Venus: '♀', Mars: '♂', Jupiter: '♃', Saturn: '♄', Uranus: '♅', Neptune: '♆', Pluto: '♇', Ascendant: 'AC', MC: 'MC' };
 
 /** kỳ ZR đáng kể của một người hạng AA tại một mốc: L2 rồi L1, Spirit rồi Fortune — chỉ Peak Period / Loosing of the Bond (nhãn của công cụ site) */
 function zrMoc(slug, ngay) {
@@ -53,7 +51,7 @@ function vietMot(c, ra) {
   const tap = tachCanh({ _ghi: `Love Story in Two Charts · ${A} & ${B} — sinh bởi lich-su/viet-love-story.mjs (mốc la-so/cap.json, synastry + ZR của site, hook QC spy #${hook.id})`,
     kenh: 'astrolas', mau: 'love-story-charts', playlist_ma: 'love-compatibility', y_tuong: `ls-${c.ma}`, khung: 'ngang', tieu_de: tieuDe, goc: gocHook, hook: { qc: hook.id, goc: hook.chu },
     dang: dangCongCu('synastry-chart', [c.a, c.b], { rel_type: 'romantic' }, `${h.a.ten} and ${h.b.ten}: the relationship, year by year, with both birth charts. Zodiacal Releasing: https://astrolas.com/tools/zodiacal-releasing`),
-    la_so: tg(`la-so/hop/${c.ma}.svg`), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: { ten: pl.ten, mau: '#FF8FB1', ic: '♡' },
+    la_so: tg(`la-so/hop/${c.ma}.svg`), nen: tg(pl.nen), logo: tg('brand/astrolas/logo/wordmark.png'), playlist: nhanPlaylist(pl),
     cau: cau.map((q) => ({ ...q, tu: 0, den: 0 })), DAI: 0 });
   const loi = [...kiemTap(tap, so, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
   if (loi.length) { console.error(`✗ ${c.ma}:\n${loi.map((l) => `   · ${l}`).join('\n')}`); return false; }

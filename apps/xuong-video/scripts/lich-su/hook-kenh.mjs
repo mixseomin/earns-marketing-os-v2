@@ -3,7 +3,7 @@
 // + hook đã nằm trong bài đang chờ), đệm 24 giờ ở lich-su/hook-kho/<kênh>.json. Chia hook:
 //   · ưu tiên QC gắn đúng các góc spy của playlist (so-kenh › playlist.goc_spy), rồi kho chung của nhóm (chạy lâu trước)
 //   · MỖI CÂU MỘT TẬP: đếm hook đã dùng ở mọi tập đã viết (shot-code/tap-<kênh>/*.json › hook.qc) + bài đang chờ trên box → chọn câu ít dùng nhất
-//   · tập viết lại giữ hook cũ của nó (chạy lại máy không xáo hook) · hook có số / nói nghịch hành chỉ cho đúng chỗ (retro: true) · ưu tiên bản ngắn gọn một khung (hookGon)
+//   · tập viết lại giữ hook cũ của nó (chạy lại máy không xáo hook) · hook có số / nói nghịch hành chỉ cho đúng chỗ (retro: true) · ưu tiên bản ngắn gọn một khung (≤ 60 ký tự)
 //   · VIDEO ĐÃ DỰNG không trùng hook với nhau: sổ hook-kho/<kênh>-video.json (long-tieng.mjs ghi mỗi lần dựng xong) — câu đã nằm trong video nặng ×100,
 //     tập đã có video giữ đúng hook của video đó (chữ tập khớp tiếng đã đọc)
 //   chonHook(kenh, playlist, maTap, { retro }) → { hook: { id, chu }, chuHook, goc: { id, ten, loai } }
@@ -44,7 +44,7 @@ function bo(kenh) {
   for (const q of K.da_dung ?? []) if (theoId.has(String(q))) them(theoId.get(String(q)), '(box)');
   const tapDir = join(SHOT, `tap-${kenh}`), cu = new Map();
   if (existsSync(tapDir)) for (const f of readdirSync(tapDir).filter((x) => x.endsWith('.json') && !x.startsWith('.'))) {
-    try { const t = JSON.parse(readFileSync(join(tapDir, f), 'utf8')); if (t.hook?.goc && t.y_tuong) { them(khoa(t.hook.goc), t.y_tuong); cu.set(t.y_tuong, khoa(t.hook.goc)); } } catch { /* tệp hỏng: bỏ */ }
+    try { const t = JSON.parse(readFileSync(join(tapDir, f), 'utf8')); if (t.hook?.goc && t.y_tuong) { them(khoa(t.hook.goc), t.y_tuong); cu.set(t.y_tuong, khoa(t.hook.goc)); } } catch (e) { console.error(`⚠ tập ${f} hỏng, không đếm hook: ${e.message}`); }
   }
   // sổ video đã dựng (long-tieng.mjs › ghiHookVideo): { <mã tập>: { khoa, chu, video, luc } }
   const fv = join(KHO, `${kenh}-video.json`), video = existsSync(fv) ? JSON.parse(readFileSync(fv, 'utf8')) : {};
@@ -52,6 +52,9 @@ function bo(kenh) {
   return BO;
 }
 
+/** điểm dùng của một câu: tập khác dùng +1, câu đã vào video / bài chờ đăng +100 (gần như cấm); chính tập đang viết không tính. Thuần. */
+export const diemDung = (dung, video, maTap) => (h) => [...(dung.get(khoa(h.chu)) ?? [])].filter((m) => m !== maTap).reduce((n, m) => n + (video[m] || m === '(box)' ? 100 : 1), 0);
+export const itDungNhat = (ds, daDung) => ds.reduce((tot, h) => (daDung(h) < daDung(tot) ? h : tot), ds[0]);
 export function chonHook(kenh, plMa, maTap, { retro = false } = {}) {
   const { K, dung, cu, them, video } = bo(kenh), pl = docSo()[kenh].playlist.find((p) => p.ma === plMa);
   const idGoc = new Set((pl?.goc_spy ?? []).map((g) => g.id)), gocPl = K.gocs.filter((g) => idGoc.has(g.id));
@@ -65,17 +68,15 @@ export function chonHook(kenh, plMa, maTap, { retro = false } = {}) {
   const tang = [...K.qc_goc.filter((h) => cuaGoc.has(String(h.id))), ...K.nhom.filter((h) => !cuaGoc.has(String(h.id)))].filter(hop);
   const ds = [...tang.filter((h) => hookNgan(h.chu).length <= 60), ...tang.filter((h) => hookNgan(h.chu).length > 60)];
   if (!ds.length) { console.error(`✗ kho hook ${kenh} không còn câu hợp cho playlist ${plMa}`); process.exit(3); }
-  const daDung = (h) => [...(dung.get(khoa(h.chu)) ?? [])].filter((m) => m !== maTap).reduce((n, m) => n + (video[m] || m === '(box)' ? 100 : 1), 0);   // câu đã vào video / bài chờ đăng: gần như cấm
+  const daDung = diemDung(dung, video, maTap);
   // tập viết lại: giữ hook cũ nếu câu đó vẫn trong kho và chưa tập nào khác giành
   // tập đã có video: giữ đúng hook đã đọc trong video · tập viết lại: giữ hook cũ nếu chưa tập nào khác giành
   const giu = (video[maTap] && ds.find((h) => khoa(h.chu) === video[maTap].khoa)) || (cu.get(maTap) && ds.find((h) => khoa(h.chu) === cu.get(maTap) && !daDung(h)));
-  const hook = giu || ds.reduce((tot, h) => (daDung(h) < daDung(tot) ? h : tot), ds[0]);
+  const hook = giu || itDungNhat(ds, daDung);
   them(khoa(hook.chu), maTap);
   const g = cuaGoc.get(String(hook.id)) ?? gocPl[0] ?? K.gocs[0];
   return { hook: { id: hook.id, chu: hook.chu }, chuHook: hookNgan(hook.chu), goc: { id: g?.id, ten: g?.ten, loai: g?.loai } };
 }
-/** báo cáo cuối lượt: bao nhiêu câu hook khác nhau / bao nhiêu tập, câu nào phải dùng lại */
-export function baoHook() { if (!BO) return ''; const lap = [...BO.dung.values()].filter((s) => s.size > 1).length; return `hook: ${BO.dung.size} câu cho ${new Set([...BO.dung.values()].flatMap((s) => [...s])).size} tập · ${lap} câu dùng > 1 tập`; }
 /** long-tieng.mjs gọi sau khi dựng xong một tập: ghi hook của video vào sổ — các tập khác tránh câu này */
 export function ghiHookVideo(tap, video) {
   if (!tap?.kenh || !tap.y_tuong || !tap.hook?.goc) return;
@@ -85,7 +86,13 @@ export function ghiHookVideo(tap, video) {
 }
 /** câu hook Phòng Nội dung chặn: không chọn lại cho tập nào của kênh (chay-so-kenh.mjs) */
 const tepCam = (kenh) => join(KHO, `${kenh}-cam.json`);
-const dsCam = (kenh) => { try { return JSON.parse(readFileSync(tepCam(kenh), 'utf8')); } catch { return []; } };
+const dsCam = (kenh) => (existsSync(tepCam(kenh)) ? JSON.parse(readFileSync(tepCam(kenh), 'utf8')) : []);   // sổ hỏng thì báo lỗi to, không coi là chưa cấm câu nào
 export function camHook(kenh, chu) { mkdirSync(KHO, { recursive: true }); writeFileSync(tepCam(kenh), JSON.stringify([...new Set([...dsCam(kenh), khoa(chu)])]) + '\n'); BO = null; }
 /** tập sắp dựng lại với hook mới: gỡ khỏi sổ video đã dựng, bộ chọn mới được đổi câu */
 export function boHookVideo(kenh, ma) { const fv = join(KHO, `${kenh}-video.json`); if (!existsSync(fv)) return; const so = JSON.parse(readFileSync(fv, 'utf8')); delete so[ma]; writeFileSync(fv, JSON.stringify(so, null, 1) + '\n'); BO = null; }
+if (process.argv[1]?.endsWith('hook-kenh.mjs') && process.argv.includes('--tu-kiem')) {
+  const { strict: t } = await import('node:assert'), A = { chu: 'Cau mot' }, B = { chu: 'Cau hai' }, dung = new Map([[khoa('Cau mot'), new Set(['x'])]]);
+  t.equal(itDungNhat([A, B], diemDung(dung, {}, 'y')), B, 'câu ít dùng trước'); t.equal(itDungNhat([A, B], diemDung(dung, {}, 'x')), A, 'chính tập đó không tính');
+  t.equal(diemDung(dung, { x: 1 }, 'y')(A), 100, 'câu đã vào video gần như cấm'); t.equal(khoa('✨ Cau  MOT!'), 'cau mot', 'khoá theo chữ, bỏ emoji');
+  console.log('hook-kenh: tự kiểm đạt');
+}

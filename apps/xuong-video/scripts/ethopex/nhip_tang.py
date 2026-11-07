@@ -10,7 +10,7 @@ BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__
 
 # NGHI_GIO 3 → 24 (anh 05/11/2026 duyệt: ROI sau tăng tụt ngay và không hồi suốt 48 giờ — một bậc mỗi 24 giờ)
 NGHI_GIO, TOI_DA_NGAY = int(BANG_LUAT["khung_doi"]["nghi_gio"]), None   # sổ luật chung (trang đọc cùng số)
-# NGOẠI LỆ TĂNG DỒN (anh 05/11/2026 "sửa đi"; số toàn đội 20/10–05/11: tăng lần nữa < 24h khi camp đã tiêu ≥ 90% ngân sách MỚI + ROI hôm nay ≥ 100%,
+# NGOẠI LỆ TĂNG DỒN (anh 05/11/2026 "sửa đi"; số toàn đội 20/10–05/11: tăng lần nữa < 24h khi camp đã tiêu ≥ 90% ngân sách MỚI (07/11/2026 hạ còn ≥ 50% — sổ luật chung nap_chi) + ROI hôm nay ≥ 100%,
 # bước ≤ ×1,5 → lãi 24h hơn để nguyên $12,77/camp, 0% âm, n=9; mọi tăng dồn < 6h +$6,58): đạt cổng thì được tăng tiếp sau NGHI_DON_GIO giờ.
 # Cổng = khung_doi.nap_chi / sang_roi của sổ luật chung (cùng cổng tăng trong ngày của máy luật — du_so là MỘT công thức cho cả hai).
 NGHI_DON_GIO = int(BANG_LUAT["khung_doi"]["nghi_don_gio"])
@@ -115,9 +115,9 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     assert chan_tang(api, 1, u("2026-10-21T08:00:00")).startswith("vừa tăng"), "23 phút sau lần tăng phải chặn"
     assert chan_tang(api, 1, u("2026-10-21T08:00:00"), du=True).startswith("vừa tăng"), "đạt cổng nhưng chưa đủ 3 giờ vẫn chặn"
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=False).startswith("vừa tăng"), "3–24 giờ mà KHÔNG đạt cổng thì chặn (nhịp 24 giờ)"
-    assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=True) is None, "3 giờ + đạt cổng (tiêu ≥ 90% NS mới, ROI ≥ 100%) → tăng dồn được"
+    assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=True) is None, "3 giờ + đạt cổng (tiêu ≥ nap_chi × NS mới, ROI ≥ 100%) → tăng dồn được"
     assert chan_tang(api, 1, u("2026-10-22T08:00:00"), du=False) is None, "đủ 24 giờ thì tăng, không cần cổng dồn"
-    assert du_so(0.95, 1.9, 1) and not du_so(0.85, 2, 1) and not du_so(1, 1.9, 1) and not du_so(1, 2, 0), "cổng: chi ≥ 90% NS + thu ≥ 2 × chi"
+    _n = float(KD["nap_chi"]); assert du_so(_n + 0.01, 2 * (_n + 0.01), 1) and not du_so(_n - 0.01, 2, 1) and not du_so(1, 1.9, 1) and not du_so(1, 2, 0), "cổng: chi ≥ nap_chi × NS (sổ luật chung) + thu ≥ 2 × chi"
     assert chan_tang(api, 1, u("2026-10-22T01:30:00"), du=False).startswith("vừa tăng"), "18 giờ sau (8h30 VN hôm sau), không đạt cổng → còn chặn (nhịp 24 giờ, 05/11/2026)"
     assert chan_tang(api, 1, u("2026-10-22T01:30:00"), du=True) is None, "18 giờ sau + đạt cổng → được"
     _CACHE.clear()

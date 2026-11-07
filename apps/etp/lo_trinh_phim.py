@@ -69,7 +69,7 @@ def chon_phim_moi(q, ch, da):
     r = q(f"""with doi as (select k.content_id, sum(s.chi) chi, sum(s.thu) thu from etp.camp_ngoai k join etp.so_ngay_ngoai s using (camp_id) where s.ngay < current_date group by 1)
         select string_agg(content_id::text, ',') from (select p.content_id from etp.phim p left join doi d using (content_id)
         where not exists (select 1 from etp.camp c where c.content_id = p.content_id) and p.thu_vong is distinct from 'cat' and coalesce(p.nhom_goc, 'au_my') = 'au_my'
-          and not (d.chi >= 10 and d.thu <= d.chi)
+          and not coalesce(d.chi >= 10 and d.thu <= d.chi, false)   -- đội chưa chạy: d null → NOT NULL loại oan 246 phim (sửa 07/11)
           and not exists (select 1 from etp.dong_phim x where x.content_id = p.content_id and (x.trang_thai = 'chay' or x.tao_luc > now() - interval '3 days'))
           and not exists (select 1 from etp.cho_len_v v where v.content_id = p.content_id and v.team_lai and v.ly_do is null)
           and not coalesce((select gia_tri ? p.content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_cam'), false)

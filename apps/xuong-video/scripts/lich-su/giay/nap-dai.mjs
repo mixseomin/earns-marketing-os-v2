@@ -42,7 +42,9 @@ if (!r2.url || !r2.thumb || r2.khung.some((u) => !u)) { console.error(`✗ đẩ
 // DẤU PHIÊN BẢN trên link video (07/11/2026): đẩy lại cùng tên tệp thì Cloudflare trước img.on.tc vẫn trả bản đệm cũ (bản cụt 282 MB) — link mới mỗi bản
 r2.url = `${r2.url}?v=${coMay}`;
 // đọc lại byte CUỐI của bản trên R2: phải trả 206 và tổng dung lượng đúng bằng tệp gốc (HEAD có lúc báo đủ trong khi dữ liệu thật thiếu)
-{ const kt = execFileSync('curl', ['-s', '-r', `${coMay - 16}-${coMay - 1}`, '-o', '/dev/null', '-w', '%{http_code} %{size_download}', r2.url], { encoding: 'utf8' }).trim();
+{ /* Cloudflare có lúc bỏ qua Range với link mới (trả 200 cả tệp) → khi đó đọc tiêu đề, dung lượng phải đúng tệp gốc; --max-time chặn tải cả 1 GB chỉ để kiểm */
+  let kt = ''; try { kt = execFileSync('curl', ['-s', '-r', `${coMay - 16}-${coMay - 1}`, '--max-time', '20', '-o', '/dev/null', '-w', '%{http_code} %{size_download}', r2.url], { encoding: 'utf8' }).trim(); } catch (e) { kt = String(e.stdout ?? '').trim(); }
+  if (kt.startsWith('200')) kt = /content-length:\s*(\d+)/i.exec(execFileSync('curl', ['-sI', r2.url], { encoding: 'utf8' }))?.[1] === String(coMay) ? '206 16' : `${kt} (tiêu đề lệch)`;
   if (kt !== '206 16') { console.error(`✗ bản trên R2 không đủ (đọc 16 byte cuối: ${kt}) — không nạp`); process.exit(5); } }
 const nap = [{ slug: id, chu_de: tap.chu_de, mau: 'video-ngoai', nen_url: nenUrl,
   de: { loai: 'video-ngoai', video_url: r2.url, giay: Math.round(giay * 100) / 100, khung: r2.khung, soat: [], tom_tat: tap.chu_de, thumb: { url: r2.thumb, chu: tap.thumb?.chu ?? null, nguon: null } },

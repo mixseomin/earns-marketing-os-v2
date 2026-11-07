@@ -8,7 +8,7 @@ import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type TheNoi } from '@/co
 import { ChuoiBuoc } from '@/components/etp-dong';
 import { MA_DANG } from '@/components/etp-so';
 import { chuLich } from '@/lib/etp-khung';
-import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
+import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
 
 const GD = ['Thử dạng', 'Camp lãi', 'Scale', 'ROAS'];
 const PHA: Record<string, [string, string]> = { hut: ['còn dư địa', '#22c55e'], dinh: ['quanh tối ưu', '#facc15'], bao_hoa: ['vượt sức chứa', '#ef4444'], it_so: ['chưa đủ số', '#6b7280'] };
@@ -36,8 +36,10 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
   const daTai = useRef(false);
   useEffect(() => { if (noi.v && !daTai.current) { daTai.current = true; setKq(null); tai(); } if (!noi.v) daTai.current = false; }, [noi.v]);
   const tai = () => docLichPhim(cid).then((r) => ('loi' in r ? setLoi(r.loi) : setL(r))).catch((e) => setLoi(String(e?.message ?? e)));
+  // BẤM KHÔNG CHẠY NGAY (anh 07/11/2026 "các thao tác khi bấm vào chạy luôn là đéo được"): nút chỉ mở hàng xác nhận nói rõ sẽ làm gì, tốn gì; bấm Xác nhận mới chạy
+  const [hoi, setHoi] = useState<{ chu: string; lam: () => Promise<{ loi: string } | { ok: true }>; xong: string } | null>(null);
   const lam = async (f: () => Promise<{ loi: string } | { ok: true }>, chu: string) => {
-    setDang(true); setKq('… đang xử lý'); const r = await f(); setDang(false);
+    setHoi(null); setDang(true); setKq('… đang xử lý'); const r = await f(); setDang(false);
     setKq('loi' in r ? `✕ ${r.loi}` : `✓ ${chu}`); if (!('loi' in r)) { tai(); router.refresh(); }
   };
   const nut: React.CSSProperties = { fontSize: 11.5, padding: '2px 9px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: dang ? 'wait' : 'pointer' };
@@ -92,10 +94,12 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
                 {l.thieu ? <div style={{ color: '#f59e0b' }} title={l.thieu}>⚠ {m ? `Đợt trước lên ${m[1]}, thiếu ${m[2]} creative sạch` : l.thieu.slice(0, 70)}</div> : null}</div>, true) : null}
               {H('Thao tác', <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {(['CC', 'KT'] as const).map((x) => <button key={x} disabled={dang} style={nut} title={`dòng phim ${x} lên 1 camp $1 — ${chuLich()}${vuot ? ' · đồng hồ báo vượt sức chứa' : ''}`}
-                  onClick={() => lam(() => themCampPhim(cid, x, 1), `đã xếp dòng ${x} × 1 camp`)}>＋ {x}</button>)}
-                <button disabled={dang} style={nut} title={`dòng phim CC lên 3 camp $1 — ${chuLich()}`} onClick={() => lam(() => themCampPhim(cid, 'CC', 3), 'đã xếp dòng CC × 3 camp')}>＋ 3 CC</button>
+                  onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 1 camp ${x}, ngân sách $1/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => themCampPhim(cid, x, 1), xong: `đã xếp dòng ${x} × 1 camp` }); }}>＋ {x}</button>)}
+                <button disabled={dang} style={nut} title={`dòng phim CC lên 3 camp $1 — ${chuLich()}`} onClick={() => { setKq(null); setHoi({ chu: `Sản xuất + lên 3 camp CC, mỗi camp $1/ngày, tổng $3/ngày. ${chuLich()}${vuot ? ' Đồng hồ đang báo vượt sức chứa.' : ''}`, lam: () => themCampPhim(cid, 'CC', 3), xong: 'đã xếp dòng CC × 3 camp' }); }}>＋ 3 CC</button>
                 <button disabled={dang} style={{ ...nut, color: '#f87171' }} title="tắt camp Nhà ROI thấp nhất của phim (giữ camp cuối nếu lãi)"
-                  onClick={() => lam(async () => { const r = await botCampPhim(cid); return 'loi' in r ? r : { ok: true as const }; }, 'đã tắt camp lỗ nhất')}>− bớt camp lỗ</button></div>)}
+                  onClick={async () => { setKq(null); const x = await xemBotCamp(cid); if ('loi' in x) { setKq(`✕ ${x.loi}`); return; } setHoi({ chu: `Tắt camp #${x.camp_id}: chi $${x.chi.toFixed(2)}, thu $${x.thu.toFixed(2)} cả đời. Không bật lại tự động.`, lam: async () => { const r = await botCampPhim(cid, x.camp_id); return 'loi' in r ? r : { ok: true as const }; }, xong: `đã tắt #${x.camp_id}` }); }}>− bớt camp lỗ</button></div>)}
+              {hoi ? H('Xác nhận', <div style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid #f59e0b' }}><div style={{ marginBottom: 6, color: 'var(--fg-1)' }}>{hoi.chu}</div>
+                <div style={{ display: 'flex', gap: 6 }}><button disabled={dang} style={{ ...nut, background: '#f59e0b', color: '#111', borderColor: '#f59e0b', fontWeight: 600 }} onClick={() => lam(hoi.lam, hoi.xong)}>✓ Xác nhận</button><button style={nut} onClick={() => setHoi(null)}>Huỷ</button></div></div>, true) : null}
             </div>; })()}
           {kq ? <div style={{ fontSize: 11, color: kq.startsWith('✓') ? '#4ade80' : kq.startsWith('…') ? 'var(--fg-2)' : '#f87171' }}>{kq}</div> : null}
         </>}</>}

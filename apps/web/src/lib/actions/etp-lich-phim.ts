@@ -82,14 +82,21 @@ export async function themCampPhim(contentId: number, loai: 'CC' | 'KT', so: num
 }
 
 /** − BỚT CAMP LỖ NHẤT của phim (camp Nhà đang chạy, không ★ ROAS, ROI cả đời thấp nhất) — giữ camp cuối nếu nó lãi. Tắt qua lam-ethopex.py (đường nút Telegram). */
-export async function botCampPhim(contentId: number): Promise<{ ok: true; camp_id: number } | { loi: string }> {
-  if (!(await laChu())) return { loi: 'chỉ chủ điều khiển phim' };
-  const id = Math.trunc(Number(contentId));
+async function campBot(id: number): Promise<{ camp_id: number; chi: number; thu: number } | { loi: string }> {
   const ds = await run<{ camp_id: number; chi: number; thu: number }>(sql`select c.camp_id, coalesce(sum(n.chi), 0)::float chi, coalesce(sum(n.thu), 0)::float thu
     from etp.camp c left join etp.so_ngay n using (camp_id) where c.content_id = ${id} and c.trang_thai = 'ACTIVE' and not c.la_roas group by 1
     order by case when sum(n.chi) >= 1 then (sum(n.thu) - sum(n.chi)) / sum(n.chi) else 0 end, c.camp_id`);
   const x = ds[0]; if (!x) return { loi: 'phim không có camp Nhà đang chạy' };
   if (ds.length === 1 && x.thu > x.chi) return { loi: `#${x.camp_id} là camp cuối và đang lãi — giữ` };
+  return x;
+}
+/** camp sẽ bị tắt — hàng xác nhận hiện đúng camp này trước khi anh bấm */
+export async function xemBotCamp(contentId: number) { if (!(await laChu())) return { loi: 'chỉ chủ điều khiển phim' }; return campBot(Math.trunc(Number(contentId))); }
+export async function botCampPhim(contentId: number, campDaXem: number): Promise<{ ok: true; camp_id: number } | { loi: string }> {
+  if (!(await laChu())) return { loi: 'chỉ chủ điều khiển phim' };
+  const id = Math.trunc(Number(contentId));
+  const x = await campBot(id); if ('loi' in x) return x;
+  if (x.camp_id !== Number(campDaXem)) return { loi: `camp lỗ nhất vừa đổi sang #${x.camp_id}, bấm lại để xem` };   // anh xác nhận camp nào thì chỉ tắt camp đó
   const tep = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex/lam-ethopex.py`;
   const me = await getCurrentUser();
   const ra = await new Promise<string>((ok) => execFile('python3', [tep, 'tat', String(x.camp_id), '--luat', `anh bấm Bớt camp lỗ nhất ở etp.on.tc (phim ${id})`, '--ai', `anh (etp.on.tc ${me?.email ?? ''})`],

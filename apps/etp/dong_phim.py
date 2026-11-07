@@ -537,8 +537,14 @@ def doc_dong():
 # (mọi khung trùng đoạn đã có · không còn đoạn sạch · creative bị cổng chấm chặn) → dựng một dòng KT cho phim, cùng số camp, đứng đầu hàng máy sinh
 # (bậc 5000) — máy sinh vốn chạy liên tục theo hàng đợi, dòng này chỉ đổi thứ tự, không thêm lượt sinh. Mỗi phim một dòng KT trong 3 ngày.
 HET_NL = re.compile(r"hết khung mới|không còn đoạn sạch|bị cổng chấm chặn|creative bị cổng chấm chặn / giữ")
+# TẠM GÁC DÒNG KT (anh 08/11/2026 "tạm gác dòng KT lại, tập trung các dạng khác"): công tắc etp.cau_hinh.gac_kt (true = gác). Gác thì dòng KT đang chạy dừng
+# ('dung', vong), phim hết nguyên liệu cắt chuyển ảnh tĩnh thay vì mở dòng KT (sang_ke_chuyen). Mở lại: đặt gac_kt = false rồi bấm FIX dòng KT muốn chạy tiếp.
+GAC_KT_LY = "tạm gác dòng kể chuyện (anh 08/11/2026) — mở lại: etp.cau_hinh.gac_kt = false rồi FIX"
+def gac_kt(): return sql("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_kt'), 'false')") == "true"
+
 def sang_ke_chuyen(d, buoc, ghi):
     if d.get("loai") == "KT" or buoc not in ("cat", "soat", "creative") or not HET_NL.search(ghi or ""): return None
+    if gac_kt(): return (doi_at(d, "hết nguyên liệu cắt", ("CC", "LT", None)).lstrip(" ·") or None)   # gác KT → ảnh tĩnh
     cid = int(d["content_id"])
     if str(cid) in khoa_studio("ethopex_phim_cam"): return None
     co = sql(f"select id from etp.dong_phim where content_id = {cid} and loai = 'KT' and tao_luc > now() - interval '3 days' order by id desc limit 1")
@@ -603,8 +609,15 @@ def vong():
         except Exception as e: print(f"dọn lỗi: {e}", flush=True)
     try: mo_doi_lai()
     except Exception as e: print(f"mở rộng phim đội lãi lỗi: {str(e)[:200]}", flush=True)
+    gac = gac_kt()
     for d in doc_dong():
         bs = d.get("buoc") or {}
+        if gac and d.get("loai") == "KT" and d["trang_thai"] == "chay" and not any((bs.get(b) or {}).get("trang_thai") in ("dang", "xong") for b in ("camp", "chay")):   # đã tới bước lên camp thì để chạy nốt
+            with KHOA: pr = [p for (i, _), p in DANG.items() if i == d["id"]]
+            for p in pr: giet_cay(p.pid)
+            sql(f"""update etp.dong_buoc set trang_thai = 'dung', ket_thuc = now(), ghi = {s(GAC_KT_LY)}, fix = false where dong_id = {d['id']} and trang_thai in ('dang', 'cho') and buoc not in ('camp', 'chay');
+                    update etp.dong_phim set trang_thai = 'dung', ly_do = {s(GAC_KT_LY)}, xong_luc = now() where id = {d['id']} and trang_thai = 'chay'""")
+            print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} KT — {GAC_KT_LY}", flush=True); continue
         if not bs:   # dòng mới (web vừa tạo): dựng 8 bước — hạn từng bước khai MỘT chỗ ở đây
             live = d.get("so_camp") and sql(f"select count(*) from etp.camp where content_id = {d['content_id']} and trang_thai = 'ACTIVE' and not la_roas") not in ("", "0")
             bq = BO_QUA.get(d.get("loai") or "CC", set()) | ({"nhan", "ws", "poster"} if live else set())   # mở rộng phim ĐANG có camp Nhà chạy mới bỏ nhận / trang / poster; phim chưa có camp Nhà (vd phim chỉ team chạy, bấm ＋ ở tab Phim) vẫn qua đủ cổng

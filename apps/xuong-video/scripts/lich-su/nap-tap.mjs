@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // NẠP TẬP ĐÃ DỰNG VÀO MÁY ĐĂNG (G7 kênh Astrolas, 07/11/2026) — chỉ NẠP, không đăng: đẩy bản phát hành + khung hình lên R2 (day-demo.mts nhánh tap, tên tệp mang dấu nội dung vì CDN giữ bản cũ),
 // rồi đúng cổng chung may-dung.mts --nap → --xuat (mẫu video-ngoai). Phòng Nội dung chấm ở lượt kế; máy đăng (dang-may.mjs) tự lấy bài DUYỆT theo nhịp an toàn.
-//   node nap-tap.mjs --tap ../shot-code/tap-astrolas/my-saturn.json --video brand/astrolas/ra/g6-my-saturn.mp4
+//   node nap-tap.mjs --tap ../shot-code/tap-astrolas/my-saturn.json --video brand/astrolas/ra/g6-my-saturn.mp4 [--dang-tu YYYY-MM-DD] [--dang-den YYYY-MM-DD]
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync, copyFileSync } from 'node:fs';
@@ -47,7 +47,7 @@ try {
   const u = JSON.parse(tsx(`scripts/lich-su/day-demo.mts ${tap.kenh} ${bt}/f tap`).trim().split('\n').pop());
   const nap = [{ slug: id, chu_de: tap.tieu_de.replace(tap.hook.goc, '').trim() || tap.tieu_de, mau: 'video-ngoai', nen_url: `https://images.pexels.com/photos/${nguon.pexels_id}/pexels-photo-${nguon.pexels_id}.jpeg`,
     de: { loai: 'video-ngoai', video_url: u[ten], giay: Math.round(giay * 100) / 100, khung: tenK.map((x) => u[x]), soat: tenS.map((x) => u[x]), tom_tat: tap.tieu_de, thumb: null },
-    dang: { title: gonTieuDe(tap.tieu_de, tap.cau[0].chu), description: `${tap.dang.mo_ta}\n\nMade by the Astrolas team.`, link: tap.dang.link, goc: tap.goc, hook: tap.hook, playlist: tap.playlist_ma, mau: tap.mau, y_tuong: id } }];
+    dang: { title: gonTieuDe(tap.tieu_de, tap.cau[0].chu), description: `${tap.dang.mo_ta}\n\nMade by the Astrolas team.`, link: tap.dang.link, goc: tap.goc, hook: tap.hook, playlist: tap.playlist_ma, mau: tap.mau, y_tuong: id, ...(arg('dang-tu') ? { dang_tu: arg('dang-tu') } : {}), ...(arg('dang-den') ? { dang_den: arg('dang-den') } : {}) } }];   // hạn đăng: Sky Calendar đúng tuần, This Week trước sự kiện (nhip-an-toan.mjs › trongHan)
   writeFileSync(join(TAM, 'nap.json'), JSON.stringify(nap)); execFileSync('scp', ['-q', join(TAM, 'nap.json'), `${BOX}:${bt}/nap.json`]);
   console.log(tsx(`scripts/may-dung.mts --may ${tap.kenh} --nap < ${bt}/nap.json`).trim().split('\n').pop()); console.log(tsx(`scripts/may-dung.mts --may ${tap.kenh} --xuat ${id}`).trim().split('\n').pop());
   console.log(`✓ nạp ${id} · "${nap[0].dang.title}" (${nap[0].dang.title.length} ký tự) · ${(bMp4.length / 1e6).toFixed(1)} MB · Phòng Nội dung chấm ở lượt kế`);

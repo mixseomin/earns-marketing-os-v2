@@ -26,9 +26,9 @@ function soKenh(): Record<string, SoKenh> {
 }
 
 /** Tệp nguồn ý tưởng tự sinh mà các sổ khai (vd lich-troi.json — lich-su/lich-troi.mjs sinh): { tệp: su_kien[] }. */
-function docNguonYTuong(so: Record<string, SoKenh>): Record<string, { ma: string; chu: string; utc: string }[]> {
+function docNguonYTuong(so: Record<string, SoKenh>): Record<string, { ma: string; chu: string; utc?: string }[]> {
   const tep = [...new Set(Object.values(so).flatMap((k) => (k.nguon_y_tuong ?? []).map((n) => n.tep)))];
-  return Object.fromEntries(tep.map((t) => [t, docTepLichSu<{ su_kien?: { ma: string; chu: string; utc: string }[] }>(t)?.su_kien ?? []]));
+  return Object.fromEntries(tep.map((t) => [t, docTepLichSu<{ su_kien?: { ma: string; chu: string; utc?: string }[] }>(t)?.su_kien ?? []]));
 }
 
 export async function docKenhSp(hom: string): Promise<KenhSp[]> {

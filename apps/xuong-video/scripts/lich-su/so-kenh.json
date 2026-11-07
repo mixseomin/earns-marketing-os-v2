@@ -43,7 +43,11 @@
           "ask-the-chart"
         ],
         "trang_dich": "Synastry (/synastry-chart), Compatibility (/compatibility), bài ghép cung",
-        "nen": "brand/astrolas/anh/nen/love-compatibility.jpg"
+        "nen": "brand/astrolas/anh/nen/love-compatibility.jpg",
+        "lich_tap": [
+          2,
+          6
+        ]
       },
       {
         "ma": "know-yourself",
@@ -78,7 +82,11 @@
           "zodiac-myths"
         ],
         "trang_dich": "Birth chart (/birth), /c/<người>, bài <người>-birth-chart",
-        "nen": "brand/astrolas/anh/nen/know-yourself.jpg"
+        "nen": "brand/astrolas/anh/nen/know-yourself.jpg",
+        "lich_tap": [
+          1,
+          7
+        ]
       },
       {
         "ma": "career",
@@ -108,7 +116,10 @@
           "chart-vs-chart"
         ],
         "trang_dich": "Annual Profections, Zodiacal Releasing",
-        "nen": "brand/astrolas/anh/nen/career.jpg"
+        "nen": "brand/astrolas/anh/nen/career.jpg",
+        "lich_tap": [
+          5
+        ]
       },
       {
         "ma": "timing",
@@ -141,7 +152,10 @@
           "tonights-sky"
         ],
         "trang_dich": "Today's sky, Transit, Moon Phase, Lunation Analyzer",
-        "nen": "brand/astrolas/anh/nen/timing.jpg"
+        "nen": "brand/astrolas/anh/nen/timing.jpg",
+        "lich_tap": [
+          3
+        ]
       },
       {
         "ma": "start-here",
@@ -181,7 +195,10 @@
           "free-60s"
         ],
         "trang_dich": "Birth chart (/birth), bài what-is-a-birth-chart, how-to-read-your-birth-chart-in-10-steps",
-        "nen": "brand/astrolas/anh/nen/start-here.jpg"
+        "nen": "brand/astrolas/anh/nen/start-here.jpg",
+        "lich_tap": [
+          4
+        ]
       },
       {
         "ma": "accurate",
@@ -284,16 +301,16 @@
       {
         "ma": "G7",
         "ten": "Đăng",
-        "viec": "mở khoá mục YouTube @astrolasapp; 2 playlist + Start here + bố cục trang kênh; máy đăng chọn playlist + tiền tố tiêu đề · 07/11: nạp bằng lich-su/nap-tap.mjs (cổng chung --nap / --xuat); 4 video Phòng Nội dung DUYỆT (Jobs 1985 · Leonids 1833 · Saturn · Pitt × Jolie), Page Facebook tự lấy theo lượt; YouTube còn khoá nghi_den 2099, phải lưu trữ 14 video mẫu cũ trước khi mở; chưa tạo 6 playlist, chưa có bước chọn playlist khi đăng",
+        "viec": "mở khoá mục YouTube @astrolasapp; 2 playlist + Start here + bố cục trang kênh; máy đăng chọn playlist + tiền tố tiêu đề · 07/11: video đầu lên YouTube https://youtube.com/shorts/RMNI1c9ybGM; đăng từ iMac bằng phiên chép (scripts/chep-phien.mjs); chưa tạo 6 playlist; bình luận đầu hỏng",
         "anh": "không",
         "trang_thai": "dang"
       },
       {
         "ma": "G8",
         "ten": "Tự chạy",
-        "viec": "Astrolas vào chay-kenh.mjs (lịch theo playlist, trần 1 bài/ngày); hàng chờ chủ đề mỗi playlist tự bổ sung",
+        "viec": "Astrolas vào chay-kenh.mjs (lịch theo playlist, trần 1 bài/ngày); hàng chờ chủ đề mỗi playlist tự bổ sung · 07/11: lich-su/chay-so-kenh.mjs gắn cuối lượt mỗi giờ của chay-kenh.mjs: tập kế theo playlist.lich_tap → viết → giọng → dựng → nạp, trần 3 tập làm trước, hook bị chặn tự đổi, hỏng 3 lần bỏ tập, báo Telegram; video dài chưa tự làm (cần thumbnail)",
         "anh": "không",
-        "trang_thai": "chua"
+        "trang_thai": "dang"
       },
       {
         "ma": "G9",
@@ -905,6 +922,46 @@
         "tep": "lich-troi.json",
         "ngay_toi": 60,
         "ghi": "sự kiện trời sắp tới (trăng mới / tròn, đổi cung, đổi chiều) — mỗi sự kiện một ý tưởng, 12 bản theo cung Mọc"
+      },
+      {
+        "mau": "ask-the-chart",
+        "tep": "y-tuong/astrolas-ask-the-chart.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "chart-chapters",
+        "tep": "y-tuong/astrolas-chart-chapters.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "chart-vs-chart",
+        "tep": "y-tuong/astrolas-chart-vs-chart.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "myth-behind",
+        "tep": "y-tuong/astrolas-myth-behind.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "read-your-chart",
+        "tep": "y-tuong/astrolas-read-your-chart.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "sign-x-sign",
+        "tep": "y-tuong/astrolas-sign-x-sign.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "sky-calendar",
+        "tep": "y-tuong/astrolas-sky-calendar.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "zodiac-myths",
+        "tep": "y-tuong/astrolas-zodiac-myths.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
       }
     ],
     "nguoi_tep": "la-so/nguoi.json",
@@ -918,6 +975,12 @@
       "doc": "brand/astrolas/ra/outro-doc.mp4",
       "ngang": "brand/astrolas/ra/outro-ngang.mp4",
       "_ghi": "outro logo nối cuối mọi tập (shot-code/long-tieng.mjs): Short 1 s, video dài 3 s — dựng bằng brand/astrolas/outro.mjs (0đ, logo thật, không AI)"
+    },
+    "tu_chay": {
+      "truoc_ke_hoach": 3,
+      "gio_tu": "07:00",
+      "gio_den": "22:00",
+      "_ghi": "G8: lich-su/chay-so-kenh.mjs, gọi cuối lượt mỗi giờ của chay-kenh.mjs; lich_tap playlist: 1 = Thứ Hai … 7 = Chủ nhật"
     }
   },
   "yesterdays-news-tonight": {

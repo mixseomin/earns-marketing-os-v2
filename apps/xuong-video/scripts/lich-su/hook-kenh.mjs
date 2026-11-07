@@ -59,7 +59,8 @@ export function chonHook(kenh, plMa, maTap, { retro = false } = {}) {
   // CHỦ ĐỀ của câu khớp playlist: câu tình yêu chỉ cho Love & Compatibility, câu tiền / việc chỉ cho Career (06/11/2026: câu "relate to money" lọt vào Timing)
   const deTai = (c) => (/\b(love|loves|lover|relationships?|him|he|his|heart|partners?|marriage|married|ex|crush|soulmate|dating|romance)\b/i.test(c) ? 'love-compatibility'
     : /\b(money|career|job|work|business|salary|wealth)\b/i.test(c) ? 'career' : null);
-  const hop = (h) => !/\d/.test(h.chu) && LA_TINH(h.chu) && (retro ? true : !/retrograde/i.test(h.chu)) && [null, plMa].includes(deTai(h.chu));
+  const cam = new Set(dsCam(kenh));
+  const hop = (h) => !/\d/.test(h.chu) && LA_TINH(h.chu) && !cam.has(khoa(h.chu)) && (retro ? true : !/retrograde/i.test(h.chu)) && [null, plMa].includes(deTai(h.chu));
   // thứ tự kho: QC gắn góc của playlist → QC chạy lâu của nhóm; trong mỗi tầng, bản ngắn gọn một khung (≤ 60 ký tự) trước
   const tang = [...K.qc_goc.filter((h) => cuaGoc.has(String(h.id))), ...K.nhom.filter((h) => !cuaGoc.has(String(h.id)))].filter(hop);
   const ds = [...tang.filter((h) => hookNgan(h.chu).length <= 60), ...tang.filter((h) => hookNgan(h.chu).length > 60)];
@@ -82,3 +83,9 @@ export function ghiHookVideo(tap, video) {
   so[tap.y_tuong] = { khoa: khoa(tap.hook.goc), chu: tap.hook.goc, video, luc: new Date().toISOString() };
   mkdirSync(KHO, { recursive: true }); writeFileSync(fv, JSON.stringify(so, null, 1) + '\n');
 }
+/** câu hook Phòng Nội dung chặn: không chọn lại cho tập nào của kênh (chay-so-kenh.mjs) */
+const tepCam = (kenh) => join(KHO, `${kenh}-cam.json`);
+const dsCam = (kenh) => { try { return JSON.parse(readFileSync(tepCam(kenh), 'utf8')); } catch { return []; } };
+export function camHook(kenh, chu) { mkdirSync(KHO, { recursive: true }); writeFileSync(tepCam(kenh), JSON.stringify([...new Set([...dsCam(kenh), khoa(chu)])]) + '\n'); BO = null; }
+/** tập sắp dựng lại với hook mới: gỡ khỏi sổ video đã dựng, bộ chọn mới được đổi câu */
+export function boHookVideo(kenh, ma) { const fv = join(KHO, `${kenh}-video.json`); if (!existsSync(fv)) return; const so = JSON.parse(readFileSync(fv, 'utf8')); delete so[ma]; writeFileSync(fv, JSON.stringify(so, null, 1) + '\n'); BO = null; }

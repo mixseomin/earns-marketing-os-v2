@@ -28,7 +28,7 @@ const NHAN_LOAI = { nguyet_thuc: 'Lunar eclipse', nhat_thuc: 'Solar eclipse', sa
 const iso = (t) => t.toISOString().slice(0, 10), cong = (s, n) => iso(new Date(Date.parse(`${s}T00:00Z`) + n * 864e5));
 
 /** sổ chuyện: troi-xua/_so.json + chuyện Columbus 1504 của demo (dai/moc-columbus-1504.json) */
-function soChuyen() {
+export function soChuyen() {
   const ds = doc('troi-xua/_so.json').chuyen.map((c) => ({ ...c, tep: `troi-xua/${c.tep.split('/').pop()}` }));
   if (!ds.some((c) => c.ma === 'sc-columbus-1504')) ds.push({ ma: 'sc-columbus-1504', ten: 'Columbus and the lunar eclipse', loai: 'nguyet_thuc', su_kien_ngay: '1504-02-29', tep: 'dai/moc-columbus-1504.json' });
   return ds;
@@ -86,6 +86,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const tu = arg('tu', thu2(homNay)), soTuan = Math.floor((Date.parse(`${LT.den}T00:00Z`) - Date.parse(`${tu}T00:00Z`)) / (7 * 864e5));
   const lich = xepLich(soChuyen(), tu, soTuan).filter((c) => !arg('chuyen') || c.ma === arg('chuyen'));
   if (process.argv.includes('--xem')) { for (const c of lich) console.log(`${c.tuan}  ${c.ky_niem ? '★' : ' '} ${c.ma.padEnd(22)} ${c.su_kien_ngay.padEnd(11)} ${c.ten}`); process.exit(0); }
+  if (arg('tuan')) for (const c of lich) c.tuan = arg('tuan');   // chay-so-kenh.mjs đã chọn tuần
   let hong = 0; for (const c of lich) if (!vietMot(c, LT)) hong++;
   console.log(`${lich.length - hong}/${lich.length} chuyện đạt`); process.exit(hong ? 1 : 0);
 }

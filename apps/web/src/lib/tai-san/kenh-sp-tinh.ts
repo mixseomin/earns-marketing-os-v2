@@ -224,11 +224,12 @@ export function trangThaiY(y: YTuong, videos: Pick<VideoKenh, 'slug' | 'trangTha
   return v.some((x) => x.trangThai === 'da_dang') ? 'da_dang' : v.length ? 'da_lam' : y.trang_thai;
 }
 /** Ý TƯỞNG TỰ SINH từ một nguồn (vd lịch trời): sự kiện trong [hom, hom + ngay_toi] ngày, bỏ mã đã có trong hàng chờ tay. Thuần. */
-export function yTuongTuSinh(so: SoKenh, nguon: Record<string, { ma: string; chu: string; utc: string }[]>, hom: string): YTuong[] {
+export function yTuongTuSinh(so: SoKenh, nguon: Record<string, { ma: string; chu: string; utc?: string }[]>, hom: string): YTuong[] {
   const co = new Set((so.hang_cho ?? []).map((y) => y.ma)), ra: YTuong[] = [], t0 = Date.parse(`${hom}T00:00:00Z`);
   for (const n of so.nguon_y_tuong ?? []) for (const s of nguon[n.tep] ?? []) {
-    const t = Date.parse(s.utc); if (co.has(s.ma) || t < t0 || t > t0 + (n.ngay_toi ?? 60) * 86400e3) continue;
-    ra.push({ ma: s.ma, mau: n.mau, chu_de: s.chu, ngay: s.utc.slice(0, 10), utc: s.utc, trang_thai: 'chua', tu_sinh: n.tep }); }
+    // ý tưởng không gắn ngày (kho máy viết Astrolas: y-tuong/<kênh>-<mẫu>.json) luôn hiện; có ngày thì trong khoảng ngay_toi
+    const t = s.utc ? Date.parse(s.utc) : null; if (co.has(s.ma) || (t != null && (t < t0 || t > t0 + (n.ngay_toi ?? 60) * 86400e3))) continue;
+    ra.push({ ma: s.ma, mau: n.mau, chu_de: s.chu, ...(s.utc ? { ngay: s.utc.slice(0, 10), utc: s.utc } : {}), trang_thai: 'chua', tu_sinh: n.tep }); }
   return ra;
 }
 const gioVnUtc = (iso: string) => { const d = new Date(Date.parse(iso) + 7 * 3600e3); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${d.getUTCFullYear()} giờ VN`; };

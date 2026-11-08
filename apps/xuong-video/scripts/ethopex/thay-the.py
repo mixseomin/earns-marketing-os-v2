@@ -183,6 +183,15 @@ def main():
         s_cp = importlib.util.spec_from_file_location("cat_phim", os.path.join(ETP, "cat_phim.py")); CP = importlib.util.module_from_spec(s_cp); s_cp.loader.exec_module(CP)
         b_cp, d_cp = CP.xet(that=THAT); bao += b_cp; DOI_BO.update({int(k): v for k, v in d_cp.items() if v})
     except Exception as e: bao.append(f"lỗi thang chuyển hướng: {str(e)[:120]}")
+    # BỎ LOẠI CAMP THAY THẾ (anh 09/11/2026 "Bỏ loại camp đó đi vì đã có plan thay thế tổng thể rồi" — đo 29/10–08/11: 103 camp thay ROI −29% so với +4% của
+    # camp mới khác; lộ trình phim / bù camp / cất sớm đã lo phim không đứt camp): không mở dòng mới, không lên camp thay. Dòng đang mở: đã có camp (len_lich) → 'chay'
+    # (camp giữ nguyên cho luật tắt / tăng xử), chưa có → 'huy' + gỡ hàng cắt góc mới cờ thay. Chỉ còn thang cất phim (cat_phim.xet) ở trên chạy theo nhịp ethopex.
+    for r in qj("select id, content_id, buoc from etp.thay_the where buoc not in ('chay', 'huy')"):
+        ghi(r["id"], buoc="chay" if r["buoc"] == "len_lich" else "huy", ghi="bỏ loại camp thay thế (anh 09/11/2026) — thay bằng lộ trình phim tổng thể")
+        if r["buoc"] != "len_lich": bo_hang_cat(r["content_id"])
+    print("\n".join(bao), file=sys.stderr)
+    print(json.dumps({"moi": 0, "bao": bao}, ensure_ascii=False))
+    return
     sys.path.insert(0, ETP); import cong
     CHAN = cong.phim_chan_len()   # phim cổng chắc chắn chặn (ngoài Âu-Mỹ · đã cất) → không mở dòng, không thử lên (31/10/2026: 445/450 lần thử bị chặn Âu-Mỹ)
     global SAP, SAP_PHIM; CAN = can_thay(); SAP = {int(x["camp_id"]) for x in CAN}

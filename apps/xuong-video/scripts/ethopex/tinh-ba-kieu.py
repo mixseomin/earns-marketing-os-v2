@@ -86,9 +86,9 @@ def nap(cid, lang, f, dang, ghi, vnd, chu_dau=None):
 # PO.5 "ai" (anh 08/11/2026 "Cách này ổn"): API ảnh AI vẽ BỐ CỤC MỚI với diễn viên THẬT (tham chiếu poster gốc + khung phim) + tên phim AI vẽ theo kiểu chữ poster gốc
 # (ve-po-ai.py + box3 anh-po-ai.mts, ~111₫ / ảnh) — đứng đầu vòng xoay: bản 1 của mỗi phim là PO.5
 MAU_PO = ["ai", "goc", "ghep", "the"]
-BAN_PO = {"goc": "PO.1", "ghep": "PO.2", "the": "PO.3", "le": "PO.4", "ai": "PO.5"}
+BAN_PO = {"goc": "PO.1", "ghep": "PO.2", "the": "PO.3", "ai": "PO.5"}
 _v = importlib.util.spec_from_file_location("ve_po_ai", os.path.join(os.path.dirname(os.path.abspath(__file__)), "ve-po-ai.py"))
-_VND_AI = {}   # tiền ảnh AI theo tệp ra (poster_mau trả đường dẫn — main cộng vào vnd)   # PO.4 mùa lễ: chưa vào MAU_PO (chờ anh duyệt) — dựng thử bằng --mau le
+_VND_AI = {}   # tiền ảnh AI theo tệp ra (poster_mau trả đường dẫn — main cộng vào vnd)   # PO.4 (mùa lễ) anh gạt 08/11/2026 "Xấu. Bỏ luôn" — đã gỡ mã, số PO.4 không dùng lại
 def _phu(im, w, h, cx=0.5, cy=0.5):   # phóng ảnh phủ kín w×h, giữ tâm (cx, cy)
     s = max(w / im.width, h / im.height); im = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
     x = min(max(0, round(cx * im.width - w / 2)), im.width - w); y = min(max(0, round(cy * im.height - h / 2)), im.height - h); return im.crop((x, y, x + w, y + h))
@@ -125,24 +125,6 @@ def poster_mau(mau, tm, nen_khung, ra, ban=0):
         x = (W - r) // 2; y = cao - 30; nen.paste((235, 235, 235), (x - 4, y - 4, x + r + 4, y + con + 4)); nen.paste(q2, (x, y))
         for yy in (cao - 46, H - 22): nen.paste((200, 170, 120), (60, yy, W - 60, yy + 3))
         nen.save(ra); return ra
-    if mau == "le":   # PO.4 MÙA LỄ (đề xuất 08/11/2026, chờ anh duyệt — chưa vào MAU_PO): nền chuyển đỏ thẫm → xanh thông, poster trọn ở giữa viền vàng mảnh + đổ bóng,
-        # tuyết rơi (chấm trắng mờ, cố định — phóng chậm ở AT.dung tạo cảm giác trôi), quầng sáng ấm sau poster. Không chữ.
-        import random
-        nen = Image.new("RGB", (W, H)); px = nen.load()
-        for y in range(H):
-            t = y / H; c = (int(120 * (1 - t) + 10 * t), int(12 * (1 - t) + 60 * t), int(20 * (1 - t) + 34 * t))
-            for x in range(W): px[x, y] = c
-        quang = Image.new("L", (W, H)); ImageDraw.Draw(quang).ellipse((W * 0.05, H * 0.2, W * 0.95, H * 0.8), fill=150)
-        nen = Image.composite(Image.new("RGB", (W, H), (255, 196, 120)), nen, quang.filter(ImageFilter.GaussianBlur(160)))
-        r = round(W * 0.84); q2 = p.resize((r, round(p.height * r / p.width)), Image.LANCZOS); vien = 8
-        the = Image.new("RGB", (q2.width + 2 * vien, q2.height + 2 * vien), (212, 175, 90)); the.paste(q2, (vien, vien))
-        x, y = (W - the.width) // 2, (H - the.height) // 2
-        bong = Image.new("L", (W, H)); ImageDraw.Draw(bong).rectangle((x + 14, y + 24, x + the.width + 14, y + the.height + 24), fill=200)
-        nen = Image.composite(Image.new("RGB", (W, H)), nen, bong.filter(ImageFilter.GaussianBlur(28))); nen.paste(the, (x, y))
-        tuyet = Image.new("RGBA", (W, H)); dr = ImageDraw.Draw(tuyet); rd = random.Random(7)
-        for _ in range(260):
-            cx, cy, rr = rd.randrange(W), rd.randrange(H), rd.choice((2, 3, 3, 4, 5, 7)); dr.ellipse((cx - rr, cy - rr, cx + rr, cy + rr), fill=(255, 255, 255, rd.randrange(110, 230)))
-        nen = Image.alpha_composite(nen.convert("RGBA"), tuyet.filter(ImageFilter.GaussianBlur(1.2))).convert("RGB"); nen.save(ra); return ra
     raise ValueError(f"mẫu poster lạ: {mau}")
 
 def main(cid, kieu, ban=1, xem=False, mau_ep=None):

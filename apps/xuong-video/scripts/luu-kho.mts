@@ -11,7 +11,7 @@ const may0 = lay('--may'), slug0 = lay('--slug');
 // --ds-may: mã mọi máy có video còn trên R2 (luu-kho.mjs --het đi hết, không máy nào đứng ngoài)
 if (a.includes('--ds-may')) { const r = (await getDb()!.execute(sql`SELECT DISTINCT m.ma FROM xv_may m JOIN xv_may_video v ON v.may_id = m.id WHERE v.video_url IS NOT NULL AND NOT (coalesce(v.de, '{}'::jsonb) ? 'kho_drive') ORDER BY 1`)) as unknown as { ma: string }[]; console.log(JSON.stringify(r.map((x) => x.ma))); process.exit(0); }
 // --tra <tệp=url>…: đẩy tệp (kéo từ Drive) về đúng khoá R2 của url, bỏ dấu kho_drive — chỉ cho video đã chuyển kho
-if (a.includes('--tra')) { const { uploadToR2 } = await import('../../src/lib/r2'), db0 = getDb()!; let n = 0;
+if (a.includes('--tra')) { const { uploadToR2 } = await import('../src/lib/r2'), db0 = getDb()!; let n = 0;
   for (const cap of a.slice(a.indexOf('--tra') + 1)) { const [tep, u] = [cap.slice(0, cap.indexOf('=')), cap.slice(cap.indexOf('=') + 1)], k = r2KeyFromUrl(u.split('?')[0]); if (!k || !k.startsWith('xuong-video/')) { console.error(`✗ khoá lạ: ${u}`); process.exit(4); }
     if (await uploadToR2(k, { tep }, /\.jpe?g$/i.test(k) ? 'image/jpeg' : 'video/mp4')) n++; else { console.error(`✗ đẩy lại ${k} hỏng — giữ dấu kho_drive`); process.exit(5); } }
   await db0.execute(sql`UPDATE xv_may_video SET de = de - 'kho_drive' - 'kho_luc', updated_at = now() WHERE slug = ${slug0} AND may_id = (SELECT id FROM xv_may WHERE ma = ${may0})`);

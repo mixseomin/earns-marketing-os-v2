@@ -57,13 +57,16 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
   useEffect(() => { void tai(ky); const id = window.setInterval(() => void tai(ky), 60_000); return () => window.clearInterval(id); }, [ky, tai]);
   const hang = useMemo(() => (du ? gomLogs(du, gom) : []), [du, gom]);
 
+  // KHỔ HẸP (điện thoại): bảng 7 cột không vừa 390px → mỗi khung một THẺ (giờ + lãi, rồi mỗi nhóm một hàng ô icon + số) — cùng dữ liệu, cùng thẻ nổi khi bấm
+  const [hep, setHep] = useState(false);
+  useEffect(() => { const m = window.matchMedia('(max-width: 700px)'); const f = () => setHep(m.matches); f(); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
   const noi = useNoi<The>();
   // ô số: bấm = mở ngay (điện thoại), rê chuột = mở sau trễ chung (máy tính) — một khuôn thẻ nổi của etp
   // KHÔNG CUỘN NGANG (anh 08/11/2026 "Trình bày drawer làm sao ko phải scroll sang ngang"): mỗi NHÓM một cột (Camp · Sản xuất · Chấm · duyệt · Khác) thay vì mỗi loại một cột (21 cột);
   // trong cột là dãy Ô cố định (icon + số), cùng vị trí ở tiêu đề / mọi dòng / dòng tổng → mắt dò dọc theo icon; màn hẹp thì dãy ô xuống dòng thay vì đẩy bảng rộng ra
-  const O_RONG = 38;
-  const oSo = (k: string, ds: HangLog[] | undefined, nhan: string) => { const n = ds?.length ?? 0, l = LOAI_THEO_K[k];
-    const vo: React.CSSProperties = { width: O_RONG, textAlign: 'right', fontVariantNumeric: 'tabular-nums', flex: 'none' };
+  const O_RONG = 36;
+  const oSo = (k: string, ds: HangLog[] | undefined, nhan: string, gon = false) => { const n = ds?.length ?? 0, l = LOAI_THEO_K[k];
+    const vo: React.CSSProperties = { width: gon ? 'auto' : O_RONG, textAlign: 'right', fontVariantNumeric: 'tabular-nums', flex: 'none' };
     if (!n) return <span key={k} style={{ ...vo, color: MO_SO }} title={`${l?.ten}: 0`}>·</span>;
     const t: The = { k, nhan, ds: ds! };
     return <span key={k} role="button" tabIndex={0} title={l?.ten} onClick={(e) => noi.moNgay(t, e)} onMouseEnter={(e) => noi.mo(t, e)} onMouseLeave={noi.dongTre}
@@ -100,7 +103,19 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
     </div>
     {loi ? <div style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${DO}`, color: DO, fontSize: 12 }}>⛔ {loi}</div> : null}
     {!du && !loi ? <div style={{ padding: 16, color: 'var(--fg-2)', fontSize: 12 }}>⏳ Đang tải nhật ký…</div> : null}
-    {du ? <DataTable rows={hang} columns={cot} groups={NHOM_LOG.map((g) => ({ ...g }))} groupHeader getRowKey={(x) => String(x.t)} persistKey="etp-logs-nhom" minWidth={0}
+    {du && hep ? <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      {[{ t: -1, nhan: `Cả ${tenKy(ky)}`, dem: Object.fromEntries(LOAI_LOG.map((l) => [l.k, cong(hang, l.k)])), chi: hang.reduce((a, x) => a + x.chi, 0), thu: hang.reduce((a, x) => a + x.thu, 0), coTien: true },
+        ...hang.map((x) => ({ ...x, nhan: nhanKhung(x.t, gom) }))].map((x) => <div key={x.t} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px', fontSize: 12, background: x.t < 0 ? 'rgba(255,255,255,.04)' : undefined }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}><b style={{ fontVariantNumeric: 'tabular-nums' }}>{x.nhan}</b>
+          {x.coTien ? <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}><b style={{ color: mauLai(x.thu - x.chi) }}>{x.thu - x.chi < 0 ? '−' : ''}${Math.abs(x.thu - x.chi).toFixed(2)}</b>
+            <span style={{ color: 'var(--fg-3)' }}> · chi ${x.chi.toFixed(2)} · thu ${x.thu.toFixed(2)}</span></span> : null}</div>
+        {NHOM_LOG.filter((g) => g.key !== 'khac').map((g) => { const co = LOAI_LOG.filter((l) => l.nhom === g.key && (x.dem[l.k]?.length ?? 0) > 0);
+          return co.length ? <div key={g.key} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 10px', marginTop: 4 }}>
+            <span style={{ color: 'var(--fg-3)', width: 64, flex: 'none' }}>{g.label}</span>
+            {co.map((l) => <span key={l.k} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }} title={l.ten}>{l.icon}{oSo(l.k, x.dem[l.k], x.nhan, true)}</span>)}</div> : null; })}
+      </div>)}
+    </div> : null}
+    {du && !hep ? <DataTable rows={hang} columns={cot} groups={NHOM_LOG.map((g) => ({ ...g }))} groupHeader getRowKey={(x) => String(x.t)} persistKey="etp-logs-nhom" minWidth={0}
       defaultSort={[{ key: 'khung', dir: 'desc' }]} locTuDong={false} /> : null}
     {/* thẻ nổi nằm TRÊN ngăn kéo Logs (ngăn z ≥ 300; khuôn chung z 60 thì bị ngăn che, bấm mã không được) */}
     {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={420} noi={noi} style={{ zIndex: 2000 }}>

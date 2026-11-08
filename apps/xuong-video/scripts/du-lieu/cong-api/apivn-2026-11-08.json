@@ -1,0 +1,1225 @@
+[
+ {
+  "id": "apivn/qwen3-codex",
+  "ten": "Qwen3 Codex",
+  "ho": "qwen",
+  "tinh": "token",
+  "gia": 2000.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/minimax-m2.1",
+  "ten": "MiniMax M2.1",
+  "ho": "minimax",
+  "tinh": "token",
+  "gia": 2700.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/minimax-m2.5",
+  "ten": "MiniMax M2.5",
+  "ho": "minimax",
+  "tinh": "token",
+  "gia": 4300.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-haiku-4-5",
+  "ten": "Claude Haiku 4.5",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 8100.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/glm-5",
+  "ten": "GLM 5",
+  "ho": "glm",
+  "tinh": "token",
+  "gia": 8100.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/gpt-5.6-luna",
+  "ten": "GPT 5.6 Luna",
+  "ho": "gpt",
+  "tinh": "token",
+  "gia": 8800.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-sonnet-5-medium",
+  "ten": "Claude Sonnet 5 Medium",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 14200.0,
+  "toi_thieu": 300.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/gpt-5.6-terra",
+  "ten": "GPT 5.6 Terra",
+  "ho": "gpt",
+  "tinh": "token",
+  "gia": 18100.0,
+  "toi_thieu": 400.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-sonnet-4-6-medium",
+  "ten": "Claude Sonnet 4.6 Medium",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 18200.0,
+  "toi_thieu": 400.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-sonnet-5-max-thinking",
+  "ten": "Claude Sonnet 5 Max Thinking",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 22300.0,
+  "toi_thieu": 500.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-opus-5-medium",
+  "ten": "Claude Opus 5 Medium",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 24000.0,
+  "toi_thieu": 500.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/gpt-5.6-sol",
+  "ten": "GPT 5.6 Sol",
+  "ho": "gpt",
+  "tinh": "token",
+  "gia": 24800.0,
+  "toi_thieu": 500.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-opus-4-6-medium",
+  "ten": "Claude Opus 4.6 Medium",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 24300.0,
+  "toi_thieu": 500.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-sonnet-4-6-max-thinking",
+  "ten": "Claude Sonnet 4.6 Max Thinking",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 24300.0,
+  "toi_thieu": 500.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-opus-4-7-medium",
+  "ten": "Claude Opus 4.7 Medium",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 25500.0,
+  "toi_thieu": 600.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-opus-4-8-medium",
+  "ten": "Claude Opus 4.8 Medium",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 25500.0,
+  "toi_thieu": 600.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-opus-5-max-thinking",
+  "ten": "Claude Opus 5 Max Thinking",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 27400.0,
+  "toi_thieu": 600.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-opus-4-6-max-thinking",
+  "ten": "Claude Opus 4.6 Max Thinking",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 27500.0,
+  "toi_thieu": 600.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-opus-4-7-max-thinking",
+  "ten": "Claude Opus 4.7 Max Thinking",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 27600.0,
+  "toi_thieu": 600.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-opus-4-8-max-thinking",
+  "ten": "Claude Opus 4.8 Max Thinking",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 27600.0,
+  "toi_thieu": 600.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-opus-5-5-medium",
+  "ten": "Claude Opus 5.5 Medium",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 28000.0,
+  "toi_thieu": 600.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-opus-5-5-max-thinking",
+  "ten": "Claude Opus 5.5 Max Thinking",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 30000.0,
+  "toi_thieu": 700.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-fable-5",
+  "ten": "Claude Fable 5",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 35000.0,
+  "toi_thieu": 800.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "apivn/claude-fable-5-1-medium",
+  "ten": "Claude Fable 5.1 Medium",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 55000.0,
+  "toi_thieu": 1200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-fable-5",
+  "ten": "Claude Fable 5",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 8300.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-fable-5-1",
+  "ten": "Claude Fable 5.1",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 20000.0,
+  "toi_thieu": 500.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/claude-fable-5",
+  "ten": "Claude Fable 5",
+  "ho": "claude",
+  "tinh": "request",
+  "gia": 500.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": "Model thử nghiệm."
+ },
+ {
+  "id": "req/claude-fable-5.1",
+  "ten": "Claude Fable 5.1",
+  "ho": "claude",
+  "tinh": "request",
+  "gia": 650.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-opus-4-6",
+  "ten": "Claude Opus 4.6",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 6500.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-opus-4-7",
+  "ten": "Claude Opus 4.7",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 6500.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-opus-4-8",
+  "ten": "Claude Opus 4.8",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 6500.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-opus-5",
+  "ten": "Claude Opus 5",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 6500.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-opus-5-5",
+  "ten": "Claude Opus 5.5",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 15000.0,
+  "toi_thieu": 400.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/claude-opus-5",
+  "ten": "Claude Opus 5",
+  "ho": "claude",
+  "tinh": "request",
+  "gia": 400.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/claude-opus-5-5",
+  "ten": "Claude Opus 5.5",
+  "ho": "claude",
+  "tinh": "request",
+  "gia": 650.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/claude-opus-4-8",
+  "ten": "Claude Opus 4.8",
+  "ho": "claude",
+  "tinh": "request",
+  "gia": 350.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/claude-opus-4-6",
+  "ten": "Claude Opus 4.6",
+  "ho": "claude",
+  "tinh": "request",
+  "gia": 350.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-sonnet-4-6",
+  "ten": "Claude Sonnet 4.6",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 6500.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-sonnet-5",
+  "ten": "Claude Sonnet 5",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 6500.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-sonnet-5-5",
+  "ten": "Claude Sonnet 5.5",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 15000.0,
+  "toi_thieu": 400.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-haiku-4-5",
+  "ten": "Claude Haiku 4.5",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 6000.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "claude-haiku-5-5",
+  "ten": "Claude Haiku 5.5",
+  "ho": "claude",
+  "tinh": "token",
+  "gia": 6000.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/claude-sonnet-5",
+  "ten": "Claude Sonnet 5",
+  "ho": "claude",
+  "tinh": "request",
+  "gia": 400.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/claude-sonnet-5-5",
+  "ten": "Claude Sonnet 5.5",
+  "ho": "claude",
+  "tinh": "request",
+  "gia": 450.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/claude-sonnet-4-6",
+  "ten": "Claude Sonnet 4.6",
+  "ho": "claude",
+  "tinh": "request",
+  "gia": 350.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/claude-haiku-4-5",
+  "ten": "Claude Haiku 4.5",
+  "ho": "claude",
+  "tinh": "request",
+  "gia": 330.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/claude-haiku-5-5",
+  "ten": "Claude Haiku 5.5",
+  "ho": "claude",
+  "tinh": "request",
+  "gia": 350.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gpt-5.5",
+  "ten": "GPT 5.5",
+  "ho": "gpt",
+  "tinh": "token",
+  "gia": 2400.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gpt-5.5",
+  "ten": "GPT 5.5",
+  "ho": "gpt",
+  "tinh": "request",
+  "gia": 300.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gpt-5.6-luna",
+  "ten": "GPT 5.6 Luna",
+  "ho": "gpt",
+  "tinh": "token",
+  "gia": 2400.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gpt-5.6-luna",
+  "ten": "GPT 5.6 Luna",
+  "ho": "gpt",
+  "tinh": "request",
+  "gia": 300.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gpt-5.6-sol",
+  "ten": "GPT 5.6 Sol",
+  "ho": "gpt",
+  "tinh": "token",
+  "gia": 2800.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gpt-5.6-sol",
+  "ten": "GPT 5.6 Sol",
+  "ho": "gpt",
+  "tinh": "request",
+  "gia": 350.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gpt-5.6-terra",
+  "ten": "GPT 5.6 Terra",
+  "ho": "gpt",
+  "tinh": "token",
+  "gia": 2600.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gpt-5.6-terra",
+  "ten": "GPT 5.6 Terra",
+  "ho": "gpt",
+  "tinh": "request",
+  "gia": 270.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gpt-6-astra",
+  "ten": "GPT 6 Astra",
+  "ho": "gpt",
+  "tinh": "token",
+  "gia": 18000.0,
+  "toi_thieu": 400.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gpt-6-sol",
+  "ten": "GPT 6 Sol",
+  "ho": "gpt",
+  "tinh": "token",
+  "gia": 12000.0,
+  "toi_thieu": 300.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gpt-6.1-sol",
+  "ten": "GPT 6.1 Sol",
+  "ho": "gpt",
+  "tinh": "token",
+  "gia": 15000.0,
+  "toi_thieu": 400.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gpt-6-luna",
+  "ten": "GPT 6 Luna",
+  "ho": "gpt",
+  "tinh": "token",
+  "gia": 8000.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gpt-6-astra",
+  "ten": "GPT 6 Astra",
+  "ho": "gpt",
+  "tinh": "request",
+  "gia": 1000.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gpt-6-sol",
+  "ten": "GPT 6 Sol",
+  "ho": "gpt",
+  "tinh": "request",
+  "gia": 600.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gpt-6-luna",
+  "ten": "GPT 6 Luna",
+  "ho": "gpt",
+  "tinh": "request",
+  "gia": 450.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gpt-6.1-sol",
+  "ten": "GPT 6.1 Sol",
+  "ho": "gpt",
+  "tinh": "request",
+  "gia": 650.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gpt-image-2",
+  "ten": "GPT Image 2",
+  "ho": "gpt",
+  "tinh": "request",
+  "gia": 1000.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/banana-2",
+  "ten": "Banana 2",
+  "ho": "gpt",
+  "tinh": "request",
+  "gia": 1000.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": "Gemini Nano Banana 2. 1.000đ/ảnh. Gọi POST /v1/images/generations."
+ },
+ {
+  "id": "req/deepseek-v4-pro",
+  "ten": "DeepSeek V4 Pro",
+  "ho": "deepseek",
+  "tinh": "request",
+  "gia": 260.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "deepseek-v4-pro",
+  "ten": "DeepSeek V4 Pro",
+  "ho": "deepseek",
+  "tinh": "token",
+  "gia": 2000.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/deepseek-v4-flash",
+  "ten": "DeepSeek V4 Flash",
+  "ho": "deepseek",
+  "tinh": "request",
+  "gia": 230.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "deepseek-v4-flash",
+  "ten": "DeepSeek V4 Flash",
+  "ho": "deepseek",
+  "tinh": "token",
+  "gia": 1500.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/deepseek-v4.1-flash",
+  "ten": "DeepSeek V4.1 Flash",
+  "ho": "deepseek",
+  "tinh": "request",
+  "gia": 250.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "deepseek-v4.1-flash",
+  "ten": "DeepSeek V4.1 Flash",
+  "ho": "deepseek",
+  "tinh": "token",
+  "gia": 2000.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "unc/deepseek-v4.1-flash",
+  "ten": "DeepSeek V4.1 Flash Unc",
+  "ho": "deepseek",
+  "tinh": "token",
+  "gia": 2500.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/minimax-m3",
+  "ten": "Minimax M3",
+  "ho": "minimax",
+  "tinh": "request",
+  "gia": 250.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/minimax-m3.1-flash",
+  "ten": "Minimax M3.1 Flash",
+  "ho": "minimax",
+  "tinh": "request",
+  "gia": 300.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "minimax-m3",
+  "ten": "Minimax M3",
+  "ho": "minimax",
+  "tinh": "token",
+  "gia": 2500.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/minimax-m2.7",
+  "ten": "Minimax M2.7",
+  "ho": "minimax",
+  "tinh": "request",
+  "gia": 250.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "minimax-m2.7",
+  "ten": "Minimax M2.7",
+  "ho": "minimax",
+  "tinh": "token",
+  "gia": 2500.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gemini-3.5-flash",
+  "ten": "Gemini 3.5 Flash",
+  "ho": "gemini",
+  "tinh": "request",
+  "gia": 350.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gemini-3.5-flash",
+  "ten": "Gemini 3.5 Flash",
+  "ho": "gemini",
+  "tinh": "token",
+  "gia": 3600.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gemini-3.6-flash",
+  "ten": "Gemini 3.6 Flash",
+  "ho": "gemini",
+  "tinh": "token",
+  "gia": 3900.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gemini-3.7-flash",
+  "ten": "Gemini 3.7 Flash",
+  "ho": "gemini",
+  "tinh": "token",
+  "gia": 4000.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gemini-3.8-flash",
+  "ten": "Gemini 3.8 Flash",
+  "ho": "gemini",
+  "tinh": "token",
+  "gia": 4500.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gemini-3.6-flash-high",
+  "ten": "Gemini 3.6 Flash High",
+  "ho": "gemini",
+  "tinh": "request",
+  "gia": 400.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gemini-3.7-flash-high",
+  "ten": "Gemini 3.7 Flash High",
+  "ho": "gemini",
+  "tinh": "request",
+  "gia": 450.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gemini-3.8-flash",
+  "ten": "Gemini 3.8 Flash",
+  "ho": "gemini",
+  "tinh": "request",
+  "gia": 500.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "video/gemini-3.8-flash",
+  "ten": "Gemini 3.8 Flash Video",
+  "ho": "gemini",
+  "tinh": "request",
+  "gia": 1000.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": "Đọc video. Gửi video_url, input_video, hoặc dán link YouTube / mp4 / webm trong tin nhắn."
+ },
+ {
+  "id": "gemini-3.1-pro",
+  "ten": "Gemini 3.1 Pro",
+  "ho": "gemini",
+  "tinh": "token",
+  "gia": 3500.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "gemini-4-argon",
+  "ten": "Gemini 4 Argon",
+  "ho": "gemini",
+  "tinh": "token",
+  "gia": 6500.0,
+  "toi_thieu": 200.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/gemini-3.0-pro-image",
+  "ten": "Gemini 3.0 Pro Image",
+  "ho": "gemini",
+  "tinh": "request",
+  "gia": 1000.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "google-omni-flash",
+  "ten": "Google Omni Flash",
+  "ho": "google",
+  "tinh": "request",
+  "gia": 8000.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": "8.000đ/video. Gọi POST /v1/videos."
+ },
+ {
+  "id": "veo-3.1",
+  "ten": "Veo 3.1",
+  "ho": "google",
+  "tinh": "request",
+  "gia": 4000.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": "4.000đ/video. Gọi POST /v1/videos."
+ },
+ {
+  "id": "grok-imagine-video-1.5",
+  "ten": "Grok Imagine Video 1.5",
+  "ho": "grok",
+  "tinh": "request",
+  "gia": 9000.0,
+  "toi_thieu": null,
+  "theo_giay": [
+   {
+    "seconds": 6,
+    "price": 9000
+   },
+   {
+    "seconds": 10,
+    "price": 15000
+   },
+   {
+    "seconds": 15,
+    "price": 22500
+   }
+  ],
+  "ghi": "6s 9.000đ · 10s 15.000đ · 15s 22.500đ. Mặc định 6 giây. Gọi POST /v1/videos."
+ },
+ {
+  "id": "st1/seedance-2.0-1080p",
+  "ten": "Seedance 2.0 1080p",
+  "ho": "bytedance",
+  "tinh": "request",
+  "gia": 98562.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": "Không gửi seconds: 5s = 98.562đ. Hỗ trợ 4–15s (bước 1s), giá VNĐ/video thành công (đã gồm phí tạo). Ví dụ: 4s=78.849đ · 10s=197.124đ · 15s=295.683đ. Gọi POST /v1/videos."
+ },
+ {
+  "id": "st1/seedance-2.0-720p",
+  "ten": "Seedance 2.0 720p",
+  "ho": "bytedance",
+  "tinh": "request",
+  "gia": 39978.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": "Không gửi seconds: 5s = 39.978đ. Hỗ trợ 4–15s (bước 1s), giá VNĐ/video thành công (đã gồm phí tạo). Ví dụ: 4s=32.013đ · 10s=79.800đ · 15s=119.622đ. Gọi POST /v1/videos."
+ },
+ {
+  "id": "st1/seedance-2.0-fast-720p",
+  "ten": "Seedance 2.0 Fast 720p",
+  "ho": "bytedance",
+  "tinh": "request",
+  "gia": 31872.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": "Không gửi seconds: 5s = 31.872đ. Hỗ trợ 4–15s (bước 1s), giá VNĐ/video thành công (đã gồm phí tạo). Ví dụ: 4s=25.497đ · 10s=63.744đ · 15s=95.613đ. Gọi POST /v1/videos."
+ },
+ {
+  "id": "st1/seedance-2.5-1080p",
+  "ten": "Seedance 2.5 1080p",
+  "ho": "bytedance",
+  "tinh": "request",
+  "gia": 149667.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": "Không gửi seconds: 5s = 149.667đ. Hỗ trợ 4–30s (bước 1s), giá VNĐ/video thành công (đã gồm phí tạo). Ví dụ: 4s=119.736đ · 10s=299.334đ · 30s=897.999đ. Gọi POST /v1/videos."
+ },
+ {
+  "id": "st1/seedance-2.5-720p",
+  "ten": "Seedance 2.5 720p",
+  "ho": "bytedance",
+  "tinh": "request",
+  "gia": 61026.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": "Không gửi seconds: 5s = 61.026đ. Hỗ trợ 4–30s (bước 1s), giá VNĐ/video thành công (đã gồm phí tạo). Ví dụ: 4s=48.861đ · 10s=121.857đ · 30s=365.184đ. Gọi POST /v1/videos."
+ },
+ {
+  "id": "grok-image-2.0",
+  "ten": "Grok Imagine Image 2.0",
+  "ho": "grok",
+  "tinh": "request",
+  "gia": 1000.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": "1.000đ/ảnh. Gọi POST /v1/images/generations."
+ },
+ {
+  "id": "kimi-k3",
+  "ten": "Kimi K3",
+  "ho": "kimi",
+  "tinh": "token",
+  "gia": 3800.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "kimi-2.7",
+  "ten": "Kimi 2.7",
+  "ho": "kimi",
+  "tinh": "token",
+  "gia": 2800.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/kimi-k3",
+  "ten": "Kimi K3",
+  "ho": "kimi",
+  "tinh": "request",
+  "gia": 350.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "kimi-k3.1-pro",
+  "ten": "Kimi K3.1 Pro",
+  "ho": "kimi",
+  "tinh": "token",
+  "gia": 4800.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/kimi-k3.1-pro",
+  "ten": "Kimi K3.1 Pro",
+  "ho": "kimi",
+  "tinh": "request",
+  "gia": 500.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "qwen3.8-max",
+  "ten": "Qwen 3.8 Max",
+  "ho": "qwen",
+  "tinh": "token",
+  "gia": 3900.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "qwen3.8-flash",
+  "ten": "Qwen 3.8 Flash",
+  "ho": "qwen",
+  "tinh": "token",
+  "gia": 2800.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "qwen3.7-max",
+  "ten": "Qwen 3.7 Max",
+  "ho": "qwen",
+  "tinh": "token",
+  "gia": 3500.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/qwen3.8-max",
+  "ten": "Qwen 3.8 Max",
+  "ho": "qwen",
+  "tinh": "request",
+  "gia": 350.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/qwen3.8-flash",
+  "ten": "Qwen 3.8 Flash",
+  "ho": "qwen",
+  "tinh": "request",
+  "gia": 250.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/qwen3.7-max",
+  "ten": "Qwen 3.7 Max",
+  "ho": "qwen",
+  "tinh": "request",
+  "gia": 300.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "glm-5.2",
+  "ten": "GLM 5.2",
+  "ho": "glm",
+  "tinh": "token",
+  "gia": 2400.0,
+  "toi_thieu": 50.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/glm-5.2",
+  "ten": "GLM 5.2",
+  "ho": "glm",
+  "tinh": "request",
+  "gia": 350.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "glm-5.3",
+  "ten": "GLM 5.3",
+  "ho": "glm",
+  "tinh": "token",
+  "gia": 3000.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/glm-5.3",
+  "ten": "GLM 5.3",
+  "ho": "glm",
+  "tinh": "request",
+  "gia": 350.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "glm-5.3-flash",
+  "ten": "GLM 5.3 Flash",
+  "ho": "glm",
+  "tinh": "token",
+  "gia": 4000.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/glm-5.3-flash",
+  "ten": "GLM 5.3 Flash",
+  "ho": "glm",
+  "tinh": "request",
+  "gia": 400.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "grok-4.5",
+  "ten": "Grok 4.5",
+  "ho": "grok",
+  "tinh": "token",
+  "gia": 3000.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/grok-4.5",
+  "ten": "Grok 4.5",
+  "ho": "grok",
+  "tinh": "request",
+  "gia": 250.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "grok-4.6",
+  "ten": "Grok 4.6",
+  "ho": "grok",
+  "tinh": "token",
+  "gia": 4000.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/grok-4.6",
+  "ten": "Grok 4.6",
+  "ho": "grok",
+  "tinh": "request",
+  "gia": 250.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "req/grok-4.7",
+  "ten": "Grok 4.7",
+  "ho": "grok",
+  "tinh": "request",
+  "gia": 300.0,
+  "toi_thieu": null,
+  "theo_giay": null,
+  "ghi": null
+ },
+ {
+  "id": "grok-4.7",
+  "ten": "Grok 4.7",
+  "ho": "grok",
+  "tinh": "token",
+  "gia": 5000.0,
+  "toi_thieu": 100.0,
+  "theo_giay": null,
+  "ghi": null
+ }
+]

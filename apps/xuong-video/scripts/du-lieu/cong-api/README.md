@@ -27,3 +27,20 @@ Quy đổi: 26.000₫ ≈ $1. ShopAIKey bán credit $1 = 3.250₫ (nạp 1₫ = 
 - 3 lượt mini 720p 9:16 5s: 1 hỏng ("Video generation failed. Please retry", **không trừ tiền**), 2 đạt: 720×1280, 5,1s, có tiếng, mặt người giữ ổn, 3,5–4 phút / clip.
 - **Giá thật $0,2646 / clip 5s ≈ 6.900₫** (= $0,053/s) — gấp ~3,8 lần giá trang /models ($0,014/s). Rẻ hơn APIMaster Seedance Mini ($0,0756/s) ~30%, không phải 5 lần như ước.
 - Khoá đặt "không giới hạn" → API không cho biết số dư tài khoản; Phòng Tài nguyên chỉ báo đã dùng.
+
+## apivn.dev (đọc 08/11/2026, chưa có tài khoản)
+
+Bảng đủ 121 model: `apivn-2026-11-08.json` — bóc từ dữ liệu nhúng của trang https://apivn.dev/pricing (không cần đăng nhập;
+trang chỉ hiện 12 thẻ, phần còn lại nằm trong payload Next). Ví VNĐ, nạp VietQR tối thiểu 50.000₫, gọi kiểu OpenAI (`POST /v1/videos`,
+`/v1/images/generations`) hoặc Anthropic. Chữ: giá gộp vào/ra theo 1M token + mức tối thiểu mỗi lượt (Claude 200–500₫/lượt).
+
+| Loại | Model | Giá |
+|---|---|---|
+| Video | veo-3.1 | 4.000₫/video (trang không ghi độ dài / độ phân giải) |
+| Video | google-omni-flash | 8.000₫/video |
+| Video | grok-imagine-video-1.5 | 6s 9.000₫ · 10s 15.000₫ · 15s 22.500₫ |
+| Video | st1/seedance-2.0-fast-720p | 5s 31.872₫ |
+| Video | st1/seedance-2.0-720p | 5s 39.978₫ (4s 32.013₫) |
+| Video | st1/seedance-2.0-1080p | 5s 98.562₫ |
+| Video | st1/seedance-2.5-720p / 1080p | 5s 61.026₫ / 149.667₫ |
+| Ảnh | req/banana-2, grok-image-2.0, req/gpt-image-2, req/gemini-3.0-pro-image | 1.000₫/ảnh |

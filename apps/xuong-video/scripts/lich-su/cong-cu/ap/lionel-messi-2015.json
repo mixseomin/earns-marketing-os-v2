@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Lionel+Messi&day=24&month=6&year=1987&location=Rosario%2C+Santa+Fe%2C+Argentina&lat=-32.9594&lng=-60.6617&hour=20&minute=30&year_target=2015",
+ "doc_luc": "2026-11-08T03:43:26.141Z",
+ "nam": 2015,
+ "tuoi": 28,
+ "nha": 5,
+ "cung": "Gemini",
+ "nghia_nha": "Children, creativity, joy, enjoyment, and acts of charity.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Cancer 16°16'",
+ "nha_chu": 6,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Daily rhythm of life, health, duties, service, illness",
+ "chu": [
+  "Children, creativity, joy, enjoyment, and acts of charity.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Daily rhythm of life, health, duties, service, illness"
+ ],
+ "rong": 1080,
+ "cao": 6486,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2988,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3128,
+   1008,
+   150
+  ]
+ }
+}

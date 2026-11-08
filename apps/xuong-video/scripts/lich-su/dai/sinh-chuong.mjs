@@ -2,12 +2,12 @@
 // SINH TẬP "CHART CHAPTERS" BẢN DÀI 16:9 (kênh YouTube Astrolas, 04/11/2026): một người + các mốc đời → CAU cho shot-code/la-so.html khổ ngang.
 // Máy tự tính tuổi, cung Profection (cung trọn từ cung Mọc của lá số site) và nhà kích hoạt của từng mốc; câu kể chỉ nêu số liệu tính được + chữ mốc người nhập.
 // 0đ (không gọi AI). Tranh minh hoạ tuỳ chọn: tranh vẽ sẵn bằng lich-su/tranh-sinh.mts (~110₫/cảnh) đặt theo năm.
-//   node sinh-chuong.mjs --slug steve-jobs --moc moc.json [--ra tap.json]
+//   node sinh-chuong.mjs --slug steve-jobs --moc moc.json [--ra tap.json]   (mặc định shot-code/tap-astrolas/ccd-<slug>.json — ứng viên của chay-so-kenh)
 //   moc.json = { ten: "Steve Jobs", sinh: "February 24, 1955, 7:15 PM, San Francisco", den: 2011,
 //                moc: [{ nam: 1976, ngay?: "1976-04-01" (nên có: tuổi tính đúng theo ngày sinh), nhan: "Apple", chu: "In a garage in Los Altos, he and Steve Wozniak build their first computer.", tranh?: "<đường ảnh>", noi?: "Los Altos, California" }] }
 //   Lá số: lich-su/la-so/<slug>.svg + .json (la-so/lay.mjs lấy từ astrolas.com/c/<slug>; chưa có thì chạy lệnh đó trước).
 //   Quay:  node shot-code/dung.mjs --trang shot-code/la-so.html --cau <tap.json> --ra <ra.mp4> --rong 1920 --cao 1080
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { THU, nhanPlaylist } from '../viet-chung.mjs';
@@ -37,9 +37,13 @@ const tuoiTai = (m) => { if (m.tuoi != null) return m.tuoi; if (!m.ngay) console
   const [y, mo, d] = (m.ngay || `${m.nam}-07-01`).split('-').map(Number), bm = Number(D.nguoi.month), bd = Number(D.nguoi.day);
   return y - namSinh - (mo < bm || (mo === bm && d < bd) ? 1 : 0); };
 const doi = (dang) => ({ doi: { tu: namSinh, den, dang, moc: M.moc.map((m) => ({ nam: m.nam, chu: m.nhan })) } });
-const ra = arg('ra', join(SHOT, `dai-chuong-${slug}.json`)), tg = (p) => relative(dirname(ra), p);
+const ra = arg('ra', join(SHOT, 'tap-astrolas', `ccd-${slug}.json`)), tg = (p) => relative(dirname(ra), p);   // tệp tập = ứng viên của chay-so-kenh (08/11/2026)
+// HOOK (08/11/2026 — bản dài vào lượt tự chạy, cùng luật mọi máy viết): dòng đầu QC spy góc Career qua bộ chọn chung, câu đầu video + đầu tiêu đề
+const { chonHook } = await import(join(DIR, '../hook-kenh.mjs')), { loiHook } = await import(join(DIR, '../../../src/lib/xuong-video/hook-qc.mjs'));
+const { hook, chuHook, goc: gocHook } = chonHook('astrolas', 'career', `ccd-${slug}`);
 const cau = [];
 const them = (dai, nhin, chu, nhan) => { const tu = cau.length ? cau.at(-1).den : 0; cau.push({ tu: +tu.toFixed(2), den: +(tu + dai).toFixed(2), nhin, chu, ...(nhan ? { nhan } : {}) }); };
+them(4.2, { dung: 1 }, chuHook); cau[0].khung = true;   // hook QC: câu khung (không mang nghĩa chiêm tinh)
 them(5.0, { dung: 1 }, `This is the sky at the moment ${M.ten} was born: ${M.sinh}.`);
 // cơ chế Profection: câu NGUYÊN VĂN bài annual-profections-explained của site (luật nguồn 05/11/2026 — trước đây câu tự viết "an old clock for a life")
 them(5.4, doi(namSinh), '“Each year of your life activates one house of your chart, and the planet ruling that house becomes the lord of the year.”', 'Annual Profections');
@@ -53,9 +57,11 @@ for (const m of M.moc) {
 }
 them(4.4, { toan: 1 }, 'Find your own chapters free at astrolas.com.', 'astrolas.com · Annual Profections');
 cau.at(-1).khung = true;   // câu kết tự viết (không mang nghĩa chiêm tinh) — máy gác kiểm luật khung
-const { dangCongCu } = await import(join(DIR, '../nguon-site.mjs'));
+const { dangCongCu } = await import(join(DIR, '../nguon-site.mjs')); mkdirSync(dirname(ra), { recursive: true });
 const docSoNen = (pl) => JSON.parse(readFileSync(join(DIR, '../so-kenh.json'), 'utf8')).astrolas.playlist.find((p) => p.ma === pl)?.nen;   // nền theo playlist
-const CAU = { _ghi: `Chart Chapters dài · ${M.ten} — sinh bởi lich-su/dai/sinh-chuong.mjs từ ${tepMoc}`, kenh: 'astrolas', mau: 'chart-chapters-dai', playlist_ma: 'career', y_tuong: `ccd-${slug}`, khung: 'ngang', DAI: cau.at(-1).den,
+const tieuDe = `${chuHook} ${M.ten}: a life in chapters`;
+const CAU = { _ghi: `Chart Chapters dài · ${M.ten} — sinh bởi lich-su/dai/sinh-chuong.mjs từ ${tepMoc} (hook QC spy #${hook.id})`, kenh: 'astrolas', mau: 'chart-chapters-dai', playlist_ma: 'career', y_tuong: `ccd-${slug}`, khung: 'ngang', DAI: cau.at(-1).den,
+  tieu_de: tieuDe, goc: gocHook, hook: { qc: hook.id, goc: hook.chu },
   nguon_moc: [relative(join(DIR, '..'), resolve(tepMoc))],   // đường tính từ lich-su/ (nguon-site.mjs đọc theo gốc đó)
   // bài đăng: mô tả công cụ Annual Profections của site + link mở thẳng lá số người này
   dang: dangCongCu('annual-profections', slug, {}, `${M.ten}'s life, year by year, in Annual Profections.`),
@@ -63,7 +69,7 @@ const CAU = { _ghi: `Chart Chapters dài · ${M.ten} — sinh bởi lich-su/dai/
   playlist: nhanPlaylist(JSON.parse(readFileSync(join(DIR, '../so-kenh.json'), 'utf8')).astrolas.playlist.find((p) => p.ma === 'career')), cau };
 // máy gác sổ kênh (lich-su/so-kenh.json): sai mẫu / playlist / ý tưởng / câu kết thì không ghi
 const { tachCanh } = await import(join(DIR, '../chu-man.mjs')); Object.assign(CAU, tachCanh(CAU));   // mỗi khung một ý ngắn (anh 05/11/2026)
-const { docSo, kiemTap } = await import(join(DIR, '../kiem-so-kenh.mjs')), loiSo = kiemTap(CAU, docSo().astrolas, 'astrolas');
+const { docSo, kiemTap } = await import(join(DIR, '../kiem-so-kenh.mjs')), loiSo = [...kiemTap(CAU, docSo().astrolas, 'astrolas'), ...loiHook([tieuDe, chuHook], hook.chu).map((x) => `hook: ${x}`)];
 if (loiSo.length) { console.error(`✗ tập trái sổ kênh:\n${loiSo.map((l) => `   · ${l}`).join('\n')}`); process.exit(3); }
 writeFileSync(ra, JSON.stringify(CAU, null, 1) + '\n');
 console.log(`✓ ${ra} · ${M.ten} · ${M.moc.length} mốc · ${CAU.DAI}s`);

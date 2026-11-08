@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Lionel+Messi%26%23039%3Bs+natal+chart&day=24&month=6&year=1987&location=Rosario%2C+Santa+Fe%2C+Argentina&lat=-32.9594&lng=-60.6617&hour=20&minute=30",
+ "doc_luc": "2026-11-08T03:28:23.252Z",
+ "goc": {
+  "Ascendant": {
+   "do": "4°59'"
+  },
+  "MC": {
+   "do": "26°20'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "2°55'",
+   "nha": 5,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "19°03'",
+   "nha": 5,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "16°16'",
+   "nha": 6,
+   "nghich": true
+  },
+  "Venus": {
+   "do": "16°45'",
+   "nha": 5,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "22°30'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "25°02'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Saturn": {
+   "do": "16°44'",
+   "nha": 11,
+   "nghich": true
+  },
+  "Uranus": {
+   "do": "24°23'",
+   "nha": 11,
+   "nghich": true
+  },
+  "Neptune": {
+   "do": "6°44'",
+   "nha": 12,
+   "nghich": true
+  },
+  "Pluto": {
+   "do": "7°18'",
+   "nha": 10,
+   "nghich": true
+  }
+ },
+ "rong": 1080,
+ "cao": 5040,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

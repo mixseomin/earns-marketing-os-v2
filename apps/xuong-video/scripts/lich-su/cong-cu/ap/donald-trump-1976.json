@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Donald+Trump&day=14&month=6&year=1946&location=Jamaica%2C+Queens%2C+New+York%2C+NY%2C+United+States&lat=40.6998&lng=-73.8077&hour=10&minute=54&year_target=1976",
+ "doc_luc": "2026-11-08T03:37:34.456Z",
+ "nam": 1976,
+ "tuoi": 30,
+ "nha": 7,
+ "cung": "Aquarius",
+ "nghia_nha": "Marriage, spouse, business partners, external relations, and going abroad.",
+ "chu_nam": "Saturn",
+ "vi_tri": "Cancer 23°49'",
+ "nha_chu": 12,
+ "chu_de": "Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+ "nha_chu_nghia": "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality",
+ "chu": [
+  "Marriage, spouse, business partners, external relations, and going abroad.",
+  "Theme: Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+  "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6880,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   722,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1778,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2950,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3090,
+   1008,
+   110
+  ]
+ }
+}

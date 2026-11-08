@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Tom+Hanks&day=9&month=7&year=1956&location=Concord%2C+CA%2C+United+States&lat=37.9769&lng=-122.0336&hour=11&minute=17&year_target=1993",
+ "doc_luc": "2026-11-08T03:37:34.187Z",
+ "nam": 1993,
+ "tuoi": 37,
+ "nha": 2,
+ "cung": "Libra",
+ "nghia_nha": "Livelihood, income, personal assets, financial transactions (giving and receiving).",
+ "chu_nam": "Venus",
+ "vi_tri": "Gemini 22°50'",
+ "nha_chu": 10,
+ "chu_de": "Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+ "nha_chu_nghia": "Social status, career, action, reputation, public achievement",
+ "chu": [
+  "Livelihood, income, personal assets, financial transactions (giving and receiving).",
+  "Theme: Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+  "Social status, career, action, reputation, public achievement"
+ ],
+ "rong": 1080,
+ "cao": 6870,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2980,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3120,
+   1008,
+   110
+  ]
+ }
+}

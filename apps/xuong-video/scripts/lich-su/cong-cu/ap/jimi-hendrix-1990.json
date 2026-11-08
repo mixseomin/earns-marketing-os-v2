@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Jimi+Hendrix&day=27&month=11&year=1942&location=Seattle%2C+WA%2C+United+States&lat=47.6038&lng=-122.3301&hour=10&minute=15&year_target=1990",
+ "doc_luc": "2026-11-08T03:34:34.106Z",
+ "nam": 1990,
+ "tuoi": 48,
+ "nha": 1,
+ "cung": "Sagittarius",
+ "nghia_nha": "The body, physical health, spirit, new beginnings, and core personal matters.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Cancer 24°52'",
+ "nha_chu": 8,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Transformation, crisis, loss, life and death; shared finances, debt, taxes, insurance, inheritance, and the resources of others",
+ "chu": [
+  "The body, physical health, spirit, new beginnings, and core personal matters.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Transformation, crisis, loss, life and death; shared finances, debt, taxes, insurance, inheritance, and the resources of others"
+ ],
+ "rong": 1080,
+ "cao": 6744,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2988,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3128,
+   1008,
+   110
+  ]
+ }
+}

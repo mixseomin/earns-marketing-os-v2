@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Grace+Kelly&day=12&month=11&year=1929&location=Philadelphia%2C+PA%2C+United+States&lat=39.9527&lng=-75.1635&hour=5&minute=31&year_target=1955",
+ "doc_luc": "2026-11-08T03:38:23.977Z",
+ "nam": 1955,
+ "tuoi": 26,
+ "nha": 3,
+ "cung": "Capricorn",
+ "nghia_nha": "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+ "chu_nam": "Saturn",
+ "vi_tri": "Sagittarius 28°06'",
+ "nha_chu": 2,
+ "chu_de": "Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+ "nha_chu_nghia": "Personal resources (material - mental - intellectual), assets, livelihood, security",
+ "chu": [
+  "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+  "Theme: Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+  "Personal resources (material - mental - intellectual), assets, livelihood, security"
+ ],
+ "rong": 1080,
+ "cao": 6816,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2846,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   2986,
+   1008,
+   110
+  ]
+ }
+}

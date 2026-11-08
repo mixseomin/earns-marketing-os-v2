@@ -1,0 +1,21 @@
+{
+ "ten": "Michael Jordan",
+ "sinh": "February 17, 1963, Brooklyn, New York, NY, United States",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 1988,
+   "ngay": "1988-05-12",
+   "nhan": "award",
+   "chu": "Jordan receives the NBA All-Defensive Team.",
+   "nguon": "https://www.wikidata.org/wiki/Q41421"
+  },
+  {
+   "nam": 1994,
+   "ngay": "1994-04-08",
+   "nhan": "team",
+   "chu": "Jordan joins Birmingham Barons.",
+   "nguon": "https://www.wikidata.org/wiki/Q41421"
+  }
+ ]
+}

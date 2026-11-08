@@ -1,0 +1,49 @@
+{
+ "ten": "Madonna",
+ "sinh": "August 16, 1958, Bay City, Michigan, USA",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 1983,
+   "ngay": "1983-09",
+   "nhan": "release",
+   "chu": "Holiday is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q1744"
+  },
+  {
+   "nam": 1984,
+   "ngay": "1984-11-06",
+   "nhan": "release",
+   "chu": "Like a Virgin is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q1744"
+  },
+  {
+   "nam": 1985,
+   "ngay": "1985-08-16",
+   "nhan": "marriage",
+   "chu": "Madonna marries Sean Penn.",
+   "nguon": "https://www.wikidata.org/wiki/Q1744"
+  },
+  {
+   "nam": 1986,
+   "ngay": "1986-06",
+   "nhan": "release",
+   "chu": "Papa Don't Preach is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q1744"
+  },
+  {
+   "nam": 1987,
+   "ngay": "1987-02-25",
+   "nhan": "release",
+   "chu": "La Isla Bonita is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q1744"
+  },
+  {
+   "nam": 2000,
+   "ngay": "2000-12-22",
+   "nhan": "marriage",
+   "chu": "Madonna marries Guy Ritchie.",
+   "nguon": "https://www.wikidata.org/wiki/Q1744"
+  }
+ ]
+}

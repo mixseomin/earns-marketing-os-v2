@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Katy+Perry%26%23039%3Bs+natal+chart&day=25&month=10&year=1984&location=Santa+Barbara%2C+CA%2C+United+States&lat=34.4221&lng=-119.7027&hour=7&minute=58",
+ "doc_luc": "2026-11-08T03:28:58.274Z",
+ "goc": {
+  "Ascendant": {
+   "do": "10°46'"
+  },
+  "MC": {
+   "do": "16°31'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "2°23'",
+   "nha": 12,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "17°57'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "11°59'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "6°33'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "14°25'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "7°49'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Saturn": {
+   "do": "17°05'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Uranus": {
+   "do": "11°25'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "29°13'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Pluto": {
+   "do": "2°05'",
+   "nha": 12,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 4916,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

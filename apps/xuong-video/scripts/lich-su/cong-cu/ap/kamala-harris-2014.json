@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Kamala+Harris&day=20&month=10&year=1964&location=Oakland%2C+CA%2C+United+States&lat=37.8045&lng=-122.2714&hour=21&minute=28&year_target=2014",
+ "doc_luc": "2026-11-08T03:41:57.196Z",
+ "nam": 2014,
+ "tuoi": 50,
+ "nha": 3,
+ "cung": "Leo",
+ "nghia_nha": "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+ "chu_nam": "Sun",
+ "vi_tri": "Libra 27°48'",
+ "nha_chu": 5,
+ "chu_de": "Related to career, social standing, the father, superiors, or matters of public authority.",
+ "nha_chu_nghia": "Creativity, entertainment, children, love, art, joy",
+ "chu": [
+  "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+  "Theme: Related to career, social standing, the father, superiors, or matters of public authority.",
+  "Creativity, entertainment, children, love, art, joy"
+ ],
+ "rong": 1080,
+ "cao": 6470,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2846,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   2986,
+   1008,
+   110
+  ]
+ }
+}

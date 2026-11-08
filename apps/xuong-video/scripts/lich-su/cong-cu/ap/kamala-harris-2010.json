@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Kamala+Harris&day=20&month=10&year=1964&location=Oakland%2C+CA%2C+United+States&lat=37.8045&lng=-122.2714&hour=21&minute=28&year_target=2010",
+ "doc_luc": "2026-11-08T03:41:29.423Z",
+ "nam": 2010,
+ "tuoi": 46,
+ "nha": 11,
+ "cung": "Aries",
+ "nghia_nha": "Friends, hopes, dreams, gifts, and patronage from those in power.",
+ "chu_nam": "Mars",
+ "vi_tri": "Leo 21°18'",
+ "nha_chu": 3,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "Information within familiar surroundings, siblings, communication, paperwork, spirituality",
+ "chu": [
+  "Friends, hopes, dreams, gifts, and patronage from those in power.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "Information within familiar surroundings, siblings, communication, paperwork, spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6526,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2846,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   2986,
+   1008,
+   110
+  ]
+ }
+}

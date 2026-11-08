@@ -1,0 +1,42 @@
+{
+ "ten": "Jimi Hendrix",
+ "sinh": "November 27, 1942, Seattle, WA, United States",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 1967,
+   "ngay": "1967-12-01",
+   "nhan": "release",
+   "chu": "Axis: Bold as Love is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q5928"
+  },
+  {
+   "nam": 1968,
+   "ngay": "1968-10-16",
+   "nhan": "release",
+   "chu": "Electric Ladyland is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q5928"
+  },
+  {
+   "nam": 1970,
+   "ngay": "1970-04",
+   "nhan": "release",
+   "chu": "Band of Gypsys is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q5928"
+  },
+  {
+   "nam": 1991,
+   "ngay": "1991-11-21",
+   "nhan": "award",
+   "chu": "Hendrix receives the star on Hollywood Walk of Fame.",
+   "nguon": "https://www.wikidata.org/wiki/Q5928"
+  },
+  {
+   "nam": 1999,
+   "ngay": "1999-07-06",
+   "nhan": "release",
+   "chu": "Live at Woodstock is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q5928"
+  }
+ ]
+}

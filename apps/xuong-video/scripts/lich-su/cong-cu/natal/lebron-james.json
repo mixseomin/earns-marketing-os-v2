@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=LeBron+James%26%23039%3Bs+natal+chart&day=30&month=12&year=1984&location=Akron%2C+OH%2C+United+States&lat=41.0831&lng=-81.5185&hour=16&minute=4",
+ "doc_luc": "2026-11-08T03:27:36.437Z",
+ "goc": {
+  "Ascendant": {
+   "do": "26°27'"
+  },
+  "MC": {
+   "do": "1°58'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "9°22'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "16°24'",
+   "nha": 11,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "17°05'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "25°06'",
+   "nha": 9,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "4°17'",
+   "nha": 10,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "21°12'",
+   "nha": 8,
+   "nghich": false
+  },
+  "Saturn": {
+   "do": "24°37'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Uranus": {
+   "do": "15°18'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "1°27'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Pluto": {
+   "do": "4°20'",
+   "nha": 5,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 5040,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

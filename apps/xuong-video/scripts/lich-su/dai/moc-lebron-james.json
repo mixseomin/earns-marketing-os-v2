@@ -1,0 +1,35 @@
+{
+ "ten": "LeBron James",
+ "sinh": "December 30, 1984, Akron, OH, United States",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 2010,
+   "ngay": "2010-07-10",
+   "nhan": "team",
+   "chu": "James joins Miami Heat.",
+   "nguon": "https://www.wikidata.org/wiki/Q36159"
+  },
+  {
+   "nam": 2013,
+   "ngay": "2013-09-14",
+   "nhan": "marriage",
+   "chu": "James marries Savannah Brinson.",
+   "nguon": "https://www.wikidata.org/wiki/Q36159"
+  },
+  {
+   "nam": 2018,
+   "ngay": "2018-07-09",
+   "nhan": "team",
+   "chu": "James joins Los Angeles Lakers.",
+   "nguon": "https://www.wikidata.org/wiki/Q36159"
+  },
+  {
+   "nam": 2026,
+   "ngay": "2026-07-26",
+   "nhan": "team",
+   "chu": "James joins Philadelphia 76ers.",
+   "nguon": "https://www.wikidata.org/wiki/Q36159"
+  }
+ ]
+}

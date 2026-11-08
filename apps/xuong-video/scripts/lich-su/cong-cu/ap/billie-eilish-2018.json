@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Billie+Eilish&day=18&month=12&year=2001&location=Los+Angeles%2C+CA%2C+United+States&lat=34.0537&lng=-118.2428&hour=12&minute=17&year_target=2018",
+ "doc_luc": "2026-11-08T03:46:37.080Z",
+ "nam": 2018,
+ "tuoi": 17,
+ "nha": 6,
+ "cung": "Virgo",
+ "nghia_nha": "Illness, injuries, hardship, subordinates, servants (or pets), and physical challenges.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Capricorn 4°46'",
+ "nha_chu": 10,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Social status, career, action, reputation, public achievement",
+ "chu": [
+  "Illness, injuries, hardship, subordinates, servants (or pets), and physical challenges.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Social status, career, action, reputation, public achievement"
+ ],
+ "rong": 1080,
+ "cao": 6594,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   150
+  ]
+ }
+}

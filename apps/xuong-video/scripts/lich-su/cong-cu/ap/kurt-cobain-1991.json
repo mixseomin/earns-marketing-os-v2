@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Kurt+Cobain&day=20&month=2&year=1967&location=Aberdeen%2C+WA%2C+United+States&lat=46.9754&lng=-123.8157&hour=19&minute=38&year_target=1991",
+ "doc_luc": "2026-11-08T03:36:43.106Z",
+ "nam": 1991,
+ "tuoi": 24,
+ "nha": 1,
+ "cung": "Virgo",
+ "nghia_nha": "The body, physical health, spirit, new beginnings, and core personal matters.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Pisces 18°28'",
+ "nha_chu": 7,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Personal relationships, spouse, partners, litigation, public matters",
+ "chu": [
+  "The body, physical health, spirit, new beginnings, and core personal matters.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Personal relationships, spouse, partners, litigation, public matters"
+ ],
+ "rong": 1080,
+ "cao": 6736,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2940,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3080,
+   1008,
+   150
+  ]
+ }
+}

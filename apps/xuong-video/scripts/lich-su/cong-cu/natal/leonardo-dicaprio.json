@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Leonardo+DiCaprio%26%23039%3Bs+natal+chart&day=11&month=11&year=1974&location=Los+Angeles%2C+CA%2C+United+States&lat=34.0537&lng=-118.2428&hour=2&minute=47",
+ "doc_luc": "2026-11-08T03:27:05.704Z",
+ "goc": {
+  "Ascendant": {
+   "do": "3°07'"
+  },
+  "MC": {
+   "do": "3°24'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "18°40'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "15°44'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "29°45'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "19°54'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "9°36'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "8°06'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Saturn": {
+   "do": "18°48'",
+   "nha": 10,
+   "nghich": true
+  },
+  "Uranus": {
+   "do": "29°25'",
+   "nha": 1,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "8°35'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Pluto": {
+   "do": "8°13'",
+   "nha": 1,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 4916,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

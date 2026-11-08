@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Kamala+Harris&day=20&month=10&year=1964&location=Oakland%2C+CA%2C+United+States&lat=37.8045&lng=-122.2714&hour=21&minute=28&year_target=2020",
+ "doc_luc": "2026-11-08T03:42:27.831Z",
+ "nam": 2020,
+ "tuoi": 56,
+ "nha": 9,
+ "cung": "Aquarius",
+ "nghia_nha": "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+ "chu_nam": "Saturn",
+ "vi_tri": "Aquarius 28°28'",
+ "nha_chu": 9,
+ "chu_de": "Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+ "nha_chu_nghia": "Long-distance travel, foreigners, higher education, philosophy, religion, publishing, broadening one's worldview",
+ "chu": [
+  "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+  "Theme: Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+  "Long-distance travel, foreigners, higher education, philosophy, religion, publishing, broadening one's worldview"
+ ],
+ "rong": 1080,
+ "cao": 6706,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   110
+  ]
+ }
+}

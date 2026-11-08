@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Kamala+Harris%26%23039%3Bs+natal+chart&day=20&month=10&year=1964&location=Oakland%2C+CA%2C+United+States&lat=37.8045&lng=-122.2714&hour=21&minute=28",
+ "doc_luc": "2026-11-08T03:27:59.050Z",
+ "goc": {
+  "Ascendant": {
+   "do": "24°25'"
+  },
+  "MC": {
+   "do": "2°24'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "27°48'",
+   "nha": 5,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "27°39'",
+   "nha": 11,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "1°28'",
+   "nha": 5,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "17°54'",
+   "nha": 4,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "21°18'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "24°00'",
+   "nha": 12,
+   "nghich": true
+  },
+  "Saturn": {
+   "do": "28°28'",
+   "nha": 9,
+   "nghich": true
+  },
+  "Uranus": {
+   "do": "13°15'",
+   "nha": 4,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "16°50'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Pluto": {
+   "do": "15°27'",
+   "nha": 4,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 5040,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

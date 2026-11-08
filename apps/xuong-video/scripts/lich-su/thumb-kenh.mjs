@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// BÌA CHUẨN KÊNH CÓ SỔ MÁY VIẾT (anh 07/11/2026: "Thumb phải chuẩn hoá để dùng"): tập → bìa 1080×1920 theo MỘT khuôn (brand/<kênh>/thumb.html), không dùng bìa YouTube tự sinh. 0đ, không AI, iMac.
+// BÌA CHUẨN KÊNH CÓ SỔ MÁY VIẾT (anh 07/11/2026: "Thumb phải chuẩn hoá để dùng"): tập → bìa 1080×1920 (tập khung 'ngang' = video dài → 1280×720) theo MỘT khuôn (brand/<kênh>/thumb.html), không dùng bìa YouTube tự sinh. 0đ, không AI, iMac.
 // Chữ lấy từ dữ liệu tập (thẻ mở đầu), chủ thể: tranh / ảnh người của tập → ảnh Wikipedia chính người đó (anh-wiki.mjs) → nhân vật → lá số. nap-tap.mjs gọi rồi đưa vào de.thumb; Ngọc chấm bìa (xet-thumb.mts).
 //   node thumb-kenh.mjs --tap <tập.json> --ra <bìa.jpg>
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -42,11 +42,11 @@ async function chuThe(tap) {
   return {};
 }
 export async function dungBia(tap, ra) {
-  const c = chuBia(tap), t = await chuThe(tap), tr = await layChromium().launch(), p = await tr.newPage({ viewport: { width: 1080, height: 1920 } });
+  const ngang = tap.khung === 'ngang', c = chuBia(tap), t = await chuThe(tap), tr = await layChromium().launch(), p = await tr.newPage({ viewport: ngang ? { width: 1280, height: 720 } : { width: 1080, height: 1920 } });   // video dài 16:9 → bìa 1280×720 (cùng khuôn)
   try {
     await p.goto(pathToFileURL(join(DIR, `brand/${tap.kenh}/thumb.html`)).href); await p.waitForFunction(() => window.__xong);
     const u = (x) => pathToFileURL(x).href;
-    await p.evaluate(window_ve, { nen: u(resolve(SHOT, tap.nen)), anh: t.anh ? u(t.anh) : null, vua: !!t.vua, lon: c.lon, nho: c.nho, ky: c.ky ?? null, chip: tap.playlist.ten, mau: tap.playlist.mau });
+    await p.evaluate(window_ve, { nen: u(resolve(SHOT, tap.nen)), anh: t.anh ? u(t.anh) : null, vua: !!t.vua, lon: c.lon, nho: c.nho, ky: c.ky ?? null, chip: tap.playlist.ten, mau: tap.playlist.mau, ngang });
     await p.screenshot({ path: ra, type: 'jpeg', quality: 86 });
   } finally { await tr.close(); }
   return { chu: `${c.lon}${c.nho ? ` · ${c.nho}` : ''}`, tac: t.tac ?? null };

@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Madonna&day=16&month=8&year=1958&location=Bay+City%2C+Michigan%2C+USA&lat=43.5945&lng=-83.8889&hour=7&minute=5&year_target=1986",
+ "doc_luc": "2026-11-08T03:25:30.740Z",
+ "nam": 1986,
+ "tuoi": 28,
+ "nha": 5,
+ "cung": "Capricorn",
+ "nghia_nha": "Children, creativity, joy, enjoyment, and acts of charity.",
+ "chu_nam": "Saturn",
+ "vi_tri": "Sagittarius 19°09'",
+ "nha_chu": 4,
+ "chu_de": "Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+ "nha_chu_nghia": "Home, family, roots, foundation, land, the conclusion of a matter",
+ "chu": [
+  "Children, creativity, joy, enjoyment, and acts of charity.",
+  "Theme: Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+  "Home, family, roots, foundation, land, the conclusion of a matter"
+ ],
+ "rong": 1080,
+ "cao": 6526,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2846,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   2986,
+   1008,
+   110
+  ]
+ }
+}

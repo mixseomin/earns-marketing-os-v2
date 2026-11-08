@@ -1,0 +1,35 @@
+{
+ "ten": "William, Prince of Wales",
+ "sinh": "June 21, 1982, Paddington, London, UK",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 2008,
+   "ngay": "2008-06-16",
+   "nhan": "award",
+   "chu": "Wales receives the Knight of the Garter.",
+   "nguon": "https://www.wikidata.org/wiki/Q36812"
+  },
+  {
+   "nam": 2011,
+   "ngay": "2011-04-29",
+   "nhan": "marriage",
+   "chu": "Wales marries Catherine, Princess of Wales.",
+   "nguon": "https://www.wikidata.org/wiki/Q36812"
+  },
+  {
+   "nam": 2021,
+   "ngay": "2021-04-09",
+   "nhan": "office",
+   "chu": "Wales becomes heir apparent.",
+   "nguon": "https://www.wikidata.org/wiki/Q36812"
+  },
+  {
+   "nam": 2022,
+   "ngay": "2022-09-08",
+   "nhan": "office",
+   "chu": "Wales becomes Heir Apparent of the United Kingdom.",
+   "nguon": "https://www.wikidata.org/wiki/Q36812"
+  }
+ ]
+}

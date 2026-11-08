@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Donald+Trump&day=14&month=6&year=1946&location=Jamaica%2C+Queens%2C+New+York%2C+NY%2C+United+States&lat=40.6998&lng=-73.8077&hour=10&minute=54&year_target=2006",
+ "doc_luc": "2026-11-08T03:38:20.065Z",
+ "nam": 2006,
+ "tuoi": 60,
+ "nha": 1,
+ "cung": "Leo",
+ "nghia_nha": "The body, physical health, spirit, new beginnings, and core personal matters.",
+ "chu_nam": "Sun",
+ "vi_tri": "Gemini 22°56'",
+ "nha_chu": 11,
+ "chu_de": "Related to career, social standing, the father, superiors, or matters of public authority.",
+ "nha_chu_nghia": "Groups, friends, allies, hopes, social network",
+ "chu": [
+  "The body, physical health, spirit, new beginnings, and core personal matters.",
+  "Theme: Related to career, social standing, the father, superiors, or matters of public authority.",
+  "Groups, friends, allies, hopes, social network"
+ ],
+ "rong": 1080,
+ "cao": 6928,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   722,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1778,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2996,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3138,
+   1008,
+   110
+  ]
+ }
+}

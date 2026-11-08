@@ -59,7 +59,7 @@ if (process.argv.includes('--tu-kiem')) {
 
 const { boxA } = await import('./lich-su/box3.mjs');
 const { gocNen, hoNen, NEN_DANG } = await import(`${process.env.HOME}/puzzle-books/scripts/nhip-an-toan.mjs`);
-const arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : null; }, xem = process.argv.includes('--xem');
+const arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : null; }, XEM = process.argv.includes('--xem');
 const rc = (...a) => execFileSync('rclone', a, { encoding: 'utf8', maxBuffer: 64 << 20 });
 const coDrive = (dich) => { try { return JSON.parse(rc('lsjson', dich))[0]?.Size ?? -1; } catch { return -1; } };
 const coUrl = (u) => Number(/content-length:\s*(\d+)/gi.exec(execFileSync('curl', ['-sIL', u], { encoding: 'utf8' }))?.[1] ?? -1);
@@ -83,7 +83,9 @@ async function layLai(ma, slug) {
 }
 
 async function luuMay(ma) {
-  const C = cauHinh(ma), NGAY = arg('ngay') != null ? Number(arg('ngay')) : C.sau_ngay;
+  const C = cauHinh(ma), xem = XEM || !C.bat;   // máy chưa bật (luu-kho.json › bat) chỉ liệt kê
+  if (!C.bat && !XEM) console.log(`· ${ma}: chưa bật lưu kho (luu-kho.json › bat) — chỉ liệt kê`);
+  const NGAY = arg('ngay') != null ? Number(arg('ngay')) : C.sau_ngay;
   const ds = await boxJson(`scripts/may-dung.mts --may ${ma} --ds --ca-luu-tru`), dang = (await boxJson(`scripts/may-dung.mts --may ${ma} --may-info`)).dang ?? [];
   const acct = (n) => String(dang.find((d) => d.nen === n)?.br?.acct ?? n), H = { loaiNen: (n) => NEN_DANG[gocNen(n)]?.loai, hoNen, acct };
   const bay = Date.now(), song = nenSong(ds, bay, C.nen_song_ngay ?? 14);

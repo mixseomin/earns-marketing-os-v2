@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Michael+Jordan&day=17&month=2&year=1963&location=Brooklyn%2C+New+York%2C+NY%2C+United+States&lat=40.6526&lng=-73.9497&hour=13&minute=40&year_target=1994",
+ "doc_luc": "2026-11-08T03:39:08.565Z",
+ "nam": 1994,
+ "tuoi": 31,
+ "nha": 8,
+ "cung": "Aquarius",
+ "nghia_nha": "Death, inheritance, benefits from the death of others, stagnation, or punishments.",
+ "chu_nam": "Saturn",
+ "vi_tri": "Aquarius 15°32'",
+ "nha_chu": 8,
+ "chu_de": "Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+ "nha_chu_nghia": "Transformation, crisis, loss, life and death; shared finances, debt, taxes, insurance, inheritance, and the resources of others",
+ "chu": [
+  "Death, inheritance, benefits from the death of others, stagnation, or punishments.",
+  "Theme: Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+  "Transformation, crisis, loss, life and death; shared finances, debt, taxes, insurance, inheritance, and the resources of others"
+ ],
+ "rong": 1080,
+ "cao": 6924,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2980,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3120,
+   1008,
+   110
+  ]
+ }
+}

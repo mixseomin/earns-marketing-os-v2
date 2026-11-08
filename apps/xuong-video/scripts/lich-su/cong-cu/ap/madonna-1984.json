@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Madonna&day=16&month=8&year=1958&location=Bay+City%2C+Michigan%2C+USA&lat=43.5945&lng=-83.8889&hour=7&minute=5&year_target=1984",
+ "doc_luc": "2026-11-08T03:25:02.925Z",
+ "nam": 1984,
+ "tuoi": 26,
+ "nha": 3,
+ "cung": "Scorpio",
+ "nghia_nha": "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+ "chu_nam": "Mars",
+ "vi_tri": "Taurus 15°23'",
+ "nha_chu": 9,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "Long-distance travel, foreigners, higher education, philosophy, religion, publishing, broadening one's worldview",
+ "chu": [
+  "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "Long-distance travel, foreigners, higher education, philosophy, religion, publishing, broadening one's worldview"
+ ],
+ "rong": 1080,
+ "cao": 6612,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2894,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3034,
+   1008,
+   110
+  ]
+ }
+}

@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Katy+Perry&day=25&month=10&year=1984&location=Santa+Barbara%2C+CA%2C+United+States&lat=34.4221&lng=-119.7027&hour=7&minute=58&year_target=2008",
+ "doc_luc": "2026-11-08T03:45:31.938Z",
+ "nam": 2008,
+ "tuoi": 24,
+ "nha": 1,
+ "cung": "Scorpio",
+ "nghia_nha": "The body, physical health, spirit, new beginnings, and core personal matters.",
+ "chu_nam": "Mars",
+ "vi_tri": "Capricorn 14°25'",
+ "nha_chu": 3,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "Information within familiar surroundings, siblings, communication, paperwork, spirituality",
+ "chu": [
+  "The body, physical health, spirit, new beginnings, and core personal matters.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "Information within familiar surroundings, siblings, communication, paperwork, spirituality"
+ ],
+ "rong": 1080,
+ "cao": 7106,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   3176,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3316,
+   1008,
+   110
+  ]
+ }
+}

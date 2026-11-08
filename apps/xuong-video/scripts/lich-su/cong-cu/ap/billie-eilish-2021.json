@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Billie+Eilish&day=18&month=12&year=2001&location=Los+Angeles%2C+CA%2C+United+States&lat=34.0537&lng=-118.2428&hour=12&minute=17&year_target=2021",
+ "doc_luc": "2026-11-08T03:47:23.304Z",
+ "nam": 2021,
+ "tuoi": 20,
+ "nha": 9,
+ "cung": "Sagittarius",
+ "nghia_nha": "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Cancer 12°25'",
+ "nha_chu": 4,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Home, family, roots, foundation, land, the conclusion of a matter",
+ "chu": [
+  "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Home, family, roots, foundation, land, the conclusion of a matter"
+ ],
+ "rong": 1080,
+ "cao": 6594,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   3026,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3166,
+   1008,
+   110
+  ]
+ }
+}

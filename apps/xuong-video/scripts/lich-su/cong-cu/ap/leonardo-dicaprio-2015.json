@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Leonardo+DiCaprio&day=11&month=11&year=1974&location=Los+Angeles%2C+CA%2C+United+States&lat=34.0537&lng=-118.2428&hour=2&minute=47&year_target=2015",
+ "doc_luc": "2026-11-08T03:37:15.130Z",
+ "nam": 2015,
+ "tuoi": 41,
+ "nha": 6,
+ "cung": "Pisces",
+ "nghia_nha": "Illness, injuries, hardship, subordinates, servants (or pets), and physical challenges.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Pisces 8°06'",
+ "nha_chu": 6,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Daily rhythm of life, health, duties, service, illness",
+ "chu": [
+  "Illness, injuries, hardship, subordinates, servants (or pets), and physical challenges.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Daily rhythm of life, health, duties, service, illness"
+ ],
+ "rong": 1080,
+ "cao": 6666,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   3026,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3166,
+   1008,
+   110
+  ]
+ }
+}

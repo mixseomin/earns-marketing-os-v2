@@ -1,0 +1,35 @@
+{
+ "ten": "Muhammad Ali",
+ "sinh": "January 17, 1942, Louisville, KY, United States",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 1964,
+   "ngay": "1964-08-14",
+   "nhan": "marriage",
+   "chu": "Ali marries Sonji Roi.",
+   "nguon": "https://www.wikidata.org/wiki/Q36107"
+  },
+  {
+   "nam": 1967,
+   "ngay": "1967-08-17",
+   "nhan": "marriage",
+   "chu": "Ali marries Khalilah Ali.",
+   "nguon": "https://www.wikidata.org/wiki/Q36107"
+  },
+  {
+   "nam": 1986,
+   "ngay": "1986-11-19",
+   "nhan": "marriage",
+   "chu": "Ali marries Yolanda Williams.",
+   "nguon": "https://www.wikidata.org/wiki/Q36107"
+  },
+  {
+   "nam": 2002,
+   "ngay": "2002-01-11",
+   "nhan": "award",
+   "chu": "Ali receives the star on Hollywood Walk of Fame.",
+   "nguon": "https://www.wikidata.org/wiki/Q36107"
+  }
+ ]
+}

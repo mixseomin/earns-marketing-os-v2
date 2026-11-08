@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Miley+Cyrus&day=23&month=11&year=1992&location=Nashville%2C+TN%2C+United+States&lat=36.1623&lng=-86.7743&hour=16&minute=19&year_target=2009",
+ "doc_luc": "2026-11-08T03:44:49.994Z",
+ "nam": 2009,
+ "tuoi": 17,
+ "nha": 6,
+ "cung": "Libra",
+ "nghia_nha": "Illness, injuries, hardship, subordinates, servants (or pets), and physical challenges.",
+ "chu_nam": "Venus",
+ "vi_tri": "Capricorn 12°27'",
+ "nha_chu": 9,
+ "chu_de": "Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+ "nha_chu_nghia": "Long-distance travel, foreigners, higher education, philosophy, religion, publishing, broadening one's worldview",
+ "chu": [
+  "Illness, injuries, hardship, subordinates, servants (or pets), and physical challenges.",
+  "Theme: Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+  "Long-distance travel, foreigners, higher education, philosophy, religion, publishing, broadening one's worldview"
+ ],
+ "rong": 1080,
+ "cao": 6612,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   110
+  ]
+ }
+}

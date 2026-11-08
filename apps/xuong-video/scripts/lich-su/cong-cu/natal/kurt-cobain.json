@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Kurt+Cobain%26%23039%3Bs+natal+chart&day=20&month=2&year=1967&location=Aberdeen%2C+WA%2C+United+States&lat=46.9754&lng=-123.8157&hour=19&minute=38",
+ "doc_luc": "2026-11-08T03:26:53.841Z",
+ "goc": {
+  "Ascendant": {
+   "do": "23°21'"
+  },
+  "MC": {
+   "do": "21°47'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "1°49'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "13°24'",
+   "nha": 10,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "18°28'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "26°33'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "1°48'",
+   "nha": 2,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "25°42'",
+   "nha": 10,
+   "nghich": true
+  },
+  "Saturn": {
+   "do": "28°44'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Uranus": {
+   "do": "23°15'",
+   "nha": 12,
+   "nghich": true
+  },
+  "Neptune": {
+   "do": "24°21'",
+   "nha": 3,
+   "nghich": false
+  },
+  "Pluto": {
+   "do": "19°48'",
+   "nha": 12,
+   "nghich": true
+  }
+ },
+ "rong": 1080,
+ "cao": 4784,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

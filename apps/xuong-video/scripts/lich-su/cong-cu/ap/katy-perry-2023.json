@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Katy+Perry&day=25&month=10&year=1984&location=Santa+Barbara%2C+CA%2C+United+States&lat=34.4221&lng=-119.7027&hour=7&minute=58&year_target=2023",
+ "doc_luc": "2026-11-08T03:46:14.982Z",
+ "nam": 2023,
+ "tuoi": 39,
+ "nha": 4,
+ "cung": "Aquarius",
+ "nghia_nha": "Parents (especially the father), family, home, real estate, private matters, and the ending of things.",
+ "chu_nam": "Saturn",
+ "vi_tri": "Scorpio 17°05'",
+ "nha_chu": 1,
+ "chu_de": "Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+ "nha_chu_nghia": "The self, the physical body, appearance, vitality, independent action",
+ "chu": [
+  "Parents (especially the father), family, home, real estate, private matters, and the ending of things.",
+  "Theme: Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+  "The self, the physical body, appearance, vitality, independent action"
+ ],
+ "rong": 1080,
+ "cao": 6824,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   110
+  ]
+ }
+}

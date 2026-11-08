@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Muhammad+Ali&day=17&month=1&year=1942&location=Louisville%2C+KY%2C+United+States&lat=38.2542&lng=-85.7594&hour=18&minute=35&year_target=1967",
+ "doc_luc": "2026-11-08T03:33:19.140Z",
+ "nam": 1967,
+ "tuoi": 25,
+ "nha": 2,
+ "cung": "Virgo",
+ "nghia_nha": "Livelihood, income, personal assets, financial transactions (giving and receiving).",
+ "chu_nam": "Mercury",
+ "vi_tri": "Aquarius 13°31'",
+ "nha_chu": 7,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Personal relationships, spouse, partners, litigation, public matters",
+ "chu": [
+  "Livelihood, income, personal assets, financial transactions (giving and receiving).",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Personal relationships, spouse, partners, litigation, public matters"
+ ],
+ "rong": 1080,
+ "cao": 6728,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   150
+  ]
+ }
+}

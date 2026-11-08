@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Tom+Hanks&day=9&month=7&year=1956&location=Concord%2C+CA%2C+United+States&lat=37.9769&lng=-122.0336&hour=11&minute=17&year_target=1977",
+ "doc_luc": "2026-11-08T03:36:51.127Z",
+ "nam": 1977,
+ "tuoi": 21,
+ "nha": 10,
+ "cung": "Gemini",
+ "nghia_nha": "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Cancer 5°47'",
+ "nha_chu": 11,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Groups, friends, allies, hopes, social network",
+ "chu": [
+  "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Groups, friends, allies, hopes, social network"
+ ],
+ "rong": 1080,
+ "cao": 6478,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2980,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3120,
+   1008,
+   150
+  ]
+ }
+}

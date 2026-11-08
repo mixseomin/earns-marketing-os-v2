@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Miley+Cyrus&day=23&month=11&year=1992&location=Nashville%2C+TN%2C+United+States&lat=36.1623&lng=-86.7743&hour=16&minute=19&year_target=2018",
+ "doc_luc": "2026-11-08T03:45:06.411Z",
+ "nam": 2018,
+ "tuoi": 26,
+ "nha": 3,
+ "cung": "Cancer",
+ "nghia_nha": "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+ "chu_nam": "Moon",
+ "vi_tri": "Scorpio 26°13'",
+ "nha_chu": 7,
+ "chu_de": "Matters of physical health, the mother, residence, conception, and fluctuations in assets.",
+ "nha_chu_nghia": "Personal relationships, spouse, partners, litigation, public matters",
+ "chu": [
+  "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+  "Theme: Matters of physical health, the mother, residence, conception, and fluctuations in assets.",
+  "Personal relationships, spouse, partners, litigation, public matters"
+ ],
+ "rong": 1080,
+ "cao": 6508,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2846,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   2986,
+   1008,
+   110
+  ]
+ }
+}

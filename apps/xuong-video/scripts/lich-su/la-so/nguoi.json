@@ -733,6 +733,653 @@
    "rodden": "A",
    "nguon": "https://www.astrotheme.com/astrology/Paul_McCartney",
    "ghi": "From memory or autobiography · múi giờ: BDST UTC+2 (giờ mùa hè kép 05/04–09/08/1942)"
+  },
+  {
+   "slug": "tom-hanks",
+   "ten": "Tom Hanks",
+   "sinh": {
+    "ngay": 9,
+    "thang": 7,
+    "nam": 1956,
+    "gio": 11,
+    "phut": 17,
+    "noi": "Concord, CA, United States",
+    "vi": 37.9769,
+    "kinh": -122.0336
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Tom_Hanks",
+   "ghi": "birth certificate or birth record · Lois Rodden · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "walt-disney",
+   "ten": "Walt Disney",
+   "sinh": {
+    "ngay": 5,
+    "thang": 12,
+    "nam": 1901,
+    "gio": 0,
+    "phut": 35,
+    "noi": "Chicago, IL, United States",
+    "vi": 41.8756,
+    "kinh": -87.6244
+   },
+   "utc": null,
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Walt_Disney",
+   "ghi": "From memory or autobiography · Marion March · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "grace-kelly",
+   "ten": "Grace Kelly",
+   "sinh": {
+    "ngay": 12,
+    "thang": 11,
+    "nam": 1929,
+    "gio": 5,
+    "phut": 31,
+    "noi": "Philadelphia, PA, United States",
+    "vi": 39.9527,
+    "kinh": -75.1635
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Grace_Kelly",
+   "ghi": "birth certificate or birth record · Steinbrecher · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "muhammad-ali",
+   "ten": "Muhammad Ali",
+   "sinh": {
+    "ngay": 17,
+    "thang": 1,
+    "nam": 1942,
+    "gio": 18,
+    "phut": 35,
+    "noi": "Louisville, KY, United States",
+    "vi": 38.2542,
+    "kinh": -85.7594
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Muhammad_Ali",
+   "ghi": "birth certificate or birth record · Michel Gauquelin · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "jimi-hendrix",
+   "ten": "Jimi Hendrix",
+   "sinh": {
+    "ngay": 27,
+    "thang": 11,
+    "nam": 1942,
+    "gio": 10,
+    "phut": 15,
+    "noi": "Seattle, WA, United States",
+    "vi": 47.6038,
+    "kinh": -122.3301
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Jimi_Hendrix",
+   "ghi": "birth certificate or birth record · Lois Rodden · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "audrey-hepburn",
+   "ten": "Audrey Hepburn",
+   "sinh": {
+    "ngay": 4,
+    "thang": 5,
+    "nam": 1929,
+    "gio": 3,
+    "phut": 0,
+    "noi": "Ixelles, Belgium",
+    "vi": 50.8331,
+    "kinh": 4.3668
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Audrey_Hepburn",
+   "ghi": "birth certificate or birth record · Luc de Marré · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "frida-kahlo",
+   "ten": "Frida Kahlo",
+   "sinh": {
+    "ngay": 6,
+    "thang": 7,
+    "nam": 1907,
+    "gio": 8,
+    "phut": 30,
+    "noi": "Coyoacán, Mexico, Mexico",
+    "vi": 19.3499,
+    "kinh": -99.162
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Frida_Kahlo",
+   "ghi": "birth certificate or birth record · Lois Rodden · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08",
+   "khong_dung": "lá số lệch Swiss Ephemeris: ✗ frida-kahlo        [AA] UTC-6.5 · Sun 0.01° · Moon 0.03° · Mercury 0.01° · Venus 0.01° · Mars 0.02° · Jupiter 0.01° · Saturn 0.01° · ASC 1.50° · lệch lớn nhất ASC 1.50°"
+  },
+  {
+   "slug": "david-bowie",
+   "ten": "David Bowie",
+   "sinh": {
+    "ngay": 8,
+    "thang": 1,
+    "nam": 1947,
+    "gio": 9,
+    "phut": 0,
+    "noi": "Brixton, London, United Kingdom",
+    "vi": 51.4634,
+    "kinh": -0.1148
+   },
+   "utc": null,
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/David_Bowie",
+   "ghi": "From memory or autobiography · Lois Rodden · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "kurt-cobain",
+   "ten": "Kurt Cobain",
+   "sinh": {
+    "ngay": 20,
+    "thang": 2,
+    "nam": 1967,
+    "gio": 19,
+    "phut": 38,
+    "noi": "Aberdeen, WA, United States",
+    "vi": 46.9754,
+    "kinh": -123.8157
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Kurt_Cobain",
+   "ghi": "birth certificate or birth record · Roman Craft · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "leonardo-dicaprio",
+   "ten": "Leonardo DiCaprio",
+   "sinh": {
+    "ngay": 11,
+    "thang": 11,
+    "nam": 1974,
+    "gio": 2,
+    "phut": 47,
+    "noi": "Los Angeles, CA, United States",
+    "vi": 34.0537,
+    "kinh": -118.2428
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Leonardo_DiCaprio",
+   "ghi": "birth certificate or birth record · Frank C. Clifford · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "donald-trump",
+   "ten": "Donald Trump",
+   "sinh": {
+    "ngay": 14,
+    "thang": 6,
+    "nam": 1946,
+    "gio": 10,
+    "phut": 54,
+    "noi": "Jamaica, Queens, New York, NY, United States",
+    "vi": 40.6998,
+    "kinh": -73.8077
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Donald_Trump",
+   "ghi": "birth certificate or birth record · Lois Rodden · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "michael-jordan",
+   "ten": "Michael Jordan",
+   "sinh": {
+    "ngay": 17,
+    "thang": 2,
+    "nam": 1963,
+    "gio": 13,
+    "phut": 40,
+    "noi": "Brooklyn, New York, NY, United States",
+    "vi": 40.6526,
+    "kinh": -73.9497
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Michael_Jordan",
+   "ghi": "birth certificate or birth record · Lois Rodden · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "lebron-james",
+   "ten": "LeBron James",
+   "sinh": {
+    "ngay": 30,
+    "thang": 12,
+    "nam": 1984,
+    "gio": 16,
+    "phut": 4,
+    "noi": "Akron, OH, United States",
+    "vi": 41.0831,
+    "kinh": -81.5185
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/LeBron_James",
+   "ghi": "birth certificate or birth record · Roman Craft · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "keanu-reeves",
+   "ten": "Keanu Reeves",
+   "sinh": {
+    "ngay": 2,
+    "thang": 9,
+    "nam": 1964,
+    "gio": 5,
+    "phut": 41,
+    "noi": "Beirut, Lebanon",
+    "vi": 33.8892,
+    "kinh": 35.5026
+   },
+   "utc": null,
+   "rodden": "C",
+   "nguon": "https://www.astrotheme.com/astrology/Keanu_Reeves",
+   "ghi": "Rectified from approximative time · Lois Rodden · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "zendaya",
+   "ten": "Zendaya",
+   "sinh": {
+    "ngay": 1,
+    "thang": 9,
+    "nam": 1996,
+    "gio": 18,
+    "phut": 1,
+    "noi": "Walnut Creek, CA, United States",
+    "vi": 37.9021,
+    "kinh": -122.0619
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Zendaya",
+   "ghi": "birth certificate or birth record · Viktor E. · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "shakira",
+   "ten": "Shakira",
+   "sinh": {
+    "ngay": 2,
+    "thang": 2,
+    "nam": 1977,
+    "gio": 9,
+    "phut": 30,
+    "noi": "Barranquilla, Colombia",
+    "vi": 11.0102,
+    "kinh": -74.8232
+   },
+   "utc": null,
+   "rodden": "B",
+   "nguon": "https://www.astrotheme.com/astrology/Shakira",
+   "ghi": "Biography · Sy Scholfield · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "kamala-harris",
+   "ten": "Kamala Harris",
+   "sinh": {
+    "ngay": 20,
+    "thang": 10,
+    "nam": 1964,
+    "gio": 21,
+    "phut": 28,
+    "noi": "Oakland, CA, United States",
+    "vi": 37.8045,
+    "kinh": -122.2714
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Kamala_Harris",
+   "ghi": "birth certificate or birth record · Steven Stuckey · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "serena-williams",
+   "ten": "Serena Williams",
+   "sinh": {
+    "ngay": 26,
+    "thang": 9,
+    "nam": 1981,
+    "gio": 20,
+    "phut": 28,
+    "noi": "Saginaw, MI, United States",
+    "vi": 43.42,
+    "kinh": -83.949
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Serena_Williams",
+   "ghi": "birth certificate or birth record · Shelley Ackerman · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "lionel-messi",
+   "ten": "Lionel Messi",
+   "sinh": {
+    "ngay": 24,
+    "thang": 6,
+    "nam": 1987,
+    "gio": 20,
+    "phut": 30,
+    "noi": "Rosario, Santa Fe, Argentina",
+    "vi": -32.9594,
+    "kinh": -60.6617
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Lionel_Messi",
+   "ghi": "birth certificate or birth record · Juan Cruz Sirius · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "scarlett-johansson",
+   "ten": "Scarlett Johansson",
+   "sinh": {
+    "ngay": 22,
+    "thang": 11,
+    "nam": 1984,
+    "gio": 3,
+    "phut": 0,
+    "noi": "New York, NY, United States",
+    "vi": 40.7127,
+    "kinh": -74.006
+   },
+   "utc": null,
+   "rodden": "C",
+   "nguon": "https://www.astrotheme.com/astrology/Scarlett_Johansson",
+   "ghi": "Original source not known · Sy Scholfield · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "robert-pattinson",
+   "ten": "Robert Pattinson",
+   "sinh": {
+    "ngay": 13,
+    "thang": 5,
+    "nam": 1986,
+    "gio": 15,
+    "phut": 50,
+    "noi": "London, United Kingdom",
+    "vi": 51.5074,
+    "kinh": -0.1278
+   },
+   "utc": null,
+   "rodden": "C",
+   "nguon": "https://www.astrotheme.com/astrology/Robert_Pattinson",
+   "ghi": "Accuracy in question · Karla Aguila · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "timothee-chalamet",
+   "ten": "Timothée Chalamet",
+   "sinh": {
+    "ngay": 27,
+    "thang": 12,
+    "nam": 1995,
+    "gio": 21,
+    "phut": 16,
+    "noi": "Manhattan, New York, NY, United States",
+    "vi": 40.758,
+    "kinh": -73.9855
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Timoth%C3%A9e_Chalamet",
+   "ghi": "birth certificate or birth record · Paddy de Jabrun · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "sabrina-carpenter",
+   "ten": "Sabrina Carpenter",
+   "sinh": {
+    "ngay": 11,
+    "thang": 5,
+    "nam": 1999,
+    "gio": 8,
+    "phut": 52,
+    "noi": "Lehigh Valley, PA, United States",
+    "vi": 40.5948,
+    "kinh": -75.568
+   },
+   "utc": null,
+   "rodden": "DD",
+   "nguon": "https://www.astrotheme.com/astrology/Sabrina_Carpenter",
+   "ghi": "Dirty data, conflicting times · Sy Scholfield · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "olivia-rodrigo",
+   "ten": "Olivia Rodrigo",
+   "sinh": {
+    "ngay": 20,
+    "thang": 2,
+    "nam": 2003,
+    "gio": 3,
+    "phut": 0,
+    "noi": "Temecula, CA, United States",
+    "vi": 33.4946,
+    "kinh": -117.1474
+   },
+   "utc": null,
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Olivia_Rodrigo",
+   "ghi": "From memory or autobiography · Astrotheme · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "dua-lipa",
+   "ten": "Dua Lipa",
+   "sinh": {
+    "ngay": 22,
+    "thang": 8,
+    "nam": 1995,
+    "gio": 0,
+    "phut": 18,
+    "noi": "Westminster, London, United Kingdom",
+    "vi": 51.5004,
+    "kinh": -0.1265
+   },
+   "utc": null,
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Dua_Lipa",
+   "ghi": "From memory or autobiography · Astrotheme · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "miley-cyrus",
+   "ten": "Miley Cyrus",
+   "sinh": {
+    "ngay": 23,
+    "thang": 11,
+    "nam": 1992,
+    "gio": 16,
+    "phut": 19,
+    "noi": "Nashville, TN, United States",
+    "vi": 36.1623,
+    "kinh": -86.7743
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Miley_Cyrus",
+   "ghi": "birth certificate or birth record · Frank C. Clifford · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "katy-perry",
+   "ten": "Katy Perry",
+   "sinh": {
+    "ngay": 25,
+    "thang": 10,
+    "nam": 1984,
+    "gio": 7,
+    "phut": 58,
+    "noi": "Santa Barbara, CA, United States",
+    "vi": 34.4221,
+    "kinh": -119.7027
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Katy_Perry",
+   "ghi": "birth certificate or birth record · Roman Craft · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "selena-gomez",
+   "ten": "Selena Gomez",
+   "sinh": {
+    "ngay": 22,
+    "thang": 7,
+    "nam": 1992,
+    "gio": 7,
+    "phut": 19,
+    "noi": "Grand Prairie, TX, United States",
+    "vi": 32.746,
+    "kinh": -96.9978
+   },
+   "utc": null,
+   "rodden": "C",
+   "nguon": "https://www.astrotheme.com/astrology/Selena_Gomez",
+   "ghi": "Accuracy in question · Astrotheme · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "justin-bieber",
+   "ten": "Justin Bieber",
+   "sinh": {
+    "ngay": 1,
+    "thang": 3,
+    "nam": 1994,
+    "gio": 0,
+    "phut": 56,
+    "noi": "London, Ontario, Canada",
+    "vi": 42.9837,
+    "kinh": -81.2496
+   },
+   "utc": null,
+   "rodden": "B",
+   "nguon": "https://www.astrotheme.com/astrology/Justin_Bieber",
+   "ghi": "Biography · Sarah van Sanden · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "harry-styles",
+   "ten": "Harry Styles",
+   "sinh": {
+    "ngay": 1,
+    "thang": 2,
+    "nam": 1994,
+    "gio": 0,
+    "phut": 6,
+    "noi": "Redditch, United Kingdom",
+    "vi": 52.3058,
+    "kinh": -1.9417
+   },
+   "utc": null,
+   "rodden": "DD",
+   "nguon": "https://www.astrotheme.com/astrology/Harry_Styles",
+   "ghi": "Conflicting/unverified · Lois Rodden · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "rihanna",
+   "ten": "Rihanna",
+   "sinh": {
+    "ngay": 20,
+    "thang": 2,
+    "nam": 1988,
+    "gio": 8,
+    "phut": 50,
+    "noi": "Saint Michael, Barbados",
+    "vi": 13.1183,
+    "kinh": -59.6016
+   },
+   "utc": null,
+   "rodden": "C",
+   "nguon": "https://www.astrotheme.com/astrology/Rihanna",
+   "ghi": "Accuracy in question · IMDb, Astrotheme · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "billie-eilish",
+   "ten": "Billie Eilish",
+   "sinh": {
+    "ngay": 18,
+    "thang": 12,
+    "nam": 2001,
+    "gio": 12,
+    "phut": 17,
+    "noi": "Los Angeles, CA, United States",
+    "vi": 34.0537,
+    "kinh": -118.2428
+   },
+   "utc": null,
+   "rodden": "AA",
+   "nguon": "https://www.astrotheme.com/astrology/Billie_Eilish",
+   "ghi": "birth certificate or birth record · Roman Craft · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "ariana-grande",
+   "ten": "Ariana Grande",
+   "sinh": {
+    "ngay": 26,
+    "thang": 6,
+    "nam": 1993,
+    "gio": 21,
+    "phut": 16,
+    "noi": "Boca Raton, FL, United States",
+    "vi": 26.3587,
+    "kinh": -80.0831
+   },
+   "utc": null,
+   "rodden": "A",
+   "nguon": "https://www.astrotheme.com/astrology/Ariana_Grande",
+   "ghi": "From memory or autobiography · Sy Scholfield · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
+  },
+  {
+   "slug": "jude-law",
+   "ten": "Jude Law",
+   "sinh": {
+    "ngay": 29,
+    "thang": 12,
+    "nam": 1972,
+    "gio": 6,
+    "phut": 0,
+    "noi": "Lewisham, London, United Kingdom",
+    "vi": 51.4624,
+    "kinh": -0.0102
+   },
+   "utc": null,
+   "rodden": "C",
+   "nguon": "https://www.astrotheme.com/astrology/Jude_Law",
+   "ghi": "Original source not known · Paddy de Jabrun · toạ độ OpenStreetMap · thêm tự động (la-so/them-nguoi.mjs)",
+   "them_luc": "2026-11-08"
   }
  ]
 }

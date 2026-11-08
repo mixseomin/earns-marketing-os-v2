@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Serena+Williams%26%23039%3Bs+natal+chart&day=26&month=9&year=1981&location=Saginaw%2C+MI%2C+United+States&lat=43.42&lng=-83.949&hour=20&minute=28",
+ "doc_luc": "2026-11-08T03:28:10.956Z",
+ "goc": {
+  "Ascendant": {
+   "do": "3°10'"
+  },
+  "MC": {
+   "do": "17°19'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "3°49'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "20°24'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "29°39'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "16°20'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "15°35'",
+   "nha": 5,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "17°03'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Saturn": {
+   "do": "11°43'",
+   "nha": 6,
+   "nghich": false
+  },
+  "Uranus": {
+   "do": "27°15'",
+   "nha": 7,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "22°14'",
+   "nha": 8,
+   "nghich": false
+  },
+  "Pluto": {
+   "do": "23°27'",
+   "nha": 6,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 5040,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

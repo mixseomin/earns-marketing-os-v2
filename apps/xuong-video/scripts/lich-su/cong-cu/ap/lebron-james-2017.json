@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=LeBron+James&day=30&month=12&year=1984&location=Akron%2C+OH%2C+United+States&lat=41.0831&lng=-81.5185&hour=16&minute=4&year_target=2017",
+ "doc_luc": "2026-11-08T03:39:56.893Z",
+ "nam": 2017,
+ "tuoi": 33,
+ "nha": 10,
+ "cung": "Pisces",
+ "nghia_nha": "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Capricorn 21°12'",
+ "nha_chu": 8,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Transformation, crisis, loss, life and death; shared finances, debt, taxes, insurance, inheritance, and the resources of others",
+ "chu": [
+  "Career, action (praxis), reputation, social status, advancement, and public achievements.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Transformation, crisis, loss, life and death; shared finances, debt, taxes, insurance, inheritance, and the resources of others"
+ ],
+ "rong": 1080,
+ "cao": 6698,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2980,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3120,
+   1008,
+   110
+  ]
+ }
+}

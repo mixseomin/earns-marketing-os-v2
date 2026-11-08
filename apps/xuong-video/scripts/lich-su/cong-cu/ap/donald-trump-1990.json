@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Donald+Trump&day=14&month=6&year=1946&location=Jamaica%2C+Queens%2C+New+York%2C+NY%2C+United+States&lat=40.6998&lng=-73.8077&hour=10&minute=54&year_target=1990",
+ "doc_luc": "2026-11-08T03:37:49.908Z",
+ "nam": 1990,
+ "tuoi": 44,
+ "nha": 9,
+ "cung": "Aries",
+ "nghia_nha": "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+ "chu_nam": "Mars",
+ "vi_tri": "Leo 26°47'",
+ "nha_chu": 1,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "The self, the physical body, appearance, vitality, independent action",
+ "chu": [
+  "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "The self, the physical body, appearance, vitality, independent action"
+ ],
+ "rong": 1080,
+ "cao": 6708,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   722,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1778,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2988,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3130,
+   1008,
+   110
+  ]
+ }
+}

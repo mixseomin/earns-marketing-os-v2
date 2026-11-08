@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Madonna&day=16&month=8&year=1958&location=Bay+City%2C+Michigan%2C+USA&lat=43.5945&lng=-83.8889&hour=7&minute=5&year_target=1985",
+ "doc_luc": "2026-11-08T03:25:17.318Z",
+ "nam": 1985,
+ "tuoi": 27,
+ "nha": 4,
+ "cung": "Sagittarius",
+ "nghia_nha": "Parents (especially the father), family, home, real estate, private matters, and the ending of things.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Libra 26°24'",
+ "nha_chu": 2,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Personal resources (material - mental - intellectual), assets, livelihood, security",
+ "chu": [
+  "Parents (especially the father), family, home, real estate, private matters, and the ending of things.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Personal resources (material - mental - intellectual), assets, livelihood, security"
+ ],
+ "rong": 1080,
+ "cao": 6824,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   110
+  ]
+ }
+}

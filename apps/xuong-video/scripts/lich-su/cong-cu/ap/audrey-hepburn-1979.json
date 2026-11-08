@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Audrey+Hepburn&day=4&month=5&year=1929&location=Ixelles%2C+Belgium&lat=50.8331&lng=4.3668&hour=3&minute=0&year_target=1979",
+ "doc_luc": "2026-11-08T03:36:10.770Z",
+ "nam": 1979,
+ "tuoi": 50,
+ "nha": 3,
+ "cung": "Aries",
+ "nghia_nha": "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+ "chu_nam": "Mars",
+ "vi_tri": "Cancer 25°09'",
+ "nha_chu": 6,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "Daily rhythm of life, health, duties, service, illness",
+ "chu": [
+  "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "Daily rhythm of life, health, duties, service, illness"
+ ],
+ "rong": 1080,
+ "cao": 6540,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2940,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3080,
+   1008,
+   110
+  ]
+ }
+}

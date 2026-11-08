@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Kamala+Harris&day=20&month=10&year=1964&location=Oakland%2C+CA%2C+United+States&lat=37.8045&lng=-122.2714&hour=21&minute=28&year_target=2016",
+ "doc_luc": "2026-11-08T03:42:11.197Z",
+ "nam": 2016,
+ "tuoi": 52,
+ "nha": 5,
+ "cung": "Libra",
+ "nghia_nha": "Children, creativity, joy, enjoyment, and acts of charity.",
+ "chu_nam": "Venus",
+ "vi_tri": "Virgo 17°54'",
+ "nha_chu": 4,
+ "chu_de": "Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+ "nha_chu_nghia": "Home, family, roots, foundation, land, the conclusion of a matter",
+ "chu": [
+  "Children, creativity, joy, enjoyment, and acts of charity.",
+  "Theme: Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+  "Home, family, roots, foundation, land, the conclusion of a matter"
+ ],
+ "rong": 1080,
+ "cao": 6792,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2940,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3080,
+   1008,
+   110
+  ]
+ }
+}

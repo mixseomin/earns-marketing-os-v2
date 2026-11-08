@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Billie+Eilish&day=18&month=12&year=2001&location=Los+Angeles%2C+CA%2C+United+States&lat=34.0537&lng=-118.2428&hour=12&minute=17&year_target=2019",
+ "doc_luc": "2026-11-08T03:46:50.935Z",
+ "nam": 2019,
+ "tuoi": 18,
+ "nha": 7,
+ "cung": "Libra",
+ "nghia_nha": "Marriage, spouse, business partners, external relations, and going abroad.",
+ "chu_nam": "Venus",
+ "vi_tri": "Sagittarius 20°36'",
+ "nha_chu": 9,
+ "chu_de": "Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+ "nha_chu_nghia": "Long-distance travel, foreigners, higher education, philosophy, religion, publishing, broadening one's worldview",
+ "chu": [
+  "Marriage, spouse, business partners, external relations, and going abroad.",
+  "Theme: Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+  "Long-distance travel, foreigners, higher education, philosophy, religion, publishing, broadening one's worldview"
+ ],
+ "rong": 1080,
+ "cao": 6612,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2894,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3034,
+   1008,
+   110
+  ]
+ }
+}

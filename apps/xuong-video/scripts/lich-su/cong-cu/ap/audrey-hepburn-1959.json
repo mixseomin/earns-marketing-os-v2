@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Audrey+Hepburn&day=4&month=5&year=1929&location=Ixelles%2C+Belgium&lat=50.8331&lng=4.3668&hour=3&minute=0&year_target=1959",
+ "doc_luc": "2026-11-08T03:35:39.604Z",
+ "nam": 1959,
+ "tuoi": 30,
+ "nha": 7,
+ "cung": "Leo",
+ "nghia_nha": "Marriage, spouse, business partners, external relations, and going abroad.",
+ "chu_nam": "Sun",
+ "vi_tri": "Taurus 13°07'",
+ "nha_chu": 4,
+ "chu_de": "Related to career, social standing, the father, superiors, or matters of public authority.",
+ "nha_chu_nghia": "Home, family, roots, foundation, land, the conclusion of a matter",
+ "chu": [
+  "Marriage, spouse, business partners, external relations, and going abroad.",
+  "Theme: Related to career, social standing, the father, superiors, or matters of public authority.",
+  "Home, family, roots, foundation, land, the conclusion of a matter"
+ ],
+ "rong": 1080,
+ "cao": 6784,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2894,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3034,
+   1008,
+   110
+  ]
+ }
+}

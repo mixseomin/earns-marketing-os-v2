@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Marilyn+Monroe&day=1&month=6&year=1926&location=Los+Angeles%2C+California%2C+USA&lat=34.0522&lng=-118.2437&hour=9&minute=30&year_target=1958",
+ "doc_luc": "2026-11-08T03:24:27.504Z",
+ "nam": 1958,
+ "tuoi": 32,
+ "nha": 9,
+ "cung": "Aries",
+ "nghia_nha": "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+ "chu_nam": "Mars",
+ "vi_tri": "Pisces 20°44'",
+ "nha_chu": 8,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "Transformation, crisis, loss, life and death; shared finances, debt, taxes, insurance, inheritance, and the resources of others",
+ "chu": [
+  "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "Transformation, crisis, loss, life and death; shared finances, debt, taxes, insurance, inheritance, and the resources of others"
+ ],
+ "rong": 1080,
+ "cao": 6902,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   110
+  ]
+ }
+}

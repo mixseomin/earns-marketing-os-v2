@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Muhammad+Ali&day=17&month=1&year=1942&location=Louisville%2C+KY%2C+United+States&lat=38.2542&lng=-85.7594&hour=18&minute=35&year_target=1986",
+ "doc_luc": "2026-11-08T03:33:33.277Z",
+ "nam": 1986,
+ "tuoi": 44,
+ "nha": 9,
+ "cung": "Aries",
+ "nghia_nha": "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+ "chu_nam": "Mars",
+ "vi_tri": "Taurus 3°03'",
+ "nha_chu": 10,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "Social status, career, action, reputation, public achievement",
+ "chu": [
+  "Long-distance travel, foreign lands, philosophy, religion, astrology, prophecy, and higher education.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "Social status, career, action, reputation, public achievement"
+ ],
+ "rong": 1080,
+ "cao": 6612,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   110
+  ]
+ }
+}

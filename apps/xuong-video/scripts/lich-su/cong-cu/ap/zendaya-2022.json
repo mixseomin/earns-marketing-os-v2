@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Zendaya&day=1&month=9&year=1996&location=Walnut+Creek%2C+CA%2C+United+States&lat=37.9021&lng=-122.0619&hour=18&minute=1&year_target=2022",
+ "doc_luc": "2026-11-08T03:40:51.410Z",
+ "nam": 2022,
+ "tuoi": 26,
+ "nha": 3,
+ "cung": "Aries",
+ "nghia_nha": "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+ "chu_nam": "Mars",
+ "vi_tri": "Cancer 25°05'",
+ "nha_chu": 6,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "Daily rhythm of life, health, duties, service, illness",
+ "chu": [
+  "Siblings, neighbors, short trips, religion, dreams, and kinship relations.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "Daily rhythm of life, health, duties, service, illness"
+ ],
+ "rong": 1080,
+ "cao": 6824,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2894,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3034,
+   1008,
+   110
+  ]
+ }
+}

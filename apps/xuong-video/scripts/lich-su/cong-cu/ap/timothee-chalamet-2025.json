@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Timoth%C3%A9e+Chalamet&day=27&month=12&year=1995&location=Manhattan%2C+New+York%2C+NY%2C+United+States&lat=40.758&lng=-73.9855&hour=21&minute=16&year_target=2025",
+ "doc_luc": "2026-11-08T03:44:06.232Z",
+ "nam": 2025,
+ "tuoi": 30,
+ "nha": 7,
+ "cung": "Pisces",
+ "nghia_nha": "Marriage, spouse, business partners, external relations, and going abroad.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Sagittarius 28°35'",
+ "nha_chu": 4,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Home, family, roots, foundation, land, the conclusion of a matter",
+ "chu": [
+  "Marriage, spouse, business partners, external relations, and going abroad.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Home, family, roots, foundation, land, the conclusion of a matter"
+ ],
+ "rong": 1080,
+ "cao": 6872,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2980,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3120,
+   1008,
+   110
+  ]
+ }
+}

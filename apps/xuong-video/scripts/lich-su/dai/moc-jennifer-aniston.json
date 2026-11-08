@@ -1,0 +1,28 @@
+{
+ "ten": "Jennifer Aniston",
+ "sinh": "February 11, 1969, Los Angeles, California, USA",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 2000,
+   "ngay": "2000-07-29",
+   "nhan": "marriage",
+   "chu": "Aniston marries Brad Pitt.",
+   "nguon": "https://www.wikidata.org/wiki/Q32522"
+  },
+  {
+   "nam": 2012,
+   "ngay": "2012-02-22",
+   "nhan": "award",
+   "chu": "Aniston receives the star on Hollywood Walk of Fame.",
+   "nguon": "https://www.wikidata.org/wiki/Q32522"
+  },
+  {
+   "nam": 2015,
+   "ngay": "2015-08-05",
+   "nhan": "marriage",
+   "chu": "Aniston marries Justin Theroux.",
+   "nguon": "https://www.wikidata.org/wiki/Q32522"
+  }
+ ]
+}

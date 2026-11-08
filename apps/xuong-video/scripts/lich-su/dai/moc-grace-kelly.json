@@ -1,0 +1,21 @@
+{
+ "ten": "Grace Kelly",
+ "sinh": "November 12, 1929, Philadelphia, PA, United States",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 1955,
+   "ngay": "1955-03-30",
+   "nhan": "award",
+   "chu": "Kelly receives the Academy Award for Best Actress.",
+   "nguon": "https://www.wikidata.org/wiki/Q3925"
+  },
+  {
+   "nam": 1956,
+   "ngay": "1956-04-18",
+   "nhan": "marriage",
+   "chu": "Kelly marries Rainier III, Prince of Monaco.",
+   "nguon": "https://www.wikidata.org/wiki/Q3925"
+  }
+ ]
+}

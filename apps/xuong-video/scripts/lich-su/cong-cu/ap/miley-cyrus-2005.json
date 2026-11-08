@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Miley+Cyrus&day=23&month=11&year=1992&location=Nashville%2C+TN%2C+United+States&lat=36.1623&lng=-86.7743&hour=16&minute=19&year_target=2005",
+ "doc_luc": "2026-11-08T03:44:31.605Z",
+ "nam": 2005,
+ "tuoi": 13,
+ "nha": 2,
+ "cung": "Gemini",
+ "nghia_nha": "Livelihood, income, personal assets, financial transactions (giving and receiving).",
+ "chu_nam": "Mercury",
+ "vi_tri": "Scorpio 27°12'",
+ "nha_chu": 7,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Personal relationships, spouse, partners, litigation, public matters",
+ "chu": [
+  "Livelihood, income, personal assets, financial transactions (giving and receiving).",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Personal relationships, spouse, partners, litigation, public matters"
+ ],
+ "rong": 1080,
+ "cao": 6728,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   150
+  ]
+ }
+}

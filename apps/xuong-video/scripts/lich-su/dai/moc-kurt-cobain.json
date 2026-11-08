@@ -1,0 +1,21 @@
+{
+ "ten": "Kurt Cobain",
+ "sinh": "February 20, 1967, Aberdeen, WA, United States",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 1991,
+   "ngay": "1991-09-24",
+   "nhan": "release",
+   "chu": "Nevermind is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q8446"
+  },
+  {
+   "nam": 1992,
+   "ngay": "1992-02-24",
+   "nhan": "marriage",
+   "chu": "Cobain marries Courtney Love.",
+   "nguon": "https://www.wikidata.org/wiki/Q8446"
+  }
+ ]
+}

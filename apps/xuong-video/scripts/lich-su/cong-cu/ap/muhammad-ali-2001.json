@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Muhammad+Ali&day=17&month=1&year=1942&location=Louisville%2C+KY%2C+United+States&lat=38.2542&lng=-85.7594&hour=18&minute=35&year_target=2001",
+ "doc_luc": "2026-11-08T03:33:46.721Z",
+ "nam": 2001,
+ "tuoi": 59,
+ "nha": 12,
+ "cung": "Cancer",
+ "nghia_nha": "Hidden enemies, calamities, imprisonment, injuries, suffering, and matters relating to foreign lands (of a negative nature).",
+ "chu_nam": "Moon",
+ "vi_tri": "Aquarius 12°26'",
+ "nha_chu": 7,
+ "chu_de": "Matters of physical health, the mother, residence, conception, and fluctuations in assets.",
+ "nha_chu_nghia": "Personal relationships, spouse, partners, litigation, public matters",
+ "chu": [
+  "Hidden enemies, calamities, imprisonment, injuries, suffering, and matters relating to foreign lands (of a negative nature).",
+  "Theme: Matters of physical health, the mother, residence, conception, and fluctuations in assets.",
+  "Personal relationships, spouse, partners, litigation, public matters"
+ ],
+ "rong": 1080,
+ "cao": 6604,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2886,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3026,
+   1008,
+   110
+  ]
+ }
+}

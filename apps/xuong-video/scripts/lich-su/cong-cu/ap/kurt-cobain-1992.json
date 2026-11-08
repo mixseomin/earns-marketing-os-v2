@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Kurt+Cobain&day=20&month=2&year=1967&location=Aberdeen%2C+WA%2C+United+States&lat=46.9754&lng=-123.8157&hour=19&minute=38&year_target=1992",
+ "doc_luc": "2026-11-08T03:36:56.760Z",
+ "nam": 1992,
+ "tuoi": 25,
+ "nha": 2,
+ "cung": "Libra",
+ "nghia_nha": "Livelihood, income, personal assets, financial transactions (giving and receiving).",
+ "chu_nam": "Venus",
+ "vi_tri": "Pisces 26°33'",
+ "nha_chu": 7,
+ "chu_de": "Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+ "nha_chu_nghia": "Personal relationships, spouse, partners, litigation, public matters",
+ "chu": [
+  "Livelihood, income, personal assets, financial transactions (giving and receiving).",
+  "Theme: Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+  "Personal relationships, spouse, partners, litigation, public matters"
+ ],
+ "rong": 1080,
+ "cao": 6604,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2886,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3026,
+   1008,
+   110
+  ]
+ }
+}

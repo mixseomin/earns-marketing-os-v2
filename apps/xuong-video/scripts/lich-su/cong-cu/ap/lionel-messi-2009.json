@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Lionel+Messi&day=24&month=6&year=1987&location=Rosario%2C+Santa+Fe%2C+Argentina&lat=-32.9594&lng=-60.6617&hour=20&minute=30&year_target=2009",
+ "doc_luc": "2026-11-08T03:42:51.486Z",
+ "nam": 2009,
+ "tuoi": 22,
+ "nha": 11,
+ "cung": "Sagittarius",
+ "nghia_nha": "Friends, hopes, dreams, gifts, and patronage from those in power.",
+ "chu_nam": "Jupiter",
+ "vi_tri": "Aries 25°02'",
+ "nha_chu": 3,
+ "chu_de": "Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+ "nha_chu_nghia": "Information within familiar surroundings, siblings, communication, paperwork, spirituality",
+ "chu": [
+  "Friends, hopes, dreams, gifts, and patronage from those in power.",
+  "Theme: Related to children (childbirth), finances, justice, and favorable, honorable alliances.",
+  "Information within familiar surroundings, siblings, communication, paperwork, spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6746,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2894,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3034,
+   1008,
+   110
+  ]
+ }
+}

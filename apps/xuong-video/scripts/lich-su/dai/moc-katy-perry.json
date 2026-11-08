@@ -1,0 +1,42 @@
+{
+ "ten": "Katy Perry",
+ "sinh": "October 25, 1984, Santa Barbara, CA, United States",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 2009,
+   "ngay": "2009-02-15",
+   "nhan": "award",
+   "chu": "Perry receives the BRIT Award for International Female Solo Artist.",
+   "nguon": "https://www.wikidata.org/wiki/Q42493"
+  },
+  {
+   "nam": 2011,
+   "ngay": "2011-03-27",
+   "nhan": "award",
+   "chu": "Perry receives the Juno Award for International Album of the Year.",
+   "nguon": "https://www.wikidata.org/wiki/Q42493"
+  },
+  {
+   "nam": 2013,
+   "ngay": "2013-12-03",
+   "nhan": "office",
+   "chu": "Perry becomes UNICEF Goodwill Ambassador.",
+   "nguon": "https://www.wikidata.org/wiki/Q42493"
+  },
+  {
+   "nam": 2014,
+   "ngay": "2014-08-24",
+   "nhan": "award",
+   "chu": "Perry receives the MTV Video Music Award for Best Female Video.",
+   "nguon": "https://www.wikidata.org/wiki/Q42493"
+  },
+  {
+   "nam": 2024,
+   "ngay": "2024-09-11",
+   "nhan": "award",
+   "chu": "Perry receives the Michael Jackson Video Vanguard Award.",
+   "nguon": "https://www.wikidata.org/wiki/Q42493"
+  }
+ ]
+}

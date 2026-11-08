@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Donald+Trump&day=14&month=6&year=1946&location=Jamaica%2C+Queens%2C+New+York%2C+NY%2C+United+States&lat=40.6998&lng=-73.8077&hour=10&minute=54&year_target=2016",
+ "doc_luc": "2026-11-08T03:38:41.273Z",
+ "nam": 2016,
+ "tuoi": 70,
+ "nha": 11,
+ "cung": "Gemini",
+ "nghia_nha": "Friends, hopes, dreams, gifts, and patronage from those in power.",
+ "chu_nam": "Mercury",
+ "vi_tri": "Cancer 8°52'",
+ "nha_chu": 12,
+ "chu_de": "Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+ "nha_chu_nghia": "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality",
+ "chu": [
+  "Friends, hopes, dreams, gifts, and patronage from those in power.",
+  "Theme: Related to education, communication, writing, calculation, buying and selling transactions, adolescents, and matters that unfold quickly and in varied ways.",
+  "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6618,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   722,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1778,
+   1076,
+   244
+  ],
+  "chu-nam": [
+   36,
+   2996,
+   1008,
+   290
+  ],
+  "chu-de": [
+   36,
+   3138,
+   1008,
+   150
+  ]
+ }
+}

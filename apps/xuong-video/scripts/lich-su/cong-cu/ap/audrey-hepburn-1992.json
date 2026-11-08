@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Audrey+Hepburn&day=4&month=5&year=1929&location=Ixelles%2C+Belgium&lat=50.8331&lng=4.3668&hour=3&minute=0&year_target=1992",
+ "doc_luc": "2026-11-08T03:36:24.737Z",
+ "nam": 1992,
+ "tuoi": 63,
+ "nha": 4,
+ "cung": "Taurus",
+ "nghia_nha": "Parents (especially the father), family, home, real estate, private matters, and the ending of things.",
+ "chu_nam": "Venus",
+ "vi_tri": "Aries 22°47'",
+ "nha_chu": 3,
+ "chu_de": "Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+ "nha_chu_nghia": "Information within familiar surroundings, siblings, communication, paperwork, spirituality",
+ "chu": [
+  "Parents (especially the father), family, home, real estate, private matters, and the ending of things.",
+  "Theme: Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+  "Information within familiar surroundings, siblings, communication, paperwork, spirituality"
+ ],
+ "rong": 1080,
+ "cao": 7004,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   3074,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3214,
+   1008,
+   110
+  ]
+ }
+}

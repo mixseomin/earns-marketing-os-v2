@@ -1,0 +1,35 @@
+{
+ "ten": "Miley Cyrus",
+ "sinh": "November 23, 1992, Nashville, TN, United States",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 2006,
+   "ngay": "2006-03-24",
+   "nhan": "release",
+   "chu": "Hannah Montana is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q4235"
+  },
+  {
+   "nam": 2008,
+   "ngay": "2008-09-01",
+   "nhan": "release",
+   "chu": "Hannah Montana is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q4235"
+  },
+  {
+   "nam": 2010,
+   "ngay": "2010-03-31",
+   "nhan": "release",
+   "chu": "The Last Song is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q4235"
+  },
+  {
+   "nam": 2018,
+   "ngay": "2018-12-23",
+   "nhan": "marriage",
+   "chu": "Cyrus marries Liam Hemsworth.",
+   "nguon": "https://www.wikidata.org/wiki/Q4235"
+  }
+ ]
+}

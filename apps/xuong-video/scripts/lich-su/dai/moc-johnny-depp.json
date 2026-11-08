@@ -1,0 +1,21 @@
+{
+ "ten": "Johnny Depp",
+ "sinh": "June 9, 1963, Owensboro, Kentucky, USA",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 2006,
+   "ngay": "2006-07",
+   "nhan": "award",
+   "chu": "Depp receives the Medal of the City of Paris.",
+   "nguon": "https://www.wikidata.org/wiki/Q37175"
+  },
+  {
+   "nam": 2015,
+   "ngay": "2015-02-03",
+   "nhan": "marriage",
+   "chu": "Depp marries Amber Heard.",
+   "nguon": "https://www.wikidata.org/wiki/Q37175"
+  }
+ ]
+}

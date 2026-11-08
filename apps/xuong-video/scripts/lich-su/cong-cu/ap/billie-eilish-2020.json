@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Billie+Eilish&day=18&month=12&year=2001&location=Los+Angeles%2C+CA%2C+United+States&lat=34.0537&lng=-118.2428&hour=12&minute=17&year_target=2020",
+ "doc_luc": "2026-11-08T03:47:05.062Z",
+ "nam": 2020,
+ "tuoi": 19,
+ "nha": 8,
+ "cung": "Scorpio",
+ "nghia_nha": "Death, inheritance, benefits from the death of others, stagnation, or punishments.",
+ "chu_nam": "Mars",
+ "vi_tri": "Pisces 7°15'",
+ "nha_chu": 12,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality",
+ "chu": [
+  "Death, inheritance, benefits from the death of others, stagnation, or punishments.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6940,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   110
+  ]
+ }
+}

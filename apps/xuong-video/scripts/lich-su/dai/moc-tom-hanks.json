@@ -1,0 +1,56 @@
+{
+ "ten": "Tom Hanks",
+ "sinh": "July 9, 1956, Concord, CA, United States",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 1978,
+   "ngay": "1978-01-24",
+   "nhan": "marriage",
+   "chu": "Hanks marries Samantha Lewes.",
+   "nguon": "https://www.wikidata.org/wiki/Q2263"
+  },
+  {
+   "nam": 1988,
+   "ngay": "1988-04-30",
+   "nhan": "marriage",
+   "chu": "Hanks marries Rita Wilson.",
+   "nguon": "https://www.wikidata.org/wiki/Q2263"
+  },
+  {
+   "nam": 1989,
+   "ngay": "1989-01-28",
+   "nhan": "award",
+   "chu": "Hanks receives the Golden Globe Award for Best Actor – Motion Picture Musical or Comedy.",
+   "nguon": "https://www.wikidata.org/wiki/Q2263"
+  },
+  {
+   "nam": 1994,
+   "ngay": "1994-01-22",
+   "nhan": "award",
+   "chu": "Hanks receives the Golden Globe Award for Best Actor – Motion Picture Drama.",
+   "nguon": "https://www.wikidata.org/wiki/Q2263"
+  },
+  {
+   "nam": 1995,
+   "ngay": "1995-01-21",
+   "nhan": "award",
+   "chu": "Hanks receives the Golden Globe Award for Best Actor – Motion Picture Drama.",
+   "nguon": "https://www.wikidata.org/wiki/Q2263"
+  },
+  {
+   "nam": 1997,
+   "ngay": "1997-02-22",
+   "nhan": "award",
+   "chu": "Hanks receives the Actor Award for Outstanding Performance by a Cast in a Motion Picture.",
+   "nguon": "https://www.wikidata.org/wiki/Q2263"
+  },
+  {
+   "nam": 2001,
+   "ngay": "2001-01-21",
+   "nhan": "award",
+   "chu": "Hanks receives the Golden Globe Award for Best Actor – Motion Picture Drama.",
+   "nguon": "https://www.wikidata.org/wiki/Q2263"
+  }
+ ]
+}

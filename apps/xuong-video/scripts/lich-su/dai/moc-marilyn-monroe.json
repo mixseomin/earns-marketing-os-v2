@@ -1,0 +1,56 @@
+{
+ "ten": "Marilyn Monroe",
+ "sinh": "June 1, 1926, Los Angeles, California, USA",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 1942,
+   "ngay": "1942-06-19",
+   "nhan": "marriage",
+   "chu": "Monroe marries James Dougherty.",
+   "nguon": "https://www.wikidata.org/wiki/Q4616"
+  },
+  {
+   "nam": 1953,
+   "ngay": "1953-07-01",
+   "nhan": "release",
+   "chu": "Gentlemen Prefer Blondes is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q4616"
+  },
+  {
+   "nam": 1954,
+   "ngay": "1954-01-14",
+   "nhan": "marriage",
+   "chu": "Monroe marries Joe DiMaggio.",
+   "nguon": "https://www.wikidata.org/wiki/Q4616"
+  },
+  {
+   "nam": 1955,
+   "ngay": "1955-06-03",
+   "nhan": "release",
+   "chu": "The Seven Year Itch is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q4616"
+  },
+  {
+   "nam": 1956,
+   "ngay": "1956-06-29",
+   "nhan": "marriage",
+   "chu": "Monroe marries Arthur Miller.",
+   "nguon": "https://www.wikidata.org/wiki/Q4616"
+  },
+  {
+   "nam": 1959,
+   "ngay": "1959-03-19",
+   "nhan": "release",
+   "chu": "Some Like It Hot is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q4616"
+  },
+  {
+   "nam": 1961,
+   "ngay": "1961-02-01",
+   "nhan": "release",
+   "chu": "The Misfits is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q4616"
+  }
+ ]
+}

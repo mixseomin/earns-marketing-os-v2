@@ -1,0 +1,63 @@
+{
+ "ten": "Audrey Hepburn",
+ "sinh": "May 4, 1929, Ixelles, Belgium",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 1953,
+   "ngay": "1953-08-27",
+   "nhan": "release",
+   "chu": "Roman Holiday is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q42786"
+  },
+  {
+   "nam": 1954,
+   "ngay": "1954-03-25",
+   "nhan": "award",
+   "chu": "Hepburn receives the Academy Award for Best Actress.",
+   "nguon": "https://www.wikidata.org/wiki/Q42786"
+  },
+  {
+   "nam": 1957,
+   "ngay": "1957-02-13",
+   "nhan": "release",
+   "chu": "Funny Face is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q42786"
+  },
+  {
+   "nam": 1959,
+   "ngay": "1959-06-18",
+   "nhan": "release",
+   "chu": "The Nun's Story is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q42786"
+  },
+  {
+   "nam": 1960,
+   "ngay": "1960-02-01",
+   "nhan": "release",
+   "chu": "The Nun's Story is released.",
+   "nguon": "https://www.wikidata.org/wiki/Q42786"
+  },
+  {
+   "nam": 1969,
+   "ngay": "1969-01-18",
+   "nhan": "marriage",
+   "chu": "Hepburn marries Andrea Dotti.",
+   "nguon": "https://www.wikidata.org/wiki/Q42786"
+  },
+  {
+   "nam": 1980,
+   "ngay": "1980-02-08",
+   "nhan": "award",
+   "chu": "Hepburn receives the star on Hollywood Walk of Fame.",
+   "nguon": "https://www.wikidata.org/wiki/Q42786"
+  },
+  {
+   "nam": 1993,
+   "ngay": "1993-03-29",
+   "nhan": "award",
+   "chu": "Hepburn receives the Jean Hersholt Humanitarian Award.",
+   "nguon": "https://www.wikidata.org/wiki/Q42786"
+  }
+ ]
+}

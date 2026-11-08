@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Madonna&day=16&month=8&year=1958&location=Bay+City%2C+Michigan%2C+USA&lat=43.5945&lng=-83.8889&hour=7&minute=5&year_target=1983",
+ "doc_luc": "2026-11-08T03:24:48.523Z",
+ "nam": 1983,
+ "tuoi": 25,
+ "nha": 2,
+ "cung": "Libra",
+ "nghia_nha": "Livelihood, income, personal assets, financial transactions (giving and receiving).",
+ "chu_nam": "Venus",
+ "vi_tri": "Leo 0°32'",
+ "nha_chu": 12,
+ "chu_de": "Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+ "nha_chu_nghia": "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality",
+ "chu": [
+  "Livelihood, income, personal assets, financial transactions (giving and receiving).",
+  "Theme: Themes of marriage, friendship, social relationships, jewelry, enjoyment, and pleasures.",
+  "Solitude, withdrawal from the world, hidden things, betrayal, loss, suffering, invisible challenges, intuition, and spirituality"
+ ],
+ "rong": 1080,
+ "cao": 6650,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2932,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3072,
+   1008,
+   110
+  ]
+ }
+}

@@ -11,7 +11,7 @@ import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const DIR = dirname(fileURLToPath(import.meta.url)), SHOT = join(DIR, '../shot-code'), KENH = 'astrolas', CUNG = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-export const MAU_TU_CHAY = ['ask-the-chart', 'chart-chapters', 'chart-vs-chart', 'myth-behind', 'read-your-chart', 'sign-x-sign', 'sky-calendar', 'this-week', 'zodiac-myths'];
+export const MAU_TU_CHAY = ['ask-the-chart', 'chart-chapters', 'chart-tools', 'chart-vs-chart', 'free-60s', 'myth-behind', 'read-your-chart', 'sign-x-sign', 'sky-calendar', 'this-week', 'zodiac-myths'];
 const bam = (s) => [...s].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7), iso = (ms) => new Date(ms).toISOString().slice(0, 10);
 
 /** lệnh máy viết của một mã tập. Thuần. */
@@ -19,6 +19,10 @@ export function lenhViet(y, o = {}) {
   let m;
   if ((m = /^ask-(.+)-(\d{4})$/.exec(y))) return ['viet-ask.mjs', '--ai', m[1], '--nam', m[2]];
   if ((m = /^cc-(.+)$/.exec(y))) return ['viet-chuong.mjs', '--ai', m[1]];
+  if (/^ct-/.test(y)) return ['viet-chart-tools.mjs', '--y', y];
+  if ((m = /^f60-(.+)$/.exec(y))) return ['viet-free60.mjs', '--cong-cu', m[1]];
+  if ((m = /^ccd-(.+)$/.exec(y))) return ['dai/sinh-chuong.mjs', '--slug', m[1], '--moc', `dai/moc-${m[1]}.json`];
+  if ((m = /^ls-(.+)$/.exec(y))) return ['viet-love-story.mjs', '--cap', m[1]];
   if ((m = /^cvc-(.+)$/.exec(y))) return ['viet-cap.mjs', '--cap', m[1]];
   if ((m = /^my-(.+)$/.exec(y))) return ['viet-myth-behind.mjs', '--sao', m[1]];
   if ((m = /^ryc-([a-z]+)-(.+)$/.exec(y))) return ['viet-ryc.mjs', '--muc', m[1], '--ai', m[2]];
@@ -28,6 +32,8 @@ export function lenhViet(y, o = {}) {
   if ((m = /^(tw-.+)-([a-z]+)$/.exec(y))) return ['viet-this-week.mjs', '--su', m[1], '--moc', m[2][0].toUpperCase() + m[2].slice(1)];
   throw new Error(`mã tập lạ: ${y}`);
 }
+/** tập video dài 16:9 (mẫu loai 'dai' tự chạy) → dựng 1920×1080, bìa 1280×720. Thuần. */
+export const laDai = (y) => /^(ccd|ls)-/.test(y);
 /** playlist của hôm nay rồi các playlist khác theo thứ tự lịch (hôm đó hết tập thì sang playlist kế). Thuần. */
 export function thuTuPlaylist(ds, thu) {
   const coLich = ds.filter((p) => p.lich_tap?.length), hom = coLich.filter((p) => p.lich_tap.includes(thu));
@@ -42,6 +48,7 @@ export function chonTap(pl, ungVien, daLam, bo, hom) {
 }
 if (process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert');
+  t.deepEqual(lenhViet('ct-transit--tom-hanks'), ['viet-chart-tools.mjs', '--y', 'ct-transit--tom-hanks']); t.deepEqual(lenhViet('f60-birth'), ['viet-free60.mjs', '--cong-cu', 'birth']); t.deepEqual(lenhViet('ccd-steve-jobs'), ['dai/sinh-chuong.mjs', '--slug', 'steve-jobs', '--moc', 'dai/moc-steve-jobs.json']); t.ok(laDai('ls-a--b') && laDai('ccd-x') && !laDai('cc-x'));
   t.deepEqual(lenhViet('ask-steve-jobs-1985'), ['viet-ask.mjs', '--ai', 'steve-jobs', '--nam', '1985']); t.deepEqual(lenhViet('ryc-mc-angelina-jolie'), ['viet-ryc.mjs', '--muc', 'mc', '--ai', 'angelina-jolie']);
   t.deepEqual(lenhViet('tw-trang-moi-scorpio-2026-11-09-leo'), ['viet-this-week.mjs', '--su', 'tw-trang-moi-scorpio-2026-11-09', '--moc', 'Leo']); t.deepEqual(lenhViet('sc-a-1', { tuan: '2026-11-16' }), ['viet-sky.mjs', '--chuyen', 'sc-a-1', '--tuan', '2026-11-16']); t.throws(() => lenhViet('zz'));
   const P = [{ ma: 'a', lich_tap: [1] }, { ma: 'b', lich_tap: [2] }, { ma: 'c' }]; t.deepEqual(thuTuPlaylist(P, 2).map((p) => p.ma), ['b', 'a']);
@@ -65,6 +72,13 @@ const song = (f) => { try { process.kill(Number(readFileSync(f, 'utf8')), 0); re
 // render một lúc một (luật anh 22/10/2026): lượt làm tập của kênh khác đang chạy thì chờ
 const CACHE = join(homedir(), '.cache'), banKhac = readdirSync(CACHE).some((f) => /^lich-su-.+\.khoa$/.test(f) && song(join(CACHE, f)));
 if (!xem && (banKhac || gio < (TC.gio_tu ?? '07:00') || gio >= (TC.gio_den ?? '22:00'))) { console.log(`· ${KENH}: ${banKhac ? 'đang có lượt làm tập khác' : `ngoài giờ làm (${gio})`} — bỏ lượt`); process.exit(0); }
+// THÊM NGƯỜI TỰ ĐỘNG (08/11/2026 — Chart Chapters / Ask the Chart / Read Your Chart cạn đề khi sổ chỉ có người viết tay): ngày một lần, bài lá số người mới trên
+// astrolas.com → la-so/them-nguoi.mjs (Astrotheme + kiểm cung Mọc + Swiss Ephemeris + mốc Wikidata → tệp tập). Không có bài mới thì chỉ tốn một lượt đọc sitemap.
+{ const dau = join(homedir(), '.cache', `them-nguoi-${hom}.xong`);
+  if (!xem && !existsSync(dau)) { writeFileSync(dau, new Date().toISOString());
+    const r = spawnSync(process.execPath, [join(DIR, 'la-so/them-nguoi.mjs'), '--toi-da', '3'], { encoding: 'utf8', timeout: 60 * 60_000, killSignal: 'SIGKILL' }), ra = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim();
+    console.log(ra); const loi = ra.split('\n').filter((l) => /^[✗⚠]/.test(l));
+    if (r.status || loi.length) tele(`⚠ Astrolas thêm người ${hom}${r.status ? ` (mã ${r.status ?? r.signal})` : ''}:\n${(loi.length ? loi : ra.split('\n').slice(-3)).slice(0, 10).join('\n')}`); } }
 const q = (c) => sqlBox(c).trim(), M = `(SELECT id FROM xv_may WHERE ma = '${KENH}')`;
 const daLam = new Set(q(`SELECT coalesce(string_agg(slug, ','), '') FROM xv_may_video WHERE may_id = ${M};`).split(',').filter(Boolean)), td = soTd(), bo = new Set(Object.entries(td).filter(([, v]) => v.bo).map(([k]) => k));
 
@@ -73,7 +87,7 @@ function lam(y, han = {}) {
   mkdirSync(join(CACHE, 'lich-su'), { recursive: true }); const f = join(CACHE, 'lich-su', `${KENH}-${y}.log`), fd = openSync(f, 'w');
   const chay = (args, cwd) => spawnSync(process.execPath, args, { cwd, stdio: ['ignore', fd, fd], timeout: 45 * 60_000, killSignal: 'SIGKILL' });
   try {
-    const ra = join(RA, `${y}.mp4`), tep = join(TAP, `${y}.json`), buoc = [[lenhViet(y, han), DIR], [[join(SHOT, 'long-tieng.mjs'), '--cau', relative(SHOT, tep), '--ra', relative(SHOT, ra)], SHOT],
+    const ra = join(RA, `${y}.mp4`), tep = join(TAP, `${y}.json`), buoc = [[lenhViet(y, han), DIR], [[join(SHOT, 'long-tieng.mjs'), '--cau', relative(SHOT, tep), '--ra', relative(SHOT, ra), ...(laDai(y) ? ['--rong', '1920', '--cao', '1080'] : [])], SHOT],
       [[join(DIR, 'nap-tap.mjs'), '--tap', tep, '--video', ra, ...(han.tu ? ['--dang-tu', han.tu] : []), ...(han.den ? ['--dang-den', han.den] : [])], DIR]];
     for (const [a, cwd] of buoc) { const r = chay(a, cwd); if (r.status !== 0) return { ok: false, loi: `${relative(DIR, a[0]) || a[0]} mã ${r.status ?? r.signal}: ${readFileSync(f, 'utf8').trim().split('\n').slice(-3).join(' · ').slice(0, 400)}` }; }
     return { ok: true, tien: Number(/tiền giọng lượt này (\d+)₫/.exec(readFileSync(f, 'utf8'))?.[1] ?? 0), tieu_de: JSON.parse(readFileSync(tep, 'utf8')).tieu_de };
@@ -100,11 +114,23 @@ for (const x of traVe) {
 const conCho = Number(q(`SELECT count(*) FROM xv_may_video WHERE may_id = ${M} AND NOT coalesce(luu_tru, false) AND NOT (coalesce(da_dang, '{}'::jsonb) ? 'youtube') AND coalesce(cham->>'ket', '') <> 'SUA_LAI';`)), tran = TC.truoc_ke_hoach ?? 3;
 if (!xem) try { box(`scripts/may-dung.mts --may ${KENH} --so-kenh`); } catch (e) { console.log(`⚠ đo số kênh: ${String(e.message).split('\n')[0]}`); }
 if (conCho >= tran && !process.argv.includes('--bo-tran')) { console.log(`⏸ ${KENH}: đã có ${conCho} tập chưa đăng YouTube (trần ${tran}) — không làm tập mới`); if (!xem) process.exit(0); }
+// VIDEO DÀI 16:9 (G8, 08/11/2026 — "video dài chưa tự làm"): tuần một tập vào ngày tu_chay.dai.thu, mẫu khai ở tu_chay.dai.mau (Love Story có sẵn tập ls-*,
+// Chart Chapters dài cho mọi người AA có tệp mốc dai/moc-<người>.json — la-so/them-nguoi.mjs tự dựng từ Wikidata). Dấu tuần chỉ ghi khi làm xong; hỏng thì ketThuc đếm lần như tập ngắn.
+{ const DAI = TC.dai, tuan = iso(Date.parse(`${hom}T00:00Z`) - ((new Date(`${hom}T00:00Z`).getUTCDay() + 6) % 7) * 864e5), dauDai = join(CACHE, `${KENH}-dai-${tuan}.xong`);
+  if (DAI?.thu?.includes(thu) && !existsSync(dauDai)) {
+    const NG = JSON.parse(readFileSync(join(DIR, 'la-so/nguoi.json'), 'utf8')).nguoi, uv = new Map();
+    for (const t of dsTap().filter((t) => DAI.mau.includes(t.mau))) uv.set(t.y_tuong, { y: t.y_tuong, mau: t.mau, playlist: 'dai' });
+    if (DAI.mau.includes('chart-chapters-dai')) for (const n of NG.filter((n) => n.rodden === 'AA' && !n.khong_dung && existsSync(join(DIR, `dai/moc-${n.slug}.json`)) && existsSync(join(DIR, `la-so/${n.slug}.json`)))) uv.set(`ccd-${n.slug}`, { y: `ccd-${n.slug}`, mau: 'chart-chapters-dai', playlist: 'dai' });
+    const cd = chonTap({ ma: 'dai', mau: DAI.mau }, [...uv.values()], daLam, bo, hom);
+    if (xem) console.log(`→ video dài tuần ${tuan}: ${cd?.y ?? '(hết ứng viên)'} · ${uv.size} ứng viên`);
+    else if (!cd) { writeFileSync(dauDai, '(hết)'); tele(`⚠ Astrolas: hết ứng viên video dài (${DAI.mau.join(', ')}) — tuần ${tuan} không có tập dài`); }
+    else { giu(() => { dauDangLam(KENH, cd.y, { id: cd.y, luc: new Date().toISOString() }); const kq = lam(cd.y); if (kq.ok) writeFileSync(dauDai, cd.y); ketThuc(cd.y, kq, 'video dài'); }); process.exit(0); } } }
 // 3 · chọn tập theo lịch: Sky Calendar / This Week có hạn đăng theo tuần / sự kiện, mẫu khác lấy trong kho tập đã viết
 const thu2Toi = iso(Date.parse(`${hom}T00:00Z`) + ((8 - new Date(`${hom}T00:00Z`).getUTCDay()) % 7 || 7) * 864e5), LT = JSON.parse(readFileSync(join(DIR, 'lich-troi.json'), 'utf8'));
 const sky = xepLich(soChuyen().filter((c) => !daLam.has(c.ma) && !bo.has(c.ma)), thu2Toi, 1)[0];
 const su = LT.su_kien.filter((e) => e.utc.slice(0, 10) > hom && e.utc.slice(0, 10) <= iso(Date.parse(`${hom}T00:00Z`) + 6 * 864e5)).map((e) => ({ y: `${e.ma}-${CUNG[bam(e.ma) % 12].toLowerCase()}`, mau: 'this-week', playlist: 'timing', han: { tu: hom, den: e.utc.slice(0, 10) } }));
 const ungVien = [...dsTap().filter((t) => MAU_TU_CHAY.includes(t.mau) && !['sky-calendar', 'this-week'].includes(t.mau)).map((t) => ({ y: t.y_tuong, mau: t.mau, playlist: t.playlist_ma })),
+  ...(await import('./viet-chart-tools.mjs')).dsMa().map((y) => ({ y, mau: 'chart-tools', playlist: 'career' })),   // Chart Tools: công cụ × người AA, tệp tập viết lúc làm (chụp trang)
   ...(sky ? [{ y: sky.ma, mau: 'sky-calendar', playlist: 'timing', han: { tu: thu2Toi, den: iso(Date.parse(`${thu2Toi}T00:00Z`) + 6 * 864e5), tuan: thu2Toi } }] : []), ...su];
 let chon = null; for (const pl of thuTuPlaylist(so.playlist, thu)) { chon = chonTap(pl, ungVien, daLam, bo, hom); if (chon) break; }
 if (xem) { console.log(`hôm nay ${hom} (lịch ${thu}: 1 = Thứ Hai … 7 = Chủ nhật) · chưa đăng ${conCho}/${tran} · ${ungVien.length} ứng viên · tập kế: ${chon?.y ?? '(hết)'} [${chon?.playlist ?? ''}] ${chon?.han ? JSON.stringify(chon.han) : ''}`); process.exit(0); }

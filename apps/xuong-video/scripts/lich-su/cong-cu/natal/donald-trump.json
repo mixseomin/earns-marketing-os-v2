@@ -1,0 +1,152 @@
+{
+ "nguon": "https://astrolas.com/birth?name=Donald+Trump%26%23039%3Bs+natal+chart&day=14&month=6&year=1946&location=Jamaica%2C+Queens%2C+New+York%2C+NY%2C+United+States&lat=40.6998&lng=-73.8077&hour=10&minute=54",
+ "doc_luc": "2026-11-08T03:27:16.429Z",
+ "goc": {
+  "Ascendant": {
+   "do": "29°58'"
+  },
+  "MC": {
+   "do": "24°22'"
+  }
+ },
+ "sao": {
+  "Sun": {
+   "do": "22°56'",
+   "nha": 10,
+   "nghich": false
+  },
+  "Moon": {
+   "do": "21°12'",
+   "nha": 4,
+   "nghich": false
+  },
+  "Mercury": {
+   "do": "8°52'",
+   "nha": 11,
+   "nghich": false
+  },
+  "Venus": {
+   "do": "25°44'",
+   "nha": 11,
+   "nghich": false
+  },
+  "Mars": {
+   "do": "26°47'",
+   "nha": 12,
+   "nghich": false
+  },
+  "Jupiter": {
+   "do": "17°27'",
+   "nha": 2,
+   "nghich": true
+  },
+  "Saturn": {
+   "do": "23°49'",
+   "nha": 11,
+   "nghich": false
+  },
+  "Uranus": {
+   "do": "17°54'",
+   "nha": 10,
+   "nghich": false
+  },
+  "Neptune": {
+   "do": "5°51'",
+   "nha": 2,
+   "nghich": true
+  },
+  "Pluto": {
+   "do": "10°03'",
+   "nha": 12,
+   "nghich": false
+  }
+ },
+ "rong": 1080,
+ "cao": 4908,
+ "khung": {
+  "angles": [
+   20,
+   1214,
+   1040,
+   460
+  ],
+  "planets": [
+   20,
+   1774,
+   1040,
+   696
+  ],
+  "Ascendant": [
+   98,
+   1548,
+   182,
+   118
+  ],
+  "MC": [
+   352,
+   1548,
+   182,
+   118
+  ],
+  "Sun": [
+   20,
+   1864,
+   1040,
+   82
+  ],
+  "Moon": [
+   20,
+   1914,
+   1040,
+   82
+  ],
+  "Mercury": [
+   20,
+   1964,
+   1040,
+   82
+  ],
+  "Venus": [
+   20,
+   2014,
+   1040,
+   82
+  ],
+  "Mars": [
+   20,
+   2064,
+   1040,
+   82
+  ],
+  "Jupiter": [
+   20,
+   2114,
+   1040,
+   82
+  ],
+  "Saturn": [
+   20,
+   2164,
+   1040,
+   82
+  ],
+  "Uranus": [
+   20,
+   2214,
+   1040,
+   82
+  ],
+  "Neptune": [
+   20,
+   2264,
+   1040,
+   82
+  ],
+  "Pluto": [
+   20,
+   2314,
+   1040,
+   82
+  ]
+ }
+}

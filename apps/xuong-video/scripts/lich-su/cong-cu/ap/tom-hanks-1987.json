@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Tom+Hanks&day=9&month=7&year=1956&location=Concord%2C+CA%2C+United+States&lat=37.9769&lng=-122.0336&hour=11&minute=17&year_target=1987",
+ "doc_luc": "2026-11-08T03:37:05.692Z",
+ "nam": 1987,
+ "tuoi": 31,
+ "nha": 8,
+ "cung": "Aries",
+ "nghia_nha": "Death, inheritance, benefits from the death of others, stagnation, or punishments.",
+ "chu_nam": "Mars",
+ "vi_tri": "Pisces 17°20'",
+ "nha_chu": 7,
+ "chu_de": "Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+ "nha_chu_nghia": "Personal relationships, spouse, partners, litigation, public matters",
+ "chu": [
+  "Death, inheritance, benefits from the death of others, stagnation, or punishments.",
+  "Theme: Related to disputes, surgery, injuries, or activities requiring much energy and decisiveness.",
+  "Personal relationships, spouse, partners, litigation, public matters"
+ ],
+ "rong": 1080,
+ "cao": 6894,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2886,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3026,
+   1008,
+   110
+  ]
+ }
+}

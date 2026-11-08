@@ -1,0 +1,63 @@
+{
+ "ten": "Angelina Jolie",
+ "sinh": "June 4, 1975, Los Angeles, California, USA",
+ "nguon": "Wikidata (la-so/them-nguoi.mjs)",
+ "moc": [
+  {
+   "nam": 1996,
+   "ngay": "1996-03-28",
+   "nhan": "marriage",
+   "chu": "Jolie marries Jonny Lee Miller.",
+   "nguon": "https://www.wikidata.org/wiki/Q13909"
+  },
+  {
+   "nam": 2000,
+   "ngay": "2000-03-26",
+   "nhan": "award",
+   "chu": "Jolie receives the Academy Award for Best Supporting Actress.",
+   "nguon": "https://www.wikidata.org/wiki/Q13909"
+  },
+  {
+   "nam": 2001,
+   "ngay": "2001-08-27",
+   "nhan": "office",
+   "chu": "Jolie becomes UNHCR Goodwill Ambassador.",
+   "nguon": "https://www.wikidata.org/wiki/Q13909"
+  },
+  {
+   "nam": 2003,
+   "ngay": "2003-10",
+   "nhan": "award",
+   "chu": "Jolie receives the Sergio Vieira de Mello Citizen of the World.",
+   "nguon": "https://www.wikidata.org/wiki/Q13909"
+  },
+  {
+   "nam": 2005,
+   "ngay": "2005-07-31",
+   "nhan": "award",
+   "chu": "Jolie receives the honorary citizen of Cambodia.",
+   "nguon": "https://www.wikidata.org/wiki/Q13909"
+  },
+  {
+   "nam": 2007,
+   "ngay": "2007-11",
+   "nhan": "award",
+   "chu": "Jolie receives the Freedom Award.",
+   "nguon": "https://www.wikidata.org/wiki/Q13909"
+  },
+  {
+   "nam": 2013,
+   "ngay": "2013-11-16",
+   "nhan": "award",
+   "chu": "Jolie receives the Jean Hersholt Humanitarian Award.",
+   "nguon": "https://www.wikidata.org/wiki/Q13909"
+  },
+  {
+   "nam": 2014,
+   "ngay": "2014-06",
+   "nhan": "award",
+   "chu": "Jolie receives the Dame Commander of the Order of St Michael and St George.",
+   "nguon": "https://www.wikidata.org/wiki/Q13909"
+  }
+ ]
+}

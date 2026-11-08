@@ -1,0 +1,53 @@
+{
+ "nguon": "https://astrolas.com/annual-profections-v1?name=Lionel+Messi&day=24&month=6&year=1987&location=Rosario%2C+Santa+Fe%2C+Argentina&lat=-32.9594&lng=-60.6617&hour=20&minute=30&year_target=2010",
+ "doc_luc": "2026-11-08T03:43:09.384Z",
+ "nam": 2010,
+ "tuoi": 23,
+ "nha": 12,
+ "cung": "Capricorn",
+ "nghia_nha": "Hidden enemies, calamities, imprisonment, injuries, suffering, and matters relating to foreign lands (of a negative nature).",
+ "chu_nam": "Saturn",
+ "vi_tri": "Sagittarius 16°44'",
+ "nha_chu": 11,
+ "chu_de": "Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+ "nha_chu_nghia": "Groups, friends, allies, hopes, social network",
+ "chu": [
+  "Hidden enemies, calamities, imprisonment, injuries, suffering, and matters relating to foreign lands (of a negative nature).",
+  "Theme: Related to real estate, inherited assets, elderly people, or challenges, anxiety, and solitude.",
+  "Groups, friends, allies, hopes, social network"
+ ],
+ "rong": 1080,
+ "cao": 6564,
+ "khung": {
+  "tuoi": [
+   2,
+   0,
+   1076,
+   88
+  ],
+  "banh": [
+   2,
+   666,
+   1076,
+   1056
+  ],
+  "nha": [
+   2,
+   1722,
+   1076,
+   284
+  ],
+  "chu-nam": [
+   36,
+   2886,
+   1008,
+   250
+  ],
+  "chu-de": [
+   36,
+   3026,
+   1008,
+   110
+  ]
+ }
+}

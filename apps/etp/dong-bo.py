@@ -156,6 +156,10 @@ def main():
             q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'cpm', 'cpm:{hq}', 'vang', $N$CPM ngày {hq}: ${so[hq]['cpm']:.2f} = {so[hq]['cpm'] / tb * 100:.0f}% trung bình 7 ngày (${tb:.2f}) · ROI {so[hq]['roi']}% · chi ${so[hq]['chi']:.0f} — mùa lễ: xem nhánh A/B tiến độ E05$N$
                   where not exists (select 1 from etp.canh_bao where khoa = 'cpm:{hq}')""")
     except Exception as e: loi.append(f"cpm_ngay: {e}")
+    # ── MÙA LỄ MỸ tự chạy (apps/etp/mua_le.py — khoá tăng 25–30/11, nhánh A/B 26–30/11, sau Giáng sinh 26/12–05/01; Telegram chỉ báo)
+    try:
+        import mua_le as ML; kq["mua_le"] = ML.chay(q)
+    except Exception as e: loi.append(f"mua_le: {e}")
     # ── PHỐT META (anh 25/10/2026): ad bị Meta từ chối = một phốt gắn bộ tài khoản · tài khoản QC · Page → etp.phot + báo đỏ (Telegram qua etp.canh_bao)
     try:
         moi = q("""with bt as (select k bo, (v->>'page')::bigint page_id, v->>'ten' ten from xv_khoa_ngoai, jsonb_each(gia_tri) e(k, v) where ten = 'ethopex_bo_tk'),

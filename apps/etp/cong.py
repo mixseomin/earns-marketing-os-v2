@@ -52,6 +52,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
             if cl: return LY_CAT.format(ct, cl)
         ch = {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
         if ch.get("dung_khan"): return "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"
+        if viec == "tang" and not roas and (ch.get("mua_le") or {}).get("khoa_tang"):   # mùa lễ Mỹ (apps/etp/mua_le.py, anh 08/11/2026): Meta học lại đúng tuần giá cao là tốn nhất
+            return f"mùa lễ Mỹ: khoá tăng bậc ({(ch.get('mua_le') or {}).get('ly_do') or '25–30/11'}) — giảm / tắt / camp mới vẫn chạy (etp.cau_hinh.mua_le, apps/etp/mua_le.py)"
         # CAMP MỚI = $1 (anh 08/11/2026: "Ai cho mày lên camp mới ngân sách hơn $1" · "AB test vẫn phải đi từ $1. Nếu khác thì phải xin phép"): tạo camp / nhân bản thường
         # (kể cả camp A/B, clone sang bộ khác) gửi ngân sách > $1 → chặn. Miễn: camp ROAS (roas=True, loại anh duyệt 26/10/2026) · bản thang (bac=True, thang nhân bản anh duyệt 25/10/2026)
         if viec in ("tao_camp", "nhan_ban") and not roas and not bac and ns_moi is not None and float(ns_moi) > 1:

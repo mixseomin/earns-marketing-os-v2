@@ -85,10 +85,9 @@ def ab_ap(pl, lich, goc, moi, roas=False, cr=None):
             if not nh: AP[ab["kieu"]](pl, ab["nhanh"]["doi"]); return None
         else: nh = "thu" if zlib.crc32(pl["name"].encode()) % 2 == 0 else "doi"
         AP[ab["kieu"]](pl, ab["nhanh"][nh])
-        # NGÂN SÁCH RIÊNG CỦA CAMP A/B (anh 08/11/2026 AB01 "tăng ngân sách, tăng camp"): nhánh khai ns → camp vào nhánh lên với ngân sách đó (cả hai nhánh cùng mức)
-        ns = (ab["nhanh"][nh] or {}).get("ns")
-        if ns: pl["campaign"].setdefault("source_payload", {})["daily_budget"] = int(ns)
-        return ab["ma"], nh, dang, (int(ns) if ns else None)
+        # CAMP A/B VẪN ĐI TỪ $1 (anh 08/11/2026: "AB test vẫn phải đi từ $1. Nếu khác thì phải xin phép" — AB01 từng khai ns $3 ở nhánh, 52 camp mới lên $3):
+        # máy KHÔNG đặt ngân sách theo nhánh nữa; ngân sách camp mới khác $1 bị cổng chặn (cong.kiem, luật camp mới $1)
+        return ab["ma"], nh, dang, None
     g = q(f"select a.ma || '|' || a.kieu || '|' || (a.nhanh->'doi')::text from etp.camp_ab c join etp.ab a on a.ma = c.ab where c.camp_id = {int(goc)} and c.nhanh = 'thu'") if goc else ""
     if not g: return None
     ma, kieu, doi = g.split("|", 2)
@@ -536,11 +535,13 @@ def main(a):
             else: kq["bo_qua"] = True
         if ly: raise ChanLuat(ly)
         kq["phim_dang_chay"] = n
-        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, lenh_anh=ep)
-        if ly: raise ChanLuat(ly)
         # CLONE SANG BỘ KHÁC THEO LỆNH ANH (--bo --ep) = bản sao ĐÚNG camp gốc: không chia vào A/B đang chạy (08/11/2026: dup 50 camp bộ 2 → bộ 4 bị AB01 gán nhánh
         # và đặt ngân sách $3 của nhánh; anh: "Sao dup sang bộ 4 lại set ngân sách $3 ngay") — giữ $1 + tham số Ad Set của gốc
         tn = None if ep else ab_lay(kq, pl, lich, goc, moi, cr=ad0["creative_id"])   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026)
+        # CỔNG đọc NGÂN SÁCH THẬT sẽ gửi (payload sau A/B), không phải số giả định — 08/11/2026 cổng nhận "1" trong khi payload mang $3 của nhánh AB01
+        ns_gui = thang or float((pl["campaign"].get("source_payload") or {}).get("daily_budget") or 1)
+        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, ns_gui, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, lenh_anh=ep, bac=bool(thang))
+        if ly: raise ChanLuat(ly)
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
         r = api("/api/v1/campaigns/facebook", pl)
@@ -555,10 +556,6 @@ def main(a):
         if mien_cham and ep: q(f"update etp.cau_hinh set gia_tri = gia_tri || to_jsonb({int(moi)}), luc = now() where khoa = 'cham_mien' and not gia_tri @> to_jsonb({int(moi)})")
         if thang and kq["ok"] and float(c.get("budget_daily") or 0) != thang:   # Ethopex không nhận ngân sách lúc tạo → đặt lại ngay (camp mới chưa học gì)
             api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(thang)}}}); time.sleep(8)
-            kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")
-        ns_ab = tn[3] if tn and len(tn) > 3 else None
-        if ns_ab and kq["ok"] and float(c.get("budget_daily") or 0) != ns_ab:   # ngân sách nhánh A/B: Ethopex không nhận lúc tạo → đặt lại ngay
-            api("/api/v1/campaigns/update", {"campaign": {"campaign_id": moi, "source_payload": {"daily_budget": int(ns_ab)}}}); time.sleep(8)
             kq["ns"] = api(f"/api/v1/campaigns/{moi}")["campaign"].get("budget_daily")
         if kq["ok"] and tn: ab_ghi(moi, tn)
         if kq["ok"] and not NGOAI:

@@ -56,8 +56,12 @@ export function useNoi<T>() {
     giu(); const toaDo = { x: e.clientX, y: e.clientY }; hang.current = (e.currentTarget as Element | null)?.closest?.('.dong, summary, tr') ?? null;
     hen.current = window.setTimeout(() => setV({ ...x, ...(CHUOT.x || CHUOT.y ? { x: CHUOT.x, y: CHUOT.y } : toaDo) }), TRE_MO);   // #1514: đang mở thẻ khác cũng chờ đủ trễ (trước đổi ngay)
   }, [giu]);
+  // BẤM LÀ MỞ NGAY (anh 08/11/2026 "bấm vào thì hiện hover lên để cả mobile cũng nhìn thấy"): điện thoại không có rê chuột — onClick gọi moNgay, không chờ TRE_MO
+  const moNgay = useCallback((x: T, e: React.MouseEvent) => {
+    giu(); hang.current = (e.currentTarget as Element | null)?.closest?.('.dong, summary, tr') ?? null; setV({ ...x, x: e.clientX, y: e.clientY });
+  }, [giu]);
   useEffect(() => { if (!v) return; const k = (e: KeyboardEvent) => { if (e.key === 'Escape') dong(); }; window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k); }, [v, dong]);
-  return { v, mo, giu, dongTre, dong };
+  return { v, mo, moNgay, giu, dongTre, dong };
 }
 export type Noi = { giu: () => void; dongTre: () => void; dong: () => void };
 export function KhungNoi({ x, y, rong, cao, noi, children, style }: { x: number; y: number; rong: number; cao: number; noi: Noi; children: React.ReactNode; style?: React.CSSProperties }) {

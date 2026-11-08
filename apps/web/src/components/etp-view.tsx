@@ -24,6 +24,7 @@ import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
 import { TabInsight } from '@/components/etp-insight';
+import { TabLogs } from '@/components/etp-logs';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
 import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 // CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
@@ -2413,72 +2414,11 @@ const locHop = (l: string) => locDs(l).join(',') || 'all';
 const ghepNang = (d: DuLieuEtp, x: PhanNang): DuLieuEtp => ({ ...d, nhe: false, pheu: x.pheu, diemCham: x.diemCham, thuVien: x.thuVien,
   cham: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { ...c, ...(x.chamCt[Number(k)] ?? {}) }])) });
 
-// LÊN BẬC (anh 30/10/2026 "theo dõi hiệu suất của mọi người trong team về thời điểm lên bậc" → "Show nhiều nhất data có thể"): MỘT bảng phẳng mọi mốc
-// tạo / nhân bản / tăng / giảm của người đang xem — nguồn đúng du.lsBac (nhà: nhật ký máy; người khác: sổ etp.bac_ngoai + lịch sử nạp từ bản sao lưu)
-// + số TRƯỚC (camp gốc khi nhân bản) và SAU mốc từ du.soNgay (ngày Ethopex = UTC): đổi bậc có đáng không, máy đề xuất trước bao lâu
-const XEM_CAMP_V = ['cay', 'bang', 'lich', 'bac'] as const;
+// KIỂU XEM tab Camp. 'logs' (anh 08/11/2026) thay 'bac' Lên bậc: nhật ký máy nhà gom theo khung — components/etp-logs.tsx
+const XEM_CAMP_V = ['cay', 'bang', 'lich', 'logs'] as const;
 type XemCamp = typeof XEM_CAMP_V[number];
 const laXemCamp = (v: string | null | undefined): v is XemCamp => (XEM_CAMP_V as readonly string[]).includes(v ?? '');
-type MocBac = { k: string; c: number; luc: string; viec: string; truoc: number | null; sau: number | null; luat: string; ai: string | null; goc: number | null;
-  d0: string; qua: SoTien; tronTruoc: SoTien; sau1: SoTien; sau3: SoTien; may: { ten: string; gio: number | null } | null; uoc: boolean; doan: boolean; phim: string | null };
-const ghiBac = (t: string) => luatThuong(t).replace(/^(số (lúc đổi|camp gốc #\d+ lúc nhân):\s*)?(hôm nay [^·]*·\s*)?(hôm qua [^·]*·\s*)?(cả chặng[^·]*)?(·\s*)?/, '').replace(/(^|·\s*)máy (đề xuất từ [^·]*|chưa đề xuất)/, '').replace(/^\s*·\s*|\s*·\s*$/g, '').trim();
 const ngayCong = (d: string, n: number) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10);
-function LenBac({ du, hep }: { du: DuLieuEtp; hep: boolean }) {
-  const [kieu, setKieu] = useState<string>('all');
-  const ds = useMemo<MocBac[]>(() => {
-    const so = new Map<number, Map<string, SoTien>>();
-    for (const x of du.soNgay) { let m = so.get(x.c); if (!m) so.set(x.c, (m = new Map())); m.set(x.d, { chi: x.chi, thu: x.thu }); }
-    const cong = (c: number | null, tu: string, den: string) => { const m = c == null ? null : so.get(c); let chi = 0, thu = 0;
-      if (m) for (const [d, v] of m) if (d >= tu && d <= den) { chi += v.chi; thu += v.thu; } return { chi, thu }; };
-    const campOf = new Map(du.camps.map((c) => [c.camp_id, c]));
-    return Object.entries(du.lsBac).flatMap(([cs, ls]) => ls.map((x, i) => {
-      const c = Number(cs), d0 = new Date(Date.parse(x.luc)).toISOString().slice(0, 10);
-      const goc = x.viec === 'nhan_ban' ? Number(/#(\d{4,})/.exec(x.luat ?? '')?.[1]) || campOf.get(c)?.goc || null : null;
-      const nguon = goc ?? c, m = /máy đề xuất từ ([^(]+)\(người làm sau ([\d.]+) giờ\)/.exec(x.luat ?? '');
-      return { k: `${c}-${i}`, c, luc: x.luc, viec: x.viec, truoc: x.truoc == null ? null : Number(x.truoc), sau: x.sau == null ? null : Number(x.sau), luat: x.luat ?? '', ai: x.ai, goc, d0,
-        qua: cong(nguon, ngayCong(d0, -1), ngayCong(d0, -1)), tronTruoc: cong(nguon, '2000-01-01', ngayCong(d0, -1)),
-        sau1: cong(c, ngayCong(d0, 1), ngayCong(d0, 1)), sau3: cong(c, ngayCong(d0, 1), ngayCong(d0, 3)),
-        may: m ? { ten: m[1]!.trim(), gio: Number(m[2]) } : /máy chưa đề xuất/.test(x.luat ?? '') ? { ten: 'chưa', gio: null } : null,
-        uoc: /bản sao lưu|không lưu/.test(x.luat ?? ''), doan: /gốc đoán/.test(x.luat ?? ''), phim: campOf.get(c)?.phim ?? null };
-    })).sort((a, b) => b.luc.localeCompare(a.luc));
-  }, [du]);
-  const dem = ds.reduce<Record<string, number>>((m, x) => ({ ...m, [x.viec]: (m[x.viec] ?? 0) + 1 }), {});
-  const loc = ds.filter((x) => kieu === 'all' || x.viec === kieu);
-  // tổng SAU mốc theo loại: lên bậc / nhân bản có ra lãi không (chỉ mốc đã có ≥ 1 ngày khép sau đó)
-  const sauLoai = (v: string) => { const xs = ds.filter((x) => x.viec === v && x.sau3.chi > 0); return { n: xs.length, s: xs.reduce((a, x) => ({ chi: a.chi + x.sau3.chi, thu: a.thu + x.sau3.thu }), { chi: 0, thu: 0 }), lai: xs.filter((x) => x.sau3.thu > x.sau3.chi).length }; };
-  const st = (['tang', 'nhan_ban', 'giam'] as const).map((v) => ({ v, ...sauLoai(v) }));
-  const mayTruoc = ds.filter((x) => x.may && x.may.gio != null), mayChua = ds.filter((x) => x.may?.ten === 'chưa');
-  const s3 = (x: MocBac) => (x.sau3.chi ? <Roi s={x.sau3} /> : <span style={{ color: 'var(--fg-3, #777)' }} title="chưa có ngày khép sau mốc">—</span>);
-  const cot: DataColumn<MocBac>[] = [
-    { key: 'luc', header: 'Giờ (VN)', align: 'left', width: 118, cell: (x) => <span title={x.uoc ? 'giờ ước — xem cột Ghi chú' : undefined}>{x.uoc ? '≈ ' : ''}{gioVn(x.luc)}</span>, sortValue: (x) => x.luc },
-    { key: 'camp', header: 'Camp', align: 'left', width: 220, cell: (x) => <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.phim ?? ''}><b>#{x.c}</b> <span style={{ color: 'var(--fg-2)' }}>{x.phim ?? ''}</span></span>, sortValue: (x) => x.c },
-    { key: 'viec', header: 'Việc', align: 'left', width: 104, cell: (x) => { const [t, m] = VIEC_BAC[x.viec] ?? [x.viec, '#94a3b8']; return <b style={{ color: m }}>{t}{x.goc ? <span style={{ fontWeight: 400, color: 'var(--fg-3, #777)' }} title={x.doan ? 'gốc đoán theo nhóm tên' : 'gốc ghi trong tên camp'}> ← #{x.goc}{x.doan ? '?' : ''}</span> : null}</b>; }, sortValue: (x) => x.viec },
-    { key: 'ns', header: 'Ngân sách', width: 92, cell: (x) => <span style={{ fontVariantNumeric: 'tabular-nums' }}>{x.truoc != null ? `$${x.truoc} → ` : ''}{x.sau != null ? `$${x.sau}` : '—'}</span>, sortValue: (x) => x.sau },
-    { key: 'qua', header: 'ROI hôm trước', title: 'ngày Ethopex ngay trước mốc — của camp gốc khi nhân bản', width: 82, cell: (x) => (x.qua.chi ? <Roi s={x.qua} /> : '—'), sortValue: (x) => (x.qua.chi ? roiOf(x.qua) : null) },
-    { key: 'tron', header: 'ROI trước mốc', title: 'cả chặng tới hết ngày trước mốc (camp gốc khi nhân bản) · chi', width: 108, cell: (x) => (x.tronTruoc.chi ? <><Roi s={x.tronTruoc} /> <span style={{ color: 'var(--fg-3, #777)', fontSize: 11 }}>${x.tronTruoc.chi.toFixed(0)}</span></> : '—'), sortValue: (x) => (x.tronTruoc.chi ? roiOf(x.tronTruoc) : null) },
-    { key: 's1', header: 'Sau 1 ngày', title: 'ROI ngày khép ngay sau mốc (camp này)', width: 78, cell: (x) => (x.sau1.chi ? <Roi s={x.sau1} /> : '—'), sortValue: (x) => (x.sau1.chi ? roiOf(x.sau1) : null) },
-    { key: 's3', header: 'Sau 3 ngày', title: 'ROI 3 ngày khép sau mốc (camp này) · lãi', width: 112, cell: (x) => <>{s3(x)}{x.sau3.chi ? <span style={{ color: 'var(--fg-3, #777)', fontSize: 11 }}> {x.sau3.thu - x.sau3.chi >= 0 ? '+' : ''}${(x.sau3.thu - x.sau3.chi).toFixed(1)}</span> : null}</>,
-      sortValue: (x) => (x.sau3.chi ? roiOf(x.sau3) : null), total: (rs) => { const t = rs.reduce((a, x) => ({ chi: a.chi + x.sau3.chi, thu: a.thu + x.sau3.thu }), { chi: 0, thu: 0 }); return t.chi ? <Roi s={t} /> : '—'; } },
-    ...(du.nguoi.ngoai ? [{ key: 'may', header: 'Máy đề xuất', align: 'left' as const, width: 132, title: 'máy luật nhà đã đề xuất đúng việc này trước khi người làm? (chỉ có từ 30/10 — trước đó máy chưa chấm camp người khác)',
-      cell: (x: MocBac) => (!x.may ? <span style={{ color: 'var(--fg-3, #777)' }}>—</span> : x.may.gio == null ? <span style={{ color: '#facc15' }}>chưa đề xuất</span> : <span style={{ color: '#4ade80' }} title={`máy đề xuất từ ${x.may.ten}`}>trước {x.may.gio} giờ</span>),
-      sortValue: (x: MocBac) => x.may?.gio ?? null }] : []),
-    // ghi chú = phần CHƯA có ở cột khác (khoảng giờ ước, gốc đoán, lý do máy / lệnh) — số ROI đã nằm ở cột riêng thì bỏ khỏi chữ
-    { key: 'ghi', header: 'Ghi chú', align: 'left', cell: (x) => { const t = ghiBac(x.luat); return <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--fg-2)' }} title={luatThuong(x.luat)}>{t || '—'}</span>; } },
-  ];
-  return (
-    <div>
-      <StatsStrip minColWidth={hep ? 140 : 170} cards={[
-        { key: 'n', label: 'Mốc 30 ngày', value: ds.length, sub: `${dem.tang ?? 0} tăng · ${dem.giam ?? 0} giảm · ${dem.nhan_ban ?? 0} nhân bản · ${dem.tao_camp ?? 0} tạo` },
-        ...st.map((x) => ({ key: x.v, label: `Sau 3 ngày · ${VIEC_BAC[x.v]?.[0] ?? x.v}`, value: x.n ? <Roi s={x.s} /> : '—', sub: x.n ? `${x.lai}/${x.n} mốc lãi · chi $${x.s.chi.toFixed(0)}` : 'chưa có ngày khép sau mốc', onClick: () => setKieu(x.v), active: kieu === x.v, color: VIEC_BAC[x.v]?.[1] })),
-        ...(du.nguoi.ngoai ? [{ key: 'may', label: 'Máy đề xuất trước', value: `${mayTruoc.length}/${mayTruoc.length + mayChua.length}`, sub: mayTruoc.length ? `TB trước ${(mayTruoc.reduce((a, x) => a + (x.may!.gio ?? 0), 0) / mayTruoc.length).toFixed(1)} giờ` : 'máy chấm camp người khác từ 30/10' }] : []),
-      ]} />
-      <ListToolbar>
-        <FilterChips value={kieu} onChange={setKieu} counts={{ all: ds.length, ...dem }} options={[{ value: 'all', label: 'Tất cả' }, ...Object.keys(VIEC_BAC).filter((k) => dem[k]).map((k) => ({ value: k, label: VIEC_BAC[k]![0] }))]} />
-      </ListToolbar>
-      {!loc.length ? <EmptyState compact icon="📶" title="Chưa có mốc lên bậc nào trong 30 ngày" /> : <DataTable rows={loc} columns={cot} getRowKey={(x) => x.k} persistKey="etp-len-bac" minWidth={1100} fixedLayout />}
-    </div>
-  );
-}
 // QUYỀN (etp.quyen, anh 31/10/2026): vai từ máy chủ (lib/etp-quyen.ts) — dữ liệu đã cắt trên máy chủ, đây chỉ bỏ tab / kiểu xem không còn dữ liệu.
 // sua = nguoi_id mà người xem sửa được camp (admin etp, vd Sơn #115); null = không sửa
 // NÚT LÀM MỚI (anh 01/11/2026 #1497): chạy ngay một lượt đồng bộ Ethopex → kho (lamMoiEtp), đọc lại trang mỗi 8 giây tới khi kho có lượt mới hơn lượt lúc bấm (tối đa 10 phút)
@@ -2571,7 +2511,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const doi = (x: Partial<typeof hienTai>, lam: () => void) => { urlTu({ ...hienTai, ...x }); startTransition(lam); };
   // BẤM TAB CHÍNH = VÀO KIỂU XEM ĐẦU TIÊN (anh 28/10/2026 "nếu bấm ngay vẫn vào cái đầu tiên như bình thường"); rê chuột = menu con chọn thẳng kiểu xem
   const doiTab = (t: Tab) => doi({ tab: t, ...(t === 'camp' ? { xemCamp: 'cay' } : t === 'creative' ? { xemCr: 'hq' } : {}) }, () => { setTab(t); if (t === 'camp') setXemCamp('cay'); if (t === 'creative') setXemCr('hq'); });
-  const XEM_CAMP = ([['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN'], ['bac', '📶 Lên bậc', 'mọi mốc tạo / nhân bản / tăng / giảm 30 ngày + ROI trước và sau mốc, máy đề xuất trước bao lâu']] as const).filter(([v]) => !laNguoi || v !== 'lich');   // Lịch giờ = lịch nhà
+  const XEM_CAMP = ([['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN'], ['logs', '📜 Logs', 'nhật ký máy nhà gom theo 15 phút … 1 ngày: camp mở / tắt / tăng / giảm, creative dựng / chấm / duyệt, dòng sản xuất, chi thu — bấm ô số xem từng việc']] as const).filter(([v]) => !laNguoi || (v !== 'lich' && v !== 'logs'));   // Lịch giờ = lịch nhà · Logs = nhật ký máy nhà
   const XEM_CR = ([['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm'], ['dc', 'Điểm chạm', 'hook · nội dung · voice · chữ · CTA — giá trị nào kéo CTR / S CVR / ROI']] as const).filter(([v]) => !laNguoi || v === 'hq');   // quét / sx / điểm chạm = dữ liệu nhà
   const menuCamp = XEM_CAMP.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'camp' && xemCamp === v, href: () => urlCua({ ...hienTai, tab: 'camp', xemCamp: v }).href, onPick: () => doi({ tab: 'camp', xemCamp: v }, () => { setTab('camp'); setXemCamp(v); }) }));
   const menuCr = XEM_CR.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'creative' && xemCr === v, href: () => urlCua({ ...hienTai, tab: 'creative', xemCr: v }).href, onPick: () => doi({ tab: 'creative', xemCr: v }, () => { setTab('creative'); setXemCr(v); }) }));
@@ -2842,7 +2782,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   // Điện thoại giữ như cũ (dòng gọn cuộn ngang, ô TK trong bảng Lọc)
   const coKy = tab !== 'luat' && tab !== 'tn', lenDinh = gonHero && !gon;
   // hàng lọc camp hiện ở mọi trang TAB_LOC_CAMP (Camp: trừ Lịch giờ / Lên bậc — hai kiểu xem đó không theo tập camp) · ô TK là một ô của hàng lọc (urlCua bỏ ?b= ngoài các trang này)
-  const hienLoc = TAB_LOC_CAMP.includes(tab) && !(tab === 'camp' && (xemCamp === 'lich' || xemCamp === 'bac')), coBo = hienLoc && locCoTab(tab, 'bo');
+  const hienLoc = TAB_LOC_CAMP.includes(tab) && !(tab === 'camp' && (xemCamp === 'lich' || xemCamp === 'logs')), coBo = hienLoc && locCoTab(tab, 'bo');
   // các ô lọc phụ theo thứ tự cố định, chỉ ô trang này áp (LOC_TAB)
   const oLoc = () => <>{([['lai', laiSel], ['tuoi', tuoiSel], ['luat', luatSel], ['dang', dangSel], ['ro', roSel], ['ab', abSel]] as const).map(([k, f]) => (locCoTab(tab, k) ? <Fragment key={k}>{f()}</Fragment> : null))}</>;
   const kySel = () => <ChonKhoang tu={khK.tu} den={khK.den} ma={kh.includes('~') ? null : kh} homNay={du.nay} mocThem={[{ ma: 'tat_ca', nhan: 'All time' }]} title="kỳ số liệu (ngày Ethopex 07:00–07:00 VN)" onDoi={(v) => setKh('ma' in v ? v.ma : `${v.tu}~${v.den}`)} />;
@@ -2965,8 +2905,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} du={du} anh={anh} />
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
-      ) : tab === 'camp' && xemCamp === 'bac' ? (
-        <LenBac du={du} hep={hep} />
+      ) : tab === 'camp' && xemCamp === 'logs' ? (
+        <TabLogs />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
         <CayCamp camps={camps} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
       ) : tab === 'camp' ? (

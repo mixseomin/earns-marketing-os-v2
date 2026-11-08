@@ -29,6 +29,11 @@ G = os.path.dirname(os.path.abspath(__file__)); XE = os.path.join(G, "..", "xuon
 _s = importlib.util.spec_from_file_location("tho", os.path.join(G, "tho.py")); THO = importlib.util.module_from_spec(_s); _s.loader.exec_module(THO)   # TRAN_SQL: một trần cắt cho thợ + Mạnh
 MA_BUOC = {"poster": [f"{G}/soat_18_ai.py"], "soat": [f"{XE}/soat_doan.py"], "cat": [f"{G}/dong_phim.py", f"{G}/tho.py"],
            "creative": [f"{G}/dong_phim.py", f"{XE}/len-creative.py", f"{G}/cong.py"], "camp": [f"{G}/dong_phim.py", f"{G}/cong.py", f"{XE}/nhan-ban.py"]}
+HA_TANG = r"ssh:|mux_client|Session open refused|Operation timed out|Connection (closed|reset|refused|timed out)|Broken pipe|kex_exchange|im [0-9]+ phút \(máy chạy dòng"
+# DÒNG LỖI MỤC 6 CÒN TỰ THỬ LẠI (hạ tầng < 10 lần · khác < 6 lần, trong 3 ngày) — mục 3 dùng để tách lỗi "máy tự lo" (gom tin giờ) khỏi lỗi "cần người" (báo ngay)
+SQL_CON_THU = f"""(d.tao_luc > now() - interval '3 days' and exists (select 1 from etp.dong_buoc b where b.dong_id = d.id and b.trang_thai = 'loi'
+                   and case when coalesce(b.ghi, '') ~ '{HA_TANG}' then b.lan < 10 else b.lan < 6 end))"""
+GOM_PHUT = 60   # tin gom Telegram: tối đa MỘT tin / 60 phút (anh 09/11/2026 "Đang có nhiều tin nhắn tele quá": 200 tin / 22 giờ)
 def bam(tep):
     h = hashlib.md5()
     for f in tep:
@@ -69,8 +74,7 @@ def main():
                     where dong_id = {dong} and buoc = '{buoc}' and trang_thai = 'dang';
                     update etp.dong_phim set trang_thai = 'loi', ly_do = $G${buoc}: Mạnh — {ly}$G$, xong_luc = now(){', bao_luc = now()' if tu_fix else ''} where id = {dong} and trang_thai = 'chay'""")
             lam.append(f"dòng #{dong} · {TEN.get(buoc, buoc)} {ly} → {'tự FIX lần ' + str(lan + 1) if tu_fix else 'đã FIX ' + str(lan - 1) + ' lần — Mạnh tự thử lại (hạ tầng 10 phút · khác 2 giờ)'}")
-            bao(f"🚧 <b>Mạnh</b> · phim <b>{ten or cid}</b> (#{cid}) · bước <b>{TEN.get(buoc, buoc)}</b> {ly}\n"
-                + ("→ đã huỷ tiến trình, tự chạy lại bước (FIX tự động)" if tu_fix else "→ đã huỷ; FIX nhanh đã dùng — Mạnh tự thử lại (hạ tầng 10 phút · khác 2 giờ), không để dòng chết"))
+            # KHÔNG báo từng lượt (09/11/2026: 91648 lặp 20 tin 🚧 + 11 tin ❌ / ngày) — máy tự lo thì vào tin gom giờ (mục 3), hết lượt thử thì mục 3 báo ngay "cần người"
     def muc2():
         # 2. máy chạy dòng im
         for l in hang(f"""select m.may, extract(epoch from now() - m.nhip)::int, coalesce(extract(epoch from now() - m.bao_luc)::int, 999999) from etp.dong_may m
@@ -81,22 +85,34 @@ def main():
             lam.append(f"máy chạy dòng {may} im {int(im) // 60} phút")
             bao(f"🚨 <b>Mạnh</b> · máy chạy dòng phim <b>{may}</b> im {int(im) // 60} phút mà còn dòng đang chạy — máy tự bật lại; bước đang dở sẽ bị huỷ + FIX khi quá {IM_BUOC // 60} phút")
     def muc3():
-        # 3. dòng vừa kết thúc
-        # GOM (anh 07/11/2026 "Gom"): lỗi kỹ thuật báo ngay từng dòng; xong + dừng đúng luật (policy, cổng chấm, hết khung…) gom MỘT tin tóm tắt
-        # khi đủ GOM_SO dòng hoặc dòng cũ nhất chờ quá GOM_PHUT phút — Telegram không còn mỗi dòng một tin.
-        GOM_SO, GOM_PHUT = 10, 60
-        cho = hang("""select id, content_id, coalesce(ten, ''), trang_thai, coalesce(ly_do, ''), coalesce(camp_id::text, ''), extract(epoch from now() - xong_luc)::int from etp.dong_phim
-                      where trang_thai in ('xong', 'dung', 'loi') and bao_luc is null and xong_luc > now() - interval '1 day' order by xong_luc""")
-        dau = {"xong": "✅", "dung": "⛔", "loi": "❌ lỗi kỹ thuật"}
-        for dong, cid, ten, tt, ly, camp, _ in [l for l in cho if l[3] == "loi"]:
-            ghi(f"update etp.dong_phim set bao_luc = now() where id = {dong}"); lam.append(f"dòng #{dong} loi")
-            bao(f"{dau['loi']} · phim <b>{ten or cid}</b> (#{cid}) — Mạnh tự thử lại (hạ tầng 10 phút, khác 2 giờ)\n{ly[:600]}")
-        gom = [l for l in cho if l[3] != "loi"]
-        if gom and (len(gom) >= GOM_SO or max(int(l[6] or 0) for l in gom) >= GOM_PHUT * 60):
-            ghi(f"update etp.dong_phim set bao_luc = now() where id in ({','.join(l[0] for l in gom)})"); lam.append(f"gom {len(gom)} dòng")
-            x = sum(1 for l in gom if l[3] == "xong")
-            bao(f"📋 <b>Mạnh</b> · {len(gom)} dòng phim kết thúc: ✅ {x} lên camp · ⛔ {len(gom) - x} dừng đúng luật\n"
-                + "\n".join(f"{dau[tt]} {ten or cid}{f' · camp #{camp}' if camp else ''} — {ly[:90]}" for _, cid, ten, tt, ly, camp, _ in gom)[:3800])
+        # 3. dòng vừa kết thúc → Telegram. GOM (anh 07/11/2026 "Gom"; 09/11/2026 "Đang có nhiều tin nhắn tele quá" — 200 tin / 22 giờ: tin gom bắn mỗi khi đủ 10 dòng,
+        #    🚧 / ❌ mỗi lượt máy tự thử lại cùng một phim). Nay: BÁO NGAY chỉ lỗi CẦN NGƯỜI (mục 6 hết lượt thử lại); còn lại — xong, dừng đúng luật, lỗi máy còn tự
+        #    thử lại, Mạnh huỷ + tự chạy lại — gom MỘT tin tối đa mỗi GOM_PHUT phút, mỗi phim một dòng. Dòng tạm gác (anh tự gác dạng) không báo.
+        if not THU: q("update etp.dong_phim set bao_luc = now() where bao_luc is null and trang_thai in ('dung', 'huy') and coalesce(ly_do, '') like 'tạm gác dòng %'")
+        cho = hang(f"""select d.id, d.content_id, coalesce(d.ten, ''), d.trang_thai, coalesce(d.ly_do, ''), coalesce(d.camp_id::text, ''),
+                              case when d.trang_thai = 'loi' and not {SQL_CON_THU} then 't' else 'f' end
+                       from etp.dong_phim d where d.trang_thai in ('xong', 'dung', 'loi') and d.bao_luc is null and d.xong_luc > now() - interval '1 day' order by d.xong_luc""")
+        for dong, cid, ten, tt, ly, camp, chet in [l for l in cho if l[6] == "t"]:
+            ghi(f"update etp.dong_phim set bao_luc = now() where id = {dong}"); lam.append(f"dòng #{dong} lỗi cần người")
+            bao(f"❌ <b>Mạnh</b> · phim <b>{ten or cid}</b> (#{cid}) — lỗi kỹ thuật, máy đã hết lượt tự thử lại, cần người xem\n{ly[:600]}")
+        gom = [l for l in cho if l[6] != "t"]
+        tu = q("select coalesce((select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'manh_gom_luc'), (now() - interval '1 day')::text)")
+        if q(f"select '{tu}'::timestamptz < now() - interval '{GOM_PHUT} minutes'") != "t": return
+        huy = hang(f"""select p.content_id, coalesce(p.ten, ''), count(*) from etp.dong_buoc b join etp.dong_phim p on p.id = b.dong_id
+                       where b.ghi like 'Mạnh:%' and b.ket_thuc > '{tu}'::timestamptz group by 1, 2 order by 3 desc""")
+        if not gom and not huy: return
+        ghi(f"""insert into etp.cau_hinh (khoa, gia_tri) values ('manh_gom_luc', to_jsonb(now()::text)) on conflict (khoa) do update set gia_tri = excluded.gia_tri""")
+        if gom: ghi(f"update etp.dong_phim set bao_luc = now() where id in ({','.join(l[0] for l in gom)})")
+        lam.append(f"gom {len(gom)} dòng · {len(huy)} phim Mạnh huỷ")
+        dau = {"xong": "✅", "dung": "⛔", "loi": "🔁"}
+        n = {k: sum(1 for l in gom if l[3] == k) for k in dau}
+        phim = {}   # mỗi phim một dòng (phim có nhiều dòng cùng kết quả gộp ×N)
+        for _, cid, ten, tt, ly, camp, _c in gom:
+            k = (cid, tt, ly.split(" — ")[0][:90]); x = phim.setdefault(k, [ten or cid, 0, camp]); x[1] += 1
+        dong = [f"{dau[tt]} {ten}{f' ×{so}' if so > 1 else ''}{f' · camp #{camp}' if camp else ''} — {ly}" for (_, tt, ly), (ten, so, camp) in phim.items()]
+        if huy: dong.append("🚧 Mạnh huỷ bước treo + tự chạy lại: " + " · ".join(f"{ten or cid}{f' ×{so}' if int(so) > 1 else ''}" for cid, ten, so in huy[:10]))
+        bao(f"📋 <b>Mạnh</b> · {GOM_PHUT} phút qua: ✅ {n['xong']} lên camp · ⛔ {n['dung']} dừng đúng luật · 🔁 {n['loi']} lỗi máy tự thử lại"
+            + (f" · 🚧 {sum(int(h[2]) for h in huy)} bước treo" if huy else "") + "\n" + "\n".join(dong)[:3800])
     def muc4():
         # 4. việc cắt lô dòng phim kẹt
         # điều kiện chung với tho.py (07/11/2026): nhịp sống im 10 phút = thợ chết. Trước: đoán theo đồng hồ (75 phút cố định → xếp lại cả việc đang cắt thật)
@@ -129,7 +145,6 @@ def main():
         #    dòng LỖI KỸ THUẬT (không phải dừng vì luật) → thử lại bước lỗi, trong 3 ngày
         #    LỖI HẠ TẦNG (ssh / kênh mux tới box3, máy chạy dòng im vì nạp lại mã / khởi động lại) → 10 phút, tối đa 10 lần (05/11/2026: 14 dòng đứng
         #    'lỗi' 3 giờ sau một lần box3 từ chối ssh 22:04–22:08); lỗi khác giữ 2 giờ, tối đa 6 lần
-        HA_TANG = r"ssh:|mux_client|Session open refused|Operation timed out|Connection (closed|reset|refused|timed out)|Broken pipe|kex_exchange|im [0-9]+ phút \(máy chạy dòng"
         r = q(f"""update etp.dong_buoc b set fix = true from etp.dong_phim d where d.id = b.dong_id and d.trang_thai = 'loi' and b.trang_thai = 'loi' and not b.fix
                   and d.tao_luc > now() - interval '3 days'
                   and case when coalesce(b.ghi, '') ~ '{HA_TANG}' then b.lan < 10 and b.ket_thuc < now() - interval '10 minutes'

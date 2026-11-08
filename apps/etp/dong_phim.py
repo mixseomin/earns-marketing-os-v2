@@ -31,9 +31,9 @@ import cong as CG   # khoá trần camp / ngày + câu đếm camp hôm nay dùn
 LOAI = DG.DONG   # mã loại dòng phim → dạng creative (etp.creative.dang)
 # KIỂU TĨNH (anh 08/11/2026 "chọn cả 3 để xem hiệu suất"): mỗi loại một kiểu của tinh-ba-kieu.py, cùng khuôn AT — tự tải tập, 3 bản, 3 camp $1
 TINH = {x["dong"]: (("tinh-ba-kieu.py", ["--kieu", x["kieu"]]) if x.get("kieu") else ("anh-tinh.py", [])) for x in DG.DS if x.get("tinh")}
-# POSTER ĐỘNG CHỈ MẪU BAN ĐẦU (anh 08/11/2026 "Trước mắt vẫn dùng mẫu PO ban đầu"): máy dòng phim ép --mau goc → 3 bản PO.1 (mỗi bản một giọng), không theo vòng xoay
-# MAU_PO của tinh-ba-kieu.py (PO.2 / .3 / .4 / .5 chỉ dựng thử bằng tay). Đổi mẫu cho máy = sửa đúng dòng này.
-MAU_PO_MAY = ["goc"]
+# MẪU POSTER ĐỘNG MÁY DỰNG (anh 08/11/2026 "Trước mắt vẫn dùng mẫu PO ban đầu" → "Có mẫu PO5 mới trộn cùng PO"): máy dòng phim ép --mau theo danh sách này, xoay theo
+# bản (--ban 3): bản 1 PO.5 ảnh AI (~111₫/ảnh) · bản 2, 3 PO.1 gốc (mỗi bản một giọng). PO.2 / .3 / .4 không vào máy (chỉ dựng thử bằng tay). Đổi mẫu = sửa đúng dòng này.
+MAU_PO_MAY = ["ai", "goc", "goc"]
 if "PO" in TINH: TINH["PO"] = (TINH["PO"][0], [*TINH["PO"][1], "--mau", ",".join(MAU_PO_MAY)])   # mã dòng tĩnh → script dựng: có kiểu trong sổ = tinh-ba-kieu --kieu, không = anh-tinh (AT)
 BO_QUA = {"KT": {"cat", "soat"}, **{k: {"cat", "soat"} for k in DG.TINH}}   # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt · AT: anh-tinh.py tự tải tập + chọn khung — không qua bước cắt / soát đoạn
 HAN_RIENG = {("KT", "creative"): 4 * 3600, **{(k, "creative"): 60 * 60 for k in DG.TINH}, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu · AT ~10 phút/phim

@@ -160,6 +160,10 @@ def main():
     try:
         import mua_le as ML; kq["mua_le"] = ML.chay(q)
     except Exception as e: loi.append(f"mua_le: {e}")
+    # ── HẸN ĐO (apps/etp/hen_do.py, anh 09/11/2026 "đến ngày mày tự check rồi báo cho tao biết kq"): tới ngày → đo trên số thật → Telegram; ngày thị trường xấu → báo
+    try:
+        import hen_do as HD; kq["hen_do"] = HD.chay(q)
+    except Exception as e: loi.append(f"hen_do: {e}")
     # ── PHỐT META (anh 25/10/2026): ad bị Meta từ chối = một phốt gắn bộ tài khoản · tài khoản QC · Page → etp.phot + báo đỏ (Telegram qua etp.canh_bao)
     try:
         moi = q("""with bt as (select k bo, (v->>'page')::bigint page_id, v->>'ten' ten from xv_khoa_ngoai, jsonb_each(gia_tri) e(k, v) where ten = 'ethopex_bo_tk'),

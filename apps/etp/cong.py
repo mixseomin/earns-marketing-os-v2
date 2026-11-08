@@ -26,6 +26,22 @@ def _q(s):
 LY_AU_MY = "phim nhóm gốc '{}' — chỉ chạy phim Âu-Mỹ (anh 29/10/2026: dừng các phim ngoài Âu-Mỹ, chặn khi lên camp; nhóm chấm trên poster, etp.phim.nhom_goc)"
 LY_CAT = "phim #{0} đã cất ({1}) — thử đủ creative + đủ bộ mà chưa camp nào lãi; tự mở lại khi camp nhà / team lãi, mở tay: python3 apps/etp/cat_phim.py --mo {0}"
 
+# NGÀY THỊ TRƯỜNG XẤU (anh 09/11/2026 "Như hnay là ngày cả đội giảm sâu. Plan nên là gì" → "Làm đi"): ngày đã khép mà ROI CẢ ĐỘI (nhà + đội) thấp hơn
+# trung bình 7 ngày khép trước đó từ NGAY_XAU_DIEM điểm trở lên. Luật L3 / L4 / G10 (luat-ethopex.py) không tính ngày này vào chuỗi lỗ của camp ≥ $10 và ★ ROAS
+# (tầng camp chín — 08/11: $1 −47% kéo cả ngày, $10–20 vẫn +14%, ROAS +21%); camp nhỏ hơn vẫn bị T1 / T8 / L3 như thường. hen_do.py báo Telegram khi có ngày xấu.
+NGAY_XAU_DIEM, NGAY_XAU_NS = 20, 10
+def ngay_xau(q=None, so_ngay=21):
+    """{ngày ISO: (ROI ngày, ROI nền 7 ngày trước)} — chỉ ngày đã khép (UTC). q mặc định _q của tệp này."""
+    q = q or _q
+    ds = [l.split("|") for l in q(f"""select ngay, sum(chi), sum(thu) from (select ngay, chi, thu from etp.so_ngay union all select ngay, chi, thu from etp.so_ngay_ngoai) s
+        where ngay >= (now() at time zone 'utc')::date - {int(so_ngay)} and ngay < (now() at time zone 'utc')::date group by 1 order by 1""").splitlines() if l.count("|") == 2]
+    roi = [(d, (float(t) - float(c)) / float(c) * 100) for d, c, t in ds if float(c or 0) > 0]
+    ra = {}
+    for i in range(7, len(roi)):
+        nen = sum(r for _, r in roi[i - 7:i]) / 7
+        if roi[i][1] <= nen - NGAY_XAU_DIEM: ra[roi[i][0]] = (round(roi[i][1]), round(nen))
+    return ra
+
 def phim_chan_len():
     """{content_id: lý do} — phim cổng CHẮC CHẮN chặn tạo camp / nhân bản, không phụ thuộc creative hay ngân sách (đã chấm nhóm ngoài Âu-Mỹ · đã cất).
     Máy chọn việc (thay-the.py) lọc trước bằng hàm này: 31/10/2026 máy thay camp thử 450 lần thì 445 lần bị chặn Âu-Mỹ — mỗi lần một lượt gọi Ethopex + một dòng nhật ký.

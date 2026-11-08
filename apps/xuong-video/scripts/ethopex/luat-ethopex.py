@@ -639,6 +639,22 @@ try:
 except Exception as e:
     loi_may.append((0, f"luật D24 lỗi: {str(e)[:80]}"))
 _D24 = {x[0]: x for x in tat_d24}
+# NGÀY THỊ TRƯỜNG XẤU (anh 09/11/2026, apps/etp/cong.py ngay_xau): camp ngân sách ≥ $10 hoặc ★ ROAS → bỏ các ngày đó khỏi số ngày (_ng) trước khi L3 / L4 / G10 xét;
+# L3 lấy 3 ngày khép gần nhất KHÔNG xấu thay vì 3 ngày lịch. Camp nhỏ hơn giữ nguyên.
+NGAY_XAU, _CHIN = set(), set()
+try:
+    import importlib.util as _iux
+    _sx = _iux.spec_from_file_location("etp_cong_x", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp", "cong.py")); _CX = _iux.module_from_spec(_sx); _sx.loader.exec_module(_CX)
+    NGAY_XAU = {dt.date.fromisoformat(k) for k in _CX.ngay_xau(q)}
+    _roas_x = {int(x) for x in q("select camp_id from etp.camp where la_roas").split() if x.isdigit()}
+    _CHIN = {c for c in _ng if float((thang.get(c) or thang.get(str(c)) or {}).get("budget") or 0) >= _CX.NGAY_XAU_NS or c in _roas_x}
+    for c in _CHIN: _ng[c][1] = [x for x in _ng[c][1] if x[0] not in NGAY_XAU]
+except Exception as e:
+    loi_may.append((0, f"ngày thị trường xấu lỗi: {str(e)[:80]}"))
+def _d3_cua(c):
+    """3 ngày khép gần nhất cho L3: camp chín bỏ qua ngày xấu (lùi thêm), camp khác đúng D−1..D−3"""
+    if c not in _CHIN or not NGAY_XAU: return _d3
+    return [x for x in (dt.date.fromisoformat(d(i)) for i in range(1, 10)) if x not in NGAY_XAU][:3]
 # L3 — LỖ 3 NGÀY ĐÃ KHÉP LIỀN → TẮT (anh 29/10/2026: "theo hướng dẫn Ethopex không có điều kiện giảm; ROI âm liên tục thì tắt camp luôn" → "làm 1+2"):
 # 3 ngày đã khép gần nhất (D−1..D−3) NGÀY NÀO cũng chi ≥ L3_CHI và thu < chi → tắt hẳn như T2 / D24. Đo 29/10 (21 ngày): sau 3 ngày lỗ liền, 2 ngày kế
 # cộng lãi $0 (hoà) → tắt không mất gì, giải phóng ngân sách; mốc 2 ngày KHÔNG dùng vì 25% camp lỗ 2 ngày liền hồi lại lãi. Camp ROAS không áp (_bo_roas).
@@ -668,9 +684,10 @@ try:
     for _c, (_ten, _ds) in _ng.items():
         if _c not in _dc or _c in _D24: continue
         _m = {x[0]: x for x in _ds}
-        if not all(k in _m and _m[k][1] >= l3_chi(_m[k][3]) and _m[k][2] < _m[k][1] for k in _d3): continue
-        _ca, _ta = sum(_m[k][1] for k in _d3), sum(_m[k][2] for k in _d3)
-        if not duoi(_c, _m[_d3[0]][3], 0, _ten, "L3"): continue
+        _d3c = _d3_cua(_c)
+        if not all(k in _m and _m[k][1] >= l3_chi(_m[k][3]) and _m[k][2] < _m[k][1] for k in _d3c): continue
+        _ca, _ta = sum(_m[k][1] for k in _d3c), sum(_m[k][2] for k in _d3c)
+        if not duoi(_c, _m[_d3c[0]][3], 0, _ten, "L3"): continue
         tat_l3.append((_c, f"#{_ten[:70]} · 3 ngày đã khép lỗ liền: chi ${_ca:.2f} · lãi ${_ta - _ca:+.2f} · ROI {(_ta - _ca) / _ca * 100:+.0f}% → TẮT (luật L3: lỗ 3 ngày đã khép liền, mỗi ngày chi ≥ min(${L3_CHI:g}, {L3_PHAN:.0%} ngân sách))"))
     tat_l3.sort(key=lambda x: float(x[1].split("lãi $")[1].split(" ")[0]))
 except Exception as e:
@@ -1174,7 +1191,7 @@ if JSON:
         if _p.returncode: loi_may.append((0, f"ghi xét luật lỗi: {_p.stderr.strip()[:80]}"))
     except Exception as e:
         loi_may.append((0, f"xét luật lỗi: {str(e)[:80]}"))
-    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat1": m(tat1), "tat_t8": m(tat_t8), "t1_cho": m(t1_cho), "giu_cuoi": m(giu_cuoi), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7), "hoi_g10": m(hoi_g10)}
+    ra_ = {"luc": f"{vn:%H:%M %d/%m}", "ngay_xau": sorted(x.isoformat() for x in NGAY_XAU), "tat_d24": m(tat_d24), "tat_l3": m(tat_l3), "tat_l4": m(tat_l4), "tat_pl": m(tat_pl), "tat": m(tat_l), "tat7": m(tat7), "tat2": m(tat2), "tat1": m(tat1), "tat_t8": m(tat_t8), "t1_cho": m(t1_cho), "giu_cuoi": m(giu_cuoi), "tat_roas": m(tat_roas), "tat_r0": m(tat_r0), "g10": m(g10), "h2": m(h2), "tat_g10": m(tat_g10), "g10_theo": m(g10_theo), "cho_duoi": m(cho_duoi), "tu_choi": m(tu_choi), "loi_may": m(loi_may), "dau_phien": m(dau_phien), "tang": m(dat), "giam": m(giam), "ha": m(ha), "nb": m(nb), "thang_nb": m(thang_nb), "thang_tat": m(thang_tat), "dung_dem": m(dung_dem), "moc30": m(moc30), "tang30": m(tang30), "dong": m(dong_l), "gan": m(theo), "gan_t7": m(gan_t7), "hoi_g10": m(hoi_g10)}
     # SỔ LUẬT CHUNG (apps/web/src/lib/etp-bang-luat.json): mọi danh sách máy luật xuất ra phải có mục ở sổ — thiếu là trang etp / bộ lọc / worker không biết luật đó (gốc vụ G10 01/11/2026)
     _thieu = sorted(k for k in ra_ if k != "luc" and k not in BANG_LUAT["khoa"])
     if _thieu: ra_["loi_may"] = ra_.get("loi_may", []) + [{"id": 0, "chu": f"luật chưa có trong sổ luật chung etp-bang-luat.json: {', '.join(_thieu)}"}]

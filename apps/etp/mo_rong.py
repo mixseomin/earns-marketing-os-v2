@@ -56,7 +56,7 @@ def tinh_bu(q):
       ok as (select content_id from m where thu >= chi and content_id not in (select content_id from etp.phim where thu_vong = 'cat')),
       t as (select c.content_id, count(*) filter (where k.viec = 'tat') tat, coalesce(sum(greatest(coalesce(nullif(regexp_replace(k.truoc, '[^0-9.]', '', 'g'), '')::numeric, 0) - coalesce(nullif(regexp_replace(k.sau, '[^0-9.]', '', 'g'), '')::numeric, 0), 0)) filter (where k.viec = 'giam'), 0) giam
             from etp.nhat_ky k join etp.camp c on c.camp_id = k.camp_id
-            where k.ok and k.viec in ('tat', 'giam') and k.luc > now() - interval '24 hours' and coalesce(k.ai, '') not like 'anh%' and not c.la_roas group by 1),
+            where k.ok and k.viec in ('tat', 'giam') and k.luc > now() - interval '24 hours' and coalesce(k.ai, '') not like 'anh%' and coalesce(k.luat, '') not like 'lệnh anh%' and not c.la_roas group by 1),
       n as (select content_id, count(*) tao from etp.camp where tao > now() - interval '24 hours' group by 1)
       select ok.content_id, coalesce(t.tat, 0) tat, round(coalesce(t.giam, 0))::int giam, coalesce(n.tao, 0) tao from ok join t using (content_id) left join n using (content_id)) x""") or "[]")
     bu = {}

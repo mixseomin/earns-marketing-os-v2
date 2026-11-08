@@ -40,7 +40,8 @@ def tham_chieu(P, thu):
 def ve_ai(P, bo, thu, tho):
     """box3: anh-po-ai.mts → ảnh AI không chữ"""
     xa = f"/tmp/po-ai/{os.path.basename(thu)}"
-    subprocess.run(["ssh", B, f"mkdir -p {xa}"], check=True)
+    # tham chiếu cũ trên box3 đổi tên (không xoá) — 08/11: ref-3 lượt trước còn sót, ckey chỉ nhận 3 ảnh → ảnh chữ tên ref-9 bị đẩy ra, AI không vẽ tên
+    subprocess.run(["ssh", B, f"mkdir -p {xa} && cd {xa} && for f in ref-*; do [ -e \"$f\" ] && mv -f \"$f\" \"cu-$f\"; done; true"], check=True)
     subprocess.run(["scp", "-q"] + [os.path.join(thu, f) for f in sorted(os.listdir(thu)) if f.startswith("ref-")] + [f"{B}:{xa}/"], check=True)
     lenh = (f"cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && NODE_OPTIONS=--conditions=react-server "
             f"./node_modules/.bin/tsx apps/xuong-video/scripts/ethopex/anh-po-ai.mts {'--ten ' + json.dumps(P['ten']) if os.path.exists(os.path.join(thu, 'ref-9-ten.jpg')) else ''} {xa} {bo} {json.dumps(GIONG.get(P['loai'], 'cinematic short drama'))} {xa}/{bo}.jpg")
@@ -60,7 +61,7 @@ def ten_dung(P, tho):
 def ghep_ten(P, tho, ra):
     """TÊN PHIM theo format poster gốc: AI đã vẽ đúng chính tả theo kiểu chữ poster → giữ, chỉ thêm tagline; sai → dán chữ tên tách từ poster (ten-poster.png) ở đáy"""
     im = Image.open(tho).convert("RGB").resize((1080, 1920), Image.LANCZOS)
-    if ten_dung(P, tho): BC.tagline(im, P, 1850, P["mau"]["sang"]); im.save(ra, quality=92); return "AI vẽ đúng kiểu chữ poster"
+    if ten_dung(P, tho): im.save(ra, quality=92); return "AI vẽ đúng kiểu chữ poster"   # giữ nguyên ảnh AI — không dán thêm tagline (08/11: tagline đè chân chữ tên)
     toi = Image.new("L", (1, 256)); toi.putdata([0 if i < 175 else min(170, (i - 175) * 3) for i in range(256)])   # đáy tối dần cho chữ nổi
     im = Image.composite(Image.new("RGB", im.size, P["mau"]["toi"]), im, toi.resize(im.size))
     y = BC.tieu_de(im, P, 75, 1460, 930, 290, chu_hoa=True); BC.tagline(im, P, min(y + 26, 1830), P["mau"]["sang"])

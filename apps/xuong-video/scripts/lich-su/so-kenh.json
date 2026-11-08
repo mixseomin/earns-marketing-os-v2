@@ -327,9 +327,9 @@
       {
         "ma": "G9",
         "ten": "Đo + tự điều chỉnh",
-        "viec": "UTM theo playlist → GA4 click + đăng ký Member; playlist kém giảm suất, tốt tăng suất; báo Telegram tuần",
+        "viec": "UTM theo playlist → GA4 click + đăng ký Member; playlist kém giảm suất, tốt tăng suất; báo Telegram tuần · 08/11: lich-su/do-playlist.mjs — utm_campaign = mã tập (máy đăng gắn sẵn) → playlist theo tệp tập; GA4 533487094 phiên + sự kiện sign_up (astrolas.com bắn từ 08/11, commit fb86874ba nhánh ai); bảng Telegram Thứ Hai (chay-so-kenh); đề xuất chuyển một ngày đăng từ playlist kém sang tốt, anh trả lời Duyệt là máy đổi lich_tap; ngưỡng tu_chay.do. Đóng khi bảng tuần đầu gửi + có lượt sign_up đầu ghi nhận",
         "anh": "đọc báo cáo",
-        "trang_thai": "chua"
+        "trang_thai": "dang"
       },
       {
         "ma": "G10",

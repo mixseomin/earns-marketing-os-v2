@@ -103,14 +103,14 @@ const tapCua = (slug) => { const f = join(DIR, '../shot-code/tap-astrolas', `${s
 const bang = gopPlaylist(videos, ga, so.playlist, tapCua), dx = deXuatSuat(bang, c);
 const lech = videos.filter((v) => !playlistCua(v, so.playlist, tapCua(v.slug))).map((v) => v.slug);
 const tong = bang.reduce((a, b) => ({ tap: a.tap + b.tap, xem: a.xem + b.xem, phien: a.phien + b.phien, dang_ky: a.dang_ky + b.dang_ky }), { tap: 0, xem: 0, phien: 0, dang_ky: 0 });
-const dong = (ten, b) => `${ten.slice(0, 13).padEnd(13)}${String(b.tap).padStart(4)}${String(b.xem).padStart(6)}${String(b.phien).padStart(5)}${String(b.dang_ky).padStart(4)}`;
+const dong = (ten, b) => `${ten.slice(0, 13).padEnd(13)} ${String(b.tap).padStart(4)}${String(b.xem).padStart(6)}${String(b.phien).padStart(5)}${String(b.dang_ky).padStart(4)}`;
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const ten = (m) => so.playlist.find((p) => p.ma === m)?.ten ?? m;
 const chu = `📊 Astrolas · playlist tuần ${new Date(Date.now() + 7 * 36e5).toISOString().slice(0, 10)} (GA4 ${c.ngay} ngày)\n<pre>${esc(`${'Playlist'.padEnd(13)} tập  xem vào  ĐK\n${bang.map((b) => dong(b.ten, b)).join('\n')}\n${dong('Tổng', tong)}`)}</pre>`
   + `\nvào = phiên vào astrolas.com từ link bài · ĐK = đăng ký Member${lech.length ? `\n⚠ ${lech.length} video chưa gắn playlist: ${lech.slice(0, 5).join(', ')}` : ''}`
   + (dx ? `\n\nĐề xuất: chuyển ${THU[dx.ngay]} từ ${esc(ten(dx.tu))} (${bang.find((b) => b.ma === dx.tu).diem.toFixed(1)} vào/tập) sang ${esc(ten(dx.den))} (${bang.find((b) => b.ma === dx.den).diem.toFixed(1)} vào/tập, trung vị ${dx.tv.toFixed(1)}). Trả lời "Duyệt" ngay dưới tin này là máy tự đổi lịch, "Không" để giữ — không cần ai làm tay.`
     : `\n\nGiữ nguyên lịch (cần ≥ 2 playlist có ≥ ${c.min_tap} tập và chênh nhau rõ mới đề xuất đổi).`);
-if (xem) { console.log(chu.replace(/<\/?pre>/g, '')); process.exit(0); }
+if (xem) { console.log(chu.replace(/<\/?pre>/g, '').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')); process.exit(0); }
 const msg = guiTin(chu, true); if (!msg) { console.log('✗ gửi Telegram hỏng'); process.exit(1); }
 if (dx) writeFileSync(TEP_DX, JSON.stringify({ msg, ...dx, luc: new Date().toISOString() })); else if (existsSync(TEP_DX)) unlinkSync(TEP_DX);
 console.log(`✓ bảng tuần đã gửi (${tong.tap} tập, ${tong.phien} phiên, ${tong.dang_ky} đăng ký)${dx ? ` · đề xuất ${dx.tu} → ${dx.den}` : ''}`);

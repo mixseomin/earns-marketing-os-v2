@@ -1004,7 +1004,14 @@
       "truoc_ke_hoach": 3,
       "gio_tu": "07:00",
       "gio_den": "22:00",
-      "_ghi": "G8: lich-su/chay-so-kenh.mjs, gọi cuối lượt mỗi giờ của chay-kenh.mjs; lich_tap playlist: 1 = Thứ Hai … 7 = Chủ nhật"
+      "_ghi": "G8: lich-su/chay-so-kenh.mjs, gọi cuối lượt mỗi giờ của chay-kenh.mjs; lich_tap playlist: 1 = Thứ Hai … 7 = Chủ nhật",
+      "do": {
+        "ngay": 90,
+        "min_tap": 5,
+        "kem": 0.5,
+        "tot": 1.5,
+        "_ghi": "G9: lich-su/do-playlist.mjs — điểm playlist = phiên vào astrolas.com / tập; playlist có ≥ min_tap tập, điểm dưới kem × trung vị mất một ngày đăng cho playlist trên tot × trung vị; đổi khi anh trả lời Duyệt trên Telegram (08/11/2026)"
+      }
     }
   },
   "yesterdays-news-tonight": {

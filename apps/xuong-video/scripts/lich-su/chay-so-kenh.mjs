@@ -79,6 +79,14 @@ if (!xem && (banKhac || gio < (TC.gio_tu ?? '07:00') || gio >= (TC.gio_den ?? '2
     const r = spawnSync(process.execPath, [join(DIR, 'la-so/them-nguoi.mjs'), '--toi-da', '3'], { encoding: 'utf8', timeout: 60 * 60_000, killSignal: 'SIGKILL' }), ra = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim();
     console.log(ra); const loi = ra.split('\n').filter((l) => /^[✗⚠]/.test(l));
     if (r.status || loi.length) tele(`⚠ Astrolas thêm người ${hom}${r.status ? ` (mã ${r.status ?? r.signal})` : ''}:\n${(loi.length ? loi : ra.split('\n').slice(-3)).slice(0, 10).join('\n')}`); } }
+// ĐO PLAYLIST (G9, 08/11/2026): mỗi giờ đọc câu anh trả lời đề xuất đổi suất; Thứ Hai gửi bảng tuần (lich-su/do-playlist.mjs). Dấu tuần chỉ ghi khi gửi được.
+if (!xem && KENH === 'astrolas') {
+  const doP = (...a) => spawnSync(process.execPath, [join(DIR, 'do-playlist.mjs'), ...a], { encoding: 'utf8', timeout: 10 * 60_000, killSignal: 'SIGKILL' });
+  const ap = doP('--ap'); if (ap.stdout?.trim()) console.log(ap.stdout.trim());
+  const dau = join(homedir(), '.cache', `${KENH}-do-playlist-${hom}.xong`);
+  if (thu === 1 && !existsSync(dau)) { const r = doP(), ra = `${r.stdout ?? ''}${r.stderr ?? ''}`.trim(); console.log(ra);
+    if (r.status === 0) writeFileSync(dau, new Date().toISOString()); else tele(`⚠ Astrolas bảng playlist tuần hỏng (mã ${r.status ?? r.signal}):\n${ra.split('\n').slice(-3).join('\n')}`); }
+}
 const q = (c) => sqlBox(c).trim(), M = `(SELECT id FROM xv_may WHERE ma = '${KENH}')`;
 const daLam = new Set(q(`SELECT coalesce(string_agg(slug, ','), '') FROM xv_may_video WHERE may_id = ${M};`).split(',').filter(Boolean)), td = soTd(), bo = new Set(Object.entries(td).filter(([, v]) => v.bo).map(([k]) => k));
 

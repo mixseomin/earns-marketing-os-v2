@@ -100,15 +100,18 @@ def poster_mau(mau, tm, nen_khung, ra):
         the = Image.new("RGB", (q2.width + 2 * vien, q2.height + 2 * vien), (255, 255, 255)); the.paste(q2, (vien, vien)); the = the.convert("RGBA").rotate(-4, expand=True, resample=Image.BICUBIC)
         bong = Image.new("RGBA", the.size, (0, 0, 0, 0)); bong.putalpha(the.split()[3].point(lambda a: int(a * 0.75))); bong = bong.filter(ImageFilter.GaussianBlur(26))
         x, y = (W - the.width) // 2, (H - the.height) // 2; nen.paste((0, 0, 0), (x + 20, y + 30), bong); nen.paste(the, (x, y), the); nen.save(ra); return ra
-    if mau == "dien_anh":   # chỉnh màu teal-orange + tối góc · nền là chính poster mờ · viền đen điện ảnh trên/dưới
+    if mau == "dien_anh":   # (anh 08/11/2026 "4 sửa lại": bản cũ quá giống gốc) nửa trên CẬN MẶT nhân vật (khung phim), chỉnh màu teal-orange, rõ nét ·
+        # nửa dưới poster TRỌN thu nhỏ (tên phim đọc được) trên nền tối · hai vạch sáng mảnh kiểu khung phim chiếu rạp
         def mau_(im):
-            r_, g_, b_ = im.split(); im = Image.merge("RGB", (r_.point(lambda v: min(255, int(v * 1.1 + 8))), g_.point(lambda v: int(v * 0.98)), b_.point(lambda v: min(255, int(v * 0.86 + 26)))))
-            return Image.blend(im, Image.new("RGB", im.size, (6, 22, 30)), 0.10)
-        nen = mau_(_phu(p, W, H)).filter(ImageFilter.GaussianBlur(30)).point(lambda v: int(v * 0.5))
-        gq = mau_(q); toi = Image.radial_gradient("L").resize(gq.size).point(lambda v: int(v * 0.55))   # tối dần ra mép
-        gq = Image.composite(Image.new("RGB", gq.size), gq, toi); nen.paste(gq, (0, (H - gq.height) // 2))
-        vb = (H - gq.height) // 2 - 10
-        if vb > 0: nen.paste((0, 0, 0), (0, 0, W, vb)); nen.paste((0, 0, 0), (0, H - vb, W, H))
+            r_, g_, b_ = im.split(); im = Image.merge("RGB", (r_.point(lambda v: min(255, int(v * 1.12 + 8))), g_.point(lambda v: int(v * 0.97)), b_.point(lambda v: min(255, int(v * 0.84 + 28)))))
+            return Image.blend(im, Image.new("RGB", im.size, (6, 22, 30)), 0.08)
+        cao = round(H * 0.56); tren = mau_(_phu(Image.open(nen_khung).convert("RGB"), W, cao, 0.5, 0.38))   # cận mặt = khung phim AI xếp hạng (đã xoá chữ) — cắt phần trên poster thì dính tên phim dở (poster tên nằm cao).filter(ImageFilter.UnsharpMask(radius=2, percent=70, threshold=2))
+        nen = mau_(_phu(p, W, H)).filter(ImageFilter.GaussianBlur(34)).point(lambda v: int(v * 0.35)); nen.paste(tren, (0, 0))
+        mk = Image.new("L", (1, 200)); mk.putdata([int(255 * i / 199) for i in range(200)])   # mép dưới cận mặt tan vào nền
+        nen.paste(Image.new("RGB", (W, 200)), (0, cao - 200), mk.resize((W, 200)))
+        con = H - cao - 70; r = round(con * p.width / p.height); q2 = p.resize((r, con), Image.LANCZOS)
+        x = (W - r) // 2; y = cao - 30; nen.paste((235, 235, 235), (x - 4, y - 4, x + r + 4, y + con + 4)); nen.paste(q2, (x, y))
+        for yy in (cao - 46, H - 22): nen.paste((200, 170, 120), (60, yy, W - 60, yy + 3))
         nen.save(ra); return ra
     raise ValueError(f"mẫu poster lạ: {mau}")
 

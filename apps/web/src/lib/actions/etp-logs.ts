@@ -70,6 +70,13 @@ export async function docLogs(gio: number): Promise<DuLogs | { loi: string }> {
           nullif(left(coalesce(u.ai, ''), 40), ''), r.content_id, (select min(k.bo) from etp.camp k where k.creative_id = u.creative_id),
           (select d2.ten from etp.dong_phim d2 where d2.content_id = r.content_id order by d2.id desc limit 1), r.dang, coalesce(nullif(left(u.ai, 40), ''), 'người duyệt')
         from etp.cham_duyet u left join etp.creative r using (creative_id), tu where u.luc >= tu.t
+        union all
+        -- CHỜ CHẠY (anh 08/11/2026 "Thiếu số camp đã lên đang chờ active?"): camp đã tạo, giờ hẹn (lich) chưa tới, đang ACTIVE hoặc còn đang tạo — CÙNG định nghĩa choGio
+        -- của lib/etp-chay.ts (trang Camp / Sản xuất). Mốc = lúc TẠO; không giới hạn theo kỳ (camp tạo trước kỳ vẫn vào nhãn tổng "đang chờ chạy")
+        select extract(epoch from c.tao)::bigint, 'cho', c.camp_id, 'đã tạo trên Ethopex, chờ tới giờ hẹn mới chạy', 'hẹn ' || to_char(c.lich at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM'),
+          r.dang, c.content_id, c.bo, c.ten, 'hẹn ' || to_char(c.lich at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM'), 'máy'
+        from etp.camp c left join etp.creative r using (creative_id)
+        where c.lich > now() and (c.trang_thai = 'ACTIVE' or (c.dong_bo is not null and c.dong_bo not in ('done', 'synced', 'error')))
         order by 1 desc limit 30000`),
       // tiền theo GIỜ × BỘ (etp.so_gio_camp + etp.camp.bo — tổng khớp etp.so_gio, đo 07/11: $915,40 cả hai) để lọc bộ tính được cả tiền
       run<{ t: number; bo: string | null; chi: number; thu: number }>(sql`select extract(epoch from g.ngay + make_interval(hours => g.gio))::bigint t, k.bo, sum(g.chi)::float chi, sum(g.thu)::float thu

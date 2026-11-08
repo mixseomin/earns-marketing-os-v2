@@ -76,7 +76,7 @@ export function TabLogs({ moCamp, boDs }: { moCamp: (id: number) => void; boDs: 
         color: l.mau, background: `${l.mau}1f`, border: `1px solid ${l.mau}55`, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}><span>{l.icon}</span>{n}</span>; };
   // MỖI LOẠI MỘT CỘT HẸP (anh 08/11/2026 "màu thế ok rồi, nhưng để vào từng cột cho cân đối"): nhãn màu nằm giữa ô, cột rộng O_COT, tiêu đề = icon màu + tên ngắn hai dòng
   // → 18 cột + khung + tiền vừa ngăn 1400px, không cuộn ngang (anh: "Trình bày drawer làm sao ko phải scroll sang ngang"); điện thoại dùng thẻ (khổ hẹp) bên dưới
-  const O_COT = 54;
+  const O_COT = 51;
   // BẤM MÃ = NGĂN KÉO tại chỗ (anh 08/11/2026 "Bấm vào thì mở ra drawer để tao ko phải sang tab mới"): camp → ngăn camp của trang; dòng / creative → ngăn Sản xuất của phim
   const moNgan = (e: HangLog): (() => void) | null => { const ma = LOAI_THEO_K[e[1]]?.ma;
     if (ma === 'camp' && e[2] != null) return () => moCamp(e[2]!);
@@ -112,6 +112,10 @@ export function TabLogs({ moCamp, boDs }: { moCamp: (id: number) => void; boDs: 
       <button type="button" onClick={() => void tai(ky)} disabled={dangTai} style={{ fontSize: 12, padding: '2px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: dangTai ? 'wait' : 'pointer' }}>
         {dangTai ? '⏳ Đang tải…' : '↻ Tải lại'}</button>
       {du ? <span style={{ color: 'var(--fg-3)' }} title="tự tải lại mỗi phút">cập nhật {gioVn(du.den)}</span> : null}
+      {(() => { const cho = (loc?.ev ?? []).filter((e) => e[1] === 'cho'); const l = LOAI_THEO_K.cho!;
+        return cho.length ? <span role="button" tabIndex={0} onClick={(e) => noi.moNgay({ k: 'cho', nhan: 'đang chờ', ds: cho }, e)} onMouseEnter={(e) => noi.mo({ k: 'cho', nhan: 'đang chờ', ds: cho }, e)} onMouseLeave={noi.dongTre}
+          title="camp đã lên, chưa tới giờ hẹn — bấm xem từng camp" style={{ cursor: 'pointer', padding: '1px 8px', borderRadius: 10, color: l.mau, background: `${l.mau}1f`, border: `1px solid ${l.mau}55`, fontWeight: 600 }}>
+          ⏳ {cho.length} camp đã lên đang chờ chạy</span> : null; })()}
       {loc?.chuaBo ? <span style={{ color: 'var(--fg-3)' }} title="chấm / duyệt / dựng creative, dòng mới… xảy ra trước khi lên camp nên chưa thuộc bộ nào">· {loc.chuaBo} việc chưa gắn camp không tính trong Bộ {bo}</span> : null}
     </div>
     {loi ? <div style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${DO}`, color: DO, fontSize: 12 }}>⛔ {loi}</div> : null}

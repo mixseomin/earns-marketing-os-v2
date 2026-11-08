@@ -69,7 +69,11 @@ KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" |
 lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit) · đã kiểm thế nào (số đo). Viết gọn, xưng "con", gọi "anh".`;
 
 const QUYEN_DANG = ['Read', 'Glob', 'Grep', `Edit(/${DANG}/**)`, `Write(/${DANG}/**)`, `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add:*)', 'Bash(git commit:*)',
-  'Bash(node scripts/:*)', 'Bash(node --check:*)', 'Bash(bash -n:*)', 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(diff:*)', 'Bash(md5:*)',
+  // 08/11/2026: Mạnh vá xong examweight mà KHÔNG đăng bù được — "This command requires approval" cho `node /Users/htuan/puzzle-books/scripts/dang-may.mjs …`
+  // (đường dẫn đủ không khớp `node scripts/`) và cho mọi lệnh có `| tail`, `2>&1`, `cd … &&` (mỗi đoạn cần quyền riêng). Phiên -p không ai bấm duyệt → treo rồi
+  // nhắn anh "duyệt giúp". Nay mở cả hai dạng đường dẫn + các lệnh đọc hay nối sau ống; lời giao (bước 0) dặn chạy lệnh trần.
+  'Bash(node scripts/:*)', `Bash(node ${DANG}/scripts/:*)`, `Bash(cd ${DANG})`, 'Bash(node --check:*)', 'Bash(bash -n:*)', 'Bash(head:*)', 'Bash(wc:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(sed -n:*)',
+  `Bash(${os.homedir()}/bin/br status)`, `Bash(${os.homedir()}/bin/profile-locks)`, 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(diff:*)', 'Bash(md5:*)',
   `Bash(${os.homedir()}/bin/br status:*)`, `Bash(${os.homedir()}/bin/profile-locks:*)`];
 const giaoDang = `Bạn là Mạnh, thợ máy của công ty AI của anh Tuấn, nay quản lý cả MÁY ĐĂNG (đăng video / ảnh / link lên kênh social). Phòng Nội dung vừa báo một kênh LỠ LƯỢT:
 hôm qua (giờ VN) cả họ nền đó không có bài nào. Bạn phải tìm GỐC, sửa, đăng bù nếu được, kiểm, rồi báo lại — anh không ngồi máy.
@@ -93,6 +97,7 @@ CÁCH LÀM:
    đồng bộ kẹt) → sửa; (b) dừng đúng luật (nhịp an toàn: trần ngày, cách ≥ 3 giờ, xoay nền, chưa tới hạn đăng, cảnh báo tài khoản) → KHÔNG phải lỗi, báo lại là đúng luật;
    (c) tài khoản bị nền tảng chặn / đòi xác minh / hết bài phải làm thêm → CAN_ANH.
 2. Sửa GỐC trong ${DANG}/scripts, rồi node --check + --tu-kiem, git add đúng tệp + git commit trong ${DANG} (tiếng Việt, ghi gốc + cách sửa).
+0. LỆNH CHẠY TRẦN, không ghép: KHÔNG \`cd … &&\`, KHÔNG \`2>&1\`, KHÔNG \`> tệp\`, KHÔNG ống \`| …\` sau lệnh đăng / tự kiểm — phiên này không ai bấm duyệt, lệnh ghép bị treo chờ duyệt. Thư mục làm việc đã là repo đăng.
 3. ĐĂNG BÙ đúng MỘT bài cho nền lỡ, bằng đường thường để nhịp an toàn tự quyết: iMac \`node scripts/dang-may.mjs ${nenMa || '<nền>'} --may ${mayMa || '<máy>'}\`;
    Front Porch (Page / kênh riêng): \`node scripts/dang-short.mjs <nền>\` ngay trên iMac. Nhịp an toàn nói không thì THÔI, ghi lý do. Đăng xong đọc lại nhật ký / link bài để chắc bài lên đúng kênh.
 

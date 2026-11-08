@@ -13,9 +13,9 @@ assert.equal(nhanKhung(dauKhung(sang, 1440), 1440), '08/11 (07h→07h)');
 
 const ev: HangLog[] = [[t, 'tat', 1, 'a', '', ''], [t + 60, 'tat', 2, 'b', '', ''], [t - 3600, 'mo', 3, 'c', '', '']];
 const k = gomLogs({ ev, tien: [[dauKhung(t, 60), 5, 8]], gio: 3, den: t + 120 }, 60);
-assert.equal(k[0].dem.tat.length, 2);
-assert.equal(k[0].chi, 5);
-assert.equal(k[1].dem.mo.length, 1);
+assert.equal(k[0]?.dem.tat?.length, 2);
+assert.equal(k[0]?.chi, 5);
+assert.equal(k[1]?.dem.mo?.length, 1);
 assert.ok(k.length >= 3, 'khung trống vẫn có dòng');
 assert.equal(new Set(LOAI_LOG.map((x) => x.k)).size, LOAI_LOG.length, 'mã loại không trùng');
 console.log('etp-logs: ok');

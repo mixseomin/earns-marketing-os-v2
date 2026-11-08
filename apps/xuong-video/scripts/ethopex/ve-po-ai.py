@@ -13,7 +13,7 @@ import importlib.util, os, subprocess, sys, time
 from PIL import Image, ImageFilter
 
 D = os.path.dirname(os.path.abspath(__file__)); C = os.path.expanduser("~/.cache/ethopex/anh-tinh")
-M = os.path.expanduser("~/models/postercraft"); SD = os.path.expanduser("~/tools/stable-diffusion.cpp/build/bin/sd-cli")   # tên tệp chạy của bản hiện tại (examples/cli/CMakeLists.txt: sd-cli)
+M = os.path.expanduser("~/models/postercraft"); SD = os.path.expanduser("~/tools/sd-bin/sd-cli")   # bản dựng sẵn chính thức cho Mac arm64 (release master-1060-0b3b98d của leejet/stable-diffusion.cpp)
 W, H = 768, 1344   # 9:16 gần đúng, bội số 64 cho FLUX; ảnh ra phóng lên 1080×1920 ở bước dựng video
 _s = importlib.util.spec_from_file_location("bo_cuc", os.path.join(D, "bo-cuc-po.py")); BC = importlib.util.module_from_spec(_s); _s.loader.exec_module(BC)
 

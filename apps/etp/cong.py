@@ -27,6 +27,11 @@ def sql_trang_hong(cid):
     return (f"(select array_to_string(t.thieu, ', ') from etp.trang_phim_v t where t.ref_id = {cid} and t.{nha} and cardinality(t.thieu) > 0"
             f" and t.tao < now() - interval '{TRANG_CHO_SINH} seconds' and not exists (select 1 from etp.trang_phim_v x where x.ref_id = {cid} and x.{nha} and cardinality(x.thieu) = 0)"
             f" order by t.sua desc limit 1)")
+def ly_trang_hong(thieu):
+    """chữ cho người đọc từ kết quả sql_trang_hong — link chết khác hẳn thiếu link (thư viện không có nguồn)"""
+    return (f"có link tập 1 đã chết (máy kiểm link), Ethopex chưa thay" if thieu.strip() == "link tập 1 chết"
+            else f"thiếu {thieu} sau {TRANG_CHO_SINH // 60} phút Ethopex sinh (thư viện phim không có nguồn tập 1)" if "link tập 1" in thieu
+            else f"thiếu {thieu} sau {TRANG_CHO_SINH // 60} phút Ethopex sinh")
 
 def _q(s):
     r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-c", s], capture_output=True, text=True, timeout=30)

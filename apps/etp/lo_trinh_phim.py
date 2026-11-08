@@ -42,7 +42,7 @@ def xet(s, tran):
     if p.get("cam"): return "cam", "Phim trong sổ cấm 18+ — không lên camp", 0, []
     if p.get("nhom_goc") and p.get("nhom_goc") != "au_my": return "ngoai", f"Phim ngoài Âu-Mỹ (nhóm {p['nhom_goc']}) — không lên camp", 0, []
     # TRANG PHIM HỎNG HẲN (09/11/2026: 91648 xếp lại dòng mỗi 2 giờ suốt 24 giờ, dòng nào cũng đứng ở bước Trang phim) → không xếp; Ethopex sinh đủ thì lượt sau tự xếp
-    if s.get("trang"): return "trang", f"Trang phim Ethopex thiếu {s['trang']} (thư viện không có nguồn) — không có trang đích, không lên camp; Ethopex sinh đủ thì tự xếp", 0, []
+    if s.get("trang"): return "trang", f"Trang phim Nhà {CG.ly_trang_hong(s['trang'])} — không có trang đích, không lên camp; trang đủ thì tự xếp", 0, []
     if s.get("co_hoi") and mo.get("pha") == "bao_hoa": return "giu", "Có camp lãi nhưng vượt sức chứa, giữ nguyên, không mở thêm", 0, []
     xep, chu, ke = [], [], 0
     if s.get("co_hoi"):

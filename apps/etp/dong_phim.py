@@ -184,7 +184,7 @@ def b_ws(d):
     if "còn thiếu" in ly and "vừa được máy" not in ly:
         hong = sql(f"select {CG.sql_trang_hong(int(d['content_id']))}")
         if hong:   # bản đã thêm quá 1 giờ mà Ethopex chưa sinh → chờ nữa vô ích (cong.sql_trang_hong); dấu cổng của Mạnh có mục này → Ethopex sinh xong thì tự mở lại dòng
-            return "dung", (f"Ethopex không sinh {hong} cho trang phim Nhà sau {CG.TRANG_CHO_SINH // 60} phút (thư viện phim không có nguồn tập 1) — không có trang đích nên không lên camp;"
+            return "dung", (f"trang phim Nhà {CG.ly_trang_hong(hong)} — không có trang đích nên không lên camp;"
                             f" Ethopex có link thì máy tự mở lại dòng · {ly[:200]}"), None
     if "vừa được máy" in ly or "còn thiếu" in ly:
         box("systemctl start --no-block etp-dong-bo", 30)   # đồng bộ kho trang phim ngay, không chờ 10 phút

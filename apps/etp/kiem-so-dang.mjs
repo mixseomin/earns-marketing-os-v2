@@ -3,7 +3,8 @@
 // Một nơi duy nhất: apps/web/src/lib/etp-dang.json (Python đọc qua apps/etp/so_dang.py, web import thẳng). Lưới này:
 //   1. sổ hợp lệ: mã ngắn / mã dòng / nhãn không trùng, đủ trường;
 //   2. CẤM bảng dạng tự khai: dòng mã nào nhắc ≥ 3 dạng khác nhau (chuỗi trong nháy, có dấu hoặc không dấu) ngoài sổ = khai lại → đỏ;
-//   3. máy dòng phim (dong_phim.py TINH) chỉ dùng mã dòng có trong sổ; 4. mỗi mã dòng có mục form ở etp-dong.ts.
+//   3. dạng tĩnh có kiểu dựng (dong_phim.TINH đọc từ sổ); 4. mỗi mã dòng có mục form ở etp-dong.ts.
+// Chạy tự động: dong-bo.py mỗi lượt (box3, 10 phút) — đỏ thì cảnh báo Telegram (etp.canh_bao loại so_dang). Tay: node apps/etp/kiem-so-dang.mjs
 // Chạy: node apps/etp/kiem-so-dang.mjs · tự kiểm: --tu-kiem
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
@@ -42,10 +43,9 @@ export function quet(ds) {
     const r = relative(GOC, p);
     readFileSync(p, 'utf8').split('\n').forEach((dong, i) => { if (dong.includes(MIEN)) return; const n = demDang(dong, ds); if (n >= 3) loi.push(`${r}:${i + 1} tự khai bảng dạng (${n} dạng) — đọc sổ ${SO} (Python: apps/etp/so_dang.py)`); });
   }
-  const dp = readFileSync(join(GOC, 'apps/etp/dong_phim.py'), 'utf8'), ma = new Set(ds.map((x) => x.dong).filter(Boolean));
-  const m = dp.match(/^TINH = \{([^\n]*)\}/m);
-  if (!m) loi.push('apps/etp/dong_phim.py: không thấy dòng TINH = {…}');
-  else for (const [, k] of m[1].matchAll(/"([A-Z]+)": \(/g)) if (!ma.has(k)) loi.push(`apps/etp/dong_phim.py TINH dùng mã dòng "${k}" không có trong sổ`);
+  // dạng tĩnh không có kiểu → dong_phim dựng bằng anh-tinh.py; quá một dạng như vậy = hai dạng cùng ra một video
+  const ma = new Set(ds.map((x) => x.dong).filter(Boolean)), tinhTrong = ds.filter((x) => x.tinh && !x.kieu);
+  if (tinhTrong.length > 1) loi.push(`sổ dạng: ${tinhTrong.map((x) => x.dang).join(', ')} là dạng tĩnh không có kiểu — chỉ một dạng (AT) được dựng bằng anh-tinh.py, còn lại phải có kieu`);
   // mỗi mã dòng trong sổ phải có mục form chọn loại ở trang Sản xuất (etp-dong.ts LOAI: { ma: '<mã>' …})
   const form = readFileSync(join(GOC, 'apps/web/src/lib/actions/etp-dong.ts'), 'utf8');
   for (const k of ma) if (!form.includes(`{ ma: '${k}',`)) loi.push(`apps/web/src/lib/actions/etp-dong.ts LOAI thiếu mục form cho mã dòng "${k}" (sổ dạng có, form không)`);

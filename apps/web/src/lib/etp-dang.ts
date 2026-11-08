@@ -1,5 +1,5 @@
 // SỔ DẠNG CREATIVE cho web — đọc lib/etp-dang.json (một nơi duy nhất; máy Python đọc cùng tệp qua apps/etp/so_dang.py). Không khai lại bảng dạng ở chỗ khác:
-// apps/etp/kiem-so-dang.mjs chặn. Dùng được cả ở server (route, server action) lẫn client.
+// apps/etp/kiem-so-dang.mjs báo đỏ (dong-bo.py chạy mỗi lượt → cảnh báo Telegram). Dùng được cả ở server (route, server action) lẫn client.
 import SO_DANG from '@/lib/etp-dang.json';
 export type MucDang = { dang: string; ma: string; mau: string; khong_dau: string; dong: string | null; tinh?: boolean; kieu?: string };
 export const DS_DANG: MucDang[] = SO_DANG.dang as MucDang[];

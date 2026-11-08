@@ -24,7 +24,7 @@ export type DongPhim = { id: number; content_id: number; ten: string | null; the
   /** ĐƯỜNG NGOÀI máy dòng phim (anh-tinh.py · máy sinh kể chuyện · kieu-moi · thay-the.py): tên máy làm — chỉ đọc, không FIX / Dừng */ ngoai?: string | null;
   /** dòng ngoài: hàng chờ lên camp của creative (view etp.cho_len_v) */ len?: CrDong['len'] };
 
-// FORM LOẠI NỘI DUNG của dòng phim — dạng / mã phải có trong SỔ DẠNG lib/etp-dang.json (mã dòng = trường dong); apps/etp/kiem-so-dang.mjs đỏ khi sổ có mã dòng mà form thiếu mục; chay = máy dòng phim làm được
+// FORM LOẠI NỘI DUNG của dòng phim — dạng / mã phải có trong SỔ DẠNG lib/etp-dang.json (mã dòng = trường dong); apps/etp/kiem-so-dang.mjs báo đỏ khi sổ có mã dòng mà form thiếu mục; chay = máy dòng phim làm được
 const LOAI: Omit<LoaiNoiDung, 'vi_du'>[] = [
   { ma: 'CC', ten: 'CC — Cảnh cuối tập', dang: 'cảnh cuối', chay: true, gia: '$0 (không gọi AI dựng video)', thoi_gian: '~15–30 phút',
     mo_ta: 'Cắt 65–85 giây liền từ tập phim gốc, kết đúng ở cú treo cuối tập (cliffhanger). 5 giây cuối là ô tên phim + nút WATCH NOW kiểu Kiên.',

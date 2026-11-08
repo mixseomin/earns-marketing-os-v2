@@ -27,10 +27,10 @@ B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.
 C = os.path.expanduser("~/.cache/ethopex"); MAY = socket.gethostname().split(".")[0]
 KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (dot-phim-moi.KHUON)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import so_dang as DG   # SỔ DẠNG một nơi (apps/web/src/lib/etp-dang.json, anh 08/11/2026)
+import cong as CG   # khoá trần camp / ngày + câu đếm camp hôm nay dùng chung với cổng
 LOAI = DG.DONG   # mã loại dòng phim → dạng creative (etp.creative.dang)
 # KIỂU TĨNH (anh 08/11/2026 "chọn cả 3 để xem hiệu suất"): mỗi loại một kiểu của tinh-ba-kieu.py, cùng khuôn AT — tự tải tập, 3 bản, 3 camp $1
-TINH = {"AT": ("anh-tinh.py", []), "ATT": ("tinh-ba-kieu.py", ["--kieu", "tom_tat"]), "PO": ("tinh-ba-kieu.py", ["--kieu", "poster"]), "CTS": ("tinh-ba-kieu.py", ["--kieu", "cau_soc"])}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
-assert set(TINH) == DG.TINH, f"TINH {sorted(TINH)} lệch sổ dạng tĩnh {sorted(DG.TINH)} (etp-dang.json)"   # dạng tĩnh mới: thêm vào sổ + script ở TINH
+TINH = {x["dong"]: (("tinh-ba-kieu.py", ["--kieu", x["kieu"]]) if x.get("kieu") else ("anh-tinh.py", [])) for x in DG.DS if x.get("tinh")}   # mã dòng tĩnh → script dựng: có kiểu trong sổ = tinh-ba-kieu --kieu, không = anh-tinh (AT)
 BO_QUA = {"KT": {"cat", "soat"}, **{k: {"cat", "soat"} for k in DG.TINH}}   # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt · AT: anh-tinh.py tự tải tập + chọn khung — không qua bước cắt / soát đoạn
 HAN_RIENG = {("KT", "creative"): 4 * 3600, **{(k, "creative"): 60 * 60 for k in DG.TINH}, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu · AT ~10 phút/phim
 # LT — LỘ TRÌNH TEST RỘNG (anh 03/11/2026 "Lên $8-10/phim + T2 thì sẽ cắt sớm đc lỗ và tìm nhanh đc camp lãi" · chọn A: miễn luật một camp ngày test rộng):
@@ -602,10 +602,9 @@ def mo_tran_ngay():
     """DÒNG DỪNG VÌ TRẦN CAMP MỚI / NGÀY TỰ LÊN LẠI SANG NGÀY MỚI (08/11/2026: đợt ATT/PD/CTS 9 phim — 6 dòng creative sạch dừng "chạm trần 100 camp
     mới / ngày … mai lên tiếp" mà không máy nào làm câu "mai lên tiếp"): ngày VN mới + còn chỗ dưới trần → FIX bước camp của các dòng đó (dừng từ ngày
     trước, trong 3 ngày), tối đa bằng số chỗ còn lại; dòng vẫn vấp trần thì dừng lại với ngày hôm nay và chờ hôm sau."""
-    for l in sql("""with con as (select (select gia_tri::text::int from etp.cau_hinh where khoa = 'tran_camp_moi_ngay')
-                       - (select count(*) from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date) n),
+    for l in sql(f"""with con as (select (select gia_tri::text::int from etp.cau_hinh where khoa = '{CG.KHOA_TRAN_NGAY}') - ({CG.SQL_TAO_HOM_NAY}) n),
         mo as (select b.dong_id from etp.dong_buoc b join etp.dong_phim d on d.id = b.dong_id, con
-               where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and b.ghi like '%chạm trần%camp mới / ngày%' and d.trang_thai = 'dung'
+               where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and strpos(b.ghi, '{CG.KHOA_TRAN_NGAY}') > 0 and d.trang_thai = 'dung'
                  and (b.ket_thuc at time zone 'Asia/Ho_Chi_Minh')::date < (now() at time zone 'Asia/Ho_Chi_Minh')::date and b.ket_thuc > now() - interval '3 days'
                  and con.n > 0
                order by d.so_camp desc, b.ket_thuc limit greatest((select n from con), 0))

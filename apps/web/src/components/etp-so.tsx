@@ -12,7 +12,7 @@ export function KeToan({ v, mau }: { v: number; mau?: string }) {
   return <span style={{ display: 'flex', justifyContent: 'space-between', gap: 6, width: '100%', paddingLeft: 12, boxSizing: 'border-box', color: khong ? MO_SO : mau, fontVariantNumeric: 'tabular-nums' }}><span style={{ opacity: 0.6 }}>$</span><span>{v < 0 && !khong ? `(${so})` : so}</span></span>;
 }
 // LOẠI CREATIVE (badge + bộ lọc Loại) — đọc SỔ DẠNG một nơi lib/etp-dang.json (anh 08/11/2026 "các thể loại mới mày cứ mỗi nơi làm 1 cái à"); máy Python đọc cùng tệp
-// qua apps/etp/so_dang.py, lưới apps/etp/kiem-so-dang.mjs chặn bảng dạng tự khai ở chỗ khác. Thêm dạng = thêm một mục trong sổ.
+// qua apps/etp/so_dang.py, lưới apps/etp/kiem-so-dang.mjs báo đỏ bảng dạng tự khai ở chỗ khác (dong-bo.py chạy mỗi lượt → cảnh báo Telegram). Thêm dạng = thêm một mục trong sổ.
 export { DS_DANG, MAU_DANG, MA_DANG, DANG_DONG, dangTheoTen, type MucDang } from '@/lib/etp-dang';
 import { MAU_DANG, MA_DANG } from '@/lib/etp-dang';
 export const BadgeDangNgan = ({ d }: { d: string | null }) => (d ? <span title={`loại creative: ${d}`} style={{ fontSize: 9, fontWeight: 700, padding: '0 4px', borderRadius: 4, marginLeft: 5, letterSpacing: '0.03em', color: MAU_DANG[d] ?? 'var(--fg-2)', border: `1px solid ${(MAU_DANG[d] ?? '#888')}66` }}>{MA_DANG[d] ?? d.slice(0, 2).toUpperCase()}</span> : null);

@@ -1,5 +1,5 @@
 """SỔ DẠNG CREATIVE cho máy Python — đọc apps/web/src/lib/etp-dang.json (một nơi duy nhất, web cũng đọc tệp đó). Không khai lại bảng dạng ở tệp khác:
-apps/etp/kiem-so-dang.mjs chặn khi deploy. Dùng: sys.path có apps/etp → import so_dang as DG.
+apps/etp/kiem-so-dang.mjs (dong-bo.py chạy mỗi lượt, đỏ → cảnh báo Telegram). Dùng: sys.path có apps/etp → import so_dang as DG.
   DG.DS           danh sách mục {dang, ma, mau, khong_dau, dong, tinh}
   DG.CHUAN        nhãn (có dấu / không dấu) → dạng có dấu
   DG.KHONG_DAU    dạng có dấu → nhãn không dấu

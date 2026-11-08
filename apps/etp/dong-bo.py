@@ -129,6 +129,14 @@ def main():
         # camp ROAS chạy BÀI ĐĂNG CŨ: ad không mang content/creative → nhận phim của camp gốc (cây camp + số theo phim trên etp.on.tc)
         q("""update etp.camp c set content_id = g.content_id from etp.camp g where c.goc = g.camp_id and coalesce(c.content_id, 0) = 0 and coalesce(g.content_id, 0) <> 0""")
     except Exception as e: loi.append(f"camp: {e}")
+    # ── SỔ DẠNG (anh 08/11/2026 "ko bị khai thừa ở nhiều nơi"): lưới apps/etp/kiem-so-dang.mjs mỗi lượt — có bảng dạng tự khai / sổ lệch → cảnh báo Telegram (một lần mỗi nội dung)
+    try:
+        r = subprocess.run(["node", os.path.join(os.path.dirname(os.path.abspath(__file__)), "kiem-so-dang.mjs")], capture_output=True, text=True, timeout=60)
+        if r.returncode:
+            nd = (r.stderr or r.stdout).strip()[:1500]
+            q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'so_dang', 'so_dang:' || md5($N${nd}$N$), 'do', $N$Sổ dạng creative lệch / có bảng dạng tự khai:\n{nd}$N$
+                  where not exists (select 1 from etp.canh_bao where khoa = 'so_dang:' || md5($N${nd}$N$))""")
+    except Exception as e: loi.append(f"so_dang: {e}")
     # ── PHỐT META (anh 25/10/2026): ad bị Meta từ chối = một phốt gắn bộ tài khoản · tài khoản QC · Page → etp.phot + báo đỏ (Telegram qua etp.canh_bao)
     try:
         moi = q("""with bt as (select k bo, (v->>'page')::bigint page_id, v->>'ten' ten from xv_khoa_ngoai, jsonb_each(gia_tri) e(k, v) where ten = 'ethopex_bo_tk'),

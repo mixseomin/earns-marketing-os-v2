@@ -41,6 +41,7 @@ export async function docLogs(gio: number, ids: number[] | null = null): Promise
           case when n.truoc ~ '^[0-9.]+$' and n.sau ~ '^[0-9.]+$' and n.viec in ('tang', 'giam') then '$' || n.truoc || ' → $' || n.sau
                when n.truoc ~ '^[0-9.]+$' and n.viec = 'tat' then 'đang $' || n.truoc || '/ngày'
                when n.viec = 'sang_bo' then 'bộ ' || coalesce((select g.bo from etp.camp g where g.camp_id = n.goc), '?') || ' → bộ ' || coalesce(n.sau, '?')
+               when n.viec = 'nhan_ban' and n.goc = n.camp_id then 'gốc → bản mới chạy theo lịch lên'   -- máy nhân bản ghi nhật ký vào camp GỐC (chưa có mã bản mới)
                when n.viec = 'nhan_ban' and n.goc is not null then 'từ camp #' || n.goc end doi,
           case when coalesce(n.ai, '') ~* 'máy' then 'máy' when n.luat ~ '^(lệnh )?anh [0-9]' or coalesce(n.ai, '') ~* '^anh' then 'lệnh anh' else 'máy' end ai, n.camp_id cid   -- luật anh đặt nhưng máy chạy ("… — máy chạy") = máy
         from etp.nhat_ky n left join etp.camp c using (camp_id), tu where n.luc >= tu.t and (n.ok is not null or n.viec <> 'tao_camp')
@@ -80,6 +81,15 @@ export async function docLogs(gio: number, ids: number[] | null = null): Promise
           r.dang, c.content_id, c.bo, c.ten, 'hẹn ' || to_char(c.lich at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM'), 'máy', c.camp_id
         from etp.camp c left join etp.creative r using (creative_id)
         where c.lich > now() and (c.trang_thai = 'ACTIVE' or (c.dong_bo is not null and c.dong_bo not in ('done', 'synced', 'error')))
+        union all
+        -- BẮT ĐẦU CHẠY (anh 08/11/2026 "Tại sao lại Mở camp vào khung giờ nào vậy?"): cột Mở = giờ TẠO; camp tạo ngoài 07–12h hẹn 07:00 nên giờ chạy thật khác —
+        -- mốc = giờ có ĐỒNG CHI ĐẦU TIÊN (etp.so_gio_camp), chỉ camp tạo từ 3 ngày trước kỳ (khỏi quét cả bảng)
+        select extract(epoch from f.t)::bigint, 'bd', c.camp_id, 'đồng chi đầu tiên — camp bắt đầu tiêu thật',
+          coalesce('hẹn ' || to_char(c.lich at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI'), 'không hẹn'), r.dang, c.content_id, c.bo, c.ten,
+          'tạo ' || to_char(c.tao at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM'), 'Meta', c.camp_id
+        from (select g.camp_id, min(g.ngay + make_interval(hours => g.gio)) t from etp.so_gio_camp g join etp.camp k using (camp_id), tu
+              where k.tao >= tu.t - interval '3 day' and g.chi > 0 group by 1) f
+        join etp.camp c using (camp_id) left join etp.creative r using (creative_id), tu where f.t >= (tu.t at time zone 'utc') - interval '1 hour'
         order by 1 desc limit 30000`),
       // tiền theo GIỜ × BỘ (etp.so_gio_camp + etp.camp.bo — tổng khớp etp.so_gio, đo 07/11: $915,40 cả hai) để lọc bộ tính được cả tiền
       run<{ t: number; bo: string | null; chi: number; thu: number }>(sql`select extract(epoch from g.ngay + make_interval(hours => g.gio))::bigint t, k.bo, sum(g.chi)::float chi, sum(g.thu)::float thu

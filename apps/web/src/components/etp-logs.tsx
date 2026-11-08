@@ -77,7 +77,7 @@ export function TabLogs({ moCamp, hangLoc, campIds }: { moCamp: (id: number) => 
         color: l.mau, background: `${l.mau}1f`, border: `1px solid ${l.mau}55`, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}><span>{l.icon}</span>{n}</span>; };
   // MỖI LOẠI MỘT CỘT HẸP (anh 08/11/2026 "màu thế ok rồi, nhưng để vào từng cột cho cân đối"): nhãn màu nằm giữa ô, cột rộng O_COT, tiêu đề = icon màu + tên ngắn hai dòng
   // → 18 cột + khung + tiền vừa ngăn 1400px, không cuộn ngang (anh: "Trình bày drawer làm sao ko phải scroll sang ngang"); điện thoại dùng thẻ (khổ hẹp) bên dưới
-  const O_COT = 51;
+  const O_COT = 48;
   // BẤM MÃ = NGĂN KÉO tại chỗ (anh 08/11/2026 "Bấm vào thì mở ra drawer để tao ko phải sang tab mới"): camp → ngăn camp của trang; dòng / creative → ngăn Sản xuất của phim
   const moNgan = (e: HangLog): (() => void) | null => { const ma = LOAI_THEO_K[e[1]]?.ma;
     if (ma === 'camp' && e[2] != null) return () => moCamp(e[2]!);

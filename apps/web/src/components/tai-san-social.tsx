@@ -17,11 +17,11 @@ export function cotSocial<T>(get: (r: T) => TroVe | null | undefined, ky: number
   const nenCua = (t: TroVe | null | undefined) => (t ? t.nen.map((n) => NHAN_NEN[n] ?? n).join(', ') : 'chưa có kênh social nào trỏ về');
   const o = (n: number | null | undefined, dam = false) => <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: dam ? 700 : 400, color: n ? undefined : 'var(--fg-4)' }}>{so(n)}</span>;
   return [
-    { key: 'so_tk', group: 'social', header: 'Tài khoản', width: 76, sortValue: (r) => get(r)?.taiKhoan ?? null, title: 'số tài khoản social có bài trỏ về (mọi thời điểm)',
+    { key: 'so_tk', group: 'social', header: 'TK', width: 44, sortValue: (r) => get(r)?.taiKhoan ?? null, title: 'TK = số tài khoản social có bài trỏ về (mọi thời điểm)',
       cellTitle: (r) => nenCua(get(r)), cell: (r) => o(get(r)?.taiKhoan ?? null, true) },
-    { key: 'so_bai', group: 'social', header: 'Bài', width: 60, sortValue: (r) => get(r)?.bai ?? null, title: `bài đăng trong ${ky} ngày`, cell: (r) => o(get(r) ? get(r)!.bai : null) },
-    { key: 'so_xem', group: 'social', header: 'Xem tới nay', width: 88, sortValue: (r) => get(r)?.xem ?? null, title: `lượt xem CỘNG DỒN tới nay của các bài đăng trong ${ky} ngày (không phải lượt xem phát sinh trong ${ky} ngày)`, cell: (r) => o(get(r)?.xem ?? null) },
-    { key: 'so_khach', group: 'social', header: 'Khách', width: 64, sortValue: (r) => get(r)?.khach ?? null, title: `khách vào site từ bài social trong ${ky} ngày (sổ phiên adfond; sản phẩm trên chợ không đo được)`,
+    { key: 'so_bai', group: 'social', header: 'Bài', width: 44, sortValue: (r) => get(r)?.bai ?? null, title: `bài đăng trong ${ky} ngày`, cell: (r) => o(get(r) ? get(r)!.bai : null) },
+    { key: 'so_xem', group: 'social', header: 'Xem Σ', width: 58, sortValue: (r) => get(r)?.xem ?? null, title: `Xem Σ = lượt xem CỘNG DỒN tới nay của các bài đăng trong ${ky} ngày (không phải lượt xem phát sinh trong ${ky} ngày)`, cell: (r) => o(get(r)?.xem ?? null) },
+    { key: 'so_khach', group: 'social', header: 'Khách', width: 52, sortValue: (r) => get(r)?.khach ?? null, title: `khách vào site từ bài social trong ${ky} ngày (sổ phiên adfond; sản phẩm trên chợ không đo được)`,
       cell: (r) => o(get(r)?.khach ?? null, true) },
   ];
 }

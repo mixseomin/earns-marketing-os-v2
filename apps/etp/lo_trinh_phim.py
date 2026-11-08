@@ -94,6 +94,8 @@ def chon_phim_moi(q, ch, da):
 # không trong sổ cấm 18+ → xếp dòng AT (máy dòng phim chạy anh-tinh.py, ~160–290₫ giọng / phim). Giữ tối đa AT_HANG dòng AT chưa xong để lượt sau
 # lấy phim mới nhất; phim LÃI NHẤT 3 ngày (thu − chi, nhà + đội) lên trước (anh 08/11/2026 "ưu tiên các phim có camp lãi trước"), hoà thì phim nhiều camp. Bật bằng etp.cau_hinh 'at_uu_tien' {"bat": true} — tắt thì không xếp gì (tiền giọng > 5.000₫/đợt cần anh bật).
 AT_HANG = 6
+# MỖI PHIM MỘT CAMP POSTER ĐỘNG (anh 08/11/2026 "Mỗi bộ phim đều cần có 1 camp như thế này"): PO giữ tới 20 dòng cùng lúc (dòng ~65 phút; các dạng khác đang gác nên iMac rảnh) — 87 phim đang chạy chưa có PO ≈ 5 giờ
+HANG = {"PO": 20, "AT": AT_HANG}
 UU_TIEN = ("PO", "AT")   # dạng tĩnh xếp ưu tiên cho phim đang chạy — PO trước (anh 08/11/2026 PO ROI +30%)
 def xep_at(q, ma="AT"):
     dang = DG.DONG[ma]
@@ -102,7 +104,7 @@ def xep_at(q, ma="AT"):
     if not ch.get("bat"): return 0
     # chỉ đếm dòng CỦA BƯỚC NÀY: 15 dòng AT phim mới (lộ trình, lãi 0) không được chặn phim lãi vào hàng (08/11/2026)
     con = int(q(f"select count(*) from etp.dong_phim where loai = '{ma}' and trang_thai = 'chay' and ai like 'máy: {dang} ưu tiên%'") or 0)
-    if con >= AT_HANG: return 0
+    if con >= HANG.get(ma, AT_HANG): return 0
     r = q(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp)
         select c.content_id, max(f.ten), max(f.the_loai), '{ma}', 'máy: {dang} ưu tiên (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh" · "Poster Động hiệu quả cao hơn") — phim đang chạy chưa có {dang}', 1
         from etp.camp_dang_chay c left join etp.phim f using (content_id)
@@ -110,7 +112,7 @@ def xep_at(q, ma="AT"):
           and not exists (select 1 from etp.creative r where r.content_id = c.content_id and r.dang = '{dang}')
           and not exists (select 1 from etp.dong_phim d where d.content_id = c.content_id and d.loai = '{ma}' and (d.trang_thai = 'chay' or d.tao_luc > now() - interval '2 days'))
           and not coalesce((select k.gia_tri ? c.content_id::text from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam'), false)
-        group by c.content_id order by (select coalesce(sum(s.thu - s.chi), 0) from (select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay s join etp.camp k using (camp_id) union all select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay_ngoai s join etp.camp_ngoai k using (camp_id)) s where s.content_id = c.content_id and s.ngay >= current_date - 3) desc, count(*) desc limit {AT_HANG - con} on conflict do nothing returning id""")
+        group by c.content_id order by (select coalesce(sum(s.thu - s.chi), 0) from (select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay s join etp.camp k using (camp_id) union all select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay_ngoai s join etp.camp_ngoai k using (camp_id)) s where s.content_id = c.content_id and s.ngay >= current_date - 3) desc, count(*) desc limit {HANG.get(ma, AT_HANG) - con} on conflict do nothing returning id""")
     return len([l for l in (r or "").splitlines() if l.strip()])
 
 AT_KQ = [0]

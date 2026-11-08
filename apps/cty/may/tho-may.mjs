@@ -105,6 +105,12 @@ CẤM: dùng --slug hay mọi cách lách nhịp an toàn, sửa trần / khoả
 gõ mật khẩu, bấm xác minh, gỡ khoá xác minh (br xac-minh-xong) — gặp là CAN_ANH · lập tài khoản · mua / nạp / bật quảng cáo · xoá dữ liệu · git revert / reset / checkout ·
 sửa tệp ngoài ${DANG} · in khoá / mật khẩu / token.
 
+TRƯỚC KHI VIẾT BÁO ANH — ĐỌC LẠI TRẠNG THÁI LÚC NÀY (anh 08/11/2026: "không được báo lỗi sai"; Mạnh báo Front Porch "kẹt nháp, máy sẽ tự đăng lại" trong khi
+video đã lên từ trước đó): (1) đọc lại xv_may_nhat_ky của máy + nền từ lúc cảnh báo tới giờ — có dòng "Đã đăng …" sau lúc cảnh báo thì nền ĐÃ có bài: báo đúng
+link đó, KET: DA_SUA, không kể lỗi cũ như đang còn; (2) git log -5 trong repo đăng — lỗi đã có commit sửa của phiên khác thì nói commit đó, không nhận là mình
+sửa, không báo "đang sửa"; (3) YouTube: node scripts/dang-may.mjs --soi youtube --may ${mayMa || '<máy>'} xác nhận đổi kênh + mở hộp Upload chạy được thì mới viết
+"đã sửa". Chỉ báo điều vừa đọc ra, không báo điều đoán.
+
 KẾT THÚC bằng đúng một dòng cuối: "KET: DA_SUA" | "KET: KHONG_SUA" | "KET: CAN_ANH", ngay trên nó một dòng "BÁO ANH:" rồi 3–6 dòng tiếng Việt cho anh đọc trên điện thoại, lời thường, không bảng, không dán lệnh dài, mỗi ý một dòng mở bằng nhãn ngắn và dấu hai chấm:
 lỗi gì · gốc ở đâu · đã sửa gì (tệp + commit) · đã đăng bù chưa (link bài) / vì sao không. Viết gọn, xưng "con", gọi "anh".`;
 const XV = `${MOS2}/apps/xuong-video`;

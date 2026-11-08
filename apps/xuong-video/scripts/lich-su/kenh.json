@@ -85,7 +85,6 @@
    "es": "FIN"
   },
   "cau_cuoi": null,
-  "luu_kho": { "drive": "Studio/YNT", "sau_ngay": 7, "_ghi": "luu-kho.mjs (08/11/2026): đã lên MỌI nền máy khai đăng (may-dung --may-info) thì xoá video trên iMac; đủ 7 ngày thì bản R2 + tài sản sang Google Drive, so khớp rồi mới xoá R2" },
   "mau_dai": { "lich": { "thu": 6, "gio": "01:00", "tran_vnd": 15000, "duyet": "anh duyệt chi 15.000₫/tập dài, 1 tập/tuần (08/11/2026)" }, "goc_spy": 66963, "_ghi": "tập dài ghép giấy (giay/lam-dai.mjs › nap-dai.mjs): góc spy #66963 \"Người chán bài lịch sử 5 phút nông cạn\" — khớp tập trọn chuyện 12–15 phút (07/11/2026)" },
   "giong": "Daniel",
   "theme": "la_cai",

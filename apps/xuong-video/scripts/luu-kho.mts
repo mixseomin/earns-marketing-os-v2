@@ -1,13 +1,15 @@
 // CHUYỂN KHO SAU KHI ĐĂNG — phần chạy trên box3 (08/11/2026, anh: "Đẩy lên Drive cho giảm chi phí R2"): bản trên R2 đã chép sang Drive và đã so khớp ở iMac
-// (luu-kho.mjs) → xoá đúng các tệp R2 đó + ghi đường Drive vào sổ Studio (de.kho_drive) để cần thì kéo về.
-//   NODE_OPTIONS=--conditions=react-server tsx scripts/lich-su/luu-kho.mts --may <mã> --slug <slug> --drive <đường drive> <url R2>…
+// (scripts/luu-kho.mjs, chung mọi máy video) → xoá đúng các tệp R2 đó + ghi đường Drive vào sổ Studio (de.kho_drive) để cần thì kéo về.
+//   NODE_OPTIONS=--conditions=react-server tsx scripts/luu-kho.mts --may <mã> --slug <slug> --drive <đường drive> <url R2>…
 // Chốt: chỉ xoá URL của chính video đó (video_url / thumb trong sổ) và nằm dưới <R2_PUBLIC_BASE>/xuong-video/ — URL lạ thì dừng, không xoá gì.
 import { sql } from 'drizzle-orm';
 import { getDb } from '@mos2/db';
-import { deleteFromR2, r2KeyFromUrl } from '../../src/lib/r2';
+import { deleteFromR2, r2KeyFromUrl } from '../src/lib/r2';
 
 const a = process.argv.slice(2), lay = (k: string) => { const i = a.indexOf(k); return i >= 0 ? a[i + 1] : null; };
 const may0 = lay('--may'), slug0 = lay('--slug');
+// --ds-may: mã mọi máy có video còn trên R2 (luu-kho.mjs --het đi hết, không máy nào đứng ngoài)
+if (a.includes('--ds-may')) { const r = (await getDb()!.execute(sql`SELECT DISTINCT m.ma FROM xv_may m JOIN xv_may_video v ON v.may_id = m.id WHERE v.video_url IS NOT NULL AND NOT (coalesce(v.de, '{}'::jsonb) ? 'kho_drive') ORDER BY 1`)) as unknown as { ma: string }[]; console.log(JSON.stringify(r.map((x) => x.ma))); process.exit(0); }
 // --tra <tệp=url>…: đẩy tệp (kéo từ Drive) về đúng khoá R2 của url, bỏ dấu kho_drive — chỉ cho video đã chuyển kho
 if (a.includes('--tra')) { const { uploadToR2 } = await import('../../src/lib/r2'), db0 = getDb()!; let n = 0;
   for (const cap of a.slice(a.indexOf('--tra') + 1)) { const [tep, u] = [cap.slice(0, cap.indexOf('=')), cap.slice(cap.indexOf('=') + 1)], k = r2KeyFromUrl(u.split('?')[0]); if (!k || !k.startsWith('xuong-video/')) { console.error(`✗ khoá lạ: ${u}`); process.exit(4); }

@@ -524,5 +524,3 @@ buoc('đẩy Studio');
     console.log(`✓ nạp máy ${KENH.may} · https://studio.on.tc (Máy › ${KENH.may}) · Phòng Nội dung chấm ở lượt kế`);
   } catch (e) { console.log(`⚠ nạp máy đăng hỏng: ${String(e.stderr || e.message).trim().split('\n').slice(-2).join(' · ')}`); }
   try { sshS([`rm -rf ${bt}`]); } catch {} }
-// LƯU KHO (08/11/2026): kênh khai kenh.json › luu_kho (YNT) — tập cũ đã lên đủ nền thì bỏ video trên iMac, đủ ngày thì sang Drive; kênh khác không làm gì
-try { execFileSync(process.execPath, [join(DIR, 'luu-kho.mjs'), '--kenh', kenhId], { stdio: 'inherit' }); } catch (e) { console.log(`⚠ lưu kho: ${String(e.message).split('\n')[0]}`); }

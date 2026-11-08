@@ -1,0 +1,8 @@
+{
+  "_ghi": "LƯU KHO CHUNG MỌI MÁY VIDEO (08/11/2026, anh: 'việc lưu trữ cho dự án video phải chuẩn hoá toàn bộ theo cách YNT'). Một máy studio (xv_may.ma) = một mục; máy không khai thì dùng mac_dinh, tep của máy CỘNG thêm vào tep mặc định (bản tải về của máy đăng puzzle-books taiVideo) — không có máy nào đứng ngoài. Máy: scripts/luu-kho.mjs (iMac, chay-kenh.mjs gọi mỗi ngày một lần) + scripts/luu-kho.mts (box3). drive: {may} = mã máy. tep: tệp / thư mục trên iMac của một video, {slug} = slug video, ~ = HOME, {xv} = apps/xuong-video — thư mục: nhịp 1 xoá *.mp4 bên trong, nhịp 2 chép phần còn lại lên Drive rồi xoá thư mục; tệp: nhịp 1 xoá.",
+  "mac_dinh": { "remote": "gdrive", "drive": "Studio/{may}", "sau_ngay": 7, "nen_song_ngay": 14, "tep": ["~/puzzle-books/out/shorts/studio/{slug}.mp4", "~/puzzle-books/out/shorts/studio/{slug}.mp4.xuat"] },
+  "may": {
+    "yesterdays-news-tonight": { "drive": "Studio/YNT", "tep": ["~/.cache/lich-su/{slug}"] },
+    "astrolas": { "tep": ["{xv}/scripts/lich-su/brand/astrolas/ra/{slug}.mp4", "~/.cache/shot-code-giong/{slug}"] }
+  }
+}

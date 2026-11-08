@@ -171,3 +171,12 @@ for (const [k, K] of Object.entries(KENH)) {
 
 // KÊNH CÓ SỔ MÁY VIẾT (G8 Astrolas, 07/11/2026): không qua lam-tap (máy viết + long-tieng + nap-tap riêng), cùng lượt mỗi giờ này, không có tiến trình nền riêng
 if (!process.argv.includes('--ep') && (!arg('kenh') || arg('kenh') === 'astrolas')) spawnSync(process.execPath, [join(DIR, 'chay-so-kenh.mjs')], { stdio: 'inherit', timeout: 150 * 60_000, killSignal: 'SIGKILL' });
+
+// LƯU KHO CHUNG MỌI MÁY VIDEO (anh 08/11/2026: "chuẩn hoá toàn bộ theo cách YNT"): ngày một lần, lượt đầu tiên sau 02:00 giờ VN — video đã dùng xong rời iMac,
+// đủ 7 ngày thì R2 → Google Drive (scripts/luu-kho.mjs + luu-kho.json). Không tiến trình nền riêng. Có dòng ⚠ (chép / so khớp / máy hỏng) → báo Telegram nguyên văn.
+{ const hom = new Date(Date.now() + 7 * 36e5).toISOString().slice(0, 10), gioVn = new Date(Date.now() + 7 * 36e5).getUTCHours(), dau = join(homedir(), '.cache', `luu-kho-${hom}.xong`);
+  if (!process.argv.includes('--ep') && !arg('kenh') && gioVn >= 2 && !existsSync(dau)) {
+    writeFileSync(dau, new Date().toISOString());
+    const r = spawnSync(process.execPath, [join(DIR, '..', 'luu-kho.mjs'), '--het'], { encoding: 'utf8', timeout: 120 * 60_000, killSignal: 'SIGKILL' }), ra = `${r.stdout ?? ''}${r.stderr ?? ''}`;
+    console.log(ra.trim());
+    const loi = ra.split('\n').filter((l) => l.startsWith('⚠') || l.startsWith('✗')); if (r.status || loi.length) tele(`⚠ Lưu kho video ${hom}${r.status ? ` (mã ${r.status ?? r.signal})` : ''}:\n${(loi.length ? loi : ra.trim().split('\n').slice(-3)).slice(0, 12).join('\n')}`); } }

@@ -13,6 +13,9 @@ import json, os, subprocess
 TANG = {"tang", "bat", "nhan_ban", "tao_camp"}
 # TRẦN CAMP MỚI / NGÀY — một nguồn cho cổng này và máy dòng phim (dong_phim.mo_tran_ngay nhận dòng dừng vì trần bằng KHOA_TRAN_NGAY có trong lý do, đếm chỗ còn bằng SQL_TAO_HOM_NAY)
 KHOA_TRAN_NGAY = "tran_camp_moi_ngay"
+# BỘ CỦA PHIM — một nguồn (anh 08/11/2026 "Bộ 1 = 50% Kiên… Sửa đi"): phim đã có bộ (sổ xv_khoa_ngoai.ethopex_phim_tk, mỗi phim một bộ) → bộ đó;
+# phim MỚI → etp.cau_hinh.bo_phim_moi (trước ghi cứng "2" ở 5 chỗ). Các chỗ SQL ngoài Python (cty worker, etp-dong.ts, len-sau-cham, thay-the) đọc cùng khoá này.
+SQL_BO_PHIM = "select coalesce((select gia_tri->>'{cid}' from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), (select gia_tri#>>'{{}}' from etp.cau_hinh where khoa = 'bo_phim_moi'))"
 SQL_TAO_HOM_NAY = "select count(*) from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
 
 def _q(s):

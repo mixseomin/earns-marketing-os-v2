@@ -255,15 +255,16 @@ export async function lenCampCr(dongId: number, creativeId: number): Promise<{ o
   const me = await getCurrentUser(); if (me?.role !== 'admin') return { loi: 'chỉ admin được lên camp' };
   const id = Math.trunc(Number(dongId)), cr = Math.trunc(Number(creativeId));
   const [x] = await run<{ content_id: number; ten: string | null; lang: string | null; duoc: boolean | null; co_camp: boolean; bo: string | null }>(sql`select p.content_id, p.ten, r.lang, g.duoc_len duoc,
-      exists (select 1 from etp.camp c where c.creative_id = r.creative_id) co_camp, (select gia_tri->>p.content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_tk') bo
+      exists (select 1 from etp.camp c where c.creative_id = r.creative_id) co_camp, coalesce((select gia_tri->>p.content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi')) bo
     from etp.dong_phim p join etp.creative r on r.content_id = p.content_id and r.creative_id = ${cr} left join etp.cham_cong g on g.creative_id = r.creative_id
     where p.id = ${id} and p.trang_thai in ('chay', 'dung', 'loi')
     union all   -- dòng NGOÀI máy dòng phim (id âm: thư viện / thay thế) — nút "Lên camp" hiện ở đó thì phải bấm được (anh 05/11/2026)
     select r.content_id, coalesce(f.ten, r.content_id::text), r.lang, g.duoc_len, exists (select 1 from etp.camp c where c.creative_id = r.creative_id),
-      (select gia_tri->>r.content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_tk')
+      coalesce((select gia_tri->>r.content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi'))
     from etp.creative r left join etp.phim f using (content_id) left join etp.cham_cong g on g.creative_id = r.creative_id where ${id} < 0 and r.creative_id = ${cr} and r.content_id is not null`);
   if (!x) return { loi: 'creative không thuộc dòng đang chạy' };
   if (!x.duoc) return { loi: 'cổng chấm đang chặn creative này' };
+  if (!x.bo) return { loi: 'không đọc được bộ của phim (ethopex_phim_tk / etp.cau_hinh.bo_phim_moi)' };
   if (x.co_camp) return { loi: 'creative đã có camp' };
   if (id > 0) await db().execute(sql`insert into etp.cau_hinh (khoa, gia_tri) values ('lo_trinh', jsonb_build_object(${String(x.content_id)}::text, jsonb_build_object('cr', jsonb_build_array(${cr}))))
     on conflict (khoa) do update set gia_tri = coalesce(etp.cau_hinh.gia_tri, '{}'::jsonb) || jsonb_build_object(${String(x.content_id)}::text,
@@ -272,7 +273,7 @@ export async function lenCampCr(dongId: number, creativeId: number): Promise<{ o
   const ten = `${id > 0 ? `dp${id}` : 'tay'} ${(x.ten ?? '').replace(/[^A-Za-z0-9 .,:!?#-]/g, '')} ${lang.toUpperCase()} - creative #${cr}`;   // spawn không qua shell — chỉ giữ chữ ASCII cho tên camp
   const dir = `${process.env.REPO_DIR ?? '/opt/earns-marketing-os-v2'}/apps/xuong-video/scripts/ethopex`;
   const log = openSync(`/tmp/etp-len-cr-${cr}.log`, 'a');
-  spawn('python3', ['nhan-ban.py', String(KHUON[lang]), '--tay', '--bo', x.bo ?? '2', '--creative', String(cr), '--content', String(x.content_id), '--ten', ten, '--that',   // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026: ngoài 07–12h VN hẹn 07:00 hôm sau)
+  spawn('python3', ['nhan-ban.py', String(KHUON[lang]), '--tay', '--bo', x.bo ?? '', '--creative', String(cr), '--content', String(x.content_id), '--ten', ten, '--that',   // giờ chạy do nhan-ban.lich_len quyết (anh 05/11/2026: ngoài 07–12h VN hẹn 07:00 hôm sau)
     '--luat', `anh bấm lên camp creative #${cr} (etp.on.tc › Sản xuất)`, '--ai', `anh (etp.on.tc ${me.email})`], { cwd: dir, detached: true, stdio: ['ignore', log, log], env: process.env }).unref();
   return { ok: true };
 }

@@ -498,7 +498,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   }
   // PHIM MỚI CHẤM SẠCH → LÊN CAMP NGAY (anh 28/10/2026: "Xong phim nào thì lên camp luôn phim đó"): trước đây len-sau-cham.py chỉ chạy tay trên iMac → creative chấm Sạch
   // nằm im (kho 51 góc). Mỗi nhịp: creative chấm Sạch, chưa có camp, PHIM CHƯA TỪNG CÓ CAMP (phim mới) → nhan-ban.py --creative trên khuôn cùng tiếng, ở bộ của phim
-  // (sổ ethopex_phim_tk; phim mới → bộ 2), lịch today, $1. Tối đa 4 creative / nhịp (mỗi lần tạo chờ Ethopex đồng bộ ~1 phút). Cổng thật vẫn ở nhan-ban (chấm, rào chắn, 18+, CTA).
+  // (sổ ethopex_phim_tk; phim mới → etp.cau_hinh.bo_phim_moi, cùng nguồn apps/etp/cong.py SQL_BO_PHIM), lịch today, $1. Tối đa 4 creative / nhịp (mỗi lần tạo chờ Ethopex đồng bộ ~1 phút). Cổng thật vẫn ở nhan-ban (chấm, rào chắn, 18+, CTA).
   try {
     const KHUON = { en: 65110, es: 65734 };
     // dạng lên cho PHIM ĐANG CHẠY (một camp mỗi dạng mỗi phim) → [luật, người duyệt] ghi vào nhật ký camp
@@ -514,7 +514,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     const ghiBq = () => chayPsql(`update etp.cau_hinh set gia_tri = $J$${JSON.stringify(bq).replace(/\$J\$/g, '')}$J$::jsonb, luc = now() where khoa = 'phim_moi_bo_qua'`);
     await ghiBq();   // bỏ mục quá 24 giờ trước khi đọc view
     const ds = JSON.parse((await chayPsql(`select coalesce(json_agg(x), '[]') from (select v.creative_id, v.content_id, v.lang, v.lo, coalesce(p.ten, '') ten, v.dang, v.tu, v.den,
-        coalesce((select gia_tri->>(v.content_id::text) from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2') bo, v.nhan, v.so_len
+        coalesce((select gia_tri->>(v.content_id::text) from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), (select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi')) bo, v.nhan, v.so_len
       from etp.cho_len_v v left join etp.phim p using (content_id) where v.ly_do is null order by v.hang limit 4) x`)).trim() || '[]');
     const da = [];
     // PHIM ROI CAO CẢ ĐỘI → so_len camp MỘT LẦN (anh 06/11/2026 "Phim có roi cao của cả đội thì có thể lên cùng 5 camp mới mỗi lần"): view etp.phim_doi_lai, mức ở etp.cau_hinh 'len_doi_lai'

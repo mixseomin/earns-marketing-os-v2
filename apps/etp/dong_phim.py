@@ -400,7 +400,8 @@ def b_camp_mr(d, truoc):
     cu = camp_co_san(moi)   # creative của chính dòng đã có camp (lượt trước bị huỷ giữa chừng / máy luật lấy thay) = đã lên, tính vào số camp
     ds = [c for c in dict.fromkeys(moi + san) if c not in cu][:max(0, int(d["so_camp"]) - len(cu))]
     if not ds and not cu: return "dung", "không có creative sạch nào để lên camp", None
-    bo = sql(f"select coalesce((select gia_tri->>'{d['content_id']}' from xv_khoa_ngoai where ten = 'ethopex_phim_tk'), '2')") or "2"
+    bo = sql(CG.SQL_BO_PHIM.format(cid=int(d['content_id'])))   # phim đã có bộ → bộ đó; phim mới → etp.cau_hinh.bo_phim_moi (cong.SQL_BO_PHIM)
+    if not bo: return "loi", "không đọc được bộ của phim (ethopex_phim_tk / etp.cau_hinh.bo_phim_moi)", None
     xong, loi, may_ = [], [], False
     for i_, c in enumerate(ds):
         sql(f"update etp.dong_buoc set ghi = {s(f'đang lên camp {i_ + 1}/{len(ds)} (creative #{c})')}, nhip = now() where dong_id = {d['id']} and buoc = 'camp'")

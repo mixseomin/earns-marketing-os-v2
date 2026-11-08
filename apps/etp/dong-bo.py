@@ -289,6 +289,10 @@ def main():
                       "nguon": (spy.get(i) or [None] * 3)[2] or (url_(i).split("/")[2].replace("www.", "").split(".")[0] if url_(i) and "//" in url_(i) else None),
                       "url": url_(i), "the_loai": (tl.get(str(i)) or {}).get("tl"), "the_loai_nguon": (tl.get(str(i)) or {}).get("nguon"), "bo": ptk.get(str(i))} for i in ids],
             ["content_id"], {"content_id": "int", "ten": "text", "locale": "text", "nguon": "text", "url": "text", "the_loai": "text", "the_loai_nguon": "text", "bo": "text"})
+        # link dự phòng cho MỌI phim trong kho, không chỉ phim có camp (ids) — phim lộ trình mới chưa camp (vd 152214) cũng cần link tải tập
+        q("""update etp.phim p set url = t.redirect_url, nguon = coalesce(p.nguon, split_part(replace(split_part(t.redirect_url, '/', 3), 'www.', ''), '.', 1))
+             from (select distinct on (ref_id) ref_id, redirect_url from etp.trang_phim where redirect_url like 'http%' and link_ok is not false order by ref_id, sua desc) t
+             where t.ref_id = p.content_id and coalesce(p.url, '') = ''""")
         dat, thay, tc = khoa("ethopex_cta_dat"), khoa("ethopex_cta_thay"), khoa("ethopex_tu_choi")
         thay_nguoc = {int(v): int(k) for k, v in thay.items()}
         rows = []

@@ -1,79 +1,85 @@
 #!/usr/bin/env python3
-"""ẢNH DẠNG PO: AI DỰNG THIẾT KẾ, NGƯỜI LÀ DIỄN VIÊN THẬT — $0, chạy trên iMac (anh 08/11/2026: chọn hướng B "AI chạy trên máy nhà";
-"Người ko giống thì vi phạm rồi. Phải tách người thật hoặc sinh người thật cắt từ phim ra mà ghép vào").
-Cách làm (mỗi phim, mỗi bố cục):
-  1. NGƯỜI THẬT: diễn viên tách nền (rembg, CPU) từ poster chính thức của phim (ảnh studio, nét) — thiếu thì từ khung phim đã xoá phụ đề (bo-cuc-po.mo)
-  2. ĐẶT NGƯỜI lên khung 768×1344 theo bố cục (giữa · lệch trái · cặp đôi) → mặt nạ: TRẮNG = AI vẽ (mọi thứ trừ người), ĐEN = giữ (người)
-  3. AI VẼ PHẦN CÒN LẠI: PosterCraft (FLUX, bản nén GGUF Q4) qua stable-diffusion.cpp (GPU Metal của M4) — nền, ánh sáng, không khí, CHỮ TÊN PHIM theo thể loại
-  4. DÁN LẠI NGƯỜI THẬT lên trên ảnh AI (mép mềm) → mặt người giữ nguyên từng điểm ảnh, không bao giờ là người do AI vẽ
-Mô hình: ~/models/postercraft (tai.sh) · công cụ: ~/tools/stable-diffusion.cpp/build/bin/sd-cli
-Chạy: ~/.venvs/poster-mau/bin/python ve-po-ai.py <content_id> [--kieu giua|trai|doi] [--buoc 20]
-  → ~/.cache/ethopex/anh-tinh/<id>/po-ai/<kiểu>.png"""
-import importlib.util, os, subprocess, sys, time
-from PIL import Image, ImageFilter
+"""ẢNH DẠNG PO: API ẢNH AI VẼ BỐ CỤC MỚI VỚI NGƯỜI THẬT + TÊN PHIM THEO POSTER GỐC (anh 08/11/2026):
+  "kinh quá. Ko dùng cách này đc" (AI chạy trên iMac — chậm 8–19 phút / ảnh, PosterCraft ép vẽ chữ rác, ghép người trông như dán) →
+  "thà mày dùng API ảnh AI sinh post còn ngon hơn. Dùng idea từ git rồi gửi cho nó bố cục mới để nó sinh cho chuẩn. Sau đó ghép tên phim theo format poster gốc vào là đc"
+  + "Người ko giống thì vi phạm" → người phải đúng diễn viên.
+Mỗi phim × bố cục:
+  1. iMac — ẢNH THAM CHIẾU NGƯỜI THẬT: poster chính thức (62% trên, đã xoá chữ / huy hiệu bằng máy đọc chữ của anh-tinh.py) + 2 khung phim có người rõ đã xoá phụ đề
+  2. box3 — anh-po-ai.mts: đẩy tham chiếu lên R2 → cổng ảnh (ckey nano-banana-pro, ~110₫) vẽ poster MỚI theo bố cục (ý từ PosterCraft / PosterVerse) + giọng thể loại,
+     đúng người trong tham chiếu, KHÔNG chữ, chừa 24% đáy
+  3. iMac — TÊN PHIM theo format poster gốc: chữ tên tách từ chính poster (ten-poster.png) đặt ở đáy, căn giữa, rộng ~86% như poster gốc; tagline dưới
+Chạy (iMac): ~/.venvs/poster-mau/bin/python ve-po-ai.py <content_id> [<content_id> …] [--bo chan_dung,tang_lop,…]
+  → ~/.cache/ethopex/anh-tinh/<id>/po-ai/<bố cục>.jpg (+ <bố cục>-tho.jpg ảnh AI chưa ghép tên) + bảng ~/.cache/ethopex/anh-tinh/po-ai-bang.jpg"""
+import importlib.util, json, os, subprocess, sys
+from PIL import Image, ImageDraw, ImageFont
 
-D = os.path.dirname(os.path.abspath(__file__)); C = os.path.expanduser("~/.cache/ethopex/anh-tinh")
-M = os.path.expanduser("~/models/postercraft"); SD = os.path.expanduser("~/tools/sd-bin/sd-cli")   # bản dựng sẵn chính thức cho Mac arm64 (release master-1060-0b3b98d của leejet/stable-diffusion.cpp)
-W, H = 768, 1344   # 9:16 gần đúng, bội số 64 cho FLUX; ảnh ra phóng lên 1080×1920 ở bước dựng video
+D = os.path.dirname(os.path.abspath(__file__)); C = os.path.expanduser("~/.cache/ethopex/anh-tinh"); B = "root@167.233.241.16"
 _s = importlib.util.spec_from_file_location("bo_cuc", os.path.join(D, "bo-cuc-po.py")); BC = importlib.util.module_from_spec(_s); _s.loader.exec_module(BC)
+GIONG = {"ty_phu": "billionaire luxury romance, gold and black, glamorous", "mafia": "dark mafia crime drama, red and black, smoky night",
+         "tinh_cam": "romantic drama, warm soft light", "me_con": "heartwarming family drama, warm sunlight", "vo_danh": "underdog action drama, intense rim light, sparks",
+         "he_thong": "action fantasy, glowing holographic system UI", "fantasy": "epic fantasy, magical light rays, mystical fog", "soi": "werewolf romance fantasy, full moon, misty forest",
+         "co_trang": "ancient chinese palace drama, red and gold", "hoi_han": "emotional regret drama, rain, cold blue tones"}
+# bố cục theo thể loại (3 mỗi phim) — tên khớp BO_CUC trong anh-po-ai.mts
+BO_LOAI = {"ty_phu": ["chan_dung", "tang_lop", "doi_dau"], "mafia": ["chan_dung", "doi_dau", "hai_lop"], "tinh_cam": ["doi_dau", "tang_lop", "hai_lop"],
+           "me_con": ["tang_lop", "chan_dung", "hai_lop"], "vo_danh": ["hanh_dong", "chan_dung", "tang_lop"], "he_thong": ["hanh_dong", "hai_lop", "chan_dung"],
+           "fantasy": ["hai_lop", "hanh_dong", "chan_dung"], "soi": ["hai_lop", "doi_dau", "chan_dung"], "co_trang": ["tang_lop", "chan_dung", "doi_dau"]}
+BO_MAC = ["chan_dung", "tang_lop", "doi_dau"]
 
-# giọng thiết kế theo thể loại (chữ tên phim do AI vẽ theo đúng giọng này)
-GIONG = {
-    "ty_phu": "luxury billionaire romance drama poster, gold and black palette, elegant serif gold title lettering, chandelier bokeh, glamorous cinematic lighting",
-    "mafia": "dark mafia crime drama poster, deep shadows, red and black, sharp serif title, smoke and city night",
-    "tinh_cam": "romantic drama poster, soft warm light, pastel sky, flowing script title lettering, petals and glow",
-    "me_con": "heartwarming family drama poster, warm sunlight, soft colors, friendly rounded title lettering",
-    "vo_danh": "intense underdog action drama poster, dramatic rim light, sparks and dust, bold condensed metallic title",
-    "he_thong": "action fantasy system drama poster, glowing blue holographic UI elements, bold futuristic title",
-    "fantasy": "epic fantasy drama poster, magical light rays, mystical fog, ornate engraved title lettering",
-    "soi": "werewolf romance fantasy poster, full moon, misty dark forest, silver ornate title lettering",
-    "co_trang": "ancient chinese palace drama poster, red lanterns, silk and gold, brush calligraphy style title",
-    "hoi_han": "emotional regret drama poster, rain, cold blue tones, thin elegant serif title",
-}
-GIONG_MAC = "cinematic short drama movie poster, dramatic lighting, bold stylish title lettering"
-
-def nguoi_that(P):
-    """diễn viên thật: tách nền từ poster chính thức (nét nhất); không tách được thì khung phim"""
+def tham_chieu(P, thu):
+    """ảnh tham chiếu người thật vào thư mục `thu`: poster gốc (phần trên, đã xoá chữ) + 2 khung phim đã xoá phụ đề"""
+    os.makedirs(thu, exist_ok=True)
     po = os.path.join(C, str(P["cid"]), "poster.jpg")
     if os.path.exists(po):
-        n = BC.tach(Image.open(po).convert("RGB")); bb = n.getchannel("A").point(lambda v: 255 if v > 128 else 0).getbbox()
-        if bb and (bb[2] - bb[0]) * (bb[3] - bb[1]) > 0.08 * n.width * n.height: return n.crop(bb)
-    n = BC.cat(P["khung"][0]); bb = n.getchannel("A").getbbox(); return n.crop(bb) if bb else n
+        im = BC.mo(po); im.crop((0, 0, im.width, int(im.height * 0.62))).save(os.path.join(thu, "ref-1-poster.jpg"), quality=92)
+    for i, k in enumerate(P["khung"][:2]): BC.mo(k).save(os.path.join(thu, f"ref-{i + 2}-khung.jpg"), quality=92)
 
-def dat(n, kieu):
-    """đặt người thật lên khung theo bố cục → (lớp người RGBA W×H, mặt nạ L: 255 = AI vẽ)"""
-    cao = {"giua": 0.72, "trai": 0.78, "doi": 0.66}[kieu]; r = H * cao / n.height
-    n = n.resize((round(n.width * r), round(n.height * r)), Image.LANCZOS)
-    if n.width > W * 0.95: r2 = W * 0.95 / n.width; n = n.resize((round(n.width * r2), round(n.height * r2)), Image.LANCZOS)
-    x = {"giua": (W - n.width) // 2, "trai": -n.width // 8, "doi": (W - n.width) // 2}[kieu]
-    lop = Image.new("RGBA", (W, H), (0, 0, 0, 0)); lop.paste(n, (x, H - n.height), n)
-    giu = lop.getchannel("A").point(lambda v: 255 if v > 40 else 0).filter(ImageFilter.MinFilter(5))   # co mặt nạ giữ 2px: mép người để AI hoà ánh sáng
-    return lop, Image.eval(giu, lambda v: 255 - v)
+def ve_ai(P, bo, thu, tho):
+    """box3: anh-po-ai.mts → ảnh AI không chữ"""
+    xa = f"/tmp/po-ai/{os.path.basename(thu)}"
+    subprocess.run(["ssh", B, f"mkdir -p {xa}"], check=True)
+    subprocess.run(["scp", "-q"] + [os.path.join(thu, f) for f in sorted(os.listdir(thu)) if f.startswith("ref-")] + [f"{B}:{xa}/"], check=True)
+    lenh = (f"cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && NODE_OPTIONS=--conditions=react-server "
+            f"./node_modules/.bin/tsx apps/xuong-video/scripts/ethopex/anh-po-ai.mts {xa} {bo} {json.dumps(GIONG.get(P['loai'], 'cinematic short drama'))} {xa}/{bo}.jpg")
+    r = subprocess.run(["ssh", B, lenh], capture_output=True, text=True, timeout=400)
+    dong = (r.stdout.strip().splitlines() or ["{}"])[-1]
+    try: kq = json.loads(dong)
+    except Exception: kq = {"ok": False}
+    if not kq.get("ok"): raise RuntimeError(f"box3: {(r.stderr or r.stdout).strip()[-300:]}")
+    subprocess.run(["scp", "-q", f"{B}:{xa}/{bo}.jpg", tho], check=True); return kq
 
-def loi_nhac(P, kieu):
-    vi_tri = {"giua": "the main character stands in the center foreground", "trai": "the main character on the left, empty space on the right for the title",
-              "doi": "the couple stands together in the foreground"}[kieu]
-    return (f'movie poster for the short drama "{P["ten"]}". {GIONG.get(P["loai"], GIONG_MAC)}. {vi_tri}. '
-            f'Large title text "{P["ten"]}" at the top. small tagline "{P["tag"]}" near the bottom. professional key art, highly detailed, sharp focus')
+def ghep_ten(P, tho, ra):
+    """TÊN PHIM theo format poster gốc: chữ tên tách từ poster (ten-poster.png) ở đáy, căn giữa, rộng ~86%; tagline dưới"""
+    im = Image.open(tho).convert("RGB").resize((1080, 1920), Image.LANCZOS)
+    toi = Image.new("L", (1, 256)); toi.putdata([0 if i < 175 else min(170, (i - 175) * 3) for i in range(256)])   # đáy tối dần cho chữ nổi
+    im = Image.composite(Image.new("RGB", im.size, P["mau"]["toi"]), im, toi.resize(im.size))
+    y = BC.tieu_de(im, P, 75, 1460, 930, 290, chu_hoa=True); BC.tagline(im, P, min(y + 26, 1830), P["mau"]["sang"])
+    im.save(ra, quality=92)
 
-def ve(P, kieu, buoc=20, hat=None):
-    ra = os.path.join(C, str(P["cid"]), "po-ai"); os.makedirs(ra, exist_ok=True)
-    lop, mn = dat(nguoi_that(P), kieu)
-    nen = Image.new("RGB", (W, H), P["mau"]["toi"]); nen.paste(lop, (0, 0), lop)   # ảnh đầu vào: người thật trên nền màu tối của phim
-    vao, mat, tho = (os.path.join(ra, f"{kieu}-{x}.png") for x in ("vao", "mat", "tho"))
-    nen.save(vao); mn.save(mat)
-    lenh = [SD, "--diffusion-model", os.path.join(M, "PosterCraft-v1_RL-Q4_K.gguf"), "--vae", os.path.join(M, "ae.safetensors"),
-            "--clip_l", os.path.join(M, "clip_l.safetensors"), "--t5xxl", os.path.join(M, "t5xxl-Q4_K_M.gguf"),
-            "-p", loi_nhac(P, kieu), "-i", vao, "--mask", mat, "--strength", "1.0", "-W", str(W), "-H", str(H),
-            "--steps", str(buoc), "--cfg-scale", "1.0", "--guidance", "3.5", "--sampling-method", "euler", "-s", str(hat if hat is not None else int(P["cid"]) % 10000),
-            "-o", tho]
-    t0 = time.time(); r = subprocess.run(lenh, capture_output=True, text=True)
-    if r.returncode or not os.path.exists(tho): raise RuntimeError(f"sd lỗi ({r.returncode}): {(r.stderr or r.stdout)[-400:]}")
-    ai = Image.open(tho).convert("RGB")
-    mem = lop.getchannel("A").filter(ImageFilter.GaussianBlur(1.5)); ai.paste(lop.convert("RGB"), (0, 0), mem)   # dán lại người thật: mặt giữ nguyên từng điểm ảnh
-    p = os.path.join(ra, f"{kieu}.png"); ai.save(p); return p, time.time() - t0
+def lam(cid, bo_ds=None):
+    P = BC.doc_phim(cid); ra_dir = os.path.join(C, str(cid), "po-ai"); os.makedirs(ra_dir, exist_ok=True)
+    thu = os.path.join(ra_dir, f"vao-{cid}"); tham_chieu(P, thu); kq = []
+    for bo in bo_ds or BO_LOAI.get(P["loai"], BO_MAC):
+        tho, ra = os.path.join(ra_dir, f"{bo}-tho.jpg"), os.path.join(ra_dir, f"{bo}.jpg")
+        try:
+            k = ve_ai(P, bo, thu, tho); ghep_ten(P, tho, ra); kq.append((bo, ra, k.get("vnd", 0)))
+            print(f"#{cid} {bo}: {ra} · {k.get('vnd')}₫ · {k.get('model')} · {k.get('giay')} giây", flush=True)
+        except Exception as e: print(f"#{cid} {bo}: LỖI {e}", flush=True)
+    return P, kq
+
+def bang(ds, ra):
+    o = 360, 640; f = ImageFont.truetype("/System/Library/Fonts/Supplemental/Arial Unicode.ttf", 24)
+    im = Image.new("RGB", (o[0] * 4 + 50, (o[1] + 60) * len(ds) + 20), "#111"); d = ImageDraw.Draw(im)
+    for r, (P, kq) in enumerate(ds):
+        y = 20 + r * (o[1] + 60); d.text((20, y), f"#{P['cid']} {P['ten']} · {BC.TEN_LOAI.get(P['loai'], P['loai'])}", font=f, fill="#ddd")
+        po = os.path.join(C, str(P["cid"]), "poster.jpg")
+        if os.path.exists(po): im.paste(Image.open(po).convert("RGB").resize(o), (20, y + 34)); d.text((24, y + 38), "poster gốc", font=f, fill="#ff0")
+        for c, (bo, p, _) in enumerate(kq[:3]):
+            im.paste(Image.open(p).convert("RGB").resize(o), (20 + (c + 1) * (o[0] + 10), y + 34)); d.text((24 + (c + 1) * (o[0] + 10), y + 38), bo, font=f, fill="#fff")
+    im.save(ra, quality=88)
 
 if __name__ == "__main__":
-    a = sys.argv[1:]; kieu = a[a.index("--kieu") + 1] if "--kieu" in a else "giua"; buoc = int(a[a.index("--buoc") + 1]) if "--buoc" in a else 20
-    for cid in [x for x in a if x.isdigit()]:
-        P = BC.doc_phim(cid); p, giay = ve(P, kieu, buoc); print(f"#{cid} {P['ten']} · {P['loai']} · {kieu}: {p} ({giay:.0f} giây)", flush=True)
+    a = sys.argv[1:]; bo_ds = a[a.index("--bo") + 1].split(",") if "--bo" in a else None
+    gia_tri = {a[i + 1] for i, x in enumerate(a[:-1]) if x.startswith("--")}
+    ds = [lam(cid, bo_ds) for cid in a if cid.isdigit() and cid not in gia_tri]
+    tong = sum(v for _, kq in ds for *_, v in kq); print(f"tổng tiền: {tong}₫ · {sum(len(kq) for _, kq in ds)} ảnh")
+    if ds: p = os.path.join(C, "po-ai-bang.jpg"); bang(ds, p); print("bảng:", p)

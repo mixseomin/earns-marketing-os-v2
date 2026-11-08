@@ -7,6 +7,7 @@ import { DataTable, Segmented, type DataColumn } from '@/components/ui';
 import { KhungNoi, useNoi } from '@/components/etp-noi';
 import { KeToan, mauLai, MO_SO } from '@/components/etp-so';
 import { docLogs } from '@/lib/actions/etp-logs';
+import { openEntityDrawer } from '@/lib/entity-drawer';
 import { CHIEU_TK, demTk, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
 
 const U_KY = 'lgky', U_GOM = 'lggom', MAC_KY = 24, MAC_GOM = 60;
@@ -43,7 +44,7 @@ function ThongKe({ t }: { t: The }) {
     {bang(chieu[0], demTk(t.ds, 4))}{bang(chieu[1], demTk(t.ds, 5))}
   </div>;
 }
-export function TabLogs() {
+export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
   const [ky, setKy] = useState(MAC_KY), [gom, setGom] = useState(MAC_GOM);
   useEffect(() => { setKy(docUrl(U_KY, KY_GIO, MAC_KY)); setGom(docUrl(U_GOM, KHUNG_PHUT, MAC_GOM)); }, []);
   const [du, setDu] = useState<DuLogs | null>(null), [loi, setLoi] = useState<string | null>(null), [dangTai, setDangTai] = useState(false);
@@ -63,6 +64,11 @@ export function TabLogs() {
     const t: The = { k, nhan, ds: ds! };
     return <span role="button" tabIndex={0} onClick={(e) => noi.moNgay(t, e)} onMouseEnter={(e) => noi.mo(t, e)} onMouseLeave={noi.dongTre}
       style={{ cursor: 'pointer', fontWeight: 600, color: LOAI_THEO_K[k]?.bao ? DO : undefined, textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{n}</span>; };
+  // BẤM MÃ = NGĂN KÉO tại chỗ (anh 08/11/2026 "Bấm vào thì mở ra drawer để tao ko phải sang tab mới"): camp → ngăn camp của trang; dòng / creative → ngăn Sản xuất của phim
+  const moNgan = (e: HangLog): (() => void) | null => { const ma = LOAI_THEO_K[e[1]]?.ma;
+    if (ma === 'camp' && e[2] != null) return () => moCamp(e[2]!);
+    if ((ma === 'dong' || ma === 'creative') && e[6]) return () => openEntityDrawer('etp-sx', e[6]!);
+    return null; };
   const cong = (rows: KhungLog[], k: string) => rows.flatMap((x) => x.dem[k] ?? []);
 
   const cot: DataColumn<KhungLog>[] = [
@@ -100,7 +106,10 @@ export function TabLogs() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {noi.v.ds.slice(0, 300).map((e, i) => <div key={i} style={{ lineHeight: 1.35 }}>
             <span style={{ color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{gioVn(e[0])}</span>
-            {e[2] != null ? <b style={{ marginLeft: 6 }}>{maCua(e[1], e[2])}</b> : null}
+            {e[2] != null ? (() => { const mo = moNgan(e); return mo
+              ? <a role="button" onClick={() => { noi.dong(); mo(); }} title={LOAI_THEO_K[e[1]]?.ma === 'camp' ? 'mở ngăn camp' : 'mở ngăn sản xuất của phim'} style={{ marginLeft: 6, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{maCua(e[1], e[2])}</a>
+              : <b style={{ marginLeft: 6 }}>{maCua(e[1], e[2])}</b>; })() : null}
+            {e[6] ? <a role="button" onClick={() => { noi.dong(); openEntityDrawer('etp-phim', e[6]!); }} title="mở ngăn phim" style={{ marginLeft: 6, cursor: 'pointer', color: 'var(--fg-2)' }}>🎬 phim</a> : null}
             {e[3] ? <div style={{ color: 'var(--fg-2)', wordBreak: 'break-word' }}>{e[3]}</div> : null}</div>)}
           {noi.v.ds.length > 300 ? <div style={{ color: 'var(--fg-3)' }}>… còn {noi.v.ds.length - 300} việc — chọn khung gom nhỏ hơn để xem hết</div> : null}
         </div>

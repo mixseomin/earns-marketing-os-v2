@@ -2906,7 +2906,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
       ) : tab === 'camp' && xemCamp === 'logs' ? (
-        <TabLogs />
+        <TabLogs moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
         <CayCamp camps={camps} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
       ) : tab === 'camp' ? (

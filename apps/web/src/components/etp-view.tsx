@@ -2414,8 +2414,8 @@ const locHop = (l: string) => locDs(l).join(',') || 'all';
 const ghepNang = (d: DuLieuEtp, x: PhanNang): DuLieuEtp => ({ ...d, nhe: false, pheu: x.pheu, diemCham: x.diemCham, thuVien: x.thuVien,
   cham: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { ...c, ...(x.chamCt[Number(k)] ?? {}) }])) });
 
-// KIỂU XEM tab Camp. 'logs' (anh 08/11/2026) thay 'bac' Lên bậc: nhật ký máy nhà gom theo khung — components/etp-logs.tsx
-const XEM_CAMP_V = ['cay', 'bang', 'lich', 'logs'] as const;
+// KIỂU XEM tab Camp. Lên bậc ('bac') đã bỏ (anh 08/11/2026) — thay bằng NÚT Logs mở ngăn kéo (components/etp-logs.tsx), không phải một kiểu xem
+const XEM_CAMP_V = ['cay', 'bang', 'lich'] as const;
 type XemCamp = typeof XEM_CAMP_V[number];
 const laXemCamp = (v: string | null | undefined): v is XemCamp => (XEM_CAMP_V as readonly string[]).includes(v ?? '');
 const ngayCong = (d: string, n: number) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86_400_000).toISOString().slice(0, 10);
@@ -2453,6 +2453,10 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   // khoá ?ngan=camp:<id> trên URL (F5 mở lại — chuẩn ngăn kéo)
   const tranT = tranTrung(du);
   const [nganCamp, setNganCamp] = useState<number | null>(Number(/^camp:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1]) || null);
+  // ngăn Logs: ?lg=1 trên URL (F5 mở lại); link cũ ?v=logs (kiểu xem đã bỏ) cũng mở ngăn
+  const [moLogs, setMoLogs] = useState(false);
+  useEffect(() => { const q = new URLSearchParams(location.search); if (q.get('lg') === '1' || q.get('v') === 'logs') setMoLogs(true); }, []);
+  const datLogs = (v: boolean) => { setMoLogs(v); const u = new URL(location.href); if (v) u.searchParams.set('lg', '1'); else u.searchParams.delete('lg'); if (u.searchParams.get('v') === 'logs') u.searchParams.delete('v'); history.replaceState(null, '', u); };
   const [nganPhim, setNganPhim] = useState<string | null>(/^phim:(\d+)$/.exec(dauVao?.ngan ?? '')?.[1] ?? null);   // ngăn biểu đồ cả phim (điện thoại)
   // Sản xuất (dòng phim nhà) chỉ hiện khi đang xem tài khoản Tuấn David (nhà) — không ở người khác / Team (anh 03/11/2026)
   const hoanSo = useMemo(() => docHoan(duGoc.cauHinh), [duGoc.cauHinh]);   // sổ hoãn khung đổi camp (máy ghi mỗi nhịp)
@@ -2511,7 +2515,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   const doi = (x: Partial<typeof hienTai>, lam: () => void) => { urlTu({ ...hienTai, ...x }); startTransition(lam); };
   // BẤM TAB CHÍNH = VÀO KIỂU XEM ĐẦU TIÊN (anh 28/10/2026 "nếu bấm ngay vẫn vào cái đầu tiên như bình thường"); rê chuột = menu con chọn thẳng kiểu xem
   const doiTab = (t: Tab) => doi({ tab: t, ...(t === 'camp' ? { xemCamp: 'cay' } : t === 'creative' ? { xemCr: 'hq' } : {}) }, () => { setTab(t); if (t === 'camp') setXemCamp('cay'); if (t === 'creative') setXemCr('hq'); });
-  const XEM_CAMP = ([['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN'], ['logs', '📜 Logs', 'nhật ký máy nhà gom theo 15 phút … 1 ngày: camp mở / tắt / tăng / giảm, creative dựng / chấm / duyệt, dòng sản xuất, chi thu — bấm ô số xem từng việc']] as const).filter(([v]) => !laNguoi || (v !== 'lich' && v !== 'logs'));   // Lịch giờ = lịch nhà · Logs = nhật ký máy nhà
+  const XEM_CAMP = ([['cay', '🌳 Cây', 'phim → camp gốc → bản nhân bản, nhân bản lỗi, ROI giảm'], ['bang', '☰ Bảng', 'bảng đủ cột, lọc / xếp'], ['lich', '⏱ Lịch giờ', 'bật / tắt camp theo thể loại × khung giờ VN']]] as const).filter(([v]) => !laNguoi || v !== 'lich');   // Lịch giờ = lịch nhà
   const XEM_CR = ([['hq', 'Hiệu quả', 'lãi, ROI, chi theo ngày'], ['soat', '🛡 Quét nội dung', 'lỗi nội dung Meta hay từ chối: khoả thân, cưỡng ép, máu, vũ khí'], ['sx', '🏭 Đang sx', 'creative đang sản xuất: cắt góc, soát đoạn, dựng lại CTA, chấm'], ['dc', 'Điểm chạm', 'hook · nội dung · voice · chữ · CTA — giá trị nào kéo CTR / S CVR / ROI']] as const).filter(([v]) => !laNguoi || v === 'hq');   // quét / sx / điểm chạm = dữ liệu nhà
   const menuCamp = XEM_CAMP.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'camp' && xemCamp === v, href: () => urlCua({ ...hienTai, tab: 'camp', xemCamp: v }).href, onPick: () => doi({ tab: 'camp', xemCamp: v }, () => { setTab('camp'); setXemCamp(v); }) }));
   const menuCr = XEM_CR.map(([v, nhan, t]) => ({ key: v, label: nhan, title: t, active: tab === 'creative' && xemCr === v, href: () => urlCua({ ...hienTai, tab: 'creative', xemCr: v }).href, onPick: () => doi({ tab: 'creative', xemCr: v }, () => { setTab('creative'); setXemCr(v); }) }));
@@ -2782,7 +2786,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   // Điện thoại giữ như cũ (dòng gọn cuộn ngang, ô TK trong bảng Lọc)
   const coKy = tab !== 'luat' && tab !== 'tn', lenDinh = gonHero && !gon;
   // hàng lọc camp hiện ở mọi trang TAB_LOC_CAMP (Camp: trừ Lịch giờ / Lên bậc — hai kiểu xem đó không theo tập camp) · ô TK là một ô của hàng lọc (urlCua bỏ ?b= ngoài các trang này)
-  const hienLoc = TAB_LOC_CAMP.includes(tab) && !(tab === 'camp' && (xemCamp === 'lich' || xemCamp === 'logs')), coBo = hienLoc && locCoTab(tab, 'bo');
+  const hienLoc = TAB_LOC_CAMP.includes(tab) && !(tab === 'camp' && xemCamp === 'lich'), coBo = hienLoc && locCoTab(tab, 'bo');
   // các ô lọc phụ theo thứ tự cố định, chỉ ô trang này áp (LOC_TAB)
   const oLoc = () => <>{([['lai', laiSel], ['tuoi', tuoiSel], ['luat', luatSel], ['dang', dangSel], ['ro', roSel], ['ab', abSel]] as const).map(([k, f]) => (locCoTab(tab, k) ? <Fragment key={k}>{f()}</Fragment> : null))}</>;
   const kySel = () => <ChonKhoang tu={khK.tu} den={khK.den} ma={kh.includes('~') ? null : kh} homNay={du.nay} mocThem={[{ ma: 'tat_ca', nhan: 'All time' }]} title="kỳ số liệu (ngày Ethopex 07:00–07:00 VN)" onDoi={(v) => setKh('ma' in v ? v.ma : `${v.tu}~${v.den}`)} />;
@@ -2803,6 +2807,9 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
             <button key={nhan} onClick={() => doiXemCamp(v)} title={t} style={{ border: 'none', padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit',
               background: xemCamp === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCamp === v ? 600 : 400 }}>{gon ? nhan.split(' ')[0] : nhan}</button>))}
         </span>) : null}
+      {/* NÚT LOGS (anh 08/11/2026 "Bấm vào thì mở ra drawer để tao ko phải sang tab mới"): mở ngăn kéo đè lên kiểu xem đang dùng, không đổi Cây / Bảng */}
+      {tab === 'camp' && !laNguoi ? <button type="button" onClick={() => datLogs(true)} title="nhật ký máy nhà gom theo 15 phút … 1 ngày: camp mở / tắt / tăng / giảm, creative dựng / chấm / duyệt, dòng sản xuất, chi thu"
+        style={{ border: '1px solid var(--line)', borderRadius: 6, padding: '3px 10px', fontSize: 12, cursor: 'pointer', color: 'inherit', background: moLogs ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: moLogs ? 600 : 400 }}>📜 {gon ? '' : 'Logs'}</button> : null}
       {tab === 'camp' && xemCamp !== 'lich' && !laNguoi && !du.nguoi.ngoai && !du.nguoi.doi ? <KhungPanel du={du} gon={gon} /> : null}
       {gon && hienLoc ? (() => { const coLoc = (loc !== 'chay' && loc !== 'all') || !!luatLoc || !!dangLoc || !!boHieu || !!laiLoc || !!tuoiChon || !!roLoc || !!abLoc;
         return <button onClick={() => setMoLoc((v) => !v)} title={coLoc ? 'đang có lọc' : 'mở bộ lọc'} style={{ fontSize: 12, padding: '4px 10px', borderRadius: 6, cursor: 'pointer', color: coLoc ? '#60a5fa' : 'inherit',
@@ -2905,8 +2912,6 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} du={du} anh={anh} />
       ) : tab === 'camp' && xemCamp === 'lich' ? (
         <LichGio du={du} tl={tl} hep={hep} />
-      ) : tab === 'camp' && xemCamp === 'logs' ? (
-        <TabLogs moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} />
       ) : tab === 'camp' && xemCamp === 'cay' ? (
         <CayCamp camps={camps} du={du} hep={hep} onTimDoi={setTimCay} khiTimTrong={giaiTim()} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} moPhim={(k) => doi({ ngan: `phim:${k}` }, () => { setNganCamp(null); setNganPhim(k); })} moCr={(cr, e) => { const r = crAnh.get(cr); if (r) noiAnh.mo({ anh: r.anh ?? '', video: r.video, cr }, e); }} dongCr={noiAnh.dongTre} laiKy={(c) => (khNay ? c.nay : ckh(c.camp_id))} tenKy={khNhan} />
       ) : tab === 'camp' ? (
@@ -2981,6 +2986,10 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
               <span style={{ textAlign: 'right' }} title={khNay ? 'lãi nay' : `lãi ${khNhan.toLowerCase()}`}><Lai s={khNay ? c.nay : ckh(c.camp_id)} /></span></div>)}
           </div>
         </Drawer>; })() : null}
+      {moLogs ? <Drawer onClose={() => datLogs(false)} width={1400} padding={0}>
+        <div className="modal-head"><div><div className="id-line">nhật ký máy nhà</div><h2 style={{ margin: 0 }}>📜 Logs</h2></div><button className="modal-close" onClick={() => datLogs(false)}>✕</button></div>
+        <div style={{ padding: 12 }}><TabLogs moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} /></div>
+      </Drawer> : null}
       {nganCamp ? (() => { const c = du.camps.find((x) => x.camp_id === nganCamp); const dong = () => doi({ ngan: '' }, () => setNganCamp(null));
         const r = c?.creative_id ? crAnh.get(c.creative_id) : undefined, ch = c?.creative_id ? du.cham[c.creative_id] : undefined;
         const st = soThang(du), b = c ? dauBac(c, baoCampBang.get(c.camp_id)) : null, tl = c ? tinhLuat({ c, ba: ba3(du, c), bao: baoCampBang.get(c.camp_id), ...st, xet: du.xetLuat?.[c.camp_id] }) : null;

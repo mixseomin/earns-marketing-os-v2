@@ -83,15 +83,23 @@ def nap(cid, lang, f, dang, ghi, vnd, chu_dau=None):
 # TÊN THEO PHIÊN BẢN (anh 08/11/2026 "đặt tên mẫu PO theo phiên bản" → "kiểu gọn nhất PO.1, PO.2"): PO.1 gốc · PO.2 ghép · PO.3 thẻ — mẫu mới là PO.4, PO.5…,
 # không đổi số mẫu cũ (sổ đo hiệu suất đọc theo số).
 # "dien_anh" anh KHÔNG duyệt ("Nhìn lởm") — không có số, không xoay vào bản dựng.
-MAU_PO = ["goc", "ghep", "the"]
-BAN_PO = {"goc": "PO.1", "ghep": "PO.2", "the": "PO.3", "le": "PO.4"}   # PO.4 mùa lễ: chưa vào MAU_PO (chờ anh duyệt) — dựng thử bằng --mau le
+# PO.5 "ai" (anh 08/11/2026 "Cách này ổn"): API ảnh AI vẽ BỐ CỤC MỚI với diễn viên THẬT (tham chiếu poster gốc + khung phim) + tên phim AI vẽ theo kiểu chữ poster gốc
+# (ve-po-ai.py + box3 anh-po-ai.mts, ~111₫ / ảnh) — đứng đầu vòng xoay: bản 1 của mỗi phim là PO.5
+MAU_PO = ["ai", "goc", "ghep", "the"]
+BAN_PO = {"goc": "PO.1", "ghep": "PO.2", "the": "PO.3", "le": "PO.4", "ai": "PO.5"}
+_v = importlib.util.spec_from_file_location("ve_po_ai", os.path.join(os.path.dirname(os.path.abspath(__file__)), "ve-po-ai.py"))
+_VND_AI = {}   # tiền ảnh AI theo tệp ra (poster_mau trả đường dẫn — main cộng vào vnd)   # PO.4 mùa lễ: chưa vào MAU_PO (chờ anh duyệt) — dựng thử bằng --mau le
 def _phu(im, w, h, cx=0.5, cy=0.5):   # phóng ảnh phủ kín w×h, giữ tâm (cx, cy)
     s = max(w / im.width, h / im.height); im = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
     x = min(max(0, round(cx * im.width - w / 2)), im.width - w); y = min(max(0, round(cy * im.height - h / 2)), im.height - h); return im.crop((x, y, x + w, y + h))
-def poster_mau(mau, tm, nen_khung, ra):
+def poster_mau(mau, tm, nen_khung, ra, ban=0):
     """mẫu poster động → ảnh nền 1080×1920 (phóng chậm ở AT.dung). nen_khung = khung phim đã dựng 9:16 (AT.anh, mặt ở giữa ngang).
     Poster luôn hiện TRỌN (tên phim nằm sẵn trên poster — không chồng tên lần hai, không cắt chữ)."""
     if mau == "goc": return poster_dong(tm, ra)
+    if mau == "ai":   # PO.5 — ảnh AI người thật + tên phim theo poster gốc; khung phim đã dựng (nen_khung, đã xoá phụ đề) làm tham chiếu thứ hai
+        VP = importlib.util.module_from_spec(_v); _v.loader.exec_module(VP)
+        jpg, v, mo = VP.anh_po(int(os.path.basename(tm)), nen_khung, ban, ra.replace(".png", ".jpg"))
+        Image.open(jpg).convert("RGB").resize((W, H), Image.LANCZOS).save(ra); _VND_AI[ra] = v; print(f"PO.5: {mo} · {v}₫", flush=True); return ra
     p = Image.open(os.path.join(tm, "poster.jpg")).convert("RGB"); q = p.resize((W, round(p.height * W / p.width)), Image.LANCZOS)
     if mau == "ghep":   # poster trọn ở trên · dải khung phim (cảnh trong phim, AI xếp hạng) ở đáy · nối bằng dải chuyển mềm
         kh = Image.open(nen_khung).convert("RGB"); cao = max(H - q.height + 260, round(H * 0.34))
@@ -162,7 +170,7 @@ def main(cid, kieu, ban=1, xem=False, mau_ep=None):
                 elif kk == "poster":
                     if not os.path.exists(os.path.join(tm, "poster.jpg")): raise RuntimeError("không có poster")
                     mau = (mau_ep or MAU_PO)[b % len(mau_ep or MAU_PO)]; nk = AT.anh(cid, ten, k, tm, b)[0] if mau != "goc" else None   # khung phim + tên tách từ poster cho mẫu ghép
-                    nen = poster_mau(mau, tm, nk, os.path.join(tm, f"nen-poster-{mau}.png")); chu = os.path.join(tm, "trong.png"); Image.new("RGBA", (W, H)).save(chu)   # poster đã có tên phim
+                    nen = poster_mau(mau, tm, nk, os.path.join(tm, f"nen-poster-{mau}.png"), b); vnd += _VND_AI.pop(nen, 0); chu = os.path.join(tm, "trong.png"); Image.new("RGBA", (W, H)).save(chu)   # poster đã có tên phim
                     mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, b % len(AT.CAU[lang]))
                 else:
                     ds = kq["chu"].get("cau_soc") or []

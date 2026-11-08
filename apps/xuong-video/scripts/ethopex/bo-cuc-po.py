@@ -97,13 +97,13 @@ def bang_mau(poster, khung):
     h, s_, v = hsv(sang); sang = tuple(round(x * 255) for x in colorsys.hsv_to_rgb(h, min(s_, 0.12), max(v, 0.92)))   # nền giấy sáng ngả sắc phim
     return {"toi": toi, "sang": sang, "nhan": nhan}
 
-def doc_phim(cid):
+def doc_phim(cid, khung=None):
     """HỒ SƠ PHIM: tên, thể loại (box3 etp.phim / etp.dong_phim), bảng màu poster gốc, chữ tên từ poster, tagline, khung, số khung hai người"""
     q = (f"select coalesce((select ten from etp.phim where content_id = {int(cid)}), (select ten from etp.dong_phim where content_id = {int(cid)} order by id desc limit 1))"
          f" || '|' || coalesce((select the_loai from etp.phim where content_id = {int(cid)}), (select the_loai from etp.dong_phim where content_id = {int(cid)} and the_loai is not null order by id desc limit 1), '')")
     r = subprocess.run(["ssh", "root@167.233.241.16", f"cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql \"$DATABASE_URL\" -tAc \"{q}\""], capture_output=True, text=True, timeout=60)
     ten, _, loai = (r.stdout.strip() or f"Phim {cid}|").partition("|")
-    d = os.path.join(C, str(cid)); khung, hai = chon_khung(cid)
+    d = os.path.join(C, str(cid)); khung, hai = (list(khung), 0) if khung else chon_khung(cid)   # khung có sẵn (dây chuyền PO đã chọn + xoá phụ đề) → không cần rembg
     tag = ""
     for t in sorted(glob.glob(os.path.join(d, "att-*.chu.txt"))):
         # câu tóm tắt THẬT của phim: bỏ tiền tố ghi chú nội bộ ("Angle 1 (…):"), bỏ câu kêu gọi xem / tên nền tảng (không phải tagline)

@@ -67,6 +67,16 @@ def ghep_ten(P, tho, ra):
     y = BC.tieu_de(im, P, 75, 1460, 930, 290, chu_hoa=True); BC.tagline(im, P, min(y + 26, 1830), P["mau"]["sang"])
     im.save(ra, quality=92); return "dán chữ tách từ poster (AI viết sai)"
 
+def anh_po(cid, khung, ban, ra):
+    """MỘT ẢNH PO cho dây chuyền (tinh-ba-kieu.py mẫu "ai"): khung = khung phim đã chọn + xoá phụ đề; bố cục xoay theo bản trong bộ của thể loại.
+    Trả (đường dẫn ảnh 1080×1920, tiền ₫, mô tả)."""
+    d = os.path.join(C, str(cid), "po-ai"); os.makedirs(d, exist_ok=True)
+    # bố cục xoay theo SỐ ẢNH PO.5 ĐÃ CÓ của phim (dòng sản xuất mỗi lần chạy 1 bản → ban luôn 0; xoay theo ban thì phim nào cũng mãi một bố cục)
+    dem = os.path.join(d, "so-lan.txt"); da = int(open(dem).read() or 0) if os.path.exists(dem) else 0; open(dem, "w").write(str(da + 1))   # đếm số lần sinh của phim
+    P = BC.doc_phim(cid, [khung]); bo_ds = BO_LOAI.get(P["loai"], BO_MAC); bo = bo_ds[(ban + da) % len(bo_ds)]; thu = os.path.join(d, f"vao-{cid}"); tham_chieu(P, thu)
+    tho = os.path.join(d, f"{bo}-tho.jpg"); k = ve_ai(P, bo, thu, tho); cach = ghep_ten(P, tho, ra)
+    return ra, int(k.get("vnd") or 0), f"bố cục {bo} · tên: {cach}"
+
 def lam(cid, bo_ds=None):
     P = BC.doc_phim(cid); ra_dir = os.path.join(C, str(cid), "po-ai"); os.makedirs(ra_dir, exist_ok=True)
     thu = os.path.join(ra_dir, f"vao-{cid}"); tham_chieu(P, thu); kq = []

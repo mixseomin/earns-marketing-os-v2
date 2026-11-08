@@ -137,6 +137,25 @@ def main():
             q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'so_dang', 'so_dang:' || md5($N${nd}$N$), 'do', $N$Sổ dạng creative lệch / có bảng dạng tự khai:\n{nd}$N$
                   where not exists (select 1 from etp.canh_bao where khoa = 'so_dang:' || md5($N${nd}$N$))""")
     except Exception as e: loi.append(f"so_dang: {e}")
+    # ── CPM NGÀY (anh 08/11/2026 plan mùa lễ Mỹ 27/11–05/01, tiến độ E05 bước 1): report Ethopex có cost + supply_impressions (cpm của report = cost / supply_impressions × 1000;
+    # cột "impressions" là số khác, nhỏ hơn nhiều) → etp.cau_hinh 'cpm_ngay' {ngày UTC: {chi, cpm, cpc, roi}} cho hôm qua + hôm nay mỗi lượt.
+    # Hôm qua đã khép mà CPM > 130% trung bình 7 ngày trước đó → etp.canh_bao 'cpm' (Telegram, một lần mỗi ngày). Mốc 08/11: CPM ~15–16 (đỉnh 25,3 ngày 23/10).
+    try:
+        import datetime as _dt
+        so = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'cpm_ngay'), '{}')") or "{}")
+        hn = _dt.datetime.now(_dt.timezone.utc).date()
+        for d_ in (hn - _dt.timedelta(days=1), hn):
+            rw = EA.api("/api/v1/report", {"columns": ["campaign_name", "cost", "revenue", "supply_impressions", "clicks"], "filters": {}, "metric_conditions": [], "limit": 5000, "page": 1,
+                                            "page_size": 5000, "date_from": d_.isoformat(), "date_to": d_.isoformat()}).get("rows") or []
+            c_ = sum(float(x.get("cost") or 0) for x in rw); i_ = sum(float(x.get("supply_impressions") or 0) for x in rw); k_ = sum(float(x.get("clicks") or 0) for x in rw); v_ = sum(float(x.get("revenue") or 0) for x in rw)
+            if c_: so[d_.isoformat()] = {"chi": round(c_, 2), "cpm": round(c_ / i_ * 1000, 2) if i_ else None, "cpc": round(c_ / k_, 3) if k_ else None, "roi": round((v_ - c_) / c_ * 100)}
+        q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('cpm_ngay', $J${json.dumps(so)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
+        hq = (hn - _dt.timedelta(days=1)).isoformat(); nen = [so[k]["cpm"] for k in sorted(so) if k < hq and so[k].get("cpm")][-7:]
+        if so.get(hq, {}).get("cpm") and len(nen) >= 5 and so[hq]["cpm"] > 1.3 * sum(nen) / len(nen):
+            tb = sum(nen) / len(nen)
+            q(f"""insert into etp.canh_bao (loai, khoa, muc, noi_dung) select 'cpm', 'cpm:{hq}', 'vang', $N$CPM ngày {hq}: ${so[hq]['cpm']:.2f} = {so[hq]['cpm'] / tb * 100:.0f}% trung bình 7 ngày (${tb:.2f}) · ROI {so[hq]['roi']}% · chi ${so[hq]['chi']:.0f} — mùa lễ: xem nhánh A/B tiến độ E05$N$
+                  where not exists (select 1 from etp.canh_bao where khoa = 'cpm:{hq}')""")
+    except Exception as e: loi.append(f"cpm_ngay: {e}")
     # ── PHỐT META (anh 25/10/2026): ad bị Meta từ chối = một phốt gắn bộ tài khoản · tài khoản QC · Page → etp.phot + báo đỏ (Telegram qua etp.canh_bao)
     try:
         moi = q("""with bt as (select k bo, (v->>'page')::bigint page_id, v->>'ten' ten from xv_khoa_ngoai, jsonb_each(gia_tri) e(k, v) where ten = 'ethopex_bo_tk'),

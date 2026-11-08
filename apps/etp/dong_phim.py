@@ -181,11 +181,10 @@ def b_ws(d):
     if not m: return "loi", f"không đọc được cổng trang phim: {out[-200:]}", None
     ly = json.loads(m[-1])["ly"]
     if not ly: return "xong", "trang phim Nhà đủ mô tả + cốt truyện + ảnh + link tập 1", None
-    if "còn thiếu" in ly and "vừa được máy" not in ly:
-        hong = sql(f"select {CG.sql_trang_hong(int(d['content_id']))}")
-        if hong:   # bản đã thêm quá 1 giờ mà Ethopex chưa sinh → chờ nữa vô ích (cong.sql_trang_hong); dấu cổng của Mạnh có mục này → Ethopex sinh xong thì tự mở lại dòng
-            return "dung", (f"trang phim Nhà {CG.ly_trang_hong(hong)} — không có trang đích nên không lên camp;"
-                            f" Ethopex có link thì máy tự mở lại dòng · {ly[:200]}"), None
+    # đọc VẬT (kho trang phim), không đọc chữ lý do của cổng: bản đã thêm quá 1 giờ mà Ethopex chưa sinh → chờ nữa vô ích (cong.sql_trang_hong);
+    # dấu cổng của Mạnh có mục này → Ethopex sinh xong thì tự mở lại dòng
+    hong = sql(f"select {CG.sql_trang_hong(int(d['content_id']))}")
+    if hong: return "dung", f"trang phim Nhà {CG.ly_trang_hong(hong)} — không có trang đích nên không lên camp; Ethopex có link thì máy tự mở lại dòng · {ly[:200]}", None
     if "vừa được máy" in ly or "còn thiếu" in ly:
         box("systemctl start --no-block etp-dong-bo", 30)   # đồng bộ kho trang phim ngay, không chờ 10 phút
         return "cho", ly, None

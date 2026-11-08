@@ -31,8 +31,9 @@ MA_BUOC = {"poster": [f"{G}/soat_18_ai.py"], "soat": [f"{XE}/soat_doan.py"], "ca
            "creative": [f"{G}/dong_phim.py", f"{XE}/len-creative.py", f"{G}/cong.py"], "camp": [f"{G}/dong_phim.py", f"{G}/cong.py", f"{XE}/nhan-ban.py"]}
 HA_TANG = r"ssh:|mux_client|Session open refused|Operation timed out|Connection (closed|reset|refused|timed out)|Broken pipe|kex_exchange|im [0-9]+ phút \(máy chạy dòng"
 # DÒNG LỖI MỤC 6 CÒN TỰ THỬ LẠI (hạ tầng < 10 lần · khác < 6 lần, trong 3 ngày) — mục 3 dùng để tách lỗi "máy tự lo" (gom tin giờ) khỏi lỗi "cần người" (báo ngay)
+THU_HA_TANG, THU_KHAC = 10, 6   # trần lượt tự thử lại của mục 6 — mục 3 dùng cùng số để biết dòng nào hết lượt
 SQL_CON_THU = f"""(d.tao_luc > now() - interval '3 days' and exists (select 1 from etp.dong_buoc b where b.dong_id = d.id and b.trang_thai = 'loi'
-                   and case when coalesce(b.ghi, '') ~ '{HA_TANG}' then b.lan < 10 else b.lan < 6 end))"""
+                   and case when coalesce(b.ghi, '') ~ '{HA_TANG}' then b.lan < {THU_HA_TANG} else b.lan < {THU_KHAC} end))"""
 GOM_PHUT = 60   # tin gom Telegram: tối đa MỘT tin / 60 phút (anh 09/11/2026 "Đang có nhiều tin nhắn tele quá": 200 tin / 22 giờ)
 def bam(tep):
     h = hashlib.md5()
@@ -111,7 +112,8 @@ def main():
             k = (cid, tt, ly.split(" — ")[0][:90]); x = phim.setdefault(k, [ten or cid, 0, camp]); x[1] += 1
         dong = [f"{dau[tt]} {ten}{f' ×{so}' if so > 1 else ''}{f' · camp #{camp}' if camp else ''} — {ly}" for (_, tt, ly), (ten, so, camp) in phim.items()]
         if huy: dong.append("🚧 Mạnh huỷ bước treo + tự chạy lại: " + " · ".join(f"{ten or cid}{f' ×{so}' if int(so) > 1 else ''}" for cid, ten, so in huy[:10]))
-        bao(f"📋 <b>Mạnh</b> · {GOM_PHUT} phút qua: ✅ {n['xong']} lên camp · ⛔ {n['dung']} dừng đúng luật · 🔁 {n['loi']} lỗi máy tự thử lại"
+        tu_vn = q(f"select to_char('{tu}'::timestamptz at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM')")   # tin đầu / sau quãng nghỉ gom từ lần gửi trước, không phải đúng 60 phút
+        bao(f"📋 <b>Mạnh</b> · từ {tu_vn}: ✅ {n['xong']} lên camp · ⛔ {n['dung']} dừng đúng luật · 🔁 {n['loi']} lỗi máy tự thử lại"
             + (f" · 🚧 {sum(int(h[2]) for h in huy)} bước treo" if huy else "") + "\n" + "\n".join(dong)[:3800])
     def muc4():
         # 4. việc cắt lô dòng phim kẹt
@@ -147,8 +149,8 @@ def main():
         #    'lỗi' 3 giờ sau một lần box3 từ chối ssh 22:04–22:08); lỗi khác giữ 2 giờ, tối đa 6 lần
         r = q(f"""update etp.dong_buoc b set fix = true from etp.dong_phim d where d.id = b.dong_id and d.trang_thai = 'loi' and b.trang_thai = 'loi' and not b.fix
                   and d.tao_luc > now() - interval '3 days'
-                  and case when coalesce(b.ghi, '') ~ '{HA_TANG}' then b.lan < 10 and b.ket_thuc < now() - interval '10 minutes'
-                           else b.lan < 6 and b.ket_thuc < now() - interval '2 hours' end
+                  and case when coalesce(b.ghi, '') ~ '{HA_TANG}' then b.lan < {THU_HA_TANG} and b.ket_thuc < now() - interval '10 minutes'
+                           else b.lan < {THU_KHAC} and b.ket_thuc < now() - interval '2 hours' end
                   returning b.dong_id, b.buoc, b.lan""") if not THU else ""
         if r: lam.append(f"thử lại lỗi (hạ tầng 10 phút · khác 2 giờ): {r.replace(chr(10), ' · ').replace(chr(9), ' ')}")
     def muc7():

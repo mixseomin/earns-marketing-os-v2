@@ -708,7 +708,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // camp cũ, lên mỗi dạng một camp $1 (trần 15 camp / nhịp), phim chưa có CC sạch → xếp cắt góc mới. Đặt cuối nhịp (mỗi camp chờ Ethopex đồng bộ ~1 phút).
   {
     let r; try { r = JSON.parse((await chay(path.join(REPO, 'apps/xuong-video/scripts/ethopex/thay-the.py'), ['--that', '--toi-da', '15'], 1500)).trim().split('\n').pop()); } catch (e) { r = { moi: 0, bao: [`lỗi máy thay camp: ${e.message}`] }; }
-    const len = (r.bao || []).filter((x) => / lên /.test(x) || /^lỗi/.test(x) || /^(cất phim|mở lại phim|đổi bộ phim)/.test(x) || /team lãi/.test(x));   // thang chuyển hướng (cat_phim.py, 31/10/2026)
+    const len = (r.bao || []).filter((x) => /^lỗi/.test(x) || /^(cất phim|mở lại phim|đổi bộ phim)/.test(x) || /team lãi/.test(x));   // thang chuyển hướng (cat_phim.py, 31/10/2026)
     if (r.moi || len.length) {
       await guiNhanh({ message_thread_id: topic, disable_notification: true, text: `🗂 <b>THANG CẤT PHIM</b> — phim chưa camp nào lãi sau mức thử: đổi bộ / chờ creative team / cất (camp thay thế đã bỏ 09/11/2026)\n${(len.length ? len : r.bao || []).slice(0, 25).map((x) => '• ' + esc(x)).join('\n\n')}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
       gui++;

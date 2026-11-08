@@ -65,6 +65,10 @@ def xet(s, tran):
     if int((dang.get(TEN_CT) or {}).get("chi") or 0) < SO_MOI_DANG: return "het_may", "Đã thử hết dạng máy làm được, CT chưa có máy tự sản xuất; luật cất sẽ kết luận", 0, []
     return "het_may", "Đã thử đủ dạng, luật cất sẽ kết luận", 0, []
 
+# MÙA LỄ MỸ (anh 08/11/2026 "Sắp 27/11 thì có plan gì để tận dụng trend này"): 15/11–05/01 phim chủ đề gia đình / lễ (tâm lý sum họp Lễ Tạ ơn 26/11 – Giáng sinh)
+# xếp trước trong cùng nhóm thứ tự — kho Âu-Mỹ 08/11: ~200 phim gia đình, 1 phim Giáng sinh. Hết mùa tự về thứ tự cũ.
+MUA_LE = ("2026-11-15", "2027-01-05")
+MUA_LE_TEN = r"christmas|xmas|navidad|santa|holiday|thanksgiving|family|mom|dad|father|mother|son|daughter|brother|sister|wife|husband|baby|twins"
 def chon_phim_moi(q, ch, da):
     """MỞ CHO MỌI PHIM CHƯA CÓ CAMP NHÀ (anh 07/11/2026 "Tập trung các phim mới", roadmap E13 bước 3): mỗi ngày VN thêm tới cau_hinh.phim_moi_ngay phim vào lộ trình.
     Thứ tự: đội đã chạy LÃI (tiêu ≥ $10, thu > chi) → chưa ai chạy → đội chạy chưa đủ số (< $10). Bỏ: đội lỗ ≥ $10, phim cất, ngoài Âu-Mỹ, phim cấm 18+, phim không có poster trong kho,
@@ -84,7 +88,9 @@ def chon_phim_moi(q, ch, da):
           and not exists (select 1 from etp.cho_len_v v where v.content_id = p.content_id and v.team_lai and v.ly_do is null)
           and not coalesce((select gia_tri ? p.content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_cam'), false)
           and p.content_id not in ({loai})
-        order by case when d.chi >= 10 and d.thu > d.chi then 0 when d.content_id is null then 1 else 2 end, d.thu - d.chi desc nulls last, p.content_id desc limit {con}) x""")
+        order by case when d.chi >= 10 and d.thu > d.chi then 0 when d.content_id is null then 1 else 2 end,
+          case when current_date >= '{MUA_LE[0]}' and current_date <= '{MUA_LE[1]}' and p.ten ~* '{MUA_LE_TEN}' then 0 else 1 end,   -- mùa lễ Mỹ: phim gia đình / lễ lên trước
+          d.thu - d.chi desc nulls last, p.content_id desc limit {con}) x""")
     moi = [int(x) for x in (r or "").split(",") if x.strip().isdigit()]
     for c in moi: them[str(c)] = hom
     if moi: ch["phim"] = [int(x) for x in ch.get("phim") or []] + moi; ch["phim_them"] = them

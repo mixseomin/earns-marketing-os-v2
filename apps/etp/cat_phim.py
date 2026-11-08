@@ -49,6 +49,8 @@ def so_phim():
                              where n.ngay >= current_date - 14 and coalesce(cn.content_id, 0) > 0 group by 1)
                   select p.*, f.thu_vong, f.thu_bo, f.thu_ly, f.ten, extract(epoch from now() - f.thu_luc) / 86400 cho_ngay, round(coalesce(t.chi, 0), 2) team_chi, round(coalesce(t.thu, 0), 2) team_thu,
                          (select count(*) from etp.camp_ngoai cn where cn.content_id = p.content_id and cn.trang_thai = 'ACTIVE') doi_chay,
+                         (select count(*) from (select cn.camp_id from etp.camp_ngoai cn join etp.so_ngay_ngoai n using (camp_id) where cn.content_id = p.content_id and n.ngay >= current_date - 7
+                            group by 1 having sum(n.chi) >= 3 and sum(n.thu) > sum(n.chi)) x) doi_camp_lai,   -- camp ĐỘI lãi 7 ngày (anh 09/11/2026 "đội vẫn có camp lãi… cơ hội vẫn còn")
                          (select string_agg('#' || h.camp_id || ' ROI ' || h.roi || '%', ', ' order by h.roi desc) from etp.camp_co_hoi h where h.content_id = p.content_id) lai   -- CAMP CƠ HỘI (migration 0437, anh 06/11/2026)
                   from p left join etp.phim f using (content_id) left join t using (content_id)""")
 
@@ -67,7 +69,8 @@ def xet(that=False):
     for p in so_phim():
         ct, chi, thu, vong = int(p["content_id"]), float(p["chi"] or 0), float(p["thu"] or 0), p.get("thu_vong")
         ten = p.get("ten") or f"phim {ct}"; so_thu = int(p.get("so_thu") or 0)
-        team_lai = float(p["team_chi"] or 0) >= 10 and float(p["team_thu"] or 0) > float(p["team_chi"] or 0)
+        # ĐỘI CÒN LÃI = tổng đội 14 ngày lãi HOẶC đội có ≥ 1 camp chi ≥ $3 thu > chi trong 7 ngày (anh 09/11/2026: tổng đội âm vì camp thử khác vẫn che mất camp đội đang thắng)
+        team_lai = (float(p["team_chi"] or 0) >= 10 and float(p["team_thu"] or 0) > float(p["team_chi"] or 0)) or int(p.get("doi_camp_lai") or 0) > 0
         # BÃO HOÀ KHÔNG CÒN LÀ LÝ DO CẤT (anh 06/11/2026 "Phim bão hoà chỉ cảnh báo"): phim đã cất vì bão hoà → mở lại; phim bão hoà chỉ hiện cảnh báo (etp.phim_bao_hoa)
         if vong == "cat" and str(p.get("thu_ly") or "").startswith("bão hoà"):
             dat(ct, None, None, that); bao.append(f"mở lại phim {ct} {ten}: bão hoà chỉ cảnh báo, không cất (anh 06/11/2026)"); continue

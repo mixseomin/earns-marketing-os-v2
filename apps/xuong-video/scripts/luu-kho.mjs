@@ -63,6 +63,12 @@ const arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? pr
 const rc = (...a) => execFileSync('rclone', a, { encoding: 'utf8', maxBuffer: 64 << 20 });
 const coDrive = (dich) => { try { return JSON.parse(rc('lsjson', dich))[0]?.Size ?? -1; } catch { return -1; } };
 const coUrl = (u) => Number(/content-length:\s*(\d+)/gi.exec(execFileSync('curl', ['-sIL', u], { encoding: 'utf8' }))?.[1] ?? -1);
+// bản không chặn cho nhịp 2 (6 video song song — mỗi video vài lần gọi rclone / curl ~2–3 s, đợt tồn 736 video chạy lẻ mất ~4 giờ)
+const { promisify } = await import('node:util'), chayA = promisify((await import('node:child_process')).execFile);
+const rcA = async (...a) => (await chayA('rclone', a, { encoding: 'utf8', maxBuffer: 64 << 20 })).stdout;
+const coDriveA = async (dich) => { try { return JSON.parse(await rcA('lsjson', dich))[0]?.Size ?? -1; } catch { return -1; } };
+const coUrlA = async (u) => Number(/content-length:\s*(\d+)/gi.exec((await chayA('curl', ['-sIL', u], { encoding: 'utf8' })).stdout)?.[1] ?? -1);
+const SONG = 6;
 const tenTep = (u) => u.split('?')[0].split('/').pop();
 const boxJson = async (lenh) => JSON.parse((await boxA(lenh)).split('\n').pop());
 
@@ -81,7 +87,15 @@ async function luuMay(ma) {
   const ds = await boxJson(`scripts/may-dung.mts --may ${ma} --ds --ca-luu-tru`), dang = (await boxJson(`scripts/may-dung.mts --may ${ma} --may-info`)).dang ?? [];
   const acct = (n) => String(dang.find((d) => d.nen === n)?.br?.acct ?? n), H = { loaiNen: (n) => NEN_DANG[gocNen(n)]?.loai, hoNen, acct };
   const bay = Date.now(), song = nenSong(ds, bay, C.nen_song_ngay ?? 14);
-  let mb1 = 0, chuyen = 0, mb2 = 0;
+  let mb1 = 0, chuyen = 0, mb2 = 0; const viec = [];
+  // LÔ BOX3: đã chép + so khớp Drive xong thì gom 25 video một lần gọi luu-kho.mts (xoá R2 + ghi sổ) — box3 trả từng video, video lỗi không xoá thư mục iMac
+  const lo = [], xaLo = async () => { if (!lo.length) return; const phan = lo.splice(0), coR2 = phan.filter((x) => x.urls.length);
+    const kq = coR2.length ? await boxJson(`scripts/luu-kho.mts --may ${ma} --lo ${Buffer.from(JSON.stringify(coR2.map(({ slug, drive, urls }) => ({ slug, drive, urls })))).toString('base64')}`) : [];
+    for (const x of phan) { const k = kq.find((y) => y.slug === x.slug);
+      if (x.urls.length && (!k || k.loi)) { console.log(`⚠ ${ma} ${x.slug}: Drive đã có bản, box3 chưa xoá R2 — ${k?.loi ?? 'không có kết quả'} (giữ nguyên)`); continue; }
+      if (k?.khong_xoa_duoc) console.log(`⚠ ${ma} ${x.slug}: không xoá được trên R2 ${k.khong_xoa_duoc.join(' ')} (sổ đã ghi Drive)`);
+      for (const p of x.thu) rmSync(p, { recursive: true });
+      chuyen++; mb2 += x.mb; } };
   for (const [slug, v] of Object.entries(ds)) {
     if (arg('chi') && slug !== arg('chi')) continue;
     if (v.kho_drive) continue;
@@ -94,14 +108,15 @@ async function luuMay(ma) {
     if (x.tu == null || (bay - x.tu) / 864e5 < NGAY) continue;
     const dich = `${C.remote}:${C.drive}/${slug}`, r2 = [v.file_url, v.thumb].filter(Boolean), thu = tep.filter((p) => existsSync(p) && statSync(p).isDirectory());
     if (xem) { console.log(`→ ${ma} ${slug}: ${v.luu_tru ? 'lưu trữ' : `lên lần cuối ${((bay - x.tu) / 864e5).toFixed(1)} ngày`} — sẽ chép ${r2.length} tệp R2${thu.length ? ` + ${thu.length} thư mục tài sản` : ''} lên ${dich}`); chuyen++; continue; }
-    try {
-      for (const u of r2) { const ten = tenTep(u), can = coUrl(u); rc('copyurl', u, `${dich}/${ten}`); const co = coDrive(`${dich}/${ten}`); if (can < 0 || co !== can) throw new Error(`${ten}: Drive ${co} / R2 ${can} byte`); mb2 += can / 2 ** 20; }
-      for (const p of thu) { const d = `${dich}/tai/${basename(p)}`; rc('copy', p, d, '--exclude', '*.mp4'); rc('check', p, d, '--exclude', '*.mp4', '--size-only', '--one-way'); }
-      if (r2.length) console.log((await boxA(`scripts/luu-kho.mts --may ${ma} --slug ${slug} --drive '${dich}' ${r2.map((u) => `'${u}'`).join(' ')}`)).split('\n').pop());
-      for (const p of thu) rmSync(p, { recursive: true });
-      chuyen++; console.log(`✓ ${ma} ${slug} → ${dich}`);
-    } catch (e) { console.log(`⚠ ${ma} ${slug}: chưa chuyển kho — ${String(e.message).split('\n')[0]} (không xoá gì)`); }
+    viec.push(async () => { try {
+      let mb = 0;
+      for (const u of r2) { const ten = tenTep(u), can = await coUrlA(u); await rcA('copyurl', u, `${dich}/${ten}`); const co = await coDriveA(`${dich}/${ten}`); if (can < 0 || co !== can) throw new Error(`${ten}: Drive ${co} / R2 ${can} byte`); mb += can / 2 ** 20; }
+      for (const p of thu) { const d = `${dich}/tai/${basename(p)}`; await rcA('copy', p, d, '--exclude', '*.mp4'); await rcA('check', p, d, '--exclude', '*.mp4', '--size-only', '--one-way'); }
+      lo.push({ slug, drive: dich, urls: r2, thu, mb }); if (lo.length >= 25) await xaLo();
+    } catch (e) { console.log(`⚠ ${ma} ${slug}: chưa chuyển kho — ${String(e.message).split('\n')[0]} (không xoá gì)`); } });
   }
+  await Promise.all(Array.from({ length: SONG }, async () => { while (viec.length) await viec.shift()(); }));
+  await xaLo();
   console.log(`lưu kho ${ma}: ${xem ? 'sẽ ' : ''}bỏ ${Math.round(mb1)} MB video trên iMac · ${chuyen} video ${xem ? 'đủ điều kiện ' : ''}sang Drive${xem ? '' : ` (${Math.round(mb2)} MB khỏi R2)`}`);
 }
 

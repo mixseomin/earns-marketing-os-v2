@@ -16,14 +16,23 @@ if (a.includes('--tra')) { const { uploadToR2 } = await import('../../src/lib/r2
     if (await uploadToR2(k, { tep }, /\.jpe?g$/i.test(k) ? 'image/jpeg' : 'video/mp4')) n++; else { console.error(`✗ đẩy lại ${k} hỏng — giữ dấu kho_drive`); process.exit(5); } }
   await db0.execute(sql`UPDATE xv_may_video SET de = de - 'kho_drive' - 'kho_luc', updated_at = now() WHERE slug = ${slug0} AND may_id = (SELECT id FROM xv_may WHERE ma = ${may0})`);
   console.log(JSON.stringify({ slug: slug0, tra: n })); process.exit(0); }
-const may = may0, slug = slug0, drive = lay('--drive'), urls = a.filter((x, i) => /^https?:\/\//.test(x) && !['--may', '--slug', '--drive'].includes(a[i - 1]));
-if (!may || !slug || !drive || !urls.length) { console.error('tsx luu-kho.mts --may <mã> --slug <slug> --drive <đường> <url>…'); process.exit(2); }
+// một video: chỉ xoá URL của CHÍNH video đó (video_url / bìa trong sổ) dưới <R2_PUBLIC_BASE>/xuong-video/ — URL lạ thì không xoá gì. Trả kết quả hoặc ném.
 const db = getDb()!;
-const [v] = (await db.execute(sql`SELECT v.id, v.video_url, v.de FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${may} AND v.slug = ${slug}`)) as unknown as { id: number; video_url: string | null; de: { thumb?: { url?: string } } | null }[];
-if (!v) { console.error(`✗ không có video ${slug} trong máy ${may}`); process.exit(3); }
-const goc = (u: string) => u.split('?')[0], cua = new Set([v.video_url, v.de?.thumb?.url].filter((x): x is string => !!x).map(goc)), base = `${process.env.R2_PUBLIC_BASE!.replace(/\/+$/, '')}/xuong-video/`;
-const la = urls.filter((u) => !cua.has(goc(u)) || !goc(u).startsWith(base)); if (la.length) { console.error(`✗ URL không thuộc video ${slug}: ${la.join(' ')} — không xoá gì`); process.exit(4); }
-let xoa = 0; for (const u of urls) { const k = r2KeyFromUrl(goc(u)); if (k && await deleteFromR2(k)) xoa++; else console.error(`⚠ không xoá được ${u}`); }
-await db.execute(sql`UPDATE xv_may_video SET de = coalesce(de, '{}'::jsonb) || ${JSON.stringify({ kho_drive: drive, kho_luc: new Date().toISOString() })}::jsonb, updated_at = now() WHERE id = ${v.id}`);
-console.log(JSON.stringify({ slug, xoa, drive }));
+async function chuyenMot(may: string, slug: string, drive: string, urls: string[]) {
+  const [v] = (await db.execute(sql`SELECT v.id, v.video_url, v.de FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${may} AND v.slug = ${slug}`)) as unknown as { id: number; video_url: string | null; de: { thumb?: { url?: string } } | null }[];
+  if (!v) throw new Error(`không có video ${slug} trong máy ${may}`);
+  const goc = (u: string) => u.split('?')[0], cua = new Set([v.video_url, v.de?.thumb?.url].filter((x): x is string => !!x).map(goc)), base = `${process.env.R2_PUBLIC_BASE!.replace(/\/+$/, '')}/xuong-video/`;
+  const la = urls.filter((u) => !cua.has(goc(u)) || !goc(u).startsWith(base)); if (la.length) throw new Error(`URL không thuộc video ${slug}: ${la.join(' ')} — không xoá gì`);
+  let xoa = 0; const hong: string[] = [];
+  for (const u of urls) { const k = r2KeyFromUrl(goc(u)); if (k && await deleteFromR2(k)) xoa++; else hong.push(u); }
+  await db.execute(sql`UPDATE xv_may_video SET de = coalesce(de, '{}'::jsonb) || ${JSON.stringify({ kho_drive: drive, kho_luc: new Date().toISOString() })}::jsonb, updated_at = now() WHERE id = ${v.id}`);
+  return { slug, xoa, drive, ...(hong.length ? { khong_xoa_duoc: hong } : {}) };
+}
+// --lo <base64 JSON [{ slug, drive, urls }]>: cả lô một lần gọi (luu-kho.mjs gom 25 video / lượt — mỗi lần ssh + tsx ~5 s, 736 video lẻ = cả giờ)
+if (lay('--lo')) { const lo = JSON.parse(Buffer.from(lay('--lo')!, 'base64').toString('utf8')) as { slug: string; drive: string; urls: string[] }[], kq = [];
+  for (const x of lo) { try { kq.push(await chuyenMot(may0!, x.slug, x.drive, x.urls)); } catch (e) { kq.push({ slug: x.slug, loi: (e as Error).message }); } }
+  console.log(JSON.stringify(kq)); process.exit(0); }
+const drive = lay('--drive'), urls = a.filter((x, i) => /^https?:\/\//.test(x) && !['--may', '--slug', '--drive'].includes(a[i - 1]));
+if (!may0 || !slug0 || !drive || !urls.length) { console.error('tsx luu-kho.mts --may <mã> --slug <slug> --drive <đường> <url>… | --may <mã> --lo <base64>'); process.exit(2); }
+try { console.log(JSON.stringify(await chuyenMot(may0, slug0, drive, urls))); } catch (e) { console.error(`✗ ${(e as Error).message}`); process.exit(4); }
 process.exit(0);

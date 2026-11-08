@@ -1,6 +1,17 @@
 // LOGS etp — loại sự kiện + gom theo khung (một chỗ cho trang components/etp-logs.tsx và bài tự kiểm etp-logs.test.mts). Máy chủ: lib/actions/etp-logs docLogs.
-/** một sự kiện: [giây epoch, loại, mã (camp / dòng / creative), chữ] */
-export type HangLog = [number, string, number | null, string];
+/** một sự kiện: [giây epoch, loại, mã (camp / dòng / creative), chữ, nhóm thống kê 1, nhóm thống kê 2]
+ *  nhóm 1: camp = luật · dòng / creative / chấm / duyệt = dạng · lệnh lỗi = câu lỗi; nhóm 2: tăng / giảm = bậc $a → $b · tắt = ngân sách lúc tắt · chấm trượt = tiêu chí chặn · duyệt = người duyệt */
+export type HangLog = [number, string, number | null, string, string, string];
+/** tên hai chiều thống kê theo loại (đầu thẻ nổi) */
+export const CHIEU_TK: Record<string, [string, string]> = { camp: ['Theo luật', 'Theo bậc'], dong: ['Theo dạng', 'Theo lý do'], creative: ['Theo dạng', 'Theo tiêu chí'] };
+export type DemTk = { ten: string; n: number };
+/** đếm một chiều, nhiều nhất trước; mục rỗng gộp "không ghi"; quá `toiDa` mục thì gộp phần đuôi "khác" */
+export function demTk(ds: HangLog[], cot: 4 | 5, toiDa = 8): DemTk[] {
+  const m = new Map<string, number>(); for (const e of ds) { const k = e[cot] || ''; m.set(k, (m.get(k) ?? 0) + 1); }
+  const xep = [...m.entries()].filter(([k]) => k).sort((a, b) => b[1] - a[1]).map(([ten, n]) => ({ ten, n }));
+  if (xep.length > toiDa) { const du = xep.splice(toiDa - 1); xep.push({ ten: `${du.length} nhóm khác`, n: du.reduce((a, x) => a + x.n, 0) }); }
+  return xep;
+}
 /** chi / thu một giờ của nhà: [giây epoch đầu giờ, chi, thu] */
 export type HangGio = [number, number, number];
 export type DuLogs = { gio: number; den: number; ev: HangLog[]; tien: HangGio[] };

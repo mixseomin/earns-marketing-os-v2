@@ -7,7 +7,7 @@ import { DataTable, Segmented, type DataColumn } from '@/components/ui';
 import { KhungNoi, useNoi } from '@/components/etp-noi';
 import { KeToan, mauLai, MO_SO } from '@/components/etp-so';
 import { docLogs } from '@/lib/actions/etp-logs';
-import { gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
+import { CHIEU_TK, demTk, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
 
 const U_KY = 'lgky', U_GOM = 'lggom', MAC_KY = 24, MAC_GOM = 60;
 const docUrl = (k: string, ds: readonly number[], mac: number) => {
@@ -22,6 +22,27 @@ const maCua = (k: string, id: number | null) => (id == null ? '' : LOAI_THEO_K[k
 const DO = 'var(--neon-red, #f87171)';
 
 type The = { k: string; nhan: string; ds: HangLog[] };
+// THỐNG KÊ ĐẦU THẺ (anh 08/11/2026 "hiện kiểu hover, pop + có thống kê trước khi hiện chi tiết danh sách ở dưới"): số khác nhau + hai chiều gom
+// (camp: luật · bậc — dòng: dạng · lý do — creative: dạng · tiêu chí), mỗi nhóm một thanh tỉ lệ trung tính; danh sách từng việc nằm dưới
+const TEN_MA: Record<string, string> = { camp: 'camp', dong: 'dòng', creative: 'creative' };
+function ThongKe({ t }: { t: The }) {
+  const l = LOAI_THEO_K[t.k]; if (!l) return null;
+  const khac = new Set(t.ds.map((e) => e[2]).filter((x) => x != null)).size, chieu = CHIEU_TK[l.ma];
+  const bang = (ten: string, ds: DemTk[]) => ds.length ? <div style={{ marginBottom: 8 }}>
+    <div style={{ fontWeight: 600, color: 'var(--fg-2)', marginBottom: 3 }}>{ten}</div>
+    {ds.map((x) => <div key={x.ten} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 72px 34px', alignItems: 'center', gap: 6, lineHeight: '18px' }}>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={x.ten}>{x.ten}</span>
+      <span style={{ height: 6, borderRadius: 3, background: 'var(--line)', overflow: 'hidden' }}><span style={{ display: 'block', height: '100%', width: `${Math.round((x.n / t.ds.length) * 100)}%`, background: 'var(--fg-3)' }} /></span>
+      <b style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{x.n}</b></div>)}
+  </div> : null;
+  return <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--line)' }}>
+    <div style={{ display: 'flex', gap: 14, marginBottom: 8 }}>
+      <span><b style={{ fontSize: 15 }}>{t.ds.length}</b> <span style={{ color: 'var(--fg-2)' }}>việc</span></span>
+      {khac ? <span><b style={{ fontSize: 15 }}>{khac}</b> <span style={{ color: 'var(--fg-2)' }}>{TEN_MA[l.ma]} khác nhau</span></span> : null}
+    </div>
+    {bang(chieu[0], demTk(t.ds, 4))}{bang(chieu[1], demTk(t.ds, 5))}
+  </div>;
+}
 export function TabLogs() {
   const [ky, setKy] = useState(MAC_KY), [gom, setGom] = useState(MAC_GOM);
   useEffect(() => { setKy(docUrl(U_KY, KY_GIO, MAC_KY)); setGom(docUrl(U_GOM, KHUNG_PHUT, MAC_GOM)); }, []);
@@ -74,6 +95,8 @@ export function TabLogs() {
         <div style={{ marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
           <b style={{ fontSize: 13, color: LOAI_THEO_K[noi.v.k]?.bao ? DO : undefined }}>{LOAI_THEO_K[noi.v.k]?.icon} {LOAI_THEO_K[noi.v.k]?.ten} · {noi.v.ds.length}</b>
           <span style={{ color: 'var(--fg-2)', marginLeft: 6 }}>{noi.v.nhan}</span></div>
+        <ThongKe t={noi.v} />
+        <div style={{ fontWeight: 600, color: 'var(--fg-2)', margin: '2px 0 6px' }}>📋 Chi tiết</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {noi.v.ds.slice(0, 300).map((e, i) => <div key={i} style={{ lineHeight: 1.35 }}>
             <span style={{ color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{gioVn(e[0])}</span>

@@ -106,7 +106,7 @@ const tong = bang.reduce((a, b) => ({ tap: a.tap + b.tap, xem: a.xem + b.xem, ph
 const dong = (ten, b) => `${ten.slice(0, 13).padEnd(13)} ${String(b.tap).padStart(4)}${String(b.xem).padStart(6)}${String(b.phien).padStart(5)}${String(b.dang_ky).padStart(4)}`;
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const ten = (m) => so.playlist.find((p) => p.ma === m)?.ten ?? m;
-const chu = `📊 Astrolas · playlist tuần ${new Date(Date.now() + 7 * 36e5).toISOString().slice(0, 10)} (GA4 ${c.ngay} ngày)\n<pre>${esc(`${'Playlist'.padEnd(13)} tập  xem vào  ĐK\n${bang.map((b) => dong(b.ten, b)).join('\n')}\n${dong('Tổng', tong)}`)}</pre>`
+const chu = `📊 Astrolas · playlist tuần ${new Date(Date.now() + 7 * 36e5).toISOString().slice(0, 10)} (GA4 ${c.ngay} ngày)\n<pre>${esc(`${'Playlist'.padEnd(13)}  tập   xem  vào  ĐK\n${bang.map((b) => dong(b.ten, b)).join('\n')}\n${dong('Tổng', tong)}`)}</pre>`
   + `\nvào = phiên vào astrolas.com từ link bài · ĐK = đăng ký Member${lech.length ? `\n⚠ ${lech.length} video chưa gắn playlist: ${lech.slice(0, 5).join(', ')}` : ''}`
   + (dx ? `\n\nĐề xuất: chuyển ${THU[dx.ngay]} từ ${esc(ten(dx.tu))} (${bang.find((b) => b.ma === dx.tu).diem.toFixed(1)} vào/tập) sang ${esc(ten(dx.den))} (${bang.find((b) => b.ma === dx.den).diem.toFixed(1)} vào/tập, trung vị ${dx.tv.toFixed(1)}). Trả lời "Duyệt" ngay dưới tin này là máy tự đổi lịch, "Không" để giữ — không cần ai làm tay.`
     : `\n\nGiữ nguyên lịch (cần ≥ 2 playlist có ≥ ${c.min_tap} tập và chênh nhau rõ mới đề xuất đổi).`);

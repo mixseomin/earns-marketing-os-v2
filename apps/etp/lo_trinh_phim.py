@@ -94,9 +94,9 @@ def chon_phim_moi(q, ch, da):
 # không trong sổ cấm 18+ → xếp dòng AT (máy dòng phim chạy anh-tinh.py, ~160–290₫ giọng / phim). Giữ tối đa AT_HANG dòng AT chưa xong để lượt sau
 # lấy phim mới nhất; phim LÃI NHẤT 3 ngày (thu − chi, nhà + đội) lên trước (anh 08/11/2026 "ưu tiên các phim có camp lãi trước"), hoà thì phim nhiều camp. Bật bằng etp.cau_hinh 'at_uu_tien' {"bat": true} — tắt thì không xếp gì (tiền giọng > 5.000₫/đợt cần anh bật).
 AT_HANG = 6
-# MỖI PHIM MỘT CAMP POSTER ĐỘNG (anh 08/11/2026 "Mỗi bộ phim đều cần có 1 camp như thế này" — rồi "nhưng để hết 1 ngày theo dõi đã"): theo dõi PO hết 09/11 rồi mới
-# nâng HANG["PO"] (dòng ~65 phút; 87 phim đang chạy chưa có PO ≈ 5 giờ ở mức 20). Tới lúc đó PO giữ như AT.
-HANG = {"PO": AT_HANG, "AT": AT_HANG}
+# MỖI PHIM ĐANG CHẠY MỘT CAMP POSTER ĐỘNG (anh 08/11/2026 "Mỗi bộ phim đều cần có 1 camp như thế này" · "Vẫn phải thêm cho các phim đang chạy"): PO giữ tới 20 dòng
+# cùng lúc (dòng ~65 phút; các dạng khác đang gác nên iMac rảnh) — 87 phim đang chạy chưa có PO ≈ 5 giờ. Camp PO mới theo dõi đủ 1 ngày trước khi chấm.
+HANG = {"PO": 20, "AT": AT_HANG}
 UU_TIEN = ("PO", "AT")   # dạng tĩnh xếp ưu tiên cho phim đang chạy — PO trước (anh 08/11/2026 PO ROI +30%)
 def xep_at(q, ma="AT"):
     dang = DG.DONG[ma]

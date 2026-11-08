@@ -329,7 +329,8 @@ def xep_dung_lai(goc_id, creative_id, content_id, ten):
 
 # BỘ TÀI KHOẢN QC + FANPAGE (anh 23/10/2026: "1 bộ tk fb ads - fanpage mới: chỉ dành cho các phim mới, ko liên quan đến phim bộ tk khác; nhịp đăng,
 # giới hạn camp, ngân sách vẫn như tk đầu tiên"). Sổ studio xv_khoa_ngoai['ethopex_bo_tk'] {bộ: {tk, ext, page, ten}}; mỗi PHIM thuộc đúng MỘT bộ —
-# sổ ['ethopex_phim_tk'] {content_id: bộ}, ghi khi tạo camp; phim đã ở bộ này thì không lên bộ kia (cổng chan_bo).
+# sổ ['ethopex_phim_tk'] {content_id: bộ} ghi bộ ĐẦU TIÊN của phim (thống kê). MỘT PHIM NHIỀU BỘ (anh 08/11/2026 "1 phim ở nhiều bộ thoải mái"): bỏ cổng chan_bo —
+# camp mới của creative lên bộ etp.cau_hinh.bo_phim_moi (cong.SQL_BO_PHIM), nhân bản / thang / ROAS ở bộ camp gốc.
 def bo_tk(bo):
     v = q(f"select gia_tri->'{bo}' from xv_khoa_ngoai where ten='ethopex_bo_tk'")
     if not v: raise ValueError(f"không có bộ tài khoản '{bo}' trong ethopex_bo_tk")
@@ -337,9 +338,6 @@ def bo_tk(bo):
 def bo_cua_camp(c):
     v = q("select gia_tri::text from xv_khoa_ngoai where ten='ethopex_bo_tk'")
     return next((k for k, b in (json.loads(v) if v else {}).items() if int(b["tk"]) == int(c.get("ad_account_id") or 0)), None)
-def chan_bo(content_id, bo):
-    v = q(f"select gia_tri->>'{int(content_id)}' from xv_khoa_ngoai where ten='ethopex_phim_tk'")
-    return f"phim {content_id} thuộc bộ tài khoản {v} — không lên bộ {bo} (mỗi phim một bộ, anh 23/10/2026)" if v and v != str(bo) else None
 def ghi_bo(content_id, bo):
     q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_phim_tk', '{}'::jsonb) on conflict (ten) do nothing")
     q(f"update xv_khoa_ngoai set gia_tri = gia_tri || jsonb_build_object('{int(content_id)}', '{bo}') where ten='ethopex_phim_tk' and not gia_tri ? '{int(content_id)}'")
@@ -453,7 +451,7 @@ def main(a):
     kq = {"ok": False, "goc": goc, "moi": None, "ten": None, "loi": None, "chay": lich}
     try:
         d, ten, cid, pl = payload(goc, lich, moi, bo, thang, ep=ep); kq["ten"] = ten; bo = pl.pop("bo")
-        ly = None if NGOAI else (None if ep else chan_bo(cid, bo)) or (None if moi or ep else q(f"select etp.bo_chan_mo_camp('{bo}', {int(goc)})"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (0339); camp gốc tự thắng (3 ngày khép ROI ≥ 30%) thì miễn (0372, anh 30/10/2026)
+        ly = None if NGOAI else (None if moi or ep else q(f"select etp.bo_chan_mo_camp('{bo}', {int(goc)})"))   # bộ có camp ĐÃ TĂNG vẫn lỗ 3 ngày khép → ngừng nhân bản / thang; camp mới $1 không chặn (0339); camp gốc tự thắng (3 ngày khép ROI ≥ 30%) thì miễn (0372, anh 30/10/2026)
         if ly: raise ChanLuat(ly)
         if moi: kq["viec"] = "tao_camp"
         if moi and not NGOAI and BO_DANG_CHAN.get(str(bo)):
@@ -577,13 +575,11 @@ def loi_may(kq, e):
     kq.update(loi=(f"LỖI MÃ {type(e).__name__}: " if ma else "") + str(e)[:220], may=ma or isinstance(e, OSError))
 
 def roas_main(goc, roas, ns, lich, that, tam_dung, luat, ai, nhan=None, mien_cham=False, tay=False):   # tay truyền từ main (05/11/2026: thiếu → NameError, 3 lượt ROAS 00:09 chết)
-    """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim + mỗi phim một bộ."""
+    """CAMP ROAS — loại riêng (anh 26/10/2026: "Camp ROAS là 1 dạng riêng"): bỏ các luật nhân bản thường, giữ cổng etp + trần phim."""
     kq = {"ok": False, "viec": "roas", "goc": goc, "moi": None, "ten": None, "roas": roas, "loi": None, "chay": lich}
     try:
         if not 15 <= ns <= 20: raise ValueError("ngân sách camp ROAS $15–20 (Support 26/10/2026)")
         d, ten, cid, pl = payload(goc, lich, bo=None, roas=roas, ns_roas=ns, nhan=nhan); kq["ten"] = ten; bo = pl.pop("bo")
-        ly = None if NGOAI else chan_bo(cid, bo)
-        if ly: raise ChanLuat(ly)
         # CAMP ROAS KHÔNG QUA CỔNG CHẤM (anh 29/10/2026: "Camp roas lên ko cần chấm lại" — thay luật 26/10 "áp cho mọi loại camp"): ad ROAS = đúng bài đăng
         # của camp gốc đang chạy lãi (lãi 30 ngày ≥ $75), không phải creative mới. Điểm chấm chỉ ghi vào nhật ký để xem; luật chấm lich-gio cũng bỏ qua camp ★.
         cr_goc = q(f"select creative_id from {'etp.camp_ngoai' if NGOAI else 'etp.camp'} where camp_id = {int(goc)}")

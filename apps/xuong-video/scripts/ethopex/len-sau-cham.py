@@ -27,7 +27,7 @@ def main(a):
     else: ds = [x for x in json.load(open(os.path.join(C, "ra", ma, "len.json"))) if x.get("ok") and x.get("creative_id")]
     ids = ",".join(str(int(x["creative_id"])) for x in ds) or "0"
     co_camp = set(SD.sql(f"select distinct creative_id from etp.camp where creative_id in ({ids}) and coalesce(trang_thai, '') <> 'ARCHIVED'").split())
-    bo_phim = json.loads(SD.sql("select coalesce(gia_tri, '{}'::jsonb)::text from xv_khoa_ngoai where ten='ethopex_phim_tk'") or "{}")   # mỗi phim một bộ — phim đã có bộ thì lên đúng bộ đó, phim mới → etp.cau_hinh.bo_phim_moi
+    # bộ lên camp = etp.cau_hinh.bo_phim_moi (một phim nhiều bộ, anh 08/11/2026)
     bo_moi = SD.sql("select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi'").strip()   # một nguồn với apps/etp/cong.py SQL_BO_PHIM
     if not bo_moi: raise SystemExit("thiếu etp.cau_hinh.bo_phim_moi — không biết phim mới lên bộ nào")
     cham = dict(l.split("|", 1) for l in SD.sql(f"select creative_id, case when duoc_len then 'ok' else 'chan' end from etp.cham_cong where creative_id in ({ids})").splitlines() if "|" in l)   # cổng một nguồn: view etp.cham_cong
@@ -41,7 +41,7 @@ def main(a):
         lang = (x.get("lang") or "en").lower()
         if thu: print(f"[thử] sẽ lên #{cr} ({lang}) {x['ten'][:60]}"); dem["len"] += 1; return
         ten = x["ten"].replace("'", "").replace('"', "")
-        r = subprocess.run(["ssh", SD.B, f"""{SD.ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON['en'])} --bo {bo_phim.get(str(int(x['content_id'])), bo_moi)} --creative {cr} --content {int(x['content_id'])} --ten "{ten}" --that --luat "lên camp sau khi máy chấm Sạch — lô {ma}" --ai "anh (chat 25/10/2026: cái nào đủ điều kiện lên camp thì lên luôn)\""""],
+        r = subprocess.run(["ssh", SD.B, f"""{SD.ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON['en'])} --bo {bo_moi} --creative {cr} --content {int(x['content_id'])} --ten "{ten}" --that --luat "lên camp sau khi máy chấm Sạch — lô {ma}" --ai "anh (chat 25/10/2026: cái nào đủ điều kiện lên camp thì lên luôn)\""""],
                            capture_output=True, text=True, timeout=600)
         kq = (r.stdout.strip().splitlines() or [r.stderr.strip()[-200:]])[-1]
         try: j = json.loads(kq); ok = j.get("ok")

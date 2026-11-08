@@ -68,7 +68,7 @@ def xet(s, tran):
 # MÙA LỄ MỸ (anh 08/11/2026 "Sắp 27/11 thì có plan gì để tận dụng trend này"): 15/11–05/01 phim chủ đề gia đình / lễ (tâm lý sum họp Lễ Tạ ơn 26/11 – Giáng sinh)
 # xếp trước trong cùng nhóm thứ tự — kho Âu-Mỹ 08/11: ~200 phim gia đình, 1 phim Giáng sinh. Hết mùa tự về thứ tự cũ.
 MUA_LE = ("2026-11-15", "2027-01-05")
-MUA_LE_TEN = r"christmas|xmas|navidad|santa|holiday|thanksgiving|family|mom|dad|father|mother|son|daughter|brother|sister|wife|husband|baby|twins"
+MUA_LE_TEN = r"\m(christmas|xmas|navidad|santa|holiday|thanksgiving|family|mom|mommy|dad|daddy|father|mother|son|daughter|brother|sister|wife|husband|baby|twins)\M"   # \m \M = ranh giới từ Postgres: không bắt Prison / Season / Moment
 def chon_phim_moi(q, ch, da):
     """MỞ CHO MỌI PHIM CHƯA CÓ CAMP NHÀ (anh 07/11/2026 "Tập trung các phim mới", roadmap E13 bước 3): mỗi ngày VN thêm tới cau_hinh.phim_moi_ngay phim vào lộ trình.
     Thứ tự: đội đã chạy LÃI (tiêu ≥ $10, thu > chi) → chưa ai chạy → đội chạy chưa đủ số (< $10). Bỏ: đội lỗ ≥ $10, phim cất, ngoài Âu-Mỹ, phim cấm 18+, phim không có poster trong kho,

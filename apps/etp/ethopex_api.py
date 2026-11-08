@@ -14,6 +14,9 @@ import json, os, re, subprocess, urllib.request
 
 class NgoaiNha(RuntimeError): pass
 class CamThayCreative(NgoaiNha): pass
+class CamNganSach(NgoaiNha, ValueError): pass     # camp mới > $1 (anh 08/11/2026) — cong.ns_tao đọc chính payload tạo camp
+import importlib.util as _iu
+_s = _iu.spec_from_file_location("cong", os.path.join(os.path.dirname(os.path.abspath(__file__)), "cong.py")); CG = _iu.module_from_spec(_s); _s.loader.exec_module(CG)
 
 def _q(s):
     # trên box3 đọc thẳng DATABASE_URL; trên iMac (the-loai / phim-moi… nạp module này) đọc qua ssh box3 — 28/10/2026 gãy phim-moi poster vì thiếu DATABASE_URL
@@ -67,6 +70,7 @@ def _goi(duong, body=None, timeout=90):
     return json.load(urllib.request.urlopen(r, timeout=timeout))
 
 _NHA, _TAO = None, set()
+_TRAN_TAO = {}   # camp vừa tạo → trần ngân sách lúc tạo (cong.ns_tao): lệnh đặt lại ngân sách ngay sau tạo không được vượt
 def camp_nha():
     """{camp_id: camp} mọi camp tài khoản nhà (đủ mọi trang) — đọc một lần mỗi tiến trình"""
     global _NHA
@@ -176,10 +180,16 @@ def api(duong, body=None, timeout=90):
     if body is not None and duong.endswith("/campaigns/facebook"):   # tạo camp mới: tài khoản đích (ad_account_id trong payload) phải là tài khoản nhà
         tk = set(int(x) for x in re.findall(r'"ad_account_id":\s*"?(\d+)', json.dumps(body)))
         if not tk or tk - TK: raise NgoaiNha(f"tạo camp vào tài khoản {sorted(tk - TK) or '?'} không phải tài khoản nhà — không gửi")
+        ly, tran = CG.ns_tao(body)   # CAMP MỚI $1 đọc trên CHÍNH payload (mọi tầng campaign + Ad Set), không tin số người gọi khai
+        if ly: raise CamNganSach(ly)
         d = _goi(duong, body, timeout)   # camp vừa tạo (vào tài khoản nhà) có thể chưa hiện trong danh sách → nhớ id để lệnh sau (tạm dừng / lịch) không bị chặn oan
         moi = d.get("id") or (d.get("data") or {}).get("id") or (d.get("campaign") or {}).get("id") if isinstance(d, dict) else None
-        if moi and str(moi).isdigit(): _TAO.add(int(moi))
+        if moi and str(moi).isdigit(): _TAO.add(int(moi)); _TRAN_TAO[int(moi)] = tran
         return d
+    if body is not None and isinstance(body, dict) and duong.endswith("/campaigns/update"):   # đặt lại ngân sách camp VỪA TẠO (Ethopex không nhận lúc tạo) → không vượt trần lúc tạo
+        cp = body.get("campaign") or {}; cid = int(cp.get("campaign_id") or 0); ns = (cp.get("source_payload") or {}).get("daily_budget")
+        if cid in _TRAN_TAO and ns is not None and float(ns) > _TRAN_TAO[cid]:
+            raise CamNganSach(f"camp #{cid} vừa tạo, trần lúc tạo ${_TRAN_TAO[cid]:g} — không đặt ${float(ns):g} (camp mới phải $1, anh 08/11/2026)")
     if body is None and "?" in duong: return doc_het(duong, None, timeout)   # mọi danh sách GET khác (tài khoản QC, Page, pixel, creative…) cũng đủ mọi trang
     ngoai = [i for i in ids if i > 1000 and i not in _TAO and i not in camp_nha()] if body is not None else []   # chỉ lệnh GHI mới gác
     if ngoai:
@@ -189,11 +199,21 @@ def api(duong, body=None, timeout=90):
     return _goi(duong, body, timeout)
 
 if __name__ == "__main__":   # tự kiểm: python3 ethopex_api.py
+    # CAMP MỚI $1 Ở CỔNG (phá thử, KHÔNG gửi gì lên Ethopex — mọi ca đều phải bị chặn trước khi gửi)
+    tk0 = sorted(TK)[0]
+    for ns, g in ((3, {}), (1, {"daily_budget": 3})):
+        pl = {"name": "TU KIEM", "ad_account_id": tk0, "campaign": {"source_payload": {"name": "TU KIEM", "daily_budget": ns}, "ad_groups": [{"source_payload": g}]}}
+        try: api("/api/v1/campaigns/facebook", pl); raise SystemExit(f"LỌT: tạo camp ngân sách {ns}/{g}")
+        except CamNganSach as e: print("chặn đúng: tạo camp >$1 ·", str(e)[:70])
+    _TRAN_TAO[999999999] = 1.0
+    try: api("/api/v1/campaigns/update", {"campaign": {"campaign_id": 999999999, "source_payload": {"daily_budget": 3}}}); raise SystemExit("LỌT: đặt $3 cho camp vừa tạo")
+    except CamNganSach as e: print("chặn đúng: đặt lại >$1 camp vừa tạo ·", str(e)[:70])
+    _TRAN_TAO.pop(999999999)
+    n = camp_nha(); print("camp nhà", len(n), "· tài khoản", sorted(TK))
     sach = next(((int(i), int(c["ad_id"])) for i, c in n.items() if c.get("ad_id") and c.get("state") == "ACTIVE"), None)
     if sach:   # ad đang chạy, không bị từ chối → lệnh đổi creative phải bị chặn
         try: api("/api/v1/campaigns/update", {"ads": [{"ad_id": sach[1], "creative_id": 1}]}); raise SystemExit(f"LỌT: đổi creative ad chưa bị từ chối camp #{sach[0]}")
         except CamThayCreative as e: print("chặn đúng: đổi creative ad chưa bị từ chối ·", str(e)[:60])
-    n = camp_nha(); print("camp nhà", len(n), "· tài khoản", sorted(TK))
     assert all(int(c["ad_account_id"]) in TK for c in n.values())
     ngoai = next((int(c["id"]) for c in _goi("/api/v1/campaigns?page_size=1000&page=1")["data"] if int(c.get("ad_account_id") or 0) not in TK), None)
     if ngoai:

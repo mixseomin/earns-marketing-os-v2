@@ -109,6 +109,38 @@ def camp_roas():
     """tập camp ROAS trong kho etp (đồng bộ 10 phút) — luật đọc API trực tiếp thì cộng thêm la_roas(tên)"""
     return {int(x) for x in _q("select camp_id from etp.camp where la_roas").split() if x.isdigit()}
 
+# CAMP MỚI = $1, ĐỌC NGAY TRÊN PAYLOAD GỬI ĐI (anh 08/11/2026 "Rà ngay" sau vụ 52 camp A/B lên $3): kiem() ở trên tin số ns_moi + cờ roas/bac do NGƯỜI GỌI
+# tự khai — người gọi tính sai (A/B đặt $3 vào payload sau khi cổng đã nhận "1") là lọt. Hàm này đọc CHÍNH lệnh tạo camp ở cổng API chung
+# (ethopex_api.api, POST /campaigns/facebook — mọi đường tạo camp đi qua đó): mọi trường *budget* ở mọi tầng (campaign + Ad Set). Miễn theo VẬT, không theo cờ:
+#   camp ROAS = chiến lược thầu LOWEST_COST_WITH_MIN_ROAS, $15–20 (Support 26/10/2026) · bản thang = tên "(thang $X cua <gốc>)", tới đúng $X (anh 25/10/2026).
+# Trả (lý do chặn | None, trần ngân sách cho camp vừa tạo) — trần dùng tiếp cho lệnh đặt lại ngân sách ngay sau khi tạo (ethopex_api: camp trong _TAO).
+def ns_tao(body):
+    import re
+    cp = (body or {}).get("campaign") or {}
+    sp = cp.get("source_payload") or {}
+    if isinstance(sp, str): sp = json.loads(sp or "{}")
+    so = []
+    def di(o):
+        if isinstance(o, str) and o.strip().startswith("{"):
+            try: o = json.loads(o)
+            except ValueError: return
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if "budget" in k.lower() and not isinstance(v, bool) and isinstance(v, (int, float, str)) and str(v).replace(".", "", 1).isdigit(): so.append((k, float(v)))
+                else: di(v)
+        elif isinstance(o, list):
+            for x in o: di(x)
+    di(body)
+    ten = str(sp.get("name") or body.get("name") or "")
+    m = re.search(r"\(thang \$(\d+(?:\.\d+)?) cua \d+\)\s*$", ten)
+    if sp.get("bid_strategy") == "LOWEST_COST_WITH_MIN_ROAS": tran, loai = 20.0, "camp ROAS"
+    elif m: tran, loai = float(m.group(1)), "bản thang"
+    else: tran, loai = 1.0, "camp mới"
+    vuot = [(k, v) for k, v in so if v > tran]
+    if vuot: return f"{loai} '{ten[:60]}' gửi {', '.join(f'{k}=${v:g}' for k, v in vuot)} > ${tran:g} — camp mới phải $1 (anh 08/11/2026), ngân sách khác phải xin anh", tran
+    if not any(k == "daily_budget" for k, _ in so): return f"lệnh tạo camp '{ten[:60]}' không có daily_budget — không gửi (Ethopex có thể tự đặt mức khác)", tran
+    return None, tran
+
 def _tu_kiem():
     for t in ("★ ROAS 1.1 · X roas 1.1 duplicate by 65720", "S_FB_The-Dragons_167292_EN_EP8_x10_D69655_ROAS1", "S_FB_Max_153695_EN_VD-FULL-EP1_V1_D2 (ROAS)", "Dup by 66168 ROAS 1.2"):
         assert la_roas(t), t
@@ -122,7 +154,20 @@ def _tu_kiem():
           {"id": 69655, "name": "S_FB_Dragons_x10"}, {"id": 2, "name": "S_FB_Dragons_x10_D69655_ROAS1"}, {"id": 3, "name": "Dup by 66168 ROAS 1.1"},
           {"id": 70000, "name": "S_FB_Khac_x1"}, {"id": 4, "name": "★ ROAS 1 · Y roas 1 duplicate by 65720"}]
     assert goc_roas(cs) == {66420, 69655, 66168, 65720}, goc_roas(cs)
-    print("✓ cong.py tự kiểm (nhận camp ROAS mọi kiểu tên + gốc đã có ROAS)")
+    # camp mới $1 đọc trên payload — phá thử: mỗi ca sai phải đỏ
+    _pl = lambda ns, ten="X EN - anh tinh 0-9s", bid=None, g=None: {"name": ten, "campaign": {"source_payload": {"name": ten, "daily_budget": ns, **({"bid_strategy": bid} if bid else {})},
+                                                                       "ad_groups": [{"source_payload": g or {"name": ten + " · adset"}}]}}
+    assert ns_tao(_pl(1))[0] is None
+    assert ns_tao(_pl(3))[0], "camp mới $3 phải chặn"
+    assert ns_tao(_pl(1, g={"daily_budget": 3}))[0], "ngân sách $3 nấp ở Ad Set phải chặn"
+    assert ns_tao(_pl(1, g={"lifetime_budget": "50"}))[0], "lifetime_budget ở Ad Set phải chặn"
+    assert ns_tao({"name": "X", "campaign": {"source_payload": {"name": "X"}, "ad_groups": []}})[0], "thiếu daily_budget phải chặn"
+    assert ns_tao(_pl(18, bid="LOWEST_COST_WITH_MIN_ROAS"))[0] is None and ns_tao(_pl(25, bid="LOWEST_COST_WITH_MIN_ROAS"))[0], "ROAS tới $20"
+    assert ns_tao(_pl(18, ten="★ ROAS 1.1 · X duplicate by 1"))[0], "tên ROAS mà không có chiến lược thầu ROAS → vẫn là camp mới $1"
+    assert ns_tao(_pl(5, ten="X (thang $5 cua 87811)")) == (None, 5.0) and ns_tao(_pl(10, ten="X (thang $5 cua 87811)"))[0], "bản thang tới đúng $X"
+    assert ns_tao(_pl(3, ten="X (thang $5 cua 87811) copy"))[0], "chữ thang giữa tên không tính"
+    assert ns_tao(_pl(1, g={"is_adset_budget_sharing_enabled": True}))[0] is None, "cờ boolean không phải ngân sách"
+    print("✓ cong.py tự kiểm (nhận camp ROAS mọi kiểu tên + gốc đã có ROAS + camp mới $1 trên payload: 10 ca)")
 
 if __name__ == "__main__":
     import sys; a = sys.argv[1:]

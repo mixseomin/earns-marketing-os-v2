@@ -84,7 +84,7 @@ def nap(cid, lang, f, dang, ghi, vnd, chu_dau=None):
 # không đổi số mẫu cũ (sổ đo hiệu suất đọc theo số).
 # "dien_anh" anh KHÔNG duyệt ("Nhìn lởm") — không có số, không xoay vào bản dựng.
 MAU_PO = ["goc", "ghep", "the"]
-BAN_PO = {"goc": "PO.1", "ghep": "PO.2", "the": "PO.3"}
+BAN_PO = {"goc": "PO.1", "ghep": "PO.2", "the": "PO.3", "le": "PO.4"}   # PO.4 mùa lễ: chưa vào MAU_PO (chờ anh duyệt) — dựng thử bằng --mau le
 def _phu(im, w, h, cx=0.5, cy=0.5):   # phóng ảnh phủ kín w×h, giữ tâm (cx, cy)
     s = max(w / im.width, h / im.height); im = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
     x = min(max(0, round(cx * im.width - w / 2)), im.width - w); y = min(max(0, round(cy * im.height - h / 2)), im.height - h); return im.crop((x, y, x + w, y + h))
@@ -137,7 +137,7 @@ def poster_mau(mau, tm, nen_khung, ra):
         nen = Image.alpha_composite(nen.convert("RGBA"), tuyet.filter(ImageFilter.GaussianBlur(1.2))).convert("RGB"); nen.save(ra); return ra
     raise ValueError(f"mẫu poster lạ: {mau}")
 
-def main(cid, kieu, ban=1, xem=False):
+def main(cid, kieu, ban=1, xem=False, mau_ep=None):
     p = AT.phim([cid])[0]; lang = "es" if str(p.get("locale")).startswith("es") else "en"; ten = AT.ten_sach(p["ten"])
     tm = os.path.join(AT.C, str(cid)); os.makedirs(tm, exist_ok=True); vnd = 0; kq = {"content_id": cid, "ban": []}
     uv = AT.khung(cid, p["url"], tm); uv, ly_ai, v_ai = AT.xep_ai(ten, uv) if len(uv) > 1 else (uv, "", 0); vnd += v_ai
@@ -161,7 +161,7 @@ def main(cid, kieu, ban=1, xem=False):
                     nen, chu = AT.anh(cid, ten, k, tm, b); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, b % len(AT.CAU[lang]))
                 elif kk == "poster":
                     if not os.path.exists(os.path.join(tm, "poster.jpg")): raise RuntimeError("không có poster")
-                    mau = MAU_PO[b % len(MAU_PO)]; nk = AT.anh(cid, ten, k, tm, b)[0] if mau != "goc" else None   # khung phim + tên tách từ poster cho mẫu ghép
+                    mau = (mau_ep or MAU_PO)[b % len(mau_ep or MAU_PO)]; nk = AT.anh(cid, ten, k, tm, b)[0] if mau != "goc" else None   # khung phim + tên tách từ poster cho mẫu ghép
                     nen = poster_mau(mau, tm, nk, os.path.join(tm, f"nen-poster-{mau}.png")); chu = os.path.join(tm, "trong.png"); Image.new("RGBA", (W, H)).save(chu)   # poster đã có tên phim
                     mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, b % len(AT.CAU[lang]))
                 else:
@@ -186,4 +186,4 @@ def main(cid, kieu, ban=1, xem=False):
 
 if __name__ == "__main__":
     a = sys.argv[1:]; ki = a[a.index("--kieu") + 1].split(",") if "--kieu" in a else ["tom_tat", "poster", "cau_soc"]
-    main(int(a[0]), ki, int(a[a.index("--ban") + 1]) if "--ban" in a else 1, "--xem" in a)
+    main(int(a[0]), ki, int(a[a.index("--ban") + 1]) if "--ban" in a else 1, "--xem" in a, a[a.index("--mau") + 1].split(",") if "--mau" in a else None)   # --mau le,ghep: dựng đúng các mẫu này (thử mẫu chưa vào vòng xoay)

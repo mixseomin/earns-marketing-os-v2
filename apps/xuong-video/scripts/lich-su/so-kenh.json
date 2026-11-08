@@ -273,7 +273,7 @@
         "ten": "Tầng Playlist chung",
         "viec": "playlist trong kenh.json, tap.playlist, lịch theo playlist trong chay-kenh.mjs, bảng Kênh nội dung chia theo playlist; chạy thử trên Yesterday's News Tonight · đã dựng 03/11: playlist.mjs + kenh.json › playlist (YNT một playlist Full Stories, lịch không đổi) — xong khi lượt làm tập YNT kế chạy qua đường playlist",
         "anh": "không",
-        "trang_thai": "xong"
+        "trang_thai": "dang"
       },
       {
         "ma": "G2",
@@ -1300,7 +1300,7 @@
         "ten": "Playlist YouTube + Facebook",
         "viec": "tạo playlist trên kênh, máy đăng gắn đúng playlist; tiền tố tiêu đề theo loạt · 08/11/2026: YouTube xong — máy đăng tự tạo playlist khi kênh chưa có, \"Big Stories\" đã có 6/6 video đã lên; Facebook không còn đường: Graph trả (#3) app không có quyền tạo playlist Page; giao diện Page (Creator Dashboard › Content Library, Business Suite › Content) không có mục playlist — Facebook báo \"Videos you post on Facebook are now reels\", Create chỉ còn Post / Story / Reel / Bulk upload (dò 08/11/2026)",
         "anh": "không",
-        "trang_thai": "dang"
+        "trang_thai": "xong"
       },
       {
         "ma": "G4",

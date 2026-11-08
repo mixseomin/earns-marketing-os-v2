@@ -9,7 +9,8 @@ import json
 import os as _o, sys as _s; _s.path.insert(0, _o.path.dirname(_o.path.abspath(__file__))); import so_dang as DG
 CAN = {k: DG.DONG[k] for k in ("PO", "CC", "AT")}   # PO TRƯỚC (anh 08/11/2026 "dạng Poster Động có vẻ đang hiệu quả cao hơn": camp từ 06/11 PO ROI +30%, 8/11 camp có chi lãi — mọi dạng khác âm); thứ tự = thứ tự chia chỗ trần camp / 24 giờ   # dạng lộ trình tự xếp (dong_phim.LOAI); CT chưa có máy. KT TẠM KHÔNG XẾP (anh 07/11/2026 "lượt này không sinh dòng phim KT cho nhanh" —
 # máy sinh VideoExpress 1–4 giờ + lỗi Meta 389), thay bằng AT (anh-tinh.py ~10 phút/phim, anh 07/11/2026 "sử dụng cả ảnh tĩnh để lên camp cho nhanh hơn"); dòng KT đang chạy giữ nguyên
-MOT_LUOT = {"KT", "AT", "PO"}   # máy làm mỗi lượt một video → mỗi dòng 1 camp
+MOT_LUOT = {"KT", "AT", "PO"}
+GAC = set()   # dạng anh tạm gác (etp.cau_hinh.gac_dang, đọc đầu mỗi lượt chay) — không xếp; mở rộng camp lãi đổi CC → PO khi CC bị gác (anh 08/11/2026)   # máy làm mỗi lượt một video → mỗi dòng 1 camp
 HIEN = {**CAN, "KT": "kể chuyện"}   # dạng hiện trên thẻ phim (lo_trinh_tt.dang): cả KT để thấy số đã thử
 TEN_CT, SO_MOI_DANG, SO_LOI_BO = "cảnh thật", 2, 3   # mỗi dạng 2 camp có chi (cat_phim.so_moi_dang) · 3 dòng hỏng thì thôi dạng đó (hỏng thường do máy quá tải, 2 lần là bỏ oan cả dạng)
 
@@ -46,10 +47,11 @@ def xet(s, tran):
         elif mo.get("trang_thai") != "them": chu.append(f"Có camp lãi, chưa mở thêm: {mo.get('ly') or ''}"[:120])
         elif "CC" in dang_sx or "CC" in gan: ke += k; chu.append("Vừa mở đợt CC, đợt sau tự xếp")
         elif not con: ke += k; chu.append(f"Chạm trần {tran} camp mới / 24 giờ, đợt sau tự xếp")
+        elif "CC" in GAC: ke += k; con -= 1; xep.append(("PO", 1)); chu.append("Mở rộng theo camp lãi bằng PO (CC đang gác)")
         else: n = min(k, con); ke += k; con -= n; xep.append(("CC", n)); chu.append(f"Mở rộng CC × {n} theo camp lãi")
     for ma, ten in CAN.items():
         da, loi = int((dang.get(ten) or {}).get("tao") or 0), int((s.get("hong") or {}).get(ma) or 0)
-        if da >= SO_MOI_DANG or loi >= SO_LOI_BO or any(x[0] == ma for x in xep): continue
+        if ma in GAC or da >= SO_MOI_DANG or loi >= SO_LOI_BO or any(x[0] == ma for x in xep): continue
         thieu = SO_MOI_DANG - da; ke += thieu
         if ma in dang_sx: chu.append(f"Đang sản xuất {ma} × {dang_sx[ma]}, xong tự lên camp")
         elif ma in gan: chu.append(f"Đang thử {ma} {da}/{SO_MOI_DANG}, đợt sau tự xếp sau 24 giờ")
@@ -95,6 +97,7 @@ AT_HANG = 6
 UU_TIEN = ("PO", "AT")   # dạng tĩnh xếp ưu tiên cho phim đang chạy — PO trước (anh 08/11/2026 PO ROI +30%)
 def xep_at(q, ma="AT"):
     dang = DG.DONG[ma]
+    if ma in GAC: return 0
     ch = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'at_uu_tien'), '{}')") or "{}")
     if not ch.get("bat"): return 0
     # chỉ đếm dòng CỦA BƯỚC NÀY: 15 dòng AT phim mới (lộ trình, lãi 0) không được chặn phim lãi vào hàng (08/11/2026)
@@ -112,6 +115,8 @@ def xep_at(q, ma="AT"):
 
 AT_KQ = [0]
 def chay(q):
+    try: GAC.clear(); GAC.update(str(x) for x in json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_dang'), '[]')") or "[]"))
+    except Exception: pass
     kq = {}
     for ma in UU_TIEN:   # đầu lượt: không phụ thuộc phim lộ trình
         try: kq[ma] = xep_at(q, ma)

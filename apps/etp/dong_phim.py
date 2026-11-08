@@ -198,10 +198,11 @@ def doi_at(d, ly, loai=("CC", None)):
     """CẤM BỎ CUỘC (anh 07/11/2026 "thử đa dạng cấm bỏ cuộc"): dòng CC không ra đoạn / hết khung mới → xếp dòng AT (ảnh tĩnh) cho cùng phim, không xếp đôi (dong_phim_mot).
     loai: các loại dòng được chuyển — dạng trượt cổng chấm (b_cat) chuyển cả LT."""
     if d.get("loai") not in loai: return ""
-    r = sql(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp) select content_id, ten, the_loai, 'AT', {s('máy: CC không ra (' + ly[:80] + ') → thử ảnh tĩnh')}, 1
-               from etp.dong_phim where id = {d['id']} and not exists (select 1 from etp.dong_phim x where x.content_id = {d['content_id']} and x.loai = 'AT' and x.tao_luc > now() - interval '2 days')
+    ma = "PO" if "AT" in gac_dang() else "AT"   # AT đang gác (etp.cau_hinh.gac_dang, anh 08/11/2026 ưu tiên poster động) → chuyển sang PO
+    r = sql(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp) select content_id, ten, the_loai, '{ma}', {s('máy: CC không ra (' + ly[:80] + ') → thử ' + DG.DONG[ma])}, 1
+               from etp.dong_phim where id = {d['id']} and not exists (select 1 from etp.dong_phim x where x.content_id = {d['content_id']} and x.loai = '{ma}' and x.tao_luc > now() - interval '2 days')
                on conflict do nothing returning id""")
-    return f" · đã xếp dòng ảnh tĩnh #{r}" if r else ""
+    return f" · đã xếp dòng {DG.DONG[ma]} #{r}" if r else ""
 
 def b_cat(d):
     cid, lo = d["content_id"], f"dp{d['id']}"
@@ -543,6 +544,14 @@ HET_NL = re.compile(r"hết khung mới|không còn đoạn sạch|bị cổng c
 # ('dung', vong), phim hết nguyên liệu cắt chuyển ảnh tĩnh thay vì mở dòng KT (sang_ke_chuyen). Mở lại: đặt gac_kt = false rồi bấm FIX dòng KT muốn chạy tiếp.
 GAC_KT_LY = "tạm gác dòng kể chuyện (anh 08/11/2026) — mở lại: etp.cau_hinh.gac_kt = false rồi FIX"
 def gac_kt(): return sql("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_kt'), 'false')") == "true"
+# GÁC THEO DẠNG (anh 08/11/2026 "Các camp chờ dạng khác như AT, ATT chưa lên thì pause lại để ưu tiên sang dạng PO"): etp.cau_hinh.gac_dang = [mã dòng] —
+# dòng đang chạy của các dạng đó mà chưa tới bước lên camp thì dừng hẳn (ly_do "tạm gác dòng …", manh.py không tự mở lại); lo_trinh_phim không xếp dạng đó.
+# Mở lại: bỏ mã khỏi gac_dang rồi FIX dòng. gac_kt = true (cũ) tính như có "KT" trong danh sách.
+def gac_dang():
+    try: g = {str(x) for x in json.loads(sql("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_dang'), '[]')") or "[]")}
+    except ValueError: g = set()
+    return g | ({"KT"} if gac_kt() else set())
+def gac_ly(ma): return GAC_KT_LY if ma == "KT" else f"tạm gác dòng {ma} để ưu tiên poster động (anh 08/11/2026) — mở lại: bỏ '{ma}' khỏi etp.cau_hinh.gac_dang rồi FIX"
 
 def sang_ke_chuyen(d, buoc, ghi):
     if d.get("loai") == "KT" or buoc not in ("cat", "soat", "creative") or not HET_NL.search(ghi or ""): return None
@@ -626,15 +635,15 @@ def vong():
     except Exception as e: print(f"mở rộng phim đội lãi lỗi: {str(e)[:200]}", flush=True)
     try: mo_tran_ngay()
     except Exception as e: print(f"mở lại dòng chạm trần ngày lỗi: {str(e)[:200]}", flush=True)
-    gac = gac_kt()
+    gac = gac_dang()
     for d in doc_dong():
         bs = d.get("buoc") or {}
-        if gac and d.get("loai") == "KT" and d["trang_thai"] == "chay" and not any((bs.get(b) or {}).get("trang_thai") in ("dang", "xong") for b in ("camp", "chay")):   # đã tới bước lên camp thì để chạy nốt
+        if d.get("loai") in gac and d["trang_thai"] == "chay" and not any((bs.get(b) or {}).get("trang_thai") in ("dang", "xong") for b in ("camp", "chay")):   # đã tới bước lên camp thì để chạy nốt
             with KHOA: pr = [p for (i, _), p in DANG.items() if i == d["id"]]
             for p in pr: giet_cay(p.pid)
-            sql(f"""update etp.dong_buoc set trang_thai = 'dung', ket_thuc = now(), ghi = {s(GAC_KT_LY)}, fix = false where dong_id = {d['id']} and trang_thai in ('dang', 'cho') and buoc not in ('camp', 'chay');
-                    update etp.dong_phim set trang_thai = 'dung', ly_do = {s(GAC_KT_LY)}, xong_luc = now() where id = {d['id']} and trang_thai = 'chay'""")
-            print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} KT — {GAC_KT_LY}", flush=True); continue
+            sql(f"""update etp.dong_buoc set trang_thai = 'dung', ket_thuc = now(), ghi = {s(gac_ly(d["loai"]))}, fix = false where dong_id = {d['id']} and trang_thai in ('dang', 'cho') and buoc not in ('camp', 'chay');
+                    update etp.dong_phim set trang_thai = 'dung', ly_do = {s(gac_ly(d["loai"]))}, xong_luc = now() where id = {d['id']} and trang_thai = 'chay'""")
+            print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} {d['loai']} — {gac_ly(d['loai'])}", flush=True); continue
         if not bs:   # dòng mới (web vừa tạo): dựng 8 bước — hạn từng bước khai MỘT chỗ ở đây
             live = d.get("so_camp") and sql(f"select count(*) from etp.camp where content_id = {d['content_id']} and trang_thai = 'ACTIVE' and not la_roas") not in ("", "0")
             bq = BO_QUA.get(d.get("loai") or "CC", set()) | ({"nhan", "ws", "poster"} if live else set())   # mở rộng phim ĐANG có camp Nhà chạy mới bỏ nhận / trang / poster; phim chưa có camp Nhà (vd phim chỉ team chạy, bấm ＋ ở tab Phim) vẫn qua đủ cổng

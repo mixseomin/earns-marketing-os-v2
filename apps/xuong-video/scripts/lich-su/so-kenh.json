@@ -1,1607 +1,1607 @@
 {
- "_ghi": "SỔ KÊNH (anh 04/11/2026: 'cần có nơi tổ chức để sau này lên video mới ko bị chệch hướng' → 'show ở Kênh nội dung'). MỘT nguồn cho người + máy, chung mọi kênh studio, khoá = mã máy (xv_may.ma). Anh đọc ở mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh: 📘 Sổ kênh · 🧩 Mẫu đã duyệt · 💡 Hàng chờ ý tưởng · 🧭 Lộ trình · 📂 Playlist) và Studio (phim kênh › 📖 Phim). Máy gác: lich-su/kiem-so-kenh.mjs (tự kiểm sổ + gác từng tập: mẫu / playlist phải có trong sổ, câu kết đúng, chủ đề không trùng). Phần: dinh_vi · luat[] · mau[] { ma, ten, loai short|dai, playlist, nhip, kho, trang, sinh, demo, tu_sinh? (khuôn mã ý tưởng máy tự sinh — mẫu vô hạn) } · hang_cho[] { ma, mau, chu_de, ngay?, trang_thai chua|san_sang|demo|da_lam|da_dang } · nguon_y_tuong[] { mau, tep (lich-su/<tệp> có su_kien[] { ma, chu, utc }), ngay_toi } — ý tưởng TỰ SINH hiện trong hàng chờ · nguoi_tep (sổ người nổi tiếng: giờ sinh + hạng Rodden) · playlist[] · giai_doan[] (lộ trình). trang_thai playlist: de_xuat · chot · mo · sau · tam_dung; giai đoạn: cho_anh · dang · chua · xong. Đổi sổ = sửa tệp + commit (deploy đọc lại). Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs đọc kenh.json).",
- "astrolas": {
-  "ten": "Astrolas · YouTube @astrolasapp",
-  "plan": "apps/xuong-video/docs/astrolas-youtube.md",
-  "muc_tieu": "kênh tự vận hành: máy tự chọn chủ đề → viết → kiểm → dựng → Phòng Nội dung chấm → đăng đúng playlist → đo → chỉnh suất playlist; Claude chỉ vào khi Telegram báo kẹt",
-  "cap_nhat": "2026-11-04",
-  "playlist": [
-   {
-    "ma": "love-compatibility",
-    "ten": "Love & Compatibility",
-    "trang_thai": "chot",
-    "mo_dau": true,
-    "ngay": "Thứ 3 + Thứ 7",
-    "tien_to": "",
-    "mo_ta": "Hai lá số đặt cạnh nhau: cặp đôi, đối thủ, bạn diễn nổi tiếng và từng cặp cung — điểm và lời giải của công cụ Synastry trên site",
-    "goc_spy": [
-     {
-      "id": 4314,
-      "loai": "muon",
-      "ten": "Tình yêu, hợp đôi (synastry)"
-     },
-     {
-      "id": 41245,
-      "loai": "ai_chan_dung",
-      "ten": "Cặp đôi bị gia đình phản đối tình cảm"
-     },
-     {
-      "id": 41297,
-      "loai": "ai_chan_dung",
-      "ten": "Người độc thân mong tìm bạn đời"
-     },
-     {
-      "id": 41274,
-      "loai": "ai_tinh_huong",
-      "ten": "Yêu xa và trục trặc tình cảm"
-     }
+  "_ghi": "SỔ KÊNH (anh 04/11/2026: 'cần có nơi tổ chức để sau này lên video mới ko bị chệch hướng' → 'show ở Kênh nội dung'). MỘT nguồn cho người + máy, chung mọi kênh studio, khoá = mã máy (xv_may.ma). Anh đọc ở mos2 › Tài sản › 📺 Kênh nội dung (▸ mở kênh: 📘 Sổ kênh · 🧩 Mẫu đã duyệt · 💡 Hàng chờ ý tưởng · 🧭 Lộ trình · 📂 Playlist) và Studio (phim kênh › 📖 Phim). Máy gác: lich-su/kiem-so-kenh.mjs (tự kiểm sổ + gác từng tập: mẫu / playlist phải có trong sổ, câu kết đúng, chủ đề không trùng). Phần: dinh_vi · luat[] · mau[] { ma, ten, loai short|dai, playlist, nhip, kho, trang, sinh, demo, tu_sinh? (khuôn mã ý tưởng máy tự sinh — mẫu vô hạn) } · hang_cho[] { ma, mau, chu_de, ngay?, trang_thai chua|san_sang|demo|da_lam|da_dang } · nguon_y_tuong[] { mau, tep (lich-su/<tệp> có su_kien[] { ma, chu, utc }), ngay_toi } — ý tưởng TỰ SINH hiện trong hàng chờ · nguoi_tep (sổ người nổi tiếng: giờ sinh + hạng Rodden) · playlist[] · giai_doan[] (lộ trình). trang_thai playlist: de_xuat · chot · mo · sau · tam_dung; giai đoạn: cho_anh · dang · chua · xong. Đổi sổ = sửa tệp + commit (deploy đọc lại). Tệp này KHÔNG bật máy làm tập (chay-kenh.mjs đọc kenh.json).",
+  "astrolas": {
+    "ten": "Astrolas · YouTube @astrolasapp",
+    "plan": "apps/xuong-video/docs/astrolas-youtube.md",
+    "muc_tieu": "kênh tự vận hành: máy tự chọn chủ đề → viết → kiểm → dựng → Phòng Nội dung chấm → đăng đúng playlist → đo → chỉnh suất playlist; Claude chỉ vào khi Telegram báo kẹt",
+    "cap_nhat": "2026-11-04",
+    "playlist": [
+      {
+        "ma": "love-compatibility",
+        "ten": "Love & Compatibility",
+        "trang_thai": "chot",
+        "mo_dau": true,
+        "ngay": "Thứ 3 + Thứ 7",
+        "tien_to": "",
+        "mo_ta": "Hai lá số đặt cạnh nhau: cặp đôi, đối thủ, bạn diễn nổi tiếng và từng cặp cung — điểm và lời giải của công cụ Synastry trên site",
+        "goc_spy": [
+          {
+            "id": 4314,
+            "loai": "muon",
+            "ten": "Tình yêu, hợp đôi (synastry)"
+          },
+          {
+            "id": 41245,
+            "loai": "ai_chan_dung",
+            "ten": "Cặp đôi bị gia đình phản đối tình cảm"
+          },
+          {
+            "id": 41297,
+            "loai": "ai_chan_dung",
+            "ten": "Người độc thân mong tìm bạn đời"
+          },
+          {
+            "id": 41274,
+            "loai": "ai_tinh_huong",
+            "ten": "Yêu xa và trục trặc tình cảm"
+          }
+        ],
+        "mau": [
+          "chart-vs-chart",
+          "love-story-charts",
+          "sign-x-sign",
+          "ask-the-chart"
+        ],
+        "trang_dich": "Synastry (/synastry-chart), Compatibility (/compatibility), bài ghép cung",
+        "nen": "brand/astrolas/anh/nen/love-compatibility.jpg",
+        "lich_tap": [
+          2,
+          6
+        ],
+        "mau_nhan": "#FF8FB1",
+        "ic": "♡"
+      },
+      {
+        "ma": "know-yourself",
+        "ten": "Know Yourself",
+        "trang_thai": "chot",
+        "mo_dau": true,
+        "ngay": "Thứ 2",
+        "tien_to": "",
+        "mo_ta": "Đọc một lá số để hiểu một con người: vị trí sao, nhà, thần thoại đứng sau — chữ lấy từ bài lá số và bài giải thích của site",
+        "goc_spy": [
+          {
+            "id": 4313,
+            "loai": "muon",
+            "ten": "Hiểu bản thân, tính cách"
+          },
+          {
+            "id": 41242,
+            "loai": "ai_mong_muon",
+            "ten": "Thấu hiểu bản thân và tâm lý qua lá số"
+          },
+          {
+            "id": 41356,
+            "loai": "ai_chan_dung",
+            "ten": "Người muốn giải mã tổng quan cuộc đời"
+          }
+        ],
+        "mau": [
+          "read-your-chart",
+          "myth-behind",
+          "free-60s",
+          "chart-chapters",
+          "zodiac-myths"
+        ],
+        "trang_dich": "Birth chart (/birth), /c/<người>, bài <người>-birth-chart",
+        "nen": "brand/astrolas/anh/nen/know-yourself.jpg",
+        "lich_tap": [
+          1,
+          7
+        ],
+        "mau_nhan": "#8EC5FF",
+        "ic": "☉"
+      },
+      {
+        "ma": "career",
+        "ten": "Career & Big Decisions",
+        "trang_thai": "chot",
+        "mo_dau": true,
+        "ngay": "Thứ 6",
+        "tien_to": "",
+        "mo_ta": "Bước ngoặt sự nghiệp của người nổi tiếng theo chương lá số (Profection, Zodiacal Releasing) — kỳ và nghĩa nhà lấy từ công cụ site",
+        "goc_spy": [
+          {
+            "id": 4315,
+            "loai": "muon",
+            "ten": "Sự nghiệp, quyết định lớn"
+          },
+          {
+            "id": 41248,
+            "loai": "ai_noi_dau",
+            "ten": "Lo lắng về công việc và sự nghiệp"
+          }
+        ],
+        "mau": [
+          "chart-chapters",
+          "chart-chapters-dai",
+          "chart-tools",
+          "ask-the-chart",
+          "chart-vs-chart"
+        ],
+        "trang_dich": "Annual Profections, Zodiacal Releasing",
+        "nen": "brand/astrolas/anh/nen/career.jpg",
+        "lich_tap": [
+          5
+        ],
+        "mau_nhan": "#E6B800",
+        "ic": "♄"
+      },
+      {
+        "ma": "timing",
+        "ten": "Timing: What's Coming",
+        "trang_thai": "chot",
+        "mo_dau": true,
+        "ngay": "Thứ 4 (+ sát ngày sự kiện trời)",
+        "tien_to": "",
+        "mo_ta": "Sự kiện trời sắp tới (trăng mới / tròn, sao đổi cung, nghịch hành) và nó chạm nhà nào theo cung Mọc — lịch trời tính tới phút",
+        "goc_spy": [
+          {
+            "id": 4316,
+            "loai": "tinh_huong",
+            "ten": "Thời điểm: transit, Saturn return"
+          },
+          {
+            "id": 41439,
+            "loai": "ai_cu_hich",
+            "ten": "Người theo dõi giai đoạn Sao Kim và Sao Thủy nghịch hành cùng lúc"
+          },
+          {
+            "id": 41438,
+            "loai": "ai_cu_hich",
+            "ten": "Người quan tâm hiện tượng Sao Thủy nghịch hành"
+          }
+        ],
+        "mau": [
+          "this-week",
+          "sky-calendar",
+          "tonights-sky"
+        ],
+        "trang_dich": "Today's sky, Transit, Moon Phase, Lunation Analyzer",
+        "nen": "brand/astrolas/anh/nen/timing.jpg",
+        "lich_tap": [
+          3
+        ],
+        "mau_nhan": "#7FD18B",
+        "ic": "☽"
+      },
+      {
+        "ma": "start-here",
+        "ten": "Start Here",
+        "trang_thai": "chot",
+        "mo_dau": true,
+        "ngay": "ghim đầu kênh, thêm tập khi có mẫu mới",
+        "tien_to": "",
+        "mo_ta": "Cho người mới: lá số là gì, đọc từ đâu, không biết giờ sinh thì sao, tự xem miễn phí bằng công cụ nào",
+        "goc_spy": [
+          {
+            "id": 41233,
+            "loai": "ai_cach_giai",
+            "ten": "Tự xem lá số miễn phí bằng công cụ"
+          },
+          {
+            "id": 41236,
+            "loai": "ai_chan_dung",
+            "ten": "Người mới bắt đầu tự học chiêm tinh"
+          },
+          {
+            "id": 41288,
+            "loai": "ai_cu_hich",
+            "ten": "Người mới nhập môn chiêm tinh, chưa biết bắt đầu từ đâu"
+          },
+          {
+            "id": 4321,
+            "loai": "dau",
+            "ten": "Không biết giờ sinh"
+          }
+        ],
+        "mau": [
+          "start-here",
+          "read-your-chart",
+          "geometry",
+          "how-the-sky-works",
+          "free-60s"
+        ],
+        "trang_dich": "Birth chart (/birth), bài what-is-a-birth-chart, how-to-read-your-birth-chart-in-10-steps",
+        "nen": "brand/astrolas/anh/nen/start-here.jpg",
+        "lich_tap": [
+          4
+        ],
+        "mau_nhan": "#7FD18B",
+        "ic": "✦"
+      },
+      {
+        "ma": "accurate",
+        "ten": "Is Astrology Accurate?",
+        "trang_thai": "chot",
+        "mo_dau": true,
+        "ngay": "chưa xếp",
+        "tien_to": "",
+        "mo_ta": "Góc ngại: lá số có chính xác không — hạng giờ sinh Rodden, Swiss Ephemeris của site, vì sao lời giải chung chung không dùng được; chỉ nói điều site có",
+        "goc_spy": [
+          {
+            "id": 4312,
+            "loai": "ngai",
+            "ten": "Có đúng không, độ chính xác"
+          },
+          {
+            "id": 41263,
+            "loai": "ai_tieu_chi",
+            "ten": "Dự đoán chính xác, có kiểm chứng"
+          },
+          {
+            "id": 41249,
+            "loai": "ai_noi_dau",
+            "ten": "Thất vọng vì luận giải chung chung, đại trà"
+          },
+          {
+            "id": 41251,
+            "loai": "ai_chan_dung",
+            "ten": "Người thất vọng với lá số AI tự động"
+          },
+          {
+            "id": 4319,
+            "loai": "so_sanh",
+            "ten": "AI hay người thật luận giải"
+          },
+          {
+            "id": 41270,
+            "loai": "ai_tieu_chi",
+            "ten": "Đòi giờ sinh chính xác và gửi dữ liệu kín đáo"
+          }
+        ],
+        "mau": [
+          "chart-tools",
+          "read-your-chart"
+        ],
+        "trang_dich": "Birth chart (/birth), công cụ có số liệu",
+        "nen": "brand/astrolas/anh/nen/accurate.jpg",
+        "mau_nhan": "#F4D971",
+        "ic": "✦"
+      }
+    ],
+    "giai_doan": [
+      {
+        "ma": "G0",
+        "ten": "Chốt",
+        "viec": "ĐÃ CHỐT (anh, 03/11/2026): mảng chính = đời người nổi tiếng theo chương lá số; 2 playlist mở đầu Chart Chapters (engraving, Thứ 2 + Thứ 6) + Sky Calendar (paper-lantern, Thứ 4); hạn mức dưới 10.000₫/tập trên đường đã duyệt; ngưỡng playlist kém chốt ở G9",
+        "anh": "chốt",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G1",
+        "ten": "Tầng Playlist chung",
+        "viec": "Astrolas chạy theo playlist: so-kenh.json › playlist (6 playlist, lich_tap theo thứ), chay-so-kenh.mjs chọn tập kế theo lịch playlist, máy đăng chọn playlist theo dang.playlist_ten. Đóng 08/11/2026 — không phụ thuộc kênh khác",
+        "anh": "không",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G2",
+        "ten": "Bộ nhận diện",
+        "viec": "DUYỆT 04/11/2026: logo + icon thật astrolas.com, lá số Nebula SVG nhúng font Hamburg, nền ảnh thật Pexels chuyển động (shot-code/nen-troi.js), mở đầu có chuông, màn cuối, ảnh bìa theo playlist, ảnh đại diện + banner (lich-su/brand/astrolas/ve-brand.mjs)",
+        "anh": "duyệt ảnh",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G3",
+        "ten": "Theme hình",
+        "viec": "DUYỆT 04/11/2026: 9 mẫu Short (Chart Chapters, Sky Calendar, The Myth Behind, Chart Tools, Start here, Read Your Chart, Ask the Chart, Free in 60 Seconds, This Week in Your Chart — shot-code/la-so.html: lá số camera, tranh, trang công cụ thật, thẻ số, dải trăng) + 4 mẫu dài 16:9 (Chart Chapters dài, How the Sky Works, Geometry of Your Chart, Tonight's Sky — lich-su/dai/mau-dai.json). Trang duyệt: claude.ai/artifact/7qQKTdrE8R7UtNHcxR96t5",
+        "anh": "duyệt tờ khung + tiền Opus",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G4",
+        "ten": "Dữ liệu thật",
+        "viec": "đã có: lá số theo giờ sinh hạng AA (la-so/nguoi.json, lay.mjs --nguoi; 32 người hạng AA dùng được (08/11/2026; them-nguoi.mjs tự thêm mỗi ngày, kiểm AS/MC + doi-chieu)), bộ tính khớp Swiss Ephemeris ≤ 0,06° + kiểm múi giờ site (doi-chieu.mjs), lịch sự kiện trời tới phút → ý tưởng tự sinh (lich-troi.mjs), tệp sự thật + nghĩa 12 nhà nguyên văn của site, kỳ Zodiacal Releasing L1/L2 (Spirit + Fortune) của 7 người AA lấy từ công cụ site và tự tính lại khớp từng kỳ (la-so/zr.mjs → la-so/zr/<người>.json, kyTai(zr, ngày) cho kịch bản)",
+        "anh": "không",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G5",
+        "ten": "Khuôn kịch bản",
+        "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp · ĐÃ CÓ MÁY (06/11): This Week · Sign × Sign (78) · Chart vs Chart (18) · Love Story dài (15) · Ask the Chart (46) · Myths of the Zodiac (12) · The Myth Behind (14) · Sky Calendar (21) · Chart Chapters Short (8) · Read Your Chart (168, viet-ryc.mjs) · Chart Chapters dài · Tonight's Sky; hook chung lich-su/hook-kenh.mjs; còn kịch bản tay: Chart Tools, Free in 60 Seconds · Start Here, How the Sky Works, Geometry (tập một lần)",
+        "anh": "duyệt kịch bản mẫu",
+        "trang_thai": "dang"
+      },
+      {
+        "ma": "G6",
+        "ten": "Tập mẫu",
+        "viec": "06/11 ANH DUYỆT tập mẫu Ask the Chart · Steve Jobs 1985 (giọng Charlotte ckey + nhạc + outro logo theo playlist): https://img.on.tc/xuong-video/demo/astrolas/ask-steve-jobs-1985.mp4 · 3 tập dự trữ có giọng (3.276₫): https://img.on.tc/xuong-video/demo/astrolas/g6-sc-leonids-1833.mp4 · https://img.on.tc/xuong-video/demo/astrolas/g6-my-saturn.mp4 · https://img.on.tc/xuong-video/demo/astrolas/g6-cvc-brad-pitt--angelina-jolie.mp4",
+        "anh": "duyệt video",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G7",
+        "ten": "Đăng",
+        "viec": "mở khoá mục YouTube @astrolasapp; 2 playlist + Start here + bố cục trang kênh; máy đăng chọn playlist + tiền tố tiêu đề · 07/11: video đầu https://youtube.com/shorts/RMNI1c9ybGM; đăng hẳn từ iMac (scripts/chep-phien.mjs); kênh đã xác minh số; bìa chuẩn thumb-kenh.mjs; 6 playlist đã tạo, máy đăng chọn playlist theo dang.playlist_ten",
+        "anh": "không",
+        "trang_thai": "dang"
+      },
+      {
+        "ma": "G8",
+        "ten": "Tự chạy",
+        "viec": "Astrolas vào chay-kenh.mjs (lịch theo playlist, trần 1 bài/ngày); hàng chờ chủ đề mỗi playlist tự bổ sung · 07/11: lich-su/chay-so-kenh.mjs gắn cuối lượt mỗi giờ của chay-kenh.mjs: tập kế theo playlist.lich_tap → viết → giọng → dựng → nạp, trần 3 tập làm trước, hook bị chặn tự đổi, hỏng 3 lần bỏ tập, báo Telegram; 08/11: video dài tự làm mỗi tuần (tu_chay.dai: Chủ nhật, Love Story / Chart Chapters dài, bìa ngang thumb-kenh.mjs) — đóng khi tập dài đầu tiên tự ra",
+        "anh": "không",
+        "trang_thai": "dang"
+      },
+      {
+        "ma": "G9",
+        "ten": "Đo + tự điều chỉnh",
+        "viec": "UTM theo playlist → GA4 click + đăng ký Member; playlist kém giảm suất, tốt tăng suất; báo Telegram tuần",
+        "anh": "đọc báo cáo",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G10",
+        "ten": "Mở rộng",
+        "viec": "playlist 3 (công cụ, hologram-hud); kênh JA / ES khi astrolas.com mở locale",
+        "anh": "duyệt mở ngôn ngữ",
+        "trang_thai": "chua"
+      }
+    ],
+    "dinh_vi": {
+      "cho_ai": "người muốn tự hiểu lá số của mình — tiếng Anh, toàn cầu (sau mở ES / JA)",
+      "dich": "dẫn người xem vào công cụ miễn phí của astrolas.com → gói Member ($19.99/tháng · $167.90/năm)",
+      "cau_ket": "…free at astrolas.com",
+      "ngon_ngu": "EN"
+    },
+    "luat": [
+      "Mỗi tập thuộc đúng MỘT mẫu đã duyệt và MỘT playlist trong sổ này — không có mẫu = không làm",
+      "Số lá số / thiên văn chỉ lấy từ astrolas.com (lá số dựng theo giờ sinh trong la-so/nguoi.json) hoặc bau-troi-tinh.js — đã đối chiếu ≤ 0,06°, la-so/doi-chieu.mjs",
+      "Cung Mọc / nhà / Profection chỉ cho người có giờ sinh hạng AA (giấy khai sinh) trong la-so/nguoi.json — hạng A / B / DD không dùng (Taylor Swift DD, Lady Gaga DD, Elon Musk B)",
+      "Sự thật lịch sử, thần thoại, đời người: có nguồn kiểm được; không bịa, không đoán ngày",
+      "Giọng bí ẩn, điềm, ít đùa — không chế giễu chiêm tinh, không hứa hẹn tiên tri",
+      "Khung thương hiệu G2: logo + icon thật, nhãn playlist, nền trời thật chuyển động, màn cuối chung",
+      "Short: chữ và logo ngoài vùng YouTube đè; video dài: 16:9, hình trái · chữ phải",
+      "Người còn sống: không vẽ chân dung minh hoạ (chỉ lá số, trang công cụ, cảnh chung)",
+      "Câu kết trỏ về astrolas.com (công cụ miễn phí); chủ đề đã đăng không làm lại",
+      "Synastry: góc chiếu chạm cung Mọc / MC / nhà của ai thì người đó phải hạng AA; chạm Trăng thì phải có giờ sinh (AA / A / B); hành tinh khác chỉ cần ngày sinh (la-so/hop.mjs ghi cờ dung từng góc). Bỏ góc chiếu thế hệ (hai sao Uranus / Neptune / Pluto) khỏi tiêu đề tập",
+      "Diễn giải chiêm tinh chỉ là chữ NGUYÊN VĂN của site (lời giải synastry, nghĩa nhà, bài blog, mô tả công cụ — kho lich-su/nguon-site.mjs); cấm tự đặt nghĩa theo kiến thức chiêm tinh chung. Câu dẫn tự viết khai khung: true và không được mang từ nghĩa",
+      "Bài đăng về công cụ: dang.mo_ta có câu mô tả công cụ NGUYÊN VĂN của site (cong-cu/so-cong-cu.json) + dang.link mở THẲNG kết quả của đúng người / cặp (linkCongCu). Máy gác chặn nếu thiếu"
     ],
     "mau": [
-     "chart-vs-chart",
-     "love-story-charts",
-     "sign-x-sign",
-     "ask-the-chart"
+      {
+        "ma": "chart-chapters",
+        "ten": "Chart Chapters",
+        "loai": "short",
+        "nhip": "Thứ 2 + Thứ 6",
+        "kho": "vô hạn · 1–3 tập / người nổi tiếng",
+        "trang": "shot-code/la-so.html",
+        "sinh": "lich-su/viet-chuong.mjs --ai <người | all> — 0đ, không AI: mốc đời có nguồn + ảnh thật Wikipedia của trang nguồn (anh-wiki.mjs) + câu diễn giải nguyên văn bài <người>-birth-chart của blog site, camera vào đúng sao; người hạng AA có bài lá số trên site",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/la-so-mau.mp4?v=5",
+        "tu_sinh": "^cc-[a-z0-9-]+$"
+      },
+      {
+        "ma": "sky-calendar",
+        "ten": "Sky Calendar",
+        "loai": "short",
+        "nhip": "Thứ 4",
+        "kho": "21 chuyện trời xưa (nhật / nguyệt thực, sao chổi, mưa sao băng, khám phá hành tinh) · 52 tuần trăng / năm",
+        "trang": "shot-code/la-so.html",
+        "sinh": "lich-su/viet-sky.mjs [--tu <thứ Hai>] — 0đ, không AI: 21 chuyện trời xưa nguyên văn Wikipedia (lich-su/troi-xua/, kiểm _may/verify.py), xếp mỗi chuyện một tuần ưu tiên tuần kỷ niệm; dải pha trăng tính thật + trăng mới / tròn của tuần (lich-troi.json); tranh tuỳ chọn brand/astrolas/tranh/<ma>-<i>.jpg",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-sky-calendar.mp4?v=5",
+        "tu_sinh": "^sc-[a-z0-9-]+$"
+      },
+      {
+        "ma": "myth-behind",
+        "ten": "The Myth Behind",
+        "loai": "short",
+        "nhip": "sau 2 playlist đầu",
+        "kho": "14 thiên thể (10 hành tinh + Chiron, Lilith, Eris, Ceres) · thêm chòm / tiểu hành tinh khi có chuyện nguyên văn",
+        "trang": "shot-code/la-so.html (vai nhân vật)",
+        "sinh": "lich-su/viet-myth-behind.mjs --sao <thiên thể | all> — 0đ khi đã có nhân vật: câu đặt tên + chuyện nguyên văn Wikipedia (la-so/than-thoai-sao/, 14 thiên thể), nhân vật hoạt hình tự dàn cảnh (khuôn Myths of the Zodiac), câu site bài the-10-planets-in-astrology, vị trí trong lá số site người hạng AA",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-myth-behind.mp4?v=5",
+        "tu_sinh": "^my-[a-z]+$"
+      },
+      {
+        "ma": "chart-tools",
+        "ten": "Chart Tools",
+        "loai": "short",
+        "nhip": "sau",
+        "kho": "≈ 30 tập",
+        "trang": "shot-code/la-so.html",
+        "sinh": "lich-su/viet-chart-tools.mjs --y ct-<công cụ>--<người> — 0đ, không AI: câu giải thích nguyên văn bài site của công cụ + lá số người AA + trang kết quả chụp thật, hook QC góc Career (08/11/2026)",
+        "tu_sinh": "^ct-[a-z-]+--[a-z0-9-]+$",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-cong-cu.mp4?v=5"
+      },
+      {
+        "ma": "start-here",
+        "ten": "Start here",
+        "loai": "short",
+        "nhip": "1 lần (G7)",
+        "kho": "1–2 tập",
+        "trang": "shot-code/la-so.html",
+        "sinh": "kịch bản tay",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-start-here.mp4?v=5"
+      },
+      {
+        "ma": "read-your-chart",
+        "ten": "Read Your Chart",
+        "loai": "short",
+        "nhip": "sau",
+        "kho": "168 tập (14 người hạng AA × AC, MC, 10 hành tinh)",
+        "trang": "shot-code/la-so.html",
+        "sinh": "lich-su/viet-ryc.mjs --muc <asc|mc|sao|all> --ai <người|all> — 0đ, không AI: ảnh + số liệu trang lá số thật (cong-cu/doc-natal.mjs), câu giải nghĩa nguyên văn blog site, nghĩa nhà của site",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-read-your-chart.mp4?v=5",
+        "tu_sinh": "^ryc-[a-z0-9-]+$"
+      },
+      {
+        "ma": "ask-the-chart",
+        "ten": "Ask the Chart",
+        "loai": "short",
+        "nhip": "sau",
+        "kho": "46 tập người × năm Profection (54 mốc, 14 người hạng AA) · ≈ 13.900 câu hỏi thật (spy nhóm #9)",
+        "trang": "shot-code/la-so.html",
+        "sinh": "lich-su/viet-ask.mjs --ai <người | all> — 0đ, không AI: người hạng AA × mốc đời có nguồn (dai/moc-*, la-so/cap.json) → ảnh + chữ TRANG THẬT Annual Profections năm đó (cong-cu/doc-ap.mjs: tuổi, nhà của năm, nghĩa nhà, chủ năm, Theme); hook QC spy theo playlist",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-ask-the-chart.mp4?v=5",
+        "tu_sinh": "^ask-[a-z0-9-]+$"
+      },
+      {
+        "ma": "free-60s",
+        "ten": "Free in 60 Seconds",
+        "loai": "short",
+        "nhip": "sau",
+        "kho": "16 tập (một công cụ một tập)",
+        "trang": "shot-code/la-so.html",
+        "sinh": "lich-su/viet-free60.mjs --cong-cu <mã | all> — 0đ, không AI: tên + mô tả công cụ nguyên văn của site, form + trang kết quả chụp thật (cong-cu/chup.mjs), câu bước là câu khung, hook QC góc Know Yourself (08/11/2026)",
+        "tu_sinh": "^f60-[a-z-]+$",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-free-60s.mp4?v=5"
+      },
+      {
+        "ma": "this-week",
+        "ten": "This Week in Your Chart",
+        "loai": "short",
+        "nhip": "theo sự kiện trời",
+        "kho": "≈ 1.000 Short / năm (88 sự kiện × 12 cung Mọc)",
+        "trang": "shot-code/la-so.html",
+        "sinh": "lich-su/viet-this-week.mjs --su <tw-… trong lich-troi.json> --moc <Cung | all> — 0đ, không AI: chữ site nguyên văn (bài New/Full Moon theo nhà, <sao>-transit-<nhà>, Mercury / Venus–Mars retrograde, transits-explained, nghĩa nhà), hook QC spy góc Thời điểm, bài đăng dangCongCu; máy gác chặn trước khi ghi",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-this-week.mp4?v=5",
+        "tu_sinh": "^tw-[a-z0-9-]+$"
+      },
+      {
+        "ma": "chart-chapters-dai",
+        "ten": "Chart Chapters (long)",
+        "loai": "dai",
+        "nhip": "1 tập / tuần",
+        "kho": "vô hạn theo người",
+        "trang": "shot-code/la-so.html (khung ngang)",
+        "sinh": "lich-su/dai/sinh-chuong.mjs --slug <người> --moc <moc.json>",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-chart-chapters.mp4?v=5",
+        "tu_sinh": "^ccd-[a-z0-9-]+$"
+      },
+      {
+        "ma": "chart-vs-chart",
+        "ten": "Chart vs Chart",
+        "loai": "short",
+        "nhip": "Thứ 3 + Thứ 7",
+        "kho": "vô hạn · mỗi cặp 1–3 tập (góc khít nhất / điểm / mốc chia tay)",
+        "trang": "shot-code/la-so.html (cheo + diem)",
+        "sinh": "lich-su/viet-cap.mjs --cap <a--b | all> — 0đ, không AI: 2 góc chiếu chéo khít nhất dùng được (tiêu đề lời giải nguyên văn Synastry của site), điểm từng trục, mốc đầu / cuối sổ cặp, hook QC spy; romantic → Love & Compatibility, partner → Career; 18/18 cặp qua máy gác",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/chart-vs-chart.mp4?v=5",
+        "tu_sinh": "^cvc-[a-z0-9-]+$"
+      },
+      {
+        "ma": "love-story-charts",
+        "ten": "Love Story in Two Charts (long)",
+        "loai": "dai",
+        "nhip": "2 tập / tháng",
+        "kho": "theo sổ cặp la-so/cap.json",
+        "trang": "shot-code/la-so.html (khung ngang)",
+        "sinh": "lich-su/viet-love-story.mjs --cap <a--b | all> — 0đ, không AI: mốc đời sổ cặp + bánh xe đôi + 2 góc chiếu chéo + điểm của site + thẻ kỳ ZR (Peak Period / Loosing of the Bond) của người hạng AA ở từng mốc; hook QC spy góc Tình yêu",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-love-story.mp4?v=5",
+        "tu_sinh": "^ls-[a-z0-9-]+$"
+      },
+      {
+        "ma": "sign-x-sign",
+        "ten": "Sign × Sign",
+        "loai": "short",
+        "nhip": "Thứ 5",
+        "kho": "78 cặp cung (đủ một vòng 78 tuần)",
+        "trang": "shot-code/la-so.html",
+        "sinh": "lich-su/viet-sign.mjs --cap <sx-a-b | all> — 0đ, không AI: câu nguyên văn bài ghép cung của site theo mục (câu hỏi · quan hệ hai cung · hợp · vướng · cách làm · câu trả lời), hook QC spy góc Tình yêu; 78/78 cặp qua máy gác",
+        "tu_sinh": "^sx-[a-z]+-[a-z]+$",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/sign-x-sign.mp4?v=5"
+      },
+      {
+        "ma": "how-the-sky-works",
+        "ten": "How the Sky Works",
+        "loai": "dai",
+        "nhip": "2 tập / tháng",
+        "kho": "≈ 20 bài",
+        "trang": "shot-code/giang-troi.html",
+        "sinh": "bài giảng soạn sẵn (JSON)",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-how-the-sky-works.mp4?v=5"
+      },
+      {
+        "ma": "geometry",
+        "ten": "The Geometry of Your Chart",
+        "loai": "dai",
+        "nhip": "2 tập / tháng",
+        "kho": "≈ 15–20 bài",
+        "trang": "shot-code/giang-troi.html",
+        "sinh": "bài giảng soạn sẵn (JSON)",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-geometry-of-your-chart.mp4?v=5"
+      },
+      {
+        "ma": "tonights-sky",
+        "ten": "Tonight's Sky",
+        "loai": "dai",
+        "nhip": "mỗi tuần × mỗi thành phố",
+        "kho": "vô hạn",
+        "trang": "shot-code/bau-troi-dem.html",
+        "sinh": "lich-su/dai/sinh-dem.mjs --noi <thành phố> --ngay <ngày>",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-tonights-sky.mp4",
+        "tu_sinh": "^ts-[a-z-]+-\\d{4}-\\d{2}-\\d{2}$"
+      },
+      {
+        "ma": "zodiac-myths",
+        "ten": "Myths of the Zodiac",
+        "loai": "short",
+        "nhip": "2 tập / tuần (12 cung, rồi các chòm khác)",
+        "kho": "12 cung + 76 chòm sao khác có thần thoại",
+        "trang": "shot-code/la-so.html (vai nhân vật + chom chòm sao)",
+        "sinh": "lich-su/viet-than-thoai.mjs --cung <cung> — chuyện Wikipedia nguyên văn (la-so/than-thoai/<cung>.json), nhân vật vẽ một lần (kho-sinh.mts), câu cung của site",
+        "tu_sinh": "^tt-[a-z]+$",
+        "demo": "https://img.on.tc/xuong-video/demo/astrolas/zodiac-myths-leo.mp4?v=1"
+      }
     ],
-    "trang_dich": "Synastry (/synastry-chart), Compatibility (/compatibility), bài ghép cung",
-    "nen": "brand/astrolas/anh/nen/love-compatibility.jpg",
-    "lich_tap": [
-     2,
-     6
+    "mo_dau": "https://img.on.tc/xuong-video/demo/astrolas/mo-dau-doc.mp4",
+    "hang_cho": [
+      {
+        "ma": "cc-steve-jobs",
+        "mau": "chart-chapters",
+        "chu_de": "Steve Jobs: the garage, the board, the return",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tw-mercury-rx-scorpio-2026",
+        "mau": "this-week",
+        "chu_de": "Mercury retrograde in Scorpio · 12 bản cung Mọc",
+        "trang_thai": "demo",
+        "ngay": "2026-10-24"
+      },
+      {
+        "ma": "sc-columbus-1504",
+        "mau": "sky-calendar",
+        "chu_de": "The eclipse that saved Columbus · 1504",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "sc-eclipse-2027-08-02",
+        "mau": "sky-calendar",
+        "chu_de": "Total solar eclipse of 2 August 2027",
+        "trang_thai": "chua",
+        "ngay": "2027-08-02"
+      },
+      {
+        "ma": "my-chiron",
+        "mau": "myth-behind",
+        "chu_de": "Chiron: the wounded healer",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "my-lilith",
+        "mau": "myth-behind",
+        "chu_de": "Lilith: the first woman who refused",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ryc-asc-degree",
+        "mau": "read-your-chart",
+        "chu_de": "What does 22°17' next to AC mean?",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "ryc-retrograde-r",
+        "mau": "read-your-chart",
+        "chu_de": "What does the R next to a planet mean?",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ask-year",
+        "mau": "ask-the-chart",
+        "chu_de": "What will this year bring me? · Annual Profections",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "ask-sun-vs-rising",
+        "mau": "ask-the-chart",
+        "chu_de": "Sun sign or Rising sign: which matters more?",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "f60-birth-chart",
+        "mau": "free-60s",
+        "chu_de": "Birth Chart",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "f60-profections",
+        "mau": "free-60s",
+        "chu_de": "Annual Profections",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ts-london-2026-11-20",
+        "mau": "tonights-sky",
+        "chu_de": "London · 20 Nov 2026",
+        "trang_thai": "demo",
+        "ngay": "2026-11-20"
+      },
+      {
+        "ma": "ts-new-york-2026-11-27",
+        "mau": "tonights-sky",
+        "chu_de": "New York · 27 Nov 2026",
+        "trang_thai": "chua",
+        "ngay": "2026-11-27"
+      },
+      {
+        "ma": "hsw-mercury-retro",
+        "mau": "how-the-sky-works",
+        "chu_de": "Why Mercury goes backwards",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "hsw-eclipses",
+        "mau": "how-the-sky-works",
+        "chu_de": "How eclipses happen",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "geo-ascendant",
+        "mau": "geometry",
+        "chu_de": "What is your Ascendant?",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "geo-house-systems",
+        "mau": "geometry",
+        "chu_de": "Why house systems disagree (Placidus vs Whole Sign)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ct-profections",
+        "mau": "chart-tools",
+        "chu_de": "Annual Profections: the ancient year clock",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "sh-trailer",
+        "mau": "start-here",
+        "chu_de": "Channel trailer",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "ccd-barack-obama",
+        "mau": "chart-chapters-dai",
+        "chu_de": "Barack Obama: four chapters (máy sinh, chờ giọng)",
+        "trang_thai": "san_sang"
+      },
+      {
+        "ma": "cc-marilyn-monroe",
+        "mau": "chart-chapters",
+        "chu_de": "Marilyn Monroe",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cc-elvis-presley",
+        "mau": "chart-chapters",
+        "chu_de": "Elvis Presley",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cc-cristiano-ronaldo",
+        "mau": "chart-chapters",
+        "chu_de": "Cristiano Ronaldo",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cc-beyonce",
+        "mau": "chart-chapters",
+        "chu_de": "Beyoncé (giờ AA 21:47, không dùng /c/beyonce 22:00)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cc-madonna",
+        "mau": "chart-chapters",
+        "chu_de": "Madonna",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-brad-pitt--angelina-jolie",
+        "mau": "chart-vs-chart",
+        "chu_de": "Brad Pitt × Angelina Jolie",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-brad-pitt--jennifer-aniston",
+        "mau": "chart-vs-chart",
+        "chu_de": "Brad Pitt × Jennifer Aniston",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-king-charles-iii--princess-diana",
+        "mau": "chart-vs-chart",
+        "chu_de": "King Charles III × Diana, Princess of Wales",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-king-charles-iii--queen-camilla",
+        "mau": "chart-vs-chart",
+        "chu_de": "King Charles III × Queen Camilla",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-prince-harry--meghan-markle",
+        "mau": "chart-vs-chart",
+        "chu_de": "Prince Harry, Duke of Sussex × Meghan, Duchess of Sussex (Meghan Markle)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-prince-william--kate-middleton",
+        "mau": "chart-vs-chart",
+        "chu_de": "William, Prince of Wales × Catherine, Princess of Wales (Kate Middleton)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-johnny-depp--amber-heard",
+        "mau": "chart-vs-chart",
+        "chu_de": "Johnny Depp × Amber Heard",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-kim-kardashian--kanye-west",
+        "mau": "chart-vs-chart",
+        "chu_de": "Kim Kardashian × Kanye West (Ye)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-john-lennon--yoko-ono",
+        "mau": "chart-vs-chart",
+        "chu_de": "John Lennon × Yoko Ono",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-john-f-kennedy--jacqueline-kennedy",
+        "mau": "chart-vs-chart",
+        "chu_de": "John F. Kennedy × Jacqueline Kennedy Onassis",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-marilyn-monroe--joe-dimaggio",
+        "mau": "chart-vs-chart",
+        "chu_de": "Marilyn Monroe × Joe DiMaggio",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-marilyn-monroe--arthur-miller",
+        "mau": "chart-vs-chart",
+        "chu_de": "Marilyn Monroe × Arthur Miller",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-elvis-presley--priscilla-presley",
+        "mau": "chart-vs-chart",
+        "chu_de": "Elvis Presley × Priscilla Presley",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-beyonce--jay-z",
+        "mau": "chart-vs-chart",
+        "chu_de": "Beyoncé × Jay-Z (Shawn Carter)",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-taylor-swift--travis-kelce",
+        "mau": "chart-vs-chart",
+        "chu_de": "Taylor Swift × Travis Kelce",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-barack-obama--michelle-obama",
+        "mau": "chart-vs-chart",
+        "chu_de": "Barack Obama × Michelle Obama",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "cvc-steve-jobs--bill-gates",
+        "mau": "chart-vs-chart",
+        "chu_de": "Steve Jobs × Bill Gates",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "cvc-john-lennon--paul-mccartney",
+        "mau": "chart-vs-chart",
+        "chu_de": "John Lennon × Paul McCartney",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ls-brad-pitt--angelina-jolie",
+        "mau": "love-story-charts",
+        "chu_de": "Brad Pitt & Angelina Jolie: the wedding, the split",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "ls-king-charles-iii--princess-diana",
+        "mau": "love-story-charts",
+        "chu_de": "King Charles III & Diana, Princess of Wales: the wedding, the split",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ls-johnny-depp--amber-heard",
+        "mau": "love-story-charts",
+        "chu_de": "Johnny Depp & Amber Heard: the wedding, the split",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ls-kim-kardashian--kanye-west",
+        "mau": "love-story-charts",
+        "chu_de": "Kim Kardashian & Kanye West (Ye): the wedding, the split",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ls-elvis-presley--priscilla-presley",
+        "mau": "love-story-charts",
+        "chu_de": "Elvis Presley & Priscilla Presley: the wedding, the split",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "ls-marilyn-monroe--joe-dimaggio",
+        "mau": "love-story-charts",
+        "chu_de": "Marilyn Monroe & Joe DiMaggio: the wedding, the split",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "sx-leo-sagittarius",
+        "mau": "sign-x-sign",
+        "chu_de": "Leo × Sagittarius",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-leo",
+        "mau": "zodiac-myths",
+        "chu_de": "Leo: the Nemean lion and Heracles",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-aries",
+        "mau": "zodiac-myths",
+        "chu_de": "Aries: the golden ram",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-taurus",
+        "mau": "zodiac-myths",
+        "chu_de": "Taurus: Zeus as the white bull",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-gemini",
+        "mau": "zodiac-myths",
+        "chu_de": "Gemini: Castor and Pollux",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-cancer",
+        "mau": "zodiac-myths",
+        "chu_de": "Cancer: the crab Hera sent",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-virgo",
+        "mau": "zodiac-myths",
+        "chu_de": "Virgo: Astraea leaves the Earth",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-libra",
+        "mau": "zodiac-myths",
+        "chu_de": "Libra: the scales of Dike",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-scorpio",
+        "mau": "zodiac-myths",
+        "chu_de": "Scorpio: the scorpion and Orion",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-sagittarius",
+        "mau": "zodiac-myths",
+        "chu_de": "Sagittarius: Chiron the centaur",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-capricorn",
+        "mau": "zodiac-myths",
+        "chu_de": "Capricorn: Pan the sea-goat",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-aquarius",
+        "mau": "zodiac-myths",
+        "chu_de": "Aquarius: Ganymede and the eagle",
+        "trang_thai": "demo"
+      },
+      {
+        "ma": "tt-pisces",
+        "mau": "zodiac-myths",
+        "chu_de": "Pisces: Aphrodite and Eros",
+        "trang_thai": "demo"
+      }
     ],
-    "mau_nhan": "#FF8FB1",
-    "ic": "♡"
-   },
-   {
-    "ma": "know-yourself",
-    "ten": "Know Yourself",
-    "trang_thai": "chot",
-    "mo_dau": true,
-    "ngay": "Thứ 2",
-    "tien_to": "",
-    "mo_ta": "Đọc một lá số để hiểu một con người: vị trí sao, nhà, thần thoại đứng sau — chữ lấy từ bài lá số và bài giải thích của site",
-    "goc_spy": [
-     {
-      "id": 4313,
-      "loai": "muon",
-      "ten": "Hiểu bản thân, tính cách"
-     },
-     {
-      "id": 41242,
-      "loai": "ai_mong_muon",
-      "ten": "Thấu hiểu bản thân và tâm lý qua lá số"
-     },
-     {
-      "id": 41356,
-      "loai": "ai_chan_dung",
-      "ten": "Người muốn giải mã tổng quan cuộc đời"
-     }
+    "nguon_y_tuong": [
+      {
+        "mau": "this-week",
+        "tep": "lich-troi.json",
+        "ngay_toi": 60,
+        "ghi": "sự kiện trời sắp tới (trăng mới / tròn, đổi cung, đổi chiều) — mỗi sự kiện một ý tưởng, 12 bản theo cung Mọc"
+      },
+      {
+        "mau": "ask-the-chart",
+        "tep": "y-tuong/astrolas-ask-the-chart.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "chart-chapters",
+        "tep": "y-tuong/astrolas-chart-chapters.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "chart-vs-chart",
+        "tep": "y-tuong/astrolas-chart-vs-chart.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "myth-behind",
+        "tep": "y-tuong/astrolas-myth-behind.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "read-your-chart",
+        "tep": "y-tuong/astrolas-read-your-chart.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "sign-x-sign",
+        "tep": "y-tuong/astrolas-sign-x-sign.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "sky-calendar",
+        "tep": "y-tuong/astrolas-sky-calendar.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      },
+      {
+        "mau": "zodiac-myths",
+        "tep": "y-tuong/astrolas-zodiac-myths.json",
+        "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
+      }
     ],
-    "mau": [
-     "read-your-chart",
-     "myth-behind",
-     "free-60s",
-     "chart-chapters",
-     "zodiac-myths"
-    ],
-    "trang_dich": "Birth chart (/birth), /c/<người>, bài <người>-birth-chart",
-    "nen": "brand/astrolas/anh/nen/know-yourself.jpg",
-    "lich_tap": [
-     1,
-     7
-    ],
-    "mau_nhan": "#8EC5FF",
-    "ic": "☉"
-   },
-   {
-    "ma": "career",
-    "ten": "Career & Big Decisions",
-    "trang_thai": "chot",
-    "mo_dau": true,
-    "ngay": "Thứ 6",
-    "tien_to": "",
-    "mo_ta": "Bước ngoặt sự nghiệp của người nổi tiếng theo chương lá số (Profection, Zodiacal Releasing) — kỳ và nghĩa nhà lấy từ công cụ site",
-    "goc_spy": [
-     {
-      "id": 4315,
-      "loai": "muon",
-      "ten": "Sự nghiệp, quyết định lớn"
-     },
-     {
-      "id": 41248,
-      "loai": "ai_noi_dau",
-      "ten": "Lo lắng về công việc và sự nghiệp"
-     }
-    ],
-    "mau": [
-     "chart-chapters",
-     "chart-chapters-dai",
-     "chart-tools",
-     "ask-the-chart",
-     "chart-vs-chart"
-    ],
-    "trang_dich": "Annual Profections, Zodiacal Releasing",
-    "nen": "brand/astrolas/anh/nen/career.jpg",
-    "lich_tap": [
-     5
-    ],
-    "mau_nhan": "#E6B800",
-    "ic": "♄"
-   },
-   {
-    "ma": "timing",
-    "ten": "Timing: What's Coming",
-    "trang_thai": "chot",
-    "mo_dau": true,
-    "ngay": "Thứ 4 (+ sát ngày sự kiện trời)",
-    "tien_to": "",
-    "mo_ta": "Sự kiện trời sắp tới (trăng mới / tròn, sao đổi cung, nghịch hành) và nó chạm nhà nào theo cung Mọc — lịch trời tính tới phút",
-    "goc_spy": [
-     {
-      "id": 4316,
-      "loai": "tinh_huong",
-      "ten": "Thời điểm: transit, Saturn return"
-     },
-     {
-      "id": 41439,
-      "loai": "ai_cu_hich",
-      "ten": "Người theo dõi giai đoạn Sao Kim và Sao Thủy nghịch hành cùng lúc"
-     },
-     {
-      "id": 41438,
-      "loai": "ai_cu_hich",
-      "ten": "Người quan tâm hiện tượng Sao Thủy nghịch hành"
-     }
-    ],
-    "mau": [
-     "this-week",
-     "sky-calendar",
-     "tonights-sky"
-    ],
-    "trang_dich": "Today's sky, Transit, Moon Phase, Lunation Analyzer",
-    "nen": "brand/astrolas/anh/nen/timing.jpg",
-    "lich_tap": [
-     3
-    ],
-    "mau_nhan": "#7FD18B",
-    "ic": "☽"
-   },
-   {
-    "ma": "start-here",
-    "ten": "Start Here",
-    "trang_thai": "chot",
-    "mo_dau": true,
-    "ngay": "ghim đầu kênh, thêm tập khi có mẫu mới",
-    "tien_to": "",
-    "mo_ta": "Cho người mới: lá số là gì, đọc từ đâu, không biết giờ sinh thì sao, tự xem miễn phí bằng công cụ nào",
-    "goc_spy": [
-     {
-      "id": 41233,
-      "loai": "ai_cach_giai",
-      "ten": "Tự xem lá số miễn phí bằng công cụ"
-     },
-     {
-      "id": 41236,
-      "loai": "ai_chan_dung",
-      "ten": "Người mới bắt đầu tự học chiêm tinh"
-     },
-     {
-      "id": 41288,
-      "loai": "ai_cu_hich",
-      "ten": "Người mới nhập môn chiêm tinh, chưa biết bắt đầu từ đâu"
-     },
-     {
-      "id": 4321,
-      "loai": "dau",
-      "ten": "Không biết giờ sinh"
-     }
-    ],
-    "mau": [
-     "start-here",
-     "read-your-chart",
-     "geometry",
-     "how-the-sky-works",
-     "free-60s"
-    ],
-    "trang_dich": "Birth chart (/birth), bài what-is-a-birth-chart, how-to-read-your-birth-chart-in-10-steps",
-    "nen": "brand/astrolas/anh/nen/start-here.jpg",
-    "lich_tap": [
-     4
-    ],
-    "mau_nhan": "#7FD18B",
-    "ic": "✦"
-   },
-   {
-    "ma": "accurate",
-    "ten": "Is Astrology Accurate?",
-    "trang_thai": "chot",
-    "mo_dau": true,
-    "ngay": "chưa xếp",
-    "tien_to": "",
-    "mo_ta": "Góc ngại: lá số có chính xác không — hạng giờ sinh Rodden, Swiss Ephemeris của site, vì sao lời giải chung chung không dùng được; chỉ nói điều site có",
-    "goc_spy": [
-     {
-      "id": 4312,
-      "loai": "ngai",
-      "ten": "Có đúng không, độ chính xác"
-     },
-     {
-      "id": 41263,
-      "loai": "ai_tieu_chi",
-      "ten": "Dự đoán chính xác, có kiểm chứng"
-     },
-     {
-      "id": 41249,
-      "loai": "ai_noi_dau",
-      "ten": "Thất vọng vì luận giải chung chung, đại trà"
-     },
-     {
-      "id": 41251,
-      "loai": "ai_chan_dung",
-      "ten": "Người thất vọng với lá số AI tự động"
-     },
-     {
-      "id": 4319,
-      "loai": "so_sanh",
-      "ten": "AI hay người thật luận giải"
-     },
-     {
-      "id": 41270,
-      "loai": "ai_tieu_chi",
-      "ten": "Đòi giờ sinh chính xác và gửi dữ liệu kín đáo"
-     }
-    ],
-    "mau": [
-     "chart-tools",
-     "read-your-chart"
-    ],
-    "trang_dich": "Birth chart (/birth), công cụ có số liệu",
-    "nen": "brand/astrolas/anh/nen/accurate.jpg",
-    "mau_nhan": "#F4D971",
-    "ic": "✦"
-   }
-  ],
-  "giai_doan": [
-   {
-    "ma": "G0",
-    "ten": "Chốt",
-    "viec": "ĐÃ CHỐT (anh, 03/11/2026): mảng chính = đời người nổi tiếng theo chương lá số; 2 playlist mở đầu Chart Chapters (engraving, Thứ 2 + Thứ 6) + Sky Calendar (paper-lantern, Thứ 4); hạn mức dưới 10.000₫/tập trên đường đã duyệt; ngưỡng playlist kém chốt ở G9",
-    "anh": "chốt",
-    "trang_thai": "xong"
-   },
-   {
-    "ma": "G1",
-    "ten": "Tầng Playlist chung",
-    "viec": "Astrolas chạy theo playlist: so-kenh.json › playlist (6 playlist, lich_tap theo thứ), chay-so-kenh.mjs chọn tập kế theo lịch playlist, máy đăng chọn playlist theo dang.playlist_ten. Đóng 08/11/2026 — không phụ thuộc kênh khác",
-    "anh": "không",
-    "trang_thai": "xong"
-   },
-   {
-    "ma": "G2",
-    "ten": "Bộ nhận diện",
-    "viec": "DUYỆT 04/11/2026: logo + icon thật astrolas.com, lá số Nebula SVG nhúng font Hamburg, nền ảnh thật Pexels chuyển động (shot-code/nen-troi.js), mở đầu có chuông, màn cuối, ảnh bìa theo playlist, ảnh đại diện + banner (lich-su/brand/astrolas/ve-brand.mjs)",
-    "anh": "duyệt ảnh",
-    "trang_thai": "xong"
-   },
-   {
-    "ma": "G3",
-    "ten": "Theme hình",
-    "viec": "DUYỆT 04/11/2026: 9 mẫu Short (Chart Chapters, Sky Calendar, The Myth Behind, Chart Tools, Start here, Read Your Chart, Ask the Chart, Free in 60 Seconds, This Week in Your Chart — shot-code/la-so.html: lá số camera, tranh, trang công cụ thật, thẻ số, dải trăng) + 4 mẫu dài 16:9 (Chart Chapters dài, How the Sky Works, Geometry of Your Chart, Tonight's Sky — lich-su/dai/mau-dai.json). Trang duyệt: claude.ai/artifact/7qQKTdrE8R7UtNHcxR96t5",
-    "anh": "duyệt tờ khung + tiền Opus",
-    "trang_thai": "xong"
-   },
-   {
-    "ma": "G4",
-    "ten": "Dữ liệu thật",
-    "viec": "đã có: lá số theo giờ sinh hạng AA (la-so/nguoi.json, lay.mjs --nguoi; 32 người hạng AA dùng được (08/11/2026; them-nguoi.mjs tự thêm mỗi ngày, kiểm AS/MC + doi-chieu)), bộ tính khớp Swiss Ephemeris ≤ 0,06° + kiểm múi giờ site (doi-chieu.mjs), lịch sự kiện trời tới phút → ý tưởng tự sinh (lich-troi.mjs), tệp sự thật + nghĩa 12 nhà nguyên văn của site, kỳ Zodiacal Releasing L1/L2 (Spirit + Fortune) của 7 người AA lấy từ công cụ site và tự tính lại khớp từng kỳ (la-so/zr.mjs → la-so/zr/<người>.json, kyTai(zr, ngày) cho kịch bản)",
-    "anh": "không",
-    "trang_thai": "xong"
-   },
-   {
-    "ma": "G5",
-    "ten": "Khuôn kịch bản",
-    "viec": "khuôn Chart Chapters + Lịch trời trong kenh.json; luật kiểm số lá số khớp dữ liệu G4 · máy viết CHỈ lấy chữ từ khoChuSite (nguon-site.mjs: lời giải synastry, nghĩa nhà, 39 bài blog, bài ghép cung, mô tả công cụ) + chuyện đời từ sổ mốc có nguồn; câu dẫn tự viết khai khung: true; bài đăng dựng bằng dangCongCu (mô tả công cụ nguyên văn + link mở thẳng đúng người); kiemTap chặn trước khi nạp · ĐÃ CÓ MÁY (06/11): This Week · Sign × Sign (78) · Chart vs Chart (18) · Love Story dài (15) · Ask the Chart (46) · Myths of the Zodiac (12) · The Myth Behind (14) · Sky Calendar (21) · Chart Chapters Short (8) · Read Your Chart (168, viet-ryc.mjs) · Chart Chapters dài · Tonight's Sky; hook chung lich-su/hook-kenh.mjs; còn kịch bản tay: Chart Tools, Free in 60 Seconds · Start Here, How the Sky Works, Geometry (tập một lần)",
-    "anh": "duyệt kịch bản mẫu",
-    "trang_thai": "dang"
-   },
-   {
-    "ma": "G6",
-    "ten": "Tập mẫu",
-    "viec": "06/11 ANH DUYỆT tập mẫu Ask the Chart · Steve Jobs 1985 (giọng Charlotte ckey + nhạc + outro logo theo playlist): https://img.on.tc/xuong-video/demo/astrolas/ask-steve-jobs-1985.mp4 · 3 tập dự trữ có giọng (3.276₫): https://img.on.tc/xuong-video/demo/astrolas/g6-sc-leonids-1833.mp4 · https://img.on.tc/xuong-video/demo/astrolas/g6-my-saturn.mp4 · https://img.on.tc/xuong-video/demo/astrolas/g6-cvc-brad-pitt--angelina-jolie.mp4",
-    "anh": "duyệt video",
-    "trang_thai": "xong"
-   },
-   {
-    "ma": "G7",
-    "ten": "Đăng",
-    "viec": "mở khoá mục YouTube @astrolasapp; 2 playlist + Start here + bố cục trang kênh; máy đăng chọn playlist + tiền tố tiêu đề · 07/11: video đầu https://youtube.com/shorts/RMNI1c9ybGM; đăng hẳn từ iMac (scripts/chep-phien.mjs); kênh đã xác minh số; bìa chuẩn thumb-kenh.mjs; 6 playlist đã tạo, máy đăng chọn playlist theo dang.playlist_ten",
-    "anh": "không",
-    "trang_thai": "dang"
-   },
-   {
-    "ma": "G8",
-    "ten": "Tự chạy",
-    "viec": "Astrolas vào chay-kenh.mjs (lịch theo playlist, trần 1 bài/ngày); hàng chờ chủ đề mỗi playlist tự bổ sung · 07/11: lich-su/chay-so-kenh.mjs gắn cuối lượt mỗi giờ của chay-kenh.mjs: tập kế theo playlist.lich_tap → viết → giọng → dựng → nạp, trần 3 tập làm trước, hook bị chặn tự đổi, hỏng 3 lần bỏ tập, báo Telegram; 08/11: video dài tự làm mỗi tuần (tu_chay.dai: Chủ nhật, Love Story / Chart Chapters dài, bìa ngang thumb-kenh.mjs) — đóng khi tập dài đầu tiên tự ra",
-    "anh": "không",
-    "trang_thai": "dang"
-   },
-   {
-    "ma": "G9",
-    "ten": "Đo + tự điều chỉnh",
-    "viec": "UTM theo playlist → GA4 click + đăng ký Member; playlist kém giảm suất, tốt tăng suất; báo Telegram tuần",
-    "anh": "đọc báo cáo",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "G10",
-    "ten": "Mở rộng",
-    "viec": "playlist 3 (công cụ, hologram-hud); kênh JA / ES khi astrolas.com mở locale",
-    "anh": "duyệt mở ngôn ngữ",
-    "trang_thai": "chua"
-   }
-  ],
-  "dinh_vi": {
-   "cho_ai": "người muốn tự hiểu lá số của mình — tiếng Anh, toàn cầu (sau mở ES / JA)",
-   "dich": "dẫn người xem vào công cụ miễn phí của astrolas.com → gói Member ($19.99/tháng · $167.90/năm)",
-   "cau_ket": "…free at astrolas.com",
-   "ngon_ngu": "EN"
+    "nguoi_tep": "la-so/nguoi.json",
+    "am_thanh": {
+      "giong": "Charlotte",
+      "nhac": "troi",
+      "ghi": "giọng ElevenLabs qua ckey (Speakvela, 156₫ / câu) đọc chữ trên màn; nhạc nền + tiếng động tự sinh 0đ — shot-code/long-tieng.mjs"
+    },
+    "luat_nguon": true,
+    "outro": {
+      "doc": "brand/astrolas/ra/outro-doc.mp4",
+      "ngang": "brand/astrolas/ra/outro-ngang.mp4",
+      "_ghi": "outro logo nối cuối mọi tập (shot-code/long-tieng.mjs): Short 1 s, video dài 3 s — dựng bằng brand/astrolas/outro.mjs (0đ, logo thật, không AI)"
+    },
+    "tu_chay": {
+      "dai": {
+        "thu": [
+          7
+        ],
+        "mau": [
+          "love-story-charts",
+          "chart-chapters-dai"
+        ],
+        "_ghi": "video dài 16:9 tuần một tập (Chủ nhật), chay-so-kenh.mjs: bìa 1280×720, dựng 1920×1080 (08/11/2026)"
+      },
+      "truoc_ke_hoach": 3,
+      "gio_tu": "07:00",
+      "gio_den": "22:00",
+      "_ghi": "G8: lich-su/chay-so-kenh.mjs, gọi cuối lượt mỗi giờ của chay-kenh.mjs; lich_tap playlist: 1 = Thứ Hai … 7 = Chủ nhật"
+    }
   },
-  "luat": [
-   "Mỗi tập thuộc đúng MỘT mẫu đã duyệt và MỘT playlist trong sổ này — không có mẫu = không làm",
-   "Số lá số / thiên văn chỉ lấy từ astrolas.com (lá số dựng theo giờ sinh trong la-so/nguoi.json) hoặc bau-troi-tinh.js — đã đối chiếu ≤ 0,06°, la-so/doi-chieu.mjs",
-   "Cung Mọc / nhà / Profection chỉ cho người có giờ sinh hạng AA (giấy khai sinh) trong la-so/nguoi.json — hạng A / B / DD không dùng (Taylor Swift DD, Lady Gaga DD, Elon Musk B)",
-   "Sự thật lịch sử, thần thoại, đời người: có nguồn kiểm được; không bịa, không đoán ngày",
-   "Giọng bí ẩn, điềm, ít đùa — không chế giễu chiêm tinh, không hứa hẹn tiên tri",
-   "Khung thương hiệu G2: logo + icon thật, nhãn playlist, nền trời thật chuyển động, màn cuối chung",
-   "Short: chữ và logo ngoài vùng YouTube đè; video dài: 16:9, hình trái · chữ phải",
-   "Người còn sống: không vẽ chân dung minh hoạ (chỉ lá số, trang công cụ, cảnh chung)",
-   "Câu kết trỏ về astrolas.com (công cụ miễn phí); chủ đề đã đăng không làm lại",
-   "Synastry: góc chiếu chạm cung Mọc / MC / nhà của ai thì người đó phải hạng AA; chạm Trăng thì phải có giờ sinh (AA / A / B); hành tinh khác chỉ cần ngày sinh (la-so/hop.mjs ghi cờ dung từng góc). Bỏ góc chiếu thế hệ (hai sao Uranus / Neptune / Pluto) khỏi tiêu đề tập",
-   "Diễn giải chiêm tinh chỉ là chữ NGUYÊN VĂN của site (lời giải synastry, nghĩa nhà, bài blog, mô tả công cụ — kho lich-su/nguon-site.mjs); cấm tự đặt nghĩa theo kiến thức chiêm tinh chung. Câu dẫn tự viết khai khung: true và không được mang từ nghĩa",
-   "Bài đăng về công cụ: dang.mo_ta có câu mô tả công cụ NGUYÊN VĂN của site (cong-cu/so-cong-cu.json) + dang.link mở THẲNG kết quả của đúng người / cặp (linkCongCu). Máy gác chặn nếu thiếu"
-  ],
-  "mau": [
-   {
-    "ma": "chart-chapters",
-    "ten": "Chart Chapters",
-    "loai": "short",
-    "nhip": "Thứ 2 + Thứ 6",
-    "kho": "vô hạn · 1–3 tập / người nổi tiếng",
-    "trang": "shot-code/la-so.html",
-    "sinh": "lich-su/viet-chuong.mjs --ai <người | all> — 0đ, không AI: mốc đời có nguồn + ảnh thật Wikipedia của trang nguồn (anh-wiki.mjs) + câu diễn giải nguyên văn bài <người>-birth-chart của blog site, camera vào đúng sao; người hạng AA có bài lá số trên site",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/la-so-mau.mp4?v=5",
-    "tu_sinh": "^cc-[a-z0-9-]+$"
-   },
-   {
-    "ma": "sky-calendar",
-    "ten": "Sky Calendar",
-    "loai": "short",
-    "nhip": "Thứ 4",
-    "kho": "21 chuyện trời xưa (nhật / nguyệt thực, sao chổi, mưa sao băng, khám phá hành tinh) · 52 tuần trăng / năm",
-    "trang": "shot-code/la-so.html",
-    "sinh": "lich-su/viet-sky.mjs [--tu <thứ Hai>] — 0đ, không AI: 21 chuyện trời xưa nguyên văn Wikipedia (lich-su/troi-xua/, kiểm _may/verify.py), xếp mỗi chuyện một tuần ưu tiên tuần kỷ niệm; dải pha trăng tính thật + trăng mới / tròn của tuần (lich-troi.json); tranh tuỳ chọn brand/astrolas/tranh/<ma>-<i>.jpg",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-sky-calendar.mp4?v=5",
-    "tu_sinh": "^sc-[a-z0-9-]+$"
-   },
-   {
-    "ma": "myth-behind",
-    "ten": "The Myth Behind",
-    "loai": "short",
-    "nhip": "sau 2 playlist đầu",
-    "kho": "14 thiên thể (10 hành tinh + Chiron, Lilith, Eris, Ceres) · thêm chòm / tiểu hành tinh khi có chuyện nguyên văn",
-    "trang": "shot-code/la-so.html (vai nhân vật)",
-    "sinh": "lich-su/viet-myth-behind.mjs --sao <thiên thể | all> — 0đ khi đã có nhân vật: câu đặt tên + chuyện nguyên văn Wikipedia (la-so/than-thoai-sao/, 14 thiên thể), nhân vật hoạt hình tự dàn cảnh (khuôn Myths of the Zodiac), câu site bài the-10-planets-in-astrology, vị trí trong lá số site người hạng AA",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-myth-behind.mp4?v=5",
-    "tu_sinh": "^my-[a-z]+$"
-   },
-   {
-    "ma": "chart-tools",
-    "ten": "Chart Tools",
-    "loai": "short",
-    "nhip": "sau",
-    "kho": "≈ 30 tập",
-    "trang": "shot-code/la-so.html",
-    "sinh": "lich-su/viet-chart-tools.mjs --y ct-<công cụ>--<người> — 0đ, không AI: câu giải thích nguyên văn bài site của công cụ + lá số người AA + trang kết quả chụp thật, hook QC góc Career (08/11/2026)",
-    "tu_sinh": "^ct-[a-z-]+--[a-z0-9-]+$",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-cong-cu.mp4?v=5"
-   },
-   {
-    "ma": "start-here",
-    "ten": "Start here",
-    "loai": "short",
-    "nhip": "1 lần (G7)",
-    "kho": "1–2 tập",
-    "trang": "shot-code/la-so.html",
-    "sinh": "kịch bản tay",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-start-here.mp4?v=5"
-   },
-   {
-    "ma": "read-your-chart",
-    "ten": "Read Your Chart",
-    "loai": "short",
-    "nhip": "sau",
-    "kho": "168 tập (14 người hạng AA × AC, MC, 10 hành tinh)",
-    "trang": "shot-code/la-so.html",
-    "sinh": "lich-su/viet-ryc.mjs --muc <asc|mc|sao|all> --ai <người|all> — 0đ, không AI: ảnh + số liệu trang lá số thật (cong-cu/doc-natal.mjs), câu giải nghĩa nguyên văn blog site, nghĩa nhà của site",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-read-your-chart.mp4?v=5",
-    "tu_sinh": "^ryc-[a-z0-9-]+$"
-   },
-   {
-    "ma": "ask-the-chart",
-    "ten": "Ask the Chart",
-    "loai": "short",
-    "nhip": "sau",
-    "kho": "46 tập người × năm Profection (54 mốc, 14 người hạng AA) · ≈ 13.900 câu hỏi thật (spy nhóm #9)",
-    "trang": "shot-code/la-so.html",
-    "sinh": "lich-su/viet-ask.mjs --ai <người | all> — 0đ, không AI: người hạng AA × mốc đời có nguồn (dai/moc-*, la-so/cap.json) → ảnh + chữ TRANG THẬT Annual Profections năm đó (cong-cu/doc-ap.mjs: tuổi, nhà của năm, nghĩa nhà, chủ năm, Theme); hook QC spy theo playlist",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-ask-the-chart.mp4?v=5",
-    "tu_sinh": "^ask-[a-z0-9-]+$"
-   },
-   {
-    "ma": "free-60s",
-    "ten": "Free in 60 Seconds",
-    "loai": "short",
-    "nhip": "sau",
-    "kho": "16 tập (một công cụ một tập)",
-    "trang": "shot-code/la-so.html",
-    "sinh": "lich-su/viet-free60.mjs --cong-cu <mã | all> — 0đ, không AI: tên + mô tả công cụ nguyên văn của site, form + trang kết quả chụp thật (cong-cu/chup.mjs), câu bước là câu khung, hook QC góc Know Yourself (08/11/2026)",
-    "tu_sinh": "^f60-[a-z-]+$",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-free-60s.mp4?v=5"
-   },
-   {
-    "ma": "this-week",
-    "ten": "This Week in Your Chart",
-    "loai": "short",
-    "nhip": "theo sự kiện trời",
-    "kho": "≈ 1.000 Short / năm (88 sự kiện × 12 cung Mọc)",
-    "trang": "shot-code/la-so.html",
-    "sinh": "lich-su/viet-this-week.mjs --su <tw-… trong lich-troi.json> --moc <Cung | all> — 0đ, không AI: chữ site nguyên văn (bài New/Full Moon theo nhà, <sao>-transit-<nhà>, Mercury / Venus–Mars retrograde, transits-explained, nghĩa nhà), hook QC spy góc Thời điểm, bài đăng dangCongCu; máy gác chặn trước khi ghi",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-this-week.mp4?v=5",
-    "tu_sinh": "^tw-[a-z0-9-]+$"
-   },
-   {
-    "ma": "chart-chapters-dai",
-    "ten": "Chart Chapters (long)",
-    "loai": "dai",
-    "nhip": "1 tập / tuần",
-    "kho": "vô hạn theo người",
-    "trang": "shot-code/la-so.html (khung ngang)",
-    "sinh": "lich-su/dai/sinh-chuong.mjs --slug <người> --moc <moc.json>",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-chart-chapters.mp4?v=5",
-    "tu_sinh": "^ccd-[a-z0-9-]+$"
-   },
-   {
-    "ma": "chart-vs-chart",
-    "ten": "Chart vs Chart",
-    "loai": "short",
-    "nhip": "Thứ 3 + Thứ 7",
-    "kho": "vô hạn · mỗi cặp 1–3 tập (góc khít nhất / điểm / mốc chia tay)",
-    "trang": "shot-code/la-so.html (cheo + diem)",
-    "sinh": "lich-su/viet-cap.mjs --cap <a--b | all> — 0đ, không AI: 2 góc chiếu chéo khít nhất dùng được (tiêu đề lời giải nguyên văn Synastry của site), điểm từng trục, mốc đầu / cuối sổ cặp, hook QC spy; romantic → Love & Compatibility, partner → Career; 18/18 cặp qua máy gác",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/chart-vs-chart.mp4?v=5",
-    "tu_sinh": "^cvc-[a-z0-9-]+$"
-   },
-   {
-    "ma": "love-story-charts",
-    "ten": "Love Story in Two Charts (long)",
-    "loai": "dai",
-    "nhip": "2 tập / tháng",
-    "kho": "theo sổ cặp la-so/cap.json",
-    "trang": "shot-code/la-so.html (khung ngang)",
-    "sinh": "lich-su/viet-love-story.mjs --cap <a--b | all> — 0đ, không AI: mốc đời sổ cặp + bánh xe đôi + 2 góc chiếu chéo + điểm của site + thẻ kỳ ZR (Peak Period / Loosing of the Bond) của người hạng AA ở từng mốc; hook QC spy góc Tình yêu",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-love-story.mp4?v=5",
-    "tu_sinh": "^ls-[a-z0-9-]+$"
-   },
-   {
-    "ma": "sign-x-sign",
-    "ten": "Sign × Sign",
-    "loai": "short",
-    "nhip": "Thứ 5",
-    "kho": "78 cặp cung (đủ một vòng 78 tuần)",
-    "trang": "shot-code/la-so.html",
-    "sinh": "lich-su/viet-sign.mjs --cap <sx-a-b | all> — 0đ, không AI: câu nguyên văn bài ghép cung của site theo mục (câu hỏi · quan hệ hai cung · hợp · vướng · cách làm · câu trả lời), hook QC spy góc Tình yêu; 78/78 cặp qua máy gác",
-    "tu_sinh": "^sx-[a-z]+-[a-z]+$",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/sign-x-sign.mp4?v=5"
-   },
-   {
-    "ma": "how-the-sky-works",
-    "ten": "How the Sky Works",
-    "loai": "dai",
-    "nhip": "2 tập / tháng",
-    "kho": "≈ 20 bài",
-    "trang": "shot-code/giang-troi.html",
-    "sinh": "bài giảng soạn sẵn (JSON)",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-how-the-sky-works.mp4?v=5"
-   },
-   {
-    "ma": "geometry",
-    "ten": "The Geometry of Your Chart",
-    "loai": "dai",
-    "nhip": "2 tập / tháng",
-    "kho": "≈ 15–20 bài",
-    "trang": "shot-code/giang-troi.html",
-    "sinh": "bài giảng soạn sẵn (JSON)",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-geometry-of-your-chart.mp4?v=5"
-   },
-   {
-    "ma": "tonights-sky",
-    "ten": "Tonight's Sky",
-    "loai": "dai",
-    "nhip": "mỗi tuần × mỗi thành phố",
-    "kho": "vô hạn",
-    "trang": "shot-code/bau-troi-dem.html",
-    "sinh": "lich-su/dai/sinh-dem.mjs --noi <thành phố> --ngay <ngày>",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/dai-tonights-sky.mp4",
-    "tu_sinh": "^ts-[a-z-]+-\\d{4}-\\d{2}-\\d{2}$"
-   },
-   {
-    "ma": "zodiac-myths",
-    "ten": "Myths of the Zodiac",
-    "loai": "short",
-    "nhip": "2 tập / tuần (12 cung, rồi các chòm khác)",
-    "kho": "12 cung + 76 chòm sao khác có thần thoại",
-    "trang": "shot-code/la-so.html (vai nhân vật + chom chòm sao)",
-    "sinh": "lich-su/viet-than-thoai.mjs --cung <cung> — chuyện Wikipedia nguyên văn (la-so/than-thoai/<cung>.json), nhân vật vẽ một lần (kho-sinh.mts), câu cung của site",
-    "tu_sinh": "^tt-[a-z]+$",
-    "demo": "https://img.on.tc/xuong-video/demo/astrolas/zodiac-myths-leo.mp4?v=1"
-   }
-  ],
-  "mo_dau": "https://img.on.tc/xuong-video/demo/astrolas/mo-dau-doc.mp4",
-  "hang_cho": [
-   {
-    "ma": "cc-steve-jobs",
-    "mau": "chart-chapters",
-    "chu_de": "Steve Jobs: the garage, the board, the return",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tw-mercury-rx-scorpio-2026",
-    "mau": "this-week",
-    "chu_de": "Mercury retrograde in Scorpio · 12 bản cung Mọc",
-    "trang_thai": "demo",
-    "ngay": "2026-10-24"
-   },
-   {
-    "ma": "sc-columbus-1504",
-    "mau": "sky-calendar",
-    "chu_de": "The eclipse that saved Columbus · 1504",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "sc-eclipse-2027-08-02",
-    "mau": "sky-calendar",
-    "chu_de": "Total solar eclipse of 2 August 2027",
-    "trang_thai": "chua",
-    "ngay": "2027-08-02"
-   },
-   {
-    "ma": "my-chiron",
-    "mau": "myth-behind",
-    "chu_de": "Chiron: the wounded healer",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "my-lilith",
-    "mau": "myth-behind",
-    "chu_de": "Lilith: the first woman who refused",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "ryc-asc-degree",
-    "mau": "read-your-chart",
-    "chu_de": "What does 22°17' next to AC mean?",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "ryc-retrograde-r",
-    "mau": "read-your-chart",
-    "chu_de": "What does the R next to a planet mean?",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "ask-year",
-    "mau": "ask-the-chart",
-    "chu_de": "What will this year bring me? · Annual Profections",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "ask-sun-vs-rising",
-    "mau": "ask-the-chart",
-    "chu_de": "Sun sign or Rising sign: which matters more?",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "f60-birth-chart",
-    "mau": "free-60s",
-    "chu_de": "Birth Chart",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "f60-profections",
-    "mau": "free-60s",
-    "chu_de": "Annual Profections",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "ts-london-2026-11-20",
-    "mau": "tonights-sky",
-    "chu_de": "London · 20 Nov 2026",
-    "trang_thai": "demo",
-    "ngay": "2026-11-20"
-   },
-   {
-    "ma": "ts-new-york-2026-11-27",
-    "mau": "tonights-sky",
-    "chu_de": "New York · 27 Nov 2026",
-    "trang_thai": "chua",
-    "ngay": "2026-11-27"
-   },
-   {
-    "ma": "hsw-mercury-retro",
-    "mau": "how-the-sky-works",
-    "chu_de": "Why Mercury goes backwards",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "hsw-eclipses",
-    "mau": "how-the-sky-works",
-    "chu_de": "How eclipses happen",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "geo-ascendant",
-    "mau": "geometry",
-    "chu_de": "What is your Ascendant?",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "geo-house-systems",
-    "mau": "geometry",
-    "chu_de": "Why house systems disagree (Placidus vs Whole Sign)",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "ct-profections",
-    "mau": "chart-tools",
-    "chu_de": "Annual Profections: the ancient year clock",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "sh-trailer",
-    "mau": "start-here",
-    "chu_de": "Channel trailer",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "ccd-barack-obama",
-    "mau": "chart-chapters-dai",
-    "chu_de": "Barack Obama: four chapters (máy sinh, chờ giọng)",
-    "trang_thai": "san_sang"
-   },
-   {
-    "ma": "cc-marilyn-monroe",
-    "mau": "chart-chapters",
-    "chu_de": "Marilyn Monroe",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cc-elvis-presley",
-    "mau": "chart-chapters",
-    "chu_de": "Elvis Presley",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cc-cristiano-ronaldo",
-    "mau": "chart-chapters",
-    "chu_de": "Cristiano Ronaldo",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cc-beyonce",
-    "mau": "chart-chapters",
-    "chu_de": "Beyoncé (giờ AA 21:47, không dùng /c/beyonce 22:00)",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cc-madonna",
-    "mau": "chart-chapters",
-    "chu_de": "Madonna",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-brad-pitt--angelina-jolie",
-    "mau": "chart-vs-chart",
-    "chu_de": "Brad Pitt × Angelina Jolie",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-brad-pitt--jennifer-aniston",
-    "mau": "chart-vs-chart",
-    "chu_de": "Brad Pitt × Jennifer Aniston",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-king-charles-iii--princess-diana",
-    "mau": "chart-vs-chart",
-    "chu_de": "King Charles III × Diana, Princess of Wales",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-king-charles-iii--queen-camilla",
-    "mau": "chart-vs-chart",
-    "chu_de": "King Charles III × Queen Camilla",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-prince-harry--meghan-markle",
-    "mau": "chart-vs-chart",
-    "chu_de": "Prince Harry, Duke of Sussex × Meghan, Duchess of Sussex (Meghan Markle)",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-prince-william--kate-middleton",
-    "mau": "chart-vs-chart",
-    "chu_de": "William, Prince of Wales × Catherine, Princess of Wales (Kate Middleton)",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-johnny-depp--amber-heard",
-    "mau": "chart-vs-chart",
-    "chu_de": "Johnny Depp × Amber Heard",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-kim-kardashian--kanye-west",
-    "mau": "chart-vs-chart",
-    "chu_de": "Kim Kardashian × Kanye West (Ye)",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-john-lennon--yoko-ono",
-    "mau": "chart-vs-chart",
-    "chu_de": "John Lennon × Yoko Ono",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-john-f-kennedy--jacqueline-kennedy",
-    "mau": "chart-vs-chart",
-    "chu_de": "John F. Kennedy × Jacqueline Kennedy Onassis",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-marilyn-monroe--joe-dimaggio",
-    "mau": "chart-vs-chart",
-    "chu_de": "Marilyn Monroe × Joe DiMaggio",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-marilyn-monroe--arthur-miller",
-    "mau": "chart-vs-chart",
-    "chu_de": "Marilyn Monroe × Arthur Miller",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-elvis-presley--priscilla-presley",
-    "mau": "chart-vs-chart",
-    "chu_de": "Elvis Presley × Priscilla Presley",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-beyonce--jay-z",
-    "mau": "chart-vs-chart",
-    "chu_de": "Beyoncé × Jay-Z (Shawn Carter)",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-taylor-swift--travis-kelce",
-    "mau": "chart-vs-chart",
-    "chu_de": "Taylor Swift × Travis Kelce",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-barack-obama--michelle-obama",
-    "mau": "chart-vs-chart",
-    "chu_de": "Barack Obama × Michelle Obama",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "cvc-steve-jobs--bill-gates",
-    "mau": "chart-vs-chart",
-    "chu_de": "Steve Jobs × Bill Gates",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "cvc-john-lennon--paul-mccartney",
-    "mau": "chart-vs-chart",
-    "chu_de": "John Lennon × Paul McCartney",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "ls-brad-pitt--angelina-jolie",
-    "mau": "love-story-charts",
-    "chu_de": "Brad Pitt & Angelina Jolie: the wedding, the split",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "ls-king-charles-iii--princess-diana",
-    "mau": "love-story-charts",
-    "chu_de": "King Charles III & Diana, Princess of Wales: the wedding, the split",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "ls-johnny-depp--amber-heard",
-    "mau": "love-story-charts",
-    "chu_de": "Johnny Depp & Amber Heard: the wedding, the split",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "ls-kim-kardashian--kanye-west",
-    "mau": "love-story-charts",
-    "chu_de": "Kim Kardashian & Kanye West (Ye): the wedding, the split",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "ls-elvis-presley--priscilla-presley",
-    "mau": "love-story-charts",
-    "chu_de": "Elvis Presley & Priscilla Presley: the wedding, the split",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "ls-marilyn-monroe--joe-dimaggio",
-    "mau": "love-story-charts",
-    "chu_de": "Marilyn Monroe & Joe DiMaggio: the wedding, the split",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "sx-leo-sagittarius",
-    "mau": "sign-x-sign",
-    "chu_de": "Leo × Sagittarius",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-leo",
-    "mau": "zodiac-myths",
-    "chu_de": "Leo: the Nemean lion and Heracles",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-aries",
-    "mau": "zodiac-myths",
-    "chu_de": "Aries: the golden ram",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-taurus",
-    "mau": "zodiac-myths",
-    "chu_de": "Taurus: Zeus as the white bull",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-gemini",
-    "mau": "zodiac-myths",
-    "chu_de": "Gemini: Castor and Pollux",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-cancer",
-    "mau": "zodiac-myths",
-    "chu_de": "Cancer: the crab Hera sent",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-virgo",
-    "mau": "zodiac-myths",
-    "chu_de": "Virgo: Astraea leaves the Earth",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-libra",
-    "mau": "zodiac-myths",
-    "chu_de": "Libra: the scales of Dike",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-scorpio",
-    "mau": "zodiac-myths",
-    "chu_de": "Scorpio: the scorpion and Orion",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-sagittarius",
-    "mau": "zodiac-myths",
-    "chu_de": "Sagittarius: Chiron the centaur",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-capricorn",
-    "mau": "zodiac-myths",
-    "chu_de": "Capricorn: Pan the sea-goat",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-aquarius",
-    "mau": "zodiac-myths",
-    "chu_de": "Aquarius: Ganymede and the eagle",
-    "trang_thai": "demo"
-   },
-   {
-    "ma": "tt-pisces",
-    "mau": "zodiac-myths",
-    "chu_de": "Pisces: Aphrodite and Eros",
-    "trang_thai": "demo"
-   }
-  ],
-  "nguon_y_tuong": [
-   {
-    "mau": "this-week",
-    "tep": "lich-troi.json",
-    "ngay_toi": 60,
-    "ghi": "sự kiện trời sắp tới (trăng mới / tròn, đổi cung, đổi chiều) — mỗi sự kiện một ý tưởng, 12 bản theo cung Mọc"
-   },
-   {
-    "mau": "ask-the-chart",
-    "tep": "y-tuong/astrolas-ask-the-chart.json",
-    "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
-   },
-   {
-    "mau": "chart-chapters",
-    "tep": "y-tuong/astrolas-chart-chapters.json",
-    "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
-   },
-   {
-    "mau": "chart-vs-chart",
-    "tep": "y-tuong/astrolas-chart-vs-chart.json",
-    "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
-   },
-   {
-    "mau": "myth-behind",
-    "tep": "y-tuong/astrolas-myth-behind.json",
-    "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
-   },
-   {
-    "mau": "read-your-chart",
-    "tep": "y-tuong/astrolas-read-your-chart.json",
-    "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
-   },
-   {
-    "mau": "sign-x-sign",
-    "tep": "y-tuong/astrolas-sign-x-sign.json",
-    "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
-   },
-   {
-    "mau": "sky-calendar",
-    "tep": "y-tuong/astrolas-sky-calendar.json",
-    "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
-   },
-   {
-    "mau": "zodiac-myths",
-    "tep": "y-tuong/astrolas-zodiac-myths.json",
-    "ghi": "kho tập máy viết (chay-so-kenh.mjs --y-tuong)"
-   }
-  ],
-  "nguoi_tep": "la-so/nguoi.json",
-  "am_thanh": {
-   "giong": "Charlotte",
-   "nhac": "troi",
-   "ghi": "giọng ElevenLabs qua ckey (Speakvela, 156₫ / câu) đọc chữ trên màn; nhạc nền + tiếng động tự sinh 0đ — shot-code/long-tieng.mjs"
-  },
-  "luat_nguon": true,
-  "outro": {
-   "doc": "brand/astrolas/ra/outro-doc.mp4",
-   "ngang": "brand/astrolas/ra/outro-ngang.mp4",
-   "_ghi": "outro logo nối cuối mọi tập (shot-code/long-tieng.mjs): Short 1 s, video dài 3 s — dựng bằng brand/astrolas/outro.mjs (0đ, logo thật, không AI)"
-  },
-  "tu_chay": {
-   "dai": {
-    "thu": [
-     7
+  "yesterdays-news-tonight": {
+    "ten": "Yesterday's News Tonight · YouTube @yesterdaysnewstonight",
+    "muc_tieu": "kênh tự vận hành hoàn toàn bằng API AI ngoài: máy chọn đề theo loạt + góc spy → viết (vá câu lỗi) → kiểm → kho + ảnh thật → Ngọc soi → dựng → thumbnail → Phòng Nội dung chấm → máy đăng (YouTube + Page Facebook) đúng playlist → đo → chỉnh suất playlist; kẹt 3 lần thì bỏ, làm đề khác",
+    "cap_nhat": "2026-11-05",
+    "dinh_vi": {
+      "cho_ai": "người thích lịch sử + hài, tiếng Anh, toàn cầu (sau mở ES)",
+      "dich": "lượt xem + người đăng ký kênh YouTube @yesterdaysnewstonight và Page Facebook Yesterday's News Tonight",
+      "cau_ket": "THE END (thẻ kết lá cải, không link)",
+      "ngon_ngu": "EN",
+      "giong": "phát thanh viên bản tin lá cải đọc chuyện lịch sử thật bằng giọng tỉnh bơ — đùa ở quyết định của người có quyền, sự thật đúng tuyệt đối"
+    },
+    "luat": [
+      "Mỗi tập thuộc đúng MỘT mẫu trong sổ này và MỘT playlist (kenh.json › parody.playlist) — mẫu chưa duyệt demo chỉ làm demo, không lên kênh",
+      "Chuyện có thật, xảy ra trước 1950; con số / năm / so sánh nhất phải có trích nguyên văn Wikipedia (máy kiểm từng câu)",
+      "Không đùa về dân tộc, tôn giáo, người bản địa, nạn nhân, chết chóc; cái hài nằm ở quyết định của người có quyền",
+      "Ảnh thật Wikimedia Commons (public domain) qua Ngọc duyệt; bản đồ Natural Earth; nhân vật trong kho dùng lại mọi tập",
+      "Short ≤ 60 giây, bản dài ≤ 179 giây (dọc 9:16); thumbnail chữ 2–4 từ, Ngọc duyệt"
+    ],
+    "playlist": [
+      {
+        "ma": "full-stories",
+        "ten": "Big Stories",
+        "trang_thai": "chot",
+        "ngay": "Thứ 2 · 4 · 6 (3 tập / tuần)",
+        "noi_dung": "trọn một chuyện lịch sử có bản đồ (đất đổi chủ, mua bán, chia ranh giới, chiến tranh, di cư) — loạt gốc của kênh",
+        "tien_to": "",
+        "mau": [
+          "full-story",
+          "full-story-2",
+          "short-60"
+        ],
+        "mo_ta": "Bản tin lá cải 3 phút kể TRỌN một chuyện lịch sử có thật trên bản đồ động: hook sốc ở câu 1 → 4–5 hồi, mỗi hồi một năm mới (ô năm đổi), màu chủ quyền đổi, mũi tên quân, nhân vật bước vào → khúc ngoặt đóng dấu → hậu quả hôm nay → THE END. Giọng phát thanh viên tỉnh bơ mỉa quyết định của người có quyền. Ví dụ đã đăng: Nga bán Alaska 7,2 triệu đô (1867).",
+        "goc_spy": [
+          {
+            "id": 66916,
+            "loai": "ai_chan_dung",
+            "ten": "Người mê lịch sử muốn xem video theo bản đồ"
+          },
+          {
+            "id": 66963,
+            "loai": "ai_phan_doi",
+            "ten": "Người chán bài lịch sử 5 phút nông cạn"
+          },
+          {
+            "id": 66938,
+            "loai": "ai_chan_dung",
+            "ten": "Người quan tâm lịch sử thế giới và Mỹ"
+          },
+          {
+            "id": 66925,
+            "loai": "ai_tinh_huong",
+            "ten": "Người đi bộ vô định nghe podcast tội phạm và lịch sử"
+          }
+        ],
+        "vi_du": [
+          {
+            "mau": "full-story",
+            "url": "https://img.on.tc/xuong-video/lich-su/tap/alaska-parody.mp4"
+          },
+          {
+            "mau": "short-60",
+            "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-breaking-60-1cca762c88.mp4"
+          }
+        ]
+      },
+      {
+        "ma": "worst-deals",
+        "ten": "Worst Deals in History",
+        "trang_thai": "de_xuat",
+        "ngay": "chưa xếp lịch — chờ duyệt demo",
+        "noi_dung": "mua bán / nhượng / đổi đất và tài sản mà một bên thiệt nặng (Alaska 1867, đảo Manhattan 1626, Louisiana 1803, Run đổi Manhattan 1667, Florida trao Anh 1763)",
+        "tien_to": "Worst Deals",
+        "mau": [
+          "full-story",
+          "full-story-2",
+          "short-60"
+        ],
+        "mo_ta": "Bản tin 'bất động sản lá cải' về MỘT vụ mua bán / nhượng / đổi đất có thật mà một bên thiệt nặng: giá chốt, người ký, vì sao bán, bản đồ đổi màu khi đất sang tay, con dấu SOLD, cuối tập 'mảnh đất đó hôm nay đáng bao nhiêu'. Ví dụ: Hà Lan đổi Manhattan lấy đảo nhục đậu khấu Run (1667), Napoleon bán Louisiana (1803).",
+        "goc_spy": [
+          {
+            "id": 66938,
+            "loai": "ai_chan_dung",
+            "ten": "Người quan tâm lịch sử thế giới và Mỹ"
+          },
+          {
+            "id": 66916,
+            "loai": "ai_chan_dung",
+            "ten": "Người mê lịch sử muốn xem video theo bản đồ"
+          },
+          {
+            "id": 66966,
+            "loai": "ai_tinh_huong",
+            "ten": "Người đọc lịch sử vào cuối tuần"
+          }
+        ],
+        "vi_du": [
+          {
+            "mau": "full-story",
+            "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-worst-deals-d36691b5a6.mp4"
+          }
+        ]
+      },
+      {
+        "ma": "royal-gossip",
+        "ten": "Royal Gossip Desk",
+        "trang_thai": "de_xuat",
+        "ngay": "chưa xếp lịch — chờ duyệt demo",
+        "noi_dung": "hôn nhân, thừa kế, tranh ngôi của hoàng gia làm bản đồ đổi chủ (cưới Habsburg, Henry VIII, Chiến tranh Kế vị Tây Ban Nha, Eleanor xứ Aquitaine)",
+        "tien_to": "Royal Gossip",
+        "mau": [
+          "full-story",
+          "full-story-2",
+          "short-60"
+        ],
+        "mo_ta": "Mục tin đồn hoàng gia: MỘT vụ cưới / thừa kế / tranh ngôi có thật làm bản đồ châu Âu đổi chủ — ai cưới ai, của hồi môn là cả một vùng đất, ai nổi giận rồi gây chiến. Bản đồ đổi màu theo từng cuộc hôn nhân, chân dung nhân vật đứng cạnh vùng đất của họ. Ví dụ: Bombay là của hồi môn của Catherine xứ Braganza (1661), Habsburg 'cưới khắp châu Âu'.",
+        "goc_spy": [
+          {
+            "id": 66964,
+            "loai": "ai_phan_doi",
+            "ten": "Người học kém lịch sử trung đại và cổ đại"
+          },
+          {
+            "id": 66966,
+            "loai": "ai_tinh_huong",
+            "ten": "Người đọc lịch sử vào cuối tuần"
+          },
+          {
+            "id": 66962,
+            "loai": "ai_phan_doi",
+            "ten": "Người yêu lịch sử bị người thân không hiểu"
+          }
+        ]
+      },
+      {
+        "ma": "explorers-gone-wrong",
+        "ten": "Explorers Gone Wrong",
+        "trang_thai": "de_xuat",
+        "ngay": "chưa xếp lịch — chờ duyệt demo",
+        "noi_dung": "chuyến thám hiểm lạc đường, sai bản đồ, tới nhầm nơi (Columbus tưởng Ấn Độ, Magellan, Burke và Wills, Vinland, Ponce de León)",
+        "tien_to": "Explorers Gone Wrong",
+        "mau": [
+          "full-story",
+          "full-story-2",
+          "short-60"
+        ],
+        "mo_ta": "Bản tin giao thông lá cải về MỘT chuyến thám hiểm có thật đi lạc / tưởng nhầm nơi: đường đi trên bản đồ là xương sống (mũi tên + tàu / ngựa từng chặng), mỗi chặng một năm, 'GPS hỏng', tới nơi thì không phải nơi định tới. Ví dụ: Columbus khăng khăng Caribe là châu Á (1492), La Salle tìm cửa sông Mississippi mà cập bến Texas (1684).",
+        "goc_spy": [
+          {
+            "id": 66907,
+            "loai": "ai_chan_dung",
+            "ten": "Người ở nhà thích du lịch"
+          },
+          {
+            "id": 66926,
+            "loai": "ai_chan_dung",
+            "ten": "Người đi phượt đường dài"
+          },
+          {
+            "id": 66916,
+            "loai": "ai_chan_dung",
+            "ten": "Người mê lịch sử muốn xem video theo bản đồ"
+          }
+        ],
+        "vi_du": [
+          {
+            "mau": "full-story",
+            "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-explorers-gone-wrong-6ef4759586.mp4"
+          }
+        ]
+      },
+      {
+        "ma": "tiny-wars",
+        "ten": "Tiny Wars",
+        "trang_thai": "de_xuat",
+        "ngay": "chưa xếp lịch — chờ duyệt demo",
+        "noi_dung": "chiến tranh ngắn / vô lý / vì chuyện vặt (Anh–Zanzibar 1896 38 phút, Pig War 1859, Emu War 1932, War of the Bucket 1325)",
+        "tien_to": "Tiny Wars",
+        "mau": [
+          "full-story",
+          "full-story-2",
+          "short-60"
+        ],
+        "mo_ta": "Short 45–60 giây về MỘT cuộc chiến có thật ngắn / vô lý / nổ ra vì chuyện vặt (con lợn, cái xô, chim emu, tiệm bánh): lý do gây chiến → mũi tên quân trên bản đồ → kết cục buồn cười (38 phút, 0 thương vong, emu thắng). Đùa về lý do và người ra lệnh, không đùa về người chết. Ví dụ: chiến tranh Anh–Zanzibar 1896 kéo dài 38 phút.",
+        "goc_spy": [
+          {
+            "id": 66922,
+            "loai": "ai_cach_giai",
+            "ten": "Người chơi đố vui lịch sử trên điện thoại"
+          },
+          {
+            "id": 66962,
+            "loai": "ai_phan_doi",
+            "ten": "Người yêu lịch sử bị người thân không hiểu"
+          },
+          {
+            "id": 66947,
+            "loai": "ai_tinh_huong",
+            "ten": "Bệnh nhân chờ khám bác sĩ"
+          }
+        ],
+        "vi_du": [
+          {
+            "mau": "short-60",
+            "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-tiny-wars-b0b2c77134.mp4"
+          }
+        ]
+      },
+      {
+        "ma": "borders-gone-wrong",
+        "ten": "Borders Gone Wrong",
+        "trang_thai": "de_xuat",
+        "ngay": "chưa xếp lịch — chờ duyệt demo",
+        "noi_dung": "đường biên giới kỳ quặc có thật và vì sao nó thành ra thế (Baarle-Nassau, Llívia, Point Roberts, Northwest Angle, đường Tordesillas)",
+        "tien_to": "Borders Gone Wrong",
+        "mau": [
+          "full-story",
+          "full-story-2",
+          "short-60"
+        ],
+        "mo_ta": "Short 45–60 giây về MỘT đường biên / vùng đất kỳ quặc có thật (vùng lọt thỏm, mũi đất cụt, đường kẻ vội trên bản đồ) và quyết định lịch sử đã tạo ra nó — đường kẻ biên được vẽ dần trên bản đồ, nhãn hai nước, cú lật 'hôm nay ở đó trông thế nào'. Ví dụ: Baarle — biên giới Bỉ–Hà Lan chạy xuyên phòng khách; Point Roberts — thị trấn Mỹ chỉ đi được qua Canada.",
+        "goc_spy": [
+          {
+            "id": 66913,
+            "loai": "ai_tinh_huong",
+            "ten": "Khách du lịch châu Âu và Sofia"
+          },
+          {
+            "id": 66927,
+            "loai": "ai_chan_dung",
+            "ten": "Người đi tour tự túc đi bộ"
+          },
+          {
+            "id": 66954,
+            "loai": "ai_cu_hich",
+            "ten": "Khách bộ hành tò mò trước di tích phố"
+          }
+        ],
+        "vi_du": [
+          {
+            "mau": "short-60",
+            "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-borders-gone-wrong-30b07e8e33.mp4"
+          }
+        ]
+      },
+      {
+        "ma": "weather-desk",
+        "ten": "History Weather Desk",
+        "trang_thai": "de_xuat",
+        "ngay": "chưa xếp lịch — chờ duyệt demo",
+        "noi_dung": "thời tiết / thiên tai đổi kết cục lịch sử (bão Kamikaze 1281, Hạm đội Tây Ban Nha 1588, mùa đông Nga 1812, Tambora 1815 → năm không có mùa hè)",
+        "tien_to": "Weather Desk",
+        "mau": [
+          "full-story",
+          "full-story-2",
+          "short-60"
+        ],
+        "mo_ta": "Short 45–60 giây kiểu bản tin thời tiết lá cải: MỘT lần bão / sương mù / mùa đông / núi lửa có thật làm đổi kết cục lịch sử — 'dự báo hôm nay: trời đẹp cho xâm lược', hạm đội trên bản đồ, bão quét qua, kết cục. Ví dụ: bão Kamikaze đánh chìm hạm đội Mông Cổ ngoài khơi Nhật (1281), sương mù giúp Washington rút khỏi Brooklyn (1776).",
+        "goc_spy": [
+          {
+            "id": 66968,
+            "loai": "ai_tinh_huong",
+            "ten": "Học sinh ôn lịch sử, công dân, địa lý, kinh tế"
+          },
+          {
+            "id": 66914,
+            "loai": "ai_noi_dau",
+            "ten": "Người xem video lịch sử nhưng hay quên nội dung vừa nghe"
+          },
+          {
+            "id": 66922,
+            "loai": "ai_cach_giai",
+            "ten": "Người chơi đố vui lịch sử trên điện thoại"
+          }
+        ]
+      }
+    ],
+    "giai_doan": [
+      {
+        "ma": "G0",
+        "ten": "Định vị",
+        "viec": "Bản tin lá cải đọc lịch sử thật, bản đồ + nhân vật, EN toàn cầu; loạt gốc Full Stories Thứ 2 · 4 · 6",
+        "anh": "đã chạy từ 02/11/2026",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G1",
+        "ten": "Bộ mẫu + demo",
+        "viec": "2 MẪU (khuôn video: Full Story ~3 phút, Short 60s) × 7 PLAYLIST (series theo góc spy); mỗi mẫu một demo, mỗi series một video ví dụ",
+        "anh": "duyệt từng demo",
+        "trang_thai": "dang"
+      },
+      {
+        "ma": "G2",
+        "ten": "Xếp lịch theo playlist",
+        "viec": "mẫu đã duyệt → lich_tap trong kenh.json (mỗi ngày một playlist), Short xen giữa bản dài",
+        "anh": "không",
+        "trang_thai": "chua"
+      },
+      {
+        "ma": "G3",
+        "ten": "Playlist YouTube + Facebook",
+        "viec": "tạo playlist trên kênh, máy đăng gắn đúng playlist; tiền tố tiêu đề theo loạt · 08/11/2026: YouTube xong — máy đăng tự tạo playlist khi kênh chưa có, \"Big Stories\" đã có 6/6 video đã lên; Facebook không còn đường: Graph trả (#3) app không có quyền tạo playlist Page; giao diện Page (Creator Dashboard › Content Library, Business Suite › Content) không có mục playlist — Facebook báo \"Videos you post on Facebook are now reels\", Create chỉ còn Post / Story / Reel / Bulk upload (dò 08/11/2026)",
+        "anh": "không",
+        "trang_thai": "xong"
+      },
+      {
+        "ma": "G4",
+        "ten": "Đo + chỉnh suất",
+        "viec": "đo lượt xem / người đăng ký theo playlist; loạt kém giảm suất, loạt tốt thêm suất",
+        "anh": "chốt ngưỡng",
+        "trang_thai": "chua"
+      }
     ],
     "mau": [
-     "love-story-charts",
-     "chart-chapters-dai"
+      {
+        "ma": "full-story-2",
+        "ten": "Full Story 2.0 (số thành hình)",
+        "loai": "dai",
+        "khung": "9:16",
+        "nhip": "MẶC ĐỊNH cho mọi tập dài từ 05/11/2026 (anh duyệt) — theo lịch từng playlist",
+        "kho": "vô hạn — đề theo series + góc spy",
+        "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
+        "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau full-story-2  (demo: demo-mau.sh)",
+        "mo_ta": "Khuôn Full Story (~3 phút) + SỐ THÀNH HÌNH: đúng lúc giọng đọc tới một con số có nguồn, số hiện to giữa màn đếm chạy lên, kèm hình theo loại — hàng người (1 hình = N người), chồng tiền, đồng hồ quay, thanh phần trăm, đường đo; hai số quân trong một câu thành hai cột so sánh. Số chỉ lấy từ trích dẫn nguồn của câu, không có số bịa; không cần viết lại kịch bản.",
+        "demo": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-full-story-2-5960e0c784.mp4",
+        "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$"
+      },
+      {
+        "ma": "full-story",
+        "ten": "Full Story (~3 phút)",
+        "loai": "dai",
+        "khung": "9:16",
+        "nhip": "bản cũ — thay bằng Full Story 2.0 từ 05/11/2026",
+        "kho": "vô hạn — đề theo series + góc spy",
+        "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
+        "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau full-story  (demo: demo-mau.sh)",
+        "demo": "https://img.on.tc/xuong-video/lich-su/tap/alaska-parody.mp4",
+        "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$",
+        "mo_ta": "KHUÔN VIDEO dài ~3 phút, dọc 9:16: hook sốc ở câu 1 (chữ to + vòng đỏ) → 4–5 hồi, mỗi hồi mở bằng một năm mới, màu chủ quyền đổi, mũi tên quân, nhân vật bước vào, 2–3 tranh thật → khúc ngoặt đóng dấu → hậu quả hôm nay → THE END. Giọng phát thanh viên lá cải tỉnh bơ. Dùng được cho MỌI playlist."
+      },
+      {
+        "ma": "short-60",
+        "ten": "Short 60s (một cú lật)",
+        "loai": "short",
+        "khung": "9:16",
+        "nhip": "theo lịch từng playlist",
+        "kho": "vô hạn — đề theo series",
+        "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
+        "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau short-60  (demo: demo-mau.sh)",
+        "demo": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-tiny-wars-b0b2c77134.mp4",
+        "cho_duyet": true,
+        "mo_ta": "KHUÔN VIDEO Short 45–60 giây, dọc 9:16: 9–10 câu, 105–120 từ — hook chữ to 0–2 giây → 2 nhịp leo thang (mỗi nhịp một năm + một chuyển động bản đồ + một nhân vật) → cú lật cuối đóng dấu → THE END. Xem xong nhớ được một sự thật để kể lại; mồi kéo người xem sang bản Full Story cùng playlist. Demo: Tiny Wars (chiến tranh Anh–Zanzibar 38 phút).",
+        "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$"
+      },
+      {
+        "ma": "dai-ghep-giay",
+        "ten": "Tập dài ghép giấy (The ENTIRE Story, 12–15 phút)",
+        "loai": "dai",
+        "khung": "16:9",
+        "nhip": "đề xuất 1 tập / tuần — CHƯA chạy tự động: mỗi tập tốn ~15.000₫ (ảnh lớp ~10.500₫ + giọng ~1.900₫ + chữ), vượt ngưỡng tự chạy 5.000₫ → chờ anh duyệt chi cố định",
+        "kho": "vô hạn — đề theo góc spy #66963 (kenh.json › parody.mau_dai)",
+        "trang": "lich-su/giay/giay-lop.html (ghép giấy nhiều lớp, ngang 16:9)",
+        "sinh": "lich-su/giay/lam-dai.mjs --id <id> --kenh parody  (máy tự chọn đề + nguồn Wikipedia; dựng + nén phần cứng trên iMac; nap-dai.mjs gắn hook + nạp máy đăng; luu-kho.mjs dọn)",
+        "demo": "https://youtu.be/syVdnrP0KzA",
+        "cho_duyet": false,
+        "mo_ta": "KHUÔN VIDEO dài 12–15 phút, ngang 16:9, ghép giấy nhiều lớp: 8 chương có mục lục xuyên suốt, bản đồ biên giới đúng thời kỳ, cận mặt biểu cảm nhân vật ở khoảnh khắc căng, thẻ câu nói nguyên văn Wikiquote, nhịp phim theo hồi (cao trào, khoảng lặng), tiếng đạo cụ + nhạc theo hồi, logo A3. Demo: Napoleon ở Nga 1812.",
+        "tu_sinh": "^ynt-dai-"
+      }
     ],
-    "_ghi": "video dài 16:9 tuần một tập (Chủ nhật), chay-so-kenh.mjs: bìa 1280×720, dựng 1920×1080 (08/11/2026)"
-   },
-   "truoc_ke_hoach": 3,
-   "gio_tu": "07:00",
-   "gio_den": "22:00",
-   "_ghi": "G8: lich-su/chay-so-kenh.mjs, gọi cuối lượt mỗi giờ của chay-kenh.mjs; lich_tap playlist: 1 = Thứ Hai … 7 = Chủ nhật"
+    "hang_cho": [
+      {
+        "ma": "fs-alaska",
+        "chu_de": "How Russia sold Alaska to the United States for 7.2 million dollars in 1867",
+        "trang_thai": "da_dang",
+        "playlist": "full-stories"
+      },
+      {
+        "ma": "fs-agincourt",
+        "chu_de": "The Battle of Agincourt 1415: Henry V, the longbow and the mud",
+        "trang_thai": "da_lam",
+        "playlist": "full-stories"
+      },
+      {
+        "ma": "wd-manhattan-1626",
+        "chu_de": "The Dutch purchase of Manhattan from the Lenape for 60 guilders in 1626",
+        "trang_thai": "chua",
+        "playlist": "worst-deals"
+      },
+      {
+        "ma": "wd-louisiana-1803",
+        "chu_de": "Napoleon sells the Louisiana territory to the United States in 1803",
+        "trang_thai": "chua",
+        "playlist": "worst-deals"
+      },
+      {
+        "ma": "wd-run-for-manhattan-1667",
+        "chu_de": "Treaty of Breda 1667: the Dutch keep the nutmeg island of Run and give up New Amsterdam",
+        "trang_thai": "chua",
+        "playlist": "worst-deals"
+      },
+      {
+        "ma": "wd-florida-1763",
+        "chu_de": "Spain hands Florida to Britain in 1763 to get Havana back",
+        "trang_thai": "chua",
+        "playlist": "worst-deals"
+      },
+      {
+        "ma": "wd-danish-west-indies-1917",
+        "chu_de": "Denmark sells the Danish West Indies to the United States in 1917",
+        "trang_thai": "chua",
+        "playlist": "worst-deals"
+      },
+      {
+        "ma": "rg-habsburg-marriages",
+        "chu_de": "Habsburg marriage diplomacy: how one family married its way across Europe",
+        "trang_thai": "chua",
+        "playlist": "royal-gossip"
+      },
+      {
+        "ma": "rg-eleanor-aquitaine",
+        "chu_de": "Eleanor of Aquitaine marries the King of France, then the future King of England",
+        "trang_thai": "chua",
+        "playlist": "royal-gossip"
+      },
+      {
+        "ma": "rg-bombay-dowry-1661",
+        "chu_de": "Catherine of Braganza brings Bombay to Charles II as a wedding dowry in 1661",
+        "trang_thai": "chua",
+        "playlist": "royal-gossip"
+      },
+      {
+        "ma": "rg-spanish-succession-1700",
+        "chu_de": "Charles II of Spain dies without an heir and Europe goes to war over his will (1700)",
+        "trang_thai": "chua",
+        "playlist": "royal-gossip"
+      },
+      {
+        "ma": "rg-henry-viii-1534",
+        "chu_de": "Henry VIII breaks with Rome to annul his marriage (1534)",
+        "trang_thai": "chua",
+        "playlist": "royal-gossip"
+      },
+      {
+        "ma": "eg-columbus-1492",
+        "chu_de": "Columbus lands in the Caribbean in 1492 and insists it is Asia",
+        "trang_thai": "chua",
+        "playlist": "explorers-gone-wrong"
+      },
+      {
+        "ma": "eg-magellan-1519",
+        "chu_de": "Magellan sets out to sail around the world in 1519 and does not come back",
+        "trang_thai": "chua",
+        "playlist": "explorers-gone-wrong"
+      },
+      {
+        "ma": "eg-burke-wills-1860",
+        "chu_de": "Burke and Wills cross Australia in 1860 and miss their rescue by nine hours",
+        "trang_thai": "chua",
+        "playlist": "explorers-gone-wrong"
+      },
+      {
+        "ma": "eg-la-salle-1684",
+        "chu_de": "La Salle sails to find the mouth of the Mississippi in 1684 and lands in Texas",
+        "trang_thai": "chua",
+        "playlist": "explorers-gone-wrong"
+      },
+      {
+        "ma": "eg-vinland-1000",
+        "chu_de": "Leif Erikson reaches Vinland around 1000, five centuries before Columbus",
+        "trang_thai": "chua",
+        "playlist": "explorers-gone-wrong"
+      },
+      {
+        "ma": "b60-canberra-1908",
+        "chu_de": "Australia builds a brand new capital in 1908 because Sydney and Melbourne could not agree",
+        "trang_thai": "chua",
+        "playlist": "full-stories",
+        "mau": "short-60"
+      },
+      {
+        "ma": "b60-liechtenstein-1866",
+        "chu_de": "Liechtenstein sends 80 soldiers to war in 1866 and 81 come home",
+        "trang_thai": "chua",
+        "playlist": "full-stories",
+        "mau": "short-60"
+      },
+      {
+        "ma": "b60-pitcairn-1790",
+        "chu_de": "The Bounty mutineers hide on Pitcairn Island in 1790 and burn their ship",
+        "trang_thai": "chua",
+        "playlist": "full-stories",
+        "mau": "short-60"
+      },
+      {
+        "ma": "b60-napoleon-elba-1815",
+        "chu_de": "Napoleon escapes from Elba in 1815 and walks back into power in 100 days",
+        "trang_thai": "chua",
+        "playlist": "full-stories",
+        "mau": "short-60"
+      },
+      {
+        "ma": "tw-anglo-zanzibar-1896",
+        "chu_de": "The Anglo-Zanzibar War of 1896, the shortest war in history",
+        "trang_thai": "chua",
+        "playlist": "tiny-wars"
+      },
+      {
+        "ma": "tw-pig-war-1859",
+        "chu_de": "The Pig War of 1859 on San Juan Island between Britain and the United States",
+        "trang_thai": "chua",
+        "playlist": "tiny-wars"
+      },
+      {
+        "ma": "tw-emu-war-1932",
+        "chu_de": "The Emu War of 1932: Australia sends soldiers against emus",
+        "trang_thai": "chua",
+        "playlist": "tiny-wars"
+      },
+      {
+        "ma": "tw-war-of-the-bucket-1325",
+        "chu_de": "The War of the Bucket 1325 between Modena and Bologna",
+        "trang_thai": "chua",
+        "playlist": "tiny-wars"
+      },
+      {
+        "ma": "tw-pastry-war-1838",
+        "chu_de": "The Pastry War of 1838: France blockades Mexico over a French baker’s shop",
+        "trang_thai": "chua",
+        "playlist": "tiny-wars"
+      },
+      {
+        "ma": "bg-baarle-nassau",
+        "chu_de": "Baarle-Nassau and Baarle-Hertog: the border that runs through living rooms",
+        "trang_thai": "chua",
+        "playlist": "borders-gone-wrong"
+      },
+      {
+        "ma": "bg-llivia-1659",
+        "chu_de": "Llívia: the Spanish town left inside France by the Treaty of the Pyrenees 1659",
+        "trang_thai": "chua",
+        "playlist": "borders-gone-wrong"
+      },
+      {
+        "ma": "bg-point-roberts-1846",
+        "chu_de": "Point Roberts: the American town you can only reach through Canada (1846)",
+        "trang_thai": "chua",
+        "playlist": "borders-gone-wrong"
+      },
+      {
+        "ma": "bg-northwest-angle-1783",
+        "chu_de": "The Northwest Angle: a map mistake in the 1783 treaty that left a bump in the US border",
+        "trang_thai": "chua",
+        "playlist": "borders-gone-wrong"
+      },
+      {
+        "ma": "bg-tordesillas-1494",
+        "chu_de": "Treaty of Tordesillas 1494: Spain and Portugal split the world with one line",
+        "trang_thai": "chua",
+        "playlist": "borders-gone-wrong"
+      },
+      {
+        "ma": "wx-kamikaze-1281",
+        "chu_de": "The kamikaze typhoon of 1281 that wrecked the Mongol fleet off Japan",
+        "trang_thai": "chua",
+        "playlist": "weather-desk"
+      },
+      {
+        "ma": "wx-armada-1588",
+        "chu_de": "Storms finish off the Spanish Armada in 1588",
+        "trang_thai": "chua",
+        "playlist": "weather-desk"
+      },
+      {
+        "ma": "wx-russia-1812",
+        "chu_de": "The Russian winter destroys Napoleon’s Grande Armée in 1812",
+        "trang_thai": "chua",
+        "playlist": "weather-desk"
+      },
+      {
+        "ma": "wx-tambora-1815",
+        "chu_de": "Mount Tambora erupts in 1815 and the next year has no summer",
+        "trang_thai": "chua",
+        "playlist": "weather-desk"
+      },
+      {
+        "ma": "wx-long-island-fog-1776",
+        "chu_de": "A fog lets Washington’s army escape Brooklyn in 1776",
+        "trang_thai": "chua",
+        "playlist": "weather-desk"
+      }
+    ],
+    "nhom_spy": {
+      "id": 2680,
+      "ten": "History explained (map history videos & apps)",
+      "so_goc": 66
+    }
   }
- },
- "yesterdays-news-tonight": {
-  "ten": "Yesterday's News Tonight · YouTube @yesterdaysnewstonight",
-  "muc_tieu": "kênh tự vận hành hoàn toàn bằng API AI ngoài: máy chọn đề theo loạt + góc spy → viết (vá câu lỗi) → kiểm → kho + ảnh thật → Ngọc soi → dựng → thumbnail → Phòng Nội dung chấm → máy đăng (YouTube + Page Facebook) đúng playlist → đo → chỉnh suất playlist; kẹt 3 lần thì bỏ, làm đề khác",
-  "cap_nhat": "2026-11-05",
-  "dinh_vi": {
-   "cho_ai": "người thích lịch sử + hài, tiếng Anh, toàn cầu (sau mở ES)",
-   "dich": "lượt xem + người đăng ký kênh YouTube @yesterdaysnewstonight và Page Facebook Yesterday's News Tonight",
-   "cau_ket": "THE END (thẻ kết lá cải, không link)",
-   "ngon_ngu": "EN",
-   "giong": "phát thanh viên bản tin lá cải đọc chuyện lịch sử thật bằng giọng tỉnh bơ — đùa ở quyết định của người có quyền, sự thật đúng tuyệt đối"
-  },
-  "luat": [
-   "Mỗi tập thuộc đúng MỘT mẫu trong sổ này và MỘT playlist (kenh.json › parody.playlist) — mẫu chưa duyệt demo chỉ làm demo, không lên kênh",
-   "Chuyện có thật, xảy ra trước 1950; con số / năm / so sánh nhất phải có trích nguyên văn Wikipedia (máy kiểm từng câu)",
-   "Không đùa về dân tộc, tôn giáo, người bản địa, nạn nhân, chết chóc; cái hài nằm ở quyết định của người có quyền",
-   "Ảnh thật Wikimedia Commons (public domain) qua Ngọc duyệt; bản đồ Natural Earth; nhân vật trong kho dùng lại mọi tập",
-   "Short ≤ 60 giây, bản dài ≤ 179 giây (dọc 9:16); thumbnail chữ 2–4 từ, Ngọc duyệt"
-  ],
-  "playlist": [
-   {
-    "ma": "full-stories",
-    "ten": "Big Stories",
-    "trang_thai": "chot",
-    "ngay": "Thứ 2 · 4 · 6 (3 tập / tuần)",
-    "noi_dung": "trọn một chuyện lịch sử có bản đồ (đất đổi chủ, mua bán, chia ranh giới, chiến tranh, di cư) — loạt gốc của kênh",
-    "tien_to": "",
-    "mau": [
-     "full-story",
-     "full-story-2",
-     "short-60"
-    ],
-    "mo_ta": "Bản tin lá cải 3 phút kể TRỌN một chuyện lịch sử có thật trên bản đồ động: hook sốc ở câu 1 → 4–5 hồi, mỗi hồi một năm mới (ô năm đổi), màu chủ quyền đổi, mũi tên quân, nhân vật bước vào → khúc ngoặt đóng dấu → hậu quả hôm nay → THE END. Giọng phát thanh viên tỉnh bơ mỉa quyết định của người có quyền. Ví dụ đã đăng: Nga bán Alaska 7,2 triệu đô (1867).",
-    "goc_spy": [
-     {
-      "id": 66916,
-      "loai": "ai_chan_dung",
-      "ten": "Người mê lịch sử muốn xem video theo bản đồ"
-     },
-     {
-      "id": 66963,
-      "loai": "ai_phan_doi",
-      "ten": "Người chán bài lịch sử 5 phút nông cạn"
-     },
-     {
-      "id": 66938,
-      "loai": "ai_chan_dung",
-      "ten": "Người quan tâm lịch sử thế giới và Mỹ"
-     },
-     {
-      "id": 66925,
-      "loai": "ai_tinh_huong",
-      "ten": "Người đi bộ vô định nghe podcast tội phạm và lịch sử"
-     }
-    ],
-    "vi_du": [
-     {
-      "mau": "full-story",
-      "url": "https://img.on.tc/xuong-video/lich-su/tap/alaska-parody.mp4"
-     },
-     {
-      "mau": "short-60",
-      "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-breaking-60-1cca762c88.mp4"
-     }
-    ]
-   },
-   {
-    "ma": "worst-deals",
-    "ten": "Worst Deals in History",
-    "trang_thai": "de_xuat",
-    "ngay": "chưa xếp lịch — chờ duyệt demo",
-    "noi_dung": "mua bán / nhượng / đổi đất và tài sản mà một bên thiệt nặng (Alaska 1867, đảo Manhattan 1626, Louisiana 1803, Run đổi Manhattan 1667, Florida trao Anh 1763)",
-    "tien_to": "Worst Deals",
-    "mau": [
-     "full-story",
-     "full-story-2",
-     "short-60"
-    ],
-    "mo_ta": "Bản tin 'bất động sản lá cải' về MỘT vụ mua bán / nhượng / đổi đất có thật mà một bên thiệt nặng: giá chốt, người ký, vì sao bán, bản đồ đổi màu khi đất sang tay, con dấu SOLD, cuối tập 'mảnh đất đó hôm nay đáng bao nhiêu'. Ví dụ: Hà Lan đổi Manhattan lấy đảo nhục đậu khấu Run (1667), Napoleon bán Louisiana (1803).",
-    "goc_spy": [
-     {
-      "id": 66938,
-      "loai": "ai_chan_dung",
-      "ten": "Người quan tâm lịch sử thế giới và Mỹ"
-     },
-     {
-      "id": 66916,
-      "loai": "ai_chan_dung",
-      "ten": "Người mê lịch sử muốn xem video theo bản đồ"
-     },
-     {
-      "id": 66966,
-      "loai": "ai_tinh_huong",
-      "ten": "Người đọc lịch sử vào cuối tuần"
-     }
-    ],
-    "vi_du": [
-     {
-      "mau": "full-story",
-      "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-worst-deals-d36691b5a6.mp4"
-     }
-    ]
-   },
-   {
-    "ma": "royal-gossip",
-    "ten": "Royal Gossip Desk",
-    "trang_thai": "de_xuat",
-    "ngay": "chưa xếp lịch — chờ duyệt demo",
-    "noi_dung": "hôn nhân, thừa kế, tranh ngôi của hoàng gia làm bản đồ đổi chủ (cưới Habsburg, Henry VIII, Chiến tranh Kế vị Tây Ban Nha, Eleanor xứ Aquitaine)",
-    "tien_to": "Royal Gossip",
-    "mau": [
-     "full-story",
-     "full-story-2",
-     "short-60"
-    ],
-    "mo_ta": "Mục tin đồn hoàng gia: MỘT vụ cưới / thừa kế / tranh ngôi có thật làm bản đồ châu Âu đổi chủ — ai cưới ai, của hồi môn là cả một vùng đất, ai nổi giận rồi gây chiến. Bản đồ đổi màu theo từng cuộc hôn nhân, chân dung nhân vật đứng cạnh vùng đất của họ. Ví dụ: Bombay là của hồi môn của Catherine xứ Braganza (1661), Habsburg 'cưới khắp châu Âu'.",
-    "goc_spy": [
-     {
-      "id": 66964,
-      "loai": "ai_phan_doi",
-      "ten": "Người học kém lịch sử trung đại và cổ đại"
-     },
-     {
-      "id": 66966,
-      "loai": "ai_tinh_huong",
-      "ten": "Người đọc lịch sử vào cuối tuần"
-     },
-     {
-      "id": 66962,
-      "loai": "ai_phan_doi",
-      "ten": "Người yêu lịch sử bị người thân không hiểu"
-     }
-    ]
-   },
-   {
-    "ma": "explorers-gone-wrong",
-    "ten": "Explorers Gone Wrong",
-    "trang_thai": "de_xuat",
-    "ngay": "chưa xếp lịch — chờ duyệt demo",
-    "noi_dung": "chuyến thám hiểm lạc đường, sai bản đồ, tới nhầm nơi (Columbus tưởng Ấn Độ, Magellan, Burke và Wills, Vinland, Ponce de León)",
-    "tien_to": "Explorers Gone Wrong",
-    "mau": [
-     "full-story",
-     "full-story-2",
-     "short-60"
-    ],
-    "mo_ta": "Bản tin giao thông lá cải về MỘT chuyến thám hiểm có thật đi lạc / tưởng nhầm nơi: đường đi trên bản đồ là xương sống (mũi tên + tàu / ngựa từng chặng), mỗi chặng một năm, 'GPS hỏng', tới nơi thì không phải nơi định tới. Ví dụ: Columbus khăng khăng Caribe là châu Á (1492), La Salle tìm cửa sông Mississippi mà cập bến Texas (1684).",
-    "goc_spy": [
-     {
-      "id": 66907,
-      "loai": "ai_chan_dung",
-      "ten": "Người ở nhà thích du lịch"
-     },
-     {
-      "id": 66926,
-      "loai": "ai_chan_dung",
-      "ten": "Người đi phượt đường dài"
-     },
-     {
-      "id": 66916,
-      "loai": "ai_chan_dung",
-      "ten": "Người mê lịch sử muốn xem video theo bản đồ"
-     }
-    ],
-    "vi_du": [
-     {
-      "mau": "full-story",
-      "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-explorers-gone-wrong-6ef4759586.mp4"
-     }
-    ]
-   },
-   {
-    "ma": "tiny-wars",
-    "ten": "Tiny Wars",
-    "trang_thai": "de_xuat",
-    "ngay": "chưa xếp lịch — chờ duyệt demo",
-    "noi_dung": "chiến tranh ngắn / vô lý / vì chuyện vặt (Anh–Zanzibar 1896 38 phút, Pig War 1859, Emu War 1932, War of the Bucket 1325)",
-    "tien_to": "Tiny Wars",
-    "mau": [
-     "full-story",
-     "full-story-2",
-     "short-60"
-    ],
-    "mo_ta": "Short 45–60 giây về MỘT cuộc chiến có thật ngắn / vô lý / nổ ra vì chuyện vặt (con lợn, cái xô, chim emu, tiệm bánh): lý do gây chiến → mũi tên quân trên bản đồ → kết cục buồn cười (38 phút, 0 thương vong, emu thắng). Đùa về lý do và người ra lệnh, không đùa về người chết. Ví dụ: chiến tranh Anh–Zanzibar 1896 kéo dài 38 phút.",
-    "goc_spy": [
-     {
-      "id": 66922,
-      "loai": "ai_cach_giai",
-      "ten": "Người chơi đố vui lịch sử trên điện thoại"
-     },
-     {
-      "id": 66962,
-      "loai": "ai_phan_doi",
-      "ten": "Người yêu lịch sử bị người thân không hiểu"
-     },
-     {
-      "id": 66947,
-      "loai": "ai_tinh_huong",
-      "ten": "Bệnh nhân chờ khám bác sĩ"
-     }
-    ],
-    "vi_du": [
-     {
-      "mau": "short-60",
-      "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-tiny-wars-b0b2c77134.mp4"
-     }
-    ]
-   },
-   {
-    "ma": "borders-gone-wrong",
-    "ten": "Borders Gone Wrong",
-    "trang_thai": "de_xuat",
-    "ngay": "chưa xếp lịch — chờ duyệt demo",
-    "noi_dung": "đường biên giới kỳ quặc có thật và vì sao nó thành ra thế (Baarle-Nassau, Llívia, Point Roberts, Northwest Angle, đường Tordesillas)",
-    "tien_to": "Borders Gone Wrong",
-    "mau": [
-     "full-story",
-     "full-story-2",
-     "short-60"
-    ],
-    "mo_ta": "Short 45–60 giây về MỘT đường biên / vùng đất kỳ quặc có thật (vùng lọt thỏm, mũi đất cụt, đường kẻ vội trên bản đồ) và quyết định lịch sử đã tạo ra nó — đường kẻ biên được vẽ dần trên bản đồ, nhãn hai nước, cú lật 'hôm nay ở đó trông thế nào'. Ví dụ: Baarle — biên giới Bỉ–Hà Lan chạy xuyên phòng khách; Point Roberts — thị trấn Mỹ chỉ đi được qua Canada.",
-    "goc_spy": [
-     {
-      "id": 66913,
-      "loai": "ai_tinh_huong",
-      "ten": "Khách du lịch châu Âu và Sofia"
-     },
-     {
-      "id": 66927,
-      "loai": "ai_chan_dung",
-      "ten": "Người đi tour tự túc đi bộ"
-     },
-     {
-      "id": 66954,
-      "loai": "ai_cu_hich",
-      "ten": "Khách bộ hành tò mò trước di tích phố"
-     }
-    ],
-    "vi_du": [
-     {
-      "mau": "short-60",
-      "url": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-borders-gone-wrong-30b07e8e33.mp4"
-     }
-    ]
-   },
-   {
-    "ma": "weather-desk",
-    "ten": "History Weather Desk",
-    "trang_thai": "de_xuat",
-    "ngay": "chưa xếp lịch — chờ duyệt demo",
-    "noi_dung": "thời tiết / thiên tai đổi kết cục lịch sử (bão Kamikaze 1281, Hạm đội Tây Ban Nha 1588, mùa đông Nga 1812, Tambora 1815 → năm không có mùa hè)",
-    "tien_to": "Weather Desk",
-    "mau": [
-     "full-story",
-     "full-story-2",
-     "short-60"
-    ],
-    "mo_ta": "Short 45–60 giây kiểu bản tin thời tiết lá cải: MỘT lần bão / sương mù / mùa đông / núi lửa có thật làm đổi kết cục lịch sử — 'dự báo hôm nay: trời đẹp cho xâm lược', hạm đội trên bản đồ, bão quét qua, kết cục. Ví dụ: bão Kamikaze đánh chìm hạm đội Mông Cổ ngoài khơi Nhật (1281), sương mù giúp Washington rút khỏi Brooklyn (1776).",
-    "goc_spy": [
-     {
-      "id": 66968,
-      "loai": "ai_tinh_huong",
-      "ten": "Học sinh ôn lịch sử, công dân, địa lý, kinh tế"
-     },
-     {
-      "id": 66914,
-      "loai": "ai_noi_dau",
-      "ten": "Người xem video lịch sử nhưng hay quên nội dung vừa nghe"
-     },
-     {
-      "id": 66922,
-      "loai": "ai_cach_giai",
-      "ten": "Người chơi đố vui lịch sử trên điện thoại"
-     }
-    ]
-   }
-  ],
-  "giai_doan": [
-   {
-    "ma": "G0",
-    "ten": "Định vị",
-    "viec": "Bản tin lá cải đọc lịch sử thật, bản đồ + nhân vật, EN toàn cầu; loạt gốc Full Stories Thứ 2 · 4 · 6",
-    "anh": "đã chạy từ 02/11/2026",
-    "trang_thai": "xong"
-   },
-   {
-    "ma": "G1",
-    "ten": "Bộ mẫu + demo",
-    "viec": "2 MẪU (khuôn video: Full Story ~3 phút, Short 60s) × 7 PLAYLIST (series theo góc spy); mỗi mẫu một demo, mỗi series một video ví dụ",
-    "anh": "duyệt từng demo",
-    "trang_thai": "dang"
-   },
-   {
-    "ma": "G2",
-    "ten": "Xếp lịch theo playlist",
-    "viec": "mẫu đã duyệt → lich_tap trong kenh.json (mỗi ngày một playlist), Short xen giữa bản dài",
-    "anh": "không",
-    "trang_thai": "chua"
-   },
-   {
-    "ma": "G3",
-    "ten": "Playlist YouTube + Facebook",
-    "viec": "tạo playlist trên kênh, máy đăng gắn đúng playlist; tiền tố tiêu đề theo loạt · 08/11/2026: YouTube xong — máy đăng tự tạo playlist khi kênh chưa có, \"Big Stories\" đã có 6/6 video đã lên; Facebook không còn đường: Graph trả (#3) app không có quyền tạo playlist Page; giao diện Page (Creator Dashboard › Content Library, Business Suite › Content) không có mục playlist — Facebook báo \"Videos you post on Facebook are now reels\", Create chỉ còn Post / Story / Reel / Bulk upload (dò 08/11/2026)",
-    "anh": "không",
-    "trang_thai": "xong"
-   },
-   {
-    "ma": "G4",
-    "ten": "Đo + chỉnh suất",
-    "viec": "đo lượt xem / người đăng ký theo playlist; loạt kém giảm suất, loạt tốt thêm suất",
-    "anh": "chốt ngưỡng",
-    "trang_thai": "chua"
-   }
-  ],
-  "mau": [
-   {
-    "ma": "full-story-2",
-    "ten": "Full Story 2.0 (số thành hình)",
-    "loai": "dai",
-    "khung": "9:16",
-    "nhip": "MẶC ĐỊNH cho mọi tập dài từ 05/11/2026 (anh duyệt) — theo lịch từng playlist",
-    "kho": "vô hạn — đề theo series + góc spy",
-    "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
-    "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau full-story-2  (demo: demo-mau.sh)",
-    "mo_ta": "Khuôn Full Story (~3 phút) + SỐ THÀNH HÌNH: đúng lúc giọng đọc tới một con số có nguồn, số hiện to giữa màn đếm chạy lên, kèm hình theo loại — hàng người (1 hình = N người), chồng tiền, đồng hồ quay, thanh phần trăm, đường đo; hai số quân trong một câu thành hai cột so sánh. Số chỉ lấy từ trích dẫn nguồn của câu, không có số bịa; không cần viết lại kịch bản.",
-    "demo": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-full-story-2-5960e0c784.mp4",
-    "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$"
-   },
-   {
-    "ma": "full-story",
-    "ten": "Full Story (~3 phút)",
-    "loai": "dai",
-    "khung": "9:16",
-    "nhip": "bản cũ — thay bằng Full Story 2.0 từ 05/11/2026",
-    "kho": "vô hạn — đề theo series + góc spy",
-    "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
-    "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau full-story  (demo: demo-mau.sh)",
-    "demo": "https://img.on.tc/xuong-video/lich-su/tap/alaska-parody.mp4",
-    "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$",
-    "mo_ta": "KHUÔN VIDEO dài ~3 phút, dọc 9:16: hook sốc ở câu 1 (chữ to + vòng đỏ) → 4–5 hồi, mỗi hồi mở bằng một năm mới, màu chủ quyền đổi, mũi tên quân, nhân vật bước vào, 2–3 tranh thật → khúc ngoặt đóng dấu → hậu quả hôm nay → THE END. Giọng phát thanh viên lá cải tỉnh bơ. Dùng được cho MỌI playlist."
-   },
-   {
-    "ma": "short-60",
-    "ten": "Short 60s (một cú lật)",
-    "loai": "short",
-    "khung": "9:16",
-    "nhip": "theo lịch từng playlist",
-    "kho": "vô hạn — đề theo series",
-    "trang": "lich-su/ban-do.html (theme la_cai, dọc 9:16)",
-    "sinh": "lich-su/chay-kenh.mjs --kenh parody --ep --playlist <series> --mau short-60  (demo: demo-mau.sh)",
-    "demo": "https://img.on.tc/xuong-video/lich-su/tap/yesterdays-news-tonight-demo-tiny-wars-b0b2c77134.mp4",
-    "cho_duyet": true,
-    "mo_ta": "KHUÔN VIDEO Short 45–60 giây, dọc 9:16: 9–10 câu, 105–120 từ — hook chữ to 0–2 giây → 2 nhịp leo thang (mỗi nhịp một năm + một chuyển động bản đồ + một nhân vật) → cú lật cuối đóng dấu → THE END. Xem xong nhớ được một sự thật để kể lại; mồi kéo người xem sang bản Full Story cùng playlist. Demo: Tiny Wars (chiến tranh Anh–Zanzibar 38 phút).",
-    "tu_sinh": "^yesterdays-news-tonight-\\d{8}(-\\d+)?$"
-   },
-   {
-    "ma": "dai-ghep-giay",
-    "ten": "Tập dài ghép giấy (The ENTIRE Story, 12–15 phút)",
-    "loai": "dai",
-    "khung": "16:9",
-    "nhip": "đề xuất 1 tập / tuần — CHƯA chạy tự động: mỗi tập tốn ~15.000₫ (ảnh lớp ~10.500₫ + giọng ~1.900₫ + chữ), vượt ngưỡng tự chạy 5.000₫ → chờ anh duyệt chi cố định",
-    "kho": "vô hạn — đề theo góc spy #66963 (kenh.json › parody.mau_dai)",
-    "trang": "lich-su/giay/giay-lop.html (ghép giấy nhiều lớp, ngang 16:9)",
-    "sinh": "lich-su/giay/lam-dai.mjs --id <id> --kenh parody  (máy tự chọn đề + nguồn Wikipedia; dựng + nén phần cứng trên iMac; nap-dai.mjs gắn hook + nạp máy đăng; luu-kho.mjs dọn)",
-    "demo": "https://youtu.be/syVdnrP0KzA",
-    "cho_duyet": false,
-    "mo_ta": "KHUÔN VIDEO dài 12–15 phút, ngang 16:9, ghép giấy nhiều lớp: 8 chương có mục lục xuyên suốt, bản đồ biên giới đúng thời kỳ, cận mặt biểu cảm nhân vật ở khoảnh khắc căng, thẻ câu nói nguyên văn Wikiquote, nhịp phim theo hồi (cao trào, khoảng lặng), tiếng đạo cụ + nhạc theo hồi, logo A3. Demo: Napoleon ở Nga 1812.",
-    "tu_sinh": "^ynt-dai-"
-   }
-  ],
-  "hang_cho": [
-   {
-    "ma": "fs-alaska",
-    "chu_de": "How Russia sold Alaska to the United States for 7.2 million dollars in 1867",
-    "trang_thai": "da_dang",
-    "playlist": "full-stories"
-   },
-   {
-    "ma": "fs-agincourt",
-    "chu_de": "The Battle of Agincourt 1415: Henry V, the longbow and the mud",
-    "trang_thai": "da_lam",
-    "playlist": "full-stories"
-   },
-   {
-    "ma": "wd-manhattan-1626",
-    "chu_de": "The Dutch purchase of Manhattan from the Lenape for 60 guilders in 1626",
-    "trang_thai": "chua",
-    "playlist": "worst-deals"
-   },
-   {
-    "ma": "wd-louisiana-1803",
-    "chu_de": "Napoleon sells the Louisiana territory to the United States in 1803",
-    "trang_thai": "chua",
-    "playlist": "worst-deals"
-   },
-   {
-    "ma": "wd-run-for-manhattan-1667",
-    "chu_de": "Treaty of Breda 1667: the Dutch keep the nutmeg island of Run and give up New Amsterdam",
-    "trang_thai": "chua",
-    "playlist": "worst-deals"
-   },
-   {
-    "ma": "wd-florida-1763",
-    "chu_de": "Spain hands Florida to Britain in 1763 to get Havana back",
-    "trang_thai": "chua",
-    "playlist": "worst-deals"
-   },
-   {
-    "ma": "wd-danish-west-indies-1917",
-    "chu_de": "Denmark sells the Danish West Indies to the United States in 1917",
-    "trang_thai": "chua",
-    "playlist": "worst-deals"
-   },
-   {
-    "ma": "rg-habsburg-marriages",
-    "chu_de": "Habsburg marriage diplomacy: how one family married its way across Europe",
-    "trang_thai": "chua",
-    "playlist": "royal-gossip"
-   },
-   {
-    "ma": "rg-eleanor-aquitaine",
-    "chu_de": "Eleanor of Aquitaine marries the King of France, then the future King of England",
-    "trang_thai": "chua",
-    "playlist": "royal-gossip"
-   },
-   {
-    "ma": "rg-bombay-dowry-1661",
-    "chu_de": "Catherine of Braganza brings Bombay to Charles II as a wedding dowry in 1661",
-    "trang_thai": "chua",
-    "playlist": "royal-gossip"
-   },
-   {
-    "ma": "rg-spanish-succession-1700",
-    "chu_de": "Charles II of Spain dies without an heir and Europe goes to war over his will (1700)",
-    "trang_thai": "chua",
-    "playlist": "royal-gossip"
-   },
-   {
-    "ma": "rg-henry-viii-1534",
-    "chu_de": "Henry VIII breaks with Rome to annul his marriage (1534)",
-    "trang_thai": "chua",
-    "playlist": "royal-gossip"
-   },
-   {
-    "ma": "eg-columbus-1492",
-    "chu_de": "Columbus lands in the Caribbean in 1492 and insists it is Asia",
-    "trang_thai": "chua",
-    "playlist": "explorers-gone-wrong"
-   },
-   {
-    "ma": "eg-magellan-1519",
-    "chu_de": "Magellan sets out to sail around the world in 1519 and does not come back",
-    "trang_thai": "chua",
-    "playlist": "explorers-gone-wrong"
-   },
-   {
-    "ma": "eg-burke-wills-1860",
-    "chu_de": "Burke and Wills cross Australia in 1860 and miss their rescue by nine hours",
-    "trang_thai": "chua",
-    "playlist": "explorers-gone-wrong"
-   },
-   {
-    "ma": "eg-la-salle-1684",
-    "chu_de": "La Salle sails to find the mouth of the Mississippi in 1684 and lands in Texas",
-    "trang_thai": "chua",
-    "playlist": "explorers-gone-wrong"
-   },
-   {
-    "ma": "eg-vinland-1000",
-    "chu_de": "Leif Erikson reaches Vinland around 1000, five centuries before Columbus",
-    "trang_thai": "chua",
-    "playlist": "explorers-gone-wrong"
-   },
-   {
-    "ma": "b60-canberra-1908",
-    "chu_de": "Australia builds a brand new capital in 1908 because Sydney and Melbourne could not agree",
-    "trang_thai": "chua",
-    "playlist": "full-stories",
-    "mau": "short-60"
-   },
-   {
-    "ma": "b60-liechtenstein-1866",
-    "chu_de": "Liechtenstein sends 80 soldiers to war in 1866 and 81 come home",
-    "trang_thai": "chua",
-    "playlist": "full-stories",
-    "mau": "short-60"
-   },
-   {
-    "ma": "b60-pitcairn-1790",
-    "chu_de": "The Bounty mutineers hide on Pitcairn Island in 1790 and burn their ship",
-    "trang_thai": "chua",
-    "playlist": "full-stories",
-    "mau": "short-60"
-   },
-   {
-    "ma": "b60-napoleon-elba-1815",
-    "chu_de": "Napoleon escapes from Elba in 1815 and walks back into power in 100 days",
-    "trang_thai": "chua",
-    "playlist": "full-stories",
-    "mau": "short-60"
-   },
-   {
-    "ma": "tw-anglo-zanzibar-1896",
-    "chu_de": "The Anglo-Zanzibar War of 1896, the shortest war in history",
-    "trang_thai": "chua",
-    "playlist": "tiny-wars"
-   },
-   {
-    "ma": "tw-pig-war-1859",
-    "chu_de": "The Pig War of 1859 on San Juan Island between Britain and the United States",
-    "trang_thai": "chua",
-    "playlist": "tiny-wars"
-   },
-   {
-    "ma": "tw-emu-war-1932",
-    "chu_de": "The Emu War of 1932: Australia sends soldiers against emus",
-    "trang_thai": "chua",
-    "playlist": "tiny-wars"
-   },
-   {
-    "ma": "tw-war-of-the-bucket-1325",
-    "chu_de": "The War of the Bucket 1325 between Modena and Bologna",
-    "trang_thai": "chua",
-    "playlist": "tiny-wars"
-   },
-   {
-    "ma": "tw-pastry-war-1838",
-    "chu_de": "The Pastry War of 1838: France blockades Mexico over a French baker’s shop",
-    "trang_thai": "chua",
-    "playlist": "tiny-wars"
-   },
-   {
-    "ma": "bg-baarle-nassau",
-    "chu_de": "Baarle-Nassau and Baarle-Hertog: the border that runs through living rooms",
-    "trang_thai": "chua",
-    "playlist": "borders-gone-wrong"
-   },
-   {
-    "ma": "bg-llivia-1659",
-    "chu_de": "Llívia: the Spanish town left inside France by the Treaty of the Pyrenees 1659",
-    "trang_thai": "chua",
-    "playlist": "borders-gone-wrong"
-   },
-   {
-    "ma": "bg-point-roberts-1846",
-    "chu_de": "Point Roberts: the American town you can only reach through Canada (1846)",
-    "trang_thai": "chua",
-    "playlist": "borders-gone-wrong"
-   },
-   {
-    "ma": "bg-northwest-angle-1783",
-    "chu_de": "The Northwest Angle: a map mistake in the 1783 treaty that left a bump in the US border",
-    "trang_thai": "chua",
-    "playlist": "borders-gone-wrong"
-   },
-   {
-    "ma": "bg-tordesillas-1494",
-    "chu_de": "Treaty of Tordesillas 1494: Spain and Portugal split the world with one line",
-    "trang_thai": "chua",
-    "playlist": "borders-gone-wrong"
-   },
-   {
-    "ma": "wx-kamikaze-1281",
-    "chu_de": "The kamikaze typhoon of 1281 that wrecked the Mongol fleet off Japan",
-    "trang_thai": "chua",
-    "playlist": "weather-desk"
-   },
-   {
-    "ma": "wx-armada-1588",
-    "chu_de": "Storms finish off the Spanish Armada in 1588",
-    "trang_thai": "chua",
-    "playlist": "weather-desk"
-   },
-   {
-    "ma": "wx-russia-1812",
-    "chu_de": "The Russian winter destroys Napoleon’s Grande Armée in 1812",
-    "trang_thai": "chua",
-    "playlist": "weather-desk"
-   },
-   {
-    "ma": "wx-tambora-1815",
-    "chu_de": "Mount Tambora erupts in 1815 and the next year has no summer",
-    "trang_thai": "chua",
-    "playlist": "weather-desk"
-   },
-   {
-    "ma": "wx-long-island-fog-1776",
-    "chu_de": "A fog lets Washington’s army escape Brooklyn in 1776",
-    "trang_thai": "chua",
-    "playlist": "weather-desk"
-   }
-  ],
-  "nhom_spy": {
-   "id": 2680,
-   "ten": "History explained (map history videos & apps)",
-   "so_goc": 66
-  }
- }
 }

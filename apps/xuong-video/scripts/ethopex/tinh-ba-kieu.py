@@ -80,7 +80,7 @@ def nap(cid, lang, f, dang, ghi, vnd, chu_dau=None):
 
 # MẪU POSTER ĐỘNG (anh 08/11/2026 "PO đang dùng poster của nhà sản xuất nên chỉ có 1 mẫu. Tự thiết kế mới hoặc thêm bớt chi tiết… nhưng là dạng poster"):
 # --ban N xoay vòng các mẫu dưới, mỗi bản một mẫu (ghi vào sổ điểm chạm để đo từng mẫu). Chỉ dùng poster gốc + khung phim AI đã xếp hạng + tên phim tách từ poster — không sinh ảnh AI.
-MAU_PO = ["goc", "ghep", "the", "dien_anh"]
+MAU_PO = ["goc", "ghep", "the"]   # "dien_anh" anh KHÔNG duyệt (08/11/2026 "Nhìn lởm") — không xoay vào bản dựng
 def _phu(im, w, h, cx=0.5, cy=0.5):   # phóng ảnh phủ kín w×h, giữ tâm (cx, cy)
     s = max(w / im.width, h / im.height); im = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
     x = min(max(0, round(cx * im.width - w / 2)), im.width - w); y = min(max(0, round(cy * im.height - h / 2)), im.height - h); return im.crop((x, y, x + w, y + h))

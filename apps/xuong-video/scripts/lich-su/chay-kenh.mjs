@@ -38,7 +38,8 @@ export function ngayTang(K, den) {
 function apDeXuat(k, K) {
   const tep = join(homedir(), '.cache', `lich-su-${k}-de-xuat.json`); if (!existsSync(tep)) return;
   const dx = JSON.parse(readFileSync(tep, 'utf8'));
-  let tl; try { tl = JSON.parse(execFileSync('ssh', [BOX, 'cat /var/lib/cty/tg-hop/_khac/*.json 2>/dev/null | python3 -c "import sys,json,re; d=json.JSONDecoder(); s=sys.stdin.read(); i=0; o=[]\nwhile i<len(s):\n  s2=s[i:].lstrip()\n  if not s2: break\n  v,n=d.raw_decode(s2); i=len(s)-len(s2)+n; m=v.get(\"message\") or {}; r=m.get(\"reply_to_message\") or {}; o.append([r.get(\"message_id\"), (m.get(\"from\") or {}).get(\"username\"), m.get(\"text\") or \"\"])\nprint(json.dumps(o))"'], { encoding: 'utf8', timeout: 60_000 })); } catch (e) { console.log(`⚠ đọc trả lời Telegram hỏng: ${e.message.split('\n')[0]}`); return; }
+  // mỗi tệp trong hộp _khac là một update Telegram (một JSON) → mỗi tệp một dòng, đọc ở đây
+  let tl; try { tl = execFileSync('ssh', [BOX, 'for f in /var/lib/cty/tg-hop/_khac/*.json; do tr -d "\\n" < "$f"; echo; done'], { encoding: 'utf8', timeout: 60_000 }).split('\n').filter(Boolean).map((l) => { try { const m = JSON.parse(l).message ?? {}; return [m.reply_to_message?.message_id ?? null, m.from?.username ?? null, m.text ?? '']; } catch { return [null, null, '']; } }); } catch (e) { console.log(`⚠ đọc trả lời Telegram hỏng: ${e.message.split('\n')[0]}`); return; }
   const tra = tl.filter(([id, ai]) => id === dx.msg && ai === NGUOI_DUYET).map((x) => x[2].trim().toLowerCase()).pop(); if (!tra) return;
   if (/^(không|khong|bỏ|bo|no)\b/.test(tra)) { unlinkSync(tep); console.log(`· ${k}: anh bỏ đề xuất tăng nhịp`); return; }
   if (!/^(duyệt|duyet|ok|đồng ý|dong y|yes|đc|được)/.test(tra)) return;

@@ -221,7 +221,7 @@ def b_cat(d):
     r = sql(f"select ten, url, locale, nguon from ethopex_content where id = {cid}", spy=True).split("\t")
     if len(r) < 2 or not r[1]: return "loi", "không tìm thấy link tập trong ethopex_content (spy)", None
     sql(f"""delete from etp.viec where lo = '{lo}';   -- lô riêng của dòng: chạy lại bước = xếp lại từ đầu
-            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) - san_cua(cid)) + 1 if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {}), "cam_them": json.loads(sql(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'cam_them'), '[]'::jsonb)::text") or "[]")})}) on conflict do nothing""")
+            insert into etp.viec (loai, lo, content_id, du_lieu) values ('cat', '{lo}', {cid}, {js({"locale": r[2] or "en", "nguon": r[3] if len(r) > 3 else "", "ten": r[0], "url": r[1], "so_ban": 10 if d.get("loai") == "LT" else (max(2, int(d.get("so_camp") or 0) - san_cua(cid, d.get("loai"))) + 1 if d.get("so_camp") else 2), **({"kieu": "tap"} if d.get("loai") == "LT" else {}), "cam_them": json.loads(sql(f"select coalesce((select gia_tri->'{int(cid)}' from etp.cau_hinh where khoa = 'cam_them'), '[]'::jsonb)::text") or "[]")})}) on conflict do nothing""")
     rc, out = chay_tien_trinh(d["id"], "cat", ["python3", os.path.join(R, "tho.py"), "--lo", lo, "--so-tho", "1"], dict(BUOC)["cat"] - 60)
     # THỢ MÁY KHÁC ĐÃ NHẬN LÔ (07/11/2026 dòng #112: VPS may-cao-vn nhận trước, thợ iMac "hết việc — đã làm 0 việc" → dòng ghi lỗi trong khi VPS đang cắt) → chờ máy đó xong
     t0 = time.time()
@@ -388,24 +388,25 @@ def b_camp_lt(d, truoc):
         elif not j or j.get("may"): may_ = True
     return ket_camp(d, xong, loi, cu, gan, may_)
 
-def san_dung_lai(cid):
+def san_dung_lai(cid, loai=None):
     """creative DÙNG LẠI ĐƯỢC của phim — ĐÚNG các cổng nhan-ban.py sẽ chặn (04/11/2026: dòng #49/#50 phim 167292 đếm creative CTA cũ là 'có sẵn', bỏ cắt,
     tới bước Lên camp cả 6 bị chặn 'chưa đạt luật CTA mới'): chấm đạt · ĐẠT CTA mới (etp.creative.cta_dat) · chưa bị Meta từ chối · chưa có camp ·
     không cùng đoạn với camp đang chạy / đang đồng bộ của phim. MỘT chỗ — bước dựng dòng và bước Lên camp cùng gọi.
     MỖI ĐOẠN MỘT creative (06/11/2026: dòng #68 phim 167292 đếm 8 creative 'có sẵn' cùng đoạn 857–936 → bỏ cắt, lên camp 1 rồi 7 cái kia thành trùng đoạn → 1/5 camp)"""
     return [int(x) for x in sql(f"""select distinct on (coalesce(r.doan, r.creative_id::text)) r.creative_id from etp.creative r join etp.cham_cong g using (creative_id)
-        where r.content_id = {int(cid)} and g.duoc_len and r.cta_dat and r.tu_choi is null
+        where r.content_id = {int(cid)} and g.duoc_len and r.cta_dat and r.tu_choi is null{f" and r.dang = {s(LOAI[loai])}" if loai in TINH else ""}
           and not exists (select 1 from etp.camp c where c.creative_id = r.creative_id)
           and (r.doan is null or r.doan not in (select k.doan from etp.camp c join etp.creative k using (creative_id) where c.content_id = {int(cid)} and k.doan is not null
                                                 and (c.trang_thai = 'ACTIVE' or coalesce(c.dong_bo, '') not in ('done', 'synced', 'error'))))
         order by coalesce(r.doan, r.creative_id::text), r.creative_id desc""").split() if x.isdigit()]
-def san_cua(cid): return len(san_dung_lai(cid))
+def san_cua(cid, loai=None): return len(san_dung_lai(cid, loai))
+# loai: dòng kiểu tĩnh (PO / AT / …) chỉ dùng lại creative ĐÚNG dạng đó — lọc MỘT chỗ ở đây (09/11/2026: bước dựng đếm mọi dạng, thấy đủ nên bỏ bước làm creative,
+# bước Lên camp lọc đúng dạng PO → "không có creative sạch nào để lên camp", 119 dòng PO / 24 giờ)
 
 def b_camp_mr(d, truoc):
     """MỞ RỘNG (anh bấm ＋ ở dòng phim, chọn số camp): creative sạch vừa làm + creative sạch có sẵn chưa có camp của phim → lên đúng so_camp camp $1 (bộ của phim)"""
     cr = truoc.get("creative") or {}; moi = [int(x["creative_id"]) for x in (cr.get("sach") or ([cr] if cr.get("creative_id") else []))]
-    san = san_dung_lai(d["content_id"])
-    if d.get("loai") in TINH: san = [c for c in san if sql(f"select dang from etp.creative where creative_id = {c}") == LOAI[d["loai"]]]   # 3 camp của kiểu = chỉ creative đúng dạng đó
+    san = san_dung_lai(d["content_id"], d.get("loai"))   # kiểu tĩnh: chỉ creative đúng dạng đó (lọc trong san_dung_lai)
     cu = camp_co_san(moi)   # creative của chính dòng đã có camp (lượt trước bị huỷ giữa chừng / máy luật lấy thay) = đã lên, tính vào số camp
     ds = [c for c in dict.fromkeys(moi + san) if c not in cu][:max(0, int(d["so_camp"]) - len(cu))]
     if not ds and not cu: return "dung", "không có creative sạch nào để lên camp", None
@@ -655,7 +656,7 @@ def vong():
         if not bs:   # dòng mới (web vừa tạo): dựng 8 bước — hạn từng bước khai MỘT chỗ ở đây
             live = d.get("so_camp") and sql(f"select count(*) from etp.camp where content_id = {d['content_id']} and trang_thai = 'ACTIVE' and not la_roas") not in ("", "0")
             bq = BO_QUA.get(d.get("loai") or "CC", set()) | ({"nhan", "ws", "poster"} if live else set())   # mở rộng phim ĐANG có camp Nhà chạy mới bỏ nhận / trang / poster; phim chưa có camp Nhà (vd phim chỉ team chạy, bấm ＋ ở tab Phim) vẫn qua đủ cổng
-            if d.get("so_camp") and san_cua(d["content_id"]) >= int(d["so_camp"]): bq |= {"cat", "soat", "creative"}   # DÙNG LẠI creative sạch có sẵn đủ số → không cắt (anh 04/11/2026)
+            if d.get("so_camp") and san_cua(d["content_id"], d.get("loai")) >= int(d["so_camp"]): bq |= {"cat", "soat", "creative"}   # DÙNG LẠI creative sạch có sẵn đủ số → không cắt (anh 04/11/2026)
             sql("insert into etp.dong_buoc (dong_id, buoc, thu_tu, han_giay, trang_thai) values " + ", ".join(
                 f"({d['id']}, '{b}', {i}, {HAN_RIENG.get((d.get('loai'), b), h)}, '{'bo_qua' if b in bq else 'cho'}')" for i, (b, h) in enumerate(BUOC, 1)) + " on conflict do nothing")
             print(f"[{time.strftime('%H:%M:%S')}] dòng #{d['id']} phim {d['content_id']} ({d.get('loai')}) — dựng bước", flush=True); continue

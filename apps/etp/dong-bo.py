@@ -280,8 +280,14 @@ def main():
             q("insert into xv_khoa_ngoai (ten, gia_tri) values ('ethopex_the_loai', '{}'::jsonb) on conflict (ten) do nothing")
             q(f"update xv_khoa_ngoai set gia_tri = $J${json.dumps(moi, ensure_ascii=False)}$J$::jsonb || gia_tri where ten = 'ethopex_the_loai'")   # bản có sẵn thắng
             tl = {**moi, **tl}
-        ghi("phim", [{"content_id": i, "ten": (spy.get(i) or [None] * 5)[4] or (tl.get(str(i)) or {}).get("ten") or ten_ngoai.get(i), "locale": (spy.get(i) or [None, None])[1], "nguon": (spy.get(i) or [None] * 3)[2],
-                      "url": (spy.get(i) or [None] * 4)[3], "the_loai": (tl.get(str(i)) or {}).get("tl"), "the_loai_nguon": (tl.get(str(i)) or {}).get("nguon"), "bo": ptk.get(str(i))} for i in ids],
+        # LINK PHIM DỰ PHÒNG (09/11/2026: 394 / 1002 phim Âu-Mỹ không có url từ spy → dòng PO / AT chết ở bước tải tập "expected str … not NoneType" / "không tải được
+        # tập miễn phí", 29 dòng / 24 giờ): spy không có thì lấy link tập 1 còn sống của trang phim workspace (cùng netshort / reelshort / dramabox mà tai-tap.py đọc)
+        tp_url = {int(a): b for a, b in (l.split("|", 1) for l in q("""select distinct on (ref_id) ref_id, redirect_url from etp.trang_phim
+                  where redirect_url like 'http%' and link_ok is not false order by ref_id, sua desc""").splitlines() if "|" in l)}
+        url_ = lambda i: (spy.get(i) or [None] * 4)[3] or tp_url.get(i)
+        ghi("phim", [{"content_id": i, "ten": (spy.get(i) or [None] * 5)[4] or (tl.get(str(i)) or {}).get("ten") or ten_ngoai.get(i), "locale": (spy.get(i) or [None, None])[1],
+                      "nguon": (spy.get(i) or [None] * 3)[2] or (url_(i).split("/")[2].replace("www.", "").split(".")[0] if url_(i) and "//" in url_(i) else None),
+                      "url": url_(i), "the_loai": (tl.get(str(i)) or {}).get("tl"), "the_loai_nguon": (tl.get(str(i)) or {}).get("nguon"), "bo": ptk.get(str(i))} for i in ids],
             ["content_id"], {"content_id": "int", "ten": "text", "locale": "text", "nguon": "text", "url": "text", "the_loai": "text", "the_loai_nguon": "text", "bo": "text"})
         dat, thay, tc = khoa("ethopex_cta_dat"), khoa("ethopex_cta_thay"), khoa("ethopex_tu_choi")
         thay_nguoc = {int(v): int(k) for k, v in thay.items()}
@@ -329,15 +335,20 @@ def main():
     # (EN/ES) vào kho spy ethopex_content, rồi chon-phim-moi.py --co-the-test chấm lại (đọc kho, ~3 giây) → xv_khoa_ngoai['ethopex_co_the_test'] cho tab Phim
     try:
         import thu_vien_phim; kq.update(thu_vien_phim.chay(EA.T_NHA))
+    except Exception as e: loi.append(f"thu_vien: {e}")
+    # MỖI BƯỚC MỘT try (09/11/2026: qc-fb-phim --dem quá 300 giây 3 lần / ngày 08/11 lúc kho spy nghẽn — thường 22 giây — kéo bỏ luôn bước chấm "có thể test")
+    try:
         # số QC FB tra theo tên phim (máy cào spy đã tra từ khoá etp_phim) → bộ chấm trừ / loại phim nhiều QC (anh 02/11/2026 "ít camp fb")
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "qc-fb-phim.py"), "--dem"], capture_output=True, text=True, timeout=300)
         if r.returncode: loi.append(f"qc_fb_phim: {(r.stderr or r.stdout).strip()[-200:]}")
         else: kq.update(json.loads(r.stdout.strip().splitlines()[-1]))
+    except Exception as e: loi.append(f"qc_fb_phim: {e}")
+    try:
         r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "chon-phim-moi.py"), "--co-the-test"],
                            capture_output=True, text=True, timeout=300)
         if r.returncode: loi.append(f"co_the_test: {(r.stderr or r.stdout).strip()[-200:]}")
         else: kq.update(json.loads(r.stdout.strip().splitlines()[-1]))
-    except Exception as e: loi.append(f"thu_vien: {e}")
+    except Exception as e: loi.append(f"co_the_test: {e}")
     # ── NHẬN PHIM TỰ ĐỘNG (anh 02/11/2026): soát 18+ AI cho phim mới nhận + báo bước hỏng — nhan_tu_dong.py (máy sinh / chấm / lên camp chạy ở chỗ của chúng)
     try:
         import nhan_tu_dong; kq.update(nhan_tu_dong.chay(q))

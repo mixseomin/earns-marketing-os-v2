@@ -7,6 +7,7 @@ Thứ tự: phim đã cất → dừng · vượt sức chứa → giữ · có 
 import json
 
 import os as _o, sys as _s; _s.path.insert(0, _o.path.dirname(_o.path.abspath(__file__))); import so_dang as DG
+import cong as CG   # cong.sql_trang_hong: trang phim Nhà hỏng hẳn (anh 09/11/2026)
 CAN = {k: DG.DONG[k] for k in ("PO", "CC", "AT")}   # PO TRƯỚC (anh 08/11/2026 "dạng Poster Động có vẻ đang hiệu quả cao hơn": camp từ 06/11 PO ROI +30%, 8/11 camp có chi lãi — mọi dạng khác âm); thứ tự = thứ tự chia chỗ trần camp / 24 giờ   # dạng lộ trình tự xếp (dong_phim.LOAI); CT chưa có máy. KT TẠM KHÔNG XẾP (anh 07/11/2026 "lượt này không sinh dòng phim KT cho nhanh" —
 # máy sinh VideoExpress 1–4 giờ + lỗi Meta 389), thay bằng AT (anh-tinh.py ~10 phút/phim, anh 07/11/2026 "sử dụng cả ảnh tĩnh để lên camp cho nhanh hơn"); dòng KT đang chạy giữ nguyên
 MOT_LUOT = {"KT", "AT", "PO"}
@@ -28,7 +29,8 @@ def so(q, cid, bat_dau):
         (select json_agg(json_build_object('loai', loai, 'so', so_camp)) from etp.dong_phim where content_id = {cid} and trang_thai = 'chay') chay,
         (select coalesce(jsonb_object_agg(loai, n), '{{}}') from (select loai, count(*) n from etp.dong_phim where content_id = {cid} and trang_thai in ('loi', 'dung') and tao_luc >= '{bat_dau}' group by 1) a) hong,
         (select coalesce(array_agg(distinct loai), '{{}}') from etp.dong_phim where content_id = {cid} and trang_thai = 'xong' and tao_luc > now() - interval '24 hours') dong_24h,
-        (select count(*) from etp.camp where content_id = {cid} and tao > now() - interval '24 hours') camp_24h) x"""))
+        (select count(*) from etp.camp where content_id = {cid} and tao > now() - interval '24 hours') camp_24h,
+        {CG.sql_trang_hong(int(cid))} trang) x"""))
 
 def xet(s, tran):
     """dữ liệu một phim → (mã bước, câu cho người đọc, số camp kế hoạch, các dòng cần xếp [(loại, số camp)]). Hàm thuần — bài tự kiểm ở cuối tệp.
@@ -39,6 +41,8 @@ def xet(s, tran):
     # BƯỚC NHẬN CHẤM RA NGOÀI ÂU-MỸ / CẤM 18+ (15:25 07/11: 9 dòng dừng vì 'hoat_hinh' / sổ cấm) → dừng hẳn, không xếp lại tới 3 lần hỏng mỗi dạng
     if p.get("cam"): return "cam", "Phim trong sổ cấm 18+ — không lên camp", 0, []
     if p.get("nhom_goc") and p.get("nhom_goc") != "au_my": return "ngoai", f"Phim ngoài Âu-Mỹ (nhóm {p['nhom_goc']}) — không lên camp", 0, []
+    # TRANG PHIM HỎNG HẲN (09/11/2026: 91648 xếp lại dòng mỗi 2 giờ suốt 24 giờ, dòng nào cũng đứng ở bước Trang phim) → không xếp; Ethopex sinh đủ thì lượt sau tự xếp
+    if s.get("trang"): return "trang", f"Trang phim Ethopex thiếu {s['trang']} (thư viện không có nguồn) — không có trang đích, không lên camp; Ethopex sinh đủ thì tự xếp", 0, []
     if s.get("co_hoi") and mo.get("pha") == "bao_hoa": return "giu", "Có camp lãi nhưng vượt sức chứa, giữ nguyên, không mở thêm", 0, []
     xep, chu, ke = [], [], 0
     if s.get("co_hoi"):
@@ -87,6 +91,7 @@ def chon_phim_moi(q, ch, da):
           and not exists (select 1 from etp.dong_phim x where x.content_id = p.content_id and (x.trang_thai = 'chay' or x.tao_luc > now() - interval '3 days'))
           and not exists (select 1 from etp.cho_len_v v where v.content_id = p.content_id and v.team_lai and v.ly_do is null)
           and not coalesce((select gia_tri ? p.content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_cam'), false)
+          and {CG.sql_trang_hong('p.content_id')} is null   -- trang phim Nhà hỏng hẳn (cong.sql_trang_hong, 09/11/2026)
           and p.content_id not in ({loai})
         order by case when d.chi >= 10 and d.thu > d.chi then 0 when d.content_id is null then 1 else 2 end,
           case when current_date >= '{MUA_LE[0]}' and current_date <= '{MUA_LE[1]}' and p.ten ~* '{MUA_LE_TEN}' then 0 else 1 end,   -- mùa lễ Mỹ: phim gia đình / lễ lên trước
@@ -183,6 +188,7 @@ if __name__ == "__main__":
     t = lambda **k: xet({**goc, **k}, 4)
     assert t()[0] == "thu_dang" and t()[3] == [("CC", 2), ("AT", 1)]   # song song; KT không xếp (anh 07/11/2026)
     assert t(phim={"thu_vong": "cat"})[0] == "cat"
+    assert t(trang="link tập 1")[0] == "trang" and t(trang="link tập 1")[3] == [] and t(trang=None)[0] == "thu_dang"
     assert t(phim={"cam": True})[0] == "cam" and t(phim={"nhom_goc": "hoat_hinh"})[0] == "ngoai" and t(phim={"nhom_goc": "au_my"})[0] == "thu_dang"
     r = t(chay=[{"loai": "CC", "so": 2}]); assert r[3] == [("AT", 1)]   # CC đang làm không chặn AT
     assert t(chay=[{"loai": "CC", "so": 2}, {"loai": "AT", "so": 1}])[:1] == ("sx",) and t(chay=[{"loai": "CC", "so": 2}, {"loai": "AT", "so": 1}])[3] == []

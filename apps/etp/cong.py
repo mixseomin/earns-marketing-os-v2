@@ -17,6 +17,16 @@ KHOA_TRAN_NGAY = "tran_camp_moi_ngay"
 # nút lên camp etp.on.tc, len-sau-cham, thay-the) lên bộ etp.cau_hinh.bo_phim_moi, phim đã chạy bộ khác cũng vậy. Nhân bản / thang / ROAS ở bộ camp gốc.
 SQL_BO_PHIM = "select gia_tri#>>'{{}}' from etp.cau_hinh where khoa = 'bo_phim_moi'"
 SQL_TAO_HOM_NAY = "select count(*) from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
+# TRANG PHIM HỎNG HẲN (anh 09/11/2026 "Fix triệt để" — 91648 From Doomed Baby đứng bước Trang phim 01:26 08/11 → 01:27 09/11, hơn 20 lượt chờ 60 phút → Mạnh huỷ → FIX):
+# bản workspace Nhà đã thêm quá TRANG_CHO_SINH giây mà Ethopex vẫn chưa sinh đủ (thường là link tập 1: thư viện phim không có nguồn tập 1, 7 phim 09/11) → chờ thêm vô ích.
+# MỘT định nghĩa cho cổng Trang phim (dong_phim.b_ws dừng dòng), máy lộ trình (lo_trinh_phim không xếp dòng) và Mạnh (dấu cổng: Ethopex có link → tự mở lại dòng).
+TRANG_CHO_SINH = 3600
+def sql_trang_hong(cid):
+    """câu SQL con → chữ các mục còn thiếu của trang phim Nhà đã quá hạn chờ sinh, null khi trang đủ / bản còn mới / chưa có bản. cid: số hoặc biểu thức SQL"""
+    nha = "nguoi_id in (select nguoi_id from etp.tai_khoan where nha)"
+    return (f"(select array_to_string(t.thieu, ', ') from etp.trang_phim_v t where t.ref_id = {cid} and t.{nha} and cardinality(t.thieu) > 0"
+            f" and t.tao < now() - interval '{TRANG_CHO_SINH} seconds' and not exists (select 1 from etp.trang_phim_v x where x.ref_id = {cid} and x.{nha} and cardinality(x.thieu) = 0)"
+            f" order by t.sua desc limit 1)")
 
 def _q(s):
     r = subprocess.run(["psql", os.environ["DATABASE_URL"], "-qtA", "-v", "ON_ERROR_STOP=1", "-c", s], capture_output=True, text=True, timeout=30)

@@ -19,7 +19,7 @@ export type HangGio = [number, number, number];
 export type DuLogs = { gio: number; den: number; ev: HangLog[]; tien: HangGio[] };
 
 /** nhom = nhóm cột bảng (DataTable group; 'khac' tắt mặc định — bật ở ⚙ Cột) · ma = mã sự kiện trỏ tới gì · mau = màu nhãn icon + số (anh 08/11/2026 "nhìn toàn số đéo hiểu ngay… dùng icon + màu sắc cho rõ ràng": mỗi số mang icon + màu của loại, khỏi dò cột) — xanh = mở / tăng / qua, đỏ = tắt / lỗi / loại, cam = giảm / dừng · bao = lỗi cần liếc thấy */
-export type LoaiLog = { k: string; icon: string; ten: string; nhom: 'camp' | 'sx' | 'cham' | 'khac'; ma: 'camp' | 'dong' | 'creative'; mau: string; bao?: boolean };
+export type LoaiLog = { k: string; icon: string; ten: string; nhom: 'camp' | 'sx' | 'cham' | 'khac'; ma: 'camp' | 'dong' | 'creative'; mau: string; ngan: string; bao?: boolean };   // ngan = tên ngắn ở tiêu đề cột
 export const NHOM_LOG = [
   { key: 'camp', label: 'Camp', title: 'việc máy làm trên camp nhà: mở, nhân bản, tắt, tăng / giảm bậc, lên ROAS, sang bộ' },
   { key: 'sx', label: 'Sản xuất', title: 'dòng sản xuất creative: dòng mới, creative dựng xong, dòng xong / dừng / lỗi' },
@@ -28,27 +28,27 @@ export const NHOM_LOG = [
 ] as const;
 /** thứ tự = thứ tự cột (cố định — không sắp theo số) */
 export const LOAI_LOG: LoaiLog[] = [
-  { k: 'mo', icon: '▶', ten: 'Mở camp', nhom: 'camp', mau: '#4ade80', ma: 'camp' },
-  { k: 'nb', icon: '⧉', ten: 'Nhân bản', nhom: 'camp', mau: '#22d3ee', ma: 'camp' },
-  { k: 'tat', icon: '⏹', ten: 'Tắt', nhom: 'camp', mau: '#f87171', ma: 'camp' },
-  { k: 'tang', icon: '▲', ten: 'Tăng bậc', nhom: 'camp', mau: '#a3e635', ma: 'camp' },
-  { k: 'giam', icon: '▼', ten: 'Giảm bậc', nhom: 'camp', mau: '#fb923c', ma: 'camp' },
-  { k: 'roas', icon: '★', ten: 'Lên ROAS', nhom: 'camp', mau: '#facc15', ma: 'camp' },
-  { k: 'sb', icon: '⇄', ten: 'Sang bộ', nhom: 'camp', mau: '#c084fc', ma: 'camp' },
-  { k: 'dtc', icon: '✋', ten: 'Duyệt tay', nhom: 'camp', mau: '#93c5fd', ma: 'camp' },
-  { k: 'loi', icon: '⛔', ten: 'Lệnh lỗi', nhom: 'camp', mau: '#ef4444', ma: 'camp', bao: true },
-  { k: 'dm', icon: '＋', ten: 'Dòng mới', nhom: 'sx', mau: '#60a5fa', ma: 'dong' },
-  { k: 'sx', icon: '🎬', ten: 'Creative dựng', nhom: 'sx', mau: '#a78bfa', ma: 'creative' },
-  { k: 'dx', icon: '✅', ten: 'Dòng xong', nhom: 'sx', mau: '#4ade80', ma: 'dong' },
-  { k: 'dd', icon: '⏸', ten: 'Dòng dừng', nhom: 'sx', mau: '#fbbf24', ma: 'dong' },
-  { k: 'dl', icon: '⛔', ten: 'Dòng lỗi', nhom: 'sx', mau: '#ef4444', ma: 'dong', bao: true },
-  { k: 'cq', icon: '✓', ten: 'Chấm qua', nhom: 'cham', mau: '#4ade80', ma: 'creative' },
-  { k: 'ct', icon: '✗', ten: 'Chấm trượt', nhom: 'cham', mau: '#f87171', ma: 'creative' },
-  { k: 'dq', icon: '👍', ten: 'Người duyệt qua', nhom: 'cham', mau: '#86efac', ma: 'creative' },
-  { k: 'dlt', icon: '👎', ten: 'Người duyệt loại', nhom: 'cham', mau: '#fca5a5', ma: 'creative', bao: true },
-  { k: 'lt', icon: '🗺', ten: 'Lộ trình phim', nhom: 'khac', mau: '#94a3b8', ma: 'camp' },
-  { k: 'khac', icon: '·', ten: 'Việc khác', nhom: 'khac', mau: '#94a3b8', ma: 'camp' },
-  { k: 'dh', icon: '✕', ten: 'Dòng huỷ', nhom: 'khac', mau: '#94a3b8', ma: 'dong' },
+  { k: 'mo', icon: '▶', ten: 'Mở camp', nhom: 'camp', mau: '#4ade80', ngan: 'Mở', ma: 'camp' },
+  { k: 'nb', icon: '⧉', ten: 'Nhân bản', nhom: 'camp', mau: '#22d3ee', ngan: 'Nhân bản', ma: 'camp' },
+  { k: 'tat', icon: '⏹', ten: 'Tắt', nhom: 'camp', mau: '#f87171', ngan: 'Tắt', ma: 'camp' },
+  { k: 'tang', icon: '▲', ten: 'Tăng bậc', nhom: 'camp', mau: '#a3e635', ngan: 'Tăng', ma: 'camp' },
+  { k: 'giam', icon: '▼', ten: 'Giảm bậc', nhom: 'camp', mau: '#fb923c', ngan: 'Giảm', ma: 'camp' },
+  { k: 'roas', icon: '★', ten: 'Lên ROAS', nhom: 'camp', mau: '#facc15', ngan: 'ROAS', ma: 'camp' },
+  { k: 'sb', icon: '⇄', ten: 'Sang bộ', nhom: 'camp', mau: '#c084fc', ngan: 'Sang bộ', ma: 'camp' },
+  { k: 'dtc', icon: '✋', ten: 'Duyệt tay', nhom: 'camp', mau: '#93c5fd', ngan: 'Duyệt tay', ma: 'camp' },
+  { k: 'loi', icon: '⛔', ten: 'Lệnh lỗi', nhom: 'camp', mau: '#ef4444', ngan: 'Lỗi lệnh', ma: 'camp', bao: true },
+  { k: 'dm', icon: '＋', ten: 'Dòng mới', nhom: 'sx', mau: '#60a5fa', ngan: 'Dòng mới', ma: 'dong' },
+  { k: 'sx', icon: '🎬', ten: 'Creative dựng', nhom: 'sx', mau: '#a78bfa', ngan: 'Dựng', ma: 'creative' },
+  { k: 'dx', icon: '✅', ten: 'Dòng xong', nhom: 'sx', mau: '#4ade80', ngan: 'Xong', ma: 'dong' },
+  { k: 'dd', icon: '⏸', ten: 'Dòng dừng', nhom: 'sx', mau: '#fbbf24', ngan: 'Dừng', ma: 'dong' },
+  { k: 'dl', icon: '⛔', ten: 'Dòng lỗi', nhom: 'sx', mau: '#ef4444', ngan: 'Lỗi', ma: 'dong', bao: true },
+  { k: 'cq', icon: '✓', ten: 'Chấm qua', nhom: 'cham', mau: '#4ade80', ngan: 'Qua', ma: 'creative' },
+  { k: 'ct', icon: '✗', ten: 'Chấm trượt', nhom: 'cham', mau: '#f87171', ngan: 'Trượt', ma: 'creative' },
+  { k: 'dq', icon: '👍', ten: 'Người duyệt qua', nhom: 'cham', mau: '#86efac', ngan: 'Duyệt qua', ma: 'creative' },
+  { k: 'dlt', icon: '👎', ten: 'Người duyệt loại', nhom: 'cham', mau: '#fca5a5', ngan: 'Loại', ma: 'creative', bao: true },
+  { k: 'lt', icon: '🗺', ten: 'Lộ trình phim', nhom: 'khac', mau: '#94a3b8', ngan: 'Lộ trình', ma: 'camp' },
+  { k: 'khac', icon: '·', ten: 'Việc khác', nhom: 'khac', mau: '#94a3b8', ngan: 'Khác', ma: 'camp' },
+  { k: 'dh', icon: '✕', ten: 'Dòng huỷ', nhom: 'khac', mau: '#94a3b8', ngan: 'Huỷ', ma: 'dong' },
 ];
 export const LOAI_THEO_K: Record<string, LoaiLog> = Object.fromEntries(LOAI_LOG.map((x) => [x.k, x]));
 

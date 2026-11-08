@@ -2,7 +2,7 @@
 // LOGS — thay "Lên bậc" ở tab Camp (anh 08/11/2026): nhật ký máy nhà gom theo khung 15 phút … 1 ngày (tuỳ chọn); mỗi khung đếm camp mở / tắt / tăng / giảm…,
 // creative dựng / chấm qua / trượt / người duyệt, dòng sản xuất, chi / thu nhà. Bấm (điện thoại) hoặc rê chuột vào một ô số → thẻ nổi liệt kê từng việc trong khung đó.
 // Số: lib/actions/etp-logs docLogs · loại + gom: lib/etp-logs (bài tự kiểm etp-logs.test.mts). Kỳ + khung gom ghi URL (?lgky= ?lggom=), F5 giữ nguyên.
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTable, Segmented, type DataColumn } from '@/components/ui';
 import { KhungNoi, useNoi } from '@/components/etp-noi';
 import { KeToan, mauLai } from '@/components/etp-so';
@@ -62,8 +62,6 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
   useEffect(() => { const m = window.matchMedia('(max-width: 700px)'); const f = () => setHep(m.matches); f(); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
   const noi = useNoi<The>();
   // ô số: bấm = mở ngay (điện thoại), rê chuột = mở sau trễ chung (máy tính) — một khuôn thẻ nổi của etp
-  // KHÔNG CUỘN NGANG (anh 08/11/2026 "Trình bày drawer làm sao ko phải scroll sang ngang"): mỗi NHÓM một cột (Camp · Sản xuất · Chấm · duyệt · Khác) thay vì mỗi loại một cột (21 cột);
-  // trong cột là dãy Ô cố định (icon + số), cùng vị trí ở tiêu đề / mọi dòng / dòng tổng → mắt dò dọc theo icon; màn hẹp thì dãy ô xuống dòng thay vì đẩy bảng rộng ra
   // NHÃN ICON + SỐ CÓ MÀU (anh 08/11/2026 "Nhìn toàn số cũng đéo hiểu ngay được, phải nhìn vào cột. Cột lại toàn icon. Dùng icon + màu sắc để cho rõ ràng"):
   // mỗi số đi cùng icon + màu của loại (LOAI_LOG.mau) → đọc ngay "⏹ 30" đỏ là 30 camp tắt, không dò tiêu đề; số 0 không hiện; rê / bấm → thẻ nổi
   const oSo = (k: string, ds: HangLog[] | undefined, nhan: string) => { const n = ds?.length ?? 0, l = LOAI_THEO_K[k];
@@ -72,8 +70,9 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
     return <span key={k} role="button" tabIndex={0} title={`${l.ten}: ${n}`} onClick={(e) => noi.moNgay(t, e)} onMouseEnter={(e) => noi.mo(t, e)} onMouseLeave={noi.dongTre}
       style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '0 6px', borderRadius: 10, lineHeight: '18px', cursor: 'pointer', whiteSpace: 'nowrap',
         color: l.mau, background: `${l.mau}1f`, border: `1px solid ${l.mau}55`, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}><span>{l.icon}</span>{n}</span>; };
-  const day = (nhom: string, f: (k: string) => React.ReactNode) => <span style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-    {LOAI_LOG.filter((l) => l.nhom === nhom).map((l) => <Fragment key={l.k}>{f(l.k)}</Fragment>)}</span>;
+  // MỖI LOẠI MỘT CỘT HẸP (anh 08/11/2026 "màu thế ok rồi, nhưng để vào từng cột cho cân đối"): nhãn màu nằm giữa ô, cột rộng O_COT, tiêu đề = icon màu + tên ngắn hai dòng
+  // → 18 cột + khung + tiền vừa ngăn 1400px, không cuộn ngang (anh: "Trình bày drawer làm sao ko phải scroll sang ngang"); điện thoại dùng thẻ (khổ hẹp) bên dưới
+  const O_COT = 54;
   // BẤM MÃ = NGĂN KÉO tại chỗ (anh 08/11/2026 "Bấm vào thì mở ra drawer để tao ko phải sang tab mới"): camp → ngăn camp của trang; dòng / creative → ngăn Sản xuất của phim
   const moNgan = (e: HangLog): (() => void) | null => { const ma = LOAI_THEO_K[e[1]]?.ma;
     if (ma === 'camp' && e[2] != null) return () => moCamp(e[2]!);
@@ -87,8 +86,9 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
     { key: 'thu', header: 'Thu', cell: (x) => x.coTien ? <KeToan v={x.thu} /> : null, sortValue: (x) => x.thu, total: (r) => <KeToan v={r.reduce((a, x) => a + x.thu, 0)} /> },
     { key: 'lai', header: 'Lãi', cell: (x) => x.coTien ? <KeToan v={x.thu - x.chi} mau={mauLai(x.thu - x.chi)} /> : null, sortValue: (x) => x.thu - x.chi,
       total: (r) => { const v = r.reduce((a, x) => a + x.thu - x.chi, 0); return <KeToan v={v} mau={mauLai(v)} />; } },
-    ...NHOM_LOG.map((g): DataColumn<KhungLog> => ({ key: g.key, group: g.key, header: g.label, title: LOAI_LOG.filter((l) => l.nhom === g.key).map((l) => `${l.icon} ${l.ten}`).join(' · '), align: 'left',
-      cell: (x) => day(g.key, (k) => oSo(k, x.dem[k], nhanKhung(x.t, gom))), total: (r) => day(g.key, (k) => oSo(k, cong(r, k), `cả ${tenKy(ky)}`)) })),
+    ...LOAI_LOG.map((l): DataColumn<KhungLog> => ({ key: l.k, group: l.nhom, title: l.ten, align: 'center', headerAlign: 'center', width: O_COT,
+      header: <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', lineHeight: 1.15, whiteSpace: 'normal' }}><span style={{ color: l.mau, fontSize: 13 }}>{l.icon}</span><span>{l.ngan}</span></span>,
+      cell: (x) => oSo(l.k, x.dem[l.k], nhanKhung(x.t, gom)), sortValue: (x) => x.dem[l.k]?.length ?? 0, total: (r) => oSo(l.k, cong(r, l.k), `cả ${tenKy(ky)}`) })),
   ];
 
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
@@ -115,7 +115,7 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
             {co.map((l) => oSo(l.k, x.dem[l.k], x.nhan))}</div> : null; })}
       </div>)}
     </div> : null}
-    {du && !hep ? <DataTable rows={hang} columns={cot} groups={NHOM_LOG.map((g) => ({ ...g }))} groupHeader getRowKey={(x) => String(x.t)} persistKey="etp-logs-nhom" minWidth={0}
+    {du && !hep ? <DataTable rows={hang} columns={cot} groups={NHOM_LOG.map((g) => ({ ...g }))} groupHeader getRowKey={(x) => String(x.t)} persistKey="etp-logs-cot" minWidth={0}
       defaultSort={[{ key: 'khung', dir: 'desc' }]} locTuDong={false} /> : null}
     {/* thẻ nổi nằm TRÊN ngăn kéo Logs (ngăn z ≥ 300; khuôn chung z 60 thì bị ngăn che, bấm mã không được) */}
     {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={420} noi={noi} style={{ zIndex: 2000 }}>

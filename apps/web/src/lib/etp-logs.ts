@@ -1,7 +1,7 @@
 // LOGS etp — loại sự kiện + gom theo khung (một chỗ cho trang components/etp-logs.tsx và bài tự kiểm etp-logs.test.mts). Máy chủ: lib/actions/etp-logs docLogs.
 /** một sự kiện: [giây epoch, loại, mã (camp / dòng / creative), chữ, nhóm thống kê 1, nhóm thống kê 2, mã phim]
  *  nhóm 1: camp = luật · dòng / creative / chấm / duyệt = dạng · lệnh lỗi = câu lỗi; nhóm 2: tăng / giảm = bậc $a → $b · tắt = ngân sách lúc tắt · chấm trượt = tiêu chí chặn · duyệt = người duyệt */
-export type HangLog = [number, string, number | null, string, string, string, (number | null)?];   // [6] = mã phim (content_id) — mở ngăn phim / ngăn sản xuất
+export type HangLog = [number, string, number | null, string, string, string, (number | null)?, (string | null)?];   // [6] = mã phim (content_id) — mở ngăn phim / ngăn sản xuất · [7] = bộ tài khoản (null = chưa gắn camp)
 /** tên hai chiều thống kê theo loại (đầu thẻ nổi) */
 export const CHIEU_TK: Record<string, [string, string]> = { camp: ['Theo luật', 'Theo bậc'], dong: ['Theo dạng', 'Theo bước · lý do'], creative: ['Theo dạng', 'Theo tiêu chí'],
   dm: ['Theo dạng', 'Theo nguồn'], sx: ['Theo dạng', 'Theo bước'], ct: ['Theo dạng', 'Theo tiêu chí chặn'], dq: ['Theo dạng', 'Theo người duyệt'], dlt: ['Theo dạng', 'Theo người duyệt'],
@@ -14,8 +14,8 @@ export function demTk(ds: HangLog[], cot: 4 | 5, toiDa = 8): DemTk[] {
   if (xep.length > toiDa) { const du = xep.splice(toiDa - 1); xep.push({ ten: `${du.length} nhóm khác`, n: du.reduce((a, x) => a + x.n, 0) }); }
   return xep;
 }
-/** chi / thu một giờ của nhà: [giây epoch đầu giờ, chi, thu] */
-export type HangGio = [number, number, number];
+/** chi / thu một giờ × bộ của nhà: [giây epoch đầu giờ, chi, thu, bộ] */
+export type HangGio = [number, number, number, (string | null)?];   // [3] = bộ tài khoản
 export type DuLogs = { gio: number; den: number; ev: HangLog[]; tien: HangGio[] };
 
 /** nhom = nhóm cột bảng (DataTable group; 'khac' tắt mặc định — bật ở ⚙ Cột) · ma = mã sự kiện trỏ tới gì · mau = màu nhãn icon + số (anh 08/11/2026 "nhìn toàn số đéo hiểu ngay… dùng icon + màu sắc cho rõ ràng": mỗi số mang icon + màu của loại, khỏi dò cột) — xanh = mở / tăng / qua, đỏ = tắt / lỗi / loại, cam = giảm / dừng · bao = lỗi cần liếc thấy */
@@ -88,3 +88,9 @@ export function nhanKhung(t: number, phut: number): string {
   return `${p2(a.getUTCHours())}:${p2(a.getUTCMinutes())}–${p2(b.getUTCHours())}:${p2(b.getUTCMinutes())} ${ng}`;
 }
 export const gioVn = (t: number) => { const a = new Date((t + VN) * 1000); return `${p2(a.getUTCHours())}:${p2(a.getUTCMinutes())} ${p2(a.getUTCDate())}/${p2(a.getUTCMonth() + 1)}`; };
+
+/** LỌC BỘ TÀI KHOẢN (anh 08/11/2026 "Thêm bộ lọc theo bộ tk"): '' = mọi bộ. Việc chưa gắn camp (bộ null — chấm / duyệt / dựng trước khi lên camp) bị loại khi lọc, đếm ở `chuaBo` để trang ghi rõ */
+export function locBo(du: DuLogs, bo: string): DuLogs & { chuaBo: number } {
+  if (!bo) return { ...du, chuaBo: 0 };
+  return { ...du, ev: du.ev.filter((e) => e[7] === bo), tien: du.tien.filter((x) => x[3] === bo), chuaBo: du.ev.filter((e) => e[7] == null).length };
+}

@@ -8,9 +8,9 @@ import { KhungNoi, useNoi } from '@/components/etp-noi';
 import { KeToan, mauLai } from '@/components/etp-so';
 import { docLogs } from '@/lib/actions/etp-logs';
 import { openEntityDrawer } from '@/lib/entity-drawer';
-import { CHIEU_TK, demTk, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
+import { CHIEU_TK, demTk, locBo, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
 
-const U_KY = 'lgky', U_GOM = 'lggom', MAC_KY = 24, MAC_GOM = 60;
+const U_KY = 'lgky', U_GOM = 'lggom', U_BO = 'lgbo', MAC_KY = 24, MAC_GOM = 60;
 const docUrl = (k: string, ds: readonly number[], mac: number) => {
   if (typeof window === 'undefined') return mac;
   const v = Number(new URLSearchParams(window.location.search).get(k)); return ds.includes(v) ? v : mac;
@@ -44,9 +44,10 @@ function ThongKe({ t }: { t: The }) {
     {bang(chieu[0], demTk(t.ds, 4))}{bang(chieu[1], demTk(t.ds, 5))}
   </div>;
 }
-export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
-  const [ky, setKy] = useState(MAC_KY), [gom, setGom] = useState(MAC_GOM);
-  useEffect(() => { setKy(docUrl(U_KY, KY_GIO, MAC_KY)); setGom(docUrl(U_GOM, KHUNG_PHUT, MAC_GOM)); }, []);
+export function TabLogs({ moCamp, boDs }: { moCamp: (id: number) => void; boDs: { ma: string; ten: string }[] }) {
+  const [ky, setKy] = useState(MAC_KY), [gom, setGom] = useState(MAC_GOM), [bo, setBo] = useState('');
+  useEffect(() => { setKy(docUrl(U_KY, KY_GIO, MAC_KY)); setGom(docUrl(U_GOM, KHUNG_PHUT, MAC_GOM)); setBo(new URLSearchParams(window.location.search).get(U_BO) ?? ''); }, []);
+  const doiBo = (v: string) => { setBo(v); const u = new URL(window.location.href); if (v) u.searchParams.set(U_BO, v); else u.searchParams.delete(U_BO); window.history.replaceState(null, '', u.toString()); };
   const [du, setDu] = useState<DuLogs | null>(null), [loi, setLoi] = useState<string | null>(null), [dangTai, setDangTai] = useState(false);
   const tai = useCallback(async (h: number) => {
     setDangTai(true);
@@ -55,7 +56,8 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
     finally { setDangTai(false); }
   }, []);
   useEffect(() => { void tai(ky); const id = window.setInterval(() => void tai(ky), 60_000); return () => window.clearInterval(id); }, [ky, tai]);
-  const hang = useMemo(() => (du ? gomLogs(du, gom) : []), [du, gom]);
+  const loc = useMemo(() => (du ? locBo(du, bo) : null), [du, bo]);
+  const hang = useMemo(() => (loc ? gomLogs(loc, gom) : []), [loc, gom]);
 
   // KHỔ HẸP (điện thoại): bảng 7 cột không vừa 390px → mỗi khung một THẺ (giờ + lãi, rồi mỗi nhóm một hàng ô icon + số) — cùng dữ liệu, cùng thẻ nổi khi bấm
   const [hep, setHep] = useState(false);
@@ -97,9 +99,12 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
         <Segmented options={KY_GIO.map((h) => ({ value: h, label: tenKy(h) }))} value={ky} onChange={(v) => { setKy(v); ghiUrl(U_KY, v, MAC_KY); }} /></span>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ color: 'var(--fg-2)' }}>🧮 Gom theo</span>
         <Segmented options={KHUNG_PHUT.map((p) => ({ value: p, label: tenKhung(p) }))} value={gom} onChange={(v) => { setGom(v); ghiUrl(U_GOM, v, MAC_GOM); }} /></span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ color: 'var(--fg-2)' }}>🗂 Bộ TK</span>
+        <Segmented options={[{ value: '', label: 'Mọi bộ' }, ...boDs.map((b) => ({ value: b.ma, label: `Bộ ${b.ma}`, title: b.ten }))]} value={bo} onChange={doiBo} /></span>
       <button type="button" onClick={() => void tai(ky)} disabled={dangTai} style={{ fontSize: 12, padding: '2px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: dangTai ? 'wait' : 'pointer' }}>
         {dangTai ? '⏳ Đang tải…' : '↻ Tải lại'}</button>
       {du ? <span style={{ color: 'var(--fg-3)' }} title="tự tải lại mỗi phút">cập nhật {gioVn(du.den)}</span> : null}
+      {loc?.chuaBo ? <span style={{ color: 'var(--fg-3)' }} title="chấm / duyệt / dựng creative, dòng mới… xảy ra trước khi lên camp nên chưa thuộc bộ nào">· {loc.chuaBo} việc chưa gắn camp không tính trong Bộ {bo}</span> : null}
     </div>
     {loi ? <div style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${DO}`, color: DO, fontSize: 12 }}>⛔ {loi}</div> : null}
     {!du && !loi ? <div style={{ padding: 16, color: 'var(--fg-2)', fontSize: 12 }}>⏳ Đang tải nhật ký…</div> : null}

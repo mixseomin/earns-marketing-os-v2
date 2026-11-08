@@ -2988,7 +2988,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         </Drawer>; })() : null}
       {moLogs ? <Drawer onClose={() => datLogs(false)} width={1400} padding={0}>
         <div className="modal-head"><div><div className="id-line">nhật ký máy nhà</div><h2 style={{ margin: 0 }}>📜 Logs</h2></div><button className="modal-close" onClick={() => datLogs(false)}>✕</button></div>
-        <div style={{ padding: 12 }}><TabLogs moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} /></div>
+        <div style={{ padding: 12 }}><TabLogs moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} boDs={boCo.map((b) => ({ ma: b, ten: du.boTk[b]?.ten ?? `Bộ ${b}` }))} /></div>
       </Drawer> : null}
       {nganCamp ? (() => { const c = du.camps.find((x) => x.camp_id === nganCamp); const dong = () => doi({ ngan: '' }, () => setNganCamp(null));
         const r = c?.creative_id ? crAnh.get(c.creative_id) : undefined, ch = c?.creative_id ? du.cham[c.creative_id] : undefined;

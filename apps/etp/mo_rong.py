@@ -47,14 +47,14 @@ def _nap_ngay(q):
 # BÙ CAMP CHỈ CHO PHIM ĐANG THẮNG (anh 09/11/2026 "Chốt. Triển khai luôn"): phim có camp MỚI (tạo 7 ngày, đã chạy ≥ 48 giờ, chi ≥ $2) không lỗ →
 # camp bị LUẬT tắt 24 giờ qua (không tính lệnh tay / Meta từ chối) + mỗi $1 bị giảm bậc 24 giờ qua → bù bằng camp $1, trừ số camp phim đã tạo 24 giờ qua (không bù đôi).
 # Bỏ qua 'chờ đo' (bù chỉ đưa về mức cũ, không mở rộng). Phim không đạt → không bù (thang cất / camp thay thế lo). Ghi etp.cau_hinh.bu_camp {phim: {k, tat, giam, tao}};
-# lo_trinh_phim.xep_bu xếp dòng PO đúng k camp. Đo 09/11: 10 / 53 phim đạt, ~11 camp bù / ngày.
+# lo_trinh_phim.xep_bu xếp dòng PO đúng k camp. etp.nhat_ky.truoc / sau là TEXT ("$5" · "5") → lọc lấy số. Đo 09/11: 10 / 53 phim đạt, ~11 camp bù / ngày.
 BU_TUOI_GIO, BU_CHI = 48, 2
 def tinh_bu(q):
     rows = json.loads(q(f"""select coalesce(json_agg(x), '[]') from (
       with m as (select c.content_id, sum(s.chi) chi, sum(s.thu) thu from etp.camp c join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id)
                  where c.tao > now() - interval '7 days' and c.tao < now() - interval '{BU_TUOI_GIO} hours' and not c.la_roas and c.content_id > 0 group by 1 having sum(s.chi) >= {BU_CHI}),
       ok as (select content_id from m where thu >= chi and content_id not in (select content_id from etp.phim where thu_vong = 'cat')),
-      t as (select c.content_id, count(*) filter (where k.viec = 'tat') tat, coalesce(sum(greatest(k.truoc - k.sau, 0)) filter (where k.viec = 'giam'), 0) giam
+      t as (select c.content_id, count(*) filter (where k.viec = 'tat') tat, coalesce(sum(greatest(coalesce(nullif(regexp_replace(k.truoc, '[^0-9.]', '', 'g'), '')::numeric, 0) - coalesce(nullif(regexp_replace(k.sau, '[^0-9.]', '', 'g'), '')::numeric, 0), 0)) filter (where k.viec = 'giam'), 0) giam
             from etp.nhat_ky k join etp.camp c on c.camp_id = k.camp_id
             where k.ok and k.viec in ('tat', 'giam') and k.luc > now() - interval '24 hours' and coalesce(k.ai, '') not like 'anh%' and not c.la_roas group by 1),
       n as (select content_id, count(*) tao from etp.camp where tao > now() - interval '24 hours' group by 1)

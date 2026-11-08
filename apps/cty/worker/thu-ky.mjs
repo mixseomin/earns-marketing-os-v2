@@ -95,7 +95,13 @@ export async function xuThuKy(tg, { hoi = hoiMoHinh, lay = fetch } = {}) {
     }
     const t = nc.phong && truongPhong(nc.phong);
     const tra = (text) => tg('sendMessage', { message_thread_id: nc.topic ?? undefined, parse_mode: 'HTML', text, reply_parameters: { message_id: nc.mid, allow_sending_without_reply: true } });
-    if (!t) { await tra(`📥 Đã nhận: <i>${esc(nc.anh.slice(0, 200))}</i>\nChủ đề này chưa thuộc phòng nào nên chưa có người xử — anh nhắn trong chủ đề của phòng, hoặc bảo con gắn chủ đề này cho một phòng.`); n++; continue; }
+    // KHÔNG PHÒNG NÀO NHẬN (chủ đề chung / tin script gửi thẳng không qua phòng) → giao THẲNG thợ máy Mạnh kèm câu hỏi gốc + câu anh, không trả lời "chưa có người xử"
+    // (anh 08/11/2026: bảng tuần YNT hỏi "tăng 3 → 5 tập/tuần?", anh trả lời "Duyệt", thư ký đáp "chưa thuộc phòng nào" rồi bỏ đó — "không được hỏi mà không có ai nhận để xử lý")
+    if (!t) {
+      fs.appendFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), `${JSON.stringify({ luc: new Date().toISOString(), phong: null, ai: 'manh', cau_hoi: nc.cau_hoi.replace(/<[^>]+>/g, '').slice(0, 500), anh: nc.anh, quyet: 'khac' })}\n`);
+      const moi = giaoAnh({ chu: nc.cau_hoi ? `Anh trả lời tin máy gửi ở chủ đề chung: "${nc.anh}". Làm đúng ý anh với câu hỏi gốc (đọc câu hỏi để biết máy/script nào hỏi và việc cần đổi).` : `Anh nhắn ở chủ đề chung: ${nc.anh}`, cau_hoi: nc.cau_hoi.replace(/<[^>]+>/g, '').slice(0, 1500), anh: nc.anh, phong: null, tg: { topic: nc.topic ?? null, msg: nc.mid } });
+      await tra(`🔧 <b>Mạnh</b> nhận: <i>${esc(nc.anh.slice(0, 200))}</i>${nc.cau_hoi ? ' (trả lời tin máy gửi)' : ''} — việc #${moi.id}, bắt đầu trong ≤ 5 phút, xong báo ngay dưới tin này.`); n++; continue;
+    }
     let kq; try { kq = await hoi(t, nc); } catch (e) { await tra(`📥 <b>${esc(t.ten)} [${esc(t.phongTen.replace(/^Phòng /, ''))}]</b> đã nhận: <i>${esc(nc.anh.slice(0, 200))}</i> — nhưng chưa đọc được (${esc(e.message.slice(0, 120))}). Đã ghi vào hàng việc phòng.`); kq = { tra_loi: '', quyet: 'khac', viec: `Đọc và xử câu anh: ${nc.anh}` }; }
     const luc = new Date().toISOString();
     fs.appendFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), `${JSON.stringify({ luc, phong: nc.phong, ai: t.id, cau_hoi: nc.cau_hoi.slice(0, 500), anh: nc.anh, ...kq })}\n`);
@@ -121,8 +127,8 @@ if (process.argv[1]?.endsWith('thu-ky.mjs') && process.argv.includes('--tu-kiem'
   t.equal(hoiDs[0].cau_hoi.slice(0, 4), 'Khoá', 'thư ký đọc được câu hỏi gốc'); t.equal(hoiDs[0].phong, 'tai-nguyen');
   const tin = gui.filter(([m]) => m === 'sendMessage').map(([, b]) => b);
   t.ok(tin[0].text.startsWith('<b>Nguyên [Tài nguyên]</b>: Em ghi') && tin[0].text.includes('Đã giao <b>Mạnh</b>') && tin[0].reply_parameters.message_id === 700, 'trả lời dưới câu hỏi, giao thợ máy');
-  const hang0 = JSON.parse(fs.readFileSync(path.join(DATA(), 'tho-may.json'), 'utf8')).hang; t.ok(hang0.some((v) => /^anh:/.test(v.khoa) && v.tt === 'cho' && v.anh === 'Đồng ý'), 'việc vào hàng thợ máy'); t.equal(fs.readFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), 'utf8').trim().split('\n').length, 3 - 1, 'sổ quyết định (2 mục có phòng)');
-  t.ok(tin[2].text.includes('chưa thuộc phòng nào'), 'chủ đề không phòng: vẫn trả lời, nói rõ'); t.ok(gui.some(([m]) => m === 'setMessageReaction'), 'thả 👀 khi nhận');
+  const hang0 = JSON.parse(fs.readFileSync(path.join(DATA(), 'tho-may.json'), 'utf8')).hang; t.ok(hang0.some((v) => /^anh:/.test(v.khoa) && v.tt === 'cho' && v.anh === 'Đồng ý'), 'việc vào hàng thợ máy'); t.equal(fs.readFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), 'utf8').trim().split('\n').length, 3, 'sổ quyết định: cả mục không phòng (giao Mạnh) cũng ghi');
+  t.ok(tin[2].text.includes('Mạnh</b> nhận') && JSON.parse(fs.readFileSync(path.join(DATA(), 'tho-may.json'), 'utf8')).hang.some((v) => v.anh === 'https://youtu.be/x'), 'chủ đề không phòng: giao thẳng thợ máy, không bỏ lửng'); t.ok(gui.some(([m]) => m === 'setMessageReaction'), 'thả 👀 khi nhận');
   { // trả lời dưới báo cáo của thợ máy → lệnh cho đúng việc, không hỏi mô hình; việc cùng máy đang chờ gộp lại
     const f = path.join(DATA(), 'tho-may.json'), s0 = JSON.parse(fs.readFileSync(f, 'utf8')); s0.hang.push({ id: 50, khoa: 'dang:lo|mil|facebook', tt: 'ket', chu: 'lỡ', ket_qua: 'Hết video, cần anh quyết', tin_bao: 777, luc: '2026-11-04T17:00:00Z', tg: {} }, { id: 51, khoa: 'dang:lo|mil|fb_anh', tt: 'cho', chu: 'lỡ', luc: '2026-11-04T17:00:00Z', tg: {} }, { id: 52, khoa: 'dang:lo|mil|x', tt: 'ket', chu: 'lỡ', ket_qua: 'x', tin_bao: 778, luc: '2026-11-04T17:00:00Z', tg: {} }); fs.writeFileSync(f, JSON.stringify(s0));
     fs.writeFileSync(path.join(hop, '10.json'), JSON.stringify({ update_id: 10, phong_goc: 'noi-dung', message: { message_id: 90, message_thread_id: 2307, text: 'Sx thêm video cho', from: { first_name: 'D' }, reply_to_message: { message_id: 777, from: { is_bot: true }, text: '🔧 Máy đăng tự sửa' } } }));

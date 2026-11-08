@@ -20,7 +20,8 @@ api = lambda p, b=None: EA.api(p, b)   # mọi lệnh Ethopex qua cổng chung a
 def tach(ten):
     """tên camp → (dạng, tu, den): '2010 Number One Nobody EN - canh that 84-141s' → ('canh that', 84, 141)"""
     t = ten.split(": ", 1)[-1].lower()
-    dang = next((d for d in ("ke chuyen", "canh cuoi", "phim dai", "canh that", "lam moi") if d in t), "khac")
+    import so_dang as DG   # SỔ DẠNG một nơi (etp-dang.json; apps/etp đã ở sys.path)
+    dang = DG.KHONG_DAU.get(DG.theo_ten(t), "khac")
     m = re.search(r"(\d+)-(\d+)s", t)
     return dang, (int(m.group(1)) if m else None), (int(m.group(2)) if m else None)
 

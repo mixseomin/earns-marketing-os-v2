@@ -1221,7 +1221,7 @@ export function dungThanhPho(host: HTMLElement, mh0: PhoMoHinh, THREE: any): { d
     const mauCay = new Map<string, any>(), vlCay = (tint: string, sang: number) => { const k = tint + sang; let m = mauCay.get(k); if (!m) { m = M({ color: tint, vertexColors: true, emissive: tint === '#ffffff' ? '#1f3a10' : tint, emissiveIntensity: sang, roughness: .8 }); mauCay.set(k, m); } return m; };
     function toaCamp(d: typeof mh.dich[number], x: number, z: number, vai: 'goc' | 'nb' | 'cho' = 'goc') {
       const thu = d.tien30 ?? 0, chi = d.chi30 ?? 0, s = vai === 'nb' ? 9 : vai === 'cho' ? 11 : 17, cho = vai === 'cho', vp = d.campLoai === 'vi-pham', lai = thu >= chi;
-      const loai = ({ 'kể chuyện': 'lua', 'phim dài': 'ngo', 'cảnh thật': 'hoa', 'cảnh cuối': 'bi' } as Record<string, string>)[d.dangCr ?? ''] ?? 'bui';
+      const loai = ({ 'kể chuyện': 'lua', 'phim dài': 'ngo', 'cảnh thật': 'hoa', 'cảnh cuối': 'bi' } as Record<string, string>)[d.dangCr ?? ''] ?? 'bui';   // so-dang: chính sách — hình cây trong thành phố cho 4 dạng cũ, dạng khác vẽ bụi
       const h = vp ? 2.2 : cho ? 2.4 : (lai ? 1 : .55) * (s / 17) * (7 + Math.min(16, Math.log2(1 + thu + chi) * 2.4));
       const tint = vp ? '#4a2a5a' : cho ? '#c8ffb0' : lai ? '#ffffff' : '#d0603e';
       const m = add(cayCua(loai), vlCay(tint, vp ? .1 : cho ? .35 : lai ? .12 : .05)); m.scale.set(s, h, s); m.position.set(x, .7, z); m.userData = { loai: 'dich', d, px: 4 };   // luống < 4 điểm ảnh thì khỏi vẽ (nhiều mặt hơn toà cũ)

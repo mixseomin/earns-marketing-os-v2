@@ -13,8 +13,9 @@ import json, os, subprocess, sys
 MAC = {"chi": 25, "roi": -30, "chi_doi_bo": 50, "so_bo": 2, "bo": ["1", "2", "3"], "so_thu": 4,
        # THỬ ĐỦ DẠNG TRƯỚC KHI CẤT (anh 04/11/2026: "mới thử 5 camp cho 1 thể loại thì chưa đủ để kết luận film chưa ổn. Các định dạng như CC, CT, KT chưa thử thì làm sao biết đúng"):
        # cất chỉ khi MỖI dạng trong dang_can đã có ≥ so_moi_dang camp có chi (≥ $1) mà vẫn chưa camp nào lãi; thiếu dạng → chờ (sap_cat, ghi dạng thiếu) để camp thay / Sản xuất lên đúng dạng đó
-       "dang_can": ["cảnh cuối", "cảnh thật", "kể chuyện"], "so_moi_dang": 2, "cho_dang_ngay": 3}   # chờ dạng thiếu quá cho_dang_ngay ngày mà không ai lên được dạng đó → cất (CT chưa có máy tự sản xuất)
-TEN_DANG = {"cảnh cuối": "CC", "cảnh thật": "CT", "kể chuyện": "KT", "tập nguyên": "LT", "ảnh tĩnh": "AT"}
+       "dang_can": ["cảnh cuối", "cảnh thật", "kể chuyện"], "so_moi_dang": 2, "cho_dang_ngay": 3}   # so-dang: chính sách (dạng phải thử trước khi cất, không phải bảng tra) · chờ dạng thiếu quá cho_dang_ngay ngày mà không ai lên được dạng đó → cất (CT chưa có máy tự sản xuất)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import so_dang as DG   # SỔ DẠNG một nơi (etp-dang.json)
+TEN_DANG = DG.MA
 # CẤT THEO SỐ LẦN THỬ + BÃO HOÀ (anh 02/11/2026 "Đã có luật drop film nếu thử nhiều lần mà ko thành công chưa?" · "hoặc đến lúc film bão hoà" ·
 # "Phải show pending, chạm vào cột Luật của dòng Phim"):
 #   thử so_thu camp có chi (≥ $1) mà chưa camp nào lãi → cất (đo 19/10–02/11: 29 phim chạm mốc 4 camp, 0 phim về sau thắng; chi sau mốc $142, lãi −$53)

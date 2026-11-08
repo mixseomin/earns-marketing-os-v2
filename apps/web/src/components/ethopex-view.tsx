@@ -292,7 +292,7 @@ export function EthopexView({ du }: { du: DuLieuEthopex }) {
   const dem = (ma: string) => dong.filter((d) => d.luat.some((x) => x.ma === ma && x.trang_thai === 'cham')).length;
   const dangMo = modal.numId ? dong.find((d) => d.id === modal.numId) : undefined;
   const phim = useMemo(() => deXuatPhim(du.camps, du.phimThang), [du]);
-  const DANG: DangCr[] = ['kể chuyện', 'cảnh thật', 'cảnh cuối', 'phim dài'];
+  const DANG: DangCr[] = ['kể chuyện', 'cảnh thật', 'cảnh cuối', 'phim dài'];   // so-dang: chính sách — các cột dạng của luật DC đề xuất (tab Ethopex cũ)
   const cotPhim: DataColumn<PhimDeXuat>[] = [
     { key: 'phim', header: 'Phim', align: 'left', cell: (p) => (p.link ? <LinkChip href={p.link} tone="neutral" size="xs" title={p.link}>{p.phim} ↗</LinkChip> : p.phim), sortValue: (p) => p.phim },
     { key: 'nn', header: 'NN', align: 'center', cell: (p) => p.ngon_ngu?.toUpperCase() ?? '—', sortValue: (p) => p.ngon_ngu ?? '' },

@@ -143,7 +143,8 @@ const TEP_BO = () => path.join(DATA(), 'ethopex-bo-phim.json');
 export const tenPhim = (chu) => (String(chu).match(/(?:^|[\s#:·])\d{4}\w* (.+?) [A-Z]{2} - /) || String(chu).match(/\[[A-Z?]{1,2}\] (.+?) [A-Z]{2}(?: \/| ·|$)/m) || [])[1]?.trim().toLowerCase() || null;
 // TÊN CAMP GỌN (anh 23/10/2026: "[1] = Bộ TK 1, [CT] = cảnh thật"): "#65727: 2110 Runaway Single Mom EN - canh that 120-196s cta-sua (nhan ban 1 cua 65727)"
 // → "#65727 [1] [CT] <b>Runaway Single Mom</b> EN / 120-196s / CTA sửa / NB←65727" — bỏ mã lô ngày; phần chi tiết luật sau " · " giữ nguyên. Trả HTML.
-const LOAI_TG = { 'ke chuyen': 'KC', 'canh that': 'CT', 'canh cuoi': 'CC', 'phim dai': 'PD', 'lam moi': 'LM' };
+// SỔ DẠNG một nơi (apps/web/src/lib/etp-dang.json, anh 08/11/2026): nhãn không dấu trong tên camp → mã ngắn; nhãn dài xếp trước ('anh tinh tom tat' trước 'anh tinh')
+const LOAI_TG = Object.fromEntries(JSON.parse(fs.readFileSync(new URL('../../web/src/lib/etp-dang.json', import.meta.url), 'utf8')).dang.map((x) => [x.khong_dau, x.ma]).sort((a, b) => b[0].length - a[0].length));
 // nhãn bộ TK = số khoanh tròn (anh 23/10/2026 chỉ đích danh bảng Number Emojis, thay "[1]") — ngoại lệ của luật cấm số khoanh tròn, CHỈ cho nhãn bộ TK Ethopex trên Telegram
 const soBo = (bo) => { const n = Number(bo); return n >= 1 && n <= 20 ? String.fromCodePoint(0x2460 + n - 1) : `[${bo}]`; };
 export function tenGon(ten, bo) {

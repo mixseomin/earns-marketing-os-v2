@@ -26,11 +26,13 @@ SSH = ["ssh", "-o", "ConnectTimeout=15", "-o", "ServerAliveInterval=20", "-o", "
 B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 C = os.path.expanduser("~/.cache/ethopex"); MAY = socket.gethostname().split(".")[0]
 KHUON = {"en": 65110, "es": 65734}   # camp mẫu cùng tiếng (dot-phim-moi.KHUON)
-LOAI = {"CC": "cảnh cuối", "KT": "kể chuyện", "LT": "tập nguyên", "AT": "ảnh tĩnh", "ATT": "ảnh tĩnh tóm tắt", "PD": "poster động", "CTS": "câu thoại sốc"}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import so_dang as DG   # SỔ DẠNG một nơi (apps/web/src/lib/etp-dang.json, anh 08/11/2026)
+LOAI = DG.DONG   # mã loại dòng phim → dạng creative (etp.creative.dang)
 # KIỂU TĨNH (anh 08/11/2026 "chọn cả 3 để xem hiệu suất"): mỗi loại một kiểu của tinh-ba-kieu.py, cùng khuôn AT — tự tải tập, 3 bản, 3 camp $1
-TINH = {"AT": ("anh-tinh.py", []), "ATT": ("tinh-ba-kieu.py", ["--kieu", "tom_tat"]), "PD": ("tinh-ba-kieu.py", ["--kieu", "poster"]), "CTS": ("tinh-ba-kieu.py", ["--kieu", "cau_soc"])}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
-BO_QUA = {"KT": {"cat", "soat"}, **{k: {"cat", "soat"} for k in ("AT", "ATT", "PD", "CTS")}}   # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt · AT: anh-tinh.py tự tải tập + chọn khung — không qua bước cắt / soát đoạn
-HAN_RIENG = {("KT", "creative"): 4 * 3600, **{(k, "creative"): 60 * 60 for k in ("AT", "ATT", "PD", "CTS")}, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu · AT ~10 phút/phim
+TINH = {"AT": ("anh-tinh.py", []), "ATT": ("tinh-ba-kieu.py", ["--kieu", "tom_tat"]), "PO": ("tinh-ba-kieu.py", ["--kieu", "poster"]), "CTS": ("tinh-ba-kieu.py", ["--kieu", "cau_soc"])}   # loại nội dung QC form chọn → dạng creative trong kho (etp.creative.dang)
+assert set(TINH) == DG.TINH, f"TINH {sorted(TINH)} lệch sổ dạng tĩnh {sorted(DG.TINH)} (etp-dang.json)"   # dạng tĩnh mới: thêm vào sổ + script ở TINH
+BO_QUA = {"KT": {"cat", "soat"}, **{k: {"cat", "soat"} for k in DG.TINH}}   # KT: máy sinh kể chuyện (VideoExpress) làm video từ tóm tắt · AT: anh-tinh.py tự tải tập + chọn khung — không qua bước cắt / soát đoạn
+HAN_RIENG = {("KT", "creative"): 4 * 3600, **{(k, "creative"): 60 * 60 for k in DG.TINH}, ("LT", "cat"): 2 * 3600, ("LT", "camp"): 7 * 24 * 3600}   # LT: cắt cả phim ~1 giờ; bước camp chờ anh bấm bắt đầu · AT ~10 phút/phim
 # LT — LỘ TRÌNH TEST RỘNG (anh 03/11/2026 "Lên $8-10/phim + T2 thì sẽ cắt sớm đc lỗ và tìm nhanh đc camp lãi" · chọn A: miễn luật một camp ngày test rộng):
 # cắt MỖI TẬP một creative (kiểu Kiên, tập trọn ETP_KIEU=tap, tới 10 đoạn) → soát → tải + chấm TẤT CẢ đoạn sạch → DỪNG chờ anh bắt đầu
 # (etp.cau_hinh 'lo_trinh' {content_id: {bat_dau: true}}) → lên mỗi creative một camp $1 (nhan-ban miễn luật một camp khi phim ở lo_trinh) → T2 cắt lỗ.
@@ -529,7 +531,7 @@ def doc_dong():
                (select json_object_agg(b.buoc, json_build_object('trang_thai', b.trang_thai, 'ket_qua', b.ket_qua, 'lan', b.lan, 'fix', b.fix, 'huy', b.huy,
                        'tuoi', extract(epoch from now() - coalesce(b.nhip, b.bat_dau))::int)) from etp.dong_buoc b where b.dong_id = p.id) buoc
                from etp.dong_phim p where p.trang_thai = 'chay' or exists (select 1 from etp.dong_buoc b where b.dong_id = p.id and b.fix)
-               order by (p.loai in ('AT', 'ATT', 'PD', 'CTS')) desc, (select coalesce(sum(s.thu - s.chi), 0) from (select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay s join etp.camp k using (camp_id) union all select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay_ngoai s join etp.camp_ngoai k using (camp_id)) s where s.content_id = p.content_id and s.ngay >= current_date - 3) desc, (p.ai like 'máy: lộ trình tự động thí điểm%') desc, p.id) x""")   # ảnh tĩnh lấy lượt nặng trước (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh")   # phim thí điểm lấy lượt cắt trước (TRAN_CAT), đừng đứng sau cả hàng
+               order by (p.loai in (""" + ", ".join(f"'{k}'" for k in sorted(DG.TINH)) + """)) desc, (select coalesce(sum(s.thu - s.chi), 0) from (select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay s join etp.camp k using (camp_id) union all select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay_ngoai s join etp.camp_ngoai k using (camp_id)) s where s.content_id = p.content_id and s.ngay >= current_date - 3) desc, (p.ai like 'máy: lộ trình tự động thí điểm%') desc, p.id) x""")   # ảnh tĩnh lấy lượt nặng trước (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh")   # phim thí điểm lấy lượt cắt trước (TRAN_CAT), đừng đứng sau cả hàng
     return json.loads(j or "[]")
 
 # HẾT NGUYÊN LIỆU CẮT THÌ CHUYỂN KỂ CHUYỆN (anh 04/11/2026 "vì sao vẫn còn film ko thể sx và cách khắc phục triệt để"): cắt / soát / chấm hết đường

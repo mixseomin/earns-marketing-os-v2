@@ -6,7 +6,8 @@ Không tự tạo camp: chỉ xếp dòng etp.dong_phim, máy dòng phim iMac l�
 Thứ tự: phim đã cất → dừng · vượt sức chứa → giữ · có camp cơ hội → mở rộng theo etp.mo_rong, ĐỒNG THỜI dạng còn thiếu → sản xuất song song · còn lại để cat_phim kết luận."""
 import json
 
-CAN = {"CC": "cảnh cuối", "AT": "ảnh tĩnh"}   # dạng lộ trình tự xếp (dong_phim.LOAI); CT chưa có máy. KT TẠM KHÔNG XẾP (anh 07/11/2026 "lượt này không sinh dòng phim KT cho nhanh" —
+import os as _o, sys as _s; _s.path.insert(0, _o.path.dirname(_o.path.abspath(__file__))); import so_dang as DG
+CAN = {k: DG.DONG[k] for k in ("CC", "AT")}   # dạng lộ trình tự xếp (dong_phim.LOAI); CT chưa có máy. KT TẠM KHÔNG XẾP (anh 07/11/2026 "lượt này không sinh dòng phim KT cho nhanh" —
 # máy sinh VideoExpress 1–4 giờ + lỗi Meta 389), thay bằng AT (anh-tinh.py ~10 phút/phim, anh 07/11/2026 "sử dụng cả ảnh tĩnh để lên camp cho nhanh hơn"); dòng KT đang chạy giữ nguyên
 MOT_LUOT = {"KT", "AT"}   # máy làm mỗi lượt một video → mỗi dòng 1 camp
 HIEN = {**CAN, "KT": "kể chuyện"}   # dạng hiện trên thẻ phim (lo_trinh_tt.dang): cả KT để thấy số đã thử

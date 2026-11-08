@@ -48,11 +48,7 @@ def ghi(bang, rows, khoa_, cot):
     q(f"insert into etp.{bang} ({cs}) select {cs} from jsonb_to_recordset($J${j}$J$::jsonb) as x({dk}) on conflict ({', '.join(khoa_)}) do update set {cap}")
     return len(rows)
 
-DANG = [("tap nguyen", "tập nguyên"), ("ke chuyen", "kể chuyện"), ("canh that", "cảnh thật"), ("canh cuoi", "cảnh cuối"), ("phim dai", "phim dài"), ("lam moi", "làm mới"),
-        # năm kiểu dựng 0đ (kieu-moi.py, 29/10/2026) — tên camp mang nhãn có dấu (len-creative) hoặc không dấu (len-sau-cham cho)
-        ("chọn phe", "chọn phe"), ("chon phe", "chọn phe"), ("bình luận", "bình luận"), ("binh luan", "bình luận"), ("ba khoảnh khắc", "ba khoảnh khắc"), ("ba khoanh khac", "ba khoảnh khắc"),
-        ("trước sau", "trước sau"), ("truoc sau", "trước sau"), ("tin nhắn", "tin nhắn"), ("tin nhan", "tin nhắn"),
-        ("ảnh tĩnh", "ảnh tĩnh"), ("anh tinh", "ảnh tĩnh")]   # khung tĩnh + tên phim + giọng (anh-tinh.py, 05/11/2026)
+import so_dang as DG   # SỔ DẠNG một nơi (apps/web/src/lib/etp-dang.json) — dạng đọc từ tên camp: DG.theo_ten (nhãn dài khớp trước)
 def main():
     day_du = "--day-du" in sys.argv
     lan = q("insert into etp.dong_bo default values returning lan"); loi = []; kq = {"so_camp": 0, "so_chi_tiet": 0, "so_dong_ngay": 0}
@@ -270,7 +266,7 @@ def main():
         dang_camp = {int(a): b for a, b in (l.split("|", 1) for l in q("select creative_id, string_agg(distinct ten, ' ') from etp.camp where creative_id is not null group by 1").splitlines() if l)}
         theo = {r["creative_id"]: r for r in rows}
         for r in rows:
-            t = (dang_camp.get(r["creative_id"]) or "").lower(); r["dang"] = next((v for k, v in DANG if k in t), r["dang"])
+            t = (dang_camp.get(r["creative_id"]) or "").lower(); r["dang"] = DG.theo_ten(t, r["dang"])
             r["doan"] = f"{r['content_id']}:{round(r['tu'])}-{round(r['den'])}" if r["tu"] is not None and r["den"] is not None else f"cr:{r['creative_id']}"
         # DẠNG THẬT TỪ THƯ VIỆN (29/10/2026: sổ studio chỉ có qc_canh_that / qc_ke_chuyen → bản "chọn phe", "trước sau"… bị ghi cảnh thật): bản đi qua etp.thu_vien thì thư viện là nguồn đúng
         tv_dang = dict(l.split("|", 1) for l in q("select creative_id, dang from etp.thu_vien where creative_id is not null").splitlines() if "|" in l)

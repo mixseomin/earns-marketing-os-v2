@@ -6,7 +6,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DongMoc, KhungNoi, TheChung, useNoi, type Moc, type TheNoi } from '@/components/etp-noi';
 import { ChuoiBuoc } from '@/components/etp-dong';
-import { MA_DANG } from '@/components/etp-so';
+import { MA_DANG, DANG_DONG } from '@/components/etp-so';
 import { chuLich, gioVnNay, KD, khungLuc } from '@/lib/etp-khung';
 import BANG_LUAT from '@/lib/etp-bang-luat.json';
 import { botCampPhim, docLichPhim, docLogPhim, themCampPhim, xemBotCamp, type CampThang, type LichPhim, type LogPhim } from '@/lib/actions/etp-lich-phim';
@@ -114,8 +114,9 @@ export function NutLichPhim({ cid, thiTruong, children }: { cid: number; thiTruo
           {(() => {
             const chay = l.dang.reduce((a, d) => a + d.chay, 0), lai = l.dang.reduce((a, d) => a + d.lai, 0), lo = l.dang.reduce((a, d) => a + d.lo, 0);
             const chi7 = l.dang.reduce((a, d) => a + d.chi7, 0), thu7 = l.dang.reduce((a, d) => a + d.thu7, 0);
-            const sx = l.sx.filter(conSx), soSx = (k: string) => sx.filter((d) => d.loai === k).reduce((a, d) => a + (d.so_camp ?? 1), 0), tongSx = sx.reduce((a, d) => a + (d.so_camp ?? 1), 0);
-            const ma = [...new Set([...l.dang.map((d) => MA_DANG[d.dang] ?? d.dang), ...sx.map((d) => d.loai)])];
+            const maSx = (loai: string) => MA_DANG[DANG_DONG[loai] ?? ''] ?? loai;   // mã dòng (LT / PO…) → mã badge cùng sổ dạng
+            const sx = l.sx.filter(conSx), soSx = (k: string) => sx.filter((d) => maSx(d.loai) === k).reduce((a, d) => a + (d.so_camp ?? 1), 0), tongSx = sx.reduce((a, d) => a + (d.so_camp ?? 1), 0);
+            const ma = [...new Set([...l.dang.map((d) => MA_DANG[d.dang] ?? d.dang), ...sx.map((d) => maSx(d.loai))])];
             const ke = l.ke, them = ke?.trang_thai === 'them' || ke?.trang_thai === 'cho_do', cho = l.hen.length + Math.max(ke?.san ?? 0, l.tu_len), k = l.lt ? l.lt.ke : them ? ke!.k : 0;
             const m = l.thieu?.match(/(\d+\/\d+) camp.*thiếu (\d+)/);
             // MỞ RỘNG: +k của etp.mo_rong chỉ là số tham khảo; máy chỉ tự xếp dòng cho phim cả đội lãi (etp.phim_doi_lai) — nói rõ ai làm + creative có đủ không (anh 07/11/2026)

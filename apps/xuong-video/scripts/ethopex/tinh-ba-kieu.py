@@ -7,7 +7,8 @@ Dùng lại máy ảnh tĩnh (anh-tinh.py: tải 3 tập, khung AI chọn, tên 
 Chữ AI viết ở box3 (chu-qc-anh-tinh.py, ckey). Dùng (iMac): python3 tinh-ba-kieu.py <content_id> [--kieu tom_tat,poster,cau_soc] [--ban N] [--xem = chỉ dựng, không nạp]  → ~/.cache/ethopex/anh-tinh/<id>/tinh-tom-tat.mp4 · poster-dong.mp4 · cau-thoai-soc.mp4 (chỉ dựng, không nạp)"""
 import importlib.util, json, os, re, subprocess, sys
 # TÊN CỐ ĐỊNH (anh 08/11/2026 "phải đặt tên cho rõ ràng phân biệt về sau") — dạng ghi vào etp.creative.dang + tên camp mang mã
-KIEU = {"tom_tat": ("ảnh tĩnh tóm tắt", "ATT"), "poster": ("poster động", "PD"), "cau_soc": ("câu thoại sốc", "CTS")}
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "etp")); import so_dang as DG   # SỔ DẠNG một nơi (etp-dang.json)
+KIEU = {k: (x["dang"], x["dong"]) for k, x in DG.KIEU.items() if x.get("tinh")}   # kiểu → (dạng, mã dòng)
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 D = os.path.dirname(os.path.abspath(__file__))

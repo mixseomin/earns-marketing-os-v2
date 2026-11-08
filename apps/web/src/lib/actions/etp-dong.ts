@@ -24,7 +24,7 @@ export type DongPhim = { id: number; content_id: number; ten: string | null; the
   /** ĐƯỜNG NGOÀI máy dòng phim (anh-tinh.py · máy sinh kể chuyện · kieu-moi · thay-the.py): tên máy làm — chỉ đọc, không FIX / Dừng */ ngoai?: string | null;
   /** dòng ngoài: hàng chờ lên camp của creative (view etp.cho_len_v) */ len?: CrDong['len'] };
 
-// MỘT SỔ LOẠI NỘI DUNG — dạng = nhãn etp.creative.dang (cùng sổ MAU_DANG của etp-view / DANG_CHUAN của diem_cham.py); chay = máy dòng phim làm được
+// FORM LOẠI NỘI DUNG của dòng phim — dạng / mã phải có trong SỔ DẠNG lib/etp-dang.json (mã dòng = trường dong); apps/etp/kiem-so-dang.mjs đỏ khi sổ có mã dòng mà form thiếu mục; chay = máy dòng phim làm được
 const LOAI: Omit<LoaiNoiDung, 'vi_du'>[] = [
   { ma: 'CC', ten: 'CC — Cảnh cuối tập', dang: 'cảnh cuối', chay: true, gia: '$0 (không gọi AI dựng video)', thoi_gian: '~15–30 phút',
     mo_ta: 'Cắt 65–85 giây liền từ tập phim gốc, kết đúng ở cú treo cuối tập (cliffhanger). 5 giây cuối là ô tên phim + nút WATCH NOW kiểu Kiên.',
@@ -35,6 +35,15 @@ const LOAI: Omit<LoaiNoiDung, 'vi_du'>[] = [
   { ma: 'AT', ten: 'AT — Ảnh tĩnh (khung đẹp + tên phim + giọng)', dang: 'ảnh tĩnh', chay: true, gia: '~160₫ giọng ElevenLabs/phim', thoi_gian: '~10 phút',
     mo_ta: 'Mẫu video của đội: một khung mặt nét trong phim phóng chậm + tên phim chữ vàng + giọng đọc ~9 giây mời xem miễn phí. Nhanh nhất trong các dạng máy làm được.',
     cach: 'anh-tinh.py: tải 3 tập → khung mỗi 1,5 giây → điểm mặt + chữ → khung đẹp nhất → giọng → cổng chữ → thư viện → creative → chấm' },
+  { ma: 'ATT', ten: 'ATT — Ảnh tĩnh tóm tắt (khung đẹp + tóm tắt AI + giọng)', dang: 'ảnh tĩnh tóm tắt', chay: true, gia: '~500₫/phim (3 giọng ElevenLabs qua ckey + chữ AI)', thoi_gian: '~4–10 phút',
+    mo_ta: 'Như ảnh tĩnh nhưng chữ trên khung là câu tóm tắt AI viết theo phụ đề thật; câu tóm tắt cũng lên đầu primary text. 3 bản / phim, mỗi bản một giọng → 3 camp $1.',
+    cach: 'tinh-ba-kieu.py --kieu tom_tat: tải tập → AI xếp khung → AI viết 3 tóm tắt (kiểm khớp phụ đề) → giọng → thư viện → creative → chấm' },
+  { ma: 'PO', ten: 'PO — Poster động (poster phim chuyển động + giọng)', dang: 'poster động', chay: true, gia: '~500₫/phim (3 giọng ElevenLabs qua ckey)', thoi_gian: '~4–10 phút',
+    mo_ta: 'Poster gốc của phim phóng / lia chậm + tên phim + giọng đọc mời xem. Phim có poster gợi cảm thì cổng chấm chặn, máy bỏ kiểu này cho phim đó.',
+    cach: 'tinh-ba-kieu.py --kieu poster: poster → chuyển động → giọng → thư viện → creative → chấm' },
+  { ma: 'CTS', ten: 'CTS — Câu thoại sốc (khung + câu thoại gây sốc nguyên văn)', dang: 'câu thoại sốc', chay: true, gia: '~500₫/phim (3 giọng ElevenLabs qua ckey + chữ AI)', thoi_gian: '~4–10 phút',
+    mo_ta: 'Khung mặt nét + một câu thoại gây sốc lấy NGUYÊN VĂN từ phụ đề (AI chọn, máy kiểm khớp) + giọng. 3 bản / phim → 3 camp $1.',
+    cach: 'tinh-ba-kieu.py --kieu cau_soc: tải tập → AI xếp khung → AI chọn 3 câu sốc (kiểm nguyên văn) → giọng → thư viện → creative → chấm' },
   { ma: 'LT', ten: 'LT — Lộ trình test rộng (mỗi tập một creative)', dang: 'tập nguyên', chay: true, gia: '$0 dựng · camp ~$1 × số tập/ngày', thoi_gian: '~1–2 giờ tới bước lên camp',
     mo_ta: 'Cách Kiên: mỗi tập trọn một creative (tên phim + WATCH NOW cuối), lên cùng lúc mỗi creative một camp $1 (~$8–10/phim/ngày), T2 cắt camp lỗ sớm, creative thắng thì nhân lô.',
     cach: 'tải 8 tập → cắt mỗi tập một đoạn (ETP_KIEU=tap) → máy soát → tải + chấm hết → DỪNG chờ anh bắt đầu → lên mỗi creative một camp $1 (miễn luật một camp)' },

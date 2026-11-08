@@ -19,7 +19,8 @@ def nap(ten, tep):
     s = importlib.util.spec_from_file_location(ten, os.path.join(D, tep)); m = importlib.util.module_from_spec(s); s.loader.exec_module(m); return m
 CC = nap("cat_canh", "cat-canh.py"); gb, gx, CQ = CC.gb, CC.gx, CC.CQ
 W, H, MA_HOA = gx.W, gx.H, CC.MA_HOA
-NHAN = {"chon_phe": "chọn phe", "binh_luan": "bình luận", "top3": "ba khoảnh khắc", "truoc_sau": "trước sau", "tin_nhan": "tin nhắn"}
+sys.path.insert(0, os.path.join(D, "..", "..", "..", "etp")); import so_dang as DG   # SỔ DẠNG một nơi (etp-dang.json)
+NHAN = {k: x["dang"] for k, x in DG.KIEU.items() if not x.get("tinh")}
 FA, FR = gx.FA, next((f for f in ("/System/Library/Fonts/Supplemental/Arial.ttf", "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf") if os.path.exists(f)), gx.FA)
 EMOJI = "/System/Library/Fonts/Apple Color Emoji.ttc"
 LA_EMOJI = re.compile("[\U0001F300-\U0001FAFF☀-➿❤️‍]+")

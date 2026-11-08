@@ -4,6 +4,7 @@ import { getDb } from '@mos2/db';
 import { goiEthopex } from '@mos2/db/ethopex';
 import { docEthopex } from '@/lib/ethopex-doc';
 import { chamLuat, LUAT_THEO_MA } from '@/lib/ethopex-luat';
+import { DS_DANG, dangTheoTen } from '@/lib/etp-dang';
 
 // LÝ DO ĐÓNG CAMP cho extension trên trang Report của Ethopex (anh 22/10/2026: "làm extension trên page này để khi hover vào camp nào đóng thì show lý do").
 // Chỉ đọc. Khoá bằng mã riêng (studio xv_khoa_ngoai['ethopex_ext'].token, gửi qua ?k=) vì trang app.ethopex.dev không mang phiên mos2; CORS chỉ mở cho app.ethopex.dev.
@@ -27,9 +28,10 @@ const chuan = (t: string) => t.normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
 const loi = (t: string) => chuan(t.replace(/^\S+\s+/, '').split(/ (?:EN|ES) - /)[0] ?? '');
 type Du = Awaited<ReturnType<typeof docEthopex>>;
 type ChoNb = Record<string, { luc: string; loi: string }>;
-// DẠNG CREATIVE theo tên camp (badge ở danh sách Report — anh 23/10/2026): kể chuyện · cảnh thật · cảnh cuối · phim dài · làm mới
-const LOAI = ['ke chuyen', 'canh that', 'canh cuoi', 'phim dai', 'lam moi'] as const;
-const loaiCua = (ten: string) => LOAI.find((l) => ten.toLowerCase().includes(l)) ?? 'khac';
+// DẠNG CREATIVE theo tên camp (badge ở danh sách Report — anh 23/10/2026) — SỔ DẠNG một nơi lib/etp-dang.json; khoá = nhãn không dấu.
+// Mỗi phản hồi kèm dang_so {nhãn: [mã, tên, màu]} để tiện ích Ethopex (apps/ethopex-ext/ly-do.js) vẽ badge theo sổ, không tự khai bảng dạng.
+const loaiCua = (ten: string) => DS_DANG.find((x) => x.dang === dangTheoTen(ten))?.khong_dau ?? 'khac';
+const DANG_SO = Object.fromEntries(DS_DANG.map((x) => [x.khong_dau, [x.ma, x.dang, x.mau]]));
 const laLich = (c: { bat_dau?: string | null }) => !!c.bat_dau && Date.parse(c.bat_dau.replace(/([+-]\d\d)(\d\d)$/, '$1:$2')) > Date.now();   // Scheduled: Ad Set chưa tới giờ chạy
 // ĐOẠN VIDEO của creative (studio kinh_thanh.ethopex: content + tu + den, làm tròn giây) — hai creative cùng mốc = cùng đoạn (bản CTA cũ ↔ bản sửa).
 // Tên camp KHÔNG dùng được: camp nhân bản / bản lô khác mang tên khác mà vẫn dùng cùng creative (24/10/2026: #54182 có 9 camp, đếm theo tên ra 7).
@@ -112,26 +114,26 @@ export async function GET(req: Request) {
       bo_tk[k] = { ten: b.ten, tk_ext: b.ext, page: b.page, chi_phim_moi: !!b.chi_phim_moi, camp: cs.length, chay: cs.filter((c) => c.trang_thai === 'ACTIVE').length,
         phim: new Set(cs.map((c) => c.content_id).filter(Boolean)).size, thang: { ...t, roi: roiOf(t) }, hom_nay: { ...h, roi: roiOf(h) } };
     }
-    return NextResponse.json({ ok: true, bo_tk, camp: Object.fromEntries(d.camps.map((c) => [c.id, c.bo ?? '1'])) }, { headers: CORS });
+    return NextResponse.json({ ok: true, dang_so: DANG_SO, bo_tk, camp: Object.fromEntries(d.camps.map((c) => [c.id, c.bo ?? '1'])) }, { headers: CORS });
   }
-  if (phim === '__lam_nong__') { await camps(); return NextResponse.json({ ok: true, creative: [] }, { headers: CORS }); }
+  if (phim === '__lam_nong__') { await camps(); return NextResponse.json({ ok: true, dang_so: DANG_SO, creative: [] }, { headers: CORS }); }
   if (phim || phims) {
     const d = await camps();
     const dat = new Set(Object.keys((((await db.execute(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_cta_dat'`)) as unknown as { gia_tri: Record<string, unknown> }[])[0]?.gia_tri) ?? {}));
     // CAMP CHỜ (anh 22/10/2026 "show thêm cả camp đang chờ vào đây"): lần nhân bản gần nhất của camp thắng bị cổng chặn (CTA cũ, chưa soát 18+…) → lý do
     const nb = ((await db.execute(sql`SELECT x FROM xv_khoa_ngoai, jsonb_array_elements(gia_tri) x WHERE ten = 'ethopex_nhat_ky' AND x->>'viec' = 'nhan_ban'`)) as unknown as { x: { goc?: number; id: number; ok: boolean; loi: string | null; luc: string } }[]).map((r) => r.x);
     const choNb: ChoNb = {}; for (const n of nb) { const g = String(n.goc ?? n.id); if (n.ok) delete choNb[g]; else choNb[g] = { luc: n.luc, loi: n.loi ?? '' }; }
-    if (phim) return NextResponse.json({ ok: true, phim, ...motPhim(d, dat, phim, choNb) }, { headers: CORS });
+    if (phim) return NextResponse.json({ ok: true, dang_so: DANG_SO, phim, ...motPhim(d, dat, phim, choNb) }, { headers: CORS });
     // NHIỀU PHIM MỘT LƯỢT (?phims=tên1\ntên2…): extension tải sẵn mọi phim đang hiện trên trang → rê vào là có ngay
     const ra: Record<string, ReturnType<typeof motPhim>> = {};
     for (const t of phims!.split('\n').map((x) => x.trim()).filter(Boolean).slice(0, 100)) ra[t] = motPhim(d, dat, t, choNb);
-    return NextResponse.json({ ok: true, phim: ra }, { headers: CORS });
+    return NextResponse.json({ ok: true, dang_so: DANG_SO, phim: ra }, { headers: CORS });
   }
   const id = Number(u.searchParams.get('id') || 0);
   if (id) {
     const h = await goiEthopex<{ data: { created_at: string; actor_name?: string; actor_type?: string; actor_type_label?: string; source_label?: string; changes?: { field: string; new: unknown }[] }[] }>(db, `/api/v1/campaigns/${id}/history`);
     const x = h.ok ? h.data.data.find((d) => (d.changes ?? []).some((c) => c.field === 'state' && c.new === 'PAUSED')) : null;
-    return NextResponse.json({ ok: true, lich_su: x ? { luc: x.created_at, ai: x.actor_name ?? x.actor_type_label ?? x.actor_type ?? '?', qua: x.source_label ?? null } : null }, { headers: CORS });
+    return NextResponse.json({ ok: true, dang_so: DANG_SO, lich_su: x ? { luc: x.created_at, ai: x.actor_name ?? x.actor_type_label ?? x.actor_type ?? '?', qua: x.source_label ?? null } : null }, { headers: CORS });
   }
   const nk = ((await db.execute(sql`SELECT x FROM xv_khoa_ngoai, jsonb_array_elements(gia_tri) x WHERE ten = 'ethopex_nhat_ky' AND x->>'viec' IN ('tat', 'bat') AND (x->>'ok')::boolean`)) as unknown as { x: Nk }[]).map((d) => d.x);
   const cuoi = new Map<number, Nk>();
@@ -150,5 +152,5 @@ export async function GET(req: Request) {
     const s = dem.so[String(k)];
     camp[String(k)] = { luc: n.luc, luat: n.luat, ai: n.ai, chi: s ? +s.chi.toFixed(2) : null, thu: s ? +s.thu.toFixed(2) : null, roi: s && s.chi ? Math.round(((s.thu - s.chi) / s.chi) * 100) : null };
   }
-  return NextResponse.json({ ok: true, camp }, { headers: CORS });
+  return NextResponse.json({ ok: true, dang_so: DANG_SO, camp }, { headers: CORS });
 }

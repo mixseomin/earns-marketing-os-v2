@@ -15,8 +15,8 @@ R = os.path.dirname(os.path.abspath(__file__)); E = os.path.join(R, "..", "xuong
 C = os.path.expanduser("~/.cache/ethopex")
 B = "root@167.233.241.16"; ENV = "cd /opt/earns-marketing-os-v2 && set -a; . ./.env.production; set +a"
 # dạng trong kho (etp.creative.dang) → nhãn không dấu len-creative ghi vào tên creative (dong-bo.DANG đọc ngược ra dạng)
-NHAN = {"cảnh thật": "canh that", "cảnh cuối": "canh cuoi", "kể chuyện": "ke chuyen", "tập nguyên": "tap nguyen", "chọn phe": "chon phe", "bình luận": "binh luan",
-        "ba khoảnh khắc": "ba khoanh khac", "trước sau": "truoc sau", "tin nhắn": "tin nhan", "ảnh tĩnh": "anh tinh", "team": "team"}
+sys.path.insert(0, R); import so_dang as DG   # SỔ DẠNG một nơi (apps/web/src/lib/etp-dang.json)
+NHAN = {**DG.KHONG_DAU, "team": "team"}
 THU_TOI_DA = 3   # lỗi kỹ thuật: số lần thử lại
 sys.path.insert(0, E); import loi_ky_thuat as LK
 
@@ -107,7 +107,7 @@ def chay(kho=False, so=None, chi=None):
 # DẠNG TRƯỢT (anh 07/11/2026, việc 3): phim mà phần lớn creative MỘT dạng trượt cổng chấm cùng MỘT tiêu chí (vd Vengeance of the Dragon Princess: 25/29 cảnh thật
 # trượt meta.bao_luc) → cắt thêm dạng đó cũng trượt; dòng phim loại đó dừng ở bước Nhận và chuyển sang ảnh tĩnh (dong_phim.b_nhan).
 TRUOT_N, TRUOT_TY = 5, 0.7
-DANG_LOAI = {"CC": ["cảnh cuối"], "LT": ["cảnh thật", "tập nguyên"], "KT": ["kể chuyện"], "AT": ["ảnh tĩnh"]}
+DANG_LOAI = {k: [d] + (["cảnh thật"] if k == "LT" else []) for k, d in DG.DONG.items()}   # loại dòng → dạng creative xét trượt (LT cắt cả tập nên tính cả cảnh thật)
 def xet_truot(dong):
     """[(dạng, chặn, đã chấm)] + chan_boi từng creative → (tiêu chí, số dính, số chặn, số chấm) nếu dạng trượt, không thì None. Hàm thuần — bài tự kiểm ở cuối tệp."""
     n, chan = len(dong), [c for c in dong if c]

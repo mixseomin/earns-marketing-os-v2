@@ -88,7 +88,7 @@ def main():
         gop(g, tl, h, c, r, h, i)
     camps = EA.camp_nha()
     vd, dg = {}, {}
-    DANG = [("ke chuyen", "Kể chuyện"), ("canh that", "Cảnh thật"), ("canh cuoi", "Cảnh cuối"), ("phim dai", "Phim dài"), ("lam moi", "Làm mới")]
+    import so_dang as DG   # SỔ DẠNG một nơi (etp-dang.json; apps/etp đã ở sys.path)
     for x in rp(["campaign_name", "content_name", "date", "cost", "revenue"], ["campaign_name", "content_name", "date"]):
         c, r = float(x.get("cost") or 0), float(x.get("revenue") or 0)
         if c == 0 and r == 0: continue
@@ -97,7 +97,7 @@ def main():
         if tao:
             tuoi = (dt.date.fromisoformat(str(x["report_date"])[:10]) - dt.date.fromisoformat(tao[:10])).days
             gop(vd, tl, ("N" + str(tuoi)) if tuoi < 7 else "N7+", c, r, str(cid), str(cid))   # mẫu = số camp
-        ten = (x.get("campaign_name") or "").lower(); dang = next((v for k, v in DANG if k in ten), "Khác")
+        ten = (x.get("campaign_name") or "").lower(); dang = (DG.theo_ten(ten) or "khác").capitalize()
         gop(dg, tl, dang, c, r, str(cid), i)
     them = {"gio": thanh_bang(g), "vong_doi": thanh_bang(vd, 3), "dang": thanh_bang(dg)}
     ngay = sorted({d for e in o.values() for d in e[2]})

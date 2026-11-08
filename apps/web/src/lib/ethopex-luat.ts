@@ -3,6 +3,7 @@
 // Bản Python cùng ngưỡng: apps/xuong-video/scripts/ethopex/kiem-ngan-sach.sh (báo đủ điều kiện tăng / cần xem giảm-tắt) — đổi ngưỡng thì đổi cả hai.
 // Luật CHỈ ĐỌC + BÁO: mọi tăng / giảm / tắt phải anh duyệt từng camp (gác 'nguoi'); cổng ở bước lên camp (thoại, số camp) chặn bằng máy (gác 'may').
 
+import { dangTheoTen } from './etp-dang';
 import BANG_LUAT from './etp-bang-luat.json';
 export const THANG = (BANG_LUAT.thang as number[]).filter((x) => x <= 20);   // thang bậc = sổ luật chung (anh 05/11/2026)
 export const TRAN_CAMP = 20;
@@ -137,15 +138,11 @@ export function nangNhat(ds: LuatCham[]): Luat | null {
 }
 
 // ── LUẬT DC: ĐỀ XUẤT DẠNG CREATIVE THEO PHIM (anh 22/10/2026: "thành rule nhưng ở dạng đề xuất… áp dụng theo film, show trên mos2 tab ethopex") ──
-export type DangCr = 'kể chuyện' | 'cảnh thật' | 'cảnh cuối' | 'phim dài' | 'khác';
-/** dạng creative của camp: studio (the_loai) trước, không có thì đọc tên camp ("ke chuyen" / "canh that" / "canh cuoi" / "phim dai") */
+/** dạng creative (etp.creative.dang) hoặc 'khác' — danh sách dạng ở SỔ DẠNG lib/etp-dang.json */
+export type DangCr = string;
+/** dạng creative của camp: đọc tên camp theo sổ dạng (nhãn dài khớp trước), không có thì dạng studio, cuối cùng 'khác' */
 export function dangCamp(c: Pick<CampEtp, 'dang_creative' | 'ten'>): DangCr {
-  const t = c.ten.toLowerCase();
-  if (/ke chuyen/.test(t) || c.dang_creative === 'kể chuyện') return 'kể chuyện';
-  if (/canh cuoi/.test(t)) return 'cảnh cuối';
-  if (/phim dai/.test(t)) return 'phim dài';
-  if (/canh that/.test(t) || c.dang_creative === 'cảnh thật') return 'cảnh thật';
-  return 'khác';
+  return dangTheoTen(c.ten) ?? c.dang_creative ?? 'khác';
 }
 export const DC_CHI_DU = 5;      // $ tiêu tối thiểu của phim để chấm
 export const DC_THANG_CHI = 10;  // phim thắng: tiêu ≥ $10 …
@@ -164,7 +161,7 @@ export function deXuatPhim(camps: CampEtp[], phimThang: number[]): PhimDeXuat[] 
   }
   const ra = [...g.values()];
   for (const p of ra) {
-    const r = roi(p.tong), kc = p.theo_dang['kể chuyện'], ct = p.theo_dang['cảnh thật'] ?? p.theo_dang['cảnh cuối'], pd = p.theo_dang['phim dài'];
+    const r = roi(p.tong), kc = p.theo_dang['kể chuyện'], ct = p.theo_dang['cảnh thật'] ?? p.theo_dang['cảnh cuối'], pd = p.theo_dang['phim dài'];   // so-dang: chính sách — luật DC so riêng kể chuyện / cảnh thật / phim dài (anh 22/10/2026)
     p.thang = phimThang.includes(p.content_id) || (p.tong.chi >= DC_THANG_CHI && r != null && r >= DC_THANG_ROI);
     const dx = p.de_xuat, rr = (s?: SoLieu) => (s ? roi(s) : null);
     if (p.tong.chi < DC_CHI_DU) { dx.push({ muc: 'bao', cau: `Chưa đủ số (tiêu ${p.tong.chi.toFixed(2)} < $${DC_CHI_DU}) — để chạy tiếp${ct ? '' : ', test bằng cảnh thật cắt đoạn sâu'}` }); continue; }

@@ -35,7 +35,8 @@ with ThreadPoolExecutor(8) as ex: c2p = dict(ex.map(noi, list(camp)))
 
 def dang(ten):
     t = ten.lower()
-    return "kể chuyện" if "ke chuyen" in t else "cảnh cuối" if "canh cuoi" in t else "phim dài" if "phim dai" in t else "cảnh thật" if "canh that" in t else "khác"
+    import so_dang as DG   # SỔ DẠNG một nơi (etp-dang.json; apps/etp đã ở sys.path)
+    return DG.theo_ten(t, "khác")
 
 phim = collections.defaultdict(lambda: {"chi": 0.0, "thu": 0.0, "camp": 0, "dang": collections.Counter()})
 for cid, (chi, thu, ten) in camp.items():

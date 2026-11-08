@@ -244,7 +244,8 @@ def dem_doan(cr):
     if _DOAN is None: _DOAN = doan_cua()
     d = _DOAN.get(cr)
     return sum(n for c, n in DEM_CR.items() if (_DOAN.get(c) == d if d else c == cr))
-DANG_TINH = ("ảnh tĩnh", "ảnh tĩnh tóm tắt", "poster động", "câu thoại sốc")
+import so_dang as DG   # SỔ DẠNG một nơi (etp-dang.json) — apps/etp đã ở sys.path
+DANG_TINH = tuple(x["dang"] for x in DG.DS if x.get("tinh"))
 def cung_doan_dang_chay(cr):
     """creative mới cr trùng ĐOẠN (cùng phim + cùng mốc giây) với camp đang chạy / vừa tạo dù creative mang mã khác → mã creative đó, không thì None.
     03/11/2026 lô pm-03110155: máy tự lên 8 camp lúc 03:12–03:51, Claude chạy tay `phim-moi.py len` lại → tải lại thành creative mới #64996–#65005, cổng

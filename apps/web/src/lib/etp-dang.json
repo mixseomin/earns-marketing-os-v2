@@ -1,0 +1,20 @@
+{
+  "_ghi": "SỔ DẠNG CREATIVE ETHOPEX — MỘT NƠI DUY NHẤT (anh 08/11/2026: 'các thể loại mới mày cứ mỗi nơi làm 1 cái à'). Thêm dạng mới = thêm MỘT mục ở đây; web (etp-so.tsx: badge, màu, bộ lọc Loại · etp-dong.ts: form dòng phim) và máy (dong-bo.py, dong_phim.py, diem_cham.py, cuu_cham.py) đều đọc tệp này qua apps/etp/so_dang.py. apps/etp/kiem-so-dang.mjs chặn bản nào tự khai lại bảng dạng ở chỗ khác. dang = etp.creative.dang (có dấu) · ma = mã ngắn badge / bộ lọc (duy nhất) · khong_dau = nhãn trong tên creative/camp · dong = mã loại dòng phim máy dong_phim làm (null = máy chưa làm) · tinh = dạng tĩnh (bỏ bước cắt / soát, 3 bản / phim) · kieu = tên kiểu tham số --kieu của script dựng (kieu-moi.py / tinh-ba-kieu.py).",
+  "dang": [
+    { "dang": "tập nguyên", "ma": "TN", "mau": "#fb7185", "khong_dau": "tap nguyen", "dong": "LT" },
+    { "dang": "kể chuyện", "ma": "KT", "mau": "#c084fc", "khong_dau": "ke chuyen", "dong": "KT" },
+    { "dang": "cảnh cuối", "ma": "CC", "mau": "#60a5fa", "khong_dau": "canh cuoi", "dong": "CC" },
+    { "dang": "cảnh thật", "ma": "CT", "mau": "#4ade80", "khong_dau": "canh that", "dong": null },
+    { "dang": "phim dài", "ma": "PD", "mau": "#f59e0b", "khong_dau": "phim dai", "dong": null },
+    { "dang": "làm mới", "ma": "LM", "mau": "#22d3ee", "khong_dau": "lam moi", "dong": null },
+    { "dang": "chọn phe", "ma": "CP", "mau": "#f472b6", "khong_dau": "chon phe", "dong": null, "kieu": "chon_phe" },
+    { "dang": "bình luận", "ma": "BL", "mau": "#a3e635", "khong_dau": "binh luan", "dong": null, "kieu": "binh_luan" },
+    { "dang": "ba khoảnh khắc", "ma": "BK", "mau": "#fbbf24", "khong_dau": "ba khoanh khac", "dong": null, "kieu": "top3" },
+    { "dang": "trước sau", "ma": "TS", "mau": "#34d399", "khong_dau": "truoc sau", "dong": null, "kieu": "truoc_sau" },
+    { "dang": "tin nhắn", "ma": "TI", "mau": "#38bdf8", "khong_dau": "tin nhan", "dong": null, "kieu": "tin_nhan" },
+    { "dang": "ảnh tĩnh", "ma": "AT", "mau": "#e879f9", "khong_dau": "anh tinh", "dong": "AT", "tinh": true },
+    { "dang": "ảnh tĩnh tóm tắt", "ma": "ATT", "mau": "#d946ef", "khong_dau": "anh tinh tom tat", "dong": "ATT", "tinh": true, "kieu": "tom_tat" },
+    { "dang": "poster động", "ma": "PO", "mau": "#fb923c", "khong_dau": "poster dong", "dong": "PO", "tinh": true, "kieu": "poster" },
+    { "dang": "câu thoại sốc", "ma": "CTS", "mau": "#ef4444", "khong_dau": "cau thoai soc", "dong": "CTS", "tinh": true, "kieu": "cau_soc" }
+  ]
+}

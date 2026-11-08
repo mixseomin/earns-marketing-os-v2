@@ -5,7 +5,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTable, Segmented, type DataColumn } from '@/components/ui';
 import { KhungNoi, useNoi } from '@/components/etp-noi';
-import { KeToan, mauLai, MO_SO } from '@/components/etp-so';
+import { KeToan, mauLai } from '@/components/etp-so';
 import { docLogs } from '@/lib/actions/etp-logs';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { CHIEU_TK, demTk, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
@@ -64,16 +64,16 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
   // ô số: bấm = mở ngay (điện thoại), rê chuột = mở sau trễ chung (máy tính) — một khuôn thẻ nổi của etp
   // KHÔNG CUỘN NGANG (anh 08/11/2026 "Trình bày drawer làm sao ko phải scroll sang ngang"): mỗi NHÓM một cột (Camp · Sản xuất · Chấm · duyệt · Khác) thay vì mỗi loại một cột (21 cột);
   // trong cột là dãy Ô cố định (icon + số), cùng vị trí ở tiêu đề / mọi dòng / dòng tổng → mắt dò dọc theo icon; màn hẹp thì dãy ô xuống dòng thay vì đẩy bảng rộng ra
-  const O_RONG = 36;
-  const oSo = (k: string, ds: HangLog[] | undefined, nhan: string, gon = false) => { const n = ds?.length ?? 0, l = LOAI_THEO_K[k];
-    const vo: React.CSSProperties = { width: gon ? 'auto' : O_RONG, textAlign: 'right', fontVariantNumeric: 'tabular-nums', flex: 'none' };
-    if (!n) return <span key={k} style={{ ...vo, color: MO_SO }} title={`${l?.ten}: 0`}>·</span>;
+  // NHÃN ICON + SỐ CÓ MÀU (anh 08/11/2026 "Nhìn toàn số cũng đéo hiểu ngay được, phải nhìn vào cột. Cột lại toàn icon. Dùng icon + màu sắc để cho rõ ràng"):
+  // mỗi số đi cùng icon + màu của loại (LOAI_LOG.mau) → đọc ngay "⏹ 30" đỏ là 30 camp tắt, không dò tiêu đề; số 0 không hiện; rê / bấm → thẻ nổi
+  const oSo = (k: string, ds: HangLog[] | undefined, nhan: string) => { const n = ds?.length ?? 0, l = LOAI_THEO_K[k];
+    if (!n || !l) return null;
     const t: The = { k, nhan, ds: ds! };
-    return <span key={k} role="button" tabIndex={0} title={l?.ten} onClick={(e) => noi.moNgay(t, e)} onMouseEnter={(e) => noi.mo(t, e)} onMouseLeave={noi.dongTre}
-      style={{ ...vo, cursor: 'pointer', fontWeight: 600, color: l?.bao ? DO : undefined, textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{n}</span>; };
-  const day = (nhom: string, f: (k: string) => React.ReactNode) => <span style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', rowGap: 2 }}>
+    return <span key={k} role="button" tabIndex={0} title={`${l.ten}: ${n}`} onClick={(e) => noi.moNgay(t, e)} onMouseEnter={(e) => noi.mo(t, e)} onMouseLeave={noi.dongTre}
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '0 6px', borderRadius: 10, lineHeight: '18px', cursor: 'pointer', whiteSpace: 'nowrap',
+        color: l.mau, background: `${l.mau}1f`, border: `1px solid ${l.mau}55`, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}><span>{l.icon}</span>{n}</span>; };
+  const day = (nhom: string, f: (k: string) => React.ReactNode) => <span style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
     {LOAI_LOG.filter((l) => l.nhom === nhom).map((l) => <Fragment key={l.k}>{f(l.k)}</Fragment>)}</span>;
-  const dauDay = (nhom: string) => day(nhom, (k) => { const l = LOAI_THEO_K[k]!; return <span title={l.ten} style={{ width: O_RONG, textAlign: 'right', flex: 'none', cursor: 'help' }}>{l.icon}</span>; });
   // BẤM MÃ = NGĂN KÉO tại chỗ (anh 08/11/2026 "Bấm vào thì mở ra drawer để tao ko phải sang tab mới"): camp → ngăn camp của trang; dòng / creative → ngăn Sản xuất của phim
   const moNgan = (e: HangLog): (() => void) | null => { const ma = LOAI_THEO_K[e[1]]?.ma;
     if (ma === 'camp' && e[2] != null) return () => moCamp(e[2]!);
@@ -87,7 +87,7 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
     { key: 'thu', header: 'Thu', cell: (x) => x.coTien ? <KeToan v={x.thu} /> : null, sortValue: (x) => x.thu, total: (r) => <KeToan v={r.reduce((a, x) => a + x.thu, 0)} /> },
     { key: 'lai', header: 'Lãi', cell: (x) => x.coTien ? <KeToan v={x.thu - x.chi} mau={mauLai(x.thu - x.chi)} /> : null, sortValue: (x) => x.thu - x.chi,
       total: (r) => { const v = r.reduce((a, x) => a + x.thu - x.chi, 0); return <KeToan v={v} mau={mauLai(v)} />; } },
-    ...NHOM_LOG.map((g): DataColumn<KhungLog> => ({ key: g.key, group: g.key, header: <span title={`${g.label}: ${LOAI_LOG.filter((l) => l.nhom === g.key).map((l) => `${l.icon} ${l.ten}`).join(' · ')}`}>{dauDay(g.key)}</span>, align: 'right',
+    ...NHOM_LOG.map((g): DataColumn<KhungLog> => ({ key: g.key, group: g.key, header: g.label, title: LOAI_LOG.filter((l) => l.nhom === g.key).map((l) => `${l.icon} ${l.ten}`).join(' · '), align: 'left',
       cell: (x) => day(g.key, (k) => oSo(k, x.dem[k], nhanKhung(x.t, gom))), total: (r) => day(g.key, (k) => oSo(k, cong(r, k), `cả ${tenKy(ky)}`)) })),
   ];
 
@@ -110,9 +110,9 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
           {x.coTien ? <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}><b style={{ color: mauLai(x.thu - x.chi) }}>{x.thu - x.chi < 0 ? '−' : ''}${Math.abs(x.thu - x.chi).toFixed(2)}</b>
             <span style={{ color: 'var(--fg-3)' }}> · chi ${x.chi.toFixed(2)} · thu ${x.thu.toFixed(2)}</span></span> : null}</div>
         {NHOM_LOG.filter((g) => g.key !== 'khac').map((g) => { const co = LOAI_LOG.filter((l) => l.nhom === g.key && (x.dem[l.k]?.length ?? 0) > 0);
-          return co.length ? <div key={g.key} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '2px 10px', marginTop: 4 }}>
+          return co.length ? <div key={g.key} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 3, marginTop: 4 }}>
             <span style={{ color: 'var(--fg-3)', width: 64, flex: 'none' }}>{g.label}</span>
-            {co.map((l) => <span key={l.k} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }} title={l.ten}>{l.icon}{oSo(l.k, x.dem[l.k], x.nhan, true)}</span>)}</div> : null; })}
+            {co.map((l) => oSo(l.k, x.dem[l.k], x.nhan))}</div> : null; })}
       </div>)}
     </div> : null}
     {du && !hep ? <DataTable rows={hang} columns={cot} groups={NHOM_LOG.map((g) => ({ ...g }))} groupHeader getRowKey={(x) => String(x.t)} persistKey="etp-logs-nhom" minWidth={0}
@@ -121,7 +121,7 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
     {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={420} noi={noi} style={{ zIndex: 2000 }}>
       <div style={{ width: 460, maxWidth: '92vw', padding: '10px 32px 10px 12px', fontSize: 12 }}>
         <div style={{ marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
-          <b style={{ fontSize: 13, color: LOAI_THEO_K[noi.v.k]?.bao ? DO : undefined }}>{LOAI_THEO_K[noi.v.k]?.icon} {LOAI_THEO_K[noi.v.k]?.ten} · {noi.v.ds.length}</b>
+          <b style={{ fontSize: 13, color: LOAI_THEO_K[noi.v.k]?.mau }}>{LOAI_THEO_K[noi.v.k]?.icon} {LOAI_THEO_K[noi.v.k]?.ten} · {noi.v.ds.length}</b>
           <span style={{ color: 'var(--fg-2)', marginLeft: 6 }}>{noi.v.nhan}</span></div>
         <ThongKe t={noi.v} />
         <div style={{ fontWeight: 600, color: 'var(--fg-2)', margin: '2px 0 6px' }}>📋 Chi tiết</div>

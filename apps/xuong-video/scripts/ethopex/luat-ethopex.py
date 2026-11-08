@@ -590,7 +590,9 @@ def _t24_dong(cid):
 # Số camp Nhà ≥ 7 ngày tuổi (so_gio_camp, 06/11/2026): 115 camp chạm → về sau 0 camp thắng (chi ≥ $5, thu > 1,2 × chi), phần chạy sau 8 giờ chi $442 · lãi −$201.
 # Mốc −80% KHÔNG dùng: 207 camp, 2 camp về sau thắng (#67656 cả đời lãi +$39). Xét ở tuổi ≥ T8_TUOI giờ (2 giờ đệm: thu ghi dồn theo đợt đồng bộ) và chỉ khi
 # ROI từ giờ đầu tới nay vẫn < T8_ROI_NAY% (thu về muộn sau cửa sổ thì tha). Camp > 48 giờ tuổi để T1 / T2. Camp ★ ROAS không áp (_bo_roas).
-T8_CUA, T8_TUOI, T8_CHI, T8_ROI, T8_ROI_NAY = 8, 10, 0.5, -95, -50
+# T8_ROI −95 → −80 (anh 08/11/2026 "Ok. Đổi đi", đo apps/etp/phan-tich/t8-mo-rong.py trên 445 camp nhà 20–31/10 chạy ≥ 72h: cắt 89 thay 50, tiết kiệm thêm
+# so với T1 $48,6 thay $30,3, 0 camp thắng bị cắt nhầm, 2 camp hoà; KHÔNG xuống −60%: bắt nhầm 1 camp thắng). Điều kiện giờ 10 (T8_ROI_NAY) giữ — #67656 −89% ở 8h, +60% ở 10h, về sau lãi +$39.
+T8_CUA, T8_TUOI, T8_CHI, T8_ROI, T8_ROI_NAY = 8, 10, 0.5, -80, -50
 tat_t8, _t8 = [], {}
 try:
     _t1_co = {int(x[0]) for x in tat1} | {int(x[0]) for x in tat2}

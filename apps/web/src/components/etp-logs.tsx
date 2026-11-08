@@ -9,7 +9,7 @@ import { KeToan, mauLai } from '@/components/etp-so';
 import { docLogs } from '@/lib/actions/etp-logs';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { khungLuc, KHUNG_TEN } from '@/lib/etp-khung';
-import { CHIEU_TK, demTk, locBo, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
+import { CHIEU_TK, demTk, locBo, tenLuat, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
 
 const U_KY = 'lgky', U_GOM = 'lggom', U_BO = 'lgbo', MAC_KY = 24, MAC_GOM = 60;
 const docUrl = (k: string, ds: readonly number[], mac: number) => {
@@ -27,8 +27,9 @@ type The = { k: string; nhan: string; ds: HangLog[] };
 // THỐNG KÊ ĐẦU THẺ (anh 08/11/2026 "hiện kiểu hover, pop + có thống kê trước khi hiện chi tiết danh sách ở dưới"): số khác nhau + hai chiều gom
 // (camp: luật · bậc — dòng: dạng · lý do — creative: dạng · tiêu chí), mỗi nhóm một thanh tỉ lệ trung tính; danh sách từng việc nằm dưới
 const TEN_MA: Record<string, string> = { camp: 'camp', dong: 'dòng', creative: 'creative' };
-function ThongKe({ t }: { t: The }) {
+function ThongKe({ t, luat }: { t: The; luat?: Record<string, string> }) {
   const l = LOAI_THEO_K[t.k]; if (!l) return null;
+  const ds = l.ma === 'camp' ? t.ds.map((e): HangLog => { const c = [...e] as HangLog; c[4] = tenLuat(e[4], luat); return c; }) : t.ds;   // mã luật trơ → tên đầy đủ
   const khac = new Set(t.ds.map((e) => e[2]).filter((x) => x != null)).size, chieu = CHIEU_TK[t.k] ?? CHIEU_TK[l.ma] ?? ['Nhóm 1', 'Nhóm 2'];
   const bang = (ten: string, ds: DemTk[]) => ds.length ? <div style={{ marginBottom: 8 }}>
     <div style={{ fontWeight: 600, color: 'var(--fg-2)', marginBottom: 3 }}>{ten}</div>
@@ -42,7 +43,7 @@ function ThongKe({ t }: { t: The }) {
       <span><b style={{ fontSize: 15 }}>{t.ds.length}</b> <span style={{ color: 'var(--fg-2)' }}>việc</span></span>
       {khac ? <span><b style={{ fontSize: 15 }}>{khac}</b> <span style={{ color: 'var(--fg-2)' }}>{TEN_MA[l.ma]} khác nhau</span></span> : null}
     </div>
-    {bang(chieu[0], demTk(t.ds, 4))}{bang(chieu[1], demTk(t.ds, 5))}
+    {bang(chieu[0], demTk(ds, 4))}{bang(chieu[1], demTk(ds, 5))}
   </div>;
 }
 export function TabLogs({ moCamp, boDs }: { moCamp: (id: number) => void; boDs: { ma: string; ten: string }[] }) {
@@ -131,23 +132,34 @@ export function TabLogs({ moCamp, boDs }: { moCamp: (id: number) => void; boDs: 
       defaultSort={[{ key: 'khung', dir: 'desc' }]} locTuDong={false} /> : null}
     {/* thẻ nổi nằm TRÊN ngăn kéo Logs (ngăn z ≥ 300; khuôn chung z 60 thì bị ngăn che, bấm mã không được) */}
     {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={420} noi={noi} style={{ zIndex: 2000 }}>
-      <div style={{ width: 460, maxWidth: '92vw', padding: '10px 32px 10px 12px', fontSize: 12 }}>
-        <div style={{ marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
-          <b style={{ fontSize: 13, color: LOAI_THEO_K[noi.v.k]?.mau }}>{LOAI_THEO_K[noi.v.k]?.icon} {LOAI_THEO_K[noi.v.k]?.ten} · {noi.v.ds.length}</b>
-          <span style={{ color: 'var(--fg-2)', marginLeft: 6 }}>{noi.v.nhan}</span></div>
-        <ThongKe t={noi.v} />
-        <div style={{ fontWeight: 600, color: 'var(--fg-2)', margin: '2px 0 6px' }}>📋 Chi tiết</div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {noi.v.ds.slice(0, 300).map((e, i) => <div key={i} style={{ lineHeight: 1.35 }}>
-            <span style={{ color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{gioVn(e[0])}</span>
-            {e[2] != null ? (() => { const mo = moNgan(e); return mo
-              ? <a role="button" onClick={() => { noi.dong(); mo(); }} title={LOAI_THEO_K[e[1]]?.ma === 'camp' ? 'mở ngăn camp' : 'mở ngăn sản xuất của phim'} style={{ marginLeft: 6, fontWeight: 700, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{maCua(e[1], e[2])}</a>
-              : <b style={{ marginLeft: 6 }}>{maCua(e[1], e[2])}</b>; })() : null}
-            {e[6] ? <a role="button" onClick={() => { noi.dong(); openEntityDrawer('etp-phim', e[6]!); }} title="mở ngăn phim" style={{ marginLeft: 6, cursor: 'pointer', color: 'var(--fg-2)' }}>🎬 phim</a> : null}
-            {e[3] ? <div style={{ color: 'var(--fg-2)', wordBreak: 'break-word' }}>{e[3]}</div> : null}</div>)}
-          {noi.v.ds.length > 300 ? <div style={{ color: 'var(--fg-3)' }}>… còn {noi.v.ds.length - 300} việc — chọn khung gom nhỏ hơn để xem hết</div> : null}
+      {/* THẺ NỔI GIẢI THÍCH (anh 08/11/2026 "mày phải giải thích chi tiết khi hover vào" · "trình bày như đầu buồi"): đầu thẻ = câu giải thích loại việc;
+          thống kê gom theo luật / lệnh đầy đủ (bỏ ngày, mã luật dịch ra tên); mỗi việc chia ô: giờ · mã · thay đổi · ai làm / tên camp / lý do (giống việc trên thì không lặp) */}
+      {(() => { const v = noi.v!, l = LOAI_THEO_K[v.k]; return <div style={{ width: 480, maxWidth: '92vw', padding: '10px 32px 10px 12px', fontSize: 12 }}>
+        <div style={{ marginBottom: 6 }}>
+          <b style={{ fontSize: 14, color: l?.mau }}>{l?.icon} {l?.ten} · {v.ds.length}</b>
+          <span style={{ color: 'var(--fg-2)', marginLeft: 6 }}>{v.nhan}</span></div>
+        {l?.giai ? <div style={{ color: 'var(--fg-1)', lineHeight: 1.45, padding: '6px 8px', borderRadius: 6, background: `${l.mau}14`, borderLeft: `3px solid ${l.mau}`, marginBottom: 10 }}>{l.giai}</div> : null}
+        <ThongKe t={v} luat={du?.luat} />
+        <div style={{ fontWeight: 600, color: 'var(--fg-2)', margin: '2px 0 4px' }}>📋 Từng việc</div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          {v.ds.slice(0, 300).map((e, i) => { const mo = e[2] != null ? moNgan(e) : null, lyTruoc = i > 0 ? v.ds[i - 1]![3] : null;
+            return <div key={i} style={{ padding: '6px 0', borderTop: i ? '1px solid var(--line)' : undefined, lineHeight: 1.4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{gioVn(e[0])}</span>
+                {e[2] != null ? (mo
+                  ? <a role="button" onClick={() => { noi.dong(); mo(); }} title={l?.ma === 'camp' ? 'mở ngăn camp' : 'mở ngăn sản xuất của phim'} style={{ fontWeight: 700, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{maCua(e[1], e[2])}</a>
+                  : <b>{maCua(e[1], e[2])}</b>) : null}
+                {e[9] ? <span style={{ padding: '0 6px', borderRadius: 10, color: l?.mau, background: `${l?.mau}1f`, border: `1px solid ${l?.mau}55`, fontWeight: 600, whiteSpace: 'nowrap' }}>{e[9]}</span> : null}
+                {e[7] ? <span style={{ color: 'var(--fg-3)' }}>bộ {e[7]}</span> : null}
+                {e[10] ? <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>· {e[10]}</span> : null}
+                {e[6] ? <a role="button" onClick={() => { noi.dong(); openEntityDrawer('etp-phim', e[6]!); }} title="mở ngăn phim" style={{ marginLeft: 'auto', cursor: 'pointer', color: 'var(--fg-2)' }}>🎬 phim</a> : null}
+              </div>
+              {e[8] ? <div style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e[8]}>{e[8]}</div> : null}
+              {e[3] && e[3] !== lyTruoc ? <div style={{ color: 'var(--fg-2)', wordBreak: 'break-word' }}><span style={{ color: 'var(--fg-3)' }}>Lý do: </span>{e[3]}</div> : null}
+            </div>; })}
+          {v.ds.length > 300 ? <div style={{ color: 'var(--fg-3)', paddingTop: 6 }}>… còn {v.ds.length - 300} việc — chọn khung gom nhỏ hơn để xem hết</div> : null}
         </div>
-      </div>
+      </div>; })()}
     </KhungNoi> : null}
   </div>;
 }

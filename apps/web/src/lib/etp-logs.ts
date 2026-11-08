@@ -1,7 +1,8 @@
 // LOGS etp — loại sự kiện + gom theo khung (một chỗ cho trang components/etp-logs.tsx và bài tự kiểm etp-logs.test.mts). Máy chủ: lib/actions/etp-logs docLogs.
 /** một sự kiện: [giây epoch, loại, mã (camp / dòng / creative), chữ, nhóm thống kê 1, nhóm thống kê 2, mã phim]
  *  nhóm 1: camp = luật · dòng / creative / chấm / duyệt = dạng · lệnh lỗi = câu lỗi; nhóm 2: tăng / giảm = bậc $a → $b · tắt = ngân sách lúc tắt · chấm trượt = tiêu chí chặn · duyệt = người duyệt */
-export type HangLog = [number, string, number | null, string, string, string, (number | null)?, (string | null)?];   // [6] = mã phim (content_id) — mở ngăn phim / ngăn sản xuất · [7] = bộ tài khoản (null = chưa gắn camp)
+export type HangLog = [number, string, number | null, string, string, string, (number | null)?, (string | null)?, string?, string?, string?];
+// [3] lý do / nội dung (bỏ tiền tố ngày) · [6] mã phim (mở ngăn phim / sản xuất) · [7] bộ tài khoản (null = chưa gắn camp) · [8] tên camp / phim · [9] thay đổi ($3 → $1, bộ 2 → bộ 1, dạng) · [10] ai làm (máy / lệnh anh / người duyệt)
 /** tên hai chiều thống kê theo loại (đầu thẻ nổi) */
 export const CHIEU_TK: Record<string, [string, string]> = { camp: ['Theo luật', 'Theo bậc'], dong: ['Theo dạng', 'Theo bước · lý do'], creative: ['Theo dạng', 'Theo tiêu chí'],
   dm: ['Theo dạng', 'Theo nguồn'], sx: ['Theo dạng', 'Theo bước'], ct: ['Theo dạng', 'Theo tiêu chí chặn'], dq: ['Theo dạng', 'Theo người duyệt'], dlt: ['Theo dạng', 'Theo người duyệt'],
@@ -16,10 +17,10 @@ export function demTk(ds: HangLog[], cot: 4 | 5, toiDa = 8): DemTk[] {
 }
 /** chi / thu một giờ × bộ của nhà: [giây epoch đầu giờ, chi, thu, bộ] */
 export type HangGio = [number, number, number, (string | null)?];   // [3] = bộ tài khoản
-export type DuLogs = { gio: number; den: number; ev: HangLog[]; tien: HangGio[] };
+export type DuLogs = { gio: number; den: number; ev: HangLog[]; tien: HangGio[]; luat?: Record<string, string> };   // luat: mã luật thường → tên đầy đủ (etp.xet_luat)
 
 /** nhom = nhóm cột bảng (DataTable group; 'khac' tắt mặc định — bật ở ⚙ Cột) · ma = mã sự kiện trỏ tới gì · mau = màu nhãn icon + số (anh 08/11/2026 "nhìn toàn số đéo hiểu ngay… dùng icon + màu sắc cho rõ ràng": mỗi số mang icon + màu của loại, khỏi dò cột) — xanh = mở / tăng / qua, đỏ = tắt / lỗi / loại, cam = giảm / dừng · bao = lỗi cần liếc thấy */
-export type LoaiLog = { k: string; icon: string; ten: string; nhom: 'camp' | 'sx' | 'cham' | 'khac'; ma: 'camp' | 'dong' | 'creative'; mau: string; ngan: string; bao?: boolean };   // ngan = tên ngắn ở tiêu đề cột
+export type LoaiLog = { k: string; icon: string; ten: string; nhom: 'camp' | 'sx' | 'cham' | 'khac'; ma: 'camp' | 'dong' | 'creative'; mau: string; ngan: string; giai?: string; bao?: boolean };   // giai = câu giải thích loại việc (đầu thẻ nổi)   // ngan = tên ngắn ở tiêu đề cột
 export const NHOM_LOG = [
   { key: 'camp', label: 'Camp', title: 'việc máy làm trên camp nhà: mở, nhân bản, tắt, tăng / giảm bậc, lên ROAS, sang bộ' },
   { key: 'sx', label: 'Sản xuất', title: 'dòng sản xuất creative: dòng mới, creative dựng xong, dòng xong / dừng / lỗi' },
@@ -94,3 +95,11 @@ export function locBo(du: DuLogs, bo: string): DuLogs & { chuaBo: number } {
   if (!bo) return { ...du, chuaBo: 0 };
   return { ...du, ev: du.ev.filter((e) => e[7] === bo), tien: du.tien.filter((x) => x[3] === bo), chuaBo: du.ev.filter((e) => e[7] == null).length };
 }
+
+/** mã luật chưa có trong sổ xét luật (etp.xet_luat) — tên lấy từ mô tả của chính máy luật (apps/xuong-video/scripts/ethopex/luat-ethopex.py) */
+const LUAT_THEM: Record<string, string> = { h2: 'H2 · tăng bậc rồi lỗ 2 ngày đã khép → về $1' };
+/** nhóm thống kê 1 của việc camp: mã luật trơ ("T1", "H2") → tên đầy đủ; chữ thường giữ nguyên */
+export const tenLuat = (n1: string, so?: Record<string, string>) => (/^[A-Z]+[0-9]*$/.test(n1) ? so?.[n1.toLowerCase()] ?? LUAT_THEM[n1.toLowerCase()] ?? n1 : n1);
+
+const GIAI: Record<string, string> = {"mo": "Tạo camp mới trên Ethopex cho một creative đã qua cổng chấm. Camp mới chạy theo lịch lên (07–12h VN; ngoài giờ đó hẹn 07:00 hôm sau).", "nb": "Nhân bản một camp đang thắng thành camp mới cùng creative, cùng bộ tài khoản, để mở rộng chi.", "tat": "Tắt camp theo luật tắt của máy (T1 lỗ ngày đầu, T2 lỗ 2 ngày đầu, T8 cắt sớm 8 giờ đầu, L3 lỗ 3 ngày liền, G10…) hoặc theo lệnh anh.", "tang": "Tăng ngân sách camp lên bậc kế trên thang $1 → 2 → 3 → 4 → 6 → 9 → 13 → 20 (mỗi bậc ≤ ×1,5) khi đủ điều kiện tăng, hoặc theo A/B.", "giam": "Hạ ngân sách camp xuống bậc dưới khi lỗ (H2: tăng rồi lỗ 2 ngày → về $1, giảm trong ngày…) hoặc theo lệnh anh.", "roas": "Lên camp ★ ROAS (đặt mức ROAS tối thiểu) từ camp đủ lãi, hoặc nhân thêm camp ROAS trong A/B.", "sb": "Nhân camp sang BỘ TÀI KHOẢN KHÁC: tạo camp mới ở bộ đích với cùng creative; camp gốc ở bộ cũ giữ nguyên, không bị tắt.", "dtc": "Người duyệt bấm trên trang hoặc Telegram cho một creative: duyệt chạy tiếp, loại, đổi sang ảnh tĩnh…", "loi": "Lệnh gửi Ethopex bị từ chối hoặc gửi rồi mà không đổi (vượt trần $/camp, camp đang tắt…). Lý do ở từng dòng.", "dm": "Máy mở một dòng sản xuất creative mới cho phim (theo lộ trình tự động, ưu tiên ảnh tĩnh, hoặc lệnh anh).", "sx": "Một bước dựng (creative / poster) của dòng sản xuất đã xong — có creative mới chờ chấm.", "dx": "Dòng sản xuất chạy hết các bước và đã tạo camp.", "dd": "Dòng sản xuất dừng giữa chừng (không lên được camp, dòng bị gác…). Lý do ở từng dòng.", "dl": "Một bước của dòng sản xuất bị lỗi (tải phim, cắt, dựng, đưa lên Ethopex…).", "cq": "Creative qua cổng chấm: không tiêu chí Meta / Google nào ≤ 4 điểm — được phép lên camp.", "ct": "Creative bị cổng chấm chặn: có tiêu chí ≤ 4 điểm. Chờ máy cứu (cắt khung vi phạm) hoặc người duyệt.", "dq": "Người duyệt cho qua creative mà máy chấm chặn — quyết định của người duyệt thắng điểm máy.", "dlt": "Người duyệt loại creative — không lên camp.", "lt": "Máy lộ trình xếp việc sản xuất cho phim (thử dạng nào, đang sản xuất bao nhiêu…).", "khac": "Việc khác máy ghi vào nhật ký.", "dh": "Dòng sản xuất bị huỷ (thường vì phim đã có dòng cùng loại đang chạy)."};
+for (const l of LOAI_LOG) l.giai = GIAI[l.k];

@@ -535,7 +535,7 @@ def main(a):
             else: kq["bo_qua"] = True
         if ly: raise ChanLuat(ly)
         kq["phim_dang_chay"] = n
-        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay)
+        ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, lenh_anh=ep)
         if ly: raise ChanLuat(ly)
         tn = ab_lay(kq, pl, lich, goc, moi, cr=ad0["creative_id"])   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026)
         if not that:

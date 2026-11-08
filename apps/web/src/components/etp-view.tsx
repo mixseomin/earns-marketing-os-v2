@@ -2788,6 +2788,23 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
   // hàng lọc camp hiện ở mọi trang TAB_LOC_CAMP (Camp: trừ Lịch giờ / Lên bậc — hai kiểu xem đó không theo tập camp) · ô TK là một ô của hàng lọc (urlCua bỏ ?b= ngoài các trang này)
   const hienLoc = TAB_LOC_CAMP.includes(tab) && !(tab === 'camp' && xemCamp === 'lich'), coBo = hienLoc && locCoTab(tab, 'bo');
   // các ô lọc phụ theo thứ tự cố định, chỉ ô trang này áp (LOC_TAB)
+  // Ô "Lọc" (trạng thái / luật / ngưỡng) — hàm dựng để dùng ở hàng lọc trang VÀ ngăn Logs (anh 08/11/2026 "Dùng bộ lọc này cho đầy đủ")
+  const locSel = () => (() => { const dem: Record<string, number> = { all: du.camps.length, chay: du.camps.filter(dangChay).length, cho: du.camps.filter(choGio).length,   /* trạng thái đếm trên CẢ kho như 'tat' — đếm trên tập đã lọc thì 'Chờ giờ chạy' luôn 0 khi đang lọc Đang chạy (anh 05/11/2026) */ tat: du.camps.filter(daTat).length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), mlai: [...moiMap.values()].filter((v) => v === 'mlai').length, mlo: [...moiMap.values()].filter((v) => v === 'mlo').length, sx: du.camps.filter((c) => phimSx.has(c.content_id ?? -1)).length, ...Object.fromEntries((['tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran'] as const).map((k) => [k, du.camps.filter((c) => mucTieu(c) === k).length])), chua_tieu: du.camps.filter(chuaTieu).length, cung: du.camps.filter((c) => c.cung_doan > tranT).length, roas: roasDat.size, luat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
+        const m = (value: keyof typeof LOC_NHOM, label: string, title?: string): Chon2Muc => ({ value, label, nhom: LOC_NHOM[value], dem: dem[value], title });
+        return <Chon2 chan={chanLoc.loc} value={loc} onChange={doiLoc} nhieu tatCa="all" nhan="Lọc" anRong title="lọc camp theo trạng thái / luật / ngưỡng — chọn được nhiều mục: cùng nhóm = khớp một trong các mục, khác nhóm = phải thoả mọi nhóm" options={[
+          { value: 'all', label: 'Tất cả', dem: dem.all },   // "Tất cả" luôn đứng ĐẦU, cùng chữ với mọi ô lọc (anh 27/10/2026)
+          m('chay', 'Đang chạy'), m('cho', 'Chờ giờ chạy'), m('tat', 'Đã tắt'),
+          m('luat', '⚑ Chạm luật', 'luật đang xếp làm ở nhịp này'), m('ganluat', '◌ Sắp chạm luật'),
+          m('gtang', '⇡ Gần tăng'), m('gtat', '✕ Gần tắt'),
+          m('mlai', '▲ Mới lãi', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lãi — ứng viên dồn tiền'), m('mlo', '▼ Mới lỗ', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lỗ'),
+          m('chua_tieu', '∅ Chưa từng tiêu', 'camp đang chạy, tạo trong tháng này, chưa tiêu đồng nào từ lúc tạo'),
+          m('tieu0', '○ Hôm nay chưa tiêu', 'camp đang chạy, chi hôm nay $0 (ngày Ethopex từ 07:00 VN)'),
+          m('tieu25', '◔ Tiêu < 25% NS', 'chi hôm nay dưới 25% ngân sách ngày'),
+          m('tieu50', '◑ Tiêu 25–50% NS', 'chi hôm nay 25–50% ngân sách ngày'),
+          m('tieu90', `◕ Tiêu 50–${Math.round(KD.nap_chi * 100)}% NS`, `chi hôm nay 50–${Math.round(KD.nap_chi * 100)}% ngân sách ngày`),
+          m('tran', `● Tiêu kịch trần (≥ ${Math.round(KD.nap_chi * 100)}% NS)`, `camp đang chạy đã tiêu ≥ ${Math.round(KD.nap_chi * 100)}% ngân sách ngày hôm nay — cùng ngưỡng nap_chi máy xét tăng / nạp`),
+          m('sx', '⚙ Phim đang sản xuất', 'mọi camp (mọi trạng thái) của phim đang sản xuất creative: dòng phim đang chạy · máy sinh đang làm / sẵn sàng · creative tạo ≤ 3 ngày chưa lên camp (chờ chấm, chờ nhịp lên) — cùng định nghĩa cột Sản xuất tab Phim'),
+          m('cung', `Đoạn > ${tranT} camp`), m('roas', '★ Đủ bid ROAS')]} />; })();
   const oLoc = () => <>{([['lai', laiSel], ['tuoi', tuoiSel], ['luat', luatSel], ['dang', dangSel], ['ro', roSel], ['ab', abSel]] as const).map(([k, f]) => (locCoTab(tab, k) ? <Fragment key={k}>{f()}</Fragment> : null))}</>;
   const kySel = () => <ChonKhoang tu={khK.tu} den={khK.den} ma={kh.includes('~') ? null : kh} homNay={du.nay} mocThem={[{ ma: 'tat_ca', nhan: 'All time' }]} title="kỳ số liệu (ngày Ethopex 07:00–07:00 VN)" onDoi={(v) => setKh('ma' in v ? v.ma : `${v.tu}~${v.den}`)} />;
   // ĐIỆN THOẠI CHỈ 1–2 DÒNG DÍNH (anh 01/11/2026 "trên mobile chỉ 1-2 dòng sticky trên top thôi" — đo: 5 hàng dính, 168px / 844): hàng tab · kỳ · kiểu xem · Lọc
@@ -2821,22 +2838,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
               background: xemCr === v ? 'var(--accent-soft, rgba(59,130,246,.25))' : 'transparent', fontWeight: xemCr === v ? 600 : 400 }}>{nhan}</button>))}
         </span>) : null}
       {hienLoc && (!gon || moLoc) ? <div style={gon ? { display: 'flex', flexDirection: 'column', gap: 6, width: '100%' } : { display: 'contents' }}>
-      {locCoTab(tab, 'loc') ? (() => { const dem: Record<string, number> = { all: du.camps.length, chay: du.camps.filter(dangChay).length, cho: du.camps.filter(choGio).length,   /* trạng thái đếm trên CẢ kho như 'tat' — đếm trên tập đã lọc thì 'Chờ giờ chạy' luôn 0 khi đang lọc Đang chạy (anh 05/11/2026) */ tat: du.camps.filter(daTat).length, gtang: demGan('tang'), ggiam: demGan('giam'), gtat: demGan('tat'), mlai: [...moiMap.values()].filter((v) => v === 'mlai').length, mlo: [...moiMap.values()].filter((v) => v === 'mlo').length, sx: du.camps.filter((c) => phimSx.has(c.content_id ?? -1)).length, ...Object.fromEntries((['tieu0', 'tieu25', 'tieu50', 'tieu90', 'tran'] as const).map((k) => [k, du.camps.filter((c) => mucTieu(c) === k).length])), chua_tieu: du.camps.filter(chuaTieu).length, cung: du.camps.filter((c) => c.cung_doan > tranT).length, roas: roasDat.size, luat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'dang')).length, ganluat: du.camps.filter((c) => (baoCampBang.get(c.camp_id) ?? []).some((b) => LUAT_NHAN[b.nhom]?.[3] === 'gan')).length };
-        const m = (value: keyof typeof LOC_NHOM, label: string, title?: string): Chon2Muc => ({ value, label, nhom: LOC_NHOM[value], dem: dem[value], title });
-        return <Chon2 chan={chanLoc.loc} value={loc} onChange={doiLoc} nhieu tatCa="all" nhan="Lọc" anRong title="lọc camp theo trạng thái / luật / ngưỡng — chọn được nhiều mục: cùng nhóm = khớp một trong các mục, khác nhóm = phải thoả mọi nhóm" options={[
-          { value: 'all', label: 'Tất cả', dem: dem.all },   // "Tất cả" luôn đứng ĐẦU, cùng chữ với mọi ô lọc (anh 27/10/2026)
-          m('chay', 'Đang chạy'), m('cho', 'Chờ giờ chạy'), m('tat', 'Đã tắt'),
-          m('luat', '⚑ Chạm luật', 'luật đang xếp làm ở nhịp này'), m('ganluat', '◌ Sắp chạm luật'),
-          m('gtang', '⇡ Gần tăng'), m('gtat', '✕ Gần tắt'),
-          m('mlai', '▲ Mới lãi', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lãi — ứng viên dồn tiền'), m('mlo', '▼ Mới lỗ', 'camp đang chạy < 7 ngày, ≥ 2 trong 3 ngày đã khép gần nhất có chi và ngày nào có chi cũng lỗ'),
-          m('chua_tieu', '∅ Chưa từng tiêu', 'camp đang chạy, tạo trong tháng này, chưa tiêu đồng nào từ lúc tạo'),
-          m('tieu0', '○ Hôm nay chưa tiêu', 'camp đang chạy, chi hôm nay $0 (ngày Ethopex từ 07:00 VN)'),
-          m('tieu25', '◔ Tiêu < 25% NS', 'chi hôm nay dưới 25% ngân sách ngày'),
-          m('tieu50', '◑ Tiêu 25–50% NS', 'chi hôm nay 25–50% ngân sách ngày'),
-          m('tieu90', `◕ Tiêu 50–${Math.round(KD.nap_chi * 100)}% NS`, `chi hôm nay 50–${Math.round(KD.nap_chi * 100)}% ngân sách ngày`),
-          m('tran', `● Tiêu kịch trần (≥ ${Math.round(KD.nap_chi * 100)}% NS)`, `camp đang chạy đã tiêu ≥ ${Math.round(KD.nap_chi * 100)}% ngân sách ngày hôm nay — cùng ngưỡng nap_chi máy xét tăng / nạp`),
-          m('sx', '⚙ Phim đang sản xuất', 'mọi camp (mọi trạng thái) của phim đang sản xuất creative: dòng phim đang chạy · máy sinh đang làm / sẵn sàng · creative tạo ≤ 3 ngày chưa lên camp (chờ chấm, chờ nhịp lên) — cùng định nghĩa cột Sản xuất tab Phim'),
-          m('cung', `Đoạn > ${tranT} camp`), m('roas', '★ Đủ bid ROAS')]} />; })() : null}
+      {locCoTab(tab, 'loc') ? locSel() : null}
       {gon ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }} className="etp-loc3">
         <style>{'.etp-loc3 select{width:100%;min-width:0}'}</style>
         {oLoc()}{boSel()}</div> : null}
@@ -2988,7 +2990,8 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
         </Drawer>; })() : null}
       {moLogs ? <Drawer onClose={() => datLogs(false)} width={1400} padding={0}>
         <div className="modal-head"><div><div className="id-line">nhật ký máy nhà</div><h2 style={{ margin: 0 }}>📜 Logs</h2></div><button className="modal-close" onClick={() => datLogs(false)}>✕</button></div>
-        <div style={{ padding: 12 }}><TabLogs moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} boDs={boCo.map((b) => ({ ma: b, ten: du.boTk[b]?.ten ?? `Bộ ${b}` }))} /></div>
+        <div style={{ padding: 12 }}><TabLogs moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })}
+          hangLoc={<>{locSel()}{oLoc()}{boSel()}</>} campIds={camps.length === du.camps.length ? null : camps.map((c) => c.camp_id)} /></div>
       </Drawer> : null}
       {nganCamp ? (() => { const c = du.camps.find((x) => x.camp_id === nganCamp); const dong = () => doi({ ngan: '' }, () => setNganCamp(null));
         const r = c?.creative_id ? crAnh.get(c.creative_id) : undefined, ch = c?.creative_id ? du.cham[c.creative_id] : undefined;

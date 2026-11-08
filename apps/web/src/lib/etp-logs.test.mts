@@ -23,7 +23,7 @@ import { demTk } from './etp-logs';
 { const d: HangLog[] = [[1, 'tat', 1, '', 'T1', '$1'], [2, 'tat', 2, '', 'T1', '$3'], [3, 'tat', 3, '', 'T8', ''], [4, 'tat', 4, '', '', '']];
   const r = demTk(d, 4); assert.deepEqual(r, [{ ten: 'T1', n: 2 }, { ten: 'T8', n: 1 }]); assert.equal(demTk(d, 5).length, 2);
   console.log('demTk: ok'); }
-import { locBo } from './etp-logs';
-{ const du = { gio: 1, den: 0, ev: [[1, 'tat', 1, '', '', '', 9, '1'], [2, 'cq', 5, '', '', '', 9, null], [3, 'mo', 2, '', '', '', 9, '2']] as HangLog[], tien: [[0, 1, 2, '1'], [0, 3, 4, '2']] as [number, number, number, string][] };
-  const r = locBo(du, '1'); assert.equal(r.ev.length, 1); assert.equal(r.tien.length, 1); assert.equal(r.chuaBo, 1); assert.equal(locBo(du, '').ev.length, 3);
-  console.log('locBo: ok'); }
+import { locCamp } from './etp-logs';
+{ const du = { gio: 1, den: 0, ev: [[1, 'tat', 1, '', '', '', 9, '1', '', '', '', 1], [2, 'cq', 5, '', '', '', 9, null, '', '', '', null], [3, 'mo', 2, '', '', '', 9, '2', '', '', '', 2]] as HangLog[], tien: [] };
+  const r = locCamp(du, [1]); assert.equal(r.ev.length, 1); assert.equal(r.chuaCamp, 1); assert.equal(locCamp(du, null).ev.length, 3);
+  console.log('locCamp: ok'); }

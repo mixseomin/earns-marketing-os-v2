@@ -1,8 +1,8 @@
 // LOGS etp — loại sự kiện + gom theo khung (một chỗ cho trang components/etp-logs.tsx và bài tự kiểm etp-logs.test.mts). Máy chủ: lib/actions/etp-logs docLogs.
 /** một sự kiện: [giây epoch, loại, mã (camp / dòng / creative), chữ, nhóm thống kê 1, nhóm thống kê 2, mã phim]
  *  nhóm 1: camp = luật · dòng / creative / chấm / duyệt = dạng · lệnh lỗi = câu lỗi; nhóm 2: tăng / giảm = bậc $a → $b · tắt = ngân sách lúc tắt · chấm trượt = tiêu chí chặn · duyệt = người duyệt */
-export type HangLog = [number, string, number | null, string, string, string, (number | null)?, (string | null)?, string?, string?, string?];
-// [3] lý do / nội dung (bỏ tiền tố ngày) · [6] mã phim (mở ngăn phim / sản xuất) · [7] bộ tài khoản (null = chưa gắn camp) · [8] tên camp / phim · [9] thay đổi ($3 → $1, bộ 2 → bộ 1, dạng) · [10] ai làm (máy / lệnh anh / người duyệt)
+export type HangLog = [number, string, number | null, string, string, string, (number | null)?, (string | null)?, string?, string?, string?, (number | null)?];
+// [3] lý do / nội dung (bỏ tiền tố ngày) · [6] mã phim (mở ngăn phim / sản xuất) · [7] bộ tài khoản (null = chưa gắn camp) · [8] tên camp / phim · [9] thay đổi ($3 → $1, bộ 2 → bộ 1, dạng) · [10] ai làm (máy / lệnh anh / người duyệt) · [11] camp liên quan (dòng: camp đã lên · creative: camp dùng creative) — lọc theo bộ lọc camp
 /** tên hai chiều thống kê theo loại (đầu thẻ nổi) */
 export const CHIEU_TK: Record<string, [string, string]> = { camp: ['Theo luật', 'Theo bậc'], dong: ['Theo dạng', 'Theo bước · lý do'], creative: ['Theo dạng', 'Theo tiêu chí'],
   dm: ['Theo dạng', 'Theo nguồn'], sx: ['Theo dạng', 'Theo bước'], ct: ['Theo dạng', 'Theo tiêu chí chặn'], dq: ['Theo dạng', 'Theo người duyệt'], dlt: ['Theo dạng', 'Theo người duyệt'],
@@ -91,12 +91,13 @@ export function nhanKhung(t: number, phut: number): string {
 }
 export const gioVn = (t: number) => { const a = new Date((t + VN) * 1000); return `${p2(a.getUTCHours())}:${p2(a.getUTCMinutes())} ${p2(a.getUTCDate())}/${p2(a.getUTCMonth() + 1)}`; };
 
-/** LỌC BỘ TÀI KHOẢN (anh 08/11/2026 "Thêm bộ lọc theo bộ tk"): '' = mọi bộ. Việc chưa gắn camp (bộ null — chấm / duyệt / dựng trước khi lên camp) bị loại khi lọc, đếm ở `chuaBo` để trang ghi rõ */
-export function locBo(du: DuLogs, bo: string): DuLogs & { chuaBo: number } {
-  if (!bo) return { ...du, chuaBo: 0 };
-  return { ...du, ev: du.ev.filter((e) => e[7] === bo), tien: du.tien.filter((x) => x[3] === bo), chuaBo: du.ev.filter((e) => e[7] == null).length };
+/** LỌC THEO BỘ LỌC CAMP CỦA TRANG (anh 08/11/2026 "Dùng bộ lọc này cho đầy đủ" — Lọc · Lãi/lỗ · Tuổi · Luật · Loại · ROAS · A/B · TK): ids = tập camp sau lọc (null = không lọc).
+ *  Việc giữ lại khi camp liên quan [11] nằm trong tập; việc chưa gắn camp (chấm / dựng / dòng mới trước khi lên camp) bị loại khi đang lọc, đếm ở `chuaCamp`. Tiền đã lọc ở máy chủ. */
+export function locCamp(du: DuLogs, ids: number[] | null): DuLogs & { chuaCamp: number } {
+  if (!ids) return { ...du, chuaCamp: 0 };
+  const co = new Set(ids);
+  return { ...du, ev: du.ev.filter((e) => e[11] != null && co.has(e[11])), chuaCamp: du.ev.filter((e) => e[11] == null).length };
 }
-
 /** mã luật chưa có trong sổ xét luật (etp.xet_luat) — tên lấy từ mô tả của chính máy luật (apps/xuong-video/scripts/ethopex/luat-ethopex.py) */
 const LUAT_THEM: Record<string, string> = { h2: 'H2 · tăng bậc rồi lỗ 2 ngày đã khép → về $1' };
 /** nhóm thống kê 1 của việc camp: mã luật trơ ("T1", "H2") → tên đầy đủ; chữ thường giữ nguyên */

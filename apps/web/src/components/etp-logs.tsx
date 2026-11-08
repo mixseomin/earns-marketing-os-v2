@@ -9,9 +9,9 @@ import { KeToan, mauLai } from '@/components/etp-so';
 import { docLogs } from '@/lib/actions/etp-logs';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { khungLuc, KHUNG_TEN } from '@/lib/etp-khung';
-import { CHIEU_TK, demTk, locBo, tenLuat, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
+import { CHIEU_TK, demTk, locCamp, tenLuat, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
 
-const U_KY = 'lgky', U_GOM = 'lggom', U_BO = 'lgbo', MAC_KY = 24, MAC_GOM = 60;
+const U_KY = 'lgky', U_GOM = 'lggom', MAC_KY = 24, MAC_GOM = 60;
 const docUrl = (k: string, ds: readonly number[], mac: number) => {
   if (typeof window === 'undefined') return mac;
   const v = Number(new URLSearchParams(window.location.search).get(k)); return ds.includes(v) ? v : mac;
@@ -46,19 +46,20 @@ function ThongKe({ t, luat }: { t: The; luat?: Record<string, string> }) {
     {bang(chieu[0], demTk(ds, 4))}{bang(chieu[1], demTk(ds, 5))}
   </div>;
 }
-export function TabLogs({ moCamp, boDs }: { moCamp: (id: number) => void; boDs: { ma: string; ten: string }[] }) {
-  const [ky, setKy] = useState(MAC_KY), [gom, setGom] = useState(MAC_GOM), [bo, setBo] = useState('');
-  useEffect(() => { setKy(docUrl(U_KY, KY_GIO, MAC_KY)); setGom(docUrl(U_GOM, KHUNG_PHUT, MAC_GOM)); setBo(new URLSearchParams(window.location.search).get(U_BO) ?? ''); }, []);
-  const doiBo = (v: string) => { setBo(v); const u = new URL(window.location.href); if (v) u.searchParams.set(U_BO, v); else u.searchParams.delete(U_BO); window.history.replaceState(null, '', u.toString()); };
+// hangLoc = HÀNG LỌC CAMP của trang (Lọc · Lãi/lỗ · Tuổi · Luật · Loại · ROAS · A/B · TK — etp-view dựng, cùng state + URL với trang) · campIds = tập camp sau lọc (null = không lọc)
+export function TabLogs({ moCamp, hangLoc, campIds }: { moCamp: (id: number) => void; hangLoc: React.ReactNode; campIds: number[] | null }) {
+  const [ky, setKy] = useState(MAC_KY), [gom, setGom] = useState(MAC_GOM);
+  useEffect(() => { setKy(docUrl(U_KY, KY_GIO, MAC_KY)); setGom(docUrl(U_GOM, KHUNG_PHUT, MAC_GOM)); }, []);
+  const khoaIds = campIds == null ? '' : [...campIds].sort((a, b) => a - b).join(',');   // đổi bộ lọc → tải lại tiền đúng tập camp (mảng mới mỗi lần dựng nên so theo chuỗi)
   const [du, setDu] = useState<DuLogs | null>(null), [loi, setLoi] = useState<string | null>(null), [dangTai, setDangTai] = useState(false);
-  const tai = useCallback(async (h: number) => {
+  const tai = useCallback(async (h: number, ids: number[] | null) => {
     setDangTai(true);
-    try { const r = await docLogs(h); if ('loi' in r) setLoi(r.loi); else { setDu(r); setLoi(null); } }
+    try { const r = await docLogs(h, ids); if ('loi' in r) setLoi(r.loi); else { setDu(r); setLoi(null); } }
     catch (e) { setLoi(`không tải được nhật ký: ${String((e as Error)?.message ?? e).slice(0, 160)}`); }
     finally { setDangTai(false); }
   }, []);
-  useEffect(() => { void tai(ky); const id = window.setInterval(() => void tai(ky), 60_000); return () => window.clearInterval(id); }, [ky, tai]);
-  const loc = useMemo(() => (du ? locBo(du, bo) : null), [du, bo]);
+  useEffect(() => { const ids = khoaIds ? khoaIds.split(',').map(Number) : null; void tai(ky, ids); const id = window.setInterval(() => void tai(ky, ids), 60_000); return () => window.clearInterval(id); }, [ky, khoaIds, tai]);
+  const loc = useMemo(() => (du ? locCamp(du, campIds) : null), [du, khoaIds]);   // eslint-disable-line react-hooks/exhaustive-deps
   const hang = useMemo(() => (loc ? gomLogs(loc, gom) : []), [loc, gom]);
 
   // KHỔ HẸP (điện thoại): bảng 7 cột không vừa 390px → mỗi khung một THẺ (giờ + lãi, rồi mỗi nhóm một hàng ô icon + số) — cùng dữ liệu, cùng thẻ nổi khi bấm
@@ -102,21 +103,20 @@ export function TabLogs({ moCamp, boDs }: { moCamp: (id: number) => void; boDs: 
   ];
 
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>{hangLoc}</div>
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, fontSize: 12 }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ color: 'var(--fg-2)' }}>📅 Kỳ</span>
         <Segmented options={KY_GIO.map((h) => ({ value: h, label: tenKy(h) }))} value={ky} onChange={(v) => { setKy(v); ghiUrl(U_KY, v, MAC_KY); }} /></span>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ color: 'var(--fg-2)' }}>🧮 Gom theo</span>
         <Segmented options={KHUNG_PHUT.map((p) => ({ value: p, label: tenKhung(p) }))} value={gom} onChange={(v) => { setGom(v); ghiUrl(U_GOM, v, MAC_GOM); }} /></span>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><span style={{ color: 'var(--fg-2)' }}>🗂 Bộ TK</span>
-        <Segmented options={[{ value: '', label: 'Mọi bộ' }, ...boDs.map((b) => ({ value: b.ma, label: `Bộ ${b.ma}`, title: b.ten }))]} value={bo} onChange={doiBo} /></span>
-      <button type="button" onClick={() => void tai(ky)} disabled={dangTai} style={{ fontSize: 12, padding: '2px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: dangTai ? 'wait' : 'pointer' }}>
+      <button type="button" onClick={() => void tai(ky, khoaIds ? khoaIds.split(',').map(Number) : null)} disabled={dangTai} style={{ fontSize: 12, padding: '2px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'transparent', color: 'inherit', cursor: dangTai ? 'wait' : 'pointer' }}>
         {dangTai ? '⏳ Đang tải…' : '↻ Tải lại'}</button>
       {du ? <span style={{ color: 'var(--fg-3)' }} title="tự tải lại mỗi phút">cập nhật {gioVn(du.den)}</span> : null}
       {(() => { const cho = (loc?.ev ?? []).filter((e) => e[1] === 'cho'); const l = LOAI_THEO_K.cho!;
         return cho.length ? <span role="button" tabIndex={0} onClick={(e) => noi.moNgay({ k: 'cho', nhan: 'đang chờ', ds: cho }, e)} onMouseEnter={(e) => noi.mo({ k: 'cho', nhan: 'đang chờ', ds: cho }, e)} onMouseLeave={noi.dongTre}
           title="camp đã lên, chưa tới giờ hẹn — bấm xem từng camp" style={{ cursor: 'pointer', padding: '1px 8px', borderRadius: 10, color: l.mau, background: `${l.mau}1f`, border: `1px solid ${l.mau}55`, fontWeight: 600 }}>
           ⏳ {cho.length} camp đã lên đang chờ chạy</span> : null; })()}
-      {loc?.chuaBo ? <span style={{ color: 'var(--fg-3)' }} title="chấm / duyệt / dựng creative, dòng mới… xảy ra trước khi lên camp nên chưa thuộc bộ nào">· {loc.chuaBo} việc chưa gắn camp không tính trong Bộ {bo}</span> : null}
+      {loc?.chuaCamp ? <span style={{ color: 'var(--fg-3)' }} title="chấm / duyệt / dựng creative, dòng mới… xảy ra trước khi lên camp nên không thuộc camp nào — bỏ ra khi đang lọc camp">· đang lọc {campIds?.length} camp · {loc.chuaCamp} việc chưa gắn camp không tính</span> : null}
     </div>
     {loi ? <div style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${DO}`, color: DO, fontSize: 12 }}>⛔ {loi}</div> : null}
     {!du && !loi ? <div style={{ padding: 16, color: 'var(--fg-2)', fontSize: 12 }}>⏳ Đang tải nhật ký…</div> : null}

@@ -122,6 +122,22 @@ def xep_at(q, ma="AT"):
         group by c.content_id order by (select coalesce(sum(s.thu - s.chi), 0) from (select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay s join etp.camp k using (camp_id) union all select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay_ngoai s join etp.camp_ngoai k using (camp_id)) s where s.content_id = c.content_id and s.ngay >= current_date - 3) desc, count(*) desc limit {HANG.get(ma, AT_HANG) - con} on conflict do nothing returning id""")
     return len([l for l in (r or "").splitlines() if l.strip()])
 
+def xep_bu(q):
+    """BÙ CAMP (anh 09/11/2026, mo_rong.tinh_bu ghi etp.cau_hinh.bu_camp): mỗi phim cần bù chưa có dòng bù đang chạy → một dòng PO đúng k camp
+    (dong_phim không ép 3 bản cho dòng bù: dùng creative sạch có sẵn trước, thiếu mới dựng). Dạng gác (gac_dang) thì không xếp dạng đó."""
+    if "PO" in GAC: return 0
+    bu = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'bu_camp'), '{}')") or "{}")
+    n = 0
+    for cid, v in bu.items():
+        if cid.startswith("_") or int(v.get("k") or 0) <= 0: continue
+        r = q(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp)
+            select f.content_id, f.ten, f.the_loai, 'PO', 'máy: bù camp (anh 09/11/2026) — 24 giờ qua tắt {int(v.get("tat") or 0)} · giảm ${int(v.get("giam") or 0)} · đã tạo {int(v.get("tao") or 0)}', {int(v["k"])}
+            from etp.phim f where f.content_id = {int(cid)}
+              and not exists (select 1 from etp.dong_phim d where d.content_id = f.content_id and d.loai = 'PO' and d.trang_thai = 'chay')
+            on conflict do nothing returning id""")
+        n += len([l for l in (r or "").splitlines() if l.strip()])
+    return n
+
 AT_KQ = [0]
 def chay(q):
     try: GAC.clear(); GAC.update(str(x) for x in json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_dang'), '[]')") or "[]"))
@@ -130,6 +146,8 @@ def chay(q):
     for ma in UU_TIEN:   # đầu lượt: không phụ thuộc phim lộ trình
         try: kq[ma] = xep_at(q, ma)
         except Exception as e: kq[ma] = f"lỗi: {e}"[:200]
+    try: kq["bu"] = xep_bu(q)
+    except Exception as e: kq["bu"] = f"lỗi: {e}"[:200]
     AT_KQ[0] = kq
     ch = cau_hinh(q); ds = [int(x) for x in ch.get("phim") or []]
     moi = chon_phim_moi(q, ch, ds)

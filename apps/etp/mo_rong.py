@@ -8,6 +8,9 @@ Chỉ ĐỌC số + GHI plan ($0, không AI, không tạo camp). Một chỗ kha
 import json, math
 
 DICH, DAU, HOA, LAI, TUT = 30, 6, 0, 20, 10
+# ĐỢT ĐẦU PHIM MỚI 2 CAMP (anh 09/11/2026 "Chốt. Triển khai luôn" — review: 1 ngày khép $0,8 là quá ít bằng chứng cho 6 camp; 14 ngày qua 4 phim mở sớm 18 camp lỗ $22, 0 phim lãi).
+# 2 camp đó có ngày khép lãi ≥ LAI thì phim có n > 2 → lượt sau k_cua(n) như thường (≈ 6).
+DAU_THU = 2
 # ĐỘ HẤP THỤ (anh 04/11/2026): ROI biên 14 ngày đã khép = (hệ số hồi quy thu ~ chi theo ngày − 1) × 100; cần ≥ 6 ngày chi ≥ $5 và tổng ≥ $150
 HUT, BIEN_NGAY, BIEN_CHI = 15, 6, 150
 SB_NGAY, SB_CHI = 3, 100
@@ -41,6 +44,28 @@ def _nap_ngay(q):
         lai = sorted((t - c, c) for _, c, t in ngay if c >= 1)[-2:]
         if lai and lai[-1][0] > 0: _NGAY[cid] = (round(sum(c for _, c in lai) / len(lai), 1), round(ngay[-1][1], 1))
 
+# BÙ CAMP CHỈ CHO PHIM ĐANG THẮNG (anh 09/11/2026 "Chốt. Triển khai luôn"): phim có camp MỚI (tạo 7 ngày, đã chạy ≥ 48 giờ, chi ≥ $2) không lỗ →
+# camp bị LUẬT tắt 24 giờ qua (không tính lệnh tay / Meta từ chối) + mỗi $1 bị giảm bậc 24 giờ qua → bù bằng camp $1, trừ số camp phim đã tạo 24 giờ qua (không bù đôi).
+# Bỏ qua 'chờ đo' (bù chỉ đưa về mức cũ, không mở rộng). Phim không đạt → không bù (thang cất / camp thay thế lo). Ghi etp.cau_hinh.bu_camp {phim: {k, tat, giam, tao}};
+# lo_trinh_phim.xep_bu xếp dòng PO đúng k camp. Đo 09/11: 10 / 53 phim đạt, ~11 camp bù / ngày.
+BU_TUOI_GIO, BU_CHI = 48, 2
+def tinh_bu(q):
+    rows = json.loads(q(f"""select coalesce(json_agg(x), '[]') from (
+      with m as (select c.content_id, sum(s.chi) chi, sum(s.thu) thu from etp.camp c join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id)
+                 where c.tao > now() - interval '7 days' and c.tao < now() - interval '{BU_TUOI_GIO} hours' and not c.la_roas and c.content_id > 0 group by 1 having sum(s.chi) >= {BU_CHI}),
+      ok as (select content_id from m where thu >= chi and content_id not in (select content_id from etp.phim where thu_vong = 'cat')),
+      t as (select c.content_id, count(*) filter (where k.viec = 'tat') tat, coalesce(sum(greatest(k.truoc - k.sau, 0)) filter (where k.viec = 'giam'), 0) giam
+            from etp.nhat_ky k join etp.camp c on c.camp_id = k.camp_id
+            where k.ok and k.viec in ('tat', 'giam') and k.luc > now() - interval '24 hours' and coalesce(k.ai, '') not like 'anh%' and not c.la_roas group by 1),
+      n as (select content_id, count(*) tao from etp.camp where tao > now() - interval '24 hours' group by 1)
+      select ok.content_id, coalesce(t.tat, 0) tat, round(coalesce(t.giam, 0))::int giam, coalesce(n.tao, 0) tao from ok join t using (content_id) left join n using (content_id)) x""") or "[]")
+    bu = {}
+    for r in rows:
+        k = int(r["tat"]) + int(r["giam"]) - int(r["tao"])
+        if k > 0: bu[str(r["content_id"])] = {"k": k, "tat": int(r["tat"]), "giam": int(r["giam"]), "tao": int(r["tao"])}
+    q(f"insert into etp.cau_hinh (khoa, gia_tri) values ('bu_camp', $J${json.dumps(bu)}$J$::jsonb) on conflict (khoa) do update set gia_tri = excluded.gia_tri, luc = now()")
+    return bu
+
 def chay(q):
     _nap_ngay(q)
     rows = json.loads(q("""select coalesce(json_agg(x), '[]') from (
@@ -72,7 +97,7 @@ def chay(q):
         if n >= DICH: k, tt, ly = 0, "khong", f"đủ {DICH} camp"
         elif roi is None or (chi < 1 and not (moi and chi >= 0.8)): k, tt, ly = 0, "khong", f"chưa đủ số (chi 3 ngày khép ${chi:.2f})"
         elif roi < HOA: k, tt, ly = 0, "khong", f"lỗ ROI {roi}% — camp thay thế lo"
-        elif roi >= LAI: k, tt, ly = (DAU if moi and n <= 2 else k_cua(n)), "them", f"lãi ROI {roi}% → ⌈{DAU}×(1−{n}/{DICH})⌉" + (" · phim mới: đợt đầu" if moi and n <= 2 else "")
+        elif roi >= LAI: k, tt, ly = (DAU_THU if moi and n <= 2 else k_cua(n)), "them", (f"lãi ROI {roi}% · phim mới: đợt thử {DAU_THU} camp, lãi tiếp mới mở đợt {DAU}" if moi and n <= 2 else f"lãi ROI {roi}% → ⌈{DAU}×(1−{n}/{DICH})⌉")
         else: k, tt, ly = 1, "them", f"hoà ROI {roi}% → thêm 1, đo lại"
         if tt == "them" and r["moi_chua_khep"]: tt, ly = "cho_do", ly + " · lượt trước chưa đủ 1 ngày khép — chờ đo"
         elif tt == "them" and roi_t is not None and roi < roi_t - TUT: tt, ly = "giu", ly + f" · ROI tụt {roi_t}% → {roi}% sau lượt trước — giữ"
@@ -80,6 +105,8 @@ def chay(q):
                     "san": san, "can_sx": max(0, k - san) if tt == "them" else 0, "trang_thai": tt, "ly": ly,
                     "roi_bien": r.get("roi_bien"), "r2": r.get("r2"), "chi_tb": r.get("chi_tb"), "so_ngay": r.get("so_ngay"), **(lambda t: {"muc_hut": t[0], "chi_gan": t[1]} if t else {"muc_hut": None, "chi_gan": None})(muc_toi_uu(r["content_id"]))})
         ghi[-1]["pha"] = pha_theo_muc(ghi[-1])
+    try: bu = tinh_bu(q)
+    except Exception as e: bu = {"_loi": str(e)[:200]}
     j = json.dumps(ghi, ensure_ascii=False).replace("$J$", "")
     q(f"""delete from etp.mo_rong where content_id not in (select (x->>'content_id')::int from jsonb_array_elements($J${j}$J$::jsonb) x);
           insert into etp.mo_rong (content_id, n, chi3, lai3, roi3, roi_truoc, k, san, can_sx, trang_thai, ly, roi_bien, r2, pha, chi_tb, so_ngay, muc_hut, chi_gan, luc)
@@ -89,4 +116,5 @@ def chay(q):
             k = excluded.k, san = excluded.san, can_sx = excluded.can_sx, trang_thai = excluded.trang_thai, ly = excluded.ly,
             roi_bien = excluded.roi_bien, r2 = excluded.r2, pha = excluded.pha, chi_tb = excluded.chi_tb, so_ngay = excluded.so_ngay, muc_hut = excluded.muc_hut, chi_gan = excluded.chi_gan, luc = now()""")
     them = [g for g in ghi if g["trang_thai"] == "them"]
-    return {"mo_rong_phim": len(them), "mo_rong_camp": sum(g["k"] for g in them), "mo_rong_can_sx": sum(g["can_sx"] for g in them)}
+    return {"mo_rong_phim": len(them), "mo_rong_camp": sum(g["k"] for g in them), "mo_rong_can_sx": sum(g["can_sx"] for g in them),
+            "bu_phim": len([v for k_, v in bu.items() if not k_.startswith("_")]), "bu_camp": sum(v["k"] for k_, v in bu.items() if not k_.startswith("_")), **({"bu_loi": bu["_loi"]} if "_loi" in bu else {})}

@@ -13,7 +13,10 @@ import json, os, subprocess, sys
 MAC = {"chi": 25, "roi": -30, "chi_doi_bo": 50, "so_bo": 2, "bo": ["1", "2", "3"], "so_thu": 4,
        # THỬ ĐỦ DẠNG TRƯỚC KHI CẤT (anh 04/11/2026: "mới thử 5 camp cho 1 thể loại thì chưa đủ để kết luận film chưa ổn. Các định dạng như CC, CT, KT chưa thử thì làm sao biết đúng"):
        # cất chỉ khi MỖI dạng trong dang_can đã có ≥ so_moi_dang camp có chi (≥ $1) mà vẫn chưa camp nào lãi; thiếu dạng → chờ (sap_cat, ghi dạng thiếu) để camp thay / Sản xuất lên đúng dạng đó
-       "dang_can": ["cảnh cuối", "cảnh thật", "kể chuyện"], "so_moi_dang": 2, "cho_dang_ngay": 3}   # so-dang: chính sách (dạng phải thử trước khi cất, không phải bảng tra) · chờ dạng thiếu quá cho_dang_ngay ngày mà không ai lên được dạng đó → cất (CT chưa có máy tự sản xuất)
+       "dang_can": ["cảnh cuối", "cảnh thật", "kể chuyện"], "so_moi_dang": 2, "cho_dang_ngay": 3,
+       # CẤT SỚM (anh 09/11/2026 "Chốt. Triển khai luôn" — review: 35 phim 'chưa thử đủ dạng' vẫn nhận 97 camp mới / 7 ngày, lỗ $82): phim chưa có camp cơ hội,
+       # chi ≥ som_chi, ROI ≤ som_roi%, đã thử ≥ som_dang dạng (mỗi dạng ≥ 1 camp chi ≥ $1) → cất luôn, không chờ dạng thứ 3. Đo 09/11: 18 phim, 89 camp mới / 7 ngày lỗ $102.
+       "som_chi": 15, "som_roi": -30, "som_dang": 2}   # so-dang: chính sách (dạng phải thử trước khi cất, không phải bảng tra) · chờ dạng thiếu quá cho_dang_ngay ngày mà không ai lên được dạng đó → cất (CT chưa có máy tự sản xuất)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import so_dang as DG   # SỔ DẠNG một nơi (etp-dang.json)
 TEN_DANG = DG.MA
 # CẤT THEO SỐ LẦN THỬ + BÃO HOÀ (anh 02/11/2026 "Đã có luật drop film nếu thử nhiều lần mà ko thành công chưa?" · "hoặc đến lúc film bão hoà" ·
@@ -77,6 +80,10 @@ def xet(that=False):
         lo = chi >= float(ch["chi"]) and roi < float(ch["roi"])
         so = f"chi ${chi:.0f} · thu ${thu:.0f} · ROI {roi:.0f}% · {p['so_camp']} camp · bộ {','.join(sorted(p.get('bo') or [])) or '?'}"
         dt_ = p.get("dang_thu") or {}; thieu = [TEN_DANG.get(d, d) for d in ch.get("dang_can", []) if int(dt_.get(d) or 0) < int(ch.get("so_moi_dang", 1))]
+        so_dang_thu = sum(1 for d, n in dt_.items() if d and int(n or 0) >= 1)
+        if not team_lai and chi >= float(ch["som_chi"]) and roi <= float(ch["som_roi"]) and so_dang_thu >= int(ch["som_dang"]):
+            if vong != "cat": dat(ct, "cat", f"cất sớm: {so_dang_thu} dạng đã thử, ROI ≤ {ch['som_roi']}% sau ≥ ${ch['som_chi']} · {so}", that); bao.append(f"cất sớm phim {ct} {ten}: {so_dang_thu} dạng, {so}")
+            continue
         da_cho = vong == "sap_cat" and str(p.get("thu_ly") or "").startswith("chưa thử đủ dạng") and float(p.get("cho_ngay") or 0) >= float(ch.get("cho_dang_ngay", 3))
         # THÍ ĐIỂM LỘ TRÌNH (anh 07/11/2026): máy đang tự sản xuất dạng thiếu → hạn chờ chỉ tính khi máy hết dạng làm được (CT chưa có máy; dạng hỏng 2 dòng đã bị bỏ)
         if ct in ch.get("_thi_diem", {}) and any(t in ch["_thi_diem"][ct] for t in thieu): da_cho = False

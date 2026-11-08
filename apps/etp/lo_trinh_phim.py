@@ -7,9 +7,9 @@ Thứ tự: phim đã cất → dừng · vượt sức chứa → giữ · có 
 import json
 
 import os as _o, sys as _s; _s.path.insert(0, _o.path.dirname(_o.path.abspath(__file__))); import so_dang as DG
-CAN = {k: DG.DONG[k] for k in ("CC", "AT")}   # dạng lộ trình tự xếp (dong_phim.LOAI); CT chưa có máy. KT TẠM KHÔNG XẾP (anh 07/11/2026 "lượt này không sinh dòng phim KT cho nhanh" —
+CAN = {k: DG.DONG[k] for k in ("PO", "CC", "AT")}   # PO TRƯỚC (anh 08/11/2026 "dạng Poster Động có vẻ đang hiệu quả cao hơn": camp từ 06/11 PO ROI +30%, 8/11 camp có chi lãi — mọi dạng khác âm); thứ tự = thứ tự chia chỗ trần camp / 24 giờ   # dạng lộ trình tự xếp (dong_phim.LOAI); CT chưa có máy. KT TẠM KHÔNG XẾP (anh 07/11/2026 "lượt này không sinh dòng phim KT cho nhanh" —
 # máy sinh VideoExpress 1–4 giờ + lỗi Meta 389), thay bằng AT (anh-tinh.py ~10 phút/phim, anh 07/11/2026 "sử dụng cả ảnh tĩnh để lên camp cho nhanh hơn"); dòng KT đang chạy giữ nguyên
-MOT_LUOT = {"KT", "AT"}   # máy làm mỗi lượt một video → mỗi dòng 1 camp
+MOT_LUOT = {"KT", "AT", "PO"}   # máy làm mỗi lượt một video → mỗi dòng 1 camp
 HIEN = {**CAN, "KT": "kể chuyện"}   # dạng hiện trên thẻ phim (lo_trinh_tt.dang): cả KT để thấy số đã thử
 TEN_CT, SO_MOI_DANG, SO_LOI_BO = "cảnh thật", 2, 3   # mỗi dạng 2 camp có chi (cat_phim.so_moi_dang) · 3 dòng hỏng thì thôi dạng đó (hỏng thường do máy quá tải, 2 lần là bỏ oan cả dạng)
 
@@ -92,26 +92,31 @@ def chon_phim_moi(q, ch, da):
 # không trong sổ cấm 18+ → xếp dòng AT (máy dòng phim chạy anh-tinh.py, ~160–290₫ giọng / phim). Giữ tối đa AT_HANG dòng AT chưa xong để lượt sau
 # lấy phim mới nhất; phim LÃI NHẤT 3 ngày (thu − chi, nhà + đội) lên trước (anh 08/11/2026 "ưu tiên các phim có camp lãi trước"), hoà thì phim nhiều camp. Bật bằng etp.cau_hinh 'at_uu_tien' {"bat": true} — tắt thì không xếp gì (tiền giọng > 5.000₫/đợt cần anh bật).
 AT_HANG = 6
-def xep_at(q):
+UU_TIEN = ("PO", "AT")   # dạng tĩnh xếp ưu tiên cho phim đang chạy — PO trước (anh 08/11/2026 PO ROI +30%)
+def xep_at(q, ma="AT"):
+    dang = DG.DONG[ma]
     ch = json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'at_uu_tien'), '{}')") or "{}")
     if not ch.get("bat"): return 0
     # chỉ đếm dòng CỦA BƯỚC NÀY: 15 dòng AT phim mới (lộ trình, lãi 0) không được chặn phim lãi vào hàng (08/11/2026)
-    con = int(q("select count(*) from etp.dong_phim where loai = 'AT' and trang_thai = 'chay' and ai like 'máy: ảnh tĩnh ưu tiên%'") or 0)
+    con = int(q(f"select count(*) from etp.dong_phim where loai = '{ma}' and trang_thai = 'chay' and ai like 'máy: {dang} ưu tiên%'") or 0)
     if con >= AT_HANG: return 0
     r = q(f"""insert into etp.dong_phim (content_id, ten, the_loai, loai, ai, so_camp)
-        select c.content_id, max(f.ten), max(f.the_loai), 'AT', 'máy: ảnh tĩnh ưu tiên (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh") — phim đang chạy chưa có ảnh tĩnh', 1
+        select c.content_id, max(f.ten), max(f.the_loai), '{ma}', 'máy: {dang} ưu tiên (anh 08/11/2026 "lên loại ảnh tĩnh ưu tiên cho nhanh" · "Poster Động hiệu quả cao hơn") — phim đang chạy chưa có {dang}', 1
         from etp.camp_dang_chay c left join etp.phim f using (content_id)
         where c.content_id is not null
-          and not exists (select 1 from etp.creative r where r.content_id = c.content_id and r.dang = 'ảnh tĩnh')
-          and not exists (select 1 from etp.dong_phim d where d.content_id = c.content_id and d.loai = 'AT' and (d.trang_thai = 'chay' or d.tao_luc > now() - interval '2 days'))
+          and not exists (select 1 from etp.creative r where r.content_id = c.content_id and r.dang = '{dang}')
+          and not exists (select 1 from etp.dong_phim d where d.content_id = c.content_id and d.loai = '{ma}' and (d.trang_thai = 'chay' or d.tao_luc > now() - interval '2 days'))
           and not coalesce((select k.gia_tri ? c.content_id::text from xv_khoa_ngoai k where k.ten = 'ethopex_phim_cam'), false)
         group by c.content_id order by (select coalesce(sum(s.thu - s.chi), 0) from (select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay s join etp.camp k using (camp_id) union all select k.content_id, s.ngay, s.chi, s.thu from etp.so_ngay_ngoai s join etp.camp_ngoai k using (camp_id)) s where s.content_id = c.content_id and s.ngay >= current_date - 3) desc, count(*) desc limit {AT_HANG - con} on conflict do nothing returning id""")
     return len([l for l in (r or "").splitlines() if l.strip()])
 
 AT_KQ = [0]
 def chay(q):
-    try: AT_KQ[0] = xep_at(q)   # đầu lượt: không phụ thuộc phim lộ trình
-    except Exception as e: AT_KQ[0] = f"lỗi: {e}"[:200]
+    kq = {}
+    for ma in UU_TIEN:   # đầu lượt: không phụ thuộc phim lộ trình
+        try: kq[ma] = xep_at(q, ma)
+        except Exception as e: kq[ma] = f"lỗi: {e}"[:200]
+    AT_KQ[0] = kq
     ch = cau_hinh(q); ds = [int(x) for x in ch.get("phim") or []]
     moi = chon_phim_moi(q, ch, ds)
     if moi:

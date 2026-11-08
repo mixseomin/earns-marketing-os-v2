@@ -400,7 +400,8 @@
         "nhip": "sau",
         "kho": "≈ 30 tập",
         "trang": "shot-code/la-so.html",
-        "sinh": "kịch bản tay (G5)",
+        "sinh": "lich-su/viet-chart-tools.mjs --y ct-<công cụ>--<người> — 0đ, không AI: câu giải thích nguyên văn bài site của công cụ + lá số người AA + trang kết quả chụp thật, hook QC góc Career (08/11/2026)",
+        "tu_sinh": "^ct-[a-z-]+--[a-z0-9-]+$",
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-cong-cu.mp4?v=5"
       },
       {
@@ -442,7 +443,8 @@
         "nhip": "sau",
         "kho": "16 tập (một công cụ một tập)",
         "trang": "shot-code/la-so.html",
-        "sinh": "kịch bản tay",
+        "sinh": "lich-su/viet-free60.mjs --cong-cu <mã | all> — 0đ, không AI: tên + mô tả công cụ nguyên văn của site, form + trang kết quả chụp thật (cong-cu/chup.mjs), câu bước là câu khung, hook QC góc Know Yourself (08/11/2026)",
+        "tu_sinh": "^f60-[a-z-]+$",
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/mau-free-60s.mp4?v=5"
       },
       {
@@ -988,7 +990,7 @@
       "ngang": "brand/astrolas/ra/outro-ngang.mp4",
       "_ghi": "outro logo nối cuối mọi tập (shot-code/long-tieng.mjs): Short 1 s, video dài 3 s — dựng bằng brand/astrolas/outro.mjs (0đ, logo thật, không AI)"
     },
-    "tu_chay": {
+    "tu_chay": { "dai": { "thu": [7], "mau": ["love-story-charts", "chart-chapters-dai"], "_ghi": "video dài 16:9 tuần một tập (Chủ nhật), chay-so-kenh.mjs: bìa 1280×720, dựng 1920×1080 (08/11/2026)" },
       "truoc_ke_hoach": 3,
       "gio_tu": "07:00",
       "gio_den": "22:00",
@@ -1296,9 +1298,9 @@
       {
         "ma": "G3",
         "ten": "Playlist YouTube + Facebook",
-        "viec": "tạo playlist trên kênh, máy đăng gắn đúng playlist; tiền tố tiêu đề theo loạt",
+        "viec": "tạo playlist trên kênh, máy đăng gắn đúng playlist; tiền tố tiêu đề theo loạt · 08/11/2026: YouTube xong — máy đăng tự tạo playlist khi kênh chưa có, \"Big Stories\" đã có 6/6 video đã lên; Facebook chưa: Graph trả (#3) app không có quyền tạo playlist Page",
         "anh": "không",
-        "trang_thai": "chua"
+        "trang_thai": "dang"
       },
       {
         "ma": "G4",

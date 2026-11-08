@@ -2991,7 +2991,7 @@ export function EtpView({ du: duGoc, dauVao, chiXem = false, quyen }: { du: DuLi
       {moLogs ? <Drawer onClose={() => datLogs(false)} width={1400} padding={0}>
         <div className="modal-head"><div><div className="id-line">nhật ký máy nhà</div><h2 style={{ margin: 0 }}>📜 Logs</h2></div><button className="modal-close" onClick={() => datLogs(false)}>✕</button></div>
         <div style={{ padding: 12 }}><TabLogs moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })}
-          hangLoc={<>{locSel()}{oLoc()}{boSel()}</>} campIds={camps.length === du.camps.length ? null : camps.map((c) => c.camp_id)} /></div>
+          hangLoc={<>{locSel()}{oLoc()}{boSel()}</>} campIds={loc === 'all' && !luatLoc && !dangLoc && !boHieu && !laiLoc && !tuoiChon && !roLoc && !abLoc ? null : camps.map((c) => c.camp_id)} />   {/* mọi ô ở Tất cả = không lọc (giữ cả việc chưa gắn camp); so số camp với kho thì sai vì kho còn camp ngoài mọi kiểu xem */}</div>
       </Drawer> : null}
       {nganCamp ? (() => { const c = du.camps.find((x) => x.camp_id === nganCamp); const dong = () => doi({ ngan: '' }, () => setNganCamp(null));
         const r = c?.creative_id ? crAnh.get(c.creative_id) : undefined, ch = c?.creative_id ? du.cham[c.creative_id] : undefined;

@@ -19,8 +19,10 @@ const BO_CUC: Record<string, string> = {
   hanh_dong: 'a dynamic low-angle hero shot of the lead character in a strong pose, motion, debris and light streaks, supporting characters in the background',
 };
 
-const [vao, boCuc, giong, ra] = process.argv.slice(2);
-if (!vao || !BO_CUC[boCuc] || !ra) { console.error(`tsx anh-po-ai.mts <thư mục vào> <${Object.keys(BO_CUC).join('|')}> "<thể loại>" <ra.jpg>`); process.exit(2); }
+// --ten "<tên phim>": ảnh tham chiếu cuối (ref-9-ten.*) là CHỮ TÊN tách từ poster gốc → AI vẽ tên phim đúng kiểu chữ đó ở đáy (08/11: dán chữ tách sẵn dính mảng nền như miếng dán)
+const thamSo = process.argv.slice(2), iT = thamSo.indexOf('--ten'), tenPhim = iT >= 0 ? thamSo.splice(iT, 2)[1] : null;
+const [vao, boCuc, giong, ra] = thamSo;
+if (!vao || !BO_CUC[boCuc] || !ra) { console.error(`tsx anh-po-ai.mts [--ten "<tên>"] <thư mục vào> <${Object.keys(BO_CUC).join('|')}> "<thể loại>" <ra.jpg>`); process.exit(2); }
 const ten = readdirSync(vao).filter((f) => /^ref-.*\.(jpe?g|png)$/i.test(f)).sort().slice(0, 3);   // ckey nhận tối đa 3 ảnh tham chiếu (cong-ai TOI_DA_REF)
 if (!ten.length) { console.error(`không có ref-*.jpg trong ${vao}`); process.exit(2); }
 const url: string[] = [];
@@ -34,7 +36,9 @@ const prompt = [
   `Layout: ${BO_CUC[boCuc]}.`,
   'Use EXACTLY the same people as in the reference images: identical faces, hair, skin tone, age and clothing — do not invent any new main character and do not change who they are.',
   'Professional Hollywood poster quality: cinematic lighting, color grading that fits the genre, rich detailed background from the story world.',
-  'Absolutely NO text, NO letters, NO title, NO logo, NO watermark anywhere. Keep the bottom 24% of the image darker and free of faces so a title can be placed there.',
+  tenPhim
+    ? `At the bottom, write the movie title "${tenPhim}" exactly as spelled, copying the lettering style, colors, ornaments and materials of the title artwork in the LAST reference image, integrated into the poster lighting (not a pasted box). No other text, no logo, no watermark. Keep the bottom 24% darker behind the title.`
+    : 'Absolutely NO text, NO letters, NO title, NO logo, NO watermark anywhere. Keep the bottom 24% of the image darker and free of faces so a title can be placed there.',
 ].join(' ');
 const ds = chuoiAnh('nano-banana-pro'), c = ds.find((x) => /pro/i.test(x.model)) ?? ds[0]!;   // bản pro giữ mặt tốt hơn, cùng giá ckey 110₫
 const r = await sinhAnhMotCong(c.cong, c.model, { prompt, thamChieuUrl: url, tiLe: '9:16' });

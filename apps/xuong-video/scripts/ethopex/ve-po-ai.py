@@ -28,10 +28,14 @@ BO_MAC = ["chan_dung", "tang_lop", "doi_dau"]
 def tham_chieu(P, thu):
     """ảnh tham chiếu người thật vào thư mục `thu`: poster gốc (phần trên, đã xoá chữ) + 2 khung phim đã xoá phụ đề"""
     os.makedirs(thu, exist_ok=True)
+    for f in os.listdir(thu):   # tham chiếu lượt trước đổi đuôi (không xoá) — ckey chỉ nhận 3 ảnh, tệp thừa đẩy mất ảnh chữ tên
+        if f.startswith("ref-"): os.replace(os.path.join(thu, f), os.path.join(thu, "cu-" + f))
     po = os.path.join(C, str(P["cid"]), "poster.jpg")
     if os.path.exists(po):
         im = BC.mo(po); im.crop((0, 0, im.width, int(im.height * 0.62))).save(os.path.join(thu, "ref-1-poster.jpg"), quality=92)
-    for i, k in enumerate(P["khung"][:2]): BC.mo(k).save(os.path.join(thu, f"ref-{i + 2}-khung.jpg"), quality=92)
+    BC.mo(P["khung"][0]).save(os.path.join(thu, "ref-2-khung.jpg"), quality=92)
+    tp = os.path.join(C, str(P["cid"]), "ten-poster.png")   # tham chiếu cuối = CHỮ TÊN của poster gốc (AI chép kiểu chữ) — ckey nhận tối đa 3 ảnh
+    if os.path.exists(tp): t = Image.open(tp).convert("RGBA"); n = Image.new("RGB", t.size, (20, 20, 20)); n.paste(t, (0, 0), t); n.save(os.path.join(thu, "ref-9-ten.jpg"), quality=95)
 
 def ve_ai(P, bo, thu, tho):
     """box3: anh-po-ai.mts → ảnh AI không chữ"""
@@ -39,7 +43,7 @@ def ve_ai(P, bo, thu, tho):
     subprocess.run(["ssh", B, f"mkdir -p {xa}"], check=True)
     subprocess.run(["scp", "-q"] + [os.path.join(thu, f) for f in sorted(os.listdir(thu)) if f.startswith("ref-")] + [f"{B}:{xa}/"], check=True)
     lenh = (f"cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && NODE_OPTIONS=--conditions=react-server "
-            f"./node_modules/.bin/tsx apps/xuong-video/scripts/ethopex/anh-po-ai.mts {xa} {bo} {json.dumps(GIONG.get(P['loai'], 'cinematic short drama'))} {xa}/{bo}.jpg")
+            f"./node_modules/.bin/tsx apps/xuong-video/scripts/ethopex/anh-po-ai.mts {'--ten ' + json.dumps(P['ten']) if os.path.exists(os.path.join(thu, 'ref-9-ten.jpg')) else ''} {xa} {bo} {json.dumps(GIONG.get(P['loai'], 'cinematic short drama'))} {xa}/{bo}.jpg")
     r = subprocess.run(["ssh", B, lenh], capture_output=True, text=True, timeout=400)
     dong = (r.stdout.strip().splitlines() or ["{}"])[-1]
     try: kq = json.loads(dong)
@@ -47,13 +51,20 @@ def ve_ai(P, bo, thu, tho):
     if not kq.get("ok"): raise RuntimeError(f"box3: {(r.stderr or r.stdout).strip()[-300:]}")
     subprocess.run(["scp", "-q", f"{B}:{xa}/{bo}.jpg", tho], check=True); return kq
 
+def ten_dung(P, tho):
+    """AI đã vẽ tên phim đúng chính tả? — đọc chữ ảnh (máy đọc chữ của anh-tinh.py), ≥ 80% từ của tên có mặt"""
+    j = json.loads(subprocess.run([BC.AT.may_doc(), tho], capture_output=True, text=True, timeout=120).stdout.strip() or "{}")
+    chu = " ".join(str(x[0]) for x in j.get("khung") or []).lower(); tu = [w for w in "".join(c if c.isalnum() else " " for c in P["ten"].lower()).split() if len(w) > 1]
+    return bool(tu) and sum(w in chu for w in tu) / len(tu) >= 0.8
+
 def ghep_ten(P, tho, ra):
-    """TÊN PHIM theo format poster gốc: chữ tên tách từ poster (ten-poster.png) ở đáy, căn giữa, rộng ~86%; tagline dưới"""
+    """TÊN PHIM theo format poster gốc: AI đã vẽ đúng chính tả theo kiểu chữ poster → giữ, chỉ thêm tagline; sai → dán chữ tên tách từ poster (ten-poster.png) ở đáy"""
     im = Image.open(tho).convert("RGB").resize((1080, 1920), Image.LANCZOS)
+    if ten_dung(P, tho): BC.tagline(im, P, 1850, P["mau"]["sang"]); im.save(ra, quality=92); return "AI vẽ đúng kiểu chữ poster"
     toi = Image.new("L", (1, 256)); toi.putdata([0 if i < 175 else min(170, (i - 175) * 3) for i in range(256)])   # đáy tối dần cho chữ nổi
     im = Image.composite(Image.new("RGB", im.size, P["mau"]["toi"]), im, toi.resize(im.size))
     y = BC.tieu_de(im, P, 75, 1460, 930, 290, chu_hoa=True); BC.tagline(im, P, min(y + 26, 1830), P["mau"]["sang"])
-    im.save(ra, quality=92)
+    im.save(ra, quality=92); return "dán chữ tách từ poster (AI viết sai)"
 
 def lam(cid, bo_ds=None):
     P = BC.doc_phim(cid); ra_dir = os.path.join(C, str(cid), "po-ai"); os.makedirs(ra_dir, exist_ok=True)
@@ -61,8 +72,8 @@ def lam(cid, bo_ds=None):
     for bo in bo_ds or BO_LOAI.get(P["loai"], BO_MAC):
         tho, ra = os.path.join(ra_dir, f"{bo}-tho.jpg"), os.path.join(ra_dir, f"{bo}.jpg")
         try:
-            k = ve_ai(P, bo, thu, tho); ghep_ten(P, tho, ra); kq.append((bo, ra, k.get("vnd", 0)))
-            print(f"#{cid} {bo}: {ra} · {k.get('vnd')}₫ · {k.get('model')} · {k.get('giay')} giây", flush=True)
+            k = ve_ai(P, bo, thu, tho); cach = ghep_ten(P, tho, ra); kq.append((bo, ra, k.get("vnd", 0)))
+            print(f"#{cid} {bo}: {ra} · {k.get('vnd')}₫ · {k.get('model')} · {k.get('giay')} giây · tên: {cach}", flush=True)
         except Exception as e: print(f"#{cid} {bo}: LỖI {e}", flush=True)
     return P, kq
 

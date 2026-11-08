@@ -80,10 +80,11 @@ def nap(cid, lang, f, dang, ghi, vnd, chu_dau=None):
 
 # MẪU POSTER ĐỘNG (anh 08/11/2026 "PO đang dùng poster của nhà sản xuất nên chỉ có 1 mẫu. Tự thiết kế mới hoặc thêm bớt chi tiết… nhưng là dạng poster"):
 # --ban N xoay vòng các mẫu dưới, mỗi bản một mẫu (ghi vào sổ điểm chạm để đo từng mẫu). Chỉ dùng poster gốc + khung phim AI đã xếp hạng + tên phim tách từ poster — không sinh ảnh AI.
-# TÊN THEO PHIÊN BẢN (anh 08/11/2026 "đặt tên mẫu PO theo phiên bản"): PO-v1 gốc · PO-v2 ghép · PO-v3 thẻ — mẫu mới là v4, v5…, không đổi số mẫu cũ (sổ đo hiệu suất đọc theo số).
+# TÊN THEO PHIÊN BẢN (anh 08/11/2026 "đặt tên mẫu PO theo phiên bản" → "kiểu gọn nhất PO.1, PO.2"): PO.1 gốc · PO.2 ghép · PO.3 thẻ — mẫu mới là PO.4, PO.5…,
+# không đổi số mẫu cũ (sổ đo hiệu suất đọc theo số).
 # "dien_anh" anh KHÔNG duyệt ("Nhìn lởm") — không có số, không xoay vào bản dựng.
 MAU_PO = ["goc", "ghep", "the"]
-BAN_PO = {"goc": "PO-v1", "ghep": "PO-v2", "the": "PO-v3"}
+BAN_PO = {"goc": "PO.1", "ghep": "PO.2", "the": "PO.3"}
 def _phu(im, w, h, cx=0.5, cy=0.5):   # phóng ảnh phủ kín w×h, giữ tâm (cx, cy)
     s = max(w / im.width, h / im.height); im = im.resize((round(im.width * s), round(im.height * s)), Image.LANCZOS)
     x = min(max(0, round(cx * im.width - w / 2)), im.width - w); y = min(max(0, round(cy * im.height - h / 2)), im.height - h); return im.crop((x, y, x + w, y + h))
@@ -151,7 +152,7 @@ def main(cid, kieu, ban=1, xem=False):
                     c = ds[b % len(ds)]; moi = (f"¡Mira {ten} gratis ahora!" if lang == "es" else f"Watch {ten} for free now!")
                     nen, _ = AT.anh(cid, ten, k, tm, b); mp3, v = giong_cau(cid, lang, f"{c} ... {moi}", kg, tm)
                     chu = lop_cau(c, tm, os.path.join(tm, f"chu-cau-{b}.png"), (k["mat"][1] + k["mat"][3]) * H)
-                vnd += v; out = os.path.join(tm, f"{BAN_PO[mau].lower()}-{cid}.mp4" if kk == "poster" else f"{ma.lower()}-{cid}-{b + 1}.mp4"); giay = AT.dung(nen, chu, mp3, out)
+                vnd += v; out = os.path.join(tm, f"{BAN_PO[mau].lower().replace('.', '')}-{cid}.mp4" if kk == "poster" else f"{ma.lower()}-{cid}-{b + 1}.mp4"); giay = AT.dung(nen, chu, mp3, out)
                 x = {"kieu": ma, "dang": dang, "ban": b + 1, "file": out, "giay": giay, "giong": kg, "vnd": v, "tap": k["tap"], "khung_so": k["so"], "ten_poster": bool(k.get("ten_poster")),
                      **({"chu_dau": chu_dau} if chu_dau else {}), **({"cau": c} if kk == "cau_soc" else {}), **({"mau": BAN_PO[mau]} if kk == "poster" else {})}
                 if not xem:

@@ -35,6 +35,7 @@ export async function docLogs(gio: number): Promise<DuLogs | { loi: string }> {
           case when n.truoc ~ '^[0-9.]+$' and n.sau ~ '^[0-9.]+$' and n.viec in ('tang', 'giam') then '$' || n.truoc || ' → $' || n.sau
                when n.truoc ~ '^[0-9.]+$' and n.viec = 'tat' then 'đang $' || n.truoc || '/ngày' when n.viec = 'sang_bo' then 'sang bộ ' || coalesce(n.sau, '?') end n2, c.content_id phim, c.bo
         from etp.nhat_ky n left join etp.camp c using (camp_id), tu where n.luc >= tu.t and (n.ok is not null or n.viec <> 'tao_camp')
+          and not (n.viec = 'sang_bo' and coalesce(n.sau, '') = '')   -- sang bộ: lệnh 08/11 ghi thêm dòng cho camp GỐC (không có bộ đích) → chỉ đếm dòng camp mới, kẻo đếm đôi
         union all
         select extract(epoch from d.tao_luc)::bigint, 'dm', d.id, concat_ws(' · ', d.loai, left(d.ten, 70)), d.loai,
           nullif(left(regexp_replace(regexp_replace(coalesce(d.ai, ''), '^máy:[[:space:]]*', ''), '[[:space:]]*[(·—].*$', ''), 40), ''), d.content_id, (select k.bo from etp.camp k where k.camp_id = d.camp_id) from etp.dong_phim d, tu where d.tao_luc >= tu.t

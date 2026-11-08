@@ -8,6 +8,7 @@ import { KhungNoi, useNoi } from '@/components/etp-noi';
 import { KeToan, mauLai } from '@/components/etp-so';
 import { docLogs } from '@/lib/actions/etp-logs';
 import { openEntityDrawer } from '@/lib/entity-drawer';
+import { khungLuc, KHUNG_TEN } from '@/lib/etp-khung';
 import { CHIEU_TK, demTk, locBo, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
 
 const U_KY = 'lgky', U_GOM = 'lggom', U_BO = 'lgbo', MAC_KY = 24, MAC_GOM = 60;
@@ -82,8 +83,14 @@ export function TabLogs({ moCamp, boDs }: { moCamp: (id: number) => void; boDs: 
     return null; };
   const cong = (rows: KhungLog[], k: string) => rows.flatMap((x) => x.dem[k] ?? []);
 
+  // NỀN THEO KHUNG GIỜ MÁY (anh 08/11/2026 "background nền theo khung giờ"): khung tăng 21–7h · nạp sáng 7–15h · giảm · tắt 15–21h — cùng nguồn thanh khung giờ của trang
+  // (lib/etp-khung khungLuc + KHUNG_TEN, sổ etp-bang-luat.json khung_doi); khung gom ≥ 6 giờ trùm nhiều khung → không tô
+  const khungCua = (t: number) => (gom >= 360 ? null : khungLuc(((t + 7 * 3600 + (gom * 60) / 2) / 3600) % 24));
+  const nenKhung = (t: number): React.CSSProperties | undefined => { const k = khungCua(t); return k ? { background: `${KHUNG_TEN[k][2]}1a` } : undefined; };
+  const nhanKhungIcon = (t: number) => { const k = khungCua(t); return <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+    {k ? <span title={KHUNG_TEN[k][1]} style={{ color: KHUNG_TEN[k][2], width: 14, textAlign: 'center' }}>{KHUNG_TEN[k][0]}</span> : null}{nhanKhung(t, gom)}</span>; };
   const cot: DataColumn<KhungLog>[] = [
-    { key: 'khung', header: '🕒 Khung (giờ VN)', align: 'left', cell: (x) => nhanKhung(x.t, gom), sortValue: (x) => x.t, total: () => <b>Cả {tenKy(ky)}</b> },
+    { key: 'khung', header: '🕒 Khung (giờ VN)', title: 'nền dòng = khung máy tự đổi camp: ⬆ tăng 21–7h · ☀ nạp sáng 7–15h · 🔧 giảm · tắt 15–21h', align: 'left', cell: (x) => nhanKhungIcon(x.t), sortValue: (x) => x.t, total: () => <b>Cả {tenKy(ky)}</b> },
     { key: 'chi', header: 'Chi', title: gom < 60 ? 'chi / thu nhà chỉ có theo giờ — khung dưới 1 giờ: cả giờ cộng vào khung đầu giờ' : 'chi nhà trong khung', cell: (x) => x.coTien ? <KeToan v={x.chi} /> : null, sortValue: (x) => x.chi, total: (r) => <KeToan v={r.reduce((a, x) => a + x.chi, 0)} /> },
     { key: 'thu', header: 'Thu', cell: (x) => x.coTien ? <KeToan v={x.thu} /> : null, sortValue: (x) => x.thu, total: (r) => <KeToan v={r.reduce((a, x) => a + x.thu, 0)} /> },
     { key: 'lai', header: 'Lãi', cell: (x) => x.coTien ? <KeToan v={x.thu - x.chi} mau={mauLai(x.thu - x.chi)} /> : null, sortValue: (x) => x.thu - x.chi,
@@ -110,8 +117,8 @@ export function TabLogs({ moCamp, boDs }: { moCamp: (id: number) => void; boDs: 
     {!du && !loi ? <div style={{ padding: 16, color: 'var(--fg-2)', fontSize: 12 }}>⏳ Đang tải nhật ký…</div> : null}
     {du && hep ? <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
       {[{ t: -1, nhan: `Cả ${tenKy(ky)}`, dem: Object.fromEntries(LOAI_LOG.map((l) => [l.k, cong(hang, l.k)])), chi: hang.reduce((a, x) => a + x.chi, 0), thu: hang.reduce((a, x) => a + x.thu, 0), coTien: true },
-        ...hang.map((x) => ({ ...x, nhan: nhanKhung(x.t, gom) }))].map((x) => <div key={x.t} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px', fontSize: 12, background: x.t < 0 ? 'rgba(255,255,255,.04)' : undefined }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}><b style={{ fontVariantNumeric: 'tabular-nums' }}>{x.nhan}</b>
+        ...hang.map((x) => ({ ...x, nhan: nhanKhung(x.t, gom) }))].map((x) => <div key={x.t} style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px', fontSize: 12, background: x.t < 0 ? 'rgba(255,255,255,.04)' : nenKhung(x.t)?.background }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}><b style={{ fontVariantNumeric: 'tabular-nums' }}>{x.t < 0 ? x.nhan : nhanKhungIcon(x.t)}</b>
           {x.coTien ? <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums' }}><b style={{ color: mauLai(x.thu - x.chi) }}>{x.thu - x.chi < 0 ? '−' : ''}${Math.abs(x.thu - x.chi).toFixed(2)}</b>
             <span style={{ color: 'var(--fg-3)' }}> · chi ${x.chi.toFixed(2)} · thu ${x.thu.toFixed(2)}</span></span> : null}</div>
         {NHOM_LOG.filter((g) => g.key !== 'khac').map((g) => { const co = LOAI_LOG.filter((l) => l.nhom === g.key && (x.dem[l.k]?.length ?? 0) > 0);
@@ -120,7 +127,7 @@ export function TabLogs({ moCamp, boDs }: { moCamp: (id: number) => void; boDs: 
             {co.map((l) => oSo(l.k, x.dem[l.k], x.nhan))}</div> : null; })}
       </div>)}
     </div> : null}
-    {du && !hep ? <DataTable rows={hang} columns={cot} groups={NHOM_LOG.map((g) => ({ ...g }))} groupHeader getRowKey={(x) => String(x.t)} persistKey="etp-logs-cot" minWidth={0}
+    {du && !hep ? <DataTable rows={hang} columns={cot} groups={NHOM_LOG.map((g) => ({ ...g }))} groupHeader getRowKey={(x) => String(x.t)} rowStyle={(x) => nenKhung(x.t)} persistKey="etp-logs-cot" minWidth={0}
       defaultSort={[{ key: 'khung', dir: 'desc' }]} locTuDong={false} /> : null}
     {/* thẻ nổi nằm TRÊN ngăn kéo Logs (ngăn z ≥ 300; khuôn chung z 60 thì bị ngăn che, bấm mã không được) */}
     {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={420} noi={noi} style={{ zIndex: 2000 }}>

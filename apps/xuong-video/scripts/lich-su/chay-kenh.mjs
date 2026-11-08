@@ -21,7 +21,39 @@ const arg = (k) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? pr
 const KENH = JSON.parse(readFileSync(join(DIR, 'kenh.json'), 'utf8'));
 const hom = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Ho_Chi_Minh' });
 const thu = ((d) => (d === 0 ? 7 : d))(new Date(`${hom}T12:00:00+07:00`).getUTCDay());
-const tele = (chu, html = false) => { try { execFileSync('ssh', [BOX, `set -a; . /root/.secrets/mine-tg.env; set +a; curl -s -o /dev/null https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage --data-urlencode chat_id=$TG_CHAT${html ? ' --data-urlencode parse_mode=HTML' : ''} --data-urlencode text@-`], { input: chu }); } catch (e) { console.log(`⚠ Telegram: ${e.message}`); } };
+// trả message_id của tin vừa gửi (null khi hỏng) — đề xuất tăng nhịp cần nó để nhận câu trả lời của anh
+const tele = (chu, html = false) => { try { return JSON.parse(execFileSync('ssh', [BOX, `set -a; . /root/.secrets/mine-tg.env; set +a; curl -s https://api.telegram.org/bot$TG_BOT_TOKEN/sendMessage --data-urlencode chat_id=$TG_CHAT${html ? ' --data-urlencode parse_mode=HTML' : ''} --data-urlencode text@-`], { input: chu, encoding: 'utf8' }) || '{}').result?.message_id ?? null; } catch (e) { console.log(`⚠ Telegram: ${e.message}`); return null; } };
+
+// DUYỆT TĂNG NHỊP QUA TELEGRAM (08/11/2026 — bảng tuần hỏi "tăng từ 3 lên 5 tập/tuần?", anh trả lời "Duyệt" lúc 09:36 mà không máy nào đọc: tin trả lời rơi vào
+// hộp không ai nhận /var/lib/cty/tg-hop/_khac/ của tg-nghe). Gửi đề xuất → ghi ~/.cache/lich-su-<k>-de-xuat.json { msg, den }; mỗi lượt đọc hộp đó tìm tin TRẢ LỜI đúng
+// tin đề xuất: "duyệt / ok / đồng ý / yes" → đổi lich_tap của playlist đang có lịch lên `den` ngày (ngày thêm theo thứ tự Thứ 2→6 rồi CN, né ngày tập dài và ngày của
+// playlist khác), ghi kenh.json, commit đúng tệp đó, báo lại; "không / bỏ" → bỏ đề xuất. Chỉ tin của chủ nhóm (davidwr) mới tính.
+const NGUOI_DUYET = 'davidwr';
+export function ngayTang(K, den) {
+  const ds = (K.playlist ?? []).filter((p) => (p.lich_tap ?? []).length), p = ds[0]; if (!p) return null;
+  const ban = new Set([...(K.playlist ?? []).filter((x) => x !== p).flatMap((x) => x.lich_tap ?? []), K.mau_dai?.lich?.thu].filter(Boolean)), co = new Set(p.lich_tap);
+  for (const t of [1, 2, 3, 4, 5, 7, 6]) { if (co.size >= den) break; if (!ban.has(t)) co.add(t); }
+  return { ma: p.ma, cu: p.lich_tap, moi: [...co].sort((a, b) => a - b) };
+}
+function apDeXuat(k, K) {
+  const tep = join(homedir(), '.cache', `lich-su-${k}-de-xuat.json`); if (!existsSync(tep)) return;
+  const dx = JSON.parse(readFileSync(tep, 'utf8'));
+  let tl; try { tl = JSON.parse(execFileSync('ssh', [BOX, 'cat /var/lib/cty/tg-hop/_khac/*.json 2>/dev/null | python3 -c "import sys,json,re; d=json.JSONDecoder(); s=sys.stdin.read(); i=0; o=[]\nwhile i<len(s):\n  s2=s[i:].lstrip()\n  if not s2: break\n  v,n=d.raw_decode(s2); i=len(s)-len(s2)+n; m=v.get(\"message\") or {}; r=m.get(\"reply_to_message\") or {}; o.append([r.get(\"message_id\"), (m.get(\"from\") or {}).get(\"username\"), m.get(\"text\") or \"\"])\nprint(json.dumps(o))"'], { encoding: 'utf8', timeout: 60_000 })); } catch (e) { console.log(`⚠ đọc trả lời Telegram hỏng: ${e.message.split('\n')[0]}`); return; }
+  const tra = tl.filter(([id, ai]) => id === dx.msg && ai === NGUOI_DUYET).map((x) => x[2].trim().toLowerCase()).pop(); if (!tra) return;
+  if (/^(không|khong|bỏ|bo|no)\b/.test(tra)) { unlinkSync(tep); console.log(`· ${k}: anh bỏ đề xuất tăng nhịp`); return; }
+  if (!/^(duyệt|duyet|ok|đồng ý|dong y|yes|đc|được)/.test(tra)) return;
+  const n = ngayTang(K, dx.den); if (!n) { unlinkSync(tep); return; }
+  const f = join(DIR, 'kenh.json'), s = readFileSync(f, 'utf8'), i = s.indexOf(`"ma": ${JSON.stringify(n.ma)}`), j = s.indexOf('"lich_tap"', i), e = s.indexOf(']', j);
+  if (i < 0 || j < 0 || e < 0) { console.log(`⚠ ${k}: không tìm thấy lich_tap của playlist ${n.ma} trong kenh.json`); return; }
+  const thut = s.slice(s.lastIndexOf('\n', j) + 1, j), moi = `"lich_tap": [\n${n.moi.map((t) => `${thut}  ${t}`).join(',\n')}\n${thut}]`;
+  writeFileSync(f, s.slice(0, j) + moi + s.slice(e + 1)); JSON.parse(readFileSync(f, 'utf8'));
+  K.playlist.find((p) => p.ma === n.ma).lich_tap = n.moi;
+  try { execFileSync('git', ['-C', DIR, 'commit', '-q', '-m', `kenh.json: ${k} playlist ${n.ma} ${n.cu.length} → ${n.moi.length} tập/tuần (anh duyệt trên Telegram: "${tra}")`, '--', f]); execFileSync('git', ['-C', DIR, 'push', '-q', 'origin', 'HEAD:main'], { timeout: 120_000 }); } catch (e2) { console.log(`⚠ commit kenh.json hỏng: ${e2.message.split('\n')[0]}`); }
+  unlinkSync(tep);
+  const T = ['', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  tele(`✅ ${K.ten_kenh ?? K.ten}: đã đổi nhịp theo câu duyệt của anh — playlist ${n.ma} ${n.cu.length} → ${n.moi.length} tập/tuần (${n.moi.map((t) => T[t]).join(' · ')})`);
+  console.log(`✓ ${k}: lich_tap ${n.ma} ${JSON.stringify(n.cu)} → ${JSON.stringify(n.moi)}`);
+}
 
 // HỎNG → GIAO THỢ MÁY (anh 03/11/2026: "thế này mà cho tự chạy … không có ai sửa à?"): xếp việc `kenh:<kênh>|<tập>` vào hàng của Mạnh (apps/cty/may/tho-may.mjs,
 // iMac, mỗi 5 phút) kèm đuôi nhật ký — Mạnh tìm gốc, sửa trong apps/xuong-video, push, chạy lại, trả lời trên Telegram. Trả true khi đã xếp (khoá đang chờ thì không xếp đôi).
@@ -43,6 +75,7 @@ const danhDau = (ma, id, dl) => { try { dauDangLam(ma, id, dl); } catch (e) { co
 
 for (const [k, K] of Object.entries(KENH)) {
   if (k.startsWith('_') || !K.may || (arg('kenh') && arg('kenh') !== k)) continue;
+  apDeXuat(k, K); if (process.argv.includes('--chi-duyet')) continue;   // --chi-duyet: chỉ đọc câu trả lời đề xuất, không làm tập
   const bao = [];
   // TẬP KẸT TỰ LÀM TIẾP (02/11/2026, kế hoạch "kênh tự động hoàn toàn" bước 1): tập của kênh trong 10 ngày chưa đăng → đọc trạng thái trong DB máy đăng
   //   chưa nạp / chưa xuất / Phòng Nội dung bắt SỬA LẠI → lam-tap --id <tập> --gan-hook (giọng + ảnh dùng lại, hook / tiêu đề phạm luật thì gắn lại), kiểm chữ lỗi → thêm --sua
@@ -162,7 +195,8 @@ for (const [k, K] of Object.entries(KENH)) {
     const vs = JSON.parse(ds || '[]').map((v) => ({ ...v, tuoi: Math.max(1, Math.round((Date.now() - Date.parse(`${v.ngay}T12:00:00+07:00`)) / 86_400_000)) })).map((v) => ({ ...v, md: Math.round((v.xem ?? 0) / v.tuoi) }));
     const du = vs.filter((v) => v.tuoi >= 2).map((v) => v.md).sort((a, b) => a - b), tv = du.length ? du[Math.floor(du.length / 2)] : 0;
     const bang = vs.sort((a, b) => b.md - a.md).map((v) => `${String(v.md).padStart(6)}/ngày ${String(v.xem ?? 0).padStart(7)}  ${String(v.t ?? '').slice(0, 40).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}`).join('\n');
-    tele(`📊 ${K.ten_kenh ?? K.ten} · tuần tới ${hom}\n<pre>${bang || '(chưa có tập đã đăng)'}</pre>\n${du.length >= 3 && tv >= 300 ? `Đề xuất: trung vị ${tv} lượt xem/ngày — tăng từ ${tapMoiTuan(K)} lên 5 tập/tuần? (anh duyệt thì đổi lich_tap của playlist trong kenh.json)` : `Trung vị ${tv} lượt xem/ngày (${du.length} tập ≥ 2 ngày) — giữ ${tapMoiTuan(K)} tập/tuần`}`, true);
+    const deXuat = du.length >= 3 && tv >= 300, msg = tele(`📊 ${K.ten_kenh ?? K.ten} · tuần tới ${hom}\n<pre>${bang || '(chưa có tập đã đăng)'}</pre>\n${du.length >= 3 && tv >= 300 ? `Đề xuất: trung vị ${tv} lượt xem/ngày — tăng từ ${tapMoiTuan(K)} lên 5 tập/tuần? (trả lời "Duyệt" ngay dưới tin này là máy tự đổi lịch)` : `Trung vị ${tv} lượt xem/ngày (${du.length} tập ≥ 2 ngày) — giữ ${tapMoiTuan(K)} tập/tuần`}`, true)
+    if (deXuat && msg) writeFileSync(join(homedir(), '.cache', `lich-su-${k}-de-xuat.json`), JSON.stringify({ msg, den: 5, luc: new Date().toISOString() }));   // anh trả lời tin này → apDeXuat áp
     writeFileSync(dauTuan, '1');
   }
   const chu = `📺 ${K.ten} · ${hom}\n${bao.join('\n')}`; console.log(chu);

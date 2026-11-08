@@ -3,7 +3,9 @@
  *  nhóm 1: camp = luật · dòng / creative / chấm / duyệt = dạng · lệnh lỗi = câu lỗi; nhóm 2: tăng / giảm = bậc $a → $b · tắt = ngân sách lúc tắt · chấm trượt = tiêu chí chặn · duyệt = người duyệt */
 export type HangLog = [number, string, number | null, string, string, string, (number | null)?];   // [6] = mã phim (content_id) — mở ngăn phim / ngăn sản xuất
 /** tên hai chiều thống kê theo loại (đầu thẻ nổi) */
-export const CHIEU_TK: Record<string, [string, string]> = { camp: ['Theo luật', 'Theo bậc'], dong: ['Theo dạng', 'Theo lý do'], creative: ['Theo dạng', 'Theo tiêu chí'] };
+export const CHIEU_TK: Record<string, [string, string]> = { camp: ['Theo luật', 'Theo bậc'], dong: ['Theo dạng', 'Theo bước · lý do'], creative: ['Theo dạng', 'Theo tiêu chí'],
+  dm: ['Theo dạng', 'Theo nguồn'], sx: ['Theo dạng', 'Theo bước'], ct: ['Theo dạng', 'Theo tiêu chí chặn'], dq: ['Theo dạng', 'Theo người duyệt'], dlt: ['Theo dạng', 'Theo người duyệt'],
+  loi: ['Theo lỗi', 'Theo bậc'] };   // khoá = mã loại (ưu tiên) hoặc ma
 export type DemTk = { ten: string; n: number };
 /** đếm một chiều, nhiều nhất trước; mục rỗng gộp "không ghi"; quá `toiDa` mục thì gộp phần đuôi "khác" */
 export function demTk(ds: HangLog[], cot: 4 | 5, toiDa = 8): DemTk[] {

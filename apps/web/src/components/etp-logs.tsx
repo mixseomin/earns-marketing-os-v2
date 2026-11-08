@@ -28,7 +28,7 @@ type The = { k: string; nhan: string; ds: HangLog[] };
 const TEN_MA: Record<string, string> = { camp: 'camp', dong: 'dòng', creative: 'creative' };
 function ThongKe({ t }: { t: The }) {
   const l = LOAI_THEO_K[t.k]; if (!l) return null;
-  const khac = new Set(t.ds.map((e) => e[2]).filter((x) => x != null)).size, chieu = CHIEU_TK[l.ma];
+  const khac = new Set(t.ds.map((e) => e[2]).filter((x) => x != null)).size, chieu = CHIEU_TK[t.k] ?? CHIEU_TK[l.ma];
   const bang = (ten: string, ds: DemTk[]) => ds.length ? <div style={{ marginBottom: 8 }}>
     <div style={{ fontWeight: 600, color: 'var(--fg-2)', marginBottom: 3 }}>{ten}</div>
     {ds.map((x) => <div key={x.ten} style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 72px 34px', alignItems: 'center', gap: 6, lineHeight: '18px' }}>

@@ -2,7 +2,7 @@
 // LOGS — thay "Lên bậc" ở tab Camp (anh 08/11/2026): nhật ký máy nhà gom theo khung 15 phút … 1 ngày (tuỳ chọn); mỗi khung đếm camp mở / tắt / tăng / giảm…,
 // creative dựng / chấm qua / trượt / người duyệt, dòng sản xuất, chi / thu nhà. Bấm (điện thoại) hoặc rê chuột vào một ô số → thẻ nổi liệt kê từng việc trong khung đó.
 // Số: lib/actions/etp-logs docLogs · loại + gom: lib/etp-logs (bài tự kiểm etp-logs.test.mts). Kỳ + khung gom ghi URL (?lgky= ?lggom=), F5 giữ nguyên.
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { DataTable, Segmented, type DataColumn } from '@/components/ui';
 import { KhungNoi, useNoi } from '@/components/etp-noi';
 import { KeToan, mauLai, MO_SO } from '@/components/etp-so';
@@ -59,11 +59,18 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
 
   const noi = useNoi<The>();
   // ô số: bấm = mở ngay (điện thoại), rê chuột = mở sau trễ chung (máy tính) — một khuôn thẻ nổi của etp
-  const oSo = (k: string, ds: HangLog[] | undefined, nhan: string) => { const n = ds?.length ?? 0;
-    if (!n) return <span style={{ color: MO_SO }}>0</span>;
+  // KHÔNG CUỘN NGANG (anh 08/11/2026 "Trình bày drawer làm sao ko phải scroll sang ngang"): mỗi NHÓM một cột (Camp · Sản xuất · Chấm · duyệt · Khác) thay vì mỗi loại một cột (21 cột);
+  // trong cột là dãy Ô cố định (icon + số), cùng vị trí ở tiêu đề / mọi dòng / dòng tổng → mắt dò dọc theo icon; màn hẹp thì dãy ô xuống dòng thay vì đẩy bảng rộng ra
+  const O_RONG = 38;
+  const oSo = (k: string, ds: HangLog[] | undefined, nhan: string) => { const n = ds?.length ?? 0, l = LOAI_THEO_K[k];
+    const vo: React.CSSProperties = { width: O_RONG, textAlign: 'right', fontVariantNumeric: 'tabular-nums', flex: 'none' };
+    if (!n) return <span key={k} style={{ ...vo, color: MO_SO }} title={`${l?.ten}: 0`}>·</span>;
     const t: The = { k, nhan, ds: ds! };
-    return <span role="button" tabIndex={0} onClick={(e) => noi.moNgay(t, e)} onMouseEnter={(e) => noi.mo(t, e)} onMouseLeave={noi.dongTre}
-      style={{ cursor: 'pointer', fontWeight: 600, color: LOAI_THEO_K[k]?.bao ? DO : undefined, textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{n}</span>; };
+    return <span key={k} role="button" tabIndex={0} title={l?.ten} onClick={(e) => noi.moNgay(t, e)} onMouseEnter={(e) => noi.mo(t, e)} onMouseLeave={noi.dongTre}
+      style={{ ...vo, cursor: 'pointer', fontWeight: 600, color: l?.bao ? DO : undefined, textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{n}</span>; };
+  const day = (nhom: string, f: (k: string) => React.ReactNode) => <span style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-end', rowGap: 2 }}>
+    {LOAI_LOG.filter((l) => l.nhom === nhom).map((l) => <Fragment key={l.k}>{f(l.k)}</Fragment>)}</span>;
+  const dauDay = (nhom: string) => day(nhom, (k) => { const l = LOAI_THEO_K[k]!; return <span title={l.ten} style={{ width: O_RONG, textAlign: 'right', flex: 'none', cursor: 'help' }}>{l.icon}</span>; });
   // BẤM MÃ = NGĂN KÉO tại chỗ (anh 08/11/2026 "Bấm vào thì mở ra drawer để tao ko phải sang tab mới"): camp → ngăn camp của trang; dòng / creative → ngăn Sản xuất của phim
   const moNgan = (e: HangLog): (() => void) | null => { const ma = LOAI_THEO_K[e[1]]?.ma;
     if (ma === 'camp' && e[2] != null) return () => moCamp(e[2]!);
@@ -77,9 +84,8 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
     { key: 'thu', header: 'Thu', cell: (x) => x.coTien ? <KeToan v={x.thu} /> : null, sortValue: (x) => x.thu, total: (r) => <KeToan v={r.reduce((a, x) => a + x.thu, 0)} /> },
     { key: 'lai', header: 'Lãi', cell: (x) => x.coTien ? <KeToan v={x.thu - x.chi} mau={mauLai(x.thu - x.chi)} /> : null, sortValue: (x) => x.thu - x.chi,
       total: (r) => { const v = r.reduce((a, x) => a + x.thu - x.chi, 0); return <KeToan v={v} mau={mauLai(v)} />; } },
-    ...LOAI_LOG.map((l): DataColumn<KhungLog> => ({ key: l.k, group: l.nhom, header: `${l.icon} ${l.ten}`, align: 'right',
-      cell: (x) => oSo(l.k, x.dem[l.k], nhanKhung(x.t, gom)), sortValue: (x) => x.dem[l.k]?.length ?? 0,
-      total: (r) => oSo(l.k, cong(r, l.k), `cả ${tenKy(ky)}`) })),
+    ...NHOM_LOG.map((g): DataColumn<KhungLog> => ({ key: g.key, group: g.key, header: <span title={`${g.label}: ${LOAI_LOG.filter((l) => l.nhom === g.key).map((l) => `${l.icon} ${l.ten}`).join(' · ')}`}>{dauDay(g.key)}</span>, align: 'right',
+      cell: (x) => day(g.key, (k) => oSo(k, x.dem[k], nhanKhung(x.t, gom))), total: (r) => day(g.key, (k) => oSo(k, cong(r, k), `cả ${tenKy(ky)}`)) })),
   ];
 
   return <div style={{ display: 'flex', flexDirection: 'column', gap: 8, minWidth: 0 }}>
@@ -94,9 +100,10 @@ export function TabLogs({ moCamp }: { moCamp: (id: number) => void }) {
     </div>
     {loi ? <div style={{ padding: '8px 10px', borderRadius: 8, border: `1px solid ${DO}`, color: DO, fontSize: 12 }}>⛔ {loi}</div> : null}
     {!du && !loi ? <div style={{ padding: 16, color: 'var(--fg-2)', fontSize: 12 }}>⏳ Đang tải nhật ký…</div> : null}
-    {du ? <DataTable rows={hang} columns={cot} groups={NHOM_LOG.map((g) => ({ ...g }))} groupHeader getRowKey={(x) => String(x.t)} persistKey="etp-logs" minWidth={1200}
+    {du ? <DataTable rows={hang} columns={cot} groups={NHOM_LOG.map((g) => ({ ...g }))} groupHeader getRowKey={(x) => String(x.t)} persistKey="etp-logs-nhom" minWidth={0}
       defaultSort={[{ key: 'khung', dir: 'desc' }]} locTuDong={false} /> : null}
-    {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={420} noi={noi}>
+    {/* thẻ nổi nằm TRÊN ngăn kéo Logs (ngăn z ≥ 300; khuôn chung z 60 thì bị ngăn che, bấm mã không được) */}
+    {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={460} cao={420} noi={noi} style={{ zIndex: 2000 }}>
       <div style={{ width: 460, maxWidth: '92vw', padding: '10px 32px 10px 12px', fontSize: 12 }}>
         <div style={{ marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid var(--line)' }}>
           <b style={{ fontSize: 13, color: LOAI_THEO_K[noi.v.k]?.bao ? DO : undefined }}>{LOAI_THEO_K[noi.v.k]?.icon} {LOAI_THEO_K[noi.v.k]?.ten} · {noi.v.ds.length}</b>

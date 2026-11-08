@@ -538,7 +538,9 @@ def main(a):
         kq["phim_dang_chay"] = n
         ly = CONG.kiem("tao_camp" if moi else "nhan_ban", None, thang or 1, 0, str(bo) if bo else None, content_id=cid, ngoai=bool(NGOAI), tay=tay, lenh_anh=ep)
         if ly: raise ChanLuat(ly)
-        tn = ab_lay(kq, pl, lich, goc, moi, cr=ad0["creative_id"])   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026)
+        # CLONE SANG BỘ KHÁC THEO LỆNH ANH (--bo --ep) = bản sao ĐÚNG camp gốc: không chia vào A/B đang chạy (08/11/2026: dup 50 camp bộ 2 → bộ 4 bị AB01 gán nhánh
+        # và đặt ngân sách $3 của nhánh; anh: "Sao dup sang bộ 4 lại set ngân sách $3 ngay") — giữ $1 + tham số Ad Set của gốc
+        tn = None if ep else ab_lay(kq, pl, lich, goc, moi, cr=ad0["creative_id"])   # sổ A/B etp.ab — đặt tham số nhánh trước khi tạo (anh 05/11/2026)
         if not that:
             print(json.dumps({**kq, "ok": True, "chay_kho": True, "payload": pl}, ensure_ascii=False)); return
         r = api("/api/v1/campaigns/facebook", pl)

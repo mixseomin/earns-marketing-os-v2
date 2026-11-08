@@ -129,6 +129,16 @@ def main():
         # camp ROAS chạy BÀI ĐĂNG CŨ: ad không mang content/creative → nhận phim của camp gốc (cây camp + số theo phim trên etp.on.tc)
         q("""update etp.camp c set content_id = g.content_id from etp.camp g where c.goc = g.camp_id and coalesce(c.content_id, 0) = 0 and coalesce(g.content_id, 0) <> 0""")
     except Exception as e: loi.append(f"camp: {e}")
+    # ── CAMP A/B VỀ $1 (anh 08/11/2026: "AB test vẫn phải đi từ $1. Nếu khác thì phải xin phép"): AB01 từng đặt $3 cho camp vào nhánh; camp đang kẹt đồng bộ
+    #    (Ethopex 'checking_ads' từ chối sửa) thì mỗi lượt thử lại tới khi về $1. Camp ROAS / bản thang không thuộc kiểu 'nuoc' nên không đụng.
+    try:
+        ve1 = q("""select string_agg(c.camp_id::text, ' ') from etp.camp_ab a join etp.ab b on b.ma = a.ab join etp.camp c using (camp_id)
+                    where b.kieu = 'nuoc' and c.ngan_sach > 1 and not c.la_roas and c.trang_thai in ('ACTIVE', 'PAUSED')""").split()
+        lam = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "xuong-video", "scripts", "ethopex", "lam-ethopex.py")
+        for cid in ve1:
+            r = subprocess.run(["python3", lam, "giam", cid, "1", "--luat", "camp A/B phải đi từ $1 (anh 08/11/2026)"], capture_output=True, text=True, timeout=120, cwd=os.path.dirname(lam))
+            da = '"ok": true' in r.stdout; kq.setdefault("ab_ve_1", []).append(cid + (":ok" if da else ":cho"))
+    except Exception as e: loi.append(f"ab_ve_1: {e}")
     # ── SỔ DẠNG (anh 08/11/2026 "ko bị khai thừa ở nhiều nơi"): lưới apps/etp/kiem-so-dang.mjs mỗi lượt — có bảng dạng tự khai / sổ lệch → cảnh báo Telegram (một lần mỗi nội dung)
     try:
         r = subprocess.run(["node", os.path.join(os.path.dirname(os.path.abspath(__file__)), "kiem-so-dang.mjs")], capture_output=True, text=True, timeout=60)

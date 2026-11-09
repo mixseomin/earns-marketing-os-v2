@@ -7,13 +7,17 @@ import { TRE_MO } from '@/lib/etp-tre';
 // DÒNG THỜI GIAN MỐC — MỘT KHUÔN cho mọi thẻ nổi của camp (anh 03/11/2026 "format kiểu này… component để dùng cho nhiều nơi"): chấm màu + tên đậm + số + giờ, dòng chữ dưới.
 // Dùng ở: lịch sử bậc (DongBac), lý do dừng (TheDung). Mốc mới nhất trên.
 export type Moc = { ten: string; mau: string; so?: string; luc?: string; chu?: string | null; t?: string | null };
-export function DongMoc({ ds, rong = 'Chưa có mốc nào.' }: { ds: Moc[]; rong?: string }) {
+// gon (#1551 anh 09/11/2026 "Chữ này đừng có show ngay ra"): chữ dưới mốc ẨN, bấm "lý do ▸" ở dòng mốc mới mở — dùng cho dòng thời gian bậc (chữ luật dài)
+export function DongMoc({ ds, rong = 'Chưa có mốc nào.', gon = false }: { ds: Moc[]; rong?: string; gon?: boolean }) {
+  const [mo, setMo] = useState<Set<number>>(() => new Set());
+  const bat = (i: number) => setMo((v) => { const n = new Set(v); if (n.has(i)) n.delete(i); else n.add(i); return n; });
   return ds.length ? <div style={{ position: 'relative', paddingLeft: 16 }}>
     <span style={{ position: 'absolute', left: 4, top: 4, bottom: 4, width: 2, background: 'var(--line)' }} />
     {ds.map((x, i) => <div key={i} title={x.t ?? undefined} style={{ position: 'relative', paddingBottom: 8, cursor: x.t ? 'help' : undefined }}>
       <span style={{ position: 'absolute', left: -16, top: 3, width: 10, height: 10, borderRadius: 5, background: x.mau, boxShadow: '0 0 0 2px var(--bg-1, #111)' }} />
-      <div><b style={{ color: x.mau }}>{x.ten}</b>{x.so ? <> <b style={{ fontVariantNumeric: 'tabular-nums' }}>{x.so}</b></> : null}{x.luc ? <span style={{ color: 'var(--fg-3, #777)', marginLeft: 6 }}>{x.luc}</span> : null}</div>
-      {x.chu ? <div style={{ color: 'var(--fg-2)', lineHeight: 1.35, marginTop: 1, whiteSpace: 'pre-line' }}>{x.chu}</div> : null}
+      <div><b style={{ color: x.mau }}>{x.ten}</b>{x.so ? <> <b style={{ fontVariantNumeric: 'tabular-nums' }}>{x.so}</b></> : null}{x.luc ? <span style={{ color: 'var(--fg-3, #777)', marginLeft: 6 }}>{x.luc}</span> : null}
+        {gon && x.chu ? <button type="button" onClick={() => bat(i)} style={{ marginLeft: 6, padding: 0, border: 0, background: 'none', color: 'var(--fg-3, #777)', fontSize: 11, cursor: 'pointer' }}>{mo.has(i) ? 'lý do ▾' : 'lý do ▸'}</button> : null}</div>
+      {x.chu && (!gon || mo.has(i)) ? <div style={{ color: 'var(--fg-2)', lineHeight: 1.35, marginTop: 1, whiteSpace: 'pre-line' }}>{x.chu}</div> : null}
     </div>)}
   </div> : <div style={{ color: 'var(--fg-2)' }}>{rong}</div>;
 }

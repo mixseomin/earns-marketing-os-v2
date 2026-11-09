@@ -266,7 +266,7 @@ function DauCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ten'> }) {
 }
 // DÒNG THỜI GIAN ĐỔI BẬC (mới nhất trên) — thẻ Lịch sử bậc 30 ngày (ô ngân sách / ngăn camp) và thẻ đổi bậc trong một ngày (ô ngày của camp, #1507)
 function DongBac({ ls }: { ls: DuLieuEtp['lsBac'][number] }) {
-  return <DongMoc rong="Chưa đổi bậc lần nào trong 30 ngày." ds={[...ls].reverse().map((x) => { const [ten, mau] = VIEC_BAC[x.viec] ?? [x.viec, '#94a3b8'];
+  return <DongMoc gon rong="Chưa đổi bậc lần nào trong 30 ngày." ds={[...ls].reverse().map((x) => { const [ten, mau] = VIEC_BAC[x.viec] ?? [x.viec, '#94a3b8'];
     return { ten, mau, so: x.truoc && x.sau ? `$${x.truoc} → $${x.sau}` : x.sau ? `$${x.sau}` : '', luc: gioVn(x.luc), chu: x.luat ? luatThuong(x.luat) : null, t: x.ai }; })} />;
 }
 // THẺ LÝ DO DỪNG — cùng khuôn thẻ bậc: đầu = camp nào, dòng lớn = kiểu dừng, dưới = mốc (Lúc · Luật · Duyệt / Ethopex báo)
@@ -2121,8 +2121,9 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   const thayCua = useMemo(() => new Map((du.thayThe ?? []).map((t) => [-t.id, t])), [du.thayThe]);
   const moRongCua = useMemo(() => new Map((du.moRong ?? []).map((m) => [MR_ID(m.content_id), m])), [du.moRong]);
   // phim ĐANG có đợt sản xuất chạy (đồng hồ ⏲ ở cột TT) thì KHÔNG hiện dòng plan mở rộng — chỉ hiện lại khi đợt xong + đủ điều kiện như camp đã ổn định (#1522 anh 03/11/2026)
+  // plan 'chờ đo' (lượt trước chưa đủ 1 ngày khép, máy chưa làm gì) cũng KHÔNG hiện dòng (#1552 anh 09/11/2026 "Xoá dòng này")
   const moRongRows = useMemo(() => { const coPhim = new Set(camps.map((c) => c.content_id)); const dangSx = new Set((du.dongChay ?? []).filter((x) => (x.trang_thai ?? 'chay') === 'chay').map((x) => x.content_id));
-    return (du.moRong ?? []).filter((m) => m.k > 0 && coPhim.has(m.content_id) && !dangSx.has(m.content_id)).map((m): CampEtpKho => ({ camp_id: MR_ID(m.content_id), ten: `mở rộng +${m.k} camp`, bo: null, trang_thai: 'MO_RONG', giao: null, ngan_sach: 0,
+    return (du.moRong ?? []).filter((m) => m.k > 0 && m.trang_thai !== 'cho_do' && coPhim.has(m.content_id) && !dangSx.has(m.content_id)).map((m): CampEtpKho => ({ camp_id: MR_ID(m.content_id), ten: `mở rộng +${m.k} camp`, bo: null, trang_thai: 'MO_RONG', giao: null, ngan_sach: 0,
       creative_id: null, content_id: m.content_id, goc: null, lich: null, tao: m.luc, loi: null, phim: null, the_loai: null, dang: null, ban: null, giong: null, doan: null, cung_doan: 0,
       thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, lich_tat: false, roas: null, chien_luoc: null, nuoc: [] })); }, [camps, du.moRong, du.dongChay]);
   // dòng KẸT theo phim (anh 07/11/2026): chỉ phim đang có camp trong danh sách; thứ tự creative rồi camp

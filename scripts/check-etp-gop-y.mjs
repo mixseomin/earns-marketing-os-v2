@@ -21,6 +21,9 @@ import { readFileSync } from 'node:fs';
 const V = 'apps/web/src/components/etp-view.tsx';
 const LUAT = [
   // 08/11/2026 phiên sổ dạng + cổng $1 + mùa lễ — chặn quay về
+  { card: 1551, tep: 'apps/web/src/components/etp-view.tsx', co: '<DongMoc gon rong="Chưa đổi bậc lần nào trong 30 ngày."', vi: 'lịch sử bậc / đổi bậc trong ngày: chữ lý do luật ẩn, bấm "lý do ▸" mới mở' },
+  { card: 1551, tep: 'apps/web/src/components/etp-noi.tsx', co: '{x.chu && (!gon || mo.has(i)) ? <div', vi: 'DongMoc chế độ gọn không hiện chữ mốc ngay' },
+  { card: 1552, tep: 'apps/web/src/components/etp-view.tsx', co: "m.k > 0 && m.trang_thai !== 'cho_do' && coPhim.has(m.content_id)", vi: 'Cây không hiện dòng plan mở rộng đang chờ đo' },
   { card: 'so-dang-0811', tep: 'apps/etp/so_dang.py', co: 'DS = json.load(open(_TEP, encoding="utf-8"))["dang"]', vi: 'máy Python đọc sổ dạng chung etp-dang.json (anh 08/11/2026 "các thể loại mới mày cứ mỗi nơi làm 1 cái à")' },
   { card: 'so-dang-0811', tep: 'apps/web/src/lib/etp-dang.ts', co: "import SO_DANG from '@/lib/etp-dang.json';", vi: 'web đọc sổ dạng chung etp-dang.json' },
   { card: 'so-dang-0811', tep: 'apps/etp/dong-bo.py', co: '"kiem-so-dang.mjs"', vi: 'lưới sổ dạng chạy mỗi lượt đồng bộ, đỏ → Telegram' },

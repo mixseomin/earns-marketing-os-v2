@@ -153,7 +153,7 @@ def main(a):
     luat = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--luat"), None); ai = next((a[i + 1] for i, x in enumerate(a[:-1]) if x == "--ai"), None)
     ep = "--ep" in a   # anh lệnh đích danh (vd phim 18+) — bỏ qua chặn camp lãi
     # --bo-nhip: anh lệnh đích danh trong chat tăng lại một camp vừa tăng (05/11/2026 AB02: chuyển #73284 sang đối chứng $13 → $20) — chỉ khi --ai "anh (chat)", máy tự tăng không dùng
-    bo_nhip = "--bo-nhip" in a and ai == "anh (chat)"
+    bo_nhip = "--bo-nhip" in a and ai in ("anh (chat)", "anh (etp2)")   # anh (etp2) = anh tự bấm "ép" ở bảng điều khiển camp etp2 (#1553 09/11/2026)
     a = [x for i, x in enumerate(a) if x not in ("--luat", "--ai", "--ep", "--bo-nhip") and (i == 0 or a[i - 1] not in ("--luat", "--ai"))]
     if a[0] == "tat-loat":   # tat-loat <id,id,…> --luat … --ai … [--t7]
         print(json.dumps(tat_loat([int(x) for x in a[1].split(",") if x.strip().isdigit()], luat, ai, t7="--t7" in sys.argv, ep=ep), ensure_ascii=False)); return

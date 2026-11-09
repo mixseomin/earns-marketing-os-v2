@@ -57,7 +57,7 @@ export async function GET(req: Request) {
   type Viec = { id: number; khoa: string; luc: string; tt: string; ket?: string; ket_qua?: string; xong?: string };
   let hang: Viec[] = []; try { hang = (JSON.parse(fs.readFileSync(`${process.env.CTY_DATA_DIR || '/var/lib/cty'}/tho-may.json`, 'utf8')).hang ?? []) as Viec[]; } catch { /* chưa có hàng */ }
   for (const r of rows) {
-    const b = r.buoc as Record<string, { t?: string }> | null, sau = r.ket !== 'hong' && b?.sau?.t === 'loi'; if (r.ket !== 'hong' && !sau) continue;
+    const b = r.buoc as Record<string, { t?: string }> | null, sau = r.buoc_dung === 'sau' || (r.ket !== 'hong' && b?.sau?.t === 'loi'); if (r.ket !== 'hong' && !sau) continue;
     // việc phủ lượt này = việc cùng khoá chưa xong lúc lượt chạy: việc mở TRƯỚC lượt (hàng không xếp đôi nên lượt hỏng lặp nằm chung việc đó), không có thì việc giao SAU lượt (giao bù)
     const khoa = `dang:${sau ? 'sau' : 'lo'}|${r.ma}|${r.nen}`, bd = Date.parse(String(r.bd));
     const ung = hang.filter((x) => x.khoa === khoa && (!x.xong || Date.parse(x.xong) >= bd));

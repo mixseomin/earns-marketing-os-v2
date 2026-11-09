@@ -408,7 +408,7 @@ if (a.includes('--nap')) {
   for (const { x, id } of giao) {
     try {
       const B = (x.buoc ?? {}) as Record<string, { t: string; ly?: string; con?: { ten: string; t: string }[] }>;
-      const sau = x.ket !== 'hong' && B.sau?.t === 'loi';
+      const sau = x.buoc_dung === 'sau' || (x.ket !== 'hong' && B.sau?.t === 'loi');   // hỏng ở / sau bước Sau đăng = bài đã lên, chỉ việc sau đăng hỏng
       if (x.ket !== 'hong' && !sau) continue;
       const k = sau ? 'sau' : (x.buoc_dung ?? ''), o = B[k], con = o?.con ?? [], cuoi = con.length && con[con.length - 1]!.t !== 'ok' ? con[con.length - 1]!.ten : null;
       const loi = sau ? o?.ly ?? '' : x.loi ?? o?.ly ?? '';

@@ -10,7 +10,7 @@ Mỗi ad bị từ chối (delivery_status DISAPPROVED / error có DISAPPROVED):
   5. camp bị Ethopex dừng vì từ chối → bật lại ngay sau khi thay (anh 24/10/2026 "bật sau khi thay đi"), qua lam-ethopex.py bat + rào chắn etp
 Chạy trên box3: thay-tu-choi.py [--camp <id> …]   (không --camp = quét mọi camp đang chạy).
   thay-tu-choi.py --don-doan [--thu]   → dọn đoạn quá tải (> trần tran_trung camp, mặc định 20): camp dư không lãi thay sang góc khác cùng phim (--thu: chỉ in, không làm) Phòng Ethopex (cty ethopex.mjs) gọi khi luật báo tu_choi."""
-import datetime as dt, json, os, subprocess, sys, urllib.request
+import datetime as dt, json, os, subprocess, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 T = q("select gia_tri->>'access_token' from xv_khoa_ngoai where ten='ethopex'")
@@ -26,6 +26,23 @@ khoa = lambda ten: json.loads(q(f"select coalesce(gia_tri, '{{}}'::jsonb)::text 
 def gop(ten, moi):
     v = json.dumps(moi, ensure_ascii=False).replace("'", "''")
     q(f"insert into xv_khoa_ngoai (ten, gia_tri) values ('{ten}', '{v}'::jsonb) on conflict (ten) do update set gia_tri = coalesce(xv_khoa_ngoai.gia_tri, '{{}}'::jsonb) || excluded.gia_tri")
+
+CHO_PHUT, TRAN_THAY = 30, 3
+def cho_cua(camp):
+    """sổ chờ Meta duyệt lại: {"cr", "luc" (epoch lúc thay), "lan" (số lần đã thay liên tiếp)} — bản cũ chỉ ghi số creative → coi như thay từ lâu, lần 1"""
+    v = khoa("ethopex_thay_cho_duyet").get(str(camp))
+    if isinstance(v, dict) and v.get("cr"): return {"luc": 0, "lan": 1, **v}
+    if not v: return None
+    # bản cũ: giờ thay lấy từ nhật ký camp (dòng thay_creative mới nhất) — không có thì coi như thay từ lâu
+    r = q(f"select max(to_timestamp(x->>'luc', 'HH24:MI DD/MM/YYYY')::timestamp at time zone 'Asia/Ho_Chi_Minh') from xv_khoa_ngoai, jsonb_array_elements(gia_tri) x "
+          f"where ten = 'ethopex_nhat_ky' and x->>'viec' = 'thay_creative' and x->>'id' = '{int(camp)}' and x->>'ok' = 'true' and x->>'luc' ~ '^\\d\\d:\\d\\d \\d\\d/\\d\\d/\\d{{4}}$'")
+    try: luc = dt.datetime.fromisoformat(r).timestamp() if r else 0
+    except ValueError: luc = 0
+    return {"cr": v, "luc": luc, "lan": 1}
+def dong_bo_luc(a):
+    """lúc Ethopex đọc lại ad từ Meta lần cuối (epoch) — 0 khi không rõ"""
+    try: return dt.datetime.fromisoformat(str(a.get("last_synced_at") or "").replace("Z", "+00:00")).timestamp()
+    except ValueError: return 0
 
 def bi_tu_choi(a): return a.get("delivery_status") == "DISAPPROVED" or "DISAPPROVED" in str(a.get("error") or "").upper()
 
@@ -54,8 +71,22 @@ def mot(camp, tu_choi, dat):
     cu, cid = a.get("creative_id"), a.get("content_id")
     lan = False   # CHỈ AD ĐANG BỊ META TỪ CHỐI (anh 03/11/2026: "Cấm tự ý đổi creative") — bỏ thay trước cho camp khác cùng creative
     if not bi_tu_choi(a) and not lan: return {**kq, "ok": True, "viec": "khong_tu_choi"}
-    if not lan and khoa("ethopex_thay_cho_duyet").get(str(camp)) == cu: return {**kq, "ok": True, "viec": "cho_meta_duyet"}   # vừa thay, Meta chưa duyệt lại
+    # CHỜ META DUYỆT LẠI CÓ HẠN (anh 09/11/2026 "cần cơ chế ưu tiên fix loại lỗi này ngay khi phát hiện"): trước đây sổ chờ chỉ ghi creative, không ghi lúc thay →
+    # #68850 (Spam 06:04 06/11) thay sang #60266, Ethopex đồng bộ lại 06:12 vẫn DISAPPROVED mà máy "chờ duyệt" im lặng 3 ngày. Giờ: Ethopex đồng bộ lại ad
+    # ≥ CHO_PHUT phút sau lần thay mà ad vẫn bị từ chối = Meta từ chối CẢ creative mới → ghi sổ từ chối, thay ngay creative kế; thay TRAN_THAY lần vẫn bị
+    # từ chối thì gốc không nằm ở video (link / Page / tài khoản) → dừng thay, báo một lần cho anh.
+    cho = cho_cua(camp)
+    lan_thay = 0
+    if not lan and cho and cho["cr"] == cu:
+        if dong_bo_luc(a) < cho["luc"] + CHO_PHUT * 60: return {**kq, "ok": True, "viec": "cho_meta_duyet"}   # Ethopex chưa đọc lại ad sau lần thay
+        lan_thay = cho["lan"]
+        if lan_thay >= TRAN_THAY:
+            if cho.get("bao"): return {**kq, "ok": True, "viec": "da_bao"}
+            gop("ethopex_thay_cho_duyet", {str(camp): {**cho, "bao": 1}})
+            return {**kq, "creative_cu": cu, "content": cid, "viec": "het_luot", "ly_do": str(a.get("error") or a.get("delivery_status"))[:300],
+                    "loi": f"đã thay {lan_thay} creative mà Meta vẫn từ chối — gốc không nằm ở video (link đích / Page / tài khoản), máy dừng thay, anh xem"}
     ly = str(a.get("error") or a.get("delivery_status"))[:300] if not lan else f"creative #{cu} đã bị Meta từ chối ở camp khác ({str((tu_choi.get(str(cu)) or {}).get('ly_do', ''))[:120]})"
+    if lan_thay: ly = f"vẫn bị từ chối sau lần thay thứ {lan_thay}: {ly}"[:300]
     kq.update(creative_cu=cu, content=cid, ly_do=ly)
     if not lan:
         gop("ethopex_tu_choi", {str(cu): {"camp": camp, "ly_do": ly, "luc": vn()}}); tu_choi[str(cu)] = {"ly_do": ly}
@@ -76,7 +107,7 @@ def mot(camp, tu_choi, dat):
     import nhat_ky; nhat_ky.ghi(q, dong)   # apps/etp/nhat_ky.py — một đường ghi, chặn dòng lỗi lặp
     if kq["ok"]:
         q(f"update xv_khoa_ngoai set gia_tri = gia_tri - '{cu}' where ten='ethopex_cho_dung_lai'")
-        gop("ethopex_thay_cho_duyet", {str(camp): moi})
+        gop("ethopex_thay_cho_duyet", {str(camp): {"cr": moi, "luc": int(time.time()), "lan": lan_thay + 1}})
         if not lan and d["campaign"].get("state") == "PAUSED": kq["bat"] = bat_lai(camp)
     return kq
 
@@ -170,4 +201,4 @@ if __name__ == "__main__":
     for lo in (camps,):   # chỉ camp có ad bị từ chối — bỏ lượt 2 (camp khác cùng creative) theo anh 03/11/2026
         ds = camps
         for k in map(an_toan, ds):   # tuần tự: hai camp cùng phim không giành cùng một creative thay, số camp / đoạn đọc đúng
-            if k.get("viec") not in ("khong_tu_choi", "cho_meta_duyet"): print(json.dumps(k, ensure_ascii=False), flush=True)
+            if k.get("viec") not in ("khong_tu_choi", "cho_meta_duyet", "da_bao"): print(json.dumps(k, ensure_ascii=False), flush=True)

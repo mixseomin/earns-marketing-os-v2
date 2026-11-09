@@ -370,7 +370,7 @@ def mot(p, xem, kieu, ban=1):
             ks = list(KIEU_GIONG); kieu_b = ks[(ks.index(kieu) + b) % len(ks)]
             k["lang"] = lang; nen, chu = anh(cid, ten, k, tm, b); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu_b, tm, so_mau)
             out = os.path.join(tm, f"anh-tinh-{cid}-{b + 1}.mp4"); giay = dung(nen, chu, mp3, out)
-            r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay), *(["--free"] if k.get("free") else []))   # cổng chữ trên video (tên phim) — cùng cổng mọi creative; --free: gỡ đúng câu lớp Free nhà vẽ
+            r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay)) if not k.get("free") else sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay), "--free")   # cổng chữ trên video (tên phim) — cùng cổng mọi creative; --free: gỡ đúng câu lớp Free nhà vẽ
             if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
             kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "ban": b + 1, "giay": giay, "vnd": vnd + (vnd_ai if b == 0 else 0), "giong": kieu_, "mau": so_mau,
                   "ten_poster": bool(k.get("ten_poster")), "free": bool(k.get("free")), "ai": ly_ai[:200] if b == 0 else "", **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}

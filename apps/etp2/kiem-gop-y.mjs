@@ -9,12 +9,13 @@ const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
   { card: 1553, tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "chay(['lam-ethopex.py', ...lenh, '--luat', luat, '--ai', AI", vi: 'bật / tắt / bậc ngân sách tay đi đúng máy Nhà lam-ethopex.py' },
   { card: 1553, tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "spawn('python3', ['nhan-ban.py', String(campId), '--tay', ...t, '--that'", vi: 'nhân bản tay đi đúng nhan-ban.py' },
-  { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function DieuKhienCamp({ c, lon, boDs, choDs }', vi: 'bảng điều khiển camp (⚙ cạnh ngân sách) trên tab Camp' },
+  { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }', vi: 'bảng điều khiển camp (⚙ cạnh ngân sách) trên tab Camp' },
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: "<DieuKhienCamp c={c} lon boDs=", vi: 'ngăn camp (điện thoại) có nút Điều khiển camp' },
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: '<b>Ép (sửa tay là chính)</b>', vi: 'ưu tiên sửa tay: ô Ép bỏ chặn mềm' },
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ k: 'roas', ten: 'Camp ROAS'", vi: 'nhân bản ROAS có mô tả' },
   { card: 'cho-ap-0911', tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "await ghiCho({ camp_id: campId, viec", vi: 'lệnh tay xong ghi ngay sổ chờ áp (anh 09/11/2026 show vết khi chưa áp)' },
   { card: 'cho-ap-0911', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function DauCho({ ds }', vi: '⏳ cạnh ô ngân sách khi lệnh tay chưa vào kho' },
+  { card: 'ls-0911', tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ value: 'ls', label: '🕘 Lịch sử' }", vi: 'bảng điều khiển camp có tab Lịch sử thay đổi (anh 09/11/2026)' },
 ];
 
 const loi = [];

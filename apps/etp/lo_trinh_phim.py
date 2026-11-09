@@ -1,5 +1,5 @@
 """LỘ TRÌNH TỰ ĐỘNG TỪNG PHIM — THÍ ĐIỂM (anh 07/11/2026 "làm đầy đủ với riêng phim này Dragonborn để follow và update đầy đủ trước khi chính thức chạy trên toàn hệ thống").
-dong-bo.py gọi chay(q) mỗi lượt (10 phút) cho phim trong etp.cau_hinh 'lo_trinh_tu_dong' {"phim": [...], "tran_camp_ngay": 4, "bat_dau": "...", "phim_moi_ngay": 12, "phim_them": {cid: ngày}}
+dong-bo.py gọi chay(q) mỗi lượt (10 phút) cho phim trong etp.cau_hinh 'lo_trinh_tu_dong' {"phim": [...], "tran_camp_ngay": 4, "bat_dau": "...", "phim_moi_ngay": 12, "phim_them": {cid: ngày}, "phim_cuu_ngay": 10, "phim_cuu": {cid: {ngay, luc}}}
 — "phim_moi_ngay" > 0 thì mỗi ngày máy tự thêm bấy nhiêu phim chưa có camp nhà (chon_phim_moi) vào danh sách (anh 07/11/2026, roadmap E13 bước 3).
 Mỗi phim một BƯỚC KẾ, ghi etp.cau_hinh 'lo_trinh_tt' {phim: {ma, chu, ke, dang, luc}} cho thẻ phim; đổi bước thì ghi Log (etp.nhat_ky viec 'lo_trinh'), xếp dòng thì báo Telegram (etp.canh_bao).
 Không tự tạo camp: chỉ xếp dòng etp.dong_phim, máy dòng phim iMac làm tiếp qua đủ cổng (soát · chấm · cong.kiem · nhan-ban.lich_len). Tắt / tăng bậc / G10 vẫn do máy luật.
@@ -32,7 +32,7 @@ def so(q, cid, bat_dau):
         (select count(*) from etp.camp where content_id = {cid} and tao > now() - interval '24 hours') camp_24h,
         {CG.sql_trang_hong(int(cid))} trang) x"""))
 
-def xet(s, tran):
+def xet(s, tran, con_toi_da=None):
     """dữ liệu một phim → (mã bước, câu cho người đọc, số camp kế hoạch, các dòng cần xếp [(loại, số camp)]). Hàm thuần — bài tự kiểm ở cuối tệp.
     THỬ ĐỦ DẠNG TRONG THỜI GIAN NGẮN NHẤT (anh 07/11/2026): các dạng chạy SONG SONG, dạng này không chờ dạng kia; camp lãi vẫn mở rộng đồng thời với dạng chưa thử."""
     p, mo, dang = s.get("phim") or {}, s.get("mo") or {}, s.get("dang") or {}
@@ -45,6 +45,10 @@ def xet(s, tran):
     if p and p.get("co_url") is False: return "khong_nguon", "Phim không có link tải tập (spy + trang phim đều trống) — máy không dựng được creative; có link thì tự xếp", 0, []
     # TRANG PHIM HỎNG HẲN (09/11/2026: 91648 xếp lại dòng mỗi 2 giờ suốt 24 giờ, dòng nào cũng đứng ở bước Trang phim) → không xếp; Ethopex sinh đủ thì lượt sau tự xếp
     if s.get("trang"): return "trang", f"Trang phim Nhà {CG.ly_trang_hong(s['trang'])} — không có trang đích, không lên camp; trang đủ thì tự xếp", 0, []
+    # PHIM CỨU (anh 09/11/2026 "cho mở thêm 2 camp $1 nếu film chưa thực sự đuối hoặc bão hoà"): phim sắp hết camp vào lộ trình với trần CUU_CAMP camp mới tính từ lúc vào
+    if con_toi_da is not None:
+        if con_toi_da <= 0: return "cuu_du", f"Đã lên đủ {CUU_CAMP} camp cứu phim sắp hết camp (anh 09/11/2026) — để luật đo, không thêm", 0, []
+        con = min(con, con_toi_da)
     if s.get("co_hoi") and mo.get("pha") == "bao_hoa": return "giu", "Có camp lãi nhưng vượt sức chứa, giữ nguyên, không mở thêm", 0, []
     xep, chu, ke = [], [], 0
     if s.get("co_hoi"):
@@ -75,6 +79,37 @@ def xet(s, tran):
 # xếp trước trong cùng nhóm thứ tự — kho Âu-Mỹ 08/11: ~200 phim gia đình, 1 phim Giáng sinh. Hết mùa tự về thứ tự cũ.
 MUA_LE = ("2026-11-15", "2027-01-05")
 MUA_LE_TEN = r"\m(christmas|xmas|navidad|santa|holiday|thanksgiving|family|mom|mommy|dad|daddy|father|mother|son|daughter|brother|sister|wife|husband|baby|twins)\M"   # \m \M = ranh giới từ Postgres: không bắt Prison / Season / Moment
+CUU_CAMP, CUU_NGAY_MAC = 2, 10   # phim cứu: tối đa 2 camp mới / phim (anh 09/11/2026) · tối đa CUU_NGAY_MAC phim / ngày (etp.cau_hinh.lo_trinh_tu_dong.phim_cuu_ngay ghi đè)
+def chon_phim_cuu(q, ch, da):
+    """PHIM SẮP HẾT CAMP VÀO LỘ TRÌNH (anh 09/11/2026 "cho mở thêm 2 camp $1 nếu film chưa thực sự đuối hoặc bão hoà" — thay vế 'thay bằng camp test' của camp thay thế đã bỏ):
+    phim có camp nhà, không còn camp chạy hoặc camp chạy cuối đang lỗ (ngày khép chi ≥ $1, thu < chi), camp cuối tạo trong 14 ngày (còn đang chăm, không vét phim cũ),
+    KHÔNG đuối (thu_vong không phải cat / sap_cat), KHÔNG bão hoà (etp.phim_bao_hoa), cùng cổng với phim mới (Âu-Mỹ, có link tải, có poster, không cấm, không dòng 3 ngày).
+    Mỗi phim vào một lần (ghi phim_cuu {cid: {ngay, luc}}); chay() giới hạn CUU_CAMP camp mới tính từ luc."""
+    tran = int(ch.get("phim_cuu_ngay") if ch.get("phim_cuu_ngay") is not None else CUU_NGAY_MAC)
+    if tran <= 0: return []
+    cuu = ch.get("phim_cuu") or {}; hom = q("select (now() at time zone 'Asia/Ho_Chi_Minh')::date::text")
+    con = tran - sum(1 for v in cuu.values() if v.get("ngay") == hom)
+    if con <= 0: return []
+    loai = ",".join(str(int(x)) for x in list(da) + [int(k) for k in cuu]) or "0"
+    r = q(f"""with c as (select c.content_id, c.trang_thai, c.tao, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu from etp.camp c
+            left join etp.so_ngay n on n.camp_id = c.camp_id and n.ngay < (now() at time zone 'utc')::date where c.content_id is not null group by c.content_id, c.camp_id, c.trang_thai, c.tao),
+        f as (select content_id, count(*) filter (where trang_thai = 'ACTIVE') act, max(tao) tao_cuoi, bool_and(chi >= 1 and thu < chi) filter (where trang_thai = 'ACTIVE') act_lo from c group by 1)
+        select string_agg(content_id::text, ',') from (select p.content_id from f join etp.phim p using (content_id)
+        where (f.act = 0 or (f.act = 1 and f.act_lo)) and f.tao_cuoi > now() - interval '14 days'
+          and coalesce(p.thu_vong, '') not in ('cat', 'sap_cat') and coalesce(p.nhom_goc, 'au_my') = 'au_my' and coalesce(p.url, '') <> ''
+          and not exists (select 1 from etp.phim_bao_hoa b where b.content_id = p.content_id and coalesce(b.bao_hoa, '') <> '')
+          and not coalesce((select gia_tri ? p.content_id::text from xv_khoa_ngoai where ten = 'ethopex_phim_cam'), false)
+          and exists (select 1 from etp.thu_vien_phim t where t.content_id = p.content_id and t.anh is not null)
+          and not exists (select 1 from etp.dong_phim x where x.content_id = p.content_id and (x.trang_thai = 'chay' or x.tao_luc > now() - interval '3 days'))
+          and {CG.sql_trang_hong('p.content_id')} is null
+          and p.content_id not in ({loai})
+        order by f.tao_cuoi desc limit {con}) x""")
+    moi = [int(x) for x in (r or "").split(",") if x.strip().isdigit()]
+    luc = q("select now()::text")
+    for c in moi: cuu[str(c)] = {"ngay": hom, "luc": luc}
+    if moi: ch["phim"] = [int(x) for x in ch.get("phim") or []] + moi; ch["phim_cuu"] = cuu
+    return moi
+
 def chon_phim_moi(q, ch, da):
     """MỞ CHO MỌI PHIM CHƯA CÓ CAMP NHÀ (anh 07/11/2026 "Tập trung các phim mới", roadmap E13 bước 3): mỗi ngày VN thêm tới cau_hinh.phim_moi_ngay phim vào lộ trình.
     Thứ tự: đội đã chạy LÃI (tiêu ≥ $10, thu > chi) → chưa ai chạy → đội chạy chưa đủ số (< $10). Bỏ: đội lỗ ≥ $10, phim cất, ngoài Âu-Mỹ, phim cấm 18+, phim không có poster trong kho,
@@ -159,16 +194,20 @@ def chay(q):
     AT_KQ[0] = kq
     ch = cau_hinh(q); ds = [int(x) for x in ch.get("phim") or []]
     moi = chon_phim_moi(q, ch, ds)
-    if moi:
-        ds += moi
+    cuu = chon_phim_cuu(q, ch, ds + moi)
+    if moi or cuu:
+        ds += moi + cuu
         q(f"""update etp.cau_hinh set gia_tri = $J${json.dumps(ch, ensure_ascii=False)}$J$::jsonb where khoa = 'lo_trinh_tu_dong'""")
-        q(f"""insert into etp.nhat_ky (luc, viec, ok, luat, ai) values (now(), 'lo_trinh', true, 'thêm {len(moi)} phim mới vào lộ trình tự động: {" ".join(map(str, moi))}', 'máy lộ trình tự động (anh 07/11/2026: tập trung phim mới)')""")
+        if moi: q(f"""insert into etp.nhat_ky (luc, viec, ok, luat, ai) values (now(), 'lo_trinh', true, 'thêm {len(moi)} phim mới vào lộ trình tự động: {" ".join(map(str, moi))}', 'máy lộ trình tự động (anh 07/11/2026: tập trung phim mới)')""")
+        if cuu: q(f"""insert into etp.nhat_ky (luc, viec, ok, luat, ai) values (now(), 'lo_trinh', true, 'thêm {len(cuu)} phim sắp hết camp vào lộ trình (tối đa {CUU_CAMP} camp mới / phim): {" ".join(map(str, cuu))}', 'máy lộ trình tự động (anh 09/11/2026: cho mở thêm 2 camp $1 nếu phim chưa đuối / bão hoà)')""")
     if not ds: return {"at_uu_tien": AT_KQ[0]}
     try: cu = json.loads(q("select gia_tri::text from etp.cau_hinh where khoa = 'lo_trinh_tt'") or "{}")
     except Exception: cu = {}
     xep = 0
     for cid in ds:
-        s = so(q, cid, ch.get("bat_dau") or "2026-11-07"); ma, chu, ke, cac_dong = xet(s, int(ch.get("tran_camp_ngay") or 4))
+        s = so(q, cid, ch.get("bat_dau") or "2026-11-07"); c_ = (ch.get("phim_cuu") or {}).get(str(cid))
+        con_cuu = max(0, CUU_CAMP - int(q(f"select count(*) from etp.camp where content_id = {cid} and tao >= '{c_['luc']}'") or 0)) if c_ else None   # phim cứu: trần CUU_CAMP camp mới từ lúc vào
+        ma, chu, ke, cac_dong = xet(s, int(ch.get("tran_camp_ngay") or 4), con_cuu)
         ten = (s.get("phim") or {}).get("ten") or f"phim {cid}"; hong = s.get("hong") or {}
         dang = {m: {"da": int((s["dang"].get(t) or {}).get("tao") or 0), "chi": int((s["dang"].get(t) or {}).get("chi") or 0), "bo": int(hong.get(m) or 0) >= SO_LOI_BO} for m, t in {**HIEN, "CT": TEN_CT}.items()}
         ten_sql = ten.replace("'", "''"); ai = f"máy: lộ trình tự động thí điểm (anh 07/11/2026) · {chu}".replace("'", "''")
@@ -215,4 +254,8 @@ if __name__ == "__main__":
     assert t(co_hoi=True, dang=du, mo={"trang_thai": "them", "k": 6})[3] == [("CC", 4)]
     assert t(co_hoi=True, dang=cc, mo={"trang_thai": "them", "k": 2})[3] == [("CC", 2), ("PO", 1), ("AT", 1)]   # có camp lãi vẫn thử dạng chưa thử
     assert t(co_hoi=True, mo={"trang_thai": "them", "k": 6, "pha": "bao_hoa"})[3] == []
+    tc = lambda n, **k: xet({**goc, **k}, 4, n)   # phim cứu (anh 09/11/2026): trần 2 camp mới
+    assert tc(0)[0] == "cuu_du" and tc(0)[3] == [] and tc(1)[3] == [("PO", 1)] and tc(2)[3] == [("PO", 1), ("CC", 1)]
+    assert tc(2, co_hoi=True, dang=du, mo={"trang_thai": "them", "k": 6})[3] == [("CC", 2)]   # mở rộng cũng không vượt trần cứu
+    assert tc(0, phim={"thu_vong": "cat"})[0] == "cat"   # cổng cất / cấm đứng trước trần cứu
     print("lo_trinh_phim: tự kiểm đạt")

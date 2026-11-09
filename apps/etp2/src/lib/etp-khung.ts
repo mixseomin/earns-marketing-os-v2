@@ -15,6 +15,10 @@ export const gioLam = (huong: HuongLuat) => (huong === 'tang' ? KD.tang[0] : KD.
 export const gioVnNay = (now = Date.now()) => { const d = new Date(now + 7 * 3600_000); return d.getUTCHours() + d.getUTCMinutes() / 60; };
 const trong = (h: number, [a, b]: [number, number]) => (a <= b ? h >= a && h < b : h >= a || h < b);   // [21, 7] = qua nửa đêm
 export const khungLuc = (h: number): KhungDoi => (trong(h, KD.giam) ? 'giam' : trong(h, KD.tang) ? 'tang' : KD.sang && trong(h, KD.sang) ? 'sang' : 'bang');   // cùng thứ tự với khungCua của worker (kiểm chéo ở etp-khung.test.mts)
+// KHUNG TĂNG NHANH (anh 10/11/2026 — sổ luật chung khung_doi.nhanh, máy: nhip_tang.trong_nhanh): camp ROI hôm nay ≥ sang_roi% + tiêu ≥ nap_chi × ngân sách lên bậc ngay mỗi nhịp
+export const NHANH = ((BANG_LUAT.khung_doi as unknown as { nhanh?: [number, number][] }).nhanh ?? []);
+export const trongNhanh = (h: number) => NHANH.some((k) => trong(h, k));
+export const NHANH_TEN: [string, string, string] = ['⚡', `Tăng nhanh ${NHANH.map(([a, b]) => `${a}–${b}h`).join(' · ')}: ROI hôm nay ≥ ${KD.sang_roi}% + đã tiêu ≥ ${Math.round(KD.nap_chi * 100)}% ngân sách → lên bậc kế ngay mỗi nhịp, không chờ 24 giờ`, '#facc15'];
 /** khung đang chạy kéo tới mấy giờ (giờ nguyên, 0–23) */
 export const hetKhung = (h: number) => { const k = khungLuc(h); for (let i = 1; i <= 24; i++) { const g = (Math.floor(h) + i) % 24; if (khungLuc(g) !== k) return g; } return Math.floor(h); };
 /** SỔ HOÃN của máy (etp.cau_hinh 'khung_hoan', worker ethopex.mjs ghi mỗi nhịp): camp máy ĐÃ đủ luật + đủ công tắc nhưng hoãn vì khung giờ.

@@ -11,7 +11,7 @@ import { phienDu } from '@/lib/etp-phien';
 import { docChoAp } from '@/lib/actions/etp-tay';
 
 export const dynamic = 'force-dynamic';
-export const metadata: Metadata = { title: 'ETP · camp', robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: 'ETP2 · camp', robots: { index: false, follow: false } };
 
 // ?t=<tab>&v=<kiểu xem> đọc NGAY trên máy chủ → lần vẽ đầu đã đúng tab (anh 25/10/2026: F5 ở ?t=camp&v=bang bị về Tổng quan —
 // trước đây tab mặc định 'tong' rồi trình duyệt mới đọc URL, lượt ghi URL chạy với giá trị mặc định đè mất lựa chọn)

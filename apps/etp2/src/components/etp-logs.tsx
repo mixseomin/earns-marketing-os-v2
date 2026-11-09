@@ -8,7 +8,7 @@ import { KhungNoi, useNoi } from '@/components/etp-noi';
 import { KeToan, mauLai } from '@/components/etp-so';
 import { docLogs } from '@/lib/actions/etp-logs';
 import { openEntityDrawer } from '@/lib/entity-drawer';
-import { khungLuc, KHUNG_TEN } from '@/lib/etp-khung';
+import { khungLuc, KHUNG_TEN, trongNhanh, NHANH_TEN } from '@/lib/etp-khung';
 import { CHIEU_TK, demTk, locCamp, tenLuat, type DemTk, gioVn, gomLogs, KHUNG_PHUT, KY_GIO, LOAI_LOG, LOAI_THEO_K, NHOM_LOG, nhanKhung, tenKhung, tenKy, type DuLogs, type HangLog, type KhungLog } from '@/lib/etp-logs';
 
 const U_KY = 'lgky', U_GOM = 'lggom', MAC_KY = 24, MAC_GOM = 60;
@@ -88,10 +88,13 @@ export function TabLogs({ moCamp, hangLoc, campIds }: { moCamp: (id: number) => 
   // (lib/etp-khung khungLuc + KHUNG_TEN, sổ etp-bang-luat.json khung_doi); khung gom ≥ 6 giờ trùm nhiều khung → không tô
   const khungCua = (t: number) => (gom >= 360 ? null : khungLuc(((t + 7 * 3600 + (gom * 60) / 2) / 3600) % 24));
   const nenKhung = (t: number): React.CSSProperties | undefined => { const k = khungCua(t); return k ? { background: `${KHUNG_TEN[k][2]}1a` } : undefined; };
+  // ⚡ KHUNG TĂNG NHANH (anh 10/11/2026 "nhịp tăng phải show thấy ở đây"): dòng thuộc khung tăng nhanh có ⚡ (rê: luật), cùng sổ luật với máy
+  const nhanhCua = (t: number) => gom < 360 && trongNhanh(((t + 7 * 3600 + (gom * 60) / 2) / 3600) % 24);
   const nhanKhungIcon = (t: number) => { const k = khungCua(t); return <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-    {k ? <span title={KHUNG_TEN[k][1]} style={{ color: KHUNG_TEN[k][2], width: 14, textAlign: 'center' }}>{KHUNG_TEN[k][0]}</span> : null}{nhanKhung(t, gom)}</span>; };
+    {k ? <span title={KHUNG_TEN[k][1]} style={{ color: KHUNG_TEN[k][2], width: 14, textAlign: 'center' }}>{KHUNG_TEN[k][0]}</span> : null}
+    <span title={nhanhCua(t) ? NHANH_TEN[1] : undefined} style={{ color: NHANH_TEN[2], width: 12, textAlign: 'center', cursor: nhanhCua(t) ? 'help' : undefined }}>{nhanhCua(t) ? NHANH_TEN[0] : ''}</span>{nhanKhung(t, gom)}</span>; };
   const cot: DataColumn<KhungLog>[] = [
-    { key: 'khung', header: '🕒 Khung (giờ VN)', title: 'nền dòng = khung máy tự đổi camp: ⬆ tăng 21–7h · ☀ nạp sáng 7–15h · 🔧 giảm · tắt 15–21h', align: 'left', cell: (x) => nhanKhungIcon(x.t), sortValue: (x) => x.t, total: () => <b>Cả {tenKy(ky)}</b> },
+    { key: 'khung', header: '🕒 Khung (giờ VN)', title: 'nền dòng = khung máy tự đổi camp: ⬆ tăng 21–7h · ☀ nạp sáng 7–15h · 🔧 giảm · tắt 15–21h · ⚡ tăng nhanh 8–12h, 21–6h', align: 'left', cell: (x) => nhanKhungIcon(x.t), sortValue: (x) => x.t, total: () => <b>Cả {tenKy(ky)}</b> },
     { key: 'chi', header: 'Chi', title: gom < 60 ? 'chi / thu nhà chỉ có theo giờ — khung dưới 1 giờ: cả giờ cộng vào khung đầu giờ' : 'chi nhà trong khung', cell: (x) => x.coTien ? <KeToan v={x.chi} /> : null, sortValue: (x) => x.chi, total: (r) => <KeToan v={r.reduce((a, x) => a + x.chi, 0)} /> },
     { key: 'thu', header: 'Thu', cell: (x) => x.coTien ? <KeToan v={x.thu} /> : null, sortValue: (x) => x.thu, total: (r) => <KeToan v={r.reduce((a, x) => a + x.thu, 0)} /> },
     { key: 'lai', header: 'Lãi', cell: (x) => x.coTien ? <KeToan v={x.thu - x.chi} mau={mauLai(x.thu - x.chi)} /> : null, sortValue: (x) => x.thu - x.chi,

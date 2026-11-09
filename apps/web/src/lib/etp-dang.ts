@@ -14,3 +14,5 @@ export const dangTheoTen = (ten: string | null | undefined): string | null => { 
 /** tên giọng đọc máy dựng (xuong-video/scripts/ethopex/anh-tinh.py KIEU_GIONG) — mã chưa có tên thì hiện nguyên mã */
 export const TEN_GIONG: Record<string, string> = { thuong: 'thường', ky_di: 'kỳ dị', gao: 'gào', cam_xuc: 'cảm xúc', hao_hung: 'hào hứng' };
 export const tenGiong = (g: string | null | undefined) => (g ? TEN_GIONG[g] ?? g : null);
+/** mã giọng gọn trên nhãn (anh 09/11/2026 "PO.1.G = gào, CTS.KD = kỳ dị"): chữ đầu mỗi phần của mã máy — ky_di → KD, gao → G, thuong → T; giọng mới tự có mã */
+export const maGiong = (g: string | null | undefined) => (g ? g.split('_').map((x) => x[0] ?? '').join('').toUpperCase() : null);

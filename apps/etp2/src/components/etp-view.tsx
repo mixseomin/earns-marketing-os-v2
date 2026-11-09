@@ -678,6 +678,9 @@ function DieuKhienCamp({ c, lon, boDs }: { c: Pick<CampEtpKho, 'camp_id' | 'ten'
   const [ns, setNs] = useState(String(c.ngan_sach)), [ep, setEp] = useState(false), [ghi, setGhi] = useState('');
   const [kieu, setKieu] = useState<KieuNb['kieu']>('thuong'), [nsThang, setNsThang] = useState(''), [boDen, setBoDen] = useState(''), [roas, setRoas] = useState('1.2'), [nsRoas, setNsRoas] = useState('20'), [tamDung, setTamDung] = useState(true);
   const [xem, setXem] = useState<string | null>(null);
+  // ba nhóm việc = ba TAB (YDNI: >2 nhóm thì chia tab, không chồng dọc) · xác nhận NGAY TRONG BẢNG (ui-conventions §3: không confirm() gốc)
+  const [tab, setTab] = useState<'tt' | 'ns' | 'nb'>('ns');
+  const [cho, setCho] = useState<{ o: string; chu: string; f: () => Promise<{ ok: true; chu: string } | { loi: string }> } | null>(null);
   const rQua = roiOf(c.qua), rThang = roiOf(c.thang), bacNay = BAC_NS.indexOf(c.ngan_sach);
   const goiNs = rQua == null ? null : rQua >= 30 && c.qua.chi >= c.ngan_sach * 0.5 && bacNay >= 0 && bacNay < BAC_NS.length - 1 ? { ns: BAC_NS[bacNay + 1]!, ly: `hôm qua ROI ${rQua}%, đã tiêu ${Math.round((c.qua.chi / c.ngan_sach) * 100)}% ngân sách` }
     : rQua < 0 && bacNay > 0 ? { ns: BAC_NS[bacNay - 1]!, ly: `hôm qua lỗ (ROI ${rQua}%)` } : null;
@@ -692,6 +695,10 @@ function DieuKhienCamp({ c, lon, boDs }: { c: Pick<CampEtpKho, 'camp_id' | 'ten'
   const chip = (on: boolean): React.CSSProperties => ({ ...nut, padding: '2px 9px', borderColor: on ? 'var(--accent, #60a5fa)' : 'var(--line)', background: on ? 'var(--accent-soft, #60a5fa22)' : 'transparent' });
   const o = (k: string) => (kq && kq.o === k ? <div style={{ marginTop: 6, padding: '6px 8px', borderRadius: 6, background: kq.ok ? '#22c55e18' : '#ef444422', color: kq.ok ? '#4ade80' : '#fca5a5', whiteSpace: 'pre-wrap' }}>{kq.ok ? '✓ ' : '✕ '}{kq.chu}</div>
     : dang === k ? <div style={{ marginTop: 6, color: '#60a5fa' }}>đang gửi máy… (đọc lại Ethopex có thể tới 2 phút)</div> : null);
+  const xacNhan = (k: string) => (cho && cho.o === k ? <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 6, border: '1px solid #f59e0b', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+    <span style={{ flex: 1, minWidth: 160 }}>Chắc chắn: <b>{cho.chu}</b>?</span>
+    <button onClick={() => { const f = cho.f; setCho(null); void lam(k, f); }} style={{ ...nut, borderColor: '#f59e0b' }}>Làm</button>
+    <button onClick={() => setCho(null)} style={nut}>Huỷ</button></div> : null);
   const muc = (t: string, mo2: string) => <div style={{ marginBottom: 6 }}><b style={{ fontSize: 13 }}>{t}</b><div style={{ color: 'var(--fg-2)', lineHeight: 1.45, marginTop: 2 }}>{mo2}</div></div>;
   const hop: React.CSSProperties = { padding: 12, border: '1px solid var(--line)', borderRadius: 8, marginBottom: 12 };
   const o2: React.CSSProperties = { width: 70, fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit' };
@@ -710,15 +717,17 @@ function DieuKhienCamp({ c, lon, boDs }: { c: Pick<CampEtpKho, 'camp_id' | 'ten'
           <input type="checkbox" checked={ep} onChange={(e) => setEp(e.target.checked)} />
           <span><b>Ép (sửa tay là chính)</b> — bỏ chặn mềm của máy: tắt camp đang lãi &gt; 20%, tăng lại camp vừa bị giảm, nhịp tăng 24 giờ. Thang bậc, trần $30 và rào chắn etp (dừng khẩn, trần ngày / bộ) vẫn giữ.</span>
         </label>
-        <div style={hop}>
+        <div style={{ marginBottom: 10 }}><Segmented value={tab} onChange={(v) => { setTab(v as 'tt' | 'ns' | 'nb'); setCho(null); }}
+          options={[{ value: 'tt', label: c.trang_thai === 'ACTIVE' ? '⏸ Tắt' : '▶ Bật' }, { value: 'ns', label: '$ Ngân sách' }, { value: 'nb', label: '＋ Nhân bản' }]} /></div>
+        {tab === 'tt' ? <div style={hop}>
           {muc(c.trang_thai === 'ACTIVE' ? 'Tắt camp' : 'Bật camp', c.trang_thai === 'ACTIVE'
             ? 'Tạm dừng camp trên Ethopex. Máy chặn tắt camp đang lãi > 20% (ROI cộng dồn mới nhất) — tích Ép để tắt luôn. Camp đang dừng theo lịch giờ thì bị bỏ khỏi lịch (không tự bật lại).'
             : 'Bật lại camp. Luật: camp đã tắt quá 24 giờ không bật lại (trừ camp ROAS); camp đang dừng theo lịch giờ thì lịch tự bật khi tới khung bật.')}
-          <button disabled={!!dang} onClick={() => { if (window.confirm(`${c.trang_thai === 'ACTIVE' ? 'Tắt' : 'Bật'} camp #${c.camp_id}?`)) void lam('tt', () => campTay(c.camp_id, c.trang_thai === 'ACTIVE' ? 'tat' : 'bat', { ep, ghi })); }}
+          <button disabled={!!dang} onClick={() => setCho({ o: 'tt', chu: `${c.trang_thai === 'ACTIVE' ? 'tắt' : 'bật'} camp #${c.camp_id}${ep ? ' (ép)' : ''}`, f: () => campTay(c.camp_id, c.trang_thai === 'ACTIVE' ? 'tat' : 'bat', { ep, ghi }) })}
             style={{ ...nut, borderColor: c.trang_thai === 'ACTIVE' ? '#f87171' : '#4ade80' }}>{c.trang_thai === 'ACTIVE' ? '⏸ Tắt camp' : '▶ Bật camp'}</button>
-          {o('tt')}
-        </div>
-        <div style={hop}>
+          {xacNhan('tt')}{o('tt')}
+        </div> : null}
+        {tab === 'ns' ? <div style={hop}>
           {muc('Bậc ngân sách', `Chọn một bậc trên thang (${BAC_NS.map((x) => `$${x}`).join(' · ')}) hoặc gõ số. Lớn hơn mức đang chạy = tăng (camp phải đang chạy, qua nhịp tăng); nhỏ hơn = giảm (camp tạm dừng chỉ hạ được về $1).`)}
           {goiNs ? <div style={{ marginBottom: 6, color: '#a78bfa' }}>Gợi ý: <b>${goiNs.ns}</b> — {goiNs.ly}</div> : <div style={{ marginBottom: 6, color: 'var(--fg-3, #777)' }}>Gợi ý: giữ nguyên (số hôm qua chưa đủ rõ để lên / xuống)</div>}
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>
@@ -727,12 +736,12 @@ function DieuKhienCamp({ c, lon, boDs }: { c: Pick<CampEtpKho, 'camp_id' | 'ten'
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <span>$</span><input value={ns} onChange={(e) => setNs(e.target.value.replace(/\D/g, ''))} inputMode="numeric" style={o2} />
-            <button disabled={!!dang || !ns || Number(ns) === c.ngan_sach} onClick={() => { if (window.confirm(`Đổi ngân sách camp #${c.camp_id}: $${c.ngan_sach} → $${ns}?`)) void lam('ns', () => campTay(c.camp_id, 'ns', { ns: Number(ns), nsDang: c.ngan_sach, ep, ghi })); }}
-              style={{ ...nut, borderColor: 'var(--accent, #60a5fa)' }}>{Number(ns) > c.ngan_sach ? '↑ Tăng' : '↓ Giảm'} về ${ns || '?'}</button>
+            <button disabled={!!dang || !ns || Number(ns) === c.ngan_sach} onClick={() => setCho({ o: 'ns', chu: `đổi ngân sách camp #${c.camp_id}: $${c.ngan_sach} → $${ns}${ep ? ' (ép)' : ''}`, f: () => campTay(c.camp_id, 'ns', { ns: Number(ns), nsDang: c.ngan_sach, ep, ghi }) })}
+              style={{ ...nut, borderColor: 'var(--accent, #60a5fa)' }}>{!ns || Number(ns) === c.ngan_sach ? 'chọn mức khác mức đang chạy' : `${Number(ns) > c.ngan_sach ? '↑ Tăng' : '↓ Giảm'} về $${ns}`}</button>
           </div>
-          {o('ns')}
-        </div>
-        <div style={hop}>
+          {xacNhan('ns')}{o('ns')}
+        </div> : null}
+        {tab === 'nb' ? <div style={hop}>
           {muc('Nhân bản camp', 'Chọn kiểu, bấm Xem trước (máy chạy khô, không tạo gì — hiện payload hoặc lý do bị chặn), đúng rồi mới Tạo camp.')}
           {goiNb ? <div style={{ marginBottom: 6, color: '#a78bfa' }}>Gợi ý: <b>{NB_KIEU.find((x) => x.k === goiNb)!.ten}</b> — {goiNb === 'roas' ? `tháng này chi $${c.thang.chi.toFixed(0)}, ROI ${rThang}%` : `hôm qua ROI ${rQua}%`}</div> : null}
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
@@ -749,12 +758,12 @@ function DieuKhienCamp({ c, lon, boDs }: { c: Pick<CampEtpKho, 'camp_id' | 'ten'
           <div style={{ display: 'flex', gap: 6 }}>
             <button disabled={!!dang} onClick={() => { setXem(null); void (async () => { setDang('nb'); setKq(null); const r = await xemNhanBan(c.camp_id, kieuNb()); setDang(null); if ('loi' in r) setKq({ ok: false, chu: r.loi, o: 'nb' }); else setXem(r.chu); })(); }} style={nut}>Xem trước</button>
             <button disabled={!!dang || xem == null} title={xem == null ? 'bấm Xem trước trước' : undefined}
-              onClick={() => { if (window.confirm(`Tạo camp mới (${NB_KIEU.find((x) => x.k === kieu)!.ten}) từ #${c.camp_id}?`)) void lam('nb', () => nhanBanTay(c.camp_id, kieuNb(), ghi)); }}
+              onClick={() => { const x = kieuNb(); setCho({ o: 'nb', chu: `tạo camp mới (${NB_KIEU.find((k) => k.k === kieu)!.ten}) từ #${c.camp_id}`, f: () => nhanBanTay(c.camp_id, x, ghi) }); }}
               style={{ ...nut, borderColor: xem == null ? 'var(--line)' : '#4ade80' }}>＋ Tạo camp</button>
           </div>
           {xem != null ? <pre style={{ marginTop: 6, maxHeight: 220, overflow: 'auto', fontSize: 10.5, padding: 8, borderRadius: 6, background: 'var(--bg-2)', whiteSpace: 'pre-wrap' }}>{xem}</pre> : null}
-          {o('nb')}
-        </div>
+          {xacNhan('nb')}{o('nb')}
+        </div> : null}
         <input value={ghi} onChange={(e) => setGhi(e.target.value)} placeholder="ghi chú lý do (vào nhật ký luật, không bắt buộc)"
           style={{ width: '100%', fontSize: 12, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit', boxSizing: 'border-box' }} />
       </div>

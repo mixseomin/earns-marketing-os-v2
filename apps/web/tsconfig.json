@@ -12,7 +12,9 @@
         "./src/*"
       ]
     },
-    "allowJs": true
+    "allowJs": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".next/cache/tsc.tsbuildinfo"
   },
   "include": [
     "src/**/*",

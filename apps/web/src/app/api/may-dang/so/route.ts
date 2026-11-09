@@ -75,7 +75,7 @@ export async function POST(req: Request) {
         const ra = execFileSync(process.execPath, [path.resolve(process.cwd(), '../cty/worker/tho-may-viec.mjs'), '--ghi-them', `dang:lo|${r.ma}|${r.nen}`],
           { input: `Ghi chú từ tab Máy Đăng (lượt #${id}, ${ai}): ${chu}`, encoding: 'utf8', timeout: 20_000, env: { ...process.env, CTY_DATA_DIR: process.env.CTY_DATA_DIR || '/var/lib/cty' } }).trim().split('\n').pop();
         return NextResponse.json({ ok: true, bao: ra === 'gop' ? 'đã lưu + nối vào việc thợ máy Mạnh đang có' : ra === 'moi' ? 'đã lưu + xếp việc mới cho thợ máy Mạnh' : 'đã lưu ghi chú' });
-      } catch (e) { return NextResponse.json({ ok: true, bao: `đã lưu ghi chú — chưa chuyển được cho thợ máy: ${String((e as Error).message).split('\n')[0].slice(0, 160)}` }); }
+      } catch (e) { return NextResponse.json({ ok: true, bao: `đã lưu ghi chú — chưa chuyển được cho thợ máy: ${String((e as Error).message).split('\n')[0]?.slice(0, 160) ?? ''}` }); }
     }
     return NextResponse.json({ ok: true, bao: 'đã lưu ghi chú' });
   }

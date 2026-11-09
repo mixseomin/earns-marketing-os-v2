@@ -150,8 +150,7 @@ function OBuoc({ r, k, admin, xong, moChiTiet }: { r: Dong; k: string; admin: bo
         <span style={{ display: 'inline-flex', gap: 4, whiteSpace: 'nowrap' }}><b style={{ color: mau }}>{ky}</b><b style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: mau }}>{kh.ten}</b></span>
         <span style={{ fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kh.suy ? '(suy từ lỗi) ' : `khâu ${o!.con!.length}/${o!.con!.length} · `}{o!.ly ?? ''}</span>
       </> : <span style={{ display: 'inline-flex', gap: 4, whiteSpace: 'nowrap' }}>
-        <b style={{ color: mau }}>{ky}</b><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: o?.t === 'ok' ? 'var(--fg-2)' : 'var(--fg-1)', fontWeight: ket ? 600 : 400 }}>{chay ? 'đang làm…' : o!.ly ?? ''}</span>
-        {o?.t === 'ok' && !!o.con?.length && <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>· {o.con.length} khâu</span>}
+        <b style={{ color: mau }}>{ky}</b>{o?.t !== 'ok' && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: 'var(--fg-1)', fontWeight: 600 }}>{chay ? 'đang làm…' : o!.ly ?? ''}</span>}
       </span>}
     </span>
     <AnchoredPopover anchorRef={ref} open={mo} onClose={() => setMo(false)} backdrop={false} closeOnPointerOutside>
@@ -280,15 +279,16 @@ export function MayDangView() {
   const cot: DataColumn<Dong>[] = [
     { key: 'bd', header: 'Giờ', align: 'left', width: 96, sortValue: (r) => Date.parse(r.bd), cell: (r) => <span title={r.lan > 1 ? `lặp ${r.lan} lần tới ${gioVn(r.kt ?? r.bd)}` : undefined}>{gioVn(r.bd)}{r.lan > 1 && <span style={{ color: 'var(--fg-3)' }}> ×{r.lan}</span>}</span> },
     { key: 'kq', header: 'Kết quả', align: 'left', width: 96, sortValue: (r) => r.ket, cell: (r) => <PillKet ket={r.ket} /> },
+    { key: 'khau', header: 'Kẹt ở khâu', title: 'chặng cụ thể máy kẹt trong bước dừng (tìm nút, bấm nút, điền ô…)', align: 'left', sortValue: (r) => khauKet(r)?.ten ?? null,
+      cell: (r) => { const kh = khauKet(r); return kh ? <b style={{ ...cat(220), color: 'var(--danger, #dc2626)' }} title={kh.suy ? 'suy từ nhóm lỗi (lượt cũ chưa ghi chặng)' : undefined}>{kh.ten}{kh.suy ? ' *' : ''}</b>
+        : r.buoc_dung && ['hong', 'mat_dau'].includes(r.ket) ? <span style={{ ...cat(220), color: 'var(--danger, #dc2626)' }} title={r.loi ?? undefined}>{TEN_BUOC[r.buoc_dung] ?? r.buoc_dung} · {tenLy(r.ma_ly)}</span> : '—'; } },
     { key: 'du_an', group: 'tt', header: 'Dự án', align: 'left', sortValue: (r) => r.du_an, cell: (r) => r.du_an || '—' },
     { key: 'kenh_ten', group: 'tt', header: 'Kênh', align: 'left', sortValue: (r) => r.may_ten, cell: (r) => <span style={cat(180)} title={r.ma}>{r.may_ten}</span> },
     { key: 'nen', group: 'tt', header: 'Nền', align: 'left', sortValue: (r) => r.nen, cell: (r) => <Nen nen={r.nen} /> },
     { key: 'tk', group: 'tt', header: 'Tài khoản', align: 'left', sortValue: tkCua, cell: (r) => <span title={r.profile ?? undefined}>{tkCua(r)}</span> },
-    ...BUOC.map((b): DataColumn<Dong> => ({ key: `b_${b.k}`, group: 'buoc', header: b.ten, title: b.giai, align: 'left', sortValue: (r) => r.buoc?.[b.k]?.t ?? null,
+    ...BUOC.map((b): DataColumn<Dong> => ({ key: `b_${b.k}`, group: 'buoc', header: b.ten, title: `${b.giai} — ✓ = qua (rê chuột xem từng khâu), ô đỏ = khâu kẹt`, align: 'left', sortValue: (r) => r.buoc?.[b.k]?.t ?? null,
       cell: (r) => <OBuoc r={r} k={b.k} admin={admin} xong={xong} moChiTiet={() => moChiTiet(r)} /> })),
     { key: 'buoc_dung', group: 'loi', header: 'Dừng ở', align: 'left', sortValue: (r) => r.buoc_dung, cell: (r) => (r.buoc_dung ? TEN_BUOC[r.buoc_dung] ?? r.buoc_dung : '—') },
-    { key: 'khau', group: 'loi', header: 'Kẹt ở khâu', title: 'chặng cụ thể máy kẹt trong bước dừng (tìm nút, bấm nút, điền ô…)', align: 'left', sortValue: (r) => khauKet(r)?.ten ?? null,
-      cell: (r) => { const kh = khauKet(r); return kh ? <b style={{ ...cat(220), color: 'var(--danger, #dc2626)' }} title={kh.suy ? 'suy từ nhóm lỗi (lượt cũ chưa ghi chặng)' : undefined}>{kh.ten}{kh.suy ? ' *' : ''}</b> : '—'; } },
     { key: 'ma_ly', group: 'loi', header: 'Nhóm lý do', align: 'left', sortValue: (r) => r.ma_ly, cell: (r) => <span title={r.loi ?? undefined}>{tenLy(r.ma_ly)}</span> },
     { key: 'lan', group: 'loi', header: 'Lần', sortValue: (r) => r.lan, cell: (r) => r.lan },
     { key: 'giay', group: 'loi', header: 'Giây', sortValue: (r) => r.giay, cell: (r) => (r.giay != null ? Math.round(Number(r.giay)) : '—') },
@@ -336,7 +336,7 @@ export function MayDangView() {
     </div>}
     {md !== 'may' && <StatsStrip cards={the} minColWidth={120} />}
     {md === 'luot' && (loc1.length || tai
-      ? <DataTable rows={loc1} columns={cot} groups={nhom} getRowKey={(r) => String(r.id)} persistKey="may-dang-luot" minWidth={2100} pageSize={100} locTuDong={false}
+      ? <DataTable rows={loc1} columns={cot} groups={nhom} getRowKey={(r) => String(r.id)} persistKey="may-dang-luot-2" minWidth={1500} pageSize={100} locTuDong={false}
           searchText={(r) => `${r.slug ?? ''} ${r.loi ?? ''} ${r.may_ten} ${r.nen} ${r.url ?? ''}`} searchPlaceholder="Tìm bài / lỗi / kênh…" onTimDoi={setQ}
           defaultSort={[{ key: 'bd', dir: 'desc' }]} onRowClick={moChiTiet}
           rowStyle={(r) => (r.ket === 'hong' || r.ket === 'mat_dau' ? { boxShadow: 'inset 3px 0 0 var(--danger, #dc2626)' } : r.ket === 'chay' ? { boxShadow: 'inset 3px 0 0 var(--info, #3b82f6)' } : undefined)}

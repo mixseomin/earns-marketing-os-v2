@@ -20,7 +20,6 @@ const ghiUrl = (k: string, v: number, mac: number) => {
   const u = new URL(window.location.href); if (v === mac) u.searchParams.delete(k); else u.searchParams.set(k, String(v));
   window.history.replaceState(null, '', u.toString());
 };
-const maCua = (k: string, id: number | null) => (id == null ? '' : LOAI_THEO_K[k]?.ma === 'dong' ? `dòng #${id}` : LOAI_THEO_K[k]?.ma === 'creative' ? `creative #${id}` : `camp #${id}`);
 const DO = 'var(--neon-red, #f87171)';
 
 type The = { k: string; nhan: string; ds: HangLog[] };
@@ -146,20 +145,19 @@ export function TabLogs({ moCamp, hangLoc, campIds }: { moCamp: (id: number) => 
         <ThongKe t={v} luat={du?.luat} />
         <div style={{ fontWeight: 600, color: 'var(--fg-2)', margin: '2px 0 4px' }}>📋 Từng việc</div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {v.ds.slice(0, 300).map((e, i) => { const mo = e[2] != null ? moNgan(e) : null, lyTruoc = i > 0 ? v.ds[i - 1]![3] : null;
-            return <div key={i} style={{ padding: '6px 0', borderTop: i ? '1px solid var(--line)' : undefined, lineHeight: 1.4 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <span style={{ color: 'var(--fg-3)', fontVariantNumeric: 'tabular-nums' }}>{gioVn(e[0])}</span>
-                {e[2] != null ? (mo
-                  ? <a role="button" onClick={() => { noi.dong(); mo(); }} title={l?.ma === 'camp' ? 'mở ngăn camp' : 'mở ngăn sản xuất của phim'} style={{ fontWeight: 700, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3 }}>{maCua(e[1], e[2])}</a>
-                  : <b>{maCua(e[1], e[2])}</b>) : null}
-                {e[9] ? <span style={{ padding: '0 6px', borderRadius: 10, color: l?.mau, background: `${l?.mau}1f`, border: `1px solid ${l?.mau}55`, fontWeight: 600, whiteSpace: 'nowrap' }}>{e[9]}</span> : null}
-                {e[7] ? <span style={{ color: 'var(--fg-3)' }}>bộ {e[7]}</span> : null}
-                {e[10] ? <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>· {e[10]}</span> : null}
-                {e[6] ? <a role="button" onClick={() => { noi.dong(); openEntityDrawer('etp-phim', e[6]!); }} title="mở ngăn phim" style={{ marginLeft: 'auto', cursor: 'pointer', color: 'var(--fg-2)' }}>🎬 phim</a> : null}
-              </div>
-              {e[8] ? <div style={{ color: 'var(--fg-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={e[8]}>{e[8]}</div> : null}
-              {e[3] && e[3] !== lyTruoc ? <div style={{ color: 'var(--fg-2)', wordBreak: 'break-word' }}><span style={{ color: 'var(--fg-3)' }}>Lý do: </span>{e[3]}</div> : null}
+          {/* MỖI VIỆC MỘT DÒNG (anh 09/11/2026 "Lắm chữ quá"): giờ · mã · bộ · thay đổi · tên (cắt gọn) · 🎬 — lý do + tên đầy đủ nằm ở chữ rê (title);
+              lý do đã gom ở thống kê phía trên nên không in lại từng dòng */}
+          {v.ds.slice(0, 300).map((e, i) => { const mo = e[2] != null ? moNgan(e) : null;
+            const goi = [e[8], e[3] ? `Lý do: ${e[3]}` : '', e[10] ? `bởi ${e[10]}` : ''].filter(Boolean).join('\n');
+            return <div key={i} title={goi} style={{ display: 'grid', gridTemplateColumns: '40px 74px 22px auto minmax(0,1fr) 18px', alignItems: 'center', gap: 6, padding: '3px 0', borderTop: i ? '1px solid var(--line)' : undefined, lineHeight: '18px', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ color: 'var(--fg-3)' }}>{gioVn(e[0]).slice(0, 5)}</span>
+              {e[2] != null ? (mo
+                ? <a role="button" onClick={() => { noi.dong(); mo(); }} title={l?.ma === 'camp' ? 'mở ngăn camp' : 'mở ngăn sản xuất của phim'} style={{ fontWeight: 700, cursor: 'pointer', textDecoration: 'underline dotted', textUnderlineOffset: 3, whiteSpace: 'nowrap' }}>#{e[2]}</a>
+                : <b>#{e[2]}</b>) : <span />}
+              <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>{e[7] ? `B${e[7]}` : ''}</span>
+              {e[9] ? <span style={{ padding: '0 5px', borderRadius: 8, color: l?.mau, background: `${l?.mau}1f`, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>{e[9]}</span> : <span />}
+              <span style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e[8]}</span>
+              {e[6] ? <a role="button" onClick={() => { noi.dong(); openEntityDrawer('etp-phim', e[6]!); }} title="mở ngăn phim" style={{ cursor: 'pointer' }}>🎬</a> : <span />}
             </div>; })}
           {v.ds.length > 300 ? <div style={{ color: 'var(--fg-3)', paddingTop: 6 }}>… còn {v.ds.length - 300} việc — chọn khung gom nhỏ hơn để xem hết</div> : null}
         </div>

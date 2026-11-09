@@ -82,6 +82,14 @@ export async function docLogs(gio: number, ids: number[] | null = null): Promise
         from etp.camp c left join etp.creative r using (creative_id)
         where c.lich > now() and (c.trang_thai = 'ACTIVE' or (c.dong_bo is not null and c.dong_bo not in ('done', 'synced', 'error')))
         union all
+        -- ĐÃ BẬT (anh 09/11/2026 "Phải hiện số camp đã bật riêng. Nhìn vào khung từ 7h sáng chỉ thấy 39 camp cắn tiền"): mốc = giờ hẹn chạy (lich), không hẹn thì giờ tạo —
+        -- camp tới giờ được Meta cho chạy. Nhóm 1 = đã tiêu / chưa tiêu đồng nào (etp.so_gio_camp) → thẻ nổi tách ngay số bật mà chưa cắn tiền
+        select extract(epoch from coalesce(c.lich, c.tao))::bigint, 'bat', c.camp_id, 'tới giờ chạy — camp được bật',
+          case when exists (select 1 from etp.so_gio_camp g where g.camp_id = c.camp_id and g.chi > 0) then 'đã tiêu' else 'chưa tiêu đồng nào' end, r.dang, c.content_id, c.bo, c.ten,
+          'tạo ' || to_char(c.tao at time zone 'Asia/Ho_Chi_Minh', 'HH24:MI DD/MM'), 'máy', c.camp_id
+        from etp.camp c left join etp.creative r using (creative_id), tu
+        where coalesce(c.lich, c.tao) >= tu.t and coalesce(c.lich, c.tao) <= now() and coalesce(c.dong_bo, '') <> 'error'
+        union all
         -- BẮT ĐẦU CHẠY (anh 08/11/2026 "Tại sao lại Mở camp vào khung giờ nào vậy?"): cột Mở = giờ TẠO; camp tạo ngoài 07–12h hẹn 07:00 nên giờ chạy thật khác —
         -- mốc = giờ có ĐỒNG CHI ĐẦU TIÊN (etp.so_gio_camp), chỉ camp tạo từ 3 ngày trước kỳ (khỏi quét cả bảng)
         select extract(epoch from f.t)::bigint, 'bd', c.camp_id, 'đồng chi đầu tiên — camp bắt đầu tiêu thật',

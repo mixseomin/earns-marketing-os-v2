@@ -2362,7 +2362,7 @@ function NutLenCamp({ du, gon }: { du: DuLieuEtp; gon: boolean }) {
 }
 type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null; cheDo?: CheDoLuat | null };
 const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
-export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLieuEtpGui; chiXem?: boolean; quyen?: QuyenXem; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string; ro?: string; ab?: string } }) {
+export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien }: { du: DuLieuEtpGui; chiXem?: boolean; quyen?: QuyenXem; /** mã phiên bản dữ liệu (lib/etp-phien) — tự làm mới chỉ khi đổi */ phien?: string; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string; ro?: string; ab?: string } }) {
   // TỰ TẢI LẠI KHI CÓ BẢN MỚI (anh 04/11/2026 "nút này đâu ở tab phim" — tab mở từ trước deploy chạy giao diện cũ): hỏi /etp/ban mỗi phút, mã bản dựng khác lúc nạp → tải lại
   // ngay khi không có form / ngăn đang mở (không làm mất chữ đang gõ)
   useEffect(() => { let dau = ''; const hoi = async () => { const m = await maBan(); if (!m) return;   // 503 / lỗi mạng → bỏ lượt, KHÔNG tải lại
@@ -2419,7 +2419,12 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLi
     taiNangEtp(duGoc.nguoi.ngoai && duGoc.nguoi.dang != null ? String(duGoc.nguoi.dang) : undefined).then((r) => { if (!huy && !('loi' in r)) setNang(r); }).catch(() => {});
     return () => { huy = true; }; }, [duGoc, canNang]);
   const choNang = canNang && duGoc.nhe && !nang;
-  useEffect(() => { const t = setInterval(() => void lamMoiAnToan(router), 60_000); return () => clearInterval(t); }, [router]);
+  // TỰ LÀM MỚI MỖI PHÚT — chỉ khi dữ liệu ĐỔI (etp2 09/11/2026 load chậm): hỏi mã /etp/phien (vài chục byte) thay vì tải lại ~10 MB mỗi phút
+  useEffect(() => { const t = setInterval(() => { void (async () => {
+      const ng = new URL(location.href).searchParams.get('ng');
+      const m = await fetch(`/etp/phien${ng ? `?ng=${encodeURIComponent(ng)}` : ''}`, { cache: 'no-store' }).then((r) => (r.ok ? r.text() : '')).catch(() => '');
+      if (!m || m !== phien) await lamMoiAnToan(router);
+    })(); }, 60_000); return () => clearInterval(t); }, [router, phien]);
   // URL không ghi kiểu xem cây/bảng → dùng lựa chọn đã nhớ (localStorage). Cờ daDoc: lượt ghi URL / nhớ chỉ chạy SAU khi đã đọc xong — không đè bằng giá trị mặc định
   const [daDoc, setDaDoc] = useState(false);
   useEffect(() => { if (!laXemCamp(dauVao?.v)) { try { const v = localStorage.getItem('etp-camp-xem'); if (laXemCamp(v)) setXemCamp(v); } catch { /* trình duyệt chặn */ } } setDaDoc(true); }, []);   // eslint-disable-line react-hooks/exhaustive-deps

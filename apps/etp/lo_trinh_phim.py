@@ -186,6 +186,16 @@ def chay(q):
     try: GAC.clear(); GAC.update(str(x) for x in json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_dang'), '[]')") or "[]"))
     except Exception: pass
     kq = {}
+    # CHẠM TRẦN CAMP MỚI / NGÀY (cong.KHOA_TRAN_NGAY) → lượt này KHÔNG xếp dòng nào (09/11/2026: 108 camp lên lúc 00:00–00:30, trần chạm; mỗi lượt 10 phút
+    # lộ trình xếp lại dòng PO → dòng sản xuất xong dừng vì trần → lượt sau xếp lại: 279 dòng huỷ + 772 dòng nhật ký 'lo_trinh' trong 10 giờ, đẩy dòng tạo camp
+    # khỏi tab Log). Dòng đã dừng vì trần được dong_phim.mo_tran_ngay tự FIX sang ngày mới — không mất gì khi ngưng xếp.
+    try: tcm = json.loads(q(f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{CG.KHOA_TRAN_NGAY}'), 'null')") or "null")
+    except Exception: tcm = None
+    da_tao = int(q(CG.SQL_TAO_HOM_NAY) or 0) if tcm is not None else 0
+    if tcm is not None and da_tao >= int(tcm):
+        q(f"""insert into etp.nhat_ky (luc, viec, ok, luat, ai) select now(), 'lo_trinh', true, 'hôm nay đã tạo {da_tao} camp, chạm trần {int(tcm)} camp mới / ngày — lộ trình ngưng xếp dòng tới 00:00 giờ VN', 'máy lộ trình tự động'
+              where not exists (select 1 from etp.nhat_ky where viec = 'lo_trinh' and luat like 'hôm nay đã tạo % chạm trần %' and (luc at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date)""")
+        return {"lo_trinh": f"chạm trần {da_tao}/{tcm} camp mới hôm nay — không xếp dòng"}
     for ma in UU_TIEN:   # đầu lượt: không phụ thuộc phim lộ trình
         try: kq[ma] = xep_at(q, ma)
         except Exception as e: kq[ma] = f"lỗi: {e}"[:200]

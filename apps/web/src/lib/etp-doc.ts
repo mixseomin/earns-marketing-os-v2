@@ -372,7 +372,9 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
         left join cd on cd.doan = cr.doan left join s on s.camp_id = c.camp_id
       where c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`),
     run<{ khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }>(sql`select khoa, gia_tri, ghi, ai, luc::text luc from etp.cau_hinh order by khoa`),
-    runNha<DuLieuEtp['nhatKy'][number]>(sql`select luc::text luc, viec, camp_id, truoc, sau, ok, loi, luat, ai from etp.nhat_ky order by luc desc limit 300`),
+    // việc camp và dòng lộ trình lấy RIÊNG trần (09/11/2026: 772 dòng 'lo_trinh' / 10 giờ chiếm hết 300 dòng, 106 camp tạo lúc 00:00 không hiện trong tab Log)
+    runNha<DuLieuEtp['nhatKy'][number]>(sql`select * from ((select luc::text luc, viec, camp_id, truoc, sau, ok, loi, luat, ai from etp.nhat_ky where viec <> 'lo_trinh' order by luc desc limit 300)
+      union all (select luc::text luc, viec, camp_id, truoc, sau, ok, loi, luat, ai from etp.nhat_ky where viec = 'lo_trinh' order by luc desc limit 100)) x order by luc desc`),
     // XEM NGƯỜI (anh 30/10/2026 "theo dõi … thời điểm lên bậc … chỉ đề xuất"): xét luật = máy luật nhà chấm camp người đó (apps/etp/de-xuat-ngoai.py, chỉ đề xuất);
     // lịch sử bậc = sổ etp.bac_ngoai (trigger 0373) kèm ROI lúc đổi + máy đã đề xuất trước đó bao lâu (etp.de_xuat_bac, 0374)
     run<{ camp_id: number; luc: string; xet: XetLuat[] }>(ngoai ? sql`select camp_id, luc::text luc, xet from etp.xet_luat_ngoai where ${cuaNg(sql`nguoi_id`)}` : sql`select camp_id, luc::text luc, xet from etp.xet_luat`).catch(() => [] as { camp_id: number; luc: string; xet: XetLuat[] }[]),

@@ -22,7 +22,7 @@ export default async function EtpPage({ searchParams }: { searchParams: Promise<
   // QUYỀN (etp.quyen, anh 31/10/2026): chủ = admin mos2 · admin etp = xem hết + sửa camp của mình · người = chỉ phần của mình (dữ liệu cắt TRÊN MÁY CHỦ, không chỉ ẩn tab)
   const quyen = await quyenEtp(me);
   // etp2 = riêng anh (anh 09/11/2026 'để riêng tao dùng'): chỉ admin mos2; người team vẫn dùng etp.on.tc
-  if (!quyen || me.role !== 'admin') redirect('https://etp.on.tc/');
+  if (!quyen || me.role !== 'admin') redirect(`https://etp.on.tc/?${new URLSearchParams(Object.entries(q).filter(([, v]) => typeof v === 'string') as [string, string][]).toString()}`);   // giữ bộ lọc (link Telegram trỏ etp2)
   const mot = (k: string) => (typeof q[k] === 'string' ? (q[k] as string) : undefined);
   const t0 = Date.now();
   const [du, het] = await Promise.all([docEtp(ngCua(quyen, mot('ng')), true), hetPhienEthopex(suaNguoi(quyen))]);

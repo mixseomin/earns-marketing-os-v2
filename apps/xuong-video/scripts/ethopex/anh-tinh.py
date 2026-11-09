@@ -12,6 +12,7 @@ MỘT lệnh lo trọn, mỗi phim:
 Từ đó nhịp ethopex (apps/cty/worker/ethopex.mjs) thấy creative ảnh tĩnh chấm Sạch của phim đang chạy → lên camp $1, giờ chạy theo lịch chung (nhan-ban.lich_len).
 Dùng (iMac): python3 anh-tinh.py [content_id …] [--so N] [--ban N bản / phim] [--xem] [--giong ky_di|gao|cam_xuc|hao_hung|thuong|theo-phim]
   giọng mặc định XOAY giữa 5 kiểu (kể cả "thuong" = như bản gốc), dấu kiểu ghi vào etp.diem_cham.cham.voice.giong để đo
+  --khong-free = không vẽ lớp Free (nhãn tím + nút xanh "Watch For Free", mặc định BẬT từ 09/11/2026 theo Dol)
   không id = tự chọn N phim (mặc định 10) · --xem = chỉ dựng + tờ khung (~/.cache/ethopex/anh-tinh/to-<giờ>.jpg), không nạp thư viện / tạo creative"""
 import hashlib, json, os, random, re, subprocess, sys, time
 from concurrent.futures import ThreadPoolExecutor
@@ -46,6 +47,25 @@ UNG_VIEN = 20   # số khung ứng viên gửi AI xếp hạng
 MOI = "--cu" not in sys.argv   # anh DUYỆT mẫu 08/11/2026 → bản mới là mặc định; --cu = cách cũ (khung điểm máy, chữ vàng, 3 Mb/s)
 LOC = "fps=2/3"   # khung ứng viên: mỗi 1,5 giây (từ giây 3) — một chuỗi lọc cho cả khung nhỏ lẫn khung gốc
 FONT = "/System/Library/Fonts/Supplemental/Georgia Bold Italic.ttf"
+# LỚP "FREE" (Dol / Ethopex 09/11/2026: "Trong Creative, hình ảnh, video có chữ 'Free' gần như giúp mình mua được CPC rẻ hơn" + mẫu poster Dol gửi; anh 09/11: "Dựng free"):
+# nhãn tím trên cùng "All Episodes Released" + nút xanh "Watch For Free" ngay dưới tên phim. Bật mặc định mọi bản AT mới; --khong-free = bản cũ (đo A/B về sau).
+# Tên phim đẩy lên (đáy ≤ TEN_DAY_FREE) để nút xanh vẫn nằm trên vùng khung ứng dụng (~15% đáy: tên trang, nút của Meta).
+FREE = {"en": ("All Episodes Released", "Watch For Free"), "es": ("Todos los episodios ya disponibles", "Míralo gratis")}
+FONT_FREE, TIM, XANH, TEN_DAY_FREE = "/System/Library/Fonts/Supplemental/Arial Bold.ttf", (124, 58, 237, 255), (34, 197, 94, 255), 0.72
+CO_FREE = "--khong-free" not in sys.argv
+def lop_free(lop, lang, day_ten):
+    """vẽ nhãn tím trên cùng + nút xanh dưới tên phim (day_ten = mép dưới tên, px) lên lớp chữ RGBA đứng yên"""
+    nhan, nut = FREE.get(lang, FREE["en"]); d = ImageDraw.Draw(lop)
+    def o(chu, c, y, mau, dem_x, dem_y, max_w):
+        while c > 40 and ImageFont.truetype(FONT_FREE, c).getlength(chu) > max_w - 2 * dem_x: c -= 4
+        f = ImageFont.truetype(FONT_FREE, c); x0, y0, x1, y1 = f.getbbox(chu); w, h = x1 - x0 + 2 * dem_x, y1 - y0 + 2 * dem_y; x = (W - w) // 2
+        bong = Image.new("RGBA", (W, H)); ImageDraw.Draw(bong).rounded_rectangle((x + 4, y + 8, x + w + 4, y + h + 8), radius=h // 4, fill=(0, 0, 0, 120))
+        lop.alpha_composite(bong.filter(ImageFilter.GaussianBlur(10)))
+        d.rounded_rectangle((x, y, x + w, y + h), radius=h // 4, fill=mau); d.text((x + dem_x - x0, y + dem_y - y0), chu, font=f, fill=(255, 255, 255, 255))
+        return y + h
+    o(nhan, 76, int(H * 0.055), TIM, 44, 26, W - 160)
+    o(nut, 84, int(min(day_ten + 44, H * 0.86 - 140)), XANH, 70, 34, W - 260)
+    return lop
 MA_HOA = ["-c:v", "h264_videotoolbox", "-b:v", "8M" if MOI else "3M", "-maxrate", "10M" if MOI else "4500k",   # HD (anh 08/11/2026 "nhớ là dạng HD"): 1080x1920, 8 Mb/s (trước 3M)
            "-pix_fmt", "yuv420p", "-r", "30", "-c:a", "aac", "-ar", "44100"]   # như cat-canh.MA_HOA (Mac)
 
@@ -252,7 +272,8 @@ def anh(cid, ten, k, tm, ban=0):
     tp = None if not MOI else ten_poster(ten, os.path.join(tm, "poster.jpg"), os.path.join(tm, "ten-poster.png")) if ban == 0 or not os.path.exists(os.path.join(tm, "ten-poster.png")) else os.path.join(tm, "ten-poster.png")
     if tp:   # tên phim đúng kiểu chữ poster: rộng ≤ W − 120, cao ≤ 22% màn, đặt dưới mặt, chừa ~20% đáy
         t_ = Image.open(tp); s_ = min((W - 120) / t_.width, H * 0.22 / t_.height); t_ = t_.resize((round(t_.width * s_), round(t_.height * s_)), Image.LANCZOS)
-        y = int(min(max(H * 0.66 - t_.height / 2, mat_day + 60), H * 0.80 - t_.height)); lop = Image.new("RGBA", (W, H)); lop.paste(t_, ((W - t_.width) // 2, y), t_)
+        y = int(min(max(H * 0.66 - t_.height / 2, mat_day + 60), H * (TEN_DAY_FREE if CO_FREE else 0.80) - t_.height)); lop = Image.new("RGBA", (W, H)); lop.paste(t_, ((W - t_.width) // 2, y), t_)
+        if CO_FREE: lop_free(lop, k.get("lang", "en"), y + t_.height); k["free"] = True
         k["ten_poster"] = True; lop.save(os.path.join(tm, f"chu-{ban}.png")); return nen, os.path.join(tm, f"chu-{ban}.png")
     t, c = ten.upper() if len(ten) <= 18 else ten, 120
     while True:
@@ -265,7 +286,7 @@ def anh(cid, ten, k, tm, ban=0):
         if len(dong) <= 3 or c <= 64: break
         c -= 8
     cao = int(c * 1.12) * len(dong)
-    y = int(min(max(H * 0.66 - cao / 2, mat_day + 60), H * 0.80 - cao))   # dưới mặt; chừa ~20% đáy cho khung ứng dụng (tên trang, nút)
+    y = int(min(max(H * 0.66 - cao / 2, mat_day + 60), H * (TEN_DAY_FREE if CO_FREE else 0.80) - cao))   # dưới mặt; chừa ~20% đáy cho khung ứng dụng (tên trang, nút)
     lop = Image.new("RGBA", (W, H)); bong = Image.new("RGBA", (W, H)); d, db = ImageDraw.Draw(lop), ImageDraw.Draw(bong)
     mask = Image.new("L", (W, H)); dm = ImageDraw.Draw(mask)
     for i, x in enumerate(dong):
@@ -274,7 +295,9 @@ def anh(cid, ten, k, tm, ban=0):
         d.text((xx, yy), x, font=f, fill=(0, 0, 0, 0), stroke_width=7, stroke_fill=(40, 20, 0, 255))
     vang = Image.new("RGBA", (1, H)); vang.putdata([(255, 236 - int(60 * max(0, min(1, (r - y) / max(1, cao)))), 150 - int(110 * max(0, min(1, (r - y) / max(1, cao)))), 255) for r in range(H)])
     lop.paste(vang.resize((W, H)), (0, 0), mask)
-    Image.alpha_composite(bong.filter(ImageFilter.GaussianBlur(8)), lop).save(os.path.join(tm, f"chu-{ban}.png"))
+    lop = Image.alpha_composite(bong.filter(ImageFilter.GaussianBlur(8)), lop)
+    if CO_FREE: lop_free(lop, k.get("lang", "en"), y + cao); k["free"] = True
+    lop.save(os.path.join(tm, f"chu-{ban}.png"))
     return nen, os.path.join(tm, f"chu-{ban}.png")
 
 def xoay_giong(ds, yeu_cau):
@@ -298,7 +321,7 @@ def danh_dau(tv, kieu, lang, ten, so_mau=0, them=None):
     v, mau = KIEU_GIONG[kieu]; a_, b_, c_ = CAU[lang][so_mau]
     j = json.dumps({"voice": {"thoai": "khong", "giong": kieu, "nguoi_doc": v, "mau": so_mau, "cau": mau.format(a=a_.format(t=ten), b=b_.format(t=ten), c=c_.format(t=ten))},
                     "chu_video": {"bo_cuc": "anh_tinh_ten_phim", "phu_de": "xoa", **({"ten": "poster" if them.get("ten_poster") else "chu_vang"} if them else {})},
-                    "cta": {"mau": "khong_nut"}, **({"anh_tinh": {"ban": them.get("ban"), "khung": f"{them.get('tap')}#{them.get('khung_so')}", "chon": "ai" if MOI else "may", "hd": MOI}} if them else {})}, ensure_ascii=False).replace("$J$", "")
+                    "cta": {"mau": "watch_for_free" if (them or {}).get("free") else "khong_nut"}, **({"anh_tinh": {"ban": them.get("ban"), "khung": f"{them.get('tap')}#{them.get('khung_so')}", "chon": "ai" if MOI else "may", "hd": MOI}} if them else {})}, ensure_ascii=False).replace("$J$", "")
     return sql(f"update etp.diem_cham d set cham = d.cham || $J${j}$J$::jsonb, luc = now() from etp.thu_vien v where v.id = {int(tv)} and d.creative_id = v.creative_id returning d.creative_id")
 
 # GIỌNG = CỔNG GIỌNG CHUNG scripts/lich-su/giong-ckey.mjs trên box3 (anh 08/11/2026 "chuyển vào cơ chế chung. Mọi AI API đều phải qua fallback"):
@@ -345,16 +368,16 @@ def mot(p, xem, kieu, ban=1):
             so_mau = (mau0 + b) % len(CAU[lang])   # bốc ngẫu nhiên mẫu đầu, các bản sau xoay vòng (anh 06/11/2026)
             # MỖI BẢN MỘT KIỂU GIỌNG (anh 08/11/2026 "nhớ có nhiều kiểu voice … để còn tối ưu về sau"): bản 1 = kiểu xoay_giong chọn, bản sau lần lượt các kiểu kế
             ks = list(KIEU_GIONG); kieu_b = ks[(ks.index(kieu) + b) % len(ks)]
-            nen, chu = anh(cid, ten, k, tm, b); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu_b, tm, so_mau)
+            k["lang"] = lang; nen, chu = anh(cid, ten, k, tm, b); mp3, vnd, kieu_ = giong(cid, lang, ten, kieu_b, tm, so_mau)
             out = os.path.join(tm, f"anh-tinh-{cid}-{b + 1}.mp4"); giay = dung(nen, chu, mp3, out)
-            r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay))   # cổng chữ trên video (tên phim) — cùng cổng mọi creative
+            r = sh("python3", os.path.join(D, "kiem-thoai.py"), out, "0", str(giay), *(["--free"] if k.get("free") else []))   # cổng chữ trên video (tên phim) — cùng cổng mọi creative; --free: gỡ đúng câu lớp Free nhà vẽ
             if r.returncode != 0: raise RuntimeError(r.stdout.strip()[-200:])
             kq = {"content_id": cid, "ten": ten, "lang": lang, "file": out, "ban": b + 1, "giay": giay, "vnd": vnd + (vnd_ai if b == 0 else 0), "giong": kieu_, "mau": so_mau,
-                  "ten_poster": bool(k.get("ten_poster")), "ai": ly_ai[:200] if b == 0 else "", **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
+                  "ten_poster": bool(k.get("ten_poster")), "free": bool(k.get("free")), "ai": ly_ai[:200] if b == 0 else "", **{x: k[x] for x in ("tap", "diem", "dat", "so_khung", "nho")}, "xoa": len(k["xoa"]), "khung_so": k["so"]}
             if not xem:
                 xa = f"/var/tmp/anh-tinh/{cid}"; sh("ssh", B, f"mkdir -p {xa}"); sh("rsync", "-a", out, f"{B}:{xa}/", han=900)
                 ghi = (f"ảnh tĩnh bản {b + 1}/{ban} · giọng {kieu_} · mẫu câu {so_mau + 1} ({p.get('the_loai') or '?'}): {k['tap']} khung #{k['so']} (mỗi 1,5 giây từ giây 3) · "
-                       f"điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt) · AI xếp hạng {b + 1} · tên {'từ poster' if k.get('ten_poster') else 'chữ vàng'}")
+                       f"điểm mặt {k['diem']} ({k['dat']}/{k['so_khung']} khung đạt) · AI xếp hạng {b + 1} · tên {'từ poster' if k.get('ten_poster') else 'chữ vàng'}" + (" · lớp Free (nhãn All Episodes Released + nút Watch For Free)" if k.get("free") else ""))
                 r = sh("ssh", B, f"{XV} scripts/ethopex/thu-vien-them.mts 0 {xa}/{os.path.basename(out)} --content={cid} --dang='{DANG}' --nguon={NGUON} --lang={lang} --chi-vnd={kq['vnd']} --ghi='{ghi}' --them", han=600)   # --them: mỗi bản một dòng thư viện
                 if r.returncode != 0: raise RuntimeError(f"thư viện: {(r.stderr or r.stdout)[-200:]}")
                 kq["tv"] = int(sql(f"select id from etp.thu_vien where content_id = {cid} and dang = '{DANG}' and nguon = '{NGUON}' and creative_id is null order by id desc limit 1") or 0)

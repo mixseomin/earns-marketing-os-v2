@@ -42,8 +42,14 @@ def mau_js():
     t, th = CQ.tach_hoa("|".join(x for x in CAM if x != CQ.MAU_CTA.pattern))
     return {"thoai": t, "thoai_hoa": th, **CQ.mau_js()}
 
-def soat(cau):
-    """→ từ khớp đầu tiên hoặc None (thoại cấm · CTA dụ nhấp · lớp phủ CTA kích thích của QC app gốc — cta_qc.phu_kich_thich)"""
+# LỚP FREE CỦA NHÀ (anh 09/11/2026 "Dựng free", theo Dol / Ethopex: chữ "Free" trên creative cho CPC rẻ hơn): nhãn + nút anh-tinh.py tự vẽ (anh-tinh.FREE) —
+# gỡ ĐÚNG các câu này khỏi chữ đọc được trước khi soát; chữ "FREE" / "Watch for free" khác (lớp phủ in sẵn của QC app gốc) vẫn chặn như luật 22/10/2026.
+CHO_FREE = ["All Episodes Released", "Watch For Free", "Todos los episodios ya disponibles", "Míralo gratis"]
+_MAU_CHO = re.compile(r"\s*\|?\s*(" + "|".join(re.escape(x) for x in CHO_FREE) + r")\s*\|?", re.I)
+def soat(cau, cho_free=False):
+    """→ từ khớp đầu tiên hoặc None (thoại cấm · CTA dụ nhấp · lớp phủ CTA kích thích của QC app gốc — cta_qc.phu_kich_thich).
+    cho_free: video có lớp Free của nhà (anh-tinh.py --free) → gỡ đúng câu nhãn / nút đó trước khi soát"""
+    if cho_free: cau = _MAU_CHO.sub(" | ", cau or "")
     m = MAU.search(cau or "")
     return m.group(0) if m else CQ.phu_kich_thich(cau)
 
@@ -112,12 +118,17 @@ def tu_kiem():
            "sé que estás molesto.", "deadline is tomorrow", "Matarazzo", "skilled player", "the heat of the game", "stuck in a rut", "go to bed early", "Your stepbrother is a bully", "beautiful assessment", "a classic passage", "Watch Mr. Bastardo", "the beat goes on", "Hitchcock"] + qua_cta
     for c in chan: assert soat(c), "phải chặn: " + c
     for c in qua: assert not soat(c), "không được chặn: %s (khớp %s)" % (c, soat(c))
+    # lớp Free của nhà: qua khi bật cho_free, chặn khi không; chữ Free khác vẫn chặn kể cả khi bật
+    assert soat("All Episodes Released | VENGEANCE | OF THE | DRAGON PRINCESS | Watch For Free"), "lớp Free không cờ phải chặn"
+    for c in ("All Episodes Released | VENGEANCE | OF THE | DRAGON PRINCESS | Watch For Free", "Todos los episodios ya disponibles | LA HEREDERA | Míralo gratis"):
+        assert not soat(c, True), "lớp Free nhà phải qua: %s (khớp %s)" % (c, soat(c, True))
+    for c in ("FREE", "11:30 Watch for free for a limited time", "All Episodes Released | WATCH FREE · TAP LEARN MORE"): assert soat(c, True), "Free ngoài lớp nhà vẫn chặn: " + c
     print("tự kiểm: %d/%d đạt" % (len(chan) + len(qua), len(chan) + len(qua)))
 
 if __name__ == "__main__":
     if "--tu-kiem" in sys.argv: tu_kiem(); sys.exit(0)
-    video, tu, den = sys.argv[1], float(sys.argv[2]), float(sys.argv[3])
-    loi = [(g, c, soat(c)) for g, c in doc(video, tu, den) if soat(c)]
+    video, tu, den = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]); cf = "--free" in sys.argv
+    loi = [(g, c, soat(c, cf)) for g, c in doc(video, tu, den) if soat(c, cf)]
     for g, c, k in loi: print("THOAI CHAN: %ds «%s» (từ: %s)" % (g, c[:120], k))
     print("THOAI OK" if not loi else "THOAI CHAN: %d khung — đoạn %s–%ss không cắt (Meta: Adult Sexual Exploitation)" % (len(loi), tu, den))
     sys.exit(2 if loi else 0)

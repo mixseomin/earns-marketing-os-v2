@@ -106,7 +106,10 @@ const daLam = new Set(q(`SELECT coalesce(string_agg(slug, ','), '') FROM xv_may_
 function lam(y, han = {}) {
   mkdirSync(join(CACHE, 'lich-su'), { recursive: true }); const f = join(CACHE, 'lich-su', `${KENH}-${y}.log`), fd = openSync(f, 'w');
   // trần mỗi bước: tập ngắn 45 phút; tập dài 8–10 phút ~17.000 khung × ~5 khung/giây ≈ 1 giờ dựng → 3 giờ (09/11/2026: tập dài đầu bị giết ở phút 45)
-  const chay = (args, cwd) => spawnSync(process.execPath, args, { cwd, stdio: ['ignore', fd, fd], timeout: (laDai(y) ? 180 : 45) * 60_000, killSignal: 'SIGKILL' });
+  // nhóm tiến trình riêng (detached): hết giờ thì giết CẢ NHÓM — giết mỗi node cha thì trình dựng / ffmpeg con mồ côi chạy tiếp, chồng lên lượt sau và ghi vào cùng nhật ký
+  // (09/11/2026: lượt dài đầu bị giết ở phút 45, bộ dựng con vẫn chạy song song lượt làm lại → 80 phút + "ghép đoạn hỏng" lẫn vào nhật ký)
+  const chay = (args, cwd) => { const r = spawnSync(process.execPath, args, { cwd, stdio: ['ignore', fd, fd], timeout: (laDai(y) ? 180 : 45) * 60_000, killSignal: 'SIGKILL', detached: true });
+    if (r.signal && r.pid) try { process.kill(-r.pid, 'SIGKILL'); } catch { /* nhóm đã hết */ } return r; };
   try {
     const ra = join(RA, `${y}.mp4`), tep = join(TAP, `${y}.json`), buoc = [[lenhViet(y, han), DIR], [[join(SHOT, 'long-tieng.mjs'), '--cau', relative(SHOT, tep), '--ra', relative(SHOT, ra), ...(laDai(y) ? ['--rong', '1920', '--cao', '1080'] : [])], SHOT],
       [[join(DIR, 'nap-tap.mjs'), '--tap', tep, '--video', ra, ...(han.tu ? ['--dang-tu', han.tu] : []), ...(han.den ? ['--dang-den', han.den] : [])], DIR]];

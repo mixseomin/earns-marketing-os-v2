@@ -40,8 +40,8 @@ export function mucBai(bai) {
     : { ten: m.ten, cau: tachCau(m.doan) })).filter((m) => m.cau.length);
 }
 
-/** giây giọng đọc ước theo chữ: giọng ckey đọc câu dài ~14,2 ký tự / giây (đo 09/11/2026 trên các .tieng.json đã lồng tiếng). Thuần. */
-export const TOC = 14.2, giayChu = (s) => String(s).replace(/<[^>]+>/g, '').length / TOC;
+/** giây giọng đọc ước theo chữ: giọng ckey ~13,1 ký tự / giây kể cả nghỉ giữa câu (đo 09/11/2026: tập dài Angelina 611 giây thật / ước 564 giây ở 14,2). Thuần. */
+export const TOC = 13.1, giayChu = (s) => String(s).replace(/<[^>]+>/g, '').length / TOC;
 /** gọt bài cho vừa `giay` giây: bỏ mục hỏi đáp trước, rồi bớt câu CUỐI của mục còn nhiều câu nhất (giữ ≥ 3 câu / mục, không đụng mục tổng kết). Thuần. */
 export function catMuc(muc, giay) {
   let ds = muc.map((m) => ({ ...m, cau: [...m.cau] }));

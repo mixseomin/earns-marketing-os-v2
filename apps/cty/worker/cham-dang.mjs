@@ -46,13 +46,22 @@ export async function kiemGoc(ds) {
 const MODEL_NGOC = (() => { try { return (/^model:\s*(\S+)/m.exec(fs.readFileSync(new URL('../cong-ty/nhan-su/ngoc/SOUL.md', import.meta.url), 'utf8')) ?? [])[1] ?? null; } catch { return null; } })();
 /** HỎI NGỌC MỘT LƯỢT qua proxy công ty (một chỗ cho xét hook + xem hình): trả object JSON trong câu trả lời, hoặc undefined khi proxy / mô hình / JSON hỏng
  *  (người gọi KHÔNG chặn bài vì lỗi máy, và không ghi sổ để lượt sau xét lại) — lỗi ghi ra log, không nuốt im. */
+/** Câu trả lời cho thấy ẢNH KHÔNG TỚI mô hình (09/11/2026: bìa tập dài Astrolas bị chặn "không có chủ thể rõ" vì Ngọc "không tìm thấy hình ảnh đính kèm",
+ *  rồi lời đó nằm trong sổ → nạp lại vẫn chặn mãi). Không phải lời chấm: không lưu sổ, không chặn. Thuần. */
+export const khongThayAnh = (o) => o?.thay_anh === false || /không (tìm )?thấy (bất kỳ |bất cứ )?(hình|ảnh)|không có (hình|ảnh) (nào )?(được )?đính kèm|no image|cannot see (the|any) image/i.test(String(o?.ly_do ?? ''));
+/** sổ chấm ảnh của Ngọc, bỏ các mục "ảnh không tới" còn sót từ trước (để lượt này hỏi lại). */
+const docSoAnh = (tep) => { let so = {}; try { so = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* chưa có sổ */ } for (const k of Object.keys(so)) if (khongThayAnh(so[k])) delete so[k]; return so; };
 async function hoiNgoc({ luot, system, content, max_tokens = 200, cho = 60000 }) {
+  const coAnh = content.some((b) => b.type === 'image');
+  if (coAnh) system += ' If no image reached you, reply {"thay_anh":false,"ly_do":"..."} and nothing else.';
   try {
     const r = await fetch(`${process.env.CTY_PROXY_URL || 'http://127.0.0.1:3862'}/v1/messages`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-cty-staff': 'ngoc', 'x-cty-luot': `${luot}-${Date.now()}`, 'x-cty-phong': 'noi-dung' },
       body: JSON.stringify({ model: MODEL_NGOC, max_tokens, temperature: 0, system, messages: [{ role: 'user', content }] }), signal: AbortSignal.timeout(cho) });
     const j = await r.json(); if (!r.ok) { console.error(`hỏi Ngọc (${luot}): proxy ${r.status} ${JSON.stringify(j).slice(0, 160)}`); return undefined; }
     const txt = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
-    return JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
+    const o = JSON.parse(txt.slice(txt.indexOf('{'), txt.lastIndexOf('}') + 1));
+    if (coAnh && khongThayAnh(o)) { console.error(`hỏi Ngọc (${luot}): ảnh không tới mô hình — ${String(o.ly_do ?? '').slice(0, 120)}`); return undefined; }
+    return o;
   } catch (e) { console.error(`hỏi Ngọc (${luot}): ${String(e.message).slice(0, 160)}`); return undefined; }
 }
 /** Khoá sổ xet-hook.json cho kết luận CÙNG NGÁCH theo QC gốc (một máy, một QC). */
@@ -195,7 +204,7 @@ async function ketNoi() {
 export async function xetHinhAi(ds) {
   if (!MODEL_NGOC) return ds.map(() => null);
   const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'xet-hinh.json');
-  let so = {}; try { so = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* chưa có sổ */ }
+  const so = docSoAnh(tep);
   const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`${x.title}|${x.anh.join('|')}`).digest('hex');
   const system = 'You are the visual QA reviewer of a social video team. You see frames of ONE post (a short video or an image post). Reply with ONE JSON only: '
     + '{"chu_loi":true|false,"nen_phang":true|false,"loi_ai":true|false,"logo_la":true|false,"nhay_cam":true|false,"lech_chu_de":true|false,"chac":true|false,"ly_do":"one short sentence in Vietnamese naming the frame number"}. '
@@ -226,7 +235,7 @@ export async function xetHinhAi(ds) {
 export async function xetAnhCanh(ds) {
   if (!MODEL_NGOC) return ds.map(() => null);
   const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'xet-anh.json');
-  let so = {}; try { so = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* chưa có sổ */ }
+  const so = docSoAnh(tep);
   const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`v2|${x.url}|${x.mo_ta}|${x.nam ?? ''}`).digest('hex');   // v2: câu hỏi mới (v1 loại oan chân dung vì đòi cả cảnh)
   const system = 'You check whether a real archive photo / painting fits ONE scene of a history video. Reply with ONE JSON only: {"dung":true|false,"ly_do":"one short sentence in Vietnamese"}. '
     + 'The image only illustrates the scene: it does NOT need to show the whole scene. dung = true when it shows AT LEAST ONE main person, object or place named in the scene, '
@@ -253,9 +262,9 @@ export async function xetAnhCanh(ds) {
 export async function xetThumbAi(ds) {
   if (!MODEL_NGOC) return ds.map(() => null);
   const tep = path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'xet-thumb.json');
-  let so = {}; try { so = JSON.parse(fs.readFileSync(tep, 'utf8')); } catch { /* chưa có sổ */ }
+  const so = docSoAnh(tep);
   const { createHash } = await import('node:crypto'), khoa = (x) => createHash('md5').update(`${x.title}|${x.url}|${x.nguon ?? ''}`).digest('hex');
-  const system = 'You are the thumbnail reviewer of a YouTube channel. You see ONE vertical thumbnail and the video title. Judge it the way it appears in a phone feed (about 160 px wide). Reply with ONE JSON only: '
+  const system = 'You are the thumbnail reviewer of a YouTube channel. You see ONE thumbnail (vertical for Shorts, horizontal 16:9 for long videos) and the video title. Judge it the way it appears in a phone feed (about 160 px wide). Reply with ONE JSON only: '
     + '{"kho_doc":true|false,"nhieu_chu":true|false,"tran":true|false,"mo":true|false,"roi":true|false,"lap_tieu_de":true|false,"lech":true|false,"loi_ai":true|false,"logo_la":true|false,"nhay_cam":true|false,"chac":true|false,"ly_do":"one short sentence in Vietnamese"}. '
     + 'kho_doc = the big text is not readable at small size (thin, low contrast, too small). nhieu_chu = more than 5 words of big text. tran = text cut off or touching the edge. '
     + 'mo = no single clear subject (face / object) recognisable at small size. roi = cluttered, the eye has no single focal point. lap_tieu_de = the big text repeats the title word for word instead of adding to it. '
@@ -421,6 +430,8 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
   const tot = { nen_url: 'https://images.pexels.com/photos/1/p.jpeg?w=1080', video_url: 'https://img.on.tc/v.mp4', xuat_luc: '2026-10-18',
     dang: { title: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds', description: 'Scam: fake deadline · asks for card by chat. Never pay through a link in a message. Call the hotel on its official number. Checklist: https://ratesbyroom.com/hotel-scam-check/', link: 'https://ratesbyroom.com/hotel-scam-check/', goc: { sp: 179, id: 1, loai: 'ai_noi_dau', ten: 'x' }, hook: { qc: '123', goc: 'Scam or real? This "hotel" message: spot the red flags in 7 seconds' } } };   // mọi bài phải có góc + hook từ QC spy (31/10/2026)
   t.equal(doBaiDang(tot).ket, 'DUYET', 'bài đủ thì DUYỆT');
+  t.ok(khongThayAnh({ ly_do: 'Không tìm thấy hình ảnh thumbnail đính kèm để đánh giá.' }) && khongThayAnh({ thay_anh: false }), 'ảnh không tới = không phải lời chấm (09/11/2026)');
+  t.ok(!khongThayAnh({ ly_do: 'Không thấy lỗi nào, chủ thể rõ.' }) && !khongThayAnh(null), 'lời chấm thật vẫn giữ');
   t.ok(doBaiDang({ ...tot, de: { ket: ['MilitaryCalc', 'Xem công cụ tại militarycalc.com'] } }).chan_cung.some((x) => x.includes('trên màn')), 'chữ trên màn tiếng Việt = chặn (#740, 02/11/2026)');
   t.equal(doBaiDang({ ...tot, ma: 'giochap-van-khan', de: { ket: ['Xem công cụ'] } }).chan_cung.some((x) => x.includes('trên màn')), false, 'máy tiếng Việt thì được');
   t.equal(doBaiDang({ ...tot, video_url: null, dang: { ...tot.dang, loai: 'link' } }).ket, 'DUYET', 'bài link không video vẫn DUYỆT');

@@ -34,6 +34,8 @@ export function lenhViet(y, o = {}) {
 }
 /** tập video dài 16:9 (mẫu loai 'dai' tự chạy) → dựng 1920×1080, bìa 1280×720. Thuần. */
 export const laDai = (y) => /^(ccd|ls)-/.test(y);
+/** câu lỗi của nhật ký: dòng ✗ / ⚠ máy viết ra, không lấy ngăn xếp Node (09/11/2026: Telegram chỉ nhận "at file:///…nap-tap.mjs:54"). Thuần. */
+export const caiLoi = (log) => { const d = log.trim().split('\n').map((l) => l.trim()).filter(Boolean), x = d.filter((l) => /^[✗⚠]/.test(l)); return (x.length ? x.slice(-2) : d.filter((l) => !/^at |^Node\.js v/.test(l)).slice(-3)).join(' · '); };
 /** ngày hẹn video dài gần nhất ≤ hôm nay (thu: 1 = Thứ Hai … 7 = Chủ nhật) — lỡ ngày hẹn (trần, ngoài giờ, máy bận) thì các ngày sau vẫn làm bù tới ngày hẹn kế. Thuần. */
 export function ngayDai(hom, thuDs = []) {
   for (let i = 0; i < 7; i++) { const ms = Date.parse(`${hom}T12:00:00Z`) - i * 864e5, d = new Date(ms).getUTCDay() || 7; if (thuDs.includes(d)) return iso(ms); }
@@ -54,6 +56,7 @@ export function chonTap(pl, ungVien, daLam, bo, hom) {
 if (process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert');
   t.deepEqual(lenhViet('ct-transit--tom-hanks'), ['viet-chart-tools.mjs', '--y', 'ct-transit--tom-hanks']); t.deepEqual(lenhViet('f60-birth'), ['viet-free60.mjs', '--cong-cu', 'birth']); t.deepEqual(lenhViet('ccd-steve-jobs'), ['dai/sinh-chuong.mjs', '--slug', 'steve-jobs', '--moc', 'dai/moc-steve-jobs.json']); t.ok(laDai('ls-a--b') && laDai('ccd-x') && !laDai('cc-x'));
+  t.equal(caiLoi('✓ dựng\n✗ x: Ngọc chặn bìa: mờ\nfile:///a.mjs:54\n  at f (a.mjs:1)\nError: bìa bị chặn\n\nNode.js v25'), '✗ x: Ngọc chặn bìa: mờ'); t.equal(caiLoi('a\nb\n    at x\nNode.js v25'), 'a · b');
   t.equal(ngayDai('2026-11-08', [7]), '2026-11-08', 'đúng Chủ nhật'); t.equal(ngayDai('2026-11-09', [7]), '2026-11-08', 'Thứ Hai làm bù Chủ nhật lỡ'); t.equal(ngayDai('2026-11-14', [7]), '2026-11-08'); t.equal(ngayDai('2026-11-15', [7]), '2026-11-15'); t.equal(ngayDai('2026-11-09', []), null);
   t.deepEqual(lenhViet('ask-steve-jobs-1985'), ['viet-ask.mjs', '--ai', 'steve-jobs', '--nam', '1985']); t.deepEqual(lenhViet('ryc-mc-angelina-jolie'), ['viet-ryc.mjs', '--muc', 'mc', '--ai', 'angelina-jolie']);
   t.deepEqual(lenhViet('tw-trang-moi-scorpio-2026-11-09-leo'), ['viet-this-week.mjs', '--su', 'tw-trang-moi-scorpio-2026-11-09', '--moc', 'Leo']); t.deepEqual(lenhViet('sc-a-1', { tuan: '2026-11-16' }), ['viet-sky.mjs', '--chuyen', 'sc-a-1', '--tuan', '2026-11-16']); t.throws(() => lenhViet('zz'));
@@ -103,7 +106,7 @@ function lam(y, han = {}) {
   try {
     const ra = join(RA, `${y}.mp4`), tep = join(TAP, `${y}.json`), buoc = [[lenhViet(y, han), DIR], [[join(SHOT, 'long-tieng.mjs'), '--cau', relative(SHOT, tep), '--ra', relative(SHOT, ra), ...(laDai(y) ? ['--rong', '1920', '--cao', '1080'] : [])], SHOT],
       [[join(DIR, 'nap-tap.mjs'), '--tap', tep, '--video', ra, ...(han.tu ? ['--dang-tu', han.tu] : []), ...(han.den ? ['--dang-den', han.den] : [])], DIR]];
-    for (const [a, cwd] of buoc) { const r = chay(a, cwd); if (r.status !== 0) return { ok: false, loi: `${relative(DIR, a[0]) || a[0]} mã ${r.status ?? r.signal}: ${readFileSync(f, 'utf8').trim().split('\n').slice(-3).join(' · ').slice(0, 400)}` }; }
+    for (const [a, cwd] of buoc) { const r = chay(a, cwd); if (r.status !== 0) return { ok: false, loi: `${relative(DIR, a[0]) || a[0]} mã ${r.status ?? r.signal}: ${caiLoi(readFileSync(f, 'utf8')).slice(0, 400)}` }; }
     return { ok: true, tien: Number(/tiền giọng lượt này (\d+)₫/.exec(readFileSync(f, 'utf8'))?.[1] ?? 0), tieu_de: JSON.parse(readFileSync(tep, 'utf8')).tieu_de };
   } finally { closeSync(fd); }
 }

@@ -88,9 +88,14 @@ def ab_ap(pl, lich, goc, moi, roas=False, cr=None):
         # CAMP A/B VẪN ĐI TỪ $1 (anh 08/11/2026: "AB test vẫn phải đi từ $1. Nếu khác thì phải xin phép" — AB01 từng khai ns $3 ở nhánh, 52 camp mới lên $3):
         # máy KHÔNG đặt ngân sách theo nhánh nữa; ngân sách camp mới khác $1 bị cổng chặn (cong.kiem, luật camp mới $1)
         return ab["ma"], nh, dang, None
-    g = q(f"select a.ma || '|' || a.kieu || '|' || (a.nhanh->'doi')::text from etp.camp_ab c join etp.ab a on a.ma = c.ab where c.camp_id = {int(goc)} and c.nhanh = 'thu'") if goc else ""
+    g = q(f"select a.ma || '|' || a.kieu || '|' || a.trang_thai || '|' || (a.nhanh->'doi')::text from etp.camp_ab c join etp.ab a on a.ma = c.ab where c.camp_id = {int(goc)} and c.nhanh = 'thu'") if goc else ""
     if not g: return None
-    ma, kieu, doi = g.split("|", 2)
+    ma, kieu, tt, doi = g.split("|", 3)
+    # A/B ĐÃ ĐÓNG (vd AB01 nhắm nước bỏ 09/11/2026: team Ethopex yêu cầu target đủ danh sách nước): bản nhân / thang của camp nhánh thử trả về tham số đối chứng,
+    # không mang tham số thử (4 nước) sang camp mới, không gán mã A/B
+    if tt != "dang":
+        if kieu in AP: AP[kieu](pl, json.loads(doi))
+        return None
     # CHỈ KIỂU MANG THAM SỐ TRONG PAYLOAD MỚI THỪA HƯỞNG (anh 08/11/2026 "sửa đi"): bản nhân của camp nhánh thu AB02 (G10 hồi) từng bị gán vào AB02 —
     # #86256 #86824 là bản $1 của #65722, chưa từng qua G10 hồi, làm bẩn nhánh thử. Kiểu nước (AP) chép Ad Set nên bản nhân vẫn mang 4 nước → thừa hưởng đúng;
     # kiểu khác (g10_hoi, roas_nhan_doi, roas_tang…) là CÁCH XỬ camp chứ không nằm trong payload → bản nhân không thuộc thử nghiệm.

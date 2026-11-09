@@ -22,6 +22,10 @@ SQL_BO_PHIM = ("select coalesce((select thu_bo from etp.phim where content_id = 
 # gác dạng (dong_phim.gac_ly), trần camp mới/ngày (kiem → mo_tran_ngay tự mở lại), trang phim Nhà hỏng (ly_trang_hong), nhóm gốc ngoài Âu-Mỹ (bước nhận).
 SQL_DONG_HONG = ("(trang_thai = 'loi' or (trang_thai = 'dung' and coalesce(ly_do, '') not like 'tạm gác dòng%' and strpos(coalesce(ly_do, ''), 'chạm trần') = 0"
                  " and coalesce(ly_do, '') not like 'ws: trang phim Nhà%' and coalesce(ly_do, '') not like 'nhan: nhóm gốc%'))")
+# CAMP ÍT NƯỚC KHÔNG BẬT LẠI (anh 09/11/2026 theo Dol / Ethopex: "phải target đúng cả list quốc gia" — team tắt camp ít nước, "Ko bật lại", bỏ A/B nước):
+# camp nhánh THỬ của mọi lần A/B kiểu 'nuoc' (AB01 "4 nước") → mọi đường bật (lam-ethopex bat, lịch giờ, máy thay creative bị từ chối) đều chặn.
+SQL_IT_NUOC = "select c.camp_id from etp.camp_ab c join etp.ab a on a.ma = c.ab where a.kieu = 'nuoc' and c.nhanh = 'thu'"
+LY_IT_NUOC = "camp ít nước (nhánh thử A/B nhắm nước) — team Ethopex yêu cầu target đủ danh sách nước, camp ít nước không bật lại (anh 09/11/2026)"
 SQL_TAO_HOM_NAY = "select count(*) from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
 # TRANG PHIM HỎNG HẲN (anh 09/11/2026 "Fix triệt để" — 91648 From Doomed Baby đứng bước Trang phim 01:26 08/11 → 01:27 09/11, hơn 20 lượt chờ 60 phút → Mạnh huỷ → FIX):
 # bản workspace Nhà đã thêm quá TRANG_CHO_SINH giây mà Ethopex vẫn chưa sinh đủ (thường là link tập 1: thư viện phim không có nguồn tập 1, 7 phim 09/11) → chờ thêm vô ích.
@@ -87,6 +91,7 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
             cl = _q(f"select coalesce(thu_ly, '') from etp.phim where content_id = {int(ct)} and thu_vong = 'cat'")
             if cl: return LY_CAT.format(ct, cl)
         ch = {k: json.loads(v) for k, v in (l.split("|", 1) for l in _q("select khoa, gia_tri::text from etp.cau_hinh").splitlines() if l)}
+        if viec == "bat" and camp_id and _q(f"{SQL_IT_NUOC} and c.camp_id = {int(camp_id)}"): return LY_IT_NUOC
         if ch.get("dung_khan"): return "ĐANG DỪNG KHẨN (etp.cau_hinh.dung_khan) — không tăng / bật / nhân bản / tạo camp"
         if viec == "tang" and not roas and (ch.get("mua_le") or {}).get("khoa_tang"):   # mùa lễ Mỹ (apps/etp/mua_le.py, anh 08/11/2026): Meta học lại đúng tuần giá cao là tốn nhất
             return f"mùa lễ Mỹ: khoá tăng bậc ({(ch.get('mua_le') or {}).get('ly_do') or '25–30/11'}) — giảm / tắt / camp mới vẫn chạy (etp.cau_hinh.mua_le, apps/etp/mua_le.py)"

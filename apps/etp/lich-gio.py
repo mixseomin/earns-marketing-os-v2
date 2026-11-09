@@ -144,6 +144,9 @@ def main():
             q(f"insert into etp.lich_tat (camp_id, the_loai, khung) select camp_id, the_loai, khung from jsonb_to_recordset($J${j}$J$::jsonb) as x(camp_id int, the_loai text, khung text) on conflict do nothing")
             bao_tg(f"⏸ <b>LỊCH GIỜ — ĐÃ TẠM DỪNG {len(ok)}/{len(can_tat)} camp</b> (khung {k_toi if k_toi != k_nay else k_nay} TẮT) · {tom_tl([tl_cua.get(c, '_khac') for c in ok])}\n<i>Máy tự bật lại khi tới khung BẬT; chỉ camp do lịch tạm dừng.</i>")
             ghi("lich_tat", ok, f"lịch giờ: khung {k_toi if k_toi != k_nay else k_nay} TẮT cho thể loại " + ", ".join(sorted({tl_cua.get(c, '_khac') for c in ok})))
+    if can_bat:   # camp ít nước không bật lại (anh 09/11/2026) — cùng định nghĩa cổng cong.SQL_IT_NUOC; vẫn nằm trong lich_tat, không bao giờ tới lượt bật
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); import cong as _CONG
+        _it = set(q(_CONG.SQL_IT_NUOC).split()); can_bat = [c for c in can_bat if str(c) not in _it]
     if can_bat:
         ok = dieu_khien(can_bat, "active")
         if len(ok) < len(can_bat): bao_tg(f"⚠️ <b>LỊCH GIỜ</b>: Ethopex không nhận lệnh bật lại {len(can_bat) - len(ok)}/{len(can_bat)} camp — lượt sau thử lại")

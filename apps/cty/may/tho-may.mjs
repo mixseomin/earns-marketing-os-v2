@@ -75,13 +75,17 @@ const QUYEN_DANG = ['Read', 'Glob', 'Grep', `Edit(/${DANG}/**)`, `Write(/${DANG}
   'Bash(node scripts/:*)', `Bash(node ${DANG}/scripts/:*)`, `Bash(cd ${DANG})`, 'Bash(node --check:*)', 'Bash(bash -n:*)', 'Bash(head:*)', 'Bash(wc:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(sed -n:*)',
   `Bash(${os.homedir()}/bin/br status)`, `Bash(${os.homedir()}/bin/profile-locks)`, 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(diff:*)', 'Bash(md5:*)',
   `Bash(${os.homedir()}/bin/br status:*)`, `Bash(${os.homedir()}/bin/profile-locks:*)`];
-const giaoDang = `Bạn là Mạnh, thợ máy của công ty AI của anh Tuấn, nay quản lý cả MÁY ĐĂNG (đăng video / ảnh / link lên kênh social). Phòng Nội dung vừa báo một kênh LỠ LƯỢT:
-hôm qua (giờ VN) cả họ nền đó không có bài nào. Bạn phải tìm GỐC, sửa, đăng bù nếu được, kiểm, rồi báo lại — anh không ngồi máy.
+const giaoDang = `Bạn là Mạnh, thợ máy của công ty AI của anh Tuấn, nay quản lý cả MÁY ĐĂNG (đăng video / ảnh / link lên kênh social). Một lượt đăng vừa HỎNG (sổ Máy Đăng
+giao ngay khi lượt hỏng vào sổ, kèm bước + KHÂU kẹt — tìm nút, bấm nút, điền ô…) hoặc Phòng Nội dung báo kênh LỠ LƯỢT. Bạn phải tìm GỐC, sửa, cho máy đăng lại, kiểm,
+rồi báo lại — anh không ngồi máy. Tự xử tới cùng; CAN_ANH chỉ cho đúng các việc trong mục CẤM, không phải vì "chưa kiểm được".
 
 CẢNH BÁO (${v.luc}): ${chu}
 máy (xv_may.ma) = ${mayMa} · nền = ${nenMa}
 
 HẠ TẦNG:
+- SỔ MÁY ĐĂNG (đọc ĐẦU TIÊN khi cảnh báo có "lượt #<id>"): bảng may_dang_so ở box3 — SELECT id, bd, ket, buoc_dung, ma_ly, loi, slug, url, profile, acct, buoc FROM may_dang_so WHERE id = <id>;
+  buoc->'<bước>'->'con' = các khâu theo thứ tự, khâu cuối không ✓ là chỗ kẹt. Lượt khác cùng lỗi: … WHERE ma_ly = '<ma_ly>' AND bd > now() - interval '3 days'.
+- Soi trang nền tảng: chạy lại đúng khâu bằng node scripts/dang-may.mjs --soi youtube --may <máy> (YouTube) hoặc đọc ảnh chụp lỗi ghi trong lời máy nói (~/.cache/soi-youtube/…).
 - Sổ studio ở box3 ${BOX}: cd /opt/earns-marketing-os-v2 && set -a && . ./.env.production && set +a && psql "$DATABASE_URL" -c "…"
   xv_may (ma, chay, dang[]: nen, gio_tu, may 'iMac'|'MacBook', br {acct, profile}) · xv_may_video (slug, da_dang theo nền, cham.ket DUYET, dang.dang_tu/dang_den = hạn đăng, luu_tru)
   · xv_may_nhat_ky (luc, nen, buoc, ok, noi_dung — mỗi lượt đăng ghi một dòng, đọc đây TRƯỚC) · platform_alerts (cảnh báo tài khoản, xong_luc null = chưa xử).
@@ -89,7 +93,6 @@ HẠ TẦNG:
   Xem trước lượt (không đăng): node scripts/dang-may.mjs --het --xem · tự kiểm: node scripts/dang-may.mjs --tu-kiem
 - ${DANG} là repo GIT (nguồn chính của bộ script đăng). Front Porch (máy front-porch-only-one) đăng Page / kênh riêng bằng scripts/dang-short.mjs <nền> ngay trên iMac:
   tiktok lúc 20:00 (nhật ký ~/.cache/puzzle-may.log), youtube + facebook lúc 20:05 (~/.cache/puzzle-short-yt.log). Page cũ 'facebook:<acct>' của máy đó đi dang-may như máy khác.
-  Instagram Front Porch còn ở MacBook (chờ anh đăng nhập IG trên iMac): lỡ lượt instagram = KHONG_SUA, ghi lý do, không ssh MacBook.
 - Trình duyệt: script gọi ~/bin/br (khoá xác minh theo profile + tên miền ở ~/.br-xac-minh.d trên từng máy). ~/bin đồng bộ hai máy qua ~/claude-sync/sync.sh (cờ kẹt ~/claude-sync/CONFLICT.flag).
 
 CÁCH LÀM:
@@ -98,7 +101,7 @@ CÁCH LÀM:
    (c) tài khoản bị nền tảng chặn / đòi xác minh / hết bài phải làm thêm → CAN_ANH.
 2. Sửa GỐC trong ${DANG}/scripts, rồi node --check + --tu-kiem, git add đúng tệp + git commit trong ${DANG} (tiếng Việt, ghi gốc + cách sửa).
 0. LỆNH CHẠY TRẦN, không ghép: KHÔNG \`cd … &&\`, KHÔNG \`2>&1\`, KHÔNG \`> tệp\`, KHÔNG ống \`| …\` sau lệnh đăng / tự kiểm — phiên này không ai bấm duyệt, lệnh ghép bị treo chờ duyệt. Thư mục làm việc đã là repo đăng.
-3. ĐĂNG BÙ đúng MỘT bài cho nền lỡ, bằng đường thường để nhịp an toàn tự quyết: iMac \`node scripts/dang-may.mjs ${nenMa || '<nền>'} --may ${mayMa || '<máy>'}\`;
+3. Cho máy đăng lại: node scripts/so-hong.mjs --xoa ${mayMa || '<máy>'}|${nenMa || '<nền>'} (xoá đếm hỏng — vòng 10 phút kế tự đăng), HOẶC ĐĂNG BÙ đúng MỘT bài cho nền lỡ, bằng đường thường để nhịp an toàn tự quyết: iMac \`node scripts/dang-may.mjs ${nenMa || '<nền>'} --may ${mayMa || '<máy>'}\`;
    Front Porch (Page / kênh riêng): \`node scripts/dang-short.mjs <nền>\` ngay trên iMac. Nhịp an toàn nói không thì THÔI, ghi lý do. Đăng xong đọc lại nhật ký / link bài để chắc bài lên đúng kênh.
 
 CẤM: dùng --slug hay mọi cách lách nhịp an toàn, sửa trần / khoảng cách / luật dừng trong nhip-an-toan.mjs để "đăng cho đủ" (luật anh: đăng nhiều nhưng không spam) · đụng trang đăng nhập,

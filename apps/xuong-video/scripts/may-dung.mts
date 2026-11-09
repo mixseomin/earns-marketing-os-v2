@@ -423,7 +423,7 @@ if (a.includes('--nap')) {
         con.length ? `Các khâu: ${con.map((c, i) => `${i + 1}.${c.ten}${c.t === 'ok' ? ' ✓' : ' ✗'}`).join(' · ')}` : '',
         cung.length ? `Cùng bước + nhóm lỗi này 3 ngày qua còn hỏng ở: ${cung.map((c) => c.d).join(', ')} — sửa MỘT lần ở gốc (hàm đăng của nền trong /Users/htuan/puzzle-books/scripts/dang-br.mjs), không vá riêng từng kênh.` : '',
         sau ? `Bài đã lên (${x.url ?? 'không có link'}) — chỉ làm lại việc sau đăng, KHÔNG đăng lại bài.`
-          : `Sửa gốc xong cho máy đăng lại ngay: node -e "import('/Users/htuan/puzzle-books/scripts/so-hong.mjs').then(m=>m.xoaHong('${x.ma}|${x.nen}'))" (iMac) — vòng 10 phút kế tự đăng${fp ? ' (dang-short.mjs, Front Porch)' : ` (hoặc chạy ngay: node /Users/htuan/puzzle-books/scripts/dang-may.mjs ${x.nen} --may ${x.ma})`}.`,
+          : `Sửa gốc xong cho máy đăng lại ngay: node scripts/so-hong.mjs --xoa ${x.ma}|${x.nen} (iMac, repo puzzle-books) — vòng 10 phút kế tự đăng${fp ? ' (dang-short.mjs, Front Porch)' : ` (hoặc chạy ngay: node /Users/htuan/puzzle-books/scripts/dang-may.mjs ${x.nen} --may ${x.ma})`}.`,
         `Xem lượt: https://mos2.on.tc/?tab=maydang&m=luot-dang&mId=${id}`,
       ].filter(Boolean).join('\n');
       const khoa = `dang:${sau ? 'sau' : 'lo'}|${x.ma}|${x.nen}`;

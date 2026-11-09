@@ -22,10 +22,19 @@ export function giayCanh(cau, soKhung) {
   const g = cau.map((q) => { const d = q.den - q.tu, m = (q.manh ?? [q.chu]).map((x) => String(x).length), tong = m.reduce((a, b) => a + b, 0) || 1; return q.tu + (d * m[0]) / tong / 2; });
   return Array.from({ length: Math.min(soKhung, g.length) }, (_, i) => g[Math.round((i * (g.length - 1)) / Math.max(1, Math.min(soKhung, g.length) - 1))]);
 }
+/** MỐC CHƯƠNG cho mô tả YouTube (tập dài có tap.chuong — dai/doc-bai.mjs): "0:00 Intro" rồi mỗi chương theo giờ THẬT sau lồng tiếng.
+ *  Luật YouTube: mốc đầu 0:00, ≥ 3 mốc, mỗi chương ≥ 10 giây — chương sát nhau quá thì gộp vào chương trước; không đủ 3 mốc thì không ghi. Thuần. */
+export function mocChuong(chuong, cau) {
+  const mm = (g) => `${Math.floor(g / 60)}:${String(Math.floor(g % 60)).padStart(2, '0')}`, ds = [];
+  for (const c of chuong ?? []) { const g = ds.length ? Math.floor(cau[c.cau]?.tu ?? NaN) : 0; if (Number.isNaN(g)) continue; if (ds.length && g - ds.at(-1).g < 10) continue; ds.push({ g, ten: c.ten }); }
+  return ds.length >= 3 ? ds.map((x) => `${mm(x.g)} ${x.ten}`).join('\n') : '';
+}
 if (process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert'), h = 'What if your birth chart could show you how you naturally relate to money?';
   t.equal(gonTieuDe(`${h} Steve Jobs's year in Annual Profections`, h), h); t.equal(gonTieuDe('ngắn', 'x'), 'ngắn');
   t.deepEqual(giayCanh([{ tu: 0, den: 4, chu: 'a' }, { tu: 4, den: 8, chu: 'ab', manh: ['a', 'b'] }], 8), [2, 5]);
+  t.equal(mocChuong([{ ten: 'Intro', cau: 0 }, { ten: 'A', cau: 1 }, { ten: 'B', cau: 2 }, { ten: 'C', cau: 3 }], [{ tu: 0 }, { tu: 65.4 }, { tu: 70 }, { tu: 600.2 }]), '0:00 Intro\n1:05 A\n10:00 C', 'chương < 10 giây gộp vào chương trước');
+  t.equal(mocChuong([{ ten: 'Intro', cau: 0 }, { ten: 'A', cau: 1 }], [{ tu: 0 }, { tu: 30 }]), '', 'dưới 3 mốc thì không ghi');
   console.log('nap-tap: tự kiểm đạt'); process.exit(0);
 }
 const tepTap = arg('tap'), video = arg('video'); if (!tepTap || !video) { console.error('dùng: --tap <tập.json> --video <bản dựng.mp4>'); process.exit(2); }
@@ -54,7 +63,7 @@ try {
   if (xet.chan?.length) { console.error(`✗ ${id}: Ngọc chặn bìa: ${xet.chan.join(' · ')}`); process.exitCode = 4; throw new Error('bìa bị chặn'); }
   const nap = [{ slug: id, chu_de: tap.tieu_de.replace(tap.hook.goc, '').trim() || tap.tieu_de, mau: 'video-ngoai', nen_url: `https://images.pexels.com/photos/${nguon.pexels_id}/pexels-photo-${nguon.pexels_id}.jpeg`,
     de: { loai: 'video-ngoai', video_url: u[ten], giay: Math.round(giay * 100) / 100, khung: tenK.map((x) => u[x]), soat: tenS.map((x) => u[x]), tom_tat: tap.tieu_de, thumb: { url: xet.url, chu: bia.chu, nguon: bia.tac?.file ?? null } },
-    dang: { title: gonTieuDe(tap.tieu_de, tap.cau[0].chu), description: `${tap.dang.mo_ta}${bia.tac && ghiTacGia([bia.tac]).length && !tap.dang.mo_ta.includes(bia.tac.nguon) ? `\nCover image: ${ghiTacGia([bia.tac])[0]}` : ''}\n\nMade by the Astrolas team.`, link: tap.dang.link, goc: tap.goc, hook: tap.hook, playlist: tap.playlist_ma, playlist_ten: pl.ten, mau: tap.mau, y_tuong: id, ...(arg('dang-tu') ? { dang_tu: arg('dang-tu') } : {}), ...(arg('dang-den') ? { dang_den: arg('dang-den') } : {}) } }];   // hạn đăng: Sky Calendar đúng tuần, This Week trước sự kiện (nhip-an-toan.mjs › trongHan)
+    dang: { title: gonTieuDe(tap.tieu_de, tap.cau[0].chu), description: `${tap.dang.mo_ta}${bia.tac && ghiTacGia([bia.tac]).length && !tap.dang.mo_ta.includes(bia.tac.nguon) ? `\nCover image: ${ghiTacGia([bia.tac])[0]}` : ''}${mocChuong(tap.chuong, C2.cau) ? `\n\nChapters:\n${mocChuong(tap.chuong, C2.cau)}` : ''}\n\nMade by the Astrolas team.`, link: tap.dang.link, goc: tap.goc, hook: tap.hook, playlist: tap.playlist_ma, playlist_ten: pl.ten, mau: tap.mau, y_tuong: id, ...(arg('dang-tu') ? { dang_tu: arg('dang-tu') } : {}), ...(arg('dang-den') ? { dang_den: arg('dang-den') } : {}) } }];   // hạn đăng: Sky Calendar đúng tuần, This Week trước sự kiện (nhip-an-toan.mjs › trongHan)
   writeFileSync(join(TAM, 'nap.json'), JSON.stringify(nap)); execFileSync('scp', ['-q', join(TAM, 'nap.json'), `${BOX}:${bt}/nap.json`]);
   console.log(tsx(`scripts/may-dung.mts --may ${tap.kenh} --nap < ${bt}/nap.json`).trim().split('\n').pop()); console.log(tsx(`scripts/may-dung.mts --may ${tap.kenh} --xuat ${id}`).trim().split('\n').pop());
   console.log(`✓ nạp ${id} · "${nap[0].dang.title}" (${nap[0].dang.title.length} ký tự) · ${(bMp4.length / 1e6).toFixed(1)} MB · Phòng Nội dung chấm ở lượt kế`);

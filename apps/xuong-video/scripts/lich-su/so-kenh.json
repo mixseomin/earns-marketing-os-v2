@@ -81,7 +81,9 @@
           "myth-behind",
           "free-60s",
           "chart-chapters",
-          "zodiac-myths"
+          "zodiac-myths",
+          "chart-reading-cat",
+          "chart-reading-dai"
         ],
         "trang_dich": "Birth chart (/birth), /c/<người>, bài <người>-birth-chart",
         "nen": "brand/astrolas/anh/nen/know-yourself.jpg",
@@ -543,6 +545,26 @@
         "sinh": "lich-su/viet-than-thoai.mjs --cung <cung> — chuyện Wikipedia nguyên văn (la-so/than-thoai/<cung>.json), nhân vật vẽ một lần (kho-sinh.mts), câu cung của site",
         "tu_sinh": "^tt-[a-z]+$",
         "demo": "https://img.on.tc/xuong-video/demo/astrolas/zodiac-myths-leo.mp4?v=1"
+      },
+      {
+        "ma": "chart-reading-dai",
+        "ten": "Full Chart Reading (long, 8–10 min)",
+        "loai": "dai",
+        "nhip": "1 tập / tuần (Chủ nhật)",
+        "kho": "vô hạn theo người có bài lá số trên site",
+        "trang": "shot-code/la-so.html (khung ngang)",
+        "sinh": "lich-su/dai/doc-bai.mjs --slug <người> — đọc NGUYÊN VĂN cả bài <người>-birth-chart của blog site (~1.100 từ) + mốc đời có nguồn kèm ảnh Wikipedia; mỗi mục bài = một chương (mốc chương vào mô tả YouTube); máy quay theo sao / góc chiếu / nhà / cung câu đang nói. Giọng ckey ~12.500₫ / tập (anh duyệt 09/11/2026)",
+        "tu_sinh": "^crd-[a-z0-9-]+$"
+      },
+      {
+        "ma": "chart-reading-cat",
+        "ten": "Chart Reading · one chapter (Short cắt từ bản dài)",
+        "loai": "short",
+        "nhip": "theo lịch Know Yourself",
+        "kho": "mỗi tập dài ~6–9 chương",
+        "trang": "shot-code/la-so.html",
+        "sinh": "lich-su/dai/cat-short.mjs --tu <người> --chuong <k> — một chương của tập dài crd-<người> → Short 9:16 ≤ 50 giây; câu y nguyên bản dài nên giọng dùng lại (0₫ trừ hook + câu kết)",
+        "tu_sinh": "^crc-[a-z0-9-]+-\\d+$"
       }
     ],
     "mo_dau": "https://img.on.tc/xuong-video/demo/astrolas/mo-dau-doc.mp4",
@@ -996,10 +1018,13 @@
           7
         ],
         "mau": [
-          "love-story-charts",
-          "chart-chapters-dai"
+          "chart-reading-dai"
         ],
-        "_ghi": "video dài 16:9 tuần một tập (Chủ nhật), chay-so-kenh.mjs: bìa 1280×720, dựng 1920×1080 (08/11/2026)"
+        "_ghi": "video dài 16:9 tuần một tập (Chủ nhật, lỡ thì làm bù), chay-so-kenh.mjs: Full Chart Reading 8–10 phút (anh 09/11/2026 đổi từ Love Story / Chart Chapters dài ~1 phút) → mỗi chương cắt thành Short chart-reading-cat; bìa 1280×720, dựng 1920×1080",
+        "giay": [
+          480,
+          570
+        ]
       },
       "truoc_ke_hoach": 3,
       "gio_tu": "07:00",

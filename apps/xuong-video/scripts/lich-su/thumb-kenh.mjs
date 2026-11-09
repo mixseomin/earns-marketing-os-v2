@@ -31,9 +31,9 @@ function chuTho(tap) {
 /** chủ thể bìa: { anh (đường tuyệt đối), vua (true = đặt gọn, không tràn), tac } */
 async function chuThe(tap) {
   const tu = (p) => resolve(SHOT, p), y = tap.y_tuong, tranh = tap.cau.map((q) => q.nhin?.tranh).find(Boolean);
-  if (tranh && !/^ask-/.test(y)) { const a = existsSync(join(DIR, 'troi-xua/_anh.json')) ? (doc('troi-xua/_anh.json')[y] ?? [])[0] : null; return { anh: tu(tranh), tac: a }; }
+  if (tranh && !/^(ask|crd|crc)-/.test(y)) { const a = existsSync(join(DIR, 'troi-xua/_anh.json')) ? (doc('troi-xua/_anh.json')[y] ?? [])[0] : null; return { anh: tu(tranh), tac: a }; }
   const ai = tap.cau.flatMap((q) => q.vai ?? [])[0]?.ai; if (ai && tap.nv?.[ai]) return { anh: resolve(SHOT, tap.nv[ai], 'goc.png'), vua: true };
-  const slug = /^ask-(.+)-\d{4}$/.exec(y)?.[1];
+  const slug = /^ask-(.+)-\d{4}$/.exec(y)?.[1] ?? /^crd-(.+)$/.exec(y)?.[1] ?? /^crc-(.+)-\d+$/.exec(y)?.[1];   // Full Chart Reading + Short cắt từ nó: ảnh thật của chính người đó (09/11/2026)
   if (slug) { const f = join(DIR, 'la-so/anh-nguoi.json'), kho = existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : {}, n = doc('la-so/nguoi.json').nguoi.find((x) => x.slug === slug);
     if (!kho[`cc-${slug}`]?.length) { kho[`cc-${slug}`] = await layAnhWiki([n.wiki ?? n.ten], { ma: `cc-${slug}`, toiDa: 3 }); writeFileSync(f, JSON.stringify(kho, null, 1) + '\n'); }
     const a = kho[`cc-${slug}`][0]; if (a) return { anh: join(DIR, a.tep), tac: a }; }

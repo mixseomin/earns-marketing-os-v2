@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { docEtp } from '@/lib/etp-doc';
 import { catChoNguoi, docCheDo, hetPhienEthopex, ngCua, quyenEtp, suaNguoi } from '@/lib/etp-quyen';
-import { EtpView } from '@/components/etp-view';
+import { EtpView } from '@/components/etp-view-khach';   // chỉ dựng ở trình duyệt (etp2 09/11/2026 load chậm)
 import { gonXet } from '@/lib/etp-xet-gon';
 
 export const dynamic = 'force-dynamic';

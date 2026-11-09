@@ -9,7 +9,8 @@ const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
   { card: 1553, tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "chay(['lam-ethopex.py', ...lenh, '--luat', luat, '--ai', AI", vi: 'bật / tắt / bậc ngân sách tay đi đúng máy Nhà lam-ethopex.py' },
   { card: 1553, tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "spawn('python3', ['nhan-ban.py', String(campId), '--tay', ...t, '--that'", vi: 'nhân bản tay đi đúng nhan-ban.py' },
-  { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function DieuKhienCamp({ c }', vi: 'bảng điều khiển camp (⚙ cạnh ngân sách) trên tab Camp' },
+  { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function DieuKhienCamp({ c, lon, boDs }', vi: 'bảng điều khiển camp (⚙ cạnh ngân sách) trên tab Camp' },
+  { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: "<DieuKhienCamp c={c} lon boDs=", vi: 'ngăn camp (điện thoại) có nút Điều khiển camp' },
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: '<b>Ép (sửa tay là chính)</b>', vi: 'ưu tiên sửa tay: ô Ép bỏ chặn mềm' },
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: "{ k: 'roas', ten: 'Camp ROAS'", vi: 'nhân bản ROAS có mô tả' },
 ];

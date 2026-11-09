@@ -671,9 +671,9 @@ const NB_KIEU: { k: KieuNb['kieu']; ten: string; mo: string }[] = [
   { k: 'bo', ten: 'Sang bộ tài khoản khác', mo: 'Clone sang bộ tài khoản khác, giữ NGUYÊN creative camp gốc; bỏ qua các cổng chỉ dành cho nhân trong cùng bộ (mỗi phim một bộ, chạm trần $30, bão hoà phim). Vẫn qua cổng chấm sạch + rào chắn etp.' },
   { k: 'roas', ten: 'Camp ROAS', mo: 'Nhân bản với bid ROAS goal (giá thầu theo ROAS tối thiểu), dùng LẠI bài đăng cũ của camp gốc (giữ tương tác), ngân sách $15–20. Hợp với camp đã chi > $100 mà ROI > 50%. Mức ROAS nhập sai = lỗi camp — máy đọc lại, sai thì tạm dừng.' },
 ];
-function DieuKhienCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang'> }) {
+function DieuKhienCamp({ c, lon, boDs }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_thai' | 'ngan_sach' | 'nay' | 'qua' | 'thang'>; /** nút chữ to (ngăn camp — điện thoại) */ lon?: boolean; /** bộ tài khoản khi đứng ngoài DieuKhienCtx */ boDs?: string[] }) {
   const router = useRouter();
-  const bo = useContext(DieuKhienCtx)?.bo ?? [];
+  const ctxBo = useContext(DieuKhienCtx)?.bo, bo = boDs ?? ctxBo ?? [];
   const [mo, setMo] = useState(false), [dang, setDang] = useState<string | null>(null), [kq, setKq] = useState<{ ok: boolean; chu: string; o: string } | null>(null);
   const [ns, setNs] = useState(String(c.ngan_sach)), [ep, setEp] = useState(false), [ghi, setGhi] = useState('');
   const [kieu, setKieu] = useState<KieuNb['kieu']>('thuong'), [nsThang, setNsThang] = useState(''), [boDen, setBoDen] = useState(''), [roas, setRoas] = useState('1.2'), [nsRoas, setNsRoas] = useState('20'), [tamDung, setTamDung] = useState(true);
@@ -697,7 +697,8 @@ function DieuKhienCamp({ c }: { c: Pick<CampEtpKho, 'camp_id' | 'ten' | 'trang_t
   const o2: React.CSSProperties = { width: 70, fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit' };
   return <>
     <button onClick={(e) => { e.stopPropagation(); setMo(true); setKq(null); setXem(null); setNs(String(c.ngan_sach)); }} title="điều khiển camp: bật / tắt · bậc ngân sách · nhân bản"
-      style={{ border: 'none', background: 'transparent', color: 'var(--fg-3, #777)', cursor: 'pointer', padding: '0 2px', fontSize: 12 }}>⚙</button>
+      style={lon ? { fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--accent, #60a5fa)', background: 'var(--accent-soft, #60a5fa18)', color: 'inherit', cursor: 'pointer', width: '100%', textAlign: 'left' }
+        : { border: 'none', background: 'transparent', color: 'var(--fg-3, #777)', cursor: 'pointer', padding: '0 2px', fontSize: 12 }}>{lon ? '⚙ Điều khiển camp — bật / tắt · bậc ngân sách · nhân bản' : '⚙'}</button>
     {mo ? <Drawer onClose={() => setMo(false)} width={520} padding={16}>
       <div onClick={(e) => e.stopPropagation()} style={{ fontSize: 12 }}>
         <DauCamp c={c} />
@@ -3038,6 +3039,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien }: { d
             {c.phim && c.ten && c.ten !== c.phim ? <div style={{ color: 'var(--fg-2)', marginTop: -6, wordBreak: 'break-word', userSelect: 'all' }}>{c.ten}</div> : null}{/* tên camp thật (anh 31/10/2026 #1494) */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
               <O ten={`bậc ${b!.bac + 1}/${BAC_NS.length}`}>${c.ngan_sach}</O><O ten="ROI nay"><Roi s={c.nay} /></O><O ten="ROI qua"><Roi s={c.qua} /></O><O ten={khNay ? 'lãi nay' : `lãi ${khNhan.toLowerCase()}`}><Lai s={khNay ? c.nay : ckh(c.camp_id)} /></O></div>
+            {quyen?.vai === 'chu' && !du.nguoi.ngoai ? <DieuKhienCamp c={c} lon boDs={Object.keys(du.boTk).sort()} /> : null}{/* #1553: điện thoại mở ngăn camp → điều khiển ở đây (ô ⚙ cạnh ngân sách chỉ có ở bảng máy tính) */}
             <BieuNgay ngay={ngay6} sd={ngay6.map((d) => soCamp(c.camp_id, d))} nay={c.nay} />
             <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px' }}>{tl!.chinh ? <div style={{ marginBottom: 6 }}><ChipO chinh={tl!.chinh} /></div> : null}<ThanLuat t={tl!} gon /></div>
             {r ? <TheCr r={r} ch={ch} k={crKh.get(r.creative_id)} khTen={khNay ? undefined : khNhan} tc={du.tieuChi} /> : null}

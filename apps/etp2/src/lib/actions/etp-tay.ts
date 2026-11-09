@@ -51,7 +51,7 @@ export async function xemNhanBan(campId: number, x: KieuNb): Promise<{ ok: true;
   const t = thamNb(x); if (typeof t === 'string') return { loi: t };
   const ra = await chay(['nhan-ban.py', String(campId), '--tay', ...t], 120_000);
   const k = dongJson<{ ok?: boolean; loi?: string | null; ten?: string }>(ra);
-  if (k && k.ok === false) return { loi: k.loi || 'máy chặn' };
+  if (k && (k.ok === false || k.loi)) return { loi: k.loi || 'máy chặn' };   // chạy khô bị chặn: ok null + loi (vd ĐANG DỪNG LÊN CAMP MỚI)
   return { ok: true, chu: ra.trim().slice(-3000) || '(máy không in gì)' };
 }
 

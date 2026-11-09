@@ -65,9 +65,11 @@ const giaoTho = (k, tap, ra) => { try { return execFileSync('ssh', [BOX, `cd /op
 const chayLamTap = (id, args, opt) => { const dir = join(homedir(), '.cache', 'lich-su', id); mkdirSync(dir, { recursive: true }); const f = join(dir, 'lam-tap.log'), fd = openSync(f, 'w');
   try { const r = spawnSync(process.execPath, [join(DIR, 'lam-tap.mjs'), ...args], { ...opt, stdio: ['ignore', fd, fd] }); return { ...r, stdout: readFileSync(f, 'utf8'), stderr: '' }; } finally { closeSync(fd); } };
 // TẬP DEMO = TẬP THẬT (anh 05/11/2026: "demo thực ra là video thực luôn để đăng lên luôn"): demo-mau.sh / lam-tap --demo nạp máy đăng như mọi tập → đếm, tự làm lại như tập thường
-// số tập "làm trước kế hoạch": đã nạp máy đăng mà chưa đăng YouTube (không lưu trữ) + tệp tập của kênh chưa nạp trong 10 ngày (không đã bỏ)
+// số tập "làm trước kế hoạch": đã nạp máy đăng mà chưa đăng YouTube (không lưu trữ, KHÔNG bị Phòng Nội dung chấm SỬA LẠI) + tệp tập của kênh chưa nạp trong 10 ngày (không đã bỏ).
+// SỬA LẠI không tính (anh 09/11/2026 "cho sửa trần"): máy đăng không bao giờ đăng bản SỬA LẠI, nên đếm nó vào trần là kẹt vĩnh viễn — YNT 3 tập mẫu SỬA LẠI
+// (royal-gossip, tiny-wars, breaking-60) + 5 tập đạt chờ đăng = 8 ≥ trần 3, máy ngừng làm tập từ 05/11; đăng hết 5 tập đạt vẫn còn 3 ≥ 3.
 const soTruocKeHoach = (K, k) => { const q1 = (x) => `'${String(x).replace(/'/g, "''")}'`;
-  const nap = sqlBox(`SELECT coalesce(string_agg(v.slug, ','), '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)} AND NOT coalesce(v.luu_tru, false) AND NOT (coalesce(v.da_dang, '{}'::jsonb) ? 'youtube');`).split(',').filter(Boolean);
+  const nap = sqlBox(`SELECT coalesce(string_agg(v.slug, ','), '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)} AND NOT coalesce(v.luu_tru, false) AND NOT (coalesce(v.da_dang, '{}'::jsonb) ? 'youtube') AND coalesce(v.cham->>'ket', '') <> 'SUA_LAI';`).split(',').filter(Boolean);
   const daNap = new Set(sqlBox(`SELECT coalesce(string_agg(v.slug, ','), '') FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id WHERE m.ma = ${q1(K.may)};`).split(',').filter(Boolean));
   const doDang = readdirSync(join(DIR, 'tap')).filter((x) => x.endsWith('.json')).map((f) => join(DIR, 'tap', f)).filter((f) => Date.now() - statSync(f).mtimeMs < 10 * 86_400_000)
     .map((f) => { try { return JSON.parse(readFileSync(f, 'utf8')); } catch { return null; } }).filter((t) => t && (t.kenh ?? 'saga') === k && t.id && !t.tu_dong?.bo && !daNap.has(t.id)).length;

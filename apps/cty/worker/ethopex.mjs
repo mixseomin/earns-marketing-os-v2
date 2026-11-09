@@ -681,7 +681,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   }
   fs.writeFileSync(TEP(), JSON.stringify({ ngay: homNay, da: [...da], dong: [...dongNay] }));
   // ★ LÊN ROAS TỰ ĐỘNG (anh 29/10/2026: "Các camp đủ điều kiện lên roas thì lên luôn. Nới điều kiện lên roas là ROI >= 75$"): camp gốc trong moc30
-  // (máy luật: lãi 30 ngày ≥ $75, đang bật, chưa có camp ★, không trong danh sách tắt) → nhan-ban.py --roas, rải ROAS_MUC · $20 · giờ chạy do lich_len (khuôn anh duyệt
+  // (máy luật: lãi 30 ngày ≥ $75 hoặc chi ≥ $20 & ROI ≥ 50% — Dol 09/11/2026, đang bật, chưa có camp ★, không trong danh sách tắt) → nhan-ban.py --roas, rải ROAS_MUC · $20 · giờ chạy do lich_len (khuôn anh duyệt
   // 28/10/2026). Cổng chấm + rào chắn etp vẫn ở nhan-ban (không --mien-cham — mở cổng chấm chỉ khi anh lệnh đích danh). Mỗi lần tạo chờ Ethopex đồng bộ
   // 2–4 phút → chạy song song 4 tiến trình, đặt CUỐI nhịp để tắt / tăng / giảm không phải chờ. Gốc bị nhan-ban TỪ CHỐI có lý do (chặn chấm…) → không thử lại
   // trong ngày; hỏng vì lỗi máy (hết giờ, mạng) → nhịp sau thử lại (mức đã tạo được thì nhan-ban chặn trùng tên).
@@ -699,7 +699,7 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
     if (viec.length) {
       const ok = viec.filter((v) => v.r.ok).length;
       const dong = bangViec(viec.map(({ m, muc, r }) => ({ m, doi: `${muc}→#${r.moi ?? '?'}`, loi: r.ok ? null : r.loi || 'không rõ' })), '30 ng');
-      await guiNhanh({ message_thread_id: topic, text: `★ <b>MÁY TỰ LÊN ROAS</b> — ${goc.length} camp gốc lãi 30 ngày ≥ $75 (anh 29/10/2026); mỗi gốc ${ROAS_MUC.length} mức ${ROAS_MUC.join(' · ')}, $20/ngày, ${chuChay(viec.filter((v) => v.r.ok).map((v) => v.r))} — tạo được ${ok}/${viec.length}\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
+      await guiNhanh({ message_thread_id: topic, text: `★ <b>MÁY TỰ LÊN ROAS</b> — ${goc.length} camp gốc đủ lên ROAS (lãi 30 ngày ≥ $75 — anh 29/10/2026, hoặc chi ≥ $20 & ROI ≥ 50% — Dol 09/11/2026); mỗi gốc ${ROAS_MUC.length} mức ${ROAS_MUC.join(' · ')}, $20/ngày, ${chuChay(viec.filter((v) => v.r.ok).map((v) => v.r))} — tạo được ${ok}/${viec.length}\n${dong}\n<i>${esc(ten)} · ${esc(kq.luc)} giờ VN</i>`.slice(0, 4000) });
       gui++;
     }
   }

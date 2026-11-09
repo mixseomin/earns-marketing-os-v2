@@ -157,6 +157,8 @@ export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt —
 /** lãi 30 ngày tối thiểu để lên ROAS — CÙNG số với ROAS_LAI của máy luật + sổ luật chung roas_lai (anh 29/10/2026); máy luật assert khớp sổ */
 const ROAS_LAI = 75;
 if (ROAS_LAI !== BANG_LUAT.roas_lai) throw new Error('etp-doc ROAS_LAI lệch sổ luật chung roas_lai');
+/** lên ROAS sớm (Dol 09/11/2026, anh duyệt): chi 30 ngày ≥ $20 & ROI ≥ 50% — HOẶC với lãi ≥ $75; máy luật ROAS_CHI / ROAS_ROI đọc cùng sổ */
+const ROAS_LEN = BANG_LUAT.roas_len as { chi: number; roi: number };
 const n = (v: unknown) => Number(v ?? 0) || 0;
 // GỌN lop (anh 27/10/2026 "load chậm quá": lop = 1,9 MB / 3 MB dữ liệu trang, mọi tab đều phải chở):
 //  - chữ trên hình / lời nói / tóm tắt chỉ hiện trong thẻ hover tab Quét nội dung → KHÔNG gửi kèm trang; tab đó tự tải ngầm (actions/etp-cham chuCham)
@@ -326,11 +328,12 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
             order by d.luat, d.camp_id`
       : sql`select nhom, camp_id, chu, luc::text luc from etp.bao order by nhom, camp_id`).catch(() => [] as DuLieuEtp['bao']),
     // ứng viên lên ROAS (anh 29/10/2026 "nới điều kiện lên roas là ROI >= 75$"): lãi 30 ngày ≥ $75 là đủ (máy luật moc30, worker tự lên); hiện từ $50 để thấy camp sắp đủ.
+    // HOẶC chi 30 ngày ≥ $20 & ROI ≥ 50% (Dol 09/11/2026, anh duyệt: lên ROAS sớm); hiện từ 70% chi để thấy camp sắp đủ.
     // Chuẩn Support cũ (chi ≥ $100 · ROI ≥ 50% ổn định 2–3 ngày) bỏ. 3 ngày trọn gần nhất chỉ để hiện.
-    runNha<Record<string, unknown>>(sql`with t as (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay where ngay >= ${nay}::date - 29 group by 1 having sum(thu) - sum(chi) >= ${ROAS_LAI - 25}),
+    runNha<Record<string, unknown>>(sql`with t as (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay where ngay >= ${nay}::date - 29 group by 1 having sum(thu) - sum(chi) >= ${ROAS_LAI - 25} or sum(chi) >= ${ROAS_LEN.chi * 0.7}),
         d as (select camp_id, json_agg(json_build_object('d', ngay::text, 'chi', chi, 'thu', thu) order by ngay) ngay
               from etp.so_ngay where ngay between ${nay}::date - 3 and ${nay}::date - 1 and chi >= 1 group by 1)
-      select c.camp_id, c.ten, c.ngan_sach, t.chi, t.thu, coalesce(d.ngay, '[]'::json) ngay, t.thu - t.chi >= ${ROAS_LAI} du,
+      select c.camp_id, c.ten, c.ngan_sach, t.chi, t.thu, coalesce(d.ngay, '[]'::json) ngay, (t.thu - t.chi >= ${ROAS_LAI} or (t.chi >= ${ROAS_LEN.chi} and t.thu >= ${1 + ROAS_LEN.roi / 100} * t.chi)) du,
         (select count(*) from etp.camp x where x.ten like '%roas % duplicate by ' || c.camp_id and x.trang_thai = 'ACTIVE') da_len,
         (select case when g.duoc_len then null else coalesce(g.chan_boi, 'chưa chấm') end from etp.cham_cong g where g.creative_id = c.creative_id) chan
       from t left join d using (camp_id) join etp.camp c using (camp_id)

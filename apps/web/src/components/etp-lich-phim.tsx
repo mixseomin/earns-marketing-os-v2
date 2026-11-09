@@ -31,7 +31,7 @@ const mocLog = (x: LogPhim): Moc => {
 
 // LỘ TRÌNH SCALE CAMP THẮNG (anh 07/11/2026 duyệt mẫu): mỗi camp Nhà lãi 7 ngày một khối — lên bậc · nhân bản hai nấc · ★ ROAS, chấm đúng cổng máy luật
 // (luat-ethopex.py: nhip_tang.du_so, tiêu dồn, nghỉ giữa hai lần tăng, NB_NAC, ROAS_LAI) với ngưỡng đọc ở SỔ LUẬT CHUNG — trang không giữ số riêng
-const NB = { ...BANG_LUAT.nhan_ban, nac: BANG_LUAT.nhan_ban.nac as [number, number, number][] }, ROAS_LAI = BANG_LUAT.roas_lai, THANG_TU = BANG_LUAT.thang.filter((x) => x <= 20);   // camp thường tự tăng tới $20, $30 chỉ ★ ROAS
+const NB = { ...BANG_LUAT.nhan_ban, nac: BANG_LUAT.nhan_ban.nac as [number, number, number][] }, ROAS_LAI = BANG_LUAT.roas_lai, ROAS_LEN = BANG_LUAT.roas_len, THANG_TU = BANG_LUAT.thang.filter((x) => x <= 20);   // camp thường tự tăng tới $20, $30 chỉ ★ ROAS
 const tien = (x: number) => `$${x.toFixed(2)}`, phan = (chi: number, thu: number) => (chi >= 0.3 ? Math.round((thu - chi) / chi * 100) : null);
 const pc = (r: number | null) => (r == null ? '—' : `${r > 0 ? '+' : ''}${r}%`);
 const gioVn = (ms: number) => { const d = new Date(ms + 7 * 3600_000); return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')} ${String(d.getUTCDate()).padStart(2, '0')}/${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
@@ -52,7 +52,7 @@ function lenBac(c: CampThang, hoan: boolean, now = Date.now()) {
 function KhoiThang({ c, hoan, H }: { c: CampThang; hoan: boolean; H: (n: React.ReactNode, con: React.ReactNode, tren?: boolean) => React.ReactNode }) {
   const b = lenBac(c, hoan), r30 = phan(c.chi30, c.thu30), r3 = phan(c.chi3, c.thu3), lai30 = c.thu30 - c.chi30;
   const nac = [...NB.nac].sort((x, y) => x[0] - y[0]), muc = Math.max(0, ...nac.filter(([ch, m]) => c.chi30 >= ch && r30 != null && r30 >= m).map(([, , n]) => n));
-  const r3Dat = r3 != null && r3 >= NB.roi3, roasTruoc = !c.co_roas && lai30 >= ROAS_LAI;
+  const r3Dat = r3 != null && r3 >= NB.roi3, roasTruoc = !c.co_roas && (lai30 >= ROAS_LAI || (c.chi30 >= ROAS_LEN.chi && r30 != null && r30 >= ROAS_LEN.roi));   // HOẶC: lãi ≥ $75 (anh 29/10) / chi ≥ $20 & ROI ≥ 50% (Dol 09/11)
   return <>
     <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--line)', paddingTop: 7, fontSize: 11.5, color: 'var(--fg-2)' }}>
       <b style={{ color: '#4ade80' }}>CAMP THẮNG #{c.camp_id}</b> · ${c.ns} · chi {tien(c.chi30)} · lãi {tien(lai30)} · <span style={{ color: '#4ade80' }}>{pc(r30)}</span>
@@ -73,7 +73,7 @@ function KhoiThang({ c, hoan, H }: { c: CampThang; hoan: boolean; H: (n: React.R
         {roasTruoc ? 'đủ lãi lên ★ ROAS → máy lên ROAS trước, nhân bản sau' : muc > c.ban ? (r3Dat ? `🤖 máy nhân thêm ${muc - c.ban} bản $1 ở nhịp kế (mỗi phim tối đa ${NB.phim_ngay} bản / 24 giờ)` : 'đủ nấc nhưng ROI 3 ngày chưa đạt → chưa nhân')
           : muc ? `đã đủ ${c.ban} bản của nấc hiện tại` : `🤖 máy tự nhân khi chạm nấc 1`}</div></div>, true)}
     {H('★ ROAS', c.co_roas ? <span style={{ color: '#a78bfa' }}>đã có camp ★ ROAS</span>
-      : <div><Thanh v={lai30 / ROAS_LAI} mau="#a78bfa" />lãi 30 ngày {tien(lai30)} / ${ROAS_LAI} · 🤖 máy tự lên khi đủ</div>)}
+      : <div><Thanh v={Math.max(lai30 / ROAS_LAI, c.chi30 / ROAS_LEN.chi)} mau="#a78bfa" />lãi 30 ngày {tien(lai30)} / ${ROAS_LAI}, hoặc chi {tien(c.chi30)} / ${ROAS_LEN.chi} với ROI ≥ {ROAS_LEN.roi}% (Dol 09/11) · 🤖 máy tự lên khi đủ</div>)}
   </>;
 }
 

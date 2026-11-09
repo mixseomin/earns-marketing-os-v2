@@ -106,11 +106,16 @@ jobs:
           node scripts/check-replace-state.mjs
           node scripts/check-canon.mjs
           node scripts/check-gop-y-surface.mjs
-          node scripts/check-etp-gop-y.mjs --tu-kiem && node scripts/check-etp-gop-y.mjs
-          node scripts/check-ethopex-cong.mjs --tu-kiem && node scripts/check-ethopex-cong.mjs
-          node scripts/check-mos2-host.mjs --tu-kiem && node scripts/check-mos2-host.mjs
-          node scripts/check-tab-trang.mjs --tu-kiem && node scripts/check-tab-trang.mjs
-          node scripts/check-client-db.mjs --tu-kiem && node scripts/check-client-db.mjs
+          node scripts/check-etp-gop-y.mjs --tu-kiem
+          node scripts/check-etp-gop-y.mjs
+          node scripts/check-ethopex-cong.mjs --tu-kiem
+          node scripts/check-ethopex-cong.mjs
+          node scripts/check-mos2-host.mjs --tu-kiem
+          node scripts/check-mos2-host.mjs
+          node scripts/check-tab-trang.mjs --tu-kiem
+          node scripts/check-tab-trang.mjs
+          node scripts/check-client-db.mjs --tu-kiem
+          node scripts/check-client-db.mjs
       # Công ty AI: hồ sơ phòng/nhân sự + worker tự kiểm trước khi dựng.
       - run: node apps/cty/scripts/tu-kiem.mjs && node apps/cty/scripts/fm.mjs --tu-kiem && node apps/cty/worker/gia.mjs --tu-kiem && node apps/cty/worker/log.mjs --tu-kiem && node apps/cty/worker/proxy.mjs --tu-kiem && node apps/cty/worker/ca.mjs --tu-kiem && node apps/cty/scripts/thu-ngan.mjs && node apps/cty/worker/quy-trinh.mjs --tu-kiem && node apps/cty/worker/cai-tien.mjs --tu-kiem
         if: steps.chon.outputs.cty == '1' || steps.chon.outputs.cty_du_lieu == '1'

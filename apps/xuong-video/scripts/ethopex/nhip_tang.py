@@ -19,6 +19,11 @@ KD = BANG_LUAT["khung_doi"]
 # giữ nguyên ngân sách; hôm sau tiêu đều thì tăng như thường. Số nhà 20/10–04/11, 466 lần máy tăng: ≥ 75% NS tới 13h → hôm sau +17% (39% lãi),
 # < 75% → +30…+39% (54–67% lãi). Một chỗ cho máy luật (_du_tang), máy làm (du_don), trang (thẻ xét luật + biểu đồ giờ). Không áp ★ ROAS, không chạm giảm/tắt.
 DON_13H, DON_GIO = float(KD["don_13h"]), int(KD["don_gio"])
+# KHUNG TĂNG NHANH (anh 10/11/2026 — sổ luật chung khung_doi.nhanh): đạt cổng du_so thì tăng ngay, không chờ nhịp, không hoãn tiêu dồn
+NHANH = [tuple(x) for x in KD.get("nhanh") or []]
+def trong_nhanh(bay_gio=None):
+    h = ((bay_gio or dt.datetime.now(dt.timezone.utc)) + dt.timedelta(hours=7)).hour
+    return any((a <= h < b) if a <= b else (h >= a or h < b) for a, b in NHANH)
 def tieu_don(chi_13h, ns_13h):
     """chi tới 13h VN ≥ DON_13H × ngân sách lúc 13h → True (hoãn tăng); thiếu số (None) → False, không chặn oan"""
     return chi_13h is not None and bool(ns_13h) and float(chi_13h) >= DON_13H * float(ns_13h)
@@ -31,7 +36,8 @@ def so_13h(cid, ngay_utc):
     return (float(p[0]) if p[0] else None), (float(p[1]) if p[1] else None)
 def du_so(chi, thu, ns, chi_13h=None, ns_13h=None):
     """đạt cổng tăng: hôm nay đã tiêu ≥ nap_chi × ngân sách đang chạy và ROI hôm nay ≥ sang_roi%; KHÔNG tiêu dồn (chi_13h / ns_13h — None = không xét)"""
-    if tieu_don(chi_13h, ns_13h or ns): return False
+    if not trong_nhanh():   # khung tăng nhanh (anh 10/11/2026): không hoãn tiêu dồn; ngoài khung giữ nguyên
+        if tieu_don(chi_13h, ns_13h or ns): return False
     chi, thu, ns = float(chi or 0), float(thu or 0), float(ns or 0)
     return ns > 0 and chi >= float(KD["nap_chi"]) * ns and thu >= (1 + float(KD["sang_roi"]) / 100) * chi
 def du_don(api, cid, bay_gio=None):
@@ -93,6 +99,7 @@ def cho_tang(api, cid, bay_gio=None, du=None):
         if gap >= NGHI_DON_GIO and du is None:
             try: du = du_don(api, cid, now)
             except Exception: du = False
+        if du and trong_nhanh(now): return None, None   # KHUNG TĂNG NHANH: đạt cổng → tăng ngay, không chờ nhịp (anh 10/11/2026)
         if gap < NGHI_DON_GIO or not du:
             return ((f"vừa tăng lúc {vn(ls[0]):%H:%M} — chờ tới {vn(ls[0] + dt.timedelta(hours=NGHI_GIO)):%H:%M} (cách nhau ≥ {NGHI_GIO} giờ; "
                      f"đã tiêu ≥ {float(KD['nap_chi']):.0%} ngân sách mới + ROI hôm nay ≥ {KD['sang_roi']}% thì được từ {vn(ls[0] + dt.timedelta(hours=NGHI_DON_GIO)):%H:%M})"),
@@ -113,7 +120,10 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     api = lambda p: gia
     assert len(lan_tang(api, 1)) == 2, "2 dòng cách 20 giây là MỘT lần tăng"
     assert chan_tang(api, 1, u("2026-10-21T08:00:00")).startswith("vừa tăng"), "23 phút sau lần tăng phải chặn"
-    assert chan_tang(api, 1, u("2026-10-21T08:00:00"), du=True).startswith("vừa tăng"), "đạt cổng nhưng chưa đủ 3 giờ vẫn chặn"
+    assert chan_tang(api, 1, u("2026-10-21T08:00:00"), du=True).startswith("vừa tăng"), "15h VN (ngoài khung nhanh): đạt cổng nhưng chưa đủ 3 giờ vẫn chặn"
+    assert chan_tang(api, 1, u("2026-10-21T14:00:00"), du=True) is None, "21h VN (khung nhanh) + đạt cổng → tăng ngay dù vừa tăng"
+    assert chan_tang(api, 1, u("2026-10-21T14:00:00"), du=False).startswith("vừa tăng"), "khung nhanh mà KHÔNG đạt cổng → vẫn theo nhịp"
+    assert trong_nhanh(u("2026-10-21T01:30:00")) and trong_nhanh(u("2026-10-21T22:00:00")) and not trong_nhanh(u("2026-10-21T05:30:00")) and not trong_nhanh(u("2026-10-21T23:30:00")), "8h30 / 5h VN trong khung; 12h30 / 6h30 VN ngoài khung"
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=False).startswith("vừa tăng"), "3–24 giờ mà KHÔNG đạt cổng thì chặn (nhịp 24 giờ)"
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=True) is None, "3 giờ + đạt cổng (tiêu ≥ nap_chi × NS mới, ROI ≥ 100%) → tăng dồn được"
     assert chan_tang(api, 1, u("2026-10-22T08:00:00"), du=False) is None, "đủ 24 giờ thì tăng, không cần cổng dồn"

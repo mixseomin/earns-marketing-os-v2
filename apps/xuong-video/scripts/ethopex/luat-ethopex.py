@@ -136,7 +136,10 @@ for cid, a in sorted(thang.items()):
     lo_nay = _rh is not None and _rh < 0
     _g3 = roi(gan.get(cid) or {"chi": 0.0, "thu": 0.0}); _nap = nap_tang(_g3); _ke = ke(a["budget"])   # nắp ROI 3 ngày (Dol 09/11/2026)
     if _ke and _ke > _nap: dong += f" · nắp ROI 3 ngày {'—' if _g3 is None else f'{_g3:+.0f}%'} → trần ${_nap:g}, không lên ${_ke:g}"
-    if ((r >= ROI_TANG and sp > sp_min and them_dk) or tb_ngay) and _ke and _ke <= _nap and not lo_nay: dat.append((cid, dong))
+    # KHUNG TĂNG NHANH (anh 10/11/2026, sổ luật chung khung_doi.nhanh 08–12h + 21–06h): ROI hôm nay ≥ sang_roi% + đã tiêu ≥ nap_chi × ngân sách → tăng, không xét ROI khung dài / hôm qua
+    tb_nhanh = NT.trong_nhanh() and _rh is not None and _rh >= float(KD["sang_roi"]) and h["chi"] >= float(KD["nap_chi"]) * a["budget"]
+    if tb_nhanh and not ((r >= ROI_TANG and sp > sp_min and them_dk) or tb_ngay): dong += f" · khung tăng nhanh: ROI hôm nay {_rh:+.0f}%, chi {h['chi'] / a['budget'] * 100:.0f}% ngân sách"
+    if ((r >= ROI_TANG and sp > sp_min and them_dk) or tb_ngay or tb_nhanh) and _ke and _ke <= _nap and not lo_nay: dat.append((cid, dong))
     elif r >= roi_min or sp > sp_min * 0.8: theo.append((cid, dong))
     # LD SIẾT (khi anh duyệt trên Telegram — DATA/ethopex-luat-duyet.json "ld_siet"): camp vừa lỗ hôm qua / lỗ cả tháng thì không tăng vì vài chục cent
     # lãi đầu phiên (22/10/2026: #65115 lên $2 nhờ lãi $0,36 buổi sáng trong khi hôm qua −86%, tháng −62%)
@@ -241,6 +244,7 @@ def _nap_sang(cid):
     h = hom.get(cid) or {}; ns = float((thang.get(cid) or {}).get("budget") or 0); ch, th = float(h.get("chi") or 0), float(h.get("thu") or 0)
     return ns > 0 and ch >= float(KD["nap_chi"]) * ns and th >= (1 + float(KD["sang_roi"]) / 100) * ch
 def _ts_ly(cid):
+    if NT.trong_nhanh() and _nap_sang(cid): return None   # khung tăng nhanh: camp đạt cổng không bị Siết TS (anh 10/11/2026)
     if TS_GIO[0] <= vn.hour < TS_GIO[1] and not _nap_sang(cid): return f"{vn:%H:%M} — ngày Ethopex mới chạy < 8 giờ, tăng từ {TS_GIO[1]}:00 (trừ camp đã tiêu hết + ROI hôm nay ≥ {KD['sang_roi']}%)"
     y = hqua.get(cid); ry = roi(y) if y and y["chi"] >= 0.3 else None
     if ry is not None and 0 <= ry < TS_HQ: return f"hôm qua {ry:+.0f}% (0–{TS_HQ}%)"
@@ -1206,6 +1210,8 @@ def _xet_luat():
         ls.append(L("tang_ngay", "Tăng trong ngày → mở bản thang (bộ 2)" if b2 else "Tăng trong ngày", ("Bộ 2 không tăng ngân sách: đủ luật này thì máy MỞ BẢN MỚI ở bậc kế (creative khác cùng phim), nên phải qua cổng mở bản thang. " if b2 else "") + "ROI hôm nay (chỉ cộng các giờ tới đợt chi gần nhất) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không âm (hôm qua âm mà chi hôm qua < max($2, 50% ngân sách) thì bỏ qua — luật B1), ROI khung dài ≥ 0% (29/10). ROI chỉ tính khi chi ≥ $0.3.",
             dk_ngay, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None)))
         if "d" in _nhip_o and _nhip_o["d"][1] and _nhip_o["d"][0] in dk_ngay: ls[-1]["cho_toi"] = _nhip_o["d"][1]
+        if not b2 and NT.trong_nhanh() and rh is not None and rh >= float(KD["sang_roi"]) and ns and h.get("chi", 0) >= float(KD["nap_chi"]) * ns:   # khung tăng nhanh (anh 10/11/2026)
+            ls[-1]["ghi"] = f"khung tăng nhanh (08–12h, 21–06h): ROI hôm nay ≥ {KD['sang_roi']}% + đã tiêu ≥ {float(KD['nap_chi']):.0%} ngân sách → máy tăng bậc kế ngay nhịp tới"
         # GIẢM BẬC — đã bỏ (anh 29/10/2026 "làm 1+2"): không còn trong bản xét; camp lỗ liền xem luật L3
         if not b2:
             ls.append(L("nb", "Nhân bản camp thắng (NB)", f"Hai nấc theo cách Kiên (anh 07/11/2026): " + " · ".join(f"tiêu ≥ ${c:g} & ROI ≥ +{m}% → đủ {n} bản" for c, m, n in reversed(NB_NAC)) + f"; mỗi phim tối đa {NB_PHIM_NGAY} bản / 24 giờ; cần ROI 3 ngày gần ≥ {NB_ROI3}%; không đòi ngân sách gốc (mốc ${TRAN_NB:g} chỉ còn cho nhân bản tay) → bản $1 GIỮ NGUYÊN creative (đoạn đã đủ {TRAN_DOAN_} camp chạy mới đổi creative khác cùng phim).",

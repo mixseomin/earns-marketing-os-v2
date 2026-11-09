@@ -5,6 +5,8 @@
 // và nhan-ban.py (nhân bản thường / thang / sang bộ / ROAS). ai = "anh (etp2)" → nhật ký luật ghi đúng người bấm. Chỉ admin mos2 (chủ).
 import { execFile, spawn } from 'node:child_process';
 import { openSync } from 'node:fs';
+import { sql } from 'drizzle-orm';
+import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
 
@@ -16,6 +18,24 @@ const chay = (args: string[], ms: number) => new Promise<string>((ok) =>
 const dongJson = <T,>(ra: string): T | null => { const d = ra.trim().split('\n').reverse().find((l) => l.startsWith('{')); try { return d ? (JSON.parse(d) as T) : null; } catch { return null; } };
 
 export type KetTay = { ok: true; chu: string } | { loi: string };
+
+// SỔ LỆNH CHỜ ÁP (anh 09/11/2026: "khi thay đổi mà chưa áp dụng ngay thì phải show lại vết để còn biết đang làm mà chờ"): lệnh tay đã gửi Ethopex xong
+// nhưng kho etp.camp (và cả nhật ký luật) chỉ đổi ở lượt đồng bộ kế (~10 phút) → ghi NGAY vào xv_khoa_ngoai['etp2_cho_ap'] (giữ 2 giờ),
+// trang hiện ⏳ trên dòng camp + trong bảng điều khiển cho tới khi kho khớp (khopKho ở etp-view).
+export type ChoAp = { camp_id: number; viec: 'ns' | 'tat' | 'bat' | 'nb'; sau: number | null; chu: string; luc: string };
+async function ghiCho(x: Omit<ChoAp, 'luc'>) {
+  const dong = JSON.stringify([{ ...x, luc: new Date().toISOString() }]);
+  await getDb()!.execute(sql`insert into xv_khoa_ngoai (ten, gia_tri) values ('etp2_cho_ap', ${dong}::jsonb)
+    on conflict (ten) do update set cap_nhat = now(), gia_tri = coalesce((select jsonb_agg(e) from jsonb_array_elements(
+      case when jsonb_typeof(xv_khoa_ngoai.gia_tri) = 'array' then xv_khoa_ngoai.gia_tri else '[]'::jsonb end || excluded.gia_tri) e
+      where (e->>'luc')::timestamptz > now() - interval '2 hours'), '[]'::jsonb)`).catch(() => {});
+}
+/** sổ lệnh chờ áp (2 giờ gần nhất) — trang etp2 đọc mỗi lần dựng */
+export async function docChoAp(): Promise<ChoAp[]> {
+  if (!(await laChu())) return [];
+  const r = ((await getDb()!.execute(sql`select gia_tri from xv_khoa_ngoai where ten = 'etp2_cho_ap'`)) as unknown as { gia_tri: unknown }[])[0]?.gia_tri;
+  return Array.isArray(r) ? (r as ChoAp[]).filter((x) => Date.now() - Date.parse(x.luc) < 2 * 3600_000) : [];
+}
 
 /** bật · tắt · đổi ngân sách (tự chọn tăng / giảm theo mức đang chạy). ep = anh ép: bỏ chặn "camp đang lãi" khi tắt, chặn "vừa giảm" + nhịp tăng khi tăng */
 export async function campTay(campId: number, viec: 'bat' | 'tat' | 'ns', o: { ns?: number; nsDang?: number; ep?: boolean; ghi?: string } = {}): Promise<KetTay> {
@@ -32,6 +52,7 @@ export async function campTay(campId: number, viec: 'bat' | 'tat' | 'ns', o: { n
   const k = dongJson<{ ok?: boolean; loi?: string | null; truoc?: { ns: unknown; tt: unknown }; sau?: { ns: unknown; tt: unknown }; lich?: string }>(ra);
   if (!k) return { loi: `máy không trả kết quả: ${ra.trim().slice(-200) || '(trống)'}` };
   if (!k.ok) return { loi: k.loi || 'không làm được' };
+  if (!k.lich) await ghiCho({ camp_id: campId, viec, sau: viec === 'ns' ? o.ns! : null, chu: viec === 'ns' ? `$${o.nsDang} → $${o.ns}` : viec === 'tat' ? 'tắt' : 'bật' });
   return { ok: true, chu: k.lich ?? (viec === 'ns' ? `$${k.truoc?.ns ?? '?'} → $${k.sau?.ns ?? '?'}` : `${k.truoc?.tt ?? '?'} → ${k.sau?.tt ?? '?'}`) };
 }
 
@@ -63,5 +84,6 @@ export async function nhanBanTay(campId: number, x: KieuNb, ghi?: string): Promi
   const log = openSync(`/tmp/etp2-nb-${campId}.log`, 'a');
   spawn('python3', ['nhan-ban.py', String(campId), '--tay', ...t, '--that', '--luat', `tay etp2: nhân bản ${x.kieu}${ghi ? ` · ${ghi.slice(0, 120)}` : ''}`, '--ai', AI],
     { cwd: DIR, detached: true, stdio: ['ignore', log, log], env: process.env }).unref();
+  await ghiCho({ camp_id: campId, viec: 'nb', sau: null, chu: `nhân bản ${x.kieu === 'thuong' ? 'thường' : x.kieu === 'thang' ? `thang $${x.ns}` : x.kieu === 'bo' ? `sang bộ ${x.bo}` : `ROAS ${x.roas}`}` });
   return { ok: true, chu: 'đã gửi máy nhân bản — camp mới hiện sau lượt đồng bộ kế (kết quả ghi nhật ký luật)' };
 }

@@ -6,7 +6,7 @@
 // Tab con (YDNI: >2 nhóm = chia tab): Lượt đăng (bảng) · Lỗi hay gặp (gom bước × nhóm lý do, bấm là lọc) · Máy (bật tắt máy, nghỉ nền, vòng 10 phút — màn ⚡ cũ).
 // URL giữ mọi cách nhìn (ui-conventions §1): md (tab con) · md_ngay · md_<lọc> · md_q; drawer lượt = useModalParam (?m=luot-dang&mId=<id>).
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { AnchoredPopover, DataTable, Drawer, EmptyState, MultiSelect, NutViec, SearchInput, Segmented, StatsStrip, TextField, type DataColumn, type DataGroup, type MultiSelectOption } from '@/components/ui';
+import { AnchoredPopover, DataTable, Drawer, EmptyState, MultiSelect, NutViec, Segmented, StatsStrip, TextField, type DataColumn, type DataGroup, type MultiSelectOption } from '@/components/ui';
 import { SiteFavicon } from '@/components/ui/site-favicon';
 import { MayDang } from '@/components/social-may-dang';
 import { pkCua } from '@/lib/ho-nen';
@@ -23,7 +23,7 @@ type Dong = {
 type Chay = { id: number; ma: string; may_ten: string; nen: string; du_an: string; bd: string; slug: string | null; noi_dung: string; kq: { luc: string; ok: boolean; url: string | null; noi_dung: string } | null };
 
 const BUOC: { k: string; ten: string; giai: string }[] = [
-  { k: 'kenh', ten: 'Kênh', giai: 'kênh bật / nghỉ / hẹn giờ / kênh chết / có lượt khác đang chạy' },
+  { k: 'kenh', ten: 'Kênh sẵn sàng', giai: 'kênh bật / nghỉ / hẹn giờ / kênh chết / có lượt khác đang chạy' },
   { k: 'nhip', ten: 'Nhịp an toàn', giai: 'trần bài theo tuổi kênh, cách ≥ 3 giờ, cảnh báo tài khoản, khung giờ, chờ sau lần hỏng' },
   { k: 'chon', ten: 'Chọn bài', giai: 'bài DUYỆT chưa đăng nền này (đúng góc kế hoạch nếu có) — hoặc hết bài / chưa tới hạn' },
   { k: 'chuan_bi', ten: 'Chuẩn bị', giai: 'kéo video/ảnh từ kho, bản xuất hợp nền, chữ + link (đan xen bài thường 1/3)' },
@@ -56,7 +56,8 @@ const MA_LY: Record<string, string> = {
   'qua-gio': 'Quá thời gian', khac: 'Khác (chưa phân loại)',
 };
 const tenLy = (m: string | null) => (m ? MA_LY[m] ?? m : '—');
-const gioVn = (iso: string) => new Date(iso).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
+/** 'HH:MM dd/mm' giờ VN (luật giờ GMT+7) */
+const gioVn = (iso: string) => { const d = new Date(Date.parse(iso) + 7 * 3600e3).toISOString(); return `${d.slice(11, 16)} ${d.slice(8, 10)}/${d.slice(5, 7)}`; };
 const homVn = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 const nho = { fontSize: 12, color: 'var(--fg-2)' } as const;
 const cat = (w: number) => ({ maxWidth: w, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }) as const;
@@ -121,7 +122,7 @@ function OBuoc({ r, k, admin, xong, moChiTiet }: { r: Dong; k: string; admin: bo
       <b style={{ color: mau }}>{ky}</b><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: o?.t === 'ok' ? 'var(--fg-2)' : 'var(--fg-1)' }}>{chay ? 'đang làm…' : o!.ly ?? ''}</span>
     </span>
     <AnchoredPopover anchorRef={ref} open={mo} onClose={() => setMo(false)} backdrop={false} closeOnPointerOutside>
-      <div style={{ width: 360, maxWidth: '90vw', padding: 10, display: 'grid', gap: 8, fontSize: 12 }}>
+      <div style={{ width: 360, maxWidth: '90vw', padding: 10, display: 'grid', gap: 8, fontSize: 12, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
         <div><b>{b.ten}</b> <span style={{ color: mau }}>{chay ? 'đang làm' : TEN_T[o!.t]}</span>{o?.ms != null && <span style={{ color: 'var(--fg-3)' }}> · {(o.ms / 1000).toFixed(1)}s từ đầu lượt</span>}</div>
         {o?.ly && <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{o.ly}</div>}
         <div style={{ color: 'var(--fg-3)' }}>Bước này: {b.giai}</div>
@@ -178,23 +179,23 @@ function docUrl() {
   const p = typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search);
   const loc = locTrong(); for (const k of LOC) loc[k] = (p.get(`md_${k}`) ?? '').split(',').filter(Boolean);
   const md = p.get('md'), ngay = p.get('md_ngay');
-  return { md: (md === 'loi' || md === 'may' ? md : 'luot') as 'luot' | 'loi' | 'may', ngay: NGAY.some((x) => x.value === ngay) ? ngay! : '3', loc, q: p.get('md_q') ?? '' };
+  return { md: (md === 'loi' || md === 'may' ? md : 'luot') as 'luot' | 'loi' | 'may', ngay: NGAY.some((x) => x.value === ngay) ? ngay! : '3', loc };
 }
 /** URL hiện tại với một khoá đổi — cho ⌘/Ctrl-click mở tab mới (ui-conventions §1). */
 const hrefVoi = (k: string, v: string | null) => { if (typeof window === 'undefined') return null; const p = new URLSearchParams(window.location.search); if (v) p.set(k, v); else p.delete(k); return `${window.location.pathname}?${p}`; };
 
 export function MayDangView() {
   const dau = useMemo(docUrl, []), modal = useModalParam();
-  const [md, setMd] = useState(dau.md), [ngay, setNgay] = useState(dau.ngay), [loc, setLoc] = useState<Loc>(dau.loc), [q, setQ] = useState(dau.q), [caDung, setCaDung] = useState(false);
+  const [md, setMd] = useState(dau.md), [ngay, setNgay] = useState(dau.ngay), [loc, setLoc] = useState<Loc>(dau.loc), [q, setQ] = useState(''), [caDung, setCaDung] = useState(false);
   const [rows, setRows] = useState<Map<string, Dong>>(new Map()), [chay, setChay] = useState<Chay[]>([]), [admin, setAdmin] = useState(false), [loi, setLoi] = useState<string | null>(null), [tai, setTai] = useState(true);
   const moc = useRef<string | null>(null), ngayRef = useRef(ngay);
 
   useEffect(() => {
     const p = new URLSearchParams(window.location.search), dat = (k: string, v: string | null) => (v ? p.set(k, v) : p.delete(k));
-    dat('md', md === 'luot' ? null : md); dat('md_ngay', ngay === '3' ? null : ngay); dat('md_q', q || null);
+    dat('md', md === 'luot' ? null : md); dat('md_ngay', ngay === '3' ? null : ngay);
     for (const k of LOC) dat(`md_${k}`, loc[k].length ? loc[k].join(',') : null);
     window.history.replaceState(null, '', `${window.location.pathname}?${p}`);
-  }, [md, ngay, loc, q]);
+  }, [md, ngay, loc]);
 
   // THỜI GIAN THỰC: lần đầu đọc cả khoảng; sau đó mỗi 5 giây chỉ hỏi dòng mới / vừa cập nhật từ mốc trước (lùi 15 giây chống lọt) + lượt đang chạy
   const hoi = useCallback(async (lai = false) => {
@@ -287,13 +288,13 @@ export function MayDangView() {
       <MultiSelect label="Kết quả" options={opt.kq} selected={loc.kq} onChange={(v) => dat('kq', v)} compact />
       <MultiSelect label="Dừng ở bước" options={opt.bd} selected={loc.bd} onChange={(v) => dat('bd', v)} compact />
       <MultiSelect label="Nhóm lý do" options={opt.ml} selected={loc.ml} onChange={(v) => dat('ml', v)} compact />
-      <SearchInput value={q} onChange={setQ} placeholder="Tìm bài / lỗi…" width={160} />
-      {coLoc && <button type="button" onClick={() => { setLoc(locTrong()); setQ(''); }} style={{ border: 0, background: 'none', color: 'var(--accent, #60a5fa)', cursor: 'pointer', fontSize: 12 }}>bỏ lọc</button>}
+      {LOC.some((k) => loc[k].length) && <button type="button" onClick={() => setLoc(locTrong())} style={{ border: 0, background: 'none', color: 'var(--accent, #60a5fa)', cursor: 'pointer', fontSize: 12 }}>bỏ lọc</button>}
       <span style={{ ...nho, color: loi ? 'var(--danger, #dc2626)' : 'var(--fg-3)', marginLeft: 'auto' }}>{loi ? `không đọc được sổ: ${loi}` : tai ? 'đang đọc…' : `${loc1.length} dòng · tự làm mới 5 giây`}</span>
     </div>}
     {md !== 'may' && <StatsStrip cards={the} minColWidth={120} />}
     {md === 'luot' && (loc1.length || tai
-      ? <DataTable rows={loc1} columns={cot} groups={nhom} getRowKey={(r) => String(r.id)} persistKey="may-dang-luot" minWidth={1900} pageSize={100}
+      ? <DataTable rows={loc1} columns={cot} groups={nhom} getRowKey={(r) => String(r.id)} persistKey="may-dang-luot" minWidth={1900} pageSize={100} locTuDong={false}
+          searchText={(r) => `${r.slug ?? ''} ${r.loi ?? ''} ${r.may_ten} ${r.nen} ${r.url ?? ''}`} searchPlaceholder="Tìm bài / lỗi / kênh…" onTimDoi={setQ}
           defaultSort={[{ key: 'bd', dir: 'desc' }]} onRowClick={moChiTiet}
           rowStyle={(r) => (r.ket === 'hong' || r.ket === 'mat_dau' ? { boxShadow: 'inset 3px 0 0 var(--danger, #dc2626)' } : r.ket === 'chay' ? { boxShadow: 'inset 3px 0 0 var(--info, #3b82f6)' } : undefined)}
           card={{ minWidth: 280, render: (r) => <div onClick={() => moChiTiet(r)} style={{ display: 'grid', gap: 3, padding: 10, border: '1px solid var(--line)', borderRadius: 8, background: 'var(--bg-1)', cursor: 'pointer', fontSize: 12 }}>
@@ -304,7 +305,7 @@ export function MayDangView() {
       : <EmptyState icon="📭" title="Không có lượt nào" description={coLoc ? 'Không lượt nào khớp bộ lọc — bỏ bớt lọc hoặc chọn khoảng ngày dài hơn.' : 'Chưa có lượt nào trong khoảng này.'} />)}
     {md === 'loi' && <>
       <label style={{ ...nho, display: 'inline-flex', gap: 6, alignItems: 'center' }}><input type="checkbox" checked={caDung} onChange={(e) => setCaDung(e.target.checked)} />gồm cả dừng đúng luật / bỏ lượt (mặc định chỉ hỏng, mất dấu, kho cạn)</label>
-      <DataTable rows={gom} getRowKey={(g) => g.khoa} persistKey="may-dang-loi" minWidth={900} defaultSort={[{ key: 'lan', dir: 'desc' }]} onRowClick={locLoi} card
+      <DataTable rows={gom} getRowKey={(g) => g.khoa} persistKey="may-dang-loi" minWidth={900} locTuDong={false} defaultSort={[{ key: 'lan', dir: 'desc' }]} onRowClick={locLoi} card
         columns={[
           { key: 'ml', header: 'Nhóm lý do', align: 'left', sortValue: (g) => tenLy(g.ml), cell: (g) => <b>{tenLy(g.ml)}</b> },
           { key: 'bd', header: 'Bước', align: 'left', sortValue: (g) => g.bd, cell: (g) => (g.bd ? TEN_BUOC[g.bd] ?? g.bd : '—') },

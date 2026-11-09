@@ -46,6 +46,10 @@ export async function GET(req: Request) {
     WHERE b.buoc = 'bat-dau' AND b.luc > now() - interval '3 hours' AND ${locM}
       AND NOT EXISTS (SELECT 1 FROM may_dang_so s WHERE s.ma = m.ma AND s.nen = b.nen AND s.bd >= b.luc - interval '15 minutes' AND s.nguon = 'may')
     ORDER BY b.luc DESC LIMIT 50`)) as unknown as Dong[];
+  // giờ về ISO ở máy chủ: Postgres trả '2026-11-08 23:23:27.86+00' — Safari (iPhone) không Date.parse được dạng có dấu cách + '+00'
+  const iso = (v: unknown) => (v == null ? v : new Date(String(v)).toISOString());
+  for (const r of rows) { r.bd = iso(r.bd); r.kt = iso(r.kt); const l = r.lenh as Dong | null; if (l) { l.luc = iso(l.luc); l.xong_luc = iso(l.xong_luc); } }
+  for (const c of chay) { c.bd = iso(c.bd); const k = c.kq as Dong | null; if (k) k.luc = iso(k.luc); }
   return NextResponse.json({ rows, chay, luc: new Date().toISOString(), ngay, admin: pv.tatCa });
 }
 

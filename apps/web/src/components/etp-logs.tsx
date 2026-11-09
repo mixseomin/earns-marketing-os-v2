@@ -146,7 +146,7 @@ export function TabLogs({ moCamp, hangLoc, campIds }: { moCamp: (id: number) => 
         <div style={{ fontWeight: 600, color: 'var(--fg-2)', margin: '2px 0 4px' }}>📋 Từng việc</div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           {/* MỖI VIỆC MỘT DÒNG (anh 09/11/2026 "Lắm chữ quá"): giờ · mã · bộ · thay đổi · tên (cắt gọn) · 🎬 — lý do + tên đầy đủ nằm ở chữ rê (title);
-              lý do đã gom ở thống kê phía trên nên không in lại từng dòng */}
+              loại cần báo (lỗi / loại) in thêm dòng lý do đủ (anh 10/11/2026) — việc thường vẫn một dòng */}
           {v.ds.slice(0, 300).map((e, i) => { const mo = e[2] != null ? moNgan(e) : null;
             const goi = [e[8], e[3] ? `Lý do: ${e[3]}` : '', e[10] ? `bởi ${e[10]}` : ''].filter(Boolean).join('\n');
             return <div key={i} title={goi} style={{ display: 'grid', gridTemplateColumns: '40px 74px 22px auto minmax(0,1fr) 18px', alignItems: 'center', gap: 6, padding: '3px 0', borderTop: i ? '1px solid var(--line)' : undefined, lineHeight: '18px', fontVariantNumeric: 'tabular-nums' }}>
@@ -158,6 +158,8 @@ export function TabLogs({ moCamp, hangLoc, campIds }: { moCamp: (id: number) => 
               {e[9] ? <span style={{ padding: '0 5px', borderRadius: 8, color: l?.mau, background: `${l?.mau}1f`, fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>{e[9]}</span> : <span />}
               <span style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e[8]}</span>
               {e[6] ? <a role="button" onClick={() => { noi.dong(); openEntityDrawer('etp-phim', e[6]!); }} title="mở ngăn phim" style={{ cursor: 'pointer' }}>🎬</a> : <span />}
+              {/* LOẠI CẦN BÁO (lệnh lỗi, dòng lỗi, người duyệt loại — l.bao): in ĐỦ lý do ngay dưới dòng (anh 10/11/2026 "Lỗi gì? Lý do ở dòng nào? Cần thấy ở đây") */}
+              {l?.bao && e[3] ? <span style={{ gridColumn: '2 / -1', color: l.mau, fontSize: 11.5, lineHeight: 1.35, whiteSpace: 'normal', paddingBottom: 2 }}>↳ {e[3]}</span> : null}
             </div>; })}
           {v.ds.length > 300 ? <div style={{ color: 'var(--fg-3)', paddingTop: 6 }}>… còn {v.ds.length - 300} việc — chọn khung gom nhỏ hơn để xem hết</div> : null}
         </div>

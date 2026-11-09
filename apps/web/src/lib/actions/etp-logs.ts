@@ -32,7 +32,7 @@ export async function docLogs(gio: number, ids: number[] | null = null): Promise
             when 'roas' then 'roas' when 'sang_bo' then 'sb' when 'duyet_tay' then 'dtc' when 'lo_trinh' then 'lt' else 'khac' end end k,
           n.camp_id id,
           left(case when n.ok is false then coalesce(n.loi, '') else regexp_replace(regexp_replace(coalesce(n.luat, ''), '[[:space:]]*·[[:space:]]*#[0-9]+:[^·]*', ''), '^(lệnh )?anh [0-9]{1,2}/[0-9]{1,2}/[0-9]{4}[[:space:]]*:?[[:space:]]*', '') end, 240) ly,
-          case when n.ok is false then left(split_part(coalesce(n.loi, '?'), ':', 1), 60) when n.viec = 'duyet_tay' then nullif(left(trim(split_part(split_part(coalesce(n.luat, ''), ':', 2), ',', 1)), 40), '')
+          case when n.ok is false then left(regexp_replace(split_part(coalesce(n.loi, '?'), ' (', 1), '[0-9]{1,2}:[0-9]{2}( [0-9]{1,2}/[0-9]{1,2})?', 'hh:mm', 'g'), 90) when n.viec = 'duyet_tay' then nullif(left(trim(split_part(split_part(coalesce(n.luat, ''), ':', 2), ',', 1)), 40), '')
             else nullif(trim(left(regexp_replace(regexp_replace(regexp_replace(coalesce(n.luat, ''), '^(lệnh )?anh [0-9]{1,2}/[0-9]{1,2}/[0-9]{4}[[:space:]]*:?[[:space:]]*', ''), '^phim [0-9]+ · ', ''), '[[:space:]]*[(:—·].*$', ''), 60)), '') end n1,
           case when n.truoc ~ '^[0-9.]+$' and n.sau ~ '^[0-9.]+$' and n.viec in ('tang', 'giam') then '$' || n.truoc || ' → $' || n.sau
                when n.truoc ~ '^[0-9.]+$' and n.viec = 'tat' then 'đang $' || n.truoc || '/ngày'

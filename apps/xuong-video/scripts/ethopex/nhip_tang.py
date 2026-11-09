@@ -96,7 +96,9 @@ def cho_tang(api, cid, bay_gio=None, du=None):
     ls = lan_tang(api, cid)
     if ls and (now - ls[0]).total_seconds() < NGHI_GIO * 3600:
         gap = (now - ls[0]).total_seconds() / 3600
-        if gap >= NGHI_DON_GIO and du is None:
+        # KHUNG TĂNG NHANH cũng phải tự đọc cổng (10/11/2026: máy luật chấm đạt cổng → đề xuất tăng < 3 giờ trong khung nhanh, lệnh tăng gọi chan_tang KHÔNG kèm du
+        # nên chỉ đọc cổng khi ≥ 3 giờ → 01:34–05:44 bị từ chối 12 lần "vừa tăng lúc …"). Một luật cho cả hai đầu: hễ quyết định cần biết đạt cổng thì đọc.
+        if du is None and (gap >= NGHI_DON_GIO or trong_nhanh(now)):
             try: du = du_don(api, cid, now)
             except Exception: du = False
         if du and trong_nhanh(now): return None, None   # KHUNG TĂNG NHANH: đạt cổng → tăng ngay, không chờ nhịp (anh 10/11/2026)
@@ -123,6 +125,11 @@ if __name__ == "__main__":   # tự kiểm (không gọi mạng)
     assert chan_tang(api, 1, u("2026-10-21T08:00:00"), du=True).startswith("vừa tăng"), "15h VN (ngoài khung nhanh): đạt cổng nhưng chưa đủ 3 giờ vẫn chặn"
     assert chan_tang(api, 1, u("2026-10-21T14:00:00"), du=True) is None, "21h VN (khung nhanh) + đạt cổng → tăng ngay dù vừa tăng"
     assert chan_tang(api, 1, u("2026-10-21T14:00:00"), du=False).startswith("vừa tăng"), "khung nhanh mà KHÔNG đạt cổng → vẫn theo nhịp"
+    _goc_dd = du_don; du_don = lambda *a_, **k_: True   # lệnh tăng (lam-ethopex) gọi KHÔNG kèm du: khung nhanh < 3 giờ phải tự đọc cổng (10/11/2026)
+    assert chan_tang(api, 1, u("2026-10-21T14:00:00")) is None, "khung nhanh, < 3 giờ, không kèm du, đọc cổng đạt → tăng (khớp máy luật)"
+    du_don = lambda *a_, **k_: False
+    assert chan_tang(api, 1, u("2026-10-21T14:00:00")).startswith("vừa tăng"), "khung nhanh, không kèm du, đọc cổng không đạt → chặn"
+    du_don = _goc_dd
     assert trong_nhanh(u("2026-10-21T01:30:00")) and trong_nhanh(u("2026-10-21T22:00:00")) and not trong_nhanh(u("2026-10-21T05:30:00")) and not trong_nhanh(u("2026-10-21T23:30:00")), "8h30 / 5h VN trong khung; 12h30 / 6h30 VN ngoài khung"
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=False).startswith("vừa tăng"), "3–24 giờ mà KHÔNG đạt cổng thì chặn (nhịp 24 giờ)"
     assert chan_tang(api, 1, u("2026-10-21T11:00:00"), du=True) is None, "3 giờ + đạt cổng (tiêu ≥ nap_chi × NS mới, ROI ≥ 100%) → tăng dồn được"

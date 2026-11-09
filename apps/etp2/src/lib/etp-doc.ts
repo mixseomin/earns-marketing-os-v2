@@ -202,7 +202,10 @@ export async function docEtp(ng?: string, nhe = false): Promise<DuLieuEtp> {
 async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const db = getDb()!;
   const nay = new Date().toISOString().slice(0, 10), qua = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10), dauThang = `${nay.slice(0, 8)}01`;
-  const run = async <T,>(q: ReturnType<typeof sql>) => (await db.execute(q)) as unknown as T[];
+  // ĐO CÂU CHẬM (etp2 09/11/2026 'sửa load chậm'): câu > 400ms ghi journal mos2-etp2 kèm đầu câu SQL — biết trang chậm vì câu nào
+  const run = async <T,>(q: ReturnType<typeof sql>) => { const t0 = Date.now(); const r = (await db.execute(q)) as unknown as T[]; const ms = Date.now() - t0;
+    if (ms > 400) console.log(`[etp-cham] ${ms}ms ${String((q as unknown as { queryChunks?: { value?: string[] }[] }).queryChunks?.[0]?.value?.[0] ?? '').replace(/\s+/g, ' ').slice(0, 90)}`);
+    return r; };
   // NGƯỜI ĐANG XEM: mặc định người nhà; ?ng=<id người khác> → mọi số camp / ngày đọc từ bảng *_ngoai của các tài khoản người đó
   const nguoiDs = (await run<{ id: number; ten: string; tk: string; nha: boolean }>(sql`select nguoi_id id, max(nguoi) ten, count(*) tk, bool_or(nha) nha from etp.tai_khoan
       where nguoi_id is not null group by nguoi_id order by bool_or(nha) desc, max(nguoi)`).catch(() => [])).map((r) => ({ id: n(r.id), ten: String(r.ten ?? `#${r.id}`), tk: n(r.tk), nha: !!r.nha }));

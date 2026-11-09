@@ -29,3 +29,13 @@ export async function datLichTong(bat: boolean): Promise<{ ok: true } | { loi: s
     on conflict (khoa) do update set gia_tri = excluded.gia_tri, ai = excluded.ai, luc = now()`);
   return { ok: true };
 }
+
+/** CÔNG TẮC LÊN CAMP MỚI (anh 09/11/2026 "phải là tắt công tắc lên camp"): bat = false → ghi etp.cau_hinh.dung_camp_moi = true —
+ *  cổng apps/etp/cong.py chặn mọi đường tạo / nhân bản camp, lộ trình + mở lại dòng chạm trần + mở rộng phim đội lãi ngưng xếp dòng. Tăng / giảm / tắt vẫn chạy. */
+export async function datLenCamp(bat: boolean): Promise<{ ok: true } | { loi: string }> {
+  const ai = await admin(); if (!ai) return { loi: 'chỉ admin' };
+  await getDb()!.execute(sql`insert into etp.cau_hinh (khoa, gia_tri, ai) values ('dung_camp_moi', ${JSON.stringify(!bat)}::jsonb, ${ai})
+    on conflict (khoa) do update set gia_tri = excluded.gia_tri, ai = excluded.ai, luc = now()`);
+  await getDb()!.execute(sql`insert into etp.nhat_ky (luc, viec, ok, luat, ai) values (now(), 'duyet_tay', true, ${bat ? 'BẬT công tắc lên camp mới' : 'TẮT công tắc lên camp mới — máy ngưng tạo / nhân bản camp'}, ${ai})`);
+  return { ok: true };
+}

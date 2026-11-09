@@ -27,7 +27,7 @@ import { Tong2 } from '@/components/etp-tong2';
 import { TabInsight } from '@/components/etp-insight';
 import { TabLogs } from '@/components/etp-logs';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
-import { datLichGio, datLichTong } from '@/lib/actions/etp-lich';
+import { datLenCamp, datLichGio, datLichTong } from '@/lib/actions/etp-lich';
 // CHỈ XEM (anh 29/10/2026 "sso thêm 1 người … chỉ view"): khách một trang etp (users.chi_host) — ẩn mọi nút ghi; action máy chủ cũng đòi admin
 // MÁY CHỦ SẴN SÀNG? (anh 04/11/2026 "Ai cho mày cập nhật thì chặn hết màn hình"): lúc deploy khởi động lại, nginx trả trang "đang cập nhật" (503) — làm mới /
 // tải lại đúng lúc đó là đá cả màn sang trang 503. Mọi nhịp tự làm mới + tự tải lại hỏi /etp/ban trước: chỉ khi 200 + đúng dạng mã bản dựng mới làm.
@@ -2444,6 +2444,17 @@ function NutLamMoi({ dongBo, gon }: { dongBo: DuLieuEtp['dongBo']; gon: boolean 
     style={{ alignSelf: 'center', border: '1px solid var(--line)', borderRadius: 6, padding: '1px 8px', fontSize: 11, background: 'transparent', color: cho ? 'var(--fg-2)' : 'inherit', cursor: cho ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
     <span style={{ display: 'inline-block', animation: cho ? 'etpXoay 1s linear infinite' : undefined }}>↻</span>{gon ? '' : cho ? ' Đang làm mới…' : ' Làm mới'}{bao ? <span style={{ marginLeft: 6, color: 'var(--fg-2)' }}>{bao}</span> : null}</button>;
 }
+/** CÔNG TẮC LÊN CAMP MỚI ở dòng tiêu đề (anh 09/11/2026): TẮT = etp.cau_hinh.dung_camp_moi true — máy ngưng tạo / nhân bản camp, tăng / giảm / tắt vẫn chạy */
+function NutLenCamp({ du, gon }: { du: DuLieuEtp; gon: boolean }) {
+  const router = useRouter(); const [dang, setDang] = useState(false);
+  const bat = du.cauHinh.find((c) => c.khoa === 'dung_camp_moi')?.gia_tri !== true;
+  const bam = async () => { if (!confirm(bat ? 'TẮT lên camp mới? Máy ngưng tạo / nhân bản camp (tăng / giảm / tắt vẫn chạy).' : 'BẬT lên camp mới? Máy tạo camp lại theo lộ trình + trần camp / ngày.')) return;
+    setDang(true); const r = await datLenCamp(!bat); if ('loi' in r) alert(r.loi); setDang(false); router.refresh(); };
+  return <button onClick={bam} disabled={dang} title="công tắc lên camp mới — TẮT: cổng chặn mọi đường tạo / nhân bản camp, lộ trình ngưng xếp dòng"
+    style={{ alignSelf: 'center', borderRadius: 8, padding: '2px 8px', fontSize: 12, fontWeight: 700, cursor: dang ? 'wait' : 'pointer', whiteSpace: 'nowrap',
+      border: `1px solid ${bat ? 'rgba(74,222,128,.5)' : '#d93025'}`, background: bat ? 'rgba(74,222,128,.12)' : '#d93025', color: bat ? '#4ade80' : '#fff' }}>
+    {bat ? (gon ? '▶ Lên camp' : '▶ Lên camp mới: BẬT') : (gon ? '⏸ Lên camp TẮT' : '⏸ Lên camp mới: TẮT')}</button>;
+}
 type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null; cheDo?: CheDoLuat | null };
 const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
 export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLieuEtpGui; chiXem?: boolean; quyen?: QuyenXem; dauVao?: { t?: string; v?: string; l?: string; p?: string; lu?: string; d?: string; b?: string; ll?: string; tu?: string; ngan?: string; ro?: string; ab?: string } }) {
@@ -2868,6 +2879,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLi
         <h1 style={{ margin: 0, fontSize: hep ? 16 : 20 }}>ETP · quản lý camp</h1>
         <span title={`kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`} style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hep ? `đồng bộ ${vn(du.dongBo?.xong ?? null)}` : `kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`}{du.dongBo?.loi ? ` · lỗi: ${du.dongBo.loi.slice(0, 80)}` : ''}</span>
         {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
+        {chiXem ? null : <NutLenCamp du={du} gon={hep} />}
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
         <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{!gon && coBo ? boSel() : null}{!gon && coKy ? kySel() : null}

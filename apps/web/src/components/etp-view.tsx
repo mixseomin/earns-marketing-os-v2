@@ -549,7 +549,7 @@ function LyDoChan({ chan, tc }: { chan: string; tc: TieuChi[] }) {
 // THẺ CREATIVE — MỘT khuôn cho thẻ rê chuột (máy tính) và ngăn camp (điện thoại)
 function TheCr({ r, ch, k, khTen, tc }: { r: CreativeEtpKho; ch?: ChamCr; k?: SoTien; khTen?: string; tc: TieuChi[] }) {
   return <div style={{ fontSize: 11, lineHeight: 1.45, color: 'var(--fg-2)' }}>
-    <div style={{ color: 'var(--fg-1, #eee)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><b>cr #{r.creative_id}</b> <BadgeDangNgan d={r.dang} ban={r.ban} /> · {r.phim ?? '—'}</div>
+    <div style={{ color: 'var(--fg-1, #eee)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}><b>cr #{r.creative_id}</b> <BadgeDangNgan d={r.dang} ban={r.ban} giong={r.giong} /> · {r.phim ?? '—'}</div>
     <div>đoạn {r.tu != null ? `${Math.round(r.tu)}–${Math.round(r.den ?? 0)}s` : '?'} · {r.lang ?? ''} · {r.cta_dat ? 'CTA đạt' : 'CTA cũ'} · camp chạy {r.chay}/{r.camp}{r.cung_doan > 1 ? ` · cùng đoạn ${r.cung_doan}` : ''}</div>
     <div>chấm: {ch ? <><span style={{ color: mauDiem(ch.meta) }}>Meta {ch.meta ?? '–'}</span> · <span style={{ color: mauDiem(ch.afs) }}>AFS {ch.afs ?? '–'}</span> · {ch.duyet === false ? 'người Loại' : ch.duyet ? 'người Đạt' : ch.chan_boi ? null : ch.duoc_len ? 'được lên' : ''}</> : 'chưa chấm'}{r.tu_choi ? <span style={{ color: '#f87171' }}> · Meta từ chối</span> : null}</div>
     {ch && ch.duyet == null && ch.chan_boi ? <LyDoChan chan={ch.chan_boi} tc={tc} /> : null}
@@ -2021,12 +2021,12 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       <div className="dong" data-camp-dong={c.camp_id} style={{ display: 'grid', gridTemplateColumns: LUOI_CAY, columnGap: 4, alignItems: 'center', padding: '3px 0 3px 12px', fontSize: 12, borderTop: '1px solid var(--line)',
         boxShadow: mau ? `inset 3px 0 ${mau}` : undefined, background: mau ? `${mau}14` : undefined, position: 'relative' }}>{vach}
         <span style={{ display: 'grid', gridTemplateColumns: LT, columnGap: 8, alignItems: 'center', minWidth: 0 }}>
-          <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">{ds.length ? '▸' : ''}</span> <Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} ban={c.ban} /></span>
+          <span data-cot="cham" style={{ display: 'inline-flex' }}><TT c={c} /></span><span title={c.ten} style={{ paddingLeft: (cap - 1) * 14, whiteSpace: 'nowrap', overflow: 'hidden' }}><span className="mui">{ds.length ? '▸' : ''}</span> <Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} /> <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} /></span>
           <span data-cot="tuoi" data-cot-can="phai" title={tuoiTitle(c)} style={{ color: 'var(--fg-2)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{tuoi(c) == null ? '' : <>{tuoiChu(tuoi(c))} <span style={{ fontSize: 10 }}>ngày</span></>}</span>
           <span data-cot="ngan-sach"><BacCamp c={c} bao={baoCamp.get(c.camp_id)} ls={du.lsBac[c.camp_id]} /></span>
           <span data-cot="luat" style={{ minWidth: 0 }}><ChipLuat c={c} bao={baoCamp.get(c.camp_id)} boThang={boThang} thangMuc={thangMuc} xet={du.xetLuat?.[c.camp_id]} ba={ba3(du, c)} deXuat={du.nguoi.ngoai} /></span>
           {oCr(c)}
-          <span data-cot="loai-cr"><BadgeDang d={c.dang} ban={c.ban} ngan /></span>
+          <span data-cot="loai-cr"><BadgeDang d={c.dang} ban={c.ban} giong={c.giong} ngan /></span>
           {coLich ? <span data-cot="lich" style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}><LichCamp c={c} du={du} tl={tlC} gon /></span> : null}
         </span>
         {(() => { const sd = ngay.map((d) => so.get(c.camp_id)?.get(d)), mx = maxLai([...sd, c.nay]);
@@ -2054,7 +2054,7 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
       // loại (CC…) + số bản nhân (x9 / ⚠) DẠT PHẢI ô, thẳng một cột ở mọi tầng cây — trước bám sau số camp nên thụt theo tầng (anh 31/10/2026 #1493 "cho sang phải")
       cell: (c) => { const n = dem(c); return <span data-o="camp-cay" style={{ display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} co={12} />
         <b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><CoNuoc nuoc={c.nuoc ?? []} /><NhanAb ab={c.ab} />
-        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} />
+        <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} />
         {/* bỏ dấu ⚠ nhân bản lỗi (#1524 anh 04/11/2026 "bỏ các thông báo lỗi này · chỉnh thể loại thẳng cột"): ô số bản nhân luôn rộng 22px → badge loại thẳng một cột */}
         {n ? <ReThe the={() => ({ ma: `#${c.camp_id}`, ten: c.ten, tieu: `${n} bản nhân`, mau: '#94a3b8', moc: [{ ten: 'Nhân bản', mau: '#94a3b8', so: `x${n}`, chu: 'camp nhân y nguyên từ camp này (cùng creative) — mở ▶ xem từng bản' }] })}><span style={{ color: 'var(--fg-2)', fontSize: 11, minWidth: 22, textAlign: 'right', cursor: 'help' }}>x{n}</span></ReThe>
           : <span style={{ minWidth: 22 }} />}</span></span>; } },
@@ -2110,20 +2110,20 @@ function CayCamp({ camps, du, hep: hepNgoai, laiKy, tenKy, moCr, dongCr, moCamp,
   // mọi cột khác để trống, không vào tổng phim / tổng bảng
   const thayRows = useMemo(() => { const coPhim = new Set(camps.map((c) => c.content_id));
     return (du.thayThe ?? []).filter((t) => coPhim.has(t.content_id)).map((t): CampEtpKho => ({ camp_id: -t.id, ten: t.kieu === 'cho' ? 'camp chờ' : `camp thay #${t.camp_cu}`, bo: null, trang_thai: 'THAY', giao: null, ngan_sach: 0,
-      creative_id: t.creative_id, content_id: t.content_id, goc: null, lich: null, tao: t.tao, loi: null, phim: null, the_loai: null, dang: null, ban: null, doan: null, cung_doan: 0,
+      creative_id: t.creative_id, content_id: t.content_id, goc: null, lich: null, tao: t.tao, loi: null, phim: null, the_loai: null, dang: null, ban: null, giong: null, doan: null, cung_doan: 0,
       thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, lich_tat: false, roas: null, chien_luoc: null, nuoc: [] })); }, [camps, du.thayThe]);
   const thayCua = useMemo(() => new Map((du.thayThe ?? []).map((t) => [-t.id, t])), [du.thayThe]);
   const moRongCua = useMemo(() => new Map((du.moRong ?? []).map((m) => [MR_ID(m.content_id), m])), [du.moRong]);
   // phim ĐANG có đợt sản xuất chạy (đồng hồ ⏲ ở cột TT) thì KHÔNG hiện dòng plan mở rộng — chỉ hiện lại khi đợt xong + đủ điều kiện như camp đã ổn định (#1522 anh 03/11/2026)
   const moRongRows = useMemo(() => { const coPhim = new Set(camps.map((c) => c.content_id)); const dangSx = new Set((du.dongChay ?? []).filter((x) => (x.trang_thai ?? 'chay') === 'chay').map((x) => x.content_id));
     return (du.moRong ?? []).filter((m) => m.k > 0 && coPhim.has(m.content_id) && !dangSx.has(m.content_id)).map((m): CampEtpKho => ({ camp_id: MR_ID(m.content_id), ten: `mở rộng +${m.k} camp`, bo: null, trang_thai: 'MO_RONG', giao: null, ngan_sach: 0,
-      creative_id: null, content_id: m.content_id, goc: null, lich: null, tao: m.luc, loi: null, phim: null, the_loai: null, dang: null, ban: null, doan: null, cung_doan: 0,
+      creative_id: null, content_id: m.content_id, goc: null, lich: null, tao: m.luc, loi: null, phim: null, the_loai: null, dang: null, ban: null, giong: null, doan: null, cung_doan: 0,
       thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, lich_tat: false, roas: null, chien_luoc: null, nuoc: [] })); }, [camps, du.moRong, du.dongChay]);
   // dòng KẸT theo phim (anh 07/11/2026): chỉ phim đang có camp trong danh sách; thứ tự creative rồi camp
   const ketCua = useMemo(() => { const m = new Map<number, Ket[]>(); for (const x of du.ket ?? []) { const k = KET_ID(x.content_id); m.set(k, [...(m.get(k) ?? []), x]); } return m; }, [du.ket]);
   const ketRows = useMemo(() => { const coPhim = new Set(camps.map((c) => c.content_id));
     return [...ketCua.entries()].filter(([, ds]) => coPhim.has(ds[0]!.content_id)).map(([k, ds]): CampEtpKho => ({ camp_id: k, ten: `kẹt ${ds.length}`, bo: null, trang_thai: 'KET', giao: null, ngan_sach: 0,
-      creative_id: null, content_id: ds[0]!.content_id, goc: null, lich: null, tao: ds[0]!.luc, loi: null, phim: null, the_loai: null, dang: null, ban: null, doan: null, cung_doan: 0,
+      creative_id: null, content_id: ds[0]!.content_id, goc: null, lich: null, tao: ds[0]!.luc, loi: null, phim: null, the_loai: null, dang: null, ban: null, giong: null, doan: null, cung_doan: 0,
       thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, lich_tat: false, roas: null, chien_luoc: null, nuoc: [] })); }, [camps, ketCua]);
   const cotCayThay: DataColumn<CampEtpKho>[] = cotCay.map((col) => ({ ...col,
     cell: (c: CampEtpKho, i: number) => { if (c.camp_id < 0) { const m = moRongCua.get(c.camp_id); if (m) return oMoRong(col.key, m); const kd = ketCua.get(c.camp_id); if (kd) return oKet(col.key, kd[0]!.content_id, kd); } const t = c.camp_id < 0 ? thayCua.get(c.camp_id) : undefined; return t ? oThay(col.key, t) : col.cell(c, i); },
@@ -2357,7 +2357,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
                   {/* thiếu ảnh bìa (creative không qua studio có keyframe / poster) → khung hình của chính video, không để ô xám (#1491) */}
                   {x.anh ? <img src={x.anh} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     : x.video ? <video src={`${x.video}#t=1`} muted playsInline preload="metadata" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} /> : null}
-                  <span style={{ position: 'absolute', left: 4, top: 4 }}><BadgeDang d={x.dang} ban={x.ban} ngan /></span>
+                  <span style={{ position: 'absolute', left: 4, top: 4 }}><BadgeDang d={x.dang} ban={x.ban} giong={x.giong} ngan /></span>
                   <span style={{ position: 'absolute', right: 4, top: 4, fontSize: 10, padding: '0 4px', borderRadius: 4, background: 'rgba(0,0,0,.6)' }}>{(x.lang ?? '').toUpperCase()}{x.giay ? ` · ${Math.round(x.giay)}s` : ''}</span>
                 </div>
                 <div style={{ padding: '4px 6px', fontSize: 11, lineHeight: 1.35 }}>
@@ -2371,7 +2371,7 @@ function TabThuVien({ du, tl }: { du: DuLieuEtp; tl: (k: string | null) => strin
       {xMo ? <Drawer onClose={() => setMo(null)} width={460}>
         <div style={{ display: 'grid', gap: 10 }}>
           <div><b style={{ fontSize: 15 }}>{xMo.phim ?? `phim #${xMo.content_id}`}</b><div style={{ fontSize: 12, color: 'var(--fg-2)', marginTop: 2 }}>
-            <BadgeDang d={xMo.dang} ban={xMo.ban} /> {(xMo.lang ?? '').toUpperCase()} · {xMo.giay ? `${xMo.giay.toFixed(1)}s` : ''} · {xMo.creative_id ? `cr #${xMo.creative_id}` : 'chưa lên Ethopex'} · <span style={{ color: TT_TV[ttTv(xMo)][1] }}>{TT_TV[ttTv(xMo)][0]}</span></div></div>
+            <BadgeDang d={xMo.dang} ban={xMo.ban} giong={xMo.giong} /> {(xMo.lang ?? '').toUpperCase()} · {xMo.giay ? `${xMo.giay.toFixed(1)}s` : ''} · {xMo.creative_id ? `cr #${xMo.creative_id}` : 'chưa lên Ethopex'} · <span style={{ color: TT_TV[ttTv(xMo)][1] }}>{TT_TV[ttTv(xMo)][0]}</span></div></div>
           {ttTv(xMo) === 'dang_sinh' ? <div style={{ fontSize: 12, color: TT_TV.dang_sinh[1] }}>Máy sinh đang làm: {xMo.ghi ?? '…'} — tab tự làm mới mỗi phút</div> : null}
           {xMo.video ? <video key={xMo.video} src={xMo.video} controls playsInline style={{ width: '100%', maxHeight: '70vh', background: '#000', borderRadius: 6 }} /> : <EmptyState compact icon="🎞" title="Chưa có video" />}
           <div style={{ fontSize: 12, color: 'var(--fg-2)' }}>
@@ -2984,7 +2984,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLi
             <div style={{ fontSize: 11, color: 'var(--fg-2)' }}>Từng camp — bấm để mở ngăn camp</div>
             {xep.map((c) => <div key={c.camp_id} onClick={() => doi({ ngan: `camp:${c.camp_id}` }, () => { setNganPhim(null); setNganCamp(c.camp_id); })}
               style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0,1fr) 36px 44px 44px 70px', gap: 6, alignItems: 'center', padding: '6px 0', borderTop: '1px solid var(--line)', cursor: 'pointer', opacity: c.trang_thai === 'ACTIVE' ? 1 : 0.5, fontVariantNumeric: 'tabular-nums' }}>
-              <TT c={c} /><span style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}><b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} ban={c.ban} /></span>
+              <TT c={c} /><span style={{ whiteSpace: 'nowrap', overflow: 'hidden' }}><b style={laRoas(c) ? { color: MAU_ROAS } : undefined}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} /></span>
               <span style={{ textAlign: 'right', color: 'var(--fg-2)' }}>${c.ngan_sach}</span>
               <span style={{ textAlign: 'right' }} title="ROI hôm nay"><Roi s={c.nay} /></span><span style={{ textAlign: 'right' }} title="ROI hôm qua"><Roi s={c.qua} /></span>
               <span style={{ textAlign: 'right' }} title={khNay ? 'lãi nay' : `lãi ${khNhan.toLowerCase()}`}><Lai s={khNay ? c.nay : ckh(c.camp_id)} /></span></div>)}
@@ -3001,7 +3001,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLi
         const O = ({ ten, children }: { ten: string; children: React.ReactNode }) => <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '6px 8px', minWidth: 0 }}><div style={{ fontSize: 10, color: 'var(--fg-3, #777)' }}>{ten}</div><div style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{children}</div></div>;
         return <Drawer onClose={dong} width={440} padding={14}>
           {!c ? <div style={{ color: 'var(--fg-2)' }}>Không thấy camp #{nganCamp} trong kho (đã lưu trữ hoặc chưa đồng bộ).</div> : <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingRight: 28 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} /><b style={{ fontSize: 15, color: laRoas(c) ? MAU_ROAS : undefined }}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} ban={c.ban} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, paddingRight: 28 }}><TT c={c} /><Hex bo={c.bo} info={c.bo ? du.boTk[c.bo] : undefined} /><b style={{ fontSize: 15, color: laRoas(c) ? MAU_ROAS : undefined }}>#{c.camp_id}</b><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} />
               <span style={{ color: 'var(--fg-3, #777)', marginLeft: 'auto' }}>{tuoiChu(tuoiNgay(c.tao))} ngày</span></div>
             <div style={{ fontWeight: 600, lineHeight: 1.3 }}>{c.phim ?? c.ten}</div>
             {c.phim && c.ten && c.ten !== c.phim ? <div style={{ color: 'var(--fg-2)', marginTop: -6, wordBreak: 'break-word', userSelect: 'all' }}>{c.ten}</div> : null}{/* tên camp thật (anh 31/10/2026 #1494) */}

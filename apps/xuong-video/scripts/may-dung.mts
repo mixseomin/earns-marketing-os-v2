@@ -15,7 +15,8 @@
 //   --ghi-du-kien                  stdin JSON { may, ds: [{ ngay, gio, may, nen, slug, title }] } → lịch dự kiến 7 ngày (tab Social › Lịch đăng)
 //   --nhat-ky                      stdin JSON { buoc, ok?, slug?, nen?, noi_dung?, url? } → một dòng nhật ký máy (màn máy hiện)
 //   --sinh-de <YYYY-MM-DD> [--va-xuat] [--toi-da N]   ô kế hoạch ngày đó chưa có bài đúng góc + dạng → sinh đề bằng chữ AI (may-de.ts) → nạp (→ dựng); TỐN TIỀN vài chục đồng / đề
-//   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }] } → trạng thái máy đăng thời gian thực (mos2 Lịch đăng › ⚡ Máy đăng)
+//   --trang-thai                   stdin JSON { may_mac, giay, ghi?, ds: [{ ma, nen, quyet, ly_do, slug?, url? }], luot?: [@@luot…] } → trạng thái máy đăng + sổ lượt 7 bước (mos2 tab Máy Đăng)
+//   --lenh-dang                    lệnh chờ của tab Máy Đăng (thử lại…) → JSON, đánh dấu đã nhận
 //   --may-info                     in JSON máy (ma, ten, chay, dang[] gồm cấu hình kênh br) — máy đăng đọc nơi đăng từ đây
 //   --may-chay                     in JSON [mã máy] đang bật (chay) — dang-may.mjs chạy lần lượt
 //   --goc-hook --may <mã> [--goc <id>]  in JSON { goc, hooks[], da_lam[] } cho tập kế của máy video ngoài (kênh lịch sử lam-tap.mjs) — cùng kho góc + hook với --sinh-kho
@@ -380,9 +381,32 @@ if (a.includes('--nap')) {
   const t = (await docStdin()) as { may_mac: string; giay: number; ghi?: string; ds: { ma: string; nen: string; quyet: string; ly_do?: string; slug?: string | null; url?: string | null }[] };
   for (const x of t.ds ?? []) await db.execute(sql`INSERT INTO may_dang_trang_thai (ma, nen, luc, may_mac, quyet, ly_do, slug, url) VALUES (${x.ma}, ${x.nen}, now(), ${t.may_mac ?? ''}, ${x.quyet}, ${x.ly_do ?? ''}, ${x.slug ?? null}, ${x.url ?? null})
     ON CONFLICT (ma, nen) DO UPDATE SET luc = now(), may_mac = EXCLUDED.may_mac, quyet = EXCLUDED.quyet, ly_do = EXCLUDED.ly_do, slug = EXCLUDED.slug, url = EXCLUDED.url`);
+  // SỔ LƯỢT 7 BƯỚC (tab Máy Đăng mos2, bảng may_dang_so — puzzle-books luot-dang.mjs in dòng @@luot): lượt dừng / bỏ / kho cạn cùng lý do liền
+  // nhau trong một ngày (giờ VN) gộp vào dòng trước (lan + 1) — lượt 10 phút không đẻ 144 dòng "hết bài" mỗi ngày. Nhóm lỗi: hàm SQL may_dang_ma_ly.
+  type Luot = { ma: string; nen: string; may_mac?: string; bd: string; kt: string; giay?: number; ket: string; buoc_dung?: string | null; loi?: string | null; slug?: string | null; url?: string | null; acct?: string | null; profile?: string | null; duong?: string | null; buoc?: unknown };
+  let soLuot = 0;
+  for (const x of ((t as unknown as { luot?: Luot[] }).luot ?? [])) {
+    if (!x?.ma || !x?.nen || !x?.ket || !x?.bd) continue;
+    try {
+    const b = JSON.stringify(x.buoc ?? {}), loi = x.loi ?? null, bdung = x.buoc_dung ?? null;
+    const gop = ['dung', 'bo', 'het'].includes(x.ket) ? (await db.execute(sql`WITH cuoi AS (SELECT id, ket, buoc_dung, ma_ly, loi, bd FROM may_dang_so WHERE ma = ${x.ma} AND nen = ${x.nen} ORDER BY bd DESC LIMIT 1)
+      UPDATE may_dang_so s SET lan = s.lan + 1, kt = ${x.kt}::timestamptz, giay = ${x.giay ?? null}, loi = ${loi}, buoc = ${b}::jsonb, may_mac = ${t.may_mac ?? ''}
+      FROM cuoi WHERE s.id = cuoi.id AND cuoi.ket = ${x.ket} AND cuoi.buoc_dung IS NOT DISTINCT FROM ${bdung}::text AND cuoi.ma_ly IS NOT DISTINCT FROM may_dang_ma_ly(${loi}::text)
+        AND (cuoi.ma_ly IS DISTINCT FROM 'khac' OR cuoi.loi IS NOT DISTINCT FROM ${loi}::text)
+        AND (cuoi.bd AT TIME ZONE 'Asia/Ho_Chi_Minh')::date = (${x.bd}::timestamptz AT TIME ZONE 'Asia/Ho_Chi_Minh')::date RETURNING s.id`)) as unknown as unknown[] : [];
+    if (!gop.length) await db.execute(sql`INSERT INTO may_dang_so (ma, nen, du_an, may_mac, bd, kt, giay, ket, buoc_dung, ma_ly, loi, slug, url, acct, profile, duong, buoc)
+      VALUES (${x.ma}, ${x.nen}, coalesce((SELECT du_an FROM xv_may WHERE ma = ${x.ma}), ''), ${x.may_mac ?? t.may_mac ?? ''}, ${x.bd}::timestamptz, ${x.kt}::timestamptz, ${x.giay ?? null}, ${x.ket}, ${bdung},
+        may_dang_ma_ly(${loi}::text), ${loi}, ${x.slug ?? null}, ${x.url ?? null}, ${x.acct ?? null}, ${x.profile ?? null}, ${x.duong ?? null}, ${b}::jsonb)`);
+    soLuot++;
+    } catch (e) { console.error(`⚠ lượt ${x.ma} ${x.nen} không vào sổ Máy Đăng: ${String((e as Error).message).split('\n')[0]}`); }   // một lượt hỏng không làm hỏng cả gói trạng thái
+  }
   const dem = (q: string) => (t.ds ?? []).filter((x) => x.quyet === q).length;
   await db.execute(sql`INSERT INTO may_dang_luot (may_mac, giay, so_dang, so_hong, so_bo, ghi) VALUES (${t.may_mac ?? ''}, ${Math.round(t.giay ?? 0)}, ${dem('dang')}, ${dem('hong')}, ${dem('bo') + dem('dung')}, ${t.ghi ?? ''})`);
-  console.log(`✓ trạng thái ${(t.ds ?? []).length} kênh`);
+  console.log(`✓ trạng thái ${(t.ds ?? []).length} kênh · ${soLuot} lượt vào sổ Máy Đăng`);
+} else if (a.includes('--lenh-dang')) {
+  // LỆNH TAB MÁY ĐĂNG cho máy ở iMac (dang-lien-tuc.mjs gọi đầu mỗi vòng): trả lệnh chờ (≤ 1 ngày) và đánh dấu đã nhận trong cùng câu lệnh — máy áp ngay vòng đó
+  const r = await db.execute(sql`UPDATE may_dang_lenh SET xong_luc = now(), ket = 'máy đã nhận' WHERE xong_luc IS NULL AND luc > now() - interval '1 day' RETURNING id, loai, ma, nen`);
+  console.log(JSON.stringify(r));
 } else if (a.includes('--may-info')) {
   const m = await mayTheoMa(db, ma); if (!m) { console.error(`không có máy ${ma}`); process.exit(1); }
   process.stdout.write(JSON.stringify(m));

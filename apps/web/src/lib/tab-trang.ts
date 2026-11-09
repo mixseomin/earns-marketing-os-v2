@@ -26,6 +26,7 @@ export const TAB_TRANG = {
     { key: 'duan', label: 'Dự án' },
     { key: 'ethopex', label: 'Ethopex', title: 'Camp FB phim ngắn trên Ethopex: số liệu sống + luật đang áp cho từng camp (tăng bậc, trần, khung giờ, giảm/tắt, ad từ chối, số camp/phim)' },
     { key: 'social', label: 'Social Traffic', title: 'Kênh video tự đăng → site aff: góc từ spy · sản xuất ở xưởng · kênh · trang đích · tiền (DEMO / LIVE)' },
+    { key: 'maydang', label: 'Máy Đăng', title: 'Mọi lượt máy đăng bài của mọi dự án, mới nhất trên đầu: 7 bước thành 7 cột, rê để xem + thử lại / bỏ bài / ghi chú, lỗi hay gặp để tập trung sửa (Phòng Social Traffic)' },
     { key: 'thuvien', label: 'Thư viện', title: 'Thư viện thiết kế (mẫu + ảnh minh hoạ, lọc thẻ) và các trang Library cũ: Công cụ & Skill, Kiến thức, Catalog, Offers, Nền tảng, Công nghệ' },
   ] },
   // Xếp theo ĐƯỜNG ĐI CỦA KHÁCH (anh chốt 02/10/2026): quảng cáo kéo khách → khách trên site → đặt đơn + trả tiền → sau bán;

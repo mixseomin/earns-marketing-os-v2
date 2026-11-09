@@ -5,6 +5,8 @@ export { EmptyState } from './empty-state';
 export { StickyBar } from './sticky-bar';
 export { Spinner, type SpinnerSize } from './spinner';
 export { DongHo, MAU_NUT, nutTuanTu, type TrangThaiNut } from './dong-ho';
+// NutViec = nút gọi máy chủ có trạng thái (⏳ đang → ✓ câu báo / chữ đỏ lỗi) — YDNI 'bấm là có dấu hiệu đã nhận'. Đừng tự viết setDang lẻ.
+export { NutViec } from './nut-viec';
 export { LinkChip, type ChipTone, type ChipSize } from './link-chip';
 export { Segmented, type SegmentedOption } from './segmented';
 export { Tabs, type TabItem } from './tabs';

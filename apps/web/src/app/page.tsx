@@ -31,6 +31,7 @@ import { getRevenueByDay } from '@/lib/revenue/by-day';
 import { getPhu, listPhuProjects } from '@/lib/phu';
 import { BACKLINK_SITES } from '@/lib/backlink-sites';
 import { ThuVienTab } from '@/components/thu-vien-tab';
+import { MayDangView } from '@/components/may-dang-view';
 
 // Read DB at request time, not build time — server isn't migrated yet on first deploy.
 export const dynamic = 'force-dynamic';
@@ -120,6 +121,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           {tab === 'lenh' && <Lenh />}
           {tab === 'duan' && <DuAn projects={projects} />}
           {tab === 'social' && <Suspense fallback={cho}><SocialTab /></Suspense>}
+          {tab === 'maydang' && <Suspense fallback={cho}><MayDangView /></Suspense>}
           {tab === 'thuvien' && <Suspense fallback={cho}><ThuVienTab tv={sp.tv} /></Suspense>}
           {tab === 'ethopex' && <Suspense fallback={cho}><EthopexTab /></Suspense>}
         </div>

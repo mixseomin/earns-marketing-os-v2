@@ -2453,7 +2453,7 @@ function NutLenCamp({ du, gon }: { du: DuLieuEtp; gon: boolean }) {
   return <button onClick={bam} disabled={dang} title="công tắc lên camp mới — TẮT: cổng chặn mọi đường tạo / nhân bản camp, lộ trình ngưng xếp dòng"
     style={{ alignSelf: 'center', borderRadius: 8, padding: '2px 8px', fontSize: 12, fontWeight: 700, cursor: dang ? 'wait' : 'pointer', whiteSpace: 'nowrap',
       border: `1px solid ${bat ? 'rgba(74,222,128,.5)' : '#d93025'}`, background: bat ? 'rgba(74,222,128,.12)' : '#d93025', color: bat ? '#4ade80' : '#fff' }}>
-    {bat ? (gon ? '▶ Lên camp' : '▶ Lên camp mới: BẬT') : (gon ? '⏸ Lên camp TẮT' : '⏸ Lên camp mới: TẮT')}</button>;
+    {bat ? (gon ? '▶ Lên camp' : '▶ Lên camp mới (David): BẬT') : (gon ? '⏸ Lên camp TẮT' : '⏸ Lên camp mới (David): TẮT')}</button>;
 }
 type QuyenXem = { vai: 'chu' | 'admin' | 'nguoi'; sua: number | null; het?: string | null; cheDo?: CheDoLuat | null };
 const TAB_NGUOI: Tab[] = ['tong', 'camp', 'creative', 'phim'];
@@ -2879,7 +2879,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLi
         <h1 style={{ margin: 0, fontSize: hep ? 16 : 20 }}>ETP · quản lý camp</h1>
         <span title={`kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`} style={{ fontSize: 11, color: 'var(--fg-2)' }}>{hep ? `đồng bộ ${vn(du.dongBo?.xong ?? null)}` : `kho đồng bộ ${vn(du.dongBo?.xong ?? null)} · ngày Ethopex 07:00–07:00 VN · tự làm mới mỗi phút`}{du.dongBo?.loi ? ` · lỗi: ${du.dongBo.loi.slice(0, 80)}` : ''}</span>
         {chiXem ? null : <NutLamMoi dongBo={du.dongBo} gon={hep} />}
-        {chiXem ? null : <NutLenCamp du={du} gon={hep} />}
+        {chiXem || du.nguoi.ngoai || du.nguoi.doi ? null : <NutLenCamp du={du} gon={hep} />}{/* chỉ khi đang xem tk David (Nhà) — anh 09/11/2026 'các thay đổi chỉ hiện ở tk David' */}
         {dk ? <span style={{ background: '#d93025', color: '#fff', borderRadius: 8, padding: '2px 8px', fontWeight: 700 }}>⛔ ĐANG DỪNG KHẨN</span> : null}
         {/* NGƯỜI ở dòng tiêu đề (anh 28/10/2026 "chuyển chọn tk này lên trên cho đúng logic"): đổi người là đổi dữ liệu CẢ TRANG (mọi tab), không phải một bộ lọc camp */}
         <span style={{ alignSelf: 'center', display: 'inline-flex', gap: 6, alignItems: 'center' }}>{nguoiSel()}{!gon && coBo ? boSel() : null}{!gon && coKy ? kySel() : null}

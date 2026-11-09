@@ -119,7 +119,7 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         if viec == "tang" and not roas and camp_id and ns_moi is not None and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") != "1":
             r3 = _q(SQL_ROI3.format(cid=int(camp_id))); nap = nap_tang(float(r3) if r3 not in ("", None) else None)
             if float(ns_moi) > nap: return f"nắp ROI 3 ngày khép ({(r3 + '%') if r3 else 'chưa có số'}) → camp thường trần ${nap:g}, không lên ${float(ns_moi):g} (Dol 09/11/2026: 30–50% ~$10 · 50–80% ~$15 · >80% ~$20, anh duyệt chỉ áp lần tăng mới)"
-        if ch.get(KHOA_DUNG_CAMP_MOI) and viec in ("nhan_ban", "tao_camp"): return f"{LY_DUNG_CAMP_MOI} (etp.cau_hinh.{KHOA_DUNG_CAMP_MOI} — anh dừng để review) — tăng / giảm / tắt vẫn chạy"
+        if ch.get(KHOA_DUNG_CAMP_MOI) and viec in ("nhan_ban", "tao_camp") and not ngoai: return f"{LY_DUNG_CAMP_MOI} (etp.cau_hinh.{KHOA_DUNG_CAMP_MOI} — anh dừng để review) — tăng / giảm / tắt vẫn chạy"
         them = float(ns_moi or 1) - float(ns_cu or 0)   # camp mới / nhân bản = $1
         tc = ch.get("tran_camp")
         # A/B ROAS TĂNG $30 (anh 08/11/2026 "Camp ROAS làm thêm thử nghiệm tăng bậc <=1.5 lần đến max $30 cho 1 vài camp"): camp nhánh THỬ của lần A/B

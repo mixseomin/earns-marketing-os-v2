@@ -105,7 +105,8 @@ const daLam = new Set(q(`SELECT coalesce(string_agg(slug, ','), '') FROM xv_may_
 /** viết → lồng tiếng + dựng → nạp, nhật ký ~/.cache/lich-su/<kênh>-<tập>.log. Trả { ok, tien, loi }. */
 function lam(y, han = {}) {
   mkdirSync(join(CACHE, 'lich-su'), { recursive: true }); const f = join(CACHE, 'lich-su', `${KENH}-${y}.log`), fd = openSync(f, 'w');
-  const chay = (args, cwd) => spawnSync(process.execPath, args, { cwd, stdio: ['ignore', fd, fd], timeout: 45 * 60_000, killSignal: 'SIGKILL' });
+  // trần mỗi bước: tập ngắn 45 phút; tập dài 8–10 phút ~17.000 khung × ~5 khung/giây ≈ 1 giờ dựng → 3 giờ (09/11/2026: tập dài đầu bị giết ở phút 45)
+  const chay = (args, cwd) => spawnSync(process.execPath, args, { cwd, stdio: ['ignore', fd, fd], timeout: (laDai(y) ? 180 : 45) * 60_000, killSignal: 'SIGKILL' });
   try {
     const ra = join(RA, `${y}.mp4`), tep = join(TAP, `${y}.json`), buoc = [[lenhViet(y, han), DIR], [[join(SHOT, 'long-tieng.mjs'), '--cau', relative(SHOT, tep), '--ra', relative(SHOT, ra), ...(laDai(y) ? ['--rong', '1920', '--cao', '1080'] : [])], SHOT],
       [[join(DIR, 'nap-tap.mjs'), '--tap', tep, '--video', ra, ...(han.tu ? ['--dang-tu', han.tu] : []), ...(han.den ? ['--dang-den', han.den] : [])], DIR]];

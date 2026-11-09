@@ -88,18 +88,25 @@ jobs:
           key: nm-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
       - run: npm ci --prefer-offline --no-audit --no-fund
         if: steps.nm.outputs.cache-hit != 'true'
-      # Next.js incremental build cache cho CẢ 4 app (trước chỉ web → store/studio/cty build nguội mỗi lượt).
+      # Next.js incremental build cache — MỖI APP MỘT CACHE, chỉ khôi phục + lưu cache của app được dựng lượt này
+      # (anh 09/11/2026 "tối ưu lại ngay": trước một cache gộp 4 app → khôi phục 24s + lưu 13s mọi lượt dù chỉ dựng web).
       # Keyed per-sha, restore-keys falls back to the newest.
-      - name: Restore Next.js build cache
+      - name: Restore Next.js build cache (web)
+        if: steps.chon.outputs.web == '1'
         uses: actions/cache@v4
-        with:
-          path: |
-            apps/web/.next/cache
-            apps/store/.next/cache
-            apps/xuong-video/.next/cache
-            apps/cty/.next/cache
-          key: nextcache4-${{ github.sha }}
-          restore-keys: nextcache4-
+        with: { path: apps/web/.next/cache, key: "nextcache-web-${{ github.sha }}", restore-keys: nextcache-web- }
+      - name: Restore Next.js build cache (store)
+        if: steps.chon.outputs.store == '1'
+        uses: actions/cache@v4
+        with: { path: apps/store/.next/cache, key: "nextcache-store-${{ github.sha }}", restore-keys: nextcache-store- }
+      - name: Restore Next.js build cache (studio)
+        if: steps.chon.outputs.studio == '1'
+        uses: actions/cache@v4
+        with: { path: apps/xuong-video/.next/cache, key: "nextcache-studio-${{ github.sha }}", restore-keys: nextcache-studio- }
+      - name: Restore Next.js build cache (cty)
+        if: steps.chon.outputs.cty == '1'
+        uses: actions/cache@v4
+        with: { path: apps/cty/.next/cache, key: "nextcache-cty-${{ github.sha }}", restore-keys: nextcache-cty- }
       - name: Kiểm tĩnh
         run: |
           node scripts/check-sql-aliases.mjs

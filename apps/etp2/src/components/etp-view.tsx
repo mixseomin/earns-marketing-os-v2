@@ -698,6 +698,8 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
   const [xem, setXem] = useState<string | null>(null);
   // ba nhóm việc = ba TAB (YDNI: >2 nhóm thì chia tab, không chồng dọc) · xác nhận NGAY TRONG BẢNG (ui-conventions §3: không confirm() gốc)
   const [tab, setTab] = useState<'tt' | 'ns' | 'nb' | 'ls'>('ns');
+  // YDNI (anh 09/11/2026 "sao thiết kế cứ ghi hết chữ ra thế kia"): mọi đoạn hướng dẫn gập sau nút ℹ; lịch sử mỗi thay đổi MỘT dòng, lý do bấm dòng mới mở
+  const [hd, setHd] = useState(false), [moLs, setMoLs] = useState<number | null>(null);
   const [cho, setCho] = useState<{ o: string; chu: string; f: () => Promise<{ ok: true; chu: string } | { loi: string }> } | null>(null);
   const rQua = roiOf(c.qua), rThang = roiOf(c.thang), bacNay = BAC_NS.indexOf(c.ngan_sach);
   const goiNs = rQua == null ? null : rQua >= 30 && c.qua.chi >= c.ngan_sach * 0.5 && bacNay >= 0 && bacNay < BAC_NS.length - 1 ? { ns: BAC_NS[bacNay + 1]!, ly: `hôm qua ROI ${rQua}%, đã tiêu ${Math.round((c.qua.chi / c.ngan_sach) * 100)}% ngân sách` }
@@ -717,40 +719,50 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
     <span style={{ flex: 1, minWidth: 160 }}>Chắc chắn: <b>{cho.chu}</b>?</span>
     <button onClick={() => { const f = cho.f; setCho(null); void lam(k, f); }} style={{ ...nut, borderColor: '#f59e0b' }}>Làm</button>
     <button onClick={() => setCho(null)} style={nut}>Huỷ</button></div> : null);
-  const muc = (t: string, mo2: string) => <div style={{ marginBottom: 6 }}><b style={{ fontSize: 13 }}>{t}</b><div style={{ color: 'var(--fg-2)', lineHeight: 1.45, marginTop: 2 }}>{mo2}</div></div>;
+  const muc = (t: string, mo2: string) => <div style={{ marginBottom: 6 }}><b style={{ fontSize: 13 }}>{t}</b>{hd ? <div style={{ color: 'var(--fg-2)', lineHeight: 1.45, marginTop: 2 }}>{mo2}</div> : null}</div>;
   const hop: React.CSSProperties = { padding: 12, border: '1px solid var(--line)', borderRadius: 8, marginBottom: 12 };
   const o2: React.CSSProperties = { width: 70, fontSize: 12, padding: '3px 6px', borderRadius: 6, border: '1px solid var(--line)', background: 'var(--bg-2)', color: 'inherit' };
   return <>
     <button onClick={(e) => { e.stopPropagation(); setMo(true); setKq(null); setXem(null); setNs(String(c.ngan_sach)); }} title="điều khiển camp: bật / tắt · bậc ngân sách · nhân bản"
       style={lon ? { fontSize: 13, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--accent, #60a5fa)', background: 'var(--accent-soft, #60a5fa18)', color: 'inherit', cursor: 'pointer', width: '100%', textAlign: 'left' }
-        : { border: 'none', background: 'transparent', color: 'var(--fg-3, #777)', cursor: 'pointer', padding: '0 2px', fontSize: 12 }}>{lon ? `⚙ Điều khiển camp — bật / tắt · bậc ngân sách · nhân bản${dsCho.length ? ` · ⏳ ${dsCho.length} lệnh chờ áp` : ''}` : '⚙'}</button>
+        : { border: 'none', background: 'transparent', color: 'var(--fg-3, #777)', cursor: 'pointer', padding: '0 2px', fontSize: 12 }}>{lon ? `⚙ Điều khiển camp${dsCho.length ? ` · ⏳ ${dsCho.length} chờ áp` : ''}` : '⚙'}</button>
     {mo ? <Drawer onClose={() => setMo(false)} width={520} padding={16}>
       <div onClick={(e) => e.stopPropagation()} style={{ fontSize: 12 }}>
         <DauCamp c={c} />
-        {dsCho.length ? <div style={{ marginBottom: 10, padding: '8px 10px', borderRadius: 6, border: '1px solid #f59e0b', lineHeight: 1.5 }}>
-          <b style={{ color: '#f59e0b' }}>⏳ Đã gửi, chờ áp vào số trên trang</b> <span style={{ color: 'var(--fg-2)' }}>— Ethopex đã nhận; số ở đây đổi ở lượt đồng bộ kho kế (~10 phút)</span>
-          {dsCho.map((x, i) => <div key={i}>{gioCho(x.luc)} · {x.chu}</div>)}</div> : null}
+        {dsCho.length ? <div title="Ethopex đã nhận; số trên trang đổi ở lượt đồng bộ kho kế (~10 phút)" style={{ marginBottom: 10, padding: '6px 10px', borderRadius: 6, border: '1px solid #f59e0b', lineHeight: 1.5, cursor: 'help' }}>
+          {dsCho.map((x, i) => <div key={i}><span style={{ color: '#f59e0b' }}>⏳ chờ áp</span> · {gioCho(x.luc)} · {x.chu}</div>)}</div> : null}
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 12, color: 'var(--fg-2)' }}>
           <span>{c.trang_thai === 'ACTIVE' ? <b style={{ color: '#4ade80' }}>đang chạy</b> : <b style={{ color: '#94a3b8' }}>đang tắt</b>}</span><span>ngân sách <b style={{ color: 'var(--fg-1)' }}>${c.ngan_sach}</b></span>
           <span>nay <Roi s={c.nay} /></span><span>qua <Roi s={c.qua} /></span><span>tháng <Roi s={c.thang} /></span>
         </div>
-        <label style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginBottom: 12, color: ep ? '#fbbf24' : 'var(--fg-2)', lineHeight: 1.4 }}>
-          <input type="checkbox" checked={ep} onChange={(e) => setEp(e.target.checked)} />
-          <span><b>Ép (sửa tay là chính)</b> — bỏ chặn mềm của máy: tắt camp đang lãi &gt; 20%, tăng lại camp vừa bị giảm, nhịp tăng 24 giờ. Thang bậc, trần $30 và rào chắn etp (dừng khẩn, trần ngày / bộ) vẫn giữ.</span>
-        </label>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+          <label title="bỏ chặn mềm của máy: tắt camp đang lãi > 20%, tăng lại camp vừa bị giảm, nhịp tăng 24 giờ — thang bậc, trần $30, rào chắn etp vẫn giữ" style={{ display: 'flex', gap: 6, alignItems: 'flex-start', flex: 1, color: ep ? '#fbbf24' : 'var(--fg-2)', lineHeight: 1.4, cursor: 'pointer' }}>
+            <input type="checkbox" checked={ep} onChange={(e) => setEp(e.target.checked)} />
+            <span><b>Ép</b>{hd ? ' — bỏ chặn mềm của máy: tắt camp đang lãi > 20%, tăng lại camp vừa bị giảm, nhịp tăng 24 giờ. Thang bậc, trần $30 và rào chắn etp vẫn giữ.' : ''}</span>
+          </label>
+          <button onClick={() => setHd((v) => !v)} title={hd ? 'ẩn hướng dẫn' : 'hiện hướng dẫn từng mục'} style={{ ...nut, padding: '1px 8px', borderColor: hd ? 'var(--accent, #60a5fa)' : 'var(--line)' }}>ℹ</button>
+        </div>
         <div style={{ marginBottom: 10 }}><Segmented value={tab} onChange={(v) => { setTab(v as 'tt' | 'ns' | 'nb' | 'ls'); setCho(null); }}
           options={[{ value: 'tt', label: c.trang_thai === 'ACTIVE' ? '⏸ Tắt' : '▶ Bật' }, { value: 'ns', label: '$ Ngân sách' }, { value: 'nb', label: '＋ Nhân bản' }, { value: 'ls', label: '🕘 Lịch sử' }]} /></div>
-        {tab === 'ls' ? <div style={hop}>
-          {muc('Lịch sử thay đổi', 'Mới nhất ở trên. Lệnh tay gửi từ etp2 hiện ngay; bật / tắt và đổi bậc của máy luật vào đây sau lượt đồng bộ kho (~10 phút).')}
-          <div style={{ fontSize: 11, color: 'var(--fg-3, #777)', margin: '8px 0 6px' }}>Lệnh tay etp2 · 2 giờ</div>
-          <DongMoc rong="Chưa có lệnh tay nào trong 2 giờ." ds={[...ls.tay].reverse().map((x) => { const cho = dsCho.includes(x);
-            return { ten: cho ? '⏳ Chờ áp' : '✓ Đã vào kho', mau: cho ? '#f59e0b' : '#4ade80', so: x.chu, luc: gioCho(x.luc), chu: 'anh (etp2)' }; })} />
-          <div style={{ fontSize: 11, color: 'var(--fg-3, #777)', margin: '10px 0 6px' }}>Bật / tắt</div>
-          <DongMoc gon rong="Chưa bật / tắt lần nào trong nhật ký gần đây." ds={ls.batTat.map((x) => ({ ten: x.viec === 'tat' ? 'Tắt' : 'Bật', mau: x.ok === false ? '#94a3b8' : x.viec === 'tat' ? '#f87171' : '#4ade80',
-            so: x.ok === false ? 'không thành' : '', luc: gioVn(x.luc), chu: [x.luat ? luatThuong(x.luat) : null, x.loi].filter(Boolean).join(' · ') || null, t: x.ai }))} />
-          <div style={{ fontSize: 11, color: 'var(--fg-3, #777)', margin: '10px 0 6px' }}>Bậc ngân sách · 30 ngày</div>
-          <DongBac ls={ls.bac} />
-        </div> : null}
+        {tab === 'ls' ? <div style={{ ...hop, padding: '4px 10px' }}>{(() => {
+          type D = { luc: string; ico: string; mau: string; chu: string; ai: string; ly: string | null };
+          const KY: Record<string, string> = { tang: '↑', giam: '↓', tao_camp: '＋', nhan_ban: '⧉', roas: '★', sang_bo: '⇄' };
+          const ai = (x: string | null) => ((x ?? '').startsWith('anh') ? 'anh' : 'máy');
+          const ds: D[] = [
+            ...ls.tay.map((x): D => { const cho = dsCho.includes(x); return { luc: x.luc, ico: cho ? '⏳' : '✓', mau: cho ? '#f59e0b' : '#4ade80', chu: x.chu, ai: 'anh', ly: cho ? 'đã gửi Ethopex, chờ đồng bộ kho' : 'đã vào kho' }; }),
+            ...ls.batTat.map((x): D => ({ luc: x.luc, ico: x.viec === 'tat' ? '⏸' : '▶', mau: x.ok === false ? '#94a3b8' : x.viec === 'tat' ? '#f87171' : '#4ade80',
+              chu: `${x.viec === 'tat' ? 'tắt' : 'bật'}${x.ok === false ? ' · không thành' : ''}`, ai: ai(x.ai), ly: [x.luat ? luatThuong(x.luat) : null, x.loi].filter(Boolean).join(' · ') || null })),
+            ...ls.bac.map((x): D => { const [ten, mau] = VIEC_BAC[x.viec] ?? [x.viec, '#94a3b8'];
+              return { luc: x.luc, ico: KY[x.viec] ?? '•', mau, chu: x.truoc && x.sau ? `$${x.truoc} → $${x.sau}` : `${ten.toLowerCase()}${x.sau ? ` $${x.sau}` : ''}`, ai: ai(x.ai), ly: x.luat ? luatThuong(x.luat) : null }; }),
+          ].sort((p, q) => Date.parse(q.luc) - Date.parse(p.luc));
+          if (!ds.length) return <div style={{ color: 'var(--fg-2)', padding: '6px 0' }}>Chưa có thay đổi nào.</div>;
+          return ds.map((x, i) => <div key={i} onClick={() => x.ly && setMoLs(moLs === i ? null : i)} title={x.ly ?? undefined}
+            style={{ padding: '4px 0', borderTop: i ? '1px solid var(--line)' : undefined, cursor: x.ly ? 'pointer' : undefined }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '80px 16px minmax(0,1fr) 34px', gap: 6, alignItems: 'center', whiteSpace: 'nowrap' }}>
+              <span style={{ color: 'var(--fg-3, #777)', fontVariantNumeric: 'tabular-nums' }}>{gioVn(x.luc)}</span><b style={{ color: x.mau, textAlign: 'center' }}>{x.ico}</b>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{x.chu}</span><span style={{ color: 'var(--fg-3, #777)', textAlign: 'right' }}>{x.ai}</span></div>
+            {moLs === i && x.ly ? <div style={{ color: 'var(--fg-2)', lineHeight: 1.4, padding: '2px 0 2px 102px' }}>{x.ly}</div> : null}</div>);
+        })()}</div> : null}
         {tab === 'tt' ? <div style={hop}>
           {muc(c.trang_thai === 'ACTIVE' ? 'Tắt camp' : 'Bật camp', c.trang_thai === 'ACTIVE'
             ? 'Tạm dừng camp trên Ethopex. Máy chặn tắt camp đang lãi > 20% (ROI cộng dồn mới nhất) — tích Ép để tắt luôn. Camp đang dừng theo lịch giờ thì bị bỏ khỏi lịch (không tự bật lại).'
@@ -777,9 +789,9 @@ function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }: { c: Pick<CampEtpKho, 'cam
           {muc('Nhân bản camp', 'Chọn kiểu, bấm Xem trước (máy chạy khô, không tạo gì — hiện payload hoặc lý do bị chặn), đúng rồi mới Tạo camp.')}
           {goiNb ? <div style={{ marginBottom: 6, color: '#a78bfa' }}>Gợi ý: <b>{NB_KIEU.find((x) => x.k === goiNb)!.ten}</b> — {goiNb === 'roas' ? `tháng này chi $${c.thang.chi.toFixed(0)}, ROI ${rThang}%` : `hôm qua ROI ${rQua}%`}</div> : null}
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
-            {NB_KIEU.map((x) => <button key={x.k} onClick={() => { setKieu(x.k); setXem(null); }} style={chip(kieu === x.k)}>{x.ten}{x.k === goiNb ? ' ★' : ''}</button>)}
+            {NB_KIEU.map((x) => <button key={x.k} title={x.mo} onClick={() => { setKieu(x.k); setXem(null); }} style={chip(kieu === x.k)}>{x.ten}{x.k === goiNb ? ' ★' : ''}</button>)}
           </div>
-          <div style={{ color: 'var(--fg-2)', lineHeight: 1.45, marginBottom: 8 }}>{NB_KIEU.find((x) => x.k === kieu)!.mo}</div>
+          {hd ? <div style={{ color: 'var(--fg-2)', lineHeight: 1.45, marginBottom: 8 }}>{NB_KIEU.find((x) => x.k === kieu)!.mo}</div> : null}
           {kieu === 'thang' ? <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>{BAC_NS.filter((x) => x > c.ngan_sach).map((x) => <button key={x} onClick={() => setNsThang(String(x))} style={chip(nsThang === String(x))}>${x}</button>)}</div> : null}
           {kieu === 'bo' ? <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 8 }}>{bo.map((b) => <button key={b} onClick={() => setBoDen(b)} style={chip(boDen === b)}>Bộ {b}</button>)}</div> : null}
           {kieu === 'roas' ? <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>

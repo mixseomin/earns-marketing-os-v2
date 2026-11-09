@@ -29,13 +29,19 @@ SQL_BO_PHIM = ("select coalesce((select thu_bo from etp.phim where content_id = 
 # chỉ vì dòng bị gác theo gac_dang, 33 mất PO vì chạm trần camp/ngày hay trang phim hỏng). Hỏng thật = 'loi' (máy), hoặc 'dung' không do một luật chặn:
 # gác dạng (dong_phim.gac_ly), trần camp mới/ngày (kiem → mo_tran_ngay tự mở lại), trang phim Nhà hỏng (ly_trang_hong), nhóm gốc ngoài Âu-Mỹ (bước nhận).
 SQL_DONG_HONG = ("(trang_thai = 'loi' or (trang_thai = 'dung' and coalesce(ly_do, '') not like 'tạm gác dòng%' and strpos(coalesce(ly_do, ''), 'chạm trần') = 0"
-                 " and coalesce(ly_do, '') not like 'ws: trang phim Nhà%' and coalesce(ly_do, '') not like 'nhan: nhóm gốc%'))")
+                 " and strpos(coalesce(ly_do, ''), 'DỪNG LÊN CAMP MỚI') = 0 and coalesce(ly_do, '') not like 'ws: trang phim Nhà%' and coalesce(ly_do, '') not like 'nhan: nhóm gốc%'))")
 # CAMP ÍT NƯỚC KHÔNG BẬT LẠI (anh 09/11/2026 theo Dol / Ethopex: "phải target đúng cả list quốc gia" — team tắt camp ít nước, "Ko bật lại", bỏ A/B nước):
 # camp nhánh THỬ của mọi lần A/B kiểu 'nuoc' (AB01 "4 nước") → mọi đường bật (lam-ethopex bat, lịch giờ, máy thay creative bị từ chối) đều chặn.
 # + LÔ TEAM ETHOPEX TẮT (anh 09/11/2026 "1 lô vừa tắt từ bên team etho thì ko tự bật lại"): etp.cau_hinh.team_tat = mảng camp_id (201 camp tắt 15:46 09/11) — thêm lô mới = nối vào mảng
 SQL_IT_NUOC = ("select c.camp_id from etp.camp_ab c join etp.ab a on a.ma = c.ab where a.kieu = 'nuoc' and c.nhanh = 'thu'"
                " union select x::int from etp.cau_hinh, jsonb_array_elements_text(gia_tri) x where khoa = 'team_tat'")
 LY_IT_NUOC = "camp ít nước (nhánh thử A/B nhắm nước) hoặc trong lô team Ethopex đã tắt (etp.cau_hinh.team_tat) — không bật lại (anh 09/11/2026)"
+# DỪNG LÊN CAMP MỚI — công tắc tổng etp.cau_hinh.dung_camp_moi (anh 25/10/2026 lần đầu; 09/11/2026 "kế hoạch lên 100 camp / ngày dừng lại … để review lại toàn bộ"):
+# cổng kiem chặn mọi đường tạo / nhân bản; lộ trình (lo_trinh_phim), mở lại dòng chạm trần (dong_phim.mo_tran_ngay), mở rộng phim đội lãi (dong_phim.mo_doi_lai) đọc cùng khoá
+# này để không xếp dòng mới — dòng đang dừng giữ nguyên chờ review. Mở lại = đặt false.
+KHOA_DUNG_CAMP_MOI = "dung_camp_moi"
+SQL_DUNG_CAMP_MOI = f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{KHOA_DUNG_CAMP_MOI}'), 'false') = 'true'"
+LY_DUNG_CAMP_MOI = "ĐANG DỪNG LÊN CAMP MỚI"
 SQL_TAO_HOM_NAY = "select count(*) from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
 # TRANG PHIM HỎNG HẲN (anh 09/11/2026 "Fix triệt để" — 91648 From Doomed Baby đứng bước Trang phim 01:26 08/11 → 01:27 09/11, hơn 20 lượt chờ 60 phút → Mạnh huỷ → FIX):
 # bản workspace Nhà đã thêm quá TRANG_CHO_SINH giây mà Ethopex vẫn chưa sinh đủ (thường là link tập 1: thư viện phim không có nguồn tập 1, 7 phim 09/11) → chờ thêm vô ích.
@@ -113,7 +119,7 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
         if viec == "tang" and not roas and camp_id and ns_moi is not None and _q(f"select 1 from etp.camp where camp_id = {int(camp_id)} and la_roas") != "1":
             r3 = _q(SQL_ROI3.format(cid=int(camp_id))); nap = nap_tang(float(r3) if r3 not in ("", None) else None)
             if float(ns_moi) > nap: return f"nắp ROI 3 ngày khép ({(r3 + '%') if r3 else 'chưa có số'}) → camp thường trần ${nap:g}, không lên ${float(ns_moi):g} (Dol 09/11/2026: 30–50% ~$10 · 50–80% ~$15 · >80% ~$20, anh duyệt chỉ áp lần tăng mới)"
-        if ch.get("dung_camp_moi") and viec in ("nhan_ban", "tao_camp"): return "ĐANG DỪNG LÊN CAMP MỚI (anh 25/10/2026: chờ rà soát hết creative + quy trình soát) — tăng / giảm / thay creative vẫn chạy"
+        if ch.get(KHOA_DUNG_CAMP_MOI) and viec in ("nhan_ban", "tao_camp"): return f"{LY_DUNG_CAMP_MOI} (etp.cau_hinh.{KHOA_DUNG_CAMP_MOI} — anh dừng để review) — tăng / giảm / tắt vẫn chạy"
         them = float(ns_moi or 1) - float(ns_cu or 0)   # camp mới / nhân bản = $1
         tc = ch.get("tran_camp")
         # A/B ROAS TĂNG $30 (anh 08/11/2026 "Camp ROAS làm thêm thử nghiệm tăng bậc <=1.5 lần đến max $30 cho 1 vài camp"): camp nhánh THỬ của lần A/B

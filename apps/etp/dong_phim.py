@@ -602,8 +602,12 @@ def lam_buoc(d, buoc):
 # dòng mở rộng CC với so_camp = len_doi_lai.so_camp — đường dòng lo cả creative đúng CTA mới (dùng lại creative sạch có sẵn, thiếu thì cắt), soát, chấm, lên camp $1.
 # Đợt đầu 06/11 qua hàng chờ cho_len_v lên 0 camp: creative có sẵn của 169100 / 172519 / 153695 đều CTA cũ. Mỗi phim một đợt / 24 giờ, không xếp khi phim đang có dòng chạy.
 DOI_LAI = [0.0]
+def dung_camp_moi():
+    """anh dừng lên camp mới để review (cong.KHOA_DUNG_CAMP_MOI) → không xếp / mở lại dòng nào"""
+    return sql(CG.SQL_DUNG_CAMP_MOI).strip() == "t"
+
 def mo_doi_lai():
-    if time.time() - DOI_LAI[0] < 600: return
+    if time.time() - DOI_LAI[0] < 600 or dung_camp_moi(): return
     DOI_LAI[0] = time.time()
     for l in sql("""begin; select pg_advisory_xact_lock(4390);
         insert into etp.dong_phim (content_id, ten, loai, ai, so_camp)
@@ -621,6 +625,7 @@ def mo_tran_ngay():
     """DÒNG DỪNG VÌ TRẦN CAMP MỚI / NGÀY TỰ LÊN LẠI SANG NGÀY MỚI (08/11/2026: đợt ATT/PD/CTS 9 phim — 6 dòng creative sạch dừng "chạm trần 100 camp
     mới / ngày … mai lên tiếp" mà không máy nào làm câu "mai lên tiếp"): ngày VN mới + còn chỗ dưới trần → FIX bước camp của các dòng đó (dừng từ ngày
     trước, trong 3 ngày), tối đa bằng số chỗ còn lại; dòng vẫn vấp trần thì dừng lại với ngày hôm nay và chờ hôm sau."""
+    if dung_camp_moi(): return
     for l in sql(f"""with con as (select (select gia_tri::text::int from etp.cau_hinh where khoa = '{CG.KHOA_TRAN_NGAY}') - ({CG.SQL_TAO_HOM_NAY}) n),
         mo as (select b.dong_id from etp.dong_buoc b join etp.dong_phim d on d.id = b.dong_id, con
                where b.buoc = 'camp' and b.trang_thai = 'dung' and not b.fix and strpos(b.ghi, '{CG.KHOA_TRAN_NGAY}') > 0 and d.trang_thai = 'dung'

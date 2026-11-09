@@ -186,6 +186,10 @@ def chay(q):
     try: GAC.clear(); GAC.update(str(x) for x in json.loads(q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_dang'), '[]')") or "[]"))
     except Exception: pass
     kq = {}
+    if q(CG.SQL_DUNG_CAMP_MOI) == "t":   # anh dừng lên camp mới để review (cong.KHOA_DUNG_CAMP_MOI) → không xếp dòng nào
+        q(f"""insert into etp.nhat_ky (luc, viec, ok, luat, ai) select now(), 'lo_trinh', true, 'đang dừng lên camp mới (etp.cau_hinh.{CG.KHOA_DUNG_CAMP_MOI}) — lộ trình ngưng xếp dòng', 'máy lộ trình tự động'
+              where not exists (select 1 from etp.nhat_ky where viec = 'lo_trinh' and luat like 'đang dừng lên camp mới%' and (luc at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date)""")
+        return {"lo_trinh": "đang dừng lên camp mới — không xếp dòng"}
     # CHẠM TRẦN CAMP MỚI / NGÀY (cong.KHOA_TRAN_NGAY) → lượt này KHÔNG xếp dòng nào (09/11/2026: 108 camp lên lúc 00:00–00:30, trần chạm; mỗi lượt 10 phút
     # lộ trình xếp lại dòng PO → dòng sản xuất xong dừng vì trần → lượt sau xếp lại: 279 dòng huỷ + 772 dòng nhật ký 'lo_trinh' trong 10 giờ, đẩy dòng tạo camp
     # khỏi tab Log). Dòng đã dừng vì trần được dong_phim.mo_tran_ngay tự FIX sang ngày mới — không mất gì khi ngưng xếp.

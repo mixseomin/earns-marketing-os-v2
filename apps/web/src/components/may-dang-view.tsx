@@ -13,7 +13,9 @@ import { pkCua } from '@/lib/ho-nen';
 import { wrapExternalUrl } from '@/lib/external-url';
 import { useModalParam } from '@/lib/use-modal-param';
 
-type O = { t: 'ok' | 'loi' | 'dung' | 'bo'; ly?: string; ms?: number };
+type T = 'ok' | 'loi' | 'dung' | 'bo';
+/** con = CHẶNG của bước (máy ghi từ 09/11/2026, puzzle-books luot-dang.mjs chang()): tìm nút, bấm nút, điền ô… — chặng cuối mang lỗi = đúng khâu kẹt */
+type O = { t: T; ly?: string; ms?: number; con?: { ten: string; t: T; ms: number }[] };
 type Dong = {
   id: number | string; ma: string; may_ten: string; nen: string; du_an: string; may_mac?: string; bd: string; kt: string | null; giay: number | null;
   ket: string; buoc_dung: string | null; ma_ly: string | null; loi: string | null; slug: string | null; url: string | null; acct: string | null; profile: string | null;
@@ -56,20 +58,44 @@ const MA_LY: Record<string, string> = {
   'qua-gio': 'Quá thời gian', khac: 'Khác (chưa phân loại)',
 };
 const tenLy = (m: string | null) => (m ? MA_LY[m] ?? m : '—');
+// Lượt cũ (trước khi máy ghi chặng) không có danh sách chặng: suy khâu kẹt từ nhóm lý do — chỉ các nhóm nói rõ một khâu; hiện kèm chữ "(suy từ lỗi)".
+const KHAU_SUY: Record<string, string> = {
+  'yt-dien-thieu': 'Tìm nút Upload + đẩy tệp video', 'yt-khong-public': 'Bấm Next tới bước Visibility + chọn Public', 'yt-publish-khong-xac-nhan': 'Bấm Publish + chờ hộp "Video published"',
+  'yt-chua-cong-khai': 'Kiểm video đã công khai (oembed)', 'yt-playlist': 'Gắn playlist', 'br-profile': 'Mở trình duyệt (profile kênh)', 'sai-danh-tinh': 'Kiểm danh tính',
+  'x-khong-thay-bai': 'Tìm bài vừa đăng (toast / trang cá nhân)', 'x-o-soan': 'Chờ ô soạn + gõ chữ', 'tai-len-cham': 'Chờ tải video lên xong', 'ssh-may-khac': 'Gọi máy khác / box3 qua ssh',
+  'dang-nhap': 'Đăng nhập / checkpoint', 'fb-graph': 'Gọi Graph API trên box3 (kiểm token ↔ Page, đăng)', 'graph-xac-minh': 'Gọi Graph API trên box3 (kiểm token ↔ Page, đăng)',
+};
+/** Khâu kẹt của một lượt: chặng cuối (không qua) ở bước dừng; lượt cũ thì suy từ nhóm lý do. */
+function khauKet(r: Dong): { ten: string; suy: boolean } | null {
+  if (!r.buoc_dung) return null;
+  const c = r.buoc?.[r.buoc_dung]?.con, cuoi = c?.length ? c[c.length - 1] : null;
+  if (cuoi && cuoi.t !== 'ok') return { ten: cuoi.ten, suy: false };
+  return r.ma_ly && KHAU_SUY[r.ma_ly] && ['hong', 'mat_dau'].includes(r.ket) ? { ten: KHAU_SUY[r.ma_ly]!, suy: true } : null;
+}
+const MAU_NEN: Partial<Record<T, string>> = { loi: 'rgba(220,38,38,.16)', dung: 'rgba(217,119,6,.12)' };
+/** Danh sách chặng một bước: ✓ đã qua · ✗ / ⏸ chặng kẹt (đậm) · giây từ đầu lượt. */
+function DsChang({ con }: { con: NonNullable<O['con']> }) {
+  return <ol style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'grid', gap: 2 }}>
+    {con.map((c, i) => { const [ky, mau] = KY[c.t], ket = c.t !== 'ok';
+      return <li key={i} style={{ display: 'grid', gridTemplateColumns: '16px 1fr auto', gap: 6, fontSize: 12, fontWeight: ket ? 700 : 400, color: ket ? mau : 'var(--fg-2)',
+        background: ket ? MAU_NEN[c.t] : undefined, borderRadius: 4, padding: ket ? '1px 4px' : '0 4px' }}>
+        <b style={{ color: mau }}>{ky}</b><span>{i + 1}. {c.ten}{ket ? ' ← kẹt ở đây' : ''}</span><span style={{ color: 'var(--fg-3)', fontWeight: 400 }}>{(c.ms / 1000).toFixed(0)}s</span></li>; })}
+  </ol>;
+}
 /** 'HH:MM dd/mm' giờ VN (luật giờ GMT+7) */
 const gioVn = (iso: string) => { const d = new Date(Date.parse(iso) + 7 * 3600e3).toISOString(); return `${d.slice(11, 16)} ${d.slice(8, 10)}/${d.slice(5, 7)}`; };
 const homVn = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 const nho = { fontSize: 12, color: 'var(--fg-2)' } as const;
 const cat = (w: number) => ({ maxWidth: w, display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }) as const;
 const NGAY = [{ value: '1', label: '24 giờ' }, { value: '3', label: '3 ngày' }, { value: '7', label: '7 ngày' }, { value: '14', label: '14 ngày' }];
-const LOC = ['da', 'km', 'nen', 'tk', 'kq', 'bd', 'ml'] as const;
+const LOC = ['da', 'km', 'nen', 'tk', 'kq', 'bd', 'kh', 'ml'] as const;
 type KhoaLoc = (typeof LOC)[number];
 type Loc = Record<KhoaLoc, string[]>;
-const locTrong = (): Loc => ({ da: [], km: [], nen: [], tk: [], kq: [], bd: [], ml: [] });
+const locTrong = (): Loc => ({ da: [], km: [], nen: [], tk: [], kq: [], bd: [], kh: [], ml: [] });
 const tkCua = (r: Dong) => (r.acct ? `#${r.acct}` : r.profile ? r.profile.split('/').pop()!.replace(/^\.capture-profile-/, '') : '—');
-const GIA_TRI: Record<KhoaLoc, (r: Dong) => string | null> = { da: (r) => r.du_an || '—', km: (r) => r.may_ten, nen: (r) => r.nen, tk: tkCua, kq: (r) => r.ket, bd: (r) => r.buoc_dung, ml: (r) => r.ma_ly };
-const KY: Record<O['t'], [string, string]> = { ok: ['✓', 'var(--ok, #16a34a)'], loi: ['✗', 'var(--danger, #dc2626)'], dung: ['⏸', 'var(--warn, #d97706)'], bo: ['↷', 'var(--fg-3)'] };
-const TEN_T: Record<O['t'], string> = { ok: 'qua', loi: 'hỏng', dung: 'dừng đúng luật', bo: 'bỏ lượt' };
+const GIA_TRI: Record<KhoaLoc, (r: Dong) => string | null> = { da: (r) => r.du_an || '—', km: (r) => r.may_ten, nen: (r) => r.nen, tk: tkCua, kq: (r) => r.ket, bd: (r) => r.buoc_dung, kh: (r) => khauKet(r)?.ten ?? null, ml: (r) => r.ma_ly };
+const KY: Record<T, [string, string]> = { ok: ['✓', 'var(--ok, #16a34a)'], loi: ['✗', 'var(--danger, #dc2626)'], dung: ['⏸', 'var(--warn, #d97706)'], bo: ['↷', 'var(--fg-3)'] };
+const TEN_T: Record<T, string> = { ok: 'qua', loi: 'hỏng', dung: 'dừng đúng luật', bo: 'bỏ lượt' };
 
 /** Lượt đang chạy (nhật ký 'bat-dau' chưa vào sổ) → dòng tạm: chưa có kết quả = đang đăng (quá 40 phút = mất dấu); có rồi = 3 bước đã biết, chờ sổ đủ bước. */
 function dongTam(c: Chay): Dong {
@@ -116,15 +142,24 @@ function OBuoc({ r, k, admin, xong, moChiTiet }: { r: Dong; k: string; admin: bo
   const chay = r.ket === 'chay' && !o && k === 'dang';
   if (!o && !chay) return <span style={{ color: 'var(--fg-3)' }}>·</span>;
   const [ky, mau] = chay ? ['●', 'var(--info, #3b82f6)'] : KY[o!.t];
-  const b = BUOC.find((x) => x.k === k)!;
+  const b = BUOC.find((x) => x.k === k)!, kh = r.buoc_dung === k ? khauKet(r) : null, ket = !!o && o.t !== 'ok';
   return <>
-    <span ref={ref} onMouseEnter={() => setMo(true)} style={{ display: 'inline-flex', gap: 4, maxWidth: 190, overflow: 'hidden', whiteSpace: 'nowrap', cursor: 'default' }}>
-      <b style={{ color: mau }}>{ky}</b><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: o?.t === 'ok' ? 'var(--fg-2)' : 'var(--fg-1)' }}>{chay ? 'đang làm…' : o!.ly ?? ''}</span>
+    <span ref={ref} onMouseEnter={() => setMo(true)} style={{ display: 'inline-flex', flexDirection: 'column', gap: 1, maxWidth: 220, overflow: 'hidden', cursor: 'default',
+      background: o ? MAU_NEN[o.t] : undefined, borderRadius: 4, padding: ket ? '2px 5px' : 0 }}>
+      {kh ? <>
+        <span style={{ display: 'inline-flex', gap: 4, whiteSpace: 'nowrap' }}><b style={{ color: mau }}>{ky}</b><b style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: mau }}>{kh.ten}</b></span>
+        <span style={{ fontSize: 11, color: 'var(--fg-3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{kh.suy ? '(suy từ lỗi) ' : `khâu ${o!.con!.length}/${o!.con!.length} · `}{o!.ly ?? ''}</span>
+      </> : <span style={{ display: 'inline-flex', gap: 4, whiteSpace: 'nowrap' }}>
+        <b style={{ color: mau }}>{ky}</b><span style={{ overflow: 'hidden', textOverflow: 'ellipsis', color: o?.t === 'ok' ? 'var(--fg-2)' : 'var(--fg-1)', fontWeight: ket ? 600 : 400 }}>{chay ? 'đang làm…' : o!.ly ?? ''}</span>
+        {o?.t === 'ok' && !!o.con?.length && <span style={{ color: 'var(--fg-3)', fontSize: 11 }}>· {o.con.length} khâu</span>}
+      </span>}
     </span>
     <AnchoredPopover anchorRef={ref} open={mo} onClose={() => setMo(false)} backdrop={false} closeOnPointerOutside>
       <div style={{ width: 360, maxWidth: '90vw', padding: 10, display: 'grid', gap: 8, fontSize: 12, background: 'var(--bg-1)', border: '1px solid var(--line)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
         <div><b>{b.ten}</b> <span style={{ color: mau }}>{chay ? 'đang làm' : TEN_T[o!.t]}</span>{o?.ms != null && <span style={{ color: 'var(--fg-3)' }}> · {(o.ms / 1000).toFixed(1)}s từ đầu lượt</span>}</div>
-        {o?.ly && <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{o.ly}</div>}
+        {!!o?.con?.length && <DsChang con={o.con} />}
+        {kh?.suy && <div style={{ fontWeight: 700, color: mau }}>Kẹt ở khâu: {kh.ten} <span style={{ fontWeight: 400, color: 'var(--fg-3)' }}>(suy từ lỗi — lượt này máy chưa ghi chặng)</span></div>}
+        {o?.ly && <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}><b>Lời máy nói:</b> {o.ly}</div>}
         <div style={{ color: 'var(--fg-3)' }}>Bước này: {b.giai}</div>
         <div style={{ color: 'var(--fg-3)' }}>{r.may_ten} · {r.nen} · {gioVn(r.bd)}{r.lan > 1 ? ` · lặp ${r.lan} lần tới ${gioVn(r.kt ?? r.bd)}` : ''}</div>
         <ViecLuot r={r} admin={admin} xong={xong} />
@@ -155,11 +190,16 @@ function ChiTiet({ r, admin, xong, dong }: { r: Dong; admin: boolean; xong: () =
       </div>
       <div style={{ display: 'grid', gap: 6 }}>
         {BUOC.map((b, i) => { const o = r.buoc?.[b.k], [ky, mau] = o ? KY[o.t] : ['·', 'var(--fg-3)'];
-          return <div key={b.k} style={{ display: 'grid', gridTemplateColumns: '18px 96px 1fr', gap: 6, alignItems: 'baseline', opacity: o ? 1 : 0.55 }}>
+          const kh = r.buoc_dung === b.k ? khauKet(r) : null;
+          return <div key={b.k} style={{ display: 'grid', gridTemplateColumns: '18px 96px 1fr', gap: 6, alignItems: 'baseline', opacity: o ? 1 : 0.55,
+            background: o ? MAU_NEN[o.t] : undefined, borderRadius: 6, padding: o && o.t !== 'ok' ? '4px 6px' : '0 6px' }}>
             <b style={{ color: mau }}>{ky}</b><span style={{ fontWeight: 600 }} title={b.giai}>{b.ten}</span>
-            <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: 12 }}>
+            <span style={{ display: 'grid', gap: 4, fontSize: 12 }}>
+              {kh && <b style={{ color: mau }}>Kẹt ở khâu: {kh.ten}{kh.suy ? ' (suy từ lỗi)' : ''}</b>}
+              <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
               {o ? o.ly || TEN_T[o.t] : iDung >= 0 && i > iDung ? 'chưa tới (lượt dừng ở bước trước)' : r.nguon === 'nhat_ky' ? 'nhật ký cũ không ghi bước này' : '—'}
               {o?.ms != null && <span style={{ color: 'var(--fg-3)' }}> · {(o.ms / 1000).toFixed(1)}s</span>}</span>
+              {!!o?.con?.length && <DsChang con={o.con} />}</span>
           </div>; })}
       </div>
       {r.loi && <div style={{ fontSize: 12 }}><b>Lời máy nói</b> <span style={{ color: 'var(--fg-3)' }}>({tenLy(r.ma_ly)})</span>
@@ -218,7 +258,7 @@ export function MayDangView() {
       const m = new Map<string, number>(); for (const r of tat) { const k = f(r); if (k) m.set(k, (m.get(k) ?? 0) + 1); }
       return [...m].sort((a, b) => b[1] - a[1]).map(([value, count]) => ({ value, label: ten ? ten(value) : value, count }));
     };
-    return { da: dem(GIA_TRI.da), km: dem(GIA_TRI.km), nen: dem(GIA_TRI.nen), tk: dem(GIA_TRI.tk), kq: dem(GIA_TRI.kq, (k) => KET[k]?.ten ?? k), bd: dem(GIA_TRI.bd, (k) => TEN_BUOC[k] ?? k), ml: dem(GIA_TRI.ml, tenLy) };
+    return { da: dem(GIA_TRI.da), km: dem(GIA_TRI.km), nen: dem(GIA_TRI.nen), tk: dem(GIA_TRI.tk), kq: dem(GIA_TRI.kq, (k) => KET[k]?.ten ?? k), bd: dem(GIA_TRI.bd, (k) => TEN_BUOC[k] ?? k), kh: dem(GIA_TRI.kh), ml: dem(GIA_TRI.ml, tenLy) };
   }, [tat]);
   const qq = q.trim().toLowerCase();
   const loc1 = useMemo(() => tat.filter((r) => LOC.every((k) => !loc[k].length || loc[k].includes(GIA_TRI[k](r) ?? ''))
@@ -247,6 +287,8 @@ export function MayDangView() {
     ...BUOC.map((b): DataColumn<Dong> => ({ key: `b_${b.k}`, group: 'buoc', header: b.ten, title: b.giai, align: 'left', sortValue: (r) => r.buoc?.[b.k]?.t ?? null,
       cell: (r) => <OBuoc r={r} k={b.k} admin={admin} xong={xong} moChiTiet={() => moChiTiet(r)} /> })),
     { key: 'buoc_dung', group: 'loi', header: 'Dừng ở', align: 'left', sortValue: (r) => r.buoc_dung, cell: (r) => (r.buoc_dung ? TEN_BUOC[r.buoc_dung] ?? r.buoc_dung : '—') },
+    { key: 'khau', group: 'loi', header: 'Kẹt ở khâu', title: 'chặng cụ thể máy kẹt trong bước dừng (tìm nút, bấm nút, điền ô…)', align: 'left', sortValue: (r) => khauKet(r)?.ten ?? null,
+      cell: (r) => { const kh = khauKet(r); return kh ? <b style={{ ...cat(220), color: 'var(--danger, #dc2626)' }} title={kh.suy ? 'suy từ nhóm lỗi (lượt cũ chưa ghi chặng)' : undefined}>{kh.ten}{kh.suy ? ' *' : ''}</b> : '—'; } },
     { key: 'ma_ly', group: 'loi', header: 'Nhóm lý do', align: 'left', sortValue: (r) => r.ma_ly, cell: (r) => <span title={r.loi ?? undefined}>{tenLy(r.ma_ly)}</span> },
     { key: 'lan', group: 'loi', header: 'Lần', sortValue: (r) => r.lan, cell: (r) => r.lan },
     { key: 'giay', group: 'loi', header: 'Giây', sortValue: (r) => r.giay, cell: (r) => (r.giay != null ? Math.round(Number(r.giay)) : '—') },
@@ -258,24 +300,24 @@ export function MayDangView() {
   const nhom: DataGroup[] = [{ key: 'tt', label: 'Lượt' }, { key: 'buoc', label: '7 bước máy đi' }, { key: 'loi', label: 'Dừng / lỗi' }];
 
   // LỖI HAY GẶP: gom bước dừng × nhóm lý do trên các lượt đang lọc (bỏ lượt đã lên) — số lần, số kênh dính, lần cuối, lời gần nhất; bấm = lọc bảng lượt
-  type Gom = { khoa: string; bd: string | null; ml: string | null; ket: string; lan: number; kenh: number; cuoi: string; vd: string; dsKenh: string };
+  type Gom = { khoa: string; bd: string | null; kh: string | null; ml: string | null; ket: string; lan: number; kenh: number; cuoi: string; vd: string; dsKenh: string };
   const gom: Gom[] = useMemo(() => {
-    const m = new Map<string, { bd: string | null; ml: string | null; ket: string; lan: number; kenh: Set<string>; cuoi: string; vd: string }>();
+    const m = new Map<string, { bd: string | null; kh: string | null; ml: string | null; ket: string; lan: number; kenh: Set<string>; cuoi: string; vd: string }>();
     for (const r of loc1) {
       if (['dang', 'hen', 'chay'].includes(r.ket) || (!caDung && ['dung', 'bo'].includes(r.ket))) continue;
-      const k = `${r.buoc_dung}|${r.ma_ly}`, g = m.get(k) ?? { bd: r.buoc_dung, ml: r.ma_ly, ket: r.ket, lan: 0, kenh: new Set<string>(), cuoi: r.kt ?? r.bd, vd: r.loi ?? '' };
+      const kh = khauKet(r)?.ten ?? null, k = `${r.buoc_dung}|${kh}|${r.ma_ly}`, g = m.get(k) ?? { bd: r.buoc_dung, kh, ml: r.ma_ly, ket: r.ket, lan: 0, kenh: new Set<string>(), cuoi: r.kt ?? r.bd, vd: r.loi ?? '' };
       g.lan += r.lan ?? 1; g.kenh.add(`${r.may_ten} · ${r.nen}`); if ((r.kt ?? r.bd) >= g.cuoi) { g.cuoi = r.kt ?? r.bd; g.vd = r.loi ?? g.vd; } m.set(k, g);
     }
-    return [...m].map(([khoa, g]) => ({ khoa, bd: g.bd, ml: g.ml, ket: g.ket, lan: g.lan, kenh: g.kenh.size, cuoi: g.cuoi, vd: g.vd, dsKenh: [...g.kenh].join('\n') }));
+    return [...m].map(([khoa, g]) => ({ khoa, bd: g.bd, kh: g.kh, ml: g.ml, ket: g.ket, lan: g.lan, kenh: g.kenh.size, cuoi: g.cuoi, vd: g.vd, dsKenh: [...g.kenh].join('\n') }));
   }, [loc1, caDung]);
-  const locLoi = (g: Gom) => { setLoc((c) => ({ ...c, bd: g.bd ? [g.bd] : [], ml: g.ml ? [g.ml] : [], kq: [] })); setMd('luot'); };
+  const locLoi = (g: Gom) => { setLoc((c) => ({ ...c, bd: g.bd ? [g.bd] : [], kh: g.kh ? [g.kh] : [], ml: g.ml ? [g.ml] : [], kq: [] })); setMd('luot'); };
   const coLoc = LOC.some((k) => loc[k].length) || !!q;
 
   return <div style={{ display: 'grid', gap: 10 }}>
     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
       <Segmented<'luot' | 'loi' | 'may'> value={md} onChange={setMd} hrefFor={(v) => hrefVoi('md', v === 'luot' ? null : v)} options={[
         { value: 'luot', label: 'Lượt đăng', title: 'mỗi dòng một lượt máy đăng xét một kênh × một nền, mới nhất trên đầu, 7 bước thành 7 cột' },
-        { value: 'loi', label: 'Lỗi hay gặp', title: 'gom theo bước dừng × nhóm lý do để tập trung sửa — bấm một dòng là lọc ra các lượt đó' },
+        { value: 'loi', label: 'Lỗi hay gặp', title: 'gom theo bước dừng × khâu kẹt × nhóm lý do để tập trung sửa — bấm một dòng là lọc ra các lượt đó' },
         { value: 'may', label: 'Máy', title: 'bật / tắt máy, cho nền nghỉ, vòng 10 phút gần nhất, kế hoạch hôm nay' }]} />
       <span style={{ ...nho, color: 'var(--fg-3)' }}>Máy đăng iMac, mỗi 10 phút · phụ trách: Phòng Social Traffic · Pinterest Front Porch (pin-hang) chưa vào sổ · sổ cũ bai_hen (dừng 25/10) và publications (dừng tháng 5) không còn chạy</span>
     </div>
@@ -287,13 +329,14 @@ export function MayDangView() {
       <MultiSelect label="Tài khoản / profile" options={opt.tk} selected={loc.tk} onChange={(v) => dat('tk', v)} compact />
       <MultiSelect label="Kết quả" options={opt.kq} selected={loc.kq} onChange={(v) => dat('kq', v)} compact />
       <MultiSelect label="Dừng ở bước" options={opt.bd} selected={loc.bd} onChange={(v) => dat('bd', v)} compact />
+      <MultiSelect label="Kẹt ở khâu" options={opt.kh} selected={loc.kh} onChange={(v) => dat('kh', v)} compact />
       <MultiSelect label="Nhóm lý do" options={opt.ml} selected={loc.ml} onChange={(v) => dat('ml', v)} compact />
       {LOC.some((k) => loc[k].length) && <button type="button" onClick={() => setLoc(locTrong())} style={{ border: 0, background: 'none', color: 'var(--accent, #60a5fa)', cursor: 'pointer', fontSize: 12 }}>bỏ lọc</button>}
       <span style={{ ...nho, color: loi ? 'var(--danger, #dc2626)' : 'var(--fg-3)', marginLeft: 'auto' }}>{loi ? `không đọc được sổ: ${loi}` : tai ? 'đang đọc…' : `${loc1.length} dòng · tự làm mới 5 giây`}</span>
     </div>}
     {md !== 'may' && <StatsStrip cards={the} minColWidth={120} />}
     {md === 'luot' && (loc1.length || tai
-      ? <DataTable rows={loc1} columns={cot} groups={nhom} getRowKey={(r) => String(r.id)} persistKey="may-dang-luot" minWidth={1900} pageSize={100} locTuDong={false}
+      ? <DataTable rows={loc1} columns={cot} groups={nhom} getRowKey={(r) => String(r.id)} persistKey="may-dang-luot" minWidth={2100} pageSize={100} locTuDong={false}
           searchText={(r) => `${r.slug ?? ''} ${r.loi ?? ''} ${r.may_ten} ${r.nen} ${r.url ?? ''}`} searchPlaceholder="Tìm bài / lỗi / kênh…" onTimDoi={setQ}
           defaultSort={[{ key: 'bd', dir: 'desc' }]} onRowClick={moChiTiet}
           rowStyle={(r) => (r.ket === 'hong' || r.ket === 'mat_dau' ? { boxShadow: 'inset 3px 0 0 var(--danger, #dc2626)' } : r.ket === 'chay' ? { boxShadow: 'inset 3px 0 0 var(--info, #3b82f6)' } : undefined)}
@@ -301,6 +344,7 @@ export function MayDangView() {
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><span>{gioVn(r.bd)}{r.lan > 1 ? ` ×${r.lan}` : ''}</span><PillKet ket={r.ket} /></div>
             <div style={{ fontWeight: 600 }}>{r.may_ten}</div><Nen nen={r.nen} />
             {r.buoc_dung && <div style={{ color: 'var(--fg-2)' }}>Dừng ở <b>{TEN_BUOC[r.buoc_dung] ?? r.buoc_dung}</b> · {tenLy(r.ma_ly)}</div>}
+            {khauKet(r) && <div style={{ color: 'var(--danger, #dc2626)', fontWeight: 700 }}>✗ {khauKet(r)!.ten}{khauKet(r)!.suy ? ' *' : ''}</div>}
           </div> }} />
       : <EmptyState icon="📭" title="Không có lượt nào" description={coLoc ? 'Không lượt nào khớp bộ lọc — bỏ bớt lọc hoặc chọn khoảng ngày dài hơn.' : 'Chưa có lượt nào trong khoảng này.'} />)}
     {md === 'loi' && <>
@@ -309,6 +353,7 @@ export function MayDangView() {
         columns={[
           { key: 'ml', header: 'Nhóm lý do', align: 'left', sortValue: (g) => tenLy(g.ml), cell: (g) => <b>{tenLy(g.ml)}</b> },
           { key: 'bd', header: 'Bước', align: 'left', sortValue: (g) => g.bd, cell: (g) => (g.bd ? TEN_BUOC[g.bd] ?? g.bd : '—') },
+          { key: 'kh', header: 'Kẹt ở khâu', align: 'left', sortValue: (g) => g.kh, cell: (g) => (g.kh ? <b style={{ color: 'var(--danger, #dc2626)' }}>{g.kh}</b> : '—') },
           { key: 'ket', header: 'Loại', align: 'left', sortValue: (g) => g.ket, cell: (g) => <PillKet ket={g.ket} /> },
           { key: 'lan', header: 'Số lần', sortValue: (g) => g.lan, cell: (g) => g.lan },
           { key: 'kenh', header: 'Kênh × nền dính', sortValue: (g) => g.kenh, cell: (g) => <span title={g.dsKenh}>{g.kenh}</span> },

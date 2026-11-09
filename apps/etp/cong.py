@@ -38,7 +38,7 @@ SQL_IT_NUOC = ("select c.camp_id from etp.camp_ab c join etp.ab a on a.ma = c.ab
 LY_IT_NUOC = "camp ít nước (nhánh thử A/B nhắm nước) hoặc trong lô team Ethopex đã tắt (etp.cau_hinh.team_tat) — không bật lại (anh 09/11/2026)"
 # DỪNG LÊN CAMP MỚI — công tắc tổng etp.cau_hinh.dung_camp_moi (anh 25/10/2026 lần đầu; 09/11/2026 "kế hoạch lên 100 camp / ngày dừng lại … để review lại toàn bộ"):
 # cổng kiem chặn mọi đường tạo / nhân bản; lộ trình (lo_trinh_phim), mở lại dòng chạm trần (dong_phim.mo_tran_ngay), mở rộng phim đội lãi (dong_phim.mo_doi_lai) đọc cùng khoá
-# này để không xếp dòng mới — dòng đang dừng giữ nguyên chờ review. Mở lại = đặt false.
+# này để không xếp dòng mới — dòng đang dừng giữ nguyên chờ review. Mở lại = đặt false. CHỈ tk David / Nhà (ngoai=True — camp tk người trong team — không bị chặn; anh 09/11/2026).
 KHOA_DUNG_CAMP_MOI = "dung_camp_moi"
 SQL_DUNG_CAMP_MOI = f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{KHOA_DUNG_CAMP_MOI}'), 'false') = 'true'"
 LY_DUNG_CAMP_MOI = "ĐANG DỪNG LÊN CAMP MỚI"

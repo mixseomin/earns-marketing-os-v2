@@ -43,10 +43,15 @@ def poster_dong(tm, ra_nen):
     p = Image.open(os.path.join(tm, "poster.jpg")).convert("RGB"); s = max(W / p.width, H / p.height)
     nen = p.resize((round(p.width * s), round(p.height * s)), Image.LANCZOS); x, y = (nen.width - W) // 2, (nen.height - H) // 2
     nen = nen.crop((x, y, x + W, y + H)).filter(ImageFilter.GaussianBlur(28)).point(lambda v: int(v * 0.55))
-    s2 = W / p.width; q = p.resize((W, round(p.height * s2)), Image.LANCZOS).filter(ImageFilter.UnsharpMask(radius=2, percent=50, threshold=2))
-    nen.paste(q, (0, (H - q.height) // 2)); nen.save(ra_nen); return ra_nen
+    rq = round(W * (0.86 if AT.CO_FREE else 1)); q = p.resize((rq, round(p.height * rq / p.width)), Image.LANCZOS).filter(ImageFilter.UnsharpMask(radius=2, percent=50, threshold=2))
+    # lớp Free: poster thu 86%, đặt dưới nhãn tím (y ≈ 12% H) để đáy poster (tên phim) nằm trên nút xanh — nút không đè tên (09/11/2026)
+    nen.paste(q, ((W - q.width) // 2, round(H * 0.12) if AT.CO_FREE else (H - q.height) // 2)); nen.save(ra_nen); return ra_nen
 
-def lop_cau(cau, tm, ra, mat_day):
+def chu_tinh(lop, lang, day=None):
+    """LUẬT CHUNG DẠNG TĨNH: mọi lớp chữ đứng yên đi qua đây → lớp Free (AT.lop_free: nhãn "All Episodes Released" + nút "Watch For Free") khi bật (mặc định; --khong-free tắt)"""
+    return AT.lop_free(lop, lang, day) if AT.CO_FREE else lop
+
+def lop_cau(cau, tm, ra, mat_day, lang="en"):
     """câu thoại sốc: chữ trắng đậm trong ngoặc kép, viền đen, đặt dưới mặt; tên phim từ poster (nếu có) nhỏ bên dưới"""
     f, c = None, 96
     while True:
@@ -58,15 +63,21 @@ def lop_cau(cau, tm, ra, mat_day):
         dong.append(cur)
         if len(dong) <= 4 or c <= 56: break
         c -= 6
-    lh = int(c * 1.18); cao = lh * len(dong); y = int(min(max(H * 0.60 - cao / 2, mat_day + 50), H * 0.70 - cao))
+    lh = int(c * 1.18); cao = lh * len(dong); y = int(min(max(H * 0.60 - cao / 2, mat_day + 50), H * (0.62 if AT.CO_FREE else 0.70) - cao)); day = y + cao   # có lớp Free: chừa chỗ tên + nút
     lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop)
     for i, x in enumerate(dong):
         d.text(((W - f.getlength(x)) / 2, y + i * lh), x, font=f, fill=(255, 255, 255, 255), stroke_width=8, stroke_fill=(0, 0, 0, 255))
     tp = os.path.join(tm, "ten-poster.png")
     if os.path.exists(tp):
-        t_ = Image.open(tp); s_ = min(W * 0.62 / t_.width, H * 0.11 / t_.height); t_ = t_.resize((round(t_.width * s_), round(t_.height * s_)), Image.LANCZOS)
-        lop.paste(t_, ((W - t_.width) // 2, min(int(H * 0.80 - t_.height), y + cao + 40)), t_)
-    lop.save(ra); return ra
+        # tên LUÔN dưới câu (09/11/2026: tên cao đè dòng cuối câu thoại): đáy tên ≤ day_max; chỗ trống dưới câu < 5% H thì đẩy câu lên, tên giữ ≥ 8% H
+        day_max = int(H * (0.72 if AT.CO_FREE else 0.80)); cao_t = min(H * 0.11, day_max - (y + cao + 30))
+        if cao_t < H * 0.05:
+            cao_t = H * 0.08; lui = int(y + cao + 30 + cao_t - day_max); y -= lui
+            lop = Image.new("RGBA", (W, H)); d = ImageDraw.Draw(lop)
+            for i, x in enumerate(dong): d.text(((W - f.getlength(x)) / 2, y + i * lh), x, font=f, fill=(255, 255, 255, 255), stroke_width=8, stroke_fill=(0, 0, 0, 255))
+        t_ = Image.open(tp); s_ = min(W * 0.62 / t_.width, cao_t / t_.height); t_ = t_.resize((round(t_.width * s_), round(t_.height * s_)), Image.LANCZOS)
+        yt = y + cao + 30; lop.paste(t_, ((W - t_.width) // 2, yt), t_); day = yt + t_.height
+    chu_tinh(lop, lang, day).save(ra); return ra
 
 def nap(cid, lang, f, dang, ghi, vnd, chu_dau=None):
     """một bản → thư viện etp (box3 thu-vien-them --them, mỗi bản một dòng) → id dòng thư viện"""
@@ -99,7 +110,10 @@ def poster_mau(mau, tm, nen_khung, ra, ban=0):
     if mau == "ai":   # PO.5 — ảnh AI người thật + tên phim theo poster gốc; khung phim đã dựng (nen_khung, đã xoá phụ đề) làm tham chiếu thứ hai
         VP = importlib.util.module_from_spec(_v); _v.loader.exec_module(VP)
         jpg, v, mo = VP.anh_po(int(os.path.basename(tm)), nen_khung, ban, ra.replace(".png", ".jpg"))
-        Image.open(jpg).convert("RGB").resize((W, H), Image.LANCZOS).save(ra); _VND_AI[ra] = v; print(f"PO.5: {mo} · {v}₫", flush=True); return ra
+        im = Image.open(jpg).convert("RGB").resize((W, H), Image.LANCZOS)
+        if AT.CO_FREE:   # tên phim AI vẽ sát đáy ảnh: thu ảnh còn 78%, đặt sát trên → đáy ảnh (tên) ≤ 78% H, trên nút xanh; nền = chính ảnh phóng kín, mờ, tối (09/11/2026: đẩy lên 15% vẫn đè chân chữ)
+            q_ = im.resize((round(W * 0.78), round(H * 0.78)), Image.LANCZOS); nen_ = im.filter(ImageFilter.GaussianBlur(30)).point(lambda v: int(v * 0.45)); nen_.paste(q_, ((W - q_.width) // 2, 0)); im = nen_
+        im.save(ra); _VND_AI[ra] = v; print(f"PO.5: {mo} · {v}₫", flush=True); return ra
     p = Image.open(os.path.join(tm, "poster.jpg")).convert("RGB"); q = p.resize((W, round(p.height * W / p.width)), Image.LANCZOS)
     if mau == "ghep":   # poster trọn ở trên · dải khung phim (cảnh trong phim, AI xếp hạng) ở đáy · nối bằng dải chuyển mềm
         kh = Image.open(nen_khung).convert("RGB"); cao = max(H - q.height + 260, round(H * 0.34))
@@ -108,10 +122,11 @@ def poster_mau(mau, tm, nen_khung, ra, ban=0):
         nen.paste(q, (0, 0), mk.resize(q.size)); nen.save(ra); return ra
     if mau == "the":    # khung phim làm nền (mờ, tối) · poster thu nhỏ như tấm thẻ viền trắng, nghiêng, đổ bóng
         nen = Image.open(nen_khung).convert("RGB").filter(ImageFilter.GaussianBlur(8)).point(lambda v: int(v * 0.55))
-        r = round(W * 0.82); q2 = p.resize((r, round(p.height * r / p.width)), Image.LANCZOS); vien = 16
+        r = round(W * (0.74 if AT.CO_FREE else 0.82)); q2 = p.resize((r, round(p.height * r / p.width)), Image.LANCZOS); vien = 16
         the = Image.new("RGB", (q2.width + 2 * vien, q2.height + 2 * vien), (255, 255, 255)); the.paste(q2, (vien, vien)); the = the.convert("RGBA").rotate(-4, expand=True, resample=Image.BICUBIC)
         bong = Image.new("RGBA", the.size, (0, 0, 0, 0)); bong.putalpha(the.split()[3].point(lambda a: int(a * 0.75))); bong = bong.filter(ImageFilter.GaussianBlur(26))
-        x, y = (W - the.width) // 2, (H - the.height) // 2; nen.paste((0, 0, 0), (x + 20, y + 30), bong); nen.paste(the, (x, y), the); nen.save(ra); return ra
+        x, y = (W - the.width) // 2, (min((H - the.height) // 2, round(H * 0.77) - the.height) if AT.CO_FREE else (H - the.height) // 2)   # lớp Free: đáy thẻ ≤ 77% H, trên nút xanh
+        nen.paste((0, 0, 0), (x + 20, y + 30), bong); nen.paste(the, (x, y), the); nen.save(ra); return ra
     if mau == "dien_anh":   # (anh 08/11/2026 "4 sửa lại": bản cũ quá giống gốc) nửa trên CẬN MẶT nhân vật (khung phim), chỉnh màu teal-orange, rõ nét ·
         # nửa dưới poster TRỌN thu nhỏ (tên phim đọc được) trên nền tối · hai vạch sáng mảnh kiểu khung phim chiếu rạp
         def mau_(im):
@@ -121,7 +136,7 @@ def poster_mau(mau, tm, nen_khung, ra, ban=0):
         nen = mau_(_phu(p, W, H)).filter(ImageFilter.GaussianBlur(34)).point(lambda v: int(v * 0.35)); nen.paste(tren, (0, 0))
         mk = Image.new("L", (1, 200)); mk.putdata([int(255 * i / 199) for i in range(200)])   # mép dưới cận mặt tan vào nền
         nen.paste(Image.new("RGB", (W, 200)), (0, cao - 200), mk.resize((W, 200)))
-        con = H - cao - 70; r = round(con * p.width / p.height); q2 = p.resize((r, con), Image.LANCZOS)
+        con = (round(H * 0.77) - (cao - 30)) if AT.CO_FREE else H - cao - 70; r = round(con * p.width / p.height)   # lớp Free: poster dưới kết thúc ≤ 77% H; q2 = p.resize((r, con), Image.LANCZOS)
         x = (W - r) // 2; y = cao - 30; nen.paste((235, 235, 235), (x - 4, y - 4, x + r + 4, y + con + 4)); nen.paste(q2, (x, y))
         for yy in (cao - 46, H - 22): nen.paste((200, 170, 120), (60, yy, W - 60, yy + 3))
         nen.save(ra); return ra
@@ -148,23 +163,23 @@ def main(cid, kieu, ban=1, xem=False, mau_ep=None):
                     ds = kq["chu"].get("tom_tat") or []
                     if not ds: raise RuntimeError("AI không viết được tóm tắt")
                     chu_dau = ds[b % len(ds)]
-                    nen, chu = AT.anh(cid, ten, k, tm, b); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, b % len(AT.CAU[lang]))
+                    k["lang"] = lang; nen, chu = AT.anh(cid, ten, k, tm, b); mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, b % len(AT.CAU[lang]))   # AT.anh vẽ lớp Free (luật chung dạng tĩnh)
                 elif kk == "poster":
                     if not os.path.exists(os.path.join(tm, "poster.jpg")): raise RuntimeError("không có poster")
                     mau = (mau_ep or MAU_PO)[b % len(mau_ep or MAU_PO)]; nk = AT.anh(cid, ten, k, tm, b)[0] if mau != "goc" else None   # khung phim + tên tách từ poster cho mẫu ghép
-                    nen = poster_mau(mau, tm, nk, os.path.join(tm, f"nen-poster-{mau}.png"), b); vnd += _VND_AI.pop(nen, 0); chu = os.path.join(tm, "trong.png"); Image.new("RGBA", (W, H)).save(chu)   # poster đã có tên phim
+                    nen = poster_mau(mau, tm, nk, os.path.join(tm, f"nen-poster-{mau}.png"), b); vnd += _VND_AI.pop(nen, 0); chu = os.path.join(tm, f"chu-po-{b}.png"); chu_tinh(Image.new("RGBA", (W, H)), lang).save(chu)   # poster đã có tên phim — lớp chữ chỉ còn lớp Free (luật chung dạng tĩnh)
                     mp3, v, _ = AT.giong(cid, lang, ten, kg, tm, b % len(AT.CAU[lang]))
                 else:
                     ds = kq["chu"].get("cau_soc") or []
                     if not ds: raise RuntimeError("AI không chọn được câu thoại sốc có trong phụ đề")
                     c = ds[b % len(ds)]; moi = (f"¡Mira {ten} gratis ahora!" if lang == "es" else f"Watch {ten} for free now!")
-                    nen, _ = AT.anh(cid, ten, k, tm, b); mp3, v = giong_cau(cid, lang, f"{c} ... {moi}", kg, tm)
-                    chu = lop_cau(c, tm, os.path.join(tm, f"chu-cau-{b}.png"), (k["mat"][1] + k["mat"][3]) * H)
+                    k["lang"] = lang; nen, _ = AT.anh(cid, ten, k, tm, b); mp3, v = giong_cau(cid, lang, f"{c} ... {moi}", kg, tm)
+                    chu = lop_cau(c, tm, os.path.join(tm, f"chu-cau-{b}.png"), (k["mat"][1] + k["mat"][3]) * H, lang)
                 vnd += v; out = os.path.join(tm, f"{BAN_PO[mau].lower().replace('.', '')}-{cid}.mp4" if kk == "poster" else f"{ma.lower()}-{cid}-{b + 1}.mp4"); giay = AT.dung(nen, chu, mp3, out)
-                x = {"kieu": ma, "dang": dang, "ban": b + 1, "file": out, "giay": giay, "giong": kg, "vnd": v, "tap": k["tap"], "khung_so": k["so"], "ten_poster": bool(k.get("ten_poster")),
+                x = {"kieu": ma, "dang": dang, "ban": b + 1, "file": out, "giay": giay, "giong": kg, "vnd": v, "tap": k["tap"], "khung_so": k["so"], "ten_poster": bool(k.get("ten_poster")), "free": AT.CO_FREE,
                      **({"chu_dau": chu_dau} if chu_dau else {}), **({"cau": c} if kk == "cau_soc" else {}), **({"mau": BAN_PO[mau]} if kk == "poster" else {})}
                 if not xem:
-                    ghi = f"{dang} ({ma}){' ' + BAN_PO[mau] if kk == 'poster' else ''} bản {b + 1}/{ban} · giọng {kg} · khung {k['tap']}#{k['so']} AI xếp hạng · tên {'từ poster' if k.get('ten_poster') or kk == 'poster' else 'chữ vàng'}"
+                    ghi = f"{dang} ({ma}){' ' + BAN_PO[mau] if kk == 'poster' else ''} bản {b + 1}/{ban} · giọng {kg} · khung {k['tap']}#{k['so']} AI xếp hạng · tên {'từ poster' if k.get('ten_poster') or kk == 'poster' else 'chữ vàng'}" + (" · lớp Free (All Episodes Released + Watch For Free)" if AT.CO_FREE else "")
                     x["tv"] = nap(cid, lang, out, dang, ghi, v, chu_dau); tv.append(x)
                 kq["ban"].append(x)
             except Exception as e: kq["ban"].append({"kieu": ma, "ban": b + 1, "loi": str(e)[-300:]})

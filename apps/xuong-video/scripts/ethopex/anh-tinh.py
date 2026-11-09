@@ -47,14 +47,16 @@ UNG_VIEN = 20   # số khung ứng viên gửi AI xếp hạng
 MOI = "--cu" not in sys.argv   # anh DUYỆT mẫu 08/11/2026 → bản mới là mặc định; --cu = cách cũ (khung điểm máy, chữ vàng, 3 Mb/s)
 LOC = "fps=2/3"   # khung ứng viên: mỗi 1,5 giây (từ giây 3) — một chuỗi lọc cho cả khung nhỏ lẫn khung gốc
 FONT = "/System/Library/Fonts/Supplemental/Georgia Bold Italic.ttf"
-# LỚP "FREE" (Dol / Ethopex 09/11/2026: "Trong Creative, hình ảnh, video có chữ 'Free' gần như giúp mình mua được CPC rẻ hơn" + mẫu poster Dol gửi; anh 09/11: "Dựng free"):
+# LỚP "FREE" — LUẬT CHUNG MỌI DẠNG TĨNH (sổ dạng etp-dang.json "tinh": AT · ATT · PO · CTS — anh 09/11/2026 "cho vào luật chung về dựng creative dạng ảnh tĩnh, PO"):
+# mọi lớp chữ đứng yên của creative tĩnh đi qua lop_free (anh-tinh.anh cho AT / ATT, tinh-ba-kieu.py cho PO / CTS). Gốc (Dol / Ethopex 09/11/2026: "Trong Creative, hình ảnh, video có chữ 'Free' gần như giúp mình mua được CPC rẻ hơn" + mẫu poster Dol gửi; anh 09/11: "Dựng free"):
 # nhãn tím trên cùng "All Episodes Released" + nút xanh "Watch For Free" ngay dưới tên phim. Bật mặc định mọi bản AT mới; --khong-free = bản cũ (đo A/B về sau).
 # Tên phim đẩy lên (đáy ≤ TEN_DAY_FREE) để nút xanh vẫn nằm trên vùng khung ứng dụng (~15% đáy: tên trang, nút của Meta).
 FREE = {"en": ("All Episodes Released", "Watch For Free"), "es": ("Todos los episodios ya disponibles", "Míralo gratis")}
 FONT_FREE, TIM, XANH, TEN_DAY_FREE = "/System/Library/Fonts/Supplemental/Arial Bold.ttf", (124, 58, 237, 255), (34, 197, 94, 255), 0.72
 CO_FREE = "--khong-free" not in sys.argv
-def lop_free(lop, lang, day_ten):
-    """vẽ nhãn tím trên cùng + nút xanh dưới tên phim (day_ten = mép dưới tên, px) lên lớp chữ RGBA đứng yên"""
+def lop_free(lop, lang, day_ten=None):
+    """vẽ nhãn tím trên cùng + nút xanh dưới tên phim (day_ten = mép dưới tên, px; None = sát vùng giao diện Meta ở đáy — PO, tên nằm sẵn trên poster) lên lớp chữ RGBA đứng yên"""
+    if day_ten is None: day_ten = H
     nhan, nut = FREE.get(lang, FREE["en"]); d = ImageDraw.Draw(lop)
     def o(chu, c, y, mau, dem_x, dem_y, max_w):
         while c > 40 and ImageFont.truetype(FONT_FREE, c).getlength(chu) > max_w - 2 * dem_x: c -= 4

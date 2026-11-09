@@ -58,8 +58,10 @@ export async function GET(req: Request) {
   let hang: Viec[] = []; try { hang = (JSON.parse(fs.readFileSync(`${process.env.CTY_DATA_DIR || '/var/lib/cty'}/tho-may.json`, 'utf8')).hang ?? []) as Viec[]; } catch { /* chưa có hàng */ }
   for (const r of rows) {
     const b = r.buoc as Record<string, { t?: string }> | null, sau = r.ket !== 'hong' && b?.sau?.t === 'loi'; if (r.ket !== 'hong' && !sau) continue;
-    const khoa = `dang:${sau ? 'sau' : 'lo'}|${r.ma}|${r.nen}`, bd = Date.parse(String(r.bd)), kt = Date.parse(String(r.kt ?? r.bd));
-    const v = hang.filter((x) => x.khoa === khoa && Date.parse(x.luc) <= kt + 20 * 60_000 && (!x.xong || Date.parse(x.xong) >= bd)).pop();
+    // việc phủ lượt này = việc cùng khoá chưa xong lúc lượt chạy: việc mở TRƯỚC lượt (hàng không xếp đôi nên lượt hỏng lặp nằm chung việc đó), không có thì việc giao SAU lượt (giao bù)
+    const khoa = `dang:${sau ? 'sau' : 'lo'}|${r.ma}|${r.nen}`, bd = Date.parse(String(r.bd));
+    const ung = hang.filter((x) => x.khoa === khoa && (!x.xong || Date.parse(x.xong) >= bd));
+    const v = ung.filter((x) => Date.parse(x.luc) < bd).pop() ?? ung.find((x) => Date.parse(x.luc) >= bd);
     if (v) r.sua = { id: v.id, tt: v.tt, ket: v.ket ?? null, ket_qua: v.ket_qua ? v.ket_qua.slice(0, 600) : null, luc: iso(v.luc), xong: v.xong ? iso(v.xong) : null };
   }
   for (const c of chay) { c.bd = iso(c.bd); const k = c.kq as Dong | null; if (k) k.luc = iso(k.luc); }

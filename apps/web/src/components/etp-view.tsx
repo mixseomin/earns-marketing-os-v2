@@ -2412,7 +2412,7 @@ const nhomLoc = (ds: string[]) => [...ds.reduce((m, k) => m.set(LOC_NHOM[k as ke
 const locDs = (l: string) => (l === 'all' ? [] : l.split(',').filter((x) => x !== 'all' && (LOC_CAMP as readonly string[]).includes(x)));
 const locHop = (l: string) => locDs(l).join(',') || 'all';
 // ghép phần nặng tải bù vào bản nhẹ (PhanNang ở etp-doc) — component đọc du.* như cũ
-const ghepNang = (d: DuLieuEtp, x: PhanNang): DuLieuEtp => ({ ...d, nhe: false, pheu: x.pheu, diemCham: x.diemCham, thuVien: x.thuVien,
+const ghepNang = (d: DuLieuEtp, x: PhanNang): DuLieuEtp => ({ ...d, nhe: false, pheu: x.pheu, diemCham: x.diemCham, thuVien: x.thuVien, dangSx: x.dangSx,
   cham: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { ...c, ...(x.chamCt[Number(k)] ?? {}) }])) });
 
 // KIỂU XEM tab Camp. Lên bậc ('bac') đã bỏ (anh 08/11/2026) — thay bằng NÚT Logs mở ngăn kéo (components/etp-logs.tsx), không phải một kiểu xem
@@ -2490,7 +2490,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen }: { du: DuLi
   const [thap, setThap] = useState(false);
   useEffect(() => { const mq = window.matchMedia('(max-height: 500px)'); const f = () => setThap(mq.matches); f(); mq.addEventListener('change', f); return () => mq.removeEventListener('change', f); }, []);
   const gon = hep || thap;
-  const canNang = (tab === 'creative' && (xemCr === 'soat' || xemCr === 'dc')) || tab === 'tv';
+  const canNang = (tab === 'creative' && (xemCr === 'soat' || xemCr === 'dc' || xemCr === 'sx')) || tab === 'tv';
   // tải lại mỗi lần bản nhẹ đổi (tự làm mới / router.refresh sau thao tác) để phần nặng không cũ; bản cũ vẫn hiện trong lúc chờ
   useEffect(() => { if (!duGoc.nhe || !canNang) return; let huy = false;
     taiNangEtp(duGoc.nguoi.ngoai && duGoc.nguoi.dang != null ? String(duGoc.nguoi.dang) : undefined).then((r) => { if (!huy && !('loi' in r)) setNang(r); }).catch(() => {});

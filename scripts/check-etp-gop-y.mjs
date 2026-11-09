@@ -166,7 +166,7 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "{ key: 'tt', header: 'TT', align: 'left', width: 74,", vi: 'cột trạng thái Cây hẹp cố định' },
   // anh 30/10/2026 "chậm quá" → "làm tối ưu triệt để đi": trang gửi bản nhẹ, phần nặng tải theo tab
   { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "docEtp(ngCua(quyen, mot('ng')), true)", vi: 'trang etp gửi bản nhẹ' },
-  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "const canNang = (tab === 'creative' && (xemCr === 'soat' || xemCr === 'dc')) || tab === 'tv';", vi: 'tab cần phần nặng mới tải bù' },
+  { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "const canNang = (tab === 'creative' && (xemCr === 'soat' || xemCr === 'dc' || xemCr === 'sx')) || tab === 'tv';", vi: 'tab cần phần nặng mới tải bù' },
   { card: 0, tep: 'apps/web/src/lib/etp-doc.ts', co: 'with g as (select coalesce(p.the_loai', vi: 'câu khung giờ gộp theo giờ trước khi gọi khung_vn' },
   // anh 30/10/2026 "vậy điều chỉnh đi": ★ ROAS thắng $20 → $30 cần ROI các ngày tiêu > $16 trên 50% (trước 80%)
   { card: 0, tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'T30_SP, T30_ROI, T30_NGAY = 80, 50, 2', vi: '★ ROAS thắng: ngưỡng ROI 50%' },
@@ -191,9 +191,9 @@ const LUAT = [
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', co: "<span className=\"etp-xuong\" style={{ flexBasis: '100%', height: 0 }} />", vi: 'kiểu xem + bộ lọc xuống hàng 2, tab + kỳ hàng 1' },
   { card: 0, tep: 'apps/web/src/components/etp-view.tsx', mot: 'locTuDong={false} onTimDoi={onTimDoi} khiTimTrong={khiTimTrong} />;   // TT / Luật / Loại tự sinh', vi: 'cây camp không có bộ lọc tự sinh trùng ô Lọc / Luật / Loại' },
   // anh 31/10/2026 PHÂN QUYỀN: Sơn admin (xem hết + sửa camp của Sơn), Kiên chỉ phần của Kiên — dữ liệu cắt TRÊN MÁY CHỦ, một chỗ gác
-  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "du={quyen.vai === 'nguoi' ? catChoNguoi(du, quyen.nguoiId!) : du}", vi: 'vai người nhận dữ liệu đã cắt trên máy chủ' },
+  { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "du={gonXet(quyen.vai === 'nguoi' ? catChoNguoi(du, quyen.nguoiId!) : du)}", vi: 'vai người nhận dữ liệu đã cắt trên máy chủ' },
   { card: 0, tep: 'apps/web/src/app/etp/page.tsx', co: "docEtp(ngCua(quyen, mot('ng')), true)", vi: 'vai người không đổi được ?ng= sang người khác' },
-  { card: 0, tep: 'apps/web/src/lib/actions/etp-nang.ts', co: 'if (!xemNha(q)) return { chamCt: {}, pheu: [], diemCham: {}, thuVien: [] };', vi: 'phần nặng (dữ liệu nhà) không tới vai người' },
+  { card: 0, tep: 'apps/web/src/lib/actions/etp-nang.ts', co: 'if (!xemNha(q)) return { chamCt: {}, pheu: [], diemCham: {}, thuVien: [], dangSx: [] };', vi: 'phần nặng (dữ liệu nhà) không tới vai người' },
   { card: 0, tep: 'apps/web/src/lib/actions/etp-cham.ts', co: 'if (!q || !xemNha(q)) return {};', vi: 'chữ chấm creative nhà không tới vai người' },
   { card: 0, tep: 'apps/web/src/lib/etp-quyen.ts', co: "const GIU = ['nhe', 'luc', 'nay', 'ngay', 'camps', 'creatives', 'phims', 'soNgay', 'demNgay', 'theLoai', 'xetLuat', 'xetLuc', 'lsBac'] as const;", vi: 'vai người: danh sách CHO PHÉP, trường mới mặc định rỗng' },
   { card: 0, tep: 'apps/web/src/lib/etp-quyen.ts', cam: "chiHost !== 'etp.on.tc')", vi: 'không gác bằng chi_host — gác bằng sổ etp.quyen' },
@@ -232,7 +232,7 @@ const LUAT = [
   { card: 0, tep: 'apps/etp/cong.py', co: 'return " duplicate by " in ten or ten.lstrip().startswith("★") or bool(_ROAS_TEAM.search(ten))', vi: 'nhận camp ROAS team đặt tên kiểu _ROAS1 / (ROAS) / Dup by' },
   // hàng góp ý 31/10/2026
   { card: 1492, tep: 'apps/etp/dong-bo.py', co: "g.camp_id = substring(lower(n.ten) from '(?:duplicate by|dup by|_d)", vi: 'bản nhân bản của team thừa hưởng phim + creative từ camp gốc ghi trong tên' },
-  { card: 1493, tep: 'apps/web/src/components/etp-view.tsx', co: "<span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} />", vi: 'loại + số bản nhân dạt phải ô camp ở cây' },
+  { card: 1493, tep: 'apps/web/src/components/etp-view.tsx', co: "<span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 5, flex: 'none' }}><BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} />", vi: 'loại + số bản nhân dạt phải ô camp ở cây' },
   { card: 1493, tep: 'packages/bang/src/data-table.tsx', co: "paddingLeft: sau * 14, width: '100%', boxSizing: 'border-box' }}>", vi: 'ô cây giãn đủ bề rộng để nội dung dạt phải được' },
   { card: 1494, tep: 'apps/web/src/components/etp-view.tsx', co: '<TheBac ls={ls ?? []} d={d} c={c} /></KhungNoi>', vi: 'thẻ lịch sử bậc ghi số + tên camp' },
   { card: 1494, tep: 'apps/web/src/components/etp-view.tsx', mot: 'function DauCamp(', vi: 'một đầu thẻ camp dùng chung' },
@@ -487,7 +487,7 @@ const LUAT = [
   { card: 1516, tep: 'apps/web/src/components/etp-view.tsx', co: "['ky', (c) => kh === 'tat_ca' ||", vi: 'chọn kỳ ở trên thì danh sách camp lọc theo kỳ' },
   { card: 1517, tep: 'apps/web/src/components/etp-so.tsx', mot: 'export function KeToan(', vi: 'ô tiền kiểu kế toán MỘT định nghĩa (etp-view + tab Sản xuất)' },
   { card: 1517, tep: 'apps/web/src/components/etp-dong.tsx', co: '<KeToan v={so} mau=', cam: "`${lai_ >= 0 ? '+' : ''}$${lai_.toFixed(2)}`", vi: 'cột Chạy tab Sản xuất in tiền kiểu kế toán + màu, không "$-0.25"' },
-  { card: 1518, tep: 'apps/web/src/components/etp-dong.tsx', co: '<BadgeDangNgan d={cx?.dang ?? null} />', vi: 'dòng creative tab Sản xuất có badge loại creative' },
+  { card: 1518, tep: 'apps/web/src/components/etp-dong.tsx', co: '<BadgeDangNgan d={cx?.dang ?? null} ban={cx?.ban} giong={cx?.giong} />', vi: 'dòng creative tab Sản xuất có badge loại creative' },
   { card: 1518, tep: 'apps/web/src/lib/etp-dang.ts', mot: 'export const MAU_DANG', vi: 'sổ màu loại creative một chỗ (08/11/2026 dời từ etp-so.tsx sang etp-dang.ts đọc etp-dang.json)' },
   { card: 1519, tep: 'apps/web/src/components/etp-dong.tsx', co: "const lyDo = tCham === 'dung' && cx?.chan ? chuChan(cx.chan", vi: 'creative bị chặn ghi lý do ở cột Đang làm + hover' },
   { card: 1519, tep: 'apps/web/src/lib/etp-chan.ts', mot: 'export const lyDoChan', vi: 'đọc lý do chặn một chỗ' },
@@ -1079,6 +1079,8 @@ const LUAT = [
   { card: 'chat', tep: 'packages/bang/src/data-table.tsx', co: "data-dang-loc={q.trim() ? (sortedRows.length ? '1' : '0') : undefined}", vi: 'ô tìm có chữ sáng viền như ô lọc đang chọn, 0 dòng thì đỏ' },
   { card: 'chat', tep: 'packages/bang/src/data-table.tsx', co: 'const persistKey = useKhoaLuu(persistKeyGoc);', vi: 'DataTable lưu theo phạm vi của trang (PhamViLuu)' },
   { card: 'chat', tep: 'apps/web/src/lib/actions/etp-tim.ts', co: "if (!qu || qu.vai === 'nguoi' || k.length < 3) return [];", vi: 'tìm camp người khác: vai người không được biết camp người khác' },
+  { card: 1550, tep: V, co: "data-cot={`${cot}-ns`}", vi: 'ô hôm nay có vạch xanh % ngân sách đã tiêu (cùng màu đường chi cộng dồn / NS của biểu đồ giờ)' },
+  { card: 1550, tep: V, co: '<O cot="roi-nay" v={roi(c.nay)} t="ROI hôm nay" s={c.nay} ns={c.ngan_sach} ', vi: 'ô hôm nay của dòng camp truyền ngân sách cho vạch % tiêu' },
 ];
 
 const dem = (s, x) => s.split(x).length - 1;

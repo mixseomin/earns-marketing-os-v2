@@ -331,4 +331,6 @@ else
   echo "↺ mos2-web: không có bản mới, không khởi động lại"
 fi
 
+# DNS *.on.tc: mọi vhost on.tc trên box3 chưa có bản ghi Cloudflare riêng → tạo A proxied về box3 (anh 09/11/2026, etp2.on.tc 520). Chỉ thêm, không sửa / xoá.
+bash deploy/dns-on-tc.sh || true
 echo "── deploy complete ──"

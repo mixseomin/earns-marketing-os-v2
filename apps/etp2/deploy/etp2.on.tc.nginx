@@ -1,0 +1,23 @@
+# etp2.on.tc — bản etp riêng của anh (apps/etp2 :3880, mos2-etp2.service; anh 09/11/2026). Gác SSO mos2 như etp.on.tc; trang tự chặn người không phải admin.
+# deploy.sh cài tệp này vào sites-enabled/etp2.on.tc. Ảnh poster / icon nền tảng vẫn do mos2-web (:3821) phục vụ.
+server { listen 80; server_name etp2.on.tc; return 301 https://$host$request_uri; }
+server {
+  listen 443 ssl; http2 on;
+  server_name etp2.on.tc;
+  include snippets/cloudflare-allow.conf;
+  ssl_certificate /etc/letsencrypt/live/on.tc/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/on.tc/privkey.pem;
+  client_max_body_size 12m;   # ảnh góp ý (server action uploadImage)
+  add_header X-Robots-Tag "noindex, nofollow" always;
+  auth_request /_mos2auth;
+  error_page 401 = @login;
+  error_page 500 502 503 504 = @cap_nhat;
+  location @cap_nhat { auth_request off; default_type text/html; add_header Retry-After 3 always; add_header Cache-Control "no-store" always;
+    return 503 '<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width"><meta http-equiv=refresh content=3><title>Đang cập nhật</title><body style="margin:0;background:#0b0b0c;color:#bbb;font:14px system-ui;display:grid;place-items:center;height:100vh">etp2 đang cập nhật bản mới — tự tải lại sau 3 giây…</body>'; }
+  location = /_mos2auth { internal; proxy_pass http://127.0.0.1:3821/api/auth/verify; proxy_pass_request_body off; proxy_set_header Content-Length ""; proxy_set_header Cookie $http_cookie; proxy_set_header Host $host; }
+  location @login { return 302 https://mos2.on.tc/login?next=https://etp2.on.tc/; }
+  location = /robots.txt { auth_request off; default_type text/plain; return 200 "User-agent: *\nDisallow: /\n"; }
+  location = /api/ethopex/anh { proxy_pass http://127.0.0.1:3821; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-Proto https; }
+  location /api/platform-icon/ { proxy_pass http://127.0.0.1:3821; proxy_http_version 1.1; proxy_set_header Host $host; }
+  location / { proxy_pass http://127.0.0.1:3880; proxy_http_version 1.1; proxy_set_header Host $host; proxy_set_header X-Forwarded-For $remote_addr; proxy_set_header X-Forwarded-Proto https; proxy_read_timeout 120s; }
+}

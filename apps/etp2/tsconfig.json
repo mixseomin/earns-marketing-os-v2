@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "plugins": [{ "name": "next" }],
+    "verbatimModuleSyntax": false,
+    "paths": { "@/*": ["./src/*"] },
+    "allowJs": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".next/cache/tsc.tsbuildinfo"
+  },
+  "include": ["src/**/*", "next-env.d.ts", ".next/types/**/*.ts"],
+  "exclude": ["node_modules", ".next"]
+}

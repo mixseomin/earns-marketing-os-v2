@@ -1,0 +1,111 @@
+'use client';
+
+// SiteFavicon — favicon/brand icon thật cho habitat/platform, fallback
+// emoji glyph khi load lỗi (không bao giờ vỡ layout).
+//
+// Resolve thứ tự:
+//   1. iconSlug  → https://cdn.simpleicons.org/<slug>  (platform brand)
+//   2. url host  → https://icons.duckduckgo.com/ip3/<host>.ico
+//   3. kind→domain map → ip3 favicon
+//   4. glyph emoji (KIND fallback)
+//
+// DuckDuckGo ip3 endpoint: không cần key, privacy hơn Google s2.
+
+import { useState } from 'react';
+import type { CSSProperties } from 'react';
+import { CHANNELS, CHANNEL_PLATFORM } from '@/lib/content-channels';
+
+// kind → domain khi habitat không có url (discord/hashtag…)
+const KIND_DOMAIN: Record<string, string> = {
+  discord: 'discord.com',
+  subreddit: 'reddit.com', reddit: 'reddit.com',
+  'fb-group': 'facebook.com', facebook: 'facebook.com', 'fb_group': 'facebook.com',
+  twitter: 'x.com', x: 'x.com', hashtag: 'x.com',
+  telegram: 'telegram.org', youtube: 'youtube.com', slack: 'slack.com',
+  feed: 'bsky.app', bluesky: 'bsky.app',
+};
+
+// platform_key → SiteFavicon props.
+// TRƯỚC (sai): đoán host từ chính cái key — chỉ khớp key dạng 'abc-com' + map cứng KIND_DOMAIN 12
+// dòng, nên saashub/uneed/f6s/webcatalog/gumroad… rơi về glyph emoji dù DB có URL thật.
+// NAY: giao cho route /api/platform-icon/<key>, nơi host lấy từ chính cột URL của platform và bytes
+// được cache trong DB. Giữ hàm này để mọi call-site cũ không phải sửa.
+export function platformFaviconProps(key: string): { platformKey: string } {
+  return { platformKey: (key || '').toLowerCase() };
+}
+
+function hostFromUrl(u?: string | null): string | null {
+  if (!u) return null;
+  try {
+    const h = new URL(u.startsWith('http') ? u : `https://${u}`).hostname;
+    return h.replace(/^www\./, '') || null;
+  } catch {
+    return null;
+  }
+}
+
+export function SiteFavicon({
+  platformKey, url, kind, iconSlug, glyph, size = 16, title, style, circle = false,
+}: {
+  /** Ưu tiên cao nhất: icon phục vụ từ /api/platform-icon/<key> — đã cache trong DB, cache-control
+   *  1 năm, host lấy từ URL THẬT của platform. Không còn đoán bằng map cứng. */
+  platformKey?: string | null;
+  url?: string | null;
+  kind?: string | null;
+  iconSlug?: string | null;
+  glyph?: string;          // emoji fallback (vd KIND_GLYPH[kind])
+  size?: number;
+  title?: string;
+  style?: CSSProperties;
+  circle?: boolean;        // hình tròn avatar-style (cluster account trên card/drawer); mặc định bo góc nhẹ
+}) {
+  const [failed, setFailed] = useState(false);
+
+  let src: string | null = null;
+  if (platformKey) src = `/api/platform-icon/${encodeURIComponent(platformKey)}`;
+  if (!src && iconSlug) src = `https://cdn.simpleicons.org/${encodeURIComponent(iconSlug)}`;
+  if (!src) {
+    const host = hostFromUrl(url) ?? (kind ? KIND_DOMAIN[kind] ?? null : null);
+    if (host) src = `https://icons.duckduckgo.com/ip3/${host}.ico`;
+  }
+
+  const radius = circle ? '50%' : 3;
+  const box: CSSProperties = {
+    width: size, height: size, display: 'inline-flex', alignItems: 'center',
+    justifyContent: 'center', flexShrink: 0, verticalAlign: 'text-bottom',
+    fontSize: Math.round(size * (circle ? 0.66 : 0.85)), lineHeight: 1,
+    // Tròn = viền + nền để favicon trong suốt/nhỏ vẫn đọc ra là 1 "avatar" gọn.
+    ...(circle && { borderRadius: '50%', overflow: 'hidden', background: 'var(--bg-2)', border: '1px solid var(--line)' }),
+    ...style,
+  };
+
+  if (!src || failed) {
+    return <span data-comp="ui.SiteFavicon" style={box} title={title} aria-hidden>{glyph || '🌐'}</span>;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      data-comp="ui.SiteFavicon"
+      src={src}
+      alt=""
+      width={size}
+      height={size}
+      title={title}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      onError={() => setFailed(true)}
+      style={{ ...box, objectFit: 'contain', borderRadius: radius }}
+    />
+  );
+}
+
+/** Icon của KÊNH đăng (fb-post/reddit/twitter-thread/reel…) = favicon THẬT của nền tảng, không phải
+ *  emoji. Một chỗ định nghĩa cho mọi bề mặt (bản dựng bài, lịch, rail, drawer, chip lọc) — kênh nào
+ *  không phải nền tảng (email/blog/ad/landing/dm) thì rơi về glyph của chính catalog kênh. */
+export function ChannelFavicon({ channel, size = 16, circle = false, title }: {
+  channel: string; size?: number; circle?: boolean; title?: string;
+}) {
+  const platform = CHANNEL_PLATFORM[channel];
+  const ch = CHANNELS.find((c) => c.id === channel);
+  return <SiteFavicon platformKey={platform ?? null} glyph={ch?.icon ?? '📝'} size={size} circle={circle} title={title ?? ch?.label ?? channel} />;
+}

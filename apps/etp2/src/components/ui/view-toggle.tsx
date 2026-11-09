@@ -1,0 +1,43 @@
+// ViewToggle — connected segmented control for switching view MODE (List ↔ Calendar,
+// Grid ↔ Table, …). One control, one look everywhere: active segment = neon-cyan (matches
+// the tab strips). Shared dashboard primitive so pages stop hand-rolling their own toggles.
+import type { CSSProperties, ReactNode } from 'react';
+import { moTabNeuModifier, urlVoiParam } from '@/lib/url-mo-tab';
+
+export interface ViewOption { value: string; label: ReactNode; title?: string; }
+
+export function ViewToggle({ options, value, onChange, style, urlKey = 'view' }: {
+  options: ViewOption[];
+  /** Tên param URL của view (mặc định `view`) — ⌘/Ctrl-click mở tab mới đúng view. */
+  urlKey?: string;
+  value: string;
+  onChange: (v: string) => void;
+  style?: CSSProperties;
+}) {
+  return (
+    <div data-comp="ui.ViewToggle" style={{ display: 'inline-flex', border: '1px solid var(--line)', borderRadius: 7, overflow: 'hidden', ...style }}>
+      {options.map((o, i) => {
+        const on = o.value === value;
+        return (
+          <button key={o.value} type="button" title={o.title}
+            onClick={(e) => { if (moTabNeuModifier(e, urlVoiParam(urlKey, o.value))) return; onChange(o.value); }}
+            onAuxClick={(e) => moTabNeuModifier(e, urlVoiParam(urlKey, o.value))}
+            style={{
+              fontSize: 12, fontWeight: on ? 700 : 500, padding: '4px 12px', cursor: 'pointer', whiteSpace: 'nowrap',
+              border: 'none', borderLeft: i ? '1px solid var(--line)' : 'none',
+              background: on ? 'color-mix(in srgb, var(--neon-cyan) 14%, transparent)' : 'var(--bg-2)',
+              color: on ? 'var(--neon-cyan)' : 'var(--fg-2)',
+            }}>
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Convenience: the standard List/Calendar pair used by list surfaces.
+export const LIST_CALENDAR_VIEWS: ViewOption[] = [
+  { value: 'list', label: '☰ List', title: 'Danh sách' },
+  { value: 'calendar', label: '📅 Lịch', title: 'Lịch tháng' },
+];

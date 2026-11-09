@@ -1,0 +1,32 @@
+{
+  "name": "@mos2/etp2",
+  "version": "0.0.1",
+  "description": "etp2.on.tc — bản etp riêng của anh (anh 09/11/2026 'tách thành app riêng', etp.on.tc để yên): app Next riêng, dùng chung DB mos2 + phiên .on.tc; build nhỏ, deploy nhanh.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 3880",
+    "build": "next build",
+    "start": "next start -p ${PORT:-3880}",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mos2/bang": "*",
+    "@mos2/db": "*",
+    "@mos2/gop-y": "*",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.36.0",
+    "next": "^15.0.3",
+    "openai": "^4.79.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}

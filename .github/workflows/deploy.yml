@@ -18,7 +18,7 @@ on:
         description: 'App cần deploy'
         required: true
         type: choice
-        options: [cty, web, store, xuong-video, het]
+        options: [cty, web, store, xuong-video, etp2, het]
 
 concurrency:
   group: deploy-${{ github.ref }}
@@ -74,8 +74,9 @@ jobs:
           # cong-ty/** chỉ là dữ liệu đọc lúc render: máy chủ git pull là đủ, không dựng lại cty.
           cham apps/cty --tru apps/cty/cong-ty/ && echo "cty=1" >> "$GITHUB_OUTPUT"
           co '^apps/cty/cong-ty/' && echo "cty_du_lieu=1" >> "$GITHUB_OUTPUT"
+          cham apps/etp2 && echo "etp2=1" >> "$GITHUB_OUTPUT"
           # deploy.sh + deploy/ chỉ chạy trên máy chủ, không vào bản build → không kéo build web (38s).
-          if [ "$F" = "__HET__" ] || echo "$F" | grep -vqE '^(apps/(store|xuong-video|cty)/|packages/gop-y/|deploy/|deploy\.sh$)'; then echo "web=1" >> "$GITHUB_OUTPUT"; fi
+          if [ "$F" = "__HET__" ] || echo "$F" | grep -vqE '^(apps/(store|xuong-video|cty|etp2)/|packages/gop-y/|deploy/|deploy\.sh$)'; then echo "web=1" >> "$GITHUB_OUTPUT"; fi
           echo "Tệp đổi:"; echo "$F" | head -40; echo "Build:"; cat "$GITHUB_OUTPUT"
       - uses: actions/setup-node@v4
         with: { node-version: '22' }   # match server node v22 (.next swapped in raw) + Node 20 is GHA-deprecated
@@ -107,6 +108,10 @@ jobs:
         if: steps.chon.outputs.cty == '1'
         uses: actions/cache@v4
         with: { path: apps/cty/.next/cache, key: "nextcache-cty-${{ github.sha }}", restore-keys: nextcache-cty- }
+      - name: Restore Next.js build cache (etp2)
+        if: steps.chon.outputs.etp2 == '1'
+        uses: actions/cache@v4
+        with: { path: apps/etp2/.next/cache, key: "nextcache-etp2-${{ github.sha }}", restore-keys: nextcache-etp2- }
       - name: Kiểm tĩnh
         run: |
           node scripts/check-sql-aliases.mjs
@@ -135,6 +140,7 @@ jobs:
           if [ "${{ steps.chon.outputs.store }}" = 1 ]; then dung store; fi
           if [ "${{ steps.chon.outputs.studio }}" = 1 ]; then dung xuong-video; fi
           if [ "${{ steps.chon.outputs.cty }}" = 1 ]; then dung cty; fi
+          if [ "${{ steps.chon.outputs.etp2 }}" = 1 ]; then dung etp2; fi
           wait
           sai=0
           for rc in /tmp/build-*.rc; do
@@ -157,7 +163,7 @@ jobs:
           if ls *.tar.gz >/dev/null 2>&1; then ls -la *.tar.gz; ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} "mkdir -p /var/tmp/mos2-deploy"; scp -i ~/.ssh/id_ed25519 *.tar.gz root@${{ secrets.DEPLOY_HOST }}:/var/tmp/mos2-deploy/; else echo "↺ không app nào dựng lượt này"; fi
           ssh -i ~/.ssh/id_ed25519 root@${{ secrets.DEPLOY_HOST }} '
             set -e
-            for a in web store xuong-video cty; do
+            for a in web store xuong-video cty etp2; do
               [ -f "/var/tmp/mos2-deploy/$a.tar.gz" ] || { echo "↺ $a: không build lượt này"; continue; }
               mkdir -p "/opt/earns-marketing-os-v2/apps/$a" && cd "/opt/earns-marketing-os-v2/apps/$a"
               B="/var/tmp/mos2-deploy/b-$a"

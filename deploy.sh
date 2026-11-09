@@ -237,6 +237,25 @@ else
   echo "↺ Cty unchanged — keep running build"
 fi
 
+# 5e2. ETP2 (apps/etp2, cổng 3880, mos2-etp2.service, etp2.on.tc) — bản etp riêng của anh (anh 09/11/2026 "tách thành app riêng"; etp.on.tc để yên).
+#      Unit + vhost cài từ repo (apps/etp2/deploy/); bản dựng sẵn từ GHA ở .next.new — có thì thay + khởi động lại, không thì giữ bản đang chạy.
+if ! cmp -s apps/etp2/deploy/mos2-etp2.service /etc/systemd/system/mos2-etp2.service; then
+  cp apps/etp2/deploy/mos2-etp2.service /etc/systemd/system/mos2-etp2.service && systemctl daemon-reload && systemctl enable mos2-etp2 >/dev/null 2>&1 && echo "✓ mos2-etp2 unit cài/cập nhật"
+fi
+if ! cmp -s apps/etp2/deploy/etp2.on.tc.nginx /etc/nginx/sites-enabled/etp2.on.tc; then
+  cp apps/etp2/deploy/etp2.on.tc.nginx /etc/nginx/sites-enabled/etp2.on.tc && nginx -t >/dev/null 2>&1 && systemctl reload nginx && echo "✓ nginx etp2.on.tc cài/cập nhật" || { echo "✗ nginx etp2.on.tc: cấu hình lỗi"; rm -f /etc/nginx/sites-enabled/etp2.on.tc; nginx -t >/dev/null 2>&1 && systemctl reload nginx; }
+fi
+if [ -f apps/etp2/.next.new/BUILD_ID ]; then
+  rm -rf apps/etp2/.next.old
+  [ -e apps/etp2/.next ] && mv apps/etp2/.next apps/etp2/.next.old
+  mv apps/etp2/.next.new apps/etp2/.next
+  rm -rf apps/etp2/.next.old
+  systemctl restart mos2-etp2; sleep 1
+  systemctl is-active mos2-etp2 && echo "✓ mos2-etp2 active" || { echo "✗ mos2-etp2 failed"; systemctl status mos2-etp2 --no-pager | tail -20; exit 1; }
+else
+  echo "↺ etp2 unchanged — keep running build"
+fi
+
 # 5f. Văn phòng pixel (pixel-agents standalone, cổng 3851, mos2-vp.service, vp.on.tc) — gói npm toàn cục, ghim bản; nhân sự bơm
 #     bằng hook giả từ apps/cty/cong-ty (ExecStartPost). Vhost đứng sau auth_request của cty (/api/phien).
 PA_VER=1.4.1

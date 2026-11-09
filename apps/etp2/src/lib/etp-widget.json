@@ -1,0 +1,382 @@
+{
+  "_ghi": "SỔ WIDGET tab Tổng quan 2 etp (anh 01/11/2026: 'kéo thả tuỳ người dùng muốn hiện thế nào… template riêng… template mặc định theo mục đích'). MỘT nguồn: lưới (etp-tong2.tsx), kiểm bố cục (etp-widget.ts, chạy cả máy chủ khi lưu), template mặc định. Thêm widget = một mục ở đây + một hàm vẽ trong VE của etp-tong2.tsx (check-etp-gop-y đối chiếu hai bên).",
+  "_khoa": "cot × hang = lưới cố định cao đúng một màn (hàng co theo chiều cao cửa sổ — bố cục không bao giờ vượt màn) · widget.min / mac = [rộng cột, cao hàng] nhỏ nhất / mặc định khi thêm · template.o = ô {ma, x, y, w, h} · mac_dinh = template dùng khi người chưa có bố cục riêng và team chưa đặt",
+  "cot": 12,
+  "hang": 18,
+  "widget": {
+    "bieu_do_ngay": {
+      "ten": "Biểu đồ ngày",
+      "mo_ta": "lãi / lỗ từng ngày trong kỳ + dự kiến hôm nay + camp mới / creative mới / camp tắt",
+      "min": [
+        4,
+        4
+      ],
+      "mac": [
+        12,
+        6
+      ]
+    },
+    "bang_ngay": {
+      "ten": "Bảng ngày",
+      "mo_ta": "số từng ngày: ngân sách, chi, thu, lãi, ROI, camp có chi, camp mới, creative mới, camp tắt",
+      "min": [
+        6,
+        4
+      ],
+      "mac": [
+        12,
+        8
+      ]
+    },
+    "nam_nhanh": {
+      "ten": "Nắm nhanh",
+      "mo_ta": "lãi hôm qua · nhịp hôm nay so với cùng giờ hôm qua · người tụt mạnh nhất · tài khoản cần xem · luật nhịp tới",
+      "min": [
+        6,
+        3
+      ],
+      "mac": [
+        12,
+        4
+      ]
+    },
+    "nguoi": {
+      "ten": "Người",
+      "mo_ta": "so sánh từng người trong kỳ: chi, lãi, ROI (▲▼ so với kỳ trước cùng độ dài), camp bật, đường ROI 7 ngày đã khép",
+      "min": [
+        4,
+        3
+      ],
+      "mac": [
+        5,
+        5
+      ]
+    },
+    "nha_thua": {
+      "ten": "Nhà thua đội ở đâu",
+      "mo_ta": "phim nhà và đội cùng chạy 7 ngày đã khép mà đội có ROI tốt hơn — chênh nhiều nhất trước",
+      "min": [
+        4,
+        3
+      ],
+      "mac": [
+        5,
+        4
+      ]
+    },
+    "tk": {
+      "ten": "Tài khoản QC",
+      "mo_ta": "mỗi tài khoản một ô theo người: màu = ROI kỳ, viền đỏ = có cờ (lỗ 3 ngày liền, dồn > 40% chi, camp lỗi, bật mà 24 giờ không chi); bấm mở camp",
+      "min": [
+        4,
+        5
+      ],
+      "mac": [
+        7,
+        8
+      ]
+    },
+    "gio_nhiet": {
+      "ten": "Bản đồ giờ",
+      "mo_ta": "ngày × giờ VN (14 ngày), màu = ROI giờ đó của nhà + đội, dòng Cộng = các ngày đã khép — thấy giờ lãi / giờ lỗ cho lịch giờ, dừng đêm",
+      "min": [
+        6,
+        5
+      ],
+      "mac": [
+        12,
+        7
+      ]
+    },
+    "luy_ke": {
+      "ten": "Luỹ kế hôm nay",
+      "mo_ta": "lãi cộng dồn theo giờ: hôm nay so với hôm qua và trung bình 7 ngày đã khép",
+      "min": [
+        4,
+        4
+      ],
+      "mac": [
+        6,
+        6
+      ]
+    },
+    "luat": {
+      "ten": "Luật máy",
+      "mo_ta": "thẻ luật máy xếp cho nhịp tới (bấm mở camp) + việc máy đã làm theo từng luật trong kỳ (bấm mở camp đã tắt / hạ)",
+      "min": [
+        4,
+        4
+      ],
+      "mac": [
+        5,
+        8
+      ]
+    },
+    "phan_bo": {
+      "ten": "Phân bổ ngân sách",
+      "mo_ta": "ngân sách camp đang bật so với trần ngày · từng nhóm (lãi ≥ 30% · lãi 0–30% · test · lỗ nhẹ · lỗ nặng) đang bao nhiêu, mục tiêu, cách làm — kế hoạch 02/11",
+      "min": [
+        6,
+        5
+      ],
+      "mac": [
+        12,
+        8
+      ]
+    }
+  },
+  "template": {
+    "sang": {
+      "ten": "Sáng nay",
+      "muc": "kiểm 30 giây đầu ngày: số hôm qua, ai tụt, tài khoản nào đỏ, máy sắp làm gì",
+      "o": [
+        {
+          "ma": "nam_nhanh",
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 4
+        },
+        {
+          "ma": "nguoi",
+          "x": 0,
+          "y": 4,
+          "w": 5,
+          "h": 5
+        },
+        {
+          "ma": "tk",
+          "x": 5,
+          "y": 4,
+          "w": 7,
+          "h": 8
+        },
+        {
+          "ma": "nha_thua",
+          "x": 0,
+          "y": 9,
+          "w": 5,
+          "h": 3
+        },
+        {
+          "ma": "bieu_do_ngay",
+          "x": 0,
+          "y": 12,
+          "w": 12,
+          "h": 6
+        }
+      ]
+    },
+    "trong_ngay": {
+      "ten": "Trong ngày",
+      "muc": "theo nhịp lúc đang chạy: luỹ kế so với hôm qua, tài khoản đã tiêu bao nhiêu, giờ nào đang lãi",
+      "o": [
+        {
+          "ma": "nam_nhanh",
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 4
+        },
+        {
+          "ma": "luy_ke",
+          "x": 0,
+          "y": 4,
+          "w": 6,
+          "h": 7
+        },
+        {
+          "ma": "tk",
+          "x": 6,
+          "y": 4,
+          "w": 6,
+          "h": 7
+        },
+        {
+          "ma": "gio_nhiet",
+          "x": 0,
+          "y": 11,
+          "w": 12,
+          "h": 7
+        }
+      ]
+    },
+    "so_doi": {
+      "ten": "So đội",
+      "muc": "học từ người đang lãi hơn: so từng người + phim nhà thua đội",
+      "o": [
+        {
+          "ma": "nguoi",
+          "x": 0,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        },
+        {
+          "ma": "nha_thua",
+          "x": 6,
+          "y": 0,
+          "w": 6,
+          "h": 6
+        },
+        {
+          "ma": "bieu_do_ngay",
+          "x": 0,
+          "y": 6,
+          "w": 12,
+          "h": 6
+        },
+        {
+          "ma": "bang_ngay",
+          "x": 0,
+          "y": 12,
+          "w": 12,
+          "h": 6
+        }
+      ]
+    },
+    "rui_ro_tk": {
+      "ten": "Rủi ro tài khoản",
+      "muc": "phòng khoá / dồn chi: mọi tài khoản QC và cờ của từng cái",
+      "o": [
+        {
+          "ma": "nam_nhanh",
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 4
+        },
+        {
+          "ma": "tk",
+          "x": 0,
+          "y": 4,
+          "w": 12,
+          "h": 8
+        },
+        {
+          "ma": "nguoi",
+          "x": 0,
+          "y": 12,
+          "w": 6,
+          "h": 6
+        },
+        {
+          "ma": "bieu_do_ngay",
+          "x": 6,
+          "y": 12,
+          "w": 6,
+          "h": 6
+        }
+      ]
+    },
+    "luat_may": {
+      "ten": "Luật máy",
+      "muc": "máy đang và đã làm gì: luật nhịp tới, việc đã làm theo từng luật, kết quả theo ngày",
+      "o": [
+        {
+          "ma": "nam_nhanh",
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 4
+        },
+        {
+          "ma": "luat",
+          "x": 0,
+          "y": 4,
+          "w": 5,
+          "h": 14
+        },
+        {
+          "ma": "bieu_do_ngay",
+          "x": 5,
+          "y": 4,
+          "w": 7,
+          "h": 7
+        },
+        {
+          "ma": "nguoi",
+          "x": 5,
+          "y": 11,
+          "w": 7,
+          "h": 7
+        }
+      ]
+    },
+    "gio_vang": {
+      "ten": "Giờ vàng",
+      "muc": "chỉnh lịch giờ / dừng đêm: giờ lãi, giờ lỗ, nhịp trong ngày",
+      "o": [
+        {
+          "ma": "gio_nhiet",
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 10
+        },
+        {
+          "ma": "luy_ke",
+          "x": 0,
+          "y": 10,
+          "w": 6,
+          "h": 8
+        },
+        {
+          "ma": "bieu_do_ngay",
+          "x": 6,
+          "y": 10,
+          "w": 6,
+          "h": 8
+        }
+      ]
+    },
+    "mac_dinh": {
+      "ten": "Tổng quan cũ",
+      "muc": "biểu đồ ngày trên, bảng ngày dưới — như tab Tổng quan",
+      "o": [
+        {
+          "ma": "bieu_do_ngay",
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 7
+        },
+        {
+          "ma": "bang_ngay",
+          "x": 0,
+          "y": 7,
+          "w": 12,
+          "h": 11
+        }
+      ]
+    },
+    "phan_bo": {
+      "ten": "Phân bổ ngân sách",
+      "muc": "trần ngày + ngân sách từng nhóm so với kế hoạch, tài khoản, biểu đồ ngày",
+      "o": [
+        {
+          "ma": "phan_bo",
+          "x": 0,
+          "y": 0,
+          "w": 7,
+          "h": 10
+        },
+        {
+          "ma": "tk",
+          "x": 7,
+          "y": 0,
+          "w": 5,
+          "h": 10
+        },
+        {
+          "ma": "bieu_do_ngay",
+          "x": 0,
+          "y": 10,
+          "w": 12,
+          "h": 8
+        }
+      ]
+    }
+  },
+  "mac_dinh": "sang"
+}

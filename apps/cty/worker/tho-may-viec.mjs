@@ -27,6 +27,14 @@ export function themViec(st, ds, { luc = Date.now(), topic = null, msg = null } 
   }
   return { st: { ...st, hang: hang.slice(-200) }, them };
 }
+/** Thuần — GHI CHÚ BỔ SUNG từ tab Máy Đăng mos2 (anh 09/11/2026 "comment bổ sung"): khoá đang chờ / đang làm thì nối chữ vào chính việc đó
+ *  (themViec không xếp đôi nên trước đây ghi chú rơi mất), chưa có thì xếp việc mới. Trả { st, kieu: 'gop' | 'moi' | 'bo' }. */
+export function ghiThem(st, khoa, chu, luc = Date.now()) {
+  const hang = st.hang || [], v = hang.find((x) => x.khoa === khoa && (x.tt === 'cho' || x.tt === 'dang'));
+  if (v) return { st: { ...st, hang: hang.map((x) => (x === v ? { ...x, chu: `${x.chu}\n\nGhi chú thêm ${new Date(luc + 7 * 36e5).toISOString().slice(11, 16)} ${ngayVN(luc)}: ${chu}`.slice(-4000) } : x)) }, kieu: 'gop' };
+  const r = themViec(st, [{ khoa, chu }], { luc });
+  return { st: r.st, kieu: r.them ? 'moi' : 'bo' };
+}
 /** Thuần — CHỌN MODEL MỘT LẦN theo loại việc (anh 05/11/2026 "dùng thuê bao … chọn theo loại công việc. Nhưng làm sao chỉ gọi 1 lần"): 'chinh' (SOUL `model:`, Opus)
  *  cho lệnh anh · tập kênh hỏng · việc cùng khoá đã có trong 7 ngày (lỗi quay lại = lần trước chưa tới gốc) · lỡ lượt đăng không kèm dòng "Lỗi:" (không rõ vì sao);
  *  còn lại — lỗi máy móc lần đầu, có dòng lỗi rõ — 're' (SOUL `model_re:`, Sonnet). Không có bước thử rẻ rồi nâng: mỗi việc đúng một lượt gọi. */
@@ -109,6 +117,9 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
       assert.equal(bacViec({}, v('kenh:parody|t1'), t0), 'chinh'); assert.equal(bacViec({}, v('anh:3'), t0), 'chinh'); assert.equal(bacViec({}, v('box3:ram', 'RAM 95%'), t0), 're');
       assert.equal(bacViec({ hang: [v('box3:ram', 'x', 1)] }, v('box3:ram', 'RAM 95%'), t0), 'chinh', 'cùng khoá trong 7 ngày → chính');
       assert.equal(bacViec({ hang: [{ ...v('box3:ram', 'x', 1), luc: '2026-10-20T00:00:00Z' }] }, v('box3:ram', 'RAM 95%'), t0), 're', 'quá 7 ngày không tính'); }
+    { const s0 = { hang: [{ id: 1, khoa: 'dang:lo|m|x', chu: 'hỏng', tt: 'cho' }] };
+      const g = ghiThem(s0, 'dang:lo|m|x', 'xem lại ô soạn'); assert.equal(g.kieu, 'gop'); assert.ok(g.st.hang[0].chu.includes('xem lại ô soạn'), 'nối vào việc đang chờ'); assert.equal(g.st.hang.length, 1);
+      assert.equal(ghiThem(s0, 'dang:lo|m|y', 'mới').kieu, 'moi', 'chưa có việc thì xếp mới'); assert.equal(ghiThem({}, 'het:x', 'a').kieu, 'bo', 'khoá không thuộc thợ máy bỏ'); }
     console.log('tho-may-viec tu-kiem ok');
   } else if (a[0] === '--lay') {
     const r = layViec(doc()); ghi(r.st); console.log(JSON.stringify(r.viec ? { viec: { ...r.viec, quyet_gan: quyetGan(r.st, r.viec), bac: bacViec(r.st, r.viec) } } : { ly_do: r.ly_do }));
@@ -123,6 +134,8 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     const j = await traLoi(v, `<b>🔧 ${tenViec(v)} · ${KET[ket]}</b>\n${esc(chu)}`, ket === 'can_anh' ? { reply_markup: NUT_HOI } : {}); const st2 = doc(), v2 = st2.hang.find((x) => x.id === id); if (v2 && j?.result?.message_id) { v2.tin_bao = j.result.message_id; ghi(st2); } console.log(j.ok ? 'ok' : JSON.stringify(j).slice(0, 200));
   } else if (a[0] === '--them') {   // xếp một việc từ ngoài (chay-kenh.mjs): --them <khoá> , chữ cảnh báo ở stdin. In số việc đã thêm (0 = khoá đang chờ / không thuộc thợ máy)
     console.log(themTuCanhBao([{ khoa: a[1], chu: fs.readFileSync(0, 'utf8').trim().slice(0, 3000) }], {}));
+  } else if (a[0] === '--ghi-them') {   // ghi chú bổ sung (mos2 /api/may-dang/so): --ghi-them <khoá>, chữ ở stdin → nối vào việc đang chờ cùng khoá hoặc xếp mới. In gop | moi | bo
+    const r = ghiThem(doc(), a[1], fs.readFileSync(0, 'utf8').trim().slice(0, 3000)); if (r.kieu !== 'bo') ghi(r.st); console.log(r.kieu);
   } else if (a[0] === '--xem') console.log(JSON.stringify(doc(), null, 1));
   else { console.error('dùng: --lay | --nhan <id> | --bao <id> <da_sua|khong_sua|can_anh> | --them <khoá> (chữ ở stdin) | --xem | --tu-kiem'); process.exit(2); }
 }

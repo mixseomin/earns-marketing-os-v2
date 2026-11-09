@@ -7,6 +7,6 @@ import { quyenEtp, xemNha } from '@/lib/etp-quyen';
 export async function taiNangEtp(ng?: string): Promise<PhanNang | { loi: string }> {
   const q = await quyenEtp(await getCurrentUser());
   if (!q) return { loi: 'không có quyền' };
-  if (!xemNha(q)) return { chamCt: {}, pheu: [], diemCham: {}, thuVien: [], dangSx: [] };   // phần nặng toàn dữ liệu nhà (chấm, phễu, thư viện) — vai người không có
+  if (!xemNha(q)) return { chamCt: {}, pheu: [], diemCham: {}, thuVien: [], dangSx: [], creatives: [] };   // phần nặng toàn dữ liệu nhà (chấm, phễu, thư viện) — vai người không có
   return phanNang(await docEtp(ng));
 }

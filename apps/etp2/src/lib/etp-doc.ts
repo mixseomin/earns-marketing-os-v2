@@ -188,15 +188,17 @@ export function phimTuTenCamp(ten: string): string | null {
 // TẢI THEO TAB (anh 30/10/2026 "chậm quá" → "làm tối ưu triệt để đi"): trang nặng 5,9MB / 711KB nén, đường box3 → VN ~1 Mbit/s nên mở trang mất 5–6 giây.
 // Lần vẽ đầu (và mỗi lượt tự làm mới) chỉ mang phần tab Camp / Tổng quan / ROAS cần; bốn phần nặng dưới đây chỉ màn Creative › Quét · Điểm chạm và Thư viện dùng
 // → cắt khỏi bản nhẹ, etp-view gọi taiNangEtp khi mở đúng tab rồi ghép lại (ghepNang ở etp-view) — component đọc du.* như cũ.
-export type PhanNang = { chamCt: Record<number, Pick<ChamCr, 'lop' | 'diem' | 'ly_do' | 'khung'>>; pheu: DuLieuEtp['pheu']; diemCham: DuLieuEtp['diemCham']; thuVien: ThuVienMuc[]; dangSx: DuLieuEtp['dangSx'] };   // + dangSx (0,6 MB, chỉ Creative › Sản xuất — anh 09/11/2026 "page camp chậm")
+export type PhanNang = { chamCt: Record<number, Pick<ChamCr, 'lop' | 'diem' | 'ly_do' | 'khung'>>; pheu: DuLieuEtp['pheu']; diemCham: DuLieuEtp['diemCham']; thuVien: ThuVienMuc[]; dangSx: DuLieuEtp['dangSx']; creatives: CreativeEtpKho[] };   // + dangSx (0,6 MB, chỉ Creative › Sản xuất — anh 09/11/2026 "page camp chậm")
 // Cây chỉ cần bản thư viện CHƯA lên đang sinh / sẵn sàng (dòng mờ dưới phim) — giữ đúng lọc với CayCamp
 const tvCay = (v: ThuVienMuc) => tvSx(v);   // bản nhẹ giữ đủ thư viện cho badge sản xuất + ô Lọc 'phim đang sản xuất' (lib/etp-sx)
 export const phanNang = (d: DuLieuEtp): PhanNang => ({ chamCt: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { lop: c.lop, diem: c.diem, ly_do: c.ly_do, khung: c.khung }])),
-  pheu: d.pheu, diemCham: d.diemCham, thuVien: d.thuVien, dangSx: d.dangSx });
+  pheu: d.pheu, diemCham: d.diemCham, thuVien: d.thuVien, dangSx: d.dangSx, creatives: d.creatives });
 export async function docEtp(ng?: string, nhe = false): Promise<DuLieuEtp> {
   const d = await docEtpDu(ng);
   if (!nhe) return d;
-  return { ...d, nhe: true, pheu: [], diemCham: {}, dangSx: [], thuVien: d.thuVien.filter(tvCay),
+  // etp2 09/11/2026 "sửa load chậm": creative (2,6 MB / 3.475 dòng) bản nhẹ chỉ giữ creative của camp + thư viện bản nhẹ; đủ bộ tải bù khi mở tab Creative / Thư viện
+  const tv = d.thuVien.filter(tvCay), crCan = new Set<number>([...d.camps.map((c) => c.creative_id), ...tv.map((v) => v.creative_id)].filter((x): x is number => x != null));
+  return { ...d, nhe: true, pheu: [], diemCham: {}, dangSx: [], thuVien: tv, creatives: d.creatives.filter((c) => crCan.has(c.creative_id)),
     cham: Object.fromEntries(Object.entries(d.cham).map(([k, c]) => [k, { ...c, lop: {}, diem: {}, ly_do: {}, khung: {} }])) };
 }
 async function docEtpDu(ng?: string): Promise<DuLieuEtp> {

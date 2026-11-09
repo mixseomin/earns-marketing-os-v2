@@ -24,6 +24,8 @@ const TG = `${process.env.HOME}/bin/tg`;
 const NGAY_SONG = 3;
 // Lượt phát phải nhích hơn mốc lần đo trước chừng này mới tính là 'còn lên view' (nhích vài lượt là nhiễu, không phải Facebook còn đẩy).
 const TANG_TOI_THIEU = 30;
+// Khoảng cách tối thiểu giữa hai mốc đem ra so (giờ). Lịch chạy mỗi giờ nên không so lượt-chạy-trước mà so mốc cách một ngày.
+const GIO_SO = 22;
 // Khoá sản phẩm trên bảng Social Traffic › Kênh (cột Lượt xem đọc kenh_so_ngay theo khoá này).
 const SAN_PHAM = 'affiliate:mia-calloway';
 
@@ -142,13 +144,19 @@ const main = () => {
       const tom = `phát ${s.fb_reels_total_plays ?? '?'}`;
       // CÒN LÊN VIEW THÌ GIỮ (anh 10/11/2026 "nếu vẫn có view thì ko cần xoá"): Reel quá hạn mà lượt phát vẫn nhích
       // so với lần đo trước thì Facebook còn đang đẩy — gỡ lúc này là tự cắt. Chỉ gỡ cái đã đứng im.
-      const truoc = Number(r.phat_truoc ?? -1);
-      r.phat_truoc = phat; r.do_luc = new Date().toISOString();
-      if (truoc < 0) { console.log(`giữ ${r.video_id} — lần đo đầu sau hạn (${tom}), lượt sau mới biết có tăng không`); continue; }
-      if (phat > truoc + TANG_TOI_THIEU) { console.log(`giữ ${r.video_id} — còn lên view ${truoc} → ${phat} (${tom})`); continue; }
+      // SO THEO NGÀY, KHÔNG THEO LƯỢT CHẠY (anh 10/11/2026 cho chạy mỗi giờ): một giờ mà lượt phát không nhích 30 là
+      // chuyện thường của Reel nhỏ — so như thế thì Reel nào cũng bị coi là chết. Mốc chỉ được làm mới khi đã cách ≥ GIO_SO giờ.
+      const mocLuc = r.moc_luc ? new Date(r.moc_luc).getTime() : 0;
+      const dayGio = (Date.now() - mocLuc) / 3_600_000;
+      const truoc = Number(r.phat_moc ?? -1);
+      r.phat = phat; r.do_luc = new Date().toISOString();
+      if (truoc < 0 || dayGio >= GIO_SO) { r.phat_moc = phat; r.moc_luc = new Date().toISOString(); }
+      if (truoc < 0) { console.log(`giữ ${r.video_id} — vừa đặt mốc đầu sau hạn (${tom}), ${GIO_SO} giờ nữa mới so được`); continue; }
+      if (dayGio < GIO_SO) { console.log(`giữ ${r.video_id} — mốc mới ${dayGio.toFixed(1)}/${GIO_SO} giờ (${tom})`); continue; }
+      if (phat > truoc + TANG_TOI_THIEU) { console.log(`giữ ${r.video_id} — còn lên view ${truoc} → ${phat} trong ${GIO_SO} giờ (${tom})`); continue; }
       // GIỮ SỐ TRƯỚC KHI GỠ: gỡ xong Facebook không trả lại số nào nữa, mất là mất hẳn.
       r.so_cuoi = s;
-      if (thu) { console.log(`[thử] sẽ gỡ ${r.video_id} — đứng im ${truoc} → ${phat} · ${tom}`); continue; }
+      if (thu) { console.log(`[thử] sẽ gỡ ${r.video_id} — đứng im ${truoc} → ${phat} suốt ${dayGio.toFixed(0)} giờ · ${tom}`); continue; }
       const ok = goReel(r.page_id, r.video_id);
       r.go_luc = ok ? new Date().toISOString() : null;
       console.log(`${ok ? 'đã gỡ' : 'GỠ HỎNG'} ${r.video_id} — ${tom}`);

@@ -2,7 +2,7 @@
 // LƯỢT TỰ CHẠY KÊNH CÓ SỔ MÁY VIẾT (G8 kênh Astrolas, anh 07/11/2026: "Làm G8 luôn"). chay-kenh.mjs gọi ở cuối lượt mỗi giờ (việc nền iMac:com.earns.lich-su-lam-tap) — không có tiến trình nền riêng.
 // Một lượt, tối đa MỘT tập: tập bị Phòng Nội dung trả về vì hook → đổi hook, dựng lại · còn dưới trần làm trước (so-kenh › tu_chay.truoc_ke_hoach, anh 05/11/2026 "chỉ sx trước kế hoạch 3 bài")
 // → chọn tập kế theo lịch playlist (playlist.lich_tap: 1 = Thứ Hai … 7 = Chủ nhật), mẫu ít tập nhất trong playlist, chưa từng nạp → máy viết → long-tieng.mjs → nap-tap.mjs.
-// Sau đó Phòng Nội dung chấm, máy đăng tự đăng theo nhịp an toàn. Báo Telegram tập mới + tiền thật; hỏng 3 lần thì bỏ tập đó, lượt kế làm tập khác. Video dài chưa tự làm (cần thumbnail thiết kế).
+// Sau đó Phòng Nội dung chấm, máy đăng tự đăng theo nhịp an toàn. Báo Telegram tập mới + tiền thật; hỏng 3 lần thì bỏ tập đó, lượt kế làm tập khác. Video dài 16:9: tuần một tập (tu_chay.dai), đi trước trần làm trước, lỡ ngày hẹn thì làm bù tới ngày hẹn kế.
 //   node chay-so-kenh.mjs [--xem] [--tu-kiem] [--bo-tran: bỏ trần làm trước, chạy thử trọn chuỗi một tập]   · --y-tuong: ghi kho ý tưởng lich-su/y-tuong/<kênh>-<mẫu>.json cho mos2 › Hàng chờ
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, openSync, closeSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -34,6 +34,11 @@ export function lenhViet(y, o = {}) {
 }
 /** tập video dài 16:9 (mẫu loai 'dai' tự chạy) → dựng 1920×1080, bìa 1280×720. Thuần. */
 export const laDai = (y) => /^(ccd|ls)-/.test(y);
+/** ngày hẹn video dài gần nhất ≤ hôm nay (thu: 1 = Thứ Hai … 7 = Chủ nhật) — lỡ ngày hẹn (trần, ngoài giờ, máy bận) thì các ngày sau vẫn làm bù tới ngày hẹn kế. Thuần. */
+export function ngayDai(hom, thuDs = []) {
+  for (let i = 0; i < 7; i++) { const ms = Date.parse(`${hom}T12:00:00Z`) - i * 864e5, d = new Date(ms).getUTCDay() || 7; if (thuDs.includes(d)) return iso(ms); }
+  return null;
+}
 /** playlist của hôm nay rồi các playlist khác theo thứ tự lịch (hôm đó hết tập thì sang playlist kế). Thuần. */
 export function thuTuPlaylist(ds, thu) {
   const coLich = ds.filter((p) => p.lich_tap?.length), hom = coLich.filter((p) => p.lich_tap.includes(thu));
@@ -49,6 +54,7 @@ export function chonTap(pl, ungVien, daLam, bo, hom) {
 if (process.argv.includes('--tu-kiem')) {
   const { strict: t } = await import('node:assert');
   t.deepEqual(lenhViet('ct-transit--tom-hanks'), ['viet-chart-tools.mjs', '--y', 'ct-transit--tom-hanks']); t.deepEqual(lenhViet('f60-birth'), ['viet-free60.mjs', '--cong-cu', 'birth']); t.deepEqual(lenhViet('ccd-steve-jobs'), ['dai/sinh-chuong.mjs', '--slug', 'steve-jobs', '--moc', 'dai/moc-steve-jobs.json']); t.ok(laDai('ls-a--b') && laDai('ccd-x') && !laDai('cc-x'));
+  t.equal(ngayDai('2026-11-08', [7]), '2026-11-08', 'đúng Chủ nhật'); t.equal(ngayDai('2026-11-09', [7]), '2026-11-08', 'Thứ Hai làm bù Chủ nhật lỡ'); t.equal(ngayDai('2026-11-14', [7]), '2026-11-08'); t.equal(ngayDai('2026-11-15', [7]), '2026-11-15'); t.equal(ngayDai('2026-11-09', []), null);
   t.deepEqual(lenhViet('ask-steve-jobs-1985'), ['viet-ask.mjs', '--ai', 'steve-jobs', '--nam', '1985']); t.deepEqual(lenhViet('ryc-mc-angelina-jolie'), ['viet-ryc.mjs', '--muc', 'mc', '--ai', 'angelina-jolie']);
   t.deepEqual(lenhViet('tw-trang-moi-scorpio-2026-11-09-leo'), ['viet-this-week.mjs', '--su', 'tw-trang-moi-scorpio-2026-11-09', '--moc', 'Leo']); t.deepEqual(lenhViet('sc-a-1', { tuan: '2026-11-16' }), ['viet-sky.mjs', '--chuyen', 'sc-a-1', '--tuan', '2026-11-16']); t.throws(() => lenhViet('zz'));
   const P = [{ ma: 'a', lich_tap: [1] }, { ma: 'b', lich_tap: [2] }, { ma: 'c' }]; t.deepEqual(thuTuPlaylist(P, 2).map((p) => p.ma), ['b', 'a']);
@@ -121,11 +127,11 @@ for (const x of traVe) {
 // 2 · trần làm trước
 const conCho = Number(q(`SELECT count(*) FROM xv_may_video WHERE may_id = ${M} AND NOT coalesce(luu_tru, false) AND NOT (coalesce(da_dang, '{}'::jsonb) ? 'youtube') AND coalesce(cham->>'ket', '') <> 'SUA_LAI';`)), tran = TC.truoc_ke_hoach ?? 3;
 if (!xem) try { box(`scripts/may-dung.mts --may ${KENH} --so-kenh`); } catch (e) { console.log(`⚠ đo số kênh: ${String(e.message).split('\n')[0]}`); }
-if (conCho >= tran && !process.argv.includes('--bo-tran')) { console.log(`⏸ ${KENH}: đã có ${conCho} tập chưa đăng YouTube (trần ${tran}) — không làm tập mới`); if (!xem) process.exit(0); }
 // VIDEO DÀI 16:9 (G8, 08/11/2026 — "video dài chưa tự làm"): tuần một tập vào ngày tu_chay.dai.thu, mẫu khai ở tu_chay.dai.mau (Love Story có sẵn tập ls-*,
-// Chart Chapters dài cho mọi người AA có tệp mốc dai/moc-<người>.json — la-so/them-nguoi.mjs tự dựng từ Wikidata). Dấu tuần chỉ ghi khi làm xong; hỏng thì ketThuc đếm lần như tập ngắn.
-{ const DAI = TC.dai, tuan = iso(Date.parse(`${hom}T00:00Z`) - ((new Date(`${hom}T00:00Z`).getUTCDay() + 6) % 7) * 864e5), dauDai = join(CACHE, `${KENH}-dai-${tuan}.xong`);
-  if (DAI?.thu?.includes(thu) && !existsSync(dauDai)) {
+// Chart Chapters dài cho mọi người AA có tệp mốc dai/moc-<người>.json — la-so/them-nguoi.mjs tự dựng từ Wikidata). Dấu theo ngày hẹn chỉ ghi khi làm xong; hỏng thì ketThuc đếm lần như tập ngắn.
+// ĐI TRƯỚC trần làm trước (09/11/2026: Chủ nhật 08/11 hàng 3 tập ngắn đầy → lượt thoát ở trần, tập dài không bao giờ tới lượt). Một tuần một tập nên không cần trần riêng.
+{ const DAI = TC.dai, tuan = ngayDai(hom, DAI?.thu), dauDai = join(CACHE, `${KENH}-dai-${tuan}.xong`);
+  if (tuan && !existsSync(dauDai)) {
     const NG = JSON.parse(readFileSync(join(DIR, 'la-so/nguoi.json'), 'utf8')).nguoi, uv = new Map();
     for (const t of dsTap().filter((t) => DAI.mau.includes(t.mau))) uv.set(t.y_tuong, { y: t.y_tuong, mau: t.mau, playlist: 'dai' });
     if (DAI.mau.includes('chart-chapters-dai')) for (const n of NG.filter((n) => n.rodden === 'AA' && !n.khong_dung && existsSync(join(DIR, `dai/moc-${n.slug}.json`)) && existsSync(join(DIR, `la-so/${n.slug}.json`)))) uv.set(`ccd-${n.slug}`, { y: `ccd-${n.slug}`, mau: 'chart-chapters-dai', playlist: 'dai' });
@@ -133,6 +139,8 @@ if (conCho >= tran && !process.argv.includes('--bo-tran')) { console.log(`⏸ ${
     if (xem) console.log(`→ video dài tuần ${tuan}: ${cd?.y ?? '(hết ứng viên)'} · ${uv.size} ứng viên`);
     else if (!cd) { writeFileSync(dauDai, '(hết)'); tele(`⚠ Astrolas: hết ứng viên video dài (${DAI.mau.join(', ')}) — tuần ${tuan} không có tập dài`); }
     else { giu(() => { dauDangLam(KENH, cd.y, { id: cd.y, luc: new Date().toISOString() }); const kq = lam(cd.y); if (kq.ok) writeFileSync(dauDai, cd.y); ketThuc(cd.y, kq, 'video dài'); }); process.exit(0); } } }
+// trần làm trước — chỉ chặn tập ngắn
+if (conCho >= tran && !process.argv.includes('--bo-tran')) { console.log(`⏸ ${KENH}: đã có ${conCho} tập chưa đăng YouTube (trần ${tran}) — không làm tập mới`); if (!xem) process.exit(0); }
 // 3 · chọn tập theo lịch: Sky Calendar / This Week có hạn đăng theo tuần / sự kiện, mẫu khác lấy trong kho tập đã viết
 const thu2Toi = iso(Date.parse(`${hom}T00:00Z`) + ((8 - new Date(`${hom}T00:00Z`).getUTCDay()) % 7 || 7) * 864e5), LT = JSON.parse(readFileSync(join(DIR, 'lich-troi.json'), 'utf8'));
 const sky = xepLich(soChuyen().filter((c) => !daLam.has(c.ma) && !bo.has(c.ma)), thu2Toi, 1)[0];

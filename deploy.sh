@@ -19,11 +19,18 @@ if [ "${MOS2_BACKUP:-0}" = "1" ]; then
 fi
 
 # 2. Pull latest from git
-PREV_SHA=$(git rev-parse HEAD)
+# Lượt chạy lại bằng bản deploy.sh mới (dưới) mang PREV_SHA cũ theo — HEAD lúc đó đã là bản mới
+PREV_SHA=${DEPLOY_PREV_SHA:-$(git rev-parse HEAD)}
 git fetch origin main
 git reset --hard origin/main
 NEW_SHA=$(git rev-parse HEAD)
 echo "✓ Code: $PREV_SHA → $NEW_SHA"
+# deploy.sh đổi trong lượt kéo này → CHẠY LẠI bằng bản mới: bash đang đọc dở bản cũ, đoạn mới thêm không chạy
+# (09/11/2026: khối etp2 + dns-on-tc.sh nằm im một lượt deploy, phải chạy tay).
+if [ -z "${DEPLOY_PREV_SHA:-}" ] && [ "$PREV_SHA" != "$NEW_SHA" ] && git diff "$PREV_SHA" "$NEW_SHA" --name-only | grep -qx 'deploy.sh'; then
+  echo "↻ deploy.sh đổi — chạy lại bằng bản mới"
+  exec env DEPLOY_PREV_SHA="$PREV_SHA" bash "$0" "$@"
+fi
 
 # 3. Install deps if package.json or lockfile changed
 DEPS_CHANGED=false

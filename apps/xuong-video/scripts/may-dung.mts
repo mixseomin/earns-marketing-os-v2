@@ -384,7 +384,7 @@ if (a.includes('--nap')) {
   // SỔ LƯỢT 7 BƯỚC (tab Máy Đăng mos2, bảng may_dang_so — puzzle-books luot-dang.mjs in dòng @@luot): lượt dừng / bỏ / kho cạn cùng lý do liền
   // nhau trong một ngày (giờ VN) gộp vào dòng trước (lan + 1) — lượt 10 phút không đẻ 144 dòng "hết bài" mỗi ngày. Nhóm lỗi: hàm SQL may_dang_ma_ly.
   type Luot = { ma: string; nen: string; may_mac?: string; bd: string; kt: string; giay?: number; ket: string; buoc_dung?: string | null; loi?: string | null; slug?: string | null; url?: string | null; acct?: string | null; profile?: string | null; duong?: string | null; buoc?: unknown };
-  let soLuot = 0;
+  let soLuot = 0; const giao: { x: Luot; id: number }[] = [];
   for (const x of ((t as unknown as { luot?: Luot[] }).luot ?? [])) {
     if (!x?.ma || !x?.nen || !x?.ket || !x?.bd) continue;
     try {
@@ -394,11 +394,44 @@ if (a.includes('--nap')) {
       FROM cuoi WHERE s.id = cuoi.id AND cuoi.ket = ${x.ket} AND cuoi.buoc_dung IS NOT DISTINCT FROM ${bdung}::text AND cuoi.ma_ly IS NOT DISTINCT FROM may_dang_ma_ly(${loi}::text)
         AND (cuoi.ma_ly IS DISTINCT FROM 'khac' OR cuoi.loi IS NOT DISTINCT FROM ${loi}::text)
         AND (cuoi.bd AT TIME ZONE 'Asia/Ho_Chi_Minh')::date = (${x.bd}::timestamptz AT TIME ZONE 'Asia/Ho_Chi_Minh')::date RETURNING s.id`)) as unknown as unknown[] : [];
-    if (!gop.length) await db.execute(sql`INSERT INTO may_dang_so (ma, nen, du_an, may_mac, bd, kt, giay, ket, buoc_dung, ma_ly, loi, slug, url, acct, profile, duong, buoc)
+    if (!gop.length) { const [moi] = (await db.execute(sql`INSERT INTO may_dang_so (ma, nen, du_an, may_mac, bd, kt, giay, ket, buoc_dung, ma_ly, loi, slug, url, acct, profile, duong, buoc)
       VALUES (${x.ma}, ${x.nen}, coalesce((SELECT du_an FROM xv_may WHERE ma = ${x.ma}), ''), ${x.may_mac ?? t.may_mac ?? ''}, ${x.bd}::timestamptz, ${x.kt}::timestamptz, ${x.giay ?? null}, ${x.ket}, ${bdung},
-        may_dang_ma_ly(${loi}::text), ${loi}, ${x.slug ?? null}, ${x.url ?? null}, ${x.acct ?? null}, ${x.profile ?? null}, ${x.duong ?? null}, ${b}::jsonb)`);
+        may_dang_ma_ly(${loi}::text), ${loi}, ${x.slug ?? null}, ${x.url ?? null}, ${x.acct ?? null}, ${x.profile ?? null}, ${x.duong ?? null}, ${b}::jsonb) RETURNING id`)) as unknown as { id: number }[];
+      if (moi) giao.push({ x, id: moi.id }); }
     soLuot++;
     } catch (e) { console.error(`⚠ lượt ${x.ma} ${x.nen} không vào sổ Máy Đăng: ${String((e as Error).message).split('\n')[0]}`); }   // một lượt hỏng không làm hỏng cả gói trạng thái
+  }
+  // TỰ XỬ KHI PHÁT SINH (anh 09/11/2026 "có vấn đề thì xử lý nó khi phát sinh tự động đi"): MỘT chỗ giao việc cho thợ máy Mạnh (iMac, apps/cty/may/tho-may.mjs) —
+  // mọi lượt HỎNG vào sổ (dang-may, dang-short Front Porch, hỏng ở bước kênh, cả lỗi sau đăng như gắn playlist / bìa / bình luận) thành việc ngay vòng này, kèm khâu kẹt,
+  // lời máy nói, các kênh cùng khâu hỏng 3 ngày qua (sửa một lần ở gốc) và cách cho máy đăng lại. Trước đây chỉ dang-may giao (Front Porch, lỗi bước kênh, lỗi sau đăng rơi mất).
+  // Không giao: Graph đòi xác minh trong app điện thoại (chỉ người cầm máy gỡ được). Khoá đang chờ / đang làm thì hàng không xếp đôi.
+  for (const { x, id } of giao) {
+    try {
+      const B = (x.buoc ?? {}) as Record<string, { t: string; ly?: string; con?: { ten: string; t: string }[] }>;
+      const sau = x.ket !== 'hong' && B.sau?.t === 'loi';
+      if (x.ket !== 'hong' && !sau) continue;
+      const k = sau ? 'sau' : (x.buoc_dung ?? ''), o = B[k], con = o?.con ?? [], cuoi = con.length && con[con.length - 1]!.t !== 'ok' ? con[con.length - 1]!.ten : null;
+      const loi = sau ? o?.ly ?? '' : x.loi ?? o?.ly ?? '';
+      const [ml] = (await db.execute(sql`SELECT may_dang_ma_ly(${loi}::text) AS ma_ly`)) as unknown as { ma_ly: string }[];
+      if (ml?.ma_ly === 'graph-xac-minh') continue;
+      const cung = (await db.execute(sql`SELECT ma || ' ' || nen || ' ×' || count(*) AS d FROM may_dang_so WHERE id <> ${id} AND bd > now() - interval '3 days'
+        AND ket = 'hong' AND buoc_dung IS NOT DISTINCT FROM ${x.buoc_dung ?? null}::text AND ma_ly = ${ml?.ma_ly ?? 'khac'} GROUP BY ma, nen ORDER BY count(*) DESC LIMIT 8`)) as unknown as { d: string }[];
+      const fp = x.ma === 'front-porch-only-one', tenB: Record<string, string> = { kenh: 'Kênh sẵn sàng', nhip: 'Nhịp an toàn', chon: 'Chọn bài', chuan_bi: 'Chuẩn bị', dang: 'Đăng', xac_nhan: 'Xác nhận', sau: 'Sau đăng' };
+      const chu = [
+        `Máy đăng ${x.ma} ${x.nen} ${sau ? 'đã đăng nhưng hỏng việc sau đăng' : 'hỏng'} ở bước ${tenB[k] ?? k}${cuoi ? ` › khâu "${cuoi}"` : ''} — lượt #${id} sổ Máy Đăng (${new Date(Date.parse(x.bd) + 7 * 36e5).toISOString().slice(11, 16)} giờ VN).`,
+        `Lỗi: ${String(loi).slice(0, 900)}`,
+        con.length ? `Các khâu: ${con.map((c, i) => `${i + 1}.${c.ten}${c.t === 'ok' ? ' ✓' : ' ✗'}`).join(' · ')}` : '',
+        cung.length ? `Cùng bước + nhóm lỗi này 3 ngày qua còn hỏng ở: ${cung.map((c) => c.d).join(', ')} — sửa MỘT lần ở gốc (hàm đăng của nền trong /Users/htuan/puzzle-books/scripts/dang-br.mjs), không vá riêng từng kênh.` : '',
+        sau ? `Bài đã lên (${x.url ?? 'không có link'}) — chỉ làm lại việc sau đăng, KHÔNG đăng lại bài.`
+          : `Sửa gốc xong cho máy đăng lại ngay: node -e "import('/Users/htuan/puzzle-books/scripts/so-hong.mjs').then(m=>m.xoaHong('${x.ma}|${x.nen}'))" (iMac) — vòng 10 phút kế tự đăng${fp ? ' (dang-short.mjs, Front Porch)' : ` (hoặc chạy ngay: node /Users/htuan/puzzle-books/scripts/dang-may.mjs ${x.nen} --may ${x.ma})`}.`,
+        `Xem lượt: https://mos2.on.tc/?tab=maydang&m=luot-dang&mId=${id}`,
+      ].filter(Boolean).join('\n');
+      const khoa = `dang:${sau ? 'sau' : 'lo'}|${x.ma}|${x.nen}`;
+      const { execFileSync } = await import('node:child_process'), path = await import('node:path');
+      const n = execFileSync(process.execPath, [path.resolve(process.cwd(), '../cty/worker/tho-may-viec.mjs'), '--them', khoa], { input: chu, encoding: 'utf8', timeout: 20_000,
+        env: { ...process.env, CTY_DATA_DIR: process.env.CTY_DATA_DIR || '/var/lib/cty' } }).trim().split('\n').pop();
+      console.log(`· ${khoa}: ${n === '1' ? 'giao thợ máy Mạnh' : 'đã có việc cùng khoá đang chờ / đang làm'}`);
+    } catch (e) { console.error(`⚠ không giao được thợ máy cho lượt #${id}: ${String((e as Error).message).split('\n')[0]}`); }
   }
   const dem = (q: string) => (t.ds ?? []).filter((x) => x.quyet === q).length;
   await db.execute(sql`INSERT INTO may_dang_luot (may_mac, giay, so_dang, so_hong, so_bo, ghi) VALUES (${t.may_mac ?? ''}, ${Math.round(t.giay ?? 0)}, ${dem('dang')}, ${dem('hong')}, ${dem('bo') + dem('dung')}, ${t.ghi ?? ''})`);

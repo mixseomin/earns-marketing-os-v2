@@ -20,7 +20,8 @@ type Dong = {
   id: number | string; ma: string; may_ten: string; nen: string; du_an: string; may_mac?: string; bd: string; kt: string | null; giay: number | null;
   ket: string; buoc_dung: string | null; ma_ly: string | null; loi: string | null; slug: string | null; url: string | null; acct: string | null; profile: string | null;
   duong: string | null; buoc: Record<string, O>; lan: number; nguon: string; ghi_chu: { ai: string; luc: string; chu: string }[];
-  so_dang?: { url?: string | null; chuaXacNhan?: boolean; bo?: boolean } | null; lenh?: { id: number; luc: string; xong_luc: string | null } | null; tam?: boolean;
+  so_dang?: { url?: string | null; chuaXacNhan?: boolean; bo?: boolean } | null;
+  /** việc thợ máy Mạnh nhận cho lượt hỏng (tự sửa khi phát sinh) */ sua?: { id: number; tt: string; ket: string | null; ket_qua: string | null; luc: string; xong: string | null } | null; lenh?: { id: number; luc: string; xong_luc: string | null } | null; tam?: boolean;
 };
 type Chay = { id: number; ma: string; may_ten: string; nen: string; du_an: string; bd: string; slug: string | null; noi_dung: string; kq: { luc: string; ok: boolean; url: string | null; noi_dung: string } | null };
 
@@ -71,6 +72,18 @@ function khauKet(r: Dong): { ten: string; suy: boolean } | null {
   const c = r.buoc?.[r.buoc_dung]?.con, cuoi = c?.length ? c[c.length - 1] : null;
   if (cuoi && cuoi.t !== 'ok') return { ten: cuoi.ten, suy: false };
   return r.ma_ly && KHAU_SUY[r.ma_ly] && ['hong', 'mat_dau'].includes(r.ket) ? { ten: KHAU_SUY[r.ma_ly]!, suy: true } : null;
+}
+/** Trạng thái tự sửa của một lượt hỏng — thợ máy Mạnh (iMac) nhận việc ngay khi lượt hỏng vào sổ. */
+function tuSua(r: Dong): { chu: string; mau: string } | null {
+  const v = r.sua, hong = r.ket === 'hong' || r.buoc?.sau?.t === 'loi';
+  if (!v) return hong ? { chu: r.nguon === 'nhat_ky' ? '— lượt cũ, không có việc' : '⌛ chờ giao (≤ 10 phút)', mau: 'var(--fg-3)' } : null;
+  if (v.tt === 'cho') return { chu: `🔧 #${v.id} chờ Mạnh nhận`, mau: 'var(--info, #3b82f6)' };
+  if (v.tt === 'dang') return { chu: `🔧 #${v.id} Mạnh đang sửa`, mau: 'var(--info, #3b82f6)' };
+  if (v.ket === 'da_sua' || v.tt === 'xong') return { chu: `✅ #${v.id} đã sửa`, mau: 'var(--ok, #16a34a)' };
+  if (v.ket === 'can_anh') return { chu: `🙋 #${v.id} cần anh quyết`, mau: 'var(--warn, #d97706)' };
+  if (v.ket === 'treo' || v.tt === 'treo') return { chu: `⏱ #${v.id} hết giờ — giao lại ở lần hỏng kế`, mau: 'var(--danger, #dc2626)' };
+  if (v.tt === 'gop') return { chu: `#${v.id} gộp vào lệnh anh`, mau: 'var(--fg-3)' };
+  return { chu: `⚠ #${v.id} chưa sửa được — giao lại ở lần hỏng kế`, mau: 'var(--danger, #dc2626)' };
 }
 const MAU_NEN: Partial<Record<T, string>> = { loi: 'rgba(220,38,38,.16)', dung: 'rgba(217,119,6,.12)' };
 /** Danh sách chặng một bước: ✓ đã qua · ✗ / ⏸ chặng kẹt (đậm) · giây từ đầu lượt. */
@@ -206,6 +219,9 @@ function ChiTiet({ r, admin, xong, dong }: { r: Dong; admin: boolean; xong: () =
       <div style={{ display: 'grid', gridTemplateColumns: '110px 1fr', gap: '4px 8px', fontSize: 12 }}>
         {truong.map(([k, v]) => <Fragment key={k}><span style={{ color: 'var(--fg-3)' }}>{k}</span><span>{v}</span></Fragment>)}
       </div>
+      {tuSua(r) && <div style={{ display: 'grid', gap: 4, fontSize: 12 }}><b>Tự sửa (thợ máy Mạnh)</b>
+        <span style={{ color: tuSua(r)!.mau, fontWeight: 600 }}>{tuSua(r)!.chu}{r.sua ? ` · nhận việc ${gioVn(r.sua.luc)}${r.sua.xong ? ` · xong ${gioVn(r.sua.xong)}` : ''}` : ''}</span>
+        {r.sua?.ket_qua && <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--fg-2)' }}>{r.sua.ket_qua}</div>}</div>}
       <div style={{ display: 'grid', gap: 6 }}><b style={{ fontSize: 12 }}>Làm ngay</b><ViecLuot r={r} admin={admin} xong={xong} /></div>
       {!!r.ghi_chu?.length && <div style={{ display: 'grid', gap: 4 }}><b style={{ fontSize: 12 }}>Ghi chú</b>
         {r.ghi_chu.map((g, i) => <div key={i} style={{ fontSize: 12 }}><span style={{ color: 'var(--fg-3)' }}>{gioVn(g.luc)} · {g.ai}</span> — {g.chu}</div>)}</div>}
@@ -282,6 +298,8 @@ export function MayDangView() {
     { key: 'khau', header: 'Kẹt ở khâu', title: 'chặng cụ thể máy kẹt trong bước dừng (tìm nút, bấm nút, điền ô…)', align: 'left', sortValue: (r) => khauKet(r)?.ten ?? null,
       cell: (r) => { const kh = khauKet(r); return kh ? <b style={{ ...cat(220), color: 'var(--danger, #dc2626)' }} title={kh.suy ? 'suy từ nhóm lỗi (lượt cũ chưa ghi chặng)' : undefined}>{kh.ten}{kh.suy ? ' *' : ''}</b>
         : r.buoc_dung && ['hong', 'mat_dau'].includes(r.ket) ? <span style={{ ...cat(220), color: 'var(--danger, #dc2626)' }} title={r.loi ?? undefined}>{TEN_BUOC[r.buoc_dung] ?? r.buoc_dung} · {tenLy(r.ma_ly)}</span> : '—'; } },
+    { key: 'tu_sua', header: 'Tự sửa', title: 'lượt hỏng tự giao thợ máy Mạnh (iMac) ngay khi vào sổ — Mạnh tìm gốc, sửa, cho máy đăng lại', align: 'left', sortValue: (r) => tuSua(r)?.chu ?? null,
+      cell: (r) => { const x = tuSua(r); return x ? <span style={{ ...cat(200), color: x.mau, fontWeight: 600 }} title={r.sua?.ket_qua ?? undefined}>{x.chu}</span> : ''; } },
     { key: 'du_an', group: 'tt', header: 'Dự án', align: 'left', sortValue: (r) => r.du_an, cell: (r) => r.du_an || '—' },
     { key: 'kenh_ten', group: 'tt', header: 'Kênh', align: 'left', sortValue: (r) => r.may_ten, cell: (r) => <span style={cat(180)} title={r.ma}>{r.may_ten}</span> },
     { key: 'nen', group: 'tt', header: 'Nền', align: 'left', sortValue: (r) => r.nen, cell: (r) => <Nen nen={r.nen} /> },
@@ -345,6 +363,7 @@ export function MayDangView() {
             <div style={{ fontWeight: 600 }}>{r.may_ten}</div><Nen nen={r.nen} />
             {r.buoc_dung && <div style={{ color: 'var(--fg-2)' }}>Dừng ở <b>{TEN_BUOC[r.buoc_dung] ?? r.buoc_dung}</b> · {tenLy(r.ma_ly)}</div>}
             {khauKet(r) && <div style={{ color: 'var(--danger, #dc2626)', fontWeight: 700 }}>✗ {khauKet(r)!.ten}{khauKet(r)!.suy ? ' *' : ''}</div>}
+            {tuSua(r) && <div style={{ color: tuSua(r)!.mau, fontWeight: 600 }}>{tuSua(r)!.chu}</div>}
           </div> }} />
       : <EmptyState icon="📭" title="Không có lượt nào" description={coLoc ? 'Không lượt nào khớp bộ lọc — bỏ bớt lọc hoặc chọn khoảng ngày dài hơn.' : 'Chưa có lượt nào trong khoảng này.'} />)}
     {md === 'loi' && <>

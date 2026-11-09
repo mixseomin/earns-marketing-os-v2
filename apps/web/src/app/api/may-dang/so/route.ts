@@ -4,6 +4,7 @@ import { getDb } from '@mos2/db';
 import { sql } from 'drizzle-orm';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
+import fs from 'node:fs';
 
 export const dynamic = 'force-dynamic';
 
@@ -51,6 +52,16 @@ export async function GET(req: Request) {
   // giờ về ISO ở máy chủ: Postgres trả '2026-11-08 23:23:27.86+00' — Safari (iPhone) không Date.parse được dạng có dấu cách + '+00'
   const iso = (v: unknown) => (v == null ? v : new Date(String(v)).toISOString());
   for (const r of rows) { r.bd = iso(r.bd); r.kt = iso(r.kt); const l = r.lenh as Dong | null; if (l) { l.luc = iso(l.luc); l.xong_luc = iso(l.xong_luc); } }
+  // TỰ SỬA: việc thợ máy Mạnh nhận cho lượt hỏng (hàng /var/lib/cty/tho-may.json — may-dung.mts --trang-thai giao khi lượt hỏng vào sổ). Khoá dang:lo|máy|nền
+  // (hỏng) / dang:sau|máy|nền (hỏng việc sau đăng); một việc cùng khoá phủ mọi lượt hỏng tới khi nó xong. Không đọc được hàng thì cột trống, không hỏng trang.
+  type Viec = { id: number; khoa: string; luc: string; tt: string; ket?: string; ket_qua?: string; xong?: string };
+  let hang: Viec[] = []; try { hang = (JSON.parse(fs.readFileSync(`${process.env.CTY_DATA_DIR || '/var/lib/cty'}/tho-may.json`, 'utf8')).hang ?? []) as Viec[]; } catch { /* chưa có hàng */ }
+  for (const r of rows) {
+    const b = r.buoc as Record<string, { t?: string }> | null, sau = r.ket !== 'hong' && b?.sau?.t === 'loi'; if (r.ket !== 'hong' && !sau) continue;
+    const khoa = `dang:${sau ? 'sau' : 'lo'}|${r.ma}|${r.nen}`, bd = Date.parse(String(r.bd)), kt = Date.parse(String(r.kt ?? r.bd));
+    const v = hang.filter((x) => x.khoa === khoa && Date.parse(x.luc) <= kt + 20 * 60_000 && (!x.xong || Date.parse(x.xong) >= bd)).pop();
+    if (v) r.sua = { id: v.id, tt: v.tt, ket: v.ket ?? null, ket_qua: v.ket_qua ? v.ket_qua.slice(0, 600) : null, luc: iso(v.luc), xong: v.xong ? iso(v.xong) : null };
+  }
   for (const c of chay) { c.bd = iso(c.bd); const k = c.kq as Dong | null; if (k) k.luc = iso(k.luc); }
   return NextResponse.json({ rows, chay, luc: new Date().toISOString(), ngay, admin: pv.tatCa });
 }

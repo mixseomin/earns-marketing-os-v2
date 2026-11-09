@@ -16,6 +16,9 @@ HQ_NHO, HQ_NHO_MIN = 0.5, 2.0   # sàn $2 (anh 28/10/2026 "cấm viết chung ch
 roi_min = float(ARGS[0]) if ARGS else 20; sp_min = float(ARGS[1]) if len(ARGS) > 1 else 50; JSON = '--json' in sys.argv
 BANG_LUAT = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "web", "src", "lib", "etp-bang-luat.json")))   # sổ luật chung (anh 01/11/2026)
 KD = BANG_LUAT["khung_doi"]   # khung máy tự đổi camp (anh 04/11/2026; 05/11 đảo: tang 21–07h · giam 15–21h · sang 07–15h) — mốc giờ luật GB / đuôi đọc từ đây, cùng worker ethopex.mjs + trang etp
+# NHỊP TĂNG (nhip_tang.py) nạp NGAY sau sổ luật: vòng xét tăng (khung tăng nhanh NT.trong_nhanh, 10/11/2026) chạy trước chỗ nạp cũ → NameError làm máy luật dừng
+import importlib.util as _iu
+_s = _iu.spec_from_file_location("nhip_tang", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhip_tang.py")); NT = _iu.module_from_spec(_s); _s.loader.exec_module(NT)
 q = lambda s: subprocess.run(["psql", os.environ["DATABASE_URL"], "-tAc", s], capture_output=True, text=True).stdout.strip()
 # API Ethopex chậm / quá giờ (23/10/2026 21:49 "The read operation timed out" thành tin báo động giả) → mọi lượt gọi tự thử lại 3 lần, nghỉ 5–10s.
 # Lỗi 4xx không thử lại. Còn lỗi sau 3 lần mới vào nhóm loi_may (báo nhanh, tự xoá) — KHÔNG bao giờ nhét vào nhóm bị Meta từ chối.
@@ -208,9 +211,7 @@ def ly_do_dong(c):
     t = tron.get(c["id"]) or tron.get(str(c["id"]))
     if t and t["chi"] > 10 and roi(t) is not None and roi(t) < -50: cau += f" · khớp luật OFF (tiêu ${t['chi']:.2f}, ROI {roi(t):+.0f}%)"
     return (cau, luc)
-# NHỊP TĂNG (nhip_tang.py): camp vừa tăng < 3 giờ thì KHÔNG hiện nút tăng / đầu phiên nữa
-import importlib.util as _iu
-_s = _iu.spec_from_file_location("nhip_tang", os.path.join(os.path.dirname(os.path.abspath(__file__)), "nhip_tang.py")); NT = _iu.module_from_spec(_s); _s.loader.exec_module(NT)
+# NHỊP TĂNG (nhip_tang.py): camp vừa tăng < 3 giờ thì KHÔNG hiện nút tăng / đầu phiên nữa — NT nạp ở đầu tệp (cạnh KD)
 def _loc(ds):
     ra = []
     for cid, chu in ds:

@@ -256,7 +256,7 @@ function DongCay({ d, xong, moCamp, con }: { d: DongPhim; xong: () => void; moCa
       return <tr key={id ?? `d${i}`}>
         <td style={{ padding: `2px 6px 2px ${con ? 52 : 34}px`, fontSize: 11, color: 'var(--fg-2)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {xemCr?.anh ? <img src={xemCr.anh} alt="" onMouseEnter={(e) => datXem({ ...xemCr, chu: `creative #${id} · đoạn ${g}`, x: e.clientX, y: e.clientY })} onMouseLeave={() => datXem(null)} style={{ width: 16, height: 28, objectFit: 'cover', borderRadius: 2, verticalAlign: 'middle', marginRight: 6, cursor: 'zoom-in' }} /> : <span style={{ marginRight: 6 }}>└</span>}
-          {id ? `Creative #${id}` : kt ? 'Video kể chuyện' : `Đoạn ${i + 1}`}<BadgeDangNgan d={cx?.dang ?? null} /> <span style={{ color: 'var(--fg-3)' }}>{kt ? 'máy sinh' : g}</span></td>
+          {id ? `Creative #${id}` : kt ? 'Video kể chuyện' : `Đoạn ${i + 1}`}<BadgeDangNgan d={cx?.dang ?? null} ban={cx?.ban} /> <span style={{ color: 'var(--fg-3)' }}>{kt ? 'máy sinh' : g}</span></td>
         <td colSpan={COT_PHIM.length} />
         {kt ? <O tt={id ? 'xong' : 'dang'} chu={id ? 'đã sinh' : 'đang sinh'} the={() => theY(`Video kể chuyện · ${id ? 'đã sinh' : 'đang sinh'}`, id ? '#22c55e' : '#60a5fa', [['Nguồn', 'máy sinh từ tóm tắt phim (VideoExpress)'], ['Creative', id ? `#${id}` : null]], d.ten)} />
           : <O tt="xong" chu={g} the={() => theY(`Đoạn cắt ${g}`, '#22c55e', [['Đoạn', `giây ${g} của tập phim gốc`], ['Creative', id ? `#${id}` : 'chưa đưa lên']], d.ten)} />}

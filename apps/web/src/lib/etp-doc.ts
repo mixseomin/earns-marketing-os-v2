@@ -2,6 +2,7 @@
 // Chỉ đọc schema `etp` (apps/etp/dong-bo.py đồng bộ 10 phút/lần) — không gọi API Ethopex. Ngày = ngày Ethopex (UTC, 07:00–07:00 VN).
 import 'server-only';
 import { sql } from 'drizzle-orm';
+import { sqlBan, banCr } from './etp-ban';
 import { getDb } from '@mos2/db';
 import { tvSx } from '@/lib/etp-sx';
 import BANG_LUAT from './etp-bang-luat.json';
@@ -24,7 +25,7 @@ export type SoTien = { chi: number; thu: number };
 export type DongNgayEtp = SoTien & { ngay: string; camp: number; ns: number | null };
 export type XetLuat = { ma: string; ten: string; mo_ta: string; dk: [string, string, string, boolean][]; ket: 'dat' | 'gan' | 'xa' | 'khong_ap'; vao: string | null; ghi: string | null; /** thẻ Tăng bậc bị cổng nhịp chặn: mốc UTC được tăng (luat-ethopex · nhip_tang.cho_tang) */ cho_toi?: string | null };
 export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; trang_thai: string; giao: string | null; ngan_sach: number; creative_id: number | null; content_id: number | null;
-  goc: number | null; lich: string | null; tao: string | null; loi: string | null; dong_bo?: string | null; phim: string | null; the_loai: string | null; dang: string | null; doan: string | null; cung_doan: number;
+  goc: number | null; lich: string | null; tao: string | null; loi: string | null; dong_bo?: string | null; phim: string | null; the_loai: string | null; dang: string | null; /** bản mẫu (PO.1…PO.5) — sqlBan */ ban: string | null; doan: string | null; cung_doan: number;
   thang: SoTien; qua: SoTien; nay: SoTien;
   /** đang tạm dừng vì LỊCH GIỜ (etp.lich_tat — apps/etp/lich-gio.py tự bật lại khi tới khung BẬT) */
   lich_tat: boolean;
@@ -38,7 +39,7 @@ export type CampEtpKho = { camp_id: number; ten: string; bo: string | null; tran
   dong?: { luc: string; ly_do: string; ma?: string | null; dieu?: string | null; duyet?: string | null } | null;
   /** ROAS goal thật đang đặt trên Ethopex (Ad Set) + bid strategy cấp campaign — camp ROAS ★ (migration 0339) */
   roas: number | null; chien_luoc: string | null };
-export type CreativeEtpKho = { creative_id: number; content_id: number | null; phim: string | null; the_loai: string | null; dang: string | null; doan: string | null; tu: number | null; den: number | null;
+export type CreativeEtpKho = { creative_id: number; content_id: number | null; phim: string | null; the_loai: string | null; dang: string | null; ban: string | null; doan: string | null; tu: number | null; den: number | null;
   lang: string | null; cta_dat: boolean; tu_choi: string | null; video: string | null; anh: string | null; camp: number; chay: number; cung_doan: number; thang: SoTien; qua: SoTien; nay: SoTien; ngay_dau: string | null;
   /** tab Creative › Soát (anh 25/10/2026: "chỉ số review từng creative về mọi tiêu chí"): soát 18+ cả phim · soát từng đoạn (máy / người, chờ soát) · trạng thái phát của Meta ở các camp */
   s18: { ok: boolean; ghi: string; luc: string } | null; sd: { ok: boolean; ghi: string; luc: string } | null; sd_cho: boolean; giao: string[] };
@@ -86,7 +87,7 @@ export type Ket = { content_id: number; loai: 'creative' | 'camp'; id: number; c
 export type NhomClone = { n: number; chi: number; lai: number; roi: number | null; lai_n: number };
 /** THƯ VIỆN CREATIVE (anh 29/10/2026 "xây dựng thư viện creative cho các film để sau này chia sẻ cho mọi người dùng"): mọi creative của KHO NHÀ theo phim — đã lên Ethopex
  *  (etp.creative, số chạy 14 ngày của camp nhà) + bản chưa lên trong etp.thu_vien (kể chuyện VideoExpress $0). Luôn đọc kho nhà, xem bằng tài khoản ai cũng thấy cùng thư viện. */
-export type ThuVienMuc = { k: string; creative_id: number | null; content_id: number; phim: string | null; the_loai: string | null; dang: string | null; lang: string | null;
+export type ThuVienMuc = { k: string; creative_id: number | null; content_id: number; phim: string | null; the_loai: string | null; dang: string | null; ban: string | null; lang: string | null;
   video: string | null; anh: string | null; giay: number | null; nguon: string; tv: string | null; camp: number; chay: number; chi: number; thu: number; meta: number | null; afs: number | null; tao: string | null;
   /** ghi chú dòng thư viện — bản ĐANG SINH: bước máy sinh đang làm (giọng / ảnh / clip x/6, xuất, CTA) */ ghi: string | null };
 export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt — etp-view tải bù khi tab cần (taiNangEtp) */; luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[]; thuVien: ThuVienMuc[];
@@ -259,11 +260,11 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     runNha<{ creative_id: number; cham: DiemCham }>(sql`select creative_id, cham from etp.diem_cham`).catch(() => []),
     // bản luật dùng chung mọi tài khoản (máy luật chạy cùng luật, cùng ngưỡng cho team — de-xuat-ngoai.py); số kết quả là của máy nhà (anh 31/10/2026: tk Sơn không thấy Luật & cảnh báo)
     run<{ ma: string; luc: string; so: Omit<SoLuat, 'ma' | 'luc'> }>(sql`select ma, luc::text luc, so from etp.so_luat`).catch(() => []),
-    run<Record<string, unknown>>(sql`select v.id, v.content_id, v.creative_id, v.dang, v.lang, coalesce(p.ten, v.ten) phim, p.the_loai, v.video, v.anh, v.giay, v.nguon, v.trang_thai, v.ghi, v.tao::text tao
+    run<Record<string, unknown>>(sql`select v.id, v.content_id, v.creative_id, v.dang, ${sqlBan('v.ghi', 'v.dang')} ban, v.lang, coalesce(p.ten, v.ten) phim, p.the_loai, v.video, v.anh, v.giay, v.nguon, v.trang_thai, v.ghi, v.tao::text tao
       from etp.thu_vien v left join etp.phim p using (content_id) where v.trang_thai not in ('loai', 'loi_may')`).catch(() => [] as Record<string, unknown>[]),
     run<Record<string, unknown>>(sql`with s as (select etp.creative_cua(c.creative_id, c.ten) cr, count(*) camp, count(*) filter (where c.trang_thai = 'ACTIVE') chay, coalesce(sum(n.chi), 0) chi, coalesce(sum(n.thu), 0) thu
         from etp.camp c left join lateral (select sum(x.chi) chi, sum(x.thu) thu from etp.so_ngay x where x.camp_id = c.camp_id and x.ngay >= current_date - 14) n on true group by 1)
-      select cr.creative_id, cr.content_id, p.ten phim, p.the_loai, cr.dang, cr.lang, cr.video, coalesce(nullif(cr.anh, ''), (select a.anh from etp.anh_cr a where a.creative_id = cr.creative_id)) anh, cr.den - cr.tu giay, coalesce(s.camp, 0) camp, coalesce(s.chay, 0) chay, coalesce(s.chi, 0) chi, coalesce(s.thu, 0) thu,
+      select cr.creative_id, cr.content_id, p.ten phim, p.the_loai, cr.dang, ${banCr('cr.creative_id', 'cr.dang')} ban, cr.lang, cr.video, coalesce(nullif(cr.anh, ''), (select a.anh from etp.anh_cr a where a.creative_id = cr.creative_id)) anh, cr.den - cr.tu giay, coalesce(s.camp, 0) camp, coalesce(s.chay, 0) chay, coalesce(s.chi, 0) chi, coalesce(s.thu, 0) thu,
         ch.meta, ch.afs, cr.cap_nhat::text tao
       from etp.creative cr left join etp.phim p using (content_id) left join s on s.cr = cr.creative_id left join etp.cham ch using (creative_id) where cr.video is not null and cr.content_id is not null`).catch(() => [] as Record<string, unknown>[]),
     runNha<ThayThe>(sql`select id, content_id, camp_cu, buoc, creative_id, camp_moi, ghi, tao::text tao, bai_hoc, bo_camp, kieu from etp.thay_the where buoc not in ('chay', 'huy') order by id`).catch(() => [] as ThayThe[]),
@@ -360,12 +361,12 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     run<{ ngay: string; chi: string; thu: string; camp: string; ns: string | null }>(sql`select ngay::text ngay, sum(chi) chi, sum(thu) thu, count(*) filter (where chi > 0) camp, ${ngoai ? sql`null::numeric` : sql`sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0)`} ns from ${SN} group by ngay having sum(chi) > 0 or sum(thu) > 0 order by ngay`),
     ngoai ? run<Record<string, unknown>>(sql`with s as (${soCamp})
       select c.camp_id, c.ten, c.bo, c.trang_thai, null giao, c.ngan_sach, c.creative_id, c.content_id, null goc, null lich, c.tao::text tao, null loi, null roas, c.chien_luoc,
-        coalesce(p.ten, c.phim_ten) phim, p.the_loai, null dang, null doan, 0 cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, false lich_tat, null nuoc, null ab_ma
+        coalesce(p.ten, c.phim_ten) phim, p.the_loai, null dang, null ban, null doan, 0 cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, false lich_tat, null nuoc, null ab_ma
       from ${CN} c ${doi ? sql`left` : sql``} join etp.tai_khoan t on t.ad_account_id = c.ad_account_id left join etp.phim p on p.content_id = c.content_id left join s on s.camp_id = c.camp_id
       where ${cuaNg(sql`t.nguoi_id`)} and c.trang_thai <> 'ARCHIVED' order by c.camp_id desc`) : run<Record<string, unknown>>(sql`with s as (${soCamp}),
         cd as (select cr.doan, count(*) filter (where c.trang_thai = 'ACTIVE') chay from etp.camp c join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) where cr.doan is not null group by cr.doan)
       select c.camp_id, c.ten, c.bo, c.trang_thai, c.giao, c.dong_bo, c.ngan_sach, etp.creative_cua(c.creative_id, c.ten) creative_id, c.content_id, c.goc, to_json(c.lich) #>> '{}' lich, c.tao::text tao, c.loi, c.roas, c.chien_luoc,
-        p.ten phim, p.the_loai, cr.dang, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat,
+        p.ten phim, p.the_loai, cr.dang, ${banCr('cr.creative_id', 'cr.dang')} ban, cr.doan, coalesce(cd.chay, 0) cung_doan, s.tc, s.tt, s.qc, s.qt, s.nc, s.nt, (lt.camp_id is not null) lich_tat,
         (select json_agg(json_build_object('g', cn.geo, 'c', round(cn.chi, 2), 't', round(cn.thu, 2)) order by cn.chi desc) from etp.camp_nuoc cn where cn.camp_id = c.camp_id) nuoc,
         ab.ma ab_ma, ab.ten ab_ten, ab.kieu ab_kieu, cab.nhanh ab_nhanh, ab.nhanh->cab.nhanh->>'ten' ab_nhanh_ten, ab.gia_thuyet ab_gt, ab.bat_dau::text ab_bd
       from etp.camp c left join etp.camp_ab cab on cab.camp_id = c.camp_id left join etp.ab ab on ab.ma = cab.ab left join etp.creative cr on cr.creative_id = etp.creative_cua(c.creative_id, c.ten) left join etp.phim p on p.content_id = c.content_id left join etp.lich_tat lt on lt.camp_id = c.camp_id
@@ -404,7 +405,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   ]);
   const cs: CampEtpKho[] = camps.map((r) => ({ camp_id: n(r.camp_id), ten: String(r.ten ?? ''), bo: (r.bo as string) ?? null, trang_thai: String(r.trang_thai ?? ''), giao: (r.giao as string) ?? null, ngan_sach: n(r.ngan_sach),
     creative_id: r.creative_id == null ? null : n(r.creative_id), content_id: r.content_id == null ? null : n(r.content_id), goc: r.goc == null ? null : n(r.goc), lich: (r.lich as string) ?? null, tao: (r.tao as string) ?? null,
-    loi: (r.loi as string) ?? null, dong_bo: (r.dong_bo as string) ?? null, phim: (r.phim as string) ?? (ngoai ? phimTuTenCamp(String(r.ten ?? '')) : null), the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, doan: (r.doan as string) ?? null, cung_doan: n(r.cung_doan),
+    loi: (r.loi as string) ?? null, dong_bo: (r.dong_bo as string) ?? null, phim: (r.phim as string) ?? (ngoai ? phimTuTenCamp(String(r.ten ?? '')) : null), the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, ban: (r.ban as string) ?? null, doan: (r.doan as string) ?? null, cung_doan: n(r.cung_doan),
     thang: st(r.tc, r.tt), qua: st(r.qc, r.qt), nay: st(r.nc, r.nt), lich_tat: !!r.lich_tat, roas: r.roas == null ? null : n(r.roas), chien_luoc: (r.chien_luoc as string) ?? null,
     nuoc: ((r.nuoc as { g: string; c: unknown; t: unknown }[] | null) ?? []).map((x) => ({ g: x.g, c: n(x.c), t: n(x.t) })),
     ab: r.ab_ma ? { ma: String(r.ab_ma), ten: String(r.ab_ten), kieu: String(r.ab_kieu), nhanh: r.ab_nhanh === 'thu' ? 'thu' : 'doi', nhanhTen: String(r.ab_nhanh_ten ?? r.ab_nhanh), giaThuyet: (r.ab_gt as string) ?? null, batDau: String(r.ab_bd) } : null }));
@@ -421,7 +422,7 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   for (const c of cs) {
     if (c.creative_id == null) continue;
     const i = crInfo.get(c.creative_id) ?? {};
-    const x = crMap.get(c.creative_id) ?? { creative_id: c.creative_id, content_id: c.content_id, phim: c.phim, the_loai: c.the_loai, dang: c.dang, doan: c.doan, tu: i.tu == null ? null : n(i.tu), den: i.den == null ? null : n(i.den),
+    const x = crMap.get(c.creative_id) ?? { creative_id: c.creative_id, content_id: c.content_id, phim: c.phim, the_loai: c.the_loai, dang: c.dang, ban: c.ban, doan: c.doan, tu: i.tu == null ? null : n(i.tu), den: i.den == null ? null : n(i.den),
       lang: (i.lang as string) ?? null, cta_dat: !!i.cta_dat, tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) || anhCr.get(c.creative_id)?.v || null, anh: (i.anh as string) || anhCr.get(c.creative_id)?.a || null, camp: 0, chay: 0, cung_doan: c.cung_doan,
       thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 }, ngay_dau: null,
       s18: c.content_id ? dongS(s18[String(c.content_id)]) : null, sd: c.doan ? dongS(sDoan[c.doan]) : null, sd_cho: !!(c.doan && choSoat[c.doan]), giao: [] as string[] };
@@ -493,10 +494,10 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const so_ = (x: unknown) => (x == null ? null : n(x));
   const thuVien: ThuVienMuc[] = [
     ...tvCr.map((r) => { const v = tvTheoCr.get(n(r.creative_id)); return { k: `cr${r.creative_id}`, creative_id: n(r.creative_id), content_id: n(r.content_id), phim: (r.phim as string) ?? ((v?.phim as string) ?? null),
-      the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, lang: (r.lang as string) ?? null, video: (r.video as string) ?? null, anh: (r.anh as string) ?? null, giay: so_(r.giay),
+      the_loai: (r.the_loai as string) ?? null, dang: (r.dang as string) ?? null, ban: (r.ban as string) ?? null, lang: (r.lang as string) ?? null, video: (r.video as string) ?? null, anh: (r.anh as string) ?? null, giay: so_(r.giay),
       nguon: (v?.nguon as string) ?? 'cat', tv: (v?.trang_thai as string) ?? null, camp: n(r.camp), chay: n(r.chay), chi: n(r.chi), thu: n(r.thu), meta: so_(r.meta), afs: so_(r.afs), tao: (r.tao as string) ?? null, ghi: null }; }),
     ...tvR.filter((v) => v.creative_id == null).map((v) => ({ k: `tv${v.id}`, creative_id: null, content_id: n(v.content_id), phim: (v.phim as string) ?? null, the_loai: (v.the_loai as string) ?? null,
-      dang: (v.dang as string) ?? null, lang: (v.lang as string) ?? null, video: (v.video as string) ?? null, anh: (v.anh as string) ?? null, giay: so_(v.giay), nguon: String(v.nguon), tv: String(v.trang_thai),
+      dang: (v.dang as string) ?? null, ban: (v.ban as string) ?? null, lang: (v.lang as string) ?? null, video: (v.video as string) ?? null, anh: (v.anh as string) ?? null, giay: so_(v.giay), nguon: String(v.nguon), tv: String(v.trang_thai),
       camp: 0, chay: 0, chi: 0, thu: 0, meta: null, afs: null, tao: (v.tao as string) ?? null, ghi: (v.ghi as string) ?? null })),
   ];
   const demNgay: DuLieuEtp['demNgay'] = {};
@@ -516,10 +517,10 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   // creative đã chấm / có phốt mà không còn ở camp nào (camp đã thay creative khác) vẫn phải hiện ở Quét nội dung — lấy thẳng từ etp.creative
   const thieu = [...new Set([...cham.map((r) => n(r.creative_id)), ...phot.map((r) => n(r.creative_id))])].filter((id) => id && !crMap.has(id));
   if (thieu.length) {
-    const ds = await run<Record<string, unknown>>(sql`select c.creative_id, c.content_id, p.ten phim, p.the_loai, c.dang, c.doan, c.tu, c.den, c.lang, c.cta_dat, c.tu_choi, c.video, coalesce(nullif(c.anh, ''), (select a.anh from etp.anh_cr a where a.creative_id = c.creative_id)) anh
+    const ds = await run<Record<string, unknown>>(sql`select c.creative_id, c.content_id, p.ten phim, p.the_loai, c.dang, ${banCr('c.creative_id', 'c.dang')} ban, c.doan, c.tu, c.den, c.lang, c.cta_dat, c.tu_choi, c.video, coalesce(nullif(c.anh, ''), (select a.anh from etp.anh_cr a where a.creative_id = c.creative_id)) anh
       from etp.creative c left join etp.phim p on p.content_id = c.content_id where c.creative_id = any(${`{${thieu.join(',')}}`}::int[])`);
     for (const i of ds) crMap.set(n(i.creative_id), { creative_id: n(i.creative_id), content_id: i.content_id == null ? null : n(i.content_id), phim: (i.phim as string) ?? null, the_loai: (i.the_loai as string) ?? null,
-      dang: (i.dang as string) ?? null, doan: (i.doan as string) ?? null, tu: i.tu == null ? null : n(i.tu), den: i.den == null ? null : n(i.den), lang: (i.lang as string) ?? null, cta_dat: !!i.cta_dat,
+      dang: (i.dang as string) ?? null, ban: (i.ban as string) ?? null, doan: (i.doan as string) ?? null, tu: i.tu == null ? null : n(i.tu), den: i.den == null ? null : n(i.den), lang: (i.lang as string) ?? null, cta_dat: !!i.cta_dat,
       tu_choi: (i.tu_choi as string) ?? null, video: (i.video as string) ?? null, anh: (i.anh as string) ?? null, camp: 0, chay: 0, cung_doan: 0, thang: { chi: 0, thu: 0 }, qua: { chi: 0, thu: 0 }, nay: { chi: 0, thu: 0 },
       ngay_dau: null, s18: null, sd: null, sd_cho: false, giao: [] });
   }

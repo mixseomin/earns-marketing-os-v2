@@ -5,6 +5,7 @@
 import { spawn } from 'node:child_process';
 import { openSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
+import { banCr } from '@/lib/etp-ban';
 import { getDb } from '@mos2/db';
 import { getCurrentUser } from '@/lib/auth';
 import { quyenEtp } from '@/lib/etp-quyen';
@@ -16,7 +17,7 @@ export type LoaiNoiDung = { ma: string; ten: string; dang: string; mo_ta: string
   vi_du: { creative_id: number; video: string; phim: string | null; lai: number; chi: number }[] };
 export type BuocDong = { buoc: string; thu_tu: number; trang_thai: string; bat_dau: string | null; ket_thuc: string | null; han_giay: number; lan: number; ghi: string | null; nhip: string | null; fix: boolean; ket_qua: { ds?: { creative_id: number; tu?: number; den?: number }[]; sach?: { creative_id: number }[]; doan?: { tu: number; den: number }[]; /** bước Chạy: camp hẹn giờ (ISO) — dong_phim.b_chay */ hen?: string } | null };
 /** creative của dòng: ảnh / video xem trước · dang = loại creative (etp.creative.dang, #1518) · chan = lý do cổng chấm chặn (etp.cham_cong.chan_boi, #1519) · cho = 5 điểm chờ người duyệt */
-export type CrDong = { anh: string | null; video: string | null; dang: string | null; chan: string | null; cho: string | null;
+export type CrDong = { anh: string | null; video: string | null; dang: string | null; /** bản mẫu PO.1… (lib/etp-ban) */ ban: string | null; chan: string | null; cho: string | null;
   /** hàng chờ lên camp (view etp.cho_len_v — cùng nguồn máy lên camp): hang = thứ tự máy sẽ tự lên · ly_do = vì sao máy KHÔNG tự lên; null = không trong hàng (đã có camp / chưa sạch) */ len: { hang: number | null; ly_do: string | null } | null };
 export type CampDong = { id: number; tt: string | null; db: string | null; cr: number | null; ns: number | null; chi: number; thu: number; /** giờ hẹn chạy (lib/etp-chay) */ lich: string | null };
 export type DongPhim = { id: number; content_id: number; ten: string | null; the_loai: string | null; loai: string; so_camp: number | null; ai: string | null; trang_thai: string; ly_do: string | null;
@@ -222,14 +223,14 @@ export async function docChiTiet(dongId: number): Promise<{ camps: CampDong[]; c
     const [g] = await run<{ cr: number | null; camp: number | null }>(-id >= TT0 ? sql`select creative_id cr, camp_moi camp from etp.thay_the where id = ${-id - TT0}` : sql`select creative_id cr, null::int camp from etp.thu_vien where id = ${-id}`);
     const camps = await run<CampDong>(sql`select c.camp_id::int id, c.trang_thai tt, c.dong_bo db, c.creative_id::int cr, c.ngan_sach::float ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu, c.lich::text lich
         from etp.camp c left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s using (camp_id) where c.creative_id = ${g?.cr ?? -1} or c.camp_id = ${g?.camp ?? -1} order by c.camp_id`);
-    const [r] = await run<{ crs: Record<string, CrDong> }>(sql`select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video, 'dang', r.dang, 'chan', g.chan_boi, 'cho', g.cho_duyet, 'len', case when v.creative_id is not null then json_build_object('hang', v.hang, 'ly_do', v.ly_do) end)), '{}'::json) crs
+    const [r] = await run<{ crs: Record<string, CrDong> }>(sql`select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video, 'dang', r.dang, 'ban', ${banCr('r.creative_id', 'r.dang')}, 'chan', g.chan_boi, 'cho', g.cho_duyet, 'len', case when v.creative_id is not null then json_build_object('hang', v.hang, 'ly_do', v.ly_do) end)), '{}'::json) crs
         from etp.creative r left join etp.cham_cong g on g.creative_id = r.creative_id left join etp.cho_len_v v on v.creative_id = r.creative_id where r.creative_id = ${g?.cr ?? -1}`);
     return { camps, crs: r?.crs ?? {}, tc: await run<TieuChi>(sql`select nhom, ma, ten, mo_ta from etp.tieu_chi`) };
   }
   const camps = await run<CampDong>(sql`select c.camp_id::int id, c.trang_thai tt, c.dong_bo db, c.creative_id::int cr, c.ngan_sach::float ns, coalesce(s.chi, 0)::float chi, coalesce(s.thu, 0)::float thu, c.lich::text lich
       from etp.dong_phim p join etp.camp c on c.content_id = p.content_id and c.tao >= p.tao_luc left join (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay group by 1) s on s.camp_id = c.camp_id
       where p.id = ${id} order by c.camp_id`);
-  const [r] = await run<{ crs: Record<string, CrDong> }>(sql`select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video, 'dang', r.dang, 'chan', g.chan_boi, 'cho', g.cho_duyet, 'len', case when v.creative_id is not null then json_build_object('hang', v.hang, 'ly_do', v.ly_do) end)), '{}'::json) crs
+  const [r] = await run<{ crs: Record<string, CrDong> }>(sql`select coalesce(json_object_agg(r.creative_id, json_build_object('anh', r.anh, 'video', r.video, 'dang', r.dang, 'ban', ${banCr('r.creative_id', 'r.dang')}, 'chan', g.chan_boi, 'cho', g.cho_duyet, 'len', case when v.creative_id is not null then json_build_object('hang', v.hang, 'ly_do', v.ly_do) end)), '{}'::json) crs
       from etp.dong_phim p join etp.creative r on r.content_id = p.content_id left join etp.cham_cong g on g.creative_id = r.creative_id left join etp.cho_len_v v on v.creative_id = r.creative_id where p.id = ${id}`);
   const tc = await run<TieuChi>(sql`select nhom, ma, ten, mo_ta from etp.tieu_chi`);
   return { camps, crs: r?.crs ?? {}, tc };

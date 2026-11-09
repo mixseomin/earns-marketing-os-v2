@@ -106,7 +106,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     t.deepEqual(chonNhin('the 9th house ties to travel', D), { nha: 9 }); t.deepEqual(chonNhin('Gemini is quick.', D), { cung: 'Gemini' }); t.deepEqual(chonNhin('She acts.', D, { sao: 'Mars' }), { sao: 'Mars' });
     t.deepEqual(tachCau(["At 13°05' Aries, it sits here. The library reads it as bold. “Bold,” it says."]), ["At 13°05' Aries, it sits here.", 'The library reads it as bold. “Bold,” it says.']);
     t.equal(tenGon('Moon, Mars and Jupiter in Aries, in the 9th house'), 'Moon, Mars and Jupiter in Aries'); t.equal(tenGon('Pluto and Uranus in Libra, in the 3rd and 4th houses'), 'Pluto and Uranus in Libra');
-    const M = [{ ten: 'A', cau: ['x'.repeat(142), 'x'.repeat(142), 'x'.repeat(142), 'x'.repeat(142), 'x'.repeat(142)] }, { ten: 'Questions people ask', hoi: true, cau: ['x'.repeat(1420)] }, { ten: 'What the chart adds up to', cau: ['x'.repeat(142), 'x'.repeat(142)] }];
+    const x10 = 'x'.repeat(Math.round(TOC * 10));   // một câu = 10 giây giọng ở tốc độ hiện hành
+    const M = [{ ten: 'A', cau: [x10, x10, x10, x10, x10] }, { ten: 'Questions people ask', hoi: true, cau: [x10.repeat(10)] }, { ten: 'What the chart adds up to', cau: [x10, x10] }];
     t.deepEqual(catMuc(M, 999).map((m) => m.cau.length), [5, 1, 2], 'vừa thì giữ nguyên'); t.deepEqual(catMuc(M, 75).map((m) => m.cau.length), [5, 2], 'quá thì bỏ hỏi đáp trước');
     t.deepEqual(catMuc(M, 55).map((m) => m.cau.length), [3, 2], 'vẫn quá thì bớt câu cuối, giữ ≥ 3 câu, không đụng tổng kết');
     t.deepEqual(mucBai({ mo: ['What is X?', 'Why Y?'], muc: [{ ten: 'Questions people ask', doan: ['A one.', 'B two.'] }] })[0].cau, ['What is X?', 'A one.', 'Why Y?', 'B two.']);

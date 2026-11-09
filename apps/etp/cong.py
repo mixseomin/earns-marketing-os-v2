@@ -17,6 +17,11 @@ KHOA_TRAN_NGAY = "tran_camp_moi_ngay"
 # nút lên camp etp.on.tc, len-sau-cham, thay-the) lên bộ etp.cau_hinh.bo_phim_moi, phim đã chạy bộ khác cũng vậy. Nhân bản / thang / ROAS ở bộ camp gốc.
 SQL_BO_PHIM = ("select coalesce((select thu_bo from etp.phim where content_id = {cid} and thu_vong = 'doi_bo' and coalesce(thu_bo, '') <> ''),"
                " (select gia_tri#>>'{{}}' from etp.cau_hinh where khoa = 'bo_phim_moi'))")   # phim thang cất đang ở vòng đổi bộ (cat_phim.py thu_bo) → bộ đó; còn lại bo_phim_moi (anh 09/11/2026: camp thay thế bỏ, bộ đổi đi theo mọi đường lên camp)
+# DÒNG HỎNG THẬT ≠ DÒNG DỪNG ĐÚNG LUẬT (09/11/2026 rà xung đột: lộ trình đếm mọi dòng 'dung' là hỏng → 3 dòng là bỏ hẳn dạng đó cho phim; 46 phim mất CC, 37 mất AT
+# chỉ vì dòng bị gác theo gac_dang, 33 mất PO vì chạm trần camp/ngày hay trang phim hỏng). Hỏng thật = 'loi' (máy), hoặc 'dung' không do một luật chặn:
+# gác dạng (dong_phim.gac_ly), trần camp mới/ngày (kiem → mo_tran_ngay tự mở lại), trang phim Nhà hỏng (ly_trang_hong), nhóm gốc ngoài Âu-Mỹ (bước nhận).
+SQL_DONG_HONG = ("(trang_thai = 'loi' or (trang_thai = 'dung' and coalesce(ly_do, '') not like 'tạm gác dòng%' and strpos(coalesce(ly_do, ''), 'chạm trần') = 0"
+                 " and coalesce(ly_do, '') not like 'ws: trang phim Nhà%' and coalesce(ly_do, '') not like 'nhan: nhóm gốc%'))")
 SQL_TAO_HOM_NAY = "select count(*) from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
 # TRANG PHIM HỎNG HẲN (anh 09/11/2026 "Fix triệt để" — 91648 From Doomed Baby đứng bước Trang phim 01:26 08/11 → 01:27 09/11, hơn 20 lượt chờ 60 phút → Mạnh huỷ → FIX):
 # bản workspace Nhà đã thêm quá TRANG_CHO_SINH giây mà Ethopex vẫn chưa sinh đủ (thường là link tập 1: thư viện phim không có nguồn tập 1, 7 phim 09/11) → chờ thêm vô ích.

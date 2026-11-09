@@ -12,6 +12,7 @@ Ngày = ngày Ethopex (UTC). Các dò (ngưỡng ở đầu tệp):
   phim_bao_hoa thêm luật "lên thêm camp mà ROI phim cả hệ giảm" (02/11/2026) — mọi số phim tính trên nhà + team; lãi $ vẫn tăng thì không tính bão hoà (06/11/2026)
   bao_hoa_team   tài khoản team lên camp mới cho phim đang bão hoà — chỉ báo, không chặn (anh 02/11/2026)
   tran_phim_vuot  một phim có > etp.cau_hinh.tran_phim camp đang chạy trong MỘT tài khoản (nhà: máy đã chặn mở thêm; team: chỉ báo) — mỗi ngày một lần
+  tieu_vong      camp thường 2 ngày khép liền tiêu ≥ 60% NS trước 12h UTC mà lỗ (Dol 09/11/2026: mùa Ads phân phối lệch) — báo vàng, chưa tắt
   tran_phim_mo    phim đủ trần ở một tài khoản nhà và MỌI camp đang chạy lãi đều (3 ngày đã khép, ≥ 2 ngày có chi ≥ $1, ngày nào cũng thu > chi)
                   → đề xuất anh mở thêm chỗ (anh 02/11/2026: "khi nào tất cả 30 cùng lãi đều và ổn định mới đề xuất mở thêm slot")"""
 import datetime as dt, json, os, subprocess
@@ -84,6 +85,23 @@ def bao_hoa_phim(nay):
           select content_id, ten, so_camp, roi, chan_nb, bao_hoa from jsonb_to_recordset($J${j}$J$::jsonb) as x(content_id int, ten text, so_camp int, roi jsonb, chan_nb text, bao_hoa text); commit;""")
     return n
 
+# TIÊU VỐNG (Dol / Ethopex 16:00 09/11/2026: mùa Ads đội Ecom lớn chạy, "camp của mình bị tiêu vống trong thời gian ngắn hoặc phân phối không đều là hỏng camp"):
+# đo kho 02–08/11 (467 camp-ngày thường NS ≥ $3): ngày tiêu ≥ TV_PHAN ngân sách trước giờ TV_GIO UTC → ROI −2%, ngày tiêu đều → +24%.
+# Camp thường đang bật, 2 ngày đã khép liền đều tiêu sớm ≥ TV_PHAN × NS và lỗ → báo vàng (một lần mỗi camp mỗi ngày), CHƯA tự tắt (anh chưa duyệt luật tắt).
+TV_PHAN, TV_GIO, TV_NGAY = 0.6, 12, 2
+def tieu_vong(nay):
+    ds = q(f"""with g as (select camp_id, ngay, sum(chi) filter (where gio < {TV_GIO}) som, sum(chi) chi, sum(thu) thu from etp.so_gio_camp
+                            where ngay between '{nay}'::date - {TV_NGAY} and '{nay}'::date - 1 group by 1, 2),
+                    x as (select g.*, k.ten, k.ngan_sach ns from g join etp.camp k using (camp_id) where not k.la_roas and k.trang_thai = 'ACTIVE' and k.ngan_sach >= 3
+                            and g.som >= {TV_PHAN} * k.ngan_sach and g.thu < g.chi)
+               select camp_id, min(ten), min(ns), string_agg(to_char(ngay, 'DD/MM') || ' sớm $' || round(som::numeric, 1) || ' ROI ' || round(100 * (thu - chi) / nullif(chi, 0)) || '%', ' · ' order by ngay)
+               from x group by 1 having count(*) >= {TV_NGAY}""")
+    n = 0
+    for l in ds.splitlines():
+        i, ten, ns, chu = l.split("|", 3)
+        bao("tieu_vong", "vang", f"tieu_vong:{i}:{nay}", f"Camp #{i} tiêu vống: {TV_NGAY} ngày liền chi ≥ {TV_PHAN:.0%} ngân sách ${float(ns):g} trước {TV_GIO}h UTC mà lỗ ({chu}) — Meta phân phối lệch (mùa Ads), xem hạ / thay creative · {ten[:60]}"); n += 1
+    return n
+
 def tran_phim(nay):
     """TRẦN CAMP / PHIM THEO TỪNG TÀI KHOẢN (anh 02/11/2026: "Set lại 30 cho mọi camp nhà. Và theo từng tk. Có cảnh báo nếu film nhiều camp hơn mức đó").
     Đếm camp đang chạy (nhà: etp.camp_dang_chay; team: ACTIVE), camp ROAS ★ không tính — cùng cách đếm với nhan-ban.py dem_tk."""
@@ -140,6 +158,7 @@ def main():
              f"Camp #{i} SẮP ĐỦ bid ROAS — chi ${float(chi):.0f}/${ROAS_DAT}, ROI {roi}%, ổn định ≥ 50% · ${float(ns):g}/ngày ≈ {max(1, round((ROAS_DAT - float(chi)) / max(float(ns) * 0.7, 1)))} ngày nữa — {ten[:70]}")); n += 1
     n += bao_hoa_phim(now.date())
     n += tran_phim(nay)
+    n += tieu_vong(nay)
     # TÀI KHOẢN TEAM LÊN CAMP CHO PHIM ĐANG BÃO HOÀ (anh 02/11/2026: "tk team chỉ cảnh báo") — không chặn, báo mỗi tài khoản × phim một lần mỗi ngày
     for l in q(f"""select c.ad_account_id, c.content_id, count(*), coalesce(max(t.nguoi), '?'), max(b.ten), max(b.chan_nb) from etp.camp_ngoai c
                    join etp.tai_khoan t using (ad_account_id) join etp.phim_bao_hoa b using (content_id)

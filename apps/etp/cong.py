@@ -15,7 +15,8 @@ TANG = {"tang", "bat", "nhan_ban", "tao_camp"}
 KHOA_TRAN_NGAY = "tran_camp_moi_ngay"
 # BỘ LÊN CAMP MỚI — một nguồn (anh 08/11/2026 "Bộ 1 = 50% Kiên… Sửa đi" + "1 phim ở nhiều bộ thoải mái"): camp mới của creative (dòng phim, worker phim mới,
 # nút lên camp etp.on.tc, len-sau-cham, thay-the) lên bộ etp.cau_hinh.bo_phim_moi, phim đã chạy bộ khác cũng vậy. Nhân bản / thang / ROAS ở bộ camp gốc.
-SQL_BO_PHIM = "select gia_tri#>>'{{}}' from etp.cau_hinh where khoa = 'bo_phim_moi'"
+SQL_BO_PHIM = ("select coalesce((select thu_bo from etp.phim where content_id = {cid} and thu_vong = 'doi_bo' and coalesce(thu_bo, '') <> ''),"
+               " (select gia_tri#>>'{{}}' from etp.cau_hinh where khoa = 'bo_phim_moi'))")   # phim thang cất đang ở vòng đổi bộ (cat_phim.py thu_bo) → bộ đó; còn lại bo_phim_moi (anh 09/11/2026: camp thay thế bỏ, bộ đổi đi theo mọi đường lên camp)
 SQL_TAO_HOM_NAY = "select count(*) from etp.camp where (tao at time zone 'Asia/Ho_Chi_Minh')::date = (now() at time zone 'Asia/Ho_Chi_Minh')::date"
 # TRANG PHIM HỎNG HẲN (anh 09/11/2026 "Fix triệt để" — 91648 From Doomed Baby đứng bước Trang phim 01:26 08/11 → 01:27 09/11, hơn 20 lượt chờ 60 phút → Mạnh huỷ → FIX):
 # bản workspace Nhà đã thêm quá TRANG_CHO_SINH giây mà Ethopex vẫn chưa sinh đủ (thường là link tập 1: thư viện phim không có nguồn tập 1, 7 phim 09/11) → chờ thêm vô ích.

@@ -1,7 +1,6 @@
 // HÀNG ĐỢI MÁY SINH KỂ CHUYỆN (anh 29/10/2026 "sinh cho hợp lý về tài nguyên và hiệu quả") — 0đ, chỉ đọc kho. In JSON các phim nên sinh bản kể chuyện kế tiếp, điểm cao trước.
 // Nguồn phim = danh sách cầu app gốc (xv_khoa_ngoai ethopex_200_phim) + mọi phim có camp nhà (etp.phim) — cần link trang phim để máy viết kịch bản từ tóm tắt thật.
 // ĐIỂM (một chỗ, đổi ở đây) — anh 29/10/2026 "sx loại video KT cho các phim chưa có nhưng đang lên camp live triệt để": hai bậc đầu đứng trên mọi bậc cũ:
-//   phim đang cần CAMP THAY (etp.thay_the mở — sắp mất camp cuối)          → 3000 + lãi
 //   phim có camp ĐANG CHẠY mà CHƯA có creative kể chuyện nào             → 2000 + lãi
 //   (phim đã có creative kể chuyện dùng được → hạ về bậc cũ, không chen trước phim chưa có)
 //   phim đang LÃI 14 ngày trên camp nhà       → 1000 + lãi   (đã có khách, thêm góc kể chuyện $0 để mở rộng)
@@ -36,7 +35,7 @@ dsNhan.unshift(...dsDong.filter((p) => !dsNhan.some((x) => x.id === p.id)));
 const nhan = new Set(dsNhan.map((p) => p.id));
 const daCo = new Set([...dsNhan, ...dsCau].map((p) => p.id));
 // PHIM MỚI CẮT $0 TRƯỚC (anh 03/11/2026: "dừng lại … Từ giờ ưu tiên cắt từ phim trước cho rẻ $0"): máy sinh KT (tốn tiền AI) KHÔNG làm cho phim chưa có camp nhà
-// (danh sách cầu + phim Nhà nhận) — phim mới đi dây chuyền cắt cảnh phim (phim-moi.py). KT chỉ còn cho phim đã có camp (thay camp / đang chạy / đang lãi).
+// (danh sách cầu + phim Nhà nhận) — phim mới đi dây chuyền cắt cảnh phim (phim-moi.py). KT chỉ còn cho phim đã có camp (đang chạy / đang lãi; camp thay thế bỏ 09/11/2026).
 const ds = [...dsNhan, ...dsCau.filter((p) => !nhan.has(p.id)), ...dsNha.filter((p) => !daCo.has(p.id))];
 const tt = ((await q<{ gia_tri: Record<string, { tt: string }> }>(sql`SELECT gia_tri FROM xv_khoa_ngoai WHERE ten = 'ethopex_phim_moi_tt'`))[0]?.gia_tri ?? {});
 const so14 = new Map((await q<{ content_id: number; chi: number; thu: number }>(sql`SELECT c.content_id, coalesce(sum(n.chi), 0)::float chi, coalesce(sum(n.thu), 0)::float thu
@@ -58,11 +57,10 @@ const coCamp = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT cont
 const chan18 = (id: number) => cam18[id] ? `cấm 18+ (${cam18[id].ly_do ?? '?'})` : soat18[id] && !soat18[id].ok ? `soát hình 18+ không đạt (${soat18[id].ghi ?? '?'})` : !soat18[id] && !coCamp.has(id) ? 'chưa soát hình 18+' : null;
 const live = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.camp WHERE trang_thai = 'ACTIVE' AND content_id IS NOT NULL`)).map((r) => Number(r.content_id)));
 const coKt = new Set((await q<{ content_id: number }>(sql`SELECT DISTINCT content_id FROM etp.creative WHERE dang = 'kể chuyện' AND tu_choi IS NULL AND content_id IS NOT NULL`)).map((r) => Number(r.content_id)));
-const thay = new Set((await q<{ content_id: number }>(sql`SELECT content_id FROM etp.thay_the WHERE buoc NOT IN ('chay', 'huy', 'chan')`).catch(() => [])).map((r) => Number(r.content_id)));
 const hang = ds.map((p, i) => {
   const id = Number(p.id), s = so14.get(id), k = kc.get(id), lai = s ? s.thu - s.chi : 0;
   const bo = chan18(id) ?? ((dong.has(p.id) ? choDong.has(id) : cho.has(id)) ? 'đã có bản chờ chạy / vừa sinh' : tt[p.id]?.tt === 'poster_loai' ? 'poster bị loại (soát phim mới)' : k && k.thua >= 2 && !k.thang ? `kể chuyện đã thua ${k.thua} lần, chưa thắng` : !p.url ? 'thiếu link trang phim' : null);
-  const diem = dong.has(p.id) ? 5000 : nhan.has(p.id) ? 4000 : !coKt.has(id) && thay.has(id) ? 3000 + lai : !coKt.has(id) && live.has(id) ? 2000 + lai : !s ? 500 - Math.min(i, 399) : lai > 0 ? 1000 + lai : 100 + lai;
+  const diem = dong.has(p.id) ? 5000 : nhan.has(p.id) ? 4000 : !coKt.has(id) && live.has(id) ? 2000 + lai : !s ? 500 - Math.min(i, 399) : lai > 0 ? 1000 + lai : 100 + lai;
   return { content_id: id, ten: p.ten, url: p.url, nguon: p.nguon, lang: p.locale?.startsWith('es') ? 'es' : 'en', diem: Math.round(diem * 100) / 100, lai14: Math.round(lai * 100) / 100, chi14: Math.round((s?.chi ?? 0) * 100) / 100, kc: k ?? null, bo };
 }).filter((x) => !x.bo && (coCamp.has(x.content_id) || dong.has(String(x.content_id)))).sort((a, b) => b.diem - a.diem).slice(0, so);   // phim chưa có camp nhà → cắt $0, không sinh KT (anh 03/11/2026)
 console.log(JSON.stringify(hang));

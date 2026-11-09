@@ -1,7 +1,7 @@
 """PLAN MỞ RỘNG CAMP THEO PHIM — "có cường độ" (anh 04/11/2026). dong-bo.py gọi chay(q) mỗi lượt (10 phút) → etp.mo_rong (0415) → Cây camp etp.on.tc dòng mờ.
 Chỉ ĐỌC số + GHI plan ($0, không AI, không tạo camp). Một chỗ khai công thức:
   đích 30 camp/phim (trần "phim thắng ≤ 30") · lượt thêm k = ⌈6 × (1 − n/30)⌉ (phim mới 6 · 15 camp → 3 · ≥ 25 → 1 · 30 → 0)
-  ROI 3 ngày đã khép ≥ +20% → k · 0–20% (hoà) → 1 · < 0 → 0 (camp thay thế lo) · chi 3 ngày < $1 → chưa đủ số
+  ROI 3 ngày đã khép ≥ +20% → k · 0–20% (hoà) → 1 · < 0 → 0 (lộ trình phim / thang cất lo) · chi 3 ngày < $1 → chưa đủ số
   PHIM MỚI (camp đầu < 4 ngày): chỉ cần 1 ngày khép, chi ≥ $0.8, ROI ≥ 20% → đợt đầu 6
   ĐO TỔNG THỂ: camp mới nhất của phim chưa qua trọn 1 ngày khép → cho_do · ROI tụt > 10 điểm so với 3 ngày khép trước → giu
   cần sản xuất = k − creative sạch chưa có camp"""
@@ -46,7 +46,7 @@ def _nap_ngay(q):
 
 # BÙ CAMP CHỈ CHO PHIM ĐANG THẮNG (anh 09/11/2026 "Chốt. Triển khai luôn"): phim có camp MỚI (tạo 7 ngày, đã chạy ≥ 48 giờ, chi ≥ $2) không lỗ →
 # camp bị LUẬT tắt 24 giờ qua (không tính lệnh tay / Meta từ chối) + mỗi $1 bị giảm bậc 24 giờ qua → bù bằng camp $1, trừ số camp phim đã tạo 24 giờ qua (không bù đôi).
-# Bỏ qua 'chờ đo' (bù chỉ đưa về mức cũ, không mở rộng). Phim không đạt → không bù (thang cất / camp thay thế lo). Ghi etp.cau_hinh.bu_camp {phim: {k, tat, giam, tao}};
+# Bỏ qua 'chờ đo' (bù chỉ đưa về mức cũ, không mở rộng). Phim không đạt → không bù (lộ trình phim / thang cất lo). Ghi etp.cau_hinh.bu_camp {phim: {k, tat, giam, tao}};
 # lo_trinh_phim.xep_bu xếp dòng PO đúng k camp. etp.nhat_ky.truoc / sau là TEXT ("$5" · "5") → lọc lấy số. Đo 09/11: 10 / 53 phim đạt, ~11 camp bù / ngày.
 BU_TUOI_GIO, BU_CHI = 48, 2
 def tinh_bu(q):
@@ -96,7 +96,7 @@ def chay(q):
         moi = float(r["tuoi"]) < 4
         if n >= DICH: k, tt, ly = 0, "khong", f"đủ {DICH} camp"
         elif roi is None or (chi < 1 and not (moi and chi >= 0.8)): k, tt, ly = 0, "khong", f"chưa đủ số (chi 3 ngày khép ${chi:.2f})"
-        elif roi < HOA: k, tt, ly = 0, "khong", f"lỗ ROI {roi}% — camp thay thế lo"
+        elif roi < HOA: k, tt, ly = 0, "khong", f"lỗ ROI {roi}% — lộ trình phim / thang cất lo"
         elif roi >= LAI: k, tt, ly = (DAU_THU if moi and n <= 2 else k_cua(n)), "them", (f"lãi ROI {roi}% · phim mới: đợt thử {DAU_THU} camp, lãi tiếp mới mở đợt {DAU}" if moi and n <= 2 else f"lãi ROI {roi}% → ⌈{DAU}×(1−{n}/{DICH})⌉")
         else: k, tt, ly = 1, "them", f"hoà ROI {roi}% → thêm 1, đo lại"
         if tt == "them" and r["moi_chua_khep"]: tt, ly = "cho_do", ly + " · lượt trước chưa đủ 1 ngày khép — chờ đo"

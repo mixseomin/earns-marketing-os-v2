@@ -28,8 +28,9 @@ def main(a):
     ids = ",".join(str(int(x["creative_id"])) for x in ds) or "0"
     co_camp = set(SD.sql(f"select distinct creative_id from etp.camp where creative_id in ({ids}) and coalesce(trang_thai, '') <> 'ARCHIVED'").split())
     # bộ lên camp = etp.cau_hinh.bo_phim_moi (một phim nhiều bộ, anh 08/11/2026)
-    bo_moi = SD.sql("select gia_tri#>>'{}' from etp.cau_hinh where khoa = 'bo_phim_moi'").strip()   # một nguồn với apps/etp/cong.py SQL_BO_PHIM
-    if not bo_moi: raise SystemExit("thiếu etp.cau_hinh.bo_phim_moi — không biết phim mới lên bộ nào")
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../../etp")); import cong as CG
+    bo_cua = lambda cid: SD.sql(CG.SQL_BO_PHIM.format(cid=int(cid))).strip()   # một nguồn cong.SQL_BO_PHIM: bộ đổi của thang cất, còn lại bo_phim_moi
+    if not bo_cua(0): raise SystemExit("thiếu etp.cau_hinh.bo_phim_moi — không biết phim mới lên bộ nào")
     cham = dict(l.split("|", 1) for l in SD.sql(f"select creative_id, case when duoc_len then 'ok' else 'chan' end from etp.cham_cong where creative_id in ({ids})").splitlines() if "|" in l)   # cổng một nguồn: view etp.cham_cong
     dem = {"len": 0, "loi": 0, "co_camp": 0, "chua_cham": 0, "khong_sach": 0}
     def mot(x, khoa):   # một creative → một camp (dùng chung cho chạy tuần tự / song song)
@@ -41,7 +42,7 @@ def main(a):
         lang = (x.get("lang") or "en").lower()
         if thu: print(f"[thử] sẽ lên #{cr} ({lang}) {x['ten'][:60]}"); dem["len"] += 1; return
         ten = x["ten"].replace("'", "").replace('"', "")
-        r = subprocess.run(["ssh", SD.B, f"""{SD.ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON['en'])} --bo {bo_moi} --creative {cr} --content {int(x['content_id'])} --ten "{ten}" --that --luat "lên camp sau khi máy chấm Sạch — lô {ma}" --ai "anh (chat 25/10/2026: cái nào đủ điều kiện lên camp thì lên luôn)\""""],
+        r = subprocess.run(["ssh", SD.B, f"""{SD.ENV}; cd apps/xuong-video/scripts/ethopex && python3 nhan-ban.py {KHUON.get(lang, KHUON['en'])} --bo {bo_cua(x['content_id'])} --creative {cr} --content {int(x['content_id'])} --ten "{ten}" --that --luat "lên camp sau khi máy chấm Sạch — lô {ma}" --ai "anh (chat 25/10/2026: cái nào đủ điều kiện lên camp thì lên luôn)\""""],
                            capture_output=True, text=True, timeout=600)
         kq = (r.stdout.strip().splitlines() or [r.stderr.strip()[-200:]])[-1]
         try: j = json.loads(kq); ok = j.get("ok")

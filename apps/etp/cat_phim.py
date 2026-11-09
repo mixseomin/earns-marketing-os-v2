@@ -2,7 +2,7 @@
 """THANG CHUYỂN HƯỚNG / CẤT PHIM (anh 31/10/2026: "Phần sinh camp thay thế đã tự động nhg nếu sau nhiều lần thử mà ko có camp lãi, film lởm,... thị trường,...
 thì làm thế nào" → "Đc làm đi"). Chỉ xét phim CHƯA có camp cơ hội (etp.camp_co_hoi: chi ≥ $1 ROI ≥ 50%, hoặc chi ≥ $3 lãi) — phim có thì scale, không cất (anh 06/11/2026).
   vòng 1  đổi creative theo dạng (thay-the.py, như trước)
-  vòng 2  chi thử ≥ cau_hinh.cat_phim.chi mà ROI < .roi, mới thử < .so_bo bộ → thu_vong 'doi_bo': camp thay kế tiếp lên bộ chưa thử (bo_moi)
+  vòng 2  chi thử ≥ cau_hinh.cat_phim.chi mà ROI < .roi, mới thử < .so_bo bộ → thu_vong 'doi_bo': camp mới kế tiếp lên bộ chưa thử (bo_moi, đọc qua cong.SQL_BO_PHIM)
   vòng 3  team (camp ngoài) lãi phim đó 14 ngày → KHÔNG cất, báo nạp creative team (nap-creative-ngoai.py — chấm là lượt AI, chờ lệnh)
   vòng 4  hết đường (đủ bộ hoặc chi ≥ .chi_doi_bo) → thu_vong 'cat': cong.kiem chặn tạo / nhân bản / bật camp phim này; camp còn chạy để luật tắt xử
   mở lại  có camp cơ hội, hoặc team lãi 14 ngày → thu_vong về null (tự động)
@@ -64,7 +64,8 @@ def xet(that=False):
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # thay-the.py nạp tệp này theo đường dẫn, không nằm trong apps/etp
         import lo_trinh_phim as LT
         tt_ = json.loads(_q("select gia_tri::text from etp.cau_hinh where khoa = 'lo_trinh_tt'") or "{}")
-        ch["_thi_diem"] = {int(c): [m for m in LT.CAN if not (tt_.get(str(c), {}).get("dang", {}).get(m) or {}).get("bo")] for c in (LT.cau_hinh(lambda s: _q(s)).get("phim") or [])}
+        gac_ = set(json.loads(_q("select coalesce((select gia_tri::text from etp.cau_hinh where khoa = 'gac_dang'), '[]')") or "[]"))   # dạng anh gác: lộ trình không xếp → không giữ hạn chờ
+        ch["_thi_diem"] = {int(c): [m for m in LT.CAN if m not in gac_ and not (tt_.get(str(c), {}).get("dang", {}).get(m) or {}).get("bo")] for c in (LT.cau_hinh(lambda s: _q(s)).get("phim") or [])}
     except Exception as e: print(f"đọc thí điểm lộ trình lỗi: {e}", file=sys.stderr); ch["_thi_diem"] = {}
     for p in so_phim():
         ct, chi, thu, vong = int(p["content_id"]), float(p["chi"] or 0), float(p["thu"] or 0), p.get("thu_vong")
@@ -112,7 +113,7 @@ def xet(that=False):
         bo_moi = next((b for b in ch["bo"] if b not in (p.get("bo") or [])), None)
         if vong not in ("doi_bo", "cat") and bo_moi and len(p.get("bo") or []) < int(ch["so_bo"]):
             doi_bo[ct] = bo_moi; dat(ct, "doi_bo", f"đổi sang bộ {bo_moi} · {so}", that, bo_moi)
-            bao.append(f"đổi bộ phim {ct} {ten}: camp thay kế tiếp lên bộ {bo_moi} ({so})"); continue
+            bao.append(f"đổi bộ phim {ct} {ten}: camp mới kế tiếp (dòng phim / lên sau chấm) lên bộ {bo_moi} ({so})"); continue
         if vong != "cat": dat(ct, "cat", so, that); bao.append(f"cất phim {ct} {ten}: thôi lên camp mới ({so})" + (f" · ⚠ đội còn {p['doi_chay']} camp chạy phim này — không nên mở thêm (nhãn ⛔ chạm mốc trên etp)" if p.get("doi_chay") else ""))
     return bao, doi_bo
 

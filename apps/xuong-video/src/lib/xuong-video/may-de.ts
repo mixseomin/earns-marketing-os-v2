@@ -23,6 +23,9 @@ export interface SanPhamDe { ma: string; ten: string; ngach: string[]; site: str
 export interface GocDe { sp: number; id: number; loai: string; ten: string; mo_ta?: string | null }
 
 const TU_MAY = ['delve', 'leverage', 'utilize', 'crucial', 'vital', 'comprehensive', 'robust', 'streamline', 'moreover', 'furthermore', 'seamless', 'elevate', 'unlock', 'game-changer', 'in today\'s', 'dive into', 'tapestry', 'realm', 'testament'];
+/** Từ máy theo luật kiemDe (khớp nguyên từ) — may-dung lọc kho hook bằng hàm này cùng tuMayTrong của phòng chấm: phòng chấm chỉ cấm "unlock the" nên hook mang
+ *  "unlock" lọt kho, AI chép theo rồi kiemDe chặn cả 3 lượt (militarycalc lam-tuong-42929, 10/11/2026). */
+export const tuMayDe = (chu: string) => { const t = chu.toLowerCase(); return TU_MAY.filter((w) => new RegExp(`(^|[^a-z])${w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`).test(t)); };
 const LOAI_VI: Record<string, string> = { ai_phan_doi: 'objection / doubt the audience has', ai_chan_dung: 'who the audience is (portrait)', ai_tinh_huong: 'a concrete situation they are in', ai_noi_dau: 'a pain they feel', ai_cach_giai: 'how they try to solve it', ai_tieu_chi: 'what they compare / choose by', ai_mong_muon: 'what they wish for', ai_cu_hich: 'the nudge that makes them act' };
 
 export const DeCanhSchema = z.object({
@@ -258,7 +261,7 @@ export async function sinhDe(o: { sp: SanPhamDe; goc: GocDe; dang_bai: string; d
   for (let lan = 0; lan < 3; lan++) {
     // trượt "sửa quá xa": mô hình rẻ cầm cả kho thì không bám (esimfares 10/11/2026: hook kênh "Landing in Italy? Do this before your plane touches down"
     // → viết "Set this up before takeoff", giữ 17%, 2/3 bài kẹt cả 2 lượt) → lượt sau khoá vào ĐÚNG hook đã chọn + đưa nguyên câu làm khuôn, thêm một lượt.
-    const xa = !!hookCu && loiCu.some((l) => /sửa quá xa/.test(l)), hooksLuot = xa ? [hookCu as HookQc] : (o.hooks ?? []);
+    const xa = !!hookCu && loiCu.some((l) => /sửa quá xa/.test(l)), hooksLuot = xa ? [hookCu as HookQc] : (o.hooks ?? []).filter((h) => !tuMayDe(h.chu).length);
     const r = await sinhJson({ schema, system: vanHeThong(o.sp, o.dang_bai), user: vanNguoiDung(o.goc, o.dang_bai, o.daDung ?? [], o.sp.ngon_ngu ?? 'en', hooksLuot) + (loiCu.length ? `\nPrevious attempt was rejected: ${loiCu.join('; ')}. Fix these.${xa ? ` The title AND any on-screen hook line must be this exact sentence: "${(hookCu as HookQc).chu}". Copy it, swapping at most 2-3 words (the country, item or number) to fit the angle; keep every other word and the punctuation. hook_qc must be "${(hookCu as HookQc).id}".` : ''}` : ''), ten: 'de_bai' });
     if (!r.ok) return { ok: false, loi: r.loi, vnd };
     vnd += r.tokens.vnd ?? giaChuCents(r.model, r.tokens.in, r.tokens.out) * 260; tk.in += r.tokens.in; tk.out += r.tokens.out;

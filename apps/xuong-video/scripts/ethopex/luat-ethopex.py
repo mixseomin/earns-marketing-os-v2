@@ -853,8 +853,8 @@ nb = [x for x in nb if int(x[0] or 0) not in _goc_roas]
 # Telegram, thẻ etp đều đọc cùng một quyết định, không còn phụ thuộc thứ tự bước trong nhịp.
 # THA HÔM NAY — CỔNG CHUNG MỌI LUẬT TẮT THEO SỐ LỖ QUÁ KHỨ (anh 10/11/2026 "loại camp này sắp tắt thì nó lại lãi thì làm thế nào": #83581 T2 sắp tắt mà hôm nay +143%).
 # Trước chỉ T1 có điều tha (T1_THA); T2 / L3 / L4 / OFF / TV chấm trên ngày ĐÃ KHÉP nên hẹn tắt cả camp đang lãi. Hôm nay ROI ≥ THA_NAY_ROI% (chi ≥ $THA_NAY_CHI)
-# → tha HÔM NAY (không vào danh sách tắt, không chip "sắp tắt"); mai lỗ lại thì luật xét lại như thường. Cùng ngưỡng với T1.
-THA_NAY_ROI, THA_NAY_CHI = T1_THA, 0.3
+# → tha HÔM NAY (không vào danh sách tắt, không chip "sắp tắt"); mai lỗ lại thì luật xét lại như thường. Máy chỉ tắt trong khung 15–21h nên đúng lúc tới giờ tắt mà hôm nay lãi > 50% thì được thêm một cơ hội.
+THA_NAY_ROI, THA_NAY_CHI = 50, 0.3   # anh 10/11/2026: "đến giờ set để tắt (15h) mà lãi > 50% thì tha cho thêm 1 cơ hội"
 def _roi_nay(cid):
     h = hom.get(cid) or hom.get(str(cid)) or {}; c, t = float(h.get("chi") or 0), float(h.get("thu") or 0)
     return (t - c) / c * 100 if c >= THA_NAY_CHI else None
@@ -863,7 +863,7 @@ def _tha(ds, ten):
     ra = []
     for x in ds:
         r = _roi_nay(int(x[0] or 0))
-        if r is not None and r >= THA_NAY_ROI: tha_nay.append((x[0], f"{str(x[1])[:110]} · hôm nay ROI {r:+.0f}% ≥ {THA_NAY_ROI}% → THA hôm nay (luật {ten})"))
+        if r is not None and r > THA_NAY_ROI: tha_nay.append((x[0], f"{str(x[1])[:110]} · hôm nay ROI {r:+.0f}% > {THA_NAY_ROI}% → THA hôm nay (luật {ten})"))
         else: ra.append(x)
     return ra
 tat2, tat_l3, tat_l4, tat_l, tat_tv = _tha(tat2, "T2"), _tha(tat_l3, "L3"), _tha(tat_l4, "L4"), _tha(tat_l, "OFF"), _tha(tat_tv, "TV")
@@ -1286,6 +1286,6 @@ in_("BẢN THANG LỖ (chi ≥ 1 ngày ngân sách, ROI ≤ −30%) — MÁY T�
 in_("T30 — CAMP $20, 5 NGÀY ĐÃ KHÉP CHI TB ≥ $12 + ROI ≥ 50% → LÊN $30 (MÁY TỰ TĂNG — nới 29/10/2026):", tang30, "(chưa có)")
 in_(f"ĐỦ TIÊU CHÍ LÊN ROAS (lãi 30 ngày ≥ ${ROAS_LAI}, chưa có camp ★) — MÁY TỰ LÊN:", moc30, "(chưa có)")
 in_(f"ĐỦ ĐIỀU KIỆN TĂNG (ROI 30 ngày / từ lúc lên ≥ {roi_min:g}% và spending hôm nay > {sp_min:g}%) — CHỜ ANH DUYỆT:", dat, "(chưa có)")
-in_("THA HÔM NAY — luật tắt (T2 / L3 / L4 / OFF / TV) chạm nhưng hôm nay ROI ≥ 30%, không tắt hôm nay:", tha_nay, "(không)")
+in_("THA HÔM NAY — luật tắt (T2 / L3 / L4 / OFF / TV) chạm nhưng hôm nay ROI > 50%, không tắt hôm nay:", tha_nay, "(không)")
 in_("CẦN XEM GIẢM / TẮT (ROI tụt — phim down trend hoặc creative bão hoà, CPC/CPA tăng) — CHỜ ANH QUYẾT:", giam)
 in_("GẦN ĐẠT (theo dõi tiếp):", theo)

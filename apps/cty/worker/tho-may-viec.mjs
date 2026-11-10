@@ -20,11 +20,16 @@ export const LOAI_SUA = /^(lan|box3|vps|dang|kenh|anh|etp|social):/;   // social
 const ngayVN = (t = Date.now()) => new Date(t + 7 * 36e5).toISOString().slice(0, 10);
 
 /** Thuần — thêm việc cho các cảnh báo mới; bỏ khoá không thuộc thợ máy, bỏ khoá đang chờ / đang làm (không xếp đôi). */
+/** CHỐNG VÒNG LẶP (anh 10/11/2026 "làm sao để chúng nó chạy ổn định, tự fix được lỗi mà tao ko phải tham gia"): việc cùng khoá vừa KẾT mà không sửa được
+ *  (can_anh / khong_sua / treo) trong 24 giờ, cùng dấu bộ việc (dau — hoặc cả hai không có dấu) → không xếp lại y nguyên: kỹ sư sẽ làm lại đúng việc đó + hỏi lại anh mỗi nhịp
+ *  (Khang 63 lượt / 37 lần "cần anh" trong vài giờ). Đã sửa (xong) mà tái phát thì vẫn nhận lại; bộ việc đổi (dấu khác) thì nhận. Anh trả lời (anh:) không qua đây. */
+export const LAP_GIO = 24;
+const vuaKetKhongSua = (hang, c, luc) => hang.some((v) => v.khoa === c.khoa && v.tt === 'ket' && (v.dau ?? null) === (c.dau ?? null) && v.xong && luc - Date.parse(v.xong) < LAP_GIO * 36e5);
 export function themViec(st, ds, { luc = Date.now(), topic = null, msg = null } = {}) {
   const hang = st.hang || [], dang = new Set(hang.filter((v) => v.tt === 'cho' || v.tt === 'dang').map((v) => v.khoa));
   let them = 0, so = hang.reduce((a, v) => Math.max(a, v.id), 0);
   for (const c of ds) {
-    if (!LOAI_SUA.test(c.khoa) || dang.has(c.khoa)) continue;
+    if (!LOAI_SUA.test(c.khoa) || dang.has(c.khoa) || vuaKetKhongSua(hang, c, luc)) continue;
     hang.push({ id: ++so, khoa: c.khoa, chu: c.chu, ...(c.dau ? { dau: c.dau } : {}), luc: new Date(luc).toISOString(), tg: { topic, msg }, tt: 'cho' }); dang.add(c.khoa); them++;   // dau: dấu bộ việc (Khang — không xếp lại y nguyên)
   }
   return { st: { ...st, hang: hang.slice(-200) }, them };
@@ -113,6 +118,11 @@ if (process.argv[1]?.endsWith('tho-may-viec.mjs')) {
     assert.equal(st.ngay[ngayVN(t0)], 8, 'bộ đếm ngày vẫn đếm'); assert.equal(layViec(st, t0).ly_do, 'không có việc', 'hết việc thì nghỉ');
     { const s2 = { hang: [{ id: 1, khoa: 'lan:a', tt: 'cho' }, { id: 2, khoa: 'kenh:parody|x', tt: 'cho' }], ngay: {} }; assert.equal(layViec(s2, t0).viec.id, 2, 'việc kênh nhận trước'); }
     assert.strictEqual(themViec({ hang: [{ id: 1, khoa: 'lan:a', tt: 'xong' }] }, [{ khoa: 'lan:a', chu: 'tái phát' }]).them, 1, 'đã xong rồi tái phát: nhận lại');
+    { const xong = new Date(t0 - 36e5).toISOString(), ket = (dau) => ({ hang: [{ id: 1, khoa: 'social:sua|m', tt: 'ket', ket: 'can_anh', xong, ...(dau ? { dau } : {}) }] });
+      assert.strictEqual(themViec(ket('a,b'), [{ khoa: 'social:sua|m', dau: 'a,b', chu: 'y nguyên' }], { luc: t0 }).them, 0, 'vừa kết không sửa được, cùng bộ việc → không xếp lại (chống vòng lặp)');
+      assert.strictEqual(themViec(ket('a,b'), [{ khoa: 'social:sua|m', dau: 'a,b,c', chu: 'có bài mới' }], { luc: t0 }).them, 1, 'bộ việc đổi → nhận');
+      assert.strictEqual(themViec(ket(null), [{ khoa: 'social:sua|m', chu: 'không dấu' }], { luc: t0 + 25 * 36e5 }).them, 1, 'quá 24 giờ → nhận lại');
+      assert.strictEqual(themViec(ket(null), [{ khoa: 'social:sua|m', chu: 'không dấu' }], { luc: t0 }).them, 0, 'không dấu, vừa kết → không xếp lại'); }
     { const s = { hang: [{ id: 1, khoa: 'dang:lo|m1|facebook', tt: 'ket', tin_bao: 50 }, { id: 2, khoa: 'dang:lo|m1|fb_anh', tt: 'cho' }, { id: 3, khoa: 'dang:lo|m2|x', tt: 'cho' }], ngay: { [ngayVN(t0)]: 6 } };
       const a0 = themAnh(s, { chu: 'Sx thêm video cho', anh: 'Sx thêm video cho', goc: 'dang:lo|m1|facebook', tg: { topic: 2307, msg: 99 } }, t0);
       assert.equal(a0.st.hang[1].tt, 'gop', 'việc chờ cùng máy gộp vào lệnh anh (không hỏi lại)'); assert.equal(a0.st.hang[2].tt, 'cho', 'máy khác giữ nguyên');

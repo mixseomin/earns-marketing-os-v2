@@ -449,22 +449,17 @@ export function tinChamDang(kq) {
  *  Tham khảo thằng Thành (astrolas) và Huy (Ethopex)"): máy có bài CHƯA ĐĂNG, chưa cất, bị SỬA LẠI quá 1 giờ → một việc `social:sua|<máy>` vào hàng riêng của Khang
  *  (tho-may-viec.mjs, social-sua.json); Khang (apps/cty/may/social-sua.mjs, Claude Code trên iMac) làm lại bài (may-dung --lam-lai-sua) hoặc sửa gốc máy sinh rồi báo dưới tin.
  *  Một máy một việc đang chờ / đang làm (themViec không xếp đôi). Trả số việc vừa xếp. */
-export async function xepKhang(sql, { them, hang = null, nay = Date.now() } = {}) {
+export async function xepKhang(sql, { them } = {}) {
   const ds = await sql`SELECT m.ma, count(DISTINCT v.id)::int AS n, string_agg(DISTINCT regexp_replace(c, ' [(].*$', ''), ' · ') AS ly_do, string_agg(DISTINCT v.slug, ', ') AS slug
     FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id LEFT JOIN LATERAL jsonb_array_elements_text(coalesce(v.cham->'chan_cung', '[]'::jsonb)) c ON true
     WHERE NOT coalesce(v.luu_tru, false) AND v.cham->>'ket' = 'SUA_LAI' AND coalesce(v.da_dang, '{}'::jsonb) = '{}'::jsonb AND (v.cham->>'luc')::timestamptz < now() - interval '1 hour'
       AND NOT coalesce(m.la_san_pham, false)   -- kênh nội dung (YNT, Astrolas) có vòng tự làm lại tập riêng (chay-kenh / chay-so-kenh) — không xếp đôi
     GROUP BY m.ma ORDER BY m.ma`;
   if (!ds.length) return 0;
-  // KHÔNG XẾP LẠI cùng một bộ bài Khang vừa trả lời (anh 10/11/2026 "Sao thằng Khang sửa hỏi lắm thế": 63 lượt / 37 lần "cần anh" — việc kết thúc là lượt chấm kế xếp lại
-  // y nguyên, Khang làm lại + hỏi lại mỗi 5 phút). Việc cùng khoá đã kết trong 24 giờ với ĐÚNG bộ bài đó (dấu = danh sách slug) → bỏ; bộ bài đổi (bài mới kẹt / bài cũ đã qua) → xếp.
+  // dau = dấu bộ bài (danh sách slug) — hàng việc (tho-may-viec › themViec) không xếp lại y nguyên bộ bài Khang vừa trả lời trong 24 giờ (chống vòng lặp, anh 10/11/2026)
   const dau = (slug) => String(slug ?? '').split(', ').sort().join(',');
-  const daTraLoi = hang ?? (() => { try { return JSON.parse(fs.readFileSync(path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'social-sua.json'), 'utf8')).hang ?? []; } catch { return []; } })();
-  const vuaXong = (khoa, d) => daTraLoi.some((v) => v.khoa === khoa && v.dau === d && v.xong && nay - Date.parse(v.xong) < 24 * 3600e3);
   const viec = ds.filter((x) => /^[a-z0-9-]+$/.test(x.ma)).map((x) => ({ khoa: `social:sua|${x.ma}`, dau: dau(x.slug),
     chu: `Máy ${x.ma}: ${x.n} bài chưa đăng bị Phòng Nội dung chặn SỬA LẠI quá 1 giờ.\nLý do: ${String(x.ly_do ?? '').slice(0, 600)}\nBài: ${String(x.slug ?? '').slice(0, 900)}` }))
-    .filter((v) => !vuaXong(v.khoa, v.dau));
-  if (!viec.length) return 0;
   if (them) return them(viec);
   const { tgNoiDung } = await import('./kiem-bai.mjs'); const { topicPhong } = await import('./tg-phong.mjs'); const { tg } = await tgNoiDung();
   const topic = await topicPhong('social-traffic', '📂 Social Traffic', tg);
@@ -501,10 +496,7 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
     await xepKhang(sqlGia, { them: (v) => { ra = v; return v.length; } });
     t.deepEqual(ra.map((x) => x.khoa), ['social:sua|ratesbyroom-scam-or-real']); t.ok(ra[0].chu.includes('9 bài') && ra[0].chu.includes('khác ngách'));
     t.equal(await xepKhang(async () => [], { them: () => 99 }), 0, 'không có bài thì không xếp');
-    const nay = Date.parse('2026-11-10T16:00:00Z'), cu = [{ khoa: 'social:sua|ratesbyroom-scam-or-real', dau: 'a,b', xong: '2026-11-10T15:00:00Z' }];
-    t.equal(await xepKhang(sqlGia, { them: (v) => v.length, hang: cu, nay }), 0, 'cùng bộ bài vừa trả lời trong 24 giờ → không xếp lại');
-    t.equal(await xepKhang(sqlGia, { them: (v) => v.length, hang: cu, nay: nay + 25 * 3600e3 }), 1, 'quá 24 giờ → xếp lại');
-    t.equal(await xepKhang(async () => [{ ma: 'ratesbyroom-scam-or-real', n: 3, ly_do: 'x', slug: 'a, b, c' }], { them: (v) => v.length, hang: cu, nay }), 1, 'bộ bài đổi → xếp'); }
+    t.equal(ra[0].dau, 'a,b', 'dấu bộ bài để hàng việc chống xếp lại y nguyên'); }
   t.ok(khongThayAnh({ ly_do: 'Không tìm thấy hình ảnh thumbnail đính kèm để đánh giá.' }) && khongThayAnh({ thay_anh: false }), 'ảnh không tới = không phải lời chấm (09/11/2026)');
   t.ok(!khongThayAnh({ ly_do: 'Không thấy lỗi nào, chủ thể rõ.' }) && !khongThayAnh(null), 'lời chấm thật vẫn giữ');
   t.ok(doBaiDang({ ...tot, de: { ket: ['MilitaryCalc', 'Xem công cụ tại militarycalc.com'] } }).chan_cung.some((x) => x.includes('trên màn')), 'chữ trên màn tiếng Việt = chặn (#740, 02/11/2026)');

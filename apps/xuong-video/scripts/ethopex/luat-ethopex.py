@@ -660,7 +660,7 @@ def _tv_the(cid):
     # ngưỡng ghi THẲNG trong tên điều kiện (anh 10/11/2026 "có ngưỡng thì phải ghi cụ thể vào đây"): bảng hover hẹp hay mất cột Ngưỡng
     dk = [[f"{TV_NGAY} ngày đã khép liền: chi trước {(TV_GIO + 7) % 24}h VN ≥ {TV_PHAN:.0%} ngân sách VÀ ngày đó lỗ (camp ≥ ${TV_NS:g})", "chưa có số giờ" if not x else f"{x[0]}/{TV_NGAY} ngày", f"{TV_NGAY}/{TV_NGAY} ngày", bool(x) and x[0] >= TV_NGAY]]
     if x: dk.append(["Từng ngày", (x[3] or "—")[:90], nguong, x[0] >= TV_NGAY])
-    return dk, ((x[2] - x[1]) < 0 if x and x[1] else None)
+    return dk, ((x[2] - x[1]) < 0 if x and x[1] else False)   # chưa có số giờ → không phải "gần" (10/11/2026: TV hiện Gần cho camp chưa có số)
 
 def _t8_the(cid):
     """thẻ xét luật T8 — cùng số với danh sách tat_t8"""

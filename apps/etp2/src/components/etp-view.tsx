@@ -405,6 +405,8 @@ function ChuCamp({ t }: { t: string }) {
 const KHONG_GIAN: React.CSSProperties = { width: 0, minWidth: '100%' };
 // camp người khác: máy luật nhà chỉ ĐỀ XUẤT — chữ "máy đã xếp làm" đổi thành đề xuất (cùng bảng, không bản thứ hai)
 const chuVao = (deXuat?: boolean) => <span style={{ color: '#4ade80' }}>{deXuat ? ' · máy đề xuất (chỉ đề xuất, không làm)' : ' · máy đã xếp làm'}</span>;
+// BẢNG XÉT LUẬT RỘNG THEO NỘI DUNG nhưng KHÔNG VƯỢT KHUNG (#1487 + anh 10/11/2026 "vẫn cứ phải scroll sang ngang": bảng 1057px trong khung 718px vì chữ bị ép
+// không xuống dòng + độ rộng tối thiểu cột) — bỏ nowrap / minWidth, bảng tối đa 100% khung, chữ dài tự xuống dòng
 function BangXet({ xet, gon, deXuat }: { xet: XetLuat[]; gon?: boolean; deXuat?: boolean }) {
   const thu = { dat: 0, gan: 1, xa: 2, khong_ap: 3 } as const;
   const ds = [...xet].sort((a, b) => thu[a.ket] - thu[b.ket]);
@@ -416,8 +418,6 @@ function BangXet({ xet, gon, deXuat }: { xet: XetLuat[]; gon?: boolean; deXuat?:
     // khung cuộn ngang: ngăn điện thoại hẹp hơn bảng (cột điều kiện không gãy dòng) — trước bảng tràn mép phải, mất cột Giá trị / Ngưỡng
     <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
     <style>{'.bx-khoi>tr>td{background:color-mix(in srgb,var(--bx) var(--bx-a),transparent);transition:background .12s}.bx-khoi:hover>tr>td{background:color-mix(in srgb,var(--bx) 10%,transparent)}'}</style>
-    // RỘNG THEO NỘI DUNG nhưng KHÔNG VƯỢT KHUNG (#1487 + anh 10/11/2026 "vẫn cứ phải scroll sang ngang": bảng 1057px trong khung 718px vì chữ bị ép không xuống
-    // dòng + độ rộng tối thiểu cột) — bỏ nowrap / minWidth, bảng tối đa 100% khung, chữ dài tự xuống dòng
     <table style={{ borderCollapse: 'collapse', width: gon ? '100%' : 'auto', fontSize: 11.5, maxWidth: '100%', tableLayout: gon ? 'fixed' : undefined, fontVariantNumeric: 'tabular-nums' }}>
       {gon ? null : <thead><tr style={{ color: 'var(--fg-3, #777)', textAlign: 'left', fontSize: 10.5 }}><th style={o}>Luật</th><th style={o}>Điều kiện</th><th style={{ ...o, textAlign: 'right' }}>Giá trị</th><th style={o}>Ngưỡng</th><th style={o} /></tr></thead>}
       {(() => { const ve = (l: XetLuat, vi: number) => { const [kt, km] = KET_XET[l.ket]; const mo = l.ket === 'xa' || l.ket === 'khong_ap'; const n = Math.max(1, l.dk.length);

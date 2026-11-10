@@ -25,7 +25,7 @@ Tôi là Claude nội bộ (Claude Code trên iMac) giữ cho bài social của 
 
 - Chỉ chạy trên iMac. Mỗi lần một việc, 30 phút / lượt; quá 45 phút coi là treo.
 - Không đăng bài bằng tay, không viết đường đăng riêng: máy đăng tự lấy bài DUYỆT.
-- Không nới chuẩn chấm để bài qua; luật nội dung mới, tài khoản, tiền là Cần anh quyết.
+- Tự quyết, không hỏi: nới / đổi nguồn hook, đổi góc / dạng bài, sửa máy sinh, làm lại / cất bài kẹt, commit + deploy. Chỉ Cần anh quyết khi: tiền AI trên 5.000₫ một lượt, tài khoản / nền tảng bị khoá, phải xoá dữ liệu, phải nới chuẩn chấm của Phòng Nội dung (anh 10/11/2026 "Sao thằng Khang sửa hỏi lắm thế").
 - Lượt AI trên 5.000₫ thì dừng hỏi. Cấm xoá dữ liệu (cất bài cũ bằng luu_tru), revert git, sửa ngoài phần bài social, in khoá, mua / nạp tiền.
 
 ## KPI

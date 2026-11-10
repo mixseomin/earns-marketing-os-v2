@@ -15,11 +15,17 @@ const MOS2 = path.join(os.homedir(), 'Me/GitHub/earns-marketing-os-v2'), CLAUDE 
 // QUYỀN HẸP: sửa CHỈ phần bài social của repo mos2 (máy sinh / dựng bài apps/xuong-video/scripts + src/lib/xuong-video, mẫu apps/xuong-video/mau, tệp sự thật
 // apps/xuong-video/su-that, Phòng Nội dung chấm bài đăng apps/cty/worker/cham-dang.mjs); đọc + chạy lệnh box3 qua ssh; kiểm tĩnh; push (GHA deploy box3). Không web, không hỏi, không lan việc.
 const SUA = ['apps/xuong-video/scripts', 'apps/xuong-video/src/lib/xuong-video', 'apps/xuong-video/mau', 'apps/xuong-video/su-that'].map((d) => path.join(MOS2, d));
+// QUYỀN THEO CÁCH CLAUDE THẬT GÕ LỆNH (anh 10/11/2026 "Sao thằng Khang sửa hỏi lắm thế"): danh sách hẹp kiểu Huy chỉ khớp lệnh mở đầu đúng chữ (git add apps/:*…) — Claude thật
+// gõ "cd <repo> && git add …", "git -C <repo> diff", ống "| wc / awk / head" → chế độ không giao diện TỪ CHỐI im lặng → Khang báo "bị chặn quyền git, cần anh" (2/2 lượt đầu CAN_ANH).
+// Mở đúng các dạng đó (vẫn là danh sách cụ thể, không mở Bash trọn); CAM_BASH chặn hoàn tác git, xoá, đẩy mã ngoài GHA, trình duyệt, cài gói.
 const QUYEN = ['Read', 'Glob', 'Grep', ...SUA.flatMap((d) => [`Edit(/${d}/**)`, `Write(/${d}/**)`]), `Edit(/${MOS2}/apps/cty/worker/cham-dang.mjs)`,
-  `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, 'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git add apps/:*)', 'Bash(git commit:*)',
-  'Bash(git push origin main)', `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`, 'Bash(node --check:*)', 'Bash(node apps/cty/worker/cham-dang.mjs --tu-kiem)',
-  'Bash(node apps/cty/scripts/tu-kiem.mjs)', 'Bash(node_modules/.bin/tsx apps/xuong-video/:*)', 'Bash(grep:*)', 'Bash(tail:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)'];
-const CAM = ['AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate'];
+  `Bash(ssh ${BOX}:*)`, `Bash(ssh -o BatchMode=yes ${BOX}:*)`, `Bash(cd ${MOS2}:*)`, `Bash(cd ${MOS2}/apps/:*)`, `Bash(git -C ${MOS2}:*)`,
+  'Bash(git status:*)', 'Bash(git diff:*)', 'Bash(git log:*)', 'Bash(git show:*)', 'Bash(git add apps/:*)', 'Bash(git commit:*)', 'Bash(git push origin main)',
+  `Bash(${os.homedir()}/bin/gh-watch deploy.yml)`, 'Bash(node --check:*)', 'Bash(node apps/cty/:*)', 'Bash(node_modules/.bin/tsx apps/xuong-video/:*)', 'Bash(../../node_modules/.bin/tsx:*)',
+  'Bash(grep:*)', 'Bash(tail:*)', 'Bash(head:*)', 'Bash(cat:*)', 'Bash(ls:*)', 'Bash(sed -n:*)', 'Bash(wc:*)', 'Bash(awk:*)', 'Bash(sort:*)', 'Bash(uniq:*)', 'Bash(diff:*)'];
+const CAM_BASH = ['git reset', 'git revert', 'git checkout', 'git restore', 'git clean', 'git stash', 'git rebase', 'git push --force', 'git push -f', 'git branch -D', 'git tag -d',
+  'rm', 'rmdir', 'rsync', 'scp', 'br', 'open', 'npm install', 'npm i', 'npx', 'brew', 'pip', 'launchctl', 'crontab', 'sudo', 'kill', 'pkill'].map((c) => `Bash(${c}:*)`);
+const CAM = [...CAM_BASH, 'AskUserQuestion', 'Skill', 'ToolSearch', 'RemoteTrigger', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'NotebookEdit', 'CronCreate'];
 const ENV = { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH}` };
 const thu = process.argv.includes('--thu');
 const box = (cmd, input) => { for (let i = 1; ; i++) { try { return execFileSync('ssh', ['-o', 'BatchMode=yes', '-o', 'ConnectTimeout=15', '-o', 'ControlPath=none', BOX, cmd], { encoding: 'utf8', timeout: 120000, input }); } catch (e) { if (i >= 3) throw e; } } };
@@ -63,7 +69,10 @@ HẠ TẦNG:
 CÁCH LÀM:
 1. Đọc lý do chặn nguyên văn (cham.chan_cung) của từng bài trong việc. Phân loại: (a) lỗi đề sửa được bằng đề mới → chạy --lam-lai-sua cho máy đó, rồi chấm lại, đọc kết quả;
    (b) cùng lỗi lặp ở nhiều bài / bài làm lại vẫn bị chặn cùng lý do → lỗi ở MÁY SINH (khoGocHook, may-de.ts, mẫu) hoặc ở phòng chấm chặn oan → sửa GỐC một lần cho cả lớp;
-   (c) lỗi không do đề (ảnh, bản xuất, link, tài khoản) → sửa ở mẫu / máy dựng nếu là lỗi mã; tài khoản / tiền / luật nội dung mới → CAN_ANH.
+   (c) lỗi không do đề (ảnh, bản xuất, link) → sửa ở mẫu / máy dựng.
+   TỰ QUYẾT, KHÔNG HỎI (anh 10/11/2026 "Sao thằng Khang sửa hỏi lắm thế"): nới / đổi nguồn hook (biểu thức nhóm spy, hook_sp lân cận, ngưỡng YouTube), đổi góc, đổi dạng bài,
+   sửa máy sinh / mẫu dựng, làm lại bài, cất bài kẹt, commit + push + deploy. Bị từ chối một lệnh shell thì viết lại lệnh đơn giản hơn (một lệnh một dòng, không biến tạm),
+   KHÔNG báo "bị chặn quyền" cho anh. CAN_ANH CHỈ khi: tiền AI trên 5.000₫ một lượt · tài khoản / nền tảng bị khoá, cảnh báo · phải xoá dữ liệu · phải nới CHUẨN CHẤM của Phòng Nội dung.
 2. Kiểm: node --check tệp đã sửa, node apps/cty/worker/cham-dang.mjs --tu-kiem nếu đụng phòng chấm, tsx các tệp *.test.mts liên quan; sau deploy chạy lại trên box3 và đọc sổ:
    bài mới DUYỆT chưa, còn bao nhiêu bài kẹt.
 3. git add đúng tệp + git commit (tiếng Việt: gốc + cách sửa) + git push origin main + gh-watch deploy.yml.

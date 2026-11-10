@@ -94,6 +94,13 @@ def ws_chan(nay, khung="30 minutes"):
     bao("ws_chan", "do", f"ws_chan:{nay}", f"Ethopex CHẶN MỌI LỆNH TẠO CAMP: tên miền {mien} chưa bật cho Facebook trong workspace ({n} lệnh lỗi trong {khung}) — nhờ Dol / admin Ethopex bật lại; bật xong máy tự chạy lại ở nhịp sau")
     return 1
 
+# THẺ XÉT LUẬT ĐỨNG (10/11/2026: etp.xet_luat ngừng ghi 16:08 09/11 → 20 giờ trang vẽ chip theo số cũ, không ai biết): thẻ mới nhất quá 30 phút → báo ĐỎ một lần / giờ
+def the_dung(nay):
+    p = int(float(q("select coalesce(extract(epoch from now() - max(luc)) / 60, 9999) from etp.xet_luat") or 0))
+    if p <= 30: return 0
+    bao("the_dung", "do", f"the_dung:{nay}:{dt.datetime.now(dt.timezone.utc):%H}", f"Thẻ xét luật (etp.xet_luat) không ghi {p} phút — trang etp đã ẩn chip tăng / tắt; máy luật luat-ethopex.py có lỗi ở bước ghi thẻ, xem tin LỖI MÁY LUẬT")
+    return 1
+
 def tran_phim(nay):
     """TRẦN CAMP / PHIM THEO TỪNG TÀI KHOẢN (anh 02/11/2026: "Set lại 30 cho mọi camp nhà. Và theo từng tk. Có cảnh báo nếu film nhiều camp hơn mức đó").
     Đếm camp đang chạy (nhà: etp.camp_dang_chay; team: ACTIVE), camp ROAS ★ không tính — cùng cách đếm với nhan-ban.py dem_tk."""
@@ -151,6 +158,7 @@ def main():
     n += bao_hoa_phim(now.date())
     n += tran_phim(nay)
     n += ws_chan(nay)
+    n += the_dung(nay)
     # TÀI KHOẢN TEAM LÊN CAMP CHO PHIM ĐANG BÃO HOÀ (anh 02/11/2026: "tk team chỉ cảnh báo") — không chặn, báo mỗi tài khoản × phim một lần mỗi ngày
     for l in q(f"""select c.ad_account_id, c.content_id, count(*), coalesce(max(t.nguoi), '?'), max(b.ten), max(b.chan_nb) from etp.camp_ngoai c
                    join etp.tai_khoan t using (ad_account_id) join etp.phim_bao_hoa b using (content_id)

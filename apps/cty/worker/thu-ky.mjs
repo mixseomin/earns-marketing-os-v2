@@ -12,7 +12,7 @@ import path from 'node:path';
 import { GOC } from './goc.mjs';
 import { parseFm } from '../scripts/fm.mjs';
 import { moHop, docNut, daTraLoi, phongCuaTopic } from './tg-phong.mjs';
-import { giaoAnh, viecCuaTin } from './tho-may-viec.mjs';
+import { giaoAnh, viecCuaTin, theoHang, HANG_HUY } from './tho-may-viec.mjs';
 import { taskCuaTin, ghiPhanHoi } from './astrolas-tasks.mjs';
 
 const DATA = () => process.env.CTY_DATA_DIR || '/var/lib/cty';
@@ -85,6 +85,15 @@ export async function xuThuKy(tg, { hoi = hoiMoHinh, lay = fetch } = {}) {
       const anh = nc.anh || (tep.length ? 'Anh gửi tài liệu kèm, đọc và làm tiếp.' : '');
       ghiPhanHoi(tk, anh, nc.mid, tep); await tra0(`🛠 <b>Thành</b> nhận: <i>${esc(anh.slice(0, 200))}</i>${tep.length ? ` + ${tep.length} tệp (${esc(tep.map((f) => path.basename(f)).join(', '))})` : ''} — làm lại task #${tk}, bắt đầu trong ≤ 2 phút, xong báo ngay dưới tin này.`); n++; continue;
     }
+    // TRẢ LỜI DƯỚI TIN CỦA HUY (Kỹ sư Ethopex, hàng etp-sua.json — anh 10/11/2026: "câu đó chưa thành lệnh cho Huy … vẫn phải nhận và xử lý"): lệnh vào HÀNG HUY
+    const vtHuy = theoHang(HANG_HUY, () => viecCuaTin(nc.hoi_mid));
+    if (vtHuy) {
+      const bo = /^(không|ko|k|no|thôi|bỏ qua|đừng)[\s.!]*$/i.test(nc.anh.trim());
+      fs.appendFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), `${JSON.stringify({ luc: new Date().toISOString(), phong: nc.phong, ai: 'huy', goc: vtHuy.khoa, cau_hoi: String(vtHuy.ket_qua ?? vtHuy.chu).slice(0, 500), anh: nc.anh, quyet: bo ? 'khong' : 'co' })}\n`);
+      if (bo) { await tra0(`🔧 <b>Huy</b>: đã ghi anh không làm việc này (${esc(vtHuy.khoa)}).`); n++; continue; }
+      const moi = theoHang(HANG_HUY, () => giaoAnh({ chu: `Anh trả lời về ${vtHuy.khoa}: ${nc.anh}`, cau_hoi: String(vtHuy.ket_qua ?? vtHuy.chu), anh: nc.anh, goc: vtHuy.goc ?? vtHuy.khoa, phong: nc.phong, tg: { topic: nc.topic ?? null, msg: nc.mid } }));
+      await tra0(`🔧 <b>Huy</b> nhận lệnh anh: <i>${esc(nc.anh.slice(0, 200))}</i> — việc #${moi.id}, bắt đầu trong ≤ 5 phút, xong báo ngay dưới tin này.`); n++; continue;
+    }
     const vt = viecCuaTin(nc.hoi_mid);
     if (vt) {
       const bo = /^(không|ko|k|no|thôi|bỏ qua|đừng)[\s.!]*$/i.test(nc.anh.trim());
@@ -105,8 +114,11 @@ export async function xuThuKy(tg, { hoi = hoiMoHinh, lay = fetch } = {}) {
     let kq; try { kq = await hoi(t, nc); } catch (e) { await tra(`📥 <b>${esc(t.ten)} [${esc(t.phongTen.replace(/^Phòng /, ''))}]</b> đã nhận: <i>${esc(nc.anh.slice(0, 200))}</i> — nhưng chưa đọc được (${esc(e.message.slice(0, 120))}). Đã ghi vào hàng việc phòng.`); kq = { tra_loi: '', quyet: 'khac', viec: `Đọc và xử câu anh: ${nc.anh}` }; }
     const luc = new Date().toISOString();
     fs.appendFileSync(path.join(DATA(), 'quyet-dinh.jsonl'), `${JSON.stringify({ luc, phong: nc.phong, ai: t.id, cau_hoi: nc.cau_hoi.slice(0, 500), anh: nc.anh, ...kq })}\n`);
-    const giao = kq.viec ? giaoAnh({ chu: kq.viec, cau_hoi: nc.cau_hoi.replace(/<[^>]+>/g, '').slice(0, 1500), anh: nc.anh, phong: nc.phong, tg: { topic: nc.topic ?? null, msg: nc.mid } }) : null;
-    if (kq.tra_loi || giao) await tra(`<b>${esc(t.ten)} [${esc(t.phongTen.replace(/^Phòng /, ''))}]</b>: ${esc(kq.tra_loi)}${giao ? `\n🔧 Đã giao <b>Mạnh</b> (việc #${giao.id}, bắt đầu trong ≤ 5 phút, xong báo ngay dưới tin này): ${esc(kq.viec)}` : ''}`);
+    // phòng Ethopex giao việc → Huy (kỹ sư riêng của phòng, anh 10/11/2026); phòng khác → Mạnh như cũ
+    const laEtp = nc.phong === 'ethopex', nguoiSua = laEtp ? 'Huy' : 'Mạnh';
+    const giaoX = { chu: kq.viec, cau_hoi: nc.cau_hoi.replace(/<[^>]+>/g, '').slice(0, 1500), anh: nc.anh, phong: nc.phong, tg: { topic: nc.topic ?? null, msg: nc.mid } };
+    const giao = kq.viec ? (laEtp ? theoHang(HANG_HUY, () => giaoAnh(giaoX)) : giaoAnh(giaoX)) : null;
+    if (kq.tra_loi || giao) await tra(`<b>${esc(t.ten)} [${esc(t.phongTen.replace(/^Phòng /, ''))}]</b>: ${esc(kq.tra_loi)}${giao ? `\n🔧 Đã giao <b>${nguoiSua}</b> (việc #${giao.id}, bắt đầu trong ≤ 5 phút, xong báo ngay dưới tin này): ${esc(kq.viec)}` : ''}`);
     n++;
   }
   return n;

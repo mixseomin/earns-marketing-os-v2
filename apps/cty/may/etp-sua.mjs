@@ -39,8 +39,10 @@ const git = (...a) => execFileSync('git', ['-C', MOS2, ...a], { encoding: 'utf8'
 const loiGiao = `Bạn là Huy, kỹ sư Phòng Ethopex (công ty AI của anh Tuấn). Ethopex là dự án quan trọng: máy chạy camp quảng cáo Facebook phim ngắn bằng TIỀN THẬT.
 Máy vừa báo một lỗi. Bạn phải tìm GỐC, sửa một lần cho cả lớp lỗi, kiểm, deploy, rồi báo lại — anh không ngồi máy.
 
-LỖI (${v.luc}) · khoá ${v.khoa}:
-${chu}
+${/^anh:/.test(v.khoa) ? `LỆNH ANH (anh vừa trả lời trên Telegram — đây là việc phải LÀM, không hỏi lại điều anh vừa trả lời; giới hạn bên dưới chỉ mở đúng phần anh nói):
+${v.cau_hoi ? `CÂU HỎI / BÁO CÁO ANH ĐANG TRẢ LỜI:\n${String(v.cau_hoi).replace(/<[^>]+>/g, '').slice(0, 3000)}\n` : ''}ANH TRẢ LỜI: ${v.anh ?? chu}
+VIỆC: ${chu}` : `LỖI (${v.luc}) · khoá ${v.khoa}:
+${chu}`}
 
 ĐỌC TRƯỚC: /${MOS2}/CLAUDE.md · /${MOS2}/.claude/commands/tasks-etp.md (luật riêng Ethopex).
 HẠ TẦNG:

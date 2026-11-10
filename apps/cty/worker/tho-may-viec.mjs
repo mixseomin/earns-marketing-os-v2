@@ -75,6 +75,9 @@ export function themAnh(st, { chu, cau_hoi = '', anh, goc = null, phong = null, 
 export const quyetGan = (st, v, luc = Date.now()) => { const m = mayCua(v.goc ?? v.khoa); return !m ? [] : (st.hang || []).filter((x) => /^anh:/.test(x.khoa) && x.id !== v.id && mayCua(x.goc) === m && luc - Date.parse(x.luc) < 7 * 864e5).map((x) => `${x.luc.slice(0, 16)}: ${x.anh}${x.ket_qua ? ` → ${x.ket_qua.slice(0, 300)}` : ' (đang làm)'}`); };
 /** Việc mà một tin Telegram của thợ máy thuộc về (trả lời dưới tin đó = trả lời cho việc đó). */
 export const viecCuaTin = (mid) => (doc().hang || []).find((v) => mid && (v.tin_bao === mid || v.tin_nhan === mid)) ?? null;
+/** Chạy fn (đồng bộ) trên HÀNG của một người: Mạnh = tho-may.json (mặc định), Huy (Ethopex) = etp-sua.json (anh 10/11/2026) — thư ký / Phát dùng chung, không tự đổi biến môi trường */
+export const theoHang = (tep, fn) => { const cu = process.env.THO_MAY_TEP; process.env.THO_MAY_TEP = tep; try { return fn(); } finally { if (cu === undefined) delete process.env.THO_MAY_TEP; else process.env.THO_MAY_TEP = cu; } };
+export const HANG_HUY = 'etp-sua.json';
 export const giaoAnh = (x) => { const r = themAnh(doc(), x); ghi(r.st); return r.viec; };
 export const themTuCanhBao = (ds, tg) => { const r = themViec(doc(), ds, tg); if (r.them) ghi(r.st); return r.them; };
 

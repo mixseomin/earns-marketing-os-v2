@@ -363,9 +363,8 @@ async function nhipEthopexTrong(nguoi, { ten = nguoi } = {}) {
   // vào MỘT hàng (worker/tho-may-viec.mjs, tệp etp-sua.json) — Huy (apps/cty/may/etp-sua.mjs, Claude Code trên iMac) tìm gốc + sửa + báo dưới tin trong 📂 Ethopex.
   // Khoá theo LỚP lỗi (bỏ số) → cùng lớp đang chờ / đang sửa không xếp đôi; đã sửa mà tái phát thì xếp lại (lần trước chưa tới gốc).
   try {
-    const { themTuCanhBao } = await import('./tho-may-viec.mjs');
-    const xepHuy = (ds) => { if (!ds.length) return 0; const cu = process.env.THO_MAY_TEP; process.env.THO_MAY_TEP = 'etp-sua.json';
-      try { return themTuCanhBao(ds, { topic }); } finally { if (cu === undefined) delete process.env.THO_MAY_TEP; else process.env.THO_MAY_TEP = cu; } };
+    const { themTuCanhBao, theoHang, HANG_HUY } = await import('./tho-may-viec.mjs');
+    const xepHuy = (ds) => (ds.length ? theoHang(HANG_HUY, () => themTuCanhBao(ds, { topic })) : 0);
     const lop = (t) => String(t).replace(/#?\d[\d.,:/]*/g, 'N').replace(/\s+/g, ' ').trim().slice(0, 70);
     const viecHuy = [];
     // 1. lỗi của chính máy luật (trừ lỗi đọc API tạm — nhịp sau tự đọc lại)

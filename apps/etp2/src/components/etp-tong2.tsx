@@ -19,7 +19,6 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
   const ve = { ...useVeSo(ky), ...veNgoai };   // widget số (etp-tong2-widget.tsx) + widget dùng lại khối của EtpView
   const [doc, setDoc] = useState<BoCucDoc | null>(null);
   const [o, setO] = useState<O[]>(MAC_DINH);
-  const [tpl, setTpl] = useState('');   // template vừa mở ('' = bố cục đang dùng)
   const [sua, setSua] = useState(false);
   const [keo, setKeo] = useState<O[] | null>(null);   // bố cục xem trước lúc đang kéo
   const [bao, setBao] = useState<string | null>(null);
@@ -75,14 +74,19 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
     ...rieng.map((r) => ({ value: `r:${r.ten}`, label: r.ten, nhom: 'Template riêng' })),
   ];
   const moTpl = (v: string) => {
-    setTpl(v);
     const src = v.startsWith('m:') ? TEMPLATE[v.slice(2)]?.o : v === 'team' ? doc?.team : rieng.find((r) => `r:${r.ten}` === v)?.o;
     if (src) ghi(src.map((x) => ({ ...x })));   // mở template = chép vào bố cục đang dùng; sửa tiếp không đổi bản gốc
   };
+  // TÊN BỐ CỤC ĐANG HIỆN: so ô đang hiện với từng template (mặc định · team · riêng) — khớp thì ô Template ghi tên đó, sửa lệch thì ghi "Bố cục tự sửa"
+  const khoaO = (ds: O[]) => [...ds].map((x) => `${x.ma}:${x.x}:${x.y}:${x.w}:${x.h}`).sort().join('|');
+  const tplKhop = (() => { const k = khoaO(o);
+    for (const [m, t] of Object.entries(TEMPLATE)) if (khoaO(t.o) === k) return `m:${m}`;
+    if (doc?.team && khoaO(doc.team) === k) return 'team';
+    const r = rieng.find((x) => khoaO(x.o) === k); return r ? `r:${r.ten}` : ''; })();
   const conThem = Object.keys(WIDGET).filter((k) => !o.some((x) => x.ma === k));
   const luuTen = () => {
     const t = (tenMoi ?? '').trim(); if (!t) return;
-    luuBoCuc(t, o).then((r) => { if ('loi' in r) { setBao(r.loi); return; } setTenMoi(null); setTpl(`r:${t}`); setBao(`Đã lưu template "${t}"`); taiLai(); });
+    luuBoCuc(t, o).then((r) => { if ('loi' in r) { setBao(r.loi); return; } setTenMoi(null); setBao(`Đã lưu template "${t}"`); taiLai(); });
   };
 
   const hep = kt.w < 700;
@@ -92,7 +96,7 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
     return (
       <div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
-          <Chon2 value={tpl} onChange={moTpl} options={tplOpts} nhan="Template" rong="Bố cục đang dùng" />
+          <Chon2 value={tplKhop} onChange={moTpl} options={tplOpts} nhan="Template" rong="Bố cục tự sửa" />
           <Segmented<string> value={chon?.ma ?? ''} hrefFor={urlW} style={{ flexWrap: 'wrap' }} options={ds.map((x) => ({ value: x.ma, label: WIDGET[x.ma]?.ten ?? x.ma }))}
             onChange={(k) => { setMot(k); history.replaceState(null, '', urlW(k)); }} />
         </div>
@@ -108,7 +112,7 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8, fontSize: 12 }}>
-        <Chon2 value={tpl} onChange={moTpl} options={tplOpts} nhan="Template" rong="Bố cục đang dùng" title="mở một template — chép vào bố cục đang dùng, sửa tiếp không đổi template gốc" />
+        <Chon2 value={tplKhop} onChange={moTpl} options={tplOpts} nhan="Template" rong="Bố cục tự sửa" title="mở một template — chép vào bố cục đang dùng, sửa tiếp không đổi template gốc" />
         <button type="button" style={{ ...nut, ...(sua ? { background: 'var(--accent-soft)', border: '1px solid var(--accent)' } : {}) }} onClick={() => { setSua(!sua); setTenMoi(null); }}>{sua ? '✓ Xong' : '✎ Sửa bố cục'}</button>
         {sua ? <>
           {conThem.length ? <Chon2 value="" onChange={(k) => { const m = them(o, k); if (m) ghi(m); else setBao('Hết chỗ trong màn: thu nhỏ hoặc bỏ bớt widget trước'); }} nhan="+ Thêm widget" rong="chọn…"
@@ -117,7 +121,7 @@ export function Tong2({ ve: veNgoai, laChu, ky }: { ve: Record<string, VeWidget>
             : <span style={{ display: 'inline-flex', gap: 4 }}><input autoFocus value={tenMoi} maxLength={40} placeholder="tên template" onChange={(e) => setTenMoi(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') luuTen(); if (e.key === 'Escape') setTenMoi(null); }}
               style={{ ...nut, cursor: 'text', width: 160 }} /><button type="button" style={nut} onClick={luuTen}>Lưu</button></span>}
           {laChu ? <button type="button" style={nut} title="mọi người chưa tự sửa bố cục sẽ thấy bố cục này" onClick={() => datBoCucTeam(o).then((r) => { setBao('loi' in r ? r.loi : 'Đã đặt làm mặc định cho team'); taiLai(); })}>Đặt mặc định cho team</button> : null}
-          <button type="button" style={nut} onClick={() => { setTpl(''); ghi((doc?.team ?? MAC_DINH).map((x) => ({ ...x }))); }}>Về mặc định</button>
+          <button type="button" style={nut} onClick={() => { ghi((doc?.team ?? MAC_DINH).map((x) => ({ ...x }))); }}>Về mặc định</button>
           <span style={{ color: 'var(--fg-3)' }}>kéo dòng tên để dời · kéo góc ◢ để đổi cỡ</span>
         </> : null}
         {bao ? <span style={{ color: vuot ? '#f87171' : 'var(--fg-2)' }}>{bao}</span> : null}

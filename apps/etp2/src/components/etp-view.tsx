@@ -76,6 +76,24 @@ const roiOf = (s: SoTien) => (s.chi >= 0.3 ? Math.round(((s.thu - s.chi) / s.chi
 // số 0 ($0.00, 0%) hiện MỜ; ROI âm càng sâu càng đậm — −100% đỏ đậm in đậm, −5% đỏ nhạt (anh 26/10/2026)
 const MO = 'var(--fg-3)';
 const Roi = ({ s }: { s: SoTien }) => <RoiSo r={roiOf(s)} />;
+// BREAKDOWN THEO Ô LỌC (anh 10/11/2026 Tổng quan 2: "thêm 1 bố cục là breakdown theo từng loại trong bộ filter"): mỗi giá trị của một ô lọc = MỘT dòng —
+// tên · số camp · thanh chi (so với dòng chi nhiều nhất) · lãi · ROI theo kỳ đang chọn. Nhóm dựng trong EtpView bằng đúng hàm phân loại của ô lọc đó.
+type NhomTach = { nhan: React.ReactNode; ten: string; cs: CampEtpKho[] };
+function BangTach({ ds, so }: { ds: NhomTach[]; so: (c: CampEtpKho) => SoTien }) {
+  const hang = ds.map((g) => ({ ...g, s: g.cs.reduce<SoTien>((a, c) => { const x = so(c); return { chi: a.chi + x.chi, thu: a.thu + x.thu }; }, { chi: 0, thu: 0 }) }))
+    .filter((g) => g.cs.length).sort((a, b) => b.s.chi - a.s.chi || b.cs.length - a.cs.length);
+  const max = Math.max(1, ...hang.map((h) => h.s.chi)), luoi = 'minmax(0,1fr) 30px 56px 62px 44px';
+  if (!hang.length) return <div style={{ color: 'var(--fg-2)', fontSize: 12 }}>Không có camp nào trong bộ lọc đang chọn.</div>;
+  return <div style={{ display: 'flex', flexDirection: 'column', fontSize: 12, height: '100%', overflowY: 'auto' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: luoi, gap: 6, fontSize: 10, color: 'var(--fg-3, #777)', paddingBottom: 3 }}><span /><span style={{ textAlign: 'right' }}>camp</span><span>chi</span><span style={{ textAlign: 'right' }}>lãi</span><span style={{ textAlign: 'right' }}>ROI</span></div>
+    {hang.map((h, i) => <div key={i} title={`${h.ten} · ${h.cs.length} camp · chi $${h.s.chi.toFixed(2)} · thu $${h.s.thu.toFixed(2)}`}
+      style={{ display: 'grid', gridTemplateColumns: luoi, gap: 6, alignItems: 'center', padding: '3px 0', borderTop: '1px solid var(--line)' }}>
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>{h.nhan}</span>
+      <span style={{ textAlign: 'right', color: 'var(--fg-2)', fontVariantNumeric: 'tabular-nums' }}>{h.cs.length}</span>
+      <span style={{ height: 6, borderRadius: 3, background: 'var(--bg-3, #161b25)', position: 'relative', overflow: 'hidden' }}><span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${(h.s.chi / max) * 100}%`, background: '#60a5fa', borderRadius: 3 }} /></span>
+      <span style={{ textAlign: 'right' }}><Lai s={h.s} /></span><span style={{ textAlign: 'right' }}><Roi s={h.s} /></span></div>)}
+  </div>;
+}
 /** ô ROI từ con số % sẵn có (bản luật, số đã tính ở máy) — cùng màu / độ đậm với Roi */
 const RoiSo = ({ r }: { r: number | null | undefined }) => {
   const am = r != null && r < 0 ? Math.min(1, -r / 100) : 0;
@@ -2702,6 +2720,24 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
     // luôn giữ camp ĐANG CHẠY + camp có chi HÔM NAY: cột Hôm nay / Hôm qua là cột cố định, không được lệch theo kỳ (03/11/2026: chọn Hôm qua bỏ 29 camp mới → bảng 'Lãi nay' $126 ≠ hero $110)
     ['ky', (c) => kh === 'tat_ca' || c.trang_thai === 'ACTIVE' || c.nay.chi > 0 || c.qua.chi > 0 || (khCamp.get(c.camp_id)?.chi ?? 0) > 0 || (!!c.tao && ngayKh(c.tao.slice(0, 10)))]], [kh, khCamp, ngayKh, hopLoc, hopLuat, phimLoc, xemCamp, dangLoc, boHieu, locLai, locTuoi, roLoc, abLoc]);   // mỗi ô lọc trong BO_LOC phải có ở đây — thiếu abLoc thì chọn A/B không lọc gì (05/11/2026)
   const camps = useMemo(() => du.camps.filter((c) => BO_LOC.every(([, f]) => f(c))), [du.camps, BO_LOC]);
+  // widget breakdown Tổng quan 2: tập camp SAU các ô lọc đang chọn, tách theo từng ô lọc bằng đúng hàm phân loại của ô đó; số = kỳ đang chọn (khCamp)
+  const veTach = useMemo((): Record<string, () => React.ReactNode> => {
+    const gom = (f: (c: CampEtpKho) => [string, React.ReactNode?]): NhomTach[] => { const m = new Map<string, NhomTach>();
+      for (const c of camps) { const [ten, nhan] = f(c); const g = m.get(ten); if (g) g.cs.push(c); else m.set(ten, { ten, nhan: nhan ?? ten, cs: [c] }); } return [...m.values()]; };
+    const so = (c: CampEtpKho) => khCamp.get(c.camp_id) ?? { chi: 0, thu: 0 };
+    const TUOI: [number, number, string][] = [[0, 1, 'Dưới 1 ngày'], [1, 2, '1–2 ngày'], [2, 3, '2–3 ngày'], [3, 7, '3–7 ngày'], [7, 14, '7–14 ngày'], [14, 30, '14–30 ngày'], [30, 1e9, 'Trên 30 ngày']];
+    const nhom: Record<string, (c: CampEtpKho) => [string, React.ReactNode?]> = {
+      bd_loc: (c) => [dangChay(c) ? 'Đang chạy' : choGio(c) ? 'Chờ giờ chạy' : daTat(c) ? 'Đã tắt' : 'Đang tạo'],
+      bd_lai: (c) => { const s = so(c); return [s.chi <= 0 ? 'Chưa tiêu trong kỳ' : s.thu > s.chi ? 'Lãi trong kỳ' : 'Lỗ trong kỳ']; },
+      bd_tuoi: (c) => { const t = tuoiNgay(c.tao); return [t == null ? 'Chưa rõ tuổi' : (TUOI.find(([a, b]) => t >= a && t < b) ?? TUOI[TUOI.length - 1]!)[2]]; },
+      bd_luat: (c) => [chipMap.get(c.camp_id)?.chip ?? 'Không chạm luật'],
+      bd_dang: (c) => [c.dang ?? 'Chưa rõ loại', c.dang ? <><BadgeDang d={c.dang} ngan /><span>{c.dang}</span></> : undefined],
+      bd_ro: (c) => (laRoas(c) ? ['★ Camp ROAS'] : ['Camp thường']),
+      bd_ab: (c) => [c.ab ? `${c.ab.ma} · ${c.ab.nhanh === 'thu' ? 'Thử' : 'Đối chứng'}` : 'Không A/B'],
+      bd_bo: (c) => [c.bo ? `Bộ ${c.bo}${du.boTk[c.bo] ? ` · ${du.boTk[c.bo]!.ten}` : ''}` : 'Không thuộc bộ', c.bo ? <><Hex bo={c.bo} info={du.boTk[c.bo]} co={12} /><span>Bộ {c.bo}{du.boTk[c.bo] ? ` · ${du.boTk[c.bo]!.ten}` : ''}</span></> : undefined],
+    };
+    return Object.fromEntries(Object.entries(nhom).map(([k, f]) => [k, () => <BangTach ds={gom(f)} so={so} />]));
+  }, [camps, khCamp, chipMap, du.boTk]);
   // Ô TÌM CÂY / BẢNG CAMP RA 0 DÒNG → nói vì sao: camp khớp có trong dữ liệu nhưng bộ lọc nào ẩn (ô đó viền đỏ), hay camp nằm ở người khác (hỏi kho, kèm link mở)
   const [timCay, setTimCay] = useState('');
   const khopTim = useMemo(() => { const t = timCay.trim().toLowerCase().split(/\s+/).filter(Boolean); return t.length ? du.camps.filter((c) => { const x = `${c.camp_id} ${c.ten ?? ''} ${c.phim ?? ''} ${c.creative_id ?? ''}`.toLowerCase(); return t.every((k) => x.includes(k)); }) : []; }, [du.camps, timCay]);
@@ -3006,7 +3042,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
           {bangNgay}
         </div>
       ) : tab === 'tong2' ? (
-        <Tong2 laChu={!chiXem} ky={khK} ve={{ bieu_do_ngay: (k) => bieuDoNgay(k.cao), bang_ngay: () => bangNgay }} />
+        <Tong2 laChu={!chiXem} ky={khK} ve={{ bieu_do_ngay: (k) => bieuDoNgay(k.cao), bang_ngay: () => bangNgay, ...veTach }} />
       ) : tab === 'roas' ? (
         <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} du={du} anh={anh} />
       ) : tab === 'camp' && xemCamp === 'lich' ? (

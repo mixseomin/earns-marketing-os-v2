@@ -19,6 +19,9 @@ const LUAT = [
   { card: 'nhanh-1011', tep: 'apps/xuong-video/scripts/ethopex/nhip_tang.py', co: 'if du and trong_nhanh(now): return None, None', vi: 'khung tăng nhanh 08–12h + 21–06h: đạt cổng thì tăng ngay, không chờ nhịp 24h/3h (anh 10/11/2026)' },
   { card: 'nhanh-1011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'or tb_ngay or tb_nhanh) and _ke and _ke <= _nap and not lo_nay: dat.append', vi: 'khung tăng nhanh: ROI hôm nay ≥ 100% + tiêu ≥ 50% vào danh sách tăng' },
   { card: 'nhanh-1011', tep: 'apps/web/src/lib/etp-bang-luat.json', co: '"nhanh": [[8, 12], [21, 6]]', vi: 'sổ luật chung có khung tăng nhanh' },
+  { card: 'tach-1011', tep: 'apps/etp2/src/lib/etp-widget.json', co: '"phan_tach"', vi: 'Tổng quan 2 có bố cục Breakdown theo bộ lọc (anh 10/11/2026)' },
+  { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function BangTach({ ds, so }', vi: 'widget breakdown dùng chung cho mọi ô lọc' },
+  { card: 'tpl-1011', tep: 'apps/etp2/src/components/etp-tong2.tsx', co: 'rong="Bố cục tự sửa"', cam: 'rong="Bố cục đang dùng"', vi: 'ô Template ghi tên bố cục đang hiện, không ghi chung chung (anh 10/11/2026)' },
 ];
 
 const loi = [];

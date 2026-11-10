@@ -123,6 +123,102 @@
         12,
         8
       ]
+    },
+    "bd_loc": {
+      "ten": "Theo trạng thái",
+      "mo_ta": "breakdown ô Lọc: đang chạy · chờ giờ · đã tắt — mỗi giá trị một dòng: số camp, chi, lãi, ROI theo kỳ đang chọn, trên tập camp sau các ô lọc đang chọn",
+      "min": [
+        3,
+        4
+      ],
+      "mac": [
+        3,
+        9
+      ]
+    },
+    "bd_lai": {
+      "ten": "Theo lãi / lỗ",
+      "mo_ta": "breakdown ô Lãi/lỗ: lãi · lỗ · chưa tiêu trong kỳ — mỗi giá trị một dòng: số camp, chi, lãi, ROI theo kỳ đang chọn, trên tập camp sau các ô lọc đang chọn",
+      "min": [
+        3,
+        4
+      ],
+      "mac": [
+        3,
+        9
+      ]
+    },
+    "bd_tuoi": {
+      "ten": "Theo tuổi camp",
+      "mo_ta": "breakdown ô Tuổi: dưới 1 ngày → trên 30 ngày — mỗi giá trị một dòng: số camp, chi, lãi, ROI theo kỳ đang chọn, trên tập camp sau các ô lọc đang chọn",
+      "min": [
+        3,
+        4
+      ],
+      "mac": [
+        3,
+        9
+      ]
+    },
+    "bd_luat": {
+      "ten": "Theo luật",
+      "mo_ta": "breakdown ô Luật: thẻ luật camp đang chạm / sắp chạm — mỗi giá trị một dòng: số camp, chi, lãi, ROI theo kỳ đang chọn, trên tập camp sau các ô lọc đang chọn",
+      "min": [
+        3,
+        4
+      ],
+      "mac": [
+        3,
+        9
+      ]
+    },
+    "bd_dang": {
+      "ten": "Theo loại creative",
+      "mo_ta": "breakdown ô Loại: PO · AT · CT · KT · CC · CTS… — mỗi giá trị một dòng: số camp, chi, lãi, ROI theo kỳ đang chọn, trên tập camp sau các ô lọc đang chọn",
+      "min": [
+        3,
+        4
+      ],
+      "mac": [
+        3,
+        9
+      ]
+    },
+    "bd_ro": {
+      "ten": "Theo ROAS",
+      "mo_ta": "breakdown ô ROAS: camp ROAS · camp thường — mỗi giá trị một dòng: số camp, chi, lãi, ROI theo kỳ đang chọn, trên tập camp sau các ô lọc đang chọn",
+      "min": [
+        3,
+        4
+      ],
+      "mac": [
+        3,
+        9
+      ]
+    },
+    "bd_ab": {
+      "ten": "Theo A/B",
+      "mo_ta": "breakdown ô A/B: từng lần A/B, nhánh thử / đối chứng — mỗi giá trị một dòng: số camp, chi, lãi, ROI theo kỳ đang chọn, trên tập camp sau các ô lọc đang chọn",
+      "min": [
+        3,
+        4
+      ],
+      "mac": [
+        3,
+        9
+      ]
+    },
+    "bd_bo": {
+      "ten": "Theo bộ tài khoản",
+      "mo_ta": "breakdown ô TK: từng bộ tài khoản QC — mỗi giá trị một dòng: số camp, chi, lãi, ROI theo kỳ đang chọn, trên tập camp sau các ô lọc đang chọn",
+      "min": [
+        3,
+        4
+      ],
+      "mac": [
+        3,
+        9
+      ]
     }
   },
   "template": {
@@ -374,6 +470,68 @@
           "y": 10,
           "w": 12,
           "h": 8
+        }
+      ]
+    },
+    "phan_tach": {
+      "ten": "Breakdown theo bộ lọc",
+      "muc": "mỗi ô lọc của tab Camp tách thành từng giá trị: số camp · chi · lãi · ROI theo kỳ (anh 10/11/2026)",
+      "o": [
+        {
+          "ma": "bd_loc",
+          "x": 0,
+          "y": 0,
+          "w": 3,
+          "h": 9
+        },
+        {
+          "ma": "bd_lai",
+          "x": 3,
+          "y": 0,
+          "w": 3,
+          "h": 9
+        },
+        {
+          "ma": "bd_tuoi",
+          "x": 6,
+          "y": 0,
+          "w": 3,
+          "h": 9
+        },
+        {
+          "ma": "bd_luat",
+          "x": 9,
+          "y": 0,
+          "w": 3,
+          "h": 9
+        },
+        {
+          "ma": "bd_dang",
+          "x": 0,
+          "y": 9,
+          "w": 3,
+          "h": 9
+        },
+        {
+          "ma": "bd_ro",
+          "x": 3,
+          "y": 9,
+          "w": 3,
+          "h": 9
+        },
+        {
+          "ma": "bd_ab",
+          "x": 6,
+          "y": 9,
+          "w": 3,
+          "h": 9
+        },
+        {
+          "ma": "bd_bo",
+          "x": 9,
+          "y": 9,
+          "w": 3,
+          "h": 9
         }
       ]
     }

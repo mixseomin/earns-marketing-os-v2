@@ -439,9 +439,10 @@ export function tinChamDang(kq) {
  *  (tho-may-viec.mjs, social-sua.json); Khang (apps/cty/may/social-sua.mjs, Claude Code trên iMac) làm lại bài (may-dung --lam-lai-sua) hoặc sửa gốc máy sinh rồi báo dưới tin.
  *  Một máy một việc đang chờ / đang làm (themViec không xếp đôi). Trả số việc vừa xếp. */
 export async function xepKhang(sql, { them } = {}) {
-  const ds = await sql`SELECT m.ma, count(*)::int AS n, string_agg(DISTINCT regexp_replace(c, ' \(.*$', ''), ' · ') AS ly_do, string_agg(DISTINCT v.slug, ', ') AS slug
+  const ds = await sql`SELECT m.ma, count(DISTINCT v.id)::int AS n, string_agg(DISTINCT regexp_replace(c, ' [(].*$', ''), ' · ') AS ly_do, string_agg(DISTINCT v.slug, ', ') AS slug
     FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id LEFT JOIN LATERAL jsonb_array_elements_text(coalesce(v.cham->'chan_cung', '[]'::jsonb)) c ON true
     WHERE NOT coalesce(v.luu_tru, false) AND v.cham->>'ket' = 'SUA_LAI' AND coalesce(v.da_dang, '{}'::jsonb) = '{}'::jsonb AND (v.cham->>'luc')::timestamptz < now() - interval '1 hour'
+      AND NOT coalesce(m.la_san_pham, false)   -- kênh nội dung (YNT, Astrolas) có vòng tự làm lại tập riêng (chay-kenh / chay-so-kenh) — không xếp đôi
     GROUP BY m.ma ORDER BY m.ma`;
   if (!ds.length) return 0;
   const viec = ds.filter((x) => /^[a-z0-9-]+$/.test(x.ma)).map((x) => ({ khoa: `social:sua|${x.ma}`,

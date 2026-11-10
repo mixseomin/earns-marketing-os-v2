@@ -94,6 +94,13 @@ export async function napVideo(db: Db, ma: string, ds: DeNapMay[]): Promise<{ mo
   let moi = 0, doi = 0, giu = 0;
   for (const x of ds) {
     x.dang = boGachDai(x.dang);
+    // slug trùng bài ĐÃ CẤT (luu_tru) = đề mới, không phải nạp lại bài đó: đổi slug (-2, -3…) và ghi vào x.slug để người gọi tìm đúng dòng. Trước đây ghi đè/giữ dòng cũ đã cất
+    // → lượt --lam-lai-sua dựng lại bài cũ rồi cất mất bài mới (militarycalc canh-dong-42972-most-veterans-don, 10/11/2026).
+    for (let i = 2, goc = x.slug; ; i++) {
+      const cat = ((await db.execute(sql`SELECT coalesce(luu_tru, false) AS c FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${x.slug}`)) as unknown as { c: boolean }[])[0];
+      if (!cat?.c) break;
+      x.slug = `${goc}-${i}`;
+    }
     const cu = ((await db.execute(sql`SELECT id, de, dang, chu_de, nen_url, mau FROM xv_may_video WHERE may_id = ${m.id} AND slug = ${x.slug}`)) as unknown as Row[])[0];
     const coNen = x.nen_url !== undefined, nen = coNen ? x.nen_url ?? null : ((cu?.nen_url as string | null | undefined) ?? null);
     if (x.mau && !MAU_MAY_DUNG[x.mau]) throw new Error(`${x.slug}: mẫu lạ ${x.mau}`);

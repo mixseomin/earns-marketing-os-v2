@@ -94,7 +94,7 @@ function BangTach({ ds, so }: { ds: NhomTach[]; so: (c: CampEtpKho) => SoTien })
   return <div style={{ display: 'flex', flexDirection: 'column', fontSize: 12, height: '100%', overflowY: 'auto' }}>
     {/* tiêu đề cột DÍNH khi cuộn trong widget (anh 10/11/2026 "các table bên trong phải sticky header nếu cuộn xuống") — khung cuộn là chính khối này (overflowY auto) */}
     <div style={{ display: 'grid', gridTemplateColumns: luoi, gap: 6, fontSize: 10, color: 'var(--fg-3, #777)', padding: '0 0 3px', position: 'sticky', top: 0, zIndex: 1, background: 'var(--bg-1, #0b0e14)', borderBottom: '1px solid var(--line)' }}><span /><span style={{ textAlign: 'right' }}>camp</span><span>chi</span><span style={{ textAlign: 'right' }}>lãi</span><span style={{ textAlign: 'right' }}>ROI</span></div>
-    {hang.map((h, i) => <Fragment key={i}>{dong(h, i, false)}{(h.con && h.con.length > 1 ? xep(h.con) : []).map((c, j) => dong(c, j, true))}</Fragment>)}
+    {hang.map((h, i) => <Fragment key={i}>{dong(h, i, false)}{(h.con && (h.con.length > 1 || h.con[0]?.ten !== h.ten) ? xep(h.con) : []).map((c, j) => dong(c, j, true))}</Fragment>)}
   </div>;
 }
 /** ô ROI từ con số % sẵn có (bản luật, số đã tính ở máy) — cùng màu / độ đậm với Roi */
@@ -2739,7 +2739,9 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       bd_loc: ['loc', (c) => (dangChay(c) ? ['Đang chạy', undefined, '1'] : choGio(c) ? ['Chờ giờ chạy', undefined, '2'] : daTat(c) ? ['Đã tắt', undefined, '3'] : ['Đang tạo', undefined, '4'])],
       bd_lai: ['lai', (c) => { const s = so(c); return s.chi <= 0 ? ['Chưa tiêu trong kỳ', undefined, '3'] : s.thu > s.chi ? ['Lãi trong kỳ', undefined, '1'] : ['Lỗ trong kỳ', undefined, '2']; }],
       bd_tuoi: ['tuoi', (c) => { const t = tuoiNgay(c.tao); const i = t == null ? -1 : TUOI.findIndex(([a, b]) => t >= a && t < b); return i < 0 ? ['Chưa rõ tuổi', undefined, 'z'] : [TUOI[i]![2], undefined, String(i)]; }],
-      bd_luat: ['luat', (c) => { const ch = chipMap.get(c.camp_id); return ch ? [ch.chip, <ChipO chinh={ch} nho />] : ['Không chạm luật']; }],   // chip y như cột Luật tab Camp, cỡ nhỏ
+      // nhóm y như danh sách ô lọc Luật (luatOpts): Đang chạm → Sắp chạm → Không chạm luật; dòng con = chip y như cột Luật tab Camp, cỡ nhỏ (anh 10/11/2026)
+      bd_luat: ['luat', (c) => { const ch = chipMap.get(c.camp_id); return !ch ? ['Không chạm luật', undefined, '3'] : ch.dac ? ['Đang chạm', <b>Đang chạm</b>, '1'] : ['Sắp chạm', <b>Sắp chạm</b>, '2']; },
+        (c) => { const ch = chipMap.get(c.camp_id); return ch ? [ch.chip, <ChipO chinh={ch} nho />] : ['Không chạm luật']; }],
       bd_dang: ['dang', (c) => [c.dang ?? 'Chưa rõ loại', c.dang ? <><BadgeDang d={c.dang} ngan /><span>{c.dang}</span></> : undefined],
         (c) => [c.ban ?? 'bản chưa ghi', <><span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{c.ban ?? '—'}</span>{c.ban ? null : <span style={{ color: 'var(--fg-3, #777)' }}>bản chưa ghi</span>}</>]],
       bd_ro: ['ro', (c) => (laRoas(c) ? ['★ Camp ROAS'] : ['Camp thường'])],

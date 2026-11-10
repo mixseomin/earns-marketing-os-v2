@@ -115,29 +115,40 @@ export async function xetHookAi(ds) {
 const MAY_TIENG_VIET = new Set(['giochap-van-khan']);
 export function doBaiDang(v, ten = '') {
   const chan = [], canh = [], d = v.dang ?? {}, title = String(d.title ?? ''), mo = String(d.description ?? ''), chu = `${title}\n${mo}`, thuong = chu.toLowerCase();
+  // PAGE ĐÓNG VAI NGƯỜI THẬT (anh 10/11/2026: "page dựng thì phải khác đi") — kênh khai `persona: true`.
+  // Bộ luật thường dựng cho Page thương hiệu: câu móc dài, hook lấy từ QC spy, mọi bài phải có góc spy, phải có link đích.
+  // Áp nguyên bộ đó lên một Page đóng vai người thật thì ra đúng thứ cần tránh: bài đọc như quảng cáo. Nhánh này ĐỔI tiêu chí,
+  // không phải nới lỏng — xem khối "PERSONA" bên dưới: chặt hơn ở chỗ giọng người, chỉ bỏ những luật chỉ đúng với Page thương hiệu.
+  const persona = !!(v.persona || d.persona);
   // 1 · ảnh thật — poll (X) không có media; bài viết (Quora / Substack…) cũng phải có ảnh thật (Phòng Nội dung chặn câu trả lời Quora không ảnh, 28/10/2026)
   const khongAnh = d.loai === 'poll';
-  if (!v.nen_url && !khongAnh) chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');
-  else if (v.nen_url && d.loai !== 'poll' && !NGUON_ANH.test(v.nen_url)) chan.push(`ảnh nền không từ Pexels / Pixabay / Unsplash / Wikimedia Commons (${String(v.nen_url).slice(0, 60)})`);
+  // ẢNH SINH BẰNG AI — chỉ cho kênh KHAI RÕ (anh 10/11/2026, Page Mia Calloway): Page đóng vai một người thật thì ảnh Pexels là
+  // ảnh kho ai cũng dùng, nhìn ra ngay là Page dựng. Kênh loại này sinh ảnh AI theo bố cục + địa điểm THẬT ("như vừa đi check-in ở đây").
+  // Khe này KHÔNG mở cho kênh khác: phải có `anh_ai: true` trong dang của kênh (xv_may.dang[].anh_ai) thì doBaiDang mới nhận.
+  const anhAi = !!(v.anh_ai || d.anh_ai);
+  if (!v.nen_url && !khongAnh && !(anhAi && v.anh?.length)) chan.push('không có ảnh thật (nen_url trống) — chữ trên nền màu phẳng');
+  else if (v.nen_url && d.loai !== 'poll' && !NGUON_ANH.test(v.nen_url) && !anhAi) chan.push(`ảnh nền không từ Pexels / Pixabay / Unsplash / Wikimedia Commons (${String(v.nen_url).slice(0, 60)})`);
   for (const u of [v.nen_url, ...(v.nen_them ?? [])]) if (/wikimedia\.org/i.test(u ?? '') && !/Wikimedia Commons/.test(String(d.description ?? ''))) { chan.push('ảnh Wikimedia Commons chưa ghi công tác giả + giấy phép trong chữ đăng'); break; }
   // bản xuất = video, hoặc ảnh đã dựng (v.anh — bài ảnh / album / thẻ chữ, kế hoạch Page hoài cổ 25/10/2026), hoặc bài link
   if (!v.xuat_luc || (!v.video_url && d.loai !== 'link' && d.loai !== 'poll' && d.loai !== 'bai' && !v.anh?.length)) chan.push('chưa có bản xuất');
   if (d.loai === 'poll') { const lua = Array.isArray(d.lua) ? d.lua : []; if (lua.length < 2 || lua.length > 4 || lua.some((l) => String(l).length > 25)) chan.push('bình chọn cần 2–4 lựa chọn ≤ 25 ký tự'); }   // bài link (dang.loai 'link', 21/10/2026): không video, chốt bản = xuat_luc
   // 2 · câu móc
-  if (title.length < 25) chan.push(`câu móc quá ngắn (${title.length} ký tự)`);
-  else if (title.length > 110) canh.push(`câu móc dài ${title.length} ký tự (feed cắt ~100)`);
+  if (!persona) {
+    if (title.length < 25) chan.push(`câu móc quá ngắn (${title.length} ký tự)`);
+    else if (title.length > 110) canh.push(`câu móc dài ${title.length} ký tự (feed cắt ~100)`);
+    if (!/[?!]|\d/.test(title)) canh.push('câu móc không có câu hỏi / con số / tình huống');
+  } else if (chu.replace(/\s+/g, ' ').trim().length > 300) chan.push(`bài persona dài ${chu.trim().length} ký tự — người thật viết 1–3 câu`);
   if (ten && title.toLowerCase().startsWith(ten.toLowerCase())) chan.push(`câu móc mở bằng tên kênh "${ten}" thay vì tình huống`);
-  if (!/[?!]|\d/.test(title)) canh.push('câu móc không có câu hỏi / con số / tình huống');
   // 7 · GÓC (anh duyệt 25/10/2026, siết 31/10/2026: "mọi bài đăng mới, video, post, ảnh… đều phải dựa vào 1 idea góc" — bài cũ chưa đăng không góc thì bỏ):
   // MỌI bài phải làm từ một góc cụ thể trong kho spy (dang.goc = { sp, id, loai, ten }); người gọi kiểm góc có thật và thuộc nhóm góc của thương hiệu (v.goc_loi).
   // Không gắn góc ngược cho bài cũ (gắn vào là số giả): bài cũ chưa đăng đã cất lưu trữ (migration 0377); can_goc = false chỉ còn cho bộ tự kiểm.
-  if (v.can_goc !== false) { if (!d.goc?.id) chan.push('chưa gắn góc (nguồn idea) từ kho spy'); else if (v.goc_loi) chan.push(v.goc_loi); }
+  if (v.can_goc !== false && !persona) { if (!d.goc?.id) chan.push('chưa gắn góc (nguồn idea) từ kho spy'); else if (v.goc_loi) chan.push(v.goc_loi); }
   // 8 · HOOK từ QC thật trên spy (anh 31/10/2026, "rule quan trọng"): máy sinh ghi dang.hook = { qc, goc, page, ngay } (may-de.ts rapDe), hook tự nghĩ = chặn.
   // Bài viết (loai 'bai', Quora / Substack) chưa có đường ghi hook ở sinh-bai.mjs → chưa bắt, kẻo dừng cả máy bài viết.
-  if (v.can_goc !== false && d.loai !== 'bai' && !d.hook?.qc) chan.push('hook không lấy từ QC spy (thiếu dang.hook)');
+  if (v.can_goc !== false && !persona && d.loai !== 'bai' && !d.hook?.qc) chan.push('hook không lấy từ QC spy (thiếu dang.hook)');
   // chấm ĐỘC LẬP mọi dòng hook người xem thấy (tiêu đề + câu hook trên màn) với dòng QC gốc đã lưu — cùng bộ luật với máy sinh (hook-qc.mjs):
   // sửa quá xa, thêm con số bịa, dính đuôi "| ad" (31/10/2026: 10/21 bài DUYỆT lọt vì trước chỉ kiểm có dang.hook hay không)
-  else if (d.hook?.goc && d.loai !== 'bai') {
+  else if (d.hook?.goc && d.loai !== 'bai' && !persona) {
     chan.push(...loiHook(dongHookBai(title, v.de), d.hook.goc));
     const soLa = soNgoaiSuThat(dongHookBai(title, v.de), v.su_that); if (soLa.length) chan.push(`hook có con số tệp sự thật của máy không có (${soLa.join(', ')}) — lời hứa sản phẩm chưa kiểm`);
     if (v.hook_loi) chan.push(v.hook_loi);
@@ -146,7 +157,7 @@ export function doBaiDang(v, ten = '') {
   if ((v.trung ?? 1) > 1) chan.push(`tiêu đề trùng với ${v.trung - 1} video khác của máy — mỗi bài một tiêu đề (chống spam)`);
   // 4 · lý do bấm
   // bài THƯỜNG (dang.loai 'thuong' — luật đan xen 1 link / 7 bài, kế hoạch Page hoài cổ 25/10/2026): không link là đúng, có link mới là lỗi
-  if (d.loai === 'thuong') { if (/https?:\/\//.test(chu)) chan.push('bài thường mà chữ đăng có link'); }
+  if (d.loai === 'thuong' || (persona && !d.link)) { if (/https?:\/\//.test(chu)) chan.push('bài thường mà chữ đăng có link — bài đời thường không gắn link, link chỉ đặt ở bình luận của Reel'); }
   else if (!d.link) chan.push('không có link trang đích');
   else if (!mo.includes(d.link) && !String(d.html ?? '').includes(d.link)) chan.push('chữ đăng không chứa link trang đích');
   // 8 · BÀI VIẾT (Quora / Substack / Medium…, 28/10/2026): nội dung dài phải qua Phòng Nội dung kiem-bai đúng bản này (v.kiem = kết quả của bản)
@@ -164,6 +175,18 @@ export function doBaiDang(v, ten = '') {
   }
   const tm = tuMayTrong(thuong); if (tm.length) chan.push(`từ máy: ${tm.join(', ')}`);
   const tag = (chu.match(/(^|\s)#\w+/g) || []).length; if (tag > 3) canh.push(`${tag} hashtag (tối đa 3)`);
+  // PERSONA — CHẶT HƠN ở đúng chỗ quyết định bài có giống người thật không. Một người kể chuyện của mình không hô hào,
+  // không gắn thẻ, không viết hoa cả cụm để nhấn. Lọt mấy thứ này là Page lộ ngay là dựng, mất luôn tác dụng của cả mô hình.
+  if (persona) {
+    const hoHao = ['watch now', 'click here', 'link in bio', 'don\'t miss', 'dont miss', 'check it out', 'swipe up', 'limited time',
+      'free now', 'sign up', 'join now', 'best ever', 'must watch', 'you need to', 'trust me you'];
+    const dinh = hoHao.filter((x) => thuong.includes(x));
+    if (dinh.length) chan.push(`giọng quảng cáo trong bài persona: ${dinh.join(', ')}`);
+    if (tag > 1) chan.push(`${tag} hashtag — người thật kể chuyện không gắn thẻ (persona tối đa 1)`);
+    const hoa = (chu.match(/\b[A-Z]{4,}\b/g) || []).filter((w) => w !== 'OK');
+    if (hoa.length) chan.push(`viết hoa cả cụm để nhấn (${hoa.slice(0, 3).join(', ')}) — giọng quảng cáo`);
+    if (/[\u{1F300}-\u{1FAFF}]/u.test(chu) && (chu.match(/[\u{1F300}-\u{1FAFF}]/gu) || []).length > 2) canh.push('nhiều hơn 2 biểu tượng cảm xúc');
+  }
   if (mo.length < 80) canh.push('chữ đăng quá mỏng, chưa cho người xem điều gì dùng được');
   const diem = chan.length ? Math.min(6, 10 - canh.length) : Math.max(0, 10 - canh.length);
   return { ket: !chan.length && diem >= DIEM_DUYET ? 'DUYET' : 'SUA_LAI', diem, chan_cung: chan, canh_bao: canh };

@@ -15,6 +15,9 @@ export function cayRieng(nguoi, goc = MOS2_GOC) {
   if (!/^[a-z0-9-]+$/.test(nguoi)) throw new Error(`tên kỹ sư lạ: ${nguoi}`);
   const dir = path.join(os.homedir(), 'may-ky-su', nguoi, 'earns-marketing-os-v2'), nhanh = `ky-su/${nguoi}`;
   git(goc, 'fetch', '-q', 'origin', 'main');
+  // CÂY CHÍNH vẫn được kéo theo (như runner cũ làm trước khi có cây riêng): việc nền iMac (lich-su, shot-code, studio) chạy mã ở cây chính — không kéo thì chạy mã cũ.
+  // Chỉ fast-forward; có tệp dở trùng thì bỏ qua, không đụng việc dở của ai.
+  try { git(goc, 'merge', '-q', '--ff-only', 'origin/main'); } catch { /* cây chính có commit riêng / tệp dở trùng — để nguyên */ }
   if (!fs.existsSync(path.join(dir, '.git'))) { fs.mkdirSync(path.dirname(dir), { recursive: true }); git(goc, 'worktree', 'add', '-q', '-B', nhanh, dir, 'origin/main'); }
   const nm = path.join(dir, 'node_modules'); if (!fs.existsSync(nm)) fs.symlinkSync(path.join(goc, 'node_modules'), nm);
   // liên kết node_modules là TỆP (không phải thư mục) nên mẫu 'node_modules/' của .gitignore không khớp → thêm '/node_modules' vào exclude chung (thư mục thật vốn đã bị bỏ qua)

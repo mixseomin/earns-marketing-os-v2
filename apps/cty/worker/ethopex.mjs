@@ -285,7 +285,9 @@ export function bangViec(ds, nhanKy = 'Kỳ') {
   const hang = (a, b, c, d, e) => `${a.padEnd(5)} ${b.padEnd(16)} ${c.padEnd(7)} ${d.padStart(5)} ${e.padStart(5)}`;
   const bang = [hang('Camp', 'Phim', 'Đổi', 'Nay', nhanKy.slice(0, 5)), '─'.repeat(42),
     ...ds.map(({ m, doi, loi }) => hang(String(m.id), phim(m.chu), loi ? '⚠ lỗi' : doi, roi(m.chu, /ROI hôm nay ([+\-−]?\d+)%/), roi(m.chu, /ROI (?!hôm nay)[^%·]*?([+\-−]?\d+)%/)))].map(esc).join('\n');
-  const loi = ds.filter((x) => x.loi).map(({ m, loi }) => `⚠ #${m.id}: ${esc(String(loi).slice(0, 160))}`);
+  // LỖI TRÙNG IN MỘT DÒNG (anh 10/11/2026 "Tại sao tele lắm lỗi vậy": 4 mức ROAS cùng một lỗi in 4 dòng y hệt) — cùng camp + cùng câu lỗi gộp, ghi ×số lần
+  const dem = new Map(); for (const { m, loi } of ds.filter((x) => x.loi)) { const k = `#${m.id}: ${String(loi).slice(0, 160)}`; dem.set(k, (dem.get(k) ?? 0) + 1); }
+  const loi = [...dem].map(([k, n]) => `⚠ ${esc(k)}${n > 1 ? ` (×${n})` : ''}`);
   return [`<pre>${bang}</pre>`, ...loi].join('\n');
 }
 /** BẢNG THEO NGƯỜI (anh 28/10/2026: report Telegram theo hiện trạng nhiều tài khoản người quản lý): view etp.so_nguoi — hôm nay + hôm qua mỗi người, nhà đứng đầu.

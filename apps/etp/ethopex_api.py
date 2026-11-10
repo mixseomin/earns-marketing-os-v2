@@ -10,7 +10,7 @@ còn chia trang (tối đa 1.000/trang) mà script đọc một trang page_size=
   loc_report(rows) — cho chỗ tự gọi urllib /report
   ds_tat_ca() / la_nha(camp) — dong-bo.py: kéo cả camp ngoài vào bảng *_ngoai để học (không bao giờ vào kho luật etp.camp / so_ngay / so_gio)
 Dùng: sys.path.insert(0, '<repo>/apps/etp'); from ethopex_api import api"""
-import json, os, re, subprocess, urllib.request
+import json, os, re, subprocess, urllib.error, urllib.request
 
 class NgoaiNha(RuntimeError): pass
 class CamThayCreative(NgoaiNha): pass
@@ -67,7 +67,14 @@ def _goi(duong, body=None, timeout=90):
     if not T: raise NgoaiNha(f"người #{SUA} chưa kết nối Ethopex (hoặc phiên đã hết hạn) — dán phiên Ethopex của mình trên etp.on.tc")
     r = urllib.request.Request("https://api.ethopex.dev" + duong, data=json.dumps(body).encode() if body is not None else None, method="POST" if body is not None else "GET",
                                headers={"authorization": "Bearer " + T, "content-type": "application/json", "user-agent": "mos2-ethopex"})
-    return json.load(urllib.request.urlopen(r, timeout=timeout))
+    try: return json.load(urllib.request.urlopen(r, timeout=timeout))
+    except urllib.error.HTTPError as e:   # LỖI PHẢI NÓI LÝ DO (anh 10/11/2026 "Tại sao tele lắm lỗi": tin chỉ ghi "HTTP Error 400: Bad Request"): kèm câu Ethopex trả về;
+        # chuỗi vẫn mở đầu "HTTP Error <mã>: " nên nơi gọi đang nhận lỗi theo mã (thử lại 502…) không đổi
+        try: than = e.read().decode("utf-8", "replace").strip()
+        except Exception: than = ""
+        try: j = json.loads(than); than = j.get("message") or j.get("error") or j.get("detail") or than
+        except Exception: pass
+        raise urllib.error.HTTPError(e.url, e.code, f"{e.reason} · {str(than)[:300]}" if than else e.reason, e.headers, None) from None
 
 _NHA, _TAO = None, set()
 _TRAN_TAO = {}   # camp vừa tạo → trần ngân sách lúc tạo (cong.ns_tao): lệnh đặt lại ngân sách ngay sau tạo không được vượt

@@ -37,7 +37,7 @@ SQL_IT_NUOC = ("select c.camp_id from etp.camp_ab c join etp.ab a on a.ma = c.ab
                " union select x::int from etp.cau_hinh, jsonb_array_elements_text(gia_tri) x where khoa = 'team_tat'")
 LY_IT_NUOC = "camp ít nước (nhánh thử A/B nhắm nước) hoặc trong lô team Ethopex đã tắt (etp.cau_hinh.team_tat) — không bật lại (anh 09/11/2026)"
 # DỪNG LÊN CAMP MỚI — công tắc tổng etp.cau_hinh.dung_camp_moi (anh 25/10/2026 lần đầu; 09/11/2026 "kế hoạch lên 100 camp / ngày dừng lại … để review lại toàn bộ"):
-# cổng kiem chặn mọi đường tạo / nhân bản; lộ trình (lo_trinh_phim), mở lại dòng chạm trần (dong_phim.mo_tran_ngay), mở rộng phim đội lãi (dong_phim.mo_doi_lai) đọc cùng khoá
+# cổng kiem chặn camp MỚI $1 từ creative (tao_camp) — nhân bản camp có sẵn vẫn chạy (anh 10/11/2026); lộ trình (lo_trinh_phim), mở lại dòng chạm trần (dong_phim.mo_tran_ngay), mở rộng phim đội lãi (dong_phim.mo_doi_lai) đọc cùng khoá
 # này để không xếp dòng mới — dòng đang dừng giữ nguyên chờ review. Mở lại = đặt false. CHỈ tk David / Nhà (ngoai=True — camp tk người trong team — không bị chặn; anh 09/11/2026).
 KHOA_DUNG_CAMP_MOI = "dung_camp_moi"
 SQL_DUNG_CAMP_MOI = f"select coalesce((select gia_tri::text from etp.cau_hinh where khoa = '{KHOA_DUNG_CAMP_MOI}'), 'false') = 'true'"
@@ -120,7 +120,8 @@ def kiem(viec, camp_id=None, ns_moi=None, ns_cu=0, bo=None, content_id=None, ngo
             r3 = _q(SQL_ROI3.format(cid=int(camp_id))); nap = nap_tang(float(r3) if r3 not in ("", None) else None)
             if float(ns_moi) > nap: return f"nắp ROI 3 ngày khép ({(r3 + '%') if r3 else 'chưa có số'}) → camp thường trần ${nap:g}, không lên ${float(ns_moi):g} (Dol 09/11/2026: 30–50% ~$10 · 50–80% ~$15 · >80% ~$20, anh duyệt chỉ áp lần tăng mới)"
         # anh 09/11/2026: "ngày mai chỉ lên camp kiểu ROAS nếu có camp phù hợp. Chưa lên camp mới đợi các camp âm tắt hết" → công tắc dừng chặn camp thường, MIỄN camp ROAS
-        if ch.get(KHOA_DUNG_CAMP_MOI) and viec in ("nhan_ban", "tao_camp") and not ngoai and not roas: return f"{LY_DUNG_CAMP_MOI} (etp.cau_hinh.{KHOA_DUNG_CAMP_MOI} — anh dừng để review) — tăng / giảm / tắt vẫn chạy"
+        # CHỈ chặn camp MỚI $1 từ creative (tao_camp) — anh 10/11/2026 "Nhân bản camp thắng vẫn đc. Chỉ chưa cho tạo camp mới $1": nhân bản (NB, thang, ROAS, clone sang bộ) vẫn chạy
+        if ch.get(KHOA_DUNG_CAMP_MOI) and viec == "tao_camp" and not ngoai and not roas: return f"{LY_DUNG_CAMP_MOI} $1 từ creative (etp.cau_hinh.{KHOA_DUNG_CAMP_MOI} — anh dừng để review) — nhân bản camp thắng / tăng / giảm / tắt vẫn chạy"
         them = float(ns_moi or 1) - float(ns_cu or 0)   # camp mới / nhân bản = $1
         tc = ch.get("tran_camp")
         # A/B ROAS TĂNG $30 (anh 08/11/2026 "Camp ROAS làm thêm thử nghiệm tăng bậc <=1.5 lần đến max $30 cho 1 vài camp"): camp nhánh THỬ của lần A/B

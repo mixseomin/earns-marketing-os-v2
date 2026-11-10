@@ -13,7 +13,7 @@ Chỉ ĐỌC kho etp.* (không sửa camp, không gửi lệnh Ethopex). Mỗi n
   python3 apps/etp/tu_van.py --luu                 tính mọi người, ghi bản 'song' (trang Tổng quan đọc — dong-bo.py gọi mỗi 10 phút, không gọi AI)
   python3 apps/etp/tu_van.py --phien 06:45 --ai    tính + lời bình AI + ghi bản phiên → in JSON [{nguoi_id, nguoi, html}] cho worker gửi Telegram
   python3 apps/etp/tu_van.py --xem [--nguoi 117]   in chữ ra màn, không ghi"""
-import datetime as dt, html, json, os, subprocess, sys, urllib.request
+import datetime as dt, html, json, os, re, subprocess, sys, urllib.request
 
 AI_TRAN_NGAY = 1000          # ₫ / ngày cho lời bình (anh duyệt plan 10/11/2026: ≤ 1.000₫ / ngày)
 TAT_CHI, TAT_ROI, TAT_ROI3 = 3, -50, 20          # nên tắt: hôm nay chi ≥ $3 mà ROI < -50%, 3 ngày khép ROI < 20% (hoặc chưa có ngày khép)
@@ -34,8 +34,8 @@ def pc(v): return "—" if v is None else f"{v:+d}%"
 def usd(v): return f"${v:,.0f}" if abs(v) >= 10 else f"${v:,.2f}"
 
 # ---------- số ----------
-_CAMP = """select k.camp_id, k.ten, k.trang_thai, k.ngan_sach, k.la_roas, k.content_id, t.nguoi_id from etp.camp k join etp.tai_khoan t using (ad_account_id) where t.nha
-  union all select k.camp_id, k.ten, k.trang_thai, k.ngan_sach, k.la_roas, k.content_id, t.nguoi_id from etp.camp_ngoai k join etp.tai_khoan t using (ad_account_id) where not t.nha"""
+_CAMP = """select k.camp_id, k.ten, k.trang_thai, k.ngan_sach, k.la_roas, k.content_id, t.nguoi_id, (select p.ten from etp.thu_vien_phim p where p.content_id = k.content_id) phim from etp.camp k join etp.tai_khoan t using (ad_account_id) where t.nha
+  union all select k.camp_id, k.ten, k.trang_thai, k.ngan_sach, k.la_roas, k.content_id, t.nguoi_id, (select p.ten from etp.thu_vien_phim p where p.content_id = k.content_id) phim from etp.camp_ngoai k join etp.tai_khoan t using (ad_account_id) where not t.nha"""
 _SO = "select camp_id, ngay, chi, thu from etp.so_ngay union all select camp_id, ngay, chi, thu from etp.so_ngay_ngoai"
 
 def doc_so():
@@ -43,12 +43,12 @@ def doc_so():
     ngay = qj("""select nguoi_id, ngay::text, sum(chi)::float chi, sum(thu)::float thu, sum(camp)::int camp from etp.so_nguoi
                  where ngay >= current_date - 7 group by 1, 2 order by 2""")
     camp = qj(f"""with c as ({_CAMP}), s as ({_SO})
-      select c.camp_id, c.ten, c.trang_thai, c.ngan_sach::float ns, c.la_roas, c.content_id, c.nguoi_id,
+      select c.camp_id, c.ten, c.phim, c.trang_thai, c.ngan_sach::float ns, c.la_roas, c.content_id, c.nguoi_id,
         coalesce(sum(s.chi) filter (where s.ngay = current_date), 0)::float chi_nay, coalesce(sum(s.thu) filter (where s.ngay = current_date), 0)::float thu_nay,
         coalesce(sum(s.chi) filter (where s.ngay between current_date - 3 and current_date - 1), 0)::float chi3,
         coalesce(sum(s.thu) filter (where s.ngay between current_date - 3 and current_date - 1), 0)::float thu3,
         count(*) filter (where s.ngay between current_date - 3 and current_date - 1 and s.chi > 0)::int ngay3
-      from c left join s using (camp_id) where c.trang_thai = 'ACTIVE' group by 1, 2, 3, 4, 5, 6, 7""")
+      from c left join s using (camp_id) where c.trang_thai = 'ACTIVE' group by 1, 2, 3, 4, 5, 6, 7, 8""")
     # thị trường = cả đội (tài khoản team), cùng khung giờ UTC 0..H hôm nay vs 7 ngày trước
     gio = int(q("select coalesce(max(gio), -1) from etp.so_gio_ngoai where ngay = current_date") or -1)
     tt = qj(f"""select ngay::text, sum(chi)::float chi, sum(thu)::float thu from etp.so_gio_ngoai
@@ -110,7 +110,10 @@ def mot_nguoi(nid, ten, ngay, camp, gio, tt, the, tu_dong, nha_gio, now):
     # danh sách nên làm
     cs = [c for c in camp if c["nguoi_id"] == nid]
     def dong(c, ly):
-        return {"camp_id": c["camp_id"], "ten": (c["ten"] or "")[:60], "ns": c["ns"], "chi_nay": round(c["chi_nay"], 2), "roi_nay": roi(c["chi_nay"], c["thu_nay"]),
+        # tên camp kiểu "Dup by 68594 5" không nói phim nào → dùng tên phim ở thư viện (etp.thu_vien_phim theo content_id; camp_ngoai.phim_ten lệch — cùng phim 167292 ra hai tên)
+        ten = c["ten"] or ""
+        if c.get("phim") and re.match(r"^(dup|copy)\b|^\d", ten, re.I): ten = c["phim"]
+        return {"camp_id": c["camp_id"], "ten": ten[:60], "ns": c["ns"], "chi_nay": round(c["chi_nay"], 2), "roi_nay": roi(c["chi_nay"], c["thu_nay"]),
                 "chi3": round(c["chi3"], 2), "roi3": roi(c["chi3"], c["thu3"]), "ly": ly}
     tat, tang, roas, nhan = [], [], [], []
     roas_phim = {c["content_id"] for c in cs if c["la_roas"]}
@@ -118,20 +121,20 @@ def mot_nguoi(nid, ten, ngay, camp, gio, tt, the, tu_dong, nha_gio, now):
         r_nay, r3 = roi(c["chi_nay"], c["thu_nay"]), roi(c["chi3"], c["thu3"])
         # camp chưa có ngày khép (mới lên / ROAS mới): chỉ đề xuất tắt khi đã tiêu hết ngân sách ngày — trước đó để máy T1 / T8 xét theo giờ
         if c["chi_nay"] >= TAT_CHI and (r_nay is not None and r_nay < TAT_ROI) and (r3 < TAT_ROI3 if r3 is not None else c["chi_nay"] >= (c["ns"] or 0) > 0):
-            tat.append((c["chi_nay"] - c["thu_nay"], dong(c, f"hôm nay lỗ {usd(c['chi_nay'] - c['thu_nay'])}, 3 ngày khép {pc(r3) if r3 is not None else 'chưa có'}")))
+            tat.append((c["chi_nay"] - c["thu_nay"], dong(c, f"hôm nay lỗ {usd(c['chi_nay'] - c['thu_nay'])} · 3 ngày {pc(r3) if r3 is not None else 'chưa có'}")))
         if c["la_roas"]: continue
         if r3 is not None and r3 >= TANG_ROI3 and c["chi3"] >= TANG_CHI3 and c["ns"] and c["chi_nay"] >= TANG_NS * c["ns"] and (r_nay or 0) >= TANG_ROI:
-            tang.append((c["thu3"] - c["chi3"], dong(c, f"đã tiêu {round(100 * c['chi_nay'] / c['ns'])}% NS ${c['ns']:g}, ROI nay {pc(r_nay)}")))
+            tang.append((c["thu3"] - c["chi3"], dong(c, f"đã tiêu {round(100 * c['chi_nay'] / c['ns'])}% NS ${c['ns']:g} · ROI nay {pc(r_nay)}")))
         if r3 is not None and r3 >= ROAS_ROI3 and c["chi3"] >= ROAS_CHI3 and c["content_id"] not in roas_phim:
-            roas.append((c["thu3"] - c["chi3"], dong(c, f"3 ngày chi {usd(c['chi3'])} ROI {pc(r3)} — phim chưa có camp ROAS"), c["content_id"]))
+            roas.append((c["thu3"] - c["chi3"], dong(c, f"3 ngày chi {usd(c['chi3'])} · ROI {pc(r3)}"), c["content_id"]))
         if r3 is not None and r3 >= NHAN_ROI3 and c["chi3"] >= NHAN_CHI3 and c["ngay3"] >= 2:
-            nhan.append((c["thu3"] - c["chi3"], dong(c, f"lãi {usd(c['thu3'] - c['chi3'])} / 3 ngày, ROI {pc(r3)}")))
+            nhan.append((c["thu3"] - c["chi3"], dong(c, f"lãi {usd(c['thu3'] - c['chi3'])} / 3 ngày · ROI {pc(r3)}")))
     top = lambda xs: [x[1] for x in sorted(xs, key=lambda x: -x[0])[:TOI_DA]]
     # ROAS: một phim một đề xuất (camp lãi nhất của phim) — ROAS nhắm Page / bài của camp thắng, hai camp cùng phim là một việc
     _r = {}
     for x in sorted(roas, key=lambda x: -x[0]): _r.setdefault(x[2], x)
     roas = list(_r.values())
-    return {"nguoi_id": nid, "nguoi": ten, "tu_dong": nid in tu_dong or nid == 117, "hien_trang": ht, "thi_truong": thi, "phien": phien_toi(now), "may_se_lam": may[:6],
+    return {"nguoi_id": nid, "nguoi": ten, "tu_dong": nid in tu_dong or nid == 117, "nha": nid == 117, "hien_trang": ht, "thi_truong": thi, "phien": phien_toi(now), "may_se_lam": may[:6],
             "nen": {"tat": top(tat), "tang": top(tang), "roas": top(roas), "nhan": top(nhan)},
             "dem": {"tat": len(tat), "tang": len(tang), "roas": len(roas), "nhan": len(nhan)}}
 
@@ -178,31 +181,46 @@ def do_dung():
       where d.ngay + 1 < current_date group by 1, 2""") if q("select to_regclass('etp.tu_van')") else []
 
 # ---------- chữ Telegram ----------
+ETP2 = "https://etp2.on.tc/etp"   # ngăn camp: ?t=camp&ngan=camp:<id> (dauVao.ngan, etp2 page.tsx) · người team thêm &ng=<id>
+def ten_gon(t, n=30):
+    """tên camp gọn cho tin: bỏ tiền tố FB / S_FB_, mã số dài, gạch dưới → chữ phim đọc được"""
+    t = re.sub(r"^(S_)?FB\s*[-_]\s*", "", t or ""); t = re.sub(r"_\d{5,}.*$", "", t); t = re.sub(r"[_]+", " ", t).strip()
+    return t if len(t) <= n else t[: n - 1].rstrip() + "…"
 def chu(du, phien=None):
+    """TIN TELEGRAM (anh 11/11/2026 "trình bày format trên tele lại cho dễ nhìn"): bảng số đều cột trong <pre> (≤30 ký tự / dòng — đọc được trên điện thoại),
+    mỗi khối một biểu tượng + tiêu đề đậm, camp hai dòng (mã bấm mở ngăn camp etp2 + tên gọn / số), lời bình nghiêng ở cuối."""
     e = lambda s: html.escape(str(s), quote=False); ht, tt, ph = du["hien_trang"], du["thi_truong"], du["phien"]
-    L = [f"🧭 <b>Tư vấn · {e(du['nguoi'])}</b>" + (f" — trước phiên {ph['gio']}" if ph else "") + (f" ({phien})" if phien else "")]
-    L.append(f"<b>Hôm nay</b> (ngày Ethopex từ 07:00): chi {usd(ht['chi'])} · thu {usd(ht['thu'])} · ROI <b>{pc(ht['roi'])}</b> · {ht['camp']} camp có chi")
-    L.append(f"Hôm qua cả ngày {pc(ht['roi_qua'])} (chi {usd(ht['chi_qua'] or 0)}) · 7 ngày {pc(ht['roi_7'])} (TB {usd(ht['chi_7tb'] or 0)}/ngày)")
-    if "roi_7_cung_gio" in ht: L.append(f"Cùng khung giờ (tài khoản nhà): hôm qua {pc(ht.get('roi_qua_cung_gio'))} · TB 7 ngày {pc(ht['roi_7_cung_gio'])}")
-    if tt["roi_nay"] is not None:
-        nx = "thị trường đang tốt hơn thường" if (tt["lech"] or 0) >= 10 else "thị trường đang kém hơn thường" if (tt["lech"] or 0) <= -10 else "thị trường bình thường"
-        L.append(f"<b>Thị trường</b> cả đội {tt['gio_vn']}: {pc(tt['roi_nay'])} vs TB 7 ngày {pc(tt['roi_7'])} → {nx}")
-    if ph:
-        L.append(f"<b>Phiên {ph['gio']}</b>: " + "; ".join([*(f"mở {x}" for x in ph["mo"]), *(f"đóng {x}" for x in ph["dong"])]))
-    if du["may_se_lam"]:
-        L.append("<b>Máy luật đang thấy</b>: " + " · ".join(f"{e(m['luat'].split(' · ')[0])} {m['dat']} đủ" + (f"/{m['gan']} gần" if m["gan"] else "") for m in du["may_se_lam"]))
-    tay = " (máy tự làm khi đúng khung + luật)" if du["tu_dong"] else " (làm tay)"
+    o = lambda v, w: f"{pc(v):>{w}}"
+    L = [f"🧭 <b>{e(du['nguoi'])}</b>" + (f" · trước phiên <b>{ph['gio']}</b>" if ph else "")]
+    bang = [f"{'':<11}{'ROI':>6}{'Chi':>9}", f"{'Hôm nay':<11}{o(ht['roi'], 6)}{usd(ht['chi']):>9}", f"{'Hôm qua':<11}{o(ht['roi_qua'], 6)}{usd(ht['chi_qua'] or 0):>9}",
+            f"{'TB 7 ngày':<11}{o(ht['roi_7'], 6)}{usd(ht['chi_7tb'] or 0):>9}"]
+    if "roi_7_cung_gio" in ht: bang.append(f"{'7n cùng giờ':<11}{o(ht['roi_7_cung_gio'], 6)}")
+    if tt["roi_nay"] is not None: bang += [f"{'Cả đội nay':<11}{o(tt['roi_nay'], 6)}", f"{'Cả đội 7n':<11}{o(tt['roi_7'], 6)}"]
+    L.append("<pre>" + "\n".join(bang) + "</pre>")
+    # nhận định chợ: người lệch so với 7 ngày của chính mình vs cả đội lệch so với 7 ngày của đội
+    if tt["lech"] is not None and ht["roi"] is not None and ht["roi_7"] is not None:
+        ln, lc = ht["roi"] - ht["roi_7"], tt["lech"]
+        cho = "🌧 Chợ kém hơn thường" if lc <= -10 else "☀️ Chợ tốt hơn thường" if lc >= 10 else "🌤 Chợ bình thường"
+        ket = "đang kém hơn chợ → xem camp lỗ bên dưới" if ln <= lc - 10 else "đang tốt hơn chợ" if ln >= lc + 10 else "đi cùng nhịp chợ"
+        L.append(f"{cho} ({lc:+d} điểm) · {e(du['nguoi'].split()[-1])} {ln:+d} điểm, {ket}")
+    if ph and (ph["mo"] or ph["dong"]):
+        L.append(f"\n⏰ <b>Phiên {ph['gio']}</b>" + (f"\n  ▸ mở: {e(', '.join(ph['mo']))}" if ph["mo"] else "") + (f"\n  ▸ đóng: {e(', '.join(ph['dong']))}" if ph["dong"] else ""))
+    may = [m for m in du["may_se_lam"] if m["dat"]]
+    if may: L.append("🤖 <b>Máy luật sắp làm</b>: " + " · ".join(f"{e(m['luat'].split(' · ')[0])} {m['dat']}" for m in may))
+    tay = "máy tự làm" if du["tu_dong"] else "làm tay"
     for k, tit in (("tat", "⏹ Nên tắt"), ("tang", "⬆️ Nên tăng"), ("roas", "★ Nên lên ROAS"), ("nhan", "⧉ Nên nhân bản")):
         xs = du["nen"][k]
         if not xs: continue
-        L.append(f"<b>{tit}{tay}</b> — {du['dem'][k]} camp" + (f", {len(xs)} lớn nhất:" if du["dem"][k] > len(xs) else ":"))
-        L += [f"  #{x['camp_id']} {e(x['ten'][:40])} — {e(x['ly'])}" for x in xs]
-    if not any(du["nen"].values()): L.append("Không có camp nào chạm ngưỡng tắt / tăng / ROAS / nhân bản lúc này.")
+        L.append(f"\n{tit} · <b>{du['dem'][k]}</b> camp ({tay})" + (f" — {len(xs)} lớn nhất" if du["dem"][k] > len(xs) else ""))
+        for x in xs:
+            url = f"{ETP2}?t=camp&ngan=camp:{x['camp_id']}" + ("" if du.get("nha") else f"&ng={du['nguoi_id']}")
+            L.append(f'<a href="{url}">#{x["camp_id"]}</a> {e(ten_gon(x["ten"]))}\n      {e(x["ly"])}')
+    if not any(du["nen"].values()): L.append("\n✅ Không camp nào chạm ngưỡng tắt / tăng / ROAS / nhân bản.")
     dd = du.get("do_dung") or []
     if dd:
-        ten = {"tat": "tắt", "tang": "tăng", "roas": "ROAS", "nhan": "nhân bản"}
-        L.append(f"<i>Độ đúng đề xuất {DO_NGAY} ngày (chấm bằng ngày khép kế tiếp): " + " · ".join(f"{ten[x['loai']]} {x['dung']}/{x['n']}" for x in dd) + "</i>")
-    if du.get("ai"): L.append(f"\n💬 {e(du['ai'])}")
+        ten = {"tat": "tắt", "tang": "tăng", "roas": "ROAS", "nhan": "nhân"}
+        L.append("\n🎯 Độ đúng 7 ngày: " + " · ".join(f"{ten[x['loai']]} {x['dung']}/{x['n']}" for x in dd))
+    if du.get("ai"): L.append(f"\n💬 <i>{e(du['ai'])}</i>")
     return "\n".join(L)
 
 # BẢNG (tạo ở đây, không qua migration chung — chỉ máy tư vấn ghi): phien 'song' = bản sống dong-bo.py ghi lại mỗi 10 phút (không AI), trang Tổng quan đọc;

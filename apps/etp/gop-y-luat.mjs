@@ -12,6 +12,8 @@ export const LUAT = [
   { card: 'tu-van-1011', tep: 'apps/cty/worker/etp-tu-van.mjs', co: "export const GIO_GUI = ['06:45', '11:45', '14:45', '20:45'];", vi: 'tư vấn Ethopex gửi 4 lần / ngày, trước phiên 15 phút (anh 10/11/2026)' },
   { card: 'tu-van-1011', tep: 'apps/cty/worker/etp-tu-van.mjs', co: "topicPhong(`ethopex-tv-${d.nguoi_id}`, `🧭 Tư vấn · ${d.nguoi}`, tg, { duocTao: true })", vi: 'mỗi người một chủ đề Telegram riêng' },
   { card: 'tu-van-1011', tep: 'apps/etp/tu_van.py', co: 'join s on s.camp_id = d.camp_id and s.ngay = d.ngay + 1 and s.chi >= 1', vi: 'độ đúng đề xuất chấm bằng ngày khép KẾ TIẾP của chính camp (B5)' },
+  { card: 'tu-van-tg-1111', tep: 'apps/etp/tu_van.py', co: 'L.append("<pre>" + "\\n".join(bang) + "</pre>")', vi: 'tin tư vấn: số chính trong bảng <pre> đều cột (anh 11/11/2026 "trình bày format trên tele lại cho dễ nhìn")' },
+  { card: 'tu-van-tg-1111', tep: 'apps/etp/tu_van.py', co: '(select p.ten from etp.thu_vien_phim p where p.content_id = k.content_id) phim from etp.camp_ngoai k', vi: 'tên phim lấy thư viện phim, không lấy camp_ngoai.phim_ten (lệch)' },
   { card: 'tu-van-1011', tep: 'apps/etp/tu_van.py', co: 'PHIEN = (7, 12, 15, 21)', vi: 'phiên 07 · 12 · 15 · 21 VN' },
   { card: 'tu-van-1011', tep: 'apps/etp/tu_van.py', co: 'AI_TRAN_NGAY = 1000', vi: 'lời bình AI tối đa 1.000₫ / ngày (plan anh duyệt)' },
   { card: 'tu-van-1011', tep: 'apps/etp/tu_van.py', co: 'ROAS_CHI3, ROAS_ROI3 = 20, 50', vi: 'đề xuất ROAS theo Dol: chi ≥ $20 & ROI 3 ngày khép ≥ 50%' },

@@ -94,10 +94,10 @@ def ws_chan(nay, khung="30 minutes"):
     bao("ws_chan", "do", f"ws_chan:{nay}", f"Ethopex CHẶN MỌI LỆNH TẠO CAMP: tên miền {mien} chưa bật cho Facebook trong workspace ({n} lệnh lỗi trong {khung}) — nhờ Dol / admin Ethopex bật lại; bật xong máy tự chạy lại ở nhịp sau")
     return 1
 
-# THẺ XÉT LUẬT ĐỨNG (10/11/2026: etp.xet_luat ngừng ghi 16:08 09/11 → 20 giờ trang vẽ chip theo số cũ, không ai biết): thẻ mới nhất quá 30 phút → báo ĐỎ một lần / giờ
+# THẺ XÉT LUẬT ĐỨNG (10/11/2026: etp.xet_luat ngừng ghi 16:08 09/11 → 20 giờ trang vẽ chip theo số cũ, không ai biết): thẻ mới nhất quá 90 phút → báo ĐỎ một lần / giờ
 def the_dung(nay):
     p = int(float(q("select coalesce(extract(epoch from now() - max(luc)) / 60, 9999) from etp.xet_luat") or 0))
-    if p <= 30: return 0
+    if p <= 90: return 0   # 90 phút = 3 nhịp Phát (nhịp có lúc 44 phút) — cùng ngưỡng trang etp / etp2 lọc thẻ
     bao("the_dung", "do", f"the_dung:{nay}:{dt.datetime.now(dt.timezone.utc):%H}", f"Thẻ xét luật (etp.xet_luat) không ghi {p} phút — trang etp đã ẩn chip tăng / tắt; máy luật luat-ethopex.py có lỗi ở bước ghi thẻ, xem tin LỖI MÁY LUẬT")
     return 1
 

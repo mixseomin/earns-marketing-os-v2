@@ -2744,7 +2744,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
       bd_luat: ['luat', (c) => { const ch = chipMap.get(c.camp_id); return !ch ? ['Không chạm luật', undefined, '3'] : ch.dac ? ['Đang chạm', <b>Đang chạm</b>, '1'] : ['Sắp chạm', <b>Sắp chạm</b>, '2']; },
         (c) => { const ch = chipMap.get(c.camp_id); return ch ? [ch.chip, <ChipO chinh={ch} nho />] : ['Không chạm luật']; }],
       bd_dang: ['dang', (c) => [c.dang ?? 'Chưa rõ loại', c.dang ? <><BadgeDang d={c.dang} ngan /><span>{c.dang}</span></> : undefined],
-        (c) => [c.ban ?? 'bản chưa ghi', <><span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{c.ban ?? '—'}</span>{c.ban ? null : <span style={{ color: 'var(--fg-3, #777)' }}>bản chưa ghi</span>}</>]],
+        // camp không ghi bản mẫu → dòng con mang ĐÚNG tên loại cha: loại toàn camp không bản thì không xổ dòng thừa (BangTach ẩn con trùng tên cha); loại có bản thật thì phần không bản hiện "bản chưa ghi"
+        (c) => (c.ban ? [c.ban, <span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{c.ban}</span>] : [c.dang ?? 'Chưa rõ loại', <span style={{ color: 'var(--fg-3, #777)' }}>bản chưa ghi</span>])],
       bd_ro: ['ro', (c) => (laRoas(c) ? ['★ Camp ROAS'] : ['Camp thường'])],
       bd_ab: ['ab', (c) => (c.ab ? [c.ab.ma, <><b>{c.ab.ma}</b><span style={{ color: 'var(--fg-2)' }}>{c.ab.ten}</span></>, c.ab.ma] : ['Không A/B', undefined, '￿']),
         (c) => (c.ab?.nhanh === 'thu' ? ['Thử', <span>Thử · {c.ab.nhanhTen}</span>, '1'] : ['Đối chứng', <span>Đối chứng{c.ab ? ` · ${c.ab.nhanhTen}` : ''}</span>, '2'])],

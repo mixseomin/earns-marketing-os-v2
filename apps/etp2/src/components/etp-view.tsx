@@ -1976,7 +1976,12 @@ const NgayNhan = ({ d }: { d: string }) => (laCN(d) ? <span title={`Chủ nhật
 const maxLai = (ds: (SoTien | undefined)[]) => { const l = ds.map((x) => (x ? x.thu - x.chi : 0)); return { p: Math.max(0, ...l), n: Math.max(0, ...l.map((x) => -x)) }; };
 // BIỂU ĐỒ NGÀY TRONG NGĂN ĐIỆN THOẠI (anh 28/10/2026 "bấm vào đây trên mobile thì cho xem chart chi tiết như trên pc"): 6 ngày trọn + hôm nay,
 // cột lãi/lỗ cùng cách vẽ ô O của cây trên máy tính (đường 0 theo tỉ lệ lãi lớn nhất / lỗ lớn nhất), dưới mỗi cột ROI · chi · lãi của ngày
-function BieuNgay({ ngay, sd, nay, n }: { ngay: string[]; sd: (SoTien | undefined)[]; nay: SoTien; n?: number[] }) {   // n = số camp có chi mỗi ngày (ô cuối = hôm nay) — ngăn phim
+/** NGÂN SÁCH CUỐI MỖI NGÀY của một camp (ngày Ethopex = ngày UTC): lùi ngân sách hiện tại qua các lần đổi bậc xảy ra SAU ngày đó (lsBac: truoc → sau) */
+function nsCuoiNgay(nsNay: number, ls: DuLieuEtp['lsBac'][number] | undefined, ngay: string[]): (number | null)[] {
+  const ev = [...(ls ?? [])].filter((x) => (x.viec === 'tang' || x.viec === 'giam') && x.truoc != null && Number(x.truoc) > 0).sort((a, b) => Date.parse(b.luc) - Date.parse(a.luc));
+  return ngay.map((d) => { const cuoi = Date.parse(`${d}T23:59:59Z`); let ns = nsNay; for (const x of ev) { if (Date.parse(x.luc) > cuoi) ns = Number(x.truoc); else break; } return ns > 0 ? ns : null; });
+}
+function BieuNgay({ ngay, sd, nay, n, ns }: { ngay: string[]; sd: (SoTien | undefined)[]; nay: SoTien; n?: number[]; /** ngân sách mỗi ô (6 ngày + hôm nay) — có thì vẽ vạch xanh % ngân sách đã tiêu trong ngày (anh 10/11/2026) */ ns?: (number | null)[] }) {   // n = số camp có chi mỗi ngày (ô cuối = hôm nay) — ngăn phim
   const cot = [...ngay.map((d, i) => ({ t: `${d.slice(8, 10)}/${d.slice(5, 7)}`, cn: laCN(d), s: sd[i] ?? { chi: 0, thu: 0 }, mo: false, n: n?.[i] })), { t: 'nay', cn: false, s: nay, mo: true, n: n?.[ngay.length] }];
   const mx = maxLai(cot.map((x) => x.s)), H = 70, tong = mx.p + mx.n, y0 = tong > 0 ? Math.round((H * mx.p) / tong) : H;
   const tc = cot.reduce((a, x) => ({ chi: a.chi + x.s.chi, thu: a.thu + x.s.thu }), { chi: 0, thu: 0 });
@@ -1993,6 +1998,11 @@ function BieuNgay({ ngay, sd, nay, n }: { ngay: string[]; sd: (SoTien | undefine
           </span>
           <span style={{ fontSize: 11, fontWeight: 600, color: mau }}>{r == null ? '—' : `${r}%`}</span>
           <span style={{ fontSize: 10, color: 'var(--fg-2)' }}>{x.s.chi ? `$${x.s.chi.toFixed(x.s.chi < 10 ? 2 : 0)}` : '·'}</span>
+          {/* % NGÂN SÁCH ĐÃ TIÊU TRONG NGÀY (anh 10/11/2026 "show thêm đường thể hiện % tiêu tiền trong ngày") — cùng màu vạch chi / ngân sách ô NAY trên cây (#1550) */}
+          {ns ? (() => { const v = ns[cot.indexOf(x)], p = v && v > 0 ? Math.round((x.s.chi / v) * 100) : null;
+            return p == null ? <span style={{ fontSize: 9, color: 'var(--fg-3)' }}>&nbsp;</span> : <span title={`đã tiêu ${p}% ngân sách ngày $${v}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '80%', gap: 1 }}>
+              <span style={{ position: 'relative', width: '100%', height: 3, borderRadius: 2, background: 'var(--line)' }}><span style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: `${Math.min(100, p)}%`, borderRadius: 2, background: MAU_CHI_NS }} /></span>
+              <span style={{ fontSize: 9.5, color: MAU_CHI_NS }}>{p}% NS</span></span>; })() : null}
           <span style={{ fontSize: 10, color: Math.abs(lai) < 0.005 ? 'var(--fg-3)' : mauLai(lai) }}>{x.s.chi || x.s.thu ? `${lai < 0 ? '−' : '+'}${Math.abs(lai).toFixed(Math.abs(lai) < 10 ? 2 : 0)}` : '\u00a0'}</span>
           {/* #1503: một dòng, canh giữa như ô trên — dòng lãi rỗng vẫn giữ chiều cao để các ô thẳng hàng */}
           {x.n != null ? <span title={`${x.n} camp có chi trong ngày`} style={{ fontSize: 10, color: x.n ? 'var(--fg-2)' : 'var(--fg-3)', textAlign: 'center', lineHeight: 1.15 }}>{x.n}<br /><span style={{ fontSize: 9, opacity: 0.75 }}>camp</span></span> : null}
@@ -3169,7 +3179,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6 }}>
               <O ten={`bậc ${b!.bac + 1}/${BAC_NS.length}`}>${c.ngan_sach}</O><O ten="ROI nay"><Roi s={c.nay} /></O><O ten="ROI qua"><Roi s={c.qua} /></O><O ten={khNay ? 'lãi nay' : `lãi ${khNhan.toLowerCase()}`}><Lai s={khNay ? c.nay : ckh(c.camp_id)} /></O></div>
             {quyen?.vai === 'chu' && !du.nguoi.ngoai ? <DieuKhienCamp c={c} lon boDs={Object.keys(du.boTk).sort()} choDs={choMap.get(c.camp_id) ?? []} lsDk={lsCamp(c.camp_id)} /> : null}{/* #1553: điện thoại mở ngăn camp → điều khiển ở đây (ô ⚙ cạnh ngân sách chỉ có ở bảng máy tính) */}
-            <BieuNgay ngay={ngay6} sd={ngay6.map((d) => soCamp(c.camp_id, d))} nay={c.nay} />
+            <BieuNgay ngay={ngay6} sd={ngay6.map((d) => soCamp(c.camp_id, d))} nay={c.nay} ns={[...nsCuoiNgay(c.ngan_sach, du.lsBac[c.camp_id], ngay6), c.ngan_sach]} />
             <div style={{ border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px' }}>{tl!.chinh ? <div style={{ marginBottom: 6 }}><ChipO chinh={tl!.chinh} /></div> : null}<ThanLuat t={tl!} gon /></div>
             {r ? <TheCr r={r} ch={ch} k={crKh.get(r.creative_id)} khTen={khNay ? undefined : khNhan} tc={du.tieuChi} /> : null}
             {r?.video || r?.anh ? <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', maxHeight: '58dvh', background: '#000', borderRadius: 8, overflow: 'hidden' }}>

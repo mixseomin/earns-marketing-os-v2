@@ -1,6 +1,6 @@
 # HEARTBEAT — Huy
 
-> Trạng thái: **chờ anh duyệt lịch chạy iMac** — `sua-may-etp` mỗi 5 phút (bộ điều phối → apps/cty/may/etp-sua.mjs), chỉ gọi Claude khi hàng có việc, mỗi lần một việc.
+> Trạng thái: **chờ anh duyệt lịch chạy iMac** — `sua-may-etp` mỗi 30 phút (bộ điều phối → apps/cty/may/etp-sua.mjs), chỉ gọi Claude khi hàng có việc, mỗi lần một việc.
 
 Checklist mỗi vòng (không có việc → NO_REPLY):
 

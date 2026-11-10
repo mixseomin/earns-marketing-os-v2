@@ -1,6 +1,6 @@
 # HEARTBEAT — Mạnh
 
-> Trạng thái: **bật** từ 24/10/2026 — `tho-may` mỗi 5 phút trên iMac (bộ điều phối → apps/cty/may/tho-may.mjs), chỉ chạy khi hàng có việc, mỗi lần một việc, không giới hạn số lượt (anh 07/11/2026).
+> Trạng thái: **bật** từ 24/10/2026 — `tho-may` mỗi 30 phút trên iMac (bộ điều phối → apps/cty/may/tho-may.mjs), chỉ chạy khi hàng có việc, mỗi lần một việc, không giới hạn số lượt (anh 07/11/2026).
 
 Checklist mỗi vòng (không có việc → NO_REPLY):
 

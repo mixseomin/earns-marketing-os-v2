@@ -10,8 +10,8 @@ model: claude-code:opus effort:low   # anh 10/11/2026 "Tham khảo thằng Thàn
 room: day-chuyen
 muc_quyet: 2
 approval: SMART
-heartbeat: sua-social   # việc trên MÁY MAC: bộ điều phối iMac gọi apps/cty/may/social-sua.mjs mỗi 5 phút, chỉ gọi Claude khi hàng có việc; bật/tắt ở chấm xanh cột Tự làm
-lich: mỗi 5 phút · iMac
+heartbeat: sua-social   # việc trên MÁY MAC: bộ điều phối iMac gọi apps/cty/may/social-sua.mjs mỗi 30 phút, chỉ gọi Claude khi hàng có việc; bật/tắt ở chấm xanh cột Tự làm
+lich: mỗi 30 phút · iMac   # anh 11/11/2026 giảm tần suất: "đang dùng nhiều token quá"
 skills: []
 data: [social-sua:hang, repo:earns-marketing-os-v2 (phần bài social), may:box3, db:mos2_prod xv_may xv_may_video]
 pay:

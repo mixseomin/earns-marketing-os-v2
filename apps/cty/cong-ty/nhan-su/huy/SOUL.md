@@ -10,8 +10,8 @@ model: claude-code:opus effort:medium   # anh 10/11/2026 "Phòng ETP này phải
 room: dung-san-pham
 muc_quyet: 2
 approval: SMART
-heartbeat: sua-may-etp   # việc trên MÁY MAC: bộ điều phối iMac gọi apps/cty/may/etp-sua.mjs mỗi 5 phút, chỉ gọi Claude khi hàng có việc; bật/tắt ở chấm xanh cột Tự làm
-lich: mỗi 5 phút · iMac
+heartbeat: sua-may-etp   # việc trên MÁY MAC: bộ điều phối iMac gọi apps/cty/may/etp-sua.mjs mỗi 30 phút, chỉ gọi Claude khi hàng có việc; bật/tắt ở chấm xanh cột Tự làm
+lich: mỗi 30 phút · iMac   # anh 11/11/2026 giảm tần suất: "đang dùng nhiều token quá"
 skills: [ethopex]
 data: [etp-sua:hang, repo:earns-marketing-os-v2 (phần Ethopex), may:box3, db:mos2_prod etp.*]
 pay:

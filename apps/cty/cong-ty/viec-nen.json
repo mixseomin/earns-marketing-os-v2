@@ -624,9 +624,10 @@
    },
    "nhat_ky": "/Users/htuan/.cache/long-sua-bai.log",
    "hen": {
-    "moi_giay": 300
+    "moi_giay": 1800
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
   },
   {
    "nhan": "iMac:com.earns.may-dang-lien-tuc",
@@ -728,9 +729,10 @@
    },
    "nhat_ky": "/Users/htuan/.cache/van-thu.log",
    "hen": {
-    "moi_giay": 300
+    "moi_giay": 1800
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
   },
   {
    "nhan": "MacBook:com.htuan.thuc",
@@ -758,9 +760,10 @@
    },
    "nhat_ky": "/Users/htuan/.cache/spy-tu-sua-may-cao.log",
    "hen": {
-    "moi_giay": 300
+    "moi_giay": 1800
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
   },
   {
    "nhan": "iMac:tc.on.cty.astrolas-tasks",
@@ -775,9 +778,10 @@
    },
    "nhat_ky": "/Users/htuan/.cache/astrolas-tasks.log",
    "hen": {
-    "moi_giay": 120
+    "moi_giay": 600
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "ghi_chu": "Giảm tần suất 10 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
   },
   {
    "nhan": "iMac:tc.on.cty.etp-sua",
@@ -792,9 +796,10 @@
    },
    "nhat_ky": "/Users/htuan/.cache/etp-sua.log",
    "hen": {
-    "moi_giay": 300
+    "moi_giay": 1800
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
   },
   {
    "nhan": "iMac:tc.on.cty.social-sua",
@@ -809,9 +814,10 @@
    },
    "nhat_ky": "/Users/htuan/.cache/social-sua.log",
    "hen": {
-    "moi_giay": 300
+    "moi_giay": 1800
    },
-   "uu_tien_thap": true
+   "uu_tien_thap": true,
+   "ghi_chu": "Giảm tần suất 30 phút (anh 11/11/2026: \"đang dùng nhiều token quá\")"
   },
   {
    "nhan": "iMac:tc.on.cty.astrolas-site",

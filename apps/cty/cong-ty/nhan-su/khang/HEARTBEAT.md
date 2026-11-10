@@ -1,6 +1,6 @@
 # HEARTBEAT — Khang
 
-> Trạng thái: **bật** từ 10/11/2026 — `sua-social` mỗi 5 phút trên iMac (bộ điều phối → apps/cty/may/social-sua.mjs), chỉ gọi Claude khi hàng có việc, mỗi lần một việc.
+> Trạng thái: **bật** từ 10/11/2026 — `sua-social` mỗi 30 phút trên iMac (bộ điều phối → apps/cty/may/social-sua.mjs), chỉ gọi Claude khi hàng có việc, mỗi lần một việc.
 
 Checklist mỗi vòng (không có việc → NO_REPLY):
 

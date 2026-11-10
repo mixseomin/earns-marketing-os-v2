@@ -10,8 +10,8 @@ model: claude-code:sonnet   # Claude Code trên iMac (gói thuê bao); đổi ha
 room: day-chuyen
 muc_quyet: 2
 approval: SMART
-heartbeat: sua-bai   # việc trên MÁY MAC (NHIP_MAY): bộ điều phối iMac gọi apps/cty/may/long-sua-bai.mjs mỗi 5 phút; bật/tắt ở chấm xanh cột Tự làm
-lich: mỗi 5 phút · iMac
+heartbeat: sua-bai   # việc trên MÁY MAC (NHIP_MAY): bộ điều phối iMac gọi apps/cty/may/long-sua-bai.mjs mỗi 30 phút; bật/tắt ở chấm xanh cột Tự làm
+lich: mỗi 30 phút · iMac   # anh 11/11/2026 giảm tần suất: "đang dùng nhiều token quá"
 skills: [copywriting, humanizer, human-voice, copy-editing, seo-audit, ai-seo]
 data: [vp-noi-dung:tra-ve, hotel-arb:sites]
 pay: 

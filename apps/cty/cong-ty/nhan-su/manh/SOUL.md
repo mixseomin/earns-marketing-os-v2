@@ -11,8 +11,8 @@ model_re: claude-code:sonnet effort:medium   # MODEL THEO VIỆC, gọi MỘT l�
 room: dung-san-pham
 muc_quyet: 2
 approval: SMART
-heartbeat: sua-may   # việc trên MÁY MAC: bộ điều phối iMac gọi apps/cty/may/tho-may.mjs mỗi 5 phút; bật/tắt ở chấm xanh cột Tự làm
-lich: mỗi 5 phút · iMac
+heartbeat: sua-may   # việc trên MÁY MAC: bộ điều phối iMac gọi apps/cty/may/tho-may.mjs mỗi 30 phút; bật/tắt ở chấm xanh cột Tự làm
+lich: mỗi 30 phút · iMac   # anh 11/11/2026 giảm tần suất: "đang dùng nhiều token quá"
 skills: []
 data: [tho-may:hang, repo:spy-on-tc, repo:puzzle-books, may:box3, may:may-cao-vn, may:MacBook]
 pay:

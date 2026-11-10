@@ -20,6 +20,19 @@ export function mocToi(d = new Date()) {
   return GIO_GUI.find((g) => { const [h, m] = g.split(':').map(Number); const p = h * 60 + m; return phut >= p && phut < p + CUA_SO; }) ?? null;
 }
 
+// MÃ TIN ĐÃ GỬI (anh 11/11/2026 "xoá cái cũ và gửi lại" — lúc đó bot không nhớ mã tin nên phải xoá cả chủ đề): ghi vào tệp chủ đề của người đó, để xoá được từng tin
+const tepTopic = (id) => path.join(DATA(), `tg-ethopex-tv-${id}.json`);
+function ghiTin(id, ma) { let st = {}; try { st = JSON.parse(fs.readFileSync(tepTopic(id), 'utf8')); } catch { /* chưa có */ } st.tin = [...(st.tin ?? []), ma].slice(-200); fs.writeFileSync(tepTopic(id), JSON.stringify(st)); }
+/** xoá mọi tin tư vấn đã gửi (theo mã đã ghi): node worker/etp-tu-van.mjs --xoa */
+export async function xoaTin() {
+  const { tgNoiDung } = await import('./kiem-bai.mjs'); const { tg } = await tgNoiDung(); let n = 0;
+  for (const f of fs.readdirSync(DATA()).filter((x) => /^tg-ethopex-tv-\d+\.json$/.test(x))) {
+    const st = JSON.parse(fs.readFileSync(path.join(DATA(), f), 'utf8'));
+    for (const ma of st.tin ?? []) if ((await tg('deleteMessage', { message_id: ma })).ok) n++;
+    st.tin = []; fs.writeFileSync(path.join(DATA(), f), JSON.stringify(st));
+  }
+  return `đã xoá ${n} tin tư vấn`;
+}
 export async function nhipTuVan({ thu = false } = {}) {
   const moc = thu ? `${String(Math.floor(gioVn().phut / 60)).padStart(2, '0')}:${String(gioVn().phut % 60).padStart(2, '0')}` : mocToi();
   if (!moc) return 'chưa tới mốc';
@@ -35,12 +48,12 @@ export async function nhipTuVan({ thu = false } = {}) {
     const topic = await topicPhong(`ethopex-tv-${d.nguoi_id}`, `🧭 Tư vấn · ${d.nguoi}`, tg, { duocTao: true });   // anh 10/11/2026: mỗi người một chủ đề
     if (!topic) { loi.push(`${d.nguoi}: không tạo được chủ đề`); continue; }
     const j = await tg('sendMessage', { message_thread_id: topic, text: d.html.slice(0, 4000), parse_mode: 'HTML', link_preview_options: { is_disabled: true } });
-    if (j.ok) { gui++; chi += Number(d.chi_ai) || 0; } else loi.push(`${d.nguoi}: ${j.description ?? 'gửi hỏng'}`);
+    if (j.ok) { gui++; chi += Number(d.chi_ai) || 0; ghiTin(d.nguoi_id, j.result.message_id); } else loi.push(`${d.nguoi}: ${j.description ?? 'gửi hỏng'}`);
   }
   if (loi.length) throw new Error(`tư vấn ${moc}: gửi ${gui}/${ds.length} — ${loi.join(' · ')}`);
   return `tư vấn ${moc}: gửi ${gui} người · AI ${Math.round(chi)}₫`;
 }
 
 if (process.argv[1]?.endsWith("etp-tu-van.mjs")) {   // không dùng import.meta.url (Next đóng gói worker → sai đường; tu-kiem cấm)
-  nhipTuVan({ thu: process.argv.includes('--thu') }).then((r) => console.log(r), (e) => { console.error(`✗ ${e.message}`); process.exit(1); });
+  (process.argv.includes('--xoa') ? xoaTin() : nhipTuVan({ thu: process.argv.includes('--thu') })).then((r) => console.log(r), (e) => { console.error(`✗ ${e.message}`); process.exit(1); });
 }

@@ -24,6 +24,8 @@ const LUAT = [
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function BangTach({ ds, so }', vi: 'widget breakdown dùng chung cho mọi ô lọc' },
   { card: 'tpl-1011', tep: 'apps/etp2/src/components/etp-tong2.tsx', co: 'rong="Bố cục tự sửa"', cam: 'rong="Bố cục đang dùng"', vi: 'ô Template ghi tên bố cục đang hiện, không ghi chung chung (anh 10/11/2026)' },
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'BO_LOC.every(([kk, f]) => kk === k || f(c))', vi: 'mỗi widget breakdown tách trên tập camp qua mọi ô lọc TRỪ ô của chính nó' },
+  { card: 'tu-van-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "nen_lam: () => <NenLam ds={du.tuVan ?? []}", vi: 'Tổng quan 2 có widget Nên làm gì bây giờ (tư vấn sống theo người, anh 10/11/2026)' },
+  { card: 'tu-van-1011', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "from etp.tu_van where phien = 'song' and ${cuaNg(sql`nguoi_id`)}", vi: 'tư vấn đọc bản sống, người chỉ thấy bản của mình' },
   { card: 'mo-1011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if _ts: ls[-1]["mo"] = _ts_mo(cid)', vi: 'thẻ tăng bị Siết TS chặn mang mốc sớm nhất thôi chặn (anh 10/11/2026 "show thời gian sẽ áp dụng sau bao lâu")' },
   { card: 'mo-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'gioThe(t.the, hoan, t.don)', vi: 'chip luật hiện ⏳ giờ máy làm — cùng hàm gioThe với bảng xét' },
   { card: 'mo-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: '{deXuat ? null : <GioThe l={l} don={!!don} />}', vi: 'MỌI thẻ Đạt / Gần có giờ áp dụng ở ô tên luật (anh 10/11/2026 "gắn thời gian vào đây" · "các luật khác thấy chạm đéo hiện à")' },

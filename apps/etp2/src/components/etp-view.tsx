@@ -26,6 +26,7 @@ import { DongMoc, KhungNoi, ReThe, useNoi, type Moc, type Noi, type TheNoi } fro
 import type { CheDoLuat } from '@/lib/etp-quyen';
 import { CotAmDuong } from '@/components/cot-am-duong';
 import { Tong2 } from '@/components/etp-tong2';
+import { NenLam } from '@/components/etp-tu-van';
 import { TabInsight } from '@/components/etp-insight';
 import { TabLogs } from '@/components/etp-logs';
 import { xepHangCham, duyetCham, tatCreative, luuTieuChi, chuCham } from '@/lib/actions/etp-cham';
@@ -3082,7 +3083,7 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
           {bangNgay}
         </div>
       ) : tab === 'tong2' ? (
-        <Tong2 laChu={!chiXem} ky={khK} ve={{ bieu_do_ngay: (k) => bieuDoNgay(k.cao), bang_ngay: () => bangNgay, ...veTach }} dau={Object.fromEntries(Object.keys(veTach).map((k) => [k, DAU_TACH]))} />
+        <Tong2 laChu={!chiXem} ky={khK} ve={{ bieu_do_ngay: (k) => bieuDoNgay(k.cao), bang_ngay: () => bangNgay, nen_lam: () => <NenLam ds={du.tuVan ?? []} moCamp={(id) => doi({ ngan: `camp:${id}` }, () => { setNganPhim(null); setNganCamp(id); })} />, ...veTach }} dau={Object.fromEntries(Object.keys(veTach).map((k) => [k, DAU_TACH]))} />
       ) : tab === 'roas' ? (
         <TabRoas camps={campRoas} tong={roasTong} ungVien={du.roas} cot={cotCamp.filter((k) => k.key !== 'lich' && k.key !== 'tl')} nhom={NHOM} du={du} anh={anh} />
       ) : tab === 'camp' && xemCamp === 'lich' ? (

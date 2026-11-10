@@ -51,7 +51,7 @@ export async function docCheDo(q: QuyenEtp, nguoiId: number | null): Promise<Che
 
 // DỮ LIỆU CHO VAI nguoi — danh sách CHO PHÉP, không phải danh sách cấm: trường nào không ghi ở GIU thì về rỗng theo RONG.
 // Thêm trường mới vào DuLieuEtp mà quên ở đây → tsc báo thiếu khoá trong RONG → buộc quyết định, mặc định là KHÔNG lộ.
-const GIU = ['nhe', 'luc', 'nay', 'ngay', 'camps', 'creatives', 'phims', 'soNgay', 'demNgay', 'theLoai', 'xetLuat', 'xetLuc', 'lsBac'] as const;
+const GIU = ['nhe', 'luc', 'nay', 'ngay', 'camps', 'creatives', 'phims', 'soNgay', 'demNgay', 'theLoai', 'xetLuat', 'xetLuc', 'lsBac', 'tuVan'] as const;   // tuVan: bản tư vấn của CHÍNH người đó (etp-doc lọc cuaNg theo người đang xem)
 type Giu = (typeof GIU)[number];
 const RONG: Omit<DuLieuEtp, Giu | 'nguoi' | 'cauHinh'> = {
   thuVien: [], nhatKy: [], canhBao: [], dongBo: null, boTk: {}, pheu: [], diemCham: {}, soLuat: [], thayThe: [], moRong: [], ket: [], dongChay: [], taiNguyen: [], mayTho: [],

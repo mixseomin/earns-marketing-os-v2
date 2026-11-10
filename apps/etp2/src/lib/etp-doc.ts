@@ -90,6 +90,13 @@ export type NhomClone = { n: number; chi: number; lai: number; roi: number | nul
 export type ThuVienMuc = { k: string; creative_id: number | null; content_id: number; phim: string | null; the_loai: string | null; dang: string | null; ban: string | null; giong: string | null; lang: string | null;
   video: string | null; anh: string | null; giay: number | null; nguon: string; tv: string | null; camp: number; chay: number; chi: number; thu: number; meta: number | null; afs: number | null; tao: string | null;
   /** ghi chú dòng thư viện — bản ĐANG SINH: bước máy sinh đang làm (giọng / ảnh / clip x/6, xuất, CTA) */ ghi: string | null };
+/** một dòng camp trong danh sách nên làm của tư vấn (tu_van.py dong()) */
+export type TuVanCamp = { camp_id: number; ten: string; ns: number | null; chi_nay: number; roi_nay: number | null; chi3: number; roi3: number | null; ly: string };
+export type TuVan = { nguoi_id: number; nguoi: string; luc: string; du: {
+  tu_dong: boolean; hien_trang: { chi: number; thu: number; roi: number | null; camp: number; roi_qua: number | null; chi_qua: number | null; roi_7: number | null; chi_7tb: number | null; roi_qua_cung_gio?: number | null; roi_7_cung_gio?: number | null };
+  thi_truong: { gio_vn: string | null; roi_nay: number | null; roi_7: number | null; lech: number | null };
+  phien: { gio: string; mo: string[]; dong: string[] } | null; may_se_lam: { luat: string; dat: number; gan: number }[];
+  nen: Record<'tat' | 'tang' | 'roas' | 'nhan', TuVanCamp[]>; dem: Record<'tat' | 'tang' | 'roas' | 'nhan', number> } };
 export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt — etp-view tải bù khi tab cần (taiNangEtp) */; luc: string; nay: string; ngay: DongNgayEtp[]; camps: CampEtpKho[]; creatives: CreativeEtpKho[]; phims: PhimEtpKho[]; thuVien: ThuVienMuc[];
   cauHinh: { khoa: string; gia_tri: unknown; ghi: string | null; ai: string | null; luc: string }[];
   nhatKy: { luc: string; viec: string; camp_id: number | null; truoc: string | null; sau: string | null; ok: boolean | null; loi: string | null; luat: string | null; ai: string | null }[];
@@ -111,6 +118,8 @@ export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt —
   lsBac: Record<number, { luc: string; viec: string; truoc: string | null; sau: string | null; luat: string | null; ai: string | null }[]>;
   /** CAMP THAY THẾ đang chuẩn bị (etp.thay_the, máy thay-the.py — anh 29/10/2026): phim chỉ còn 1 camp sắp tắt → dòng mờ dưới phim trên Cây, đậm dần theo bước */
   thayThe: ThayThe[];
+  /** TƯ VẤN SỐNG theo người (etp.tu_van phien 'song', apps/etp/tu_van.py — dong-bo.py ghi mỗi 10 phút, anh 10/11/2026): widget "Nên làm gì bây giờ" Tổng quan 2 */
+  tuVan: TuVan[];
   moRong: MoRong[];
   /** dòng sản xuất đang chạy theo phim (etp.dong_phim) — Cây camp hiện nhãn ◌ SX ở dòng phim (anh 04/11/2026 "giờ đéo biết vừa bấm tạo cho film nào") */
   dongChay: { content_id: number; id: number; loai: string; so_camp: number | null; buoc: string | null; cac_buoc?: { buoc: string; trang_thai: string }[]; trang_thai?: string; ly_do?: string | null; camp_id?: number | null; so_len?: number }[];
@@ -365,6 +374,8 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
       left join etp.cham ch using (creative_id) where g.duoc_len and not exists (select 1 from etp.camp k where k.creative_id = g.creative_id)`).catch(() => [] as Record<string, unknown>[]),
   ]));
   const qAbSo = som(ngoai ? Promise.resolve([]) : run<{ ma: string; ten: string; batDau: string; giaThuyet: string | null; thu: string; doi: string }>(sql`select ma, ten, bat_dau::text "batDau", gia_thuyet "giaThuyet", nhanh->'thu'->>'ten' thu, nhanh->'doi'->>'ten' doi from etp.ab where trang_thai = 'dang' order by ma desc`).catch(() => []));
+  // tư vấn sống: chạy song song với khối dưới (bảng chưa có → rỗng); Team thấy mọi người, người thấy bản của mình
+  const tuVanP = run<{ nguoi_id: number; nguoi: string; luc: string; du: TuVan['du'] }>(sql`select nguoi_id, nguoi, luc::text luc, du from etp.tu_van where phien = 'song' and ${cuaNg(sql`nguoi_id`)} order by nguoi_id`).catch(() => []);
   const [ngay, camps, cauHinh, nhatKy, xetR, lsBacR, canhBao, dongBo, tl] = await Promise.all([   // thứ tự PHẢI khớp các câu bên dưới (xet_luat trước lịch sử bậc)
     run<{ ngay: string; chi: string; thu: string; camp: string; ns: string | null }>(sql`select ngay::text ngay, sum(chi) chi, sum(thu) thu, count(*) filter (where chi > 0) camp, ${ngoai ? sql`null::numeric` : sql`sum(coalesce(ns_max, ngan_sach)) filter (where bat or chi > 0)`} ns from ${SN} group by ngay having sum(chi) > 0 or sum(thu) > 0 order by ngay`),
     ngoai ? run<Record<string, unknown>>(sql`with s as (${soCamp})
@@ -538,7 +549,8 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
   const tatCua = new Map(daLam.filter((x) => x.viec === 'tat').map((x) => [x.camp_id, x.maSo]));
   for (const c of cs) if (c.trang_thai !== 'ACTIVE') { const g = dongCua.get(c.camp_id); c.dong = g ? { ...g, ma: tatCua.get(c.camp_id) ?? null,
     dieu: /luật:\s*(.+?)(?: · duyệt:|$)/.exec(g.ly_do)?.[1]?.trim() ?? null, duyet: /duyệt:\s*(.+?)(?:\s+—\s*máy chạy)?$/.exec(g.ly_do)?.[1]?.trim() ?? null } : null; }
-  return { nguoi: { ds: nguoiDs, dang: dangId, nha: nhaId, ngoai, doi }, luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, creatives: [...crMap.values()], phims, thuVien,
+  const tuVan = (await tuVanP).map((r) => ({ nguoi_id: n(r.nguoi_id), nguoi: String(r.nguoi ?? ''), luc: r.luc, du: r.du }));
+  return { tuVan, nguoi: { ds: nguoiDs, dang: dangId, nha: nhaId, ngoai, doi }, luc: new Date().toISOString(), nay, ngay: ngay.map((r) => ({ ngay: r.ngay, chi: n(r.chi), thu: n(r.thu), camp: n(r.camp), ns: r.ns == null ? null : n(r.ns) })), camps: cs, creatives: [...crMap.values()], phims, thuVien,
     dongChay: dcyR.map((r) => ({ ...r, content_id: n(r.content_id), id: n(r.id), so_camp: r.so_camp == null ? null : n(r.so_camp) })),
     ket: ketR.map((r) => ({ ...r, content_id: n(r.content_id), id: n(r.id) })),
     moRong: mrR.map((r) => ({ ...r, content_id: n(r.content_id), n: n(r.n), k: n(r.k), san: n(r.san), can_sx: n(r.can_sx) })),

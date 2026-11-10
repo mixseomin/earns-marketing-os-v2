@@ -219,6 +219,18 @@
         3,
         9
       ]
+    },
+    "nen_lam": {
+      "ten": "Nên làm gì bây giờ",
+      "mo_ta": "cố vấn Quang (apps/etp/tu_van.py, ghi lại mỗi lượt đồng bộ 10 phút): mỗi người — hôm nay vs hôm qua / 7 ngày, thị trường cả đội cùng khung giờ, phiên tới máy mở / đóng khung nào, camp nên tắt / tăng / lên ROAS / nhân bản kèm số (bấm mở camp)",
+      "min": [
+        4,
+        5
+      ],
+      "mac": [
+        7,
+        12
+      ]
     }
   },
   "template": {
@@ -531,6 +543,33 @@
           "x": 9,
           "y": 9,
           "w": 3,
+          "h": 9
+        }
+      ]
+    },
+    "truoc_phien": {
+      "ten": "Trước phiên",
+      "muc": "15 phút trước phiên 07 · 12 · 15 · 21: từng người nên làm gì, máy sắp làm gì",
+      "o": [
+        {
+          "ma": "nen_lam",
+          "x": 0,
+          "y": 0,
+          "w": 8,
+          "h": 18
+        },
+        {
+          "ma": "bd_luat",
+          "x": 8,
+          "y": 0,
+          "w": 4,
+          "h": 9
+        },
+        {
+          "ma": "bd_lai",
+          "x": 8,
+          "y": 9,
+          "w": 4,
           "h": 9
         }
       ]

@@ -158,7 +158,7 @@ export type DuLieuEtp = { nhe?: boolean /* bản nhẹ: PhanNang cắt bớt —
 const ROAS_LAI = 75;
 if (ROAS_LAI !== BANG_LUAT.roas_lai) throw new Error('etp-doc ROAS_LAI lệch sổ luật chung roas_lai');
 /** lên ROAS sớm (Dol 09/11/2026, anh duyệt): chi 30 ngày ≥ $20 & ROI ≥ 50% — HOẶC với lãi ≥ $75; máy luật ROAS_CHI / ROAS_ROI đọc cùng sổ */
-const ROAS_LEN = BANG_LUAT.roas_len as { chi: number; roi: number };
+const ROAS_LEN = BANG_LUAT.roas_len as { chi: number; roi: number };   // ROI tính trên 3 ngày đã khép gần nhất (anh 10/11/2026)
 const n = (v: unknown) => Number(v ?? 0) || 0;
 // GỌN lop (anh 27/10/2026 "load chậm quá": lop = 1,9 MB / 3 MB dữ liệu trang, mọi tab đều phải chở):
 //  - chữ trên hình / lời nói / tóm tắt chỉ hiện trong thẻ hover tab Quét nội dung → KHÔNG gửi kèm trang; tab đó tự tải ngầm (actions/etp-cham chuCham)
@@ -331,12 +331,13 @@ async function docEtpDu(ng?: string): Promise<DuLieuEtp> {
     // HOẶC chi 30 ngày ≥ $20 & ROI ≥ 50% (Dol 09/11/2026, anh duyệt: lên ROAS sớm); hiện từ 70% chi để thấy camp sắp đủ.
     // Chuẩn Support cũ (chi ≥ $100 · ROI ≥ 50% ổn định 2–3 ngày) bỏ. 3 ngày trọn gần nhất chỉ để hiện.
     runNha<Record<string, unknown>>(sql`with t as (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay where ngay >= ${nay}::date - 29 group by 1 having sum(thu) - sum(chi) >= ${ROAS_LAI - 25} or sum(chi) >= ${ROAS_LEN.chi * 0.7}),
+        r3 as (select camp_id, sum(chi) chi, sum(thu) thu from etp.so_ngay where ngay between ${nay}::date - 3 and ${nay}::date - 1 group by 1),
         d as (select camp_id, json_agg(json_build_object('d', ngay::text, 'chi', chi, 'thu', thu) order by ngay) ngay
               from etp.so_ngay where ngay between ${nay}::date - 3 and ${nay}::date - 1 and chi >= 1 group by 1)
-      select c.camp_id, c.ten, c.ngan_sach, t.chi, t.thu, coalesce(d.ngay, '[]'::json) ngay, (t.thu - t.chi >= ${ROAS_LAI} or (t.chi >= ${ROAS_LEN.chi} and t.thu >= ${1 + ROAS_LEN.roi / 100} * t.chi)) du,
+      select c.camp_id, c.ten, c.ngan_sach, t.chi, t.thu, coalesce(d.ngay, '[]'::json) ngay, (t.thu - t.chi >= ${ROAS_LAI} or (t.chi >= ${ROAS_LEN.chi} and r3.chi > 0 and r3.thu >= ${1 + ROAS_LEN.roi / 100} * r3.chi)) du,
         (select count(*) from etp.camp x where x.ten like '%roas % duplicate by ' || c.camp_id and x.trang_thai = 'ACTIVE') da_len,
         (select case when g.duoc_len then null else coalesce(g.chan_boi, 'chưa chấm') end from etp.cham_cong g where g.creative_id = c.creative_id) chan
-      from t left join d using (camp_id) join etp.camp c using (camp_id)
+      from t left join d using (camp_id) left join r3 using (camp_id) join etp.camp c using (camp_id)
       where c.trang_thai = 'ACTIVE' and not c.la_roas order by t.thu - t.chi desc`),
     run<DuLieuEtp['baoHoa'][number]>(sql`select content_id, ten, so_camp, roi, chan_nb, bao_hoa from etp.phim_bao_hoa where chan_nb is not null or bao_hoa is not null order by so_camp desc`).catch(() => [] as DuLieuEtp['baoHoa']),
     // ⚠ nhân bản lỗi = số LƯỢT hỏng thật (phút khác nhau) — luật chặn ghi ok NULL không tính; dòng chép trùng cũ (cùng phút) gộp một (anh 27/10/2026)

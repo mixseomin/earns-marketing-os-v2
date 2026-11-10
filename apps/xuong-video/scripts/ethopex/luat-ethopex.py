@@ -114,7 +114,7 @@ KHUNG_DEM = 0 <= vn.hour < 5 and not TANG_CHOT   # ngày UTC (tang_chot) thì 0�
 LD_SIET = bool(DUYET.get("ld_siet"))
 hqua = bc(d(1), d(1))
 ROAS_LAI = 75; assert ROAS_LAI == BANG_LUAT["roas_lai"], "ROAS_LAI lệch sổ luật chung roas_lai (popup đồng hồ phim đọc sổ)"; _ngay3 = {1: hqua, 2: bc(d(2), d(2)), 3: bc(d(3), d(3))}   # lãi 30 ngày tối thiểu để lên ROAS (anh 29/10/2026) · ngày trọn D−1..D−3 chỉ để hiện
-ROAS_LEN = BANG_LUAT["roas_len"]; ROAS_CHI, ROAS_ROI = float(ROAS_LEN["chi"]), float(ROAS_LEN["roi"])   # LÊN ROAS SỚM (Dol 09/11/2026, anh duyệt): chi 30 ngày ≥ $20 & ROI ≥ 50% — HOẶC với lãi ≥ $75
+ROAS_LEN = BANG_LUAT["roas_len"]; ROAS_CHI, ROAS_ROI = float(ROAS_LEN["chi"]), float(ROAS_LEN["roi"])   # LÊN ROAS SỚM (Dol 09/11/2026, anh duyệt): chi 30 ngày ≥ $20 & ROI 3 ngày đã khép ≥ 50% (anh 10/11) — HOẶC với lãi ≥ $75
 for cid, a in sorted(thang.items()):
     h = hom.get(cid, {"chi": 0.0, "budget": a["budget"]}); r = roi(a)
     if KHUNG_DEM:
@@ -158,7 +158,8 @@ for cid, a in sorted(thang.items()):
     _co = [(n, x) for n, x in ((n, (_ngay3[n].get(cid) or {"chi": 0.0, "thu": 0.0})) for n in (1, 2, 3)) if x["chi"] >= 1]
     if a["thu"] - a["chi"] >= ROAS_LAI:
         _du_roas = f"lãi ≥ ${ROAS_LAI}"
-    elif a["chi"] >= ROAS_CHI and r is not None and r >= ROAS_ROI: _du_roas = f"chi ≥ ${ROAS_CHI:g} & ROI ≥ {ROAS_ROI:g}% (Dol 09/11)"
+    # ROI tính trên 3 NGÀY ĐÃ KHÉP gần nhất (anh 10/11/2026 "3 ngày gần nhất") — cùng số `gan` của luật NB / nắp tăng; chi = tổng 30 ngày
+    elif a["chi"] >= ROAS_CHI and (_r3r := roi(gan.get(cid) or {"chi": 0.0, "thu": 0.0})) is not None and _r3r >= ROAS_ROI: _du_roas = f"chi ≥ ${ROAS_CHI:g} & ROI 3 ngày {_r3r:+.0f}% ≥ {ROAS_ROI:g}% (Dol 09/11)"
     else: _du_roas = None
     if _du_roas:
         moc30.append((cid, f"#{a['ten'][:70]} · ${a['budget']:g}/ngày · chi ${a['chi']:.2f}, lãi ${a['thu'] - a['chi']:+.2f}, {rd(cid)} {r:+.0f}% · " + " · ".join(f"{d(n)[8:10]}/{d(n)[5:7]} {roi(x):+.0f}%" for n, x in _co) + f" → {_du_roas}: lên ROAS"))

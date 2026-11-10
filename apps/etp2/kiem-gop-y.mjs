@@ -8,7 +8,7 @@ import { join } from 'node:path';
 const GOC = new URL('../..', import.meta.url).pathname;
 const LUAT = [
   { card: 1553, tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "chay(['lam-ethopex.py', ...lenh, '--luat', luat, '--ai', AI", vi: 'bật / tắt / bậc ngân sách tay đi đúng máy Nhà lam-ethopex.py' },
-  { card: 1553, tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "spawn('python3', ['nhan-ban.py', String(campId), '--tay', ...t, '--that'", vi: 'nhân bản tay đi đúng nhan-ban.py' },
+  { card: 1553, tep: 'apps/etp2/src/lib/actions/etp-tay.ts', co: "spawn('python3', ['nhan-ban.py', String(campId), '--tay', '--anh', ...t, '--that'", vi: 'nhân bản tay đi đúng nhan-ban.py' },
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function DieuKhienCamp({ c, lon, boDs, choDs, lsDk }', vi: 'bảng điều khiển camp (⚙ cạnh ngân sách) trên tab Camp' },
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: "<DieuKhienCamp c={c} lon boDs=", vi: 'ngăn camp (điện thoại) có nút Điều khiển camp' },
   { card: 1553, tep: 'apps/etp2/src/components/etp-view.tsx', co: '<b>Ép</b>{hd ?', vi: 'ưu tiên sửa tay: ô Ép bỏ chặn mềm (chữ giải thích gập sau ℹ — YDNI 09/11/2026)' },
@@ -23,6 +23,9 @@ const LUAT = [
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', mot: 'function BangTach({ ds, so }', vi: 'widget breakdown dùng chung cho mọi ô lọc' },
   { card: 'tpl-1011', tep: 'apps/etp2/src/components/etp-tong2.tsx', co: 'rong="Bố cục tự sửa"', cam: 'rong="Bố cục đang dùng"', vi: 'ô Template ghi tên bố cục đang hiện, không ghi chung chung (anh 10/11/2026)' },
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'BO_LOC.every(([kk, f]) => kk === k || f(c))', vi: 'mỗi widget breakdown tách trên tập camp qua mọi ô lọc TRỪ ô của chính nó' },
+  { card: 'mo-1011', tep: 'apps/xuong-video/scripts/ethopex/luat-ethopex.py', co: 'if _ts: ls[-1]["mo"] = _ts_mo(cid)', vi: 'thẻ tăng bị Siết TS chặn mang mốc sớm nhất thôi chặn (anh 10/11/2026 "show thời gian sẽ áp dụng sau bao lâu")' },
+  { card: 'mo-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: 'theT.find((x) => x.mo && x.dk.every(', vi: 'chip luật tăng hiện ⏳ mốc sớm nhất của máy khi TS chặn' },
+  { card: 'mo-1011', tep: 'apps/etp2/src/lib/etp-doc.ts', co: "interval '90 minutes'", cam: "from etp.xet_luat where luc > now() - interval '30 minutes'", vi: 'thẻ máy giữ 90 phút: nhịp máy luật dài không làm trang tự tính trái máy' },
   { card: 'tach-1011', tep: 'apps/etp2/src/components/etp-view.tsx', co: "(c) => (c.ban || c.giong ? [", vi: 'loại creative có dòng con theo biến thể (PO.1, ATT.KD…)' },
 ];
 

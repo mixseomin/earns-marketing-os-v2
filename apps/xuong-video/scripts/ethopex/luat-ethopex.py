@@ -251,6 +251,20 @@ def _ts_ly(cid):
     y = hqua.get(cid); ry = roi(y) if y and y["chi"] >= 0.3 else None
     if ry is not None and 0 <= ry < TS_HQ: return f"hôm qua {ry:+.0f}% (0–{TS_HQ}%)"
     return None
+# MỐC SỚM NHẤT TS THÔI CHẶN (anh 10/11/2026 "phải show thời gian sẽ áp dụng sau bao lâu"): thẻ tăng bị TS chặn mang {luc (UTC ISO), can} → trang etp ghi ⏳ giờ + điều kiện.
+# Chặn giờ sáng → 15:00 hôm nay (nếu hôm qua cũng 0–50% thì xét tiếp như dưới). Chặn hôm qua 0–50% → khung tăng nhanh kế (hoặc ngay nhịp tới nếu đang trong khung) khi đạt nạp sáng;
+# không có khung nhanh → 07:00 hôm sau (ngày mới, "hôm qua" đổi). can = điều kiện còn phải đạt lúc đó (None = chỉ chờ giờ).
+def _ts_mo(cid):
+    can = f"chi ≥ {float(KD['nap_chi']):.0%} ngân sách + ROI hôm nay ≥ {KD['sang_roi']}%"
+    y = hqua.get(cid); ry = roi(y) if y and y["chi"] >= 0.3 else None; hq = ry is not None and 0 <= ry < TS_HQ
+    goc = vn.replace(minute=0, second=0, microsecond=0)
+    utc = lambda t: (t - dt.timedelta(hours=7)).replace(tzinfo=dt.timezone.utc).isoformat()
+    if TS_GIO[0] <= vn.hour < TS_GIO[1] and not hq: return {"luc": utc(goc.replace(hour=TS_GIO[1])), "can": None}
+    if NT.trong_nhanh(): return {"luc": utc(vn), "can": can}
+    for i in range(1, 25):
+        t = goc + dt.timedelta(hours=i)
+        if NT.trong_nhanh(t - dt.timedelta(hours=7)): return {"luc": utc(t), "can": can}
+    return {"luc": utc((goc + dt.timedelta(days=1)).replace(hour=7)), "can": f"hôm nay chốt ROI ngoài 0–{TS_HQ}%"}
 dat = [(cid, chu) for cid, chu in dat if not _ts_ly(cid)]
 # GIẢM BẬC (luật GB): chỉ trong KHUNG GIẢM / TẮT (KD.giam, 15–21h VN — anh 05/11/2026 đảo khung: tăng 21–07h, giảm/tắt 15–21h; trước: phiên sáng 6/9–13h), trên số TRỌN ngày hôm qua: ngân sách > $1, hôm qua đã tiêu ≥ 50% ngân sách, ROI hôm qua < 0% và ROI 3 ngày < 20%
 # → xuống một bậc; lỗ nặng (ROI hôm qua < −50% và tiêu đủ ngân sách) → hai bậc. ROI 0–50% là VÙNG GIỮ (không tăng, không giảm).
@@ -1232,6 +1246,7 @@ def _xet_luat():
                 ("Bộ 2: đủ luật tăng thì KHÔNG đổi ngân sách mà mở bản mới ở bậc kế (creative khác cùng phim). " if b2 else "") + f"ROI khung dài ≥ {ROI_TANG}%, spending > {sp_min:g}% ngân sách, hôm nay không lỗ, chưa ở trần. Cổng phụ: tăng cách nhau ≥ 3 giờ, sau lần giảm phải ROI ≥ 50% lại." + (f" Bộ 2: camp gốc tiêu TB ≥ ${THANG_CHI_GOC:g}/ngày 3 ngày đã khép mới mở bản thang (29/10)." if b2 else ""),
                 dk_tang, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None), ghi=_don_ghi))
             if _cho_toi: ls[-1]["cho_toi"] = _cho_toi
+            if _ts: ls[-1]["mo"] = _ts_mo(cid)   # TS chặn → mốc sớm nhất thôi chặn (trang etp ghi ⏳)
             # bộ 2 KHÔNG tăng ngân sách — đủ luật thì mở bản thang, nên cổng mở bản thang mới nằm trong bảng (anh 28/10/2026 #1464 "tăng trong ngày sao lại liên quan đến mở bản thang?": tên luật không nói điều đó)
             dk_ngay = [[NHAN_HN, f(rh, "%"), "≥ 50%", rh is not None and rh >= 50], ["Chi hôm nay", f"{(h.get('chi', 0) / ns * 100 if ns else 0):.0f}% ngân sách", "≥ 30%", bool(ns and h.get("chi", 0) >= 0.3 * ns)],
                  ["ROI hôm qua", f(ry, "%") + (f" · chi ${y['chi']:.2f}" if y else ""), f"≥ 0% · bỏ qua khi chi < ${max(HQ_NHO_MIN, HQ_NHO * ns):g}", bool(ry is None or ry >= 0 or (y and y["chi"] < max(HQ_NHO_MIN, HQ_NHO * ns)))],
@@ -1240,6 +1255,7 @@ def _xet_luat():
             ls.append(L("tang_ngay", "Tăng trong ngày → mở bản thang (bộ 2)" if b2 else "Tăng trong ngày", ("Bộ 2 không tăng ngân sách: đủ luật này thì máy MỞ BẢN MỚI ở bậc kế (creative khác cùng phim), nên phải qua cổng mở bản thang. " if b2 else "") + "ROI hôm nay (chỉ cộng các giờ tới đợt chi gần nhất) ≥ 50%, đã chi ≥ 30% ngân sách, hôm qua không âm (hôm qua âm mà chi hôm qua < max($2, 50% ngân sách) thì bỏ qua — luật B1), ROI khung dài ≥ 0% (29/10). ROI chỉ tính khi chi ≥ $0.3.",
                 dk_ngay, ("thang_nb" if int(cid) in vao["thang_nb"] else None) if b2 else ("tang" if int(cid) in vao["tang"] else None)))
             if "d" in _nhip_o and _nhip_o["d"][1] and _nhip_o["d"][0] in dk_ngay: ls[-1]["cho_toi"] = _nhip_o["d"][1]
+            if _ts: ls[-1]["mo"] = _ts_mo(cid)
             if not b2 and NT.trong_nhanh() and rh is not None and rh >= float(KD["sang_roi"]) and ns and h.get("chi", 0) >= float(KD["nap_chi"]) * ns:   # khung tăng nhanh (anh 10/11/2026)
                 ls[-1]["ghi"] = f"khung tăng nhanh (08–12h, 21–06h): ROI hôm nay ≥ {KD['sang_roi']}% + đã tiêu ≥ {float(KD['nap_chi']):.0%} ngân sách → máy tăng bậc kế ngay nhịp tới"
             # GIẢM BẬC — đã bỏ (anh 29/10/2026 "làm 1+2"): không còn trong bản xét; camp lỗ liền xem luật L3

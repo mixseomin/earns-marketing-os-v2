@@ -554,16 +554,22 @@ function ChipLuat(p: VaoLuat) {
   const chiCong = !!xT && gan1(xT);
   const don = p.c.ngan_sach > 0 && p.c.nay.chi >= KD.nap_chi * p.c.ngan_sach && p.c.nay.chi > 0 && (p.c.nay.thu - p.c.nay.chi) / p.c.nay.chi * 100 >= KD.sang_roi;   // tiêu dồn → được nạp ở khung sáng
   const lucT = xT?.ket === 'dat' || chiCong ? lucTang(hoan.luc, hoan.cu, Date.now(), chiCong ? Date.parse(xT!.cho_toi!) : 0, don) : null;
-  const chuT = lucT ? `${conLai(new Date(lucT).toISOString())} nữa · ~${new Date(lucT + 7 * 3600_000).toISOString().slice(11, 16)} VN` : null;   // máy đã đủ luật, hoãn vì khung giờ (sổ hoãn) — giờ theo hướng: tăng 21h · giảm/tắt 15h
+  const chuT = lucT ? `${conLai(new Date(lucT).toISOString())} nữa · ~${new Date(lucT + 7 * 3600_000).toISOString().slice(11, 16)} VN` : null;
+  // TĂNG BỊ SIẾT TS CHẶN → mốc sớm nhất máy thôi chặn (thẻ máy .mo, luat-ethopex _ts_mo — anh 10/11/2026 "phải show thời gian sẽ áp dụng sau bao lâu"): vàng = còn điều kiện phải đạt lúc đó
+  const xMo = lucT || cho ? undefined : theT.find((x) => x.mo && x.dk.every((d) => d[3] || /^(Siết tăng TS|Nhịp tăng)/.test(d[0])));
+  const moT = xMo?.mo ? Math.max(Date.parse(xMo.mo.luc), Date.now()) : null, moSat = moT != null && moT - Date.now() < 60_000;
+  const chuMo = moT ? (moSat ? 'nhịp máy luật tới' : `${conLai(new Date(moT).toISOString())} nữa · ~${new Date(moT + 7 * 3600_000).toISOString().slice(11, 16)} VN`) : null, chanMo = xMo?.dk.find((d) => !d[3]);   // máy đã đủ luật, hoãn vì khung giờ (sổ hoãn) — giờ theo hướng: tăng 21h · giảm/tắt 15h
   return (
     <span onMouseEnter={(e) => noi.mo({ id: 0 }, e)} onMouseLeave={noi.dongTre} style={{ cursor: 'help', display: 'inline-flex', alignItems: 'center', gap: 3, maxWidth: '100%' }}>
       {t.chinh ? <ChipO chinh={t.chinh} /> : <span style={{ color: 'var(--fg-3, #777)', padding: '0 6px' }}>…</span>}
-      {cho ? <span style={{ fontSize: 10.5, color: KHUNG_TEN.bang[2], whiteSpace: 'nowrap' }}>⏳{cho}</span> : lucT ? <span title={`máy tăng ${chuT}`} style={{ fontSize: 10.5, color: '#4ade80', whiteSpace: 'nowrap' }}>⏳{conLai(new Date(lucT).toISOString())}</span> : null}
+      {cho ? <span style={{ fontSize: 10.5, color: KHUNG_TEN.bang[2], whiteSpace: 'nowrap' }}>⏳{cho}</span> : lucT ? <span title={`máy tăng ${chuT}`} style={{ fontSize: 10.5, color: '#4ade80', whiteSpace: 'nowrap' }}>⏳{conLai(new Date(lucT).toISOString())}</span>
+        : moT ? <span title={`sớm nhất ${chuMo}${xMo!.mo!.can ? ` nếu ${xMo!.mo!.can}` : ''}`} style={{ fontSize: 10.5, color: xMo!.mo!.can ? '#facc15' : '#4ade80', whiteSpace: 'nowrap' }}>⏳{moSat ? 'nhịp tới' : conLai(new Date(moT).toISOString())}</span> : null}
       {noi.v ? <KhungNoi x={noi.v.x} y={noi.v.y} rong={R} cao={t.xet ? 520 : 300} noi={noi}><div style={{ ...(t.xet ? { width: 'max-content', minWidth: 340, maxWidth: R } : { width: R }), maxHeight: 520, overflowY: 'auto', padding: '10px 30px 10px 12px', fontSize: 12, whiteSpace: 'normal', color: 'var(--fg-1)' }}>
         {/* ĐẦU THẺ = CAMP ĐANG XÉT (anh 28/10/2026 "khi hover bảng phải kèm camp ID để còn review cùng") */}
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 6, ...(t.xet ? KHONG_GIAN : { minWidth: 0 }) }}><b style={{ fontSize: 13, color: laRoas(p.c) ? MAU_ROAS : undefined, userSelect: 'all' }}>#{p.c.camp_id}</b>
           <span title={p.c.ten ?? ''} style={{ color: 'var(--fg-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.c.ten ?? p.c.phim} · ${p.c.ngan_sach}</span></div>
         {lucT ? <div style={{ marginBottom: 6, color: '#4ade80' }}>⏳ Máy thực sự tăng sau <b>{chuT}</b> — {chiCong ? `chờ cổng nhịp tăng (${nhipT![1]}: cách lần tăng trước ≥ ${KD.nghi_gio} giờ, tiêu dồn ${KD.nghi_don_gio} giờ), rồi nhịp máy luật đầu tiên trong khung tăng` : khungLuc(gioVnNay()) === 'tang' ? 'nhịp máy luật kế' : `nhịp đầu sau khi khung tăng mở ${KD.tang[0]}:00`} (máy luật chạy {NHIP_PHUT} phút / lần, lần gần nhất {hoan.luc ? new Date(Date.parse(hoan.luc) + 7 * 3600_000).toISOString().slice(11, 16) : '—'} VN); điều kiện còn đạt lúc đó thì tăng</div> : null}
+        {moT ? <div style={{ marginBottom: 6, color: xMo!.mo!.can ? '#facc15' : '#4ade80' }}>⏳ Tăng sớm nhất <b>{chuMo}</b>{xMo!.mo!.can ? <> nếu <b>{xMo!.mo!.can}</b></> : null}{chanMo ? <span style={{ color: 'var(--fg-2)' }}> · đang chặn: {chanMo[1]}</span> : null}</div> : null}
         {cho ? <div style={{ marginBottom: 6, color: 'var(--fg-2)' }}>⏳ Luật đã đạt nhưng đang ngoài khung đổi camp — máy làm lúc <b>{cho} VN</b>. Khung: {KD.tang[0]}–{KD.tang[1]}h tăng · {KD.giam[0]}–{KD.giam[1]}h giảm / tắt · {KD.sang[0]}–{KD.sang[1]}h chỉ nạp camp đã tiêu ≥ {KD.nap_chi * 100}% ngân sách + ROI hôm nay ≥ {KD.sang_roi}%.</div> : null}
         <ThanLuat t={t} deXuat={p.deXuat} />
         {/* LỊCH SỬ ĐỔI BẬC ngay dưới bảng luật (anh 10/11/2026 "phần hover này cũng cần show thêm lịch sử tăng bậc") — cùng dòng thời gian thẻ Lịch sử bậc (DongBac) */}

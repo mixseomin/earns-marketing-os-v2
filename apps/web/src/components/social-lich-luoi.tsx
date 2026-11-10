@@ -158,13 +158,15 @@ const TEN_NEN: Record<string, string> = { facebook: 'Facebook', youtube: 'YouTub
 type KenhBang = { k: string; khoa: string; tk: string; url: string | null; may: string; nen: string[]; bai: StLuoiO[] };
 // CÂY CHỌN (anh 25/10/2026: "hiện tại đang show hết có vẻ nặng và ko tập trung — tree select nền tảng bên trái, bấm vào mới hiện danh sách bài của từng page"):
 // trái = nền tảng → kênh (gom theo TÀI KHOẢN: một Page có Reel + album + bài link là một mục), phải = bài của kênh đang chọn, chia theo ngày
-export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
+export function BangNoiDung({ luoi, kenhMo, doiKenh }: { luoi: StLuoi; kenhMo?: string; doiKenh?: (v: string) => void }) {
   // DỊCH NGÀY (anh 25/10/2026 "cho phép dịch chuyển ngày để xem các bài trước đó"): mỗi bước 7 ngày, trong khoảng sổ có (6 tuần qua → 6 tuần tới)
-  const [lech, setLech] = useState(0), [so, setSo] = useState(true), [chon, setChon] = useState<string | null>(null), [dong, setDong] = useState<Record<string, boolean>>({}), [loc, setLoc] = useState<string | null>(null), [locGoc, setLocGoc] = useState<string | null>(null);
+  const [lech, setLech] = useState(0), [so, setSo] = useState(true), [chon, datChon] = useState<string | null>(null), [dong, setDong] = useState<Record<string, boolean>>({}), [loc, setLoc] = useState<string | null>(null), [locGoc, setLocGoc] = useState<string | null>(null);
   // HAI CÁCH XEM (anh 25/10/2026: "phần bài vẫn phải show kiểu lịch… nếu cột thì phải là dạng timeline, nhưng chỉ là 1 option"):
   // lịch = lưới T2→CN hai tuần, dòng thời gian = một tuần, mỗi ngày một cột, bài đặt theo giờ đăng
   const [xem, setXem] = useState<'lich' | 'gio'>('lich'), [chiTiet, setChiTiet] = useState(false);
   // CHI TIẾT (anh 25/10/2026: "toggle view chi tiết hơn bài viết trong calendar, default vẫn gọn"): thẻ đủ — tên format, ảnh 4:3, tiêu đề 2 dòng; tắt = thẻ gọn
+  // bấm chọn kênh: ghi state VÀ đẩy mã máy ra URL (kenh_mo) để tab Kênh cùng đứng ở kênh đó
+  const chonKenh = (k: string | null) => { datChon(k); if (doiKenh) { const kk = k ? kenh.find((x) => x.k === k) : null; doiKenh(kk?.may ?? ''); } };
   const thu2 = cong(cong(luoi.hom, lech), -((new Date(`${cong(luoi.hom, lech)}T00:00:00Z`).getUTCDay() + 6) % 7));
   const ngay = Array.from({ length: xem === 'lich' ? 14 : 7 }, (_, i) => cong(thu2, i)), dau = ngay[0]!, cuoi = ngay[ngay.length - 1]!;
   const kenh = [...luoi.o.reduce((m, x) => {
@@ -174,7 +176,10 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
   }, new Map<string, KenhBang>()).values()];
   const nhom = [...kenh.reduce((m, c) => m.set(c.khoa, [...(m.get(c.khoa) ?? []), c]), new Map<string, KenhBang[]>())].sort((a, b) => a[0].localeCompare(b[0]));
   const trong = (c: KenhBang) => c.bai.filter((x) => x.ngay >= dau && x.ngay <= cuoi);
-  const c = kenh.find((x) => x.k === chon) ?? [...kenh].sort((a, b) => trong(b).length - trong(a).length)[0] ?? null;
+  // KÊNH ĐANG CHỌN theo thứ tự: người vừa bấm trong bảng này → kênh đang mở ở tab Kênh (kenh_mo, dùng chung cả tab) → kênh nhiều bài nhất.
+  // Nhờ vậy chuyển từ bảng Kênh sang Lịch đăng là đứng sẵn đúng kênh đó (anh 10/11/2026).
+  const theoMo = kenhMo ? kenh.find((x) => x.may === kenhMo || x.k.includes(kenhMo) || x.bai.some((b) => b.may === kenhMo)) : null;
+  const c = kenh.find((x) => x.k === chon) ?? theoMo ?? [...kenh].sort((a, b) => trong(b).length - trong(a).length)[0] ?? null;
   const ngayVn = (n: string) => `${THU[new Date(`${n}T00:00:00Z`).getUTCDay()]} ${n.slice(8)}/${n.slice(5, 7)}`;
   const nut = { border: '1px solid var(--border)', background: 'var(--bg-1)', color: 'inherit', borderRadius: 8, padding: '4px 10px', fontSize: 12, cursor: 'pointer' } as const;
   if (!kenh.length) return <div style={{ color: 'var(--fg-3)', fontSize: 13, margin: '8px 0' }}>Chưa có bài nào trong sổ đăng.</div>;
@@ -193,7 +198,7 @@ export function BangNoiDung({ luoi }: { luoi: StLuoi }) {
               <span style={{ flex: 1, textAlign: 'left' }}>{TEN_NEN[khoa] ?? khoa}</span>
             </button>
             {!dong[khoa] && ds.sort((a, b) => a.tk.localeCompare(b.tk)).map((x) => { const n = trong(x).length, sel = c?.k === x.k, coSo = x.bai.some((b) => b.xem != null);
-              return <button key={x.k} type="button" onClick={() => { setChon(x.k); setLoc(null); setLocGoc(null); }} aria-current={sel ? 'true' : undefined} title={`${x.may} · ${n} bài trong khoảng ngày đang xem${coSo ? ' · có lượt xem' : ''}`}
+              return <button key={x.k} type="button" onClick={() => { chonKenh(x.k); setLoc(null); setLocGoc(null); }} aria-current={sel ? 'true' : undefined} title={`${x.may} · ${n} bài trong khoảng ngày đang xem${coSo ? ' · có lượt xem' : ''}`}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px 6px 36px', border: 0, borderRadius: 7, cursor: 'pointer', textAlign: 'left', color: 'inherit', opacity: n ? 1 : .5,
                   background: sel ? 'var(--accent-soft, rgba(37,99,235,.14))' : 'transparent', fontWeight: sel ? 700 : 400 }}>
                 <span style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{x.tk}</span>

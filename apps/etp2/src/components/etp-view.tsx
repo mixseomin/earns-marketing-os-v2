@@ -14,6 +14,7 @@ import { laRoas, mucRoas, gocRoas } from '@/lib/etp-roas';
 import type { TrangPhim } from '@/lib/etp-doc';
 import { moXet, type DuLieuEtpGui } from '@/lib/etp-xet-gon';
 import { Dem, KeToan, mauLai, MAU_DANG, MA_DANG, BadgeDang, BadgeDangNgan } from '@/components/etp-so';
+import { maGiong } from '@/lib/etp-dang';
 import { lyDoChan, chuChan, type TieuChi } from '@/lib/etp-chan';
 import { openEntityDrawer } from '@/lib/entity-drawer';
 import { MenuBaCham } from '@/components/ui/menu-ba-cham';
@@ -2745,7 +2746,8 @@ export function EtpView({ du: duGui, dauVao, chiXem = false, quyen, phien, choAp
         (c) => { const ch = chipMap.get(c.camp_id); return ch ? [ch.chip, <ChipO chinh={ch} nho />] : ['Không chạm luật']; }],
       bd_dang: ['dang', (c) => [c.dang ?? 'Chưa rõ loại', c.dang ? <><BadgeDang d={c.dang} ngan /><span>{c.dang}</span></> : undefined],
         // camp không ghi bản mẫu → dòng con mang ĐÚNG tên loại cha: loại toàn camp không bản thì không xổ dòng thừa (BangTach ẩn con trùng tên cha); loại có bản thật thì phần không bản hiện "bản chưa ghi"
-        (c) => (c.ban ? [c.ban, <span style={{ fontFamily: 'var(--font-mono, monospace)' }}>{c.ban}</span>] : [c.dang ?? 'Chưa rõ loại', <span style={{ color: 'var(--fg-3, #777)' }}>bản chưa ghi</span>])],
+        // biến thể = bản mẫu + giọng đọc, ĐÚNG như huy hiệu cột LOẠI tab Camp (PO.1.KD, PO.1.T — BadgeDangNgan; anh 10/11/2026 "PO còn có những loại này cơ mà")
+        (c) => (c.ban || c.giong ? [`${c.ban ?? MA_DANG[c.dang ?? ''] ?? c.dang ?? ''}${c.giong ? `.${maGiong(c.giong)}` : ''}`, <BadgeDangNgan d={c.dang} ban={c.ban} giong={c.giong} />] : [c.dang ?? 'Chưa rõ loại', <span style={{ color: 'var(--fg-3, #777)' }}>bản chưa ghi</span>])],
       bd_ro: ['ro', (c) => (laRoas(c) ? ['★ Camp ROAS'] : ['Camp thường'])],
       bd_ab: ['ab', (c) => (c.ab ? [c.ab.ma, <><b>{c.ab.ma}</b><span style={{ color: 'var(--fg-2)' }}>{c.ab.ten}</span></>, c.ab.ma] : ['Không A/B', undefined, '￿']),
         (c) => (c.ab?.nhanh === 'thu' ? ['Thử', <span>Thử · {c.ab.nhanhTen}</span>, '1'] : ['Đối chứng', <span>Đối chứng{c.ab ? ` · ${c.ab.nhanhTen}` : ''}</span>, '2'])],

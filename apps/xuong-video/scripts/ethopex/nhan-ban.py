@@ -65,7 +65,8 @@ def _ap_gio(pl, nh):   # A/B kieu 'gio' (AB05, anh 10/11/2026 "lên 10% theo khu
     g = int(nh["gio_utc"]); bay = dt.datetime.now(dt.timezone.utc); ngay = bay.date() if bay.hour < g else bay.date() + dt.timedelta(days=1)
     ag = pl["campaign"]["ad_groups"][0]; ag["type_run"] = "custom"; ag["start_time"] = f"{ngay.isoformat()} {g:02d}:00:00"
     ag.get("source_payload", {}).pop("start_time", None)
-AP = {"nuoc": _ap_nuoc, "gio": _ap_gio}   # mỗi KIỂU A/B một hàm đặt tham số nhánh vào payload — thêm kiểu mới = thêm một dòng ở đây + một dòng etp.ab
+AP = {"nuoc": _ap_nuoc}
+AP["gio"] = _ap_gio   # mỗi KIỂU A/B một hàm đặt tham số nhánh vào payload — thêm kiểu mới = thêm một dòng ở đây + một dòng etp.ab
 def ab_ap(pl, lich, goc, moi, roas=False, cr=None):
     """SỔ A/B etp.ab (migration 0426 — anh 05/11/2026 "nhiều kiểu thử khác nhau … đặt tên lần thử này để dễ nắm bắt"): mã AB01, AB02… · kieu = biến thử · nhánh thu / doi.
     Camp nhà (không ROAS) có ngày chạy đầu trong [bat_dau, ket_thuc] của một lần A/B đang chạy → chia nhánh theo tên camp (crc32 chẵn = thu, lẻ = doi), đặt tham số nhánh vào payload.

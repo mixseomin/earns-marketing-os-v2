@@ -74,7 +74,7 @@ def _goi(duong, body=None, timeout=90):
         except Exception: than = ""
         try: j = json.loads(than); than = j.get("message") or j.get("error") or j.get("detail") or than
         except Exception: pass
-        raise urllib.error.HTTPError(e.url, e.code, f"{e.reason} · {str(than)[:300]}" if than else e.reason, e.headers, None) from None
+        raise urllib.error.HTTPError(e.url, e.code, f"{e.reason} · {str(than)[:1200]}" if than else e.reason, e.headers, None) from None
 
 _NHA, _TAO = None, set()
 _TRAN_TAO = {}   # camp vừa tạo → trần ngân sách lúc tạo (cong.ns_tao): lệnh đặt lại ngân sách ngay sau tạo không được vượt

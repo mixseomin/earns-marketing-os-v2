@@ -415,5 +415,10 @@ def main():
             r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "de-xuat-ngoai.py")], capture_output=True, text=True, timeout=1800)
             print((r.stdout or r.stderr).strip()[-300:])
     except Exception as e: print(f"de-xuat-ngoai: {e}")
+    # ── TƯ VẤN SỐNG THEO NGƯỜI (anh 10/11/2026): bản 'song' cho ô "Nên làm gì bây giờ" trên Tổng quan — mỗi lượt đồng bộ, chỉ đọc kho, không AI (~1 giây)
+    try:
+        r = subprocess.run(["python3", os.path.join(os.path.dirname(os.path.abspath(__file__)), "tu_van.py"), "--luu"], capture_output=True, text=True, timeout=120)
+        if r.returncode: print(f"tu-van: {(r.stderr or r.stdout).strip()[-300:]}")
+    except Exception as e: print(f"tu-van: {e}")
 
 if __name__ == "__main__": main()

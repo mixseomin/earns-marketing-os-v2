@@ -25,7 +25,7 @@ export function themViec(st, ds, { luc = Date.now(), topic = null, msg = null } 
   let them = 0, so = hang.reduce((a, v) => Math.max(a, v.id), 0);
   for (const c of ds) {
     if (!LOAI_SUA.test(c.khoa) || dang.has(c.khoa)) continue;
-    hang.push({ id: ++so, khoa: c.khoa, chu: c.chu, luc: new Date(luc).toISOString(), tg: { topic, msg }, tt: 'cho' }); dang.add(c.khoa); them++;
+    hang.push({ id: ++so, khoa: c.khoa, chu: c.chu, ...(c.dau ? { dau: c.dau } : {}), luc: new Date(luc).toISOString(), tg: { topic, msg }, tt: 'cho' }); dang.add(c.khoa); them++;   // dau: dấu bộ việc (Khang — không xếp lại y nguyên)
   }
   return { st: { ...st, hang: hang.slice(-200) }, them };
 }

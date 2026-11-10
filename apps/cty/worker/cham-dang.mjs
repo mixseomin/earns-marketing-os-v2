@@ -20,6 +20,7 @@ export const MOC_GOC = '2026-10-25T17:00:00Z';   // 00:00 26/10/2026 giờ VN: m
  *  Không đọc được kho spy → mọi bài có góc nhận lỗi "không kiểm được" (chặn chứ không cho qua mù). */
 import fs from 'node:fs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { loiHook, dongHookBai, soNgoaiSuThat, sachHook, CHU_VIET, chuManHinh } from '../../xuong-video/src/lib/xuong-video/hook-qc.mjs';
 async function moSpy() {
   let url = process.env.SPY_DATABASE_URL;
@@ -92,12 +93,16 @@ export async function xetHookAi(ds) {
   const khoa = (x) => `${x.ma}|${(x.goc && x.dong.every((d) => chuan(d) === chuan(x.goc)) ? [x.goc] : x.dong).map(chuan).join(' / ')}`;
   const hoi = async (x) => {
     const system = 'You check whether a social post hook borrowed from another company\'s ad fits OUR brand. Reply with ONE JSON only: {"cung_ngach":true|false,"hua_sai":true|false,"nhat":true|false,"ly_do":"one short sentence in Vietnamese"}. cung_ngach = the original ad is about the same topic and audience as our brand (a person stopped by this hook would plausibly want our brand). hua_sai = the hook as used promises something our brand does not do or a number our facts do not support. nhat = the line would NOT stop a stranger scrolling: a product label or feature list ("Birth Chart / Personal Insight", "Astrology software suite for professionals"), a sentence cut off mid-thought, or a flat statement with no curiosity, tension, situation or payoff.';
-    const user = `OUR BRAND: ${x.nhan}\nWHAT IT IS: ${x.muc_dich ?? ''}\nFACTS: ${(x.su_that ?? 'none').slice(0, 1500)}\n\n${String(x.qc).startsWith('kenh:') ? `ORIGINAL: our own channel's short that already got ${x.luot_xem ?? '?'} views: "${x.goc ?? ''}"` : String(x.qc).startsWith('yt:') ? `ORIGINAL: title of a YouTube video (not an ad) that got ${x.luot_xem ?? '?'} views: "${x.goc ?? ''}" — judge cung_ngach as: would its viewers plausibly watch our channel` : `ORIGINAL AD (opening): ${dau.get(String(x.qc)) ?? '(not found)'}`}\n\nHOOK LINES WE USE:\n${x.dong.join('\n')}`;
+    const user = `OUR BRAND: ${x.nhan}\nWHAT IT IS: ${x.muc_dich ?? ''}\nFACTS: ${(x.su_that ?? 'none').slice(0, 6000)}\n\n${String(x.qc).startsWith('kenh:') ? `ORIGINAL: our own channel's short that already got ${x.luot_xem ?? '?'} views: "${x.goc ?? ''}"` : String(x.qc).startsWith('yt:') ? `ORIGINAL: title of a YouTube video (not an ad) that got ${x.luot_xem ?? '?'} views: "${x.goc ?? ''}" — judge cung_ngach as: would its viewers plausibly watch our channel` : `ORIGINAL AD (opening): ${dau.get(String(x.qc)) ?? '(not found)'}`}\n\nHOOK LINES WE USE:\n${x.dong.join('\n')}`;
     {
       const o = await hoiNgoc({ luot: 'xet-hook', system, content: user }); if (o === undefined) return undefined;   // hỏng = không chặn, không ghi sổ (lượt sau xét lại)
       // CÙNG NGÁCH là tính chất của QC GỐC, không đổi theo câu chữ bài dùng → một (máy, QC) chỉ một kết luận (05/11/2026, Agincourt: lọc kho cho qua hook "Rextus",
       // lúc chấm bài — tiêu đề đã sửa nhẹ nên khoá câu khác — Ngọc lại chặn "khác ngách" → bài dựng xong bị SỬA LẠI). Sổ theo QC: khoá `<máy>|qc:<id>`.
-      if (chotCungNgach(daXet, khoaQc(x), o)) moi++;
+      // nguồn 'kenh:' = video thắng của CHÍNH kênh → cùng ngách theo định nghĩa. Trước đây một câu lệch chủ đề (vé máy bay) khiến Ngọc trả cung_ngach=false
+      // rồi khoá `<máy>|qc:kenh:90` = false VĨNH VIỄN → mọi hook sau lấy từ video đó bị chặn "khác ngách" dù lời Ngọc nói hook hợp (esimfares 10/11/2026).
+      // Câu lệch vẫn bị bắt ở hua_sai / nhat; không ghi sổ theo QC cho nguồn này.
+      if (String(x.qc).startsWith('kenh:')) o.cung_ngach = true;
+      else if (chotCungNgach(daXet, khoaQc(x), o)) moi++;
       const loi = [o.cung_ngach === false && 'hook mượn từ QC khác ngách', o.hua_sai === true && 'hook hứa điều thương hiệu không có', o.nhat === true && 'hook nhạt (nhãn sản phẩm / câu cụt / không gây tò mò)'].filter(Boolean);
       return loi.length ? `${loi.join(' + ')} (Ngọc: ${String(o.ly_do || '').slice(0, 140)})` : null;
     }
@@ -106,9 +111,15 @@ export async function xetHookAi(ds) {
   for (const x of ds) {
     if (!x.qc) { ra.push(null); continue; }
     const k = khoa(x);
-    if (!(k in daXet)) { const kq = await hoi(x); if (kq === undefined) { ra.push(null); continue; } daXet[k] = kq; moi++; }
+    // kết luận cũ "khác ngách" cho nguồn video thắng của kênh là chặn oan (xem trên) → hỏi lại
+    if (String(x.qc).startsWith('kenh:') && /khác ngách/.test(daXet[k] ?? '')) delete daXet[k];
+    // "HỨA SAI" phụ thuộc TỆP SỰ THẬT, không chỉ câu hook (10/11/2026, militarycalc: tệp chỉ có lương hưu / BAH trong khi site có /disability + /va-loan → mọi hook VA
+    // bị "hứa điều thương hiệu không có"; bổ sung tệp rồi sổ vẫn giữ kết luận cũ mãi). Ghi dấu tệp sự thật cạnh kết luận; tệp đổi → kết luận hứa sai xét lại.
+    const dauST = createHash('md5').update(String(x.su_that ?? '')).digest('hex').slice(0, 10);
+    if (/hứa điều thương hiệu không có/.test(daXet[k] ?? '') && daXet[`${k}#st`] !== dauST) delete daXet[k];
+    if (!(k in daXet)) { const kq = await hoi(x); if (kq === undefined) { ra.push(null); continue; } daXet[k] = kq; daXet[`${k}#st`] = dauST; moi++; }
     // kết luận cũ theo CÂU (khoá k) có trước khi QC gốc bị xếp khác ngách → vẫn chặn, kẻo lọc kho đọc sổ cũ rồi đưa lại đúng QC vừa bị chặn (Agincourt 05/11/2026)
-    ra.push(daXet[khoaQc(x)] === false && !/khác ngách/.test(daXet[k] ?? '') ? `hook mượn từ QC khác ngách (đã kết luận theo QC gốc)${daXet[k] ? ` + ${daXet[k]}` : ''}` : daXet[k]);
+    ra.push(!String(x.qc).startsWith('kenh:') && daXet[khoaQc(x)] === false && !/khác ngách/.test(daXet[k] ?? '') ? `hook mượn từ QC khác ngách (đã kết luận theo QC gốc)${daXet[k] ? ` + ${daXet[k]}` : ''}` : daXet[k]);
   }
   if (moi) { try { fs.mkdirSync(path.dirname(tepXet), { recursive: true }); fs.writeFileSync(tepXet, JSON.stringify(daXet)); } catch (e) { console.error('xet-hook: không ghi được sổ', e.message); } }
   return ra;
@@ -438,15 +449,22 @@ export function tinChamDang(kq) {
  *  Tham khảo thằng Thành (astrolas) và Huy (Ethopex)"): máy có bài CHƯA ĐĂNG, chưa cất, bị SỬA LẠI quá 1 giờ → một việc `social:sua|<máy>` vào hàng riêng của Khang
  *  (tho-may-viec.mjs, social-sua.json); Khang (apps/cty/may/social-sua.mjs, Claude Code trên iMac) làm lại bài (may-dung --lam-lai-sua) hoặc sửa gốc máy sinh rồi báo dưới tin.
  *  Một máy một việc đang chờ / đang làm (themViec không xếp đôi). Trả số việc vừa xếp. */
-export async function xepKhang(sql, { them } = {}) {
+export async function xepKhang(sql, { them, hang = null, nay = Date.now() } = {}) {
   const ds = await sql`SELECT m.ma, count(DISTINCT v.id)::int AS n, string_agg(DISTINCT regexp_replace(c, ' [(].*$', ''), ' · ') AS ly_do, string_agg(DISTINCT v.slug, ', ') AS slug
     FROM xv_may_video v JOIN xv_may m ON m.id = v.may_id LEFT JOIN LATERAL jsonb_array_elements_text(coalesce(v.cham->'chan_cung', '[]'::jsonb)) c ON true
     WHERE NOT coalesce(v.luu_tru, false) AND v.cham->>'ket' = 'SUA_LAI' AND coalesce(v.da_dang, '{}'::jsonb) = '{}'::jsonb AND (v.cham->>'luc')::timestamptz < now() - interval '1 hour'
       AND NOT coalesce(m.la_san_pham, false)   -- kênh nội dung (YNT, Astrolas) có vòng tự làm lại tập riêng (chay-kenh / chay-so-kenh) — không xếp đôi
     GROUP BY m.ma ORDER BY m.ma`;
   if (!ds.length) return 0;
-  const viec = ds.filter((x) => /^[a-z0-9-]+$/.test(x.ma)).map((x) => ({ khoa: `social:sua|${x.ma}`,
-    chu: `Máy ${x.ma}: ${x.n} bài chưa đăng bị Phòng Nội dung chặn SỬA LẠI quá 1 giờ.\nLý do: ${String(x.ly_do ?? '').slice(0, 600)}\nBài: ${String(x.slug ?? '').slice(0, 900)}` }));
+  // KHÔNG XẾP LẠI cùng một bộ bài Khang vừa trả lời (anh 10/11/2026 "Sao thằng Khang sửa hỏi lắm thế": 63 lượt / 37 lần "cần anh" — việc kết thúc là lượt chấm kế xếp lại
+  // y nguyên, Khang làm lại + hỏi lại mỗi 5 phút). Việc cùng khoá đã kết trong 24 giờ với ĐÚNG bộ bài đó (dấu = danh sách slug) → bỏ; bộ bài đổi (bài mới kẹt / bài cũ đã qua) → xếp.
+  const dau = (slug) => String(slug ?? '').split(', ').sort().join(',');
+  const daTraLoi = hang ?? (() => { try { return JSON.parse(fs.readFileSync(path.join(process.env.CTY_DATA_DIR || '/var/lib/cty', 'social-sua.json'), 'utf8')).hang ?? []; } catch { return []; } })();
+  const vuaXong = (khoa, d) => daTraLoi.some((v) => v.khoa === khoa && v.dau === d && v.xong && nay - Date.parse(v.xong) < 24 * 3600e3);
+  const viec = ds.filter((x) => /^[a-z0-9-]+$/.test(x.ma)).map((x) => ({ khoa: `social:sua|${x.ma}`, dau: dau(x.slug),
+    chu: `Máy ${x.ma}: ${x.n} bài chưa đăng bị Phòng Nội dung chặn SỬA LẠI quá 1 giờ.\nLý do: ${String(x.ly_do ?? '').slice(0, 600)}\nBài: ${String(x.slug ?? '').slice(0, 900)}` }))
+    .filter((v) => !vuaXong(v.khoa, v.dau));
+  if (!viec.length) return 0;
   if (them) return them(viec);
   const { tgNoiDung } = await import('./kiem-bai.mjs'); const { topicPhong } = await import('./tg-phong.mjs'); const { tg } = await tgNoiDung();
   const topic = await topicPhong('social-traffic', '📂 Social Traffic', tg);
@@ -482,7 +500,11 @@ if (process.argv[1]?.endsWith('cham-dang.mjs') && process.argv.includes('--tu-ki
     let ra = null; const sqlGia = async () => [{ ma: 'ratesbyroom-scam-or-real', n: 9, ly_do: 'hook mượn từ QC khác ngách', slug: 'a, b' }, { ma: 'x; rm -rf /', n: 1 }];
     await xepKhang(sqlGia, { them: (v) => { ra = v; return v.length; } });
     t.deepEqual(ra.map((x) => x.khoa), ['social:sua|ratesbyroom-scam-or-real']); t.ok(ra[0].chu.includes('9 bài') && ra[0].chu.includes('khác ngách'));
-    t.equal(await xepKhang(async () => [], { them: () => 99 }), 0, 'không có bài thì không xếp'); }
+    t.equal(await xepKhang(async () => [], { them: () => 99 }), 0, 'không có bài thì không xếp');
+    const nay = Date.parse('2026-11-10T16:00:00Z'), cu = [{ khoa: 'social:sua|ratesbyroom-scam-or-real', dau: 'a,b', xong: '2026-11-10T15:00:00Z' }];
+    t.equal(await xepKhang(sqlGia, { them: (v) => v.length, hang: cu, nay }), 0, 'cùng bộ bài vừa trả lời trong 24 giờ → không xếp lại');
+    t.equal(await xepKhang(sqlGia, { them: (v) => v.length, hang: cu, nay: nay + 25 * 3600e3 }), 1, 'quá 24 giờ → xếp lại');
+    t.equal(await xepKhang(async () => [{ ma: 'ratesbyroom-scam-or-real', n: 3, ly_do: 'x', slug: 'a, b, c' }], { them: (v) => v.length, hang: cu, nay }), 1, 'bộ bài đổi → xếp'); }
   t.ok(khongThayAnh({ ly_do: 'Không tìm thấy hình ảnh thumbnail đính kèm để đánh giá.' }) && khongThayAnh({ thay_anh: false }), 'ảnh không tới = không phải lời chấm (09/11/2026)');
   t.ok(!khongThayAnh({ ly_do: 'Không thấy lỗi nào, chủ thể rõ.' }) && !khongThayAnh(null), 'lời chấm thật vẫn giữ');
   t.ok(doBaiDang({ ...tot, de: { ket: ['MilitaryCalc', 'Xem công cụ tại militarycalc.com'] } }).chan_cung.some((x) => x.includes('trên màn')), 'chữ trên màn tiếng Việt = chặn (#740, 02/11/2026)');
